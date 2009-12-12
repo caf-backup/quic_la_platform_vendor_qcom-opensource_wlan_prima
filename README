@@ -4,6 +4,7 @@ Following instructions assume that you have a SURF/FFA loaded with Android image
 that contains the Qualcomm WLAN drivers. It also assumes that you are familiar
 with 'adb' tool and are able to log into the MSM using adb shell.
 
+
 How to load the wlan driver?
 ----------------------------
 1) adb shell 
@@ -11,6 +12,12 @@ How to load the wlan driver?
 3) insmod librasdioif.ko
 4) insmod libra.ko 
 5) If your insmod completes without any errors, WLAN driver is loaded and running.
+
+NOTE: insmod failure most likely implies that WLAN card is not detected by the Bus
+Driver. Make sure that polling is enabled on SDIO slot 3. Polling can be enabled
+from adb shell by issuing the following command.
+# echo on > /sys/power/state
+# echo 1 > /sys/devices/platform/msm_sdcc.3/polling
 
 
 How to connect to an Access point (AP) using WPA Supplicant?
