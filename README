@@ -1,0 +1,146 @@
+Instructions to load QCOM wlan driver and use Wi-Fi
+---------------------------------------------------
+Following instructions assume that you have a SURF/FFA loaded with Android image 
+that contains the Qualcomm WLAN drivers. It also assumes that you are familiar
+with 'adb' tool and are able to log into the MSM using adb shell.
+
+How to load the wlan driver?
+----------------------------
+1) adb shell 
+2) cd /system/lib/modules
+3) insmod librasdioif.ko
+4) insmod libra.ko 
+5) If your insmod completes without any errors, WLAN driver is loaded and running.
+
+
+How to connect to an Access point (AP) using WPA Supplicant?
+------------------------------------------------------------
+To connect to an AP, we need to specify the AP SSID (network name) and other 
+security params in a wpa_supplicant.conf file and copy it to /etc/wifi folder
+on the MSM running Android image.
+
+1) Create a wpa_supplicant.conf with one of the example entries mentioned below.
+2) Make sure you have modified the 'ssid' entry and other relevant params as per your AP configuration
+3) adb push wpa_supplicant.conf /etc/wifi/
+4) adb shell
+5) Run the wpa_supplicant. Use "wpa_supplicant -Dwext -iwlan0 -c/etc/wifi/wpa_supplicant.conf" command.
+6) Once the driver is connected to the AP, obtain IP address using dhcp. Use "dhcpcd -d wlan0" command.
+7) Once wlan0 interface acquires an IP address, your Wi-Fi interface is ready for use.
+8) ping < AP IP Address>.
+
+
+How to unload the wlan driver?
+------------------------------
+1) rmmod libra
+2) rmmod librasdioif 
+
+=======================================================
+
+
+# Sample wpa_supplicant.conf entry for OPEN security mode
+-----------------------------------------------------------
+
+update_config=1
+
+ctrl_interface=DIR=/data/misc/wifi/wpa_supplicant GROUP=wifi
+
+eapol_version=1
+
+ap_scan=1
+
+fast_reauth=1
+
+network={
+
+ssid="Sunnydays"
+
+key_mgmt=NONE
+
+}
+
+
+# Sample wpa_supplicant.conf entry for WEP 64 security mode
+------------------------------------------------------------
+
+update_config=1
+
+ctrl_interface=DIR=/data/misc/wifi/wpa_supplicant GROUP=wifi
+
+eapol_version=1
+
+ap_scan=1
+
+fast_reauth=1
+
+network={
+
+ssid="Sunnydays"
+
+key_mgmt=NONE
+
+wep_key0=7777777777
+
+wep_tx_keyidx=0
+
+}
+
+
+# Sample wpa_supplicant.conf entry for WPA-TKIP security mode 
+--------------------------------------------------------------
+
+update_config=1
+
+ctrl_interface=DIR=/data/misc/wifi/wpa_supplicant GROUP=wifi
+
+eapol_version=1
+
+ap_scan=1
+
+fast_reauth=1
+
+network={
+
+ssid="Sunnydays"
+
+key_mgmt=WPA-PSK
+
+proto=WPA
+
+pairwise=TKIP
+
+group=TKIP
+
+psk="1234567890"
+
+}
+
+
+# Sample wpa_supplicant.conf entry for WPA2-AES security mode
+--------------------------------------------------------------
+
+update_config=1
+
+ctrl_interface=DIR=/data/misc/wifi/wpa_supplicant GROUP=wifi
+
+eapol_version=1
+
+ap_scan=1
+
+fast_reauth=1
+
+network={
+
+ssid="Sunnydays"
+
+key_mgmt=WPA-PSK
+
+proto=RSN
+
+pairwise=CCMP
+
+group=CCMP
+
+psk="1234567890"
+
+}
+

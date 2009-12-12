@@ -1,0 +1,695 @@
+/*
+ * Airgo Networks, Inc proprietary. All rights reserved.
+ * This file parserApi.h contains the definitions used
+ * for parsing received 802.11 frames
+ * Author:        Chandra Modumudi
+ * Date:          02/11/02
+ * History:-
+ * Date           Modified by    Modification Information
+ * --------------------------------------------------------------------
+ *
+ */
+#ifndef __PARSE_H__
+#define __PARSE_H__
+
+#include <stdarg.h>
+#include "sirMacPropExts.h"
+#include "dot11f.h"
+
+#define COUNTRY_STRING_LENGTH    (  3 )
+#define COUNTRY_INFO_MAX_CHANNEL ( 84 )
+
+typedef struct sSirCountryInformation
+{
+    tANI_U8 countryString[COUNTRY_STRING_LENGTH];
+    tANI_U8 numIntervals; //number of channel intervals
+    struct channelPowerLim
+    {
+        tANI_U8 channelNumber;
+        tANI_U8 numChannel;
+        tANI_U8 maxTransmitPower;
+    } channelTransmitPower[COUNTRY_INFO_MAX_CHANNEL];
+} tSirCountryInformation,*tpSirCountryInformation;
+
+
+/// Structure common to Beaons & Probe Responses
+typedef struct sSirProbeRespBeacon
+{
+    tSirMacTimeStamp          timeStamp;
+    tANI_U16                  beaconInterval;
+    tSirMacCapabilityInfo     capabilityInfo;
+
+    tSirMacSSid               ssId;
+    tSirMacRateSet            supportedRates;
+    tSirMacRateSet            extendedRates;
+    tSirMacChanNum            channelNumber;
+    tSirMacCfParamSet         cfParamSet;
+    tSirMacTim                tim;
+    tSirMacEdcaParamSetIE     edcaParams;
+    tSirMacQosCapabilityIE    qosCapability;
+
+
+    tSirCountryInformation    countryInfoParam;
+    tSirMacWpaInfo            wpa;
+    tSirMacRsnInfo            rsn;
+
+    tSirMacErpInfo            erpIEInfo;
+
+    tSirPropIEStruct          propIEinfo;
+    tDot11fIEPowerConstraints localPowerConstraint;
+    tDot11fIETPCReport        tpcReport;
+    tDot11fIEChanSwitchAnn    channelSwitchIE;
+    tDot11fIEExtChanSwitchAnn extChannelSwitchIE;
+    tSirMacAddr               bssid;
+    tDot11fIEQuiet            quietIE;
+    tDot11fIEHTCaps           HTCaps;
+    tDot11fIEHTInfo           HTInfo;
+
+    tANI_U8                   ssidPresent;
+    tANI_U8                   suppRatesPresent;
+    tANI_U8                   extendedRatesPresent;
+    tANI_U8                   cfPresent;
+    tANI_U8                   dsParamsPresent;
+    tANI_U8                   timPresent;
+
+    tANI_U8                   edcaPresent;
+    tANI_U8                   qosCapabilityPresent;
+    tANI_U8                   wmeEdcaPresent;
+    tANI_U8                   wmeInfoPresent;
+    tANI_U8                   wsmCapablePresent;
+
+    tANI_U8                   countryInfoPresent;
+    tANI_U8                   wpaPresent;
+    tANI_U8                   rsnPresent;
+    tANI_U8                   erpPresent;
+    tANI_U8                   channelSwitchPresent;
+    tANI_U8                   extChannelSwitchPresent;
+    tANI_U8                   quietIEPresent;
+    tANI_U8                   tpcReportPresent;
+    tANI_U8                   powerConstraintPresent;
+
+} tSirProbeRespBeacon, *tpSirProbeRespBeacon;
+
+// probe Request structure
+typedef struct sSirProbeReq
+{
+    tSirMacSSid               ssId;
+    tSirMacRateSet            supportedRates;
+    tSirMacRateSet            extendedRates;
+    tDot11fIEWscProbeReq      probeReqWscIeInfo;
+    tDot11fIEHTCaps   HTCaps;
+    tANI_U8                   ssidPresent;
+    tANI_U8                   suppRatesPresent;
+    tANI_U8                   extendedRatesPresent;
+    tANI_U8                   wscIePresent;
+
+} tSirProbeReq, *tpSirProbeReq;
+
+/// Association Request structure (one day to be replaced by
+/// tDot11fAssocRequest)
+typedef struct sSirAssocReq
+{
+
+    tSirMacCapabilityInfo     capabilityInfo;
+    tANI_U16                  listenInterval;
+    tSirMacAddr               currentApAddr; /* only in reassoc frames */
+    tSirMacSSid               ssId;
+    tSirMacRateSet            supportedRates;
+    tSirMacRateSet            extendedRates;
+
+    tSirAddtsReqInfo          addtsReq;
+    tSirMacQosCapabilityStaIE qosCapability;
+
+    tSirMacWpaInfo            wpa;
+    tSirMacRsnInfo            rsn;
+
+    tSirPropIEStruct          propIEinfo;
+    tSirMacPowerCapabilityIE  powerCapability;
+    tSirMacSupportedChannelIE supportedChannels;
+    tDot11fIEHTCaps   HTCaps;
+
+    /// This is set if the frame is a reassoc request:
+    tANI_U8                   reassocRequest;
+    tANI_U8                   ssidPresent;
+    tANI_U8                   suppRatesPresent;
+    tANI_U8                   extendedRatesPresent;
+
+    tANI_U8                   wmeInfoPresent;
+    tANI_U8                   qosCapabilityPresent;
+    tANI_U8                   addtsPresent;
+    tANI_U8                   wsmCapablePresent;
+
+    tANI_U8                   wpaPresent;
+    tANI_U8                   rsnPresent;
+
+    tANI_U8                   powerCapabilityPresent;
+    tANI_U8                   supportedChannelsPresent;
+/**************** QNE updated - BEGIN **********************/
+    tSirMacWscInfo            wscInfo;
+/**************** QNE updated - END   **********************/
+} tSirAssocReq, *tpSirAssocReq;
+
+
+/// Association Response structure (one day to be replaced by
+/// tDot11fAssocRequest)
+typedef struct sSirAssocRsp
+{
+
+    tSirMacCapabilityInfo     capabilityInfo;
+    tANI_U16                  aid;
+    tANI_U16                  statusCode;
+    tSirMacRateSet            supportedRates;
+    tSirMacRateSet            extendedRates;
+    tSirPropIEStruct          propIEinfo;
+    tSirMacEdcaParamSetIE     edca;
+    tSirAddtsRspInfo          addtsRsp;
+    tDot11fIEHTCaps   HTCaps;
+    tDot11fIEHTInfo           HTInfo;
+
+    tANI_U8                   suppRatesPresent;
+    tANI_U8                   extendedRatesPresent;
+
+    tANI_U8                   edcaPresent;
+    tANI_U8                   wmeEdcaPresent;
+    tANI_U8                   addtsPresent;
+    tANI_U8                   wsmCapablePresent;
+} tSirAssocRsp, *tpSirAssocRsp;
+
+tANI_U8
+sirIsPropCapabilityEnabled(struct sAniSirGlobal *pMac, tANI_U32 bitnum);
+
+tSirRetStatus
+sirGetCfgPropCaps(struct sAniSirGlobal *, tANI_U16 *);
+
+void dot11fLog(tpAniSirGlobal pMac, int nSev, const char *lpszFormat, ...);
+
+#define CFG_GET_INT(nStatus, pMac, nItem, cfg )                 \
+    (nStatus) = wlan_cfgGetInt( (pMac), (nItem), & (cfg) );          \
+    if ( eSIR_SUCCESS != (nStatus) )                            \
+    {                                                           \
+        dot11fLog( (pMac), LOGP, FL("Failed to retrieve "       \
+                                 #nItem " from CFG (%d).\n"),   \
+                (nStatus) );                                    \
+        return nStatus;                                         \
+    }
+
+#define CFG_GET_INT_NO_STATUS(nStatus, pMac, nItem, cfg )       \
+    (nStatus) = wlan_cfgGetInt( (pMac), (nItem), & (cfg) );          \
+    if ( eSIR_SUCCESS != (nStatus) )                            \
+    {                                                           \
+        dot11fLog( (pMac), LOGP, FL("Failed to retrieve "       \
+                                 #nItem " from CFG (%d).\n"),   \
+                (nStatus) );                                    \
+        return;                                                 \
+    }
+
+#define CFG_GET_STR(nStatus, pMac, nItem, cfg, nCfg, nMaxCfg)   \
+    (nCfg) = (nMaxCfg);                                         \
+    (nStatus) = wlan_cfgGetStr( (pMac), (nItem), (cfg), & (nCfg) );  \
+    if ( eSIR_SUCCESS != (nStatus) )                            \
+    {                                                           \
+        dot11fLog( (pMac), LOGP, FL("Failed to retrieve "       \
+                                 #nItem " from CFG (%d).\n"),   \
+                (nStatus) );                                    \
+        return nStatus;                                         \
+    }
+
+#define CFG_GET_STR_NO_STATUS(nStatus, pMac, nItem, cfg, nCfg,  \
+                              nMaxCfg)                          \
+    (nCfg) = (nMaxCfg);                                         \
+    (nStatus) = wlan_cfgGetStr( (pMac), (nItem), (cfg), & (nCfg) );  \
+    if ( eSIR_SUCCESS != (nStatus) )                            \
+    {                                                           \
+        dot11fLog( (pMac), LOGP, FL("Failed to retrieve "       \
+                                 #nItem " from CFG (%d).\n"),   \
+                (nStatus) );                                    \
+        return;                                                 \
+    }
+
+void swapBitField16(tANI_U16 in, tANI_U16 *out);
+
+// Currently implemented as "shims" between callers & the new framesc-
+// generated code:
+
+tSirRetStatus
+sirConvertProbeReqFrame2Struct(struct sAniSirGlobal *pMac,
+                               tANI_U8 *frame,
+                               tANI_U32 len,
+                               tpSirProbeReq probe);
+
+tSirRetStatus
+sirConvertProbeFrame2Struct(struct sAniSirGlobal *pMac, tANI_U8 *frame,
+                            tANI_U32 len,
+                            tpSirProbeRespBeacon probe);
+
+tSirRetStatus
+sirConvertAssocReqFrame2Struct(struct sAniSirGlobal *pMac,
+                               tANI_U8 * frame,
+                               tANI_U32 len,
+                               tpSirAssocReq assoc);
+
+tSirRetStatus
+sirConvertAssocRespFrame2Struct(struct sAniSirGlobal *pMac,
+                                tANI_U8 * frame,
+                                tANI_U32 len,
+                                tpSirAssocRsp assoc);
+
+tSirRetStatus
+sirConvertReassocReqFrame2Struct(struct sAniSirGlobal *pMac,
+                                 tANI_U8 * frame,
+                                 tANI_U32 len,
+                                 tpSirAssocReq assoc);
+
+tSirRetStatus
+sirParseBeaconIE(struct sAniSirGlobal *pMac,
+                 tpSirProbeRespBeacon   pBeaconStruct,
+                 tANI_U8                    *pPayload,
+                 tANI_U32                    payloadLength);
+
+tSirRetStatus
+sirConvertBeaconFrame2Struct(struct sAniSirGlobal *pMac,
+                             tANI_U8 *pBeaconFrame,
+                             tpSirProbeRespBeacon pBeaconStruct);
+
+tSirRetStatus
+sirConvertAuthFrame2Struct(struct sAniSirGlobal *pMac,
+                           tANI_U8 * frame,
+                           tANI_U32 len,
+                           tpSirMacAuthFrameBody auth);
+
+tSirRetStatus
+sirConvertAddtsReq2Struct(struct sAniSirGlobal *pMac,
+                          tANI_U8 *frame,
+                          tANI_U32 len,
+                          tSirAddtsReqInfo *addTs);
+
+tSirRetStatus
+sirConvertAddtsRsp2Struct(struct sAniSirGlobal *pMac,
+                          tANI_U8 *frame,
+                          tANI_U32 len,
+                          tSirAddtsRspInfo *addts);
+
+tSirRetStatus
+sirConvertDeltsReq2Struct(struct sAniSirGlobal *pMac,
+                          tANI_U8 *frame,
+                          tANI_U32 len,
+                          tSirDeltsReqInfo *delTs);
+
+#ifdef ANI_SUPPORT_11H
+tSirRetStatus
+sirConvertTpcReqFrame2Struct(struct sAniSirGlobal *, tANI_U8 *,
+                             tpSirMacTpcReqActionFrame, tANI_U32);
+
+tSirRetStatus
+sirConvertMeasReqFrame2Struct(struct sAniSirGlobal *, tANI_U8 *,
+                              tpSirMacMeasReqActionFrame, tANI_U32);
+#endif
+
+
+/**
+ * \brief Populated a tDot11fFfCapabilities
+ *
+ * \sa PopulatedDot11fCapabilities2
+ *
+ *
+ * \param pMac Pointer to the global MAC datastructure
+ *
+ * \param pDot11f Address of a tDot11fFfCapabilities to be filled in
+ *
+ *
+ * \note If SIR_MAC_PROP_CAPABILITY_11EQOS is enabled, we'll clear the QOS
+ * bit in pDot11f
+ *
+ *
+ */
+
+tSirRetStatus
+PopulateDot11fCapabilities(tpAniSirGlobal         pMac,
+                           tDot11fFfCapabilities *pDot11f);
+
+/**
+ * \brief Populated a tDot11fFfCapabilities
+ *
+ * \sa PopulatedDot11fCapabilities2
+ *
+ *
+ * \param pMac Pointer to the global MAC datastructure
+ *
+ * \param pDot11f Address of a tDot11fFfCapabilities to be filled in
+ *
+ * \param pSta Pointer to a tDphHashNode representing a peer
+ *
+ *
+ * \note If SIR_MAC_PROP_CAPABILITY_11EQOS is enabled on our peer, we'll
+ * clear the QOS bit in pDot11f
+ *
+ *
+ */
+
+struct sDphHashNode;
+
+tSirRetStatus
+PopulateDot11fCapabilities2(tpAniSirGlobal         pMac,
+                            tDot11fFfCapabilities *pDot11f,
+                            struct sDphHashNode   *pSta);
+
+/// Populate a tDot11fIEChanSwitchAnn
+void
+PopulateDot11fChanSwitchAnn(tpAniSirGlobal          pMac,
+                            tDot11fIEChanSwitchAnn *pDot11f);
+
+/// Populate a tDot11fIEChanSwitchAnn
+void
+PopulateDot11fExtChanSwitchAnn(tpAniSirGlobal          pMac,
+                             tDot11fIEExtChanSwitchAnn *pDot11f);
+
+/// Populate a tDot11fIECountry
+tSirRetStatus
+PopulateDot11fCountry(tpAniSirGlobal    pMac,
+                      tDot11fIECountry *pDot11f);
+
+/// Populated a PopulateDot11fDSParams
+tSirRetStatus
+PopulateDot11fDSParams(tpAniSirGlobal     pMac,
+                       tDot11fIEDSParams *pDot11f);
+
+/// Populated a PopulateDot11fDSParams
+tSirRetStatus
+PopulateDot11fDSParams(tpAniSirGlobal     pMac,
+                       tDot11fIEDSParams *pDot11f);
+
+/// Populated a tDot11fIEEDCAParamSet
+void
+PopulateDot11fEDCAParamSet(tpAniSirGlobal         pMac,
+                           tDot11fIEEDCAParamSet *pDot11f);
+
+tSirRetStatus
+PopulateDot11fERPInfo(tpAniSirGlobal    pMac,
+                      tDot11fIEERPInfo *pDot11f);
+
+tSirRetStatus
+PopulateDot11fExtSuppRates(tpAniSirGlobal         pMac,
+                           tDot11fIEExtSuppRates *pDot11f);
+
+/**
+ * \brief Populate a tDot11fIEExtSuppRates
+ *
+ *
+ * \param pMac Pointer to the global MAC datastructure
+ *
+ * \param nChannelNum Channel on which the enclosing frame will be going out
+ *
+ * \param pDot11f Address of a tDot11fIEExtSuppRates struct to be filled in.
+ *
+ *
+ * This method is a NOP if the channel is greater than 14.
+ *
+ *
+ */
+
+tSirRetStatus
+PopulateDot11fExtSuppRates1(tpAniSirGlobal         pMac,
+                            tANI_U8                     nChannelNum,
+                            tDot11fIEExtSuppRates *pDot11f);
+
+tSirRetStatus
+PopulateDot11fHCF(tpAniSirGlobal  pMac,
+                  tANI_U32        capEnable,
+                  tDot11fIEHCF   *pDot11f);
+
+tSirRetStatus
+PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
+                             tDot11fIEHTCaps *pDot11f);
+
+tSirRetStatus
+PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
+                     tDot11fIEHTInfo *pDot11f);
+
+void
+PopulateDot11fIBSSParams(tpAniSirGlobal       pMac,
+                         tDot11fIEIBSSParams *pDot11f);
+
+#ifdef ANI_SUPPORT_11H
+tSirRetStatus
+PopulateDot11fMeasurementReport0(tpAniSirGlobal              pMac,
+                                 tpSirMacMeasReqActionFrame  pReq,
+                                 tDot11fIEMeasurementReport *pDot11f);
+
+/// Populate a tDot11fIEMeasurementReport when the report type is CCA
+tSirRetStatus
+PopulateDot11fMeasurementReport1(tpAniSirGlobal              pMac,
+                                 tpSirMacMeasReqActionFrame  pReq,
+                                 tDot11fIEMeasurementReport *pDot11f);
+
+/// Populate a tDot11fIEMeasurementReport when the report type is RPI Hist
+tSirRetStatus
+PopulateDot11fMeasurementReport2(tpAniSirGlobal              pMac,
+                                 tpSirMacMeasReqActionFrame  pReq,
+                                 tDot11fIEMeasurementReport *pDot11f);
+#endif  //ANI_SUPPORT_11H
+
+/// Populate a tDot11fIEPowerCaps
+void
+PopulateDot11fPowerCaps(tpAniSirGlobal      pMac,
+                        tDot11fIEPowerCaps *pCaps,
+                        tANI_U8 nAssocType);
+
+/// Populate a tDot11fIEPowerConstraints
+tSirRetStatus
+PopulateDot11fPowerConstraints(tpAniSirGlobal             pMac,
+                               tDot11fIEPowerConstraints *pDot11f);
+
+tSirRetStatus
+PopulateDot11fPropCapability(tpAniSirGlobal           pMac,
+                             tANI_U32                      capEnable,
+                             tDot11fIEPropCapability *pDot11f);
+
+void
+PopulateDot11fPropChannSwitchAnn(tpAniSirGlobal               pMac,
+                                 tANI_U32                          capEnable,
+                                 tDot11fIEPropChannSwitchAnn *pDot11f);
+
+void
+PopulateDot11fPropEDCAParams(tpAniSirGlobal           pMac,
+                             tANI_U16                      caps,
+                             tDot11fIEPropEDCAParams *pDot11f);
+
+tSirRetStatus
+PopulateDot11fPropSuppRates(tpAniSirGlobal          pMac,
+                            tANI_U32                     capEnable,
+                            tDot11fIEPropSuppRates *pDot11f);
+
+void
+PopulateDot11fQOSCapsAp(tpAniSirGlobal      pMac,
+                        tDot11fIEQOSCapsAp *pDot11f);
+
+void
+PopulateDot11fQOSCapsStation(tpAniSirGlobal           pMac,
+                             tDot11fIEQOSCapsStation *pDot11f);
+
+tSirRetStatus 
+PopulateDot11fRSN(tpAniSirGlobal  pMac,
+				tpSirRSNie      pRsnIe,
+                  tDot11fIERSN   *pDot11f);
+
+tSirRetStatus
+PopulateDot11fRSNOpaque( tpAniSirGlobal      pMac,
+                  tpSirRSNie      pRsnIe,
+                         tDot11fIERSNOpaque *pDot11f );
+
+/// Populate a tDot11fIESSID given a tSirMacSSid
+void
+PopulateDot11fSSID(tpAniSirGlobal pMac,
+                   tSirMacSSid   *pInternal,
+                   tDot11fIESSID *pDot11f);
+
+/// Populate a tDot11fIESSID from CFG
+tSirRetStatus
+PopulateDot11fSSID2(tpAniSirGlobal pMac,
+                    tDot11fIESSID *pDot11f);
+
+
+/**
+ * \brief Populate a tDot11fIESchedule
+ *
+ * \sa PopulateDot11fWMMSchedule
+ *
+ *
+ * \param pSchedule Address of a tSirMacScheduleIE struct
+ *
+ * \param pDot11f Address of a tDot11fIESchedule to be filled in
+ *
+ *
+ */
+
+void
+PopulateDot11fSchedule(tSirMacScheduleIE *pSchedule,
+                       tDot11fIESchedule *pDot11f);
+
+void
+PopulateDot11fSuppChannels(tpAniSirGlobal         pMac,
+                           tDot11fIESuppChannels *pDot11f,
+                           tANI_U8 nAssocType);
+
+/**
+ * \brief Populated a tDot11fIESuppRates
+ *
+ *
+ * \param pMac Pointer to the global MAC datastructure
+ *
+ * \param nChannelNum Channel the enclosing frame will be going out on; see
+ * below
+ *
+ * \param pDot11f Address of a tDot11fIESuppRates struct to be filled in.
+ *
+ *
+ * If nChannelNum is greater than 13, the supported rates will be
+ * WNI_CFG_SUPPORTED_RATES_11B.  If it is less than or equal to 13, the
+ * supported rates will be WNI_CFG_SUPPORTED_RATES_11A.  If nChannelNum is
+ * set to the sentinel value POPULATE_DOT11F_RATES_OPERATIONAL, the struct
+ * will be populated with WNI_CFG_OPERATIONAL_RATE_SET.
+ *
+ *
+ */
+
+#define POPULATE_DOT11F_RATES_OPERATIONAL ( 0xff )
+
+tSirRetStatus
+PopulateDot11fSuppRates(tpAniSirGlobal      pMac,
+                        tANI_U8                  nChannelNum,
+                        tDot11fIESuppRates *pDot11f);
+
+
+tSirRetStatus PopulateDot11fTPCReport(tpAniSirGlobal      pMac,
+                                      tDot11fIETPCReport *pDot11f);
+
+/// Populate a tDot11FfTSInfo
+void PopulateDot11fTSInfo(tSirMacTSInfo   *pInfo,
+                          tDot11fFfTSInfo *pDot11f);
+
+
+void PopulateDot11fWMM(tpAniSirGlobal      pMac,
+                       tDot11fIEWMMInfoAp *pInfo,
+                       tDot11fIEWMMParams *pParams,
+                       tDot11fIEWMMCaps   *pCaps);
+
+void PopulateDot11fWMMCaps(tDot11fIEWMMCaps *pCaps);
+
+void PopulateDot11fWMMInfoAp(tpAniSirGlobal      pMac,
+                             tDot11fIEWMMInfoAp *pInfo);
+
+void PopulateDot11fWMMInfoStation(tpAniSirGlobal           pMac,
+                                  tDot11fIEWMMInfoStation *pInfo);
+
+void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
+                             tDot11fIEWMMParams *pParams);
+
+/**
+ * \brief Populate a tDot11fIEWMMSchedule
+ *
+ * \sa PopulatedDot11fSchedule
+ *
+ *
+ * \param pSchedule Address of a tSirMacScheduleIE struct
+ *
+ * \param pDot11f Address of a tDot11fIEWMMSchedule to be filled in
+ *
+ *
+ */
+
+void
+PopulateDot11fWMMSchedule(tSirMacScheduleIE    *pSchedule,
+                          tDot11fIEWMMSchedule *pDot11f);
+
+tSirRetStatus
+PopulateDot11fWPA(tpAniSirGlobal  pMac,
+                  tpSirRSNie      pRsnIe,
+                  tDot11fIEWPA   *pDot11f);
+
+tSirRetStatus
+PopulateDot11fWPAOpaque( tpAniSirGlobal      pMac,
+                         tpSirRSNie          pRsnIe,
+                         tDot11fIEWPAOpaque *pDot11f );
+
+void
+PopulateDot11fTSPEC(tSirMacTspecIE  *pOld,
+                    tDot11fIETSPEC  *pDot11f);
+
+void
+PopulateDot11fWMMTSPEC(tSirMacTspecIE     *pOld,
+                       tDot11fIEWMMTSPEC  *pDot11f);
+
+tSirRetStatus
+PopulateDot11fTCLAS(tpAniSirGlobal  pMac,
+                    tSirTclasInfo  *pOld,
+                    tDot11fIETCLAS *pDot11f);
+
+tSirRetStatus
+PopulateDot11fWMMTCLAS(tpAniSirGlobal     pMac,
+                       tSirTclasInfo     *pOld,
+                       tDot11fIEWMMTCLAS *pDot11f);
+
+#if ( WNI_POLARIS_FW_PRODUCT == AP )
+
+tSirRetStatus
+PopulateDot11fCFParams(tpAniSirGlobal         pMac,
+                       tDot11fFfCapabilities *pCaps,
+                       tDot11fIECFParams     *pDot11f);
+
+void
+PopulateDot11fQuiet(tpAniSirGlobal  pMac,
+                    tDot11fIEQuiet *pDot11f);
+
+tSirRetStatus
+PopulateDot11fAPName(tpAniSirGlobal   pMac,
+                     tANI_U32              capEnable,
+                     tDot11fIEAPName *pDot11f);
+
+void
+PopulateDot11fPropQuietBSS(tpAniSirGlobal         pMac,
+                           tANI_U32                    capsEnable,
+                           tDot11fIEPropQuietBSS *pDot11f);
+
+void
+PopulateDot11fTrigStaBkScan(tpAniSirGlobal             pMac,
+                            tANI_U32                        capsEnable,
+                            tDot11fIETriggerStaBgScan *pDot11f);
+
+#if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
+
+tSirRetStatus
+PopulateDot11fWDS(tpAniSirGlobal  pMac,
+                  tANI_U32             capEnable,
+                  tDot11fIEWDS   *pDot11f );
+
+#endif // WNI_POLARIS_FW_PACKAGE == ADVANCED
+
+#endif // WNI_POLARIS_FW_PRODUCT == AP
+
+tSirRetStatus PopulateDot11fWsc(tpAniSirGlobal pMac,
+                                tDot11fIEWscBeacon *pDot11f);
+
+tSirRetStatus PopulateDot11fWscRegistrarInfo(tpAniSirGlobal pMac,
+                                             tDot11fIEWscBeacon *pDot11f);
+
+tSirRetStatus DePopulateDot11fWscRegistrarInfo(tpAniSirGlobal pMac,
+                                               tDot11fIEWscBeacon *pDot11f);
+
+tSirRetStatus PopulateDot11fWscInProbeRes(tpAniSirGlobal pMac,
+                                          tDot11fIEWscProbeRes *pDot11f);
+
+tSirRetStatus PopulateDot11fWscRegistrarInfoInProbeRes(tpAniSirGlobal pMac,
+                                                       tDot11fIEWscProbeRes *pDot11f);
+
+tSirRetStatus DePopulateDot11fWscRegistrarInfoInProbeRes(tpAniSirGlobal pMac,
+                                                         tDot11fIEWscProbeRes *pDot11f);
+
+tSirRetStatus PopulateDot11fWscInAssocRes(tpAniSirGlobal pMac,
+                                          tDot11fIEWscAssocRes *pDot11f);
+
+tSirRetStatus PopulateDot11fWscAssocReq( tpAniSirGlobal        pMac,
+                                         tDot11fIEWscAssocReq *pDot11f );
+
+tSirRetStatus PopulateDot11fWscProbeReq( tpAniSirGlobal        pMac,
+                                         tDot11fIEWscProbeReq *pDot11f );
+#endif
