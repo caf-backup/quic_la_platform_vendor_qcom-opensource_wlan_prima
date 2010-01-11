@@ -325,7 +325,6 @@ VOS_STATUS vos_timer_init( vos_timer_t *timer, VOS_TIMER_TYPE timerType,
    timer->type = timerType;
    timer->platformInfo.cookie = LINUX_TIMER_COOKIE;
    timer->platformInfo.threadID = 0;
-   timer->platformInfo.timerID = TMR_INVALID_ID;  
    timer->state = VOS_TIMER_STATE_STOPPED;
    
    return VOS_STATUS_SUCCESS;
@@ -453,8 +452,6 @@ VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_timer_start( vos_timer_t *timer, v_U32_t expirationTime )
 {
-   static int timerRC = 10; // some arbitrary index to start with
-   VOS_STATUS vStatus;
    unsigned long flags;
      
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH, 
@@ -481,81 +478,47 @@ VOS_STATUS vos_timer_start( vos_timer_t *timer, v_U32_t expirationTime )
    // Check if timer has expiration time less than 10 ms
    if ( expirationTime < 10 )
    {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,"%s: Cannot start a "
-          "timer with expiration less than 10 ms", __func__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: Cannot start a "
+                "timer with expiration less than 10 ms", __func__);
       VOS_ASSERT(0);
       return VOS_STATUS_E_INVAL;
    }
       
-   // Ensure if the timer can be started
+   // make sure the remainer of the logic isn't interrupted
    spin_lock_irqsave( &timer->platformInfo.spinlock,flags );
-   switch ( timer->state )
+
+   // Ensure if the timer can be started
+   if ( VOS_TIMER_STATE_STOPPED != timer->state )
    {  
-      case VOS_TIMER_STATE_STOPPED:
-         vStatus = VOS_STATUS_SUCCESS;
-         timer->state = VOS_TIMER_STATE_STARTING;
-         // This state prevents the timer from being started, stopped or destroyed
-         break;
-      case VOS_TIMER_STATE_UNUSED:
-         vStatus = VOS_STATUS_E_EXISTS;
-         break;
-      case VOS_TIMER_STATE_STARTING:
-      case VOS_TIMER_STATE_RUNNING:
-         vStatus = VOS_STATUS_E_ALREADY;
-         break;
-      default:
-         vStatus = VOS_STATUS_E_FAULT;
-         break;
-   }
-
-   spin_unlock_irqrestore( &timer->platformInfo.spinlock,flags );
-
-   if ( VOS_STATUS_SUCCESS != vStatus )
-   {
+      spin_unlock_irqrestore( &timer->platformInfo.spinlock,flags );
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN, 
                 "%s: Cannot start timer in state = %d ",__func__, timer->state);
-      return vStatus;
+      return VOS_STATUS_E_ALREADY;
    }
       
    // Start the timer
-   mod_timer( &(timer->platformInfo.Timer), jiffies + msecs_to_jiffies(expirationTime)); 
+   mod_timer( &(timer->platformInfo.Timer),
+              jiffies + msecs_to_jiffies(expirationTime)); 
 
-   spin_lock_irqsave( &timer->platformInfo.spinlock,flags );
+   timer->state = VOS_TIMER_STATE_RUNNING;
 
-   if ( VOS_TIMER_STATE_STARTING == timer->state )
+   // Get the thread ID on which the timer is being started
+   timer->platformInfo.threadID  = current->pid;
+
+   if ( VOS_TIMER_TYPE_WAKE_APPS == timer->type )
    {
-      timer->state = VOS_TIMER_STATE_RUNNING;
-      timer->platformInfo.timerID = timerRC;
-
-      // Get the thread ID on which the timer is being started
-      timer->platformInfo.threadID  = current->pid;
-
-      if ( VOS_TIMER_TYPE_WAKE_APPS == timer->type )
+      persistentTimerCount++;
+      if ( 1 == persistentTimerCount )
       {
-         persistentTimerCount++;
-         if ( 1 == persistentTimerCount )
-         {
-            // Since we now have one persistent timer, we need to disallow sleep
-            // sleep_negate_okts( sleepClientHandle );
-         }
+         // Since we now have one persistent timer, we need to disallow sleep
+         // sleep_negate_okts( sleepClientHandle );
       }
-   }
-   else 
-   {
-      // This probably occurs because of a race condition where the MM timer
-      // expires and the state is changed to STOPPED before this code is executed
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-                "%s: Could not start MM timer; timer=0x%p ",__func__, timer );
    }
 
    spin_unlock_irqrestore( &timer->platformInfo.spinlock,flags );
   
-   if ( VOS_TIMER_STATE_RUNNING == timer->state )
-   {
-      return( VOS_STATUS_SUCCESS );
-   }
-
-   return VOS_STATUS_E_FAILURE;
+   return VOS_STATUS_SUCCESS;
 }
 
 
@@ -585,9 +548,6 @@ VOS_STATUS vos_timer_start( vos_timer_t *timer, v_U32_t expirationTime )
   ------------------------------------------------------------------------*/
 VOS_STATUS vos_timer_stop ( vos_timer_t *timer )
 {
-   VOS_STATUS vStatus;
-   VOS_TIMER_TYPE type = VOS_TIMER_TYPE_SW;
-   int timerId;
    unsigned long flags;
 
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH, 
@@ -613,44 +573,24 @@ VOS_STATUS vos_timer_stop ( vos_timer_t *timer )
       
    // Ensure the timer state is correct
    spin_lock_irqsave( &timer->platformInfo.spinlock,flags );
-   switch ( timer->state )
+
+   if ( VOS_TIMER_STATE_RUNNING != timer->state )
    {
-      case VOS_TIMER_STATE_RUNNING:
-         vStatus = VOS_STATUS_SUCCESS;
-         timerId = timer->platformInfo.timerID;
-         type = timer->type;
-         timer->state = VOS_TIMER_STATE_STOPPED;
-         break;
-      case VOS_TIMER_STATE_STARTING:
-         vStatus = VOS_STATUS_E_ALREADY;
-         break;
-      case VOS_TIMER_STATE_STOPPED:
-         vStatus = VOS_STATUS_E_EMPTY;
-         break;
-      case VOS_TIMER_STATE_UNUSED:
-         vStatus = VOS_STATUS_E_EXISTS;
-         break;
-      default:
-         VOS_ASSERT(0);
-         vStatus = VOS_STATUS_E_FAULT;
-         break;
+      spin_unlock_irqrestore( &timer->platformInfo.spinlock,flags );
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
+                "%s: Cannot stop timer in state = %d",
+                __func__, timer->state);
+      return VOS_STATUS_E_FAULT;
    }
    
-   spin_unlock_irqrestore( &timer->platformInfo.spinlock,flags );
-      
-   // A stop() cannot be called on a timer object that 
-   // has NOT already started OR has expired
-   if ( VOS_STATUS_SUCCESS != vStatus )
-   {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN, "%s: Cannot stop "
-          "timer in state = %d",__func__, timer->state);
-      return vStatus;
-   }
-	   
-   tryAllowingSleep( type );
-   
+   timer->state = VOS_TIMER_STATE_STOPPED;
+
    del_timer_sync(&(timer->platformInfo.Timer));
        
+   spin_unlock_irqrestore( &timer->platformInfo.spinlock,flags );
+      
+   tryAllowingSleep( timer->type );
+   
    return VOS_STATUS_SUCCESS;
 }
 

@@ -72,7 +72,7 @@ typedef struct
     tANI_U8 bssID[MAX_MULT_BSS_IDS][6];
 }sMultipleBssTable;
 
-
+#ifndef ANI_MANF_DIAG
 typedef union
 {
     sTxIQChannel            txIQTable[NUM_DEMO_CAL_CHANNELS];               // EEPROM_TABLE_TX_IQ
@@ -98,7 +98,7 @@ typedef union
     sCalTable               calTable[NUM_RF_BANDS];                         // EEPROM_TABLE_CAL_TABLES
     
 }uEepromTables;
-
+#endif
 
 
 

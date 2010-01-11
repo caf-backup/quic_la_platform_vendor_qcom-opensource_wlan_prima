@@ -62,6 +62,7 @@
 #define HAL_PWR_SAVE_FW_FIRST_BEACON_RECEPTION_TIMEOUT_MS      20  //TO DO
 #define HAL_PWR_SAVE_FW_TX_PATH_MONITOR_TIME_MSEC               5
 #define HAL_PWR_SAVE_FW_BMPS_RF_SETTLING_TIME_CLKS             82
+#define HAL_PWR_SAVE_FW_UAPSD_DATA_RECEPTION_TIMEOUT_MS         3
 
 // Frames to be passed to host while in WOWL mode 
 #define HAL_PWR_SAVE_FW_WOWL_FRAMES_PASSED_TO_HOST        ((1<<SIR_MAC_MGMT_DISASSOC) |(1 << SIR_MAC_MGMT_DEAUTH))
@@ -89,6 +90,9 @@
 #define IS_PWRSAVE_STATE_IN_BMPS    (pMac->hal.PsParam.pwrSaveState.p.psState & HAL_PWR_SAVE_BMPS_STATE)
 #define IS_HOST_BUSY_INTR_CNTX      (pMac->hal.PsParam.mutexIntrCount)
 #define IS_HOST_BUSY_GENERIC_CNTX   (pMac->hal.PsParam.mutexCount)
+
+#define ENABLE_HEART_BEAT_IN_PS        1
+#define DISABLE_HEART_BEAT_IN_PS       0
 
 /* Function pointer for Timer expiry */
 typedef eHalStatus (*funcHalPsTimer)(tpAniSirGlobal, tANI_U16);
@@ -285,5 +289,9 @@ eHalStatus halPS_ExitWowlReq(tpAniSirGlobal pMac, tANI_U16 dialogToken);
 
 /* Control chip power up/down during power save */
 eHalStatus halPS_CtrlChipPowerDown(tpAniSirGlobal pMac, tANI_U8 enable);
+void halPSDataInActivityTimeout( tpAniSirGlobal pMac, tANI_U32 cfgId );
+void halPSFWHeartBeatCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
+void halPSBcnFilterCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
+void halPSRssiMonitorCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
 
 #endif //_HALPWRSAVE_H_

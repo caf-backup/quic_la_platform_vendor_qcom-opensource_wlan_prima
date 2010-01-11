@@ -42,7 +42,7 @@
 
 // the number of Transmit Management vos packets, used exclusively for
 // vos packet allocations of type VOS_PKT_TYPE_TX_802_11_MGMT
-#define VPKT_NUM_TX_MGMT_PACKETS (  2 )
+#define VPKT_NUM_TX_MGMT_PACKETS (  6 )
 
 // the number of Transmit Data vos packets, used exclusively for
 // vos packet allocations of type VOS_PKT_TYPE_TX_802_3_DATA or

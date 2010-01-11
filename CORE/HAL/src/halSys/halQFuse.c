@@ -21,7 +21,7 @@
 extern const sHalNv nvDefaults;
 
 
-enum 
+enum
 {
     QFUSE_NOT_BLOWN = 0,
     QFUSE_BLOWN = 1
@@ -69,7 +69,7 @@ void halQFusePackBits(tHalHandle hMac)
 
     assert(pMac->hphy.nvCache.tables.tpcConfig[0].freq == START_TPC_CHANNEL);
     assert(pMac->hphy.nvCache.tables.tpcConfig[1].freq == END_TPC_CHANNEL);
-    
+
     pMac->hphy.nvCache.tables.qFuseData.dword0_chan1_calpoint_0_pwrDetAdc       = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][0].pwrDetAdc;
     pMac->hphy.nvCache.tables.qFuseData.dword0_chan1_calpoint_0_adjustedPwrDet  = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][0].adjustedPwrDet;
     pMac->hphy.nvCache.tables.qFuseData.dword0_chan1_calpoint_1_pwrDetAdc       = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][1].pwrDetAdc;
@@ -102,7 +102,7 @@ void halQFusePackBits(tHalHandle hMac)
 static void halQFuseParseBits(tHalHandle hMac)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
-    
+
     if (halIsQFuseBlown(hMac) == eHAL_STATUS_SUCCESS)
     {
         pMac->hphy.nvCache.tables.tpcConfig[0].freq = START_TPC_CHANNEL;
@@ -113,7 +113,7 @@ static void halQFuseParseBits(tHalHandle hMac)
         pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][1].pwrDetAdc      = (tPowerDetect)pMac->hphy.nvCache.tables.qFuseData.dword0_chan1_calpoint_1_pwrDetAdc;
         pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][1].adjustedPwrDet = (tPowerDetect)pMac->hphy.nvCache.tables.qFuseData.dword0_chan1_calpoint_1_adjustedPwrDet;
         pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][2].pwrDetAdc      = (tPowerDetect)pMac->hphy.nvCache.tables.qFuseData.dword1_chan1_calpoint_2_pwrDetAdc;
-        pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][2].adjustedPwrDet = (tPowerDetect)((pMac->hphy.nvCache.tables.qFuseData.dword1_chan1_calpoint_2_adjustedPwrDet << 4) 
+        pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][2].adjustedPwrDet = (tPowerDetect)((pMac->hphy.nvCache.tables.qFuseData.dword1_chan1_calpoint_2_adjustedPwrDet << 4)
                                                                                                   | pMac->hphy.nvCache.tables.qFuseData.dword0_chan1_calpoint_2_adjustedPwrDet);
         pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][3].pwrDetAdc      = (tPowerDetect)pMac->hphy.nvCache.tables.qFuseData.dword1_chan1_calpoint_3_pwrDetAdc;
         pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][3].adjustedPwrDet = (tPowerDetect)pMac->hphy.nvCache.tables.qFuseData.dword1_chan1_calpoint_3_adjustedPwrDet;
@@ -208,7 +208,7 @@ eHalStatus halQFuseWrite(tHalHandle hMac)
     }
 
     halQFusePackBits(hMac);
-    
+
     pMac->hphy.nvCache.tables.qFuseData.dword3_sw_fuse_pgm_dsbl = QFUSE_BLOWN;    //this is cleared if we successfully burn the qfuse
 
     pattern  = (tANI_U32 *)&pMac->hphy.nvCache.tables.qFuseData;
@@ -259,13 +259,19 @@ eHalStatus halQFuseRead(tHalHandle hMac)
 eHalStatus halIsQFuseBlown(tHalHandle hMac)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
+    tANI_U32 dWord[4];
 
-    if (pMac->hphy.nvCache.tables.qFuseData.dword3_sw_fuse_pgm_dsbl == QFUSE_BLOWN)
+    palReadRegister(pMac->hHdd, QWLAN_SCU_QFUSE_EF_CONFIG_BYTE_3_REG, &dWord[0]);
+    palReadRegister(pMac->hHdd, QWLAN_SCU_QFUSE_EF_CONFIG_BYTE_2_REG, &dWord[1]);
+    palReadRegister(pMac->hHdd, QWLAN_SCU_QFUSE_EF_CONFIG_BYTE_1_REG, &dWord[2]);
+    palReadRegister(pMac->hHdd, QWLAN_SCU_QFUSE_EF_CONFIG_BYTE_0_REG, &dWord[3]);
+
+    if((dWord[0] == 0) && (dWord[1] == 0) && (dWord[2] == 0) && (dWord[3] == 0))
     {
-        return (eHAL_STATUS_SUCCESS);     //yes, its blown
+        return (eHAL_STATUS_FAILURE);     //no, unblown
     }
     else
     {
-        return (eHAL_STATUS_FAILURE);     //no, unblown
+        return (eHAL_STATUS_SUCCESS);     //yes, its blown
     }
 }

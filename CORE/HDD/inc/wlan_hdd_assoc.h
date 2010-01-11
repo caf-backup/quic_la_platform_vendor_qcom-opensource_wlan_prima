@@ -73,7 +73,7 @@ typedef struct connection_info_s
 /*Forward declaration of Adapter*/
 typedef struct hdd_adapter_s hdd_adapter_t;
 
-extern inline v_BOOL_t hdd_connIsConnected( hdd_adapter_t *pAdapter );
+extern v_BOOL_t hdd_connIsConnected( hdd_adapter_t *pAdapter );
 
 extern eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, v_U32_t roamId, 
                                 eRoamCmdStatus roamStatus, eCsrRoamResult roamResult );

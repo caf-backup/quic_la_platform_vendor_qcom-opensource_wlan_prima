@@ -952,37 +952,31 @@ eHalStatus csrScanCreateOtherChanList(tpAniSirGlobal pMac)
    if(pMac->roam.handoffInfo.handoffActivityInfo.otherChanList.ChannelList)
    {
       palFreeMemory(pMac->hHdd, pMac->roam.handoffInfo.handoffActivityInfo.otherChanList.ChannelList);
+      pMac->roam.handoffInfo.handoffActivityInfo.otherChanList.ChannelList = NULL;
    }
    
-   if(pMac->roam.pCurRoamProfile)
+   if(pMac->roam.connectedInfo.sHOScanChannelList.numChannels)
    {
-   status = palAllocateMemory(pMac->hHdd, 
-                                 (void **)&ChannelInfo.ChannelList,
-                                 pMac->roam.pCurRoamProfile->ChannelInfo.numOfChannels);
-      if(!HAL_STATUS_SUCCESS(status))
-      {
-         smsLog(pMac, LOGW, "csrScanCreateOtherChanList: couldn't allocate memory for the ChannelList\n");
-         return status;
-      }
-
-      palCopyMemory(pMac->hHdd, ChannelInfo.ChannelList, 
-                    pMac->roam.pCurRoamProfile->ChannelInfo.ChannelList,
-                              pMac->roam.pCurRoamProfile->ChannelInfo.numOfChannels);
-      ChannelInfo.numOfChannels = pMac->roam.pCurRoamProfile->ChannelInfo.numOfChannels;
+      ChannelInfo.ChannelList = pMac->roam.connectedInfo.sHOScanChannelList.channelList;
+      ChannelInfo.numOfChannels = pMac->roam.connectedInfo.sHOScanChannelList.numChannels;
 
    }
    else
    {
-      status = palAllocateMemory(pMac->hHdd, (void **)&ChannelInfo.ChannelList, 11);
-      if(!HAL_STATUS_SUCCESS(status))
+      //Get all the valid channels
+      tANI_U32 len = WNI_CFG_VALID_CHANNEL_LIST_LEN;
+
+      status = csrGetCfgValidChannels(pMac, pMac->roam.validChannelList, &len);
+      if (HAL_STATUS_SUCCESS(status))
       {
-         smsLog(pMac, LOGW, "csrScanCreateOtherChanList: couldn't allocate memory for the ChannelList\n");
+         ChannelInfo.ChannelList = pMac->roam.validChannelList;
+         ChannelInfo.numOfChannels = (tANI_U8)len;
+      }
+      else
+      {
+         smsLog(pMac, LOGE, FL("  fail to get valid channel list status = %d\n"), status);
          return status;
       }
-      ChannelInfo.numOfChannels = pMac->scan.baseChannels.numChannels;
-      palCopyMemory(pMac->hHdd, ChannelInfo.ChannelList, 
-                    pMac->scan.baseChannels.channelList,
-                    pMac->scan.baseChannels.numChannels);
 
    }
    status = palAllocateMemory(pMac->hHdd, 
@@ -1009,7 +1003,6 @@ eHalStatus csrScanCreateOtherChanList(tpAniSirGlobal pMac)
 
    }
 
-   palFreeMemory(pMac->hHdd, ChannelInfo.ChannelList);
    return eHAL_STATUS_SUCCESS;
 
 }
@@ -1029,7 +1022,7 @@ void csrScanUpdateOtherChanList(tpAniSirGlobal pMac)
          {
             if(indexOther != (pMac->roam.handoffInfo.handoffActivityInfo.otherChanList.numOfChannels - 1))
             {
-            palCopyMemory(pMac->hHdd, 
+               palCopyMemory(pMac->hHdd, 
                           pMac->roam.handoffInfo.handoffActivityInfo.otherChanList.ChannelList + indexOther,
                           pMac->roam.handoffInfo.handoffActivityInfo.otherChanList.ChannelList + indexOther + 1,
                           pMac->roam.handoffInfo.handoffActivityInfo.otherChanList.numOfChannels - indexOther - 1);
@@ -1127,15 +1120,12 @@ eHalStatus csrIssueRoamAfterLostlinkScan(tpAniSirGlobal pMac, eCsrRoamReason rea
                     csrScanResultPurge(pMac, hBSSList);
                 }
             }//Have scan result
-            if(NULL != pProfile)
-            {
-                //we need to free memory for filter if profile exists
-                csrFreeScanFilter(pMac, pScanFilter);
-            }
         }
     }while(0);
     if(pScanFilter)
     {
+        //we need to free memory for filter if profile exists
+        csrFreeScanFilter(pMac, pScanFilter);
         palFreeMemory(pMac->hHdd, pScanFilter);
     }
     if(NULL != pProfile)
@@ -1412,6 +1402,7 @@ eHalStatus csrScanRequestLostLink1( tpAniSirGlobal pMac )
     }
     if(pScanFilter)
     {
+        csrFreeScanFilter(pMac, pScanFilter);
         palFreeMemory(pMac->hHdd, pScanFilter);
     }
     if(hBSSList)
@@ -1517,6 +1508,7 @@ eHalStatus csrScanRequestLostLink2( tpAniSirGlobal pMac )
     }
     if(pScanFilter)
     {
+        csrFreeScanFilter(pMac, pScanFilter);
         palFreeMemory(pMac->hHdd, pScanFilter);
     }
     if(hBSSList)
@@ -1626,7 +1618,10 @@ eHalStatus csrScanHandleSearchForSSID(tpAniSirGlobal pMac, tSmeCmd *pCommand)
         }
     }
     if(pScanFilter)
+    {
+        csrFreeScanFilter(pMac, pScanFilter);
         palFreeMemory(pMac->hHdd, pScanFilter);
+    }
 
     return (status);
 }
@@ -1754,15 +1749,11 @@ eHalStatus csrScanHandleCapChangeScanComplete(tpAniSirGlobal pMac)
                 //Disconnect
                 csrRoamDisconnectInternal(pMac, eCSR_DISCONNECT_REASON_UNSPECIFIED);
             }
-            if(NULL != pProfile)
-            {
-                //we need to free memory for filter if profile exists
-                csrFreeScanFilter(pMac, pScanFilter);
-            }
         }
     }while(0);
     if(pScanFilter)
     {
+        csrFreeScanFilter(pMac, pScanFilter);
         palFreeMemory(pMac->hHdd, pScanFilter);
     }
     if(NULL != pProfile)
@@ -3047,6 +3038,7 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
                             pSirBssDesc->bssId[3], pSirBssDesc->bssId[4], pSirBssDesc->bssId[5]);
                         pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_TRUE;
                     }
+                    csrFreeScanFilter( pMac, &filter );
                 }
             }
             else if(csrIsConnStateConnected(pMac))
@@ -3160,6 +3152,7 @@ void csrReinitScanCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand)
     switch (pCommand->u.scanCmd.reason)
     {
     case eCsrScanSetBGScanParam:
+    case eCsrScanAbortBgScan:
         if(pCommand->u.scanCmd.u.bgScanRequest.ChannelInfo.ChannelList)
         {
             palFreeMemory(pMac->hHdd, pCommand->u.scanCmd.u.bgScanRequest.ChannelInfo.ChannelList);
@@ -3170,6 +3163,7 @@ void csrReinitScanCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand)
     case eCsrScanBGScanEnable:
     case eCsrScanGetScanChnInfo:
         break;
+    case eCsrScanAbortNormalScan:
     default:
         csrScanFreeRequest(pMac, &pCommand->u.scanCmd.u.scanRequest);
         break;
@@ -3930,7 +3924,8 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
             reason = pCommand->u.scanCmd.reason;
             switch(pCommand->u.scanCmd.reason)
             {
-            case eCsrScanAbort:
+            case eCsrScanAbortBgScan:
+            case eCsrScanAbortNormalScan:
             case eCsrScanBGScanAbort:
             case eCsrScanBGScanEnable:
                 break;
@@ -5158,8 +5153,8 @@ void csrScanRemoveBgScanReq(tpAniSirGlobal pMac)
 		pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
         reason = pCommand->u.scanCmd.reason;
         lastRoamState = pCommand->u.scanCmd.lastRoamState;
-		// If the head of the queue is Active and it is a ROAM command, remove
-		// and put this on the Free queue.
+		// If the head of the queue is Active and it is a scan command, change
+        // the reason so when the command is finished, we don't process it.
 		if ( eSmeCommandScan == pCommand->command &&
 			 (eCsrScanSetBGScanParam == reason ||
 			  eCsrScanBgScan == reason ||
@@ -5167,8 +5162,24 @@ void csrScanRemoveBgScanReq(tpAniSirGlobal pMac)
 		{
 			//we need to process the result first before removing it from active list because state changes 
 			//still happening insides roamQProcessRoamResults so no other roam command should be issued
-			smsLog(pMac, LOGW, "csrScanRemoveBgScanReq: Changing the reason code so that we can drop the rsp silently\n");
-            pCommand->u.scanCmd.reason = eCsrScanAbort;
+			smsLog(pMac, LOGW, "csrScanRemoveBgScanReq: Changing the original reason code (%d) so that we can drop the rsp silently\n", reason);
+            //Assign the right reason because different command needs different way to free resource
+            switch (reason)
+            {
+            case eCsrScanSetBGScanParam:
+                pCommand->u.scanCmd.reason = eCsrScanAbortBgScan;
+                break;
+            case eCsrScanBgScan:
+            case eCsrScanProbeBss:
+                pCommand->u.scanCmd.reason = eCsrScanAbortNormalScan;
+                break;
+            default:
+                //Should not be here because new reason should be handle above by adding new case
+                //treat it as normal scan
+                VOS_ASSERT(0);
+                pCommand->u.scanCmd.reason = eCsrScanAbortNormalScan;
+                break;
+            }
 			pMac->roam.handoffInfo.isBgScanRspPending = FALSE;
 			pMac->roam.handoffInfo.isProbeRspPending = FALSE;
 		    if(eCsrScanProbeBss == reason)
@@ -5903,6 +5914,10 @@ void csrScanUpdateHoLists(tpAniSirGlobal pMac)
 
       palZeroMemory(pMac->hHdd, pTempBssDesc, bssLen);
       palCopyMemory(pMac->hHdd, pTempBssDesc, &pBssDesc->Result.BssDescriptor, bssLen);
+      if(pStaEntry->sta.pBssDesc)
+      {
+         palFreeMemory(pMac->hHdd, pStaEntry->sta.pBssDesc);
+      }
       pStaEntry->sta.pBssDesc = pTempBssDesc;
 
 	  palCopyMemory(pMac->hHdd, &pStaEntry->sta.bssid, 
@@ -5993,11 +6008,6 @@ void csrScanUpdateHoLists(tpAniSirGlobal pMac)
        palFreeMemory( pMac->hHdd, pStaEntry);
        newEntry = FALSE;
     }
-    if(pTempBssDesc)
-    {
-       palFreeMemory(pMac->hHdd, pTempBssDesc);
-    }
-
 
    }/* while loop for scan result list */
    
@@ -6708,6 +6718,7 @@ tANI_U32 csrScanGetSecurityScore(tpAniSirGlobal pMac, tSirBssDescription *pBssDe
 
    if( pScanFilter )
    {
+      csrFreeScanFilter( pMac, pScanFilter );
       palFreeMemory( pMac->hHdd, pScanFilter );
    }
 
@@ -7016,6 +7027,7 @@ eHalStatus csrScanGetPMKIDCandidateList(tHalHandle hHal, tPmkidCandidateInfo *pP
                     }
                     csrScanResultPurge(pMac, hBSSList);
                 }//Have scan result
+                csrFreeScanFilter(pMac, pScanFilter);
             }
             palFreeMemory(pMac->hHdd, pScanFilter);
         }

@@ -20,6 +20,7 @@
 #include "vos_types.h" 
 #include "halInternal.h"
 #include "halTLApi.h"
+#include "halFwApi.h"
 #include "halDebug.h"
 #include "halUtils.h"
 #include "cfgApi.h"
@@ -64,6 +65,11 @@ eHalStatus halTLApiInit(tpAniSirGlobal pMac, void* arg)
     } else {
         status = eHAL_STATUS_SUCCESS;
     }
+
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+    // WQ to be used for filling the TxBD
+    pMac->hal.halMac.dpuRF = BMUWQ_BTQM_TX_MGMT;
+#endif //FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
 
     // Initialize the TL suspend timed out flag to false.
     pMac->hal.TLParam.txSuspendTimedOut = FALSE;
@@ -544,7 +550,19 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
      */
     
     pBd->bdt   = HWBD_TYPE_GENERIC;
-    pBd->dpuRF = BMUWQ_BTQM_TX_MGMT; 
+
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+    // Route all trigger enabled frames to FW WQ, for FW to suspend trigger frame generation 
+    // when no traffic is exists on trigger enabled ACs
+    if(txFlag & HAL_TRIGGER_ENABLED_AC_MASK) {
+        pBd->dpuRF = pMac->hal.halMac.dpuRF;
+    } else 
+#endif //FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+    {
+        pBd->dpuRF = BMUWQ_BTQM_TX_MGMT;
+    }
+
+
     pBd->tid   = tid; 
     pBd->fwTxComplete0 = 0;
     pBd->txComplete1 = (txFlag & HAL_TXCOMP_REQUESTED_MASK) ? 1 : 0; /* This bit is for host to register TxComplete Interrupt */
@@ -854,3 +872,65 @@ void halTLRSSINotification(tpAniSirGlobal pMac, tpSirRSSINotification pRSSINotif
 #endif
     return;
 }
+
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+/*
+ * DESCRIPTION:
+ *      Update the FW system config with the paramters for the particular AC, 
+ *      when UAPSD session is added for a given AC.
+ *
+ * PARAMETERS:
+ *      pvosGCtx:   pointer to the global vos context;a handle to HAL's 
+ *                  control block can be extracted from its context 
+ *      staIdx:     Station index
+ *      pUapsdInfo: pointer to the UAPSD paramters for a given AC.
+ *
+ * RETURN:
+ *      VOS_STATUS_SUCCESS
+ *      VOS_STATUS_E_FAILURE
+ */
+VOS_STATUS WLANHAL_EnableUapsdAcParams(void* pVosGCtx, tANI_U8 staIdx, tUapsdInfo *pUapsdInfo)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_HAL, (v_CONTEXT_t) pVosGCtx);
+    tHalFwParams *pFw = &pMac->hal.FwParam;
+    Qwlanfw_SysCfgType *pFwConfig;
+    eHalStatus status = eHAL_STATUS_FAILURE;
+
+    pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
+
+    pFwConfig->acParam[pUapsdInfo->ac].usSrvIntrMs  = pUapsdInfo->srvInterval;
+    pFwConfig->acParam[pUapsdInfo->ac].ucUp         = pUapsdInfo->up;
+    pFwConfig->acParam[pUapsdInfo->ac].uSuspIntrMs  = pUapsdInfo->susInterval;
+    pFwConfig->acParam[pUapsdInfo->ac].uDelayIntrMs = pUapsdInfo->delayInterval;
+
+    // Write the UAPSD params in the sysConfig
+    status = halFW_UpdateSystemConfig(pMac,pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig, sizeof(*pFwConfig));
+    if (status != eHAL_STATUS_SUCCESS) {
+        HALLOGE(halLog(pMac, LOGE, FL("FW system config update FAILED!")));
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    return VOS_STATUS_SUCCESS;
+}
+
+/*
+ * DESCRIPTION:
+ *      Update the FW system config with the paramters for the particular AC,
+ *      when UAPSD session is deleted.
+ *
+ * PARAMETERS:
+ *      pvosGCtx:   pointer to the global vos context;a handle to HAL's 
+ *                  control block can be extracted from its context 
+ *      staIdx:     Station index
+ *      ac:         access category for which UAPSD is being disabled.
+ *
+ * RETURN:
+ *      VOS_STATUS_SUCCESS
+ *      VOS_STATUS_E_FAILURE
+ */
+VOS_STATUS WLANHAL_DisableUapsdAcParams(void* pVosGCtx, tANI_U8 staIdx, tANI_U8 ac)
+{
+    return VOS_STATUS_SUCCESS;
+}
+
+#endif //FEATURE_WLAN_UAPSD_FW_TRG_FRAMES

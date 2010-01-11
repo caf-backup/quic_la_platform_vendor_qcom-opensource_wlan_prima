@@ -68,10 +68,12 @@ typedef enum eSmeState
 {
     SME_STATE_STOP,
     SME_STATE_START,
+    SME_STATE_READY,
 } eSmeState;
 
 
 #define SME_IS_START(pMac)  (SME_STATE_STOP != (pMac)->sme.state)
+#define SME_IS_READY(pMac)  (SME_STATE_READY == (pMac)->sme.state)
 
 
 typedef struct tagSmeStruct

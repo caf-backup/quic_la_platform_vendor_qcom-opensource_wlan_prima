@@ -31,7 +31,7 @@
 
 // FW system config memory map
 #define QWLAN_FW_SYS_CONFIG_MMAP_OFFSET  0x1200
-#define QWLAN_FW_SYS_CONFIG_MMAP_SIZE    128
+#define QWLAN_FW_SYS_CONFIG_MMAP_SIZE    256
 
 /* Increased this value for FPGA. Hence TBD*/
 

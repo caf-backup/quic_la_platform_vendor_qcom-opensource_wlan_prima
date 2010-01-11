@@ -314,7 +314,9 @@ __limProcessSmeSysReadyInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     msg.bodyval = 0;
 
 #ifdef VOSS_ENABLED
+#ifndef ANI_MANF_DIAG
 	peRegisterTLHandle(pMac);
+#endif
 #endif
     PELOGW(limLog(pMac, LOGW, FL("sending SIR_HAL_SYS_READY_IND msg to HAL\n"));)
     MTRACE(macTraceMsgTx(pMac, 0, msg.type));
@@ -1438,6 +1440,14 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
          */
         limLog(pMac, LOGP, FL("could not retrieve ListenInterval\n"));
     }
+
+    /* Delete all BA sessions before Re-Assoc.
+     *  BA frames are class 3 frames and the session 
+     *  is lost upon disassociation and reassociation.
+     */
+
+    limDelAllBASessions(pMac);
+
     pMlmReassocReq->listenInterval = (tANI_U16) val;
 
     pMac->lim.gLimPrevSmeState = pMac->lim.gLimSmeState;

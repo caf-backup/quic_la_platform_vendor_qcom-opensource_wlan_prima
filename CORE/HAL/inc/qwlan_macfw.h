@@ -65,6 +65,7 @@ enum {
 #define QWLANFW_MBOX_MSG_VER                                    0
 #define QWLANFW_MBOX_MSG_LENGTH                               256
 #define QWLANFW_MAGIC_PCKT_PTTRN_ID                             8 
+#define QWLANFW_MAX_AC                                        0x4
 /*===========================================================================
   FW MEMORY MAP
 ===========================================================================*/
@@ -257,6 +258,15 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_WLAN_EVENT_HANDLER_NEW_MODE        (QWLANFW_LOG_CODE_MSG_BASE + 0x33)
 #define QWLANFW_LOG_CODE_RA_UPDATE_MSG_HANDLER              (QWLANFW_LOG_CODE_MSG_BASE + 0x34)
 
+#define QWLANFW_LOG_CODE_BT_ACL_CREATE_CONN                 (QWLANFW_LOG_CODE_MSG_BASE + 0x40)
+#define QWLANFW_LOG_CODE_BT_ACL_CONN_COMPLETE               (QWLANFW_LOG_CODE_MSG_BASE + 0x41)
+#define QWLANFW_LOG_CODE_BT_SCO_CREATE_CONN                 (QWLANFW_LOG_CODE_MSG_BASE + 0x42)
+#define QWLANFW_LOG_CODE_BT_SCO_CONN_COMPLETE               (QWLANFW_LOG_CODE_MSG_BASE + 0x43)
+#define QWLANFW_LOG_CODE_BT_SCO_CONN_UPDATE                 (QWLANFW_LOG_CODE_MSG_BASE + 0x44)
+#define QWLANFW_LOG_CODE_BT_DISCONNECT                      (QWLANFW_LOG_CODE_MSG_BASE + 0x45)
+#define QWLANFW_LOG_CODE_BT_ACL_CONN_UPDATE                 (QWLANFW_LOG_CODE_MSG_BASE + 0x46)
+
+
 /* log codes for interrupt handling
    (QWLANFW_LOG_EVENT_TYPE_INTR_HANDLING) 
 */
@@ -335,13 +345,13 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_BMPS_PWR_DOWN_PWR_DOWN_POSTPONED   (QWLANFW_LOG_CODE_JOB_BASE + 0x23)
 #define QWLANFW_LOG_CODE_BMPS_PWR_DOWN_BMPS_CANCELLED       (QWLANFW_LOG_CODE_JOB_BASE + 0x24)
 #define QWLANFW_LOG_CODE_ENTER_BMPS_STATE_CHANGE_TIMEOUT    (QWLANFW_LOG_CODE_JOB_BASE + 0x25)
-#define QWLANFW_LOG_CODE_EXIT_BMPS_STATE_CHANGE_TIMEOUT     (QWLANFW_LOG_CODE_JOB_BASE + 0x25)
-#define QWLANFW_LOG_CODE_SUSP_BMPS_STATE_CHANGE_TIMEOUT     (QWLANFW_LOG_CODE_JOB_BASE + 0x25)
-#define QWLANFW_LOG_CODE_BMPS_PWR_DOWN_BCN_MISS             (QWLANFW_LOG_CODE_JOB_BASE + 0x26)
-#define QWLANFW_LOG_CODE_BPS_MODE_TIMEOUT_ERR_DIFF_VAL      (QWLANFW_LOG_CODE_JOB_BASE + 0x27)
-#define QWLANFW_LOG_CODE_ERR_RPE_FLUSH                      (QWLANFW_LOG_CODE_JOB_BASE + 0x28)
-#define QWLANFW_LOG_CODE_BMPS_PWR_DOWN_ERR_HOST_INTR        (QWLANFW_LOG_CODE_JOB_BASE + 0x29)
-#define QWLANFW_LOG_CODE_BTC_FAILED_PM_TRANSITION           (QWLANFW_LOG_CODE_JOB_BASE + 0x2a)
+#define QWLANFW_LOG_CODE_EXIT_BMPS_STATE_CHANGE_TIMEOUT     (QWLANFW_LOG_CODE_JOB_BASE + 0x26)
+#define QWLANFW_LOG_CODE_SUSP_BMPS_STATE_CHANGE_TIMEOUT     (QWLANFW_LOG_CODE_JOB_BASE + 0x27)
+#define QWLANFW_LOG_CODE_BMPS_PWR_DOWN_BCN_MISS             (QWLANFW_LOG_CODE_JOB_BASE + 0x28)
+#define QWLANFW_LOG_CODE_BPS_MODE_TIMEOUT_ERR_DIFF_VAL      (QWLANFW_LOG_CODE_JOB_BASE + 0x29)
+#define QWLANFW_LOG_CODE_ERR_RPE_FLUSH                      (QWLANFW_LOG_CODE_JOB_BASE + 0x2a)
+#define QWLANFW_LOG_CODE_BMPS_PWR_DOWN_ERR_HOST_INTR        (QWLANFW_LOG_CODE_JOB_BASE + 0x2b)
+#define QWLANFW_LOG_CODE_BTC_FAILED_PM_TRANSITION           (QWLANFW_LOG_CODE_JOB_BASE + 0x2c)
 
 /* log codes for init
    (QWLANFW_LOG_EVENT_TYPE_INIT) 
@@ -417,6 +427,22 @@ typedef struct {
 /* divide by size of entries in CorexLog_LogDescType.aBuffer */
 #define FEATURE_WLANFW_COREX_LOG_BUFFER_ENTRY_WORD_SIZE \
    (sizeof(CorexLog_EntryType)/sizeof(tANI_U32))
+
+typedef struct {
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32  usSrvIntrMs   : 16;
+   tANI_U32  ucUp          : 8;
+   tANI_U32  bReserved     : 8;
+#else
+   tANI_U32  bReserved     : 8;
+   tANI_U32  ucUp          : 8;
+   tANI_U32  usSrvIntrMs   : 16;
+#endif
+
+   tANI_U32  uSuspIntrMs;
+   tANI_U32  uDelayIntrMs;
+
+} UapsdAcParamType;
 
 /*==========================================================================
   STATUS MESSAGE INFO STRUCT
@@ -736,12 +762,17 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32  ucMaxBss:8;               
    tANI_U32  ucMaxSta:8;               
-   tANI_U32  bReserved11:16;            
+   tANI_U32  ucDpuSig:8;
+   tANI_U32  ucDpuIdx:8;            
 #else
-   tANI_U32  bReserved11:16;
+   tANI_U32  ucDpuIdx:8;
+   tANI_U32  ucDpuSig:8;
    tANI_U32  ucMaxSta:8;
    tANI_U32  ucMaxBss:8;
-#endif   
+#endif
+
+   UapsdAcParamType acParam[QWLANFW_MAX_AC];
+
 } Qwlanfw_SysCfgType;
 
 /*===========================================================================
@@ -1288,6 +1319,8 @@ typedef enum eHalMacRate
 typedef PACKED_PRE struct PACKED_POST sRateAdaptSamplingTable {
     tANI_U8 sampleRate[RA_SAMPLING_RATES_MAX];
 } tRateAdaptSamplingTable, *tpRateAdaptSamplingTable;
+
+#define RA_GOODPERTHRESH_SENSITIVITY_TABLE_SIZE  10
 /*
  * how to set the retry rates
  */
@@ -1394,7 +1427,8 @@ typedef PACKED_PRE struct PACKED_POST sHalRaInfo {
 #endif
 
 #ifdef ANI_BIG_BYTE_ENDIAN
-    tANI_U8         reserved1[2];
+    tANI_U8         reserved1;
+    tANI_U8         minDataRateIdx;    /* Min Data Rate for this STA */
     tANI_U8         staType;
     tANI_U8         reserved2:1;
     tANI_U8         gfEnabled:1;
@@ -1414,7 +1448,8 @@ typedef PACKED_PRE struct PACKED_POST sHalRaInfo {
     tANI_U8         gfEnabled:1;
     tANI_U8         reserved2:1;
     tANI_U8         staType;
-    tANI_U8         reserved1[2];
+    tANI_U8         minDataRateIdx;    /* Min Data Rate for this STA */
+    tANI_U8         reserved1;
 #endif /* ANI_BIG_BYTE_ENDIAN */
 
     /* Previously reported Tx stats */
@@ -1552,6 +1587,21 @@ typedef PACKED_PRE struct PACKED_POST sHalRaGlobalInfo
    tANI_S16  betterRateMaxSensDiff;
    tANI_S16  lowerRateMinSensDiff;
 #endif
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U8   min11nRateIdx;            /* Minimum 11N rate for RA to adapt to (in MBps) */
+   tANI_U8   min11gRateIdx;            /* Minimum 11G rate for RA to adapt to (in MBps) */
+   tANI_U8   min11bRateIdx;            /* Minimum 11B rate for RA to adapt to (in MBps) */
+   tANI_U8   rsvd1;
+#else
+   tANI_U8   rsvd1;
+   tANI_U8   min11bRateIdx;            /* Minimum 11B rate for RA to adapt to (in MBps) */
+   tANI_U8   min11gRateIdx;
+   tANI_U8   min11nRateIdx;
+#endif
+    /* if more elements are needed, insert here */
+    tANI_U8   goodPerThreshBySensitivity[CEIL_ALIGN(RA_GOODPERTHRESH_SENSITIVITY_TABLE_SIZE,4)];
+    /* don't append at tail */
 } tHalRaGlobalInfo, *tpHalRaGlobalInfo;
 
 /*===========================================================================
@@ -1892,6 +1942,8 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_EnterUapsdStruct
    tANI_U32             bBeAcDeliveryEnable : 1;
    tANI_U32             bBcAcDeliveryEnable : 1;
 #endif
+
+
 } Qwlanfw_EnterUapsdType;
 
 /**
@@ -1901,7 +1953,6 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_EnterUapsdStruct
 typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_ExitUapsdStruct
 {
    Qwlanfw_CtrlMsgType  hdr;
-   /*Currently nothing to pass to FW */
 } Qwlanfw_ExitUpasdType;
 
 /**

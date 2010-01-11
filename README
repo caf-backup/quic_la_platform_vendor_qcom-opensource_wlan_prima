@@ -1,27 +1,43 @@
-Instructions to load QCOM wlan driver and use Wi-Fi
----------------------------------------------------
+1. Instructions to load QCOM wlan driver and use Wi-Fi using adb
+----------------------------------------------------------------
 Following instructions assume that you have a SURF/FFA loaded with Android image 
 that contains the Qualcomm WLAN drivers. It also assumes that you are familiar
 with 'adb' tool and are able to log into the MSM using adb shell.
 
 
-How to load the wlan driver?
-----------------------------
+2. How to load the wlan driver using adb shell?
+-----------------------------------------------
+Before starting WLAN using adb shell (or even Wi-Fi GUI), make sure SDIO
+polling is enabled on the SDIO slot used by WLAN (see section 4 for more info)
 1) adb shell 
 2) cd /system/lib/modules
 3) insmod librasdioif.ko
 4) insmod libra.ko 
 5) If your insmod completes without any errors, WLAN driver is loaded and running.
 
-NOTE: insmod failure most likely implies that WLAN card is not detected by the Bus
-Driver. Make sure that polling is enabled on SDIO slot 3. Polling can be enabled
-from adb shell by issuing the following command.
+
+3. Why insmod of WLAN driver fails sometimes?
+---------------------------------------------
+insmod failure most likely implies that WLAN card is not detected by the SD Bus
+Driver due to SDIO polling not enabled on approrpiate SDIO slot. SDIO slot 
+used by WLAN varies depending on MSM target. SDIO Slots being used by WLAN are:
+a) 7x30 SURF, 7x30 FFA - SDIO slot 3
+b) 7x27 SURF - SDIO slot 1
+c) 7x27 FFA - SDIO slot 2
+
+
+4. How can I enable SDIO polling?
+---------------------------------
+SDIO Polling can be enabled from adb shell using the following command where 'N'
+is the SDIO slot number used by WLAN.
 # echo on > /sys/power/state
-# echo 1 > /sys/devices/platform/msm_sdcc.3/polling
+# echo 1 > /sys/devices/platform/msm_sdcc.N/polling
+SDIO polling can also be enabled from "Qualcomm Settings" GUI application on the
+SURF/FFA
 
 
-How to connect to an Access point (AP) using WPA Supplicant?
-------------------------------------------------------------
+5. How to connect to an Access point (AP) using WPA Supplicant?
+---------------------------------------------------------------
 To connect to an AP, we need to specify the AP SSID (network name) and other 
 security params in a wpa_supplicant.conf file and copy it to /etc/wifi folder
 on the MSM running Android image.
@@ -36,12 +52,13 @@ on the MSM running Android image.
 8) ping < AP IP Address>.
 
 
-How to unload the wlan driver?
-------------------------------
+6. How to unload the wlan driver using adb shell?
+-------------------------------------------------
 1) rmmod libra
 2) rmmod librasdioif 
 
-=======================================================
+
+===============================================================================================
 
 
 # Sample wpa_supplicant.conf entry for OPEN security mode

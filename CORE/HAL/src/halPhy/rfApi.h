@@ -5,12 +5,12 @@
    This program is the confidential and proprietary product of Airgo Networks Inc.
    Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
-  
+
    rfApi.h: All RF chip functions
    Author:  Mark Nelson
    Date:    2/18/05
 
-   History - 
+   History -
    Date        Modified by              Modification Information
   --------------------------------------------------------------------------
 
@@ -25,12 +25,12 @@
 #include "sys_defs.h"
 
 #ifdef __cplusplus
-extern "C" 
+extern "C"
 {
 #endif
 
 
-#ifdef ANI_PHY_DEBUG
+#if defined(ANI_PHY_DEBUG) || defined(ANI_MANF_DIAG)
 #define MAX_RF_STR_SIZE 70
 extern const char rfFieldStr[NUM_RF_FIELDS][MAX_RF_STR_SIZE];
 #define DUMP_RF_FIELD(fieldId) \
@@ -64,7 +64,7 @@ eRfChannels rfGetChannelIndex(tANI_U8 chanNum, ePhyChanBondState cbState);
 tANI_U8 rfGetChannelIdFromIndex(eRfChannels chIndex);
 
 
-#ifdef ANI_PHY_DEBUG
+#if defined(ANI_PHY_DEBUG) || defined(ANI_MANF_DIAG)
 eHalStatus rfSetDCOffset(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 dcoIndex, tRxDcoCorrect offset);
 eHalStatus rfGetDCOffset(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 dcoIndex, tRxDcoCorrect *offset);
 eHalStatus rfGetTxLoCorrect(tpAniSirGlobal pMac, ePhyTxChains txChain, eGainSteps txGain, tTxLoCorrect *corr);

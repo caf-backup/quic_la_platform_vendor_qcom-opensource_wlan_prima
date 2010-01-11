@@ -5,7 +5,7 @@
 /******************************************************************************
  * pttSocketApp.c
  *
- * This file implements the Netlink Proxy Server. It listens for MAC SW 
+ * This file implements the Netlink Proxy Server. It listens for MAC SW
  * messages generated from a test script(Perl/Python) at a remote host,
  * over a TCP/IP connection and translates them into the corresponding
  * Netlink messages to be sent to the HDD/MAC SW.
@@ -13,7 +13,7 @@
  * Krishna Reddy, 05/08/2003
  *
  ******************************************************************************
- * ALL RIGHTS RESERVED, Airgo Networks, Inc. 
+ * ALL RIGHTS RESERVED, Airgo Networks, Inc.
  * No part of this file/software maybe copied or reproduced in any form without
  * the explicit permission of:
  *
@@ -21,7 +21,7 @@
  * 900 Arastradero Road, Palo Alto, CA 94304, USA.
  * Tel: +1-650-475-1900
  * http://www.airgonetworks.com
- * 
+ *
  ******************************************************************************
  * (C) Copyright 2002, Airgo Networks, Inc., Palo Alto, CA 94304, USA
  ******************************************************************************/
@@ -46,9 +46,14 @@
 #include <aniNlFuncs.h>
 
 #include "pttSocketApp.h"
-/* 
- * Globals 
- */ 
+
+#include "msg.h"
+#include "diag_lsm.h"
+#include "diagpkt.h"
+
+/*
+ * Globals
+ */
 tAniRttCtxt serverCtxt;
 static int sigInt;
 int   pass = 1;
@@ -56,6 +61,18 @@ int alreadyRegistered = 0;
 int debug = 0;
 
 int endianness=0; //0: little-endian, 1: big-endian
+
+#define WLAN_FTM_TEST_APP_F_75 22
+#define WLAN_FTM_SUBSYS_TEST_CLIENT 11
+
+PACK(void *)wlan_ftm_func_75(PACK(void *)req_pkt,
+			    uint16 pkt_len);
+
+static const diagpkt_user_table_entry_type wlan_ftm_test_tbl[] =
+{ /* susbsys_cmd_code lo = 0 , susbsys_cmd_code hi = 0, call back function */
+	{WLAN_FTM_TEST_APP_F_75, WLAN_FTM_TEST_APP_F_75, wlan_ftm_func_75},
+};
+
 int pttSocketAppRegister(int, tAniRttCtxt*);
 /*
  * Hex dump the specified number of bytes from the passed buffer.
@@ -89,8 +106,8 @@ int logDumpCmd(int cmd, int arg1, int arg2, int arg3, int arg4) {
    return 0;
 }
 
-/* 
- * Sends data received from a Client (script) to the HDD in the Kernel 
+/*
+ * Sends data received from a Client (script) to the HDD in the Kernel
  * over a Netlink socket. Prepends a Netlink header to the buffer
  * before sending it to the HDD.
  */
@@ -141,7 +158,7 @@ int pttSocketAppSendMsgToKernel(tAniRttCtxt *pserver, int radio,
     }
     /*
     * push this message down to the HDD via the netlink
-    * socket. 
+    * socket.
     */
     if (aniAsfIpcSend(pserver->ipcnl, localBuf, pserver->nl.nlmsg_len) < 0)
     {
@@ -156,7 +173,7 @@ int pttSocketAppSendMsgToKernel(tAniRttCtxt *pserver, int radio,
 
 
 
-/// Callback function Invoked when there is a message from the 
+/// Callback function Invoked when there is a message from the
 /// client(Perl script)
 void pttSocketAppProcClientMsg(void *arg)
 {
@@ -165,22 +182,22 @@ void pttSocketAppProcClientMsg(void *arg)
     int nlmsgType = 0;
     tAniRttCtxt *pserver = (tAniRttCtxt *)arg;
     tAniIpc *nIpc = (tAniIpc *)pserver->clIpc;
-    char   *data = NULL;   
+    char   *data = NULL;
     char   *buf;
     int   *cmds;
     tAniHdr *msg;
 
 
     if ((buf = malloc(RTT_MAX_MSG_SIZE)) == NULL)
-    { 
+    {
         aniAsfLogMsg(LOG_ERR, ANI_WHERE, "pttSocketApp: malloc failed\n");
         return;
     }
     memset(buf, 0, sizeof(buf));
 
-    /* 
+    /*
     * read the msg hdr and then determine how many more bytes
-    * to read from the socket based on the message type.  
+    * to read from the socket based on the message type.
     */
     if ((aniAsfIpcRecv(nIpc, buf, 4)) <= 0)
     {
@@ -196,10 +213,10 @@ void pttSocketAppProcClientMsg(void *arg)
     if (endianness == 1) //big-endian, swapping is required
         msgLen = pttSocketSwapU32(msgLen);
 
-#ifdef ANI_DEBUG        
+#ifdef ANI_DEBUG
     printf("pttSocketApp: %s: First 4 bytes of rcvd msgLen=[0x%X]", __FUNCTION__, msgLen);
     aniAsfLogMsg(LOG_INFO, ANI_WHERE,"pttSocketApp: %s: First 4 bytes of rcvd msgLen=[0x%X]", __FUNCTION__, msgLen);
-#endif    
+#endif
     /*
     * Now read the remaining bytes of the netsim msg based on
     * length field in the netsim msg hdr.
@@ -209,9 +226,9 @@ void pttSocketAppProcClientMsg(void *arg)
         /*
         * Corrupted or malformed message, log it and drop the
         * message.
-        */ 
+        */
         aniAsfLogMsg(LOG_INFO, ANI_WHERE, "pttSocketApp: bad message from client, len[%x]", msgLen);
-        // flush the socket 
+        // flush the socket
         while((aniAsfIpcRecv(nIpc, buf, RTT_MAX_MSG_SIZE)) == RTT_MAX_MSG_SIZE);
         free(buf);
         return ;
@@ -219,7 +236,7 @@ void pttSocketAppProcClientMsg(void *arg)
 
     data = buf + sizeof(int);
 
-    if ((lenRcvd = (aniAsfIpcRecv(nIpc, data, msgLen))) <= 0) 
+    if ((lenRcvd = (aniAsfIpcRecv(nIpc, data, msgLen))) <= 0)
     {
         aniAsfLogMsg(ANI_IPCRECV_ERR);
         aniAsfIpcClose(nIpc);
@@ -253,7 +270,7 @@ void pttSocketAppProcClientMsg(void *arg)
             aniAsfLogMsg(LOG_INFO, ANI_WHERE, "%s: Passing rcvd Message with  ani mesgId [%x] radio %d", __FUNCTION__, msg->type, pserver->radio);
 #ifdef ANI_DEBUG
             printf("%s: Passing rcvd Message with  ani mesgId [%x] radio %d\n", __FUNCTION__, msg->type, pserver->radio);
-#endif            
+#endif
             nlmsgType = ANI_NL_MSG_PTT;
             break;
 
@@ -340,7 +357,7 @@ void sendAlreadyRegisteredMessage (void *arg)
         {
             aniAsfLogMsg(LOG_ERR, ANI_WHERE, "%s: Could not send message to the Client", __FUNCTION__);
         }
-    } 
+    }
     else
     {
         aniAsfLogMsg(LOG_INFO, ANI_WHERE,  "%s: Client connection does not exist dropping the msg\n", __FUNCTION__);
@@ -354,11 +371,11 @@ void sendAlreadyRegisteredMessage (void *arg)
 void pttSendEndianIndication (void *arg)
 {
     //tAniRttCtxt *pserver = (tAniRttCtxt *)arg;
-    unsigned int endian_check = 1;  
+    unsigned int endian_check = 1;
 
     if ( *(unsigned char *)&endian_check == 1)
         endianness = 0; //little-endian
-    else 
+    else
         endianness = 1; //big-endian
 #if 0
     aniAsfLogMsg(LOG_DEBUG, ANI_WHERE, " Sending pttSendEndianIndication msg of length %d to client", sizeof(endianness));
@@ -369,16 +386,16 @@ void pttSendEndianIndication (void *arg)
         {
             aniAsfLogMsg(LOG_ERR, ANI_WHERE, "%s: Could not send message to  the Client", __FUNCTION__);
         }
-    } 
+    }
     else
     {
         aniAsfLogMsg(LOG_INFO, ANI_WHERE, "%s: Client connection does not exist  dropping the msg\n", __FUNCTION__);
     }
-#endif    
+#endif
 }
 
 /*
- * Process all the messages from coming from the Radio Driver 
+ * Process all the messages from coming from the Radio Driver
  */
 void pttSocketAppProcNetlinkMsg (void *arg)
 {
@@ -413,7 +430,7 @@ void pttSocketAppProcNetlinkMsg (void *arg)
 
         aniAsfLogMsg(LOG_INFO, ANI_WHERE, "%s: rcvd a NL msg, len[%d], NL type[0x%X] WNI type[0x%hX] len[%d]", __FUNCTION__, wnl->nlh.nlmsg_len, wnl->nlh.nlmsg_type, ntohs(wnl->wmsg.type), ntohs(wnl->wmsg.length));
 
-      // Strip the NL hdr, attach a test debug hdr and forward all the 
+      // Strip the NL hdr, attach a test debug hdr and forward all the
       // messages to the client (Perl script)
         msg = (tAniRttCmdRspMsg *) (buf + (aniNlAlign(sizeof(tAniNlHdr) - sizeof(tAniHdr) - (2*sizeof(int)))));
 
@@ -428,6 +445,22 @@ void pttSocketAppProcNetlinkMsg (void *arg)
 
         aniAsfLogMsg(LOG_DEBUG, ANI_WHERE, "%s: Sending msg of length %d (msgType=0x%x) to client", __FUNCTION__, ntohl(msg->msgLen), wnl->wmsg.type);
 
+        if(pserver->diag_msg.diag_msg_received == TRUE) {
+            printf("Copy the diag message\n");
+            wnl->wmsg.type = ntohs(wnl->wmsg.type);
+            wnl->wmsg.length = ntohs(wnl->wmsg.length);
+
+            msg->msgLen = ntohl(msg->msgLen);
+
+            pserver->diag_msg.msg_len = wnl->wmsg.length-sizeof(tAniHdr);
+            printf("wnl->wmsg.length = %d\n",pserver->diag_msg.msg_len);
+
+            pserver->diag_msg.pRespData = (char*)malloc(pserver->diag_msg.msg_len);
+
+            /*Skip the netlink header 12 bytes*/
+            memcpy(pserver->diag_msg.pRespData,((char*)msg + 12),pserver->diag_msg.msg_len);
+            break;
+        }
         if (pserver->clIpc)
         {
             if (endianness == 0) //little-endian
@@ -435,10 +468,10 @@ void pttSocketAppProcNetlinkMsg (void *arg)
                 wnl->wmsg.type = ntohs(wnl->wmsg.type);
                 wnl->wmsg.length = ntohs(wnl->wmsg.length);
                 msg->msgLen = ntohl(msg->msgLen);
-#ifdef ANI_DEBUG                
+#ifdef ANI_DEBUG
                 printf("pttSocketAppProcNetlinkMsg: dumping msg need to be sent to client len=%d", msg->msgLen);
                 aniDumpBuf((char *)msg, msg->msgLen+4);
-#endif                
+#endif
                 if (wnl->wmsg.type < 0x3000)
                     aniAsfLogMsg(LOG_INFO, ANI_WHERE, "%s: Not sending to client msg id < 0x3000 \n", __FUNCTION__);
                 else if (aniAsfIpcSend(pserver->clIpc, (char *)msg, msg->msgLen + 4/* for msgLen */) < 0)
@@ -449,7 +482,7 @@ void pttSocketAppProcNetlinkMsg (void *arg)
 #if 0
                 if (ntohs(wnl->wmsg.type) < 0x3000)
                     aniAsfLogMsg(LOG_INFO, ANI_WHERE, "%s: Not sending to client msg id < 0x3000 \n", __FUNCTION__);
-                else if (aniAsfIpcSend(pserver->clIpc, (char *)msg, ntohl(msg->msgLen) + 4/* for msgLen */) < 0) 
+                else if (aniAsfIpcSend(pserver->clIpc, (char *)msg, ntohl(msg->msgLen) + 4/* for msgLen */) < 0)
                     aniAsfLogMsg(LOG_ERR, ANI_WHERE, "%s: Could not send message to the Client", __FUNCTION__);
 #endif
                 if (wnl->wmsg.type < 0x3000)
@@ -464,7 +497,7 @@ void pttSocketAppProcNetlinkMsg (void *arg)
                 }
 
             }
-        } 
+        }
         else
         {
             aniAsfLogMsg(LOG_INFO, ANI_WHERE, "%s: Client connection does not exist dropping the msg\n", __FUNCTION__);
@@ -482,7 +515,7 @@ void pttSocketAppProcConnInd(void *arg)
 {
     tAniRttCtxt *pserver = (tAniRttCtxt *)arg;
 
-    // Accept the incoming connection indication 
+    // Accept the incoming connection indication
     if ((pserver->clIpc = aniAsfIpcAccept(pserver->ipcs)) == NULL)
     {
         aniAsfLogMsg(ANI_IPCACCEPT_ERR);
@@ -586,7 +619,7 @@ int pttSocketAppInit(int radio, tAniRttCtxt *pserver)
 
         pserver->radio = radio;
 
-      // Open a socket to listen for client connections 
+      // Open a socket to listen for client connections
         if ((pserver->ipcs = aniAsfIpcOpen(AF_INET_EXT, SOCK_STREAM, RTT_SERVER_PORT)) == NULL)
         {
             aniAsfLogMsg(ANI_IPCOPEN_ERR);
@@ -601,7 +634,7 @@ int pttSocketAppInit(int radio, tAniRttCtxt *pserver)
             break;
         }
 
-        // Register a callback for the Server socket 
+        // Register a callback for the Server socket
         aniAsfIpcSetFd(pserver->ipcs, pttSocketAppProcConnInd, pserver);
 
         // Open Netlink Socket to Pseudo Driver
@@ -614,23 +647,23 @@ int pttSocketAppInit(int radio, tAniRttCtxt *pserver)
         }
         aniAsfIpcConnect(pserver->ipcnl, "localhost", -1, -1);
 
-        /* 
-        * Init a pre allocated Netlink msg hdr that we will use 
+        /*
+        * Init a pre allocated Netlink msg hdr that we will use
         * later on while relaying messages coming in from the client
-        * to the Radio Driver.  The nlmsg->type and nlmsg->len 
-        * parameters are filled in later on for each message as 
+        * to the Radio Driver.  The nlmsg->type and nlmsg->len
+        * parameters are filled in later on for each message as
         * appropriate.
         */
         pserver->nl.nlmsg_seq = 0;
 
-        /* 
+        /*
         * Get the sockaddr_nl structure from ASF for this tAniIpc
         */
-        pserver->snl = aniAsfIpcGetSnl(pserver->ipcnl); 
-        pserver->nl.nlmsg_pid = pserver->snl->nl_pid; 
+        pserver->snl = aniAsfIpcGetSnl(pserver->ipcnl);
+        pserver->nl.nlmsg_pid = pserver->snl->nl_pid;
         pserver->nl.nlmsg_flags = NLM_F_REQUEST;
 
-        // Register a callback for the Netlink fd 
+        // Register a callback for the Netlink fd
         aniAsfIpcSetFd(pserver->ipcnl, pttSocketAppProcNetlinkMsg, pserver);
 
         // Register with the in kernel Netlink handler
@@ -746,11 +779,86 @@ int pttSocketAppRegister(int radio, tAniRttCtxt *pserver)
     return ret;
 }
 
+PACK(void *) wlan_ftm_func_75(PACK(void *)req_pkt, uint16 pkt_len)
+{
+    PACK(void *)rsp = NULL;
+    tAniRttCtxt *pserver = &serverCtxt;
+    char *pBuf;
+    tAniHdr *msg;
+    int msgLen;
+    unsigned long retry_count = 0xFFFFFFFF;
+    int nlmsgType = ANI_NL_MSG_PTT;
+
+    printf("\n ##### wlan FTM Test App: : Inside wlan_ftm_func_75 #####\n");
+
+    printf("\n ##### Pak_len=%d:: Inside wlan_ftm_func_75 #####\n",pkt_len);
+
+    msgLen = (pkt_len + sizeof(tAniHdr));
+
+    pBuf = (char*)malloc(msgLen);
+
+    if (!pBuf)
+    {
+        printf("\n ##### malloc failed***");
+        return NULL;
+    }
+
+    pserver->diag_msg.diag_msg_received = TRUE;
+
+    memset(pBuf, 0, msgLen);
+
+    msg = (tAniHdr*)pBuf;
+    msg->length = pkt_len;
+    msg->type = PTT_FTM_CMDS_TYPE;
+
+    memcpy((pBuf + sizeof(tAniHdr)), req_pkt,pkt_len);
+
+    if (pttSocketAppSendMsgToKernel(pserver, pserver->radio, msg, nlmsgType, msgLen) < 0)
+    {
+        aniAsfLogMsg(LOG_ERR, ANI_WHERE, "pttSocketApp: Could not send data to the HDD\n");
+    }
+    /*Poll here untill we get the response from the ftm driver*/
+    do {
+        usleep(10);
+        if((pserver->diag_msg.pRespData != NULL) && (pserver->diag_msg.msg_len !=0)) {
+            break;
+        }
+        retry_count--;
+
+    } while(retry_count);
+
+    if(!retry_count) {
+        printf("FTM driver response time out\n");
+        pserver->diag_msg.diag_msg_received = FALSE;
+        return NULL;
+    }
+
+    /* Allocate the same length as the request. */
+    rsp = diagpkt_alloc(WLAN_FTM_SUBSYS_TEST_CLIENT, pserver->diag_msg.msg_len);
+
+    if (rsp != NULL) {
+        memcpy((void *) rsp, (void *) pserver->diag_msg.pRespData, pserver->diag_msg.msg_len);
+
+        free(pserver->diag_msg.pRespData);
+        pserver->diag_msg.pRespData = NULL;
+        pserver->diag_msg.msg_len=0;
+        pserver->diag_msg.diag_msg_received = FALSE;
+
+        printf("Wlan FTM Test APP: diagpkt_alloc succeeded");
+
+    } else {
+        printf("Wlan FTM Test APP: diagpkt_subsys_alloc failed");
+    }
+
+    return rsp;
+}
+
+
 /**
  *    Main function for the NetSim Server daemon
  *
- *    Supports two options 
- *       -d - not to daemonize 
+ *    Supports two options
+ *       -d - not to daemonize
  *       -v - Set Max log level
  *
  */
@@ -759,6 +867,7 @@ int main (int argc, char *argv[])
     int   radio = 0;
     int   c;
     int   nodaemon = 0;
+    boolean bInit_Success = FALSE;
 
     // Initialize aniAsfLogInit
     aniAsfLogInit("pttSocketApp", LOG_ERR, ANI_CONS_LOG);
@@ -796,15 +905,37 @@ int main (int argc, char *argv[])
 
     pttSocketAppSigIntrInit();
 
-    // Init local datastructures 
+    // Init local datastructures
     if ((pttSocketAppInit(radio, &serverCtxt)) < 0)
     {
         aniAsfLogMsg(LOG_ERR, ANI_WHERE, "%s: aniNetsimInit failed\n", argv[0]);
         exit(1);
     }
+    /* Calling LSM init  */
+    bInit_Success = Diag_LSM_Init(NULL);
+
+    if (!bInit_Success) {
+        printf("FTM Test App: Diag_LSM_Init() failed.");
+        exit(1);
+    }
+
+    printf("FTM Test App: Diag_LSM_Init succeeded. \n");
+
+    /* Registering diag packet with no subsystem id. This is so
+        * that an empty request to the app. gets a response back
+        * and we can ensure that the diag is working as well as the app. is
+        * responding subsys id = 11, table = test_tbl_2,
+        * To execute on QXDM :: "send_data 75 11 0 0 0 0 0 0"
+           OR
+        * To execute on QXDM :: "send_data 75 11 22 0 0 0 0 0"
+        */
+    serverCtxt.diag_msg.diag_msg_received = FALSE;
+
+   //DIAGPKT_DISPATCH_TABLE_REGISTER_V2_DELAY(75, WLAN_FTM_SUBSYS_TEST_CLIENT, wlan_ftm_test_tbl); //send_data 128 69 2 0 0 0 0 0 0
+   DIAGPKT_DISPATCH_TABLE_REGISTER(WLAN_FTM_SUBSYS_TEST_CLIENT,wlan_ftm_test_tbl);
 
     // Loop for ever
-    while (1) 
+    while (1)
     {
         aniAsfIpcProcess();
         if (sigInt)
@@ -814,6 +945,8 @@ int main (int argc, char *argv[])
     }
 
     pttSocketAppCleanup(serverCtxt.ipcs, serverCtxt.clIpc, serverCtxt.ipcnl);
+
+    Diag_LSM_DeInit();
 
     return 0;
 }

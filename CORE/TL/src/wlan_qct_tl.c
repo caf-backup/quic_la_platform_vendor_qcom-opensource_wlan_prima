@@ -1068,7 +1068,7 @@ WLANTL_STAPktPending
   WLANTL_CbType*  pTLCb = NULL;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
 	  "WLAN TL:Packet pending indication for STA: %d AC: %d", ucSTAId, ucAc);
 
   /*------------------------------------------------------------------------
@@ -2981,7 +2981,7 @@ WLANTL_TxComp
       return VOS_STATUS_E_FAULT;
     }
 
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
                "WLAN TL:Calling Tx complete for pkt %x in function %x",
                vosDataBuff, pfnTxComp);
 
@@ -3709,6 +3709,7 @@ WLANTL_STATxAuth
    v_U8_t*               pucQosCtrl = NULL;
    v_U8_t                extraHeadSpace = 0;
    WLANTL_STAClientType *pStaClient;
+   v_U8_t                ucTxFlag   = 0; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -3761,7 +3762,7 @@ WLANTL_STATxAuth
   if (( VOS_STATUS_SUCCESS != vosStatus ) || ( NULL == vosDataBuff ))
   {
 
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
                "WLAN TL:Failed while attempting to fetch pkt from HDD %d",
                    vosStatus);
     *pvosDataBuff = NULL;
@@ -3936,10 +3937,15 @@ WLANTL_STATxAuth
     ucTypeSubtype |= (WLANTL_80211_DATA_QOS_SUBTYPE);
   }
 
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+  ucTxFlag  = (0 != pStaClient->wUAPSDInfo[ucAC].ucSet)?
+              HAL_TRIGGER_ENABLED_AC_MASK:0;
+#endif
+
   vosStatus = (VOS_STATUS)WLANHAL_FillTxBd( pvosGCtx, ucTypeSubtype, 
                                             &vDestMacAddr,  
                                 &ucTid, tlMetaInfo.ucDisableFrmXtl,
-                                pvBDHeader, 0 /* No ACK */,
+                                pvBDHeader, ucTxFlag,
                                 tlMetaInfo.usTimeStamp );
 
   if(!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -6784,7 +6790,10 @@ WLANTL_EnableUAPSDForAC
 {
 
   WLANTL_CbType*      pTLCb      = NULL;
-  VOS_STATUS          vosStatus;
+  VOS_STATUS          vosStatus   = VOS_STATUS_SUCCESS;
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+  tUapsdInfo          halUAPSDInfo; 
+#endif
  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -6801,6 +6810,8 @@ WLANTL_EnableUAPSDForAC
                pTLCb, ucSTAId, ucAC, uServiceInt );
     return VOS_STATUS_E_FAULT;
   }
+
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
 
   if ( 0 != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists )
   {
@@ -6911,8 +6922,30 @@ WLANTL_EnableUAPSDForAC
       &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosSuspendTimer, 
       uSuspendInt);
   }
+#else
 
-  return VOS_STATUS_SUCCESS;
+  /*Set this flag in order to remember that this is a trigger enabled AC*/
+  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucSet = 1; 
+  
+  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:Enabling U-APSD in FW for STA: %d AC: %d SI: %d SPI: %d "
+             "DI: %d",
+             ucSTAId, ucAC, uServiceInt, uSuspendInt,
+             pTLCb->tlConfigInfo.uDelayedTriggerFrmInt);
+
+  /*Save all info for HAL*/
+  halUAPSDInfo.staidx         = ucSTAId; 
+  halUAPSDInfo.ac             = ucAC;   
+  halUAPSDInfo.up             = ucUP;   
+  halUAPSDInfo.srvInterval    = uServiceInt;  
+  halUAPSDInfo.susInterval    = uSuspendInt;
+  halUAPSDInfo.delayInterval  = pTLCb->tlConfigInfo.uDelayedTriggerFrmInt; 
+
+  /*Notify HAL*/
+  vosStatus = WLANHAL_EnableUapsdAcParams(pvosGCtx, ucSTAId, &halUAPSDInfo);
+#endif /*FEATURE_WLAN_UAPSD_FW_TRG_FRAMES*/
+
+  return vosStatus;
 
 }/*WLANTL_EnableUAPSDForAC*/
 
@@ -6969,6 +7002,8 @@ WLANTL_DisableUAPSDForAC
     return VOS_STATUS_E_FAULT;
   }
 
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists )
   {
     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -7015,6 +7050,20 @@ WLANTL_DisableUAPSDForAC
 
   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:U-APSD deleted for STA: %d AC: %d ", ucSTAId, ucAC );
+
+#else
+
+  /*Reset this flag as this is no longer a trigger enabled AC*/
+  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucSet = 1; 
+
+  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:Disabling U-APSD in FW for STA: %d AC: %d ",
+             ucSTAId, ucAC);
+
+  /*Notify HAL*/
+  WLANHAL_DisableUapsdAcParams(pvosGCtx, ucSTAId, ucAC);
+#endif/*FEATURE_WLAN_UAPSD_FW_TRG_FRAMES*/
+
 
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_DisableUAPSDForAC */

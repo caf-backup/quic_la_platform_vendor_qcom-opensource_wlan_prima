@@ -188,11 +188,26 @@ VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
                                    v_BOOL_t * pGranted );
 
 /**============================================================================
+  @brief hdd_wmm_assoc() - Function which will handle the housekeeping
+  required by WMM when association takes place
+
+  @param pAdapter : [in]  pointer to adapter context
+  @param pRoamInfo: [in]  pointer to roam information
+  @param eBssType : [in]  type of BSS
+
+  @return         : VOS_STATUS_SUCCESS if succssful
+                  : other values if failure
+  ===========================================================================*/
+VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
+                          tCsrRoamInfo *pRoamInfo,
+                          eCsrRoamBssType eBssType );
+
+/**============================================================================
   @brief hdd_wmm_connect() - Function which will handle the housekeeping
   required by WMM when a connection is established
 
   @param pAdapter : [in]  pointer to adapter context
-  @param pRoamInfo: [in]  pointer to raom information
+  @param pRoamInfo: [in]  pointer to roam information
   @param eBssType : [in]  type of BSS
 
   @return         : VOS_STATUS_SUCCESS if succssful
@@ -201,5 +216,29 @@ VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
 VOS_STATUS hdd_wmm_connect( hdd_adapter_t* pAdapter,
                             tCsrRoamInfo *pRoamInfo,
                             eCsrRoamBssType eBssType );
+
+/**============================================================================
+  @brief hdd_wmm_get_uapsd_mask() - Function which will calculate the
+  initial value of the UAPSD mask based upon the device configuration
+
+  @param pAdapter  : [in]  pointer to adapter context
+  @param pUapsdMask: [in]  pointer to where the UAPSD Mask is to be stored
+
+  @return         : VOS_STATUS_SUCCESS if succssful
+                  : other values if failure
+  ===========================================================================*/
+VOS_STATUS hdd_wmm_get_uapsd_mask( hdd_adapter_t* pAdapter,
+                                   tANI_U8 *pUapsdMask );
+
+/**============================================================================
+  @brief hdd_wmm_is_active() - Function which will determine if WMM is
+  active on the current connection
+
+  @param pAdapter  : [in]  pointer to adapter context
+
+  @return         : VOS_TRUE if WMM is enabled
+                  : VOS_FALSE if WMM is not enabled
+  ===========================================================================*/
+v_BOOL_t hdd_wmm_is_active( hdd_adapter_t* pAdapter );
 
 #endif /* #ifndef _WLAN_HDD_WMM_H */

@@ -26,6 +26,9 @@
 #include <wlan_hdd_dp_utils.h>
 #include <wlan_hdd_wmm.h>
 #include <wlan_hdd_cfg.h>
+#ifdef ANI_MANF_DIAG
+#include <wlan_hdd_ftm.h>
+#endif
 
 /*--------------------------------------------------------------------------- 
   Preprocessor definitions and constants
@@ -52,6 +55,9 @@
 
 /**event flags registered net device*/
 #define NET_DEVICE_REGISTERED  1<<0
+
+/** Maximum time(ms)to wait for disconnect to complete **/
+#define WLAN_WAIT_TIME_DISCONNECT  100
 
 #define hddLog(level, args...) VOS_TRACE( VOS_MODULE_ID_HDD, level, ## args)
 #define ENTER() VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "Enter:%s\n", __FUNCTION__)
@@ -161,11 +167,18 @@ struct hdd_adapter_s
    /** Config values read from qcom_cfg.ini file */ 
    hdd_config_t *cfg_ini;
 
+  #ifdef ANI_MANF_DIAG
+   wlan_hdd_ftm_status_t ftm; 
+  #endif
+
    /** completion variable for full power callback */
    struct completion full_pwr_comp_var;
 
    /** completion variable for standby callback */
    struct completion standby_comp_var;
+
+   /** completion variable for disconnect callback */
+   struct completion disconnect_comp_var;
 
    /**Track whether driver has been suspended.*/
    hdd_ps_state_t hdd_ps_state;

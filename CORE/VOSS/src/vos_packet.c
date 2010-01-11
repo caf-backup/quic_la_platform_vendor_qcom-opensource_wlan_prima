@@ -2594,6 +2594,73 @@ VOS_STATUS vos_pkt_flatten_rx_pkt( vos_pkt_t **ppPacket )
    return VOS_STATUS_SUCCESS;
 }
 
+/**--------------------------------------------------------------------------
+  
+  \brief vos_pkt_get_available_buffer_pool() - Get avaliable VOS packet size
+   VOSS Packet pool is limitted resource
+   VOSS Client need to know how many packet pool is still avaliable to control
+   the flow
+   
+  \param  pktType - Packet type want to know free buffer count
+                    VOS_PKT_TYPE_TX_802_11_MGMT, management free buffer count,
+                    VOS_PKT_TYPE_TX_802_11_DATA
+                    VOS_PKT_TYPE_TX_802_3_DATA, TX free buffer count
+                    VOS_PKT_TYPE_RX_RAW, RX free buffer count
+
+          vosFreeBuffer - free frame buffer size
+  
+  \return VOS_STATUS_E_INVAL - invalid input parameter
+
+          VOS_STATUS_SUCCESS - Get size success
+    
+  \sa
+  
+  ----------------------------------------------------------------------------*/
+VOS_STATUS vos_pkt_get_available_buffer_pool (VOS_PKT_TYPE  pktType,
+                                              v_SIZE_t     *vosFreeBuffer)
+{
+   struct list_head *pList;
+   struct list_head *pNode;
+   v_SIZE_t count;
+
+   if (NULL == vosFreeBuffer)
+   {
+      return VOS_STATUS_E_INVAL;
+   }
+
+   switch (pktType)
+   {
+   case VOS_PKT_TYPE_TX_802_11_MGMT:
+      pList = &gpVosPacketContext->txMgmtFreeList;
+      break;
+
+   case VOS_PKT_TYPE_TX_802_11_DATA:
+   case VOS_PKT_TYPE_TX_802_3_DATA:
+      pList = &gpVosPacketContext->txDataFreeList;
+      break;
+
+   case VOS_PKT_TYPE_RX_RAW:
+      // if the caller is curious how many raw packets are available
+      // then he probably wants as many packets to be available as
+      // possible so replenish the raw pool
+      vos_pkti_replenish_raw_pool();
+      pList = &gpVosPacketContext->rxRawFreeList;
+      break;
+
+   default:
+      return (VOS_STATUS_E_INVAL);
+   }
+
+   count = 0;
+   list_for_each(pNode, pList)
+   {
+      count++;
+   }
+   *vosFreeBuffer = count;
+   return VOS_STATUS_SUCCESS;
+}
+
+
 #ifdef VOS_PACKET_UNIT_TEST
 #include "vos_packet_test.c"
 #endif

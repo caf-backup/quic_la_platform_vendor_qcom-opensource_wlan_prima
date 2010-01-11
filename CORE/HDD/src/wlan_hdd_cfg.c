@@ -766,7 +766,42 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_IGNORE_DTIM_DEFAULT, 
                  CFG_IGNORE_DTIM_MIN, 
                  CFG_IGNORE_DTIM_MAX ),
-    
+                 
+   REG_VARIABLE( CFG_RX_ANT_CONFIGURATION_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, nRxAnt, 
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                CFG_RX_ANT_CONFIGURATION_NAME_DEFAULT, 
+                CFG_RX_ANT_CONFIGURATION_NAME_MIN, 
+                CFG_RX_ANT_CONFIGURATION_NAME_MAX ),
+
+   REG_VARIABLE( CFG_FW_HEART_BEAT_MONITORING_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, fEnableFwHeartBeatMonitoring, 
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                CFG_FW_HEART_BEAT_MONITORING_DEFAULT, 
+                CFG_FW_HEART_BEAT_MONITORING_MIN, 
+                CFG_FW_HEART_BEAT_MONITORING_MAX ),
+
+   REG_VARIABLE( CFG_FW_BEACON_FILTERING_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, fEnableFwBeaconFiltering, 
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                CFG_FW_BEACON_FILTERING_DEFAULT, 
+                CFG_FW_BEACON_FILTERING_MIN, 
+                CFG_FW_BEACON_FILTERING_MAX ),
+
+   REG_VARIABLE( CFG_FW_RSSI_MONITORING_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, fEnableFwRssiMonitoring, 
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                CFG_FW_RSSI_MONITORING_DEFAULT, 
+                CFG_FW_RSSI_MONITORING_MIN, 
+                CFG_FW_RSSI_MONITORING_MAX ),
+
+   REG_VARIABLE( CFG_DATA_INACTIVITY_TIMEOUT_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, nDataInactivityTimeout, 
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                CFG_DATA_INACTIVITY_TIMEOUT_DEFAULT, 
+                CFG_DATA_INACTIVITY_TIMEOUT_MIN, 
+                CFG_DATA_INACTIVITY_TIMEOUT_MAX ),
+                
    REG_VARIABLE( CFG_QOS_WMM_MODE_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, WmmMode, 
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
@@ -1182,7 +1217,7 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
                   cfgIniTable[i].name= name;
                   cfgIniTable[i++].value= value;
                   if(i >= MAX_CFG_INI_ITEMS) {
-                     hddLog(LOG1,"%s: Number of items in qcom_cfg.ini > %d \n",
+                     hddLog(LOGE,"%s: Number of items in qcom_cfg.ini > %d \n",
                         __FUNCTION__, MAX_CFG_INI_ITEMS);
                      break;
                   }
@@ -1327,7 +1362,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
       if( (match_status != VOS_STATUS_SUCCESS) && ( pRegEntry->Flags & VAR_FLAGS_REQUIRED ) )
       {
          // If we could not read the cfg item and it is required, this is an error.
-         hddLog(LOG1, "%s: Failed to read required config parameter %s", 
+         hddLog(LOGE, "%s: Failed to read required config parameter %s", 
             __FUNCTION__, pRegEntry->RegName);
          ret_status = VOS_STATUS_E_FAILURE;
          break;
@@ -1353,14 +1388,14 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
          {
             if ( value > pRegEntry->VarMax )
             {
-                hddLog(LOG1, "%s: Reg Parameter %s > allowed Maximum [%lu > %lu]. Enforcing Maximum\n", 
+                hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum [%lu > %lu]. Enforcing Maximum\n", 
                    __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMax );
                   value = pRegEntry->VarMax;
             }
 
             if ( value < pRegEntry->VarMin ) 
             {
-                 hddLog(LOG1, "%s: Reg Parameter %s < allowed Minimum [%lu < %lu]. Enforcing Minimum", 
+                 hddLog(LOGE, "%s: Reg Parameter %s < allowed Minimum [%lu < %lu]. Enforcing Minimum", 
                     __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMin);
                   value = pRegEntry->VarMin;
             } 
@@ -1370,14 +1405,14 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
          {
             if ( value > pRegEntry->VarMax ) 
             {
-               hddLog(LOG1, "%s: Reg Parameter %s > allowed Maximum [%lu > %lu]. Enforcing Default= %lu", 
+               hddLog(LOGE, "%s: Reg Parameter %s > allowed Maximum [%lu > %lu]. Enforcing Default= %lu", 
                   __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMax, pRegEntry->VarDefault  );
                value = pRegEntry->VarDefault;
             }
 
             if ( value < pRegEntry->VarMin ) 
             {
-               hddLog(LOG1, "%s:Reg Parameter %s < allowed Minimum [%lu < %lu]. Enforcing Default= %lu", 
+               hddLog(LOGE, "%s:Reg Parameter %s < allowed Minimum [%lu < %lu]. Enforcing Default= %lu", 
                   __FUNCTION__, pRegEntry->RegName, value, pRegEntry->VarMin, pRegEntry->VarDefault  );
                value = pRegEntry->VarDefault;
             } 
@@ -1399,7 +1434,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
             len_value_str = strlen(value_str);
 
             if(len_value_str > (pRegEntry->VarSize - 1)) {
-               hddLog(LOG1, "%s: Invalid Value=[%s] specified for Name=[%s] in qcom_cfg.ini\n", 
+               hddLog(LOGE, "%s: Invalid Value=[%s] specified for Name=[%s] in qcom_cfg.ini\n", 
                   __FUNCTION__, value_str, pRegEntry->RegName);
                cbOutString = utilMin( strlen( (char *)pRegEntry->VarDefault ), pRegEntry->VarSize - 1 );
                memcpy( pField, (void *)(pRegEntry->VarDefault), cbOutString );
@@ -1422,7 +1457,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
       else if ( WLAN_PARAM_MacAddr == pRegEntry->RegType )
       {
          if(pRegEntry->VarSize != VOS_MAC_ADDR_SIZE) {
-               hddLog(LOG1, "%s: Invalid VarSize %u for Name=[%s]\n", 
+               hddLog(LOGE, "%s: Invalid VarSize %u for Name=[%s]\n", 
                    __FUNCTION__, pRegEntry->VarSize, pRegEntry->RegName); 
             continue;
          }
@@ -1430,7 +1465,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
          if ( match_status == VOS_STATUS_SUCCESS) {
             len_value_str = strlen(value_str);
             if(len_value_str != (VOS_MAC_ADDR_SIZE*2)) {
-               hddLog(LOG1, "%s: Invalid MAC addr [%s] specified for Name=[%s] in qcom_cfg.ini\n", 
+               hddLog(LOGE, "%s: Invalid MAC addr [%s] specified for Name=[%s] in qcom_cfg.ini\n", 
                   __FUNCTION__, value_str, pRegEntry->RegName);
             }
             else
@@ -1445,7 +1480,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
       }
       else
       {
-         hddLog(LOG1, "%s: Unknown param type for name[%s] in registry table\n", 
+         hddLog(LOGE, "%s: Unknown param type for name[%s] in registry table\n", 
             __FUNCTION__, pRegEntry->RegName);
       }
 
@@ -1553,7 +1588,7 @@ static void hdd_set_power_save_config(hdd_adapter_t *pAdapter, tSmeConfigParams 
 
    if (sme_SetConfigPowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE, &bmpsParams)== eHAL_STATUS_FAILURE)
    {
-      hddLog(LOG1, "SetConfigPowerSave failed to set BMPS params\n");
+      hddLog(LOGE, "SetConfigPowerSave failed to set BMPS params\n");
    }
   
    if(pConfig->fIsAutoBmpsTimerEnabled)
@@ -1623,7 +1658,6 @@ static VOS_STATUS hdd_get_ho_config ( hdd_config_t *pConfig, tSmeHoConfigParams 
 v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 {
    v_BOOL_t  fStatus = TRUE;
-   v_U32_t   value;
 
    hdd_config_t *pConfig = pAdapter->cfg_ini;
 
@@ -1631,21 +1665,21 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
       pConfig->ShortGI20MhzEnable, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
-      hddLog(LOG1, "Could not pass on WNI_CFG_SHORT_GI_20MHZ to CCM\n");
+      hddLog(LOGE, "Could not pass on WNI_CFG_SHORT_GI_20MHZ to CCM\n");
    }
        
    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_CAL_CONTROL, pConfig->Calibration, 
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
-      hddLog(LOG1, "Could not pass on WNI_CFG_CAL_CONTROL to CCM\n");
+      hddLog(LOGE, "Could not pass on WNI_CFG_CAL_CONTROL to CCM\n");
    }
 
    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_CAL_PERIOD, pConfig->CalibrationPeriod,
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
-      hddLog(LOG1, "Could not pass on WNI_CFG_CAL_PERIOD to CCM\n");
+      hddLog(LOGE, "Could not pass on WNI_CFG_CAL_PERIOD to CCM\n");
    }
 
    if ( 0 != pConfig->Cfg1Id )
@@ -1654,7 +1688,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
          eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
          fStatus = FALSE;
-         hddLog(LOG1, "Could not pass on Cfg1Id to CCM\n");
+         hddLog(LOGE, "Could not pass on Cfg1Id to CCM\n");
       }
           
    }
@@ -1665,7 +1699,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
          fStatus = FALSE;
-         hddLog(LOG1, "Could not pass on Cfg2Id to CCM\n");
+         hddLog(LOGE, "Could not pass on Cfg2Id to CCM\n");
       }
    }
 
@@ -1675,7 +1709,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
          fStatus = FALSE;
-         hddLog(LOG1, "Could not pass on Cfg3Id to CCM\n");
+         hddLog(LOGE, "Could not pass on Cfg3Id to CCM\n");
       }
    }
 
@@ -1685,7 +1719,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
          fStatus = FALSE;
-         hddLog(LOG1, "Could not pass on Cfg4Id to CCM\n");
+         hddLog(LOGE, "Could not pass on Cfg4Id to CCM\n");
       }
    }
 
@@ -1695,7 +1729,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
          fStatus = FALSE;
-         hddLog(LOG1, "Could not pass on Cfg5Id to CCM\n");
+         hddLog(LOGE, "Could not pass on Cfg5Id to CCM\n");
       }
    }
 
@@ -1703,28 +1737,28 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
-      hddLog(LOG1, "Could not pass on WNI_CFG_BA_AUTO_SETUP to CCM\n");
+      hddLog(LOGE, "Could not pass on WNI_CFG_BA_AUTO_SETUP to CCM\n");
    }
        
    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_FIXED_RATE, pConfig->TxRate, 
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
-      hddLog(LOG1, "Could not pass on WNI_CFG_FIXED_RATE to CCM\n");
+      hddLog(LOGE, "Could not pass on WNI_CFG_FIXED_RATE to CCM\n");
    }
 
    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_MAX_RX_AMPDU_FACTOR, 
       pConfig->MaxRxAmpduFactor, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
-      hddLog(LOG1,"Could not pass on WNI_CFG_HT_AMPDU_PARAMS_MAX_RX_AMPDU_FACTOR to CCM\n");
+      hddLog(LOGE,"Could not pass on WNI_CFG_HT_AMPDU_PARAMS_MAX_RX_AMPDU_FACTOR to CCM\n");
    }
 
    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_SHORT_PREAMBLE, pConfig->fIsShortPreamble,
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
-      hddLog(LOG1,"Could not pass on WNI_CFG_SHORT_PREAMBLE to CCM\n");
+      hddLog(LOGE,"Could not pass on WNI_CFG_SHORT_PREAMBLE to CCM\n");
    }
 
    if (pConfig->fIsAutoIbssBssid) 
@@ -1733,7 +1767,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
          sizeof(v_BYTE_t) * VOS_MAC_ADDR_SIZE, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
       {
          fStatus = FALSE;
-         hddLog(LOG1,"Could not pass on WNI_CFG_BSSID to CCM\n");
+         hddLog(LOGE,"Could not pass on WNI_CFG_BSSID to CCM\n");
       }
    }
    else
@@ -1748,13 +1782,13 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
             sizeof(v_BYTE_t) * VOS_MAC_ADDR_SIZE, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
          {
             fStatus = FALSE;
-            hddLog(LOG1,"Could not pass on WNI_CFG_BSSID to CCM\n");
+            hddLog(LOGE,"Could not pass on WNI_CFG_BSSID to CCM\n");
          }
       }
       else
       {
          fStatus = FALSE;
-         hddLog(LOG1,"Could not pass on WNI_CFG_BSSID to CCM\n");
+         hddLog(LOGE,"Could not pass on WNI_CFG_BSSID to CCM\n");
       }
    }
 
@@ -1762,54 +1796,70 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
-      hddLog(LOG1, "Could not pass on WNI_CFG_BEACON_INTERVAL to CCM\n");
+      hddLog(LOGE, "Could not pass on WNI_CFG_BEACON_INTERVAL to CCM\n");
    }
 
    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_MAX_PS_POLL, pConfig->nMaxPsPoll, 
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
 	  fStatus = FALSE;
-	  hddLog(LOG1, "Could not pass on WNI_CFG_MAX_PS_POLL to CCM\n");
+	  hddLog(LOGE, "Could not pass on WNI_CFG_MAX_PS_POLL to CCM\n");
    }
 
-   //Initially, firmware configures Libra to 2 Rx Antennas
-   //this config triggers HAL to configure Rx Antenna accordingly
-   if (ccmCfgGetInt(pAdapter->hHal, WNI_CFG_CURRENT_RX_ANTENNA, &value)==eHAL_STATUS_FAILURE)
+   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_CURRENT_RX_ANTENNA, pConfig-> nRxAnt, NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
-      hddLog(LOG1, "Could not read WNI_CFG_CURRENT_RX_ANTENNA cfg parameter\n");
-   }
-   else
-   {
-      if(ccmCfgSetInt(pAdapter->hHal, WNI_CFG_CURRENT_RX_ANTENNA, value, NULL, 
-         eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-      {
-         fStatus = FALSE;
-         hddLog(LOG1, "Could not pass on WNI_CFG_CURRENT_RX_ANTENNA to CCM\n");
-
-      }
+      hddLog(LOGE, "Failure: Could not pass on WNI_CFG_CURRENT_RX_ANTENNA configuration info to HAL\n"  );
    }
 
    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_LOW_GAIN_OVERRIDE, pConfig->fIsLowGainOverride, 
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
-      hddLog(LOG1, "Could not pass on WNI_CFG_LOW_GAIN_OVERRIDE to HAL\n");
+      hddLog(LOGE, "Could not pass on WNI_CFG_LOW_GAIN_OVERRIDE to HAL\n");
    }
  
    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RSSI_FILTER_PERIOD, pConfig->nRssiFilterPeriod,
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
-      hddLog(LOG1, "Could not pass on WNI_CFG_RSSI_FILTER_PERIOD to CCM\n");
+      hddLog(LOGE, "Could not pass on WNI_CFG_RSSI_FILTER_PERIOD to CCM\n");
    }
 
    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_IGNORE_DTIM, pConfig->fIgnoreDtim,
          NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
       fStatus = FALSE;
-      hddLog(LOG1, "Could not pass on WNI_IGNORE_DTIM configuration to CCM\n"  );
+      hddLog(LOGE, "Could not pass on WNI_IGNORE_DTIM configuration to CCM\n"  );
    }
+
+	if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_PS_ENABLE_HEART_BEAT, pConfig->fEnableFwHeartBeatMonitoring, 
+		NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+      hddLog(LOGE, "Failure: Could not pass on WNI_CFG_PS_HEART_BEAT configuration info to CCM\n"	);
+	 }
+	 
+	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_PS_ENABLE_BCN_FILTER, pConfig->fEnableFwBeaconFiltering, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE, "Failure: Could not pass on WNI_CFG_PS_BCN_FILTER configuration info to CCM\n"	);
+	 }
+	 
+	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_PS_ENABLE_RSSI_MONITOR, pConfig->fEnableFwRssiMonitoring, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE, "Failure: Could not pass on WNI_CFG_PS_RSSI_MONITOR configuration info to CCM\n"  );
+	 }
+	 
+	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT, pConfig->nDataInactivityTimeout, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT configuration info to CCM\n"  );
+	 }
 
    return fStatus;
 }

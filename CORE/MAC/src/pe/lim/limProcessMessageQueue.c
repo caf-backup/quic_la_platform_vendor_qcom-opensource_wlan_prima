@@ -156,7 +156,9 @@ void limProcessNormalHddMsg(tpAniSirGlobal pMac, tSirMsgQ *pLimMsg, tANI_U8 fRsp
 void
 limProcessMessageQueue(tpAniSirGlobal pMac)
 {
+#ifndef ANI_MANF_DIAG
     tSirMsgQ  limMsg = { 0, 0, 0 };
+#endif
 
 #if defined(ANI_OS_TYPE_RTAI_LINUX)
     ULONG param;
@@ -168,6 +170,7 @@ limProcessMessageQueue(tpAniSirGlobal pMac)
         limMessageProcessor(pMac, &limMsg);
     }
 #endif
+#ifndef ANI_MANF_DIAG
 
     if (tx_queue_receive( &pMac->sys.gSirLimMsgQ, (void *) &limMsg, TX_WAIT_FOREVER)
             == TX_SUCCESS)
@@ -176,6 +179,8 @@ limProcessMessageQueue(tpAniSirGlobal pMac)
         limPrintMsgInfo(pMac, LOG3, &limMsg);
         limMessageProcessor(pMac, &limMsg);
     } // if (tx_queue_receive)
+#endif
+    
 } /*** end limProcessMessageQueue() ***/
 
 

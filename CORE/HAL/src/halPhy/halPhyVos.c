@@ -116,9 +116,9 @@ eHalStatus halPhy_HandlerFwRspMsg(tHalHandle hHal, void* pFwMsg)
             if (!VOS_IS_STATUS_SUCCESS( vos_event_set(&pMac->hphy.setChanEvent) ))
             {
                 phyLog(pMac, LOGE, "ERROR: setChan vos events set failed!!\n");
-                pMac->hphy.fwSetChannelStatus = eHAL_STATUS_FAILURE;
-                retVal = eHAL_STATUS_FAILURE;
-            }            
+                //pMac->hphy.fwSetChannelStatus = eHAL_STATUS_FAILURE;
+                //retVal = eHAL_STATUS_FAILURE;
+            }
 #else
             halPhy_HandleSetChannelRsp(hHal, pFwMsg);
 #endif

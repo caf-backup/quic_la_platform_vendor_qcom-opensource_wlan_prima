@@ -154,6 +154,11 @@ tANI_BOOLEAN csrIsDuplicateBssDescription( tpAniSirGlobal pMac, tSirBssDescripti
 eHalStatus csrRoamSaveConnectedBssDesc( tpAniSirGlobal pMac, tSirBssDescription *pBssDesc );
 tANI_BOOLEAN csrIsNetworkTypeEqual( tSirBssDescription *pSirBssDesc1, tSirBssDescription *pSirBssDesc2 );
 eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf );
+/*
+   Prepare a filter base on a profile for parsing the scan results.
+   Upon successful return, caller MUST call csrFreeScanFilter on 
+   pScanFilter when it is done with the filter.
+*/
 eHalStatus csrRoamPrepareFilterFromProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile, tCsrScanResultFilter *pScanFilter);
 eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile, tCsrRoamProfile *pSrcProfile);
 eHalStatus csrRoamStart(tpAniSirGlobal pMac);
@@ -219,7 +224,7 @@ eHalStatus csrRoamIssueConnect(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile, t
                                eCsrRoamReason reason, tANI_U32 roamId, 
                                tANI_BOOLEAN fImediate, tANI_BOOLEAN fClearScan);
 eHalStatus csrRoamIssueReassoc(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile,
-                               tCsrRoamModifyProfileFields modProfileFields,
+                               tCsrRoamModifyProfileFields *pModProfileFields,
                                eCsrRoamReason reason, tANI_U32 roamId, tANI_BOOLEAN fImediate);
 void csrRoamComplete( tpAniSirGlobal pMac, eCsrRoamCompleteResult Result, void *Context );
 eHalStatus csrRoamIssueSetContextReq( tpAniSirGlobal pMac, eCsrEncryptionType EncryptType, tSirBssDescription *pBssDescription,

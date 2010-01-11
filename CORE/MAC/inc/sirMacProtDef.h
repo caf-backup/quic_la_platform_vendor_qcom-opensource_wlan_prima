@@ -1438,13 +1438,13 @@ typedef enum eSirMacHTOperatingMode
 } tSirMacHTOperatingMode;
 
 
-// MIMO Power Save state
+// Spatial Multiplexing(SM) Power Save mode
 typedef enum eSirMacHTMIMOPowerSaveState
 {
-  eSIR_HT_MIMO_PS_STATIC = 0, // OFF - No MIMO sequences
-  eSIR_HT_MIMO_PS_DYNAMIC = 1, // Preceding RTS required
-  eSIR_HT_MIMO_PS_NA = 2, // Not Available
-  eSIR_HT_MIMO_PS_NO_LIMIT = 3 // No limitation
+  eSIR_HT_MIMO_PS_STATIC = 0, // Static SM Power Save mode
+  eSIR_HT_MIMO_PS_DYNAMIC = 1, // Dynamic SM Power Save mode
+  eSIR_HT_MIMO_PS_NA = 2, // reserved
+  eSIR_HT_MIMO_PS_NO_LIMIT = 3 // SM Power Save disabled
 } tSirMacHTMIMOPowerSaveState;
 
 

@@ -5,7 +5,7 @@
  * Author:    Dinesh Upadhyay
  * Date:      04/23/2007
  * History:-
- * Date: 04/08/2008       Modified by: Santosh Mandiganal           
+ * Date: 04/08/2008       Modified by: Santosh Mandiganal
  * Modification Information: Code to allocate and free the  memory for DumpTable entry.
  * --------------------------------------------------------------------------
  *
@@ -48,8 +48,8 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
 {
 	tANI_U8 i;
 	tSirRetStatus status = eSIR_SUCCESS;
-    eHalStatus             halStatus;    
-    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;   
+    eHalStatus             halStatus;
+    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
 	tANI_BOOLEAN memAllocFailed = eANI_BOOLEAN_FALSE;
 
 	 if(NULL == pMac)
@@ -73,12 +73,12 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
 		}
 		else
 		{
-		    palZeroMemory(pMac->hHdd, pMac->dumpTableEntry[i], sizeof(tSirMbMsg));	
+		    palZeroMemory(pMac->hHdd, pMac->dumpTableEntry[i], sizeof(tSirMbMsg));
 		}
 	    }
 	    if( memAllocFailed )
 	    {
-		while(i>0) 
+		while(i>0)
 		{
 		    i--;
 		    palFreeMemory(pMac, pMac->dumpTableEntry[i]);
@@ -115,10 +115,12 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
 		sysLog(pMac,LOGE, FL("halStart failed with error code = %d\n"), halStatus);
 		status = eSIR_FAILURE;
 	    }
+#ifndef	ANI_MANF_DIAG
 	    else
 	    {
 		peStart(pMac);
 	    }
+#endif
 	}while(0);
 	  pMac->sys.abort = false;
 
@@ -126,18 +128,18 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
 }
 
 /** -------------------------------------------------------------
-\fn macStop 
+\fn macStop
 \brief this function will be called from HDD to stop MAC. This function will stop all the mac modules.
 \       memory with global context will only be initialized not freed here.
 \param   tHalHandle hHal
-\param tHalStopType 
+\param tHalStopType
 \return tSirRetStatus
   -------------------------------------------------------------*/
 
 tSirRetStatus macStop(tHalHandle hHal, tHalStopType stopType)
 {
 	tANI_U8 i;
-	tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;    
+	tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     halStop(hHal, stopType);
     peStop(pMac);
     cfgCleanup( pMac );
@@ -159,7 +161,7 @@ tSirRetStatus macStop(tHalHandle hHal, tHalStopType stopType)
 
 /** -------------------------------------------------------------
 \fn macOpen
-\brief this function will be called during init. This function is suppose to allocate all the 
+\brief this function will be called during init. This function is suppose to allocate all the
 \       memory with the global context will be allocated here.
 \param   tHalHandle pHalHandle
 \param   tHddHandle hHdd
@@ -187,17 +189,17 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
 
     /* Initialize the pMac structure */
     palZeroMemory(hHdd, pMac, sizeof(tAniSirGlobal));
-    
-    /** Store the Driver type in pMac Global.*/    
+
+    /** Store the Driver type in pMac Global.*/
     pMac->gDriverType = pMacOpenParms->driverType;
 
 #ifndef GEN6_ONWARDS
 #ifdef RTL8652
-    {   
+    {
         //Leverage 8651c's on-chip data scratchpad memory to lock all HAL DxE data there
         extern void * rtlglue_alloc_data_scratchpad_memory(unsigned int size, char *);
         pMac->hal.pHalDxe = (tpAniHalDxe) rtlglue_alloc_data_scratchpad_memory(sizeof(tAniHalDxe),  "halDxe");
-    }        
+    }
     if(pMac->hal.pHalDxe){
         ;
     }else
@@ -209,7 +211,7 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
     }
     /* Initialize the HalDxe structure */
     palZeroMemory(hHdd, pMac->hal.pHalDxe, sizeof(tAniHalDxe));
-#endif //GEN6_ONWARDS    
+#endif //GEN6_ONWARDS
 
     /*
      * Set various global fields of pMac here
@@ -220,27 +222,34 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
     pMac->pAdapter  = hHdd; //This line wil be removed
     *pHalHandle     = (tHalHandle)pMac;
 
+#ifndef ANI_MANF_DIAG
+
     /* Call various PE (and other layer init here) */
     logInit(pMac);
     sysInitGlobals(pMac);
 
     // This decides whether HW needs to translate the 802.3 frames
-    // from the host OS to the 802.11 frames. When set HW does the 
+    // from the host OS to the 802.11 frames. When set HW does the
     // translation from 802.3 to 802.11 and vice versa
     if(pMacOpenParms->frameTransRequired) {
         pMac->hal.halMac.frameTransEnabled = 1;
     } else {
-        pMac->hal.halMac.frameTransEnabled = 0; 
+        pMac->hal.halMac.frameTransEnabled = 0;
     }
-    
+
     //Need to do it here in case halOpen fails later on.
 #if defined( VOSS_ENABLED )
     tx_voss_wrapper_init(pMac, hHdd);
 #endif
+#endif /* ANI_MANF_DIAG */
     if (eHAL_STATUS_SUCCESS != halOpen(pMac, pHalHandle, hHdd, pMacOpenParms))
         return eSIR_FAILURE;
 
+#ifndef ANI_MANF_DIAG
     return peOpen(pMac, pMacOpenParms);
+#endif /* ANI_MANF_DIAG */
+	return eSIR_SUCCESS;
+
 }
 
 /** -------------------------------------------------------------
@@ -254,7 +263,7 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
 tSirRetStatus macClose(tHalHandle hHal)
 {
 
-    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;    
+    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
 
 #ifndef GEN6_ONWARDS
     if(pMac->hal.pHalDxe){

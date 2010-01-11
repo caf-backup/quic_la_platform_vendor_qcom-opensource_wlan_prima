@@ -5,12 +5,12 @@
    This program is the confidential and proprietary product of Airgo Networks Inc.
    Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
-  
-   asicTxFir.h: 
+
+   asicTxFir.h:
    Author:  Mark Nelson
    Date:    3/25/05
 
-   History - 
+   History -
    Date        Modified by              Modification Information
   --------------------------------------------------------------------------
 

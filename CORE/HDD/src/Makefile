@@ -3,7 +3,10 @@ KERNEL_OUT := ../out/target/product/$(TARGET_PRODUCT)/obj/KERNEL_OBJ
 MAKE_FLAGS := -C $(KERNEL_DIR) O=$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi-
 
 #Whether to build debug version
-BUILD_DEBUG_VERSION := 0
+BUILD_DEBUG_VERSION := 1
+
+#Enable this flag to build ftm driver
+BUILD_FTM_DRIVER := 0
 
 #KERNEL include dir
 KERNEL_INC := $(KERNEL_DIR)/include/linux
@@ -170,6 +173,7 @@ MAC_OBJS :=     $(MAC_CFG_OBJS) \
 ############# HAL ##################### 
 HAL_INC := 	-I$(WLAN_DIR)/HAL/inc \
 		-I$(WLAN_DIR)/HAL/src/halPhy \
+		-I$(WLAN_DIR)/HAL/src/halPhy/ftm \
 		-I$(WLAN_DIR)/HAL/src/halProc \
 		-I$(WLAN_DIR)/HAL/src/halSys \
 		-I$(WLAN_DIR)/HAL/src/halMac
@@ -205,6 +209,18 @@ HAL_PHY_OBJS :=	$(HAL_SRC)/halPhy/halPhy.o \
 		$(HAL_SRC)/halPhy/pttMsgApi.o \
 		$(HAL_SRC)/halPhy/rfUtils.o \
 		$(HAL_SRC)/halPhy/phyDebug.o
+
+ifeq ($(BUILD_FTM_DRIVER),1)
+HDD_OBJS += wlan_hdd_ftm.o
+HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/pttModule.o
+HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/rfGemini.o
+HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/asicTxFir.o
+HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/asicCal.o
+HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/asicTxCtl.o
+HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/pttFrameGen.o
+HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/asicPhyDbg.o
+HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/halPhyRates.o
+endif
 
 HAL_PROC_OBJS :=$(HAL_SRC)/halProc/halInitApi.o \
 		$(HAL_SRC)/halProc/halAdaptThrsh.o \
@@ -330,7 +346,8 @@ CDEFINES :=	-DANI_PRODUCT_TYPE_CLIENT=1 \
 		-DANI_LOGDUMP \
 		-DWLAN_PERF \
     -DLIBRA_RF \
-		-DPTT_SOCK_SVC_ENABLE
+		-DPTT_SOCK_SVC_ENABLE \
+		-DFEATURE_WLAN_UAPSD_FW_TRG_FRAMES
 
 ifeq ($(BUILD_DEBUG_VERSION),1)
 CDEFINES += -DWLAN_DEBUG \
@@ -353,9 +370,31 @@ endif
 
 ifeq ($(TARGET_PRODUCT),msm7627_ffa)
 EXTRA_CFLAGS += -march=armv6
+CDEFINES += -DMSM_PLATFORM_7x27_FFA
+endif
+
+ifeq ($(BUILD_FTM_DRIVER),1)
+CDEFINES += -DANI_MANF_DIAG \
+	-DANI_PHY_DEBUG
 endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)
+
+ifeq ($(BUILD_FTM_DRIVER),1)
+obj-m += libra_ftm.o
+
+libra_ftm-objs := 	$(VOSS_OBJS) \
+                $(TL_OBJS)   \
+                $(SSC_OBJS)  \
+                $(SME_OBJS)  \
+								$(SYS_OBJS)  \
+                $(MAC_OBJS)  \
+                $(HAL_OBJS)  \
+								$(HDD_OBJS)  \
+								$(NLINK_OBJS) \
+								$(BTC_OBJS) \
+								$(PTT_OBJS)
+else
 
 obj-m += libra.o
 
@@ -370,7 +409,7 @@ libra-objs := 	$(VOSS_OBJS) \
 								$(NLINK_OBJS) \
 								$(BTC_OBJS) \
 								$(PTT_OBJS)
-
+endif
 all:
 	$(MAKE) $(MAKE_FLAGS) M=`pwd` modules
 

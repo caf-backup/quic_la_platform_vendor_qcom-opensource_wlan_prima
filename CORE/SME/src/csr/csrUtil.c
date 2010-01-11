@@ -3405,14 +3405,17 @@ void csrFreeScanFilter(tpAniSirGlobal pMac, tCsrScanResultFilter *pScanFilter)
     if(pScanFilter->BSSIDs.bssid)
     {
         palFreeMemory(pMac->hHdd, pScanFilter->BSSIDs.bssid);
+        pScanFilter->BSSIDs.bssid = NULL;
     }
     if(pScanFilter->ChannelInfo.ChannelList)
     {
         palFreeMemory(pMac->hHdd, pScanFilter->ChannelInfo.ChannelList);
+        pScanFilter->ChannelInfo.ChannelList = NULL;
     }
     if(pScanFilter->SSIDs.SSIDList)
     {
         palFreeMemory(pMac->hHdd, pScanFilter->SSIDs.SSIDList);
+        pScanFilter->SSIDs.SSIDList = NULL;
     }
 }
 

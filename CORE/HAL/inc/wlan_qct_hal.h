@@ -93,7 +93,17 @@ typedef struct sHalPdu {
 //} __ani_attr_packed __ani_attr_aligned_4 tHalPdu, *tpHalPdu;
 } tHalPdu, *tpHalPdu;
 
-
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+/* UAPSD parameters passed per AC to HAL from TL */
+typedef struct sUapsdInfo {
+    tANI_U8  staidx;        // STA index
+    tANI_U8  ac;            // Access Category
+    tANI_U8  up;            // User Priority
+    tANI_U32 srvInterval;   // Service Interval
+    tANI_U32 susInterval;   // Suspend Interval
+    tANI_U32 delayInterval; // Delay Interval
+} tUapsdInfo, tpUapsdInfo;
+#endif
 
 #define HAL_TXBD_BDRATE_DEFAULT 0
 #define HAL_TXBD_BDRATE_FIRST   1
@@ -226,6 +236,10 @@ tANI_U8 WLANHAL_RxBD_GetFrameTypeSubType(v_PVOID_t _pvBDHeader, tANI_U16 usFrmCt
 #define HAL_TXCOMP_REQUESTED_MASK           0x1  //bit 0 for TxComp intr requested. 
 #define HAL_USE_SELF_STA_REQUESTED_MASK     0x2  //bit 1 for STA overwrite with selfSta Requested.
 
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+#define HAL_TRIGGER_ENABLED_AC_MASK         0x10 //bit 4 for data frames belonging to trigger enabled AC
+#endif
+
 /*==========================================================================
 
   FUNCTION    WLANHAL_FillTxBd
@@ -273,6 +287,11 @@ void WLANHAL_RxAmsduBdFix(void *pVosGCtx,v_PVOID_t _pvBDHeader);
 
 #ifdef WLAN_PERF
 tANI_U32 WLANHAL_TxBdFastFwd(void *pAdaptor, tANI_U8 *pDestMac, tANI_U8 tid, tANI_U8 unicastDst,  void *pTxBd, tANI_U16);
+#endif
+
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+VOS_STATUS WLANHAL_EnableUapsdAcParams(void* pVosGCtx, tANI_U8 staIdx, tUapsdInfo *pUapsdInfo);
+VOS_STATUS WLANHAL_DisableUapsdAcParams(void* pVosGCtx, tANI_U8 staIdx, tANI_U8 ac);
 #endif
 
 #define tHalRxBd	halRxBd_type

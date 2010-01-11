@@ -400,9 +400,6 @@ typedef struct
   /* vos ttimer to handle Qed frames aging */
   vos_timer_t        agingTimer;
 
-  /* aging timer status indicator */
-  v_BOOL_t           timerStarted;
-
   /* Q windoe size */
   v_U32_t            winSize;
 
@@ -418,6 +415,8 @@ typedef struct
   v_U32_t            currentESN;
 
   v_U32_t            pendingFramesCount;
+
+  vos_lock_t         reorderLock;
 
   /* Aging timer callback user data */
   WLANTL_TIMER_EXPIER_UDATA_T timerUdata;
@@ -481,6 +480,9 @@ typedef struct
 
   /* flag to signal if a data frame was sent out instead of a trigger frame */
   v_U8_t              ucDataSent;
+
+  /* flag set when a UAPSD session with triggers generated in fw is being set*/
+  v_U8_t              ucSet; 
 }WLANTL_UAPSDInfoType;
 
 /*---------------------------------------------------------------------------

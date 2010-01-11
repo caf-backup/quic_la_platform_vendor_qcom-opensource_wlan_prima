@@ -470,9 +470,59 @@ WNI_CFG_RA_PERIODICITY_TIMEOUT_IN_PS    I    4    7
 V    RW    NP
 HAL
 0    65535    1000
+NV    RW    NP
+NONE
+0    0    0
+
+*
+* Beacon Filter Enable/Disable (TU)
+*
+
+WNI_CFG_PS_ENABLE_BCN_FILTER    I    4    7
 V    RW    NP
 HAL
-0    65535    1000
+0    1    1
+NV    RW    NP
+NONE
+0    1    1
+
+*
+* Heart Beat Enable/Disable (TU)
+*
+
+WNI_CFG_PS_ENABLE_HEART_BEAT    I    4    7
+V    RW    NP
+HAL
+0    1    1
+NV    RW    NP
+NONE
+0    1    1
+
+*
+* RSSI Monitor Enable/Disable (TU)
+*
+
+WNI_CFG_PS_ENABLE_RSSI_MONITOR    I    4    7
+V    RW    NP
+HAL
+0    1    1
+NV    RW    NP
+NONE
+0    1    1
+
+
+*
+* PS Data InActivity Timeout (TU)
+*
+
+WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT    I    4    7
+V    RW    NP
+HAL
+1    255    20
+NV    RW    NP
+NONE
+1    255    20
+
 
 
 *
@@ -2380,7 +2430,7 @@ LIM
 WNI_CFG_HT_CAP_INFO   I    4    10
 V    RW    NP       RESTART
 LIM
-0    0xffff    0x0120
+0    0xffff    0x012c
 V    RW    NP       RESTART
 LIM
 0    0xffff    0x106e

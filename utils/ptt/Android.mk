@@ -16,11 +16,17 @@ LOCAL_CFLAGS += \
 	-DANI_DEBUG
 
 LOCAL_C_INCLUDES:= \
-	$(LOCAL_PATH)/../asf/inc
+	$(LOCAL_PATH)/../asf/inc \
+	$(LOCAL_PATH)/../../../diag/include \
+	$(LOCAL_PATH)/../../../diag/src
+
+LOCAL_C_INCLUDES += vendor/qcom-proprietary/common/inc
+
 
 LOCAL_SHARED_LIBRARIES := \
 	libutils \
-	libcutils
+	libcutils \
+	libdiag
 
 LOCAL_STATIC_LIBRARIES := \
 	libAniAsf

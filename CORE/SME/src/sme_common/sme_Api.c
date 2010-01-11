@@ -654,6 +654,13 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
               status );
    }
 
+   //Apply the global config if SME is in ready state
+   //We don't want to apply global CFG in connect state because that may cause some side affect
+   if( SME_IS_READY(pMac) && csrIsConnStateDisconnected(pMac) )
+   {
+       csrSetGlobalCfgs(pMac);
+   }
+
    return status;
 }
 
@@ -834,6 +841,7 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
              break;
          }
       }
+      pMac->sme.state = SME_STATE_READY;
    } while( 0 );
 
    return status;

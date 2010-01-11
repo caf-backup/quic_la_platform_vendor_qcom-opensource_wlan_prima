@@ -71,9 +71,10 @@ typedef enum
     eCsrScanIdleScan,
     eCsrScanGetScanChnInfo,     //To get the list of channels scanned
 
-   eCsrScanBgScan, // bg scan request in NRT & RT Handoff sub-states
-   eCsrScanProbeBss, // directed probe on an entry from the candidate list - HO
-   eCsrScanAbort,
+    eCsrScanBgScan, // bg scan request in NRT & RT Handoff sub-states
+    eCsrScanProbeBss, // directed probe on an entry from the candidate list - HO
+    eCsrScanAbortBgScan,    //aborting a BG scan (meaning the scan is triggered by LIM timer)
+    eCsrScanAbortNormalScan, //aborting a normal scan (the scan is trigger by eWNI_SME_SCAN_REQ)
 }eCsrScanReason;
 
 typedef enum 
@@ -471,6 +472,9 @@ typedef struct tagRoamCsrConnectedInfo
                         //user needs to use nBeaconLength, nAssocReqLength, nAssocRspLength to desice where
                         //each frame starts and ends.
     tANI_U8 staId;
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+    tCsrChannel sHOScanChannelList; //this is used by Handoff scan
+#endif
 }tCsrRoamConnectedInfo;
 
 

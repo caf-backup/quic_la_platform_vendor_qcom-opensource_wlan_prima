@@ -577,6 +577,31 @@
 #define CFG_IGNORE_DTIM_MAX                    WNI_CFG_IGNORE_DTIM_STAMAX
 #define CFG_IGNORE_DTIM_DEFAULT                WNI_CFG_IGNORE_DTIM_STADEF
 
+#define CFG_RX_ANT_CONFIGURATION_NAME          "gNumRxAnt"
+#define CFG_RX_ANT_CONFIGURATION_NAME_MIN      ( 1 )
+#define CFG_RX_ANT_CONFIGURATION_NAME_MAX      ( 2 )
+#define CFG_RX_ANT_CONFIGURATION_NAME_DEFAULT  ( 2 )
+
+#define CFG_FW_HEART_BEAT_MONITORING_NAME      "gEnableFWHeartBeatMonitoring"
+#define CFG_FW_HEART_BEAT_MONITORING_MIN       ( 0 )
+#define CFG_FW_HEART_BEAT_MONITORING_MAX       ( 1 )
+#define CFG_FW_HEART_BEAT_MONITORING_DEFAULT   ( 1 )
+
+#define CFG_FW_BEACON_FILTERING_NAME           "gEnableFWBeaconFiltering"
+#define CFG_FW_BEACON_FILTERING_MIN            ( 0 )
+#define CFG_FW_BEACON_FILTERING_MAX            ( 1 )
+#define CFG_FW_BEACON_FILTERING_DEFAULT        ( 1 )
+
+#define CFG_FW_RSSI_MONITORING_NAME            "gEnableFWRssiMonitoring"
+#define CFG_FW_RSSI_MONITORING_MIN             ( 0 )
+#define CFG_FW_RSSI_MONITORING_MAX             ( 1 )
+#define CFG_FW_RSSI_MONITORING_DEFAULT         ( 1 )
+
+#define CFG_DATA_INACTIVITY_TIMEOUT_NAME       "gDataInactivityTimeout"
+#define CFG_DATA_INACTIVITY_TIMEOUT_MIN        ( 1 )
+#define CFG_DATA_INACTIVITY_TIMEOUT_MAX        ( 255 )
+#define CFG_DATA_INACTIVITY_TIMEOUT_DEFAULT    ( 20 )
+
 //WMM configuration
 #define CFG_QOS_WMM_MODE_NAME                             "WmmMode"
 #define CFG_QOS_WMM_MODE_MIN                               (0)
@@ -606,7 +631,7 @@
 #define CFG_QOS_WMM_INFRA_UAPSD_VO_SUS_INTV_NAME           "InfraUapsdVoSuspIntv"
 #define CFG_QOS_WMM_INFRA_UAPSD_VO_SUS_INTV_MIN             (0)
 #define CFG_QOS_WMM_INFRA_UAPSD_VO_SUS_INTV_MAX             (4294967295UL )
-#define CFG_QOS_WMM_INFRA_UAPSD_VO_SUS_INTV_DEFAULT         (0)
+#define CFG_QOS_WMM_INFRA_UAPSD_VO_SUS_INTV_DEFAULT         (2000)
 
 #define CFG_QOS_WMM_INFRA_UAPSD_VI_SRV_INTV_NAME           "InfraUapsdViSrvIntv"
 #define CFG_QOS_WMM_INFRA_UAPSD_VI_SRV_INTV_MIN             (0)
@@ -616,7 +641,7 @@
 #define CFG_QOS_WMM_INFRA_UAPSD_VI_SUS_INTV_NAME           "InfraUapsdViSuspIntv"
 #define CFG_QOS_WMM_INFRA_UAPSD_VI_SUS_INTV_MIN             (0)
 #define CFG_QOS_WMM_INFRA_UAPSD_VI_SUS_INTV_MAX             (4294967295UL)
-#define CFG_QOS_WMM_INFRA_UAPSD_VI_SUS_INTV_DEFAULT         (0)
+#define CFG_QOS_WMM_INFRA_UAPSD_VI_SUS_INTV_DEFAULT         (2000)
 
 #define CFG_QOS_WMM_INFRA_UAPSD_BE_SRV_INTV_NAME           "InfraUapsdBeSrvIntv"
 #define CFG_QOS_WMM_INFRA_UAPSD_BE_SRV_INTV_MIN             (0)
@@ -626,7 +651,7 @@
 #define CFG_QOS_WMM_INFRA_UAPSD_BE_SUS_INTV_NAME           "InfraUapsdBeSuspIntv"
 #define CFG_QOS_WMM_INFRA_UAPSD_BE_SUS_INTV_MIN             (0)
 #define CFG_QOS_WMM_INFRA_UAPSD_BE_SUS_INTV_MAX             (4294967295UL)
-#define CFG_QOS_WMM_INFRA_UAPSD_BE_SUS_INTV_DEFAULT         (0)
+#define CFG_QOS_WMM_INFRA_UAPSD_BE_SUS_INTV_DEFAULT         (2000)
 
 #define CFG_QOS_WMM_INFRA_UAPSD_BK_SRV_INTV_NAME           "InfraUapsdBkSrvIntv"
 #define CFG_QOS_WMM_INFRA_UAPSD_BK_SRV_INTV_MIN             (0)
@@ -636,7 +661,7 @@
 #define CFG_QOS_WMM_INFRA_UAPSD_BK_SUS_INTV_NAME           "InfraUapsdBkSuspIntv"
 #define CFG_QOS_WMM_INFRA_UAPSD_BK_SUS_INTV_MIN             (0)
 #define CFG_QOS_WMM_INFRA_UAPSD_BK_SUS_INTV_MAX             (4294967295UL)             
-#define CFG_QOS_WMM_INFRA_UAPSD_BK_SUS_INTV_DEFAULT         (0)
+#define CFG_QOS_WMM_INFRA_UAPSD_BK_SUS_INTV_DEFAULT         (2000)
 
 #define CFG_QOS_WMM_PKT_CLASSIFY_BASIS_NAME                "PktClassificationBasis" // DSCP or 802.1Q
 #define CFG_QOS_WMM_PKT_CLASSIFY_BASIS_MIN                  (0)
@@ -900,6 +925,13 @@ typedef struct
 
    v_U8_t         nRssiFilterPeriod;
    v_BOOL_t       fIgnoreDtim;
+
+   v_U8_t         nRxAnt;
+   v_U8_t         fEnableFwHeartBeatMonitoring;
+   v_U8_t         fEnableFwBeaconFiltering;
+   v_U8_t         fEnableFwRssiMonitoring;
+   v_U8_t         nDataInactivityTimeout;
+	
 										 
    //WMM QoS Configuration
    hdd_wmm_user_mode_t          WmmMode;

@@ -11,7 +11,7 @@
  * Krishna Reddy, 09/05/2003
  *
  ******************************************************************************
- * ALL RIGHTS RESERVED, Airgo Networks, Inc. 
+ * ALL RIGHTS RESERVED, Airgo Networks, Inc.
  * No part of this file/software maybe copied or reproduced in any form without
  * the explicit permission of:
  *
@@ -19,7 +19,7 @@
  * 900 Arastradero Road, Palo Alto, CA 94304, USA.
  * Tel: +1-650-475-4000
  * http://www.Airgonet.com
- * 
+ *
  ******************************************************************************
  * (C) Copyright 2002, Airgo Networks, Inc., Palo Alto, CA 94304, USA
  ******************************************************************************/
@@ -40,10 +40,10 @@ typedef enum {
 
 typedef enum {
 	RTT_RSP_SME_MSG = 201,
-	RTT_RSP_CFG_MSG = 202,		
-	RTT_RSP_HDD_MSG = 203,		
-	RTT_RSP_ALREADY_REGISTERED_MSG = 204,		
-	RTT_REBOOT = 0xffff,		
+	RTT_RSP_CFG_MSG = 202,
+	RTT_RSP_HDD_MSG = 203,
+	RTT_RSP_ALREADY_REGISTERED_MSG = 204,
+	RTT_REBOOT = 0xffff,
 } tRttRspMsgIds;
 
 typedef struct sAniRttCmdRspMsg {
@@ -52,18 +52,27 @@ typedef struct sAniRttCmdRspMsg {
 	ANI_U16	msgType;
 } tAniRttCmdRspMsg;
 
+#define PTT_FTM_CMDS_TYPE           0x4040
+
+typedef struct sAniDiagMsg {
+	int msg_len;
+	char *pRespData;
+	tAniBoolean diag_msg_received;
+}tAniDiagMsg;
+
 typedef struct sAniRttServerContext {
 	int	radio;
 	tAniIpc    *ipcs;	/* IPC struct for on which the server listens */
-	tAniIpc    *ipcnl ;	/* IPC struct the Netlink socket that the 
+	tAniIpc    *ipcnl ;	/* IPC struct the Netlink socket that the
 				 * server uses to pass messages back and
-				 * forth from the Pseudo Driver kernel 
+				 * forth from the Pseudo Driver kernel
 				 * module.
-				 */ 
+				 */
 	tAniIpc    *clIpc;	/* The accepted socket to the client */
 	struct nlmsghdr nl;	/* A prebuilt and cached Netlink msg hdr */
 	struct sockaddr_nl *snl;/* return from getsockname in aniAsfIpcOpen */
-} tAniRttCtxt ; 
+	tAniDiagMsg diag_msg;
+} tAniRttCtxt ;
 
 /* Static in-line type conversion functions */
 

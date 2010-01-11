@@ -1842,14 +1842,25 @@ VOS_STATUS WLANBAL_GetTxResources
    {
       BMSGERROR("%s: Not enough resource try again BD %d, PDU %d", __func__, bdBufferCount, 
          pduBufferCount);
-      status = vos_timer_start(&gbalHandle->timer, WLANBAL_TX_RESOURCE_TIMEOUT);
-   }
-   if(!VOS_IS_STATUS_SUCCESS(status))
-   {
-      BMSGERROR("%s: Timer Start Fail\n", __func__, 0, 0);
-      // Release lock
-      BEXIT();
-      return VOS_STATUS_E_FAILURE;
+      if (VOS_TIMER_STATE_STOPPED == vos_timer_getCurrentState(&gbalHandle->timer))
+      {
+         status = vos_timer_start(&gbalHandle->timer,
+                                  WLANBAL_TX_RESOURCE_TIMEOUT);
+         if(!VOS_IS_STATUS_SUCCESS(status))
+         {
+            BMSGERROR("%s: Timer Start Fail\n", __func__, 0, 0);
+            // Release lock
+            BEXIT();
+            return VOS_STATUS_E_FAILURE;
+         }
+      }
+      else
+      {
+         BMSGERROR("%s: Timer not stopped, cannot start\n", __func__, 0, 0);
+         // Release lock
+         BEXIT();
+         return VOS_STATUS_E_FAILURE;
+      }
    }
 
    BEXIT();

@@ -2976,7 +2976,12 @@ void *pPacket;
 
   // BA Starting Sequence Number
   // Fragment number will always be zero
-  frmAddBAReq.BAStartingSequenceControl.ssn = pMlmAddBAReq->baSSN - 300;
+  if (pMlmAddBAReq->baSSN < LIM_TX_FRAMES_THRESHOLD_ON_CHIP) {
+      pMlmAddBAReq->baSSN = LIM_TX_FRAMES_THRESHOLD_ON_CHIP;
+  }
+  
+  frmAddBAReq.BAStartingSequenceControl.ssn = 
+	  pMlmAddBAReq->baSSN - LIM_TX_FRAMES_THRESHOLD_ON_CHIP;
 
   nStatus = dot11fGetPackedAddBAReqSize( pMac, &frmAddBAReq, &nPayload );
 

@@ -221,6 +221,7 @@ typedef struct sAniSirHalMac
    *****************************************/
    
     void  *dpuInfo;   /* dpu module private info */
+    tANI_U8 dpuRF;    /* dpu routing flag */  
 
    /****************************************
    /WMM related field

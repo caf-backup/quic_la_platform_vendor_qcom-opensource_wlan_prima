@@ -3,28 +3,28 @@
 
   @brief VOS Scheduler Implementation
 
-  
+
   Copyright (c) 2008 QUALCOMM Incorporated.
   All Rights Reserved.
   Qualcomm Confidential and Proprietary
 ===========================================================================*/
 
-/*=========================================================================== 
-    
-                       EDIT HISTORY FOR FILE 
-   
-   
-  This section contains comments describing changes made to the module. 
-  Notice that changes are listed in reverse chronological order. 
-   
-   
-  $Header:$ $DateTime: $ $Author: $ 
-   
-   
-  when        who    what, where, why 
+/*===========================================================================
+
+                       EDIT HISTORY FOR FILE
+
+
+  This section contains comments describing changes made to the module.
+  Notice that changes are listed in reverse chronological order.
+
+
+  $Header:$ $DateTime: $ $Author: $
+
+
+  when        who    what, where, why
   --------    ---    --------------------------------------------------------
-     
-===========================================================================*/ 
+
+===========================================================================*/
 
 /*---------------------------------------------------------------------------
  * Include Files
@@ -56,7 +56,9 @@ static pVosSchedContext gpVosSchedContext;
  * Forward declaration
  * ------------------------------------------------------------------------*/
 static int VosMCThread(void * Arg);
+#ifndef ANI_MANF_DIAG
 static int VosTXThread(void * Arg);
+#endif
 static VOS_STATUS vos_sched_init_mqs   (pVosSchedContext pSchedContext);
 static void vos_sched_deinit_mqs (pVosSchedContext pSchedContext);
 static void vos_sched_flush_mc_mqs  (pVosSchedContext pSchedContext);
@@ -94,53 +96,53 @@ extern void halFreeMsg(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 
 
 /*---------------------------------------------------------------------------
-  
-  \brief vos_sched_open() - initialize the vOSS Scheduler  
-    
+
+  \brief vos_sched_open() - initialize the vOSS Scheduler
+
   The \a vos_sched_open() function initializes the vOSS Scheduler
   Upon successful initialization:
-  
+
      - All the message queues are initialized
-     
+
      - The Main Controller thread is created and ready to receive and
        dispatch messages.
-     
+
      - The Tx thread is created and ready to receive and dispatch messages
-      
-  
+
+
   \param  pVosContext - pointer to the global vOSS Context
-  
+
   \param  pVosSchedContext - pointer to a previously allocated buffer big
-          enough to hold a scheduler context.       
-  
-  \return VOS_STATUS_SUCCESS - Scheduler was successfully initialized and 
+          enough to hold a scheduler context.
+
+  \return VOS_STATUS_SUCCESS - Scheduler was successfully initialized and
           is ready to be used.
-  
-          VOS_STATUS_E_RESOURCES - System resources (other than memory) 
+
+          VOS_STATUS_E_RESOURCES - System resources (other than memory)
           are unavailable to initilize the scheduler
 
-          VOS_STATUS_E_NOMEM - insufficient memory exists to initialize 
+          VOS_STATUS_E_NOMEM - insufficient memory exists to initialize
           the scheduler
-          
+
           VOS_STATUS_E_INVAL - Invalid parameter passed to the scheduler Open
-          function 
-          
-          VOS_STATUS_E_FAILURE - Failure to initialize the scheduler/   
-          
+          function
+
+          VOS_STATUS_E_FAILURE - Failure to initialize the scheduler/
+
   \sa vos_sched_open()
-  
+
   -------------------------------------------------------------------------*/
-VOS_STATUS 
+VOS_STATUS
 vos_sched_open
-( 
-  v_PVOID_t        pVosContext, 
+(
+  v_PVOID_t        pVosContext,
   pVosSchedContext pSchedContext,
   v_SIZE_t         SchedCtxSize
 )
 {
-  VOS_STATUS  vStatus = VOS_STATUS_SUCCESS; 
+  VOS_STATUS  vStatus = VOS_STATUS_SUCCESS;
 /*-------------------------------------------------------------------------*/
-  
+
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
              "%s: Opening the VOSS Scheduler",__func__);
 
@@ -150,7 +152,7 @@ vos_sched_open
              "%s: Null params being passed",__func__);
      return VOS_STATUS_E_FAILURE;
   }
-     
+
   if (sizeof(VosSchedContext) != SchedCtxSize)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -168,12 +170,12 @@ vos_sched_open
                "%s: Failed to initialize VOS Scheduler MQs",__func__);
      return vStatus;
   }
-  
+
   // Initialize the helper events and event queues
-  init_completion(&pSchedContext->McStartEvent); 
+  init_completion(&pSchedContext->McStartEvent);
   init_completion(&pSchedContext->TxStartEvent);
-  init_completion(&pSchedContext->McShutdown); 
-  init_completion(&pSchedContext->TxShutdown); 
+  init_completion(&pSchedContext->McShutdown);
+  init_completion(&pSchedContext->TxShutdown);
   init_waitqueue_head(&pSchedContext->mcWaitQueue);
   pSchedContext->mcEventFlag = 0;
   init_waitqueue_head(&pSchedContext->txWaitQueue);
@@ -181,9 +183,9 @@ vos_sched_open
 
   /*
   ** This initialization is critical as the threads will latter access the
-  ** global contexts normally, 
+  ** global contexts normally,
   **
-  ** I shall put some memory barrier here after the next piece of code but 
+  ** I shall put some memory barrier here after the next piece of code but
   ** I am keeping it simple for now.
   */
   gpVosSchedContext = pSchedContext;
@@ -204,6 +206,7 @@ vos_sched_open
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: VOSS Main Controller thread Created",__func__);
 
+#ifndef ANI_MANF_DIAG
   pSchedContext->TxThread = kernel_thread(VosTXThread, pSchedContext,
      CLONE_FS | CLONE_FILES | CLONE_SIGHAND | SIGCHLD);
 
@@ -213,11 +216,11 @@ vos_sched_open
                "%s: Could not Create VOSS TX Thread",__func__);
     //De-initialize all the message queues
     vos_sched_deinit_mqs(pSchedContext);
-    
+
     //Try and force the Main thread controller to exit
     set_bit(MC_SHUTDOWN_EVENT_MASK, &pSchedContext->mcEventFlag);
     set_bit(MC_POST_EVENT_MASK, &pSchedContext->mcEventFlag);
-    wake_up_interruptible(&pSchedContext->mcWaitQueue); 
+    wake_up_interruptible(&pSchedContext->mcWaitQueue);
 
     //Wait for MC to exit
     wait_for_completion_interruptible(&pSchedContext->McShutdown);
@@ -231,12 +234,15 @@ vos_sched_open
 
   /*
   ** Now make sure both threads have started before we exit.
-  ** Each thread should normally ACK back when it starts. 
+  ** Each thread should normally ACK back when it starts.
   */
+ #endif
   wait_for_completion_interruptible(&pSchedContext->McStartEvent);
 
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: VOSS MC Thread has started",__func__);
+
+ #ifndef ANI_MANF_DIAG
 
   wait_for_completion_interruptible(&pSchedContext->TxStartEvent);
 
@@ -248,6 +254,7 @@ vos_sched_open
   */
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: VOSS Scheduler successfully Opened",__func__);
+  #endif
 
   return VOS_STATUS_SUCCESS;
 
@@ -255,19 +262,19 @@ vos_sched_open
 
 
 /*---------------------------------------------------------------------------
-  
+
   \brief VosMcThread() - The VOSS Main Controller thread
-    
+
   The \a VosMcThread() is the VOSS main controller thread:
-  
+
   \param  Arg - pointer to the global vOSS Sched Context
-  
+
   \return Thread exit code
-  
+
   \sa VosMcThread()
-  
+
   -------------------------------------------------------------------------*/
-static int 
+static int
 VosMCThread
 (
   void * Arg
@@ -278,7 +285,9 @@ VosMCThread
   tpAniSirGlobal pMacContext     = NULL;
   tSirRetStatus macStatus        = eSIR_SUCCESS;
   VOS_STATUS vStatus             = VOS_STATUS_SUCCESS;
+  #ifndef ANI_MANF_DIAG
   eHalStatus hStatus             = eHAL_STATUS_SUCCESS;
+  #endif
   int retWaitStatus              = 0;
   v_BOOL_t shutdown              = VOS_FALSE;
   struct sched_param param       = { .sched_priority = 2 };
@@ -287,7 +296,7 @@ VosMCThread
 
   if (Arg == NULL)
   {
-     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
         "%s: Bad Args passed", __FUNCTION__);
      return 0;
   }
@@ -295,12 +304,12 @@ VosMCThread
   daemonize("MC_Thread");
 
   /*
-  ** Ack back to the context from which the main controller thread has been 
+  ** Ack back to the context from which the main controller thread has been
   ** created.
   */
   complete(&pSchedContext->McStartEvent);
 
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, 
+  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
       "%s: MC Thread %d (%s) starting up",__func__, current->pid, current->comm);
 
   while(!shutdown)
@@ -311,7 +320,7 @@ VosMCThread
 
     if(retWaitStatus == -ERESTARTSYS)
     {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
          "%s: wait_event_interruptible returned -ERESTARTSYS", __FUNCTION__);
       break;
     }
@@ -341,9 +350,9 @@ VosMCThread
               "%s: pMsgWrapper is NULL", __FUNCTION__);
            VOS_ASSERT(0);
            break;
-        } 
+        }
 
-        vStatus = sysMcProcessMsg(pSchedContext->pVContext, 
+        vStatus = sysMcProcessMsg(pSchedContext->pVContext,
            pMsgWrapper->pVosMsg);
 
         if (!VOS_IS_STATUS_SUCCESS(vStatus))
@@ -370,11 +379,11 @@ VosMCThread
         pMsgWrapper = vos_mq_get(&pSchedContext->halMcMq);
         if (pMsgWrapper == NULL)
         {
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
               "%s: pMsgWrapper is NULL", __FUNCTION__);
            VOS_ASSERT(0);
            break;
-        } 
+        }
 
         macStatus = halProcessMsg( pMacContext, (tSirMsgQ*)pMsgWrapper->pVosMsg);
         if (eSIR_SUCCESS != macStatus)
@@ -387,6 +396,7 @@ VosMCThread
         vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
         continue;
       }
+#ifndef ANI_MANF_DIAG
 
       // Check the PE queue
       if (!vos_is_mq_empty(&pSchedContext->peMcMq))
@@ -404,7 +414,7 @@ VosMCThread
               "%s: pMsgWrapper is NULL", __FUNCTION__);
            VOS_ASSERT(0);
            break;
-        } 
+        }
 
         pMsgWrapper = vos_mq_get(&pSchedContext->peMcMq);
         macStatus = peProcessMessages( pMacContext, (tSirMsgQ*)pMsgWrapper->pVosMsg);
@@ -436,7 +446,7 @@ VosMCThread
                "%s: pMsgWrapper is NULL", __FUNCTION__);
            VOS_ASSERT(0);
            break;
-        } 
+        }
 
         hStatus = sme_ProcessMsg( (tHalHandle)pMacContext, pMsgWrapper->pVosMsg);
         if (!HAL_STATUS_SUCCESS(hStatus))
@@ -460,13 +470,13 @@ VosMCThread
         pMsgWrapper = vos_mq_get(&pSchedContext->tlMcMq);
         if (pMsgWrapper == NULL)
         {
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
               "%s: pMsgWrapper is NULL", __FUNCTION__);
            VOS_ASSERT(0);
            break;
-        } 
+        }
 
-        vStatus = WLANTL_McProcessMsg( pSchedContext->pVContext, 
+        vStatus = WLANTL_McProcessMsg( pSchedContext->pVContext,
             pMsgWrapper->pVosMsg);
 
         if (!VOS_IS_STATUS_SUCCESS(vStatus))
@@ -479,17 +489,17 @@ VosMCThread
         vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
         continue;
       }
-
+#endif /* ANI_MANF_DIAG */
       break; //All queues are empty now
 
     } // while message loop processing
 
     clear_bit(MC_POST_EVENT_MASK, &pSchedContext->mcEventFlag);
-    
+
   } // while TRUE
 
   // If we get here the MC thread must exit
-  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
       "%s: MC Thread exiting!!!!", __FUNCTION__);
 
   complete_and_exit(&pSchedContext->McShutdown, 0);
@@ -499,19 +509,21 @@ VosMCThread
 
 
 /*---------------------------------------------------------------------------
-  
+
   \brief VosTXThread() - The VOSS Main Tx thread
-    
+
   The \a VosTxThread() is the VOSS main controller thread:
-  
+
   \param  Arg - pointer to the global vOSS Sched Context
-  
-  
+
+
   \return Thread exit code
-  
+
   \sa VosTxThread()
-  
+
   -------------------------------------------------------------------------*/
+#ifndef ANI_MANF_DIAG
+
 static int VosTXThread ( void * Arg )
 {
   pVosSchedContext pSchedContext = (pVosSchedContext)Arg;
@@ -533,7 +545,7 @@ static int VosTXThread ( void * Arg )
   daemonize("TX_Thread");
 
   /*
-  ** Ack back to the context from which the main controller thread has been 
+  ** Ack back to the context from which the main controller thread has been
   ** created.
   */
   complete(&pSchedContext->TxStartEvent);
@@ -544,12 +556,12 @@ static int VosTXThread ( void * Arg )
   while(!shutdown)
   {
     // This implements the execution model algorithm
-    retWaitStatus = wait_event_interruptible(pSchedContext->txWaitQueue, 
+    retWaitStatus = wait_event_interruptible(pSchedContext->txWaitQueue,
         test_bit(TX_POST_EVENT_MASK, &pSchedContext->txEventFlag));
 
     if(retWaitStatus == -ERESTARTSYS)
     {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
            "%s: wait_event_interruptible returned -ERESTARTSYS", __FUNCTION__);
         break;
     }
@@ -579,9 +591,9 @@ static int VosTXThread ( void * Arg )
                "%s: pMsgWrapper is NULL", __FUNCTION__);
            VOS_ASSERT(0);
            break;
-        } 
+        }
 
-        vStatus = sysTxProcessMsg( pSchedContext->pVContext, 
+        vStatus = sysTxProcessMsg( pSchedContext->pVContext,
                                    pMsgWrapper->pVosMsg);
 
         if (!VOS_IS_STATUS_SUCCESS(vStatus))
@@ -610,9 +622,9 @@ static int VosTXThread ( void * Arg )
                "%s: pMsgWrapper is NULL", __FUNCTION__);
            VOS_ASSERT(0);
            break;
-        } 
+        }
 
-        vStatus = WLANTL_TxProcessMsg( pSchedContext->pVContext, 
+        vStatus = WLANTL_TxProcessMsg( pSchedContext->pVContext,
                                        pMsgWrapper->pVosMsg);
 
         if (!VOS_IS_STATUS_SUCCESS(vStatus))
@@ -641,8 +653,8 @@ static int VosTXThread ( void * Arg )
                "%s: pMsgWrapper is NULL", __FUNCTION__);
            VOS_ASSERT(0);
            break;
-        } 
-        vStatus = WLANSSC_ProcessMsg( pSchedContext->pVContext, 
+        }
+        vStatus = WLANSSC_ProcessMsg( pSchedContext->pVContext,
                                       pMsgWrapper->pVosMsg);
 
         if (!VOS_IS_STATUS_SUCCESS(vStatus))
@@ -657,53 +669,53 @@ static int VosTXThread ( void * Arg )
       }
 
       break; //All queues are empty now
- 
+
     } // while message loop processing
 
     clear_bit(TX_POST_EVENT_MASK, &pSchedContext->txEventFlag);
-    
+
   } // while TRUE
 
   // If we get here the TX thread must exit
 
-  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
       "%s: TX Thread exiting!!!!", __FUNCTION__);
 
   complete_and_exit(&pSchedContext->TxShutdown, 0);
 
 } /* VosTxThread() */
 
-
+#endif
 /*---------------------------------------------------------------------------
-  
-  \brief vos_sched_close() - Close the vOSS Scheduler  
-    
+
+  \brief vos_sched_close() - Close the vOSS Scheduler
+
   The \a vos_sched_closes() function closes the vOSS Scheduler
   Upon successful closing:
-  
+
      - All the message queues are flushed
-     
+
      - The Main Controller thread is closed
-     
+
      - The Tx thread is closed
-      
-  
+
+
   \param  pVosContext - pointer to the global vOSS Context
-  
-  \return VOS_STATUS_SUCCESS - Scheduler was successfully initialized and 
+
+  \return VOS_STATUS_SUCCESS - Scheduler was successfully initialized and
           is ready to be used.
-          
+
           VOS_STATUS_E_INVAL - Invalid parameter passed to the scheduler Open
-          function 
-          
-          VOS_STATUS_E_FAILURE - Failure to initialize the scheduler/   
-          
+          function
+
+          VOS_STATUS_E_FAILURE - Failure to initialize the scheduler/
+
   \sa vos_sched_close()
-  
+
 ---------------------------------------------------------------------------*/
 VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
 {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
         "%s: vos_schdeuler closing now", __FUNCTION__);
 
     if (gpVosSchedContext == NULL)
@@ -711,15 +723,15 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
            "%s: gpVosSchedContext == NULL\n",__FUNCTION__);
        return VOS_STATUS_E_FAILURE;
-    }   
+    }
 
     set_bit(MC_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->mcEventFlag);
     set_bit(MC_POST_EVENT_MASK, &gpVosSchedContext->mcEventFlag);
-    wake_up_interruptible(&gpVosSchedContext->mcWaitQueue); 
+    wake_up_interruptible(&gpVosSchedContext->mcWaitQueue);
 
     set_bit(TX_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->txEventFlag);
     set_bit(TX_POST_EVENT_MASK, &gpVosSchedContext->txEventFlag);
-    wake_up_interruptible(&gpVosSchedContext->txWaitQueue); 
+    wake_up_interruptible(&gpVosSchedContext->txWaitQueue);
 
     //Wait for MC and TX to exit
     wait_for_completion_interruptible(&gpVosSchedContext->McShutdown);
@@ -738,23 +750,23 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
 
 
 /*---------------------------------------------------------------------------
-  
+
   \brief vos_sched_init_mqs: Initialize the vOSS Scheduler message queues
-    
+
   The \a vos_sched_init_mqs() function initializes the vOSS Scheduler
   message queues.
-  
+
   \param  pVosSchedContext - pointer to the Scheduler Context.
-  
-  \return VOS_STATUS_SUCCESS - Scheduler was successfully initialized and 
+
+  \return VOS_STATUS_SUCCESS - Scheduler was successfully initialized and
           is ready to be used.
-  
-          VOS_STATUS_E_RESOURCES - System resources (other than memory) 
+
+          VOS_STATUS_E_RESOURCES - System resources (other than memory)
           are unavailable to initilize the scheduler
 
-          
+
   \sa vos_sched_init_mqs()
-  
+
   -------------------------------------------------------------------------*/
 static VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
 {
@@ -773,8 +785,8 @@ static VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
             "%s: Failed to init HAL MC Message queue",__func__);
     VOS_ASSERT(0);
     return vStatus;
-  } 
-
+  }
+#ifndef ANI_MANF_DIAG
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: Initializing the PE MC Message queue",__func__);
 
@@ -807,13 +819,13 @@ static VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
   vStatus = vos_mq_init(&pSchedContext->tlMcMq);
 
   if (! VOS_IS_STATUS_SUCCESS(vStatus))
-  { 
+  {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
             "%s: Failed to init TL MC Message queue",__func__);
     VOS_ASSERT(0);
     return vStatus;
   }
-
+#endif
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: Initializing the SYS MC Message queue",__func__);
 
@@ -826,7 +838,7 @@ static VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
     VOS_ASSERT(0);
     return vStatus;
   }
-
+#ifndef ANI_MANF_DIAG
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: Initializing the TL Tx Message queue",__func__);
 
@@ -852,7 +864,7 @@ static VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
     VOS_ASSERT(0);
     return vStatus;
   }
-
+#endif
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: Initializing the SYS Tx Message queue",__func__);
 
@@ -865,29 +877,29 @@ static VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
     VOS_ASSERT(0);
     return vStatus;
   }
- 
+
   return VOS_STATUS_SUCCESS;
 } /* vos_sched_init_mqs() */
 
 
 /*---------------------------------------------------------------------------
-  
+
   \brief vos_sched_deinit_mqs: Deinitialize the vOSS Scheduler message queues
-    
+
   The \a vos_sched_init_mqs() function deinitializes the vOSS Scheduler
   message queues.
-  
+
   \param  pVosSchedContext - pointer to the Scheduler Context.
-  
+
   \return None
-          
+
   \sa vos_sched_deinit_mqs()
-  
+
   -------------------------------------------------------------------------*/
 static void vos_sched_deinit_mqs ( pVosSchedContext pSchedContext )
 {
   // Now de-intialize all message queues
-  
+
   // MC HAL
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s De-Initializing the HAL MC Message queue",__func__);
@@ -950,7 +962,7 @@ static void vos_sched_flush_mc_mqs ( pVosSchedContext pSchedContext )
 
   /*
   ** Here each of the MC thread MQ shall be drained and returned to the
-  ** Core. Before returning a wrapper to the Core, the VOS message shall be 
+  ** Core. Before returning a wrapper to the Core, the VOS message shall be
   ** freed  first
   */
 
@@ -983,7 +995,7 @@ static void vos_sched_flush_mc_mqs ( pVosSchedContext pSchedContext )
     halFreeMsg(vosCtx->pMACContext, (tSirMsgQ*)pMsgWrapper->pVosMsg);
     vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
   }
- 
+
   /* Flush the PE Mq */
   while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->peMcMq) ))
   {
@@ -1007,7 +1019,7 @@ static void vos_sched_flush_mc_mqs ( pVosSchedContext pSchedContext )
     sme_FreeMsg(vosCtx->pMACContext, pMsgWrapper->pVosMsg);
     vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
   }
- 
+
     /* Flush the TL Mq */
   while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->tlMcMq) ))
   {
@@ -1047,7 +1059,7 @@ static void vos_sched_flush_tx_mqs ( pVosSchedContext pSchedContext )
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
          "%s: pSchedContext is NULL", __FUNCTION__);
      return;
-  } 
+  }
 
   /* Flush the SYS Mq */
   while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->sysTxMq) ))
@@ -1072,7 +1084,7 @@ static void vos_sched_flush_tx_mqs ( pVosSchedContext pSchedContext )
     WLANTL_TxFreeMsg(pSchedContext->pVContext, pMsgWrapper->pVosMsg);
     vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
   }
- 
+
   /* Flush the SSC Mq */
   while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->sscTxMq) ))
   {
@@ -1098,7 +1110,7 @@ int vos_sched_is_tx_thread(int threadID)
 
    if (gpVosSchedContext == NULL)
    {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
           "%s: gpVosSchedContext == NULL",__FUNCTION__);
       return 0;
    }
@@ -1111,7 +1123,7 @@ int vos_sched_is_tx_thread(int threadID)
  ------------------------------------------------------------------------*/
 pVosSchedContext get_vos_sched_ctxt(void)
 {
-   //Make sure that Vos Scheduler context has been initialized 
+   //Make sure that Vos Scheduler context has been initialized
    if (gpVosSchedContext == NULL)
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,

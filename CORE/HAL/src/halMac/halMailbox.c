@@ -115,7 +115,7 @@ eHalStatus halMbox_Stop(tHalHandle hHal, void *arg)
     {
         for (index = 0; index < HAL_NUM_MBOX_DEFER_QUEUE_ENTRIES; index++)
         {
-            if (NULL != pMboxDQ->pMsgArray[index]) 
+            if (NULL != pMboxDQ->pMsgArray[index])
             {
                 palFreeMemory(pMac->hHdd, pMboxDQ->pMsgArray[index]);
                 pMboxDQ->pMsgArray[index] = NULL;
@@ -148,12 +148,12 @@ eHalStatus halMbox_Open(tHalHandle hHal, void *arg)
                                (sizeof(tMboxInfo) * HOST_NUM_OF_MAILBOX));
 
     /* allocate the mbox defer queue */
-    if (eHAL_STATUS_SUCCESS == status) 
+    if (eHAL_STATUS_SUCCESS == status)
     {
-        status = palAllocateMemory(pMac->hHdd, 
+        status = palAllocateMemory(pMac->hHdd,
                                    &pMac->hal.halMac.mboxDeferQueue,
                                    sizeof(tMboxDeferQueue));
-        if (eHAL_STATUS_SUCCESS != status) 
+        if (eHAL_STATUS_SUCCESS != status)
         {
             palFreeMemory(pMac->hHdd, pMac->hal.halMac.mboxInfo);
             pMac->hal.halMac.mboxInfo = NULL;
@@ -161,7 +161,7 @@ eHalStatus halMbox_Open(tHalHandle hHal, void *arg)
     }
 
     /* initialize the mbox lock for HOST->FW */
-    if (eHAL_STATUS_SUCCESS == status) 
+    if (eHAL_STATUS_SUCCESS == status)
     {
         pMbox = (tpMboxInfo)pMac->hal.halMac.mboxInfo;
         vosStatus = vos_lock_init(&(pMbox[H2FW_MAILBOX].lock));
@@ -306,6 +306,10 @@ eHalStatus halMbox_SendReliableMsg(tpAniSirGlobal pMac, void *msg)
     readIdx = pMboxDQ->readIdx;
     writeIdx = pMboxDQ->writeIdx;
 
+#ifdef ANI_MANF_DIAG
+    pMbox[MCU_MAILBOX_HOST2FW].bMboxBusy = eANI_BOOLEAN_FALSE;
+#endif
+
     /* check if this message needs defering */
     if ((eANI_BOOLEAN_TRUE == pMbox[MCU_MAILBOX_HOST2FW].bMboxBusy) ||
         (NULL != pMboxDQ->pMsgArray[readIdx]))
@@ -319,7 +323,7 @@ eHalStatus halMbox_SendReliableMsg(tpAniSirGlobal pMac, void *msg)
             HALLOGE(halLog(pMac, LOGE, FL("Mbox defer Queue is full\n")));
             for(i = 0; i < HAL_NUM_MBOX_DEFER_QUEUE_ENTRIES; i++)
             {
-                pHdr = (tpMBoxMsgHdr)pMboxDQ->pMsgArray[i];                
+                pHdr = (tpMBoxMsgHdr)pMboxDQ->pMsgArray[i];
                 HALLOGE(halLog(pMac, LOGE, FL("Mbox defer Queue idx = %u, msgType = %u, msgLen = %u\n"),
                     i, pHdr->MsgType, pHdr->MsgLen));
             }
@@ -329,7 +333,7 @@ eHalStatus halMbox_SendReliableMsg(tpAniSirGlobal pMac, void *msg)
         {
             /* allocate a buffer to hold the message */
             status = palAllocateMemory(pMac->hHdd, &pBuf, pHdr->MsgLen);
-            if (eHAL_STATUS_SUCCESS == status) 
+            if (eHAL_STATUS_SUCCESS == status)
             {
                 /* copy the message into the buffer */
                 palCopyMemory(pMac->hHdd, pBuf, msg, pHdr->MsgLen);
@@ -468,7 +472,7 @@ eHalStatus halMbox_SendMsgComplete( tHalHandle hHal )
     if (NULL != pMboxDQ->pMsgArray[readIdx])
     {
         status = halMbox_SendMsg(pMac, pMboxDQ->pMsgArray[readIdx]);
-        if (eHAL_STATUS_SUCCESS != status) 
+        if (eHAL_STATUS_SUCCESS != status)
         {
             HALLOGE(halLog(pMac, LOGE, FL("failed to send off defer queue: 0x%lx\n"), (tANI_U32)status));
         }

@@ -25,9 +25,6 @@
 
 extern const sHalNv nvDefaults;
 
-#ifdef ANI_MANF_DIAG
-static void logNvCommonFields(tpAniSirGlobal pMac, sNvFields *pFields);
-#endif
 //static eHalStatus CacheTables(tHalHandle hMac);
 
 eHalStatus halNvOpen(tHalHandle hMac)
@@ -43,7 +40,7 @@ eHalStatus halNvOpen(tHalHandle hMac)
     pMac->hphy.nvTables[NV_TABLE_DEFAULT_COUNTRY    ] = &pMac->hphy.nvCache.tables.defaultCountryTable;
     pMac->hphy.nvTables[NV_TABLE_TPC_CONFIG         ] = &pMac->hphy.nvCache.tables.tpcConfig[0];
     pMac->hphy.nvTables[NV_TABLE_RF_CAL_VALUES      ] = &pMac->hphy.nvCache.tables.rfCalValues;
-    
+
     return status;
 }
 
@@ -210,9 +207,9 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                     {
                         return (eHAL_STATUS_FAILURE);
                     }
-                    
+
                     break;
-    
+
                 case NV_TABLE_RATE_POWER_SETTINGS:
                     if ((vosStatus = vos_nv_write(VNV_RATE_TO_POWER_TABLE, (void *)&pMac->hphy.nvCache.tables.pwrOptimum[0], sizeof(tRateGroupPwr) * NUM_RF_SUBBANDS)) == VOS_STATUS_SUCCESS)
                     {
@@ -222,7 +219,7 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                         return (eHAL_STATUS_FAILURE);
                     }
                     break;
-    
+
                 case NV_TABLE_REGULATORY_DOMAINS:
                     if ((vosStatus = vos_nv_write(VNV_REGULARTORY_DOMAIN_TABLE, (void *)&pMac->hphy.nvCache.tables.regDomains[0], sizeof(sRegulatoryDomains) * NUM_REG_DOMAINS)) == VOS_STATUS_SUCCESS)
                     {
@@ -232,7 +229,7 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                         return (eHAL_STATUS_FAILURE);
                     }
                     break;
-    
+
                 case NV_TABLE_DEFAULT_COUNTRY:
                     if ((vosStatus = vos_nv_write(VNV_DEFAULT_LOCATION, (void *)&pMac->hphy.nvCache.tables.defaultCountryTable, sizeof(sDefaultCountry))) == VOS_STATUS_SUCCESS)
                     {
@@ -242,7 +239,7 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                         return (eHAL_STATUS_FAILURE);
                     }
                     break;
-    
+
 */
             case NV_TABLE_TPC_CONFIG:       //stored through QFUSE
             case NV_TABLE_RF_CAL_VALUES:    //stored through QFUSE
@@ -300,9 +297,9 @@ eHalStatus halIsTableInNv(tHalHandle hMac, eNvTable nvTable)
                         return (eHAL_STATUS_SUCCESS);   //success means it is stored
                     }
                 }
-                
+
                 return (eHAL_STATUS_FAILURE);
-    
+
             case NV_TABLE_RATE_POWER_SETTINGS:
                 if ((vosStatus = vos_nv_getValidity(VNV_RATE_TO_POWER_TABLE, &pItemIsValid)) == VOS_STATUS_SUCCESS)
                 {
@@ -311,9 +308,9 @@ eHalStatus halIsTableInNv(tHalHandle hMac, eNvTable nvTable)
                         return (eHAL_STATUS_SUCCESS);   //success means it is stored
                     }
                 }
-                
+
                 return (eHAL_STATUS_FAILURE);
-    
+
             case NV_TABLE_REGULATORY_DOMAINS:
                 if ((vosStatus = vos_nv_getValidity(VNV_REGULARTORY_DOMAIN_TABLE, &pItemIsValid)) == VOS_STATUS_SUCCESS)
                 {
@@ -322,9 +319,9 @@ eHalStatus halIsTableInNv(tHalHandle hMac, eNvTable nvTable)
                         return (eHAL_STATUS_SUCCESS);   //success means it is stored
                     }
                 }
-                
+
                 return (eHAL_STATUS_FAILURE);
-    
+
             case NV_TABLE_DEFAULT_COUNTRY:
                 if ((vosStatus = vos_nv_getValidity(VNV_DEFAULT_LOCATION, &pItemIsValid)) == VOS_STATUS_SUCCESS)
                 {
@@ -333,10 +330,10 @@ eHalStatus halIsTableInNv(tHalHandle hMac, eNvTable nvTable)
                         return (eHAL_STATUS_SUCCESS);   //success means it is stored
                     }
                 }
-                
+
                 return (eHAL_STATUS_FAILURE);
 */
-            
+
         case NV_TABLE_QFUSE:
         case NV_TABLE_TPC_CONFIG:
         case NV_TABLE_RF_CAL_VALUES:
@@ -360,9 +357,10 @@ eHalStatus halReadNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDat
             break;
 
         case NV_TABLE_QFUSE:
-            HALLOGE(halLog(pMac, LOGE, "ERROR: QFUSE cannot be directly read\n"));
+            memcpy(tableData, &pMac->hphy.nvCache.tables.qFuseData, sizeof(sQFuseConfig));
+            retVal = halIsQFuseBlown(pMac);
             break;
-            
+
         case NV_TABLE_RATE_POWER_SETTINGS:
             memcpy(tableData, &pMac->hphy.nvCache.tables.pwrOptimum[0], sizeof(tRateGroupPwr) * NUM_RF_SUBBANDS);
             break;
@@ -374,7 +372,7 @@ eHalStatus halReadNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDat
         case NV_TABLE_DEFAULT_COUNTRY:
             memcpy(tableData, &pMac->hphy.nvCache.tables.defaultCountryTable, sizeof(sDefaultCountry));
             break;
-            
+
         case NV_TABLE_TPC_CONFIG:
             memcpy(tableData, &pMac->hphy.nvCache.tables.tpcConfig[0], sizeof(tTpcConfig) * MAX_TPC_CHANNELS);
             break;
@@ -387,7 +385,7 @@ eHalStatus halReadNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDat
             return (eHAL_STATUS_FAILURE);
             break;
     }
-    
+
     return (retVal);
 } // halReadNvTable
 
@@ -417,7 +415,7 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
                 numOfEntries = 1;
                 sizeOfEntry = sizeof(sNvFields);
                 break;
-                
+
             case NV_TABLE_RATE_POWER_SETTINGS:
                 numOfEntries = NUM_RF_SUBBANDS;
                 sizeOfEntry = sizeof(tRateGroupPwr);
@@ -432,7 +430,7 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
                 numOfEntries = 1;
                 sizeOfEntry = sizeof(sDefaultCountry);
                 break;
-                
+
             case NV_TABLE_TPC_CONFIG:
                 numOfEntries = 2;
                 sizeOfEntry = sizeof(tTpcConfig);
@@ -467,7 +465,7 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
                 break;
         }
     }
-    
+
 
 
     return retVal;
@@ -494,7 +492,7 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
                 memcpy(&pMac->hphy.nvCache.tables.rfCalValues, &nvDefaults.tables.rfCalValues, sizeof(sRfNvCalValues));
                 halQFusePackBits(hMac);
             }
-            
+
             break;
 
 /*          TODO: Awaiting vos nv functionality to be checked in by Simon Ho
@@ -508,7 +506,7 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
                     return (eHAL_STATUS_FAILURE);
                 }
                 break;
-                
+
             case NV_TABLE_RATE_POWER_SETTINGS:
                 if ((vosStatus = vos_nv_setValidity(VNV_RATE_TO_POWER_TABLE, VOS_FALSE)) == VOS_STATUS_SUCCESS)
                 {
@@ -518,9 +516,9 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
                 {
                     return (eHAL_STATUS_FAILURE);
                 }
-                
+
                 break;
-    
+
             case NV_TABLE_REGULATORY_DOMAINS:
                 if ((vosStatus = vos_nv_setValidity(VNV_REGULARTORY_DOMAIN_TABLE, VOS_FALSE)) == VOS_STATUS_SUCCESS)
                 {
@@ -530,9 +528,9 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
                 {
                     return (eHAL_STATUS_FAILURE);
                 }
-                
+
                 break;
-    
+
             case NV_TABLE_DEFAULT_COUNTRY:
                 if ((vosStatus = vos_nv_setValidity(VNV_DEFAULT_LOCATION, VOS_FALSE)) == VOS_STATUS_SUCCESS)
                 {
@@ -542,10 +540,10 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
                 {
                     return (eHAL_STATUS_FAILURE);
                 }
-                
+
                 break;
 */
-            
+
         case NV_TABLE_TPC_CONFIG:
             memcpy(&pMac->hphy.nvCache.tables.tpcConfig[0], &nvDefaults.tables.tpcConfig[0], sizeof(tTpcConfig) * MAX_TPC_CHANNELS);
             halQFusePackBits(hMac);
@@ -570,7 +568,7 @@ eHalStatus halBlankNv(tHalHandle hMac)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
     //tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
-    
+
     halRemoveNvTable(hMac, NV_FIELDS_IMAGE             );
     halRemoveNvTable(hMac, NV_TABLE_QFUSE              );
     halRemoveNvTable(hMac, NV_TABLE_RATE_POWER_SETTINGS);
@@ -632,10 +630,10 @@ void halByteSwapNvTable(tHalHandle hMac, eNvTable tableID, uNvTables *tableData)
 
                 //empirical array is all single bytes
             }
-            
+
             break;
         }
-        
+
         case NV_FIELDS_IMAGE:
         {
             sHalNv *nv = (sHalNv *)tableData;
@@ -649,22 +647,3 @@ void halByteSwapNvTable(tHalHandle hMac, eNvTable tableID, uNvTables *tableData)
     }
 }
 
-
-#ifdef ANI_MANF_DIAG
-static void logNvCommonFields(tpAniSirGlobal pMac, sNvFields *pFields)
-{
-    HALLOGE(halLog(pMac, LOGE, "%d = productId\n", pFields->productId));
-    HALLOGE(halLog(pMac, LOGE, "%d = productBands\n", pFields->productBands));
-    HALLOGE(halLog(pMac, LOGE, "%d = numOfTxChains\n", pFields->numOfTxChains));
-    HALLOGE(halLog(pMac, LOGE, "%d = numOfRxChains\n", pFields->numOfRxChains));
-    HALLOGE(halLog(pMac, LOGE, "0x%X 0x%X 0x%X 0x%X 0x%X 0x%X = macAddr\n",
-                            pFields->macAddr[0],
-                            pFields->macAddr[1],
-                            pFields->macAddr[2],
-                            pFields->macAddr[3],
-                            pFields->macAddr[4],
-                            pFields->macAddr[5]
-		  ));
-    HALLOGE(halLog(pMac, LOGE, "%s\n", &pFields->mfgSN[0]));
-}
-#endif

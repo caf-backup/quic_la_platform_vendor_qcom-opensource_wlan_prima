@@ -199,6 +199,7 @@ eHalStatus sme_QosCsrEventInd(tpAniSirGlobal pMac,
 
   \param pMac - Pointer to the global MAC parameter structure.
   \param pSirBssDesc - The event occured of type sme_QosCsrEventIndType.
+  \param pIes - the parsed IE for pSirBssDesc. This can be NULL.
 
   
   \return a bit mask indicating for which ACs AP has ACM set to 1
@@ -206,7 +207,7 @@ eHalStatus sme_QosCsrEventInd(tpAniSirGlobal pMac,
   \sa
   
   --------------------------------------------------------------------------*/
-v_U8_t sme_QosGetACMMask(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc);
+v_U8_t sme_QosGetACMMask(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes);
 
 
 #endif //#if !defined( __SMEQOSINTERNAL_H )

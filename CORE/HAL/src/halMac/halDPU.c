@@ -2252,9 +2252,11 @@ eHalStatus halDpu_GetSequence(tpAniSirGlobal pMac, tANI_U8 dpuIdx, tANI_U8 tId, 
         dpuDesc.sequenceField[1],dpuDesc.sequenceField[2],dpuDesc.sequenceField[3]));
 
     if(tId & DPU_AUTOSEQ_FIELD_MASK)
-       *sequenceNum = (tANI_U16) dpuDesc.sequenceField[tId].tid1;
+       *sequenceNum = (tANI_U16) dpuDesc.sequenceField
+                                        [tId/DPU_AUTOSEQ_FIELD_LEN].tid1;
     else
-       *sequenceNum = (tANI_U16) dpuDesc.sequenceField[tId].tid0;
+       *sequenceNum = (tANI_U16) dpuDesc.sequenceField
+                                        [tId/DPU_AUTOSEQ_FIELD_LEN].tid0;
 
     HALLOG1( halLog( pMac, LOG1, FL("DPU %d tid %d cur seqNum is %d\n"), dpuIdx, tId, *sequenceNum));
     return eHAL_STATUS_SUCCESS;

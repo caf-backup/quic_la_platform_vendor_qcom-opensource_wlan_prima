@@ -65,7 +65,7 @@ typedef enum
     PHY_CAL_UNFINISHED
 }ePhyCalState;
 
-#define DCO_ERROR_TOLERANCE (50)    // for quasar, original 70. 
+#define DCO_ERROR_TOLERANCE (50)    // for quasar, original 70.
 
 typedef struct
 {

@@ -161,11 +161,16 @@ static tFuncEntry funcTable[] = {
     { {halResetChip,      halResetChip,                  halResetChip,           halResetChip},           "ResetChip"},
     { {NULL,              halSaveDeviceInfo,             NULL,                   NULL},                   "FillChipInfo"},
     { {NULL,              halPMU_Start,                  NULL,                   NULL},                   "PMU"              },
-    { {NULL,              halMif_Start,                  NULL,                   NULL},                   "MIF"     },
-    { {halMbox_Open,      halMbox_Start,                 halMbox_Stop,           halMbox_Close},          "Mailbox"             },
     { {nvOpen,            NULL,                          NULL,                   nvClose},                "halNv"               },
     { {phyOpen,           phyStart,                      phyStop,                phyClose},               "halPhy"          },
+    { {NULL,              halMif_Start,                  NULL,                   NULL},                   "MIF"     },
+    { {NULL,              halMcu_Start,                  NULL,                   NULL},                   "MCU"             },
+    //{ {NULL,              enAllInts,                     NULL,                   NULL},                   "EnAllInts"        },
+    { {halMbox_Open,      halMbox_Start,                 halMbox_Stop,           halMbox_Close},          "Mailbox"             },
+    { {NULL,              NULL,                          NULL,                   nvClose},                "halNv"               },
     { {NULL,              halFW_Init,                    halFW_Exit,             NULL},                   "Firmware"            },
+    { {NULL,              halFW_CheckInitComplete,       NULL,                   NULL},                   "Check FW Init"    },
+
 };
 #endif
 

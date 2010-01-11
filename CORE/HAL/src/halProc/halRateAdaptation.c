@@ -164,12 +164,42 @@ halMacRaGlobalInfoToFW(
     tANI_U32 szLen)
 {
     eHalStatus status;
+    tANI_U32 swapNeededStartOffset = offsetof (tHalRaGlobalInfo, goodPerThreshBySensitivity);
+//    tANI_U32 swapNeededEndOffset = sizeof (tHalRaGlobalInfo);
+    tANI_U32 *pSwapPtr;
+    tANI_BOOLEAN bSwapNeeded = 1;
+    int i;
+
+#ifdef ANI_LITTLE_BYTE_ENDIAN /* if host is little endian, firmware needs big endian */
+    if(/*startOffset > swapNeededEndOffset ||*/ (startOffset + szLen < swapNeededStartOffset))
+        bSwapNeeded = 0;
+#endif
 
     startOffset &= ~3;
     szLen = CEIL_ALIGN(szLen+(startOffset & 3), 4);
 
+#ifdef ANI_LITTLE_BYTE_ENDIAN /* if host is little endian, firmware needs big endian */
+    if(bSwapNeeded) {
+        pSwapPtr =(tANI_U32 *)&pGlobInfo->goodPerThreshBySensitivity[0];
+        // Note that U8 array needs to be byte-swapped before sending palWriteDevice.
+        for(i=0; i<CEIL_ALIGN(RA_GOODPERTHRESH_SENSITIVITY_TABLE_SIZE,4)>>2;i++) {
+            *pSwapPtr = HTOFL(*pSwapPtr);
+            pSwapPtr++;
+        }
+    }
+#endif
     status = halWriteDeviceMemory(pMac, QWLANFW_MEMMAP_RA_GLOBAL_CONFIG, (void *)((tANI_U32)pGlobInfo + startOffset), szLen);
 
+#ifdef ANI_LITTLE_BYTE_ENDIAN /* revert back if swapped */
+    if(bSwapNeeded) {
+        pSwapPtr =(tANI_U32 *)&pGlobInfo->goodPerThreshBySensitivity[0];
+
+        for(i=0; i<CEIL_ALIGN(RA_GOODPERTHRESH_SENSITIVITY_TABLE_SIZE,4)>>2;i++) {
+            *pSwapPtr = HTOFL(*pSwapPtr);
+            pSwapPtr++;
+        }
+    }
+#endif    
     return status;
 }
 
@@ -1137,6 +1167,9 @@ eHalStatus halMacRaStart(tHalHandle hHal, void *arg)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
     tpHalRaGlobalInfo pGlobInfo = &pMac->hal.halRaInfo;
+    tANI_U8 goodLinkPerThresh[RA_GOODPERTHRESH_SENSITIVITY_TABLE_SIZE]=
+        { 10, 10, 9, 9, 8, 8, 7, 7, 6, 6};
+    tANI_U32 idx;
 
     pGlobInfo->rMode                       = WNI_CFG_RETRYRATE_POLICY_AUTOSELECT;
     pGlobInfo->raPerAlgoSelection          = RA_PER_SELECT_HYBRID;
@@ -1170,6 +1203,15 @@ eHalStatus halMacRaStart(tHalHandle hHal, void *arg)
 
     pGlobInfo->betterRateMaxSensDiff       = RA_NEXTRATE_MAX_SENSITIVITY_DIFF;
     pGlobInfo->lowerRateMinSensDiff        = RA_LOWERTHRUPUT_SENSITIVITY_DIFF;
+
+    pGlobInfo->min11bRateIdx               = HALRATE_INVALID;
+    pGlobInfo->min11gRateIdx               = HALRATE_INVALID;
+    pGlobInfo->min11nRateIdx               = HALRATE_INVALID;
+
+/* This is needed due to byte swap */
+    palFillMemory(pMac->hHdd,&pGlobInfo->goodPerThreshBySensitivity[0],sizeof(pGlobInfo->goodPerThreshBySensitivity),0);
+    for(idx = 0 ; idx < RA_GOODPERTHRESH_SENSITIVITY_TABLE_SIZE; idx ++ )
+        pGlobInfo->goodPerThreshBySensitivity[idx] = goodLinkPerThresh[idx];
 
     // Download the table to the target.
     /*  Note: protPolicy and rtsThreshold is not yet valid.
@@ -2160,6 +2202,12 @@ eHalStatus halMacRaSetGlobalCfg(tpAniSirGlobal pMac, tANI_U32 id, tANI_U32 value
                 sizeItem = sizeof(tANI_U8);
                 break;
 
+            case RA_GLOBCFG_GOODLINK_PERTHRESH_BY_SENSITIVITY_DIFF:
+                pGlobInfo->goodPerThreshBySensitivity[value]  = (tANI_U8)value2;
+                offsetItem = offsetof(tHalRaGlobalInfo,   goodPerThreshBySensitivity)+value;
+                sizeItem = sizeof(tANI_U8);
+                break;
+
             case RA_GLOBCFG_PER_LOW_IGNORE_THRESH:
                 pGlobInfo->perIgnoreThreshold  = (tANI_U8)value;
                 offsetItem = offsetof(tHalRaGlobalInfo,   perIgnoreThreshold);
@@ -2181,6 +2229,17 @@ eHalStatus halMacRaSetGlobalCfg(tpAniSirGlobal pMac, tANI_U32 id, tANI_U32 value
     raLog(pMac, RALOG_CLI, "%d\tBADLINK_PERSIST_THRESH      Current:%d\n",RA_GLOBCFG_BADLINK_PERSIST_THRESH,pGlobInfo->badLinkPersistencyThresh);
     raLog(pMac, RALOG_CLI, "%d\tGOODLINK_PERSIST_THRESH     Current:%d\n",RA_GLOBCFG_GOODLINK_PERSIST_THRESH,pGlobInfo->goodLinkPersistencyThresh);
     raLog(pMac, RALOG_CLI, "%d\tSTAY_SAMPLE_ALL_PERIODS     Current:%d\n",RA_GLOBCFG_SAMPLE_ALL_PERIOD,pGlobInfo->sampleAllPeriod);
+    raLog(pMac, RALOG_CLI, "%d\tGOODLINK_PERTHRESH_BY_SENS: \n",RA_GLOBCFG_GOODLINK_PERTHRESH_BY_SENSITIVITY_DIFF);
+    raLog(pMac, RALOG_CLI, "\t  0:%d 1:%d 2:%d 3:%d 4:%d 5:%d 6:%d 7:%d\n",
+            pGlobInfo->goodPerThreshBySensitivity[0],
+            pGlobInfo->goodPerThreshBySensitivity[1],
+            pGlobInfo->goodPerThreshBySensitivity[2],
+            pGlobInfo->goodPerThreshBySensitivity[3],
+            pGlobInfo->goodPerThreshBySensitivity[4],
+            pGlobInfo->goodPerThreshBySensitivity[5],
+            pGlobInfo->goodPerThreshBySensitivity[6],
+            pGlobInfo->goodPerThreshBySensitivity[7]
+         );
     raLog(pMac, RALOG_CLI, "%d\tRA_PERIOD                  Current:%d\n",RA_GLOBCFG_RA_PERIOD,pGlobInfo->raPeriod);
     raLog(pMac, RALOG_CLI, "%d\tRA_PER_ALGO_SELECTION      Current:%d\n",RA_PER_SELECTION,pGlobInfo->raPerAlgoSelection);
     raLog(pMac, RALOG_CLI, "%d\tTOTAL_FAILURES_THRESHOLD   Current:%d\n",RA_GLOBCFG_TOTAL_FAILURES_THRESHOLD,pGlobInfo->failThreshold);

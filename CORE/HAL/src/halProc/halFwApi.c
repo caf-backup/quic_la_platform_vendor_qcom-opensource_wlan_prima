@@ -341,12 +341,14 @@ eHalStatus halFW_CheckInitComplete(tHalHandle hHal, void *arg)
     else
     {
         //send Mbox msg to fw to do init cal
+#ifndef ANI_MANF_DIAG
         halPhyCalUpdate(pMac);
-        /* 
+#endif
+        /*
            send Mbox msg to fw to inform halRateInfo table was updated.
-           This is required, because firmware will look into halRateInfoTable in shared 
+           This is required, because firmware will look into halRateInfoTable in shared
            memory and manipulates the table into fast accessible format.
-           note: halRateInfotable itself was sent in halRate_Start(). At that time, 
+           note: halRateInfotable itself was sent in halRate_Start(). At that time,
            this message can't be sent because firmware was not started yet.
         */
         halMacRaUpdateParamReq(pMac, RA_UPDATE_RATE_INFO, 0);

@@ -49,6 +49,10 @@
 #include <wlan_hdd_cfg.h>
 #include <wlan_ptt_sock_svc.h>
 #include <wlan_hdd_wowl.h>
+#ifdef ANI_MANF_DIAG
+int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter);
+
+#endif
 
 
 /*--------------------------------------------------------------------------- 
@@ -77,15 +81,25 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
   --------------------------------------------------------------------------*/
 int hdd_open (struct net_device *dev)
 {
-   ENTER();
+   hdd_adapter_t* pAdapter = netdev_priv(dev);
 
-   //Turn ON carrier state
-   netif_carrier_on(dev);
+   if(pAdapter == NULL) {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+         "%s: HDD adapter context is Null", __FUNCTION__);
+      return -1;
+   }
 
-   //Enable Tx queue
-   netif_start_queue(dev);
+   if(!hdd_connIsConnected(pAdapter)) {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+         "%s: STA not associated. Ignore open call" , __FUNCTION__);
+      return -1;
+   }
    
-   EXIT();
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+      "%s: Enabling Tx Queues" , __FUNCTION__);
+
+   netif_carrier_on(dev);
+   netif_start_queue(dev);
 
    return 0;
 }
@@ -106,9 +120,8 @@ int hdd_stop (struct net_device *dev)
 {
    //Stop the Interface TX queue. netif_stop_queue should not be used when
    //transmission is being disabled anywhere other than hard_start_xmit
+   hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Disabling OS Tx queues",__func__);
    netif_tx_disable(dev);
-
-   //Turn OFF carrier state
    netif_carrier_off(dev);
 
    return 0;
@@ -447,11 +460,9 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    struct net_device *pWlanDev = pAdapter->dev;
    VOS_STATUS vosStatus;
   
-   //Turn off carrier state
-   netif_carrier_off(pWlanDev);
-   
    //Stop the Interface TX queue.
    netif_tx_disable(pWlanDev);
+   netif_carrier_off(pWlanDev);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
    // unregister suspend/resume callbacks
@@ -674,7 +685,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    strcpy(pWlanDev->name, "wlan%d");
    pWlanDev->open = hdd_open;
    pWlanDev->stop = hdd_stop;
-   pWlanDev->hard_start_xmit = hdd_hard_start_xmit;
+   pWlanDev->hard_start_xmit = NULL;
    pWlanDev->tx_timeout = hdd_tx_timeout;
    pWlanDev->get_stats = hdd_stats;
    pWlanDev->do_ioctl = hdd_ioctl;
@@ -693,6 +704,10 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    atomic_set(&pAdapter->sdio_claim_count, 0);
    pAdapter->hsdio_func_dev = sdio_func_dev;
 
+   init_completion(&pAdapter->full_pwr_comp_var);
+   init_completion(&pAdapter->standby_comp_var);
+   init_completion(&pAdapter->disconnect_comp_var);
+
    // Register the net device. Device should be registered to invoke
    // request_firmware API for reading the qcom_cfg.ini file
    if(register_netdev(pWlanDev))
@@ -700,6 +715,11 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed:register_netdev",__func__); 
       goto err_free_netdev;
    }
+#ifdef ANI_MANF_DIAG
+    wlan_hdd_ftm_open(pAdapter);
+    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: FTM driver loaded success fully",__func__);
+    return VOS_STATUS_SUCCESS;
+#endif
 
    set_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
 
@@ -799,11 +819,12 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    // Register wireless extensions         
    hdd_register_wext(pWlanDev);
 
-   //Turn off carrier state
+   //Stop the Interface TX queue.
+   netif_tx_disable(pWlanDev);
    netif_carrier_off(pWlanDev);
 
-   //Stop the Interface TX queue. Just being safe
-   netif_tx_disable(pWlanDev);
+   //Safe to register the hard_start_xmit function again
+   pWlanDev->hard_start_xmit = hdd_hard_start_xmit;
 
    //Initialize the nlink service
    if(nl_srv_init() != 0)

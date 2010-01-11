@@ -52,6 +52,8 @@
 
 #if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
 #include "pttModuleApi.h"
+#include "pttMsgApi.h"
+#include "halPhyUtil.h"
 #endif
 
 #ifdef ANI_OS_TYPE_RTAI_LINUX
@@ -2781,12 +2783,14 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 
 	// If hal state is IDLE, do not process any messages.
     // free the body pointer and return success
+#ifndef  ANI_MANF_DIAG   
     if(eHAL_IDLE == halStateGet(pMac)) {
         if(pMsg->bodyptr) {
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
         }
 	    return eSIR_SUCCESS;
     }
+#endif
 
 #if defined(ANI_MANF_DIAG)// || defined(ANI_PHY_DEBUG)
     {
@@ -2802,6 +2806,7 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             pttProcessMsg(pMac, pPttMsg);
             return(rc);
         }
+        return rc;
     }
 #endif
 
@@ -3044,6 +3049,22 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                      halRAHandleCfg( pMac, pMsg->bodyval);
                      break;
 */
+                case WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT:
+			halPSDataInActivityTimeout(pMac, pMsg->bodyval);
+			break;
+					
+		case WNI_CFG_PS_ENABLE_HEART_BEAT:
+			halPSFWHeartBeatCfg(pMac, pMsg->bodyval);
+			break;
+
+		case WNI_CFG_PS_ENABLE_BCN_FILTER:
+			halPSBcnFilterCfg(pMac, pMsg->bodyval);
+			break;
+					
+		case WNI_CFG_PS_ENABLE_RSSI_MONITOR:
+			halPSRssiMonitorCfg(pMac, pMsg->bodyval);
+			break;
+			
                 default:
                     HALLOGE( halLog(pMac, LOGE, FL("Cfg Id %d is not handled\n"), pMsg->bodyval));
                     break;

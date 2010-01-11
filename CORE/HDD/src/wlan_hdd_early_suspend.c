@@ -38,10 +38,22 @@
 *   Function and variables declarations
 * ----------------------------------------------------------------------------*/
 
+//gEnableSuspend = 1 in INI file implies suspend to standby
 #define WLAN_MAP_SUSPEND_TO_STANDBY     1
+
+//gEnableSuspend = 2 in INI file implies suspend to deep sleep
 #define WLAN_MAP_SUSPEND_TO_DEEP_SLEEP  2
 
+//Maximum time (ms) to wait for standby to complete
+#define WLAN_WAIT_TIME_STANDBY          1000
+
+//Maximum time (ms) to wait for full pwr to complete
+#define WLAN_WAIT_TIME_FULL_PWR         1000
+
 static struct early_suspend wlan_early_suspend;
+static eHalStatus g_full_pwr_status;
+static eHalStatus g_standby_status;
+
 extern VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter);
 extern VOS_STATUS vos_chipExitDeepSleepVREGHandler(
    vos_call_status_type* status,
@@ -50,49 +62,163 @@ extern VOS_STATUS vos_chipExitDeepSleepVREGHandler(
 extern void hdd_wlan_initial_scan(hdd_adapter_t *pAdapter);
 
 //Callback invoked by PMC to report status of standby request
-static void hdd_suspend_standby_cbk (void *callbackContext, eHalStatus status)
+void hdd_suspend_standby_cbk (void *callbackContext, eHalStatus status)
 {
    hdd_adapter_t *pAdapter = (hdd_adapter_t*)callbackContext;
    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Standby status = %d", __func__, status);
+	g_standby_status = status; 
    complete(&pAdapter->standby_comp_var);
 }
 
 //Callback invoked by PMC to report status of full power request
-static void hdd_suspend_full_pwr_callback(void *callbackContext, eHalStatus status)
+void hdd_suspend_full_pwr_callback(void *callbackContext, eHalStatus status)
 {
    hdd_adapter_t *pAdapter = (hdd_adapter_t*)callbackContext;
    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Full Power status = %d", __func__, status);
+	g_full_pwr_status = status;
    complete(&pAdapter->full_pwr_comp_var);
 }
+
+//Helper routine to put the chip into standby
+VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter)
+{
+   eHalStatus halStatus;
+   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+         
+   //Stop the Interface TX queue.
+   netif_tx_disable(pAdapter->dev);
+   netif_carrier_off(pAdapter->dev);
+
+   //Disable IMPS/BMPS as we do not want the device to enter any power
+   //save mode on its own during suspend sequence
+   sme_DisablePowerSave(pAdapter->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+   sme_DisablePowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+
+   //Ensure that device is in full power first. There is scope for optimization
+   //here especially in scenarios where PMC is already in IMPS or REQUEST_IMPS.
+   //Core s/w needs to be optimized to handle this. Until then we request full
+   //power before issuing request for standby.
+   init_completion(&pAdapter->full_pwr_comp_var);
+   g_full_pwr_status = eHAL_STATUS_FAILURE;
+   halStatus = sme_RequestFullPower(pAdapter->hHal, hdd_suspend_full_pwr_callback, 
+       pAdapter, eSME_FULL_PWR_NEEDED_BY_HDD);
+
+   if(halStatus == eHAL_STATUS_PMC_PENDING)
+   {
+      //Block on a completion variable. Can't wait forever though
+      wait_for_completion_interruptible_timeout(&pAdapter->full_pwr_comp_var, 
+         msecs_to_jiffies(WLAN_WAIT_TIME_FULL_PWR));
+      if(g_full_pwr_status != eHAL_STATUS_SUCCESS)
+      {
+         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: sme_RequestFullPower failed",__func__);
+         VOS_ASSERT(0);
+         vosStatus = VOS_STATUS_E_FAILURE;
+         goto failure;
+      }
+   }
+   else if(halStatus != eHAL_STATUS_SUCCESS)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: sme_RequestFullPower failed - status %d",
+         __func__, halStatus);
+      VOS_ASSERT(0);
+      vosStatus = VOS_STATUS_E_FAILURE;
+      goto failure;
+   }
+
+   //Request standby. Standby will cause the STA to disassociate first. TX queues
+   //will be disabled (by HDD) when STA disconnects. You do not want to disable TX
+   //queues here.
+   init_completion(&pAdapter->standby_comp_var);
+   g_standby_status = eHAL_STATUS_FAILURE;
+   halStatus = sme_RequestStandby(pAdapter->hHal, hdd_suspend_standby_cbk, pAdapter);
+
+   if (halStatus == eHAL_STATUS_PMC_PENDING) 
+   {
+      //Wait till WLAN device enters standby mode
+		wait_for_completion_timeout(&pAdapter->standby_comp_var, 
+         msecs_to_jiffies(WLAN_WAIT_TIME_STANDBY));
+		if (g_standby_status != eHAL_STATUS_SUCCESS)
+      {
+         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: sme_RequestStandby failed",__func__);
+         VOS_ASSERT(0);
+         vosStatus = VOS_STATUS_E_FAILURE;
+         goto failure;
+      }
+   }
+   else if (halStatus != eHAL_STATUS_SUCCESS) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: sme_RequestStandby failed - status %d",
+         __func__, halStatus);
+      VOS_ASSERT(0);
+      vosStatus = VOS_STATUS_E_FAILURE;
+      goto failure;
+   }
+   
+   pAdapter->hdd_ps_state = eHDD_SUSPEND_STANDBY;
+
+failure:
+   //Restore IMPS config
+   if(pAdapter->cfg_ini->fIsImpsEnabled)
+      sme_EnablePowerSave(pAdapter->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+
+   //Restore BMPS config
+   if(pAdapter->cfg_ini->fIsBmpsEnabled)
+      sme_EnablePowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+
+   return vosStatus;
+}
+
 
 //Helper routine for Deep sleep entry
 VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
 {
    eHalStatus halStatus;
-   VOS_STATUS vosStatus;
+   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
    vos_call_status_type callType;
+
+   //Disable IMPS,BMPS as we do not want the device to enter any power
+   //save mode on it own during suspend sequence
+   sme_DisablePowerSave(pAdapter->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+   sme_DisablePowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE);
 
    //Ensure that device is in full power as we will touch H/W during vos_Stop
    init_completion(&pAdapter->full_pwr_comp_var);
+   g_full_pwr_status = eHAL_STATUS_FAILURE;
    halStatus = sme_RequestFullPower(pAdapter->hHal, hdd_suspend_full_pwr_callback, 
        pAdapter, eSME_FULL_PWR_NEEDED_BY_HDD);
 
-   if(halStatus != eHAL_STATUS_SUCCESS)
+   if(halStatus == eHAL_STATUS_PMC_PENDING)
    {
-      if(halStatus == eHAL_STATUS_PMC_PENDING)
-      {
-         //Block on a completion variable. Can't wait forever though
-         wait_for_completion_interruptible_timeout(&pAdapter->full_pwr_comp_var, 
-         msecs_to_jiffies(1000));
-      }
-      else
-      {
-         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Request for Full Power failed\n", __func__);
+      //Block on a completion variable. Can't wait forever though
+      wait_for_completion_interruptible_timeout(&pAdapter->full_pwr_comp_var, 
+         msecs_to_jiffies(WLAN_WAIT_TIME_FULL_PWR));
+      if(g_full_pwr_status != eHAL_STATUS_SUCCESS){
+         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: sme_RequestFullPower failed",__func__);
          VOS_ASSERT(0);
-         return VOS_STATUS_E_FAILURE;
+         vosStatus = VOS_STATUS_E_FAILURE;
+         goto failure;
       }
    }
-   
+   else if(halStatus != eHAL_STATUS_SUCCESS)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Request for Full Power failed",__func__);
+      VOS_ASSERT(0);
+      vosStatus = VOS_STATUS_E_FAILURE;
+      goto failure; 
+   }
+
+   //Issue a disconnect. This is required to inform the supplicant that
+   //STA is getting disassociated and for GUI to be updated properly
+   init_completion(&pAdapter->disconnect_comp_var);
+   halStatus = sme_RoamDisconnect(pAdapter->hHal, eCSR_DISCONNECT_REASON_UNSPECIFIED);
+
+   //success implies disconnect command got queued up successfully
+   if(halStatus == eHAL_STATUS_SUCCESS)
+   {
+      wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var, 
+         msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+   }
+
+   //None of the steps should fail after this
    vosStatus = vos_stop( pAdapter->pvosContext );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
@@ -114,7 +240,16 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
 
    pAdapter->hdd_ps_state = eHDD_SUSPEND_DEEP_SLEEP;
 
-   return VOS_STATUS_SUCCESS;
+failure:
+   //Restore IMPS config
+   if(pAdapter->cfg_ini->fIsImpsEnabled)
+      sme_EnablePowerSave(pAdapter->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+
+   //Restore BMPS config
+   if(pAdapter->cfg_ini->fIsBmpsEnabled)
+      sme_EnablePowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+
+   return vosStatus;
 }
 
 VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
@@ -176,7 +311,6 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
 //Suspend routine registered with Android OS
 void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
 {
-   eHalStatus halStatus;
    hdd_adapter_t *pAdapter = NULL;
    v_CONTEXT_t pVosContext = NULL;
 
@@ -196,39 +330,11 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
       return;
    }
 
-   //Turn off carrier state
-   netif_carrier_off(pAdapter->dev);
-   
-   //Stop the Interface TX queue.
-   netif_tx_disable(pAdapter->dev);
-
-   //Disable IMPS/BMPS as we do not want the device to enter any power
-   //save mode during suspend sequence
-   sme_DisablePowerSave(pAdapter->hHal, ePMC_IDLE_MODE_POWER_SAVE);
-   sme_DisablePowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE);
-
    if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_STANDBY) 
    {
       //Execute standby procedure. Executing standby procedure will cause the STA to
       //disassociate first and then the chip will be put into standby.
-
-      init_completion(&pAdapter->standby_comp_var);
-      halStatus = sme_RequestStandby(pAdapter->hHal, hdd_suspend_standby_cbk, pAdapter);
-
-      if (halStatus == eHAL_STATUS_SUCCESS) {
-         //Already in standby mode
-         pAdapter->hdd_ps_state = eHDD_SUSPEND_STANDBY;
-      }
-      else if (halStatus == eHAL_STATUS_PMC_PENDING) {
-         //Wait till WLAN device enters standby mode
-         wait_for_completion_interruptible_timeout(&pAdapter->standby_comp_var, 
-            msecs_to_jiffies(1000));
-         pAdapter->hdd_ps_state = eHDD_SUSPEND_STANDBY;
-      }
-      else {
-         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: sme_RequestStandby failed - status %d",
-            __func__, halStatus);
-      }
+      hdd_enter_standby(pAdapter);
    }
    else if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_DEEP_SLEEP) {
       //Execute deep sleep procedure
@@ -238,14 +344,6 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported suspend mapping %d",
          __func__, pAdapter->cfg_ini->nEnableSuspend);
    }
-
-   //Restore IMPS config
-   if(pAdapter->cfg_ini->fIsImpsEnabled)
-      sme_EnablePowerSave(pAdapter->hHal, ePMC_IDLE_MODE_POWER_SAVE);
-
-   //Restore BMPS config
-   if(pAdapter->cfg_ini->fIsBmpsEnabled)
-      sme_EnablePowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE);
 
    return;
 }
@@ -277,9 +375,6 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
       init_completion(&pAdapter->full_pwr_comp_var);
       (void)sme_RequestFullPower(pAdapter->hHal, hdd_suspend_full_pwr_callback, pAdapter,
          eSME_FULL_PWR_NEEDED_BY_HDD);
-
-      //Trigger an association to the last AP we were connected to
-      (void)sme_RoamConnectToLastProfile(pAdapter->hHal);
 
       //No blocking to reduce latency. No other device should be depending on WLAN
       //to finish resume and WLAN won't be instantly on after resume

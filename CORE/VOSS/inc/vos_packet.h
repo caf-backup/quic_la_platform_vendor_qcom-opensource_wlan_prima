@@ -984,5 +984,31 @@ VOS_STATUS vos_pkt_get_timestamp( vos_pkt_t *pPacket, v_TIME_t* pTstamp );
   ----------------------------------------------------------------------------*/
 VOS_STATUS vos_pkt_flatten_rx_pkt( vos_pkt_t **ppPacket );
 
+/**--------------------------------------------------------------------------
+  
+  \brief vos_pkt_get_available_buffer_pool() - Get avaliable VOS packet size
+   VOSS Packet pool is limitted resource
+   VOSS Client need to know how many packet pool is still avaliable to control the flow
+   
+  \param  pktType - Packet type want to know free buffer count
+                    VOS_PKT_TYPE_TX_802_11_MGMT, management free buffer count,
+                    VOS_PKT_TYPE_TX_802_11_DATA
+                    VOS_PKT_TYPE_TX_802_3_DATA, TX free buffer count
+                    VOS_PKT_TYPE_RX_RAW, RX free buffer count
+
+          vosFreeBuffer - free frame buffer size
+  
+  \return VOS_STATUS_E_INVAL - invalid input parameter
+
+          VOS_STATUS_SUCCESS - Get size success
+    
+  \sa
+  
+  ----------------------------------------------------------------------------*/
+VOS_STATUS vos_pkt_get_available_buffer_pool
+(
+   VOS_PKT_TYPE  pktType,
+   v_SIZE_t     *vosFreeBuffer
+);
 
 #endif  // !defined( __VOS_PKT_H )

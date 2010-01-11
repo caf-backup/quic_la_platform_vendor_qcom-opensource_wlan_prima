@@ -49,8 +49,8 @@ eHalStatus asicSetAgcCCAMode(tpAniSirGlobal pMac, ePhyCCAMode primaryCcaMode, eP
         //per James' email until they figure out the problem related to CCA and TXCTL_RAMP_DOWN_REG
         // problem is that without setting the TXCTL_RAMP_DOWN_REG value very high, AMPDUs do not work.
         // Apparently, there is some issue with the smaller RAMP_DOWN value affecting CCA
-#ifdef CHANNEL_BONDED_CAPABLE        
-        SET_PHY_REG(pMac->hHdd, QWLAN_AGC_CCA_MODE_REG, 
+#ifdef CHANNEL_BONDED_CAPABLE
+        SET_PHY_REG(pMac->hHdd, QWLAN_AGC_CCA_MODE_REG,
                     (QWLAN_AGC_CCA_MODE_SEC_MASK & ((tANI_U32 )PHY_CCA_CD << QWLAN_AGC_CCA_MODE_SEC_OFFSET)) |
                     (QWLAN_AGC_CCA_MODE_PRI_MASK & ((tANI_U32 )PHY_CCA_CD << QWLAN_AGC_CCA_MODE_PRI_OFFSET))
                    );
@@ -58,8 +58,8 @@ eHalStatus asicSetAgcCCAMode(tpAniSirGlobal pMac, ePhyCCAMode primaryCcaMode, eP
     SET_PHY_REG(pMac->hHdd, QWLAN_AGC_CCA_MODE_REG,
                 (QWLAN_AGC_CCA_MODE_PRI_MASK & ((tANI_U32 )primaryCcaMode << QWLAN_AGC_CCA_MODE_PRI_OFFSET))
              );
-#endif             
-        
+#endif
+
 #ifdef ANALOG_LINK
     SET_PHY_REG(pMac->hHdd, QWLAN_AGC_TH_CD_REG, 40);
 #endif
@@ -74,9 +74,9 @@ eHalStatus asicSetDisabledRxPacketTypes(tpAniSirGlobal pMac, ePhyRxDisabledPktTy
     assert(pMac != 0);
     assert((modTypes >= PHY_RX_DISABLE_NONE) && (modTypes <= PHY_RX_DISABLE_ALL_TYPES));
 
-    //for Gen6, make sure SLR mode packet detection is disabled always 
+    //for Gen6, make sure SLR mode packet detection is disabled always
     modTypes |= PHY_RX_DISABLE_SLR;
-    
+
     SET_PHY_REG(pMac->hHdd, QWLAN_AGC_DIS_MODE_REG, ((tANI_U32)modTypes));
     retVal = asicAGCReset(pMac);
 
@@ -174,8 +174,8 @@ eHalStatus asicAGCSetDensity(tpAniSirGlobal pMac, tANI_BOOLEAN densityOn, ePhyNw
 eHalStatus asicOverrideAGCRxChainGain(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 gain)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
-    
-    assert(gain < AGC_GAIN_LUT_DEPTH);
+
+    assert(gain < RF_AGC_GAIN_LUT_DEPTH);
 
     SET_PHY_REG(pMac->hHdd, QWLAN_AGC_GAINSET_WRITE_REG, 0);
 
@@ -207,7 +207,7 @@ eHalStatus asicOverrideAGCRxChainGain(tpAniSirGlobal pMac, ePhyRxChains rxChain,
     //propogate gain to RF
     SET_PHY_REG(pMac->hHdd, QWLAN_AGC_GAINSET_WRITE_REG, QWLAN_AGC_GAINSET_WRITE_OVERRIDE_EOVERRIDE);
     asicAGCReset(pMac);
-    
+
     return (retVal);
 }
 

@@ -69,12 +69,12 @@ when       who     what, where, why
 #define CHIP_POWER_ON         1
 #define CHIP_POWER_OFF        0
 
+#ifdef MSM_PLATFORM_7x30
 #define PMIC_VREG_WLAN2_LEVEL	2500
 #define PMIC_VREG_S2_LEVEL	   1300
 #define PMIC_VREG_S4_LEVEL	   2200
 #define PMIC_VREG_WLAN_LEVEL	2900
 
-#ifdef MSM_PLATFORM_7x30
 struct wlan_pm8058_gpio {
   int gpio_num;
   struct pm8058_gpio gpio_cfg;
@@ -204,7 +204,7 @@ int vos_chip_power_qrf8600(int on)
       }
 
       printk(KERN_CRIT "%s: Wait for 2.5v supply to settle\n",__func__);
-      msleep(1000);
+      msleep_interruptible(1000);
       printk(KERN_CRIT "%s: Done Waiting for 2.5v supply to settle\n", __func__);
 
       // Power up 1.3v RF
@@ -277,6 +277,113 @@ int vos_chip_power_qrf8600(int on)
 }
 #endif
 
+#ifdef MSM_PLATFORM_7x27_FFA
+
+#define MPP_4_CHIP_PWD_L 3 //MPP4 is hood to Deep Sleep Signal 
+
+//Helper routine to power up Libra keypad on the 7x27 FFA
+int vos_chip_power_7x27_keypad( int on )
+{
+   struct vreg *vreg_wlan, *vreg_bt = NULL;
+   int rc = 0;
+
+   vreg_wlan = vreg_get(NULL, "wlan");
+   if (IS_ERR(vreg_wlan)) {
+      printk(KERN_ERR "%s: wlan vreg get failed (%ld)\n",
+         __func__, PTR_ERR(vreg_wlan));
+      return PTR_ERR(vreg_wlan);
+   }
+
+	vreg_bt = vreg_get(NULL, "gp6");
+	if (IS_ERR(vreg_bt)) {
+		printk(KERN_ERR "%s: gp6 vreg get failed (%ld)\n",
+		       __func__, PTR_ERR(vreg_bt));
+		return PTR_ERR(vreg_bt);
+	}
+
+   if(on) {
+
+      //Pull deep sleep signal low first to ensure a clean power on
+      //sequence. Ideally this should already be pulled low.
+      mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
+         MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_LOW));
+
+      //Disable VDD_WLAN in case this is turned on already. Ideally
+      //this should already be turned off.
+      rc = vreg_disable(vreg_wlan);
+      if (rc) {
+         printk(KERN_ERR "%s: vreg disable failed (%d)\n",__func__, rc);
+         return -EIO;
+      }      
+
+      /* units of mV, steps of 50 mV */
+      rc = vreg_set_level(vreg_bt, 2600);
+      if (rc) {
+         printk(KERN_ERR "%s: vreg set level failed (%d)\n",__func__, rc);
+         return -EIO;
+      }
+      rc = vreg_enable(vreg_bt);
+      if (rc) {
+         printk(KERN_ERR "%s: vreg enable failed (%d)\n",__func__, rc);
+         return -EIO;
+      }
+
+      //Pull deep sleep signal high to begin with.
+      mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
+         MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_HIGH));
+
+      //Set VDD_WLAN_2V6 to 1.8v first.
+      rc = vreg_set_level(vreg_wlan, 1800);
+      if (rc) {
+         printk(KERN_ERR "%s: vreg set level failed (%d)\n", __func__, rc);
+         return -EIO;
+      }
+
+      rc = vreg_enable(vreg_wlan);
+      if (rc) {
+         printk(KERN_ERR "%s: wlan vreg enable failed (%d)\n",__func__, rc);
+         return -EIO;
+      }
+
+      //Wait for voltage to settle
+      msleep_interruptible(100);
+
+      //Set VDD_WLAN_2V6 to 2.6v
+      rc = vreg_set_level(vreg_wlan, 2600);
+      if (rc) {
+         printk(KERN_ERR "%s: vreg set level failed (%d)\n", __func__, rc);
+         return -EIO;
+      }
+      
+      printk(KERN_ERR "%s: Enabled power supply for WLAN\n", __func__);
+ 
+      //Wait for for voltages to settle and WLAN card to be detected. This
+      //wait time can be optimized. On rare instances, I have seen significant
+      //delay in card detection. That could be because of latency in polling
+      //frequency.
+      msleep_interruptible(1000);
+   }
+   else 
+   {
+      rc = vreg_disable(vreg_wlan);
+      if (rc) {
+         printk(KERN_ERR "%s: vreg disable failed (%d)\n",__func__, rc);
+         return -EIO;
+      }
+
+      rc = vreg_disable(vreg_bt);
+      if (rc) {
+         printk(KERN_ERR "%s: vreg disable failed (%d)\n",__func__, rc);
+         return -EIO;
+      }
+
+      printk(KERN_ERR "%s: Disabled power supply for WLAN\n", __func__);
+   }
+
+   return 0;
+}
+#endif
+
 /*===========================================================================
 
                     FUNCTION PROTOTYPES
@@ -323,6 +430,11 @@ VOS_STATUS vos_chipPowerUp
       return VOS_STATUS_E_FAILURE;
 #endif   
 
+#ifdef MSM_PLATFORM_7x27_FFA
+   if(vos_chip_power_7x27_keypad(CHIP_POWER_ON))
+      return VOS_STATUS_E_FAILURE;
+#endif   
+
    return VOS_STATUS_SUCCESS;
 }
 
@@ -360,6 +472,11 @@ VOS_STATUS vos_chipPowerDown
 
 #ifdef MSM_PLATFORM_7x30
    if(vos_chip_power_qrf8600(CHIP_POWER_OFF))
+      return VOS_STATUS_E_FAILURE;
+#endif
+
+#ifdef MSM_PLATFORM_7x27_FFA
+   if(vos_chip_power_7x27_keypad(CHIP_POWER_OFF))
       return VOS_STATUS_E_FAILURE;
 #endif
 
@@ -517,11 +634,8 @@ VOS_STATUS vos_chipAssertDeepSleep
 )
 {
 
-#ifdef MSM_PLATFORM_7x27_DEEP_SLEEP
-   if(machine_is_msm7x27_ffa())
-   {
-      mpp_config_digital_out(3, MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_LOW));
-   }
+#ifdef MSM_PLATFORM_7x27_FFA
+   mpp_config_digital_out(MPP_4_CHIP_PWD_L, MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_LOW));
 #endif
 
 #ifdef MSM_PLATFORM_7x30
@@ -571,15 +685,37 @@ VOS_STATUS vos_chipDeAssertDeepSleep
 )
 {
 
-#ifdef MSM_PLATFORM_7x27_DEEP_SLEEP
-   if(machine_is_msm7x27_ffa())
-   {
-      mpp_config_digital_out(3, MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_HIGH));
-   }
+#ifdef MSM_PLATFORM_7x27_FFA
+   mpp_config_digital_out(MPP_4_CHIP_PWD_L, MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_HIGH));
 #endif
    return VOS_STATUS_SUCCESS;
 }
 
+/**
+  @brief vos_chipExitDeepSleepVREGHandler() - This API will initialize the required VREG
+  after exit from deep sleep.
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
 VOS_STATUS vos_chipExitDeepSleepVREGHandler
 (
    vos_call_status_type* status,
@@ -587,46 +723,43 @@ VOS_STATUS vos_chipExitDeepSleepVREGHandler
    v_PVOID_t             user_data
 )
 {
-#ifdef MSM_PLATFORM_7x27_DEEP_SLEEP
+#ifdef MSM_PLATFORM_7x27_FFA
    struct vreg *vreg_wlan = NULL;
    int rc;
 
-   if(machine_is_msm7x27_ffa())
-   {
-      vreg_wlan = vreg_get(NULL, "wlan");
-      if (IS_ERR(vreg_wlan)) {
-         printk(KERN_ERR "%s: wlan vreg get failed (%ld)\n",
-               __func__, PTR_ERR(vreg_wlan));
-         return VOS_STATUS_E_FAILURE;
-      }
-
-      rc = vreg_set_level(vreg_wlan, 1800);
-      if (rc) {
-         printk(KERN_ERR "%s: wlan vreg set level failed (%d)\n",
-               __func__, rc);
-         return VOS_STATUS_E_FAILURE;
-      }
-
-      rc = vreg_enable(vreg_wlan);
-      if (rc) {
-         printk(KERN_ERR "%s: wlan vreg enable failed (%d)\n",
-               __func__, rc);
-         return VOS_STATUS_E_FAILURE;
-      }
-
-      msleep_interruptible(50);
-
-      rc = vreg_set_level(vreg_wlan, 2600);
-      if (rc) {
-         printk(KERN_ERR "%s: wlan vreg set level failed (%d)\n",
-               __func__, rc);
-         return VOS_STATUS_E_FAILURE;
-      }
-
-      msleep_interruptible(50);
-
-      *status = VOS_CALL_SYNC;
+   vreg_wlan = vreg_get(NULL, "wlan");
+   if (IS_ERR(vreg_wlan)) {
+      printk(KERN_ERR "%s: wlan vreg get failed (%ld)\n",
+            __func__, PTR_ERR(vreg_wlan));
+      return VOS_STATUS_E_FAILURE;
    }
+
+   rc = vreg_set_level(vreg_wlan, 1800);
+   if (rc) {
+      printk(KERN_ERR "%s: wlan vreg set level failed (%d)\n",
+            __func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   rc = vreg_enable(vreg_wlan);
+   if (rc) {
+      printk(KERN_ERR "%s: wlan vreg enable failed (%d)\n",
+            __func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   msleep_interruptible(100);
+
+   rc = vreg_set_level(vreg_wlan, 2600);
+   if (rc) {
+      printk(KERN_ERR "%s: wlan vreg set level failed (%d)\n",
+            __func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   msleep_interruptible(1000);
+
+   *status = VOS_CALL_SYNC;
 
 #endif
    return VOS_STATUS_SUCCESS;

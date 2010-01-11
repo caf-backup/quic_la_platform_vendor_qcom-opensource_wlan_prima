@@ -62,7 +62,7 @@ void send_btc_nlink_msg (int type, int dest_pid)
          if(hdd_connIsConnected(pAdapterHandle))
             assocData->channel = pAdapterHandle->conn_info.operationChannel;
          else
-         assocData->channel = 0;
+            assocData->channel = 0;
          skb_put(skb, NLMSG_SPACE((sizeof(tAniMsgHdr)+ sizeof(tWlanAssocData))));
          break;
       default:
@@ -120,6 +120,7 @@ int btc_msg_callback (struct sk_buff * skb)
             break;
          }
          btEvent = (tSmeBtEvent*)((char*)msg_hdr + sizeof(tAniMsgHdr));
+         (void)sme_BtcSignalBtEvent(pAdapterHandle->hHal, btEvent);
          break;
       default:
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,

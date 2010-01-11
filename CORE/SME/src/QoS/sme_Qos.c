@@ -412,7 +412,7 @@ eHalStatus sme_QosUpdateParams(sme_QosEdcaAcType ac, v_U8_t tspec_mask,
 sme_QosWmmUpType sme_QosAcToUp(sme_QosEdcaAcType ac);
 sme_QosEdcaAcType sme_QosUpToAc(sme_QosWmmUpType up);
 v_BOOL_t sme_QosIsACM(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc, 
-                      sme_QosEdcaAcType ac);
+                      sme_QosEdcaAcType ac, tDot11fBeaconIEs *pIes);
 tListElem *sme_QosFindInFlowList(sme_QosSearchInfo search_key);
 eHalStatus sme_QosFindAllInFlowList(tpAniSirGlobal pMac,
                                     sme_QosSearchInfo search_key, 
@@ -451,6 +451,7 @@ extern eHalStatus sme_ReleaseGlobalLock( tSmeStruct *psSme);
 
 static eHalStatus qosIssueCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType, void *pvParam, tANI_U32 size,
                             sme_QosEdcaAcType ac, v_U8_t tspec_mask );
+static void sme_QosHandleCallback(eHalStatus status);
 
 #if defined(SME_QOS_NOT_SUPPORTED)
 eHalStatus sme_QosSetBSSID(tpAniSirGlobal pMac);
@@ -925,6 +926,8 @@ eHalStatus sme_QosValidateParams(tpAniSirGlobal pMac,
 
          break;
       }
+      status = eHAL_STATUS_SUCCESS;
+
    }while(0);
 
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
@@ -1029,7 +1032,7 @@ eHalStatus sme_QosCsrEventInd(tpAniSirGlobal pMac,
   \sa
   
   --------------------------------------------------------------------------*/
-v_U8_t sme_QosGetACMMask(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc)
+v_U8_t sme_QosGetACMMask(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes)
 {
    sme_QosEdcaAcType ac;
    v_U8_t acm_mask = 0;
@@ -1039,7 +1042,7 @@ v_U8_t sme_QosGetACMMask(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc)
 
    for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++)
    {
-      if(sme_QosIsACM(pMac, pSirBssDesc, ac))
+      if(sme_QosIsACM(pMac, pSirBssDesc, ac, pIes))
       {
          acm_mask = acm_mask | (1 << (SME_QOS_EDCA_AC_VO - ac));
       }
@@ -1105,6 +1108,10 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
    v_U8_t tmask = 0;
    v_U8_t new_tmask = 0;
    sme_QosSearchInfo search_key;
+
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+   sme_QosFlowInfoEntry *flow_info2 = NULL;
+#endif
 
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
              "sme_QosInternalSetupReq:Test: invoked\n");
@@ -1387,7 +1394,7 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
          (sme_QosCb.ac_info[ac].num_flows[SME_QOS_TSPEC_INDEX_1] > 0))
       {
          //do we need to care about the case where APSD needed on ACM = 0 below?
-         if(sme_QosIsACM(pMac, sme_QosCb.assoc_Info.pBssDesc, ac))
+         if(sme_QosIsACM(pMac, sme_QosCb.assoc_Info.pBssDesc, ac, NULL))
          {
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, 
                       "sme_QosInternalSetupReq: tspec_mask_status = %d for AC = %d \n", 
@@ -1565,15 +1572,15 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
 
                if(!pentry->hoRenewal)
                {
-               if(!HAL_STATUS_SUCCESS(sme_QosFindAllInFlowList(pMac, search_key, 
-                                                               sme_QosSetupFnp)))
-               {
-                  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                            "sme_QosInternalSetupReq: couldn't notify other \
-                            entries on this AC =%d\n", ac);
+                  if(!HAL_STATUS_SUCCESS(sme_QosFindAllInFlowList(pMac, search_key, 
+                                                                  sme_QosSetupFnp)))
+                  {
+                     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                               "sme_QosInternalSetupReq: couldn't notify other \
+                               entries on this AC =%d\n", ac);
 
+                  }
                }
-            }
             }
             pentry->hoRenewal = VOS_FALSE;
          }
@@ -1596,9 +1603,20 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
          if(SME_QOS_STATUS_SETUP_SUCCESS_IND_APSD_PENDING == status)
          {
             pEntry1 = csrLLPeekTail(&sme_QosCb.flow_list, VOS_FALSE);
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
             sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pEntry = pEntry1;
             sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pMac = pMac;
             sme_QosCb.apsd_req_counter++;
+#else
+            //In this case, tell HDD about the new parameter
+            flow_info2 = GET_BASE_ADDR(pEntry1, sme_QosFlowInfoEntry, link);
+            flow_info2->reason = SME_QOS_REASON_REQ_SUCCESS;
+            //Is it always SETUP here, can it be MODIFY her????
+            flow_info2->QoSCallback(pMac, flow_info2->HDDcontext, 
+                       &sme_QosCb.ac_info[flow_info2->ac_type].curr_QoSInfo[flow_info2->tspec_mask - 1],
+                       SME_QOS_STATUS_SETUP_SUCCESS_IND,
+                       flow_info2->QosFlowID);
+#endif
          }
 
       }
@@ -1687,6 +1705,9 @@ sme_QosStatusType sme_QosInternalModifyReq(tpAniSirGlobal pMac,
    sme_QosSearchInfo search_key;
    sme_QosCmdInfo  cmd;
    tListElem *pEntry1= NULL;
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+   sme_QosFlowInfoEntry *flow_info2 = NULL;
+#endif
 
    //set the key type & the key to be searched in the Flow List
    search_key.key.QosFlowID = QosFlowID;
@@ -1869,9 +1890,21 @@ sme_QosStatusType sme_QosInternalModifyReq(tpAniSirGlobal pMac,
             if(SME_QOS_STATUS_MODIFY_SETUP_SUCCESS_IND_APSD_PENDING == status)
             {
                pEntry1 = csrLLPeekTail(&sme_QosCb.flow_list, VOS_FALSE);
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pEntry = pEntry1;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pMac = pMac;
                sme_QosCb.apsd_req_counter++;
+#else
+
+               //Is pEntry1 == pNewEntry????
+               //In this case, tell HDD about the new parameter
+               flow_info2 = GET_BASE_ADDR(pEntry1, sme_QosFlowInfoEntry, link);
+               flow_info2->reason = SME_QOS_REASON_REQ_SUCCESS;
+               flow_info2->QoSCallback(pMac, flow_info2->HDDcontext, 
+                          &sme_QosCb.ac_info[flow_info2->ac_type].curr_QoSInfo[flow_info2->tspec_mask - 1],
+                          SME_QOS_STATUS_MODIFY_SETUP_SUCCESS_IND,
+                          flow_info2->QosFlowID);
+#endif
             }
             
          }
@@ -1902,7 +1935,7 @@ sme_QosStatusType sme_QosInternalModifyReq(tpAniSirGlobal pMac,
       if(!(sme_QosCb.ac_info[ac].reassoc_pending && 
            (SME_QOS_HANDOFF == sme_QosCb.ac_info[ac].curr_state)))
       {
-      sme_QosStateTransition(new_state, ac);      
+         sme_QosStateTransition(new_state, ac);      
       }
       else
       {
@@ -2156,7 +2189,7 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
       {
          status = SME_QOS_STATUS_RELEASE_SUCCESS_RSP;
          //check if delts needs to be sent
-         if(sme_QosIsACM(pMac, sme_QosCb.assoc_Info.pBssDesc, ac))
+         if(sme_QosIsACM(pMac, sme_QosCb.assoc_Info.pBssDesc, ac, NULL))
          {
             //check if other UP for this AC is also in use
             if(SME_QOS_TSPEC_MASK_BIT_1_2_SET != sme_QosCb.ac_info[ac].tspec_mask_status)
@@ -2402,7 +2435,7 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
    do
    {
       //this needs addts
-      if(sme_QosIsACM(pMac, sme_QosCb.assoc_Info.pBssDesc, ac))
+      if(sme_QosIsACM(pMac, sme_QosCb.assoc_Info.pBssDesc, ac, NULL))
       {
          if(pTspec_Info->ts_info.psb && 
             (!pMac->pmc.uapsdEnabled ))
@@ -2957,8 +2990,8 @@ eHalStatus sme_QosProcessAssocCompleteEv(tpAniSirGlobal pMac, void * pEvent_info
       }
       else
       {
-      status = sme_QosSaveAssocInfo(pEvent_info);
-   }
+         status = sme_QosSaveAssocInfo(pEvent_info);
+      }
       
    }
    else
@@ -2982,29 +3015,29 @@ eHalStatus sme_QosProcessAssocCompleteEv(tpAniSirGlobal pMac, void * pEvent_info
    }
    else
    {
-   for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++) 
-   {
-      switch(sme_QosCb.ac_info[ac].curr_state)
+      for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++) 
       {
-         case SME_QOS_INIT:
-            sme_QosStateTransition(SME_QOS_LINK_UP,
-                                ac);   
-            break;
-         case SME_QOS_LINK_UP:
-         case SME_QOS_REQUESTED:
-         case SME_QOS_QOS_ON:
-         case SME_QOS_HANDOFF:
-         case SME_QOS_CLOSED:
-         default:
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                      "sme_QosProcessAssocCompleteEv: wrong state = %d\n",
-                      sme_QosCb.ac_info[ac].curr_state);
-            //ASSERT
-            VOS_ASSERT(0);
-            break;
-      }
+         switch(sme_QosCb.ac_info[ac].curr_state)
+         {
+            case SME_QOS_INIT:
+               sme_QosStateTransition(SME_QOS_LINK_UP,
+                                   ac);   
+               break;
+            case SME_QOS_LINK_UP:
+            case SME_QOS_REQUESTED:
+            case SME_QOS_QOS_ON:
+            case SME_QOS_HANDOFF:
+            case SME_QOS_CLOSED:
+            default:
+               VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                         "sme_QosProcessAssocCompleteEv: wrong state = %d\n",
+                         sme_QosCb.ac_info[ac].curr_state);
+               //ASSERT
+               VOS_ASSERT(0);
+               break;
+         }
 
-   }
+      }
    }
    return status;
 }
@@ -3201,6 +3234,7 @@ eHalStatus sme_QosProcessReassocSuccessEv(tpAniSirGlobal pMac, void * pEvent_inf
 
    return status;
 }
+
 
 /*--------------------------------------------------------------------------
   \brief sme_QosProcessReassocFailureEv() - Function to process the
@@ -4310,10 +4344,10 @@ eHalStatus sme_QosFindAllInFlowList(tpAniSirGlobal pMac,
   
   --------------------------------------------------------------------------*/
 v_BOOL_t sme_QosIsACM(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc, 
-                      sme_QosEdcaAcType ac)
+                      sme_QosEdcaAcType ac, tDot11fBeaconIEs *pIes)
 {
    v_BOOL_t ret_val = VOS_FALSE;
-   tDot11fBeaconIEs *pIes = NULL;
+   tDot11fBeaconIEs *pIesLocal = pIes;
    if(!pSirBssDesc)
    {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
@@ -4321,14 +4355,14 @@ v_BOOL_t sme_QosIsACM(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
       return VOS_FALSE;
    }
 
-   if(!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc, &pIes)))
+   if((NULL == pIesLocal) && !HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc, &pIesLocal)))
    {
       //err msg
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
                 "sme_QosIsACM:csrGetParsedBssDescriptionIEs() failed\n");
-      if(pIes)
+      if(pIesLocal)
       {
-         vos_mem_free(pIes);
+         vos_mem_free(pIesLocal);
       }
 
       return VOS_FALSE;
@@ -4337,16 +4371,16 @@ v_BOOL_t sme_QosIsACM(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
    switch(ac)
    {
       case SME_QOS_EDCA_AC_BE:
-         if(pIes->WMMParams.acbe_acm) ret_val = VOS_TRUE;
+         if(pIesLocal->WMMParams.acbe_acm) ret_val = VOS_TRUE;
          break;
       case SME_QOS_EDCA_AC_BK:
-         if(pIes->WMMParams.acbk_acm) ret_val = VOS_TRUE;
+         if(pIesLocal->WMMParams.acbk_acm) ret_val = VOS_TRUE;
          break;
       case SME_QOS_EDCA_AC_VI:
-         if(pIes->WMMParams.acvi_acm) ret_val = VOS_TRUE;
+         if(pIesLocal->WMMParams.acvi_acm) ret_val = VOS_TRUE;
          break;
       case SME_QOS_EDCA_AC_VO:
-         if(pIes->WMMParams.acvo_acm) ret_val = VOS_TRUE;
+         if(pIesLocal->WMMParams.acvo_acm) ret_val = VOS_TRUE;
          break;
       default:
          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
@@ -4358,9 +4392,9 @@ v_BOOL_t sme_QosIsACM(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
 
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
              "sme_QosIsACM:Test: ACM = %d for AC = %d\n", ret_val, ac );
-   if(pIes)
+   if((NULL == pIes) && pIesLocal)
    {
-      vos_mem_free(pIes);
+      vos_mem_free(pIesLocal);
    }
 
    return ret_val;
@@ -5245,13 +5279,17 @@ eHalStatus sme_QosReassocSuccessEvFnp(tpAniSirGlobal pMac, tListElem *pEntry)
       {
          //notify PMC as App is looking for APSD. If we already requested just 
          // buffer the request & wait for PMC notification through callback.
-      //if PMC doesn't return sucess right away means it is yet to put the
-      //module in BMPS state & later to UAPSD state
+         //if PMC doesn't return sucess right away means it is yet to put the
+         //module in BMPS state & later to UAPSD state
          sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pEntry = pEntry;
          sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pMac = pMac;
          sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].hoRenewal = 
             flow_info->hoRenewal;
          sme_QosCb.apsd_req_counter++;
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+         //When trigger frmae is sent by FW, notify HDD independent off UAPSD
+         flow_info->reason = SME_QOS_REASON_SETUP_REQ_APSD_PENDING;
+#endif
    
          if(!sme_QosCb.uapsdAlreadyRequested)
          {
@@ -5266,27 +5304,33 @@ eHalStatus sme_QosReassocSuccessEvFnp(tpAniSirGlobal pMac, tListElem *pEntry)
             else if(eHAL_STATUS_PMC_PENDING == pmc_status)
             {
                hdd_status = SME_QOS_STATUS_SETUP_SUCCESS_IND_APSD_PENDING;
-               flow_info->reason = SME_QOS_REASON_SETUP_REQ_APSD_PENDING;
                sme_QosCb.uapsdAlreadyRequested = VOS_TRUE;
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+               flow_info->reason = SME_QOS_REASON_SETUP_REQ_APSD_PENDING;
+#endif
             }
             else if(eHAL_STATUS_SUCCESS == pmc_status)
             {
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
                //since it right away got success from PMC, remove the entry from 
                //APSD request list
                sme_QosCb.apsd_req_counter--;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pEntry = NULL;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pMac = NULL;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].hoRenewal = VOS_FALSE;
+#endif
                sme_QosCb.uapsdAlreadyRequested = VOS_FALSE;
             }
             else if(eHAL_STATUS_PMC_DISABLED == pmc_status)
             {
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
                //since power save is disabled sytem wide, remove the entry from 
                //APSD request list & don't expect any further response from PMC
                sme_QosCb.apsd_req_counter--;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pEntry = NULL;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pMac = NULL;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].hoRenewal = VOS_FALSE;
+#endif
                sme_QosCb.uapsdAlreadyRequested = VOS_FALSE;
                //overloading the existing indication for HDD. APSD isn't
                //pending from PMC, as powersave is disabled system wide
@@ -5295,10 +5339,12 @@ eHalStatus sme_QosReassocSuccessEvFnp(tpAniSirGlobal pMac, tListElem *pEntry)
    
          }
          else
-      {
-         hdd_status = SME_QOS_STATUS_SETUP_SUCCESS_IND_APSD_PENDING;
-         flow_info->reason = SME_QOS_REASON_SETUP_REQ_APSD_PENDING;
-      }
+         {
+            hdd_status = SME_QOS_STATUS_SETUP_SUCCESS_IND_APSD_PENDING;
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+            flow_info->reason = SME_QOS_REASON_SETUP_REQ_APSD_PENDING;
+#endif
+         }
       }
       break;
    case SME_QOS_REASON_RELEASE:
@@ -5315,12 +5361,16 @@ eHalStatus sme_QosReassocSuccessEvFnp(tpAniSirGlobal pMac, tListElem *pEntry)
       {
          //notify PMC as App is looking for APSD. If we already requested just 
          // buffer the request & wait for PMC notification through callback.
-      //if PMC doesn't return sucess right away means it is yet to put the
-      //module in BMPS state & later to UAPSD state
+         //if PMC doesn't return sucess right away means it is yet to put the
+         //module in BMPS state & later to UAPSD state
          sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pEntry = pEntry;
          sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pMac = pMac;
          sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].hoRenewal = VOS_FALSE;
          sme_QosCb.apsd_req_counter++;
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+         //When trigger frmae is sent by FW, notify HDD independent off UAPSD
+         flow_info->reason = SME_QOS_REASON_MODIFY_REQ_APSD_PENDING;
+#endif
    
          if(!sme_QosCb.uapsdAlreadyRequested)
          {
@@ -5332,27 +5382,33 @@ eHalStatus sme_QosReassocSuccessEvFnp(tpAniSirGlobal pMac, tListElem *pEntry)
                sme_QosCb.uapsdAlreadyRequested = VOS_FALSE;
             }
             else if(eHAL_STATUS_PMC_PENDING == pmc_status)
-      {
-         hdd_status = SME_QOS_STATUS_MODIFY_SETUP_SUCCESS_IND_APSD_PENDING;
-         flow_info->reason = SME_QOS_REASON_MODIFY_REQ_APSD_PENDING;
+            {
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+               flow_info->reason = SME_QOS_REASON_MODIFY_REQ_APSD_PENDING;
+#endif
+               hdd_status = SME_QOS_STATUS_MODIFY_SETUP_SUCCESS_IND_APSD_PENDING;
                sme_QosCb.uapsdAlreadyRequested = VOS_TRUE;
             }
             else if(eHAL_STATUS_SUCCESS == pmc_status)
             {
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
                //since it right away got success from PMC, remove the entry from 
                //APSD request list
                sme_QosCb.apsd_req_counter--;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pEntry = NULL;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pMac = NULL;
+#endif
                sme_QosCb.uapsdAlreadyRequested = VOS_FALSE;
             }
             else if(eHAL_STATUS_PMC_DISABLED == pmc_status)
             {
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
                //since power save is disabled sytem wide, remove the entry from 
                //APSD request list & don't expect any further response from PMC
                sme_QosCb.apsd_req_counter--;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pEntry = NULL;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pMac = NULL;
+#endif
                sme_QosCb.uapsdAlreadyRequested = VOS_FALSE;
                //overloading the existing indication for HDD. APSD isn't
                //pending from PMC, as powersave is disabled system wide
@@ -5364,7 +5420,9 @@ eHalStatus sme_QosReassocSuccessEvFnp(tpAniSirGlobal pMac, tListElem *pEntry)
          else
          {
             hdd_status = SME_QOS_STATUS_SETUP_SUCCESS_IND_APSD_PENDING;
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
             flow_info->reason = SME_QOS_REASON_SETUP_REQ_APSD_PENDING;
+#endif
          }
       }
       break;
@@ -5379,13 +5437,14 @@ eHalStatus sme_QosReassocSuccessEvFnp(tpAniSirGlobal pMac, tListElem *pEntry)
    {
       if(!flow_info->hoRenewal)
       {
-      flow_info->QoSCallback(pMac, flow_info->HDDcontext, 
-                             &sme_QosCb.ac_info[ac].curr_QoSInfo[SME_QOS_TSPEC_INDEX_0],
-                             hdd_status,
-                             flow_info->QosFlowID);
-   }
-   else
-   {
+         flow_info->QoSCallback(pMac, flow_info->HDDcontext, 
+                                &sme_QosCb.ac_info[ac].curr_QoSInfo[SME_QOS_TSPEC_INDEX_0],
+                                hdd_status,
+                                flow_info->QosFlowID);
+         sme_QosHandleCallback(eHAL_STATUS_SUCCESS);
+      }
+      else
+      {
          flow_info->hoRenewal = VOS_FALSE;
       }
    }
@@ -5587,6 +5646,11 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
             flow_info->hoRenewal;
          sme_QosCb.apsd_req_counter++;
 
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+         //When trigger frmae is sent by FW, notify HDD independent off UAPSD
+         flow_info->reason = SME_QOS_REASON_SETUP_REQ_APSD_PENDING;
+#endif
+
          if(!sme_QosCb.uapsdAlreadyRequested)
          {
             pmc_status = pmcStartUapsd(pMac, sme_QosPmcStartUapsdCallback, pMac);
@@ -5594,34 +5658,42 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
             if(eHAL_STATUS_FAILURE == pmc_status)
             {
                hdd_status = SME_QOS_STATUS_SETUP_SUCCESS_IND_APSD_PENDING;
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
                flow_info->reason = SME_QOS_REASON_SETUP_REQ_APSD_PENDING;
-               sme_QosCb.uapsdAlreadyRequested = VOS_FALSE;
                flow_info->hoRenewal = VOS_FALSE;
+#endif
+               sme_QosCb.uapsdAlreadyRequested = VOS_FALSE;
             }
             else if(eHAL_STATUS_PMC_PENDING == pmc_status)
             {
                hdd_status = SME_QOS_STATUS_SETUP_SUCCESS_IND_APSD_PENDING;
-               flow_info->reason = SME_QOS_REASON_SETUP_REQ_APSD_PENDING;
                sme_QosCb.uapsdAlreadyRequested = VOS_TRUE;
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+               flow_info->reason = SME_QOS_REASON_SETUP_REQ_APSD_PENDING;
+#endif
             }
             else if(eHAL_STATUS_SUCCESS == pmc_status)
             {
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
                //since it right away got success from PMC, remove the entry from 
                //APSD request list
                sme_QosCb.apsd_req_counter--;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pEntry = NULL;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pMac = NULL;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].hoRenewal = VOS_FALSE;
+#endif
                sme_QosCb.uapsdAlreadyRequested = VOS_FALSE;
             }
             else if(eHAL_STATUS_PMC_DISABLED == pmc_status)
             {
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
                //since power save is disabled sytem wide, remove the entry from 
                //APSD request list & don't expect any further response from PMC
                sme_QosCb.apsd_req_counter--;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pEntry = NULL;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pMac = NULL;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].hoRenewal = VOS_FALSE;
+#endif
                sme_QosCb.uapsdAlreadyRequested = VOS_FALSE;
                //overloading the existing indication for HDD. APSD isn't
                //pending from PMC, as powersave is disabled system wide
@@ -5633,7 +5705,9 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
          else
          {
             hdd_status = SME_QOS_STATUS_SETUP_SUCCESS_IND_APSD_PENDING;
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
             flow_info->reason = SME_QOS_REASON_SETUP_REQ_APSD_PENDING;
+#endif
          }
       }
       break;
@@ -5666,38 +5740,51 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
          sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].hoRenewal = VOS_FALSE;
          sme_QosCb.apsd_req_counter++;
 
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+         //When trigger frmae is sent by FW, notify HDD independent off UAPSD
+         flow_info->reason = SME_QOS_REASON_MODIFY_REQ_APSD_PENDING;
+#endif
+
          if(!sme_QosCb.uapsdAlreadyRequested)
          {
             pmc_status = pmcStartUapsd(pMac, sme_QosPmcStartUapsdCallback, pMac);
 
             if(eHAL_STATUS_FAILURE == pmc_status)
-         {
-            hdd_status = SME_QOS_STATUS_MODIFY_SETUP_SUCCESS_IND_APSD_PENDING;
-            flow_info->reason = SME_QOS_REASON_MODIFY_REQ_APSD_PENDING;
+            {
+               hdd_status = SME_QOS_STATUS_MODIFY_SETUP_SUCCESS_IND_APSD_PENDING;
                sme_QosCb.uapsdAlreadyRequested = VOS_FALSE;
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+               flow_info->reason = SME_QOS_REASON_MODIFY_REQ_APSD_PENDING;
+#endif
             }
             else if(eHAL_STATUS_PMC_PENDING == pmc_status)
             {
                hdd_status = SME_QOS_STATUS_MODIFY_SETUP_SUCCESS_IND_APSD_PENDING;
-               flow_info->reason = SME_QOS_REASON_MODIFY_REQ_APSD_PENDING;
                sme_QosCb.uapsdAlreadyRequested = VOS_TRUE;
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+               flow_info->reason = SME_QOS_REASON_MODIFY_REQ_APSD_PENDING;
+#endif
             }
             else if(eHAL_STATUS_SUCCESS == pmc_status)
             {
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
                //since it right away got success from PMC, remove the entry from 
                //APSD request list
                sme_QosCb.apsd_req_counter--;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pEntry = NULL;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pMac = NULL;
+#endif
                sme_QosCb.uapsdAlreadyRequested = VOS_FALSE;
             }
             else if(eHAL_STATUS_PMC_DISABLED == pmc_status)
             {
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
                //since power save is disabled sytem wide, remove the entry from 
                //APSD request list & don't expect any further response from PMC
                sme_QosCb.apsd_req_counter--;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pEntry = NULL;
                sme_QosCb.uapsdRequest[sme_QosCb.apsd_req_counter].pMac = NULL;
+#endif
                sme_QosCb.uapsdAlreadyRequested = VOS_FALSE;
                //overloading the existing indication for HDD. APSD isn't
                //pending from PMC, as powersave is disabled system wide
@@ -5709,7 +5796,9 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
          else
          {
             hdd_status = SME_QOS_STATUS_SETUP_SUCCESS_IND_APSD_PENDING;
+#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
             flow_info->reason = SME_QOS_REASON_SETUP_REQ_APSD_PENDING;
+#endif
          }
       }
       break;
@@ -5726,11 +5815,13 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
       if(!flow_info->hoRenewal)
       {
       
-      flow_info->QoSCallback(pMac, flow_info->HDDcontext, 
-                             &sme_QosCb.ac_info[ac].curr_QoSInfo[sme_QosCb.ac_info[ac].tspec_pending - 1],
-                             hdd_status,
-                             flow_info->QosFlowID);
-   }
+         flow_info->QoSCallback(pMac, flow_info->HDDcontext, 
+                                &sme_QosCb.ac_info[ac].curr_QoSInfo[sme_QosCb.ac_info[ac].tspec_pending - 1],
+                                hdd_status,
+                                flow_info->QosFlowID);
+         //Call the callback at here
+         sme_QosHandleCallback(eHAL_STATUS_SUCCESS);
+      }
       else
       {
          flow_info->hoRenewal = VOS_FALSE;
@@ -5820,6 +5911,65 @@ void sme_QosPmcFullPowerCallback(void *callbackContext, eHalStatus status)
 
 }
 
+
+static void sme_QosHandleCallback(eHalStatus status)
+{
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+
+   tListElem *pEntry = NULL;
+   sme_QosFlowInfoEntry *flow_info = NULL;
+   sme_QosStatusType hdd_status = SME_QOS_STATUS_SETUP_FAILURE_RSP;
+   v_U8_t index = 0;
+
+   for(index = 0; index < sme_QosCb.apsd_req_counter; index++)
+   {
+      pEntry = sme_QosCb.uapsdRequest[index].pEntry;
+      if(!pEntry)
+      {
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                    "sme_QosPmcStartUAPSDcallback: callbackContext is NULL\n");
+         //ASSERT
+         VOS_ASSERT(0);
+         return;
+      }
+
+      flow_info = GET_BASE_ADDR(pEntry, sme_QosFlowInfoEntry, link);
+      if(!flow_info)
+      {
+         //Err msg
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                "sme_QosPmcStartUAPSDcallback: couldn't access the QoS \
+                params from the Flow List entry\n");
+         //ASSERT
+         VOS_ASSERT(0);
+         return;
+      }
+
+      if(SME_QOS_REASON_MODIFY_REQ_APSD_PENDING == flow_info->reason)
+      {
+         hdd_status = SME_QOS_STATUS_MODIFY_SETUP_SUCCESS_IND;
+         flow_info->reason = SME_QOS_REASON_REQ_SUCCESS;
+      }
+      else if(SME_QOS_REASON_SETUP_REQ_APSD_PENDING == flow_info->reason)
+      {
+         hdd_status = SME_QOS_STATUS_SETUP_SUCCESS_IND;
+         flow_info->reason = SME_QOS_REASON_REQ_SUCCESS;
+      }
+
+      flow_info->QoSCallback(sme_QosCb.uapsdRequest[index].pMac, flow_info->HDDcontext, 
+                             &sme_QosCb.ac_info[flow_info->ac_type].curr_QoSInfo[flow_info->tspec_mask - 1],
+                             hdd_status,
+                             flow_info->QosFlowID);
+      sme_QosCb.uapsdRequest[index].pEntry = NULL;
+      sme_QosCb.uapsdRequest[index].pMac   = NULL;
+   }
+
+   sme_QosCb.apsd_req_counter = 0;
+
+#endif //#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+}
+
+
 /*--------------------------------------------------------------------------
   \brief sme_QosPmcStartUAPSDCallback() - Callback function registered with PMC 
   to notify SME-QoS when it puts the chip into UAPSD mode
@@ -5834,6 +5984,11 @@ void sme_QosPmcFullPowerCallback(void *callbackContext, eHalStatus status)
   --------------------------------------------------------------------------*/
 void sme_QosPmcStartUapsdCallback(void *callbackContext, eHalStatus status)
 {
+
+#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+   //We don't need to do anything here when FW is controlling sending trigger frame
+#else
+
    tListElem *pEntry = NULL;
    sme_QosFlowInfoEntry *flow_info = NULL;
    sme_QosStatusType hdd_status = SME_QOS_STATUS_SETUP_FAILURE_RSP;
@@ -5858,51 +6013,53 @@ void sme_QosPmcStartUapsdCallback(void *callbackContext, eHalStatus status)
       return;
    }
 
-
    for(index = 0; index < sme_QosCb.apsd_req_counter; index++)
    {
       pEntry = sme_QosCb.uapsdRequest[index].pEntry;
-   if(!pEntry)
-   {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                "sme_QosPmcStartUAPSDcallback: callbackContext is NULL\n");
-      //ASSERT
-      VOS_ASSERT(0);
-      return;
-   }
+      if(!pEntry)
+      {
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                    "sme_QosPmcStartUAPSDcallback: callbackContext is NULL\n");
+         //ASSERT
+         VOS_ASSERT(0);
+         return;
+      }
 
-   flow_info = GET_BASE_ADDR(pEntry, sme_QosFlowInfoEntry, link);
-   if(!flow_info)
-   {
-      //Err msg
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+      flow_info = GET_BASE_ADDR(pEntry, sme_QosFlowInfoEntry, link);
+      if(!flow_info)
+      {
+         //Err msg
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
                 "sme_QosPmcStartUAPSDcallback: couldn't access the QoS \
                 params from the Flow List entry\n");
-      //ASSERT
-      VOS_ASSERT(0);
-      return;
-   }
+         //ASSERT
+         VOS_ASSERT(0);
+         return;
+      }
 
-   if(SME_QOS_REASON_MODIFY_REQ_APSD_PENDING == flow_info->reason)
-   {
-      hdd_status = SME_QOS_STATUS_MODIFY_SETUP_SUCCESS_IND;
-      flow_info->reason = SME_QOS_REASON_REQ_SUCCESS;
-   }
-   else if(SME_QOS_REASON_SETUP_REQ_APSD_PENDING == flow_info->reason)
-   {
-      hdd_status = SME_QOS_STATUS_SETUP_SUCCESS_IND;
-      flow_info->reason = SME_QOS_REASON_REQ_SUCCESS;
-   }
+      if(SME_QOS_REASON_MODIFY_REQ_APSD_PENDING == flow_info->reason)
+      {
+         hdd_status = SME_QOS_STATUS_MODIFY_SETUP_SUCCESS_IND;
+         flow_info->reason = SME_QOS_REASON_REQ_SUCCESS;
+      }
+      else if(SME_QOS_REASON_SETUP_REQ_APSD_PENDING == flow_info->reason)
+      {
+         hdd_status = SME_QOS_STATUS_SETUP_SUCCESS_IND;
+         flow_info->reason = SME_QOS_REASON_REQ_SUCCESS;
+      }
 
-   flow_info->QoSCallback(sme_QosCb.uapsdRequest[index].pMac, flow_info->HDDcontext, 
-                          &sme_QosCb.ac_info[flow_info->ac_type].curr_QoSInfo[flow_info->tspec_mask - 1],
-                          hdd_status,
-                          flow_info->QosFlowID);
-    sme_QosCb.uapsdRequest[index].pEntry = NULL;
-    sme_QosCb.uapsdRequest[index].pMac   = NULL;
-}
+      flow_info->QoSCallback(sme_QosCb.uapsdRequest[index].pMac, flow_info->HDDcontext, 
+                             &sme_QosCb.ac_info[flow_info->ac_type].curr_QoSInfo[flow_info->tspec_mask - 1],
+                             hdd_status,
+                             flow_info->QosFlowID);
+      sme_QosCb.uapsdRequest[index].pEntry = NULL;
+      sme_QosCb.uapsdRequest[index].pMac   = NULL;
+   }
 
    sme_QosCb.apsd_req_counter = 0;
+
+#endif  //FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
+
    sme_QosCb.uapsdAlreadyRequested = VOS_FALSE;
 }
 

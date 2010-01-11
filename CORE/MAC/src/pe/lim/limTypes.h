@@ -105,7 +105,7 @@
 #define RESP_TYPE_ENROLLEE_INFO_ONLY         (0x0)
 #define RESP_TYPE_ENROLLEE_OPEN_8021X        (0x1)
 #define RESP_TYPE_AP                         (0x3)
-
+#define LIM_TX_FRAMES_THRESHOLD_ON_CHIP       300
 
 
 // enums used by LIM are as follows

@@ -134,7 +134,7 @@ extern "C" {
 #define WLANBAL_PDU_BIT_SHIFT           16
 
 /* If TX resource is not enough, wait till this timeout period and try get again */
-#define WLANBAL_TX_RESOURCE_TIMEOUT     100
+#define WLANBAL_TX_RESOURCE_TIMEOUT     10
 
 /* Test arguments valid or not */
 #define IS_VALID_1_ARG(a)              (NULL != a) ? 1 : 0

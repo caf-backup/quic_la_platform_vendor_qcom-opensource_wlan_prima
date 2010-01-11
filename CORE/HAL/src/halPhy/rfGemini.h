@@ -23,7 +23,7 @@ typedef enum
     GEMINI_REG_SPARE_2                                     = 10,
     GEMINI_REG_SPARE_3                                     = 11,
     GEMINI_REG_SPARE_4                                     = 12,
-    //missing address between 12 and 32 
+    //missing address between 12 and 32
     GEMINI_REG_XO_REG0                                     = 32,
     GEMINI_REG_BLOCK_ENABLE                                = 33,
     GEMINI_REG_XO_TCXO                                     = 34,
@@ -33,7 +33,7 @@ typedef enum
     GEMINI_REG_DC_GPO                                      = 38,
     GEMINI_REG_CLK_REFFM_REFDIV2                           = 39,
     GEMINI_REG_XO_SPARE1                                   = 40,
-    //missing address between 40 and 48 
+    //missing address between 40 and 48
     GEMINI_REG_PLL_REG0                                    = 48,
     GEMINI_REG_PLL_REG1                                    = 49,
     GEMINI_REG_PLL_REG2                                    = 50,
@@ -98,7 +98,7 @@ typedef enum
     GEMINI_REG_PLL_BW_REG4                                 = 109,
     GEMINI_REG_PLL_BW_REG5                                 = 110,
     GEMINI_REG_PLL_BW_REG6                                 = 111,
-    //missing address between 111 and 144 
+    //missing address between 111 and 144
     GEMINI_REG_RX_GAIN_CTL                                 = 144,
     GEMINI_REG_RX_PWR_CTL                                  = 145,
     GEMINI_REG_RX_LNA_CURRENT                              = 146,
@@ -173,7 +173,7 @@ typedef enum
     GEMINI_REG_BBF_AUX2                                    = 215,
     GEMINI_REG_BB_INSITU_RCM1                              = 216,
     GEMINI_REG_BB_INSITU_RCM2                              = 217,
-    //missing address between 217 and 224 
+    //missing address between 217 and 224
     GEMINI_REG_TX_AUX_DCOC0                                = 224,
     GEMINI_REG_TX_AUX_DCOC1                                = 225,
     GEMINI_REG_PDET_CTL                                    = 226,
@@ -186,7 +186,7 @@ typedef enum
     GEMINI_REG_TX_SPARE3                                   = 233,
     GEMINI_REG_TX_SPARE4                                   = 234,
     GEMINI_REG_TX_SPARE5                                   = 235,
-    //missing address between 235 and 240 
+    //missing address between 235 and 240
     GEMINI_REG_TRSW_CTL                                    = 240,
     GEMINI_REG_PA_STG1_2_BIAS                              = 241,
     GEMINI_REG_PA_STG3_BIAS                                = 242,
@@ -203,7 +203,8 @@ typedef enum
     GEMINI_REG_VSWR_CTL0                                   = 253,
     GEMINI_REG_VSWR_CTL1                                   = 254,
 
-    GEMINI_NUM_REGS
+    GEMINI_NUM_REGS,
+    GEMINI_REGS_MAX_VAL                                    = 0xFFFFFFFF, //dummy added to change enum to 4 bytes
 } eGeminiRegs;
 
 
@@ -801,7 +802,8 @@ typedef enum
     GEMINI_FIELD_VSWR_CTL1_VSWR_TMR,                       // 579
     GEMINI_FIELD_VSWR_CTL1_VSWR_STATUS_RESET,              // 580
 
-    NUM_RF_FIELDS
+    NUM_RF_FIELDS,
+    GEMINI_FIELD_MAX_VAL								= 0XFFFFFFFF, //dummy added to change enum to 4 bytes
 } eRfFields;
 
 
@@ -815,7 +817,8 @@ typedef enum
     RF_CAL_RX_IQ_START,
     RF_CAL_RX_IQ_END,
 
-    MAX_RF_CAL_MODE
+    MAX_RF_CAL_MODE,
+    RF_CAL_MODE_MAX_VAL								= 0XFFFFFFFF, //dummy added to change enum to 4 bytes
 }eRfCalMode;
 
 

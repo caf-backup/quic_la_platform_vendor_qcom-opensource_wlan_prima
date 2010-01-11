@@ -408,6 +408,7 @@ typedef enum sBmuWqId {
     BMUWQ_FW_RECV = 7,       /* DPU Rx->FW Rx */
     BMUWQ_FW_RPE_RECV = 4,   /* RXP/RPE Rx->FW Rx */
     FW_SCO_WQ = BMUWQ_FW_RPE_RECV,
+    BMUWQ_FW_DPU_TX = 5,
 
     /* DPU Error */
     BMUWQ_DPU_ERROR_WQ = 8,  

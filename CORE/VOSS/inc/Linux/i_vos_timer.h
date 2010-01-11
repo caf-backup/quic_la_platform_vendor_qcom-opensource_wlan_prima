@@ -37,7 +37,6 @@ extern "C" {
 
 typedef struct vos_timer_platform_s
 {
-   int timerID;
    struct timer_list Timer;
    int threadID; 
    v_U32_t cookie;

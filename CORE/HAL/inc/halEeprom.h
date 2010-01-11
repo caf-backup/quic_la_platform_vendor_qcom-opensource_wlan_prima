@@ -198,7 +198,7 @@ typedef enum
     NUM_SDRAM_OPTIONS
 }eEepromSdram;                  //EEPROM_COMMON_SDRAM_INFO
 
-
+#ifndef ANI_MANF_DIAG
 typedef enum
 {
     PRODUCT_BAND_11_B_G     = 0,
@@ -207,7 +207,7 @@ typedef enum
     
     NUM_PRODUCT_BANDS
 }eEepromProductBands;           //EEPROM_COMMON_PRODUCT_BANDS 
-
+#endif
 
 typedef union
 {

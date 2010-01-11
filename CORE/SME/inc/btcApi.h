@@ -157,11 +157,6 @@ typedef struct sSmeBtcConfig
    v_U8_t		btcActionOnPmFail;
    v_U8_t		btcBtIntervalMode1;
    v_U8_t		btcWlanIntervalMode1;
-   v_U8_t       btcEventState;
-
-   v_U8_t       btcHBActive;    /* Is HB currently active */
-   v_U8_t		btcHBCount;     /* default HB count */
-   vos_timer_t	restoreHBTimer;	/* Timer to restore heart beat */
 
 } tSmeBtcConfig, *tpSmeBtcConfig;
 
@@ -171,7 +166,11 @@ typedef struct sSmeBtcConfig
 typedef struct sSmeBtcInfo
 {
    tSmeBtcConfig btcConfig;
-   v_BOOL_t btcReady;
+   v_BOOL_t      btcReady;
+   v_U8_t        btcEventState;
+   v_U8_t        btcHBActive;    /* Is HB currently active */
+   v_U8_t	     btcHBCount;     /* default HB count */
+   vos_timer_t	 restoreHBTimer; /* Timer to restore heart beat */
 } tSmeBtcInfo, *tpSmeBtcInfo;
 
 

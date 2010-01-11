@@ -69,16 +69,16 @@ typedef struct
 // the 3 character 'name' of the module for marking the trace logs.
 moduleTraceInfo gVosTraceInfo[ VOS_MODULE_ID_MAX ] =
 {
-   { (1<<VOS_TRACE_LEVEL_FATAL)|(1<<VOS_TRACE_LEVEL_ERROR), "TL " }, 
-   { (1<<VOS_TRACE_LEVEL_FATAL)|(1<<VOS_TRACE_LEVEL_ERROR), "BAL" }, 
-   { (1<<VOS_TRACE_LEVEL_FATAL)|(1<<VOS_TRACE_LEVEL_ERROR), "SAL" }, 
-   { (1<<VOS_TRACE_LEVEL_FATAL)|(1<<VOS_TRACE_LEVEL_ERROR), "SSC" },
-   { (1<<VOS_TRACE_LEVEL_FATAL)|(1<<VOS_TRACE_LEVEL_ERROR), "HDD" }, 
-   { (1<<VOS_TRACE_LEVEL_FATAL)|(1<<VOS_TRACE_LEVEL_ERROR), "SME" }, 
-   { (1<<VOS_TRACE_LEVEL_FATAL)|(1<<VOS_TRACE_LEVEL_ERROR), "PE " }, 
-   { (1<<VOS_TRACE_LEVEL_FATAL)|(1<<VOS_TRACE_LEVEL_ERROR), "HAL" }, 
-   { (1<<VOS_TRACE_LEVEL_FATAL)|(1<<VOS_TRACE_LEVEL_ERROR), "SYS" }, 
-   { (1<<VOS_TRACE_LEVEL_FATAL)|(1<<VOS_TRACE_LEVEL_ERROR), "VOS" }
+   { (1<<VOS_TRACE_LEVEL_FATAL), "TL " }, 
+   { (1<<VOS_TRACE_LEVEL_FATAL), "BAL" }, 
+   { (1<<VOS_TRACE_LEVEL_FATAL), "SAL" }, 
+   { (1<<VOS_TRACE_LEVEL_FATAL), "SSC" },
+   { (1<<VOS_TRACE_LEVEL_FATAL), "HDD" }, 
+   { (1<<VOS_TRACE_LEVEL_FATAL), "SME" }, 
+   { (1<<VOS_TRACE_LEVEL_FATAL), "PE " }, 
+   { (1<<VOS_TRACE_LEVEL_FATAL), "HAL" }, 
+   { (1<<VOS_TRACE_LEVEL_FATAL), "SYS" }, 
+   { (1<<VOS_TRACE_LEVEL_FATAL), "VOS" }
 };
 
 

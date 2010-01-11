@@ -132,20 +132,22 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    //Classify the packet
    if ( !hdd_wmm_classify_pkt (pAdapter, skb, &ac, &up) )
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: Failed to classify packet", __FUNCTION__);
-      return -1;
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: Failed to classify packet..pkt dropped", __FUNCTION__);
+      kfree_skb(skb);
+      return 0;
    }
 
 #ifdef HDD_WMM_DEBUG
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-              "%s: Classified as ac %d up %d\n", __FUNCTION__, ac, up);
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+              "%s: Classified as ac %d up %d", __FUNCTION__, ac, up);
 #endif // HDD_WMM_DEBUG
 
    //If we have already reached the max queue size, disable the TX queue
    if ( pAdapter->wmm_tx_queue[ac].count == pAdapter->wmm_tx_queue[ac].max_size)
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: TX queue full for AC=%d Pkt Dropped disable TX", __FUNCTION__, ac );
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: TX queue full for AC=%d Disable OS TX queue", __FUNCTION__, ac );
       netif_stop_queue(dev);
+      netif_carrier_off(dev);
       return -1;
    }
 
@@ -169,7 +171,8 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s:Insert Tx queue failed. Pkt dropped", __FUNCTION__);
-      return -1;
+      kfree_skb(skb);
+      return 0;
    }
 
    //Make sure we have been admitted to this access category
@@ -197,7 +200,10 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          spin_lock(&pAdapter->wmm_tx_queue[ac].lock);
          status = hdd_list_remove_back( &pAdapter->wmm_tx_queue[ac], &anchor );
          spin_unlock(&pAdapter->wmm_tx_queue[ac].lock);
-         return -1;
+         netif_stop_queue(dev);
+         netif_carrier_off(dev);
+         kfree_skb(skb);
+         return 0;
       }
    }
 
@@ -218,10 +224,13 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
   ===========================================================================*/
 void hdd_tx_timeout(struct net_device *dev)
 {
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Transmission timeout occurred", __FUNCTION__);
-   netif_start_queue(dev);
-   //We should never reach here
-}
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      "%s: Transmission timeout occurred", __FUNCTION__);
+   //Getting here implies we disabled the TX queues for too long. Queues are 
+   //disabled either because of disassociation or low resource scenarios. In
+   //case of disassociation it is ok to ignore this. But if associated, we have
+   //do possible recovery here
+} 
 
 
 /**============================================================================
@@ -588,8 +597,9 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
 
    if ( netif_queue_stopped(pAdapter->dev) && size <= HDD_TX_QUEUE_LOW_WATER_MARK )
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: TX queue enabled", __FUNCTION__);
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: TX queue re-enabled", __FUNCTION__);
       pAdapter->isTxSuspended = VOS_FALSE;
+      netif_carrier_on(pAdapter->dev);
       netif_start_queue(pAdapter->dev);
    }    
 
@@ -653,30 +663,31 @@ VOS_STATUS hdd_tx_low_resource_cbk( vos_pkt_t *pVosPacket,
 
 /**============================================================================
   @brief hdd_rx_packet_cbk() - Receive callback registered with TL.
-  TL will call this to notify the HDD when a packet was received 
-  for a registered STA.
+  TL will call this to notify the HDD when one or more packets were
+  received for a registered STA.
 
-  @param vosContext   : [in] pointer to VOS context  
-  @param pVosPacket   : [in] pointer to VOS packet (conatining sk_buff) 
-  @param staId        : [in] Station Id
-  @param pRxMetaInfo  : [in] pointer to meta info for the received pkt(s) 
+  @param vosContext      : [in] pointer to VOS context  
+  @param pVosPacketChain : [in] pointer to VOS packet chain
+  @param staId           : [in] Station Id
+  @param pRxMetaInfo     : [in] pointer to meta info for the received pkt(s) 
 
-  @return             : VOS_STATUS_E_FAILURE if any errors encountered, 
-                      : VOS_STATUS_SUCCESS otherwise
+  @return                : VOS_STATUS_E_FAILURE if any errors encountered, 
+                         : VOS_STATUS_SUCCESS otherwise
   ===========================================================================*/
 VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext, 
-                              vos_pkt_t *pVosPacket, 
+                              vos_pkt_t *pVosPacketChain,
                               v_U8_t staId,
                               WLANTL_RxMetaInfoType* pRxMetaInfo )
 {
    hdd_adapter_t *pAdapter = NULL;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
-   void* pOsPkt = NULL;
    struct sk_buff *skb = NULL;
+   vos_pkt_t* pVosPacket;
+   vos_pkt_t* pNextVosPacket;
 
    //Sanity check on inputs
    if ( ( NULL == vosContext ) || 
-        ( NULL == pVosPacket ) || 
+        ( NULL == pVosPacketChain ) ||
         ( NULL == pRxMetaInfo ) )
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Null params being passed", __FUNCTION__);
@@ -690,27 +701,46 @@ VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
       return VOS_STATUS_E_FAILURE;
    }
 
-   //Extract the OS packet. Tell VOS to detach the OS packet from the VOS packet
-   status = vos_pkt_get_os_packet( pVosPacket, &pOsPkt, VOS_TRUE );
-   if(!VOS_IS_STATUS_SUCCESS( status ))
+   // walk the chain until all are processed
+   pVosPacket = pVosPacketChain;
+   do
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Failure extracting skb from vos pkt", __FUNCTION__);
-      return VOS_STATUS_E_FAILURE;
-   }
-   skb = (struct sk_buff *)pOsPkt;
+      // get the pointer to the next packet in the chain
+      // (but don't unlink the packet since we free the entire chain later)
+      status = vos_pkt_walk_packet_chain( pVosPacket, &pNextVosPacket, VOS_FALSE);
 
-   //Return the the VOS packet to the resource pool
-   status = vos_pkt_return_packet( pVosPacket );
+      // both "success" and "empty" are acceptable results
+      if (!((status == VOS_STATUS_SUCCESS) || (status == VOS_STATUS_E_EMPTY)))
+      {
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Failure walking packet chain", __FUNCTION__);
+         return VOS_STATUS_E_FAILURE;
+      }
+
+      // Extract the OS packet (skb).
+      // Tell VOS to detach the OS packet from the VOS packet
+      status = vos_pkt_get_os_packet( pVosPacket, (v_VOID_t **)&skb, VOS_TRUE );
+      if(!VOS_IS_STATUS_SUCCESS( status ))
+      {
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Failure extracting skb from vos pkt", __FUNCTION__);
+         return VOS_STATUS_E_FAILURE;
+      }
+   
+      skb->dev = pAdapter->dev;
+      skb->protocol = eth_type_trans(skb, skb->dev);
+      skb->ip_summed = CHECKSUM_UNNECESSARY;
+      netif_receive_skb(skb);
+
+      // now process the next packet in the chain
+      pVosPacket = pNextVosPacket;
+
+   } while (pVosPacket);
+
+   //Return the entire VOS packet chain to the resource pool
+   status = vos_pkt_return_packet( pVosPacketChain );
    if(!VOS_IS_STATUS_SUCCESS( status ))
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Failure returning vos pkt", __FUNCTION__);
    }
-
-   
-   skb->dev = pAdapter->dev;
-   skb->protocol = eth_type_trans(skb, skb->dev);
-   skb->ip_summed = CHECKSUM_UNNECESSARY;
-   netif_rx(skb);
    
    pAdapter->dev->last_rx = jiffies;
 

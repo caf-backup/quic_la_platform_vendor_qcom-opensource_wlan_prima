@@ -30,6 +30,10 @@
 //if the testChannelId is set to NORMAL_CHANNEL_SETTING, then we will allow all channel changes to take effect, not just those from a test
 #define NORMAL_CHANNEL_SETTING     0xFF
 
+#ifdef ANI_MANF_DIAG
+#define SET_CHAIN_SELECT_WAIT		250000000
+#define CAL_UPDATE_WAIT				500000000
+#endif
 
 //config called before init but after halNvOpen
 eHalStatus halPhyOpen(tHalHandle hHal)
@@ -42,6 +46,15 @@ eHalStatus halPhyOpen(tHalHandle hHal)
     //hard coding the nTx and nRx. Need to fetch them from hal sys config structure
     tANI_U8 nTx = PHY_MAX_TX_CHAINS;
     tANI_U8 nRx = PHY_MAX_RX_CHAINS;
+
+#ifdef ANI_MANF_DIAG
+    //allocate ADC capture cache
+    if(palAllocateMemory(pMac->hHdd, (void **)&pMac->ptt.pADCCaptureCache, PHY_MAX_RX_CHAINS * GRAB_RAM_DBLOCK_SIZE * sizeof(tANI_U32)) != eHAL_STATUS_SUCCESS)
+    {
+        phyLog(pMac, LOGE, "unable to allocate memory for ADC capture. \n");
+        return eHAL_STATUS_FAILURE;
+    }
+#endif
 
     pMac->hphy.phy.cfgChains = halPhyGetChainSelect(pMac, nTx, nRx);
     pMac->hphy.phy.openLoopTxGain = OPEN_LOOP_TX_HIGH_GAIN_OVERRIDE;
@@ -63,6 +76,14 @@ eHalStatus halPhyClose(tHalHandle hHal)
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
 
     if ((retVal = phyTxPowerClose(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
+
+#ifdef ANI_MANF_DIAG
+    if(pMac->ptt.pADCCaptureCache)
+    {
+        palFreeMemory(pMac->hHdd, pMac->ptt.pADCCaptureCache);
+    }
+#endif
+
     //destroy the setChan event for wait blocking around halPhySetChannel
     return (halPhy_VosEventDestroy(hHal));
 }
@@ -85,6 +106,10 @@ eHalStatus halPhyStart(tHalHandle hHal)
     //get/try_to_find this information from the config file
     pMac->hphy.phy.test.testDisableSpiAccess = eANI_BOOLEAN_FALSE;
     pMac->hphy.phy.test.testDisablePhyRegAccess = eANI_BOOLEAN_FALSE;
+
+#ifdef ANI_MANF_DIAG
+    GET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_REV_ID_REG, &pMac->hphy.rf.revId);
+#endif
 
     if ((retVal = halQFuseRead(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
     if ((retVal = ConfigureTpcFromNv(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
@@ -293,7 +318,13 @@ eHalStatus halPhySetChainSelect(tHalHandle hHal, ePhyChainSelect phyChainSelecti
                            NULL
                           );
 
+#ifdef ANI_MANF_DIAG
+    sirBusyWait(SET_CHAIN_SELECT_WAIT);
+    pMac->hphy.phy.activeChains = phyChainSelections;
+#endif
+
     pMac->hphy.phy.cfgChains = phyChainSelections;
+
 
     return (retVal);
 }
@@ -317,8 +348,19 @@ eHalStatus halPhyCalUpdate(tHalHandle hHal)
     //send a mailbox message to the firmware
     Qwlanfw_CalUpdateReqType calUpdate;
     calUpdate.usPeriodic = 1;
-    calUpdate.usCalId = ALL_CALS;
 
+#ifdef ANI_MANF_DIAG
+    calUpdate.usCalId = pMac->hphy.phy.test.testCalMode;
+#else
+    calUpdate.usCalId = ALL_CALS;
+#endif
+
+#ifdef ANI_MANF_DIAG
+    //calibrations in firmware require this specific waveform to be preloaded by the host
+    // this saves us code space in firmware, which only stops and starts the waveform, and doesn't declare it.
+    asicSetupTestWaveform(pMac, pWave, 184, eANI_BOOLEAN_OFF);
+
+#endif
     //send a mailbox message to the firmware to perform the calibration
     retVal = halFW_SendMsg(pMac,
                            HAL_MODULE_ID_PHY,
@@ -330,6 +372,9 @@ eHalStatus halPhyCalUpdate(tHalHandle hHal)
                            NULL
                           );
 
+#ifdef ANI_MANF_DIAG
+    sirBusyWait(CAL_UPDATE_WAIT);
+#endif
     return (retVal);
 }
 
@@ -374,7 +419,9 @@ eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber,
     if ((retVal = halPhy_VosEventResetSetChannel(hHal)) != eHAL_STATUS_SUCCESS) { return (retVal); }
 
     // fwSetChannelStatus is toggled ( to success/failure) in halPhySetChannel fw rsp msg handler
-    pMac->hphy.fwSetChannelStatus = eHAL_STATUS_FAILURE;
+    // hard code it to always success
+    pMac->hphy.fwSetChannelStatus = eHAL_STATUS_SUCCESS;
+
 #endif
 
     //send a mailbox messag to the firmware to set the channel
@@ -384,9 +431,12 @@ eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber,
 
 #ifdef ANI_MANF_DIAG
     //Wait till the host receives setChannel rsp from fw
-    if ((retVal = halPhy_VosEventWaitSetChannel(hHal)) != eHAL_STATUS_SUCCESS) { return (retVal); }
+    //if ((retVal = halPhy_VosEventWaitSetChannel(hHal)) != eHAL_STATUS_SUCCESS) { return (retVal); }
 
     //If fwSetChannelStatus successful, then proceed
+    /*200 millsec*/
+   //sirBusyWait(200*1000*1000);
+   pMac->hphy.fwSetChannelStatus = eHAL_STATUS_SUCCESS;
     if (pMac->hphy.fwSetChannelStatus == eHAL_STATUS_SUCCESS) {
         //Set the tx power. handle this in halSetChannel response handler
         eRfChannels chan = rfGetChannelIndex(channelNumber, PHY_SINGLE_CHANNEL_CENTERED/*cbState*/);
@@ -395,7 +445,8 @@ eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber,
 
         pMac->hphy.phy.chanBondState = PHY_SINGLE_CHANNEL_CENTERED/*cbState*/;
 
-        switch (bandIndex) {
+        switch (bandIndex)
+        {
             case RF_SUBBAND_2_4_GHZ:
                 bandIndex = RF_BAND_2_4_GHZ;
                 break;
@@ -405,12 +456,10 @@ eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber,
                 return (retVal);
         }
 
-        //use calRequired var to determine whether it is operating channel or not.
-        //load the power det values only if it is an operating channel for production driver.
-        if ((retVal = phySetTxPower(pMac, freq, bandIndex)) != eHAL_STATUS_SUCCESS) {
+        if ((retVal = phySetTxPower(pMac, freq, bandIndex)) != eHAL_STATUS_SUCCESS)
+        {
                 return (retVal);
             }
-
 #ifdef ANI_PHY_DEBUG
         // if ((retVal = phyCalFromBringupTables(pMac, freq)) != eHAL_STATUS_SUCCESS)
         // {

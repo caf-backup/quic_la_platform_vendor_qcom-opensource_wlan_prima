@@ -392,7 +392,7 @@ static const tANI_U32 wfmNewMem[] =
 };
 */
 
-const tWaveformSample pWave[184] = 
+const tWaveformSample pWave[184] =
 {
     {   256,    256     },
     {   201,    301     },
@@ -597,7 +597,6 @@ eHalStatus asicTxFirSetChainBypass(tpAniSirGlobal pMac, ePhyTxChains txChain, tA
 
 eHalStatus asicTxFirSetPaOverride(tpAniSirGlobal pMac, tANI_BOOLEAN overrideEnable, ePhyTxChains chainPaEnables)
 {
-    eHalStatus retVal = eHAL_STATUS_SUCCESS;
 
     if (overrideEnable == eANI_BOOLEAN_TRUE)
     {
@@ -675,9 +674,9 @@ eHalStatus asicSetupTestWaveform(tpAniSirGlobal pMac, const tWaveformSample *pWa
             //phyLog(LOGE, "I=%d        Q=%d\n", pWave[sample].I, pWave[sample].Q);
         }
 
-        //SET_PHY_MEMORY(pMac->hHdd, QWLAN_PHYDBG_DBGMEM_MREG, Samples, numSamples * 2);        
+        //SET_PHY_MEMORY(pMac->hHdd, QWLAN_PHYDBG_DBGMEM_MREG, Samples, numSamples * 2);
     }
-    
+
     return (retVal);
 }
 
@@ -698,28 +697,28 @@ eHalStatus asicStartTestWaveform(tpAniSirGlobal pMac, eWaveMode playback, tANI_U
         // disable clock-gating for TXFIR and TXCTL
         rdModWrAsicField(pMac, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXFIR_MASK, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXFIR_OFFSET, 1);
         rdModWrAsicField(pMac, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXCTL_MASK, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXCTL_OFFSET, 1);
-        
+
         // Experimenting with clocks to get PA Override to work
         // rdModWrAsicField(pMac, QWLAN_RXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG,
         //                             QWLAN_RXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_CAL_MASK,
         //                             QWLAN_RXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_CAL_OFFSET, 1);
-        // 
+        //
         // rdModWrAsicField(pMac, QWLAN_RXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG,
         //                     QWLAN_RXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_RXFIR_MASK,
         //                     QWLAN_RXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_RXFIR_OFFSET, 1);
-        // 
+        //
         // rdModWrAsicField(pMac, QWLAN_RXACLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG,
         //                                 QWLAN_RXACLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_FFT_MASK,
         //                                 QWLAN_RXACLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_FFT_OFFSET, 1);
-        // 
+        //
         // rdModWrAsicField(pMac, QWLAN_RXACLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG,
         //                                 QWLAN_RXACLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TDC_MASK,
         //                                 QWLAN_RXACLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TDC_OFFSET, 1);
-        // 
+        //
         // rdModWrAsicField(pMac, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG,
         //                     QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TPC_MASK,
         //                     QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TPC_OFFSET, 1);
-        // 
+        //
         // rdModWrAsicField(pMac, QWLAN_RXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG,
         //                     QWLAN_RXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_XBAR_MASK,
         //                     QWLAN_RXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_XBAR_OFFSET, 1);
@@ -800,7 +799,7 @@ eHalStatus asicStartTestWaveform(tpAniSirGlobal pMac, eWaveMode playback, tANI_U
 eHalStatus asicStopTestWaveform(tpAniSirGlobal pMac)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
-    
+
     SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_CFGMODE_REG, QWLAN_PHYDBG_CFGMODE_STOP1_MASK);
     // set back to use SRAM for playback
     rdModWrAsicField(pMac, QWLAN_PHYDBG_CFGMODE_REG,
@@ -839,7 +838,7 @@ eHalStatus asicStopTestWaveform(tpAniSirGlobal pMac)
                      QWLAN_MIF_MIF_MEM_CFG_MIF_MEM_CFG_OFFSET,
                      0    //set back to normal for host access
                     );
-    
+
     // Explicitely disable clcok to PHYDBG module
     //rdModWrAsicField(pMac, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_REG, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_MASK, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_OFFSET, 0);
 

@@ -44,11 +44,11 @@ VOS_STATUS btcOpen (tHalHandle hHal)
    pMac->btc.btcConfig.btcWlanIntervalMode1 = 30;
    pMac->btc.btcConfig.btcActionOnPmFail = BTC_START_NEXT;
    pMac->btc.btcReady = VOS_FALSE;
-   pMac->btc.btcConfig.btcEventState = 0;
-   pMac->btc.btcConfig.btcHBActive = VOS_TRUE;
+   pMac->btc.btcEventState = 0;
+   pMac->btc.btcHBActive = VOS_TRUE;
 
 
-   vosStatus = vos_timer_init( &pMac->btc.btcConfig.restoreHBTimer,
+   vosStatus = vos_timer_init( &pMac->btc.restoreHBTimer,
 					  VOS_TIMER_TYPE_SW,
                       btcRestoreHeartBeatMonitoringHandle,
                       (void*) hHal);
@@ -73,7 +73,7 @@ VOS_STATUS btcClose (tHalHandle hHal)
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
    VOS_STATUS vosStatus;
 
-   vosStatus = vos_timer_destroy(&pMac->btc.btcConfig.restoreHBTimer);
+   vosStatus = vos_timer_destroy(&pMac->btc.restoreHBTimer);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
 	   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcClose: Fail to destroy timer");
 	   return VOS_STATUS_E_FAILURE;
@@ -102,7 +102,7 @@ VOS_STATUS btcReady (tHalHandle hHal)
 
     // Read heartbeat threshold CFG and save it.
     ccmCfgGetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, &cfgVal);
-    pMac->btc.btcConfig.btcHBCount = (v_U8_t)cfgVal;
+    pMac->btc.btcHBCount = (v_U8_t)cfgVal;
 
     if (btcSendCfgMsg(hHal, &(pMac->btc.btcConfig)) != VOS_STATUS_SUCCESS)
     {
@@ -255,30 +255,30 @@ eHalStatus btcCheckHeartBeatMonitoring(tHalHandle hHal, tpSmeBtEvent pBtEvent)
    {
       // Start events which requires heartbeat monitoring be disabled.
       case BT_EVENT_INQUIRY_STARTED:
-          pMac->btc.btcConfig.btcEventState |= BT_INQUIRY_STARTED;
+          pMac->btc.btcEventState |= BT_INQUIRY_STARTED;
           break;
       case BT_EVENT_PAGE_STARTED:
-          pMac->btc.btcConfig.btcEventState |= BT_PAGE_STARTED;
+          pMac->btc.btcEventState |= BT_PAGE_STARTED;
           break;
       case BT_EVENT_CREATE_ACL_CONNECTION:
-          pMac->btc.btcConfig.btcEventState |= BT_CREATE_ACL_CONNECTION_STARTED;
+          pMac->btc.btcEventState |= BT_CREATE_ACL_CONNECTION_STARTED;
           break;
       case BT_EVENT_CREATE_SYNC_CONNECTION:
-          pMac->btc.btcConfig.btcEventState |= BT_CREATE_SYNC_CONNECTION_STARTED;
+          pMac->btc.btcEventState |= BT_CREATE_SYNC_CONNECTION_STARTED;
           break;
 
       // Stop/done events which indicates heartbeat monitoring can be enabled
       case BT_EVENT_INQUIRY_STOPPED:
-          pMac->btc.btcConfig.btcEventState &= ~(BT_INQUIRY_STARTED);
+          pMac->btc.btcEventState &= ~(BT_INQUIRY_STARTED);
           break;
       case BT_EVENT_PAGE_STOPPED:
-          pMac->btc.btcConfig.btcEventState &= ~(BT_PAGE_STARTED);
+          pMac->btc.btcEventState &= ~(BT_PAGE_STARTED);
           break;
       case BT_EVENT_ACL_CONNECTION_COMPLETE:
-          pMac->btc.btcConfig.btcEventState &= ~(BT_CREATE_ACL_CONNECTION_STARTED);
+          pMac->btc.btcEventState &= ~(BT_CREATE_ACL_CONNECTION_STARTED);
           break;
       case BT_EVENT_SYNC_CONNECTION_COMPLETE:
-          pMac->btc.btcConfig.btcEventState &= ~(BT_CREATE_SYNC_CONNECTION_STARTED);
+          pMac->btc.btcEventState &= ~(BT_CREATE_SYNC_CONNECTION_STARTED);
           break;
 
       default:
@@ -287,28 +287,28 @@ eHalStatus btcCheckHeartBeatMonitoring(tHalHandle hHal, tpSmeBtEvent pBtEvent)
    }
 
    // Check if any of the BT start events are active
-   if (pMac->btc.btcConfig.btcEventState) {
-       if (pMac->btc.btcConfig.btcHBActive) {
+   if (pMac->btc.btcEventState) {
+       if (pMac->btc.btcHBActive) {
            // set heartbeat threshold CFG to zero
            ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, 0, NULL, eANI_BOOLEAN_FALSE);
-           pMac->btc.btcConfig.btcHBActive = VOS_FALSE;
+           pMac->btc.btcHBActive = VOS_FALSE;
        }
 
        // Deactivate and active the restore HB timer
-       vos_timer_stop( &pMac->btc.btcConfig.restoreHBTimer);       
-       vosStatus= vos_timer_start( &pMac->btc.btcConfig.restoreHBTimer, BT_MAX_EVENT_DONE_TIMEOUT );
+       vos_timer_stop( &pMac->btc.restoreHBTimer);       
+       vosStatus= vos_timer_start( &pMac->btc.restoreHBTimer, BT_MAX_EVENT_DONE_TIMEOUT );
        if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
 	       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcCheckHeartBeatMonitoring: Fail to start timer");
 	       return VOS_STATUS_E_FAILURE;
        }
    } else {
        // Restore CFG back to the original value only if it was disabled
-       if (!pMac->btc.btcConfig.btcHBActive) {           
-	       ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcConfig.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
-           pMac->btc.btcConfig.btcHBActive = VOS_TRUE;
+       if (!pMac->btc.btcHBActive) {           
+	       ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
+           pMac->btc.btcHBActive = VOS_TRUE;
        } 
        // Deactivate the timer
-       vosStatus = vos_timer_stop( &pMac->btc.btcConfig.restoreHBTimer);
+       vosStatus = vos_timer_stop( &pMac->btc.restoreHBTimer);
        if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
 	       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcCheckHeartBeatMonitoring: Fail to stop timer");
 	       return VOS_STATUS_E_FAILURE;
@@ -331,7 +331,7 @@ void btcRestoreHeartBeatMonitoringHandle(tHalHandle hHal)
 {
 	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     // Restore CFG back to the original value
-	ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcConfig.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
+	ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
 	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "BT event timeout, restoring back HeartBeat timer");
 }
 

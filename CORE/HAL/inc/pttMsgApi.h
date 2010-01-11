@@ -133,6 +133,7 @@ typedef enum
     PTT_MSG_TX_CARRIER_SUPPRESS_CAL              = 0x3102,
     PTT_MSG_TX_IQ_CAL                            = 0x3103,
     PTT_MSG_EXECUTE_INITIAL_CALS                 = 0x3104,
+    PTT_MSG_HDET_CAL                             = 0x3105,
 
 //Phy Calibration Override Service
     PTT_MSG_SET_TX_CARRIER_SUPPRESS_CORRECT      = 0x3110,
@@ -144,20 +145,24 @@ typedef enum
     PTT_MSG_SET_RX_DCO_CORRECT                   = 0x3116,
     PTT_MSG_GET_RX_DCO_CORRECT                   = 0x3117,
     PTT_MSG_SET_TX_IQ_PHASE_NV_TABLE_OBSOLETE    = 0x3118,
+    PTT_MSG_GET_HDET_CORRECT                     = 0x3119,
 
 //RF Chip Access
     PTT_MSG_GET_TEMP_ADC                         = 0x3202,
     PTT_MSG_READ_RF_REG                          = 0x3203,
     PTT_MSG_WRITE_RF_REG                         = 0x3204,
+    PTT_MSG_GET_RF_VERSION                       = 0x3205,
 
 //Deep sleep support
     PTT_MSG_DEEP_SLEEP                           = 0x3220,
     PTT_MSG_READ_SIF_BAR4_REGISTER               = 0x3221,
     PTT_MSG_WRITE_SIF_BAR4_REGISTER              = 0x3222,
+    PTT_MSG_ENTER_FULL_POWER                     = 0x3223,
 
 //Misc
     PTT_MSG_SYSTEM_RESET                         = 0x32A0,  //is there any meaning for this in Gen6?
     PTT_MSG_LOG_DUMP                             = 0x32A1,
+    PTT_MSG_GET_BUILD_RELEASE_NUMBER             = 0x32A2,
 
 
 //Messages for Socket App
@@ -482,6 +487,18 @@ typedef struct
 
 typedef struct
 {
+    sRfNvCalValues rfCalValues;
+    tANI_BOOLEAN internal;
+    tANI_U8 reserved[3];
+}tMsgPttHdetCal;
+
+typedef struct
+{
+    sRfNvCalValues rfCalValues;
+}tMsgGetHdetCorrect;
+
+typedef struct
+{
     sTxChainsIQCalValues calValues;
     eGainSteps gain;
 }tMsgPttTxIqCal;
@@ -576,6 +593,11 @@ typedef struct
     tANI_U32 notUsed;
 }tMsgPttDeepSleep;
 
+typedef struct
+{
+    tANI_U32 notUsed;
+}tMsgPttEnterFullPower;
+
 //Misc.
 typedef struct
 {
@@ -591,6 +613,15 @@ typedef struct
     tANI_U32 arg4;
 }tMsgPttLogDump;
 
+typedef struct
+{
+    sBuildReleaseParams relParams;
+}tMsgPttGetBuildReleaseNumber;
+
+typedef struct
+{
+    tANI_U32 revId;
+}tMsgPttGetRFVersion;
 
 /******************************************************************************************************************
     END OF PTT MESSAGES
@@ -644,6 +675,7 @@ typedef union pttMsgUnion
     tMsgPttTxCarrierSuppressCal                     TxCarrierSuppressCal;
     tMsgPttTxIqCal                                  TxIqCal;
     tMsgPttExecuteInitialCals                       ExecuteInitialCals;
+    tMsgPttHdetCal                                  HdetCal;
     tMsgPttSetTxCarrierSuppressCorrect              SetTxCarrierSuppressCorrect;
     tMsgPttGetTxCarrierSuppressCorrect              GetTxCarrierSuppressCorrect;
     tMsgPttSetTxIqCorrect                           SetTxIqCorrect;
@@ -652,14 +684,18 @@ typedef union pttMsgUnion
     tMsgPttGetRxIqCorrect                           GetRxIqCorrect;
     tMsgPttSetRxDcoCorrect                          SetRxDcoCorrect;
     tMsgPttGetRxDcoCorrect                          GetRxDcoCorrect;
+    tMsgGetHdetCorrect                              GetHdetCorrect;
     tMsgPttGetTempAdc                               GetTempAdc;
     tMsgPttReadRfField                              ReadRfField;
     tMsgPttWriteRfField                             WriteRfField;
     tMsgPttDeepSleep                                DeepSleep;
     tMsgPttReadSifBar4Register                      ReadSifBar4Register;
     tMsgPttWriteSifBar4Register                     WriteSifBar4Register;
+    tMsgPttEnterFullPower                           EnterFullPower;
     tMsgPttSystemReset                              SystemReset;
     tMsgPttLogDump                                  LogDump;
+    tMsgPttGetBuildReleaseNumber                    GetBuildReleaseNumber;
+    tMsgPttGetRFVersion                             GetRFVersion;
 
 }uPttMsgs;
 
@@ -675,7 +711,8 @@ typedef struct
     uPttMsgs msgBody;
 }tPttMsgbuffer;
 
-
-
+#ifdef ANI_MANF_DIAG
+void pttSendMsgResponse(tpAniSirGlobal pMac, tPttMsgbuffer *pPttMsg);
+#endif
 #endif
 

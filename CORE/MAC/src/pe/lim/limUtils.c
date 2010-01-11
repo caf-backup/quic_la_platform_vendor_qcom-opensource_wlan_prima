@@ -5246,7 +5246,7 @@ limDelAllBASessions(tpAniSirGlobal pMac)
                 {
                     limPostMlmDelBAReq(pMac, pSta, eBA_INITIATOR, tid, eSIR_MAC_UNSPEC_FAILURE_REASON);
                 }
-                else if(eBA_ENABLE == pSta->tcCfg[tid].fUseBARx)
+                if(eBA_ENABLE == pSta->tcCfg[tid].fUseBARx)
                 {
                     limPostMlmDelBAReq(pMac, pSta, eBA_RECIPIENT, tid, eSIR_MAC_UNSPEC_FAILURE_REASON);
                 }
@@ -6441,7 +6441,15 @@ void limSetTspecUapsdMask(tpAniSirGlobal pMac, tSirMacTSInfo *pTsInfo, tANI_U32 
     tANI_U16  direction = pTsInfo->traffic.direction;  
 	tANI_U8   ac = upToAc(userPrio);
 
-    limLog(pMac, LOG1, FL("Set UAPSD mask for AC %d, direction %d, action=%d (1=set,0=clear) \n"), ac, direction, action);
+    PELOG1(limLog(pMac, LOG1, FL(" Set UAPSD mask for AC %d, direction %d, action=%d (1=set,0=clear) \n"),ac, direction, action );)
+
+    /* Converting AC to appropriate Uapsd Bit Mask
+     * AC_BE(0) --> UAPSD_BITOFFSET_ACVO(3)
+     * AC_BK(1) --> UAPSD_BITOFFSET_ACVO(2)
+     * AC_VI(2) --> UAPSD_BITOFFSET_ACVO(1)
+     * AC_VO(3) --> UAPSD_BITOFFSET_ACVO(0)
+     */
+	ac = ((~ac) & 0x3);
 
     if (action == CLEAR_UAPSD_MASK) 
 	{

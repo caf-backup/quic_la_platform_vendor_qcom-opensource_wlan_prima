@@ -35,6 +35,8 @@
 struct completion g_completion_var;
 extern void hdd_suspend_wlan(struct early_suspend *wlan_suspend);
 extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
+extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
+
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_NONE    (SIOCIWFIRSTPRIV + 0)
@@ -184,6 +186,7 @@ static void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result)
    if (WNI_CFG_NEED_RESTART == result || WNI_CFG_NEED_RELOAD == result)
    {
       pAdapter->conn_info.connState = eConnectionState_NotConnected;
+      init_completion(&pAdapter->disconnect_comp_var);
       sme_RoamDisconnect(halHandle, eCSR_DISCONNECT_REASON_UNSPECIFIED);
       sme_RoamConnect(halHandle,
                     &(pWextState->roamProfile), 
@@ -269,6 +272,7 @@ static int iw_set_mode(struct net_device *dev,
              ( eCSR_BSS_TYPE_START_IBSS == LastBSSType ) )
         {
             // need to issue a disconnect to CSR.
+            init_completion(&pAdapter->disconnect_comp_var);
             sme_RoamDisconnect( pAdapter->hHal, eCSR_DISCONNECT_REASON_UNSPECIFIED );
         }
     }
@@ -1261,6 +1265,7 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
       
        if(eConnectionState_Associated == pAdapter->conn_info.connState)
        {
+           init_completion(&pAdapter->disconnect_comp_var);
            status = sme_RoamDisconnect( pAdapter->hHal,  eCSR_DISCONNECT_REASON_UNSPECIFIED );
        }
    
@@ -1685,6 +1690,7 @@ static int iw_set_mlme(struct net_device *dev,
                 if( mlme->reason_code == HDD_REASON_MICHAEL_MIC_FAILURE )
                     reason = eCSR_DISCONNECT_REASON_MIC_ERROR;
                 
+                init_completion(&pAdapter->disconnect_comp_var);
                 status = sme_RoamDisconnect( pAdapter->hHal, reason);
                 
                 //clear all the reason codes
@@ -1694,7 +1700,7 @@ static int iw_set_mlme(struct net_device *dev,
                 }
                 
 
-               netif_stop_queue(dev);
+               netif_tx_disable(dev);
                netif_carrier_off(dev);
 
             }
@@ -1820,10 +1826,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                  sme_DisablePowerSave(hHal, ePMC_STANDBY_MODE_POWER_SAVE);
                  break;
               case  8: //Request Standby
-                 if(sme_RequestStandby(hHal, iw_priv_callback_fn, &g_completion_var) ==
-                    eHAL_STATUS_PMC_PENDING)
-                    wait_for_completion_interruptible(&g_completion_var);
-                 hddLog(LOGE, "iwpriv Request Standby completed\n");
+                 (void)hdd_enter_standby(pAdapter);
                  break;
               case  9: //Start Auto Bmps Timer
                  sme_StartAutoBmpsTimer(hHal);

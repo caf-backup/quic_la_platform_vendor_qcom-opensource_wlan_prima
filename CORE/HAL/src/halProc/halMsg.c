@@ -1348,13 +1348,13 @@ halMsg_AddSta(
         if(param->staType == STA_ENTRY_SELF && bssIdx < pMac->hal.memMap.maxBssids){
             tANI_U32 thisStaIdx;
 
-            /* note: in STA and IBSS mode, the sequences are different from the upper layer 
+            /* note: in STA and IBSS mode, the sequences are different from the upper layer
             Mode        StaType     RA action
             STA         SELF        Update AutoSamplingTable (RA_ADD_BSS)
             STA         PEER        Start RA (RA_ADD_STA)
             IBSS        BSSID       Update AutoSamplingTable (RA_ADD_BSS)
-            IBSS        PEER        Start RA (RA_ADD_STA) 
-            In order to build AutoSamplingTable, SelfSta information is needed, 
+            IBSS        PEER        Start RA (RA_ADD_STA)
+            In order to build AutoSamplingTable, SelfSta information is needed,
             but SelfSta information becomes valid only upon the combination of Mode & StaType
             */
             if(halGetSystemRole(pMac) == eSYSTEM_STA_ROLE) {
@@ -1363,18 +1363,18 @@ halMsg_AddSta(
                /* send RA_ADD_BSS message to let firmware to build AutoSampleTable */
                halMacRaAddBssReq(pMac, bssIdx, (tANI_U8)pMac->hal.halMac.selfStaId);
             }
-            /* If this STA is a self entry, walk through all STAs in the 
+            /* If this STA is a self entry, walk through all STAs in the
              * STA table and change the valid rate bitmap for all STAs in this BSS */
             for (thisStaIdx = 0; thisStaIdx < pMac->hal.halMac.maxSta; thisStaIdx++){
                 if(thisStaIdx != pMac->hal.halMac.selfStaId)
                     halRateUpdateStaRateInfo(pMac, thisStaIdx);
             }
         }
-        /* Note for Firmware RA: 
-        This part is little bit tricky. firmware RA requires valid 'supported rates'. 
-        But, supported rates is only valid at last ADD_STA message, 
-        I had to make sure that RA_ADD_BSS message should be sent after valid supported 
-        rates are updated both in IBSS and BSS mode. 
+        /* Note for Firmware RA:
+        This part is little bit tricky. firmware RA requires valid 'supported rates'.
+        But, supported rates is only valid at last ADD_STA message,
+        I had to make sure that RA_ADD_BSS message should be sent after valid supported
+        rates are updated both in IBSS and BSS mode.
         In IBSS mode, this ENTRY_BSSID is the point where all supported rates are updated correctly */
         if(halGetSystemRole(pMac) == eSYSTEM_STA_IN_IBSS_ROLE) {
             if(param->staType == STA_ENTRY_BSSID) {
@@ -1385,7 +1385,7 @@ halMsg_AddSta(
             }
         }
     }
-    /* Note for Firmware RA: 
+    /* Note for Firmware RA:
     tricky part, for BSS mode, this is the point where all supported rates are updated correctly
      */
     if(param->staType == STA_ENTRY_PEER)
@@ -1630,9 +1630,9 @@ halMsg_DelSta(
                 goto generate_response;
             }
 
-            //We don't even need to call this routine. Will take it out when 
-            //there is enough time to test the same. 
-            if(!((pMac->hal.halSystemRole == eSYSTEM_STA_IN_IBSS_ROLE) && 
+            //We don't even need to call this routine. Will take it out when
+            //there is enough time to test the same.
+            if(!((pMac->hal.halSystemRole == eSYSTEM_STA_IN_IBSS_ROLE) &&
                 (staType != STA_ENTRY_BSSID)))
             {
             halRxp_DisableBssBeaconParamFilter(pMac, bssIdx);
@@ -2008,7 +2008,7 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
       config.bit.fShortSlot    = param->shortSlotTimeSupported;
       config.bit.fShortPreamble = param->staContext.shortPreambleSupported;
 
-      halTable_SaveBssConfig(pMac, rfBand, config, bssIdx); 
+      halTable_SaveBssConfig(pMac, rfBand, config, bssIdx);
     }
     curMtuMode = halMTU_getMode(pMac);
     newMtuMode = curMtuMode;
@@ -2151,7 +2151,7 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
     }
 
 generate_response:
-#endif
+
     // Error case; send message to Caller.
     param->status = status;
 
@@ -2162,6 +2162,7 @@ generate_response:
     if(param->respReqd) {
         halMsg_GenerateRsp(pMac, SIR_HAL_ADD_BSS_RSP, dialog_token, (void *) param, 0);
     }
+#endif
 
     return;
 }
@@ -2519,7 +2520,7 @@ eHalStatus halMsg_HandleInitScan( tpAniSirGlobal pMac, tpInitScanParams param, t
         HALLOGE( halLog( pMac, LOGE, FL("TL failed in suspending TX queue for all STA")));
         // Check if the system is in Power save state
         psState = halPS_GetState(pMac);
-        if (psState & HAL_PWR_SAVE_SUSPEND_BMPS_STATE) {        
+        if (psState & HAL_PWR_SAVE_SUSPEND_BMPS_STATE) {
             halPS_ResumeBmps(pMac, 0, NULL, (void*)param);
         }
         return eHAL_STATUS_FAILURE;

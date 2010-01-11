@@ -193,14 +193,15 @@ void logDebug(tpAniSirGlobal pMac, tANI_U8 modId, tANI_U32 debugLevel, const cha
     vosDebugLevel = getVosDebugLevel(debugLevel);
     vosModuleId = getVosModuleId(modId);
 
-    // The caller must check loglevel
-    VOS_ASSERT( ( debugLevel <= pMac->utils.gLogDbgLevel[LOG_INDEX_FOR_MODULE( modId )] ) && ( LOGP != debugLevel ) );
 #ifdef ANI_OS_TYPE_ANDROID
     vsnprintf(pMac->gLogBuffer, MAX_LOG_SIZE-1, (char *)pStr, marker);
 #else
     _vsnprintf(pMac->gLogBuffer, MAX_LOG_SIZE-1, (char *)pStr, marker);
 #endif
     VOS_TRACE(vosModuleId, vosDebugLevel, pMac->gLogBuffer);
+
+    // The caller must check loglevel
+    VOS_ASSERT( ( debugLevel <= pMac->utils.gLogDbgLevel[LOG_INDEX_FOR_MODULE( modId )] ) && ( LOGP != debugLevel ) );
 #else
     tANI_U32          index;
 #if defined(ANI_OS_TYPE_LINUX) || defined(ANI_OS_TYPE_OSX)

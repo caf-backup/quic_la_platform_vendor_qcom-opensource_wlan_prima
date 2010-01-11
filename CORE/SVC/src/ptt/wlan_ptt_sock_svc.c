@@ -15,6 +15,10 @@
 #include <vos_types.h>
 #include <vos_trace.h>
 
+#ifdef ANI_MANF_DIAG
+#include <wlan_hdd_ftm.h>
+#endif
+
 
 #define PTT_SOCK_DEBUG
 
@@ -59,11 +63,11 @@ static void ptt_sock_dump_buf(const unsigned char * pbuf, int cnt)
         pbuf++;
     }
     printk("\n");
-}   
-#endif 
+}
+#endif
 
 //Utility function to send a netlink message to an application in user space
-static int ptt_sock_send_msg_to_app(tAniHdr *wmsg, int radio, int src_mod, int pid)
+int ptt_sock_send_msg_to_app(tAniHdr *wmsg, int radio, int src_mod, int pid)
 {
    int err = -1;
    int payload_len;
@@ -99,7 +103,7 @@ static int ptt_sock_send_msg_to_app(tAniHdr *wmsg, int radio, int src_mod, int p
    PTT_TRACE(VOS_TRACE_LEVEL_INFO, "%s: Sending Msg Type [0x%X] to pid[%d]\n",
       __FUNCTION__, be16_to_cpu(wmsg->type), pid);
 
-#ifdef PTT_SOCK_DEBUG_VERBOSE   
+#ifdef PTT_SOCK_DEBUG_VERBOSE
    ptt_sock_dump_buf((const unsigned char *)skb->data, skb->len);
 #endif
 
@@ -110,8 +114,8 @@ nlmsg_failure:
 }
 
 /*
- * Process tregisteration request and send registration response messages 
- * to the PTT Socket App in user space 
+ * Process tregisteration request and send registration response messages
+ * to the PTT Socket App in user space
  */
 static void ptt_sock_proc_reg_req(tAniHdr *wmsg, int radio)
 {
@@ -128,7 +132,7 @@ static void ptt_sock_proc_reg_req(tAniHdr *wmsg, int radio)
    rspmsg.wniHdr.type = cpu_to_be16(ANI_MSG_APP_REG_RSP);
    rspmsg.wniHdr.length = cpu_to_be16(sizeof(rspmsg));
 
-   if (ptt_sock_send_msg_to_app((tAniHdr *)&rspmsg.wniHdr, radio, 
+   if (ptt_sock_send_msg_to_app((tAniHdr *)&rspmsg.wniHdr, radio,
       ANI_NL_MSG_PUMAC, reg_req->pid) < 0)
    {
       PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: Error sending ANI_MSG_APP_REG_RSP to pid[%d]\n",
@@ -137,13 +141,13 @@ static void ptt_sock_proc_reg_req(tAniHdr *wmsg, int radio)
 }
 
 /*
- * Process all the messages from the PTT Socket App in user space 
+ * Process all the messages from the PTT Socket App in user space
  */
 static void ptt_proc_pumac_msg(struct sk_buff * skb, tAniHdr *wmsg, int radio)
 {
    u16 ani_msg_type = be16_to_cpu(wmsg->type);
 
-   switch(ani_msg_type) 
+   switch(ani_msg_type)
    {
       case ANI_MSG_APP_REG_REQ:
          PTT_TRACE(VOS_TRACE_LEVEL_INFO, "%s: Received ANI_MSG_APP_REG_REQ [0x%X]\n",
@@ -159,7 +163,7 @@ static void ptt_proc_pumac_msg(struct sk_buff * skb, tAniHdr *wmsg, int radio)
 }
 
 /*
- * Process all the messages from the Quarky Client 
+ * Process all the messages from the Quarky Client
  */
 static void ptt_proc_quarky_msg(tAniNlHdr *wnl, tAniHdr *wmsg, int radio)
 {
@@ -232,9 +236,9 @@ static void ptt_proc_quarky_msg(tAniNlHdr *wnl, tAniHdr *wmsg, int radio)
                PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: Memory read failed for [0x%08lX]!!\n",
                   __FUNCTION__, reg_addr);
             }
-            
+
             ptt_sock_swap_32(buf, len_payload);
-            
+
             //send message to the app
             ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, wnl->nlh.nlmsg_pid);
             break;
@@ -275,6 +279,12 @@ static void ptt_proc_quarky_msg(tAniNlHdr *wnl, tAniHdr *wmsg, int radio)
             ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, wnl->nlh.nlmsg_pid);
             break;
 
+#ifdef ANI_MANF_DIAG
+         case PTT_MSG_FTM_CMDS_TYPE:
+            wlan_hdd_process_ftm_cmd(pAdapterHandle,wnl);
+            break;
+#endif
+
          default:
             PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: Unknown ANI Msg [0x%X], length [0x%X]\n",
                __FUNCTION__, ani_msg_type, be16_to_cpu(wmsg->length ));
@@ -284,7 +294,7 @@ static void ptt_proc_quarky_msg(tAniNlHdr *wnl, tAniHdr *wmsg, int radio)
 }
 
 /*
- * Process all the Netlink messages from PTT Socket app in user space 
+ * Process all the Netlink messages from PTT Socket app in user space
  */
 static int ptt_sock_rx_nlink_msg (struct sk_buff * skb)
 {
@@ -298,7 +308,7 @@ static int ptt_sock_rx_nlink_msg (struct sk_buff * skb)
 
    switch (type) {
       case ANI_NL_MSG_PUMAC:  //Message from the PTT socket APP
-         PTT_TRACE(VOS_TRACE_LEVEL_INFO, "%s: Received ANI_NL_MSG_PUMAC Msg [0x%X]\n", 
+         PTT_TRACE(VOS_TRACE_LEVEL_INFO, "%s: Received ANI_NL_MSG_PUMAC Msg [0x%X]\n",
             __func__, type, radio);
          ptt_proc_pumac_msg(skb, &wnl->wmsg, radio);
          break;
@@ -318,7 +328,7 @@ static int ptt_sock_rx_nlink_msg (struct sk_buff * skb)
 
 int ptt_sock_activate_svc(void *pAdapter)
 {
-   pAdapterHandle = (struct hdd_adapter_s*)pAdapter;  
+   pAdapterHandle = (struct hdd_adapter_s*)pAdapter;
    nl_srv_register(ANI_NL_MSG_PUMAC, ptt_sock_rx_nlink_msg);
    nl_srv_register(ANI_NL_MSG_PTT, ptt_sock_rx_nlink_msg);
    return 0;

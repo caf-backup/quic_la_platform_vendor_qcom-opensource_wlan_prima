@@ -30,7 +30,7 @@ eHalStatus palReadRegister( tHddHandle hHdd, tANI_U32 regAddress, tANI_U32 *pReg
     if (!VOS_IS_STATUS_SUCCESS(status)){
         VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL, "Register %p Read FAILED!!", regAddress );
         VOS_ASSERT( VOS_IS_STATUS_SUCCESS(status) );
-    }        
+    }
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -44,7 +44,7 @@ eHalStatus palWriteRegister( tHddHandle hHdd, tANI_U32 regAddress, tANI_U32 regV
     if (!VOS_IS_STATUS_SUCCESS(status)){
         VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL, "Register %p Write FAILED!!", regAddress );
         VOS_ASSERT( VOS_IS_STATUS_SUCCESS(status) );
-    }        
+    }
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -67,7 +67,7 @@ eHalStatus palWriteDeviceMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U8 *p
     if (!VOS_IS_STATUS_SUCCESS(status)){
         VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL, "DeviceMemory %p Write %d bytes FAILED!!", memOffset, numBytes );
         VOS_ASSERT( VOS_IS_STATUS_SUCCESS(status) );
-    }        
+    }
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -81,7 +81,7 @@ eHalStatus palReadDeviceMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U8 *pB
     if (!VOS_IS_STATUS_SUCCESS(status)){
         VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL, "DeviceMemory %p Read %d bytes FAILED!!", memOffset, numBytes );
         VOS_ASSERT( VOS_IS_STATUS_SUCCESS(status) );
-    }        
+    }
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -89,16 +89,16 @@ eHalStatus palFillDeviceMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U32 nu
 {
     eHalStatus halStatus = eHAL_STATUS_SUCCESS;
     tANI_U32 iteration;
-    
+
     tANI_U32 fullSegments;
     tANI_U32 remainingBytes;
-    
+
     tANI_U32 segmentOffset;
 
 #define cbFillSegment ( 1024 )
-    
+
     static char fill[ cbFillSegment ];
-    
+
         // memory accesses must be a multiple of 4 bytes on Taurus...
         if ( 0 != ( numBytes % 4 ) )
         {
@@ -112,39 +112,89 @@ eHalStatus palFillDeviceMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U32 nu
             halStatus = eHAL_STATUS_DEVICE_MEMORY_MISALIGNED;
       return halStatus;
     }
-    
+
         // fill the local segment with the fill value.  this segment gets copied to device
-        // memory 
+        // memory
     memset( fill, fillValue, cbFillSegment );
-        
+
         // calculate how many full segments we have to fill along with the remining bytes
         // that follow the full segments.
         fullSegments = ( numBytes / cbFillSegment );
-        
+
         remainingBytes = numBytes % cbFillSegment;
-        
-        // iterate through a 'full segment' at a time and write a block (segemnt) to the 
-        // device each time. 
-        for ( iteration = 0, segmentOffset = memOffset; 
-              iteration < fullSegments && ( eHAL_STATUS_SUCCESS == halStatus ); 
+
+        // iterate through a 'full segment' at a time and write a block (segemnt) to the
+        // device each time.
+        for ( iteration = 0, segmentOffset = memOffset;
+              iteration < fullSegments && ( eHAL_STATUS_SUCCESS == halStatus );
               iteration++, segmentOffset += cbFillSegment )
         {
             halStatus = palWriteDeviceMemory( hHdd, segmentOffset, (tANI_U8*)fill, cbFillSegment );
         }
-        
+
         // if there was a failure to write memory, leave with this error code....
     if ( eHAL_STATUS_SUCCESS != halStatus )
     {
       return halStatus;
     }
-    
+
         // now write the remaining bytes if there are any
         if ( remainingBytes )
         {
             halStatus = palWriteDeviceMemory( hHdd, segmentOffset, (tANI_U8*)fill, remainingBytes );
         }
-    
+
+    return( halStatus );
+}
+#ifdef ANI_MANF_DIAG
+eHalStatus palWriteRegMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U8 *pBuffer, tANI_U32 numBytes )
+{
+    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
+    {
+        tANI_U32 regAddr = memOffset;
+        tANI_U32 regVal;
+        tANI_U32 i;
+
+        //write memory one word at a time through palWriteRegister
+        for (i = 0; i < (numBytes >> 2); i++)
+        {
+            regAddr = memOffset + (i * 4);
+            regVal = *(tANI_U32 *)(pBuffer + (i * 4));
+
+            halStatus = palWriteRegister(hHdd, regAddr, regVal);
+            if (halStatus != eHAL_STATUS_SUCCESS)
+            {
+                return (halStatus);
+            }
+        }
+    }
+
+
     return( halStatus );
 }
 
+eHalStatus palReadRegMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U8 *pBuffer, tANI_U32 numBytes )
+{
+    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
 
+    {
+        tANI_U32 regAddr = memOffset;
+        tANI_U32 *regVal;
+        tANI_U32 i;
+
+        for (i = 0; i < (numBytes >> 2); i++)
+        {
+            regAddr = memOffset + (i * 4);
+            regVal = (tANI_U32 *)(pBuffer + (i * 4));
+
+            halStatus = palReadRegister(hHdd, regAddr, regVal);
+            if (halStatus != eHAL_STATUS_SUCCESS)
+            {
+                return (halStatus);
+            }
+        }
+    }
+
+    return( eHAL_STATUS_SUCCESS );
+}
+#endif

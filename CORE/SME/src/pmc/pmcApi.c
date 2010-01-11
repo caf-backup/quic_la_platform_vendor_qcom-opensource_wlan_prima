@@ -1737,21 +1737,24 @@ eHalStatus pmcStartUapsd (
    if (pmcEnterRequestStartUapsdState(hHal) != eHAL_STATUS_SUCCESS)
       return eHAL_STATUS_FAILURE;
 
-   /* If success then request is pending. Allocate entry for callback routine list. */
-   if (palAllocateMemory(pMac->hHdd, (void **)&pEntry,
-         sizeof(tStartUapsdEntry)) != eHAL_STATUS_SUCCESS)
+   if( NULL != callbackRoutine )
    {
-      smsLog(pMac, LOGE, "PMC: cannot allocate memory for request "
-         "start UAPSD routine list entry\n");
-      return eHAL_STATUS_FAILURE;
+      /* If success then request is pending. Allocate entry for callback routine list. */
+      if (palAllocateMemory(pMac->hHdd, (void **)&pEntry,
+            sizeof(tStartUapsdEntry)) != eHAL_STATUS_SUCCESS)
+      {
+         smsLog(pMac, LOGE, "PMC: cannot allocate memory for request "
+            "start UAPSD routine list entry\n");
+         return eHAL_STATUS_FAILURE;
+      }
+
+      /* Store routine and context in entry. */
+      pEntry->callbackRoutine = callbackRoutine;
+      pEntry->callbackContext = callbackContext;
+
+      /* Add entry to list. */
+      csrLLInsertTail(&pMac->pmc.requestStartUapsdList, &pEntry->link, FALSE);
    }
-
-   /* Store routine and context in entry. */
-   pEntry->callbackRoutine = callbackRoutine;
-   pEntry->callbackContext = callbackContext;
-
-   /* Add entry to list. */
-   csrLLInsertTail(&pMac->pmc.requestStartUapsdList, &pEntry->link, FALSE);
 
    return eHAL_STATUS_PMC_PENDING;
 }

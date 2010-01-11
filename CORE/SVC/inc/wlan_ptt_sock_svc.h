@@ -2,6 +2,8 @@
  * wlan_ptt_sock_svc.c
  *
  ******************************************************************************/
+#ifndef PTT_SOCK_SVC_H
+#define PTT_SOCK_SVC_H
 
 #include <wlan_nlink_srv.h>
 #include <halTypes.h>
@@ -13,7 +15,7 @@
 /*
  * Quarky Message Format:
  * The following is the messaging protocol between Quarky and PTT Socket App.
- * The totalMsgLen is the length from Radio till msgBody. The value of Radio 
+ * The totalMsgLen is the length from Radio till msgBody. The value of Radio
  * is always defaulted to 0. The MsgLen is the length from msgId till msgBody.
  * The length of the msgBody varies with respect to the MsgId. Buffer space
  * for MsgBody is already allocated in the received buffer. So in case of READ
@@ -31,8 +33,10 @@
 #define PTT_MSG_DBG_READ_MEMORY         0x3044
 #define PTT_MSG_DBG_WRITE_MEMORY        0x3045
 #define PTT_MSG_LOG_DUMP				    0x32A1
-
-#define ANI_DRIVER_MSG_START         0x0001 
+#ifdef ANI_MANF_DIAG
+#define PTT_MSG_FTM_CMDS_TYPE           0x4040
+#endif
+#define ANI_DRIVER_MSG_START         0x0001
 #define ANI_MSG_APP_REG_REQ         (ANI_DRIVER_MSG_START + 0)
 #define ANI_MSG_APP_REG_RSP         (ANI_DRIVER_MSG_START + 1)
 
@@ -65,6 +69,9 @@
 */
 
 int ptt_sock_activate_svc(void *pAdapter);
+#ifdef ANI_MANF_DIAG
+int ptt_sock_send_msg_to_app(tAniHdr *wmsg, int radio, int src_mod, int pid);
+#endif
 
 /*
  * Format of message exchanged between the PTT Socket App in userspace and the
@@ -73,7 +80,7 @@ int ptt_sock_activate_svc(void *pAdapter);
  */
 typedef struct sAniNlMsg {
     struct  nlmsghdr nlh;	// Netlink Header
-    int radio;			      // unit number of the radio 
+    int radio;			      // unit number of the radio
     tAniHdr wmsg;		      // Airgo Message Header
 } tAniNlHdr;
 
@@ -89,5 +96,5 @@ typedef struct sAniNlAppRegRsp {
     tAniNlAppRegReq regReq;	// The original request msg
     int ret;			         // Return code
 } tAniNlAppRegRsp;
-
+#endif
 

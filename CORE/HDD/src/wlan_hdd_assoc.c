@@ -100,12 +100,12 @@ static inline v_BOOL_t hdd_connGetConnectionState( hdd_adapter_t *pAdapter,
    return( fConnected );
 }
 
-inline v_BOOL_t hdd_connIsConnected( hdd_adapter_t *pAdapter )
+v_BOOL_t hdd_connIsConnected( hdd_adapter_t *pAdapter )
 {
    return( hdd_connGetConnectionState( pAdapter, NULL ) );
 }  
 
-inline v_BOOL_t hdd_connIsConnectedInfra( hdd_adapter_t *pAdapter )
+v_BOOL_t hdd_connIsConnectedInfra( hdd_adapter_t *pAdapter )
 {
    v_BOOL_t fConnectedInfra = FALSE;
    eConnectionState connState;
@@ -340,9 +340,11 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     // Clear saved connection information in HDD
     hdd_connRemoveConnectInfo( pAdapter );
 
-    netif_stop_queue(dev);
+    netif_tx_disable(dev);
     netif_carrier_off(dev);
-
+    
+    //Unblock anyone waiting for disconnect to complete
+    complete(&pAdapter->disconnect_comp_var);
     return( status );
 }
 
@@ -383,6 +385,16 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter, v_BOOL_t fAuthRe
 
    vos_copy_macaddr( &staDesc.vSelfMACAddress, &pAdapter->macAddressCurrent );
 
+   // set the QoS field appropriately
+   if (hdd_wmm_is_active(pAdapter))
+   {
+      staDesc.ucQosEnabled = 1;
+   }
+   else
+   {
+      staDesc.ucQosEnabled = 0;
+   }
+
    fConnected = hdd_connGetConnectedCipherAlgo( pAdapter, &connectedCipherAlgo );
    if ( connectedCipherAlgo != eCSR_ENCRYPT_TYPE_NONE )
    {
@@ -399,7 +411,7 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter, v_BOOL_t fAuthRe
    // UMA is ready we inform TL not to do frame 
    // translation for WinMob 6.1
    staDesc.ucSwFrameTXXlation = 0;
-   staDesc.ucSwFrameRXXlation = 0;
+   staDesc.ucSwFrameRXXlation = 1;
    staDesc.ucAddRmvLLC = 1;
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "HDD register TL QoS_enabled=%d\n", 
@@ -474,9 +486,11 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
   
         if ( VOS_IS_STATUS_SUCCESS( vosStatus ) )
         {
-           // indicate 'connect' status to NDIS...
+           // indicate 'connect' status to userspace
            hdd_SendAssociationEvent(dev,pRoamInfo);
     
+           // perform any WMM-related association processing
+           hdd_wmm_assoc(pAdapter, pRoamInfo, eCSR_BSS_TYPE_INFRASTRUCTURE);
         }
         else
         {
@@ -492,7 +506,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
        hdd_connSetConnectionState( pAdapter, eConnectionState_NotConnected);
        hdd_SendAssociationEvent(dev,pRoamInfo);
    
-       netif_stop_queue(dev);
+       netif_tx_disable(dev);
        netif_carrier_off(dev);
     }
             
@@ -827,7 +841,7 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
          hdd_SendAssociationEvent(pAdapter->dev, pRoamInfo);
 
          // Stop only when we are inactive
-         netif_stop_queue(pAdapter->dev);
+         netif_tx_disable(pAdapter->dev);
          netif_carrier_off(pAdapter->dev);
 
          break;
@@ -1292,18 +1306,17 @@ int iw_set_essid(struct net_device *dev,
         if ( hdd_connGetConnectedBssType( pAdapter, &connectedBssType ) ||
              ( eMib_dot11DesiredBssType_independent == pAdapter->conn_info.connDot11DesiredBssType ))
         {
-            // need to issue a disconnect to CSR.
+            // need to issue a disconnect to CSR. 
+            init_completion(&pAdapter->disconnect_comp_var);
             sme_RoamDisconnect( pAdapter->hHal, eCSR_DISCONNECT_REASON_UNSPECIFIED );
         }
     }
 
-    if (HDD_WMM_USER_MODE_NO_QOS == pAdapter->cfg_ini->WmmMode)
+    status = hdd_wmm_get_uapsd_mask(pAdapter,
+                                    &pWextState->roamProfile.uapsd_mask);
+    if (VOS_STATUS_SUCCESS != status)
     {
-        pWextState->roamProfile.uapsd_mask = 0;
-    }
-    else
-    {
-        pWextState->roamProfile.uapsd_mask = pAdapter->cfg_ini->UapsdMask;
+       pWextState->roamProfile.uapsd_mask = 0;
     }
 
     pWextState->roamProfile.SSIDs.numOfSSIDs = 1;

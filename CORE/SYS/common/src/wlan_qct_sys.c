@@ -26,7 +26,7 @@ DESCRIPTION
 
 when        who         what, where, why
 --------    ---         -----------------------------------------------------
-12/15/08    sho         Resolved AMSS compiler errors and warnings when this 
+12/15/08    sho         Resolved AMSS compiler errors and warnings when this
                         is being ported from WM
 07/02/08    lac         Added support for eWNI_SME_START_REQ/RSP in init seq
 06/26/08    hba         Added implementation of mbReceiveMBMsg()
@@ -47,9 +47,20 @@ when        who         what, where, why
 #include "sme_Api.h"
 #include "macInitApi.h"
 
+#ifdef ANI_MANF_DIAG
+VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message);
+
+#endif
+
+
 // Cookie for SYS messages.  Note that anyone posting a SYS Message has to
 // write the COOKIE in the reserved field of the message.  The SYS Module
 // relies on this COOKIE
+#ifdef ANI_MANF_DIAG
+#define	SYS_MSG_ID_FTM_RSP	11
+#define	FTM_SYS_MSG_COOKIE	0xFACE
+#endif
+
 #define SYS_MSG_COOKIE ( 0xFACE )
 
 // need to define FIELD_OFFSET for non-WM platforms
@@ -114,7 +125,7 @@ VOS_STATUS sysMcStart( v_CONTEXT_t pVosContext, sysResponseCback userCallback, v
 }
 
 v_VOID_t sysStopCompleteCb
-( 
+(
   v_VOID_t *pUserData
 )
 {
@@ -695,6 +706,13 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
 
             break;
          }
+#ifdef ANI_MANF_DIAG
+        case SYS_MSG_ID_FTM_RSP:
+        {
+                WLANFTM_McProcessMsg((v_VOID_t *)pMsg->bodyptr);
+                break;
+        }
+#endif /* ANI_MANF_DIAG */
 
          default:
          {
@@ -1007,4 +1025,50 @@ SysProcessMmhMsg
   vos_mq_post_message(targetMQ, (vos_msg_t*)pMsg);
 
 } /* SysProcessMmhMsg() */
+
+#ifdef ANI_MANF_DIAG
+/*==========================================================================
+  FUNCTION    WLAN_FTM_SYS_FTM
+
+  DESCRIPTION
+    Called by VOSS to free a given FTM message on the Main thread when there
+    are messages pending in the queue when the whole system is been reset.
+
+  DEPENDENCIES
+     FTM  must be initialized before this function can be called.
+
+  PARAMETERS
+
+    IN
+    pvosGCtx:       pointer to the global vos context; a handle to FTM's
+                    control block can be extracted from its context
+    message:        type and content of the message
+
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_SUCCESS:
+
+  SIDE EFFECTS
+	NONE
+============================================================================*/
+
+void wlan_sys_ftm(void *pMsgPtr)
+{
+    vos_msg_t  vosMessage;
+
+
+
+    vosMessage.reserved = FTM_SYS_MSG_COOKIE;
+    vosMessage.type     = SYS_MSG_ID_FTM_RSP;
+    vosMessage.bodyptr  = pMsgPtr;
+
+    vos_mq_post_message(VOS_MQ_ID_SYS, &vosMessage);
+
+    return;
+}
+
+#endif /* ANI_MANF_DIAG */
+
 

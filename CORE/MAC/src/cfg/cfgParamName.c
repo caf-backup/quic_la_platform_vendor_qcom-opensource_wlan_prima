@@ -1,10 +1,9 @@
 /*
- * Airgo Networks, Inc proprietary.  All rights reserved.
- * Mon Sep 21 19:13:46 2009
- *
- * DO NOT EDIT - This file is generated automatically
- *
- * --------------------------------------------------------------------
+ * Copyright (C) 2007-2009 QUALCOMM Incorporated. All rights reserved. Proprietary and Confidential.
+ */
+
+/*
+ * DO NOT EDIT - This file is generated automaticlly
  */
 
 /*
@@ -41,6 +40,10 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"ASSOCIATION_FAILURE_TIMEOUT",
 	(unsigned char *)"REASSOCIATION_FAILURE_TIMEOUT",
 	(unsigned char *)"RA_PERIODICITY_TIMEOUT_IN_PS",
+	(unsigned char *)"PS_ENABLE_BCN_FILTER",
+	(unsigned char *)"PS_ENABLE_HEART_BEAT",
+	(unsigned char *)"PS_ENABLE_RSSI_MONITOR",
+	(unsigned char *)"PS_DATA_INACTIVITY_TIMEOUT",
 	(unsigned char *)"SUPPORTED_RATES_11B",
 	(unsigned char *)"SUPPORTED_RATES_11A",
 	(unsigned char *)"PHY_MODE",

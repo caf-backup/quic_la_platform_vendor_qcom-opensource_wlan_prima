@@ -15,6 +15,8 @@
 
 #include "phyDebug.h"
 #include "logDump.h"
-
+#ifdef ANI_MANF_DIAG
+#include "halPhyVersion.h"
+#endif
 
 #endif

@@ -915,8 +915,9 @@ limPostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 
         return TX_SUCCESS;
     }
-
+#ifndef ANI_MANF_DIAG
     limMessageProcessor(pMac, pMsg);
+#endif
 
     return TX_SUCCESS;
 
@@ -965,8 +966,10 @@ tSirRetStatus peProcessMessages(tpAniSirGlobal pMac, tSirMsgQ* pMsg)
 	  */
     if ( SIR_CFG_PARAM_UPDATE_IND != pMsg->type && IS_CFG_MSG(pMsg->type))		
 		cfgProcessMbMsg(pMac, (tSirMbMsg*)pMsg->bodyptr);
+#ifndef ANI_MANF_DIAG
 	else
 	    limMessageProcessor(pMac, pMsg);
+#endif
     return eSIR_SUCCESS;
 }
 

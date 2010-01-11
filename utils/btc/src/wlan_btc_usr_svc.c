@@ -551,7 +551,8 @@ eBtcStatus process_message(int fd, tBtcSvcHandle *pBtcSvcHandle)
                /* Communicate the WLAN channel number to BTC-ES */
                assocData =  (tWlanAssocData *)((char*)msgHdr + sizeof(tAniMsgHdr));
                BTC_INFO_ARG1( "BTC-SVC: STA on channel %d!\n", assocData->channel);
-               pBtcSvcHandle->btcEsFuncs.wlan_chan_func(1 << (assocData->channel));
+               pBtcSvcHandle->btcEsFuncs.wlan_chan_func(
+                  assocData->channel ? 1 << (assocData->channel) : 0);
             }
             else
                BTC_ERR("BTC-SVC: Could not pass WLAN state to BTC-ES\n");
