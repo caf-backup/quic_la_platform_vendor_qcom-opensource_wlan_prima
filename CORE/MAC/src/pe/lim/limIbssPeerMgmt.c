@@ -443,6 +443,8 @@ ibss_status_chg_notify(
     tpAniSirGlobal          pMac,
     tSirMacAddr             peerAddr,
     tANI_U16                staIndex,
+    tANI_U8                 ucastSig, 
+    tANI_U8                 bcastSig, 
     tANI_U16                status)
 {
 
@@ -461,7 +463,8 @@ ibss_status_chg_notify(
         peerNode->beaconLen = 0; 
     }
 
-    limSendSmeIBSSPeerInd(pMac,peerAddr, staIndex, beacon, bcnLen, status);
+    limSendSmeIBSSPeerInd(pMac,peerAddr, staIndex, ucastSig, bcastSig,
+                          beacon, bcnLen, status);
 
     if(beacon != NULL)
     {
@@ -669,7 +672,9 @@ void limIbssDeleteAllPeers( tpAniSirGlobal pMac )
         pStaDs = dphLookupHashEntry(pMac, pCurrNode->peerMacAddr, &aid);
         if( pStaDs )
         {
-			ibss_status_chg_notify( pMac, pCurrNode->peerMacAddr, pStaDs->staIndex, eWNI_SME_IBSS_PEER_DEPARTED_IND );
+			ibss_status_chg_notify( pMac, pCurrNode->peerMacAddr, pStaDs->staIndex, 
+                                    pStaDs->ucUcastSig, pStaDs->ucBcastSig,
+                                    eWNI_SME_IBSS_PEER_DEPARTED_IND );
             dphDeleteHashEntry(pMac, pStaDs->staAddr, aid);
 		}
 
@@ -1067,12 +1072,16 @@ limIbssAddStaRsp(
 
     pStaDs->bssId                  = pAddStaParams->bssIdx;
     pStaDs->staIndex               = pAddStaParams->staIdx;
+    pStaDs->ucUcastSig             = pAddStaParams->ucUcastSig;
+    pStaDs->ucBcastSig             = pAddStaParams->ucBcastSig;
     pStaDs->valid                  = 1;
     pStaDs->mlmStaContext.mlmState = eLIM_MLM_LINK_ESTABLISHED_STATE;
 
     PELOGW(limLog(pMac, LOGW, FL("IBSS: sending IBSS_NEW_PEER msg to SME!\n"));)
 
-    ibss_status_chg_notify(pMac, pAddStaParams->staMac, pStaDs->staIndex, eWNI_SME_IBSS_NEW_PEER_IND);
+    ibss_status_chg_notify(pMac, pAddStaParams->staMac, pStaDs->staIndex, 
+                           pStaDs->ucUcastSig, pStaDs->ucBcastSig,
+                           eWNI_SME_IBSS_NEW_PEER_IND);
     palFreeMemory( pMac->hHdd, (void *) pAddStaParams );
 
     return eSIR_SUCCESS;
@@ -1425,7 +1434,9 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac)
                 pMac->lim.gLimNumIbssPeers--;
  
                 //Send indication.
-                ibss_status_chg_notify( pMac, pTempNode->peerMacAddr, pStaDs->staIndex, eWNI_SME_IBSS_PEER_DEPARTED_IND );
+                ibss_status_chg_notify( pMac, pTempNode->peerMacAddr, pStaDs->staIndex, 
+                                        pStaDs->ucUcastSig, pStaDs->ucBcastSig,
+                                        eWNI_SME_IBSS_PEER_DEPARTED_IND );
                 pTempNode = pTempNextNode; //Since we deleted current node, prevNode remains same.
                 continue;
              }

@@ -3492,6 +3492,8 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                     }
                     pMac->roam.connectedInfo.staId = ( tANI_U8 )pJoinRsp->staId;
                     roamInfo.staId = ( tANI_U8 )pJoinRsp->staId;
+                    roamInfo.ucastSig = ( tANI_U8 )pJoinRsp->ucastSig;
+                    roamInfo.bcastSig = ( tANI_U8 )pJoinRsp->bcastSig;
                 }
 
 #ifdef FEATURE_WLAN_GEN6_ROAMING
@@ -5413,6 +5415,8 @@ void csrRoamingStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
             smsLog(pMac, LOGE, "CSR: Peer departed notification from LIM in joining state\n");
             palZeroMemory( pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo) );
 			roamInfo.staId = (tANI_U8)pIbssPeerInd->staId;
+            roamInfo.ucastSig = (tANI_U8)pIbssPeerInd->ucastSig;
+            roamInfo.bcastSig = (tANI_U8)pIbssPeerInd->bcastSig;
 			palCopyMemory(pMac->hHdd, &roamInfo.peerMac, pIbssPeerInd->peerAddr, sizeof(tCsrBssid));
             csrRoamCallCallback(pMac, &roamInfo, 0, eCSR_ROAM_CONNECT_STATUS_UPDATE, eCSR_ROAM_RESULT_IBSS_PEER_DEPARTED);
             break;
@@ -6178,6 +6182,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                                             roamInfo.nBeaconLength);
                     }
 					roamInfo.staId = (tANI_U8)pIbssPeerInd->staId;
+                    roamInfo.ucastSig = (tANI_U8)pIbssPeerInd->ucastSig;
+                    roamInfo.bcastSig = (tANI_U8)pIbssPeerInd->bcastSig;
                     status = palAllocateMemory(pMac->hHdd, (void **)&roamInfo.pBssDesc, 
                                             pMac->roam.pConnectBssDesc->length);
                     if(HAL_STATUS_SUCCESS(status))
@@ -6252,6 +6258,8 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
 
             smsLog(pMac, LOGW, "CSR: Peer departed notification from LIM\n");
 			roamInfo.staId = (tANI_U8)pIbssPeerInd->staId;
+            roamInfo.ucastSig = (tANI_U8)pIbssPeerInd->ucastSig;
+            roamInfo.bcastSig = (tANI_U8)pIbssPeerInd->bcastSig;
 			palCopyMemory(pMac->hHdd, &roamInfo.peerMac, pIbssPeerInd->peerAddr, sizeof(tCsrBssid));
             csrRoamCallCallback(pMac, &roamInfo, 0, eCSR_ROAM_CONNECT_STATUS_UPDATE, eCSR_ROAM_RESULT_IBSS_PEER_DEPARTED);
             break;

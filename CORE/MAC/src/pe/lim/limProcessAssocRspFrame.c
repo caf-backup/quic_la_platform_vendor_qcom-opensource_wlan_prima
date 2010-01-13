@@ -538,8 +538,8 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType)
 
 
     //Set the link state to postAssoc, so HW can start receiving frames from AP.
-    if(limSetLinkState(pMac, eSIR_LINK_POSTASSOC_STATE, currentBssId) != eSIR_SUCCESS)
-        PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
+    //if(limSetLinkState(pMac, eSIR_LINK_POSTASSOC_STATE, currentBssId) != eSIR_SUCCESS)
+    //    PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
 
 
      //Update the BSS Entry, this entry was added during preassoc.

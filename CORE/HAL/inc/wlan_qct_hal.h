@@ -171,6 +171,7 @@ typedef struct sUapsdInfo {
 
 #define WLANHAL_TX_BD_GET_STA_ID( _pvBDHeader )     (((tpHalTxBd)_pvBDHeader)->staIndex)
 
+#define WLANHAL_RX_BD_GET_DPU_SIG( _pvBDHeader )   (((tpHalRxBd)_pvBDHeader)->dpuSignature)
 
 #define WLANHAL_TX_BD_SET_MPDU_DATA_OFFSET( _bd, _off )        (((tpHalTxBd)_bd)->mpduDataOffset = _off)
  

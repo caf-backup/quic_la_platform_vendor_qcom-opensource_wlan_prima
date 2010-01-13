@@ -30,6 +30,7 @@ DESCRIPTION
 
 when        who    what, where, why
 --------    ---    ----------------------------------------------------------
+01/08/10    lti     Added TL Data Caching 
 02/02/09    sch     Add Handoff support
 12/09/08    lti     Fixes for AMSS compilation 
 12/02/08    lti     Fix fo trigger frame generation 
@@ -219,6 +220,9 @@ typedef enum
   /*Res need signal - triggered when all pending TxComp have been received 
    and TL is low on resources*/
   WLANTL_TX_RES_NEEDED  = 1,
+
+  /* Forwarding RX cached frames */
+  WLANTL_TX_FWD_CACHED  = 2,
 
   WLANTL_TX_MAX
 }WLANTL_TxSignalsType;
@@ -494,6 +498,13 @@ typedef struct
      ID allowed */
   v_U8_t                        ucExists;
 
+  /*The flag controls the Rx path for the station - as long as there are 
+    packets at sta level that need to be fwd-ed the Rx path will be blocked,
+    it will become unblocked only when the cached frames were fwd-ed;
+    while the rx path is blocked all rx-ed frames for that STA will be cached
+    */
+  v_U8_t                        ucRxBlocked; 
+
   /* Function pointer to the receive packet handler from HDD */
   WLANTL_STARxCBType            pfnSTARx;  
 
@@ -560,6 +571,13 @@ typedef struct
   v_U8_t                        ucPendingTrigFrm;
 
   WLANTL_TRANSFER_STA_TYPE      trafficStatistics;
+
+  /*Members needed for packet caching in TL*/
+  /*Begining of the cached packets chain*/
+  vos_pkt_t*                 vosBegCachedFrame; 
+
+  /*Begining of the cached packets chain*/
+  vos_pkt_t*                 vosEndCachedFrame; 
 }WLANTL_STAClientType;
 
 /*---------------------------------------------------------------------------
@@ -810,6 +828,160 @@ WLANTL_RxFrames
   vos_pkt_t*     vosDataBuff
 );
 
+/*==========================================================================
+
+  FUNCTION    WLANTL_FlushCachedFrames
+
+  DESCRIPTION
+    Utility function used by TL to flush the station cache
+
+  DEPENDENCIES
+    TL must be initiailized before this function gets called.
+    
+  PARAMETERS
+
+    IN
+
+    vosDataBuff:   it will contain a pointer to the first cached buffer
+                   received,
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_SUCCESS:   Everything is good :)
+
+  SIDE EFFECTS
+
+============================================================================*/
+VOS_STATUS
+WLANTL_FlushCachedFrames
+(
+  vos_pkt_t*      vosDataBuff
+);
+
+/*==========================================================================
+
+  FUNCTION    WLANTL_RxCachedFrames
+
+  DESCRIPTION
+    Utility function used by TL to forward the cached frames to a particular
+    station; 
+
+  DEPENDENCIES
+    TL must be initiailized before this function gets called.
+    If the frame carried is a data frame then the station for which it is
+    destined to must have been previously registered with TL.
+
+  PARAMETERS
+
+    IN
+    pTLCb:   pointer to TL handle 
+
+    ucSTAId:    station for which we need to forward the packets
+
+    vosDataBuff:   it will contain a pointer to the first cached buffer
+                   received, if there is more then one packet they will be
+                   chained using vOSS buffers.
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_INVAL:   Input parameters are invalid
+    VOS_STATUS_E_FAULT:   pointer to TL cb is NULL ; access would cause a
+                          page fault
+    VOS_STATUS_SUCCESS:   Everything is good :)
+
+  SIDE EFFECTS
+
+============================================================================*/
+VOS_STATUS
+WLANTL_RxCachedFrames
+(
+  WLANTL_CbType*  pTLCb,
+  v_U8_t          ucSTAId,
+  vos_pkt_t*      vosDataBuff
+);
+
+/*==========================================================================
+
+  FUNCTION    WLANTL_CacheSTAFrame
+
+  DESCRIPTION
+    Internal utility function for for caching incoming data frames that do 
+    not have a registered station yet. 
+
+  DEPENDENCIES
+    TL must be initiailized before this function gets called.
+    In order to benefit from thsi caching, the components must ensure that
+    they will only register with TL at the moment when they are fully setup
+    and ready to receive incoming data 
+   
+  PARAMETERS
+
+    IN
+    
+    pTLCb:                  TL control block
+    ucSTAId:                station id
+    vosTempBuff:            the data packet
+    uDPUSig:                DPU signature of the incoming packet
+    bBcast:                 true if packet had the MC/BC bit set 
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:   pointer to TL cb is NULL or STA Id invalid ; access
+                          would cause a page fault
+    VOS_STATUS_SUCCESS:   Everything is good :)
+
+  SIDE EFFECTS
+
+============================================================================*/
+VOS_STATUS
+WLANTL_CacheSTAFrame
+(
+  WLANTL_CbType*    pTLCb,
+  v_U8_t            ucSTAId,
+  vos_pkt_t*        vosTempBuff,
+  v_U32_t           uDPUSig,
+  v_U8_t            bBcast
+);
+
+/*==========================================================================
+
+  FUNCTION    WLANTL_ForwardSTAFrames
+
+  DESCRIPTION
+    Internal utility function for forwarding cached data to the station after
+    the station has been registered. 
+
+  DEPENDENCIES
+    TL must be initiailized before this function gets called.
+   
+  PARAMETERS
+
+    IN
+    
+    pTLCb:                  TL control block
+    ucSTAId:                station id
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:   pointer to TL cb is NULL ; access would cause a
+                          page fault
+    VOS_STATUS_SUCCESS:   Everything is good :)
+
+  SIDE EFFECTS
+
+============================================================================*/
+VOS_STATUS
+WLANTL_ForwardSTAFrames
+(
+  void*             pvosGCtx,
+  v_U8_t            ucSTAId,
+  v_U8_t            ucUcastSig,
+  v_U8_t            ucBcastSig
+);
 
 /*==========================================================================
   FUNCTION    WLANTL_ResourceCB

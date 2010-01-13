@@ -224,6 +224,14 @@ typedef struct
     /* Robust Management Frame (RMF) enabled/disabled */
     tANI_U8 rmfEnabled;
 
+    /*The DPU signatures will be sent eventually to TL to help it determine the 
+      association to which a packet belongs to*/
+    /*Unicast DPU index*/
+    tANI_U8     ucUcastSig;
+
+    /*Broadcast DPU index*/
+    tANI_U8     ucBcastSig;
+
 } tAddStaParams, *tpAddStaParams;
 
 

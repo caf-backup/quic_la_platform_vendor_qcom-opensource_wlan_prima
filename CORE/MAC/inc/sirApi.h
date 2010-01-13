@@ -1047,6 +1047,15 @@ typedef struct sSirSmeJoinRsp
 #if (WNI_POLARIS_FW_PRODUCT == WLAN_STA)
     tAniAuthType       authType;
     tANI_U16           staId;             // Station ID for peer
+
+    /*The DPU signatures will be sent eventually to TL to help it determine the 
+      association to which a packet belongs to*/
+    /*Unicast DPU signature*/
+    tANI_U8            ucastSig;
+
+    /*Broadcast DPU signature*/
+    tANI_U8            bcastSig;
+
 #endif
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
     // Following are needed for Roaming algorithm
@@ -2701,6 +2710,14 @@ typedef struct sSmeIbssPeerInd
 
     tSirMacAddr    peerAddr;
     tANI_U16        staId;
+
+    /*The DPU signatures will be sent eventually to TL to help it determine the 
+      association to which a packet belongs to*/
+    /*Unicast DPU signature*/
+    tANI_U8            ucastSig;
+
+    /*Broadcast DPU signature*/
+    tANI_U8            bcastSig;
 
     //Beacon will be appended for new Peer indication.
 }tSmeIbssPeerInd, *tpSmeIbssPeerInd;

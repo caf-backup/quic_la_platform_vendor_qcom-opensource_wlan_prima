@@ -2106,6 +2106,8 @@ void limProcessApMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
 
     pStaDs->bssId = pAddStaParams->bssIdx;
     pStaDs->staIndex = pAddStaParams->staIdx;
+    pStaDs->ucUcastSig    = pAddStaParams->ucUcastSig;
+    pStaDs->ucBcastSig    = pAddStaParams->ucBcastSig;
 
     if(pStaDs->qos.addtsPresent)
     {
@@ -2598,6 +2600,8 @@ limProcessStaMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
             pStaDs->bssId = pAddBssParams->bssIdx;
             //STA Index(genr by HAL) for the BSS entry is stored here
             pStaDs->staIndex = pAddBssParams->staContext.staIdx;
+            pStaDs->ucUcastSig   = pAddBssParams->staContext.ucUcastSig;
+            pStaDs->ucBcastSig   = pAddBssParams->staContext.ucBcastSig;
 
             // Downgrade the EDCA parameters if needed
             limSetActiveEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParams); 

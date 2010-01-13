@@ -348,8 +348,12 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     return( status );
 }
 
-static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter, v_BOOL_t fAuthRequired,
-                                       v_U8_t staId, v_MACADDR_t *pPeerMacAddress )
+static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
+                                       v_BOOL_t fAuthRequired,
+                                       v_U8_t staId,
+                                       v_U8_t ucastSig,
+                                       v_U8_t bcastSig,
+                                       v_MACADDR_t *pPeerMacAddress )
 {
    VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
    WLAN_STADescType staDesc;
@@ -417,6 +421,12 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter, v_BOOL_t fAuthRe
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "HDD register TL QoS_enabled=%d\n", 
               staDesc.ucQosEnabled );
 
+   // Initialize signatures and state
+   staDesc.ucUcastSig  = ucastSig;
+   staDesc.ucBcastSig  = bcastSig;
+   staDesc.ucInitState = fAuthRequired ?
+      WLANTL_STA_CONNECTED : WLANTL_STA_AUTHENTICATED;
+
    // Register the Station with TL...      
    vosStatus = WLANTL_RegisterSTAClient( pAdapter->pvosContext, 
                                          hdd_rx_packet_cbk, 
@@ -481,8 +491,12 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
        hdd_connSaveConnectInfo( pAdapter, pRoamInfo, eCSR_BSS_TYPE_INFRASTRUCTURE );
 
      // Register the Station with TL after associated...
-        vosStatus = hdd_roamRegisterSTA( pAdapter, (v_BOOL_t)pRoamInfo->fAuthRequired,
-                                         pAdapter->conn_info.staId[ 0 ], NULL );
+        vosStatus = hdd_roamRegisterSTA( pAdapter,
+                                         (v_BOOL_t)pRoamInfo->fAuthRequired,
+                                         pAdapter->conn_info.staId[ 0 ],
+                                         pRoamInfo->ucastSig,
+                                         pRoamInfo->bcastSig,
+                                         NULL );
   
         if ( VOS_IS_STATUS_SUCCESS( vosStatus ) )
         {
@@ -794,8 +808,12 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
          }
 
          // Register the Station with TL for the new peer. 
-         vosStatus = hdd_roamRegisterSTA( pAdapter, pRoamInfo->fAuthRequired,
-                                          pRoamInfo->staId, (v_MACADDR_t *)pRoamInfo->peerMac );
+         vosStatus = hdd_roamRegisterSTA( pAdapter,
+                                          pRoamInfo->fAuthRequired,
+                                          pRoamInfo->staId,
+                                          pRoamInfo->ucastSig,
+                                          pRoamInfo->bcastSig,
+                                          (v_MACADDR_t *)pRoamInfo->peerMac );
          if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
          {
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,

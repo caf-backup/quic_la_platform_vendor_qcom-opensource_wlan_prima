@@ -213,6 +213,8 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
         {
                 //Pass the peer's staId
             pSirSmeJoinRsp->staId = pStaDs->staIndex;
+            pSirSmeJoinRsp->ucastSig   = pStaDs->ucUcastSig;
+            pSirSmeJoinRsp->bcastSig   = pStaDs->ucBcastSig;
         }
     }
 #endif
@@ -1765,7 +1767,10 @@ void
 limSendSmeIBSSPeerInd(
     tpAniSirGlobal      pMac,
     tSirMacAddr peerMacAddr,
-    tANI_U16    staIndex, tANI_U8  *beacon, 
+    tANI_U16    staIndex, 
+    tANI_U8     ucastIdx,
+    tANI_U8     bcastIdx,
+    tANI_U8  *beacon, 
     tANI_U16 beaconLen, tANI_U16 msgType)
 {
     tSirMsgQ                  mmhMsg;
@@ -1783,6 +1788,8 @@ limSendSmeIBSSPeerInd(
     palCopyMemory( pMac->hHdd, (tANI_U8 *) pNewPeerInd->peerAddr,
                    peerMacAddr, sizeof(tSirMacAddr));
     pNewPeerInd->staId= staIndex;
+    pNewPeerInd->ucastSig = ucastIdx;
+    pNewPeerInd->bcastSig = bcastIdx;
     pNewPeerInd->mesgLen = sizeof(tSmeIbssPeerInd) + beaconLen;
     pNewPeerInd->mesgType = msgType;
 

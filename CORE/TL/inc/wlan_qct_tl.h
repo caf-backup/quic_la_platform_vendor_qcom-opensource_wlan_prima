@@ -31,6 +31,7 @@ DESCRIPTION
 
 when        who    what, where, why
 --------    ---    ----------------------------------------------------------
+01/08/10    lti     Added TL Data Caching 
 09/22/09    lti     Add deregistration API for management client
 02/02/09    sch     Add Handoff support
 12/09/08    lti     Fixes for AMSS compilation 
@@ -102,6 +103,28 @@ typedef enum
 }WLAN_STAType;
 
 /*---------------------------------------------------------------------------
+  TL States
+---------------------------------------------------------------------------*/      
+typedef enum
+{
+  /* Transition in this state made upon creation*/
+  WLANTL_STA_INIT = 0,      
+
+  /* Transition happens after Assoc success if second level authentication 
+     is needed*/
+  WLANTL_STA_CONNECTED,     
+
+  /* Transition happens when second level auth is successful and keys are 
+     properly installed */
+  WLANTL_STA_AUTHENTICATED, 
+
+  /* Transition happens when connectivity is lost*/
+  WLANTL_STA_DISCONNECTED,  
+
+  WLANTL_STA_MAX_STATE 
+}WLANTL_STAStateType;
+
+/*---------------------------------------------------------------------------
   STA Descriptor Type
 ---------------------------------------------------------------------------*/
 typedef struct
@@ -134,6 +157,15 @@ typedef struct
 
  /*Flag for signaling if the privacy bit needs to be set*/
   v_U8_t         ucProtectedFrame;
+
+  /*DPU Signature used for unicast data - used for data caching*/
+  v_U8_t         ucUcastSig;
+
+  /*DPU Signature used for broadcast data - used for data caching*/
+  v_U8_t         ucBcastSig;
+
+  /*Initial state at which the STA should be brought up to*/
+  WLANTL_STAStateType ucInitState;
 }WLAN_STADescType;
 
 /*---------------------------------------------------------------------------
@@ -196,27 +228,6 @@ typedef enum
 
 }WLANTL_ErrorType;
 
-/*---------------------------------------------------------------------------
-  TL States
----------------------------------------------------------------------------*/      
-typedef enum
-{
-  /* Transition in this state made upon creation*/
-  WLANTL_STA_INIT = 0,      
-
-  /* Transition happens after Assoc success if second level authentication 
-     is needed*/
-  WLANTL_STA_CONNECTED,     
-
-  /* Transition happens when second level auth is successful and keys are 
-     properly installed */
-  WLANTL_STA_AUTHENTICATED, 
-
-  /* Transition happens when connectivity is lost*/
-  WLANTL_STA_DISCONNECTED,  
-
-  WLANTL_STA_MAX_STATE 
-}WLANTL_STAStateType;
 
 /*---------------------------------------------------------------------------
   STA priority type

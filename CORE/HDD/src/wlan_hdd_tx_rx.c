@@ -728,7 +728,7 @@ VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
       skb->dev = pAdapter->dev;
       skb->protocol = eth_type_trans(skb, skb->dev);
       skb->ip_summed = CHECKSUM_UNNECESSARY;
-      netif_receive_skb(skb);
+      netif_rx_ni(skb);
 
       // now process the next packet in the chain
       pVosPacket = pNextVosPacket;

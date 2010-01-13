@@ -936,6 +936,9 @@ eHalStatus halMsg_addStaDpuRelatedProcessing( tpAniSirGlobal pMac, tANI_U8 staId
     // Store dpu index into sta structure
     status = halTable_SetStaDpuIdx(pMac, staIdx, dpuIdx);
 
+     /*Extract and save the DPU Sig*/
+    halDpu_GetSignature(pMac,dpuIdx,&param->ucUcastSig);
+    halDpu_GetSignature(pMac,bcastDpuIdx,&param->ucBcastSig);
     return status;
 }
 

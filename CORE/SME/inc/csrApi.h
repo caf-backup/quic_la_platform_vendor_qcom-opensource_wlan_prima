@@ -778,6 +778,14 @@ typedef struct tagCsrRoamInfo
     tSirResultCodes statusCode;
     tANI_U32 reasonCode;    //this could be our own defined or sent from the other BSS(per 802.11 spec)
     tANI_U8  staId;         // Peer stationId when connected
+    /*The DPU signatures will be sent eventually to TL to help it determine the 
+      association to which a packet belongs to*/
+    /*Unicast DPU signature*/
+    tANI_U8            ucastSig;
+
+    /*Broadcast DPU signature*/
+    tANI_U8            bcastSig;
+
     tANI_BOOLEAN fAuthRequired;   //FALSE means auth needed from supplicant. TRUE means authenticated(static WEP, open)
 
     union

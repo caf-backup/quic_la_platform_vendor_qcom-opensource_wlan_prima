@@ -50,7 +50,7 @@ void limSendSmePEStatisticsRsp(tpAniSirGlobal pMac, tANI_U16 msgtype, void * sta
 void limSendSmeRemoveKeyRsp(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tSirResultCodes resultCode);
 void limSendSmeGetTxPowerRsp(tpAniSirGlobal pMac, tANI_U32 power, tANI_U32 status);
 void limSendSmeGetNoiseRsp(tpAniSirGlobal pMac, tSirMacNoise noise);
-void limSendSmeIBSSPeerInd(tpAniSirGlobal pMac,tSirMacAddr peerMacAddr,tANI_U16 staIndex,tANI_U8 *beacon,tANI_U16 beaconLen, tANI_U16 msgType);
+void limSendSmeIBSSPeerInd(tpAniSirGlobal pMac,tSirMacAddr peerMacAddr,tANI_U16 staIndex,tANI_U8 ucastIdx,tANI_U8 bcastIdx,tANI_U8 *beacon,tANI_U16 beaconLen, tANI_U16 msgType);
 void limSendExitBmpsInd(tpAniSirGlobal pMac, tExitBmpsReason reasonCode);
 
 #endif /* __LIM_SEND_SME_RSP_H */

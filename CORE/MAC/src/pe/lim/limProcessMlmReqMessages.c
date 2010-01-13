@@ -934,15 +934,6 @@ limMlmAddBss (
     else
         pAddBssParams->operMode                 = BSS_OPERATIONAL_MODE_AP;
 
-    /* IEEE 802.11n draft 7, section 9.13.3.1
-     * In an IBSS, the HT Protection field is reserved, but an HT 
-     * STA shall protect HT transmissions as though the HT 
-     * Protection field were set to non-HT mixed mode.
-     */
-    if ((pMlmStartReq->bssType == eSIR_IBSS_MODE) && (pMac->lim.gLimDot11Mode == WNI_CFG_DOT11_MODE_11N))
-	{
-        pAddBssParams->llbCoexist = 1;
-	}
     pAddBssParams->beaconInterval               = pMlmStartReq->beaconPeriod;
     pAddBssParams->dtimPeriod                   = pMlmStartReq->dtimPeriod;
     pAddBssParams->cfParamSet.cfpCount          = pMlmStartReq->cfParamSet.cfpCount;
@@ -1586,6 +1577,10 @@ limProcessMlmAssocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         /// Prepare and send Association request frame
         limSendAssocReqMgmtFrame(pMac, pMlmAssocReq);
+
+        //Set the link state to postAssoc, so HW can start receiving frames from AP.
+       if(limSetLinkState(pMac, eSIR_LINK_POSTASSOC_STATE, currentBssId) != eSIR_SUCCESS)
+            PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
 
         return;
     }
