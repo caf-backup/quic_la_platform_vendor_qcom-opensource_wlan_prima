@@ -169,6 +169,13 @@ when        who    what, where, why
 /*BT-AMP packet of type security frame*/
 #define WLANTL_BT_AMP_TYPE_SEC        0x0003
 
+//For RSSI from RX BD
+#define WLANTL_RXFIR0_MASK       0x0000FF00
+#define WLANTL_RXFIR1_MASK       0x000000FF
+#define WLANTL_SIZE_BYTE         8
+#define WLANTL_SNR_MASK          0xFC000000
+#define WLANTL_RSSI_OFFSET       100
+
 
 /*-------------------------------------------------------------------------
   Helper macros
@@ -208,6 +215,15 @@ when        who    what, where, why
 /*get TL control block from vos global context */
 #define VOS_GET_TL_CB(_pvosGCtx) \
         (WLANTL_CbType*)vos_get_context( VOS_MODULE_ID_TL, _pvosGCtx)
+
+/*get RSSI0 from a RX BD*/
+#define WLANTL_GETRSSI0(pBD)    \
+    (v_S7_t)(((SIR_MAC_BD_TO_PHY_STATS0((pBD)) & WLANTL_RXFIR0_MASK) \
+             >> WLANTL_SIZE_BYTE) - WLANTL_RSSI_OFFSET)
+
+/*get RSSI1 from a RX BD*/
+#define WLANTL_GETRSSI1(pBD)    \
+    (v_S7_t)((SIR_MAC_BD_TO_PHY_STATS0((pBD)) & WLANTL_RXFIR1_MASK) - WLANTL_RSSI_OFFSET)
 
 /*---------------------------------------------------------------------------
   TL signals for TX thread 
@@ -632,12 +648,12 @@ typedef struct
 
 typedef struct
 {
-   v_U8_t                          triggerEvent[WLANTL_HS_NUM_CLIENT];
    v_S7_t                          rssiValue;
-   WLANTL_RSSICrossThresholdCBType crossCBFunction[WLANTL_HS_NUM_CLIENT];
+   v_U8_t                          triggerEvent[WLANTL_HS_NUM_CLIENT];
    v_PVOID_t                       usrCtxt[WLANTL_HS_NUM_CLIENT];
-   v_BOOL_t                        isEmpty;
-   v_BOOL_t                        isMultipleClient;
+   v_U8_t                          whoIsClient[WLANTL_HS_NUM_CLIENT];
+   WLANTL_RSSICrossThresholdCBType crossCBFunction[WLANTL_HS_NUM_CLIENT];
+   v_U8_t                          numClient;
 } WLANTL_HO_RSSI_INDICATION_TYPE;
 
 typedef struct
@@ -656,6 +672,7 @@ typedef struct
    WLANTL_HO_TRAFFIC_STATUS_HANDLE_TYPE currentTraffic;
    v_BOOL_t                             isBMPS;
    v_PVOID_t                            macCtxt;
+   vos_lock_t                           hosLock;
 } WLANTL_HO_SUPPORT_TYPE;
 
 /*---------------------------------------------------------------------------
@@ -1536,6 +1553,24 @@ WLANTL_TxCompTriggFrameDI
  v_PVOID_t      pvosGCtx,
  vos_pkt_t*     vosDataBuff, 
  VOS_STATUS     wTxSTAtus 
+);
+
+/*==========================================================================
+
+   FUNCTION
+
+   DESCRIPTION   Read RSSI value out of a RX BD
+    
+   PARAMETERS: Caller must validate all parameters 
+
+   RETURN VALUE
+
+============================================================================*/
+VOS_STATUS WLANTL_ReadRSSI
+(
+   v_PVOID_t        pAdapter,
+   v_PVOID_t        pBDHeader,
+   v_U8_t           STAid
 );
 
 

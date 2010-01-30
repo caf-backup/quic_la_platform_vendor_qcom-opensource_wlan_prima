@@ -67,7 +67,7 @@
 #endif /* WLANTL_REORDER_DEBUG_MSG_ENABLE */
 
 #ifdef WLANTL_REORDER_DEBUG_MSG_ENABLE
-static char *opCodeSting[] = {
+static char *opCodeString[] = {
                                 "INVALID, Just forward CUR Frame",
                                 "QCU_FWBF, Q cur frame and FWD buffered frames",
                                 "FWBF_FWCU, FWD buffered frames and cur frame",
@@ -76,6 +76,7 @@ static char *opCodeSting[] = {
                                 "FWBF_DCU, BAR frame, FWD buffered frames and drop BAR",
                                 "FWA_DCU, FWD all buffered frames and drop cur BAR",
                                 "FWA_QCU, FWD all buffered frames and Q cur",
+                                "TEARDOWN, unexpected frame, teardown BA session",
                                 "DCU, Drop cur frame",
                              };
 #endif /* WLANTL_REORDER_DEBUG_MSG_ENABLE */
@@ -103,7 +104,7 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
    v_PVOID_t  timerUdata
 )
 {
-   WLANTL_TIMER_EXPIER_UDATA_T *expireHanlde;
+   WLANTL_TIMER_EXPIER_UDATA_T *expireHandle;
    WLANTL_BAReorderType        *ReorderInfo;
    WLANTL_CbType               *pTLHandle;
    vos_pkt_t                   *vosDataBuff;
@@ -121,9 +122,9 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
       return;
    }
 
-   expireHanlde = (WLANTL_TIMER_EXPIER_UDATA_T *)timerUdata;
-   ucSTAID      = (v_U8_t)expireHanlde->STAID;
-   ucTID        = expireHanlde->TID;
+   expireHandle = (WLANTL_TIMER_EXPIER_UDATA_T *)timerUdata;
+   ucSTAID      = (v_U8_t)expireHandle->STAID;
+   ucTID        = expireHandle->TID;
    if(WLANTL_STA_ID_INVALID(ucSTAID) || WLANTL_TID_INVALID(ucTID))
    {
       BAMSGERROR("SID %d or TID %d is not valid",
@@ -131,7 +132,7 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
       return;
    }
 
-   pTLHandle    = (WLANTL_CbType *)expireHanlde->pTLHandle;
+   pTLHandle    = (WLANTL_CbType *)expireHandle->pTLHandle;
    if(NULL == pTLHandle)
    {
       BAMSGERROR("TL Controll block NULL", 0, 0, 0);
@@ -211,7 +212,7 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
    }
 
    wRxMetaInfo.ucUP = ucTID;
-   pTLHandle->atlSTAClients[ucSTAID].pfnSTARx(expireHanlde->pAdapter,
+   pTLHandle->atlSTAClients[ucSTAID].pfnSTARx(expireHandle->pAdapter,
                                             vosDataBuff, ucSTAID, &wRxMetaInfo);
    if(!VOS_IS_STATUS_SUCCESS(vos_lock_release(&ReorderInfo->reorderLock)))
    {
@@ -940,7 +941,15 @@ VOS_STATUS WLANTL_MSDUReorder
    ucFwdIdx  = (v_U8_t)WLANHAL_RX_BD_GET_BA_FI(pvBDHeader);
    CSN       = (v_U8_t)WLANHAL_RX_BD_GET_BA_CSN(pvBDHeader);
 #ifdef WLANTL_REORDER_DEBUG_MSG_ENABLE
-   BAMSGDEBUG("%s", opCodeSting[ucOpCode], 0, 0);
+   if (ucOpCode < WLANTL_OPCODE_MAX)
+   {
+      BAMSGDEBUG("%s", opCodeString[ucOpCode], 0, 0);
+   }
+   else
+   {
+      BAMSGERROR("Unknown OpCode %d", ucOpCode, 0, 0);
+   }
+
 #endif /* WLANTL_REORDER_DEBUG_MSG_ENABLE */
    BAMSGDEBUG("SI %d, FI %d, CI %d", ucSlotIdx, ucFwdIdx, currentReorderInfo->ucCIndex);
 
@@ -1251,6 +1260,10 @@ VOS_STATUS WLANTL_MSDUReorder
          *vosDataBuff = vosPktIdx;
          break;
 
+      case WLANTL_OPCODE_TEARDOWN:
+         // do we have a procedure in place to teardown BA?
+
+         // fall through to drop the current packet
       case WLANTL_OPCODE_DROPCUR:
          vos_pkt_return_packet(*vosDataBuff);
          *vosDataBuff = NULL;

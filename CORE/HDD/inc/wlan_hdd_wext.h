@@ -54,7 +54,11 @@ typedef enum
     eWEXT_WPS_ON = 1,
 }hdd_wps_mode_e;
 
-
+typedef enum
+{
+    DRIVER_POWER_MODE_AUTO = 0,
+    DRIVER_POWER_MODE_ACTIVE = 1,
+} hdd_power_mode_e;
 /* 
  * This structure contains the interface level (granularity) 
  * configuration information in support of wireless extensions. 
@@ -87,9 +91,15 @@ typedef struct hdd_wext_state_s
 
     /* WPS turned on/off*/
    hdd_wps_mode_e wpsMode; 
-	
+
    /**Counter measure state, Started/Stopped*/
    v_BOOL_t mTKIPCounterMeasures;  
+
+   /**Scan mode*/
+   tSirScanType scan_mode;
+   
+   /**Completion Variable*/
+   struct completion completion_var;
    
 }hdd_wext_state_t;
 

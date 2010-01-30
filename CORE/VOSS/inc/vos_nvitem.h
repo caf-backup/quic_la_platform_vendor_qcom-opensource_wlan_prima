@@ -474,5 +474,35 @@ VOS_STATUS vos_nv_readRxAntennaCount( v_U8_t *pRxAntennaCount );
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_readMacAddress( v_MAC_ADDRESS_t pMacAddress );
 
+/**------------------------------------------------------------------------
+  
+  \brief vos_nv_open() - initialize the NV module
+  
+  The \a vos_nv_open() initializes the NV module.  This function read the binary
+  file qcom_nv.bin for macaddress,country code,regulatory domain information and etc.
+  
+  \return VOS_STATUS_SUCCESS - module is initialized successfully
+          otherwise  - module is not initialized
+  \sa
+  
+  -------------------------------------------------------------------------*/
+
+
+VOS_STATUS vos_nv_open(void);
+
+/**------------------------------------------------------------------------
+  
+  \brief vos_nv_close() - uninitialize the NV module
+  
+  The \a vos_nv_init() uninitializes the NV module.  This function release the binary
+  file qcom_nv.bin data buffer.
+  
+  \return VOS_STATUS_SUCCESS - module is initialized successfully
+          otherwise  - module is not initialized
+  \sa
+  
+  -------------------------------------------------------------------------*/
+
+VOS_STATUS vos_nv_close(void);
 
 #endif // __VOS_NVITEM_H

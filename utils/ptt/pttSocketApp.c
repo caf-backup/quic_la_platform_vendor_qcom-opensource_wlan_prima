@@ -394,6 +394,25 @@ void pttSendEndianIndication (void *arg)
 #endif
 }
 
+int write_nv_items_to_efs(tANI_U8 *pData, tANI_U16 data_length)
+{
+    
+    FILE *fp;
+    size_t count;
+ 
+    fp = fopen("/etc/firmware/wlan/qcom_nv.bin", "wb");
+    if(fp == NULL) {
+        perror("failed to open sample.txt");
+        return -1;
+    }
+    count = fwrite(pData, 1, data_length, fp);
+    fclose(fp);
+
+    printf("Wrote %zu bytes.\n", count);
+    return 0;
+}
+
+
 /*
  * Process all the messages from coming from the Radio Driver
  */
@@ -445,7 +464,11 @@ void pttSocketAppProcNetlinkMsg (void *arg)
 
         aniAsfLogMsg(LOG_DEBUG, ANI_WHERE, "%s: Sending msg of length %d (msgType=0x%x) to client", __FUNCTION__, ntohl(msg->msgLen), wnl->wmsg.type);
 
-        if(pserver->diag_msg.diag_msg_received == TRUE) {
+        if(pserver->diag_msg.diag_msg_received == TRUE || ntohs(wnl->wmsg.type) == PTT_FTM_CMDS_TYPE) 
+        {
+            /*Skip the netlink header 12 bytes*/
+            tANI_U8 *pData = ((char*)msg + 12);
+
             printf("Copy the diag message\n");
             wnl->wmsg.type = ntohs(wnl->wmsg.type);
             wnl->wmsg.length = ntohs(wnl->wmsg.length);
@@ -453,14 +476,25 @@ void pttSocketAppProcNetlinkMsg (void *arg)
             msg->msgLen = ntohl(msg->msgLen);
 
             pserver->diag_msg.msg_len = wnl->wmsg.length-sizeof(tAniHdr);
+             
             printf("wnl->wmsg.length = %d\n",pserver->diag_msg.msg_len);
-
-            pserver->diag_msg.pRespData = (char*)malloc(pserver->diag_msg.msg_len);
-
-            /*Skip the netlink header 12 bytes*/
-            memcpy(pserver->diag_msg.pRespData,((char*)msg + 12),pserver->diag_msg.msg_len);
+            
+           /*Check whether the command code is commit to EFS*/
+            printf(" Command Code=0x%x\n", *pData);
+            if( *pData == 0xEF) 
+            {
+                pData++;
+                printf("Writing Data to EFS\n");
+                write_nv_items_to_efs(pData, (pserver->diag_msg.msg_len - sizeof(tANI_U8))); 
+            }
+            else 
+            {
+                pserver->diag_msg.pRespData = (char*)malloc(pserver->diag_msg.msg_len);
+               
+                memcpy(pserver->diag_msg.pRespData,pData,pserver->diag_msg.msg_len);
+            }
             break;
-        }
+        } 
         if (pserver->clIpc)
         {
             if (endianness == 0) //little-endian

@@ -1,0 +1,48 @@
+diff --git a/rootdir/etc/init.qcom.rc b/rootdir/etc/init.qcom.rc
+index 6d9c3ff..335d00b 100755
+--- a/rootdir/etc/init.qcom.rc
++++ b/rootdir/etc/init.qcom.rc
+@@ -50,6 +50,14 @@ on boot
+     chown system system /sys/devices/platform/msm_hsusb_periphera/composition
+     mkdir /data/wpstiles/ 0777
+     chgrp shell /data/wpstiles/
++    # Create the directories used by the Wireless subsystem
++    mkdir /data/misc/wifi 0777 wifi wifi
++    mkdir /data/misc/wifi/sockets 0777 wifi wifi
++    mkdir /data/misc/dhcp 0777 system system
++    mkdir /data/system 0777 system system
++    mkdir /data/system/wpa_supplicant 0777 system system
++    chown dhcp dhcp /data/misc/dhcp    
++
+ 
+ # Enable MASS storage on SDCARD
+     write /sys/devices/platform/mass_storage/lun0/file /dev/block/mmcblk0p1
+@@ -58,6 +66,9 @@ on boot
+     write /sys/bus/platform/drivers/msm_sdcc/msm_sdcc.3/polling 1
+     write /sys/bus/platform/drivers/msm_sdcc/msm_sdcc.4/polling 1
+ 
++on property:init.svc.wpa_supplicant=stopped
++    stop dhcpcd
++
+ on property:init.svc.hcid=running
+     write /sys/devices/virtual/bluetooth/hci0/idle_timeout 7000
+     start dbus_bt
+@@ -127,6 +138,18 @@ service qcom-sh /system/bin/sh /init.qcom.sh
+     user root
+     oneshot
+ 
++service wpa_supplicant /system/bin/logwrapper /system/bin/wpa_supplicant -Dwext -iwlan0 -c/data/misc/wifi/wpa_supplicant.conf -dd
++    group system
++    disabled
++    oneshot
++
++# for the moment, while debugging dhcpcd, logwrapper is
++# used to get its output to appear in the logs. This will
++# be removed before shipping.
++service dhcpcd /system/bin/dhcpcd -B wlan0
++    disabled
++    oneshot
++
+ service qcom-post-boot /system/bin/sh /init.qcom.post_boot.sh
+     user root
+     disabled

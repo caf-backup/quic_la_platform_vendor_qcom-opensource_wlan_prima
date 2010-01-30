@@ -665,19 +665,19 @@ eHalStatus halPhyBckupCalRegisters(tHalHandle hHal, tANI_U32 *pMemAddr)
     pCalBuf[count++] = 0;
 
     pCalBuf[count++] = ((QWLAN_RFAPB_MODE_SEL1_REG)|( HAL_REG_HOST_FILLED_MASK));
-    pCalBuf[count++] = QWLAN_RFAPB_MODE_SEL1_PLLEN_FORCE_MASK |
+    pCalBuf[count++] = QWLAN_RFAPB_MODE_SEL1_PLLEN_FORCE_MASK;/* |
                        QWLAN_RFAPB_MODE_SEL1_IQ_DIV_MODE_MASK |
                        QWLAN_RFAPB_MODE_SEL1_EN_TXLO_MODE_MASK |
-                       QWLAN_RFAPB_MODE_SEL1_EN_RXLO_MODE_MASK; //0x400f;
+                       QWLAN_RFAPB_MODE_SEL1_EN_RXLO_MODE_MASK;*/ //0x4000;
 
-    pCalBuf[count++] = (QWLAN_RFAPB_DA_GAIN_CTL_REG | HAL_REG_FW_FILLED | HAL_REG_FW_EXTRA_FILLED);
-    pCalBuf[count++] = 0;
+    //pCalBuf[count++] = (QWLAN_RFAPB_DA_GAIN_CTL_REG | HAL_REG_FW_FILLED | HAL_REG_FW_EXTRA_FILLED);
+    //pCalBuf[count++] = 0;
 
-    pCalBuf[count++] = (QWLAN_RFAPB_PDET_OVRD_REG | HAL_REG_FW_FILLED | HAL_REG_FW_EXTRA_FILLED);
-    pCalBuf[count++] = 0;
+    //pCalBuf[count++] = (QWLAN_RFAPB_PDET_OVRD_REG | HAL_REG_FW_FILLED | HAL_REG_FW_EXTRA_FILLED);
+    //pCalBuf[count++] = 0;
 
-    pCalBuf[count++] = ((QWLAN_RFAPB_PDET_CTL_REG)|( HAL_REG_HOST_FILLED_MASK));
-    pCalBuf[count++] = 0xe0f0;
+    //pCalBuf[count++] = ((QWLAN_RFAPB_PDET_CTL_REG)|( HAL_REG_HOST_FILLED_MASK));
+    //pCalBuf[count++] = 0xe0f0;
 
     pCalBuf[count++] = ((QWLAN_RFAPB_TX_DCOC_RANGE0_REG)|( HAL_REG_HOST_FILLED_MASK));
     pCalBuf[count++] = 0xaaaa;
@@ -742,10 +742,10 @@ eHalStatus halPhyBckupCalRegisters(tHalHandle hHal, tANI_U32 *pMemAddr)
     for(rxChain = 0; rxChain < PHY_MAX_RX_CHAINS; rxChain++)
     {
         //select the specific chain we are correcting
-        modeSel = QWLAN_RFAPB_MODE_SEL1_PLLEN_FORCE_MASK |
+        modeSel = QWLAN_RFAPB_MODE_SEL1_PLLEN_FORCE_MASK;/* |
                   QWLAN_RFAPB_MODE_SEL1_IQ_DIV_MODE_MASK |
                   QWLAN_RFAPB_MODE_SEL1_EN_TXLO_MODE_MASK |
-                  QWLAN_RFAPB_MODE_SEL1_EN_RXLO_MODE_MASK; //0x400f;
+                  QWLAN_RFAPB_MODE_SEL1_EN_RXLO_MODE_MASK;*/ //0x400f;
         modeSel |= (rxChain << 0x8 /*QWLAN_RFAPB_MODE_SEL1_TXRX_REG_SEL_OFFSET*/);
 
         pCalBuf[count++] = ((QWLAN_RFAPB_REV_ID_REG)|( HAL_REG_HOST_FILLED_MASK));

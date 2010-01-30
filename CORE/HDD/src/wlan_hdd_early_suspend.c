@@ -37,18 +37,7 @@
 /**-----------------------------------------------------------------------------
 *   Function and variables declarations
 * ----------------------------------------------------------------------------*/
-
-//gEnableSuspend = 1 in INI file implies suspend to standby
-#define WLAN_MAP_SUSPEND_TO_STANDBY     1
-
-//gEnableSuspend = 2 in INI file implies suspend to deep sleep
-#define WLAN_MAP_SUSPEND_TO_DEEP_SLEEP  2
-
-//Maximum time (ms) to wait for standby to complete
-#define WLAN_WAIT_TIME_STANDBY          1000
-
-//Maximum time (ms) to wait for full pwr to complete
-#define WLAN_WAIT_TIME_FULL_PWR         1000
+#include "wlan_hdd_power.h"
 
 static struct early_suspend wlan_early_suspend;
 static eHalStatus g_full_pwr_status;
@@ -78,6 +67,31 @@ void hdd_suspend_full_pwr_callback(void *callbackContext, eHalStatus status)
 	g_full_pwr_status = status;
    complete(&pAdapter->full_pwr_comp_var);
 }
+
+eHalStatus hdd_exit_standby(hdd_adapter_t* pAdapter)
+{  
+    eHalStatus status = VOS_STATUS_SUCCESS;
+
+    hddLog(VOS_TRACE_LEVEL_ERROR, "%s: WLAN being resumed from standby",__func__);
+    init_completion(&pAdapter->full_pwr_comp_var);
+
+    status = sme_RequestFullPower(pAdapter->hHal, hdd_suspend_full_pwr_callback, pAdapter,
+      eSME_FULL_PWR_NEEDED_BY_HDD);
+
+    if (status == eHAL_STATUS_FAILURE) {
+
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: sme_RequestFullPower Failed!!!\n",__func__);
+    } 
+    else {
+        status = eHAL_STATUS_SUCCESS;
+        pAdapter->hdd_ps_state = eHDD_SUSPEND_NONE;
+    }
+
+    //No blocking to reduce latency. No other device should be depending on WLAN
+    //to finish resume and WLAN won't be instantly on after resume
+    return status;
+}
+
 
 //Helper routine to put the chip into standby
 VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter)
@@ -303,6 +317,8 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
    vosStatus = hdd_post_voss_start_config( pAdapter );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
+   pAdapter->hdd_ps_state = eHDD_SUSPEND_NONE;
+
    //Trigger the initial scan
    hdd_wlan_initial_scan(pAdapter);
 
@@ -371,13 +387,7 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
 
    if(pAdapter->hdd_ps_state == eHDD_SUSPEND_STANDBY) 
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: WLAN being resumed from standby",__func__);
-      init_completion(&pAdapter->full_pwr_comp_var);
-      (void)sme_RequestFullPower(pAdapter->hHal, hdd_suspend_full_pwr_callback, pAdapter,
-         eSME_FULL_PWR_NEEDED_BY_HDD);
-
-      //No blocking to reduce latency. No other device should be depending on WLAN
-      //to finish resume and WLAN won't be instantly on after resume
+       hdd_exit_standby(pAdapter);
    } 
    else if(pAdapter->hdd_ps_state == eHDD_SUSPEND_DEEP_SLEEP) 
    {

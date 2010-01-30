@@ -533,7 +533,7 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
     type = (typeSubtype & HAL_FRAME_TYPE_MASK) >> HAL_FRAME_TYPE_OFFSET;
     subType = (typeSubtype & HAL_FRAME_SUBTYPE_MASK);
 
-    HALLOGE( halLog(pMac, LOGE, FL("Type: %d/%d, MAC: %08x., Tid=%d, frmXlat=%d, pTxBD=%08x\n"), 
+    HALLOG1( halLog(pMac, LOG1, FL("Type: %d/%d, MAC: %08x., Tid=%d, frmXlat=%d, pTxBD=%08x\n"), 
         type, subType, *((tANI_U32 *) pDestMacAddr), tid, !disableFrmXtl, pTxBd 
     ));
 
@@ -747,10 +747,15 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
             }
         }else{
             /* data frames */
+            /* TID->QID is one-to-one mapping, the same way as followed in H/W */
+            tANI_U8 queueId = 0;
+
             if(unicastDst && (staId == pMac->hal.halMac.selfStaId))
                 pBd->queueId = BTQM_QUEUE_SELF_STA_UCAST_DATA;
-            else if (pSta->qosEnabled)
-                pBd->queueId = halUtil_GetBtqmQueueIdForStaidTid(pMac, staId, tid);
+            else if (pSta->qosEnabled) {
+	        halBmu_get_qid_for_qos_tid(pMac, tid, &queueId);
+                pBd->queueId = (tANI_U32) queueId;
+	    }
             else
                 pBd->queueId = BTQM_QUEUE_TX_nQOS;
             if(unicastDst){

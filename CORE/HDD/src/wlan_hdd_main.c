@@ -49,6 +49,8 @@
 #include <wlan_hdd_cfg.h>
 #include <wlan_ptt_sock_svc.h>
 #include <wlan_hdd_wowl.h>
+#include <wlan_hdd_misc.h>
+
 #ifdef ANI_MANF_DIAG
 int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter);
 
@@ -91,15 +93,17 @@ int hdd_open (struct net_device *dev)
 
    if(!hdd_connIsConnected(pAdapter)) {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-         "%s: STA not associated. Ignore open call" , __FUNCTION__);
-      return -1;
+                 "%s: STA not associated, leaving Tx queues disabled" ,
+                 __FUNCTION__);
    }
-   
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-      "%s: Enabling Tx Queues" , __FUNCTION__);
+   else
+   {   
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+                 "%s: Enabling Tx Queues" , __FUNCTION__);
 
-   netif_carrier_on(dev);
-   netif_start_queue(dev);
+      netif_carrier_on(dev);
+      netif_start_queue(dev);
+   }
 
    return 0;
 }
@@ -129,28 +133,43 @@ int hdd_stop (struct net_device *dev)
 
 /**---------------------------------------------------------------------------
   
-  \brief hdd_release_fw_binary() - 
+  \brief hdd_release_firmware() - 
 
    This function calls the release firmware API to free the firmware buffer.
    
-  \param  - pCtx - Pointer to the adapter .
+  \param  - pFileName Pointer to the File Name. 
+                  pCtx - Pointer to the adapter .
+              
               
   \return - 0 for success, non zero for failure
      
   --------------------------------------------------------------------------*/
 
-VOS_STATUS hdd_release_fw_binary(v_VOID_t *pCtx)
+VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx)
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    hdd_adapter_t *pAdapter = (hdd_adapter_t*)pCtx;
    ENTER();
-
-   if(pAdapter->fw) {
-      release_firmware(pAdapter->fw);
-      pAdapter->fw = NULL;
+   
+   
+   if( !strcmp(LIBRA_FW_FILE,pFileName)) {
+   
+       if(pAdapter->fw) {
+          release_firmware(pAdapter->fw);
+          pAdapter->fw = NULL;
+       }
+       else
+          status = VOS_STATUS_E_FAILURE;
    }
-   else
-   	   status = VOS_STATUS_E_FAILURE;
+   else if (!strcmp(LIBRA_NV_FILE,pFileName)) {
+       if(pAdapter->nv) {
+          release_firmware(pAdapter->nv);
+          pAdapter->nv = NULL;
+       }
+       else
+          status = VOS_STATUS_E_FAILURE;
+        
+   }
 
    EXIT();
    return status;  
@@ -158,12 +177,13 @@ VOS_STATUS hdd_release_fw_binary(v_VOID_t *pCtx)
 
 /**---------------------------------------------------------------------------
   
-  \brief hdd_get_fw_binary() - 
+  \brief hdd_request_firmware() - 
 
    This function reads the firmware file using the request firmware 
    API and returns the the firmware data and the firmware file size.
    
-  \param  - pCtx - Pointer to the adapter .
+  \param  - pfileName - Pointer to the file name. 
+              - pCtx - Pointer to the adapter .
               - ppfw_data - Pointer to the pointer of the firmware data.
               - pSize - Pointer to the file size.
               
@@ -172,23 +192,41 @@ VOS_STATUS hdd_release_fw_binary(v_VOID_t *pCtx)
   --------------------------------------------------------------------------*/
 
 
-VOS_STATUS hdd_get_fw_binary(v_VOID_t *pCtx,v_VOID_t **ppfw_data, v_SIZE_t *pSize)
+VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_data, v_SIZE_t *pSize)
 {
    int status;
    hdd_adapter_t *pAdapter = (hdd_adapter_t*)pCtx;
    ENTER();
+
+   if( !strcmp(LIBRA_FW_FILE,pfileName)) {
    
-   status = request_firmware(&pAdapter->fw, "wlan/qcom_fw.bin", &pAdapter->hsdio_func_dev->dev);
+       status = request_firmware(&pAdapter->fw, pfileName, &pAdapter->hsdio_func_dev->dev);
    
-   if(status || !pAdapter->fw || !pAdapter->fw->data) {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Firmware download failed",__func__);
-      status = VOS_STATUS_E_FAILURE;
-   } 
+       if(status || !pAdapter->fw || !pAdapter->fw->data) {
+           hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Firmware download failed",__func__);
+           status = VOS_STATUS_E_FAILURE;
+       } 
    
-   else {
-     *ppfw_data = (v_VOID_t *)pAdapter->fw->data;  
-     *pSize = pAdapter->fw->size; 
-     hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Firmware size = %d",__func__, *pSize);
+       else {
+         *ppfw_data = (v_VOID_t *)pAdapter->fw->data;  
+         *pSize = pAdapter->fw->size; 
+          hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Firmware size = %d",__func__, *pSize);
+       }
+   }
+   else if(!strcmp(LIBRA_NV_FILE,pfileName)) {
+       
+       status = request_firmware(&pAdapter->nv, pfileName, &pAdapter->hsdio_func_dev->dev);
+   
+       if(status || !pAdapter->nv || !pAdapter->nv->data) {
+           hddLog(VOS_TRACE_LEVEL_ERROR,"%s: nv download failed",__func__);
+           status = VOS_STATUS_E_FAILURE;
+       } 
+   
+       else {
+         *ppfw_data = (v_VOID_t *)pAdapter->nv->data;  
+         *pSize = pAdapter->nv->size; 
+          hddLog(VOS_TRACE_LEVEL_ERROR,"%s: nv file size = %d",__func__, *pSize);
+       }
    }
 
    EXIT();
@@ -401,6 +439,9 @@ void hdd_wlan_initial_scan(hdd_adapter_t *pAdapter)
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: sme_ScanRequest failed status code %d",
          __func__, halStatus );
    }
+   
+   if(sme_Is11dSupported(pAdapter->hHal))
+        vos_mem_free(scanReq.ChannelInfo.ChannelList);
 }
 
 /**---------------------------------------------------------------------------
@@ -781,7 +822,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    status = hdd_init_tx_rx(pAdapter);
    if ( !VOS_IS_STATUS_SUCCESS( status ))
    {
-      printk(KERN_CRIT "%s: hdd_init_tx_rx failed", __FUNCTION__);
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: hdd_init_tx_rx failed", __FUNCTION__);
       goto err_vosclose;
    }  
 
@@ -789,7 +830,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    status = hdd_wmm_init(pAdapter);
    if ( !VOS_IS_STATUS_SUCCESS( status ))
    {
-      printk(KERN_CRIT "%s: hdd_wmm_init failed", __FUNCTION__);
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: hdd_wmm_init failed", __FUNCTION__);
       goto err_vosclose;
    }
 

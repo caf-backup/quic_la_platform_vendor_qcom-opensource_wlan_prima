@@ -64,7 +64,7 @@ enum {
 #define QWLANFW_MAX_RSSI_REGS                                  20
 #define QWLANFW_MBOX_MSG_VER                                    0
 #define QWLANFW_MBOX_MSG_LENGTH                               256
-#define QWLANFW_MAGIC_PCKT_PTTRN_ID                             8 
+#define QWLANFW_MAGIC_PCKT_PTTRN_ID                             8
 #define QWLANFW_MAX_AC                                        0x4
 /*===========================================================================
   FW MEMORY MAP
@@ -103,7 +103,7 @@ enum {
     6       8       8
     7       8       8
     8       8      12
-*/    
+*/
 
 #define CEIL_ALIGN(value, align) \
    (((value) + (align) - 1) & ~((align) - 1))
@@ -112,22 +112,22 @@ enum {
    (((value) + (align)) & ~((align) - 1))
 
 /* Shared Table for Rate Adaptation in FW */
-/* Right immediately after RA shared table, It's better to place 
-FW starting address not to lose any single byte in SRAM. 
-Total shared table for RA depends on 
+/* Right immediately after RA shared table, It's better to place
+FW starting address not to lose any single byte in SRAM.
+Total shared table for RA depends on
 RA_CB_ENABLED, HAL_NUM_BSSID, HAL_MAC_MAX_TX_RATES, and HAL_NUM_STA.
-Currently, RA_CB_DISABLED, NUM_BSSID=2, MAX_TX_RATES=43, NUM_STA = 8 
-results in QWLANFW_MEMMAP_RA_SHARED_TABLE_ADDR = 0x3480. 
+Currently, RA_CB_DISABLED, NUM_BSSID=2, MAX_TX_RATES=43, NUM_STA = 8
+results in QWLANFW_MEMMAP_RA_SHARED_TABLE_ADDR = 0x3480.
 See binary.lds.in in firmware source build tree */
 
 #define QWLANFW_MEMMAP_RA_SHARED_TABLE_ADDR  0x2800
 #define QWLANFW_MEMMAP_RA_BSS_INFO_TABLE     CEIL_ALIGN(QWLANFW_MEMMAP_RA_SHARED_TABLE_ADDR, 16)
 
 #ifdef RA_CB_ENABLED
-#define QWLANFW_MEMMAP_TPE_RATE_TABLE        CEIL_ALIGN(QWLANFW_MEMMAP_RA_BSS_INFO_TABLE+sizeof(tHalRaBssInfo)*HAL_NUM_BSSID, 4) 
+#define QWLANFW_MEMMAP_TPE_RATE_TABLE        CEIL_ALIGN(QWLANFW_MEMMAP_RA_BSS_INFO_TABLE+sizeof(tHalRaBssInfo)*HAL_NUM_BSSID, 4)
 #define QWLANFW_MEMMAP_HAL_RATE_INFO         CEIL_ALIGN(QWLANFW_MEMMAP_TPE_RATE_TABLE+sizeof(tTpeRateTable)*HAL_MAC_MAX_TX_RATES, 4)
 #else
-#define QWLANFW_MEMMAP_HAL_RATE_INFO         CEIL_ALIGN(QWLANFW_MEMMAP_RA_BSS_INFO_TABLE+sizeof(tHalRaBssInfo)*HAL_NUM_BSSID, 4) 
+#define QWLANFW_MEMMAP_HAL_RATE_INFO         CEIL_ALIGN(QWLANFW_MEMMAP_RA_BSS_INFO_TABLE+sizeof(tHalRaBssInfo)*HAL_NUM_BSSID, 4)
 #endif
 #define QWLANFW_MEMMAP_RATE_TXPWR_TABLE      CEIL_ALIGN(QWLANFW_MEMMAP_HAL_RATE_INFO+sizeof(tHalRateInfo)*HAL_MAC_MAX_TX_RATES, 4)
 #define QWLANFW_MEMMAP_RA_GLOBAL_CONFIG      CEIL_ALIGN(QWLANFW_MEMMAP_RATE_TXPWR_TABLE+sizeof(tANI_U8)*HAL_MAC_MAX_TX_RATES, 4)
@@ -176,7 +176,7 @@ See binary.lds.in in firmware source build tree */
 /* log NCODES (16 bits - 65536 of these) */
 
 /* log codes for miscellaneous
-   (QWLANFW_LOG_EVENT_TYPE_MISC) 
+   (QWLANFW_LOG_EVENT_TYPE_MISC)
 */
 #define QWLANFW_LOG_CODE_MISC_BASE                            0x0
 
@@ -227,7 +227,7 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_FAST_BPS                             (QWLANFW_LOG_CODE_MISC_BASE + 0x38)
 
 /* log codes for message handling
-   (QWLANFW_LOG_EVENT_TYPE_MSG_HANDLING) 
+   (QWLANFW_LOG_EVENT_TYPE_MSG_HANDLING)
 */
 #define QWLANFW_LOG_CODE_MSG_BASE                           0x100
 
@@ -268,7 +268,7 @@ See binary.lds.in in firmware source build tree */
 
 
 /* log codes for interrupt handling
-   (QWLANFW_LOG_EVENT_TYPE_INTR_HANDLING) 
+   (QWLANFW_LOG_EVENT_TYPE_INTR_HANDLING)
 */
 #define QWLANFW_LOG_CODE_INTR_BASE                          0x200
 
@@ -304,7 +304,7 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_TBTT_ADJUST_ERROR                  (QWLANFW_LOG_CODE_INTR_BASE + 0x1e)
 
 /* log codes for timeout handling
-   (QWLANFW_LOG_EVENT_TYPE_TIMEOUT_HANDLING) 
+   (QWLANFW_LOG_EVENT_TYPE_TIMEOUT_HANDLING)
 */
 #define QWLANFW_LOG_CODE_TIMEOUT_BASE                       0x300
 #define QWLANFW_LOG_CODE_PMU_SLEEP_TIMEOUT_HANDLER          (QWLANFW_LOG_CODE_TIMEOUT_BASE + 0x1)
@@ -314,7 +314,7 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_BEACON_RX_TIMEOUT_HANDLER          (QWLANFW_LOG_CODE_TIMEOUT_BASE + 0x5)
 
 /* log codes for job handling
-   (QWLANFW_LOG_EVENT_TYPE_JOB_HANDLING) 
+   (QWLANFW_LOG_EVENT_TYPE_JOB_HANDLING)
 */
 #define QWLANFW_LOG_CODE_JOB_BASE                           0x400
 
@@ -354,7 +354,7 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_BTC_FAILED_PM_TRANSITION           (QWLANFW_LOG_CODE_JOB_BASE + 0x2c)
 
 /* log codes for init
-   (QWLANFW_LOG_EVENT_TYPE_INIT) 
+   (QWLANFW_LOG_EVENT_TYPE_INIT)
 */
 #define QWLANFW_LOG_CODE_INIT_BASE                          0x500
 #define QWLANFW_LOG_CODE_MACFW_VER_MAJOR_MINOR_PATCH_BUILD  (QWLANFW_LOG_CODE_INIT_BASE + 0x1)
@@ -381,10 +381,10 @@ See binary.lds.in in firmware source build tree */
 
 /* This needs to be larger than WLANFW_MODULE_NUM from wlanfwdefs.h
 
-   It's nice for this to be larger than the actual number of modules 
-   so we can grow the number of modules without changing the layout 
-   of the log descriptor.  This is desirable because Quarky will 
-   decode the log descriptor and may not be built as often as the 
+   It's nice for this to be larger than the actual number of modules
+   so we can grow the number of modules without changing the layout
+   of the log descriptor.  This is desirable because Quarky will
+   decode the log descriptor and may not be built as often as the
    driver.
 */
 #define COREX_LOG_NUM_FILTERS 8
@@ -395,9 +395,9 @@ typedef struct {
 } CorexLog_EventFilterType;
 
 /* overhead taken from log space for management structures includes:
-   overhead from nHeadIndex 
-   overhead from nTailIndex 
-   overhead from Event Filter structure 
+   overhead from nHeadIndex
+   overhead from nTailIndex
+   overhead from Event Filter structure
 */
 #define COREX_LOG_OVERHEAD \
   (sizeof(tANI_U32) \
@@ -428,7 +428,7 @@ typedef struct {
 #define FEATURE_WLANFW_COREX_LOG_BUFFER_ENTRY_WORD_SIZE \
    (sizeof(CorexLog_EntryType)/sizeof(tANI_U32))
 
-typedef struct {
+typedef PACKED_PRE struct PACKED_POST _UapsdAcParamType {
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32  usSrvIntrMs   : 16;
    tANI_U32  ucUp          : 8;
@@ -585,7 +585,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32   bReserved3  : 16;
    tANI_U32   apMacAddrHi : 16;
 #endif
-    
+
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32   staIdx          : 8;
    tANI_U32   ucMaxMissBeacon : 8;
@@ -633,7 +633,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #endif
 
 #ifdef ANI_BIG_BYTE_ENDIAN
-   /* The following flags are used for 
+   /* The following flags are used for
     * debugging purposes. All the debug
     * related flags are in this bitmap
     */
@@ -658,11 +658,11 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32   ucBcastDataRecepTimeoutMs      : 8;
    tANI_U32   ucUcastDataRecepTimeoutMs      : 8;
-   tANI_U32   ucMaxSifUnfreezeTimeoutMs      : 8;     
+   tANI_U32   ucMaxSifUnfreezeTimeoutMs      : 8;
    tANI_U32   ucBtqmQueuesEmptyTimeoutMs     : 8;
 #else
    tANI_U32   ucBtqmQueuesEmptyTimeoutMs     : 8;
-   tANI_U32   ucMaxSifUnfreezeTimeoutMs      : 8;     
+   tANI_U32   ucMaxSifUnfreezeTimeoutMs      : 8;
    tANI_U32   ucUcastDataRecepTimeoutMs      : 8;
    tANI_U32   ucBcastDataRecepTimeoutMs      : 8;
 #endif
@@ -677,9 +677,9 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32   usBmpsSleepTimeOverheadsUs      : 16;
-   tANI_U32   usBmpsForcedSleepTimeOverheadsUs: 16;     
+   tANI_U32   usBmpsForcedSleepTimeOverheadsUs: 16;
 #else
-   tANI_U32   usBmpsForcedSleepTimeOverheadsUs: 16;     
+   tANI_U32   usBmpsForcedSleepTimeOverheadsUs: 16;
    tANI_U32   usBmpsSleepTimeOverheadsUs      : 16;
 #endif
 
@@ -687,9 +687,9 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32   ucBmpsFirstBeaconTimeoutMs      : 8;
    tANI_U32   ucBdPduEmptyMonitorMs           : 8;
    tANI_U32   ucRfSupplySettlingTimeClk       : 8;
-   tANI_U32   bReserved8                      : 8;     
+   tANI_U32   bReserved8                      : 8;
 #else
-   tANI_U32   bReserved8                      : 8;     
+   tANI_U32   bReserved8                      : 8;
    tANI_U32   ucRfSupplySettlingTimeClk       : 8;
    tANI_U32   ucBdPduEmptyMonitorMs           : 8;
    tANI_U32   ucBmpsFirstBeaconTimeoutMs      : 8;
@@ -737,7 +737,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 
    /* TPC */
    tANI_U32   uTpcGainLutAduReinitAddr;
-   
+
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32   uAirTimeComp         : 16;
    tANI_U32   uInitTimeComp        : 16;
@@ -756,14 +756,14 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32   uReserved11               : 24;
    tANI_U32   ucUapsdDataRecepTimeoutMs : 8;
 #endif
-  
+
    tANI_U32   uMgmtWoWLPassMask;
 
 #ifdef ANI_BIG_BYTE_ENDIAN
-   tANI_U32  ucMaxBss:8;               
-   tANI_U32  ucMaxSta:8;               
+   tANI_U32  ucMaxBss:8;
+   tANI_U32  ucMaxSta:8;
    tANI_U32  ucDpuSig:8;
-   tANI_U32  ucDpuIdx:8;            
+   tANI_U32  ucDpuIdx:8;
 #else
    tANI_U32  ucDpuIdx:8;
    tANI_U32  ucDpuSig:8;
@@ -855,7 +855,7 @@ typedef enum
 
     // 802.11b Rates - Short Preamble
     TPE_RT_IDX_11B_RATE_SHORT_PR_BASE_OFFSET = 4,
-    TPE_RT_IDX_11B_LONG_1_MBPS_DUP = TPE_RT_IDX_11B_RATE_SHORT_PR_BASE_OFFSET,      
+    TPE_RT_IDX_11B_LONG_1_MBPS_DUP = TPE_RT_IDX_11B_RATE_SHORT_PR_BASE_OFFSET,
     TPE_RT_IDX_11B_SHORT_2_MBPS,
     TPE_RT_IDX_11B_SHORT_5_5_MBPS,
     TPE_RT_IDX_11B_SHORT_11_MBPS,
@@ -905,11 +905,11 @@ typedef enum
     //Qualcomm Proprietary Rates 20Mhz Greenfield Mode
     TPE_RT_IDX_ANI_GF_68_25_MBPS = 42,
 
-    // Since STBC rates are not used for TX, 
+    // Since STBC rates are not used for TX,
     // this is the max TX rates
     TPE_RT_IDX_MAX_TX_RATES = 43,
 
-    // NOTE: As we have only one transmit chain, STBC rates 
+    // NOTE: As we have only one transmit chain, STBC rates
     // cannot be used in the transmit side.
     //MCS Index #0-7 (20MHz) STBC Rates Greenfield Mode
     TPE_RT_IDX_MCS_1NSS_STBC_GF_6_5_MBPS = TPE_RT_IDX_MAX_TX_RATES,
@@ -944,7 +944,7 @@ typedef enum
 
     TPE_RT_IDX_MAX_RATES = 68,
 
-    TPE_RT_IDX_INVALID =   TPE_RT_IDX_MAX_RATES  
+    TPE_RT_IDX_INVALID =   TPE_RT_IDX_MAX_RATES
 
 } tTpeRateIdx;
 
@@ -1080,13 +1080,13 @@ typedef struct sHalRateInfo {
 #ifdef ANI_BIG_BYTE_ENDIAN
        tANI_U16    actualTputKbps;     /* max MAC SAP throughput */
        tANI_U16    thruputKbps;        /* PHY rate */
-   
+
        tANI_U16    ieRateMcsIdx;       /* non 11n rates: IE rate. 11n rates: MCS index */
        tANI_S16    sensitivity;        /* 1 unit= 0.1db */
-   
+
        tANI_U16    sensThruputRank;    /* rank of rate when sorted by sensitivity (primary) and throughput */
        tANI_U16    thruputSensRank;    /* rank of rate when sorted by throughput (primary) and sensitivity */
-   
+
        tANI_U32    rateProperty;       /* Properties of rate */
        tANI_U32    tpeRateIdx;         /* TPE Rate index */
 #else
@@ -1098,19 +1098,19 @@ typedef struct sHalRateInfo {
        tANI_U16    thruputSensRank;    /* rank of rate when sorted by throughput (primary) and sensitivity */
        tANI_U32    rateProperty;       /* Properties of rate */
        tTpeRateIdx tpeRateIdx;         /* TPE Rate index */
-#endif    
+#endif
 } tHalRateInfo, * tpHalRateInfo;
 
 
 #define HAL_RA_MAX_RATES           3
-   
+
 /* NOTE: Libra supports only 20MHz mode and doesnot support the channel bonding
  * mode, the per station TX rate channel is 1 */
-#define HAL_RA_TXRATE_CHANNEL_NUM  1 
-   
+#define HAL_RA_TXRATE_CHANNEL_NUM  1
+
 /* Number of rate descriptors per station */
-#define HAL_RA_TXRATE_NUM          (HAL_RA_MAX_RATES * HAL_RA_TXRATE_CHANNEL_NUM) 
-   
+#define HAL_RA_TXRATE_NUM          (HAL_RA_MAX_RATES * HAL_RA_TXRATE_CHANNEL_NUM)
+
 /*
  * Rate information per station
  */
@@ -1121,7 +1121,7 @@ typedef struct sHalRateInfo {
  * NOTE: these enums are used to index into RA tables, so any changes here
  * must be reflected in the RA tables as well
  */
-typedef enum eHalMacRate   
+typedef enum eHalMacRate
 {
     /* ----------------------------------------------------------
      * generic mac rates - represent a rate which can be achieved
@@ -1205,13 +1205,13 @@ typedef enum eHalMacRate
     HALRATE_QUALCOMM_GF_6825 = HALRATE_QUALCOMM_GF_START,   /* +42 */
     HALRATE_QUALCOMM_GF_END = HALRATE_QUALCOMM_GF_6825,
 
-    // NOTE: As we have only one transmit chain, STBC rates 
+    // NOTE: As we have only one transmit chain, STBC rates
     // cannot be used in the transmit side.
     HALRATE_MODE_TX_END,         /* 43 */
 
     //MCS Index #0-7 (20MHz) STBC Rates Greenfield Mode
     HALRATE_STBC_START = HALRATE_MODE_TX_END,
-    HALRATE_STBC_GF_START = HALRATE_STBC_START,       
+    HALRATE_STBC_GF_START = HALRATE_STBC_START,
     HALRATE_STBC_GF_0065 = HALRATE_STBC_GF_START,        /* +43 */
     HALRATE_STBC_GF_0013,                          /* +44 */
     HALRATE_STBC_GF_0195,                          /* +45 */
@@ -1220,7 +1220,7 @@ typedef enum eHalMacRate
     HALRATE_STBC_GF_0052,                          /* +48 */
     HALRATE_STBC_GF_0585,                          /* +49 */
     HALRATE_STBC_GF_0650,                                   /* +50 */
-    HALRATE_STBC_GF_END = HALRATE_STBC_GF_0650, 
+    HALRATE_STBC_GF_END = HALRATE_STBC_GF_0650,
 
     //MCS Index #0-15 (20MHz) STBC Rates Mixed Mode
     HALRATE_STBC_MM_START,
@@ -1252,24 +1252,24 @@ typedef enum eHalMacRate
     HALRATE_MODE_END,
 
 } tHalMacRate, *tpHalMacRate;
-   
+
 /* -------------------------------------------------------------------------- */
 /* macros to get information about the rates */
-   
+
 /* number of all supported rates */
 #define HAL_MAC_MAX_RATES         (HALRATE_MODE_END - HALRATE_MODE_START)
-   
+
 /* number of supported TX rates */
 #define HAL_MAC_MAX_TX_RATES      (HALRATE_MODE_TX_END - HALRATE_MODE_START) // 43
-   
+
 /* number of 11b rates */
 #define HAL_NUM_11B_RATES         (HALRATE_11B_END - HALRATE_11B_START + 1)
 /* number of 11a rates */
 #define HAL_NUM_11A_RATES         (HALRATE_11A_END - HALRATE_11A_START + 1)
 
 #define HAL_NUM_MACRATE_2_IERATE_ENTRIES (HALRATE_MODE_TX_END - HALRATE_MODE_START)
-   
- 
+
+
 /*-- flavours of supported rates
  * valid types are
     11B
@@ -1294,22 +1294,22 @@ typedef enum eHalMacRate
 
 /* how many tANI_U32's needed to hold a bitmap of nRates */
 #define RA_CONVERT_2_U32_BITMAP(nRates) ((nRates + 31) >> 5)
-   
+
 /* #tANI_U32's needed for a bitmap representation for all rates */
 #define HAL_NUM_U32_MAP_RATES    RA_CONVERT_2_U32_BITMAP(HAL_MAC_MAX_TX_RATES)   // 2
-   
+
 /*
  * number of rates that are potential candidates for the next step from a
  * given rate. This is the max number of rates that can be sampled from any
  * current rate. Among these RA_SAMPLING_RATES_MAX rates, index RA_SAMPLING_BASE_RATE
  * is the base rate and index RA_SAMPLING_JUMP_RATE is the jump rate.
  */
-#define RA_SAMPLING_BASE_RATE  0    
-#define RA_SAMPLING_FIRST_RATE  1   
+#define RA_SAMPLING_BASE_RATE  0
+#define RA_SAMPLING_FIRST_RATE  1
 #if 0 //  --> works, but let's wait until the feedback from the team
 #define RA_SAMPLING_RATES_MAX  8
 #else
-#define RA_SAMPLING_RATES_MAX  10   
+#define RA_SAMPLING_RATES_MAX  10
 #endif
 /* ---------------------------------------------------------------------------
  * the sampling table is an array of rates that should be sampled to determine
@@ -1331,11 +1331,11 @@ typedef enum eHalRetryMode {
     HAL_RETRY_USE_SPECIFIED, /* use specified retry rate */
     HAL_RETRY_USE_CLOSEST, /* use closes lower rate */
 } tHalRetryMode, *tpHalRetryMode;
-   
+
 /* ----------------------------------------------------------------------------
  * types used by rate adaptation module
  */
-   
+
 /*
  * rate adapt mode : determines current operating mode of the RA algorithm
  */
@@ -1343,14 +1343,14 @@ typedef enum eRateAdaptMode {
     RATE_ADAPT_FIXED = 0,
     RATE_ADAPT_AUTO
 } tRateAdaptMode, *tpRateAdaptMode;
-   
+
 /* PER selection algorithm */
 #define RA_PER_SELECT_MPDU    0
 #define RA_PER_SELECT_PPDU    1
 #define RA_PER_SELECT_HYBRID  2
-   
+
 #define RA_STA_RATE_HISTORY_LEN 32  /* code assumes this number is power of 2 */
-   
+
 /*
 *  Periodically. HAL uses these counter to switch
 *  rate at proper time.
@@ -1366,10 +1366,10 @@ typedef PACKED_PRE struct PACKED_POST sTxRateStat {
 
 #ifdef ANI_BIG_BYTE_ENDIAN
     tANI_U32 totalAckTimeoutPpdus:16; /* # of BA/ACK timeouts */
-    tANI_U32 totalHybridTx:16;      /* # of total transmission. 
+    tANI_U32 totalHybridTx:16;      /* # of total transmission.
                                         If ACK timeout, only+1, if ACK comes back add # of MPDU transmitted.  */
 #else
-    tANI_U32 totalHybridTx:16;      /* # of total transmission. 
+    tANI_U32 totalHybridTx:16;      /* # of total transmission.
                                         If ACK timeout, only+1, if ACK comes back add # of MPDU transmitted.  */
     tANI_U32 totalAckTimeoutPpdus:16; /* # of BA/ACK timeouts */
 #endif
@@ -1383,11 +1383,11 @@ typedef PACKED_PRE struct PACKED_POST sTxRateStat {
 #endif
 
 } tTxRateStat;
-   
+
 /*
 *  For each STA, now HAL selects 6 rates and configures to TPE.
 *  In TPE, for each STA, a rate stat block is maintained which
-*  directly updated by the TPE on TX activities and is  
+*  directly updated by the TPE on TX activities and is
 *  periodically collected by HAL for rate adaptation decision.
 */
 typedef PACKED_PRE struct PACKED_POST sRateAdaptTxStat {
@@ -1395,8 +1395,8 @@ typedef PACKED_PRE struct PACKED_POST sRateAdaptTxStat {
     tTxRateStat  rastats[HAL_RA_MAX_RATES][HAL_RA_TXRATE_CHANNEL_NUM];
 
 } tRateAdaptTxStat;
-   
-   
+
+
 /* ----------------------------------------------------------------------------
  * per sta RA information
  */
@@ -1412,7 +1412,7 @@ typedef PACKED_PRE struct PACKED_POST sHalRaInfo {
     tANI_U8         opRateMode;
     tANI_U8         lowestRateByNwType;
 #endif
- 
+
     tANI_U32        supportedRates[HAL_NUM_U32_MAP_RATES];
     tANI_U32        validRates[HAL_NUM_U32_MAP_RATES];
 
@@ -1477,7 +1477,7 @@ typedef PACKED_PRE struct PACKED_POST sBssRaBit {
     tANI_U32 rifsMode:1;
     tANI_U32 fShortSlot:1;
     tANI_U32 reserved1:25;
-#endif      
+#endif
 } bssRaBit;
 
 typedef PACKED_PRE union PACKED_POST sBssRaParam {
@@ -1502,7 +1502,7 @@ typedef PACKED_PRE struct PACKED_POST sHalRaGlobalInfo
    tANI_U8   sRate;              /* preferred secondary rate. used only when rMode=HAL_RETRY_USE_SPECIFIED, set to 0 for other modes */
    tANI_U8   tRate;              /* preferred tertiary rate. used only when rMode=HAL_RETRY_USE_SPECIFIED, set to 0 for other modes */
    tANI_U8   raPerAlgoSelection; /* PER calculation algorithm, based on PPDU, MPDU, or HYBRID */
-#endif    
+#endif
 #ifdef ANI_BIG_BYTE_ENDIAN
    /* input from cfg */
    tANI_U8   reserved1;
@@ -1520,9 +1520,9 @@ typedef PACKED_PRE struct PACKED_POST sHalRaGlobalInfo
    tANI_U8   extraStayIncThreshold; /* In STAY state, increment maxExtraStayPeriods by this value */
    tANI_U8   perIgnoreThreshold;    /* PER below this is equivalent to zero This considered roughly to the expected PER due to collision */
 #else
-   tANI_U8   perIgnoreThreshold; 
+   tANI_U8   perIgnoreThreshold;
    tANI_U8   extraStayIncThreshold;
-   tANI_U8   consecFailThreshold;        
+   tANI_U8   consecFailThreshold;
    tANI_U8   failThreshold;
 #endif
 
@@ -1541,10 +1541,10 @@ typedef PACKED_PRE struct PACKED_POST sHalRaGlobalInfo
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U16  badLinkPersistencyThresh;   /* Number of consecutive good samples before considering link is bad */
    tANI_U16  goodLinkPersistencyThresh;  /* Number of consecutive good samples before considering link is good */
-#else    
+#else
    tANI_U16  goodLinkPersistencyThresh;
-   tANI_U16  badLinkPersistencyThresh;   
-#endif    
+   tANI_U16  badLinkPersistencyThresh;
+#endif
     /* samples's validity */
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U16  linkIdleSamples;     /* Number of rate adapt periods before we conclude link is idle (msec) */
@@ -1569,7 +1569,7 @@ typedef PACKED_PRE struct PACKED_POST sHalRaGlobalInfo
 #else
    tANI_U8   lowerSensSampleRates;
    tANI_U8   higherSensSampleRates;
-   tANI_U16  raPeriod;           
+   tANI_U16  raPeriod;
 #endif
     /* sensitivity */
 #ifdef ANI_BIG_BYTE_ENDIAN
@@ -1804,7 +1804,7 @@ typedef enum
   QWLANFW_BT_EVENT_MODE_CHANGED,
   QWLANFW_BT_EVENT_A2DP_STREAM_START,
   QWLANFW_BT_EVENT_A2DP_STREAM_STOP,
-  QWLANFW_BT_EVENT_TYPE_MAX    //This and beyond are invalid values 
+  QWLANFW_BT_EVENT_TYPE_MAX    //This and beyond are invalid values
 } tFwBtEventEnum;
 
 /*==================================================================================
@@ -2005,7 +2005,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_AddBcnFilterMsgStruct
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32             usCapInfoFieldValue : 16;
    tANI_U32             usCapInfoFieldMask  : 16;
-#else 
+#else
    tANI_U32             usCapInfoFieldMask  : 16;
    tANI_U32             usCapInfoFieldValue : 16;
 #endif
@@ -2036,7 +2036,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_RemBcnFilterMsgStruct
 #else
    tANI_U32             bReserved : 24;
    tANI_U32             ucNumIds  : 8;
-#endif   
+#endif
    tANI_U8              ucRemIeId[QWLANFW_MAX_BCN_FILTER];
 } Qwlanfw_RemBcnFilterMsgType;
 
@@ -2123,20 +2123,20 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_CalUpdateReqStruct
 typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SetChannelReqStruct
 {
    Qwlanfw_CtrlMsgType  hdr;
-   tANI_U32             usChanNum;          //channel number 1 to 14 for 2.4GHz 
+   tANI_U32             usChanNum;          //channel number 1 to 14 for 2.4GHz
    tANI_U32             ucCbState;          // always 0 for 20MHz
    tANI_U32             ucRegDomain;        // enum according to eRegDomainId
    tANI_U32             ucCalRequired;      // flag to decide whether cal is needed or not.
 } Qwlanfw_SetChannelReqType;
 
-/** 
+/**
 @brief
 QWLANFW_HOST2FW_SET_CHAIN_SELECT_REQ
 */
 typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SetChainSelectReqStruct
 {
    Qwlanfw_CtrlMsgType  hdr;
-   tANI_U32             uPhyChainSelections; 
+   tANI_U32             uPhyChainSelections;
 } Qwlanfw_SetChainSelectReqType;
 
 
@@ -2337,8 +2337,8 @@ typedef enum
   QWLANFW_RA_UPDATE_DEL_STA,
   QWLANFW_RA_UPDATE_TIMER,
   QWLANFW_RA_UPDATE_PARAM,
-  QWLANFW_RA_FORCE_STA_RATE,       
-  QWLANFW_RA_UPDATE_TYPE_MAX    //This and beyond are invalid values 
+  QWLANFW_RA_FORCE_STA_RATE,
+  QWLANFW_RA_UPDATE_TYPE_MAX    //This and beyond are invalid values
 } tFwRaUpdateEnum;
 
 typedef PACKED_PRE struct PACKED_POST _Qwlanfw_RaAddBssStruct
@@ -2372,7 +2372,7 @@ typedef PACKED_PRE struct PACKED_POST _Qwlanfw_RaAddStaStruct
    tANI_U32   staIdx:8;
 #endif
 */
-   // add more, but be careful about endian 
+   // add more, but be careful about endian
 } Qwlanfw_RaAddStaMsgType;
 
 typedef PACKED_PRE struct PACKED_POST _Qwlanfw_RaDelStaStruct
@@ -2387,7 +2387,7 @@ typedef PACKED_PRE struct PACKED_POST _Qwlanfw_RaDelStaStruct
    tANI_U32   staIdx:8;
 #endif
 */
-   // add more, but be careful about endian 
+   // add more, but be careful about endian
 } Qwlanfw_RaDelStaMsgType;
 
 #define RA_UPDATE_TIMER_START    1
@@ -2403,7 +2403,7 @@ typedef PACKED_PRE struct PACKED_POST _Qwlanfw_RaTimerStruct
    tANI_U32   raTimerCntrl:16;
    tANI_U32   raPeriod:16;
 #endif
-   // add more, but be careful about endian 
+   // add more, but be careful about endian
 } Qwlanfw_RaTimerMsgType;
 
 /* bitmap for which parameter is updated */
@@ -2418,7 +2418,7 @@ typedef PACKED_PRE struct PACKED_POST _Qwlanfw_RaUpdateParamStruct
 {
    tANI_U32   bmCode;           /* bitmap code to which paramter is modified */
    tANI_U32   paramSpecific;    /* parameter specific information */
-   // add more, but be careful about endian 
+   // add more, but be careful about endian
 } Qwlanfw_RaUpdateParamMsgType;
 
 typedef PACKED_PRE struct PACKED_POST _Qwlanfw_RaForceStaRateStruct
@@ -2428,7 +2428,7 @@ typedef PACKED_PRE struct PACKED_POST _Qwlanfw_RaForceStaRateStruct
    tANI_U32   priRateIdx; /* valid range: 0-43 */
    tANI_U32   secRateIdx; /* valid range: 0-43 */
    tANI_U32   terRateIdx; /* valid range: 0-43 */
-   // add more, but be careful about endian 
+   // add more, but be careful about endian
 } Qwlanfw_RaForceStaRateMsgType;
 
 
@@ -2620,14 +2620,14 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SetChannelRspStruct
   tANI_U32             uStatus;
 } Qwlanfw_SetChannelRspType;
 
-/** 
+/**
 @brief
 QWLANFW_FW2HOST_SET_CHAIN_SELECT_RSP
 */
 typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SetChainSelectRspStruct
 {
    Qwlanfw_CtrlMsgType  hdr;
-   tANI_U32             uStatus; 
+   tANI_U32             uStatus;
 } Qwlanfw_SetChainSelectRspType;
 
 #endif /*_QWLAN_MACFW_H*/

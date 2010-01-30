@@ -193,6 +193,9 @@ typedef struct sUapsdInfo {
 
 #define WLANHAL_RX_BD_GET_RXP_FLAGS(_pvBDHeader)            (((tpHalRxBd)_pvBDHeader)->rxpFlags)
 
+#define WLANHAL_RX_BD_GET_TYPE_SUBTYPE(_pvBDHeader)            (((tpHalRxBd)_pvBDHeader)->frameTypeSubtype)
+#define WLANHAL_RX_BD_SET_TYPE_SUBTYPE( _bd, _typeSubtype )        (((tpHalRxBd)_bd)->frameTypeSubtype = _typeSubtype)
+
 #define WLANHAL_RX_BD_ASF_SET                1 /*The value of the field when set and pkt is AMSDU*/
 
 #define WLANHAL_RX_BD_FSF_SET               1

@@ -161,7 +161,7 @@ typedef v_SLONG_t TX_SEMAPHORE;
 /*--------------------------------------------------------------------*/
 typedef struct TX_TIMER_STRUCT
 {
-#ifdef VOS_ENABLE_TRACING
+#ifdef WLAN_DEBUG
 #define TIMER_MAX_NAME_LEN 50
     char timerName[TIMER_MAX_NAME_LEN];
 #endif

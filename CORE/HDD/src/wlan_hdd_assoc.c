@@ -300,9 +300,7 @@ static VOS_STATUS hdd_roamDeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId 
 {
     VOS_STATUS vosStatus;
 
-   //Will do later we need to return back to OS all un-sent packets else we have a nasty leak
-   //HddReleasePendingPkts( pAdapter );
- 
+    hdd_disconnect_tx_rx(pAdapter);
     vosStatus = WLANTL_ClearSTAClient( pAdapter->pvosContext, staId );
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
@@ -323,6 +321,10 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
   
     struct net_device *dev = pAdapter->dev;
 
+    // notify apps that we can't pass traffic anymore
+    netif_tx_disable(dev);
+    netif_carrier_off(dev);
+    
     hdd_connSetConnectionState( pAdapter, eConnectionState_NotConnected );
     
     // indicate 'disconnect' status to wpa_supplicant...
@@ -340,9 +342,6 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     // Clear saved connection information in HDD
     hdd_connRemoveConnectInfo( pAdapter );
 
-    netif_tx_disable(dev);
-    netif_carrier_off(dev);
-    
     //Unblock anyone waiting for disconnect to complete
     complete(&pAdapter->disconnect_comp_var);
     return( status );
@@ -853,15 +852,17 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
 
       case eCSR_ROAM_RESULT_IBSS_INACTIVE:
       {
+         // Stop only when we are inactive
+         netif_tx_disable(pAdapter->dev);
+         netif_carrier_off(pAdapter->dev);
+
          hdd_connSetConnectionState( pAdapter, eConnectionState_NotConnected );
          
          // Send the bssid address to the wext.
          hdd_SendAssociationEvent(pAdapter->dev, pRoamInfo);
 
-         // Stop only when we are inactive
-         netif_tx_disable(pAdapter->dev);
-         netif_carrier_off(pAdapter->dev);
-
+         // clean up data path
+         hdd_disconnect_tx_rx(pAdapter);
          break;
       }
 

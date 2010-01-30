@@ -55,8 +55,11 @@
  
 /*
 ** Maximum number of messages in the system
+** These are buffers to account for all current messages 
+** with some accounting of what we think is a 
+** worst-case scenario.
 */
-#define VOS_CORE_MAX_MESSAGES           80 // 10 messages per queue
+#define VOS_CORE_MAX_MESSAGES           120
 
 
 /*

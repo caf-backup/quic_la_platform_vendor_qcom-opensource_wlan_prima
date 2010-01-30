@@ -45,7 +45,7 @@
  * ------------------------------------------------------------------------*/
 #include "VossWrapper.h"
 
-#ifdef VOS_ENABLE_TRACING
+#ifdef WLAN_DEBUG
 #define TIMER_NAME timer_ptr->timerName 
 #else
 #define TIMER_NAME "N/A"
@@ -336,7 +336,7 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
     // Set the flag indicating that the timer was created
 	timer_ptr->tmrSignature = TX_AIRGO_TMR_SIGNATURE;
 
-#ifdef VOS_ENABLE_TRACING
+#ifdef WLAN_DEBUG
 	// Store the timer name
     strcpy(timer_ptr->timerName, name_ptr);
 #endif // Store the timer name, for Debug build only

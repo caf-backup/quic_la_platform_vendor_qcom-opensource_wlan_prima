@@ -46,6 +46,7 @@
 #include "i_vos_packet.h"
 #include "vos_nvitem.h"
 #include "wlan_hdd_main.h"
+#include "wlan_hdd_misc.h"
 
 
 /*---------------------------------------------------------------------------
@@ -287,13 +288,14 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
 
    /* initialize the NV module */
-   vStatus = vos_nv_init();
+   vStatus = vos_nv_open();
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
    {
      // NV module cannot be initialized, however the driver is allowed
      // to proceed
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                 "%s: Failed to initialize the NV module", __func__);
+     goto err_sys_close;
    }
 
    /* Probe the MC thread */
@@ -306,7 +308,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                 "%s: Failed to probe MC Thread", __func__);
       VOS_ASSERT(0);
-      goto err_sys_close;
+      goto err_nv_close;
    }
 
    /*Now probe the Tx thread */
@@ -319,7 +321,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                 "%s: Failed to probe TX Thread",__func__);
       VOS_ASSERT(0);
-      goto err_sys_close;
+      goto err_nv_close;
    }
 
    /* If we arrive here, both threads dispacthing messages correctly */
@@ -339,7 +341,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                "%s: Failed to open MAC", __func__);
      VOS_ASSERT(0);
-     goto err_sys_close;
+     goto err_nv_close;
    }
 
    /* Now proceed to open the SME */
@@ -391,6 +393,9 @@ err_sme_close:
 err_mac_close:
    macClose(gpVosContext->pMACContext);
 
+err_nv_close:
+   vos_nv_close();
+   
 err_sys_close:   
    sysClose(gpVosContext);
 
@@ -527,7 +532,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   /* Free uo the FW image no matter what */
   if( NULL != halStartParams.FW.pImage ) 
   {
-     hdd_release_fw_binary(pVosContext->pHDDContext);
+     hdd_release_firmware(LIBRA_FW_FILE,pVosContext->pHDDContext);
      halStartParams.FW.pImage = NULL;
      halStartParams.FW.cbImage = 0;
   }  
@@ -682,7 +687,16 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
-  ((pVosContextType)vosContext)->pMACContext = NULL;;
+  ((pVosContextType)vosContext)->pMACContext = NULL;
+
+  vosStatus = vos_nv_close();
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close NV",__func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
 
   vosStatus = sysClose( vosContext );
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))

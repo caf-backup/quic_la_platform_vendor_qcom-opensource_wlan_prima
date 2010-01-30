@@ -365,7 +365,7 @@ typedef struct
 /* Under here not public items, just use for internal */
 /* 3 SME 1 HDD */
 #define WLANTL_MAX_AVAIL_THRESHOLD   5
-#define WLANTL_HS_NUM_CLIENT         2
+#define WLANTL_HS_NUM_CLIENT         4
 #define WLANTL_SINGLE_CLNT_THRESHOLD 4
 
 /*----------------------------------------------------------------------------

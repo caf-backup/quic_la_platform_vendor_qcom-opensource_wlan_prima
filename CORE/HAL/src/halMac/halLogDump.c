@@ -2694,7 +2694,7 @@ static char *dump_hal_phy_regs(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2
 
         //tx lo
         HALLOGE(halLog(pMac, LOGE, FL("Dumping tx lo cal values\n")));
-        palWriteRegister(pMac->hHdd, QWLAN_RFAPB_MODE_SEL1_REG, 0x400f);
+        palWriteRegister(pMac->hHdd, QWLAN_RFAPB_MODE_SEL1_REG, 0x4000);
         for (i=0;i<16;i++)
         {
             palWriteRegister(pMac->hHdd, 0xe02f804, i);
@@ -2931,7 +2931,7 @@ dump_hal_set_fw_sleep_times( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, 
        case 4:
             pFwConfig->usPmuSleepTimeoutMsec = (tANI_U16)arg2;
 			break;
-       
+
        default:
             break;
     }
@@ -3359,7 +3359,7 @@ dump_hal_phy_config_tpc( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI
 
     //configure TPC from NV cache
     halPhyConfigureTpc(pMac);
-    
+
     //update whole TPE rate power table.
     halRate_UpdateRateTablePower(pMac, (tTpeRateIdx)MIN_LIBRA_RATE_NUM, (tTpeRateIdx)MAX_LIBRA_TX_RATE_NUM, TRUE);
 
