@@ -45,7 +45,7 @@
 /** HDD internal Tx Queue Low Watermark. Net Device TX queue is disabled
  *  when HDD queue becomes full. This Low watermark is used to enable
  *  the Net Device queue again */
-#define HDD_TX_QUEUE_LOW_WATER_MARK 20
+#define HDD_TX_QUEUE_LOW_WATER_MARK (HDD_TX_QUEUE_MAX_LEN*3/4)
 
 /** Bytes to reserve in the headroom */
 #define LIBRA_HW_NEEDED_HEADROOM   128
@@ -160,6 +160,7 @@ struct hdd_adapter_s
   
    /**Track whether OS TX queue has been disabled.*/
    v_BOOL_t isTxSuspended;
+   v_U8_t   txSuspendedAc;
 
    /**Event Flags*/
    unsigned long event_flags;

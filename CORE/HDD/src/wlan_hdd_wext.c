@@ -49,6 +49,7 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 #define WE_GET_11D_STATE     1
 #define WE_IBSS_STATUS       2
 #define WE_PMC_STATE         3
+#define WE_GET_WLAN_DBG      4
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_INT     (SIOCIWFIRSTPRIV + 2)
@@ -57,6 +58,10 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 #define WLAN_PRIV_SET_CHAR_GET_NONE   (SIOCIWFIRSTPRIV + 3)
 #define WE_WOWL_ADD_PTRN     1
 #define WE_WOWL_DEL_PTRN     2
+
+/* Private ioctls and their sub-ioctls */
+#define WLAN_PRIV_SET_THREE_INT_GET_NONE   (SIOCIWFIRSTPRIV + 4)
+#define WE_SET_WLAN_DBG      1
 
 /* To Validate Channel against the Frequency and Vice-Versa */
 static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2}, 
@@ -2209,13 +2214,18 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
            printk(KERN_EMERG "****Return IBSS Status*****\n");
            break;
 
-          case WE_PMC_STATE:
-          {
+        case WE_PMC_STATE:
+        {
              *value = pmcGetPmcState(pAdapter->hHal);
              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("PMC state=%ld!!\n"),*value);
              break;            
-          }    
-         
+        }
+        case WE_GET_WLAN_DBG:
+        {
+           vos_trace_display();
+           *value = 0;
+           break;            
+        }         
         default:
         {
             hddLog(LOGE, "Invalid IOCTL get_value command %d ",value[0]);
@@ -2226,6 +2236,31 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
     return ret;
 }
 
+/* set param sub-ioctls */
+static int iw_set_three_ints_getnone(struct net_device *dev, struct iw_request_info *info,
+                       union iwreq_data *wrqu, char *extra)
+{    
+    int *value = (int *)extra;
+    int sub_cmd = value[0];
+    
+    
+    switch(sub_cmd)
+    {
+        case WE_SET_WLAN_DBG:
+        {
+            vos_trace_setValue( value[1], value[2], value[3]);
+            break;
+        }
+           
+        default:  
+        {
+            hddLog(LOGE, "Invalid IOCTL command %d  \n",  sub_cmd );
+            break;
+        }
+    }
+
+    return 0;
+}
 
 
 // Define the Wireless Extensions to the Linux Network Device structure
@@ -2295,6 +2330,7 @@ static const iw_handler we_private[] = {
    [WLAN_PRIV_SET_INT_GET_NONE      - SIOCIWFIRSTPRIV] = iw_setint_getnone,  //set priv ioctl
    [WLAN_PRIV_SET_NONE_GET_INT      - SIOCIWFIRSTPRIV] = iw_setnone_getint,  //get priv ioctl   
    [WLAN_PRIV_SET_CHAR_GET_NONE     - SIOCIWFIRSTPRIV] = iw_setchar_getnone, //get priv ioctl   
+   [WLAN_PRIV_SET_THREE_INT_GET_NONE  - SIOCIWFIRSTPRIV] = iw_set_three_ints_getnone,
 };
 
 /*Maximum command length can be only 15 */
@@ -2343,6 +2379,11 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "pmcState" },
+        
+    {   WE_GET_WLAN_DBG,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "getwlandbg" },    
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_CHAR_GET_NONE,
@@ -2360,6 +2401,19 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_CHAR| 512,
         0, 
         "wowlDelPtrn" },
+        
+    /* handlers for main ioctl */
+    {   WLAN_PRIV_SET_THREE_INT_GET_NONE,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+        0, 
+        "" },
+
+    /* handlers for sub-ioctl */
+    {   WE_SET_WLAN_DBG,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+        0, 
+        "setwlandbg" },
+
 };
 
 

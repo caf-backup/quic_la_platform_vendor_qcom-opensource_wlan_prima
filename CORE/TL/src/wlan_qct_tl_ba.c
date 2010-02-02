@@ -156,18 +156,17 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
 
    opCode      = WLANTL_OPCODE_FWDALL_DROPCUR;
    vosDataBuff = NULL;
+
+
+   BAMSGERROR("BA timeout with %d pending frames", ReorderInfo->pendingFramesCount, 0, 0);
+
    if(ReorderInfo->pendingFramesCount == 0)
    {
-      BAMSGDEBUG("No pending frames, why triggered timer?", 0, 0, 0);
       if(!VOS_IS_STATUS_SUCCESS(vos_lock_release(&ReorderInfo->reorderLock)))
       {
          BAMSGERROR("WLANTL_ReorderingAgingTimerExpierCB, Release LOCK Fail", 0, 0, 0);
       }
       return;
-   }
-   else
-   {
-      BAMSGERROR("There are %d pending frames, handle it %d", ReorderInfo->pendingFramesCount, 0, 0);
    }
 
    if(0 == ReorderInfo->ucCIndex)
@@ -220,57 +219,6 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
    }
    return;
 }/*WLANTL_ReorderingAgingTimerExpierCB*/
-
-/*==========================================================================
-
-   FUNCTION    tlReorderDetectHole
-
-   DESCRIPTION 
-      Detect hole within frame Q
-      If there is a hole, start aging timer
-      If there is no hole, stop timer
-    
-   PARAMETERS 
-      WLANTL_BAReorderType  *pwBaReorder
-         Reorder information for this BA session
-         Q and window timer context is here
-
-      vos_pkt_t             *vosDataBuff
-         New frame received
-   
-   RETURN VALUE
-  
-============================================================================*/
-VOS_STATUS WLANTL_ReorderDetectHole
-(
-   WLANTL_BAReorderType  *pwBaReorder
-)
-{
-   VOS_STATUS       status     = VOS_STATUS_SUCCESS;
-   VOS_TIMER_STATE  timerState = vos_timer_getCurrentState(&pwBaReorder->agingTimer);
-
-   if((pwBaReorder->pendingFramesCount > 0) &&
-      (VOS_TIMER_STATE_STOPPED == timerState))
-   {
-      BAMSGDEBUG("There is a new HOLE, Pending Frames Count %d",
-                  pwBaReorder->pendingFramesCount, 0, 0);
-      status = vos_timer_start(&pwBaReorder->agingTimer,
-                               WLANTL_BA_REORDERING_AGING_TIMER);
-      if(!VOS_IS_STATUS_SUCCESS(status))
-      {
-         BAMSGERROR("Timer start fail", status, 0, 0);
-         return status;
-      }
-   }
-   else if((pwBaReorder->pendingFramesCount > 0) &&
-           (VOS_TIMER_STATE_STOPPED != timerState))
-   {
-      BAMSGDEBUG("Still HOLE, Pending Frames Count %d",
-                  pwBaReorder->pendingFramesCount, 0, 0);
-   }
-
-   return status;
-}
 
 /*----------------------------------------------------------------------------
     INTERACTION WITH TL Main
@@ -916,8 +864,11 @@ VOS_STATUS WLANTL_MSDUReorder
    v_U8_t               ucSlotIdx;
    v_U8_t               ucFwdIdx;
    v_U8_t               CSN;
-   VOS_STATUS           status     = VOS_STATUS_SUCCESS;
-   VOS_STATUS           lockStatus = VOS_STATUS_SUCCESS; 
+   v_U32_t              ucCIndexOrig;
+   VOS_STATUS           status      = VOS_STATUS_SUCCESS;
+   VOS_STATUS           lockStatus  = VOS_STATUS_SUCCESS; 
+   VOS_STATUS           timerStatus = VOS_STATUS_SUCCESS; 
+   VOS_TIMER_STATE      timerState;
    v_SIZE_t             rxFree;
 
    if((NULL == pTLCb) || (*vosDataBuff == NULL))
@@ -952,6 +903,9 @@ VOS_STATUS WLANTL_MSDUReorder
 
 #endif /* WLANTL_REORDER_DEBUG_MSG_ENABLE */
    BAMSGDEBUG("SI %d, FI %d, CI %d", ucSlotIdx, ucFwdIdx, currentReorderInfo->ucCIndex);
+
+   // remember our current CI so that later we can tell if it advanced
+   ucCIndexOrig = currentReorderInfo->ucCIndex;
 
    switch(ucOpCode) 
    {
@@ -1311,7 +1265,60 @@ VOS_STATUS WLANTL_MSDUReorder
       }
       currentReorderInfo->pendingFramesCount = 0;
    }
-   WLANTL_ReorderDetectHole(currentReorderInfo);
+
+   /*
+    * Current aging timer logic:
+    * 1) if we forwarded any packets and the timer is running:
+    *    stop the timer
+    * 2) if there are packets queued and the timer is not running:
+    *    start the timer
+    */
+   timerState = vos_timer_getCurrentState(&currentReorderInfo->agingTimer);
+   if ((VOS_TIMER_STATE_RUNNING == timerState) &&
+       (ucCIndexOrig != currentReorderInfo->ucCIndex))
+   {
+      BAMSGDEBUG("HOLE filled, Pending Frames Count %d",
+                 currentReorderInfo->pendingFramesCount, 0, 0);
+
+      // we forwarded some packets so stop aging the current hole
+      timerStatus = vos_timer_stop(&currentReorderInfo->agingTimer);
+      timerState = VOS_TIMER_STATE_STOPPED;
+
+      // ignore the returned status since there is a race condition
+      // whereby between the time we called getCurrentState() and the
+      // time we call stop() the timer could have fired.  In that case
+      // stop() will return an error, but we don't care since the
+      // timer has stopped
+   }
+
+   if (currentReorderInfo->pendingFramesCount > 0)
+   {
+      if (VOS_TIMER_STATE_STOPPED == timerState)
+      {
+         BAMSGDEBUG("There is a new HOLE, Pending Frames Count %d",
+                    currentReorderInfo->pendingFramesCount, 0, 0);
+         timerStatus = vos_timer_start(&currentReorderInfo->agingTimer,
+                                       WLANTL_BA_REORDERING_AGING_TIMER);
+         if(!VOS_IS_STATUS_SUCCESS(timerStatus))
+         {
+            BAMSGERROR("Timer start fail", timerStatus, 0, 0);
+            lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
+            if(!VOS_IS_STATUS_SUCCESS(lockStatus))
+            {
+               BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+               return lockStatus;
+            }
+            return timerStatus;
+         }
+      }
+      else
+      {
+         // we didn't forward any packets and the timer was already
+         // running so we're still aging the same hole
+         BAMSGDEBUG("Still HOLE, Pending Frames Count %d",
+                    currentReorderInfo->pendingFramesCount, 0, 0);
+      }
+   }
 
    lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
    if(!VOS_IS_STATUS_SUCCESS(lockStatus))

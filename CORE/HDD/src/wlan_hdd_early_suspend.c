@@ -239,13 +239,6 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
    vosStatus = WLANBAL_SuspendChip( pAdapter->pvosContext );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
-   vosStatus = vos_chipVoteOffPASupply( &callType, NULL, NULL );
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-
-   vosStatus = WLANSAL_SetCardStatusNotfPath( 
-      pAdapter->pvosContext, WLANSAL_NOTF_PATH_SAL );
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-
    vosStatus = WLANSAL_Stop(pAdapter->pvosContext);
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
@@ -275,47 +268,67 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
       "%s: calling vos_chipDeAssertDeepSleep",__func__);
    vosStatus = vos_chipDeAssertDeepSleep( &callType, NULL, NULL );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed in vos_chipDeAssertDeepSleep",__func__);
+      goto err_deep_sleep;
+   }
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
       "%s: calling vos_chipExitDeepSleepVREGHandler",__func__);
    vosStatus = vos_chipExitDeepSleepVREGHandler( &callType, NULL, NULL );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-      "%s: calling vos_chipVoteOnPASupply",__func__);
-   vosStatus = vos_chipVoteOnPASupply( &callType, NULL, NULL );
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed in vos_chipExitDeepSleepVREGHandler",__func__);
+      goto err_deep_sleep;
+   }
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
       "%s: calling WLANSAL_SDIOReInit",__func__);
    vosStatus = WLANSAL_SDIOReInit( pAdapter->pvosContext );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-      "%s: calling WLANSAL_SetCardStatusNotfPath",__func__);
-   vosStatus = WLANSAL_SetCardStatusNotfPath( 
-      pAdapter->pvosContext, WLANSAL_NOTF_PATH_SDBUS );
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-      "%s: calling WLANBAL_ResumeChip",__func__);
-   vosStatus = WLANBAL_ResumeChip( pAdapter->pvosContext );
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed in WLANSAL_SDIOReInit",__func__);
+      goto err_deep_sleep;
+   }
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
       "%s: calling hdd_set_sme_config",__func__);
    vosStatus = hdd_set_sme_config( pAdapter );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed in hdd_set_sme_config",__func__);
+      goto err_deep_sleep;
+   }
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
       "%s: calling vos_start",__func__);
    vosStatus = vos_start( pAdapter->pvosContext );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed in vos_start",__func__);
+      goto err_deep_sleep;
+   }
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
       "%s: calling hdd_post_voss_start_config",__func__);
    vosStatus = hdd_post_voss_start_config( pAdapter );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed in hdd_post_voss_start_config",__func__);
+      goto err_voss_start;
+   }
 
    pAdapter->hdd_ps_state = eHDD_SUSPEND_NONE;
 
@@ -323,6 +336,11 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
    hdd_wlan_initial_scan(pAdapter);
 
    return VOS_STATUS_SUCCESS;
+err_voss_start:
+   vos_stop(pAdapter->pvosContext);
+err_deep_sleep:
+   return VOS_STATUS_E_FAILURE;
+
 }
 //Suspend routine registered with Android OS
 void hdd_suspend_wlan(struct early_suspend *wlan_suspend)

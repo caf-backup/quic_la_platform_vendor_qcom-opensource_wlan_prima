@@ -53,7 +53,6 @@
 
 #ifdef ANI_MANF_DIAG
 int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter);
-
 #endif
 
 
@@ -546,8 +545,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
 
-    //FIXME Is this necessary?
-    msleep_interruptible(50); 
+    msleep(50); 
 
    //Put the chip is standby before asserting deep sleep
    vosStatus = WLANBAL_SuspendChip( pAdapter->pvosContext );
@@ -558,9 +556,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
 
-   //WLANSAL_Stop is done outside vos_stop because vos_stop is invoked
-   //during deep sleep entry as well and we do not want to stop SAL at
-   //that time
+   //Invoke SAL stop
    vosStatus = WLANSAL_Stop( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
    {
@@ -569,12 +565,11 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
 
-   //Assert Deep sleep signal now. Libra is in lowest possible power
-   //state now
+   //Assert Deep sleep signal now to put Libra HW in lowest power state
    vosStatus = vos_chipAssertDeepSleep( NULL, NULL, NULL );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
-   //Vote off all the PMIC voltage supplies
+   //Vote off any PMIC voltage supplies
    vos_chipPowerDown(NULL, NULL, NULL);
 
    //Clean up HDD Nlink Service
@@ -947,31 +942,38 @@ static int __init hdd_module_init (void)
 {
    VOS_STATUS status;
    v_CONTEXT_t pVosContext = NULL;
-   struct sdio_func *sdio_func_dev;
-
+   struct sdio_func *sdio_func_dev = NULL;
+   unsigned int attempts = 0;
    ENTER();
-     
-   //Power Up Libra
-   status = vos_chipPowerUp(NULL,NULL,NULL);
-
    
+   //Power Up Libra WLAN card first if not already powered up
+   status = vos_chipPowerUp(NULL,NULL,NULL);
    if (!VOS_IS_STATUS_SUCCESS(status)) 
    {
-
-      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Libra not Powered Up."
-          "exiting\n", __func__);
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Libra WLAN not Powered Up."
+          "exiting", __func__);
       return -1;
-
    }
 
+   //SDIO Polling should be turned on for card detection. When using Android Wi-Fi GUI
+   //users need not trigger SDIO polling explicitly. However when loading drivers via
+   //command line (Adb shell), users must turn on SDIO polling prior to loading WLAN.
+   do {
+      sdio_func_dev = libra_getsdio_funcdev();
+      if (NULL == sdio_func_dev) {
+         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Libra WLAN not detected yet.",__func__);
+         attempts++;
+      }
+      else {
+         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Libra WLAN detecton succeeded",__func__);
+         break;
+      }
+      msleep(1000);
 
-   // Check if our device is up and running, else we have
-   // no need to proceed.
-   sdio_func_dev = libra_getsdio_funcdev();
-   if (NULL == sdio_func_dev)
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Libra SDIO card not detected yet.."
-          "exiting\n", __func__);
+   }while (attempts < 3);
+
+   if (NULL == sdio_func_dev) {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Libra WLAN not found!!",__func__);
       return -1;
    }
 
@@ -1052,7 +1054,7 @@ static void __exit hdd_module_exit(void)
    WLANSAL_Close(pVosContext);
 
    vos_preClose( &pVosContext );
-   
+
    hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Exiting module exit",__func__);
 }
 

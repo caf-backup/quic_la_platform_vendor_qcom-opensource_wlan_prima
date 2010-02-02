@@ -133,6 +133,9 @@ static VOS_STATUS hdd_flush_tx_queues( hdd_adapter_t *pAdapter )
       spin_unlock_bh(&pAdapter->wmm_tx_queue[i].lock);
    }
 
+   // backpressure is no longer in effect
+   pAdapter->isTxSuspended = VOS_FALSE;
+
    return status;
 }
 
@@ -177,16 +180,27 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    //If we have already reached the max queue size, disable the TX queue
    if ( pAdapter->wmm_tx_queue[ac].count == pAdapter->wmm_tx_queue[ac].max_size)
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: TX queue full for AC=%d Disable OS TX queue", __FUNCTION__, ac );
-      netif_stop_queue(dev);
-      netif_carrier_off(dev);
-
       // not really the right statistic, but this gives us a way
       // to see if we encounter this condition.  shows up as
       // overruns in busybox ifconfig output
       pAdapter->stats.tx_fifo_errors++;
 
+#define BACKPRESSURE_FULL_QUEUE
+#ifdef BACKPRESSURE_FULL_QUEUE
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+                 "%s: TX queue full for AC=%d Disable OS TX queue", 
+                 __FUNCTION__, ac );
+
+      netif_stop_queue(dev);
+      netif_carrier_off(dev);
+      pAdapter->isTxSuspended = VOS_TRUE;
+      pAdapter->txSuspendedAc = ac;
       return NETDEV_TX_BUSY;
+#else //DROP_FULL_QUEUE
+      kfree_skb(skb);
+      return NETDEV_TX_OK;
+#endif
+
    }
 
    //Use the skb->cb field to hold the list node information
@@ -638,13 +652,13 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    pPktMetaInfo->ucBcast = vos_is_macaddr_broadcast( pDestMacAddress ) ? 1 : 0;
    pPktMetaInfo->ucMcast = vos_is_macaddr_group( pDestMacAddress ) ? 1 : 0;
 
-#ifdef HDD_WMM_DEBUG
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Valid VOS PKT returned to TL", __FUNCTION__);
-#endif // HDD_WMM_DEBUG
-
-   if ( netif_queue_stopped(pAdapter->dev) && size <= HDD_TX_QUEUE_LOW_WATER_MARK )
+   // if we are in a backpressure situation see if we can turn the hose back on
+   if ( (pAdapter->isTxSuspended) &&
+        (ac == pAdapter->txSuspendedAc) &&
+        (size <= HDD_TX_QUEUE_LOW_WATER_MARK) )
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: TX queue re-enabled", __FUNCTION__);
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: TX queue re-enabled", __FUNCTION__);
       pAdapter->isTxSuspended = VOS_FALSE;
       netif_carrier_on(pAdapter->dev);
       netif_start_queue(pAdapter->dev);
@@ -661,6 +675,10 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    // account for them
    pAdapter->stats.tx_packets++;
    pAdapter->stats.tx_bytes += skb->len;
+
+#ifdef HDD_WMM_DEBUG
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Valid VOS PKT returned to TL", __FUNCTION__);
+#endif // HDD_WMM_DEBUG
 
    return status;
 }
