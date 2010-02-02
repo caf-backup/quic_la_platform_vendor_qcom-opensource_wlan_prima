@@ -3719,6 +3719,7 @@ WLANTL_RxFrames
 
     ucFrmType = (v_U8_t)WLANHAL_RxBD_GetFrameTypeSubType( pvBDHeader, 
                                                           usFrmCtrl);
+    WLANHAL_RX_BD_SET_TYPE_SUBTYPE(pvBDHeader, ucFrmType);
     if ( WLANTL_IS_MGMT_FRAME(ucFrmType) )
     {
       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -3732,11 +3733,11 @@ WLANTL_RxFrames
         vosTempBuff = vosDataBuff;
         continue;
       }
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-      /* Read RSSI and update */
       ucSTAId = (v_U8_t)WLANHAL_RX_BD_GET_STA_ID( pvBDHeader );
+      /* Read RSSI and update */
       if(!WLANTL_STA_ID_INVALID(ucSTAId))
       {
+#ifdef FEATURE_WLAN_GEN6_ROAMING
         /* Read RSSI and update */
         vosStatus = WLANTL_HSHandleRXFrame(pvosGCtx,
                                            WLANTL_MGMT_FRAME_TYPE,
@@ -3744,6 +3745,9 @@ WLANTL_RxFrames
                                            ucSTAId,
                                            VOS_FALSE,
                                            NULL);
+#else
+        vosStatus = WLANTL_ReadRSSI(pvosGCtx, pvBDHeader, ucSTAId);
+#endif
       }
 
       if(!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -3757,7 +3761,6 @@ WLANTL_RxFrames
         continue;
          */
       }
- #endif
       pTLCb->tlMgmtFrmClient.pfnTlMgmtFrmRx( pvosGCtx, vosTempBuff); 
     }
     else
@@ -3869,6 +3872,9 @@ WLANTL_RxFrames
                                            broadcast,
                                            vosTempBuff);
         broadcast = VOS_FALSE;
+#else
+        vosStatus = WLANTL_ReadRSSI(pvosGCtx, pvBDHeader, ucSTAId);
+#endif /*FEATURE_WLAN_GEN6_ROAMING*/
         if(!VOS_IS_STATUS_SUCCESS(vosStatus))
         {
           VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
@@ -3880,7 +3886,6 @@ WLANTL_RxFrames
           continue;
            */
         }
-#endif /*FEATURE_WLAN_GEN6_ROAMING*/
         pfnSTAFsm( pvosGCtx, ucSTAId, &vosTempBuff);
       }
       else
@@ -4161,7 +4166,7 @@ WLANTL_RxCachedFrames
       {
 #ifdef FEATURE_WLAN_GEN6_ROAMING
         /* Read RSSI and update */
-      vosStatus = WLANTL_HSHandleRXFrame(vos_get_global_context(
+        vosStatus = WLANTL_HSHandleRXFrame(vos_get_global_context(
                                          VOS_MODULE_ID_TL,pTLCb),
                                            WLANTL_DATA_FRAME_TYPE,
                                            pvBDHeader,
@@ -4169,6 +4174,9 @@ WLANTL_RxCachedFrames
                                            broadcast,
                                            vosTempBuff);
         broadcast = VOS_FALSE;
+#else
+        vosStatus = WLANTL_ReadRSSI(vos_get_global_context(VOS_MODULE_ID_TL,pTLCb), pvBDHeader, ucSTAId);
+#endif /*FEATURE_WLAN_GEN6_ROAMING*/
         if(!VOS_IS_STATUS_SUCCESS(vosStatus))
         {
           VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
@@ -4180,8 +4188,7 @@ WLANTL_RxCachedFrames
           continue;
            */
         }
-#endif
-      pfnSTAFsm( vos_get_global_context(VOS_MODULE_ID_TL,pTLCb), ucSTAId, 
+        pfnSTAFsm( vos_get_global_context(VOS_MODULE_ID_TL,pTLCb), ucSTAId, 
                  &vosTempBuff);
       }
       else
@@ -5391,7 +5398,8 @@ WLANTL_STARxAuth
      !! Fix me: rmv comments below
   ----------------------------------------------------------------------*/
   if (( 0 == WLANHAL_RX_BD_GET_FT(aucBDHeader) ) &&
-      ( 0 != pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucSwFrameRXXlation))
+      ( 0 != pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucSwFrameRXXlation) &&
+      ( WLANTL_IS_DATA_FRAME(WLANHAL_RX_BD_GET_TYPE_SUBTYPE(aucBDHeader)) ))
   {
     if(0 == ucMPDUHLen)
     {
@@ -8679,3 +8687,42 @@ VOS_STATUS WLANTL_ResetSpecStatistic
 
   return status;
 }
+
+
+/*==========================================================================
+
+   FUNCTION
+
+   DESCRIPTION   Read RSSI value out of a RX BD
+    
+   PARAMETERS:  Caller must validate all parameters 
+
+   RETURN VALUE
+
+============================================================================*/
+VOS_STATUS WLANTL_ReadRSSI
+(
+   v_PVOID_t        pAdapter,
+   v_PVOID_t        pBDHeader,
+   v_U8_t           STAid
+)
+{
+   WLANTL_CbType   *tlCtxt = VOS_GET_TL_CB(pAdapter);
+   v_S7_t           currentRSSI, currentRSSI0, currentRSSI1;
+
+
+   if(NULL == tlCtxt)
+   {
+      VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, "%s Invalid TL handle", __FUNCTION__);
+      return VOS_STATUS_E_INVAL;
+   }
+
+   currentRSSI0 = WLANTL_GETRSSI0(pBDHeader);
+   currentRSSI1 = WLANTL_GETRSSI1(pBDHeader);
+   currentRSSI  = (currentRSSI0 > currentRSSI1) ? currentRSSI0 : currentRSSI1;
+
+   tlCtxt->atlSTAClients[STAid].uRssiAvg = currentRSSI;
+
+   return VOS_STATUS_SUCCESS;
+}
+

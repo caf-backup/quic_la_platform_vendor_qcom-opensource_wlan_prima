@@ -1,0 +1,58 @@
+# Copyright (c) Microsoft Corporation.  All rights reserved.
+# Use of this source code is subject to the terms of the Microsoft end-user
+# license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+# If you did not accept the terms of the EULA, you are not authorized to use
+# this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+# install media.
+
+# Copyright (c) 2008 Qualcomm Incorporated
+# All rights reserved.
+
+
+!if "$(_TGTPROJ)" == "uldr"
+SKIPBUILD=1
+!endif
+
+LIBRA_ROOT = ..\..\..\..\
+
+TARGETNAME=wQctHalFtm
+
+TARGETTYPE=LIBRARY
+
+SOURCES= \
+          halPhyRates.c            \
+          asicTxFir.c              \
+          asicCal.c                \
+          asicTxCtl.c              \
+          asicPhyDbg.c             \
+          rfGemini.c               \
+          pttModule.c              \
+          pttMsgApi.c              \
+          pttFrameGen.c
+
+# For global defines, etc
+!INCLUDE $(LIBRA_ROOT)\sources.inc
+
+INCLUDES= \
+        $(LIBRA_ROOT)\CORE\HAL\inc\;                    \
+        $(LIBRA_ROOT)\CORE\HAL\src\halFtm\;             \
+        $(LIBRA_ROOT)\CORE\HAL\src\halPhy\;             \
+        $(LIBRA_ROOT)\CORE\HAL\src\halProc\;            \
+        $(LIBRA_ROOT)\CORE\HAL\src\halSys\;             \
+        $(LIBRA_ROOT)\CORE\HAL\src\halMac\;             \
+        $(LIBRA_ROOT)\CORE\VOSS\inc\;                   \
+        $(LIBRA_ROOT)\CORE\VOSS\inc\wm;                 \
+        $(LIBRA_ROOT)\CORE\MAC\inc;                     \
+        $(LIBRA_ROOT)\CORE\MAC\src\include;             \
+        $(LIBRA_ROOT)\CORE\MAC\src\pe\include;          \
+        $(LIBRA_ROOT)\CORE\MAC\src\dph;                 \
+        $(LIBRA_ROOT)\CORE\SME\inc\;                    \
+        $(LIBRA_ROOT)\CORE\SYS\common\inc;              \
+        $(LIBRA_ROOT)\CORE\SYS\legacy\src\PAL\inc;      \
+        $(LIBRA_ROOT)\CORE\SYS\legacy\src\platform\inc; \
+        $(LIBRA_ROOT)\CORE\SYS\legacy\src\system\inc\;  \
+        $(LIBRA_ROOT)\wlanfw\inc\;                      \
+        $(_SYSGENDDKROOT)\inc\;                         \
+        $(_SYSGENSDKROOT)\inc\;                         \
+        $(_SYSGENOAKROOT)\inc\;                         \
+

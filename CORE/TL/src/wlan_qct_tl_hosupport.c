@@ -49,11 +49,6 @@
 
 #define WLANTL_HO_DEFAULT_RSSI      0xFF
 #define WLANTL_HO_DEFAULT_ALPHA     5
-#define WLANTL_HO_SIZE_BYTE         8
-#define WLANTL_HO_RXFIR0_MASK       0x0000FF00
-#define WLANTL_HO_RXFIR1_MASK       0x000000FF
-#define WLANTL_HO_SNR_MASK          0xFC000000
-#define WLANTL_HO_RSSI_OFFSET       100
 /* RSSI sampling period, usec based
  * To reduce performance overhead
  * Current default 500msec */
@@ -69,6 +64,28 @@
 #define WLANHAL_RX_BD_GET_UB(_pvBDHeader)           (((tpHalRxBd)_pvBDHeader)->ub)
 #define WLANHAL_RX_BD_GET_RATEINDEX(_pvBDHeader)    (((tpHalRxBd)_pvBDHeader)->rateIndex)
 #define WLANHAL_RX_BD_GET_TIMESTAMP(_pvBDHeader)    (((tpHalRxBd)_pvBDHeader)->mclkRxTimestamp)
+
+
+/* Get and release lock */
+#define THSGETLOCK(a, b)                                      \
+        do                                                    \
+        {                                                     \
+           if(!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(b)))    \
+           {                                                  \
+              TH_MSG_ERROR("%s Get Lock Fail", a, 0, 0);      \
+              return VOS_STATUS_E_FAILURE;                    \
+           }                                                  \
+        }while(0)
+
+#define THSRELEASELOCK(a, b)                                  \
+        do                                                    \
+        {                                                     \
+           if(!VOS_IS_STATUS_SUCCESS(vos_lock_release(b)))    \
+           {                                                  \
+              TH_MSG_ERROR("%s Release Lock Fail", a, 0, 0);  \
+              return VOS_STATUS_E_FAILURE;                    \
+           }                                                  \
+        }while(0)
 
 const v_U8_t  WLANTL_HO_TID_2_AC[WLAN_MAX_TID] = {WLANTL_AC_BE, 
                                                   WLANTL_AC_BK,
@@ -172,7 +189,7 @@ void WLANTL_HSDebugDisplay
 )
 {
    WLANTL_CbType                  *tlCtxt = VOS_GET_TL_CB(pAdapter);
-   v_U8_t                          idx;
+   v_U8_t                          idx, sIdx;
    v_BOOL_t                        regionFound = VOS_FALSE;
    WLANTL_CURRENT_HO_STATE_TYPE   *currentHO;
    WLANTL_HO_SUPPORT_TYPE         *hoSupport;
@@ -200,19 +217,28 @@ void WLANTL_HSDebugDisplay
                          currentHO->alpha);
          }
       }
-      TH_MSG_ERROR("Client HDD pCB %p, uCtxt %p, triggerEvt %d",
-                   hoSupport->registeredInd[idx].crossCBFunction[0],
-                   hoSupport->registeredInd[idx].usrCtxt[0],
-                   hoSupport->registeredInd[idx].triggerEvent[0]);
-      TH_MSG_ERROR("Client SME pCB %p, uCtxt %p, triggerEvt %d",
-                   hoSupport->registeredInd[idx].crossCBFunction[1],
-                   hoSupport->registeredInd[idx].usrCtxt[1],
-                   hoSupport->registeredInd[idx].triggerEvent[1]);
-      TH_MSG_ERROR("Region %d, RSSI %d",
-                   idx,
-                   hoSupport->registeredInd[idx].rssiValue,
-                   0);
+      for(sIdx = 0; sIdx < WLANTL_HS_NUM_CLIENT; sIdx++)
+      {
+         if(NULL != hoSupport->registeredInd[idx].crossCBFunction[sIdx])
+         {
+            if(VOS_MODULE_ID_HDD == hoSupport->registeredInd[idx].whoIsClient[sIdx])
+            {
+               TH_MSG_ERROR("Client HDD pCB %p, triggerEvt %d, RSSI %d",
+                   hoSupport->registeredInd[idx].crossCBFunction[sIdx],
+                             hoSupport->registeredInd[idx].triggerEvent[sIdx],
+                             hoSupport->registeredInd[idx].rssiValue);
    }
+            else
+            {
+               TH_MSG_ERROR("Client SME pCB %p, triggerEvt %d, RSSI %d",
+                             hoSupport->registeredInd[idx].crossCBFunction[sIdx],
+                             hoSupport->registeredInd[idx].triggerEvent[sIdx],
+                             hoSupport->registeredInd[idx].rssiValue);
+            }
+         }
+      }
+   }
+
    if(VOS_FALSE == regionFound)
    {
       if(VOS_TRUE == hoSupport->isBMPS)
@@ -257,6 +283,7 @@ VOS_STATUS WLANTL_SetFWRSSIThresholds
    WLANTL_HSTempPSIndType          tempIndSet[WLANTL_SINGLE_CLNT_THRESHOLD];
    v_U8_t                          bmpsLoop;
    v_U8_t                          bmpsInd;
+   v_U8_t                          clientLoop;
 
    if(NULL == tlCtxt)
    {
@@ -274,17 +301,21 @@ VOS_STATUS WLANTL_SetFWRSSIThresholds
    bmpsInd = 0;
    for(bmpsLoop = 0; bmpsLoop < WLANTL_MAX_AVAIL_THRESHOLD; bmpsLoop++)
    {
-      if(0 != hoSupport->registeredInd[bmpsLoop].triggerEvent[1])
+      for(clientLoop = 0; clientLoop < WLANTL_HS_NUM_CLIENT; clientLoop++)
       {
-         if(bmpsInd == WLANTL_SINGLE_CLNT_THRESHOLD)
+         if(0 != hoSupport->registeredInd[bmpsLoop].triggerEvent[clientLoop])
          {
-            TH_MSG_ERROR("Single Client Threashold should be less than %d", WLANTL_SINGLE_CLNT_THRESHOLD, 0, 0);
-            TH_MSG_ERROR("Something wrong Out from here", 0, 0, 0);
+            if(bmpsInd == WLANTL_SINGLE_CLNT_THRESHOLD)
+            {
+               TH_MSG_ERROR("Single Client Threashold should be less than %d", WLANTL_SINGLE_CLNT_THRESHOLD, 0, 0);
+               TH_MSG_ERROR("Something wrong Out from here", 0, 0, 0);
+               break;
+            }
+            tempIndSet[bmpsInd].rssi  = hoSupport->registeredInd[bmpsLoop].rssiValue;
+            tempIndSet[bmpsInd].event = hoSupport->registeredInd[bmpsLoop].triggerEvent[clientLoop];
+            bmpsInd++;
             break;
          }
-         tempIndSet[bmpsInd].rssi  = hoSupport->registeredInd[bmpsLoop].rssiValue;
-         tempIndSet[bmpsInd].event = hoSupport->registeredInd[bmpsLoop].triggerEvent[1];
-         bmpsInd++;
       }
    }
 
@@ -663,8 +694,6 @@ VOS_STATUS WLANTL_HSGetRSSI
 {
    WLANTL_CbType   *tlCtxt = VOS_GET_TL_CB(pAdapter);
    VOS_STATUS       status = VOS_STATUS_SUCCESS;
-   v_U32_t          phyStats0;
-   v_U32_t          phyStats1;
    v_S7_t           currentRSSI, currentRSSI0, currentRSSI1;
    WLANTL_CURRENT_HO_STATE_TYPE *currentHO = NULL;
 
@@ -677,11 +706,8 @@ VOS_STATUS WLANTL_HSGetRSSI
 
    currentHO = &tlCtxt->hoSupport.currentHOState;
 
-   phyStats0 = SIR_MAC_BD_TO_PHY_STATS0(pBDHeader);
-   phyStats1 = SIR_MAC_BD_TO_PHY_STATS1(pBDHeader);
-
-   currentRSSI0 = (v_S7_t)(((phyStats0 & WLANTL_HO_RXFIR0_MASK) >> WLANTL_HO_SIZE_BYTE) - WLANTL_HO_RSSI_OFFSET);
-   currentRSSI1 = (v_S7_t)((phyStats0 & WLANTL_HO_RXFIR1_MASK) - WLANTL_HO_RSSI_OFFSET);
+   currentRSSI0 = WLANTL_GETRSSI0(pBDHeader);
+   currentRSSI1 = WLANTL_GETRSSI1(pBDHeader);
    currentRSSI  = (currentRSSI0 > currentRSSI1) ? currentRSSI0 : currentRSSI1;
 
    tlCtxt->atlSTAClients[STAid].uRssiAvg = currentRSSI;
@@ -1162,6 +1188,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
    v_U8_t                          idx, sIdx;
    WLANTL_HO_SUPPORT_TYPE         *hoSupport;
    WLANTL_CURRENT_HO_STATE_TYPE   *currentHO;
+   v_U8_t                          clientOrder;
 
    if(NULL == tlCtxt)
    {
@@ -1175,6 +1202,8 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
       return VOS_STATUS_E_INVAL;
    }
 
+   THSGETLOCK("WLANTL_HSRegRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
+
    currentHO = &(tlCtxt->hoSupport.currentHOState);
    hoSupport = &(tlCtxt->hoSupport);
    TH_MSG_ERROR("Make Registration Module %d, Event %d, RSSI %d", moduleID, triggerEvent, rssiValue);
@@ -1184,6 +1213,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
    {
       TH_MSG_ERROR("No more available slot, please DEL first %d",
                     currentHO->numThreshold, 0, 0);
+      THSRELEASELOCK("WLANTL_HSRegRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
       return VOS_STATUS_E_RESOURCES;
    }
 
@@ -1191,11 +1221,11 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
    {
       TH_MSG_INFO("First Registration", 0, 0, 0);
       hoSupport->registeredInd[0].rssiValue    = rssiValue;
-      hoSupport->registeredInd[0].triggerEvent[moduleID - VOS_MODULE_ID_HDD] = triggerEvent;
-      hoSupport->registeredInd[0].crossCBFunction[moduleID - VOS_MODULE_ID_HDD] = crossCBFunction;
-      hoSupport->registeredInd[0].usrCtxt[moduleID - VOS_MODULE_ID_HDD] = usrCtxt;
-      hoSupport->registeredInd[0].isEmpty = VOS_FALSE;
-      hoSupport->registeredInd[0].isMultipleClient = VOS_FALSE;
+      hoSupport->registeredInd[0].triggerEvent[0]    = triggerEvent;
+      hoSupport->registeredInd[0].crossCBFunction[0] = crossCBFunction;
+      hoSupport->registeredInd[0].usrCtxt[0]         = usrCtxt;
+      hoSupport->registeredInd[0].whoIsClient[0]     = moduleID;
+      hoSupport->registeredInd[0].numClient++;
    }
    else
    {
@@ -1203,11 +1233,36 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
       {
          if(rssiValue == hoSupport->registeredInd[idx].rssiValue)
          {
-            hoSupport->registeredInd[idx].triggerEvent[moduleID - VOS_MODULE_ID_HDD] = triggerEvent;
-            hoSupport->registeredInd[idx].crossCBFunction[moduleID - VOS_MODULE_ID_HDD] = crossCBFunction;
-            hoSupport->registeredInd[idx].usrCtxt[moduleID - VOS_MODULE_ID_HDD] = usrCtxt;
-            hoSupport->registeredInd[idx].isMultipleClient = VOS_TRUE;
+            for(sIdx = 0; sIdx < WLANTL_HS_NUM_CLIENT; sIdx++)
+            {
+               TH_MSG_ERROR("Reg CB P 0x%x, registered CB P 0x%x",
+                             crossCBFunction,
+                             hoSupport->registeredInd[idx].crossCBFunction[sIdx], 0);
+               if(crossCBFunction == hoSupport->registeredInd[idx].crossCBFunction[sIdx])
+               {
+                  TH_MSG_ERROR("Same RSSI %d, Same CB 0x%x already registered",
+                               rssiValue, crossCBFunction, 0);
+                  WLANTL_HSDebugDisplay(pAdapter);
+                  THSRELEASELOCK("WLANTL_HSRegRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
+                  return status;
+               }
+            }
+
+            for(sIdx = 0; sIdx < WLANTL_HS_NUM_CLIENT; sIdx++)
+            {
+               if(NULL == hoSupport->registeredInd[idx].crossCBFunction[sIdx])
+               {
+                  clientOrder = sIdx;
+                  break;
+               }
+            }
+            hoSupport->registeredInd[idx].triggerEvent[clientOrder]    = triggerEvent;
+            hoSupport->registeredInd[idx].crossCBFunction[clientOrder] = crossCBFunction;
+            hoSupport->registeredInd[idx].usrCtxt[clientOrder]         = usrCtxt;
+            hoSupport->registeredInd[idx].whoIsClient[clientOrder]     = moduleID;
+            hoSupport->registeredInd[idx].numClient++;
             WLANTL_HSDebugDisplay(pAdapter);
+            THSRELEASELOCK("WLANTL_HSRegRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
             return status;
          }
       }
@@ -1227,11 +1282,11 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
             }
             TH_MSG_INFO("Put in Here %d", idx , 0, 0);
             hoSupport->registeredInd[idx].rssiValue    = rssiValue;
-            hoSupport->registeredInd[idx].triggerEvent[moduleID - VOS_MODULE_ID_HDD] = triggerEvent;
-            hoSupport->registeredInd[idx].crossCBFunction[moduleID - VOS_MODULE_ID_HDD] = crossCBFunction;
-            hoSupport->registeredInd[idx].usrCtxt[moduleID - VOS_MODULE_ID_HDD] = usrCtxt;
-            hoSupport->registeredInd[idx].isEmpty = VOS_FALSE;
-            hoSupport->registeredInd[idx].isMultipleClient = VOS_FALSE; 
+            hoSupport->registeredInd[idx].triggerEvent[0]    = triggerEvent;
+            hoSupport->registeredInd[idx].crossCBFunction[0] = crossCBFunction;
+            hoSupport->registeredInd[idx].usrCtxt[0]         = usrCtxt;
+            hoSupport->registeredInd[idx].whoIsClient[0]     = moduleID;
+            hoSupport->registeredInd[idx].numClient++;
             break;
          }
       }
@@ -1240,11 +1295,11 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
          TH_MSG_INFO("New threshold put in bottom", 0, 0, 0);
 
          hoSupport->registeredInd[currentHO->numThreshold].rssiValue    = rssiValue;
-         hoSupport->registeredInd[currentHO->numThreshold].triggerEvent[moduleID - VOS_MODULE_ID_HDD] = triggerEvent;
-         hoSupport->registeredInd[currentHO->numThreshold].crossCBFunction[moduleID - VOS_MODULE_ID_HDD] = crossCBFunction;
-         hoSupport->registeredInd[currentHO->numThreshold].usrCtxt[moduleID - VOS_MODULE_ID_HDD] = usrCtxt;
-         hoSupport->registeredInd[currentHO->numThreshold].isEmpty = VOS_FALSE;
-         hoSupport->registeredInd[currentHO->numThreshold].isMultipleClient = VOS_FALSE; 
+         hoSupport->registeredInd[currentHO->numThreshold].triggerEvent[0] = triggerEvent;
+         hoSupport->registeredInd[currentHO->numThreshold].crossCBFunction[0] = crossCBFunction;
+         hoSupport->registeredInd[currentHO->numThreshold].usrCtxt[0] = usrCtxt;
+         hoSupport->registeredInd[currentHO->numThreshold].whoIsClient[0]     = moduleID;
+         hoSupport->registeredInd[currentHO->numThreshold].numClient++;
       }
    }
 
@@ -1320,6 +1375,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
    }
 
    WLANTL_HSDebugDisplay(pAdapter);
+   THSRELEASELOCK("WLANTL_HSRegRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
    return status;
 }
 
@@ -1362,6 +1418,7 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
       return VOS_STATUS_E_EMPTY;
    }
 
+   THSGETLOCK("WLANTL_HSDeregRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
    currentHO = &(tlCtxt->hoSupport.currentHOState);
    hoSupport = &(tlCtxt->hoSupport);
 
@@ -1381,15 +1438,22 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
    {
       if(rssiValue == hoSupport->registeredInd[idx].rssiValue)
       {
-         tlCtxt->hoSupport.registeredInd[idx].triggerEvent[moduleID - VOS_MODULE_ID_HDD] = 0;
-         tlCtxt->hoSupport.registeredInd[idx].crossCBFunction[moduleID - VOS_MODULE_ID_HDD] = NULL;
-         tlCtxt->hoSupport.registeredInd[idx].usrCtxt[moduleID - VOS_MODULE_ID_HDD] = NULL;
-
-         if(VOS_TRUE == hoSupport->registeredInd[idx].isMultipleClient)
+         for(sIdx = 0; sIdx < WLANTL_HS_NUM_CLIENT; sIdx++)
+         {
+            if(crossCBFunction == tlCtxt->hoSupport.registeredInd[idx].crossCBFunction[sIdx])
+            {
+               tlCtxt->hoSupport.registeredInd[idx].triggerEvent[sIdx]    = 0;
+               tlCtxt->hoSupport.registeredInd[idx].crossCBFunction[sIdx] = NULL;
+               tlCtxt->hoSupport.registeredInd[idx].usrCtxt[sIdx]         = NULL;
+               tlCtxt->hoSupport.registeredInd[idx].whoIsClient[sIdx]     = 0;
+               tlCtxt->hoSupport.registeredInd[idx].numClient--;
+            }
+         }
+         if(0 != tlCtxt->hoSupport.registeredInd[idx].numClient)
          {
             TH_MSG_ERROR("Found Multiple idx is %d", idx, 0, 0);
-            hoSupport->registeredInd[idx].isMultipleClient = VOS_FALSE;
             WLANTL_HSDebugDisplay(pAdapter);
+            THSRELEASELOCK("WLANTL_HSDeregRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
             return status;
          }
          else
@@ -1402,6 +1466,7 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
    if(idx == currentHO->numThreshold)
    {
       TH_MSG_ERROR("Cound not find entry, maybe invalid arg", 0, 0, 0);
+      THSRELEASELOCK("WLANTL_HSDeregRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
       return VOS_STATUS_E_INVAL;
    }
 
@@ -1426,11 +1491,15 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
       }
    }
    /* Common remove last array entry */
-   tlCtxt->hoSupport.registeredInd[currentHO->numThreshold - 1].triggerEvent[moduleID - VOS_MODULE_ID_HDD] = WLANTL_HO_THRESHOLD_NA;
    tlCtxt->hoSupport.registeredInd[currentHO->numThreshold - 1].rssiValue    = WLANTL_HO_DEFAULT_RSSI;
-   tlCtxt->hoSupport.registeredInd[currentHO->numThreshold - 1].crossCBFunction[moduleID - VOS_MODULE_ID_HDD] = NULL;
-   tlCtxt->hoSupport.registeredInd[currentHO->numThreshold - 1].usrCtxt[moduleID - VOS_MODULE_ID_HDD] = NULL;
-   tlCtxt->hoSupport.registeredInd[currentHO->numThreshold - 1].isEmpty = VOS_TRUE;
+   for(idx = 0; idx < WLANTL_HS_NUM_CLIENT; idx++)
+   {
+      tlCtxt->hoSupport.registeredInd[currentHO->numThreshold - 1].triggerEvent[idx]    = WLANTL_HO_THRESHOLD_NA;
+      tlCtxt->hoSupport.registeredInd[currentHO->numThreshold - 1].crossCBFunction[idx] = NULL;
+      tlCtxt->hoSupport.registeredInd[currentHO->numThreshold - 1].usrCtxt[idx]         = NULL;
+      tlCtxt->hoSupport.registeredInd[currentHO->numThreshold - 1].whoIsClient[idx]     = 0;
+      tlCtxt->hoSupport.registeredInd[currentHO->numThreshold - 1].numClient            = 0;
+   }
 
    if((VOS_FALSE == hoSupport->isBMPS) && (rssiValue >= currentHO->historyRSSI))
    {
@@ -1470,6 +1539,7 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
    }
 
    WLANTL_HSDebugDisplay(pAdapter);
+   THSRELEASELOCK("WLANTL_HSDeregRSSIIndicationCB", &tlCtxt->hoSupport.hosLock);
    return status;
 }
 
@@ -1499,8 +1569,9 @@ VOS_STATUS WLANTL_HSSetAlpha
       return VOS_STATUS_E_INVAL;
    }
 
+   THSGETLOCK("WLANTL_HSSetAlpha", &tlCtxt->hoSupport.hosLock);
    tlCtxt->hoSupport.currentHOState.alpha = (v_U8_t)valueAlpha;
-
+   THSRELEASELOCK("WLANTL_HSSetAlpha", &tlCtxt->hoSupport.hosLock);
    return status;
 }
 
@@ -1568,7 +1639,7 @@ VOS_STATUS WLANTL_HSInit
 {
    WLANTL_CbType   *tlCtxt = VOS_GET_TL_CB(pAdapter);
    VOS_STATUS       status = VOS_STATUS_SUCCESS;
-   v_U8_t           idx;
+   v_U8_t           idx, sIdx;
 
    if(NULL == tlCtxt)
    {
@@ -1605,15 +1676,15 @@ VOS_STATUS WLANTL_HSInit
    /* Initialize indication array */
    for(idx = 0; idx < WLANTL_MAX_AVAIL_THRESHOLD; idx++)
    {
-      tlCtxt->hoSupport.registeredInd[idx].triggerEvent[0]    = WLANTL_HO_THRESHOLD_NA;
-      tlCtxt->hoSupport.registeredInd[idx].triggerEvent[1]    = WLANTL_HO_THRESHOLD_NA;
+      for(sIdx = 0; sIdx < WLANTL_HS_NUM_CLIENT; sIdx++)
+      {
+         tlCtxt->hoSupport.registeredInd[idx].triggerEvent[sIdx]    = WLANTL_HO_THRESHOLD_NA;
+         tlCtxt->hoSupport.registeredInd[idx].crossCBFunction[sIdx] = NULL;
+         tlCtxt->hoSupport.registeredInd[idx].usrCtxt[sIdx]         = NULL;
+         tlCtxt->hoSupport.registeredInd[idx].whoIsClient[sIdx]     = 0;
+      }
       tlCtxt->hoSupport.registeredInd[idx].rssiValue          = WLANTL_HO_DEFAULT_RSSI;
-      tlCtxt->hoSupport.registeredInd[idx].crossCBFunction[0] = NULL;
-      tlCtxt->hoSupport.registeredInd[idx].crossCBFunction[1] = NULL;
-      tlCtxt->hoSupport.registeredInd[idx].usrCtxt[0]         = NULL;
-      tlCtxt->hoSupport.registeredInd[idx].usrCtxt[1]         = NULL;
-      tlCtxt->hoSupport.registeredInd[idx].isEmpty            = VOS_TRUE;
-      tlCtxt->hoSupport.registeredInd[idx].isMultipleClient   = VOS_FALSE;
+      tlCtxt->hoSupport.registeredInd[idx].numClient          = 0;
    }
 
    vos_timer_init(&tlCtxt->hoSupport.currentTraffic.trafficTimer,
@@ -1621,6 +1692,8 @@ VOS_STATUS WLANTL_HSInit
                   WLANTL_HSTrafficStatusTimerExpired,
                   pAdapter);
 
+
+   vos_lock_init(&tlCtxt->hoSupport.hosLock);
    tlCtxt->hoSupport.macCtxt = vos_get_context(VOS_MODULE_ID_SME, pAdapter);
    pmcRegisterDeviceStateUpdateInd(tlCtxt->hoSupport.macCtxt,
                                    WLANTL_HSPowerStateChangedCB, pAdapter);

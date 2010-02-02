@@ -33,7 +33,50 @@ eHalStatus halNvOpen(tHalHandle hMac)
     tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
 
     memcpy(&pMac->hphy.nvCache, &nvDefaults, sizeof(sHalNv));   //start with defaults
+/*Once tested for other platform android specific flag can be removed*/
+#ifdef ANI_OS_TYPE_ANDROID
+{    
+    v_BOOL_t itemIsValid = VOS_FALSE;
 
+    if (vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE) {
+
+            if(vos_nv_read( VNV_FIELD_IMAGE, (v_VOID_t *)&pMac->hphy.nvCache.fields, NULL, sizeof(sNvFields) ) != VOS_STATUS_SUCCESS) 
+              return (eHAL_STATUS_FAILURE);
+        }
+    }
+
+    if (vos_nv_getValidity(VNV_RATE_TO_POWER_TABLE, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {            
+        if (itemIsValid == VOS_TRUE)
+        { 
+             if(vos_nv_read( VNV_RATE_TO_POWER_TABLE, (v_VOID_t *)&pMac->hphy.nvCache.tables.pwrOptimum[0], NULL, sizeof(tRateGroupPwr) * NUM_RF_SUBBANDS ) != VOS_STATUS_SUCCESS) 
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
+
+    if (vos_nv_getValidity(VNV_REGULARTORY_DOMAIN_TABLE, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+       
+        if (itemIsValid == VOS_TRUE)
+        {                 
+            if(vos_nv_read( VNV_REGULARTORY_DOMAIN_TABLE, (v_VOID_t *)&pMac->hphy.nvCache.tables.regDomains[0], NULL, sizeof(sRegulatoryDomains) * NUM_REG_DOMAINS ) != VOS_STATUS_SUCCESS) 
+                return (eHAL_STATUS_FAILURE);             
+        }
+    }
+
+    if (vos_nv_getValidity(VNV_DEFAULT_LOCATION, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE)
+        {
+            if(vos_nv_read( VNV_DEFAULT_LOCATION, (v_VOID_t *)&pMac->hphy.nvCache.tables.defaultCountryTable, NULL, sizeof(sDefaultCountry) ) != VOS_STATUS_SUCCESS) 
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
+}
+#endif
+    pMac->hphy.nvTables[NV_FIELDS_IMAGE             ] = &pMac->hphy.nvCache.fields;
     pMac->hphy.nvTables[NV_TABLE_QFUSE              ] = &pMac->hphy.nvCache.tables.qFuseData;
     pMac->hphy.nvTables[NV_TABLE_RATE_POWER_SETTINGS] = &pMac->hphy.nvCache.tables.pwrOptimum[0];
     pMac->hphy.nvTables[NV_TABLE_REGULATORY_DOMAINS ] = &pMac->hphy.nvCache.tables.regDomains[0];
@@ -178,69 +221,51 @@ eHalStatus halWriteNvField(tHalHandle hMac, eNvField field, uNvFields *fieldData
     }
 }
 
+#ifdef ANI_MANF_DIAG
 
 eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
 {
-    //tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
-    //VOS_STATUS vosStatus;
+    tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
+    VOS_STATUS vosStatus;
 
 
     if ((tableID == NV_TABLE_QFUSE) && (halIsQFuseBlown(hMac) == eHAL_STATUS_FAILURE))
     {
-#ifdef ANI_MANF_DIAG
         return (halQFuseWrite(hMac));    //blow QFuse permanently
-#else
-        //do not allow production drivers to blow qFuse
-        return (eHAL_STATUS_FAILURE);
-#endif
     }
     else
     {
         switch (tableID)
         {
-/*              TODO: Awaiting vos nv functionality to be checked in by Simon Ho
-                case NV_FIELDS_IMAGE:
-                    if ((vosStatus = vos_nv_write(VNV_FIELD_IMAGE, (void *)&pMac->hphy.nvCache.fields, sizeof(sNvFields))) == VOS_STATUS_SUCCESS)
-                    {
-                    }
-                    else
-                    {
-                        return (eHAL_STATUS_FAILURE);
-                    }
+            case NV_FIELDS_IMAGE:
+                if ((vosStatus = vos_nv_write(VNV_FIELD_IMAGE, (void *)&pMac->hphy.nvCache.fields, sizeof(sNvFields))) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
 
-                    break;
+                break;
 
-                case NV_TABLE_RATE_POWER_SETTINGS:
-                    if ((vosStatus = vos_nv_write(VNV_RATE_TO_POWER_TABLE, (void *)&pMac->hphy.nvCache.tables.pwrOptimum[0], sizeof(tRateGroupPwr) * NUM_RF_SUBBANDS)) == VOS_STATUS_SUCCESS)
-                    {
-                    }
-                    else
-                    {
-                        return (eHAL_STATUS_FAILURE);
-                    }
-                    break;
+            case NV_TABLE_RATE_POWER_SETTINGS:
+                if ((vosStatus = vos_nv_write(VNV_RATE_TO_POWER_TABLE, (void *)&pMac->hphy.nvCache.tables.pwrOptimum[0], sizeof(tRateGroupPwr) * NUM_RF_SUBBANDS)) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
 
-                case NV_TABLE_REGULATORY_DOMAINS:
-                    if ((vosStatus = vos_nv_write(VNV_REGULARTORY_DOMAIN_TABLE, (void *)&pMac->hphy.nvCache.tables.regDomains[0], sizeof(sRegulatoryDomains) * NUM_REG_DOMAINS)) == VOS_STATUS_SUCCESS)
-                    {
-                    }
-                    else
-                    {
-                        return (eHAL_STATUS_FAILURE);
-                    }
-                    break;
+            case NV_TABLE_REGULATORY_DOMAINS:
+                if ((vosStatus = vos_nv_write(VNV_REGULARTORY_DOMAIN_TABLE, (void *)&pMac->hphy.nvCache.tables.regDomains[0], sizeof(sRegulatoryDomains) * NUM_REG_DOMAINS)) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
 
-                case NV_TABLE_DEFAULT_COUNTRY:
-                    if ((vosStatus = vos_nv_write(VNV_DEFAULT_LOCATION, (void *)&pMac->hphy.nvCache.tables.defaultCountryTable, sizeof(sDefaultCountry))) == VOS_STATUS_SUCCESS)
-                    {
-                    }
-                    else
-                    {
-                        return (eHAL_STATUS_FAILURE);
-                    }
-                    break;
+            case NV_TABLE_DEFAULT_COUNTRY:
+                if ((vosStatus = vos_nv_write(VNV_DEFAULT_LOCATION, (void *)&pMac->hphy.nvCache.tables.defaultCountryTable, sizeof(sDefaultCountry))) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
 
-*/
             case NV_TABLE_TPC_CONFIG:       //stored through QFUSE
             case NV_TABLE_RF_CAL_VALUES:    //stored through QFUSE
             default:
@@ -249,10 +274,10 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
         }
     }
 
-    //return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
-
+#endif
 
 
 eHalStatus halGetNvTableLoc(tHalHandle hMac, eNvTable nvTable, uNvTables **tableData)
@@ -471,12 +496,12 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
     return retVal;
 }
 
-
+#ifdef ANI_MANF_DIAG
 eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
-    //VOS_STATUS vosStatus;
+    VOS_STATUS vosStatus;
 
     switch (nvTable)
     {
@@ -495,7 +520,6 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 
             break;
 
-/*          TODO: Awaiting vos nv functionality to be checked in by Simon Ho
             case NV_FIELDS_IMAGE:
                 if ((vosStatus = vos_nv_setValidity(VNV_FIELD_IMAGE, VOS_FALSE)) == VOS_STATUS_SUCCESS)
                 {
@@ -542,7 +566,6 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
                 }
 
                 break;
-*/
 
         case NV_TABLE_TPC_CONFIG:
             memcpy(&pMac->hphy.nvCache.tables.tpcConfig[0], &nvDefaults.tables.tpcConfig[0], sizeof(tTpcConfig) * MAX_TPC_CHANNELS);
@@ -562,8 +585,9 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 
     return (retVal);
 }
+#endif
 
-
+#ifdef ANI_MANF_DIAG
 eHalStatus halBlankNv(tHalHandle hMac)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
@@ -579,7 +603,7 @@ eHalStatus halBlankNv(tHalHandle hMac)
 
     return (retVal);
 }
-
+#endif
 
 
 void halByteSwapNvTable(tHalHandle hMac, eNvTable tableID, uNvTables *tableData)

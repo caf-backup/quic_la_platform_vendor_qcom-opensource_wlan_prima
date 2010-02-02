@@ -59,6 +59,12 @@
 /** Maximum time(ms)to wait for disconnect to complete **/
 #define WLAN_WAIT_TIME_DISCONNECT  100
 
+#define MAC_ADDR_ARRAY(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
+
+/** Mac Address string **/
+#define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
+
+
 #define hddLog(level, args...) VOS_TRACE( VOS_MODULE_ID_HDD, level, ## args)
 #define ENTER() VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "Enter:%s\n", __FUNCTION__)
 #define EXIT()  VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "Exit:%s\n", __FUNCTION__)
@@ -125,6 +131,9 @@ struct hdd_adapter_s
    
    /** Pointer for configuration data */
    const struct firmware *cfg;
+   
+   /** Pointer for nv data */
+   const struct firmware *nv;
    
    /** Handle to the sdio function device */
    struct sdio_func *hsdio_func_dev;

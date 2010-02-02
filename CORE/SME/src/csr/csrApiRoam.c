@@ -4088,6 +4088,7 @@ eHalStatus csrRoamIssueReassoc(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile,
         pCommand->u.roamCmd.roamReason = reason;
         //We need to free the BssList when the command is done
         //For reassoc there is no BSS list, so the boolean set to false
+        pCommand->u.roamCmd.hBSSList = CSR_INVALID_SCANRESULT_HANDLE; 
         pCommand->u.roamCmd.fReleaseBssList = eANI_BOOLEAN_FALSE;
         pCommand->u.roamCmd.fReassoc = eANI_BOOLEAN_TRUE;
 
@@ -5251,10 +5252,13 @@ static void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSm
         }
     }
 #endif
-    else
+    else if ( CSR_IS_ROAM_SUBSTATE_REASSOC_FAIL( pMac ) )
     {
         // Disassoc due to Reassoc failure falls into this codepath....
-
+        csrRoamComplete( pMac, eCsrJoinFailure, NULL );
+    }
+    else
+    {
         if ( eSIR_SME_SUCCESS == statusCode )
         {
             // Successfully disassociated from the 'old' Bss...

@@ -173,7 +173,7 @@ MAC_OBJS :=     $(MAC_CFG_OBJS) \
 ############# HAL ##################### 
 HAL_INC := 	-I$(WLAN_DIR)/HAL/inc \
 		-I$(WLAN_DIR)/HAL/src/halPhy \
-		-I$(WLAN_DIR)/HAL/src/halPhy/ftm \
+		-I$(WLAN_DIR)/HAL/src/halFtm \
 		-I$(WLAN_DIR)/HAL/src/halProc \
 		-I$(WLAN_DIR)/HAL/src/halSys \
 		-I$(WLAN_DIR)/HAL/src/halMac
@@ -206,20 +206,20 @@ HAL_PHY_OBJS :=	$(HAL_SRC)/halPhy/halPhy.o \
 		$(HAL_SRC)/halPhy/asicAGC.o \
 		$(HAL_SRC)/halPhy/asicWfm.o \
 		$(HAL_SRC)/halPhy/asicTPC.o \
-		$(HAL_SRC)/halPhy/pttMsgApi.o \
 		$(HAL_SRC)/halPhy/rfUtils.o \
 		$(HAL_SRC)/halPhy/phyDebug.o
 
 ifeq ($(BUILD_FTM_DRIVER),1)
 HDD_OBJS += wlan_hdd_ftm.o
-HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/pttModule.o
-HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/rfGemini.o
-HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/asicTxFir.o
-HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/asicCal.o
-HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/asicTxCtl.o
-HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/pttFrameGen.o
-HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/asicPhyDbg.o
-HAL_PHY_OBJS += $(HAL_SRC)/halPhy/ftm/halPhyRates.o
+HAL_PHY_OBJS += $(HAL_SRC)/halFtm/pttMsgApi.o
+HAL_PHY_OBJS += $(HAL_SRC)/halFtm/pttModule.o
+HAL_PHY_OBJS += $(HAL_SRC)/halFtm/rfGemini.o
+HAL_PHY_OBJS += $(HAL_SRC)/halFtm/asicTxFir.o
+HAL_PHY_OBJS += $(HAL_SRC)/halFtm/asicCal.o
+HAL_PHY_OBJS += $(HAL_SRC)/halFtm/asicTxCtl.o
+HAL_PHY_OBJS += $(HAL_SRC)/halFtm/pttFrameGen.o
+HAL_PHY_OBJS += $(HAL_SRC)/halFtm/asicPhyDbg.o
+HAL_PHY_OBJS += $(HAL_SRC)/halFtm/halPhyRates.o
 endif
 
 HAL_PROC_OBJS :=$(HAL_SRC)/halProc/halInitApi.o \

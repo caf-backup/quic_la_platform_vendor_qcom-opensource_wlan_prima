@@ -290,7 +290,7 @@ VosMCThread
   #endif
   int retWaitStatus              = 0;
   v_BOOL_t shutdown              = VOS_FALSE;
-  struct sched_param param       = { .sched_priority = 2 };
+  struct sched_param param       = { .sched_priority = 3 };
 
   sched_setscheduler(current, SCHED_FIFO, &param);
 

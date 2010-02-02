@@ -3420,14 +3420,9 @@ tANI_BOOLEAN csrScanComplete( tpAniSirGlobal pMac, tSirSmeScanRsp *pScanRsp )
             case eCsrNext11dScan1Success:
             case eCsrNext11dScan2Success:
                 smsLog( pMac, LOG2, FL("11dScan1/3 produced results.  Reissue Active scan...\n"));
-                // if we found country information, then we need to reissue the scan on all of the
-                // channels (actively) so that we capture all of the APs out there.   (the 11d country
-                // IEs results are returned right away so we have skipped some channels in the channel list.
-                fRemoveCommand = csrHandleScan11dSuccess(pMac, pCommand);
-                if(fRemoveCommand)
-                {
-                    NextCommand = eCsrNext11dScanComplete;
-                }
+                // if we found country information, no need to continue scanning further, bail out
+                fRemoveCommand = eANI_BOOLEAN_TRUE;
+                NextCommand = eCsrNext11dScanComplete;
                 break;
             case eCsrNext11dScan1Failure:
                 //We are not done yet. 11d scan fail once. We will try to reset anything and do it over again

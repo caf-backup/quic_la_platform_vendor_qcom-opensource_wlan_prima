@@ -536,7 +536,7 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
    struct iw_scan_req *scanReq = (struct iw_scan_req *)extra;
 
    ENTER();
-  
+
    if(pwextBuf->mScanPending == TRUE)
    {
        hddLog(LOG1,"%s: mScanPending is TRUE\n",__func__);
@@ -549,7 +549,7 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
    {      
        /* set scanType, active or passive */
       
-       if (IW_SCAN_TYPE_ACTIVE ==  scanReq->scan_type)
+       if ((IW_SCAN_TYPE_ACTIVE ==  scanReq->scan_type) || (eSIR_ACTIVE_SCAN == pAdapter->pWextState->scan_mode))
        {
            scanRequest.scanType = eSIR_ACTIVE_SCAN;
        }
@@ -579,8 +579,12 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
    }
    else
    {
-       /* set the scan type to active */
-       scanRequest.scanType = eSIR_ACTIVE_SCAN;
+       if(pAdapter->pWextState->scan_mode == eSIR_ACTIVE_SCAN) {
+           /* set the scan type to active */
+           scanRequest.scanType = eSIR_ACTIVE_SCAN;
+       } else {                      
+           scanRequest.scanType = eSIR_PASSIVE_SCAN;
+       }
  
        vos_mem_set( scanRequest.bssid, sizeof( tCsrBssid ), 0xff );
        

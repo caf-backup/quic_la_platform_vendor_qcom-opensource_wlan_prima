@@ -311,7 +311,9 @@ typedef struct sHalRxBd {
     
         /* 0x40 */
 #ifdef ANI_BIG_BYTE_ENDIAN
-        tANI_U32 reserved8:8;
+        /** reserved8 from a hardware perspective.
+        Used by SW to propogate frame type/subtype information */
+        tANI_U32 frameTypeSubtype:8;
     
         /** Filled RPE gives the current sequence number in bitmap */
         tANI_U32 currentPktSeqNo:12;
@@ -322,7 +324,7 @@ typedef struct sHalRxBd {
 #else
         tANI_U32 expectedPktSeqNo:12;
         tANI_U32 currentPktSeqNo:12;
-        tANI_U32 reserved8:8;
+        tANI_U32 frameTypeSubtype:8;
 #endif
     
         /* 0x48 */

@@ -518,6 +518,26 @@ VOS_STATUS WLANSAL_SDIOReInit
 (
    v_PVOID_t             pAdapter
 );
+
+/*----------------------------------------------------------------------------
+
+   @brief Check the SDHC support deep sleep or not
+          To support deep sleep, SAL should change SDHC configurations
+          Clock speed and bus bandwidth
+          To chnage the configuration, interface between SAL and SDHC is needed
+          Before goes into deep sleep, HDD will check there is interface or not
+
+   @param void
+
+   @return boolean
+           VOS_TRUE   SDHC support deep sleep interface
+           VOS_FALSE  SDHC does not support deep sleep interface
+
+----------------------------------------------------------------------------*/
+v_BOOL_t WLANSAL_IsSDHCSupportDeepSleep
+(
+   void
+);
 #ifdef __cplusplus
 }
 #endif

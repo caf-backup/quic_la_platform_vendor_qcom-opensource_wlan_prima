@@ -80,8 +80,6 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
    sme_QosWmmDirType direction;
 
 
-   printk("%s: Entered", __FUNCTION__);
-
    // The TSPEC must be valid
    if (pAc->wmmAcTspecValid == VOS_FALSE)
    {
@@ -104,7 +102,7 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
    {
       // no service interval is present in the TSPEC
       // this is OK, there just won't be U-APSD
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                 "%s: No service interval supplied",
                 __FUNCTION__);
       return;
@@ -120,7 +118,7 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
        (pAc->wmmAcUapsdSuspensionInterval == suspension_interval) &&
        (pAc->wmmAcUapsdDirection == direction))
    {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                 "%s: No change in U-APSD parameters",
                 __FUNCTION__);
       return;
@@ -129,7 +127,7 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
    // are we in the appropriate power save modes?
    if (!sme_IsPowerSaveEnabled(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE))
    {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                 "%s: BMPS is not enabled",
                 __FUNCTION__);
       return;
@@ -137,7 +135,7 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
 
    if (!sme_IsPowerSaveEnabled(pAdapter->hHal, ePMC_UAPSD_MODE_POWER_SAVE))
    {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
                 "%s: U-APSD is not enabled",
                 __FUNCTION__);
       return;
@@ -167,7 +165,6 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
    pAc->wmmAcUapsdSuspensionInterval = suspension_interval;
    pAc->wmmAcUapsdDirection = direction;
 
-   printk("%s: Completed", __FUNCTION__);
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
              "%s: Enabled UAPSD in TL srv_int=%ld "
              "susp_int=%ld dir=%d AC=%d (PS: NOT AN ERROR)\n",
@@ -214,6 +211,10 @@ static void hdd_wmm_disable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
       {
          // TL no longer has valid UAPSD info
          pAc->wmmAcUapsdInfoValid = VOS_FALSE;
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Disabled UAPSD in TL for AC=%d (PS: NOT AN ERROR)\n",
+                   __FUNCTION__,
+                   acType);
       }
    }
 }
@@ -836,9 +837,11 @@ v_BOOL_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
 
    acType = hddWmmUpToAcMap[userPri];
 
+#ifdef HDD_WMM_DEBUG
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
              "%s: UP is %d, AC is %d",
              __FUNCTION__, userPri, acType);
+#endif // HDD_WMM_DEBUG
 
    *pUserPri = userPri;
    *pAcType = acType;

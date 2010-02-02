@@ -31,8 +31,8 @@
 #include "dot11f.h"
 #include <wlan_hdd_wowl.h>
 #include <linux/earlysuspend.h>
+#include "wlan_hdd_power.h"
 
-struct completion g_completion_var;
 extern void hdd_suspend_wlan(struct early_suspend *wlan_suspend);
 extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
 extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
@@ -568,7 +568,7 @@ static int iw_get_bitrate(struct net_device *dev,
          return VOS_STATUS_E_FAILURE;
       }
    
-      wrqu->bitrate.value = pAdapter->hdd_stats.ClassA_stat.tx_rate;
+      wrqu->bitrate.value = pAdapter->hdd_stats.ClassA_stat.tx_rate*500*1000;
    }
 
    EXIT();
@@ -1186,6 +1186,299 @@ static int iw_get_range(struct net_device *dev, struct iw_request_info *info,
    return 0;
 }
 
+/* Callback function registered with PMC to know status of PMC request */
+void iw_priv_callback_fn (void *callbackContext, eHalStatus status)
+{
+  struct completion *completion_var = (struct completion*) callbackContext;
+
+  hddLog(LOGE, "Received callback from PMC with status = %d\n", status);
+  if(completion_var != NULL)
+    complete(completion_var);
+}
+
+static int iw_set_priv(struct net_device *dev,
+                         struct iw_request_info *info,
+                         union iwreq_data *wrqu, char *extra)
+{
+    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    char *cmd = (char*)wrqu->data.pointer;
+    int ret=0;
+    int status= VOS_STATUS_SUCCESS;
+    hdd_wext_state_t *pWextState = pAdapter->pWextState;
+
+    ENTER();
+
+    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "***Received %s cmd from GUI***\n", cmd);
+
+    if( strcasecmp(cmd, "start") == 0 ) {
+
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Start command\n");
+            /*Exit from Deep sleep if we get the driver START cmd from android GUI*/
+        if(pAdapter->hdd_ps_state == eHDD_SUSPEND_STANDBY) 
+        {
+           
+           hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: WLAN being exit from Stand by\n",__func__);
+           status = hdd_exit_standby(pAdapter);
+        } 
+        else if(pAdapter->hdd_ps_state == eHDD_SUSPEND_DEEP_SLEEP) 
+        {
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: WLAN being exit from deep sleep\n",__func__);
+            status = hdd_exit_deep_sleep(pAdapter);
+        }
+        else {
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unknown WLAN PS state during resume %d",
+              __func__, pAdapter->hdd_ps_state);
+
+            status = VOS_STATUS_E_FAILURE;
+        }
+        
+        if(status == VOS_STATUS_SUCCESS) {
+            union iwreq_data wrqu;
+            char buf[10];
+
+            strcpy(buf,"START");
+            memset(&wrqu, 0, sizeof(wrqu));
+            wrqu.data.length = strlen(buf);
+            wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, buf);
+        }
+        goto done;
+    }
+    else if( strcasecmp(cmd, "stop") == 0 ) {
+
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Stop command\n");
+
+        if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_STANDBY) 
+        {
+            //Execute standby procedure. Executing standby procedure will cause the STA to
+            //disassociate first and then the chip will be put into standby.
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Wlan driver entering Stand by mode\n");
+            status  = hdd_enter_standby(pAdapter);
+        }
+        else if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_DEEP_SLEEP) {
+            //Execute deep sleep procedure
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Wlan driver entering deep sleep mode\n");
+            status = hdd_enter_deep_sleep(pAdapter);
+        }
+        else {
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported suspend mapping %d",
+             __func__, pAdapter->cfg_ini->nEnableSuspend);
+            status = VOS_STATUS_E_FAILURE;
+        }
+
+        if(status == VOS_STATUS_SUCCESS) {
+            union iwreq_data wrqu;
+            char buf[10];
+
+            strcpy(buf,"STOP");
+            memset(&wrqu, 0, sizeof(wrqu));
+            wrqu.data.length = strlen(buf);
+            wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, buf);
+        }
+        
+        goto done;
+    }
+    else if( strcasecmp(cmd, "macaddr") == 0 ) {
+
+        ret = sprintf(cmd, "Macaddr = " MAC_ADDRESS_STR "\n", MAC_ADDR_ARRAY(pAdapter->macAddressCurrent.bytes));
+        hddLog( VOS_TRACE_LEVEL_INFO_HIGH, "cmd %s", cmd);
+        goto done;
+    }
+    else if ((strcasecmp(cmd, "scan-passive") == 0) || (strcasecmp(cmd, "scan-active") == 0)) 
+    {        
+        pAdapter->pWextState->scan_mode = (!strcasecmp(cmd, "scan-passive")) ? eSIR_PASSIVE_SCAN : eSIR_ACTIVE_SCAN; 
+
+        goto done;
+    }
+    else if( strcasecmp(cmd, "scan-mode") == 0 ) 
+    {
+        v_U16_t cmd_len = wrqu->data.length;
+        hddLog(VOS_TRACE_LEVEL_INFO, "Scan Mode command\n"); 
+        ret = snprintf(cmd, cmd_len, "ScanMode = %u\n", pAdapter->pWextState->scan_mode);
+        if (ret < (int)cmd_len) {
+              return( ret );
+        }
+    }
+    else if( strcasecmp(cmd, "linkspeed") == 0 ) 
+    {
+        v_U16_t link_speed=0;
+
+        hddLog(VOS_TRACE_LEVEL_INFO, "Link Speed command\n"); 
+        if(eConnectionState_Associated != pAdapter->conn_info.connState) {
+            wrqu->bitrate.value = 0;
+        }
+        else {
+           status = sme_GetStatistics( pAdapter->hHal, eCSR_HDD, 
+                                    SME_SUMMARY_STATS       |
+                                    SME_GLOBAL_CLASSA_STATS |
+                                    SME_GLOBAL_CLASSB_STATS |
+                                    SME_GLOBAL_CLASSC_STATS |
+                                    SME_GLOBAL_CLASSD_STATS |
+                                    SME_PER_STA_STATS,
+                                    hdd_StatisticsCB, 0, FALSE, 
+                                    pAdapter->conn_info.staId[0], pAdapter );
+           
+           if(eHAL_STATUS_SUCCESS != status)
+           {
+              hddLog( VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD sme_GetStatistics failed!!\n"));
+              return status;
+           }
+                   
+           status = vos_wait_single_event(&pWextState->vosevent, 1000);
+        
+           if (!VOS_IS_STATUS_SUCCESS(status))
+           {   
+              hddLog( VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos wait for single_event failed!!\n"));
+              return VOS_STATUS_E_FAILURE;
+           }
+        
+           link_speed = (pAdapter->hdd_stats.ClassA_stat.tx_rate/2);
+        }
+
+        ret = sprintf(cmd,"LinkSpeed %u\n", link_speed);
+        
+        hddLog( VOS_TRACE_LEVEL_INFO_HIGH, "cmd %s\n", cmd); 
+    }
+    else if( strncasecmp(cmd, "COUNTRY", 7) == 0 ) {
+        char *country_code;
+
+        country_code =  cmd + 8;
+        /*TODO:Set the country code to sme*/
+    }
+    else if( strncasecmp(cmd, "rssi", 4) == 0 ) {
+
+        /*Currently hard code the RSSI value*/
+        v_S7_t s7Rssi;
+        int  len;
+        
+        hddLog( VOS_TRACE_LEVEL_INFO_HIGH, "rssi command"); 
+
+        if(pAdapter->conn_info.connState == eConnectionState_Associated) {
+
+            len = pAdapter->conn_info.SSID.SSID.length;
+            if( (len > 0) && (len <= 32) ) {
+                memcpy( (void *)cmd, (void *)pAdapter->conn_info.SSID.SSID.ssId, len );
+                ret = len;
+                
+                status = WLANTL_GetRssi( pAdapter->pvosContext, pAdapter->conn_info.staId[ 0 ], &s7Rssi );
+                if ( !VOS_IS_STATUS_SUCCESS( status ) )
+                {
+                    hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed\n", __func__); 
+                    goto done; 
+                }
+                ret += sprintf(&cmd[ret], " rssi %d\n", s7Rssi);
+                
+                hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "cmd %s\n", cmd); 
+            }
+             
+        }
+        else
+        {
+            hddLog( VOS_TRACE_LEVEL_ERROR, "cmd %s\n", cmd); 
+            status = -1;
+        }
+        
+    }
+    else if( strncasecmp(cmd, "powermode", 9) == 0 ) {
+        int mode;
+        char *ptr = (char*)(cmd + 9); 
+        
+        sscanf(ptr,"%d",&mode);
+
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "mode=%d\n",mode);
+        
+        init_completion(&pWextState->completion_var);
+
+        if(mode == DRIVER_POWER_MODE_ACTIVE) 
+        {
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Wlan driver Entering Full Power\n");
+            status = sme_RequestFullPower(pAdapter->hHal, iw_priv_callback_fn,
+                          &pWextState->completion_var, eSME_FULL_PWR_NEEDED_BY_HDD);
+       
+            if(status == eHAL_STATUS_PMC_PENDING)
+                wait_for_completion_interruptible(&pWextState->completion_var);
+        }
+        else if (mode == DRIVER_POWER_MODE_AUTO)
+        {
+            
+            if (pAdapter->cfg_ini->fIsBmpsEnabled) {
+                
+                hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Wlan driver Entering Bmps\n");
+                status = sme_RequestBmps(pAdapter->hHal, iw_priv_callback_fn, &pAdapter->pWextState->completion_var);
+    
+                if (status == eHAL_STATUS_PMC_PENDING)
+                    wait_for_completion_interruptible(&pWextState->completion_var);
+            }
+            else 
+            {
+               hddLog(VOS_TRACE_LEVEL_INFO_HIGH,"BMPS is not enabled in the cfg\n");
+            }
+        }
+        hddLog(VOS_TRACE_LEVEL_INFO, "Power Mode command"); 
+
+        
+        /*TODO:Set the power mode*/
+    }
+    else if (strncasecmp(cmd, "getpower", 8) == 0 ) {
+        v_U32_t pmc_state; 
+        v_U16_t value = DRIVER_POWER_MODE_ACTIVE;
+
+        hddLog( VOS_TRACE_LEVEL_INFO, "Get Power\n"); 
+       
+        pmc_state = pmcGetPmcState(pAdapter->hHal);
+
+        if(pmc_state == BMPS) {
+           value = DRIVER_POWER_MODE_AUTO;
+           ret = sprintf(cmd, "powermode = %u\n", value);
+        }
+        else {
+           value = DRIVER_POWER_MODE_ACTIVE;  
+           ret = sprintf(cmd, "powermode = %u\n", value);
+        }
+    }
+    else if( strncasecmp(cmd, "btcoexmode", 10) == 0 ) {
+        hddLog( VOS_TRACE_LEVEL_INFO, "btcoexmode\n"); 
+        /*TODO: set the btcoexmode*/
+    }
+    else if( strcasecmp(cmd, "btcoexstat") == 0 ) {
+        
+        hddLog(VOS_TRACE_LEVEL_INFO, "BtCoex Status\n"); 
+        /*TODO: Return the btcoex status*/
+        //  ret = sprintf(buf, "btcoexstatus = 0x%x\n", status);
+    }
+    else if( strcasecmp(cmd, "rxfilter-start") == 0 ) {
+        
+        hddLog(VOS_TRACE_LEVEL_INFO, "Rx Data Filter Start command\n"); 
+        
+        /*TODO: Enable Rx data Filter*/        
+    }
+    else if( strcasecmp(cmd, "rxfilter-stop") == 0 ) {
+        
+        hddLog(VOS_TRACE_LEVEL_INFO, "Rx Data Filter Stop command\n"); 
+        
+        /*TODO: Disable Rx data Filter*/        
+    }
+    else if( strcasecmp(cmd, "rxfilter-statistics") == 0 ) {
+       
+        hddLog( VOS_TRACE_LEVEL_INFO, "Rx Data Filter Statistics command\n"); 
+        /*TODO: rxfilter-statistics*/ 
+    }
+    else if( strncasecmp(cmd, "rxfilter-add", 12) == 0 ) {
+        
+        hddLog( VOS_TRACE_LEVEL_INFO, "rxfilter-add\n"); 
+        /*TODO: rxfilter-add*/ 
+    }
+    else if( strncasecmp(cmd, "rxfilter-remove",15) == 0 ) {
+        
+        hddLog( VOS_TRACE_LEVEL_INFO, "rxfilter-remove\n"); 
+        /*TODO: rxfilter-remove*/
+    }
+    else {
+        hddLog( VOS_TRACE_LEVEL_ERROR,"Unsupported command");
+    }
+done:
+    return status;
+   
+}
 static int iw_set_nick(struct net_device *dev, 
                        struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra)
@@ -1674,7 +1967,7 @@ static int iw_set_mlme(struct net_device *dev,
 
     hdd_adapter_t *pAdapter = (netdev_priv(dev));
     struct iw_mlme *mlme = (struct iw_mlme *)extra;
-    eHalStatus status;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
  
     ENTER();    
    
@@ -1708,7 +2001,7 @@ static int iw_set_mlme(struct net_device *dev,
             {
                 hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate called but station is not in associated state \n", __FUNCTION__, (int)mlme->cmd );
             }
-
+            break;
         default:
             hddLog(LOGE,"%s %d Command should be Disassociate/Deauthenticate \n", __FUNCTION__, (int)mlme->cmd );
             return -EINVAL;
@@ -1718,16 +2011,6 @@ static int iw_set_mlme(struct net_device *dev,
 
     return status;
 
-}
-
-/* Callback function registered with PMC to know status of PMC request */
-void iw_priv_callback_fn (void *callbackContext, eHalStatus status)
-{
-  struct completion *completion_var = (struct completion*) callbackContext;
-
-  hddLog(LOGE, "Received callback from PMC with status = %d\n", status);
-  if(completion_var != NULL)
-    complete(completion_var);
 }
 
 /* set param sub-ioctls */
@@ -1742,9 +2025,9 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
     int set_value = value[1];
     int ret = 0; /* success */
     int enable_pbm, enable_mp;
-	 v_U8_t nEnableSuspendOld;
+     v_U8_t nEnableSuspendOld;
     
-    init_completion(&g_completion_var);
+    init_completion(&pAdapter->pWextState->completion_var);
     
     switch(sub_cmd)
     {
@@ -1796,9 +2079,9 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
            {
               case  0: //Full Power
                  if(sme_RequestFullPower(hHal, iw_priv_callback_fn,
-                       &g_completion_var, eSME_FULL_PWR_NEEDED_BY_HDD) ==
+                       &pAdapter->pWextState->completion_var, eSME_FULL_PWR_NEEDED_BY_HDD) ==
                        eHAL_STATUS_PMC_PENDING)
-                    wait_for_completion_interruptible(&g_completion_var);
+                    wait_for_completion_interruptible(&pAdapter->pWextState->completion_var);
                  hddLog(LOGE, "iwpriv Full Power completed\n");
                  break;
               case  1: //Enable BMPS
@@ -1808,9 +2091,9 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                  sme_DisablePowerSave(hHal, ePMC_BEACON_MODE_POWER_SAVE);
                  break;
               case  3: //Request Bmps
-                 if(sme_RequestBmps(hHal, iw_priv_callback_fn, &g_completion_var) == 
+                 if(sme_RequestBmps(hHal, iw_priv_callback_fn, &pAdapter->pWextState->completion_var) == 
                     eHAL_STATUS_PMC_PENDING)
-                    wait_for_completion_interruptible(&g_completion_var);
+                    wait_for_completion_interruptible(&pAdapter->pWextState->completion_var);
                  hddLog(LOGE, "iwpriv Request BMPS completed\n");
                  break;
               case  4: //Enable IMPS
@@ -1926,12 +2209,12 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
            printk(KERN_EMERG "****Return IBSS Status*****\n");
            break;
 
-	      case WE_PMC_STATE:
-	      {
-	         *value = pmcGetPmcState(pAdapter->hHal);
-	         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("PMC state=%ld!!\n"),*value);
-	         break;			
-	      }	
+          case WE_PMC_STATE:
+          {
+             *value = pmcGetPmcState(pAdapter->hHal);
+             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("PMC state=%ld!!\n"),*value);
+             break;            
+          }    
          
         default:
         {
@@ -1962,7 +2245,7 @@ static const iw_handler      we_handler[] =
    (iw_handler) NULL,              /* SIOCGIWSENS */
    (iw_handler) NULL,             /* SIOCSIWRANGE */
    (iw_handler) iw_get_range,      /* SIOCGIWRANGE */
-   (iw_handler) NULL,             /* SIOCSIWPRIV */
+   (iw_handler) iw_set_priv,       /* SIOCSIWPRIV */
    (iw_handler) NULL,             /* SIOCGIWPRIV */
    (iw_handler) NULL,             /* SIOCSIWSTATS */
    (iw_handler) NULL,             /* SIOCGIWSTATS */
@@ -2124,6 +2407,9 @@ int hdd_set_wext(hdd_adapter_t *pAdapter)
 
     pwextBuf->roamProfile.phyMode = eCSR_DOT11_MODE_TAURUS;
     pwextBuf->wpaVersion = IW_AUTH_WPA_VERSION_DISABLED;
+
+    /*Set the default scan mode*/
+    pwextBuf->scan_mode = eSIR_ACTIVE_SCAN;
 
     return VOS_STATUS_SUCCESS;
  

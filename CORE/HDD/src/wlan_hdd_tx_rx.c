@@ -99,6 +99,45 @@ static void transport_thread(hdd_adapter_t *pAdapter)
 
 
 /**============================================================================
+  @brief hdd_flush_tx_queues() - Utility function to flush the TX queues
+
+  @param pAdapter : [in] pointer to adapter context  
+  @return         : VOS_STATUS_E_FAILURE if any errors encountered 
+                  : VOS_STATUS_SUCCESS otherwise
+  ===========================================================================*/
+static VOS_STATUS hdd_flush_tx_queues( hdd_adapter_t *pAdapter )
+{
+   VOS_STATUS status = VOS_STATUS_SUCCESS;
+   v_SINT_t i = -1;
+   hdd_list_node_t *anchor = NULL;
+   skb_list_node_t *pktNode = NULL;
+   struct sk_buff *skb = NULL;
+
+   while (++i != NUM_TX_QUEUES) 
+   {
+      //Free up any packets in the Tx queue
+      spin_lock_bh(&pAdapter->wmm_tx_queue[i].lock);
+      while (true) 
+      {
+         status = hdd_list_remove_front( &pAdapter->wmm_tx_queue[i], &anchor );
+         if(VOS_STATUS_E_EMPTY != status)
+         {
+            pktNode = list_entry(anchor, skb_list_node_t, anchor);
+            skb = pktNode->skb;
+            pAdapter->stats.tx_dropped++;
+            kfree_skb(skb);
+            continue;
+         }
+         break;
+      }
+      spin_unlock_bh(&pAdapter->wmm_tx_queue[i].lock);
+   }
+
+   return status;
+}
+
+
+/**============================================================================
   @brief hdd_hard_start_xmit() - Function registered with the Linux OS for 
   transmitting packets. There are 2 versions of this function. One that uses
   locked queue and other that uses lockless queues. Both have been retained to
@@ -121,20 +160,13 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    hdd_adapter_t* pAdapter = netdev_priv(dev);
    v_BOOL_t granted;
 
-   if(pAdapter == NULL) {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __FUNCTION__);
-      return -1;
-   }
-   
-   if(skb->len < ETH_ZLEN)
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "%s: Ethernet packet size < 60 bytes" , __FUNCTION__);
-
    //Classify the packet
    if ( !hdd_wmm_classify_pkt (pAdapter, skb, &ac, &up) )
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: Failed to classify packet..pkt dropped", __FUNCTION__);
+      pAdapter->stats.tx_dropped++;
       kfree_skb(skb);
-      return 0;
+      return NETDEV_TX_OK;
    }
 
 #ifdef HDD_WMM_DEBUG
@@ -148,7 +180,13 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: TX queue full for AC=%d Disable OS TX queue", __FUNCTION__, ac );
       netif_stop_queue(dev);
       netif_carrier_off(dev);
-      return -1;
+
+      // not really the right statistic, but this gives us a way
+      // to see if we encounter this condition.  shows up as
+      // overruns in busybox ifconfig output
+      pAdapter->stats.tx_fifo_errors++;
+
+      return NETDEV_TX_BUSY;
    }
 
    //Use the skb->cb field to hold the list node information
@@ -171,8 +209,9 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s:Insert Tx queue failed. Pkt dropped", __FUNCTION__);
+      pAdapter->stats.tx_dropped++;
       kfree_skb(skb);
-      return 0;
+      return NETDEV_TX_OK;
    }
 
    //Make sure we have been admitted to this access category
@@ -202,16 +241,15 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          spin_unlock(&pAdapter->wmm_tx_queue[ac].lock);
          netif_stop_queue(dev);
          netif_carrier_off(dev);
+         pAdapter->stats.tx_dropped++;
          kfree_skb(skb);
-         return 0;
+         return NETDEV_TX_OK;
       }
    }
 
    dev->trans_start = jiffies;
 
-   //FIXME Update statistics 
-
-   return 0; 
+   return NETDEV_TX_OK;
 }
 
 /**============================================================================
@@ -285,33 +323,32 @@ VOS_STATUS hdd_deinit_tx_rx( hdd_adapter_t *pAdapter )
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    v_SINT_t i = -1;
-   hdd_list_node_t *anchor = NULL;
-   skb_list_node_t *pktNode = NULL;
-   struct sk_buff *skb = NULL;
 
+   status = hdd_flush_tx_queues(pAdapter);
    while (++i != NUM_TX_QUEUES) 
    {
-      //Free up any packets in the Tx queue
-      spin_lock_bh(&pAdapter->wmm_tx_queue[i].lock);
-      while (true) 
-      {
-         status = hdd_list_remove_front( &pAdapter->wmm_tx_queue[i], &anchor );
-         if(VOS_STATUS_E_EMPTY != status)
-         {
-            pktNode = list_entry(anchor, skb_list_node_t, anchor);
-            skb = pktNode->skb;
-            kfree(pktNode);
-            kfree_skb(skb);
-            continue;
-         }
-         break;
-      }
-      spin_unlock_bh(&pAdapter->wmm_tx_queue[i].lock);
+      //Free up actual list elements in the Tx queue
       hdd_list_destroy( &pAdapter->wmm_tx_queue[i] );
    }
 
    return status;
 }
+
+
+/**============================================================================
+  @brief hdd_disconnect_tx_rx() - Disconnect function to clean up Tx/RX
+  modules in HDD
+
+  @param pAdapter : [in] pointer to adapter context  
+  @return         : VOS_STATUS_E_FAILURE if any errors encountered 
+                  : VOS_STATUS_SUCCESS otherwise
+  ===========================================================================*/
+VOS_STATUS hdd_disconnect_tx_rx( hdd_adapter_t *pAdapter )
+{
+   return hdd_flush_tx_queues(pAdapter);
+}
+
+
 /**============================================================================
   @brief hdd_IsEAPOLPacket() - Checks the packet is EAPOL or not.
 
@@ -379,6 +416,21 @@ VOS_STATUS hdd_tx_complete_cbk( v_VOID_t *vosContext,
       return VOS_STATUS_E_FAILURE;
    }
 
+   //Get the HDD context.
+   pAdapter = (hdd_adapter_t *)vos_get_context( VOS_MODULE_ID_HDD, vosContext );
+   if(pAdapter == NULL)
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __FUNCTION__);
+   }
+   else
+   {
+      // For debugging only we increment this statistic as a means to verify
+      // that all packets delivered to TL are returned by TL and that none
+      // are leaked.  The busybox ifconfig Tx carrier count should match the
+      // Tx packet count
+      pAdapter->stats.tx_aborted_errors++;
+   }
+
    kfree_skb((struct sk_buff *)pOsPkt); 
 
    //Return the VOS packet resources.
@@ -388,16 +440,6 @@ VOS_STATUS hdd_tx_complete_cbk( v_VOID_t *vosContext,
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Could not return VOS packet to the pool", __FUNCTION__);
    }
 
-   //Get the HDD context.
-   pAdapter = (hdd_adapter_t *)vos_get_context( VOS_MODULE_ID_HDD, vosContext );
-   if(pAdapter == NULL)
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __FUNCTION__);
-      return VOS_STATUS_E_FAILURE;
-   }
-
-
-   //FIXME Update packet statistics
    return status;
 }
 
@@ -462,7 +504,9 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       return VOS_STATUS_E_FAILURE;
    }
  
+#ifdef HDD_WMM_DEBUG
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: AC %d passed by TL", __FUNCTION__, ac);
+#endif // HDD_WMM_DEBUG
 
    // loop until we find an AC with packets
    // or we determine we have no more packets to send
@@ -494,8 +538,10 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       // have we examined all ACs (wrapped back to the initial input AC)?
       if (ac == *pAc)
       {
+#ifdef HDD_WMM_DEBUG
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: no packets pending", __FUNCTION__);
+#endif // HDD_WMM_DEBUG
          return VOS_STATUS_E_FAILURE;
       }
    }
@@ -543,6 +589,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Error atatching skb", __FUNCTION__);
       vos_pkt_return_packet(pVosPacket);
+      pAdapter->stats.tx_dropped++;
       kfree_skb(skb);
       return VOS_STATUS_E_FAILURE;
    }
@@ -551,6 +598,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    if(pVosPacket == NULL)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: VOS packet returned by VOSS is NULL", __FUNCTION__);
+      pAdapter->stats.tx_dropped++;
       kfree_skb(skb);
       return VOS_STATUS_E_FAILURE;
    }
@@ -558,10 +606,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    //Return VOS packet to TL;
    *ppVosPacket = pVosPacket;
 
-   //Make sure stores are not reordered.
-   wmb();
-   
-   //Fill out the meta information neede by TL
+   //Fill out the meta information needed by TL
    //FIXME This timestamp is really the time stamp of wrap_data_packet
    vos_pkt_get_timestamp( pVosPacket, &timestamp );
    pPktMetaInfo->usTimeStamp = (v_U16_t)timestamp;
@@ -593,7 +638,9 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    pPktMetaInfo->ucBcast = vos_is_macaddr_broadcast( pDestMacAddress ) ? 1 : 0;
    pPktMetaInfo->ucMcast = vos_is_macaddr_group( pDestMacAddress ) ? 1 : 0;
 
-   //VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Valid VOS PKT returned to TL", __FUNCTION__);
+#ifdef HDD_WMM_DEBUG
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Valid VOS PKT returned to TL", __FUNCTION__);
+#endif // HDD_WMM_DEBUG
 
    if ( netif_queue_stopped(pAdapter->dev) && size <= HDD_TX_QUEUE_LOW_WATER_MARK )
    {
@@ -602,6 +649,18 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       netif_carrier_on(pAdapter->dev);
       netif_start_queue(pAdapter->dev);
    }    
+
+   // We're giving the packet to TL so consider it transmitted from
+   // a statistics perspective.  We account for it here instead of
+   // when the packet is returned for two reasons.  First, TL will
+   // manipulate the skb to the point where the len field is not
+   // accurate, leading to inaccurate byte counts if we account for
+   // it later.  Second, TL does not provide any feedback as to
+   // whether or not the packet was successfully sent over the air,
+   // so the packet counts will be the same regardless of where we
+   // account for them
+   pAdapter->stats.tx_packets++;
+   pAdapter->stats.tx_bytes += skb->len;
 
    return status;
 }
@@ -728,6 +787,8 @@ VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
       skb->dev = pAdapter->dev;
       skb->protocol = eth_type_trans(skb, skb->dev);
       skb->ip_summed = CHECKSUM_UNNECESSARY;
+      pAdapter->stats.rx_packets++;
+      pAdapter->stats.rx_bytes += skb->len;
       netif_rx_ni(skb);
 
       // now process the next packet in the chain
@@ -743,8 +804,6 @@ VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
    }
    
    pAdapter->dev->last_rx = jiffies;
-
-   //FIXME Update any packet statistics
 
    return status;   
 }

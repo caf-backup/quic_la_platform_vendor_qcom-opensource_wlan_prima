@@ -1,0 +1,8 @@
+To apply the Wifi GUI patches for QCOM wlan driver on Android donut please follow the below steps.
+
+1) Go to your workspace cd /local/mnt/workpace/quic_7x30
+2) If your workspace has wpa_supplicant version 0.5.11 then apply the patch by running the command
+#./vendor/qcom-proprietary/wlan/donut/patches/wifi_gui/donut_wifi_gui_patch.sh
+3)If your workspace has wpa_supplicant version 0.6.9 then apply the patch by running the command
+#./vendor/qcom-proprietary/wlan/donut/patches/wifi_gui/donut_wifi_gui_wpa_069.sh
+   

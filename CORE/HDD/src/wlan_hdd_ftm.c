@@ -165,6 +165,18 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
         VOS_ASSERT(0);
         goto err_sched_close;
     }
+    
+    /* initialize the NV module */
+    vStatus = vos_nv_open();
+    
+    if (!VOS_IS_STATUS_SUCCESS(vStatus))
+    {
+        // NV module cannot be initialized, however the driver is allowed
+        // to proceed
+         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+          "%s: Failed to initialize the NV module", __func__);
+         goto err_sched_close;
+    }
     /* If we arrive here, both threads dispacthing messages correctly */
 
     /* Now proceed to open the MAC */
@@ -182,7 +194,7 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                   "%s: Failed to open MAC", __func__);
         VOS_ASSERT(0);
-        goto err_sched_close;
+        goto err_nv_close;
     }
 
     vStatus = WLANBAL_Open(pVosContext);
@@ -235,6 +247,9 @@ nl_srv_exit();
 
 err_mac_close:
 macClose(pVosContext->pMACContext);
+
+err_nv_close:
+vos_nv_close();
 
 err_sched_close:
 vos_sched_close(pVosContext);
@@ -361,7 +376,7 @@ int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
 
     /* Attempt to get the firmware binary through VOS.  We need to pass this
            to the MAC when starting. */
-    vStatus = hdd_get_fw_binary(pAdapter,
+    vStatus = hdd_request_firmware(LIBRA_FW_FILE,pAdapter,
                                (v_VOID_t **)&halStartParams.FW.pImage,
                                (v_SIZE_t *)&halStartParams.FW.cbImage);
 
@@ -382,7 +397,7 @@ int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
     /* Free uo the FW image no matter what */
     if( NULL != halStartParams.FW.pImage )
     {
-        hdd_release_fw_binary(pVosContext->pHDDContext);
+        hdd_release_firmware(LIBRA_FW_FILE,pVosContext->pHDDContext);
         halStartParams.FW.pImage = NULL;
         halStartParams.FW.cbImage = 0;
     }
@@ -536,6 +551,7 @@ void wlan_hdd_process_ftm_cmd
         if (pAdapter->ftm.ftm_state == WLAN_FTM_STARTED) {
 
             hddLog(VOS_TRACE_LEVEL_ERROR,"%s: FTM has already started =%d\n",__func__,pRequestBuf->ftmpkt.ftm_cmd_type);
+            pAdapter->ftm.pResponseBuf->ftm_hdr.data_len -= 1;
             pAdapter->ftm.pResponseBuf->ftm_err_code = WLAN_FTM_FAILURE;
             wlan_ftm_send_response(pAdapter);
             return;
@@ -593,6 +609,7 @@ void wlan_hdd_process_ftm_cmd
             return;
 
         }
+        vos_event_reset(&pAdapter->ftm.ftm_vos_event);
 
         cmd_len = pRequestBuf->ftm_hdr.data_len;
 
@@ -677,7 +694,7 @@ VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message)
     /*Response length to Ptt App*/
     pAdapter->ftm.wnl->wmsg.length = sizeof(tAniHdr)+ SIZE_OF_FTM_DIAG_HEADER_LEN + pFtmMsgRsp->msgBodyLength;
 
-     /*Response length to Ptt App expect in LE swap the it*/
+     /*Ptt App expects the response length in LE */
     pAdapter->ftm.wnl->wmsg.length = FTM_SWAP16(pAdapter->ftm.wnl->wmsg.length);
 
     /*Response expects the length to be in */
@@ -702,5 +719,42 @@ VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message)
 
 }
 
+
+VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len)
+{
+    tAniHdr *wmsg = NULL;
+    v_U8_t *pBuf;
+    hdd_adapter_t *pAdapter;
+    v_CONTEXT_t pVosContext= NULL;
+
+    pBuf =  (v_U8_t*)vos_mem_malloc(sizeof(tAniHdr) + sizeof(v_U8_t)+ data_len);
+
+    wmsg = (tAniHdr*)pBuf;
+    wmsg->type = PTT_MSG_FTM_CMDS_TYPE;
+    wmsg->length = data_len + sizeof(tAniHdr)+ sizeof(v_U8_t);
+    wmsg->length = FTM_SWAP16(wmsg->length);
+    pBuf += sizeof(tAniHdr);
+
+     /*Get the global context */
+    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+
+     /*Get the Hdd Context */
+    pAdapter = ((VosContextType*)(pVosContext))->pHDDContext;
+
+    /* EfS command Code */
+    *pBuf++ = 0xEF;
+
+    memcpy(pBuf, pData,data_len);
+
+    if( ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, pAdapter->ftm.wnl->nlh.nlmsg_pid) < 0) {
+
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("Ptt Socket error sending message to the app!!\n"));
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    vos_mem_free(pBuf);
+    
+    return VOS_STATUS_SUCCESS;
+}
 
 #endif /* ANI_MANF_DIAG */
