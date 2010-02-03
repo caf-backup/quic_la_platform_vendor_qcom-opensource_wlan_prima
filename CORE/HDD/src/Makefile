@@ -9,7 +9,7 @@ BUILD_DEBUG_VERSION := 1
 BUILD_FTM_DRIVER := 0
 
 #KERNEL include dir
-KERNEL_INC := $(KERNEL_DIR)/include/linux
+KERNEL_INC := ./include/linux
 
 #WLAN root directory
 WLAN_DIR := ../vendor/qcom-proprietary/wlan/CORE
