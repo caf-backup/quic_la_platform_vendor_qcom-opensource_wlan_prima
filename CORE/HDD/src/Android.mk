@@ -9,8 +9,8 @@ PRODUCT_COPY_FILES += vendor/qcom-proprietary/wlan/firmware_bin/qcom_cfg.ini:sys
 
 ACP_BINARY_OUT := $(HOST_OUT)/bin/acp
 MAKE_MODULES_FOLDER := out/target/product/$(TARGET_PRODUCT)/system/lib/modules
-WLAN_OUT := vendor/qcom-proprietary/wlan/CORE/HDD/src/libra.o
-WLAN_FTM_OUT := vendor/qcom-proprietary/wlan/ftm/CORE/HDD/src/libra_ftm.o
+WLAN_OUT := $(TARGET_OUT_INTERMEDIATES)/vendor/qcom-proprietary/wlan/CORE/HDD/src/libra.ko
+WLAN_FTM_OUT := $(TARGET_OUT_INTERMEDIATES)/vendor/qcom-proprietary/wlan/ftm/CORE/HDD/src/libra_ftm.ko
 WLAN_PRODUCT_OUT := out/target/product/$(TARGET_PRODUCT)/system/lib/modules/libra.ko
 WLAN_FTM_PRODUCT_OUT := out/target/product/$(TARGET_PRODUCT)/system/lib/modules/libra_ftm.ko
 WLAN_LIBRA_SDIOIF_OUT := out/target/product/$(TARGET_PRODUCT)/system/lib/modules/librasdioif.ko
