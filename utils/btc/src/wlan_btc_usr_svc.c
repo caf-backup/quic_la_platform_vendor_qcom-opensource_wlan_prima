@@ -52,34 +52,41 @@
 #include <wlan_nlink_common.h>
 #include <wlan_btc_usr_svc.h>
 
-#define BTC_DEBUG 1
-
 //Time to wait for WLAN driver to initialize.
 //FIXME This value needs to optimized further
 #define BTC_SVC_WLAN_SETTLE_TIME 1200000
 
 #ifdef BTC_DEBUG
-#define BTC_INFO(msg) \
-   fprintf(stdout, msg);
-#define BTC_INFO_ARG1(msg, arg) \
-   fprintf(stdout, msg, arg);
-#define BTC_INFO_ARG3(msg, arg1, arg2, arg3 ) \
-   fprintf(stdout, msg, arg1, arg2, arg3);
-#define BTC_ERR(msg) \
-   fprintf(stderr, msg);
-#define BTC_ERR_ARG1(msg, arg) \
-   fprintf(stderr, msg, arg);
-#define BTC_OS_ERR  \
-   fprintf(stderr, "err =%d msg = %s", errno, strerror(errno))
-#else
-#define BTC_INFO(msg)
-#define BTC_INFO_ARG1(msg, arg)
-#define BTC_INFO_ARG3(msg, arg1, arg2, arg3)
-#define BTC_ERR(msg)
-#define BTC_ERR_ARG1(msg, arg)
-#define BTC_OS_ERR
-#endif
 
+#ifdef __BTC_USE_FPRINTF__
+
+#define BTC_INFO(args...) fprintf(stdout, ## args);
+#define BTC_ERR(args...)  fprintf(stderr, ## args);
+#define BTC_OS_ERR        fprintf(stderr, "err =%d msg = %s\n", errno, strerror(errno))
+
+#else  // __BTC_USE_FPRINTF__
+
+// needed by LOG functions
+// LOG_NDEBUG = 1 disables all logging, 0 enables
+// Set others to 1 to disable, 0 to enable (LOG_NDDEBUG: debug logs, LOG_NIDEBUG: info logs)
+#define LOG_NDEBUG 0
+#define LOG_NDDEBUG 0
+#define LOG_NIDEBUG 0
+#define LOG_TAG "BTC-SVC"
+#include "cutils/log.h"
+#define BTC_INFO(...)      LOGI(__VA_ARGS__)
+#define BTC_ERR(...)       LOGE(__VA_ARGS__)
+#define BTC_OS_ERR         LOGE("err =%d msg = %s", errno, strerror(errno))
+
+#endif  // __BTC_USE_FPRINTF__
+
+#else  // BTC_DEBUG
+
+#define BTC_INFO(args...)
+#define BTC_ERR(args...)
+#define BTC_OS_ERR
+
+#endif  // BTC_DEBUG
 
 /*---------------------------------------------------------------------------
  * Global Data Definitions
@@ -218,7 +225,7 @@ static void parse_udev_event_message(const char *message, struct udev_event *ude
         while(*message++);
     }
 
-    BTC_INFO_ARG3("BTC-SVC: Uevent { '%s', '%s', '%s' }\n",
+    BTC_INFO("BTC-SVC: Uevent { '%s', '%s', '%s' }\n",
        udev_event->event, udev_event->system, udev_event->fw);
 }
 
@@ -245,7 +252,7 @@ static eBtcStatus process_udev_event( int fd )
 
         if(strcmp(udev_event.system, "firmware") == 0 && 
            strcmp(udev_event.event, "add") == 0 &&
-           strcmp(udev_event.fw, "qcom_fw.bin") == 0) 
+           strstr(udev_event.fw, "qcom_fw.bin") != NULL)
         {
               return BTC_WLAN_IF_FOUND;
         }
@@ -408,7 +415,7 @@ void btc_svc_inject_bt_event (btces_event_enum bt_event,
 
       default :
          // Not a valid supported event
-         BTC_ERR_ARG1("BTC-SVC: Unknown BT Event %d from BTC-ES\n", bt_event);
+         BTC_ERR("BTC-SVC: Unknown BT Event %d from BTC-ES\n", bt_event);
          return;
    }
 
@@ -431,7 +438,32 @@ void btc_svc_inject_bt_event (btces_event_enum bt_event,
    msgHdr->length = sizeof(tBtcBtEvent);
    btEvent = (tBtcBtEvent*)((char*)msgHdr + sizeof(tAniMsgHdr));
    btEvent->ev = bt_event;
-   memcpy(&btEvent->u, event_data, sizeof(btEvent->u));  
+
+   // check for no data before calling copy
+   if (NULL != event_data)
+   {
+      memcpy(&btEvent->u, event_data, sizeof(btEvent->u));
+   }
+#ifdef BTC_DEBUG
+   // print out the event contents
+   {
+      unsigned int local_index;
+      unsigned char *local_byteP;
+      unsigned char local_byte;
+
+      BTC_INFO("BTC-SVC: event type (%d)", btEvent->ev);
+      if (event_data != NULL)
+      {
+        BTC_INFO("  event contents:");
+        local_byteP = (unsigned char *)&(btEvent->u);
+        for (local_index = 0; local_index < sizeof(btEvent->u); local_index++)
+        {
+          local_byte = *local_byteP++;
+          BTC_INFO("  [%02d] 0x%02x (%d)", local_index, local_byte, local_byte);
+        }
+      }
+   }
+#endif  // BTC_DEBUG
 
    if(sendto(pBtcSvcHandle->fd, (void *)nl_header, nl_header->nlmsg_len, 0, 
       (struct sockaddr *)&dest_addr, sizeof(struct sockaddr_nl)) < 0) 
@@ -525,11 +557,13 @@ eBtcStatus process_message(int fd, tBtcSvcHandle *pBtcSvcHandle)
             if(!register_btc(pBtcSvcHandle)) {
                /* Communicate the WLAN channel number to BTC-ES */
                assocData =  (tWlanAssocData *)((char*)msgHdr + sizeof(tAniMsgHdr));
-               BTC_INFO_ARG1( "BTC-SVC: STA on channel %d!\n", assocData->channel);
+               BTC_INFO( "BTC-SVC: WLAN channel is %d\n", assocData->channel);
                pBtcSvcHandle->btcEsFuncs.wlan_chan_func(1 << (assocData->channel));
             }
             else
+            {
                BTC_ERR("BTC-SVC: Could not pass assoc info to BTC-ES\n");
+            }
             break;
 
          case WLAN_STA_DISASSOC_DONE_IND:
@@ -541,7 +575,9 @@ eBtcStatus process_message(int fd, tBtcSvcHandle *pBtcSvcHandle)
                pBtcSvcHandle->btcEsFuncs.wlan_chan_func(0);
             }
             else
+            {
                BTC_ERR("BTC-SVC: Could not pass disassoc info to BTC-ES\n");
+            }
             break;
 
          case WLAN_BTC_QUERY_STATE_RSP:
@@ -550,16 +586,18 @@ eBtcStatus process_message(int fd, tBtcSvcHandle *pBtcSvcHandle)
             if(!register_btc(pBtcSvcHandle)) {
                /* Communicate the WLAN channel number to BTC-ES */
                assocData =  (tWlanAssocData *)((char*)msgHdr + sizeof(tAniMsgHdr));
-               BTC_INFO_ARG1( "BTC-SVC: STA on channel %d!\n", assocData->channel);
+               BTC_INFO( "BTC-SVC: WLAN channel is %d\n", assocData->channel);
                pBtcSvcHandle->btcEsFuncs.wlan_chan_func(
                   assocData->channel ? 1 << (assocData->channel) : 0);
             }
             else
+            {
                BTC_ERR("BTC-SVC: Could not pass WLAN state to BTC-ES\n");
+            }
             break;
 
          default:
-            BTC_ERR_ARG1( "BTC-SVC: Unknown netlink message %d\n", msgHdr->type);
+            BTC_ERR( "BTC-SVC: Unknown netlink message %d\n", msgHdr->type);
             break;
       }
    }
