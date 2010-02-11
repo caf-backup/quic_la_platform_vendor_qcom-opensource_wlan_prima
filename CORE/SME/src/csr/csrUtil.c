@@ -774,7 +774,7 @@ eHalStatus csrGetParsedBssDescriptionIEs(tHalHandle hHal, tSirBssDescription *pB
 
 
 tANI_BOOLEAN csrIsNULLSSID( tANI_U8 *pBssSsid, tANI_U8 len )
-                    {
+{
     tANI_BOOLEAN fNullSsid = FALSE;
 
     tANI_U32 SsidLength;
@@ -788,8 +788,9 @@ tANI_BOOLEAN csrIsNULLSSID( tANI_U8 *pBssSsid, tANI_U8 len )
             break;
         }
 
-        if ( ( 1 == len ) &&
-             ( 0x20 == pBssSsid[0] ) )
+        //Consider 0 or space for hidden SSID
+        if ( ( 0 == pBssSsid[0] ) ||
+             ( ( 1 == len ) && ( 0x20 == pBssSsid[0] ) ) )
         {
              fNullSsid = TRUE;
              break;
@@ -2614,14 +2615,13 @@ tANI_BOOLEAN csrIsBogusSsid( tANI_U8 *pSsid, tANI_U32 SsidLen )
 
     for( idx = 0; idx < SsidLen; idx++ )
     {
-        // 0x20 <blank> is the smallest displayable ASCII hex value and 0x7F is the
-        // largest displayable ASCII value.  if the character is not withing the
-        // displayable ASCII range of values, then the SSID is bogus (actually invalide
-        // by 802.11 standards...
-        if ( !( ( pSsid[ idx ] >= ' ' ) && ( pSsid[ idx ] <= 0x7f )  )  )
+        // 0x20 <blank> is the smallest displayable ASCII hex value and 0x7E is the
+        // largest displayable ASCII value.  if the character is not within the
+        // displayable ASCII range of values, then the SSID is bogus (actually invalid
+        // by 802.11 standards). Also consider 0 a valid
+        if ( ( 0 != pSsid[ idx ] ) &&
+             ( ( pSsid[ idx ] < 0x20 ) || ( pSsid[ idx ] > 0x7E ) ) )
         {
-            // any non-displayable characters and the SSID can be considered a bogus SSID
-            // (an invalid SSID).
             fBogusSsid = TRUE;
             break;
         }
