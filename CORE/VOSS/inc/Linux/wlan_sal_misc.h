@@ -97,7 +97,7 @@ extern "C" {
  *  Max block size. 
  * -------------------------------------------------------------------------*/
 #define LIBRA_MAN_ID              0x70
-#define LIBRA_FUNC_ENABLE_TIMEOUT 10000 // 10 sec
+#define LIBRA_FUNC_ENABLE_TIMEOUT 5000 // 5 sec
 #define WLANSAL_MAX_BLOCK_SIZE    128
 
 /*----------------------------------------------------------------------------

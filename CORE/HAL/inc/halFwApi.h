@@ -85,6 +85,8 @@ typedef struct sHalFwParams
     // Pointer to hold the Fw Config parameters
     void*       pFwConfig;
 
+   // FW version info to be stored
+   FwVersionInfo fwVersion;
 } tHalFwParams;
 
 

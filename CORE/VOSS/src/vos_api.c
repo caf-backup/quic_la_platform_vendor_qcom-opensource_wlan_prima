@@ -483,18 +483,6 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
      return VOS_STATUS_E_FAILURE;
   }
 
-  /* Start SAL now */
-  vStatus = WLANSAL_Start(pVosContext);
-  if (!VOS_IS_STATUS_SUCCESS(vStatus))
-  {
-     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-              "%s: Failed to start SAL",__func__);
-     return vStatus;
-  }
-
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-           "%s: SAL correctly started", __func__);
-
   /* Start BAL */
   vStatus = WLANBAL_Start(pVosContext);
   

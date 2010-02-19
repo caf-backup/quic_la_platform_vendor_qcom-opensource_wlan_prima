@@ -348,10 +348,10 @@ HAL
 WNI_CFG_FRAGMENTATION_THRESHOLD    I    4    6
 V    RW    NP
 HAL
-0    8000    0
+256    8000    8000
 V    RW    NP
 HAL
-0    8000    0
+256    8000    8000
 
 
 *

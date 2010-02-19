@@ -32,6 +32,9 @@
 #include <wlan_hdd_wowl.h>
 #include <linux/earlysuspend.h>
 #include "wlan_hdd_power.h"
+#include "bldVersion.h"
+
+#define WE_MAX_STR_LEN 1024
 
 extern void hdd_suspend_wlan(struct early_suspend *wlan_suspend);
 extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
@@ -62,6 +65,20 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_THREE_INT_GET_NONE   (SIOCIWFIRSTPRIV + 4)
 #define WE_SET_WLAN_DBG      1
+
+/* Private ioctls and their sub-ioctls */
+#define WLAN_PRIV_GET_CHAR_SET_NONE   (SIOCIWFIRSTPRIV + 5)
+#define WE_WLAN_VERSION      1
+#define WE_GET_STATS         2
+
+/* Private ioctls and their sub-ioctls */
+#define WLAN_PRIV_SET_NONE_GET_NONE   (SIOCIWFIRSTPRIV + 6)
+#define WE_CLEAR_STATS       1
+
+/* Private ioctls and their sub-ioctls */
+#define WLAN_PRIV_SET_VAR_INT_GET_NONE   (SIOCIWFIRSTPRIV + 7)
+#define WE_LOG_DUMP_CMD      1
+#define MAX_VAR_ARGS         5			
 
 /* To Validate Channel against the Frequency and Vice-Versa */
 static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2}, 
@@ -2262,6 +2279,211 @@ static int iw_set_three_ints_getnone(struct net_device *dev, struct iw_request_i
     return 0;
 }
 
+static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *info,
+                       union iwreq_data *wrqu, char *extra)
+{    
+    int sub_cmd = wrqu->data.flags;
+    VOS_STATUS status;
+    FwVersionInfo fwversion;    
+    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    v_U32_t reg_val;
+
+    switch(sub_cmd)
+    {
+        case WE_WLAN_VERSION:
+        {
+            char *buf = extra;
+               
+            buf += sprintf(buf,"%s_",WLAN_CHIP_VERSION);
+            /*Read the RevID*/
+            status = sme_DbgReadRegister(pAdapter->hHal,QWLAN_RFAPB_REV_ID_REG,&reg_val);
+
+            if ( !VOS_IS_STATUS_SUCCESS( status ) ) {
+                hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed!!!\n",__func__);
+                return -EINVAL;
+            }
+
+            buf += sprintf(buf,"%x.%x-",(v_U8_t)(reg_val >> 8), (v_U8_t)(reg_val & 0x000000FF));
+            
+            status = sme_GetFwVersion( pAdapter->hHal,&fwversion); 
+
+            if ( !VOS_IS_STATUS_SUCCESS( status ) ) {
+                hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed!!!\n",__func__);
+                return -EINVAL;
+            }
+            buf += sprintf(buf,"%d.%d.%d.%d-",(int)BLD_REL,(int)BLD_VER,(int)BLD_SFX,(int)BLD_NUM);
+            buf += sprintf(buf,"%ld.%ld.%ld.%ld",fwversion.uMj,fwversion.uMn,fwversion.uPatch,fwversion.uBuild);            
+            wrqu->data.length = strlen(extra);
+            break;
+        }
+           
+        case WE_GET_STATS:
+        {
+            hdd_tx_rx_stats_t *pStats = &pAdapter->hdd_stats.hddTxRxStats;
+
+            snprintf(extra, WE_MAX_STR_LEN,
+                     "\nTransmit"
+                     "\ncalled %u, dropped %u, backpressured %u, queued %u"
+                     "\n      dropped BK %u, BE %u, VI %u, VO %u"
+                     "\n   classified BK %u, BE %u, VI %u, VO %u"
+                     "\nbackpressured BK %u, BE %u, VI %u, VO %u"
+                     "\n       queued BK %u, BE %u, VI %u, VO %u"
+                     "\nfetched %u, empty %u, lowres %u, deqerr %u"
+                     "\ndequeued %u, depressured %u, completed %u, flushed %u"
+                     "\n      fetched BK %u, BE %u, VI %u, VO %u"
+                     "\n     dequeued BK %u, BE %u, VI %u, VO %u"
+                     "\n  depressured BK %u, BE %u, VI %u, VO %u"
+                     "\n      flushed BK %u, BE %u, VI %u, VO %u"
+                     "\n\nReceive"
+                     "\nchains %u, packets %u, dropped %u, delivered %u, refused %u"
+                     "\n",
+                     pStats->txXmitCalled,
+                     pStats->txXmitDropped,
+                     pStats->txXmitBackPressured,
+                     pStats->txXmitQueued,
+
+                     pStats->txXmitDroppedAC[WLANTL_AC_BK],
+                     pStats->txXmitDroppedAC[WLANTL_AC_BE],
+                     pStats->txXmitDroppedAC[WLANTL_AC_VI],
+                     pStats->txXmitDroppedAC[WLANTL_AC_VO],
+
+                     pStats->txXmitClassifiedAC[WLANTL_AC_BK],
+                     pStats->txXmitClassifiedAC[WLANTL_AC_BE],
+                     pStats->txXmitClassifiedAC[WLANTL_AC_VI],
+                     pStats->txXmitClassifiedAC[WLANTL_AC_VO],
+
+                     pStats->txXmitBackPressuredAC[WLANTL_AC_BK],
+                     pStats->txXmitBackPressuredAC[WLANTL_AC_BE],
+                     pStats->txXmitBackPressuredAC[WLANTL_AC_VI],
+                     pStats->txXmitBackPressuredAC[WLANTL_AC_VO],
+
+                     pStats->txXmitQueuedAC[WLANTL_AC_BK],
+                     pStats->txXmitQueuedAC[WLANTL_AC_BE],
+                     pStats->txXmitQueuedAC[WLANTL_AC_VI],
+                     pStats->txXmitQueuedAC[WLANTL_AC_VO],
+
+                     pStats->txFetched,
+                     pStats->txFetchEmpty,
+                     pStats->txFetchLowResources,
+                     pStats->txFetchDequeueError,
+
+                     pStats->txFetchDequeued,
+                     pStats->txFetchDePressured,
+                     pStats->txCompleted,
+                     pStats->txFlushed,
+
+                     pStats->txFetchedAC[WLANTL_AC_BK],
+                     pStats->txFetchedAC[WLANTL_AC_BE],
+                     pStats->txFetchedAC[WLANTL_AC_VI],
+                     pStats->txFetchedAC[WLANTL_AC_VO],
+
+                     pStats->txFetchDequeuedAC[WLANTL_AC_BK],
+                     pStats->txFetchDequeuedAC[WLANTL_AC_BE],
+                     pStats->txFetchDequeuedAC[WLANTL_AC_VI],
+                     pStats->txFetchDequeuedAC[WLANTL_AC_VO],
+
+                     pStats->txFetchDePressuredAC[WLANTL_AC_BK],
+                     pStats->txFetchDePressuredAC[WLANTL_AC_BE],
+                     pStats->txFetchDePressuredAC[WLANTL_AC_VI],
+                     pStats->txFetchDePressuredAC[WLANTL_AC_VO],
+
+                     pStats->txFlushedAC[WLANTL_AC_BK],
+                     pStats->txFlushedAC[WLANTL_AC_BE],
+                     pStats->txFlushedAC[WLANTL_AC_VI],
+                     pStats->txFlushedAC[WLANTL_AC_VO],
+
+                     pStats->rxChains,
+                     pStats->rxPackets,
+                     pStats->rxDropped,
+                     pStats->rxDelivered,
+                     pStats->rxRefused
+
+                     );
+            wrqu->data.length = strlen(extra)+1;
+            break;
+        }
+
+        default:  
+        {
+            hddLog(LOGE, "Invalid IOCTL command %d  \n",  sub_cmd );
+            break;
+        }
+    }
+
+    return 0;
+}
+
+
+/*  action sub-ioctls */
+static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *info,
+                       union iwreq_data *wrqu, char *extra)
+{  
+    hdd_adapter_t *pAdapter = (netdev_priv(dev));   
+    int sub_cmd = wrqu->data.flags;
+    int ret = 0; /* sucess */
+    
+    printk("%s: wrqu: %p, extra: %p\n", __FUNCTION__, wrqu, extra);
+    switch (sub_cmd)
+    {
+        case WE_CLEAR_STATS:
+        {
+            printk("%s: clearing\n", __FUNCTION__);
+            memset(&pAdapter->stats, 0, sizeof(pAdapter->stats));
+            memset(&pAdapter->hdd_stats, 0, sizeof(pAdapter->hdd_stats));
+            break;
+        }
+
+        default:
+        {
+            printk("%s: unknown ioctl %d\n", __FUNCTION__, sub_cmd);
+            hddLog(LOGE, "Invalid IOCTL action command %d ", sub_cmd);
+            break;
+        }
+    }
+
+    return ret;
+}
+
+static int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info,
+        union iwreq_data *wrqu, char *extra)
+{   
+
+    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    tHalHandle hHal = pAdapter->hHal;
+    int sub_cmd = wrqu->data.flags;
+    int *value = (int*)wrqu->data.pointer;
+    int log_dump_args[MAX_VAR_ARGS] = {0};
+
+    hddLog(LOGW, "The function iw_set_var_ints_getnone called \n");
+    hddLog(LOGW, "%s: Received length %d\n", __FUNCTION__, wrqu->data.length);
+    hddLog(LOGW, "%s: Received data %s\n", __FUNCTION__, (char*)wrqu->data.pointer);
+
+    switch (sub_cmd)
+    {
+        case WE_LOG_DUMP_CMD:
+            {
+                vos_mem_copy(log_dump_args, value, (sizeof(int))*wrqu->data.length);
+
+
+                hddLog(LOGE, "%s: PTT_MSG_LOG_DUMP %d arg1 %d arg2 %d arg3 %d arg4 %d\n",
+                        __FUNCTION__, log_dump_args[0], log_dump_args[1], log_dump_args[2], 
+                        log_dump_args[3], log_dump_args[4]);
+
+                logPrintf(hHal, log_dump_args[0], log_dump_args[1], log_dump_args[2], 
+                        log_dump_args[3], log_dump_args[4]);
+
+            }
+            break;
+
+        default:  
+            {
+                hddLog(LOGE, "Invalid IOCTL command %d  \n",  sub_cmd );
+                break;
+            }
+    }
+
+    return 0;
+}
 
 // Define the Wireless Extensions to the Linux Network Device structure
 // A number of these routines are NULL (meaning they are not implemented.) 
@@ -2327,10 +2549,13 @@ static const iw_handler      we_handler[] =
 
 static const iw_handler we_private[] = {
    
-   [WLAN_PRIV_SET_INT_GET_NONE      - SIOCIWFIRSTPRIV] = iw_setint_getnone,  //set priv ioctl
-   [WLAN_PRIV_SET_NONE_GET_INT      - SIOCIWFIRSTPRIV] = iw_setnone_getint,  //get priv ioctl   
-   [WLAN_PRIV_SET_CHAR_GET_NONE     - SIOCIWFIRSTPRIV] = iw_setchar_getnone, //get priv ioctl   
-   [WLAN_PRIV_SET_THREE_INT_GET_NONE  - SIOCIWFIRSTPRIV] = iw_set_three_ints_getnone,
+   [WLAN_PRIV_SET_INT_GET_NONE      - SIOCIWFIRSTPRIV]   = iw_setint_getnone,  //set priv ioctl
+   [WLAN_PRIV_SET_NONE_GET_INT      - SIOCIWFIRSTPRIV]   = iw_setnone_getint,  //get priv ioctl   
+   [WLAN_PRIV_SET_CHAR_GET_NONE     - SIOCIWFIRSTPRIV]   = iw_setchar_getnone, //get priv ioctl   
+   [WLAN_PRIV_SET_THREE_INT_GET_NONE - SIOCIWFIRSTPRIV]  = iw_set_three_ints_getnone,   
+   [WLAN_PRIV_GET_CHAR_SET_NONE      - SIOCIWFIRSTPRIV]  = iw_get_char_setnone,
+   [WLAN_PRIV_SET_NONE_GET_NONE     - SIOCIWFIRSTPRIV]   = iw_setnone_getnone, //action priv ioctl   
+   [WLAN_PRIV_SET_VAR_INT_GET_NONE	- SIOCIWFIRSTPRIV]	 = iw_set_var_ints_getnone,
 };
 
 /*Maximum command length can be only 15 */
@@ -2413,6 +2638,46 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
         0, 
         "setwlandbg" },
+
+            /* handlers for main ioctl */
+    {   WLAN_PRIV_GET_CHAR_SET_NONE,
+        0,
+        IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
+        "" },
+
+            /* handlers for sub-ioctl */
+    {   WE_WLAN_VERSION,
+        0,
+        IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
+        "version" },
+    {   WE_GET_STATS,
+        0,
+        IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
+        "getStats" },
+
+    /* handlers for main ioctl */
+    {   WLAN_PRIV_SET_NONE_GET_NONE,
+        0,
+        0, 
+        "" },
+
+    /* handlers for sub-ioctl */
+    {   WE_CLEAR_STATS,
+        0,
+        0, 
+        "clearStats" },
+		
+    /* handlers for main ioctl */
+    {   WLAN_PRIV_SET_VAR_INT_GET_NONE,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, 
+        "" },
+
+    /* handlers for sub-ioctl */
+    {   WE_LOG_DUMP_CMD,
+        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+        0, 
+        "dump" },
 
 };
 

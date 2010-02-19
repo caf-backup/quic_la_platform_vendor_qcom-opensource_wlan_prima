@@ -94,7 +94,7 @@ typedef enum
     
     eCsrSmeIssuedDisassocForHandoff, // will be issued by Handoff logic to disconect from current AP
     eCsrSmeIssuedAssocToSimilarAP, // will be issued by Handoff logic to join a new AP with same profile
-    
+    eCsrSmeIssuedIbssJoinFailure, // ibss join timer fired before any perr showed up, so shut down the network
 }eCsrRoamReason;
 
 typedef enum
@@ -836,6 +836,14 @@ void csrScanRemoveBgScanReq(tpAniSirGlobal pMac);
 eHalStatus csrHoConfigParams(tpAniSirGlobal pMac, tCsrHandoffConfigParams * pCsrHoConfig);
 
 #endif
+tANI_BOOLEAN csrIsConnStateDisconnected(tpAniSirGlobal pMac);
+tANI_BOOLEAN csrIsConnStateConnectedIbss( tpAniSirGlobal pMac );
+tANI_BOOLEAN csrIsConnStateDisconnectedIbss( tpAniSirGlobal pMac );
+tANI_BOOLEAN csrIsConnStateConnectedInfra( tpAniSirGlobal pMac );
+tANI_BOOLEAN csrIsConnStateInfra( tpAniSirGlobal pMac );
+tANI_BOOLEAN csrIsConnStateIbss( tpAniSirGlobal pMac );
+//check if we are connected
+tANI_BOOLEAN csrIsConnStateConnected( tpAniSirGlobal pMac );
 
 #endif
 

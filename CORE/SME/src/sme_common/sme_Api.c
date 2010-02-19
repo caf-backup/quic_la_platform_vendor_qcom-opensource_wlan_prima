@@ -3062,4 +3062,33 @@ void smsLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...)
     }
 #endif
 }
+/* ---------------------------------------------------------------------------
+    \fn sme_GetFwVersion
+    \brief  This API returns the firmware version.
+    \param  hHal - The handle returned by macOpen.
+    \param  version - Points to the FwVersionInfo structure.
+    \return VOS_STATUS
+            VOS_STATUS_E_INVAL - failure
+            VOS_STATUS_SUCCESS – success
+  ---------------------------------------------------------------------------*/
+  
+VOS_STATUS sme_GetFwVersion (tHalHandle hHal,FwVersionInfo *pVersion)
+{
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+    if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
+    {
+        if( pVersion != NULL ) {
+            vos_mem_copy((v_VOID_t*)pVersion,(v_VOID_t*)&pMac->hal.FwParam.fwVersion, sizeof(FwVersionInfo));
+        }
+        else {
+            status = VOS_STATUS_E_INVAL;
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return (status);
+}
+
 

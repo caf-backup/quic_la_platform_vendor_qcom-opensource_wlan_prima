@@ -1282,7 +1282,7 @@ eHalStatus halRate_TxPwrIndexToFW(tpAniSirGlobal pMac, int startIndex, int endIn
         *ptr = HTOFL(*ptr);
         ptr++;
         }
-#endif   
+#endif
 
     /* 3. write to firmware */
     status = halWriteDeviceMemory(pMac, QWLANFW_MEMMAP_RATE_TXPWR_TABLE+sizeof(tANI_U32)*startIndex_4, \
@@ -1415,7 +1415,7 @@ void halRate_getProtectionInfo(tpAniSirGlobal pMac, tANI_U32 staId,
     tTpeProtPolicy protPolicy = TPE_RATE_PROTECTION_NONE;
     tANI_U32 rtsThreshold = HAL_RTS_THRESHOLD_MAX;
     tANI_BOOLEAN bssProt = FALSE;
-    tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;    
+    tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;
     tpHalRaGlobalInfo pGlobInfo = &pMac->hal.halRaInfo;
 
     // Get the CFG set protection policy
@@ -1499,7 +1499,7 @@ void  halRate_changeStaRate(tpAniSirGlobal pMac, tANI_U32 staId,
         tANI_U32 rateType, tHalMacRate halPriRateIdx,
         tHalMacRate halSecRateIdx, tHalMacRate halTerRateIdx )
 {
-    Qwlanfw_RaForceStaRateMsgType msgBody; 
+    Qwlanfw_RaForceStaRateMsgType msgBody;
 
     /* send message to firmware */
     msgBody.staId = staId;
@@ -1539,7 +1539,7 @@ eHalStatus halRate_getPowerIndex(tpAniSirGlobal pMac, tANI_U32 rateIndex,
 
 eHalStatus
 halMacRaTxPktCountFromFW(
-    tpAniSirGlobal  pMac, 
+    tpAniSirGlobal  pMac,
     tANI_U32       *pktCntArray)
 {
     eHalStatus status;
@@ -1573,7 +1573,7 @@ eHalStatus halRate_UpdateTpeTxPowerRateEntry(tpAniSirGlobal pMac, tANI_U32 rateI
  *   update the corresponding MPI command table
  *   in the global rate table.
  * NOTE2: In case RA in FW, caller should decide whether
- * this function is called many times (in a loop) or only once. 
+ * this function is called many times (in a loop) or only once.
  * Since this power information should pass to firmware and
  * we don't want to access to firmware each time if this function is called in series,
  * it's caller's responsibility to call halRate_TxPwrIndexToFW function() after this function call.
@@ -1698,9 +1698,9 @@ const eHalPhyRates macPhyRateIndex[TPE_RT_IDX_MAX_RATES] =
     HAL_PHY_RATE_INVALID                    // TPE_RT_IDX_ANI_STBC_GF_68_25_MBPS = 67,
 };
 
-/* Funtion to update the Ctrl/Rsp rate's TX power in the local cache 
+/* Funtion to update the Ctrl/Rsp rate's TX power in the local cache
  * and the TPE MMPI command table if updateTpeHW is set */
-void halRate_UpdateCtrlRspTxPower(tpAniSirGlobal pMac, tTpeRateIdx rateIdx, 
+void halRate_UpdateCtrlRspTxPower(tpAniSirGlobal pMac, tTpeRateIdx rateIdx,
         tPwrTemplateIndex txPower, tANI_U8 updateTpeHw)
 {
     tANI_U32 index;
@@ -1820,9 +1820,11 @@ eHalStatus halRate_UpdateRateTablePower(tpAniSirGlobal pMac, tTpeRateIdx startRa
         // Update the cntrl/rsp rate tx power locally and in the TPE if the updateTpeHw flag is set.
         halRate_UpdateCtrlRspTxPower(pMac, index, txPower, updateTpeHw);
     }
-    /* when updateTpeHw is true, intention is to update CtrlRspTxPower quickly, 
-    but not really change the rate Table power */
-    if(updateTpeHw==FALSE) {
+
+	// If "updateTpeHw" is TRUE then it implies that Libra is parked at that channel and RA-FW should
+	// use the updated TxPower for that channel when selecting the rates, so update the TxPower table
+	// in FW.
+    if(updateTpeHw) {
         if(endRateIdx >= HAL_MAC_MAX_TX_RATES)
             endRateIdx = HAL_MAC_MAX_TX_RATES;
         halRate_TxPwrIndexToFW(pMac, startRateIdx, endRateIdx);
@@ -2027,7 +2029,7 @@ eHalStatus halRate_enableTpeRate(tpAniSirGlobal hHal, tANI_U32 enable, tANI_U32 
         } else {
             pHalRate->rateProperty |= RA_DISABLED;
         }
-        /* this is inefficient when the caller calls this function in a loop 
+        /* this is inefficient when the caller calls this function in a loop
         halRate_halRateInfoTableToFW(hHal, tpeRateIdx, tpeRateIdx+1);
         */
         return eHAL_STATUS_SUCCESS;
@@ -2048,7 +2050,7 @@ tANI_U32 halRate_GetMpduSpaceByTpeRate(
     tANI_U32 mpduSpace;
     tTpeRateIdx tpeRateIndex;
     tpHalRateInfo pRateInfo;
-    
+
     tpeRateIndex = halRate_halRate2TpeRate(halRateIdx);
 
     /* Check the validity of TPE rate index */

@@ -483,9 +483,9 @@ void pttSocketAppProcNetlinkMsg (void *arg)
             printf(" Command Code=0x%x\n", *pData);
             if( *pData == 0xEF) 
             {
-                pData++;
-                printf("Writing Data to EFS\n");
-                write_nv_items_to_efs(pData, (pserver->diag_msg.msg_len - sizeof(tANI_U8))); 
+                pData += sizeof(tANI_U32);
+                printf("********Writing Data to EFS*****\n");
+                write_nv_items_to_efs(pData, (pserver->diag_msg.msg_len - sizeof(tANI_U32))); 
             }
             else 
             {
@@ -883,6 +883,8 @@ PACK(void *) wlan_ftm_func_75(PACK(void *)req_pkt, uint16 pkt_len)
     } else {
         printf("Wlan FTM Test APP: diagpkt_subsys_alloc failed");
     }
+
+    free(pBuf);
 
     return rsp;
 }

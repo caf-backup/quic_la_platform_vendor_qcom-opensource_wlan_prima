@@ -680,7 +680,7 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
             return  eHAL_STATUS_FAILURE;;
         }
 
-	pSta[pAddBAParams->staIdx].baReceipientTidBitMap |=  pAddBAParams->baTID + 1;
+        pSta[pAddBAParams->staIdx].baReceipientTidBitMap |=  (1 << pAddBAParams->baTID);
 
     }
     // BA initiator
@@ -790,8 +790,8 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
         halSendUnSolicitBARFrame(pMac, pAddBAParams->staIdx, pAddBAParams->baTID, queueId);
     }
 
-	pSta[pAddBAParams->staIdx].baInitiatorTidBitMap |=  pAddBAParams->baTID + 1;
-        
+	pSta[pAddBAParams->staIdx].baInitiatorTidBitMap |=  (1 << pAddBAParams->baTID);
+		
         // Update the station descriptor
         if ((status = halTpe_UpdateStaDesc(pMac, (tANI_U8)pAddBAParams->staIdx,
                                            &tpeStaDescCfg)) != eHAL_STATUS_SUCCESS)
@@ -850,7 +850,7 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tCfgTrafficClass tcCfg;
     tHalCfgSta staEntry;
-//    tpStaStruct pSta = (tpStaStruct)pMac->hal.halMac.staTable;
+    tpStaStruct pSta = (tpStaStruct)pMac->hal.halMac.staTable;
     tANI_U8 queueId;
     tRpeStaQueueInfo rpeStaQueueInfo;
     tTpeStaDesc tpeStaDescCfg = {0};
@@ -1021,6 +1021,8 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
                     pDelBAParams->staIdx, queueId ));
             return status;
         }
+
+        pSta[pDelBAParams->staIdx].baReceipientTidBitMap &= ~(1 << pDelBAParams->baTID);
     }
 
     // BA initiator
@@ -1060,6 +1062,9 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
             return status;
         }
     }
+
+    pSta[pDelBAParams->staIdx].baInitiatorTidBitMap &= ~(1 << pDelBAParams->baTID);
+
     if (tpeStaDescCfg.ampdu_valid == 0)
     {
         // Disable BMU BA update
@@ -1300,15 +1305,38 @@ eHalStatus baProcessTLAddBARsp(tpAniSirGlobal pMac, tANI_U16 baSessionID, tANI_U
                             goto Fail;
                         }
 
+			/* Adding Default values to RPE descriptor since in 
+			 * IBSS, after DelBA, Cache is becoming valid
+			 * which in-turn write back to stale values to RPE 
+			 * casuing ping to fail when we add BA session again.
+			 * Resetting to default values makes sure that stale 
+			 * values of RPE from previous BA session will be 
+			 * wiped-off.
+			 */
+
                         // Set up station descriptor
+	                rpeStaQueueInfo.val = 1;
+                        rpeStaQueueInfo.bar = 0;
+                        rpeStaQueueInfo.psr = 0;
+                        rpeStaQueueInfo.reserved1 = 0;
+
                         rpeStaQueueInfo.rty = 0;
                         rpeStaQueueInfo.fsh = 0;
                         rpeStaQueueInfo.ord = 0;
                         rpeStaQueueInfo.frg = 0;
                         rpeStaQueueInfo.check_2k = 1;
                         rpeStaQueueInfo.ba_window_size = tcCfg.rxBufSize - 1;  /* FIXME_GEN6: BA window size should be coming from the TL response message */
-                        rpeStaQueueInfo.reorder_window_size = tcCfg.rxBufSize - 1; /* FIXME_GEN6: BA window size should be coming from the TL response message */
+                        rpeStaQueueInfo.reorder_window_size = tcCfg.rxBufSize - 1; 
+			/* FIXME_GEN6: BA window size should be coming from the TL response message */
 
+		        rpeStaQueueInfo.ssn_sval = 0;
+                        rpeStaQueueInfo.ba_ssn = pAddBAParams->baSSN;
+                        rpeStaQueueInfo.staId_queueId_BAbitmapLo = 0;
+                        rpeStaQueueInfo.staId_queueId_BAbitmapHi = 0;
+                        rpeStaQueueInfo.staId_queueId_ReorderbitmapLo = 0;
+                        rpeStaQueueInfo.staId_queueId_ReorderbitmapHi = 0;
+                        rpeStaQueueInfo.reserved2 = 0;
+			
                         /* Excerpt from RPE SPEC (section 3.8)
                                                 -   Currently we do not touch the reorder ssnval/ssn we leave them initialized to zero
                                                 -   This will make rpe not set correct opcode if the first received packet after BA session is BAR

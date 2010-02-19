@@ -64,11 +64,48 @@
 /** Mac Address string **/
 #define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
 
+#ifdef ANI_CHIPSET_LIBRA
+#define WLAN_CHIP_VERSION   "WCN1312"
+#endif
 
 #define hddLog(level, args...) VOS_TRACE( VOS_MODULE_ID_HDD, level, ## args)
 #define ENTER() VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "Enter:%s\n", __FUNCTION__)
 #define EXIT()  VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "Exit:%s\n", __FUNCTION__)
 
+
+typedef struct hdd_tx_rx_stats_s
+{
+   // start_xmit stats
+   __u32    txXmitCalled;
+   __u32    txXmitDropped;
+   __u32    txXmitBackPressured;
+   __u32    txXmitQueued;
+   __u32    txXmitClassifiedAC[NUM_TX_QUEUES];
+   __u32    txXmitDroppedAC[NUM_TX_QUEUES];
+   __u32    txXmitBackPressuredAC[NUM_TX_QUEUES];
+   __u32    txXmitQueuedAC[NUM_TX_QUEUES];
+   // fetch_cbk stats
+   __u32    txFetched;
+   __u32    txFetchedAC[NUM_TX_QUEUES];
+   __u32    txFetchEmpty;
+   __u32    txFetchLowResources;
+   __u32    txFetchDequeueError;
+   __u32    txFetchDequeued;
+   __u32    txFetchDequeuedAC[NUM_TX_QUEUES];
+   __u32    txFetchDePressured;
+   __u32    txFetchDePressuredAC[NUM_TX_QUEUES];
+   // complete_cbk_stats
+   __u32    txCompleted;
+   // flush stats
+   __u32    txFlushed;
+   __u32    txFlushedAC[NUM_TX_QUEUES];
+   // rx stats
+   __u32    rxChains;
+   __u32    rxPackets;
+   __u32    rxDropped;
+   __u32    rxDelivered;
+   __u32    rxRefused;
+} hdd_tx_rx_stats_t;
 
 typedef struct hdd_stats_s
 {
@@ -78,7 +115,7 @@ typedef struct hdd_stats_s
    tCsrGlobalClassCStatsInfo  ClassC_stat;
    tCsrGlobalClassDStatsInfo  ClassD_stat;
    tCsrPerStaStatsInfo        perStaStats;
-
+   hdd_tx_rx_stats_t          hddTxRxStats;
 } hdd_stats_t;
 
 typedef enum

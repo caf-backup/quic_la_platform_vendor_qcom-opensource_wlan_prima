@@ -301,6 +301,7 @@ void halDpu_HandleMICErrorInterrupt(tpAniSirGlobal pMac);
 void halDpu_MICErrorIndication(tpAniSirGlobal pMac);
 eHalStatus halDpu_BdRoutingFlagOverride(tpAniSirGlobal  pMac, tANI_U8 enable, tANI_U32 wqIdx);
 eHalStatus halDpu_GetSequence(tpAniSirGlobal pMac, tANI_U8 dpuIdx, tANI_U8 tId, tANI_U16 *sequenceNum);
+eHalStatus halDpu_ResetEncryMode(tpAniSirGlobal pMac, tANI_U8 dpuIdx);
 
 
 #endif /* _HALDPU_H_ */

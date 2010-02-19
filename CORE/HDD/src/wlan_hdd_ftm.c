@@ -727,11 +727,11 @@ VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len)
     hdd_adapter_t *pAdapter;
     v_CONTEXT_t pVosContext= NULL;
 
-    pBuf =  (v_U8_t*)vos_mem_malloc(sizeof(tAniHdr) + sizeof(v_U8_t)+ data_len);
+    pBuf =  (v_U8_t*)vos_mem_malloc(sizeof(tAniHdr) + sizeof(v_U32_t)+ data_len);
 
     wmsg = (tAniHdr*)pBuf;
     wmsg->type = PTT_MSG_FTM_CMDS_TYPE;
-    wmsg->length = data_len + sizeof(tAniHdr)+ sizeof(v_U8_t);
+    wmsg->length = data_len + sizeof(tAniHdr)+ sizeof(v_U32_t);
     wmsg->length = FTM_SWAP16(wmsg->length);
     pBuf += sizeof(tAniHdr);
 
@@ -742,10 +742,12 @@ VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len)
     pAdapter = ((VosContextType*)(pVosContext))->pHDDContext;
 
     /* EfS command Code */
-    *pBuf++ = 0xEF;
+    *(v_U32_t*)pBuf = 0x000000EF;
+
+    pBuf += sizeof(v_U32_t);
 
     memcpy(pBuf, pData,data_len);
-
+   
     if( ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, pAdapter->ftm.wnl->nlh.nlmsg_pid) < 0) {
 
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("Ptt Socket error sending message to the app!!\n"));

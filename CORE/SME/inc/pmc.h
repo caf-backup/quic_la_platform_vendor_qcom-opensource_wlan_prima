@@ -20,16 +20,9 @@
 #include "smeInternal.h"
 
 
-/* A macro to break into the debugger when things go wrong.  This macro will do nothing
-   on non-debug buids.  Right now, this is only supported on x86 machines and under Windows.
-   Other platforms can be supported in the future. */
-#if defined(_X86_) && DBG
-#define PMC_ABORT   {_asm int 3}
-#elif defined(ANI_OS_TYPE_WINDOWS)
-#define PMC_ABORT   DbgBreakPoint()
-#else
-#define PMC_ABORT
-#endif
+//Change PMC_ABORT to no-op for now. We need to define it as VOS_ASSERT(0) once we 
+//cleanup the usage.
+#define PMC_ABORT  
 
 /* Host power sources. */
 typedef enum ePowerSource

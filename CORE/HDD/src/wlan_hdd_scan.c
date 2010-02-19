@@ -369,7 +369,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
       }
       
       
-      if ((current_pad - current_event) > IW_EV_LCP_LEN) 
+      if ((current_pad - current_event) >= IW_EV_LCP_LEN) 
       {
           current_event = current_pad;
       } 

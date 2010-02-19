@@ -28,7 +28,8 @@
 #define CSR_DEF_IBSS_START_CHANNEL_50       36
 #define CSR_DEF_IBSS_START_CHANNEL_24       1
 #define CSR_IBSS_JOIN_TIMEOUT_PERIOD        ( 1 *  PAL_TIMER_TO_SEC_UNIT )  // 1 second
-#define CSR_WAIT_FOR_KEY_TIMEOUT_PERIOD         ( 5 * PAL_TIMER_TO_SEC_UNIT )  // 5 seconds
+#define CSR_WAIT_FOR_KEY_TIMEOUT_PERIOD         ( 5 * PAL_TIMER_TO_SEC_UNIT )  // 5 seconds, for WPA, WPA2
+#define CSR_WAIT_FOR_WPS_KEY_TIMEOUT_PERIOD         ( 120 * PAL_TIMER_TO_SEC_UNIT )  // 120 seconds, for WPS
 /*---------------------------------------------------------------------------
   OBIWAN recommends [8 10]% : pick 9% 
 ---------------------------------------------------------------------------*/
@@ -3346,6 +3347,7 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
     tDot11fBeaconIEs *pIes = NULL;
     eHalStatus status;
     tCsrRoamProfile *pProfile = NULL;
+    tANI_U32 key_timeout_interval = 0;
 
     smsLog( pMac, LOG1, FL("Processsing ROAM results...\n"));
 
@@ -3439,8 +3441,16 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                     csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_WAIT_FOR_KEY );
                     //Need to wait for supplicant authtication
                     roamInfo.fAuthRequired = eANI_BOOLEAN_TRUE;
+                    if(pProfile->bWPSAssociation)
+                    {
+                        key_timeout_interval = CSR_WAIT_FOR_WPS_KEY_TIMEOUT_PERIOD;
+                    }
+                    else
+                    {
+                        key_timeout_interval = CSR_WAIT_FOR_KEY_TIMEOUT_PERIOD;
+                    }
                     //This time should be long enough for the rest of the process plus setting key
-                    if(!HAL_STATUS_SUCCESS( csrRoamStartWaitForKeyTimer( pMac, CSR_WAIT_FOR_KEY_TIMEOUT_PERIOD ) ) )
+                    if(!HAL_STATUS_SUCCESS( csrRoamStartWaitForKeyTimer( pMac, key_timeout_interval ) ) )
                     {
                         //Reset our state so nothting is blocked.
                         smsLog( pMac, LOGE, FL("   Failed to start pre-auth timer\n") );
@@ -3787,8 +3797,17 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                     break;
                 case eCsrForcedDisassoc:
                 case eCsrForcedDeauth:
+                case eCsrSmeIssuedIbssJoinFailure:
                     csrRoamStateChange( pMac, eCSR_ROAMING_STATE_IDLE );
+                    if(eCsrSmeIssuedIbssJoinFailure == pCommand->u.roamCmd.roamReason)
+                    {
+                        // Notify HDD that IBSS join failed
+                        csrRoamCallCallback(pMac, NULL, 0, eCSR_ROAM_IBSS_IND, eCSR_ROAM_RESULT_IBSS_JOIN_FAILED);
+                    }
+                    else
+                    {
                     csrRoamCallCallback(pMac, NULL, pCommand->u.roamCmd.roamId, eCSR_ROAM_DISASSOCIATED, eCSR_ROAM_RESULT_FORCED);
+                    }
                     sme_QosCsrEventInd(pMac, SME_QOS_CSR_DISCONNECT_IND, NULL);
                     csrRoamLinkDown(pMac);
                     csrScanStartIdleScan(pMac);
@@ -4559,6 +4578,10 @@ eHalStatus csrRoamIssueDisassociateCmd( tpAniSirGlobal pMac, eCsrRoamDisconnectR
             pCommand->u.roamCmd.roamReason = eCsrForcedDisassoc;
             break;
 
+        case eCSR_DISCONNECT_REASON_IBSS_JOIN_FAILURE:
+            pCommand->u.roamCmd.roamReason = eCsrSmeIssuedIbssJoinFailure;
+            break;
+
         default:
             break;
         }
@@ -4596,6 +4619,8 @@ eHalStatus csrRoamDisconnect(tHalHandle hHal, eCsrRoamDisconnectReason reason)
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     
     csrRoamCancelRoaming(pMac);
+    pMac->roam.ibss_join_pending = FALSE;
+    csrRoamStopIbssJoinTimer(pMac);
     csrRoamRemoveDuplicateCommand(pMac, NULL, eCsrForcedDisassoc);
     return (csrRoamDisconnectInternal(pMac, reason));
 }
@@ -6585,10 +6610,8 @@ eHalStatus csrRoamStopWaitForKeyTimer(tpAniSirGlobal pMac)
 void csrRoamIbssJoinTimerHandler(void *pv)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( pv );
-    eCsrRoamDisconnectReason reason = eCSR_DISCONNECT_REASON_UNSPECIFIED;
-    
-    // Notify HDD that IBSS join failed
-    csrRoamCallCallback(pMac, NULL, 0, eCSR_ROAM_IBSS_IND, eCSR_ROAM_RESULT_IBSS_JOIN_FAILED);
+    eCsrRoamDisconnectReason reason = eCSR_DISCONNECT_REASON_IBSS_JOIN_FAILURE;
+    pMac->roam.ibss_join_pending = FALSE;
     // Send an IBSS stop request to PE
     csrRoamDisconnectInternal(pMac, reason);
 
@@ -6958,7 +6981,8 @@ eHalStatus csrRoamIssueStopBss( tpAniSirGlobal pMac, eCsrRoamSubState NewSubstat
         }
     }
 #endif //FEATURE_WLAN_DIAG_SUPPORT
-
+    pMac->roam.ibss_join_pending = FALSE;
+    csrRoamStopIbssJoinTimer(pMac);
     // Set the roaming substate to 'stop Bss request'...
     csrRoamSubstateChange( pMac, NewSubstate );
     // attempt to stop the Bss (reason code is ignored...)

@@ -2262,5 +2262,37 @@ eHalStatus halDpu_GetSequence(tpAniSirGlobal pMac, tANI_U8 dpuIdx, tANI_U8 tId, 
     return eHAL_STATUS_SUCCESS;
 }
 
+/*
+   Function Name     : halDpu_ResetEncryMode
+   Input Arguments   : Pointer ti tpAniSirGlobal Structure
+                         DUP Index
+   Return Values       : Status
+   This function retrieves the DPU control parameters and resets the encryption mode and sets it back in DPU Descriptor
+*/
 
+eHalStatus halDpu_ResetEncryMode(tpAniSirGlobal pMac, tANI_U8 dpuIdx)
+{
+    tpDpuInfo pDpu = (tpDpuInfo) pMac->hal.halMac.dpuInfo;
+    tDpuDescriptor dpu;
+
+    if( eHAL_STATUS_SUCCESS == dpu_get_descriptor( pMac,
+          dpuIdx,
+          &dpu ))
+    {
+	if (dpu.encryptMode) {
+
+            /* Reset Encryption Mode Only */
+            dpu.encryptMode = 0;
+	    pDpu->descTable[dpuIdx].halDpuDescriptor.encryptMode = 0;
+					
+            return dpu_set_descriptor( pMac,
+                    pDpu->descTable[dpuIdx].hwIndex,
+                    0,
+                    sizeof(tDpuDescriptor),    
+                    &dpu );
+         }
+         return eHAL_STATUS_SUCCESS;
+    }
+    return eHAL_STATUS_FAILURE;
+}
 

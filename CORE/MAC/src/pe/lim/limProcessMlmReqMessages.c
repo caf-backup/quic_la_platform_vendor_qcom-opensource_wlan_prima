@@ -508,7 +508,7 @@ limSendHalStartScanReq(tpAniSirGlobal pMac, tANI_U8 channelNum, tLimLimHalScanSt
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
 
     MTRACE(macTraceMsgTx(pMac, 0, msg.type));
-    PELOGE(limLog(pMac, LOGE, FL("Channel %d\n"), channelNum);)
+    PELOGW(limLog(pMac, LOGW, FL("Channel %d\n"), channelNum);)
 
     rc = halPostMsgApi(pMac, &msg);
     if (rc == eSIR_SUCCESS) {

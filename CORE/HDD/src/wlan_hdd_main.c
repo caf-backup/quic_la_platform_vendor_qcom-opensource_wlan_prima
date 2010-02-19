@@ -829,13 +829,21 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       goto err_vosclose;
    }
 
+   /* Start SAL now */
+   status = WLANSAL_Start(pAdapter->pvosContext);
+   if (!VOS_IS_STATUS_SUCCESS(status))
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed to start SAL",__func__);
+      goto err_vosclose;
+   }
+
    /*Start VOSS which starts up the SME/MAC/HAL modules and everything else
      Note: Firmware image will be read and downloaded inside vos_start API */
    status = vos_start( pAdapter->pvosContext );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: vos_start failed",__func__);
-      goto err_vosclose;
+      goto err_salstop;
    }
 
    status = hdd_post_voss_start_config( pAdapter );
@@ -902,6 +910,9 @@ err_nl_srv:
  
 err_vosstop:
    vos_stop(pVosContext);
+
+err_salstop:
+	WLANSAL_Stop(pVosContext);
 
 err_vosclose:	
    vos_close(pVosContext ); 

@@ -295,22 +295,22 @@ eHalStatus halMsg_addStaUpdateRPE( tpAniSirGlobal pMac, tANI_U8 staIdx, tpAddSta
     eHalStatus  status = eHAL_STATUS_SUCCESS;
         tANI_U8 qId;
 
-	/* For UAPSD Re-Assoc Rsp we need not update RPE since it
-	 * creates problem in re-ordering.
-	 *
-	 * One of the reason for ping timeout in UAPSD is due to RPE reset. In UAPSD
-	 * when we get ReAssoc Rsp, we add station, in that process we update all
-	 * H/W modules including RPE. We basically reset RPE bitmap, SSN and all
-	 * other attributes of RPE. Let's say if BA is already established
-	 * before Libra gets Reassoc RSP, then as part of response handling we
-	 * reset RPE. AP still thinks that Libra has BA and tries to send AMPDU
-	 * and then BAR frames which get acknowledged with normal Acks.
-	 *
-	 * */
+    /* For UAPSD Re-Assoc Rsp we need not update RPE since it
+     * creates problem in re-ordering.
+     *
+     * One of the reason for ping timeout in UAPSD is due to RPE reset. In UAPSD
+     * when we get ReAssoc Rsp, we add station, in that process we update all
+     * H/W modules including RPE. We basically reset RPE bitmap, SSN and all
+     * other attributes of RPE. Let's say if BA is already established
+     * before Libra gets Reassoc RSP, then as part of response handling we
+     * reset RPE. AP still thinks that Libra has BA and tries to send AMPDU
+     * and then BAR frames which get acknowledged with normal Acks.
+     *
+     * */
 
-	if (param->updateSta) {
-		return status;
-	}
+    if (param->updateSta) {
+        return status;
+    }
 
         for (qId = 0; qId < HW_MAX_QUEUES; qId++)
         {
@@ -396,12 +396,12 @@ static eHalStatus __halMsg_FillTpeRateInfo(tpAniSirGlobal pMac,
         return status;
     }
 
-	// Get the protection policy as set in the CFG, for self sta
-	// protection is disabled.
-	if(param->staIdx != pMac->hal.halMac.selfStaId) {
-		halRate_getProtectionInfo(pMac, param->staIdx, 0, 0,
-			halRate_tpeRate2HalRate(defRateIdx), &protPolicy);
-	}
+    // Get the protection policy as set in the CFG, for self sta
+    // protection is disabled.
+    if(param->staIdx != pMac->hal.halMac.selfStaId) {
+        halRate_getProtectionInfo(pMac, param->staIdx, 0, 0,
+            halRate_tpeRate2HalRate(defRateIdx), &protPolicy);
+    }
 
     halRate_getPowerIndex(pMac, defRateIdx, &txPower);
 
@@ -525,7 +525,7 @@ eHalStatus halMsg_addStaUpdateTPE( tpAniSirGlobal pMac, tANI_U8 staIdx, tpAddSta
 
         tpeStaDescCfg.mcbcStatsQidMap = (1 << BC_STATS_QID_0_MASK) | (1 << MC_STATS_QID_1_MASK);
 
-		// Fill in the self sta mac address for the self sta
+        // Fill in the self sta mac address for the self sta
         cfgLen = SIR_MAC_ADDR_LENGTH;
         if ( (wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, (tANI_U8 *)selfMac, &cfgLen)) != (tSirRetStatus) eSIR_SUCCESS)
         {
@@ -939,7 +939,19 @@ eHalStatus halMsg_addStaDpuRelatedProcessing( tpAniSirGlobal pMac, tANI_U8 staId
      /*Extract and save the DPU Sig*/
     halDpu_GetSignature(pMac,dpuIdx,&param->ucUcastSig);
     halDpu_GetSignature(pMac,bcastDpuIdx,&param->ucBcastSig);
-    return status;
+
+    /* This would reset the DPU descriptor encyrpt mode if it is set
+       and is applicable only during re-assoc
+    */
+    if (param->updateSta)
+    {
+         if (halDpu_ResetEncryMode(pMac, dpuIdx) != eHAL_STATUS_SUCCESS)
+         {
+               HALLOGE( halLog(pMac, LOGE, FL("halDpu_SetDescriptorAttributes() failed for UnicastdpuIdx %d\n"), dpuIdx));
+               return eHAL_STATUS_FAILURE;
+         }
+     }
+     return status;
 }
 
 eHalStatus halMsg_addStaUpdateRXP( tpAniSirGlobal pMac, tANI_U8 staIdx, tpAddStaParams  param )
@@ -1690,33 +1702,35 @@ halMsg_DelSta(
         }
         if( STA_ENTRY_PEER == staType )
         {
-		tDelBAParams    delBAParams;
-		tANI_U8         tid;
-		tpStaStruct pSta = &((tpStaStruct) pMac->hal.halMac.staTable)[pDelStaReq->staIdx];
+        tDelBAParams    delBAParams;
+        tANI_U8         tid;
+        tpStaStruct pSta = &((tpStaStruct) pMac->hal.halMac.staTable)[pDelStaReq->staIdx];
+        tANI_U8  tidBitSet;
 
-		delBAParams.staIdx = pDelStaReq->staIdx;
 
-		for( tid = 1; tid <= STACFG_MAX_TC; tid++ )
-		{
-		   if(pSta->baInitiatorTidBitMap & tid)
-		   {
-                          /* Delete BA sessions established as Initiator */
-                          delBAParams.baDirection = eBA_INITIATOR;
-			  delBAParams.baTID  = tid - 1;
-			  baDelBASession(pMac, &delBAParams);
-			  pSta->baInitiatorTidBitMap &= ~tid;
-		   }
+        delBAParams.staIdx = pDelStaReq->staIdx;
 
-		   /* Delete BA sessions established as Receipient */
-		   if(pSta->baReceipientTidBitMap & tid)
-		   {
-                          delBAParams.baDirection = eBA_RECIPIENT;
-			  delBAParams.baTID  = tid - 1;
-			  baDelBASession(pMac, &delBAParams);
-			  pSta->baReceipientTidBitMap &= ~tid;
-		   }
+        for( tid= 0; tid < STACFG_MAX_TC; tid++ )
+        {
+           tidBitSet = (pSta->baInitiatorTidBitMap & (1 << tid)) ;
+           delBAParams.baTID  = tid;
 
-		}
+           if(tidBitSet)
+           {
+              /* Delete BA sessions established as Initiator */
+              delBAParams.baDirection = eBA_INITIATOR;
+              baDelBASession(pMac, &delBAParams);
+           }
+
+           /* Delete BA sessions established as Receipient */
+           tidBitSet = (pSta->baReceipientTidBitMap & (1 << tid));
+           if(tidBitSet)
+           {
+              delBAParams.baDirection = eBA_RECIPIENT;
+              baDelBASession(pMac, &delBAParams);
+           }
+
+        }
 
             // Free all of the associated BA buffers and
             // reclaim all the Session ID's, if any
@@ -1767,7 +1781,7 @@ halMsg_DelSta(
     // if IBSS get the Bcast UMA descriptor entry
     if (systemRole == eSYSTEM_STA_IN_IBSS_ROLE)
     {
-	// Clear the UMA search table.
+    // Clear the UMA search table.
         status = halAdu_AddToUmaSearchTable(pMac, 0, 0, umaIdx);
         if (halTable_GetStaUMABcastIdx(pMac, (tANI_U8)pDelStaReq->staIdx, &umaBcastIdx) == eHAL_STATUS_SUCCESS)
         {
@@ -1778,7 +1792,7 @@ halMsg_DelSta(
                 goto generate_response;
             }
             halTable_SetStaUMABcastIdx(pMac, (tANI_U8)pDelStaReq->staIdx, HAL_INVALID_KEYID_INDEX);
-	    // Clear the UMA search table.
+        // Clear the UMA search table.
             status = halAdu_AddToUmaSearchTable(pMac, 0, 0, umaBcastIdx);
         }
     }
@@ -2373,7 +2387,7 @@ halMsg_DelBss(
     if ( pMac->hal.halSystemRole == eSYSTEM_STA_IN_IBSS_ROLE )
     {
         if ( halMTU_DeactivateTimer(pMac, MTUTIMER_BEACON_PRE) != eHAL_STATUS_SUCCESS)
-			return;
+            return;
 
         // Turns off TBTT enable flag and disable beacon transmission.
         halMTU_DisableBeaconTransmission(pMac);
@@ -2788,10 +2802,16 @@ void halMsg_StartScanPostSetChan(tpAniSirGlobal pMac, void* pData,
 
     status = halGetDefaultAndMulticastRates(pMac, rfBand, &defaultRateIdx, &bcastRateIdx);
 
+#if 0
+    // TODO: Updating the Tx Power should be done on TPE descriptor as the Mgmt Probe would go
+    // out at the power index specified in TPE descriptor power for staIdx 0. Also need to
+    // update the TxPower for all the Ctrl/Rsp rates in the MPI cmd table as Ack can go out at
+    // any rate depending on the rate at which probe response is received.
     if(eHAL_STATUS_SUCCESS == status) {
         //now update the rate-to-power table for bCast rate only.
         halRate_UpdateTpeTxPowerRateEntry(pMac, bcastRateIdx) ;
     }
+#endif
 
     // Set RXP filter appropriately.
     halRxp_setRxpFilterMode( pMac, eRXP_SCAN_MODE, NULL );
@@ -3093,10 +3113,16 @@ void halMsg_FinishScanPostSetChan(tpAniSirGlobal pMac, void* pData,
     // Get the broadcast rate
     status = halGetDefaultAndMulticastRates(pMac, rfBand, &defaultRateIdx, &bcastRateIdx);
 
+#if 0
+    // TODO: Updating the Tx Power should be done on TPE descriptor as the Mgmt Probe would go
+    // out at the power index specified in TPE descriptor power for staIdx 0. Also need to
+    // update the TxPower for all the Ctrl/Rsp rates in the MPI cmd table as Ack can go out at
+    // any rate depending on the rate at which probe response is received.
     if(eHAL_STATUS_SUCCESS == status) {
         //now update the rate-to-power table for bCast rate only.
         halRate_UpdateTpeTxPowerRateEntry(pMac, bcastRateIdx);
     }
+#endif
 
     pMac->hal.scanParam.pReqParam = param;
 
@@ -3115,7 +3141,7 @@ void halMsg_FinishScanPostSetChan(tpAniSirGlobal pMac, void* pData,
         return;
 
     } else {
-	    status = halMsg_HandleFinishScan(pMac, param, &waitForTxComp);
+        status = halMsg_HandleFinishScan(pMac, param, &waitForTxComp);
         goto generate_response1;
     }
 
@@ -3424,17 +3450,15 @@ eHalStatus halMsg_AddStaSelf(tpAniSirGlobal  pMac)
     }
 
 #if defined(ANI_OS_TYPE_LINUX)
-    halTable_AddToStaCache(pMac,
-            staMac,
-            staIdx);
+    halTable_AddToStaCache(pMac, staMac, staIdx);
 #endif
 
-        {
-                tAddStaParams param;
+    {
+        tAddStaParams param;
         tTpeRateIdx  rateIndex, mcastRateIndex;
 
-            /** Zero out AddStaParam */
-            if ((status = palZeroMemory(pMac->hHdd, &param,
+        /** Zero out AddStaParam */
+        if ((status = palZeroMemory(pMac->hHdd, &param,
             sizeof(param))) != eHAL_STATUS_SUCCESS) {
             return status;
         }
@@ -3443,7 +3467,7 @@ eHalStatus halMsg_AddStaSelf(tpAniSirGlobal  pMac)
         status = halGetDefaultAndMulticastRates(pMac, eRF_BAND_2_4_GHZ, &rateIndex, &mcastRateIndex);
         if(eHAL_STATUS_SUCCESS != status) {
             HALLOGW(halLog(pMac, LOGW, FL("halMsg_AddBss: halGetDefaultAndMulticastRates() fail\n")));
-                return status;
+            return status;
         }
 
         //update hal global configuration
@@ -3451,9 +3475,9 @@ eHalStatus halMsg_AddStaSelf(tpAniSirGlobal  pMac)
         halSetNonBcnRateIdx(pMac, rateIndex);
         halSetMulticastRateIdx(pMac, mcastRateIndex);
 
-                param.staType = STA_ENTRY_SELF;
-                halMsg_addStaUpdateTPE(pMac, staIdx, &param);
-        }
+        param.staType = STA_ENTRY_SELF;
+        halMsg_addStaUpdateTPE(pMac, staIdx, &param);
+    }
 
     //Update BMU.
     status = halBmu_sta_enable_disable_control(pMac, staIdx, eBMU_ENB_TX_QUE_ENB_TRANS);
@@ -3481,13 +3505,12 @@ eHalStatus halMsg_AddStaSelf(tpAniSirGlobal  pMac)
         param.updateSta = FALSE;
         halMsg_addStaUpdateRPE( pMac, staIdx, &param);
 
-    //Add RXP entry.
-    if (halRxp_AddEntry(
-                pMac, (tANI_U8) staIdx, staMac, eRXP_SELF, rmfBit,
-                dpuIdx, dpuIdx, dpuIdx,
-                dpuSignature, dpuSignature, dpuSignature,
-                    0, ftBit, wep_keyId_extract) != eHAL_STATUS_SUCCESS) {
-        return eHAL_STATUS_FAILURE;
+        //Add RXP entry.
+        if (halRxp_AddEntry(pMac, (tANI_U8) staIdx, staMac, eRXP_SELF, rmfBit,
+                            dpuIdx, dpuIdx, dpuIdx,
+                            dpuSignature, dpuSignature, dpuSignature,
+                            0, ftBit, wep_keyId_extract) != eHAL_STATUS_SUCCESS) {
+            return eHAL_STATUS_FAILURE;
         }
     }
 
@@ -3526,9 +3549,9 @@ void halMsg_SetKeyDone(tpAniSirGlobal  pMac)
 {
     (void)halPhyLoadTxPowerDetValues(pMac);
 
-	// Send message to FW indicating the connection is successfully established
-	// with security keys (if any) all set
-	(void)halFW_SendConnectionEndMesg(pMac);
+    // Send message to FW indicating the connection is successfully established
+    // with security keys (if any) all set
+    (void)halFW_SendConnectionEndMesg(pMac);
 
     // Start the BA activity check timer.
     if (halStartBATimer(pMac) != eHAL_STATUS_SUCCESS) {
@@ -4623,6 +4646,7 @@ void halMsg_AddBA( tpAniSirGlobal  pMac,
   tSavedAddBAReqParamsStruct addBAReqParamsStruct;
   tHalCfgSta staEntry;
   tCfgTrafficClass tcCfg;
+  tpStaStruct pSta = (tpStaStruct)pMac->hal.halMac.staTable;
 
   if( eHAL_STATUS_SUCCESS !=
       (status = halTable_ValidateStaIndex( pMac,
@@ -4762,32 +4786,37 @@ void halMsg_AddBA( tpAniSirGlobal  pMac,
       tcCfg.fTxCompBA = eBA_DISABLE;
       tcCfg.tuTxBAWaitTimeout = 0;
     }
+    else
+    {
+        // If BA session is established, then disable fragmentation in HW.
+        halDpu_SetFragThreshold(pMac, pSta[pAddBAParams->staIdx].dpuIndex, (tANI_U16) WNI_CFG_FRAGMENTATION_THRESHOLD_STAMAX);
+    }
   }
 
 generate_response:
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
-	{
-		if(status == eHAL_STATUS_SUCCESS){
-			WLAN_VOS_DIAG_EVENT_DEF(AddBaSuccessStatus, vos_event_wlan_add_block_ack_success_payload_type);
-			palZeroMemory(pMac->hHdd, &AddBaSuccessStatus, sizeof(vos_event_wlan_add_block_ack_success_payload_type));
-			palCopyMemory(pMac->hHdd, &AddBaSuccessStatus.ucBaPeerMac,pAddBAParams->peerMacAddr, sizeof(AddBaSuccessStatus.ucBaPeerMac));
-			AddBaSuccessStatus.ucBaTid	 = pAddBAParams->baTID;
-			AddBaSuccessStatus.ucBaBufferSize = (v_U8_t) pAddBAParams->baBufferSize;
-			AddBaSuccessStatus.usBaSSN = pAddBAParams->baSSN;
-			AddBaSuccessStatus.fInitiator = (eBA_RECIPIENT == pAddBAParams->baDirection)?0:1;
-			WLAN_VOS_DIAG_EVENT_REPORT(&AddBaSuccessStatus, EVENT_WLAN_ADD_BLOCK_ACK_SUCCESS);
-		}else{
-			WLAN_VOS_DIAG_EVENT_DEF(AddBaFailStatus, vos_event_wlan_add_block_ack_failed_payload_type);
-			palZeroMemory(pMac->hHdd, &AddBaFailStatus, sizeof(vos_event_wlan_add_block_ack_failed_payload_type));
-			palCopyMemory(pMac->hHdd, &AddBaFailStatus.ucBaPeerMac,pAddBAParams->peerMacAddr, sizeof(AddBaFailStatus.ucBaPeerMac));
-			AddBaFailStatus.ucBaTid   = pAddBAParams->baTID;
-			AddBaFailStatus.ucReasonCode = status;
-			AddBaFailStatus.fInitiator = (eBA_RECIPIENT == pAddBAParams->baDirection)?0:1;
-			WLAN_VOS_DIAG_EVENT_REPORT(&AddBaFailStatus, EVENT_WLAN_ADD_BLOCK_ACK_FAILED);
+    {
+        if(status == eHAL_STATUS_SUCCESS){
+            WLAN_VOS_DIAG_EVENT_DEF(AddBaSuccessStatus, vos_event_wlan_add_block_ack_success_payload_type);
+            palZeroMemory(pMac->hHdd, &AddBaSuccessStatus, sizeof(vos_event_wlan_add_block_ack_success_payload_type));
+            palCopyMemory(pMac->hHdd, &AddBaSuccessStatus.ucBaPeerMac,pAddBAParams->peerMacAddr, sizeof(AddBaSuccessStatus.ucBaPeerMac));
+            AddBaSuccessStatus.ucBaTid   = pAddBAParams->baTID;
+            AddBaSuccessStatus.ucBaBufferSize = (v_U8_t) pAddBAParams->baBufferSize;
+            AddBaSuccessStatus.usBaSSN = pAddBAParams->baSSN;
+            AddBaSuccessStatus.fInitiator = (eBA_RECIPIENT == pAddBAParams->baDirection)?0:1;
+            WLAN_VOS_DIAG_EVENT_REPORT(&AddBaSuccessStatus, EVENT_WLAN_ADD_BLOCK_ACK_SUCCESS);
+        }else{
+            WLAN_VOS_DIAG_EVENT_DEF(AddBaFailStatus, vos_event_wlan_add_block_ack_failed_payload_type);
+            palZeroMemory(pMac->hHdd, &AddBaFailStatus, sizeof(vos_event_wlan_add_block_ack_failed_payload_type));
+            palCopyMemory(pMac->hHdd, &AddBaFailStatus.ucBaPeerMac,pAddBAParams->peerMacAddr, sizeof(AddBaFailStatus.ucBaPeerMac));
+            AddBaFailStatus.ucBaTid   = pAddBAParams->baTID;
+            AddBaFailStatus.ucReasonCode = status;
+            AddBaFailStatus.fInitiator = (eBA_RECIPIENT == pAddBAParams->baDirection)?0:1;
+            WLAN_VOS_DIAG_EVENT_REPORT(&AddBaFailStatus, EVENT_WLAN_ADD_BLOCK_ACK_FAILED);
 
-		}
-	}
+        }
+    }
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 
   pAddBAParams->status = status;
@@ -4816,6 +4845,9 @@ void halMsg_DelBA( tpAniSirGlobal  pMac,
   eHalStatus status = eHAL_STATUS_SUCCESS;
   tHalCfgSta staEntry;
   tCfgTrafficClass tcCfg;
+  tpStaStruct pSta = (tpStaStruct)pMac->hal.halMac.staTable;
+  tANI_U32 val = 0;
+
 
   if( eHAL_STATUS_SUCCESS !=
       (status = halTable_ValidateStaIndex( pMac,
@@ -4896,36 +4928,52 @@ void halMsg_DelBA( tpAniSirGlobal  pMac,
 
   if( eHAL_STATUS_SUCCESS !=
       (status = baDelBASession( pMac, pDelBAParams )))
+  {
     HALLOGW( halLog(  pMac, LOGW,
         FL("Unable to delete BA session for STA index %d, TID %d. "
         "Error code - [%d]\n"),
         pDelBAParams->staIdx,
         pDelBAParams->baTID,
         status ));
+  }
+  else
+  {
+      if( pSta[pDelBAParams->staIdx].baInitiatorTidBitMap == 0)
+      {
+          if ((pSta[pDelBAParams->staIdx].valid == 1) && (pSta[pDelBAParams->staIdx].staType != STA_ENTRY_SELF))
+          {
+              if ( wlan_cfgGetInt(pMac, WNI_CFG_FRAGMENTATION_THRESHOLD, &val) != eSIR_SUCCESS)
+                  HALLOGE( halLog(pMac, LOGE, FL("cfgGet WNI_CFG_FRAGMENTATION_THRESHOLD Failed\n")));
+
+              HALLOGW( halLog(  pMac, LOGW, FL("All BA session deleted. Set fragmentation threshold to %d "),val));
+              halDpu_SetFragThreshold(pMac, pSta[pDelBAParams->staIdx].dpuIndex, (tANI_U16) val);
+          }
+      }
+  }
 
 free_mem:
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
-	  {
-		  tANI_U8 *pStrAddr;
-		  if(status == eHAL_STATUS_SUCCESS){
-			  WLAN_VOS_DIAG_EVENT_DEF(DelBaSuccessStatus, vos_event_wlan_add_block_ack_deleted_payload_type);
-			  palZeroMemory(pMac->hHdd, &DelBaSuccessStatus, sizeof(vos_event_wlan_add_block_ack_deleted_payload_type));
-			  pStrAddr = (tANI_U8 *)&DelBaSuccessStatus.ucBaPeerMac;
-			  halTable_GetStaAddr(pMac, (tANI_U8) pDelBAParams->staIdx, &pStrAddr);
-			  DelBaSuccessStatus.ucBaTid   = pDelBAParams->baTID;
-			  DelBaSuccessStatus.ucDeleteReasonCode = 0;
-			  WLAN_VOS_DIAG_EVENT_REPORT(&DelBaSuccessStatus, EVENT_WLAN_DELETE_BLOCK_ACK_SUCCESS);
-		  }else{
-			  WLAN_VOS_DIAG_EVENT_DEF(DelBaFailStatus, vos_event_wlan_add_block_ack_delete_failed_payload_type);
-			  palZeroMemory(pMac->hHdd, &DelBaFailStatus, sizeof(vos_event_wlan_add_block_ack_failed_payload_type));
-			  pStrAddr = (tANI_U8 *)&DelBaFailStatus.ucBaPeerMac;
-			  halTable_GetStaAddr(pMac, (tANI_U8)pDelBAParams->staIdx, &pStrAddr);
-			  DelBaFailStatus.ucBaTid	= pDelBAParams->baTID;
-			  DelBaFailStatus.ucDeleteReasonCode = 0;
-			  DelBaFailStatus.ucFailReasonCode = status;
-			  WLAN_VOS_DIAG_EVENT_REPORT(&DelBaFailStatus, EVENT_WLAN_DELETE_BLOCK_ACK_FAILED);
-		  }
-	  }
+      {
+          tANI_U8 *pStrAddr;
+          if(status == eHAL_STATUS_SUCCESS){
+              WLAN_VOS_DIAG_EVENT_DEF(DelBaSuccessStatus, vos_event_wlan_add_block_ack_deleted_payload_type);
+              palZeroMemory(pMac->hHdd, &DelBaSuccessStatus, sizeof(vos_event_wlan_add_block_ack_deleted_payload_type));
+              pStrAddr = (tANI_U8 *)&DelBaSuccessStatus.ucBaPeerMac;
+              halTable_GetStaAddr(pMac, (tANI_U8) pDelBAParams->staIdx, &pStrAddr);
+              DelBaSuccessStatus.ucBaTid   = pDelBAParams->baTID;
+              DelBaSuccessStatus.ucDeleteReasonCode = 0;
+              WLAN_VOS_DIAG_EVENT_REPORT(&DelBaSuccessStatus, EVENT_WLAN_DELETE_BLOCK_ACK_SUCCESS);
+          }else{
+              WLAN_VOS_DIAG_EVENT_DEF(DelBaFailStatus, vos_event_wlan_add_block_ack_delete_failed_payload_type);
+              palZeroMemory(pMac->hHdd, &DelBaFailStatus, sizeof(vos_event_wlan_add_block_ack_failed_payload_type));
+              pStrAddr = (tANI_U8 *)&DelBaFailStatus.ucBaPeerMac;
+              halTable_GetStaAddr(pMac, (tANI_U8)pDelBAParams->staIdx, &pStrAddr);
+              DelBaFailStatus.ucBaTid   = pDelBAParams->baTID;
+              DelBaFailStatus.ucDeleteReasonCode = 0;
+              DelBaFailStatus.ucFailReasonCode = status;
+              WLAN_VOS_DIAG_EVENT_REPORT(&DelBaFailStatus, EVENT_WLAN_DELETE_BLOCK_ACK_FAILED);
+          }
+      }
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 
 

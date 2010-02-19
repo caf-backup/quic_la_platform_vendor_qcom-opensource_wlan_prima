@@ -1109,7 +1109,7 @@ eQWPttStatus pttSaveTxPwrFreqTable(tpAniSirGlobal pMac, tANI_U8 numTpcCalFreqs, 
 {
 
     eQWPttStatus retVal = SUCCESS;   //init to fail
-    tANI_U8 highestTxChain = 1;//(pMac->hphy.phy.cfgChains == PHY_CHAIN_SEL_R0R1_T0_ON ? 1 : 2);
+    tANI_U8 highestTxChain = PHY_MAX_TX_CHAINS; //(pMac->hphy.phy.cfgChains == PHY_CHAIN_SEL_R0R1_T0_ON ? 1 : 2);
 
 
     if (/*(table[0].freq != START_TPC_CHANNEL) || (table[1].freq != END_TPC_CHANNEL) ||*/ (numTpcCalFreqs != MAX_TPC_CHANNELS))

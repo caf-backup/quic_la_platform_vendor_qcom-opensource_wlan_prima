@@ -278,6 +278,8 @@ static eHalStatus halFW_InitComplete(tpAniSirGlobal pMac, void* pMsgInfo, eHalSt
             HALLOGE( FwVersionInfo *pVer = (FwVersionInfo *)(pStatusMsg->aStatusInfo));
             HALLOGE( halLog( pMac, LOGE, FL("**FW VERSION: MJ %d MN %d PT %d BD %d**\n"),
                         pVer->uMj, pVer->uMn, pVer->uPatch, pVer->uBuild));
+
+           vos_mem_copy((v_VOID_t*)&pFw->fwVersion,(v_VOID_t*)pStatusMsg->aStatusInfo,sizeof(FwVersionInfo));
         }
     }
 

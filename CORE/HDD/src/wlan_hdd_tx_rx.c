@@ -124,7 +124,9 @@ static VOS_STATUS hdd_flush_tx_queues( hdd_adapter_t *pAdapter )
          {
             pktNode = list_entry(anchor, skb_list_node_t, anchor);
             skb = pktNode->skb;
-            pAdapter->stats.tx_dropped++;
+            ++pAdapter->stats.tx_dropped;
+            ++pAdapter->hdd_stats.hddTxRxStats.txFlushed;
+            ++pAdapter->hdd_stats.hddTxRxStats.txFlushedAC[i];
             kfree_skb(skb);
             continue;
          }
@@ -163,14 +165,20 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    hdd_adapter_t* pAdapter = netdev_priv(dev);
    v_BOOL_t granted;
 
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
+
    //Classify the packet
    if ( !hdd_wmm_classify_pkt (pAdapter, skb, &ac, &up) )
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: Failed to classify packet..pkt dropped", __FUNCTION__);
-      pAdapter->stats.tx_dropped++;
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Failed to classify packet..pkt dropped", __FUNCTION__);
+      ++pAdapter->stats.tx_dropped;
+      ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
       kfree_skb(skb);
       return NETDEV_TX_OK;
    }
+
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
 
 #ifdef HDD_WMM_DEBUG
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
@@ -180,10 +188,8 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    //If we have already reached the max queue size, disable the TX queue
    if ( pAdapter->wmm_tx_queue[ac].count == pAdapter->wmm_tx_queue[ac].max_size)
    {
-      // not really the right statistic, but this gives us a way
-      // to see if we encounter this condition.  shows up as
-      // overruns in busybox ifconfig output
-      pAdapter->stats.tx_fifo_errors++;
+      ++pAdapter->hdd_stats.hddTxRxStats.txXmitBackPressured;
+      ++pAdapter->hdd_stats.hddTxRxStats.txXmitBackPressuredAC[ac];
 
 #define BACKPRESSURE_FULL_QUEUE
 #ifdef BACKPRESSURE_FULL_QUEUE
@@ -223,10 +229,15 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s:Insert Tx queue failed. Pkt dropped", __FUNCTION__);
-      pAdapter->stats.tx_dropped++;
+      ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
+      ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
+      ++pAdapter->stats.tx_dropped;
       kfree_skb(skb);
       return NETDEV_TX_OK;
    }
+
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueued;
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueuedAC[ac];
 
    //Make sure we have been admitted to this access category
    if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessGranted))
@@ -255,7 +266,9 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          spin_unlock(&pAdapter->wmm_tx_queue[ac].lock);
          netif_stop_queue(dev);
          netif_carrier_off(dev);
-         pAdapter->stats.tx_dropped++;
+         ++pAdapter->stats.tx_dropped;
+         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
+         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
          kfree_skb(skb);
          return NETDEV_TX_OK;
       }
@@ -438,11 +451,7 @@ VOS_STATUS hdd_tx_complete_cbk( v_VOID_t *vosContext,
    }
    else
    {
-      // For debugging only we increment this statistic as a means to verify
-      // that all packets delivered to TL are returned by TL and that none
-      // are leaked.  The busybox ifconfig Tx carrier count should match the
-      // Tx packet count
-      pAdapter->stats.tx_aborted_errors++;
+      ++pAdapter->hdd_stats.hddTxRxStats.txCompleted;
    }
 
    kfree_skb((struct sk_buff *)pOsPkt); 
@@ -500,6 +509,16 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       return VOS_STATUS_E_FAILURE;
    }
 
+   //Get the HDD context.
+   pAdapter = (hdd_adapter_t *)vos_get_context( VOS_MODULE_ID_HDD, vosContext );
+   if(pAdapter == NULL)
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __FUNCTION__);
+      return VOS_STATUS_E_FAILURE;
+   }
+ 
+   ++pAdapter->hdd_stats.hddTxRxStats.txFetched;
+
    ac = *pAc;
    *ppVosPacket = NULL;
 
@@ -510,14 +529,8 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       return VOS_STATUS_E_FAILURE;
    }
 
-   //Get the HDD context.
-   pAdapter = (hdd_adapter_t *)vos_get_context( VOS_MODULE_ID_HDD, vosContext );
-   if(pAdapter == NULL)
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __FUNCTION__);
-      return VOS_STATUS_E_FAILURE;
-   }
- 
+   ++pAdapter->hdd_stats.hddTxRxStats.txFetchedAC[ac];
+
 #ifdef HDD_WMM_DEBUG
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: AC %d passed by TL", __FUNCTION__, ac);
 #endif // HDD_WMM_DEBUG
@@ -543,7 +556,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       }
 
       // no so advance to next AC, wrapping around
-      ac++;
+      ++ac;
       if (ac >= WLANTL_MAX_AC)
       {
          ac = 0;
@@ -552,6 +565,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       // have we examined all ACs (wrapped back to the initial input AC)?
       if (ac == *pAc)
       {
+         ++pAdapter->hdd_stats.hddTxRxStats.txFetchEmpty;
 #ifdef HDD_WMM_DEBUG
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: no packets pending", __FUNCTION__);
@@ -572,6 +586,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    {
       //Remember VOS is in a low resource situation
       pAdapter->isVosOutOfResource = VOS_TRUE;
+      ++pAdapter->hdd_stats.hddTxRxStats.txFetchLowResources;
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: VOSS in Low Resource scenario", __FUNCTION__);
       //TL will now think we have no more packets in this AC
       return VOS_STATUS_E_FAILURE;
@@ -591,19 +606,21 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    }
    else
    {
+      ++pAdapter->hdd_stats.hddTxRxStats.txFetchDequeueError;
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: Error in de-queuing "
          "skb from Tx queue status = %d", __FUNCTION__, status );
       vos_pkt_return_packet(pVosPacket);
       return VOS_STATUS_E_FAILURE;
    }
-      
+
    //Attach skb to VOS packet.
    status = vos_pkt_set_os_packet( pVosPacket, skb );
    if (status != VOS_STATUS_SUCCESS)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Error atatching skb", __FUNCTION__);
       vos_pkt_return_packet(pVosPacket);
-      pAdapter->stats.tx_dropped++;
+      ++pAdapter->stats.tx_dropped;
+      ++pAdapter->hdd_stats.hddTxRxStats.txFetchDequeueError;
       kfree_skb(skb);
       return VOS_STATUS_E_FAILURE;
    }
@@ -612,7 +629,8 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    if(pVosPacket == NULL)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: VOS packet returned by VOSS is NULL", __FUNCTION__);
-      pAdapter->stats.tx_dropped++;
+      ++pAdapter->stats.tx_dropped;
+      ++pAdapter->hdd_stats.hddTxRxStats.txFetchDequeueError;
       kfree_skb(skb);
       return VOS_STATUS_E_FAILURE;
    }
@@ -657,6 +675,8 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
         (ac == pAdapter->txSuspendedAc) &&
         (size <= HDD_TX_QUEUE_LOW_WATER_MARK) )
    {
+      ++pAdapter->hdd_stats.hddTxRxStats.txFetchDePressured;
+      ++pAdapter->hdd_stats.hddTxRxStats.txFetchDePressuredAC[ac];
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                  "%s: TX queue re-enabled", __FUNCTION__);
       pAdapter->isTxSuspended = VOS_FALSE;
@@ -673,8 +693,11 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    // whether or not the packet was successfully sent over the air,
    // so the packet counts will be the same regardless of where we
    // account for them
-   pAdapter->stats.tx_packets++;
    pAdapter->stats.tx_bytes += skb->len;
+   ++pAdapter->stats.tx_packets;
+   ++pAdapter->hdd_stats.hddTxRxStats.txFetchDequeued;
+   ++pAdapter->hdd_stats.hddTxRxStats.txFetchDequeuedAC[ac];
+
 
 #ifdef HDD_WMM_DEBUG
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Valid VOS PKT returned to TL", __FUNCTION__);
@@ -758,6 +781,7 @@ VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
 {
    hdd_adapter_t *pAdapter = NULL;
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
+   int rxstat;
    struct sk_buff *skb = NULL;
    vos_pkt_t* pVosPacket;
    vos_pkt_t* pNextVosPacket;
@@ -778,6 +802,8 @@ VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
       return VOS_STATUS_E_FAILURE;
    }
 
+   ++pAdapter->hdd_stats.hddTxRxStats.rxChains;
+
    // walk the chain until all are processed
    pVosPacket = pVosPacketChain;
    do
@@ -789,6 +815,7 @@ VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
       // both "success" and "empty" are acceptable results
       if (!((status == VOS_STATUS_SUCCESS) || (status == VOS_STATUS_E_EMPTY)))
       {
+         ++pAdapter->hdd_stats.hddTxRxStats.rxDropped;
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Failure walking packet chain", __FUNCTION__);
          return VOS_STATUS_E_FAILURE;
       }
@@ -798,6 +825,7 @@ VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
       status = vos_pkt_get_os_packet( pVosPacket, (v_VOID_t **)&skb, VOS_TRUE );
       if(!VOS_IS_STATUS_SUCCESS( status ))
       {
+         ++pAdapter->hdd_stats.hddTxRxStats.rxDropped;
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Failure extracting skb from vos pkt", __FUNCTION__);
          return VOS_STATUS_E_FAILURE;
       }
@@ -805,10 +833,18 @@ VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
       skb->dev = pAdapter->dev;
       skb->protocol = eth_type_trans(skb, skb->dev);
       skb->ip_summed = CHECKSUM_UNNECESSARY;
-      pAdapter->stats.rx_packets++;
+      ++pAdapter->hdd_stats.hddTxRxStats.rxPackets;
+      ++pAdapter->stats.rx_packets;
       pAdapter->stats.rx_bytes += skb->len;
-      netif_rx_ni(skb);
-
+      rxstat = netif_rx_ni(skb);
+      if (NET_RX_SUCCESS == rxstat)
+      {
+         ++pAdapter->hdd_stats.hddTxRxStats.rxDelivered;
+      }
+      else
+      {
+         ++pAdapter->hdd_stats.hddTxRxStats.rxRefused;
+      }
       // now process the next packet in the chain
       pVosPacket = pNextVosPacket;
 

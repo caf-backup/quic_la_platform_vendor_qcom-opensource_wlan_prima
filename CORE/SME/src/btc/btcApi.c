@@ -226,7 +226,12 @@ VOS_STATUS btcSignalBTEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
 
    // After successfully posting the message, check if heart beat
    // monitoring needs to be turned off
-   (void)btcCheckHeartBeatMonitoring(hHal, pBtEvent);
+   // done only when station is in associated state (Neglected during IMPS)
+   
+   if(csrIsConnStateConnected(pMac))
+   {	   
+      (void)btcCheckHeartBeatMonitoring(hHal, pBtEvent);
+   }
 
    return VOS_STATUS_SUCCESS;
 }

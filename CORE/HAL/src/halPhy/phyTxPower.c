@@ -225,7 +225,7 @@ eHalStatus phyTxPowerConfig(tpAniSirGlobal pMac, tTpcConfig *tpcConfig, tANI_U8 
 
     //add protection to avoid corrupting various RFAPB registers due to a bug with the way the GC bus is handled
     SET_PHY_REG(pMac->hHdd, QWLAN_RFIF_GC_CFG_REG, 0);
-    
+
 #ifndef INTERNAL_PATH_SEL
     rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_CTL_REG,  QWLAN_RFAPB_HDET_CTL_HDET_PATH_SEL_MASK,  QWLAN_RFAPB_HDET_CTL_HDET_PATH_SEL_OFFSET,  QWLAN_RFAPB_HDET_CTL_HDET_PATH_SEL_EHDET_PATH_SEL_0 );
 #endif
@@ -242,7 +242,7 @@ eHalStatus phyTxPowerConfig(tpAniSirGlobal pMac, tTpcConfig *tpcConfig, tANI_U8 
 
     GET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_REV_ID_REG, &revId);
     SET_PHY_REG(pMac->hHdd, QWLAN_RFIF_GC_CFG_REG, (QWLAN_RFIF_GC_CFG_TX_GAIN_EN_MASK | QWLAN_RFIF_GC_CFG_RX_GAIN_EN_MASK));
-    
+
     {
         //memory allocated to hold interpolated data for each sampled channel
         for (channel = 0; channel < numFreqs; channel++)
@@ -310,7 +310,7 @@ static void InterpolateCalPowerPoints(tpAniSirGlobal pMac, tANI_U32 tpcChannel, 
     tANI_U32 chain;
     tTpcCaldPowerPoint *lastPoint;
     tPhyTxPowerBand *band;
-    tANI_U8 highestTxChain = halPhyQueryNumTxChains(pMac->hphy.phy.cfgChains);
+    tANI_U8 highestTxChain =  PHY_MAX_TX_CHAINS; //halPhyQueryNumTxChains(pMac->hphy.phy.cfgChains);
 
     band = &pMac->hphy.phyTPC.combinedBands;
 
@@ -515,7 +515,7 @@ static void InterpolateCalChannels(tpAniSirGlobal pMac, tANI_U32 lowTpcChan, tAN
     tANI_U8 point;
     tANI_U32 chain;
 
-    tANI_U8 highestTxChain = halPhyQueryNumTxChains(pMac->hphy.phy.cfgChains);
+    tANI_U8 highestTxChain = PHY_MAX_TX_CHAINS; //halPhyQueryNumTxChains(pMac->hphy.phy.cfgChains);
     tPhyTxPowerBand *band;
 
     band = &pMac->hphy.phyTPC.combinedBands;

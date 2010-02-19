@@ -261,13 +261,6 @@ eHalStatus csrSendMBStopBssReqMsg( tpAniSirGlobal pMac, tANI_U16 reasonCode );
 eHalStatus csrSendSmeReassocReqMsg( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription, 
                                     tDot11fBeaconIEs *pIes, tCsrRoamProfile *pProfile );
 
-tANI_BOOLEAN csrIsConnStateDisconnected(tpAniSirGlobal pMac);
-tANI_BOOLEAN csrIsConnStateConnectedIbss( tpAniSirGlobal pMac );
-tANI_BOOLEAN csrIsConnStateDisconnectedIbss( tpAniSirGlobal pMac );
-tANI_BOOLEAN csrIsConnStateConnectedInfra( tpAniSirGlobal pMac );
-tANI_BOOLEAN csrIsConnStateConnected( tpAniSirGlobal pMac );
-tANI_BOOLEAN csrIsConnStateInfra( tpAniSirGlobal pMac );
-tANI_BOOLEAN csrIsConnStateIbss( tpAniSirGlobal pMac );
 tANI_BOOLEAN csrIsMacAddressEqual( tpAniSirGlobal pMac, tCsrBssid *pMacAddr1, tCsrBssid *pMacAddr2 );
 //Caller should put the BSS' ssid to fiedl bssSsid when comparing SSID for a BSS.
 tANI_BOOLEAN csrIsSsidMatch( tHalHandle hHal, tANI_U8 *ssid1, tANI_U8 ssid1Len, tANI_U8 *bssSsid, 

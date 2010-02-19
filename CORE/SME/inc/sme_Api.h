@@ -29,7 +29,7 @@
 #include "sirApi.h"
 #include "btcApi.h"
 #include "vos_nvitem.h"
-
+#include "halFw.h"
 /*-------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
@@ -1200,5 +1200,7 @@ VOS_STATUS sme_DbgReadMemory(tHalHandle hHal, v_U32_t memAddr, v_U8_t *pBuf, v_U
 //Caller needs to validate the input values
 VOS_STATUS sme_DbgWriteMemory(tHalHandle hHal, v_U32_t memAddr, v_U8_t *pBuf, v_U32_t nLen);
 
+//sme_GetFwVersion
+VOS_STATUS sme_GetFwVersion (tHalHandle hHal,FwVersionInfo *pVersion);
 
 #endif //#if !defined( __SME_API_H )

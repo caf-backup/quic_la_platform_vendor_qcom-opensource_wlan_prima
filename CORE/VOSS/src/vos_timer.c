@@ -612,7 +612,7 @@ VOS_STATUS vos_timer_stop ( vos_timer_t *timer )
   ------------------------------------------------------------------------*/
 v_TIME_t vos_timer_get_system_ticks( v_VOID_t )
 {
-   return( jiffies_to_msecs(jiffies) );
+   return( jiffies_to_msecs(jiffies) / 10 );
 }
 
 
