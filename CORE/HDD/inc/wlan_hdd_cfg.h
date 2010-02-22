@@ -143,6 +143,12 @@
 #define CFG_ENABLE_SUSPEND_MAX                 ( 2 ) //Map to Deep Sleep
 #define CFG_ENABLE_SUSPEND_DEFAULT             ( 1 ) //Map to Standby
 
+//Driver start/stop command mappings
+#define CFG_ENABLE_ENABLE_DRIVER_STOP_NAME     "gEnableDriverStop"
+#define CFG_ENABLE_ENABLE_DRIVER_STOP_MIN      ( 0 ) //No support for stop
+#define CFG_ENABLE_ENABLE_DRIVER_STOP_MAX      ( 2 ) //Map to Deep Sleep
+#define CFG_ENABLE_ENABLE_DRIVER_STOP_DEFAULT  ( 1 ) //Map to Standby
+
 #define CFG_WOWL_PATTERN_NAME                  "gWowlPattern"
 #define CFG_WOWL_PATTERN_DEFAULT               ""
 
@@ -159,7 +165,7 @@
     
 #define CFG_IMPS_MODERATE_SLEEP_TIME_NAME      "gImpsModSleepTime"
 #define CFG_IMPS_MODERATE_SLEEP_TIME_MIN       ( 5 )
-#define CFG_IMPS_MODERATE_SLEEP_TIME_MAX       ( 10 )
+#define CFG_IMPS_MODERATE_SLEEP_TIME_MAX       ( 65535 )
 #define CFG_IMPS_MODERATE_SLEEP_TIME_DEFAULT   ( 10)
 
 #define CFG_IMPS_MAXIMUM_SLEEP_TIME_NAME       "gImpsMaxSleepTime"
@@ -781,17 +787,17 @@
 #define CFG_TL_WFQ_BE_WEIGHT_NAME                           "WfqBeWeight"
 #define CFG_TL_WFQ_BE_WEIGHT_MIN                            1
 #define CFG_TL_WFQ_BE_WEIGHT_MAX                            0xFF
-#define CFG_TL_WFQ_BE_WEIGHT_DEFAULT                        2
+#define CFG_TL_WFQ_BE_WEIGHT_DEFAULT                        3
 
 #define CFG_TL_WFQ_VI_WEIGHT_NAME                           "WfqViWeight"
 #define CFG_TL_WFQ_VI_WEIGHT_MIN                            1
 #define CFG_TL_WFQ_VI_WEIGHT_MAX                            0xFF
-#define CFG_TL_WFQ_VI_WEIGHT_DEFAULT                        3
+#define CFG_TL_WFQ_VI_WEIGHT_DEFAULT                        5
 
 #define CFG_TL_WFQ_VO_WEIGHT_NAME                           "WfqVoWeight"
 #define CFG_TL_WFQ_VO_WEIGHT_MIN                            1
 #define CFG_TL_WFQ_VO_WEIGHT_MAX                            0xFF
-#define CFG_TL_WFQ_VO_WEIGHT_DEFAULT                        4
+#define CFG_TL_WFQ_VO_WEIGHT_DEFAULT                        7
 
 #define CFG_TL_DELAYED_TRGR_FRM_INT_NAME                   "DelayedTriggerFrmInt"
 #define CFG_TL_DELAYED_TRGR_FRM_INT_MIN                     1
@@ -829,6 +835,7 @@ typedef struct
    v_U32_t       HeartbeatThresh24;
    char          PowerUsageControl[4];
    v_U8_t        nEnableSuspend;
+   v_U8_t        nEnableDriverStop;
    v_BOOL_t      fIsImpsEnabled;
    v_U32_t       nImpsModSleepTime;
    v_U32_t       nImpsMaxSleepTime;

@@ -1956,9 +1956,51 @@ VOS_STATUS WLANTL_ResetSpecStatistic
    WLANTL_TRANSFER_STATIC_TYPE  statType,
    v_U8_t                       STAid
 );
+
+
+
+/*
+ DESCRIPTION 
+    TL returns the weight currently maintained in TL.
+ IN
+    pvosGCtx:       pointer to the global vos context; a handle to TL's 
+                    or SME's control block can be extracted from its context 
+
+ OUT
+    pACWeights:     Caller allocated memory for filling in weights
+
+ RETURN VALUE  VOS_STATUS
+*/
+VOS_STATUS  
+WLANTL_GetACWeights 
+( 
+  v_PVOID_t             pvosGCtx,
+  v_U8_t*               pACWeights
+);
+
+
+/*
+ DESCRIPTION 
+    Change the weight currently maintained by TL.
+ IN
+    pvosGCtx:       pointer to the global vos context; a handle to TL's 
+                    or SME's control block can be extracted from its context 
+    pACWeights:     Caller allocated memory contain the weights to use
+
+
+ RETURN VALUE  VOS_STATUS
+*/
+VOS_STATUS  
+WLANTL_SetACWeights 
+( 
+  v_PVOID_t             pvosGCtx,
+  v_U8_t*               pACWeights
+);
+
 #ifdef __cplusplus
  }
 #endif 
+
 
 
 #endif /* #ifndef WLAN_QCT_WLANTL_H */

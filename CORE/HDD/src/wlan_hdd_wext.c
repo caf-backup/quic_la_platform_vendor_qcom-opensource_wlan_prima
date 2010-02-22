@@ -1235,7 +1235,7 @@ static int iw_set_priv(struct net_device *dev,
     if( strcasecmp(cmd, "start") == 0 ) {
 
         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Start command\n");
-            /*Exit from Deep sleep if we get the driver START cmd from android GUI*/
+        /*Exit from Deep sleep or standby if we get the driver START cmd from android GUI*/
         if(pAdapter->hdd_ps_state == eHDD_SUSPEND_STANDBY) 
         {
            
@@ -1248,9 +1248,8 @@ static int iw_set_priv(struct net_device *dev,
             status = hdd_exit_deep_sleep(pAdapter);
         }
         else {
-            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unknown WLAN PS state during resume %d",
-              __func__, pAdapter->hdd_ps_state);
-
+            hddLog(VOS_TRACE_LEVEL_INFO_LOW, "%s: Not in standby or deep sleep. "
+               "Ignore start cmd %d", __func__, pAdapter->hdd_ps_state);
             status = VOS_STATUS_E_FAILURE;
         }
         
@@ -1269,21 +1268,21 @@ static int iw_set_priv(struct net_device *dev,
 
         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Stop command\n");
 
-        if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_STANDBY) 
+        if(pAdapter->cfg_ini->nEnableDriverStop == WLAN_MAP_DRIVER_STOP_TO_STANDBY) 
         {
             //Execute standby procedure. Executing standby procedure will cause the STA to
             //disassociate first and then the chip will be put into standby.
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Wlan driver entering Stand by mode\n");
             status  = hdd_enter_standby(pAdapter);
         }
-        else if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_DEEP_SLEEP) {
+        else if(pAdapter->cfg_ini->nEnableDriverStop == WLAN_MAP_DRIVER_STOP_TO_DEEP_SLEEP) {
             //Execute deep sleep procedure
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Wlan driver entering deep sleep mode\n");
             status = hdd_enter_deep_sleep(pAdapter);
         }
         else {
-            hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported suspend mapping %d",
-             __func__, pAdapter->cfg_ini->nEnableSuspend);
+            hddLog(VOS_TRACE_LEVEL_INFO_LOW, "%s: Driver stop is not enabled %d",
+             __func__, pAdapter->cfg_ini->nEnableDriverStop);
             status = VOS_STATUS_E_FAILURE;
         }
 
@@ -1341,7 +1340,7 @@ static int iw_set_priv(struct net_device *dev,
            
            if(eHAL_STATUS_SUCCESS != status)
            {
-              hddLog( VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD sme_GetStatistics failed!!\n"));
+              hddLog( VOS_TRACE_LEVEL_ERROR, "HDD sme_GetStatistics failed");
               return status;
            }
                    
@@ -1349,7 +1348,7 @@ static int iw_set_priv(struct net_device *dev,
         
            if (!VOS_IS_STATUS_SUCCESS(status))
            {   
-              hddLog( VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos wait for single_event failed!!\n"));
+              hddLog( VOS_TRACE_LEVEL_ERROR, "HDD vos wait for single_event failed");
               return VOS_STATUS_E_FAILURE;
            }
         
@@ -1465,7 +1464,6 @@ static int iw_set_priv(struct net_device *dev,
         
         hddLog(VOS_TRACE_LEVEL_INFO, "BtCoex Status\n"); 
         /*TODO: Return the btcoex status*/
-        //  ret = sprintf(buf, "btcoexstatus = 0x%x\n", status);
     }
     else if( strcasecmp(cmd, "rxfilter-start") == 0 ) {
         
@@ -1495,7 +1493,7 @@ static int iw_set_priv(struct net_device *dev,
         /*TODO: rxfilter-remove*/
     }
     else {
-        hddLog( VOS_TRACE_LEVEL_ERROR,"Unsupported command");
+        hddLog( VOS_TRACE_LEVEL_ERROR,"Unsupported GUI command %s", cmd);
     }
 done:
     return status;

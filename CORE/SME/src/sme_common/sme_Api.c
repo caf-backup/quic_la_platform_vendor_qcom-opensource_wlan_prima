@@ -1019,7 +1019,7 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
 
 //No need to hold the global lock here because this function can only be called
 //after sme_Stop.
-v_VOID_t sme_FreeMsg( tpAniSirGlobal pMac, vos_msg_t* pMsg )
+v_VOID_t sme_FreeMsg( tHalHandle hHal, vos_msg_t* pMsg )
 {
    if( pMsg )
    {

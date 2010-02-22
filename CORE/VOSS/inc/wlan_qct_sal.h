@@ -536,7 +536,7 @@ VOS_STATUS WLANSAL_SDIOReInit
 ----------------------------------------------------------------------------*/
 v_BOOL_t WLANSAL_IsSDHCSupportDeepSleep
 (
-   void
+   v_PVOID_t             pAdapter
 );
 #ifdef __cplusplus
 }

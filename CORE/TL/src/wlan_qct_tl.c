@@ -8726,3 +8726,107 @@ VOS_STATUS WLANTL_ReadRSSI
    return VOS_STATUS_SUCCESS;
 }
 
+
+
+/*
+ DESCRIPTION 
+    TL returns the weight currently maintained in TL.
+ IN
+    pvosGCtx:       pointer to the global vos context; a handle to TL's 
+                    or SME's control block can be extracted from its context 
+
+ OUT
+    pACWeights:     Caller allocated memory for filling in weights
+
+ RETURN VALUE  VOS_STATUS
+*/
+VOS_STATUS  
+WLANTL_GetACWeights 
+( 
+  v_PVOID_t             pvosGCtx,
+  v_U8_t*               pACWeights
+)
+{
+   WLANTL_CbType*  pTLCb = NULL;
+   v_U8_t          ucIndex; 
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+  /*------------------------------------------------------------------------
+    Sanity check
+   ------------------------------------------------------------------------*/
+  if ( NULL == pACWeights )
+  {
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_GetACWeights");
+    return VOS_STATUS_E_INVAL;
+  }
+
+  /*------------------------------------------------------------------------
+    Extract TL control block and check existance
+   ------------------------------------------------------------------------*/
+  pTLCb = VOS_GET_TL_CB(pvosGCtx);
+  if ( NULL == pTLCb )
+  {
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_GetACWeights");
+    return VOS_STATUS_E_FAULT;
+  }
+  for ( ucIndex = 0; ucIndex < WLANTL_MAX_AC ; ucIndex++)
+  {
+    pACWeights[ucIndex] = pTLCb->tlConfigInfo.ucAcWeights[ucIndex];
+  }
+
+  return VOS_STATUS_SUCCESS;
+}
+
+
+
+/*
+ DESCRIPTION 
+    Change the weight currently maintained by TL.
+ IN
+    pvosGCtx:       pointer to the global vos context; a handle to TL's 
+                    or SME's control block can be extracted from its context 
+    pACWeights:     Caller allocated memory contain the weights to use
+
+
+ RETURN VALUE  VOS_STATUS
+*/
+VOS_STATUS  
+WLANTL_SetACWeights 
+( 
+  v_PVOID_t             pvosGCtx,
+  v_U8_t*               pACWeights
+)
+{
+   WLANTL_CbType*  pTLCb = NULL;
+   v_U8_t          ucIndex; 
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+  /*------------------------------------------------------------------------
+    Sanity check
+   ------------------------------------------------------------------------*/
+  if ( NULL == pACWeights )
+  {
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_GetACWeights");
+    return VOS_STATUS_E_INVAL;
+  }
+
+  /*------------------------------------------------------------------------
+    Extract TL control block and check existance
+   ------------------------------------------------------------------------*/
+  pTLCb = VOS_GET_TL_CB(pvosGCtx);
+  if ( NULL == pTLCb )
+  {
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_GetACWeights");
+    return VOS_STATUS_E_FAULT;
+  }
+  for ( ucIndex = 0; ucIndex < WLANTL_MAX_AC ; ucIndex++)
+  {
+    pTLCb->tlConfigInfo.ucAcWeights[ucIndex] = pACWeights[ucIndex];
+  }
+
+  return VOS_STATUS_SUCCESS;
+}

@@ -21,6 +21,7 @@
 #include "palTimer.h"
 #include "csrSupport.h"
 #include "vos_nvitem.h"
+#include "wlan_qct_tl.h"
 
 #define CSR_SME_SCAN_FLAGS_DELETE_CACHE     0x80
 
@@ -669,6 +670,7 @@ typedef struct tagCsrRoamStruct
     //To specify whether an association or a IBSS is WMM enabled
     //This parameter is only valid during a join or start BSS command is being executed
     tANI_BOOLEAN fWMMConnection;     
+    v_U8_t ucACWeights[WLANTL_MAX_AC];
 }tCsrRoamStruct;
 
 

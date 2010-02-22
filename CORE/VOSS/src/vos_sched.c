@@ -30,11 +30,16 @@
  * Include Files
  * ------------------------------------------------------------------------*/
 #include <vos_mq.h>
-#include "vos_sched.h"
 #include <vos_api.h>
-#include "aniGlobal.h"
-#include "sirTypes.h"
-#include "halTypes.h"
+#include <aniGlobal.h>
+#include <sirTypes.h>
+#include <halTypes.h>
+#include <limApi.h>
+#include <sme_Api.h>
+#include <wlan_qct_ssc.h>
+#include <wlan_qct_sys.h>
+#include <wlan_qct_tl.h>
+#include "vos_sched.h"
 
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -64,31 +69,6 @@ static void vos_sched_deinit_mqs (pVosSchedContext pSchedContext);
 static void vos_sched_flush_mc_mqs  (pVosSchedContext pSchedContext);
 static void vos_sched_flush_tx_mqs  (pVosSchedContext pSchedContext);
 extern v_VOID_t vos_core_return_msg(v_PVOID_t pVContext, pVosMsgWrapper pMsgWrapper);
-
-/*
- ** Declaration of all the message processing functions
- */
-
-extern VOS_STATUS sysMcProcessMsg     (v_PVOID_t pVContext, vos_msg_t* pMsg);
-extern VOS_STATUS sysTxProcessMsg     (v_PVOID_t pVContext, vos_msg_t* pMsg);
-extern VOS_STATUS WLANTL_McProcessMsg (v_PVOID_t pVContext, vos_msg_t* pMsg);
-extern VOS_STATUS WLANTL_TxProcessMsg (v_PVOID_t pVContext, vos_msg_t* pMsg);
-extern VOS_STATUS WLANSSC_ProcessMsg  (v_PVOID_t pVContext, vos_msg_t* pMsg);
-extern tSirRetStatus halProcessMsg    (tpAniSirGlobal pMac, tSirMsgQ *pMsg);
-extern tSirRetStatus peProcessMessages(tpAniSirGlobal pMac, tSirMsgQ* limMsg);
-extern eHalStatus sme_ProcessMsg      (tHalHandle hHal, vos_msg_t* pMsg);
-
-/*
-** Declaration of all the functions needed to free a particular VOSS Message
-*/
-extern void sysMcFreeMsg   (v_PVOID_t pVContext, vos_msg_t* pMsg);
-extern void sysTxFreeMsg   (v_PVOID_t pVContext, vos_msg_t* pMsg);
-extern void WLANTL_McFreeMsg   (v_PVOID_t pVContext, vos_msg_t* pMsg);
-extern void WLANTL_TxFreeMsg   (v_PVOID_t pVContext, vos_msg_t* pMsg);
-extern VOS_STATUS WLANSSC_FreeMsg(v_PVOID_t pVContext, vos_msg_t* pMsg);
-extern void peFreeMsg(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
-extern void sme_FreeMsg(tpAniSirGlobal pMac, vos_msg_t* pMsg);
-extern void halFreeMsg(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 
 /*---------------------------------------------------------------------------
  * External Function implementation

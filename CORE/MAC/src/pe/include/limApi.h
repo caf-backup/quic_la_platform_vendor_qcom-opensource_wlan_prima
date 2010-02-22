@@ -253,6 +253,33 @@ extern tSirRetStatus limCheckRxSeqNumber(tpAniSirGlobal pMac, tpHalBufDesc pBd);
 
 /* ----------------------------------------------------------------------- */
 
+/*--------------------------------------------------------------------------
+  
+  \brief peProcessMessages() - Message Processor for PE
+  
+  Voss calls this function to dispatch the message to PE
+  
+  \param pMac - Pointer to Global MAC structure
+  \param pMsg - Pointer to the message structure
+  
+  \return  tANI_U32 - TX_SUCCESS for success.
+  
+  --------------------------------------------------------------------------*/
+
+tSirRetStatus peProcessMessages(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
+
+/** -------------------------------------------------------------
+\fn peFreeMsg
+\brief Called by VOS scheduler (function vos_sched_flush_mc_mqs)
+\      to free a given PE message on the TX and MC thread.
+\      This happens when there are messages pending in the PE 
+\      queue when system is being stopped and reset. 
+\param   tpAniSirGlobal pMac
+\param   tSirMsgQ       pMsg
+\return none
+-----------------------------------------------------------------*/
+v_VOID_t peFreeMsg( tpAniSirGlobal pMac, tSirMsgQ* pMsg);
+
 /************************************************************/
 #endif /* __LIM_API_H */
 

@@ -20,7 +20,7 @@
 
 static void btcLogEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent);
 static void btcRestoreHeartBeatMonitoringHandle(void* hHal);
-eHalStatus btcCheckHeartBeatMonitoring(tHalHandle hHal, tpSmeBtEvent pBtEvent);
+VOS_STATUS btcCheckHeartBeatMonitoring(tHalHandle hHal, tpSmeBtEvent pBtEvent);
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 static void btcDiagEventLog (tHalHandle hHal, tpSmeBtEvent pBtEvent);
@@ -49,12 +49,12 @@ VOS_STATUS btcOpen (tHalHandle hHal)
 
 
    vosStatus = vos_timer_init( &pMac->btc.restoreHBTimer,
-					  VOS_TIMER_TYPE_SW,
+                      VOS_TIMER_TYPE_SW,
                       btcRestoreHeartBeatMonitoringHandle,
                       (void*) hHal);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
-	   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcOpen: Fail to init timer");
-	   return VOS_STATUS_E_FAILURE;
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcOpen: Fail to init timer");
+       return VOS_STATUS_E_FAILURE;
    }
 
    return VOS_STATUS_SUCCESS;
@@ -75,8 +75,8 @@ VOS_STATUS btcClose (tHalHandle hHal)
 
    vosStatus = vos_timer_destroy(&pMac->btc.restoreHBTimer);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
-	   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcClose: Fail to destroy timer");
-	   return VOS_STATUS_E_FAILURE;
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcClose: Fail to destroy timer");
+       return VOS_STATUS_E_FAILURE;
    }
 
    return VOS_STATUS_SUCCESS;
@@ -227,9 +227,9 @@ VOS_STATUS btcSignalBTEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
    // After successfully posting the message, check if heart beat
    // monitoring needs to be turned off
    // done only when station is in associated state (Neglected during IMPS)
-   
+
    if(csrIsConnStateConnected(pMac))
-   {	   
+   {
       (void)btcCheckHeartBeatMonitoring(hHal, pBtEvent);
    }
 
@@ -240,10 +240,10 @@ VOS_STATUS btcSignalBTEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
 /* ---------------------------------------------------------------------------
     \fn btcCheckHeartBeatMonitoring
     \brief  API to check whether heartbeat monitoring is required to be disabled
-    		for specific BT start events which takes significant time to complete
-    		during which WLAN misses beacons. To avoid WLAN-MAC from disconnecting
-    		for the not enough beacons received we stop the heartbeat timer during
-    		this start BT event till the stop of that BT event.
+            for specific BT start events which takes significant time to complete
+            during which WLAN misses beacons. To avoid WLAN-MAC from disconnecting
+            for the not enough beacons received we stop the heartbeat timer during
+            this start BT event till the stop of that BT event.
     \param  hHal - The handle returned by macOpen.
     \param  pBtEvent -  Pointer to a caller allocated object of type tSmeBtEvent.
                         Caller owns the memory and is responsible for freeing it.
@@ -251,7 +251,7 @@ VOS_STATUS btcSignalBTEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
             VOS_STATUS_E_FAILURE – Config not passed to HAL.
             VOS_STATUS_SUCCESS – Config passed to HAL
   ---------------------------------------------------------------------------*/
-eHalStatus btcCheckHeartBeatMonitoring(tHalHandle hHal, tpSmeBtEvent pBtEvent)
+VOS_STATUS btcCheckHeartBeatMonitoring(tHalHandle hHal, tpSmeBtEvent pBtEvent)
 {
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
    VOS_STATUS vosStatus;
@@ -287,8 +287,8 @@ eHalStatus btcCheckHeartBeatMonitoring(tHalHandle hHal, tpSmeBtEvent pBtEvent)
           break;
 
       default:
-      	  // Ignore other events
-      	  return VOS_STATUS_SUCCESS;
+          // Ignore other events
+          return VOS_STATUS_SUCCESS;
    }
 
    // Check if any of the BT start events are active
@@ -300,23 +300,23 @@ eHalStatus btcCheckHeartBeatMonitoring(tHalHandle hHal, tpSmeBtEvent pBtEvent)
        }
 
        // Deactivate and active the restore HB timer
-       vos_timer_stop( &pMac->btc.restoreHBTimer);       
+       vos_timer_stop( &pMac->btc.restoreHBTimer);
        vosStatus= vos_timer_start( &pMac->btc.restoreHBTimer, BT_MAX_EVENT_DONE_TIMEOUT );
        if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
-	       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcCheckHeartBeatMonitoring: Fail to start timer");
-	       return VOS_STATUS_E_FAILURE;
+           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcCheckHeartBeatMonitoring: Fail to start timer");
+           return VOS_STATUS_E_FAILURE;
        }
    } else {
        // Restore CFG back to the original value only if it was disabled
-       if (!pMac->btc.btcHBActive) {           
-	       ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
+       if (!pMac->btc.btcHBActive) {
+           ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
            pMac->btc.btcHBActive = VOS_TRUE;
-       } 
+       }
        // Deactivate the timer
        vosStatus = vos_timer_stop( &pMac->btc.restoreHBTimer);
        if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
-	       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcCheckHeartBeatMonitoring: Fail to stop timer");
-	       return VOS_STATUS_E_FAILURE;
+           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcCheckHeartBeatMonitoring: Fail to stop timer");
+           return VOS_STATUS_E_FAILURE;
        }
    }
 
@@ -327,17 +327,17 @@ eHalStatus btcCheckHeartBeatMonitoring(tHalHandle hHal, tpSmeBtEvent pBtEvent)
 /* ---------------------------------------------------------------------------
     \fn btcRestoreHeartBeatMonitoringHandle
     \brief  Timer handler to handlet the timeout condition when a specific BT
-    		stop event does not come back, in which case to restore back the
-    		heartbeat timer.
+            stop event does not come back, in which case to restore back the
+            heartbeat timer.
     \param  hHal - The handle returned by macOpen.
     \return VOID
   ---------------------------------------------------------------------------*/
 void btcRestoreHeartBeatMonitoringHandle(tHalHandle hHal)
 {
-	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     // Restore CFG back to the original value
-	ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
-	VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "BT event timeout, restoring back HeartBeat timer");
+    ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "BT event timeout, restoring back HeartBeat timer");
 }
 
 
@@ -480,48 +480,48 @@ static void btcLogEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
       case BT_EVENT_CREATE_SYNC_CONNECTION:
       case BT_EVENT_SYNC_CONNECTION_COMPLETE:
       case BT_EVENT_SYNC_CONNECTION_UPDATED:
-		  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "SCO Connection: "
+          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "SCO Connection: "
                "connectionHandle = %d status = %d linkType %d "
-			   "scoInterval %d scoWindow %d retransmisisonWindow = %d ",
-			   pBtEvent->uEventParam.btSyncConnection.connectionHandle,
-			   pBtEvent->uEventParam.btSyncConnection.status,
+               "scoInterval %d scoWindow %d retransmisisonWindow = %d ",
+               pBtEvent->uEventParam.btSyncConnection.connectionHandle,
+               pBtEvent->uEventParam.btSyncConnection.status,
                pBtEvent->uEventParam.btSyncConnection.linkType,
-			   pBtEvent->uEventParam.btSyncConnection.scoInterval,
-			   pBtEvent->uEventParam.btSyncConnection.scoWindow,
-			   pBtEvent->uEventParam.btSyncConnection.retransmisisonWindow);
-		  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "BD ADDR = "
+               pBtEvent->uEventParam.btSyncConnection.scoInterval,
+               pBtEvent->uEventParam.btSyncConnection.scoWindow,
+               pBtEvent->uEventParam.btSyncConnection.retransmisisonWindow);
+          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "BD ADDR = "
                "0x%x 0x%x 0x%x 0x%x 0x%x 0x%x",
-			   pBtEvent->uEventParam.btSyncConnection.bdAddr[5],
-			   pBtEvent->uEventParam.btSyncConnection.bdAddr[4],
-			   pBtEvent->uEventParam.btSyncConnection.bdAddr[3],
-			   pBtEvent->uEventParam.btSyncConnection.bdAddr[2],
-			   pBtEvent->uEventParam.btSyncConnection.bdAddr[1],
-			   pBtEvent->uEventParam.btSyncConnection.bdAddr[0]);
+               pBtEvent->uEventParam.btSyncConnection.bdAddr[5],
+               pBtEvent->uEventParam.btSyncConnection.bdAddr[4],
+               pBtEvent->uEventParam.btSyncConnection.bdAddr[3],
+               pBtEvent->uEventParam.btSyncConnection.bdAddr[2],
+               pBtEvent->uEventParam.btSyncConnection.bdAddr[1],
+               pBtEvent->uEventParam.btSyncConnection.bdAddr[0]);
 
           break;
 
       case BT_EVENT_CREATE_ACL_CONNECTION:
       case BT_EVENT_ACL_CONNECTION_COMPLETE:
-		  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "ACL Connection: "
+          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "ACL Connection: "
                "connectionHandle = %d status = %d ",
-			   pBtEvent->uEventParam.btAclConnection.connectionHandle,
-			   pBtEvent->uEventParam.btAclConnection.status);
-		  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "BD ADDR = "
+               pBtEvent->uEventParam.btAclConnection.connectionHandle,
+               pBtEvent->uEventParam.btAclConnection.status);
+          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "BD ADDR = "
                "0x%x 0x%x 0x%x 0x%x 0x%x 0x%x",
-			   pBtEvent->uEventParam.btAclConnection.bdAddr[5],
-			   pBtEvent->uEventParam.btAclConnection.bdAddr[4],
-			   pBtEvent->uEventParam.btAclConnection.bdAddr[3],
-			   pBtEvent->uEventParam.btAclConnection.bdAddr[2],
-			   pBtEvent->uEventParam.btAclConnection.bdAddr[1],
-			   pBtEvent->uEventParam.btAclConnection.bdAddr[0]);
+               pBtEvent->uEventParam.btAclConnection.bdAddr[5],
+               pBtEvent->uEventParam.btAclConnection.bdAddr[4],
+               pBtEvent->uEventParam.btAclConnection.bdAddr[3],
+               pBtEvent->uEventParam.btAclConnection.bdAddr[2],
+               pBtEvent->uEventParam.btAclConnection.bdAddr[1],
+               pBtEvent->uEventParam.btAclConnection.bdAddr[0]);
 
           break;
 
       case BT_EVENT_MODE_CHANGED:
           VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "ACL Mode change : "
                "connectionHandle %d mode %d ",
-			   pBtEvent->uEventParam.btAclModeChange.connectionHandle,
-			   pBtEvent->uEventParam.btAclModeChange.mode);
+               pBtEvent->uEventParam.btAclModeChange.connectionHandle,
+               pBtEvent->uEventParam.btAclModeChange.mode);
           break;
 
       case BT_EVENT_DISCONNECTION_COMPLETE:

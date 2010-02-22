@@ -246,6 +246,8 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal);
   --------------------------------------------------------------------------*/
 eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg);
 
+v_VOID_t sme_FreeMsg( tHalHandle hHal, vos_msg_t* pMsg );
+
 /* ---------------------------------------------------------------------------
     \fn sme_ScanRequest
     \brief a wrapper function to Request a 11d or full scan from CSR.

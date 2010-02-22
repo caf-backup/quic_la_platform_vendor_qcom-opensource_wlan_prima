@@ -201,6 +201,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_SUSPEND_MIN, 
                  CFG_ENABLE_SUSPEND_MAX ),
 
+   REG_VARIABLE( CFG_ENABLE_ENABLE_DRIVER_STOP_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, nEnableDriverStop, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_ENABLE_ENABLE_DRIVER_STOP_DEFAULT, 
+                 CFG_ENABLE_ENABLE_DRIVER_STOP_MIN, 
+                 CFG_ENABLE_ENABLE_DRIVER_STOP_MAX ),
+
    REG_VARIABLE( CFG_ENABLE_IMPS_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, fIsImpsEnabled, 
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 

@@ -40,6 +40,7 @@ when           who        what, where, why
 #include <wlan_sal_misc.h> // Linux specific includes
 #include <wlan_qct_hal.h>
 #include <wlan_bal_misc.h> // Linux specific includes
+#include <linux/mmc/sdio.h>
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -47,6 +48,7 @@ when           who        what, where, why
 /*----------------------------------------------------------------------------
  *  Type Declarations
  * -------------------------------------------------------------------------*/
+extern int sdio_reset_comm(struct mmc_card *card);
 
 /*-------------------------------------------------------------------------
  * Global variables.
@@ -792,9 +794,8 @@ VOS_STATUS WLANSAL_SDIOReInit
 {
    hdd_adapter_t *pHddAdapter = NULL;
    v_CONTEXT_t pVosContext = NULL;
-   struct sdio_func *sdio_func_new;
-   struct sdio_func *sdio_func_old;
-   unsigned int attempts = 0;
+   struct sdio_func *func;
+   int err;
 
    //Get the global vos context
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
@@ -813,41 +814,23 @@ VOS_STATUS WLANSAL_SDIOReInit
       return VOS_STATUS_E_FAILURE;;
    }
 
-   //Cache the old device handle first
-	sdio_func_old = libra_getsdio_funcdev();
-
-#ifdef SDIO_POLLING_KERNEL_CHANGE_MAINLINED
-   if(libra_sdio_enable_polling()) {
-      SMSGERROR("libra_sdio_enable_polling failed",0, 0, 0);
+   func = libra_getsdio_funcdev();
+   if (func && func->card) {
+      sd_claim_host(func);
+      err = sdio_reset_comm(func->card);
+      sd_release_host(func);
+      if(err) {
+         SMSGERROR("%s: sdio_reset_comm failed %d", __func__, err, 0);
+         return VOS_STATUS_E_FAILURE;
+      }
+   }
+   else
+   {
+      SMSGERROR("%s: sdio_func or mmc_card handle is null", __func__, 0, 0);
       return VOS_STATUS_E_FAILURE;
    }
-#endif
 
-   do {
-      msleep(1000);
-      sdio_func_new = libra_getsdio_funcdev();
-      if (NULL == sdio_func_new || sdio_func_old == sdio_func_new) {
-         SMSGERROR("Libra WLAN not detected yet.",0, 0, 0);
-         attempts++;
-      }
-      else {
-         SMSGERROR("Libra WLAN detecton succeeded",0, 0, 0);
-         break;
-      }
-   }while (attempts < 3);
-
-   if (NULL == sdio_func_new || sdio_func_old == sdio_func_new) {
-      SMSGERROR("Libra WLAN not detected after multiple attempts",0, 0, 0);
-      return VOS_STATUS_E_FAILURE;
-   }
-   
-   /* set net_device parent to sdio device */
-   SET_NETDEV_DEV(pHddAdapter->dev, &sdio_func_new->dev);
-
-   // Set the private data for the device to our adapter.
-   libra_sdio_setprivdata (sdio_func_new, pHddAdapter);
    atomic_set(&pHddAdapter->sdio_claim_count, 0);
-   pHddAdapter->hsdio_func_dev = sdio_func_new;
 
    return VOS_STATUS_SUCCESS;
 }

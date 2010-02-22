@@ -19,38 +19,38 @@
 /* ACL and Sync connection attempt results */
 #define BT_CONN_STATUS_FAIL      (0)         /**< Connection failed */
 #define BT_CONN_STATUS_SUCCESS   (1)         /**< Connection successful */
-#define	BT_CONN_STATUS_MAX		 (2)		 /**< This and beyond are invalid values */
+#define BT_CONN_STATUS_MAX       (2)         /**< This and beyond are invalid values */
 
 /** ACL and Sync link types
   These must match the Bluetooth Spec!
 */
-#define BT_SCO					(0)   /**< SCO Link */
-#define BT_ACL					(1)   /**< ACL Link */
-#define BT_eSCO					(2)   /**< eSCO Link */
-#define BT_LINK_TYPE_MAX		(3)   /**< This value and higher are invalid */
+#define BT_SCO                  (0)   /**< SCO Link */
+#define BT_ACL                  (1)   /**< ACL Link */
+#define BT_eSCO                 (2)   /**< eSCO Link */
+#define BT_LINK_TYPE_MAX        (3)   /**< This value and higher are invalid */
 
-/**	ACL link modes
-	These must match the Bluetooth Spec!
+/** ACL link modes
+    These must match the Bluetooth Spec!
 */
-#define BT_ACL_ACTIVE			(0)   /**< Active mode */
-#define BT_ACL_HOLD				(1)   /**< Hold mode */
-#define BT_ACL_SNIFF			(2)   /**< Sniff mode */
-#define BT_ACL_PARK				(3)   /**< Park mode */
-#define BT_ACL_MODE_MAX	    	(4)   /**< This value and higher are invalid */
+#define BT_ACL_ACTIVE           (0)   /**< Active mode */
+#define BT_ACL_HOLD             (1)   /**< Hold mode */
+#define BT_ACL_SNIFF            (2)   /**< Sniff mode */
+#define BT_ACL_PARK             (3)   /**< Park mode */
+#define BT_ACL_MODE_MAX         (4)   /**< This value and higher are invalid */
 
-/**	BTC Executions Modes allowed to be set by user
+/** BTC Executions Modes allowed to be set by user
 */
-#define BTC_SMART_COEXISTENCE	(0)	/** BTC Mapping Layer decides whats best */
-#define	BTC_WLAN_ONLY			(1) /** WLAN takes all mode */
-#define	BTC_PTA_ONLY            (2) /** Allow only 3 wire protocol in H/W */
-#define	BT_EXEC_MODE_MAX		(3) /** This and beyond are invalid values */
+#define BTC_SMART_COEXISTENCE   (0) /** BTC Mapping Layer decides whats best */
+#define BTC_WLAN_ONLY           (1) /** WLAN takes all mode */
+#define BTC_PTA_ONLY            (2) /** Allow only 3 wire protocol in H/W */
+#define BT_EXEC_MODE_MAX        (3) /** This and beyond are invalid values */
 
-/**	Enumeration of different kinds actions that BTC Mapping Layer
-	can do if PM indication (to AP) fails.
+/** Enumeration of different kinds actions that BTC Mapping Layer
+    can do if PM indication (to AP) fails.
 */
-#define	BTC_RESTART_CURRENT		(0) /** Restart the interval we just failed to leave */
-#define	BTC_START_NEXT          (1) /** Start the next interval even though the PM transition at the AP was unsuccessful */
-#define	BTC_ACTION_TYPE_MAX     (2) /** This and beyond are invalid values */
+#define BTC_RESTART_CURRENT     (0) /** Restart the interval we just failed to leave */
+#define BTC_START_NEXT          (1) /** Start the next interval even though the PM transition at the AP was unsuccessful */
+#define BTC_ACTION_TYPE_MAX     (2) /** This and beyond are invalid values */
 
 /** Bitmaps used for maintaining various BT events that requires
     enough time to complete such that it might require disbling of
@@ -62,11 +62,11 @@
 #define BT_CREATE_SYNC_CONNECTION_STARTED   (1<<3)
 
 /** Maximum time duration in milliseconds between a specific BT start event and its
-	respective stop event, before it can be declared timed out on receiving the stop event.
+    respective stop event, before it can be declared timed out on receiving the stop event.
 */
-#define BT_MAX_EVENT_DONE_TIMEOUT	15000
+#define BT_MAX_EVENT_DONE_TIMEOUT   45000
 
-/**	Enumeration of all the different kinds of BT events
+/** Enumeration of all the different kinds of BT events
 */
 typedef enum eSmeBtEventType
 {
@@ -93,70 +93,70 @@ typedef enum eSmeBtEventType
 } tSmeBtEventType;
 
 /**Data structure that specifies the needed event parameters for
-	BT_EVENT_CREATE_ACL_CONNECTION and BT_EVENT_ACL_CONNECTION_COMPLETE
+    BT_EVENT_CREATE_ACL_CONNECTION and BT_EVENT_ACL_CONNECTION_COMPLETE
 */
 typedef struct sSmeBtAclConnectionParam
 {
-   v_U8_t		bdAddr[6];
-   v_U16_t		connectionHandle;
-   v_U8_t		status;
+   v_U8_t       bdAddr[6];
+   v_U16_t      connectionHandle;
+   v_U8_t       status;
 } tSmeBtAclConnectionParam, *tpSmeBtAclConnectionParam;
 
-/**	Data structure that specifies the needed event parameters for
-	BT_EVENT_CREATE_SYNC_CONNECTION, BT_EVENT_SYNC_CONNECTION_COMPLETE
-	and BT_EVENT_SYNC_CONNECTION_UPDATED
+/** Data structure that specifies the needed event parameters for
+    BT_EVENT_CREATE_SYNC_CONNECTION, BT_EVENT_SYNC_CONNECTION_COMPLETE
+    and BT_EVENT_SYNC_CONNECTION_UPDATED
 */
 typedef struct sSmeBtSyncConnectionParam
 {
-   v_U8_t		bdAddr[6];
-   v_U16_t		connectionHandle;
-   v_U8_t		status;
-   v_U8_t		linkType;
-   v_U8_t		scoInterval; //units in number of 625us slots
-   v_U8_t		scoWindow;   //units in number of 625us slots
-   v_U8_t		retransmisisonWindow; //units in number of 625us slots
+   v_U8_t       bdAddr[6];
+   v_U16_t      connectionHandle;
+   v_U8_t       status;
+   v_U8_t       linkType;
+   v_U8_t       scoInterval; //units in number of 625us slots
+   v_U8_t       scoWindow;   //units in number of 625us slots
+   v_U8_t       retransmisisonWindow; //units in number of 625us slots
 } tSmeBtSyncConnectionParam, *tpSmeBtSyncConnectionParam;
 
 /**Data structure that specifies the needed event parameters for
-	BT_EVENT_MODE_CHANGED
+    BT_EVENT_MODE_CHANGED
 */
 typedef struct sSmeBtAclModeChangeParam
 {
-	v_U16_t		connectionHandle;
-	v_U8_t		mode;
+    v_U16_t     connectionHandle;
+    v_U8_t      mode;
 } tSmeBtAclModeChangeParam, *tpSmeBtAclModeChangeParam;
 
 /*Data structure that specifies the needed event parameters for
-	BT_EVENT_DISCONNECTION_COMPLETE
+    BT_EVENT_DISCONNECTION_COMPLETE
 */
 typedef struct sSmeBtDisconnectParam
 {
    v_U16_t connectionHandle;
 } tSmeBtDisconnectParam, *tpSmeBtDisconnectParam;
 
-/**	Generic Bluetooth Event structure for BTC
+/** Generic Bluetooth Event structure for BTC
 */
 typedef struct sSmeBtcBtEvent
 {
    tSmeBtEventType btEventType;
    union
    {
-      v_U8_t					bdAddr[6];    /**< For events with only a BT Addr in event_data */
-	  tSmeBtAclConnectionParam	btAclConnection;
-      tSmeBtSyncConnectionParam	btSyncConnection;
-      tSmeBtDisconnectParam		btDisconnect;
-	  tSmeBtAclModeChangeParam	btAclModeChange;
+      v_U8_t                    bdAddr[6];    /**< For events with only a BT Addr in event_data */
+      tSmeBtAclConnectionParam  btAclConnection;
+      tSmeBtSyncConnectionParam btSyncConnection;
+      tSmeBtDisconnectParam     btDisconnect;
+      tSmeBtAclModeChangeParam  btAclModeChange;
    }uEventParam;
 } tSmeBtEvent, *tpSmeBtEvent;
 
-/**	Data structure that specifies the BTC Configuration parameters
+/** Data structure that specifies the BTC Configuration parameters
 */
 typedef struct sSmeBtcConfig
 {
-   v_U8_t		btcExecutionMode;
-   v_U8_t		btcActionOnPmFail;
-   v_U8_t		btcBtIntervalMode1;
-   v_U8_t		btcWlanIntervalMode1;
+   v_U8_t       btcExecutionMode;
+   v_U8_t       btcActionOnPmFail;
+   v_U8_t       btcBtIntervalMode1;
+   v_U8_t       btcWlanIntervalMode1;
 
 } tSmeBtcConfig, *tpSmeBtcConfig;
 
@@ -169,12 +169,12 @@ typedef struct sSmeBtcInfo
    v_BOOL_t      btcReady;
    v_U8_t        btcEventState;
    v_U8_t        btcHBActive;    /* Is HB currently active */
-   v_U8_t	     btcHBCount;     /* default HB count */
-   vos_timer_t	 restoreHBTimer; /* Timer to restore heart beat */
+   v_U8_t        btcHBCount;     /* default HB count */
+   vos_timer_t   restoreHBTimer; /* Timer to restore heart beat */
 } tSmeBtcInfo, *tpSmeBtcInfo;
 
 
-/**	Routine definitions
+/** Routine definitions
 */
 VOS_STATUS btcOpen (tHalHandle hHal);
 VOS_STATUS btcClose (tHalHandle hHal);

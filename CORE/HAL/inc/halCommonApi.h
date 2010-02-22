@@ -214,6 +214,7 @@ tSirRetStatus halMntGetPerStaStats(tpAniSirGlobal, tANI_U16);
 // HAL APIS
 //----
 tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
+void halFreeMsg( tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 tSirRetStatus halPostMsgApi(tpAniSirGlobal, tSirMsgQ*);
 

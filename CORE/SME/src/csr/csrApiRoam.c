@@ -44,6 +44,12 @@
 #define CSR_MIN_TL_STAT_QUERY_PERIOD       500 //ms
 #define CSR_DIAG_LOG_STAT_PERIOD           3000 //ms
 
+//We use constatnt 4 here
+//This macro returns true when higher AC parameter is bigger than lower AC for a difference
+//The bigger the number, the less chance of TX
+//It must put lower AC as the first parameter.
+#define SME_DETECT_AC_WEIGHT_DIFF(loAC, hiAC)   (v_BOOL_t)(((hiAC) > (loAC)) ? (((hiAC)-(loAC)) > 4) : 0)
+
 
 /*-------------------------------------------------------------------------- 
   Type declarations
@@ -394,6 +400,9 @@ eHalStatus csrReady(tHalHandle hHal)
     csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE);
     /* HDD issues the init scan */
     csrScanStartResultAgingTimer(pMac);
+
+    //Store the AC weights in TL for later use
+    WLANTL_GetACWeights(pMac->roam.gVosContext, pMac->roam.ucACWeights);
 
     return (status);
 }
@@ -1718,6 +1727,14 @@ eHalStatus csrRoamIssueDisassociate( tpAniSirGlobal pMac, eCsrRoamSubState NewSu
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tCsrBssid bssId = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
     tANI_U16 reasonCode;
+
+    //Restore AC weight in case we change it 
+    if ( csrIsConnStateConnectedInfra( pMac ) )
+    {
+        smsLog(pMac, LOGE, FL(" restore AC weights (%d-%d-%d-%d)\n"), pMac->roam.ucACWeights[0], pMac->roam.ucACWeights[1],
+            pMac->roam.ucACWeights[2], pMac->roam.ucACWeights[3]);
+        WLANTL_SetACWeights(pMac->roam.gVosContext, pMac->roam.ucACWeights);
+    }
     
     if ( fMICFailure )
     {
@@ -3332,6 +3349,68 @@ static eHalStatus csrRoamSaveWpaRsnRspIE(tpAniSirGlobal pMac, eCsrAuthType authT
 
 
 
+static void csrCheckAndUpdateACWeight( tpAniSirGlobal pMac, tDot11fBeaconIEs *pIEs )
+{
+    v_U8_t bACWeights[WLANTL_MAX_AC];
+    v_U8_t paramBk, paramBe, paramVi, paramVo;
+    v_BOOL_t fWeightChange = VOS_FALSE;
+
+    //Compare two ACs' EDCA parameters, from low to high (BK, BE, VI, VO)
+    //The "formula" is, if lower AC's AIFSN+CWMin is bigger than a fixed amount
+    //of the higher AC one, make the higher AC has the same weight as the lower AC.
+    //This doesn't address the case where the lower AC needs a real higher weight
+    if( pIEs->WMMParams.present )
+    {
+        //no change to the lowest ones
+        bACWeights[WLANTL_AC_BK] = pMac->roam.ucACWeights[WLANTL_AC_BK];
+        bACWeights[WLANTL_AC_BE] = pMac->roam.ucACWeights[WLANTL_AC_BE];
+        bACWeights[WLANTL_AC_VI] = pMac->roam.ucACWeights[WLANTL_AC_VI];
+        bACWeights[WLANTL_AC_VO] = pMac->roam.ucACWeights[WLANTL_AC_VO];
+        paramBk = pIEs->WMMParams.acbk_aifsn + pIEs->WMMParams.acbk_acwmin;
+        paramBe = pIEs->WMMParams.acbe_aifsn + pIEs->WMMParams.acbe_acwmin;
+        paramVi = pIEs->WMMParams.acvi_aifsn + pIEs->WMMParams.acvi_acwmin;
+        paramVo = pIEs->WMMParams.acvo_aifsn + pIEs->WMMParams.acvo_acwmin;
+        if( SME_DETECT_AC_WEIGHT_DIFF(paramBk, paramBe) )
+        {
+            bACWeights[WLANTL_AC_BE] = bACWeights[WLANTL_AC_BK];
+            fWeightChange = VOS_TRUE;
+        }
+        if( SME_DETECT_AC_WEIGHT_DIFF(paramBk, paramVi) )
+        {
+            bACWeights[WLANTL_AC_VI] = bACWeights[WLANTL_AC_BK];
+            fWeightChange = VOS_TRUE;
+        }
+        else if( SME_DETECT_AC_WEIGHT_DIFF(paramBe, paramVi) )
+        {
+            bACWeights[WLANTL_AC_VI] = bACWeights[WLANTL_AC_BE];
+            fWeightChange = VOS_TRUE;
+        }
+        if( SME_DETECT_AC_WEIGHT_DIFF(paramBk, paramVo) )
+        {
+            bACWeights[WLANTL_AC_VO] = bACWeights[WLANTL_AC_BK];
+            fWeightChange = VOS_TRUE;
+        }
+        else if( SME_DETECT_AC_WEIGHT_DIFF(paramBe, paramVo) )
+        {
+            bACWeights[WLANTL_AC_VO] = bACWeights[WLANTL_AC_BE];
+            fWeightChange = VOS_TRUE;
+        }
+        else if( SME_DETECT_AC_WEIGHT_DIFF(paramVi, paramVo) )
+        {
+            bACWeights[WLANTL_AC_VO] = bACWeights[WLANTL_AC_VI];
+            fWeightChange = VOS_TRUE;
+        }
+        if(fWeightChange)
+        {
+            smsLog(pMac, LOGE, FL(" change AC weights (%d-%d-%d-%d)\n"), bACWeights[0], bACWeights[1],
+                bACWeights[2], bACWeights[3]);
+            WLANTL_SetACWeights(pMac->roam.gVosContext, bACWeights);
+        }
+    }
+}
+
+
+
 static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                                        eCsrRoamCompleteResult Result, void *Context )
 {
@@ -3505,6 +3584,16 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                     roamInfo.ucastSig = ( tANI_U8 )pJoinRsp->ucastSig;
                     roamInfo.bcastSig = ( tANI_U8 )pJoinRsp->bcastSig;
                 }
+                else
+                {
+                   if(pCommand->u.roamCmd.fReassoc)
+                   {
+                       roamInfo.nAssocReqLength = pMac->roam.connectedInfo.nAssocReqLength;
+                       roamInfo.nAssocRspLength = pMac->roam.connectedInfo.nAssocRspLength;
+                       roamInfo.nBeaconLength = pMac->roam.connectedInfo.nBeaconLength;
+                       roamInfo.pbFrames = pMac->roam.connectedInfo.pbFrames;
+                   }
+                }
 
 #ifdef FEATURE_WLAN_GEN6_ROAMING
                 //Save the channel list for handoff scanning
@@ -3555,6 +3644,15 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
 
                 // reset the PMKID candidate list
                 csrResetPMKIDCandidateList( pMac );
+                //Update TL's AC weight base on the current EDCA parameters
+                //These parameters may change in the course of the connection, that sictuation
+                //is not taken care here. This change is mainly to address a WIFI WMM test where
+                //BE has a equal or higher TX priority than VI. 
+                //We only do this for infra link
+                if( csrIsConnStateConnectedInfra(pMac) && pIes )
+                {
+                    csrCheckAndUpdateACWeight(pMac, pIes);
+                }
             }
             else
             {
@@ -4468,6 +4566,10 @@ eHalStatus csrRoamProcessDisassociate( tpAniSirGlobal pMac, tSmeCmd *pCommand, t
     }
     else if ( csrIsConnStateInfra( pMac ) )
     {
+        smsLog(pMac, LOGE, FL(" restore AC weights (%d-%d-%d-%d)\n"), pMac->roam.ucACWeights[0], pMac->roam.ucACWeights[1],
+            pMac->roam.ucACWeights[2], pMac->roam.ucACWeights[3]);
+        //Restore AC weight in case we change it 
+        WLANTL_SetACWeights(pMac->roam.gVosContext, pMac->roam.ucACWeights);
         // in Infrasturcture, we need to disassociate from the Infrastructure network...
 		NewSubstate = eCSR_ROAM_SUBSTATE_DISASSOC_FORCED;
 		if(eCsrSmeIssuedDisassocForHandoff == pCommand->u.roamCmd.roamReason)
@@ -4513,6 +4615,10 @@ eHalStatus csrRoamProcessDeauth( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     }
     else if ( csrIsConnStateInfra( pMac ) )
     {
+        smsLog(pMac, LOGE, FL(" restore AC weights (%d-%d-%d-%d)\n"), pMac->roam.ucACWeights[0], pMac->roam.ucACWeights[1],
+            pMac->roam.ucACWeights[2], pMac->roam.ucACWeights[3]);
+        //Restore AC weight in case we change it 
+        WLANTL_SetACWeights(pMac->roam.gVosContext, pMac->roam.ucACWeights);
         // in Infrasturcture, we need to disassociate from the Infrastructure network...
         status = csrRoamIssueDeauth( pMac, eCSR_ROAM_SUBSTATE_AUTH_REQ );
         fComplete = (!HAL_STATUS_SUCCESS(status));
@@ -8481,6 +8587,22 @@ VOS_STATUS csrRoamTrafficIndCallback(tHalHandle hHal,
 {
    tpAniSirGlobal pMac = PMAC_STRUCT( context );
 
+   /* if RT traffic is on ignore the NRT traffic on indication for now, as soon
+      as RT traffic goes off we can decide if we need to move to NRT or NT*/
+   if((pMac->roam.handoffInfo.isNrtTrafficOn != trafficStatus.nrtTrafficStatus) &&
+      pMac->roam.handoffInfo.isRtTrafficOn)
+   {
+       if(WLANTL_HO_NRT_TRAFFIC_STATUS_ON == trafficStatus.nrtTrafficStatus)
+       {
+          pMac->roam.handoffInfo.isNrtTrafficOn = TRUE;
+       }
+       else
+       {
+          pMac->roam.handoffInfo.isNrtTrafficOn = FALSE;
+       }
+       return VOS_STATUS_SUCCESS;
+   }
+
    if(pMac->roam.handoffInfo.isNrtTrafficOn != trafficStatus.nrtTrafficStatus)
    {
       smsLog(pMac, LOGW, "csrRoamTrafficIndCallback: NRT traffic status %d\n", trafficStatus.nrtTrafficStatus);
@@ -9314,7 +9436,7 @@ void csrRoamHandoffStatsProcessor(tpAniSirGlobal pMac)
    }
    else
    {
-      smsLog(pMac, LOGW, " csrRoamHandoffStatsProcessor : Exit criteria met but no candidates\n");
+      smsLog(pMac, LOGW, " csrRoamHandoffStatsProcessor : Exit criteria met but no candidates for stats based handoff\n");
    }
 
    /* Find out what new time to use next                                    */

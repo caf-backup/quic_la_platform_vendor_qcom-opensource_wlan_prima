@@ -27,6 +27,12 @@
  //gEnableSuspend = 2 in INI file implies suspend to deep sleep
  #define WLAN_MAP_SUSPEND_TO_DEEP_SLEEP  2
 
+ //gEnableDriverStop = 1 implies map driver stop to standby
+ #define WLAN_MAP_DRIVER_STOP_TO_STANDBY     1
+
+ //gEnableDriverStop = 2 implies map sriver stop to deep sleep
+ #define WLAN_MAP_DRIVER_STOP_TO_DEEP_SLEEP  2
+
  //Maximum time (ms) to wait for standby to complete
  #define WLAN_WAIT_TIME_STANDBY          1000
 

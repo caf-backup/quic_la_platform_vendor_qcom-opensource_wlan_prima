@@ -54,18 +54,14 @@
 
 #ifdef LIBRA_MTU_TIMING_WORKAROUND
 #define LIBRA_MTU_2_4G_WRKARND_SIFS_USEC 4
-#define LIBRA_MTU_2_4G_WRKARND_SIFS_REDUCTION 6
 #define LIBRA_MTU_2_4G_PKTDET_TO_BABITMAP_UPDATE_USEC   1
 /*
-    There is a bug in LIBRA and because of that LIBRA tranmission are always delayed by 13us. Because of this bug
-    LIBRA is falling behind in WMM external fairness test. At this moment HW team does not understand the exact reason 
-    for this. Guido suggested to reduce the DIFS by 13us as workaround. 
+  In our test, it shows that the turnaround time from ACK to Libra until Libra sends out
+  the next frame, there is a small delays. The delay varies (~13us at 6mbps, ~4us at 36mbps).
+  At this moment HW team does not understand the exact reason for this. Guido suggested to 
+  reduce the DIFS by 13us as workaround. It fails some WIFI WMM test, hence reduce by 4us.
 */
-#define LIBRA_MTU_2_4G_WRKARND_DIFS_REDUCTION 13 
-//total difs reduction = difs reduction because of the QoS issue mentioned above  + SIFS reduction
-//                            = 13 us + 6 us 
-//                            = 19 us
-#define LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION (LIBRA_MTU_2_4G_WRKARND_DIFS_REDUCTION + LIBRA_MTU_2_4G_WRKARND_SIFS_REDUCTION)
+#define LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION (4)
 #else
 #define LIBRA_MTU_2_4G_PKTDET_TO_BABITMAP_UPDATE_USEC   14
 #define LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION 0

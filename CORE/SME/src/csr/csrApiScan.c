@@ -6563,7 +6563,7 @@ tCsrBssid * csrScanGetHoCandidate(tpAniSirGlobal pMac)
       return pBestBssid;
    }
 
-   if( pTempStaEntry->sta.rssiScore + CSR_SCAN_HANDOFF_DELTA >
+   if( pTempStaEntry->sta.rssiScore + pMac->roam.handoffInfo.handoffActivityInfo.currRssiHandoffDelta >
        currApRssi * (-1) )
    {
       smsLog(pMac, LOGW, " csrScanGetHoCandidate: current AP became better %d\n", currApRssi * (-1));

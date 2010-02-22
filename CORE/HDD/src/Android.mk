@@ -1,7 +1,9 @@
 
 # Android makefile for the WLAN Libra Module
 
+# Build/Package only in case of 7x30 and 7x27 target
 ifneq (, $(filter msm7627_surf msm7627_ffa msm7630_surf, $(TARGET_PRODUCT)))
+
 PRODUCT_COPY_FILES += vendor/qcom-proprietary/wlan/firmware_bin/qcom_fw.bin:system/etc/firmware/wlan/qcom_fw.bin
 PRODUCT_COPY_FILES += vendor/qcom-proprietary/wlan/firmware_bin/qcom_nv.bin:system/etc/firmware/wlan/qcom_nv.bin
 PRODUCT_COPY_FILES += vendor/qcom-proprietary/wlan/firmware_bin/cfg.dat:system/etc/firmware/wlan/cfg.dat
@@ -39,7 +41,6 @@ $(WLAN_OUT): $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL)
 $(WLAN_FTM_OUT): $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL) $(WLAN_OUT)
 	$(MAKE) -C kernel M=../vendor/qcom-proprietary/wlan/ftm/CORE/HDD/src O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- BUILD_FTM_DRIVER=1
 	
-# Package only incase of 7x30 target
 $(WLAN_PRODUCT_OUT): $(ACP_BINARY_OUT) $(WLAN_OUT) $(MAKE_MODULES_FOLDER)
 	$(ACP) -f $(TARGET_OUT_INTERMEDIATES)/vendor/qcom-proprietary/wlan/CORE/HDD/src/libra.ko $(WLAN_PRODUCT_OUT)
 
