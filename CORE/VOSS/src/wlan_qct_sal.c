@@ -816,9 +816,7 @@ VOS_STATUS WLANSAL_SDIOReInit
 
    func = libra_getsdio_funcdev();
    if (func && func->card) {
-      sd_claim_host(func);
       err = sdio_reset_comm(func->card);
-      sd_release_host(func);
       if(err) {
          SMSGERROR("%s: sdio_reset_comm failed %d", __func__, err, 0);
          return VOS_STATUS_E_FAILURE;
