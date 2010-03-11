@@ -44,11 +44,9 @@
 
 #define HAL_MEM_BOUNDARY_ALIGN          128
 
-#define HW_MAX_QUEUES                   0x0D
 #define TPE_PER_STA_STATS_SIZE          sizeof(tTpeStaStats)    /**<    0x240 */
 #define TPE_STA_DESC_ENTRY_SIZE         sizeof(tTpeStaDesc)
 #define RPE_STA_DESC_ENTRY_SIZE         sizeof(tRpeStaDesc)
-#define BTQM_STA_QUEUE_ENTRY_SIZE       0x8
 #define TPE_STA_DESC_AND_STATS_SIZE     (TPE_STA_DESC_ENTRY_SIZE + TPE_PER_STA_STATS_SIZE)
 #define RPE_PARTIAL_BITMAP_SIZE         sizeof(tRpePartialBAInfo)
 

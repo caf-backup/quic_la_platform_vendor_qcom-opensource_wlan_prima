@@ -62,6 +62,7 @@ when        who    what, where, why
 #include "vos_mq.h" 
 #include "vos_list.h"
 #include "wlan_qct_bal.h" 
+#include "pmcApi.h"
 
 #define STATIC  static
 
@@ -670,7 +671,6 @@ typedef struct
    WLANTL_HO_RSSI_INDICATION_TYPE       registeredInd[WLANTL_MAX_AVAIL_THRESHOLD];
    WLANTL_CURRENT_HO_STATE_TYPE         currentHOState;
    WLANTL_HO_TRAFFIC_STATUS_HANDLE_TYPE currentTraffic;
-   v_BOOL_t                             isBMPS;
    v_PVOID_t                            macCtxt;
    vos_lock_t                           hosLock;
 } WLANTL_HO_SUPPORT_TYPE;
@@ -723,6 +723,9 @@ typedef struct
   WLANTL_HO_SUPPORT_TYPE    hoSupport;
 
   v_BOOL_t                  bUrgent;
+
+  /*whether we are in BMPS/UAPSD/WOWL mode, since the latter 2 need to be BMPS first*/
+  v_BOOL_t                  isBMPS;
 }WLANTL_CbType;
 
 /*==========================================================================
@@ -1572,6 +1575,15 @@ VOS_STATUS WLANTL_ReadRSSI
    v_PVOID_t        pBDHeader,
    v_U8_t           STAid
 );
+
+
+
+void WLANTL_PowerStateChangedCB
+(
+   v_PVOID_t pAdapter,
+   tPmcState newState
+);
+
 
 
 #endif /* #ifndef WLAN_QCT_TLI_H */

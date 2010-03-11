@@ -32,7 +32,7 @@
 #include <wlan_hdd_wowl.h>
 #include <linux/earlysuspend.h>
 #include "wlan_hdd_power.h"
-#include "bldVersion.h"
+#include "qwlan_version.h"
 
 #define WE_MAX_STR_LEN 1024
 
@@ -2309,7 +2309,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                 hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed!!!\n",__func__);
                 return -EINVAL;
             }
-            buf += sprintf(buf,"%d.%d.%d.%d-",(int)BLD_REL,(int)BLD_VER,(int)BLD_SFX,(int)BLD_NUM);
+            buf += sprintf(buf,"%s-", QWLAN_VERSIONSTR);
             buf += sprintf(buf,"%ld.%ld.%ld.%ld",fwversion.uMj,fwversion.uMn,fwversion.uPatch,fwversion.uBuild);            
             wrqu->data.length = strlen(extra);
             break;

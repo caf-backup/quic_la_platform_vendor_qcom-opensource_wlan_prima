@@ -64,6 +64,8 @@
 #define BMU_BD_SIZE                 128         // bytes
 #define BMU_MAX_NUM_BD              1023        // Max number of BDs BMU can support as per the Libra programmer's guide.
 #define BMU_MAX_BD_INDEX_ALLOWED    1023        // We may change this value later if we need some for some other purpose such as tracing
+#define HW_MAX_QUEUES               0x0b
+#define BTQM_STA_QUEUE_ENTRY_SIZE    8
 
 #define BMU_NUM_BD_GET_SHIFT        16
 #define BMU_MASTER_ID_SHIFT          8

@@ -361,6 +361,11 @@ WLANTL_Open
     return status;
   }
 #endif
+
+  pTLCb->isBMPS = VOS_FALSE;
+  pmcRegisterDeviceStateUpdateInd( vos_get_context(VOS_MODULE_ID_SME, pvosGCtx),
+                                   WLANTL_PowerStateChangedCB, pvosGCtx );
+
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_Open */
 
@@ -1685,9 +1690,9 @@ WLANTL_GetRssi
   /*------------------------------------------------------------------------
     Copy will not be locked; please read restriction
    ------------------------------------------------------------------------*/
-  if(VOS_TRUE == pTLCb->hoSupport.isBMPS)
+  if(pTLCb->isBMPS)
   {
-    halPS_GetRssi(pTLCb->hoSupport.macCtxt, puRssi);
+    halPS_GetRssi(vos_get_context(VOS_MODULE_ID_SME, pvosGCtx), puRssi);
   }
   else
   {
@@ -4795,7 +4800,7 @@ WLANTL_STATxAuth
   {
     /* Count TX frame to handle traffic status */
     vosStatus = WLANTL_HSHandleTXFrame(pvosGCtx,
-                                       ucAC,
+                                       pStaClient->ucCurrentAC,
                                        ucSTAId,
                                        vosDataBuff,
                                        pvBDHeader);
@@ -8829,4 +8834,64 @@ WLANTL_SetACWeights
   }
 
   return VOS_STATUS_SUCCESS;
+}
+
+
+/*==========================================================================
+
+   FUNCTION
+
+   DESCRIPTION 
+    
+   PARAMETERS 
+
+   RETURN VALUE
+
+============================================================================*/
+void WLANTL_PowerStateChangedCB
+(
+   v_PVOID_t pAdapter,
+   tPmcState newState
+)
+{
+   WLANTL_CbType                *tlCtxt = VOS_GET_TL_CB(pAdapter);
+
+   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO, "Power state changed, new state is %d", newState );
+   switch(newState)
+   {
+      case FULL_POWER:
+         tlCtxt->isBMPS = VOS_FALSE;
+         break;
+
+      case BMPS:
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+         WLANTL_SetFWRSSIThresholds(pAdapter);
+#endif
+
+         tlCtxt->isBMPS = VOS_TRUE;
+         break;
+
+      case IMPS:
+      case LOW_POWER:
+      case REQUEST_BMPS:
+      case REQUEST_FULL_POWER:
+      case REQUEST_IMPS:
+      case STOPPED:
+      case REQUEST_START_UAPSD:
+      case REQUEST_STOP_UAPSD:
+      case UAPSD:
+      case REQUEST_STANDBY:
+      case STANDBY:
+      case REQUEST_ENTER_WOWL:
+      case REQUEST_EXIT_WOWL:
+      case WOWL:
+         VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN, "Not handle this events %d", newState );
+         break;
+
+      default:
+         VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, "Not a valid event %d", newState );
+         break;
+   }
+
+   return;
 }

@@ -2239,8 +2239,8 @@ limProcessApMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
 
             limResetHBPktCount( pMac );
             limDeactivateAndChangeTimer( pMac, eLIM_HEART_BEAT_TIMER );
-	     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
-            if (tx_timer_activate(&pMac->lim.limTimers.gLimHeartBeatTimer) != TX_SUCCESS)
+            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
+            if (limActivateHearBeatTimer(pMac) != TX_SUCCESS)
                 limLog(pMac, LOGP, FL("could not activate Heartbeat timer\n"));
 
         }
@@ -2357,8 +2357,8 @@ limProcessIbssMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
 
         limResetHBPktCount( pMac );
         limDeactivateAndChangeTimer( pMac, eLIM_HEART_BEAT_TIMER );
-	 MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
-        if (tx_timer_activate(&pMac->lim.limTimers.gLimHeartBeatTimer) != TX_SUCCESS)
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
+        if (limActivateHearBeatTimer(pMac) != TX_SUCCESS)
             limLog(pMac, LOGP, FL("could not activate Heartbeat timer\n"));
 
         pMac->lim.gLimBssIdx     = (tANI_U8) pAddBssParams->bssIdx;

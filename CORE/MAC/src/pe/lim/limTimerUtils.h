@@ -68,5 +68,24 @@ void limQuietTimerHandler(void *, tANI_U32);
 void limQuietBssTimerHandler(void *, tANI_U32);
 void limCBScanIntervalTimerHandler(void *, tANI_U32);
 void limCBScanDurationTimerHandler(void *, tANI_U32);
+/**
+ * limActivateHearBeatTimer()
+ *
+ *
+ * @brief: This function is called to activate heartbeat timer
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ * @note   staId for eLIM_AUTH_RSP_TIMER is auth Node Index.
+ *
+ * @param  pMac    - Pointer to Global MAC structure
+ *
+ * @return TX_SUCCESS - timer is activated
+ *         errors - fail to start the timer
+ */
+v_UINT_t limActivateHearBeatTimer(tpAniSirGlobal pMac);
 
 #endif /* __LIM_TIMER_UTILS_H */

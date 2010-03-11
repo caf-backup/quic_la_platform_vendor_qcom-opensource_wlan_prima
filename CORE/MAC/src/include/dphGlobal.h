@@ -193,10 +193,6 @@ typedef struct sDphHashNode
     tANI_U8  wdsPeerBeaconSeen;
 #endif
 
-
-    /// Next pointer
-    struct sDphHashNode  *next;
-
    //Taurus capabilities
    tANI_U16 baPolicyFlag;                 //BA Policy for each TID. 
 
@@ -290,6 +286,14 @@ typedef struct sDphHashNode
     //BA state bitmap 2 bits per tid
     // BA state for tid i  = (baState >> tid*2) & 0x3
     tANI_U32 baState;
+
+    /* When a station with already an existing dph entry tries to 
+     * associate again, the old dph entry will be zeroed out except 
+     * for the next pointer. The next pointer must be defined at the  
+     * end of the structure.
+     */
+    struct sDphHashNode  *next;
+
 } tDphHashNode, *tpDphHashNode;
 
 #include "dphHashTable.h"

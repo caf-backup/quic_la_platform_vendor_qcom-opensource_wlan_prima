@@ -159,6 +159,8 @@ eHalStatus halBmu_ReadBdInfo(tpAniSirGlobal pMac, tANI_U32 bdIdx, tpBmuBtqmBdInf
 eHalStatus halIntBmuWqHandler(tHalHandle hHalHandle, eHalIntSources intSource);
 
 eHalStatus halBmu_BckupBtqmStaConfig(tpAniSirGlobal pMac, tANI_U32 *pAddr);
+eHalStatus halBmu_getBtqmStaWqStatus(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U32 *pbmuBtqmStatus);
+
 
 #endif /* _HALBMU_H_ */
 

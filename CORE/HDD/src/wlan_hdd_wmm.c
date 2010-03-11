@@ -871,7 +871,7 @@ VOS_STATUS hdd_wmm_acquire_access( hdd_adapter_t* pAdapter,
              "%s: Entered for AC %d", __FUNCTION__, acType);
 #endif // HDD_WMM_DEBUG
 
-   if (!hdd_wmm_is_active(pAdapter))
+   if (!hdd_wmm_is_active(pAdapter) || !pAdapter->cfg_ini->bImplicitQosEnabled)
    {
       // either we don't want QoS or the AP doesn't support QoS
 #ifdef HDD_WMM_DEBUG

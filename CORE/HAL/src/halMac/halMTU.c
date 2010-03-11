@@ -397,6 +397,39 @@ void halMtu_setBackOffControl(tpAniSirGlobal pMac)
 }
 
 
+/* MTU stall backoff based on the mask */
+void halMTU_stallBackoffs(tpAniSirGlobal pMac, tANI_U32 mask)
+{
+    tANI_U32 regValue = 0, count = 0;
+
+    // Stall data backoffs
+    halReadRegister(pMac, QWLAN_MTU_BKOF_CONTROL_REG, &regValue);
+    regValue = regValue | (mask  << QWLAN_MTU_BKOF_CONTROL_SW_MTU_STALL_BKOF_OFFSET);
+    halWriteRegister(pMac, QWLAN_MTU_BKOF_CONTROL_REG, regValue);
+
+    // Poll for TPE to be idle
+    regValue = 0;
+    do {
+        halReadRegister(pMac, QWLAN_MCU_MCU_WMAC_STATUS_REG, &regValue);
+        count++;
+        if (count > MCU_REG_POLLING_WARNING) {
+             HALLOGE( halLog(pMac, LOGE, FL("Polled MCU_WMAC_STATUS_REG register for %d times !!!\n"), count));
+             vos_sleep(1); 
+             count = 0;
+        }
+    } while ((regValue & QWLAN_MCU_MCU_WMAC_STATUS_TPE_MCU_STATUS_MASK));
+}
+
+
+/* MTU start backoff based on the mask */
+void halMTU_startBackoffs(tpAniSirGlobal pMac, tANI_U32 mask)
+{
+    tANI_U32 regValue = 0;
+    halReadRegister(pMac, QWLAN_MTU_BKOF_CONTROL_REG, &regValue);
+    regValue = regValue & (~(mask  << QWLAN_MTU_BKOF_CONTROL_SW_MTU_STALL_BKOF_OFFSET));
+    halWriteRegister(pMac, QWLAN_MTU_BKOF_CONTROL_REG, regValue);
+}
+
 /**
  * \fn:   halMTU_Start
  *

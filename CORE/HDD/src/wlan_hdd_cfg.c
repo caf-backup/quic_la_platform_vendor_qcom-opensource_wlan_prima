@@ -808,7 +808,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_DATA_INACTIVITY_TIMEOUT_DEFAULT, 
                 CFG_DATA_INACTIVITY_TIMEOUT_MIN, 
                 CFG_DATA_INACTIVITY_TIMEOUT_MAX ),
-                
+
+   REG_VARIABLE( CFG_NTH_BEACON_FILTER_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, nthBeaconFilter, 
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                CFG_NTH_BEACON_FILTER_DEFAULT, 
+                CFG_NTH_BEACON_FILTER_MIN, 
+                CFG_NTH_BEACON_FILTER_MAX ),              
+
    REG_VARIABLE( CFG_QOS_WMM_MODE_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, WmmMode, 
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
@@ -1079,6 +1086,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                         hdd_config_t, wowlPattern, 
                         VAR_FLAGS_OPTIONAL,
                         (void *)CFG_WOWL_PATTERN_DEFAULT ),
+
+   REG_VARIABLE( CFG_QOS_IMPLICIT_SETUP_ENABLED_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, bImplicitQosEnabled, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_QOS_IMPLICIT_SETUP_ENABLED_DEFAULT, 
+                 CFG_QOS_IMPLICIT_SETUP_ENABLED_MIN, 
+                 CFG_QOS_IMPLICIT_SETUP_ENABLED_MAX ),
 };                                
 
 /*
@@ -1266,6 +1280,7 @@ void print_hdd_cfg(hdd_adapter_t *pAdapter)
   printk(KERN_ERR "Name = [WmmMode] Value = [%u]\n",pAdapter->cfg_ini->WmmMode);
   printk(KERN_ERR "Name = [UapsdMask] Value = [0x%x]\n",pAdapter->cfg_ini->UapsdMask);
   printk(KERN_ERR "Name = [PktClassificationBasis] Value = [%u]\n",pAdapter->cfg_ini->PktClassificationBasis);
+  printk(KERN_ERR "Name = [ImplicitQosIsEnabled] Value = [%u]\n",(int)pAdapter->cfg_ini->bImplicitQosEnabled);
 
   printk(KERN_ERR "Name = [InfraUapsdVoSrvIntv] Value = [%lu]\n",pAdapter->cfg_ini->InfraUapsdVoSrvIntv);
   printk(KERN_ERR "Name = [InfraUapsdVoSuspIntv] Value = [%lu]\n",pAdapter->cfg_ini->InfraUapsdVoSuspIntv);
@@ -1866,6 +1881,13 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 	 {
 		fStatus = FALSE;
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT configuration info to CCM\n"  );
+	 }
+
+	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_NTH_BEACON_FILTER, pConfig->nthBeaconFilter, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_NTH_BEACON_FILTER configuration info to CCM\n"  );
 	 }
 
    return fStatus;

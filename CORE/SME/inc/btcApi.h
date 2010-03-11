@@ -66,6 +66,10 @@
 */
 #define BT_MAX_EVENT_DONE_TIMEOUT   45000
 
+#define BT_MAX_SCO_SUPPORT  3
+#define BT_MAX_ACL_SUPPORT  3
+#define BT_MAX_DISCONN_SUPPORT (BT_MAX_SCO_SUPPORT+BT_MAX_ACL_SUPPORT)
+
 /** Enumeration of all the different kinds of BT events
 */
 typedef enum eSmeBtEventType
@@ -134,6 +138,15 @@ typedef struct sSmeBtDisconnectParam
    v_U16_t connectionHandle;
 } tSmeBtDisconnectParam, *tpSmeBtDisconnectParam;
 
+/*Data structure that specifies the needed event parameters for
+    BT_EVENT_A2DP_STREAM_START
+*/
+typedef struct sSmeBtA2DPParam
+{
+   v_U16_t connectionHandle;
+} tSmeBtA2DPParam, *tpSmeBtA2DPParam;
+
+
 /** Generic Bluetooth Event structure for BTC
 */
 typedef struct sSmeBtcBtEvent
@@ -161,6 +174,62 @@ typedef struct sSmeBtcConfig
 } tSmeBtcConfig, *tpSmeBtcConfig;
 
 
+typedef struct sSmeBtAclModeChangeEventHist
+{
+    tSmeBtAclModeChangeParam  btAclModeChange;
+    v_BOOL_t fValid;
+} tSmeBtAclModeChangeEventHist, *tpSmeBtAclModeChangeEventHist;
+
+typedef struct sSmeBtAclEventHist
+{
+    tSmeBtEventType btEventType[2];
+    tSmeBtAclConnectionParam  btAclConnection;
+    v_BOOL_t fValid;
+} tSmeBtAclEventHist, *tpSmeBtAclEventHist;
+
+typedef struct sSmeBtSyncEventHist
+{
+    tSmeBtEventType btEventType[2];
+    tSmeBtSyncConnectionParam  btSyncConnection;
+    v_BOOL_t fValid;
+} tSmeBtSyncEventHist, *tpSmeBtSyncEventHist;
+
+typedef struct sSmeBtDisconnectEventHist
+{
+    tSmeBtDisconnectParam btDisconnect;
+    v_BOOL_t fValid;
+} tSmeBtDisconnectEventHist, *tpSmeBtDisconnectEventHist;
+
+
+/*
+  Data structure for the history of BT events
+*/
+typedef struct sSmeBtcEventHist
+{
+   tSmeBtSyncEventHist btSyncConnectionEvent[BT_MAX_SCO_SUPPORT];
+   tSmeBtAclEventHist btAclConnectionEvent[BT_MAX_ACL_SUPPORT];
+   tSmeBtAclModeChangeEventHist btAclModeChangeEvent[BT_MAX_ACL_SUPPORT];
+   tSmeBtDisconnectEventHist btDisconnectEvent[BT_MAX_DISCONN_SUPPORT];
+   v_BOOL_t fInquiryStarted;
+   v_BOOL_t fInquiryStopped;
+   v_BOOL_t fPageStarted;
+   v_BOOL_t fPageStopped;
+   v_BOOL_t fA2DPStarted;
+   v_BOOL_t fA2DPStopped;
+} tSmeBtcEventHist, *tpSmeBtcEventHist;
+
+typedef struct sSmeBtcEventReplay
+{
+   tSmeBtcEventHist btcEventHist;
+   v_BOOL_t fBTSwitchOn;
+   //This flag serves multiple purpose (if replay is on, send the off to FW.
+   //If it true, it also blocks deferring other messages, except SWITCH_ON.
+   v_BOOL_t fBTSwitchOff;   
+   //This is not directly tied to BT event so leave it alone when processing BT events
+   v_BOOL_t fRestoreHBMonitor;  
+} tSmeBtcEventReplay, *tpSmeBtcEventReplay;
+
+
 /**Place holder for all BTC related information
 */
 typedef struct sSmeBtcInfo
@@ -171,6 +240,8 @@ typedef struct sSmeBtcInfo
    v_U8_t        btcHBActive;    /* Is HB currently active */
    v_U8_t        btcHBCount;     /* default HB count */
    vos_timer_t   restoreHBTimer; /* Timer to restore heart beat */
+   tSmeBtcEventReplay btcEventReplay;
+   v_BOOL_t      fReplayBTEvents;
 } tSmeBtcInfo, *tpSmeBtcInfo;
 
 

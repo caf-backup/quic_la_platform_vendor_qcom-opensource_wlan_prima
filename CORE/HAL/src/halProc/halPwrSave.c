@@ -762,7 +762,7 @@ eHalStatus halPS_HandleEnterImpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken)
         // TODO: Driver reset maybe required here
         HALLOGP( halLog( pMac, LOGP, FL("ERROR: BAL suspend failed, status = %d\n!!!"),
                 vosStatus));
- 		goto error;
+        goto error;
     }
 
     // Disable DXE engine, reset the enable bit in the DXE CSR register
@@ -1792,7 +1792,7 @@ eHalStatus halPS_HandleFwSuspendBmpsRsp(tpAniSirGlobal pMac, void *pFwMsg)
  *      eHAL_STATUS_FAILURE
  */
 eHalStatus halPS_ResumeBmps(tpAniSirGlobal pMac, tANI_U16 dialogToken,
-      funcHalPsCB cbFunc, void* data)
+      funcHalPsCB cbFunc, void* data, tANI_U8 rspReq)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     VOS_STATUS  vosStatus = VOS_STATUS_E_FAILURE;
@@ -1808,11 +1808,13 @@ eHalStatus halPS_ResumeBmps(tpAniSirGlobal pMac, tANI_U16 dialogToken,
     // start time fails, we can simply fall through. Had we started the timer
     // after sending the message to FW and in case of failure, HAL will have to
     // send another message to FW to bring it out of that state.
-    vosStatus = vos_timer_start(&pHalPwrSave->fwRspTimer, pHalPwrSave->fwRspTimeout);
-    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
-        HALLOGE( halLog( pMac, LOGE, FL("VOS Timer start failed - status = %d\n"),
-                vosStatus));
-        return eHAL_STATUS_TIMER_START_FAILED;
+    if (rspReq) {
+        vosStatus = vos_timer_start(&pHalPwrSave->fwRspTimer, pHalPwrSave->fwRspTimeout);
+        if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+            HALLOGE( halLog( pMac, LOGE, FL("VOS Timer start failed - status = %d\n"),
+                    vosStatus));
+            return eHAL_STATUS_TIMER_START_FAILED;
+        }
     }
 
     // Send the RESUME_BMPS request to firmware
@@ -1822,11 +1824,13 @@ eHalStatus halPS_ResumeBmps(tpAniSirGlobal pMac, tANI_U16 dialogToken,
         HALLOGE( halLog(pMac, LOGE, FL("FW send BMPS request msg failed\n")));
         status = eHAL_STATUS_FW_SEND_MSG_FAILED;
 
-        // Stop the FW response timeout timer
-        vosStatus = vos_timer_stop(&pHalPwrSave->fwRspTimer);
-        if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
-            HALLOGE( halLog(pMac, LOGE, FL("VOS Timer stop failed, status = %d\n"), vosStatus));
-            status = eHAL_STATUS_TIMER_STOP_FAILED;
+        if (rspReq) {
+            // Stop the FW response timeout timer
+            vosStatus = vos_timer_stop(&pHalPwrSave->fwRspTimer);
+            if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+                HALLOGE( halLog(pMac, LOGE, FL("VOS Timer stop failed, status = %d\n"), vosStatus));
+                status = eHAL_STATUS_TIMER_STOP_FAILED;
+            }
         }
         return status;
     }
@@ -2129,12 +2133,12 @@ eHalStatus halPS_HandleFwEnterUapsdRsp(tpAniSirGlobal pMac, void* pFwMsg)
     }
 
 #ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
-    // Set the DPU routing flag to the FW WQ, all the TX frames would be now pushed 
-    // from DPU to the FW-WQ (5) in UAPSD. FW would be in data path, monitoring 
-    // the traffic to decide when to suspend the trigger frames when there is no traffic 
+    // Set the DPU routing flag to the FW WQ, all the TX frames would be now pushed
+    // from DPU to the FW-WQ (5) in UAPSD. FW would be in data path, monitoring
+    // the traffic to decide when to suspend the trigger frames when there is no traffic
     // activity on the trigger enabled ACs
     pMac->hal.halMac.dpuRF = BMUWQ_FW_DPU_TX;
-    
+
 #ifdef WLAN_PERF
     // Increment the BD signature to refresh the fast path BD utilization
     pMac->hal.halMac.uBdSigSerialNum++;
@@ -2316,7 +2320,7 @@ eHalStatus halPS_HandleFwExitUapsdRsp(tpAniSirGlobal pMac, void* pFwMsg)
     }
 
 #ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
-    // Restore back the DPU routing flag in the TxBD, for DPU to push the TxBDs to BTQM 
+    // Restore back the DPU routing flag in the TxBD, for DPU to push the TxBDs to BTQM
     // directly instead of the FW WQ.
     pMac->hal.halMac.dpuRF = BMUWQ_BTQM_TX_MGMT;
 
@@ -3420,7 +3424,7 @@ void halPS_StopMonitoringRegAccess(tpAniSirGlobal pMac)
  * halPSDataInActivityTimeout
  *
  * DESCRIPTION:
- *      Data inactivity timeout configuration.  
+ *      Data inactivity timeout configuration.
  *
  * PARAMETERS:
  *      pMac:   Pointer to the global adapter context
@@ -3432,18 +3436,18 @@ void halPS_StopMonitoringRegAccess(tpAniSirGlobal pMac)
 
 void halPSDataInActivityTimeout( tpAniSirGlobal pMac, tANI_U32 cfgId )
 {
-    tANI_U32 dataInActivityTimeout;       
+    tANI_U32 dataInActivityTimeout;
     Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
-		
+
     if (cfgId == WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT) {
         if (eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfgId, &dataInActivityTimeout )) {
              HALLOGW( halLog(pMac, LOGW, FL("Failed to read Configuration file for Data Inactivity Timeout with cfgId %d"), cfgId));
              return;
-	    }
-	    /* Data InActivity Timeout value as read from CFG */
-	    pFwConfig->ucUcastDataRecepTimeoutMs = (tANI_U8)dataInActivityTimeout;
+        }
+        /* Data InActivity Timeout value as read from CFG */
+        pFwConfig->ucUcastDataRecepTimeoutMs = (tANI_U8)dataInActivityTimeout;
 
-	    /* Update FW SysConfig with Data Inactivity Value */
+        /* Update FW SysConfig with Data Inactivity Value */
         halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr,
                      (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
      }
@@ -3454,7 +3458,7 @@ void halPSDataInActivityTimeout( tpAniSirGlobal pMac, tANI_U32 cfgId )
  * halPSFWHeartBeatCfg
  *
  * DESCRIPTION:
- *      Enable/Disable FW Heart Beat. This should start/stop Chip Monitor timer.   
+ *      Enable/Disable FW Heart Beat. This should start/stop Chip Monitor timer.
  *
  * PARAMETERS:
  *      pMac:   Pointer to the global adapter context
@@ -3466,22 +3470,22 @@ void halPSDataInActivityTimeout( tpAniSirGlobal pMac, tANI_U32 cfgId )
 
 void halPSFWHeartBeatCfg( tpAniSirGlobal pMac, tANI_U32 cfgId )
 {
-	tANI_U32 heartBeatCfgInPs; 	  
+    tANI_U32 heartBeatCfgInPs;
 
-	if (cfgId == WNI_CFG_PS_ENABLE_HEART_BEAT) {
+    if (cfgId == WNI_CFG_PS_ENABLE_HEART_BEAT) {
            if (eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfgId, &heartBeatCfgInPs )) {
-		      HALLOGW( halLog(pMac, LOGW, FL("Failed to read Configuration file for Heart Beat with cfgId %d"), cfgId));
-		      return;
-	       }
+              HALLOGW( halLog(pMac, LOGW, FL("Failed to read Configuration file for Heart Beat with cfgId %d"), cfgId));
+              return;
+           }
 
-	       /* Start Chip Monitor if Heart Beat is enabled */
-	      if (heartBeatCfgInPs == ENABLE_HEART_BEAT_IN_PS) {
-	 	     halFW_StartChipMonitor(pMac);
-	      }
-	
-	     /* Stop Chip Monitor if Heatr Beat is disabled */
-	     if (heartBeatCfgInPs == DISABLE_HEART_BEAT_IN_PS) {
- 	       halFW_StopChipMonitor(pMac);
+           /* Start Chip Monitor if Heart Beat is enabled */
+          if (heartBeatCfgInPs == ENABLE_HEART_BEAT_IN_PS) {
+             halFW_StartChipMonitor(pMac);
+          }
+
+         /* Stop Chip Monitor if Heatr Beat is disabled */
+         if (heartBeatCfgInPs == DISABLE_HEART_BEAT_IN_PS) {
+           halFW_StopChipMonitor(pMac);
          }
     }
     return;
@@ -3491,7 +3495,7 @@ void halPSFWHeartBeatCfg( tpAniSirGlobal pMac, tANI_U32 cfgId )
  * halPSBcnFilterCfg
  *
  * DESCRIPTION:
- *      Enable/Disable Beacon Filtering .   
+ *      Enable/Disable Beacon Filtering .
  *
  * PARAMETERS:
  *      pMac:   Pointer to the global adapter context
@@ -3503,19 +3507,19 @@ void halPSFWHeartBeatCfg( tpAniSirGlobal pMac, tANI_U32 cfgId )
 
 void halPSBcnFilterCfg( tpAniSirGlobal pMac, tANI_U32 cfgId )
 {
-     tANI_U32 bcnFilterValueInPS; 	  
+     tANI_U32 bcnFilterValueInPS;
      Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
-					
+
      if (cfgId == WNI_CFG_PS_ENABLE_BCN_FILTER) {
-	      if (eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfgId, &bcnFilterValueInPS )) {
+          if (eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfgId, &bcnFilterValueInPS )) {
               HALLOGW( halLog(pMac, LOGW, FL("Failed to read Configuration file for Beacon Filter with cfgId %d"), cfgId));
               return;
-	      }
+          }
 
-	      /* Beacon Filter Value as read by the CFG */
-	      pFwConfig->bBeaconFilterEnable = (tANI_U8)bcnFilterValueInPS;
+          /* Beacon Filter Value as read by the CFG */
+          pFwConfig->bBeaconFilterEnable = (tANI_U8)bcnFilterValueInPS;
 
-	      /* Update FW System Config with Beacon Filter value */
+          /* Update FW System Config with Beacon Filter value */
           halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr,
                                (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
       }
@@ -3526,7 +3530,7 @@ void halPSBcnFilterCfg( tpAniSirGlobal pMac, tANI_U32 cfgId )
  * halPSRssiMonitorCfg
  *
  * DESCRIPTION:
- *      Enable/Disable RSSI Monitoring in PS .   
+ *      Enable/Disable RSSI Monitoring in PS .
  *
  * PARAMETERS:
  *      pMac:   Pointer to the global adapter context
@@ -3534,24 +3538,24 @@ void halPSBcnFilterCfg( tpAniSirGlobal pMac, tANI_U32 cfgId )
  *
  * RETURN:
  *      void
- */					
+ */
 void halPSRssiMonitorCfg( tpAniSirGlobal pMac, tANI_U32 cfgId )
 {
-     tANI_U32 rssiMonitorValuePS;	  
+     tANI_U32 rssiMonitorValuePS;
      Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
-										
+
      if (cfgId == WNI_CFG_PS_ENABLE_RSSI_MONITOR) {
          if (eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfgId, &rssiMonitorValuePS )) {
               HALLOGW( halLog(pMac, LOGW, FL("Failed to read Configuration file for Heart Beat with cfgId %d"), cfgId));
               return;
-	     }
+         }
 
-	     /* RSSI Monitor value as read from CFG */
-	     pFwConfig->bRssiFilterEnable = (tANI_U8)rssiMonitorValuePS;
+         /* RSSI Monitor value as read from CFG */
+         pFwConfig->bRssiFilterEnable = (tANI_U8)rssiMonitorValuePS;
 
-	     /* Update FW System Config with RSSI Monitor value */
+         /* Update FW System Config with RSSI Monitor value */
          halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr,
-			   (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
+               (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
      }
      return;
 }

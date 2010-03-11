@@ -87,6 +87,12 @@ typedef enum
     MODE_11G_PURE = 3
 } tMtuMode;
 
+
+
+// Warn when polling a register.
+#define	MCU_REG_POLLING_WARNING 2000
+
+
 /*
  * Back-off assignment
  *
@@ -138,6 +144,10 @@ typedef enum
     MTU_BKID_RESERVED = MTU_BKID_11,
 }tMtuBkId;
 
+
+// In register QWLAN_MTU_BKOF_CONTROL_REG, bits indicating the Data backoffs.
+// 3,4,5,6,7. These assignments are done below in the enum
+#define SW_MTU_STALL_DATA_BKOF_MASK ((1<< MTU_BKID_AC_BE) | (1<< MTU_BKID_AC_BK) | (1<< MTU_BKID_AC_VI) | (1<< MTU_BKID_AC_VO) | (1<< MTU_BKID_nQoS)) 
 
 typedef enum {
     /* Normal priority. For mCPU these timers generate level 3 interrupts. */
@@ -225,7 +235,8 @@ eHalStatus halInitPreBeaconTmr( tpAniSirGlobal pMac );
 eHalStatus halIntMtuHandlePreBeaconTmr( tHalHandle hHal, eHalIntSources tsfTimerIntr );
 tANI_U32 __halMTU_ac2BkoffIndex(tpAniSirGlobal pMac, tANI_U32 ac);
 
-
+void halMTU_stallBackoffs(tpAniSirGlobal pMac, tANI_U32 mask);
+void halMTU_startBackoffs(tpAniSirGlobal pMac, tANI_U32 mask);
 
 #endif /* _HALMTU_H_ */
 

@@ -1255,8 +1255,12 @@ tANI_BOOLEAN csrIsPhyModeMatch( tpAniSirGlobal pMac, tANI_U32 phyMode,
         {
             if( pProfile )
             {
-                if( (!CSR_IS_11n_ALLOWED( pProfile->negotiatedUCEncryptionType ) || 
-                    !CSR_IS_11n_ALLOWED( pProfile->negotiatedMCEncryptionType )) &&
+                /* IEEE 11n spec (8.4.3): HT STA shall eliminate TKIP as a 
+                 * choice for the pairwise cipher suite if CCMP is advertised 
+                 * by the AP or if the AP included an HT capabilities element 
+                 * in its Beacons and Probe Response.
+                 */
+                if( (!CSR_IS_11n_ALLOWED( pProfile->negotiatedUCEncryptionType )) &&
                     ((eCSR_CFG_DOT11_MODE_11N == cfgDot11ModeToUse) ||
                      (eCSR_CFG_DOT11_MODE_TAURUS == cfgDot11ModeToUse)) )
                 {

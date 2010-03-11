@@ -608,6 +608,11 @@
 #define CFG_DATA_INACTIVITY_TIMEOUT_MAX        ( 255 )
 #define CFG_DATA_INACTIVITY_TIMEOUT_DEFAULT    ( 20 )
 
+#define CFG_NTH_BEACON_FILTER_NAME             "gNthBeaconFilter"
+#define CFG_NTH_BEACON_FILTER_MIN              ( WNI_CFG_NTH_BEACON_FILTER_STAMIN )
+#define CFG_NTH_BEACON_FILTER_MAX              ( WNI_CFG_NTH_BEACON_FILTER_STAMAX )
+#define CFG_NTH_BEACON_FILTER_DEFAULT          ( WNI_CFG_NTH_BEACON_FILTER_STADEF )
+
 //WMM configuration
 #define CFG_QOS_WMM_MODE_NAME                             "WmmMode"
 #define CFG_QOS_WMM_MODE_MIN                               (0)
@@ -804,6 +809,11 @@
 #define CFG_TL_DELAYED_TRGR_FRM_INT_MAX                     (4294967295UL)
 #define CFG_TL_DELAYED_TRGR_FRM_INT_DEFAULT                 3000
 
+#define CFG_QOS_IMPLICIT_SETUP_ENABLED_NAME                 "ImplicitQosIsEnabled"
+#define CFG_QOS_IMPLICIT_SETUP_ENABLED_MIN                  (0)
+#define CFG_QOS_IMPLICIT_SETUP_ENABLED_MAX                  (1) 
+#define CFG_QOS_IMPLICIT_SETUP_ENABLED_DEFAULT              (1)
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -938,6 +948,7 @@ typedef struct
    v_U8_t         fEnableFwBeaconFiltering;
    v_U8_t         fEnableFwRssiMonitoring;
    v_U8_t         nDataInactivityTimeout;
+   v_U8_t         nthBeaconFilter;
 	
 										 
    //WMM QoS Configuration
@@ -954,6 +965,7 @@ typedef struct
    v_U32_t                      InfraUapsdBkSrvIntv;
    v_U32_t                      InfraUapsdBkSuspIntv;
    hdd_wmm_classification_t     PktClassificationBasis; // DSCP or 802.1Q
+   v_BOOL_t                     bImplicitQosEnabled;
 
    /* default TSPEC parameters for AC_VO */
    sme_QosWmmDirType            InfraDirAcVo;

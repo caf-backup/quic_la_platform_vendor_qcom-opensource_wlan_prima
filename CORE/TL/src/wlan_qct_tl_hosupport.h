@@ -213,6 +213,12 @@ VOS_STATUS WLANTL_HSStop
    v_PVOID_t   pAdapter
 );
 
+VOS_STATUS WLANTL_SetFWRSSIThresholds
+(
+   v_PVOID_t                       pAdapter
+);
+
+
 #endif //FEATURE_WLAN_GEN6_ROAMING
 
 #endif /* WLAN_QCT_TL_HOSUPPORT_H */

@@ -615,7 +615,7 @@ limCleanup(tpAniSirGlobal pMac)
     retStatus = WLANTL_DeRegisterMgmtFrmClient(pvosGCTx);
 
     if ( retStatus != VOS_STATUS_SUCCESS )
-        limLog( pMac, LOGP, FL("DeRegistering the PE Handle with TL has failed bailing out...\n"));
+        PELOGE(limLog(pMac, LOGE, FL("DeRegistering the PE Handle with TL has failed bailing out...\n"));)
 #endif
 
 } /*** end limCleanup() ***/

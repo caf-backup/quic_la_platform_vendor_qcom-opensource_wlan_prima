@@ -969,6 +969,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_SWITCH_CHL_CB_PRIMARY_REQ:
         case eWNI_SME_SWITCH_CHL_CB_SECONDARY_REQ:
         case eWNI_SME_SETCONTEXT_REQ:
+        case eWNI_SME_REMOVEKEY_REQ:
 #ifndef WNI_ASKEY_NON_SUPPORT_FEATURE
         case eWNI_SME_LINK_TEST_START_REQ:
         case eWNI_SME_LINK_TEST_STOP_REQ:

@@ -49,28 +49,28 @@
 #define HAL_PWR_SAVE_FW_FRAME_RETRIES         4
 #define HAL_PWR_SAVE_FW_CHIP_PWR_DOWN_ENABLE  1
 #define HAL_PWR_SAVE_FW_CHIP_PWR_DOWN_DISABLE  0
-#define HAL_PWR_SAVE_FW_MAX_BCAST_DATA_RECEPTION_TIME_MS       20  //TO DO       
+#define HAL_PWR_SAVE_FW_MAX_BCAST_DATA_RECEPTION_TIME_MS       20  //TO DO
 #define HAL_PWR_SAVE_FW_MAX_UCAST_DATA_RECEPTION_TIME_MS       20  //TO DO
 #define HAL_PWR_SAVE_FW_MAX_SIF_UNFREEZE_TIME_MS              100  //TO DO
 #define HAL_PWR_SAVE_FW_MAX_BTQM_QUEUES_EMPTY_TIMEOUT_MS      250  //TO DO
 #define HAL_PWR_SAVE_FW_BMPS_MINIMUM_SLEEP_TIME_US          10000  //TO DO
 #define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_US        30000  //TO DO
 #define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_US      30000  //TO DO
-#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US    4476 
-#define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US  4476  
-#define HAL_PWR_SAVE_FW_BMPS_BEACON_MODE_EARLY_TIMEOUT_US     500  //TO DO
+#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US    4476
+#define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US  4476
+#define HAL_PWR_SAVE_FW_BMPS_BEACON_MODE_EARLY_TIMEOUT_US    2000  //TO DO
 #define HAL_PWR_SAVE_FW_FIRST_BEACON_RECEPTION_TIMEOUT_MS      20  //TO DO
 #define HAL_PWR_SAVE_FW_TX_PATH_MONITOR_TIME_MSEC               5
 #define HAL_PWR_SAVE_FW_BMPS_RF_SETTLING_TIME_CLKS             82
 #define HAL_PWR_SAVE_FW_UAPSD_DATA_RECEPTION_TIMEOUT_MS         3
 
-// Frames to be passed to host while in WOWL mode 
+// Frames to be passed to host while in WOWL mode
 #define HAL_PWR_SAVE_FW_WOWL_FRAMES_PASSED_TO_HOST        ((1<<SIR_MAC_MGMT_DISASSOC) |(1 << SIR_MAC_MGMT_DEAUTH))
 
 // TO DO: These values have to be tuned.
 #define QWLANFW_TRAFFIC_MONITOR_TIMEOUT_MSEC  5
 //Greater than Rxp BD threshold and less DXE 0 threshold
-#define QWLANFW_NUM_BDPDU_THRESHOLD           0x40 
+#define QWLANFW_NUM_BDPDU_THRESHOLD           0x40
 
 /*
  *  TBTT compensation = PIFS(SIFS+Slot)  +   Preamble   +   MPDU Header
@@ -242,7 +242,7 @@ eHalStatus halPS_HandleExitBmpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken, tp
 eHalStatus halPS_SuspendBmps(tpAniSirGlobal pMac, tANI_U16 dialogToken,
       funcHalPsCB cbFunc, void* data);
 eHalStatus halPS_ResumeBmps(tpAniSirGlobal pMac, tANI_U16 dialogToken,
-      funcHalPsCB cbFunc, void* data);
+      funcHalPsCB cbFunc, void* data, tANI_U8 rspReq);
 
 /* Functions to handle BMPS response messages from FW to the host */
 eHalStatus halPS_HandleFwEnterBmpsRsp(tpAniSirGlobal pMac, void* pFwMsg);

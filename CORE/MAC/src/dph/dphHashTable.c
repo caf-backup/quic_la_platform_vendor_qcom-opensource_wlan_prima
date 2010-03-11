@@ -418,6 +418,7 @@ tSirRetStatus dphDeleteHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_
       else
     prev->next = ptr->next;
       ptr->added = 0;
+      ptr->next = 0;
     }
   else
     {

@@ -168,6 +168,10 @@ VOS_STATUS csrRoamVccTriggerRssiIndCallback(tHalHandle hHal,
 static void csrRoamLinkDown(tpAniSirGlobal pMac);
 void csrRoamVccTrigger(tpAniSirGlobal pMac);
 eHalStatus csrSendMBStatsReqMsg( tpAniSirGlobal pMac, tANI_U32 statsMask, tANI_U8 staId);
+/*
+    pStaEntry is no longer invalid upon the return of this function.
+*/
+static void csrRoamRemoveStatListEntry(tpAniSirGlobal pMac, tListElem *pEntry);
 
 #ifdef FEATURE_WLAN_GEN6_ROAMING
 static void csrRoamProcessNrtTrafficOnInd(tpAniSirGlobal pMac);
@@ -3415,8 +3419,10 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                                        eCsrRoamCompleteResult Result, void *Context )
 {
     tSirBssDescription *pSirBssDesc = NULL;   
+#ifdef FEATURE_WLAN_GEN6_ROAMING
 	tSirBssDescription *pTempBssDesc = NULL;
 	tANI_U16 bssLen;
+#endif
     tSirMacAddr BroadcastMac = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
     tCsrScanResult *pScanResult = NULL;
     tCsrRoamInfo roamInfo;
@@ -3424,7 +3430,6 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
     sme_QosCsrEventIndType ind_qos;//indication for QoS module in SME
     tANI_U8 acm_mask; //HDD needs the ACM mask in the assoc rsp callback
     tDot11fBeaconIEs *pIes = NULL;
-    eHalStatus status;
     tCsrRoamProfile *pProfile = NULL;
     tANI_U32 key_timeout_interval = 0;
 
@@ -3664,12 +3669,10 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
             palZeroMemory(pMac->hHdd, &pMac->roam.handoffInfo.currSta, sizeof(tCsrRoamHandoffStaEntry));
             //Save bssid
             csrGetBssIdBssDesc(pMac, pSirBssDesc, &pMac->roam.handoffInfo.currSta.bssid);
-#endif
             //save the bss Descriptor
             bssLen = pSirBssDesc->length + sizeof(pSirBssDesc->length);
 
-            status = palAllocateMemory(pMac->hHdd, (void **)&pTempBssDesc, bssLen);
-            if (!HAL_STATUS_SUCCESS(status))
+            if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void **)&pTempBssDesc, bssLen)))
             {
                 smsLog(pMac, LOGE, "csrRoamProcessResults: couldn't allocate memory for the \
          		     bss Descriptor\n");
@@ -3678,7 +3681,6 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
 
             palZeroMemory(pMac->hHdd, pTempBssDesc, bssLen);
             palCopyMemory(pMac->hHdd, pTempBssDesc, pSirBssDesc, bssLen);
-#ifdef FEATURE_WLAN_GEN6_ROAMING
             pMac->roam.handoffInfo.currSta.pBssDesc = pTempBssDesc;
 #endif
             //Not to signal link up because keys are yet to be set.
@@ -4924,13 +4926,13 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
            if(!HAL_STATUS_SUCCESS(status))
            {
               smsLog( pMac, LOGW, "Lost Link roaming failed after handoff failure, indicating upper layer\n");
-            csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
-        }
+              csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
+           }
 #else
            csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
 #endif
+        }
     }
-}
 }
 
 
@@ -5262,8 +5264,8 @@ static void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSm
     tCsrScanResultFilter *pScanFilter = NULL;
     tANI_U32 roamId = 0;
     tCsrRoamProfile *pCurRoamProfile = NULL;
-	 tListElem *pEntry = NULL;
-	 tSmeCmd *pCommand = NULL;
+    tListElem *pEntry = NULL;
+    tSmeCmd *pCommand = NULL;
 #endif
     pMac->roam.connectState = eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED;
     statusCode = csrGetDisassocRspStatusCode( pSmeDisassocRsp );
@@ -6506,7 +6508,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 if ( pEntry )
                 {
                     pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
-                    if ( eSmeCommandSetKey == pCommand->command )
+                    if ( eSmeCommandRemoveKey == pCommand->command )
                     {                
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
@@ -9296,7 +9298,7 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
          csrRoamReportStatistics(pMac, pTempStaEntry->statsMask, pTempStaEntry->callback, 
                                  pTempStaEntry->staId, pTempStaEntry->pContext);
          //also remove from the client list
-         csrLLRemoveEntry(&pMac->roam.statsClientReqList, pEntry, LL_ACCESS_LOCK);
+         csrRoamRemoveStatListEntry(pMac, pEntry);
          pTempStaEntry = NULL;
 
       }
@@ -10965,7 +10967,7 @@ eHalStatus csrGetStatistics(tHalHandle hHal, eCsrStatsRequesterType requesterId,
             smsLog(pMac, LOGE, FL("csrGetStatistics:failed to destroy Client req timer\n"));
          }
 
-         csrLLRemoveEntry(&pMac->roam.statsClientReqList, pEntry, LL_ACCESS_LOCK);
+         csrRoamRemoveStatListEntry(pMac, pEntry);
          pStaEntry = NULL;
          return eHAL_STATUS_SUCCESS;
       }
@@ -11255,6 +11257,21 @@ tCsrPeStatsReqInfo * csrRoamCheckPeStatsReqList(tpAniSirGlobal pMac, tANI_U32  s
 }
 
 
+/*
+    pStaEntry is no longer invalid upon the return of this function.
+*/
+static void csrRoamRemoveStatListEntry(tpAniSirGlobal pMac, tListElem *pEntry)
+{
+    if(pEntry)
+    {
+        if(csrLLRemoveEntry(&pMac->roam.statsClientReqList, pEntry, LL_ACCESS_LOCK))
+        {
+            palFreeMemory(pMac->hHdd, GET_BASE_ADDR( pEntry, tCsrStatsClientReqInfo, link ));
+        }
+    }
+}
+
+
 void csrRoamRemoveEntryFromPeStatsReqList(tpAniSirGlobal pMac, tCsrPeStatsReqInfo *pPeStaEntry)
 {
    tListElem *pEntry;
@@ -11285,9 +11302,11 @@ void csrRoamRemoveEntryFromPeStatsReqList(tpAniSirGlobal pMac, tCsrPeStatsReqInf
          {
             smsLog(pMac, LOGE, FL("csrRoamRemoveEntryFromPeStatsReqList:failed to destroy hPeStatsTimer timer\n"));
          }
-         csrLLRemoveEntry(&pMac->roam.peStatsReqList, pEntry, LL_ACCESS_LOCK);
+         if(csrLLRemoveEntry(&pMac->roam.peStatsReqList, pEntry, LL_ACCESS_LOCK))
+         {
+             palFreeMemory(pMac->hHdd, pTempStaEntry);
+         }
          pTempStaEntry = NULL;
-         //clean up memory ??
          break;
       }
 
@@ -11518,7 +11537,7 @@ eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac)
 {
    tListElem *pEntry = NULL;
    tListElem *pPrevEntry = NULL;
-   tCsrStatsClientReqInfo *pTempStaEntry;
+   tCsrStatsClientReqInfo *pTempStaEntry = NULL;
    eHalStatus status = eHAL_STATUS_SUCCESS;
    VOS_STATUS vosStatus;
    pEntry = csrLLPeekHead( &pMac->roam.statsClientReqList, LL_ACCESS_LOCK );
@@ -11535,7 +11554,7 @@ eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac)
    {
       if(pPrevEntry)
       {
-         csrLLRemoveEntry(&pMac->roam.statsClientReqList, pPrevEntry, LL_ACCESS_LOCK);
+         csrRoamRemoveStatListEntry(pMac, pPrevEntry);
       }
 
       pTempStaEntry = GET_BASE_ADDR( pEntry, tCsrStatsClientReqInfo, link );
@@ -11579,7 +11598,7 @@ eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac)
    //the last one
    if(pPrevEntry)
    {
-      csrLLRemoveEntry(&pMac->roam.statsClientReqList, pPrevEntry, LL_ACCESS_LOCK);
+      csrRoamRemoveStatListEntry(pMac, pPrevEntry);
    }
 
    return status;
@@ -11640,11 +11659,9 @@ eHalStatus csrIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pCommand,
     case REQUEST_BMPS:
     case BMPS:
     case REQUEST_START_UAPSD:
-    case REQUEST_STOP_UAPSD:
     case UAPSD:
     //We treat WOWL same as BMPS
     case REQUEST_ENTER_WOWL:
-    case REQUEST_EXIT_WOWL:
     case WOWL:
         if( eSmeCommandRoam == pCommand->command )
         {
@@ -11711,6 +11728,23 @@ eHalStatus csrIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pCommand,
             fNeedFullPower = eANI_BOOLEAN_TRUE;
             reason = eSME_LINK_DISCONNECTED_BY_OTHER;
         }
+        break;
+
+    case REQUEST_STOP_UAPSD:
+    case REQUEST_EXIT_WOWL:
+        if( eSmeCommandRoam == pCommand->command )
+        {
+            fNeedFullPower = eANI_BOOLEAN_TRUE;
+            switch ( pCommand->u.roamCmd.roamReason )
+            {
+                case eCsrForcedDisassoc:
+                case eCsrForcedDisassocMICFailure:
+                    reason = eSME_LINK_DISCONNECTED_BY_HDD;
+                    break;
+                default:
+                    break;
+            }
+		}
         break;
 
     case STOPPED:

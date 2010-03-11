@@ -2803,10 +2803,10 @@ LIM
 WNI_CFG_NTH_BEACON_FILTER    I    4    5
 V    RW    NP
 LIM
-0    10    10
+0    255   10
 NV    RW    NP
 LIM
-0    10    10
+0    255    10
 
 
 WNI_CFG_BROADCAST_FRAME_FILTER_ENABLE    I    4    5

@@ -2429,10 +2429,15 @@ generate_response:
  */
 eHalStatus halEnableTLTx(tpAniSirGlobal pMac)
 {
+#ifdef BMU_FATAL_ERROR
     tANI_U8 staId = 0;
+#endif
     eHalStatus status = eHAL_STATUS_SUCCESS;
     eHalStatus tmpStatus = eHAL_STATUS_SUCCESS;
 
+    // This piece of code, is to be investigated for 
+    // BMU fatal errors. Currently this causes BMU fatal error on Android.
+#ifdef BMU_FATAL_ERROR
     // Enable TX queues.
     for( staId = 0 ; staId < pMac->hal.memMap.maxStations ; staId++ ) {
         // Exclude the selfSTA TX queues as this was not disabled during INIT SCAN
@@ -2448,11 +2453,17 @@ eHalStatus halEnableTLTx(tpAniSirGlobal pMac)
             }
         }
     }
+#else
+
+    // Enable data backoffs
+    halMTU_startBackoffs(pMac, SW_MTU_STALL_DATA_BKOF_MASK);
+
+#endif
 
     tmpStatus = halTLResumeTx(pMac, NULL);
     // Resume the transmission in TL, NULL specifies resume all STA
     if( tmpStatus  != eHAL_STATUS_SUCCESS) {
-        HALLOGE(halLog( pMac, LOGE, FL(" TL failed resuming Tx queue for staId %d"), staId));
+        HALLOGE(halLog( pMac, LOGE, FL(" TL failed resuming Tx queue")));
         status = (status == eHAL_STATUS_SUCCESS) ? tmpStatus : status;
     }
     return status;
@@ -2538,7 +2549,7 @@ eHalStatus halMsg_HandleInitScan( tpAniSirGlobal pMac, tpInitScanParams param, t
         // Check if the system is in Power save state
         psState = halPS_GetState(pMac);
         if (psState & HAL_PWR_SAVE_SUSPEND_BMPS_STATE) {
-            halPS_ResumeBmps(pMac, 0, NULL, (void*)param);
+            halPS_ResumeBmps(pMac, 0, NULL, (void*)param, FALSE);
         }
         return eHAL_STATUS_FAILURE;
     }
@@ -2561,6 +2572,7 @@ eHalStatus halMsg_HandleInitScan( tpAniSirGlobal pMac, tpInitScanParams param, t
     //After suspend BMPS, send SCAN start message to FW.
     halFW_SendScanStartMesg(pMac);
 
+#ifdef BMU_FATAL_ERROR
     // Self STA is used for sending the management frames, so disable all the
     // TX queues of all the STAs except for the Self STA entry
     for( staId = 0 ; staId < pMac->hal.memMap.maxStations ; staId++ ) {
@@ -2578,6 +2590,12 @@ eHalStatus halMsg_HandleInitScan( tpAniSirGlobal pMac, tpInitScanParams param, t
             }
         }
     }
+#else
+
+    // Disable data backoffs
+    halMTU_stallBackoffs(pMac, SW_MTU_STALL_DATA_BKOF_MASK);
+
+#endif
 
     // Set RXP routing flag with scanbit, to distingiush packets recvd in scan mode.
     halRxp_setScanLearn( pMac, TRUE );
@@ -2994,7 +3012,12 @@ eHalStatus halMsg_HandleFinishScan( tpAniSirGlobal pMac, tpFinishScanParams para
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     eHalStatus tmpStatus = eHAL_STATUS_SUCCESS;
-    halMsg_ScanComplete(pMac);
+
+    // Clear the scan bit
+    halRxp_setScanLearn( pMac, FALSE );
+
+    // Set RXP filter appropriately.
+    halRxp_setRxpFilterMode( pMac, halRxp_getRxpMode(pMac), NULL );
 
     // Send the raw frame given by PE, to TL for transmission
     if (param->notifyBss && param->frameLength ) {
@@ -3047,7 +3070,8 @@ eHalStatus halMsg_HandleFinishScan( tpAniSirGlobal pMac, tpFinishScanParams para
     //send SCAN stop message to FW.
     halFW_SendScanStopMesg(pMac);
 
-    //TODO: Send resume BMPS to FW so FW can now put chip back to sleep if in BPS mode.
+    // Resume back TL and the BTQM queues
+    halMsg_ScanComplete(pMac);
 
     return status;
 }
@@ -3131,7 +3155,7 @@ void halMsg_FinishScanPostSetChan(tpAniSirGlobal pMac, void* pData,
     if (psState & HAL_PWR_SAVE_SUSPEND_BMPS_STATE) {
         // Resume FW from BMPS
         status = halPS_ResumeBmps(pMac, dialog_token,
-                halMsg_HandlePSFinishScan, (void*)param);
+                halMsg_HandlePSFinishScan, (void*)param, TRUE);
         if (status != eHAL_STATUS_SUCCESS) {
             goto generate_response;
         }

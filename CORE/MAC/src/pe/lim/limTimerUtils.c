@@ -1455,9 +1455,8 @@ limReactivateTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
        PELOG3(limLog(pMac, LOG3, FL("Rxed Heartbeat. Count=%d\n"),
                pMac->lim.gLimRxedBeaconCntDuringHB);)
         limDeactivateAndChangeTimer(pMac, eLIM_HEART_BEAT_TIMER);
-	 MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
-        if (tx_timer_activate(&pMac->lim.limTimers.gLimHeartBeatTimer)
-                                                    != TX_SUCCESS)
+        MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
+        if (limActivateHearBeatTimer(pMac) != TX_SUCCESS)
         {
             /// Could not activate Heartbeat timer.
             // Log error
@@ -1467,6 +1466,51 @@ limReactivateTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
         limResetHBPktCount(pMac);
     }
 } /****** end limReactivateTimer() ******/
+
+
+
+/**
+ * limActivateHearBeatTimer()
+ *
+ *
+ * @brief: This function is called to activate heartbeat timer
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ * @note   staId for eLIM_AUTH_RSP_TIMER is auth Node Index.
+ *
+ * @param  pMac    - Pointer to Global MAC structure
+ *
+ * @return TX_SUCCESS - timer is activated
+ *         errors - fail to start the timer
+ */
+v_UINT_t limActivateHearBeatTimer(tpAniSirGlobal pMac)
+{
+    v_UINT_t status = TX_TIMER_ERROR;
+
+    if(TX_AIRGO_TMR_SIGNATURE == pMac->lim.limTimers.gLimHeartBeatTimer.tmrSignature)
+    {
+        //consider 0 interval a ok case
+        if( pMac->lim.limTimers.gLimHeartBeatTimer.initScheduleTimeInMsecs )
+        {
+            status = tx_timer_activate(&pMac->lim.limTimers.gLimHeartBeatTimer);
+            if( TX_SUCCESS != status )
+            {
+                PELOGE(limLog(pMac, LOGE,
+                   FL("could not activate Heartbeat timer status(%d)\n"), status);)
+            }
+        }
+        else
+        {
+            status = TX_SUCCESS;
+        }
+    }
+
+    return (status);
+}
 
 
 

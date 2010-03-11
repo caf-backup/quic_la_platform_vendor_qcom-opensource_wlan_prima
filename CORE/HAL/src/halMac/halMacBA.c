@@ -773,6 +773,8 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
             status = eHAL_STATUS_FAILURE;
                     goto Fail;
         }
+
+#ifdef BMU_FATAL_ERROR
         // Configure BMU to disable transmit
         if ((status = halBmu_sta_enable_disable_control(
             pMac, pAddBAParams->staIdx, eBMU_ENB_TX_QUE_DONOT_ENB_TRANS)) != eHAL_STATUS_SUCCESS)
@@ -783,15 +785,21 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
             status = eHAL_STATUS_FAILURE;
             goto Fail;
         }
+#else
 
-    /* This would send Unsolicit BAR frame to Rx so as to sync up with updated SSN */
+        // Disable data backoffs
+        halMTU_stallBackoffs(pMac, SW_MTU_STALL_DATA_BKOF_MASK);
 
-    for (barCnt = 0; barCnt < barCfgCnt; barCnt++) {
-        halSendUnSolicitBARFrame(pMac, pAddBAParams->staIdx, pAddBAParams->baTID, queueId);
-    }
+#endif
 
-	pSta[pAddBAParams->staIdx].baInitiatorTidBitMap |=  (1 << pAddBAParams->baTID);
-		
+        /* This would send Unsolicit BAR frame to Rx so as to sync up with updated SSN */
+
+        for (barCnt = 0; barCnt < barCfgCnt; barCnt++) {
+            halSendUnSolicitBARFrame(pMac, pAddBAParams->staIdx, pAddBAParams->baTID, queueId);
+        }
+
+        pSta[pAddBAParams->staIdx].baInitiatorTidBitMap |=  (1 << pAddBAParams->baTID);
+
         // Update the station descriptor
         if ((status = halTpe_UpdateStaDesc(pMac, (tANI_U8)pAddBAParams->staIdx,
                                            &tpeStaDescCfg)) != eHAL_STATUS_SUCCESS)
@@ -803,6 +811,7 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
             goto Fail;
         }
 
+#ifdef BMU_FATAL_ERROR
         // Configure BMU to enable transmit
         if ((status = halBmu_sta_enable_disable_control(
             pMac, pAddBAParams->staIdx, eBMU_ENB_TX_QUE_ENB_TRANS)) != eHAL_STATUS_SUCCESS)
@@ -812,17 +821,22 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
                     pAddBAParams->staIdx ));
             status = eHAL_STATUS_FAILURE;
             goto Fail;
-    }
+        }
+#else
 
-    // Enable BMU BA update
-    if ((status = halRxp_EnableDisableBmuBaUpdate(pMac, 1)) != eHAL_STATUS_SUCCESS)
-    {
-        HALLOGW( halLog( pMac, LOGW,
-                FL("Cannot enable BMU BA update, STA index %d\n"),
-                pAddBAParams->staIdx ));
-             status = eHAL_STATUS_FAILURE;
-             goto Fail;
-    }
+        // Enable data backoffs
+        halMTU_startBackoffs(pMac, SW_MTU_STALL_DATA_BKOF_MASK);
+#endif
+
+        // Enable BMU BA update
+        if ((status = halRxp_EnableDisableBmuBaUpdate(pMac, 1)) != eHAL_STATUS_SUCCESS)
+        {
+            HALLOGW( halLog( pMac, LOGW,
+                    FL("Cannot enable BMU BA update, STA index %d\n"),
+                    pAddBAParams->staIdx ));
+                 status = eHAL_STATUS_FAILURE;
+                 goto Fail;
+        }
 
 
         halMsg_GenerateRsp( pMac, SIR_HAL_ADDBA_RSP, pAddBAParams->baDialogToken, (void *) pAddBAParams, 0);
@@ -1691,26 +1705,20 @@ eHalStatus halGetUpdatedSSN(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U16 baTID
                         tANI_U16 queueId, tANI_U16 *ssn)
 {
     tBmuBtqmBdInfo bmuBtqmbdInfo;
-    tpStaStruct       pStaTable = 
-            (tpStaStruct) (pMac->hal.halMac.staTable);
-    tpStaStruct pSta = pStaTable;
+    tpStaStruct pSta = &((tpStaStruct) pMac->hal.halMac.staTable)[staIdx];
     eHalStatus status = eHAL_STATUS_FAILURE;
-    tANI_U8 curSta;
 
     tANI_U32 uTotalBd, uHeadBdIdx = 0;
     tANI_U16 sequenceNum =0;
 
-    for(curSta=0; curSta<pMac->hal.halMac.maxSta; curSta++, pSta++)
+    if(pSta && pSta->valid && pSta->htEnabled)
     {
-        if(pSta && pSta->valid && pSta->htEnabled)
-        {
-            if(STA_ENTRY_PEER != pSta->staType) // we want only the peer stations.
-                continue;
+        if(STA_ENTRY_PEER != pSta->staType) // we want only the peer stations.
+             return status;
 
-
-            // Read BTQM Queue to get BD index of first frame in the queue
-            if ((status = halBmu_ReadBtqmQFrmInfo(pMac, (tANI_U8)staIdx,
-                (tANI_U8)queueId, &uTotalBd, &uHeadBdIdx, NULL))!= 
+        // Read BTQM Queue to get BD index of first frame in the queue
+        if ((status = halBmu_ReadBtqmQFrmInfo(pMac, (tANI_U8)staIdx,
+              (tANI_U8)queueId, &uTotalBd, &uHeadBdIdx, NULL))!= 
                         eHAL_STATUS_SUCCESS) {
                 HALLOGP(halLog( pMac, LOGP,FL("Cannot get BTQM queue frame info for "
                     "STA index %d, queue ID %d\n"),
@@ -1746,11 +1754,10 @@ eHalStatus halGetUpdatedSSN(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U16 baTID
                     FL("Cannot get Sequence number from DPU"
                      "Descriptor with DPU Indx %d \n"), pSta->dpuIndex));
                     return eHAL_STATUS_FAILURE;
-                }
-            }
-        }
+             }
+         }
     }
-
+    
     *ssn = sequenceNum;
     return eHAL_STATUS_SUCCESS;
 }
@@ -1770,7 +1777,7 @@ void halSendUnSolicitBARFrame(tpAniSirGlobal pMac, tANI_U16 staIdx,
     tSwTemplate swTemplate;
     tSirMacFrameCtl      fc;
     barCtrlType          barCtrl;
-    tpStaStruct       pSta = (tpStaStruct) (pMac->hal.halMac.staTable);
+    tpStaStruct       pSta = &((tpStaStruct) pMac->hal.halMac.staTable)[pMac->hal.halMac.selfStaId];
     BARFrmType    *pBARFrm;
     tTpeRateIdx rateIndex = TPE_RT_IDX_11B_RATE_LONG_PR_BASE_OFFSET;
     tANI_U32     apMacAddrHi, apMacAddrLo;

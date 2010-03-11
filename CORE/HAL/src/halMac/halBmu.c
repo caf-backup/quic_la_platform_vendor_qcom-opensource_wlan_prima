@@ -272,6 +272,28 @@ halBmu_Start(
     /** Initialize the BMU BD/PDU Dynamic Threshold Change Flag.*/
     pMac->hal.halMac.halDynamicBdPduEnabled = eANI_BOOLEAN_TRUE;
 
+    /* If we need HW Trace, we can enable this macro */
+    // This is mainly required when in Power Save. This register
+    // will be restored when the chip is powered back up.
+    // We will not need a dump command.
+#ifdef BMU_HW_TRACING
+    {
+        tANI_U32    temp_regValue=0; 
+
+        // Alter this to the bits that we need to enable
+        halWriteRegister(pMac, QWLAN_BMU_ENHANCED_TRACING_CONTROL1_REG, 0x144f) ;
+
+        // This is to include HW integrity checks in BMU.
+        halReadRegister(pMac, QWLAN_BMU_CONTROL2_REG, &temp_regValue);
+        temp_regValue |= QWLAN_BMU_CONTROL2_BLOCK_RXP_PUSH_INTEGRITY_CHECK_MASK;
+        temp_regValue |= QWLAN_BMU_CONTROL2_FREEZE_ONE_ERROR_ENABLE_MASK;
+        temp_regValue |= QWLAN_BMU_CONTROL2_RELEASE_INTEGRITY_CHECK_MASK;
+        temp_regValue |= QWLAN_BMU_CONTROL2_PUSH_DATA_INTEGRITY_CHECK_MASK;
+
+        halWriteRegister(pMac, QWLAN_BMU_CONTROL2_REG, temp_regValue);
+    }
+#endif
+
 #ifdef DYNAMIC_RECORD
     // Stop recording the register writes
     halRegBckup_StopRecord(pMac);
@@ -1771,12 +1793,36 @@ eHalStatus halBmu_ConfigureToSendBAR(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U
 }
 
 eHalStatus halBmu_ReadBtqmQFrmInfo(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId, tANI_U32 *pNumFrames, 
-                                tANI_U32 *pHeadBdIndex, tANI_U32 *pTailBdIndex ){
+                                tANI_U32 *pHeadBdIndex, tANI_U32 *pTailBdIndex )
+{
     tANI_U32 value, count = 0;
+#ifdef BMU_FATAL_ERROR
+    tANI_U32 bmuBtqmStaQueues = 0;
+#endif
     eHalStatus status = eHAL_STATUS_FAILURE;
+    tANI_U32 regValue = 0;
+    tANI_U8  dataBkoffStalled = FALSE;
 
-    if(eHAL_STATUS_SUCCESS != (status = halBmu_sta_enable_disable_control(pMac, staIdx, eBMU_ENB_TX_QUE_DONOT_ENB_TRANS)))
-        return status;
+#ifdef BMU_FATAL_ERROR
+    if (halBmu_getBtqmQueueStatus(pMac, staIdx, &bmuBtqmStaQueues) != eHAL_STATUS_SUCCESS)
+        return eHAL_STATUS_FAILURE;
+
+    /** If status not equal to zero there is data for that sta */
+    if (bmuBtqmStaQueues & QWLAN_BMU_STA_CONFIG_STATUS2_STA_TX_ENABLE_MASK) {
+        if(eHAL_STATUS_SUCCESS != (status = halBmu_sta_enable_disable_control(pMac, staIdx, eBMU_ENB_TX_QUE_DONOT_ENB_TRANS)))
+           return status;
+    }
+#else
+    // Disable Data Backoffs.
+    halReadRegister(pMac, QWLAN_MTU_BKOF_CONTROL_REG, &regValue);
+    if ((regValue & SW_MTU_STALL_DATA_BKOF_MASK) != SW_MTU_STALL_DATA_BKOF_MASK) {
+        halMTU_stallBackoffs(pMac, SW_MTU_STALL_DATA_BKOF_MASK);
+        dataBkoffStalled = TRUE;
+    }
+    else {
+        HALLOG1( halLog( pMac, LOG1, FL("Data Backoff stalled at call itself hence not stalled here\n")));
+    }
+#endif
 
     value = (staIdx << QWLAN_BMU_TRANSMIT_QUEUE_ACCESS_CONTROL1_STAID_OFFSET) |
             (queueId << QWLAN_BMU_TRANSMIT_QUEUE_ACCESS_CONTROL1_QUEUEID_OFFSET);
@@ -1816,10 +1862,22 @@ eHalStatus halBmu_ReadBtqmQFrmInfo(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 
 
     status = eHAL_STATUS_SUCCESS;
 
-    if(eHAL_STATUS_SUCCESS != (status = halBmu_sta_enable_disable_control(pMac, staIdx, eBMU_ENB_TX_QUE_ENB_TRANS))){
-       HALLOGE( halLog(pMac, LOGE, FL("Can't reenable BTQM Tx for STA %d\n"), staIdx));
-       return eHAL_STATUS_FAILURE;
+#ifdef BMU_FATAL_ERROR
+    if (bmuBtqmStaQueues & QWLAN_BMU_STA_CONFIG_STATUS2_STA_TX_ENABLE_MASK) {
+        if(eHAL_STATUS_SUCCESS != (status = halBmu_sta_enable_disable_control(pMac, staIdx, eBMU_ENB_TX_QUE_ENB_TRANS))){
+             HALLOGE( halLog(pMac, LOGE, FL("Can't reenable BTQM Tx for STA %d\n"), staIdx));
+             return eHAL_STATUS_FAILURE;
+        }
+     }
+#else
+    // Enable Data Backoffs.
+    if (dataBkoffStalled == TRUE)
+        halMTU_startBackoffs(pMac, SW_MTU_STALL_DATA_BKOF_MASK);
+    else {
+        HALLOG1( halLog( pMac, LOG1, FL("Data Backoff stalled at call itself hence not starting here\n")));
     }
+#endif
+    
     return status;
 }
 
@@ -1983,4 +2041,50 @@ eHalStatus halBmu_BckupBtqmStaConfig(tpAniSirGlobal pMac, tANI_U32 *pAddr)
     *pAddr = (tANI_U32)pMemAddr;
 
     return eHAL_STATUS_SUCCESS;
+}
+
+/*
+ * DESCRIPTION:
+ *      Routine to get the status of BTQM queues for particular STA ID
+ 
+ *
+ * PARAMETERS:
+ *      pMac:   Pointer to the global adapter context
+ *      staIdx: Sta Index for which informatoin of Queues need to be retrieved.
+ *      pbmuBtqmStatus: Status of BTQM queue.
+ *
+ * RETURN:
+ *      eHAL_STATUS_SUCCESS
+ *      eHAL_STATUS_FAILURE
+ */
+
+eHalStatus halBmu_getBtqmQueueStatus(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U32 *pbmuBtqmStatus)
+{
+    tANI_U32     value = 0;
+    tANI_U32     count = 0;
+
+    value = staIdx & ~QWLAN_BMU_STA_CONFIG_STATUS1_STA_CONFIG_UPDATE_MASK;
+	
+    /** Write the staidx and update mask values */
+    halWriteRegister(pMac, QWLAN_BMU_STA_CONFIG_STATUS1_REG, value);
+
+    /** Poll on bit 31 is clear */
+    do {
+
+        count++;
+        halReadRegister(pMac, QWLAN_BMU_STA_CONFIG_STATUS1_REG, &value);
+        if (count >= BMU_REG_MAX_POLLING) {
+            HALLOGE( halLog(pMac, LOGE, FL("Polled BTQM STA CONFIG register for %d!!!\n"), count));
+            count = 0;
+        }
+
+    } while ((value & QWLAN_BMU_STA_CONFIG_STATUS1_READ_WRITE_STATUS_MASK));
+
+    /** Read the status 2 register to know which queues have data */
+    halReadRegister(pMac, QWLAN_BMU_STA_CONFIG_STATUS2_REG, &value);
+
+    *pbmuBtqmStatus =  value & QWLAN_BMU_STA_CONFIG_STATUS2_STA_TX_ENABLE_MASK; 
+
+     return eHAL_STATUS_SUCCESS;
+
 }

@@ -2781,14 +2781,14 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
     tSirRetStatus   rc = eSIR_SUCCESS;
     tHalMsgDecision  msgStatus;
 
-	// If hal state is IDLE, do not process any messages.
+    // If hal state is IDLE, do not process any messages.
     // free the body pointer and return success
-#ifndef  ANI_MANF_DIAG   
+#ifndef  ANI_MANF_DIAG
     if(eHAL_IDLE == halStateGet(pMac)) {
         if(pMsg->bodyptr) {
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
         }
-	    return eSIR_SUCCESS;
+        return eSIR_SUCCESS;
     }
 #endif
 
@@ -2832,7 +2832,7 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 
         // Release the mutex if acquired.
         if (IS_HOST_BUSY_GENERIC_CNTX) {
-            halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
+            halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC);
         }
     }
 
@@ -2861,7 +2861,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             {
                 vos_mem_free((v_VOID_t*)pMsg->bodyptr);
                 pMsg->bodyptr = NULL;
-                
+
                 rc = halInitStartReqHandler(pMac);
             }
             break;
@@ -2876,7 +2876,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             {
                 vos_mem_free((v_VOID_t*)pMsg->bodyptr);
                 pMsg->bodyptr = NULL;
-                
+
                 rc = halProcessSysReadyInd(pMac);
             }
             break;
@@ -2960,12 +2960,12 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                     break;
 
                 case WNI_CFG_LOW_GAIN_OVERRIDE:
-                    if ( (status = halPhyUpdateTxGainOverride(pMac, (val == 0) ? OPEN_LOOP_TX_HIGH_GAIN_OVERRIDE : 
+                    if ( (status = halPhyUpdateTxGainOverride(pMac, (val == 0) ? OPEN_LOOP_TX_HIGH_GAIN_OVERRIDE :
                                                                 OPEN_LOOP_TX_LOW_GAIN_OVERRIDE)) != eHAL_STATUS_SUCCESS){
                         HALLOGE( halLog(pMac, LOGE, FL("halPhyUpdateTxGainOverride() failed \n")));
-                    }                    
+                    }
                     break;
-                    
+
                 case WNI_CFG_POWER_STATE_PER_CHAIN:
                     halSetChainPowerState(pMac);
                     break;
@@ -3044,27 +3044,27 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                 case WNI_CFG_FIXED_RATE_MULTICAST_5GHZ:
                     halProcessMulticastRateChange(pMac, pMsg->bodyval);
                     break;
-/* In firmware RA, this is not supported. 
-		case WNI_CFG_RA_PERIODICITY_TIMEOUT_IN_PS:
+/* In firmware RA, this is not supported.
+        case WNI_CFG_RA_PERIODICITY_TIMEOUT_IN_PS:
                      halRAHandleCfg( pMac, pMsg->bodyval);
                      break;
 */
                 case WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT:
-			halPSDataInActivityTimeout(pMac, pMsg->bodyval);
-			break;
-					
-		case WNI_CFG_PS_ENABLE_HEART_BEAT:
-			halPSFWHeartBeatCfg(pMac, pMsg->bodyval);
-			break;
+            halPSDataInActivityTimeout(pMac, pMsg->bodyval);
+            break;
 
-		case WNI_CFG_PS_ENABLE_BCN_FILTER:
-			halPSBcnFilterCfg(pMac, pMsg->bodyval);
-			break;
-					
-		case WNI_CFG_PS_ENABLE_RSSI_MONITOR:
-			halPSRssiMonitorCfg(pMac, pMsg->bodyval);
-			break;
-			
+        case WNI_CFG_PS_ENABLE_HEART_BEAT:
+            halPSFWHeartBeatCfg(pMac, pMsg->bodyval);
+            break;
+
+        case WNI_CFG_PS_ENABLE_BCN_FILTER:
+            halPSBcnFilterCfg(pMac, pMsg->bodyval);
+            break;
+
+        case WNI_CFG_PS_ENABLE_RSSI_MONITOR:
+            halPSRssiMonitorCfg(pMac, pMsg->bodyval);
+            break;
+
                 default:
                     HALLOGE( halLog(pMac, LOGE, FL("Cfg Id %d is not handled\n"), pMsg->bodyval));
                     break;
@@ -3171,7 +3171,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
         case SIR_HAL_UPDATE_CF_IND:
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
             pMsg->bodyptr = NULL;
-            
+
             break;
 
         case SIR_HAL_CHNL_SWITCH_REQ:
@@ -3191,10 +3191,10 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             halMsg_getTxPower(pMac, (tpSirGetTxPowerReq)pMsg->bodyptr);
             break;
 
-		case SIR_HAL_SET_KEY_DONE:
+        case SIR_HAL_SET_KEY_DONE:
             HALLOGW( halLog(pMac, LOGW, FL("Set Key Done \n")));
             halMsg_SetKeyDone(pMac);
-			break;
+            break;
 
         case SIR_HAL_GET_NOISE_REQ:
             HALLOGW( halLog(pMac, LOGW, FL("Got Get Noise Request \n")));
@@ -3231,7 +3231,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             break;
 
         case SIR_HAL_RESUME_BMPS:
-            status = halPS_ResumeBmps(pMac, dialogToken, NULL, NULL);
+            status = halPS_ResumeBmps(pMac, dialogToken, NULL, NULL, FALSE);
             break;
 
         case SIR_HAL_ENTER_UAPSD_REQ:
@@ -3291,7 +3291,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 
         case SIR_HAL_BA_FAIL_IND:
             halMsg_BAFail(pMac, pMsg->reserved, (tpAddBARsp) (pMsg->bodyptr));
-            break;        
+            break;
 
 #ifdef ANI_SUPPORT_SMPS
         case SIR_HAL_SET_MIMOPS_REQ:
@@ -3510,9 +3510,9 @@ eHalStatus halGetDefaultAndMulticastRates(tpAniSirGlobal pMac, eRfBandMode rfBan
 
 #ifdef LIBRA_FPGA
     //For LIBRA FPGA 11B rates are not working. We need to set 6M.
-    *pRateIndex = TPE_RT_IDX_11A_6_MBPS;        
-    *pMcastRateIndex = TPE_RT_IDX_11A_6_MBPS;            
-#else    
+    *pRateIndex = TPE_RT_IDX_11A_6_MBPS;
+    *pMcastRateIndex = TPE_RT_IDX_11A_6_MBPS;
+#else
 
     tANI_U16 cfgMcastRateKey, cfgDefRateKey;
     tANI_U32 cfgRateIndex, rateIndex = TPE_RT_IDX_INVALID, defRate ;
@@ -3528,15 +3528,15 @@ eHalStatus halGetDefaultAndMulticastRates(tpAniSirGlobal pMac, eRfBandMode rfBan
         }
 
     // Read the multicast/broadcast rate from the CFG
-    if (wlan_cfgGetInt(pMac, cfgMcastRateKey, &cfgRateIndex) == eSIR_SUCCESS) {    
+    if (wlan_cfgGetInt(pMac, cfgMcastRateKey, &cfgRateIndex) == eSIR_SUCCESS) {
         rateIndex = halRate_cfgFixedRate2TpeRate(cfgRateIndex);
         if (rateIndex != TPE_RT_IDX_INVALID) {
-            *pMcastRateIndex = (tTpeRateIdx)rateIndex;        
+            *pMcastRateIndex = (tTpeRateIdx)rateIndex;
         } else {
             HALLOGE(halLog(pMac, LOGE, FL("Default Mcast rate CFG is invalid rate %d !! Override to index %d. \n"), cfgRateIndex, defRate));
             *pMcastRateIndex = (tTpeRateIdx)defRate;
         }
-    } 
+    }
     else {
             HALLOGP( halLog(pMac, LOGP, FL("Get WNI_CFG_FIXED_RATE_MULTICAST_24GHZ failed \n")));
             return eHAL_STATUS_FAILURE;
@@ -3618,8 +3618,8 @@ eHalStatus halSetNewChannelParams(tpAniSirGlobal pMac)
  *       - update Calibration
  * -------------------------------------------------------
  */
-eHalStatus halPhy_ChangeChannel(tpAniSirGlobal pMac, 
-        tANI_U8 newChannel, ePhyChanBondState newCbState, 
+eHalStatus halPhy_ChangeChannel(tpAniSirGlobal pMac,
+        tANI_U8 newChannel, ePhyChanBondState newCbState,
         tANI_U8 calRequired, funcHalSetChanCB pFunc,
         void* pData, tANI_U16 dialog_token)
 {

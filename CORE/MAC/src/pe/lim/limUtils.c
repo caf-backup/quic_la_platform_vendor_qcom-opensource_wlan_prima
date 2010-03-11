@@ -2112,8 +2112,12 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
 
 {
     tSirRFBand rfBand = SIR_BAND_UNKNOWN;
+    tANI_U32 phyMode = WNI_CFG_PHY_MODE_NONE;
+
     limGetRfBand(pMac, &rfBand);
-    if(SIR_BAND_5_GHZ == rfBand)
+    limGetPhyMode(pMac, &phyMode);      
+	
+	if(SIR_BAND_5_GHZ == rfBand)
     {
         if((eSIR_HT_OP_MODE_MIXED == beaconStruct.HTInfo.opMode)  ||
                     (eSIR_HT_OP_MODE_OVERLAP_LEGACY == beaconStruct.HTInfo.opMode))
@@ -2139,18 +2143,22 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
 
         //CFG protection from 11b is enabled and
         //11B device in the BSS
-        if (pMac->lim.cfgProtection.fromllb &&
-              beaconStruct.erpPresent &&
-              (beaconStruct.erpIEInfo.useProtection ||
-              beaconStruct.erpIEInfo.nonErpPresent))
-        {
-            pMac->lim.llbCoexist = true;
-        }
-        //AP has no 11b station associated.
-        else
-        {
-            pMac->lim.llbCoexist = false;
-        }
+        if (phyMode != WNI_CFG_PHY_MODE_11B) 
+		{
+            if (pMac->lim.cfgProtection.fromllb &&
+                beaconStruct.erpPresent &&
+                (beaconStruct.erpIEInfo.useProtection ||
+                beaconStruct.erpIEInfo.nonErpPresent))
+            {
+                pMac->lim.llbCoexist = true;
+            }
+            //AP has no 11b station associated.
+            else
+            {
+                pMac->lim.llbCoexist = false;
+            }
+		}
+
         //following code block is only for HT station.
         if((pMac->lim.htCapability) &&
               (beaconStruct.HTInfo.present))
@@ -2220,7 +2228,11 @@ limDecideStaProtection(tpAniSirGlobal pMac,
 {
 
     tSirRFBand rfBand = SIR_BAND_UNKNOWN;
+    tANI_U32 phyMode = WNI_CFG_PHY_MODE_NONE;
+
     limGetRfBand(pMac, &rfBand);
+    limGetPhyMode(pMac, &phyMode);
+       
     if(SIR_BAND_5_GHZ == rfBand)
     {
         //we are HT capable.
@@ -2249,24 +2261,30 @@ limDecideStaProtection(tpAniSirGlobal pMac,
     }
     else if(SIR_BAND_2_4_GHZ == rfBand)
     {
-              //spec 7.3.2.13
-              //UseProtection will be set when nonERP STA is associated.
-              //NonERPPresent bit will be set when:
-              //--nonERP Sta is associated OR
-              //--nonERP Sta exists in overlapping BSS
-              //when useProtection is not set then protection from nonERP stations is optional.
-        if (beaconStruct.erpPresent &&
-              (beaconStruct.erpIEInfo.useProtection ||
-              beaconStruct.erpIEInfo.nonErpPresent))
-        {
-            limEnable11gProtection(pMac, true, false, pBeaconParams);
-        }
-        //AP has no 11b station associated.
-        else
-        {
-            //disable protection from 11b station
-            limEnable11gProtection(pMac, false, false, pBeaconParams);
-        }
+        /* spec 7.3.2.13
+         * UseProtection will be set when nonERP STA is associated.
+         * NonERPPresent bit will be set when:
+         * --nonERP Sta is associated OR
+         * --nonERP Sta exists in overlapping BSS
+         * when useProtection is not set then protection from nonERP stations is optional.
+         */
+
+        if (phyMode != WNI_CFG_PHY_MODE_11B) 
+		{
+            if (beaconStruct.erpPresent &&
+                  (beaconStruct.erpIEInfo.useProtection ||
+                  beaconStruct.erpIEInfo.nonErpPresent))
+            {
+                limEnable11gProtection(pMac, true, false, pBeaconParams);
+            }
+            //AP has no 11b station associated.
+            else
+            {
+                //disable protection from 11b station
+                limEnable11gProtection(pMac, false, false, pBeaconParams);
+            }
+		}
+
         //following code block is only for HT station.
         if((pMac->lim.htCapability) &&
               (beaconStruct.HTInfo.present))
@@ -6204,7 +6222,7 @@ limRestorePreChannelSwitchState(tpAniSirGlobal pMac)
     if (TX_TIMER_VALID(pMac->lim.limTimers.gLimHeartBeatTimer))
     {
         MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
-        if(tx_timer_activate(&pMac->lim.limTimers.gLimHeartBeatTimer) != TX_SUCCESS)
+        if(limActivateHearBeatTimer(pMac) != TX_SUCCESS)
         {
             limLog(pMac, LOGP, FL("Could not restart heartbeat timer, doing LOGP"));
             return (eSIR_FAILURE);
@@ -6268,7 +6286,7 @@ tSirRetStatus limRestorePreQuietState(tpAniSirGlobal pMac)
     if (TX_TIMER_VALID(pMac->lim.limTimers.gLimHeartBeatTimer))
     {
         MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
-        if(tx_timer_activate(&pMac->lim.limTimers.gLimHeartBeatTimer) != TX_SUCCESS)
+        if(limActivateHearBeatTimer(pMac) != TX_SUCCESS)
         {
             limLog(pMac, LOGP, FL("Could not restart heartbeat timer, doing LOGP"));
             return (eSIR_FAILURE);

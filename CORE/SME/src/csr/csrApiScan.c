@@ -51,11 +51,6 @@ RSSI *cannot* be more than 0xFF or less than 0 for meaningful WLAN operation
 //*** This is temporary work around. It need to call CCM api to get to CFG later
 /// Get string parameter value
 extern tSirRetStatus wlan_cfgGetStr(tpAniSirGlobal, tANI_U16, tANI_U8*, tANI_U32*);
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-extern VOS_STATUS csrRoamNtRssiIndCallback(tHalHandle hHal, 
-                                           v_U8_t  rssiNotification, 
-                                           void * context);
-#endif
                                                                      
 void csrScanGetResultTimerHandler(void *);
 void csrScanResultAgingTimerHandler(void *pv);
@@ -77,6 +72,9 @@ void csrReleaseCmdSingle(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 tANI_BOOLEAN csrRoamIsValidChannel( tpAniSirGlobal pMac, tANI_U8 channel );
 
 #ifdef FEATURE_WLAN_GEN6_ROAMING
+extern VOS_STATUS csrRoamNtRssiIndCallback(tHalHandle hHal, 
+                                           v_U8_t  rssiNotification, 
+                                           void * context);
 //HO
 tCsrChannelInfo csrScanGetNextBgScanChannelList(tpAniSirGlobal pMac);
 void csrScanGetCandChanList(tpAniSirGlobal pMac);
@@ -2584,8 +2582,11 @@ void csrResetCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce )
     }
 #endif //#ifdef FEATURE_WLAN_DIAG_SUPPORT
 
-        // switch to passive scans only
-        pMac->scan.curScanType = eSIR_PASSIVE_SCAN;
+        // switch to passive scans only when 11d is enabled
+        if( csrIs11dSupported( pMac ) )
+        {
+            pMac->scan.curScanType = eSIR_PASSIVE_SCAN;
+        }
         csrSaveChannelPowerForBand(pMac, eANI_BOOLEAN_FALSE);
         csrSaveChannelPowerForBand(pMac, eANI_BOOLEAN_TRUE);
         // ... and apply the channel list, power settings, and the country code.
@@ -3484,7 +3485,7 @@ tANI_BOOLEAN csrScanComplete( tpAniSirGlobal pMac, tSirSmeScanRsp *pScanRsp )
                 (eSIR_SME_SUCCESS == pScanRsp->statusCode))
 			{
 				csrScanUpdateNList(pMac);
-        }
+            }
 #endif
         }
         else

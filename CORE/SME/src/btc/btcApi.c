@@ -13,6 +13,7 @@
 #include "smsDebug.h"
 #include "btcApi.h"
 #include "cfgApi.h"
+#include "pmc.h"
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 #include "vos_diag_core_event.h"
 #include "vos_diag_core_log.h"
@@ -21,6 +22,8 @@
 static void btcLogEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent);
 static void btcRestoreHeartBeatMonitoringHandle(void* hHal);
 VOS_STATUS btcCheckHeartBeatMonitoring(tHalHandle hHal, tpSmeBtEvent pBtEvent);
+static void btcPowerStateCB( v_PVOID_t pContext, tPmcState pmcState );
+static VOS_STATUS btcDeferEvent( tpAniSirGlobal pMac, tpSmeBtEvent pEvent );
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 static void btcDiagEventLog (tHalHandle hHal, tpSmeBtEvent pBtEvent);
@@ -54,6 +57,12 @@ VOS_STATUS btcOpen (tHalHandle hHal)
                       (void*) hHal);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcOpen: Fail to init timer");
+       return VOS_STATUS_E_FAILURE;
+   }
+
+   if( !HAL_STATUS_SUCCESS(pmcRegisterDeviceStateUpdateInd( pMac, btcPowerStateCB, pMac )) )
+   {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcOpen: Fail to register PMC callback\n");
        return VOS_STATUS_E_FAILURE;
    }
 
@@ -132,6 +141,8 @@ VOS_STATUS btcSignalBTEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
    tpSmeBtEvent ptrSmeBtEvent = NULL;
    vos_msg_t msg;
+   VOS_STATUS vosStatus;
+   tPmcState pmcState;
 
    if( NULL == pBtEvent )
    {
@@ -153,6 +164,23 @@ VOS_STATUS btcSignalBTEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
          "Invalid BT event %d being passed. BT event will be dropped",
           pBtEvent->btEventType);
       return VOS_STATUS_E_FAILURE;
+   }
+
+   //Check PMC state to make sure whether we need to defer
+   pmcState = pmcGetPmcState( pMac );
+   if( !PMC_IS_CHIP_ACCESSIBLE(pmcState) )
+   {
+       //We need to defer the event
+       vosStatus = btcDeferEvent(pMac, pBtEvent);
+       if( VOS_IS_STATUS_SUCCESS(vosStatus) )
+       {
+           pMac->btc.fReplayBTEvents = VOS_TRUE;
+           return VOS_STATUS_SUCCESS;
+       }
+       else
+       {
+           return vosStatus;
+       }
    }
 
    switch(pBtEvent->btEventType)
@@ -191,6 +219,21 @@ VOS_STATUS btcSignalBTEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
             return VOS_STATUS_E_FAILURE;
          }
          break;
+
+     case BT_EVENT_DEVICE_SWITCHED_OFF:
+         //Since fBTSwitchOff is also used to ignore subsequent events in btcDeferEvent, remember.
+         pMac->btc.btcEventReplay.fBTSwitchOff = VOS_TRUE;
+         pMac->btc.btcEventReplay.fBTSwitchOn = VOS_FALSE;
+         pMac->btc.btcEventState = 0;
+         break;
+
+     case BT_EVENT_DEVICE_SWITCHED_ON:
+         //reset both flags since there is no defer here
+         pMac->btc.btcEventReplay.fBTSwitchOn = VOS_FALSE;
+         pMac->btc.btcEventReplay.fBTSwitchOff = VOS_FALSE;
+         pMac->btc.btcEventState = 0;
+         break;
+
       default:
          break;
    }
@@ -226,12 +269,7 @@ VOS_STATUS btcSignalBTEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
 
    // After successfully posting the message, check if heart beat
    // monitoring needs to be turned off
-   // done only when station is in associated state (Neglected during IMPS)
-
-   if(csrIsConnStateConnected(pMac))
-   {
-      (void)btcCheckHeartBeatMonitoring(hHal, pBtEvent);
-   }
+   (void)btcCheckHeartBeatMonitoring(hHal, pBtEvent);
 
    return VOS_STATUS_SUCCESS;
 }
@@ -335,9 +373,25 @@ VOS_STATUS btcCheckHeartBeatMonitoring(tHalHandle hHal, tpSmeBtEvent pBtEvent)
 void btcRestoreHeartBeatMonitoringHandle(tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    // Restore CFG back to the original value
-    ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
-    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "BT event timeout, restoring back HeartBeat timer");
+
+    if( !pMac->btc.btcHBActive )
+    {
+        tPmcState pmcState;
+
+        //Check PMC state to make sure whether we need to defer
+        pmcState = pmcGetPmcState( pMac );
+        if( PMC_IS_CHIP_ACCESSIBLE(pmcState) )
+        {
+            // Restore CFG back to the original value
+            ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "BT event timeout, restoring back HeartBeat timer");
+        }
+        else
+        {
+            //defer it
+            pMac->btc.btcEventReplay.fRestoreHBMonitor = VOS_TRUE;
+        }
+    }
 }
 
 
@@ -459,6 +513,765 @@ VOS_STATUS btcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
 
    return VOS_STATUS_SUCCESS;
 }
+
+/*
+    btcFindAclEventHist find a suited ACL event buffer
+    Param: bdAddr - NULL meaning not care.
+                    pointer to caller alocated buffer containing the BD address to find a match
+           handle - BT_INVALID_CONN_HANDLE == not care
+                    otherwise, a handle to match
+    NOPTE: Either bdAddr or handle can be valid, if both of them are valid, use bdAddr only. If neither 
+           bdAddr nor handle is valid, return the next free slot.
+*/
+static tpSmeBtAclEventHist btcFindAclEventHist( tpAniSirGlobal pMac, v_U8_t *bdAddr, v_U16_t handle )
+{
+    int i;
+    tpSmeBtAclEventHist pRet = NULL;
+    tSmeBtcEventReplay *pReplay = &pMac->btc.btcEventReplay;
+
+    for( i = 0; i < BT_MAX_ACL_SUPPORT; i++ )
+    {
+        if( NULL != bdAddr )
+        {
+            //try to match addr
+            if( pReplay->btcEventHist.btAclConnectionEvent[i].fValid )
+            {
+                if( vos_mem_compare(pReplay->btcEventHist.btAclConnectionEvent[i].btAclConnection.bdAddr,
+                    bdAddr, 6) )
+                {
+                    //found it
+                    pRet = &pReplay->btcEventHist.btAclConnectionEvent[i];
+                    break;
+                }
+            }
+        }
+        else if( BT_INVALID_CONN_HANDLE != handle )
+        {
+            //try to match handle
+            if( pReplay->btcEventHist.btAclConnectionEvent[i].fValid )
+            {
+                if( pReplay->btcEventHist.btAclConnectionEvent[i].btAclConnection.connectionHandle ==
+                    handle )
+                {
+                    //found it
+                    pRet = &pReplay->btcEventHist.btAclConnectionEvent[i];
+                    break;
+                }
+            }
+        }
+        else if( !pReplay->btcEventHist.btAclConnectionEvent[i].fValid )
+        {
+            pRet = &pReplay->btcEventHist.btAclConnectionEvent[i];
+            break;
+        }
+    }
+
+    return (pRet);
+}
+
+
+/*
+    btcFindSyncEventHist find a suited SYNC event buffer
+    Param: bdAddr - NULL meaning not care.
+                    pointer to caller alocated buffer containing the BD address to find a match
+           handle - BT_INVALID_CONN_HANDLE == not care
+                    otherwise, a handle to match
+    NOPTE: Either bdAddr or handle can be valid, if both of them are valid, use bdAddr only. If neither 
+           bdAddr nor handle is valid, return the next free slot.
+*/
+static tpSmeBtSyncEventHist btcFindSyncEventHist( tpAniSirGlobal pMac, v_U8_t *bdAddr, v_U16_t handle )
+{
+    int i;
+    tpSmeBtSyncEventHist pRet = NULL;
+    tSmeBtcEventReplay *pReplay = &pMac->btc.btcEventReplay;
+
+    for( i = 0; i < BT_MAX_SCO_SUPPORT; i++ )
+    {
+        if( NULL != bdAddr )
+        {
+            //try to match addr
+            if( pReplay->btcEventHist.btSyncConnectionEvent[i].fValid )
+            {
+                if( vos_mem_compare(pReplay->btcEventHist.btSyncConnectionEvent[i].btSyncConnection.bdAddr,
+                    bdAddr, 6) )
+                {
+                    //found it
+                    pRet = &pReplay->btcEventHist.btSyncConnectionEvent[i];
+                    break;
+                }
+            }
+        }
+        else if( BT_INVALID_CONN_HANDLE != handle )
+        {
+            //try to match handle
+            if( pReplay->btcEventHist.btSyncConnectionEvent[i].fValid )
+            {
+                if( pReplay->btcEventHist.btSyncConnectionEvent[i].btSyncConnection.connectionHandle ==
+                    handle )
+                {
+                    //found it
+                    pRet = &pReplay->btcEventHist.btSyncConnectionEvent[i];
+                    break;
+                }
+            }
+        }
+        else if( !pReplay->btcEventHist.btSyncConnectionEvent[i].fValid )
+        {
+            pRet = &pReplay->btcEventHist.btSyncConnectionEvent[i];
+            break;
+        }
+    }
+
+    return (pRet);
+}
+
+
+/*
+    btcFindDisconnEventHist find a slot for the deferred disconnect event
+    If handle is invlid, it returns a free slot, if any. 
+    If handle is valid, it tries to find a match first in case same disconnect event comes down again.
+*/
+static tpSmeBtDisconnectEventHist btcFindDisconnEventHist( tpAniSirGlobal pMac, v_U16_t handle )
+{
+    tpSmeBtDisconnectEventHist pRet = NULL;
+    tSmeBtcEventReplay *pReplay = &pMac->btc.btcEventReplay;
+    int i;
+
+    if( BT_INVALID_CONN_HANDLE != handle )
+    {
+        for(i = 0; i < BT_MAX_DISCONN_SUPPORT; i++)
+        {
+            if( pReplay->btcEventHist.btDisconnectEvent[i].fValid &&
+                (handle == pReplay->btcEventHist.btDisconnectEvent[i].btDisconnect.connectionHandle) )
+            {
+                pRet = &pReplay->btcEventHist.btDisconnectEvent[i];
+                break;
+            }
+        }
+    }
+    if( NULL == pRet )
+    {
+        //Find a free slot
+        for(i = 0; i < BT_MAX_DISCONN_SUPPORT; i++)
+        {
+            if( !pReplay->btcEventHist.btDisconnectEvent[i].fValid )
+            {
+                pRet = &pReplay->btcEventHist.btDisconnectEvent[i];
+                break;
+            }
+        }
+    }
+
+    return (pRet);
+}
+
+
+/*
+    btcFindModeChangeEventHist find a slot for the deferred disconnect event
+    If handle is invlid, it returns a free slot, if any. 
+    If handle is valid, it tries to find a match first in case same disconnect event comes down again.
+*/
+tpSmeBtAclModeChangeEventHist btcFindModeChangeEventHist( tpAniSirGlobal pMac, v_U16_t handle )
+{
+    tpSmeBtAclModeChangeEventHist pRet = NULL;
+    tSmeBtcEventReplay *pReplay = &pMac->btc.btcEventReplay;
+    int i;
+
+    if( BT_INVALID_CONN_HANDLE != handle )
+    {
+        for(i = 0; i < BT_MAX_ACL_SUPPORT; i++)
+        {
+            if( pReplay->btcEventHist.btAclModeChangeEvent[i].fValid &&
+                (handle == pReplay->btcEventHist.btAclModeChangeEvent[i].btAclModeChange.connectionHandle) )
+            {
+                pRet = &pReplay->btcEventHist.btAclModeChangeEvent[i];
+                break;
+            }
+        }
+    }
+    if( NULL == pRet )
+    {
+        //Find a free slot
+        for(i = 0; i < BT_MAX_ACL_SUPPORT; i++)
+        {
+            if( !pReplay->btcEventHist.btAclModeChangeEvent[i].fValid )
+            {
+                pRet = &pReplay->btcEventHist.btAclModeChangeEvent[i];
+                break;
+            }
+        }
+    }
+
+    return (pRet);
+}
+
+
+
+/*
+    Call must validate pAclEventHist
+*/
+static void btcReleaseAclEventHist( tpAniSirGlobal pMac, tpSmeBtAclEventHist pAclEventHist )
+{
+    vos_mem_zero( pAclEventHist, sizeof(tSmeBtAclEventHist) );
+}
+
+
+/*
+    Call must validate pSyncEventHist
+*/
+static void btcReleaseSyncEventHist( tpAniSirGlobal pMac, tpSmeBtSyncEventHist pSyncEventHist )
+{
+    vos_mem_zero( pSyncEventHist, sizeof(tSmeBtSyncEventHist) );
+}
+
+
+static VOS_STATUS btcDeferAclComplete( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
+{
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    tpSmeBtAclEventHist pAclEventHist;
+
+    //Find a match
+    pAclEventHist = btcFindAclEventHist( pMac, pEvent->uEventParam.btAclConnection.bdAddr, 
+                                BT_INVALID_CONN_HANDLE );
+    if( NULL == pAclEventHist )
+    {
+        pAclEventHist = btcFindAclEventHist( pMac, NULL, BT_INVALID_CONN_HANDLE );
+    }
+    if(pAclEventHist)
+    {
+        if( (BT_CONN_STATUS_FAIL != pEvent->uEventParam.btAclConnection.status) ||
+            //Also take care the case where we don't buffer the create event
+            (BT_EVENT_CREATE_ACL_CONNECTION != pAclEventHist->btEventType[0]) )
+        {
+            pAclEventHist->fValid = VOS_TRUE;
+            if( BT_EVENT_CREATE_ACL_CONNECTION == pAclEventHist->btEventType[0] )
+            {
+                pAclEventHist->btEventType[1] = BT_EVENT_ACL_CONNECTION_COMPLETE;
+            }
+            else
+            {
+                pAclEventHist->btEventType[0] = BT_EVENT_ACL_CONNECTION_COMPLETE;
+            }
+            vos_mem_copy(&pAclEventHist->btAclConnection, &pEvent->uEventParam.btAclConnection, 
+                            sizeof(tSmeBtAclConnectionParam));
+        }
+        else
+        {
+            smsLog( pMac, LOGE, FL(" ACL connection failed\n") );
+            //Connection fail
+            btcReleaseAclEventHist( pMac, pAclEventHist );
+        }
+    }
+    else
+    {
+        smsLog( pMac, LOGE, FL(" cannot find match for failed BT_EVENT_ACL_CONNECTION_COMPLETE of bdAddr (%02X-%02X-%02X-%02X-%02X-%02X)\n"),
+            pEvent->uEventParam.btAclConnection.bdAddr[0],
+            pEvent->uEventParam.btAclConnection.bdAddr[1],
+            pEvent->uEventParam.btAclConnection.bdAddr[2],
+            pEvent->uEventParam.btAclConnection.bdAddr[3],
+            pEvent->uEventParam.btAclConnection.bdAddr[4],
+            pEvent->uEventParam.btAclConnection.bdAddr[5]);
+        status = VOS_STATUS_E_EMPTY;
+    }
+
+    return (status);
+}
+
+
+static VOS_STATUS btcDeferSyncComplete( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
+{
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    tpSmeBtSyncEventHist pSyncEventHist;
+
+    //Find a match
+    pSyncEventHist = btcFindSyncEventHist( pMac, pEvent->uEventParam.btSyncConnection.bdAddr, 
+                                BT_INVALID_CONN_HANDLE );
+    if(NULL == pSyncEventHist)
+    {
+        //In case we don't defer the creation event
+        pSyncEventHist = btcFindSyncEventHist( pMac, NULL, BT_INVALID_CONN_HANDLE );
+    }
+    if(pSyncEventHist)
+    {
+        if( (BT_CONN_STATUS_FAIL != pEvent->uEventParam.btSyncConnection.status) ||
+            (BT_EVENT_CREATE_SYNC_CONNECTION == pSyncEventHist->btEventType[0]) )
+        {
+            pSyncEventHist->fValid = VOS_TRUE;
+            if( BT_EVENT_CREATE_SYNC_CONNECTION == pSyncEventHist->btEventType[0] )
+            {
+                pSyncEventHist->btEventType[1] = BT_EVENT_SYNC_CONNECTION_COMPLETE;
+            }
+            else
+            {
+                pSyncEventHist->btEventType[0] = BT_EVENT_SYNC_CONNECTION_COMPLETE;
+            }
+            vos_mem_copy(&pSyncEventHist->btSyncConnection, &pEvent->uEventParam.btSyncConnection, 
+                            sizeof(tSmeBtSyncConnectionParam));
+        }
+        else
+        {
+            smsLog( pMac, LOGE, FL(" SYNC connection failed\n") );
+            //Connection fail
+            btcReleaseSyncEventHist( pMac, pSyncEventHist );
+        }
+    }
+    else
+    {
+        smsLog( pMac, LOGE, FL(" cannot find match for BT_EVENT_SYNC_CONNECTION_COMPLETE of bdAddr (%02X-%02X-%02X-%02X-%02X-%02X)\n"),
+            pEvent->uEventParam.btSyncConnection.bdAddr[0],
+            pEvent->uEventParam.btSyncConnection.bdAddr[1],
+            pEvent->uEventParam.btSyncConnection.bdAddr[2],
+            pEvent->uEventParam.btSyncConnection.bdAddr[3],
+            pEvent->uEventParam.btSyncConnection.bdAddr[4],
+            pEvent->uEventParam.btSyncConnection.bdAddr[5]);
+        status = VOS_STATUS_E_EMPTY;
+    }
+
+    return (status);
+}
+
+
+static VOS_STATUS btcDeferDisconnEvent( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
+{
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    tpSmeBtDisconnectEventHist pDisconnEventHist;
+    tpSmeBtAclEventHist pAclEventHist;
+    v_BOOL_t fSaveDisconnEvent = VOS_TRUE;
+    tpSmeBtSyncEventHist pSyncEventHist;
+    tpSmeBtAclModeChangeEventHist pModeChangeEventHist;
+
+    if( BT_INVALID_CONN_HANDLE == pEvent->uEventParam.btDisconnect.connectionHandle )
+    {
+        smsLog( pMac, LOGE, FL(" invalid handle\n") );
+        return (VOS_STATUS_E_INVAL);
+    }
+
+    //Check ACL first
+    pAclEventHist = btcFindAclEventHist( pMac, NULL, 
+                                pEvent->uEventParam.btDisconnect.connectionHandle );
+    if(pAclEventHist)
+    {
+        //make sure we can cancel the link
+        if( BT_EVENT_CREATE_ACL_CONNECTION == pAclEventHist->btEventType[0] )
+        {
+            //we also holding the create event, we can cancel the link
+            btcReleaseAclEventHist( pMac, pAclEventHist );
+            //Wipe out the related mode change event if it is there
+            pModeChangeEventHist = btcFindModeChangeEventHist( pMac,  
+                                    pEvent->uEventParam.btDisconnect.connectionHandle );
+            if( pModeChangeEventHist && pModeChangeEventHist->fValid )
+            {
+                pModeChangeEventHist->fValid = VOS_FALSE;
+            }
+            fSaveDisconnEvent = VOS_FALSE;
+        }
+    }
+    else
+    {
+        //look for sync
+        pSyncEventHist = btcFindSyncEventHist( pMac, NULL, 
+                                pEvent->uEventParam.btDisconnect.connectionHandle );
+        if(pSyncEventHist)
+        {
+            //make sure we can cancel the link
+            if( BT_EVENT_CREATE_SYNC_CONNECTION == pSyncEventHist->btEventType[0] )
+            {
+                //we also holding the create event, we can cancel the link
+                btcReleaseSyncEventHist( pMac, pSyncEventHist );
+                fSaveDisconnEvent = VOS_FALSE;
+            }
+        }
+    }
+    if( fSaveDisconnEvent )
+    {
+        //Save in the disconnect event
+        pDisconnEventHist = btcFindDisconnEventHist( pMac, 
+            pEvent->uEventParam.btDisconnect.connectionHandle );
+        if( pDisconnEventHist )
+        {
+            pDisconnEventHist->fValid = VOS_TRUE;
+            vos_mem_copy( &pDisconnEventHist->btDisconnect, &pEvent->uEventParam.btDisconnect,
+                sizeof(tSmeBtDisconnectParam) );
+        }
+        else
+        {
+            smsLog( pMac, LOGE, FL(" cannot find match for BT_EVENT_DISCONNECTION_COMPLETE of handle (%d)\n"),
+                pEvent->uEventParam.btDisconnect.connectionHandle);
+            status = VOS_STATUS_E_EMPTY;
+        }
+    }
+
+    return (status);
+}
+
+
+/*
+    btcDeferEvent save the event for possible replay when chip can be accessed
+    This function is called only when in IMPS/Standby state
+*/
+static VOS_STATUS btcDeferEvent( tpAniSirGlobal pMac, tpSmeBtEvent pEvent )
+{
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    tpSmeBtAclEventHist pAclEventHist;
+    tpSmeBtSyncEventHist pSyncEventHist;
+    tpSmeBtAclModeChangeEventHist pModeChangeEventHist;
+    tSmeBtcEventReplay *pReplay = &pMac->btc.btcEventReplay;
+
+    //swicth on/off are very special, handle them first
+    if( (BT_EVENT_DEVICE_SWITCHED_OFF == pEvent->btEventType) ||
+        (BT_EVENT_DEVICE_SWITCHED_ON == pEvent->btEventType))
+    {
+        //Clear all events first
+        vos_mem_zero( &pReplay->btcEventHist, sizeof(tSmeBtcEventHist) );
+        //Only remember swicth on/off
+        pReplay->fBTSwitchOff = (BT_EVENT_DEVICE_SWITCHED_OFF == pEvent->btEventType);
+        pReplay->fBTSwitchOn = !pReplay->fBTSwitchOff;
+
+        return (VOS_STATUS_SUCCESS);
+    }
+
+    if( pReplay->fBTSwitchOff )
+    {
+        //No need to save any event
+        smsLog( pMac, LOGE, FL(" deferring when BT_SWITCH_OFF, ignore event(%d)\n"), pEvent->btEventType );
+        //Return a fail case so fReplayBTEvents is not turned on
+        return (VOS_STATUS_E_BADMSG);
+    }
+
+    switch(pEvent->btEventType)
+    {
+    case BT_EVENT_DEVICE_SWITCHED_ON:
+        pReplay->fBTSwitchOff = VOS_FALSE;
+        pReplay->fBTSwitchOn = VOS_TRUE;
+        break;
+
+    case BT_EVENT_DEVICE_SWITCHED_OFF:
+        //Clear all events first
+        vos_mem_zero( &pReplay->btcEventHist, sizeof(tSmeBtcEventHist) );
+        //Only remember swicth off
+        pReplay->fBTSwitchOff = VOS_TRUE;
+        pReplay->fBTSwitchOn = VOS_FALSE;
+        break;
+
+    case BT_EVENT_INQUIRY_STARTED:
+        pReplay->btcEventHist.fInquiryStarted = VOS_TRUE;
+        pReplay->btcEventHist.fInquiryStopped = VOS_FALSE;
+        break;
+
+    case BT_EVENT_INQUIRY_STOPPED:
+        pReplay->btcEventHist.fInquiryStopped = VOS_TRUE;
+        pReplay->btcEventHist.fInquiryStarted = VOS_FALSE;
+        break;
+
+    case BT_EVENT_PAGE_STARTED:
+        pReplay->btcEventHist.fPageStarted = VOS_TRUE;
+        pReplay->btcEventHist.fPageStopped = VOS_FALSE;
+        break;
+
+    case BT_EVENT_PAGE_STOPPED:
+        pReplay->btcEventHist.fPageStopped = VOS_TRUE;
+        pReplay->btcEventHist.fPageStarted = VOS_FALSE;
+        break;
+
+    case BT_EVENT_CREATE_ACL_CONNECTION:
+        //Find a free slot
+        pAclEventHist = btcFindAclEventHist( pMac, NULL, BT_INVALID_CONN_HANDLE );
+        if(pAclEventHist)
+        {
+            pAclEventHist->fValid = VOS_TRUE;
+            pAclEventHist->btEventType[0] = BT_EVENT_CREATE_ACL_CONNECTION;
+            vos_mem_copy(&pAclEventHist->btAclConnection, &pEvent->uEventParam.btAclConnection, 
+                            sizeof(tSmeBtAclConnectionParam));
+        }
+        else
+        {
+            smsLog( pMac, LOGE, FL(" cannot free slot for BT_EVENT_CREATE_ACL_CONNECTION of bdAddr (%02X-%02X-%02X-%02X-%02X-%02X)\n"),
+                pEvent->uEventParam.btAclConnection.bdAddr[0],
+                pEvent->uEventParam.btAclConnection.bdAddr[1],
+                pEvent->uEventParam.btAclConnection.bdAddr[2],
+                pEvent->uEventParam.btAclConnection.bdAddr[3],
+                pEvent->uEventParam.btAclConnection.bdAddr[4],
+                pEvent->uEventParam.btAclConnection.bdAddr[5]);
+            status = VOS_STATUS_E_RESOURCES;
+        }
+        break;
+
+    case BT_EVENT_ACL_CONNECTION_COMPLETE:
+        status = btcDeferAclComplete( pMac, pEvent );
+        break;
+
+    case BT_EVENT_CREATE_SYNC_CONNECTION:
+        //Find a free slot
+        pSyncEventHist = btcFindSyncEventHist( pMac, NULL, BT_INVALID_CONN_HANDLE );
+        if(pSyncEventHist)
+        {
+            pSyncEventHist->fValid = VOS_TRUE;
+            pSyncEventHist->btEventType[0] = BT_EVENT_CREATE_SYNC_CONNECTION;
+            vos_mem_copy(&pSyncEventHist->btSyncConnection, &pEvent->uEventParam.btSyncConnection, 
+                            sizeof(tSmeBtSyncConnectionParam));
+        }
+        else
+        {
+            smsLog( pMac, LOGE, FL(" cannot find match for BT_EVENT_CREATE_SYNC_CONNECTION of bdAddr (%02X-%02X-%02X-%02X-%02X-%02X)\n"),
+                pEvent->uEventParam.btSyncConnection.bdAddr[0],
+                pEvent->uEventParam.btSyncConnection.bdAddr[1],
+                pEvent->uEventParam.btSyncConnection.bdAddr[2],
+                pEvent->uEventParam.btSyncConnection.bdAddr[3],
+                pEvent->uEventParam.btSyncConnection.bdAddr[4],
+                pEvent->uEventParam.btSyncConnection.bdAddr[5]);
+            status = VOS_STATUS_E_RESOURCES;
+        }
+        break;
+
+    case BT_EVENT_SYNC_CONNECTION_COMPLETE:
+        status = btcDeferSyncComplete( pMac, pEvent );
+        break;
+
+    case BT_EVENT_SYNC_CONNECTION_UPDATED:
+        if( BT_INVALID_CONN_HANDLE == pEvent->uEventParam.btDisconnect.connectionHandle )
+        {
+            smsLog( pMac, LOGE, FL(" invalid handle\n") );
+            status = VOS_STATUS_E_INVAL;
+            break;
+        }
+        //Find a match on handle
+        pSyncEventHist = btcFindSyncEventHist( pMac, NULL, 
+                                    pEvent->uEventParam.btSyncConnection.connectionHandle );
+        if(NULL == pSyncEventHist)
+        {
+            //In case we don't defer the creation event
+            pSyncEventHist = btcFindSyncEventHist( pMac, NULL, BT_INVALID_CONN_HANDLE );
+        }
+        if(pSyncEventHist)
+        {
+            pSyncEventHist->fValid = VOS_TRUE;
+            //No need to change the event
+            vos_mem_copy(&pSyncEventHist->btSyncConnection, &pEvent->uEventParam.btSyncConnection, 
+                            sizeof(tSmeBtSyncConnectionParam));
+        }
+        else
+        {
+            smsLog( pMac, LOGE, FL(" cannot find match for BT_EVENT_SYNC_CONNECTION_UPDATED of handle (%d)\n"),
+                pEvent->uEventParam.btSyncConnection.connectionHandle );
+            status = VOS_STATUS_E_EMPTY;
+        }
+        break;
+
+    case BT_EVENT_DISCONNECTION_COMPLETE:
+        status = btcDeferDisconnEvent( pMac, pEvent );
+        break;
+
+    case BT_EVENT_MODE_CHANGED:
+        if( BT_INVALID_CONN_HANDLE == pEvent->uEventParam.btDisconnect.connectionHandle )
+        {
+            smsLog( pMac, LOGE, FL(" invalid handle\n") );
+            status = VOS_STATUS_E_INVAL;
+            break;
+        }
+        //Find a match on handle
+        pModeChangeEventHist = btcFindModeChangeEventHist( pMac,  
+                                    pEvent->uEventParam.btAclModeChange.connectionHandle );
+        if(pModeChangeEventHist)
+        {
+            pModeChangeEventHist->fValid = VOS_TRUE;
+            vos_mem_copy( &pModeChangeEventHist->btAclModeChange,
+                            &pEvent->uEventParam.btAclModeChange, sizeof(tSmeBtAclModeChangeParam) );
+        }
+        else
+        {
+            smsLog( pMac, LOGE, FL(" cannot find match for BT_EVENT_MODE_CHANGED of handle (%d)\n"),
+                pEvent->uEventParam.btAclModeChange.connectionHandle);
+            status = VOS_STATUS_E_EMPTY;
+        }
+        break;
+
+    case BT_EVENT_A2DP_STREAM_START:
+        pReplay->btcEventHist.fA2DPStarted = VOS_TRUE;
+        pReplay->btcEventHist.fA2DPStopped = VOS_FALSE;
+        break;
+
+    case BT_EVENT_A2DP_STREAM_STOP:
+        pReplay->btcEventHist.fA2DPStopped = VOS_TRUE;
+        pReplay->btcEventHist.fA2DPStarted = VOS_FALSE;
+        break;
+
+    default:
+        smsLog( pMac, LOGE, FL(" event (%d) is not deferred\n"), pEvent->btEventType );
+        status = VOS_STATUS_E_NOSUPPORT;
+        break;
+    }
+
+    return (status);
+}
+
+
+static void btcReplayEvents( tpAniSirGlobal pMac )
+{
+    int i;
+    tSmeBtEvent btEvent;
+    tpSmeBtAclEventHist pAclHist;
+    tpSmeBtSyncEventHist pSyncHist;
+    tSmeBtcEventReplay *pReplay = &pMac->btc.btcEventReplay;
+
+    //Always turn on HB monitor first. 
+    //It is independent of BT events even though BT event causes this
+    if( pReplay->fRestoreHBMonitor )
+    {
+        pReplay->fRestoreHBMonitor = VOS_FALSE;
+        //Only do it when needed
+        if( !pMac->btc.btcHBActive ) 
+        {
+            ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
+            pMac->btc.btcHBActive = VOS_TRUE;
+        }
+    }
+    if( pMac->btc.fReplayBTEvents )
+    {
+        //Is BT still on
+        if( pReplay->fBTSwitchOff )
+        {
+            vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
+            btEvent.btEventType = BT_EVENT_DEVICE_SWITCHED_OFF;
+            btcSignalBTEvent( pMac, &btEvent );
+            //We are done
+            //Clear all events
+            vos_mem_zero( &pReplay->btcEventHist, sizeof(tSmeBtcEventHist) );
+            //keep the switch off flag to ignore the rest of the events until on
+            pMac->btc.fReplayBTEvents = VOS_FALSE;
+            return;
+        }
+
+        if( pReplay->fBTSwitchOn )
+        {
+            pReplay->fBTSwitchOff = VOS_FALSE;
+            pReplay->fBTSwitchOn = VOS_FALSE;
+            vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
+            btEvent.btEventType = BT_EVENT_DEVICE_SWITCHED_ON;
+            btcSignalBTEvent( pMac, &btEvent );
+        }
+
+        //Do inquire first
+        if( pReplay->btcEventHist.fInquiryStarted )
+        {
+            vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
+            btEvent.btEventType = BT_EVENT_INQUIRY_STARTED;
+            btcSignalBTEvent( pMac, &btEvent );
+        }
+        else if( pReplay->btcEventHist.fInquiryStopped )
+        {
+            vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
+            btEvent.btEventType = BT_EVENT_INQUIRY_STOPPED;
+            btcSignalBTEvent( pMac, &btEvent );
+        }
+        //Page
+        if( pReplay->btcEventHist.fPageStarted )
+        {
+            vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
+            btEvent.btEventType = BT_EVENT_PAGE_STARTED;
+            btcSignalBTEvent( pMac, &btEvent );
+        }
+        else if( pReplay->btcEventHist.fPageStopped )
+        {
+            vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
+            btEvent.btEventType = BT_EVENT_PAGE_STOPPED;
+            btcSignalBTEvent( pMac, &btEvent );
+        }
+        //ACL
+        for( i = 0; i < BT_MAX_ACL_SUPPORT; i++ )
+        {
+            if( pReplay->btcEventHist.btAclConnectionEvent[i].fValid )
+            {
+                pAclHist = &pReplay->btcEventHist.btAclConnectionEvent[i];
+                vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
+                if( BT_EVENT_ACL_CONNECTION_COMPLETE == pAclHist->btEventType[1] )
+                {
+                    btEvent.btEventType = pAclHist->btEventType[1];
+                }
+                else
+                {
+                    btEvent.btEventType = pAclHist->btEventType[0];
+                }
+                vos_mem_copy( &btEvent.uEventParam.btAclConnection, 
+                        &pAclHist->btAclConnection, sizeof(tSmeBtAclConnectionParam) );
+                btcSignalBTEvent( pMac, &btEvent );
+            }
+        }
+        //Mode change
+        for( i = 0; i < BT_MAX_ACL_SUPPORT; i++ )
+        {
+            if( pReplay->btcEventHist.btAclModeChangeEvent[i].fValid )
+            {
+                vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
+                btEvent.btEventType = BT_EVENT_MODE_CHANGED;
+                vos_mem_copy( &btEvent.uEventParam.btAclModeChange, 
+                    &pReplay->btcEventHist.btAclModeChangeEvent[i].btAclModeChange, sizeof(tSmeBtAclModeChangeParam) );
+                btcSignalBTEvent( pMac, &btEvent );
+            }
+        }
+       //A2DP
+        if( pReplay->btcEventHist.fA2DPStarted )
+        {
+            vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
+            btEvent.btEventType = BT_EVENT_A2DP_STREAM_START;
+            btcSignalBTEvent( pMac, &btEvent );
+        }
+        else if( pReplay->btcEventHist.fA2DPStopped )
+        {
+            vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
+            btEvent.btEventType = BT_EVENT_A2DP_STREAM_STOP;
+            btcSignalBTEvent( pMac, &btEvent );
+        }
+        //SCO
+        for( i = 0; i < BT_MAX_SCO_SUPPORT; i++ )
+        {
+            if( pReplay->btcEventHist.btSyncConnectionEvent[i].fValid )
+            {
+                pSyncHist = &pReplay->btcEventHist.btSyncConnectionEvent[i];
+                vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
+                if( BT_EVENT_SYNC_CONNECTION_COMPLETE == pSyncHist->btEventType[1] )
+                {
+                    btEvent.btEventType = pSyncHist->btEventType[1];
+                }
+                else
+                {
+                    btEvent.btEventType = pSyncHist->btEventType[0];
+                }
+                vos_mem_copy( &btEvent.uEventParam.btSyncConnection, 
+                        &pSyncHist->btSyncConnection, sizeof(tSmeBtSyncConnectionParam) );
+                btcSignalBTEvent( pMac, &btEvent );
+            }
+        }
+        //Disconnect
+        for( i = 0; i < BT_MAX_DISCONN_SUPPORT; i++ )
+        {
+            if( pReplay->btcEventHist.btDisconnectEvent[i].fValid )
+            {
+                vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
+                btEvent.btEventType = BT_EVENT_DISCONNECTION_COMPLETE;
+                vos_mem_copy( &btEvent.uEventParam.btDisconnect, 
+                    &pReplay->btcEventHist.btDisconnectEvent[i].btDisconnect, sizeof(tSmeBtDisconnectParam) );
+                btcSignalBTEvent( pMac, &btEvent );
+            }
+        }
+
+        //Clear all events
+        vos_mem_zero( &pReplay->btcEventHist, sizeof(tSmeBtcEventHist) );
+        pMac->btc.fReplayBTEvents = VOS_FALSE;
+    }
+}
+
+
+
+static void btcPowerStateCB( v_PVOID_t pContext, tPmcState pmcState )
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(pContext);
+
+    if( FULL_POWER == pmcState )
+    {
+        btcReplayEvents( pMac );
+    }
+}
+
 
 /* ---------------------------------------------------------------------------
     \fn btcLogEvent

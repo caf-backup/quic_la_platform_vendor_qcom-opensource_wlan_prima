@@ -1369,7 +1369,7 @@ limIbssCoalesce(
         //in case heart beat timer is not activate
         limDeactivateAndChangeTimer(pMac, eLIM_HEART_BEAT_TIMER);
         MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
-        if (tx_timer_activate(&pMac->lim.limTimers.gLimHeartBeatTimer) != TX_SUCCESS)
+        if (limActivateHearBeatTimer(pMac) != TX_SUCCESS)
             limLog(pMac, LOGP, FL("could not activate Heartbeat timer\n"));
     }
 

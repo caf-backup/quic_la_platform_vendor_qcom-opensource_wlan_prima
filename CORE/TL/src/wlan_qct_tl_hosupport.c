@@ -49,6 +49,7 @@
 
 #define WLANTL_HO_DEFAULT_RSSI      0xFF
 #define WLANTL_HO_DEFAULT_ALPHA     5
+#define WLANTL_HO_INVALID_RSSI      -100
 /* RSSI sampling period, usec based
  * To reduce performance overhead
  * Current default 500msec */
@@ -204,7 +205,7 @@ void WLANTL_HSDebugDisplay
       if(idx == currentHO->regionNumber)
       {
          regionFound = VOS_TRUE;
-         if(VOS_TRUE == hoSupport->isBMPS)
+         if(VOS_TRUE == tlCtxt->isBMPS)
          {
             TH_MSG_ERROR(" ----> CRegion %d, hRSSI:NA, BMPS, Alpha %d",
                          currentHO->regionNumber, currentHO->alpha, 0);
@@ -241,7 +242,7 @@ void WLANTL_HSDebugDisplay
 
    if(VOS_FALSE == regionFound)
    {
-      if(VOS_TRUE == hoSupport->isBMPS)
+      if(VOS_TRUE == tlCtxt->isBMPS)
       {
          TH_MSG_ERROR(" ----> CRegion %d, hRSSI:NA, BMPS, Alpha %d",
                       currentHO->regionNumber, currentHO->alpha, 0);
@@ -615,63 +616,6 @@ v_VOID_t WLANTL_HSTrafficStatusTimerExpired
    return;
 }
 
-/*==========================================================================
-
-   FUNCTION
-
-   DESCRIPTION 
-    
-   PARAMETERS 
-
-   RETURN VALUE
-
-============================================================================*/
-void WLANTL_HSPowerStateChangedCB
-(
-   v_PVOID_t pAdapter,
-   tPmcState newState
-)
-{
-   WLANTL_CbType                *tlCtxt = VOS_GET_TL_CB(pAdapter);
-   WLANTL_CURRENT_HO_STATE_TYPE *currentHO = NULL;
-
-   currentHO = &tlCtxt->hoSupport.currentHOState;
-   TH_MSG_ERROR("Power state changed, new state is %d", newState, 0, 0);
-   switch(newState)
-   {
-      case FULL_POWER:
-         tlCtxt->hoSupport.isBMPS = VOS_FALSE;
-         break;
-
-      case BMPS:
-         WLANTL_SetFWRSSIThresholds(pAdapter);
-         tlCtxt->hoSupport.isBMPS = VOS_TRUE;
-         break;
-
-      case IMPS:
-      case LOW_POWER:
-      case REQUEST_BMPS:
-      case REQUEST_FULL_POWER:
-      case REQUEST_IMPS:
-      case STOPPED:
-      case REQUEST_START_UAPSD:
-      case REQUEST_STOP_UAPSD:
-      case UAPSD:
-      case REQUEST_STANDBY:
-      case STANDBY:
-      case REQUEST_ENTER_WOWL:
-      case REQUEST_EXIT_WOWL:
-      case WOWL:
-         TH_MSG_WARN("Not handle this events %d", newState, 0, 0);
-         break;
-
-      default:
-         TH_MSG_ERROR("Not a valid event %d", newState, 0, 0);
-         break;
-   }
-
-   return;
-}
 
 /*==========================================================================
 
@@ -715,6 +659,11 @@ VOS_STATUS WLANTL_HSGetRSSI
 #ifdef WLANTL_HO_UTEST
    TLHS_UtestHandleNewRSSI(&currentRSSI, pAdapter);
 #endif /* WLANTL_HO_UTEST */
+
+   if(WLANTL_HO_INVALID_RSSI == currentRSSI)
+   {
+      return status;
+   }
 
    if(0 == currentHO->historyRSSI)
    {
@@ -1055,7 +1004,8 @@ VOS_STATUS WLANTL_HSHandleRXFrame
    {
       ac = WLANTL_HO_TID_2_AC[(v_U8_t)WLANHAL_RX_BD_GET_TID(pBDHeader)];
 
-      if((WLANTL_AC_VI == ac) || (WLANTL_AC_VO == ac))
+      /* Only Voice traffic is handled as real time traffic */
+      if(WLANTL_AC_VO == ac)
       {
          tlCtxt->hoSupport.currentTraffic.rtRXFrameCount++;
       }
@@ -1070,7 +1020,7 @@ VOS_STATUS WLANTL_HSHandleRXFrame
    }
 
    currentHO = &tlCtxt->hoSupport.currentHOState;
-   if(VOS_TRUE == tlCtxt->hoSupport.isBMPS)
+   if(VOS_TRUE == tlCtxt->isBMPS)
    {
       WLANTL_HSGetRSSI(pAdapter, pBDHeader, STAid, &currentAvgRSSI);
       return status;
@@ -1146,7 +1096,8 @@ VOS_STATUS WLANTL_HSHandleTXFrame
 
    WLANTL_StatHandleTXFrame(pAdapter, STAid, dataBuffer, bdHeader);
 
-   if((WLANTL_AC_VI == ac) || (WLANTL_AC_VO == ac))
+   /* Only Voice traffic is handled as real time traffic */
+   if(WLANTL_AC_VO == ac)
    {
       tlCtxt->hoSupport.currentTraffic.rtTXFrameCount++;
    }
@@ -1304,7 +1255,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
    }
 
    currentHO->numThreshold++;
-   if((VOS_FALSE == hoSupport->isBMPS) && (rssiValue > currentHO->historyRSSI))
+   if((VOS_FALSE == tlCtxt->isBMPS) && (rssiValue > currentHO->historyRSSI))
    {
       TH_MSG_ERROR("Added Threashold above current RSSI levle, old RN %d", currentHO->regionNumber, 0, 0);
       if(4 > currentHO->regionNumber)
@@ -1317,7 +1268,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
       }
       TH_MSG_ERROR("increase region number without notification %d", currentHO->regionNumber, 0, 0);
    }
-   else if(VOS_TRUE == hoSupport->isBMPS)
+   else if(VOS_TRUE == tlCtxt->isBMPS)
    {
       if(0 != currentHO->regionNumber)
       {
@@ -1353,14 +1304,14 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
       }
    }
 
-   if((VOS_FALSE == hoSupport->isBMPS) &&
+   if((VOS_FALSE == tlCtxt->isBMPS) &&
       (rssiValue >= currentHO->historyRSSI) && (0 != currentHO->historyRSSI) &&
       ((WLANTL_HO_THRESHOLD_DOWN == triggerEvent) || (WLANTL_HO_THRESHOLD_CROSS == triggerEvent)))
    {
       TH_MSG_ERROR("Registered RSSI value larger than Current RSSI, and DOWN event, Send Notification", 0, 0, 0);
       crossCBFunction(pAdapter, WLANTL_HO_THRESHOLD_DOWN, usrCtxt);
    }
-   else if((VOS_FALSE == hoSupport->isBMPS) &&
+   else if((VOS_FALSE == tlCtxt->isBMPS) &&
            (rssiValue < currentHO->historyRSSI) && (0 != currentHO->historyRSSI) &&
            ((WLANTL_HO_THRESHOLD_UP == triggerEvent) || (WLANTL_HO_THRESHOLD_CROSS == triggerEvent)))
    {
@@ -1368,7 +1319,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
       crossCBFunction(pAdapter, WLANTL_HO_THRESHOLD_UP, usrCtxt);
    }
 
-   if(VOS_TRUE == hoSupport->isBMPS)
+   if(VOS_TRUE == tlCtxt->isBMPS)
    {
       TH_MSG_ERROR("Register into FW, now BMPS", 0, 0, 0);
       WLANTL_SetFWRSSIThresholds(pAdapter);
@@ -1425,7 +1376,7 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
    TH_MSG_INFO("Delete Registration", 0, 0, 0);
    TH_MSG_ERROR("DEL target RSSI %d, event %d", rssiValue, triggerEvent, 0);
 
-   if((VOS_TRUE == hoSupport->isBMPS) && (0 < currentHO->regionNumber))
+   if((VOS_TRUE == tlCtxt->isBMPS) && (0 < currentHO->regionNumber))
    {
       if(rssiValue >= hoSupport->registeredInd[currentHO->regionNumber - 1].rssiValue)
       {
@@ -1501,7 +1452,7 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
       tlCtxt->hoSupport.registeredInd[currentHO->numThreshold - 1].numClient            = 0;
    }
 
-   if((VOS_FALSE == hoSupport->isBMPS) && (rssiValue >= currentHO->historyRSSI))
+   if((VOS_FALSE == tlCtxt->isBMPS) && (rssiValue >= currentHO->historyRSSI))
    {
       TH_MSG_ERROR("Removed Threashold above current RSSI levle, old RN %d", currentHO->regionNumber, 0, 0);
       if(0 < currentHO->regionNumber)
@@ -1514,14 +1465,14 @@ VOS_STATUS WLANTL_HSDeregRSSIIndicationCB
       }
       TH_MSG_ERROR("Decrese region number without notification %d", currentHO->regionNumber, 0, 0);
    }
-   else if((VOS_TRUE == hoSupport->isBMPS) && (VOS_TRUE == bmpsAbove))
+   else if((VOS_TRUE == tlCtxt->isBMPS) && (VOS_TRUE == bmpsAbove))
    {
       currentHO->regionNumber--;
    }
    /* Decrease number of thresholds */
    tlCtxt->hoSupport.currentHOState.numThreshold--;
 
-   if(VOS_TRUE == hoSupport->isBMPS)
+   if(VOS_TRUE == tlCtxt->isBMPS)
    {
       TH_MSG_ERROR("Register into FW, now BMPS", 0, 0, 0);
       WLANTL_SetFWRSSIThresholds(pAdapter);
@@ -1651,8 +1602,6 @@ VOS_STATUS WLANTL_HSInit
    direction = -1;
 #endif /* WLANTL_HO_UTEST */
 
-   tlCtxt->hoSupport.isBMPS = VOS_FALSE;
-
    /* set default current HO status */
    tlCtxt->hoSupport.currentHOState.alpha        = WLANTL_HO_DEFAULT_ALPHA;
    tlCtxt->hoSupport.currentHOState.historyRSSI  = 0;
@@ -1695,8 +1644,6 @@ VOS_STATUS WLANTL_HSInit
 
    vos_lock_init(&tlCtxt->hoSupport.hosLock);
    tlCtxt->hoSupport.macCtxt = vos_get_context(VOS_MODULE_ID_SME, pAdapter);
-   pmcRegisterDeviceStateUpdateInd(tlCtxt->hoSupport.macCtxt,
-                                   WLANTL_HSPowerStateChangedCB, pAdapter);
 
    return status;
 }

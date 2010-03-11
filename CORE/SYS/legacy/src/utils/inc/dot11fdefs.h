@@ -5,7 +5,7 @@
  *
  * \brief C defines customizing our framesc-generated code
  *
- * $Id: //source/qcom/qct/wconnect/wlan/core/sys/legacy/main/latest/src/utils/inc/dot11fdefs.h#3 $
+ * $Id: //source/qcom/qct/wconnect/wlan/core/sys/legacy/rel/LA-EC1.0/src/utils/inc/dot11fdefs.h#1 $
  *
  *
  * Copyright (C) 2006 Airgo Networks, Incorporated
