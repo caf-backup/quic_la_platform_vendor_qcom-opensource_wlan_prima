@@ -193,7 +193,7 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
 #define BACKPRESSURE_FULL_QUEUE
 #ifdef BACKPRESSURE_FULL_QUEUE
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, 
                  "%s: TX queue full for AC=%d Disable OS TX queue", 
                  __FUNCTION__, ac );
 
@@ -677,7 +677,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    {
       ++pAdapter->hdd_stats.hddTxRxStats.txFetchDePressured;
       ++pAdapter->hdd_stats.hddTxRxStats.txFetchDePressuredAC[ac];
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                  "%s: TX queue re-enabled", __FUNCTION__);
       pAdapter->isTxSuspended = VOS_FALSE;
       netif_carrier_on(pAdapter->dev);

@@ -86,6 +86,27 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
     return status;
 }
 
+
+
+eHalStatus halFw_PostFwRspMsg(tpAniSirGlobal pMac, void *pFwMsg)
+{
+    tSirMsgQ msg;
+
+    msg.type     =  SIR_HAL_HANDLE_FW_MBOX_RSP;
+    msg.reserved = 0;
+    msg.bodyptr  = pFwMsg;
+    msg.bodyval  = 0;
+
+    if(halPostMsgApi(pMac,&msg) != eSIR_SUCCESS) {
+        HALLOGE(halLog(pMac, LOGE, FL("Posting SIR_HAL_HANDLE_FW_MBOX_RSP msg failed")));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    HALLOGW(halLog(pMac, LOGW, FL("Posting SIR_HAL_HANDLE_FW_MBOX_RSP msg\n")));
+    return eHAL_STATUS_SUCCESS;
+}
+
+
 /*
  * DESCRIPTION:
  *      Firmware exit function
@@ -589,10 +610,11 @@ eHalStatus halFW_UpdateSystemConfig(tpAniSirGlobal pMac,
  *      eHAL_STATUS_FAILURE
  */
 /*  */
-eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void *pFwMsg)
+eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void *pFwMsg, tANI_U8* bufConsumed)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tMBoxMsgHdr *pMsgHdr = (tMBoxMsgHdr*)pFwMsg;
+    *bufConsumed = TRUE;
 
     // Handle the type of FW message received
     switch(pMsgHdr->MsgType) {
@@ -640,9 +662,13 @@ eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void *pFwMsg)
             break;
 
         case QWLANFW_FW2HOST_CAL_UPDATE_RSP:
-        case QWLANFW_FW2HOST_SET_CHANNEL_RSP:
         case QWLANFW_FW2HOST_SET_CHAIN_SELECT_RSP:
-            status = halPhy_HandlerFwRspMsg(pMac, pFwMsg);
+           status = halPhy_HandlerFwRspMsg(pMac, pFwMsg);
+           break;
+
+        case QWLANFW_FW2HOST_SET_CHANNEL_RSP:
+            status = halFw_PostFwRspMsg(pMac, pFwMsg);
+            *bufConsumed = (status == eHAL_STATUS_SUCCESS) ? FALSE : TRUE;
             break;
 
         default:

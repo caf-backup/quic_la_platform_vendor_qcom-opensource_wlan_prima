@@ -106,7 +106,7 @@ static void vos_linux_timer_callback ( v_U32_t data )
 
    if (timer == NULL)
    {
-     printk(KERN_CRIT "%s Null pointer passed in!\n",__FUNCTION__);
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s Null pointer passed in!",__FUNCTION__);
      return;
    }
 

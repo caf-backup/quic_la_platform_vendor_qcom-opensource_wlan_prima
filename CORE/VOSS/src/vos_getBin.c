@@ -90,7 +90,7 @@ VOS_STATUS vos_get_binary_blob( VOS_BINARY_ID binaryId,
   VOS_STATUS VosSts = VOS_STATUS_SUCCESS;
     char *pFileName;
 
-	v_CONTEXT_t pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS,NULL);
+    v_CONTEXT_t pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS,NULL);
 
     // get the correct file name from binary Id
     switch (binaryId)
@@ -106,25 +106,25 @@ VOS_STATUS vos_get_binary_blob( VOS_BINARY_ID binaryId,
            break;
 
         default:
-		   printk(KERN_CRIT "Invalid binaryID\n");
-  return VosSts;
-}
+           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "Invalid binaryID");
+           return VosSts;
+    }
 
     if(0 == *pBufferSize )
     {
        /*  just a file size request.  set the value and return  VOS_STATUS_E_NOMEM*/
 
-	   VosSts = hdd_get_cfg_file_size(((VosContextType*)(pVosContext))->pHDDContext,pFileName,pBufferSize);
+       VosSts = hdd_get_cfg_file_size(((VosContextType*)(pVosContext))->pHDDContext,pFileName,pBufferSize);
 
 
-	   if ( !VOS_IS_STATUS_SUCCESS( VosSts ))
-	   {
-	      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            						"%s : vos_open failed\n",__func__);
+       if ( !VOS_IS_STATUS_SUCCESS( VosSts ))
+       {
+          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                                    "%s : vos_open failed\n",__func__);
 
-		  return VOS_STATUS_E_FAILURE;
-	   }
-	   VosSts = VOS_STATUS_E_NOMEM;
+          return VOS_STATUS_E_FAILURE;
+       }
+       VosSts = VOS_STATUS_E_NOMEM;
 
     }
     else
@@ -133,9 +133,9 @@ VOS_STATUS vos_get_binary_blob( VOS_BINARY_ID binaryId,
           // read the contents into the buffer
           VosSts = hdd_read_cfg_file(((VosContextType*)(pVosContext))->pHDDContext,pFileName,pBuffer,pBufferSize);
        }
-	   else {
-	   	  VosSts = VOS_STATUS_E_FAILURE;
-	   }
+       else {
+             VosSts = VOS_STATUS_E_FAILURE;
+       }
     }
 
     return VosSts;

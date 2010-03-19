@@ -383,6 +383,7 @@ eHalStatus halMbox_RecvMsg( tHalHandle hHal )
     tMBoxMsgHdr header, *pMsgHdr;
     eHalStatus retStatus = eHAL_STATUS_SUCCESS;
     tANI_U8 *pMsg = NULL;
+    tANI_U8 bufConsumed = TRUE;
 
     tpMboxInfo  pMbox = (tpMboxInfo) pMac->hal.halMac.mboxInfo;
     pMsgHdr = (tMBoxMsgHdr *)&header;
@@ -418,12 +419,13 @@ eHalStatus halMbox_RecvMsg( tHalHandle hHal )
             pMsg, pMsgHdr->MsgLen);
 
     // Handle the FW messages
-    retStatus = halFW_HandleFwMessages(pMac, pMsg);
+    retStatus = halFW_HandleFwMessages(pMac, pMsg, &bufConsumed);
     HALLOG1( halLog( pMac, LOG1,
             FL("Mbox %d interrupt received.\n"),
             FW2H_MAILBOX));
 
-    palFreeMemory(pMac->hHdd, pMsg);
+    if(bufConsumed)
+       palFreeMemory(pMac->hHdd, pMsg);
     // READ the "concerned" MB Control REG in order to increment the READ count again
     halReadRegister(pMac, MCU_MB_CONTROL_REGISTER( MCU_MAILBOX_FW2HOST ),
         &readValue );

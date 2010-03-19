@@ -23,7 +23,7 @@
 #include <i_vos_types.h>
 #include <vos_status.h>
 #include <linux/spinlock.h>
-
+#include <vos_trace.h>
 
 /**-----------------------------------------------------------------------------
   Preprocessor definitions and constants
@@ -67,7 +67,7 @@ VOS_INLINE_FN v_VOID_t hdd_list_destroy( hdd_list_t *pList )
 {
    if ( pList->count !=0 )
    {
-       printk(KERN_CRIT "%s: list length not equal to zero\n",__FUNCTION__);
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "%s: list length not equal to zero",__FUNCTION__);
    }
 }
 

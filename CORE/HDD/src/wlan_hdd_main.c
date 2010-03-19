@@ -535,12 +535,22 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
         return;
      }
    }
+
+   init_completion(&pAdapter->disconnect_comp_var);
+   halStatus = sme_RoamDisconnect(pAdapter->hHal, eCSR_DISCONNECT_REASON_UNSPECIFIED);
+
+   //success implies disconnect command got queued up successfully
+   if(halStatus == eHAL_STATUS_SUCCESS)
+   {
+       wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var, 
+       msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+   }
   
    //Stop all the modules
    vosStatus = vos_stop( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
          "%s: Failed to stop VOSS",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
@@ -551,7 +561,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    vosStatus = WLANBAL_SuspendChip( pAdapter->pvosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
          "%s: Failed to suspend chip ",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
@@ -560,7 +570,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    vosStatus = WLANSAL_Stop( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
          "%s: Failed to stop SAL",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }

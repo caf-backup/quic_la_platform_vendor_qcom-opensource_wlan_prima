@@ -191,7 +191,12 @@ void hdd_connSaveConnectInfo( hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo, 
 
          // Save the Station ID for this station from the 'Roam Info'.
          //For IBSS mode, staId is assigned in NEW_PEER_IND
-         pAdapter->conn_info.staId [0]= pRoamInfo->staId;
+         //For reassoc, the staID doesn't change and it may be invalid in this structure
+         //so no change here.
+         if( !pRoamInfo->fReassocReq )
+         {
+            pAdapter->conn_info.staId [0]= pRoamInfo->staId;
+         }
       }
       else if ( eCSR_BSS_TYPE_IBSS == eBssType )
       {   
@@ -333,7 +338,7 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     status = hdd_roamDeregisterSTA( pAdapter, pAdapter->conn_info.staId [0] );
     if ( !VOS_IS_STATUS_SUCCESS(status ) )
     {
-        printk("hdd_roamDeregisterSTA() failed to for staID %d.  Status= %d [0x%x]",
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"hdd_roamDeregisterSTA() failed to for staID %d.  Status= %d [0x%x]",
                     pAdapter->conn_info.staId[0], status, status );
 
         status = eHAL_STATUS_FAILURE;
@@ -484,30 +489,52 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
  
     if ( eCSR_ROAM_RESULT_ASSOCIATED == roamResult )
     {
-       hdd_connSetConnectionState( pAdapter, eConnectionState_Associated );
+        hdd_connSetConnectionState( pAdapter, eConnectionState_Associated );
    
-       // Save the connection info from CSR...
-       hdd_connSaveConnectInfo( pAdapter, pRoamInfo, eCSR_BSS_TYPE_INFRASTRUCTURE );
+        // Save the connection info from CSR...
+        hdd_connSaveConnectInfo( pAdapter, pRoamInfo, eCSR_BSS_TYPE_INFRASTRUCTURE );
 
-     // Register the Station with TL after associated...
-        vosStatus = hdd_roamRegisterSTA( pAdapter,
-                                         (v_BOOL_t)pRoamInfo->fAuthRequired,
-                                         pAdapter->conn_info.staId[ 0 ],
-                                         pRoamInfo->ucastSig,
-                                         pRoamInfo->bcastSig,
-                                         NULL );
-  
-        if ( VOS_IS_STATUS_SUCCESS( vosStatus ) )
+        //For reassoc, the station is already registered, all we need is to change the state
+        //of the STA in TL.
+        //If authentication is required (WPA/WPA2/DWEP), change TL to CONNECTED instead of AUTHENTICATED
+        if( !pRoamInfo->fReassocReq )
         {
-           // indicate 'connect' status to userspace
-           hdd_SendAssociationEvent(dev,pRoamInfo);
-    
-           // perform any WMM-related association processing
-           hdd_wmm_assoc(pAdapter, pRoamInfo, eCSR_BSS_TYPE_INFRASTRUCTURE);
+            // Register the Station with TL after associated...
+            vosStatus = hdd_roamRegisterSTA( pAdapter,
+                                             (v_BOOL_t)pRoamInfo->fAuthRequired,
+                                             pAdapter->conn_info.staId[ 0 ],
+                                             pRoamInfo->ucastSig,
+                                             pRoamInfo->bcastSig,
+                                             NULL );
         }
         else
         {
-           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+            //Reassoc successfully
+            if( pRoamInfo->fAuthRequired )
+            {
+                vosStatus = WLANTL_ChangeSTAState( pAdapter->pvosContext, pAdapter->conn_info.staId[ 0 ], 
+                                         WLANTL_STA_CONNECTED );
+                pAdapter->conn_info.uIsAuthenticated = VOS_FALSE;
+            }
+            else
+            {
+                vosStatus = WLANTL_ChangeSTAState( pAdapter->pvosContext, pAdapter->conn_info.staId[ 0 ], 
+                                         WLANTL_STA_AUTHENTICATED );
+                pAdapter->conn_info.uIsAuthenticated = VOS_TRUE;
+            }
+        }
+  
+        if ( VOS_IS_STATUS_SUCCESS( vosStatus ) )
+        {
+            // indicate 'connect' status to userspace
+            hdd_SendAssociationEvent(dev,pRoamInfo);
+    
+            // perform any WMM-related association processing
+            hdd_wmm_assoc(pAdapter, pRoamInfo, eCSR_BSS_TYPE_INFRASTRUCTURE);
+        }
+        else
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                        "Cannot register STA with TL.  Failed with vosStatus = %d [%08lX]",
                        vosStatus, vosStatus );
         }
@@ -516,14 +543,14 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     }  
     else if(eCSR_ROAM_RESULT_NOT_ASSOCIATED == roamResult)
     {
-       hdd_connSetConnectionState( pAdapter, eConnectionState_NotConnected);
-       hdd_SendAssociationEvent(dev,pRoamInfo);
+        hdd_connSetConnectionState( pAdapter, eConnectionState_NotConnected);
+        hdd_SendAssociationEvent(dev,pRoamInfo);
    
-       netif_tx_disable(dev);
-       netif_carrier_off(dev);
+        netif_tx_disable(dev);
+        netif_carrier_off(dev);
     }
             
-   return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 
@@ -882,7 +909,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
     eHalStatus halStatus = eHAL_STATUS_SUCCESS;
     hdd_adapter_t *pAdapter = (hdd_adapter_t *)pContext;;
 
-    printk("CSR Callback: status= %d result= %d roamID=%ld\n", 
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,"CSR Callback: status= %d result= %d roamID=%ld", 
                     roamStatus, roamResult, roamId ); 
 
     switch( roamStatus )
@@ -894,12 +921,12 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
 
         case eCSR_ROAM_LOSTLINK:
         case eCSR_ROAM_DISASSOCIATED:
-            printk(KERN_EMERG "****eCSR_ROAM_DISASSOCIATED****\n");
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "****eCSR_ROAM_DISASSOCIATED****");
             halStatus = hdd_DisConnectHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
             break;
                     
         case eCSR_ROAM_ASSOCIATION_COMPLETION:
-            printk(KERN_EMERG "****eCSR_ROAM_ASSOCIATION_COMPLETION****\n");
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "****eCSR_ROAM_ASSOCIATION_COMPLETION****");
             halStatus = hdd_AssociationCompletionHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
             break;
 
@@ -1010,7 +1037,6 @@ static tANI_U8 hdd_IsMACAddrNULL (tANI_U8 *macAddr, tANI_U8 length)
 
     for (i = 0; i < length; i++)
     {
-        printk("SSID is %x \n",macAddr[i]);
         if (0x00 != (macAddr[i]))
         {
             return FALSE;
@@ -1316,6 +1342,11 @@ int iw_set_essid(struct net_device *dev,
     
     ENTER();
   
+    if(pWextState->mTKIPCounterMeasures == TKIP_COUNTER_MEASURE_STARTED) {
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s :Counter measure is in progress\n", __func__);
+        return -EBUSY;
+    }
+
     if( SIR_MAC_MAX_SSID_LENGTH < wrqu->essid.length )
         return -EINVAL;
 
@@ -1571,11 +1602,11 @@ int iw_set_auth(struct net_device *dev,struct iw_request_info *info,
       case IW_AUTH_TKIP_COUNTERMEASURES:
       {
          if(wrqu->param.value) {
-            hddLog(LOG1,"Counter Measure started %d\n", wrqu->param.value);
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,"Counter Measure started %d\n", wrqu->param.value);
             pWextState->mTKIPCounterMeasures = TKIP_COUNTER_MEASURE_STARTED;
          }  
          else {   
-            hddLog(LOG1,"Counter Measure stopped=%d\n", wrqu->param.value);
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH,"Counter Measure stopped=%d\n", wrqu->param.value);
             pWextState->mTKIPCounterMeasures = TKIP_COUNTER_MEASURE_STOPED;
          }  
       }   
@@ -1751,7 +1782,7 @@ int iw_set_ap_address(struct net_device *dev,
 
     pMacAddress = (v_U8_t*) wrqu->ap_addr.sa_data;
 
-    printk(KERN_EMERG "%02x:%02x:%02x:%02x:%02x:%02x\n",pMacAddress[0],pMacAddress[1],
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%02x:%02x:%02x:%02x:%02x:%02x",pMacAddress[0],pMacAddress[1],
           pMacAddress[2],pMacAddress[3],pMacAddress[4],pMacAddress[5]);
 
     vos_mem_copy( pAdapter->conn_info.bssId, pMacAddress, sizeof( tCsrBssid ));

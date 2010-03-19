@@ -18,6 +18,7 @@
   Include Files
   ------------------------------------------------------------------------*/
 #include "vos_types.h"
+#include "vos_trace.h"
 
 /*-------------------------------------------------------------------------- 
   Preprocessor definitions and constants
@@ -48,7 +49,7 @@ v_U32_t vos_atomic_set_U32( v_U32_t *pTarget, v_U32_t value )
 
   if (pTarget == NULL)
   {
-     printk(KERN_CRIT "NULL ptr passed into %s\n",__FUNCTION__);
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "NULL ptr passed into %s",__FUNCTION__);
      return 0;
   }
   local_irq_save(flags);
@@ -78,7 +79,7 @@ v_U32_t vos_atomic_increment_U32( v_U32_t *pTarget )
   unsigned long flags;
   if (pTarget == NULL)
   {
-     printk(KERN_CRIT "NULL ptr passed into %s\n",__FUNCTION__);
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "NULL ptr passed into %s",__FUNCTION__);
      return 0;
   }
   local_irq_save(flags);
@@ -106,7 +107,7 @@ v_U32_t vos_atomic_decrement_U32( v_U32_t *pTarget )
   unsigned long flags;
   if (pTarget == NULL)
   {
-     printk(KERN_CRIT "NULL ptr passed into %s\n",__FUNCTION__);
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "NULL ptr passed into %s",__FUNCTION__);
      return 0;
   }
    // return atomic_dec_return(pTarget);

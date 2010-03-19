@@ -209,5 +209,11 @@ eHalStatus sme_QosCsrEventInd(tpAniSirGlobal pMac,
   --------------------------------------------------------------------------*/
 v_U8_t sme_QosGetACMMask(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes);
 
+/*
+  sme_QosTriggerUapsdChange
+        It trigger a change on UAPSD (either disable/enable UAPSD) on current QoS flows
+*/
+sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac );
+
 
 #endif //#if !defined( __SMEQOSINTERNAL_H )

@@ -59,22 +59,19 @@ extern "C" {
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
 /* Error MSG for BAL module */
-#define BAL_DEBUG
 
+//#define BAL_DEBUG
 #ifdef BAL_DEBUG
 
-//#define BENTER()                       printk("%s: Enter %d\n", __func__, __LINE__);
-//#define BEXIT()                        printk("%s: Exit %d\n", __func__, __LINE__);
-//#define BLINE()                        printk("%s: - %d - \n", __func__, __LINE__);
-#define BENTER()                       
-#define BEXIT()                       
-#define BLINE()                        
+#define BENTER()  VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_INFO, "%s: Enter %d", __func__, __LINE__)                     
+#define BEXIT()   VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_INFO, "%s: Exit %d", __func__, __LINE__)                    
+#define BLINE()   VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_INFO, "%s: - %d - ", __func__, __LINE__)                     
 
 #else
 
-#define BENTER()                       
-#define BEXIT()                       
-#define BLINE()                        
+#define BENTER()  
+#define BEXIT()  
+#define BLINE() 
 
 #endif
 

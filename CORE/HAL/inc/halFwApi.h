@@ -110,7 +110,8 @@ eHalStatus halFW_UpdateSystemConfig(tpAniSirGlobal pMac,
 eHalStatus halFW_UpdateReInitRegListStartAddr(tpAniSirGlobal pMac, tANI_U32 value);
 
 /* Handle FW messages to the Host */
-eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void* pFwMsg);
+eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void* pFwMsg, tANI_U8* bufConsumed);
+eHalStatus halFw_PostFwRspMsg(tpAniSirGlobal pMac, void *pFwMsg);
 
 /* Function to handle the FW status message */
 eHalStatus halFW_HandleFwStatusMsg(tpAniSirGlobal pMac, void* pFwMsg);

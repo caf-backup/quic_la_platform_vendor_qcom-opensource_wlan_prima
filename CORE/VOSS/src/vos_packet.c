@@ -283,7 +283,7 @@ VOS_STATUS vos_packet_open( v_VOID_t *pVosContext,
    struct vos_pkt_t *pPkt;
    struct list_head *pFreeList;
 
-   printk(KERN_ALERT "Enter:%s\n",__FUNCTION__);
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "Enter:%s",__FUNCTION__);
 
    do
    {
@@ -432,7 +432,7 @@ VOS_STATUS vos_packet_open( v_VOID_t *pVosContext,
 VOS_STATUS vos_packet_close( v_PVOID_t pVosContext )
 {
 
-   printk(KERN_ALERT "Enter:%s\n",__FUNCTION__);
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "Enter:%s",__FUNCTION__);
 
    if (unlikely(NULL == pVosContext))
    {
@@ -1240,7 +1240,7 @@ VOS_STATUS vos_pkt_return_packet( vos_pkt_t *pPacket )
       if (pLowResourceInfo && pLowResourceInfo->callback)
       {
          // [DEBUG]
-         printk("VPKT [%d]: recycle %p\n",  __LINE__, pPacket);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,"VPKT [%d]: recycle %p",  __LINE__, pPacket);
 
          // yes, so rather than placing the packet back in the free pool
          // we will invoke the low resource callback

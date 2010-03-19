@@ -15,9 +15,8 @@
 
 #define BMPS_TRAFFIC_TIMER_DEFAULT 5000  //unit = ms
 
-#define PMC_IS_CHIP_ACCESSIBLE(pmcState) ( (IMPS != (pmcState)) && (REQUEST_IMPS != (pmcState)) && \
-       (STANDBY != (pmcState)) && (REQUEST_STANDBY != (pmcState)) )
-
+#define PMC_IS_CHIP_ACCESSIBLE(pmcState) ( (IMPS != (pmcState)) && (REQUEST_IMPS != (pmcState)) \
+    && (STANDBY != (pmcState)) && (REQUEST_STANDBY != (pmcState)) )
 
 /* Power events that are signaled to PMC. */
 typedef enum ePmcPowerEvent

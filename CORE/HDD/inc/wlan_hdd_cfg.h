@@ -160,7 +160,7 @@
 
 #define CFG_IMPS_MINIMUM_SLEEP_TIME_NAME       "gImpsMinSleepTime" 
 #define CFG_IMPS_MINIMUM_SLEEP_TIME_MIN        ( 1 )
-#define CFG_IMPS_MINIMUM_SLEEP_TIME_MAX        ( 5 )
+#define CFG_IMPS_MINIMUM_SLEEP_TIME_MAX        ( 65535 )
 #define CFG_IMPS_MINIMUM_SLEEP_TIME_DEFAULT    ( 5 )
     
 #define CFG_IMPS_MODERATE_SLEEP_TIME_NAME      "gImpsModSleepTime"
@@ -181,18 +181,18 @@
 
 #define CFG_BMPS_MINIMUM_LI_NAME               "gBmpsMinListenInterval"
 #define CFG_BMPS_MINIMUM_LI_MIN                ( 1 )
-#define CFG_BMPS_MINIMUM_LI_MAX                ( 1 )
+#define CFG_BMPS_MINIMUM_LI_MAX                ( 65535 )
 #define CFG_BMPS_MINIMUM_LI_DEFAULT            ( 1 )
     
 #define CFG_BMPS_MODERATE_LI_NAME              "gBmpsModListenInterval"
 #define CFG_BMPS_MODERATE_LI_MIN               ( 1 )
-#define CFG_BMPS_MODERATE_LI_MAX               ( 2 )
+#define CFG_BMPS_MODERATE_LI_MAX               ( 65535 )
 #define CFG_BMPS_MODERATE_LI_DEFAULT           ( 1 )
 
 #define CFG_BMPS_MAXIMUM_LI_NAME               "gBmpsMaxListenInterval"
-#define CFG_BMPS_MAXIMUM_LI_MIN                ( 2 )
+#define CFG_BMPS_MAXIMUM_LI_MIN                ( 1 )
 #define CFG_BMPS_MAXIMUM_LI_MAX                ( 65535 )
-#define CFG_BMPS_MAXIMUM_LI_DEFAULT            ( 4 )
+#define CFG_BMPS_MAXIMUM_LI_DEFAULT            ( 1 )
 
 // gEnableAutoBmpsTimer has been previously published as an externally
 // configurable parameter. See analysis of CR 178211 for detailed info

@@ -16,6 +16,7 @@
   Include Files
   ------------------------------------------------------------------------*/
 #include <vos_threads.h>
+#include <vos_trace.h>
 #include <linux/jiffies.h>
 #include <linux/sched.h>
 #include <linux/delay.h>
@@ -54,7 +55,7 @@ v_VOID_t vos_sleep( v_U32_t msInterval )
 {
    if (in_interrupt())
    {
-      printk(KERN_CRIT "%s cannot be called from interrupt context!!!\n", __FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s cannot be called from interrupt context!!!", __FUNCTION__);
       return;
    }
    msleep_interruptible(msInterval);
@@ -80,7 +81,7 @@ v_VOID_t vos_sleep_us( v_U32_t usInterval )
    unsigned long timeout = usecs_to_jiffies(usInterval) + 1;
    if (in_interrupt())
    {
-      printk(KERN_CRIT "%s cannot be called from interrupt context!!!\n", __FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s cannot be called from interrupt context!!!", __FUNCTION__);
       return;
    }
    while (timeout && !signal_pending(current))

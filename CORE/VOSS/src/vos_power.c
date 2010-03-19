@@ -95,7 +95,6 @@ static struct wlan_pm8058_gpio wlan_gpios_power_off[] = {
 int vos_chip_power_qrf8600(int on)
 {
    int rc;
-
    struct vreg *vreg_wlan2 = NULL;
    struct vreg *vreg_s2 = NULL;
    struct vreg *vreg_s4 = NULL;
@@ -104,7 +103,7 @@ int vos_chip_power_qrf8600(int on)
    //2.5v Analog from LDO19
    vreg_wlan2 = vreg_get(NULL, "wlan2");
    if (IS_ERR(vreg_wlan2)) {
-      printk(KERN_ERR "%s: wlan2 vreg get failed (%ld)\n",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan2 vreg get failed (%ld)",
          __func__, PTR_ERR(vreg_wlan2));
       return PTR_ERR(vreg_wlan2);
    }
@@ -112,15 +111,15 @@ int vos_chip_power_qrf8600(int on)
    //1.3v RF; gated by externel FET (GPIO 21 & GPIO 22)
    vreg_s2 = vreg_get(NULL, "s2");
    if (IS_ERR(vreg_s2)) {
-      printk(KERN_ERR "%s: s2 vreg get failed (%ld)\n",
-         __func__, PTR_ERR(vreg_wlan));
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg get failed (%ld)",
+         __func__, PTR_ERR(vreg_s2));
       return PTR_ERR(vreg_s2);
    }
 
    //2.2v RF - Gated by externel FET (GPIO 31 & GPIO 32)
    vreg_s4 = vreg_get(NULL, "s4");
    if (IS_ERR(vreg_s4)) {
-      printk(KERN_ERR "%s: s4 vreg get failed (%ld)\n",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s4 vreg get failed (%ld)",
          __func__, PTR_ERR(vreg_s4));
       return PTR_ERR(vreg_s4);
    }
@@ -128,7 +127,7 @@ int vos_chip_power_qrf8600(int on)
    //2.9v PA from LDO13
    vreg_wlan = vreg_get(NULL, "wlan");
    if (IS_ERR(vreg_wlan)) {
-      printk(KERN_ERR "%s: wlan vreg get failed (%ld)\n",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg get failed (%ld)",
          __func__, PTR_ERR(vreg_wlan));
       return PTR_ERR(vreg_wlan);
    }
@@ -138,14 +137,14 @@ int vos_chip_power_qrf8600(int on)
       // Configure GPIO 21 & GPIO 22
       rc = pm8058_gpio_config(wlan_gpios_power_on[0].gpio_num, &wlan_gpios_power_on[0].gpio_cfg);
       if (rc) {
-         printk(KERN_ERR "%s: pmic GPIO %d config failed (%d)\n",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[0].gpio_num, rc);
          return -EIO;
       }
 
       rc = pm8058_gpio_config(wlan_gpios_power_on[1].gpio_num, &wlan_gpios_power_on[1].gpio_cfg);
       if (rc) {
-         printk(KERN_ERR "%s: pmic GPIO %d config failed (%d)\n",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[1].gpio_num, rc);
          return -EIO;
       }
@@ -153,7 +152,7 @@ int vos_chip_power_qrf8600(int on)
       // Cofigure GPIO 27 to be high. Without this GPIO 31, 32 will be disabled.
       rc = pm8058_gpio_config(wlan_gpios_power_on[5].gpio_num, &wlan_gpios_power_on[5].gpio_cfg);
       if (rc) {
-         printk(KERN_ERR "%s: pmic GPIO %d config failed (%d)\n",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[5].gpio_num, rc);
          return -EIO;
       }
@@ -161,14 +160,14 @@ int vos_chip_power_qrf8600(int on)
       // Configure GPIO 31 & GPIO 32
       rc = pm8058_gpio_config(wlan_gpios_power_on[3].gpio_num, &wlan_gpios_power_on[3].gpio_cfg);
       if (rc) {
-         printk(KERN_ERR "%s: pmic GPIO %d config failed (%d)\n",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[3].gpio_num, rc);
          return -EIO;
       }
 
       rc = pm8058_gpio_config(wlan_gpios_power_on[4].gpio_num, &wlan_gpios_power_on[4].gpio_cfg);
       if (rc) {
-         printk(KERN_ERR "%s: pmic GPIO %d config failed (%d)\n",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[4].gpio_num, rc);
          return -EIO;
       }
@@ -176,7 +175,7 @@ int vos_chip_power_qrf8600(int on)
       // Configure GPIO 23 for Deep Sleep
       rc = pm8058_gpio_config(wlan_gpios_power_on[2].gpio_num, &wlan_gpios_power_on[2].gpio_cfg);
       if (rc) {
-         printk(KERN_ERR "%s: pmic GPIO %d config failed (%d)\n",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[2].gpio_num, rc);
          return -EIO;
       }
@@ -184,60 +183,60 @@ int vos_chip_power_qrf8600(int on)
       // Power up 2.5v Analog
       rc = vreg_set_level(vreg_wlan2, 2500);
       if (rc) {
-         printk(KERN_ERR "%s: wlan2 vreg set level failed (%d)\n",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan2 vreg set level failed (%d)",
             __func__, rc);
          return -EIO;
       }
 
       rc = vreg_enable(vreg_wlan2);
       if (rc) {
-         printk(KERN_ERR "%s: wlan2 vreg enable failed (%d)\n", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan2 vreg enable failed (%d)", __func__, rc);
          return -EIO;
       }
 
-      printk(KERN_CRIT "%s: Wait for 2.5v supply to settle\n",__func__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Wait for 2.5v supply to settle",__func__);
       msleep(500);
 
       // Power up 1.3v RF
       rc = vreg_set_level(vreg_s2, 1300);
       if (rc) {
-         printk(KERN_ERR "%s: s2 vreg set level failed (%d)\n", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg set level failed (%d)", __func__, rc);
          return -EIO;
       }
 
       rc = vreg_enable(vreg_s2);
       if (rc) {
-         printk(KERN_ERR "%s: s2 vreg enable failed (%d)\n", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg enable failed (%d)", __func__, rc);
          return -EIO;
       }
 
       // Power up 2.2v RF
       rc = vreg_set_level(vreg_s4, 2200);
       if (rc) {
-         printk(KERN_ERR "%s: s4 vreg set level failed (%d)\n",__func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s4 vreg set level failed (%d)",__func__, rc);
          return -EIO;
       }
 
       rc = vreg_enable(vreg_s4);
       if (rc) {
-         printk(KERN_ERR "%s: s4 vreg enable failed (%d)\n", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s4 vreg enable failed (%d)", __func__, rc);
          return -EIO;
       }
 
       // Power up 2.9v PA
       rc = vreg_set_level(vreg_wlan, 2900);
       if (rc) {
-         printk(KERN_ERR "%s: wlan vreg set level failed (%d)\n", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg set level failed (%d)", __func__, rc);
          return -EIO;
       }
 
       rc = vreg_enable(vreg_wlan);
       if (rc) {
-         printk(KERN_ERR "%s: wlan vreg enable failed (%d)\n",__func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg enable failed (%d)",__func__, rc);
          return -EIO;
       }
 
-      printk(KERN_ERR "%s: Enabled power supply for WLAN\n", __func__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Enabled power supply for WLAN", __func__);
 		
       msleep(500);
 	} 
@@ -245,29 +244,29 @@ int vos_chip_power_qrf8600(int on)
    {
       rc = vreg_disable(vreg_wlan);
       if (rc) {
-         printk(KERN_ERR "%s: wlan vreg disable failed (%d)\n", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg disable failed (%d)", __func__, rc);
          return -EIO;
       }
 
       rc = vreg_disable(vreg_s4); 
       if (rc) {
-         printk(KERN_ERR "%s: s4 vreg disable failed (%d)\n", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s4 vreg disable failed (%d)", __func__, rc);
          return -EIO;
       }
 
       rc = vreg_disable(vreg_s2);
       if (rc) {
-         printk(KERN_ERR "%s: s2 vreg disable failed (%d)\n", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg disable failed (%d)", __func__, rc);
          return -EIO;
       }
 
       rc = vreg_disable(vreg_wlan2);
       if (rc) {
-         printk(KERN_ERR "%s: wlan2 vreg disable failed (%d)\n", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan2 vreg disable failed (%d)", __func__, rc);
          return -EIO;
       }
 		
-		printk(KERN_ERR "%s: Disabled power supply for WLAN\n", __func__);
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Disabled power supply for WLAN", __func__);
 	}
 
    return 0;
@@ -286,14 +285,14 @@ int vos_chip_power_7x27_keypad( int on )
 	
    vreg_wlan = vreg_get(NULL, "wlan");
    if (IS_ERR(vreg_wlan)) {
-      printk(KERN_ERR "%s: wlan vreg get failed (%ld)\n",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg get failed (%ld)",
          __func__, PTR_ERR(vreg_wlan));
       return PTR_ERR(vreg_wlan);
    }
 
 	vreg_bt = vreg_get(NULL, "gp6");
 	if (IS_ERR(vreg_bt)) {
-		printk(KERN_ERR "%s: gp6 vreg get failed (%ld)\n",
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: gp6 vreg get failed (%ld)",
 		       __func__, PTR_ERR(vreg_bt));
 		return PTR_ERR(vreg_bt);
 	}
@@ -303,25 +302,25 @@ int vos_chip_power_7x27_keypad( int on )
       /* units of mV, steps of 50 mV */
       rc = vreg_set_level(vreg_bt, 2600);
       if (rc) {
-         printk(KERN_ERR "%s: vreg set level failed (%d)\n",__func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: vreg set level failed (%d)",__func__, rc);
          return -EIO;
       }
       rc = vreg_enable(vreg_bt);
       if (rc) {
-         printk(KERN_ERR "%s: vreg enable failed (%d)\n",__func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: vreg enable failed (%d)",__func__, rc);
          return -EIO;
       }
 
       //Set VDD_WLAN_2V6 to 1.8v first.
       rc = vreg_set_level(vreg_wlan, 1800);
       if (rc) {
-         printk(KERN_ERR "%s: vreg set level failed (%d)\n", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: vreg set level failed (%d)", __func__, rc);
          return -EIO;
       }
 
       rc = vreg_enable(vreg_wlan);
       if (rc) {
-         printk(KERN_ERR "%s: wlan vreg enable failed (%d)\n",__func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg enable failed (%d)",__func__, rc);
          return -EIO;
       }
 
@@ -331,7 +330,7 @@ int vos_chip_power_7x27_keypad( int on )
       rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
          MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_HIGH));
       if (rc) {
-         printk(KERN_ERR "%s: MPP_4 pull high failed (%d)\n",__func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: MPP_4 pull high failed (%d)",__func__, rc);
          return -EIO;
       }
 
@@ -341,17 +340,17 @@ int vos_chip_power_7x27_keypad( int on )
       //Set VDD_WLAN_2V6 to 2.6v
       rc = vreg_set_level(vreg_wlan, 2600);
       if (rc) {
-         printk(KERN_ERR "%s: vreg set level failed (%d)\n", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: vreg set level failed (%d)", __func__, rc);
          return -EIO;
       }
       
-      printk(KERN_ERR "%s: Enabled power supply for WLAN\n", __func__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Enabled power supply for WLAN", __func__);
  
       msleep(500);
    }
    else 
    {
-      printk(KERN_ERR "%s: Disabled power supply for WLAN\n", __func__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Disabled power supply for WLAN", __func__);
    }
 
    return 0;
@@ -612,7 +611,7 @@ VOS_STATUS vos_chipAssertDeepSleep
    int rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
       MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_LOW));
    if (rc) {
-	   printk(KERN_ERR "%s: Failed to pull high MPP_4_CHIP_PWD_L (%d)\n",
+	   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Failed to pull high MPP_4_CHIP_PWD_L (%d)",
 		   __func__, rc);
 	   return VOS_STATUS_E_FAILURE;
    }
@@ -623,7 +622,7 @@ VOS_STATUS vos_chipAssertDeepSleep
    // Configure GPIO 23 for Deep Sleep
    int rc = pm8058_gpio_config(wlan_gpios_power_off[0].gpio_num, &wlan_gpios_power_off[0].gpio_cfg);
    if (rc) {
-      printk(KERN_ERR "%s: pmic GPIO %d config failed (%d)\n",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
          __func__, wlan_gpios_power_off[0].gpio_num, rc);
       return VOS_STATUS_E_FAILURE;
    }
@@ -670,7 +669,7 @@ VOS_STATUS vos_chipDeAssertDeepSleep
    int rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
       MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_HIGH));
    if (rc) {
-      printk(KERN_ERR "%s: Failed to pull high MPP_4_CHIP_PWD_L (%d)\n",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Failed to pull high MPP_4_CHIP_PWD_L (%d)",
          __func__, rc);
 	   return VOS_STATUS_E_FAILURE;
    }
@@ -682,7 +681,7 @@ VOS_STATUS vos_chipDeAssertDeepSleep
 	// Configure GPIO 23 for Deep Sleep
 	int rc = pm8058_gpio_config(wlan_gpios_power_on[2].gpio_num, &wlan_gpios_power_on[2].gpio_cfg);
 	if (rc) {
-		printk(KERN_ERR "%s: pmic GPIO %d config failed (%d)\n",
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
 			__func__, wlan_gpios_power_on[2].gpio_num, rc);
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -728,21 +727,21 @@ VOS_STATUS vos_chipExitDeepSleepVREGHandler
 
    vreg_wlan = vreg_get(NULL, "wlan");
    if (IS_ERR(vreg_wlan)) {
-      printk(KERN_ERR "%s: wlan vreg get failed (%ld)\n",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg get failed (%ld)",
             __func__, PTR_ERR(vreg_wlan));
       return VOS_STATUS_E_FAILURE;
    }
 
    rc = vreg_set_level(vreg_wlan, 1800);
    if (rc) {
-      printk(KERN_ERR "%s: wlan vreg set level failed (%d)\n",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg set level failed (%d)",
             __func__, rc);
       return VOS_STATUS_E_FAILURE;
    }
 
    rc = vreg_enable(vreg_wlan);
    if (rc) {
-      printk(KERN_ERR "%s: wlan vreg enable failed (%d)\n",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg enable failed (%d)",
             __func__, rc);
       return VOS_STATUS_E_FAILURE;
    }
@@ -751,7 +750,7 @@ VOS_STATUS vos_chipExitDeepSleepVREGHandler
 
    rc = vreg_set_level(vreg_wlan, 2600);
    if (rc) {
-      printk(KERN_ERR "%s: wlan vreg set level failed (%d)\n",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg set level failed (%d)",
             __func__, rc);
       return VOS_STATUS_E_FAILURE;
    }
@@ -761,5 +760,303 @@ VOS_STATUS vos_chipExitDeepSleepVREGHandler
    *status = VOS_CALL_SYNC;
 
 #endif
+   return VOS_STATUS_SUCCESS;
+}
+
+/**
+  @brief vos_chipVoteOnRFSupply() - This API will power up the RF supply
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteOnRFSupply
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data
+)
+{
+#ifdef MSM_PLATFORM_7x30
+   int rc;
+   struct vreg *vreg_s2 = NULL;
+   struct vreg *vreg_s4 = NULL;
+
+   //1.3v RF;
+   vreg_s2 = vreg_get(NULL, "s2");
+   if (IS_ERR(vreg_s2)) {
+      printk(KERN_ERR "%s: s2 vreg get failed (%ld)\n",
+         __func__, PTR_ERR(vreg_s2));
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   //2.2v RF
+   vreg_s4 = vreg_get(NULL, "s4");
+   if (IS_ERR(vreg_s4)) {
+      printk(KERN_ERR "%s: s4 vreg get failed (%ld)\n",
+         __func__, PTR_ERR(vreg_s4));
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   rc = vreg_set_level(vreg_s2, 1300);
+   if (rc) {
+      printk(KERN_ERR "%s: s2 vreg set level failed (%d)\n", __func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   rc = vreg_enable(vreg_s2);
+   if (rc) {
+      printk(KERN_ERR "%s: s2 vreg enable failed (%d)\n", __func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   rc = vreg_set_level(vreg_s4, 2200);
+   if (rc) {
+      printk(KERN_ERR "%s: s4 vreg set level failed (%d)\n",__func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   rc = vreg_enable(vreg_s4);
+   if (rc) {
+      printk(KERN_ERR "%s: s4 vreg enable failed (%d)\n", __func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   return VOS_STATUS_SUCCESS;
+
+#endif //MSM_PLATFORM_7x30
+   
+   return VOS_STATUS_SUCCESS;
+}
+
+/**
+  @brief vos_chipVoteOffRFSupply() - This API will vote to turn off the 
+  RF supply. Even if we succeed in voting, there is a chance RF supply will not 
+  be turned off as RF rails could be shared with other modules (outside WLAN)
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
+                         because the voting algorithm decided not to power down PA  
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteOffRFSupply
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data
+)
+{
+#ifdef MSM_PLATFORM_7x30
+
+   int rc;
+   struct vreg *vreg_s2;
+   struct vreg *vreg_s4;
+
+   //1.3v RF
+   vreg_s2 = vreg_get(NULL, "s2");
+   if (IS_ERR(vreg_s2)) {
+      printk(KERN_ERR "%s: s2 vreg get failed (%ld)\n",
+         __func__, PTR_ERR(vreg_s2));
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   rc = vreg_disable(vreg_s2);
+   if (rc) {
+      printk(KERN_ERR "%s: s2 vreg disable failed (%d)\n", __func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   //2.2v RF
+   vreg_s4 = vreg_get(NULL, "s4");
+   if (IS_ERR(vreg_s4)) {
+      printk(KERN_ERR "%s: s4 vreg get failed (%ld)\n",
+         __func__, PTR_ERR(vreg_s4));
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   rc = vreg_disable(vreg_s4); 
+   if (rc) {
+      printk(KERN_ERR "%s: s4 vreg disable failed (%d)\n", __func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   return VOS_STATUS_SUCCESS;
+
+#endif //MSM_PLATFORM_7x30
+
+   return VOS_STATUS_SUCCESS;
+}
+
+/**
+  @brief vos_chipVoteOnBBAnalogSupply() - This API will power up the I/P voltage
+  used by Base band Analog.
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteOnBBAnalogSupply
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data
+)
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+/**
+  @brief vos_chipVoteOffBBAnalogSupply() - This API will vote off the BB Analog supply.
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
+                         because the voting algorithm decided not to power down PA  
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteOffBBAnalogSupply
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data
+)
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+/**
+  @brief vos_chipVoteOnXOBuffer() - This API will vote to turn on the XO buffer from
+  PMIC. This API will be used when Libra uses the TCXO from PMIC on the MSM
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteOnXOBuffer
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data
+)
+{
+   return VOS_STATUS_SUCCESS;
+}
+
+/**
+  @brief vos_chipVoteOffXOBuffer() - This API will vote off PMIC XO buffer.
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
+                         because the voting algorithm decided not to power down PA  
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteOffXOBuffer
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data
+)
+{
    return VOS_STATUS_SUCCESS;
 }

@@ -15,12 +15,12 @@
   --------------------------------------------------------------------------
 
  */
-#ifdef ANI_MANF_DIAG
+
 
 #include <ani_assert.h>
 #include <wlan_bit.h>
 #include <sys_api.h>
-
+#ifdef ANI_MANF_DIAG
 
 
 eHalStatus asicTxFirSetTxCarrierCorrection(tpAniSirGlobal pMac, eGainSteps gain, ePhyTxChains txChain, sTxFirLoCorrect correct)

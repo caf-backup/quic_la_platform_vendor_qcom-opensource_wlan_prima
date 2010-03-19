@@ -106,6 +106,8 @@ eHalStatus csrIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pCommand, tReques
                                  tANI_BOOLEAN *pfNeedPower);
 void csrAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStopping );
 
+eHalStatus sme_AcquireGlobalLock( tSmeStruct *psSme);
+eHalStatus sme_ReleaseGlobalLock( tSmeStruct *psSme);
 
 
 #endif //#if !defined( __SMEINSIDE_H )

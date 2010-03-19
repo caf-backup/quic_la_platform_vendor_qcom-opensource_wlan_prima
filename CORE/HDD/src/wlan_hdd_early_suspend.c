@@ -245,6 +245,9 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
    vosStatus = vos_chipAssertDeepSleep( &callType, NULL, NULL );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
+   vosStatus = vos_chipVoteOffRFSupply(&callType, NULL, NULL);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
    pAdapter->hdd_ps_state = eHDD_SUSPEND_DEEP_SLEEP;
 
 failure:
@@ -263,6 +266,17 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
 {
    vos_call_status_type callType;
    VOS_STATUS vosStatus;
+
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+      "%s: calling vos_chipVoteOnRFSupply",__func__);
+   vosStatus = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed in vos_chipVoteOnRFSupply",__func__);
+      goto err_deep_sleep;
+   }
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
       "%s: calling vos_chipDeAssertDeepSleep",__func__);

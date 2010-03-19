@@ -31,6 +31,8 @@
  * ------------------------------------------------------------------------*/
 
 #include "vos_memory.h"
+#include "vos_trace.h"
+
 
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -52,12 +54,12 @@ v_VOID_t * vos_mem_malloc( v_SIZE_t size )
 {
    if (size > (1024*1024))
    {
-      printk(KERN_CRIT "%s: called with arg > 1024K; passed in %d !!!\n", __FUNCTION__,size); 
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: called with arg > 1024K; passed in %d !!!", __FUNCTION__,size); 
        return NULL;
    }
    if (in_interrupt())
    {
-      printk(KERN_CRIT "%s cannot be called from interrupt context!!!\n", __FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s cannot be called from interrupt context!!!", __FUNCTION__);
       return NULL;
    }
    return kmalloc(size, GFP_KERNEL);
@@ -74,7 +76,7 @@ v_VOID_t vos_mem_set( v_VOID_t *ptr, v_SIZE_t numBytes, v_BYTE_t value )
 {
    if (ptr == NULL)
    {
-      printk(KERN_CRIT "%s called with NULL parameter ptr\n", __FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s called with NULL parameter ptr", __FUNCTION__);
       return;
    }
    memset(ptr, value, numBytes);
@@ -84,7 +86,7 @@ v_VOID_t vos_mem_zero( v_VOID_t *ptr, v_SIZE_t numBytes )
 {
    if (ptr == NULL)
    {
-      printk(KERN_CRIT "%s called with NULL parameter ptr\n", __FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s called with NULL parameter ptr", __FUNCTION__);
       return;
    }
    memset(ptr, 0, numBytes);
@@ -95,7 +97,7 @@ v_VOID_t vos_mem_copy( v_VOID_t *pDst, const v_VOID_t *pSrc, v_SIZE_t numBytes )
 {
    if ((pDst == NULL) || (pSrc==NULL))
    {
-      printk(KERN_CRIT "%s called with NULL parameter\n", __FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s called with NULL parameter", __FUNCTION__);
       return;
    }
    memcpy(pDst, pSrc, numBytes);
@@ -105,7 +107,7 @@ v_VOID_t vos_mem_move( v_VOID_t *pDst, const v_VOID_t *pSrc, v_SIZE_t numBytes )
 {
    if ((pDst == NULL) || (pSrc==NULL))
    {
-      printk(KERN_CRIT "%s called with NULL parameter\n", __FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s called with NULL parameter", __FUNCTION__);
       return;
    }
    memmove(pDst, pSrc, numBytes);
@@ -115,7 +117,7 @@ v_BOOL_t vos_mem_compare( v_VOID_t *pMemory1, v_VOID_t *pMemory2, v_U32_t numByt
 { 
    if ((pMemory1 == NULL) || (pMemory2==NULL))
    {
-      printk(KERN_CRIT "%s called with NULL parameter\n", __FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s called with NULL parameter", __FUNCTION__);
       return VOS_FALSE;
    }
    return (memcmp(pMemory1, pMemory2, numBytes)?VOS_FALSE:VOS_TRUE);
@@ -149,7 +151,7 @@ v_VOID_t* vos_mem_dma_malloc( v_SIZE_t size )
 {
    if (in_interrupt())
    {
-      printk(KERN_CRIT "%s cannot be called from interrupt context!!!\n", __FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s cannot be called from interrupt context!!!", __FUNCTION__);
       return NULL;
    }
    return kmalloc(size, GFP_KERNEL);

@@ -1174,7 +1174,7 @@ void dump_cfg_ini (tCfgIniEntry* iniTable, unsigned long entries)
    unsigned long i;
 
    for (i = 0; i < entries; i++) {
-       printk(KERN_ERR "qcom_cfg.ini entry Name=[%s] value=[%s]\n", 
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "qcom_cfg.ini entry Name=[%s] value=[%s]", 
            iniTable[i].name, iniTable[i].value);
      }
 }
@@ -1258,71 +1258,70 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
 
 void print_hdd_cfg(hdd_adapter_t *pAdapter)
 {
-  printk(KERN_ERR "*********Config values in HDD Adapter*******\n");
-  printk(KERN_ERR "Name = [RTSThreshold] Value = %lu\n",pAdapter->cfg_ini->RTSThreshold) ;
-  printk(KERN_ERR "Name = [OperatingChannel] Value = [%u]\n",pAdapter->cfg_ini->OperatingChannel);
-  printk(KERN_ERR "Name = [PowerUsageControl] Value = [%s]\n",pAdapter->cfg_ini->PowerUsageControl);
-  printk(KERN_ERR "Name = [fIsImpsEnabled] Value = [%u]\n",pAdapter->cfg_ini->fIsImpsEnabled);
-  printk(KERN_ERR "Name = [AutoBmpsTimerEnabled] Value = [%u]\n",pAdapter->cfg_ini->fIsAutoBmpsTimerEnabled);
-  printk(KERN_ERR "Name = [nAutoBmpsTimerValue] Value = [%lu]\n",pAdapter->cfg_ini->nAutoBmpsTimerValue);
-  printk(KERN_ERR "Name = [nVccRssiTrigger] Value = [%u]\n",pAdapter->cfg_ini->nVccRssiTrigger);
-  printk(KERN_ERR "Name = [gIbssBssid] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]\n",
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "*********Config values in HDD Adapter*******");
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [RTSThreshold] Value = %lu",pAdapter->cfg_ini->RTSThreshold) ;
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [OperatingChannel] Value = [%u]",pAdapter->cfg_ini->OperatingChannel);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [PowerUsageControl] Value = [%s]",pAdapter->cfg_ini->PowerUsageControl);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fIsImpsEnabled] Value = [%u]",pAdapter->cfg_ini->fIsImpsEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [AutoBmpsTimerEnabled] Value = [%u]",pAdapter->cfg_ini->fIsAutoBmpsTimerEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nAutoBmpsTimerValue] Value = [%lu]",pAdapter->cfg_ini->nAutoBmpsTimerValue);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [nVccRssiTrigger] Value = [%u]",pAdapter->cfg_ini->nVccRssiTrigger);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gIbssBssid] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
       pAdapter->cfg_ini->IbssBssid.bytes[0],pAdapter->cfg_ini->IbssBssid.bytes[1],
       pAdapter->cfg_ini->IbssBssid.bytes[2],pAdapter->cfg_ini->IbssBssid.bytes[3],
       pAdapter->cfg_ini->IbssBssid.bytes[4],pAdapter->cfg_ini->IbssBssid.bytes[5]);
-  printk(KERN_ERR "Name = [gStaMacAddr] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]\n",
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gStaMacAddr] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
       pAdapter->cfg_ini->staMacAddr.bytes[0],pAdapter->cfg_ini->staMacAddr.bytes[1],
       pAdapter->cfg_ini->staMacAddr.bytes[2],pAdapter->cfg_ini->staMacAddr.bytes[3],
       pAdapter->cfg_ini->staMacAddr.bytes[4],pAdapter->cfg_ini->staMacAddr.bytes[5]);
-  printk(KERN_ERR "Name = [ChannelBondingMode] Value = [%lu]\n",pAdapter->cfg_ini->ChannelBondingMode);
-  printk(KERN_ERR "Name = [ChannelBondingMode] Value = [%lu]\n",pAdapter->cfg_ini->ChannelBondingMode);
-  printk(KERN_ERR "Name = [dot11Mode] Value = [%lu]\n",pAdapter->cfg_ini->dot11Mode);
-  printk(KERN_ERR "Name = [WmmMode] Value = [%u]\n",pAdapter->cfg_ini->WmmMode);
-  printk(KERN_ERR "Name = [UapsdMask] Value = [0x%x]\n",pAdapter->cfg_ini->UapsdMask);
-  printk(KERN_ERR "Name = [PktClassificationBasis] Value = [%u]\n",pAdapter->cfg_ini->PktClassificationBasis);
-  printk(KERN_ERR "Name = [ImplicitQosIsEnabled] Value = [%u]\n",(int)pAdapter->cfg_ini->bImplicitQosEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%lu]",pAdapter->cfg_ini->ChannelBondingMode);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%lu]",pAdapter->cfg_ini->ChannelBondingMode);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [dot11Mode] Value = [%lu]",pAdapter->cfg_ini->dot11Mode);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WmmMode] Value = [%u] ",pAdapter->cfg_ini->WmmMode);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [UapsdMask] Value = [0x%x] ",pAdapter->cfg_ini->UapsdMask);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [PktClassificationBasis] Value = [%u] ",pAdapter->cfg_ini->PktClassificationBasis);
 
-  printk(KERN_ERR "Name = [InfraUapsdVoSrvIntv] Value = [%lu]\n",pAdapter->cfg_ini->InfraUapsdVoSrvIntv);
-  printk(KERN_ERR "Name = [InfraUapsdVoSuspIntv] Value = [%lu]\n",pAdapter->cfg_ini->InfraUapsdVoSuspIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdVoSrvIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdVoSrvIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdVoSuspIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdVoSuspIntv);
 
-  printk(KERN_ERR "Name = [InfraUapsdViSrvIntv] Value = [%lu]\n",pAdapter->cfg_ini->InfraUapsdViSrvIntv);
-  printk(KERN_ERR "Name = [InfraUapsdViSuspIntv] Value = [%lu]\n",pAdapter->cfg_ini->InfraUapsdViSuspIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdViSrvIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdViSrvIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdViSuspIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdViSuspIntv);
 
-  printk(KERN_ERR "Name = [InfraUapsdBeSrvIntv] Value = [%lu]\n",pAdapter->cfg_ini->InfraUapsdBeSrvIntv);
-  printk(KERN_ERR "Name = [InfraUapsdBeSuspIntv] Value = [%lu]\n",pAdapter->cfg_ini->InfraUapsdBeSuspIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBeSrvIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdBeSrvIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBeSuspIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdBeSuspIntv);
 
-  printk(KERN_ERR "Name = [InfraUapsdBkSrvIntv] Value = [%lu]\n",pAdapter->cfg_ini->InfraUapsdBkSrvIntv);
-  printk(KERN_ERR "Name = [InfraUapsdBkSuspIntv] Value = [%lu]\n",pAdapter->cfg_ini->InfraUapsdBkSuspIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBkSrvIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdBkSrvIntv);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdBkSuspIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdBkSuspIntv);
 
-  printk(KERN_ERR "Name = [InfraDirAcVo] Value = [%u]\n",pAdapter->cfg_ini->InfraDirAcVo);
-  printk(KERN_ERR "Name = [InfraNomMsduSizeAcVo] Value = [0x%x]\n",pAdapter->cfg_ini->InfraNomMsduSizeAcVo);
-  printk(KERN_ERR "Name = [InfraMeanDataRateAcVo] Value = [0x%lx]\n",pAdapter->cfg_ini->InfraMeanDataRateAcVo);
-  printk(KERN_ERR "Name = [InfraMinPhyRateAcVo] Value = [0x%lx]\n",pAdapter->cfg_ini->InfraMinPhyRateAcVo);
-  printk(KERN_ERR "Name = [InfraSbaAcVo] Value = [0x%x]\n",pAdapter->cfg_ini->InfraSbaAcVo);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcVo] Value = [%u] ",pAdapter->cfg_ini->InfraDirAcVo);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcVo] Value = [0x%x] ",pAdapter->cfg_ini->InfraNomMsduSizeAcVo);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcVo] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMeanDataRateAcVo);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcVo] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMinPhyRateAcVo);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcVo] Value = [0x%x] ",pAdapter->cfg_ini->InfraSbaAcVo);
 
-  printk(KERN_ERR "Name = [InfraDirAcVi] Value = [%u]\n",pAdapter->cfg_ini->InfraDirAcVi);
-  printk(KERN_ERR "Name = [InfraNomMsduSizeAcVi] Value = [0x%x]\n",pAdapter->cfg_ini->InfraNomMsduSizeAcVi);
-  printk(KERN_ERR "Name = [InfraMeanDataRateAcVi] Value = [0x%lx]\n",pAdapter->cfg_ini->InfraMeanDataRateAcVi);
-  printk(KERN_ERR "Name = [InfraMinPhyRateAcVi] Value = [0x%lx]\n",pAdapter->cfg_ini->InfraMinPhyRateAcVi);
-  printk(KERN_ERR "Name = [InfraSbaAcVi] Value = [0x%x]\n",pAdapter->cfg_ini->InfraSbaAcVi);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcVi] Value = [%u] ",pAdapter->cfg_ini->InfraDirAcVi);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcVi] Value = [0x%x] ",pAdapter->cfg_ini->InfraNomMsduSizeAcVi);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcVi] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMeanDataRateAcVi);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcVi] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMinPhyRateAcVi);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcVi] Value = [0x%x] ",pAdapter->cfg_ini->InfraSbaAcVi);
 
-  printk(KERN_ERR "Name = [InfraDirAcBe] Value = [%u]\n",pAdapter->cfg_ini->InfraDirAcBe);
-  printk(KERN_ERR "Name = [InfraNomMsduSizeAcBe] Value = [0x%x]\n",pAdapter->cfg_ini->InfraNomMsduSizeAcBe);
-  printk(KERN_ERR "Name = [InfraMeanDataRateAcBe] Value = [0x%lx]\n",pAdapter->cfg_ini->InfraMeanDataRateAcBe);
-  printk(KERN_ERR "Name = [InfraMinPhyRateAcBe] Value = [0x%lx]\n",pAdapter->cfg_ini->InfraMinPhyRateAcBe);
-  printk(KERN_ERR "Name = [InfraSbaAcBe] Value = [0x%x]\n",pAdapter->cfg_ini->InfraSbaAcBe);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcBe] Value = [%u] ",pAdapter->cfg_ini->InfraDirAcBe);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcBe] Value = [0x%x] ",pAdapter->cfg_ini->InfraNomMsduSizeAcBe);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcBe] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMeanDataRateAcBe);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcBe] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMinPhyRateAcBe);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcBe] Value = [0x%x] ",pAdapter->cfg_ini->InfraSbaAcBe);
 
-  printk(KERN_ERR "Name = [InfraDirAcBk] Value = [%u]\n",pAdapter->cfg_ini->InfraDirAcBk);
-  printk(KERN_ERR "Name = [InfraNomMsduSizeAcBk] Value = [0x%x]\n",pAdapter->cfg_ini->InfraNomMsduSizeAcBk);
-  printk(KERN_ERR "Name = [InfraMeanDataRateAcBk] Value = [0x%lx]\n",pAdapter->cfg_ini->InfraMeanDataRateAcBk);
-  printk(KERN_ERR "Name = [InfraMinPhyRateAcBk] Value = [0x%lx]\n",pAdapter->cfg_ini->InfraMinPhyRateAcBk);
-  printk(KERN_ERR "Name = [InfraSbaAcBk] Value = [0x%x]\n",pAdapter->cfg_ini->InfraSbaAcBk);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraDirAcBk] Value = [%u] ",pAdapter->cfg_ini->InfraDirAcBk);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraNomMsduSizeAcBk] Value = [0x%x] ",pAdapter->cfg_ini->InfraNomMsduSizeAcBk);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMeanDataRateAcBk] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMeanDataRateAcBk);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraMinPhyRateAcBk] Value = [0x%lx] ",pAdapter->cfg_ini->InfraMinPhyRateAcBk);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraSbaAcBk] Value = [0x%x] ",pAdapter->cfg_ini->InfraSbaAcBk);
 
-  printk(KERN_ERR "Name = [WfqBkWeight] Value = [%u]\n",pAdapter->cfg_ini->WfqBkWeight);
-  printk(KERN_ERR "Name = [WfqBeWeight] Value = [%u]\n",pAdapter->cfg_ini->WfqBeWeight);
-  printk(KERN_ERR "Name = [WfqViWeight] Value = [%u]\n",pAdapter->cfg_ini->WfqViWeight);
-  printk(KERN_ERR "Name = [WfqVoWeight] Value = [%u]\n",pAdapter->cfg_ini->WfqVoWeight);
-  printk(KERN_ERR "Name = [DelayedTriggerFrmInt] Value = [%lu]\n",pAdapter->cfg_ini->DelayedTriggerFrmInt);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqBkWeight] Value = [%u] ",pAdapter->cfg_ini->WfqBkWeight);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqBeWeight] Value = [%u] ",pAdapter->cfg_ini->WfqBeWeight);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqViWeight] Value = [%u] ",pAdapter->cfg_ini->WfqViWeight);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqVoWeight] Value = [%u] ",pAdapter->cfg_ini->WfqVoWeight);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [DelayedTriggerFrmInt] Value = [%lu] ",pAdapter->cfg_ini->DelayedTriggerFrmInt);
 
 }
 
@@ -1336,7 +1335,7 @@ static VOS_STATUS find_cfg_item (tCfgIniEntry* iniTable, unsigned long entries,
    for (i = 0; i < entries; i++) {
      if (strcmp(iniTable[i].name, name) == 0) {
        *value = iniTable[i].value;
-       printk(KERN_ERR "Found qcom_cfg.ini entry for Name=[%s] Value=[%s]\n",
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Found qcom_cfg.ini entry for Name=[%s] Value=[%s] ",
            name, *value);
        return VOS_STATUS_SUCCESS;
      }
@@ -1447,7 +1446,7 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
       else if ( WLAN_PARAM_String == pRegEntry->RegType )
       {
 #ifdef WLAN_CFG_DEBUG
-         printk(KERN_ERR "RegName = %s, VarOffset %u VarSize %u VarDefault %s\n",
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "RegName = %s, VarOffset %u VarSize %u VarDefault %s\n",
             pRegEntry->RegName, pRegEntry->VarOffset, pRegEntry->VarSize, (char*)pRegEntry->VarDefault); 
 #endif    
 

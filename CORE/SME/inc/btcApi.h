@@ -66,9 +66,14 @@
 */
 #define BT_MAX_EVENT_DONE_TIMEOUT   45000
 
+
+/*
+    To suppurt multiple SCO connections for BT+UAPSD work
+*/
 #define BT_MAX_SCO_SUPPORT  3
 #define BT_MAX_ACL_SUPPORT  3
 #define BT_MAX_DISCONN_SUPPORT (BT_MAX_SCO_SUPPORT+BT_MAX_ACL_SUPPORT)
+
 
 /** Enumeration of all the different kinds of BT events
 */
@@ -242,6 +247,9 @@ typedef struct sSmeBtcInfo
    vos_timer_t   restoreHBTimer; /* Timer to restore heart beat */
    tSmeBtcEventReplay btcEventReplay;
    v_BOOL_t      fReplayBTEvents;
+   v_BOOL_t      btcUapsdOk;  /* Indicate whether BTC is ok with UAPSD */
+   v_U16_t       btcScoHandles[BT_MAX_SCO_SUPPORT];  /* Handles for SCO, if any*/
+   v_BOOL_t		 fA2DPUp;	/*remember whether A2DP is in session*/
 } tSmeBtcInfo, *tpSmeBtcInfo;
 
 
@@ -254,5 +262,12 @@ VOS_STATUS btcSendCfgMsg(tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig);
 VOS_STATUS btcSignalBTEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent);
 VOS_STATUS btcSetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig);
 VOS_STATUS btcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig);
+/*
+   Caller can check whether BTC's current event allows UAPSD. This doesn't affect
+   BMPS.
+   return:  VOS_TRUE -- BTC is ready for UAPSD
+            VOS_FALSE -- certain BT event is active, cannot enter UAPSD
+*/
+v_BOOL_t btcIsReadyForUapsd( tHalHandle hHal );
 
 #endif

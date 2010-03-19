@@ -14,6 +14,7 @@
 #include "btcApi.h"
 #include "cfgApi.h"
 #include "pmc.h"
+#include "smeQosInternal.h"
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 #include "vos_diag_core_event.h"
 #include "vos_diag_core_log.h"
@@ -21,6 +22,7 @@
 
 static void btcLogEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent);
 static void btcRestoreHeartBeatMonitoringHandle(void* hHal);
+static void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent );
 VOS_STATUS btcCheckHeartBeatMonitoring(tHalHandle hHal, tpSmeBtEvent pBtEvent);
 static void btcPowerStateCB( v_PVOID_t pContext, tPmcState pmcState );
 static VOS_STATUS btcDeferEvent( tpAniSirGlobal pMac, tpSmeBtEvent pEvent );
@@ -82,6 +84,8 @@ VOS_STATUS btcClose (tHalHandle hHal)
    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
    VOS_STATUS vosStatus;
 
+   pMac->btc.btcReady = VOS_FALSE;
+   pMac->btc.btcUapsdOk = VOS_FALSE;
    vosStatus = vos_timer_destroy(&pMac->btc.restoreHBTimer);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcClose: Fail to destroy timer");
@@ -106,8 +110,16 @@ VOS_STATUS btcReady (tHalHandle hHal)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
     v_U32_t cfgVal = 0;
+    v_U8_t i;
 
     pMac->btc.btcReady = VOS_TRUE;
+    pMac->btc.btcUapsdOk = VOS_TRUE;
+
+    for(i=0; i < BT_MAX_SCO_SUPPORT; i++)
+    {
+        pMac->btc.btcScoHandles[i] = BT_INVALID_CONN_HANDLE;
+    }
+
 
     // Read heartbeat threshold CFG and save it.
     ccmCfgGetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, &cfgVal);
@@ -270,6 +282,9 @@ VOS_STATUS btcSignalBTEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
    // After successfully posting the message, check if heart beat
    // monitoring needs to be turned off
    (void)btcCheckHeartBeatMonitoring(hHal, pBtEvent);
+
+   //Check whether BTC and UAPSD can co-exist
+   btcUapsdCheck( pMac, pBtEvent );
 
    return VOS_STATUS_SUCCESS;
 }
@@ -1346,6 +1361,148 @@ static void btcLogEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
          break;
    }
  }
+
+
+/*
+   Caller can check whether BTC's current event allows UAPSD. This doesn't affect
+   BMPS.
+   return:  VOS_TRUE -- BTC is ready for UAPSD
+            VOS_FALSE -- certain BT event is active, cannot enter UAPSD
+*/
+v_BOOL_t btcIsReadyForUapsd( tHalHandle hHal )
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+    return( pMac->btc.btcUapsdOk );
+}
+
+
+
+/*
+    Base on the BT event, this function sets the flag on whether to allow UAPSD
+    At this time, we are only interested in SCO and A2DP.
+    A2DP tracking is through BT_EVENT_A2DP_STREAM_START and BT_EVENT_A2DP_STREAM_STOP
+    SCO is through BT_EVENT_SYNC_CONNECTION_COMPLETE and BT_EVENT_DISCONNECTION_COMPLETE
+    BT_EVENT_DEVICE_SWITCHED_OFF overwrites them all
+*/
+void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
+{
+   v_U8_t i;
+   v_BOOL_t fLastUapsdState = pMac->btc.btcUapsdOk, fMoreSCO = VOS_FALSE;
+
+   switch( pBtEvent->btEventType )
+   {
+   case BT_EVENT_DISCONNECTION_COMPLETE:
+       if( (VOS_FALSE == pMac->btc.btcUapsdOk) && 
+           BT_INVALID_CONN_HANDLE != pBtEvent->uEventParam.btDisconnect.connectionHandle )
+       {
+           //Check whether all SCO connections are gone
+           for(i=0; i < BT_MAX_SCO_SUPPORT; i++)
+           {
+               if( (BT_INVALID_CONN_HANDLE != pMac->btc.btcScoHandles[i]) &&
+                   (pMac->btc.btcScoHandles[i] != pBtEvent->uEventParam.btDisconnect.connectionHandle) )
+               {
+                   //We still have outstanding SCO connection
+                   fMoreSCO = VOS_TRUE;
+               }
+               else if( pMac->btc.btcScoHandles[i] == pBtEvent->uEventParam.btDisconnect.connectionHandle )
+               {
+                   pMac->btc.btcScoHandles[i] = BT_INVALID_CONN_HANDLE;
+               }
+           }
+           if( !fMoreSCO && !pMac->btc.fA2DPUp )
+           {
+               //All SCO is disconnected
+               pMac->btc.btcUapsdOk = VOS_TRUE;
+               smsLog( pMac, LOGE, "BT event (DISCONNECTION) happens, UAPSD-allowed flag (%d) change to TRUE \n", 
+                        pBtEvent->btEventType, pMac->btc.btcUapsdOk );
+           }
+       }
+       break;
+
+   case BT_EVENT_DEVICE_SWITCHED_OFF:
+       smsLog( pMac, LOGE, "BT event (DEVICE_OFF) happens, UAPSD-allowed flag (%d) change to TRUE \n", 
+                        pBtEvent->btEventType, pMac->btc.btcUapsdOk );
+	   //Clean up SCO
+	   for(i=0; i < BT_MAX_SCO_SUPPORT; i++)
+       {
+           pMac->btc.btcScoHandles[i] = BT_INVALID_CONN_HANDLE;
+       }
+	   pMac->btc.fA2DPUp = VOS_FALSE;
+       pMac->btc.btcUapsdOk = VOS_TRUE;
+	   break;
+
+   case BT_EVENT_A2DP_STREAM_STOP:
+       smsLog( pMac, LOGE, "BT event (A2DP_STREAM_STOP) happens, UAPSD-allowed flag (%d) change to TRUE \n", 
+            pBtEvent->btEventType, pMac->btc.btcUapsdOk );
+	   pMac->btc.fA2DPUp = VOS_FALSE;
+	   //Check whether SCO is on
+	   for(i=0; i < BT_MAX_SCO_SUPPORT; i++)
+       {
+           if(pMac->btc.btcScoHandles[i] != BT_INVALID_CONN_HANDLE)
+		   {
+			   break;
+		   }
+       }
+	   if( BT_MAX_SCO_SUPPORT == i )
+	   {
+		   pMac->btc.btcUapsdOk = VOS_TRUE;
+	   }
+       break;
+
+   case BT_EVENT_SYNC_CONNECTION_COMPLETE:
+	   smsLog( pMac, LOGE, "BT_EVENT_SYNC_CONNECTION_COMPLETE (%d) happens, UAPSD-allowed flag (%d) change to FALSE \n", 
+                pBtEvent->btEventType, pMac->btc.btcUapsdOk );
+       //Make sure it is a success
+       if( BT_CONN_STATUS_FAIL != pBtEvent->uEventParam.btSyncConnection.status )
+       {
+           //Save te handle for later use
+           for( i = 0; i < BT_MAX_SCO_SUPPORT; i++)
+           {
+               VOS_ASSERT(BT_INVALID_CONN_HANDLE != pBtEvent->uEventParam.btSyncConnection.connectionHandle);
+               if( (BT_INVALID_CONN_HANDLE == pMac->btc.btcScoHandles[i]) &&
+                   (BT_INVALID_CONN_HANDLE != pBtEvent->uEventParam.btSyncConnection.connectionHandle))
+               {
+                   pMac->btc.btcScoHandles[i] = pBtEvent->uEventParam.btSyncConnection.connectionHandle;
+			       break;
+               }
+           }
+	       if( i < BT_MAX_SCO_SUPPORT )
+	       {
+		       pMac->btc.btcUapsdOk = VOS_FALSE;
+	       }
+	       else
+	       {
+		       smsLog(pMac, LOGE, FL("Too many SCO, ignore this one\n"));
+	       }
+       }
+       else
+       {
+           smsLog(pMac, LOGE, FL("TSYNC complete failed\n"));
+       }
+       break;
+
+   case BT_EVENT_A2DP_STREAM_START:
+       smsLog( pMac, LOGE, "BT_EVENT_A2DP_STREAM_START (%d) happens, UAPSD-allowed flag (%d) change to FALSE \n", 
+                pBtEvent->btEventType, pMac->btc.btcUapsdOk );
+       pMac->btc.btcUapsdOk = VOS_FALSE;
+	   pMac->btc.fA2DPUp = VOS_TRUE;
+       break;
+
+   default:
+       //No change for these events
+       smsLog( pMac, LOGE, "BT event (%d) happens, UAPSD-allowed flag (%d) no change \n", 
+                    pBtEvent->btEventType, pMac->btc.btcUapsdOk );
+       break;
+   }
+
+   if(fLastUapsdState != pMac->btc.btcUapsdOk)
+   {
+      sme_QosTriggerUapsdChange( pMac );
+   }
+
+}
+
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 /* ---------------------------------------------------------------------------

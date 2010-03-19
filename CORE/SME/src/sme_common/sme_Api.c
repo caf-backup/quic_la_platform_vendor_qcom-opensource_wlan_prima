@@ -2241,6 +2241,7 @@ eHalStatus sme_RequestStandby (
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
+   smsLog( pMac, LOGE, FL(" \n") );
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {

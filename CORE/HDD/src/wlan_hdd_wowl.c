@@ -64,22 +64,20 @@ static void dump_hdd_wowl_ptrn(tSirWowlAddBcastPtrn *ptrn)
 {
   int i;
 
-  printk(KERN_CRIT "%s: ucPatetrnId = 0x%x\n", __func__, 
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: ucPatetrnId = 0x%x", __func__, 
       ptrn->ucPatternId);
-  printk(KERN_CRIT "%s: ucPatternByteOffset = 0x%x\n", __func__, 
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: ucPatternByteOffset = 0x%x", __func__, 
       ptrn->ucPatternByteOffset);
-  printk(KERN_CRIT "%s: ucPatternSize = 0x%x\n", __func__, 
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: ucPatternSize = 0x%x", __func__, 
       ptrn->ucPatternSize);
-  printk(KERN_CRIT "%s: ucPatternMaskSize = 0x%x\n", __func__, 
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: ucPatternMaskSize = 0x%x", __func__, 
       ptrn->ucPatternMaskSize);
-  printk(KERN_CRIT "%s: Pattern: ", __func__);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Pattern: ", __func__);
   for(i = 0; i<ptrn->ucPatternSize; i++)
-     printk(" %02X", ptrn->ucPattern[i]);
-  printk("\n");
-  printk(KERN_CRIT "%s: PatternMask: ", __func__);
+     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO," %02X", ptrn->ucPattern[i]);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: PatternMask: ", __func__);
   for(i = 0; i<ptrn->ucPatternMaskSize; i++)
-     printk("%02X", ptrn->ucPatternMask[i]);
-  printk("\n");
+     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%02X", ptrn->ucPatternMask[i]);
 }
 
 

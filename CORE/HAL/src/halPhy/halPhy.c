@@ -665,7 +665,7 @@ eHalStatus halPhyBckupCalRegisters(tHalHandle hHal, tANI_U32 *pMemAddr)
     pCalBuf[count++] = 0;
 
     pCalBuf[count++] = ((QWLAN_RFAPB_MODE_SEL1_REG)|( HAL_REG_HOST_FILLED_MASK));
-    pCalBuf[count++] = QWLAN_RFAPB_MODE_SEL1_PLLEN_FORCE_MASK;/* |
+    pCalBuf[count++] = 0;/*QWLAN_RFAPB_MODE_SEL1_PLLEN_FORCE_MASK |
                        QWLAN_RFAPB_MODE_SEL1_IQ_DIV_MODE_MASK |
                        QWLAN_RFAPB_MODE_SEL1_EN_TXLO_MODE_MASK |
                        QWLAN_RFAPB_MODE_SEL1_EN_RXLO_MODE_MASK;*/ //0x4000;
@@ -742,7 +742,7 @@ eHalStatus halPhyBckupCalRegisters(tHalHandle hHal, tANI_U32 *pMemAddr)
     for(rxChain = 0; rxChain < PHY_MAX_RX_CHAINS; rxChain++)
     {
         //select the specific chain we are correcting
-        modeSel = QWLAN_RFAPB_MODE_SEL1_PLLEN_FORCE_MASK;/* |
+        modeSel = 0; /*QWLAN_RFAPB_MODE_SEL1_PLLEN_FORCE_MASK |
                   QWLAN_RFAPB_MODE_SEL1_IQ_DIV_MODE_MASK |
                   QWLAN_RFAPB_MODE_SEL1_EN_TXLO_MODE_MASK |
                   QWLAN_RFAPB_MODE_SEL1_EN_RXLO_MODE_MASK;*/ //0x400f;

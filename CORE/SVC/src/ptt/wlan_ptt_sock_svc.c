@@ -58,11 +58,11 @@ static void ptt_sock_dump_buf(const unsigned char * pbuf, int cnt)
     int i;
     for (i = 0; i < cnt ; i++) {
         if ((i%16)==0)
-            printk("\n%p:", pbuf);
-        printk(" %02X", *pbuf);
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"\n%p:", pbuf);
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO," %02X", *pbuf);
         pbuf++;
     }
-    printk("\n");
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"\n");
 }
 #endif
 

@@ -121,14 +121,14 @@ void PmuFixWorkAround(int *err_ret)
    save_func_num = gpsalHandle->sdio_func_dev->num;
    gpsalHandle->sdio_func_dev->num = 0;
 
-   printk("sdio_dev=%08x\n", (unsigned int)(gpsalHandle->sdio_func_dev));
+   VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_INFO,"sdio_dev=%08x\n", (unsigned int)(gpsalHandle->sdio_func_dev));
 
    libra_sdiocmd52( gpsalHandle->sdio_func_dev, QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG, &regValue, 
          0, err_ret);
 
    if (VOS_STATUS_SUCCESS != *err_ret)
    {
-      printk("Err1 %d\n", *err_ret);
+      VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR,"Err1 %d", *err_ret);
       gpsalHandle->sdio_func_dev->num = save_func_num;
       *err_ret = VOS_STATUS_E_FAILURE;
       return; 
@@ -144,7 +144,7 @@ void PmuFixWorkAround(int *err_ret)
       {
          SMSGERROR("SAL_Start Read reg SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG Fail", 0, 0, 0);
 
-         printk("Err2\n");
+         VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR,"Err2");
          gpsalHandle->sdio_func_dev->num = save_func_num;
          *err_ret = VOS_STATUS_E_FAILURE;
          return; 
@@ -156,7 +156,7 @@ void PmuFixWorkAround(int *err_ret)
       if( VOS_STATUS_SUCCESS != *err_ret)
       {
          SMSGERROR("SAL_Start Write reg SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG Fail", 0, 0, 0);
-         printk("Err3\n");
+         VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR,"Err3\n");
          gpsalHandle->sdio_func_dev->num = save_func_num;
          *err_ret = VOS_STATUS_E_FAILURE;
          return; 
@@ -170,14 +170,14 @@ void PmuFixWorkAround(int *err_ret)
       if( VOS_STATUS_SUCCESS != *err_ret)
       {
          SMSGERROR("SAL_Start Write reg SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG Fail", 0, 0, 0);
-         printk("Err4\n");
+         VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR,"Err4\n");
          gpsalHandle->sdio_func_dev->num = save_func_num;
          *err_ret = VOS_STATUS_E_FAILURE;
          return;
       }
    }
    gpsalHandle->sdio_func_dev->num = save_func_num;
-   printk("Pmu: Success\n");
+   VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_INFO,"Pmu: Success\n");
    *err_ret = 0;
    return; 
 }

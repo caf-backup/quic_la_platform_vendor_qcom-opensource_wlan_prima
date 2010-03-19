@@ -15,9 +15,9 @@
   --------------------------------------------------------------------------
 
  */
-#ifdef ANI_MANF_DIAG
-#include <sys_api.h>
 
+#include <sys_api.h>
+#ifdef ANI_MANF_DIAG
 
 
 

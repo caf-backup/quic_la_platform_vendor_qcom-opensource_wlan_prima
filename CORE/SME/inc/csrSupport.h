@@ -684,9 +684,13 @@ tANI_U8 csrToUpper( tANI_U8 ch );
 eHalStatus csrGetPhyModeFromBss(tpAniSirGlobal pMac, tSirBssDescription *pBSSDescription, 
                                 eCsrPhyMode *pPhyMode, tDot11fBeaconIEs *pIes);
 
+//fForce -- force reassoc regardless of whether there is any change
+//The reason is that for UAPSD-bypass, the code underneath this call determine whether
+//to allow UAPSD. The information in pModProfileFields reflects what the user wants.
+//There may be discrepency in it. UAPSD-bypass logic should decide if it needs to reassoc
 eHalStatus csrReassoc(tpAniSirGlobal pMac, 
                       tCsrRoamModifyProfileFields *pModProfileFields,
-                      tANI_U32 *pRoamId);
+                      tANI_U32 *pRoamId, v_BOOL_t fForce);
 //Check whether SSID is valid
 tANI_BOOLEAN csrIsBogusSsid( tANI_U8 *pSsid, tANI_U32 SsidLen );
 

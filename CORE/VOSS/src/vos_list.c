@@ -37,13 +37,13 @@ VOS_STATUS vos_list_init( vos_list_t *pList )
 {
    if ( pList == NULL)
    {
-       printk(KERN_CRIT "%s: NULL pointer passed in\n",__FUNCTION__);
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: NULL pointer passed in",__FUNCTION__);
        return VOS_STATUS_E_FAULT;
    }
 
    if ( pList->cookie == VOS_LIST_COOKIE )
    {
-       printk(KERN_CRIT "%s: already initialized list\n",__FUNCTION__);
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: already initialized list",__FUNCTION__);
        return VOS_STATUS_E_BUSY;
    }
       
@@ -63,7 +63,7 @@ VOS_STATUS vos_list_destroy( vos_list_t *pList )
    int rc; 
    if (pList == NULL)
    {
-      printk(KERN_CRIT "%s: NULL pointer passed in\n",__FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: NULL pointer passed in",__FUNCTION__);
       return VOS_STATUS_E_FAULT;      
    }
      
@@ -74,14 +74,14 @@ VOS_STATUS vos_list_destroy( vos_list_t *pList )
      
    if ( pList->cookie != VOS_LIST_COOKIE )
    {
-       printk(KERN_CRIT "%s: already initialized list\n",__FUNCTION__);
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: already initialized list",__FUNCTION__);
        mutex_unlock(&pList->lock);
        return VOS_STATUS_E_INVAL;
    }
       
    if ( pList->count !=0 )
    {
-       printk(KERN_CRIT "%s: list length not equal to zero\n",__FUNCTION__);
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list length not equal to zero",__FUNCTION__);
        mutex_unlock(&pList->lock);
        return VOS_STATUS_E_BUSY;
    }
@@ -107,7 +107,7 @@ VOS_STATUS vos_list_insert_front( vos_list_t *pList, vos_list_node_t *pNode )
       return rc;     
    if ( pList->cookie != VOS_LIST_COOKIE )
    {
-      printk(KERN_CRIT "%s: already initialized list\n",__FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: already initialized list",__FUNCTION__);
       mutex_unlock(&pList->lock);
       return VOS_STATUS_E_INVAL;
    }
@@ -134,7 +134,7 @@ VOS_STATUS vos_list_insert_back( vos_list_t *pList, vos_list_node_t *pNode )
          
    if ( pList->cookie != VOS_LIST_COOKIE )
    {
-      printk(KERN_CRIT "%s: already initialized list\n",__FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: already initialized list\n",__FUNCTION__);
       mutex_unlock(&pList->lock);
       return VOS_STATUS_E_INVAL;
    }
@@ -161,7 +161,7 @@ VOS_STATUS vos_list_insert_back_size( vos_list_t *pList, vos_list_node_t *pNode,
          
    if ( pList->cookie != VOS_LIST_COOKIE )
    {
-      printk(KERN_CRIT "%s: already initialized list\n",__FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: already initialized list",__FUNCTION__);
       mutex_unlock(&pList->lock);
       return VOS_STATUS_E_INVAL;
    }
@@ -230,14 +230,14 @@ VOS_STATUS vos_list_remove_front( vos_list_t *pList, vos_list_node_t **ppNode )
          
    if ( pList->cookie != VOS_LIST_COOKIE )
    {
-      printk(KERN_CRIT "%s: already initialized list\n",__FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: already initialized list",__FUNCTION__);
       mutex_unlock(&pList->lock);
       return VOS_STATUS_E_INVAL;
    }
 
    if ( list_empty( &pList->anchor ) )
    {
-      printk(KERN_CRIT "%s: list empty\n",__FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list empty",__FUNCTION__);
       mutex_unlock(&pList->lock);
       return VOS_STATUS_E_EMPTY;
    }
@@ -310,14 +310,14 @@ VOS_STATUS vos_list_remove_back( vos_list_t *pList, vos_list_node_t **ppNode )
          
    if ( pList->cookie != VOS_LIST_COOKIE )
    { 
-      printk(KERN_CRIT "%s: already initialized list\n",__FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: already initialized list",__FUNCTION__);
       mutex_unlock(&pList->lock);
       return VOS_STATUS_E_INVAL;
    }
 
    if ( list_empty( &pList->anchor ) )
    {
-      printk(KERN_CRIT "%s: list empty\n",__FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list empty",__FUNCTION__);
       mutex_unlock(&pList->lock);
       return VOS_STATUS_E_EMPTY;
    }
@@ -346,9 +346,9 @@ VOS_STATUS vos_list_size( vos_list_t *pList, v_SIZE_t *pSize )
       return rc;     
    if ( pList->cookie != VOS_LIST_COOKIE )
    { 
-            printk(KERN_CRIT "%s: already initialized list\n",__FUNCTION__);
-            mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_INVAL;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: already initialized list",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_INVAL;
    }
          
    *pSize = pList->count;
@@ -432,16 +432,16 @@ VOS_STATUS vos_list_peek_front( vos_list_t *pList, vos_list_node_t **ppNode )
       return rc;     
    if ( pList->cookie != VOS_LIST_COOKIE )
    {  
-            printk(KERN_CRIT "%s: already initialized list\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_INVAL;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: already initialized list",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_INVAL;
    }
 
    if ( list_empty(&pList->anchor) ) 
    { 
-            printk(KERN_CRIT "%s: list empty\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_EMPTY;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list empty",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_EMPTY;
    }
    listptr = pList->anchor.next;
    *ppNode = listptr;
@@ -524,16 +524,16 @@ VOS_STATUS vos_list_peek_back( vos_list_t *pList, vos_list_node_t **ppNode )
       return rc;     
    if ( pList->cookie != VOS_LIST_COOKIE )
    { 
-            printk(KERN_CRIT "%s: already initialized list\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_INVAL;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: already initialized list",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_INVAL;
    }
 
    if ( list_empty(&pList->anchor) ) 
    { 
-            printk(KERN_CRIT "%s: list empty\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_EMPTY;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list empty",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_EMPTY;
    }
    listptr = pList->anchor.prev;
    *ppNode = listptr;
@@ -626,16 +626,16 @@ VOS_STATUS vos_list_peek_next( vos_list_t *pList, vos_list_node_t *pNode,
       return rc;     
    if ( pList->cookie != VOS_LIST_COOKIE )
    {  
-            printk(KERN_CRIT "%s: already initialized list\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_INVAL;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: already initialized list",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_INVAL;
    }
 
    if ( list_empty(&pList->anchor) ) 
    { 
-            printk(KERN_CRIT "%s: list empty\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_EMPTY;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list empty",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_EMPTY;
    }
 
    // verify that pNode is indeed part of list pList
@@ -653,9 +653,9 @@ VOS_STATUS vos_list_peek_next( vos_list_t *pList, vos_list_node_t *pNode,
    listptr = pNode->next;
    if (listptr == &pList->anchor)
    {
-            printk(KERN_CRIT "%s: list empty\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_EMPTY;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list empty",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_EMPTY;
    }
 
    *ppNode =  listptr;
@@ -748,16 +748,16 @@ VOS_STATUS vos_list_peek_prev( vos_list_t *pList, vos_list_node_t *pNode,
       return rc;     
    if ( pList->cookie != VOS_LIST_COOKIE )
    { 
-            printk(KERN_CRIT "%s: list not initialized\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_INVAL;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list not initialized",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_INVAL;
    }
 
    if ( list_empty(&pList->anchor) ) 
    { 
-            printk(KERN_CRIT "%s: list empty\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_EMPTY;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list empty",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_EMPTY;
    }
 
    // verify that pNode is indeed part of list pList
@@ -776,9 +776,9 @@ VOS_STATUS vos_list_peek_prev( vos_list_t *pList, vos_list_node_t *pNode,
 
    if (listptr == &pList->anchor)
    {
-            printk(KERN_CRIT "%s: list empty\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_EMPTY;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list empty",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_EMPTY;
    }
 
    *ppNode = listptr;
@@ -830,16 +830,16 @@ VOS_STATUS vos_list_insert_before( vos_list_t *pList, vos_list_node_t *pNodeToIn
       return rc;     
    if ( pList->cookie != VOS_LIST_COOKIE )
    { 
-            printk(KERN_CRIT "%s: list not initialized\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_INVAL;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list not initialized",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_INVAL;
    }
 
    if ( list_empty(&pList->anchor) ) 
    { 
-            printk(KERN_CRIT "%s: list empty\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_EMPTY;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list empty",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_EMPTY;
    }
 
    // verify that pNode is indeed part of list pList
@@ -904,16 +904,16 @@ VOS_STATUS vos_list_insert_after( vos_list_t *pList, vos_list_node_t *pNodeToIns
       return rc;     
    if ( pList->cookie != VOS_LIST_COOKIE )
    { 
-            printk(KERN_CRIT "%s: list not initialized\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_INVAL;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list not initialized",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_INVAL;
    }
 
    if ( list_empty(&pList->anchor) ) 
    { 
-            printk(KERN_CRIT "%s: list empty\n",__FUNCTION__);
-   	    mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_EMPTY;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list empty",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_EMPTY;
    }
 
    // verify that pNode is indeed part of list pList
@@ -976,16 +976,16 @@ VOS_STATUS vos_list_remove_node( vos_list_t *pList, vos_list_node_t *pNodeToRemo
       return rc;     
    if ( pList->cookie != VOS_LIST_COOKIE )
    { 
-            printk(KERN_CRIT "%s: list not initialized\n",__FUNCTION__);
-            mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_INVAL;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list not initialized",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_INVAL;
    }
 
    if ( list_empty(&pList->anchor) ) 
    { 
-            printk(KERN_CRIT "%s: list empty\n",__FUNCTION__);
-            mutex_unlock(&pList->lock);
-            return VOS_STATUS_E_EMPTY;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: list empty",__FUNCTION__);
+       mutex_unlock(&pList->lock);
+       return VOS_STATUS_E_EMPTY;
    }
          
    // verify that pNodeToRemove is indeed part of list pList

@@ -58,7 +58,7 @@ ftm_vos_sys_probe_thread_cback
     pVosContextType pVosContext= (pVosContextType)pUserData;
     if (vos_event_set(&pVosContext->ProbeEvent)!= VOS_STATUS_SUCCESS)
     {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
          "%s: vos_event_set failed", __FUNCTION__);
         return;
     }
@@ -98,14 +98,14 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
 
     pVosContextType pVosContext= NULL;
 
-    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: Opening VOSS", __func__);
 
     pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
     if (NULL == pVosContext)
     {
-        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: Trying to open VOSS without a PreOpen",__func__);
         VOS_ASSERT(0);
         goto err_vos_status_failure;
@@ -114,7 +114,7 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
     /* Initialize the probe event */
     if (vos_event_init(&pVosContext->ProbeEvent) != VOS_STATUS_SUCCESS)
     {
-        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: Unable to init probeEvent",__func__);
         VOS_ASSERT(0);
         goto err_vos_status_failure;
@@ -126,7 +126,7 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
     {
 
         /* Critical Error ...  Cannot proceed further */
-        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 "%s: Failed to initialize VOS free message queue",__func__);
         VOS_ASSERT(0);
         goto err_probe_event;
@@ -147,7 +147,7 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
     if (!VOS_IS_STATUS_SUCCESS(vStatus))
     {
        /* Critical Error ...  Cannot proceed further */
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 "%s: Failed to open VOS SCheduler", __func__);
        VOS_ASSERT(0);
        goto err_msg_queue;
@@ -160,7 +160,7 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
 
     if (vos_wait_single_event(&pVosContext->ProbeEvent, 0)!= VOS_STATUS_SUCCESS)
     {
-        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 "%s: Failed to probe MC Thread", __func__);
         VOS_ASSERT(0);
         goto err_sched_close;
@@ -173,7 +173,7 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
     {
         // NV module cannot be initialized, however the driver is allowed
         // to proceed
-         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
           "%s: Failed to initialize the NV module", __func__);
          goto err_sched_close;
     }
@@ -191,7 +191,7 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
     if (eSIR_SUCCESS != sirStatus)
     {
         /* Critical Error ...    Cannot proceed further */
-        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                   "%s: Failed to open MAC", __func__);
         VOS_ASSERT(0);
         goto err_nv_close;
@@ -201,12 +201,12 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
 
     if(!VOS_IS_STATUS_SUCCESS(vStatus))
     {
-        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
         "%s: Failed to open BAL",__func__);
         goto err_mac_close;
     }
 
-    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: VOSS successfully Opened",__func__);
 
        /* Save the hal context in Adapter */
@@ -320,13 +320,13 @@ int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
     pVosContextType pVosContext = (pVosContextType)pAdapter->pvosContext;
     tHalMacStartParameters halStartParams;
 
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "%s: Starting Libra SW", __func__);
 
     /* We support only one instance for now ...*/
     if (pVosContext == NULL)
     {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
            "%s: mismatch in context",__FUNCTION__);
         goto err_status_failure;
     }
@@ -334,13 +334,13 @@ int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
     if ((pVosContext->pBALContext == NULL) || ( pVosContext->pMACContext == NULL))
     {
         if (pVosContext->pBALContext == NULL)
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                "%s: BAL NULL context",__FUNCTION__);
         else if (pVosContext->pMACContext == NULL)
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                "%s: MAC NULL context",__FUNCTION__);
         else
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                "%s: TL NULL context",__FUNCTION__);
 
         goto err_status_failure;
@@ -350,12 +350,12 @@ int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
     vStatus = WLANSAL_Start(pVosContext);
     if (!VOS_IS_STATUS_SUCCESS(vStatus))
     {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
               "%s: Failed to start SAL",__func__);
         goto err_status_failure;
     }
 
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
            "%s: SAL correctly started", __func__);
 
     /* Start BAL */
@@ -363,12 +363,12 @@ int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
 
     if (!VOS_IS_STATUS_SUCCESS(vStatus))
     {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
               "%s: Failed to start BAL",__func__);
         goto err_sal_stop;
     }
 
-    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
              "%s: BAL correctly started",__func__);
 
     /* Start the MAC */
@@ -382,13 +382,13 @@ int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
 
     if ( !VOS_IS_STATUS_SUCCESS( vStatus ) )
     {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
              "%s: Failed to get firmware binary",__func__);
         printk(KERN_EMERG "***Failed to get firmware binary***\n");
         goto err_bal_stop;
     }
 
-    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
              "%s: Firmware binary file found",__func__);
 
     /* Start the MAC */
@@ -404,14 +404,14 @@ int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
 
     if (eSIR_SUCCESS != sirStatus)
     {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
               "%s: Failed to start MAC", __func__);
 
         printk(KERN_EMERG "***Failed to start MAC****\n");
         goto err_bal_stop;
     }
 
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "%s: MAC correctly started",__func__);
 
 
@@ -424,7 +424,7 @@ int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
     /* Initialize the ftm vos event */
     if (vos_event_init(& pAdapter->ftm.ftm_vos_event) != VOS_STATUS_SUCCESS)
     {
-        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: Unable to init probeEvent",__func__);
         VOS_ASSERT(0);
         goto err_mac_stop;

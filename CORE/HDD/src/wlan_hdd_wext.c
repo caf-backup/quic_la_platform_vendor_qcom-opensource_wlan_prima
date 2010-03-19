@@ -2,12 +2,12 @@
     ------------------------------------------------------------------------ *
 
   
-    \file ccp_iw.c
+    \file wlan_hdd_wext.c
   
     \brief Airgo Linux Wireless Extensions Common Control Plane Types and
     interfaces.
   
-    $Id: ccp_iw.c,v 1.34 2007/04/14 01:49:23 jimz Exp jimz $ 
+    $Id: wlan_hdd_wext.c,v 1.34 2007/04/14 01:49:23 jimz Exp jimz $ 
   
     Copyright (C) 2007 Airgo Networks, Incorporated
     
@@ -1230,7 +1230,7 @@ static int iw_set_priv(struct net_device *dev,
 
     ENTER();
 
-    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "***Received %s cmd from GUI***\n", cmd);
+    hddLog(VOS_TRACE_LEVEL_INFO_MED, "***Received %s cmd from Wi-Fi GUI***", cmd);
 
     if( strcasecmp(cmd, "start") == 0 ) {
 
@@ -1357,7 +1357,7 @@ static int iw_set_priv(struct net_device *dev,
 
         ret = sprintf(cmd,"LinkSpeed %u\n", link_speed);
         
-        hddLog( VOS_TRACE_LEVEL_INFO_HIGH, "cmd %s\n", cmd); 
+        hddLog( VOS_TRACE_LEVEL_INFO_MED, "cmd %s\n", cmd); 
     }
     else if( strncasecmp(cmd, "COUNTRY", 7) == 0 ) {
         char *country_code;
@@ -1371,7 +1371,7 @@ static int iw_set_priv(struct net_device *dev,
         v_S7_t s7Rssi;
         int  len;
         
-        hddLog( VOS_TRACE_LEVEL_INFO_HIGH, "rssi command"); 
+        hddLog( VOS_TRACE_LEVEL_INFO_MED, "rssi command"); 
 
         if(pAdapter->conn_info.connState == eConnectionState_Associated) {
 
@@ -1388,7 +1388,7 @@ static int iw_set_priv(struct net_device *dev,
                 }
                 ret += sprintf(&cmd[ret], " rssi %d\n", s7Rssi);
                 
-                hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "cmd %s\n", cmd); 
+                hddLog(VOS_TRACE_LEVEL_INFO_MED, "cmd %s\n", cmd); 
             }
              
         }
@@ -1559,7 +1559,7 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
    
    if(wrqu->data.flags & IW_ENCODE_DISABLED)
    {    
-       printk(KERN_EMERG "****iwconfig wlan0 key off*****\n");
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "****iwconfig wlan0 key off*****\n");
        if(!fKeyPresent) {
         
           for(i=0;i < CSR_MAX_NUM_KEY; i++) {
@@ -1588,7 +1588,7 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
    
    if (wrqu->data.flags & (IW_ENCODE_OPEN | IW_ENCODE_RESTRICTED)) 
    {
-      printk(KERN_EMERG "****iwconfig wlan0 key on*****\n");
+      hddLog(VOS_TRACE_LEVEL_INFO, "iwconfig wlan0 key on");
    
       pAdapter->conn_info.authType = (encoderq->flags & IW_ENCODE_RESTRICTED) ? eCSR_AUTH_TYPE_SHARED_KEY : eCSR_AUTH_TYPE_OPEN_SYSTEM;
    
@@ -1597,7 +1597,7 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
       
    if(wrqu->data.length > 0)
    {
-       printk(KERN_EMERG "%s : wrqu->data.length : %d\n",__FUNCTION__,wrqu->data.length);
+       hddLog(VOS_TRACE_LEVEL_INFO, "%s : wrqu->data.length : %d",__FUNCTION__,wrqu->data.length);
    
        key_length = wrqu->data.length;        
    
@@ -1605,7 +1605,7 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
       
        if(5 == key_length)
        {   
-           printk(KERN_EMERG "%s: Call with WEP40,key_len=%d\n",__FUNCTION__,key_length);
+           hddLog(VOS_TRACE_LEVEL_INFO, "%s: Call with WEP40,key_len=%d",__FUNCTION__,key_length);
          
            if((IW_AUTH_KEY_MGMT_802_1X == pWextState->authKeyMgmt) && (eCSR_AUTH_TYPE_OPEN_SYSTEM == pAdapter->conn_info.authType))
            {
@@ -1618,7 +1618,7 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
        }
        else if(13 == key_length)
        {
-           printk(KERN_EMERG "%s:Call with WEP104,key_len:%d\n",__FUNCTION__,key_length);
+           hddLog(VOS_TRACE_LEVEL_INFO, "%s:Call with WEP104,key_len:%d",__FUNCTION__,key_length);
       
            if((IW_AUTH_KEY_MGMT_802_1X == pWextState->authKeyMgmt) && (eCSR_AUTH_TYPE_OPEN_SYSTEM == pAdapter->conn_info.authType))
            {
@@ -1631,7 +1631,7 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
        }
        else 
        {
-           printk(KERN_EMERG "%s: Invalid WEP key length :%d\n",__FUNCTION__,key_length);
+           hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid WEP key length :%d",__FUNCTION__,key_length);
            return -EINVAL;
        }  
       
@@ -2178,17 +2178,17 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
     int sub_cmd = wrqu->data.flags;
     int ret = 0; /* sucess */
 
-    printk(KERN_CRIT "%s: Received length %d\n", __FUNCTION__, wrqu->data.length);
-    printk(KERN_CRIT "%s: Received data %s\n", __FUNCTION__, (char*)wrqu->data.pointer);
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Received length %d", __FUNCTION__, wrqu->data.length);
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Received data %s", __FUNCTION__, (char*)wrqu->data.pointer);
     
     switch(sub_cmd) 
     {
        case WE_WOWL_ADD_PTRN:
-          printk(KERN_CRIT "ADD_PTRN\n");
+          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "ADD_PTRN\n");
           hdd_add_wowl_ptrn((char*)wrqu->data.pointer);
           break;
        case WE_WOWL_DEL_PTRN:
-          printk(KERN_CRIT "DEL_PTRN\n");
+          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "DEL_PTRN\n");
           hdd_del_wowl_ptrn((char*)wrqu->data.pointer);
           break;
        default:  
@@ -2226,13 +2226,13 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
         }
 
         case WE_IBSS_STATUS:
-           printk(KERN_EMERG "****Return IBSS Status*****\n");
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "****Return IBSS Status*****\n");
            break;
 
         case WE_PMC_STATE:
         {
              *value = pmcGetPmcState(pAdapter->hHal);
-             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("PMC state=%ld!!\n"),*value);
+             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("PMC state=%ld!!\n"),*value);
              break;            
         }
         case WE_GET_WLAN_DBG:
@@ -2420,12 +2420,11 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
     int sub_cmd = wrqu->data.flags;
     int ret = 0; /* sucess */
     
-    printk("%s: wrqu: %p, extra: %p\n", __FUNCTION__, wrqu, extra);
     switch (sub_cmd)
     {
         case WE_CLEAR_STATS:
         {
-            printk("%s: clearing\n", __FUNCTION__);
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: clearing", __FUNCTION__);
             memset(&pAdapter->stats, 0, sizeof(pAdapter->stats));
             memset(&pAdapter->hdd_stats, 0, sizeof(pAdapter->hdd_stats));
             break;
@@ -2433,7 +2432,7 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
 
         default:
         {
-            printk("%s: unknown ioctl %d\n", __FUNCTION__, sub_cmd);
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: unknown ioctl %d", __FUNCTION__, sub_cmd);
             hddLog(LOGE, "Invalid IOCTL action command %d ", sub_cmd);
             break;
         }

@@ -124,7 +124,7 @@ typedef struct sPmcInfo
                                                                                 has finished */ 
     void *impsCallbackContext;  /* value to be passed as parameter to routine specified above */
     tPalTimerHandle hImpsTimer;  /* timer to use with IMPS */
-    tPalTimerHandle hTrafficTimer;  /* timer to measure traffic for BMPS */
+    vos_timer_t hTrafficTimer;  /* timer to measure traffic for BMPS */
 #ifdef FEATURE_WLAN_DIAG_SUPPORT    
     tPalTimerHandle hDiagEvtTimer;  /* timer to report PMC state through DIAG event */
 #endif
@@ -150,6 +150,7 @@ typedef struct sPmcInfo
     void *enterWowlCallbackContext;/* value to be passed as parameter to routine specified above */
     tSirSmeWowlEnterParams wowlEnterParams; /* WOWL mode configuration */
     tDblLinkList deferredMsgList;   //The message in here are deferred and DONOT expect response from PE
+    tANI_BOOLEAN rfSuppliesVotedOff;  //Whether RF supplies are voted off or not.
 } tPmcInfo, *tpPmcInfo;
 
 

@@ -1,7 +1,8 @@
 
-#ifdef ANI_MANF_DIAG
-#include "sys_api.h"
 
+
+#include "sys_api.h"
+#ifdef ANI_MANF_DIAG
 
 #if defined(ANI_PHY_DEBUG) || defined(ANI_MANF_DIAG)
 

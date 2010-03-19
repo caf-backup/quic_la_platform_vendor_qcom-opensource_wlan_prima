@@ -24,6 +24,8 @@
 
 #include "vos_lock.h"
 #include "vos_memory.h"
+#include "vos_trace.h"
+
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -95,19 +97,19 @@ VOS_STATUS vos_lock_init ( vos_lock_t *lock )
    //check for invalid pointer
    if ( lock == NULL)
    {
-       printk(KERN_CRIT "%s: NULL pointer passed in\n",__FUNCTION__);
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: NULL pointer passed in",__FUNCTION__);
        return VOS_STATUS_E_FAULT; 
    }
    // check for 'already initialized' lock
    if ( LINUX_LOCK_COOKIE == lock->cookie )
    {
-       printk(KERN_CRIT "%s: already initialized lock\n",__FUNCTION__);
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: already initialized lock",__FUNCTION__);
        return VOS_STATUS_E_BUSY;
    }
       
    if (in_interrupt())
    {
-      printk(KERN_CRIT "%s cannot be called from interrupt context!!!\n", __FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s cannot be called from interrupt context!!!", __FUNCTION__);
       return VOS_STATUS_E_FAULT; 
    }
       
@@ -151,19 +153,19 @@ VOS_STATUS vos_lock_acquire ( vos_lock_t* lock )
       //Check for invalid pointer
       if ( lock == NULL )
       {
-         printk(KERN_CRIT "%s: NULL pointer passed in\n",__FUNCTION__);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: NULL pointer passed in",__FUNCTION__);
          return VOS_STATUS_E_FAULT;
       }
       // check if lock refers to an initialized object
       if ( LINUX_LOCK_COOKIE != lock->cookie )
       {
-         printk(KERN_CRIT "%s: uninitialized lock\n",__FUNCTION__);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: uninitialized lock",__FUNCTION__);
          return VOS_STATUS_E_INVAL;
       }
 	      
       if (in_interrupt())
       {
-         printk(KERN_CRIT "%s cannot be called from interrupt context!!!\n", __FUNCTION__);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s cannot be called from interrupt context!!!", __FUNCTION__);
          return VOS_STATUS_E_FAULT; 
       }
       if ((lock->processID == current->pid) && 
@@ -171,7 +173,7 @@ VOS_STATUS vos_lock_acquire ( vos_lock_t* lock )
       {
          lock->refcount++;
 #ifdef VOS_NESTED_LOCK_DEBUG
-         printk("%s: %x %d %d\n", __func__, lock, current->pid, lock->refcount);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,"%s: %x %d %d", __func__, lock, current->pid, lock->refcount);
 #endif
          return VOS_STATUS_SUCCESS;
       }
@@ -182,7 +184,7 @@ VOS_STATUS vos_lock_acquire ( vos_lock_t* lock )
         return rc;
       
 #ifdef VOS_NESTED_LOCK_DEBUG
-      printk("%s: %x %d\n", __func__, lock, current->pid);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,"%s: %x %d", __func__, lock, current->pid);
 #endif
       lock->processID = current->pid;
       lock->refcount++;
@@ -224,14 +226,14 @@ VOS_STATUS vos_lock_release ( vos_lock_t *lock )
       //Check for invalid pointer
       if ( lock == NULL )
       {
-         printk(KERN_CRIT "%s: NULL pointer passed in\n",__FUNCTION__);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: NULL pointer passed in",__FUNCTION__);
          return VOS_STATUS_E_FAULT;
       }
 		
       // check if lock refers to an uninitialized object
       if ( LINUX_LOCK_COOKIE != lock->cookie )
       {
-         printk(KERN_CRIT "%s: uninitialized lock\n",__FUNCTION__);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: uninitialized lock",__FUNCTION__);
          return VOS_STATUS_E_INVAL;
       }
         
@@ -240,9 +242,9 @@ VOS_STATUS vos_lock_release ( vos_lock_t *lock )
       // of the thread which acquire the lock
       if ( lock->processID != current->pid )
       {
-         printk(KERN_CRIT "%s: current task pid does not match original task pid!!\n",__FUNCTION__);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: current task pid does not match original task pid!!",__FUNCTION__);
 #ifdef VOS_NESTED_LOCK_DEBUG
-         printk("%s: Lock held by=%d being released by=%d\n", __func__, lock->processID, current->pid);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,"%s: Lock held by=%d being released by=%d", __func__, lock->processID, current->pid);
 #endif
 
          return VOS_STATUS_E_PERM;
@@ -253,7 +255,7 @@ VOS_STATUS vos_lock_release ( vos_lock_t *lock )
          if (lock->refcount > 0) lock->refcount--;
       }
 #ifdef VOS_NESTED_LOCK_DEBUG
-      printk("%s: %x %d %d\n", __func__, lock, lock->processID, lock->refcount);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,"%s: %x %d %d", __func__, lock, lock->processID, lock->refcount);
 #endif
       if (lock->refcount) return VOS_STATUS_SUCCESS;
          
@@ -263,7 +265,7 @@ VOS_STATUS vos_lock_release ( vos_lock_t *lock )
       // Release a Lock   
       mutex_unlock( &lock->m_lock );
 #ifdef VOS_NESTED_LOCK_DEBUG
-      printk("%s: Freeing lock %x %d %d\n", lock, lock->processID, lock->refcount);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,"%s: Freeing lock %x %d %d", lock, lock->processID, lock->refcount);
 #endif
       return VOS_STATUS_SUCCESS;
 }
@@ -306,18 +308,18 @@ VOS_STATUS vos_lock_destroy( vos_lock_t *lock )
       //Check for invalid pointer
       if ( NULL == lock )
       { 	
-         printk(KERN_CRIT "%s: NULL pointer passed in\n",__FUNCTION__);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: NULL pointer passed in",__FUNCTION__);
          return VOS_STATUS_E_FAULT; 
       }
       if ( LINUX_LOCK_COOKIE != lock->cookie )
       {	
-         printk(KERN_CRIT "%s: uninitialized lock\n",__FUNCTION__);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: uninitialized lock",__FUNCTION__);
          return VOS_STATUS_E_INVAL;
       }
 	     // check if lock is released		   
       if (LOCK_RELEASED != lock->state)
       {
-         printk(KERN_CRIT "%s: lock is not released\n",__FUNCTION__);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: lock is not released",__FUNCTION__);
          return VOS_STATUS_E_BUSY;
       }
 

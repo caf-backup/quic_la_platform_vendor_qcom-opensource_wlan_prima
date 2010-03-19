@@ -23,6 +23,7 @@
  * Include Files
  * -------------------------------------------------------------------------*/
 #include "vos_event.h"
+#include "vos_trace.h"
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -52,12 +53,12 @@ static void process_timeout(unsigned long data)
    vos_event_t * p = (vos_event_t *)data;
    if (p == NULL)
    {
-      printk(KERN_CRIT "NULL pointer passed into timer handler function  - process_timeout\n");
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "NULL pointer passed into timer handler function  - process_timeout");
       return;
    }
    if (p->process == NULL)
    {
-      printk(KERN_CRIT "NULL pointer passed into process member in timer handler function  - process_timeout\n");
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "NULL pointer passed into process member in timer handler function  - process_timeout");
       return;
    }
    set_bit(VOS_EVENT_SET, &p->event_flags);
@@ -164,7 +165,7 @@ VOS_STATUS vos_event_set ( vos_event_t* event )
    // check if event refers to an initialized object
    if ( LINUX_EVENT_COOKIE != event->cookie )
    {
-         printk(KERN_CRIT "Uninitialized event passed into %s\n",__FUNCTION__);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "Uninitialized event passed into %s",__FUNCTION__);
          return VOS_STATUS_E_INVAL;
    }
   
@@ -352,7 +353,7 @@ VOS_STATUS vos_wait_single_event ( vos_event_t* event, v_U32_t timeout)
 
    if (in_interrupt())
    {
-      printk(KERN_CRIT "%s cannot be called from interrupt context!!!\n", __FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s cannot be called from interrupt context!!!", __FUNCTION__);
       return VOS_STATUS_E_FAULT;
    }
    // check for null pointer
@@ -481,7 +482,7 @@ VOS_STATUS vos_wait_multiple_events( vos_event_t **events, v_U8_t numEvents,
 
    if (in_interrupt())
    {
-      printk(KERN_CRIT "%s cannot be called from interrupt context!!!\n", __FUNCTION__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s cannot be called from interrupt context!!!", __FUNCTION__);
       return VOS_STATUS_E_FAULT;
    }
 
@@ -566,7 +567,7 @@ VOS_STATUS vos_wait_multiple_events( vos_event_t **events, v_U8_t numEvents,
       /* we've been woken up, when we get here */
       if (signal_pending(current))
       {
-         printk(KERN_CRIT "Got a SIGKILL signal, bailing out!\n");
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "Got a SIGKILL signal, bailing out!");
          break;
       }
       set_current_state(TASK_INTERRUPTIBLE);

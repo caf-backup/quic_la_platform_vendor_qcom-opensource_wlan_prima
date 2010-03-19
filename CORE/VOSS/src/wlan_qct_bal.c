@@ -263,7 +263,7 @@ static VOS_STATUS balSSCCtxtReqCB
 
    VOS_ASSERT(pAdapter);
 
-   printk("%s: Enter \n", __func__);
+   VOS_TRACE(VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_INFO,"%s: Enter ", __func__);
    BENTER();
 
    status = vos_alloc_context(pAdapter, VOS_MODULE_ID_SSC, (v_VOID_t **)sscCtxt, sscCtxtSize);
@@ -661,7 +661,6 @@ VOS_STATUS WLANBAL_Start
    if(!IS_VALID_1_ARG(sscHandle))
    {
       BMSGERROR("Invalid SSC Handle %p", gbalHandle, 0, 0);
-      printk("%s: Invalid SSC Handle\n", __func__);
       BEXIT();
       return VOS_STATUS_E_NOMEM;
    }
@@ -734,8 +733,17 @@ VOS_STATUS WLANBAL_Stop
    v_PVOID_t  sscHandle = (v_PVOID_t)VOS_GET_SSC_CTXT(pAdapter);
    VOS_STATUS status = VOS_STATUS_SUCCESS;
 
-   printk("%s: Enter \n", __func__);
    BENTER();
+
+   if (VOS_TIMER_STATE_RUNNING == vos_timer_getCurrentState(&gbalHandle->timer))
+   {
+      status = vos_timer_stop(&gbalHandle->timer);
+   }
+
+   if (VOS_STATUS_SUCCESS != status)
+   {
+      BMSGERROR("BAL timer stop failed.", 0, 0, 0);
+   }
 
    status = WLANSSC_Stop(sscHandle);
 
@@ -764,7 +772,6 @@ VOS_STATUS WLANBAL_Close
    v_PVOID_t          sscHandle = (v_PVOID_t)VOS_GET_SSC_CTXT(pAdapter);
    VOS_STATUS         status = VOS_STATUS_SUCCESS;
 
-   printk("%s: Enter \n", __func__);
    BENTER();
 
    status = WLANSSC_Close(sscHandle);
@@ -823,7 +830,7 @@ VOS_STATUS WLANBAL_Reset
       return VOS_STATUS_E_FAILURE;
    }
 
-   printk("%s: Reset bal stop done\n", __func__);
+   VOS_TRACE(VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_INFO,"%s: Reset bal stop done\n", __func__);
    status = WLANBAL_Start(pAdapter);
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
@@ -832,7 +839,7 @@ VOS_STATUS WLANBAL_Reset
       return VOS_STATUS_E_FAILURE;
    }
 
-   printk("%s: Reset bal start done\n", __func__);
+   VOS_TRACE(VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_INFO,"%s: Reset bal start done\n", __func__);
 
    BEXIT();
    return VOS_STATUS_SUCCESS;
@@ -873,7 +880,6 @@ VOS_STATUS WLANBAL_RegHalCBFunctions
 )
 {
    BENTER();
-   printk("%s: Enter \n", __func__);
 
    if(!IS_VALID_2_ARG(gbalHandle, halReg))
    {
@@ -1538,7 +1544,6 @@ VOS_STATUS WLANBAL_DisableASICInterrupt
    WLANSSC_HandleType     sscHandle = (WLANSSC_HandleType)VOS_GET_SSC_CTXT(pAdapter);
    VOS_STATUS             status    = VOS_STATUS_SUCCESS;
 
-   printk("%s: Enter \n", __func__);
    BENTER();
 
    if(!IS_VALID_1_ARG(gbalHandle))
@@ -1765,7 +1770,6 @@ VOS_STATUS WLANBAL_RegTlCbFunctions
    VOS_ASSERT(gbalHandle); 
    VOS_ASSERT(tlReg);
 
-   printk("%s: Enter \n", __func__);
    BENTER();
 
    gbalHandle->tlReg.receiveFrameCB  = tlReg->receiveFrameCB;
@@ -1835,7 +1839,7 @@ VOS_STATUS WLANBAL_GetTxResources
    *availableTxBuffer = (v_U32_t)(bdBufferCount + pduBufferCount);
 
 
-   BMSGERROR("%s: Threshold = %x  count=%x\n", __func__, (unsigned int)gbalHandle->tlReg.txResourceThreashold,
+   BMSGWARN("%s: Threshold = %x  count=%x\n", __func__, (unsigned int)gbalHandle->tlReg.txResourceThreashold,
       (unsigned int)(bdBufferCount + pduBufferCount));
 
    if(gbalHandle->tlReg.txResourceThreashold > (v_U32_t)(bdBufferCount + pduBufferCount))
@@ -1857,9 +1861,6 @@ VOS_STATUS WLANBAL_GetTxResources
       else
       {
          BMSGERROR("%s: Timer not stopped, cannot start\n", __func__, 0, 0);
-         // Release lock
-         BEXIT();
-         return VOS_STATUS_E_FAILURE;
       }
    }
 

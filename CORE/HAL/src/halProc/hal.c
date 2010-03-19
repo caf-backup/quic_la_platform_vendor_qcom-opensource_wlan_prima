@@ -3196,7 +3196,15 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             halMsg_SetKeyDone(pMac);
             break;
 
-        case SIR_HAL_GET_NOISE_REQ:
+
+       case SIR_HAL_HANDLE_FW_MBOX_RSP:
+            HALLOGE( halLog(pMac, LOGE, FL("Fw Rsp Msg \n")));
+            halPhy_HandlerFwRspMsg(pMac, pMsg->bodyptr);
+            vos_mem_free((v_VOID_t*)pMsg->bodyptr);
+            pMsg->bodyptr = NULL;
+            break;
+
+       case SIR_HAL_GET_NOISE_REQ:
             HALLOGW( halLog(pMac, LOGW, FL("Got Get Noise Request \n")));
             halMsg_sendGetNoiseRsp(pMac);
             break;

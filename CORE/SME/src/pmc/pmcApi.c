@@ -58,6 +58,7 @@ eHalStatus pmcOpen (tHalHandle hHal)
     pMac->pmc.bmpsEnabled = TRUE;
     pMac->pmc.standbyEnabled = TRUE;
     pMac->pmc.wowlEnabled = TRUE;
+    pMac->pmc.rfSuppliesVotedOff= FALSE;
 
     palZeroMemory(pMac->hHdd, &(pMac->pmc.bmpsConfig), sizeof(tPmcBmpsConfigParams));
     palZeroMemory(pMac->hHdd, &(pMac->pmc.impsConfig), sizeof(tPmcImpsConfigParams));
@@ -67,16 +68,15 @@ eHalStatus pmcOpen (tHalHandle hHal)
     if (palTimerAlloc(pMac->hHdd, &pMac->pmc.hImpsTimer, pmcImpsTimerExpired, hHal) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot allocate timer for IMPS\n"));
-        PMC_ABORT;
         return eHAL_STATUS_FAILURE;
     }
 
     /* Allocate a timer used in Full Power State to measure traffic
        levels and determine when to enter BMPS. */
-    if (palTimerAlloc(pMac->hHdd, &pMac->pmc.hTrafficTimer, pmcTrafficTimerExpired, hHal) != eHAL_STATUS_SUCCESS)
+    if (!VOS_IS_STATUS_SUCCESS(vos_timer_init(&pMac->pmc.hTrafficTimer, 
+                                VOS_TIMER_TYPE_SW, pmcTrafficTimerExpired, hHal)))
     {
         smsLog(pMac, LOGE, FL("Cannot allocate timer for traffic measurement\n"));
-        PMC_ABORT;
         return eHAL_STATUS_FAILURE;
     }
 
@@ -85,7 +85,6 @@ eHalStatus pmcOpen (tHalHandle hHal)
     if (palTimerAlloc(pMac->hHdd, &pMac->pmc.hDiagEvtTimer, pmcDiagEvtTimerExpired, hHal) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot allocate timer for diag event reporting\n"));
-        PMC_ABORT;
         return eHAL_STATUS_FAILURE;
     }
 #endif
@@ -260,7 +259,6 @@ eHalStatus pmcStop (tHalHandle hHal)
     if (palTimerStop(pMac->hHdd, pMac->pmc.hImpsTimer) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot cancel IMPS timer\n"));
-        PMC_ABORT;
     }
 
     pmcStopTrafficTimer(hHal);
@@ -272,7 +270,6 @@ eHalStatus pmcStop (tHalHandle hHal)
     if (palTimerStop(pMac->hHdd, pMac->pmc.hExitPowerSaveTimer) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot cancel exit power save mode timer\n"));
-        PMC_ABORT;
     }
 
     /* Do all the callbacks. */
@@ -324,20 +321,14 @@ eHalStatus pmcClose (tHalHandle hHal)
     if (palTimerFree(pMac->hHdd, pMac->pmc.hImpsTimer) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot deallocate IMPS timer\n"));
-        PMC_ABORT;
-        return eHAL_STATUS_FAILURE;
     }
-    if (palTimerFree(pMac->hHdd, pMac->pmc.hTrafficTimer) != eHAL_STATUS_SUCCESS)
+    if (!VOS_IS_STATUS_SUCCESS(vos_timer_destroy(&pMac->pmc.hTrafficTimer)))
     {
         smsLog(pMac, LOGE, FL("Cannot deallocate traffic timer\n"));
-        PMC_ABORT;
-        return eHAL_STATUS_FAILURE;
     }
     if (palTimerFree(pMac->hHdd, pMac->pmc.hExitPowerSaveTimer) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot deallocate exit power save mode timer\n"));
-        PMC_ABORT;
-        return eHAL_STATUS_FAILURE;
     }
     csrLLClose(&pMac->pmc.powerSaveCheckList);
     csrLLClose(&pMac->pmc.requestFullPowerList);
@@ -380,7 +371,6 @@ eHalStatus pmcSignalPowerEvent (tHalHandle hHal, tPmcPowerEvent event)
     {
 #ifndef GEN6_ONWARDS
     case ePMC_SYSTEM_HIBERNATE:
-        PMC_ABORT;
         return pmcEnterLowPowerState(hHal);
 
     case ePMC_SYSTEM_RESUME:
@@ -1004,7 +994,6 @@ eHalStatus pmcRequestFullPower (tHalHandle hHal, void (*callbackRoutine) (void *
         if (palTimerStop(pMac->hHdd, pMac->pmc.hImpsTimer) != eHAL_STATUS_SUCCESS)
         {
             smsLog(pMac, LOGE, FL("Cannot cancel IMPS timer\n"));
-            PMC_ABORT;
             return eHAL_STATUS_FAILURE;
         }
 
@@ -1199,7 +1188,6 @@ eHalStatus pmcDeregisterPowerSaveCheck (tHalHandle hHal, tANI_BOOLEAN (*checkRou
             if (!csrLLRemoveEntry(&pMac->pmc.powerSaveCheckList, pEntry, FALSE))
             {
                 smsLog(pMac, LOGE, FL("Cannot remove power save check routine list entry\n"));
-                PMC_ABORT;
                 return eHAL_STATUS_FAILURE;
             }
             return eHAL_STATUS_SUCCESS;
@@ -1288,7 +1276,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
             if (pMac->pmc.pmcState != REQUEST_FULL_POWER)
             {
                 smsLog(pMac, LOGE, FL("Got Exit IMPS Response Message while in state %d\n"), pMac->pmc.pmcState);
-                PMC_ABORT;
                 break;
             }
 
@@ -1297,7 +1284,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
             {
                 smsLog(pMac, LOGP, FL("Response message to request to exit IMPS indicates failure, status %x\n"),
                        pMsg->statusCode);
-                PMC_ABORT;
             }
             pmcEnterFullPowerState(pMac);
             break;
@@ -1315,7 +1301,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
             if (pMac->pmc.pmcState != REQUEST_BMPS)
             {
                 smsLog(pMac, LOGE, FL("Got Enter BMPS Response Message while in state %d\n"), pMac->pmc.pmcState);
-                PMC_ABORT;
                 break;
             }
 
@@ -1353,7 +1338,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
             if (pMac->pmc.pmcState != REQUEST_FULL_POWER)
             {
                 smsLog(pMac, LOGE, FL("Got Exit BMPS Response Message while in state %d\n"), pMac->pmc.pmcState);
-                PMC_ABORT;
                 break;
             }
 
@@ -1362,7 +1346,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
             {
                 smsLog(pMac, LOGP, FL("Response message to request to exit BMPS indicates failure, status %x\n"),
                        pMsg->statusCode);
-                PMC_ABORT;
             }
             pmcEnterFullPowerState(pMac);
             break;
@@ -1380,7 +1363,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
             if (pMac->pmc.pmcState != REQUEST_START_UAPSD)
             {
                 smsLog(pMac, LOGE, FL("Got Enter Uapsd rsp Message while in state %d\n"), pMac->pmc.pmcState);
-                PMC_ABORT;
                 break;
             }
 
@@ -1417,7 +1399,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
             if (pMac->pmc.pmcState != REQUEST_STOP_UAPSD)
             {
                 smsLog(pMac, LOGE, FL("Got Exit Uapsd rsp Message while in state %d\n"), pMac->pmc.pmcState);
-                PMC_ABORT;
                 break;
             }
 
@@ -1443,7 +1424,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
             {
                 smsLog(pMac, LOGE, FL("Got eWNI_PMC_ENTER_WOWL_RSP while in state %s\n"), 
                     pmcGetPmcStateStr(pMac->pmc.pmcState));
-                PMC_ABORT;
                 break;
             }
 
@@ -1476,7 +1456,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
             if (pMac->pmc.pmcState != REQUEST_EXIT_WOWL)
             {
                 smsLog(pMac, LOGE, FL("Got Exit WOWL rsp Message while in state %d\n"), pMac->pmc.pmcState);
-                PMC_ABORT;
                 break;
             }
 
@@ -1561,7 +1540,6 @@ void pmcMessageProcessor (tHalHandle hHal, tSirSmeRsp *pMsg)
         if (pMsg->statusCode != eSIR_SME_SUCCESS)
         {
             smsLog(pMac, LOGP, FL("Exit BMPS indication indicates failure, status %x\n"), pMsg->statusCode);
-            PMC_ABORT;
         }
         else
         {
@@ -1941,7 +1919,6 @@ eHalStatus pmcDeregisterDeviceStateUpdateInd (tHalHandle hHal,
             if (!csrLLRemoveEntry(&pMac->pmc.deviceStateUpdateIndList, pEntry, FALSE))
             {
                 smsLog(pMac, LOGE, FL("Cannot remove device state update ind entry from list\n"));
-                PMC_ABORT;
                 return eHAL_STATUS_FAILURE;
             }
             return eHAL_STATUS_SUCCESS;

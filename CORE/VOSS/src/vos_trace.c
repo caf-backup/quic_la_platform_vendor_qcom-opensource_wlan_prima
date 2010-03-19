@@ -73,7 +73,10 @@ moduleTraceInfo gVosTraceInfo[ VOS_MODULE_ID_MAX ] =
    { (1<<VOS_TRACE_LEVEL_FATAL), "BAL" }, 
    { (1<<VOS_TRACE_LEVEL_FATAL), "SAL" }, 
    { (1<<VOS_TRACE_LEVEL_FATAL), "SSC" },
-   { (1<<VOS_TRACE_LEVEL_FATAL), "HDD" }, 
+   // Made HDD with info high as we need the assoc completion events
+   // to determine if we are associated, disassociated etc.
+   // important control path events.
+   { (1<<VOS_TRACE_LEVEL_FATAL) | (1<<VOS_TRACE_LEVEL_INFO_HIGH), "HDD" }, 
    { (1<<VOS_TRACE_LEVEL_FATAL), "SME" }, 
    { (1<<VOS_TRACE_LEVEL_FATAL), "PE " }, 
    { (1<<VOS_TRACE_LEVEL_FATAL), "HAL" }, 

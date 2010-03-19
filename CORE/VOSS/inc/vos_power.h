@@ -316,4 +316,194 @@ VOS_STATUS vos_chipDeAssertDeepSleep
   v_PVOID_t             user_data
 );
 
+/**
+  @brief vos_chipVoteOnRFSupply() - This API will power up the RF supply
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteOnRFSupply
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data
+);
+
+/**
+  @brief vos_chipVoteOffRFSupply() - This API will vote to turn off the 
+  RF supply. Even if we succeed in voting, there is a chance RF supply will not 
+  be turned off as RF rails could be shared with other modules (outside WLAN)
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
+                         because the voting algorithm decided not to power down PA  
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteOffRFSupply
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data
+);
+/**
+  @brief vos_chipVoteOnBBAnalogSupply() - This API will power up the I/P voltage
+  used by Base band Analog.
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteOnBBAnalogSupply
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data
+);
+
+/**
+  @brief vos_chipVoteOffBBAnalogSupply() - This API will vote off the BB Analog supply.
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
+                         because the voting algorithm decided not to power down PA  
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteOffBBAnalogSupply
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data
+);
+/**
+  @brief vos_chipVoteOnXOBuffer() - This API will vote to turn on the XO buffer from
+  PMIC. This API will be used when Libra uses the TCXO from PMIC on the MSM
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately)       
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteOnXOBuffer
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data
+);
+
+/**
+  @brief vos_chipVoteOffXOBuffer() - This API will vote off PMIC XO buffer.
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
+                         because the voting algorithm decided not to power down PA  
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteOffXOBuffer
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data
+);
 #endif /* _VOS_POWER_H_ */

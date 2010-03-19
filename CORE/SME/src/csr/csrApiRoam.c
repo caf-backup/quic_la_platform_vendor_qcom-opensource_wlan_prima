@@ -3142,6 +3142,7 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 csrRoamCallCallback( pMac, &roamInfo, pCommand->u.roamCmd.roamId, 
                                      eCSR_ROAM_ASSOCIATION_START, eCSR_ROAM_RESULT_NONE );
  
+                smsLog(pMac, LOGE, FL("  calling csrRoamIssueReassociate\n"));
                 csrRoamIssueReassociate( pMac, pMac->roam.pConnectBssDesc, &Ies,
                                          &pCommand->u.roamCmd.roamProfile );
             }
@@ -3593,6 +3594,7 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                 {
                    if(pCommand->u.roamCmd.fReassoc)
                    {
+                       roamInfo.fReassocReq = roamInfo.fReassocRsp = eANI_BOOLEAN_TRUE;
                        roamInfo.nAssocReqLength = pMac->roam.connectedInfo.nAssocReqLength;
                        roamInfo.nAssocRspLength = pMac->roam.connectedInfo.nAssocRspLength;
                        roamInfo.nBeaconLength = pMac->roam.connectedInfo.nBeaconLength;
@@ -4964,6 +4966,7 @@ void csrRoamIssueReassociate( tpAniSirGlobal pMac, tSirBssDescription *pSirBssDe
     // Set the roaming substate to 'join attempt'...
     csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_REASSOC_REQ );
 
+    smsLog(pMac, LOGE, FL("  calling csrRoamIssueReassociate\n"));
     // attempt to Join this BSS...
     csrSendSmeReassocReqMsg( pMac, pSirBssDesc, pIes, pProfile );
 }
@@ -8091,7 +8094,16 @@ static void csrPropareJoinReassocReqBuffer( tpAniSirGlobal pMac,
         palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *)&fTmp, sizeof(tAniBool) );
         pBuf += sizeof(tAniBool);
     }
-    *pBuf++ = uapsdMask;
+    //Check whether it is ok to enter UAPSD
+    if( btcIsReadyForUapsd(pMac) )
+    {
+        *pBuf++ = uapsdMask;
+    }
+    else
+    {
+        smsLog(pMac, LOGE, FL(" BTC doesn't allow UAPSD for uapsd_mask(0x%X)\n"), uapsdMask);
+        *pBuf++ = 0;
+    }
   
 
     // move the entire BssDescription into the join request.
@@ -8546,7 +8558,7 @@ eHalStatus csrSendMBStopBssReqMsg( tpAniSirGlobal pMac, tANI_U16 reasonCode )
 
 eHalStatus csrReassoc(tpAniSirGlobal pMac, 
                       tCsrRoamModifyProfileFields *pModProfileFields,
-                      tANI_U32 *pRoamId)
+                      tANI_U32 *pRoamId, v_BOOL_t fForce)
 {
 
    eHalStatus status = eHAL_STATUS_FAILURE;
@@ -8559,10 +8571,10 @@ eHalStatus csrReassoc(tpAniSirGlobal pMac,
        palCopyMemory(pMac->hHdd, &modProfileFields, pModProfileFields,
                      sizeof(tCsrRoamModifyProfileFields));
    }
-   if((csrIsConnStateConnected(pMac)) &&
-      (!palEqualMemory(pMac->hHdd, &modProfileFields, 
+   if( (csrIsConnStateConnected(pMac)) &&
+      (fForce || (!palEqualMemory(pMac->hHdd, &modProfileFields, 
                        &pMac->roam.connectedProfile.modifyProfileFields, 
-                       sizeof(tCsrRoamModifyProfileFields))))
+                       sizeof(tCsrRoamModifyProfileFields)))) )
    {
       roamId = GET_NEXT_ROAM_ID(&pMac->roam);
       if(pRoamId)
