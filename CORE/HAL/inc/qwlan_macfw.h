@@ -1708,6 +1708,43 @@ typedef struct _PhyCalCorrStruct {
    tANI_S32             usImbalanceTxIQCorrChain1 : 16;
    tANI_S32             usOffCenterTxIQCorrChain1 : 16;
 #endif
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32             ucBw1Chain0 : 8;
+   tANI_U32             ucBw2Chain0 : 8;
+   tANI_U32             ucBw3Chain0 : 8;
+   tANI_U32             ucBw4Chain0 : 8;
+#else
+   tANI_U32             ucBw4Chain0 : 8;
+   tANI_U32             ucBw3Chain0 : 8;
+   tANI_U32             ucBw2Chain0 : 8;
+   tANI_U32             ucBw1Chain0 : 8;
+#endif
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32             ucBw5Chain0 : 8;
+   tANI_U32             ucBw6Chain0 : 8;
+   tANI_U32             ucBw1Chain1 : 8;
+   tANI_U32             ucBw2Chain1 : 8;
+#else
+   tANI_U32             ucBw2Chain1 : 8;
+   tANI_U32             ucBw1Chain1 : 8;
+   tANI_U32             ucBw6Chain0 : 8;
+   tANI_U32             ucBw5Chain0 : 8;
+#endif
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32             ucBw3Chain1 : 8;
+   tANI_U32             ucBw4Chain1 : 8;
+   tANI_U32             ucBw5Chain1 : 8;
+   tANI_U32             ucBw6Chain1 : 8;
+#else
+   tANI_U32             ucBw6Chain1 : 8;
+   tANI_U32             ucBw5Chain1 : 8;
+   tANI_U32             ucBw4Chain1 : 8;
+   tANI_U32             ucBw3Chain1 : 8;
+#endif
+
 } Qwlanfw_PhyCalCorrType;
 
 /* Naming covention: All messages with trailer REQ will

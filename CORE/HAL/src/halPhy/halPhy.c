@@ -660,6 +660,39 @@ eHalStatus halPhyBckupCalRegisters(tHalHandle hHal, tANI_U32 *pMemAddr)
         pCalBuf[count++] = 0xa;
     }
 
+    //update bwCal registers here
+    {
+        pCalBuf[count++] = ((QWLAN_RFAPB_MODE_SEL1_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = 0x0; //for rx chain0
+        pCalBuf[count++] = ((QWLAN_RFAPB_BB_BW1_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = phyCalCorr.ucBw1Chain0;
+        pCalBuf[count++] = ((QWLAN_RFAPB_BB_BW2_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = phyCalCorr.ucBw2Chain0;
+        pCalBuf[count++] = ((QWLAN_RFAPB_BB_BW3_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = phyCalCorr.ucBw3Chain0;
+        pCalBuf[count++] = ((QWLAN_RFAPB_BB_BW4_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = phyCalCorr.ucBw4Chain0;
+        pCalBuf[count++] = ((QWLAN_RFAPB_BB_BW5_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = phyCalCorr.ucBw5Chain0;
+        pCalBuf[count++] = ((QWLAN_RFAPB_BB_BW6_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = phyCalCorr.ucBw6Chain0;
+
+        pCalBuf[count++] = ((QWLAN_RFAPB_MODE_SEL1_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = 0x100; //for rx chain1
+        pCalBuf[count++] = ((QWLAN_RFAPB_BB_BW1_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = phyCalCorr.ucBw1Chain1;
+        pCalBuf[count++] = ((QWLAN_RFAPB_BB_BW2_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = phyCalCorr.ucBw2Chain1;
+        pCalBuf[count++] = ((QWLAN_RFAPB_BB_BW3_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = phyCalCorr.ucBw3Chain1;
+        pCalBuf[count++] = ((QWLAN_RFAPB_BB_BW4_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = phyCalCorr.ucBw4Chain1;
+        pCalBuf[count++] = ((QWLAN_RFAPB_BB_BW5_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = phyCalCorr.ucBw5Chain1;
+        pCalBuf[count++] = ((QWLAN_RFAPB_BB_BW6_REG)|( HAL_REG_HOST_FILLED_MASK));
+        pCalBuf[count++] = phyCalCorr.ucBw6Chain1;
+    }
+
     //update txloCal values here
     pCalBuf[count++] = ((QWLAN_RFAPB_REV_ID_REG)|( HAL_REG_HOST_FILLED_MASK));
     pCalBuf[count++] = 0;
