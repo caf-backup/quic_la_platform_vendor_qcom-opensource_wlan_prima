@@ -50,6 +50,9 @@
 #include "msg.h"
 #include "diag_lsm.h"
 #include "diagpkt.h"
+#include "diagi.h"
+#include "diaglogi.h"
+#include "log.h"
 
 /*
  * Globals
@@ -464,6 +467,46 @@ void pttSocketAppProcNetlinkMsg (void *arg)
 
         aniAsfLogMsg(LOG_DEBUG, ANI_WHERE, "%s: Sending msg of length %d (msgType=0x%x) to client", __FUNCTION__, ntohl(msg->msgLen), wnl->wmsg.type);
 
+        if(ntohs(wnl->wmsg.type) == PTT_DIAG_CMDS_TYPE) 
+        { 
+           /*Skip the netlink header 12 bytes*/
+            tANI_U8 *pData = ((char*)msg + 12);
+            tANI_U32 diag_type;
+ 
+            wnl->wmsg.type = ntohs(wnl->wmsg.type);
+            wnl->wmsg.length = ntohs(wnl->wmsg.length);
+
+            diag_type = *(tANI_U32*) pData;
+
+            pData += sizeof(tANI_U32);
+          
+            if(diag_type == PTT_DIAG_TYPE_LOGS) 
+            {
+                log_header_type *pHdr = (log_header_type*)pData;
+
+                if( log_status(pHdr->code)) 
+                {
+                    printf("Calling Log Submit\n");
+                    log_set_timestamp(pHdr);
+                    log_submit(pHdr);
+                }
+            }
+            else if(diag_type == PTT_DIAG_TYPE_EVENTS)
+            {
+                tANI_U16 event_id;
+                tANI_U16 length;
+
+                event_id = *(tANI_U16*)pData;
+                pData += sizeof(tANI_U16); 
+
+                length = *(tANI_U16*)pData;
+                pData += sizeof(tANI_U16);
+                event_report_payload(event_id,length,pData);
+            }
+            else {
+                printf("Error:Invalid Diag Type!!!");
+            }
+        }
         if(pserver->diag_msg.diag_msg_received == TRUE || ntohs(wnl->wmsg.type) == PTT_FTM_CMDS_TYPE) 
         {
             /*Skip the netlink header 12 bytes*/
@@ -720,6 +763,7 @@ int pttSocketAppInit(int radio, tAniRttCtxt *pserver)
         regReq = (tAniNlAppRegReq *)(wnl + 1);
         regReq->pid = pserver->snl->nl_pid;
 
+        pttSocketAppRegister(0, pserver);
     } while (0);
 
     return ret;

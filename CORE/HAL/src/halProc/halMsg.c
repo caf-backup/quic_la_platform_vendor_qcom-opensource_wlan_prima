@@ -188,7 +188,7 @@ __halMsg_update11bCoexist(tpAniSirGlobal pMac, tANI_U32 llbCoexist)
     }
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
     {
-        int cfgVal = 0;
+        tANI_U32 cfgVal = 0;
 
         WLAN_VOS_DIAG_EVENT_DEF(protectionStatus, vos_event_wlan_bss_prot_payload_type);
 

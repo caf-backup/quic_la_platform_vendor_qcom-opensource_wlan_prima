@@ -117,6 +117,19 @@ do                                                                          \
 } while ( 0 )
 
 /*---------------------------------------------------------------------------
+   WLANSSC_MSGIH
+
+   This is a placeholder for actual VOS MACRO to log errors
+
+   String should already have the type and location of variables (e.g. %d)
+---------------------------------------------------------------------------*/
+#define WLANSSC_MSGIH(String_, Variable1_, Variable2_, Variable3_)            \
+do                                                                          \
+{                                                                           \
+  VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO_HIGH, String_, Variable1_, Variable2_, Variable3_ );  \
+} while ( 0 )
+
+/*---------------------------------------------------------------------------
    WLANSSC_ASSERT
 
    This is a placeholder for actual VOS MACRO to force an assert
@@ -383,8 +396,31 @@ do                                                                          \
 #ifdef LIBRA_FPGA 
 #define WLANSSC_SUSPENDWLANWAIT  10000
 #else
-#define WLANSSC_SUSPENDWLANWAIT  100
+#define WLANSSC_SUSPENDWLANWAIT  10
 #endif
+
+/*---------------------------------------------------------------------------
+   WLANSSC_RESUMEWLANWAIT
+
+  Time to wait after setting the SuspendWLAN bit in SIF_BAR4
+---------------------------------------------------------------------------*/
+/* This large wait time appears 
+ * to be required for 
+ * standby mode testing in FPGA.
+ */
+#ifdef LIBRA_FPGA 
+#define WLANSSC_RESUMEWLANWAIT   10000
+#else
+#define WLANSSC_RESUMEWLANWAIT   10
+#endif
+
+/*---------------------------------------------------------------------------
+   WLANSSC_RESUMELOOPCOUNT
+
+  Number of times to loop for PMU Blocked bit to be cleared in SIF_BAR4. 
+  Each loop waits for a delay of WLANSSC_RESUMEWLANWAIT ms.
+---------------------------------------------------------------------------*/
+#define WLANSSC_RESUMELOOPCOUNT  20
 
 /*---------------------------------------------------------------------------
    WLANSSC_TXFIFOFULLDURATIONTIMEOUT
@@ -1990,9 +2026,6 @@ VOS_STATUS WLANSSC_SuspendChip
     return VOS_STATUS_E_FAILURE;
   }
 
-  /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
-  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
-
   /* TRSW_SUPPLY_CTRL_1 - Read the current value just in case                 */
   if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
                                                          QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG,
@@ -2020,9 +2053,6 @@ VOS_STATUS WLANSSC_SuspendChip
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
-
-  /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
-  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
 
   /* End T/R change */
 
@@ -2131,7 +2161,7 @@ VOS_STATUS WLANSSC_SuspendChip
   }
 
   pControlBlock->bChipSuspended = VOS_TRUE;
-  WLANSSC_ERR( "Suspend Chip status %x", uRegValue, 0, 0 );
+  WLANSSC_MSGIH( "Suspend Chip status %x", uRegValue, 0, 0 );
 
   /* Release Lock                                                          */
   WLANSSC_UNLOCKTXRX( pControlBlock );
@@ -2158,6 +2188,7 @@ VOS_STATUS WLANSSC_ResumeChip
 {
   WLANSSC_ControlBlockType    *pControlBlock;
   v_U8_t                       uRegValue = 0;
+  v_U8_t                       uResumeLoopcount = 0;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   WLANSSC_ASSERT( NULL != Handle );
@@ -2204,7 +2235,7 @@ VOS_STATUS WLANSSC_ResumeChip
   }
 
   /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
-  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
+  vos_sleep(WLANSSC_RESUMEWLANWAIT);
 
   /* Read the current value just in case                                   */
   if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
@@ -2235,7 +2266,7 @@ VOS_STATUS WLANSSC_ResumeChip
   }
 
   /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
-  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
+  vos_sleep(WLANSSC_RESUMEWLANWAIT);
 
   /* Read the current value just in case                                   */
   if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
@@ -2265,22 +2296,25 @@ VOS_STATUS WLANSSC_ResumeChip
     return VOS_STATUS_E_FAILURE;
   }
 
-  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
-
-
-  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
-                                                         QWLAN_SIF_BAR4_WLAN_STATUS_REG_REG,
-                                                         &uRegValue,
-                                                         WLANSSC_TX_REGBUFFER) )
+  do 
   {
-    WLANSSC_ASSERT( 0 );
+     vos_sleep(WLANSSC_RESUMEWLANWAIT);
 
-    WLANSSC_ERR( "Error resuming chip", 0, 0, 0 );
-    WLANSSC_UNLOCKTXRX( pControlBlock );
-    return VOS_STATUS_E_FAILURE;
-  }
+    if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
+                                                           QWLAN_SIF_BAR4_WLAN_STATUS_REG_REG,
+                                                           &uRegValue,
+                                                           WLANSSC_TX_REGBUFFER) )
+    {
+      WLANSSC_ASSERT( 0 );
 
-   WLANSSC_ERR( "Resume chip Status %x", uRegValue, 0, 0 );
+      WLANSSC_ERR( "Error resuming chip", 0, 0, 0 );
+      WLANSSC_UNLOCKTXRX( pControlBlock );
+      return VOS_STATUS_E_FAILURE;
+    }
+  } while ( (uRegValue & QWLAN_SIF_BAR4_WLAN_STATUS_REG_PMU_BLOCKED_BIT_MASK) && 
+            (WLANSSC_RESUMELOOPCOUNT > ++uResumeLoopcount) ); 
+
+   WLANSSC_MSGIH( "Resume chip Status %x", uRegValue, 0, 0 );
 
    pControlBlock->bChipSuspended = VOS_FALSE;
 

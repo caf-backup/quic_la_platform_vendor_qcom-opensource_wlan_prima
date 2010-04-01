@@ -51,7 +51,9 @@
 #define CSR_BEST_RSSI_VALUE         (-30)   //RSSI >= this is in CAT4
 #define CSR_DEFAULT_RSSI_DB_GAP     30 //every 30 dbm for one category
 #define CSR_BSS_CAP_VALUE_NONE  0    //not much value
-#define CSR_BSS_CAP_VALUE_1     1    //something better
+#define CSR_BSS_CAP_VALUE_HT    2    
+#define CSR_BSS_CAP_VALUE_WMM   1
+#define CSR_BSS_CAP_VALUE_UAPSD 1
 #define CSR_DEFAULT_ROAMING_TIME 10   //10 seconds
 #define CSR_ROAM_MIN(X, Y)  ((X) < (Y) ? (X) : (Y))
 #define CSR_ROAM_MAX(X, Y)  ((X) > (Y) ? (X) : (Y))

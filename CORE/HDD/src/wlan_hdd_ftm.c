@@ -754,7 +754,7 @@ VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len)
         return VOS_STATUS_E_FAILURE;
     }
 
-    vos_mem_free(pBuf);
+    vos_mem_free((v_VOID_t*)wmsg);
     
     return VOS_STATUS_SUCCESS;
 }

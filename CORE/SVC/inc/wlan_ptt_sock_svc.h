@@ -69,9 +69,8 @@
 */
 
 int ptt_sock_activate_svc(void *pAdapter);
-#ifdef ANI_MANF_DIAG
 int ptt_sock_send_msg_to_app(tAniHdr *wmsg, int radio, int src_mod, int pid);
-#endif
+
 
 /*
  * Format of message exchanged between the PTT Socket App in userspace and the

@@ -53,6 +53,9 @@ typedef struct sAniRttCmdRspMsg {
 } tAniRttCmdRspMsg;
 
 #define PTT_FTM_CMDS_TYPE           0x4040
+#define PTT_DIAG_CMDS_TYPE          0x5050
+#define PTT_DIAG_TYPE_LOGS   1 
+#define PTT_DIAG_TYPE_EVENTS 2
 
 typedef struct sAniDiagMsg {
 	int msg_len;

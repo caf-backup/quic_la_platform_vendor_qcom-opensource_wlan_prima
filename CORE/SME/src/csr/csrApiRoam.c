@@ -234,7 +234,7 @@ void csrRoamRemoveEntryFromPeStatsReqList(tpAniSirGlobal pMac, tCsrPeStatsReqInf
 tListElem * csrRoamFindInPeStatsReqList(tpAniSirGlobal pMac, tANI_U32  statsMask);
 eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac);
 
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
+#if (defined(FEATURE_WLAN_DIAG_SUPPORT) && defined(FEATURE_WLAN_GEN6_ROAMING)) 
 eHalStatus csrRoamStartDiagLogStatsTimer(tpAniSirGlobal pMac, tANI_U32 interval);
 eHalStatus csrRoamStopDiagLogStatsTimer(tpAniSirGlobal pMac);
 void csrRoamDiagLogStatsTimerHandler(void *pv);
@@ -468,7 +468,7 @@ eHalStatus csrRoamOpen(tpAniSirGlobal pMac)
          smsLog(pMac, LOGE, FL("cannot allocate memory for summary Statistics timer\n"));
          return eHAL_STATUS_FAILURE;
       }
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
+#if (defined(FEATURE_WLAN_DIAG_SUPPORT) && defined(FEATURE_WLAN_GEN6_ROAMING)) 
       status = palTimerAlloc(pMac->hHdd, &pMac->roam.hTimerDiagLogStats, csrRoamDiagLogStatsTimerHandler, pMac);
       if(!HAL_STATUS_SUCCESS(status))
       {
@@ -2935,10 +2935,24 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
             {
                 roamInfo.pBssDesc = &pScanResult->Result.BssDescriptor;
                 pCommand->u.roamCmd.pLastRoamBss = roamInfo.pBssDesc;
-                acm_mask = sme_QosGetACMMask(pMac, &pScanResult->Result.BssDescriptor, 
-                     (tDot11fBeaconIEs *)( pScanResult->Result.pvIes ));
+                //No need to put uapsd_mask in if the BSS doesn't support uAPSD
+                if( pCommand->u.roamCmd.roamProfile.uapsd_mask &&
+                    CSR_IS_QOS_BSS((tDot11fBeaconIEs *)( pScanResult->Result.pvIes )) &&
+                    CSR_IS_UAPSD_BSS((tDot11fBeaconIEs *)( pScanResult->Result.pvIes )) )
+                {
+                    acm_mask = sme_QosGetACMMask(pMac, &pScanResult->Result.BssDescriptor, 
+                         (tDot11fBeaconIEs *)( pScanResult->Result.pvIes ));
+                    pCommand->u.roamCmd.roamProfile.uapsd_mask &= ~(acm_mask);
+                }
+                else
+                {
+                    pCommand->u.roamCmd.roamProfile.uapsd_mask = 0;
+                }
             }
-            pCommand->u.roamCmd.roamProfile.uapsd_mask &= ~(acm_mask);
+            else
+            {
+                pCommand->u.roamCmd.roamProfile.uapsd_mask = 0;
+            }
             roamInfo.pProfile = &pCommand->u.roamCmd.roamProfile;
             csrRoamCallCallback( pMac, &roamInfo, pCommand->u.roamCmd.roamId, 
                                  eCSR_ROAM_ASSOCIATION_START, eCSR_ROAM_RESULT_NONE );
@@ -8271,8 +8285,15 @@ eHalStatus csrSendSmeReassocReqMsg( tpAniSirGlobal pMac, tSirBssDescription *pBs
         uapsd_mask = (v_U8_t)pProfile->uapsd_mask;
         if( uapsd_mask && ( NULL != pBssDescription ) )
         {
-            acm_mask = sme_QosGetACMMask(pMac, pBssDescription, pIes);
-            uapsd_mask &= ~(acm_mask);
+            if( CSR_IS_QOS_BSS(pIes) && CSR_IS_UAPSD_BSS(pIes) )
+            {
+                acm_mask = sme_QosGetACMMask(pMac, pBssDescription, pIes);
+                uapsd_mask &= ~(acm_mask);
+            }
+            else
+            {
+                uapsd_mask = 0;
+            }
         }
 
         csrPropareJoinReassocReqBuffer( pMac, pBssDescription, pBuf, uapsd_mask);
@@ -8900,7 +8921,7 @@ static void csrRoamLinkUp(tpAniSirGlobal pMac, tCsrBssid bssid)
    }
 #endif
 
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
+#if (defined(FEATURE_WLAN_DIAG_SUPPORT) && defined(FEATURE_WLAN_GEN6_ROAMING)) 
    csrRoamStartDiagLogStatsTimer(pMac, CSR_DIAG_LOG_STAT_PERIOD);
 #endif
 
@@ -8913,7 +8934,7 @@ static void csrRoamLinkDown(tpAniSirGlobal pMac)
    VOS_STATUS status;
 #endif
 
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
+#if (defined(FEATURE_WLAN_DIAG_SUPPORT) && defined(FEATURE_WLAN_GEN6_ROAMING)) 
    csrRoamStopDiagLogStatsTimer(pMac);
 #endif
 
@@ -10166,7 +10187,7 @@ void csrRoamVccTrigger(tpAniSirGlobal pMac)
    tANI_U32 ul_mac_loss = 0;
    tANI_U32 ul_mac_loss_trigger_threshold;
 
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
+#if (defined(FEATURE_WLAN_DIAG_SUPPORT) && defined(FEATURE_WLAN_GEN6_ROAMING)) 
    v_S7_t          currApRssi;
    VOS_STATUS      status;
    WLAN_VOS_DIAG_EVENT_DEF(vcc, vos_event_wlan_vcc_payload_type);
@@ -10260,7 +10281,7 @@ void csrRoamVccTrigger(tpAniSirGlobal pMac)
          pMac->roam.linkQualityIndInfo.callback( newVccLinkQuality, 
                                                  pMac->roam.linkQualityIndInfo.context );
          //event: EVENT_WLAN_VCC
-#ifdef FEATURE_WLAN_DIAG_SUPPORT 
+#if (defined(FEATURE_WLAN_DIAG_SUPPORT) && defined(FEATURE_WLAN_GEN6_ROAMING)) 
          vcc.eventId = eCSR_WLAN_VCC_EVENT;
          status = WLANTL_GetRssi(pMac->roam.gVosContext, pMac->roam.connectedInfo.staId,
                                  &currApRssi);
@@ -10293,7 +10314,7 @@ VOS_STATUS csrRoamVccTriggerRssiIndCallback(tHalHandle hHal,
    tpAniSirGlobal pMac = PMAC_STRUCT( context );
    eCsrRoamLinkQualityInd newVccLinkQuality;
    VOS_STATUS status = VOS_STATUS_SUCCESS;
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
+#if (defined(FEATURE_WLAN_DIAG_SUPPORT) && defined(FEATURE_WLAN_GEN6_ROAMING)) 
    v_S7_t          currApRssi;
    VOS_STATUS      statusTl;
    WLAN_VOS_DIAG_EVENT_DEF(vcc, vos_event_wlan_vcc_payload_type);
@@ -10344,7 +10365,7 @@ VOS_STATUS csrRoamVccTriggerRssiIndCallback(tHalHandle hHal,
         pMac->roam.linkQualityIndInfo.callback( newVccLinkQuality, 
                                                 pMac->roam.linkQualityIndInfo.context );
          //event: EVENT_WLAN_VCC
-#ifdef FEATURE_WLAN_DIAG_SUPPORT 
+#if (defined(FEATURE_WLAN_DIAG_SUPPORT) && defined(FEATURE_WLAN_GEN6_ROAMING)) 
          vcc.eventId = eCSR_WLAN_VCC_EVENT;
          statusTl = WLANTL_GetRssi(pMac->roam.gVosContext, pMac->roam.connectedInfo.staId,
                                  &currApRssi);
@@ -11471,7 +11492,7 @@ void csrRoamReportStatistics(tpAniSirGlobal pMac, tANI_U32 statsMask,
 }
 
 
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
+#if (defined(FEATURE_WLAN_DIAG_SUPPORT) && defined(FEATURE_WLAN_GEN6_ROAMING)) 
 
 eHalStatus csrRoamStartDiagLogStatsTimer(tpAniSirGlobal pMac, tANI_U32 interval)
 {

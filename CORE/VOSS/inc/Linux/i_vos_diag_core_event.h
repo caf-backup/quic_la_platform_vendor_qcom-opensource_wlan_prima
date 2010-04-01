@@ -20,7 +20,6 @@
   ------------------------------------------------------------------------*/
 #include <vos_types.h>
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
-#include <event.h>
 #include <event_defs.h>
 #endif
 
@@ -33,6 +32,8 @@ extern "C" {
 #endif /* __cplusplus */
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
+
+void vos_event_report_payload(v_U16_t event_Id, v_U16_t length, v_VOID_t *pPayload);
 /*---------------------------------------------------------------------------
   Allocate an event payload holder
 ---------------------------------------------------------------------------*/
@@ -45,18 +46,10 @@ extern "C" {
 #define WLAN_VOS_DIAG_EVENT_REPORT( payload_ptr, ev_id ) \
    do                                                    \
    {                                                     \
-      if( payload_ptr)                                   \
-      {                                                  \
-         event_report_payload( ev_id,                    \
+       vos_event_report_payload( ev_id,                  \
                               sizeof( *(payload_ptr) ),  \
                               (void *)(payload_ptr) );   \
-      }                                                  \
-      else                                               \
-      {                                                  \
-         event_report_payload( ev_id,                    \
-                               0 ,                       \
-                              (void *)(payload_ptr) );   \
-      }                                                  \
+                                                       \
    } while (0)
 
 #else /* FEATURE_WLAN_DIAG_SUPPORT */

@@ -609,6 +609,9 @@ typedef struct tagDot11IE11HLocalPowerConstraint
 #define CSR_IS_11A_BSS(pBssDesc)    ( eSIR_11A_NW_TYPE == (pBssDesc)->nwType )
 #define CSR_IS_BASIC_RATE(rate)     ((rate) & CSR_DOT11_BASIC_RATE_MASK)
 #define CSR_IS_QOS_BSS(pIes)  ( (pIes)->WMMParams.present || (pIes)->WMMInfoAp.present )
+#define CSR_IS_UAPSD_BSS(pIes) \
+    ( ((pIes)->WMMParams.present && ((pIes)->WMMParams.qosInfo & SME_QOS_AP_SUPPORTS_APSD)) || \
+               ((pIes)->WMMInfoAp.present && (pIes)->WMMInfoAp.uapsd) )
 
 //This macro returns the total length needed of Tlv with with len bytes of data
 #define GET_TLV_MSG_LEN(len)    GET_ROUND_UP((sizeof(tCsrCfgMsgTlvHdr) + (len)), sizeof(tANI_U32))

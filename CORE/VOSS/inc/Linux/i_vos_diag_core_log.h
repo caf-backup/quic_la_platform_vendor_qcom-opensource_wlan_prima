@@ -22,7 +22,6 @@
 #include <vos_memory.h>
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
-#include <log.h>
 #include <log_codes.h>
 #endif
 
@@ -33,34 +32,44 @@
 //picked from log.h file above. 
 typedef struct
 {
-  unsigned char header[12]; /* A log header is 12 bytes long */
+  /* Specifies the length, in bytes of the entry, including this header. */
+    v_U16_t len;
+  
+  /* Specifies the log code for the entry*/
+    v_U16_t code; 
+
+  /*Time Stamp lo*/
+    v_U32_t ts_lo;
+  
+   /*Time Stamp hi*/
+    v_U32_t ts_hi;
 }__attribute__((packed)) log_hdr_type;
+
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
+void vos_log_set_code (v_VOID_t *ptr, v_U16_t code);
+void vos_log_set_length (v_VOID_t *ptr, v_U16_t length);
+void vos_log_set_timestamp (v_VOID_t *plog_hdr_ptr);
+void vos_log_submit(v_VOID_t *plog_hdr_ptr);
+
 /*---------------------------------------------------------------------------
   Allocate an event payload holder
 ---------------------------------------------------------------------------*/
+
 #define WLAN_VOS_DIAG_LOG_ALLOC( payload_ptr, payload_type, log_code ) \
-           do                                                                  \
-           {                                                                   \
-              if(log_status(log_code))                                         \
-              {                                                                \
-                 payload_ptr = ( payload_type *)vos_mem_malloc(sizeof(payload_type)); \
-              }                                                                \
-              else                                                             \
-              {                                                                \
-                 payload_ptr = NULL;                                           \
-              }                                                                \
+           do \
+           {  \
+              payload_ptr = ( payload_type *)vos_mem_malloc(sizeof(payload_type));\
+                                                                              \
               if( payload_ptr )                                                \
               {                                                                \
                  vos_mem_zero(payload_ptr, sizeof(payload_type));              \
-                 log_set_code(payload_ptr, log_code);                          \
-                 log_set_length(payload_ptr, sizeof(payload_type));            \
-                 log_set_timestamp(payload_ptr);                               \
+                 vos_log_set_code(payload_ptr, log_code);                      \
+                 vos_log_set_length(payload_ptr, sizeof(payload_type));        \
               }                                                                \
            } while (0)
 
@@ -72,7 +81,7 @@ extern "C" {
     {                               \
        if( payload_ptr)              \
        {                             \
-          log_submit( payload_ptr);  \
+          vos_log_submit( payload_ptr);  \
           vos_mem_free(payload_ptr); \
        }                             \
     } while (0)

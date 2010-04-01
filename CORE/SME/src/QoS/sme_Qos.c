@@ -77,7 +77,6 @@
 #define SME_QOS_SEARCH_KEY_INDEX_2       2
 #define SME_QOS_SEARCH_KEY_INDEX_3       4
 
-#define SME_QOS_AP_SUPPORTS_APSD         0x80
 
 #define SME_QOS_ACCESS_POLICY_EDCA       1
 
@@ -4369,6 +4368,7 @@ v_BOOL_t sme_QosIsACM(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
 {
    v_BOOL_t ret_val = VOS_FALSE;
    tDot11fBeaconIEs *pIesLocal = pIes;
+
    if(!pSirBssDesc)
    {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
@@ -4389,27 +4389,30 @@ v_BOOL_t sme_QosIsACM(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc,
       return VOS_FALSE;
    }
 
-   switch(ac)
+   if(CSR_IS_QOS_BSS(pIesLocal))
    {
-      case SME_QOS_EDCA_AC_BE:
-         if(pIesLocal->WMMParams.acbe_acm) ret_val = VOS_TRUE;
-         break;
-      case SME_QOS_EDCA_AC_BK:
-         if(pIesLocal->WMMParams.acbk_acm) ret_val = VOS_TRUE;
-         break;
-      case SME_QOS_EDCA_AC_VI:
-         if(pIesLocal->WMMParams.acvi_acm) ret_val = VOS_TRUE;
-         break;
-      case SME_QOS_EDCA_AC_VO:
-         if(pIesLocal->WMMParams.acvo_acm) ret_val = VOS_TRUE;
-         break;
-      default:
-         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                   "sme_QosIsACM:unknown AC = %d\n", ac);
-         //Assert
-         VOS_ASSERT(0);
-         break;
-   }
+       switch(ac)
+       {
+          case SME_QOS_EDCA_AC_BE:
+             if(pIesLocal->WMMParams.acbe_acm) ret_val = VOS_TRUE;
+             break;
+          case SME_QOS_EDCA_AC_BK:
+             if(pIesLocal->WMMParams.acbk_acm) ret_val = VOS_TRUE;
+             break;
+          case SME_QOS_EDCA_AC_VI:
+             if(pIesLocal->WMMParams.acvi_acm) ret_val = VOS_TRUE;
+             break;
+          case SME_QOS_EDCA_AC_VO:
+             if(pIesLocal->WMMParams.acvo_acm) ret_val = VOS_TRUE;
+             break;
+          default:
+             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                       "sme_QosIsACM:unknown AC = %d\n", ac);
+             //Assert
+             VOS_ASSERT(0);
+             break;
+       }
+   }//IS_QOS_BSS
 
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
              "sme_QosIsACM:Test: ACM = %d for AC = %d\n", ret_val, ac );

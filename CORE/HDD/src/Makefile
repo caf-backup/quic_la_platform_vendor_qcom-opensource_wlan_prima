@@ -5,6 +5,8 @@ MAKE_FLAGS := -C $(KERNEL_DIR) O=$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi-
 #Whether to build debug version
 BUILD_DEBUG_VERSION := 1
 
+#Enable this flag to build driver in diag version
+BUILD_DIAG_VERSION := 0
 #Enable this flag to build ftm driver
 BUILD_FTM_DRIVER := 0
 
@@ -54,7 +56,10 @@ VOSS_OBJS :=    $(VOSS_SRC_DIR)/vos_types.o \
                 $(VOSS_SRC_DIR)/vos_sched.o   \
                 $(VOSS_SRC_DIR)/wlan_qct_bal.o \
                 $(VOSS_SRC_DIR)/wlan_qct_sal.o
-
+                
+ifeq ($(BUILD_DIAG_VERSION),1)
+VOSS_OBJS += $(VOSS_SRC_DIR)/vos_diag.o
+endif
 
 ############# TL ##################### 
 TL_INC := 	-I$(WLAN_DIR)/TL/inc \
@@ -354,7 +359,11 @@ CDEFINES += -DWLAN_DEBUG \
 		-DTRACE_RECORD \
 		-DPE_DEBUG_LOGW \
 		-DPE_DEBUG_LOGE \
-		-DDEBUG 
+		-DDEBUG 		
+endif
+
+ifeq ($(BUILD_DIAG_VERSION),1)
+CDEFINES += -DFEATURE_WLAN_DIAG_SUPPORT
 endif
 
 ifeq ($(TARGET_PRODUCT),msm7630_surf)

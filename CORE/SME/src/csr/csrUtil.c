@@ -3162,13 +3162,6 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
         if ( (eCsrRoamWmmQbssOnly == pMac->roam.configParam.WMMSupportMode) &&
              !CSR_IS_QOS_BSS(pIes) )
              break;
-        if(pFilter->uapsd_mask)
-        {
-           if(!HAL_STATUS_SUCCESS(sme_QosValidateParams(pMac, pBssDesc)))
-           {
-              break;
-           }
-        }
         //Check country. check even when pb is NULL because we may want to make sure
         //AP has a country code in it if fEnforceCountryCodeMatch is set.
         pb = ( pFilter->countryCode[0] ) ? ( pFilter->countryCode) : NULL;

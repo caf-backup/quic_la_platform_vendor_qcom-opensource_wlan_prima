@@ -229,6 +229,9 @@ struct hdd_adapter_s
 
    /**Track whether driver has been suspended.*/
    hdd_ps_state_t hdd_ps_state;
+
+   /** ptt Process ID*/
+   v_SINT_t ptt_pid;
 };
 
 /*--------------------------------------------------------------------------- 

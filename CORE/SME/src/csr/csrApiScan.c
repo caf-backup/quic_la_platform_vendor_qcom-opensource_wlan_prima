@@ -1810,7 +1810,16 @@ static tANI_U32 csrGetBssCapValue(tpAniSirGlobal pMac, tSirBssDescription *pBssD
         //We only care about 11N capability
         if(pIes->HTCaps.present)
         {
-            ret = CSR_BSS_CAP_VALUE_1;
+            ret += CSR_BSS_CAP_VALUE_HT;
+        }
+        if(CSR_IS_QOS_BSS(pIes))
+        {
+            ret += CSR_BSS_CAP_VALUE_WMM;
+            //Give advantage to UAPSD
+            if(CSR_IS_UAPSD_BSS(pIes))
+            {
+                ret += CSR_BSS_CAP_VALUE_UAPSD;
+            }
         }
     }
 

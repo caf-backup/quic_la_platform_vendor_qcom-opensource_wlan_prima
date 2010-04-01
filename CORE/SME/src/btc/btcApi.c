@@ -1516,49 +1516,46 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
   ---------------------------------------------------------------------------*/
 static void btcDiagEventLog (tHalHandle hHal, tpSmeBtEvent pBtEvent)
 {
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-   vos_event_wlan_btc_type *log_ptr = NULL;
 
-   WLAN_VOS_DIAG_LOG_ALLOC(log_ptr, vos_event_wlan_btc_type, LOG_WLAN_LL_STAT_C);
-   if(log_ptr)
+   WLAN_VOS_DIAG_EVENT_DEF(btDiagEvent, vos_event_wlan_btc_type);
    {
-       log_ptr->eventId = pBtEvent->btEventType;
+       btDiagEvent.eventId = pBtEvent->btEventType;
        switch(pBtEvent->btEventType)
        {
             case BT_EVENT_CREATE_SYNC_CONNECTION:
             case BT_EVENT_SYNC_CONNECTION_COMPLETE:
             case BT_EVENT_SYNC_CONNECTION_UPDATED:
-                log_ptr->connHandle = pBtEvent->uEventParam.btSyncConnection.connectionHandle;
-                log_ptr->connStatus = pBtEvent->uEventParam.btSyncConnection.status;
-                log_ptr->linkType   = pBtEvent->uEventParam.btSyncConnection.linkType;
-                log_ptr->scoInterval = pBtEvent->uEventParam.btSyncConnection.scoInterval;
-                log_ptr->scoWindow  = pBtEvent->uEventParam.btSyncConnection.scoWindow;
-                log_ptr->retransWindow = pBtEvent->uEventParam.btSyncConnection.retransmisisonWindow;
-                vos_mem_copy(log_ptr->btAddr, pBtEvent->uEventParam.btSyncConnection.bdAddr,
-                              sizeof(log_ptr->btAddr));
+                btDiagEvent.connHandle = pBtEvent->uEventParam.btSyncConnection.connectionHandle;
+                btDiagEvent.connStatus = pBtEvent->uEventParam.btSyncConnection.status;
+                btDiagEvent.linkType   = pBtEvent->uEventParam.btSyncConnection.linkType;
+                btDiagEvent.scoInterval = pBtEvent->uEventParam.btSyncConnection.scoInterval;
+                btDiagEvent.scoWindow  = pBtEvent->uEventParam.btSyncConnection.scoWindow;
+                btDiagEvent.retransWindow = pBtEvent->uEventParam.btSyncConnection.retransmisisonWindow;
+                vos_mem_copy(btDiagEvent.btAddr, pBtEvent->uEventParam.btSyncConnection.bdAddr,
+                              sizeof(btDiagEvent.btAddr));
                 break;
 
             case BT_EVENT_CREATE_ACL_CONNECTION:
             case BT_EVENT_ACL_CONNECTION_COMPLETE:
-                log_ptr->connHandle = pBtEvent->uEventParam.btAclConnection.connectionHandle;
-                log_ptr->connStatus = pBtEvent->uEventParam.btAclConnection.status;
-                vos_mem_copy(log_ptr->btAddr, pBtEvent->uEventParam.btAclConnection.bdAddr,
-                             sizeof(log_ptr->btAddr));
+                btDiagEvent.connHandle = pBtEvent->uEventParam.btAclConnection.connectionHandle;
+                btDiagEvent.connStatus = pBtEvent->uEventParam.btAclConnection.status;
+                vos_mem_copy(btDiagEvent.btAddr, pBtEvent->uEventParam.btAclConnection.bdAddr,
+                             sizeof(btDiagEvent.btAddr));
                 break;
 
             case BT_EVENT_MODE_CHANGED:
-                log_ptr->connHandle = pBtEvent->uEventParam.btAclModeChange.connectionHandle;
-                log_ptr->mode = pBtEvent->uEventParam.btAclModeChange.mode;
+                btDiagEvent.connHandle = pBtEvent->uEventParam.btAclModeChange.connectionHandle;
+                btDiagEvent.mode = pBtEvent->uEventParam.btAclModeChange.mode;
                 break;
 
             case BT_EVENT_DISCONNECTION_COMPLETE:
-                log_ptr->connHandle = pBtEvent->uEventParam.btAclModeChange.connectionHandle;
+                btDiagEvent.connHandle = pBtEvent->uEventParam.btAclModeChange.connectionHandle;
                 break;
 
             default:
                 break;
        }
    }
-   WLAN_VOS_DIAG_LOG_REPORT(log_ptr);
+   WLAN_VOS_DIAG_EVENT_REPORT(&btDiagEvent, EVENT_WLAN_BTC);
 }
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
