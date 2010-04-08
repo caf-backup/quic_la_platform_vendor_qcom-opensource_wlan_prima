@@ -55,6 +55,7 @@ when       who     what, where, why
 #include <mach/vreg.h>
 #include <linux/err.h>
 #include <linux/delay.h>
+#include <mach/rpc_pmapp.h>
 
 #ifdef MSM_PLATFORM_7x30
 #include <linux/mfd/pmic8058.h>
@@ -70,6 +71,8 @@ when       who     what, where, why
 #define CHIP_POWER_OFF        0
 
 #ifdef MSM_PLATFORM_7x30
+
+static const char* id = "WLAN";
 
 struct wlan_pm8058_gpio {
   int gpio_num;
@@ -198,9 +201,9 @@ int vos_chip_power_qrf8600(int on)
       msleep(500);
 
       // Power up 1.3v RF
-      rc = vreg_set_level(vreg_s2, 1300);
+      rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S2, 1300);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg set level failed (%d)", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: s2 vreg vote level failed (%d)", __func__, rc);
          return -EIO;
       }
 
@@ -211,9 +214,9 @@ int vos_chip_power_qrf8600(int on)
       }
 
       // Power up 2.2v RF
-      rc = vreg_set_level(vreg_s4, 2200);
+      rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S4, 2200);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s4 vreg set level failed (%d)",__func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: s4 vreg vote level failed (%d)",__func__, rc);
          return -EIO;
       }
 
@@ -239,35 +242,41 @@ int vos_chip_power_qrf8600(int on)
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Enabled power supply for WLAN", __func__);
 		
       msleep(500);
-	} 
-   else 
+   }
+   else
    {
       rc = vreg_disable(vreg_wlan);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg disable failed (%d)", __func__, rc);
-         return -EIO;
+      }
+
+      rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S4, 0);
+      if (rc) {
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: s4 vreg vote off failed (%d)", __func__, rc);
       }
 
       rc = vreg_disable(vreg_s4); 
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s4 vreg disable failed (%d)", __func__, rc);
-         return -EIO;
+      }
+
+      rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S2, 0);
+      if (rc) {
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: s2 vreg vote off failed (%d)", __func__, rc);
       }
 
       rc = vreg_disable(vreg_s2);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg disable failed (%d)", __func__, rc);
-         return -EIO;
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN, "%s: s2 vreg disable failed (%d)", __func__, rc);
       }
 
       rc = vreg_disable(vreg_wlan2);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan2 vreg disable failed (%d)", __func__, rc);
-         return -EIO;
       }
 		
-		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Disabled power supply for WLAN", __func__);
-	}
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Disabled power supply for WLAN", __func__);
+	 }
 
    return 0;
 }
@@ -815,9 +824,10 @@ VOS_STATUS vos_chipVoteOnRFSupply
       return VOS_STATUS_E_FAILURE;
    }
 
-   rc = vreg_set_level(vreg_s2, 1300);
+   rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S2, 1300);
    if (rc) {
-      printk(KERN_ERR "%s: s2 vreg set level failed (%d)\n", __func__, rc);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: s2 vreg vote "
+          "level failed (%d)",__func__, rc);
       return VOS_STATUS_E_FAILURE;
    }
 
@@ -827,9 +837,10 @@ VOS_STATUS vos_chipVoteOnRFSupply
       return VOS_STATUS_E_FAILURE;
    }
 
-   rc = vreg_set_level(vreg_s4, 2200);
+   rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S4, 2200);
    if (rc) {
-      printk(KERN_ERR "%s: s4 vreg set level failed (%d)\n",__func__, rc);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: s4 vreg vote "
+          "level failed (%d)",__func__, rc);
       return VOS_STATUS_E_FAILURE;
    }
 
@@ -894,12 +905,6 @@ VOS_STATUS vos_chipVoteOffRFSupply
       return VOS_STATUS_E_FAILURE;
    }
 
-   rc = vreg_disable(vreg_s2);
-   if (rc) {
-      printk(KERN_ERR "%s: s2 vreg disable failed (%d)\n", __func__, rc);
-      return VOS_STATUS_E_FAILURE;
-   }
-
    //2.2v RF
    vreg_s4 = vreg_get(NULL, "s4");
    if (IS_ERR(vreg_s4)) {
@@ -908,10 +913,26 @@ VOS_STATUS vos_chipVoteOffRFSupply
       return VOS_STATUS_E_FAILURE;
    }
 
+   rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S2, 0);
+   if (rc) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN, "%s: s2 vreg vote "
+          "level failed (%d)",__func__, rc);
+   }
+
+   rc = vreg_disable(vreg_s2);
+   if (rc) {
+      printk(KERN_ERR "%s: s2 vreg disable failed (%d)\n", __func__, rc);
+   }
+
+   rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S4, 0);
+   if (rc) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN, "%s: s4 vreg vote "
+          "level failed (%d)",__func__, rc);
+   }
+
    rc = vreg_disable(vreg_s4); 
    if (rc) {
       printk(KERN_ERR "%s: s4 vreg disable failed (%d)\n", __func__, rc);
-      return VOS_STATUS_E_FAILURE;
    }
 
    return VOS_STATUS_SUCCESS;
