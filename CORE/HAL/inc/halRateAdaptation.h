@@ -629,6 +629,11 @@
  */
 #define RA_PER_IGNORE_THRESHOLD            7
 
+/* when TX count is frozen, consecutive of TX failure count (in mib) cuase exeption
+ * to RA restart from scratch
+ */
+#define RA_TX_FAIL_EXCEPTION_THRESHOLD     3
+
 /* ----------------------------------------------------------------------------
  * local types
  */
@@ -681,6 +686,7 @@ typedef enum eHalRaGlobalCfg {
    RA_GLOBCFG_LINK_IDLE_SAMPLES,
    RA_GLOBCFG_GOOD_SAMPLE_EXTRA_STAY_INC_THRESH,
    RA_GLOBCFG_PER_LOW_IGNORE_THRESH,
+   RA_GLOBCFG_TX_FAIL_EXCEPTION_THRESH,
 } tHalRaGlobalCfg;
 
 

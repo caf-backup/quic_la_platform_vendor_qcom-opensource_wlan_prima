@@ -617,8 +617,10 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
     tTpeStaDesc tpeStaDescCfg;
     tANI_U32 ampduValQid;
 
+#ifdef CONFIGURE_SW_TEMPLATE
     tANI_U8 barCnt;
     tANI_U8 barCfgCnt =HAL_BAR_FRM_CNT;
+#endif //CONFIGURE_SW_TEMPLATE
 
     if( eHAL_STATUS_SUCCESS !=
       (status = halTable_ValidateStaIndex( pMac,
@@ -774,6 +776,7 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
                     goto Fail;
         }
 
+#ifdef CONFIGURE_SW_TEMPLATE
 #ifdef BMU_FATAL_ERROR
         // Configure BMU to disable transmit
         if ((status = halBmu_sta_enable_disable_control(
@@ -790,13 +793,14 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
         // Disable data backoffs
         halMTU_stallBackoffs(pMac, SW_MTU_STALL_DATA_BKOF_MASK);
 
-#endif
+#endif //BMU_FATAL_ERROR
 
         /* This would send Unsolicit BAR frame to Rx so as to sync up with updated SSN */
 
         for (barCnt = 0; barCnt < barCfgCnt; barCnt++) {
             halSendUnSolicitBARFrame(pMac, pAddBAParams->staIdx, pAddBAParams->baTID, queueId);
         }
+#endif //CONFIGURE_SW_TEMPLATE
 
         pSta[pAddBAParams->staIdx].baInitiatorTidBitMap |=  (1 << pAddBAParams->baTID);
 
@@ -811,6 +815,7 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
             goto Fail;
         }
 
+#ifdef CONFIGURE_SW_TEMPLATE
 #ifdef BMU_FATAL_ERROR
         // Configure BMU to enable transmit
         if ((status = halBmu_sta_enable_disable_control(
@@ -826,7 +831,9 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
 
         // Enable data backoffs
         halMTU_startBackoffs(pMac, SW_MTU_STALL_DATA_BKOF_MASK);
-#endif
+
+#endif //BMU_FATAL_ERROR
+#endif //CONFIGURE_SW_TEMPLATE
 
         // Enable BMU BA update
         if ((status = halRxp_EnableDisableBmuBaUpdate(pMac, 1)) != eHAL_STATUS_SUCCESS)
@@ -1638,7 +1645,7 @@ eHalStatus halStartBATimer(tpAniSirGlobal  pMac)
     return eHAL_STATUS_SUCCESS;
 }
 
-
+#ifdef CONFIGURE_SW_TEMPLATE
 /**
  * @brief : Fill Frame Ctrl Info for BAR.
  *
@@ -1691,7 +1698,7 @@ void fillBARCtrlInfo (barCtrlType         *pBARCtrl, tANI_U16 baTID)
                   */
     return;
 }
-
+#endif //CONFIGURE_SW_TEMPLATE
 
 /**
  * @brief : Get updated SSN from BTQM.
@@ -1762,6 +1769,7 @@ eHalStatus halGetUpdatedSSN(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U16 baTID
     return eHAL_STATUS_SUCCESS;
 }
 
+#ifdef CONFIGURE_SW_TEMPLATE
 /**
  * @brief : Send out two BAR frames.
  *
@@ -1903,4 +1911,4 @@ void halSendUnSolicitBARFrame(tpAniSirGlobal pMac, tANI_U16 staIdx,
 
     return ;
 }
-
+#endif //CONFIGURE_SW_TEMPLATE

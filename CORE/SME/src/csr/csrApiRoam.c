@@ -2862,7 +2862,7 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
     tANI_BOOLEAN fDone = eANI_BOOLEAN_FALSE;
     tCsrRoamInfo roamInfo, *pRoamInfo = NULL;
     v_U8_t acm_mask = 0; 
-    
+   
     do  
     {
         // Check for Cardbus eject condition, before trying to Roam to any BSS
@@ -2870,7 +2870,9 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
         
         if(NULL != pBSSList)
         {
-            if(eANI_BOOLEAN_FALSE == fUseSameBss)
+            // When handling AP's capability change, continue to associate to
+            // same BSS and make sure pRoamBssEntry is not Null.
+            if((eANI_BOOLEAN_FALSE == fUseSameBss) || (pCommand->u.roamCmd.pRoamBssEntry == NULL))
             {
                 if(pCommand->u.roamCmd.pRoamBssEntry == NULL)
                 {
@@ -3163,6 +3165,12 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         }
         break;
     }
+
+    case eCsrCapsChange:
+        smsLog(pMac, LOGE, FL("received eCsrCapsChange \n"));
+        csrRoamStateChange( pMac, eCSR_ROAMING_STATE_JOINING );
+        status = csrRoamIssueDisassociate( pMac, eCSR_ROAM_SUBSTATE_DISCONNECT_CONTINUE_ROAMING, FALSE ); 
+        break;
 
     default:
         csrRoamStateChange( pMac, eCSR_ROAMING_STATE_JOINING );
@@ -4275,7 +4283,7 @@ eHalStatus csrRoamConnect(tHalHandle hHal, tCsrRoamProfile *pProfile, tScanResul
     tCsrScanResultFilter *pScanFilter;
     tANI_U32 roamId = 0;
     tANI_BOOLEAN fCallCallback = eANI_BOOLEAN_FALSE;
-    
+   
     smsLog(pMac, LOG1, FL("called  BSSType = %d authtype = %d  encryType = %d\n"), pProfile->BSSType, pProfile->AuthType.authType[0], pProfile->EncryptionType.encryptionType[0]);
     csrRoamCancelRoaming(pMac);
     csrScanRemoveFreshScanCommand(pMac);
@@ -5403,7 +5411,7 @@ static void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSm
     }
 #endif
     else if ( CSR_IS_ROAM_SUBSTATE_REASSOC_FAIL( pMac ) )
-    {
+    { 
         // Disassoc due to Reassoc failure falls into this codepath....
         csrRoamComplete( pMac, eCsrJoinFailure, NULL );
     }
@@ -6282,7 +6290,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 // detection by LIM that the capabilities of the associated AP have changed.
                 case eSIR_SME_AP_CAPS_CHANGED:
                     pApNewCaps = &pStatusChangeMsg->statusChangeInfo.apNewCaps;
-                    smsLog(pMac, LOGW, "  CSR is handling CAP change\n");
+                    smsLog(pMac, LOGW, "CSR handling eSIR_SME_AP_CAPS_CHANGED\n");
                     csrScanForCapabilityChange( pMac, pApNewCaps );
                     result = eCSR_ROAM_RESULT_CAP_CHANGED;
                     roamStatus = eCSR_ROAM_GEN_INFO;
@@ -11714,6 +11722,10 @@ eHalStatus csrIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pCommand,
             case eCsrForcedDeauth:
             case eCsrHddIssuedReassocToSameAP:
             case eCsrSmeIssuedReassocToSameAP:
+                fNeedFullPower = eANI_BOOLEAN_TRUE;
+                break;
+            
+            case eCsrCapsChange:
                 fNeedFullPower = eANI_BOOLEAN_TRUE;
                 break;
 

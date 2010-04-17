@@ -77,13 +77,13 @@ limFillSupportedRatesInfo(
 
 #ifdef ANI_PRODUCT_TYPE_CLIENT
 //make non-conditional until the caller is #ifdefed
-tSirRetStatus limStaSendAddBss(tpAniSirGlobal pMac, tSirAssocRsp assocRsp, 
-                                    tSchBeaconStruct beaconStruct, tpSirBssDescription bssDescription, tANI_U8 updateEntry);
+tSirRetStatus limStaSendAddBss(tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp, 
+                                    tpSchBeaconStruct pBeaconStruct, tpSirBssDescription bssDescription, tANI_U8 updateEntry);
 tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry);
 
 
 #elif defined(ANI_AP_CLIENT_SDK)
-tSirRetStatus limStaSendAddBss(tpAniSirGlobal pMac, tSirAssocRsp assocRsp, 
+tSirRetStatus limStaSendAddBss(tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp, 
                                     tpSirNeighborBssInfo neighborBssInfo, tANI_U8 updateEntry);
 #endif
 

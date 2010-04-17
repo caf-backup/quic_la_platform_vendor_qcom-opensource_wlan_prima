@@ -3957,7 +3957,14 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
             }//switch
             if(fRemoveCommand)
             {
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+                //Save the callback info, we may need to carry on
+                csrScanCompleteCallback scanCallback = pCommand->u.scanCmd.callback;
+                void *pCallbackContext = pCommand->u.scanCmd.pContext;
+#endif
+
                 csrReleaseScanCommand(pMac, pCommand, scanStatus);
+
 #ifdef FEATURE_WLAN_GEN6_ROAMING
                 // if we are doing the 1 channel at a time HDD scan, lets continue
                 if((eCsrScanUserRequest == reason) && (csrScanGetChannelMask(pMac)))
@@ -3975,7 +3982,7 @@ eHalStatus csrScanSmeScanResponse( tpAniSirGlobal pMac, void *pMsgBuf )
                     scanReq.scanType    = eSIR_ACTIVE_SCAN;
                     scanReq.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;
 
-                    csrScanRequest( pMac, &scanReq, &scanId, NULL, NULL );
+                    csrScanRequest( pMac, &scanReq, &scanId, scanCallback, pCallbackContext );
                 }
 #endif
             }

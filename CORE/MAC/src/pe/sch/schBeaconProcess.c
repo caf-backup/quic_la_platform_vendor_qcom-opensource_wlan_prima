@@ -339,7 +339,7 @@ void schBeaconProcess(tpAniSirGlobal pMac, tpHalBufDesc pBD)
 
         
         if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
-            limDecideStaProtection(pMac, beaconStruct, &beaconParams);
+            limDecideStaProtection(pMac, &beaconStruct, &beaconParams);
         if (beaconStruct.erpPresent)
         {
               if (beaconStruct.erpIEInfo.barkerPreambleMode)

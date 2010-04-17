@@ -2103,12 +2103,12 @@ limDetectRadar(tpAniSirGlobal pMac, tANI_U32 *pMsg)
 \fn limDecideStaProtectionOnAssoc
 \brief Decide protection related settings on Sta while association.
 \param      tpAniSirGlobal    pMac
-\param      tSchBeaconStruct beaconStruct
+\param      tpSchBeaconStruct pBeaconStruct
 \return      None
   -------------------------------------------------------------*/
 void
 limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
-    tSchBeaconStruct beaconStruct)
+    tpSchBeaconStruct pBeaconStruct)
 
 {
     tSirRFBand rfBand = SIR_BAND_UNKNOWN;
@@ -2119,13 +2119,13 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
 	
 	if(SIR_BAND_5_GHZ == rfBand)
     {
-        if((eSIR_HT_OP_MODE_MIXED == beaconStruct.HTInfo.opMode)  ||
-                    (eSIR_HT_OP_MODE_OVERLAP_LEGACY == beaconStruct.HTInfo.opMode))
+        if((eSIR_HT_OP_MODE_MIXED == pBeaconStruct->HTInfo.opMode)  ||
+                    (eSIR_HT_OP_MODE_OVERLAP_LEGACY == pBeaconStruct->HTInfo.opMode))
         {
             if(pMac->lim.cfgProtection.fromlla)
                 pMac->lim.llaCoexist = true;
         }
-        else if(eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT == beaconStruct.HTInfo.opMode)
+        else if(eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT == pBeaconStruct->HTInfo.opMode)
         {
             if(pMac->lim.cfgProtection.ht20)
                 pMac->lim.ht20MhzCoexist = true;
@@ -2146,9 +2146,9 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
         if (phyMode != WNI_CFG_PHY_MODE_11B) 
 		{
             if (pMac->lim.cfgProtection.fromllb &&
-                beaconStruct.erpPresent &&
-                (beaconStruct.erpIEInfo.useProtection ||
-                beaconStruct.erpIEInfo.nonErpPresent))
+                pBeaconStruct->erpPresent &&
+                (pBeaconStruct->erpIEInfo.useProtection ||
+                pBeaconStruct->erpIEInfo.nonErpPresent))
             {
                 pMac->lim.llbCoexist = true;
             }
@@ -2161,9 +2161,9 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
 
         //following code block is only for HT station.
         if((pMac->lim.htCapability) &&
-              (beaconStruct.HTInfo.present))
+              (pBeaconStruct->HTInfo.present))
         {
-            tDot11fIEHTInfo htInfo = beaconStruct.HTInfo;
+            tDot11fIEHTInfo htInfo = pBeaconStruct->HTInfo;
            
             //Obss Non HT STA present mode 
             pMac->lim.gHTObssMode =  (tANI_U8)htInfo.obssNonHTStaPresent;
@@ -2204,9 +2204,9 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
 
     //protection related factors other than HT operating mode. Applies to 2.4 GHZ as well as 5 GHZ.
     if((pMac->lim.htCapability) &&
-          (beaconStruct.HTInfo.present))
+          (pBeaconStruct->HTInfo.present))
     {
-        tDot11fIEHTInfo htInfo = beaconStruct.HTInfo;
+        tDot11fIEHTInfo htInfo = pBeaconStruct->HTInfo;
 
         pMac->lim.gHTRifsMode       = ( tANI_U8 ) htInfo.rifsMode;
         pMac->lim.gHTNonGFDevicesPresent = ( tANI_U8 )htInfo.nonGFDevicesPresent;
@@ -2224,7 +2224,7 @@ limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac,
   -------------------------------------------------------------*/
 void
 limDecideStaProtection(tpAniSirGlobal pMac,
-    tSchBeaconStruct beaconStruct, tpUpdateBeaconParams pBeaconParams)
+    tpSchBeaconStruct pBeaconStruct, tpUpdateBeaconParams pBeaconParams)
 {
 
     tSirRFBand rfBand = SIR_BAND_UNKNOWN;
@@ -2237,22 +2237,22 @@ limDecideStaProtection(tpAniSirGlobal pMac,
     {
         //we are HT capable.
         if((true == pMac->lim.htCapability) &&
-            (beaconStruct.HTInfo.present))
+            (pBeaconStruct->HTInfo.present))
         {
             //we are HT capable, AP's HT OPMode is mixed / overlap legacy ==> need protection from 11A.        
-            if((eSIR_HT_OP_MODE_MIXED == beaconStruct.HTInfo.opMode) ||
-              (eSIR_HT_OP_MODE_OVERLAP_LEGACY == beaconStruct.HTInfo.opMode))
+            if((eSIR_HT_OP_MODE_MIXED == pBeaconStruct->HTInfo.opMode) ||
+              (eSIR_HT_OP_MODE_OVERLAP_LEGACY == pBeaconStruct->HTInfo.opMode))
             {
                 limEnable11aProtection(pMac, true, false, pBeaconParams);
             }
             //we are HT capable, AP's HT OPMode is HT20 ==> disable protection from 11A if enabled. enabled 
             //protection from HT20 if needed.
-            else if(eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT== beaconStruct.HTInfo.opMode)
+            else if(eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT== pBeaconStruct->HTInfo.opMode)
             {
                 limEnable11aProtection(pMac, false, false, pBeaconParams);            
                 limEnableHT20Protection(pMac, true, false, pBeaconParams);
             }
-            else if(eSIR_HT_OP_MODE_PURE == beaconStruct.HTInfo.opMode)
+            else if(eSIR_HT_OP_MODE_PURE == pBeaconStruct->HTInfo.opMode)
             {
                 limEnable11aProtection(pMac, false, false, pBeaconParams);            
                 limEnableHT20Protection(pMac, false, false, pBeaconParams);
@@ -2271,9 +2271,9 @@ limDecideStaProtection(tpAniSirGlobal pMac,
 
         if (phyMode != WNI_CFG_PHY_MODE_11B) 
 		{
-            if (beaconStruct.erpPresent &&
-                  (beaconStruct.erpIEInfo.useProtection ||
-                  beaconStruct.erpIEInfo.nonErpPresent))
+            if (pBeaconStruct->erpPresent &&
+                  (pBeaconStruct->erpIEInfo.useProtection ||
+                  pBeaconStruct->erpIEInfo.nonErpPresent))
             {
                 limEnable11gProtection(pMac, true, false, pBeaconParams);
             }
@@ -2287,10 +2287,10 @@ limDecideStaProtection(tpAniSirGlobal pMac,
 
         //following code block is only for HT station.
         if((pMac->lim.htCapability) &&
-              (beaconStruct.HTInfo.present))
+              (pBeaconStruct->HTInfo.present))
         {
           
-            tDot11fIEHTInfo htInfo = beaconStruct.HTInfo;
+            tDot11fIEHTInfo htInfo = pBeaconStruct->HTInfo;
             //AP has at least one 11G station associated.
             if(((eSIR_HT_OP_MODE_MIXED == htInfo.opMode)  ||
                   (eSIR_HT_OP_MODE_OVERLAP_LEGACY == htInfo.opMode))&&
@@ -2331,9 +2331,9 @@ limDecideStaProtection(tpAniSirGlobal pMac,
 
     //following code block is only for HT station. ( 2.4 GHZ as well as 5 GHZ)
     if((pMac->lim.htCapability) &&
-          (beaconStruct.HTInfo.present))
+          (pBeaconStruct->HTInfo.present))
     {
-        tDot11fIEHTInfo htInfo = beaconStruct.HTInfo;    
+        tDot11fIEHTInfo htInfo = pBeaconStruct->HTInfo;    
         //Check for changes in protection related factors other than HT operating mode.
         //Check for changes in RIFS mode, nonGFDevicesPresent, lsigTXOPProtectionFullSupport.
         if ( pMac->lim.gHTRifsMode != ( tANI_U8 ) htInfo.rifsMode )

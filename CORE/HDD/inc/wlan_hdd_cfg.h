@@ -21,7 +21,10 @@
 #include <wlan_hdd_includes.h>
 #include <wlan_hdd_wmm.h>
 #include <vos_types.h>
+#include <csrApi.h>
 
+//Number of items that can be configured
+#define MAX_CFG_INI_ITEMS   128
 
 // Defines for all of the things we read from the configuration (registry).
 
@@ -220,10 +223,22 @@
 #define CFG_MAX_RX_AMPDU_FACTOR_MAX            WNI_CFG_MAX_RX_AMPDU_FACTOR_STAMAX 
 #define CFG_MAX_RX_AMPDU_FACTOR_DEFAULT        WNI_CFG_MAX_RX_AMPDU_FACTOR_STADEF 
 
+typedef enum
+{
+    eHDD_DOT11_MODE_AUTO = 0, //covers all things we support
+    eHDD_DOT11_MODE_abg,      //11a/b/g only, no HT, no proprietary
+    eHDD_DOT11_MODE_11b,
+    eHDD_DOT11_MODE_11g,
+    eHDD_DOT11_MODE_11n,
+    eHDD_DOT11_MODE_11g_ONLY,
+    eHDD_DOT11_MODE_11n_ONLY,
+    eHDD_DOT11_MODE_11b_ONLY,
+}eHddDot11Mode;
+
 #define CFG_DOT11_MODE_NAME                    "gDot11Mode"
-#define CFG_DOT11_MODE_MIN                     0  //Auto
-#define CFG_DOT11_MODE_MAX                     7  //11b only
-#define CFG_DOT11_MODE_DEFAULT                 4  //11n
+#define CFG_DOT11_MODE_MIN                     eHDD_DOT11_MODE_AUTO
+#define CFG_DOT11_MODE_MAX                     eHDD_DOT11_MODE_11b_ONLY
+#define CFG_DOT11_MODE_DEFAULT                 eHDD_DOT11_MODE_11n
 
 #define CFG_CHANNEL_BONDING_MODE_NAME          "gChannelBondingMode"
 #define CFG_CHANNEL_BONDING_MODE_MIN           WNI_CFG_CHANNEL_BONDING_MODE_STAMIN 
@@ -614,7 +629,7 @@
 #define CFG_NTH_BEACON_FILTER_DEFAULT          ( WNI_CFG_NTH_BEACON_FILTER_STADEF )
 
 //WMM configuration
-#define CFG_QOS_WMM_MODE_NAME                             "WmmMode"
+#define CFG_QOS_WMM_MODE_NAME                             "WmmIsEnabled"
 #define CFG_QOS_WMM_MODE_MIN                               (0)
 #define CFG_QOS_WMM_MODE_MAX                               (2) //HDD_WMM_NO_QOS
 #define CFG_QOS_WMM_MODE_DEFAULT                           (0) //HDD_WMM_AUTO
@@ -820,6 +835,9 @@
 
 typedef struct
 {
+   //Bitmap to track what is explicitly configured
+   DECLARE_BITMAP(bExplicitCfg, MAX_CFG_INI_ITEMS);
+
    //Config parameters
    v_U32_t       RTSThreshold;
    v_U32_t       FragmentationThreshold;
@@ -856,7 +874,7 @@ typedef struct
    v_U32_t       nBmpsMinListenInterval;
    v_BOOL_t      fIsAutoBmpsTimerEnabled;
    v_U32_t       nAutoBmpsTimerValue;
-   v_U32_t       dot11Mode;
+   eHddDot11Mode dot11Mode;
    v_U32_t       ChannelBondingMode;
    v_U32_t       MaxRxAmpduFactor;
    v_U32_t       nBAAgingTimerInterval;
@@ -1012,6 +1030,8 @@ typedef struct
 VOS_STATUS hdd_parse_config_ini(hdd_adapter_t *pAdapter);
 VOS_STATUS hdd_set_sme_config( hdd_adapter_t *pAdapter );
 v_BOOL_t hdd_update_config_dat ( hdd_adapter_t *pAdapter );
+VOS_STATUS hdd_cfg_get_config(hdd_adapter_t *pAdapter, char *pBuf, int buflen);
+eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode );
 
 #define FIELD_OFFSET(__type, __field) ((unsigned int)(&((__type *)0)->__field))
 #define VAR_OFFSET( _Struct, _Var ) ( (unsigned int) FIELD_OFFSET(_Struct, _Var ) )
@@ -1035,7 +1055,7 @@ v_BOOL_t hdd_update_config_dat ( hdd_adapter_t *pAdapter );
                                           // translation from a raw
                                           // integer to an enumeration
                                           // is required
-										  
+
 #define CFG_BAD_ENUM_XLATION ( 0xffffffff )
 
 typedef enum 

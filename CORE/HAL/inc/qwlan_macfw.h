@@ -33,6 +33,8 @@ when       who            what, where, why
 09/14/08   hoonki         Rate Adaptation in FW
 ===========================================================================*/
 
+#define PMU_RXP_SLPPULSE_MTO_WEIRD_SLEEP_WORKAROUND 1
+
 /*===========================================================================
   MCU
  ==========================================================================*/
@@ -1108,9 +1110,6 @@ typedef struct sHalRateInfo {
  * mode, the per station TX rate channel is 1 */
 #define HAL_RA_TXRATE_CHANNEL_NUM  1
 
-/* Number of rate descriptors per station */
-#define HAL_RA_TXRATE_NUM          (HAL_RA_MAX_RATES * HAL_RA_TXRATE_CHANNEL_NUM)
-
 /*
  * Rate information per station
  */
@@ -1505,13 +1504,13 @@ typedef PACKED_PRE struct PACKED_POST sHalRaGlobalInfo
 #endif
 #ifdef ANI_BIG_BYTE_ENDIAN
    /* input from cfg */
-   tANI_U8   reserved1;
+   tANI_U8   txFailExceptionThreshold; /* when TxCount is frozen, only TX failures will cause exception */
    tANI_U8   protPolicy;  /* cfg.protPolicy update here */
    tANI_U16  rtsThreshold; /* cfg.rtsThreshold update here */
 #else
    tANI_U16  rtsThreshold; /* cfg.rtsThreshold update here */
    tANI_U8   protPolicy;  /* cfg.protPolicy update here */
-   tANI_U8   reserved1;
+   tANI_U8   txFailExceptionThreshold;
 #endif
     /* threshold setting */
 #ifdef ANI_BIG_BYTE_ENDIAN

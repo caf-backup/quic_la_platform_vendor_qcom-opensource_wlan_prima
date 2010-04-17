@@ -27,7 +27,7 @@ eRfBandMode   halUtil_GetRfBand( tpAniSirGlobal pMac, tANI_U8 channel );
 tANI_BOOLEAN  halUtil_CurrentlyInPowerSave( tpAniSirGlobal pMac );
 eHalStatus    halUtil_deferMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 void          halUtil_processDeferredMsgQ(tpAniSirGlobal pMac);
-tHalMsgDecision  halUtil_MsgDecision(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
+tHalMsgDecision  halUtil_MsgDecision(tpAniSirGlobal pMac, tSirMsgQ *pMsg, tANI_U8* pMutexAcquired);
 tANI_U32  halUtil_GetBtqmQueueIdForStaidTid( tpAniSirGlobal pMac, tANI_U8 staId, tANI_U8 tid);
 
 

@@ -316,7 +316,7 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
     if (pMac->lim.gLimReturnUniqueResults || (!fScanning))
         limLookupNaddHashEntry(pMac, pBssDescr, LIM_HASH_UPDATE);
     else
-        limLookupNaddHashEntry(pMac, pBssDescr, LIM_HASH_ADD);
+         limLookupNaddHashEntry(pMac, pBssDescr, LIM_HASH_ADD);
 
     if(fScanning)
     {
@@ -487,14 +487,6 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
             // Found the same BSS description
             if (action == LIM_HASH_UPDATE)
             {
-                //save rssi, channelId, channelIdSelf 
-                if(pBssDescr->bssDescription.channelId !=
-                    pBssDescr->bssDescription.channelIdSelf)
-                {
-                    pBssDescr->bssDescription.channelId = ptemp->bssDescription.channelId;
-                    pBssDescr->bssDescription.channelIdSelf = ptemp->bssDescription.channelIdSelf;                    
-                    pBssDescr->bssDescription.rssi = ptemp->bssDescription.rssi;                    
-                }
                 // Delete this entry
                 if (ptemp == pMac->lim.gLimCachedScanHashTable[index])
                     pprev = pMac->lim.gLimCachedScanHashTable[index] = ptemp->next;
@@ -525,7 +517,7 @@ limLookupNaddHashEntry(tpAniSirGlobal pMac,
     pMac->lim.gLimMlmScanResultLength +=
         pBssDescr->bssDescription.length + sizeof(tANI_U16);
 
-   PELOG2(limLog(pMac, LOG2, FL("Added new BSS description size %d TOT %d BSS id\n"),
+    PELOG2(limLog(pMac, LOG2, FL("Added new BSS description size %d TOT %d BSS id\n"),
            pBssDescr->bssDescription.length,
            pMac->lim.gLimMlmScanResultLength);
     limPrintMacAddr(pMac, pBssDescr->bssDescription.bssId, LOG2);)

@@ -679,6 +679,13 @@ void limIbssDeleteAllPeers( tpAniSirGlobal pMac )
 		}
 
         pTempNode = pCurrNode->next;
+        /* Fix CR 227642: PeerList should point to the next node since the current node is being
+                * freed in the next line. In ibss_peerfind in ibss_status_chg_notify above, we use this
+                * peer list to find the next peer. So this list needs to be updated with the no of peers left
+                * after each iteration in this while loop since one by one peers are deleted (freed) in this
+                * loop causing the lim.gLimIbssPeerList to point to some freed memory.
+                */
+        pMac->lim.gLimIbssPeerList = pTempNode;
         if(pCurrNode->beacon)
         {
             palFreeMemory(pMac->hHdd, pCurrNode->beacon);

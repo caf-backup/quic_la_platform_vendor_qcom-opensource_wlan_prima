@@ -321,6 +321,8 @@ static void InterpolateCalPowerPoints(tpAniSirGlobal pMac, tANI_U32 tpcChannel, 
     for (chain = PHY_TX_CHAIN_0; chain < highestTxChain; chain++)
     {
         tANI_U8 point;
+        tPowerDetect x1, x2;
+        tTpcLutValue y1, y2;
 
         {
             //fill the power LUT values
@@ -338,17 +340,17 @@ static void InterpolateCalPowerPoints(tpAniSirGlobal pMac, tANI_U32 tpcChannel, 
             {
                 tPowerDetect interpPoint;
 
-                tPowerDetect x1 = band->pwrSampled[tpcChannel].empirical[chain][calPoint].pwrDetAdc;
-                tPowerDetect x2 = band->pwrSampled[tpcChannel].empirical[chain][calPoint + 1].pwrDetAdc;
+                x1 = band->pwrSampled[tpcChannel].empirical[chain][calPoint].pwrDetAdc;
+                x2 = band->pwrSampled[tpcChannel].empirical[chain][calPoint + 1].pwrDetAdc;
 
                 //tTpcLutValue y1 = GET_FULL_PRECISION_TPC_LUT_VALUE(band->pwrSampled[tpcChannel].empirical[chain][calPoint].adjustedPwrDet,
                 //                                                   band->pwrSampled[tpcChannel].empirical[chain][calPoint].extraPrecision.hi8_adjustedPwrDet
                 //                                                  );
-                tTpcLutValue y1 = band->pwrSampled[tpcChannel].empirical[chain][calPoint].adjustedPwrDet;
+                y1 = band->pwrSampled[tpcChannel].empirical[chain][calPoint].adjustedPwrDet;
                 //tTpcLutValue y2 = GET_FULL_PRECISION_TPC_LUT_VALUE(band->pwrSampled[tpcChannel].empirical[chain][calPoint + 1].adjustedPwrDet,
                 //                                                   band->pwrSampled[tpcChannel].empirical[chain][calPoint + 1].extraPrecision.hi8_adjustedPwrDet
                 //                                                  );
-                tTpcLutValue y2 = band->pwrSampled[tpcChannel].empirical[chain][calPoint + 1].adjustedPwrDet;
+                y2 = band->pwrSampled[tpcChannel].empirical[chain][calPoint + 1].adjustedPwrDet;
 
                 assert(x2 >= x1);
 
@@ -372,8 +374,13 @@ static void InterpolateCalPowerPoints(tpAniSirGlobal pMac, tANI_U32 tpcChannel, 
 
             for (point = lastPoint->pwrDetAdc; point < TPC_MEM_POWER_LUT_DEPTH; point++)
             {
-                //fill all values preceding the first cal point with the adjusted value from the first point
-                band->pwrInterp[tpcChannel][chain][point] = lastPoint->adjustedPwrDet;
+                //extrapolate all values following the last cal point with the same slope of the last two cal points
+                band->pwrInterp[tpcChannel][chain][point] = (tTpcLutValue)InterpolateBetweenPoints(x1, y1, x2, y2, point);
+                if(band->pwrInterp[tpcChannel][chain][point] > (TPC_MEM_POWER_LUT_DEPTH - 1))
+                {
+                    band->pwrInterp[tpcChannel][chain][point] = TPC_MEM_POWER_LUT_DEPTH - 1;
+                }
+
                 //GET_FULL_PRECISION_TPC_LUT_VALUE(lastPoint->adjustedPwrDet, lastPoint->extraPrecision.hi8_adjustedPwrDet);
             }
         }

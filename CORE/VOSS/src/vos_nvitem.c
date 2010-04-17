@@ -371,10 +371,10 @@ VOS_STATUS vos_nv_open(void)
     bufSize = sizeof(nvEFSTable_t); 
     status = hdd_request_firmware(LIBRA_NV_FILE,((VosContextType*)(pVosContext))->pHDDContext,(v_VOID_t**)&gnvEFSTable,&bufSize);
 
-    if ( !VOS_IS_STATUS_SUCCESS( status ))
+    if ( (!VOS_IS_STATUS_SUCCESS( status )) || !gnvEFSTable)
     {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                         "%s : vos_open failed\n",__func__);
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                         "%s : vos_nv_open failed!!! make sure the qcom_wlan_nv.bin is present in persist directory\n",__func__);
    
         return VOS_STATUS_E_FAILURE;
     }

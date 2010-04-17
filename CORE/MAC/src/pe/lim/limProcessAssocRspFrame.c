@@ -152,9 +152,8 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
        {
            tSirRetStatus status;
            status = schBeaconEdcaProcess(pMac,&pAssocRsp->edca);
-           limLog(pMac, LOGW, "WME Edca set update based on AssocRsp: status %d\n",
-                  status);
-    
+           PELOGW(limLog(pMac, LOGW, "WME Edca set update based on AssocRsp: status %d\n", status);)
+
            if (status != eSIR_SUCCESS)
                PELOGE(limLog(pMac, LOGE, FL("WME Edca error in AssocResp - ignoring\n"));)
            else { // update default tidmap based on HashACM
@@ -527,7 +526,7 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType)
                             &beaconStruct );
 
     if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
-        limDecideStaProtectionOnAssoc(pMac, beaconStruct);
+        limDecideStaProtectionOnAssoc(pMac, &beaconStruct);
     
     if(beaconStruct.erpPresent) {
         if (beaconStruct.erpIEInfo.barkerPreambleMode)
@@ -536,14 +535,13 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType)
             pMac->lim.gLimShortPreamble = true;
     }
 
-
     //Set the link state to postAssoc, so HW can start receiving frames from AP.
     //if(limSetLinkState(pMac, eSIR_LINK_POSTASSOC_STATE, currentBssId) != eSIR_SUCCESS)
     //    PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
 
 
      //Update the BSS Entry, this entry was added during preassoc.
-    if( eSIR_SUCCESS == limStaSendAddBss( pMac, *pAssocRsp,  beaconStruct,
+    if( eSIR_SUCCESS == limStaSendAddBss( pMac, pAssocRsp,  &beaconStruct,
                                                                &pMac->lim.gpLimJoinReq->bssDescription, true))  
     {
         palFreeMemory(pMac->hHdd, pAssocRsp);   

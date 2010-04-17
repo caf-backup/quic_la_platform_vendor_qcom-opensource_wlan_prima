@@ -3,7 +3,7 @@
 
 #define LIBRA_CFG_FILE      "wlan/cfg.dat"
 #define LIBRA_FW_FILE       "wlan/qcom_fw.bin"
-#define LIBRA_NV_FILE       "wlan/qcom_nv.bin"
+#define LIBRA_NV_FILE       "wlan/qcom_wlan_nv.bin"
 #define LIBRA_COUNTRY_INFO_FILE     "wlan_country_info.dat"
 #define LIBRA_HO_CFG_FILE   "wlan_ho_config"
 

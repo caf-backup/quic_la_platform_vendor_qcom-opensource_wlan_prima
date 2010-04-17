@@ -87,8 +87,8 @@ extern tSirRetStatus limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enab
 extern tSirRetStatus limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable, tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams);
 extern tSirRetStatus limEnableShortPreamble(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams pBeaconParams);
 extern tSirRetStatus limEnableHtOBSSProtection (tpAniSirGlobal pMac, tANI_U8 enable,  tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams);
-void limDecideStaProtection(tpAniSirGlobal pMac, tSchBeaconStruct beaconStruct, tpUpdateBeaconParams pBeaconParams);
-void limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac, tSchBeaconStruct beaconStruct);
+void limDecideStaProtection(tpAniSirGlobal pMac, tpSchBeaconStruct pBeaconStruct, tpUpdateBeaconParams pBeaconParams);
+void limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac, tpSchBeaconStruct pBeaconStruct);
 void limUpdateStaRunTimeHTSwitchChnlParams(tpAniSirGlobal pMac, tDot11fIEHTInfo * pHTInfo, tANI_U8 bssIdx);
 
 // Print MAC address utility function

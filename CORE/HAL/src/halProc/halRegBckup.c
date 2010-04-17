@@ -32,6 +32,9 @@ static eHalStatus halRegBckup_NormalWriteRegister(tHalHandle hHal,
         tANI_U32 regAddr, tANI_U32 regValue);
 
 tRegisterEntry PreBBRegList[] = {
+#if PMU_RXP_SLPPULSE_MTO_WEIRD_SLEEP_WORKAROUND
+    { (QWLAN_PMU_BEACON_PWR_SAVE_REG_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), 0x0 },
+#endif
     /* This register is first in the sequence to ensure that ADU writing
      * the registers in BMU space is faster. This register can be even
      * after ACPU reinit sequence.

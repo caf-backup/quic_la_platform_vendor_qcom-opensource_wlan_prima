@@ -30,6 +30,7 @@
 #include <aniGlobal.h>
 #include "dot11f.h"
 #include <wlan_hdd_wowl.h>
+#include <wlan_hdd_cfg.h>
 #include <linux/earlysuspend.h>
 #include "wlan_hdd_power.h"
 #include "qwlan_version.h"
@@ -70,6 +71,7 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 #define WLAN_PRIV_GET_CHAR_SET_NONE   (SIOCIWFIRSTPRIV + 5)
 #define WE_WLAN_VERSION      1
 #define WE_GET_STATS         2
+#define WE_GET_CFG           3
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_NONE_GET_NONE   (SIOCIWFIRSTPRIV + 6)
@@ -271,7 +273,7 @@ static int iw_set_mode(struct net_device *dev,
         hddLog( LOG1,"%s Setting AP Mode as IW_MODE_ADHOC\n", __FUNCTION__); 
         pRoamProfile->BSSType = eCSR_BSS_TYPE_START_IBSS;
         // Set the phymode correctly for IBSS.
-        pWextState->roamProfile.phyMode = pConfig->dot11Mode;
+        pWextState->roamProfile.phyMode = hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
         break;
     case IW_MODE_INFRA:
         hddLog( LOG1, "%s Setting AP Mode as IW_MODE_INFRA\n", __FUNCTION__);
@@ -2401,6 +2403,13 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
             break;
         }
 
+        case WE_GET_CFG:
+        {
+            hdd_cfg_get_config(pAdapter, extra, WE_MAX_STR_LEN);
+            wrqu->data.length = strlen(extra)+1;
+            break;
+        }
+
         default:  
         {
             hddLog(LOGE, "Invalid IOCTL command %d  \n",  sub_cmd );
@@ -2651,6 +2660,10 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         "getStats" },
+    {   WE_GET_CFG,
+        0,
+        IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
+        "getConfig" },
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_NONE_GET_NONE,

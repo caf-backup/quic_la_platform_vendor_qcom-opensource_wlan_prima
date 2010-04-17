@@ -1722,24 +1722,24 @@ limDetectChangeInApCapabilities(tpAniSirGlobal pMac,
 #if defined(ANI_PRODUCT_TYPE_CLIENT) || defined(ANI_AP_CLIENT_SDK)
     tANI_U8                 len;
     tSirSmeApNewCaps   apNewCaps;
+    tANI_U8            newChannel;
     apNewCaps.capabilityInfo = limGetU16((tANI_U8 *) &pBeacon->capabilityInfo);
 
-    if ((pMac->lim.gLimSentCapsChangeNtf == false) &&
-        ((!limIsNullSsid(&pBeacon->ssId)) &&
-          (limCmpSSid(pMac, &pBeacon->ssId) == false)) &&
-        ((SIR_MAC_GET_ESS(apNewCaps.capabilityInfo) !=
-          SIR_MAC_GET_ESS(pMac->lim.gLimCurrentBssCaps)) ||
-         (SIR_MAC_GET_PRIVACY(apNewCaps.capabilityInfo) !=
-          SIR_MAC_GET_PRIVACY(pMac->lim.gLimCurrentBssCaps)) ||
-         (SIR_MAC_GET_SHORT_PREAMBLE(apNewCaps.capabilityInfo) !=
-          SIR_MAC_GET_SHORT_PREAMBLE(pMac->lim.gLimCurrentBssCaps)) ||
-         (SIR_MAC_GET_QOS(apNewCaps.capabilityInfo) !=
-          SIR_MAC_GET_QOS(pMac->lim.gLimCurrentBssCaps)) 
+    newChannel = (tANI_U8) pBeacon->channelNumber;
+
+    if ((pMac->lim.gLimSentCapsChangeNtf == false) && 
+        (((!limIsNullSsid(&pBeacon->ssId)) && (limCmpSSid(pMac, &pBeacon->ssId) == false)) || 
+        ((SIR_MAC_GET_ESS(apNewCaps.capabilityInfo) != SIR_MAC_GET_ESS(pMac->lim.gLimCurrentBssCaps)) ||
+         (SIR_MAC_GET_PRIVACY(apNewCaps.capabilityInfo) !=   SIR_MAC_GET_PRIVACY(pMac->lim.gLimCurrentBssCaps)) ||
+         (SIR_MAC_GET_SHORT_PREAMBLE(apNewCaps.capabilityInfo) !=  SIR_MAC_GET_SHORT_PREAMBLE(pMac->lim.gLimCurrentBssCaps)) ||
+         (SIR_MAC_GET_QOS(apNewCaps.capabilityInfo) !=   SIR_MAC_GET_QOS(pMac->lim.gLimCurrentBssCaps)) ||
+         (newChannel !=  pMac->lim.gLimCurrentChannelId) 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
          ||(LIM_BSS_CAPS_GET(HCF, pMac->lim.gLimCurrentBssQosCaps) != pBeacon->propIEinfo.hcfEnabled)
 #endif
-         ))
+         )))
     {
+
         /**
          * BSS capabilities have changed.
          * Inform Roaming.
@@ -1752,7 +1752,17 @@ limDetectChangeInApCapabilities(tpAniSirGlobal pMac,
         palCopyMemory( pMac->hHdd, apNewCaps.bssId,
                       pMac->lim.gLimCurrentBssId,
                       sizeof(tSirMacAddr));
-        apNewCaps.channelId      = pMac->lim.gLimCurrentChannelId;
+   
+        if (newChannel != pMac->lim.gLimCurrentChannelId)
+        {
+            PELOGE(limLog(pMac, LOGE, FL("Channel Change from %d --> %d \n"), pMac->lim.gLimCurrentChannelId, newChannel);)
+            apNewCaps.channelId = newChannel;
+        }
+        else
+            apNewCaps.channelId = pMac->lim.gLimCurrentChannelId;
+
+
+
         palCopyMemory( pMac->hHdd, (tANI_U8 *) &apNewCaps.ssId,
                       (tANI_U8 *) &pBeacon->ssId,
                       pBeacon->ssId.length + 1);

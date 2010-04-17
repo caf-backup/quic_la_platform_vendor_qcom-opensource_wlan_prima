@@ -403,7 +403,7 @@ int write_nv_items_to_efs(tANI_U8 *pData, tANI_U16 data_length)
     FILE *fp;
     size_t count;
  
-    fp = fopen("/etc/firmware/wlan/qcom_nv.bin", "wb");
+    fp = fopen("/etc/firmware/wlan/qcom_wlan_nv.bin", "wb");
     if(fp == NULL) {
         perror("failed to open sample.txt");
         return -1;

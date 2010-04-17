@@ -5,12 +5,12 @@
    This program is the confidential and proprietary product of Airgo Networks Inc.
    Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
-  
+
    phyApi.h: Includes physical layer functional interface
    Author:  Mark Nelson
    Date:    3/7/05
 
-   History - 
+   History -
    Date        Modified by              Modification Information
   --------------------------------------------------------------------------
 
@@ -24,7 +24,7 @@
 #include "rfApi.h"
 #include "ani_assert.h"
 #ifdef __cplusplus
-extern "C" 
+extern "C"
 {
 #endif
 
@@ -43,7 +43,7 @@ static inline tANI_S32 InterpolateBetweenPoints(tANI_S32 x1,  tANI_S32 y1, tANI_
     }
     else if (y1 != y2)
     {
-        retVal = (((x - x1) * (y2 - y1)) / (x2 - x1)) + y1 + GET_ROUND(((x - x1) * (y2 - y1)), (y2 - y1));    //returns the closest integer
+        retVal = (((x - x1) * (y2 - y1)) / (x2 - x1)) + y1 + GET_ROUND(((x - x1) * (y2 - y1)), (x2 - x1));    //returns the closest integer
     }
     else
     {
@@ -61,15 +61,15 @@ static inline eHalStatus FindEncompassingFreqs(tANI_U16 freq, void *list, tANI_U
 {
     tANI_U8 *member = list;
     tANI_U8 i;
-    
+
     //assert(list != NULL);
     //assert((tANI_U32)list % 4 == 0);
     //assert((tANI_U32)offsetToFreq % 2 == 0);  //freq must be on 16-bit boundary
-    
+
     {
         tANI_U16 minFreq = *(tANI_U16 *)(member + offsetToFreq);
         tANI_U16 maxFreq = *(tANI_U16 *)(member + offsetToFreq + ((nMembers - 1) * sizeStruct));
-        
+
         if (freq < minFreq)
         {
             *loIndex = 0;
@@ -113,7 +113,7 @@ static inline eHalStatus FindEncompassingFreqs(tANI_U16 freq, void *list, tANI_U
             }
         }
     }
-    
+
     return (eHAL_STATUS_FAILURE);
 }
 

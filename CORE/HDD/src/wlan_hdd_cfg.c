@@ -34,10 +34,6 @@
 #include <csrApi.h>
 #include <pmcApi.h>
 
-//Number of items that can be overirden in qcom_cfg.ini file
-#define MAX_CFG_INI_ITEMS   128
-
-#define MASK_BITS_OFF( _Field, _Bitmask ) ( (_Field) &= ~(_Bitmask) )
 
 
 REG_TABLE_ENTRY g_registry_table[] =
@@ -1256,7 +1252,8 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
    return vos_status;
 } 
 
-void print_hdd_cfg(hdd_adapter_t *pAdapter)
+
+static void print_hdd_cfg(hdd_adapter_t *pAdapter)
 {
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "*********Config values in HDD Adapter*******");
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [RTSThreshold] Value = %lu",pAdapter->cfg_ini->RTSThreshold) ;
@@ -1275,11 +1272,11 @@ void print_hdd_cfg(hdd_adapter_t *pAdapter)
       pAdapter->cfg_ini->staMacAddr.bytes[2],pAdapter->cfg_ini->staMacAddr.bytes[3],
       pAdapter->cfg_ini->staMacAddr.bytes[4],pAdapter->cfg_ini->staMacAddr.bytes[5]);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%lu]",pAdapter->cfg_ini->ChannelBondingMode);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%lu]",pAdapter->cfg_ini->ChannelBondingMode);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [dot11Mode] Value = [%lu]",pAdapter->cfg_ini->dot11Mode);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WmmMode] Value = [%u] ",pAdapter->cfg_ini->WmmMode);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [UapsdMask] Value = [0x%x] ",pAdapter->cfg_ini->UapsdMask);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [PktClassificationBasis] Value = [%u] ",pAdapter->cfg_ini->PktClassificationBasis);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ImplicitQosIsEnabled] Value = [%u]",(int)pAdapter->cfg_ini->bImplicitQosEnabled);
 
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdVoSrvIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdVoSrvIntv);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [InfraUapsdVoSuspIntv] Value = [%lu] ",pAdapter->cfg_ini->InfraUapsdVoSuspIntv);
@@ -1325,6 +1322,102 @@ void print_hdd_cfg(hdd_adapter_t *pAdapter)
 
 }
 
+
+#define CFG_VALUE_MAX_LEN 256
+#define CFG_ENTRY_MAX_LEN (32+CFG_VALUE_MAX_LEN)
+VOS_STATUS hdd_cfg_get_config(hdd_adapter_t *pAdapter, char *pBuf, int buflen)
+{
+   unsigned int idx;
+   REG_TABLE_ENTRY *pRegEntry = g_registry_table;
+   unsigned long cRegTableEntries  = sizeof(g_registry_table) / sizeof( g_registry_table[ 0 ]);
+   v_U32_t value;
+   char valueStr[CFG_VALUE_MAX_LEN];
+   char configStr[CFG_ENTRY_MAX_LEN];
+   char *fmt;
+   void *pField;
+   v_MACADDR_t *pMacAddr;
+   char *pCur = pBuf;
+   int curlen;
+
+   // start with an empty string
+   *pCur = '\0';
+
+   for ( idx = 0; idx < cRegTableEntries; idx++, pRegEntry++ ) 
+   {
+      pField = ( (v_U8_t *)pAdapter->cfg_ini) + pRegEntry->VarOffset;
+
+      if ( ( WLAN_PARAM_Integer    == pRegEntry->RegType ) ||
+           ( WLAN_PARAM_HexInteger == pRegEntry->RegType ) ) 
+      {
+         value = 0;
+         memcpy( &value, pField, pRegEntry->VarSize );
+         if ( WLAN_PARAM_HexInteger == pRegEntry->RegType )
+         {
+            fmt = "%x";
+         }
+         else
+         {
+            fmt = "%u";
+         }
+         snprintf(valueStr, CFG_VALUE_MAX_LEN, fmt, value);
+      }
+      else if ( WLAN_PARAM_String == pRegEntry->RegType )
+      {
+         snprintf(valueStr, CFG_VALUE_MAX_LEN, "%s", (char *)pField);
+      }
+      else if ( WLAN_PARAM_MacAddr == pRegEntry->RegType )
+      {
+         pMacAddr = (v_MACADDR_t *) pField;
+         snprintf(valueStr, CFG_VALUE_MAX_LEN,
+                  "%02x:%02x:%02x:%02x:%02x:%02x",
+                  pMacAddr->bytes[0],
+                  pMacAddr->bytes[1],
+                  pMacAddr->bytes[2],
+                  pMacAddr->bytes[3],
+                  pMacAddr->bytes[4],
+                  pMacAddr->bytes[5]);
+      }
+      else
+      {
+         snprintf(valueStr, CFG_VALUE_MAX_LEN, "(unhandled)");
+      }
+      curlen = snprintf(configStr, CFG_ENTRY_MAX_LEN,
+                        "%s=[%s]%s\n",
+                        pRegEntry->RegName,
+                        valueStr,
+                        test_bit(idx, (void *)&pAdapter->cfg_ini->bExplicitCfg) ?
+                        "*" : "");
+
+      // ideally we want to return the config to the application
+      // however the config is too big so we just printk() for now
+#ifdef RETURN_IN_BUFFER
+      if (curlen <= buflen)
+      {
+         // copy string + '\0'
+         memcpy(pCur, configStr, curlen+1);
+
+         // account for addition;
+         pCur += curlen;
+         buflen -= curlen;
+      }
+      else
+      {
+         // buffer space exhausted, return what we have
+         return VOS_STATUS_E_RESOURCES;
+      }
+#else
+      printk(KERN_CRIT "%s", configStr);
+#endif // RETURN_IN_BUFFER
+
+   }
+
+#ifndef RETURN_IN_BUFFER
+   // notify application that output is in system log
+   snprintf(pCur, buflen, "WLAN configuration written to system log");
+#endif // RETURN_IN_BUFFER
+
+   return VOS_STATUS_SUCCESS;
+}
 
 static VOS_STATUS find_cfg_item (tCfgIniEntry* iniTable, unsigned long entries,
     char *name, char** value) 
@@ -1372,6 +1465,13 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
    unsigned long cRegTableEntries  = sizeof(g_registry_table) / sizeof( g_registry_table[ 0 ]);
    v_U32_t cbOutString;
    int i;
+
+   // sanity test
+   if (MAX_CFG_INI_ITEMS < cRegTableEntries)
+   {
+      hddLog(LOGE, "%s: MAX_CFG_INI_ITEMS too small, must be at least %d", 
+             __FUNCTION__, cRegTableEntries);
+   }
 
    for ( idx = 0; idx < cRegTableEntries; idx++, pRegEntry++ ) 
    {
@@ -1505,6 +1605,12 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
             __FUNCTION__, pRegEntry->RegName);
       }
 
+      // did we successfully parse a cfg item for this parameter?
+      if( (match_status == VOS_STATUS_SUCCESS) &&
+          (idx < MAX_CFG_INI_ITEMS) )
+      {
+         set_bit(idx, (void *)&pAdapter->cfg_ini->bExplicitCfg);
+      }
    }
 
    print_hdd_cfg(pAdapter);
@@ -1512,53 +1618,27 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
   return( ret_status );
 }
 
-typedef enum
+eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode )
 {
-     eHDD_DOT11_MODE_AUTO = 0, //Taurus mean everything because it covers all thing we support
-     eHDD_DOT11_MODE_abg,//11a/b/g only, no HT, no proprietary
-     eHDD_DOT11_MODE_11b,
-     eHDD_DOT11_MODE_11g,
-     eHDD_DOT11_MODE_11n,
-     eHDD_DOT11_MODE_11g_ONLY,
-     eHDD_DOT11_MODE_11n_ONLY,
-     eHDD_DOT11_MODE_11b_ONLY,
-}eHddDot11Mode;
-
-static void hdd_xlate_to_csr_phy_mode( hdd_config_t *pConfig )
-{
-   if (pConfig == NULL) 
-   {
-      return;
-   }
-
-   switch (pConfig->dot11Mode) 
+   switch (dot11Mode) 
    {
       case (eHDD_DOT11_MODE_abg):
-         pConfig->dot11Mode = eCSR_DOT11_MODE_abg;
-         break;
+         return eCSR_DOT11_MODE_abg;
       case (eHDD_DOT11_MODE_11b):
-         pConfig->dot11Mode = eCSR_DOT11_MODE_11b;
-         break;
+         return eCSR_DOT11_MODE_11b;
       case (eHDD_DOT11_MODE_11g):
-         pConfig->dot11Mode = eCSR_DOT11_MODE_11g;
-         break;
-      case (eHDD_DOT11_MODE_11n):
-         pConfig->dot11Mode = eCSR_DOT11_MODE_11n;
-         break;
-      case (eHDD_DOT11_MODE_11g_ONLY):
-         pConfig->dot11Mode = eCSR_DOT11_MODE_11g_ONLY;
-         break;
-      case (eHDD_DOT11_MODE_11n_ONLY):
-         pConfig->dot11Mode = eCSR_DOT11_MODE_11n_ONLY;
-         break;
-      case (eHDD_DOT11_MODE_11b_ONLY):
-         pConfig->dot11Mode = eCSR_DOT11_MODE_11b_ONLY;
-         break;
-      case (eHDD_DOT11_MODE_AUTO):
-         pConfig->dot11Mode = eCSR_DOT11_MODE_AUTO;
-         break;
+         return eCSR_DOT11_MODE_11g;
       default:
-         break;
+      case (eHDD_DOT11_MODE_11n):
+         return eCSR_DOT11_MODE_11n;
+      case (eHDD_DOT11_MODE_11g_ONLY):
+         return eCSR_DOT11_MODE_11g_ONLY;
+      case (eHDD_DOT11_MODE_11n_ONLY):
+         return eCSR_DOT11_MODE_11n_ONLY;
+      case (eHDD_DOT11_MODE_11b_ONLY):
+         return eCSR_DOT11_MODE_11b_ONLY;
+      case (eHDD_DOT11_MODE_AUTO):
+         return eCSR_DOT11_MODE_AUTO;
    }
 
 }
@@ -1928,9 +2008,8 @@ VOS_STATUS hdd_set_sme_config( hdd_adapter_t *pAdapter )
    smeConfig.csrConfig.Is11dSupportEnabled      = pConfig->Is11dSupportEnabled;
    smeConfig.csrConfig.HeartbeatThresh24        = pConfig->HeartbeatThresh24;
 
-   hdd_xlate_to_csr_phy_mode ( pConfig );
-   smeConfig.csrConfig.phyMode                  = pConfig->dot11Mode;
-
+   smeConfig.csrConfig.phyMode                  = hdd_cfg_xlate_to_csr_phy_mode ( pConfig->dot11Mode );
+ 
    smeConfig.csrConfig.ChannelBondingMode       = pConfig->ChannelBondingMode;
    smeConfig.csrConfig.TxRate                   = pConfig->TxRate;
    smeConfig.csrConfig.nScanResultAgeCount      = pConfig->ScanResultAgeCount;

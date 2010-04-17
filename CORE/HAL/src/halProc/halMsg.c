@@ -856,6 +856,7 @@ eHalStatus halMsg_addStaDpuRelatedProcessing( tpAniSirGlobal pMac, tANI_U8 staId
     tANI_U8     bcastDpuIdx = HAL_INVALID_KEYID_INDEX;
     tANI_U8     bcastMgmtDpuIdx = HAL_INVALID_KEYID_INDEX;
     tANI_U32    val;
+
     tSystemRole systemRole = eSYSTEM_UNKNOWN_ROLE;
     eHalStatus status = eHAL_STATUS_SUCCESS;
 
@@ -931,7 +932,17 @@ eHalStatus halMsg_addStaDpuRelatedProcessing( tpAniSirGlobal pMac, tANI_U8 staId
     // Set the CFG fragthreshold only for unicast STAs
     // Broadcast / Multicast entries are Self STA entries
     if(STA_ENTRY_SELF != param->staType)
-        halDpu_SetFragThreshold(pMac, dpuIdx, (tANI_U16) val);
+    {
+        if(param->htCapable)
+        {
+          HALLOGE(halLog(pMac, LOGE, FL("11N Mode --> Disable Fragmentation \n"));)
+          halDpu_SetFragThreshold(pMac, dpuIdx, (tANI_U16) WNI_CFG_FRAGMENTATION_THRESHOLD_STAMAX);
+        }
+        else
+        {
+           halDpu_SetFragThreshold(pMac, dpuIdx, (tANI_U16) val);
+        }
+    }
 
     // Store dpu index into sta structure
     status = halTable_SetStaDpuIdx(pMac, staIdx, dpuIdx);
@@ -2513,12 +2524,15 @@ eHalStatus halMsg_SendInitScanResp(tpAniSirGlobal pMac, tANI_U32 txCompleteSucce
 
             //failure case. make sure we are out of dot11 pwr save
             HALLOGE(halLog(pMac, LOGE, FL("Ack timed out, Sending NULL frame once again\n")));
+			param->macMgmtHdr.fc.powerMgmt = 0;
             halTLSend80211Frame(pMac, (void*) &param->macMgmtHdr,
                     param->macMgmtHdr.fc.type <<4 | param->macMgmtHdr.fc.subType,
                     param->frameLength, 0, HAL_USE_SELF_STA_REQUESTED_MASK);
 
+        } else {
+            // After receiving Null Data ACK, send SCAN start message to FW.
+            halFW_SendScanStartMesg(pMac);
         }
-
 
         param->status = status;
         HALLOG1(halLog(pMac, LOG1, FL("Sending INIT_SCAN_RSP to LIM (status %d)\n"), param->status));
@@ -2568,9 +2582,6 @@ eHalStatus halMsg_HandleInitScan( tpAniSirGlobal pMac, tpInitScanParams param, t
         return eHAL_STATUS_FAILURE;
     }
 #endif //FIXME_GEN6
-
-    //After suspend BMPS, send SCAN start message to FW.
-    halFW_SendScanStartMesg(pMac);
 
 #ifdef BMU_FATAL_ERROR
     // Self STA is used for sending the management frames, so disable all the
@@ -2670,6 +2681,9 @@ void halMsg_HandlePSInitScan(tpAniSirGlobal pMac, void* param,
     pMac->hal.scanParam.linkState = eSIR_LINK_SCAN_STATE;
     pMac->hal.scanParam.dialog_token = dialog_token;
     pMac->hal.scanParam.isScanInProgress = eANI_BOOLEAN_TRUE;
+
+	// Send start scan message to FW once FW is suspended from BMPS
+	halFW_SendScanStartMesg(pMac);
 
 generate_response:
     //if TxComplete is required then sending the response will be deferred until
@@ -3067,9 +3081,6 @@ eHalStatus halMsg_HandleFinishScan( tpAniSirGlobal pMac, tpFinishScanParams para
 
     }
 
-    //send SCAN stop message to FW.
-    halFW_SendScanStopMesg(pMac);
-
     // Resume back TL and the BTQM queues
     halMsg_ScanComplete(pMac);
 
@@ -3149,6 +3160,9 @@ void halMsg_FinishScanPostSetChan(tpAniSirGlobal pMac, void* pData,
 #endif
 
     pMac->hal.scanParam.pReqParam = param;
+
+    //send SCAN stop message to FW.
+    halFW_SendScanStopMesg(pMac);
 
     // Check if the system is in Power save state
     psState = halPS_GetState(pMac);
@@ -4670,7 +4684,6 @@ void halMsg_AddBA( tpAniSirGlobal  pMac,
   tSavedAddBAReqParamsStruct addBAReqParamsStruct;
   tHalCfgSta staEntry;
   tCfgTrafficClass tcCfg;
-  tpStaStruct pSta = (tpStaStruct)pMac->hal.halMac.staTable;
 
   if( eHAL_STATUS_SUCCESS !=
       (status = halTable_ValidateStaIndex( pMac,
@@ -4809,12 +4822,7 @@ void halMsg_AddBA( tpAniSirGlobal  pMac,
       tcCfg.fUseBATx = eBA_DISABLE;
       tcCfg.fTxCompBA = eBA_DISABLE;
       tcCfg.tuTxBAWaitTimeout = 0;
-    }
-    else
-    {
-        // If BA session is established, then disable fragmentation in HW.
-        halDpu_SetFragThreshold(pMac, pSta[pAddBAParams->staIdx].dpuIndex, (tANI_U16) WNI_CFG_FRAGMENTATION_THRESHOLD_STAMAX);
-    }
+    }    
   }
 
 generate_response:
@@ -4869,10 +4877,7 @@ void halMsg_DelBA( tpAniSirGlobal  pMac,
   eHalStatus status = eHAL_STATUS_SUCCESS;
   tHalCfgSta staEntry;
   tCfgTrafficClass tcCfg;
-  tpStaStruct pSta = (tpStaStruct)pMac->hal.halMac.staTable;
-  tANI_U32 val = 0;
-
-
+ 
   if( eHAL_STATUS_SUCCESS !=
       (status = halTable_ValidateStaIndex( pMac,
                                            (tANI_U8) pDelBAParams->staIdx )))
@@ -4959,21 +4964,7 @@ void halMsg_DelBA( tpAniSirGlobal  pMac,
         pDelBAParams->staIdx,
         pDelBAParams->baTID,
         status ));
-  }
-  else
-  {
-      if( pSta[pDelBAParams->staIdx].baInitiatorTidBitMap == 0)
-      {
-          if ((pSta[pDelBAParams->staIdx].valid == 1) && (pSta[pDelBAParams->staIdx].staType != STA_ENTRY_SELF))
-          {
-              if ( wlan_cfgGetInt(pMac, WNI_CFG_FRAGMENTATION_THRESHOLD, &val) != eSIR_SUCCESS)
-                  HALLOGE( halLog(pMac, LOGE, FL("cfgGet WNI_CFG_FRAGMENTATION_THRESHOLD Failed\n")));
-
-              HALLOGW( halLog(  pMac, LOGW, FL("All BA session deleted. Set fragmentation threshold to %d "),val));
-              halDpu_SetFragThreshold(pMac, pSta[pDelBAParams->staIdx].dpuIndex, (tANI_U16) val);
-          }
-      }
-  }
+  }  
 
 free_mem:
 #ifdef FEATURE_WLAN_DIAG_SUPPORT

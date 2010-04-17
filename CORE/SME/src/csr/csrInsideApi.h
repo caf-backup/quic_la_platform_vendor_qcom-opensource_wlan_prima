@@ -138,7 +138,11 @@ typedef struct
 #define CSR_IS_WAIT_FOR_KEY( pMac ) ( CSR_IS_ROAM_JOINED( (pMac) ) && CSR_IS_ROAM_SUBSTATE_WAITFORKEY( (pMac) ) )
 //WIFI has a test case for not using HT rates with TKIP as encryption
 //We may need to add WEP but for now, TKIP only.
-#define CSR_IS_11n_ALLOWED( encType ) ( eCSR_ENCRYPT_TYPE_TKIP != (encType) )
+#define CSR_IS_11n_ALLOWED( encType ) (( eCSR_ENCRYPT_TYPE_TKIP != (encType) ) && \
+                                      ( eCSR_ENCRYPT_TYPE_WEP40_STATICKEY != (encType) ) && \
+                                      ( eCSR_ENCRYPT_TYPE_WEP104_STATICKEY != (encType) ) && \
+                                      ( eCSR_ENCRYPT_TYPE_WEP40 != (encType) ) && \
+                                      ( eCSR_ENCRYPT_TYPE_WEP104 != (encType) ) )
 
 
 eCsrRoamState csrRoamStateChange( tpAniSirGlobal pMac, eCsrRoamState NewRoamState );

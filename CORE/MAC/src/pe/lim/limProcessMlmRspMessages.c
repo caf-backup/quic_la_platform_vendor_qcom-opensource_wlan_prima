@@ -3944,7 +3944,7 @@ limHandleDelBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs)
                     &beaconStruct );
             
             if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
-                limDecideStaProtectionOnAssoc(pMac, beaconStruct);
+                limDecideStaProtectionOnAssoc(pMac, &beaconStruct);
     
             if(beaconStruct.erpPresent) {
                 if (beaconStruct.erpIEInfo.barkerPreambleMode)
@@ -3954,7 +3954,7 @@ limHandleDelBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs)
             }
 
             //updateBss flag is false, as in this case, PE is first deleting the existing BSS and then adding a new one.
-            if (eSIR_SUCCESS != limStaSendAddBss( pMac, (*assocRsp), beaconStruct, 
+            if (eSIR_SUCCESS != limStaSendAddBss( pMac, assocRsp, &beaconStruct, 
                                                     &pMac->lim.gpLimReassocReq->bssDescription, false))  {
                 limLog( pMac, LOGE, FL( "Posting ADDBSS in the ReAssocContext has Failed \n"));
                 retStatus = eSIR_FAILURE;
@@ -4034,6 +4034,7 @@ Error:
   *     
   *     @return :  none
   */
+
 void
 limHandleAddBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs)
 {
@@ -4078,7 +4079,7 @@ limHandleAddBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs)
                     &beaconStruct );
             
             if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
-                limDecideStaProtectionOnAssoc(pMac, beaconStruct);
+                limDecideStaProtectionOnAssoc(pMac, &beaconStruct);
     
             if(beaconStruct.erpPresent) {
                 if (beaconStruct.erpIEInfo.barkerPreambleMode)
@@ -4087,7 +4088,7 @@ limHandleAddBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs)
                     pMac->lim.gLimShortPreamble = 1;
             }
     
-            if (eSIR_SUCCESS != limStaSendAddBss( pMac, (*assocRsp), beaconStruct, 
+            if (eSIR_SUCCESS != limStaSendAddBss( pMac, assocRsp, &beaconStruct, 
                                                     &pMac->lim.gpLimReassocReq->bssDescription, true))  {
                 limLog( pMac, LOGE, FL( "Posting ADDBSS in the ReAssocContext has Failed \n"));
                 retStatus = eSIR_FAILURE;

@@ -1060,7 +1060,9 @@ halDpu_SetDescriptorAttributes(
           (tANI_U8) tid,
           (tANI_U8) (rcIdxBase + tid));
     }
-    
+    /* Retrive the fragmentation threshold value from DPU and Use*/
+    pDpuDesc->halDpuDescriptor.txFragThreshold4B = 
+	    pDpu->descTable[dpuIdx].halDpuDescriptor.txFragThreshold4B;
 #if 0
     /* Update the signature, so any frames remaining in the queue
      * will be dropped by DPU
@@ -2265,7 +2267,7 @@ eHalStatus halDpu_GetSequence(tpAniSirGlobal pMac, tANI_U8 dpuIdx, tANI_U8 tId, 
 /*
    Function Name     : halDpu_ResetEncryMode
    Input Arguments   : Pointer ti tpAniSirGlobal Structure
-                         DUP Index
+                         DPU Index
    Return Values       : Status
    This function retrieves the DPU control parameters and resets the encryption mode and sets it back in DPU Descriptor
 */

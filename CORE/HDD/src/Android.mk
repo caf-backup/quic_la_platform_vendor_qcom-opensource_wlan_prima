@@ -5,7 +5,7 @@
 ifneq (, $(filter msm7627_surf msm7627_ffa msm7630_surf, $(TARGET_PRODUCT)))
 
 PRODUCT_COPY_FILES += vendor/qcom-proprietary/wlan/firmware_bin/qcom_fw.bin:system/etc/firmware/wlan/qcom_fw.bin
-PRODUCT_COPY_FILES += vendor/qcom-proprietary/wlan/firmware_bin/qcom_nv.bin:system/etc/firmware/wlan/qcom_nv.bin
+PRODUCT_COPY_FILES += vendor/qcom-proprietary/wlan/firmware_bin/qcom_wlan_nv.bin:persist/qcom_wlan_nv.bin
 PRODUCT_COPY_FILES += vendor/qcom-proprietary/wlan/firmware_bin/cfg.dat:system/etc/firmware/wlan/cfg.dat
 PRODUCT_COPY_FILES += vendor/qcom-proprietary/wlan/firmware_bin/qcom_cfg.ini:system/etc/firmware/wlan/qcom_cfg.ini
 

@@ -1174,7 +1174,8 @@ eHalStatus halMacRaStart(tHalHandle hHal, void *arg)
     pGlobInfo->rMode                       = WNI_CFG_RETRYRATE_POLICY_AUTOSELECT;
     pGlobInfo->raPerAlgoSelection          = RA_PER_SELECT_HYBRID;
     pGlobInfo->raPeriod                    = RA_RATE_ADAPTATION_PERIOD;
-
+    
+    pGlobInfo->txFailExceptionThreshold    = RA_TX_FAIL_EXCEPTION_THRESHOLD;
     pGlobInfo->failThreshold               = RA_TOTAL_FAILURES_THRESHOLD;
     pGlobInfo->consecFailThreshold         = RA_SAMPLE_FAILURES_THRESHOLD;
     pGlobInfo->extraStayIncThreshold       = 2;
@@ -2213,6 +2214,12 @@ eHalStatus halMacRaSetGlobalCfg(tpAniSirGlobal pMac, tANI_U32 id, tANI_U32 value
                 offsetItem = offsetof(tHalRaGlobalInfo,   perIgnoreThreshold);
                 sizeItem = sizeof(tANI_U8);
                 break;
+                
+            case RA_GLOBCFG_TX_FAIL_EXCEPTION_THRESH:
+               pGlobInfo->txFailExceptionThreshold = (tANI_U8)value;
+               offsetItem = offsetof(tHalRaGlobalInfo,   txFailExceptionThreshold);
+               sizeItem = sizeof(tANI_U8);
+               break;               
 
             default    :
                 raLog(pMac, RALOG_CLI, "Item %d value %d ignored\n", item, value);
@@ -2255,6 +2262,7 @@ eHalStatus halMacRaSetGlobalCfg(tpAniSirGlobal pMac, tANI_U32 id, tANI_U32 value
     raLog(pMac, RALOG_CLI, "%d\tLINK_IDLE_SAMPLES          Current:%d\n",RA_GLOBCFG_LINK_IDLE_SAMPLES,pGlobInfo->linkIdleSamples);
     raLog(pMac, RALOG_CLI, "%d\tGOOD_SAMPLE_EXTRA_STAY_INC Current:%d\n",RA_GLOBCFG_GOOD_SAMPLE_EXTRA_STAY_INC_THRESH,pGlobInfo->extraStayIncThreshold);
     raLog(pMac, RALOG_CLI, "%d\tPER_LOW_IGNORE_THRESH      Current:%d\n",RA_GLOBCFG_GOOD_SAMPLE_EXTRA_STAY_INC_THRESH,pGlobInfo->perIgnoreThreshold);
+    raLog(pMac, RALOG_CLI, "%d\tTX_FAIL_EXCEPTION_THRESH   Current:%d\n",RA_GLOBCFG_TX_FAIL_EXCEPTION_THRESH,pGlobInfo->txFailExceptionThreshold);
     if(sizeItem)
     {
         halMacRaGlobalInfoToFW(pMac, pGlobInfo, offsetItem, sizeItem);

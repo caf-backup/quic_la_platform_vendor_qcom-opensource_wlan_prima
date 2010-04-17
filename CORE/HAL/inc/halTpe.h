@@ -952,8 +952,10 @@ eHalStatus halTpe_CalculateAmpduDensity(tpAniSirGlobal pMac, tANI_U32 rateIdx, t
 eHalStatus halIntTpeMcuBdBasedTxInt1PHostHandler( tHalHandle hHalHandle, eHalIntSources intSource );
 void halTpe_DumpMpiCmdTableEntry(tpAniSirGlobal pMac, tANI_U32 rateIndex);
 void halTpe_PrintMpiCmdTable(tpAniSirGlobal pMac);
+#ifdef CONFIGURE_SW_TEMPLATE
 eHalStatus halTpe_InitSwTemplateBase(tpAniSirGlobal pMac,
                 tANI_U32 swTemplate_offset);
+#endif //CONFIGURE_SW_TEMPLATE
 eHalStatus halTpe_SetSwTemplate(tpAniSirGlobal pMac, tSwTemplate *swTemplate);
 eHalStatus halTpe_Set11gProtectionCntrlIndex(tpAniSirGlobal pMac, tANI_U8 set);
 #endif /**< __HAL_TPE_H_ */

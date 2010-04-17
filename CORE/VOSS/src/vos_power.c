@@ -769,6 +769,16 @@ VOS_STATUS vos_chipExitDeepSleepVREGHandler
    *status = VOS_CALL_SYNC;
 
 #endif
+
+#ifdef MSM_PLATFORM_7x30
+   VOS_STATUS vosStatus;
+   vos_call_status_type callType;
+
+   vosStatus = vos_chipVoteOnBBAnalogSupply(&callType, NULL, NULL);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   msleep(500);
+
+#endif
    return VOS_STATUS_SUCCESS;
 }
 
@@ -974,6 +984,32 @@ VOS_STATUS vos_chipVoteOnBBAnalogSupply
   v_PVOID_t             user_data
 )
 {
+#ifdef MSM_PLATFORM_7x30
+   struct vreg *vreg_wlan2 = NULL;
+   int rc;
+
+   //2.5v Analog from LDO19
+   vreg_wlan2 = vreg_get(NULL, "wlan2");
+   if (IS_ERR(vreg_wlan2)) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg get "
+          "failed (%ld)", __func__, PTR_ERR(vreg_wlan2));
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   rc = vreg_set_level(vreg_wlan2, 2500);
+   if (rc) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg set "
+          "level failed (%d)",__func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   rc = vreg_enable(vreg_wlan2);
+   if (rc) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg enable "
+          "failed (%d)", __func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+#endif
    return VOS_STATUS_SUCCESS;
 }
 
@@ -1009,6 +1045,25 @@ VOS_STATUS vos_chipVoteOffBBAnalogSupply
   v_PVOID_t             user_data
 )
 {
+#ifdef MSM_PLATFORM_7x30
+   struct vreg *vreg_wlan2 = NULL;
+   int rc;
+
+   //2.5v Analog from LDO19
+   vreg_wlan2 = vreg_get(NULL, "wlan2");
+   if (IS_ERR(vreg_wlan2)) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg get "
+          "failed (%ld)", __func__, PTR_ERR(vreg_wlan2));
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   rc = vreg_disable(vreg_wlan2);
+   if (rc) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg disable "
+          "failed (%d)", __func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+#endif
    return VOS_STATUS_SUCCESS;
 }
 

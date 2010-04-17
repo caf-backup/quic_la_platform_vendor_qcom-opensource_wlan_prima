@@ -688,7 +688,7 @@ VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
               
   --------------------------------------------------------------------------*/
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29))  
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29))
   static struct net_device_ops wlan_drv_ops = {
       .ndo_open = hdd_open,
       .ndo_stop = hdd_stop,
@@ -697,9 +697,8 @@ VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
       .ndo_get_stats = hdd_stats,
       .ndo_do_ioctl = hdd_ioctl,
       .ndo_set_mac_address = hdd_set_mac_address,
- };  
- #endif  
-
+ };
+ #endif
 
 int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 {
@@ -743,11 +742,10 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    //Init the net_device structure
    strcpy(pWlanDev->name, "wlan%d");
 
-   
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29))  
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29))
     pWlanDev->tx_queue_len = NET_DEV_TX_QUEUE_LEN,
     pWlanDev->netdev_ops = &wlan_drv_ops;
-#else 
+#else
    pWlanDev->open = hdd_open;
    pWlanDev->stop = hdd_stop;
    pWlanDev->hard_start_xmit = NULL;
@@ -756,7 +754,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    pWlanDev->do_ioctl = hdd_ioctl;
    pWlanDev->tx_queue_len = NET_DEV_TX_QUEUE_LEN;
    pWlanDev->set_mac_address = hdd_set_mac_address;
-#endif   
+#endif
    vos_mem_copy(pWlanDev->dev_addr, (void *)macAddr,sizeof(macAddr));
    vos_mem_copy( &pAdapter->macAddressCurrent, macAddr,sizeof(macAddr));
    pWlanDev->watchdog_timeo = HDD_TX_TIMEOUT;
@@ -898,10 +896,10 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    netif_carrier_off(pWlanDev);
 
    //Safe to register the hard_start_xmit function again
-   
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29))  
+
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29))
        wlan_drv_ops.ndo_start_xmit = hdd_hard_start_xmit;
-#else 
+#else
    pWlanDev->hard_start_xmit = hdd_hard_start_xmit;
 #endif
 

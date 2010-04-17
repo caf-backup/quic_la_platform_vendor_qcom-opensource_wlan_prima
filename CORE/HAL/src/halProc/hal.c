@@ -2780,6 +2780,7 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 {
     tSirRetStatus   rc = eSIR_SUCCESS;
     tHalMsgDecision  msgStatus;
+    tANI_U8 mutexAcquired = FALSE;
 
     // If hal state is IDLE, do not process any messages.
     // free the body pointer and return success
@@ -2810,7 +2811,7 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
     }
 #endif
 
-    msgStatus = halUtil_MsgDecision(pMac, pMsg);
+    msgStatus = halUtil_MsgDecision(pMac, pMsg, &mutexAcquired);
     if (msgStatus == eHAL_MSG_DROP) {
         /**@todo free message.*/
         return eSIR_SUCCESS;
@@ -2831,7 +2832,7 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 //        halUtil_processDeferredMsgQ(pMac);
 
         // Release the mutex if acquired.
-        if (IS_HOST_BUSY_GENERIC_CNTX) {
+        if (mutexAcquired) {
             halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC);
         }
     }

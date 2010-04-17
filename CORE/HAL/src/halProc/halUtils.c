@@ -128,7 +128,7 @@ eRfBandMode halUtil_GetRfBand( tpAniSirGlobal pMac, tANI_U8 channel )
 \return   tHalMsgDecision eHAL_MSG_VALID, eHAL_MSG_DROP
 \                         eHAL_MSG_DEFER
 \ -------------------------------------------------------- */
-tHalMsgDecision halUtil_MsgDecision(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
+tHalMsgDecision halUtil_MsgDecision(tpAniSirGlobal pMac, tSirMsgQ *pMsg, tANI_U8 *pMutexAcquired)
 {
     if (halUtil_CurrentlyInPowerSave(pMac))
     {
@@ -156,8 +156,9 @@ tHalMsgDecision halUtil_MsgDecision(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
                         pMsg->type, halUtil_getMsgString(pMsg->type)));
 
                 if (IS_PWRSAVE_STATE_IN_BMPS) {
-                // Acquire the mutex for all the other messages
+                    // Acquire the mutex for all the other messages
                     halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC);
+                    *pMutexAcquired = TRUE; 
                 }
                 return eHAL_MSG_VALID;
         }

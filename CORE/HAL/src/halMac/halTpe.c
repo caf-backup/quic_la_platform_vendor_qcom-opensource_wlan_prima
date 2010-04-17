@@ -899,6 +899,7 @@ void halTpe_SetDataNullTemplate(tpAniSirGlobal pMac, tANI_U32 type,
 
 }
 
+#ifdef CONFIGURE_SW_TEMPLATE
 /**
  * \brief Configure the SW Template programming
  *
@@ -933,6 +934,7 @@ eHalStatus halTpe_TriggerSwTemplate(tpAniSirGlobal pMac)
 
     return eHAL_STATUS_SUCCESS;
 }
+#endif  //CONFIGURE_SW_TEMPLATE
 
 /**
  * \fn halTpe_SetBeaconTemplate
@@ -1820,7 +1822,7 @@ void halTpe_PrintMpiCmdTable(tpAniSirGlobal pMac)
     }
 }
 
-
+#ifdef CONFIGURE_SW_TEMPLATE
 /**
  * \brief Configure TPE SW Template Base
  *
@@ -1846,6 +1848,7 @@ eHalStatus halTpe_InitSwTemplateBase(tpAniSirGlobal pMac,
 
     return eHAL_STATUS_SUCCESS;
 }
+#endif //CONFIGURE_SW_TEMPLATE
 
 /*
  * Function to set the sw_11g_ctrl_index_offset_valid bit when 11G protection is enabled.

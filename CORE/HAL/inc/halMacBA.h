@@ -137,6 +137,7 @@ eHalStatus baProcessTLAddBARsp(tpAniSirGlobal pMac, tANI_U16 baSessionID,tANI_U1
 void halBaCheckActivity(tpAniSirGlobal pMac);
 void  halGetBaCandidates(tpAniSirGlobal pMac, tANI_U8* pStaList,  tANI_U16* pBaCandidateCnt );
 eHalStatus halStartBATimer(tpAniSirGlobal  pMac);
+#ifdef CONFIGURE_SW_TEMPLATE
 void halSendUnSolicitBARFrame(tpAniSirGlobal pMac, tANI_U16 staIdx, 
 					tANI_U16 baTID, tANI_U16 queueId);
 eHalStatus halGetUpdatedSSN(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U16 baTID, 
@@ -145,5 +146,5 @@ void fillBARCtrlInfo (barCtrlType		 *pBARCtrl, tANI_U16 baTID);
 void fillFrameCtrlInfo (tSirMacFrameCtl *pfc);
 
 eHalStatus halTpe_TriggerSwTemplate(tpAniSirGlobal pMac);
-
+#endif //CONFIGURE_SW_TEMPLATE
 #endif // _HALMAC_BA_H_
