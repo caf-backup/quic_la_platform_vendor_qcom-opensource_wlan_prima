@@ -553,8 +553,8 @@ static void InterpolateCalChannels(tpAniSirGlobal pMac, tANI_U32 lowTpcChan, tAN
 
 
 
-//-0.25dBm adjustment to be made to compensate b rates, because we cal with OFDM rates
-#define B_RATE_CAL_ADJUSTMENT -25
+//-1.25dBm adjustment to be made to compensate b rates, because we cal with OFDM rates
+#define B_RATE_CAL_ADJUSTMENT -125
 
 eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex)
 {
