@@ -97,19 +97,24 @@ limCalculateSvcInt(
                     ? pTspec->maxSvcInterval : pTspec->minSvcInterval;
         return eSIR_SUCCESS;
     }
-
-    /* need to calculate a reasonable service interval
-     * this is simply the msduSz/meanDataRate
+    
+    /* Masking off the fixed bits according to definition of MSDU size
+     * in IEEE 802.11-2007 spec (section 7.3.2.30). Nominal MSDU size
+     * is defined as:  Bit[0:14]=Size, Bit[15]=Fixed
      */
-
-    if      (pTspec->nomMsduSz != 0) msduSz = pTspec->nomMsduSz;
-    else if (pTspec->maxMsduSz != 0) msduSz = pTspec->maxMsduSz;
+    if (pTspec->nomMsduSz != 0) 
+        msduSz = (pTspec->nomMsduSz & 0x7fff);
+    else if (pTspec->maxMsduSz != 0) 
+        msduSz = pTspec->maxMsduSz;
     else
     {
         PELOGE(limLog(pMac, LOGE, FL("MsduSize not specified\n"));)
         return eSIR_FAILURE;
     }
 
+    /* need to calculate a reasonable service interval
+     * this is simply the msduSz/meanDataRate
+     */
     if      (pTspec->meanDataRate != 0) dataRate = pTspec->meanDataRate;
     else if (pTspec->peakDataRate != 0) dataRate = pTspec->peakDataRate;
     else if (pTspec->minDataRate  != 0) dataRate = pTspec->minDataRate;

@@ -411,6 +411,13 @@ eHalStatus csrReady(tHalHandle hHal)
     return (status);
 }
 
+void csrSetDefaultDot11Mode( tpAniSirGlobal pMac )
+{
+    v_U32_t wniDot11mode = 0;
+    
+    wniDot11mode = csrTranslateToWNICfgDot11Mode(pMac,pMac->roam.configParam.uCfgDot11Mode);
+    ccmCfgSetInt(pMac, WNI_CFG_DOT11_MODE, wniDot11mode, NULL, eANI_BOOLEAN_FALSE);
+}
 
 void csrSetGlobalCfgs( tpAniSirGlobal pMac )
 {
@@ -423,6 +430,10 @@ void csrSetGlobalCfgs( tpAniSirGlobal pMac )
     //No channel bonding for Libra
     ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, WNI_CFG_CHANNEL_BONDING_MODE_DISABLE, NULL, eANI_BOOLEAN_FALSE);
     ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->roam.configParam.HeartbeatThresh24, NULL, eANI_BOOLEAN_FALSE);
+    
+    //Update the operating mode to configured value during initialization,
+    //So that client can advertise full capabilities in Probe request frame.
+    csrSetDefaultDot11Mode( pMac );    
 }
 
 
@@ -3830,6 +3841,7 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
             roamInfo.pBssDesc = pSirBssDesc;
             //We need to associate_complete it first, becasue Associate_start already indicated.
             csrRoamCallCallback( pMac, &roamInfo, pCommand->u.roamCmd.roamId, eCSR_ROAM_IBSS_IND, eCSR_ROAM_RESULT_IBSS_START_FAILED );
+            csrSetDefaultDot11Mode( pMac );
             break;
 
         case eCsrSilentlyStopRoaming:
@@ -3898,6 +3910,7 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
             csrFreeConnectBssDesc(pMac);
             csrRoamFreeConnectProfile(pMac, &pMac->roam.connectedProfile);
             csrRoamFreeConnectedInfo( pMac, &pMac->roam.connectedInfo );
+            csrSetDefaultDot11Mode( pMac );
             switch( pCommand->u.roamCmd.roamReason )
             {
                 // If this transition is because of an 802.11 OID, then we transition
@@ -4732,7 +4745,7 @@ eHalStatus csrRoamIssueDisassociateCmd( tpAniSirGlobal pMac, eCsrRoamDisconnectR
 eHalStatus csrRoamDisconnectInternal(tpAniSirGlobal pMac, eCsrRoamDisconnectReason reason)
 {
     eHalStatus status = eHAL_STATUS_CSR_WRONG_STATE;
-
+ 
     //Not to call cancel roaming here
     //Only issue disconnect when necessary
     if(csrIsConnStateConnected(pMac) || csrIsBssTypeIBSS(pMac->roam.connectedProfile.BSSType) 
@@ -6091,6 +6104,9 @@ tANI_BOOLEAN csrRoamIssueWmStatusChange( tpAniSirGlobal pMac, eCsrRoamWmStatusCh
             smsLog( pMac, LOGE, FL(" fail to send message \n") );
             csrReleaseCommandWmStatusChange( pMac, pCommand );
         }
+        
+        /* AP has issued Dissac/Deauth, Set the operating mode value to configured value */
+        csrSetDefaultDot11Mode( pMac );
 
     } while( 0 );
 
@@ -6827,6 +6843,7 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 type, tSirSmeRsp *pSir
         pMac->roam.roamingStatusCode = pDeauthIndMsg->statusCode;
         status = csrSendMBDeauthCnfMsg(pMac, pDeauthIndMsg);
     }
+
 
     if(HAL_STATUS_SUCCESS(status))
     {

@@ -615,9 +615,11 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32  bRefTbttAdjustment      : 1;
    tANI_U32  bBcnMissHandling        : 1;
    tANI_U32  bBcnMissFastPath        : 1;
-   tANI_U32  bReserved5              : 19;
+   tANI_U32  bBcnMissMLC             : 1;
+   tANI_U32  bReserved5              : 18;
 #else
-   tANI_U32  bReserved5              : 19;
+   tANI_U32  bReserved5              : 18;
+   tANI_U32  bBcnMissMLC             : 1;
    tANI_U32  bBcnMissFastPath        : 1;
    tANI_U32  bBcnMissHandling        : 1;
    tANI_U32  bRefTbttAdjustment      : 1;
@@ -648,13 +650,15 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 
    /*PS-Poll SW template parameters*/
 #ifdef ANI_BIG_BYTE_ENDIAN
-   tANI_U32   ucRateIndex       : 9;
-   tANI_U32   ucTxPower         : 5;
-   tANI_U32   bReserved7        : 18;
+   tANI_U32   ucRateIndex           : 9;
+   tANI_U32   ucTxPower             : 5;
+   tANI_U32   uBcnMissGracePeriodUs : 16;
+   tANI_U32   bReserved7            : 2;
 #else
-   tANI_U32   bReserved7        : 18;
-   tANI_U32   ucTxPower         : 5;
-   tANI_U32   ucRateIndex       : 9;
+   tANI_U32   bReserved7            : 2;
+   tANI_U32   uBcnMissGracePeriodUs : 16;
+   tANI_U32   ucTxPower             : 5;
+   tANI_U32   ucRateIndex           : 9;
 #endif
 
 #ifdef ANI_BIG_BYTE_ENDIAN
@@ -689,9 +693,9 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32   ucBmpsFirstBeaconTimeoutMs      : 8;
    tANI_U32   ucBdPduEmptyMonitorMs           : 8;
    tANI_U32   ucRfSupplySettlingTimeClk       : 8;
-   tANI_U32   bReserved8                      : 8;
+   tANI_U32   ucRfSupplySettlingTimeClk19_2   : 8;
 #else
-   tANI_U32   bReserved8                      : 8;
+   tANI_U32   ucRfSupplySettlingTimeClk19_2   : 8;
    tANI_U32   ucRfSupplySettlingTimeClk       : 8;
    tANI_U32   ucBdPduEmptyMonitorMs           : 8;
    tANI_U32   ucBmpsFirstBeaconTimeoutMs      : 8;
@@ -752,11 +756,13 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32   uNumVolRegCount;
 
 #ifdef ANI_BIG_BYTE_ENDIAN
-   tANI_U32   ucUapsdDataRecepTimeoutMs : 8;
-   tANI_U32   uReserved11               : 24;
+   tANI_U32   ucUapsdDataRecepTimeoutMs      : 8;
+   tANI_U32   usBmpsSleepTimeOverheadsUs19_2 : 16;
+   tANI_U32   ucNumConsBcnMiss               : 8; 
 #else
-   tANI_U32   uReserved11               : 24;
-   tANI_U32   ucUapsdDataRecepTimeoutMs : 8;
+   tANI_U32   ucNumConsBcnMiss               : 8; 
+   tANI_U32   usBmpsSleepTimeOverheadsUs19_2 : 16;
+   tANI_U32   ucUapsdDataRecepTimeoutMs      : 8;
 #endif
 
    tANI_U32   uMgmtWoWLPassMask;
@@ -1459,7 +1465,8 @@ typedef PACKED_PRE struct PACKED_POST sHalRaInfo {
 
 typedef PACKED_PRE struct PACKED_POST sBssRaBit {
 #ifdef ANI_BIG_BYTE_ENDIAN
-    tANI_U32 reserved1:25;
+    tANI_U32 selfStaIdx:8;
+    tANI_U32 reserved1:17;
     tANI_U32 fShortSlot:1;
     tANI_U32 rifsMode:1;
     tANI_U32 nonGfPresent:1;
@@ -1475,7 +1482,8 @@ typedef PACKED_PRE struct PACKED_POST sBssRaBit {
     tANI_U32 nonGfPresent:1;
     tANI_U32 rifsMode:1;
     tANI_U32 fShortSlot:1;
-    tANI_U32 reserved1:25;
+    tANI_U32 reserved1:17;
+    tANI_U32 selfStaIdx:8;
 #endif
 } bssRaBit;
 

@@ -34,6 +34,7 @@
 #include <linux/earlysuspend.h>
 #include "wlan_hdd_power.h"
 #include "qwlan_version.h"
+#include <vos_power.h>
 
 #define WE_MAX_STR_LEN 1024
 
@@ -1369,8 +1370,7 @@ static int iw_set_priv(struct net_device *dev,
     }
     else if( strncasecmp(cmd, "rssi", 4) == 0 ) {
 
-        /*Currently hard code the RSSI value*/
-        v_S7_t s7Rssi;
+        v_S7_t s7Rssi = 0;
         int  len;
         
         hddLog( VOS_TRACE_LEVEL_INFO_MED, "rssi command"); 
@@ -1396,8 +1396,8 @@ static int iw_set_priv(struct net_device *dev,
         }
         else
         {
-            hddLog( VOS_TRACE_LEVEL_ERROR, "cmd %s\n", cmd); 
-            status = -1;
+            hddLog( VOS_TRACE_LEVEL_INFO, "cmd %s\n", cmd); 
+            ret = sprintf(cmd, " rssi %d\n", s7Rssi);
         }
         
     }
@@ -2154,6 +2154,9 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
               case  13://resume from suspend
                  hdd_resume_wlan(NULL);
                  break;
+              case  14://reset wlan (power down/power up)
+                 vos_chipReset(NULL, VOS_FALSE, NULL, NULL);
+                 break;					  
               default:
                  hddLog(LOGE, "Invalid arg  %d in WE_SET_POWER IOCTL\n", set_value);
                  ret = -EINVAL;

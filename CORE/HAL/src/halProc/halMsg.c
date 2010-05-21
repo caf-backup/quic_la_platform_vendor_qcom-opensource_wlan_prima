@@ -2028,6 +2028,7 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
     {
       bssRaParam config;
       config.bit.reserved1     = 0;
+      config.bit.selfStaIdx    = pMac->hal.halMac.selfStaId;
       config.bit.llbCoexist    = param->llbCoexist;
       config.bit.ht20Coexist   = param->ht20Coexist;
       config.bit.llgCoexist    = param->llgCoexist;
@@ -4428,7 +4429,6 @@ eHalStatus halMsg_updateBeaconParam(tpAniSirGlobal pMac, tpUpdateBeaconParams pB
           PARAM_llGCOEXIST_CHANGED | PARAM_HT20MHZCOEXIST_CHANGED | PARAM_NON_GF_DEVICES_PRESENT_CHANGED |\
           PARAM_RIFS_MODE_CHANGED )) {
         halMacRaBssInfoToFW(pMac, &bssTable->bssRaInfo, pBeaconParams->bssIdx);
-        halMacRaUpdateParamReq(pMac, RA_UPDATE_BSS_INFO, bssTable->bssRaInfo.u.dword);
     }
 
     status = eHAL_STATUS_SUCCESS;

@@ -811,6 +811,7 @@ eHalStatus csrGetModifyProfileFields(tpAniSirGlobal pMac,
 eHalStatus csrSetModifyProfileFields(tpAniSirGlobal pMac, 
                                      tCsrRoamModifyProfileFields *pModifyProfileFields);
 void csrSetGlobalCfgs( tpAniSirGlobal pMac );
+void csrSetDefaultDot11Mode( tpAniSirGlobal pMac );
 void csrScanSetChannelMask(tpAniSirGlobal pMac, tCsrChannelInfo *pChannelInfo);
 tANI_BOOLEAN csrScanGetChannelMask(tpAniSirGlobal pMac);
 #ifdef FEATURE_WLAN_GEN6_ROAMING

@@ -56,13 +56,30 @@
 #define HAL_PWR_SAVE_FW_BMPS_MINIMUM_SLEEP_TIME_US          10000  //TO DO
 #define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_US        30000  //TO DO
 #define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_US      30000  //TO DO
-#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US    4236
+/* Sum of all components of PMU power up staircase.
+ * for 40Mhz clock: (30 + 50)*30.5 + ADU_Reinit(820us) = 3260us
+ * for 19.2Mhz Clock: (30 + 194)*30.5 + ADU_reinit(820us) = 7652us
+ */
+#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US    3260
+#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US_19_2  7652
 #define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US  4236
 #define HAL_PWR_SAVE_FW_BMPS_BEACON_MODE_EARLY_TIMEOUT_US    2000  //TO DO
 #define HAL_PWR_SAVE_FW_FIRST_BEACON_RECEPTION_TIMEOUT_MS      20  //TO DO
 #define HAL_PWR_SAVE_FW_TX_PATH_MONITOR_TIME_MSEC               5
-#define HAL_PWR_SAVE_FW_BMPS_RF_SETTLING_TIME_CLKS             82
+/* The total time required for XO setting time. By spec it is 
+ * 1.5ms which is equivalent to 50 sleep clocks.
+ */
+#define HAL_PWR_SAVE_FW_BMPS_RF_SETTLING_TIME_CLKS             50
+/* The total time required for TCXO power up time for 19.2Mhz operation. 
+ * By spec it is 6ms which is equivalent to 197 sleep clocks. Since 
+ * FW already adds 3 sleep clocks (default value) on top of this define, 
+ * this is defined as 194.
+ */
+#define HAL_PWR_SAVE_FW_BMPS_RF_SETTLING_TIME_CLKS_19_2       194
 #define HAL_PWR_SAVE_FW_UAPSD_DATA_RECEPTION_TIMEOUT_MS         3
+#define HAL_PWR_SAVE_MAX_CONS_BCN_MISS                         10
+#define HAL_PWR_SAVE_BCN_MISS_GRACE_PERIOD_US                 200
+#define HAL_PWR_SAVE_BCN_MISS_WAIT_TU                           6
 
 // Frames to be passed to host while in WOWL mode
 #define HAL_PWR_SAVE_FW_WOWL_FRAMES_PASSED_TO_HOST        ((1<<SIR_MAC_MGMT_DISASSOC) |(1 << SIR_MAC_MGMT_DEAUTH))
@@ -228,7 +245,7 @@ eHalStatus halPS_SetBeaconInterval(tpAniSirGlobal pMac, tANI_U16 beaconInterval)
 /* Functions to handle IMPS request messages from upper layer PE */
 eHalStatus halPS_HandleEnterImpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken);
 eHalStatus halPS_HandleExitImpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken);
-void halPS_ExecuteStandbyProcedure( tpAniSirGlobal pMac, tANI_U8 deepSleep);
+void halPS_ExecuteStandbyProcedure( tpAniSirGlobal pMac);
 
 /* Functions to handle IMPS response messages from FW to the host */
 eHalStatus halPS_PostponeFwEnterImpsRsp(tpAniSirGlobal pMac, void* pFwMsg);

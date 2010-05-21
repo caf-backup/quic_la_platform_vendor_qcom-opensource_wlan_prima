@@ -1461,7 +1461,7 @@ limProcessMlmPurgeStaInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #endif
             }
  
-            if (pMlmPurgeStaInd->reasonCode == eLIM_PEER_ENTITY_DEAUTH)
+            if (pMlmPurgeStaInd->purgeTrigger == eLIM_PEER_ENTITY_DEAUTH)
             {
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && defined(ANI_PRODUCT_TYPE_AP)
                 // BP deauthenticated by AP or vice versa

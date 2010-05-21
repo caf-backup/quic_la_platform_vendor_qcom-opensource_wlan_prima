@@ -23,27 +23,35 @@ halPMU_Start(
     void        *arg)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
+    tANI_U32 regValue = 0;
 
     // Enable All clock gating except DXE, since there is a bug
     // in DXE clock gating.
-    halWriteRegister(pMac,QWLAN_SCU_SYS_DISABLE_CLK_GATING_REG, 
+    halWriteRegister(pMac,QWLAN_SCU_SYS_DISABLE_CLK_GATING_REG,
                      QWLAN_SCU_SYS_DISABLE_CLK_GATING_DXE_DISABLE_CLK_GATING_MASK);
     halWriteRegister(pMac, QWLAN_MCU_MAC_CLK_GATING_ENABLE_REG, 0xffff);
+
+    // enable pmu_ana_deep_sleep_en in ldo_ctrl_reg
+    regValue  = QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_DEEP_SLEEP_EN_MASK |
+                QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_1P23_LPM_AON_MASK_MASK |
+                QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_1P23_LPM_SW_MASK_MASK |
+                QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_2P3_LPM_MASK_MASK;
+    halWriteRegister(pMac, QWLAN_PMU_LDO_CTRL_REG_REG, regValue);
 
     return eHAL_STATUS_SUCCESS;
 }
 
 
-/* 
+/*
  * Setting the address where register list is present in the ADU
  */
 eHalStatus halPmu_SetAduReInitAddress(tHalHandle hHal, tANI_U32 address)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
-    
-    halWriteRegister(pMac, 
+
+    halWriteRegister(pMac,
             QWLAN_PMU_ADU_REINIT_ADDRESS_REG, address);
-    
+
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -58,13 +66,13 @@ eHalStatus halPmu_AduReinitEnableDisable(tHalHandle hHal, tANI_U8 enable)
 
     halReadRegister(pMac,
             QWLAN_PMU_ADU_REINIT_REG, &regValue);
-    
+
     if(enable) {
-        regValue |= QWLAN_PMU_ADU_REINIT_PMU_ADU_REINIT_ENABLE_MASK; 
+        regValue |= QWLAN_PMU_ADU_REINIT_PMU_ADU_REINIT_ENABLE_MASK;
     } else {
         regValue &= ~QWLAN_PMU_ADU_REINIT_PMU_ADU_REINIT_ENABLE_MASK;
     }
-    
+
     halWriteRegister(pMac,
             QWLAN_PMU_ADU_REINIT_REG, regValue);
 

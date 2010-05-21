@@ -40,6 +40,7 @@
 #include <wlan_qct_sys.h>
 #include <wlan_qct_tl.h>
 #include "vos_sched.h"
+#include <wlan_hdd_power.h>
 
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -55,19 +56,18 @@
  * Data definitions
  * ------------------------------------------------------------------------*/
 static pVosSchedContext gpVosSchedContext;
+static pVosWatchdogContext gpVosWatchdogContext;
 
 
 /*---------------------------------------------------------------------------
  * Forward declaration
  * ------------------------------------------------------------------------*/
 static int VosMCThread(void * Arg);
+static int VosWDThread(void * Arg);
+
 #ifndef ANI_MANF_DIAG
 static int VosTXThread(void * Arg);
 #endif
-static VOS_STATUS vos_sched_init_mqs   (pVosSchedContext pSchedContext);
-static void vos_sched_deinit_mqs (pVosSchedContext pSchedContext);
-static void vos_sched_flush_mc_mqs  (pVosSchedContext pSchedContext);
-static void vos_sched_flush_tx_mqs  (pVosSchedContext pSchedContext);
 extern v_VOID_t vos_core_return_msg(v_PVOID_t pVContext, pVosMsgWrapper pMsgWrapper);
 
 /*---------------------------------------------------------------------------
@@ -240,6 +240,68 @@ vos_sched_open
 
 } /* vos_sched_open() */
 
+
+VOS_STATUS vos_watchdog_open
+
+(
+  v_PVOID_t           pVosContext,
+  pVosWatchdogContext pWdContext,
+  v_SIZE_t            wdCtxSize
+)
+{
+/*-------------------------------------------------------------------------*/
+
+  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+             "%s: Opening the VOSS Watchdog module",__func__);
+
+  //Sanity checks
+  if ((pVosContext == NULL) || (pWdContext == NULL)) {
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+             "%s: Null params being passed",__func__);
+     return VOS_STATUS_E_FAILURE;
+  }
+
+  if (sizeof(VosWatchdogContext) != wdCtxSize)
+  {
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: Incorrect VOS Watchdog Context size passed",__func__);
+     return VOS_STATUS_E_INVAL;
+  }
+
+  vos_mem_zero(pWdContext, sizeof(VosWatchdogContext));
+  pWdContext->pVContext = pVosContext;
+
+  gpVosWatchdogContext = pWdContext;
+	 
+  //Initialize the helper events and event queues
+  init_completion(&pWdContext->WdStartEvent);
+  init_completion(&pWdContext->WdShutdown);
+  init_waitqueue_head(&pWdContext->wdWaitQueue);
+  pWdContext->wdEventFlag = 0;
+
+  //Create the Watchdog thread
+  pWdContext->WdThread = kernel_thread(VosWDThread, pWdContext,
+     CLONE_FS | CLONE_FILES | CLONE_SIGHAND | SIGCHLD);  
+  
+  if (pWdContext->WdThread < 0)
+  {
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "%s: Could not Create Watchdog thread",__func__);
+     return VOS_STATUS_E_RESOURCES;
+  }  
+
+ /*
+  ** Now make sure thread has started before we exit.
+  ** Each thread should normally ACK back when it starts.
+  */
+  wait_for_completion_interruptible(&pWdContext->WdStartEvent);
+
+  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: VOSS Watchdog Thread has started",__func__);
+
+  return VOS_STATUS_SUCCESS;
+
+} /* vos_watchdog_open() */
 
 /*---------------------------------------------------------------------------
 
@@ -486,6 +548,115 @@ VosMCThread
 
 } /* VosMCThread() */
 
+/*---------------------------------------------------------------------------
+
+  \brief VosWdThread() - The VOSS Watchdog thread
+
+  The \a VosWdThread() is the Watchdog thread:
+
+  \param  Arg - pointer to the global vOSS Sched Context
+
+  \return Thread exit code
+
+  \sa VosMcThread()
+
+  -------------------------------------------------------------------------*/
+static int
+VosWDThread
+(
+  void * Arg
+)
+{
+  pVosWatchdogContext pWdContext = (pVosWatchdogContext)Arg;
+  int retWaitStatus              = 0;
+  v_BOOL_t shutdown              = VOS_FALSE;
+  struct sched_param param       = { .sched_priority = 4 };
+
+  sched_setscheduler(current, SCHED_FIFO, &param);
+
+  if (Arg == NULL)
+  {
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        "%s: Bad Args passed", __FUNCTION__);
+     return 0;
+  }
+
+  daemonize("WD_Thread");
+
+  /*
+  ** Ack back to the context from which the Watchdog thread has been
+  ** created.
+  */
+  complete(&pWdContext->WdStartEvent);
+
+  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+      "%s: Watchdog Thread %d (%s) starting up",__func__, current->pid, current->comm);
+
+  while(!shutdown)
+  {
+    // This implements the Watchdog execution model algorithm
+    retWaitStatus = wait_event_interruptible(pWdContext->wdWaitQueue,
+       test_bit(WD_POST_EVENT_MASK, &pWdContext->wdEventFlag));
+
+    if(retWaitStatus == -ERESTARTSYS)
+    {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: wait_event_interruptible returned -ERESTARTSYS", __FUNCTION__);
+      break;
+    }
+
+    clear_bit(WD_POST_EVENT_MASK, &pWdContext->wdEventFlag);
+	 
+    while(1)
+    {
+      // Check if Watchdog needs to shutdown
+      if(test_bit(WD_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag))
+      {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Watchdog thread signaled to shutdown",__func__);
+		  
+		  clear_bit(WD_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag);
+        shutdown = VOS_TRUE;
+        break;
+      }
+      else if(test_bit(WD_CHIP_RESET_EVENT_MASK, &pWdContext->wdEventFlag))
+      {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "%s: Watchdog thread signaled to perform WLAN chip reset",__func__);
+		  clear_bit(WD_CHIP_RESET_EVENT_MASK, &pWdContext->wdEventFlag);
+
+		  //Perform WLAN Reset
+		  if(!pWdContext->resetInProgress)
+		  	{
+		  	  pWdContext->resetInProgress = true;
+           hdd_wlan_reset();
+			  pWdContext->resetInProgress = false;
+		  	}
+		  else
+		  	{
+	        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "%s: Reset already in progress. Ignore recursive reset cmd",__func__);
+		  	}
+		  
+        break;
+      }
+
+      //Unnecessary wakeup - Should never happen!!
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+        "%s: Watchdog thread woke up unnecessarily",__func__);
+		break;
+
+    } // while message loop processing
+    
+  } // while TRUE
+
+  // If we get here the Watchdog thread must exit
+  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+      "%s: Watchdog Thread exiting!!!!", __FUNCTION__);
+
+  complete_and_exit(&pWdContext->WdShutdown, 0);
+
+} /* VosMCThread() */
 
 
 /*---------------------------------------------------------------------------
@@ -729,6 +900,50 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
 } /* vox_sched_close() */
 
 
+VOS_STATUS vos_watchdog_close ( v_PVOID_t pVosContext )
+{
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        "%s: vos_watchdog closing now", __FUNCTION__);
+
+    if (gpVosWatchdogContext == NULL)
+    {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+           "%s: gpVosWatchdogContext is NULL\n",__FUNCTION__);
+       return VOS_STATUS_E_FAILURE;
+    }
+
+    set_bit(WD_SHUTDOWN_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
+    set_bit(WD_POST_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
+    wake_up_interruptible(&gpVosWatchdogContext->wdWaitQueue);
+
+    //Wait for Watchdog thread to exit
+    wait_for_completion_interruptible(&gpVosWatchdogContext->WdShutdown);
+
+    return VOS_STATUS_SUCCESS;
+
+} /* vos_watchdog_close() */
+
+
+VOS_STATUS vos_watchdog_chip_reset ( v_VOID_t )
+{
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+        "%s: vos_watchdog resetting WLAN", __FUNCTION__);
+
+    if (gpVosWatchdogContext == NULL)
+    {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+           "%s: Watchdog not enabled. LOGP ignored.",__FUNCTION__);
+       return VOS_STATUS_E_FAILURE;
+    }
+
+    set_bit(WD_CHIP_RESET_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
+    set_bit(WD_POST_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
+    wake_up_interruptible(&gpVosWatchdogContext->wdWaitQueue);
+
+    return VOS_STATUS_SUCCESS;
+
+} /* vos_watchdog_chip_reset() */
+
 /*---------------------------------------------------------------------------
 
   \brief vos_sched_init_mqs: Initialize the vOSS Scheduler message queues
@@ -748,7 +963,7 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
   \sa vos_sched_init_mqs()
 
   -------------------------------------------------------------------------*/
-static VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
+VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
 {
   VOS_STATUS vStatus = VOS_STATUS_SUCCESS;
 
@@ -876,7 +1091,7 @@ static VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
   \sa vos_sched_deinit_mqs()
 
   -------------------------------------------------------------------------*/
-static void vos_sched_deinit_mqs ( pVosSchedContext pSchedContext )
+void vos_sched_deinit_mqs ( pVosSchedContext pSchedContext )
 {
   // Now de-intialize all message queues
 
@@ -934,7 +1149,7 @@ static void vos_sched_deinit_mqs ( pVosSchedContext pSchedContext )
 /*-------------------------------------------------------------------------
  this helper function flushes all the MC message queues
  -------------------------------------------------------------------------*/
-static void vos_sched_flush_mc_mqs ( pVosSchedContext pSchedContext )
+void vos_sched_flush_mc_mqs ( pVosSchedContext pSchedContext )
 {
   pVosMsgWrapper pMsgWrapper = NULL;
 
@@ -1018,7 +1233,7 @@ static void vos_sched_flush_mc_mqs ( pVosSchedContext pSchedContext )
 /*-------------------------------------------------------------------------
  This helper function flushes all the TX message queues
  ------------------------------------------------------------------------*/
-static void vos_sched_flush_tx_mqs ( pVosSchedContext pSchedContext )
+void vos_sched_flush_tx_mqs ( pVosSchedContext pSchedContext )
 {
   pVosMsgWrapper pMsgWrapper = NULL;
 
@@ -1112,3 +1327,19 @@ pVosSchedContext get_vos_sched_ctxt(void)
 
    return (gpVosSchedContext);
 }
+
+/*-------------------------------------------------------------------------
+ Helper function to get the watchdog context
+ ------------------------------------------------------------------------*/
+pVosWatchdogContext get_vos_watchdog_ctxt(void)
+{
+   //Make sure that Vos Scheduler context has been initialized
+   if (gpVosWatchdogContext == NULL)
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: gpVosWatchdogContext == NULL",__FUNCTION__);
+   }
+
+   return (gpVosWatchdogContext);
+}
+

@@ -68,6 +68,7 @@ static eHalStatus initSmeCmdList(tpAniSirGlobal pMac)
     eHalStatus status;
     tSmeCmd *pCmd;
     
+    pMac->sme.totalSmeCmd = SME_TOTAL_COMMAND;
     if(HAL_STATUS_SUCCESS(status = csrLLOpen(pMac->hHdd, &pMac->sme.smeCmdActiveList)))
     {
         if(HAL_STATUS_SUCCESS(status = csrLLOpen(pMac->hHdd, &pMac->sme.smeCmdPendingList)))
@@ -610,6 +611,9 @@ eHalStatus sme_Open(tHalHandle hHal)
          break;
       }
 
+      if(!HAL_STATUS_SUCCESS((status = initSmeCmdList(pMac))))
+          break;
+
    }while (0);
 
    return status;
@@ -787,9 +791,6 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
    do
    {
       csrSetGlobalCfgs( pMac );
-      pMac->sme.totalSmeCmd = SME_TOTAL_COMMAND;
-      if(!HAL_STATUS_SUCCESS((status = initSmeCmdList(pMac))))
-          break;
       status = csrInitChannelList( hHal );
       if ( ! HAL_STATUS_SUCCESS( status ) )
       {

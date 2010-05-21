@@ -184,6 +184,8 @@ static void halPS_FwRspTimeoutFunc(void* pData)
     tpAniSirGlobal pMac = (tpAniSirGlobal)pData;
     HALLOGP( tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam);
 
+    (void)pMac;
+
     // Should do a LOGP here, if the response timeout occured
     HALLOGP( halLog(pMac, LOGP, FL("CRITICAL: FW response timedout for msg rsp type %d!!!\n"),
             pHalPwrSave->rspType));
@@ -314,8 +316,10 @@ eHalStatus halPS_Config(tpAniSirGlobal pMac, tpSirPowerSaveCfg pPowerSaveConfig)
     if(pFwConfig->bRfXoOn)
     {
         pFwConfig->usBmpsSleepTimeOverheadsUs = HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US;
+        pFwConfig->usBmpsSleepTimeOverheadsUs19_2 = HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US_19_2;
         pFwConfig->usBmpsForcedSleepTimeOverheadsUs = HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US;
         pFwConfig->ucRfSupplySettlingTimeClk = HAL_PWR_SAVE_FW_BMPS_RF_SETTLING_TIME_CLKS;
+        pFwConfig->ucRfSupplySettlingTimeClk19_2 = HAL_PWR_SAVE_FW_BMPS_RF_SETTLING_TIME_CLKS_19_2;
 
     }
     else
@@ -326,6 +330,12 @@ eHalStatus halPS_Config(tpAniSirGlobal pMac, tpSirPowerSaveCfg pPowerSaveConfig)
 
     pFwConfig->usBmpsModeEarlyTimeoutUs = HAL_PWR_SAVE_FW_BMPS_BEACON_MODE_EARLY_TIMEOUT_US;
     pFwConfig->ucUapsdDataRecepTimeoutMs = HAL_PWR_SAVE_FW_UAPSD_DATA_RECEPTION_TIMEOUT_MS;
+
+    //Beacon Miss Handling
+    pFwConfig->bBcnMissMLC = TRUE;
+    pFwConfig->ucMaxBcnWaitTU = HAL_PWR_SAVE_BCN_MISS_WAIT_TU;
+    pFwConfig->uBcnMissGracePeriodUs = HAL_PWR_SAVE_BCN_MISS_GRACE_PERIOD_US;
+    pFwConfig->ucNumConsBcnMiss = HAL_PWR_SAVE_MAX_CONS_BCN_MISS; 
 
     // Listen Interval
     pFwConfig->ucListenInterval = (tANI_U8)pPowerSaveConfig->listenInterval;
@@ -903,7 +913,7 @@ eHalStatus halPS_HandleFwEnterImpsRsp(tpAniSirGlobal pMac, void* pFwMsg)
     }
 
     // Execute the standby procedure
-    halPS_ExecuteStandbyProcedure(pMac, FALSE);
+    halPS_ExecuteStandbyProcedure(pMac);
 
     // As FW response is success, lets proceed further and suspend chip
     vosStatus = WLANBAL_SuspendChip(pVosGCtx);
@@ -988,7 +998,7 @@ eHalStatus halPS_PostponeFwEnterImpsRsp(tpAniSirGlobal pMac, void* pFwMsg)
  * RETURN:
  *      VOID
  */
-void halPS_ExecuteStandbyProcedure( tpAniSirGlobal pMac, tANI_U8 deepSleep)
+void halPS_ExecuteStandbyProcedure(tpAniSirGlobal pMac)
 {
     tANI_U32 regValue = 0;
 
@@ -1016,16 +1026,6 @@ void halPS_ExecuteStandbyProcedure( tpAniSirGlobal pMac, tANI_U8 deepSleep)
 
     // enable en_rtx_bias under mode_sel2 reg
     halWriteRegister(pMac, QWLAN_RFAPB_MODE_SEL2_REG, QWLAN_RFAPB_MODE_SEL2_DEFAULT);
-
-    // Special settings for deep sleep
-    if(deepSleep) {
-        // enable pmu_ana_deep_sleep_en in ldo_ctrl_reg
-        regValue  = QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_DEEP_SLEEP_EN_MASK |
-                    QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_1P23_LPM_AON_MASK_MASK |
-                    QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_1P23_LPM_SW_MASK_MASK |
-                    QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_2P3_LPM_MASK_MASK;
-        halWriteRegister(pMac, QWLAN_PMU_LDO_CTRL_REG_REG, regValue);
-    }
 
     return;
 }

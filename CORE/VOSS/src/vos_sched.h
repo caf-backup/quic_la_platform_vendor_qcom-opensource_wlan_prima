@@ -52,6 +52,11 @@
 #define MC_POST_EVENT_MASK               0x001
 #define TX_SHUTDOWN_EVENT_MASK           0x010
 #define MC_SHUTDOWN_EVENT_MASK           0x010
+#define WD_POST_EVENT_MASK               0x001
+#define WD_SHUTDOWN_EVENT_MASK           0x010
+#define WD_CHIP_RESET_EVENT_MASK         0x100
+
+
  
 /*
 ** Maximum number of messages in the system
@@ -146,6 +151,37 @@ typedef struct _VosSchedContext
 
 } VosSchedContext, *pVosSchedContext;
 
+/*
+** VOSS watchdog context
+** The watchdog context contains the following:
+** The messages queues and events
+** The handle to the thread
+**    
+*/
+typedef struct _VosWatchdogContext
+{
+
+	/* Place holder to the VOSS Context */ 
+	 v_PVOID_t pVContext; 
+
+   /* Handle of Event for Watchdog thread to signal startup */
+   struct completion WdStartEvent;
+
+   /* Watchdog Thread handle */
+   int WdThread;
+
+   /* completion object for Watchdog thread shutdown */
+   struct completion WdShutdown; 
+
+   /* Wait queue for Watchdog thread */
+   wait_queue_head_t wdWaitQueue;
+
+   /* Event flag for events handled by Watchdog */
+   unsigned long wdEventFlag;	
+
+	v_BOOL_t resetInProgress;
+
+} VosWatchdogContext, *pVosWatchdogContext;
 
 /*
 ** vOSS Sched Msg Wrapper
@@ -176,6 +212,9 @@ typedef struct _VosContextType
 
    /* Scheduler Context */
    VosSchedContext     vosSched;
+
+	/* Watchdog Context */
+	VosWatchdogContext  vosWatchdog;
 
    /* HDD Module Context  */
    v_VOID_t           *pHDDContext;
@@ -254,6 +293,44 @@ VOS_STATUS vos_sched_open( v_PVOID_t pVosContext,
                            pVosSchedContext pSchedCxt,
                            v_SIZE_t SchedCtxSize);
 
+/*---------------------------------------------------------------------------
+  
+  \brief vos_watchdog_open() - initialize the vOSS watchdog  
+    
+  The \a vos_watchdog_open() function initializes the vOSS watchdog. Upon successful 
+        initialization, the watchdog thread is created and ready to receive and  process messages.
+     
+   
+  \param  pVosContext - pointer to the global vOSS Context
+  
+  \param  pWdContext - pointer to a previously allocated buffer big
+          enough to hold a watchdog context.       
+
+  \return VOS_STATUS_SUCCESS - Watchdog was successfully initialized and 
+          is ready to be used.
+  
+          VOS_STATUS_E_RESOURCES - System resources (other than memory) 
+          are unavailable to initilize the Watchdog
+
+          VOS_STATUS_E_NOMEM - insufficient memory exists to initialize 
+          the Watchdog
+          
+          VOS_STATUS_E_INVAL - Invalid parameter passed to the Watchdog Open
+          function 
+          
+          VOS_STATUS_E_FAILURE - Failure to initialize the Watchdog/   
+          
+  \sa vos_watchdog_open()
+  
+  -------------------------------------------------------------------------*/
+
+VOS_STATUS vos_watchdog_open
+
+(
+  v_PVOID_t           pVosContext,
+  pVosWatchdogContext pWdContext,
+  v_SIZE_t            wdCtxSize
+);
 
 /*---------------------------------------------------------------------------
   
@@ -284,6 +361,30 @@ VOS_STATUS vos_sched_open( v_PVOID_t pVosContext,
 ---------------------------------------------------------------------------*/
 VOS_STATUS vos_sched_close( v_PVOID_t pVosContext);
 
+/*---------------------------------------------------------------------------
+  
+  \brief vos_watchdog_close() - Close the vOSS Watchdog  
+    
+  The \a vos_watchdog_close() function closes the vOSS Watchdog
+  Upon successful closing:
+  
+     - The Watchdog thread is closed
+     
+      
+  \param  pVosContext - pointer to the global vOSS Context
+  
+  \return VOS_STATUS_SUCCESS - Watchdog was successfully initialized and 
+          is ready to be used.
+          
+          VOS_STATUS_E_INVAL - Invalid parameter passed 
+          
+          VOS_STATUS_E_FAILURE - Failure to initialize the Watchdog/   
+          
+  \sa vos_watchdog_close()
+  
+---------------------------------------------------------------------------*/
+VOS_STATUS vos_watchdog_close ( v_PVOID_t pVosContext );
+
 /* Helper routines provided to other VOS API's */
 VOS_STATUS vos_mq_init(pVosMqType pMq);
 void vos_mq_deinit(pVosMqType pMq);
@@ -291,6 +392,13 @@ void vos_mq_put(pVosMqType pMq, pVosMsgWrapper pMsgWrapper);
 pVosMsgWrapper vos_mq_get(pVosMqType pMq);
 v_BOOL_t vos_is_mq_empty(pVosMqType pMq);
 pVosSchedContext get_vos_sched_ctxt(void);
+pVosWatchdogContext get_vos_watchdog_ctxt(void);
+VOS_STATUS vos_sched_init_mqs   (pVosSchedContext pSchedContext);
+void vos_sched_deinit_mqs (pVosSchedContext pSchedContext);
+void vos_sched_flush_mc_mqs  (pVosSchedContext pSchedContext);
+void vos_sched_flush_tx_mqs  (pVosSchedContext pSchedContext);
+VOS_STATUS vos_watchdog_chip_reset ( v_VOID_t );
+
 void vos_timer_module_init( void );
 
 #endif // #if !defined __VOSS_SCHED_H

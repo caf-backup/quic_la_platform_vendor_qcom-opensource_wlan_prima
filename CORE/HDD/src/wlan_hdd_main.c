@@ -50,11 +50,64 @@
 #include <wlan_ptt_sock_svc.h>
 #include <wlan_hdd_wowl.h>
 #include <wlan_hdd_misc.h>
+#include <vos_sched.h>
+
+#ifdef MSM_PLATFORM_7x30
+#include <mach/rpc_pmapp.h>
+static const char* id = "WLAN";
+#endif
 
 #ifdef ANI_MANF_DIAG
 int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter);
 #endif
 
+static int hdd_netdev_notifier_call(struct notifier_block * nb,
+                                         unsigned long state,
+                                         void *ndev)
+{
+   struct net_device *dev = ndev;
+   hdd_adapter_t *pAdapter = (hdd_adapter_t*)netdev_priv(dev);
+
+   if(NULL == pAdapter)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: HDD Adaptor Null Pointer", __func__);
+      VOS_ASSERT(0);
+      return NOTIFY_DONE;
+   }
+
+   hddLog(VOS_TRACE_LEVEL_INFO,"%s: New Net Device State = %lu", __func__, state);
+
+   switch (state) {
+   case NETDEV_REGISTER:
+        break;
+
+   case NETDEV_UNREGISTER:
+        break;
+
+   case NETDEV_UP:
+        break;
+
+   case NETDEV_DOWN:
+        break;
+
+   case NETDEV_CHANGE:
+        if(TRUE == pAdapter->isLinkUpSvcNeeded)
+           complete(&pAdapter->linkup_event_var);
+        break;        
+
+   case NETDEV_GOING_DOWN:
+        break;
+
+   default:
+        break;
+   }
+
+   return NOTIFY_DONE;
+}
+
+static struct notifier_block hdd_netdev_notifier = {
+   .notifier_call = hdd_netdev_notifier_call,
+};
 
 /*--------------------------------------------------------------------------- 
  *   Function definitions
@@ -535,6 +588,9 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
         return;
      }
    }
+   
+   // Unregister the Net Device Notifier
+   unregister_netdevice_notifier(&hdd_netdev_notifier);
 
    init_completion(&pAdapter->disconnect_comp_var);
    halStatus = sme_RoamDisconnect(pAdapter->hHal, eCSR_DISCONNECT_REASON_UNSPECIFIED);
@@ -582,6 +638,11 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    //Vote off any PMIC voltage supplies
    vos_chipPowerDown(NULL, NULL, NULL);
 
+#ifdef MSM_PLATFORM_7x30
+   if(pAdapter->cfg_ini->b19p2MhzPmicClkEnabled) 
+      pmapp_clock_vote(id, PMAPP_CLOCK_ID_A0, PMAPP_CLOCK_VOTE_OFF);
+#endif
+
    //Clean up HDD Nlink Service
    send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0); 
    nl_srv_exit();
@@ -590,9 +651,6 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    hdd_deinit_tx_rx(pAdapter);
    hdd_wmm_close(pAdapter);
 
-   //Free up dynamically allocated members inside HDD Adapter
-   kfree(pAdapter->cfg_ini);
-   pAdapter->cfg_ini= NULL;
 
    //Deregister the device with the kernel
    hdd_UnregisterWext(pWlanDev);
@@ -602,8 +660,24 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
       clear_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
    }
 
+   //Close the scheduler before closing other modules.	
+   vosStatus = vos_sched_close( pVosContext );  
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))	{
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close VOSS Scheduler",__func__);
+      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   }
+
    //Close VOSS
    vos_close(pVosContext);
+
+   //Close Watchdog
+   if(pAdapter->cfg_ini->fIsLogpEnabled)
+      vos_watchdog_close(pVosContext);
+
+   //Free up dynamically allocated members inside HDD Adapter
+   kfree(pAdapter->cfg_ini);
+   pAdapter->cfg_ini= NULL;
 
    //Free the net device
    free_netdev(pWlanDev);
@@ -707,7 +781,12 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    hdd_adapter_t *pAdapter = NULL;
    v_CONTEXT_t pVosContext= NULL; 
    static char macAddr[6] =  {0x00, 0x0a, 0xf5, 0x89, 0x89, 0x89};
- 
+   int ret;
+
+#ifdef MSM_PLATFORM_7x30
+   int rc;
+#endif
+
    ENTER();
       
    //Allocate the net_device and HDD Adapter (private data) 
@@ -803,7 +882,20 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    {  
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: error parsing qcom_cfg.ini",__func__);
       goto err_config;   
-   }   
+   }
+
+	//Open watchdog module
+   if(pAdapter->cfg_ini->fIsLogpEnabled)
+   {
+      status = vos_watchdog_open(pVosContext,
+         &((VosContextType*)pVosContext)->vosWatchdog, sizeof(VosWatchdogContext));
+	
+      if(!VOS_IS_STATUS_SUCCESS( status ))
+      {
+         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: vos_watchdog_open failed",__func__);
+         goto err_config;   
+      }
+   }
 
    // Open VOSS 
    status = vos_open( &pVosContext, 0);
@@ -811,7 +903,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    if ( !VOS_IS_STATUS_SUCCESS( status ))
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: vos_open failed",__func__);
-      goto err_config;   
+      goto err_wdclose;   
    }
 
    /* Save the hal context in Adapter */
@@ -857,12 +949,37 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       goto err_vosclose;
    }
 
+#ifdef MSM_PLATFORM_7x30
+   if(pAdapter->cfg_ini->b19p2MhzPmicClkEnabled) 
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Turn on PMAPP_CLOCK_ID_A0",__func__);
+
+      //Turn on the 19.2 MHz A0 XO buffer from PMIC8058
+      rc = pmapp_clock_vote(id, PMAPP_CLOCK_ID_A0, PMAPP_CLOCK_VOTE_ON);
+      if (rc) {
+         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: A0 clk vote on failed (%d)",__func__, rc);
+         goto err_vosclose;
+      }
+
+      //Put the clock in a pin control mode
+      rc = pmapp_clock_vote(id, PMAPP_CLOCK_ID_A0, PMAPP_CLOCK_VOTE_PIN_CTRL);
+      if (rc) {
+         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: A0 pin ctrl failed (%d)",__func__, rc);
+         goto err_clkvote;
+      }
+
+      //Clk must be turned on before enabling func1
+      msleep(50);
+   }
+
+#endif
+
    /* Start SAL now */
    status = WLANSAL_Start(pAdapter->pvosContext);
    if (!VOS_IS_STATUS_SUCCESS(status))
    {
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed to start SAL",__func__);
-      goto err_vosclose;
+      goto err_clkvote;
    }
 
    /*Start VOSS which starts up the SME/MAC/HAL modules and everything else
@@ -888,6 +1005,18 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       register_wlan_suspend();
 #endif
 
+   pAdapter->isLinkUpSvcNeeded = FALSE; 
+
+   // register net device notifier for device change notification
+   ret = register_netdevice_notifier(&hdd_netdev_notifier);
+
+   if(ret < 0)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: register_netdevice_notifier failed",__func__);
+      goto err_vosstop;;
+   }
+
+
    // Register wireless extensions         
    hdd_register_wext(pWlanDev);
 
@@ -907,7 +1036,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    if(nl_srv_init() != 0)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,"%S: nl_srv_init failed",__func__);
-      goto err_vosstop;
+      goto err_reg_netdev;
    }
 
    //Initialize the BTC service
@@ -940,6 +1069,9 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 
 err_nl_srv:
    nl_srv_exit();
+
+err_reg_netdev:
+   unregister_netdevice_notifier(&hdd_netdev_notifier);
  
 err_vosstop:
    vos_stop(pVosContext);
@@ -947,8 +1079,18 @@ err_vosstop:
 err_salstop:
 	WLANSAL_Stop(pVosContext);
 
+err_clkvote:
+#ifdef MSM_PLATFORM_7x30
+   if(pAdapter->cfg_ini->b19p2MhzPmicClkEnabled) 
+      pmapp_clock_vote(id, PMAPP_CLOCK_ID_A0, PMAPP_CLOCK_VOTE_OFF);
+#endif
+
 err_vosclose:	
    vos_close(pVosContext ); 
+
+err_wdclose:
+   if(pAdapter->cfg_ini->fIsLogpEnabled)
+      vos_watchdog_close(pVosContext);
 
 err_config:
    kfree(pAdapter->cfg_ini);
@@ -1093,7 +1235,7 @@ static void __exit hdd_module_exit(void)
    {
       //Do all the cleanup before deregistering the driver
       hdd_wlan_exit(pAdapter);
-   }
+   }      
 
    WLANSAL_Close(pVosContext);
 

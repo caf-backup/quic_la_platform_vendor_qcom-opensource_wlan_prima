@@ -3216,8 +3216,11 @@ PopulateDot11fTSPEC(tSirMacTspecIE  *pOld,
     pDot11f->user_priority        = pOld->tsinfo.traffic.userPrio;
     pDot11f->tsinfo_ack_pol       = pOld->tsinfo.traffic.ackPolicy;
     pDot11f->schedule             = pOld->tsinfo.schedule.schedule;
-    pDot11f->size                 = ( pOld->nomMsduSz & 0xefffffff );
-    pDot11f->fixed                = ( pOld->nomMsduSz & 0x00000001 );
+    /* As defined in IEEE 802.11-2007, section 7.3.2.30
+     * Nominal MSDU size: Bit[0:14]=Size, Bit[15]=Fixed
+     */
+    pDot11f->size                 = ( pOld->nomMsduSz & 0x7fff );
+    pDot11f->fixed                = ( pOld->nomMsduSz & 0x8000 ) ? 1 : 0;
     pDot11f->max_msdu_size        = pOld->maxMsduSz;
     pDot11f->min_service_int      = pOld->minSvcInterval;
     pDot11f->max_service_int      = pOld->maxSvcInterval;
@@ -3249,8 +3252,11 @@ PopulateDot11fWMMTSPEC(tSirMacTspecIE     *pOld,
     pDot11f->psb                  = pOld->tsinfo.traffic.psb;
     pDot11f->user_priority        = pOld->tsinfo.traffic.userPrio;
     pDot11f->tsinfo_ack_pol       = pOld->tsinfo.traffic.ackPolicy;
-    pDot11f->size                 = ( pOld->nomMsduSz & 0xefffffff );
-    pDot11f->fixed                = ( pOld->nomMsduSz & 0x00000001 );
+    /* As defined in IEEE 802.11-2007, section 7.3.2.30
+     * Nominal MSDU size: Bit[0:14]=Size, Bit[15]=Fixed
+     */
+    pDot11f->size                 = ( pOld->nomMsduSz & 0x7fff );
+    pDot11f->fixed                = ( pOld->nomMsduSz & 0x8000 ) ? 1 : 0;
     pDot11f->max_msdu_size        = pOld->maxMsduSz;
     pDot11f->min_service_int      = pOld->minSvcInterval;
     pDot11f->max_service_int      = pOld->maxSvcInterval;

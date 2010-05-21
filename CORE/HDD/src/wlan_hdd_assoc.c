@@ -494,6 +494,37 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         // Save the connection info from CSR...
         hdd_connSaveConnectInfo( pAdapter, pRoamInfo, eCSR_BSS_TYPE_INFRASTRUCTURE );
 
+
+        // indicate 'connect' status to userspace
+        hdd_SendAssociationEvent(dev,pRoamInfo);
+
+        // Initialize the Linkup event completion variable 
+        init_completion(&pAdapter->linkup_event_var);
+
+
+		/*
+		   Sometimes Switching ON the Carrier is taking time to activate the device properly. Before allowing any
+		   packet to go up to the application, device activation has to be ensured for proper queue mapping by the
+		   kernel. we have registered net device notifier for device change notification. With this we will come to 
+		   know that the device is getting activated properly.
+		*/
+			
+
+        // Enable Linkup Event Servicing which allows the net device notifier to set the linkup event variable       
+        pAdapter->isLinkUpSvcNeeded = TRUE;
+
+        // Switch on the Carrier to activate the device
+        netif_carrier_on(dev);
+        
+            
+        // Wait for the Link to up to ensure all the queues are set properly by the kernel
+        wait_for_completion_interruptible_timeout(&pAdapter->linkup_event_var,
+                                                   msecs_to_jiffies(ASSOC_LINKUP_TIMEOUT));
+        
+        // Disable Linkup Event Servicing - no more service required from the net device notifier call
+        pAdapter->isLinkUpSvcNeeded = FALSE;
+
+
         //For reassoc, the station is already registered, all we need is to change the state
         //of the STA in TL.
         //If authentication is required (WPA/WPA2/DWEP), change TL to CONNECTED instead of AUTHENTICATED
@@ -525,10 +556,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         }
   
         if ( VOS_IS_STATUS_SUCCESS( vosStatus ) )
-        {
-            // indicate 'connect' status to userspace
-            hdd_SendAssociationEvent(dev,pRoamInfo);
-    
+        {                
             // perform any WMM-related association processing
             hdd_wmm_assoc(pAdapter, pRoamInfo, eCSR_BSS_TYPE_INFRASTRUCTURE);
         }
@@ -538,8 +566,10 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                        "Cannot register STA with TL.  Failed with vosStatus = %d [%08lX]",
                        vosStatus, vosStatus );
         }
-        netif_carrier_on(dev);
+
+        // Start the Queue
         netif_start_queue(dev);
+        
     }  
     else if(eCSR_ROAM_RESULT_NOT_ASSOCIATED == roamResult)
     {

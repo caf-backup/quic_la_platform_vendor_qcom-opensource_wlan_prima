@@ -41,6 +41,8 @@ when           who        what, where, why
 #include <wlan_qct_hal.h>
 #include <wlan_bal_misc.h> // Linux specific includes
 #include <linux/mmc/sdio.h>
+#include <vos_power.h>
+
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -561,6 +563,7 @@ VOS_STATUS WLANSAL_Cmd53
    {
       SMSGERROR("%s: Value of ERROR err_ret = %d\n", __func__, err_ret, 0);
       SEXIT();
+      vos_chipReset(NULL, VOS_FALSE, NULL, NULL);
       return err_ret;
    }
 

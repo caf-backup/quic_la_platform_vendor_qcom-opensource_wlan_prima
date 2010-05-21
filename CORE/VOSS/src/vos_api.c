@@ -634,15 +634,6 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
 {
   VOS_STATUS vosStatus;
 
-  // Close the scheduler before closing other modules.
-  vosStatus = vos_sched_close( vosContext );
-  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-  {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close VOSS Scheduler",__func__);
-     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-  }
-
   vosStatus = WLANBAL_Close(vosContext);
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {

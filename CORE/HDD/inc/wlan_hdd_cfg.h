@@ -829,6 +829,16 @@ typedef enum
 #define CFG_QOS_IMPLICIT_SETUP_ENABLED_MAX                  (1) 
 #define CFG_QOS_IMPLICIT_SETUP_ENABLED_DEFAULT              (1)
 
+#define CFG_19P2_MHZ_PMIC_CLK_ENABLED_NAME                  "19p2MhzPmicClkEnabled"
+#define CFG_19P2_MHZ_PMIC_CLK_ENABLED_MIN                   (0)
+#define CFG_19P2_MHZ_PMIC_CLK_ENABLED_MAX                   (1) 
+#define CFG_19P2_MHZ_PMIC_CLK_ENABLED_DEFAULT               (0)
+
+#define CFG_ENABLE_LOGP_NAME                                "gEnableLogp"
+#define CFG_ENABLE_LOGP_MIN                                 ( 0 )
+#define CFG_ENABLE_LOGP_MAX                                 ( 1 )
+#define CFG_ENABLE_LOGP_DEFAULT                             ( 0 )
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -865,6 +875,7 @@ typedef struct
    v_U8_t        nEnableSuspend;
    v_U8_t        nEnableDriverStop;
    v_BOOL_t      fIsImpsEnabled;
+   v_BOOL_t      fIsLogpEnabled;
    v_U32_t       nImpsModSleepTime;
    v_U32_t       nImpsMaxSleepTime;
    v_U32_t       nImpsMinSleepTime;
@@ -1022,6 +1033,7 @@ typedef struct
 
    /* Wowl pattern */
    char                        wowlPattern[1024];         
+   v_BOOL_t                    b19p2MhzPmicClkEnabled;
 
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 

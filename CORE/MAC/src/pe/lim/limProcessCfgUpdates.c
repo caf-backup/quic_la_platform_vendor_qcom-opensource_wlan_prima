@@ -695,6 +695,9 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
             break;
         }
         pMac->lim.gLimDot11Mode = val1;
+        /*Depending on Operating mode update the HT Capability flag */
+        pMac->lim.htCapability = IS_DOT11_MODE_HT(pMac->lim.gLimDot11Mode);
+	
         break;
     case WNI_CFG_ADDBA_REQ_DECLINE:
         if(wlan_cfgGetInt(pMac, WNI_CFG_ADDBA_REQ_DECLINE, &val1) != eSIR_SUCCESS) {

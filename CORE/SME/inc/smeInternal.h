@@ -31,9 +31,6 @@
   Type declarations
   ------------------------------------------------------------------------*/
 
-#define SME_TOTAL_COMMAND  20
-
-
 typedef enum eSmeCommandType 
 {
     eSmeNoCommand = 0, 

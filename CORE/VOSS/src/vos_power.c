@@ -61,6 +61,8 @@ when       who     what, where, why
 #include <linux/mfd/pmic8058.h>
 #endif
 
+#include <vos_sched.h>
+
 /*===========================================================================
 
                         DEFINITIONS AND TYPES
@@ -506,7 +508,9 @@ VOS_STATUS vos_chipReset
   v_PVOID_t             user_data
 )
 {
-   return VOS_STATUS_SUCCESS;
+   VOS_STATUS vstatus;
+   vstatus = vos_watchdog_chip_reset();
+   return vstatus;
 }
 
 

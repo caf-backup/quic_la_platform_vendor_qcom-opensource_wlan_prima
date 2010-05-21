@@ -188,7 +188,7 @@ halMacRaGlobalInfoToFW(
         }
     }
 #endif
-    status = halWriteDeviceMemory(pMac, QWLANFW_MEMMAP_RA_GLOBAL_CONFIG, (void *)((tANI_U32)pGlobInfo + startOffset), szLen);
+    status = halWriteDeviceMemory(pMac, QWLANFW_MEMMAP_RA_GLOBAL_CONFIG + startOffset, (void *)((tANI_U32)pGlobInfo + startOffset), szLen);
 
 #ifdef ANI_LITTLE_BYTE_ENDIAN /* revert back if swapped */
     if(bSwapNeeded) {

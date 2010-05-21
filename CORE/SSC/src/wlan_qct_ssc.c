@@ -1944,6 +1944,7 @@ VOS_STATUS WLANSSC_SuspendChip
                                                  &uFuncOneRegValue,
                                                  WLANSSC_TX_REGBUFFER) )
   {
+    WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
 
@@ -1954,6 +1955,7 @@ VOS_STATUS WLANSSC_SuspendChip
                                                   &uFuncOneRegValue,
                                                   WLANSSC_TX_REGBUFFER) )
   {
+    WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
 
@@ -1966,6 +1968,7 @@ VOS_STATUS WLANSSC_SuspendChip
                                                    &uFuncOneRegValue,
                                                    WLANSSC_TX_REGBUFFER) )
     {
+      WLANSSC_UNLOCKTXRX( pControlBlock );
       return VOS_STATUS_E_FAILURE;
     }
 
@@ -2458,6 +2461,7 @@ VOS_STATUS WLANSSC_EnableASICInterruptEx
                                                  &(uInterruptsEnabled),
                                                  WLANSSC_TX_REGBUFFER) )
   {
+    WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
 
@@ -2528,6 +2532,7 @@ VOS_STATUS WLANSSC_DisableASICInterruptEx
                                                  &(uInterruptsEnabled),
                                                  WLANSSC_TX_REGBUFFER) )
   {
+    WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
 
@@ -2554,6 +2559,7 @@ VOS_STATUS WLANSSC_DisableASICInterruptEx
                                                   &uInterruptsEnabled,
                                                   WLANSSC_TX_REGBUFFER) )
   {
+    WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
 

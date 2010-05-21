@@ -211,6 +211,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_IMPS_MIN, 
                  CFG_ENABLE_IMPS_MAX ),
 
+   REG_VARIABLE( CFG_ENABLE_LOGP_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, fIsLogpEnabled, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_ENABLE_LOGP_DEFAULT, 
+                 CFG_ENABLE_LOGP_MIN, 
+                 CFG_ENABLE_LOGP_MAX ),
+
    REG_VARIABLE( CFG_IMPS_MINIMUM_SLEEP_TIME_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, nImpsMinSleepTime, 
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
@@ -1089,6 +1096,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_QOS_IMPLICIT_SETUP_ENABLED_DEFAULT, 
                  CFG_QOS_IMPLICIT_SETUP_ENABLED_MIN, 
                  CFG_QOS_IMPLICIT_SETUP_ENABLED_MAX ),
+
+   REG_VARIABLE( CFG_19P2_MHZ_PMIC_CLK_ENABLED_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, b19p2MhzPmicClkEnabled, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_19P2_MHZ_PMIC_CLK_ENABLED_DEFAULT, 
+                 CFG_19P2_MHZ_PMIC_CLK_ENABLED_MIN, 
+                 CFG_19P2_MHZ_PMIC_CLK_ENABLED_MAX ),
 };                                
 
 /*

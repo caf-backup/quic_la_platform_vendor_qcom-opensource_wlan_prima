@@ -37,7 +37,7 @@
 // code will loop until no interrupts are serviced in an iteration,
 // which is how the production code should work
 
-#define HAL_INT_MAX_ITERATIONS 0
+#define HAL_INT_MAX_ITERATIONS 5
 
 // information about each interrupt register
 typedef struct sHalIntRegisterInfo {
@@ -1243,21 +1243,12 @@ halIntCheck(tHalHandle hHalHandle)
     {
         counter = 0;
 
-        HALLOGW( halLog(pMac, LOGW,
-               FL("%s: Too many iterations.  Current registers:"),
-               __FUNCTION__));
-        halIntDumpRegisters(hHalHandle);
+        HALLOGE( halLog(pMac, LOGE,
+               FL("%s: Too many iterations, clear the SIF Int Status: SIF Status: %08x Cached Mask: %08x"),
+               __FUNCTION__, mcuMacHostIntStatus, mcuMacHostIntMask));
 
-        // cause all top-level interrupts to be masked
-        pMac->hal.intEnableCache[eHAL_INT_MCU_HOST_INT_REGISTER].value = 0;
-        pMac->hal.intEnableCache[eHAL_INT_MCU_HOST_INT_REGISTER].valid = 1;
-        halIntWriteRegister(pMac,
-                            QWLAN_MCU_MAC_HOST_INT_EN_REG, 0);
-        HALLOGW(halLog(pMac, LOGW,
-               FL("%s: Too many iterations.  Interrupts disabled:"),
-               __FUNCTION__));
-        halIntDumpRegisters(hHalHandle);
-
+        halIntClearStatus(hHalHandle, eHAL_INT_SIF_ASIC);   
+        
     }
 #endif // HAL_INT_MAX_ITERATIONS > 0
 

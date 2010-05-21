@@ -25,6 +25,13 @@
 #include "sme_Api.h"
 #include <vos_api.h>
 #include "vos_power.h"
+#include <vos_sched.h>
+#include <macInitApi.h>
+#include <wlan_qct_sal.h>
+#include <wlan_qct_bal.h>
+#include <wlan_qct_sys.h>
+#include <wlan_btc_svc.h>
+#include <wlan_nlink_common.h>
 
 /**-----------------------------------------------------------------------------
 *   Preprocessor definitions and constants
@@ -189,6 +196,10 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
    vos_call_status_type callType;
 
+   //Stop the Interface TX queue.
+   netif_tx_disable(pAdapter->dev);
+   netif_carrier_off(pAdapter->dev);
+
    //Disable IMPS,BMPS as we do not want the device to enter any power
    //save mode on it own during suspend sequence
    sme_DisablePowerSave(pAdapter->hHal, ePMC_IDLE_MODE_POWER_SAVE);
@@ -208,16 +219,12 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
       if(g_full_pwr_status != eHAL_STATUS_SUCCESS){
          hddLog(VOS_TRACE_LEVEL_ERROR,"%s: sme_RequestFullPower failed",__func__);
          VOS_ASSERT(0);
-         vosStatus = VOS_STATUS_E_FAILURE;
-         goto failure;
       }
    }
    else if(halStatus != eHAL_STATUS_SUCCESS)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Request for Full Power failed",__func__);
       VOS_ASSERT(0);
-      vosStatus = VOS_STATUS_E_FAILURE;
-      goto failure; 
    }
 
    //Issue a disconnect. This is required to inform the supplicant that
@@ -225,14 +232,15 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
    init_completion(&pAdapter->disconnect_comp_var);
    halStatus = sme_RoamDisconnect(pAdapter->hHal, eCSR_DISCONNECT_REASON_UNSPECIFIED);
 
-   //success implies disconnect command got queued up successfully
+   //Success implies disconnect command got queued up successfully
    if(halStatus == eHAL_STATUS_SUCCESS)
    {
+      //Block on a completion variable. Can't wait forever though.
       wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var, 
          msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
    }
-
-   //None of the steps should fail after this
+   
+   //None of the steps should fail after this. Continue even in case of failure
    vosStatus = vos_stop( pAdapter->pvosContext );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
@@ -253,7 +261,6 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
 
    pAdapter->hdd_ps_state = eHDD_SUSPEND_DEEP_SLEEP;
 
-failure:
    //Restore IMPS config
    if(pAdapter->cfg_ini->fIsImpsEnabled)
       sme_EnablePowerSave(pAdapter->hHal, ePMC_IDLE_MODE_POWER_SAVE);
@@ -428,7 +435,7 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
 {
    hdd_adapter_t *pAdapter = NULL;
    v_CONTEXT_t pVosContext = NULL;
-
+   
    hddLog(VOS_TRACE_LEVEL_ERROR, "%s: WLAN being resumed by Android OS",__func__);
 
    //Get the global VOSS context.
@@ -462,6 +469,184 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
    pAdapter->hdd_ps_state = eHDD_SUSPEND_NONE;
 
    return;
+}
+
+VOS_STATUS hdd_wlan_reset(void) 
+{
+   VOS_STATUS vosStatus;
+   hdd_adapter_t *pAdapter = NULL;
+   v_CONTEXT_t pVosContext = NULL;
+   pVosSchedContext vosSchedContext = NULL;
+   pVosWatchdogContext vosWatchdogContext =NULL;
+   vos_call_status_type callType;
+   union iwreq_data wrqu;
+   eHalStatus halStatus;
+   v_BOOL_t sendDisconnect;
+	
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN being reset",__func__);
+
+   //Get the global VOSS context.
+   pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+   if(!pVosContext) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Global VOS context is Null", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   //Get the HDD context.
+   pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext);
+   if(!pAdapter) {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+	
+   //Stop the Interface TX queue.
+   netif_tx_disable(pAdapter->dev);
+   netif_carrier_off(pAdapter->dev);
+
+   //Record whether STA is associated
+   sendDisconnect = hdd_connIsConnected(pAdapter) ? VOS_TRUE : VOS_FALSE;
+   
+   //Disable IMPS/BMPS as we do not want the device to enter any power
+   //save mode on its own during reset sequence
+   sme_DisablePowerSave(pAdapter->hHal, ePMC_IDLE_MODE_POWER_SAVE);
+   sme_DisablePowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+
+   //Ensure that device is in full power first.
+   init_completion(&pAdapter->full_pwr_comp_var);
+   g_full_pwr_status = eHAL_STATUS_FAILURE;
+   halStatus = sme_RequestFullPower(pAdapter->hHal, hdd_suspend_full_pwr_callback,
+       pAdapter, eSME_FULL_PWR_NEEDED_BY_HDD);
+
+   if(halStatus == eHAL_STATUS_PMC_PENDING)
+   {
+      //Block on a completion variable. Can't wait forever though
+      wait_for_completion_interruptible_timeout(&pAdapter->full_pwr_comp_var,
+         msecs_to_jiffies(WLAN_WAIT_TIME_FULL_PWR));
+      if(g_full_pwr_status != eHAL_STATUS_SUCCESS)
+      {
+         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: sme_RequestFullPower failed",__func__);
+         VOS_ASSERT(0);
+      }
+   }
+   else if(halStatus != eHAL_STATUS_SUCCESS)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: sme_RequestFullPower failed - status %d",
+         __func__, halStatus);
+      VOS_ASSERT(0);
+   }
+
+   //Kill all the threads first. We do not want any messages
+   //to be a processed any more and the best way to ensure that
+   //is to terminate the threads gracefully.
+   vosSchedContext = get_vos_sched_ctxt();
+   vosWatchdogContext = get_vos_watchdog_ctxt();
+	
+   set_bit(MC_SHUTDOWN_EVENT_MASK, &vosSchedContext->mcEventFlag);
+   set_bit(MC_POST_EVENT_MASK, &vosSchedContext->mcEventFlag);
+
+   set_bit(TX_SHUTDOWN_EVENT_MASK, &vosSchedContext->txEventFlag);
+   set_bit(TX_POST_EVENT_MASK, &vosSchedContext->txEventFlag);
+
+   wake_up_interruptible(&vosSchedContext->mcWaitQueue);
+   wake_up_interruptible(&vosSchedContext->txWaitQueue);
+
+   //Wait for MC and TX to exit
+   wait_for_completion_interruptible(&vosSchedContext->McShutdown);
+   wait_for_completion_interruptible(&vosSchedContext->TxShutdown);
+
+   //Stop SME - Cannot invoke vos_stop as vos_stop relies
+   //on threads being running to process the SYS Stop
+   vosStatus = sme_Stop( pAdapter->hHal, TRUE );
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   //Stop MAC (PE and HAL)
+   vosStatus = macStop( pAdapter->hHal, HAL_STOP_TYPE_SYS_RESET);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   //Stop TL
+   vosStatus = WLANTL_Stop( pVosContext );
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   //Stop BAL
+   vosStatus = WLANBAL_Stop( pVosContext );
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   //Suspend Chip
+   vosStatus = WLANBAL_SuspendChip( pVosContext );
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   //Stop SAL
+   vosStatus = WLANSAL_Stop(pVosContext);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   //Enter Deep Sleep
+   vosStatus = vos_chipAssertDeepSleep( &callType, NULL, NULL );
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   vosStatus = vos_chipVoteOffBBAnalogSupply(&callType, NULL, NULL);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   vosStatus = vos_chipVoteOffRFSupply(&callType, NULL, NULL);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   //Clean up HDD TX/RX data path
+   hdd_deinit_tx_rx(pAdapter);
+   hdd_wmm_close(pAdapter);
+
+   //Clean up message queues of TX and MC thread
+   vos_sched_flush_mc_mqs(vosSchedContext);
+   vos_sched_flush_tx_mqs(vosSchedContext);
+
+   //Deinit all the TX and MC queues
+   vos_sched_deinit_mqs(vosSchedContext);
+
+   //Close VOSS -- this is not really necessary. But we are being
+   //safe and restaring with new clean memory as well. Since this
+   //scenario should be a rare occurence, we need not worry about
+   //any latency or performance hits.
+   vosStatus = vos_close(pVosContext);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   //Open VOSS
+   vosStatus = vos_open( &pVosContext, 0);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   //Reinit the HAL context in HDD Adapter
+   pAdapter->hHal = (tHalHandle)vos_get_context(
+      VOS_MODULE_ID_HAL, pVosContext );
+
+   //Set the Connection State to Not Connected
+   pAdapter->conn_info.connState = eConnectionState_NotConnected;
+
+   //Set the default operation channel
+   pAdapter->conn_info.operationChannel = pAdapter->cfg_ini->OperatingChannel;
+
+   /* Make the default Auth Type as OPEN*/
+   pAdapter->conn_info.authType = eCSR_AUTH_TYPE_OPEN_SYSTEM;
+
+   vosStatus = hdd_init_tx_rx(pAdapter);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   //Initialize the WMM module
+   vosStatus = hdd_wmm_init(pAdapter);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   
+   vosStatus = hdd_exit_deep_sleep(pAdapter);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   //Indicate disconnect event to supplicant if associated previously
+   if(sendDisconnect) {
+      memset(&wrqu, '\0', sizeof(wrqu));
+      wrqu.ap_addr.sa_family = ARPHRD_ETHER;
+	   memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
+      wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
+   }
+
+   //Trigger replay of BTC events
+   send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
+
+   return VOS_STATUS_SUCCESS;
+	
 }
 
 void register_wlan_suspend(void)

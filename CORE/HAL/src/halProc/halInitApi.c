@@ -29,6 +29,8 @@
 #include "cfgApi.h"         // cfgCleanup
 #include "halTLApi.h"   //halTLApInit() and halTLApiExit()
 #include "halAHB.h"
+#include "vos_power.h"
+
 #ifdef ANI_OS_TYPE_LINUX
 #include "ccmApi.h"
 #endif // ANI_OS_TYPE_LINUX
@@ -450,7 +452,7 @@ halStart(
 \return    eHalStatus
   -------------------------------------------------------------*/
 
-eHalStatus halStop( tHalHandle hHal , tHalStopType stopType )
+eHalStatus halStop( tHalHandle hHal, tHalStopType stopType )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
     eHalStatus     status = eHAL_STATUS_SUCCESS, nReturn = eHAL_STATUS_SUCCESS;
@@ -478,10 +480,7 @@ eHalStatus halStop( tHalHandle hHal , tHalStopType stopType )
     halCloseLed(pMac);
 #endif
 
-    // If deep sleep, program PMU registers
-    if (stopType == HAL_STOP_TYPE_SYS_DEEP_SLEEP) {
-        halPS_ExecuteStandbyProcedure(pMac, TRUE);
-    }
+    halPS_ExecuteStandbyProcedure(pMac);
 
     halCleanup( pMac );
     return nReturn;
@@ -498,57 +497,14 @@ eHalStatus halStop( tHalHandle hHal , tHalStopType stopType )
 
 eHalStatus halReset(tHalHandle hHal, tANI_U32 rc)
 {
-    tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
-    tSirMsgQ msg;
-    HALLOGE( halLog(pMac, LOGE, FL("called with reasoncode = %d\n"), rc));
+	 VOS_TRACE(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, 
+	 	"halReset: Reason Code = %d", rc);
 
-    // Regardless, take system out of power save and wait for PMU to wake up
-#if defined(ANI_BUS_TYPE_PCI)
-    if ( hal_pci_chip_pre_init(hHal, NULL) != eHAL_STATUS_SUCCESS )
-    {
-        HALLOGE( halLog(pMac, LOGE, FL("hal_pci_chip_pre_init() failed \n")));
-        return eHAL_STATUS_FAILURE;
-    }
-#endif
+    //All reason codes handled uniformly. Not much value in optimizing code for
+    //scenarios that would happen very rarely (if they happen at all).
+    VOS_ASSERT(0);	 
+    vos_chipReset(NULL, VOS_FALSE, NULL, NULL);
 
-    if (pMac->pResetMsg == NULL)
-    {
-        HALLOGE( halLog(pMac, LOGE, FL("HAL Reset failed pMac->pResetMsg is NULL!!\n")));
-        return eHAL_STATUS_FAILURE;
-    }
-
-    if (pMac->sys.abort == false)
-    {
-        pMac->sys.abort = true;       /* tell MMH to block all messages from
-                                        HDD and responds to STOP_BSS */
-        pMac->pResetMsg->type = SIR_HAL_RESET_REQ;
-        pMac->pResetMsg->data[0] = rc;
-        pMac->pResetMsg->msgLen = 8;
-        msg.bodyptr = pMac->pResetMsg;
-        msg.bodyval = 0;
-
-        if (pMac->hal.halSystemRole != eLIM_AP_ROLE)
-        {
-            /*
-             * Tell HDD to reset the chip and reinitialize the MAC/PHY modules.
-             */
-            halMmhPostMsgApi(pMac, &msg, eHI_PRI);
-        }
-        else
-        {
-            // Construct the message and post it
-            if (rc != eSIR_STOP_BSS)
-            {
-                msg.type = SIR_HAL_RESET_REQ;
-
-                pMac->pResetMsg->type = SIR_HAL_RESET_REQ;
-                pMac->pResetMsg->msgLen  = 8;    // len in bytes
-
-                pMac->pResetMsg->data[0] = rc;
-                halMmhPostMsgApi(pMac, &msg, eHI_PRI);
-            }
-        }
-    }
     return eHAL_STATUS_SUCCESS;
 }
 
