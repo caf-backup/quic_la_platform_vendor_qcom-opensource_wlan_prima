@@ -2651,6 +2651,10 @@ eHalStatus halMsg_HandleInitScan( tpAniSirGlobal pMac, tpInitScanParams param, t
                 status = eHAL_STATUS_FAILURE;
             }
         }
+    } else {
+        // Send Start scan message to FW. This would be the case when STA is not
+        // associated.
+        halFW_SendScanStartMesg(pMac);
     }
 out:
     if(status != eHAL_STATUS_SUCCESS)
@@ -3661,7 +3665,7 @@ halMsg_SetBssKey( tpAniSirGlobal  pMac,
             break;
 
         case eSIR_ED_TKIP:
-        case eSIR_ED_CCMP:
+		case eSIR_ED_CCMP:
             //
             // Find the DPU Descriptor index that corresponds
             // to this BSS (AP). This will be the DPU index
