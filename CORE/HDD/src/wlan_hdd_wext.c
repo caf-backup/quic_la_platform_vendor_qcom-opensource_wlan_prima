@@ -23,6 +23,8 @@
 #include <linux/init.h>
 #include <linux/wireless.h>
 #include <wlan_hdd_includes.h>
+#include <wlan_btc_svc.h>
+#include <wlan_nlink_common.h>
 #include <net/arp.h>
 #include "ccmApi.h"
 #include "sirParams.h"
@@ -55,6 +57,7 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 #define WE_IBSS_STATUS       2
 #define WE_PMC_STATE         3
 #define WE_GET_WLAN_DBG      4
+#define WE_MODULE_DOWN_IND   5
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_INT     (SIOCIWFIRSTPRIV + 2)
@@ -2246,6 +2249,13 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
            *value = 0;
            break;            
         }         
+        case WE_MODULE_DOWN_IND:
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: sending WLAN_MODULE_DOWN_IND", __FUNCTION__);
+            send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
+            *value = 0;
+            break;
+        }
         default:
         {
             hddLog(LOGE, "Invalid IOCTL get_value command %d ",value[0]);
@@ -2618,6 +2628,11 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "getwlandbg" },    
+
+    {   WE_MODULE_DOWN_IND,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "moduleDownInd" },
 
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_CHAR_GET_NONE,
