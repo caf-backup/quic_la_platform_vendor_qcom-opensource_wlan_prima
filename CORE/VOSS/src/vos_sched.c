@@ -332,9 +332,8 @@ VosMCThread
   #endif
   int retWaitStatus              = 0;
   v_BOOL_t shutdown              = VOS_FALSE;
-  struct sched_param param       = { .sched_priority = 3 };
 
-  sched_setscheduler(current, SCHED_FIFO, &param);
+  set_user_nice(current, -2);
 
   if (Arg == NULL)
   {
@@ -570,9 +569,8 @@ VosWDThread
   pVosWatchdogContext pWdContext = (pVosWatchdogContext)Arg;
   int retWaitStatus              = 0;
   v_BOOL_t shutdown              = VOS_FALSE;
-  struct sched_param param       = { .sched_priority = 4 };
-
-  sched_setscheduler(current, SCHED_FIFO, &param);
+  
+  set_user_nice(current, -3);
 
   if (Arg == NULL)
   {
@@ -682,7 +680,8 @@ static int VosTXThread ( void * Arg )
   VOS_STATUS       vStatus       = VOS_STATUS_SUCCESS;
   int              retWaitStatus = 0;
   v_BOOL_t shutdown = VOS_FALSE;
-  struct sched_param param = { .sched_priority = 2 };
+
+  set_user_nice(current, -1);
 
   if (Arg == NULL)
   {
@@ -691,7 +690,6 @@ static int VosTXThread ( void * Arg )
      return 0;
   }
 
-  sched_setscheduler(current, SCHED_FIFO, &param);
 
   daemonize("TX_Thread");
 
