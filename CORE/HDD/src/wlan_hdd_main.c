@@ -1249,7 +1249,7 @@ static void __exit hdd_module_exit(void)
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);
 
-MODULE_LICENSE("GPL");
+MODULE_LICENSE("Proprietary");
 MODULE_AUTHOR("QUALCOMM");
 MODULE_DESCRIPTION("WLAN HOST DEVICE DRIVER");
                                                  
