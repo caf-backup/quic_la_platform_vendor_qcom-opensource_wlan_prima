@@ -1,6 +1,9 @@
-KERNEL_DIR := ../../../../../../kernel
-KERNEL_OUT := ../out/target/product/$(TARGET_PRODUCT)/obj/KERNEL_OBJ
-MAKE_FLAGS := -C $(KERNEL_DIR) O=$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi-
+KERNEL_DIR ?= ../../../../../../kernel
+KERNEL_OUT ?= ../out/target/product/$(TARGET_PRODUCT)/obj/KERNEL_OBJ
+
+TOOLCHAIN_PREFIX ?= arm-eabi-
+
+MAKE_FLAGS := -C $(KERNEL_DIR) O=$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=$(TOOLCHAIN_PREFIX)
 
 #Whether to build debug version
 BUILD_DEBUG_VERSION := 1
@@ -29,8 +32,8 @@ HDD_OBJS := wlan_hdd_main.o  \
             wlan_hdd_dp_utils.o \
             wlan_hdd_early_suspend.o  \
             wlan_hdd_wmm.o \
-						wlan_hdd_cfg.o \
-						wlan_hdd_wowl.o
+	    wlan_hdd_cfg.o \
+	    wlan_hdd_wowl.o
 
 ############## VOSS ################## 
 VOSS_INC :=  	-I$(WLAN_DIR)/VOSS/inc/ \
@@ -346,11 +349,11 @@ CDEFINES :=	-DANI_PRODUCT_TYPE_CLIENT=1 \
 		-DANI_COMPILER_TYPE_GCC \
 		-DANI_OS_TYPE_ANDROID=6 \
 	 	-DWNI_POLARIS_FW_OS=6 \
-    -DADVANCED=3 \
-    -DWNI_POLARIS_FW_PACKAGE=9 \
+    		-DADVANCED=3 \
+		-DWNI_POLARIS_FW_PACKAGE=9 \
 		-DANI_LOGDUMP \
 		-DWLAN_PERF \
-    -DLIBRA_RF \
+		-DLIBRA_RF \
 		-DPTT_SOCK_SVC_ENABLE \
 		-DFEATURE_WLAN_UAPSD_FW_TRG_FRAMES
 
@@ -396,13 +399,13 @@ libra_ftm-objs := 	$(VOSS_OBJS) \
                 $(TL_OBJS)   \
                 $(SSC_OBJS)  \
                 $(SME_OBJS)  \
-								$(SYS_OBJS)  \
+		$(SYS_OBJS)  \
                 $(MAC_OBJS)  \
                 $(HAL_OBJS)  \
-								$(HDD_OBJS)  \
-								$(NLINK_OBJS) \
-								$(BTC_OBJS) \
-								$(PTT_OBJS)
+		$(HDD_OBJS)  \
+		$(NLINK_OBJS) \
+		$(BTC_OBJS) \
+		$(PTT_OBJS)
 else
 
 obj-m += libra.o
@@ -411,13 +414,13 @@ libra-objs := 	$(VOSS_OBJS) \
                 $(TL_OBJS)   \
                 $(SSC_OBJS)  \
                 $(SME_OBJS)  \
-								$(SYS_OBJS)  \
+		$(SYS_OBJS)  \
                 $(MAC_OBJS)  \
                 $(HAL_OBJS)  \
-								$(HDD_OBJS)  \
-								$(NLINK_OBJS) \
-								$(BTC_OBJS) \
-								$(PTT_OBJS)
+		$(HDD_OBJS)  \
+		$(NLINK_OBJS) \
+		$(BTC_OBJS) \
+		$(PTT_OBJS)
 endif
 all:
 	$(MAKE) $(MAKE_FLAGS) M=`pwd` modules
