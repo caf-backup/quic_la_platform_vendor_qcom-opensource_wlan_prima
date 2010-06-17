@@ -14,11 +14,11 @@ BUILD_DIAG_VERSION := 0
 BUILD_FTM_DRIVER := 0
 
 #KERNEL include dir
-KERNEL_INC := ./include/linux
+KERNEL_INC ?= ./include/linux
 
 #WLAN root directory
-WLAN_DIR := ../vendor/qcom-proprietary/wlan/CORE
-SAL_EXTERNAL_DIR := ../vendor/qcom-proprietary/wlan/external
+WLAN_DIR ?= ../vendor/qcom-proprietary/wlan/CORE
+SAL_EXTERNAL_DIR ?= ../vendor/qcom-proprietary/wlan/external
 
 ############## HDD ###################
 HDD_INC := $(WLAN_DIR)/HDD/inc/
@@ -424,6 +424,9 @@ libra-objs := 	$(VOSS_OBJS) \
 endif
 all:
 	$(MAKE) $(MAKE_FLAGS) M=`pwd` modules
+
+install:
+	$(MAKE) $(MAKE_FLAGS) M=`pwd` INSTALL_MOD_PATH=$(DESTDIR) modules_install
 
 clean:
 	$(MAKE) $(MAKE_FLAGS) M=`pwd` clean
