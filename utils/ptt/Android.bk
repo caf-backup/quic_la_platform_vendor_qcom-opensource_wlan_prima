@@ -20,7 +20,7 @@ LOCAL_C_INCLUDES:= \
 	$(LOCAL_PATH)/../../../diag/include \
 	$(LOCAL_PATH)/../../../diag/src
 
-LOCAL_C_INCLUDES += vendor/qcom-proprietary/common/inc
+LOCAL_C_INCLUDES += vendor/qcom/proprietary/common/inc
 
 
 LOCAL_SHARED_LIBRARIES := \
