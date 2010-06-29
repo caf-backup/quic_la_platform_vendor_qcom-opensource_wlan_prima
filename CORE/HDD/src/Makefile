@@ -1,4 +1,4 @@
-KERNEL_DIR ?= ../../../../../../kernel
+KERNEL_DIR ?= ../../../../../../../kernel
 KERNEL_OUT ?= ../out/target/product/$(TARGET_PRODUCT)/obj/KERNEL_OBJ
 
 TOOLCHAIN_PREFIX ?= arm-eabi-
@@ -17,8 +17,8 @@ BUILD_FTM_DRIVER := 0
 KERNEL_INC := ./include/linux
 
 #WLAN root directory
-WLAN_DIR := ../vendor/qcom-proprietary/wlan/CORE
-SAL_EXTERNAL_DIR := ../vendor/qcom-proprietary/wlan/external
+WLAN_DIR := ../vendor/qcom/proprietary/wlan/CORE
+SAL_EXTERNAL_DIR := ../vendor/qcom/proprietary/wlan/external
 
 ############## HDD ###################
 HDD_INC := $(WLAN_DIR)/HDD/inc/
