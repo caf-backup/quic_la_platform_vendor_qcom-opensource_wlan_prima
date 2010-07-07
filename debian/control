@@ -1,0 +1,11 @@
+Source: wlan
+Section: unknown
+Priority: optional
+Maintainer: Linux Build <linux.build@quicinc.com>
+Build-Depends: debhelper (>= 7), linux-headers-2.6.32-1
+Standards-Version: 3.8.1
+
+Package: wlan
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: wlan modules for Linux
