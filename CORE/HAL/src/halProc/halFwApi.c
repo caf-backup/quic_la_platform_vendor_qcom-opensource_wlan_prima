@@ -338,7 +338,7 @@ eHalStatus halFW_CheckInitComplete(tHalHandle hHal, void *arg)
         // Is there any message received?
         if (writeCount > readCount) {
             // Parse the message type of the received message
-            status = halMbox_RecvMsg(hHal);
+            status = halMbox_RecvMsg(hHal, eANI_BOOLEAN_TRUE);
             break;
         }
 		// Introduce a wait of 20ms
@@ -364,9 +364,10 @@ eHalStatus halFW_CheckInitComplete(tHalHandle hHal, void *arg)
     else
     {
         //send Mbox msg to fw to do init cal
-#ifndef ANI_MANF_DIAG
-        halPhyCalUpdate(pMac);
-#endif
+        if(pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
+        {
+            halPhyCalUpdate(pMac);
+        }
         /*
            send Mbox msg to fw to inform halRateInfo table was updated.
            This is required, because firmware will look into halRateInfoTable in shared
@@ -407,8 +408,7 @@ eHalStatus halFW_SendScanStopMesg(tpAniSirGlobal pMac){
 
 
 
-eHalStatus halFW_SendConnectionStatusMesg(tpAniSirGlobal pMac, tSirLinkState linkStatus)
-{
+eHalStatus halFW_SendConnectionStatusMesg(tpAniSirGlobal pMac, tSirLinkState linkStatus){
     tANI_U8    uFwMesgType = QWLANFW_HOST2FW_MSG_TYPES_END + 1;
     union {
         Qwlanfw_ConnectionSetupStartType  sConnSetupStartNotify;
@@ -433,7 +433,7 @@ eHalStatus halFW_SendConnectionStatusMesg(tpAniSirGlobal pMac, tSirLinkState lin
         case eSIR_LINK_POSTASSOC_STATE:
             pMsg = (void *)&u.sConnSetupEndNotify;
             size = sizeof(u.sConnSetupEndNotify);
-            uFwMesgType = QWLANFW_HOST2FW_CONNECTION_SETUP_END;
+            uFwMesgType = QWLANFW_HOST2FW_CONNECTION_SETUP_END;                
             break;
 
         default:
@@ -452,7 +452,6 @@ eHalStatus halFW_SendConnectionStatusMesg(tpAniSirGlobal pMac, tSirLinkState lin
 
         }
     }
-
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -610,11 +609,10 @@ eHalStatus halFW_UpdateSystemConfig(tpAniSirGlobal pMac,
  *      eHAL_STATUS_FAILURE
  */
 /*  */
-eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void *pFwMsg, tANI_U8* bufConsumed)
+eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void *pFwMsg)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tMBoxMsgHdr *pMsgHdr = (tMBoxMsgHdr*)pFwMsg;
-    *bufConsumed = TRUE;
 
     // Handle the type of FW message received
     switch(pMsgHdr->MsgType) {
@@ -663,13 +661,9 @@ eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void *pFwMsg, tANI_U8* bu
 
         case QWLANFW_FW2HOST_CAL_UPDATE_RSP:
         case QWLANFW_FW2HOST_SET_CHAIN_SELECT_RSP:
+        case QWLANFW_FW2HOST_SET_CHANNEL_RSP:
            status = halPhy_HandlerFwRspMsg(pMac, pFwMsg);
            break;
-
-        case QWLANFW_FW2HOST_SET_CHANNEL_RSP:
-            status = halFw_PostFwRspMsg(pMac, pFwMsg);
-            *bufConsumed = (status == eHAL_STATUS_SUCCESS) ? FALSE : TRUE;
-            break;
 
         default:
             status = eHAL_STATUS_FW_MSG_INVALID;

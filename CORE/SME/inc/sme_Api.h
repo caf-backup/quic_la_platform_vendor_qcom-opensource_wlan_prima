@@ -471,32 +471,35 @@ eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tPmkidCacheInfo *pPMKIDCache,
                                   tANI_U32 numItems );
 
 /* ---------------------------------------------------------------------------
-    \fn sme_RoamGetWpaRsnReqIE
-    \brief a wrapper function to request CSR to return the WPA or RSN IE CSR 
+    \fn sme_RoamGetSecurityReqIE
+    \brief a wrapper function to request CSR to return the WPA or RSN or WAPI IE CSR
            passes to PE to JOIN request or START_BSS request
+    This is a synchronuous call.
     \param pLen - caller allocated memory that has the length of pBuf as input. 
                   Upon returned, *pLen has the needed or IE length in pBuf.
     \param pBuf - Caller allocated memory that contain the IE field, if any, 
                   upon return
+    \param secType - Specifies whether looking for WPA/WPA2/WAPI IE                  
     \return eHalStatus - when fail, it usually means the buffer allocated is not 
                          big enough
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetWpaRsnReqIE(tHalHandle hHal, tANI_U32 *pLen, 
-                                  tANI_U8 *pBuf);
+eHalStatus sme_RoamGetSecurityReqIE(tHalHandle hHal, tANI_U32 *pLen,
+                                  tANI_U8 *pBuf, eCsrSecurityType secType);
 
 /* ---------------------------------------------------------------------------
-    \fn sme_RoamGetWpaRsnRspIE
-    \brief a wrapper function to request CSR to return the WPA or RSN IE from 
+    \fn sme_RoamGetSecurityRspIE
+    \brief a wrapper function to request CSR to return the WPA or RSN or WAPI IE from 
            the beacon or probe rsp if connected
     \param pLen - caller allocated memory that has the length of pBuf as input. 
                   Upon returned, *pLen has the needed or IE length in pBuf.
     \param pBuf - Caller allocated memory that contain the IE field, if any, 
                   upon return
+    \param secType - Specifies whether looking for WPA/WPA2/WAPI IE                                       
     \return eHalStatus - when fail, it usually means the buffer allocated is not 
                          big enough
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetWpaRsnRspIE(tHalHandle hHal, tANI_U32 *pLen, 
-                                  tANI_U8 *pBuf);
+eHalStatus sme_RoamGetSecurityRspIE(tHalHandle hHal, tANI_U32 *pLen,
+                                  tANI_U8 *pBuf, eCsrSecurityType secType);
 
 
 /* ---------------------------------------------------------------------------
@@ -1180,6 +1183,17 @@ VOS_STATUS sme_BtcSetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig);
   ---------------------------------------------------------------------------*/
 VOS_STATUS sme_BtcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig);
 
+/* ---------------------------------------------------------------------------
+    \fn sme_SetCfgPrivacy
+    \brief  API to set configure privacy parameters
+    \param  hHal - The handle returned by macOpen.
+    \param  pProfile - Pointer CSR Roam profile.
+    \param  fPrivacy - This parameter indicates status of privacy 
+                            
+    \return void
+  ---------------------------------------------------------------------------*/
+void sme_SetCfgPrivacy(tHalHandle hHal, tCsrRoamProfile *pProfile, tANI_BOOLEAN fPrivacy);
+
 
 //The following are debug APIs to support direct read/write register/memory
 //They are placed in SME because HW cannot be access when in LOW_POWER state
@@ -1204,5 +1218,68 @@ VOS_STATUS sme_DbgWriteMemory(tHalHandle hHal, v_U32_t memAddr, v_U8_t *pBuf, v_
 
 //sme_GetFwVersion
 VOS_STATUS sme_GetFwVersion (tHalHandle hHal,FwVersionInfo *pVersion);
+
+#ifdef FEATURE_WLAN_WAPI
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamSetBKIDCache
+    \brief The SME API exposed to HDD to allow HDD to provde SME the BKID 
+    candidate list.
+    \param hHal - Handle to the HAL. The HAL handle is returned by the HAL after 
+    it is opened (by calling halOpen).
+    \param pBKIDCache - caller allocated buffer point to an array of tBkidCacheInfo
+    \param numItems - a variable that has the number of tBkidCacheInfo allocated 
+    when retruning, this is the number of items put into pBKIDCache
+    \return eHalStatus - when fail, it usually means the buffer allocated is not 
+    big enough and pNumItems has the number of tBkidCacheInfo.
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_RoamSetBKIDCache( tHalHandle hHal, tBkidCacheInfo *pBKIDCache,
+                                 tANI_U32 numItems );
+
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamGetBKIDCache
+    \brief The SME API exposed to HDD to allow HDD to request SME to return its 
+    BKID cache.
+    \param hHal - Handle to the HAL. The HAL handle is returned by the HAL after 
+    it is opened (by calling halOpen).
+    \param pNum - caller allocated memory that has the space of the number of 
+    tBkidCacheInfo as input. Upon returned, *pNum has the needed number of entries 
+    in SME cache.
+    \param pBkidCache - Caller allocated memory that contains BKID cache, if any, 
+    upon return
+    \return eHalStatus - when fail, it usually means the buffer allocated is not 
+    big enough.
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_RoamGetBKIDCache(tHalHandle hHal, tANI_U32 *pNum,
+                                tBkidCacheInfo *pBkidCache);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamGetNumBKIDCache
+    \brief The SME API exposed to HDD to allow HDD to request SME to return the 
+    number of BKID cache entries.
+    \param hHal - Handle to the HAL. The HAL handle is returned by the HAL after 
+    it is opened (by calling halOpen).
+    \return tANI_U32 - the number of BKID cache entries.
+  ---------------------------------------------------------------------------*/
+tANI_U32 sme_RoamGetNumBKIDCache(tHalHandle hHal);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_ScanGetBKIDCandidateList
+    \brief a wrapper function to return the BKID candidate list
+    \param pBkidList - caller allocated buffer point to an array of 
+                        tBkidCandidateInfo
+    \param pNumItems - pointer to a variable that has the number of 
+                       tBkidCandidateInfo allocated when retruning, this is 
+                       either the number needed or number of items put into 
+                       pPmkidList
+    \return eHalStatus - when fail, it usually means the buffer allocated is not 
+                         big enough and pNumItems
+    has the number of tBkidCandidateInfo.
+    \Note: pNumItems is a number of tBkidCandidateInfo, 
+           not sizeof(tBkidCandidateInfo) * something
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, 
+                                        tBkidCandidateInfo *pBkidList, 
+                                        tANI_U32 *pNumItems );
+#endif /* FEATURE_WLAN_WAPI */
 
 #endif //#if !defined( __SME_API_H )

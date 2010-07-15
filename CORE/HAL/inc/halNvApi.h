@@ -31,6 +31,7 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
 eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable);
 eHalStatus halBlankNv(tHalHandle hMac);
 void halByteSwapNvTable(tHalHandle hMac, eNvTable tableID, uNvTables *tableData);
+void halDumpNVtable(tHalHandle hMac, eNvTable tableID);
 
 #endif
 

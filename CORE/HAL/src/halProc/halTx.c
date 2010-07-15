@@ -76,6 +76,8 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
         return eHAL_STATUS_FAILURE;
     }
 
+    pMac->hal.TLParam.txMgmtFrameStatus = HAL_TL_TX_FAILURE;
+
     if(  (vosStatus = WLANTL_TxMgmtFrm(pVosGCtx, (vos_pkt_t *)pFrmBuf, frmLen, 
                 ucTypeSubType, tid, 
                 halTxComplete, NULL, 0)) != VOS_STATUS_SUCCESS) {
@@ -84,8 +86,6 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
         halTxComplete(pVosGCtx, (vos_pkt_t *)pFrmBuf, vosStatus);
         return eHAL_STATUS_FAILURE;
     }
-
-    pMac->hal.TLParam.txMgmtFrameStatus = HAL_TL_TX_FAILURE;
 
     // Wait for the event to be set by the TL, to get the response of TX 
     // complete, this event should be set by the Callback function called by TL

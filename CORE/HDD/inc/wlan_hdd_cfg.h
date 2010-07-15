@@ -312,7 +312,7 @@ typedef enum
 #define CFG_IBSS_BSSID_MAX                     "ffffffffffff"
 #define CFG_IBSS_BSSID_DEFAULT                 "000AF5040506"
 
-#define CFG_STA_MAC_ADDR_NAME                  "gStaMacAddr"
+#define CFG_STA_MAC_ADDR_NAME                  "NetworkAddress"
 #define CFG_STA_MAC_ADDR_MIN                   "000000000000"
 #define CFG_STA_MAC_ADDR_MAX                   "ffffffffffff"
 #define CFG_STA_MAC_ADDR_DEFAULT               "000AF5898989"
@@ -716,9 +716,9 @@ typedef enum
 #define CFG_QOS_WMM_INFRA_MIN_PHY_RATE_AC_VO_DEFAULT        (0x5B8D80)
 
 #define CFG_QOS_WMM_INFRA_SBA_AC_VO_NAME                   "InfraSbaAcVo"
-#define CFG_QOS_WMM_INFRA_SBA_AC_VO_MIN                     (0x0)
+#define CFG_QOS_WMM_INFRA_SBA_AC_VO_MIN                     (0x2001)
 #define CFG_QOS_WMM_INFRA_SBA_AC_VO_MAX                     (0xFFFF)
-#define CFG_QOS_WMM_INFRA_SBA_AC_VO_DEFAULT                 (0x2000)
+#define CFG_QOS_WMM_INFRA_SBA_AC_VO_DEFAULT                 (0x2001)
 
 /* default TSPEC parameters for AC_VI */
 #define CFG_QOS_WMM_INFRA_DIR_AC_VI_NAME                   "InfraDirAcVi"
@@ -742,9 +742,9 @@ typedef enum
 #define CFG_QOS_WMM_INFRA_MIN_PHY_RATE_AC_VI_DEFAULT        (0x5B8D80)
 
 #define CFG_QOS_WMM_INFRA_SBA_AC_VI_NAME                   "InfraSbaAcVi"
-#define CFG_QOS_WMM_INFRA_SBA_AC_VI_MIN                     (0x0)
+#define CFG_QOS_WMM_INFRA_SBA_AC_VI_MIN                     (0x2001)
 #define CFG_QOS_WMM_INFRA_SBA_AC_VI_MAX                     (0xFFFF)
-#define CFG_QOS_WMM_INFRA_SBA_AC_VI_DEFAULT                 (0x2000)
+#define CFG_QOS_WMM_INFRA_SBA_AC_VI_DEFAULT                 (0x2001)
 
 /* default TSPEC parameters for AC_BE*/
 #define CFG_QOS_WMM_INFRA_DIR_AC_BE_NAME                   "InfraDirAcBe"
@@ -768,9 +768,9 @@ typedef enum
 #define CFG_QOS_WMM_INFRA_MIN_PHY_RATE_AC_BE_DEFAULT        (0x5B8D80)
 
 #define CFG_QOS_WMM_INFRA_SBA_AC_BE_NAME                   "InfraSbaAcBe"
-#define CFG_QOS_WMM_INFRA_SBA_AC_BE_MIN                     (0x0)
+#define CFG_QOS_WMM_INFRA_SBA_AC_BE_MIN                     (0x2001)
 #define CFG_QOS_WMM_INFRA_SBA_AC_BE_MAX                     (0xFFFF)
-#define CFG_QOS_WMM_INFRA_SBA_AC_BE_DEFAULT                 (0x2000)
+#define CFG_QOS_WMM_INFRA_SBA_AC_BE_DEFAULT                 (0x2001)
 
 /* default TSPEC parameters for AC_Bk*/
 #define CFG_QOS_WMM_INFRA_DIR_AC_BK_NAME                   "InfraDirAcBk"
@@ -794,9 +794,9 @@ typedef enum
 #define CFG_QOS_WMM_INFRA_MIN_PHY_RATE_AC_BK_DEFAULT        (0x5B8D80)
 
 #define CFG_QOS_WMM_INFRA_SBA_AC_BK_NAME                   "InfraSbaAcBk"
-#define CFG_QOS_WMM_INFRA_SBA_AC_BK_MIN                     (0x0)
+#define CFG_QOS_WMM_INFRA_SBA_AC_BK_MIN                     (0x2001)
 #define CFG_QOS_WMM_INFRA_SBA_AC_BK_MAX                     (0xFFFF)
-#define CFG_QOS_WMM_INFRA_SBA_AC_BK_DEFAULT                 (0x2000)
+#define CFG_QOS_WMM_INFRA_SBA_AC_BK_DEFAULT                 (0x2001)
 
 // TL configuration
 #define CFG_TL_WFQ_BK_WEIGHT_NAME                           "WfqBkWeight"

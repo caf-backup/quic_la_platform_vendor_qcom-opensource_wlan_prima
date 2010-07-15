@@ -132,6 +132,59 @@ inline static void __printWMMParams(tpAniSirGlobal  pMac, tDot11fIEWMMParams *pW
 // Functions for populating "dot11f" style IEs
 
 
+// return: >= 0, the starting location of the IE in rsnIEdata inside tSirRSNie
+//         < 0, cannot find
+static int FindIELocation( tpAniSirGlobal pMac,
+                           tpSirRSNie pRsnIe,
+                           tANI_U8 EID)
+{
+    int idx, ieLen, bytesLeft;
+
+    // Here's what's going on: 'rsnIe' looks like this:
+
+    //     typedef struct sSirRSNie
+    //     {
+    //         tANI_U16       length;
+    //         tANI_U8        rsnIEdata[SIR_MAC_MAX_IE_LENGTH+2];
+    //     } tSirRSNie, *tpSirRSNie;
+
+    // other code records both the WPA & RSN IEs (including their EIDs &
+    // lengths) into the array 'rsnIEdata'.  We may have:
+
+    //     With WAPI support, there may be 3 IEs here
+    //     It can be only WPA IE, or only RSN IE or only WAPI IE
+    //     Or two or all three of them with no particular ordering
+
+    // The if/then/else statements that follow are here to figure out
+    // whether we have the WPA IE, and where it is if we *do* have it.
+
+    //Save the first IE length 
+    ieLen = pRsnIe->rsnIEdata[ 1 ] + 2;
+    idx = 0;
+    bytesLeft = pRsnIe->length;
+
+    while( 1 )
+    {
+        if ( EID == pRsnIe->rsnIEdata[ idx ] )
+        {
+            //Found it
+            return (idx);
+        }
+        else if ( EID != pRsnIe->rsnIEdata[ idx ] &&
+             // & if no more IE, 
+             bytesLeft <= (tANI_U16)( ieLen ) )
+        {
+            dot11fLog( pMac, LOG3, FL("No IE (%d) in FindIELocation.\n"), EID );
+            return (-1);
+        }
+        bytesLeft -= ieLen;
+        ieLen = pRsnIe->rsnIEdata[ idx + 1 ] + 2;
+        idx += ieLen;
+    }
+
+    return (-1);
+}
+
 
 tSirRetStatus
 PopulateDot11fCapabilities(tpAniSirGlobal         pMac,
@@ -961,68 +1014,27 @@ PopulateDot11fRSN(tpAniSirGlobal  pMac,
                   tpSirRSNie      pRsnIe,
                   tDot11fIERSN   *pDot11f)
 {
-    tANI_U32        status, idx;
+    tANI_U32        status;
+    int  idx;
 
     if ( pRsnIe->length )
     {
-        // Here's what's going on: 'rsnIe' looks like this:
-
-        //     typedef struct sSirRSNie
-        //     {
-        //         tANI_U16       length;
-        //         tANI_U8        rsnIEdata[SIR_MAC_MAX_IE_LENGTH+2];
-        //     } tSirRSNie, *tpSirRSNie;
-
-        // other code records both the WPA & RSN IEs (including their EIDs &
-        // lengths) into the array 'rsnIEdata'.  We may have:
-
-        //     1. The WPA IE only
-        //     2. The RSN IE only
-        //     3. The RSN IE followed by the WPA IE
-        //     4. The WPA IE followed by the RSA IE
-
-        // The if/then/else statements that follow are here to figure out
-        // whether we have the WPA IE, and where it is if we *do* have it.
-
-        // If the first IE isn't RSN...
-        if ( DOT11F_EID_RSN != pRsnIe->rsnIEdata[ 0 ] &&
-             // & if the first IE is the only IE...
-             pRsnIe->length == ( pRsnIe->rsnIEdata[ 1 ] + 2 ) )
+        if( 0 <= ( idx = FindIELocation( pMac, pRsnIe, DOT11F_EID_RSN ) ) )
         {
-            // Then we don't have the RSN IE:
-            dot11fLog( pMac, LOG3, FL("No RSN IE to populate in PopulateDot11fRSN.\n") );
-            return eSIR_SUCCESS;
-        }
-        // else, if the first IE *is* Only RSN or RSN followed by WPA IE...
-        else if ( DOT11F_EID_RSN == pRsnIe->rsnIEdata[ 0 ] )
-        {
-            idx = 0;
-        }
-        // otherwise, RSN must be the second IE
-        else
-        {
-            idx = pRsnIe->rsnIEdata[1] + 2;
-            if ( DOT11F_EID_RSN != pRsnIe->rsnIEdata[ idx ] )
+            status = dot11fUnpackIeRSN( pMac,
+                                        pRsnIe->rsnIEdata + idx + 2, //EID, length
+                                        pRsnIe->rsnIEdata[ idx + 1 ],
+                                        pDot11f );
+            if ( DOT11F_FAILED( status ) )
             {
-                dot11fLog( pMac, LOGE, FL("The second IE should be RSN!\n") );
-                return eSIR_FAILURE;
+                dot11fLog( pMac, LOGE, FL("Parse failure in PopulateDot11fRS"
+                                       "N (0x%08x).\n"),
+                        status );
+			    return eSIR_FAILURE;
             }
-        }
-
-        status = dot11fUnpackIeRSN( pMac,
-                                    pRsnIe->rsnIEdata + idx + 2, //EID, length
-                                    pRsnIe->rsnIEdata[ idx + 1 ],
-                                    pDot11f );
-        if ( DOT11F_FAILED( status ) )
-        {
-            dot11fLog( pMac, LOGE, FL("Parse failure in PopulateDot11fRS"
-                                   "N (0x%08x).\n"),
-                    status );
-			return eSIR_FAILURE;
-        }
-
-        dot11fLog( pMac, LOG2, FL("dot11fUnpackIeRSN returned 0x%08x in "
+       	    dot11fLog( pMac, LOG2, FL("dot11fUnpackIeRSN returned 0x%08x in "
                                "PopulateDot11fRSN.\n"), status );
+        }
 
     }
 
@@ -1033,65 +1045,82 @@ tSirRetStatus PopulateDot11fRSNOpaque( tpAniSirGlobal      pMac,
                                        tpSirRSNie          pRsnIe,
                                        tDot11fIERSNOpaque *pDot11f )
 {
-    tANI_U32 idx;
+    int idx;
 
     if ( pRsnIe->length )
     {
-        // Here's what's going on: 'rsnIe' looks like this:
-
-        //     typedef struct sSirRSNie
-        //     {
-        //         tANI_U16       length;
-        //         tANI_U8        rsnIEdata[SIR_MAC_MAX_IE_LENGTH+2];
-        //     } tSirRSNie, *tpSirRSNie;
-
-        // other code records both the WPA & RSN IEs (including their EIDs &
-        // lengths) into the array 'rsnIEdata'.  We may have:
-
-        //     1. The WPA IE only
-        //     2. The RSN IE only
-        //     3. The RSN IE followed by the WPA IE
-        //     4. The WPA IE followed by the RSA IE
-
-        // The if/then/else statements that follow are here to figure out
-        // whether we have the WPA IE, and where it is if we *do* have it.
-
-        // If the first IE isn't RSN...
-        if ( DOT11F_EID_RSN != pRsnIe->rsnIEdata[ 0 ] &&
-             // & if the first IE is the only IE...
-             pRsnIe->length == ( pRsnIe->rsnIEdata[ 1 ] + 2 ) )
+        if( 0 <= ( idx = FindIELocation( pMac, pRsnIe, DOT11F_EID_RSN ) ) )
         {
-            // Then we don't have the RSN IE:
-            dot11fLog( pMac, LOG3, FL("No RSN IE to populate in Popul"
-                                      "ateDot11fRSN.\n") );
-            return eSIR_SUCCESS;
+            pDot11f->present  = 1;
+            pDot11f->num_data = pRsnIe->rsnIEdata[ idx + 1 ];
+            palCopyMemory( pMac->hHdd, pDot11f->data,
+                           pRsnIe->rsnIEdata + idx + 2,    // EID, len
+                           pRsnIe->rsnIEdata[ idx + 1 ] );
         }
-        // else, if the first IE *is* Only RSN or RSN followed by WPA IE...
-        else if ( DOT11F_EID_RSN == pRsnIe->rsnIEdata[ 0 ] )
-        {
-            idx = 0;
-        }
-        // otherwise, RSN must be the second IE
-        else
-        {
-            idx = pRsnIe->rsnIEdata[1] + 2;
-            if ( DOT11F_EID_RSN != pRsnIe->rsnIEdata[ idx ] )
-            {
-                dot11fLog( pMac, LOGE, FL("The second IE should be RSN!\n") );
-                return eSIR_FAILURE;
-            }
-        }
-
-        pDot11f->present  = 1;
-        pDot11f->num_data = pRsnIe->rsnIEdata[ idx + 1 ];
-        palCopyMemory( pMac->hHdd, pDot11f->data,
-                       pRsnIe->rsnIEdata + idx + 2,    // EID, len
-                       pRsnIe->rsnIEdata[ idx + 1 ] );
     }
 
     return eSIR_SUCCESS;
 
 } // End PopulateDot11fRSNOpaque.
+
+
+
+#if defined(FEATURE_WLAN_WAPI)
+
+tSirRetStatus
+PopulateDot11fWAPI(tpAniSirGlobal  pMac,
+                  tpSirRSNie      pRsnIe,
+                  tDot11fIEWAPI   *pDot11f)
+{
+    tANI_U32        status;
+    int  idx;
+
+    if ( pRsnIe->length )
+    {
+        if( 0 <= ( idx = FindIELocation( pMac, pRsnIe, DOT11F_EID_WAPI ) ) )
+        {
+            status = dot11fUnpackIeWAPI( pMac,
+                                        pRsnIe->rsnIEdata + idx + 2, //EID, length
+                                        pRsnIe->rsnIEdata[ idx + 1 ],
+                                        pDot11f );
+            if ( DOT11F_FAILED( status ) )
+            {
+                dot11fLog( pMac, LOGE, FL("Parse failure in PopulateDot11fWAPI (0x%08x).\n"),
+                        status );
+			    return eSIR_FAILURE;
+            }
+    	    dot11fLog( pMac, LOG2, FL("dot11fUnpackIeRSN returned 0x%08x in "
+                               "PopulateDot11fWAPI.\n"), status );
+        }
+    }
+
+    return eSIR_SUCCESS;
+} // End PopulateDot11fWAPI.
+
+tSirRetStatus PopulateDot11fWAPIOpaque( tpAniSirGlobal      pMac,
+                                       tpSirRSNie          pRsnIe,
+                                       tDot11fIEWAPIOpaque *pDot11f )
+{
+    int idx;
+
+    if ( pRsnIe->length )
+    {
+        if( 0 <= ( idx = FindIELocation( pMac, pRsnIe, DOT11F_EID_WAPI ) ) )
+        {
+            pDot11f->present  = 1;
+            pDot11f->num_data = pRsnIe->rsnIEdata[ idx + 1 ];
+            palCopyMemory( pMac->hHdd, pDot11f->data,
+                           pRsnIe->rsnIEdata + idx + 2,    // EID, len
+                           pRsnIe->rsnIEdata[ idx + 1 ] );
+        }
+    }
+
+    return eSIR_SUCCESS;
+
+} // End PopulateDot11fWAPIOpaque.
+
+
+#endif //defined(FEATURE_WLAN_WAPI)
 
 void
 PopulateDot11fSSID(tpAniSirGlobal pMac,
@@ -1383,129 +1412,48 @@ PopulateDot11fWPA(tpAniSirGlobal  pMac,
                   tpSirRSNie      pRsnIe,
                   tDot11fIEWPA   *pDot11f)
 {
-    tANI_U32        status, idx;
+    tANI_U32        status;
+    int idx;
 
     if ( pRsnIe->length )
     {
-        // Here's what's going on: 'rsnIe' looks like this:
-
-        //     typedef struct sSirRSNie
-        //     {
-        //         tANI_U16       length;
-        //         tANI_U8        rsnIEdata[SIR_MAC_MAX_IE_LENGTH+2];
-        //     } tSirRSNie, *tpSirRSNie;
-
-        // other code records both the WPA & RSN IEs (including their EIDs &
-        // lengths) into the array 'rsnIEdata'.  We may have:
-
-        //     1. The WPA IE only
-        //     2. The RSN IE only
-        //     3. The RSN IE followed by the WPA IE
-        //     4. The WPA IE followed by the RSA IE
-
-        // The if/then/else statements that follow are here to figure out
-        // whether we have the WPA IE, and where it is if we *do* have it.
-
-        // If the first IE isn't WPA...
-        if ( DOT11F_EID_WPA != pRsnIe->rsnIEdata[ 0 ] &&
-             // & if the first IE is the only IE...
-             pRsnIe->length == ( pRsnIe->rsnIEdata[ 1 ] + 2 ) )
+        if( 0 <= ( idx = FindIELocation( pMac, pRsnIe, DOT11F_EID_WPA ) ) )
         {
-            // Then we don't have the WPA IE:
-            dot11fLog( pMac, LOG3, FL("No WPA IE to populate in PopulateDot11fWPA.\n") );
-            return eSIR_SUCCESS;
-        }
-        // else, if the first IE *is* Only WPA or WPA followed by RSN...
-        else if ( DOT11F_EID_WPA == pRsnIe->rsnIEdata[ 0 ] )
-        {
-            idx = 0;
-        }
-        // otherwise, WPA must be the second IE
-        else
-        {
-            idx = pRsnIe->rsnIEdata[1] + 2;
-            if ( DOT11F_EID_WPA != pRsnIe->rsnIEdata[ idx ] )
+            status = dot11fUnpackIeWPA( pMac,
+                                        pRsnIe->rsnIEdata + idx + 2 + 4,  // EID, length, OUI
+                                        pRsnIe->rsnIEdata[ idx + 1 ] - 4, // OUI
+                                        pDot11f );
+            if ( DOT11F_FAILED( status ) )
             {
-                dot11fLog( pMac, LOGE, FL("The second IE should be WPA!\n") );
+                dot11fLog( pMac, LOGE, FL("Parse failure in PopulateDot11fWP"
+                                       "A (0x%08x).\n"),
+                        status );
                 return eSIR_FAILURE;
             }
         }
-
-        status = dot11fUnpackIeWPA( pMac,
-                                    pRsnIe->rsnIEdata + idx + 2 + 4,  // EID, length, OUI
-                                    pRsnIe->rsnIEdata[ idx + 1 ] - 4, // OUI
-                                    pDot11f );
-        if ( DOT11F_FAILED( status ) )
-        {
-            dot11fLog( pMac, LOGE, FL("Parse failure in PopulateDot11fWP"
-                                   "A (0x%08x).\n"),
-                    status );
-            return eSIR_FAILURE;
-        }
-
     }
 
     return eSIR_SUCCESS;
 } // End PopulateDot11fWPA.
 
+
+
 tSirRetStatus PopulateDot11fWPAOpaque( tpAniSirGlobal      pMac,
                                        tpSirRSNie          pRsnIe,
                                        tDot11fIEWPAOpaque *pDot11f )
 {
-    tANI_U32 idx;
+    int idx;
 
     if ( pRsnIe->length )
     {
-        // Here's what's going on: 'rsnIe' looks like this:
-
-        //     typedef struct sSirRSNie
-        //     {
-        //         tANI_U16       length;
-        //         tANI_U8        rsnIEdata[SIR_MAC_MAX_IE_LENGTH+2];
-        //     } tSirRSNie, *tpSirRSNie;
-
-        // other code records both the WPA & RSN IEs (including their EIDs &
-        // lengths) into the array 'rsnIEdata'.  We may have:
-
-        //     1. The WPA IE only
-        //     2. The RSN IE only
-        //     3. The RSN IE followed by the WPA IE
-        //     4. The WPA IE followed by the RSA IE
-
-        // The if/then/else statements that follow are here to figure out
-        // whether we have the WPA IE, and where it is if we *do* have it.
-
-        // If the first IE isn't WPA...
-        if ( DOT11F_EID_WPA != pRsnIe->rsnIEdata[ 0 ] &&
-             // & if the first IE is the only IE...
-             pRsnIe->length == ( pRsnIe->rsnIEdata[ 1 ] + 2 ) )
+        if( 0 <= ( idx = FindIELocation( pMac, pRsnIe, DOT11F_EID_WPA ) ) )
         {
-            // Then we don't have the WPA IE:
-            dot11fLog( pMac, LOG3, FL("No WPA IE to populate in Popul"
-                                      "ateDot11fWPA.\n") );
-            return eSIR_SUCCESS;
+            pDot11f->present  = 1;
+            pDot11f->num_data = pRsnIe->rsnIEdata[ idx + 1 ] - 4;
+            palCopyMemory( pMac->hHdd, pDot11f->data,
+                           pRsnIe->rsnIEdata + idx + 2 + 4,    // EID, len, OUI
+                           pRsnIe->rsnIEdata[ idx + 1 ] - 4 ); // OUI
         }
-        // else, if the first IE *is* Only WPA or WPA followed by RSN...
-        else if ( DOT11F_EID_WPA == pRsnIe->rsnIEdata[ 0 ] )
-        {
-            idx = 0;
-        }
-        // otherwise, WPA must be the second IE
-        else
-        {
-            idx = pRsnIe->rsnIEdata[1] + 2;
-            if ( DOT11F_EID_WPA != pRsnIe->rsnIEdata[ idx ] )
-            {
-                dot11fLog( pMac, LOGE, FL("The second IE should be WPA!\n") );
-                return eSIR_FAILURE;
-            }
-        }
-
-        pDot11f->present  = 1;
-        pDot11f->num_data = pRsnIe->rsnIEdata[ idx + 1 ] - 4;
-        palCopyMemory( pMac->hHdd, pDot11f->data,
-                       pRsnIe->rsnIEdata + idx + 2 + 4,    // EID, len, OUI
-                       pRsnIe->rsnIEdata[ idx + 1 ] - 4 ); // OUI
     }
 
     return eSIR_SUCCESS;

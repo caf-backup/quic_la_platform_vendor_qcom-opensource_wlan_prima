@@ -19,6 +19,10 @@
 #include <linux/skbuff.h>
 #include <linux/etherdevice.h>
 
+#ifdef CONFIG_CFG80211
+#include <linux/wireless.h>
+#include <net/cfg80211.h>
+#endif
 
 /*--------------------------------------------------------------------------- 
   Preprocessor definitions and constants
@@ -162,7 +166,7 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    skb_list_node_t *pktNode = NULL;
    hdd_list_node_t *anchor = NULL;
    v_SIZE_t pktListSize = 0;
-   hdd_adapter_t* pAdapter = netdev_priv(dev);
+   hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
    v_BOOL_t granted;
 
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
@@ -181,7 +185,7 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
 
 #ifdef HDD_WMM_DEBUG
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
               "%s: Classified as ac %d up %d", __FUNCTION__, ac, up);
 #endif // HDD_WMM_DEBUG
 
@@ -198,7 +202,6 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
                  __FUNCTION__, ac );
 
       netif_stop_queue(dev);
-      netif_carrier_off(dev);
       pAdapter->isTxSuspended = VOS_TRUE;
       pAdapter->txSuspendedAc = ac;
       return NETDEV_TX_BUSY;
@@ -239,8 +242,8 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueued;
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueuedAC[ac];
 
-   //Make sure we have been admitted to this access category
-   if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessGranted))
+   //Make sure we have access to this access category
+   if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed))
    {
       granted = VOS_TRUE;
    }
@@ -264,8 +267,6 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          spin_lock(&pAdapter->wmm_tx_queue[ac].lock);
          status = hdd_list_remove_back( &pAdapter->wmm_tx_queue[ac], &anchor );
          spin_unlock(&pAdapter->wmm_tx_queue[ac].lock);
-         netif_stop_queue(dev);
-         netif_carrier_off(dev);
          ++pAdapter->stats.tx_dropped;
          ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
          ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
@@ -308,8 +309,9 @@ void hdd_tx_timeout(struct net_device *dev)
   ===========================================================================*/
 struct net_device_stats* hdd_stats(struct net_device *dev)
 {
-   hdd_adapter_t* priv = netdev_priv(dev);
-   return &priv->stats;
+   hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+   
+   return &pAdapter->stats;
 }
 
 
@@ -532,7 +534,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    ++pAdapter->hdd_stats.hddTxRxStats.txFetchedAC[ac];
 
 #ifdef HDD_WMM_DEBUG
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: AC %d passed by TL", __FUNCTION__, ac);
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: AC %d passed by TL", __FUNCTION__, ac);
 #endif // HDD_WMM_DEBUG
 
    // loop until we find an AC with packets
@@ -540,7 +542,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    while (1)
    {
       // has this AC been admitted?
-      if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessGranted))
+      if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed))
       {
          // do we have any packets pending in this AC?
          hdd_list_size( &pAdapter->wmm_tx_queue[ac], &size ); 
@@ -548,7 +550,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
          {
             // yes, so process it
 #ifdef HDD_WMM_DEBUG
-            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                        "%s: AC %d has packets pending", __FUNCTION__, ac);
 #endif // HDD_WMM_DEBUG
             break;
@@ -567,7 +569,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       {
          ++pAdapter->hdd_stats.hddTxRxStats.txFetchEmpty;
 #ifdef HDD_WMM_DEBUG
-         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
                     "%s: no packets pending", __FUNCTION__);
 #endif // HDD_WMM_DEBUG
          return VOS_STATUS_E_FAILURE;
@@ -680,8 +682,8 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                  "%s: TX queue re-enabled", __FUNCTION__);
       pAdapter->isTxSuspended = VOS_FALSE;
-      netif_carrier_on(pAdapter->dev);
       netif_start_queue(pAdapter->dev);
+      netif_wake_queue(pAdapter->dev);
    }    
 
    // We're giving the packet to TL so consider it transmitted from
@@ -700,7 +702,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
 
 
 #ifdef HDD_WMM_DEBUG
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: Valid VOS PKT returned to TL", __FUNCTION__);
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: Valid VOS PKT returned to TL", __FUNCTION__);
 #endif // HDD_WMM_DEBUG
 
    return status;

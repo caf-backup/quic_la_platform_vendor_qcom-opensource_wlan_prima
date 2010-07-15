@@ -30,7 +30,10 @@ DESCRIPTION
 
 when        who    what, where, why
 --------    ---    ----------------------------------------------------------
+02/19/10    bad     Fixed 802.11 to 802.3 ft issues with WAPI
+01/14/10    rnair   Fixed the byte order for the WAI packet type.
 01/08/10    lti     Added TL Data Caching 
+10/09/09    rnair   Add support for WAPI
 02/02/09    sch     Add Handoff support
 12/09/08    lti     Fixes for AMSS compilation 
 12/02/08    lti     Fix fo trigger frame generation 
@@ -91,6 +94,9 @@ when        who    what, where, why
 
 /*802.1x protocol type */
 #define WLANTL_LLC_8021X_TYPE            0x888E
+ 
+/*WAPI protocol type */
+#define WLANTL_LLC_WAI_TYPE              0x88b4
 
 /*Length offset inside the AMSDU sub-frame header*/
 #define WLANTL_AMSDU_SUBFRAME_LEN_OFFSET     12
@@ -294,12 +300,12 @@ typedef struct
   WLANTL_STAFuncType  pfnSTATbl[WLANTL_MAX_EVENT];
 } WLANTL_STAFsmEntryType;
 
-/* Receive in connected state - only EAPOL*/
+/* Receive in connected state - only EAPOL or WAI*/
 VOS_STATUS WLANTL_STARxConn( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
                              vos_pkt_t**   pvosDataBuff );
 
-/* Transmit in connected state - only EAPOL*/
+/* Transmit in connected state - only EAPOL or WAI*/
 VOS_STATUS WLANTL_STATxConn( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
                              vos_pkt_t**   pvosDataBuff );
@@ -347,10 +353,10 @@ STATIC const WLANTL_STAFsmEntryType tlSTAFsm[WLANTL_STA_MAX_STATE] =
 
   /* WLANTL_STA_CONNECTED */
   { {
-    WLANTL_STATxConn,      /* WLANTL_TX_EVENT - only EAPoL frames are allowed*/
+    WLANTL_STATxConn,      /* WLANTL_TX_EVENT - only EAPoL or WAI frames are allowed*/
     WLANTL_STATxConn,      /* WLANTL_TX_ON_UAPSD_EVENT - same as above; 
                               no distinction will be made for UAPSD*/
-    WLANTL_STARxConn,      /* WLANTL_RX_EVENT - only EAPoL frames can be rx*/
+    WLANTL_STARxConn,      /* WLANTL_RX_EVENT - only EAPoL or WAI frames can be rx*/
     WLANTL_STARxConn,      /* WLANTL_RX_ON_UAPSD_EVENT - same as above; 
                               no distinction will be made for UAPSD*/
   } },
@@ -1303,7 +1309,8 @@ WLANTL_Translate8023To80211Header
    IN
     pTLCb:            TL control block 
     ucStaId:          station ID 
-    ucHeaderLen:      Length of the header from BD 
+    ucHeaderLen:      Length of the header from BD    
+    ucActualHLen:	  Length of header including padding or any other trailers
     
    IN/OUT
     vosDataBuff:      vos data buffer, will contain the new header on output
@@ -1322,6 +1329,7 @@ WLANTL_Translate80211To8023Header
 (
   vos_pkt_t*      vosDataBuff,
   VOS_STATUS*     pvosStatus,
+  v_U16_t 		  usActualHLen,  
   v_U8_t          ucHeaderLen,
   WLANTL_CbType*  pTLCb,
   v_U8_t          ucSTAId

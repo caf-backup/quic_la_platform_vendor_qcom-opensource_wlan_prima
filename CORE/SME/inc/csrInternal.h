@@ -96,6 +96,7 @@ typedef enum
     eCsrSmeIssuedDisassocForHandoff, // will be issued by Handoff logic to disconect from current AP
     eCsrSmeIssuedAssocToSimilarAP, // will be issued by Handoff logic to join a new AP with same profile
     eCsrSmeIssuedIbssJoinFailure, // ibss join timer fired before any perr showed up, so shut down the network
+    eCsrForcedIbssLeave,
 }eCsrRoamReason;
 
 typedef enum
@@ -302,6 +303,7 @@ typedef struct tagSetKeyCmd
     tANI_U8 keyId;  // Kye index
     tANI_U8 keyLength;  //Number of bytes containing the key in pKey
     tANI_U8 Key[CSR_MAX_KEY_LEN];
+    tANI_U8 keyRsc[CSR_MAX_RSC_LEN];
 } tSetKeyCmd;
 
 typedef struct tahRemoveKeyCmd
@@ -451,6 +453,10 @@ typedef struct tagCsrScanStruct
     tANI_BOOLEAN fCancelIdleScan;
     tANI_U16 NumPmkidCandidate;
     tPmkidCandidateInfo PmkidCandidateInfo[CSR_MAX_PMKID_ALLOWED];
+#ifdef FEATURE_WLAN_WAPI
+    tANI_U16 NumBkidCandidate;
+    tBkidCandidateInfo BkidCandidateInfo[CSR_MAX_BKID_ALLOWED];
+#endif /* FEATURE_WLAN_WAPI */
     tANI_U8 numBGScanChannel;   //number of valid channels in the bgScanChannelList
     tANI_U8 bgScanChannelList[WNI_CFG_BG_SCAN_CHANNEL_LIST_LEN];
     //the ChannelInfo member is not used in this structure.
@@ -459,6 +465,7 @@ typedef struct tagCsrScanStruct
     tANI_BOOLEAN fRestartIdleScan;
     tANI_U32 nIdleScanTimeGap;  //the time since last trying to trigger idle scan
     tCsrOsChannelMask osScanChannelMask;//keep a track of channels to be scnned while in traffic condition
+    tANI_U16 nBssLimit; //the maximum number of BSS in scan cache
 }tCsrScanStruct;
 
 
@@ -621,6 +628,10 @@ typedef struct tagCsrRoamStruct
     tBssConfigParam curRoamingConfig;
     tANI_U16 NumPmkidCache;
     tPmkidCacheInfo PmkidCacheInfo[CSR_MAX_PMKID_ALLOWED];
+#ifdef FEATURE_WLAN_WAPI
+    tANI_U16 NumBkidCache;
+    tBkidCacheInfo BkidCacheInfo[CSR_MAX_BKID_ALLOWED];
+#endif /* FEATURE_WLAN_WAPI */
     tANI_U8 cJoinAttemps;
     //This may or may not have the up-to-date valid channel list
     //It is used to get WNI_CFG_VALID_CHANNEL_LIST and not allocate memory all the time
@@ -635,6 +646,12 @@ typedef struct tagCsrRoamStruct
     tANI_U8 *pWpaRsnReqIE; //this contain the WPA/RSN IE in assoc request or the one sent in beacon (IBSS)
     tANI_U32 nWpaRsnRspIeLength;    //the byte count for pWpaRsnRspIE
     tANI_U8 *pWpaRsnRspIE;  //this contain the WPA/RSN IE in beacon/probe rsp
+#ifdef FEATURE_WLAN_WAPI
+    tANI_U32 nWapiReqIeLength;   //the byte count of pWapiReqIE;
+    tANI_U8 *pWapiReqIE; //this contain the WAPI IE in assoc request or the one sent in beacon (IBSS)
+    tANI_U32 nWapiRspIeLength;    //the byte count for pWapiRspIE
+    tANI_U8 *pWapiRspIE;  //this contain the WAPI IE in beacon/probe rsp
+#endif /* FEATURE_WLAN_WAPI */
     tANI_TIMESTAMP roamingStartTime;    //in units of 10ms
     eCsrRoamingReason roamingReason;
     tANI_BOOLEAN fCancelRoaming;
@@ -847,6 +864,6 @@ tANI_BOOLEAN csrIsConnStateInfra( tpAniSirGlobal pMac );
 tANI_BOOLEAN csrIsConnStateIbss( tpAniSirGlobal pMac );
 //check if we are connected
 tANI_BOOLEAN csrIsConnStateConnected( tpAniSirGlobal pMac );
-
+void csrSetCfgPrivacy( tpAniSirGlobal pMac, tCsrRoamProfile *pProfile, tANI_BOOLEAN fPrivacy );
 #endif
 

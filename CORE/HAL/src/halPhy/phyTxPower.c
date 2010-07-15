@@ -162,10 +162,8 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
         return (retVal);
     }
 
-#ifndef ANI_MANF_DIAG
     //halPhyGetPowerForRate relies on this to use the limits, even for the production build.
-    pMac->hphy.phy.test.testTxGainIndexSource = REGULATORY_POWER_LIMITS;
-#endif
+    //pMac->hphy.phy.test.testTxGainIndexSource = REGULATORY_POWER_LIMITS;
 
     return (retVal);
 }
@@ -265,16 +263,12 @@ eHalStatus phyTxPowerConfig(tpAniSirGlobal pMac, tTpcConfig *tpcConfig, tANI_U8 
                 //we don't have a closed-loop configuration in NV - new device - keep power control as open loop
                 pMac->hphy.phy.test.testTpcClosedLoop = eANI_BOOLEAN_FALSE;
 
-#if !defined(ANI_MANF_DIAG)
                 phyLog(pMac, LOGE, "ERROR: No CLPC Calibration in NV\n");
-#endif
             }
             else
             {
                 //we have a closed-loop configuration in NV - close the power control loop
-#if !defined(ANI_MANF_DIAG)
-                pMac->hphy.phy.test.testTpcClosedLoop = eANI_BOOLEAN_TRUE;
-#endif
+                //pMac->hphy.phy.test.testTpcClosedLoop = eANI_BOOLEAN_TRUE;
             }
         }
     }
@@ -310,7 +304,7 @@ static void InterpolateCalPowerPoints(tpAniSirGlobal pMac, tANI_U32 tpcChannel, 
     tANI_U32 chain;
     tTpcCaldPowerPoint *lastPoint;
     tPhyTxPowerBand *band;
-    tANI_U8 highestTxChain =  PHY_MAX_TX_CHAINS; //halPhyQueryNumTxChains(pMac->hphy.phy.cfgChains);
+    tANI_U8 highestTxChain = PHY_MAX_TX_CHAINS; //halPhyQueryNumTxChains(pMac->hphy.phy.cfgChains);
 
     band = &pMac->hphy.phyTPC.combinedBands;
 
@@ -321,11 +315,12 @@ static void InterpolateCalPowerPoints(tpAniSirGlobal pMac, tANI_U32 tpcChannel, 
     for (chain = PHY_TX_CHAIN_0; chain < highestTxChain; chain++)
     {
         tANI_U8 point;
-        tPowerDetect x1, x2;
-        tTpcLutValue y1, y2;
+        tPowerDetect x1, x2, x1p0, x2p0;
+        tTpcLutValue y1, y2, y1p0, y2p0;
 
         {
             //fill the power LUT values
+#if 0
             for (point = 0; point <= band->pwrSampled[tpcChannel].empirical[chain][0].pwrDetAdc; point++)
             {
                 //fill all values preceding the first cal point with the adjusted value from the first point
@@ -334,7 +329,7 @@ static void InterpolateCalPowerPoints(tpAniSirGlobal pMac, tANI_U32 tpcChannel, 
                 //                                 band->pwrSampled[tpcChannel].empirical[chain][0].extraPrecision.hi8_adjustedPwrDet
                 //                                );
             }
-
+#endif
             //for (calPoint = 0; calPoint < (band->numTpcCalPointsPerFreq - 1); calPoint++)
             for (calPoint = 0; calPoint < (MAX_TPC_CAL_POINTS - 1); calPoint++)
             {
@@ -353,6 +348,15 @@ static void InterpolateCalPowerPoints(tpAniSirGlobal pMac, tANI_U32 tpcChannel, 
                 y2 = band->pwrSampled[tpcChannel].empirical[chain][calPoint + 1].adjustedPwrDet;
 
                 assert(x2 >= x1);
+
+                //store the first two calpoint data
+                if(calPoint == 0)
+                {
+                    x1p0 = x1;
+                    x2p0 = x2;
+                    y1p0 = y1;
+                    y2p0 = y2;
+                }
 
                 band->pwrInterp[tpcChannel][chain][x1] = y1;
                 band->pwrInterp[tpcChannel][chain][x2] = y2;
@@ -383,6 +387,14 @@ static void InterpolateCalPowerPoints(tpAniSirGlobal pMac, tANI_U32 tpcChannel, 
 
                 //GET_FULL_PRECISION_TPC_LUT_VALUE(lastPoint->adjustedPwrDet, lastPoint->extraPrecision.hi8_adjustedPwrDet);
             }
+
+            //fill the power LUT values
+            for (point = 0; point <= band->pwrSampled[tpcChannel].empirical[chain][0].pwrDetAdc; point++)
+            {
+                //fill all values preceding the first cal point with the same slope of the first two cal points
+                tANI_S32 interpPADC = InterpolateBetweenPoints(x1p0, y1p0, x2p0, y2p0, point);
+                band->pwrInterp[tpcChannel][chain][point] = (tTpcLutValue)((interpPADC < 0) ? 0 : interpPADC);
+            }
         }
     }
 }
@@ -402,23 +414,16 @@ eHalStatus phySetTxPower(tpAniSirGlobal pMac, tANI_U32 freq, eRfSubBand bandCfg)
     assert(band != NULL);
 
     if (pMac->hphy.phyTPC.pwrCfgPresent == eANI_BOOLEAN_FALSE)
-#if !defined(ANI_MANF_DIAG) || defined(ANI_DVT_DEBUG)
     {
-        //no tx power configuration - see corresponding logic in halPhyGetPowerForRate
-        if (pMac->hphy.phy.test.testDisableSpiAccess == eANI_BOOLEAN_FALSE)
+        if(pMac->gDriverType == eDRIVER_TYPE_MFG)
         {
-            return(eHAL_STATUS_FAILURE);   //for non-mfg drivers, we want to fail here because a TPC config is needed
+            return(eHAL_STATUS_SUCCESS);   //for the eDRIVER_TYPE_MFG driver, we want to continue even if the TPC cal is not configured
         }
         else
         {
-            return(eHAL_STATUS_SUCCESS);   // non-RF capable boards can be allowed to continue
+            return(eHAL_STATUS_FAILURE);   //for non-mfg drivers, we want to fail here because a TPC config is needed
         }
     }
-#else
-    {
-        return(eHAL_STATUS_SUCCESS);   //for the ANI_MANF_DIAG driver, we want to continue even if the TPC cal is not configured
-    }
-#endif
     else if ( //(band->numTpcCalFreqs < 2) ||
               (band->pwrInterp == NULL) ||
               (band->pwrSampled == NULL)
@@ -551,17 +556,13 @@ static void InterpolateCalChannels(tpAniSirGlobal pMac, tANI_U32 lowTpcChan, tAN
 
 
 
-
-
-//-1.25dBm adjustment to be made to compensate b rates, because we cal with OFDM rates
-#define B_RATE_CAL_ADJUSTMENT -125
-
 eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     eRfSubBand rfSubband;
     t2Decimal absPwrLimit_2dec;
     t2Decimal bRateLimitAdjustment = 0;
+    t2Decimal gnRateLimitAdjustment = 0;
 
     ePhyChanBondState cbState;
 
@@ -572,22 +573,6 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm a
     assert(curChan != INVALID_RF_CHANNEL);
 
 
-#ifdef ANI_MANF_DIAG
-    if (pMac->hphy.phy.test.testTxGainIndexSource == FORCE_POWER_TEMPLATE_INDEX)
-    {
-        pMac->hphy.phy.test.testLastPwrIndex = pMac->hphy.phy.test.testForcedTxGainIndex;
-        *retTemplateIndex = pMac->hphy.phy.test.testLastPwrIndex;
-        return(eHAL_STATUS_SUCCESS);
-    }
-    else if (pMac->hphy.phyTPC.pwrCfgPresent == eANI_BOOLEAN_FALSE)
-    {
-        //no CLPC data - must return
-        *retTemplateIndex = 0;
-        phyLog(pMac, LOGE, "ERROR: No Tx Power Config available to calculate power settings from!");
-        return(eHAL_STATUS_SUCCESS);   // non-RF capable boards can be allowed to continue
-    }
-
-#else
     if (pMac->hphy.phyTPC.pwrCfgPresent == eANI_BOOLEAN_FALSE)
     {
         *retTemplateIndex = 0;
@@ -602,7 +587,6 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm a
             return(eHAL_STATUS_SUCCESS);   // non-RF capable boards can be allowed to continue
         }
     }
-#endif
 
     if (pMac->hphy.phy.pwrOptimal == NULL)
     {
@@ -634,6 +618,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm a
         case RF_CHAN_14:
             assert(cbState == PHY_SINGLE_CHANNEL_CENTERED);
             bRateLimitAdjustment = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].bRatePowerOffset[curChan].reported;
+            gnRateLimitAdjustment = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].gnRatePowerOffset[curChan].reported;
             rfSubband = RF_SUBBAND_2_4_GHZ;
             break;
 
@@ -645,34 +630,6 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm a
 
 
     absPwrLimit_2dec = CONVERT_TO_2DECIMAL_PLACES(absPwrLimit);
-
-    if (rate > NUM_HAL_PHY_RATES)
-    {
-        assert(0);
-        return(eHAL_STATUS_FAILURE);
-    }
-    else
-    {
-        switch (rate)
-        {
-            // 11B
-            case HAL_PHY_RATE_11B_LONG_1_MBPS:
-            case HAL_PHY_RATE_11B_LONG_2_MBPS:
-            case HAL_PHY_RATE_11B_LONG_5_5_MBPS:
-            case HAL_PHY_RATE_11B_LONG_11_MBPS:
-            case HAL_PHY_RATE_11B_SHORT_2_MBPS:
-            case HAL_PHY_RATE_11B_SHORT_5_5_MBPS:
-            case HAL_PHY_RATE_11B_SHORT_11_MBPS:
-            //  SLR
-            case HAL_PHY_RATE_SLR_0_25_MBPS:
-            case HAL_PHY_RATE_SLR_0_5_MBPS:
-                absPwrLimit_2dec += bRateLimitAdjustment;
-                break;
-
-            default:
-                break;
-        }
-    }
 
     {
         //now determine power template value to use for the requested rate on the current channel
@@ -686,27 +643,6 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm a
 
             desiredPower = pMac->hphy.phy.pwrOptimal[rfSubband][rate].reported;
             absPwr = desiredPower;
-        }
-
-
-        switch (rate)
-        {
-            // need to compensate for calibration difference for 11b rates and SLR rates
-            // 11B
-            case HAL_PHY_RATE_11B_LONG_1_MBPS:
-            case HAL_PHY_RATE_11B_LONG_2_MBPS:
-            case HAL_PHY_RATE_11B_LONG_5_5_MBPS:
-            case HAL_PHY_RATE_11B_LONG_11_MBPS:
-            case HAL_PHY_RATE_11B_SHORT_2_MBPS:
-            case HAL_PHY_RATE_11B_SHORT_5_5_MBPS:
-            case HAL_PHY_RATE_11B_SHORT_11_MBPS:
-            //  SLR
-            case HAL_PHY_RATE_SLR_0_25_MBPS:
-            case HAL_PHY_RATE_SLR_0_5_MBPS:
-                absPwr += B_RATE_CAL_ADJUSTMENT;
-                break;
-            default:
-                break;
         }
 
 
@@ -748,27 +684,82 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm a
         {
             absPwr = 0;
         }
-        else
-#ifdef ANI_MANF_DIAG
+        else if (absPwr > absPwrLimit_2dec) //now we have absolute powers comparable for a single tx chain
+        {
+            //limit power to regulatory domain
+            absPwr = absPwrLimit_2dec;
+        }
+
+        if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+        {
             if (pMac->hphy.phy.test.testTxGainIndexSource == FIXED_POWER_DBM)
-        {
-            absPwr = pMac->hphy.phy.test.testForcedTxPower;   //override power per rate setting
-            //for fixed power selection, we do not want regulatory limits to apply
-            //they are mutually exclusive
-        }
-        else if (pMac->hphy.phy.test.testTxGainIndexSource == REGULATORY_POWER_LIMITS)
-        {
-#endif
-            //now we have absolute powers comparable for a single tx chain
-            if (absPwr > absPwrLimit_2dec)
             {
-                //limit power to regulatory domain
-                absPwr = absPwrLimit_2dec;
+                absPwr = pMac->hphy.phy.test.testForcedTxPower;   //override power per rate setting
+                //for fixed power selection, we do not want regulatory limits to apply
+                //they are mutually exclusive
             }
-#ifdef ANI_MANF_DIAG
         }
-        //else if (pMac->hphy.phy.test.testTxGainIndexSource == RATE_POWER_NON_LIMITED) //implied
-#endif
+
+        //adjust the power offsets
+        {
+            if (rate > NUM_HAL_PHY_RATES)
+            {
+                assert(0);
+                return(eHAL_STATUS_FAILURE);
+            }
+            else
+            {
+                switch (rate)
+                {
+                    // 11B
+                    case HAL_PHY_RATE_11B_LONG_1_MBPS:
+                    case HAL_PHY_RATE_11B_LONG_2_MBPS:
+                    case HAL_PHY_RATE_11B_LONG_5_5_MBPS:
+                    case HAL_PHY_RATE_11B_LONG_11_MBPS:
+                    case HAL_PHY_RATE_11B_SHORT_2_MBPS:
+                    case HAL_PHY_RATE_11B_SHORT_5_5_MBPS:
+                    case HAL_PHY_RATE_11B_SHORT_11_MBPS:
+                    //  SLR
+                    case HAL_PHY_RATE_SLR_0_25_MBPS:
+                    case HAL_PHY_RATE_SLR_0_5_MBPS:
+                        absPwr += bRateLimitAdjustment;
+                        break;
+
+                    //11G 20MHz Rates
+                    case HAL_PHY_RATE_11A_6_MBPS:
+                    case HAL_PHY_RATE_11A_9_MBPS:
+                    case HAL_PHY_RATE_11A_12_MBPS:
+                    case HAL_PHY_RATE_11A_18_MBPS:
+                    case HAL_PHY_RATE_11A_24_MBPS:
+                    case HAL_PHY_RATE_11A_36_MBPS:
+                    case HAL_PHY_RATE_11A_48_MBPS:
+                    case HAL_PHY_RATE_11A_54_MBPS:
+                    //MCS Index #0-15 (20MHz)
+                    case HAL_PHY_RATE_MCS_1NSS_6_5_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_13_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_19_5_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_26_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_39_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_52_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_58_5_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_65_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_MM_SG_7_2_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_MM_SG_14_4_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_MM_SG_21_7_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_MM_SG_28_9_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_MM_SG_43_3_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_MM_SG_57_8_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_MM_SG_65_MBPS:
+                    case HAL_PHY_RATE_MCS_1NSS_MM_SG_72_2_MBPS:
+                        absPwr += gnRateLimitAdjustment;
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+        }
+
         {
             //the calibrated absolute power range should be the same for both Tx chains
             // interpolate the absolute power range across frequencies
@@ -800,15 +791,16 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm a
 
                 relPwr = (tPowerDetect)InterpolateBetweenPoints(x1, y1, x2, y2, x);
 
-#ifndef ANI_MANF_DIAG
-                //for production, make sure the commanded power is always greater than or equal to
-                //the minimum absPowerMeasured(i.e. for START_TPC_CHANNEL, tx chain0 and calpoint 0) during MTT
-                //If we do not put this restriction, then CLPC would not work
-                if(relPwr < pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][0].adjustedPwrDet)
+                if(pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
                 {
-                    relPwr = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][0].adjustedPwrDet;
+                    //for production, make sure the commanded power is always greater than or equal to
+                    //the minimum absPowerMeasured(i.e. for START_TPC_CHANNEL, tx chain0 and calpoint 0) during MTT
+                    //If we do not put this restriction, then CLPC would not work
+                    if(relPwr < pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][0].adjustedPwrDet)
+                    {
+                        relPwr = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][0].adjustedPwrDet;
+                    }
                 }
-#endif
             }
 
 
@@ -824,9 +816,10 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm a
                   );
 #endif
 
-#ifdef ANI_MANF_DIAG
-            pMac->hphy.phy.test.testLastPwrIndex = relPwr;
-#endif
+            if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+            {
+                pMac->hphy.phy.test.testLastPwrIndex = relPwr;
+            }
 
             *retTemplateIndex = relPwr;
             return(eHAL_STATUS_SUCCESS);
@@ -1183,7 +1176,7 @@ tPowerdBm halPhyGetRegDomainLimit(tHalHandle hHal, eHalPhyRates rate)
 */
 }
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 tPowerDetect phyGetTxPowerLutValForAbsPower(tpAniSirGlobal pMac, ePhyTxChains txChain, t2Decimal absPwr)
 {
     //return power template index corresponding to the forced dBm value

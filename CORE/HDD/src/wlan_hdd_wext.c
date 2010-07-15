@@ -33,10 +33,16 @@
 #include "dot11f.h"
 #include <wlan_hdd_wowl.h>
 #include <wlan_hdd_cfg.h>
+#include <wlan_hdd_wmm.h>
 #include <linux/earlysuspend.h>
 #include "wlan_hdd_power.h"
 #include "qwlan_version.h"
 #include <vos_power.h>
+
+#ifdef CONFIG_CFG80211
+#include <linux/wireless.h>
+#include <net/cfg80211.h>
+#endif
 
 #define WE_MAX_STR_LEN 1024
 
@@ -85,6 +91,12 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 #define WLAN_PRIV_SET_VAR_INT_GET_NONE   (SIOCIWFIRSTPRIV + 7)
 #define WE_LOG_DUMP_CMD      1
 #define MAX_VAR_ARGS         5			
+
+/* Private ioctls (with no sub-ioctls) */
+/* note that they must be odd so that they have "get" semantics */
+#define WLAN_PRIV_ADD_TSPEC (SIOCIWFIRSTPRIV +  9)
+#define WLAN_PRIV_DEL_TSPEC (SIOCIWFIRSTPRIV + 11)
+#define WLAN_PRIV_GET_TSPEC (SIOCIWFIRSTPRIV + 13)
 
 /* To Validate Channel against the Frequency and Vice-Versa */
 static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2}, 
@@ -196,7 +208,8 @@ void hdd_StatisticsCB( void *pStats, void *pContext )
    }
    
 }
-static void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result)
+
+void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result)
 {
    v_CONTEXT_t pVosContext;
    hdd_adapter_t *pAdapter;
@@ -213,13 +226,19 @@ static void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result)
    
    if (WNI_CFG_NEED_RESTART == result || WNI_CFG_NEED_RELOAD == result)
    {
+      VOS_STATUS vosStatus;
       pAdapter->conn_info.connState = eConnectionState_NotConnected;
       init_completion(&pAdapter->disconnect_comp_var);
-      sme_RoamDisconnect(halHandle, eCSR_DISCONNECT_REASON_UNSPECIFIED);
+      vosStatus = sme_RoamDisconnect(halHandle, eCSR_DISCONNECT_REASON_UNSPECIFIED);
+
+      if(VOS_STATUS_SUCCESS == vosStatus)
+          wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
+                     msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+
       sme_RoamConnect(halHandle,
-                    &(pWextState->roamProfile), 
-                     NULL, 
-                     &roamId); 
+                    &(pWextState->roamProfile),
+                     NULL,
+                     &roamId);
    }
    
    EXIT();
@@ -250,11 +269,10 @@ static int iw_set_mode(struct net_device *dev,
                              union iwreq_data *wrqu, char *extra)
 {
     hdd_wext_state_t         *pWextState;
-    hdd_adapter_t            *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tCsrRoamProfile          *pRoamProfile;
     eCsrRoamBssType          LastBSSType;
     eMib_dot11DesiredBssType connectedBssType;
-    extern v_BOOL_t hdd_connGetConnectedBssType( hdd_adapter_t *pAdapter, eMib_dot11DesiredBssType *pConnectedBssType);
     hdd_config_t *pConfig  = pAdapter->cfg_ini;
        
     ENTER();
@@ -299,9 +317,13 @@ static int iw_set_mode(struct net_device *dev,
         if ( hdd_connGetConnectedBssType( pAdapter, &connectedBssType ) ||
              ( eCSR_BSS_TYPE_START_IBSS == LastBSSType ) )
         {
+            VOS_STATUS vosStatus;
             // need to issue a disconnect to CSR.
             init_completion(&pAdapter->disconnect_comp_var);
-            sme_RoamDisconnect( pAdapter->hHal, eCSR_DISCONNECT_REASON_UNSPECIFIED );
+            vosStatus = sme_RoamDisconnect( pAdapter->hHal, eCSR_DISCONNECT_REASON_UNSPECIFIED );
+            if(VOS_STATUS_SUCCESS == vosStatus)
+                 wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
+                     msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
         }
     }
 
@@ -318,10 +340,11 @@ static int iw_get_mode(struct net_device *dev,
 {
 
     hdd_wext_state_t *pWextState;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
     hddLog (LOG1, "In %s",__FUNCTION__);
       
-    pWextState = ((hdd_adapter_t  *) (netdev_priv(dev)))->pWextState; 
+    pWextState = pAdapter->pWextState;
     if (pWextState == NULL)
     {
         hddLog (LOGE, "%s ERROR: Data Storage Corruption\n", __FUNCTION__);
@@ -359,7 +382,7 @@ static int iw_set_freq(struct net_device *dev, struct iw_request_info *info,
     v_U32_t status = 0;
 
     hdd_wext_state_t *pWextState; 
-    hdd_adapter_t   *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle hHal = pAdapter->hHal;
     tCsrRoamProfile * pRoamProfile;
     ENTER();
@@ -445,7 +468,7 @@ static int iw_get_freq(struct net_device *dev, struct iw_request_info *info,
              struct iw_freq *fwrq, char *extra)
 {    
    v_U32_t status = 0,channel;
-   hdd_adapter_t *pAdapter = (hdd_adapter_t  *)(netdev_priv(dev));
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    tHalHandle hHal;
    hdd_wext_state_t *pWextState; 
    tCsrRoamProfile * pRoamProfile;
@@ -489,7 +512,7 @@ static int iw_get_tx_power(struct net_device *dev,
   VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
   eHalStatus status = eHAL_STATUS_SUCCESS;
   hdd_wext_state_t *pWextState;
-  hdd_adapter_t *pAdapter = (netdev_priv(dev));
+  hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
   
   ENTER();
   
@@ -539,8 +562,8 @@ static int iw_set_tx_power(struct net_device *dev,
                            struct iw_request_info *info,
                            union iwreq_data *wrqu, char *extra)
 {
-    hdd_adapter_t  *Adapter = (netdev_priv(dev));
-    tHalHandle hHal = Adapter->hHal;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    tHalHandle hHal = pAdapter->hHal;
 
     ENTER();
       
@@ -561,7 +584,7 @@ static int iw_get_bitrate(struct net_device *dev,
    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
    eHalStatus status = eHAL_STATUS_SUCCESS;
    hdd_wext_state_t *pWextState;
-   hdd_adapter_t *pAdapter = (netdev_priv(dev));
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    
    ENTER();
    
@@ -610,7 +633,7 @@ static int iw_set_bitrate(struct net_device *dev,
                           union iwreq_data *wrqu, 
                           char *extra)
 {
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_wext_state_t *pWextState;
     v_U8_t supp_rates[WNI_CFG_SUPPORTED_RATES_11A_LEN];
     v_U32_t a_len = WNI_CFG_SUPPORTED_RATES_11A_LEN;
@@ -679,7 +702,7 @@ static int iw_set_genie(struct net_device *dev,
         union iwreq_data *wrqu, 
         char *extra)
 {
-   hdd_adapter_t *pAdapter = (netdev_priv(dev)); 
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_wext_state_t *pWextState = pAdapter->pWextState;
    u_int8_t *genie = wrqu->data.pointer;
    u_int8_t *pos;
@@ -860,7 +883,7 @@ static int iw_get_genie(struct net_device *dev,
                         char *extra)
 {
     hdd_wext_state_t *pWextState;
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     eHalStatus status;
     v_U32_t length;
     v_U8_t genIeBytes[DOT11F_IE_RSN_MAX_LEN];
@@ -884,9 +907,8 @@ static int iw_get_genie(struct net_device *dev,
     }
    
     // Actually retrieve the RSN IE from CSR.  (We previously sent it down in the CSR Roam Profile.)
-    status = csrRoamGetWpaRsnReqIE(((hdd_adapter_t  *) (netdev_priv(dev)))->hHal,  
-                                   &length,
-                                   genIeBytes);
+    status = sme_RoamGetSecurityReqIE(pAdapter->hHal, &length, genIeBytes, eCSR_SECURITY_TYPE_WPA);
+    
     wrqu->data.length = VOS_MIN((u_int16_t) length, DOT11F_IE_RSN_MAX_LEN);
 
     vos_mem_copy( wrqu->data.pointer, (v_VOID_t*)genIeBytes, wrqu->data.length);
@@ -902,7 +924,7 @@ static int iw_get_encode(struct net_device *dev,
                        struct iw_request_info *info,
                        struct iw_point *dwrq, char *extra)
 {
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_wext_state_t *pWextState = pAdapter->pWextState;
     tCsrRoamProfile *pRoamProfile = &(pWextState->roamProfile);
     int keyId;
@@ -975,7 +997,7 @@ static int iw_get_rts_threshold(struct net_device *dev,
             struct iw_request_info *info,
             union iwreq_data *wrqu, char *extra)
 {
-   hdd_adapter_t *pAdapter = (netdev_priv(dev));
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    tHalHandle hHal = pAdapter->hHal;
    v_U32_t threshold = 0;
    
@@ -998,8 +1020,8 @@ static int iw_set_rts_threshold(struct net_device *dev,
                                 struct iw_request_info *info,
                                 union iwreq_data *wrqu, char *extra)
 {
-    hdd_adapter_t  *Adapter = (netdev_priv(dev));
-    tHalHandle hHal = Adapter->hHal;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    tHalHandle hHal = pAdapter->hHal;
 
     ENTER();
    
@@ -1022,8 +1044,8 @@ static int iw_get_frag_threshold(struct net_device *dev,
                                  struct iw_request_info *info,
                                  union iwreq_data *wrqu, char *extra)
 {
-    hdd_adapter_t  *Adapter = (netdev_priv(dev));
-    tHalHandle hHal = Adapter->hHal;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    tHalHandle hHal = pAdapter->hHal;
     v_U32_t threshold = 0;
 
     ENTER();
@@ -1042,7 +1064,7 @@ static int iw_set_frag_threshold(struct net_device *dev,
              struct iw_request_info *info,
                  union iwreq_data *wrqu, char *extra)
 {
-   hdd_adapter_t *pAdapter = (netdev_priv(dev));
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    tHalHandle hHal = pAdapter->hHal;
    
    ENTER();   
@@ -1081,7 +1103,7 @@ static int iw_set_power_mode(struct net_device *dev,
 static int iw_get_range(struct net_device *dev, struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-   hdd_adapter_t *pAdapter = (netdev_priv(dev));
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    tHalHandle hHal = pAdapter->hHal;
    struct iw_range *range = (struct iw_range *) extra;
    
@@ -1228,7 +1250,7 @@ static int iw_set_priv(struct net_device *dev,
                          struct iw_request_info *info,
                          union iwreq_data *wrqu, char *extra)
 {
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     char *cmd = (char*)wrqu->data.pointer;
     int ret=0;
     int status= VOS_STATUS_SUCCESS;
@@ -1530,7 +1552,7 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
                         union iwreq_data *wrqu,char *extra)
 
 {
-   hdd_adapter_t *pAdapter = (netdev_priv(dev));
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    hdd_wext_state_t  *pWextState =  pAdapter->pWextState;   
    struct iw_point *encoderq = &(wrqu->encoding);
    v_U32_t keyId;
@@ -1585,6 +1607,9 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
        {
            init_completion(&pAdapter->disconnect_comp_var);
            status = sme_RoamDisconnect( pAdapter->hHal,  eCSR_DISCONNECT_REASON_UNSPECIFIED );
+           if(VOS_STATUS_SUCCESS == status)
+                 wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
+                     msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
        }
    
        return status;
@@ -1669,7 +1694,7 @@ static int iw_get_encodeext(struct net_device *dev,
                struct iw_point *dwrq,
                char *extra)
 { 
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_wext_state_t *pWextState= pAdapter->pWextState;
     tCsrRoamProfile *pRoamProfile = &(pWextState->roamProfile);
     int keyId;
@@ -1745,7 +1770,7 @@ static int iw_set_encodeext(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_wext_state_t  *pWextState =  pAdapter->pWextState;   
     eHalStatus halStatus= eHAL_STATUS_SUCCESS;
 
@@ -1899,7 +1924,7 @@ static int iw_set_encodeext(struct net_device *dev,
 static int iw_set_retry(struct net_device *dev, struct iw_request_info *info,
            union iwreq_data *wrqu, char *extra)
 {
-   hdd_adapter_t *pAdapter = (netdev_priv(dev));
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    tHalHandle hHal = pAdapter->hHal;
    
    ENTER();
@@ -1945,7 +1970,7 @@ static int iw_set_retry(struct net_device *dev, struct iw_request_info *info,
 static int iw_get_retry(struct net_device *dev, struct iw_request_info *info,
            union iwreq_data *wrqu, char *extra)
 {
-   hdd_adapter_t *pAdapter = (netdev_priv(dev));
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    tHalHandle hHal = pAdapter->hHal;
    v_U32_t retry = 0;
    
@@ -1989,8 +2014,7 @@ static int iw_set_mlme(struct net_device *dev,
                        union iwreq_data *wrqu,
                        char *extra)
 {
-
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     struct iw_mlme *mlme = (struct iw_mlme *)extra;
     eHalStatus status = eHAL_STATUS_SUCCESS;
  
@@ -2011,12 +2035,12 @@ static int iw_set_mlme(struct net_device *dev,
                 init_completion(&pAdapter->disconnect_comp_var);
                 status = sme_RoamDisconnect( pAdapter->hHal, reason);
                 
-                //clear all the reason codes
-                if (status != 0)
-                {
-                    hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate : csrRoamDisconnect failure returned %d \n", __FUNCTION__, (int)mlme->cmd, (int)status );
-                }
-                
+                if(VOS_STATUS_SUCCESS == status)
+                    wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
+                        msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+                else
+                    hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate : csrRoamDisconnect failure returned %d \n",
+                       __FUNCTION__, (int)mlme->cmd, (int)status );
 
                netif_tx_disable(dev);
                netif_carrier_off(dev);
@@ -2042,8 +2066,7 @@ static int iw_set_mlme(struct net_device *dev,
 static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra)
 {
-    
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle hHal = pAdapter->hHal;
     int *value = (int *)extra;
     int sub_cmd = value[0];
@@ -2213,7 +2236,7 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
 static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra)
 {  
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));   
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int *value = (int *)extra;
     int ret = 0; /* sucess */
     
@@ -2298,7 +2321,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
     int sub_cmd = wrqu->data.flags;
     VOS_STATUS status;
     FwVersionInfo fwversion;    
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     v_U32_t reg_val;
 
     switch(sub_cmd)
@@ -2438,7 +2461,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
 static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra)
 {  
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));   
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int sub_cmd = wrqu->data.flags;
     int ret = 0; /* sucess */
     
@@ -2466,8 +2489,7 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
 static int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info,
         union iwreq_data *wrqu, char *extra)
 {   
-
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle hHal = pAdapter->hHal;
     int sub_cmd = wrqu->data.flags;
     int *value = (int*)wrqu->data.pointer;
@@ -2503,6 +2525,171 @@ static int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_inf
 
     return 0;
 }
+
+
+static int iw_add_tspec(struct net_device *dev, struct iw_request_info *info,
+                        union iwreq_data *wrqu, char *extra)
+{
+   hdd_adapter_t *pAdapter = (netdev_priv(dev));
+   hdd_wlan_wmm_status_e *pStatus = (hdd_wlan_wmm_status_e *)extra;
+   int params[HDD_WLAN_WMM_PARAM_COUNT];
+   sme_QosWmmTspecInfo tSpec;
+   v_U32_t handle;
+
+   // make sure the application is sufficiently priviledged
+   // note that the kernel will do this for "set" ioctls, but since
+   // this ioctl wants to return status to user space it must be
+   // defined as a "get" ioctl
+   if (!capable(CAP_NET_ADMIN))
+   {
+      return -EPERM;
+   }
+
+   // we must be associated in order to add a tspec
+   if (eConnectionState_Associated != pAdapter->conn_info.connState)
+   {
+      *pStatus = HDD_WLAN_WMM_STATUS_SETUP_FAILED_BAD_PARAM;
+      return 0;
+   }
+
+   // since we are defined to be a "get" ioctl, and since the number
+   // of params exceeds the number of params that wireless extensions
+   // will pass down in the iwreq_data, we must copy the "set" params
+   // from user space ourselves
+   if (copy_from_user(&params, wrqu->data.pointer, sizeof(params)))
+   {
+      // hmmm, can't get them
+      return -EIO;
+   }
+
+   // clear the tspec
+   memset(&tSpec, 0, sizeof(tSpec));
+
+   // validate the handle
+   handle = params[HDD_WLAN_WMM_PARAM_HANDLE];
+   if (HDD_WMM_HANDLE_IMPLICIT == handle)
+   {
+      // that one is reserved
+      *pStatus = HDD_WLAN_WMM_STATUS_SETUP_FAILED_BAD_PARAM;
+      return 0;
+   }
+
+   // validate the TID
+   if (params[HDD_WLAN_WMM_PARAM_TID] > 7)
+   {
+      // out of range
+      *pStatus = HDD_WLAN_WMM_STATUS_SETUP_FAILED_BAD_PARAM;
+      return 0;
+   }
+   tSpec.ts_info.tid = params[HDD_WLAN_WMM_PARAM_TID];
+
+   // validate the direction
+   switch (params[HDD_WLAN_WMM_PARAM_DIRECTION])
+   {
+   case HDD_WLAN_WMM_DIRECTION_UPSTREAM:
+      tSpec.ts_info.direction = SME_QOS_WMM_TS_DIR_UPLINK;
+      break;
+
+   case HDD_WLAN_WMM_DIRECTION_DOWNSTREAM:
+      tSpec.ts_info.direction = SME_QOS_WMM_TS_DIR_DOWNLINK;
+      break;
+
+   case HDD_WLAN_WMM_DIRECTION_BIDIRECTIONAL:
+      tSpec.ts_info.direction = SME_QOS_WMM_TS_DIR_BOTH;
+      break;
+
+   default:
+      // unknown
+      *pStatus = HDD_WLAN_WMM_STATUS_SETUP_FAILED_BAD_PARAM;
+      return 0;
+   }
+
+   // validate the user priority
+   if (params[HDD_WLAN_WMM_PARAM_USER_PRIORITY] >= SME_QOS_WMM_UP_MAX)
+   {
+      // out of range
+      *pStatus = HDD_WLAN_WMM_STATUS_SETUP_FAILED_BAD_PARAM;
+      return 0;
+   }
+   tSpec.ts_info.up = params[HDD_WLAN_WMM_PARAM_USER_PRIORITY];
+
+   tSpec.nominal_msdu_size = params[HDD_WLAN_WMM_PARAM_NOMINAL_MSDU_SIZE];
+   tSpec.maximum_msdu_size = params[HDD_WLAN_WMM_PARAM_MAXIMUM_MSDU_SIZE];
+   tSpec.min_data_rate = params[HDD_WLAN_WMM_PARAM_MINIMUM_DATA_RATE];
+   tSpec.mean_data_rate = params[HDD_WLAN_WMM_PARAM_MEAN_DATA_RATE];
+   tSpec.peak_data_rate = params[HDD_WLAN_WMM_PARAM_PEAK_DATA_RATE];
+   tSpec.max_burst_size = params[HDD_WLAN_WMM_PARAM_MAX_BURST_SIZE];
+   tSpec.min_phy_rate = params[HDD_WLAN_WMM_PARAM_MINIMUM_PHY_RATE];
+   tSpec.surplus_bw_allowance = params[HDD_WLAN_WMM_PARAM_SURPLUS_BANDWIDTH_ALLOWANCE];
+   tSpec.min_service_interval = params[HDD_WLAN_WMM_PARAM_SERVICE_INTERVAL];
+   tSpec.max_service_interval = params[HDD_WLAN_WMM_PARAM_SERVICE_INTERVAL];
+   tSpec.suspension_interval = params[HDD_WLAN_WMM_PARAM_SUSPENSION_INTERVAL];
+
+   *pStatus = hdd_wmm_addts(pAdapter, handle, &tSpec);
+   return 0;
+}
+
+
+static int iw_del_tspec(struct net_device *dev, struct iw_request_info *info,
+                        union iwreq_data *wrqu, char *extra)
+{
+   hdd_adapter_t *pAdapter = (netdev_priv(dev));
+   int *params = (int *)extra;
+   hdd_wlan_wmm_status_e *pStatus = (hdd_wlan_wmm_status_e *)extra;
+   v_U32_t handle;
+
+   // make sure the application is sufficiently priviledged
+   // note that the kernel will do this for "set" ioctls, but since
+   // this ioctl wants to return status to user space it must be
+   // defined as a "get" ioctl
+   if (!capable(CAP_NET_ADMIN))
+   {
+      return -EPERM;
+   }
+
+   // although we are defined to be a "get" ioctl, the params we require
+   // will fit in the iwreq_data, therefore unlike iw_add_tspec() there
+   // is no need to copy the params from user space
+
+   // validate the handle
+   handle = params[HDD_WLAN_WMM_PARAM_HANDLE];
+   if (HDD_WMM_HANDLE_IMPLICIT == handle)
+   {
+      // that one is reserved
+      *pStatus = HDD_WLAN_WMM_STATUS_SETUP_FAILED_BAD_PARAM;
+      return 0;
+   }
+
+   *pStatus = hdd_wmm_delts(pAdapter, handle);
+   return 0;
+}
+
+
+static int iw_get_tspec(struct net_device *dev, struct iw_request_info *info,
+                        union iwreq_data *wrqu, char *extra)
+{
+   hdd_adapter_t *pAdapter = (netdev_priv(dev));
+   int *params = (int *)extra;
+   hdd_wlan_wmm_status_e *pStatus = (hdd_wlan_wmm_status_e *)extra;
+   v_U32_t handle;
+
+   // although we are defined to be a "get" ioctl, the params we require
+   // will fit in the iwreq_data, therefore unlike iw_add_tspec() there
+   // is no need to copy the params from user space
+
+   // validate the handle
+   handle = params[HDD_WLAN_WMM_PARAM_HANDLE];
+   if (HDD_WMM_HANDLE_IMPLICIT == handle)
+   {
+      // that one is reserved
+      *pStatus = HDD_WLAN_WMM_STATUS_SETUP_FAILED_BAD_PARAM;
+      return 0;
+   }
+
+   *pStatus = hdd_wmm_checkts(pAdapter, handle);
+   return 0;
+}
+
 
 // Define the Wireless Extensions to the Linux Network Device structure
 // A number of these routines are NULL (meaning they are not implemented.) 
@@ -2575,6 +2762,9 @@ static const iw_handler we_private[] = {
    [WLAN_PRIV_GET_CHAR_SET_NONE      - SIOCIWFIRSTPRIV]  = iw_get_char_setnone,
    [WLAN_PRIV_SET_NONE_GET_NONE     - SIOCIWFIRSTPRIV]   = iw_setnone_getnone, //action priv ioctl   
    [WLAN_PRIV_SET_VAR_INT_GET_NONE	- SIOCIWFIRSTPRIV]	 = iw_set_var_ints_getnone,
+   [WLAN_PRIV_ADD_TSPEC	            - SIOCIWFIRSTPRIV]   = iw_add_tspec,
+   [WLAN_PRIV_DEL_TSPEC	            - SIOCIWFIRSTPRIV]   = iw_del_tspec,
+   [WLAN_PRIV_GET_TSPEC	            - SIOCIWFIRSTPRIV]   = iw_get_tspec,
 };
 
 /*Maximum command length can be only 15 */
@@ -2707,6 +2897,24 @@ static const struct iw_priv_args we_private_args[] = {
         0, 
         "dump" },
 
+    /* handlers for main ioctl */
+    {   WLAN_PRIV_ADD_TSPEC,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | HDD_WLAN_WMM_PARAM_COUNT,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "addTspec" },
+
+    /* handlers for main ioctl */
+    {   WLAN_PRIV_DEL_TSPEC,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "delTspec" },
+
+    /* handlers for main ioctl */
+    {   WLAN_PRIV_GET_TSPEC,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "getTspec" },
+
 };
 
 
@@ -2764,7 +2972,7 @@ int hdd_set_wext(hdd_adapter_t *pAdapter)
 
 int hdd_register_wext(struct net_device *dev)
     {
-    hdd_adapter_t *pAdapter = (hdd_adapter_t*)(netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_wext_state_t *pwextBuf;
     VOS_STATUS status;
 
@@ -2806,16 +3014,17 @@ int hdd_register_wext(struct net_device *dev)
 int hdd_UnregisterWext(struct net_device *dev)
 {
    hdd_wext_state_t *wextBuf;
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
    ENTER();
    // Set up the pointer to the Wireless Extensions state structure
-   wextBuf = ((hdd_adapter_t*)(netdev_priv(dev)))->pWextState;
+   wextBuf = pAdapter->pWextState;
    
    // De-allocate the Wireless Extensions state structure
    kfree(wextBuf);
       
    // Clear out the pointer to the Wireless Extensions state structure
-   ((hdd_adapter_t*)(netdev_priv(dev)))->pWextState = NULL;
+   pAdapter->pWextState = NULL;
 
    EXIT();
    return 0;

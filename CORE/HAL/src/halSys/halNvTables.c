@@ -131,6 +131,24 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
+                    { -125 },                       //RF_CHAN_1,
+                    { -125 },                       //RF_CHAN_2,
+                    { -125 },                       //RF_CHAN_3,
+                    { -125 },                       //RF_CHAN_4,
+                    { -125 },                       //RF_CHAN_5,
+                    { -125 },                       //RF_CHAN_6,
+                    { -125 },                       //RF_CHAN_7,
+                    { -125 },                       //RF_CHAN_8,
+                    { -125 },                       //RF_CHAN_9,
+                    { -125 },                       //RF_CHAN_10,
+                    { -125 },                       //RF_CHAN_11,
+                    { -125 },                       //RF_CHAN_12,
+                    { -125 },                       //RF_CHAN_13,
+                    { -125 },                       //RF_CHAN_14,
+                }, // bRatePowerOffset end
+
+                { // gnRatePowerOffset start
+                    //2.4GHz Band
                     { 0 },                       //RF_CHAN_1,
                     { 0 },                       //RF_CHAN_2,
                     { 0 },                       //RF_CHAN_3,
@@ -145,7 +163,7 @@ const sHalNv nvDefaults =
                     { 0 },                       //RF_CHAN_12,
                     { 0 },                       //RF_CHAN_13,
                     { 0 },                       //RF_CHAN_14,
-                } // bRatePowerOffset end
+                } // gnRatePowerOffset end
             }, // REG_DOMAIN_FCC end
 
             {   // REG_DOMAIN_ETSI start
@@ -174,6 +192,24 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
+                    { -125 },                       //RF_CHAN_1,
+                    { -125 },                       //RF_CHAN_2,
+                    { -125 },                       //RF_CHAN_3,
+                    { -125 },                       //RF_CHAN_4,
+                    { -125 },                       //RF_CHAN_5,
+                    { -125 },                       //RF_CHAN_6,
+                    { -125 },                       //RF_CHAN_7,
+                    { -125 },                       //RF_CHAN_8,
+                    { -125 },                       //RF_CHAN_9,
+                    { -125 },                       //RF_CHAN_10,
+                    { -125 },                       //RF_CHAN_11,
+                    { -125 },                       //RF_CHAN_12,
+                    { -125 },                       //RF_CHAN_13,
+                    { -125 },                       //RF_CHAN_14,
+                }, // bRatePowerOffset end
+
+                { // gnRatePowerOffset start
+                    //2.4GHz Band
                     { 0 },                       //RF_CHAN_1,
                     { 0 },                       //RF_CHAN_2,
                     { 0 },                       //RF_CHAN_3,
@@ -188,7 +224,7 @@ const sHalNv nvDefaults =
                     { 0 },                       //RF_CHAN_12,
                     { 0 },                       //RF_CHAN_13,
                     { 0 },                       //RF_CHAN_14,
-                } // bRatePowerOffset end
+                } // gnRatePowerOffset end
             }, // REG_DOMAIN_ETSI end
 
             {   // REG_DOMAIN_JAPAN start
@@ -217,6 +253,24 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
+                    { -125 },                       //RF_CHAN_1,
+                    { -125 },                       //RF_CHAN_2,
+                    { -125 },                       //RF_CHAN_3,
+                    { -125 },                       //RF_CHAN_4,
+                    { -125 },                       //RF_CHAN_5,
+                    { -125 },                       //RF_CHAN_6,
+                    { -125 },                       //RF_CHAN_7,
+                    { -125 },                       //RF_CHAN_8,
+                    { -125 },                       //RF_CHAN_9,
+                    { -125 },                       //RF_CHAN_10,
+                    { -125 },                       //RF_CHAN_11,
+                    { -125 },                       //RF_CHAN_12,
+                    { -125 },                       //RF_CHAN_13,
+                    { -125 },                       //RF_CHAN_14,
+                }, // bRatePowerOffset end
+
+                { // gnRatePowerOffset start
+                    //2.4GHz Band
                     { 0 },                       //RF_CHAN_1,
                     { 0 },                       //RF_CHAN_2,
                     { 0 },                       //RF_CHAN_3,
@@ -231,7 +285,7 @@ const sHalNv nvDefaults =
                     { 0 },                       //RF_CHAN_12,
                     { 0 },                       //RF_CHAN_13,
                     { 0 },                       //RF_CHAN_14,
-                } // bRatePowerOffset end
+                } // gnRatePowerOffset end
             }, // REG_DOMAIN_JAPAN end
 
             {   // REG_DOMAIN_WORLD start
@@ -260,6 +314,24 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
+                    { -125 },                       //RF_CHAN_1,
+                    { -125 },                       //RF_CHAN_2,
+                    { -125 },                       //RF_CHAN_3,
+                    { -125 },                       //RF_CHAN_4,
+                    { -125 },                       //RF_CHAN_5,
+                    { -125 },                       //RF_CHAN_6,
+                    { -125 },                       //RF_CHAN_7,
+                    { -125 },                       //RF_CHAN_8,
+                    { -125 },                       //RF_CHAN_9,
+                    { -125 },                       //RF_CHAN_10,
+                    { -125 },                       //RF_CHAN_11,
+                    { -125 },                       //RF_CHAN_12,
+                    { -125 },                       //RF_CHAN_13,
+                    { -125 },                       //RF_CHAN_14,
+                }, // bRatePowerOffset end
+
+                { // gnRatePowerOffset start
+                    //2.4GHz Band
                     { 0 },                       //RF_CHAN_1,
                     { 0 },                       //RF_CHAN_2,
                     { 0 },                       //RF_CHAN_3,
@@ -274,7 +346,7 @@ const sHalNv nvDefaults =
                     { 0 },                       //RF_CHAN_12,
                     { 0 },                       //RF_CHAN_13,
                     { 0 },                       //RF_CHAN_14,
-                } // bRatePowerOffset end
+                } // gnRatePowerOffset end
             }, // REG_DOMAIN_WORLD end
 
             {   // REG_DOMAIN_N_AMER_EXC_FCC start
@@ -303,6 +375,24 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
+                    { -125 },                       //RF_CHAN_1,
+                    { -125 },                       //RF_CHAN_2,
+                    { -125 },                       //RF_CHAN_3,
+                    { -125 },                       //RF_CHAN_4,
+                    { -125 },                       //RF_CHAN_5,
+                    { -125 },                       //RF_CHAN_6,
+                    { -125 },                       //RF_CHAN_7,
+                    { -125 },                       //RF_CHAN_8,
+                    { -125 },                       //RF_CHAN_9,
+                    { -125 },                       //RF_CHAN_10,
+                    { -125 },                       //RF_CHAN_11,
+                    { -125 },                       //RF_CHAN_12,
+                    { -125 },                       //RF_CHAN_13,
+                    { -125 },                       //RF_CHAN_14,
+                }, // bRatePowerOffset end
+
+                { // gnRatePowerOffset start
+                    //2.4GHz Band
                     { 0 },                       //RF_CHAN_1,
                     { 0 },                       //RF_CHAN_2,
                     { 0 },                       //RF_CHAN_3,
@@ -317,7 +407,7 @@ const sHalNv nvDefaults =
                     { 0 },                       //RF_CHAN_12,
                     { 0 },                       //RF_CHAN_13,
                     { 0 },                       //RF_CHAN_14,
-                } // bRatePowerOffset end
+                } // gnRatePowerOffset end
             },   // REG_DOMAIN_N_AMER_EXC_FCC end
 
             {   // REG_DOMAIN_APAC start
@@ -346,6 +436,24 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
+                    { -125 },                       //RF_CHAN_1,
+                    { -125 },                       //RF_CHAN_2,
+                    { -125 },                       //RF_CHAN_3,
+                    { -125 },                       //RF_CHAN_4,
+                    { -125 },                       //RF_CHAN_5,
+                    { -125 },                       //RF_CHAN_6,
+                    { -125 },                       //RF_CHAN_7,
+                    { -125 },                       //RF_CHAN_8,
+                    { -125 },                       //RF_CHAN_9,
+                    { -125 },                       //RF_CHAN_10,
+                    { -125 },                       //RF_CHAN_11,
+                    { -125 },                       //RF_CHAN_12,
+                    { -125 },                       //RF_CHAN_13,
+                    { -125 },                       //RF_CHAN_14,
+                }, // bRatePowerOffset end
+
+                { // gnRatePowerOffset start
+                    //2.4GHz Band
                     { 0 },                       //RF_CHAN_1,
                     { 0 },                       //RF_CHAN_2,
                     { 0 },                       //RF_CHAN_3,
@@ -360,7 +468,7 @@ const sHalNv nvDefaults =
                     { 0 },                       //RF_CHAN_12,
                     { 0 },                       //RF_CHAN_13,
                     { 0 },                       //RF_CHAN_14,
-                } // bRatePowerOffset end
+                } // gnRatePowerOffset end
             }, // REG_DOMAIN_APAC end
 
             {   // REG_DOMAIN_KOREA start
@@ -389,6 +497,24 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
+                    { -125 },                       //RF_CHAN_1,
+                    { -125 },                       //RF_CHAN_2,
+                    { -125 },                       //RF_CHAN_3,
+                    { -125 },                       //RF_CHAN_4,
+                    { -125 },                       //RF_CHAN_5,
+                    { -125 },                       //RF_CHAN_6,
+                    { -125 },                       //RF_CHAN_7,
+                    { -125 },                       //RF_CHAN_8,
+                    { -125 },                       //RF_CHAN_9,
+                    { -125 },                       //RF_CHAN_10,
+                    { -125 },                       //RF_CHAN_11,
+                    { -125 },                       //RF_CHAN_12,
+                    { -125 },                       //RF_CHAN_13,
+                    { -125 },                       //RF_CHAN_14,
+                }, // bRatePowerOffset end
+
+                { // gnRatePowerOffset start
+                    //2.4GHz Band
                     { 0 },                       //RF_CHAN_1,
                     { 0 },                       //RF_CHAN_2,
                     { 0 },                       //RF_CHAN_3,
@@ -403,7 +529,7 @@ const sHalNv nvDefaults =
                     { 0 },                       //RF_CHAN_12,
                     { 0 },                       //RF_CHAN_13,
                     { 0 },                       //RF_CHAN_14,
-                } // bRatePowerOffset end
+                } // gnRatePowerOffset end
             }, // REG_DOMAIN_KOREA end
 
             {   // REG_DOMAIN_HI_5GHZ start
@@ -432,6 +558,24 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
+                    { -125 },                       //RF_CHAN_1,
+                    { -125 },                       //RF_CHAN_2,
+                    { -125 },                       //RF_CHAN_3,
+                    { -125 },                       //RF_CHAN_4,
+                    { -125 },                       //RF_CHAN_5,
+                    { -125 },                       //RF_CHAN_6,
+                    { -125 },                       //RF_CHAN_7,
+                    { -125 },                       //RF_CHAN_8,
+                    { -125 },                       //RF_CHAN_9,
+                    { -125 },                       //RF_CHAN_10,
+                    { -125 },                       //RF_CHAN_11,
+                    { -125 },                       //RF_CHAN_12,
+                    { -125 },                       //RF_CHAN_13,
+                    { -125 },                       //RF_CHAN_14,
+                }, // bRatePowerOffset end
+
+                { // gnRatePowerOffset start
+                    //2.4GHz Band
                     { 0 },                       //RF_CHAN_1,
                     { 0 },                       //RF_CHAN_2,
                     { 0 },                       //RF_CHAN_3,
@@ -446,7 +590,7 @@ const sHalNv nvDefaults =
                     { 0 },                       //RF_CHAN_12,
                     { 0 },                       //RF_CHAN_13,
                     { 0 },                       //RF_CHAN_14,
-                } // bRatePowerOffset end
+                } // gnRatePowerOffset end
             }, // REG_DOMAIN_HI_5GHZ end
 
             {   // REG_DOMAIN_NO_5GHZ start
@@ -475,6 +619,24 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
+                    { -125 },                       //RF_CHAN_1,
+                    { -125 },                       //RF_CHAN_2,
+                    { -125 },                       //RF_CHAN_3,
+                    { -125 },                       //RF_CHAN_4,
+                    { -125 },                       //RF_CHAN_5,
+                    { -125 },                       //RF_CHAN_6,
+                    { -125 },                       //RF_CHAN_7,
+                    { -125 },                       //RF_CHAN_8,
+                    { -125 },                       //RF_CHAN_9,
+                    { -125 },                       //RF_CHAN_10,
+                    { -125 },                       //RF_CHAN_11,
+                    { -125 },                       //RF_CHAN_12,
+                    { -125 },                       //RF_CHAN_13,
+                    { -125 },                       //RF_CHAN_14,
+                }, // bRatePowerOffset end
+
+                { // gnRatePowerOffset start
+                    //2.4GHz Band
                     { 0 },                       //RF_CHAN_1,
                     { 0 },                       //RF_CHAN_2,
                     { 0 },                       //RF_CHAN_3,
@@ -489,7 +651,7 @@ const sHalNv nvDefaults =
                     { 0 },                       //RF_CHAN_12,
                     { 0 },                       //RF_CHAN_13,
                     { 0 },                       //RF_CHAN_14,
-                } // bRatePowerOffset end
+                } // gnRatePowerOffset end
             } // REG_DOMAIN_NO_5GHZ end
         },
 
@@ -566,6 +728,11 @@ const sHalNv nvDefaults =
             29,      // hdet_dcoc_code;
             1,      // hdet_dcoc_ib_rcal_en;
             1       // hdet_dcoc_ib_scal_en;
+        },
+
+        //NV_TABLE_RSSI_OFFSETS
+        {
+            0, 0    //rssiOffset[PHY_MAX_RX_CHAINS];
         }
 
     } // tables

@@ -17,6 +17,15 @@
 #include "csrApi.h"
 #include "vos_nvitem.h"
 
+#ifdef FEATURE_WLAN_WAPI
+#define CSR_WAPI_OUI_SIZE              ( 4 )
+#define CSR_WAPI_VERSION_SUPPORTED     ( 1 )
+#define CSR_WAPI_MAX_AUTH_SUITES       ( 2 )
+#define CSR_WAPI_MAX_CYPHERS           ( 5 )
+#define CSR_WAPI_MAX_UNICAST_CYPHERS   ( 5 )
+#define CSR_WAPI_MAX_MULTICAST_CYPHERS ( 1 )
+#endif /* FEATURE_WLAN_WAPI */
+
 #define CSR_RSN_OUI_SIZE              ( 4 )
 #define CSR_RSN_VERSION_SUPPORTED     ( 1 )
 #define CSR_RSN_MAX_AUTH_SUITES       ( 2 )
@@ -553,6 +562,49 @@ typedef __ani_attr_pre_packed struct tCsrIELenInfo
     tANI_U8 max;
 } __ani_attr_packed tCsrIELenInfo;
 
+#ifdef FEATURE_WLAN_WAPI
+typedef __ani_attr_pre_packed struct tagCsrWapiIe 
+{
+    tDot11IEHeader IeHeader;
+    tANI_U16   Version;
+
+    tANI_U16 cAuthenticationSuites;
+    __ani_attr_pre_packed struct {
+
+        tANI_U8 Oui[ CSR_WAPI_OUI_SIZE ];
+
+    } __ani_attr_packed AuthOui[ 1 ];
+
+    tANI_U16   cUnicastCyphers;
+    __ani_attr_pre_packed struct {
+
+        tANI_U8 Oui[ CSR_WAPI_OUI_SIZE ];
+
+    } __ani_attr_packed UnicastOui[ 1 ];
+
+    tANI_U8    MulticastOui[ CSR_WAPI_OUI_SIZE ];    
+
+    __ani_attr_pre_packed struct {
+       tANI_U16 PreAuthSupported:1;
+       tANI_U16 Reserved:15;
+    } __ani_attr_packed tCsrWapiCapabilities;
+
+
+} __ani_attr_packed tCsrWapiIe;
+
+typedef __ani_attr_pre_packed struct tagCsrWAPIBKIe 
+{
+    tANI_U16 cBKIDs;
+    __ani_attr_pre_packed struct {
+
+        tANI_U8 BKID[ CSR_WAPI_BKID_SIZE ];
+
+    } __ani_attr_packed BKIDList[ 1 ];
+
+
+} __ani_attr_packed tCsrWAPIBKIe;
+#endif /* FEATURE_WLAN_WAPI */
+
 #if defined(__ANI_COMPILER_PRAGMA_PACK_STACK)
 #pragma pack( pop )
 #endif
@@ -609,6 +661,7 @@ typedef struct tagDot11IE11HLocalPowerConstraint
 #define CSR_IS_11A_BSS(pBssDesc)    ( eSIR_11A_NW_TYPE == (pBssDesc)->nwType )
 #define CSR_IS_BASIC_RATE(rate)     ((rate) & CSR_DOT11_BASIC_RATE_MASK)
 #define CSR_IS_QOS_BSS(pIes)  ( (pIes)->WMMParams.present || (pIes)->WMMInfoAp.present )
+
 #define CSR_IS_UAPSD_BSS(pIes) \
     ( ((pIes)->WMMParams.present && ((pIes)->WMMParams.qosInfo & SME_QOS_AP_SUPPORTS_APSD)) || \
                ((pIes)->WMMInfoAp.present && (pIes)->WMMInfoAp.uapsd) )
@@ -635,6 +688,11 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
                             tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes, tCsrRSNIe *pRSNIe );
 tANI_U8 csrConstructWpaIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc, 
                            tDot11fBeaconIEs *pIes, tCsrWpaIe *pWpaIe );
+#ifdef FEATURE_WLAN_WAPI
+tANI_U8 csrConstructWapiIe( tHalHandle hHal, tCsrRoamProfile *pProfile, 
+                            tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes, tCsrWapiIe *pWapiIe );
+tANI_BOOLEAN csrIsProfileWapi( tCsrRoamProfile *pProfile );
+#endif /* FEATURE_WLAN_WAPI */
 //If a WPAIE exists in the profile, just use it. Or else construct one from the BSS
 //Caller allocated memory for pWpaIe and guarrantee it can contain a max length WPA IE
 tANI_U8 csrRetrieveWpaIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc, 
@@ -652,6 +710,12 @@ tANI_BOOLEAN csrGetWpaRsnIe( tHalHandle hHal, tANI_U8 *pIes, tANI_U32 len,
 //Caller allocated memory for pWpaIe and guarrantee it can contain a max length WPA IE
 tANI_U8 csrRetrieveRsnIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc, 
                           tDot11fBeaconIEs *pIes, tCsrRSNIe *pRsnIe );
+#ifdef FEATURE_WLAN_WAPI
+//If a WAPI IE exists in the profile, just use it. Or else construct one from the BSS
+//Caller allocated memory for pWapiIe and guarrantee it can contain a max length WAPI IE
+tANI_U8 csrRetrieveWapiIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc, 
+                          tDot11fBeaconIEs *pIes, tCsrWapiIe *pWapiIe );
+#endif /* FEATURE_WLAN_WAPI */
 tANI_BOOLEAN csrSearchChannelListForTxPower(tHalHandle hHal, tSirBssDescription *pBssDescription, tCsrChannelSet *returnChannelGroup);
 tANI_BOOLEAN csrRatesIsDot11Rate11bSupportedRate( tANI_U8 dot11Rate );
 tANI_BOOLEAN csrRatesIsDot11Rate11aSupportedRate( tANI_U8 dot11Rate );

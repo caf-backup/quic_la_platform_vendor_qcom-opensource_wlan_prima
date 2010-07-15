@@ -33,6 +33,27 @@ SOURCES= \
 # For global defines, etc
 !INCLUDE $(LIBRA_ROOT)\sources.inc
 
+!if "$(_WINCEOSVER)" >= "700"
+INCLUDES=  $(INCLUDES); \
+        $(LIBRA_ROOT)\CORE\HAL\inc\;                    \
+        $(LIBRA_ROOT)\CORE\HAL\src\halFtm\;             \
+        $(LIBRA_ROOT)\CORE\HAL\src\halPhy\;             \
+        $(LIBRA_ROOT)\CORE\HAL\src\halProc\;            \
+        $(LIBRA_ROOT)\CORE\HAL\src\halSys\;             \
+        $(LIBRA_ROOT)\CORE\HAL\src\halMac\;             \
+        $(LIBRA_ROOT)\CORE\VOSS\inc\;                   \
+        $(LIBRA_ROOT)\CORE\VOSS\inc\wm;                 \
+        $(LIBRA_ROOT)\CORE\MAC\inc;                     \
+        $(LIBRA_ROOT)\CORE\MAC\src\include;             \
+        $(LIBRA_ROOT)\CORE\MAC\src\pe\include;          \
+        $(LIBRA_ROOT)\CORE\MAC\src\dph;                 \
+        $(LIBRA_ROOT)\CORE\SME\inc\;                    \
+        $(LIBRA_ROOT)\CORE\SYS\common\inc;              \
+        $(LIBRA_ROOT)\CORE\SYS\legacy\src\PAL\inc;      \
+        $(LIBRA_ROOT)\CORE\SYS\legacy\src\platform\inc; \
+        $(LIBRA_ROOT)\CORE\SYS\legacy\src\system\inc\;  \
+        $(LIBRA_ROOT)\wlanfw\inc\;
+!else
 INCLUDES= \
         $(LIBRA_ROOT)\CORE\HAL\inc\;                    \
         $(LIBRA_ROOT)\CORE\HAL\src\halFtm\;             \
@@ -55,4 +76,4 @@ INCLUDES= \
         $(_SYSGENDDKROOT)\inc\;                         \
         $(_SYSGENSDKROOT)\inc\;                         \
         $(_SYSGENOAKROOT)\inc\;                         \
-
+!endif

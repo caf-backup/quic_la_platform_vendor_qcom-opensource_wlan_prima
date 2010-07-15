@@ -47,7 +47,7 @@ when        who         what, where, why
 #include "sme_Api.h"
 #include "macInitApi.h"
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message);
 
 #endif
@@ -56,7 +56,7 @@ VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message);
 // Cookie for SYS messages.  Note that anyone posting a SYS Message has to
 // write the COOKIE in the reserved field of the message.  The SYS Module
 // relies on this COOKIE
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 #define	SYS_MSG_ID_FTM_RSP	11
 #define	FTM_SYS_MSG_COOKIE	0xFACE
 #endif
@@ -706,13 +706,15 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
 
             break;
          }
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
         case SYS_MSG_ID_FTM_RSP:
         {
+#ifndef ANI_OS_TYPE_WINDOWS //TODO: remove this once WM HDD FTM code is main/lined
                 WLANFTM_McProcessMsg((v_VOID_t *)pMsg->bodyptr);
+#endif
                 break;
         }
-#endif /* ANI_MANF_DIAG */
+#endif
 
          default:
          {
@@ -1026,7 +1028,7 @@ SysProcessMmhMsg
 
 } /* SysProcessMmhMsg() */
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 /*==========================================================================
   FUNCTION    WLAN_FTM_SYS_FTM
 

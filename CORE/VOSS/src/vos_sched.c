@@ -569,7 +569,7 @@ VosWDThread
   pVosWatchdogContext pWdContext = (pVosWatchdogContext)Arg;
   int retWaitStatus              = 0;
   v_BOOL_t shutdown              = VOS_FALSE;
-  
+
   set_user_nice(current, -3);
 
   if (Arg == NULL)
@@ -689,7 +689,6 @@ static int VosTXThread ( void * Arg )
          "%s Bad Args passed", __FUNCTION__);
      return 0;
   }
-
 
   daemonize("TX_Thread");
 

@@ -1319,6 +1319,16 @@ static const WLANSSC_InterruptHandlerTableType gWLANSSC_InterruptHandlerTable =
 
 
 /*---------------------------------------------------------------------------
+   gWLANSSC_TxMsgCnt
+
+   This is a count to force the tx msg count not to ever exceed an arbitrary
+   value - this is a temporary workaround for TL posting multiple requests to
+   SSC for a potentially single fetch operation.
+---------------------------------------------------------------------------*/
+static v_U32_t gWLANSSC_TxMsgCnt = 0;
+
+
+/*---------------------------------------------------------------------------
  * External Function implementation
  * ------------------------------------------------------------------------*/
 
@@ -1691,6 +1701,15 @@ VOS_STATUS WLANSSC_StartTransmit
   vos_msg_t                    sMessage;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+  if(gWLANSSC_TxMsgCnt)
+  {
+    WLANSSC_MSG( "Avoiding serializing SSC Start Xmit event %x", 
+                 Handle, 0, 0 );
+    return VOS_STATUS_SUCCESS;
+  }
+
+  gWLANSSC_TxMsgCnt++;
+
   /* Signal the OS to serialize our event                                  */
   WLANSSC_MSG( "Serializing SSC Start Xmit event for control block %x", 
                Handle, 0, 0 );
@@ -2014,8 +2033,9 @@ VOS_STATUS WLANSSC_SuspendChip
     return VOS_STATUS_E_FAILURE;
   }
 
-  /* Add 0xFF (per instructions) to the register status and write back        */
   uRegValue |= QWLAN_SIF_BAR4_WLAN_CONTROL_REG_DEFAULT;
+  /* TRSW Bit 1 should be 0 before entering standby OR deepsleep*/
+  uRegValue &= ~(QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_TRSW_SUPPLY_CTRL_1_MASK);
 
   if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
                                                           QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,
@@ -2318,6 +2338,65 @@ VOS_STATUS WLANSSC_ResumeChip
             (WLANSSC_RESUMELOOPCOUNT > ++uResumeLoopcount) ); 
 
    WLANSSC_MSGIH( "Resume chip Status %x", uRegValue, 0, 0 );
+
+  /* Begin T/R change */
+  /* TRSW_SUPPLY_CTRL_0 - Read the current value just in case                 */
+  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
+                                                         QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,
+                                                         &uRegValue,
+                                                         WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    WLANSSC_ERR( "Error Resuming chip", 0, 0, 0 );
+    WLANSSC_UNLOCKTXRX( pControlBlock );
+    return VOS_STATUS_E_FAILURE;
+  }
+
+  uRegValue &= ~(QWLAN_SIF_BAR4_WLAN_CONTROL_REG_TRSW_SUPPLY_CTRL_0_MASK);
+
+  if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
+                                                          QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,
+                                                          &uRegValue,
+                                                          WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    WLANSSC_ERR( "Error Resuming chip", 0, 0, 0 );
+    WLANSSC_UNLOCKTXRX( pControlBlock );
+    return VOS_STATUS_E_FAILURE;
+  }
+
+  /* TRSW_SUPPLY_CTRL_1 - Read the current value just in case                 */
+  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
+                                                         QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG,
+                                                         &uRegValue,
+                                                         WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    WLANSSC_ERR( "Error Resuming chip", 0, 0, 0 );
+    WLANSSC_UNLOCKTXRX( pControlBlock );
+    return VOS_STATUS_E_FAILURE;
+  }
+
+
+  /* TRSW Bit 1 should be 1 before entering standby OR deepsleep*/
+  uRegValue |= (QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_TRSW_SUPPLY_CTRL_1_MASK);
+
+  if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
+                                                          QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG,
+                                                          &uRegValue,
+                                                          WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    WLANSSC_ERR( "Error resuming chip", 0, 0, 0 );
+    WLANSSC_UNLOCKTXRX( pControlBlock );
+    return VOS_STATUS_E_FAILURE;
+  }
+
+  /* End T/R change */
 
    pControlBlock->bChipSuspended = VOS_FALSE;
 
@@ -2623,6 +2702,19 @@ VOS_STATUS WLANSSC_ProcessMsg
   switch( pMsg->type )
   {
     case WLANSSC_TXPENDING_MESSAGE:
+
+      /** Critical to decrement count before handling xmit
+          to reduce race conditions - this guarantees we
+          process at least one message after StartXmit
+          might have bailed out
+          Need the extra check to avoid counting below
+          zero: note that we can only increment in other
+          thread so this should be safe on race conditions
+       */
+      if( gWLANSSC_TxMsgCnt )
+      {
+        gWLANSSC_TxMsgCnt--;   
+      }
 
       /* Execute the transmit event : this is the only event from tx thread*/
       if( VOS_STATUS_SUCCESS != WLANSSC_ExecuteEvent( pControlBlock, 

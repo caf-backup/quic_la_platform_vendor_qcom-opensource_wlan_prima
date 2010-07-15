@@ -412,23 +412,24 @@ eHalStatus halPS_SetRSSIThresholds(tpAniSirGlobal pMac, tpSirRSSIThresholds pThr
 static void computeRssAvg(tANI_U32 value, tANI_S32 *totRssi, tANI_U32 *avgCount)
 {
     tANI_U32 aCount = 0;
-    tANI_S32 tRssi = 0;
+    tANI_S32 rssiAnt0 = 0, rssiAnt1 = 0, rssiAnt = 0;
 
-    if(value & QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT0_STORE_REG0_VLD_MASK)
+    if (value & QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT0_STORE_REG0_VLD_MASK)
+    {
+        rssiAnt0 = ((value & QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT0_STORE_REG0_MASK)
+                          >> QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT0_STORE_REG0_OFFSET);
+    }
+    if (value & QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT1_STORE_REG0_VLD_MASK)
+    {
+        rssiAnt1 = ((value & QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT1_STORE_REG0_MASK)
+                          >> QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT1_STORE_REG0_OFFSET);
+    }
+    if ((rssiAnt0 != 0) || (rssiAnt1 != 0))
     {
         aCount++;
-        tRssi += ((value & QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT0_STORE_REG0_MASK)
-                                >> QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT0_STORE_REG0_OFFSET);
+        rssiAnt = (rssiAnt0 > rssiAnt1) ? rssiAnt0 : rssiAnt1;
     }
-
-    if(value & QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT1_STORE_REG0_VLD_MASK)
-    {
-        aCount++;
-        tRssi += ((value & QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT1_STORE_REG0_MASK)
-                                >> QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT1_STORE_REG0_OFFSET);
-    }
-
-    *totRssi = tRssi;
+    *totRssi = rssiAnt;
     *avgCount = aCount;
 }
 
@@ -658,6 +659,33 @@ eHalStatus halPS_SetBeaconInterval(tpAniSirGlobal pMac, tANI_U16 beaconInterval)
             pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
             sizeof(*pFwConfig));
 
+}
+
+/*
+ * DESCRIPTION:
+ *      Function to update the listen interval into the FW sys config
+ *
+ * PARAMETERS:
+ *      pMac:   Pointer to the global adapter context
+ *      listenInterval:  interger value
+ *
+ * RETURN:
+ *      eHAL_STATUS_SUCCESS
+ *      eHAL_STATUS_FAILURE
+ */
+eHalStatus halPS_SetListenIntervalParam(tpAniSirGlobal pMac, tANI_U16 listenInterval)
+{
+    tHalFwParams *pFw = &pMac->hal.FwParam;
+    Qwlanfw_SysCfgType *pFwConfig;
+
+    pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
+    pFwConfig->ucListenInterval = listenInterval;
+
+    // Write the configuration parameters in the memory mapped for
+    // system configuration parameters
+    return halFW_UpdateSystemConfig(pMac,
+            pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
+            sizeof(*pFwConfig));
 }
 
 
@@ -1000,15 +1028,28 @@ eHalStatus halPS_PostponeFwEnterImpsRsp(tpAniSirGlobal pMac, void* pFwMsg)
  */
 void halPS_ExecuteStandbyProcedure(tpAniSirGlobal pMac)
 {
-    tANI_U32 regValue = 0;
+    tANI_U32 regValue = 0, regValue1;
 
     // disable Pllen_force, IQ_DIV_MODE, En_TXLO_Mode, En_RXLO_Mode bits in rfApb modeSel1 register
     halWriteRegister(pMac, QWLAN_RFAPB_MODE_SEL1_REG, 0);
 
     // restore pmu_rfa_tcxo_buf_en_mask under rf_pa_trsw_ctrl_reg to defaults
     // but make sure you enable the RF PLL before idle mode power collapse
-    halWriteRegister(pMac, QWLAN_PMU_RF_PA_TRSW_CTRL_REG_REG, QWLAN_PMU_RF_PA_TRSW_CTRL_REG_DEFAULT |
-                            QWLAN_PMU_RF_PA_TRSW_CTRL_REG_PMU_RFA_PLL_EN_MASK_MASK);
+    
+    halReadRegister(pMac, QWLAN_PMU_STRAP_PMU_RAW_VALUES_REG, &regValue1);
+
+    regValue = (QWLAN_PMU_RF_PA_TRSW_CTRL_REG_DEFAULT |  
+	        QWLAN_PMU_RF_PA_TRSW_CTRL_REG_PMU_RFA_PLL_EN_MASK_MASK);
+
+    // If 14th and 15th bits are set then it is 19.2Mhz mode.
+    // If 14th bit is one and 15th bit is zero it is 40Mhz mode.
+    if (((regValue1 >> HAL_XO_CLK_MODE_OFFSET) & HAL_XO_CLK_MODE_MASK) == 
+          HAL_XO_CLK_19_2MHZ)
+        regValue |= (QWLAN_PMU_RF_PA_TRSW_CTRL_REG_PMU_BSR_RFIF_XO_PWR_EN_MASK_MASK);
+    else 
+        regValue &= ~(QWLAN_PMU_RF_PA_TRSW_CTRL_REG_PMU_BSR_RFIF_XO_PWR_EN_MASK_MASK);
+
+    halWriteRegister(pMac, QWLAN_PMU_RF_PA_TRSW_CTRL_REG_REG, regValue);
 
     // disable mif_mem_fs_bypas in mif_mem_fs_ctrl_reg
     regValue = QWLAN_PMU_MIF_MEM_FS_CTRL_REG_MIF_MEM_FS_WAKE_START_TIME_DEFAULT| QWLAN_PMU_MIF_MEM_FS_CTRL_REG_MIF_MEM_FS_SLP_START_TIME_DEFAULT;
@@ -1167,8 +1208,8 @@ void halPS_ComputeListenInterval(tANI_U8 dtim, tANI_U16 listenIntv,
 {
     tANI_U16 remainder = 0;
     tANI_U16 gcd = 0, li = 0;
-
-    // If listen interval is greater than or equal to the DTIM count
+  
+	// If listen interval is greater than or equal to the DTIM count
     // align LI to DTIM count by assigning it to DTIM count.
     if(listenIntv >= dtim) {
         *modifiedLI = dtim;
@@ -1239,12 +1280,12 @@ eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod)
 
     if (pFwConfig->ucBeaconFilterPeriod) {
         filterPeriod = (tANI_U8)(((pFwConfig->ucBeaconFilterPeriod)/listenInterval)*listenInterval);
-        pFwConfig->ucBeaconFilterPeriod = filterPeriod ? filterPeriod : 1;
+        pFwConfig->ucBeaconFilterPeriod = filterPeriod ? filterPeriod : listenInterval;
     }
 
     if (pFwConfig->ucRssiFilterPeriod) {
         filterPeriod = (tANI_U8)(((pFwConfig->ucRssiFilterPeriod)/listenInterval)*listenInterval);
-        pFwConfig->ucRssiFilterPeriod = filterPeriod ? filterPeriod : 1;
+        pFwConfig->ucRssiFilterPeriod = filterPeriod ? filterPeriod : listenInterval;
     }
 
     if (pMac->hal.currentRfBand == eRF_BAND_2_4_GHZ) {
@@ -1324,7 +1365,17 @@ eHalStatus halPS_HandleEnterBmpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken, t
     tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;
     tHalPsBmps *pBmpsCtx = &pMac->hal.PsParam.BmpsCtx;
     Qwlanfw_EnterBmpsReqType msg;
+    tHalFwParams *pFw = &pMac->hal.FwParam;
+    Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
+    tANI_U16 listenInterval = (tANI_U16)pFwConfig->ucListenInterval;
     tANI_U64 leastDtimTbtt = 0, lastDtimTbtt = 0;
+
+    // Do not enter BMPS if listen interval is set to 0. This shouldn't happen. 
+    if (listenInterval == 0)
+   	{ 
+        HALLOGE( halLog(pMac, LOGE, FL("Inavlid Listen Interval %d  do not enter BMPS"), listenInterval));
+		goto error;
+    }
 
     // Load the ADU memory with the indirectly accessed register list
     status = halPS_RegBckupIndirectRegisters(pMac);
@@ -1468,8 +1519,10 @@ eHalStatus halPS_HandleFwEnterBmpsRsp(tpAniSirGlobal pMac, void* pFwMsg)
         goto respond;
     }
 
+#if 0
     // Since this message is handled in the interrupt context, set the host busy
     halPS_SetHostBusy(pMac, HAL_PS_BUSY_INTR_CONTEXT);
+#endif
 
     // Start Monitoring register writes
     halPS_StartMonitoringRegAccess(pMac);
@@ -1695,6 +1748,10 @@ eHalStatus halPS_SuspendBmps(tpAniSirGlobal pMac, tANI_U16 dialogToken,
         return status;
     }
 
+    // Store the callback function pointer and the data
+    pHalPwrSave->psCbFunc = cbFunc;
+    pHalPwrSave->psCbData = data;
+
     // Send the EXIT_BMPS request to firmware
     status = halFW_SendMsg(pMac, HAL_MODULE_ID_PWR_SAVE,
             QWLANFW_HOST2FW_SUSPEND_BMPS_REQ, dialogToken, sizeof(Qwlanfw_SuspendBmpsReqType), &msg, TRUE, NULL);
@@ -1709,10 +1766,6 @@ eHalStatus halPS_SuspendBmps(tpAniSirGlobal pMac, tANI_U16 dialogToken,
         }
         return status;
     }
-
-    // Store the callback function pointer and the data
-    pHalPwrSave->psCbFunc = cbFunc;
-    pHalPwrSave->psCbData = data;
 
     return status;
 }
@@ -1820,6 +1873,10 @@ eHalStatus halPS_ResumeBmps(tpAniSirGlobal pMac, tANI_U16 dialogToken,
         }
     }
 
+    // Store the callback function pointer and the data
+    pHalPwrSave->psCbFunc = cbFunc;
+    pHalPwrSave->psCbData = data;
+
     // Send the RESUME_BMPS request to firmware
     status = halFW_SendMsg(pMac, HAL_MODULE_ID_PWR_SAVE,
             QWLANFW_HOST2FW_RESUME_BMPS_REQ, dialogToken, sizeof(Qwlanfw_ResumeBmpsReqType), &msg, TRUE, NULL);
@@ -1837,10 +1894,6 @@ eHalStatus halPS_ResumeBmps(tpAniSirGlobal pMac, tANI_U16 dialogToken,
         }
         return status;
     }
-
-    // Store the callback function pointer and the data
-    pHalPwrSave->psCbFunc = cbFunc;
-    pHalPwrSave->psCbData = data;
 
     return status;
 }

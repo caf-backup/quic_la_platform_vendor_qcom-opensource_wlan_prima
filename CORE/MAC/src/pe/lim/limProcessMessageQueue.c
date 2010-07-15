@@ -156,10 +156,12 @@ void limProcessNormalHddMsg(tpAniSirGlobal pMac, tSirMsgQ *pLimMsg, tANI_U8 fRsp
 void
 limProcessMessageQueue(tpAniSirGlobal pMac)
 {
-#ifndef ANI_MANF_DIAG
     tSirMsgQ  limMsg = { 0, 0, 0 };
-#endif
 
+	if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+	{
+    	return;
+	}
 #if defined(ANI_OS_TYPE_RTAI_LINUX)
     ULONG param;
     while(get_timer_event(LIM_TIMER_EXPIRY_LIST,&param))
@@ -170,7 +172,6 @@ limProcessMessageQueue(tpAniSirGlobal pMac)
         limMessageProcessor(pMac, &limMsg);
     }
 #endif
-#ifndef ANI_MANF_DIAG
 
     if (tx_queue_receive( &pMac->sys.gSirLimMsgQ, (void *) &limMsg, TX_WAIT_FOREVER)
             == TX_SUCCESS)
@@ -179,7 +180,6 @@ limProcessMessageQueue(tpAniSirGlobal pMac)
         limPrintMsgInfo(pMac, LOG3, &limMsg);
         limMessageProcessor(pMac, &limMsg);
     } // if (tx_queue_receive)
-#endif
     
 } /*** end limProcessMessageQueue() ***/
 
@@ -767,10 +767,11 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
     tANI_U8  deferMsg = false;
 #if defined(ANI_DVT_DEBUG)
     tSirMsgQ  msgQ;
-#elif defined(ANI_MANF_DIAG)
-    return;
 #endif
-
+	if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+	{
+    	return;
+	}
 #ifdef WLAN_DEBUG    
     pMac->lim.numTot++;
 #endif

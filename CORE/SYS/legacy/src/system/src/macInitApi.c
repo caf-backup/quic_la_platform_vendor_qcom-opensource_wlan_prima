@@ -59,68 +59,70 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
          return status;
      }
 
+    pMac->gDriverType = ((tHalMacStartParameters *)pHalMacStartParams)->driverType;
+
 	sysLog(pMac, LOG2, FL("called\n"));
 
 	do
 	{
 	    for(i=0; i<MAX_DUMP_TABLE_ENTRY; i++)
 	    {
-		if(palAllocateMemory(pMac->hHdd, ((void *)&pMac->dumpTableEntry[i]), sizeof(tDumpModuleEntry))
-			!= eHAL_STATUS_SUCCESS)
-		{
-		    memAllocFailed = eANI_BOOLEAN_TRUE;
-		    break;
-		}
-		else
-		{
-		    palZeroMemory(pMac->hHdd, pMac->dumpTableEntry[i], sizeof(tSirMbMsg));
-		}
+            if(palAllocateMemory(pMac->hHdd, ((void *)&pMac->dumpTableEntry[i]), sizeof(tDumpModuleEntry))
+                != eHAL_STATUS_SUCCESS)
+            {
+                memAllocFailed = eANI_BOOLEAN_TRUE;
+                break;
+            }
+            else
+            {
+                palZeroMemory(pMac->hHdd, pMac->dumpTableEntry[i], sizeof(tSirMbMsg));
+            }
 	    }
 	    if( memAllocFailed )
 	    {
-		while(i>0)
-		{
-		    i--;
-		    palFreeMemory(pMac, pMac->dumpTableEntry[i]);
-		}
-		sysLog(pMac, LOGE, FL("pMac->dumpTableEntry is NULL\n"));
-		status = eSIR_FAILURE;
-		break;
+            while(i>0)
+            {
+                i--;
+                palFreeMemory(pMac, pMac->dumpTableEntry[i]);
+            }
+            sysLog(pMac, LOGE, FL("pMac->dumpTableEntry is NULL\n"));
+            status = eSIR_FAILURE;
+            break;
 	    }
 	    else
 	    {
 #if defined(ANI_LOGDUMP)
-		logDumpInit(pMac);
+		    logDumpInit(pMac);
 #endif //#if defined(ANI_LOGDUMP)
 	    }
 
 #if defined(TRACE_RECORD)
-            //Enable Tracing
-           macTraceInit(pMac);
+        //Enable Tracing
+        macTraceInit(pMac);
 #endif
 	    if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, ((void *)&pMac->pResetMsg), sizeof(tSirMbMsg))))
 	    {
-		sysLog(pMac, LOGE, FL("pMac->pResetMsg is NULL\n"));
-		status = eSIR_FAILURE;
-		break;
+            sysLog(pMac, LOGE, FL("pMac->pResetMsg is NULL\n"));
+            status = eSIR_FAILURE;
+            break;
 	    }
 	    else
 	    {
-		palZeroMemory(pMac->hHdd, pMac->pResetMsg, sizeof(tSirMbMsg));
+		    palZeroMemory(pMac->hHdd, pMac->pResetMsg, sizeof(tSirMbMsg));
 	    }
 
 	    halStatus = halStart(hHal, (tHalMacStartParameters*)pHalMacStartParams );
+
 	    if ( !HAL_STATUS_SUCCESS(halStatus) )
 	    {
-		sysLog(pMac,LOGE, FL("halStart failed with error code = %d\n"), halStatus);
-		status = eSIR_FAILURE;
+            sysLog(pMac,LOGE, FL("halStart failed with error code = %d\n"), halStatus);
+            status = eSIR_FAILURE;
 	    }
-#ifndef	ANI_MANF_DIAG
-	    else
+	    else if(pMac->gDriverType != eDRIVER_TYPE_MFG)
 	    {
-		peStart(pMac);
+    		peStart(pMac);
 	    }
-#endif
+
 	}while(0);
 	  pMac->sys.abort = false;
 
@@ -191,7 +193,7 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
     palZeroMemory(hHdd, pMac, sizeof(tAniSirGlobal));
 
     /** Store the Driver type in pMac Global.*/
-    pMac->gDriverType = pMacOpenParms->driverType;
+    //pMac->gDriverType = pMacOpenParms->driverType;
 
 #ifndef GEN6_ONWARDS
 #ifdef RTL8652
@@ -222,34 +224,29 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
     pMac->pAdapter  = hHdd; //This line wil be removed
     *pHalHandle     = (tHalHandle)pMac;
 
-#ifndef ANI_MANF_DIAG
+    {
+        /* Call various PE (and other layer init here) */
+        logInit(pMac);
+        sysInitGlobals(pMac);
 
-    /* Call various PE (and other layer init here) */
-    logInit(pMac);
-    sysInitGlobals(pMac);
+        // This decides whether HW needs to translate the 802.3 frames
+        // from the host OS to the 802.11 frames. When set HW does the
+        // translation from 802.3 to 802.11 and vice versa
+        if(pMacOpenParms->frameTransRequired) {
+            pMac->hal.halMac.frameTransEnabled = 1;
+        } else {
+            pMac->hal.halMac.frameTransEnabled = 0;
+        }
 
-    // This decides whether HW needs to translate the 802.3 frames
-    // from the host OS to the 802.11 frames. When set HW does the
-    // translation from 802.3 to 802.11 and vice versa
-    if(pMacOpenParms->frameTransRequired) {
-        pMac->hal.halMac.frameTransEnabled = 1;
-    } else {
-        pMac->hal.halMac.frameTransEnabled = 0;
-    }
-
-    //Need to do it here in case halOpen fails later on.
+        //Need to do it here in case halOpen fails later on.
 #if defined( VOSS_ENABLED )
-    tx_voss_wrapper_init(pMac, hHdd);
+        tx_voss_wrapper_init(pMac, hHdd);
 #endif
-#endif /* ANI_MANF_DIAG */
+    }
     if (eHAL_STATUS_SUCCESS != halOpen(pMac, pHalHandle, hHdd, pMacOpenParms))
         return eSIR_FAILURE;
 
-#ifndef ANI_MANF_DIAG
     return peOpen(pMac, pMacOpenParms);
-#endif /* ANI_MANF_DIAG */
-	return eSIR_SUCCESS;
-
 }
 
 /** -------------------------------------------------------------
@@ -276,6 +273,7 @@ tSirRetStatus macClose(tHalHandle hHal)
             palFreeMemory(pMac, pMac->hal.pHalDxe);
     }
 #endif //GEN6_ONWARDS
+
     peClose(pMac);
     halClose(hHal);
 

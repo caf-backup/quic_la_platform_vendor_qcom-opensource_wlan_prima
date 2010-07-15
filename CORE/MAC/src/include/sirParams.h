@@ -136,10 +136,8 @@ typedef struct sSirMbMsg
 
 #define SYS_RX_MSG_SIZE         (sizeof(void *)/4)  // Message pointer size
 
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
 /// PTT  Message Queue
 #define SYS_NIM_PTT_MSG_SIZE    SYS_MSG_SIZE  // Message pointer size
-#endif
 
 
 
@@ -351,6 +349,7 @@ typedef struct sSirMbMsg
 #define SIR_HAL_BTC_SET_CFG                SIR_HAL_ITC_MSG_TYPES_BEGIN + 138
 #define SIR_HAL_SIGNAL_BT_EVENT            SIR_HAL_ITC_MSG_TYPES_BEGIN + 139
 #define SIR_HAL_HANDLE_FW_MBOX_RSP            SIR_HAL_ITC_MSG_TYPES_BEGIN + 140
+#define SIR_HAL_SEND_MSG_COMPLETE          SIR_HAL_ITC_MSG_TYPES_BEGIN + 141
 
 #define SIR_HAL_MSG_TYPES_END    SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF
 

@@ -38,7 +38,12 @@ typedef struct sHalRxBd {
         tANI_U32 rxChannel:4;
         tANI_U32 scanLearn:1;
 
+#if defined(LIBRA_WAPI_SUPPORT)
+        /** UnEncrypted Frame received over WAPI channel, only for WAPI*/
+        tANI_U32 uef:1;   
+#else
         tANI_U32 reserved0:1;
+#endif
     
         /** LLC Removed
         This bit is only used in Libra rsvd for Virgo1.0/Virgo2.0
@@ -108,7 +113,12 @@ typedef struct sHalRxBd {
         tANI_U32 rmf:1;
         tANI_U32 reserved1:1;
         tANI_U32 llc:1;
+#if defined(LIBRA_WAPI_SUPPORT)
+        /** UnEncrypted Frame received over WAPI channel, only for WAPI*/
+        tANI_U32 uef:1;   
+#else
         tANI_U32 reserved0:1;
+#endif
         tANI_U32 scanLearn:1;
         tANI_U32 rxChannel:4;
         tANI_U32 rtsf:1;
@@ -602,8 +612,6 @@ typedef struct sHmacTxBd {
 //} __ani_attr_packed __ani_attr_aligned_4 halTxBd_type, *pHalTxBd_type;
 } halTxBd_type, *pHalTxBd_type;
 
-
-
 typedef struct sHalRxDeFragBd {
         /* 0x00 */
 #ifdef ANI_BIG_BYTE_ENDIAN
@@ -750,9 +758,8 @@ typedef struct sHalRxDeFragBd {
         tANI_U32 reserved18:16;
 #endif
 
-
 } halRxDeFragBd_type, *pHalRxDeFragBd_type;
 
-#endif
+#endif /* __ASSEMBLER__ */
 
 #endif /*HAL_BD_DEFS_H*/

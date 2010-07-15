@@ -464,6 +464,10 @@ static void sme_QosHandleCallback(eHalStatus status);
 static sme_QosStatusType sme_QosReRequestAddTS(tpAniSirGlobal pMac, 
                                    sme_QosWmmTspecInfo * pQoSInfo,
                                    sme_QosEdcaAcType ac);
+static void sme_QosInitACs(tpAniSirGlobal pMac);
+static eHalStatus sme_QosRequestReassoc(tpAniSirGlobal pMac, 
+                                        tCsrRoamModifyProfileFields *pModFields,
+                                        v_BOOL_t fForce );
 
 #if defined(SME_QOS_NOT_SUPPORTED)
 eHalStatus sme_QosSetBSSID(tpAniSirGlobal pMac);
@@ -484,7 +488,6 @@ eHalStatus sme_QosSetSSID(tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc);
 ----------------------------------------------------------------------------*/
 eHalStatus sme_QosOpen(tpAniSirGlobal pMac)
 {
-   sme_QosEdcaAcType ac;
 
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
              "sme_QosOpen:Test: initializing SME-QoS module\n" );
@@ -512,12 +515,7 @@ eHalStatus sme_QosOpen(tpAniSirGlobal pMac)
       return eHAL_STATUS_FAILURE;
    }
 
-   for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++) 
-   {
-      sme_QosStateTransition(SME_QOS_INIT,
-                             ac);       
-      sme_QosCb.ac_info[ac].curr_flowID = SME_QOS_NUM_FLOW_ID_PER_AC * (ac + 1); 
-   }
+   sme_QosInitACs(pMac);
 
    //the routine registered here gets called by PMC whenever the device is about 
    //to enter one of the power save modes. PMC runs a poll with all the 
@@ -1250,8 +1248,7 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
          sme_QosCb.ac_info[ac].num_flows[SME_QOS_TSPEC_INDEX_0]++;
          sme_QosCb.ac_info[ac].requested_QoSInfo[SME_QOS_TSPEC_INDEX_0] = Tspec_Info;
          //create an entry in the flow list
-         pentry= (sme_QosFlowInfoEntry *)
-         vos_mem_malloc(sizeof(sme_QosFlowInfoEntry));
+         pentry= (sme_QosFlowInfoEntry *)vos_mem_malloc(sizeof(sme_QosFlowInfoEntry));
          if (!pentry)
          {
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
@@ -1337,6 +1334,7 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
 
             }
             pentry->hoRenewal = VOS_FALSE;
+            sme_QosCb.ac_info[ac].tspec_mask_status = SME_QOS_TSPEC_MASK_BIT_1_SET;
          }
          //indicate on which index the flow entry belongs to & add it to the 
          //Flow List at the end
@@ -2245,11 +2243,11 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
                (void)pmcStopUapsd(pMac);
             }
 
-            if(!HAL_STATUS_SUCCESS(csrReassoc(pMac, &modifyProfileFields, &sme_QosCb.roamID, VOS_FALSE)))
+            if(!HAL_STATUS_SUCCESS(sme_QosRequestReassoc(pMac, &modifyProfileFields, VOS_FALSE)))
             {
                //err msg
                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                         "sme_QosInternalReleaseReq:csrReassoc failed\n");
+                         "sme_QosInternalReleaseReq:Reassoc failed\n");
                status = SME_QOS_STATUS_RELEASE_FAILURE_RSP;
             }
             else
@@ -2293,7 +2291,7 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
 
          if(VOS_FALSE == deltsIssued)
          {
-         vos_mem_zero(&sme_QosCb.ac_info[ac].curr_QoSInfo[flow_info->tspec_mask - 1], 
+            vos_mem_zero(&sme_QosCb.ac_info[ac].curr_QoSInfo[flow_info->tspec_mask - 1], 
                       sizeof(sme_QosWmmTspecInfo));
          }
          vos_mem_zero(&sme_QosCb.ac_info[ac].requested_QoSInfo[flow_info->tspec_mask - 1], 
@@ -2310,7 +2308,7 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
       */
       if(SME_QOS_HANDOFF != sme_QosCb.ac_info[ac].curr_state)
       {
-      sme_QosStateTransition(new_state, ac);      
+         sme_QosStateTransition(new_state, ac);      
       }
       if(sme_QosCb.ac_info[ac].reassoc_pending)
       {
@@ -2489,11 +2487,11 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
             csrGetModifyProfileFields(pMac, &modifyProfileFields);
             modifyProfileFields.uapsd_mask |= sme_QosCb.apsd_mask;
             modifyProfileFields.uapsd_mask &= ~(1 << (SME_QOS_EDCA_AC_VO - ac));
-            if(!HAL_STATUS_SUCCESS(csrReassoc(pMac, &modifyProfileFields, &sme_QosCb.roamID, VOS_FALSE)))
+            if(!HAL_STATUS_SUCCESS(sme_QosRequestReassoc(pMac, &modifyProfileFields, VOS_FALSE)))
             {
                //err msg
                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                         "sme_QosSetup:csrReassoc failed\n");
+                         "sme_QosSetup:Reassoc failed\n");
                break;
             }
             else
@@ -2588,11 +2586,11 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
             csrGetModifyProfileFields(pMac, &modifyProfileFields);
             modifyProfileFields.uapsd_mask |= sme_QosCb.apsd_mask;
             modifyProfileFields.uapsd_mask |= 1 << (SME_QOS_EDCA_AC_VO - ac);
-            if(!HAL_STATUS_SUCCESS(csrReassoc(pMac, &modifyProfileFields, &sme_QosCb.roamID, VOS_FALSE)))
+            if(!HAL_STATUS_SUCCESS(sme_QosRequestReassoc(pMac, &modifyProfileFields, VOS_FALSE)))
             {
                //err msg
                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                         "sme_QosSetup:csrReassoc failed\n");
+                         "sme_QosSetup:Reassoc failed\n");
                break;
             }
             else
@@ -3091,7 +3089,8 @@ eHalStatus sme_QosProcessReassocReqEv(tpAniSirGlobal pMac, void * pEvent_info)
                                    ac);
             break;
          case SME_QOS_HANDOFF:
-            //print error msg
+            //This is normal because sme_QosRequestReassoc may already change the state
+            break;
          case SME_QOS_CLOSED:
          case SME_QOS_INIT:
          default:
@@ -3514,7 +3513,6 @@ eHalStatus sme_QosProcessHandoffFailureEv(tpAniSirGlobal pMac, void * pEvent_inf
   --------------------------------------------------------------------------*/
 eHalStatus sme_QosProcessDisconnectEv(tpAniSirGlobal pMac, void * pEvent_info)
 {
-   sme_QosEdcaAcType ac;
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
              "sme_QosProcessDisconnectEv:Test: invoked\n");
 
@@ -3531,12 +3529,7 @@ eHalStatus sme_QosProcessDisconnectEv(tpAniSirGlobal pMac, void * pEvent_info)
       return eHAL_STATUS_SUCCESS;
    }
 
-   for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++) 
-   {//cleanup control blk
-      vos_mem_zero(&sme_QosCb.ac_info[ac], sizeof(sme_QosACInfo));
-      sme_QosStateTransition(SME_QOS_INIT,
-                             ac);       
-   }
+   sme_QosInitACs(pMac);
 
    sme_QosCb.apsd_mask = 0;
    sme_QosCb.apsd_req_counter = 0;
@@ -6412,14 +6405,15 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
     {
         acm_mask = sme_QosGetACMMask(pMac, sme_QosCb.assoc_Info.pBssDesc, pIesLocal);
         uapsd_mask &= ~acm_mask;    //unmask the bits with ACM on to avoid reassoc on them 
-        for(idx = 0; idx < SME_QOS_EDCA_AC_MAX; idx++)
+        for(idx = SME_QOS_EDCA_AC_BE; idx < SME_QOS_EDCA_AC_MAX; idx++)
         {
 			//Only need to react when the state changes
             if( SME_QOS_QOS_ON == sme_QosCb.ac_info[idx].curr_state )
             {
                 //This AC is up
-                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("  AC[%d] is setup as \n"), idx);
-                if( sme_QosIsACM( pMac, sme_QosCb.assoc_Info.pBssDesc, idx, pIesLocal ) )
+                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: %d:  AC[%d] is setup as \n", 
+                    __FUNCTION__, __LINE__, idx);
+                if( acm_mask & (1 << (SME_QOS_EDCA_AC_VO - idx)) )
                 {
                     //AddTS
                     if( sme_QosCb.ac_info[idx].tspec_mask_status )
@@ -6464,7 +6458,8 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
                     }
                     else
                     {
-                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("  AC[%d] is up, ACM is set, but no TSPEC\n"), idx);
+                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, " %s: %d: AC[%d] is up, ACM is set, but no TSPEC\n", 
+                            __FUNCTION__, __LINE__, idx);
                         VOS_ASSERT(0);
                     }
                 }
@@ -6476,7 +6471,8 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
 					if(fIsUapsdNeeded)
 					{
 						uapsd_mask |= 1 << (SME_QOS_EDCA_AC_VO - idx);
-						VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL("  ACM is not set reassoc for 0x%X \n"), uapsd_mask);
+                        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: %d:  ACM is not set reassoc for 0x%X \n", 
+                            __FUNCTION__, __LINE__, uapsd_mask);
 					}
                 }
             }
@@ -6496,11 +6492,11 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
 				modifyProfileFields.uapsd_mask = 0;
 			}
 			//Do we need to inform HDD?
-            if(!HAL_STATUS_SUCCESS(csrReassoc(pMac, &modifyProfileFields, &sme_QosCb.roamID, VOS_TRUE)))
+            if(!HAL_STATUS_SUCCESS(sme_QosRequestReassoc(pMac, &modifyProfileFields, VOS_TRUE)))
             {
                //err msg
                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                         FL(" csrReassoc failed\n"));
+                   "%s: %d: reassoc failed\n", __FUNCTION__, __LINE__);
             }
         }
 
@@ -6508,7 +6504,7 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
     }
     else
     {
-        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, FL(" fail to parse IE\n"));
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: %d: fail to parse IE\n", __FUNCTION__, __LINE__);
         status = SME_QOS_STATUS_SETUP_FAILURE_RSP;
     }
 
@@ -6539,9 +6535,9 @@ static sme_QosStatusType sme_QosReRequestAddTS(tpAniSirGlobal pMac,
       ( eHAL_STATUS_PMC_PENDING == pmcRequestFullPower(pMac, sme_QosPmcFullPowerCallback, pMac, eSME_REASON_OTHER)))
    {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                FL("buffering the modify request in state \
-                = %d as Addts is pending on other AC[%d]/waiting for full power\n"), 
-                sme_QosCb.ac_info[ac].curr_state, ac );
+          "%s: %d: buffering the modify request in state \
+                = %d as Addts is pending on other AC[%d]/waiting for full power\n", 
+                __FUNCTION__, __LINE__, sme_QosCb.ac_info[ac].curr_state, ac );
 
       //buffer cmd
       cmd.command = SME_QOS_RESEND_REQ;
@@ -6552,8 +6548,8 @@ static sme_QosStatusType sme_QosReRequestAddTS(tpAniSirGlobal pMac,
       if(!HAL_STATUS_SUCCESS(sme_QosBufferCmd(&cmd, VOS_FALSE)))
       {
          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                   FL(" couldn't buffer the modify request \
-                   in state = %d\n"), sme_QosCb.ac_info[ac].curr_state );
+             " %s: %d: couldn't buffer the modify request \
+                   in state = %d\n", __FUNCTION__, __LINE__, sme_QosCb.ac_info[ac].curr_state );
          return SME_QOS_STATUS_MODIFY_SETUP_FAILURE_RSP;
       }
       return SME_QOS_STATUS_MODIFY_SETUP_PENDING_RSP;
@@ -6570,8 +6566,8 @@ static sme_QosStatusType sme_QosReRequestAddTS(tpAniSirGlobal pMac,
          status = sme_QosSetup(pMac, pQoSInfo, ac);
 
          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                   FL(" Test: sme_QosSetup returned in \
-                   SME_QOS_QOS_ON state on AC = %d, with status =%d\n"), ac, status);
+             "%s: %d: Test: sme_QosSetup returned in \
+                   SME_QOS_QOS_ON state on AC = %d, with status =%d\n", __FUNCTION__, __LINE__, ac, status);
 
          if(SME_QOS_STATUS_SETUP_REQ_PENDING_RSP == status) 
          {
@@ -6583,15 +6579,15 @@ static sme_QosStatusType sme_QosReRequestAddTS(tpAniSirGlobal pMac,
                  (SME_QOS_STATUS_SETUP_SUCCESS_IND_APSD_PENDING == status))
          {
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                      FL(" is setup already status = %d returned by \
-                      sme_QosSetup\n"), status);  
+                "%s: %d: is setup already status = %d returned by \
+                      sme_QosSetup\n", __FUNCTION__, __LINE__, status);  
          }
          else
          {
             //err msg
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                      FL(" unexpected status = %d returned by \
-                      sme_QosSetup\n"), status);
+                "%s: %d: unexpected status = %d returned by \
+                      sme_QosSetup\n", __FUNCTION__, __LINE__, status);
 
          }
 
@@ -6601,8 +6597,8 @@ static sme_QosStatusType sme_QosReRequestAddTS(tpAniSirGlobal pMac,
    case SME_QOS_HANDOFF:
    case SME_QOS_REQUESTED:
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                FL(" modify request in state \
-                = %d  buffer the request\n"), sme_QosCb.ac_info[ac].curr_state );
+          "%s: %d: modify request in state \
+                = %d  buffer the request\n", __FUNCTION__, __LINE__, sme_QosCb.ac_info[ac].curr_state );
       cmd.command = SME_QOS_RESEND_REQ;
       cmd.pMac = pMac;
       cmd.u.modifyCmdInfo.QosFlowID = SME_QOS_INVALID_FLOW_ID;  //not use in this case
@@ -6611,8 +6607,8 @@ static sme_QosStatusType sme_QosReRequestAddTS(tpAniSirGlobal pMac,
       if(!HAL_STATUS_SUCCESS(sme_QosBufferCmd(&cmd, VOS_FALSE)))
       {
          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                   FL(" couldn't buffer the modify request \
-                   in state = %d\n"), sme_QosCb.ac_info[ac].curr_state );
+             "%s: %d: couldn't buffer the modify request \
+                   in state = %d\n", __FUNCTION__, __LINE__, sme_QosCb.ac_info[ac].curr_state );
          return SME_QOS_STATUS_MODIFY_SETUP_FAILURE_RSP;
       }
       status = SME_QOS_STATUS_MODIFY_SETUP_PENDING_RSP;
@@ -6622,8 +6618,8 @@ static sme_QosStatusType sme_QosReRequestAddTS(tpAniSirGlobal pMac,
    case SME_QOS_INIT:
       //print error msg 
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                FL(" modify request in unexpected state \
-                = %d\n"), sme_QosCb.ac_info[ac].curr_state );
+          "%s: %d: modify request in unexpected state \
+                = %d\n", __FUNCTION__, __LINE__, sme_QosCb.ac_info[ac].curr_state );
 
       // ASSERT?
       break;
@@ -6632,8 +6628,8 @@ static sme_QosStatusType sme_QosReRequestAddTS(tpAniSirGlobal pMac,
    default:
       //print error msg, 
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-                FL(" modify request in unexpected state \
-                = %d for AC[%d]\n"), sme_QosCb.ac_info[ac].curr_state, ac );
+          "%s: %d: modify request in unexpected state \
+                = %d for AC[%d]\n", __FUNCTION__, __LINE__, sme_QosCb.ac_info[ac].curr_state, ac );
 
       // ASSERT
       break;
@@ -6648,3 +6644,47 @@ static sme_QosStatusType sme_QosReRequestAddTS(tpAniSirGlobal pMac,
    return (status);
 
 }
+
+
+static void sme_QosInitACs(tpAniSirGlobal pMac)
+{
+   sme_QosEdcaAcType ac;
+
+   for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++) 
+   {
+      vos_mem_zero(&sme_QosCb.ac_info[ac], sizeof(sme_QosACInfo));
+      sme_QosStateTransition(SME_QOS_INIT, ac);       
+      sme_QosCb.ac_info[ac].curr_flowID = SME_QOS_NUM_FLOW_ID_PER_AC * (ac + 1); 
+   }
+}
+
+
+static eHalStatus sme_QosRequestReassoc(tpAniSirGlobal pMac, 
+                                        tCsrRoamModifyProfileFields *pModFields,
+                                        v_BOOL_t fForce )
+{
+   eHalStatus status;
+
+   status = csrReassoc(pMac, pModFields, &sme_QosCb.roamID, fForce);
+   if(HAL_STATUS_SUCCESS(status))
+   {
+      //Update the state to Handoff so subsequent requests are queued until this one is finish.
+      sme_QosEdcaAcType ac;
+
+      for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++) 
+      {
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, 
+             "%s: %d: reassoc for mask 0x%X \
+                AC[%d] state [%d]\n", __FUNCTION__, __LINE__, pModFields->uapsd_mask, ac, sme_QosCb.ac_info[ac].curr_state );
+         //If it is already in HANDOFF state, don't do anything. We MUST preserve the prev_state.
+         //Calling sme_QosStateTransition changes pre_state.
+         if(SME_QOS_HANDOFF != sme_QosCb.ac_info[ac].curr_state)
+         {
+            sme_QosStateTransition(SME_QOS_HANDOFF, ac);
+         }
+      }
+   }
+
+   return status;
+}
+

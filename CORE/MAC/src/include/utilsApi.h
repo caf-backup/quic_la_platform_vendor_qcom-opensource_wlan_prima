@@ -684,7 +684,7 @@ static inline tANI_U8 convertCW(tANI_U16 cw)
 
 #if defined VOSS_ENABLED
 
-#define sirBusyWait(duration)   vos_busy_wait(duration)
+#define sirBusyWait(duration)   vos_busy_wait(duration / 1000)
 #define sirSleepWait(duration)  vos_sleep_us(duration)
 
 #elif defined ANI_OS_TYPE_LINUX

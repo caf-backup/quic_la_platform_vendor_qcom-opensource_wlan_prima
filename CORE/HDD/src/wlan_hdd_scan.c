@@ -38,6 +38,11 @@
 #include <aniGlobal.h>
 #include <dot11f.h>
 
+#ifdef CONFIG_CFG80211
+#include <linux/wireless.h>
+#include <net/cfg80211.h>
+#endif
+
 #define GET_IE_LEN_IN_BSS(lenInBss) ( lenInBss + sizeof(lenInBss) - \
               ((int) OFFSET_OF( tSirBssDescription, ieFields)))
 
@@ -143,7 +148,7 @@ static eHalStatus hdd_GetWPARSNIEs( v_U8_t *ieFields, v_U16_t ie_length, char **
 static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
                                  tSirBssDescription *descriptor)
 {
-   hdd_adapter_t *pAdapter = (netdev_priv(scanInfo->dev));
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(scanInfo->dev) ;
    tHalHandle hHal = pAdapter->hHal;
    struct iw_event event;
    char *current_event = scanInfo->start;
@@ -466,7 +471,7 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
                          tANI_U32 scanId, eCsrScanStatus status)
 {
     struct net_device *dev = (struct net_device *) pContext;
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
     hdd_wext_state_t *pwextBuf = pAdapter->pWextState;
     union iwreq_data wrqu;
     int we_event;
@@ -528,7 +533,7 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
                  union iwreq_data *wrqu, char *extra)
 {
    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
-   hdd_adapter_t *pAdapter = (netdev_priv(dev));
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
    hdd_wext_state_t *pwextBuf = pAdapter->pWextState;
    tCsrScanRequest scanRequest;
    v_U32_t scanId = 0;
@@ -643,7 +648,7 @@ int iw_get_scan(struct net_device *dev,
                          struct iw_request_info *info,
                          union iwreq_data *wrqu, char *extra)
 {
-   hdd_adapter_t *pAdapter = (netdev_priv(dev));
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
    hdd_wext_state_t *pwextBuf = pAdapter->pWextState;
    tHalHandle hHal = pAdapter->hHal;
    tCsrScanResultInfo *pScanResult;

@@ -264,6 +264,10 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
         {
            status = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
            VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+
+           status = vos_chipVoteOnXOBuffer(&callType, NULL, NULL);
+           VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+
            pMac->pmc.rfSuppliesVotedOff = FALSE;
         }
 
@@ -296,6 +300,10 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
         {
            status = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
            VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+
+           status = vos_chipVoteOnXOBuffer(&callType, NULL, NULL);
+           VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+
            pMac->pmc.rfSuppliesVotedOff = FALSE;
         }
 
@@ -460,6 +468,10 @@ eHalStatus pmcEnterImpsState (tHalHandle hHal)
     //pending request for full power already
     status = vos_chipVoteOffRFSupply(&callType, NULL, NULL);
     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+
+    status = vos_chipVoteOffXOBuffer(&callType, NULL, NULL);
+    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+
     pMac->pmc.rfSuppliesVotedOff= TRUE;
 
     return eHAL_STATUS_SUCCESS;
@@ -1464,6 +1476,10 @@ eHalStatus pmcEnterStandbyState (tHalHandle hHal)
    //for full power
    status = vos_chipVoteOffRFSupply(&callType, NULL, NULL);
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+
+   status = vos_chipVoteOffXOBuffer(&callType, NULL, NULL);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+
    pMac->pmc.rfSuppliesVotedOff= TRUE;
 
    return eHAL_STATUS_SUCCESS;

@@ -32,7 +32,7 @@ typedef tANI_S16 t2Decimal;
 #define CONVERT_FROM_2DECIMAL_PLACES(x) (x / 100)
 
 #ifndef PTT_FLOAT
-#define PTT_FLOAT tANI_U32  // driver code can't include float, 
+#define PTT_FLOAT tANI_U32  // driver code can't include float,
                             // so this reserves space in our structures to allow customer measurements in float
                             // driver code always uses t2decimal, whereas the pttApi always expects float.
 
@@ -114,23 +114,23 @@ typedef enum
 
     NUM_RX_GAIN_STEPS = 16,
     MAX_RX_GAIN_STEP = RX_GAIN_STEP_15,
-    
+
     INVALID_GAIN_STEP
 }eGainSteps;
 
 // Keeping these definitions in case we need to revive them later
 // #define ABS_GAIN_RANGE_DB       ((NUM_RF_RX_GAIN_STEPS - 1) * 2)
-// 
+//
 // #define DB_PER_INDEX            1
 // #define RF_MAX_GAIN_DB          83      //defines highest gain
 // #define RF_MIN_GAIN_DB          25
 // #define RF_GAIN_RANGE_DB        (RF_MAX_GAIN_DB - RF_MIN_GAIN_DB)
-// 
+//
 // #define RF_GAIN_INDEX_DELTA     (RF_GAIN_RANGE_DB/DB_PER_INDEX)
 // #define RF_GAIN_MAX_INDEX       (NUM_RF_RX_GAIN_STEPS - 1)
 // #define RF_GAIN_MIN_INDEX       (RF_GAIN_MAX_INDEX - RF_GAIN_INDEX_DELTA)   //the index where the minimum gain falls,
 //                                                                                     // all lower indexes are filled with the minimum gain
-// 
+//
 // #define SPEC_MIN_GAIN           10
 // #define AGC_MEASUREMENT_INDEX   29  // index between range of RF_GAIN_MIN_INDEX to RF_GAIN_MAX_INDEX
                                     // where AGC gain measurements should be made
@@ -171,7 +171,7 @@ typedef struct
 
 typedef struct
 {
-    tANI_U8 rx[PHY_MAX_RX_CHAINS];
+    tANI_S8 rx[PHY_MAX_RX_CHAINS];
 }sRxChainsData;
 
 
@@ -208,8 +208,8 @@ typedef struct
 // typedef sTxFirLoCorrect sTxLoCorrectChannel[PHY_MAX_TX_CHAINS][NUM_TX_GAIN_STEPS];
 // typedef sIQCalValues sTxIQChannel[PHY_MAX_TX_CHAINS][NUM_TX_GAIN_STEPS];
 // typedef sIQCalValues sRxIQChannel[PHY_MAX_RX_CHAINS][NUM_RX_GAIN_STEPS];
-// 
-// 
+//
+//
 // typedef enum
 // {
 //     DEMO_CAL_FREQ_0,
@@ -224,10 +224,10 @@ typedef struct
 //     DEMO_CAL_FREQ_9,
 //     DEMO_CAL_FREQ_10,
 //     DEMO_CAL_FREQ_11,
-// 
+//
 //     NUM_DEMO_CAL_CHANNELS = 12
 // }eDemoCalChannels;                  //used to index NV_TABLE_DEMO_CHANNEL_LIST
-// 
+//
 // typedef tANI_U8 tNotchSettings;
 
 

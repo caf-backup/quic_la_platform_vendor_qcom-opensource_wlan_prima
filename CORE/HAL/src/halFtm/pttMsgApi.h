@@ -711,8 +711,5 @@ typedef struct
     uPttMsgs msgBody;
 }tPttMsgbuffer;
 
-#ifdef ANI_MANF_DIAG
-void pttSendMsgResponse(tpAniSirGlobal pMac, tPttMsgbuffer *pPttMsg);
-#endif
 #endif
 

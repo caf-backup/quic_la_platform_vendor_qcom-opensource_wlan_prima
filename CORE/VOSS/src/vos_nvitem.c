@@ -4,7 +4,7 @@
   OVERVIEW:     This source file contains definitions for vOS NV Item APIs
 
   DEPENDENCIES: NV, remote API client, WinCE REX
- 
+
                 Copyright (c) 2008 QUALCOMM Incorporated.
                 All Rights Reserved.
                 Qualcomm Confidential and Proprietary
@@ -44,10 +44,10 @@
 /*----------------------------------------------------------------------------
  * Type Declarations
  * -------------------------------------------------------------------------*/
-// this wrapper structure is identical to nv_cmd_type except the 
-// data_ptr type is changed void* to avoid exceeding the debug information 
+// this wrapper structure is identical to nv_cmd_type except the
+// data_ptr type is changed void* to avoid exceeding the debug information
 // module size as there are too many elements within nv_items_type union
- 
+
 
 // structure for code and regulatory domain of a single country
 typedef struct
@@ -60,7 +60,7 @@ typedef struct
 typedef struct
 {
    v_U16_t           countryCount;
-   CountryInfo_t     countryInfo[MAX_COUNTRY_COUNT];     
+   CountryInfo_t     countryInfo[MAX_COUNTRY_COUNT];
 } CountryInfoTable_t;
 
 /*----------------------------------------------------------------------------
@@ -70,12 +70,12 @@ typedef struct
 /*----------------------------------------------------------------------------
  * Static Variable Definitions
  * -------------------------------------------------------------------------*/
-// cache of country info table; 
-// this is re-initialized from data on binary file 
+// cache of country info table;
+// this is re-initialized from data on binary file
 // loaded on driver initialization if available
-static CountryInfoTable_t countryInfoTable = 
+static CountryInfoTable_t countryInfoTable =
 {
-    248, 
+    248,
     {
         { REGDOMAIN_FCC, {'U', 'S'}},       // USA - must be the first country code
         { REGDOMAIN_WORLD, {'A', 'D'}},     //ANDORRA
@@ -127,7 +127,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_HI_5GHZ, {'C', 'N'}},   //CHINA
         { REGDOMAIN_FCC, {'C', 'O'}},       //COLOMBIA
         { REGDOMAIN_FCC, {'C', 'R'}},       //COSTA RICA
-        { REGDOMAIN_WORLD, { 'C', 'U'}},     //CUBA  
+        { REGDOMAIN_WORLD, { 'C', 'U'}},     //CUBA
         { REGDOMAIN_WORLD, { 'C', 'V'}},     //CAPE VERDE
         { REGDOMAIN_WORLD, { 'C', 'X'}},     //CHRISTMAS ISLAND
         { REGDOMAIN_ETSI, {'C', 'Y'}},      //CYPRUS
@@ -177,7 +177,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD, { 'H', 'T'}},     //HAITI
         { REGDOMAIN_ETSI, {'H', 'U'}},      //HUNGARY
         { REGDOMAIN_WORLD, { 'I', 'D'}},     //INDONESIA
-        { REGDOMAIN_ETSI, {'I', 'E'}},     //IRELAND        
+        { REGDOMAIN_ETSI, {'I', 'E'}},     //IRELAND
         { REGDOMAIN_N_AMER_EXC_FCC, {'I', 'L'}},        //ISREAL
         { REGDOMAIN_ETSI, {'I', 'M'}},      //ISLE OF MAN
         { REGDOMAIN_APAC, {'I', 'N'}},      //INDIA
@@ -197,7 +197,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD, { 'K', 'M'}},     //COMOROS
         { REGDOMAIN_WORLD, { 'K', 'N'}},     //SAINT KITTS AND NEVIS
         { REGDOMAIN_WORLD, { 'K', 'P'}},     //KOREA, DEMOCRATIC PEOPLE'S REPUBLIC OF
-        { REGDOMAIN_KOREA, {'K', 'R'}},     //KOREA, REPUBLIC OF 
+        { REGDOMAIN_KOREA, {'K', 'R'}},     //KOREA, REPUBLIC OF
         { REGDOMAIN_WORLD, { 'K', 'W'}},     //KUWAIT
         { REGDOMAIN_WORLD, { 'K', 'Y'}},     //CAYMAN ISLANDS
         { REGDOMAIN_WORLD, { 'K', 'Z'}},     //KAZAKHSTAN
@@ -227,7 +227,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_WORLD, { 'M', 'Q'}},     //MARTINIQUE
         { REGDOMAIN_WORLD, { 'M', 'R'}},     //MAURITANIA
         { REGDOMAIN_WORLD, { 'M', 'S'}},     //MONTSERRAT
-        { REGDOMAIN_ETSI, {'M', 'T'}},      //MALTA     
+        { REGDOMAIN_ETSI, {'M', 'T'}},      //MALTA
         { REGDOMAIN_WORLD, { 'M', 'U'}},     //MAURITIUS
         { REGDOMAIN_WORLD, { 'M', 'V'}},     //MALDIVES
         { REGDOMAIN_WORLD, { 'M', 'W'}},     //MALAWI
@@ -277,7 +277,7 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_ETSI, {'S', 'I'}},      //SLOVENNIA
         { REGDOMAIN_WORLD, { 'S', 'J'}},     //SVALBARD AND JAN MAYEN
         { REGDOMAIN_ETSI, {'S', 'K'}},      //SLOVAKIA
-        { REGDOMAIN_WORLD, { 'S', 'L'}},     //SIERRA LEONE      
+        { REGDOMAIN_WORLD, { 'S', 'L'}},     //SIERRA LEONE
         { REGDOMAIN_WORLD, { 'S', 'M'}},     //SAN MARINO
         { REGDOMAIN_WORLD, { 'S', 'N'}},     //SENEGAL
         { REGDOMAIN_WORLD, { 'S', 'O'}},     //SOMALIA
@@ -330,8 +330,8 @@ static CountryInfoTable_t countryInfoTable =
 
 typedef struct nvEFSTable_s
 {
-   v_U32_t    nvValidityBitmap; 
-   sHalNv     halnv;     
+   v_U32_t    nvValidityBitmap;
+   sHalNv     halnv;
 } nvEFSTable_t;
 
 nvEFSTable_t *gnvEFSTable=NULL;
@@ -339,23 +339,23 @@ nvEFSTable_t *gnvEFSTable=NULL;
 /*----------------------------------------------------------------------------
    Function Definitions and Documentation
  * -------------------------------------------------------------------------*/
- 
+
 VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len);
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_init() - initialize the NV module
-  
+
   The \a vos_nv_init() initializes the NV module.  This read the binary
   file for country code and regulatory domain information.
-  
+
   \return VOS_STATUS_SUCCESS - module is initialized successfully
           otherwise  - module is not initialized
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_init(void)
 {
-   return VOS_STATUS_SUCCESS; 
+   return VOS_STATUS_SUCCESS;
 }
 
 
@@ -368,17 +368,17 @@ VOS_STATUS vos_nv_open(void)
          /*Get the global context */
     pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
-    bufSize = sizeof(nvEFSTable_t); 
+    bufSize = sizeof(nvEFSTable_t);
     status = hdd_request_firmware(LIBRA_NV_FILE,((VosContextType*)(pVosContext))->pHDDContext,(v_VOID_t**)&gnvEFSTable,&bufSize);
 
     if ( (!VOS_IS_STATUS_SUCCESS( status )) || !gnvEFSTable)
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                          "%s : vos_nv_open failed!!! make sure the qcom_wlan_nv.bin is present in persist directory\n",__func__);
-   
+
         return VOS_STATUS_E_FAILURE;
     }
-    return VOS_STATUS_SUCCESS; 
+    return VOS_STATUS_SUCCESS;
 }
 
 
@@ -397,36 +397,36 @@ VOS_STATUS vos_nv_close(void)
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                          "%s : vos_open failed\n",__func__);
-   
+
         return VOS_STATUS_E_FAILURE;
     }
 
     gnvEFSTable=NULL;
 
-    return VOS_STATUS_SUCCESS; 
+    return VOS_STATUS_SUCCESS;
 }
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_getRegDomainFromCountryCode() - get the regulatory domain of
   a country given its country code
-  
+
   The \a vos_nv_getRegDomainFromCountryCode() returns the regulatory domain of
   a country given its country code.  This is done from reading a cached
   copy of the binary file.
-  
+
   \param pRegDomain  - pointer to regulatory domain
 
-  \param countryCode - country code 
+  \param countryCode - country code
 
   \return VOS_STATUS_SUCCESS - regulatory domain is found for the given country
           VOS_STATUS_E_FAULT - invalid pointer error
           VOS_STATUS_E_EMPTY - country code table is empty
           VOS_STATUS_E_EXISTS - given country code does not exist in table
   \sa
-  
+
   -------------------------------------------------------------------------*/
-VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain, 
+VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
       const v_COUNTRYCODE_t countryCode )
 {
    int i;
@@ -435,28 +435,28 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
    // sanity checks
    if (NULL == pRegDomain)
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
             ("Invalid reg domain pointer\r\n") );
       return VOS_STATUS_E_FAULT;
    }
 
    if (NULL == countryCode)
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
             ("Country code array is NULL\r\n") );
       return VOS_STATUS_E_FAULT;
    }
 
    if (0 == countryInfoTable.countryCount)
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
             ("Reg domain table is emtpy\r\n") );
       return VOS_STATUS_E_EMPTY;
    }
 
    // iterate the country info table until end of table or the country code
    // is found
-   for (i = 0; i < countryInfoTable.countryCount && 
+   for (i = 0; i < countryInfoTable.countryCount &&
          REGDOMAIN_COUNT == *pRegDomain; i++)
    {
       if (memcmp(countryCode, countryInfoTable.countryInfo[i].countryCode,
@@ -473,34 +473,34 @@ VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
    }
    else
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN, 
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
             ("country code is not found\r\n"));
       return VOS_STATUS_E_EXISTS;
    }
 }
 
 /**------------------------------------------------------------------------
-  
-  \brief vos_nv_getSupportedCountryCode() - get the list of supported 
+
+  \brief vos_nv_getSupportedCountryCode() - get the list of supported
   country codes
-  
+
   The \a vos_nv_getSupportedCountryCode() encodes the list of supported
   country codes with paddings in the provided buffer
-  
+
   \param pBuffer     - pointer to buffer where supported country codes
                        and paddings are encoded; this may be set to NULL
                        if user wishes to query the required buffer size to
                        get the country code list
 
-  \param pBufferSize - this is the provided buffer size on input; 
+  \param pBufferSize - this is the provided buffer size on input;
                        this is the required or consumed buffer size on output
 
   \return VOS_STATUS_SUCCESS - country codes are successfully encoded
-          VOS_STATUS_E_NOMEM - country codes are not encoded because either 
+          VOS_STATUS_E_NOMEM - country codes are not encoded because either
                                the buffer is NULL or buffer size is
                                sufficient
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_getSupportedCountryCode( v_BYTE_t *pBuffer, v_SIZE_t *pBufferSize,
       v_SIZE_t paddingSize )
@@ -513,7 +513,7 @@ VOS_STATUS vos_nv_getSupportedCountryCode( v_BYTE_t *pBuffer, v_SIZE_t *pBufferS
 
    if ( NULL == pBuffer || providedBufferSize < *pBufferSize )
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, 
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
             ("Insufficient memory for country code list\r\n"));
       return VOS_STATUS_E_NOMEM;
    }
@@ -526,7 +526,7 @@ VOS_STATUS vos_nv_getSupportedCountryCode( v_BYTE_t *pBuffer, v_SIZE_t *pBufferS
    return VOS_STATUS_SUCCESS;
 }
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_readTxAntennaCount() - return number of TX antenna
 
   \param pTxAntennaCount   - antenna count
@@ -534,14 +534,14 @@ VOS_STATUS vos_nv_getSupportedCountryCode( v_BYTE_t *pBuffer, v_SIZE_t *pBufferS
   \return status of the NV read operation
 
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_readTxAntennaCount( v_U8_t *pTxAntennaCount )
 {
    sNvFields fieldImage;
    VOS_STATUS status;
 
-   status = vos_nv_read( NV_FIELDS_IMAGE, &fieldImage, NULL, 
+   status = vos_nv_read( VNV_FIELD_IMAGE, &fieldImage, NULL,
          sizeof(fieldImage) );
 
    if (VOS_STATUS_SUCCESS == status)
@@ -552,7 +552,7 @@ VOS_STATUS vos_nv_readTxAntennaCount( v_U8_t *pTxAntennaCount )
 }
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_readRxAntennaCount() - return number of RX antenna
 
   \param pRxAntennaCount   - antenna count
@@ -560,14 +560,14 @@ VOS_STATUS vos_nv_readTxAntennaCount( v_U8_t *pTxAntennaCount )
   \return status of the NV read operation
 
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_readRxAntennaCount( v_U8_t *pRxAntennaCount )
 {
    sNvFields fieldImage;
    VOS_STATUS status;
 
-   status = vos_nv_read( NV_FIELDS_IMAGE, &fieldImage, NULL, 
+   status = vos_nv_read( VNV_FIELD_IMAGE, &fieldImage, NULL,
          sizeof(fieldImage) );
 
    if (VOS_STATUS_SUCCESS == status)
@@ -579,7 +579,7 @@ VOS_STATUS vos_nv_readRxAntennaCount( v_U8_t *pRxAntennaCount )
 
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_readMacAddress() - return the MAC address
 
   \param pMacAddress - MAC address
@@ -587,42 +587,32 @@ VOS_STATUS vos_nv_readRxAntennaCount( v_U8_t *pRxAntennaCount )
   \return status of the NV read operation
 
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_readMacAddress( v_MAC_ADDRESS_t pMacAddress )
 {
    sNvFields fieldImage;
-   VOS_STATUS status;
+   VOS_STATUS status = VOS_STATUS_E_FAILURE;
 
-   status = vos_nv_read( NV_FIELDS_IMAGE, &fieldImage, NULL, 
+   status = vos_nv_read( VNV_FIELD_IMAGE, &fieldImage, NULL,
          sizeof(fieldImage) );
 
    if (VOS_STATUS_SUCCESS == status)
    {
       memcpy( pMacAddress, fieldImage.macAddr, VOS_MAC_ADDRESS_LEN );
    }
-   else
-   {
-      //This part of the code can be removed when NV is programmed
-      const v_U8_t macAddr[VOS_MAC_ADDRESS_LEN] = VOS_HARD_CODED_MAC;
-      memcpy( pMacAddress, macAddr, VOS_MAC_ADDRESS_LEN );
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN, 
-          " fail to get MAC address from NV, hardcoded to %02X-%02X-%02X-%02X-%02X%02X",
-          macAddr[0], macAddr[1], macAddr[2], macAddr[3], macAddr[4], macAddr[5]);
-      status = VOS_STATUS_SUCCESS;
-   }
    return status;
 }
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_setValidity() - set the validity of an NV item.
-  
-  The \a vos_nv_setValidity() validates and invalidates an NV item.  The 
-  validity information is stored in NV memory.  
-  One would get the VOS_STATUS_E_EXISTS error when reading an invalid item.  
+
+  The \a vos_nv_setValidity() validates and invalidates an NV item.  The
+  validity information is stored in NV memory.
+  One would get the VOS_STATUS_E_EXISTS error when reading an invalid item.
   An item becomes valid when one has written to it successfully.
-  
+
   \param type        - NV item type
 
   \param itemIsValid - boolean value indicating the item's validity
@@ -631,15 +621,15 @@ VOS_STATUS vos_nv_readMacAddress( v_MAC_ADDRESS_t pMacAddress )
           VOS_STATUS_E_INVAL - one of the parameters is invalid
           VOS_STATUS_E_FAILURE - unknown error
   \sa
-  
+
   -------------------------------------------------------------------------*/
-#ifdef ANI_MANF_DIAG  
+#ifndef WLAN_FTM_STUB
 
 VOS_STATUS vos_nv_setValidity( VNV_TYPE type, v_BOOL_t itemIsValid )
 {
    v_U32_t lastNvValidityBitmap;
-   v_U32_t newNvValidityBitmap;   
-   VOS_STATUS status = VOS_STATUS_SUCCESS;  
+   v_U32_t newNvValidityBitmap;
+   VOS_STATUS status = VOS_STATUS_SUCCESS;
 
    // check if the current NV type is valid
    if (VNV_TYPE_COUNT < type)
@@ -648,12 +638,12 @@ VOS_STATUS vos_nv_setValidity( VNV_TYPE type, v_BOOL_t itemIsValid )
             ("vos_nv_setValidity: invalid type=%d\r\n"), type );
       return VOS_STATUS_E_INVAL;
    }
-   
+
    // read the validity bitmap
    lastNvValidityBitmap = gnvEFSTable->nvValidityBitmap;
 
    // modify the validity bitmap
-   if (itemIsValid) 
+   if (itemIsValid)
    {
        newNvValidityBitmap = lastNvValidityBitmap | (1 << type);
               // commit to NV store if bitmap has been modified
@@ -665,14 +655,14 @@ VOS_STATUS vos_nv_setValidity( VNV_TYPE type, v_BOOL_t itemIsValid )
    else
    {
        newNvValidityBitmap = lastNvValidityBitmap & (~(1 << type));
-   
+
        if (newNvValidityBitmap != lastNvValidityBitmap)
        {
            gnvEFSTable->nvValidityBitmap = newNvValidityBitmap;
            status = wlan_write_to_efs((v_U8_t*)gnvEFSTable,sizeof(nvEFSTable_t));
-      
+
            if (! VOS_IS_STATUS_SUCCESS(status)) {
-               
+
                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, ("vos_nv_write_to_efs failed!!!\r\n"));
                status = VOS_STATUS_E_FAULT;
            }
@@ -680,121 +670,121 @@ VOS_STATUS vos_nv_setValidity( VNV_TYPE type, v_BOOL_t itemIsValid )
    }
 
 
-   return status; 
+   return status;
 }
 
 #endif
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_getValidity() - get the validity of an NV item.
-  
-  The \a vos_nv_getValidity() indicates if an NV item is valid.  The 
-  validity information is stored in NV memory.  
-  One would get the VOS_STATUS_E_EXISTS error when reading an invalid item.  
+
+  The \a vos_nv_getValidity() indicates if an NV item is valid.  The
+  validity information is stored in NV memory.
+  One would get the VOS_STATUS_E_EXISTS error when reading an invalid item.
   An item becomes valid when one has written to it successfully.
-  
+
   \param type        - NV item type
 
-  \param pItemIsValid- pointer to the boolean value indicating the item's 
+  \param pItemIsValid- pointer to the boolean value indicating the item's
                        validity
 
   \return VOS_STATUS_SUCCESS - validity is determined successfully
           VOS_STATUS_E_INVAL - one of the parameters is invalid
           VOS_STATUS_E_FAILURE - unknown error
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_getValidity( VNV_TYPE type, v_BOOL_t *pItemIsValid )
 {
    v_U32_t nvValidityBitmap = gnvEFSTable->nvValidityBitmap;
 
    // check if the current NV type is valid
-   if (NUM_NV_TABLE_IDS < type)
+   if (VNV_TYPE_COUNT < type)
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
             ("vos_nv_getValidity: invalid type=%d\r\n"), type );
       return VOS_STATUS_E_INVAL;
    }
-   
+
    *pItemIsValid = (v_BOOL_t)((nvValidityBitmap >> type) & 1);
    return VOS_STATUS_SUCCESS;
 }
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_read() - read a NV item to an output buffer
-  
+
   The \a vos_nv_read() reads a NV item to an output buffer.  If the item is
   an array, this function would read the entire array. One would get a
-  VOS_STATUS_E_EXISTS error when reading an invalid item. 
-  
-  For error conditions of VOS_STATUS_E_EXISTS and VOS_STATUS_E_FAILURE, 
-  if a default buffer is provided (with a non-NULL value), 
-  the default buffer content is copied to the output buffer. 
+  VOS_STATUS_E_EXISTS error when reading an invalid item.
+
+  For error conditions of VOS_STATUS_E_EXISTS and VOS_STATUS_E_FAILURE,
+  if a default buffer is provided (with a non-NULL value),
+  the default buffer content is copied to the output buffer.
 
   \param type  - NV item type
 
   \param outputBuffer   - output buffer
 
   \param defaultBuffer  - default buffer
-  
+
   \param bufferSize  - output buffer size
-  
+
   \return VOS_STATUS_SUCCESS - NV item is read successfully
           VOS_STATUS_E_INVAL - one of the parameters is invalid
           VOS_STATUS_E_FAULT - defaultBuffer point is NULL
           VOS_STATUS_E_EXISTS - NV type is unsupported
           VOS_STATUS_E_FAILURE - unknown error
   \sa
-  
+
   -------------------------------------------------------------------------*/
 
-VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer, 
+VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
       v_VOID_t *defaultBuffer, v_SIZE_t bufferSize )
 {
     VOS_STATUS status             = VOS_STATUS_SUCCESS;
     v_SIZE_t itemSize;
     v_BOOL_t itemIsValid;
-  
-    // sanity check   
+
+    // sanity check
     if (VNV_TYPE_COUNT < type)
     {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
              ("vos_nv_setValidity: invalid type=%d\r\n"), type );
        return VOS_STATUS_E_INVAL;
     }
-    
+
     if (NULL == outputVoidBuffer)
     {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
              ("Buffer provided is NULL\r\n") );
        return VOS_STATUS_E_FAULT;
     }
- 
+
     if (0 == bufferSize)
     {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
              ("NV type=%d is invalid\r\n"), type );
        return VOS_STATUS_E_INVAL;
     }
     // check if the NV item has valid data
     status = vos_nv_getValidity( type, &itemIsValid );
- 
+
    if (!itemIsValid)
    {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
             "NV type=%d does not have valid data\r\n", type );
        return VOS_STATUS_E_EMPTY;
    }
-  
-   switch(type) 
+
+   switch(type)
    {
-       case VNV_FIELD_IMAGE: 
+       case VNV_FIELD_IMAGE:
            itemSize = sizeof(gnvEFSTable->halnv.fields);
 
            if(bufferSize != itemSize) {
 
-               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
@@ -804,12 +794,12 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            }
            break;
 
-       case VNV_QFUSE:  
-           itemSize = sizeof(gnvEFSTable->halnv.tables.qFuseData);  
+       case VNV_QFUSE:
+           itemSize = sizeof(gnvEFSTable->halnv.tables.qFuseData);
 
            if(bufferSize != itemSize) {
 
-               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
@@ -819,12 +809,12 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            }
 
            break;
-       case VNV_RATE_TO_POWER_TABLE:                   
-           itemSize = sizeof(gnvEFSTable->halnv.tables.pwrOptimum);  
-           
+       case VNV_RATE_TO_POWER_TABLE:
+           itemSize = sizeof(gnvEFSTable->halnv.tables.pwrOptimum);
+
            if(bufferSize != itemSize) {
 
-               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
@@ -835,11 +825,11 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
 
            break;
        case VNV_REGULARTORY_DOMAIN_TABLE:
-           itemSize = sizeof(gnvEFSTable->halnv.tables.regDomains);  
+           itemSize = sizeof(gnvEFSTable->halnv.tables.regDomains);
 
            if(bufferSize != itemSize) {
 
-               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
@@ -848,13 +838,13 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
                memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.regDomains[0],bufferSize);
            }
            break;
-       case VNV_DEFAULT_LOCATION: 
-           
-           itemSize = sizeof(gnvEFSTable->halnv.tables.defaultCountryTable);  
+       case VNV_DEFAULT_LOCATION:
+
+           itemSize = sizeof(gnvEFSTable->halnv.tables.defaultCountryTable);
 
            if(bufferSize != itemSize) {
 
-               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
@@ -863,13 +853,13 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
                memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.defaultCountryTable,bufferSize);
            }
            break;
-       case VNV_MAXIMUM_TX_POWER: 
+       case VNV_MAXIMUM_TX_POWER:
 
-          itemSize = sizeof(gnvEFSTable->halnv.tables.tpcConfig);  
+          itemSize = sizeof(gnvEFSTable->halnv.tables.tpcConfig);
 
            if(bufferSize != itemSize) {
 
-               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
@@ -878,13 +868,13 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
                memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.tpcConfig[0],bufferSize);
            }
            break;
-       case VNV_RX_SENSITIVITY: 
+       case VNV_RX_SENSITIVITY:
 
-           itemSize = sizeof(gnvEFSTable->halnv.tables.rfCalValues);  
+           itemSize = sizeof(gnvEFSTable->halnv.tables.rfCalValues);
 
            if(bufferSize != itemSize) {
 
-               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                  itemSize);
                status = VOS_STATUS_E_INVAL;
@@ -893,73 +883,88 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
                memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.rfCalValues,bufferSize);
            }
            break;
+       case VNV_RSSI_OFFSETS:
+
+           itemSize = sizeof(gnvEFSTable->halnv.tables.rssiOffset);
+
+           if(bufferSize != itemSize) {
+
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                 itemSize);
+               status = VOS_STATUS_E_INVAL;
+           }
+           else {
+               memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.rssiOffset,bufferSize);
+           }
+           break;
 
        default:
          break;
    }
-   
+
    return status;
 }
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_write() - write to a NV item from an input buffer
-  
+
   The \a vos_nv_write() writes to a NV item from an input buffer. This would
   validate the NV item if the write operation is successful.
 
   \param type - NV item type
 
   \param inputBuffer - input buffer
-  
+
   \param inputBufferSize - input buffer size
-  
+
   \return VOS_STATUS_SUCCESS - NV item is read successfully
           VOS_STATUS_E_INVAL - one of the parameters is invalid
-          VOS_STATUS_E_FAULT - outputBuffer pointer is NULL 
+          VOS_STATUS_E_FAULT - outputBuffer pointer is NULL
           VOS_STATUS_E_EXISTS - NV type is unsupported
           VOS_STATUS_E_FAILURE   - unknown error
   \sa
-  
+
   -------------------------------------------------------------------------*/
 
-VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer, 
+VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
       v_SIZE_t bufferSize )
 {
-    VOS_STATUS status = VOS_STATUS_SUCCESS;    
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
     v_SIZE_t itemSize;
 
-        // sanity check   
+        // sanity check
     if (NUM_NV_TABLE_IDS < type)
     {
        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
              ("vos_nv_setValidity: invalid type=%d\r\n"), type );
        return VOS_STATUS_E_INVAL;
     }
-    
+
     if (NULL == inputVoidBuffer)
     {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
              ("Buffer provided is NULL\r\n") );
        return VOS_STATUS_E_FAULT;
     }
- 
+
     if (0 == bufferSize)
     {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
              ("NV type=%d is invalid\r\n"), type );
        return VOS_STATUS_E_INVAL;
     }
-    switch(type) 
+    switch(type)
     {
-        case VNV_FIELD_IMAGE: 
+        case VNV_FIELD_IMAGE:
             itemSize = sizeof(gnvEFSTable->halnv.fields);
-    
+
             if(bufferSize != itemSize) {
-    
-                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                  ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                   itemSize);
                 status = VOS_STATUS_E_INVAL;
@@ -968,13 +973,13 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
                 memcpy(&gnvEFSTable->halnv.fields,inputVoidBuffer,bufferSize);
             }
             break;
-    
-        case VNV_QFUSE:  
-            itemSize = sizeof(gnvEFSTable->halnv.tables.qFuseData);    
-    
+
+        case VNV_QFUSE:
+            itemSize = sizeof(gnvEFSTable->halnv.tables.qFuseData);
+
             if(bufferSize != itemSize) {
-    
-                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                  ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                   itemSize);
                 status = VOS_STATUS_E_INVAL;
@@ -982,14 +987,14 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
             else  {
                 memcpy(&gnvEFSTable->halnv.tables.qFuseData,inputVoidBuffer,bufferSize);
             }
-    
+
             break;
-        case VNV_RATE_TO_POWER_TABLE:                     
-            itemSize = sizeof(gnvEFSTable->halnv.tables.pwrOptimum);  
-            
+        case VNV_RATE_TO_POWER_TABLE:
+            itemSize = sizeof(gnvEFSTable->halnv.tables.pwrOptimum);
+
             if(bufferSize != itemSize) {
-    
-                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                  ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                   itemSize);
                 status = VOS_STATUS_E_INVAL;
@@ -997,14 +1002,14 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
             else {
                 memcpy(&gnvEFSTable->halnv.tables.pwrOptimum[0],inputVoidBuffer,bufferSize);
             }
-    
+
             break;
         case VNV_REGULARTORY_DOMAIN_TABLE:
-            itemSize = sizeof(gnvEFSTable->halnv.tables.regDomains);  
-    
+            itemSize = sizeof(gnvEFSTable->halnv.tables.regDomains);
+
             if(bufferSize != itemSize) {
-    
-                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                  ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                   itemSize);
                 status = VOS_STATUS_E_INVAL;
@@ -1013,13 +1018,13 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
                 memcpy(&gnvEFSTable->halnv.tables.regDomains[0],inputVoidBuffer,bufferSize);
             }
             break;
-        case VNV_DEFAULT_LOCATION: 
-            
-            itemSize = sizeof(gnvEFSTable->halnv.tables.defaultCountryTable);  
-    
+        case VNV_DEFAULT_LOCATION:
+
+            itemSize = sizeof(gnvEFSTable->halnv.tables.defaultCountryTable);
+
             if(bufferSize != itemSize) {
-    
-                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                  ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                   itemSize);
                 status = VOS_STATUS_E_INVAL;
@@ -1028,13 +1033,13 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
                 memcpy(&gnvEFSTable->halnv.tables.defaultCountryTable,inputVoidBuffer,bufferSize);
             }
             break;
-        case VNV_MAXIMUM_TX_POWER: 
-    
-           itemSize = sizeof(gnvEFSTable->halnv.tables.tpcConfig);  
-    
+        case VNV_MAXIMUM_TX_POWER:
+
+           itemSize = sizeof(gnvEFSTable->halnv.tables.tpcConfig);
+
             if(bufferSize != itemSize) {
-    
-                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                  ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                   itemSize);
                 status = VOS_STATUS_E_INVAL;
@@ -1043,13 +1048,13 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
                 memcpy(&gnvEFSTable->halnv.tables.tpcConfig[0],inputVoidBuffer,bufferSize);
             }
             break;
-        case VNV_RX_SENSITIVITY: 
-    
-            itemSize = sizeof(gnvEFSTable->halnv.tables.rfCalValues);  
-    
+        case VNV_RX_SENSITIVITY:
+
+            itemSize = sizeof(gnvEFSTable->halnv.tables.rfCalValues);
+
             if(bufferSize != itemSize) {
-    
-                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                  ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
                   itemSize);
                 status = VOS_STATUS_E_INVAL;
@@ -1058,7 +1063,23 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
                 memcpy(&gnvEFSTable->halnv.tables.rfCalValues,inputVoidBuffer,bufferSize);
             }
             break;
-    
+
+         case VNV_RSSI_OFFSETS:
+
+            itemSize = sizeof(gnvEFSTable->halnv.tables.rssiOffset);
+
+            if(bufferSize != itemSize) {
+
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
+                status = VOS_STATUS_E_INVAL;
+            }
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.rssiOffset[0],inputVoidBuffer,bufferSize);
+            }
+            break;
+
         default:
           break;
     }
@@ -1067,17 +1088,17 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
    {
       // set NV item to have valid data
       status = vos_nv_setValidity( type, VOS_TRUE );
-  
+
       if (! VOS_IS_STATUS_SUCCESS(status)) {
-          
+
           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, ("vos_nv_setValidity failed!!!\r\n"));
           status = VOS_STATUS_E_FAULT;
       }
       status = wlan_write_to_efs((v_U8_t*)gnvEFSTable,sizeof(nvEFSTable_t));
 
-      
+
       if (! VOS_IS_STATUS_SUCCESS(status)) {
-          
+
           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, ("vos_nv_write_to_efs failed!!!\r\n"));
           status = VOS_STATUS_E_FAULT;
       }

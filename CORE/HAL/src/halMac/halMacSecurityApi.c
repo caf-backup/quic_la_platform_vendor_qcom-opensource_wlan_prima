@@ -20,6 +20,8 @@
 #include "halDebug.h"
 #include "cfgApi.h"
 
+#include "halFw.h"
+
 // ---------------------------------------------------------------------------
 /**
  * halGetWepKeysFromCfg
@@ -377,12 +379,14 @@ halSetPerStaKey(
     tANI_U8         singleTidRc,
     tANI_U8         *pKey,
     tANI_U8         paeRole,
-    tANI_U8         defKeyId )
+    tANI_U8         defKeyId,
+    tANI_U8         *keyRsc)
 {
     eHalStatus status ;
     tANI_U8 dpuIdx , keyIdx , derivedKeyIdx , micKeyIdx , rcIdx, newDpuIdx ;
     tANI_U8 tmpIdx;
     tANI_U8 derivedKey[SIR_MAC_MAX_KEY_LENGTH];
+    tANI_BOOLEAN fGTK = eANI_BOOLEAN_FALSE;
 
     newDpuIdx = keyIdx = derivedKeyIdx = micKeyIdx = rcIdx = HAL_INVALID_KEYID_INDEX;
 
@@ -396,7 +400,12 @@ halSetPerStaKey(
     // STA index
     //
     if( HAL_INVALID_KEYID_INDEX != dpuIndex )
+    {
+      //Base on the assumption that caller only sets the index for GTK
+        //This is the case as of now.(10/21/2009)
+      fGTK = eANI_BOOLEAN_TRUE;
       dpuIdx = dpuIndex;
+    }
     else
     {
       if( eHAL_STATUS_SUCCESS !=
@@ -419,7 +428,7 @@ halSetPerStaKey(
     
     status = halDpu_GetRCId(pMac, dpuIdx, &tmpIdx);
     if(eHAL_STATUS_SUCCESS == status)
-        halDpu_ReleaseRCId(pMac, tmpIdx);
+        halDpu_ReleaseRCId(pMac, dpuIdx, tmpIdx);
     
     status = halDpu_GetKeyId(pMac, dpuIdx, &tmpIdx);
     if(eHAL_STATUS_SUCCESS == status)
@@ -437,6 +446,13 @@ halSetPerStaKey(
         if(status != eHAL_STATUS_SUCCESS)
             goto failed;
 
+        if((eSIR_ED_WEP40 != encType) && (eSIR_ED_WEP104 != encType))
+        {
+            HALLOGE(halLog(pMac, LOGE, "  HAL Set keyIdx (%d) encType(%d) key = %02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
+                keyIdx, encType, pKey[0], pKey[1], pKey[2], pKey[3],pKey[4], pKey[5],
+                pKey[6], pKey[7], pKey[8],
+                pKey[9], pKey[10], pKey[11], pKey[12], pKey[13], pKey[14], pKey[15]));
+        }
         status = halDpu_SetKeyDescriptor(pMac, keyIdx, encType, pKey);
         if(status != eHAL_STATUS_SUCCESS)
             goto failed;
@@ -473,6 +489,28 @@ halSetPerStaKey(
 
     }
 
+#if defined(FEATURE_WLAN_WAPI)
+    if( eSIR_ED_WPI == encType )
+    {
+        /* Alloc a new Mic Key dexriptor */
+        status = halDpu_AllocMicKeyId(pMac, & micKeyIdx, keyIdx);
+
+        if(status != eHAL_STATUS_SUCCESS)
+        {
+            HALLOGE(halLog(pMac, LOGE, " failed to allocate WPI MIC key descriptor\n"));
+            goto failed;
+        }
+        HALLOGE(halLog(pMac, LOGE, "  HAL Set WPI MickeyIdx (%d) encType(%d) key = %02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
+                micKeyIdx, encType, pKey[0+16], pKey[1+16], pKey[2+16], pKey[3+16], pKey[4+16], pKey[5+16], 
+                pKey[6+16], pKey[7+16], pKey[8+16],
+                pKey[9+16], pKey[10+16], pKey[11+16], pKey[12+16], pKey[13+16], pKey[14+16], pKey[15+16]));
+        status = halDpu_SetWPIMicKeyDescriptor(pMac, micKeyIdx, &pKey[HAL_WPI_KEY_LENGTH], paeRole );
+        if(status != eHAL_STATUS_SUCCESS)
+            goto failed;
+    }
+
+#endif // defined(FEATURE_WLAN_WAPI)
+
     if(eSIR_ED_NONE != encType)
     {
         //
@@ -489,12 +527,58 @@ halSetPerStaKey(
               dpuIdx,
               &rcIdx ))
         {
-          status = halDpu_AllocRCId( pMac, &rcIdx );
+          status = halDpu_AllocRCId( pMac, encType, &rcIdx );
           if( eHAL_STATUS_SUCCESS != status )
             goto failed;
         }
 
-        status = halDpu_SetRCDescriptor( pMac, rcIdx, bRCE, bWCE, winChkSize );
+#if defined(FEATURE_WLAN_WAPI)
+        if(eSIR_ED_WPI == encType)
+        {
+            tANI_U8 txPN[WLAN_WAPI_KEY_RSC_LEN] = {0x5C, 0x36, 0x5C, 0x36,
+                                                   0x5C, 0x36, 0x5C, 0x36,
+                                                   0x5C, 0x36, 0x5C, 0x36,
+                                                   0x5C, 0x36, 0x5C, 0x36};
+            tANI_U8 rxPN[WLAN_WAPI_KEY_RSC_LEN] = {0x5C, 0x36, 0x5C, 0x36,
+                                                   0x5C, 0x36, 0x5C, 0x36,
+                                                   0x5C, 0x36, 0x5C, 0x36,
+                                                   0x5C, 0x36, 0x5C, 0x37};
+
+            //For supplicant, the packet number(PN) starts at 0x5C365C365C365C365C365C365C365C36
+            //For authenticator, the packet number(PN) starts at 0x5C365C365C365C365C365C365C365C37
+            //NOTE: Assuming PN is reset after rekey
+            if( fGTK )
+            {
+                //For multicast, PN starts at 0x36 as the lowest byte
+                rxPN[WLAN_WAPI_KEY_RSC_LEN - 1] = 0x36;
+            }
+            else if( 0 != paeRole )
+            {
+                //we are the authenticator
+                txPN[WLAN_WAPI_KEY_RSC_LEN - 1] = 0x37;
+                rxPN[WLAN_WAPI_KEY_RSC_LEN - 1] = 0x36;
+            }
+            if( NULL != keyRsc )
+            {
+                palCopyMemory(pMac->hHdd, rxPN, keyRsc, WLAN_WAPI_KEY_RSC_LEN);
+            }
+
+            HALLOGE(halLog(pMac, LOGE, "  HAL Set WAPI RCIdx (%d) encType(%d)" 
+                "TX = %02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X"
+                "RX = %02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
+                rcIdx, encType, txPN[0], txPN[1], txPN[2], txPN[3], txPN[4], txPN[5], txPN[6],
+                txPN[7], txPN[8],
+                txPN[9], txPN[10], txPN[11], txPN[12], txPN[13], txPN[14], txPN[15],
+                rxPN[0], rxPN[1], rxPN[2], rxPN[3], rxPN[4], rxPN[5], rxPN[6],
+                rxPN[7], rxPN[8],
+                rxPN[9], rxPN[10], rxPN[11], rxPN[12], rxPN[13], rxPN[14], rxPN[15]));
+            status = halDpu_SetWAPIRCDescriptor( pMac, rcIdx, txPN, rxPN );
+        }
+        else
+#endif
+        {
+            status = halDpu_SetRCDescriptor( pMac, rcIdx, bRCE, bWCE, winChkSize );
+        }
         if(status != eHAL_STATUS_SUCCESS)
             goto failed;
     }
@@ -512,7 +596,41 @@ halSetPerStaKey(
     status = halDpu_SetDescriptorAttributes(pMac, dpuIdx, encType,
             keyIdx, derivedKeyIdx, micKeyIdx, rcIdx, singleTidRc, defKeyId );
     if(status == eHAL_STATUS_SUCCESS)
+    {
+#if defined(LIBRA_WAPI_SUPPORT)
+        if(eSIR_ED_WPI == encType)
+        {
+            Qwlanfw_AddRemoveKeyReqType addKey;
+            tANI_U8 uFwMesgType = QWLANFW_HOST2FW_WPI_KEY_SET;
+
+            if(fGTK)
+            {
+                addKey.keyType = QWLANFW_KEY_TYPE_GTK;
+            }
+            else
+            {
+                addKey.keyType = QWLANFW_KEY_TYPE_PTK;
+            }
+            
+            addKey.keyIndex = defKeyId;//In the case of WAPI, setting this to the Key Id obtained OTA
+            addKey.dpuIndex = dpuIdx;
+            addKey.reserved0 = 0;
+            status = halFW_SendMsg(pMac, HAL_MODULE_ID_WAPI, uFwMesgType, 0, 
+                                         sizeof(Qwlanfw_AddRemoveKeyReqType), (void *)&addKey, FALSE, NULL);
+            if(!HAL_STATUS_SUCCESS(status))
+            {
+                if(pMac->hal.halMac.isFwInitialized)
+                {
+                    //if FW already initialized, should never fail. Assert here.
+                    VOS_ASSERT(0);
+                }
+                goto failed;
+                    
+            }
+        } //if(eSIR_ED_WPI == encType)
+#endif
         return status;
+    }
 
 
 failed:
@@ -527,7 +645,7 @@ failed:
         halDpu_ReleaseMicKeyId(pMac, micKeyIdx);
 
     if(rcIdx != HAL_INVALID_KEYID_INDEX )
-        halDpu_ReleaseRCId(pMac, rcIdx);
+        halDpu_ReleaseRCId(pMac, dpuIdx, rcIdx);
 
     return status;
 }

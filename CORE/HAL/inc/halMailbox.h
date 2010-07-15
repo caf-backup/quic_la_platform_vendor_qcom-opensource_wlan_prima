@@ -82,10 +82,11 @@ eHalStatus halMbox_SendReliableMsg(tpAniSirGlobal pMac, void *msg);
 #define HALMBOX_CHECKMSG_RESULT_FAILED -1
 
 eHalStatus halMbox_checkMsgProcessed(tpAniSirGlobal pMac, tANI_U32 msgSerialNum, tANI_S32 *result);
-eHalStatus halMbox_RecvMsg( tHalHandle hHal );
+eHalStatus halMbox_RecvMsg( tHalHandle hHal, tANI_BOOLEAN fProcessInContext );
 eHalStatus halMbox_PollMsg(tpAniSirGlobal  pMac, tANI_U32 mboxNum);
 eHalStatus halMbox_HandleInterrupt( tHalHandle pMac, eHalIntSources mbIntr );
 
+eHalStatus halMbox_SendMsgComplete( tHalHandle hHal );
 
 /* Debug Functions */
 eHalStatus halMboxDbg_writeTest(tpAniSirGlobal pMac, tANI_U32 nMboxNum, tANI_U32 fReset, tANI_U32 fIntrHost, tANI_U32 nValue);

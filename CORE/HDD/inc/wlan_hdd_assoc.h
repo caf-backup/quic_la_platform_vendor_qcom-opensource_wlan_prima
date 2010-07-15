@@ -82,6 +82,12 @@ extern v_BOOL_t hdd_connIsConnected( hdd_adapter_t *pAdapter );
 extern eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, v_U32_t roamId, 
                                 eRoamCmdStatus roamStatus, eCsrRoamResult roamResult );
 
-
 extern v_VOID_t hdd_connSaveConnectInfo( hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo, eCsrRoamBssType eBssType );
+
+inline v_BOOL_t hdd_connGetConnectedBssType( hdd_adapter_t *pAdapter, 
+        eMib_dot11DesiredBssType *pConnectedBssType );
+
+int hdd_SetGENIEToCsr( hdd_adapter_t *pAdapter);
+
+int hdd_set_csr_auth_type ( hdd_adapter_t  *pAdapter);
 #endif

@@ -27,6 +27,11 @@
 #define HAL_TKIP_MICKEY_LENGTH  16
 #define HAL_TKIP_MICKEY_SIZE    8
 
+#ifdef FEATURE_WLAN_WAPI
+#define HAL_WPI_KEY_LENGTH      16
+#define HAL_WPI_MICKEY_LENGTH   16
+#endif
+
 #define HAL_DPU_DEFAULT_RCE_ON  0xFF
 #define HAL_DPU_DEFAULT_RCE_OFF 0x00
 #define HAL_DPU_DEFAULT_WCE_ON  0xFF
@@ -43,7 +48,8 @@ eHalStatus halSetStaWepKey(tpAniSirGlobal pMac, tANI_U8 staIdx, tAniEdType encTy
 
 // Set Key in the station DPU descriptor
 eHalStatus halSetPerStaKey(tpAniSirGlobal pMac, tANI_U8 dpuIndex, tANI_U8 staId, tAniEdType encType, tANI_U16 bRCE, 
-        tANI_U16 bWCE, tANI_U8 *winChkSize, tANI_U8 singleTidRc, tANI_U8 *pKey, tANI_U8 paeRole, tANI_U8 keyId);
+        tANI_U16 bWCE, tANI_U8 *winChkSize, tANI_U8 singleTidRc, tANI_U8 *pKey, tANI_U8 paeRole, tANI_U8 keyId,
+        tANI_U8 *keyRsc);
 
 eHalStatus halInvalidateBssWepKey(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 encType, tANI_U8 keyId);
 eHalStatus halInvalidateStaKey(tpAniSirGlobal pMac,tANI_U8 keyId,tANI_U8 encMode);

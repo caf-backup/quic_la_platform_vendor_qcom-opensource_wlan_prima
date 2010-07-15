@@ -19,8 +19,9 @@
   
    ========================================================================== */
 
+#ifndef WINXP_APPS_BUILD
 #include "vos_types.h"
-
+#endif
 
 #ifndef MK_IMAGE_HDR
 // values to check against for code that is Client/AP specific.  

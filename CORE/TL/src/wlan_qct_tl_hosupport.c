@@ -648,22 +648,34 @@ VOS_STATUS WLANTL_HSGetRSSI
       return VOS_STATUS_E_INVAL;
    }
 
+   /* 
+	 Compute RSSI only for the last MPDU of an AMPDU.
+	 Only last MPDU carries the Phy Stats Values 
+	 */
+    if (WLAN_HAL_IS_AN_AMPDU (pBDHeader)) {
+       if (!WLAN_HAL_IS_LAST_MPDU(pBDHeader)) {
+           return VOS_STATUS_E_FAILURE;
+          }
+    }
+
    currentHO = &tlCtxt->hoSupport.currentHOState;
 
    currentRSSI0 = WLANTL_GETRSSI0(pBDHeader);
    currentRSSI1 = WLANTL_GETRSSI1(pBDHeader);
    currentRSSI  = (currentRSSI0 > currentRSSI1) ? currentRSSI0 : currentRSSI1;
 
-   tlCtxt->atlSTAClients[STAid].uRssiAvg = currentRSSI;
 
 #ifdef WLANTL_HO_UTEST
    TLHS_UtestHandleNewRSSI(&currentRSSI, pAdapter);
 #endif /* WLANTL_HO_UTEST */
 
+/* Commenting this part of the code as this may not be necessarity true in all cases */
+#if 0
    if(WLANTL_HO_INVALID_RSSI == currentRSSI)
    {
       return status;
    }
+#endif
 
    if(0 == currentHO->historyRSSI)
    {
@@ -674,6 +686,8 @@ VOS_STATUS WLANTL_HSGetRSSI
       *currentAvgRSSI = ((currentHO->historyRSSI * currentHO->alpha) +
                          (currentRSSI * (10 - currentHO->alpha))) / 10;
    }
+
+   tlCtxt->atlSTAClients[STAid].uRssiAvg = *currentAvgRSSI;
 
    TH_MSG_INFO("Current new RSSI is %d, averaged RSSI is %d", currentRSSI, *currentAvgRSSI, 0);
    return status;
@@ -986,7 +1000,7 @@ VOS_STATUS WLANTL_HSHandleRXFrame
    WLANTL_CURRENT_HO_STATE_TYPE *currentHO = NULL;
    WLANTL_CbType   *tlCtxt = VOS_GET_TL_CB(pAdapter);
    VOS_STATUS       status = VOS_STATUS_SUCCESS;
-   v_S7_t           currentAvgRSSI;
+   v_S7_t           currentAvgRSSI = 0;
    v_U8_t           ac;
    v_U32_t          currentTimestamp;
 
@@ -1044,7 +1058,7 @@ VOS_STATUS WLANTL_HSHandleRXFrame
       status = WLANTL_HSGetRSSI(pAdapter, pBDHeader, STAid, &currentAvgRSSI);
       if(!VOS_IS_STATUS_SUCCESS(status))
       {
-         TH_MSG_ERROR("Get RSSI Fail", 0, 0, 0);
+         TH_MSG_INFO("Get RSSI Fail", 0, 0, 0);
          return status;
       }
       /* Handle current RSSI value, region, notification, etc */

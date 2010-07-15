@@ -314,9 +314,10 @@ __limProcessSmeSysReadyInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     msg.bodyval = 0;
 
 #ifdef VOSS_ENABLED
-#ifndef ANI_MANF_DIAG
-	peRegisterTLHandle(pMac);
-#endif
+	if(pMac->gDriverType != eDRIVER_TYPE_MFG)
+	{
+    	peRegisterTLHandle(pMac);
+	}
 #endif
     PELOGW(limLog(pMac, LOGW, FL("sending SIR_HAL_SYS_READY_IND msg to HAL\n"));)
     MTRACE(macTraceMsgTx(pMac, 0, msg.type));

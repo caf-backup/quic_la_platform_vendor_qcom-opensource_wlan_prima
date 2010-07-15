@@ -32,6 +32,8 @@ DESCRIPTION
 when        who    what, where, why
 --------    ---    ----------------------------------------------------------
 01/08/10    lti     Added TL Data Caching 
+10/15/09    rnair   Modifying STADescType struct
+10/06/09    rnair   Adding support for WAPI 
 09/22/09    lti     Add deregistration API for management client
 02/02/09    sch     Add Handoff support
 12/09/08    lti     Fixes for AMSS compilation 
@@ -39,7 +41,7 @@ when        who    what, where, why
 08/06/08    lti     Added QOS support 
 05/01/08    lti     Created module.
 
-===========================================================================*/
+============================================================================*/
 
 
 
@@ -160,6 +162,8 @@ typedef struct
 
   /*DPU Signature used for unicast data - used for data caching*/
   v_U8_t         ucUcastSig;
+ /*Flag to indicate if STA is a WAPI STA*/
+  v_U8_t         ucIsWapiSta;
 
   /*DPU Signature used for broadcast data - used for data caching*/
   v_U8_t         ucBcastSig;
@@ -264,6 +268,9 @@ typedef struct
 
   /* notifying TL if this is an EAPOL frame or not */
   v_U8_t    ucIsEapol;
+
+  /* notifying TL if this is a WAI frame or not */
+  v_U8_t    ucIsWai;
 
   /* frame is 802.11 and it does not need translation */
   v_U8_t    ucDisableFrmXtl;

@@ -84,7 +84,10 @@ typedef enum
   VOS_MQ_ID_SSC = VOS_MODULE_ID_SSC,
   
   /// Message Queue ID for messages bound for the SYS module
-  VOS_MQ_ID_SYS = VOS_MODULE_ID_SYS
+  VOS_MQ_ID_SYS = VOS_MODULE_ID_SYS,
+
+  /// Message Queue ID for SDIO Interrupt Handle in SAL
+  VOS_MQ_ID_SAL = VOS_MODULE_ID_SAL
   
 } VOS_MQ_ID;
 

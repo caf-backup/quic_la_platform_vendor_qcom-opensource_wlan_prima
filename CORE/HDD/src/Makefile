@@ -19,6 +19,7 @@ KERNEL_INC ?= ./include/linux
 #WLAN root directory
 WLAN_DIR := ../vendor/qcom/proprietary/wlan/CORE
 SAL_EXTERNAL_DIR := ../vendor/qcom/proprietary/wlan/external
+WLANFW_DIR := ../vendor/qcom/proprietary/wlan/wlanfw
 
 ############## HDD ###################
 HDD_INC := $(WLAN_DIR)/HDD/inc/
@@ -33,7 +34,12 @@ HDD_OBJS := wlan_hdd_main.o  \
             wlan_hdd_early_suspend.o  \
             wlan_hdd_wmm.o \
 	    wlan_hdd_cfg.o \
-	    wlan_hdd_wowl.o
+            wlan_hdd_wowl.o \
+            wlan_hdd_ftm.o
+
+ifeq ($(CONFIG_CFG80211), y)
+HDD_OBJS += wlan_hdd_cfg80211.o
+endif
 
 ############## VOSS ################## 
 VOSS_INC :=  	-I$(WLAN_DIR)/VOSS/inc/ \
@@ -217,18 +223,30 @@ HAL_PHY_OBJS :=	$(HAL_SRC)/halPhy/halPhy.o \
 		$(HAL_SRC)/halPhy/rfUtils.o \
 		$(HAL_SRC)/halPhy/phyDebug.o
 
-ifeq ($(BUILD_FTM_DRIVER),1)
-HDD_OBJS += wlan_hdd_ftm.o
-HAL_PHY_OBJS += $(HAL_SRC)/halFtm/pttMsgApi.o
-HAL_PHY_OBJS += $(HAL_SRC)/halFtm/pttModule.o
-HAL_PHY_OBJS += $(HAL_SRC)/halFtm/rfGemini.o
-HAL_PHY_OBJS += $(HAL_SRC)/halFtm/asicTxFir.o
-HAL_PHY_OBJS += $(HAL_SRC)/halFtm/asicCal.o
-HAL_PHY_OBJS += $(HAL_SRC)/halFtm/asicTxCtl.o
-HAL_PHY_OBJS += $(HAL_SRC)/halFtm/pttFrameGen.o
-HAL_PHY_OBJS += $(HAL_SRC)/halFtm/asicPhyDbg.o
-HAL_PHY_OBJS += $(HAL_SRC)/halFtm/halPhyRates.o
-endif
+		
+HAL_FTM_OBJS :=	$(HAL_SRC)/halFtm/pttMsgApi.o \
+		$(HAL_SRC)/halFtm/pttModule.o \
+		$(HAL_SRC)/halFtm/rfGemini.o \
+		$(HAL_SRC)/halFtm/asicTxFir.o \
+		$(HAL_SRC)/halFtm/asicCal.o \
+		$(HAL_SRC)/halFtm/asicTxCtl.o \
+		$(HAL_SRC)/halFtm/pttFrameGen.o \
+		$(HAL_SRC)/halFtm/asicPhyDbg.o \
+		$(HAL_SRC)/halFtm/halPhyRates.o
+
+
+#ifeq ($(BUILD_FTM_DRIVER),1)
+#HDD_OBJS += wlan_hdd_ftm.o
+#HAL_PHY_OBJS += $(HAL_SRC)/halFtm/pttMsgApi.o
+#HAL_PHY_OBJS += $(HAL_SRC)/halFtm/pttModule.o
+#HAL_PHY_OBJS += $(HAL_SRC)/halFtm/rfGemini.o
+#HAL_PHY_OBJS += $(HAL_SRC)/halFtm/asicTxFir.o
+#HAL_PHY_OBJS += $(HAL_SRC)/halFtm/asicCal.o
+#HAL_PHY_OBJS += $(HAL_SRC)/halFtm/asicTxCtl.o
+#HAL_PHY_OBJS += $(HAL_SRC)/halFtm/pttFrameGen.o
+#HAL_PHY_OBJS += $(HAL_SRC)/halFtm/asicPhyDbg.o
+#HAL_PHY_OBJS += $(HAL_SRC)/halFtm/halPhyRates.o
+#endif
 
 HAL_PROC_OBJS :=$(HAL_SRC)/halProc/halInitApi.o \
 		$(HAL_SRC)/halProc/halAdaptThrsh.o \
@@ -260,6 +278,7 @@ HAL_SYS_OBJS := $(HAL_SRC)/halSys/halInterrupts.o \
 
 HAL_OBJS :=	$(HAL_MAC_OBJS)  \
                 $(HAL_PHY_OBJS)  \
+                $(HAL_FTM_OBJS)  \
                 $(HAL_PROC_OBJS) \
                 $(HAL_SYS_OBJS)
 
@@ -326,6 +345,7 @@ EXTRA_CFLAGS += $(SME_INC)
 EXTRA_CFLAGS += $(SSC_INC)
 EXTRA_CFLAGS += $(SVC_INC)
 EXTRA_CFLAGS += $(SVC_EXT_INC)
+EXTRA_CFLAGS += -I$(WLANFW_DIR)/inc
 
 EXTRA_LDFLAGS += --strip-debug
 
@@ -349,11 +369,11 @@ CDEFINES :=	-DANI_PRODUCT_TYPE_CLIENT=1 \
 		-DANI_COMPILER_TYPE_GCC \
 		-DANI_OS_TYPE_ANDROID=6 \
 	 	-DWNI_POLARIS_FW_OS=6 \
-    		-DADVANCED=3 \
-		-DWNI_POLARIS_FW_PACKAGE=9 \
+    -DADVANCED=3 \
+    -DWNI_POLARIS_FW_PACKAGE=9 \
 		-DANI_LOGDUMP \
 		-DWLAN_PERF \
-		-DLIBRA_RF \
+    -DLIBRA_RF \
 		-DPTT_SOCK_SVC_ENABLE \
 		-DFEATURE_WLAN_UAPSD_FW_TRG_FRAMES
 
@@ -399,13 +419,13 @@ libra_ftm-objs := 	$(VOSS_OBJS) \
                 $(TL_OBJS)   \
                 $(SSC_OBJS)  \
                 $(SME_OBJS)  \
-		$(SYS_OBJS)  \
+								$(SYS_OBJS)  \
                 $(MAC_OBJS)  \
                 $(HAL_OBJS)  \
-		$(HDD_OBJS)  \
-		$(NLINK_OBJS) \
-		$(BTC_OBJS) \
-		$(PTT_OBJS)
+								$(HDD_OBJS)  \
+								$(NLINK_OBJS) \
+								$(BTC_OBJS) \
+								$(PTT_OBJS)
 else
 
 obj-m += libra.o
@@ -414,13 +434,13 @@ libra-objs := 	$(VOSS_OBJS) \
                 $(TL_OBJS)   \
                 $(SSC_OBJS)  \
                 $(SME_OBJS)  \
-		$(SYS_OBJS)  \
+								$(SYS_OBJS)  \
                 $(MAC_OBJS)  \
                 $(HAL_OBJS)  \
-		$(HDD_OBJS)  \
-		$(NLINK_OBJS) \
-		$(BTC_OBJS) \
-		$(PTT_OBJS)
+								$(HDD_OBJS)  \
+								$(NLINK_OBJS) \
+								$(BTC_OBJS) \
+								$(PTT_OBJS)
 endif
 all:
 	$(MAKE) $(MAKE_FLAGS) M=`pwd` modules

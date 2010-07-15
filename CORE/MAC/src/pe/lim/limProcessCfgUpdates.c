@@ -759,50 +759,79 @@ limApplyConfiguration(tpAniSirGlobal pMac)
     pMac->lim.gLimSentCapsChangeNtf = false;
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_PHY_MODE, &phyMode) != eSIR_SUCCESS)
+    {
         limLog(pMac, LOGP, FL("could not retrieve PHY mode from CFG\n"));
+        return;
+    }
 
     val = WNI_CFG_OPERATIONAL_RATE_SET_LEN;
     if (wlan_cfgGetStr(pMac, WNI_CFG_OPERATIONAL_RATE_SET, (tANI_U8 *) &suppRateSet.rate, (tANI_U32 *) &val)
         != eSIR_SUCCESS)
+    {
         limLog(pMac, LOGP, FL("could not retrieve Operational rateset\n"));
+        return;
+    }
     suppRateSet.numRates = (tANI_U8) val;
 
     // Update self MAC address
     val = sizeof(macAddr);
     if (wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, (tANI_U8 *) macAddr, &val) != eSIR_SUCCESS)
+    {
         limLog(pMac, LOGP, FL("could not retrive STA_ID\n"));
+        return;
+    }
 
     // Set default keyId and keys
     limSetDefaultKeyIdAndKeys(pMac);
 
     // Set POI
     if (wlan_cfgGetInt(pMac, WNI_CFG_PRIVACY_ENABLED, &val) != eSIR_SUCCESS)
+    {
         limLog(pMac, LOGP, FL("Unable to retrieve POI from CFG\n"));
+        return;
+    }
 
     limUpdateConfig(pMac);
 
+    if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, &val)
+            != eSIR_SUCCESS)
+    {
+        limLog(pMac, LOGP, FL("cfg get WNI_CFG_SHORT_SLOT_TIME failed\n"));
+        return;
+    }
     if (phyMode == WNI_CFG_PHY_MODE_11G)
     {
         // Program Polaris based on AP capability
         if (pMac->lim.gLimMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE)
+        {
             // Joining BSS.
             val = SIR_MAC_GET_SHORT_SLOT_TIME( pMac->lim.gLimCurrentBssCaps);
+            PELOG3(limLog(pMac, LOG3, FL("Joining BSS gLimCurrentBssCaps 0x%x val %d\n"),
+                pMac->lim.gLimCurrentBssCaps, val);)
+        }
         else if (pMac->lim.gLimMlmState == eLIM_MLM_WT_REASSOC_RSP_STATE)
+        {
             // Reassociating with AP.
             val = SIR_MAC_GET_SHORT_SLOT_TIME( pMac->lim.gLimReassocBssCaps);
-        // starting a BSS, always use short slot
-        else
-            val = 1;
-
+            PELOG3(limLog(pMac, LOG3, FL("Reassociating with AP gLimReassocBssCaps 0x%x val %d\n"),
+                pMac->lim.gLimReassocBssCaps, val);)
+        }
+        
         // Set short slot time at CFG so that Polaris is programmed.
         if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, val) != eSIR_SUCCESS)
+        {
             limLog(pMac, LOGP, FL("could not update short slot time at CFG\n"));
+            return;
+        }
     }
     else
     {
         // Reset short slot time at CFG
         if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, 0) != eSIR_SUCCESS)
+        {
             limLog(pMac, LOGP, FL("could not update short slot time at CFG\n"));
+            return;
+        }
     }
     //apply protection related config.
     limSetCfgProtection(pMac);    
@@ -816,7 +845,10 @@ limApplyConfiguration(tpAniSirGlobal pMac)
     }
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_SCAN_IN_POWERSAVE, &val) != eSIR_SUCCESS)
+    {
         limLog(pMac, LOGP, FL("could not retrieve WNI_CFG_SCAN_IN_POWERSAVE\n"));
+        return;
+    }
     pMac->lim.gScanInPowersave = (tANI_U8) val;
 
 } /*** end limApplyConfiguration() ***/

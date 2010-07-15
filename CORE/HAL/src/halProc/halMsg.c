@@ -23,6 +23,7 @@
 #include "ani_assert.h"
 #include "halLED.h"
 #include "halTLApi.h"
+#include "halFw.h"
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 #include "vos_diag_core_event.h"
@@ -788,9 +789,9 @@ static eHalStatus halMsg_addStaUpdateADU(tpAniSirGlobal pMac, tANI_U8 staIdx, tp
             halTable_SetStaUMABcastIdx(pMac, staIdx, umaBcastIdx);
         }
         // For the broadcast RA also put the BSSID value as the A3.
-        FillUmaDescriptor( pMac, umaBcastIdx, fTEnable,
-            macAddrLo, macAddrHi,
-            dpuBcastIdx, dpuBcastSig, staIdx, param->wmmEnabled);
+		FillUmaDescriptor( pMac, umaBcastIdx, fTEnable,
+				  macAddrLo, macAddrHi,
+				  dpuBcastIdx, dpuBcastSig, (tANI_U8)pMac->hal.halMac.selfStaId, param->wmmEnabled);		
         status = halAdu_AddToUmaSearchTable(pMac, 0xffffffff, 0xffff,
                 umaBcastIdx);
         if(status != eHAL_STATUS_SUCCESS)
@@ -1087,11 +1088,11 @@ eHalStatus halMsg_addStaUpdateFW( tpAniSirGlobal pMac, tANI_U8 staIdx, tpAddStaP
     tTpeRateIdx rateIndex = TPE_RT_IDX_11B_RATE_LONG_PR_BASE_OFFSET;
     tPwrTemplateIndex txPower = 0;
 
-        if ( wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, (tANI_U8 *)selfMac, &cfgLen) != eSIR_SUCCESS)
-        {
-            HALLOGE( halLog(pMac, LOGE, FL("halMsg_addStaUpdateFW: cfgGetStr(WNI_CFG_STA_ID) failed \n")));
-            return eHAL_STATUS_FAILURE;
-        }
+    if ( wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, (tANI_U8 *)selfMac, &cfgLen) != eSIR_SUCCESS)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("halMsg_addStaUpdateFW: cfgGetStr(WNI_CFG_STA_ID) failed \n")));
+        return eHAL_STATUS_FAILURE;
+    }
 
     // As part of Add self sta during association get the AID and the BSSID
     if ( (param->staType == STA_ENTRY_SELF) && (halGetSystemRole(pMac) == eSYSTEM_STA_ROLE)) {
@@ -1108,6 +1109,11 @@ eHalStatus halMsg_addStaUpdateFW( tpAniSirGlobal pMac, tANI_U8 staIdx, tpAddStaP
         if ( status != eHAL_STATUS_SUCCESS ) {
             HALLOGE( halLog( pMac, LOGE, FL("halPS_PreparePsPoll failed - 0x%x"), status));
         }
+
+		status = halPS_SetListenIntervalParam(pMac, param->listenInterval);
+        if ( status != eHAL_STATUS_SUCCESS ) {
+            HALLOGE( halLog( pMac, LOGE, FL("halPS_SetListenIntervalParam failed - 0x%x"), status));
+        }         
     }
 
     //Update FW sys config for PowerSave
@@ -1882,7 +1888,6 @@ generate_response:
 void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
         tANI_U32 status, tANI_U16 dialog_token)
 {
-#if !defined(ANI_MANF_DIAG)
     tANI_U8      bssIdx = 0;
     tANI_U8      bssStaIdx = 0;
     tANI_U8      bcastDpuIdx = 0;
@@ -1894,6 +1899,11 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
     tMtuMode curMtuMode;
     tMtuMode newMtuMode;
     tpAddBssParams  param = (tpAddBssParams)pData;
+
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        return;
+    }
 
     if(status != eHAL_STATUS_SUCCESS) {
         HALLOGE( halLog(pMac, LOGE, FL("halChangeChannel() to Ch %d failed \n"), param->currentOperChannel));
@@ -2191,7 +2201,6 @@ generate_response:
     if(param->respReqd) {
         halMsg_GenerateRsp(pMac, SIR_HAL_ADD_BSS_RSP, dialog_token, (void *) param, 0);
     }
-#endif
 
     return;
 }
@@ -2216,7 +2225,11 @@ halMsg_AddBss(
 {
     eHalStatus   status = eHAL_STATUS_SUCCESS;
 
-#if !defined(ANI_MANF_DIAG)
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        return;
+    }
+
     //system role, nwType, pure G mode all updated, now change channel
     status = halPhy_ChangeChannel(pMac, param->currentOperChannel,
         (ePhyChanBondState)param->currentExtChannel, TRUE, halMsg_AddBssPostSetChan, (void*)param, dialog_token);
@@ -2233,7 +2246,6 @@ halMsg_AddBss(
     return;
 
 generate_response:
-#endif
     param->status = status;
         halMsg_GenerateRsp(pMac, SIR_HAL_ADD_BSS_RSP, dialog_token, (void *) param, 0);
 
@@ -2447,7 +2459,7 @@ eHalStatus halEnableTLTx(tpAniSirGlobal pMac)
     eHalStatus status = eHAL_STATUS_SUCCESS;
     eHalStatus tmpStatus = eHAL_STATUS_SUCCESS;
 
-    // This piece of code, is to be investigated for 
+    // This piece of code, is to be investigated for
     // BMU fatal errors. Currently this causes BMU fatal error on Android.
 #ifdef BMU_FATAL_ERROR
     // Enable TX queues.
@@ -2655,7 +2667,7 @@ eHalStatus halMsg_HandleInitScan( tpAniSirGlobal pMac, tpInitScanParams param, t
         // Send Start scan message to FW. This would be the case when STA is not
         // associated.
         halFW_SendScanStartMesg(pMac);
-    }
+	}
 out:
     if(status != eHAL_STATUS_SUCCESS)
         halFW_SendScanStopMesg(pMac);
@@ -3666,6 +3678,9 @@ halMsg_SetBssKey( tpAniSirGlobal  pMac,
 
         case eSIR_ED_TKIP:
 		case eSIR_ED_CCMP:
+#if defined(LIBRA_WAPI_SUPPORT)
+        case eSIR_ED_WPI:
+#endif
             //
             // Find the DPU Descriptor index that corresponds
             // to this BSS (AP). This will be the DPU index
@@ -3692,7 +3707,8 @@ halMsg_SetBssKey( tpAniSirGlobal  pMac,
                         param->singleTidRc,
                         param->key[0].key, // FIXME - Need an index. Assuming 0 for now!!
                         param->key[0].paeRole,
-                        param->key[0].keyId ); // FIXME - Need an index. Assuming 0 for now!!
+                        param->key[0].keyId,  // FIXME - Need an index. Assuming 0 for now!!
+                        param->key[0].keyRsc );
             }
             break;
 
@@ -3716,7 +3732,8 @@ halMsg_SetBssKey( tpAniSirGlobal  pMac,
                         param->singleTidRc,
                         param->key[0].key,
                         param->key[0].paeRole,
-                        param->key[0].keyId );
+                        param->key[0].keyId,
+                        param->key[0].keyRsc );
             }
             break;
 
@@ -3881,7 +3898,8 @@ halMsg_SetStaKey(
                 param->singleTidRc,
                 0,
                 0,
-                0 );
+                0,
+                NULL );
 
         goto key_set_done;
     }
@@ -3904,7 +3922,8 @@ halMsg_SetStaKey(
                 param->singleTidRc,
                 param->key.key,
                 param->key.paeRole,
-                param->key.keyId );
+                param->key.keyId,
+                param->key.keyRsc );
     }
 
     // send a response to caller.
@@ -4012,7 +4031,9 @@ halMsg_SetStaBcastKey(tpAniSirGlobal pMac,
     switch( param->encType ) {
         case eSIR_ED_TKIP:
         case eSIR_ED_CCMP:
-
+#if defined(LIBRA_WAPI_SUPPORT)
+        case eSIR_ED_WPI:
+#endif
             if( bcastDpuIdx == staBcastDpuIdx )
             {
                 // Check if the STA has a valid DPU index
@@ -4042,7 +4063,8 @@ halMsg_SetStaBcastKey(tpAniSirGlobal pMac,
                     param->singleTidRc,
                     param->key.key, // FIXME - Need an index. Assuming 0 for now!!
                     param->key.paeRole,
-                    param->key.keyId ); // FIXME - Need an index. Assuming 0 for now!!
+                    param->key.keyId,  // FIXME - Need an index. Assuming 0 for now!!
+                    param->key.keyRsc );
             break;
 
         case eSIR_ED_AES_128_CMAC:
@@ -4077,7 +4099,8 @@ halMsg_SetStaBcastKey(tpAniSirGlobal pMac,
                     param->singleTidRc,
                     param->key.key, // FIXME - Need an index. Assuming 0 for now!!
                     param->key.paeRole,
-                    param->key.keyId ); // FIXME - Need an index. Assuming 0 for now!!
+                    param->key.keyId,  // FIXME - Need an index. Assuming 0 for now!!
+                    param->key.keyRsc );
 
             rmfEnabled = eANI_BOOLEAN_TRUE;
                         pSta->rmfEnabled = eANI_BOOLEAN_TRUE;
@@ -4208,6 +4231,43 @@ tANI_U8  dpuIdx, keyIdx;
    {
         status = halInvalidateStaKey (pMac, keyIdx, param->encType);
    }
+
+#if defined(LIBRA_WAPI_SUPPORT)
+    if(HAL_STATUS_SUCCESS(status))
+    {
+        tHalDpuDescEntry *pDpuDesc;
+        tpDpuInfo pDpu = (tpDpuInfo) pMac->hal.halMac.dpuInfo;
+
+        pDpuDesc = &pDpu->descTable[dpuIdx];
+        if(pDpuDesc->halDpuDescriptor.wapi)
+        {
+            Qwlanfw_AddRemoveKeyReqType removeKey;
+            tANI_U8 uFwMesgType = QWLANFW_HOST2FW_WPI_KEY_REMOVED;
+
+            if(!param->unicast)
+            {
+                removeKey.keyType = QWLANFW_KEY_TYPE_GTK;
+            }
+            else
+            {
+                removeKey.keyType = QWLANFW_KEY_TYPE_PTK;
+            }
+            removeKey.keyIndex = keyIdx;   //For Libra, micKeyIdx = keyIdx
+            removeKey.dpuIndex = dpuIdx;
+            removeKey.reserved0 = 0;
+            status = halFW_SendMsg(pMac, HAL_MODULE_ID_WAPI, uFwMesgType, 0,
+                                         sizeof(Qwlanfw_AddRemoveKeyReqType), (void *)&removeKey, FALSE, NULL);
+            if(!HAL_STATUS_SUCCESS(status))
+            {
+                if(pMac->hal.halMac.isFwInitialized)
+                {
+                    //if FW already initialized, should never fail. Assert here.
+                    VOS_ASSERT(0);
+                }
+            }
+        }
+    }
+#endif
 
 generate_response:
   param->status = status;
@@ -4826,7 +4886,7 @@ void halMsg_AddBA( tpAniSirGlobal  pMac,
       tcCfg.fUseBATx = eBA_DISABLE;
       tcCfg.fTxCompBA = eBA_DISABLE;
       tcCfg.tuTxBAWaitTimeout = 0;
-    }    
+    }
   }
 
 generate_response:
@@ -4881,7 +4941,7 @@ void halMsg_DelBA( tpAniSirGlobal  pMac,
   eHalStatus status = eHAL_STATUS_SUCCESS;
   tHalCfgSta staEntry;
   tCfgTrafficClass tcCfg;
- 
+
   if( eHAL_STATUS_SUCCESS !=
       (status = halTable_ValidateStaIndex( pMac,
                                            (tANI_U8) pDelBAParams->staIdx )))
@@ -4968,7 +5028,7 @@ void halMsg_DelBA( tpAniSirGlobal  pMac,
         pDelBAParams->staIdx,
         pDelBAParams->baTID,
         status ));
-  }  
+  }
 
 free_mem:
 #ifdef FEATURE_WLAN_DIAG_SUPPORT

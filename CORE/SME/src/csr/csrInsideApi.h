@@ -26,6 +26,8 @@
 
 #define CSR_MAX_NUM_SUPPORTED_CHANNELS 55
 
+#define CSR_MAX_BSS_SUPPORT            50
+
 //This number minus 1 means the number of times a channel is scanned before a BSS is remvoed from
 //cache scan result
 #define CSR_AGING_COUNT     3   
@@ -155,7 +157,6 @@ void csrReleaseCommandScan(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 void csrReleaseCommandWmStatusChange(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 //pIes2 can be NULL
 tANI_BOOLEAN csrIsDuplicateBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pSirBssDesc1, 
-                                           tDot11fBeaconIEs *pIes1,
                                            tSirBssDescription *pSirBssDesc2, tDot11fBeaconIEs *pIes2 );
 eHalStatus csrRoamSaveConnectedBssDesc( tpAniSirGlobal pMac, tSirBssDescription *pBssDesc );
 tANI_BOOLEAN csrIsNetworkTypeEqual( tSirBssDescription *pSirBssDesc1, tSirBssDescription *pSirBssDesc2 );
@@ -308,7 +309,9 @@ void csrRoamCompletion(tpAniSirGlobal pMac, tCsrRoamInfo *pRoamInfo, tSmeCmd *pC
 void csrRoamCancelRoaming(tpAniSirGlobal pMac);
 void csrResetCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce );
 void csrResetPMKIDCandidateList( tpAniSirGlobal pMac );
-
+#ifdef FEATURE_WLAN_WAPI
+void csrResetBKIDCandidateList( tpAniSirGlobal pMac );
+#endif /* FEATURE_WLAN_WAPI */
 void csrSaveToChannelPower2G_5G( tpAniSirGlobal pMac, tANI_U32 tableSize, tSirMacChanInfo *channelTable );
 eHalStatus csrRoamSetKey( tpAniSirGlobal pMac, tCsrRoamSetKey *pSetKey, tANI_U32 roamId );
 eHalStatus csrRoamIssueRemoveKeyCommand( tpAniSirGlobal pMac, tCsrRoamRemoveKey *pRemoveKey, tANI_U32 roamId );
@@ -318,7 +321,9 @@ eHalStatus csrScanGetSupportedChannels( tpAniSirGlobal pMac );
 //Only check the first two characters, ignoring in/outdoor
 //pCountry -- caller allocated buffer contain the country code that is checking against
 //the one in pIes. It can be NULL.
+//caller must provide pIes, it cannot be NULL
 //This function always return TRUE if 11d support is not turned on.
+//pIes cannot be NULL
 tANI_BOOLEAN csrMatchCountryCode( tpAniSirGlobal pMac, tANI_U8 *pCountry, tDot11fBeaconIEs *pIes );
 
 /* ---------------------------------------------------------------------------
@@ -398,8 +403,6 @@ v_REGDOMAIN_t csrGetCurrentRegulatoryDomain(tpAniSirGlobal pMac);
 eHalStatus csrGetRegulatoryDomainForCountry(tpAniSirGlobal pMac, tANI_U8 *pCountry, v_REGDOMAIN_t *pDomainId);
 
 
-
-
 //some support functions
 tANI_BOOLEAN csrIs11dSupported(tpAniSirGlobal pMac);
 tANI_BOOLEAN csrIs11hSupported(tpAniSirGlobal pMac);
@@ -410,6 +413,9 @@ eHalStatus csrScanGetBaseChannels( tpAniSirGlobal pMac, tCsrChannelInfo * pChann
 //Return SUCCESS is the command is queued, failed
 eHalStatus csrQueueSmeCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fHighPriority );
 tSmeCmd *csrGetCommandBuffer( tpAniSirGlobal pMac );
+#ifdef FEATURE_WLAN_WAPI
+tANI_BOOLEAN csrIsProfileWapi( tCsrRoamProfile *pProfile );
+#endif /* FEATURE_WLAN_WAPI */
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 
@@ -430,12 +436,19 @@ tSmeCmd *csrGetCommandBuffer( tpAniSirGlobal pMac );
 #define AUTH_WPA_PSK    3
 #define AUTH_WPA2_EAP   4
 #define AUTH_WPA2_PSK   5
+#ifdef FEATURE_WLAN_WAPI
+#define AUTH_WAPI_CERT  6
+#define AUTH_WAPI_PSK   7
+#endif /* FEATURE_WLAN_WAPI */
 
 #define ENC_MODE_OPEN   0
 #define ENC_MODE_WEP40  1
 #define ENC_MODE_WEP104 2
 #define ENC_MODE_TKIP   3
 #define ENC_MODE_AES    4
+#ifdef FEATURE_WLAN_WAPI
+#define ENC_MODE_SMS4   5 //WAPI
+#endif /* FEATURE_WLAN_WAPI */
 
 #define NO_MATCH    0
 #define MATCH       1

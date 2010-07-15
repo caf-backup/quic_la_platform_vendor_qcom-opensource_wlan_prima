@@ -27,6 +27,14 @@
 //This is to force compiler to use the maximum of an int for enum
 #define SIR_MAX_ENUM_SIZE    0x7FFFFFFF
 
+#if defined(FEATURE_WLAN_WAPI)
+#define WLAN_MAX_KEY_RSC_LEN         16
+#define WLAN_WAPI_KEY_RSC_LEN        16
+#else
+#define WLAN_MAX_KEY_RSC_LEN         8
+#endif
+#define WLAN_WPA2_KEY_RSC_LEN        6
+
 
 #ifndef FALSE
 #undef FALSE
@@ -62,6 +70,9 @@ typedef enum eAniEdType
     eSIR_ED_TKIP,
     eSIR_ED_CCMP,
     eSIR_ED_AES_128_CMAC,
+#if defined(FEATURE_WLAN_WAPI)
+    eSIR_ED_WPI,
+#endif
     eSIR_ED_NOT_IMPLEMENTED = SIR_MAX_ENUM_SIZE
 } tAniEdType;
 
@@ -123,7 +134,7 @@ typedef struct sSirKeys
     tANI_U8                  keyId;
     tANI_U8                  unicast;     // 0 for multicast
     tAniKeyDirection    keyDirection;
-    tANI_U8                  keyRsc[8];   // Usage is unknown
+    tANI_U8                  keyRsc[WLAN_MAX_KEY_RSC_LEN];   // Usage is unknown
     tANI_U8                  paeRole;     // =1 for authenticator,
                                      // =0 for supplicant
     tANI_U16                 keyLength;

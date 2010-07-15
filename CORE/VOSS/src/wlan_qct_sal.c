@@ -86,8 +86,21 @@ void salRxInterruptCB
 
    ((hdd_adapter_t *)pAdapter)->pid_sdio_claimed = current->pid;
    atomic_inc(&((hdd_adapter_t *)pAdapter)->sdio_claim_count);
+   
+   /* Release SDIO lock acquired by irq_sdio task before calling salRxInterruptCB. 
+    * As we are anyway acquiring the same lock again while doing SDIO operation. 
+    * Reason for releasing it here, to have synchronization of SDIO lock with other 
+    * locks used in the driver. This is hack, we need to come up with proper soultion
+    *  of this.
+    */
+   sd_release_host(sdio_func_dev);
 
    gpsalHandle->sscCBs.interruptCB(pAdapter, gpsalHandle->sscCBs.sscUsrData);
+
+   /* Acquring the SDIO lock again as we release earlier. This is done so that
+    * irq_sdio thread can release it after returning from here. 
+    */
+   sd_claim_host(sdio_func_dev);
 
    ((hdd_adapter_t *)pAdapter)->pid_sdio_claimed = 0; 
    atomic_dec(&((hdd_adapter_t *)pAdapter)->sdio_claim_count);

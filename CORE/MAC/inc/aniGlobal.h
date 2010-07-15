@@ -54,9 +54,7 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #endif
 
 // New HAL API interface defs.
-#ifdef ANI_MANF_DIAG
 #include "pttModule.h"
-#endif
 #include "logDump.h"
 
 #if !defined ANI_OS_TYPE_OSX && !defined ANI_OS_TYPE_LINUX && !defined ANI_OS_TYPE_WINDOWS
@@ -949,9 +947,7 @@ typedef struct sAniSirGlobal
     tAniSirUtils utils;
     tAniSirPhy   hphy;
 
-#ifdef ANI_MANF_DIAG
     tPttModuleVariables ptt;
-#endif
 
     tAniSirTxWrapper txWrapper;
     // PAL/HDD handle

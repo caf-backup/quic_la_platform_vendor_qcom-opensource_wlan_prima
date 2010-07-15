@@ -193,18 +193,19 @@ tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
     }
 #endif
 
-#ifndef ANI_MANF_DIAG
-    val = SYS_MS_TO_TICKS(HAL_CHIP_MONITOR_INTERVAL_MS);
-    /** Create hal chip monitor timer */
-    if (tx_timer_create(&pMac->hal.halMac.chipMonitorTimer, "CHIP MONITOR INTERVAL TIMER",
-                 halTimerHandler, SIR_HAL_TIMER_CHIP_MONITOR_TIMEOUT,
-                 val,
-                 val, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+    if(pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
     {
-        HALLOGP( halLog(pMac, LOGP, FL("Could not create Chip monitor interval timer\n")));
-        return eSIR_FAILURE;
+        val = SYS_MS_TO_TICKS(HAL_CHIP_MONITOR_INTERVAL_MS);
+        /** Create hal chip monitor timer */
+        if (tx_timer_create(&pMac->hal.halMac.chipMonitorTimer, "CHIP MONITOR INTERVAL TIMER",
+                     halTimerHandler, SIR_HAL_TIMER_CHIP_MONITOR_TIMEOUT,
+                     val,
+                     val, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+        {
+            HALLOGP( halLog(pMac, LOGP, FL("Could not create Chip monitor interval timer\n")));
+            return eSIR_FAILURE;
+        }
     }
-#endif
 #ifdef FIXME_GEN5
     val = SYS_MS_TO_TICKS(HAL_TRAFFIC_ACTIVITY_MONITOR_INTERVAL_MS);
     /** Create Traffic Activity Monitor timer */

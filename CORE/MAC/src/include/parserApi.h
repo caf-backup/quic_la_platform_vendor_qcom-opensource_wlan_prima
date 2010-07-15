@@ -497,6 +497,19 @@ PopulateDot11fRSNOpaque( tpAniSirGlobal      pMac,
                   tpSirRSNie      pRsnIe,
                          tDot11fIERSNOpaque *pDot11f );
 
+#if defined(FEATURE_WLAN_WAPI)
+
+tSirRetStatus
+PopulateDot11fWAPI(tpAniSirGlobal  pMac,
+                  tpSirRSNie      pRsnIe,
+                  tDot11fIEWAPI   *pDot11f);
+
+tSirRetStatus PopulateDot11fWAPIOpaque( tpAniSirGlobal      pMac,
+                                       tpSirRSNie          pRsnIe,
+                                       tDot11fIEWAPIOpaque *pDot11f );
+
+#endif //defined(FEATURE_WLAN_WAPI)
+
 /// Populate a tDot11fIESSID given a tSirMacSSid
 void
 PopulateDot11fSSID(tpAniSirGlobal pMac,

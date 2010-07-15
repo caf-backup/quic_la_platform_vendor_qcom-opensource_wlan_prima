@@ -797,8 +797,24 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap)
                    FL("cfg get WNI_CFG_11G_SHORT_SLOT_TIME failed\n"));
             return eSIR_FAILURE;
         }
+        /* When in STA mode, we need to check if short slot is enabled as well as check if the current operating
+         * mode is short slot time and then decide whether to enable short slot or not. It is safe to check both 
+         * cfg values to determine short slot value in this funcn since this funcn is always used after assoc when
+         * these cfg values are already set based on peer's capability. Even in case of IBSS, its value is set to
+         * correct value either in delBSS as part of deleting the previous IBSS or in start BSS as part of coalescing
+         */
         if (val)
-            pCapInfo->shortSlotTime = 1;
+        {
+            if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, &val)
+                           != eSIR_SUCCESS)
+            {
+                cfgLog(pMac, LOGP,
+                       FL("cfg get WNI_CFG_SHORT_SLOT_TIME failed\n"));
+                return eSIR_FAILURE;
+            }
+            if (val)
+                pCapInfo->shortSlotTime = 1;
+        }
     }
 
 

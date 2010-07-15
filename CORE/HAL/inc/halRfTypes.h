@@ -81,6 +81,7 @@ typedef struct
     sRegulatoryChannel channels[NUM_RF_CHANNELS];
     uAbsPwrPrecision antennaGain[NUM_RF_SUBBANDS];
     uAbsPwrPrecision bRatePowerOffset[NUM_2_4GHZ_CHANNELS];
+    uAbsPwrPrecision gnRatePowerOffset[NUM_2_4GHZ_CHANNELS];
 }sRegulatoryDomains;
 
 
@@ -175,9 +176,7 @@ typedef struct
 
 #define NUM_RF_TX_GAIN_STEPS    (16)
 #define MAX_RF_TX_GAIN_STEP     (NUM_RF_TX_GAIN_STEPS - 1)
-#ifdef ANI_MANF_DIAG
 #define RF_AGC_GAIN_LUT_DEPTH   (91)
-#endif
 #define NUM_RF_DCO_VALUES       (91) //There are only 32 DCO values, but our algorithm it makes more sense for us to access these by AGC gain index
 #define MAX_RF_DCO_VALUE        (NUM_RF_DCO_VALUES - 1)
 

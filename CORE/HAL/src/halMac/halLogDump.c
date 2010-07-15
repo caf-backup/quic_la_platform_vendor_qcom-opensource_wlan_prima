@@ -3279,6 +3279,16 @@ dump_hal_phy_open_close_tpc_loop( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 a
 }
 
 static char *
+dump_hal_nv_table( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    (void) arg2; (void) arg3; (void) arg4;
+
+    halDumpNVtable(pMac, (eNvTable) arg1);
+    return p;
+
+}
+
+static char *
 dump_hal_rate_tx_power( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     (void) arg1; (void) arg2; (void) arg3; (void) arg4;
@@ -3412,6 +3422,36 @@ dump_hal_set_cfg( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 ar
     return p;
 }
 
+static char *
+dump_bmps_rssi_thresholds( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+ 
+    tHalFwParams *pFw = &pMac->hal.FwParam;
+    Qwlanfw_SysCfgType *pFwConfig;
+ 
+    pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
+    HALLOGE( halLog(pMac, LOGE, FL("\nucRssiThreshold1 %d\n \
+                                    ucRssiThreshold2 %d\n \
+                                    ucRssiThreshold3 %d\n \
+                                    bRssiThres1PosNotify %d\n \
+                                    bRssiThres1NegNotify %d\n \
+                                    bRssiThres2PosNotify %d\n \
+                                    bRssiThres2NegNotify %d\n \
+                                    bRssiThres3PosNotify %d\n \
+                                    bRssiThres3NegNotify %d\n"),
+                                    pFwConfig->ucRssiThreshold1,
+                                    pFwConfig->ucRssiThreshold2,
+                                    pFwConfig->ucRssiThreshold3,
+                                    pFwConfig->bRssiThres1PosNotify,
+                                    pFwConfig->bRssiThres1NegNotify,
+                                    pFwConfig->bRssiThres2PosNotify,
+                                    pFwConfig->bRssiThres2NegNotify,
+                                    pFwConfig->bRssiThres3PosNotify,
+                                    pFwConfig->bRssiThres3NegNotify   ));
+    
+    return p;
+}
+
 
 static tDumpFuncEntry halMenuDumpTable[] = {
     {0,     "HAL Specific (50-299)",                                    NULL},
@@ -3480,12 +3520,14 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {243,   "halphySetChainSelect<numTx><numRx>",                       dump_hal_phy_set_chain_select},
     {244,   "getPwr <rateidx><pwrCap>",                                 dump_hal_phy_get_power_for_rate},
     {245,   "open TPC loop <1/0>",                                      dump_hal_phy_open_close_tpc_loop},
+    {246,   "dump Nv table <tableId>",                                  dump_hal_nv_table},
 
     {0,     "BTC (250-259)",                                            NULL},
     {250,   "change BTC paramters (WLAN interval, BT interval, mode, action)", dump_hal_set_btc_config},
     {251,   "view BTC paramters",                                       dump_hal_view_btc_config},
     {252,   "set FW log collection filters (module index, log level, event mask)", dump_hal_set_fw_log_filters},
     {253,   "view FW log collection filters",                           dump_hal_view_fw_log_filters},
+    {254,   "View sysconfig shared between FW and HAL",                 dump_bmps_rssi_thresholds},
 };
 
 void halDumpInit(tpAniSirGlobal pMac)

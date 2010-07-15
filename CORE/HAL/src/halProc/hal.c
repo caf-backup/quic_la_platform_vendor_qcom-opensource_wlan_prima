@@ -50,11 +50,9 @@
 #include "dvtModuleApi.h"
 #endif
 
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
 #include "pttModuleApi.h"
 #include "pttMsgApi.h"
 #include "halPhyUtil.h"
-#endif
 
 #ifdef ANI_OS_TYPE_RTAI_LINUX
 #include "sysRtaiStartup.h"
@@ -63,10 +61,8 @@
 /** Temp Measurment timer interval value 30 sec.*/
 #define HAL_TEMPMEAS_TIMER_VAL_SEC          30
 
-#ifndef ANI_MANF_DIAG
 static void halPhy_setNwDensityAndProximity(tpAniSirGlobal pMac);
 static void halSetChainPowerState(tpAniSirGlobal pMac);
-#endif
 extern eHalStatus halPrepareForBmpsEntry(tpAniSirGlobal pMac);
 extern eHalStatus halPrepareForBmpsExit(tpAniSirGlobal pMac);
 
@@ -2269,7 +2265,6 @@ tRegList aLibraRFSetup[] =
 #endif //LIBRA_FPGA
 
 #if 0
-#ifndef ANI_MANF_DIAG
 static tANI_BOOLEAN
 __halIsChipBusy(tpAniSirGlobal pMac)
 {
@@ -2291,7 +2286,6 @@ __halIsChipBusy(tpAniSirGlobal pMac)
     return eANI_BOOLEAN_FALSE;
 }
 #endif
-#endif
 
 tANI_BOOLEAN halIsSelfHtCapable(tpAniSirGlobal pMac)
 {
@@ -2308,7 +2302,6 @@ tANI_BOOLEAN halIsSelfHtCapable(tpAniSirGlobal pMac)
         return eANI_BOOLEAN_FALSE;
 }
 
-#ifndef ANI_MANF_DIAG
 /** -------------------------------------------------------------
 \fn      halPhy_setNwDensityAndProximity
 \brief   This function sets the network density and proximity
@@ -2349,7 +2342,7 @@ static void halPhy_setNwDensityAndProximity(tpAniSirGlobal pMac)
 
     return;
 }
-#endif
+
 
 
 // -------------------------------------------------------------
@@ -2429,18 +2422,19 @@ tSirRetStatus halProcessCfgDownloadComplete(tpAniSirGlobal pMac)
     pMac->hal.halMac.wrapStats.statTmrVal = SYS_SEC_TO_TICKS(val);
     pMac->hal.halMac.tempMeasTmrVal = SYS_SEC_TO_TICKS(HAL_TEMPMEAS_TIMER_VAL_SEC);
 
-#ifndef ANI_MANF_DIAG // Enable periodic calibration only if it is not the Manufacturing Diagnostics
-                      // driver build.
-    rc = halConfigCalControl(pMac);
-    if (rc != eSIR_SUCCESS)
+    if(pMac->gDriverType != eDRIVER_TYPE_MFG) // Enable periodic calibration only if it is not the Manufacturing Diagnostics
     {
-        HALLOGE(halLog(pMac, LOGE, FL("halConfigCalControl: CFG Failed Calibration Control\n")));
-        macSysResetReq(pMac, rc);
-        goto end;
-    }
-    //pMac->hal.trigCalFlag = (tANI_U8) val;
+                          // driver build.
+        rc = halConfigCalControl(pMac);
+        if (rc != eSIR_SUCCESS)
+        {
+            HALLOGE(halLog(pMac, LOGE, FL("halConfigCalControl: CFG Failed Calibration Control\n")));
+            macSysResetReq(pMac, rc);
+            goto end;
+        }
+        //pMac->hal.trigCalFlag = (tANI_U8) val;
 
-#endif // #ifndef ANI_MANF_DIAG
+    } // #ifndef eDRIVER_TYPE_MFG
 
 
     if ((rc = wlan_cfgGetInt(pMac, WNI_CFG_CAL_PERIOD, &val)) != eSIR_SUCCESS)
@@ -2548,10 +2542,12 @@ tSirRetStatus halProcessStartEvent(tpAniSirGlobal pMac)
                 return eSIR_FAILURE;
             }
 
-#ifndef ANI_MANF_DIAG
-            // Init BA parameters
-            baInit( pMac );
-#endif
+            if(pMac->gDriverType != eDRIVER_TYPE_MFG)
+            {
+                // Init BA parameters
+                baInit( pMac );
+            }
+
             pMac->hal.halMac.nonRifsBssCount = pMac->hal.halMac.rifsBssCount= 0;
 
 #if defined(ANI_PRODUCT_TYPE_CLIENT)
@@ -2563,9 +2559,10 @@ tSirRetStatus halProcessStartEvent(tpAniSirGlobal pMac)
             halMsg_InitRxChainsReg(pMac);
 #endif
 
-#ifndef ANI_MANF_DIAG
-            halPhy_setNwDensityAndProximity(pMac);
-#endif
+            if(pMac->gDriverType != eDRIVER_TYPE_MFG)
+            {
+                halPhy_setNwDensityAndProximity(pMac);
+            }
             /*overwrite default behaviour to be compatible with marvell chipset*/
             halPhyRxSoundingBitFrames( pMac, eANI_BOOLEAN_TRUE );
 
@@ -2582,23 +2579,27 @@ tSirRetStatus halProcessStartEvent(tpAniSirGlobal pMac)
             }
             HALLOGW( halLog(pMac, LOGW, FL("limresumeactivityntf is sent from hal\n")));
 
-#if !defined(LOOPBACK) && !defined(ANI_DVT_DEBUG) && !defined(ANI_MANF_DIAG)
+#if !defined(LOOPBACK) && !defined(ANI_DVT_DEBUG)
+            if(pMac->gDriverType != eDRIVER_TYPE_MFG)
+            {
 
-           if (halMsg_AddStaSelf(pMac) != eHAL_STATUS_SUCCESS)
-           {
-               HALLOGW( halLog(pMac, LOGW, FL("Failed at halMsg_AddStaSelf() \n")));
-               rc = eSIR_FAILURE;
-               break;
-           }
+                if (halMsg_AddStaSelf(pMac) != eHAL_STATUS_SUCCESS)
+                {
+                    HALLOGW( halLog(pMac, LOGW, FL("Failed at halMsg_AddStaSelf() \n")));
+                    rc = eSIR_FAILURE;
+                    break;
+                }
+            }
 #endif
-#if !defined(ANI_MANF_DIAG)
-           if (halRxp_addBroadcastEntry(pMac) != eHAL_STATUS_SUCCESS)
-           {
-               HALLOGW( halLog(pMac, LOGW, FL("Failed at halRxp_addBroadcastEntry() \n")));
-               rc = eSIR_FAILURE;
-               break;
-           }
-#endif
+            if(pMac->gDriverType != eDRIVER_TYPE_MFG)
+            {
+                if (halRxp_addBroadcastEntry(pMac) != eHAL_STATUS_SUCCESS)
+                {
+                    HALLOGW( halLog(pMac, LOGW, FL("Failed at halRxp_addBroadcastEntry() \n")));
+                    rc = eSIR_FAILURE;
+                    break;
+                }
+            }
             // Start HAL timers create
             if ((rc = halTimersCreate(pMac)) != eSIR_SUCCESS)
                 break;
@@ -2675,7 +2676,6 @@ tSirRetStatus halProcessSysReadyInd(tpAniSirGlobal pMac)
     return rc;
 }
 
-#ifndef ANI_MANF_DIAG
 /** -------------------------------------------------------------
 \fn halProcessMulticastRateChange
 \brief handles the CFG change for mlticast rates.
@@ -2709,7 +2709,6 @@ eHalStatus halProcessMulticastRateChange(tpAniSirGlobal pMac, tANI_U32 cfgId)
     }
     return status;
 }
-#endif
 
 // -------------------------------------------------------------
 /**
@@ -2784,16 +2783,18 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 
     // If hal state is IDLE, do not process any messages.
     // free the body pointer and return success
-#ifndef  ANI_MANF_DIAG
-    if(eHAL_IDLE == halStateGet(pMac)) {
-        if(pMsg->bodyptr) {
-            vos_mem_free((v_VOID_t*)pMsg->bodyptr);
+    if(pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
+    {
+        if(eHAL_IDLE == halStateGet(pMac)) {
+            if(pMsg->bodyptr) {
+                vos_mem_free((v_VOID_t*)pMsg->bodyptr);
+            }
+            return eSIR_SUCCESS;
         }
-        return eSIR_SUCCESS;
     }
-#endif
 
-#if defined(ANI_MANF_DIAG)// || defined(ANI_PHY_DEBUG)
+#ifndef WLAN_FTM_STUB
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
         tANI_U32                    pttType;
         tPttMsgbuffer               *pPttMsg;
@@ -2807,7 +2808,7 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             pttProcessMsg(pMac, pPttMsg);
             return(rc);
         }
-        return rc;
+        //return rc;
     }
 #endif
 
@@ -2848,13 +2849,31 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 \param   tSirMsgQ  *pMsg - HAL message to be processed
 \return  status
 \ -------------------------------------------------------- */
-#ifndef ANI_MANF_DIAG
 tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 {
     tSirRetStatus   rc = eSIR_SUCCESS;
     eHalStatus      status = eHAL_STATUS_SUCCESS;
     tANI_U32        val;
     tANI_U16        dialogToken = pMsg->reserved;
+
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        switch (pMsg->type)
+        {
+           case SIR_HAL_HANDLE_FW_MBOX_RSP:
+                HALLOGE( halLog(pMac, LOGE, FL("Fw Rsp Msg \n")));
+                halFW_HandleFwMessages(pMac, pMsg->bodyptr);
+                vos_mem_free((v_VOID_t*)pMsg->bodyptr);
+                pMsg->bodyptr = NULL;
+                break;
+    
+           case SIR_HAL_SEND_MSG_COMPLETE:
+                HALLOGE( halLog(pMac, LOGE, FL("Fw Rsp Msg \n")));
+                halMbox_SendMsgComplete(pMac);
+                break; 
+        }
+        return eSIR_SUCCESS;
+    }
 
     switch (pMsg->type)
     {
@@ -2891,12 +2910,11 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 
             switch (pMsg->bodyval)
             {
-#if !defined(ANI_MANF_DIAG)
                 case WNI_CFG_STA_ID:
                     if( (status = halMsg_AddStaSelf(pMac)) != eHAL_STATUS_SUCCESS)
                         HALLOGW( halLog(pMac, LOGW, FL("halMsg_AddStaSelf() failed \n")));
                     break;
-#endif
+
                 case WNI_CFG_PACKET_CLASSIFICATION:
                     pMac->hal.halMac.frameClassifierEnabled = (tANI_U16) val;
                     break;
@@ -3037,10 +3055,9 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                 case WNI_CFG_BA_AUTO_SETUP:
                 case WNI_CFG_MAX_MEDIUM_TIME:
                 case WNI_CFG_MAX_MPDUS_IN_AMPDU:
-#ifndef ANI_MANF_DIAG
                     baHandleCFG( pMac, pMsg->bodyval );
-#endif
                     break;
+
                 case WNI_CFG_FIXED_RATE_MULTICAST_24GHZ:
                 case WNI_CFG_FIXED_RATE_MULTICAST_5GHZ:
                     halProcessMulticastRateChange(pMac, pMsg->bodyval);
@@ -3200,10 +3217,15 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 
        case SIR_HAL_HANDLE_FW_MBOX_RSP:
             HALLOGE( halLog(pMac, LOGE, FL("Fw Rsp Msg \n")));
-            halPhy_HandlerFwRspMsg(pMac, pMsg->bodyptr);
+            halFW_HandleFwMessages(pMac, pMsg->bodyptr);
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
             pMsg->bodyptr = NULL;
             break;
+
+       case SIR_HAL_SEND_MSG_COMPLETE:
+            HALLOGE( halLog(pMac, LOGE, FL("Fw Rsp Msg \n")));
+            halMbox_SendMsgComplete(pMac);
+            break; 
 
        case SIR_HAL_GET_NOISE_REQ:
             HALLOGW( halLog(pMac, LOGW, FL("Got Get Noise Request \n")));
@@ -3414,15 +3436,6 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
     HALLOG4( halLog(pMac, LOG4, FL("Success Returns!\n")));
     return rc;
 } // halHandleMsg()
-
-#else   //ANI_MANF_DIAG
-
-tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
-{
-    return (eSIR_SUCCESS);
-}
-
-#endif
 
 // --------------------------------------------------------
 /**
@@ -4040,7 +4053,6 @@ void halStateSet(tpAniSirGlobal pMac, tANI_U8 state)
 }
 
 
-#ifndef ANI_MANF_DIAG
 /** --------------------------------------------
 \fn      halSetChainPowerState
 \brief   This function gets the CFG and calls
@@ -4059,7 +4071,6 @@ static void halSetChainPowerState(tpAniSirGlobal pMac)
     halSetChainConfig(pMac, chainState);
     return;
 }
-#endif
 
 /** ------------------------------------------------------
 \fn      halSetChainConfig

@@ -246,6 +246,10 @@ typedef enum eBmuCmdType {
 #define DPU_TX_RSV_NUMBD_INT    0x10
 #define DPU_TX_RSV_NUMPDU_INT   0x20
 
+/* DPU feedback in BD */
+#define DPU_FEEDBACK_WPI_UNPROTECTED    0x20    //Receive unprotected frame on WPI encrypted channel
+
+
 /* TPE Sta Stats Info */
 #define TPE_STATSPERBKOFF_SIZE      MAX_NUM_OF_BACKOFFS
 
@@ -459,8 +463,15 @@ typedef enum sBmuWqId {
     BMUWQ_BMU_WQ19 = 19,
     BMUWQ_BMU_WQ20 = 20,
     BMUWQ_BMU_WQ21 = 21,
-    BMUWQ_BMU_WQ22 = 22
-    
+    BMUWQ_BMU_WQ22 = 22,
+
+#ifdef LIBRA_WAPI_SUPPORT    
+    BMUWQ_WAPI_DPU_TX = 17,  /* DPU Tx->FW WAPI Tx */
+    BMUWQ_WAPI_DXE_REQ = BMUWQ_BMU_WQ20,
+    BMUWQ_WAPI_RX_DXE_DONE = BMUWQ_BMU_WQ21,
+    BMUWQ_WAPI_TX_DXE_DONE = BMUWQ_BMU_WQ22,
+#endif
+
 } tBmuWqId;
 
 typedef enum 

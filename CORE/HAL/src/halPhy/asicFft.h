@@ -1,23 +1,23 @@
-/** ------------------------------------------------------------------------- * 
-    ------------------------------------------------------------------------- *  
+/** ------------------------------------------------------------------------- *
+    ------------------------------------------------------------------------- *
 
-  
+
     \file asicFft.h
-  
+
     \brief FFT block definitions
-  
-    $Id$ 
-  
+
+    $Id$
+
     Copyright (C) 2006 Airgo Networks, Incorporated
-  
-  
+
+
    ========================================================================== */
 
 #ifndef ASICFFT_H
 #define ASICFFT_H
 
-#define FFT_RAM                     FFT_FFT_RAM_MREG
-#define FFT_TONE_INDEX_MULT         (0x20)
+#define FFT_RAM                     QWLAN_FFT_FFT_RAM_MREG
+#define FFT_TONE_INDEX_MULT         (0x10)
 
 
 

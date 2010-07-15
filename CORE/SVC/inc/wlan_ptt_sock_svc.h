@@ -28,11 +28,11 @@
  */
 
 // PTT Socket App Message Ids
-#define PTT_MSG_DBG_READ_REGISTER       0x3040
-#define PTT_MSG_DBG_WRITE_REGISTER      0x3041
-#define PTT_MSG_DBG_READ_MEMORY         0x3044
-#define PTT_MSG_DBG_WRITE_MEMORY        0x3045
-#define PTT_MSG_LOG_DUMP				    0x32A1
+#define PTT_MSG_READ_REGISTER       0x3040
+#define PTT_MSG_WRITE_REGISTER      0x3041
+#define PTT_MSG_READ_MEMORY         0x3044
+#define PTT_MSG_WRITE_MEMORY        0x3045
+#define PTT_MSG_LOG_DUMP_DBG				    0x32A1
 #ifdef ANI_MANF_DIAG
 #define PTT_MSG_FTM_CMDS_TYPE           0x4040
 #endif

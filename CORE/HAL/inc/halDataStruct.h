@@ -124,6 +124,12 @@ typedef tHalRxBd *tpHalBufDesc;
 #define SIR_MAC_BD_TO_RSSI_DB(pBd)               HAL_GET_RSSI_DB(SIR_MAC_BD_TO_PHY_STATS0(pBd))
 
 
+#define WLANTL_HO_IS_AN_AMPDU                    0x4000
+#define WLANTL_HO_LAST_MPDU_OF_AMPDU             0x400
+
+#define WLAN_HAL_IS_AN_AMPDU(pBD)                (WLANHAL_RX_BD_GET_RXP_FLAGS(pBD) & WLANTL_HO_IS_AN_AMPDU)
+#define WLAN_HAL_IS_LAST_MPDU(pBD)               (WLANHAL_RX_BD_GET_RXP_FLAGS(pBD) & WLANTL_HO_LAST_MPDU_OF_AMPDU) 
+
 
 
 /*

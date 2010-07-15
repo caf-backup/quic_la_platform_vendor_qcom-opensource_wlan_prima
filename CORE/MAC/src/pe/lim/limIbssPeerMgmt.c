@@ -504,6 +504,26 @@ ibss_bss_add(
             != eSIR_SUCCESS)
             limLog(pMac, LOGP, FL("Can't update beacon interval\n"));
 
+    /* This function ibss_bss_add (and hence the below code) is only called during ibss coalescing. We need to 
+     * adapt to peer's capability with respect to short slot time. Changes have been made to limApplyConfiguration() 
+     * so that the IBSS doesnt blindly start with short slot = 1. If IBSS start is part of coalescing then it will adapt
+     * to peer's short slot using code below.
+     */
+    if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, &cfg)
+                   != eSIR_SUCCESS)
+    {
+        limLog(pMac, LOGP, FL("cfg get WNI_CFG_SHORT_SLOT_TIME failed\n"));
+        return;
+    }
+    /* If cfg is already set to current peer's capability then no need to set it again */
+    if (cfg != pBeacon->capabilityInfo.shortSlotTime)
+    {
+        if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, pBeacon->capabilityInfo.shortSlotTime) != eSIR_SUCCESS)
+        {
+            limLog(pMac, LOGP, FL("could not update short slot time at CFG\n"));
+            return;
+        }
+    }
     palCopyMemory( pMac->hHdd,
        (tANI_U8 *) &pMac->lim.gpLimStartBssReq->operationalRateSet,
        (tANI_U8 *) &pBeacon->supportedRates,
@@ -529,8 +549,11 @@ ibss_bss_add(
     if(pBeacon->extendedRatesPresent)
         numExtRates = pBeacon->extendedRates.numRates;
     if (cfgSetStr(pMac, WNI_CFG_EXTENDED_OPERATIONAL_RATE_SET, 
-           (tANI_U8 *) &pBeacon->extendedRates.rate, numExtRates) != eSIR_SUCCESS)
-            limLog(pMac, LOGP, FL("could not update ExtendedOperRateset at CFG\n"));
+        (tANI_U8 *) &pBeacon->extendedRates.rate, numExtRates) != eSIR_SUCCESS)
+    {
+        limLog(pMac, LOGP, FL("could not update ExtendedOperRateset at CFG\n"));
+        return;
+    } 
 
 
     /*
@@ -665,26 +688,26 @@ void limIbssDeleteAllPeers( tpAniSirGlobal pMac )
                FL("Number of peers in the list is zero and node present"));
             return;
         }
-		/* Delete the dph entry for the station
-         	  * Since it is called to remove all peers, just delete from dph,
-		  * no need to do any beacon related params i.e., dont call limDeleteDphHashEntry
-		  */ 
+        /* Delete the dph entry for the station
+         * Since it is called to remove all peers, just delete from dph,
+         * no need to do any beacon related params i.e., dont call limDeleteDphHashEntry
+         */ 
         pStaDs = dphLookupHashEntry(pMac, pCurrNode->peerMacAddr, &aid);
         if( pStaDs )
         {
-			ibss_status_chg_notify( pMac, pCurrNode->peerMacAddr, pStaDs->staIndex, 
+            ibss_status_chg_notify( pMac, pCurrNode->peerMacAddr, pStaDs->staIndex, 
                                     pStaDs->ucUcastSig, pStaDs->ucBcastSig,
                                     eWNI_SME_IBSS_PEER_DEPARTED_IND );
             dphDeleteHashEntry(pMac, pStaDs->staAddr, aid);
-		}
+        }
 
         pTempNode = pCurrNode->next;
         /* Fix CR 227642: PeerList should point to the next node since the current node is being
-                * freed in the next line. In ibss_peerfind in ibss_status_chg_notify above, we use this
-                * peer list to find the next peer. So this list needs to be updated with the no of peers left
-                * after each iteration in this while loop since one by one peers are deleted (freed) in this
-                * loop causing the lim.gLimIbssPeerList to point to some freed memory.
-                */
+         * freed in the next line. In ibss_peerfind in ibss_status_chg_notify above, we use this
+         * peer list to find the next peer. So this list needs to be updated with the no of peers left
+         * after each iteration in this while loop since one by one peers are deleted (freed) in this
+         * loop causing the lim.gLimIbssPeerList to point to some freed memory.
+         */
         pMac->lim.gLimIbssPeerList = pTempNode;
         if(pCurrNode->beacon)
         {
@@ -1217,13 +1240,22 @@ limIbssDelBssRsp(
     }
 
     limDeletePreAuthList(pMac);
-	/* First we will indicate SME about peer departed then we will reinitialize the dphHashTable using dphHashTableClassInit() */
+    /* First we will indicate SME about peer departed then we will reinitialize the dphHashTable using dphHashTableClassInit() */
     limIbssDelete(pMac);
     dphHashTableClassInit(pMac);
     pMac->lim.gLimMlmState = eLIM_MLM_IDLE_STATE;
     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
 
     pMac->lim.gLimSystemRole = eLIM_STA_ROLE;
+
+    /* Change the short slot operating mode to Default (which is 1 for now) so that when IBSS starts next time with Libra
+     * as originator, it picks up the default. This enables us to remove hard coding of short slot = 1 from limApplyConfiguration 
+     */
+    if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, WNI_CFG_SHORT_SLOT_TIME_STADEF) != eSIR_SUCCESS)
+    {
+        limLog(pMac, LOGP, FL("could not update short slot time at CFG\n"));
+        return;
+    }
 
     end:
     limSendSmeRsp(pMac, eWNI_SME_STOP_BSS_RSP, rc);

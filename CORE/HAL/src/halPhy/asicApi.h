@@ -320,7 +320,6 @@ eHalStatus asicStartTestWaveform(tpAniSirGlobal pMac, eWaveMode playback, tANI_U
 eHalStatus asicStopTestWaveform(tpAniSirGlobal pMac);
 
 
-#ifdef ANI_MANF_DIAG
 //asicPhyDbg.c
 eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac, 
                                    eHalPhyRates rate, 
@@ -339,8 +338,6 @@ eHalStatus asicPhyDbgStopFrameGen(tpAniSirGlobal pMac);
 eHalStatus asicPhyDbgQueryStatus(tpAniSirGlobal pMac, sTxFrameCounters *numFrames, ePhyDbgTxStatus *status);
 eHalStatus asicGrabAdcSamples(tpAniSirGlobal pMac, tANI_U32 startSample, tANI_U32 numSamples, tGrabRamSample *sampleBuffer);
 
-
-#endif
 
 
 

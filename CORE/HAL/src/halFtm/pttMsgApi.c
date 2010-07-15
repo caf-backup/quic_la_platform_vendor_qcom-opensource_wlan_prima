@@ -22,8 +22,7 @@
 #include "halPhyUtil.h"
 #include "wlan_qct_sys.h"
 
-
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
+#ifndef WLAN_FTM_STUB
 
 extern void HEXDUMP(char *s0, char *s1, int len);
 
@@ -218,7 +217,6 @@ const sPttMsgIdStr pttMsgDbgStrings[] =
     { "PTT_MSG_CONTINUE_RSP",                              0x32A7 }
 };
 
-#ifdef ANI_MANF_DIAG
 //void pttSendMsgResponse(tpAniSirGlobal pMac, tPttMsgbuffer *pPttMsg);   //in pttMsgResponse.c
 void pttSendMsgResponse(tpAniSirGlobal pMac, tPttMsgbuffer *pPttMsg)
 {
@@ -227,11 +225,34 @@ void pttSendMsgResponse(tpAniSirGlobal pMac, tPttMsgbuffer *pPttMsg)
 
 
 
-void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
+void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg1)
 {
     eQWPttStatus retVal = PTT_STATUS_SUCCESS;
 
-    uPttMsgs *msgBody = (uPttMsgs *)&(pttMsg->msgBody);
+    //tPttMsgbuffer tempBuff;
+    tANI_U8 *pBuff;
+    tPttMsgbuffer *pttMsg;
+    uPttMsgs *msgBody;
+
+    //seeing misaligned exceptions around pttMsg buffer for WM os.
+    //workaround is to allocate temporary buffer and copy the pttMsg1 to process further
+    if(palAllocateMemory(pMac->hHdd, (void **)&pBuff, pttMsg1->msgBodyLength) != eHAL_STATUS_SUCCESS)
+    {
+        phyLog(pMac, LOGE, "unable to allocate memory for pttProcessMsg. \n");
+
+        pttMsg1->msgResponse = PTT_STATUS_FAILURE;
+        pttSendMsgResponse(pMac, pttMsg1);
+
+        return;
+    }
+
+    memcpy(pBuff, (tANI_U8 *)pttMsg1, pttMsg1->msgBodyLength);
+    pttMsg = (tPttMsgbuffer *)pBuff;
+
+    //memcpy((tANI_U8 *)&(tempBuff), pttMsg1, sizeof(tPttMsgbuffer));
+    //pttMsg = &tempBuff;
+
+    msgBody = (uPttMsgs *)&(pttMsg->msgBody);
 
     assert(sizeof(tANI_BOOLEAN) == 1);
 
@@ -1164,6 +1185,7 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
         {
             msgBody->GetBuildReleaseNumber.relParams.drvMax = HAL_PHY_MAX_VERSION;
             msgBody->GetBuildReleaseNumber.relParams.drvMin = HAL_PHY_MIN_VERSION;
+            vos_mem_copy((v_VOID_t*)&msgBody->GetBuildReleaseNumber.relParams.fwVer,(v_VOID_t*)&pMac->hal.FwParam.fwVersion, sizeof(FwVersionInfo));
 
             break;
         }
@@ -1202,11 +1224,10 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
 
     //HEXDUMP("PttRsp", (char *) pttMsg, pttMsg->msgBodyLength);
 
-    pttSendMsgResponse(pMac, pttMsg);
-
+    //memcpy(pttMsg1, (tANI_U8 *)&(tempBuff), sizeof(tPttMsgbuffer));
+    memcpy((tANI_U8 *)pttMsg1, pBuff, pttMsg1->msgBodyLength);
+    pttSendMsgResponse(pMac, pttMsg1);
 }
-
-#endif //defined(ANI_MANF_DIAG)
 
 #endif
 

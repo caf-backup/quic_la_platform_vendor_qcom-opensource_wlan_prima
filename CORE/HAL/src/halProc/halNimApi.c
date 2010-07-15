@@ -139,7 +139,7 @@ halMntPostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
     return rc;
 } // halMntPostMsg()
 
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
+#ifndef WLAN_FTM_STUB
 #include "pttModuleApi.h"
 // -------------------------------------------------------------
 /**
@@ -200,7 +200,7 @@ halNimPTTPostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 } // halNimPTTPostMsgApi()
 
 
-#endif  //ANI_MANF_DIAG
+#endif  //eDRIVER_TYPE_MFG
 
 
 // MMH APIs
@@ -349,7 +349,7 @@ tSirRetStatus halMmhForwardMBmsg(void* pSirGlobal, tSirMbMsg* pMb)
             pmmPostMessage(pMac, &msg);
             break;
 
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
+#ifndef WLAN_FTM_STUB
         case SIR_PTT_MSG_TYPES_BEGIN:
             halNimPTTPostMsgApi(pMac, &msg); // Posts a message to the NIM PTT MsgQ
         break;

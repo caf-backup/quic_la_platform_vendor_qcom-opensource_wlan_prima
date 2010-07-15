@@ -72,6 +72,12 @@
 #define ENTER() VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "Enter:%s\n", __FUNCTION__)
 #define EXIT()  VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "Exit:%s\n", __FUNCTION__)
 
+#ifdef CONFIG_CFG80211
+#define WLAN_HDD_GET_PRIV_PTR(__dev__) \
+    (hdd_adapter_t*) wiphy_priv(((struct wireless_dev*)((__dev__)->ieee80211_ptr))->wiphy)
+#else
+#define WLAN_HDD_GET_PRIV_PTR(__dev__) (hdd_adapter_t*)(netdev_priv((__dev__)))
+#endif
 
 typedef struct hdd_tx_rx_stats_s
 {
@@ -156,6 +162,11 @@ struct hdd_adapter_s
 
    /** HAL handle...*/
    tHalHandle hHal;
+
+#ifdef CONFIG_CFG80211
+   struct wireless_dev *wdev ;
+   struct cfg80211_scan_request *request ; 
+#endif
 
    /** Handle to the network device */
    struct net_device *dev;

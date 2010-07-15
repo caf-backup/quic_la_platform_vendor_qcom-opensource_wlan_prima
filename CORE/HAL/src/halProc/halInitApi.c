@@ -120,7 +120,6 @@ extern void logInit (tpAniSirGlobal);
  * during the corresponding halOpen/Start/Stop/Close functions.
  * If a module does not implement the corresponding function, use NULL
  */
-#ifndef ANI_MANF_DIAG
 static tFuncEntry funcTable[] = {
     // func pointer(open)  start                        stop                    close                    name (<20chars)
     { {halResetChip,     halResetChip,                  halResetChip,           halResetChip},           "ResetChip"        },
@@ -156,9 +155,11 @@ static tFuncEntry funcTable[] = {
     { {NULL,             (pFptr)halTLApiInit,           (pFptr)halTLApiExit,           NULL},                   "HAL TL API"       },
     { {halMacStats_Open, NULL,                          NULL,                   halMacStats_Close},      "Mac Stats"        },
 };
-#else //ANI_MANF_DIAG
+
+//eDRIVER_TYPE_MFG
+#ifndef WLAN_FTM_STUB
 //This alternate table is to
-static tFuncEntry funcTable[] = {
+static tFuncEntry funcFtmTable[] = {
     // func pointer(open)  start                        stop                    close                    name (<20chars)
     { {halResetChip,      halResetChip,                  halResetChip,           halResetChip},           "ResetChip"},
     { {NULL,              halSaveDeviceInfo,             NULL,                   NULL},                   "FillChipInfo"},
@@ -175,7 +176,6 @@ static tFuncEntry funcTable[] = {
 
 };
 #endif
-
 
 static eHalStatus halSdioResetChip(tHalHandle hHal, void *arg)
 {
@@ -271,12 +271,25 @@ runModuleFunc (
     eHalStatus      status = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal  pMac = (tpAniSirGlobal) hHal;
     tANI_U8 i;
+    tANI_U8 numEntries;
 
     if (fIndex >= NUM_FUNCS)
         return eHAL_STATUS_INVALID_PARAMETER;
 
-    pEntry = &funcTable[0];
-    for (i = 0; i < sizeof(funcTable)/sizeof(funcTable[0]); i++, pEntry++)
+#ifndef WLAN_FTM_STUB
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        pEntry = &funcFtmTable[0];
+        numEntries = sizeof(funcFtmTable)/sizeof(funcFtmTable[0]);
+    }
+    else
+#endif
+    {
+        pEntry = &funcTable[0];
+        numEntries = sizeof(funcTable)/sizeof(funcTable[0]);
+    }
+
+    for (i = 0; i < numEntries; i++, pEntry++)
     {
         if (pEntry->pFunc[fIndex] == NULL) continue;
 
@@ -440,6 +453,17 @@ halStart(
 
     // Set the HAL state to INIT
     halStateSet(pMac, eHAL_INIT);
+
+#ifndef WLAN_FTM_STUB
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        if(eHAL_STATUS_SUCCESS != halIntChipEnable((tHalHandle)pMac))
+        {
+            HALLOGP( halLog(pMac, LOGP, FL("halIntChipEnable failed\n")));
+        }
+
+    }
+#endif
 
     return eHAL_STATUS_SUCCESS;
 }

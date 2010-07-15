@@ -30,7 +30,7 @@
 
 #include "pal_skbPoolTracking.h"
 
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
+#ifndef WLAN_FTM_STUB
 tSirRetStatus
 postPTTMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 #endif
@@ -67,7 +67,7 @@ sysInitGlobals(tpAniSirGlobal pMac)
     //FIXME : right now we want the reset to happen even in diag debug build.
     // later on we need to set this to true.
     //pMac->sys.debugOnReset = true;
-    pMac->sys.debugOnReset = false;    
+    pMac->sys.debugOnReset = false;
 #else
     pMac->sys.debugOnReset = false;
 #endif
@@ -138,7 +138,7 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
 {
     tSirRetStatus ret;
     tpHalBufDesc pBd;
-    tMgmtFrmDropReason dropReason; 
+    tMgmtFrmDropReason dropReason;
 
 #if defined(ANI_OS_TYPE_RTAI_LINUX)
 #ifndef GEN6_ONWARDS
@@ -147,7 +147,7 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
 #elif defined(VOSS_ENABLED)
     vos_pkt_t  *pVosPkt = (vos_pkt_t *)pMsg->bodyptr;
     VOS_STATUS  vosStatus = vos_pkt_peek_data( pVosPkt, 0, (v_PVOID_t *)&pBd, WLANHAL_RX_BD_HEADER_SIZE );
- 
+
     if( !VOS_IS_STATUS_SUCCESS(vosStatus) )
 	{
         vos_pkt_return_packet(pVosPkt);
@@ -209,8 +209,8 @@ fail:
 }
 
 
-void sysLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...) 
-{	
+void sysLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...)
+{
     // Verify against current log level
     if ( loglevel > pMac->utils.gLogDbgLevel[LOG_INDEX_FOR_MODULE( SIR_SYS_MODULE_ID )] )
         return;
@@ -221,7 +221,7 @@ void sysLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...)
         va_start( marker, pString );     /* Initialize variable arguments. */
 
         logDebug(pMac, SIR_SYS_MODULE_ID, loglevel, pString, marker);
-        
+
         va_end( marker );              /* Reset variable arguments.      */
     }
 }
@@ -289,9 +289,9 @@ void sysBbtProcessMessage( tHalHandle hHal, tpHalBufDesc pBD )
 #endif // #if defined( ANI_OS_TYPE_WINDOWS )
 
 #if defined(ANI_OS_TYPE_RTAI_LINUX)
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
+#ifndef WLAN_FTM_STUB
 #include "pttModuleApi.h"
-#endif // ANI_MANF_DIAG
+#endif // eDRIVER_TYPE_MFG
 
 // ---------------------------------------------------------------------
 /**
@@ -392,7 +392,7 @@ sysMmhEntry(tANI_U32 dummy)
 
                 break;
 
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
+#ifndef WLAN_FTM_STUB
             case PTT_MSG_TYPES_BEGIN_30: /*PTT_MSG_TYPES_BEGIN:*/
             case PTT_MSG_TYPES_BEGIN_31:
             case PTT_MSG_TYPES_BEGIN_32:
@@ -601,7 +601,7 @@ sysHalEntry(tANI_U32 dummy)
     } // while(1)
 } // sysHalEntry
 
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
+#ifndef WLAN_FTM_STUB
 #include "pttModuleApi.h"
 // ---------------------------------------------------------------------
 // ---------------------------------------------------------------------
@@ -704,7 +704,7 @@ postPTTMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 } // postPTTMsgApi()
 
 
-#endif // ANI_MANF_DIAG
+#endif // eDRIVER_TYPE_MFG
 
 #endif // #if defined ANI_OS_TYPE_LINUX || defined ANI_OS_TYPE_OSX
 

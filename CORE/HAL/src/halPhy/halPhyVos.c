@@ -97,6 +97,8 @@ eHalStatus halPhy_HandlerFwRspMsg(tHalHandle hHal, void* pFwMsg)
         case QWLANFW_FW2HOST_CAL_UPDATE_RSP:
         {
             Qwlanfw_CalUpdateRspType *calUpdateRsp = (Qwlanfw_CalUpdateRspType *)pFwMsg;
+            pMac->hphy.setPhyMsgEvent = eANI_BOOLEAN_FALSE;
+
             if(calUpdateRsp->uStatus != eHAL_STATUS_SUCCESS)
             {
                 phyLog(pMac, LOGE, "ERROR: Update calibration Failed in firmware!!\n");
@@ -106,22 +108,26 @@ eHalStatus halPhy_HandlerFwRspMsg(tHalHandle hHal, void* pFwMsg)
 
         case QWLANFW_FW2HOST_SET_CHANNEL_RSP:
         {
-#ifdef  ANI_MANF_DIAG
-            Qwlanfw_SetChannelRspType *setChanRsp = (Qwlanfw_SetChannelRspType *)pFwMsg;
-            if(setChanRsp->uStatus == eHAL_STATUS_SUCCESS)
+            if(pMac->gDriverType == eDRIVER_TYPE_MFG)
             {
-                pMac->hphy.fwSetChannelStatus = eHAL_STATUS_SUCCESS;
+                Qwlanfw_SetChannelRspType *setChanRsp = (Qwlanfw_SetChannelRspType *)pFwMsg;
+                pMac->hphy.setPhyMsgEvent = eANI_BOOLEAN_FALSE;
+                if(setChanRsp->uStatus == eHAL_STATUS_SUCCESS)
+                {
+                    pMac->hphy.fwSetChannelStatus = eHAL_STATUS_SUCCESS;
+                }
+                //set the event waiting on  pMac->hphy.setChanEvent
+                if (!VOS_IS_STATUS_SUCCESS( vos_event_set(&pMac->hphy.setChanEvent) ))
+                {
+                    phyLog(pMac, LOGE, "ERROR: setChan vos events set failed!!\n");
+                    //pMac->hphy.fwSetChannelStatus = eHAL_STATUS_FAILURE;
+                    //retVal = eHAL_STATUS_FAILURE;
+                }
             }
-            //set the event waiting on  pMac->hphy.setChanEvent
-            if (!VOS_IS_STATUS_SUCCESS( vos_event_set(&pMac->hphy.setChanEvent) ))
+            else
             {
-                phyLog(pMac, LOGE, "ERROR: setChan vos events set failed!!\n");
-                //pMac->hphy.fwSetChannelStatus = eHAL_STATUS_FAILURE;
-                //retVal = eHAL_STATUS_FAILURE;
+                halPhy_HandleSetChannelRsp(hHal, pFwMsg);
             }
-#else
-            halPhy_HandleSetChannelRsp(hHal, pFwMsg);
-#endif
 
             break;
         }
@@ -129,6 +135,8 @@ eHalStatus halPhy_HandlerFwRspMsg(tHalHandle hHal, void* pFwMsg)
         case QWLANFW_FW2HOST_SET_CHAIN_SELECT_RSP:
         {
             Qwlanfw_SetChainSelectRspType *chainSelectRsp = (Qwlanfw_SetChainSelectRspType *)pFwMsg;
+            pMac->hphy.setPhyMsgEvent = eANI_BOOLEAN_FALSE;
+
             if(chainSelectRsp->uStatus == eHAL_STATUS_SUCCESS)
             {
                 pMac->hphy.phy.activeChains = pMac->hphy.phy.cfgChains;

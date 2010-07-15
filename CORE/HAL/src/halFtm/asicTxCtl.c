@@ -17,10 +17,9 @@
  */
 
 #include <sys_api.h>
-#ifdef ANI_MANF_DIAG
 
 
-
+#ifndef WLAN_FTM_STUB
 
 eHalStatus asicEnableTxDACs(tpAniSirGlobal pMac, ePhyTxChains txChainsOn, tANI_BOOLEAN override, tANI_BOOLEAN wfm)
 {

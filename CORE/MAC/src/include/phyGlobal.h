@@ -75,6 +75,7 @@ typedef struct
     ePhyNwDensity nwDensity40MHz;     // Network density value for 40MHz channel width
     ePhyPowerSave pwr;                //current power save setting
     ePhyRxDisabledPktTypes modTypes;  //current disabled packet types
+    volatile tANI_U8 setPhyMsgEvent;
 }tAniSirPhy;
 
 #endif /* PHYGLOBAL_H */

@@ -1667,19 +1667,20 @@ eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tPmkidCacheInfo *pPMKIDCache,
 }
 
 /* ---------------------------------------------------------------------------
-    \fn sme_RoamGetWpaRsnReqIE
-    \brief a wrapper function to request CSR to return the WPA or RSN IE CSR
+    \fn sme_RoamGetSecurityReqIE
+    \brief a wrapper function to request CSR to return the WPA or RSN or WAPI IE CSR
            passes to PE to JOIN request or START_BSS request
     This is a synchronuous call.
     \param pLen - caller allocated memory that has the length of pBuf as input.
                   Upon returned, *pLen has the needed or IE length in pBuf.
     \param pBuf - Caller allocated memory that contain the IE field, if any,
                   upon return
+    \param secType - Specifies whether looking for WPA/WPA2/WAPI IE                  
     \return eHalStatus - when fail, it usually means the buffer allocated is not
                          big enough
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetWpaRsnReqIE(tHalHandle hHal, tANI_U32 *pLen,
-                                  tANI_U8 *pBuf)
+eHalStatus sme_RoamGetSecurityReqIE(tHalHandle hHal, tANI_U32 *pLen,
+                                  tANI_U8 *pBuf, eCsrSecurityType secType)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -1687,27 +1688,43 @@ eHalStatus sme_RoamGetWpaRsnReqIE(tHalHandle hHal, tANI_U32 *pLen,
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        status = csrRoamGetWpaRsnReqIE( hHal, pLen, pBuf );
-        sme_ReleaseGlobalLock( &pMac->sme );
+       switch(secType)
+       {
+          case eCSR_SECURITY_TYPE_WPA:
+          case eCSR_SECURITY_TYPE_RSN:
+             status = csrRoamGetWpaRsnReqIE( hHal, pLen, pBuf );
+             break;
+#ifdef FEATURE_WLAN_WAPI
+          case eCSR_SECURITY_TYPE_WAPI:
+             status = csrRoamGetWapiReqIE( hHal, pLen, pBuf );
+             break;
+#endif /* FEATURE_WLAN_WAPI */
+          default:
+             smsLog( pMac, LOGW, "unknown secType =%d\n", secType);
+             break;
+       }
+        
+       sme_ReleaseGlobalLock( &pMac->sme );
     }
 
     return (status);
 }
 
 /* ---------------------------------------------------------------------------
-    \fn sme_RoamGetWpaRsnRspIE
-    \brief a wrapper function to request CSR to return the WPA or RSN IE from
+    \fn sme_RoamGetSecurityRspIE
+    \brief a wrapper function to request CSR to return the WPA or RSN or WAPI IE from
            the beacon or probe rsp if connected
     This is a synchronuous call.
     \param pLen - caller allocated memory that has the length of pBuf as input.
                   Upon returned, *pLen has the needed or IE length in pBuf.
     \param pBuf - Caller allocated memory that contain the IE field, if any,
                   upon return
+    \param secType - Specifies whether looking for WPA/WPA2/WAPI IE                  
     \return eHalStatus - when fail, it usually means the buffer allocated is not
                          big enough
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetWpaRsnRspIE(tHalHandle hHal, tANI_U32 *pLen,
-                                  tANI_U8 *pBuf)
+eHalStatus sme_RoamGetSecurityRspIE(tHalHandle hHal, tANI_U32 *pLen,
+                                  tANI_U8 *pBuf, eCsrSecurityType secType)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -1715,7 +1732,22 @@ eHalStatus sme_RoamGetWpaRsnRspIE(tHalHandle hHal, tANI_U32 *pLen,
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        status = csrRoamGetWpaRsnRspIE( hHal, pLen, pBuf );
+       switch(secType)
+       {
+          case eCSR_SECURITY_TYPE_WPA:
+          case eCSR_SECURITY_TYPE_RSN:
+             status = csrRoamGetWpaRsnRspIE( hHal, pLen, pBuf );
+             break;
+#ifdef FEATURE_WLAN_WAPI
+          case eCSR_SECURITY_TYPE_WAPI:
+             status = csrRoamGetWapiRspIE( hHal, pLen, pBuf );
+             break;
+#endif /* FEATURE_WLAN_WAPI */
+          default:
+             smsLog( pMac, LOGW, "unknown secType =%d\n", secType);
+             break;
+       }
+
         sme_ReleaseGlobalLock( &pMac->sme );
     }
 
@@ -2923,6 +2955,27 @@ VOS_STATUS sme_BtcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
 
     return (status);
 }
+/* ---------------------------------------------------------------------------
+    \fn sme_SetCfgPrivacy
+    \brief  API to set configure privacy parameters
+    \param  hHal - The handle returned by macOpen.
+    \param  pProfile - Pointer CSR Roam profile.
+    \param  fPrivacy - This parameter indicates status of privacy 
+                            
+    \return void
+  ---------------------------------------------------------------------------*/
+void sme_SetCfgPrivacy( tHalHandle hHal, 
+                        tCsrRoamProfile *pProfile,
+                        tANI_BOOLEAN fPrivacy 
+                        )
+{                    
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
+    {
+        csrSetCfgPrivacy(pMac, pProfile, fPrivacy);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+}
 
 
 //The following are debug APIs to support direct read/write register/memory
@@ -3093,4 +3146,120 @@ VOS_STATUS sme_GetFwVersion (tHalHandle hHal,FwVersionInfo *pVersion)
     return (status);
 }
 
+
+#ifdef FEATURE_WLAN_WAPI
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamSetBKIDCache
+    \brief The SME API exposed to HDD to allow HDD to provde SME the BKID 
+    candidate list.
+    \param hHal - Handle to the HAL. The HAL handle is returned by the HAL after 
+    it is opened (by calling halOpen).
+    \param pBKIDCache - caller allocated buffer point to an array of tBkidCacheInfo
+    \param numItems - a variable that has the number of tBkidCacheInfo allocated 
+    when retruning, this is the number of items put into pBKIDCache
+    \return eHalStatus - when fail, it usually means the buffer allocated is not 
+    big enough and pNumItems has the number of tBkidCacheInfo.
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_RoamSetBKIDCache( tHalHandle hHal, tBkidCacheInfo *pBKIDCache,
+                                 tANI_U32 numItems )
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+       status = csrRoamSetBKIDCache( hHal, pBKIDCache, numItems );
+       sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (status);
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamGetBKIDCache
+    \brief The SME API exposed to HDD to allow HDD to request SME to return its 
+    BKID cache.
+    \param hHal - Handle to the HAL. The HAL handle is returned by the HAL after 
+    it is opened (by calling halOpen).
+    \param pNum - caller allocated memory that has the space of the number of 
+    tBkidCacheInfo as input. Upon returned, *pNum has the needed number of entries 
+    in SME cache.
+    \param pBkidCache - Caller allocated memory that contains BKID cache, if any, 
+    upon return
+    \return eHalStatus - when fail, it usually means the buffer allocated is not 
+    big enough.
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_RoamGetBKIDCache(tHalHandle hHal, tANI_U32 *pNum,
+                                tBkidCacheInfo *pBkidCache)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+       status = csrRoamGetBKIDCache( hHal, pNum, pBkidCache );
+       sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (status);
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamGetNumBKIDCache
+    \brief The SME API exposed to HDD to allow HDD to request SME to return the 
+    number of BKID cache entries.
+    \param hHal - Handle to the HAL. The HAL handle is returned by the HAL after 
+    it is opened (by calling halOpen).
+    \return tANI_U32 - the number of BKID cache entries.
+  ---------------------------------------------------------------------------*/
+tANI_U32 sme_RoamGetNumBKIDCache(tHalHandle hHal)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+   tANI_U32 numBkidCache = 0;
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+       numBkidCache = csrRoamGetNumBKIDCache( hHal );
+       sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (numBkidCache);
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_ScanGetBKIDCandidateList
+    \brief a wrapper function to return the BKID candidate list
+    \param pBkidList - caller allocated buffer point to an array of 
+                        tBkidCandidateInfo
+    \param pNumItems - pointer to a variable that has the number of 
+                       tBkidCandidateInfo allocated when retruning, this is 
+                       either the number needed or number of items put into 
+                       pPmkidList
+    \return eHalStatus - when fail, it usually means the buffer allocated is not 
+                         big enough and pNumItems
+    has the number of tBkidCandidateInfo.
+    \Note: pNumItems is a number of tBkidCandidateInfo, 
+           not sizeof(tBkidCandidateInfo) * something
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, 
+                                        tBkidCandidateInfo *pBkidList, 
+                                        tANI_U32 *pNumItems )
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+    status = sme_AcquireGlobalLock( &pMac->sme );
+    if ( HAL_STATUS_SUCCESS( status ) )
+    {
+        status = csrScanGetBKIDCandidateList( hHal, pBkidList, pNumItems );
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return (status);
+}
+#endif /* FEATURE_WLAN_WAPI */
 

@@ -25,6 +25,12 @@
 #define CSR_OUI_AES_INDEX              0x04
 #define CSR_OUI_WEP104_INDEX           0x05
 
+#ifdef FEATURE_WLAN_WAPI
+#define CSR_OUI_WAPI_RESERVED_INDEX    0x00
+#define CSR_OUI_WAPI_WAI_CERT_OR_SMS4_INDEX    0x01
+#define CSR_OUI_WAPI_WAI_PSK_INDEX     0x02
+#endif /* FEATURE_WLAN_WAPI */
+
 tANI_U8 csrWpaOui[][ CSR_WPA_OUI_SIZE ] = {
     { 0x00, 0x50, 0xf2, 0x00 },
     { 0x00, 0x50, 0xf2, 0x01 },
@@ -43,6 +49,13 @@ tANI_U8 csrRSNOui[][ CSR_RSN_OUI_SIZE ] = {
     { 0x00, 0x0F, 0xAC, 0x05 }  // WEP-104
 };
 
+#ifdef FEATURE_WLAN_WAPI
+tANI_U8 csrWapiOui[][ CSR_WAPI_OUI_SIZE ] = {
+    { 0x00, 0x14, 0x72, 0x00 }, // Reserved
+    { 0x00, 0x14, 0x72, 0x01 }, // WAI certificate or SMS4
+    { 0x00, 0x14, 0x72, 0x02 } // WAI PSK
+};
+#endif /* FEATURE_WLAN_WAPI */
 tANI_U8 csrWmeInfoOui[ CSR_WME_OUI_SIZE ] = { 0x00, 0x50, 0xf2, 0x02 };
 tANI_U8 csrWmeParmOui[ CSR_WME_OUI_SIZE ] = { 0x00, 0x50, 0xf2, 0x02 };
 
@@ -116,7 +129,11 @@ static tCsrIELenInfo gCsrIELengthTable[] = {
 /* 065 */ { 0, 255 },
 /* 066 */ { 0, 255 },
 /* 067 */ { 0, 255 },
+#ifdef FEATURE_WLAN_WAPI
+/* 068 */ { DOT11F_EID_WAPI, DOT11F_IE_WAPI_MAX_LEN },
+#else
 /* 068 */ { 0, 255 },
+#endif /* FEATURE_WLAN_WAPI */
 /* 069 */ { 0, 255 },
 /* 070 */ { 0, 255 },
 /* 071 */ { 0, 255 },
@@ -580,24 +597,34 @@ tANI_BOOLEAN csrIsSsidEqual( tHalHandle hHal, tSirBssDescription *pSirBssDesc1,
     tSirMacSSid Ssid1, Ssid2;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     tDot11fBeaconIEs *pIes1 = NULL;
+    tDot11fBeaconIEs *pIesLocal = pIes2;
 
     do {
-        if( ( NULL == pSirBssDesc1 ) || ( NULL == pSirBssDesc2 ) || ( NULL == pIes2 ) ) break;
+        if( ( NULL == pSirBssDesc1 ) || ( NULL == pSirBssDesc2 ) ) break;
+        if( !pIesLocal && !HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc2, &pIesLocal)) )
+        {
+            smsLog(pMac, LOGE, FL("  fail to parse IEs\n"));
+            break;
+        }
         if(!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc1, &pIes1)))
         {
             break;
         }
-        if( ( !pIes1->SSID.present ) || ( !pIes2->SSID.present ) ) break;
-        if ( pIes1->SSID.num_ssid != pIes2->SSID.num_ssid ) break;
+        if( ( !pIes1->SSID.present ) || ( !pIesLocal->SSID.present ) ) break;
+        if ( pIes1->SSID.num_ssid != pIesLocal->SSID.num_ssid ) break;
         palCopyMemory(pMac->hHdd, Ssid1.ssId, pIes1->SSID.ssid, pIes1->SSID.num_ssid);
-        palCopyMemory(pMac->hHdd, Ssid2.ssId, pIes2->SSID.ssid, pIes2->SSID.num_ssid);
+        palCopyMemory(pMac->hHdd, Ssid2.ssId, pIesLocal->SSID.ssid, pIesLocal->SSID.num_ssid);
 
-        fEqual = palEqualMemory(pMac->hHdd, Ssid1.ssId, Ssid2.ssId, pIes2->SSID.num_ssid );
+        fEqual = palEqualMemory(pMac->hHdd, Ssid1.ssId, Ssid2.ssId, pIesLocal->SSID.num_ssid );
 
     } while( 0 );
     if(pIes1)
     {
         palFreeMemory(pMac->hHdd, pIes1);
+    }
+    if( pIesLocal && !pIes2 )
+    {
+        palFreeMemory(pMac->hHdd, pIesLocal);
     }
 
     return( fEqual );
@@ -1375,6 +1402,70 @@ tANI_BOOLEAN csrIsProfileRSN( tCsrRoamProfile *pProfile )
 }
 
 
+#ifdef FEATURE_WLAN_WAPI
+tANI_BOOLEAN csrIsProfileWapi( tCsrRoamProfile *pProfile )
+{
+    tANI_BOOLEAN fWapiProfile = FALSE;
+
+    switch ( pProfile->negotiatedAuthType )
+    {
+        case eCSR_AUTH_TYPE_WAPI_WAI_CERTIFICATE:
+        case eCSR_AUTH_TYPE_WAPI_WAI_PSK:
+            fWapiProfile = TRUE;
+            break;
+
+        default:
+            fWapiProfile = FALSE;
+            break;
+    }
+
+    if ( fWapiProfile )
+    {
+        switch ( pProfile->negotiatedUCEncryptionType )
+        {
+            case eCSR_ENCRYPT_TYPE_WPI:
+                fWapiProfile = TRUE;
+                break;
+
+            default:
+                fWapiProfile = FALSE;
+                break;
+        }
+    }
+    return( fWapiProfile );
+}
+
+static tANI_BOOLEAN csrIsWapiOuiEqual( tpAniSirGlobal pMac, tANI_U8 *Oui1, tANI_U8 *Oui2 )
+{
+    return( palEqualMemory(pMac->hHdd, Oui1, Oui2, CSR_WAPI_OUI_SIZE ) );
+}
+
+static tANI_BOOLEAN csrIsWapiOuiMatch( tpAniSirGlobal pMac, tANI_U8 AllCyphers[][CSR_WAPI_OUI_SIZE],
+                                     tANI_U8 cAllCyphers,
+                                     tANI_U8 Cypher[],
+                                     tANI_U8 Oui[] )
+{
+    tANI_BOOLEAN fYes = FALSE;
+    tANI_U8 idx;
+
+    for ( idx = 0; idx < cAllCyphers; idx++ )
+    {
+        if ( csrIsWapiOuiEqual( pMac, AllCyphers[ idx ], Cypher ) )
+        {
+            fYes = TRUE;
+            break;
+        }
+    }
+
+    if ( fYes && Oui )
+    {
+        palCopyMemory( pMac->hHdd, Oui, AllCyphers[ idx ], sizeof( Oui ) );
+    }
+
+    return( fYes );
+}
+#endif /* FEATURE_WLAN_WAPI */
+
 static tANI_BOOLEAN csrIsWpaOuiEqual( tpAniSirGlobal pMac, tANI_U8 *Oui1, tANI_U8 *Oui2 )
 {
     return( palEqualMemory(pMac->hHdd, Oui1, Oui2, CSR_WPA_OUI_SIZE ) );
@@ -1412,6 +1503,16 @@ static tANI_BOOLEAN csrMatchRSNOUIIndex( tpAniSirGlobal pMac, tANI_U8 AllCyphers
     return( csrIsOuiMatch( pMac, AllCyphers, cAllCyphers, csrRSNOui[ouiIndex], Oui ) );
 
 }
+
+#ifdef FEATURE_WLAN_WAPI
+static tANI_BOOLEAN csrMatchWapiOUIIndex( tpAniSirGlobal pMac, tANI_U8 AllCyphers[][CSR_WAPI_OUI_SIZE],
+                                            tANI_U8 cAllCyphers, tANI_U8 ouiIndex,
+                                            tANI_U8 Oui[] )
+{
+    return( csrIsWapiOuiMatch( pMac, AllCyphers, cAllCyphers, csrWapiOui[ouiIndex], Oui ) );
+
+}
+#endif /* FEATURE_WLAN_WAPI */
 
 static tANI_BOOLEAN csrMatchWPAOUIIndex( tpAniSirGlobal pMac, tANI_U8 AllCyphers[][CSR_RSN_OUI_SIZE],
                                             tANI_U8 cAllCyphers, tANI_U8 ouiIndex,
@@ -1477,6 +1578,20 @@ static tANI_BOOLEAN csrIsRSNMulticastAes( tpAniSirGlobal pMac, tANI_U8 AllCypher
     return( csrIsOuiMatch( pMac, AllCyphers, cAllCyphers, csrRSNOui04, Oui ) );
 }
 #endif
+#ifdef FEATURE_WLAN_WAPI
+static tANI_BOOLEAN csrIsAuthWapiCert( tpAniSirGlobal pMac, tANI_U8 AllSuites[][CSR_WAPI_OUI_SIZE],
+                                  tANI_U8 cAllSuites,
+                                  tANI_U8 Oui[] )
+{
+    return( csrIsWapiOuiMatch( pMac, AllSuites, cAllSuites, csrWapiOui[1], Oui ) );
+}
+static tANI_BOOLEAN csrIsAuthWapiPsk( tpAniSirGlobal pMac, tANI_U8 AllSuites[][CSR_WAPI_OUI_SIZE],
+                                      tANI_U8 cAllSuites,
+                                      tANI_U8 Oui[] )
+{
+    return( csrIsWapiOuiMatch( pMac, AllSuites, cAllSuites, csrWapiOui[2], Oui ) );
+}
+#endif /* FEATURE_WLAN_WAPI */
 static tANI_BOOLEAN csrIsAuthRSN( tpAniSirGlobal pMac, tANI_U8 AllSuites[][CSR_RSN_OUI_SIZE],
                                   tANI_U8 cAllSuites,
                                   tANI_U8 Oui[] )
@@ -1592,6 +1707,11 @@ tANI_U8 csrGetOUIIndexFromCipher( eCsrEncryptionType enType )
             case eCSR_ENCRYPT_TYPE_NONE:
                 OUIIndex = CSR_OUI_USE_GROUP_CIPHER_INDEX;
                 break;
+#ifdef FEATURE_WLAN_WAPI
+           case eCSR_ENCRYPT_TYPE_WPI:
+               OUIIndex = CSR_OUI_WAPI_WAI_CERT_OR_SMS4_INDEX;
+               break;
+#endif /* FEATURE_WLAN_WAPI */
             default: //HOWTO handle this?
                 OUIIndex = CSR_OUI_RESERVED_INDEX;
                 break;
@@ -1779,18 +1899,20 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
     tCsrRSNCapabilities RSNCapabilities;
     tCsrRSNPMKIe        *pPMK;
     tANI_U8 PMKId[CSR_RSN_PMKID_SIZE];
+    tDot11fBeaconIEs *pIesLocal = pIes;
 
     do
     {
         if ( !csrIsProfileRSN( pProfile ) ) break;
 
-        if( !pIes )
+        if( !pIesLocal && (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc, &pIesLocal))) )
         {
             break;
         }
 
         // See if the cyphers in the Bss description match with the settings in the profile.
-        fRSNMatch = csrGetRSNInformation( hHal, &pProfile->AuthType, pProfile->negotiatedUCEncryptionType, &pProfile->mcEncryptionType, &pIes->RSN,
+        fRSNMatch = csrGetRSNInformation( hHal, &pProfile->AuthType, pProfile->negotiatedUCEncryptionType, 
+                                            &pProfile->mcEncryptionType, &pIesLocal->RSN,
                                             UnicastCypher, MulticastCypher, AuthSuite, &RSNCapabilities, NULL, NULL );
         if ( !fRSNMatch ) break;
 
@@ -1846,9 +1968,264 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
 
     } while( 0 );
 
+    if( !pIes && pIesLocal )
+    {
+        //locally allocated
+        palFreeMemory(pMac->hHdd, pIesLocal);
+    }
+
     return( cbRSNIe );
 }
 
+
+#ifdef FEATURE_WLAN_WAPI
+tANI_BOOLEAN csrGetWapiInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eCsrEncryptionType enType, tCsrEncryptionList *pMCEncryption,
+                                   tDot11fIEWAPI *pWapiIe,
+                                    tANI_U8 *UnicastCypher,
+                                    tANI_U8 *MulticastCypher,
+                                    tANI_U8 *AuthSuite,
+                                    eCsrAuthType *pNegotiatedAuthtype,
+                                    eCsrEncryptionType *pNegotiatedMCCipher )
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    tANI_BOOLEAN fAcceptableCyphers = FALSE;
+    tANI_U8 cUnicastCyphers = 0;
+    tANI_U8 cMulticastCyphers = 0;
+    tANI_U8 cAuthSuites = 0, i;
+    tANI_U8 Unicast[ CSR_WAPI_OUI_SIZE ];
+    tANI_U8 Multicast[ CSR_WAPI_OUI_SIZE ];
+    tANI_U8 AuthSuites[ CSR_WAPI_MAX_AUTH_SUITES ][ CSR_WAPI_OUI_SIZE ];
+    tANI_U8 Authentication[ CSR_WAPI_OUI_SIZE ];
+    tANI_U8 MulticastCyphers[ CSR_WAPI_MAX_MULTICAST_CYPHERS ][ CSR_WAPI_OUI_SIZE ];
+    eCsrAuthType negAuthType = eCSR_AUTH_TYPE_UNKNOWN;
+
+    do{
+        if ( pWapiIe->present )
+        {
+            cMulticastCyphers++;
+            palCopyMemory(pMac->hHdd, MulticastCyphers, pWapiIe->multicast_cipher_suite, CSR_WAPI_OUI_SIZE);
+            cUnicastCyphers = (tANI_U8)(pWapiIe->unicast_cipher_suite_count);
+            cAuthSuites = (tANI_U8)(pWapiIe->akm_suite_count);
+            for(i = 0; i < cAuthSuites && i < CSR_WAPI_MAX_AUTH_SUITES; i++)
+            {
+                palCopyMemory(pMac->hHdd, (void *)&AuthSuites[i],
+                        (void *)&pWapiIe->akm_suites[i], CSR_WAPI_OUI_SIZE);
+            }
+
+            //Check - Is requested Unicast Cipher supported by the BSS.
+            fAcceptableCyphers = csrMatchWapiOUIIndex( pMac, pWapiIe->unicast_cipher_suites, cUnicastCyphers, 
+                    csrGetOUIIndexFromCipher( enType ), Unicast ); 
+
+            if( !fAcceptableCyphers ) break;
+
+
+            //Unicast is supported. Pick the first matching Group cipher, if any.
+            for( i = 0 ; i < pMCEncryption->numEntries ; i++ )
+            {
+                fAcceptableCyphers = csrMatchWapiOUIIndex( pMac, MulticastCyphers,  cMulticastCyphers, 
+                            csrGetOUIIndexFromCipher( pMCEncryption->encryptionType[i] ), Multicast );
+                if(fAcceptableCyphers)
+                {
+                    break;
+                }
+            }
+            if( !fAcceptableCyphers ) break;
+
+            if( pNegotiatedMCCipher )
+                *pNegotiatedMCCipher = pMCEncryption->encryptionType[i];
+
+            //Ciphers are supported, Match authentication algorithm and pick first matching authtype.
+            if ( csrIsAuthWapiCert( pMac, AuthSuites, cAuthSuites, Authentication ) )
+            {
+                negAuthType = eCSR_AUTH_TYPE_WAPI_WAI_CERTIFICATE;
+            }
+            else if ( csrIsAuthWapiPsk( pMac, AuthSuites, cAuthSuites, Authentication ) )
+            {
+                negAuthType = eCSR_AUTH_TYPE_WAPI_WAI_PSK;
+            }
+            else
+            {
+                fAcceptableCyphers = FALSE;
+                negAuthType = eCSR_AUTH_TYPE_UNKNOWN;
+            }
+            if( ( 0 == pAuthType->numEntries ) || ( FALSE == fAcceptableCyphers ) )
+            {
+                //Caller doesn't care about auth type, or BSS doesn't match
+                break;
+            }
+            fAcceptableCyphers = FALSE;
+            for( i = 0 ; i < pAuthType->numEntries; i++ )
+            {
+                if( pAuthType->authType[i] == negAuthType )
+                {
+                    fAcceptableCyphers = TRUE;
+                    break;
+                }
+            }
+        }
+    }while (0);
+
+    if ( fAcceptableCyphers )
+    {
+        if ( MulticastCypher )
+        {
+            palCopyMemory( pMac->hHdd, MulticastCypher, Multicast, CSR_WAPI_OUI_SIZE );
+        }
+
+        if ( UnicastCypher )
+        {
+            palCopyMemory( pMac->hHdd, UnicastCypher, Unicast, CSR_WAPI_OUI_SIZE );
+        }
+
+        if ( AuthSuite )
+        {
+            palCopyMemory( pMac->hHdd, AuthSuite, Authentication, CSR_WAPI_OUI_SIZE );
+        }
+
+        if ( pNegotiatedAuthtype )
+        {
+            *pNegotiatedAuthtype = negAuthType;
+        }
+    }
+    return( fAcceptableCyphers );
+}
+
+tANI_BOOLEAN csrIsWapiMatch( tHalHandle hHal, tCsrAuthList *pAuthType, eCsrEncryptionType enType, tCsrEncryptionList *pEnMcType, 
+                            tDot11fBeaconIEs *pIes, eCsrAuthType *pNegotiatedAuthType, eCsrEncryptionType *pNegotiatedMCCipher )
+{
+    tANI_BOOLEAN fWapiMatch = FALSE;
+
+        // See if the cyphers in the Bss description match with the settings in the profile.
+    fWapiMatch = csrGetWapiInformation( hHal, pAuthType, enType, pEnMcType, &pIes->WAPI, NULL, NULL, NULL, 
+                                      pNegotiatedAuthType, pNegotiatedMCCipher );
+
+    return( fWapiMatch );
+}
+
+tANI_BOOLEAN csrLookupBKID( tpAniSirGlobal pMac, tANI_U8 *pBSSId, tANI_U8 *pBKId )
+{
+    tANI_BOOLEAN fRC = FALSE, fMatchFound = FALSE;
+    tANI_U32 Index;
+
+    do
+    {
+        for( Index=0; Index < pMac->roam.NumBkidCache; Index++ )
+        {
+            smsLog(pMac, LOGW, "match BKID %02X-%02X-%02X-%02X-%02X-%02X to \n",
+                pBSSId[0], pBSSId[1], pBSSId[2], pBSSId[3], pBSSId[4], pBSSId[5]);
+            if( palEqualMemory( pMac->hHdd, pBSSId, pMac->roam.BkidCacheInfo[Index].BSSID, sizeof(tCsrBssid) ) )
+            {
+                // match found
+                fMatchFound = TRUE;
+                break;
+            }
+        }
+
+        if( !fMatchFound ) break;
+
+        palCopyMemory( pMac->hHdd, pBKId, pMac->roam.BkidCacheInfo[Index].BKID, CSR_WAPI_BKID_SIZE );
+
+        fRC = TRUE;
+    }
+    while( 0 );
+    smsLog(pMac, LOGW, "csrLookupBKID called return match = %d pMac->roam.NumBkidCache = %d", fRC, pMac->roam.NumBkidCache);
+
+    return fRC;
+}
+
+tANI_U8 csrConstructWapiIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
+                            tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes, tCsrWapiIe *pWapiIe )
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    tANI_BOOLEAN fWapiMatch = FALSE;
+    tANI_U8 cbWapiIe = 0;
+    tANI_U8 UnicastCypher[ CSR_WAPI_OUI_SIZE ];
+    tANI_U8 MulticastCypher[ CSR_WAPI_OUI_SIZE ];
+    tANI_U8 AuthSuite[ CSR_WAPI_OUI_SIZE ];
+    tANI_U8 BKId[CSR_WAPI_BKID_SIZE];
+    tANI_U8 *pWapi = NULL;
+    tANI_BOOLEAN fBKIDFound = FALSE;
+    tDot11fBeaconIEs *pIesLocal = pIes;
+
+    do
+    {
+        if ( !csrIsProfileWapi( pProfile ) ) break;
+
+        if( !pIesLocal && (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc, &pIesLocal))) )
+        {
+            break;
+        }
+
+        // See if the cyphers in the Bss description match with the settings in the profile.
+        fWapiMatch = csrGetWapiInformation( hHal, &pProfile->AuthType, pProfile->negotiatedUCEncryptionType, 
+                                            &pProfile->mcEncryptionType, &pIesLocal->WAPI,
+                                            UnicastCypher, MulticastCypher, AuthSuite, NULL, NULL );
+        if ( !fWapiMatch ) break;
+
+        palZeroMemory(pMac->hHdd, pWapiIe, sizeof(tCsrWapiIe));
+
+        pWapiIe->IeHeader.ElementID = DOT11F_EID_WAPI;
+
+        pWapiIe->Version = CSR_WAPI_VERSION_SUPPORTED;
+
+        pWapiIe->cAuthenticationSuites = 1;
+        palCopyMemory( pMac->hHdd, &pWapiIe->AuthOui[ 0 ], AuthSuite, sizeof( AuthSuite ) );
+
+        pWapi = (tANI_U8 *) (&pWapiIe->AuthOui[ 1 ]);
+
+        *pWapi = (tANI_U16)1; //cUnicastCyphers
+        pWapi+=2;
+        palCopyMemory( pMac->hHdd, pWapi, UnicastCypher, sizeof( UnicastCypher ) );
+        pWapi += sizeof( UnicastCypher );
+
+        palCopyMemory( pMac->hHdd, pWapi, MulticastCypher, sizeof( MulticastCypher ) );
+        pWapi += sizeof( MulticastCypher );
+
+
+        // WAPI capabilities follows the Auth Suite (two octects)
+        // we shouldn't EVER be sending out "pre-auth supported".  It is an AP only capability
+        // & since we already did a memset pWapiIe to 0, skip these fields
+        pWapi +=2;
+
+        fBKIDFound = csrLookupBKID( pMac, pSirBssDesc->bssId, &(BKId[0]) );
+
+
+        if( fBKIDFound )
+        {
+            *pWapi = (tANI_U16)1; //cBKIDs
+            pWapi+=2;
+            palCopyMemory( pMac->hHdd, pWapi, BKId, CSR_WAPI_BKID_SIZE );
+        }
+        else
+        {
+            *pWapi = 0;
+        }
+
+        // Add in the IE fields except the IE header
+        // Add BKID count and BKID (if any)
+        pWapiIe->IeHeader.Length = (tANI_U8) (sizeof( *pWapiIe ) - sizeof ( pWapiIe->IeHeader ));
+
+		/*2 bytes for BKID Count field*/
+		pWapiIe->IeHeader.Length += sizeof( tANI_U16 );
+			
+        if(fBKIDFound)
+        {
+            pWapiIe->IeHeader.Length += CSR_WAPI_BKID_SIZE;
+        }
+        // return the size of the IE header (total) constructed...
+        cbWapiIe = pWapiIe->IeHeader.Length + sizeof( pWapiIe->IeHeader );
+
+    } while( 0 );
+
+    if( !pIes && pIesLocal )
+    {
+        //locally allocated
+        palFreeMemory(pMac->hHdd, pIesLocal);
+    }
+
+    return( cbWapiIe );
+}
+#endif /* FEATURE_WLAN_WAPI */
 
 tANI_BOOLEAN csrGetWpaCyphers( tHalHandle hHal, tCsrAuthList *pAuthType, eCsrEncryptionType enType, tCsrEncryptionList *pMCEncryption,
                                tDot11fIEWPA *pWpaIe,
@@ -1984,18 +2361,19 @@ tANI_U8 csrConstructWpaIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDe
     tANI_U8 MulticastCypher[ CSR_WPA_OUI_SIZE ];
     tANI_U8 AuthSuite[ CSR_WPA_OUI_SIZE ];
     tCsrWpaAuthIe *pAuthSuite;
+    tDot11fBeaconIEs *pIesLocal = pIes;
 
     do
     {
         if ( !csrIsProfileWpa( pProfile ) ) break;
 
-        if( !pIes )
+        if( !pIesLocal && (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc, &pIesLocal))) )
         {
             break;
         }
         // See if the cyphers in the Bss description match with the settings in the profile.
         fWpaMatch = csrGetWpaCyphers( hHal, &pProfile->AuthType, pProfile->negotiatedUCEncryptionType, &pProfile->mcEncryptionType,
-                                      &pIes->WPA, UnicastCypher, MulticastCypher, AuthSuite, NULL, NULL );
+                                      &pIesLocal->WPA, UnicastCypher, MulticastCypher, AuthSuite, NULL, NULL );
         if ( !fWpaMatch ) break;
 
         pWpaIe->IeHeader.ElementID = SIR_MAC_WPA_EID;
@@ -2030,6 +2408,12 @@ tANI_U8 csrConstructWpaIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDe
         cbWpaIe = pWpaIe->IeHeader.Length + sizeof( pWpaIe->IeHeader );
 
     } while( 0 );
+
+    if( !pIes && pIesLocal )
+    {
+        //locally allocated
+        palFreeMemory(pMac->hHdd, pIesLocal);
+    }
 
     return( cbWpaIe );
 }
@@ -2218,6 +2602,40 @@ tANI_U8 csrRetrieveRsnIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
 }
 
 
+#ifdef FEATURE_WLAN_WAPI
+//If a WAPI IE exists in the profile, just use it. Or else construct one from the BSS
+//Caller allocated memory for pWapiIe and guarrantee it can contain a max length WAPI IE
+tANI_U8 csrRetrieveWapiIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc, 
+                          tDot11fBeaconIEs *pIes, tCsrWapiIe *pWapiIe )
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    tANI_U8 cbWapiIe = 0;
+
+    do
+    {
+        if ( !csrIsProfileWapi( pProfile ) ) break;
+        if(pProfile->nWAPIReqIELength && pProfile->pWAPIReqIE)
+        {
+            if(DOT11F_IE_WAPI_MAX_LEN >= pProfile->nWAPIReqIELength)
+            {
+                cbWapiIe = (tANI_U8)pProfile->nWAPIReqIELength;
+                palCopyMemory(pMac->hHdd, pWapiIe, pProfile->pWAPIReqIE, cbWapiIe);
+            }
+            else
+            {
+                smsLog(pMac, LOGW, "  csrRetrieveWapiIe detect invalid WAPI IE length (%d) \n", pProfile->nWAPIReqIELength);
+            }
+        }
+        else
+        {
+            cbWapiIe = csrConstructWapiIe(pMac, pProfile, pSirBssDesc, pIes, pWapiIe);
+        }
+    }while(0);
+
+    return (cbWapiIe);
+}
+#endif /* FEATURE_WLAN_WAPI */
+
 tANI_BOOLEAN csrSearchChannelListForTxPower(tHalHandle hHal, tSirBssDescription *pBssDescription, tCsrChannelSet *returnChannelGroup)
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -2332,6 +2750,11 @@ tAniEdType csrTranslateEncryptTypeToEdType( eCsrEncryptionType EncryptType )
         case eCSR_ENCRYPT_TYPE_AES:
             edType = eSIR_ED_CCMP;
             break;
+#ifdef FEATURE_WLAN_WAPI
+		case eCSR_ENCRYPT_TYPE_WPI:
+			edType = eSIR_ED_WPI;
+			break;
+#endif
     }
 
     return( edType );
@@ -2540,6 +2963,20 @@ tANI_BOOLEAN csrIsSecurityMatch( tHalHandle hHal, tCsrAuthList *authType, tCsrEn
                     }
                     break;
                 }
+#ifdef FEATURE_WLAN_WAPI
+           case eCSR_ENCRYPT_TYPE_WPI://WAPI
+               {
+                   if(pIes)
+                   {
+                       fMatch = csrIsWapiMatch( hHal, authType, ucCipher, pMCEncryptionType, pIes, &negAuthType, &mcCipher );
+                   }
+                   else
+                   {
+                       fMatch = FALSE;
+                   }
+                   break;
+               }
+#endif /* FEATURE_WLAN_WAPI */
             case eCSR_ENCRYPT_TYPE_ANY: 
             default: 
             {
@@ -2558,6 +2995,14 @@ tANI_BOOLEAN csrIsSecurityMatch( tHalHandle hHal, tCsrAuthList *authType, tCsrEn
                         ucCipher = eCSR_ENCRYPT_TYPE_TKIP;
                         fMatchAny = csrIsRSNMatch( hHal, authType, ucCipher, pMCEncryptionType, pIes, &negAuthType, &mcCipher );
                     }
+#ifdef FEATURE_WLAN_WAPI
+                    if(!fMatchAny)
+                    {
+                        //Check WAPI
+                        ucCipher = eCSR_ENCRYPT_TYPE_WPI;
+                        fMatchAny = csrIsWapiMatch( hHal, authType, ucCipher, pMCEncryptionType, pIes, &negAuthType, &mcCipher );
+                    }
+#endif /* FEATURE_WLAN_WAPI */
                 }
                 if(!fMatchAny)
                 {
@@ -3210,14 +3655,18 @@ tANI_BOOLEAN csrMatchBSSToConnectProfile( tHalHandle hHal, tSirBssDescription *p
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     tANI_BOOLEAN fRC = eANI_BOOLEAN_FALSE, fCheck;
     tCsrRoamConnectedProfile *pProfile = &pMac->roam.connectedProfile;
+    tDot11fBeaconIEs *pIesLocal = pIes;
 
     do {
         if( !pIes )
         {
-            break;
+            if(!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pBssDesc, &pIesLocal)))
+            {
+                break;
+            }
         }
         fCheck = eANI_BOOLEAN_TRUE;
-        if(pIes->SSID.present)
+        if(pIesLocal->SSID.present)
         {
             tANI_BOOLEAN fCheckSsid = eANI_BOOLEAN_FALSE;
             if(pProfile->SSID.length)
@@ -3225,12 +3674,12 @@ tANI_BOOLEAN csrMatchBSSToConnectProfile( tHalHandle hHal, tSirBssDescription *p
                 fCheckSsid = eANI_BOOLEAN_TRUE;
             }
             fCheck = csrIsSsidMatch( pMac, pProfile->SSID.ssId, pProfile->SSID.length,
-                                        pIes->SSID.ssid, pIes->SSID.num_ssid, fCheckSsid );
+                                        pIesLocal->SSID.ssid, pIesLocal->SSID.num_ssid, fCheckSsid );
             if(!fCheck) break;
         }
-        if ( !csrMatchConnectedBSSSecurity( pMac, pProfile, pBssDesc, pIes) ) break;
+        if ( !csrMatchConnectedBSSSecurity( pMac, pProfile, pBssDesc, pIesLocal) ) break;
         if ( !csrIsCapabilitiesMatch( pMac, pProfile->BSSType, pBssDesc ) ) break;
-        if ( !csrIsRateSetMatch( pMac, &pIes->SuppRates, &pIes->ExtSuppRates ) ) break;
+        if ( !csrIsRateSetMatch( pMac, &pIesLocal->SuppRates, &pIesLocal->ExtSuppRates ) ) break;
         fCheck = csrIsChannelBandMatch( pMac, pProfile->operationChannel, pBssDesc );
         if(!fCheck)
             break;
@@ -3238,6 +3687,12 @@ tANI_BOOLEAN csrMatchBSSToConnectProfile( tHalHandle hHal, tSirBssDescription *p
         fRC = eANI_BOOLEAN_TRUE;
 
     } while( 0 );
+
+    if( !pIes && pIesLocal )
+    {
+        //locally allocated
+        palFreeMemory(pMac->hHdd, pIesLocal);
+    }
 
     return( fRC );
 }
@@ -3392,7 +3847,12 @@ void csrReleaseProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile)
         {
             palFreeMemory(pMac->hHdd, pProfile->pRSNReqIE);
         }
-
+#ifdef FEATURE_WLAN_WAPI
+        if(pProfile->pWAPIReqIE)
+        {
+            palFreeMemory(pMac->hHdd, pProfile->pWAPIReqIE);
+        }
+#endif /* FEATURE_WLAN_WAPI */
         palZeroMemory(pMac->hHdd, pProfile, sizeof(tCsrRoamProfile));
     }
 }
@@ -3674,6 +4134,7 @@ eHalStatus csrGetRegulatoryDomainForCountry(tpAniSirGlobal pMac, tANI_U8 *pCount
 //Only check the first two characters, ignoring in/outdoor
 //pCountry -- caller allocated buffer contain the country code that is checking against
 //the one in pIes. It can be NULL.
+//caller must provide pIes, it cannot be NULL
 //This function always return TRUE if 11d support is not turned on.
 tANI_BOOLEAN csrMatchCountryCode( tpAniSirGlobal pMac, tANI_U8 *pCountry, tDot11fBeaconIEs *pIes )
 {
@@ -3685,6 +4146,11 @@ tANI_BOOLEAN csrMatchCountryCode( tpAniSirGlobal pMac, tANI_U8 *pCountry, tDot11
     {
         if( !csrIs11dSupported( pMac) )
         {
+            break;
+        }
+        if( !pIes )
+        {
+            smsLog(pMac, LOGE, FL("  No IEs\n"));
             break;
         }
         //Make sure this country is recognizable

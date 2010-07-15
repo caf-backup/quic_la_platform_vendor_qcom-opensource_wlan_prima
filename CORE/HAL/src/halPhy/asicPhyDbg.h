@@ -9,18 +9,14 @@
     $Id$
 
     Copyright (C) 2006 Airgo Networks, Incorporated
-
-
+  
+  
    ========================================================================== */
-
 #ifndef ASICPHYDBG_H
 #define ASICPHYDBG_H
-
 #include "asicTypes.h"
-
 #define ONE_MICROSECOND             (160)
 #define DEFAULT_INTERFRAME_SPACE    (ONE_MICROSECOND * 10) //10 microseconds
-
 
 
 typedef enum
@@ -39,7 +35,6 @@ typedef enum
     PHYDBG_TX_TIFWAIT       = 11,
     PHYDBG_TX_MAX_VAL = 0XFFFFFFFF //dummy added to change enum to 4 bytes
 }ePhyDbgTxStatus;
-
 typedef enum
 {
     PHYDBG_PREAMBLE_OFDM,
@@ -50,17 +45,16 @@ typedef enum
     PHYDBG_PREAMBLE_MAX_VAL = 0XFFFFFFFF //dummy added to change enum to 4 bytes
 }ePhyDbgPreamble;
 
-
 //grab ram
 #ifdef SPICA_FPGA
 #define GRAB_RAM_DBLOCK_SIZE  (8 * 1024)      //number of samples in full capture
 #else
 #define GRAB_RAM_DBLOCK_SIZE  (8 * 1024)      //number of samples in full capture
 #endif
+
 #define MAX_REQUESTED_GRAB_RAM_SAMPLES 256   //only allow 256 samples at a time to fit within 4K buffer
 #define GRAB_RAM_BUFFER_DEPTH   (8 * 1024)   //maximum grab ram size
 #define LAST_GRAB_RAM_SAMPLE_INDEX (GRAB_RAM_BUFFER_DEPTH - 1)
-
 
 typedef struct
 {
@@ -70,4 +64,3 @@ typedef struct
 
 
 #endif
-

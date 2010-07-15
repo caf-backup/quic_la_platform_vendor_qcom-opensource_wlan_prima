@@ -33,9 +33,14 @@ typedef enum
 
     eCSR_AUTH_TYPE_RSN,
     eCSR_AUTH_TYPE_RSN_PSK,
+#ifdef FEATURE_WLAN_WAPI
+    eCSR_AUTH_TYPE_WAPI_WAI_CERTIFICATE,
+    eCSR_AUTH_TYPE_WAPI_WAI_PSK,
 
+    eCSR_NUM_OF_SUPPORT_AUTH_TYPE = eCSR_AUTH_TYPE_WAPI_WAI_PSK + 1,
+#else
     eCSR_NUM_OF_SUPPORT_AUTH_TYPE = eCSR_AUTH_TYPE_RSN_PSK + 1,
-
+#endif /* FEATURE_WLAN_WAPI */
     eCSR_AUTH_TYPE_FAILED = 0xff,
     eCSR_AUTH_TYPE_UNKNOWN = eCSR_AUTH_TYPE_FAILED,
 
@@ -52,6 +57,9 @@ typedef enum
     eCSR_ENCRYPT_TYPE_WEP104,
     eCSR_ENCRYPT_TYPE_TKIP,
     eCSR_ENCRYPT_TYPE_AES,
+#ifdef FEATURE_WLAN_WAPI
+    eCSR_ENCRYPT_TYPE_WPI, //WAPI
+#endif /* FEATURE_WLAN_WAPI */
     eCSR_ENCRYPT_TYPE_ANY,
     eCSR_NUM_OF_ENCRYPT_TYPE = eCSR_ENCRYPT_TYPE_ANY,
 
@@ -59,6 +67,20 @@ typedef enum
     eCSR_ENCRYPT_TYPE_UNKNOWN = eCSR_ENCRYPT_TYPE_FAILED,
 
 }eCsrEncryptionType;
+
+/*---------------------------------------------------------------------------
+   Enumeration of the various Security types
+---------------------------------------------------------------------------*/
+typedef enum 
+{
+    eCSR_SECURITY_TYPE_WPA,
+    eCSR_SECURITY_TYPE_RSN,
+#ifdef FEATURE_WLAN_WAPI
+    eCSR_SECURITY_TYPE_WAPI,
+#endif /* FEATURE_WLAN_WAPI */
+    eCSR_SECURITY_TYPE_UNKNOWN,
+
+}eCsrSecurityType;
 
 typedef enum
 {
@@ -125,8 +147,16 @@ typedef enum
 #define CSR_WEP104_KEY_LEN      13
 #define CSR_TKIP_KEY_LEN        32
 #define CSR_AES_KEY_LEN         16
-#define CSR_MAX_KEY_LEN         ( CSR_TKIP_KEY_LEN )  //longest one is for TKIP
 #define CSR_MAX_TX_POWER        ( WNI_CFG_CURRENT_TX_POWER_LEVEL_STAMAX )
+#define CSR_MAX_RSC_LEN          16
+#ifdef FEATURE_WLAN_WAPI
+#define CSR_WAPI_BKID_SIZE          16
+#define CSR_MAX_BKID_ALLOWED        16
+#define CSR_WAPI_KEY_LEN        32
+#define CSR_MAX_KEY_LEN         ( CSR_WAPI_KEY_LEN )  //longest one is for WAPI
+#else
+#define CSR_MAX_KEY_LEN         ( CSR_TKIP_KEY_LEN )  //longest one is for TKIP
+#endif /* FEATURE_WLAN_WAPI */
 
 typedef struct tagCsrChannelInfo
 {
@@ -285,6 +315,7 @@ typedef enum
     eCSR_ROAM_GEN_INFO,
     eCSR_ROAM_SET_KEY_COMPLETE,
     eCSR_ROAM_REMOVE_KEY_COMPLETE,
+    eCSR_ROAM_IBSS_LEAVE, //IBSS indications.
 }eRoamCmdStatus;
 
 
@@ -328,6 +359,10 @@ typedef enum
     eCSR_ROAM_RESULT_MIC_ERROR_UNICAST,
     eCSR_ROAM_RESULT_MIC_ERROR_GROUP,
     eCSR_ROAM_RESULT_AUTHENTICATED,
+    eCSR_ROAM_RESULT_NEW_RSN_BSS,
+#ifdef FEATURE_WLAN_WAPI
+    eCSR_ROAM_RESULT_NEW_WAPI_BSS,
+#endif /* FEATURE_WLAN_WAPI */
 }eCsrRoamResult;
 
 
@@ -356,6 +391,7 @@ typedef enum
     eCSR_DISCONNECT_REASON_DEAUTH,
 	eCSR_DISCONNECT_REASON_HANDOFF,
     eCSR_DISCONNECT_REASON_IBSS_JOIN_FAILURE,
+    eCSR_DISCONNECT_REASON_IBSS_LEAVE,
 }eCsrRoamDisconnectReason;
 
 typedef enum 
@@ -534,6 +570,19 @@ typedef struct tagPmkidCacheInfo
     tANI_U8 PMKID[CSR_RSN_PMKID_SIZE];
 }tPmkidCacheInfo;
 
+#ifdef FEATURE_WLAN_WAPI
+typedef struct tagBkidCandidateInfo
+{
+    tCsrBssid BSSID;
+    tANI_BOOLEAN preAuthSupported;
+}tBkidCandidateInfo;
+
+typedef struct tagBkidCacheInfo
+{
+    tCsrBssid BSSID;
+    tANI_U8 BKID[CSR_WAPI_BKID_SIZE];
+}tBkidCacheInfo;
+#endif /* FEATURE_WLAN_WAPI */
 
 typedef struct tagCsrKeys
 {
@@ -589,6 +638,10 @@ typedef struct tagCsrRoamProfile
     tANI_U8 *pWPAReqIE;   //If not null, it has the IE byte stream for WPA
     tANI_U32 nRSNReqIELength;  //The byte count in the pRSNReqIE
     tANI_U8 *pRSNReqIE;     //If not null, it has the IE byte stream for RSN
+#ifdef FEATURE_WLAN_WAPI
+    tANI_U32 nWAPIReqIELength;   //The byte count in the pWAPIReqIE
+    tANI_U8 *pWAPIReqIE;   //If not null, it has the IE byte stream for WAPI
+#endif /* FEATURE_WLAN_WAPI */
     tANI_U8 countryCode[WNI_CFG_COUNTRY_CODE_LEN];  //it is ignored if [0] is 0.
     /*WPS Association if true => auth and ecryption should be ignored*/
     tANI_BOOLEAN bWPSAssociation;
@@ -913,6 +966,7 @@ typedef struct tagCsrRoamSetKey
     tANI_U8 keyId;  // Kye index
     tANI_U16 keyLength;  //Number of bytes containing the key in pKey
     tANI_U8 Key[CSR_MAX_KEY_LEN];
+    tANI_U8 keyRsc[CSR_MAX_RSC_LEN];
 } tCsrRoamSetKey;
 
 typedef struct tagCsrRoamRemoveKey
@@ -1143,8 +1197,27 @@ eHalStatus csrRoamGetWpaRsnReqIE(tHalHandle hHal, tANI_U32 *pLen, tANI_U8 *pBuf)
     \return eHalStatus - when fail, it usually means the buffer allocated is not big enough
   -------------------------------------------------------------------------------*/
 eHalStatus csrRoamGetWpaRsnRspIE(tHalHandle hHal, tANI_U32 *pLen, tANI_U8 *pBuf);
+#ifdef FEATURE_WLAN_WAPI
+/* ---------------------------------------------------------------------------
+    \fn csrRoamGetWapiReqIE
+    \brief return the WAPI IE CSR passes to PE to JOIN request or START_BSS request
+    \param pLen - caller allocated memory that has the length of pBuf as input. Upon returned, *pLen has the 
+    needed or IE length in pBuf.
+    \param pBuf - Caller allocated memory that contain the IE field, if any, upon return
+    \return eHalStatus - when fail, it usually means the buffer allocated is not big enough
+  -------------------------------------------------------------------------------*/
+eHalStatus csrRoamGetWapiReqIE(tHalHandle hHal, tANI_U32 *pLen, tANI_U8 *pBuf);
 
-
+/* ---------------------------------------------------------------------------
+    \fn csrRoamGetWapiRspIE
+    \brief return the WAPI IE from the beacon or probe rsp if connected
+    \param pLen - caller allocated memory that has the length of pBuf as input. Upon returned, *pLen has the 
+    needed or IE length in pBuf.
+    \param pBuf - Caller allocated memory that contain the IE field, if any, upon return
+    \return eHalStatus - when fail, it usually means the buffer allocated is not big enough
+  -------------------------------------------------------------------------------*/
+eHalStatus csrRoamGetWapiRspIE(tHalHandle hHal, tANI_U32 *pLen, tANI_U8 *pBuf);
+#endif /* FEATURE_WLAN_WAPI */
 /* ---------------------------------------------------------------------------
     \fn csrRoamGetNumPMKIDCache
     \brief return number of PMKID cache entries
@@ -1365,6 +1438,16 @@ eHalStatus csrGetStatistics(tHalHandle hHal, eCsrStatsRequesterType requesterId,
                             tANI_U32 periodicity, tANI_BOOLEAN cache, 
                             tANI_U8 staId, void *pContext);
 
+#ifdef FEATURE_WLAN_WAPI
+eHalStatus csrRoamSetBKIDCache( tHalHandle hHal, tBkidCacheInfo *pBKIDCache,
+                                 tANI_U32 numItems );
 
+eHalStatus csrRoamGetBKIDCache(tHalHandle hHal, tANI_U32 *pNum,
+                                tBkidCacheInfo *pBkidCache);
+
+tANI_U32 csrRoamGetNumBKIDCache(tHalHandle hHal);
+
+eHalStatus csrScanGetBKIDCandidateList(tHalHandle hHal, tBkidCandidateInfo *pBkidList, tANI_U32 *pNumItems );
+#endif /* FEATURE_WLAN_WAPI */
 #endif
 

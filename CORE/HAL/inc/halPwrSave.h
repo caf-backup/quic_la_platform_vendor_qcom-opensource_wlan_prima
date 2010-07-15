@@ -111,6 +111,11 @@
 #define ENABLE_HEART_BEAT_IN_PS        1
 #define DISABLE_HEART_BEAT_IN_PS       0
 
+#define HAL_XO_CLK_MODE_OFFSET          14
+#define HAL_XO_CLK_MODE_MASK           0x3
+#define HAL_XO_CLK_19_2MHZ             0x3
+#define HAL_XO_CLK_40MHZ               0x1
+
 /* Function pointer for Timer expiry */
 typedef eHalStatus (*funcHalPsTimer)(tpAniSirGlobal, tANI_U16);
 
@@ -240,6 +245,9 @@ eHalStatus halPS_SetPsPollParam(tpAniSirGlobal pMac, tANI_U8 staIdx,
 
 /* Update the beacon interval parameter into the Sys config */
 eHalStatus halPS_SetBeaconInterval(tpAniSirGlobal pMac, tANI_U16 beaconInterval);
+
+/* Update the listen interval parameter into the Sys config */
+eHalStatus halPS_SetListenIntervalParam(tpAniSirGlobal pMac, tANI_U16 listenInterval);
 
 /* Idle Mode Power Save (IMPS) functions */
 /* Functions to handle IMPS request messages from upper layer PE */

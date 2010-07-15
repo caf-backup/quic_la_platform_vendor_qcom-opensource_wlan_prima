@@ -35,34 +35,34 @@ eHalStatus halNvOpen(tHalHandle hMac)
     memcpy(&pMac->hphy.nvCache, &nvDefaults, sizeof(sHalNv));   //start with defaults
 /*Once tested for other platform android specific flag can be removed*/
 #ifdef ANI_OS_TYPE_ANDROID
-{    
+{
     v_BOOL_t itemIsValid = VOS_FALSE;
 
     if (vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid) == VOS_STATUS_SUCCESS)
     {
         if (itemIsValid == VOS_TRUE) {
 
-            if(vos_nv_read( VNV_FIELD_IMAGE, (v_VOID_t *)&pMac->hphy.nvCache.fields, NULL, sizeof(sNvFields) ) != VOS_STATUS_SUCCESS) 
+            if(vos_nv_read( VNV_FIELD_IMAGE, (v_VOID_t *)&pMac->hphy.nvCache.fields, NULL, sizeof(sNvFields) ) != VOS_STATUS_SUCCESS)
               return (eHAL_STATUS_FAILURE);
         }
     }
 
     if (vos_nv_getValidity(VNV_RATE_TO_POWER_TABLE, &itemIsValid) == VOS_STATUS_SUCCESS)
-    {            
+    {
         if (itemIsValid == VOS_TRUE)
-        { 
-             if(vos_nv_read( VNV_RATE_TO_POWER_TABLE, (v_VOID_t *)&pMac->hphy.nvCache.tables.pwrOptimum[0], NULL, sizeof(tRateGroupPwr) * NUM_RF_SUBBANDS ) != VOS_STATUS_SUCCESS) 
+        {
+             if(vos_nv_read( VNV_RATE_TO_POWER_TABLE, (v_VOID_t *)&pMac->hphy.nvCache.tables.pwrOptimum[0], NULL, sizeof(tRateGroupPwr) * NUM_RF_SUBBANDS ) != VOS_STATUS_SUCCESS)
                  return (eHAL_STATUS_FAILURE);
         }
     }
 
     if (vos_nv_getValidity(VNV_REGULARTORY_DOMAIN_TABLE, &itemIsValid) == VOS_STATUS_SUCCESS)
     {
-       
+
         if (itemIsValid == VOS_TRUE)
-        {                 
-            if(vos_nv_read( VNV_REGULARTORY_DOMAIN_TABLE, (v_VOID_t *)&pMac->hphy.nvCache.tables.regDomains[0], NULL, sizeof(sRegulatoryDomains) * NUM_REG_DOMAINS ) != VOS_STATUS_SUCCESS) 
-                return (eHAL_STATUS_FAILURE);             
+        {
+            if(vos_nv_read( VNV_REGULARTORY_DOMAIN_TABLE, (v_VOID_t *)&pMac->hphy.nvCache.tables.regDomains[0], NULL, sizeof(sRegulatoryDomains) * NUM_REG_DOMAINS ) != VOS_STATUS_SUCCESS)
+                return (eHAL_STATUS_FAILURE);
         }
     }
 
@@ -70,7 +70,16 @@ eHalStatus halNvOpen(tHalHandle hMac)
     {
         if (itemIsValid == VOS_TRUE)
         {
-            if(vos_nv_read( VNV_DEFAULT_LOCATION, (v_VOID_t *)&pMac->hphy.nvCache.tables.defaultCountryTable, NULL, sizeof(sDefaultCountry) ) != VOS_STATUS_SUCCESS) 
+            if(vos_nv_read( VNV_DEFAULT_LOCATION, (v_VOID_t *)&pMac->hphy.nvCache.tables.defaultCountryTable, NULL, sizeof(sDefaultCountry) ) != VOS_STATUS_SUCCESS)
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
+
+    if (vos_nv_getValidity(VNV_RSSI_OFFSETS, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE)
+        {
+            if(vos_nv_read( VNV_RSSI_OFFSETS, (v_VOID_t *)&pMac->hphy.nvCache.tables.rssiOffset[0], NULL, sizeof(tANI_S16) * PHY_MAX_RX_CHAINS ) != VOS_STATUS_SUCCESS)
                  return (eHAL_STATUS_FAILURE);
         }
     }
@@ -83,6 +92,7 @@ eHalStatus halNvOpen(tHalHandle hMac)
     pMac->hphy.nvTables[NV_TABLE_DEFAULT_COUNTRY    ] = &pMac->hphy.nvCache.tables.defaultCountryTable;
     pMac->hphy.nvTables[NV_TABLE_TPC_CONFIG         ] = &pMac->hphy.nvCache.tables.tpcConfig[0];
     pMac->hphy.nvTables[NV_TABLE_RF_CAL_VALUES      ] = &pMac->hphy.nvCache.tables.rfCalValues;
+    pMac->hphy.nvTables[NV_TABLE_RSSI_OFFSETS       ] = &pMac->hphy.nvCache.tables.rssiOffset[0];
 
     return status;
 }
@@ -221,7 +231,7 @@ eHalStatus halWriteNvField(tHalHandle hMac, eNvField field, uNvFields *fieldData
     }
 }
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 
 eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
 {
@@ -266,6 +276,13 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                 }
                 break;
 
+            case NV_TABLE_RSSI_OFFSETS:
+                if ((vosStatus = vos_nv_write(VNV_RSSI_OFFSETS, (void *)&pMac->hphy.nvCache.tables.rssiOffset[0], sizeof(tANI_S16) * PHY_MAX_RX_CHAINS)) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
+
             case NV_TABLE_TPC_CONFIG:       //stored through QFUSE
             case NV_TABLE_RF_CAL_VALUES:    //stored through QFUSE
             default:
@@ -273,10 +290,8 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                 break;
         }
     }
-
     return eHAL_STATUS_SUCCESS;
 }
-
 #endif
 
 
@@ -406,6 +421,10 @@ eHalStatus halReadNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDat
             memcpy(tableData, &pMac->hphy.nvCache.tables.rfCalValues, sizeof(sRfNvCalValues));
             break;
 
+        case NV_TABLE_RSSI_OFFSETS:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.rssiOffset[0], sizeof(tANI_S16) * PHY_MAX_RX_CHAINS);
+            break;
+
         default:
             return (eHAL_STATUS_FAILURE);
             break;
@@ -466,6 +485,11 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
                 sizeOfEntry = sizeof(sRfNvCalValues);
                 break;
 
+            case NV_TABLE_RSSI_OFFSETS:
+                numOfEntries = 2;
+                sizeOfEntry = sizeof(tANI_S16);
+                break;
+
             default:
                 return (eHAL_STATUS_FAILURE);
                 break;
@@ -496,7 +520,8 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
     return retVal;
 }
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
+
 eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
@@ -567,6 +592,18 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 
                 break;
 
+        case NV_TABLE_RSSI_OFFSETS:
+            if ((vosStatus = vos_nv_setValidity(VNV_RSSI_OFFSETS, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+            {
+                memcpy(&pMac->hphy.nvCache.tables.rssiOffset[0], &nvDefaults.tables.rssiOffset[0], sizeof(tANI_S16) * PHY_MAX_RX_CHAINS);
+            }
+            else
+            {
+                return (eHAL_STATUS_FAILURE);
+            }
+
+            break;
+
         case NV_TABLE_TPC_CONFIG:
             memcpy(&pMac->hphy.nvCache.tables.tpcConfig[0], &nvDefaults.tables.tpcConfig[0], sizeof(tTpcConfig) * MAX_TPC_CHANNELS);
             halQFusePackBits(hMac);
@@ -585,9 +622,8 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 
     return (retVal);
 }
-#endif
 
-#ifdef ANI_MANF_DIAG
+
 eHalStatus halBlankNv(tHalHandle hMac)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
@@ -600,11 +636,11 @@ eHalStatus halBlankNv(tHalHandle hMac)
     halRemoveNvTable(hMac, NV_TABLE_DEFAULT_COUNTRY    );
     halRemoveNvTable(hMac, NV_TABLE_TPC_CONFIG         );
     halRemoveNvTable(hMac, NV_TABLE_RF_CAL_VALUES      );
+    halRemoveNvTable(hMac, NV_TABLE_RSSI_OFFSETS       );
 
     return (retVal);
 }
 #endif
-
 
 void halByteSwapNvTable(tHalHandle hMac, eNvTable tableID, uNvTables *tableData)
 {
@@ -666,8 +702,118 @@ void halByteSwapNvTable(tHalHandle hMac, eNvTable tableID, uNvTables *tableData)
             break;
         }
 
+        case NV_TABLE_RSSI_OFFSETS:
+        {
+            tANI_U8 i;
+
+            for (i = 0; i < PHY_MAX_RX_CHAINS; i++)
+            {
+                BYTE_SWAP_S(tableData->rssiOffset[i]);
+            }
+            break;
+        }
+
         default:
             break;
     }
 }
 
+void halDumpNVtable(tHalHandle hMac, eNvTable tableID)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
+    switch (tableID)
+    {
+        case NV_TABLE_RF_CAL_VALUES:
+        {
+            break;
+        }
+        case NV_TABLE_RATE_POWER_SETTINGS:
+        {
+            int i;
+            for(i = 0; i < NUM_RATE_POWER_GROUPS; i++)
+            {
+                HALLOGE(halLog(pMac, LOGE, "[%d]: Rate2Pwr: %d\n", i, pMac->hphy.nvCache.tables.pwrOptimum[0][i]));
+            }
+            break;
+        }
+        case NV_TABLE_DEFAULT_COUNTRY:
+        {
+            HALLOGE(halLog(pMac, LOGE, "%x %x %x\n", pMac->hphy.nvCache.tables.defaultCountryTable.countryCode[0], pMac->hphy.nvCache.tables.defaultCountryTable.countryCode[1], pMac->hphy.nvCache.tables.defaultCountryTable.countryCode[2]));
+            break;
+        }
+
+        case NV_TABLE_REGULATORY_DOMAINS:
+        {
+            tANI_U32 dom, subband, chan;
+
+            HALLOGE(halLog(pMac, LOGE, "Dumping NV_TABLE_REGULATORY_DOMAINS table...\n"));
+            for (dom = 0; dom < NUM_REG_DOMAINS; dom++)
+            {
+                HALLOGE(halLog(pMac, LOGE, "regDomain: %d\n", dom));
+                //channels array only has single bytes
+                for(chan=0; chan<NUM_RF_CHANNELS;chan++)
+                {
+                    //dump sRegulatoryChannel
+                    HALLOGE(halLog(pMac, LOGE, "[%d]: enabled: %d pwrLimit: %d\n", chan, pMac->hphy.nvCache.tables.regDomains[dom].channels[chan].enabled, pMac->hphy.nvCache.tables.regDomains[dom].channels[chan].pwrLimit));
+                }
+                for(subband = 0;subband < NUM_RF_SUBBANDS; subband++)
+                {
+                    //dump antenna gain
+                    HALLOGE(halLog(pMac, LOGE, "[%d]: antennaGain: %d \n", subband, pMac->hphy.nvCache.tables.regDomains[dom].antennaGain[subband]));
+                }
+                for(chan=0; chan<NUM_2_4GHZ_CHANNELS;chan++)
+                {
+                    //dump bRatePowerOffset, gnRatePowerOffset
+                    HALLOGE(halLog(pMac, LOGE, "[%d]: bRatePowerOffset: %d  gnRatePowerOffset: %d\n", chan, pMac->hphy.nvCache.tables.regDomains[dom].bRatePowerOffset[chan], pMac->hphy.nvCache.tables.regDomains[dom].gnRatePowerOffset[chan]));
+                }
+            }
+
+            break;
+        }
+
+
+        case NV_TABLE_TPC_CONFIG:
+        {
+
+                //empirical array is all single bytes
+            break;
+        }
+
+        case NV_FIELDS_IMAGE:
+        {
+            int i;
+            HALLOGE(halLog(pMac, LOGE, "productId: %d\n",pMac->hphy.nvCache.fields.productId));
+            HALLOGE(halLog(pMac, LOGE, "productBands: %d\n",pMac->hphy.nvCache.fields.productBands));
+            HALLOGE(halLog(pMac, LOGE, "numOfTxChains: %d\n",pMac->hphy.nvCache.fields.numOfTxChains));
+            HALLOGE(halLog(pMac, LOGE, "numOfRxChains: %d\n",pMac->hphy.nvCache.fields.numOfRxChains));
+            HALLOGE(halLog(pMac, LOGE, "macAddr: %x %x %x %x %x %x\n",
+                            pMac->hphy.nvCache.fields.macAddr[0],
+                            pMac->hphy.nvCache.fields.macAddr[1],
+                            pMac->hphy.nvCache.fields.macAddr[2],
+                            pMac->hphy.nvCache.fields.macAddr[3],
+                            pMac->hphy.nvCache.fields.macAddr[4],
+                            pMac->hphy.nvCache.fields.macAddr[5]));
+
+            HALLOGE(halLog(pMac, LOGE, "mfgSN: "));
+            for(i = 0; i < NV_FIELD_MFG_SN_SIZE; i++ )
+            {
+                HALLOGE(halLog(pMac, LOGE, "%x\n",pMac->hphy.nvCache.fields.mfgSN[i]));
+            }
+            break;
+        }
+
+        case NV_TABLE_RSSI_OFFSETS:
+        {
+            tANI_U8 i;
+
+            for (i = 0; i < PHY_MAX_RX_CHAINS; i++)
+            {
+                HALLOGE(halLog(pMac, LOGE, "[%d]: rssi: %d\n", i, pMac->hphy.nvCache.tables.rssiOffset[i]));
+            }
+            break;
+        }
+
+        default:
+            break;
+    }
+}

@@ -21,22 +21,18 @@
 #include "sys_defs.h"
 
 
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)  //ANI_PHY_DEBUG will be removed for production/mfg driver
 #include "pttMsgApi.h"
 
 //these are accessible for mfg and debug production drivers
 void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg);
+void pttSendMsgResponse(tpAniSirGlobal pMac, tPttMsgbuffer *pPttMsg);
 
 eQWPttStatus pttDbgReadRegister(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32 *regValue);
 eQWPttStatus pttDbgWriteRegister(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32 regValue);
 eQWPttStatus pttDbgReadMemory(tpAniSirGlobal pMac, tANI_U32 memAddr, tANI_U32 nBytes, tANI_U32 *pMemBuf);
 eQWPttStatus pttDbgWriteMemory(tpAniSirGlobal pMac, tANI_U32 memAddr, tANI_U32 nBytes, tANI_U32 *pMemBuf);
 
-#endif
 
-
-
-#ifdef ANI_MANF_DIAG
 
 
 
@@ -145,5 +141,4 @@ eQWPttStatus pttDeepSleep(tpAniSirGlobal pMac);
 eQWPttStatus pttSystemReset(tpAniSirGlobal pMac);
 eQWPttStatus pttLogDump(tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4);
 
-#endif
 #endif

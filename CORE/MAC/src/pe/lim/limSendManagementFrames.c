@@ -172,7 +172,7 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     // & delegating to assorted helpers:
     PopulateDot11fSSID( pMac, pSsid, &pr.SSID );
     PopulateDot11fSuppRates( pMac, nChannelNum, &pr.SuppRates );
-   
+
     if ( WNI_CFG_DOT11_MODE_11B != pMac->lim.gLimDot11Mode )
     {
         PopulateDot11fExtSuppRates1( pMac, nChannelNum, &pr.ExtSuppRates );
@@ -219,7 +219,7 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
         limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_REQ_ADDNIE_FLAG\n"));
         return eSIR_FAILURE;
     }
-    
+
     if(addnIEPresent)
     {
         if(wlan_cfgGetStrLen(pMac, WNI_CFG_PROBE_REQ_ADDNIE_DATA, &addnIELen) != eSIR_SUCCESS)
@@ -228,12 +228,12 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
             return eSIR_FAILURE;
         }
 
-        if((nBytes + addnIELen) <= SIR_MAX_PACKET_SIZE ) 
+        if((nBytes + addnIELen) <= SIR_MAX_PACKET_SIZE )
             nBytes += addnIELen;
-       else 
-            addnIEPresent = false; //Dont include the IE.     
+       else
+            addnIEPresent = false; //Dont include the IE.
     }
-       
+
 
     // Ok-- try to allocate some memory:
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
@@ -291,7 +291,7 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
                 return eSIR_FAILURE;
             }
     }
- 
+
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
                             ANI_TXDIR_TODS,
@@ -326,11 +326,12 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     tANI_U32          addnIEPresent;
     tANI_U32             addnIELen=0;
     tANI_U32             wpsApEnable=0, tmp;
-  
 
-#   ifdef ANI_MANF_DIAG         // We don't answer requests
-    return;                     // in this case.
-#   endif
+
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)         // We don't answer requests
+    {
+        return;                     // in this case.
+    }
 
     // I dunno what the story is here, but I'm afraid to change it...
     if ( NULL == pMac->lim.gpLimStartBssReq )
@@ -365,9 +366,9 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
 
     if (wlan_cfgGetInt(pMac, (tANI_U16) WNI_CFG_WPS_ENABLE, &tmp) != eSIR_SUCCESS)
         limLog(pMac, LOGP,"Failed to cfg get id %d\n", WNI_CFG_WPS_ENABLE );
-    
+
     wpsApEnable = tmp & WNI_CFG_WPS_ENABLE_AP;
-    
+
     if (wpsApEnable)
     {
         PopulateDot11fWscInProbeRes(pMac, &frm.WscProbeRes);
@@ -426,6 +427,12 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                        &frm.WPA );
     PopulateDot11fRSN( pMac, &( pMac->lim.gpLimStartBssReq->rsnIE ),
                        &frm.RSN );
+
+#if defined(FEATURE_WLAN_WAPI)
+    PopulateDot11fWAPI( pMac, &( pMac->lim.gpLimStartBssReq->rsnIE ),
+                       &frm.WAPI );
+#endif // defined(FEATURE_WLAN_WAPI)
+
     PopulateDot11fWMM( pMac, &frm.WMMInfoAp, &frm.WMMParams, &frm.WMMCaps );
 
     nStatus = dot11fGetPackedProbeResponseSize( pMac, &frm, &nPayload );
@@ -445,14 +452,14 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     }
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
-    
+
     //TODO: If additional IE needs to be added. Add then alloc required buffer.
     if(wlan_cfgGetInt(pMac, WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, &addnIEPresent) != eSIR_SUCCESS)
     {
         limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG\n"));
         return;
     }
-    
+
     if(addnIEPresent)
     {
         if(wlan_cfgGetStrLen(pMac, WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, &addnIELen) != eSIR_SUCCESS)
@@ -461,12 +468,12 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
             return ;
         }
 
-        if((nBytes + addnIELen) <= SIR_MAX_PACKET_SIZE ) 
+        if((nBytes + addnIELen) <= SIR_MAX_PACKET_SIZE )
             nBytes += addnIELen;
-       else 
-            addnIEPresent = false; //Dont include the IE.     
+       else
+            addnIEPresent = false; //Dont include the IE.
     }
-       
+
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,
                              ( void** ) &pPacket );
@@ -536,7 +543,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                 return;
             }
     }
-    
+
     // Queue Probe Response frame in high priority WQ
     halstatus = halTxFrame( ( tHalHandle ) pMac, pPacket,
                             ( tANI_U16 ) nBytes,
@@ -807,7 +814,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 
     if (wlan_cfgGetInt(pMac, (tANI_U16) WNI_CFG_WPS_ENABLE, &tmp) != eSIR_SUCCESS)
         limLog(pMac, LOGP,"Failed to cfg get id %d\n", WNI_CFG_WPS_ENABLE );
-    
+
     wpsApEnable = tmp & WNI_CFG_WPS_ENABLE_AP;
 
     if (wpsApEnable)
@@ -816,7 +823,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     }
 
 
-    
+
     PopulateDot11fExtSuppRates( pMac, &frm.ExtSuppRates );
 
     if ( NULL != pSta )
@@ -866,7 +873,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 
         } // End if on Airgo peer.
 
-        if ( pSta->mlmStaContext.htCapability  && 
+        if ( pSta->mlmStaContext.htCapability  &&
              pMac->lim.htCapability )
         {
             PopulateDot11fHTCaps( pMac, &frm.HTCaps );
@@ -1499,6 +1506,10 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
                                  &frm.RSNOpaque );
         PopulateDot11fWPAOpaque( pMac, &( pMac->lim.gpLimJoinReq->rsnIE ),
                                  &frm.WPAOpaque );
+#if defined(FEATURE_WLAN_WAPI)
+        PopulateDot11fWAPIOpaque( pMac, &( pMac->lim.gpLimJoinReq->rsnIE ),
+                                 &frm.WAPIOpaque );
+#endif // defined(FEATURE_WLAN_WAPI)
     }
 
     // include WME EDCA IE as well
@@ -1517,15 +1528,15 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     }
 
 #ifdef FIXME_GEN6
-   //David: When Prop IE presents in Beacon send from Libra, for some reason, 
+   //David: When Prop IE presents in Beacon send from Libra, for some reason,
    //       Virgo AP is not able to send back the AssocResponse at dot11f module.
    //       It successfully associated with Virgo AP when this code is disabled.
-   //       Given Gen5 is also not going to populate Prop IEs, put a FIXME_GEN6 
+   //       Given Gen5 is also not going to populate Prop IEs, put a FIXME_GEN6
    //       flag here for PE team to verify & cleanup if needed.
     // Prepare Proprietary IE only if needed
 #ifdef ANI_PRODUCT_TYPE_AP
     // always include prop ie in this case??
-    if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE || 
+    if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE ||
             (pMac->lim.gLimSystemRole != eLIM_AP_ROLE && pMac->lim.gpLimJoinReq->neighborBssList.bssList[0].wniIndicator))
 #else
     // sta includes prop ie only if peer is airgo
@@ -1542,9 +1553,9 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 #ifdef DISABLE_GF_FOR_INTEROP
 
          /*
-         * To resolve the interop problem with Broadcom AP, 
+         * To resolve the interop problem with Broadcom AP,
          * where TQ STA could not pass traffic with GF enabled,
-         * TQ STA will do Greenfield only with TQ AP, for 
+         * TQ STA will do Greenfield only with TQ AP, for
          * everybody else it will be turned off.
         */
 
@@ -1664,7 +1675,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
      }
      else
      {
-        //Store the Assoc request. This is sent to csr/hdd in join cnf response. 
+        //Store the Assoc request. This is sent to csr/hdd in join cnf response.
         palCopyMemory(pMac->hHdd, pMac->lim.assocReq, pFrame + sizeof(tSirMacMgmtHdr), nPayload);
         pMac->lim.assocReqLen = nPayload;
      }
@@ -1771,6 +1782,10 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
                                  &frm.RSNOpaque );
         PopulateDot11fWPAOpaque( pMac, &( pMac->lim.gpLimReassocReq->rsnIE ),
                                  &frm.WPAOpaque );
+#if defined(FEATURE_WLAN_WAPI)
+        PopulateDot11fWAPIOpaque( pMac, &( pMac->lim.gpLimReassocReq->rsnIE ),
+                                 &frm.WAPIOpaque );
+#endif // defined(FEATURE_WLAN_WAPI)
     }
 
     // include WME EDCA IE as well
@@ -1884,7 +1899,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
      }
      else
      {
-        //Store the Assoc request. This is sent to csr/hdd in join cnf response. 
+        //Store the Assoc request. This is sent to csr/hdd in join cnf response.
         palCopyMemory(pMac->hHdd, pMac->lim.assocReq, pFrame + sizeof(tSirMacMgmtHdr), nPayload);
         pMac->lim.assocReqLen = nPayload;
      }
@@ -2979,8 +2994,8 @@ void *pPacket;
   if (pMlmAddBAReq->baSSN < LIM_TX_FRAMES_THRESHOLD_ON_CHIP) {
       pMlmAddBAReq->baSSN = LIM_TX_FRAMES_THRESHOLD_ON_CHIP;
   }
-  
-  frmAddBAReq.BAStartingSequenceControl.ssn = 
+
+  frmAddBAReq.BAStartingSequenceControl.ssn =
 	  pMlmAddBAReq->baSSN - LIM_TX_FRAMES_THRESHOLD_ON_CHIP;
 
   nStatus = dot11fGetPackedAddBAReqSize( pMac, &frmAddBAReq, &nPayload );
@@ -3497,7 +3512,7 @@ tSirRetStatus limSendSMPowerStateFrame( tpAniSirGlobal pMac, tSirMacAddr peer,
              limLog( pMac, LOGE,FL( "Peer is not HT Capable \n" ));
              return eSIR_FAILURE;
         }
-         
+
         /**Fill  Category - 7 (HT) */
         frmSMpowerstate.Category.category = SIR_MAC_ACTION_HT;
         /** Fill Action - 1 (SM Power) */
@@ -3548,7 +3563,7 @@ tSirRetStatus limSendSMPowerStateFrame( tpAniSirGlobal pMac, tSirMacAddr peer,
         /** Allocate shared memory */
         halStatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, (tANI_U16) frameLen,
                                 (void **) &pSMPowerBuffer, (void **) &pPacket );
-	
+
         if (eHAL_STATUS_SUCCESS != halStatus) {
                 limLog( pMac, LOGP, FL("palPktAlloc FAILED! Length [%d], Status [%d]\n"),
                                              frameLen, halStatus );
@@ -3559,7 +3574,7 @@ tSirRetStatus limSendSMPowerStateFrame( tpAniSirGlobal pMac, tSirMacAddr peer,
         palZeroMemory( pMac->hHdd, (void *) pSMPowerBuffer, frameLen);
 
         /** Copy necessary info to BD */
-        statusCode = limPopulateBD( pMac, pSMPowerBuffer, SIR_MAC_MGMT_FRAME, 
+        statusCode = limPopulateBD( pMac, pSMPowerBuffer, SIR_MAC_MGMT_FRAME,
                                     SIR_MAC_MGMT_ACTION, peer);
 
         if( eSIR_SUCCESS != statusCode)
@@ -3569,7 +3584,7 @@ tSirRetStatus limSendSMPowerStateFrame( tpAniSirGlobal pMac, tSirMacAddr peer,
         cfgLen = SIR_MAC_ADDR_LENGTH;
 
         statusCode = wlan_cfgGetStr( pMac, WNI_CFG_BSSID, (tANI_U8 *) pMacHdr->bssId, &cfgLen );
-	
+
         if( eSIR_SUCCESS != statusCode) {
                 limLog( pMac, LOGP, FL( "Failed to retrieve WNI_CFG_BSSID while"
                                  "sending an ACTION Frame\n" ));
@@ -3577,7 +3592,7 @@ tSirRetStatus limSendSMPowerStateFrame( tpAniSirGlobal pMac, tSirMacAddr peer,
         }
 
         /** Now, we're ready to "pack" the frames */
-        nStatus = dot11fPackSMPowerSave(pMac, &frmSMpowerstate, 
+        nStatus = dot11fPackSMPowerSave(pMac, &frmSMpowerstate,
                                     pSMPowerBuffer + sizeof( tSirMacMgmtHdr ), nPayload, &nPayload );
 
         if( DOT11F_FAILED( nStatus )) {
@@ -3609,8 +3624,8 @@ tSirRetStatus limSendSMPowerStateFrame( tpAniSirGlobal pMac, tSirMacAddr peer,
 returnAfterError:
 
         // Release buffer, if allocated
-        if( NULL != pSMPowerBuffer) 
-            palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, (void *) pSMPowerBuffer, 
+        if( NULL != pSMPowerBuffer)
+            palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, (void *) pSMPowerBuffer,
                                                                                                                                 (void *) pPacket );
 
         return statusCode;

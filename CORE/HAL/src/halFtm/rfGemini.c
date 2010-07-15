@@ -2,9 +2,9 @@
 
 
 #include "sys_api.h"
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 
-#if defined(ANI_PHY_DEBUG) || defined(ANI_MANF_DIAG)
+#if defined(ANI_PHY_DEBUG)
 
 const char geminiRegStr[GEMINI_NUM_REGS][MAX_RF_STR_SIZE] =
 {
@@ -6126,3 +6126,4 @@ eHalStatus rfTakeTemp(tpAniSirGlobal pMac, tANI_U8 nSamples, tTempADCVal *retTem
 }
 
 #endif
+

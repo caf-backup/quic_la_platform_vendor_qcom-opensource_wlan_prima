@@ -15,12 +15,12 @@ BRIEF DESCRIPTION:
                 Qualcomm Confidential and Proprietary
 ===========================================================================*/
 
-#define QWLAN_VERSION_MAJOR            0
-#define QWLAN_VERSION_MINOR            1
-#define QWLAN_VERSION_PATCH            3
+#define QWLAN_VERSION_MAJOR            1
+#define QWLAN_VERSION_MINOR            0
+#define QWLAN_VERSION_PATCH            0
 #define QWLAN_VERSION_EXTRA            ""
-#define QWLAN_VERSION_BUILD            248
+#define QWLAN_VERSION_BUILD            20
 
-#define QWLAN_VERSIONSTR               "0.1.3.248"
+#define QWLAN_VERSIONSTR               "1.0.0.20"
 
 #endif /* QWLAN_VERSION_H */

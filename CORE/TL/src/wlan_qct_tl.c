@@ -33,7 +33,28 @@
 
   when        who     what, where, why
 ----------    ---    --------------------------------------------------------
+2010-07-13    c_shinde Fixed an issue where WAPI rekeying was failing because 
+                      WAI frame sent out during rekeying had the protected bit
+                      set to 1.
+2010-05-06    rnair   Changed name of variable from usLlcType to usEtherType
+                      Changed function name from GetLLCType to GetEtherType
+                      Fixed 802.3 to 802.11 frame translation issue where two 
+                      bytes of the LLC header was getting overwritten in the
+                      non-Qos path
+2010-05-06    rnair   RxAuth path fix for modifying the header before ether
+                      type is retreived (Detected while testing rekeying
+                      in WAPI Volans)
+2010-02-19    bad     Fixed 802.11 to 802.3 ft issues with WAPI
+2010-02-19    rnair   WAPI: If frame is a WAI frame in TxConn and TxAuth, TL 
+                      does frame translation. 
+2010-02-01    rnair   WAPI: Fixed a bug where the value of ucIsWapiSta was not       
+                      being set in the TL control block in the RegisterSTA func. 
 2010-01-08    lti     Added TL Data Caching 
+2009-11-04    rnair   WAPI: Moving common functionality to a seperate function
+                      called WLANTL_GetLLCType
+2009-10-15    rnair   WAPI: Featurizing WAPI code
+2009-10-09    rnair   WAPI: Modifications to authenticated state handling of Rx data
+2009-10-06    rnair   Adding support for WAPI 
 2009-09-22    lti     Add deregistration API for management client
 2009-07-16    rnair   Temporary fix to let TL fetch packets when multiple 
                       peers exist in an IBSS
@@ -257,9 +278,27 @@ WLANTL_FastHwFwdDataFrame
 );
 #endif /*WLAN_PERF*/
 
+static VOS_STATUS 
+WLANTL_GetEtherType
+(
+  v_U8_t               * aucBDHeader,
+  vos_pkt_t            * vosDataBuff,
+  v_U8_t                 ucMPDUHLen,
+  v_U16_t              * usEtherType
+);
+
+#ifdef FEATURE_WLAN_WAPI
+/*---------------------------------------------------------------------------
+ * Adding a global variable to be used when doing frame translation in TxAuth
+ * state so as to not set the protected bit to 1 in the case of WAI frames
+ *---------------------------------------------------------------------------*/
+	v_U8_t		gUcIsWai = 0;
+#endif
+
+
 /*----------------------------------------------------------------------------
  * Externalized Function Definitions
-* -------------------------------------------------------------------------*/
+ * -------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------
  * Function Declarations and Documentation
@@ -811,6 +850,11 @@ WLANTL_RegisterSTAClient
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].wSTADesc.ucSwFrameRXXlation =
     pwSTADescType->ucSwFrameRXXlation;
 
+#ifdef FEATURE_WLAN_WAPI
+  pTLCb->atlSTAClients[pwSTADescType->ucSTAId].wSTADesc.ucIsWapiSta =
+    pwSTADescType->ucIsWapiSta;
+#endif /* FEATURE_WLAN_WAPI */
+
   vos_copy_macaddr( &pTLCb->atlSTAClients[pwSTADescType->ucSTAId].
                       wSTADesc.vSTAMACAddress, &pwSTADescType->vSTAMACAddress);
 
@@ -978,7 +1022,7 @@ WLANTL_ClearSTAClient
   /* Delete BA sessions on all TID's */
   for ( ucIndex = 0; ucIndex < WLAN_MAX_TID ; ucIndex++) 
   {
-	  WLANTL_BaSessionDel (pvosGCtx, ucSTAId, ucIndex);
+    WLANTL_BaSessionDel (pvosGCtx, ucSTAId, ucIndex);
   }
 
   /*------------------------------------------------------------------------
@@ -1150,7 +1194,7 @@ WLANTL_STAPktPending
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
-	  "WLAN TL:Packet pending indication for STA: %d AC: %d", ucSTAId, ucAc);
+     "WLAN TL:Packet pending indication for STA: %d AC: %d", ucSTAId, ucAc);
 
   /*------------------------------------------------------------------------
     Sanity check
@@ -1534,7 +1578,7 @@ WLANTL_TxBAPFrm
   WLANTL_PrepareBDHeader( vosDataBuff , &pvBDHeader, &vDestMacAddr,
                           pMetaInfo->ucDisableFrmXtl, &vosStatus, &usPktLen,
                           pTLCb->atlSTAClients[ucStaId].wSTADesc.ucQosEnabled, 
-			  extraHeadSpace);
+                          extraHeadSpace);
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
@@ -2522,7 +2566,7 @@ WLANTL_GetTxPktCount
   {
     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
     "WLAN TL:Station was not previously registered on WLANTL_GetTxPktCount %d",
-	ucSTAId);
+    ucSTAId);
     return VOS_STATUS_E_EXISTS;
   }
 
@@ -2896,19 +2940,19 @@ WLANTL_GetFrames
             pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
                          atlSTAClients[ucSTAId].ucServicedAC].ucDataSent = 0;
 
-			VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+            VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                    "WLAN TL:Stopping Delayed Tim; Restarting Service Tim");
 
-			if ( 0 != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
+            if ( 0 != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
                         atlSTAClients[ucSTAId].ucServicedAC].ucDelayedMode)
-			{
+            {
               vos_timer_stop( &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
                           atlSTAClients[ucSTAId].ucServicedAC].vosDelayedTimer);
 
-			        vos_atomic_set_U8(&pTLCb->atlSTAClients[ucSTAId].
+              vos_atomic_set_U8(&pTLCb->atlSTAClients[ucSTAId].
                   wUAPSDInfo[pTLCb->atlSTAClients[ucSTAId].ucServicedAC].
                                 ucDelayedMode, 0);
-			}
+            }
 
             /* Restart service timer */
             vos_timer_stop( &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
@@ -3416,7 +3460,9 @@ WLANTL_ProcessBAPFrame
   v_U8_t              ucMPDUHOffset;
   v_U16_t             usMPDULen;
   v_U8_t              ucMPDUHLen = 0;
+  v_U16_t             usActualHLen = 0;
   v_U8_t              aucBDHeader[WLANHAL_RX_BD_HEADER_SIZE];
+
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -3470,7 +3516,6 @@ WLANTL_ProcessBAPFrame
     vos_pkt_return_packet(vosTempBuff);
     return VOS_TRUE;
   }
-
 
   /*------------------------------------------------------------------------
     Check if this is BT-AMP data or ctrl packet(RSN, LinkSvision, ActivityR)
@@ -3531,10 +3576,15 @@ WLANTL_ProcessBAPFrame
           "Non-data packet received over BT-AMP link: Sending it for "
           "frame Translation");
 
+      if (usMPDUDOffset > ucMPDUHOffset)
+      {
+        usActualHLen = usMPDUDOffset - ucMPDUHOffset;
+      }
+
       /* software frame translation for BTAMP WDS.*/
-      WLANTL_Translate80211To8023Header( vosTempBuff, &vosStatus,
-                                                 ucMPDUHLen, pTLCb,
-                                                 ucSTAId);
+      WLANTL_Translate80211To8023Header( vosTempBuff, &vosStatus, usActualHLen,
+                                         ucMPDUHLen, pTLCb,ucSTAId );
+      
     }
     if (pTLCb->tlBAPClient.pfnTlBAPRx)
         pTLCb->tlBAPClient.pfnTlBAPRx( vos_get_global_context(VOS_MODULE_ID_TL,pTLCb),
@@ -3757,7 +3807,7 @@ WLANTL_RxFrames
 
       if(!VOS_IS_STATUS_SUCCESS(vosStatus))
       {
-        VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+        VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
           "Handle RX Management Frame fail within Handoff support module");
         /* Do Not Drop packet at here 
          * Revisit why HO module return fail
@@ -3882,7 +3932,7 @@ WLANTL_RxFrames
 #endif /*FEATURE_WLAN_GEN6_ROAMING*/
         if(!VOS_IS_STATUS_SUCCESS(vosStatus))
         {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
             "Handle RX Data Frame fail within Handoff support module");
           /* Do Not Drop packet at here 
            * Revisit why HO module return fail
@@ -4156,7 +4206,6 @@ WLANTL_RxCachedFrames
         continue; 
       } 
       
-
       /*---------------------------------------------------------------------
         Data packet received, send to state machine
       ---------------------------------------------------------------------*/
@@ -4287,7 +4336,7 @@ WLANTL_ResourceCB
   FUNCTION    WLANTL_STATxConn
 
   DESCRIPTION
-    Transmit in connected state - only EAPOL
+    Transmit in connected state - only EAPOL and WAI packets allowed
 
   DEPENDENCIES
     The STA must be registered with TL before this function can be called.
@@ -4370,10 +4419,27 @@ WLANTL_STATxConn
 
 #endif /*WLAN_PERF*/
 
-   if ( 0 == tlMetaInfo.ucIsEapol )
-  {
+#ifdef FEATURE_WLAN_WAPI
+   /*------------------------------------------------------------------------
+    If the packet is neither an Eapol packet nor a WAI packet then drop it
+   ------------------------------------------------------------------------*/
+   if ( 0 == tlMetaInfo.ucIsEapol && 0 == tlMetaInfo.ucIsWai )
+   {
      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL:Received non EAPOL packet before authentication");
+                "WLAN TL:Only EAPOL or WAI packets allowed before authentication");
+
+     /* Fail tx for packet */
+     pTLCb->atlSTAClients[ucSTAId].pfnSTATxComp( pvosGCtx, vosDataBuff,
+                                                VOS_STATUS_E_BADMSG);
+     vosDataBuff = NULL;
+     *pvosDataBuff = NULL;
+     return VOS_STATUS_SUCCESS;
+  }
+#else
+  if ( 0 == tlMetaInfo.ucIsEapol )
+  {
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Received non EAPOL packet before authentication");
 
     /* Fail tx for packet */
     pTLCb->atlSTAClients[ucSTAId].pfnSTATxComp( pvosGCtx, vosDataBuff,
@@ -4382,7 +4448,7 @@ WLANTL_STATxConn
     *pvosDataBuff = NULL;
     return VOS_STATUS_SUCCESS;
   }
-
+#endif /* FEATURE_WLAN_WAPI */
 
    /*-------------------------------------------------------------------------
     Check TID
@@ -4401,11 +4467,21 @@ WLANTL_STATxConn
   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:Attaching BD header to pkt on WLANTL_STATxConn");
 
+  #ifdef FEATURE_WLAN_WAPI
   /*------------------------------------------------------------------------
-    Translate 802.3 frame to 802.11
+    Translate 802.3 frame to 802.11 if Frame translation is enabled or if 
+    frame is a WAI frame.
+   ------------------------------------------------------------------------*/
+  if ((( 1 == tlMetaInfo.ucIsWai ) ||
+       (( 0 == tlMetaInfo.ucDisableFrmXtl ) &&
+       ( 0 != pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucSwFrameTXXlation))))
+#else
+  /*------------------------------------------------------------------------
+    Translate 802.3 frame to 802.11 if Frame translation is enabled 
    ------------------------------------------------------------------------*/
   if (( 0 == tlMetaInfo.ucDisableFrmXtl ) &&
       ( 0 != pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucSwFrameTXXlation))
+#endif
   {
     vosStatus =  WLANTL_Translate8023To80211Header( vosDataBuff, &vosStatus,
                                                     pTLCb, ucSTAId,
@@ -4421,6 +4497,7 @@ WLANTL_STATxConn
 
     tlMetaInfo.ucDisableFrmXtl = 1;
   }
+
   /*------------------------------------------------------------------------
     INLINE function
     Just some common processing
@@ -4448,11 +4525,21 @@ WLANTL_STATxConn
     ucTypeSubtype |= (WLANTL_80211_DATA_QOS_SUBTYPE);
   }
 
+
+#ifdef FEATURE_WLAN_WAPI
   vosStatus = (VOS_STATUS)WLANHAL_FillTxBd( pvosGCtx, ucTypeSubtype, 
                                             &vDestMacAddr,  
-                                &ucTid, tlMetaInfo.ucDisableFrmXtl,
-                                pvBDHeader, 0 /* No ACK */,
-                                tlMetaInfo.usTimeStamp );
+                                            &ucTid, tlMetaInfo.ucDisableFrmXtl,
+                                            pvBDHeader, 
+                                            HAL_TX_NO_ENCRYPTION_MASK,
+                                            tlMetaInfo.usTimeStamp );
+#else
+  vosStatus = (VOS_STATUS)WLANHAL_FillTxBd( pvosGCtx, ucTypeSubtype, 
+                                            &vDestMacAddr,  
+                                            &ucTid, tlMetaInfo.ucDisableFrmXtl,
+                                            pvBDHeader, 0 /* No ACK */,
+                                            tlMetaInfo.usTimeStamp );
+#endif /* FEATURE_WLAN_WAPI */
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
@@ -4550,6 +4637,7 @@ WLANTL_STATxAuth
    v_U8_t                extraHeadSpace = 0;
    WLANTL_STAClientType *pStaClient;
    v_U8_t                ucTxFlag   = 0; 
+  
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -4693,7 +4781,12 @@ WLANTL_STATxAuth
   if ( 0 == tlMetaInfo.ucDisableFrmXtl )
   {
      /* Needs frame translation */
+
+#ifdef FEATURE_WLAN_WAPI
+     if ( ( 0 == pStaClient->wSTADesc.ucSwFrameTXXlation ) && ( tlMetaInfo.ucIsWai != 1 ) )
+#else
      if ( 0 == pStaClient->wSTADesc.ucSwFrameTXXlation )
+#endif
      {
 #ifdef WLAN_PERF 
         v_U32_t uFastFwdOK = 0;
@@ -4705,7 +4798,7 @@ WLANTL_STATxAuth
         if( VOS_STATUS_SUCCESS == vosStatus )
         {
             if(uFastFwdOK)
-  {
+            {
                 /* Packet could be fast forwarded now */
                 vos_pkt_set_user_data_ptr( vosDataBuff, VOS_PKT_USER_DATA_ID_TL, 
                                (v_PVOID_t)pStaClient->pfnSTATxComp );
@@ -4732,22 +4825,29 @@ WLANTL_STATxAuth
      else
      {
         /* SW based translation */
-    vosStatus = WLANTL_Translate8023To80211Header( vosDataBuff, &vosStatus,
-                                                   pTLCb, ucSTAId,
-                                                   tlMetaInfo.ucUP, &extraHeadSpace);
 
-    if ( VOS_STATUS_SUCCESS != vosStatus )
-  {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL:Error when translating header WLANTL_STATxAuth");
+#ifdef FEATURE_WLAN_WAPI
+       gUcIsWai = tlMetaInfo.ucIsWai,
+#endif
 
 
-      return vosStatus;
-    }
+        vosStatus = WLANTL_Translate8023To80211Header( vosDataBuff, &vosStatus,
+                                                       pTLCb, ucSTAId,
+                                                       tlMetaInfo.ucUP,
+                                                       &extraHeadSpace);
 
-    ucSwFrmXtl = 1;
-    tlMetaInfo.ucDisableFrmXtl = 1;
-  }
+        if ( VOS_STATUS_SUCCESS != vosStatus )
+        {
+            VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                       "WLAN TL:Error when translating header WLANTL_STATxAuth");
+
+
+            return vosStatus;
+        }
+
+        ucSwFrmXtl = 1;
+        tlMetaInfo.ucDisableFrmXtl = 1;
+     }
 
   }
 
@@ -4782,11 +4882,22 @@ WLANTL_STATxAuth
               HAL_TRIGGER_ENABLED_AC_MASK:0;
 #endif
 
+#ifdef FEATURE_WLAN_WAPI
+  if ( pStaClient->wSTADesc.ucIsWapiSta == 1 )
+  {
+    ucTxFlag = ucTxFlag | HAL_WAPI_STA_MASK;
+    if ( tlMetaInfo.ucIsWai == 1 ) 
+    {
+      ucTxFlag = ucTxFlag | HAL_TX_NO_ENCRYPTION_MASK;
+    }
+  }
+#endif /* FEATURE_WLAN_WAPI */
+
   vosStatus = (VOS_STATUS)WLANHAL_FillTxBd( pvosGCtx, ucTypeSubtype, 
                                             &vDestMacAddr,  
-                                &ucTid, tlMetaInfo.ucDisableFrmXtl,
-                                pvBDHeader, ucTxFlag,
-                                tlMetaInfo.usTimeStamp );
+                                            &ucTid, tlMetaInfo.ucDisableFrmXtl,
+                                            pvBDHeader, ucTxFlag,
+                                            tlMetaInfo.usTimeStamp );
 
   if(!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
@@ -5082,15 +5193,13 @@ WLANTL_STARxConn
 )
 {
    WLANTL_CbType*           pTLCb = NULL;
-   v_U8_t                   ucOffset;
-   v_U16_t                  usLLCType;
-   v_SIZE_t                 usLLCSize = sizeof(usLLCType);
+   v_U16_t                  usEtherType = 0;
    v_U16_t                  usPktLen;
    v_U8_t                   ucMPDUHOffset;
    v_U16_t                  usMPDUDOffset;
    v_U16_t                  usMPDULen;
    v_U8_t                   ucMPDUHLen;
-   v_U8_t                   ucLLCHeader;
+   v_U16_t					usActualHLen = 0;
    VOS_STATUS               vosStatus  = VOS_STATUS_SUCCESS;
    vos_pkt_t*               vosDataBuff;
    v_U8_t                   aucBDHeader[WLANHAL_RX_BD_HEADER_SIZE];
@@ -5152,86 +5261,67 @@ WLANTL_STARxConn
     return VOS_STATUS_SUCCESS;
   }
 
-/*------------------------------------------------------------------------
-    Check if LLC is present - if not, TL is unable to determine type
-   ------------------------------------------------------------------------*/
-  ucLLCHeader   = (v_U8_t)WLANHAL_RX_BD_GET_LLC(aucBDHeader);
-  if ( WLANHAL_RX_BD_LLC_PRESENT != ucLLCHeader)
+  vosStatus = WLANTL_GetEtherType(aucBDHeader,vosDataBuff,ucMPDUHLen,&usEtherType);
+  
+  if( VOS_IS_STATUS_SUCCESS(vosStatus) )
   {
-    ucOffset = WLANTL_802_3_HEADER_LEN - sizeof(usLLCType); 
-  }
-  else
-  {
-    ucOffset = ucMPDUHLen + WLANTL_LLC_PROTO_TYPE_OFFSET;
-  }
-
-  /*------------------------------------------------------------------------
-    Check to see if EAPoL 
-  ------------------------------------------------------------------------*/
-  vosStatus = vos_pkt_extract_data( vosDataBuff, ucOffset, 
-                                    (v_PVOID_t)&usLLCType, &usLLCSize); 
-
-  if (( VOS_STATUS_SUCCESS != vosStatus ) || 
-      ( sizeof(usLLCType) != usLLCSize ))
-      
-  {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Error extracting LLC type from data packet");
-    /* Drop packet */
-    vos_pkt_return_packet(vosDataBuff);
-  }
-  else
-  {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:LLC type retrieved before endianess conv: %d", 
-               usLLCType);
-
-    usLLCType = vos_be16_to_cpu(usLLCType);
-
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:LLC type retrieved: %d", usLLCType);
-
-    if ( WLANTL_LLC_8021X_TYPE  != usLLCType )
+#ifdef FEATURE_WLAN_WAPI
+    /* If frame is neither an EAPOL frame nor a WAI frame then we drop the frame*/
+    /* TODO: Do we need a check to see if we are in WAPI mode? If not is it possible */
+    /* that we get an EAPOL packet in WAPI mode or vice versa? */
+    if ( WLANTL_LLC_8021X_TYPE  != usEtherType && WLANTL_LLC_WAI_TYPE  != usEtherType )
     {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "WLAN TL:Frame not EAPOL - dropping");
-    /* Drop packet */
-    vos_pkt_return_packet(vosDataBuff);
-  }
-  else
-  {
-    if (( 0 == WLANHAL_RX_BD_GET_FT(aucBDHeader) ) &&
-         ( 0 != pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucSwFrameRXXlation))
-    {
-      vosStatus = WLANTL_Translate80211To8023Header( vosDataBuff, &vosStatus, 
-                                                     ucMPDUHLen, pTLCb,
-                                                     ucSTAId);
-
-      if ( VOS_STATUS_SUCCESS != vosStatus ) 
-      {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-          "WLAN TL:Failed to translate from 802.11 to 802.3 - dropping");
-        /* Drop packet */
-         vos_pkt_return_packet(vosDataBuff);
-         return vosStatus;
-      }
+      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WLAN TL:Frame not EAPOL or WAI - dropping");
+      /* Drop packet */
+      vos_pkt_return_packet(vosDataBuff);
     }
+#else
+    if ( WLANTL_LLC_8021X_TYPE  != usEtherType )
+    {
+      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WLAN TL:Frame not EAPOL - dropping");
+      /* Drop packet */
+      vos_pkt_return_packet(vosDataBuff);
+    }
+#endif /* FEATURE_WLAN_WAPI */
+    else /* Frame is an EAPOL frame or a WAI frame*/  
+    {
+      if (( 0 == WLANHAL_RX_BD_GET_FT(aucBDHeader) ) &&
+          ( 0 != pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucSwFrameRXXlation))
+      {
+		  if (usMPDUDOffset > ucMPDUHOffset)
+		  {
+			  usActualHLen = usMPDUDOffset - ucMPDUHOffset;
+		  }	
+		
+		  vosStatus = WLANTL_Translate80211To8023Header( vosDataBuff, &vosStatus, usActualHLen, 
+			       					 	                      ucMPDUHLen, pTLCb, ucSTAId);
 
-    /*-------------------------------------------------------------------
-      Increment receive counter
-     -------------------------------------------------------------------*/
-    pTLCb->atlSTAClients[ucSTAId].auRxCount[ucTid]++;
+        if ( VOS_STATUS_SUCCESS != vosStatus ) 
+        {
+          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                     "WLAN TL:Failed to translate from 802.11 to 802.3 - dropping");
+          /* Drop packet */
+          vos_pkt_return_packet(vosDataBuff);
+          return vosStatus;
+        }
+      }
+      /*-------------------------------------------------------------------
+       Increment receive counter
+       -------------------------------------------------------------------*/
+      pTLCb->atlSTAClients[ucSTAId].auRxCount[ucTid]++;
 
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:Sending EAPoL frame to station");
+      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                 "WLAN TL:Sending EAPoL frame to station");
 
-    /*-------------------------------------------------------------------
-      !!!Assuming TID = UP mapping 
-     -------------------------------------------------------------------*/
-    wRxMetaInfo.ucUP = ucTid;
-    pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
-                                            &wRxMetaInfo);
-    }/*EAPOL frame*/
+      /*-------------------------------------------------------------------
+        !!!Assuming TID = UP mapping 
+       -------------------------------------------------------------------*/
+      wRxMetaInfo.ucUP = ucTid;
+      pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
+                                              &wRxMetaInfo);
+    }/*EAPOL frame or WAI frame*/
   }/*vos status success*/
   
   return VOS_STATUS_SUCCESS;
@@ -5279,7 +5369,11 @@ WLANTL_STARxAuth
    v_U8_t                   ucMPDUHOffset;
    v_U16_t                  usMPDULen;
    v_U8_t                   ucMPDUHLen;
+   v_U16_t                  usActualHLen = 0;   
    v_U8_t                   ucTid;
+#ifdef FEATURE_WLAN_WAPI
+   v_U16_t                  usEtherType;
+#endif
    v_U16_t                  usPktLen;
    vos_pkt_t*               vosDataBuff ;
    v_U8_t                   aucBDHeader[WLANHAL_RX_BD_HEADER_SIZE];
@@ -5324,7 +5418,7 @@ WLANTL_STARxAuth
   {
     ucPMPDUHLen = ucMPDUHLen;
   }
-
+  
   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:BD header processing data: HO %d DO %d Len %d HLen %d"
              " Tid %d BD %d",
@@ -5376,6 +5470,47 @@ WLANTL_STARxAuth
     return VOS_STATUS_SUCCESS;
   }
 
+#ifdef FEATURE_WLAN_WAPI
+  if ( pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucIsWapiSta )
+  {
+    vosStatus = WLANTL_GetEtherType(aucBDHeader, vosDataBuff, ucMPDUHLen, &usEtherType);
+    if( VOS_IS_STATUS_SUCCESS(vosStatus) )
+    {
+      if ( WLANTL_LLC_WAI_TYPE  == usEtherType )
+      {        
+        if ( !( WLANHAL_RX_IS_UNPROTECTED_WPI_FRAME(aucBDHeader)) )
+        {
+          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                     "WLAN TL:WAI frame was received encrypted - dropping");
+          /* Drop packet */
+          vos_pkt_return_packet(vosDataBuff); 
+          return vosStatus; //returning success
+        }
+      }
+      else
+      {
+        if (  WLANHAL_RX_IS_UNPROTECTED_WPI_FRAME(aucBDHeader) ) 
+        {
+          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                     "WLAN TL:Non-WAI frame was received unencrypted - dropping");
+          /* Drop packet */
+          vos_pkt_return_packet(vosDataBuff); 
+          return vosStatus; //returning success
+        }
+      }
+    }
+    else //could not extract EtherType - this should not happen
+    {
+      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WLAN TL:Could not extract EtherType -dropping frame");
+      /* Drop packet */
+      vos_pkt_return_packet(vosDataBuff); 
+      return vosStatus; //returning failure
+        
+    }
+  }
+#endif /* FEATURE_WLAN_WAPI */
+
   /*----------------------------------------------------------------------
     Increment receive counter
     !! not sure this is the best place to increase this - pkt might be
@@ -5410,8 +5545,14 @@ WLANTL_STARxAuth
     {
       ucMPDUHLen = ucPMPDUHLen;
     }
-    vosStatus = WLANTL_Translate80211To8023Header( vosDataBuff, &vosStatus, ucMPDUHLen,
-                                         pTLCb, ucSTAId);
+   
+    if (usMPDUDOffset > ucMPDUHOffset)
+    {
+      usActualHLen = usMPDUDOffset - ucMPDUHOffset;
+    }
+
+    vosStatus = WLANTL_Translate80211To8023Header( vosDataBuff, &vosStatus, usActualHLen, 
+                        ucMPDUHLen, pTLCb, ucSTAId);
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
@@ -6165,8 +6306,11 @@ WLANTL_Translate8023To80211Header
   vos_mem_set( pw80211Header, ucHeaderSize, 0 );
   vos_mem_copy( pw80211Header->vA2, w8023Header.vSA,  VOS_MAC_ADDR_SIZE);
 
-
+#ifdef FEATURE_WLAN_WAPI
+  if ( WLANTL_STA_AUTHENTICATED == pTLCb->atlSTAClients[ucStaId].tlState && gUcIsWai != 1 )
+#else
   if ( WLANTL_STA_AUTHENTICATED == pTLCb->atlSTAClients[ucStaId].tlState )
+#endif
   {
     pw80211Header->wFrmCtrl.wep =
                  pTLCb->atlSTAClients[ucStaId].wSTADesc.ucProtectedFrame;
@@ -6187,7 +6331,6 @@ WLANTL_Translate8023To80211Header
   else
   {
       pw80211Header->wFrmCtrl.subType  = 0;
-      pw80211Header->usQosCtrl         = 0;
   }
 
   switch( pTLCb->atlSTAClients[ucStaId].wSTADesc.wSTAType )
@@ -6307,6 +6450,7 @@ static v_VOID_t WLANTL_DebugFrame
     pTLCb:            TL control block
     ucStaId:          station ID
     ucHeaderLen:      Length of the header from BD
+    ucActualHLen:     Length of header including padding or any other trailers
 
    IN/OUT
     vosDataBuff:      vos data buffer, will contain the new header on output
@@ -6327,6 +6471,7 @@ WLANTL_Translate80211To8023Header
 (
   vos_pkt_t*      vosDataBuff,
   VOS_STATUS*     pvosStatus,
+  v_U16_t         usActualHLen,
   v_U8_t          ucHeaderLen,
   WLANTL_CbType*  pTLCb,
   v_U8_t          ucSTAId
@@ -6336,11 +6481,12 @@ WLANTL_Translate80211To8023Header
   WLANTL_80211HeaderType w80211Header;
   v_U8_t                 aucLLCHeader[WLANTL_LLC_HEADER_LEN];
   VOS_STATUS             vosStatus;
+  v_U16_t                usDataStartOffset = 0;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   if ( sizeof(w80211Header) < ucHeaderLen )
   {
-	 //weird - log this !!
+     //weird - log this !!
      ucHeaderLen = sizeof(w80211Header);
   }
 
@@ -6365,6 +6511,24 @@ WLANTL_Translate80211To8023Header
       vos_mem_copy( w8023Header.vDA, w80211Header.vA1, VOS_MAC_ADDR_SIZE);
       vos_mem_copy( w8023Header.vSA, w80211Header.vA3, VOS_MAC_ADDR_SIZE);
     break;
+  }
+
+  if( usActualHLen > ucHeaderLen )
+  {
+  	usDataStartOffset = usActualHLen - ucHeaderLen;
+  }
+
+  if ( 0 < usDataStartOffset )
+  {
+    vosStatus = vos_pkt_trim_head( vosDataBuff, usDataStartOffset );
+
+    if ( VOS_STATUS_SUCCESS != vosStatus )
+    {
+      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                  "WLAN TL: Failed to trim header from packet %d",
+                  vosStatus);
+      return vosStatus;
+    }
   }
 
   if ( 0 != pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucAddRmvLLC )
@@ -6663,8 +6827,8 @@ WLANTL_PrepareBDHeader
     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                 "WLAN TL: VALUES ARE HLen=%x Hoff=%x doff=%x len=%x ex=%d",
                 ucHeaderLen, ucHeaderOffset, 
-		(ucHeaderOffset + ucHeaderLen + extraHeadSpace), 
-		*pusPktLen, extraHeadSpace);
+                (ucHeaderOffset + ucHeaderLen + extraHeadSpace), 
+                *pusPktLen, extraHeadSpace);
   }/* if peek MAC success*/
 
 }/* WLANTL_PrepareBDHeader */
@@ -7990,8 +8154,8 @@ WLANTL_TxCompTriggFrameSI
 
   //!!!Fix this replace peek with extract 
   if ( ( VOS_STATUS_SUCCESS != vos_pkt_peek_data( 
-	 vosDataBuff, usAlignQosCtrl, (v_PVOID_t)&pusQOSCtrl, sizeof(*pusQOSCtrl))) ||
-		( NULL == pusQOSCtrl ))
+         vosDataBuff, usAlignQosCtrl, (v_PVOID_t)&pusQOSCtrl, sizeof(*pusQOSCtrl))) ||
+       ( NULL == pusQOSCtrl ))
   {
      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
        "WLAN TL:TXComp service trig frm received: cannot extract QOS Ctrl");
@@ -8015,31 +8179,30 @@ WLANTL_TxCompTriggFrameSI
      "WLAN TL: WLANTL_TxCompTriggFrameSI STA ID: %d AC: %d", ucSTAId, ucAC);
 
   if (( WLANTL_STA_ID_INVALID( ucSTAId )) ||
-	  ( WLANTL_AC_INVALID(ucAC)) ||
-	  ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists))
+     ( WLANTL_AC_INVALID(ucAC)) ||
+     ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists))
   {
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
        "WLAN TL:TXComp service trig frm received: INVALID SESSION");
 
-	  return VOS_STATUS_E_FAULT;
+    return VOS_STATUS_E_FAULT;
   }
 
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucDelayedMode )
   {
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
          "WLAN TL:TXComp service trig frm received: restarting Service Tim");
 
-  /* Restart timer */
-  vos_timer_start(
-   &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosServiceTimer,
-    pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].uServiceInterval);
+    /* Restart timer */
+    vos_timer_start(
+     &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosServiceTimer,
+     pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].uServiceInterval);
   }
   else
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-         "WLAN TL:TXComp service trig frm received: but delayed mode active");
-
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+        "WLAN TL:TXComp service trig frm received: but delayed mode active");
   }
 
   return VOS_STATUS_SUCCESS;
@@ -8104,8 +8267,8 @@ WLANTL_TxCompTriggFrameDI
 
   //!!!Fix this replace peek with extract 
   if ( ( VOS_STATUS_SUCCESS != vos_pkt_peek_data( 
-	 vosDataBuff, usAlignQosCtrl, (v_PVOID_t)&pusQOSCtrl, sizeof(*pusQOSCtrl))) ||
-		( NULL == pusQOSCtrl ))
+       vosDataBuff, usAlignQosCtrl, (v_PVOID_t)&pusQOSCtrl, sizeof(*pusQOSCtrl))) ||
+      ( NULL == pusQOSCtrl ))
   {
     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
        "WLAN TL:TXComp service trig frm received: cannot extract QOS Ctrl");
@@ -8129,37 +8292,38 @@ WLANTL_TxCompTriggFrameDI
      "WLAN TL: WLANTL_TxCompTriggFrameDI STA ID: %d AC: %d", ucSTAId, ucAC);
 
   if (( WLANTL_STA_ID_INVALID( ucSTAId )) ||
-	  ( WLANTL_AC_INVALID(ucAC)) ||
-	  ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists))
+     ( WLANTL_AC_INVALID(ucAC)) ||
+     ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists))
   {
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
        "WLAN TL:TXComp dealyed trig frm received: INVALID SESSION");
 
-	  return VOS_STATUS_E_FAULT;
+    return VOS_STATUS_E_FAULT;
   }
   
   /* Check if still in delayed mode */
   if (( !WLANTL_STA_ID_INVALID( ucSTAId )) &&
-	  ( !WLANTL_AC_INVALID(ucAC)) &&
+      ( !WLANTL_AC_INVALID(ucAC)) &&
       ( 0 != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucDelayedMode ))
   {
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
        "WLAN TL:TXComp for trigger frame received: restarting Delayed Tim");
 
-  /* Restart timer */
-  vos_timer_start(
-    &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosDelayedTimer,
-     pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].uDelayedInterval);
+    /* Restart timer */
+    vos_timer_start(
+      &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosDelayedTimer,
+       pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].uDelayedInterval);
   }
   else
   {
-	  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
        "WLAN TL:TXComp for trigger frame received but not in delayed mode");
   }
 
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_TxCompTriggFrameDI*/
+
 #ifdef FEATURE_WLAN_GEN6_ROAMING
 /*==========================================================================
   FUNCTION     WLANTL_RegRSSIIndicationCB
@@ -8895,3 +9059,81 @@ void WLANTL_PowerStateChangedCB
 
    return;
 }
+/*==========================================================================
+  FUNCTION      WLANTL_GetEtherType
+
+  DESCRIPTION   Extract Ether type information from the BD
+
+  DEPENDENCIES  NONE
+    
+  PARAMETERS    in aucBDHeader - BD header
+                in vosDataBuff - data buffer
+                in ucMPDUHLen  - MPDU header length
+                out pUsEtherType - pointer to Ethertype
+
+  RETURN VALUE  VOS_STATUS_SUCCESS : if the EtherType is successfully extracted
+                VOS_STATUS_FAILURE : if the EtherType extraction failed and
+                                     the packet was dropped
+
+  SIDE EFFECTS  NONE
+  
+============================================================================*/
+static VOS_STATUS WLANTL_GetEtherType
+(
+   v_U8_t               * aucBDHeader,
+   vos_pkt_t            * vosDataBuff,
+   v_U8_t                 ucMPDUHLen,
+   v_U16_t              * pUsEtherType
+)
+{
+  v_U8_t                   ucOffset;
+  v_U16_t                  usEtherType = *pUsEtherType;
+  v_SIZE_t                 usLLCSize = sizeof(usEtherType);
+  VOS_STATUS               vosStatus  = VOS_STATUS_SUCCESS;
+  v_U8_t                   ucLLCHeader;
+  
+  /*------------------------------------------------------------------------
+    Check if LLC is present - if not, TL is unable to determine type
+   ------------------------------------------------------------------------*/
+  ucLLCHeader   = (v_U8_t)WLANHAL_RX_BD_GET_LLC(aucBDHeader);
+  if ( WLANHAL_RX_BD_LLC_PRESENT != ucLLCHeader)
+  {
+    ucOffset = WLANTL_802_3_HEADER_LEN - sizeof(usEtherType); 
+  }
+  else
+  {
+    ucOffset = ucMPDUHLen + WLANTL_LLC_PROTO_TYPE_OFFSET;
+  }
+
+  /*------------------------------------------------------------------------
+    Extract LLC type 
+  ------------------------------------------------------------------------*/
+  vosStatus = vos_pkt_extract_data( vosDataBuff, ucOffset, 
+                                    (v_PVOID_t)&usEtherType, &usLLCSize); 
+
+  if (( VOS_STATUS_SUCCESS != vosStatus ) || 
+      ( sizeof(usEtherType) != usLLCSize ))
+      
+  {
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Error extracting Ether type from data packet");
+    /* Drop packet */
+    vos_pkt_return_packet(vosDataBuff);
+    vosStatus = VOS_STATUS_E_FAILURE;
+  }
+  else
+  {
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL:Ether type retrieved before endianess conv: %d", 
+               usEtherType);
+
+    usEtherType = vos_be16_to_cpu(usEtherType);
+    *pUsEtherType = usEtherType;
+
+    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL:Ether type retrieved: %d", usEtherType);
+  }
+  
+  return vosStatus;
+}
+

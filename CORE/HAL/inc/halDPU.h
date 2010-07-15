@@ -24,6 +24,13 @@
 #define HAL_DPU_KEY_ID_4    4
 #define HAL_DPU_KEY_ID_5    5
 
+//For Libra, this is 2, for Volans, this is 3. 
+//It specifies the number of 16-byte units needed for one RC descriptor for WAPI
+#ifdef LIBRA_WAPI_SUPPORT
+#define HAL_WAPI_RC_DESCRIPTOR_COUNT    2
+#else
+#define HAL_WAPI_RC_DESCRIPTOR_COUNT    3
+#endif
 
 #define HAL_DPU_SELF_STA_DEFAULT_IDX 0 //dpu index 0 is used for self station entry when not associated
 /* Added Descriptor Sequence structure as part of Dpu Descriptor */
@@ -48,18 +55,28 @@ typedef __ani_attr_pre_packed struct _tDpuAutoSeqNumRecord {
 typedef __ani_attr_pre_packed struct sDpuDescriptor {
     //word 0
 #ifdef ANI_BIG_BYTE_ENDIAN
+#if defined(LIBRA_WAPI_SUPPORT)
+    tANI_U32 wapi : 1;
+    tANI_U32 resv1 : 3;
+#else
     tANI_U32 resv1 : 4;
+#endif
     tANI_U32 txFragThreshold4B : 12; /* in units of 4Bytes*/
     tANI_U32 resv2: 7;
     tANI_U32 signature:3;
     tANI_U32 resv3:6;
-#else
+#else // ENDIAN
     tANI_U32 resv3:6;
     tANI_U32 signature:3;
     tANI_U32 resv2: 7;
     tANI_U32 txFragThreshold4B : 12;
+#if defined(LIBRA_WAPI_SUPPORT)
+    tANI_U32 resv1 : 3;
+    tANI_U32 wapi : 1;
+#else
     tANI_U32 resv1 : 4;
 #endif
+#endif // ENDIAN
 
     //word 1
 #ifdef ANI_BIG_BYTE_ENDIAN
@@ -175,6 +192,13 @@ typedef __ani_attr_pre_packed struct sDpuMicKeyDescriptor {
 } __ani_attr_packed __ani_attr_aligned_4 tDpuMicKeyDescriptor;
 
 
+#ifdef FEATURE_WLAN_WAPI
+typedef __ani_attr_pre_packed struct sDpuWpiMicKeyDescriptor {
+    tANI_U32 wpiMicKey[4];
+} __ani_attr_packed __ani_attr_aligned_4 tDpuWpiMicKeyDescriptor;
+#endif
+
+
 typedef  __ani_attr_pre_packed struct sDpuReplayCounterDescriptor {
     tANI_U32  txReplayCount31to0;
 #ifdef ANI_BIG_BYTE_ENDIAN
@@ -201,6 +225,15 @@ typedef  __ani_attr_pre_packed struct sDpuReplayCounterDescriptor {
 #endif
 
 } __ani_attr_packed __ani_attr_aligned_4 tDpuReplayCounterDescriptor;
+
+
+#ifdef FEATURE_WLAN_WAPI
+typedef  __ani_attr_pre_packed struct sDpuWpiReplayCounterDescriptor {
+    tANI_U32   txReplayCount[4];    
+    tANI_U32   rxReplayCount[4];    
+
+} __ani_attr_packed __ani_attr_aligned_4 tDpuWpiReplayCounterDescriptor;
+#endif
 
 typedef struct sHalDpuDescEntry
 {
@@ -232,7 +265,13 @@ typedef struct sHalDpuRCEntry {
     tANI_U8     hwIndex;        /* RC Index in HW [0..255] */
     tANI_U8     hwRCBaseIndex;  /* RC Base Index in HW [0..16] */
     tANI_U8     used;           /* zero if entry is not used */
-    tDpuReplayCounterDescriptor halDpuRC[16];
+    union
+    {
+        tDpuReplayCounterDescriptor halDpuRC[16];
+#ifdef FEATURE_WLAN_WAPI
+        tDpuWpiReplayCounterDescriptor halWpiDpuRC[16];
+#endif
+    } u;
 } tHalDpuRCEntry;
 
 typedef struct sDpuInfo {
@@ -283,14 +322,22 @@ eHalStatus halDpu_AllocMicKeyId(tpAniSirGlobal pMac, tANI_U8 *id, tANI_U8 keyId)
 eHalStatus halDpu_ReleaseMicKeyId(tpAniSirGlobal pMac, tANI_U8 id);
 eHalStatus halDpu_SetMicKeyDescriptor(tpAniSirGlobal pMac, tANI_U8 id,
                         tANI_U8 *pKey, tANI_U8 paeRole );
+#if defined(FEATURE_WLAN_WAPI)
+eHalStatus halDpu_SetWPIMicKeyDescriptor(tpAniSirGlobal pMac, tANI_U8 id,
+                        tANI_U8 *pKey, tANI_U8 paeRole );
+#endif
 eHalStatus halDpu_GetRCId( tpAniSirGlobal pMac, tANI_U8 dpuIndex, tANI_U8 *rcIndex );
 eHalStatus halDpu_EnableRCWinChk( tpAniSirGlobal pMac, tANI_U8 dpuIndex, tANI_U32 queueId );
 eHalStatus halDpu_DisableRCWinChk( tpAniSirGlobal pMac, tANI_U8 dpuIndex, tANI_U32 queueId );
 eHalStatus halDpu_GetKeyId( tpAniSirGlobal pMac, tANI_U8 dpuIndex, tANI_U8 *keyIndex );
 eHalStatus halDpu_GetMicKeyId( tpAniSirGlobal pMac, tANI_U8 dpuIndex, tANI_U8 *micKeyIndex );
-eHalStatus halDpu_AllocRCId(tpAniSirGlobal pMac, tANI_U8 *id);
-eHalStatus halDpu_ReleaseRCId(tpAniSirGlobal pMac, tANI_U8 id);
+eHalStatus halDpu_AllocRCId(tpAniSirGlobal pMac, tAniEdType encType, tANI_U8 *id);
+eHalStatus halDpu_ReleaseRCId(tpAniSirGlobal pMac, tANI_U8 dpuIdx, tANI_U8 id);
 eHalStatus halDpu_SetRCDescriptor( tpAniSirGlobal pMac, tANI_U8 id, tANI_U16 bRCE, tANI_U16 bWCE, tANI_U8 *winChkSize );
+#if defined(LIBRA_WAPI_SUPPORT)
+//For Chips have other than Libra, this needs to be redefine
+eHalStatus halDpu_SetWAPIRCDescriptor( tpAniSirGlobal pMac, tANI_U8 id, tANI_U8 *pTxRC, tANI_U8 *pRxRC );
+#endif
 eHalStatus halDpu_SetFragThreshold(tpAniSirGlobal pMac, tANI_U8 dpuIdx,
                         tANI_U16 fragSize);
 eHalStatus halDpu_GetSignature(tpAniSirGlobal pMac, tANI_U8 dpuId,

@@ -53,8 +53,10 @@
 #define HAL_MODULE_ID_PHY       0
 #define HAL_MODULE_ID_PWR_SAVE  1
 #define HAL_MODULE_ID_BTC       2
-#define HAL_MODULE_ID_RA        3
-
+#if defined(LIBRA_WAPI_SUPPORT)
+#define HAL_MODULE_ID_WAPI      3
+#endif
+#define HAL_MODULE_ID_RA        4
 
 // Define FW endianess here
 //#define FW_LITTLE_BYTE_ENDIAN       1
@@ -110,7 +112,7 @@ eHalStatus halFW_UpdateSystemConfig(tpAniSirGlobal pMac,
 eHalStatus halFW_UpdateReInitRegListStartAddr(tpAniSirGlobal pMac, tANI_U32 value);
 
 /* Handle FW messages to the Host */
-eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void* pFwMsg, tANI_U8* bufConsumed);
+eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void* pFwMsg);
 eHalStatus halFw_PostFwRspMsg(tpAniSirGlobal pMac, void *pFwMsg);
 
 /* Function to handle the FW status message */

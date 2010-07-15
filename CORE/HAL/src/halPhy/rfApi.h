@@ -64,7 +64,6 @@ eRfChannels rfGetChannelIndex(tANI_U8 chanNum, ePhyChanBondState cbState);
 tANI_U8 rfGetChannelIdFromIndex(eRfChannels chIndex);
 
 
-#if defined(ANI_PHY_DEBUG) || defined(ANI_MANF_DIAG)
 eHalStatus rfSetDCOffset(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 dcoIndex, tRxDcoCorrect offset);
 eHalStatus rfGetDCOffset(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 dcoIndex, tRxDcoCorrect *offset);
 eHalStatus rfGetTxLoCorrect(tpAniSirGlobal pMac, ePhyTxChains txChain, eGainSteps txGain, tTxLoCorrect *corr);
@@ -72,7 +71,6 @@ eHalStatus rfSetTxLoCorrect(tpAniSirGlobal pMac, ePhyTxChains txChain, eGainStep
 eHalStatus rfTakeTemp(tpAniSirGlobal pMac, tANI_U8 nSamples, tTempADCVal *retTemperature);
 
 void dump_all_rf_fields(tpAniSirGlobal pMac);
-#endif
 
 
 #ifdef __cplusplus

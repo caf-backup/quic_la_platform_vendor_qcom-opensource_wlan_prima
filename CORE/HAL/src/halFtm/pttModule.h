@@ -41,6 +41,7 @@ typedef struct
     tANI_U16 drvMin;
     tANI_U16 pttMax;
     tANI_U16 pttMin;
+   FwVersionInfo fwVer;
 }sBuildReleaseParams;
 
 typedef struct

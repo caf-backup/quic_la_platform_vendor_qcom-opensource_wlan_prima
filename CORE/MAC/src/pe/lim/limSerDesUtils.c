@@ -1079,9 +1079,9 @@ limGetKeysInfo(tpAniSirGlobal pMac, tpSirKeys pKeyInfo, tANI_U8 *pBuf)
     len  += sizeof(tAniKeyDirection);
     pBuf += sizeof(tAniKeyDirection);
 
-    palCopyMemory( pMac->hHdd, pKeyInfo->keyRsc, pBuf, 8);
-    pBuf += 8;
-    len  += 8;
+    palCopyMemory( pMac->hHdd, pKeyInfo->keyRsc, pBuf, WLAN_MAX_KEY_RSC_LEN);
+    pBuf += WLAN_MAX_KEY_RSC_LEN;
+    len  += WLAN_MAX_KEY_RSC_LEN;
 
     pKeyInfo->paeRole      = *pBuf++;
     len++;

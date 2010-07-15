@@ -13,8 +13,8 @@
 #define SUCCESS     PTT_STATUS_SUCCESS
 #define FAILURE     PTT_STATUS_FAILURE
 
+#ifndef WLAN_FTM_STUB
 
-#if defined(ANI_PHY_DEBUG) || defined(ANI_MANF_DIAG)
 #include "pttModuleApi.h"
 
 //Device Register Access
@@ -39,11 +39,8 @@ eQWPttStatus pttDbgWriteRegister(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32
     return (SUCCESS);
 }
 
-#endif
 
 
-
-#ifdef ANI_MANF_DIAG
 #include "pttModuleApi.h"
 
 
@@ -65,7 +62,7 @@ tANI_U8 defaultAddr3[ANI_MAC_ADDR_SIZE] = { 0x00, 0x77, 0x55, 0x33, 0x11, 0x00 }
 
 void pttModuleInit(tpAniSirGlobal pMac)
 {
-
+    uNvFields fields;
     pMac->hphy.phy.test.testChannelId = 1;
     pMac->hphy.phy.test.testCbState = PHY_SINGLE_CHANNEL_CENTERED;
     pMac->hphy.phy.test.testTpcClosedLoop = eANI_BOOLEAN_FALSE;
@@ -92,7 +89,7 @@ void pttModuleInit(tpAniSirGlobal pMac)
     pMac->ptt.frameGenParams.crc = 0;
     pMac->ptt.frameGenParams.preamble = PHYDBG_PREAMBLE_OFDM;
 
-    /*memcpy(&pMac->ptt.frameGenParams.addr1[0], defaultAddr1, ANI_MAC_ADDR_SIZE);
+    memcpy(&pMac->ptt.frameGenParams.addr1[0], defaultAddr1, ANI_MAC_ADDR_SIZE);
 
     if (eHAL_STATUS_SUCCESS == halReadNvField(pMac, NV_COMMON_MAC_ADDR, &fields))
     {
@@ -103,7 +100,7 @@ void pttModuleInit(tpAniSirGlobal pMac)
         memset(&pMac->ptt.frameGenParams.addr2[0], 0xFF, ANI_MAC_ADDR_SIZE);
     }
     memcpy(&pMac->ptt.frameGenParams.addr3[0], defaultAddr3, ANI_MAC_ADDR_SIZE);
-	*/
+
 
     pMac->ptt.agcEnables.rx[PHY_RX_CHAIN_0] = eANI_BOOLEAN_TRUE;
     pMac->ptt.agcEnables.rx[PHY_RX_CHAIN_1] = eANI_BOOLEAN_TRUE;
@@ -251,6 +248,7 @@ eQWPttStatus pttSetNvTable(tpAniSirGlobal pMac, eNvTable nvTable, uNvTables *tab
             case NV_TABLE_REGULATORY_DOMAINS:
             case NV_TABLE_DEFAULT_COUNTRY:
             case NV_TABLE_RF_CAL_VALUES:
+            case NV_TABLE_RSSI_OFFSETS:
                 if (eHAL_STATUS_FAILURE == halWriteNvTable(pMac, nvTable, tableData))
                 {
                     phyLog(pMac, LOGE, "Unable to write table %d\n", (tANI_U32)nvTable);
@@ -1297,19 +1295,22 @@ eQWPttStatus pttEnableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcEnable enables)
     return (SUCCESS);
 }
 
-
+#define RSSI_TO_DBM_OFFSET     -105
 void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
 {
     tANI_U32 rssi0, rssi1, rssi0Stats = 0, rssi1Stats = 0;
 	tANI_U8 counter, validCounterRssi0 = 0, validCounterRssi1 = 0;
+
+    rssi->rx[PHY_RX_CHAIN_0] = 0;
+    rssi->rx[PHY_RX_CHAIN_1] = 0;
 
 	/*check the valid bit '8th bit' before reading values
 	 which should be set to 1 for valid RSSI reads*/
 
 	for (counter = 0; counter < 10; counter++ ) {
 
-    palReadRegister(pMac->hHdd, QWLAN_AGC_ADC_RSSI0_REG, &rssi0);
-    palReadRegister(pMac->hHdd, QWLAN_AGC_ADC_RSSI1_REG, &rssi1);
+        palReadRegister(pMac->hHdd, QWLAN_AGC_ADC_RSSI0_REG, &rssi0);
+        palReadRegister(pMac->hHdd, QWLAN_AGC_ADC_RSSI1_REG, &rssi1);
 
 		/*reading rssi0 value*/
 		if(rssi0 & QWLAN_AGC_ADC_RSSI0_INVALID_MASK)
@@ -1338,8 +1339,15 @@ void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
 	rssi1 = ((rssi1Stats == 0)?0:(rssi1Stats/validCounterRssi1));
 
 	/*assign rssiValues to response*/
-    rssi->rx[PHY_RX_CHAIN_0] = (tANI_U8)rssi0;
-    rssi->rx[PHY_RX_CHAIN_1] = (tANI_U8)rssi1;
+    if(rssi0 > 0)
+    {
+        rssi->rx[PHY_RX_CHAIN_0] = (tANI_S8)rssi0 + RSSI_TO_DBM_OFFSET + pMac->hphy.nvCache.tables.rssiOffset[PHY_RX_CHAIN_0];
+    }
+
+    if(rssi1 >0)
+    {
+        rssi->rx[PHY_RX_CHAIN_1] = (tANI_S8)rssi1 + RSSI_TO_DBM_OFFSET+ pMac->hphy.nvCache.tables.rssiOffset[PHY_RX_CHAIN_1];
+    }
 
 }
 
@@ -2036,5 +2044,5 @@ eQWPttStatus pttLogDump(tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U
     return (SUCCESS);
 }
 
-#endif // ANI_MANF_DIAG
+#endif
 

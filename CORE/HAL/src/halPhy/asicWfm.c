@@ -580,7 +580,7 @@ const tWaveformSample pWave[184] =
     {   55,     92      }
 };
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 eHalStatus asicTxFirSetChainBypass(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_BOOLEAN chainBypassEnable)
 {
     switch (txChain)
@@ -680,7 +680,7 @@ eHalStatus asicSetupTestWaveform(tpAniSirGlobal pMac, const tWaveformSample *pWa
     return (retVal);
 }
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 eHalStatus asicStartTestWaveform(tpAniSirGlobal pMac, eWaveMode playback, tANI_U32 startIndex, tANI_U32 endIndex)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;

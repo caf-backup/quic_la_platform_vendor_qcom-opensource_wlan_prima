@@ -1933,6 +1933,7 @@ limAddStaSelf(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U8 updateSta)
     tSirMsgQ msgQ;
     tSirRetStatus     retCode = eSIR_SUCCESS;
     tSirMacAddr staMac;
+    tANI_U32 listenInterval;
     tANI_U32  cfg = sizeof(tSirMacAddr);
 
 
@@ -2001,9 +2002,9 @@ limAddStaSelf(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U8 updateSta)
         pAddStaParams->fShortGI40Mhz     = limGetHTCapability( pMac, eHT_SHORT_GI_40MHZ);
     }
 
-
-
-
+	if(wlan_cfgGetInt(pMac, WNI_CFG_LISTEN_INTERVAL, &listenInterval) != eSIR_SUCCESS)
+		limLog(pMac, LOGP, FL("Couldn't get LISTEN_INTERVAL\n"));
+	pAddStaParams->listenInterval = (tANI_U16)listenInterval;
 
     limFillSupportedRatesInfo(pMac, NULL, &pAddStaParams->supportedRates);
 

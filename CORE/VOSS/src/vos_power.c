@@ -59,6 +59,7 @@ when       who     what, where, why
 
 #ifdef MSM_PLATFORM_7x30
 #include <linux/mfd/pmic8058.h>
+#include <mach/rpc_pmapp.h>
 #endif
 
 #include <vos_sched.h>
@@ -1103,6 +1104,31 @@ VOS_STATUS vos_chipVoteOnXOBuffer
   v_PVOID_t             user_data
 )
 {
+#ifdef MSM_PLATFORM_7x30
+   int rc;
+
+   //Turn on the 19.2 MHz A0 XO buffer from PMIC8058
+   rc = pmapp_clock_vote(id, PMAPP_CLOCK_ID_A0, PMAPP_CLOCK_VOTE_ON);
+   if (rc) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+         "%s: A0 clk vote on failed (%d)",__func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   //Put the clock in a pin control mode
+   rc = pmapp_clock_vote(id, PMAPP_CLOCK_ID_A0, PMAPP_CLOCK_VOTE_PIN_CTRL);
+   if (rc) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+         "%s: A0 pin ctrl vote failed (%d)",__func__, rc);
+      pmapp_clock_vote(id, PMAPP_CLOCK_ID_A0, PMAPP_CLOCK_VOTE_OFF);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   //Allow some delay for clock to be turned on. 10 ms should suffice.
+   msleep(10);
+
+#endif
+
    return VOS_STATUS_SUCCESS;
 }
 
@@ -1138,5 +1164,16 @@ VOS_STATUS vos_chipVoteOffXOBuffer
   v_PVOID_t             user_data
 )
 {
+#ifdef MSM_PLATFORM_7x30
+   int rc;
+
+   rc = pmapp_clock_vote(id, PMAPP_CLOCK_ID_A0, PMAPP_CLOCK_VOTE_OFF);
+   if (rc) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+         "%s: A0 clk vote off failed (%d)",__func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+#endif
+
    return VOS_STATUS_SUCCESS;
 }

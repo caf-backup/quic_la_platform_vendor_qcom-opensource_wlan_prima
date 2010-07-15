@@ -106,25 +106,27 @@ eHalStatus asicTPCAutomatic(tpAniSirGlobal pMac)
 
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, 0);   //turn off TPC closed loop control
 
-#if defined(ANI_MANF_DIAG)
-    SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, pMac->hphy.phy.test.testTpcClosedLoop);
-#else
-    if(halIsQFuseBlown(pMac) == eHAL_STATUS_SUCCESS) //assuming valid pwr table data in qFuse
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
-        SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, TPC_TXPWR_ENABLE_MASK);   //turn on TPC closed loop control
+        SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, pMac->hphy.phy.test.testTpcClosedLoop);
     }
     else
     {
-        //Open the loop
-        tTxGain fineGain;
-        fineGain.coarsePwr = (eTxCoarseGain)(pMac->hphy.phy.openLoopTxGain);
-        fineGain.finePwr = (eTxFineGain)(0xF);
+        if(halIsQFuseBlown(pMac) == eHAL_STATUS_SUCCESS) //assuming valid pwr table data in qFuse
+        {
+            SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, TPC_TXPWR_ENABLE_MASK);   //turn on TPC closed loop control
+        }
+        else
+        {
+            //Open the loop
+            tTxGain fineGain;
+            fineGain.coarsePwr = (eTxCoarseGain)(pMac->hphy.phy.openLoopTxGain);
+            fineGain.finePwr = (eTxFineGain)(0xF);
 
-        if ((retVal = asicTPCPowerOverride(pMac, fineGain, fineGain, fineGain, fineGain)) != eHAL_STATUS_SUCCESS) { return (retVal); }
-        pMac->hphy.phy.test.testTpcClosedLoop = eANI_BOOLEAN_FALSE;
+            if ((retVal = asicTPCPowerOverride(pMac, fineGain, fineGain, fineGain, fineGain)) != eHAL_STATUS_SUCCESS) { return (retVal); }
+            pMac->hphy.phy.test.testTpcClosedLoop = eANI_BOOLEAN_FALSE;
+        }
     }
-#endif
-
 
 
     return (retVal);
@@ -137,7 +139,7 @@ eHalStatus asicLoadTPCPowerLUT(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_U
     eHalStatus retVal;
     tANI_U32 enable;
     tANI_U32 point;
-#ifdef ANI_PHY_DEBUG    
+#ifdef ANI_PHY_DEBUG
     tANI_U32 tpcLutCache[TPC_MEM_POWER_LUT_DEPTH];
 #endif
     tANI_U32 pwrLutOffset;
@@ -164,12 +166,12 @@ eHalStatus asicLoadTPCPowerLUT(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_U
     }
 
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_APBACCESS_REG, QWLAN_TPC_APBACCESS_SELECT_MASK);
-    
+
     for (point = 0; point < TPC_MEM_POWER_LUT_DEPTH; point++)
     {
-#ifdef ANI_PHY_DEBUG        
+#ifdef ANI_PHY_DEBUG
         tpcLutCache[point] = tpcPowerLUT[point];
-#endif        
+#endif
         SET_PHY_REG(pMac->hHdd, pwrLutOffset + (4 * point), tpcPowerLUT[point]);
     }
 
@@ -272,7 +274,7 @@ eHalStatus asicLoadTPCGainLUT(tpAniSirGlobal pMac, ePhyTxChains txChain, tTxGain
 
 }
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 eHalStatus asicGetTxGainAtIndex(tpAniSirGlobal pMac, ePhyTxChains txChain, tPwrTemplateIndex index, tTxGainCombo *retGain)
 {
     eHalStatus retVal;
@@ -394,7 +396,7 @@ eHalStatus asicGetTxPowerMeasurement(tpAniSirGlobal pMac, ePhyTxChains txChain, 
 eHalStatus asicTPCGetADCReading(tpAniSirGlobal pMac, tANI_U8 *pADC)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
-    
+
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_ADC_CTRL_GET_ADC_REG, QWLAN_TPC_ADC_CTRL_GET_ADC_GET_ADC_MASK);
     {
         tANI_U32 i = 1000;  //number of iterations to wait for reading to complete
@@ -404,7 +406,7 @@ eHalStatus asicTPCGetADCReading(tpAniSirGlobal pMac, tANI_U8 *pADC)
         {
             GET_PHY_REG(pMac->hHdd, QWLAN_TPC_ADC_STATUS_REG, &status);
         }while(i-- > 0 && (status & QWLAN_TPC_ADC_STATUS_BUSY_P_MASK));
-    
+
         if (status & QWLAN_TPC_ADC_STATUS_FAILED_MASK)
         {
             assert(0);
@@ -412,16 +414,15 @@ eHalStatus asicTPCGetADCReading(tpAniSirGlobal pMac, tANI_U8 *pADC)
             return (eHAL_STATUS_FAILURE);
         }
     }
-    
+
     {
         tANI_U32 adc;
         GET_PHY_REG(pMac->hHdd, QWLAN_TPC_SENSED_PWR0_REG, &adc);
-        
+
         *pADC = (tANI_U8)adc;
     }
 
     return (retVal);
 }
-
 
 #endif

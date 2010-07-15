@@ -1199,7 +1199,7 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
    int status, i=0;
    /** Pointer for firmware image data */
    const struct firmware *fw;
-   char *buffer, *line;
+   char *buffer, *line,*pTemp;
    size_t size;
    char *name, *value;
    tCfgIniEntry cfgIniTable[MAX_CFG_INI_ITEMS];
@@ -1210,11 +1210,19 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
    status = request_firmware(&fw, "wlan/qcom_cfg.ini", &pAdapter->hsdio_func_dev->dev);
    
    if(!fw || !fw->data) {
-      hddLog(LOGE,"%s: qcom_cfg.ini download failed\n",__FUNCTION__);
-	    return VOS_STATUS_E_FAILURE;
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: qcom_cfg.ini download failed\n",__FUNCTION__);
+      return VOS_STATUS_E_FAILURE;
    } 
 
-   buffer = (char *)fw->data;
+   buffer = (char*)vos_mem_malloc(fw->size);
+   if(NULL == buffer) {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: kmalloc failure",__FUNCTION__);
+      release_firmware(fw);
+      return VOS_STATUS_E_FAILURE;
+   }
+   pTemp = buffer;
+   
+   vos_mem_copy((void*)buffer,(void *)fw->data, fw->size);
    size = fw->size;
   
    while (buffer != NULL)
@@ -1263,6 +1271,7 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
    vos_status = hdd_apply_cfg_ini(pAdapter, cfgIniTable, i);
 
    release_firmware(fw);
+   vos_mem_free(pTemp);
    return vos_status;
 } 
 
@@ -1281,7 +1290,7 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
       pAdapter->cfg_ini->IbssBssid.bytes[0],pAdapter->cfg_ini->IbssBssid.bytes[1],
       pAdapter->cfg_ini->IbssBssid.bytes[2],pAdapter->cfg_ini->IbssBssid.bytes[3],
       pAdapter->cfg_ini->IbssBssid.bytes[4],pAdapter->cfg_ini->IbssBssid.bytes[5]);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gStaMacAddr] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [NetworkAddress] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]",
       pAdapter->cfg_ini->staMacAddr.bytes[0],pAdapter->cfg_ini->staMacAddr.bytes[1],
       pAdapter->cfg_ini->staMacAddr.bytes[2],pAdapter->cfg_ini->staMacAddr.bytes[3],
       pAdapter->cfg_ini->staMacAddr.bytes[4],pAdapter->cfg_ini->staMacAddr.bytes[5]);

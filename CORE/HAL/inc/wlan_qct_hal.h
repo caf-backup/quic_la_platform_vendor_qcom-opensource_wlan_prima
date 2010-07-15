@@ -209,6 +209,16 @@ typedef struct sUapsdInfo {
 
 #define WLANHAL_RX_BD_FT_DONE                  1 /* The value of the field when frame xtl was done*/
 
+//Check whether a RX frame is unprotected over the air
+#if defined(LIBRA_WAPI_SUPPORT)
+#define WLANHAL_RX_IS_UNPROTECTED_WPI_FRAME(_pvBDHeader)  \
+        (((tpHalRxBd)_pvBDHeader)->uef)
+
+#else
+#define WLANHAL_RX_IS_UNPROTECTED_WPI_FRAME(_pvBDHeader)  \
+        (DPU_FEEDBACK_WPI_UNPROTECTED == ((tpHalRxBd)_pvBDHeader)->dpuFeedback)
+#endif
+
 
 /*==========================================================================
 
@@ -239,6 +249,10 @@ tANI_U8 WLANHAL_RxBD_GetFrameTypeSubType(v_PVOID_t _pvBDHeader, tANI_U16 usFrmCt
 
 #define HAL_TXCOMP_REQUESTED_MASK           0x1  //bit 0 for TxComp intr requested. 
 #define HAL_USE_SELF_STA_REQUESTED_MASK     0x2  //bit 1 for STA overwrite with selfSta Requested.
+#define HAL_TX_NO_ENCRYPTION_MASK           0x4  //bit 2. If set, the frame is not to be encrypted
+#if defined(LIBRA_WAPI_SUPPORT)
+#define HAL_WAPI_STA_MASK            0x8  //bit 3. If set, this frame is for WAPI station
+#endif
 
 #ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
 #define HAL_TRIGGER_ENABLED_AC_MASK         0x10 //bit 4 for data frames belonging to trigger enabled AC
@@ -271,6 +285,10 @@ tANI_U8 WLANHAL_RxBD_GetFrameTypeSubType(v_PVOID_t _pvBDHeader, tANI_U16 usFrmCt
     
                 #define HAL_TXCOMP_REQUESTED_MASK           0x1  //bit 0 for TxComp intr requested. 
                 #define HAL_USE_SELF_STA_REQUESTED_MASK    0x2  //bit 1 for STA overwrite with selfSta Requested.
+                #define HAL_TX_NO_ENCRYPTION_MASK           0x4  //bit 2. If set, the frame is not to be encrypted
+#if defined(FEATURE_WLAN_WAPI)
+                #define HAL_WAPI_STA_MASK            0x8  //bit 3. If set, this frame is for WAPI station
+#endif
                 
     uTimestamp:     pkt timestamp
 

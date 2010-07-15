@@ -146,7 +146,7 @@ eHalStatus palFillDeviceMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U32 nu
 
     return( halStatus );
 }
-#ifdef ANI_MANF_DIAG
+
 eHalStatus palWriteRegMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U8 *pBuffer, tANI_U32 numBytes )
 {
     eHalStatus halStatus = eHAL_STATUS_SUCCESS;
@@ -197,4 +197,3 @@ eHalStatus palReadRegMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U8 *pBuff
 
     return( eHAL_STATUS_SUCCESS );
 }
-#endif

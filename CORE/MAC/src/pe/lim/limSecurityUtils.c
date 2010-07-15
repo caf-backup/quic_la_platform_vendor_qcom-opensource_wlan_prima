@@ -1118,8 +1118,12 @@ tSirRetStatus      retCode;
         }        
       break;
     case eSIR_ED_TKIP:
-    case eSIR_ED_CCMP: {
-        palCopyMemory( pMac->hHdd, (tANI_U8 *) &pSetStaKeyParams->key,
+    case eSIR_ED_CCMP:
+#ifdef FEATURE_WLAN_WAPI 
+    case eSIR_ED_WPI: 
+#endif
+        {
+            palCopyMemory( pMac->hHdd, (tANI_U8 *) &pSetStaKeyParams->key,
                                         (tANI_U8 *) &pMlmSetKeysReq->key[0], sizeof( tSirKeys ));
         }
         break;

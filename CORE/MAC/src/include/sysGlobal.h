@@ -44,10 +44,8 @@ typedef struct sAniSirSys
     TX_QUEUE gSirSchMsgQ;
     TX_QUEUE gSirPmmMsgQ;
 
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
     TX_THREAD gSirNimPttThread;
     TX_QUEUE gSirNimRDMsgQ;
-#endif
 
     TX_QUEUE gSirHalEvtQ;
     TX_QUEUE gSirTxMsgQ;

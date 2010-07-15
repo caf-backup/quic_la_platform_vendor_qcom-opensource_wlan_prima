@@ -533,8 +533,8 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
     type = (typeSubtype & HAL_FRAME_TYPE_MASK) >> HAL_FRAME_TYPE_OFFSET;
     subType = (typeSubtype & HAL_FRAME_SUBTYPE_MASK);
 
-    HALLOG1( halLog(pMac, LOG1, FL("Type: %d/%d, MAC: %08x., Tid=%d, frmXlat=%d, pTxBD=%08x\n"), 
-        type, subType, *((tANI_U32 *) pDestMacAddr), tid, !disableFrmXtl, pTxBd 
+    HALLOG1( halLog(pMac, LOG1, FL("Type: %d/%d, MAC: %08x., Tid=%d, frmXlat=%d, pTxBD=%08x txFlag 0x%X\n"), 
+        type, subType, *((tANI_U32 *) pDestMacAddr), tid, !disableFrmXtl, pTxBd, txFlag 
     ));
 
     /* - Set common fields in TxBD
@@ -608,11 +608,40 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
         if( SIR_MAC_DATA_NULL == (subType & ~SIR_MAC_DATA_QOS_DATA)){
             disableFrmXtl = 1;
             if (txFlag & HAL_TXCOMP_REQUESTED_MASK) 
+            {
                 pBd->dpuRF = BMUWQ_FW_TRANSMIT; //Send to FW to transmit NULL frames.
-        }
-#ifdef WLAN_PERF        
+            }
+            else
+            {
+#ifdef LIBRA_WAPI_SUPPORT
+                if (txFlag & HAL_WAPI_STA_MASK)
+                {
+                    pBd->dpuRF = BMUWQ_WAPI_DPU_TX;
+                    //set NE bit to 1 for the null/qos null frames
+                    pBd->dpuNE = HAL_NO_ENCRYPTION_ENABLED;
+                }
+#endif
+            }
+		}
+#if defined(WLAN_PERF) || defined(FEATURE_WLAN_WAPI) || defined(LIBRA_WAPI_SUPPORT)
+        //For not-NULL data frames
         else{
+#if defined(FEATURE_WLAN_WAPI)
+            //If caller doesn't want this frame to be encrypted, for example, WAI packets
+            if( (txFlag & HAL_TX_NO_ENCRYPTION_MASK) )
+            {
+                pBd->dpuNE = HAL_NO_ENCRYPTION_ENABLED;
+            }
+#endif //defined(FEATURE_WLAN_WAPI)
+#ifdef LIBRA_WAPI_SUPPORT
+            if (txFlag & HAL_WAPI_STA_MASK)
+            {
+                pBd->dpuRF = BMUWQ_WAPI_DPU_TX;
+            }
+#endif //LIBRA_WAPI_SUPPORT
+#if defined(WLAN_PERF)
             txBdSignature = computeTxBdSignature(pMac, pDestMacAddr, tid, unicastDst);
+#endif //defined(WLAN_PERF)
         }
 #endif        
     }
@@ -774,7 +803,7 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
         }
 
     } 
-
+    
     /* Over SDIO bus, SIF won't swap data bytes to/from data FIFO. 
      * In order for MAC modules to recognize BD in Libra's default endian format (Big endian)
      * All BD fields need to be swaped here

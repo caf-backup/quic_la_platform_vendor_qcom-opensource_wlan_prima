@@ -16,10 +16,13 @@
 
 #ifndef HALTYPES_H
 #define HALTYPES_H
+
+#ifndef WINXP_APPS_BUILD
 #include "wlan_qct_bal.h"
 #include "libraDefs.h"
-#include "palTypes.h"
+#endif
 
+#include "palTypes.h"
 
 #define OFFSET_OF(structType,fldName)   (&((structType*)0)->fldName)
 

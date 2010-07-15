@@ -23,8 +23,7 @@
 #include "mpdu.h"
 #include <halPhyUtil.h>
 
-
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 
 typedef enum
 {
@@ -444,9 +443,9 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
     //
     // !Important, when writing to phyDbg memory over the 16-bit AHB bus, we need
     // to chop the 32-bit words into two subsequent writes on subsequent 32-bit boundaries.
-    tANI_U32 pktWords = (sizeof(sPhyDbgHdr) / 4) + sizeof(sMpiHdr) + 0/*sizeof(sMPDUHeader)*/;
+    tANI_U32 pktWords = (sizeof(sPhyDbgHdr) / 4) + sizeof(sMpiHdr) + sizeof(sMPDUHeader);
     tANI_U32 *bufWord;
-    tANI_U32 frameBuf[((sizeof(sPhyDbgHdr) / 4) + sizeof(sMpiHdr) + 0/*sizeof(sMPDUHeader)*/) * 2];
+    tANI_U32 frameBuf[((sizeof(sPhyDbgHdr) / 4) + sizeof(sMpiHdr) + sizeof(sMPDUHeader)) * 2];
 
 
     assert(rate < NUM_HAL_PHY_RATES);
@@ -613,9 +612,13 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
                             return(retVal);
                         }
                     }
+            else if(pMac->hphy.phy.test.testTxGainIndexSource == FORCE_POWER_TEMPLATE_INDEX)
+            {
+                pMac->hphy.phy.test.testLastPwrIndex = pMac->hphy.phy.test.testForcedTxGainIndex;
+                frame.mpiHdr.tx_demanded_power = pMac->hphy.phy.test.testLastPwrIndex;
+            }
                     else if ((pMac->hphy.phy.test.testTxGainIndexSource == RATE_POWER_NON_LIMITED) ||
-                             (pMac->hphy.phy.test.testTxGainIndexSource == FIXED_POWER_DBM) ||
-                             (pMac->hphy.phy.test.testTxGainIndexSource == FORCE_POWER_TEMPLATE_INDEX)
+                     (pMac->hphy.phy.test.testTxGainIndexSource == FIXED_POWER_DBM)
                             )
                     {
                         if ((retVal =
@@ -644,8 +647,8 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
             frame.mpiHdr.tx_demanded_power = 0; //TPC does not automatically update gain index 0
             }
 
-        frame.mpiHdr.psdu_length = 0/*sizeof(sMPDUHeader)*/ + payloadLength;
-        frame.mpiHdr.ppdu_length = 0/*sizeof(sMPDUHeader)*/ + payloadLength;
+        frame.mpiHdr.psdu_length = sizeof(sMPDUHeader) + payloadLength;
+        frame.mpiHdr.ppdu_length = sizeof(sMPDUHeader) + payloadLength;
         //frame.mpiHdr.psdu_length = payloadLength;
         //frame.mpiHdr.ppdu_length = payloadLength;
 
@@ -655,15 +658,15 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
             frame.mpiHdr.ppdu_length += 4;
         }
 
-        // memcpy(&frame.mpduHdr.MACAddress1[0], addr1, ANI_MAC_ADDR_SIZE);         // &pMac->ptt.destMacAddress[0],
-        // memcpy(&frame.mpduHdr.MACAddress2[0], addr2, ANI_MAC_ADDR_SIZE);         // &pMac->ptt.sourceMacAddress[0]
-        // memcpy(&frame.mpduHdr.MACAddress3[0], addr3, ANI_MAC_ADDR_SIZE);         // &pMac->ptt.bssIdMacAddress[0],
-        //
-        // frame.mpduHdr.duration = FDUR_DURATION_MASK;    //set for max duration
-        //
-        // frame.mpduHdr.seqNum = 7;
+        memcpy(&frame.mpduHdr.MACAddress1[0], addr1, ANI_MAC_ADDR_SIZE);         // &pMac->ptt.destMacAddress[0],
+        memcpy(&frame.mpduHdr.MACAddress2[0], addr2, ANI_MAC_ADDR_SIZE);         // &pMac->ptt.sourceMacAddress[0]
+        memcpy(&frame.mpduHdr.MACAddress3[0], addr3, ANI_MAC_ADDR_SIZE);         // &pMac->ptt.bssIdMacAddress[0],
 
-        frame.phyDbgHdr.pyldf_len = 0/*sizeof(sMPDUHeader)*/;    //initialize the fixed length to the fixed size mpdu header
+         frame.mpduHdr.duration = FDUR_DURATION_MASK;    //set for max duration
+
+         frame.mpduHdr.seqNum = 7;
+
+        frame.phyDbgHdr.pyldf_len = sizeof(sMPDUHeader);    //initialize the fixed length to the fixed size mpdu header
                                                             //frame.phyDbgHdr.pyldf_len = size of the MPDU header being used
                                                             //in this frame formatting;
 
@@ -791,7 +794,7 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
                 volatile tANI_U32 i = 0;
 
                 //for (byte = (tANI_U8 *)&frame.mpiHdr; byte < ((tANI_U8 *)&frame + sizeof(tPhyDbgFrame)); byte++, i++)
-                for (byte = (tANI_U8 *)&frame.mpiHdr; byte < ((tANI_U8 *)&frame + sizeof(sPhyDbgHdr) + sizeof(sMpiHdr)); byte++, i++)
+                for (byte = (tANI_U8 *)&frame.mpiHdr; byte < ((tANI_U8 *)&frame + sizeof(sPhyDbgHdr) + sizeof(sMpiHdr)  + sizeof(sMPDUHeader)); byte++, i++)
                 {
                     tANI_U32 intByte = *byte;
 
@@ -1188,13 +1191,6 @@ static eHalStatus DoGrabRamCapture(tpAniSirGlobal pMac, tANI_U32 rxChain);
 #define _256_BYTE_MEM_SIZE  256
 #define _128_BYTE_MEM_SIZE  128
 
-/* Veerendra */
-#if 0
-#if defined(ANI_MANF_DIAG) && #if defined (WNI_POLARIS_FW_OS == SIR_RTAI) && #if defined(ANI_LEXRA)
-void    pal_rt_reset_watchdog(void);
-#endif
-#endif
-
 
 /*
     asicGrabAdcSamples for Libra is designed to capture the samples at bottom half of the SRAM internal memory.
@@ -1212,7 +1208,6 @@ eHalStatus asicGrabAdcSamples(tpAniSirGlobal pMac, tANI_U32 startSample, tANI_U3
     tANI_U32 w, rxChain;
     tANI_U32 *pAdcSamples0, *pAdcSamples1;
 
-#ifdef ANI_MANF_DIAG
     if (((startSample + numSamples) > GRAB_RAM_DBLOCK_SIZE) || (numSamples > MAX_REQUESTED_GRAB_RAM_SAMPLES))
     {
         phyLog(pMac, LOGE, "Too many grab ram samples requested: start=%d num=%d\n", startSample, numSamples);
@@ -1247,10 +1242,6 @@ eHalStatus asicGrabAdcSamples(tpAniSirGlobal pMac, tANI_U32 startSample, tANI_U3
         sampleBuffer[w - startSample].rx1.I = (tANI_S16)(((pAdcSamples1[w] >> 0 ) & MSK_11) - 1024);
         sampleBuffer[w - startSample].rx1.Q = (tANI_S16)(((pAdcSamples1[w] >> 11) & MSK_11) - 1024);
 	}
-
-#else
-    phyLog(pMac, LOGE, "Grab Ram capture only available in ANI_MANF_DIAG builds\n");
-#endif
 
     return(retVal);
 }
@@ -1425,7 +1416,6 @@ eHalStatus log_grab_ram(tpAniSirGlobal pMac, tANI_U32 startSample, tANI_U32 numS
 
     return(eHAL_STATUS_SUCCESS);
 }
-
 
 #endif
 

@@ -52,9 +52,10 @@
 #include <wlan_hdd_misc.h>
 #include <vos_sched.h>
 
-#ifdef MSM_PLATFORM_7x30
-#include <mach/rpc_pmapp.h>
-static const char* id = "WLAN";
+#ifdef CONFIG_CFG80211
+#include <linux/wireless.h>
+#include <net/cfg80211.h>
+#include "wlan_hdd_cfg80211.h"
 #endif
 
 #ifdef ANI_MANF_DIAG
@@ -66,8 +67,15 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
                                          void *ndev)
 {
    struct net_device *dev = ndev;
-   hdd_adapter_t *pAdapter = (hdd_adapter_t*)netdev_priv(dev);
+   hdd_adapter_t *pAdapter = NULL;
 
+#ifdef CONFIG_CFG80211
+   if (!dev->ieee80211_ptr)
+       return NOTIFY_DONE;
+#endif
+
+   pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+   
    if(NULL == pAdapter)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: HDD Adaptor Null Pointer", __func__);
@@ -135,7 +143,7 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
   --------------------------------------------------------------------------*/
 int hdd_open (struct net_device *dev)
 {
-   hdd_adapter_t* pAdapter = netdev_priv(dev);
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
    if(pAdapter == NULL) {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -143,17 +151,11 @@ int hdd_open (struct net_device *dev)
       return -1;
    }
 
-   if(!hdd_connIsConnected(pAdapter)) {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-                 "%s: STA not associated, leaving Tx queues disabled" ,
-                 __FUNCTION__);
-   }
-   else
-   {   
+   /* Enable TX queues only when we are connected */
+   if(hdd_connIsConnected(pAdapter)) {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
                  "%s: Enabling Tx Queues" , __FUNCTION__);
 
-      netif_carrier_on(dev);
       netif_start_queue(dev);
    }
 
@@ -178,7 +180,6 @@ int hdd_stop (struct net_device *dev)
    //transmission is being disabled anywhere other than hard_start_xmit
    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Disabling OS Tx queues",__func__);
    netif_tx_disable(dev);
-   netif_carrier_off(dev);
 
    return 0;
 }
@@ -415,7 +416,7 @@ static void hdd_set_mac_addr_cb( tHalHandle hHal, tANI_S32 result )
 
 static int hdd_set_mac_address(struct net_device *dev, void *addr)
 {
-   hdd_adapter_t *pAdapter = netdev_priv(dev);
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    struct sockaddr *psta_mac_addr = addr;
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
 
@@ -552,7 +553,14 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    v_CONTEXT_t pVosContext = pAdapter->pvosContext;
    struct net_device *pWlanDev = pAdapter->dev;
    VOS_STATUS vosStatus;
-  
+#ifdef CONFIG_CFG80211
+    struct wireless_dev *wdev = pWlanDev->ieee80211_ptr ;
+#endif 
+   
+#ifdef ANI_MANF_DIAG
+    wlan_hdd_ftm_close(pAdapter);
+    return;
+#endif  
    //Stop the Interface TX queue.
    netif_tx_disable(pWlanDev);
    netif_carrier_off(pWlanDev);
@@ -638,10 +646,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    //Vote off any PMIC voltage supplies
    vos_chipPowerDown(NULL, NULL, NULL);
 
-#ifdef MSM_PLATFORM_7x30
-   if(pAdapter->cfg_ini->b19p2MhzPmicClkEnabled) 
-      pmapp_clock_vote(id, PMAPP_CLOCK_ID_A0, PMAPP_CLOCK_VOTE_OFF);
-#endif
+   vos_chipVoteOffXOBuffer(NULL, NULL, NULL);
 
    //Clean up HDD Nlink Service
    send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0); 
@@ -681,6 +686,11 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
 
    //Free the net device
    free_netdev(pWlanDev);
+#ifdef CONFIG_CFG80211
+   wiphy_unregister(wdev->wiphy) ; 
+   wiphy_free(wdev->wiphy) ;
+   kfree(wdev) ;
+#endif
 }
 
 /**---------------------------------------------------------------------------
@@ -695,7 +705,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
 VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
 {
    struct net_device *pWlanDev = pAdapter->dev;
-   eHalStatus halStatus;
+   eHalStatus halStatus;   
 
    //Apply the cfg.ini to cfg.dat
    if ( hdd_update_config_dat(pAdapter) == FALSE)
@@ -782,12 +792,36 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    v_CONTEXT_t pVosContext= NULL; 
    static char macAddr[6] =  {0x00, 0x0a, 0xf5, 0x89, 0x89, 0x89};
    int ret;
-
-#ifdef MSM_PLATFORM_7x30
-   int rc;
+#ifdef CONFIG_CFG80211
+   struct wireless_dev *wdev ;
 #endif
 
    ENTER();
+      
+#ifdef CONFIG_CFG80211
+   /*
+    * cfg80211 initialization and registration....
+    */
+      
+   wdev = wlan_hdd_cfg80211_init(&sdio_func_dev->dev, sizeof(hdd_adapter_t)) ;
+
+   if(wdev == NULL)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: cfg80211 init failed", __func__);
+      goto register_cfg80211_err ;
+   }
+
+   pAdapter = wdev_priv(wdev) ;
+   pAdapter->wdev = wdev ;
+ 
+   pWlanDev = alloc_netdev(0, "wlan%d", ether_setup);
+   
+   if(pWlanDev == NULL) 
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: alloc_netdev failed", __func__);
+      goto register_cfg80211_err ;
+   }
+#else      
       
    //Allocate the net_device and HDD Adapter (private data) 
    pWlanDev = alloc_etherdev(sizeof( hdd_adapter_t ));
@@ -802,6 +836,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    ether_setup(pWlanDev); 
       
    pAdapter = netdev_priv(pWlanDev);
+#endif   
    
    //Initialize the adapter context to zeros.
    vos_mem_zero(pAdapter, sizeof( hdd_adapter_t ));
@@ -839,9 +874,18 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    pWlanDev->watchdog_timeo = HDD_TX_TIMEOUT;
    pWlanDev->hard_header_len += LIBRA_HW_NEEDED_HEADROOM;
 
+#ifdef CONFIG_CFG80211
+   wdev->iftype = NL80211_IFTYPE_STATION; 
+   pWlanDev->ieee80211_ptr = wdev ;
+#endif  
+
    /* set pWlanDev's parent to sdio device */
    SET_NETDEV_DEV(pWlanDev, &sdio_func_dev->dev);
 
+#ifdef CONFIG_CFG80211
+   wdev->netdev =  pWlanDev;
+#endif 
+   
    // Set the private data for the device to our adapter.
    libra_sdio_setprivdata (sdio_func_dev, pAdapter);
    atomic_set(&pAdapter->sdio_claim_count, 0);
@@ -858,13 +902,14 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed:register_netdev",__func__); 
       goto err_free_netdev;
    }
+
+   set_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
+
 #ifdef ANI_MANF_DIAG
     wlan_hdd_ftm_open(pAdapter);
     hddLog(VOS_TRACE_LEVEL_ERROR,"%s: FTM driver loaded success fully",__func__);
     return VOS_STATUS_SUCCESS;
 #endif
-
-   set_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
 
    // Load all config first as TL config is needed during vos_open
    pAdapter->cfg_ini = (hdd_config_t*) kmalloc(sizeof(hdd_config_t), GFP_KERNEL);
@@ -949,30 +994,12 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       goto err_vosclose;
    }
 
-#ifdef MSM_PLATFORM_7x30
-   if(pAdapter->cfg_ini->b19p2MhzPmicClkEnabled) 
+   status = vos_chipVoteOnXOBuffer(NULL, NULL, NULL);
+   if (!VOS_IS_STATUS_SUCCESS(status))
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Turn on PMAPP_CLOCK_ID_A0",__func__);
-
-      //Turn on the 19.2 MHz A0 XO buffer from PMIC8058
-      rc = pmapp_clock_vote(id, PMAPP_CLOCK_ID_A0, PMAPP_CLOCK_VOTE_ON);
-      if (rc) {
-         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: A0 clk vote on failed (%d)",__func__, rc);
-         goto err_vosclose;
-      }
-
-      //Put the clock in a pin control mode
-      rc = pmapp_clock_vote(id, PMAPP_CLOCK_ID_A0, PMAPP_CLOCK_VOTE_PIN_CTRL);
-      if (rc) {
-         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: A0 pin ctrl failed (%d)",__func__, rc);
-         goto err_clkvote;
-      }
-
-      //Clk must be turned on before enabling func1
-      msleep(50);
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to configure 19.2 MHz Clock", __func__);
+      goto err_vosclose;
    }
-
-#endif
 
    /* Start SAL now */
    status = WLANSAL_Start(pAdapter->pvosContext);
@@ -1080,10 +1107,7 @@ err_salstop:
 	WLANSAL_Stop(pVosContext);
 
 err_clkvote:
-#ifdef MSM_PLATFORM_7x30
-   if(pAdapter->cfg_ini->b19p2MhzPmicClkEnabled) 
-      pmapp_clock_vote(id, PMAPP_CLOCK_ID_A0, PMAPP_CLOCK_VOTE_OFF);
-#endif
+   vos_chipVoteOffXOBuffer(NULL, NULL, NULL);
 
 err_vosclose:	
    vos_close(pVosContext ); 
@@ -1104,6 +1128,12 @@ err_netdev_unregister:
 
 err_free_netdev:
    free_netdev(pWlanDev);
+#ifdef CONFIG_CFG80211
+register_cfg80211_err:
+   wiphy_unregister(wdev->wiphy) ; 
+   wiphy_free(wdev->wiphy) ;
+   kfree(wdev) ;
+#endif
 
    return -1;
 	
