@@ -366,6 +366,8 @@ VosMCThread
       break;
     }
 
+    clear_bit(MC_POST_EVENT_MASK, &pSchedContext->mcEventFlag);
+
     while(1)
     {
       // Check if MC needs to shutdown
@@ -534,8 +536,6 @@ VosMCThread
       break; //All queues are empty now
 
     } // while message loop processing
-
-    clear_bit(MC_POST_EVENT_MASK, &pSchedContext->mcEventFlag);
 
   } // while TRUE
 
@@ -714,6 +714,8 @@ static int VosTXThread ( void * Arg )
         break;
     }
 
+    clear_bit(TX_POST_EVENT_MASK, &pSchedContext->txEventFlag);
+
     while(1)
     {
       if(test_bit(TX_SHUTDOWN_EVENT_MASK, &pSchedContext->txEventFlag))
@@ -819,8 +821,6 @@ static int VosTXThread ( void * Arg )
       break; //All queues are empty now
 
     } // while message loop processing
-
-    clear_bit(TX_POST_EVENT_MASK, &pSchedContext->txEventFlag);
 
   } // while TRUE
 
