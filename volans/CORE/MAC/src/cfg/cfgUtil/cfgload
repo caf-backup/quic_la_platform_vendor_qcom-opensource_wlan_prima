@@ -1,0 +1,10 @@
+#!/bin/sh
+
+tftp -g -r updateCfg -l updateCfg 192.168.45.2
+tftp -g -r aniCfgGen -l aniCfgGen 192.168.45.2
+tftp -g -r radioCfg -l radioCfg 192.168.45.2
+
+chmod 755 updateCfg aniCfgGen radioCfg
+
+#./updateCfg -d /tmp -s /tmp > /dev/null 2>&1
+#./aniCfgGen -b -d /tmp -s /tmp > /dev/null 2>&1

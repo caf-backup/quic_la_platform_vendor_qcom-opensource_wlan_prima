@@ -1,0 +1,21 @@
+#ifndef WLAN_HDD_MISC_H
+#define WLAN_HDD_MISC_H
+
+#define LIBRA_CFG_FILE      "wlan/volans/cfg.dat"
+#define LIBRA_FW_FILE       "wlan/volans/qcom_fw.bin"
+#define LIBRA_NV_FILE       "wlan/volans/qcom_wlan_nv.bin"
+#define LIBRA_CFG_INI_FILE  "wlan/volans/qcom_cfg.ini"
+#define LIBRA_COUNTRY_INFO_FILE     "wlan_country_info.dat"
+#define LIBRA_HO_CFG_FILE   "wlan_ho_config"
+
+
+VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_data, v_SIZE_t *pSize);
+
+VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx);
+
+VOS_STATUS hdd_get_cfg_file_size(v_VOID_t *pCtx, char *pFileName, v_SIZE_t *pBufSize);
+
+VOS_STATUS hdd_read_cfg_file(v_VOID_t *pCtx, char *pFileName, v_VOID_t *pBuffer, v_SIZE_t *pBufSize);
+
+#endif /* WLAN_SAL_MISC_H */
+
