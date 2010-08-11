@@ -26,6 +26,9 @@
 #define HDD_ETHERTYPE_802_1_X              ( 0x888E )
 #define HDD_ETHERTYPE_802_1_X_FRAME_OFFSET ( 12 )
 #define HDD_ETHERTYPE_802_1_X_SIZE         ( 2 )
+#ifdef FEATURE_WLAN_WAPI
+#define HDD_ETHERTYPE_WAI                  ( 0x88b4 )
+#endif
 
 /*--------------------------------------------------------------------------- 
   Type declarations

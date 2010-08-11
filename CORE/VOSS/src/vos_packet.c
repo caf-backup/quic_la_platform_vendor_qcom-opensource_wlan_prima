@@ -382,6 +382,8 @@ VOS_STATUS vos_packet_open( v_VOID_t *pVosContext,
       pFreeList = &pVosPacketContext->txMgmtFreeList;
       INIT_LIST_HEAD(pFreeList);
 
+      spin_lock_init(&gpVosPacketContext->lock);
+
       // fill the txMgmt free list
       for (idx = 0; idx < VPKT_NUM_TX_MGMT_PACKETS; idx++)
       {
@@ -1275,7 +1277,9 @@ VOS_STATUS vos_pkt_return_packet( vos_pkt_t *pPacket )
    } // while (pPacket)
 
    // see if we need to replenish the Rx Raw pool
+   spin_lock(&gpVosPacketContext->lock);
    vos_pkti_replenish_raw_pool();
+   spin_unlock(&gpVosPacketContext->lock);
 
    return VOS_STATUS_SUCCESS;
 }

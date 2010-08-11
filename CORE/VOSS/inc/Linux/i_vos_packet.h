@@ -164,6 +164,7 @@ typedef struct vos_pkt_context_s
    vos_pkt_low_resource_info rxRawLowResourceInfo;
    vos_pkt_low_resource_info txDataLowResourceInfo;
    vos_pkt_low_resource_info txMgmtLowResourceInfo;
+   spinlock_t lock;
 
 } vos_pkt_context_t;
 

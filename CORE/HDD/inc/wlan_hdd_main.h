@@ -153,6 +153,120 @@ typedef struct roaming_info_s
    
 } roaming_info_t;
 
+#ifdef FEATURE_WLAN_WAPI
+/* Define WAPI macros for Length, BKID count etc*/
+#define MAX_WPI_KEY_LENGTH    16
+#define MAX_NUM_PN            16
+#define MAC_ADDR_LEN           6
+#define MAX_ADDR_INDEX        12
+#define MAX_NUM_AKM_SUITES    16
+#define MAX_NUM_UNI_SUITES    16
+#define MAX_NUM_BKIDS         16
+
+#define HDD_PAIRWISE_WAPI_KEY 0
+#define HDD_GROUP_WAPI_KEY    1
+
+/** WAPI AUTH mode definition */
+enum _WAPIAuthMode
+{
+   WAPI_AUTH_MODE_PSK = 1,
+   WAPI_AUTH_MODE_CERT
+} __attribute__((packed));
+typedef enum _WAPIAuthMode WAPIAuthMode;
+
+/** WAPI Work mode structure definition */
+#define   WZC_ORIGINAL      0
+#define   WAPI_EXTENTION    1
+
+struct _WAPI_FUNCTION_MODE
+{
+   unsigned char wapiMode;
+}__attribute__((packed));
+
+typedef struct _WAPI_FUNCTION_MODE WAPI_FUNCTION_MODE;
+
+typedef struct _WAPI_BKID
+{
+   v_U8_t   bkid[16];
+}WAPI_BKID, *pWAPI_BKID;
+
+/** WAPI Association information structure definition */
+struct _WAPI_AssocInfo
+{
+   v_U8_t      elementID;
+   v_U8_t      length;
+   v_U16_t     version;
+   v_U16_t     akmSuiteCount;
+   v_U32_t     akmSuite[MAX_NUM_AKM_SUITES];
+   v_U16_t     unicastSuiteCount;
+   v_U32_t     unicastSuite[MAX_NUM_UNI_SUITES];
+   v_U32_t     multicastSuite;
+   v_U16_t     wapiCability;
+   v_U16_t     bkidCount;
+   WAPI_BKID   bkidList[MAX_NUM_BKIDS];
+} __attribute__((packed));
+
+typedef struct _WAPI_AssocInfo WAPI_AssocInfo;
+typedef struct _WAPI_AssocInfo *pWAPI_IEAssocInfo;
+
+/** WAPI KEY Type definition */
+enum _WAPIKeyType
+{
+   PAIRWISE_KEY, //0
+   GROUP_KEY     //1
+}__attribute__((packed));
+typedef enum _WAPIKeyType WAPIKeyType;
+
+/** WAPI KEY Direction definition */
+enum _KEY_DIRECTION
+{
+   None,
+   Rx,
+   Tx,
+   Rx_Tx
+}__attribute__((packed));
+
+typedef enum _KEY_DIRECTION KEY_DIRECTION;
+
+/** WAPI KEY stucture definition */
+struct WLAN_WAPI_KEY
+{
+   WAPIKeyType     keyType;
+   KEY_DIRECTION   keyDirection;  /*reserved for future use*/
+   v_U8_t          keyId;
+   v_U8_t          addrIndex[MAX_ADDR_INDEX]; /*reserved for future use*/
+   int             wpiekLen;
+   v_U8_t          wpiek[MAX_WPI_KEY_LENGTH];
+   int             wpickLen;
+   v_U8_t          wpick[MAX_WPI_KEY_LENGTH];
+   v_U8_t          pn[MAX_NUM_PN];        /*reserved for future use*/
+}__attribute__((packed));
+
+typedef struct WLAN_WAPI_KEY WLAN_WAPI_KEY;
+typedef struct WLAN_WAPI_KEY *pWLAN_WAPI_KEY;
+
+/** WAPI BKID List stucture definition */
+struct _WLAN_BKID_LIST
+{
+   v_U32_t          length;
+   v_U32_t          BKIDCount;
+   WAPI_BKID        BKID[1];
+}__attribute__((packed));
+
+typedef struct _WLAN_BKID_LIST WLAN_BKID_LIST;
+typedef struct _WLAN_BKID_LIST *pWLAN_BKID_LIST;
+
+/** WAPI Information stucture definition */
+struct hdd_wapi_info_s
+{
+   v_U32_t     nWapiMode;
+   v_BOOL_t    fIsWapiSta;
+   v_MACADDR_t cachedMacAddr;
+   v_UCHAR_t   wapiAuthMode;
+}__attribute__((packed));
+typedef struct hdd_wapi_info_s hdd_wapi_info_t;
+#endif /* FEATURE_WLAN_WAPI */
+
 /** Adapter stucture definition */
 
 struct hdd_adapter_s
@@ -249,6 +363,9 @@ struct hdd_adapter_s
 
    /** ptt Process ID*/
    v_SINT_t ptt_pid;
+#ifdef FEATURE_WLAN_WAPI
+   hdd_wapi_info_t wapi_info;
+#endif
 };
 
 /*--------------------------------------------------------------------------- 

@@ -93,6 +93,7 @@ eQWPttStatus pttSaveTxPwrFreqTable(tpAniSirGlobal pMac, tANI_U8 numTpcCalFreqs, 
 eQWPttStatus pttDisableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcDisable gains);
 eQWPttStatus pttEnableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcEnable enables);
 void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi);
+void pttCollectAdcRssiStats(tpAniSirGlobal pMac);
 
 
 //Rx Frame Catcher Service

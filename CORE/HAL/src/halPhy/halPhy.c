@@ -23,6 +23,7 @@
 #include "halFwApi.h"
 #include "pttModuleApi.h"
 #include "halPhyVos.h"
+#include "halTimer.h"
 
 
 //if the testChannelId is set to NORMAL_CHANNEL_SETTING, then we will allow all channel changes to take effect, not just those from a test
@@ -107,6 +108,20 @@ eHalStatus halPhyClose(tHalHandle hHal)
     return (halPhy_VosEventDestroy(hHal));
 }
 
+eHalStatus halPhyFwInitDone(tHalHandle hHal)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
+    eHalStatus retVal = eHAL_STATUS_SUCCESS;
+
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        //for FTM driver leave init_gain at 74 as suggested by James
+        SET_PHY_REG(pMac->hHdd, QWLAN_AGC_INIT_GAIN_REG, 74);
+    }
+
+    return retVal;
+
+}
 
 eHalStatus halPhyStart(tHalHandle hHal)
 {
@@ -168,6 +183,9 @@ eHalStatus halPhyStart(tHalHandle hHal)
         if(pMac->gDriverType == eDRIVER_TYPE_MFG)
         {
             pttModuleInit(pMac);
+
+            //start the ADC RSSI stats collection timer
+            halTimersCreate(pMac);
         }
 #endif
     }
@@ -964,4 +982,11 @@ eHalStatus halPhyUpdateTxGainOverride(tHalHandle hHal, tANI_U8 txGain)
 
     return retVal;
 
+}
+
+void halPhyAdcRssiStatsCollection(tHalHandle hHal)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
+
+    pttCollectAdcRssiStats(pMac);
 }

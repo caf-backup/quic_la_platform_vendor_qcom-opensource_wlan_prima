@@ -28,7 +28,8 @@ SOURCES= \
           rfGemini.c               \
           pttModule.c              \
           pttMsgApi.c              \
-          pttFrameGen.c
+          pttFrameGen.c			   \
+          halFtmRx.c
 
 # For global defines, etc
 !INCLUDE $(LIBRA_ROOT)\sources.inc

@@ -78,7 +78,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
    
    if(NULL == pAdapter)
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: HDD Adaptor Null Pointer", __func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD Adaptor Null Pointer", __func__);
       VOS_ASSERT(0);
       return NOTIFY_DONE;
    }
@@ -146,7 +146,7 @@ int hdd_open (struct net_device *dev)
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
    if(pAdapter == NULL) {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
          "%s: HDD adapter context is Null", __FUNCTION__);
       return -1;
    }
@@ -256,7 +256,7 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
        status = request_firmware(&pAdapter->fw, pfileName, &pAdapter->hsdio_func_dev->dev);
    
        if(status || !pAdapter->fw || !pAdapter->fw->data) {
-           hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Firmware download failed",__func__);
+           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Firmware download failed",__func__);
            status = VOS_STATUS_E_FAILURE;
        } 
    
@@ -271,7 +271,7 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
        status = request_firmware(&pAdapter->nv, pfileName, &pAdapter->hsdio_func_dev->dev);
    
        if(status || !pAdapter->nv || !pAdapter->nv->data) {
-           hddLog(VOS_TRACE_LEVEL_ERROR,"%s: nv download failed",__func__);
+           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: nv download failed",__func__);
            status = VOS_STATUS_E_FAILURE;
        } 
    
@@ -311,7 +311,7 @@ VOS_STATUS hdd_get_cfg_file_size(v_VOID_t *pCtx, char *pFileName, v_SIZE_t *pBuf
    status = request_firmware(&pAdapter->fw, pFileName, &pAdapter->hsdio_func_dev->dev);
    
    if(status || !pAdapter->fw || !pAdapter->fw->data) {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: CFG download failed",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: CFG download failed",__func__);
       status = VOS_STATUS_E_FAILURE;
    } 
    else {
@@ -352,7 +352,7 @@ VOS_STATUS hdd_read_cfg_file(v_VOID_t *pCtx, char *pFileName,
    status = request_firmware(&pAdapter->fw, pFileName, &pAdapter->hsdio_func_dev->dev);
    
    if(status || !pAdapter->fw || !pAdapter->fw->data) {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: CFG download failed",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: CFG download failed",__func__);
       return VOS_STATUS_E_FAILURE;
    } 
    else {
@@ -614,7 +614,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    vosStatus = vos_stop( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
          "%s: Failed to stop VOSS",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
@@ -625,7 +625,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    vosStatus = WLANBAL_SuspendChip( pAdapter->pvosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
          "%s: Failed to suspend chip ",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
@@ -634,7 +634,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    vosStatus = WLANSAL_Stop( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
          "%s: Failed to stop SAL",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
@@ -668,7 +668,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    //Close the scheduler before closing other modules.	
    vosStatus = vos_sched_close( pVosContext );  
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))	{
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
          "%s: Failed to close VOSS Scheduler",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
@@ -706,11 +706,13 @@ VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
 {
    struct net_device *pWlanDev = pAdapter->dev;
    eHalStatus halStatus;   
+   v_BOOL_t itemIsValid = VOS_FALSE;
+   VOS_STATUS status;
 
    //Apply the cfg.ini to cfg.dat
    if ( hdd_update_config_dat(pAdapter) == FALSE)
    {   
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: config update failed",__func__ );
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: config update failed",__func__ );
       return VOS_STATUS_E_FAILURE;
    }   
          
@@ -725,15 +727,37 @@ VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
       return VOS_STATUS_E_FAILURE;
    } 
 
-   //Update the new mac address based on qcom_cfg.ini
-   vos_mem_copy(pWlanDev->dev_addr, 
-                &pAdapter->cfg_ini->staMacAddr, 
-                sizeof(v_MACADDR_t));
+   /*If the NV is valid then get the macaddress from nv else get it from qcom_cfg.ini*/
+   status = vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid);
 
-   vos_mem_copy(&pAdapter->macAddressCurrent, 
-                &pAdapter->cfg_ini->staMacAddr,
+   if(status != VOS_STATUS_SUCCESS)
+   {
+       hddLog(VOS_TRACE_LEVEL_FATAL," vos_nv_getValidity() failed\n ");
+       return VOS_STATUS_E_FAILURE;
+   }
+
+   if (itemIsValid == VOS_TRUE) 
+   {
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH," Reading the Macaddress from NV\n ");
+        status = vos_nv_readMacAddress(&pAdapter->macAddressCurrent.bytes[0]);
+
+        if(status != VOS_STATUS_SUCCESS)
+        {
+            hddLog(VOS_TRACE_LEVEL_FATAL," vos_nv_readMacAddress() failed\n ");
+            return VOS_STATUS_E_FAILURE;
+        }
+   }
+   else {
+       //Update the new mac address based on qcom_cfg.ini
+       vos_mem_copy(&pAdapter->macAddressCurrent, 
+                    &pAdapter->cfg_ini->staMacAddr,
+                    sizeof(v_MACADDR_t));
+   }
+
+   vos_mem_copy(pWlanDev->dev_addr, 
+                &pAdapter->macAddressCurrent, 
                 sizeof(v_MACADDR_t));
-	  
+  
    // Set the MAC Address 
    halStatus = ccmCfgSetStr( pAdapter->hHal, WNI_CFG_STA_ID, 
                              (v_U8_t *)&pAdapter->macAddressCurrent,
@@ -807,7 +831,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 
    if(wdev == NULL)
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: cfg80211 init failed", __func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: cfg80211 init failed", __func__);
       goto register_cfg80211_err ;
    }
 
@@ -818,7 +842,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    
    if(pWlanDev == NULL) 
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: alloc_netdev failed", __func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: alloc_netdev failed", __func__);
       goto register_cfg80211_err ;
    }
 #else      
@@ -828,7 +852,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    
    if(pWlanDev == NULL) 
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: alloc_netdev failed", __func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: alloc_netdev failed", __func__);
       return -1; 
    }
 
@@ -899,7 +923,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    // request_firmware API for reading the qcom_cfg.ini file
    if(register_netdev(pWlanDev))
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed:register_netdev",__func__); 
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed:register_netdev",__func__); 
       goto err_free_netdev;
    }
 
@@ -907,7 +931,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 
 #ifdef ANI_MANF_DIAG
     wlan_hdd_ftm_open(pAdapter);
-    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: FTM driver loaded success fully",__func__);
+    hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
     return VOS_STATUS_SUCCESS;
 #endif
 
@@ -915,7 +939,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    pAdapter->cfg_ini = (hdd_config_t*) kmalloc(sizeof(hdd_config_t), GFP_KERNEL);
    if(pAdapter->cfg_ini == NULL)
    {  
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed kmalloc hdd_config_t",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed kmalloc hdd_config_t",__func__);
       goto err_netdev_unregister;
    }   
 
@@ -925,7 +949,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    status = hdd_parse_config_ini( pAdapter );
    if ( VOS_STATUS_SUCCESS != status )
    {  
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: error parsing qcom_cfg.ini",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: error parsing qcom_cfg.ini",__func__);
       goto err_config;   
    }
 
@@ -937,7 +961,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 	
       if(!VOS_IS_STATUS_SUCCESS( status ))
       {
-         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: vos_watchdog_open failed",__func__);
+         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_watchdog_open failed",__func__);
          goto err_config;   
       }
    }
@@ -947,7 +971,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    
    if ( !VOS_IS_STATUS_SUCCESS( status ))
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: vos_open failed",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_open failed",__func__);
       goto err_wdclose;   
    }
 
@@ -956,7 +980,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       
    if ( NULL == pAdapter->hHal )
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: HAL context is null",__func__);	  
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HAL context is null",__func__);	  
       goto err_vosclose;
    }
    
@@ -974,7 +998,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    
    if ( VOS_STATUS_SUCCESS != status )
    {  
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed hdd_set_sme_config",__func__); 
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed hdd_set_sme_config",__func__); 
       goto err_vosclose;
    } 
    
@@ -982,7 +1006,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    status = hdd_init_tx_rx(pAdapter);
    if ( !VOS_IS_STATUS_SUCCESS( status ))
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: hdd_init_tx_rx failed", __FUNCTION__);
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_init_tx_rx failed", __FUNCTION__);
       goto err_vosclose;
    }  
 
@@ -990,7 +1014,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    status = hdd_wmm_init(pAdapter);
    if ( !VOS_IS_STATUS_SUCCESS( status ))
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: hdd_wmm_init failed", __FUNCTION__);
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_wmm_init failed", __FUNCTION__);
       goto err_vosclose;
    }
 
@@ -1005,7 +1029,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    status = WLANSAL_Start(pAdapter->pvosContext);
    if (!VOS_IS_STATUS_SUCCESS(status))
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failed to start SAL",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to start SAL",__func__);
       goto err_clkvote;
    }
 
@@ -1014,14 +1038,14 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    status = vos_start( pAdapter->pvosContext );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: vos_start failed",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
       goto err_salstop;
    }
 
    status = hdd_post_voss_start_config( pAdapter );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: hdd_post_voss_start_config failed", 
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_post_voss_start_config failed", 
          __func__);
       goto err_vosstop;
    }
@@ -1039,7 +1063,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 
    if(ret < 0)
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: register_netdevice_notifier failed",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: register_netdevice_notifier failed",__func__);
       goto err_vosstop;;
    }
 
@@ -1062,14 +1086,14 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    //Initialize the nlink service
    if(nl_srv_init() != 0)
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%S: nl_srv_init failed",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%S: nl_srv_init failed",__func__);
       goto err_reg_netdev;
    }
 
    //Initialize the BTC service
    if(btc_activate_service(pAdapter) != 0)
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: btc_activate_service failed",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: btc_activate_service failed",__func__);
       goto err_nl_srv;
    }
 
@@ -1077,7 +1101,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    //Initialize the PTT service
    if(ptt_sock_activate_svc(pAdapter) != 0)
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: ptt_sock_activate_svc failed",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: ptt_sock_activate_svc failed",__func__);
       goto err_nl_srv;
    }
 #endif
@@ -1085,7 +1109,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    //Initialize the WoWL service
    if(!hdd_init_wowl(pAdapter))
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: hdd_init_wowl failed",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_init_wowl failed",__func__);
       goto err_nl_srv;
    }
 
@@ -1162,11 +1186,13 @@ static int __init hdd_module_init (void)
    unsigned int attempts = 0;
    ENTER();
    
+   hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Wi-Fi loading driver",__func__);
+
    //Power Up Libra WLAN card first if not already powered up
    status = vos_chipPowerUp(NULL,NULL,NULL);
    if (!VOS_IS_STATUS_SUCCESS(status)) 
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Libra WLAN not Powered Up."
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not Powered Up."
           "exiting", __func__);
       return -1;
    }
@@ -1177,11 +1203,11 @@ static int __init hdd_module_init (void)
    do {
       sdio_func_dev = libra_getsdio_funcdev();
       if (NULL == sdio_func_dev) {
-         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Libra WLAN not detected yet.",__func__);
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not detected yet.",__func__);
          attempts++;
       }
       else {
-         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Libra WLAN detecton succeeded",__func__);
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN detecton succeeded",__func__);
          break;
       }
       msleep(1000);
@@ -1189,7 +1215,7 @@ static int __init hdd_module_init (void)
    }while (attempts < 3);
 
    if (NULL == sdio_func_dev) {
-      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Libra WLAN not found!!",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not found!!",__func__);
       return -1;
    }
 
@@ -1198,7 +1224,7 @@ static int __init hdd_module_init (void)
 
    if (!VOS_IS_STATUS_SUCCESS(status)) 
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed to preOpen VOSS", __func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to preOpen VOSS", __func__);
       return -1;
    }
    
@@ -1207,7 +1233,7 @@ static int __init hdd_module_init (void)
 
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Failed to open SAL", __func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to open SAL", __func__);
 
       /* If unable to open, cleanup and return failure */
       vos_preClose( &pVosContext );
@@ -1216,7 +1242,7 @@ static int __init hdd_module_init (void)
 
    // Call our sdio probe.
    if(hdd_wlan_sdio_probe(sdio_func_dev)) {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: WLAN Driver Initialization failed",
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
           __func__);
       return -1;
    }

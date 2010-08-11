@@ -408,6 +408,36 @@ v_BOOL_t hdd_IsEAPOLPacket( vos_pkt_t *pVosPacket )
 }
 
 
+#ifdef FEATURE_WLAN_WAPI // Need to update this function
+/**============================================================================
+  @brief hdd_IsWAIPacket() - Checks the packet is WAI or not.
+
+  @param pVosPacket : [in] pointer to vos packet
+  @return         : VOS_TRUE if the packet is WAI
+                  : VOS_FALSE otherwise
+  ===========================================================================*/
+
+v_BOOL_t hdd_IsWAIPacket( vos_pkt_t *pVosPacket )
+{
+    VOS_STATUS vosStatus  = VOS_STATUS_SUCCESS;
+    v_BOOL_t   fIsWAI     = VOS_FALSE;
+    void       *pBuffer   = NULL;
+
+    // Need to update this function
+    vosStatus = vos_pkt_peek_data( pVosPacket, (v_SIZE_t)HDD_ETHERTYPE_802_1_X_FRAME_OFFSET,
+                          &pBuffer, HDD_ETHERTYPE_802_1_X_SIZE );
+
+    if (VOS_IS_STATUS_SUCCESS( vosStatus ) )
+    {
+       if ( vos_be16_to_cpu( *(unsigned short*)pBuffer ) == HDD_ETHERTYPE_WAI)
+       {
+          fIsWAI = VOS_TRUE;
+       }
+    }
+
+   return fIsWAI;
+}
+#endif /* FEATURE_WLAN_WAPI */
 
 /**============================================================================
   @brief hdd_tx_complete_cbk() - Callback function invoked by TL
@@ -651,6 +681,11 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       pPktMetaInfo->ucIsEapol = hdd_IsEAPOLPacket( pVosPacket ) ? 1 : 0;
 		
       	
+#ifdef FEATURE_WLAN_WAPI
+   // Override usIsEapol value when its zero for WAPI case
+      pPktMetaInfo->ucIsWai = hdd_IsWAIPacket( pVosPacket ) ? 1 : 0;
+#endif /* FEATURE_WLAN_WAPI */      	
+
    if ((HDD_WMM_USER_MODE_NO_QOS == pAdapter->cfg_ini->WmmMode) ||
        (!pAdapter->hddWmmStatus.wmmQap))
    {

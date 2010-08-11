@@ -34,7 +34,8 @@ eHalStatus halNvOpen(tHalHandle hMac)
 
     memcpy(&pMac->hphy.nvCache, &nvDefaults, sizeof(sHalNv));   //start with defaults
 /*Once tested for other platform android specific flag can be removed*/
-#ifdef ANI_OS_TYPE_ANDROID
+
+#if (defined(ANI_OS_TYPE_ANDROID) || defined(ANI_OS_TYPE_AMSS))
 {
     v_BOOL_t itemIsValid = VOS_FALSE;
 
@@ -75,10 +76,10 @@ eHalStatus halNvOpen(tHalHandle hMac)
         }
     }
 
-    if (vos_nv_getValidity(VNV_RSSI_OFFSETS, &itemIsValid) == VOS_STATUS_SUCCESS)
+     if (vos_nv_getValidity(VNV_RSSI_OFFSETS, &itemIsValid) == VOS_STATUS_SUCCESS)
     {
         if (itemIsValid == VOS_TRUE)
-        {
+	{
             if(vos_nv_read( VNV_RSSI_OFFSETS, (v_VOID_t *)&pMac->hphy.nvCache.tables.rssiOffset[0], NULL, sizeof(tANI_S16) * PHY_MAX_RX_CHAINS ) != VOS_STATUS_SUCCESS)
                  return (eHAL_STATUS_FAILURE);
         }

@@ -387,6 +387,7 @@ halSetPerStaKey(
     tANI_U8 tmpIdx;
     tANI_U8 derivedKey[SIR_MAC_MAX_KEY_LENGTH];
     tANI_BOOLEAN fGTK = eANI_BOOLEAN_FALSE;
+    tpDpuInfo pDpu = (tpDpuInfo) pMac->hal.halMac.dpuInfo;
 
     newDpuIdx = keyIdx = derivedKeyIdx = micKeyIdx = rcIdx = HAL_INVALID_KEYID_INDEX;
 
@@ -428,15 +429,24 @@ halSetPerStaKey(
     
     status = halDpu_GetRCId(pMac, dpuIdx, &tmpIdx);
     if(eHAL_STATUS_SUCCESS == status)
+    {
         halDpu_ReleaseRCId(pMac, dpuIdx, tmpIdx);
+        pDpu->descTable[dpuIdx].rcIdx = HAL_INVALID_KEYID_INDEX;
+    }
     
     status = halDpu_GetKeyId(pMac, dpuIdx, &tmpIdx);
     if(eHAL_STATUS_SUCCESS == status)
+    {
         halDpu_ReleaseKeyId(pMac, tmpIdx);
+        pDpu->descTable[dpuIdx].keyIdx = HAL_INVALID_KEYID_INDEX;
+    }
     
     status = halDpu_GetMicKeyId(pMac, dpuIdx, &tmpIdx);
     if(eHAL_STATUS_SUCCESS == status)
+    {
         halDpu_ReleaseMicKeyId(pMac, tmpIdx);
+        pDpu->descTable[dpuIdx].micKeyIdx = HAL_INVALID_KEYID_INDEX;
+    }
 
 
     if(eSIR_ED_NONE != encType)

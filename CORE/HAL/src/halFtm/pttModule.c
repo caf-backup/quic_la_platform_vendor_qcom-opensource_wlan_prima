@@ -133,7 +133,6 @@ void pttModuleInit(tpAniSirGlobal pMac)
 
     // Clear stats
     pttResetRxPacketStatistics(pMac);
-
 }
 
 
@@ -1296,59 +1295,63 @@ eQWPttStatus pttEnableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcEnable enables)
 }
 
 #define RSSI_TO_DBM_OFFSET     -105
-void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
+
+void pttCollectAdcRssiStats(tpAniSirGlobal pMac)
 {
     tANI_U32 rssi0, rssi1, rssi0Stats = 0, rssi1Stats = 0;
-	tANI_U8 counter, validCounterRssi0 = 0, validCounterRssi1 = 0;
+    tANI_U8 counter, validCounterRssi0 = 0, validCounterRssi1 = 0;
 
-    rssi->rx[PHY_RX_CHAIN_0] = 0;
-    rssi->rx[PHY_RX_CHAIN_1] = 0;
+    /*check the valid bit '8th bit' before reading values
+     which should be set to 1 for valid RSSI reads*/
 
-	/*check the valid bit '8th bit' before reading values
-	 which should be set to 1 for valid RSSI reads*/
-
-	for (counter = 0; counter < 10; counter++ ) {
+    for (counter = 0; counter < 10; counter++ ) {
 
         palReadRegister(pMac->hHdd, QWLAN_AGC_ADC_RSSI0_REG, &rssi0);
         palReadRegister(pMac->hHdd, QWLAN_AGC_ADC_RSSI1_REG, &rssi1);
 
-		/*reading rssi0 value*/
-		if(rssi0 & QWLAN_AGC_ADC_RSSI0_INVALID_MASK)
-		{
-			rssi0Stats += (tANI_U8)(rssi0 & QWLAN_AGC_ADC_RSSI0_RSSI_MASK);
-			validCounterRssi0++;
-		}
-		else
-		{
-			rssi0Stats += 0;
-		}
-		/*reading rssi1 value*/
-		if(rssi1 & QWLAN_AGC_ADC_RSSI1_INVALID_MASK)
-		{
-			rssi1Stats += (tANI_U8)(rssi1 & QWLAN_AGC_ADC_RSSI1_RSSI_MASK);
-			validCounterRssi1++;
-		}
-		else
-		{
-			rssi1Stats += 0;
-		}
-	}
+        /*reading rssi0 value*/
+        if(rssi0 & QWLAN_AGC_ADC_RSSI0_INVALID_MASK)
+        {
+            rssi0Stats += (tANI_U8)(rssi0 & QWLAN_AGC_ADC_RSSI0_RSSI_MASK);
+            validCounterRssi0++;
+        }
+        else
+        {
+            rssi0Stats += 0;
+        }
+        /*reading rssi1 value*/
+        if(rssi1 & QWLAN_AGC_ADC_RSSI1_INVALID_MASK)
+        {
+            rssi1Stats += (tANI_U8)(rssi1 & QWLAN_AGC_ADC_RSSI1_RSSI_MASK);
+            validCounterRssi1++;
+        }
+        else
+        {
+            rssi1Stats += 0;
+        }
+    }
 
-	/*average the value over valid reads*/
-	rssi0 = ((rssi0Stats == 0)?0:(rssi0Stats/validCounterRssi0));
-	rssi1 = ((rssi1Stats == 0)?0:(rssi1Stats/validCounterRssi1));
+    /*average the value over valid reads*/
+    rssi0 = ((rssi0Stats == 0)?0:(rssi0Stats/validCounterRssi0));
+    rssi1 = ((rssi1Stats == 0)?0:(rssi1Stats/validCounterRssi1));
 
-	/*assign rssiValues to response*/
+    /*assign rssiValues to response*/
     if(rssi0 > 0)
     {
-        rssi->rx[PHY_RX_CHAIN_0] = (tANI_S8)rssi0 + RSSI_TO_DBM_OFFSET + pMac->hphy.nvCache.tables.rssiOffset[PHY_RX_CHAIN_0];
+        pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] = (tANI_S8)rssi0 + RSSI_TO_DBM_OFFSET + pMac->hphy.nvCache.tables.rssiOffset[PHY_RX_CHAIN_0];
     }
 
     if(rssi1 >0)
     {
-        rssi->rx[PHY_RX_CHAIN_1] = (tANI_S8)rssi1 + RSSI_TO_DBM_OFFSET+ pMac->hphy.nvCache.tables.rssiOffset[PHY_RX_CHAIN_1];
+        pMac->ptt.rssi.rx[PHY_RX_CHAIN_1] = (tANI_S8)rssi1 + RSSI_TO_DBM_OFFSET+ pMac->hphy.nvCache.tables.rssiOffset[PHY_RX_CHAIN_1];
     }
 
+}
+
+void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
+{
+    rssi->rx[PHY_RX_CHAIN_0] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_0];
+    rssi->rx[PHY_RX_CHAIN_1] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_1];
 }
 
 
@@ -1402,6 +1405,21 @@ eQWPttStatus pttGetRxPktCounts(tpAniSirGlobal pMac, sRxFrameCounters *counters)
         return (FAILURE);
     }
 
+    {
+        tANI_U32 dmaDrop, typeSubTypeFilter, addr1Drop;
+        palReadRegister(pMac->hHdd, QWLAN_RXP_DMA_DROP_CNT_REG, &dmaDrop);
+        palReadRegister(pMac->hHdd, QWLAN_RXP_TYPE_SUBTYPE_FILTER_CNT_REG, &typeSubTypeFilter);
+        palReadRegister(pMac->hHdd, QWLAN_RXP_ADDR1_DROP_CNT_REG, &addr1Drop);
+
+        //QWLAN_RXP_DMA_DROP_CNT_REG - QWLAN_RXP_TYPE_SUBTYPE_FILTER_CNT_REG - QWLAN_RXP_ADDR1_DROP_CNT_REG
+        counters->totalMacRxPackets = dmaDrop - typeSubTypeFilter - addr1Drop;
+    }
+
+    if (eHAL_STATUS_SUCCESS != palReadRegister(pMac->hHdd, QWLAN_RXP_FCS_ERR_CNT_REG, &counters->totalMacFcsErrPackets))
+    {
+        return (FAILURE);
+    }
+
     return (SUCCESS);
 }
 
@@ -1422,6 +1440,11 @@ eQWPttStatus pttResetRxPacketStatistics(tpAniSirGlobal pMac)
     }
 
     if (eHAL_STATUS_SUCCESS != palWriteRegister(pMac->hHdd, QWLAN_PHYDBG_RXPKT_CNT_REG, 0))
+    {
+        return (FAILURE);
+    }
+
+    if (eHAL_STATUS_SUCCESS != palWriteRegister(pMac->hHdd, QWLAN_RXP_CLEAR_STATS_REG, QWLAN_RXP_CLEAR_STATS_CLEAR_STATS_MASK))
     {
         return (FAILURE);
     }

@@ -2871,6 +2871,12 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                 HALLOGE( halLog(pMac, LOGE, FL("Fw Rsp Msg \n")));
                 halMbox_SendMsgComplete(pMac);
                 break; 
+
+           case SIR_HAL_TIMER_ADC_RSSI_STATS:
+                tx_timer_deactivate(&pMac->ptt.adcRssiStatsTimer);
+                halPhyAdcRssiStatsCollection(pMac);
+                tx_timer_activate(&pMac->ptt.adcRssiStatsTimer);
+                break;
         }
         return eSIR_SUCCESS;
     }

@@ -73,7 +73,8 @@ typedef enum eRxpMode {
     eRXP_PROMISCUOUS_MODE = 5,
     eRXP_LEARN_MODE       = 6,
     eRXP_POWER_SAVE_MODE  = 7,
-    eRXP_IBSS_MODE        = 8
+    eRXP_IBSS_MODE        = 8,
+    eRXP_FTM_MODE         = 9
 } tRxpMode;
 
 

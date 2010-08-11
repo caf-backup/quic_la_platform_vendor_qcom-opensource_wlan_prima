@@ -109,7 +109,7 @@ int vos_chip_power_qrf8600(int on)
    //2.5v Analog from LDO19
    vreg_wlan2 = vreg_get(NULL, "wlan2");
    if (IS_ERR(vreg_wlan2)) {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan2 vreg get failed (%ld)",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg get failed (%ld)",
          __func__, PTR_ERR(vreg_wlan2));
       return PTR_ERR(vreg_wlan2);
    }
@@ -117,7 +117,7 @@ int vos_chip_power_qrf8600(int on)
    //1.3v RF; gated by externel FET (GPIO 21 & GPIO 22)
    vreg_s2 = vreg_get(NULL, "s2");
    if (IS_ERR(vreg_s2)) {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg get failed (%ld)",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: s2 vreg get failed (%ld)",
          __func__, PTR_ERR(vreg_s2));
       return PTR_ERR(vreg_s2);
    }
@@ -125,7 +125,7 @@ int vos_chip_power_qrf8600(int on)
    //2.2v RF - Gated by externel FET (GPIO 31 & GPIO 32)
    vreg_s4 = vreg_get(NULL, "s4");
    if (IS_ERR(vreg_s4)) {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s4 vreg get failed (%ld)",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: s4 vreg get failed (%ld)",
          __func__, PTR_ERR(vreg_s4));
       return PTR_ERR(vreg_s4);
    }
@@ -133,7 +133,7 @@ int vos_chip_power_qrf8600(int on)
    //2.9v PA from LDO13
    vreg_wlan = vreg_get(NULL, "wlan");
    if (IS_ERR(vreg_wlan)) {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg get failed (%ld)",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan vreg get failed (%ld)",
          __func__, PTR_ERR(vreg_wlan));
       return PTR_ERR(vreg_wlan);
    }
@@ -143,14 +143,14 @@ int vos_chip_power_qrf8600(int on)
       // Configure GPIO 21 & GPIO 22
       rc = pm8058_gpio_config(wlan_gpios_power_on[0].gpio_num, &wlan_gpios_power_on[0].gpio_cfg);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[0].gpio_num, rc);
          return -EIO;
       }
 
       rc = pm8058_gpio_config(wlan_gpios_power_on[1].gpio_num, &wlan_gpios_power_on[1].gpio_cfg);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[1].gpio_num, rc);
          return -EIO;
       }
@@ -158,7 +158,7 @@ int vos_chip_power_qrf8600(int on)
       // Cofigure GPIO 27 to be high. Without this GPIO 31, 32 will be disabled.
       rc = pm8058_gpio_config(wlan_gpios_power_on[5].gpio_num, &wlan_gpios_power_on[5].gpio_cfg);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[5].gpio_num, rc);
          return -EIO;
       }
@@ -166,14 +166,14 @@ int vos_chip_power_qrf8600(int on)
       // Configure GPIO 31 & GPIO 32
       rc = pm8058_gpio_config(wlan_gpios_power_on[3].gpio_num, &wlan_gpios_power_on[3].gpio_cfg);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[3].gpio_num, rc);
          return -EIO;
       }
 
       rc = pm8058_gpio_config(wlan_gpios_power_on[4].gpio_num, &wlan_gpios_power_on[4].gpio_cfg);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[4].gpio_num, rc);
          return -EIO;
       }
@@ -181,7 +181,7 @@ int vos_chip_power_qrf8600(int on)
       // Configure GPIO 23 for Deep Sleep
       rc = pm8058_gpio_config(wlan_gpios_power_on[2].gpio_num, &wlan_gpios_power_on[2].gpio_cfg);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
             __func__, wlan_gpios_power_on[2].gpio_num, rc);
          return -EIO;
       }
@@ -189,18 +189,18 @@ int vos_chip_power_qrf8600(int on)
       // Power up 2.5v Analog
       rc = vreg_set_level(vreg_wlan2, 2500);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan2 vreg set level failed (%d)",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg set level failed (%d)",
             __func__, rc);
          return -EIO;
       }
 
       rc = vreg_enable(vreg_wlan2);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan2 vreg enable failed (%d)", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg enable failed (%d)", __func__, rc);
          return -EIO;
       }
 
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Wait for 2.5v supply to settle",__func__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Wait for 2.5v supply to settle",__func__);
       msleep(500);
 
       // Power up 1.3v RF
@@ -212,7 +212,7 @@ int vos_chip_power_qrf8600(int on)
 
       rc = vreg_enable(vreg_s2);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg enable failed (%d)", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: s2 vreg enable failed (%d)", __func__, rc);
          return -EIO;
       }
 
@@ -225,24 +225,24 @@ int vos_chip_power_qrf8600(int on)
 
       rc = vreg_enable(vreg_s4);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s4 vreg enable failed (%d)", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: s4 vreg enable failed (%d)", __func__, rc);
          return -EIO;
       }
 
       // Power up 2.9v PA
       rc = vreg_set_level(vreg_wlan, 2900);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg set level failed (%d)", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan vreg set level failed (%d)", __func__, rc);
          return -EIO;
       }
 
       rc = vreg_enable(vreg_wlan);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg enable failed (%d)",__func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan vreg enable failed (%d)",__func__, rc);
          return -EIO;
       }
 
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Enabled power supply for WLAN", __func__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Enabled power supply for WLAN", __func__);
 		
       msleep(500);
    }
@@ -250,7 +250,7 @@ int vos_chip_power_qrf8600(int on)
    {
       rc = vreg_disable(vreg_wlan);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg disable failed (%d)", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan vreg disable failed (%d)", __func__, rc);
       }
 
       rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S4, 0);
@@ -260,7 +260,7 @@ int vos_chip_power_qrf8600(int on)
 
       rc = vreg_disable(vreg_s4); 
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s4 vreg disable failed (%d)", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: s4 vreg disable failed (%d)", __func__, rc);
       }
 
       rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S2, 0);
@@ -275,10 +275,10 @@ int vos_chip_power_qrf8600(int on)
 
       rc = vreg_disable(vreg_wlan2);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan2 vreg disable failed (%d)", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg disable failed (%d)", __func__, rc);
       }
 		
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Disabled power supply for WLAN", __func__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Disabled power supply for WLAN", __func__);
 	 }
 
    return 0;
@@ -297,14 +297,14 @@ int vos_chip_power_7x27_keypad( int on )
 	
    vreg_wlan = vreg_get(NULL, "wlan");
    if (IS_ERR(vreg_wlan)) {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg get failed (%ld)",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan vreg get failed (%ld)",
          __func__, PTR_ERR(vreg_wlan));
       return PTR_ERR(vreg_wlan);
    }
 
 	vreg_bt = vreg_get(NULL, "gp6");
 	if (IS_ERR(vreg_bt)) {
-		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: gp6 vreg get failed (%ld)",
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: gp6 vreg get failed (%ld)",
 		       __func__, PTR_ERR(vreg_bt));
 		return PTR_ERR(vreg_bt);
 	}
@@ -314,25 +314,25 @@ int vos_chip_power_7x27_keypad( int on )
       /* units of mV, steps of 50 mV */
       rc = vreg_set_level(vreg_bt, 2600);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: vreg set level failed (%d)",__func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: vreg set level failed (%d)",__func__, rc);
          return -EIO;
       }
       rc = vreg_enable(vreg_bt);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: vreg enable failed (%d)",__func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: vreg enable failed (%d)",__func__, rc);
          return -EIO;
       }
 
       //Set VDD_WLAN_2V6 to 1.8v first.
       rc = vreg_set_level(vreg_wlan, 1800);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: vreg set level failed (%d)", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: vreg set level failed (%d)", __func__, rc);
          return -EIO;
       }
 
       rc = vreg_enable(vreg_wlan);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg enable failed (%d)",__func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan vreg enable failed (%d)",__func__, rc);
          return -EIO;
       }
 
@@ -342,7 +342,7 @@ int vos_chip_power_7x27_keypad( int on )
       rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
          MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_HIGH));
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: MPP_4 pull high failed (%d)",__func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: MPP_4 pull high failed (%d)",__func__, rc);
          return -EIO;
       }
 
@@ -352,17 +352,17 @@ int vos_chip_power_7x27_keypad( int on )
       //Set VDD_WLAN_2V6 to 2.6v
       rc = vreg_set_level(vreg_wlan, 2600);
       if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: vreg set level failed (%d)", __func__, rc);
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: vreg set level failed (%d)", __func__, rc);
          return -EIO;
       }
       
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Enabled power supply for WLAN", __func__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Enabled power supply for WLAN", __func__);
  
       msleep(500);
    }
    else 
    {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Disabled power supply for WLAN", __func__);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Disabled power supply for WLAN", __func__);
    }
 
    return 0;
@@ -625,7 +625,7 @@ VOS_STATUS vos_chipAssertDeepSleep
    int rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
       MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_LOW));
    if (rc) {
-	   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Failed to pull high MPP_4_CHIP_PWD_L (%d)",
+	   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Failed to pull high MPP_4_CHIP_PWD_L (%d)",
 		   __func__, rc);
 	   return VOS_STATUS_E_FAILURE;
    }
@@ -636,7 +636,7 @@ VOS_STATUS vos_chipAssertDeepSleep
    // Configure GPIO 23 for Deep Sleep
    int rc = pm8058_gpio_config(wlan_gpios_power_off[0].gpio_num, &wlan_gpios_power_off[0].gpio_cfg);
    if (rc) {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
          __func__, wlan_gpios_power_off[0].gpio_num, rc);
       return VOS_STATUS_E_FAILURE;
    }
@@ -683,7 +683,7 @@ VOS_STATUS vos_chipDeAssertDeepSleep
    int rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
       MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_HIGH));
    if (rc) {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Failed to pull high MPP_4_CHIP_PWD_L (%d)",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Failed to pull high MPP_4_CHIP_PWD_L (%d)",
          __func__, rc);
 	   return VOS_STATUS_E_FAILURE;
    }
@@ -695,7 +695,7 @@ VOS_STATUS vos_chipDeAssertDeepSleep
 	// Configure GPIO 23 for Deep Sleep
 	int rc = pm8058_gpio_config(wlan_gpios_power_on[2].gpio_num, &wlan_gpios_power_on[2].gpio_cfg);
 	if (rc) {
-		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic GPIO %d config failed (%d)",
+		VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
 			__func__, wlan_gpios_power_on[2].gpio_num, rc);
 		return VOS_STATUS_E_FAILURE;
 	}
@@ -741,21 +741,21 @@ VOS_STATUS vos_chipExitDeepSleepVREGHandler
 
    vreg_wlan = vreg_get(NULL, "wlan");
    if (IS_ERR(vreg_wlan)) {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg get failed (%ld)",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan vreg get failed (%ld)",
             __func__, PTR_ERR(vreg_wlan));
       return VOS_STATUS_E_FAILURE;
    }
 
    rc = vreg_set_level(vreg_wlan, 1800);
    if (rc) {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg set level failed (%d)",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan vreg set level failed (%d)",
             __func__, rc);
       return VOS_STATUS_E_FAILURE;
    }
 
    rc = vreg_enable(vreg_wlan);
    if (rc) {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg enable failed (%d)",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan vreg enable failed (%d)",
             __func__, rc);
       return VOS_STATUS_E_FAILURE;
    }
@@ -764,7 +764,7 @@ VOS_STATUS vos_chipExitDeepSleepVREGHandler
 
    rc = vreg_set_level(vreg_wlan, 2600);
    if (rc) {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg set level failed (%d)",
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan vreg set level failed (%d)",
             __func__, rc);
       return VOS_STATUS_E_FAILURE;
    }

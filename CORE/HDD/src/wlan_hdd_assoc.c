@@ -433,6 +433,18 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
       staDesc.ucProtectedFrame = 0;
    }
 
+#ifdef FEATURE_WLAN_WAPI
+   hddLog(LOG1, "%s: WAPI STA Registered: %d", __FUNCTION__, pAdapter->wapi_info.fIsWapiSta);
+   if (pAdapter->wapi_info.fIsWapiSta)
+   {
+      staDesc.ucIsWapiSta = 1;
+   }
+   else
+   {
+      staDesc.ucIsWapiSta = 0;
+   }
+#endif /* FEATURE_WLAN_WAPI */
+
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
                  "HDD register TL Sec_enabled= %d.\n", staDesc.ucProtectedFrame );
 
@@ -514,6 +526,17 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         // Save the connection info from CSR...
         hdd_connSaveConnectInfo( pAdapter, pRoamInfo, eCSR_BSS_TYPE_INFRASTRUCTURE );
 
+#ifdef FEATURE_WLAN_WAPI
+    if ( pRoamInfo->u.pConnectedProfile->AuthType == eCSR_AUTH_TYPE_WAPI_WAI_CERTIFICATE ||
+           pRoamInfo->u.pConnectedProfile->AuthType == eCSR_AUTH_TYPE_WAPI_WAI_PSK )
+      {
+         pAdapter->wapi_info.fIsWapiSta = 1;
+      }
+      else
+      {
+         pAdapter->wapi_info.fIsWapiSta = 0;
+      }
+#endif  /* FEATURE_WLAN_WAPI */
 
         // indicate 'connect' status to userspace
         hdd_SendAssociationEvent(dev,pRoamInfo);
@@ -1495,6 +1518,40 @@ int iw_set_essid(struct net_device *dev,
         hdd_set_csr_auth_type(pAdapter);
     }
  
+
+#ifdef FEATURE_WLAN_WAPI
+    hddLog(LOG1, "%s: Setting WAPI AUTH Type and Encryption Mode values", __FUNCTION__);
+    if (pAdapter->wapi_info.nWapiMode)
+    {
+        switch (pAdapter->wapi_info.wapiAuthMode)
+        {
+            case WAPI_AUTH_MODE_PSK:
+            {
+                hddLog(LOG1, "%s: WAPI AUTH TYPE: PSK: %d", __FUNCTION__, pAdapter->wapi_info.wapiAuthMode);
+                pRoamProfile->AuthType.numEntries = 1;
+                pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_WAPI_WAI_PSK;
+                break;
+            }
+            case WAPI_AUTH_MODE_CERT:
+            {
+                hddLog(LOG1, "%s: WAPI AUTH TYPE: CERT: %d", __FUNCTION__, pAdapter->wapi_info.wapiAuthMode);
+                pRoamProfile->AuthType.numEntries = 1;
+                pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_WAPI_WAI_CERTIFICATE;
+                break;
+            }
+        } // End of switch
+        if ( pAdapter->wapi_info.wapiAuthMode == WAPI_AUTH_MODE_PSK ||
+             pAdapter->wapi_info.wapiAuthMode == WAPI_AUTH_MODE_CERT)
+        {
+            hddLog(LOG1, "%s: WAPI PAIRWISE/GROUP ENCRYPTION: WPI", __FUNCTION__);
+            pRoamProfile->EncryptionType.numEntries = 1;
+            pRoamProfile->EncryptionType.encryptionType[0] = eCSR_ENCRYPT_TYPE_WPI;
+            pRoamProfile->mcEncryptionType.numEntries = 1;
+            pRoamProfile->mcEncryptionType.encryptionType[0] = eCSR_ENCRYPT_TYPE_WPI;
+        }
+    }
+#endif /* FEATURE_WLAN_WAPI */
+
     status = sme_RoamConnect( pAdapter->hHal, &(pWextState->roamProfile), NULL, &roamId);
     
 

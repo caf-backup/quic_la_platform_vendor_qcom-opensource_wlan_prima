@@ -232,7 +232,8 @@ HAL_FTM_OBJS :=	$(HAL_SRC)/halFtm/pttMsgApi.o \
 		$(HAL_SRC)/halFtm/asicTxCtl.o \
 		$(HAL_SRC)/halFtm/pttFrameGen.o \
 		$(HAL_SRC)/halFtm/asicPhyDbg.o \
-		$(HAL_SRC)/halFtm/halPhyRates.o
+		$(HAL_SRC)/halFtm/halPhyRates.o \
+		$(HAL_SRC)/halFtm/halFtmRx.o
 
 
 #ifeq ($(BUILD_FTM_DRIVER),1)

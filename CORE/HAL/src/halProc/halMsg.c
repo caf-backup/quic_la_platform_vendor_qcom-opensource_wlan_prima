@@ -874,6 +874,9 @@ eHalStatus halMsg_addStaDpuRelatedProcessing( tpAniSirGlobal pMac, tANI_U8 staId
             HALLOGE( halLog(pMac, LOGE, FL("halTable_GetBssDpuIdx() failed\n")));
             return status;
         }
+        // Set Bcast DPU Index
+        halTable_SetStaBcastDpuIdx(pMac, staIdx, dpuIdx);
+        bcastDpuIdx = dpuIdx;
 
     } else {
         status = halTable_GetStaDpuIdx(pMac, staIdx, &dpuIdx);

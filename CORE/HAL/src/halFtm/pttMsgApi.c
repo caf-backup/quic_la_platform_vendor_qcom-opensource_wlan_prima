@@ -866,6 +866,8 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg1)
             pttGetRxPktCounts(pMac, &(msgBody->GetRxPktCounts.counters));
 
             NTOHL(msgBody->GetRxPktCounts.counters.totalRxPackets);
+            NTOHL(msgBody->GetRxPktCounts.counters.totalMacRxPackets);
+            NTOHL(msgBody->GetRxPktCounts.counters.totalMacFcsErrPackets);
             break;
         }
 

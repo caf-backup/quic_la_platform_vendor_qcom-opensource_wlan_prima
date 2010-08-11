@@ -30,6 +30,7 @@
 #include "halTLApi.h"   //halTLApInit() and halTLApiExit()
 #include "halAHB.h"
 #include "vos_power.h"
+#include "halFtmRx.h"
 
 #ifdef ANI_OS_TYPE_LINUX
 #include "ccmApi.h"
@@ -152,7 +153,7 @@ static tFuncEntry funcTable[] = {
     { {NULL,             halMacRaStart,                 halMacRaStop,           NULL},                   "Rate-Adaptation"  },
     { {NULL,             halFW_CheckInitComplete,       NULL,                   NULL},                   "Check FW Init"    },
     { {halDXE_Open,      halDXE_Start,                  halDXE_Stop,            halDXE_Close},           "halDxe"           },
-    { {NULL,             (pFptr)halTLApiInit,           (pFptr)halTLApiExit,           NULL},                   "HAL TL API"       },
+    { {NULL,             (pFptr)halTLApiInit,           (pFptr)halTLApiExit,    NULL},                   "HAL TL API"       },
     { {halMacStats_Open, NULL,                          NULL,                   halMacStats_Close},      "Mac Stats"        },
 };
 
@@ -160,19 +161,21 @@ static tFuncEntry funcTable[] = {
 #ifndef WLAN_FTM_STUB
 //This alternate table is to
 static tFuncEntry funcFtmTable[] = {
-    // func pointer(open)  start                        stop                    close                    name (<20chars)
-    { {halResetChip,      halResetChip,                  halResetChip,           halResetChip},           "ResetChip"},
-    { {NULL,              halSaveDeviceInfo,             NULL,                   NULL},                   "FillChipInfo"},
-    { {NULL,              halPMU_Start,                  NULL,                   NULL},                   "PMU"              },
-    { {nvOpen,            NULL,                          NULL,                   nvClose},                "halNv"               },
+    // func pointer(open)   start                        stop                    close                    name (<20chars)
+    { {halResetChip,      halResetChip,                  halResetChip,           halResetChip},           "ResetChip"       },
+    { {NULL,              halSaveDeviceInfo,             NULL,                   NULL},                   "FillChipInfo"    },
+    { {NULL,              halPMU_Start,                  NULL,                   NULL},                   "PMU"             },
+    { {nvOpen,            NULL,                          NULL,                   nvClose},                "halNv"           },
     { {phyOpen,           phyStart,                      phyStop,                phyClose},               "halPhy"          },
-    { {NULL,              halMif_Start,                  NULL,                   NULL},                   "MIF"     },
+    { {NULL,              halMif_Start,                  NULL,                   NULL},                   "MIF"             },
     { {NULL,              halMcu_Start,                  NULL,                   NULL},                   "MCU"             },
-    //{ {NULL,              enAllInts,                     NULL,                   NULL},                   "EnAllInts"        },
-    { {halMbox_Open,      halMbox_Start,                 halMbox_Stop,           halMbox_Close},          "Mailbox"             },
-    { {NULL,              NULL,                          NULL,                   nvClose},                "halNv"               },
-    { {NULL,              halFW_Init,                    halFW_Exit,             NULL},                   "Firmware"            },
-    { {NULL,              halFW_CheckInitComplete,       NULL,                   NULL},                   "Check FW Init"    },
+    //{ {NULL,              enAllInts,                     NULL,                   NULL},                   "EnAllInts"     },
+    { {halMbox_Open,      halMbox_Start,                 halMbox_Stop,           halMbox_Close},          "Mailbox"         },
+    { {NULL,              NULL,                          NULL,                   nvClose},                "halNv"           },
+    { {NULL,              halFW_Init,                    halFW_Exit,             NULL},                   "Firmware"        },
+    { {halRxp_Open,       halRxp_Start,                  halRxp_Stop,            halRxp_Close},           "RXP"             },
+    { {NULL,              halFtmRx_Start,                NULL,                   NULL},                   "Add1_filter"     },
+    { {NULL,              halFW_CheckInitComplete,       NULL,                   NULL},                   "Check FW Init"   },
 
 };
 #endif

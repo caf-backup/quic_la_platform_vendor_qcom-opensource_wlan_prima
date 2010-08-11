@@ -35,6 +35,9 @@ eHalStatus halPhyStart(tHalHandle hHal);
 //Resets the physical layer globals
 eHalStatus halPhyStop(tHalHandle hHal);
 
+//phy config post fw download
+eHalStatus halPhyFwInitDone(tHalHandle hHal);
+
 /***********************************************************/
 /* All functions below can be invoked after initialization */
 /***********************************************************/
@@ -136,5 +139,9 @@ eHalStatus halPhyGetSupportedChannels( tHalHandle hHal, tANI_U8 *p20MhzChannels,
 
 // Routine to update tpc tx gain override in open loop mode.
 eHalStatus halPhyUpdateTxGainOverride(tHalHandle hHal, tANI_U8 txGain);
+
+
+// Routine to collect the adc rssi stats
+void halPhyAdcRssiStatsCollection(tHalHandle hHal);
 
 #endif /* HALPHYAPI_H */

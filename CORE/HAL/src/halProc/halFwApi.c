@@ -368,6 +368,10 @@ eHalStatus halFW_CheckInitComplete(tHalHandle hHal, void *arg)
         {
             halPhyCalUpdate(pMac);
         }
+        else
+        {
+            halPhyFwInitDone(pMac);
+        }
         /*
            send Mbox msg to fw to inform halRateInfo table was updated.
            This is required, because firmware will look into halRateInfoTable in shared

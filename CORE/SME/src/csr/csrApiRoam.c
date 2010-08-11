@@ -1943,6 +1943,16 @@ eHalStatus csrRoamPrepareBssConfig(tpAniSirGlobal pMac, tCsrRoamProfile *pProfil
                 pBssConfig->uCfgDot11Mode = eCSR_CFG_DOT11_MODE_11A;
             }
         }
+
+        //Qos
+        if ((pBssConfig->uCfgDot11Mode != eCSR_CFG_DOT11_MODE_11N) &&
+                (pMac->roam.configParam.WMMSupportMode == eCsrRoamWmmNoQos))
+        {
+            //Joining BSS is not 11n capable and WMM is disabled on client.
+            //Disable QoS and WMM
+            pBssConfig->qosType = eCSR_MEDIUM_ACCESS_DCF;
+        }
+       
         //auth type
         switch( pProfile->negotiatedAuthType ) 
         {
@@ -3976,8 +3986,7 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
             // Issue the set Context request to LIM to establish the Broadcast STA context for the Ibss.
             csrRoamIssueSetContextReq( pMac, pCommand->u.roamCmd.roamProfile.negotiatedMCEncryptionType, pSirBssDesc, &BroadcastMac,
                                     FALSE, FALSE, eSIR_TX_RX, 0, 0, NULL, 0 ); // NO keys... these key parameters don't matter.
-            csrScanCancelIdleScan(pMac);
-            csrScanBGScanEnable(pMac);
+            csrScanCancelIdleScan(pMac);            
             if( CSR_IS_JOIN_TO_IBSS( &pCommand->u.roamCmd.roamProfile ) )
             {
               //start the join IBSS timer
@@ -8684,10 +8693,65 @@ eHalStatus csrSendSmeReassocReqMsg( tpAniSirGlobal pMac, tSirBssDescription *pBs
                                                 (tCsrWapiIe *)( pMsg->rsnIE.rsnIEdata ) );
         }
 #endif /* FEATURE_WLAN_WAPI */
-		else
-		{
-		    pMsg->rsnIE.length = 0;
-		}
+	else
+	{
+	    pMsg->rsnIE.length = 0;
+	}
+
+        if(pMsg->rsnIE.length)
+        {
+#ifdef FEATURE_WLAN_WAPI
+           if( csrIsProfileWapi( pProfile ) )
+           {
+              //Check whether we need to allocate more memory
+              if(pMsg->rsnIE.length > pMac->roam.nWapiReqIeLength)
+              {
+                  if(pMac->roam.pWapiReqIE && pMac->roam.nWapiReqIeLength)
+                  {
+                      palFreeMemory(pMac->hHdd, pMac->roam.pWapiReqIE);
+                  }
+                  status = palAllocateMemory(pMac->hHdd, (void **)&pMac->roam.pWapiReqIE, pMsg->rsnIE.length);
+                  if(!HAL_STATUS_SUCCESS(status)) break;
+              }
+              pMac->roam.nWapiReqIeLength = pMsg->rsnIE.length;
+              palCopyMemory(pMac->hHdd, pMac->roam.pWapiReqIE, pMsg->rsnIE.rsnIEdata, pMsg->rsnIE.length);
+           }
+           else//should be WPA/WPA2 otherwise
+#endif /* FEATURE_WLAN_WAPI */
+           {
+            //Check whether we need to allocate more memory
+            if(pMsg->rsnIE.length > pMac->roam.nWpaRsnReqIeLength)
+            {
+                if(pMac->roam.pWpaRsnReqIE && pMac->roam.nWpaRsnReqIeLength)
+                {
+                    palFreeMemory(pMac->hHdd, pMac->roam.pWpaRsnReqIE);
+                }
+                status = palAllocateMemory(pMac->hHdd, (void **)&pMac->roam.pWpaRsnReqIE, pMsg->rsnIE.length);
+                if(!HAL_STATUS_SUCCESS(status)) break;
+            }
+            pMac->roam.nWpaRsnReqIeLength = pMsg->rsnIE.length;
+            palCopyMemory(pMac->hHdd, pMac->roam.pWpaRsnReqIE, pMsg->rsnIE.rsnIEdata, pMsg->rsnIE.length);
+
+           }
+        }
+        else
+        {
+            //free whatever old info
+            pMac->roam.nWpaRsnReqIeLength = 0;
+            if(pMac->roam.pWpaRsnReqIE)
+            {
+                palFreeMemory(pMac->hHdd, pMac->roam.pWpaRsnReqIE);
+                pMac->roam.pWpaRsnReqIE = NULL;
+            }
+#ifdef FEATURE_WLAN_WAPI
+            pMac->roam.nWapiReqIeLength = 0;
+            if(pMac->roam.pWapiReqIE)
+            {
+                palFreeMemory(pMac->hHdd, pMac->roam.pWapiReqIE);
+                pMac->roam.pWapiReqIE = NULL;
+            }
+#endif /* FEATURE_WLAN_WAPI */
+        }
 
         pBuf = &(pMsg->rsnIE.rsnIEdata[0]) + pMsg->rsnIE.length;
 
@@ -12006,13 +12070,16 @@ eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac)
 
       pTempStaEntry = GET_BASE_ADDR( pEntry, tCsrStatsClientReqInfo, link );
 
-
-      pTempStaEntry->pPeStaEntry->numClient--;
-      //check if we need to delete the entry from peStatsReqList too
-      if(!pTempStaEntry->pPeStaEntry->numClient)
+      if (pTempStaEntry->pPeStaEntry)  //pPeStaEntry can be NULL
       {
-         csrRoamRemoveEntryFromPeStatsReqList(pMac, pTempStaEntry->pPeStaEntry);
+          pTempStaEntry->pPeStaEntry->numClient--;
+          //check if we need to delete the entry from peStatsReqList too
+          if(!pTempStaEntry->pPeStaEntry->numClient)
+          {
+              csrRoamRemoveEntryFromPeStatsReqList(pMac, pTempStaEntry->pPeStaEntry);
+          }
       }
+
       //check if we need to stop the tl stats timer too 
       pMac->roam.tlStatsReqInfo.numClient--;
       if(!pMac->roam.tlStatsReqInfo.numClient)
@@ -12029,13 +12096,21 @@ eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac)
          pMac->roam.tlStatsReqInfo.periodicity = 0;
          pMac->roam.tlStatsReqInfo.timerRunning = FALSE;
       }
-      vos_timer_stop( &pTempStaEntry->timer );
 
-      // Destroy the vos timer...      
-      vosStatus = vos_timer_destroy( &pTempStaEntry->timer );
-      if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
+      if (pTempStaEntry->periodicity)
       {
-         smsLog(pMac, LOGE, FL("csrRoamDeregStatisticsReq:failed to destroy Client req timer\n"));
+          //While creating StaEntry in csrGetStatistics,
+          //Initializing and starting timer only when periodicity is set. 
+          //So Stop and Destroy timer only when periodicity is set.
+          
+          vos_timer_stop( &pTempStaEntry->timer );
+
+          // Destroy the vos timer...      
+          vosStatus = vos_timer_destroy( &pTempStaEntry->timer );
+          if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
+          {
+              smsLog(pMac, LOGE, FL("csrRoamDeregStatisticsReq:failed to destroy Client req timer\n"));
+          }
       }
 
       

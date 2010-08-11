@@ -55,6 +55,8 @@ typedef struct
 typedef struct
 {
     tANI_U32 totalRxPackets;
+    tANI_U32 totalMacRxPackets;
+    tANI_U32 totalMacFcsErrPackets;
 }sRxFrameCounters;
 
 
@@ -130,6 +132,10 @@ typedef struct
     sRfNvCalValues rfCalValues;
 
     tANI_U32 *pADCCaptureCache; //pointer to allocate ADC capture cache
+
+    TX_TIMER  adcRssiStatsTimer; //Create adc rssi stat collection timer
+
+    sRxChainsRssi rssi;
 }tPttModuleVariables;
 
 
