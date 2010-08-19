@@ -56,6 +56,7 @@ when       who     what, where, why
 #include <linux/err.h>
 #include <linux/delay.h>
 #include <mach/rpc_pmapp.h>
+#include <mach/pmic.h>
 
 #ifdef MSM_PLATFORM_7x30
 #include <linux/mfd/pmic8058.h>
@@ -242,6 +243,13 @@ int vos_chip_power_qrf8600(int on)
          return -EIO;
       }
 
+      rc = pmapp_smps_mode_vote( "WLAN", PMAPP_VREG_S4, PMAPP_SMPS_MODE_VOTE_PWM );
+      if( rc )
+      {
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Attempting to vote for PMIC SMPS mode PWM failed with (%d)",__func__, rc);
+         return -EIO;
+      }
+
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Enabled power supply for WLAN", __func__);
 		
       msleep(500);
@@ -276,6 +284,12 @@ int vos_chip_power_qrf8600(int on)
       rc = vreg_disable(vreg_wlan2);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg disable failed (%d)", __func__, rc);
+      }
+
+      rc = pmapp_smps_mode_vote( "WLAN", PMAPP_VREG_S4, PMAPP_SMPS_MODE_VOTE_DONTCARE );
+      if( rc )
+      {
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Attempting to vote for PMIC SMPS mode PFM failed with (%d)",__func__, rc);
       }
 		
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Disabled power supply for WLAN", __func__);
