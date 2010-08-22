@@ -390,7 +390,7 @@ ifeq ($(BUILD_DIAG_VERSION),1)
 CDEFINES += -DFEATURE_WLAN_DIAG_SUPPORT
 endif
 
-ifeq ($(TARGET_PRODUCT),msm7630_surf)
+ifneq (, $(filter msm7630_surf msm7630_fusion, $(TARGET_PRODUCT)))
 EXTRA_CFLAGS += -march=armv7-a
 CDEFINES += -DMSM_PLATFORM_7x30
 endif
