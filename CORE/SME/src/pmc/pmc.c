@@ -127,8 +127,10 @@ eHalStatus pmcExitLowPowerState (tHalHandle hHal)
     pMac->pmc.pmcState = FULL_POWER;
     if(pMac->pmc.bmpsEnabled && 
       (pMac->pmc.autoBmpsEntryEnabled || pMac->pmc.uapsdSessionRequired || pMac->pmc.bmpsRequestedByHdd))
-    if (pmcStartTrafficTimer(hHal) != eHAL_STATUS_SUCCESS)
-        return eHAL_STATUS_FAILURE;
+    {
+        if (pmcStartTrafficTimer(hHal) != eHAL_STATUS_SUCCESS)
+            return eHAL_STATUS_FAILURE;
+    }
 
     return eHAL_STATUS_SUCCESS;
 }
@@ -178,7 +180,10 @@ eHalStatus pmcEnterFullPowerState (tHalHandle hHal)
            uapsd request */
         if(pMac->pmc.bmpsEnabled &&
            (pMac->pmc.autoBmpsEntryEnabled || pMac->pmc.uapsdSessionRequired || pMac->pmc.bmpsRequestedByHdd))
+        {
+            smsLog(pMac, LOGE, FL("start bmps timer\n"));
             (void)pmcStartTrafficTimer(hHal);
+        }
 
         pmcProcessDeferredMsg( pMac );
         /* Do all the callbacks. */
@@ -390,7 +395,9 @@ eHalStatus pmcEnterRequestImpsState (tHalHandle hHal)
            pMac->pmc.uapsdSessionRequired || 
            pMac->pmc.bmpsRequestedByHdd ||
            pMac->pmc.wowlModeRequired))
+        {
             (void)pmcStartTrafficTimer(hHal);
+        }
         return eHAL_STATUS_FAILURE;
      }
 
@@ -511,14 +518,32 @@ eHalStatus pmcEnterRequestBmpsState (tHalHandle hHal)
     pmcStopTrafficTimer(hHal);
 
     /* Tell MAC to have device enter BMPS mode. */
-    if (pmcIssueCommand(hHal, eSmeCommandEnterBmps, NULL, 0, FALSE) != eHAL_STATUS_SUCCESS)
+    if ( !pMac->pmc.bmpsRequestQueued )
     {
-        smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_BMPS_REQ\n");
-        pMac->pmc.pmcState = FULL_POWER;
+        pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_TRUE;
+        if(pmcIssueCommand(hHal, eSmeCommandEnterBmps, NULL, 0, FALSE) != eHAL_STATUS_SUCCESS)
+        {
+            smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_BMPS_REQ\n");
+            pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_FALSE;
+            pMac->pmc.pmcState = FULL_POWER;
+            if(pMac->pmc.bmpsEnabled &&
+              (pMac->pmc.autoBmpsEntryEnabled || pMac->pmc.uapsdSessionRequired || pMac->pmc.bmpsRequestedByHdd))
+            {
+                (void)pmcStartTrafficTimer(hHal);
+            }
+            return eHAL_STATUS_FAILURE;
+        }
+    }
+    else
+    {
+        smsLog(pMac, LOGE, "PMC: enter BMPS command already queued\n");
+        //restart the timer if needed
         if(pMac->pmc.bmpsEnabled &&
-          (pMac->pmc.autoBmpsEntryEnabled || pMac->pmc.uapsdSessionRequired || pMac->pmc.bmpsRequestedByHdd))
+              (pMac->pmc.autoBmpsEntryEnabled || pMac->pmc.uapsdSessionRequired || pMac->pmc.bmpsRequestedByHdd))
+        {
             (void)pmcStartTrafficTimer(hHal);
-        return eHAL_STATUS_FAILURE;
+        }
+        return eHAL_STATUS_SUCCESS;
     }
 
 	smsLog(pMac, LOGW, FL("eWNI_PMC_ENTER_BMPS_REQ sent to PE\n"));
@@ -1423,7 +1448,9 @@ eHalStatus pmcEnterRequestStandbyState (tHalHandle hHal)
          required */
       if(pMac->pmc.bmpsEnabled &&
         (pMac->pmc.autoBmpsEntryEnabled || pMac->pmc.uapsdSessionRequired || pMac->pmc.bmpsRequestedByHdd))
+      {
           (void)pmcStartTrafficTimer(hHal);
+      }
       return eHAL_STATUS_FAILURE;
    }
    
@@ -1910,6 +1937,7 @@ void pmcAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStop
 
             case eSmeCommandEnterBmps:
                 smsLog(pMac, LOGE, FL("aborting request to enter BMPS \n"));
+                pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_FALSE;
                 pmcEnterFullPowerState(pMac);
                 pmcDoBmpsCallbacks(pMac, eHAL_STATUS_FAILURE);
                 break;
@@ -2106,7 +2134,7 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 if ( HAL_STATUS_SUCCESS( status ) )
                 {
                     pMac->pmc.pmcState = REQUEST_FULL_POWER;
-		            smsLog(pMac, LOGW, FL("eWNI_PMC_EXIT_IMPS_REQ sent to PE\n")); 
+                    smsLog(pMac, LOGW, FL("eWNI_PMC_EXIT_IMPS_REQ sent to PE\n")); 
                     fRemoveCmd = eANI_BOOLEAN_FALSE;
                 }
                 else
@@ -2134,16 +2162,24 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                     {
                         fRemoveCmd = eANI_BOOLEAN_FALSE;
                     }
+                    else
+                    {
+                        smsLog(pMac, LOGE, "Fail to send enter BMPS msg to PE\n");
+                        pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_FALSE;
+                    }
                 }
                 if( !HAL_STATUS_SUCCESS( status ) )
                 {
                     smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_BMPS_REQ status %d\n", status);
+                    pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_FALSE;
                     pmcEnterFullPowerState(pMac);
                     //Do not call UAPSD callback here since it may be retried
                     pmcDoBmpsCallbacks(pMac, eHAL_STATUS_FAILURE);
                     if(pMac->pmc.bmpsEnabled &&
                       (pMac->pmc.autoBmpsEntryEnabled || pMac->pmc.uapsdSessionRequired || pMac->pmc.bmpsRequestedByHdd))
+                    {
                         (void)pmcStartTrafficTimer(pMac);
+                    }
                 }
             }
             break;
@@ -2158,7 +2194,7 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 {
                     pMac->pmc.pmcState = REQUEST_FULL_POWER;
                     fRemoveCmd = eANI_BOOLEAN_FALSE;
-		            smsLog(pMac, LOGW, FL("eWNI_PMC_EXIT_BMPS_REQ sent to PE\n"));
+                    smsLog(pMac, LOGW, FL("eWNI_PMC_EXIT_BMPS_REQ sent to PE\n"));
 
                 }
                 else
@@ -2291,7 +2327,9 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                      required */
                     if(pMac->pmc.bmpsEnabled &&
                       (pMac->pmc.autoBmpsEntryEnabled || pMac->pmc.uapsdSessionRequired || pMac->pmc.bmpsRequestedByHdd))
+                    {
                         (void)pmcStartTrafficTimer(pMac);
+                    }
                 }
             }
             break;

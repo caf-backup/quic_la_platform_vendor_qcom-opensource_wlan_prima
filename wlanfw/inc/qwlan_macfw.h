@@ -382,6 +382,9 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_RA_ERROR_CODE                      (QWLANFW_LOG_CODE_RA_BASE + 0x8)
 #define QWLANFW_LOG_CODE_RA_WARN_CODE                       (QWLANFW_LOG_CODE_RA_BASE + 0x9)
 
+/* Noise signal floor for RSSI averaging in BMPS mode
+ */
+#define QWLANFW_PWRSAVE_RSSI_NOISE_FLOOR                    5
 /*==========================================================================
   LOG RECORD DESC
 ==========================================================================*/
@@ -1891,10 +1894,13 @@ typedef enum
 
 /** BTC Executions Modes allowed to be set by user
 */
-#define QWLANFW_BTC_SMART_COEXISTENCE    (0)   /** BTC Mapping Layer decides whats best */
+#define QWLANFW_BTC_SMART_COEXISTENCE    (0)   /** BTC Mapping Layer decides whats best, balanced */
 #define	QWLANFW_BTC_WLAN_ONLY            (1)   /** WLAN takes all mode */
 #define	QWLANFW_BTC_PTA_ONLY             (2)   /** Allow only 3 wire protocol in H/W */
-#define	QWLANFW_BT_EXEC_MODE_MAX         (3)   /** This and beyond are invalid values */
+#define QWLANFW_BTC_SMART_MAX_WLAN       (3)   /** BTC Mapping Layer decides whats best, WLAN weighted */
+#define QWLANFW_BTC_SMART_MAX_BT         (4)   /** BTC Mapping Layer decides whats best, BT weighted */
+#define QWLANFW_BTC_SMART_BT_A2DP        (5)   /** BTC Mapping Layer decides whats best, balanced + BT A2DP weight */
+#define	QWLANFW_BT_EXEC_MODE_MAX         (6)   /** This and beyond are invalid values */
 
 /** Enumeration of different kinds actions that BTC Mapping Layer
     can do if PM indication (to AP) fails. */

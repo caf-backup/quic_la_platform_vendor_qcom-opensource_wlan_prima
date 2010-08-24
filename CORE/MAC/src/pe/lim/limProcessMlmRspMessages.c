@@ -3516,6 +3516,12 @@ void limProcessMlmHalAddBARsp( tpAniSirGlobal pMac,
     //now LIM can process any defer message.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
 
+    if (pAddBAParams == NULL) {
+        PELOGE(limLog(pMac, LOGE,FL("NULL ADD BA Response from HAL\n"));)
+        return;
+    }
+
+
     //This is special case when HAL just wants LIM to start processing defer message.
     if(NULL == pAddBAParams)
         return;

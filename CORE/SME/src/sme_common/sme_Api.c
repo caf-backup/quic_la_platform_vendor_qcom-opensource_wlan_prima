@@ -160,7 +160,13 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
         pCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
     }
     else {
-        smsLog( pMac, LOGE, "Out of command buffer....\n" );
+        pEntry = csrLLPeekHead( &pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK );
+        if( pEntry )
+        {
+           pCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
+        }
+        smsLog( pMac, LOGE, "Out of command buffer.... command (%d) stuck\n", 
+           (pCmd) ? pCmd->command : eSmeNoCommand );
     }
 
     return( pCmd );
@@ -282,6 +288,7 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                     if( !CSR_IS_SET_KEY_COMMAND( pCommand ) )
                     {
                         csrLLUnlock( &pMac->sme.smeCmdActiveList );
+                        smsLog(pMac, LOGE, "  Cannot process command(%d) while waiting for key\n", pCommand->command);
                         return ( eANI_BOOLEAN_FALSE );
                     }
                 }
@@ -786,6 +793,7 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
    tPmcPowerState powerState;
    tPmcSwitchState hwWlanSwitchState;
    tPmcSwitchState swWlanSwitchState;
+   v_U32_t cfgVal = 0;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
    do
@@ -843,6 +851,9 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
          }
       }
       pMac->sme.state = SME_STATE_READY;
+      ccmCfgGetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, &cfgVal);
+      pMac->sme.origHbCount = (v_U8_t)cfgVal;
+      pMac->sme.numHbDisableReq = 0;
    } while( 0 );
 
    return status;
@@ -3172,6 +3183,48 @@ VOS_STATUS sme_GetFwVersion (tHalHandle hHal,FwVersionInfo *pVersion)
     }
 
     return (status);
+}
+/* ---------------------------------------------------------------------------
+
+    \fn sme_DisableHeartbeat
+
+    \brief To disable the HB. This is a synchronous API. It is the
+    responsibility of the caller of this function to call sme_RestoreHeartbeat
+    later to restore the HB.
+
+    \return eHalStatus – SUCCESS.
+
+  -------------------------------------------------------------------------------*/
+
+eHalStatus sme_DisableHeartbeat(tHalHandle hHal )
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    pMac->sme.numHbDisableReq++;
+    ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, 0, NULL, eANI_BOOLEAN_FALSE);
+    return eHAL_STATUS_SUCCESS;
+}
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_RestoreHeartbeat
+
+    \brief To try to enable the HB. This is a synchronous API. It is the
+    responsibility of the caller of sme_DisableHeartbeat to call this function
+    later to restore the HB.
+
+    \return eHalStatus – SUCCESS.
+
+  -------------------------------------------------------------------------------*/
+
+eHalStatus sme_RestoreHeartbeat(tHalHandle hHal )
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    pMac->sme.numHbDisableReq--;
+    if(0 == pMac->sme.numHbDisableReq)
+    {
+        ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->sme.origHbCount, NULL, eANI_BOOLEAN_FALSE);
+    }
+    return eHAL_STATUS_SUCCESS;
 }
 
 

@@ -24,16 +24,17 @@
   Notice that changes are listed in reverse chronological order.
 
 
-  $Header:$ $DateTime: $ $Author: $
+  $Header: //deploy/qcom/qct/wconnect/wlanhs/core/voss/rel/1.0/inc/wlan_qct_bal.h#1 $ $DateTime: 2010/08/04 15:47:50 $ $Author: c_kylet $
 
 
 when           who        what, where, why
 --------    ---         ----------------------------------------------------------
+08/13/10    hss         RX Flow Control code added
 05/21/08    schang      Created module.
 
 ===========================================================================*/
 
-/* $Header$ */
+/* $Header: //deploy/qcom/qct/wconnect/wlanhs/core/voss/rel/1.0/inc/wlan_qct_bal.h#1 $ */
 
 /*===========================================================================
 
@@ -570,6 +571,39 @@ VOS_STATUS WLANBAL_DXEHeaderConfig
    WLANBAL_SDIODXEHeaderConfigType   *ConfigInfo
 );
 
+#ifdef FEATURE_WLAN_FLOW_CONTROL
+/*----------------------------------------------------------------------------
+
+  @brief Suspend BAL, Trigger SSC RX FLOW Suspend
+
+  @param v_PVOID_t pAdapter
+        Global adapter handle
+
+  @return General status code
+
+----------------------------------------------------------------------------*/
+VOS_STATUS WLANBAL_SuspendFlow
+(
+   v_PVOID_t         pAdapter,
+   v_U8_t            eSuspendedFlow
+);
+
+/*----------------------------------------------------------------------------
+
+  @brief Resume BAL from Suspend, Trigger SSC RX FLOW Resume
+
+  @param v_PVOID_t pAdapter
+        Global adapter handle
+
+  @return General status code
+
+----------------------------------------------------------------------------*/
+VOS_STATUS WLANBAL_ResumeFlow
+(
+   v_PVOID_t         pAdapter,
+   v_U8_t            eSuspendedFlow 
+);
+#endif
 /*----------------------------------------------------------------------------
 
   @brief Suspend BAL, Trigger SSC Suspend

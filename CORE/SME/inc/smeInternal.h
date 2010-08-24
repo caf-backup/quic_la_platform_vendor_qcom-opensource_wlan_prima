@@ -78,6 +78,8 @@ typedef struct tagSmeStruct
     eSmeState state;
     vos_lock_t lkSmeGlobalLock;
     tANI_U32 totalSmeCmd;
+    v_U8_t   numHbDisableReq;
+    v_U8_t   origHbCount;
     void *pSmeCmdBufAddr;
     tDblLinkList smeCmdActiveList;
     tDblLinkList smeCmdPendingList;

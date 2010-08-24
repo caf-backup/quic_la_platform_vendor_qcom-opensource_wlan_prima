@@ -1219,6 +1219,10 @@ VOS_STATUS sme_DbgWriteMemory(tHalHandle hHal, v_U32_t memAddr, v_U8_t *pBuf, v_
 //sme_GetFwVersion
 VOS_STATUS sme_GetFwVersion (tHalHandle hHal,FwVersionInfo *pVersion);
 
+eHalStatus sme_DisableHeartbeat(tHalHandle hHal );
+
+eHalStatus sme_RestoreHeartbeat(tHalHandle hHal );
+
 #ifdef FEATURE_WLAN_WAPI
 /* ---------------------------------------------------------------------------
     \fn sme_RoamSetBKIDCache

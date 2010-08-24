@@ -774,6 +774,8 @@ VOS_STATUS WLANBAL_Close
 
    BENTER();
 
+   vos_mem_dma_free(gbalHandle->dmaBuffer);
+
    status = WLANSSC_Close(sscHandle);
    if(!VOS_IS_STATUS_SUCCESS(status))
    {

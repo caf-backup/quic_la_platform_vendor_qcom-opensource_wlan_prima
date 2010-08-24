@@ -1444,9 +1444,11 @@ eHalStatus baProcessTLAddBARsp(tpAniSirGlobal pMac, tANI_U16 baSessionID, tANI_U
             } else
                 HALLOGE( halLog(pMac, LOGE, FL("We are in wrong state\n")));
         }
-        else
+        else {
             HALLOGE( halLog(pMac, LOGE, FL("Could not retrieve pAddBAParams for baSessionID = %d\n"),
                 baSessionID));
+	    return status;
+	}
     }
     else
         HALLOGE( halLog(pMac, LOGE, FL("BA session does not exist with sessionID = %d\n"),

@@ -47,7 +47,7 @@
 #include "vos_nvitem.h"
 #include "wlan_hdd_main.h"
 #include "wlan_hdd_misc.h"
-
+#include <linux/vmalloc.h>
 
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -519,7 +519,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   //cannot be overwritten. So need to copy the firmware into a separate buffer
   //as HAL needs to modify the endianess of FW binary.
   halStartParams.FW.cbImage = numFwBytes;
-  halStartParams.FW.pImage = vos_mem_malloc(numFwBytes);
+  halStartParams.FW.pImage = vmalloc(numFwBytes);
   if(halStartParams.FW.pImage == NULL) {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
              "%s: Failed to allocate memory for firmware binary",__func__);
@@ -537,7 +537,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
   /* Free up the FW image no matter what */
   hdd_release_firmware(LIBRA_FW_FILE, pVosContext->pHDDContext);
-  vos_mem_free(halStartParams.FW.pImage);
+  vfree(halStartParams.FW.pImage);
   halStartParams.FW.pImage = NULL;
   halStartParams.FW.cbImage = 0;
 

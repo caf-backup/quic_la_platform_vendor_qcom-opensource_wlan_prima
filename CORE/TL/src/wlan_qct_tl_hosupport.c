@@ -1300,8 +1300,8 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
          {
             if((WLANTL_HO_THRESHOLD_UP == triggerEvent) || (WLANTL_HO_THRESHOLD_CROSS == triggerEvent))
             {
-               TH_MSG_ERROR("Registered RSSI value smaller than Current RSSI, and UP event, Send Notification", 0, 0, 0);
-               crossCBFunction(pAdapter, WLANTL_HO_THRESHOLD_UP, usrCtxt);
+               TH_MSG_ERROR("Registered RSSI value smaller than Current RSSI", 0, 0, 0);
+               TH_MSG_ERROR("Do not send UP notification", 0, 0, 0);
             }
          }
       }
@@ -1311,8 +1311,8 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
          {
             if((WLANTL_HO_THRESHOLD_UP == triggerEvent) || (WLANTL_HO_THRESHOLD_CROSS == triggerEvent))
             {
-               TH_MSG_ERROR("Registered RSSI value smaller than Current RSSI, and UP event, Send Notification", 0, 0, 0);
-               crossCBFunction(pAdapter, WLANTL_HO_THRESHOLD_UP, usrCtxt);
+               TH_MSG_ERROR("Registered RSSI value smaller than Current RSSI", 0, 0, 0);
+               TH_MSG_ERROR("Do not send UP notification", 0, 0, 0);
             }
          }
       }

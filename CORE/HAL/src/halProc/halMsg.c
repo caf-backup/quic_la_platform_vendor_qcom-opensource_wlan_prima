@@ -2128,6 +2128,9 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
         palCopyMemory(pMac->hHdd, &(param->staContext.staMac), param->bssId, sizeof(tSirMacAddr));
         halMsg_AddSta(pMac,  dialog_token, &(param->staContext), eANI_BOOLEAN_FALSE);
 
+        //restore staIdx to selfIdx before generating add bss response to PE
+        param->staContext.staIdx  = selfIdx;
+        
         /** Set the Number of Rxp Chains as SM Enabled for IBSS mode */
         status = halSetPowerSaveMode(pMac, eSIR_HT_MIMO_PS_NO_LIMIT);
         if (status != eHAL_STATUS_SUCCESS) {

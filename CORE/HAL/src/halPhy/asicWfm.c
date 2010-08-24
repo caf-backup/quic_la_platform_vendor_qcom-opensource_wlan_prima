@@ -625,7 +625,15 @@ eHalStatus asicTxFirSetPaOverride(tpAniSirGlobal pMac, tANI_BOOLEAN overrideEnab
     }
     else
     {
-        rdModWrAsicField(pMac, QWLAN_TXFIR_CFG_REG, QWLAN_TXFIR_CFG_PA_OVERRIDE_MASK, QWLAN_TXFIR_CFG_PA_OVERRIDE_OFFSET, 0);
+        /* James:We have found a clock-domain crossing issue in the Libra phy that exhibits itself in some parts and
+         * maybe all parts at temp. The work around is to force the PA enable high. This actually only forces the
+         * PA_EN high at the rising edge of TX_EN.
+         */
+        rdModWrAsicField(pMac, QWLAN_TXFIR_CFG_REG,
+                         (QWLAN_TXFIR_CFG_PA_OVERRIDE_VALUE_MASK | QWLAN_TXFIR_CFG_PA_OVERRIDE_MASK),
+                         QWLAN_TXFIR_CFG_PA_OVERRIDE_OFFSET,
+                         3
+                        );
         return (eHAL_STATUS_SUCCESS);
     }
 }

@@ -26,11 +26,12 @@ DESCRIPTION
   Notice that changes are listed in reverse chronological order.
 
 
-  $Header:$ $DateTime: $ $Author: $
+  $Header: //deploy/qcom/qct/wconnect/wlanhs/core/tl/rel/1.0/inc/wlan_qct_tl.h#1 $ $DateTime: 2010/08/04 15:47:50 $ $Author: c_kylet $
 
 
 when        who    what, where, why
 --------    ---    ----------------------------------------------------------
+08/13/10    hss     RX Flow Control code added
 01/08/10    lti     Added TL Data Caching 
 10/15/09    rnair   Modifying STADescType struct
 10/06/09    rnair   Adding support for WAPI 
@@ -409,6 +410,68 @@ typedef VOS_STATUS (*WLANTL_TxCompCBType)( v_PVOID_t      pvosGCtx,
 /*----------------------------------------------------------------------------
     INTERACTION WITH HDD
  ---------------------------------------------------------------------------*/
+#ifdef FEATURE_WLAN_FLOW_CONTROL
+/*===========================================================================
+
+  FUNCTION    WLANTL_SuspendDataRx
+
+  DESCRIPTION
+
+    This function is used by TL to suspend RX Flow in SSC.
+
+  DEPENDENCIES
+
+    TL must have been initialized before this gets called.
+
+   
+  PARAMETERS
+
+   pvosGCtx:   VOS context
+
+  RETURN VALUE
+
+    The result code associated with performing the operation
+
+  SIDE EFFECTS
+
+============================================================================*/
+VOS_STATUS
+WLANTL_SuspendDataRx
+(
+  v_PVOID_t              pvosGCtx
+);
+
+/*===========================================================================
+
+  FUNCTION    WLANTL_ResumeDataRx
+
+  DESCRIPTION
+
+    This function is used by TL to resume RX Flow in SSC. 
+
+  DEPENDENCIES
+
+    TL must have been initialized before this gets called.
+
+   
+  PARAMETERS
+
+   pvosGCtx:   VOS context 
+
+  RETURN VALUE
+
+    The result code associated with performing the operation
+    
+  SIDE EFFECTS
+
+============================================================================*/
+
+VOS_STATUS
+WLANTL_ResumeDataRx
+(
+  v_PVOID_t              pvosGCtx
+);
+#endif
 
 /*----------------------------------------------------------------------------
 

@@ -440,6 +440,7 @@ static VOS_STATUS wlan_ftm_priv_get_status(hdd_adapter_t *pAdapter,char *buf)
     };
     char *rx[] = {
         "disable",
+        "11b/g/n",
         "11g/n",
         "11b"
     };
@@ -657,7 +658,14 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
        goto err_nl_srv_init;
     }
 #endif
-       //Turn off carrier state
+
+    if (!VOS_IS_STATUS_SUCCESS(vos_chipVoteOnXOBuffer(NULL, NULL, NULL)))
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to configure 19.2 MHz Clock", __func__);
+        goto err_nl_srv_init;
+    }
+
+    //Turn off carrier state
     netif_carrier_off(pAdapter->dev);
 
     //Stop the Interface TX queue. Just being safe
@@ -745,6 +753,9 @@ int wlan_hdd_ftm_close(hdd_adapter_t *pAdapter)
         unregister_netdev(pAdapter->dev);
         clear_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
     }
+
+    vos_chipVoteOffXOBuffer(NULL, NULL, NULL);
+
     return 0;
 }
 
@@ -1288,7 +1299,7 @@ static VOS_STATUS wlan_ftm_priv_set_txpower(hdd_adapter_t *pAdapter,v_U16_t txpo
         return VOS_STATUS_E_FAILURE;
     }
 
-    if(!(txpower >= 2 && txpower <= 16)) 
+    if(!(txpower >= 8 && txpower <= 16)) 
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:Invalid tx power. ",__func__);
         return VOS_STATUS_E_FAILURE;

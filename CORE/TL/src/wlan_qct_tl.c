@@ -28,11 +28,12 @@
   Notice that changes are listed in reverse chronological order.
 
 
-   $Header$$DateTime$$Author$
+   $Header: //deploy/qcom/qct/wconnect/wlanhs/core/tl/rel/1.0/src/wlan_qct_tl.c#1 $$DateTime: 2010/08/04 15:47:50 $$Author: c_kylet $
 
 
   when        who     what, where, why
 ----------    ---    --------------------------------------------------------
+2010-10-13    hss     RX Flow Control code added
 2010-07-13    c_shinde Fixed an issue where WAPI rekeying was failing because 
                       WAI frame sent out during rekeying had the protected bit
                       set to 1.
@@ -153,6 +154,11 @@ const v_U8_t WLANTL_BT_AMP_OUI[] =  {0x00, 0x19, 0x58 };
 #define SWAP_ENDIAN_UINT32(a)          ((a) = ((a) >> 0x18 ) |(((a) & 0xFF0000) >> 0x08) | \
                                             (((a) & 0xFF00) << 0x08)  | (((a) & 0xFF) << 0x18))
 
+#ifdef FEATURE_WLAN_FLOW_CONTROL
+#define WLANTL_TX_FLOW  0
+#define WLANTL_RX_FLOW  1
+#define WLANTL_ALL_FLOW 2
+#endif
 /*--------------------------------------------------------------------------
    TID to AC mapping in TL
  --------------------------------------------------------------------------*/
@@ -659,6 +665,79 @@ WLANTL_Close
     INTERACTION WITH HDD
  ---------------------------------------------------------------------------*/
 
+#ifdef FEATURE_WLAN_FLOW_CONTROL
+/*===========================================================================
+  FUNCTION    WLANTL_SuspendDataRx
+
+  DESCRIPTION
+
+    This function is used by TL to suspend RX Flow in SSC.
+
+  DEPENDENCIES
+
+    TL must have been initialized before this gets called.
+
+   
+  PARAMETERS
+
+   pvosGCtx:   VOS context
+
+  RETURN VALUE
+
+    The result code associated with performing the operation
+
+  SIDE EFFECTS
+
+============================================================================*/
+VOS_STATUS
+WLANTL_SuspendDataRx
+(
+  v_PVOID_t              pvosGCtx
+)
+{
+     /*Need to re-visit for AP/STA flow control concurrency !!!*/
+     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+             "Indication to suspend the RX Flow received");	
+     return WLANBAL_SuspendFlow(pvosGCtx, WLANTL_RX_FLOW);
+}
+
+/*===========================================================================
+  FUNCTION    WLANTL_ResumeDataRx
+
+  DESCRIPTION
+
+    This function is used by TL to resume RX Flow in SSC. 
+
+  DEPENDENCIES
+
+    TL must have been initialized before this gets called.
+
+   
+  PARAMETERS
+
+   pvosGCtx:   VOS context 
+
+  RETURN VALUE
+
+    The result code associated with performing the operation
+    
+  SIDE EFFECTS
+
+============================================================================*/
+
+VOS_STATUS
+WLANTL_ResumeDataRx
+(
+  v_PVOID_t              pvosGCtx
+)
+{
+   /*Need to re-visit for AP/STA flow control concurrency !!!*/
+   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+             "Indication to resume the RX Flow received");	
+   
+   return WLANBAL_ResumeFlow(pvosGCtx, WLANTL_RX_FLOW);
+}
+#endif
 /*===========================================================================
 
   FUNCTION    WLANTL_StartForwarding
@@ -5450,7 +5529,7 @@ WLANTL_STARxAuth
        ( usMPDULen     >= ucMPDUHLen ) && ( usPktLen >= usMPDULen ) &&
        ( !WLANTL_TID_INVALID(ucTid) ))
     {
-      /* Do nothing */
+        ucMPDUHOffset = usMPDUDOffset - WLANTL_MPDU_HEADER_LEN; 
     }
     else
     {
@@ -6338,9 +6417,9 @@ WLANTL_Translate8023To80211Header
       case WLAN_STA_IBSS:
         pw80211Header->wFrmCtrl.toDS          = 0;
         pw80211Header->wFrmCtrl.fromDS        = 0;
-        /*Fix me*/
+        /*Take ADDR1 from 802.3 DA field*/
         vos_copy_macaddr( (v_MACADDR_t*)&pw80211Header->vA1,
-              &pTLCb->atlSTAClients[ucStaId].wSTADesc.vSTAMACAddress);
+              (v_MACADDR_t *)&w8023Header.vDA);
         vos_mem_copy( pw80211Header->vA3,
               &pTLCb->atlSTAClients[ucStaId].wSTADesc.vBSSIDforIBSS ,
               VOS_MAC_ADDR_SIZE);

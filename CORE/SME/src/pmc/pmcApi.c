@@ -213,8 +213,8 @@ eHalStatus pmcStart (tHalHandle hHal)
     /* Start traffic measurement timer if Auto BMPS feature is enabled */
     if(pMac->pmc.autoBmpsEntryEnabled)
     {
-    if (pmcStartTrafficTimer(hHal) != eHAL_STATUS_SUCCESS)
-        return eHAL_STATUS_FAILURE;
+       if (pmcStartTrafficTimer(hHal) != eHAL_STATUS_SUCCESS)
+          return eHAL_STATUS_FAILURE;
     }
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT 
@@ -700,8 +700,10 @@ eHalStatus pmcStartAutoBmpsTimer (tHalHandle hHal)
       requested BMPS (and we are in full power), timer would already have 
       been started to trigger BMPS entry */
    if (pMac->pmc.pmcState == FULL_POWER && !pMac->pmc.uapsdSessionRequired && !pMac->pmc.bmpsRequestedByHdd)
+   {
       if (pmcStartTrafficTimer(hHal) != eHAL_STATUS_SUCCESS)
          return eHAL_STATUS_FAILURE;
+   }
 
    return eHAL_STATUS_SUCCESS;
 }
@@ -1297,6 +1299,7 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
                 fRemoveCommand = eANI_BOOLEAN_FALSE;
                 break;
             }
+            pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_FALSE;
             /* Check that we are in the correct state for this message. */
             if (pMac->pmc.pmcState != REQUEST_BMPS)
             {

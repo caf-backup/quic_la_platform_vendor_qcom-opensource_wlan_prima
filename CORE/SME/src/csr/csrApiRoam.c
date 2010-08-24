@@ -3745,7 +3745,6 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                 
                 assocInfo.pBssDesc = pSirBssDesc; //could be NULL
                 assocInfo.pProfile = pProfile;
-                sme_QosCsrEventInd(pMac, ind_qos, &assocInfo);
 
                 pMac->roam.connectState = eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED;
                 if(Context)
@@ -3834,7 +3833,7 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
 #ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
                 //start UAPSD if uapsd_mask is not 0 because HDD will configure for trigger frame
                 //It may be better to let QoS do this????
-                if( pMac->roam.connectedProfile.modifyProfileFields.uapsd_mask )
+                if( pMac->roam.connectedProfile.modifyProfileFields.uapsd_mask && (ind_qos == SME_QOS_CSR_ASSOC_COMPLETE))
                 {
                     smsLog(pMac, LOGE, " uapsd_mask (0x%X) set, request UAPSD now\n",
                         pMac->roam.connectedProfile.modifyProfileFields.uapsd_mask);
@@ -3896,6 +3895,8 @@ static void csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pCommand,
             {
                 csrRoamLinkUp(pMac, pMac->roam.connectedProfile.bssid);
             }
+
+            sme_QosCsrEventInd(pMac, ind_qos, &assocInfo);
 
             break;
 

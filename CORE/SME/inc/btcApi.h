@@ -43,7 +43,10 @@
 #define BTC_SMART_COEXISTENCE   (0) /** BTC Mapping Layer decides whats best */
 #define BTC_WLAN_ONLY           (1) /** WLAN takes all mode */
 #define BTC_PTA_ONLY            (2) /** Allow only 3 wire protocol in H/W */
-#define BT_EXEC_MODE_MAX        (3) /** This and beyond are invalid values */
+#define BTC_SMART_MAX_WLAN      (3) /** BTC Mapping Layer decides whats best, WLAN weighted */
+#define BTC_SMART_MAX_BT        (4) /** BTC Mapping Layer decides whats best, BT weighted */
+#define BTC_SMART_BT_A2DP       (5) /** BTC Mapping Layer decides whats best, balanced + BT A2DP weight */
+#define BT_EXEC_MODE_MAX        (6) /** This and beyond are invalid values */
 
 /** Enumeration of different kinds actions that BTC Mapping Layer
     can do if PM indication (to AP) fails.
@@ -51,6 +54,9 @@
 #define BTC_RESTART_CURRENT     (0) /** Restart the interval we just failed to leave */
 #define BTC_START_NEXT          (1) /** Start the next interval even though the PM transition at the AP was unsuccessful */
 #define BTC_ACTION_TYPE_MAX     (2) /** This and beyond are invalid values */
+
+#define BTC_BT_INTERVAL_MODE1_DEFAULT       (120) /** BT Interval in Mode 1 */
+#define BTC_WLAN_INTERVAL_MODE1_DEFAULT     (30)  /** WLAN Interval in Mode 1 */
 
 /** Bitmaps used for maintaining various BT events that requires
     enough time to complete such that it might require disbling of
@@ -73,13 +79,15 @@
 #define BT_MAX_SCO_SUPPORT  3
 #define BT_MAX_ACL_SUPPORT  3
 #define BT_MAX_DISCONN_SUPPORT (BT_MAX_SCO_SUPPORT+BT_MAX_ACL_SUPPORT)
+#define BT_MAX_NUM_EVENT_ACL_DEFERRED  4  //We may need to defer these many BT events for ACL
+#define BT_MAX_NUM_EVENT_SCO_DEFERRED  4  //We may need to defer these many BT events for SYNC
 
 
 /** Enumeration of all the different kinds of BT events
 */
 typedef enum eSmeBtEventType
 {
-  BT_EVENT_DEVICE_SWITCHED_ON = 0,
+  BT_EVENT_DEVICE_SWITCHED_ON,
   BT_EVENT_DEVICE_SWITCHED_OFF,
   BT_EVENT_INQUIRY_STARTED,
   BT_EVENT_INQUIRY_STOPPED,
@@ -126,6 +134,12 @@ typedef struct sSmeBtSyncConnectionParam
    v_U8_t       retransmisisonWindow; //units in number of 625us slots
 } tSmeBtSyncConnectionParam, *tpSmeBtSyncConnectionParam;
 
+typedef struct sSmeBtSyncUpdateHist
+{
+    tSmeBtSyncConnectionParam btSyncConnection;
+    v_BOOL_t fValid;
+} tSmeBtSyncUpdateHist, *tpSmeBtSyncUpdateHist;
+
 /**Data structure that specifies the needed event parameters for
     BT_EVENT_MODE_CHANGED
 */
@@ -145,10 +159,11 @@ typedef struct sSmeBtDisconnectParam
 
 /*Data structure that specifies the needed event parameters for
     BT_EVENT_A2DP_STREAM_START
+    BT_EVENT_A2DP_STREAM_STOP
 */
 typedef struct sSmeBtA2DPParam
 {
-   v_U16_t connectionHandle;
+   v_U8_t       bdAddr[6];
 } tSmeBtA2DPParam, *tpSmeBtA2DPParam;
 
 
@@ -187,16 +202,20 @@ typedef struct sSmeBtAclModeChangeEventHist
 
 typedef struct sSmeBtAclEventHist
 {
-    tSmeBtEventType btEventType[2];
-    tSmeBtAclConnectionParam  btAclConnection;
-    v_BOOL_t fValid;
+    //At most, cached events are COMPLETION, DISCONNECT, CREATION, COMPLETION
+    tSmeBtEventType btEventType[BT_MAX_NUM_EVENT_ACL_DEFERRED];
+    tSmeBtAclConnectionParam  btAclConnection[BT_MAX_NUM_EVENT_ACL_DEFERRED];
+    //bNextEventIdx == 0 meaning no event cached here
+    tANI_U8 bNextEventIdx;
 } tSmeBtAclEventHist, *tpSmeBtAclEventHist;
 
 typedef struct sSmeBtSyncEventHist
 {
-    tSmeBtEventType btEventType[2];
-    tSmeBtSyncConnectionParam  btSyncConnection;
-    v_BOOL_t fValid;
+    //At most, cached events are COMPLETION, DISCONNECT, CREATION, COMPLETION
+    tSmeBtEventType btEventType[BT_MAX_NUM_EVENT_SCO_DEFERRED];
+    tSmeBtSyncConnectionParam  btSyncConnection[BT_MAX_NUM_EVENT_SCO_DEFERRED];
+    //bNextEventIdx == 0 meaning no event cached here
+    tANI_U8 bNextEventIdx;
 } tSmeBtSyncEventHist, *tpSmeBtSyncEventHist;
 
 typedef struct sSmeBtDisconnectEventHist
@@ -215,10 +234,13 @@ typedef struct sSmeBtcEventHist
    tSmeBtAclEventHist btAclConnectionEvent[BT_MAX_ACL_SUPPORT];
    tSmeBtAclModeChangeEventHist btAclModeChangeEvent[BT_MAX_ACL_SUPPORT];
    tSmeBtDisconnectEventHist btDisconnectEvent[BT_MAX_DISCONN_SUPPORT];
-   v_BOOL_t fInquiryStarted;
-   v_BOOL_t fInquiryStopped;
-   v_BOOL_t fPageStarted;
-   v_BOOL_t fPageStopped;
+   tSmeBtSyncUpdateHist btSyncUpdateEvent[BT_MAX_SCO_SUPPORT];
+   int nInquiryEvent;    //>0 for # of outstanding inquiriy starts
+                         //<0 for # of outstanding inquiry stops
+                         //0 == no inquiry event
+   int nPageEvent;  //>0 for # of outstanding page starts
+                    //<0 for # of outstanding page stops
+                    //0 == no page event
    v_BOOL_t fA2DPStarted;
    v_BOOL_t fA2DPStopped;
 } tSmeBtcEventHist, *tpSmeBtcEventHist;
@@ -227,8 +249,6 @@ typedef struct sSmeBtcEventReplay
 {
    tSmeBtcEventHist btcEventHist;
    v_BOOL_t fBTSwitchOn;
-   //This flag serves multiple purpose (if replay is on, send the off to FW.
-   //If it true, it also blocks deferring other messages, except SWITCH_ON.
    v_BOOL_t fBTSwitchOff;   
    //This is not directly tied to BT event so leave it alone when processing BT events
    v_BOOL_t fRestoreHBMonitor;  
@@ -243,7 +263,6 @@ typedef struct sSmeBtcInfo
    v_BOOL_t      btcReady;
    v_U8_t        btcEventState;
    v_U8_t        btcHBActive;    /* Is HB currently active */
-   v_U8_t        btcHBCount;     /* default HB count */
    vos_timer_t   restoreHBTimer; /* Timer to restore heart beat */
    tSmeBtcEventReplay btcEventReplay;
    v_BOOL_t      fReplayBTEvents;

@@ -839,6 +839,11 @@ typedef enum
 #define CFG_ENABLE_LOGP_MAX                                 ( 1 )
 #define CFG_ENABLE_LOGP_DEFAULT                             ( 0 )
 
+#define CFG_BTC_EXECUTION_MODE_NAME                         "BtcExecutionMode"
+#define CFG_BTC_EXECUTION_MODE_MIN                          ( 0 )
+#define CFG_BTC_EXECUTION_MODE_MAX                          ( 5 )
+#define CFG_BTC_EXECUTION_MODE_DEFAULT                      ( 0 )
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -876,6 +881,7 @@ typedef struct
    v_U8_t        nEnableDriverStop;
    v_BOOL_t      fIsImpsEnabled;
    v_BOOL_t      fIsLogpEnabled;
+   v_U8_t        btcExecutionMode;
    v_U32_t       nImpsModSleepTime;
    v_U32_t       nImpsMaxSleepTime;
    v_U32_t       nImpsMinSleepTime;

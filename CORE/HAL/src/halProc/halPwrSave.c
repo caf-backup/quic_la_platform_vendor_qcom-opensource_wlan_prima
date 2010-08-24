@@ -424,7 +424,7 @@ static void computeRssAvg(tANI_U32 value, tANI_S32 *totRssi, tANI_U32 *avgCount)
         rssiAnt1 = ((value & QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT1_STORE_REG0_MASK)
                           >> QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_PMU_RSSI_ANT1_STORE_REG0_OFFSET);
     }
-    if ((rssiAnt0 != 0) || (rssiAnt1 != 0))
+    if ((rssiAnt0 > QWLANFW_PWRSAVE_RSSI_NOISE_FLOOR) || (rssiAnt1 > QWLANFW_PWRSAVE_RSSI_NOISE_FLOOR))
     {
         aCount++;
         rssiAnt = (rssiAnt0 > rssiAnt1) ? rssiAnt0 : rssiAnt1;

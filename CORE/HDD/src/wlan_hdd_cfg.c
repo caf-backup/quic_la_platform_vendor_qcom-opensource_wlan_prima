@@ -1103,6 +1103,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_19P2_MHZ_PMIC_CLK_ENABLED_DEFAULT, 
                  CFG_19P2_MHZ_PMIC_CLK_ENABLED_MIN, 
                  CFG_19P2_MHZ_PMIC_CLK_ENABLED_MAX ),
+
+   REG_VARIABLE( CFG_BTC_EXECUTION_MODE_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, btcExecutionMode, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_BTC_EXECUTION_MODE_DEFAULT, 
+                 CFG_BTC_EXECUTION_MODE_MIN, 
+                 CFG_BTC_EXECUTION_MODE_MAX ),
+
 };                                
 
 /*
@@ -1666,6 +1674,18 @@ eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode )
 
 }
 
+static void hdd_set_btc_config(hdd_adapter_t *pAdapter) 
+{
+   hdd_config_t *pConfig = pAdapter->cfg_ini;
+   tSmeBtcConfig btcParams;
+   
+   sme_BtcGetConfig(pAdapter->hHal, &btcParams);
+
+   btcParams.btcExecutionMode = pConfig->btcExecutionMode;
+
+   sme_BtcSetConfig(pAdapter->hHal, &btcParams);
+}
+
 static void hdd_set_power_save_config(hdd_adapter_t *pAdapter, tSmeConfigParams *smeConfig) 
 {
    hdd_config_t *pConfig = pAdapter->cfg_ini;
@@ -2069,6 +2089,7 @@ VOS_STATUS hdd_set_sme_config( hdd_adapter_t *pAdapter )
    smeConfig.csrConfig.eBand                     = eCSR_BAND_24; 
    smeConfig.csrConfig.nTxPowerCap = pConfig->nTxPowerCap;
    hdd_set_power_save_config(pAdapter, &smeConfig);
+   hdd_set_btc_config(pAdapter);
 
    halStatus = sme_UpdateConfig( pAdapter->hHal, &smeConfig );    
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
