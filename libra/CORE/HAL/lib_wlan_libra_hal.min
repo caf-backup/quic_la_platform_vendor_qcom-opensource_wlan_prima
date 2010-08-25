@@ -1,0 +1,112 @@
+#============================================================================
+#  Name:
+#    LIB_WLAN_LIBRA_HAL.MIN
+#
+#  Description:
+#    An includable component of the makefile to build the AMSS software,
+#    this file lists the source files for the Libra HAL module.
+#
+# Copyright (c) 2001, 2002 by QUALCOMM, Incorporated.  All Rights Reserved.
+#============================================================================
+#
+#                        EDIT HISTORY FOR MODULE
+#
+# $Header:  $  
+# $DateTime: $ 
+# $Author: lraju $
+#
+# when       who     what, where, why
+# -------    ---     --------------------------------------------------------
+# 10/14/08   lyr     Created module
+#============================================================================
+
+
+#----------------------------------------------------------------------------
+# Include HAL-specific sources here
+#----------------------------------------------------------------------------
+
+# MAC source files
+WLAN_LIBRA_HAL_MAC_SOURCES =  \
+          halApi.c                   \
+          halBmu.c                   \
+          halApi.c                   \
+          halMIF.c                   \
+          halMailbox.c               \
+          halDPU.c                   \
+          halMCU.c                   \
+          halMIF.c                   \
+          halMacSecurityApi.c        \
+          halMailbox.c               \
+          halRateTable.c             \
+          halRxp.c                   \
+          halMTU.c                   \
+          halMacWmmApi.c             \
+          halMacBA.c                 \
+          halMacStats.c              \
+          halMCPU.c                  \
+          halTpe.c                   \
+          halRpe.c                   \
+          halAdu.c                   \
+          halTxp.c                   \
+          halLogDump.c
+
+# PHY source files
+WLAN_LIBRA_HAL_PHY_SOURCES =  \
+          halPhy.c            \
+          phyTxPower.c             \
+          halPhyVos.c         \
+          asicAGC.c                \
+          asicWfm.c                \
+          asicTPC.c                \
+          rfUtils.c                \
+          phyDebug.c               \
+          pttMsgApi.c
+
+# SYS source files
+WLAN_LIBRA_HAL_SYS_SOURCES =  \
+          halInterrupts.c     \
+          halNv.c             \
+          halNvTables.c       \
+          halQFuse.c          \
+          halPMU.c            \
+          halDXE.c              \
+          wlanHalAHB.c
+
+# PROC source files
+WLAN_LIBRA_HAL_PROC_SOURCES =  \
+          halInitApi.c             \
+          halAdaptThrsh.c          \
+          halRateAdaptation.c      \
+          halMsg.c                 \
+          hal.c                    \
+          halNimApi.c              \
+          halMnt.c                 \
+          halStaTable.c            \
+          halTimer.c               \
+          halTx.c                  \
+          halUtils.c               \
+          halTLApi.c               \
+          halTLFlush.c             \
+          halPwrSave.c             \
+          halFwApi.c               \
+          halRegBckup.c            \
+          halDebug.c               \
+          halBtc.c                 \
+          halRFBringup.c
+
+WLAN_LIBRA_HAL_LIB_SOURCES =  \
+        $(WLAN_LIBRA_HAL_MAC_SOURCES) \
+        $(WLAN_LIBRA_HAL_PHY_SOURCES) \
+        $(WLAN_LIBRA_HAL_SYS_SOURCES) \
+        $(WLAN_LIBRA_HAL_PROC_SOURCES)
+
+vpath %.c $(WLAN_LIBRA_HAL_HALMAC) $(WLAN_LIBRA_HAL_HALPHY) $(WLAN_LIBRA_HAL_HALPROC) $(WLAN_LIBRA_HAL_HALSYS)
+
+# Comment out BIG for now!!
+#ifeq ($(BIG),yes)
+#        WLAN_LIBRA_HAL_LIB_OBJS := $(LIBDIR)/wlan_libra_hal.lib
+#else
+        WLAN_LIBRA_HAL_LIB_OBJS :=  $(addprefix $(LIBDIR)/, $(WLAN_LIBRA_HAL_LIB_SOURCES:%.c=%.o))
+#endif
+
+$(LIBDIR)/wlan_libra_hal.lib : $(WLAN_LIBRA_HAL_LIB_OBJS)
