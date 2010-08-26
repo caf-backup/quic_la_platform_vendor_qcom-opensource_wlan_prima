@@ -41,12 +41,14 @@
 
 #define WE_MAX_STR_LEN 1024
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 #ifdef MSM_PLATFORM
 extern void hdd_suspend_wlan(struct early_suspend *wlan_suspend);
 extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
 #endif //#ifdef MSM_PLATFORM
 
 extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
+#endif
 
 
 /* Private ioctls and their sub-ioctls */
