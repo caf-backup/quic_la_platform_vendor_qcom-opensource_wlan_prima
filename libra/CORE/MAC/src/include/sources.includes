@@ -1,0 +1,35 @@
+
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Include paths needed for the Windows to build the MAC modules...
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+INCLUDES=$(ANI_DDK_PATH)
+
+#
+# there must be some order dependencies on these include paths unfortunately.
+# compiles fail when the order of the INCLUDES is changed.  so if you change
+# the ordering, beware!
+#
+INCLUDES=$(INCLUDES);$(ANI_MAC_ROOT_DIR)\include
+INCLUDES=$(INCLUDES);$(ANI_MAC_ROOT_DIR)\export
+INCLUDES=$(INCLUDES);$(ANI_MAC_SOURCE_ROOT_DIR)\include
+INCLUDES=$(INCLUDES);$(ANI_MAC_SOURCE_ROOT_DIR)\platform\Win\include
+INCLUDES=$(INCLUDES);$(ANI_WINHDD_ROOT_DIR)\include
+INCLUDES=$(INCLUDES);$(ANI_WINHOST_ROOT_DIR)\export
+INCLUDES=$(INCLUDES);$(ANI_WINHOST_ROOT_DIR)\include
+INCLUDES=$(INCLUDES);$(ANI_MAC_SOURCE_ROOT_DIR)\dph
+INCLUDES=$(INCLUDES);$(ANI_MAC_SOURCE_ROOT_DIR)\pe\include
+INCLUDES=$(INCLUDES);$(ANI_MAC_SOURCE_ROOT_DIR)\pe\pmm
+INCLUDES=$(INCLUDES);$(ANI_MAC_SOURCE_ROOT_DIR)\cfg
+INCLUDES=$(INCLUDES);$(ANI_MAC_SOURCE_ROOT_DIR)\dvt
+INCLUDES=$(INCLUDES);$(ANI_MAC_SOURCE_ROOT_DIR)\pe\sch
+INCLUDES=$(INCLUDES);$(ANI_MAC_SOURCE_ROOT_DIR)\pe\lim
+INCLUDES=$(INCLUDES);$(ANI_MAC_SOURCE_ROOT_DIR)\system
+INCLUDES=$(INCLUDES);$(ANI_HAL_ROOT_DIR)\export
+INCLUDES=$(INCLUDES);$(ANI_HAL_ROOT_DIR)\include
+INCLUDES=$(INCLUDES);$(ANI_HAL_ROOT_DIR)\halMac
+INCLUDES=$(INCLUDES);$(ANI_HAL_ROOT_DIR)\halProc
+INCLUDES=$(INCLUDES);$(ANI_HAL_ROOT_DIR)\halPhy
+INCLUDES=$(INCLUDES);$(ANI_SMS_ROOT_DIR)\export
+INCLUDES=$(INCLUDES);$(ANI_SMS_ROOT_DIR)\include
