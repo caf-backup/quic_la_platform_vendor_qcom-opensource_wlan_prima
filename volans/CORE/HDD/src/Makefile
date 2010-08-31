@@ -360,6 +360,9 @@ CDEFINES += -DMSM_PLATFORM_7x27
 else ifeq ($(TARGET_PRODUCT),msm7627_surf)
 EXTRA_CFLAGS += -march=armv7-a
 CDEFINES += -DMSM_PLATFORM_7x27
+else ifeq ($(TARGET_PRODUCT),msm8660_surf)
+EXTRA_CFLAGS += -march=armv7-a
+CDEFINES += -DMSM_PLATFORM_8660
 endif
 
 #ifeq ($(TARGET_PRODUCT),msm7630_surf)

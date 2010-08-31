@@ -65,6 +65,9 @@ when           who        what, where, why
 #elif defined MSM_PLATFORM_7x27
 #define WLAN_HIGH_SD_CLOCK_FREQ 49152000
 #define WLAN_LOW_SD_CLOCK_FREQ 16027000
+#elif defined MSM_PLATFORM_8660
+#define WLAN_HIGH_SD_CLOCK_FREQ 48000000
+#define WLAN_LOW_SD_CLOCK_FREQ 16000000
 // Low and High SD clock frequencies should be determined
 #endif
 #endif /* VOLANS_1_0_WORKAROUND */

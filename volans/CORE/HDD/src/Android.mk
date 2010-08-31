@@ -2,7 +2,7 @@
 # Android makefile for the WLAN Libra Module
 
 # Build/Package only in case of 7x30
-ifneq (, $(filter msm7630_surf, $(TARGET_PRODUCT)))
+ifneq (, $(filter msm7630_surf msm8660_surf, $(TARGET_PRODUCT)))
 
 PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/volans/firmware_bin/qcom_fw.bin:system/etc/firmware/wlan/volans/qcom_fw.bin
 PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/volans/firmware_bin/qcom_wlan_nv.bin:persist/qcom_wlan_nv.bin
