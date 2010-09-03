@@ -374,6 +374,16 @@ int vos_chip_power_7x27_keypad( int on )
    }
    else 
    {
+      rc = vreg_disable(vreg_bt);
+      if (rc) {
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: BT vreg disable failed (%d)",__func__, rc);
+      }
+
+      rc = vreg_disable(vreg_wlan);
+      if (rc) {
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: WLAN vreg disable failed (%d)",__func__, rc);
+      }
+
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Disabled power supply for WLAN", __func__);
    }
 
