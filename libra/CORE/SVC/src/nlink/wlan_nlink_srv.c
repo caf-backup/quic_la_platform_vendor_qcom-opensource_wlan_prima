@@ -5,11 +5,6 @@
 *
 ******************************************************************************/
 
-#ifdef USE_AUTOCONF_IN_GENERATED
-#include <generated/autoconf.h>
-#else  // ~USE_AUTOCONF_IN_GENERATED
-#include <linux/autoconf.h>
-#endif //USE_AUTOCONF_IN_GENERATED
 #include <linux/version.h>
 #include <linux/kernel.h>
 #include <linux/module.h>

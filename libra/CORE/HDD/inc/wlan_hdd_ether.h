@@ -14,11 +14,6 @@
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/
-#ifdef USE_AUTOCONF_IN_GENERATED
-#include <generated/autoconf.h>
-#else  // ~USE_AUTOCONF_IN_GENERATED
-#include <linux/autoconf.h>
-#endif //USE_AUTOCONF_IN_GENERATED
 #include <linux/version.h>
 #include <linux/byteorder/generic.h>
 #include <linux/if_ether.h>

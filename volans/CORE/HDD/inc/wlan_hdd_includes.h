@@ -21,7 +21,6 @@
 
 // throw all the includes in here f to get the .c files  in the HDD to compile.
 
-#include <linux/autoconf.h>
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/kernel.h>

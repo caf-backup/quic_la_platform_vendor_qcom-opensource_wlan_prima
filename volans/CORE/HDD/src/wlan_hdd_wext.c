@@ -16,7 +16,6 @@
     Wireless Extensions Data types referred to by CCP. 
   
 	======================================================================== */
-#include <linux/autoconf.h>
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/kernel.h>

@@ -30,7 +30,6 @@
               Ganesh K       
   ==========================================================================*/
 
-#include <linux/autoconf.h>
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/kernel.h>

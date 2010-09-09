@@ -1,11 +1,6 @@
 #ifndef __WEXT_IW_H__
 #define __WEXT_IW_H__
 
-#ifdef USE_AUTOCONF_IN_GENERATED
-#include <generated/autoconf.h>
-#else  // ~USE_AUTOCONF_IN_GENERATED
-#include <linux/autoconf.h>
-#endif //USE_AUTOCONF_IN_GENERATED
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/netdevice.h>

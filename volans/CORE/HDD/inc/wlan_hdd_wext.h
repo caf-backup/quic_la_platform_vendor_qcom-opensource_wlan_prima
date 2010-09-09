@@ -1,7 +1,6 @@
 #ifndef __WEXT_IW_H__
 #define __WEXT_IW_H__
 
-#include <linux/autoconf.h>
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/netdevice.h>
