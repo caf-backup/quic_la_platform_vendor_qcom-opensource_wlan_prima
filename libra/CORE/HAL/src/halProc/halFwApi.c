@@ -215,25 +215,39 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
     halWriteRegister(pMac,
             QWLAN_MCU_ACPU_CONTROL_REG , value);
 
-    tempPtr = (tANI_U32 *)fwImage;
-    for (i=0; i<length; i+=4) {
-       *tempPtr = sirSwapU32(*tempPtr);
-       tempPtr+=1;
+    offset = 0;
+    len = 0x800 ;/*2K*/
+
+    /* Allocate 2K memory to store the firmware fragment and Endian conversion */
+    status = palAllocateMemory( pMac, (void **) &tempPtr, len);
+    if (status != eHAL_STATUS_SUCCESS) {
+        HALLOGE( halLog( pMac, LOGE, FL("Memory Allocation Failed!!!") ));
+        return status;
     }
 
-    HALLOGE( halLog(pMac, LOGE, FL("Download firmware image (%d bytes) \n"),  length ));
-
-    offset = 0;
-    len = 0x800 ;/*16K*/
     while (length) {
+
       if (length < len)
           len = length;
 
+      /* Copy firmware fragment */
+      palCopyMemory(pMac, (void*)tempPtr, (void*)((tANI_U8 *)fwImage + offset), len);
+
+      /* Swap the bytes before writing to HW */
+      for (i=0; i<len; i+=4) {
+          *tempPtr = sirSwapU32(*tempPtr);
+          tempPtr+=1;
+      }
+
+      tempPtr -= i/4;
+
       halWriteDeviceMemory(pMac, FW_IMAGE_MEMORY_BASE_ADDRESS + offset,
-               ((tANI_U8 *)fwImage + offset), len) ;
+               tempPtr, len);
       offset += len;
       length -= len;
     }
+    /* Free the allocated memory */
+    palFreeMemory(pMac, tempPtr);
 
     // Update the Traffic monitoring
     pFwConfig->ucRegulateTrafficMonitorMsec = QWLANFW_TRAFFIC_MONITOR_TIMEOUT_MSEC;
@@ -552,14 +566,38 @@ eHalStatus halFW_DelStaMsg(tpAniSirGlobal pMac, tANI_U8 staIndex)
     return status;
 }
 
+
+eHalStatus halFW_UpdateBAMsg(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId, tANI_U8 code)
+{
+    Qwlanfw_UpdateBaType  updateBaInd;
+    tANI_U16 dialogToken = 0;
+    eHalStatus status;
+
+    updateBaInd.staIdx  = staIdx;
+    updateBaInd.queueId = queueId;
+    updateBaInd.code    = code;
+
+    status = halFW_SendMsg(pMac, HAL_MODULE_ID_SOFT_AP, 
+            QWLANFW_HOST2FW_UPDATE_BA, dialogToken,
+            sizeof(updateBaInd), &updateBaInd, FALSE, NULL);
+
+    if(status != eHAL_STATUS_SUCCESS) {
+        VOS_ASSERT(eANI_BOOLEAN_FALSE == pMac->hal.halMac.isFwInitialized);
+    }
+
+    HALLOGE( halLog(pMac, LOGE, FL("Update BA %d:%d:%d\n"), updateBaInd.staIdx, updateBaInd.queueId, updateBaInd.code ));
+    return status;
+}
+
+
 #if WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE
-eHalStatus halFW_UpdateProbeRespTemplateMsg(tpAniSirGlobal pMac, tANI_U8 bssIndex, tANI_U32 probeRespTemplateLen )
+eHalStatus halFW_UpdateProbeRespTemplateMsg(tpAniSirGlobal pMac, tANI_U8 bssIndex, tANI_U8 enableFlag )
 {
     Qwlanfw_UpdateProbeRespTemplateStaType  updateProbeRespTemplateInd;
     tANI_U16 dialogToken = 0;
     eHalStatus status;
 
-    updateProbeRespTemplateInd.probeRespTemplateLen  =  probeRespTemplateLen;
+    updateProbeRespTemplateInd.enableFlag           =  enableFlag;
     updateProbeRespTemplateInd.bssIdx               =  bssIndex;
 	
     status = halFW_SendMsg(pMac, HAL_MODULE_ID_SOFT_AP , QWLANFW_HOST2FW_UPDATE_PROBE_RESPONSE_TEMPLATE_REQ , dialogToken,

@@ -188,11 +188,11 @@ static int FindIELocation( tpAniSirGlobal pMac,
 
 tSirRetStatus
 PopulateDot11fCapabilities(tpAniSirGlobal         pMac,
-                           tDot11fFfCapabilities *pDot11f)
+                           tDot11fFfCapabilities *pDot11f,
+                           tpPESession            psessionEntry)
 {
     tANI_U16           cfg;
     tSirRetStatus nSirStatus;
-    tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????
 
     nSirStatus = cfgGetCapabilityInfo( pMac, &cfg,psessionEntry );
     if ( eSIR_SUCCESS != nSirStatus )
@@ -216,11 +216,11 @@ PopulateDot11fCapabilities(tpAniSirGlobal         pMac,
 tSirRetStatus
 PopulateDot11fCapabilities2(tpAniSirGlobal         pMac,
                             tDot11fFfCapabilities *pDot11f,
-                            tpDphHashNode          pSta)
+                            tpDphHashNode          pSta, 
+                            tpPESession            psessionEntry)
 {
     tANI_U16           cfg;
     tSirRetStatus nSirStatus;
-    tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????
     nSirStatus = cfgGetCapabilityInfo( pMac, &cfg ,psessionEntry);
     if ( eSIR_SUCCESS != nSirStatus )
     {

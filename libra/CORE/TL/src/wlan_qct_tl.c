@@ -1,5 +1,6 @@
 /*===========================================================================
 
+
                        W L A N _ Q C T _ T L . C
 
   OVERVIEW:
@@ -3098,6 +3099,7 @@ WLANTL_GetFrames
    v_U8_t              ucSTAId;
    vos_pkt_t*          vosDataBuff;
    v_U32_t             uTotalPktLen;
+   v_U32_t             i=0;
    v_BOOL_t            ucResult = VOS_FALSE;
    VOS_STATUS          vosStatus;
    WLANTL_STAEventType   wSTAEvent;
@@ -3124,11 +3126,15 @@ WLANTL_GetFrames
     Save the root as we will walk this chain as we fill it
    -----------------------------------------------------------------------*/
   vosRoot = vosDataBuff;
-
+  
+  for ( i = 0; i < WLAN_MAX_STA_COUNT; i++)
+  {
+        pTLCb->atlSTAClients[i].ucNoMoreData = 1;
+  }
+    
   /*-----------------------------------------------------------------------
     There is still data - until FSM function says otherwise
    -----------------------------------------------------------------------*/
-  pTLCb->ucNoMoreData = 0;
   pTLCb->bUrgent      = FALSE;
   while (( 0 < pTLCb->uResCount ) &&
          ( 0 < uRemaining ))
@@ -3270,19 +3276,27 @@ WLANTL_GetFrames
 
       if ( NULL != pTLCb->vosTempBuf ) 
       {
-        pTLCb->ucNoMoreData = 0; /*TL has data to tx*/
         vosTempBuf          = pTLCb->vosTempBuf;
         pTLCb->vosTempBuf   = NULL;
         ucSTAId             = pTLCb->ucCachedSTAId; 
+        pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 0;
 
         VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                    "WLAN TL:Chaining cached data frame on GetFrame");
       }
       else
       {
-        pTLCb->ucNoMoreData++; /*Flag will be set to 0 if sta is avail for tx*/
-
         WLAN_TLGetNextTxIds( pvosGCtx, &ucSTAId);
+        if (ucSTAId >= WLAN_MAX_STA_COUNT)
+        {
+         /* Packets start coming in even after insmod Without *
+            starting Hostapd or Interface being up            *
+            During which cases STAID is invaled and hence 
+            the check. HalMsg_ScnaComplete Triggers */
+
+            break;
+        }
+        pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
         VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
                    "WLAN TL: %s get one data frame, station ID %d ", __FUNCTION__, ucSTAId);
         /*-------------------------------------------------------------------
@@ -3301,7 +3315,7 @@ WLANTL_GetFrames
 
           if ( NULL != pfnSTAFsm )
           {
-            pTLCb->ucNoMoreData = 0; /*TL might still have data to tx*/
+            pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 0;
             vosStatus  = pfnSTAFsm( pvosGCtx, ucSTAId, &vosTempBuf);
 
             if (( VOS_STATUS_SUCCESS != vosStatus ) &&
@@ -3404,25 +3418,27 @@ WLANTL_GetFrames
       }
       else
       {
-        /*------------------------------------------------------------------
-          The flag is set when STA return NULL packet
-          - please revisit for multiple STA support !!!
-         ------------------------------------------------------------------*/
-        if ( 0 != pTLCb->ucNoMoreData )
-        {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:No more data packets at STA - returning from GetFrame");
-          break;
-        }
-        else
-        {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-           "WLAN TL:Packet was dropped before being chained - continue loop");
-          continue;
-        }
+           for ( i = 0; i < WLAN_MAX_STA_COUNT; i++)
+           {
+              if ((pTLCb->atlSTAClients[i].ucExists) && 
+                   (!(pTLCb->atlSTAClients[i].ucNoMoreData)))
+              {
+                  /* There is station to be Served */
+                  break;
+              }
+           }
+           if (i >= WLAN_MAX_STA_COUNT)
+           {
+              /* No More to Serve Exit Get Frames */
+              break;
+           }
+           else
+           {
+              /* More to be Served */
+              continue;
+           }
+        } 
       }
-      /*!! Check me - possible continous loop */
-    }
     else
     {
       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -3546,8 +3562,12 @@ WLANTL_TxComp
 
     pTLCb->usPendingTxCompleteCount--;
   }
+#ifdef WLAN_SOFTAP_FEATURE
+  if ( pTLCb->uResCount <= WLANTL_TH_RES_DATA )
+#else
   if (( 0 == pTLCb->usPendingTxCompleteCount ) &&
       ( pTLCb->uResCount <= WLANTL_MIN_RES_DATA /*WLANTL_TH_RES_DATA*/ ))
+#endif
   {
      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                "WLAN TL: Getting more resources because current values are:"
@@ -4981,7 +5001,7 @@ WLANTL_STATxConn
    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STATxConn");
    *pvosDataBuff = NULL;
-    pTLCb->ucNoMoreData++; /*No more data at client*/
+    pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
     return VOS_STATUS_E_FAULT;
   }
 
@@ -5015,7 +5035,7 @@ WLANTL_STATxConn
     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                "WLAN TL:No more data at HDD status %d", vosStatus);
     *pvosDataBuff = NULL;
-    pTLCb->ucNoMoreData++; /*No more data at client*/
+    pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
     return vosStatus;
   }
 
@@ -5258,7 +5278,7 @@ WLANTL_STATxAuth
             "WLAN TL:Invalid input params on WLANTL_STATxAuth TL %x DB %x",
              pTLCb, pvosDataBuff);
     *pvosDataBuff = NULL;
-    pTLCb->ucNoMoreData++; /*No more data at client*/
+    pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
     return VOS_STATUS_E_FAULT;
   }
 
@@ -5318,8 +5338,7 @@ WLANTL_STATxAuth
                "WLAN TL:Failed while attempting to fetch pkt from HDD %d",
                    vosStatus);
     *pvosDataBuff = NULL;
-    pTLCb->ucNoMoreData++; /*No more data at client*/
-
+    pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
     /*--------------------------------------------------------------------
       Reset AC for the serviced station to the highest priority AC
       -> due to no more data at the station
@@ -5689,7 +5708,7 @@ WLANTL_STATxAuthUAPSD
             "WLAN TL:Invalid input params on WLANTL_STATxAuth TL %x DB %x",
              pTLCb, pvosDataBuff);
     *pvosDataBuff = NULL;
-    pTLCb->ucNoMoreData++; /*No more data at client*/
+    pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
     return VOS_STATUS_E_FAULT;
   }
 
@@ -5730,7 +5749,7 @@ WLANTL_STATxAuthUAPSD
   {
     if ( NULL != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosTriggBuf )
     {
-      pTLCb->ucNoMoreData = 0; /*TL has data to tx*/
+       pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 0;
       *pvosDataBuff       = pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].
                             vosTriggBuf ;
 
@@ -5808,7 +5827,7 @@ WLANTL_STATxDisc
      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
             "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STATxAuth");
     *pvosDataBuff = NULL;
-    pTLCb->ucNoMoreData++; /*No more data at client*/
+     pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
     return VOS_STATUS_E_FAULT;
   }
 
@@ -5820,7 +5839,7 @@ WLANTL_STATxDisc
             " request");
 
   *pvosDataBuff = NULL;
-  pTLCb->ucNoMoreData++; /*No more data at client*/
+   pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
 
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_STATxDisc */
@@ -6983,7 +7002,6 @@ WLANTL_TxFCFrame
 
   vos_pkt_set_user_data_ptr( pPacket, VOS_PKT_USER_DATA_ID_TL,
                                (v_PVOID_t)WLANTL_TxCompDefaultCb);
-
   WLANBAL_StartXmit(pvosGCtx);
 
   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -8679,7 +8697,6 @@ WLANTL_CleanCB
   pTLCb->tlBAPClient.pfnTlBAPRx = WLANTL_BAPRxDefaultCb;
 
   pTLCb->ucRegisteredStaId = WLAN_MAX_STA_COUNT;
-  pTLCb->ucNoMoreData      = 0;
 
   return VOS_STATUS_SUCCESS;
 
@@ -8812,6 +8829,7 @@ WLANTL_CleanSTA
 
    /*Tx not suspended and station fully registered*/
    vos_atomic_set_U8( &ptlSTAClient->ucTxSuspended, 0);
+   vos_atomic_set_U8( &ptlSTAClient->ucNoMoreData, 1);
 
   if ( 0 == ucEmpty )
   {

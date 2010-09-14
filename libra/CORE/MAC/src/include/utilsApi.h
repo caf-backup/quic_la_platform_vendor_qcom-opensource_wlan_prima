@@ -59,8 +59,10 @@ extern void logPrintf(tpAniSirGlobal, tANI_U32, tANI_U32 arg1, tANI_U32 arg2, tA
 extern int logRtaiDump(tpAniSirGlobal, tANI_U32, tANI_U32, tANI_U32, tANI_U32, tANI_U32, tANI_U8 *);
 
 /// Log initialization
-extern void logInit (tpAniSirGlobal);
+extern tSirRetStatus logInit (tpAniSirGlobal);
 
+extern void
+logDeinit(tpAniSirGlobal );
 
 
 // -------------------------------------------------------------------

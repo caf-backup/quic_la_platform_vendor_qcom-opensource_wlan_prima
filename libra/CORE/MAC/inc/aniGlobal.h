@@ -661,10 +661,6 @@ typedef struct sAniSirLim
     // currently attempting
     tLimMlmJoinReq       *gpLimMlmJoinReq;
 
-    // Place holder for Reassoc request that we're
-    // currently attempting
-    void   *gpLimMlmReassocReq;
-
     // Reason code to determine the channel change context while sending 
     // SIR_HAL_CHNL_SWITCH_REQ message to HAL       
     tANI_U32 channelChangeReasonCode;
@@ -945,7 +941,9 @@ typedef struct sAniSirGlobal
     tAniSirUtils utils;
     tAniSirPhy   hphy;
 
+#ifndef WLAN_FTM_STUB 
     tPttModuleVariables ptt;
+#endif
 
     tAniSirTxWrapper txWrapper;
     // PAL/HDD handle
@@ -967,7 +965,7 @@ typedef struct sAniSirGlobal
     tCcm ccm;
     tANI_U32     gCurrentLogSize;
     tANI_U32     menuCurrent;
-    char         gLogBuffer[MAX_LOG_SIZE];
+    char*        gLogBuffer;
 	/* logDump specific */
 	tANI_U32 dumpTablecurrentId;
 	/* Instead of static allocation I will dyanamically allocate memory for dumpTableEntry

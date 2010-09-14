@@ -559,16 +559,15 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   //Begining kernel 2.6.31, memory buffer returned by request_firmware API
   //cannot be overwritten. So need to copy the firmware into a separate buffer
   //as HAL needs to modify the endianess of FW binary.
-  halStartParams.FW.cbImage = numFwBytes;
-  halStartParams.FW.pImage = vmalloc(numFwBytes);
-  if(halStartParams.FW.pImage == NULL) {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-             "%s: Failed to allocate memory for firmware binary",__func__);
-    hdd_release_firmware(LIBRA_FW_FILE, pVosContext->pHDDContext);
-    goto err_bal_stop;
-  }
 
-  vos_mem_copy(halStartParams.FW.pImage, pFwBinary, numFwBytes);
+  //Kernel may not have ~40 pages of free buffers always, so
+  //Store the pointer to the buffer provided by kernel for now,
+  //When required copy it to local buffer for translation.
+  //This is done in vos_api.c, during firmware download
+  //This would provide common fix for ftm driver issue aswell, 
+  //which is not creating the copy of firmware image for endian conversion.
+  halStartParams.FW.cbImage = numFwBytes;
+  halStartParams.FW.pImage = pFwBinary;
 
  //determine the driverType for the mode of operation
  halStartParams.driverType = eDRIVER_TYPE_PRODUCTION;
@@ -577,10 +576,9 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   sirStatus = macStart(pVosContext->pMACContext,(v_PVOID_t)&halStartParams);
 
   /* Free up the FW image no matter what */
-     hdd_release_firmware(LIBRA_FW_FILE,pVosContext->pHDDContext);     
-     vfree(halStartParams.FW.pImage);
-     halStartParams.FW.pImage = NULL;
-     halStartParams.FW.cbImage = 0;
+  hdd_release_firmware(LIBRA_FW_FILE,pVosContext->pHDDContext);
+  halStartParams.FW.pImage = NULL;
+  halStartParams.FW.cbImage = 0;
 
   if (eSIR_SUCCESS != sirStatus)
   {

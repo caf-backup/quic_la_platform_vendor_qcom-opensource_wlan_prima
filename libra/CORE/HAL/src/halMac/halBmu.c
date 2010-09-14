@@ -1985,6 +1985,8 @@ void halBmu_UnknownAddr2FramesHandler(tpAniSirGlobal pMac)
         return;
     }
 
+    HALLOGE(halLog(pMac, LOGE, FL("Unnown Addr2, bdIdx is %d\n"), bdIdx));
+
     // Get the address of the BD in the packet memory
     halReadRegister(pMac, QWLAN_MCU_BD_PDU_BASE_ADDR_REG, &regVal);
     bdAddr = (regVal + (bdIdx * BMU_BD_SIZE));
@@ -2007,6 +2009,7 @@ void halBmu_UnknownAddr2FramesHandler(tpAniSirGlobal pMac)
         pDeleteStaMsg->staId      = 0;
         pDeleteStaMsg->reasonCode = QWLAN_DEL_STA_REASON_CODE_UNKNOWN_A2;
         palCopyMemory( pMac->hHdd, (tANI_U8 *)pDeleteStaMsg->addr2, (tANI_U8 *)pUnkownStaMacHdr->addr2, sizeof(tSirMacAddr));
+        palCopyMemory( pMac->hHdd, (tANI_U8 *)pDeleteStaMsg->bssId, (tANI_U8 *)pUnkownStaMacHdr->addr1, sizeof(tSirMacAddr));
 
         halMsg_GenerateRsp( pMac, SIR_LIM_DELETE_STA_CONTEXT_IND, (tANI_U16)0, (void *)pDeleteStaMsg, 0);
         palFreeMemory(pMac->hHdd, pRxBd);

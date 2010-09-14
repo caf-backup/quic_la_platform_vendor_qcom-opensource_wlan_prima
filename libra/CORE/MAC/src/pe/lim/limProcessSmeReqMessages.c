@@ -532,6 +532,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  psessionEntry->apUapsdEnable = pSmeStartBssReq->apUapsdEnable;
                  psessionEntry->probe_rsp_template_set = 0;
                  psessionEntry->ssidHidden = pSmeStartBssReq->ssidHidden;
+                 psessionEntry->wps_state = pSmeStartBssReq->wps_state;
                  break;
 #endif                 
             case eSIR_IBSS_MODE:
@@ -741,6 +742,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #ifdef WLAN_SOFTAP_FEATURE
         if(psessionEntry->limSystemRole == eLIM_AP_ROLE ){
             pMlmStartReq->dtimPeriod = psessionEntry->dtimPeriod;
+            pMlmStartReq->wps_state = psessionEntry->wps_state;
 
         }else
 #endif        

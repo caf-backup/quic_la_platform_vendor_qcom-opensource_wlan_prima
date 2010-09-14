@@ -984,9 +984,11 @@ eHalStatus halPhyUpdateTxGainOverride(tHalHandle hHal, tANI_U8 txGain)
 
 }
 
+#ifndef WLAN_FTM_STUB
 void halPhyAdcRssiStatsCollection(tHalHandle hHal)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
 
     pttCollectAdcRssiStats(pMac);
 }
+#endif

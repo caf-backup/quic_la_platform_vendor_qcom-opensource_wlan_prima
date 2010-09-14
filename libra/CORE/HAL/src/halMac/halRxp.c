@@ -3285,10 +3285,6 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
     tRxpMode systemRxpMode = halRxp_getSystemRxpMode(pMac);
     tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;
 
-    HALLOG1( halLog( pMac, LOG1, FL("system rxpMode = %x\n"), systemRxpMode)); 
-    HALLOG1( halLog( pMac, LOG1, FL("rxpMode = %x\n"), rxpMode)); 
-
-    HALLOGE(halLog( pMac,LOGE,FL("#### halRxp_setBssRxpFilterMode #####\n")));
     /* Disable Rxp, this would block all frames while toggling between modes */
     if (halRxp_disable(pMac) == eHAL_STATUS_FAILURE) {
         HALLOGE(halLog(pMac, LOGE, FL("RXP Disable Failed\n")));
@@ -3309,9 +3305,6 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
         if (bssTable[i].valid == 0) continue;
 
         // OK so we have the entry we need.
-        HALLOGE( halLog( pMac, LOGE, FL("Bss system rxpmode - %x\n"), 
-                bssTable[i].bssRxpMode));
-
         if (bssIdx == i) 
         { 
             // store this Bss specific rxpMode passed on to us.
@@ -3322,112 +3315,104 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
         halRxp_GetRegValRxpMode(pMac, bssTable[i].bssRxpMode, 
                 &regLo, &regHi);
 
-        HALLOGE( halLog( pMac, LOGE, FL("finalRegLo - %x finalRegHi = %x\n"), 
-            finalRegLo, finalRegHi));
-
-              finalRegLo = finalRegLo & regLo;
-              finalRegHi = finalRegHi & regHi;
-        }
+        finalRegLo = finalRegLo & regLo;
+        finalRegHi = finalRegHi & regHi;
+    }
 
     if (found == 0)
     {
         // OK have a join req.
         halRxp_GetRegValRxpMode(pMac, rxpMode, &regLo, &regHi);
-        HALLOGE(halLog( pMac, LOGE,FL("######### FOUND IS 0 ##########\n")));
+        finalRegLo = finalRegLo & regLo;
+        finalRegHi = finalRegHi & regHi;
+    }
 
-        HALLOG1(halLog( pMac, LOG1, FL("finalRegLo - %x finalRegHi = %x\n"), 
-            finalRegLo, finalRegHi));
-
-              finalRegLo = finalRegLo & regLo;
-              finalRegHi = finalRegHi & regHi;
-         }
-			
-     HALLOGE( halLog( pMac, LOGE, FL("finalRegLo - %x finalRegHi = %x\n"), 
-            finalRegLo, finalRegHi));
-    
-     // Apply the settings.
+    // Apply the settings.
     setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
 
 #ifdef BTAMP_STA_RF_FIX
     switch (rxpMode) {
 
-     case eRXP_IDLE_MODE:
+        case eRXP_IDLE_MODE:
             // Delete the A2 RXP filter (if any) for filtering out the beacons.
-            HALLOGE(halLog( pMac, LOGE,FL(" IN IDLE MODE ####\n")));
             halRxp_RemovePreAssocAddr2Entry(pMac, bssid);
             break;
 
-	 case  eRXP_SCAN_MODE:
+        case  eRXP_SCAN_MODE:
             setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
-            HALLOGE(halLog( pMac, LOGE,FL("### IN SCAN MODE ####\n")));
             // Unblock the A2 filter for beacons & probe repsonses, 
             // Accept beacons and probe responses from all address2
             value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3);
-	    halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
+            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
             halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
-	    break;
+            break;
 
-     case eRXP_BTAMP_PREASSOC_MODE:
-     case eRXP_PRE_ASSOC_MODE:
-    
-           HALLOGE(halLog( pMac, LOGE,FL("##### PREASSOC MODE ######\n")));
-           halRxp_AddPreAssocAddr2Entry(pMac, bssid);
-           
-        halRxp_GetRegValRxpMode(pMac, rxpMode, &finalRegLo, &finalRegHi);
-        HALLOG1( halLog( pMac, LOG1, FL("BTAMP STA PRE ASSOC HACK: finalRegLo - %x finalRegHi = %x\n"), 
-            finalRegLo, finalRegHi));
+        case eRXP_BTAMP_PREASSOC_MODE:
+        case eRXP_PRE_ASSOC_MODE:
 
-	setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
+            halRxp_AddPreAssocAddr2Entry(pMac, bssid);
 
-	// Accept only beacons & probe responses from specific address2, rest filter it out.
-	value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3);
-	halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
-	halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
-	// NOTE: Apply filters in Rxp to accept Auth and (Re)Assoc from addr1, 
-	// because after adding the addr2 entry of the BSS to which we are 
-	// about to connect Auth & Assoc do not pass through the filter if we 
-	// have ADDR2_ACCEPT_ALL, so applying only ADDR1 filter.
-	value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER);
-	halRxp_setFrameFilterMask(pMac, eMGMT_AUTH, value);
-	halRxp_setFrameFilterMask(pMac, eMGMT_ASSOC_RSP, value);
-	halRxp_setFrameFilterMask(pMac, eMGMT_REASSOC_RSP, value);
-           break;
+            halRxp_GetRegValRxpMode(pMac, rxpMode, &finalRegLo, &finalRegHi);
 
-    case  eRXP_BTAMP_POSTASSOC_MODE:
-    case  eRXP_POST_ASSOC_MODE:
-    
-        halRxp_GetRegValRxpMode(pMac, rxpMode, &finalRegLo, &finalRegHi);
-           HALLOGE( halLog( pMac, LOGE, FL("BTAMP STA POST ASSOC HACK: finalRegLo - %x finalRegHi = %x\n"), 
-            finalRegLo, finalRegHi));
+            setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
 
-	setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
-	// Accept only beacons & probe responses from address2 BSS to which 
-	// are now associated, rest filter it out.
-	value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3);
-	halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
-	halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
-           break;
+            // Accept only beacons & probe responses from specific address2, rest filter it out.
+            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3);
+            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
+            halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
+            // NOTE: Apply filters in Rxp to accept Auth and (Re)Assoc from addr1, 
+            // because after adding the addr2 entry of the BSS to which we are 
+            // about to connect Auth & Assoc do not pass through the filter if we 
+            // have ADDR2_ACCEPT_ALL, so applying only ADDR1 filter.
+            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER);
+            halRxp_setFrameFilterMask(pMac, eMGMT_AUTH, value);
+            halRxp_setFrameFilterMask(pMac, eMGMT_ASSOC_RSP, value);
+            halRxp_setFrameFilterMask(pMac, eMGMT_REASSOC_RSP, value);
+            break;
 
-    case eRXP_AP_MODE:
-    case eRXP_PROMISCUOUS_MODE:
-    case eRXP_LEARN_MODE:
-    case eRXP_POWER_SAVE_MODE:
-    case eRXP_IBSS_MODE:
-    case eRXP_BTAMP_AP_MODE:
-    case eRXP_BTAMP_STA_MODE:
-    case eRXP_FTM_MODE:
-        break;
+        case  eRXP_BTAMP_POSTASSOC_MODE:
+        case  eRXP_POST_ASSOC_MODE:
+
+            halRxp_GetRegValRxpMode(pMac, rxpMode, &finalRegLo, &finalRegHi);
+
+            setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
+            // Accept only beacons & probe responses from address2 BSS to which 
+            // are now associated, rest filter it out.
+            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3);
+            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
+            halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
+            break;
+
+        case eRXP_AP_MODE:
+            // Allow unknown ADDR2 data frames as well in AP mode, such that 
+            // if the AP receives unknown ADDR2 data frame it would send back a DEAUTH frame
+            HALLOGE(halLog( pMac, LOGE,FL("##### AP MODE ######\n")));
+            value = (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER|RXP_ADDR1_ACCEPT_MULTICAST|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3|RXP_FCS|RXP_FRAME_TRANSLATION);
+            halRxp_setFrameFilterMask(pMac, eDATA_DATA, value);
+            halRxp_setFrameFilterMask(pMac, eDATA_NULL, value);
+            halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, value);
+            halRxp_setFrameFilterMask(pMac, eDATA_QOSNULL, value);
+            break;
+
+        case eRXP_PROMISCUOUS_MODE:
+        case eRXP_LEARN_MODE:
+        case eRXP_POWER_SAVE_MODE:
+        case eRXP_IBSS_MODE:
+        case eRXP_BTAMP_AP_MODE:
+        case eRXP_BTAMP_STA_MODE:
+            break;
         default:
-           break;
+            break;
     }
 #endif
 
-    HALLOG1( halLog( pMac, LOG1, 
-        FL("rxpMode = %x RegLo=%x RegHi=%x\n"), 
-        rxpMode, finalRegLo, finalRegHi));
 
     if ( halRxp_enable(pMac) != eHAL_STATUS_SUCCESS )
-         HALLOGE( halLog( pMac, LOGE, "Failed to set ENABLE RXP \n"));
+        HALLOGE( halLog( pMac, LOGE, "Failed to set ENABLE RXP \n"));
+
+    HALLOGW( halLog( pMac, LOGW, 
+                FL("rxpMode = %x RegLo=%x RegHi=%x\n"), 
+                rxpMode, finalRegLo, finalRegHi));
 
     return;
 }

@@ -45,6 +45,8 @@
 #define LIBRA_HW_NEEDED_HEADROOM   128
 /** Hdd Tx Time out value */
 #define HDD_TX_TIMEOUT          (2*HZ)
+/** Hdd Default MTU */
+#define HDD_DEFAULT_MTU         (1500)
 /**event flags registered net device*/
 #define NET_DEVICE_REGISTERED  1<<0
 /** Maximum time(ms)to wait for disconnect to complete **/

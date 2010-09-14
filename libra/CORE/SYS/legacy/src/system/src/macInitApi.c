@@ -226,7 +226,9 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
 
     {
         /* Call various PE (and other layer init here) */
-        logInit(pMac);
+        if( eHAL_STATUS_SUCCESS != logInit(pMac))
+           return eSIR_FAILURE;
+            
         sysInitGlobals(pMac);
 
         // This decides whether HW needs to translate the 802.3 frames
@@ -277,6 +279,7 @@ tSirRetStatus macClose(tHalHandle hHal)
     peClose(pMac);
     halClose(hHal);
 
+    logDeinit(pMac);
     return eSIR_SUCCESS;
 }
 

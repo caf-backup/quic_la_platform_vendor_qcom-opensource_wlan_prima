@@ -66,14 +66,14 @@ void limGetWPSPBCSessions(tpAniSirGlobal pMac,
 
     curTime = (tANI_TIMESTAMP)(palGetTickCount(pMac->hHdd) / PAL_TICKS_PER_SECOND);
 
+    palFillMemory( pMac->hHdd, (tANI_U8 *)addr, sizeof(tSirMacAddr), 0);
+    palFillMemory( pMac->hHdd, (tANI_U8 *)uuid_e, SIR_WPS_UUID_LEN, 0);
 
-	for (pbc = psessionEntry->pAPWPSPBCSession; pbc; pbc = pbc->next) {
-		if (curTime > pbc->timestamp + SIR_WPS_PBC_WALK_TIME)
-        {
-            palFillMemory( pMac->hHdd, (tANI_U8 *)addr, sizeof(tSirMacAddr), 0);
-            palFillMemory( pMac->hHdd, (tANI_U8 *)uuid_e, SIR_WPS_UUID_LEN, 0);
-			break;
-        }
+    for (pbc = psessionEntry->pAPWPSPBCSession; pbc; pbc = pbc->next) {
+
+        if (curTime > pbc->timestamp + SIR_WPS_PBC_WALK_TIME)
+            break;
+
         count++;
         if(count > 1)
             break;
@@ -94,7 +94,7 @@ void limGetWPSPBCSessions(tpAniSirGlobal pMac,
          *overlap = eSAP_WPSPBC_ONE_WPSPBC_PROBE_REQ_IN120S;   // One WPS probe request in 120 second
     }
 
-    PELOGE(limLog(pMac, LOGE, FL("overlap = %d\n"), overlap);)
+    PELOGE(limLog(pMac, LOGE, FL("overlap = %d\n"), *overlap);)
     PELOGE(sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOGE, addr, sizeof(tSirMacAddr));)
     PELOGE(sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOGE, uuid_e, SIR_WPS_UUID_LEN);)
 
@@ -212,7 +212,7 @@ static void limUpdatePBCSessionEntry(tpAniSirGlobal pMac,
         if (curTime > pbc->timestamp + SIR_WPS_PBC_WALK_TIME) {
             prev->next = NULL;
             limRemoveTimeoutPBCsessions(pMac, pbc);
-            break;
+           break;
         }
         prev = pbc;
         pbc = pbc->next;

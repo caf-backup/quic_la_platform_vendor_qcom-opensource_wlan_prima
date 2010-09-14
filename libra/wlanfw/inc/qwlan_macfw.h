@@ -139,17 +139,22 @@ enum {
  #define WLAN_SOFTAP_PROBE_RSP_TEMPLATE_LIM2HAL_MSG_ENA                1
   /* To Enable Host Probe Response Print Logs    */
  #define WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE_HOST_PRINT_LOG       0
- /* Probe Response Template Size to allocate FW-System memory    */ 
- #define WLAN_SOFTAP_FW_PROBE_RSP_TEMPLATE_SIZE                      500
  #define WLAN_SOFTAP_FEATURE_TIM_BASED_DIS_ASSOC
- #define WLAN_SOFTAP_FW_PROBE_REQ_BIT_MAP_MAX                          8
+
+ #define WLAN_SOFTAP_FW_PROBE_RSP_CTRL_BLOCK_SIZE      4
+ #define WLAN_SOFTAP_FW_PROBE_RSP_PAYLOAD_SIZE         476 
+ #define WLAN_SOFTAP_FW_PROBE_REQ_BIT_MAP_LEN          32 //( 256 >> 3)
+ #define WLAN_SOFTAP_FW_PROBE_RSP_BLOCK_SIZE           ( WLAN_SOFTAP_FW_PROBE_RSP_PAYLOAD_SIZE + WLAN_SOFTAP_FW_PROBE_REQ_BIT_MAP_LEN     )
+ #define WLAN_SOFTAP_FW_PROBE_RSP_TEMPLATE_SIZE        ( WLAN_SOFTAP_FW_PROBE_RSP_BLOCK_SIZE   + WLAN_SOFTAP_FW_PROBE_RSP_CTRL_BLOCK_SIZE )
+ #define WLAN_SOFTAP_FW_PROBE_REQ_BIT_MAP_LEN_IN_WORDS ( WLAN_SOFTAP_FW_PROBE_REQ_BIT_MAP_LEN  >> 2 )
+ #define WLAN_SOFTAP_PROBE_RESP_PAYLOAD_SIZE_IN_WORDS  ( WLAN_SOFTAP_FW_PROBE_RSP_PAYLOAD_SIZE >> 2 )
+
 #else
  #define WLAN_SOFTAP_FW_BEACON_TRANSMIT                                0
  #define WLAN_SOFTAP_FW_BEACON_TX_PRNT_LOG                             0
  #define WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE                      0
  #define WLAN_SOFTAP_PROBE_RSP_TEMPLATE_LIM2HAL_MSG_ENA                0
  #define WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE_HOST_PRINT_LOG       0
- #define WLAN_SOFTAP_FW_PROBE_RSP_TEMPLATE_SIZE                       500
 #endif
 
 
@@ -1753,8 +1758,6 @@ typedef struct sBssInfo {
    tANI_U32   bssidHi:16;      
 #endif
 
-   tANI_U32 ucProxyProbeReqValidIEBmap[8];
-
 
 }tBssInfo, *tpBssInfo;
 
@@ -1986,14 +1989,15 @@ typedef struct _PhyCalCorrStruct {
 #define QWLANFW_HOST2FW_DEL_BSS                QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x19
 #define QWLANFW_HOST2FW_SAP_UTIL_CMD           QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1A
 #define QWLANFW_HOST2FW_UPDATE_PROBE_RESPONSE_TEMPLATE_REQ      QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1B
+#define QWLANFW_HOST2FW_UPDATE_BA              QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1C
 
 #ifdef LIBRA_WAPI_SUPPORT
 /* WAPI */
-#define QWLANFW_HOST2FW_WPI_KEY_SET            QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1C
-#define QWLANFW_HOST2FW_WPI_KEY_REMOVED        QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1D
+#define QWLANFW_HOST2FW_WPI_KEY_SET            QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1D
+#define QWLANFW_HOST2FW_WPI_KEY_REMOVED        QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1E
 #define QWLANFW_HOST2FW_MSG_TYPES_END          QWLANFW_HOST2FW_WPI_KEY_REMOVED
 #else
-#define QWLANFW_HOST2FW_MSG_TYPES_END          QWLANFW_HOST2FW_UPDATE_PROBE_RESPONSE_TEMPLATE_REQ
+#define QWLANFW_HOST2FW_MSG_TYPES_END          QWLANFW_HOST2FW_UPDATE_BA
 #endif
 /*==================================================================================
   FW -> HOST MESSAGE TYPES
@@ -2767,6 +2771,24 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_DelStaStruct
    tANI_U32 staIdx;
 } Qwlanfw_DelStaType;
 
+typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_UpdateBaStruct
+{
+   Qwlanfw_CtrlMsgType  hdr;
+   
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32 staIdx:4;       // Sta Index
+   tANI_U32 queueId:5;      // Queue Id
+   tANI_U32 code:1;         // AMPDU valid bit
+   tANI_U32 resvd:22;       // Reserved
+#else
+   tANI_U32 resvd:22;       // Reserved
+   tANI_U32 code:1;         // AMPDU valid bit
+   tANI_U32 queueId:5;      // Queue ID
+   tANI_U32 staIdx:4;       // Sta Index
+#endif
+} Qwlanfw_UpdateBaType;
+
+
 #if WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE
 
 typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_UpdateProbeRespTemplateStaStruct
@@ -2775,13 +2797,14 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_UpdateProbeRespTemplateStaStruct
    
 #ifdef ANI_BIG_BYTE_ENDIAN
 	  tANI_U32	 bssIdx 			   : 8;
-	  tANI_U32	 bReserved			   :24;
+   tANI_U32  enableFlag   : 1;
+   tANI_U32  bReserved    :23;
 #else
-	  tANI_U32	 bReserved			   :24;
+   tANI_U32  bReserved    :23;
+   tANI_U32  enableFlag   : 1;
 	  tANI_U32	 bssIdx 			   : 8;	
 #endif
 
-   tANI_U32  probeRespTemplateLen;
 } Qwlanfw_UpdateProbeRespTemplateStaType;
 
 #endif
@@ -2826,6 +2849,59 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SapUtilStruct
 #endif   
 
 } Qwlanfw_SapUtilStruct;
+
+/**
+@brief
+QWLANFW_FW2HOST_DEL_STA_CONTEXT
+*/
+typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_DeleteStaContextStruct
+{
+   Qwlanfw_CtrlMsgType  hdr;
+   
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32  assocId     : 8;
+   tANI_U32  staIdx      : 8;
+   tANI_U32  bssIdx      : 8;
+   tANI_U32  uReasonCode : 8;
+#else
+   tANI_U32  uReasonCode : 8;
+   tANI_U32  bssIdx      : 8;
+   tANI_U32  staIdx      : 8;
+   tANI_U32  assocId     : 8;
+#endif
+
+   tANI_U32  uStatus;
+
+} tQwlanfw_DeleteStaContextType, * tpQwlanfw_DeleteStaContextType;
+
+enum {
+   QWLAN_DEL_STA_REASON_CODE_NONE       = 0x0,
+   QWLAN_DEL_STA_REASON_CODE_KEEP_ALIVE = 0x1,
+   QWLAN_DEL_STA_REASON_CODE_TIM_BASED  = 0x2,
+   QWLAN_DEL_STA_REASON_CODE_RA_BASED   = 0x3,
+   QWLAN_DEL_STA_REASON_CODE_UNKNOWN_A2 = 0x4
+};
+
+
+typedef struct fwProbeRespTemplateCtrlBlock_Type{
+#ifdef ANI_BIG_BYTE_ENDIAN
+      tANI_U32  bProbeRespBitMapAndTemplateEn     : 1;
+      tANI_U32  BitMapLen       : 8;
+      tANI_U32  TemplateLen     :16;
+      tANI_U32  rsvd            : 7;
+#else
+      tANI_U32  rsvd            : 7;
+      tANI_U32  TemplateLen     :16;
+      tANI_U32  BitMapLen       : 8;
+      tANI_U32  bProbeRespBitMapAndTemplateEn     : 1;
+#endif
+}tFwProbeRespTemplateCtrlBlock, * tpFwProbeRespTemplateCtrlBlock;
+
+typedef struct fwProbeRespTemplate_Type{
+      tFwProbeRespTemplateCtrlBlock      prbCtlBlock;
+      tANI_U32 ucProxyProbeReqValidIEBmap[WLAN_SOFTAP_FW_PROBE_REQ_BIT_MAP_LEN_IN_WORDS];
+      tANI_U32 payLoad[WLAN_SOFTAP_PROBE_RESP_PAYLOAD_SIZE_IN_WORDS];
+}tFwProbeRespTemplate, * tpFwProbeRespTemplate;
 
 #endif //WLAN_SOFTAP_FEATURE
 
@@ -3035,37 +3111,5 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_AddRemoveKeyReqStruct
 #endif
 } Qwlanfw_AddRemoveKeyReqType;
 #endif
-
-/**
-@brief
-QWLANFW_FW2HOST_DEL_STA_CONTEXT
-*/
-typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_DeleteStaContextStruct
-{
-   Qwlanfw_CtrlMsgType  hdr;
-   
-#ifdef ANI_BIG_BYTE_ENDIAN
-   tANI_U32  assocId     : 8;
-   tANI_U32  staIdx      : 8;
-   tANI_U32  bssIdx      : 8;
-   tANI_U32  uReasonCode : 8;
-#else
-   tANI_U32  uReasonCode : 8;
-   tANI_U32  bssIdx      : 8;
-   tANI_U32  staIdx      : 8;
-   tANI_U32  assocId     : 8;
-#endif
-
-   tANI_U32  uStatus;
-
-} tQwlanfw_DeleteStaContextType, * tpQwlanfw_DeleteStaContextType;
-
-enum {
-   QWLAN_DEL_STA_REASON_CODE_NONE       = 0x0,
-   QWLAN_DEL_STA_REASON_CODE_KEEP_ALIVE = 0x1,
-   QWLAN_DEL_STA_REASON_CODE_TIM_BASED  = 0x2,
-   QWLAN_DEL_STA_REASON_CODE_RA_BASED   = 0x3,
-   QWLAN_DEL_STA_REASON_CODE_UNKNOWN_A2 = 0x4
-};
 
 #endif /*_QWLAN_MACFW_H*/

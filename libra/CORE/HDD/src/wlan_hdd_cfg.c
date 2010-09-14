@@ -427,7 +427,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                         CFG_AP_PROTECTION_MODE_DEFAULT,
                         CFG_AP_PROTECTION_MODE_MIN,
                         CFG_AP_PROTECTION_MODE_MAX ),
-
+                        
+   REG_VARIABLE( CFG_AP_STA_SECURITY_SEPERATION_NAME, WLAN_PARAM_Integer,
+                        hdd_config_t, apDisableIntraBssFwd, 
+                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                        CFG_AP_STA_SECURITY_SEPERATION_DEFAULT,
+                        CFG_AP_STA_SECURITY_SEPERATION_MIN,
+                        CFG_AP_STA_SECURITY_SEPERATION_MAX ),
 #endif
 
    REG_VARIABLE( CFG_BEACON_INTERVAL_NAME, WLAN_PARAM_Integer,
@@ -537,7 +543,9 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_NEIGH_AP_INCR_NT_MAX ),
    
    REG_VARIABLE( CFG_RSSI_THRESH_CANDT_NT_NAME , WLAN_PARAM_Integer, 
-                 hdd_config_t, nRssiThreshCandidateNt, 
+                 hdd_config_t, nRssiThreshCandidateNt, The device shall be able to block WLAN traffic between connected Wi-Fi clients when this setting is enabled. When disabled, traffic between connected Wi-Fi clients should be allowed ( this is default configuration).
+This is a Verizon required feature.
+
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
                  CFG_RSSI_THRESH_CANDT_NT_DEFAULT, 
                  CFG_RSSI_THRESH_CANDT_NT_MIN, 

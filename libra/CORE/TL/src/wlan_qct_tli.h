@@ -169,7 +169,7 @@ when        who    what, where, why
 #define WLANTL_MIN_RES_MF                          13 /*Keeping for MF*/
 #define WLANTL_MIN_RES_BAP    WLANTL_MIN_RES_MF  + 13 /*Another for BAP*/
 #define WLANTL_MIN_RES_DATA   WLANTL_MIN_RES_BAP + 13 /*Min 12 for data*/
-#define WLANTL_TH_RES_DATA                        100
+#define WLANTL_TH_RES_DATA                        254
 /*-------------------------------------------------------------------------
   BT-AMP related definition - !!! should probably be moved to BT-AMP header
 ---------------------------------------------------------------------------*/
@@ -589,6 +589,10 @@ typedef struct
 
   /*Packet pending flag - set if tx is pending for the station*/
   v_U8_t                        ucPktPending;
+  
+  /*used on tx packet to signal when there is no more data to tx for the 
+   moment=> packets can be passed to BAL */
+  v_U8_t                    ucNoMoreData;
 
   /*	Last serviced AC to be retrieved */
   WLANTL_ACEnumType             ucServicedAC;
@@ -782,10 +786,6 @@ typedef struct
 
   /*Current TL STA used for TX*/
   v_U8_t                    ucCurrentSTA;
-
-  /*used on tx packet to signal when there is no more data to tx for the 
-   moment=> packets can be passed to BAL */
-  v_U8_t                    ucNoMoreData;
 
   WLANTL_REORDER_BUFFER_T   reorderBufferPool[WLANTL_MAX_BA_SESSION];
 

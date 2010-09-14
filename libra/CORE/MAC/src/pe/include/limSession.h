@@ -202,6 +202,7 @@ typedef struct sPESession           // Added to Support BT-AMP
     tDot11fProbeResponse    probeRespFrame;
     tANI_U8                 ssidHidden;
     tANI_BOOLEAN            fwdWPSPBCProbeReq;
+    tANI_U8                 wps_state;
 #endif
 
 }tPESession, *tpPESession;

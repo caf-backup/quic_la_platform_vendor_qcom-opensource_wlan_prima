@@ -303,7 +303,7 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
             else
             {
                 /* Need to decide, if this should be done with any flag/feature check */
-                psessionEntry->probe_rsp_template_set = 0;
+                psessionEntry->probe_rsp_template_set = 1;
             }
         }
     }
@@ -317,19 +317,14 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
                                     ,tANI_U32* IeBitmap)
 {
     tSirMsgQ  msgQ;
-    tANI_U8 *pFrame2Hal;
+    tANI_U8 *pFrame2Hal = pMac->sch.schObject.gSchProbeRspTemplate;
     tpSendProbeRespParams pprobeRespParams=NULL;
     tANI_U32  retCode = eSIR_FAILURE;
     tANI_U32             nPayload,nBytes,nStatus;
     tpSirMacMgmtHdr      pMacHdr;
     tANI_U32             addnIEPresent;
     tANI_U32             addnIELen=0;
-    void                *pPacket;
-    eHalStatus           halstatus;
     tSirRetStatus        nSirStatus;
-
-    schLog( pMac, LOGE, FL(" Disabling the probe Rsp handling in FW \n"));
-    return 0;
 
     nStatus = dot11fGetPackedProbeResponseSize( pMac, &psessionEntry->probeRespFrame, &nPayload );
     if ( DOT11F_FAILED( nStatus ) )
@@ -370,16 +365,6 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
             addnIEPresent = false; //Dont include the IE.     
     }
        
-    halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-                             ( tANI_U16 )nBytes, ( void** ) &pFrame2Hal,
-                             ( void** ) &pPacket );
-    if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
-    {
-        schLog( pMac, LOGE, FL("Failed to allocate %d bytes for a Pro"
-                               "be Response.\n"), nBytes );
-        return retCode;
-    }
-
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame2Hal, nBytes );
 
@@ -392,8 +377,6 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
         schLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
                                "tor for a Probe Response (%d).\n"),
                 nSirStatus );
-        palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
-                    ( void* ) pFrame2Hal, ( void* ) pPacket );
         return retCode;
     }
 
@@ -409,7 +392,6 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
     {
         schLog( pMac, LOGE, FL("Failed to pack a Probe Response (0x%08x).\n"),
                 nStatus );
-        palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, ( void* ) pFrame2Hal, ( void* ) pPacket );
         return retCode;                 // allocated!
     }
     else if ( DOT11F_WARNED( nStatus ) )
@@ -423,7 +405,6 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
                                                 sizeof( tSendProbeRespParams )))
     {
         schLog( pMac, LOGE, FL("limSendProbeRspTemplateToHal: HAL probe response params malloc failed for byted %d\n"), nBytes );
-        palFreeMemory(pMac->hHdd,pFrame2Hal);
     }
     else
     {
@@ -432,7 +413,7 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
                             pFrame2Hal,
                             nBytes);)
         */
-       
+
         sirCopyMacAddr( pprobeRespParams->bssId  ,  psessionEntry->bssId);
         pprobeRespParams->pProbeRespTemplate   = pFrame2Hal;
         pprobeRespParams->probeRespTemplateLen = nBytes;
@@ -447,7 +428,6 @@ tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEn
         {
             /* free the allocated Memory */
             schLog( pMac,LOGE, FL("limSendProbeRspTemplateToHal: FAIL bytes %d retcode[%X]\n"), nBytes , retCode );
-            palFreeMemory(pMac->hHdd,pFrame2Hal);
             palFreeMemory(pMac->hHdd,pprobeRespParams);
         }
         else

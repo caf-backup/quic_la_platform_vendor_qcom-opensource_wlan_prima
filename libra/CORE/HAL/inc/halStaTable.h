@@ -80,7 +80,8 @@ typedef struct
 #ifdef WLAN_SOFTAP_FEATURE 
 	tANI_U32 bcnTimIeOffset;  /* for FW to fill TiM IE */
 	tANI_U32 bcnSendIndCnt;   /* HAL to keep track of  Beacon update Ind from lim */
-        tANI_U8 defaultKeyId;
+ tANI_U8 defaultKeyId;
+ tFwProbeRespTemplateCtrlBlock prbCtlBlock;
 #endif
 
 } tBssStruct, * tpBssStruct;

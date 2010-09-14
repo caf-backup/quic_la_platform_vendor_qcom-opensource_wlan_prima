@@ -2407,7 +2407,7 @@ tANI_BOOLEAN csrProcessBSSDescForBKIDList(tpAniSirGlobal pMac, tSirBssDescriptio
 {
     tANI_BOOLEAN fRC = FALSE;
     tDot11fBeaconIEs *pIesLocal = pIes;
-    tANI_U32 sessionId, bRet = CSR_SESSION_ID_INVALID;
+    tANI_U32 sessionId;
     tCsrRoamSession *pSession;
 
     if( pIesLocal || HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pBssDesc, &pIesLocal)) )

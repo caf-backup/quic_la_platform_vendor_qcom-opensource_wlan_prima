@@ -1868,32 +1868,92 @@ limBtAmpProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType
 
 #ifdef WLAN_SOFTAP_FEATURE
 
-    /** check whether as RSN IE is present */
-    if(psessionEntry->limSystemRole == eLIM_AP_ROLE 
-        && psessionEntry->pLimStartBssReq->privacy 
-        && psessionEntry->pLimStartBssReq->rsnIE.length)
+    if( ! pAssocReq->wscInfo.present )
     {
-        limLog(pMac, LOGE,
-               FL("AP supports RSN enabled authentication\n"));
-
-        if(pAssocReq->rsnPresent)
+        /** check whether as RSN IE is present */
+        if(psessionEntry->limSystemRole == eLIM_AP_ROLE 
+            && psessionEntry->pLimStartBssReq->privacy 
+            && psessionEntry->pLimStartBssReq->rsnIE.length)
         {
-            if(pAssocReq->rsn.length)
-            {
-                // Unpack the RSN IE 
-                dot11fUnpackIeRSN(pMac, 
-                                    &pAssocReq->rsn.info[0], 
-                                    pAssocReq->rsn.length, 
-                                    &Dot11fIERSN);
+            limLog(pMac, LOGE,
+                   FL("AP supports RSN enabled authentication\n"));
 
-                /* Check RSN version is supported or not */
-                if(SIR_MAC_OUI_VERSION_1 == Dot11fIERSN.version)
+            if(pAssocReq->rsnPresent)
+            {
+                if(pAssocReq->rsn.length)
                 {
-                    /* check the groupwise and pairwise cipher suites */
-                    if(eSIR_SUCCESS != (status = limCheckRxRSNIeMatch(pMac,Dot11fIERSN,psessionEntry) ) )
+                    // Unpack the RSN IE 
+                    dot11fUnpackIeRSN(pMac, 
+                                        &pAssocReq->rsn.info[0], 
+                                        pAssocReq->rsn.length, 
+                                        &Dot11fIERSN);
+
+                    /* Check RSN version is supported or not */
+                    if(SIR_MAC_OUI_VERSION_1 == Dot11fIERSN.version)
                     {
-                        /* some IE is not properly sent */
-                        /* received Association req frame with RSN IE but length is 0 */
+                        /* check the groupwise and pairwise cipher suites */
+                        if(eSIR_SUCCESS != (status = limCheckRxRSNIeMatch(pMac,Dot11fIERSN,psessionEntry) ) )
+                        {
+                            /* some IE is not properly sent */
+                            /* received Association req frame with RSN IE but length is 0 */
+                            limSendAssocRspMgmtFrame(
+                                           pMac,
+                                           status,
+                                           1,
+                                           pHdr->sa,
+                                           subType, 0,psessionEntry);
+
+                            limLog(pMac, LOGW, FL("Rejecting Re/Assoc req from STA: "));
+                            limPrintMacAddr(pMac, pHdr->sa, LOGW);
+                            goto error;
+
+                        }
+                    }
+                    else
+                    {
+                        /* received Association req frame with RSN IE version wrong */
+                        limSendAssocRspMgmtFrame(
+                                       pMac,
+                                       eSIR_MAC_UNSUPPORTED_RSN_IE_VERSION_STATUS,
+                                       1,
+                                       pHdr->sa,
+                                       subType, 0,psessionEntry);
+
+                        limLog(pMac, LOGW, FL("Rejecting Re/Assoc req from STA: "));
+                        limPrintMacAddr(pMac, pHdr->sa, LOGW);
+                        goto error;
+
+                    }
+                }
+                else
+                {
+                    /* received Association req frame with RSN IE but length is 0 */
+                    limSendAssocRspMgmtFrame(
+                                   pMac,
+                                   eSIR_MAC_INVALID_INFORMATION_ELEMENT_STATUS,
+                                   1,
+                                   pHdr->sa,
+                                   subType, 0,psessionEntry);
+
+                    limLog(pMac, LOGW, FL("Rejecting Re/Assoc req from STA: "));
+                    limPrintMacAddr(pMac, pHdr->sa, LOGW);
+                    goto error;
+                    
+                }
+            } /* end - if(pAssocReq->rsnPresent) */
+            if((!pAssocReq->rsnPresent) && pAssocReq->wpaPresent)
+            {
+                // Unpack the WPA IE 
+                if(pAssocReq->wpa.length)
+                {
+                    dot11fUnpackIeWPA(pMac, 
+                                        &pAssocReq->wpa.info[4], //OUI is not taken care
+                                        pAssocReq->wpa.length, 
+                                        &Dot11fIEWPA);
+                    /* check the groupwise and pairwise cipher suites */
+                    if(eSIR_SUCCESS != (status = limCheckRxWPAIeMatch(pMac,Dot11fIEWPA,psessionEntry)))
+                    {
+                        /* received Association req frame with WPA IE but mismatch */
                         limSendAssocRspMgmtFrame(
                                        pMac,
                                        status,
@@ -1909,10 +1969,10 @@ limBtAmpProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType
                 }
                 else
                 {
-                    /* received Association req frame with RSN IE version wrong */
+                    /* received Association req frame with invalid WPA IE */
                     limSendAssocRspMgmtFrame(
                                    pMac,
-                                   eSIR_MAC_UNSUPPORTED_RSN_IE_VERSION_STATUS,
+                                   eSIR_MAC_INVALID_INFORMATION_ELEMENT_STATUS,
                                    1,
                                    pHdr->sa,
                                    subType, 0,psessionEntry);
@@ -1920,68 +1980,12 @@ limBtAmpProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType
                     limLog(pMac, LOGW, FL("Rejecting Re/Assoc req from STA: "));
                     limPrintMacAddr(pMac, pHdr->sa, LOGW);
                     goto error;
+                }/* end - if(pAssocReq->wpa.length) */
+            } /* end - if(pAssocReq->wpaPresent) */
+        } /* end of if(psessionEntry->pLimStartBssReq->privacy 
+            && psessionEntry->pLimStartBssReq->rsnIE->length) */
 
-                }
-            }
-            else
-            {
-                /* received Association req frame with RSN IE but length is 0 */
-                limSendAssocRspMgmtFrame(
-                               pMac,
-                               eSIR_MAC_INVALID_INFORMATION_ELEMENT_STATUS,
-                               1,
-                               pHdr->sa,
-                               subType, 0,psessionEntry);
-
-                limLog(pMac, LOGW, FL("Rejecting Re/Assoc req from STA: "));
-                limPrintMacAddr(pMac, pHdr->sa, LOGW);
-                goto error;
-                
-            }
-        } /* end - if(pAssocReq->rsnPresent) */
-        if((!pAssocReq->rsnPresent) && pAssocReq->wpaPresent)
-        {
-            // Unpack the WPA IE 
-            if(pAssocReq->wpa.length)
-            {
-                dot11fUnpackIeWPA(pMac, 
-                                    &pAssocReq->wpa.info[4], //OUI is not taken care
-                                    pAssocReq->wpa.length, 
-                                    &Dot11fIEWPA);
-                /* check the groupwise and pairwise cipher suites */
-                if(eSIR_SUCCESS != (status = limCheckRxWPAIeMatch(pMac,Dot11fIEWPA,psessionEntry)))
-                {
-                    /* received Association req frame with WPA IE but mismatch */
-                    limSendAssocRspMgmtFrame(
-                                   pMac,
-                                   status,
-                                   1,
-                                   pHdr->sa,
-                                   subType, 0,psessionEntry);
-
-                    limLog(pMac, LOGW, FL("Rejecting Re/Assoc req from STA: "));
-                    limPrintMacAddr(pMac, pHdr->sa, LOGW);
-                    goto error;
-
-                }
-            }
-            else
-            {
-                /* received Association req frame with invalid WPA IE */
-                limSendAssocRspMgmtFrame(
-                               pMac,
-                               eSIR_MAC_INVALID_INFORMATION_ELEMENT_STATUS,
-                               1,
-                               pHdr->sa,
-                               subType, 0,psessionEntry);
-
-                limLog(pMac, LOGW, FL("Rejecting Re/Assoc req from STA: "));
-                limPrintMacAddr(pMac, pHdr->sa, LOGW);
-                goto error;
-            }/* end - if(pAssocReq->wpa.length) */
-        } /* end - if(pAssocReq->wpaPresent) */
-    } /* end of if(psessionEntry->pLimStartBssReq->privacy 
-        && psessionEntry->pLimStartBssReq->rsnIE->length) */
+    } /* end of     if( ! pAssocReq->wscInfo.present ) */
 #endif //WLAN_SOFTAP_FEATURE
 
     /**
@@ -2561,7 +2565,11 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
 
         // Fill in RSN IE information
         pMlmAssocInd->rsnIE.length = 0;
+#ifdef WLAN_SOFTAP_FEATURE
+        if (pAssocReq->rsnPresent&& (!pAssocReq->wscInfo.present))
+#else
         if (pAssocReq->rsnPresent)
+#endif
         {
             limLog(pMac, LOG2, FL("Assoc Req RSN IE len = %d\n"), pAssocReq->rsn.length);
             pMlmAssocInd->rsnIE.length = 2 + pAssocReq->rsn.length;
@@ -2589,7 +2597,12 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
             pMlmAssocInd->spectrumMgtIndicator = eSIR_FALSE;
 
 
+#ifdef WLAN_SOFTAP_FEATURE
+        /* This check is to avoid extra Sec IEs present incase of WPS */
+        if (pAssocReq->wpaPresent && (!pAssocReq->wscInfo.present))
+#else
         if (pAssocReq->wpaPresent)
+#endif
         {
             pMlmAssocInd->rsnIE.rsnIEdata[pMlmAssocInd->rsnIE.length] = SIR_MAC_WPA_EID;
             pMlmAssocInd->rsnIE.rsnIEdata[pMlmAssocInd->rsnIE.length + 1] = pAssocReq->wpa.length;
@@ -2715,7 +2728,11 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
         pMlmReassocInd->capabilityInfo = pAssocReq->capabilityInfo;
         pMlmReassocInd->rsnIE.length = 0;
 
+#ifdef WLAN_SOFTAP_FEATURE
+        if (pAssocReq->rsnPresent&& (!pAssocReq->wscInfo.present))
+#else
         if (pAssocReq->rsnPresent)
+#endif
         {
             limLog(pMac, LOG2, FL("Assoc Req: RSN IE length = %d\n"), pAssocReq->rsn.length);
             pMlmReassocInd->rsnIE.length = 2 + pAssocReq->rsn.length;
@@ -2753,7 +2770,12 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
             pMlmReassocInd->spectrumMgtIndicator = eSIR_FALSE;
 
 
+#ifdef WLAN_SOFTAP_FEATURE
+        /* This check is to avoid extra Sec IEs present incase of WPS */
+        if (pAssocReq->wpaPresent && (!pAssocReq->wscInfo.present))
+#else
         if (pAssocReq->wpaPresent)
+#endif
         {
             limLog(pMac, LOG2, FL("Received WPA IE length in Assoc Req is %d\n"), pAssocReq->wpa.length);
             pMlmReassocInd->rsnIE.rsnIEdata[pMlmReassocInd->rsnIE.length] = SIR_MAC_WPA_EID;

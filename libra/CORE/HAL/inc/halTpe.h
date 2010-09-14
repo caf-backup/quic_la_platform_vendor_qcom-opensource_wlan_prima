@@ -938,9 +938,6 @@ eHalStatus halTpe_UpdateEdcaTxOp(tpAniSirGlobal pMac, tANI_U16 *pTxOp);
 eHalStatus halTpe_UpdateMtuMaxBssid(tpAniSirGlobal pMac);
 eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac, tANI_U8 *beacon,
                                     tANI_U16 beaconIndex, tANI_U32 length);
-#ifdef WLAN_SOFTAP_FEATURE
-void halTpe_UpdateProbeRespTemplate(tpAniSirGlobal pMac , tANI_U8 *msg, tANI_U32 Len , tANI_U8 bssIdx);
-#endif
 void halTpe_UpdateMaxMpduInAmpdu(tpAniSirGlobal pMac, tANI_U32 mpdusInAmpdu);
 void halTpe_TerminateAmpduAtRateChange(tpAniSirGlobal pMac, tANI_U8 enable);
 void halTpe_SetAmpduTxTime(tpAniSirGlobal pMac, tANI_U32 maxAmpduTxTime);

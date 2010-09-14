@@ -338,6 +338,11 @@ typedef enum
 #define CFG_AP_PROTECTION_MODE_MAX             (1) 
 #define CFG_AP_PROTECTION_MODE_DEFAULT         (1)   
 
+#define CFG_AP_STA_SECURITY_SEPERATION_NAME             "gAPDisableIntraBssFwd"
+#define CFG_AP_STA_SECURITY_SEPERATION_MIN              (0)
+#define CFG_AP_STA_SECURITY_SEPERATION_MAX              (1) 
+#define CFG_AP_STA_SECURITY_SEPERATION_DEFAULT          (0)   
+
 #endif
 
 #define CFG_BEACON_INTERVAL_NAME               "gBeaconInterval"
@@ -939,6 +944,7 @@ typedef struct
    v_BOOL_t      apUapsdEnabled;
    v_BOOL_t      apProtEnabled;
    char          apCntryCode[4];
+   v_BOOL_t      apDisableIntraBssFwd;
 #endif
 
    v_U32_t       nBeaconInterval;

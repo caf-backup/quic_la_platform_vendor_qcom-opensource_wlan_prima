@@ -856,3 +856,17 @@ VOS_STATUS WLANSAL_SDIOReInit
 
    return VOS_STATUS_SUCCESS;
 }
+#ifdef WLAN_SOFTAP_FEATURE
+#ifdef LIBRA_LINUX_PC
+VOS_STATUS WLANSAL_SetSDIOClock(unsigned int clk_freq)
+{
+    struct mmc_host *host;
+
+    VOS_ASSERT(NULL != gpsalHandle);
+    host = gpsalHandle->sdio_func_dev->card->host;
+    host->ios.clock = clk_freq;
+    host->ops->set_ios(host, &host->ios);
+   return VOS_STATUS_SUCCESS;
+}
+#endif
+#endif //WLAN_SOFTAP_FEATURE

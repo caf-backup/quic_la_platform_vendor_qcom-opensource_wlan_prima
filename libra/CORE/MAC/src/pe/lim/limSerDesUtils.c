@@ -1187,13 +1187,13 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
-   // Extract sessionId
+    // Extract sessionId
     pStartBssReq->sessionId = *pBuf++;
     len--;
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
-	// Extract transactionId
+    // Extract transactionId
     pStartBssReq->transactionId = limGetU16( pBuf );
     pBuf += sizeof( tANI_U16 );
     len -= sizeof( tANI_U16 );
@@ -1312,11 +1312,35 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
+    //Extract Uapsd Enable 
+    pStartBssReq->apUapsdEnable = *pBuf++;
+    len--;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+
+    //Extract SSID hidden
+    pStartBssReq->ssidHidden = *pBuf++;
+    len--;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+
     pStartBssReq->fwdWPSPBCProbeReq = *pBuf++;
     len--;
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
     
+    //Extract HT Protection Enable 
+    pStartBssReq->protEnabled = *pBuf++;
+    len--;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+       return eSIR_FAILURE;
+
+    pStartBssReq->ht_capab = limGetU16(pBuf);
+    pBuf += sizeof(tANI_U16);
+    len  -= sizeof(tANI_U16);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+
     // Extract AuthType
     pStartBssReq->authType = (tSirBssType) limGetU32(pBuf);
     pBuf += sizeof(tANI_U32);
@@ -1331,28 +1355,10 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
-    //Extract Uapsd Enable 
-   pStartBssReq->apUapsdEnable = *pBuf++;
-   len--;
-   if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
-        return eSIR_FAILURE;
-
-   //Extract SSID hidden
-   pStartBssReq->ssidHidden = *pBuf++;
-   len--;
-   if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
-       return eSIR_FAILURE;
-
-   //Extract HT Protection Enable 
-   pStartBssReq->protEnabled = *pBuf++;
-   len--;
-   if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
-       return eSIR_FAILURE;
-
-    pStartBssReq->ht_capab = limGetU16(pBuf);
-    pBuf += sizeof(tANI_U16);
-    len  -= sizeof(tANI_U16);
-   if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+    // Extract wps state
+    pStartBssReq->wps_state = *pBuf++;
+    len--;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
 #endif

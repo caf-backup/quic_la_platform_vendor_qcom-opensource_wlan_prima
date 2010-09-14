@@ -247,6 +247,7 @@ tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
     }
     }
 
+#ifndef WLAN_FTM_STUB
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
         val = SYS_MS_TO_TICKS(HAL_ADC_RSSI_STATS_INTERVAL_MS);
@@ -260,6 +261,7 @@ tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
             return eSIR_FAILURE;
         }
     }
+#endif
 
     return eSIR_SUCCESS;
 }
@@ -287,12 +289,14 @@ tSirRetStatus halTimersDestroy(tpAniSirGlobal pMac)
     tx_timer_deactivate(&pMac->hal.halMac.wrapStats.statTimer);
     tx_timer_delete(&pMac->hal.halMac.wrapStats.statTimer);
 
+#ifndef WLAN_FTM_STUB
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
         /** deactiviate and delete adc rssi stat collection timer.*/
         tx_timer_deactivate(&pMac->ptt.adcRssiStatsTimer);
         tx_timer_delete(&pMac->ptt.adcRssiStatsTimer);
     }
+#endif
 
 
 #ifdef FIXME_GEN5

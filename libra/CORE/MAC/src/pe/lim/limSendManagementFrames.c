@@ -391,7 +391,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
                                WNI_CFG_BEACON_INTERVAL, cfg );
     frm.BeaconInterval.interval = ( tANI_U16 ) cfg;
 
-    PopulateDot11fCapabilities( pMac, &frm.Capabilities );
+    PopulateDot11fCapabilities( pMac, &frm.Capabilities, psessionEntry );
     PopulateDot11fSSID( pMac, ( tSirMacSSid* )pSsid, &frm.SSID );
     PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL,
                              &frm.SuppRates,psessionEntry);
@@ -406,7 +406,10 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
 #ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
     {
-        PopulateDot11fProbeResWPSIEs(pMac, &frm.WscProbeRes, psessionEntry);
+        if(psessionEntry->wps_state != SAP_WPS_DISABLED)
+        {
+            PopulateDot11fProbeResWPSIEs(pMac, &frm.WscProbeRes, psessionEntry);
+        }
     }
     else
     {
@@ -1125,7 +1128,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     // STA sent a traffic spec.
     fAddTS = ( qosMode && pSta && pSta->qos.addtsPresent ) ? 1 : 0;
 
-    PopulateDot11fCapabilities( pMac, &frm.Capabilities );
+    PopulateDot11fCapabilities( pMac, &frm.Capabilities, psessionEntry );
 
     frm.Status.status = statusCode;
 
@@ -2285,7 +2288,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
 end:
     // Free up buffer allocated for mlmAssocReq
     palFreeMemory( pMac->hHdd, ( tANI_U8* ) pMlmReassocReq );
-    pMac->lim.gpLimMlmReassocReq = NULL;
+    psessionEntry->pLimMlmReassocReq = NULL;
 
 } // limSendReassocReqMgmtFrame
 

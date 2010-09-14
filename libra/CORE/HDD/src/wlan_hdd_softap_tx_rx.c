@@ -35,7 +35,7 @@
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
-  
+ extern v_U8_t hddWmmUpToAcMap[]; 
 /*--------------------------------------------------------------------------- 
   Function definitions and documenation
   -------------------------------------------------------------------------*/ 
@@ -218,7 +218,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        pAdapter->aStaInfo[STAId].txSuspendedAc = ac; 
        netif_stop_queue(dev);
        netif_carrier_off(dev);
-       
+               
        return NETDEV_TX_BUSY;
     }
 #else
@@ -340,6 +340,114 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit \n", __FUNCTION__);
 
    return NETDEV_TX_OK;
+}
+
+/**============================================================================
+  @brief hdd_softap_sta_2_sta_xmit This function for Transmitting the frames when the traffic is between two stations.
+
+  @param skb      : [in] pointer to packet (sk_buff)
+  @param dev      : [in] pointer to Libra network device
+  @param STAId    : [in] Station Id of Destination Station
+  @param up       : [in] User Priority 
+  
+  @return         : NET_XMIT_DROP if packets are dropped
+                  : NET_XMIT_SUCCESS if packet is enqueued succesfully
+  ===========================================================================*/
+VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb, 
+                                      struct net_device *dev,
+                                      v_U8_t STAId, 
+                                      v_U8_t up)
+{
+   VOS_STATUS status;
+   skb_list_node_t *pktNode = NULL;
+   v_SIZE_t pktListSize = 0;
+   hdd_hostapd_adapter_t *pAdapter = (hdd_hostapd_adapter_t *)netdev_priv(dev);
+   v_U8_t ac;
+   vos_list_node_t *anchor = NULL;
+
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
+
+   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+              "%s: enter\n", __FUNCTION__);
+   ac = hddWmmUpToAcMap[up];
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
+   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
+              "%s: Classified as ac %d up %d", __FUNCTION__, ac, up);
+
+   // If the memory differentiation mode is enabled, the memory limit of each queue will be 
+   // checked. Over-limit packets will be dropped.
+    hdd_list_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktListSize);
+    if(pktListSize >= pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].max_size)
+    {
+       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+            "%s: station %d ac %d queue over limit %d \n", __FUNCTION__, STAId, ac, pktListSize); 
+       pAdapter->aStaInfo[STAId].txSuspended = VOS_TRUE;
+       pAdapter->aStaInfo[STAId].txSuspendedAc = ac; 
+       /* TODO:Rx Flowchart should be trigerred here to SUPEND SSC on RX side.
+        * SUSPEND should be done based on Threshold. RESUME would be 
+        * triggered in fetch cbk after recovery.
+        */
+       kfree_skb(skb);
+       
+       return VOS_STATUS_E_FAILURE;
+    }
+
+
+   //Use the skb->cb field to hold the list node information
+   pktNode = (skb_list_node_t *)&skb->cb;
+
+   //Stick the OS packet inside this node.
+   pktNode->skb = skb;
+
+   //Stick the User Priority inside this node 
+   pktNode->userPriority = up;
+
+   INIT_LIST_HEAD(&pktNode->anchor);
+
+   spin_lock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
+   status = hdd_list_insert_back_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktNode->anchor, &pktListSize );
+   spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
+
+   if ( !VOS_IS_STATUS_SUCCESS( status ) )
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s:Insert Tx queue failed. Pkt dropped", __FUNCTION__);
+      ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
+      ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
+      ++pAdapter->stats.tx_dropped;
+      kfree_skb(skb);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueued;
+   ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueuedAC[ac];
+
+   if (1 == pktListSize)
+   {
+      //Let TL know we have a packet to send for this AC
+      //VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s:Indicating Packet to TL", __FUNCTION__);
+      status = WLANTL_STAPktPending( pAdapter->pvosContext, STAId, ac );      
+
+      if ( !VOS_IS_STATUS_SUCCESS( status ) )
+      {
+         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, "%s: Failed to signal TL for AC=%d STAId =%d", 
+                    __FUNCTION__, ac, STAId );
+
+         //Remove the packet from queue. It must be at the back of the queue, as TX thread cannot preempt us in the middle
+         //as we are in a soft irq context. Also it must be the same packet that we just allocated.
+         spin_lock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
+         status = hdd_list_remove_back( &pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &anchor);
+         spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
+         ++pAdapter->stats.tx_dropped;
+         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
+         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
+         kfree_skb(skb);
+         return VOS_STATUS_E_FAILURE;
+      }
+   }
+
+   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit \n", __FUNCTION__);
+
+   return VOS_STATUS_SUCCESS;
 }
 
 /**============================================================================
@@ -1052,10 +1160,14 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
             ++pAdapter->hdd_stats.hddTxRxStats.rxRefused;
          }
       }
+      else if(pAdapter->apDisableIntraBssFwd)
+      {
+        kfree_skb(skb);   
+      } 
       else
       {
          //loopback traffic
-         hdd_softap_hard_start_xmit(skb, skb->dev);
+        status = hdd_softap_sta_2_sta_xmit(skb, skb->dev,staId,(pRxMetaInfo->ucUP)); 
       }
 
       // now process the next packet in the chain
@@ -1077,9 +1189,16 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
 
 VOS_STATUS hdd_softap_DeregisterSTA( hdd_hostapd_adapter_t *pAdapter, tANI_U8 staId )
 {
-    VOS_STATUS vosStatus;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
 
-    hdd_softap_deinit_tx_rx_sta ( pAdapter, staId);
+    vosStatus = hdd_softap_deinit_tx_rx_sta ( pAdapter, staId);
+    if( VOS_STATUS_E_FAILURE == vosStatus ){
+        VOS_TRACE ( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+                    "hdd_softap_deinit_tx_rx_sta() failed for staID %d. Status = %d [0x%08lX]",
+                    staId, vosStatus, vosStatus );
+        return (vosStatus );
+    }
+
     vosStatus = WLANTL_ClearSTAClient( pAdapter->pvosContext, staId );
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {

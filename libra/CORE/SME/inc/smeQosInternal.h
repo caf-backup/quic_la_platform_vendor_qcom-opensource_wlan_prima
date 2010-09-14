@@ -97,7 +97,6 @@ typedef struct
 { 
    tSirBssDescription            *pBssDesc;
    tCsrRoamProfile               *pProfile;
-   tANI_U8                       sessionId;
 } sme_QosAssocInfo;
 
 /*-------------------------------------------------------------------------- 
@@ -192,6 +191,7 @@ eHalStatus sme_QosValidateParams(tpAniSirGlobal pMac,
   
   --------------------------------------------------------------------------*/
 eHalStatus sme_QosCsrEventInd(tpAniSirGlobal pMac,
+                              v_U8_t sessionId,
                               sme_QosCsrEventIndType ind, 
                               void *pEvent_info);
 

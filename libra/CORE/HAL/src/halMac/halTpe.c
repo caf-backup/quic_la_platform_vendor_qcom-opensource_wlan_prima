@@ -959,6 +959,7 @@ eHalStatus halTpe_SetBeaconTemplate(tpAniSirGlobal pMac, tANI_U16 beaconIndex, t
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tANI_U32 beaconOffset;
     tTpeRateIdx rateIndex;
+    tPwrTemplateIndex txPower = 0;
 
     beaconTemplate.template_header.template_type = SIR_MAC_MGMT_FRAME;
     beaconTemplate.template_header.template_sub_type = SIR_MAC_MGMT_BEACON;
@@ -968,11 +969,12 @@ eHalStatus halTpe_SetBeaconTemplate(tpAniSirGlobal pMac, tANI_U16 beaconIndex, t
     beaconTemplate.template_header.template_len = 0;
     beaconTemplate.template_header.reserved1 = 0;
     halGetBcnRateIdx(pMac, &rateIndex);
+    halRate_getPowerIndex(pMac, rateIndex, &txPower);
     beaconTemplate.template_header.primary_data_rate_index = rateIndex;
     beaconTemplate.template_header.stbc = 0;
     beaconTemplate.template_header.reserved2 = 0;
     beaconTemplate.template_header.reserved3 = 0;
-    beaconTemplate.template_header.tx_power = 0;
+    beaconTemplate.template_header.tx_power = txPower;
     beaconTemplate.template_header.tx_antenna_enable = 0;
     beaconTemplate.template_header.tsf_offset = TPE_BEACON_1MBPS_LONG_TSF_OFFSET;
     beaconTemplate.template_header.reserved4 = 0;
@@ -1534,81 +1536,6 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
 
 }
 
-
-
-//-----------------------------------------------------------------------------
-#if WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE
-//-----------------------------------------------------------------------------
-
-/**
- * \fn halTpe_UpdateProbeRespTemplate
- *
- */
-void halTpe_UpdateProbeRespTemplate(tpAniSirGlobal pMac , tANI_U8 *msg, tANI_U32 probeRespTemplateLen , tANI_U8 bssIdx)
-{
-
-    tANI_U32 probeRspTemplateOffset;
-    tANI_U32 probeRspTemplateLock;
-    tANI_U32 probeRspTemplateAccessTimeOutCntr;
-    tANI_U32 alignedLen;
-
-#if WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE_HOST_PRINT_LOG
-    tANI_U32 ii;
-#endif
-
-    HALLOGE(halLog(pMac, LOGE, FL("[SoftApProbReq-2TemplateWtSt] Len[%d] .. \n"),probeRespTemplateLen));	
-
-#if WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE_HOST_PRINT_LOG
-   HALLOGE(halLog(pMac, LOGE, FL("[SoftApProbReq-BufferDump-Start... \n")));   
-   for( ii = 0; ii < probeRespTemplateLen; ii+= 4 )
-      HALLOGE(halLog(pMac, LOGE, FL( "ii[%d] [%x][%x][%x][%x]\n" ) , ii , (tANI_U8)msg[ii]  , (tANI_U8)msg[ii+1] , (tANI_U8)msg[ii+2] , (tANI_U8)msg[ii+3]));
-   HALLOGE(halLog(pMac, LOGE, FL("[SoftApProbReq-BufferDump-End ... \n")));   
-#endif
-
-    alignedLen = ( probeRespTemplateLen + 3 ) & ~3 ;
-    HALLOGE(halLog(pMac, LOGE, FL("[SoftApProbReq  ] Len[%d] alignedLen[%d]...\n"), probeRespTemplateLen, alignedLen ));
-    sirSwapU32BufIfNeeded((tANI_U32*)msg, alignedLen>>2);
-    probeRspTemplateOffset  =  pMac->hal.memMap.probeRespTemplate_offset + bssIdx * WLAN_SOFTAP_FW_PROBE_RSP_TEMPLATE_SIZE ;
-
-    probeRspTemplateAccessTimeOutCntr = 0;
-    while(1)
-    {
-          halReadDeviceMemory(pMac,  probeRspTemplateOffset, (tANI_U8 *)&probeRspTemplateLock, 4 );
-	  HALLOGE(halLog(pMac, LOGE, FL("[SoftApProbReq  ] probeRspTemplateLock[%d]...\n"), probeRspTemplateLock ));
-          if( probeRspTemplateLock != 0 )
-  	  {
-             probeRspTemplateAccessTimeOutCntr++;
-	     if( probeRspTemplateAccessTimeOutCntr > 100 )
-	        break; /* Time out from poll Loop */
-	     /* sleep for 5ms */
-	     /* vos_sleep(5); */
-	  }else
-          {
-                break;
-          }
-    }
-
-    if( probeRspTemplateLock == 0 )
-    {
-      probeRspTemplateLock = 1; /* Lock the Probe Response Template */
-      halWriteDeviceMemory(pMac , probeRspTemplateOffset , 
-                           (tANI_U8 *)&probeRspTemplateLock, 4  );
-      halWriteDeviceMemory(pMac , (probeRspTemplateOffset+4) , 
-                           (tANI_U8 *)msg, alignedLen );
-
-      /* Send the updated Length */
-      halFW_UpdateProbeRespTemplateMsg(pMac, bssIdx, probeRespTemplateLen );
-      HALLOGE(halLog(pMac, LOGE, FL("[SoftApProbReq-2TemplateWtEnd o.k] ProbeRspTemplateOffset[%X]... \n") ,probeRspTemplateOffset));
-
-    }else
-    {
-      HALLOGE(halLog(pMac, LOGE, FL("[SoftApProbReq-2TemplateWtEnd Error] ProbeRspTemplateOffset[%X]... \n") ,probeRspTemplateOffset));	 
-    }
-
-}//--> End of  halTpe_UpdateProbeRespTemplate()
-//-----------------------------------------------------------------------------
-#endif //--> End of #if WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE
-//-----------------------------------------------------------------------------
 
 
 

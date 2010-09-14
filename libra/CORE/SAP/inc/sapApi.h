@@ -74,6 +74,10 @@ when           who                what, where, why
 #define       MAX_NO_OF_ASSOC_STA       6 
 #define       MAX_ASSOC_IND_IE_LEN      255
 
+/* defines for WPS config states */
+#define       SAP_WPS_DISABLED             0
+#define       SAP_WPS_ENABLED_UNCONFIGURED 1
+#define       SAP_WPS_ENABLED_CONFIGURED   2
 
 #define       MAX_NAME_SIZE             64
 #define       MAX_TEXT_SIZE             32
@@ -205,7 +209,7 @@ typedef struct sap_StationAssocReassocCompleteEvent_s {
 
 typedef struct sap_StationDisassocCompleteEvent_s {
     v_MACADDR_t staMac;
-    v_U8_t      staId;
+    v_U8_t      staId;    //STAID should not be used
     v_U8_t      status;
     v_U32_t    statusCode;
     eSapDisassocReason reason;
@@ -320,7 +324,8 @@ typedef struct sap_Config {
     v_BOOL_t privacy;
     v_BOOL_t UapsdEnable;
     v_BOOL_t fwdWPSPBCProbeReq;
-    
+    v_U8_t  wps_state; // 0 - disabled, 1 - not configured , 2 - configured
+
     v_U16_t ht_capab;
     v_U16_t RSNWPAReqIELength;   //The byte count in the pWPAReqIE
 

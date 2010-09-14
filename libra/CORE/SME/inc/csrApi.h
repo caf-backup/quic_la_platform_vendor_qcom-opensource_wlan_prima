@@ -711,6 +711,7 @@ typedef struct tagCsrRoamProfile
     tANI_BOOLEAN ApUapsdEnable;
     tANI_BOOLEAN protEnabled;
     tANI_U16 cfg_protection;
+    tANI_U8 wps_state;
 #endif
  
 }tCsrRoamProfile;

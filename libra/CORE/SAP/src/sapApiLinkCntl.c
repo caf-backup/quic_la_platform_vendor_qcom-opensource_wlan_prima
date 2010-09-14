@@ -111,15 +111,15 @@ WLANSAP_ScanCallback
 )
 {
     tScanResultHandle pResult = NULL;
-    v_U8_t sapscanstatus = 0;
+    eHalStatus scanGetResultStatus = eHAL_STATUS_FAILURE;
     ptSapContext psapContext = (ptSapContext)pContext;
-    tWLAN_SAPEvent sapEvent;/* State machine event */
+    tWLAN_SAPEvent sapEvent; /* State machine event */
     v_U8_t operChannel = 0;
     VOS_STATUS sapstatus;
 
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, before switch on scanStatus = %d", __FUNCTION__, scanStatus);	
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, before switch on scanStatus = %d", __FUNCTION__, scanStatus);
 
     switch (scanStatus) 
     {
@@ -128,29 +128,21 @@ WLANSAP_ScanCallback
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR scanStatus = %s (%d)", __FUNCTION__, "eCSR_SCAN_SUCCESS", scanStatus);
 
             // Get scan results, Run channel selection algorithm, select channel and keep in pSapContext->Channel
-            sapscanstatus = sme_ScanGetResult(halHandle, 0, NULL, &pResult);
-            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, after sme_ScanGetResult pResult =0x%x", __FUNCTION__, pResult);
+            scanGetResultStatus = sme_ScanGetResult(halHandle, 0, NULL, &pResult);
 
-            if ( ( NULL == pResult )|| (sapscanstatus == eSAP_STATUS_FAILURE) ) 
+            if ((NULL == pResult) || (scanGetResultStatus != eHAL_STATUS_SUCCESS))
             {
                 // No scan results
-                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, sme_ScanGetResult = NULL(%d)", __FUNCTION__, scanStatus);
-                return eHAL_STATUS_FAILURE;
-            } 
-            else 
-            {
-                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, sme_ScanGetResult success", __FUNCTION__);
+                VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, sme_ScanGetResult = NULL", __FUNCTION__);
+                break;
             }
 
             operChannel = sapSelectChannel(halHandle, pResult);
             sme_ScanResultPurge(halHandle, pResult);
-
-            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Channel selected=%d", __FUNCTION__, operChannel);
             break;
 
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR scanStatus = %s (%d)", __FUNCTION__, "eCSR_SCAN_ABORT/FAILURE", scanStatus);
-            break;
     }
 
     if (operChannel == SAP_CHANNEL_NOT_SELECTED)
@@ -158,11 +150,13 @@ WLANSAP_ScanCallback
     else
         psapContext->channel = operChannel;
 
+    VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Channel selected = %d", __FUNCTION__, psapContext->channel);
+
     /* Fill in the event structure */
     sapEvent.event = eSAP_MAC_SCAN_COMPLETE;
-    sapEvent.params = 0;//pCsrRoamInfo;
-    sapEvent.u1 = scanStatus; //roamstatus
-    sapEvent.u2 = 0;//roamResult
+    sapEvent.params = 0;        // pCsrRoamInfo;
+    sapEvent.u1 = scanStatus;   // roamstatus
+    sapEvent.u2 = 0;            // roamResult
 
     /* Handle event */ 
     sapstatus = sapFsm(psapContext, &sapEvent);
@@ -220,7 +214,7 @@ WLANSAP_RoamCallback
             if(roamResult == eCSR_ROAM_RESULT_INFRA_START_FAILED)
             {
                 /* Fill in the event structure */ 
-                sapEvent.event = eSAP_HDD_STOP_INFRA_BSS; 
+                sapEvent.event = eSAP_MAC_START_FAILS; 
                 sapEvent.params = pCsrRoamInfo;
                 sapEvent.u1 = roamStatus;
                 sapEvent.u2 = roamResult; 
@@ -279,6 +273,11 @@ WLANSAP_RoamCallback
                 sapSignalHDDevent(sapContext, pCsrRoamInfo, eSAP_STA_MIC_FAILURE_EVENT,(v_PVOID_t) eSAP_STATUS_FAILURE);
             }
             break;
+                        
+        case eCSR_ROAM_WPS_PBC_PROBE_REQ_IND:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamStatus = %s (%d)\n",
+                       __FUNCTION__, "eCSR_ROAM_WPS_PBC_PROBE_REQ_IND", roamStatus);
+            break;        
 
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, CSR roamStatus not handled roamStatus = %s (%d)\n",
@@ -387,6 +386,14 @@ WLANSAP_RoamCallback
 
             /* Handle event */ 
             vosStatus = sapFsm(sapContext, &sapEvent);
+            break;
+
+        case eCSR_ROAM_RESULT_WPS_PBC_PROBE_REQ_IND:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamResult = %s (%d)\n",
+                        __FUNCTION__, "eCSR_ROAM_RESULT_WPS_PBC_PROBE_REQ_IND", roamResult);
+            /* Fill in the event structure */
+            //TODO: support for group key MIC failure event to be handled
+            vosStatus = sapSignalHDDevent( sapContext, pCsrRoamInfo, eSAP_WPS_PBC_PROBE_REQ_EVENT,(v_PVOID_t) NULL);
             break;
 
         case eCSR_ROAM_RESULT_FORCED:

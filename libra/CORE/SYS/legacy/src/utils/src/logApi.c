@@ -62,11 +62,17 @@
  * @param tpAniSirGlobal Sirius software parameter strucutre pointer
  * @return None
  */
-void
+tSirRetStatus 
 logInit(tpAniSirGlobal pMac)
 {
     tANI_U32    i;
 
+    if (palAllocateMemory(pMac->hHdd, ((void **)&pMac->gLogBuffer), MAX_LOG_SIZE) != eHAL_STATUS_SUCCESS)
+        return eSIR_FAILURE;
+
+    /* Initialize the pMac structure */
+    palZeroMemory(pMac->hHdd, pMac->gLogBuffer, MAX_LOG_SIZE);
+    
     // Add code to initialize debug level from CFG module
     // For now, enable all logging
     for (i = 0; i < LOG_ENTRY_NUM; i++)
@@ -81,8 +87,16 @@ logInit(tpAniSirGlobal pMac)
 #endif
 #endif
     }
+    return eSIR_SUCCESS;
 
 } /*** logInit() ***/
+
+void
+logDeinit(tpAniSirGlobal pMac)
+{
+    palFreeMemory(pMac->hHdd, pMac->gLogBuffer);
+    return;
+}
 
 /**
  * logDbg() 

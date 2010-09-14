@@ -67,7 +67,7 @@
 
 static sme_QosWmmUpType hddWmmDscpToUpMap[WLAN_HDD_MAX_DSCP+1];
 
-static const v_U8_t hddWmmUpToAcMap[] = {
+const v_U8_t hddWmmUpToAcMap[] = {
    WLANTL_AC_BE,
    WLANTL_AC_BK,
    WLANTL_AC_BK,
@@ -1283,7 +1283,6 @@ VOS_STATUS hdd_wmm_close ( hdd_adapter_t* pAdapter )
    {
       pQosContext = list_first_entry(&pAdapter->hddWmmStatus.wmmContextList,
                                      hdd_wmm_qos_context_t, node);
-      list_del(&pQosContext->node);
       hdd_wmm_free_context(pQosContext);
    }
 
@@ -1593,6 +1592,21 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
              "%s: Entered", __FUNCTION__);
+
+   if (pRoamInfo->fReassocReq)
+   {
+      // when we reassociate we should continue to use whatever
+      // parameters were previously established.  if we are
+      // reassociating due to a U-APSD change for a particular
+      // Access Category, then the change will be communicated
+      // to HDD via the QoS callback associated with the given
+      // flow, and U-APSD parameters will be updated there
+
+      VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW, 
+                "%s: Reassoc so no work, Exiting", __FUNCTION__);
+
+      return VOS_STATUS_SUCCESS;
+   }
 
    // get the negotiated UAPSD Mask
    uapsdMask = pRoamInfo->u.pConnectedProfile->modifyProfileFields.uapsd_mask;
@@ -2006,13 +2020,13 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
       // this flow is the only one on that AC, so go ahead and update 
       // our TSPEC state for the AC
       pAdapter->hddWmmStatus.wmmAcStatus[acType].wmmAcTspecValid = VOS_FALSE;
-#ifdef NOT_NEEDED
+
       // need to tell TL to stop trigger timer, etc
       hdd_wmm_disable_tl_uapsd(pQosContext);
 
       // we are done with this context
       hdd_wmm_free_context(pQosContext);
-#endif
+
       // SME must not fire any more callbacks for this flow since the context 
       // is no longer valid
       
@@ -2070,6 +2084,10 @@ hdd_wlan_wmm_status_e hdd_wmm_checkts( hdd_adapter_t* pAdapter,
    {
       if (pQosContext->handle == handle)
       {
+         VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
+                   "%s: found handle 0x%x, context %p",
+                   __FUNCTION__, handle, pQosContext);
+
          status = pQosContext->lastStatus;
          break;
       }

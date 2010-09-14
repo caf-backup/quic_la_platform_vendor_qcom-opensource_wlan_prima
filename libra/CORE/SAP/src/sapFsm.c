@@ -353,7 +353,7 @@ sapGotoDisconnected
   SIDE EFFECTS 
 ============================================================================*/
 VOS_STATUS
-sapSignalHDDevent
+sapSignalHDDevent 
 ( 
     ptSapContext sapContext, /* sapContext value */
     tCsrRoamInfo *pCsrRoamInfo,
@@ -375,8 +375,9 @@ sapSignalHDDevent
                 __FUNCTION__, "eSAP_START_BSS_EVENT");
             sapApAppEvent.sapHddEventCode = eSAP_START_BSS_EVENT;
             sapApAppEvent.sapevt.sapStartBssCompleteEvent.status = (eSapStatus )context;
-            if(pCsrRoamInfo != NULL )
+            if(pCsrRoamInfo != NULL ){
                 sapApAppEvent.sapevt.sapStartBssCompleteEvent.staId = pCsrRoamInfo->staId;
+            }
             else
                 sapApAppEvent.sapevt.sapStartBssCompleteEvent.staId = 0;              
             sapApAppEvent.sapevt.sapStartBssCompleteEvent.operatingChannel = sapContext->channel;
@@ -499,12 +500,12 @@ sapSignalHDDevent
                        __FUNCTION__,sapHddevent);
             break;
     }
-
     vosStatus = (*sapContext->pfnSapEventCallback)
                 (
                  &sapApAppEvent,
                  sapContext->pUsrContext//userdataforcallback - hdd opaque handle
                  );
+                 
     return vosStatus;
 
 } /* sapSignalApAppStartBssEvent */
@@ -623,10 +624,10 @@ sapFsm
              }
              else if (msg == eSAP_MAC_START_FAILS) 
              {
-                 /*Transition from STARTING to DISCONNECTED (both without substates)*/        
+                 /*Transition from STARTING to DISCONNECTED (both without substates)*/                         
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
                             __FUNCTION__, "eSAP_STARTING", "eSAP_DISCONNECTED");
-
+                
                   /*Action code for transition */
                   vosStatus = sapSignalHDDevent( sapContext, NULL, eSAP_START_BSS_EVENT,(v_PVOID_t) eSAP_STATUS_FAILURE);
                   vosStatus =  sapGotoDisconnected(sapContext);
@@ -788,6 +789,9 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     //country code
     if (pconfig_params->countryCode[0])
         vos_mem_copy(profile->countryCode, pconfig_params->countryCode, WNI_CFG_COUNTRY_CODE_LEN); 
+
+    //wps config info
+    profile->wps_state = pconfig_params->wps_state;
 
     return eSAP_STATUS_SUCCESS; /* Success.  */
 }

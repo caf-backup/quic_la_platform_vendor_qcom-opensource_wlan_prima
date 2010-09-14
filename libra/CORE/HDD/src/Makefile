@@ -376,6 +376,7 @@ CDEFINES :=	-DANI_PRODUCT_TYPE_CLIENT=1 \
 		-DPTT_SOCK_SVC_ENABLE \
 		-DFEATURE_WLAN_UAPSD_FW_TRG_FRAMES \
                 -DWLAN_SOFTAP_FEATURE \
+ 		-DWLAN_FTM_STUB \
                 -D__linux__
 
 
@@ -409,6 +410,7 @@ endif
 
 ifeq ($(BUILD_FTM_DRIVER),1)
 CDEFINES += -DANI_MANF_DIAG \
+  	-UWLAN_FTM_STUB \
 	-DANI_PHY_DEBUG
 endif
 

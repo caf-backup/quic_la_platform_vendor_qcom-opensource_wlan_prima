@@ -2939,6 +2939,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
     tANI_U32        val;
     tANI_U16        dialogToken = pMsg->reserved;
 
+#ifndef WLAN_FTM_STUB
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
     switch (pMsg->type)
@@ -2963,6 +2964,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
         }
         return eSIR_SUCCESS;
     }
+#endif
 
     switch (pMsg->type)
     {

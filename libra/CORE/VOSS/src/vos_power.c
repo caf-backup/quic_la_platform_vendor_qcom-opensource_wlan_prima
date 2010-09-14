@@ -196,7 +196,7 @@ int vos_chip_power_qrf8600(int on)
       }
 
       // Power up 2.5v Analog
-      rc = vreg_set_level(vreg_wlan2, 2500);
+      rc = vreg_set_level(vreg_wlan2, 2400);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg set level failed (%d)",
             __func__, rc);
@@ -251,14 +251,11 @@ int vos_chip_power_qrf8600(int on)
          return -EIO;
       }
 
-#ifndef LIBRA_LINUX_PC
       rc = pmapp_smps_mode_vote( "WLAN", PMAPP_VREG_S4, PMAPP_SMPS_MODE_VOTE_PWM );
-      if( rc )
-      {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Attempting to vote for PMIC SMPS mode PWM failed with (%d)",__func__, rc);
+      if( rc ) {
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Attempting to vote for PMIC SMPS mode PWM failed with (%d)",__func__, rc);
          return -EIO;
       }
-#endif //LIBRA_LINUX_PC
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Enabled power supply for WLAN", __func__);
 		
       msleep(500);
@@ -273,6 +270,11 @@ int vos_chip_power_qrf8600(int on)
       rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S4, 0);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: s4 vreg vote off failed (%d)", __func__, rc);
+      }
+
+      rc = pmapp_smps_mode_vote( "WLAN", PMAPP_VREG_S4, PMAPP_SMPS_MODE_VOTE_DONTCARE );
+      if( rc ) {
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Attempting to vote for PMIC SMPS mode PFM failed with (%d)",__func__, rc);
       }
 
       rc = vreg_disable(vreg_s4); 
@@ -295,16 +297,8 @@ int vos_chip_power_qrf8600(int on)
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg disable failed (%d)", __func__, rc);
       }
 
-#ifndef LIBRA_LINUX_PC
-      rc = pmapp_smps_mode_vote( "WLAN", PMAPP_VREG_S4, PMAPP_SMPS_MODE_VOTE_DONTCARE );
-      if( rc )
-      {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Attempting to vote for PMIC SMPS mode PFM failed with (%d)",__func__, rc);
-      }
-#endif //LIBRA_LINUX_PC
-
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Disabled power supply for WLAN", __func__);
-	 }
+   }
 
    return 0;
 }
@@ -890,6 +884,12 @@ VOS_STATUS vos_chipVoteOnRFSupply
       return VOS_STATUS_E_FAILURE;
    }
 
+   rc = pmapp_smps_mode_vote( "WLAN", PMAPP_VREG_S4, PMAPP_SMPS_MODE_VOTE_PWM );
+   if( rc ) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Attempting to vote for PMIC SMPS mode PWM failed with (%d)",__func__, rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+
    return VOS_STATUS_SUCCESS;
 
 #endif //MSM_PLATFORM_7x30
@@ -970,6 +970,11 @@ VOS_STATUS vos_chipVoteOffRFSupply
           "level failed (%d)",__func__, rc);
    }
 
+   rc = pmapp_smps_mode_vote( "WLAN", PMAPP_VREG_S4, PMAPP_SMPS_MODE_VOTE_DONTCARE );
+   if( rc ) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Attempting to vote for PMIC SMPS mode PFM failed with (%d)",__func__, rc);
+   }
+
    rc = vreg_disable(vreg_s4); 
    if (rc) {
       printk(KERN_ERR "%s: s4 vreg disable failed (%d)\n", __func__, rc);
@@ -1026,7 +1031,7 @@ VOS_STATUS vos_chipVoteOnBBAnalogSupply
       return VOS_STATUS_E_FAILURE;
    }
 
-   rc = vreg_set_level(vreg_wlan2, 2500);
+   rc = vreg_set_level(vreg_wlan2, 2400);
    if (rc) {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg set "
           "level failed (%d)",__func__, rc);

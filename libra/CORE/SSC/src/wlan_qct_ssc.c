@@ -455,7 +455,7 @@ do                                                                          \
 
   Number of rx buffers to process (from ProcessRxData) before yielding to tx
 ---------------------------------------------------------------------------*/
-#define WLANSSC_RXYIELDTOTXTHRESHOLD   10
+#define WLANSSC_RXYIELDTOTXTHRESHOLD  3 
 
 
 /*---------------------------------------------------------------------------

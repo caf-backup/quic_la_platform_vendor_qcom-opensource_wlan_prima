@@ -282,6 +282,7 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
 {
    vos_call_status_type callType;
    VOS_STATUS vosStatus;
+   eHalStatus halStatus;
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
       "%s: calling vos_chipVoteOnRFSupply",__func__);
@@ -380,6 +381,18 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
          "%s: Failed in hdd_post_voss_start_config",__func__);
       goto err_voss_stop;
+   }
+
+
+   //Open a SME session for future operation
+   halStatus = sme_OpenSession( pAdapter->hHal, hdd_smeRoamCallback, pAdapter,
+                                (tANI_U8 *)&pAdapter->macAddressCurrent, &pAdapter->sessionId );
+   if ( !HAL_STATUS_SUCCESS( halStatus ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"sme_OpenSession() failed with status code %08d [x%08lx]",
+                    halStatus, halStatus );
+      goto err_voss_stop;
+
    }
 
    pAdapter->hdd_ps_state = eHDD_SUSPEND_NONE;

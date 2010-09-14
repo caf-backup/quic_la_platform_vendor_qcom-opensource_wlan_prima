@@ -46,11 +46,11 @@
  */
 void baInit( tpAniSirGlobal pMac )
 {
-  // Global counter keeping track of active BA sessions
-  pMac->hal.halMac.baNumActiveSessions = 0;
+    // Global counter keeping track of active BA sessions
+    pMac->hal.halMac.baNumActiveSessions = 0;
 
-  // Read and cache (if necessary) the concerned CFG's
-  baHandleCFG( pMac, ANI_IGNORE_CFG_ID );
+    // Read and cache (if necessary) the concerned CFG's
+    baHandleCFG( pMac, ANI_IGNORE_CFG_ID );
 }
 /**
  * \brief This API is called to update BA related CFG's,
@@ -80,216 +80,216 @@ void baInit( tpAniSirGlobal pMac )
  */
 void baHandleCFG( tpAniSirGlobal pMac, tANI_U32 cfgId )
 {
-tANI_U32 cfg, val, i = 0;
-tANI_U32 baActivityCheckCfgVal =0;
-  tANI_U32 defaultCfgList[] = {
-     WNI_CFG_BA_TIMEOUT,
-  WNI_CFG_MAX_BA_BUFFERS,
-  WNI_CFG_MAX_BA_SESSIONS,
-  WNI_CFG_BA_THRESHOLD_HIGH,
-  ANI_IGNORE_CFG_ID,
-  WNI_CFG_BA_ACTIVITY_CHECK_TIMEOUT,
-     WNI_CFG_BA_AUTO_SETUP
-  };
+    tANI_U32 cfg, val, i = 0;
+    tANI_U32 baActivityCheckCfgVal =0;
+    tANI_U32 defaultCfgList[] = {
+        WNI_CFG_BA_TIMEOUT,
+        WNI_CFG_MAX_BA_BUFFERS,
+        WNI_CFG_MAX_BA_SESSIONS,
+        WNI_CFG_BA_THRESHOLD_HIGH,
+        ANI_IGNORE_CFG_ID,
+        WNI_CFG_BA_ACTIVITY_CHECK_TIMEOUT,
+        WNI_CFG_BA_AUTO_SETUP
+    };
 
-  do
-  {
-    //
-    // Determine if we have to use our own default CFG list
-    // OR should we use the argument passed to us
-    //
-    if( ANI_IGNORE_CFG_ID == cfgId )
-      cfg = defaultCfgList[i]; // "n" iterations reqd
-    else
-      cfg = cfgId; // Just "1" iteration reqd
-
-    switch( cfg )
+    do
     {
-      case WNI_CFG_BA_AUTO_SETUP:
-          {
-              if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
-              {
-                  HALLOGP( halLog( pMac, LOGP,
-                      FL("Failed to Get CFG ID %d\n"), cfg ));
-                  return;
-              }
+        //
+        // Determine if we have to use our own default CFG list
+        // OR should we use the argument passed to us
+        //
+        if( ANI_IGNORE_CFG_ID == cfgId )
+            cfg = defaultCfgList[i]; // "n" iterations reqd
+        else
+            cfg = cfgId; // Just "1" iteration reqd
+
+        switch( cfg )
+        {
+            case WNI_CFG_BA_AUTO_SETUP:
+                {
+                    if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
+                    {
+                        HALLOGP( halLog( pMac, LOGP,
+                                    FL("Failed to Get CFG ID %d\n"), cfg ));
+                        return;
+                    }
 
                     // NOTE: Instead of reading selfSta capability get the System's HT capability
                     // from some CFG
-              //if not already setup, config is enabled and we are htCapable, 
-	      //then we need to start timer.
-              if((false == pMac->hal.halMac.baAutoSetupEnabled) && (true == val)) 
-              {
-                  pMac->hal.halMac.baAutoSetupEnabled = true;
-                  if(tx_timer_activate(&pMac->hal.halMac.baActivityChkTmr) != TX_SUCCESS)
-                  {
-                        // Could not start BA activity check timer.
-                        // Log error
-                        HALLOGP( halLog(pMac, LOGP, FL("Unable to activate BA activity check timer\n")));
-                        return;
-                  }
-              }
-              //if already setup and config is disabled, then we need to stop timer
-              //and delete all the existing BA sessions.
-              else if((true == pMac->hal.halMac.baAutoSetupEnabled) && (false == val))
-              {
-                  pMac->hal.halMac.baAutoSetupEnabled = false;
-                  halDeactivateAndChangeTimer(pMac, eHAL_BA_ACT_CHK_TIMER);
-                  //send indication to LIM to delete all the BA sessions.
-                  (pMac->hal.pPECallBack)(pMac, SIR_LIM_DEL_BA_ALL_IND, NULL);
-              }
-              else
-              {
-                   HALLOGW( halLog(pMac, LOGW, FL("can't change BaActivityCheck timer, \
-                            CFG BA_AUTO_SETUP = %d, baAutoSetup already enabled = %d"),
+                    //if not already setup, config is enabled and we are htCapable, 
+                    //then we need to start timer.
+                    if((false == pMac->hal.halMac.baAutoSetupEnabled) && (true == val)) 
+                    {
+                        pMac->hal.halMac.baAutoSetupEnabled = true;
+                        if(tx_timer_activate(&pMac->hal.halMac.baActivityChkTmr) != TX_SUCCESS)
+                        {
+                            // Could not start BA activity check timer.
+                            // Log error
+                            HALLOGP( halLog(pMac, LOGP, FL("Unable to activate BA activity check timer\n")));
+                            return;
+                        }
+                    }
+                    //if already setup and config is disabled, then we need to stop timer
+                    //and delete all the existing BA sessions.
+                    else if((true == pMac->hal.halMac.baAutoSetupEnabled) && (false == val))
+                    {
+                        pMac->hal.halMac.baAutoSetupEnabled = false;
+                        halDeactivateAndChangeTimer(pMac, eHAL_BA_ACT_CHK_TIMER);
+                        //send indication to LIM to delete all the BA sessions.
+                        (pMac->hal.pPECallBack)(pMac, SIR_LIM_DEL_BA_ALL_IND, NULL);
+                    }
+                    else
+                    {
+                        HALLOGW( halLog(pMac, LOGW, FL("can't change BaActivityCheck timer, \
+                                        CFG BA_AUTO_SETUP = %d, baAutoSetup already enabled = %d"),
                                     val, pMac->hal.halMac.baAutoSetupEnabled));
-              }
-          }
-          break;
-      case WNI_CFG_BA_TIMEOUT:
-          if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
-          {
-              HALLOGP( halLog( pMac, LOGP,
-                  FL("Failed to Get CFG ID %d\n"),
-                  cfg ));
-              return;
-          }
-          pMac->hal.halMac.baTimeout = (tANI_U16) val;
-          break;
+                    }
+                }
+                break;
+            case WNI_CFG_BA_TIMEOUT:
+                if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
+                {
+                    HALLOGP( halLog( pMac, LOGP,
+                                FL("Failed to Get CFG ID %d\n"),
+                                cfg ));
+                    return;
+                }
+                pMac->hal.halMac.baTimeout = (tANI_U16) val;
+                break;
 
-      case WNI_CFG_MAX_BA_BUFFERS:
-          if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
-          {
-              HALLOGP( halLog( pMac, LOGP,
-                  FL("Failed to Get CFG ID %d\n"), cfg ));
-              return;
-          }
-          pMac->hal.halMac.baRxMaxAvailBuffers = (tANI_U16) val;
-          break;
+            case WNI_CFG_MAX_BA_BUFFERS:
+                if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
+                {
+                    HALLOGP( halLog( pMac, LOGP,
+                                FL("Failed to Get CFG ID %d\n"), cfg ));
+                    return;
+                }
+                pMac->hal.halMac.baRxMaxAvailBuffers = (tANI_U16) val;
+                break;
 
-      case WNI_CFG_MAX_BA_SESSIONS:
-          // Not cached for the time being...
+            case WNI_CFG_MAX_BA_SESSIONS:
+                // Not cached for the time being...
 #if 0
-          if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
-              HALLOGP( halLog( pMac, LOGP,
-                  FL("Failed to Get CFG ID %d\n"),
-                  cfg ));
-          else
-            val *= sizeof( tRxBASessionTable ); // Total size
+                if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
+                    HALLOGP( halLog( pMac, LOGP,
+                                FL("Failed to Get CFG ID %d\n"),
+                                cfg ));
+                else
+                    val *= sizeof( tRxBASessionTable ); // Total size
 
-          // Allocate memory for the BA Session Entries
-          if( eHAL_STATUS_SUCCESS == palAllocateMemory( pMac->hHdd,
-                (void **) &pMac->hal.halMac.baSessionTable,
-                val ))
-            palZeroMemory( pMac->hHdd,
-                (void *) pMac->hal.halMac.baSessionTable,
-                val );
-          else
-            HALLOGP( halLog( pMac, LOGP,
-                FL("Failed to allocate memory [%d bytes] for the BA Session table!\n"),
-                val ));
+                // Allocate memory for the BA Session Entries
+                if( eHAL_STATUS_SUCCESS == palAllocateMemory( pMac->hHdd,
+                            (void **) &pMac->hal.halMac.baSessionTable,
+                            val ))
+                    palZeroMemory( pMac->hHdd,
+                            (void *) pMac->hal.halMac.baSessionTable,
+                            val );
+                else
+                    HALLOGP( halLog( pMac, LOGP,
+                                FL("Failed to allocate memory [%d bytes] for the BA Session table!\n"),
+                                val ));
 #endif //#if 0
-          break;
+                break;
 
-      case WNI_CFG_BA_THRESHOLD_HIGH:
-          if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
-          {
-              HALLOGP( halLog( pMac, LOGP,
-                  FL("Failed to Get CFG ID %d\n"),
-                  cfg ));
-              return;
-          }
-          pMac->hal.halMac.baSetupThresholdHigh = val;
-          break;
+            case WNI_CFG_BA_THRESHOLD_HIGH:
+                if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
+                {
+                    HALLOGP( halLog( pMac, LOGP,
+                                FL("Failed to Get CFG ID %d\n"),
+                                cfg ));
+                    return;
+                }
+                pMac->hal.halMac.baSetupThresholdHigh = val;
+                break;
 
-      case WNI_CFG_BA_ACTIVITY_CHECK_TIMEOUT:
-          if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
-          {
-              HALLOGP( halLog( pMac, LOGP,
-                  FL("Failed to Get CFG ID %d\n"),
-                  cfg ));
-              return;
-          }
-          if (tx_timer_deactivate(&pMac->hal.halMac.baActivityChkTmr)
-                                       != TX_SUCCESS)
-          {
-              // Could not deactivate BA activitycheck timer.
-              // Log error
-              HALLOGP( halLog(pMac, LOGP,
-                     FL("Unable to deactivate BA activity check timer\n")));
-              return;
-          }
+            case WNI_CFG_BA_ACTIVITY_CHECK_TIMEOUT:
+                if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
+                {
+                    HALLOGP( halLog( pMac, LOGP,
+                                FL("Failed to Get CFG ID %d\n"),
+                                cfg ));
+                    return;
+                }
+                if (tx_timer_deactivate(&pMac->hal.halMac.baActivityChkTmr)
+                        != TX_SUCCESS)
+                {
+                    // Could not deactivate BA activitycheck timer.
+                    // Log error
+                    HALLOGP( halLog(pMac, LOGP,
+                                FL("Unable to deactivate BA activity check timer\n")));
+                    return;
+                }
 
-          baActivityCheckCfgVal = val;
+                baActivityCheckCfgVal = val;
 
-          val = SYS_MS_TO_TICKS(val);
+                val = SYS_MS_TO_TICKS(val);
 
-          if (tx_timer_change(&pMac->hal.halMac.baActivityChkTmr,
-                              val, val) != TX_SUCCESS)
-          {
-              // Could not change BA activity check timer.
-              // Log error
-              HALLOGP( halLog(pMac, LOGP, FL("Unable to change BA activity check timer\n")));
-              return;
-          }
+                if (tx_timer_change(&pMac->hal.halMac.baActivityChkTmr,
+                            val, val) != TX_SUCCESS)
+                {
+                    // Could not change BA activity check timer.
+                    // Log error
+                    HALLOGP( halLog(pMac, LOGP, FL("Unable to change BA activity check timer\n")));
+                    return;
+                }
 
-          if(tx_timer_activate(&pMac->hal.halMac.baActivityChkTmr)
-              != TX_SUCCESS)
-          {
-              // Could not activate BA activity check timer.
-              // Log error
-              HALLOGP( halLog(pMac, LOGP, FL("Unable to activate BA activity check timer\n")));
-              return;
-          }
+                if(tx_timer_activate(&pMac->hal.halMac.baActivityChkTmr)
+                        != TX_SUCCESS)
+                {
+                    // Could not activate BA activity check timer.
+                    // Log error
+                    HALLOGP( halLog(pMac, LOGP, FL("Unable to activate BA activity check timer\n")));
+                    return;
+                }
 
-          break;
+                break;
 
-      case WNI_CFG_MAX_MEDIUM_TIME:
-          if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
-          {
-              HALLOGP( halLog( pMac, LOGP,
-                  FL("Failed to Get CFG ID %d\n"),
-                  cfg ));
-              return;
-          }
-          halTpe_SetAmpduTxTime(pMac, val);
-          break;
+            case WNI_CFG_MAX_MEDIUM_TIME:
+                if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
+                {
+                    HALLOGP( halLog( pMac, LOGP,
+                                FL("Failed to Get CFG ID %d\n"),
+                                cfg ));
+                    return;
+                }
+                halTpe_SetAmpduTxTime(pMac, val);
+                break;
 
-      case WNI_CFG_MAX_MPDUS_IN_AMPDU:
-          if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
-          {
-              HALLOGP( halLog( pMac, LOGP,
-                  FL("Failed to Get CFG ID %d\n"),
-                  cfg ));
-              return;
-          }
-          halTpe_UpdateMaxMpduInAmpdu(pMac, val);
-          break;
-            
+            case WNI_CFG_MAX_MPDUS_IN_AMPDU:
+                if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
+                {
+                    HALLOGP( halLog( pMac, LOGP,
+                                FL("Failed to Get CFG ID %d\n"),
+                                cfg ));
+                    return;
+                }
+                halTpe_UpdateMaxMpduInAmpdu(pMac, val);
+                break;
 
-      default:
-          break;
-    }
 
-    // If only "1" CFG needs an update, then return
-    if( ANI_IGNORE_CFG_ID == cfgId )
-      i++;
-    else
-      break;
+            default:
+                break;
+        }
 
-  } while( ANI_IGNORE_CFG_ID != defaultCfgList[i] ); // End-Of-List?
+        // If only "1" CFG needs an update, then return
+        if( ANI_IGNORE_CFG_ID == cfgId )
+            i++;
+        else
+            break;
 
-  // DEBUG LOG the BA CFG's
-  HALLOGW( halLog( pMac, LOGW,
-      FL("The BA related global CFG's are: "
-      "BA Timeout - %d, "
-      "Max BA Buffers available - %d, "
-      "BA Activity check timeout - %d, "
-      "BA High Threshold - %d,\n"),
-      pMac->hal.halMac.baTimeout,
-      pMac->hal.halMac.baRxMaxAvailBuffers,
-      baActivityCheckCfgVal,
-      pMac->hal.halMac.baSetupThresholdHigh ));
+    } while( ANI_IGNORE_CFG_ID != defaultCfgList[i] ); // End-Of-List?
+
+    // DEBUG LOG the BA CFG's
+    HALLOGW( halLog( pMac, LOGW,
+                FL("The BA related global CFG's are: "
+                    "BA Timeout - %d, "
+                    "Max BA Buffers available - %d, "
+                    "BA Activity check timeout - %d, "
+                    "BA High Threshold - %d,\n"),
+                pMac->hal.halMac.baTimeout,
+                pMac->hal.halMac.baRxMaxAvailBuffers,
+                baActivityCheckCfgVal,
+                pMac->hal.halMac.baSetupThresholdHigh ));
 
 }
 
@@ -320,55 +320,55 @@ tANI_U32 baActivityCheckCfgVal =0;
 eHalStatus baAllocateBuffer( tpAniSirGlobal pMac,
     tANI_U16 *baBufferSize )
 {
-eHalStatus retStatus = eHAL_STATUS_SUCCESS;
-tANI_U16 bufSize;
+    eHalStatus retStatus = eHAL_STATUS_SUCCESS;
+    tANI_U16 bufSize;
 
-  if( NULL != baBufferSize )
-  {
-    if( 0 == pMac->hal.halMac.baRxMaxAvailBuffers )
+    if( NULL != baBufferSize )
     {
-      HALLOGE( halLog( pMac, LOGE,
-          FL("No more buffers available to setup a BA session!\n")));
+        if( 0 == pMac->hal.halMac.baRxMaxAvailBuffers )
+        {
+            HALLOGE( halLog( pMac, LOGE,
+                        FL("No more buffers available to setup a BA session!\n")));
 
-      //
-      // FIXME_AMPDU - Try to reclaim any idle BA session that is
-      // currently marked as valid
-      //
-      retStatus = eHAL_STATUS_BA_RX_BUFFERS_FULL;
-      goto returnFailure;
-    }
+            //
+            // FIXME_AMPDU - Try to reclaim any idle BA session that is
+            // currently marked as valid
+            //
+            retStatus = eHAL_STATUS_BA_RX_BUFFERS_FULL;
+            goto returnFailure;
+        }
 
-    if( 0 == *baBufferSize )
-    {
-      // Buffer Size requested is 0. This means that
-      // the ADDBA recipient has to allocate and return
-      // the desired buffer size
-      bufSize = BA_DEFAULT_RX_BUFFER_SIZE;
-    }
-    else if( *baBufferSize > BA_DEFAULT_RX_BUFFER_SIZE )
-      bufSize = BA_DEFAULT_RX_BUFFER_SIZE;
-    else
-      bufSize = *baBufferSize;
+        if( 0 == *baBufferSize )
+        {
+            // Buffer Size requested is 0. This means that
+            // the ADDBA recipient has to allocate and return
+            // the desired buffer size
+            bufSize = BA_DEFAULT_RX_BUFFER_SIZE;
+        }
+        else if( *baBufferSize > BA_DEFAULT_RX_BUFFER_SIZE )
+            bufSize = BA_DEFAULT_RX_BUFFER_SIZE;
+        else
+            bufSize = *baBufferSize;
 
-    if((pMac->hal.halMac.baRxMaxAvailBuffers - bufSize) > 0 )
-    {
-      *baBufferSize = bufSize;
-      pMac->hal.halMac.baRxMaxAvailBuffers -= bufSize;
-    }
-    else
-    {
-      *baBufferSize = pMac->hal.halMac.baRxMaxAvailBuffers;
-      pMac->hal.halMac.baRxMaxAvailBuffers = 0;
-    }
+        if((pMac->hal.halMac.baRxMaxAvailBuffers - bufSize) > 0 )
+        {
+            *baBufferSize = bufSize;
+            pMac->hal.halMac.baRxMaxAvailBuffers -= bufSize;
+        }
+        else
+        {
+            *baBufferSize = pMac->hal.halMac.baRxMaxAvailBuffers;
+            pMac->hal.halMac.baRxMaxAvailBuffers = 0;
+        }
 
-    HALLOGW( halLog( pMac, LOGW,
-        FL("Allocated Buffer Size - [%d]. Available Buffer Size - [%d]\n"),
-        *baBufferSize,
-        pMac->hal.halMac.baRxMaxAvailBuffers ));
-  }
+        HALLOGW( halLog( pMac, LOGW,
+                    FL("Allocated Buffer Size - [%d]. Available Buffer Size - [%d]\n"),
+                    *baBufferSize,
+                    pMac->hal.halMac.baRxMaxAvailBuffers ));
+    }
 
 returnFailure:
-  return retStatus;
+    return retStatus;
 }
 
 /**
@@ -390,12 +390,12 @@ returnFailure:
 void baReleaseBuffer( tpAniSirGlobal pMac,
     tANI_U16 baBufferSize )
 {
-  pMac->hal.halMac.baRxMaxAvailBuffers += baBufferSize;
+    pMac->hal.halMac.baRxMaxAvailBuffers += baBufferSize;
 
-  HALLOGW( halLog( pMac, LOGW,
-      FL("Restored Buffer Size - %d. Available Buffer Size - [%d]\n"),
-      baBufferSize,
-      pMac->hal.halMac.baRxMaxAvailBuffers ));
+    HALLOGW( halLog( pMac, LOGW,
+                FL("Restored Buffer Size - %d. Available Buffer Size - [%d]\n"),
+                baBufferSize,
+                pMac->hal.halMac.baRxMaxAvailBuffers ));
 }
 
 /**
@@ -424,63 +424,63 @@ eHalStatus baAllocateSessionID( tpAniSirGlobal pMac,
     tANI_U8 baTID,
     tANI_U16 *baSessionID )
 {
-tANI_U8 i, found = 0;
-tANI_U32 maxBASessions = 0;
-eHalStatus retStatus = eHAL_STATUS_SUCCESS;
-tpRxBASessionTable pBASession = pMac->hal.halMac.baSessionTable;
+    tANI_U8 i, found = 0;
+    tANI_U32 maxBASessions = 0;
+    eHalStatus retStatus = eHAL_STATUS_SUCCESS;
+    tpRxBASessionTable pBASession = pMac->hal.halMac.baSessionTable;
 
-  // Determine the MAX allowed BA sessions
-  if( eSIR_SUCCESS != wlan_cfgGetInt( pMac,
-        WNI_CFG_MAX_BA_SESSIONS,
-        &maxBASessions ))
-    return eHAL_STATUS_FAILURE;
-  else{
-      if (maxBASessions > BA_MAX_SESSIONS)
+    // Determine the MAX allowed BA sessions
+    if( eSIR_SUCCESS != wlan_cfgGetInt( pMac,
+                WNI_CFG_MAX_BA_SESSIONS,
+                &maxBASessions ))
+        return eHAL_STATUS_FAILURE;
+    else{
+        if (maxBASessions > BA_MAX_SESSIONS)
             maxBASessions = BA_MAX_SESSIONS;
-    HALLOGW( halLog( pMac, LOGW,
-        FL("Max BA Sessions - %d\n"),
-        maxBASessions ));
-  }
-  for( i = 0; i < maxBASessions; i++, pBASession++ )
-  {
-    if( 0 == pBASession->baValid )
-    {
-      found = 1;
-      break;
+        HALLOGW( halLog( pMac, LOGW,
+                    FL("Max BA Sessions - %d\n"),
+                    maxBASessions ));
     }
-  }
-
-  if( found )
-  {
-    // Paranoia...
-    if( NULL != baSessionID )
+    for( i = 0; i < maxBASessions; i++, pBASession++ )
     {
-      // Update the BA Session parameters
-      pBASession->baValid = 1;
-      pBASession->baTID = baTID;
-      pBASession->baStaIndex = baStaIndex;
-      *baSessionID = i;
-
-      // Update the HAL global counter with the latest
-      // BA session count
-      pMac->hal.halMac.baNumActiveSessions++;
-
-      HALLOGW( halLog( pMac, LOGW,
-          FL("New BA Session [%d] - STA Index %d, TID %d. Total [%d]\n"),
-          *baSessionID,
-          baStaIndex,
-          baTID,
-          pMac->hal.halMac.baNumActiveSessions ));
+        if( 0 == pBASession->baValid )
+        {
+            found = 1;
+            break;
+        }
     }
-  }
-  else
-  {
-    HALLOGW(  halLog( pMac, LOGW,
-        FL("Max BA Sessions reached!\n")));
-    retStatus = eHAL_STATUS_BA_RX_MAX_SESSIONS_REACHED;
-  }
 
-  return retStatus;
+    if( found )
+    {
+        // Paranoia...
+        if( NULL != baSessionID )
+        {
+            // Update the BA Session parameters
+            pBASession->baValid = 1;
+            pBASession->baTID = baTID;
+            pBASession->baStaIndex = baStaIndex;
+            *baSessionID = i;
+
+            // Update the HAL global counter with the latest
+            // BA session count
+            pMac->hal.halMac.baNumActiveSessions++;
+
+            HALLOGW( halLog( pMac, LOGW,
+                        FL("New BA Session [%d] - STA Index %d, TID %d. Total [%d]\n"),
+                        *baSessionID,
+                        baStaIndex,
+                        baTID,
+                        pMac->hal.halMac.baNumActiveSessions ));
+        }
+    }
+    else
+    {
+        HALLOGW(  halLog( pMac, LOGW,
+                    FL("Max BA Sessions reached!\n")));
+        retStatus = eHAL_STATUS_BA_RX_MAX_SESSIONS_REACHED;
+    }
+
+    return retStatus;
 }
 
 /**
@@ -504,63 +504,63 @@ eHalStatus baReleaseSessionID( tpAniSirGlobal pMac,
     tANI_U16 baStaIndex,
     tANI_U8 baTID )
 {
-tANI_U8 i, found = 0;
-tANI_U32 maxBASessions = 0;
-eHalStatus retStatus = eHAL_STATUS_SUCCESS;
-tpRxBASessionTable pBASession = pMac->hal.halMac.baSessionTable;
+    tANI_U8 i, found = 0;
+    tANI_U32 maxBASessions = 0;
+    eHalStatus retStatus = eHAL_STATUS_SUCCESS;
+    tpRxBASessionTable pBASession = pMac->hal.halMac.baSessionTable;
 
-  // Determine the MAX allowed BA sessions
-  if( eSIR_SUCCESS != wlan_cfgGetInt( pMac,
-        WNI_CFG_MAX_BA_SESSIONS,
-        &maxBASessions ))
-    return eHAL_STATUS_FAILURE;
-  if (maxBASessions > BA_MAX_SESSIONS)
-    maxBASessions = BA_MAX_SESSIONS;
+    // Determine the MAX allowed BA sessions
+    if( eSIR_SUCCESS != wlan_cfgGetInt( pMac,
+                WNI_CFG_MAX_BA_SESSIONS,
+                &maxBASessions ))
+        return eHAL_STATUS_FAILURE;
+    if (maxBASessions > BA_MAX_SESSIONS)
+        maxBASessions = BA_MAX_SESSIONS;
 
-  for( i = 0; i < maxBASessions; i++, pBASession++ )
-  {
-    if(( 1 == pBASession->baValid ) &&
-        ( baStaIndex == pBASession->baStaIndex ) &&
-        ( baTID == pBASession->baTID ))
+    for( i = 0; i < maxBASessions; i++, pBASession++ )
     {
-      found = 1;
-      break;
+        if(( 1 == pBASession->baValid ) &&
+                ( baStaIndex == pBASession->baStaIndex ) &&
+                ( baTID == pBASession->baTID ))
+        {
+            found = 1;
+            break;
+        }
     }
-  }
 
-  if( found )
-  {
- 
-    // Notify HDD about this deletion...
-    // TODO - Should we watch out for the return status?
+    if( found )
+    {
 
-    baDelNotifyTL( pMac, i );// Session ID
+        // Notify HDD about this deletion...
+        // TODO - Should we watch out for the return status?
 
-    // Update the BA Session parameters
-    pBASession->baValid = 0;
-    pBASession->baTID = 0;
-    pBASession->baStaIndex = 0;
+        baDelNotifyTL( pMac, i );// Session ID
 
-    // Update the HAL global counter with the latest
-    // BA session count
-    pMac->hal.halMac.baNumActiveSessions--;
+        // Update the BA Session parameters
+        pBASession->baValid = 0;
+        pBASession->baTID = 0;
+        pBASession->baStaIndex = 0;
 
-    HALLOGW(  halLog( pMac, LOGW,
-        FL("Reclaimed BA Session %d. Total - [%d]\n"),
-        i,
-        pMac->hal.halMac.baNumActiveSessions ));
+        // Update the HAL global counter with the latest
+        // BA session count
+        pMac->hal.halMac.baNumActiveSessions--;
 
-  }
-  else
-  {
-    HALLOGW( halLog( pMac, LOGW,
-        FL("A valid BA Session ID not found for STA Index %d, TID %d!\n"),
-        baStaIndex,
-        baTID ));
-    retStatus = eHAL_STATUS_BA_RX_INVALID_SESSION_ID;
-  }
+        HALLOGW(  halLog( pMac, LOGW,
+                    FL("Reclaimed BA Session %d. Total - [%d]\n"),
+                    i,
+                    pMac->hal.halMac.baNumActiveSessions ));
 
-  return retStatus;
+    }
+    else
+    {
+        HALLOGW( halLog( pMac, LOGW,
+                    FL("A valid BA Session ID not found for STA Index %d, TID %d!\n"),
+                    baStaIndex,
+                    baTID ));
+        retStatus = eHAL_STATUS_BA_RX_INVALID_SESSION_ID;
+    }
+
+    return retStatus;
 }
 
 /**
@@ -581,24 +581,24 @@ tpRxBASessionTable pBASession = pMac->hal.halMac.baSessionTable;
 eHalStatus baReleaseSTA( tpAniSirGlobal pMac,
     tANI_U16 baStaIndex )
 {
-tANI_U8 i;
-tpStaStruct pSta = &((tpStaStruct) pMac->hal.halMac.staTable)[baStaIndex];
+    tANI_U8 i;
+    tpStaStruct pSta = &((tpStaStruct) pMac->hal.halMac.staTable)[baStaIndex];
 
-  for( i = 0; i < STACFG_MAX_TC; i++ )
-  {
-    // If this TID is setup for BA...
-    if( BA_SESSION_ID_INVALID != pSta->baSessionID[i] )
+    for( i = 0; i < STACFG_MAX_TC; i++ )
     {
-      // Release Session ID
-      baReleaseSessionID( pMac, baStaIndex, i );
+        // If this TID is setup for BA...
+        if( BA_SESSION_ID_INVALID != pSta->baSessionID[i] )
+        {
+            // Release Session ID
+            baReleaseSessionID( pMac, baStaIndex, i );
 
-      // Release Rx Buffer
-      baReleaseBuffer( pMac,
-          (tANI_U16) pSta->staParam.tcCfg[i].rxBufSize );
+            // Release Rx Buffer
+            baReleaseBuffer( pMac,
+                    (tANI_U16) pSta->staParam.tcCfg[i].rxBufSize );
+        }
     }
-  }
 
-  return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 /** -------------------------------------------------------------
@@ -618,7 +618,6 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
     tANI_U8 queueId;
 
     tTpeStaDesc tpeStaDescCfg;
-    tANI_U32 ampduValQid;
 
 #ifdef CONFIGURE_SW_TEMPLATE
     tANI_U8 barCnt;
@@ -626,12 +625,12 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
 #endif //CONFIGURE_SW_TEMPLATE
 
     if( eHAL_STATUS_SUCCESS !=
-      (status = halTable_ValidateStaIndex( pMac,
-                                           (tANI_U8) pAddBAParams->staIdx )))
+            (status = halTable_ValidateStaIndex( pMac,
+                                                 (tANI_U8) pAddBAParams->staIdx )))
     {
         HALLOGW( halLog( pMac, LOGW,
-            FL("Invalid STA Index %d\n"),
-            pAddBAParams->staIdx ));
+                    FL("Invalid STA Index %d\n"),
+                    pAddBAParams->staIdx ));
 
         status = eHAL_STATUS_FAILURE;
         return status;
@@ -646,42 +645,42 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
     // This ensures that the existing TC configuration
     // for this TID does not get over-written
     palCopyMemory( pMac->hHdd,
-      (void *) &tcCfg,
-      (void *) &(staEntry.tcCfg[pAddBAParams->baTID]),
-      sizeof( tCfgTrafficClass ));
+            (void *) &tcCfg,
+            (void *) &(staEntry.tcCfg[pAddBAParams->baTID]),
+            sizeof( tCfgTrafficClass ));
 
     HALLOGW( halLog( pMac, LOGW,
-          FL(" UseBATx %d, TxCompBA %d, TxBApolicy %d, txBufSize %d, tuTxBAWaitTimeout %d, "
-          "UseBARx %d, RxCompBA %d, RxBApolicy %d, rxBufSize %d, tuRxBAWaitTimeout %d\n"),
-          tcCfg.fUseBATx,
-          tcCfg.fTxCompBA,
-          tcCfg.fTxBApolicy,
-          tcCfg.txBufSize,
-          tcCfg.tuTxBAWaitTimeout,
-          tcCfg.fUseBARx,
-          tcCfg.fRxCompBA,
-          tcCfg.fRxBApolicy,
-          tcCfg.rxBufSize,
-          tcCfg.tuRxBAWaitTimeout ));
+                FL(" UseBATx %d, TxCompBA %d, TxBApolicy %d, txBufSize %d, tuTxBAWaitTimeout %d, "
+                    "UseBARx %d, RxCompBA %d, RxBApolicy %d, rxBufSize %d, tuRxBAWaitTimeout %d\n"),
+                tcCfg.fUseBATx,
+                tcCfg.fTxCompBA,
+                tcCfg.fTxBApolicy,
+                tcCfg.txBufSize,
+                tcCfg.tuTxBAWaitTimeout,
+                tcCfg.fUseBARx,
+                tcCfg.fRxCompBA,
+                tcCfg.fRxBApolicy,
+                tcCfg.rxBufSize,
+                tcCfg.tuRxBAWaitTimeout ));
 
-   // BA recipient
+    // BA recipient
     if( eBA_RECIPIENT == pAddBAParams->baDirection )
-        {
+    {
 
         //Req to TL about this new BA session...
         pSta[pAddBAParams->staIdx].addBAReqParams[pAddBAParams->baTID].
-        addBAState = eHAL_ADDBA_WT_HDD_RSP;
+            addBAState = eHAL_ADDBA_WT_HDD_RSP;
 
         if( eHAL_STATUS_SUCCESS !=
-            (status = baAddReqTL( pMac,
-                              pSta[pAddBAParams->staIdx].baSessionID[pAddBAParams->baTID],
-                              pAddBAParams->baTID,
-			      pAddBAParams->staIdx,
-                              (tANI_U8)pAddBAParams->baBufferSize )))
+                (status = baAddReqTL( pMac,
+                                      pSta[pAddBAParams->staIdx].baSessionID[pAddBAParams->baTID],
+                                      pAddBAParams->baTID,
+                                      pAddBAParams->staIdx,
+                                      (tANI_U8)pAddBAParams->baBufferSize )))
         {
             HALLOGW( halLog( pMac, LOGW,
-                FL("Cannot tell TL about a new BA session, STA index %d, TID %d\n"),
-                pAddBAParams->staIdx, pAddBAParams->baTID ));
+                        FL("Cannot tell TL about a new BA session, STA index %d, TID %d\n"),
+                        pAddBAParams->staIdx, pAddBAParams->baTID ));
             return  eHAL_STATUS_FAILURE;;
         }
 
@@ -693,58 +692,57 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
 
         // Get the station descriptor
         if ((status = halTpe_GetStaDesc(pMac, (tANI_U8)pAddBAParams->staIdx,
-                                        &tpeStaDescCfg)) != eHAL_STATUS_SUCCESS)
+                        &tpeStaDescCfg)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot get TPE station descriptor, STA index %d\n"),
-                    pAddBAParams->staIdx ));
+                        FL("Cannot get TPE station descriptor, STA index %d\n"),
+                        pAddBAParams->staIdx ));
             status = eHAL_STATUS_FAILURE;
             goto Fail;
         }
 
 
         // Get the QID mapping for the TID
-         if ((status = halBmu_get_qid_for_qos_tid(pMac, pAddBAParams->baTID, &queueId)) != eHAL_STATUS_SUCCESS)
-         {
-              HALLOGW( halLog( pMac, LOGW,
-                      FL("Cannot get QID mapping for TID, STA index %d, TID %d\n"),
-                      pAddBAParams->staIdx, pAddBAParams->baTID ));
-              status = eHAL_STATUS_FAILURE;
-              goto Fail;
-         }
-        ampduValQid = queueId;
+        if ((status = halBmu_get_qid_for_qos_tid(pMac, pAddBAParams->baTID, &queueId)) != eHAL_STATUS_SUCCESS)
+        {
+            HALLOGW( halLog( pMac, LOGW,
+                        FL("Cannot get QID mapping for TID, STA index %d, TID %d\n"),
+                        pAddBAParams->staIdx, pAddBAParams->baTID ));
+            status = eHAL_STATUS_FAILURE;
+            goto Fail;
+        }
 
-        switch (ampduValQid) {
+        switch (queueId) {
 
-        case BTQM_QUEUE_TX_TID_0: //0:
+            case BTQM_QUEUE_TX_TID_0: //0:
                 tpeStaDescCfg.ampdu_window_size_qid0 = tcCfg.txBufSize - 1;
                 break;
 
-        case BTQM_QUEUE_TX_TID_1: //1:
+            case BTQM_QUEUE_TX_TID_1: //1:
                 tpeStaDescCfg.ampdu_window_size_qid1 = tcCfg.txBufSize - 1;
                 break;
 
-        case BTQM_QUEUE_TX_TID_2: //2:
+            case BTQM_QUEUE_TX_TID_2: //2:
                 tpeStaDescCfg.ampdu_window_size_qid2 = tcCfg.txBufSize - 1;
                 break;
 
-        case BTQM_QUEUE_TX_TID_3: //3:
+            case BTQM_QUEUE_TX_TID_3: //3:
                 tpeStaDescCfg.ampdu_window_size_qid3 = tcCfg.txBufSize - 1;
                 break;
 
-        case BTQM_QUEUE_TX_TID_4: //4:
+            case BTQM_QUEUE_TX_TID_4: //4:
                 tpeStaDescCfg.ampdu_window_size_qid4 = tcCfg.txBufSize - 1;
                 break;
 
-        case BTQM_QUEUE_TX_TID_5: //5:
+            case BTQM_QUEUE_TX_TID_5: //5:
                 tpeStaDescCfg.ampdu_window_size_qid5 = tcCfg.txBufSize - 1;
                 break;
 
-        case BTQM_QUEUE_TX_TID_6: //6:
+            case BTQM_QUEUE_TX_TID_6: //6:
                 tpeStaDescCfg.ampdu_window_size_qid6 = tcCfg.txBufSize - 1;
                 break;
 
-        case BTQM_QUEUE_TX_TID_7: //7:
+            case BTQM_QUEUE_TX_TID_7: //7:
                 tpeStaDescCfg.ampdu_window_size_qid7 = tcCfg.txBufSize - 1;
                 break;
 
@@ -753,41 +751,46 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
 
         }
 
+#ifndef WLAN_SOFTAP_FEATURE
         // Set the QID as valid ampdu QID
-        tpeStaDescCfg.ampdu_valid |= (1 << ampduValQid);
+        tpeStaDescCfg.ampdu_valid |= (1 << queueId);
+#endif
         HALLOGW( halLog(pMac, LOGW, FL("tpeStaDescCfg.ampdu_valid is %d\n"), tpeStaDescCfg.ampdu_valid));
 
         // Save the station configuration
         if ((status = halTpe_SaveStaConfig(pMac, &tpeStaDescCfg,
-                                           (tANI_U8)pAddBAParams->staIdx)) != eHAL_STATUS_SUCCESS)
+                        (tANI_U8)pAddBAParams->staIdx)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot save TPE station configuration, STA index %d\n"),
-                    pAddBAParams->staIdx ));
+                        FL("Cannot save TPE station configuration, STA index %d\n"),
+                        pAddBAParams->staIdx ));
             status = eHAL_STATUS_FAILURE;
             goto Fail;
         }
+
+#ifndef WLAN_SOFTAP_FEATURE
         // Configure BMU to send BAR before sending first frame
         if ((status = halBmu_ConfigureToSendBAR(pMac, (tANI_U8)pAddBAParams->staIdx,
-                                                queueId)) != eHAL_STATUS_SUCCESS)
+                        queueId)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW(  halLog( pMac, LOGW,
-                    FL("Cannot configure BMU to send BAR before sending first frame, "
-                       "STA index %d, queue ID %d\n"),
-                    pAddBAParams->staIdx, queueId ));
+                        FL("Cannot configure BMU to send BAR before sending first frame, "
+                            "STA index %d, queue ID %d\n"),
+                        pAddBAParams->staIdx, queueId ));
             status = eHAL_STATUS_FAILURE;
-                    goto Fail;
+            goto Fail;
         }
+#endif
 
 #ifdef CONFIGURE_SW_TEMPLATE
 #ifdef BMU_FATAL_ERROR
         // Configure BMU to disable transmit
         if ((status = halBmu_sta_enable_disable_control(
-            pMac, pAddBAParams->staIdx, eBMU_ENB_TX_QUE_DONOT_ENB_TRANS)) != eHAL_STATUS_SUCCESS)
+                        pMac, pAddBAParams->staIdx, eBMU_ENB_TX_QUE_DONOT_ENB_TRANS)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot configure BMP to disable transmit, STA index %d\n"),
-                    pAddBAParams->staIdx ));
+                        FL("Cannot configure BMP to disable transmit, STA index %d\n"),
+                        pAddBAParams->staIdx ));
             status = eHAL_STATUS_FAILURE;
             goto Fail;
         }
@@ -809,24 +812,30 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
 
         // Update the station descriptor
         if ((status = halTpe_UpdateStaDesc(pMac, (tANI_U8)pAddBAParams->staIdx,
-                                           &tpeStaDescCfg)) != eHAL_STATUS_SUCCESS)
+                        &tpeStaDescCfg)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot update TPE station descriptor, STA index %d\n"),
-                    pAddBAParams->staIdx ));
+                        FL("Cannot update TPE station descriptor, STA index %d\n"),
+                        pAddBAParams->staIdx ));
             status = eHAL_STATUS_FAILURE;
             goto Fail;
         }
+
+#ifdef WLAN_SOFTAP_FEATURE
+        // Send the Update BA message to FW, as FW would take care of setting the AMPDU valid bit
+        // This is to take care of aggregation not happening when STA is in PS
+        halFW_UpdateBAMsg(pMac, pAddBAParams->staIdx, queueId, TRUE);
+#endif
 
 #ifdef CONFIGURE_SW_TEMPLATE
 #ifdef BMU_FATAL_ERROR
         // Configure BMU to enable transmit
         if ((status = halBmu_sta_enable_disable_control(
-            pMac, pAddBAParams->staIdx, eBMU_ENB_TX_QUE_ENB_TRANS)) != eHAL_STATUS_SUCCESS)
+                        pMac, pAddBAParams->staIdx, eBMU_ENB_TX_QUE_ENB_TRANS)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot configure BMP to enable transmit, STA index %d\n"),
-                    pAddBAParams->staIdx ));
+                        FL("Cannot configure BMP to enable transmit, STA index %d\n"),
+                        pAddBAParams->staIdx ));
             status = eHAL_STATUS_FAILURE;
             goto Fail;
         }
@@ -842,10 +851,10 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
         if ((status = halRxp_EnableDisableBmuBaUpdate(pMac, 1)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot enable BMU BA update, STA index %d\n"),
-                    pAddBAParams->staIdx ));
-                 status = eHAL_STATUS_FAILURE;
-                 goto Fail;
+                        FL("Cannot enable BMU BA update, STA index %d\n"),
+                        pAddBAParams->staIdx ));
+            status = eHAL_STATUS_FAILURE;
+            goto Fail;
         }
 
 
@@ -853,7 +862,7 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
     }
 
 Fail:
-     if (eHAL_STATUS_SUCCESS != status)
+    if (eHAL_STATUS_SUCCESS != status)
     {
         HALLOGE( halLog(pMac, LOGE, FL("Failed to process the AddAB Rsp \n")));
         halMsg_GenerateRsp(pMac, SIR_HAL_ADDBA_RSP, 0, NULL, 0);
@@ -879,15 +888,14 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
     tRpeStaQueueInfo rpeStaQueueInfo;
     tTpeStaDesc tpeStaDescCfg = {0};
     //tANI_U8    dpuIdx;
-    tANI_U32 ampduValQid;
 
     if( eHAL_STATUS_SUCCESS !=
-      (status = halTable_ValidateStaIndex( pMac,
-                                           (tANI_U8) pDelBAParams->staIdx )))
+            (status = halTable_ValidateStaIndex( pMac,
+                                                 (tANI_U8) pDelBAParams->staIdx )))
     {
         HALLOGW( halLog( pMac, LOGW,
-            FL("Invalid STA Index %d\n"),
-            pDelBAParams->staIdx ));
+                    FL("Invalid STA Index %d\n"),
+                    pDelBAParams->staIdx ));
 
         status = eHAL_STATUS_FAILURE;
         return status;
@@ -902,31 +910,31 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
     // This ensures that the existing TC configuration
     // for this TID does not get over-written
     palCopyMemory( pMac->hHdd,
-      (void *) &tcCfg,
-      (void *) &(staEntry.tcCfg[pDelBAParams->baTID]),
-      sizeof( tCfgTrafficClass ));
+            (void *) &tcCfg,
+            (void *) &(staEntry.tcCfg[pDelBAParams->baTID]),
+            sizeof( tCfgTrafficClass ));
 
     HALLOGW( halLog( pMac, LOGW,
-          FL(" UseBATx %d, TxCompBA %d, TxBApolicy %d, txBufSize %d, tuTxBAWaitTimeout %d, "
-          "UseBARx %d, RxCompBA %d, RxBApolicy %d, rxBufSize %d, tuRxBAWaitTimeout %d\n"),
-          tcCfg.fUseBATx,
-          tcCfg.fTxCompBA,
-          tcCfg.fTxBApolicy,
-          tcCfg.txBufSize,
-          tcCfg.tuTxBAWaitTimeout,
-          tcCfg.fUseBARx,
-          tcCfg.fRxCompBA,
-          tcCfg.fRxBApolicy,
-          tcCfg.rxBufSize,
-          tcCfg.tuRxBAWaitTimeout ));
+                FL(" UseBATx %d, TxCompBA %d, TxBApolicy %d, txBufSize %d, tuTxBAWaitTimeout %d, "
+                    "UseBARx %d, RxCompBA %d, RxBApolicy %d, rxBufSize %d, tuRxBAWaitTimeout %d\n"),
+                tcCfg.fUseBATx,
+                tcCfg.fTxCompBA,
+                tcCfg.fTxBApolicy,
+                tcCfg.txBufSize,
+                tcCfg.tuTxBAWaitTimeout,
+                tcCfg.fUseBARx,
+                tcCfg.fRxCompBA,
+                tcCfg.fRxBApolicy,
+                tcCfg.rxBufSize,
+                tcCfg.tuRxBAWaitTimeout ));
 
     // Get the QID mapping for the TID
     if ((status = halBmu_get_qid_for_qos_tid(pMac, pDelBAParams->baTID, &queueId)) != eHAL_STATUS_SUCCESS)
     {
-      HALLOGW( halLog( pMac, LOGW,
-          FL("Cannot get QID mapping for TID, STA index %d, TID %d\n"),
-          pDelBAParams->staIdx, pDelBAParams->baTID ));
-      return status;
+        HALLOGW( halLog( pMac, LOGW,
+                    FL("Cannot get QID mapping for TID, STA index %d, TID %d\n"),
+                    pDelBAParams->staIdx, pDelBAParams->baTID ));
+        return status;
     }
 
     // BA recipient
@@ -934,30 +942,30 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
 
         // Get station descriptor queue info
         if ((status = halRpe_GetStaDescQueueInfo(pMac, pDelBAParams->staIdx, (tANI_U32) queueId,
-                                                 &rpeStaQueueInfo)) != eHAL_STATUS_SUCCESS)
+                        &rpeStaQueueInfo)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot get RPE station descriptor queue info, STA index %d, queue ID %d\n"),
-                    pDelBAParams->staIdx, queueId ));
+                        FL("Cannot get RPE station descriptor queue info, STA index %d, queue ID %d\n"),
+                        pDelBAParams->staIdx, queueId ));
             return status;
         }
 
-	/* Following sequence should be followed while resetting RPE 
-	 *
-	 * a.	Set RPE to block frames to this particular STA id/Tid
-	 * b.	Flush RPE full/partial state cache
-	 * c.	Update the RPE descriptor depending. Memset RPE desc to zero, including all the reorder/BA bitmap.
-	 * d.	Unblock this STA id/Tid at RPE
-	 *
-	 */
+        /* Following sequence should be followed while resetting RPE 
+         *
+         * a.	Set RPE to block frames to this particular STA id/Tid
+         * b.	Flush RPE full/partial state cache
+         * c.	Update the RPE descriptor depending. Memset RPE desc to zero, including all the reorder/BA bitmap.
+         * d.	Unblock this STA id/Tid at RPE
+         *
+         */
 
         // Lock station descriptor and flush frames
         if ((status = halRpe_BlockAndFlushFrames(pMac, (tANI_U8)pDelBAParams->staIdx, queueId,
-                                                 eRPE_SW_ENABLE_DROP)) != eHAL_STATUS_SUCCESS)
+                        eRPE_SW_ENABLE_DROP)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot lock RPE station descriptor and flush frames, STA index %d, queue ID %d\n"),
-                    pDelBAParams->staIdx, queueId ));
+                        FL("Cannot lock RPE station descriptor and flush frames, STA index %d, queue ID %d\n"),
+                        pDelBAParams->staIdx, queueId ));
             return status;
         }
 
@@ -989,60 +997,60 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
 
         // Save station queue configuration
         if ((status = halRpe_SaveStaQueueConfig(pMac, (tANI_U8)pDelBAParams->staIdx, (tANI_U32) queueId,
-                                                &rpeStaQueueInfo)) != eHAL_STATUS_SUCCESS)
+                        &rpeStaQueueInfo)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot save RPE station queue configuration, STA index %d, queue ID %d\n"),
-                    pDelBAParams->staIdx, queueId ));
+                        FL("Cannot save RPE station queue configuration, STA index %d, queue ID %d\n"),
+                        pDelBAParams->staIdx, queueId ));
             return status;
         }
 
         // Check if encryption is enabled
-	// Knocked-off RCWindow disabling from this code.  If there are more than one BA session 
-	// (>1 TID) used at Tx, there is no guarantee that when frames arrive at Rx side how 
-	// TSC/PN would be seen by DPU. So we decided to disable RC Window Enabling.
+        // Knocked-off RCWindow disabling from this code.  If there are more than one BA session 
+        // (>1 TID) used at Tx, there is no guarantee that when frames arrive at Rx side how 
+        // TSC/PN would be seen by DPU. So we decided to disable RC Window Enabling.
         /* 
-         if ((pSta[pDelBAParams->staIdx].encMode))
-         {
+           if ((pSta[pDelBAParams->staIdx].encMode))
+           {
 
-            // Get the DPU index
-            if ((status = halTable_GetStaDpuIdx(pMac, (tANI_U8)pDelBAParams->staIdx,
-                                                &dpuIdx)) != eHAL_STATUS_SUCCESS)
-            {
-                HALLOGW( halLog( pMac, LOGW,
-                        FL("Cannot get the DPU index, STA index %d\n"),
-                        pDelBAParams->staIdx ));
-                return status;
-            }
+        // Get the DPU index
+        if ((status = halTable_GetStaDpuIdx(pMac, (tANI_U8)pDelBAParams->staIdx,
+        &dpuIdx)) != eHAL_STATUS_SUCCESS)
+        {
+        HALLOGW( halLog( pMac, LOGW,
+        FL("Cannot get the DPU index, STA index %d\n"),
+        pDelBAParams->staIdx ));
+        return status;
+        }
 
-            // Disable DPU RC window check
-            if ((status = halDpu_DisableRCWinChk(pMac, dpuIdx, (tANI_U32) queueId)) != eHAL_STATUS_SUCCESS)
-            {
-                HALLOGW( halLog( pMac, LOGW,
-                        FL("Cannot disable RC windows check, DPU index %d, queue ID %d\n"),
-                        dpuIdx, queueId ));
-                return status;
-            }
+        // Disable DPU RC window check
+        if ((status = halDpu_DisableRCWinChk(pMac, dpuIdx, (tANI_U32) queueId)) != eHAL_STATUS_SUCCESS)
+        {
+        HALLOGW( halLog( pMac, LOGW,
+        FL("Cannot disable RC windows check, DPU index %d, queue ID %d\n"),
+        dpuIdx, queueId ));
+        return status;
+        }
         }
         */
 
         // Update station descriptor queue info
         if ((status = halRpe_UpdateStaDescQueueInfo(pMac, pDelBAParams->staIdx, (tANI_U32) queueId,
-                                                    &rpeStaQueueInfo)) != eHAL_STATUS_SUCCESS)
+                        &rpeStaQueueInfo)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot update RPE station descriptor queue info, STA index %d, queue ID %d\n"),
-                    pDelBAParams->staIdx, queueId ));
+                        FL("Cannot update RPE station descriptor queue info, STA index %d, queue ID %d\n"),
+                        pDelBAParams->staIdx, queueId ));
             return status;
         }
 
         // Unlock the station descriptor
         if ((status = halRpe_UpdateSwBlockReq(pMac, (tANI_U8)pDelBAParams->staIdx, queueId,
-                                              eRPE_SW_DISABLE_DROP)) != eHAL_STATUS_SUCCESS)
+                        eRPE_SW_DISABLE_DROP)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot unlock RPE station descriptor, STA index %d, queue ID %d\n"),
-                    pDelBAParams->staIdx, queueId ));
+                        FL("Cannot unlock RPE station descriptor, STA index %d, queue ID %d\n"),
+                        pDelBAParams->staIdx, queueId ));
             return status;
         }
 
@@ -1054,52 +1062,62 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
 
         // Restore the station configuration
         if ((status = halTpe_RestoreStaConfig(pMac, &tpeStaDescCfg,
-                                              (tANI_U8)pDelBAParams->staIdx)) != eHAL_STATUS_SUCCESS)
+                        (tANI_U8)pDelBAParams->staIdx)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot restore TPE station configuration, STA index %d\n"),
-                    pDelBAParams->staIdx ));
+                        FL("Cannot restore TPE station configuration, STA index %d\n"),
+                        pDelBAParams->staIdx ));
             return status;
         }
 
         // Clear the QID bit in the ampdu valid address
-        ampduValQid = queueId;
-        tpeStaDescCfg.ampdu_valid &= ~(1 << ampduValQid);
+#ifndef WLAN_SOFTAP_FEATURE
+        tpeStaDescCfg.ampdu_valid &= ~(1 << queueId);
+#endif
 
         // Save the station configuration
         if ((status = halTpe_SaveStaConfig(pMac, &tpeStaDescCfg,
-                                           (tANI_U8)pDelBAParams->staIdx)) != eHAL_STATUS_SUCCESS)
+                        (tANI_U8)pDelBAParams->staIdx)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot save TPE station configuration, STA index %d\n"),
-                    pDelBAParams->staIdx ));
+                        FL("Cannot save TPE station configuration, STA index %d\n"),
+                        pDelBAParams->staIdx ));
             return status;
         }
 
         // Update the station descriptor
         if ((status = halTpe_UpdateStaDesc(pMac, (tANI_U8)pDelBAParams->staIdx,
-                                           &tpeStaDescCfg)) != eHAL_STATUS_SUCCESS)
+                        &tpeStaDescCfg)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot update TPE station descriptor, STA index %d\n"),
-                    pDelBAParams->staIdx ));
+                        FL("Cannot update TPE station descriptor, STA index %d\n"),
+                        pDelBAParams->staIdx ));
             return status;
         }
+#ifdef WLAN_SOFTAP_FEATURE
+        // Send the Update BA message to FW, as FW would take care of setting the AMPDU valid bit
+        // This is to take care of aggregation not happening when STA is in PS
+        halFW_UpdateBAMsg(pMac, pDelBAParams->staIdx, queueId, FALSE);
+#endif
     }
 
     pSta[pDelBAParams->staIdx].baInitiatorTidBitMap &= ~(1 << pDelBAParams->baTID);
 
+#ifndef WLAN_SOFTAP_FEATURE    
+    // This bit should not be turned off as in SOFTAP mode there could be multiple station
+    // with BA session established.
     if (tpeStaDescCfg.ampdu_valid == 0)
     {
         // Disable BMU BA update
         if ((status = halRxp_EnableDisableBmuBaUpdate(pMac, 0)) != eHAL_STATUS_SUCCESS)
         {
             HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot disable BMU BA update, STA index %d\n"),
-                    pDelBAParams->staIdx ));
+                        FL("Cannot disable BMU BA update, STA index %d\n"),
+                        pDelBAParams->staIdx ));
             return status;
         }
     }
+#endif
 
     return status;
 }
@@ -1240,9 +1258,9 @@ eHalStatus baProcessTLAddBARsp(tpAniSirGlobal pMac, tANI_U16 baSessionID, tANI_U
     if (tx_timer_deactivate(&pMac->hal.addBARspTimer) != TX_SUCCESS)
     {
         /** Could not deactivate
-            Log error*/
+          Log error*/
         HALLOGP( halLog(pMac, LOGP,
-              FL("Unable to deactivate addBARsp timer\n")));
+                    FL("Unable to deactivate addBARsp timer\n")));
         return eHAL_STATUS_FAILURE;
     }
 
@@ -1264,26 +1282,26 @@ eHalStatus baProcessTLAddBARsp(tpAniSirGlobal pMac, tANI_U16 baSessionID, tANI_U
                 addBAReqParamsStruct.addBAState = eHAL_ADDBA_NORMAL;
                 addBAReqParamsStruct.pAddBAReqParams = NULL;
                 halTable_SetStaAddBAReqParams(pMac, pAddBAParams->staIdx,
-                    pAddBAParams->baTID, addBAReqParamsStruct);
+                        pAddBAParams->baTID, addBAReqParamsStruct);
 
                 status = eHAL_STATUS_SUCCESS;
 
 
                 if( eHAL_STATUS_SUCCESS !=
-                  (status = halTable_ValidateStaIndex( pMac,
-                                                     (tANI_U8) pAddBAParams->staIdx )))
+                        (status = halTable_ValidateStaIndex( pMac,
+                                                             (tANI_U8) pAddBAParams->staIdx )))
                 {
                     HALLOGW( halLog( pMac, LOGW, FL(
-                    "Invalid STA Index %d\n"),
-                       pAddBAParams->staIdx ));
+                                    "Invalid STA Index %d\n"),
+                                pAddBAParams->staIdx ));
 
                     status = eHAL_STATUS_FAILURE;
-                  return status;
+                    return status;
                 }
-                    else
+                else
                 {
-                // Restore the "saved" STA context in HAL for this STA
-                 halTable_RestoreStaConfig( pMac, (tHalCfgSta *) &staEntry, (tANI_U8 ) pAddBAParams->staIdx );
+                    // Restore the "saved" STA context in HAL for this STA
+                    halTable_RestoreStaConfig( pMac, (tHalCfgSta *) &staEntry, (tANI_U8 ) pAddBAParams->staIdx );
                 }
 
 
@@ -1291,155 +1309,155 @@ eHalStatus baProcessTLAddBARsp(tpAniSirGlobal pMac, tANI_U16 baSessionID, tANI_U
                 // This ensures that , the existing TC configuration
                 // for this TID do not get over-written
                 palCopyMemory( pMac->hHdd,
-                  (void *) &tcCfg,
-                  (void *) &(staEntry.tcCfg[pAddBAParams->baTID]),
-                  sizeof( tCfgTrafficClass ));
+                        (void *) &tcCfg,
+                        (void *) &(staEntry.tcCfg[pAddBAParams->baTID]),
+                        sizeof( tCfgTrafficClass ));
 
 
                 // Get the QID mapping for the TID
-                 if ((status = halBmu_get_qid_for_qos_tid(pMac, pAddBAParams->baTID, &queueId)) != eHAL_STATUS_SUCCESS)
-                 {
-                      HALLOGW( halLog( pMac, LOGW,
-                              FL("Cannot get QID mapping for TID, STA index %d, TID %d\n"),
-                              pAddBAParams->staIdx, pAddBAParams->baTID ));
-                     goto Fail;
-                 }
+                if ((status = halBmu_get_qid_for_qos_tid(pMac, pAddBAParams->baTID, &queueId)) != eHAL_STATUS_SUCCESS)
+                {
+                    HALLOGW( halLog( pMac, LOGW,
+                                FL("Cannot get QID mapping for TID, STA index %d, TID %d\n"),
+                                pAddBAParams->staIdx, pAddBAParams->baTID ));
+                    goto Fail;
+                }
 
 
                 if( eBA_RECIPIENT == pAddBAParams->baDirection )
+                {
+                    // Get station descriptor queue info
+                    if ((status = halRpe_GetStaDescQueueInfo(pMac, pAddBAParams->staIdx, (tANI_U32) queueId,
+                                    &rpeStaQueueInfo)) != eHAL_STATUS_SUCCESS)
                     {
-                         // Get station descriptor queue info
-                        if ((status = halRpe_GetStaDescQueueInfo(pMac, pAddBAParams->staIdx, (tANI_U32) queueId,
-                                                                 &rpeStaQueueInfo)) != eHAL_STATUS_SUCCESS)
-                        {
-                            HALLOGW( halLog( pMac, LOGW,
+                        HALLOGW( halLog( pMac, LOGW,
                                     FL("Cannot get RPE station descriptor queue info, STA index %d, queue ID %d\n"),
                                     pAddBAParams->staIdx, queueId ));
-                            goto Fail;
-                        }
+                        goto Fail;
+                    }
 
 
-                        // Lock station descriptor and flush frames
-                        if ((status = halRpe_BlockAndFlushFrames(pMac, (tANI_U8)pAddBAParams->staIdx, queueId,
-                                                                 eRPE_SW_ENABLE_DROP)) != eHAL_STATUS_SUCCESS)
-                        {
-                            HALLOGW( halLog( pMac, LOGW,
+                    // Lock station descriptor and flush frames
+                    if ((status = halRpe_BlockAndFlushFrames(pMac, (tANI_U8)pAddBAParams->staIdx, queueId,
+                                    eRPE_SW_ENABLE_DROP)) != eHAL_STATUS_SUCCESS)
+                    {
+                        HALLOGW( halLog( pMac, LOGW,
                                     FL("Cannot lock RPE station descriptor and flush frames, STA index %d, queue ID %d\n"),
                                     pAddBAParams->staIdx, queueId ));
-                            goto Fail;
-                        }
+                        goto Fail;
+                    }
 
-			/* Adding Default values to RPE descriptor since in 
-			 * IBSS, after DelBA, Cache is becoming valid
-			 * which in-turn write back to stale values to RPE 
-			 * casuing ping to fail when we add BA session again.
-			 * Resetting to default values makes sure that stale 
-			 * values of RPE from previous BA session will be 
-			 * wiped-off.
-			 */
+                    /* Adding Default values to RPE descriptor since in 
+                     * IBSS, after DelBA, Cache is becoming valid
+                     * which in-turn write back to stale values to RPE 
+                     * casuing ping to fail when we add BA session again.
+                     * Resetting to default values makes sure that stale 
+                     * values of RPE from previous BA session will be 
+                     * wiped-off.
+                     */
 
-                        // Set up station descriptor
-	                rpeStaQueueInfo.val = 1;
-                        rpeStaQueueInfo.bar = 0;
-                        rpeStaQueueInfo.psr = 0;
-                        rpeStaQueueInfo.reserved1 = 0;
+                    // Set up station descriptor
+                    rpeStaQueueInfo.val = 1;
+                    rpeStaQueueInfo.bar = 0;
+                    rpeStaQueueInfo.psr = 0;
+                    rpeStaQueueInfo.reserved1 = 0;
 
-                        rpeStaQueueInfo.rty = 0;
-                        rpeStaQueueInfo.fsh = 0;
-                        rpeStaQueueInfo.ord = 0;
-                        rpeStaQueueInfo.frg = 0;
-                        rpeStaQueueInfo.check_2k = 1;
-                        rpeStaQueueInfo.ba_window_size = tcCfg.rxBufSize - 1;  /* FIXME_GEN6: BA window size should be coming from the TL response message */
-                        rpeStaQueueInfo.reorder_window_size = tcCfg.rxBufSize - 1; 
-			/* FIXME_GEN6: BA window size should be coming from the TL response message */
+                    rpeStaQueueInfo.rty = 0;
+                    rpeStaQueueInfo.fsh = 0;
+                    rpeStaQueueInfo.ord = 0;
+                    rpeStaQueueInfo.frg = 0;
+                    rpeStaQueueInfo.check_2k = 1;
+                    rpeStaQueueInfo.ba_window_size = tcCfg.rxBufSize - 1;  /* FIXME_GEN6: BA window size should be coming from the TL response message */
+                    rpeStaQueueInfo.reorder_window_size = tcCfg.rxBufSize - 1; 
+                    /* FIXME_GEN6: BA window size should be coming from the TL response message */
 
-		        rpeStaQueueInfo.ssn_sval = 0;
-                        rpeStaQueueInfo.ba_ssn = pAddBAParams->baSSN;
-                        rpeStaQueueInfo.staId_queueId_BAbitmapLo = 0;
-                        rpeStaQueueInfo.staId_queueId_BAbitmapHi = 0;
-                        rpeStaQueueInfo.staId_queueId_ReorderbitmapLo = 0;
-                        rpeStaQueueInfo.staId_queueId_ReorderbitmapHi = 0;
-                        rpeStaQueueInfo.reserved2 = 0;
-			
-                        /* Excerpt from RPE SPEC (section 3.8)
-                                                -   Currently we do not touch the reorder ssnval/ssn we leave them initialized to zero
-                                                -   This will make rpe not set correct opcode if the first received packet after BA session is BAR
-                                                -   So the correct programming should be to set  
-                                                       Reorder SSNval = 1'b1 
-                                                       Reorder SSN = BA SSN + BA_bitmap[0]
-                                          */
-                        rpeStaQueueInfo.reorder_sval = 1;
-                        rpeStaQueueInfo.reorder_ssn = rpeStaQueueInfo.ba_ssn + (rpeStaQueueInfo.staId_queueId_BAbitmapLo & 1);
+                    rpeStaQueueInfo.ssn_sval = 0;
+                    rpeStaQueueInfo.ba_ssn = pAddBAParams->baSSN;
+                    rpeStaQueueInfo.staId_queueId_BAbitmapLo = 0;
+                    rpeStaQueueInfo.staId_queueId_BAbitmapHi = 0;
+                    rpeStaQueueInfo.staId_queueId_ReorderbitmapLo = 0;
+                    rpeStaQueueInfo.staId_queueId_ReorderbitmapHi = 0;
+                    rpeStaQueueInfo.reserved2 = 0;
 
-                        // Save station queue configuration
-                        if ((status = halRpe_SaveStaQueueConfig(pMac, (tANI_U8)pAddBAParams->staIdx, (tANI_U32)  queueId,
-                                                                &rpeStaQueueInfo)) != eHAL_STATUS_SUCCESS)
-                        {
-                            HALLOGW( halLog( pMac, LOGW,
+                    /* Excerpt from RPE SPEC (section 3.8)
+                       -   Currently we do not touch the reorder ssnval/ssn we leave them initialized to zero
+                       -   This will make rpe not set correct opcode if the first received packet after BA session is BAR
+                       -   So the correct programming should be to set  
+                       Reorder SSNval = 1'b1 
+                       Reorder SSN = BA SSN + BA_bitmap[0]
+                       */
+                    rpeStaQueueInfo.reorder_sval = 1;
+                    rpeStaQueueInfo.reorder_ssn = rpeStaQueueInfo.ba_ssn + (rpeStaQueueInfo.staId_queueId_BAbitmapLo & 1);
+
+                    // Save station queue configuration
+                    if ((status = halRpe_SaveStaQueueConfig(pMac, (tANI_U8)pAddBAParams->staIdx, (tANI_U32)  queueId,
+                                    &rpeStaQueueInfo)) != eHAL_STATUS_SUCCESS)
+                    {
+                        HALLOGW( halLog( pMac, LOGW,
                                     FL("Cannot save RPE station queue configuration, STA index %d, queue ID %d\n"),
                                     pAddBAParams->staIdx, queueId ));
-                            goto Fail;
-                        }
+                        goto Fail;
+                    }
 
 
-                        // Check if encryption is enabled
-                        // Knocked-off RCWindow Enabling from this code.  If there are more than one BA session 
-                        // (>1 TID) used at Tx, there is no guarantee that when frames arrive at Rx side how 
-                        // TSC/PN would be seen by DPU. So we decided to disable RC Window Enabling.
-                        /*
-                                          if ((pSta[pAddBAParams->staIdx].encMode))
-                                          {
+                    // Check if encryption is enabled
+                    // Knocked-off RCWindow Enabling from this code.  If there are more than one BA session 
+                    // (>1 TID) used at Tx, there is no guarantee that when frames arrive at Rx side how 
+                    // TSC/PN would be seen by DPU. So we decided to disable RC Window Enabling.
+                    /*
+                       if ((pSta[pAddBAParams->staIdx].encMode))
+                       {
 
-                                            // Get the DPU index
-                                            if ((status = halTable_GetStaDpuIdx(pMac, (tANI_U8)pAddBAParams->staIdx,
-                                                                                &dpuIdx)) != eHAL_STATUS_SUCCESS)
-                                            {
-                                                HALLOGW( halLog( pMac, LOGW,
-                                                        FL("Cannot get the DPU index, STA index %d\n"),
-                                                        pAddBAParams->staIdx ));
-                                                goto Fail;
-                                            }
+                    // Get the DPU index
+                    if ((status = halTable_GetStaDpuIdx(pMac, (tANI_U8)pAddBAParams->staIdx,
+                    &dpuIdx)) != eHAL_STATUS_SUCCESS)
+                    {
+                    HALLOGW( halLog( pMac, LOGW,
+                    FL("Cannot get the DPU index, STA index %d\n"),
+                    pAddBAParams->staIdx ));
+                    goto Fail;
+                    }
 
-                                            // Enable DPU RC window check
-                                            if ((status = halDpu_EnableRCWinChk(pMac, dpuIdx, (tANI_U32)  queueId)) != eHAL_STATUS_SUCCESS)
-                                            {
-                                                HALLOGW( halLog( pMac, LOGW,
-                                                        FL("Cannot enable RC window check, DPU index %d, queue ID %d\n"),
-                                                        dpuIdx, queueId ));
-                                                goto Fail;
-                                            }
-                                          }
-                                          */
+                    // Enable DPU RC window check
+                    if ((status = halDpu_EnableRCWinChk(pMac, dpuIdx, (tANI_U32)  queueId)) != eHAL_STATUS_SUCCESS)
+                    {
+                    HALLOGW( halLog( pMac, LOGW,
+                    FL("Cannot enable RC window check, DPU index %d, queue ID %d\n"),
+                    dpuIdx, queueId ));
+                    goto Fail;
+                    }
+                    }
+                    */
 
-                        // Update station descriptor queue info
-                        if ((status = halRpe_UpdateStaDescQueueInfo(pMac, pAddBAParams->staIdx, (tANI_U32)  queueId,
-                                                                    &rpeStaQueueInfo)) != eHAL_STATUS_SUCCESS)
-                        {
-                            HALLOGW( halLog( pMac, LOGW,
+                    // Update station descriptor queue info
+                    if ((status = halRpe_UpdateStaDescQueueInfo(pMac, pAddBAParams->staIdx, (tANI_U32)  queueId,
+                                    &rpeStaQueueInfo)) != eHAL_STATUS_SUCCESS)
+                    {
+                        HALLOGW( halLog( pMac, LOGW,
                                     FL("Cannot update RPE station descriptor queue info, STA index %d, queue ID %d\n"),
                                     pAddBAParams->staIdx, queueId ));
-                            goto Fail;
-                        }
+                        goto Fail;
+                    }
 
-                        // Unlock the station descriptor
-                        if ((status = halRpe_UpdateSwBlockReq(pMac, (tANI_U8)pAddBAParams->staIdx, queueId,
-                                                              eRPE_SW_DISABLE_DROP)) != eHAL_STATUS_SUCCESS)
-                        {
-                            HALLOGW( halLog( pMac, LOGW,
+                    // Unlock the station descriptor
+                    if ((status = halRpe_UpdateSwBlockReq(pMac, (tANI_U8)pAddBAParams->staIdx, queueId,
+                                    eRPE_SW_DISABLE_DROP)) != eHAL_STATUS_SUCCESS)
+                    {
+                        HALLOGW( halLog( pMac, LOGW,
                                     FL("Cannot unlock RPE station descriptor, STA index %d, queue ID %d\n"),
                                     pAddBAParams->staIdx, queueId ));
-                            goto Fail;
-                        }
-
+                        goto Fail;
                     }
+
+                }
 
                 // Enable  RXP interface with BMU FOR BA update
                 if ((status = halRxp_EnableDisableBmuBaUpdate(pMac, 1)) != eHAL_STATUS_SUCCESS)
                 {
-                       HALLOGW( halLog( pMac, LOGW,
-                               FL("Cannot enable BMU BA update, STA index %d\n"),
-                               pAddBAParams->staIdx ));
-                       goto Fail;
+                    HALLOGW( halLog( pMac, LOGW,
+                                FL("Cannot enable BMU BA update, STA index %d\n"),
+                                pAddBAParams->staIdx ));
+                    goto Fail;
                 }
                 pAddBAParams->baBufferSize = tlWindowSize;
                 HALLOG1( halLog( pMac, LOG1, FL("Send eBA_RECIPIENT Response to LIM.......... \n")));
@@ -1449,11 +1467,11 @@ eHalStatus baProcessTLAddBARsp(tpAniSirGlobal pMac, tANI_U16 baSessionID, tANI_U
         }
         else
             HALLOGE( halLog(pMac, LOGE, FL("Could not retrieve pAddBAParams for baSessionID = %d\n"),
-                baSessionID));
+                        baSessionID));
     }
     else
         HALLOGE( halLog(pMac, LOGE, FL("BA session does not exist with sessionID = %d\n"),
-            baSessionID));
+                    baSessionID));
 
 Fail:
 
@@ -1463,7 +1481,7 @@ Fail:
         halMsg_GenerateRsp(pMac, SIR_HAL_ADDBA_RSP, 0, NULL, 0);
     }
 
-  return status;
+    return status;
 }
 
 
@@ -1481,7 +1499,7 @@ void halBaCheckActivity(tpAniSirGlobal pMac)
     tANI_U16 sequenceNum =0;
     tANI_U8 resetNeeded = 0;
     tANI_U8 newBaCandidate = 0;
-    
+
     if(pMac->hal.pPECallBack == NULL)
     {
         goto baActivityTimer;
@@ -1515,26 +1533,26 @@ void halBaCheckActivity(tpAniSirGlobal pMac)
                 pSta->framesTxed[tid] = txPktCount;
 
                 if(  (!pSta->staParam.tcCfg[tid].fUseBATx) &&
-                      (pSta->framesTxed[tid] >= pSta->framesTxedLastPoll[tid] + HAL_BA_TX_FRM_THRESHOLD))
+                        (pSta->framesTxed[tid] >= pSta->framesTxedLastPoll[tid] + HAL_BA_TX_FRM_THRESHOLD))
                 {
 
-		    /* Knocked-off the code to read the sequence number from BTQM to address CR 190148,
-		     * where-in in PS, since we block/unblock BTQM, F/W was running out of BD/PDUs.
-		     */
+                    /* Knocked-off the code to read the sequence number from BTQM to address CR 190148,
+                     * where-in in PS, since we block/unblock BTQM, F/W was running out of BD/PDUs.
+                     */
 
                     /* Retrieve the QueueId from the Tid */
-                        /* Get the sequence number from the DPU Descriptor */
+                    /* Get the sequence number from the DPU Descriptor */
 
-                        if (eHAL_STATUS_SUCCESS != halDpu_GetSequence(pMac, pSta->dpuIndex, tid, &sequenceNum)) {
-                            HALLOGE( halLog(pMac, LOGE, FL("Cannot get Sequence number from DPU Descriptor with DPU Indx %d \n"), pSta->dpuIndex));
-                            baCandidateCnt = 0;
-                            goto out;
-                        }
+                    if (eHAL_STATUS_SUCCESS != halDpu_GetSequence(pMac, pSta->dpuIndex, tid, &sequenceNum)) {
+                        HALLOGE( halLog(pMac, LOGE, FL("Cannot get Sequence number from DPU Descriptor with DPU Indx %d \n"), pSta->dpuIndex));
+                        baCandidateCnt = 0;
+                        goto out;
+                    }
 
-                   HALLOG3( halLog(pMac, LOG3, FL("STA %d (DPU %d) TID %d seqNum is %d (0x%x)\n"), curSta, pSta->dpuIndex, tid,  sequenceNum, sequenceNum));
+                    HALLOG3( halLog(pMac, LOG3, FL("STA %d (DPU %d) TID %d seqNum is %d (0x%x)\n"), curSta, pSta->dpuIndex, tid,  sequenceNum, sequenceNum));
 
                     /* We read the btqm queue or the DPU descriptor to retrieve the updated sequence number */
-                                    /* pTemp->baInfo[tid].startingSeqNum = pSta->seqNum[tid] + 1; */
+                    /* pTemp->baInfo[tid].startingSeqNum = pSta->seqNum[tid] + 1; */
                     pTemp->baInfo[tid].startingSeqNum = sequenceNum;
                     newBaCandidate = 1; //got at least one new BA candidate for this station.
                     pTemp->baInfo[tid].fBaEnable = 1;                    
@@ -1572,24 +1590,24 @@ out:
 baActivityTimer:
 
 
-     if (tx_timer_deactivate(&pMac->hal.halMac.baActivityChkTmr) != TX_SUCCESS)
+    if (tx_timer_deactivate(&pMac->hal.halMac.baActivityChkTmr) != TX_SUCCESS)
     {
         /** Could not deactivate
-                    Log error*/
+          Log error*/
         HALLOGP( halLog(pMac, LOGP,
-               FL("Unable to deactivate baActicity check timer\n")));
+                    FL("Unable to deactivate baActicity check timer\n")));
         return;
     }
-          
+
     if(pMac->hal.halMac.baAutoSetupEnabled) {        
         if(tx_timer_activate(&pMac->hal.halMac.baActivityChkTmr) != TX_SUCCESS) {
-           // Could not start BA activity check timer.
-           // Log error
-           HALLOGP( halLog(pMac, LOGP, FL("Unable to activate BA activity check timer\n")));
-           return;
+            // Could not start BA activity check timer.
+            // Log error
+            HALLOGP( halLog(pMac, LOGP, FL("Unable to activate BA activity check timer\n")));
+            return;
         }
     }
-        
+
     return;
 
 }
@@ -1614,12 +1632,12 @@ eHalStatus halStartBATimer(tpAniSirGlobal  pMac)
            1. Re-Association
            2. GTK Re-Key
            3. PTK Rekey
-        */
+           */
         if (tx_timer_deactivate(&pMac->hal.halMac.baActivityChkTmr) != TX_SUCCESS)
         {
-             /** Could not deactivate Log error*/
-             HALLOGP(halLog(pMac, LOGP, FL("Unable to deactivate baActicity check timer\n")));
-             return status;
+            /** Could not deactivate Log error*/
+            HALLOGP(halLog(pMac, LOGP, FL("Unable to deactivate baActicity check timer\n")));
+            return status;
         }
         timerStatus = eHALBA_TIMER_NOTSTARTED;
     }
@@ -1639,7 +1657,7 @@ eHalStatus halStartBATimer(tpAniSirGlobal  pMac)
         HALLOGW(halLog(pMac, LOGW, FL("AUTO BA setup default NOT enabled from CFG!\n")));
         timerStatus = eHALBA_TIMER_NOTSTARTED;
     }
-    
+
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -1681,20 +1699,20 @@ void fillFrameCtrlInfo (tSirMacFrameCtl *pfc)
 void fillBARCtrlInfo (barCtrlType         *pBARCtrl, tANI_U16 baTID)
 {
     pBARCtrl->barAckPolicy = 0; /* This field is used under HT delayed block ack, when set to 0 
-                (Normal Ack) on an HT-delayed block ack session, the BAR frame will solicit 
-                an ACK frame if correctly received by the receipient. This is the same 
-                behaviour as under delayed block ack. If set to 1(No ack) on an HT delayed 
-                block ack session the BAR will not solicit an ACK response
-                */
+                                   (Normal Ack) on an HT-delayed block ack session, the BAR frame will solicit 
+                                   an ACK frame if correctly received by the receipient. This is the same 
+                                   behaviour as under delayed block ack. If set to 1(No ack) on an HT delayed 
+                                   block ack session the BAR will not solicit an ACK response
+                                   */
     pBARCtrl->multiTID     = 0; /* This field is always set to 0 in the basic BAR frame.If set to 1 then
-                this is multi-TID BAR and the format differs from the basic BAR
-                */
+                                   this is multi-TID BAR and the format differs from the basic BAR
+                                   */
     pBARCtrl->bitMap       = 1; /* If set to 1, the BAR frame solocits a BA with a compressed bitmap */
     pBARCtrl->rsvd         = 0; 
     pBARCtrl->numTID       = baTID; /* If the multi TID is not set then this field carries the TID of the 
-                  block ack session. If the multi TID field is set then this field carries
-                  the number of TID fields in the Multi TID BAR frames
-                  */
+                                       block ack session. If the multi TID field is set then this field carries
+                                       the number of TID fields in the Multi TID BAR frames
+                                       */
     return;
 }
 #endif //CONFIGURE_SW_TEMPLATE
@@ -1720,50 +1738,50 @@ eHalStatus halGetUpdatedSSN(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U16 baTID
     if(pSta && pSta->valid && pSta->htEnabled)
     {
         if(STA_ENTRY_PEER != pSta->staType) // we want only the peer stations.
-             return status;
+            return status;
 
         // Read BTQM Queue to get BD index of first frame in the queue
         if ((status = halBmu_ReadBtqmQFrmInfo(pMac, (tANI_U8)staIdx,
-              (tANI_U8)queueId, &uTotalBd, &uHeadBdIdx, NULL))!= 
-                        eHAL_STATUS_SUCCESS) {
-                HALLOGP(halLog( pMac, LOGP,FL("Cannot get BTQM queue frame info for "
-                    "STA index %d, queue ID %d\n"),
-                    staIdx, queueId ));
+                        (tANI_U8)queueId, &uTotalBd, &uHeadBdIdx, NULL))!= 
+                eHAL_STATUS_SUCCESS) {
+            HALLOGP(halLog( pMac, LOGP,FL("Cannot get BTQM queue frame info for "
+                            "STA index %d, queue ID %d\n"),
+                        staIdx, queueId ));
+            return status;
+        }
+
+        HALLOGW(halLog( pMac, LOGW, FL("BTQM STA %d Qid %d Total % BDs Head %d\n"),
+                    staIdx, queueId, uTotalBd, uHeadBdIdx ));
+
+        if(uTotalBd) {
+            /* There is at least one frame in the BTQM queue, 
+             * go read the seqNum by BD index */                        
+
+            if((status = halBmu_ReadBdInfo(pMac, uHeadBdIdx, 
+                            &bmuBtqmbdInfo, FALSE))
+                    != eHAL_STATUS_SUCCESS) {
+                HALLOGP(halLog( pMac, LOGP, FL("Can't read info for BD %d\n"), 
+                            uHeadBdIdx ));
                 return status;
             }
+            sequenceNum = (tANI_U16) bmuBtqmbdInfo.seqNum;
+        } else {
 
-            HALLOGW(halLog( pMac, LOGW, FL("BTQM STA %d Qid %d Total % BDs Head %d\n"),
-                staIdx, queueId, uTotalBd, uHeadBdIdx ));
-    
-            if(uTotalBd) {
-                /* There is at least one frame in the BTQM queue, 
-                 * go read the seqNum by BD index */                        
+            /* If currently no packets in the queue, 
+             * then get the last assigned sequenceNum by DPU */
 
-                if((status = halBmu_ReadBdInfo(pMac, uHeadBdIdx, 
-                    &bmuBtqmbdInfo, FALSE))
-                    != eHAL_STATUS_SUCCESS) {
-                    HALLOGP(halLog( pMac, LOGP, FL("Can't read info for BD %d\n"), 
-                            uHeadBdIdx ));
-                    return status;
-                }
-                sequenceNum = (tANI_U16) bmuBtqmbdInfo.seqNum;
-            } else {
+            /* Get the sequence number from the DPU Descriptor */
 
-                /* If currently no packets in the queue, 
-                 * then get the last assigned sequenceNum by DPU */
-
-                /* Get the sequence number from the DPU Descriptor */
-
-                if (eHAL_STATUS_SUCCESS != halDpu_GetSequence(pMac, 
-                    pSta->dpuIndex, (tANI_U8)baTID, &sequenceNum)) {
-                    HALLOGW(halLog(pMac, LOGW, 
-                    FL("Cannot get Sequence number from DPU"
-                     "Descriptor with DPU Indx %d \n"), pSta->dpuIndex));
-                    return eHAL_STATUS_FAILURE;
-             }
-         }
+            if (eHAL_STATUS_SUCCESS != halDpu_GetSequence(pMac, 
+                        pSta->dpuIndex, (tANI_U8)baTID, &sequenceNum)) {
+                HALLOGW(halLog(pMac, LOGW, 
+                            FL("Cannot get Sequence number from DPU"
+                                "Descriptor with DPU Indx %d \n"), pSta->dpuIndex));
+                return eHAL_STATUS_FAILURE;
+            }
+        }
     }
-    
+
     *ssn = sequenceNum;
     return eHAL_STATUS_SUCCESS;
 }
@@ -1796,11 +1814,11 @@ void halSendUnSolicitBARFrame(tpAniSirGlobal pMac, tANI_U16 staIdx,
 
     eHalStatus status = eHAL_STATUS_SUCCESS;
     static tANI_U8 swBaseTemplateInit = FALSE;
-        
+
     /** Initialize SW Template base */
     if (swBaseTemplateInit == FALSE) {
         if (halTpe_InitSwTemplateBase(pMac, pMac->hal.memMap.swTemplate_offset) 
-            != eHAL_STATUS_SUCCESS) {
+                != eHAL_STATUS_SUCCESS) {
             return ;    
         }
         swBaseTemplateInit = TRUE;
@@ -1808,7 +1826,7 @@ void halSendUnSolicitBARFrame(tpAniSirGlobal pMac, tANI_U16 staIdx,
 
     /** Zero out the SW Template memory */
     halZeroDeviceMemory(pMac, pMac->hal.memMap.swTemplate_offset, 
-                                    sizeof (tSwTemplate) + sizeof( tANI_U32 ));
+            sizeof (tSwTemplate) + sizeof( tANI_U32 ));
 
     palZeroMemory(pMac->hHdd, &swTemplate, sizeof(tSwTemplate));
 
@@ -1822,7 +1840,7 @@ void halSendUnSolicitBARFrame(tpAniSirGlobal pMac, tANI_U16 staIdx,
     swTemplate.primary_data_rate_index = rateIndex;
 
     swTemplate.template_len = sizeof(tSwTemplate) + 
-                                sizeof(tANI_U32) + SW_TEMPLATE_CRC;
+        sizeof(tANI_U32) + SW_TEMPLATE_CRC;
 
     status = halWriteDeviceMemory(pMac, 
             pMac->hal.memMap.swTemplate_offset,
@@ -1884,19 +1902,19 @@ void halSendUnSolicitBARFrame(tpAniSirGlobal pMac, tANI_U16 staIdx,
     if (status == eHAL_STATUS_FAILURE) {
         return;
     }
-    
+
     pBARFrm->ssnCtrl.seqNumLo = ssn & 0x0F;
     pBARFrm->ssnCtrl.seqNumHi = (ssn >> 4) & 0xFF;
 
     pBARFrm->ssnCtrl.fragNum = 0;
     pBARFrm->duration = 0;
-    
+
     //FIXME: halWriteDevicememory requires lenght to be mulltiple of four and aligned to 4 byte boundry.
     alignedLen = (sizeof(BARFrmType) + 3 ) & ~3 ;
 
     // BAR body need to be swapped since there is another swap occurs while BAL writes
     // the BAR to Libra.
-    
+
     sirSwapU32BufIfNeeded((tANI_U32*)pBARFrm, alignedLen >> 2);
 
     /*Trigger transmission of BAR frame*/

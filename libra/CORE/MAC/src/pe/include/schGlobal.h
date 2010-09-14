@@ -51,7 +51,11 @@
 #define SCH_MAX_BEACON_SIZE    256
 #endif
 
+#define SCH_MAX_PROBE_RESP_SIZE 512
+
 struct schMisc {
+
+    tANI_U8 gSchProbeRspTemplate[SCH_MAX_PROBE_RESP_SIZE];
     /// Beginning portion of the beacon frame to be written to TFP
     tANI_U8 gSchBeaconFrameBegin[SCH_MAX_BEACON_SIZE];
 
@@ -63,7 +67,6 @@ struct schMisc {
     tANI_U16 gSchBeaconOffsetEnd;
 
     tANI_U16 gSchBeaconInterval;
-
 
     /* EDCA QoS parameters
      * gSchEdcaParams - These EDCA parameters are used locally on AP or STA.

@@ -623,19 +623,20 @@ typedef struct sSirSmeStartBssReq
     tAniCBSecondaryMode     cbMode;
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
     tSirAlternateRadioList  alternateRadioList;
-    tANI_S8                      powerLevel;
+    tANI_S8                 powerLevel;
     tSirWdsInfo             wdsInfo;
 #endif
     
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_U8                 privacy;
+    tANI_U8                 apUapsdEnable;
+    tANI_U8                 ssidHidden;
     tANI_BOOLEAN            fwdWPSPBCProbeReq;
     tANI_BOOLEAN            protEnabled;
-    tANI_U8                 apUapsdEnable;
     tANI_U16                ht_capab;
     tAniAuthType            authType;
     tANI_U32                dtimPeriod;
-    tANI_U8                 ssidHidden;
+    tANI_U8                 wps_state;
 #endif
 
     tSirRSNie               rsnIE;             // RSN IE to be sent in
@@ -646,7 +647,7 @@ typedef struct sSirSmeStartBssReq
     tSirMacRateSet          extendedRateSet;    // Has 11g rates
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
-    tANI_U8                      numSSID;
+    tANI_U8                 numSSID;
     tSirMacSSid             ssIdList[ANI_MAX_NUM_OF_SSIDS];
 #endif
 } tSirSmeStartBssReq, *tpSirSmeStartBssReq;

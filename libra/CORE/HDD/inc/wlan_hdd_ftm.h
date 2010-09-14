@@ -63,7 +63,7 @@
 #define WE_GET_TX_RATE        2
 #define WE_GET_FTM_VERSION   3
 #define WE_GET_FTM_STATUS    4
-
+#define WE_GET_RX_RSSI       5
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_FTM_PRIV_SET_NONE_GET_NONE   (SIOCIWFIRSTPRIV + 6)

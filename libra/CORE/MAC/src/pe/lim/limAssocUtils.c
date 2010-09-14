@@ -628,7 +628,15 @@ limCleanupRxPath(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESession psessionE
     // increment a debug count
     pMac->lim.gLimNumRxCleanup++;
 #endif
-    return (limDelSta( pMac, pStaDs, true,psessionEntry));
+
+    if (psessionEntry->limSmeState == eLIM_SME_JOIN_FAILURE_STATE) {
+        retCode = limDelBss( pMac, pStaDs, psessionEntry->bssIdx, psessionEntry);
+    }
+	else
+        retCode = limDelSta( pMac, pStaDs, true, psessionEntry);
+
+    return retCode;
+
 } /*** end limCleanupRxPath() ***/
 
 
@@ -2044,14 +2052,16 @@ limDelSta(
   //    else
   //      get STA index from DPH
   //
-    
+
+#if 0    
     /* Since we have not created any STA, no need to send msg to delete 
      * STA to HAL */
     if (psessionEntry->limSmeState == eLIM_SME_JOIN_FAILURE_STATE) {
         pDelStaParams->staIdx = 1; /* TODO : This is workaround. Need to find right STA Index before sending to HAL */
         //return retCode;
     }
-    
+#endif
+
     if( (eLIM_STA_ROLE == GET_LIM_SYSTEM_ROLE(psessionEntry)) ||(eLIM_BT_AMP_STA_ROLE == GET_LIM_SYSTEM_ROLE(psessionEntry)) )
       pDelStaParams->staIdx= psessionEntry->staId;
     

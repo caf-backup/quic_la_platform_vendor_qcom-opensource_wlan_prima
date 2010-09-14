@@ -385,7 +385,7 @@ limProcessMlmStartCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
              limLog(pMac, LOG1, FL("*** Started BSS in BT_AMP AP SIDE***\n"));
         }
 #ifdef WLAN_SOFTAP_FEATURE
-		else if(psessionEntry->bssType == eSIR_INFRA_AP_MODE)
+        else if(psessionEntry->bssType == eSIR_INFRA_AP_MODE)
         {
              limLog(pMac, LOG1, FL("*** Started BSS in INFRA AP SIDE***\n"));
         }
@@ -965,50 +965,15 @@ limProcessMlmReassocCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
     PELOGE(limLog(pMac, LOGE, FL("Rcv MLM_REASSOC_CNF with result code %d\n"), pLimMlmReassocCnf->resultCode);)
 
-    if (pLimMlmReassocCnf->resultCode == eSIR_SME_SUCCESS) {
-        // Successful Reassociation
-        PELOG1(limLog(pMac, LOG1, FL("*** Reassociated with new BSS ***\n"));)
+    psessionEntry->limSmeState = eLIM_SME_LINK_EST_STATE;
 
-        psessionEntry->limSmeState = eLIM_SME_LINK_EST_STATE;
-        MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
+    MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
 
-        /**
-        * Need to send Reassoc response with
-        * Reassociation success to Host.
-        */
-        limSendSmeJoinReassocRsp(
-                               pMac, eWNI_SME_REASSOC_RSP,
-                              pLimMlmReassocCnf->resultCode, pLimMlmReassocCnf->protStatusCode,psessionEntry,
-                              psessionEntry->smeSessionId,psessionEntry->transactionId);
-    }else if (pLimMlmReassocCnf->resultCode == eSIR_SME_REASSOC_REFUSED) {
-        /** Reassociation failure With the New AP
-        *   but we still have the link with the Older AP
-        */
-           psessionEntry->limSmeState = eLIM_SME_LINK_EST_STATE;
-        MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
-
-        /**
-        * Need to send Reassoc response with
-        * Association failure to Host.
-        */
-        limSendSmeJoinReassocRsp(pMac, eWNI_SME_REASSOC_RSP,
-                              pLimMlmReassocCnf->resultCode, pLimMlmReassocCnf->protStatusCode,psessionEntry,
-                              psessionEntry->smeSessionId,psessionEntry->transactionId);
-
-    }else {
-        // Reassociation failure
-           psessionEntry->limSmeState = eLIM_SME_JOIN_FAILURE_STATE;
-        MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
-
-        /**
-         * Need to send Reassoc response with
-         * Association failure to Host.
-         */
-        limSendSmeJoinReassocRsp(
+    // Need to send Reassoc response to Host. 
+    limSendSmeJoinReassocRsp(
                            pMac, eWNI_SME_REASSOC_RSP,
                           pLimMlmReassocCnf->resultCode, pLimMlmReassocCnf->protStatusCode,psessionEntry,
                           psessionEntry->smeSessionId,psessionEntry->transactionId);
-    }
 } /*** end limProcessMlmReassocCnf() ***/
 
 
@@ -2422,6 +2387,11 @@ void limProcessBtAmpApMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
     }
     dphHashTableClassInit(pMac, &psessionEntry->dph.dphHashTable);//TBD-RAJESH is it needed ?
     limDeletePreAuthList(pMac);
+
+#ifdef WLAN_SOFTAP_FEATURE
+    //Initialize number of associated stations during cleanup
+    pMac->lim.gLimNumOfCurrentSTAs = 0;
+#endif
     //Is it ok to put LIM into IDLE state.
 
     if(psessionEntry != NULL)
@@ -2720,7 +2690,7 @@ void limProcessStaMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESessi
         {
             palFreeMemory( pMac->hHdd, (void *) pDelStaParams );
         }
-        statusCode = (tSirResultCodes) limDelBss(pMac, pStaDs, 0,psessionEntry);
+        statusCode = (tSirResultCodes) limDelBss(pMac, pStaDs, psessionEntry->bssIdx, psessionEntry);
         return;
     }
     else
@@ -4161,7 +4131,8 @@ void limProcessSwitchChannelRsp(tpAniSirGlobal pMac,  void *body)
 
     if((psessionEntry = peFindSessionBySessionId(pMac, peSessionId))== NULL)
     {
-        limLog(pMac, LOGP, FL("session does not exist for given sessionId\n"));
+       limLog(pMac, LOGP, FL("session does not exist for given sessionId\n"));
+       return;
     }
 
     channelChangeReasonCode = psessionEntry->channelChangeReasonCode;

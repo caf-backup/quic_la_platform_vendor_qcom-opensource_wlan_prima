@@ -57,14 +57,20 @@
 #if defined(LIBRA_WAPI_SUPPORT)
 #define HAL_MODULE_ID_WAPI      4
 #endif
+
 #ifdef WLAN_SOFTAP_FEATURE
-#define HAL_MODULE_ID_SOFT_AP   5
+
+#define HAL_MODULE_ID_SOFT_AP                                5
+
 #define QWLANFW_AP_LINK_MONITOR_TIMEOUT_MSEC              3000    // Timer interval for link monitor of STA keepalive handlings
 #define QWLANFW_UNKNOWN_ADDR2_NOTIFCATION_INTERVAL_MS    10000    // Timer interval for unknown addr2 notification
 #define QWLANFW_AP_LINK_MONITOR_ENABLE                       1    // Enable the link monitor of STA keepalive handlings
 #define QWLANFW_UNKNOWN_ADDR2_NOTIFCATION_ENABLE             1    // Enable the unknown addr2 notification
 #define QWLANFW_AP_LINK_MONITOR_DISABLE                      0    // Disable the link monitor of STA keepalive handlings
 #define QWLANFW_UNKNOWN_ADDR2_NOTIFCATION_DISABLE            0    // Disable the unknown addr2 notification
+
+#define QWLANFW_AP_MAX_DTIM_TX_BCAST_FRAMES                  1    // Max number of bcast frames to be dispatched right after DTIM beacon
+
 #endif
 
 // Define FW endianess here
@@ -143,9 +149,10 @@ eHalStatus halFW_AddBssMsg(tpAniSirGlobal pMac, tANI_U8 bssIndex);
 eHalStatus halFW_AddStaMsg(tpAniSirGlobal pMac, tANI_U8 staIndex);
 eHalStatus halFW_DelStaMsg(tpAniSirGlobal pMac, tANI_U8 staIndex);
 eHalStatus halFW_DelBssMsg(tpAniSirGlobal pMac, tANI_U8 bssIndex);
-eHalStatus halFW_UpdateProbeRespTemplateMsg(tpAniSirGlobal pMac, tANI_U8 bssIndex, tANI_U32 probeRespTemplateLen );
+eHalStatus halFW_UpdateProbeRespTemplateMsg(tpAniSirGlobal pMac, tANI_U8 bssIndex, tANI_U8  enableFlag );
 eHalStatus halFW_UpdateApCfg(tpAniSirGlobal pMac, tANI_U8 bssIndex, tANI_U8 keepaliveEnble, tANI_U8 unknownAddr2Enble);
 eHalStatus halFW_HandleFwDelStaMsg(tpAniSirGlobal pMac, void* pFwMsg);
+eHalStatus halFW_UpdateBAMsg(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId, tANI_U8 code);
 #endif
 
 

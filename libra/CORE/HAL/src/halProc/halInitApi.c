@@ -111,7 +111,7 @@ static void halCloseExit(tpAniSirGlobal pMac);
  */
 // FIXME  - These should come from header files.
 extern tSirRetStatus sysInitGlobals(tpAniSirGlobal pMac);
-extern void logInit (tpAniSirGlobal);
+extern tSirRetStatus logInit (tpAniSirGlobal);
 ////
 
 /* --------------------------------------------------------------------------

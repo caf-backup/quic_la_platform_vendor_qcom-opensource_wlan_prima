@@ -133,7 +133,7 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     // Skip over the timestamp (it'll be updated later).
 
     bcn1.BeaconInterval.interval = pMac->sch.schObject.gSchBeaconInterval;
-    PopulateDot11fCapabilities( pMac, &bcn1.Capabilities );
+    PopulateDot11fCapabilities( pMac, &bcn1.Capabilities, psessionEntry );
     PopulateDot11fSSID2( pMac, &bcn1.SSID );
 
     PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL, &bcn1.SuppRates,psessionEntry);
@@ -248,8 +248,11 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     }
 #ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
-    {   
-        PopulateDot11fBeaconWPSIEs( pMac, &bcn2.WscBeacon, psessionEntry);
+    {
+        if(psessionEntry->wps_state != SAP_WPS_DISABLED)
+        {
+            PopulateDot11fBeaconWPSIEs( pMac, &bcn2.WscBeacon, psessionEntry);            
+        }
     }
     else
     {

@@ -52,6 +52,11 @@ when           who        what, where, why
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
+#ifdef WLAN_SOFTAP_FEATURE
+#ifdef LIBRA_LINUX_PC 
+#define SDIO_CLK_FREQ 32500000
+#endif
+#endif // WLAN_SOFTAP_FEATURE
 /*----------------------------------------------------------------------------
  *  Type Declarations
  * -------------------------------------------------------------------------*/
@@ -665,7 +670,11 @@ VOS_STATUS WLANBAL_Start
       return VOS_STATUS_E_NOMEM;
    }
 
-
+#ifdef WLAN_SOFTAP_FEATURE
+#ifdef LIBRA_LINUX_PC 
+   WLANSAL_SetSDIOClock(SDIO_CLK_FREQ);
+#endif
+#endif //WLAN_SOFTAP_FEATURE
    sscReg.pfnGetMultipleTxPacketCback           = balGetTXFramesCB;
    sscReg.pfnTxCompleteCback                    = balTXCompleteCB;
    sscReg.pfnRxPacketHandlerCback               = balRecieveFramesCB;

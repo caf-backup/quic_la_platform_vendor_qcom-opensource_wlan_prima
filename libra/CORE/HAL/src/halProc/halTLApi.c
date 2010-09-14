@@ -776,7 +776,7 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
                         return VOS_STATUS_E_FAILURE;
                     }
                 }
-                HALLOGE( halLog(pMac, LOGE, FL("Unicast StaId =%d\n"), staId));
+                HALLOG1( halLog(pMac, LOG1, FL("Unicast StaId =%d\n"), staId));
             } else {
                 // For bcast frames use the bcast station index
                 tpBssStruct pBss = (tpBssStruct) pMac->hal.halMac.bssTable;

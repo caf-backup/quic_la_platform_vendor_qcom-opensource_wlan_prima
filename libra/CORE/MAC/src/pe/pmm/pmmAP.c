@@ -186,6 +186,7 @@ void pmmHandleTimBasedDisassociation (tpAniSirGlobal pMac, tpPESession psessionE
 
 #endif
 
+#ifdef WLAN_SOFTAP_FEATURE
 /**
  * pmmGenerateTIM
  *
@@ -203,11 +204,7 @@ void pmmHandleTimBasedDisassociation (tpAniSirGlobal pMac, tpPESession psessionE
  * @param *timLength pointer to limLength, which needs to be returned.
  * @return None
  */
-#ifdef WLAN_SOFTAP_FEATURE
 void pmmGenerateTIM(tpAniSirGlobal pMac, tANI_U8 **pPtr, tANI_U16 *timLength, tANI_U8 dtimPeriod)
-#else
-void pmmGenerateTIM(tpAniSirGlobal pMac, tANI_U8 **pPtr, tANI_U16 *timLength)
-#endif
 {
     tANI_U16 i,j;
     tANI_U8 *ptr = *pPtr;
@@ -221,11 +218,7 @@ void pmmGenerateTIM(tpAniSirGlobal pMac, tANI_U8 **pPtr, tANI_U16 *timLength)
     if (N1 & 1) N1--;
 
     *timLength = N2 - N1 + 4;
-#ifdef WLAN_SOFTAP_FEATURE
-	val = dtimPeriod;
-#else	
-    wlan_cfgGetInt(pMac, WNI_CFG_DTIM_PERIOD, &val);
-#endif
+    val = dtimPeriod;
 
 
     *ptr++ = SIR_MAC_TIM_EID;
@@ -253,7 +246,7 @@ void pmmGenerateTIM(tpAniSirGlobal pMac, tANI_U8 **pPtr, tANI_U16 *timLength)
 
     *pPtr = ptr;
 }
-
+#endif
 #ifdef ANI_PRODUCT_TYPE_AP
 /**
  * pmmUpdateTIM

@@ -796,10 +796,6 @@ VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
    vos_mem_copy(pWlanDev->dev_addr, 
                 &pAdapter->macAddressCurrent, 
                 sizeof(v_MACADDR_t));
-
-   vos_mem_copy(&pAdapter->macAddressCurrent, 
-                &pAdapter->cfg_ini->staMacAddr,
-                sizeof(v_MACADDR_t));
 	  
 #ifdef WLAN_SOFTAP_FEATURE
     if(VOS_STA_SAP_MODE == hdd_get_conparam()){

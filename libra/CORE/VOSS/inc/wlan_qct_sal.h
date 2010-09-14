@@ -541,5 +541,10 @@ v_BOOL_t WLANSAL_IsSDHCSupportDeepSleep
 #ifdef __cplusplus
 }
 #endif
+#ifdef WLAN_SOFTAP_FEATURE
+#ifdef LIBRA_LINUX_PC
+VOS_STATUS WLANSAL_SetSDIOClock(unsigned int clk_freq);
+#endif
+#endif //WLAN_SOFTAP_FEATURE
 #endif /* WLAN_QCT_SAL_H */
 

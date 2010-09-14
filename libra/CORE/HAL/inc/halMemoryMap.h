@@ -31,7 +31,6 @@
 #define HOST2MCPU_MSG_SIZE             0x100    // 256 bytes (0x100), should match QWLANFW_MBOX_MSG_LENGTH in qwlan_macfw.h
 
 #define DXE_RXDESC_INFO_SIZE           0x80                          // 128 bytes
-#define BEACON_TEMPLATE_SIZE           0x800                         // 2K bytes  (0x800)
 
 #define MAX_STA_ENTRIES_PER_RC_SET MAX_RC_ENTRIES_PER_SET / MAX_NUM_OF_TIDS
 

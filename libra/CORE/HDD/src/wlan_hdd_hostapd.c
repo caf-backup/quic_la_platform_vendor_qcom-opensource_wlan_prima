@@ -133,6 +133,11 @@ int hdd_hostapd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
     return 0;	
 }
 
+int hdd_hostapd_change_mtu(struct net_device *dev, int new_mtu)
+{
+	return 0;
+}
+
 int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
    return 0;
@@ -202,10 +207,12 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: startbss event failed!!\n"));
                 goto stopbss;
             }
-
-            pHostapdAdapter->uBCStaId = pSapEvent->sapevt.sapStartBssCompleteEvent.staId;
-            //@@@ need wep logic here to set privacy bit
-            hdd_softap_Register_BC_STA(pHostapdAdapter, pHostapdAdapter->uPrivacy);
+            else
+            {                
+                pHostapdAdapter->uBCStaId = pSapEvent->sapevt.sapStartBssCompleteEvent.staId;
+                //@@@ need wep logic here to set privacy bit
+                hdd_softap_Register_BC_STA(pHostapdAdapter, pHostapdAdapter->uPrivacy);
+            }
             return VOS_STATUS_SUCCESS;
 
         case eSAP_STOP_BSS_EVENT:
@@ -492,6 +499,74 @@ static iw_softap_getparam(struct net_device *dev,
 }
 
 int
+static iw_softap_getchannel(struct net_device *dev,
+                        struct iw_request_info *info,
+                        union iwreq_data *wrqu, char *extra)
+{
+	hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+	ptSapContext  pSapCtx;
+	v_CONTEXT_t pvos = pHostapdAdapter->pvosContext;
+ 
+	pSapCtx = VOS_GET_SAP_CB(pvos);
+
+	/** Operating channel */
+    *(v_U32_t *)(wrqu->data.pointer) = pSapCtx->channel;
+
+	wrqu->data.length = sizeof(pSapCtx->channel);
+
+	return 0;
+}
+
+#define IS_BROADCAST_MAC(x) (((x[0] & x[1] & x[2] & x[3] & x[4] & x[5]) == 0xff) ? 1 : 0)
+
+int
+static iw_softap_getassoc_stamacaddr(struct net_device *dev,
+                        struct iw_request_info *info,
+                        union iwreq_data *wrqu, char *extra)
+{
+	hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+	unsigned char *pmaclist;
+	int cnt = 0, len;
+
+
+	pmaclist = wrqu->data.pointer + sizeof(unsigned long int);
+	len = wrqu->data.length;
+
+	while((cnt < WLAN_MAX_STA_COUNT) && (len > (sizeof(v_MACADDR_t)+1))) {
+		if (TRUE == pHostapdAdapter->aStaInfo[cnt].isUsed) {
+			
+			if(!IS_BROADCAST_MAC(pHostapdAdapter->aStaInfo[cnt].macAddrSTA.bytes)) {
+				memcpy((void *)pmaclist, (void *)&(pHostapdAdapter->aStaInfo[cnt].macAddrSTA), sizeof(v_MACADDR_t));
+				pmaclist += sizeof(v_MACADDR_t);
+				len -= sizeof(v_MACADDR_t);
+			}
+		}
+		cnt++;
+	}
+
+	*pmaclist = '\0';
+
+    wrqu->data.length -= len;
+
+	*(unsigned long int *)(wrqu->data.pointer) = wrqu->data.length;
+
+	return 0;
+}
+
+int
+static iw_softap_disassoc_sta(struct net_device *dev,
+                        struct iw_request_info *info,
+                        union iwreq_data *wrqu, char *extra)
+{
+	hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+	
+
+	hdd_softap_sta_disassoc(pHostapdAdapter, (v_U8_t *)(wrqu->data.pointer));
+
+	return 0;
+}
+
+int
 static iw_softap_commit(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
@@ -567,6 +642,7 @@ static iw_softap_commit(struct net_device *dev,
     
     pConfig->privacy = pCommitConfig->privacy;
     pHostapdAdapter->uPrivacy = pCommitConfig->privacy;
+    pConfig->wps_state = pCommitConfig->wps_state;
     pConfig->fwdWPSPBCProbeReq  = 1; // Forward WPS PBC probe request frame up 
 
     pConfig->RSNWPAReqIELength = pCommitConfig->RSNWPAReqIELength;
@@ -628,6 +704,9 @@ static iw_softap_commit(struct net_device *dev,
 
     //Uapsd Enabled Bit
     pConfig->UapsdEnable =  pAdapter->cfg_ini->apUapsdEnabled;
+    
+    pHostapdAdapter->apDisableIntraBssFwd = pAdapter->cfg_ini->apDisableIntraBssFwd;
+    
     hddLog(LOGW, FL("SOftAP macaddress : "MAC_ADDRESS_STR"\n"), MAC_ADDR_ARRAY(pHostapdAdapter->macAddressCurrent.bytes));
     hddLog(LOGW,FL("ssid =%s\n"), pConfig->SSIDinfo.ssid.ssId);  
     hddLog(LOGW,FL("beaconint=%d, channel=%d\n"), (int)pConfig->beacon_int, (int)pConfig->channel);
@@ -636,6 +715,8 @@ static iw_softap_commit(struct net_device *dev,
     hddLog(LOGW,FL("RSN/WPALen=%d, \n"),(int)pConfig->RSNWPAReqIELength);
     hddLog(LOGW,FL("Uapsd = %d\n"),pConfig->UapsdEnable); 
     hddLog(LOGW,FL("ProtEnabled = %d\n"),pConfig->protEnabled); 
+    hddLog(LOGW,FL("DisableIntraBssFwd = %d\n"),pHostapdAdapter->apDisableIntraBssFwd); 
+            
     pSapEventCallback = hdd_hostapd_SAPEventCB;
 
     if(WLANSAP_StartBss(pVosContext, pSapEventCallback, pConfig,(v_PVOID_t)dev) != VOS_STATUS_SUCCESS)
@@ -652,12 +733,18 @@ static iw_softap_commit(struct net_device *dev,
     {  
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos wait for single_event failed!!\n"));
     }
-   
+ 
     pHostapdState->bCommit = TRUE;
 
-    WLANSAP_Update_WpsIe ( pVosContext );
-   
-    return pHostapdState->vosStatus;
+    if(pHostapdState->vosStatus)
+    {
+        return -1;
+    }
+    else
+    {
+        WLANSAP_Update_WpsIe ( pVosContext );            
+        return 0;
+    }
 }
 
 static 
@@ -1473,7 +1560,13 @@ static const struct iw_priv_args hostapd_private_args[] = {
   { QCSAP_IOCTL_VERSION, 0,
         IW_PRIV_TYPE_CHAR | QCSAP_MAX_WSC_IE, "version" },
   { QCSAP_IOCTL_GET_WPS_PBC_PROBE_REQ_IES,
-        IW_PRIV_TYPE_BYTE | sizeof(sQcSapreq_WPSPBCProbeReqIES_t) | IW_PRIV_SIZE_FIXED | 1, 0, "getProbeReqIEs" }
+        IW_PRIV_TYPE_BYTE | sizeof(sQcSapreq_WPSPBCProbeReqIES_t) | IW_PRIV_SIZE_FIXED | 1, 0, "getProbeReqIEs" },
+  { QCSAP_IOCTL_GET_CHANNEL, 0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | sizeof(signed long int), "getchannel" },
+  { QCSAP_IOCTL_ASSOC_STA_MACADDR, 0,
+        IW_PRIV_TYPE_BYTE | /*((WLAN_MAX_STA_COUNT*6)+100)*/1 , "get_assoc_stamac" },
+  { QCSAP_IOCTL_DISASSOC_STA, 0,
+        IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 6 , "disassoc_sta" }
 };
 
 static const iw_handler hostapd_private[] = {
@@ -1485,7 +1578,10 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_SETWPAIE - SIOCIWFIRSTPRIV] = iw_softap_setwpsie,
    [QCSAP_IOCTL_STOPBSS - SIOCIWFIRSTPRIV] = iw_softap_stopbss,       // stop bss
    [QCSAP_IOCTL_VERSION - SIOCIWFIRSTPRIV] = iw_softap_version,       // get driver version
-   [QCSAP_IOCTL_GET_WPS_PBC_PROBE_REQ_IES - SIOCIWFIRSTPRIV] = iw_get_WPSPBCProbeReqIEs
+   [QCSAP_IOCTL_GET_WPS_PBC_PROBE_REQ_IES - SIOCIWFIRSTPRIV] = iw_get_WPSPBCProbeReqIEs,
+   [QCSAP_IOCTL_GET_CHANNEL - SIOCIWFIRSTPRIV] = iw_softap_getchannel,
+   [QCSAP_IOCTL_ASSOC_STA_MACADDR - SIOCIWFIRSTPRIV] = iw_softap_getassoc_stamacaddr,
+   [QCSAP_IOCTL_DISASSOC_STA - SIOCIWFIRSTPRIV] = iw_softap_disassoc_sta
 };
 
 const struct iw_handler_def hostapd_handler_def = {
@@ -1508,6 +1604,7 @@ static struct net_device_ops net_ops_struct  = {
     .ndo_get_stats = hdd_softap_stats,
     .ndo_set_mac_address = hdd_hostapd_set_mac_address,
     .ndo_do_ioctl = hdd_hostapd_ioctl,
+	.ndo_change_mtu = hdd_hostapd_change_mtu
  };
 #endif
 
@@ -1570,6 +1667,7 @@ int hdd_wlan_create_ap_dev(struct net_device * pWlanDev)
 #endif
     pWlanHostapdDev->tx_queue_len = NET_DEV_TX_QUEUE_LEN;
     pWlanHostapdDev->watchdog_timeo = HDD_TX_TIMEOUT;
+    pWlanHostapdDev->mtu = HDD_DEFAULT_MTU;
 
     vos_mem_copy(pWlanHostapdDev->dev_addr, (void *)macAddr,sizeof(macAddr));
     vos_mem_copy(&pHostapdAdapter->macAddressCurrent, (void *)macAddr, sizeof(macAddr));

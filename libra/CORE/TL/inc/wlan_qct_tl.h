@@ -333,7 +333,10 @@ typedef struct
 
   /* notifying TL if this is an EAPOL frame or not */
   v_U8_t    ucIsEapol;
-
+#ifdef FEATURE_WLAN_WAPI
+  /* notifying TL if this is a WAI frame or not */
+  v_U8_t    ucIsWai;
+#endif
   /* frame is 802.11 and it does not need translation */
   v_U8_t    ucDisableFrmXtl;
 

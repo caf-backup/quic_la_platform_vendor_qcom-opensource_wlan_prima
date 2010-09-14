@@ -82,6 +82,11 @@
 #define BMU_INTERNAL_MEMORY_SIZE_512K    0x80000      // 512K
 #define BMU_TOTAL_MEMORY_SIZE            0x40000      // 256K
 
+/* --------------------
+ *  Memory Map Info
+ * --------------------
+ */
+#define BEACON_TEMPLATE_SIZE           0x200          // 512 bytes  (0x200)
 
 // BMU enable/disable sta transmission commands
 typedef enum eBmuStaTxCfgCmd {

@@ -328,7 +328,8 @@ sirConvertMeasReqFrame2Struct(struct sAniSirGlobal *, tANI_U8 *,
 
 tSirRetStatus
 PopulateDot11fCapabilities(tpAniSirGlobal         pMac,
-                           tDot11fFfCapabilities *pDot11f);
+                           tDot11fFfCapabilities *pDot11f,
+                           tpPESession            psessionEntry);
 
 /**
  * \brief Populated a tDot11fFfCapabilities
@@ -354,7 +355,8 @@ struct sDphHashNode;
 tSirRetStatus
 PopulateDot11fCapabilities2(tpAniSirGlobal         pMac,
                             tDot11fFfCapabilities *pDot11f,
-                            struct sDphHashNode   *pSta);
+                            struct sDphHashNode   *pSta,
+                            tpPESession            psessionEntry);
 
 /// Populate a tDot11fIEChanSwitchAnn
 void

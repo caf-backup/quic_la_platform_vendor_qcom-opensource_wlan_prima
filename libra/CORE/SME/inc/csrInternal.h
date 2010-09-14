@@ -292,6 +292,7 @@ typedef struct tagCsrRoamStartBssParams
     tANI_U32 dtimPeriod;
     tANI_U8  ApUapsdEnable;
     tANI_U8  ssidHidden;
+    tANI_U8 wps_state;
 #endif
     tANI_U16 nRSNIELength;  //The byte count in the pRSNIE, if 0, pRSNIE is ignored.
     tANI_U8 *pRSNIE;     //If not null, it has the IE byte stream for RSN

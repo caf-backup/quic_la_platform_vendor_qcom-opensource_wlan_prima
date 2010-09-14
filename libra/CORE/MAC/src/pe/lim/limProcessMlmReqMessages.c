@@ -1059,6 +1059,9 @@ limMlmAddBss (
     tSirMsgQ msgQ;
     tpAddBssParams pAddBssParams = NULL;
     tANI_U32 retCode;
+#ifdef WLAN_SOFTAP_FEATURE
+    tANI_U32 val = 0;
+#endif
     
     // Package SIR_HAL_ADD_BSS_REQ message parameters
 
@@ -1094,7 +1097,16 @@ limMlmAddBss (
 #endif		
         pAddBssParams->operMode                 = BSS_OPERATIONAL_MODE_AP;
     }
-  
+
+#ifdef WLAN_SOFTAP_FEATURE  
+    if( wlan_cfgGetInt ( pMac, WNI_CFG_SHORT_SLOT_TIME, &val ) != eSIR_SME_SUCCESS)
+    {
+        limLog ( pMac, LOGP, FL(" Error : unable to fetch the WNI_CFG_SHORT_SLOT_TIME\n"));
+        palFreeMemory(pMac->hHdd,(void *)pAddBssParams);
+        return eSIR_SME_HAL_SEND_MESSAGE_FAIL;
+    }
+    pAddBssParams->shortSlotTimeSupported = val;
+#endif
 
     pAddBssParams->beaconInterval               = pMlmStartReq->beaconPeriod;
     pAddBssParams->dtimPeriod                   = pMlmStartReq->dtimPeriod;
@@ -1128,7 +1140,7 @@ limMlmAddBss (
 #ifdef WLAN_SOFTAP_FEATURE
     pAddBssParams->bHiddenSSIDEn = pMlmStartReq->ssidHidden;
     limLog( pMac, LOGE, FL( "TRYING TO HIDE SSID %d\n" ),pAddBssParams->bHiddenSSIDEn);
-    pAddBssParams->bProxyProbeRespEn = 0;
+    pAddBssParams->bProxyProbeRespEn = 1;
 #endif
     mlm_add_sta(pMac, &pAddBssParams->staContext,
                 pAddBssParams->bssId, pAddBssParams->htCapable,psessionEntry);
@@ -1997,7 +2009,6 @@ limProcessMlmReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
 	/* Hold Re-Assoc request as part of Session, knock-out pMac */
         /// Hold onto Reassoc request parameters
-        //pMac->lim.gpLimMlmReassocReq = pMlmReassocReq;
 	psessionEntry->pLimMlmReassocReq = pMlmReassocReq;
         
         // See if we have pre-auth context with new AP
@@ -2092,7 +2103,6 @@ end:
     mlmReassocCnf.sessionId = pMlmReassocReq->sessionId;
     /// Free up buffer allocated for reassocReq
     palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmReassocReq);
-    pMac->lim.gpLimMlmReassocReq = NULL;
     psessionEntry->pLimReAssocReq = NULL;
 
     limPostSmeMessage(pMac, LIM_MLM_REASSOC_CNF, (tANI_U32 *) &mlmReassocCnf);

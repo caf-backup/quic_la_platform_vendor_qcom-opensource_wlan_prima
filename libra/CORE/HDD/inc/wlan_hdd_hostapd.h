@@ -172,6 +172,8 @@ typedef struct hdd_hostapd_adapter_s
    
    struct semaphore semWpsPBCOverlapInd;
    
+   v_BOOL_t apDisableIntraBssFwd;
+      
 } hdd_hostapd_adapter_t;
 
 int hdd_wlan_create_ap_dev(struct net_device *pWlanDev);
