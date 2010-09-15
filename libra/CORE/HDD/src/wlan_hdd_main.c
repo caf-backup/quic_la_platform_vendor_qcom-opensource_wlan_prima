@@ -1285,6 +1285,7 @@ static int __init hdd_module_init (void)
    v_CONTEXT_t pVosContext = NULL;
    struct sdio_func *sdio_func_dev = NULL;
    unsigned int attempts = 0;
+   int ret_status = 0;
    ENTER();
   
    hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Wi-Fi loading driver",__func__);
@@ -1315,51 +1316,68 @@ static int __init hdd_module_init (void)
 
    }while (attempts < 3);
 
-   if (NULL == sdio_func_dev) {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not found!!",__func__);
-      return -1;
-   }
+   do {
+      if (NULL == sdio_func_dev) {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not found!!",__func__);
+         ret_status = -1;
+         break;
+      }
 
-   /* Preopen VOSS so that it is ready to start at least SAL */
-   status = vos_preOpen(&pVosContext);
+      /* Preopen VOSS so that it is ready to start at least SAL */
+      status = vos_preOpen(&pVosContext);
 
-   if (!VOS_IS_STATUS_SUCCESS(status)) 
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to preOpen VOSS", __func__);
-      return -1;
-   }
-   
-   /* Now Open SAL */
-   status = WLANSAL_Open(pVosContext, 0);
+      if (!VOS_IS_STATUS_SUCCESS(status)) 
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to preOpen VOSS", __func__);
+         ret_status = -1;
+         break;
+      }
+      
+      /* Now Open SAL */
+      status = WLANSAL_Open(pVosContext, 0);
 
-   if(!VOS_IS_STATUS_SUCCESS(status))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to open SAL", __func__);
+      if(!VOS_IS_STATUS_SUCCESS(status))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to open SAL", __func__);
 
-      /* If unable to open, cleanup and return failure */
-      vos_preClose( &pVosContext );
-      return -1;
-   }
+         /* If unable to open, cleanup and return failure */
+         vos_preClose( &pVosContext );
+         ret_status = -1;
+         break;
+      }
 
 #ifdef WLAN_BTAMP_FEATURE
-  status = BSL_Init(gpBtampCtx);
-  if ( status != 0)
-  {
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_FATAL, " BSL_Init failed");
-      return VOS_STATUS_E_FAULT;
-  }    
+      status = BSL_Init(gpBtampCtx);
+      if ( status != 0)
+      {
+          VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_FATAL, " BSL_Init failed");
+          ret_status = VOS_STATUS_E_FAULT;
+          break;
+      }    
 #endif // WLAN_BTAMP_FEATURE
 
-   // Call our sdio probe.
-   if(hdd_wlan_sdio_probe(sdio_func_dev)) {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
-          __func__);
-      return -1;
+      // Call our sdio probe.
+      if(hdd_wlan_sdio_probe(sdio_func_dev)) {
+         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
+             __func__);
+         ret_status = -1;
+         break;
+      }
+   } while (0);
+
+   if(!VOS_IS_STATUS_SUCCESS(ret_status))
+   {
+      //Assert Deep sleep signal now to put Libra HW in lowest power state
+      status = vos_chipAssertDeepSleep( NULL, NULL, NULL );
+      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status) );
+
+      //Vote off any PMIC voltage supplies
+      vos_chipPowerDown(NULL, NULL, NULL);
    }
 
    EXIT();	
 
-   return 0;
+   return ret_status;
 }
 
 
