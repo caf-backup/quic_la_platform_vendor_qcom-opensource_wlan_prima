@@ -799,9 +799,14 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
 
          case eWNI_SME_START_RSP:
          {
-#ifdef WLAN_DEBUG
             tSirSmeRsp *pSirSmeRspMsg = (tSirSmeRsp *)pMsg->bodyptr;
+            tpAniSirGlobal pMac;
+            // get the HAL context...
+            hHal = vos_get_context( VOS_MODULE_ID_HAL, pVosContext );
+            VOS_ASSERT ( NULL != hHal );
 
+            pMac = PMAC_STRUCT( hHal );
+#ifdef WLAN_DEBUG
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
                        "eWNI_SME_START_RSP received with status code= %d [0x%08lX]",
                        pSirSmeRspMsg->statusCode, pSirSmeRspMsg->statusCode );
@@ -813,6 +818,7 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             {
                gSysContext.mcStartCB( gSysContext.mcStartUserData );
             }
+            palFreeMemory(pMac->hHdd, pSirSmeRspMsg); 
             break;
          }
 

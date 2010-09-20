@@ -628,7 +628,13 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
        wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var, 
        msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
    }
-  
+ 
+   halStatus = sme_CloseSession(pAdapter->hHal, pAdapter->sessionId);
+   if(halStatus != eHAL_STATUS_SUCCESS)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Unable to close session with sessionId %d",__func__, pAdapter->sessionId);
+   }
+ 
    //Stop all the modules
    vosStatus = vos_stop( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -1287,12 +1293,12 @@ static int __init hdd_module_init (void)
    unsigned int attempts = 0;
    int ret_status = 0;
    ENTER();
-  
+
    hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Wi-Fi loading driver",__func__);
-   
+
    //Power Up Libra WLAN card first if not already powered up
    status = vos_chipPowerUp(NULL,NULL,NULL);
-   if (!VOS_IS_STATUS_SUCCESS(status)) 
+   if (!VOS_IS_STATUS_SUCCESS(status))
    {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not Powered Up."
           "exiting", __func__);
@@ -1323,16 +1329,19 @@ static int __init hdd_module_init (void)
          break;
       }
 
+#ifdef MEMORY_DEBUG
+      vos_mem_init();
+#endif
       /* Preopen VOSS so that it is ready to start at least SAL */
       status = vos_preOpen(&pVosContext);
 
-      if (!VOS_IS_STATUS_SUCCESS(status)) 
+      if (!VOS_IS_STATUS_SUCCESS(status))
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to preOpen VOSS", __func__);
          ret_status = -1;
          break;
       }
-      
+
       /* Now Open SAL */
       status = WLANSAL_Open(pVosContext, 0);
 
@@ -1351,15 +1360,22 @@ static int __init hdd_module_init (void)
       if ( status != 0)
       {
           VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_FATAL, " BSL_Init failed");
+          WLANSAL_Close(pVosContext);
+          vos_preClose( &pVosContext );
           ret_status = VOS_STATUS_E_FAULT;
           break;
-      }    
+      }
 #endif // WLAN_BTAMP_FEATURE
 
       // Call our sdio probe.
       if(hdd_wlan_sdio_probe(sdio_func_dev)) {
          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
              __func__);
+#ifdef WLAN_BTAMP_FEATURE
+         BSL_Deinit();	
+#endif
+         WLANSAL_Close(pVosContext);
+         vos_preClose( &pVosContext );
          ret_status = -1;
          break;
       }
@@ -1373,9 +1389,12 @@ static int __init hdd_module_init (void)
 
       //Vote off any PMIC voltage supplies
       vos_chipPowerDown(NULL, NULL, NULL);
+#ifdef MEMORY_DEBUG
+      vos_mem_exit();
+#endif
    }
 
-   EXIT();	
+   EXIT();
 
    return ret_status;
 }
@@ -1424,6 +1443,10 @@ static void __exit hdd_module_exit(void)
    WLANSAL_Close(pVosContext);
 
    vos_preClose( &pVosContext );
+
+#ifdef MEMORY_DEBUG
+   vos_mem_exit(); 
+#endif
 
    hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Exiting module exit",__func__);
 }

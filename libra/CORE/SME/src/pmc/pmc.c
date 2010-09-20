@@ -1141,7 +1141,9 @@ eHalStatus pmcEnterRequestStartUapsdState (tHalHandle hHal)
          {
             pMac->pmc.uapsdSessionRequired = TRUE;
             //Check BTC state
+#ifndef WLAN_SAP_MEM_OPT
             if( btcIsReadyForUapsd( pMac ) )
+#endif /* WLAN_SAP_MEM_OPT*/
             {
                /* Put device in BMPS mode first. This step should NEVER fail.
                   That is why no need to buffer the UAPSD request*/
@@ -1152,16 +1154,20 @@ eHalStatus pmcEnterRequestStartUapsdState (tHalHandle hHal)
                   return eHAL_STATUS_FAILURE;
                }
             }
+#ifndef WLAN_SAP_MEM_OPT
             else
             {
                (void)pmcStartTrafficTimer(hHal, pMac->pmc.bmpsConfig.trafficMeasurePeriod);
             }
+#endif /* WLAN_SAP_MEM_OPT*/
          }
          break;
 
       case BMPS:
          //It is already in BMPS mode, check BTC state
+#ifndef WLAN_SAP_MEM_OPT
          if( btcIsReadyForUapsd(pMac) )
+#endif /* WLAN_SAP_MEM_OPT*/
          {
             /* Tell MAC to have device enter UAPSD mode. */
             if (pmcIssueCommand(hHal, eSmeCommandEnterUapsd, NULL, 0, FALSE) !=
@@ -1172,6 +1178,7 @@ eHalStatus pmcEnterRequestStartUapsdState (tHalHandle hHal)
                return eHAL_STATUS_FAILURE;
             }
          }
+#ifndef WLAN_SAP_MEM_OPT
          else
          {
             //Not ready for UAPSD at this time, save it first and wake up the chip
@@ -1179,24 +1186,29 @@ eHalStatus pmcEnterRequestStartUapsdState (tHalHandle hHal)
             pMac->pmc.uapsdSessionRequired = TRUE;
             fFullPower = VOS_TRUE;
          }
+#endif /* WLAN_SAP_MEM_OPT*/
          break;
 
       case REQUEST_START_UAPSD:
+#ifndef WLAN_SAP_MEM_OPT
          if( !btcIsReadyForUapsd(pMac) )
          {
             //BTC rejects UAPSD, bring it back to full power
             fFullPower = VOS_TRUE;
          }
+#endif
          break;
 
       case REQUEST_BMPS:
         /* Buffer request for UAPSD mode. */
         pMac->pmc.uapsdSessionRequired = TRUE;
+#ifndef WLAN_SAP_MEM_OPT
         if( !btcIsReadyForUapsd(pMac) )
          {
             //BTC rejects UAPSD, bring it back to full power
             fFullPower = VOS_TRUE;
          }
+#endif /* WLAN_SAP_MEM_OPT*/
         break;
 
       default:
@@ -2325,7 +2337,11 @@ eHalStatus pmcEnterBmpsCheck( tpAniSirGlobal pMac )
 
    /* Check that entry into a power save mode is allowed at this time. */
    //If BTC is not ready and we have an UAPSD session, no power save.
-   if (!pmcPowerSaveCheck(pMac) || ( !btcIsReadyForUapsd(pMac) && pMac->pmc.uapsdSessionRequired ) )
+   if (!pmcPowerSaveCheck(pMac) || ( 
+#ifndef WLAN_SAP_MEM_OPT
+           !btcIsReadyForUapsd(pMac) && 
+#endif /* WLAN_SAP_MEM_OPT*/
+     pMac->pmc.uapsdSessionRequired ) )
    {
       smsLog(pMac, LOGE, "PMC: Power save check failed. BMPS cannot be entered now\n");
       return eHAL_STATUS_PMC_NOT_NOW;

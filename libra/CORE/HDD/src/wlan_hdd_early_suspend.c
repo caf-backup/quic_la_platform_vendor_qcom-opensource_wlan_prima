@@ -245,7 +245,13 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
       wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var, 
          msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
    }
-   
+
+   halStatus = sme_CloseSession(pAdapter->hHal, pAdapter->sessionId);
+   if(halStatus != eHAL_STATUS_SUCCESS)
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Unable to close session with sessionId %d",__func__, pAdapter->sessionId);
+   }
+
    //None of the steps should fail after this. Continue even in case of failure
    vosStatus = vos_stop( pAdapter->pvosContext );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );

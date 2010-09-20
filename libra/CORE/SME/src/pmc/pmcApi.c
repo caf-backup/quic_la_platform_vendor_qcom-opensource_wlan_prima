@@ -319,6 +319,12 @@ eHalStatus pmcClose (tHalHandle hHal)
     {
         smsLog(pMac, LOGE, FL("Cannot deallocate traffic timer\n"));
     }
+#ifdef FEATURE_WLAN_DIAG_SUPPORT    
+    if (palTimerFree(pMac->hHdd, pMac->pmc.hDiagEvtTimer) != eHAL_STATUS_SUCCESS)
+    {
+        smsLog(pMac, LOGE, FL("Cannot deallocate timer for diag event reporting\n"));
+    }
+#endif
     if (palTimerFree(pMac->hHdd, pMac->pmc.hExitPowerSaveTimer) != eHAL_STATUS_SUCCESS)
     {
         smsLog(pMac, LOGE, FL("Cannot deallocate exit power save mode timer\n"));

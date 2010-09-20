@@ -671,6 +671,13 @@ WLANTL_Close
     return VOS_STATUS_E_FAULT;
   }
 
+   if(!HAL_STATUS_SUCCESS(
+      pmcDeregisterDeviceStateUpdateInd(vos_get_context(VOS_MODULE_ID_SME, pvosGCtx), WLANTL_PowerStateChangedCB)))
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+                "%s: %d: cannot deregister with pmcDeregisterDeviceStateUpdateInd()",
+                __FUNCTION__, __LINE__);
+   }
   /*------------------------------------------------------------------------
     Cleanup TL control block.
    ------------------------------------------------------------------------*/

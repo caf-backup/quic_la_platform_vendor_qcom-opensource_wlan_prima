@@ -429,6 +429,12 @@ tANI_U32 WLANHAL_TxBdFastFwd(void *pVosGCtx, tANI_U8 *pDestMac, tANI_U8 tid, tAN
 
 #endif
 
+void WLANHAL_Swap32Bytes(tANI_U8* pData, tANI_U32 size)
+{
+#ifndef ANI_BIG_BYTE_ENDIAN
+    swapBytes(pData, size);
+#endif
+}
 
 /** To swap the RxBD */
 void WLANHAL_SwapRxBd(tANI_U8 *pBd)

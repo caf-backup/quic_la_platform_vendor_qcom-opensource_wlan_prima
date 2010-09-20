@@ -21,8 +21,6 @@
 
 // throw all the includes in here f to get the .c files  in the HDD to compile.
 
-//This is wrong.  CONFIG_QCOM_WLAN_HAVE_NET_DEVICE_OPS shouldn't be used in
-//this way. Use Linux version instead. Anything >= 2.6.31 behaves this way.
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/kernel.h>

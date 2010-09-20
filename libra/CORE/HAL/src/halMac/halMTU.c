@@ -535,7 +535,9 @@ void halMTU_updateTimingParams(tpAniSirGlobal pMac, tMtuMode mode)
     tANI_U32  value, idx;
     tMtuParams *modeParams;
 #ifdef WLAN_DEBUG
+#ifndef WLAN_SAP_MEM_OPT
     tANI_U8  modeStr[][10]={ "11a", "11b", "mixed11g", "pure11g" };
+#endif
 #endif
     tANI_U8 sifs;
 

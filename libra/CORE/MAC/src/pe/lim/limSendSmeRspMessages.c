@@ -1468,10 +1468,7 @@ limSendSmeSetContextRsp(tpAniSirGlobal pMac,
     palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *) peerMacAddr, sizeof(tSirMacAddr));
     pBuf += sizeof(tSirMacAddr);
 
-    limCopyU32(pBuf, resultCode);
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-    pBuf += sizeof(tSirResultCodes);
-
     limCopyU16(pBuf, aid);
     pBuf += sizeof(tANI_U16);
 #endif

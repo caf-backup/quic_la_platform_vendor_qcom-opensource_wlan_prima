@@ -176,7 +176,7 @@ limDeleteStaContext(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
                 PELOGE(limLog(pMac, LOGE, FL(" Deleting Unkown station \n"));)
                 limPrintMacAddr(pMac, pMsg->addr2, LOGE);
                
-                limSendDeauthMgmtFrame( pMac, eSIR_MAC_UNSPEC_FAILURE_REASON, pMsg->addr2, psessionEntry);
+                limSendDeauthMgmtFrame( pMac, eSIR_MAC_CLASS3_FRAME_FROM_NON_ASSOC_STA_REASON, pMsg->addr2, psessionEntry);
                 break;
 
             default:
