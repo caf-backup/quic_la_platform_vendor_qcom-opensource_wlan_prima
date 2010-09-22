@@ -42,6 +42,26 @@
 #endif
 
 
+#ifdef  WLAN_SAP_MEM_OPT
+#ifdef PE_DEBUG_LOGE
+#define PELOGE(p) { p }
+#else
+#define PELOGE(p) { }
+#endif
+
+#ifdef PE_DEBUG_LOGW
+#define PELOGW(p) { p }
+#else
+#define PELOGW(p) { }
+#endif
+
+#define PELOG1(p) { }
+#define PELOG2(p) { }
+#define PELOG3(p) { }
+#define PELOG4(p) { }
+
+
+#else /* WLAN_SAP_MEM_OPT */
 
 #ifdef PE_DEBUG_LOGE
 #define PELOGE(p) { p }
@@ -79,7 +99,7 @@
 #define PELOG4(p) { }
 #endif
 
-
+#endif /* WLAN_SAP_MEM_OPT */
 
 #define FL(x)    "%s: %d: "\
                  x, __FUNCTION__, __LINE__

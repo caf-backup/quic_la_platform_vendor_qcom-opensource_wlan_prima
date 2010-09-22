@@ -1985,15 +1985,13 @@ void halBmu_UnknownAddr2FramesHandler(tpAniSirGlobal pMac)
         return;
     }
 
-    HALLOGE(halLog(pMac, LOGE, FL("Unnown Addr2, bdIdx is %d\n"), bdIdx));
-
     // Get the address of the BD in the packet memory
     halReadRegister(pMac, QWLAN_MCU_BD_PDU_BASE_ADDR_REG, &regVal);
     bdAddr = (regVal + (bdIdx * BMU_BD_SIZE));
     // Read BD header.
     halReadDeviceMemory(pMac, bdAddr, pRxBd, sizeof(tHalRxBd));
     // Read mpdu header.
-    halReadDeviceMemory(pMac, bdAddr + pRxBd->mpduHeaderOffset, (((tANI_U8*)pRxBd) + sizeof(tHalRxBd)), pRxBd->mpduHeaderLength);    
+    halReadDeviceMemory(pMac, bdAddr + pRxBd->mpduHeaderOffset, ((tANI_U8*)pRxBd + sizeof(tHalRxBd)), pRxBd->mpduHeaderLength);    
     // Free BD.
     halWriteRegister(pMac, BMU_CMD_PUSH_WQ(BMUWQ_SINK), bdIdx);
 
@@ -2004,10 +2002,24 @@ void halBmu_UnknownAddr2FramesHandler(tpAniSirGlobal pMac)
     }
     else
     {   
-        pUnkownStaMacHdr = (tpSirMacDataHdr4a)(pRxBd + pRxBd->mpduHeaderOffset);
+
+        pUnkownStaMacHdr = (tpSirMacDataHdr4a)((tANI_U8*)pRxBd + pRxBd->mpduHeaderOffset);
         pDeleteStaMsg->assocId    = 0;
         pDeleteStaMsg->staId      = 0;
         pDeleteStaMsg->reasonCode = QWLAN_DEL_STA_REASON_CODE_UNKNOWN_A2;
+
+        // Swap the contents of the Mac header
+        WLANHAL_Swap32Bytes((tANI_U8*)pUnkownStaMacHdr, sizeof(tSirMacDataHdr4a));
+
+        HALLOGE(halLog(pMac, LOGE, FL("Unknown Addr2 BdIdx = %d, Addr1 %x:%x:%x:%x:%x:%x, Addr2= %x:%x:%x:%x:%x:%x\n"), 
+                    bdIdx,
+                    pUnkownStaMacHdr->addr1[0], pUnkownStaMacHdr->addr1[1], 
+                    pUnkownStaMacHdr->addr1[2], pUnkownStaMacHdr->addr1[3], 
+                    pUnkownStaMacHdr->addr1[4], pUnkownStaMacHdr->addr1[5], 
+                    pUnkownStaMacHdr->addr2[0], pUnkownStaMacHdr->addr2[1], 
+                    pUnkownStaMacHdr->addr2[2], pUnkownStaMacHdr->addr2[3], 
+                    pUnkownStaMacHdr->addr2[4], pUnkownStaMacHdr->addr2[5]));
+
         palCopyMemory( pMac->hHdd, (tANI_U8 *)pDeleteStaMsg->addr2, (tANI_U8 *)pUnkownStaMacHdr->addr2, sizeof(tSirMacAddr));
         palCopyMemory( pMac->hHdd, (tANI_U8 *)pDeleteStaMsg->bssId, (tANI_U8 *)pUnkownStaMacHdr->addr1, sizeof(tSirMacAddr));
 

@@ -628,13 +628,14 @@ eHalStatus sme_Open(tHalHandle hHal)
          break;
       }
 
+#ifndef WLAN_SAP_MEM_OPT
       status = btcOpen(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
          smsLog( pMac, LOGE, "btcOpen open failed during initialization with \
               status=%d\n", status );
          break;
       }
-
+#endif
       if(!HAL_STATUS_SUCCESS((status = initSmeCmdList(pMac))))
           break;
 
@@ -937,11 +938,13 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
              smsLog( pMac, LOGE, "pmcReady failed with status=%d\n", status );
              break;
       }
+#ifndef WLAN_SAP_MEM_OPT
          if(VOS_STATUS_SUCCESS != btcReady(hHal)) {
              status = eHAL_STATUS_FAILURE;
              smsLog( pMac, LOGE, "btcReady failed\n");
              break;
          }
+#endif
       }
       pMac->sme.state = SME_STATE_READY;
    } while( 0 );
@@ -1166,7 +1169,6 @@ eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag)
    eHalStatus status = eHAL_STATUS_FAILURE;
    eHalStatus fail_status = eHAL_STATUS_SUCCESS;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-   tANI_U32 sessionId;
 
    if(pmcFlag)
    {
@@ -1178,14 +1180,11 @@ eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag)
       }
    }
 
-    for( sessionId = 0; sessionId < CSR_ROAM_SESSION_MAX; sessionId++ )
-    {
-        status = csrStop(pMac, sessionId);
-        if ( ! HAL_STATUS_SUCCESS( status ) ) {
-           smsLog( pMac, LOGE, "csrStop failed during smeStop with status=%d\n",
+   status = csrStop(pMac);
+   if ( ! HAL_STATUS_SUCCESS( status ) ) {
+       smsLog( pMac, LOGE, "csrStop failed during smeStop with status=%d\n",
               status );
       fail_status = status;
-   }
     }
 
    ccmStop(hHal);
@@ -1236,9 +1235,29 @@ eHalStatus sme_Close(tHalHandle hHal)
    eHalStatus fail_status = eHAL_STATUS_SUCCESS;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
-   status = csrClose(pMac);
+#ifdef WLAN_SOFTAP_FEATURE
+   if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
+         status = WLANSAP_Close(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
+         if ( ! HAL_STATUS_SUCCESS( status ) ) {
+             smsLog( pMac, LOGE, "WLANSAP_close failed during sme close with status=%d\n",
+                 status );
+             fail_status = status;
+         }
+   }
+#endif
+
+#ifndef WLAN_SAP_MEM_OPT
+   status = btcClose(hHal);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
-      smsLog( pMac, LOGE, "csrClose failed during sme close with status=%d\n",
+      smsLog( pMac, LOGE, "BTC close failed during sme close with status=%d\n",
+              status );
+      fail_status = status;
+   }
+#endif
+
+   status = sme_QosClose(pMac);
+   if ( ! HAL_STATUS_SUCCESS( status ) ) {
+      smsLog( pMac, LOGE, "Qos close failed during sme close with status=%d\n",
               status );
       fail_status = status;
    }
@@ -1250,38 +1269,19 @@ eHalStatus sme_Close(tHalHandle hHal)
       fail_status = status;
    }
 
+   status = csrClose(pMac);
+   if ( ! HAL_STATUS_SUCCESS( status ) ) {
+      smsLog( pMac, LOGE, "csrClose failed during sme close with status=%d\n",
+              status );
+      fail_status = status;
+   }
+
    status = ccmClose(hHal);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
       smsLog( pMac, LOGE, "ccmClose failed during sme close with status=%d\n",
               status );
       fail_status = status;
    }
-
-   status = sme_QosClose(pMac);
-   if ( ! HAL_STATUS_SUCCESS( status ) ) {
-      smsLog( pMac, LOGE, "Qos close failed during sme close with status=%d\n",
-              status );
-      fail_status = status;
-   }
-
-   status = btcClose(hHal);
-   if ( ! HAL_STATUS_SUCCESS( status ) ) {
-      smsLog( pMac, LOGE, "BTC close failed during sme close with status=%d\n",
-              status );
-      fail_status = status;
-   }
-
-
-#ifdef WLAN_SOFTAP_FEATURE
-   if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
-         status = WLANSAP_Close(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
-         if ( ! HAL_STATUS_SUCCESS( status ) ) {
-             smsLog( pMac, LOGE, "WLANSAP_close failed during sme close with status=%d\n",
-                 status );
-             fail_status = status;
-         }
-   }
-#endif
 
    freeSmeCmdList(pMac);
 
@@ -3345,6 +3345,7 @@ eHalStatus sme_ScanGetBaseChannels( tHalHandle hHal, tCsrChannelInfo * pChannelI
 VOS_STATUS sme_BtcSignalBtEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
 {
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
+#ifndef WLAN_SAP_MEM_OPT
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
@@ -3352,7 +3353,7 @@ VOS_STATUS sme_BtcSignalBtEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
         status = btcSignalBTEvent (hHal, pBtEvent);
         sme_ReleaseGlobalLock( &pMac->sme );
     }
-
+#endif
     return (status);
 }
 
@@ -3371,6 +3372,7 @@ VOS_STATUS sme_BtcSignalBtEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
 VOS_STATUS sme_BtcSetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
 {
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
+#ifndef WLAN_SAP_MEM_OPT
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
@@ -3378,7 +3380,7 @@ VOS_STATUS sme_BtcSetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
         status = btcSetConfig (hHal, pSmeBtcConfig);
         sme_ReleaseGlobalLock( &pMac->sme );
     }
-
+#endif
     return (status);
 }
 
@@ -3396,6 +3398,7 @@ VOS_STATUS sme_BtcSetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
 VOS_STATUS sme_BtcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
 {
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
+#ifndef WLAN_SAP_MEM_OPT
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
@@ -3403,7 +3406,7 @@ VOS_STATUS sme_BtcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
         status = btcGetConfig (hHal, pSmeBtcConfig);
         sme_ReleaseGlobalLock( &pMac->sme );
     }
-
+#endif
     return (status);
 }
 /* ---------------------------------------------------------------------------

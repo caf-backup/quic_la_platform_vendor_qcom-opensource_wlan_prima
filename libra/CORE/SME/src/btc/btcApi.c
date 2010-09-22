@@ -8,7 +8,7 @@
 * Qualcomm Confidential and Proprietary.
 *
 ******************************************************************************/
-
+#ifndef WLAN_SAP_MEM_OPT
 #include "aniGlobal.h"
 #include "smsDebug.h"
 #include "btcApi.h"
@@ -94,6 +94,14 @@ VOS_STATUS btcClose (tHalHandle hHal)
    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcClose: Fail to destroy timer");
        return VOS_STATUS_E_FAILURE;
+   }
+
+   if(!HAL_STATUS_SUCCESS(
+      pmcDeregisterDeviceStateUpdateInd(pMac, btcPowerStateCB)))
+   {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
+         "%s: %d: cannot deregister with pmcDeregisterDeviceStateUpdateInd()",
+                __FUNCTION__, __LINE__);
    }
 
    return VOS_STATUS_SUCCESS;
@@ -1970,3 +1978,5 @@ static void btcDiagEventLog (tHalHandle hHal, tpSmeBtEvent pBtEvent)
    WLAN_VOS_DIAG_EVENT_REPORT(&btDiagEvent, EVENT_WLAN_BTC);
 }
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
+
+#endif /* WLAN_SAP_MEM_OPT*/

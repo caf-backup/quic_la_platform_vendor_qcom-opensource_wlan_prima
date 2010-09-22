@@ -13,6 +13,17 @@
 
 
 #ifdef WLAN_DEBUG
+#ifdef WLAN_SAP_MEM_OPT
+#define HALLOGP(x0)  x0
+#define HALLOGE(x0)  x0
+#define HALLOGW(x0)  x0
+#define HALLOG1(x)  {}
+#define HALLOG2(x)  {}
+#define HALLOG3(x)  {}
+#define HALLOG4(x)  {}
+#define STR(x)  x
+
+#else /*WLAN_SAP_MEM_OPT*/
 
 #define HALLOGP(x0)  x0
 #define HALLOGE(x0)  x0
@@ -38,6 +49,8 @@
 #endif
 
 #define STR(x)  x
+
+#endif /*WLAN_SAP_MEM_OPT*/
 
 #else
 

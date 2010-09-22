@@ -3639,7 +3639,7 @@ eHalStatus halMsg_HandleFinishScan( tpAniSirGlobal pMac, tpFinishScanParams para
     halRxp_setScanLearn( pMac, FALSE );
 
     // Set RXP filter appropriately.
-    halRxp_setSystemRxpFilterMode(pMac, eRXP_SCAN_MODE, eHAL_USE_GLOBAL_AND_BSS_RXP);
+    halRxp_setSystemRxpFilterMode(pMac, eRXP_IDLE_MODE, eHAL_USE_GLOBAL_AND_BSS_RXP);
 
     // Send the raw frame given by PE, to TL for transmission
     if (param->notifyBss && param->frameLength ) {

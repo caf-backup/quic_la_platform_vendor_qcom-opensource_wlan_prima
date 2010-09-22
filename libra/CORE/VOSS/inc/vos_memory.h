@@ -26,6 +26,10 @@
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
 
+#ifdef MEMORY_DEBUG
+v_VOID_t vos_mem_init(v_VOID_t);
+v_VOID_t vos_mem_exit(v_VOID_t);
+#endif
 
 /*-------------------------------------------------------------------------- 
   Type declarations
@@ -52,7 +56,12 @@
   \sa
   
   --------------------------------------------------------------------------*/
+#ifdef MEMORY_DEBUG
+#define vos_mem_malloc(size) vos_mem_malloc_debug(size, __FILE__, __LINE__)
+v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, v_S7_t* fileName, v_U32_t lineNum);
+#else
 v_VOID_t * vos_mem_malloc( v_SIZE_t size );
+#endif
 
 
 /*----------------------------------------------------------------------------
@@ -222,10 +231,15 @@ v_SINT_t vos_mem_compare2( v_VOID_t *pMemory1, v_VOID_t *pMemory2, v_U32_t numBy
   allocated memory.  If this function is unable to allocate the amount of 
   memory specified (for any reason) it returns NULL.
     
- \sa
+  \sa
   
   --------------------------------------------------------------------------*/
+#ifdef MEMORY_DEBUG
+#define vos_mem_dma_malloc(size) vos_mem_dma_malloc_debug(size, __FILE__, __LINE__)
+v_VOID_t * vos_mem_dma_malloc_debug( v_SIZE_t size, v_U8_t* fileName, v_U32_t lineNum);
+#else
 v_VOID_t * vos_mem_dma_malloc( v_SIZE_t size );
+#endif
 
 
 /*----------------------------------------------------------------------------

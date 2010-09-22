@@ -159,7 +159,6 @@ eHalStatus halTLSend80211Frame(tpAniSirGlobal pMac,
  */
 void halTLRSSINotification(tpAniSirGlobal pMac, tpSirRSSINotification pRSSINotification);
 
-#endif /*_HALTLAPI_H_*/
-
-
 void halTLGetTxPktCount(tpAniSirGlobal pMac, tANI_U8 curSta, tANI_U8 tId, tANI_U32 *txPcktCount );
+
+#endif /*_HALTLAPI_H_*/

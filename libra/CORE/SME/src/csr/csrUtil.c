@@ -3086,6 +3086,7 @@ tANI_U8 csrConstructWapiIe( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamPro
 
         if( fBKIDFound )
         {
+            /* Do we need to change the endianness here */
             *pWapi = (tANI_U16)1; //cBKIDs
             pWapi+=2;
             palCopyMemory( pMac->hHdd, pWapi, BKId, CSR_WAPI_BKID_SIZE );
@@ -3093,6 +3094,9 @@ tANI_U8 csrConstructWapiIe( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamPro
         else
         {
             *pWapi = 0;
+            pWapi+=1;
+            *pWapi = 0;
+            pWapi+=1;
         }
 
         // Add in the IE fields except the IE header
@@ -4752,6 +4756,13 @@ void csrReleaseProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile)
             palFreeMemory(pMac->hHdd, pProfile->pWAPIReqIE);
         }
 #endif /* FEATURE_WLAN_WAPI */
+    
+        if(pProfile->ChannelInfo.ChannelList)
+        {
+            palFreeMemory(pMac->hHdd, pProfile->ChannelInfo.ChannelList);
+        }
+
+    
         palZeroMemory(pMac->hHdd, pProfile, sizeof(tCsrRoamProfile));
     }
 }

@@ -372,6 +372,9 @@ void WLANHAL_SwapFcRxBd(tANI_U8 *pBd);
 
 #endif
 
+/* To swap the data */
+void WLANHAL_Swap32Bytes(tANI_U8* pData, tANI_U32 size);
+
 /** To swap the RxBD */
 void WLANHAL_SwapRxBd(tANI_U8 *pBd);
 void WLANHAL_RxAmsduBdFix(void *pVosGCtx,v_PVOID_t _pvBDHeader);

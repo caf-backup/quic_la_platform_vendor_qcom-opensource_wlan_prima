@@ -2851,6 +2851,7 @@ static char *dump_hal_phy_regs(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2
 
 static char *dump_hal_set_btc_config(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
+#ifndef WLAN_SAP_MEM_OPT
     tSmeBtcConfig btcConfig;
 
     btcConfig.btcWlanIntervalMode1 = (v_U8_t)arg1;
@@ -2859,7 +2860,7 @@ static char *dump_hal_set_btc_config(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U3
     btcConfig.btcActionOnPmFail = (v_U8_t)arg4;
 
     btcSetConfig((tHalHandle)pMac, &btcConfig);
-
+#endif
     return p;
 }
 

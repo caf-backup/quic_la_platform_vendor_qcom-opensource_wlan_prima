@@ -989,8 +989,8 @@ eHalStatus halTpe_SetBeaconTemplate(tpAniSirGlobal pMac, tANI_U16 beaconIndex, t
     halZeroDeviceMemory(pMac, beaconOffset, BEACON_TEMPLATE_SIZE);
 
     /** Write the beacon header */
-     halWriteDeviceMemory(pMac, beaconOffset ,
-                            (tANI_U8 *)&beaconTemplate.template_header, BEACON_TEMPLATE_HEADER);
+    halWriteDeviceMemory(pMac, beaconOffset ,
+            (tANI_U8 *)&beaconTemplate.template_header, BEACON_TEMPLATE_HEADER);
 
     return status;
 }
@@ -1462,6 +1462,7 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
                                     tANI_U16 beaconIndex, tANI_U32 length)
 {
     tBeaconTemplate beaconTemplate;
+    tPwrTemplateIndex txPower = 0;
     tTpeRateIdx rateIndex;
     tANI_U32 beaconOffset;
     tANI_U32 alignedLen;
@@ -1485,15 +1486,15 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
     beaconTemplate.template_header.stbc = 0;
     beaconTemplate.template_header.reserved2 = 0;
     beaconTemplate.template_header.reserved3 = 0;
-    beaconTemplate.template_header.tx_power = 0;
     beaconTemplate.template_header.tx_antenna_enable = 0;
     beaconTemplate.template_header.tsf_offset = TPE_BEACON_1MBPS_LONG_TSF_OFFSET;
     beaconTemplate.template_header.reserved4 = 0;
     beaconTemplate.template_header.reserved5 = 0;
-    
-    halGetBcnRateIdx(pMac, &rateIndex);
-    beaconTemplate.template_header.primary_data_rate_index = rateIndex;
 
+    halGetBcnRateIdx(pMac, &rateIndex);
+    halRate_getPowerIndex(pMac, rateIndex, &txPower);
+    beaconTemplate.template_header.primary_data_rate_index = rateIndex;
+    beaconTemplate.template_header.tx_power = txPower;
 
     beaconTemplate.template_header.template_len = length + BEACON_TEMPLATE_CRC;
 
@@ -1501,12 +1502,12 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
 
 
     halWriteDeviceMemory(pMac, beaconOffset ,
-                            (tANI_U8 *)&beaconTemplate.template_header, BEACON_TEMPLATE_HEADER);
+            (tANI_U8 *)&beaconTemplate.template_header, BEACON_TEMPLATE_HEADER);
 #if WLAN_SOFTAP_FW_BEACON_TX_PRNT_LOG
-	HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx] halTpe_UpdateBeaconMemory Dump B2Swap-Start... \n")));   
+    HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx] halTpe_UpdateBeaconMemory Dump B2Swap-Start... \n")));   
     for( ii = 0; ii < length; ii+= 4 )
-       	 HALLOGE(halLog(pMac, LOGE, FL( "ii[%d] [%x][%x][%x][%x]\n" ) , ii , (tANI_U8)beacon[ii]  , (tANI_U8)beacon[ii] , (tANI_U8)beacon[ii+1] , (tANI_U8)beacon[ii+2] , (tANI_U8)beacon[ii+3] ));
-  	HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx] halTpe_UpdateBeaconMemory Dump B2Swap-End... \n")));
+        HALLOGE(halLog(pMac, LOGE, FL( "ii[%d] [%x][%x][%x][%x]\n" ) , ii , (tANI_U8)beacon[ii]  , (tANI_U8)beacon[ii] , (tANI_U8)beacon[ii+1] , (tANI_U8)beacon[ii+2] , (tANI_U8)beacon[ii+3] ));
+    HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx] halTpe_UpdateBeaconMemory Dump B2Swap-End... \n")));
 #endif
 
     //FIXME: halWriteDevicememory requires lenght to be mulltiple of four and aligned to 4 byte boundry.
@@ -1519,19 +1520,19 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
     // the beacon to Libra.
     sirSwapU32BufIfNeeded((tANI_U32*)beacon, alignedLen>>2);
 
-     halWriteDeviceMemory(pMac, beaconOffset + BEACON_TEMPLATE_HEADER,
-                            (tANI_U8 *)beacon, alignedLen );
+    halWriteDeviceMemory(pMac, beaconOffset + BEACON_TEMPLATE_HEADER,
+            (tANI_U8 *)beacon, alignedLen );
 #if WLAN_SOFTAP_FW_BEACON_TX_PRNT_LOG
-  	 HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx] halTpe_UpdateBeaconMemory Dump A2Swap-Start...\n")));   
-     for( ii = 0; ii < alignedLen; ii+= 4 )
-       	 HALLOGE(halLog(pMac, LOGE, FL( "ii[%d] [%x][%x][%x][%x]\n" ) ,ii, (tANI_U8)beacon[ii] ,  (tANI_U8)beacon[ii] , (tANI_U8)beacon[ii+1] , (tANI_U8)beacon[ii+2] , (tANI_U8)beacon[ii+3] ));
-  	 
-	 HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx] halTpe_UpdateBeaconMemory Dump A2Swap-End... \n")));
+    HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx] halTpe_UpdateBeaconMemory Dump A2Swap-Start...\n")));   
+    for( ii = 0; ii < alignedLen; ii+= 4 )
+        HALLOGE(halLog(pMac, LOGE, FL( "ii[%d] [%x][%x][%x][%x]\n" ) ,ii, (tANI_U8)beacon[ii] ,  (tANI_U8)beacon[ii] , (tANI_U8)beacon[ii+1] , (tANI_U8)beacon[ii+2] , (tANI_U8)beacon[ii+3] ));
+
+    HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx] halTpe_UpdateBeaconMemory Dump A2Swap-End... \n")));
 #endif
 
 
 #ifdef WLAN_SOFTAP_FEATURE
-     HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx] halTpe_UpdateBeaconMemory-BknBodyOffset:[%X] alignedLen [%d] \n"), (beaconOffset + BEACON_TEMPLATE_HEADER) , alignedLen ));
+    HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx] halTpe_UpdateBeaconMemory-BknBodyOffset:[%X] alignedLen [%d] \n"), (beaconOffset + BEACON_TEMPLATE_HEADER) , alignedLen ));
 #endif
 
 }

@@ -195,7 +195,7 @@ int vos_chip_power_qrf8600(int on)
          return -EIO;
       }
 
-      // Power up 2.5v Analog
+      // Power up 2.4v Analog
       rc = vreg_set_level(vreg_wlan2, 2400);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg set level failed (%d)",

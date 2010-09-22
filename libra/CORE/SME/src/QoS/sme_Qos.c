@@ -3153,7 +3153,11 @@ eHalStatus sme_QosAddTsReq(tpAniSirGlobal pMac,
    pMsg->req.tspec.svcStartTime = 0;
    pMsg->req.tspec.tsinfo.traffic.direction = pTspec_Info->ts_info.direction;
    //Make sure UAPSD is allowed. BTC may want to disable UAPSD while keep QoS setup
-   if( pTspec_Info->ts_info.psb && btcIsReadyForUapsd(pMac) )
+   if( pTspec_Info->ts_info.psb 
+#ifndef WLAN_SAP_MEM_OPT
+         && btcIsReadyForUapsd(pMac) 
+#endif /* WLAN_SAP_MEM_OPT*/
+     )
    {
       pMsg->req.tspec.tsinfo.traffic.psb = pTspec_Info->ts_info.psb;
    }
@@ -6927,14 +6931,18 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
 
             //we need to do a reassoc on these AC 
             csrGetModifyProfileFields(pMac, sessionId, &modifyProfileFields);
+#ifndef WLAN_SAP_MEM_OPT
             if( btcIsReadyForUapsd(pMac) )
+#endif /*WLAN_SAP_MEM_OPT*/
             {
                modifyProfileFields.uapsd_mask = uapsd_mask;
             }
+#ifndef WLAN_SAP_MEM_OPT
             else
             {  
                modifyProfileFields.uapsd_mask = 0;
             }
+#endif /*WLAN_SAP_MEM_OPT*/
 
             //Do we need to inform HDD?
             if(!HAL_STATUS_SUCCESS(sme_QosRequestReassoc(pMac, sessionId, &modifyProfileFields, VOS_TRUE)))

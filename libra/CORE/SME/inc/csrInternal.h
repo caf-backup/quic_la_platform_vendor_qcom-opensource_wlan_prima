@@ -1035,7 +1035,7 @@ eHalStatus csrStart(tpAniSirGlobal pMac);
     \brief To stop CSR. CSR still keeps its current setting.
     \return eHalStatus     
   -------------------------------------------------------------------------------*/
-eHalStatus csrStop(tpAniSirGlobal pMac, tANI_U32 sessionId);
+eHalStatus csrStop(tpAniSirGlobal pMac);
 /* ---------------------------------------------------------------------------
     \fn csrReady
     \brief To let CSR is ready to operate
