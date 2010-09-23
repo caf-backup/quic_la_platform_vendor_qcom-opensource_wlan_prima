@@ -73,12 +73,13 @@ static char *dump_btcSetEvent( tpAniSirGlobal pMac, tANI_U32 arg1,
         default:
             break;
         }
-#ifndef WLAN_SAP_MEM_OPT
-		if(HAL_STATUS_SUCCESS(sme_AcquireGlobalLock( &pMac->sme )))
-		{
-			btcSignalBTEvent(pMac, &btEvent);
-			sme_ReleaseGlobalLock( &pMac->sme );
-		}
+//#ifndef WLAN_SAP_MEM_OPT
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
+        if(HAL_STATUS_SUCCESS(sme_AcquireGlobalLock( &pMac->sme )))
+        {
+            btcSignalBTEvent(pMac, &btEvent);
+            sme_ReleaseGlobalLock( &pMac->sme );
+        }
 #endif
     }
     else

@@ -2851,7 +2851,7 @@ static char *dump_hal_phy_regs(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2
 
 static char *dump_hal_set_btc_config(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
-#ifndef WLAN_SAP_MEM_OPT
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     tSmeBtcConfig btcConfig;
 
     btcConfig.btcWlanIntervalMode1 = (v_U8_t)arg1;
@@ -3228,6 +3228,20 @@ dump_hal_write_register( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI
     HALLOGE(halLog(pMac, LOGE, FL("Register Value Written = 0x%08x\n"), regValue));
     return p;
 }
+
+#ifdef WLAN_SOFTAP_FEATURE
+static char *
+dump_hal_enable_listen_mode(  tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)  
+{
+    (void) arg2; (void) arg3; (void) arg4;
+    
+    pMac->hal.ghalPhyAgcListenMode = (tANI_BOOLEAN)arg1;
+    halEnableListenMode(pMac, pMac->hal.ghalPhyAgcListenMode);
+    
+    HALLOGE(halLog(pMac, LOGE, FL("Listen mode enable/disable<1/0> = %d\n"), pMac->hal.ghalPhyAgcListenMode));        
+    return p;
+}
+#endif
 
 static char *
 dump_hal_stop_fw_heartbeat( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
@@ -3756,9 +3770,10 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {260,   "SAP:Cmd <cmd> <staId> <queueId>",                          dump_hal_send_sap_cmd},
     {261,   "SAP:Enable/Disabl FW routing",                             dump_hal_set_sap_fw_routing},
     {262,   "send flow ctrl frame to fw <staIdx> <memUsage Threshold>", dump_sendFcFrameToFw},    
-    {263,   "SAP link monitor at FW <1/0>",                             dump_hal_set_ap_link_monitor},                     
-    {264,   "SAP unknown addr2 handling at FW <1/0>",                   dump_hal_set_ap_unknown_addr2_handling},                
+    {263,   "SAP:link monitor at FW <1/0>",                             dump_hal_set_ap_link_monitor},                     
+    {264,   "SAP:unknown addr2 handling at FW <1/0>",                   dump_hal_set_ap_unknown_addr2_handling},                
     {265,   "SAP:TIMBasedDisAssocFeatureEnable/Disable",                dump_hal_set_sap_fw_timBasedDisassoc}, 
+    {266,   "SAP:Enable/Disable AGC Listen Mode <1/0>",                 dump_hal_enable_listen_mode},   
 #endif
 
 };

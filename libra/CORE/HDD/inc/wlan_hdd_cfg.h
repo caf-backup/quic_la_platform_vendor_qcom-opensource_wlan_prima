@@ -343,6 +343,11 @@ typedef enum
 #define CFG_AP_STA_SECURITY_SEPERATION_MAX              (1) 
 #define CFG_AP_STA_SECURITY_SEPERATION_DEFAULT          (0)   
 
+#define CFG_AP_LISTEN_MODE_NAME               "gEnablePhyAgcListenMode" 
+#define CFG_AP_LISTEN_MODE_MIN                (0)
+#define CFG_AP_LISTEN_MODE_MAX                (1) 
+#define CFG_AP_LISTEN_MODE_DEFAULT            (0)   
+
 #endif
 
 #define CFG_BEACON_INTERVAL_NAME               "gBeaconInterval"
@@ -872,6 +877,11 @@ typedef enum
 #define CFG_BTC_EXECUTION_MODE_MAX                          ( 5 )
 #define CFG_BTC_EXECUTION_MODE_DEFAULT                      ( 0 )
 
+#define CFG_ENABLE_WAPI_NAME                             "WAPIIsEnabled"
+#define CFG_ENABLE_WAPI_MIN                               (0)
+#define CFG_ENABLE_WAPI_MAX                               (1) // WAPI Enabled
+#define CFG_ENABLE_WAPI_DEFAULT                           (0) // WAPI disabled
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -945,6 +955,7 @@ typedef struct
    v_BOOL_t      apProtEnabled;
    char          apCntryCode[4];
    v_BOOL_t      apDisableIntraBssFwd;
+   v_BOOL_t      nEnableListenMode;    
 #endif
 
    v_U32_t       nBeaconInterval;
@@ -1077,6 +1088,9 @@ typedef struct
    /* Wowl pattern */
    char                        wowlPattern[1024];         
    v_BOOL_t                    b19p2MhzPmicClkEnabled;
+
+   /* WAPI enabled or not */
+   v_BOOL_t                    bWapiEnable;
 
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 

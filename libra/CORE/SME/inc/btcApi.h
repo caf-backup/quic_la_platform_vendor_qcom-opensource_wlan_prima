@@ -272,6 +272,8 @@ typedef struct sSmeBtcInfo
 
 /** Routine definitions
 */
+
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
 VOS_STATUS btcOpen (tHalHandle hHal);
 VOS_STATUS btcClose (tHalHandle hHal);
 VOS_STATUS btcReady (tHalHandle hHal);
@@ -286,5 +288,6 @@ VOS_STATUS btcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig);
             VOS_FALSE -- certain BT event is active, cannot enter UAPSD
 */
 v_BOOL_t btcIsReadyForUapsd( tHalHandle hHal );
+#endif /* End of WLAN_MDM_CODE_REDUCTION_OPT */
 
 #endif

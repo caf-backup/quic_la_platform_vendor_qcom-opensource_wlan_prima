@@ -319,6 +319,11 @@ typedef struct sAniSirHal
     tpCBackFnTxComp pCBackFnTxComp;
 
     TX_TIMER        txCompTimer; //Timer to wait for TX complete interrupt.
+
+#ifdef WLAN_SOFTAP_FEATURE
+    /* Listen mode enable parameters */
+    tANI_BOOLEAN    ghalPhyAgcListenMode;
+#endif    
 } tAniSirHal, *tpAniSirHal;
 
 /* Invalid operating channel. Used during startup */

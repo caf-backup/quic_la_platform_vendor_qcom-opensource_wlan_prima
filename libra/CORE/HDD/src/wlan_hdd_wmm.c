@@ -78,6 +78,7 @@ const v_U8_t hddWmmUpToAcMap[] = {
    WLANTL_AC_VO
 };
 
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
 /**
   @brief hdd_wmm_enable_tl_uapsd() - function which decides whether and
   how to update UAPSD parameters in TL
@@ -237,6 +238,7 @@ static void hdd_wmm_disable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
    }
 }
 
+#endif
 
 /**
   @brief hdd_wmm_free_context() - function which frees a QoS context
@@ -282,7 +284,7 @@ static void hdd_wmm_free_context (hdd_wmm_qos_context_t* pQosContext)
 
 }
 
-
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
 /**
   @brief hdd_wmm_notify_app() - function which notifies an application
                                 changes in state of it flow
@@ -1017,7 +1019,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
 
    return eHAL_STATUS_SUCCESS;
 }
-
+#endif
 
 /**============================================================================
   @brief hdd_wmm_do_implicit_qos() - Function which will attempt to setup
@@ -1034,8 +1036,10 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
    hdd_adapter_t* pAdapter;
    WLANTL_ACEnumType acType;
    hdd_wmm_ac_status_t *pAc;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
    VOS_STATUS status;
    sme_QosStatusType smeStatus;
+#endif
    sme_QosWmmTspecInfo qosInfo;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
@@ -1130,6 +1134,7 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
    list_add(&pQosContext->node, &pAdapter->hddWmmStatus.wmmContextList);
    mutex_unlock(&pAdapter->hddWmmStatus.wmmLock);
 
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
    smeStatus = sme_QosSetupReq(pAdapter->hHal,
                                pAdapter->sessionId,
                                &qosInfo,
@@ -1200,6 +1205,7 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
                  __FUNCTION__, smeStatus );
       VOS_ASSERT(0);
    }
+#endif
 
 }
 
@@ -1852,8 +1858,10 @@ hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
                                      sme_QosWmmTspecInfo* pTspec )
 {
    hdd_wmm_qos_context_t *pQosContext;
-   hdd_wlan_wmm_status_e status;
+   hdd_wlan_wmm_status_e status = HDD_WLAN_WMM_STATUS_SETUP_SUCCESS ;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
    sme_QosStatusType smeStatus;
+#endif
    v_BOOL_t found = VOS_FALSE;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
@@ -1907,6 +1915,7 @@ hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
    list_add(&pQosContext->node, &pAdapter->hddWmmStatus.wmmContextList);
    mutex_unlock(&pAdapter->hddWmmStatus.wmmLock);
 
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
    smeStatus = sme_QosSetupReq(pAdapter->hHal,
                                pAdapter->sessionId,
                                pTspec,
@@ -1950,6 +1959,7 @@ hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
       VOS_ASSERT(0);
       return HDD_WLAN_WMM_STATUS_SETUP_FAILED;
    }
+#endif
 
    // we were successful, save the status
    pQosContext->lastStatus = status;
@@ -1973,8 +1983,10 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
    v_BOOL_t found = VOS_FALSE;
    WLANTL_ACEnumType acType = 0;
    v_U32_t qosFlowId = 0;
-   hdd_wlan_wmm_status_e status;
+   hdd_wlan_wmm_status_e status = HDD_WLAN_WMM_STATUS_SETUP_SUCCESS ;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
    sme_QosStatusType smeStatus;
+#endif
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
              "%s: Entered with handle 0x%x", __FUNCTION__, handle);
@@ -2008,6 +2020,7 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
              "%s: found handle 0x%x, flow %d, AC %d, context %p",
              __FUNCTION__, handle, qosFlowId, acType, pQosContext);
 
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
    smeStatus = sme_QosReleaseReq( pAdapter->hHal, qosFlowId );
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
@@ -2054,6 +2067,7 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
       status = HDD_WLAN_WMM_STATUS_RELEASE_FAILED;
    }
 
+#endif
    pQosContext->lastStatus = status;
    return status;
 }

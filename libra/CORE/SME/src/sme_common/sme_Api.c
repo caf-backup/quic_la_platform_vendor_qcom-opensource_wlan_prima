@@ -489,6 +489,7 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                         case eSmeCommandAddTs:
                         case eSmeCommandDelTs:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                             fContinue = qosProcessCommand( pMac, pCommand );
                             if( fContinue )
                             {
@@ -496,9 +497,12 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                                 if( csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, 
                                             &pCommand->Link, LL_ACCESS_NOLOCK ) )
                                 {
+//#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                                     qosReleaseCommand( pMac, pCommand );
+//#endif /* WLAN_MDM_CODE_REDUCTION_OPT*/
                                 }
                             }
+#endif
                             break;
 
                         default:
@@ -621,6 +625,7 @@ eHalStatus sme_Open(tHalHandle hHal)
          break;
       }
 
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
       status = sme_QosOpen(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
          smsLog( pMac, LOGE, "Qos open failed during initialization with \
@@ -628,7 +633,6 @@ eHalStatus sme_Open(tHalHandle hHal)
          break;
       }
 
-#ifndef WLAN_SAP_MEM_OPT
       status = btcOpen(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
          smsLog( pMac, LOGE, "btcOpen open failed during initialization with \
@@ -938,7 +942,7 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
              smsLog( pMac, LOGE, "pmcReady failed with status=%d\n", status );
              break;
       }
-#ifndef WLAN_SAP_MEM_OPT
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
          if(VOS_STATUS_SUCCESS != btcReady(hHal)) {
              status = eHAL_STATUS_FAILURE;
              smsLog( pMac, LOGE, "btcReady failed\n");
@@ -1083,8 +1087,10 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
              //QoS
              if (pMsg->bodyptr) 
              {
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                 status = sme_QosMsgProcessor(pMac, pMsg->type, pMsg->bodyptr);
                 vos_mem_free( pMsg->bodyptr );
+#endif
              } else {
                 smsLog( pMac, LOGE, "Empty rsp message for QoS, nothing to process\n");
              }
@@ -1246,14 +1252,13 @@ eHalStatus sme_Close(tHalHandle hHal)
    }
 #endif
 
-#ifndef WLAN_SAP_MEM_OPT
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
    status = btcClose(hHal);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
       smsLog( pMac, LOGE, "BTC close failed during sme close with status=%d\n",
               status );
       fail_status = status;
    }
-#endif
 
    status = sme_QosClose(pMac);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
@@ -1261,7 +1266,7 @@ eHalStatus sme_Close(tHalHandle hHal)
               status );
       fail_status = status;
    }
-
+#endif
    status = pmcClose(hHal);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
       smsLog( pMac, LOGE, "pmcClose failed during sme close with status=%d\n",
@@ -3345,7 +3350,7 @@ eHalStatus sme_ScanGetBaseChannels( tHalHandle hHal, tCsrChannelInfo * pChannelI
 VOS_STATUS sme_BtcSignalBtEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
 {
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
-#ifndef WLAN_SAP_MEM_OPT
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
@@ -3372,7 +3377,7 @@ VOS_STATUS sme_BtcSignalBtEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
 VOS_STATUS sme_BtcSetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
 {
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
-#ifndef WLAN_SAP_MEM_OPT
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
@@ -3398,7 +3403,7 @@ VOS_STATUS sme_BtcSetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
 VOS_STATUS sme_BtcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
 {
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
-#ifndef WLAN_SAP_MEM_OPT
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )

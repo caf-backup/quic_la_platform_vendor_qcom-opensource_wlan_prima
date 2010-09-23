@@ -1153,6 +1153,22 @@ This is a Verizon required feature.
                  CFG_BTC_EXECUTION_MODE_MIN, 
                  CFG_BTC_EXECUTION_MODE_MAX ),
 
+#ifdef WLAN_SOFTAP_FEATURE
+   REG_VARIABLE( CFG_AP_LISTEN_MODE_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nEnableListenMode, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_AP_LISTEN_MODE_DEFAULT, 
+                 CFG_AP_LISTEN_MODE_MIN, 
+                 CFG_AP_LISTEN_MODE_MAX ),                     
+#endif
+
+    REG_VARIABLE( CFG_ENABLE_WAPI_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, bWapiEnable,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_ENABLE_WAPI_DEFAULT,
+                  CFG_ENABLE_WAPI_MIN,
+                  CFG_ENABLE_WAPI_MAX ),
+
 };                                
 
 /*
@@ -1358,7 +1374,7 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
       pAdapter->cfg_ini->apCntryCode[2]);
 
   printk(KERN_ERR "Name = [gEnableApProt] value = [%u]\n",pAdapter->cfg_ini->apProtEnabled);
-
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableListenMode] Value = [%u]\n", pAdapter->cfg_ini->nEnableListenMode);  
 #endif
   
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [ChannelBondingMode] Value = [%lu]",pAdapter->cfg_ini->ChannelBondingMode);
@@ -1409,7 +1425,7 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqViWeight] Value = [%u] ",pAdapter->cfg_ini->WfqViWeight);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqVoWeight] Value = [%u] ",pAdapter->cfg_ini->WfqVoWeight);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [DelayedTriggerFrmInt] Value = [%lu] ",pAdapter->cfg_ini->DelayedTriggerFrmInt);
-
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [WAPI Enabled] Value = [%u] ",pAdapter->cfg_ini->bWapiEnable);
 }
 
 
@@ -2071,6 +2087,13 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_NTH_BEACON_FILTER configuration info to CCM\n"  );
 	 }
 
+     if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE, pConfig->nEnableListenMode, 
+        NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+     {
+        fStatus = FALSE;
+        hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE to CCM\n");
+     }
+   
    return fStatus;
 }
 

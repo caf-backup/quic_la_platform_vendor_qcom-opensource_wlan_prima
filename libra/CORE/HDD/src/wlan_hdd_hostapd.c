@@ -567,6 +567,35 @@ static iw_softap_disassoc_sta(struct net_device *dev,
 }
 
 int
+static iw_softap_ap_stats(struct net_device *dev,
+                        struct iw_request_info *info,
+                        union iwreq_data *wrqu, char *extra)
+{
+    hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    WLANTL_TRANSFER_STA_TYPE  statBuffer;
+    char *pstatbuf;
+    int len = wrqu->data.length;
+
+    pstatbuf = wrqu->data.pointer;
+
+    WLANSAP_GetStatistics(pHostapdAdapter->pvosContext, &statBuffer);  
+
+    len = snprintf(pstatbuf, len,
+            "RUF=%d RMF=%d RBF=%d "
+            "RUB=%d RMB=%d RBB=%d "
+            "TUF=%d TMF=%d TBF=%d "
+            "TUB=%d TMB=%d TBB=%d",
+            (int)statBuffer.rxUCFcnt, (int)statBuffer.rxMCFcnt, (int)statBuffer.rxBCFcnt,
+            (int)statBuffer.rxUCBcnt, (int)statBuffer.rxMCBcnt, (int)statBuffer.rxBCBcnt,
+            (int)statBuffer.txUCFcnt, (int)statBuffer.txMCFcnt, (int)statBuffer.txBCFcnt,
+            (int)statBuffer.txUCBcnt, (int)statBuffer.txMCBcnt, (int)statBuffer.txBCBcnt
+            );
+
+    wrqu->data.length -= len;
+    return 0;
+}
+
+int
 static iw_softap_commit(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
@@ -1552,7 +1581,7 @@ static const struct iw_priv_args hostapd_private_args[] = {
   { QCSAP_IOCTL_SETMLME,
 	IW_PRIV_TYPE_BYTE | sizeof(struct sQcSapreq_mlme)| IW_PRIV_SIZE_FIXED, 0, "setmlme" },
   { QCSAP_IOCTL_GET_STAWPAIE,
-        IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 1, 0, "get_staWPAIE" },          
+        IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 1, 0, "get_staWPAIE" },
   { QCSAP_IOCTL_SETWPAIE,
 	IW_PRIV_TYPE_BYTE | QCSAP_MAX_WSC_IE | IW_PRIV_SIZE_FIXED, 0, "setwpaie" },
   { QCSAP_IOCTL_STOPBSS,
@@ -1566,7 +1595,9 @@ static const struct iw_priv_args hostapd_private_args[] = {
   { QCSAP_IOCTL_ASSOC_STA_MACADDR, 0,
         IW_PRIV_TYPE_BYTE | /*((WLAN_MAX_STA_COUNT*6)+100)*/1 , "get_assoc_stamac" },
   { QCSAP_IOCTL_DISASSOC_STA, 0,
-        IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 6 , "disassoc_sta" }
+        IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 6 , "disassoc_sta" },
+  { QCSAP_IOCTL_AP_STATS,
+        IW_PRIV_TYPE_BYTE | QCSAP_MAX_WSC_IE, 0, "ap_stats" }
 };
 
 static const iw_handler hostapd_private[] = {
@@ -1581,7 +1612,8 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_GET_WPS_PBC_PROBE_REQ_IES - SIOCIWFIRSTPRIV] = iw_get_WPSPBCProbeReqIEs,
    [QCSAP_IOCTL_GET_CHANNEL - SIOCIWFIRSTPRIV] = iw_softap_getchannel,
    [QCSAP_IOCTL_ASSOC_STA_MACADDR - SIOCIWFIRSTPRIV] = iw_softap_getassoc_stamacaddr,
-   [QCSAP_IOCTL_DISASSOC_STA - SIOCIWFIRSTPRIV] = iw_softap_disassoc_sta
+   [QCSAP_IOCTL_DISASSOC_STA - SIOCIWFIRSTPRIV] = iw_softap_disassoc_sta,
+   [QCSAP_IOCTL_AP_STATS - SIOCIWFIRSTPRIV] = iw_softap_ap_stats
 };
 
 const struct iw_handler_def hostapd_handler_def = {

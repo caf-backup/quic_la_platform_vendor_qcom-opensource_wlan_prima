@@ -8,7 +8,7 @@
 * Qualcomm Confidential and Proprietary.
 *
 ******************************************************************************/
-#ifndef WLAN_SAP_MEM_OPT
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
 #include "aniGlobal.h"
 #include "smsDebug.h"
 #include "btcApi.h"
@@ -239,9 +239,7 @@ static VOS_STATUS btcSendBTEvent(tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent)
 
    }
 
-
-
-
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
 /* ---------------------------------------------------------------------------
     \fn btcSignalBTEvent
     \brief  API to signal Bluetooth (BT) event to the WLAN driver. Based on the
@@ -306,7 +304,7 @@ VOS_STATUS btcSignalBTEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
 
    return VOS_STATUS_SUCCESS;
 }
-
+#endif
 
 /* ---------------------------------------------------------------------------
     \fn btcCheckHeartBeatMonitoring
@@ -1979,4 +1977,4 @@ static void btcDiagEventLog (tHalHandle hHal, tpSmeBtEvent pBtEvent)
 }
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */
 
-#endif /* WLAN_SAP_MEM_OPT*/
+#endif /* WLAN_MDM_CODE_REDUCTION_OPT*/

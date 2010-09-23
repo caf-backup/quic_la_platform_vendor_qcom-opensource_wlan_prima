@@ -535,7 +535,7 @@ void halMTU_updateTimingParams(tpAniSirGlobal pMac, tMtuMode mode)
     tANI_U32  value, idx;
     tMtuParams *modeParams;
 #ifdef WLAN_DEBUG
-#ifndef WLAN_SAP_MEM_OPT
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     tANI_U8  modeStr[][10]={ "11a", "11b", "mixed11g", "pure11g" };
 #endif
 #endif
@@ -1551,3 +1551,11 @@ eHalStatus halMTU_DefInterruptHandler( tHalHandle hHalHandle, eHalIntSources int
     
 }
 
+void halGetTxTSFtimer(tpAniSirGlobal pMac, tSirMacTimeStamp *pTime)
+{
+    tANI_U32 low = 0;
+    tANI_U32 high = 0;
+    (void) halMTU_GetTsfTimer(pMac, &low, &high);
+    *((tANI_U32 *)pTime) = low;
+    *(((tANI_U32 *)pTime) + 1) = high;
+}

@@ -238,5 +238,6 @@ tANI_U32 halGetChipRevNum(tpAniSirGlobal pMac);
 tANI_U8 halGetCardType(tpAniSirGlobal pMac);
 tANI_U8 halGetFrameTranslation(tpAniSirGlobal pMac);
 
+eHalStatus halEnableListenMode(tpAniSirGlobal pMac, tANI_BOOLEAN listenModeEnable);   
 #endif
 

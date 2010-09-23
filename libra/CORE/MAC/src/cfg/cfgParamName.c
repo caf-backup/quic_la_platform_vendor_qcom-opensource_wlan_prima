@@ -228,6 +228,7 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"WPS_DEVICE_PASSWORD_ID",
 	(unsigned char *)"WPS_ASSOC_METHOD",
 	(unsigned char *)"LOW_GAIN_OVERRIDE",
+	(unsigned char *)"ENABLE_PHY_AGC_LISTEN_MODE",
 };
 
 

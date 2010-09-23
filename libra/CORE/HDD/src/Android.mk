@@ -9,6 +9,7 @@ WLAN     := $(shell echo $(my-dir) | sed -e "s/.*vendor/vendor/" \
 WLAN_OUT := $(TARGET_OUT_INTERMEDIATES)/$(WLAN)
 
 PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/qcom_fw.bin:system/etc/firmware/wlan/qcom_fw.bin
+PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/qcom_wapi_fw.bin:system/etc/firmware/wlan/qcom_wapi_fw.bin
 PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/qcom_wlan_nv.bin:persist/qcom_wlan_nv.bin
 PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/cfg.dat:system/etc/firmware/wlan/cfg.dat
 PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/qcom_cfg.ini:system/etc/firmware/wlan/qcom_cfg.ini

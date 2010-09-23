@@ -430,6 +430,23 @@ typedef struct sap_WPSIE_s {
     } sapwpsie;
 } tSap_WPSIE, *tpSap_WPSIE;
 
+typedef struct sap_SoftapStats_s {
+   v_U32_t txUCFcnt;
+   v_U32_t txMCFcnt;
+   v_U32_t txBCFcnt;
+   v_U32_t txUCBcnt;
+   v_U32_t txMCBcnt;
+   v_U32_t txBCBcnt;
+   v_U32_t rxUCFcnt;
+   v_U32_t rxMCFcnt;
+   v_U32_t rxBCFcnt;
+   v_U32_t rxUCBcnt;
+   v_U32_t rxMCBcnt;
+   v_U32_t rxBCBcnt;
+   v_U32_t rxBcnt;
+   v_U32_t rxBcntCRCok;
+   v_U32_t rxRate;
+} tSap_SoftapStats, *tpSap_SoftapStats;
 
 
 /*==========================================================================
@@ -1036,6 +1053,31 @@ WLANSAP_getWpsSessionOverlap
   SIDE EFFECTS   
 ============================================================================*/
 VOS_STATUS WLANSAP_Set_WPARSNIes(v_PVOID_t pvosGCtx, v_U8_t *pWPARSNIEs, v_U32_t WPARSNIEsLen);
+
+/*==========================================================================
+  FUNCTION    WLANSAP_GetStatistics
+
+  DESCRIPTION 
+    This api function provides for Ap App/HDD to get TL statistics for all stations of Soft AP.
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+    IN
+        pvosGCtx: Pointer to vos global context structure
+    OUT
+        statBuf: Buffer to get the statistics
+
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS WLANSAP_GetStatistics(v_PVOID_t pvosGCtx, tSap_SoftapStats *statBuf);
 
 #ifdef __cplusplus
  }

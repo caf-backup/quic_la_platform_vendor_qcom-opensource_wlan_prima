@@ -1402,3 +1402,12 @@ VOS_STATUS WLANSAP_Set_WPARSNIes(v_PVOID_t pvosGCtx, v_U8_t *pWPARSNIEs, v_U32_t
     return VOS_STATUS_E_FAULT;    
 }
 
+VOS_STATUS WLANSAP_GetStatistics(v_PVOID_t pvosGCtx, tSap_SoftapStats *statBuf)
+{
+    if (NULL == pvosGCtx)
+    {
+        return VOS_STATUS_E_FAULT;
+    }
+
+    return (WLANTL_GetSoftAPStatistics(pvosGCtx, statBuf));
+}

@@ -219,9 +219,9 @@ VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx)
    hdd_adapter_t *pAdapter = (hdd_adapter_t*)pCtx;
    ENTER();
    
+   if( (!strcmp(LIBRA_FW_FILE,pFileName)) || (!strcmp(LIBRA_WAPI_FW_FILE,pFileName)) ) {
    
-   if( !strcmp(LIBRA_FW_FILE,pFileName)) {
-   
+       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Loaded firmware file is %s",__func__,pFileName);
        if(pAdapter->fw) {
           release_firmware(pAdapter->fw);
           pAdapter->fw = NULL;
@@ -266,8 +266,8 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
    hdd_adapter_t *pAdapter = (hdd_adapter_t*)pCtx;
    ENTER();
 
-   if( !strcmp(LIBRA_FW_FILE,pfileName)) {
-   
+   if( (!strcmp(LIBRA_FW_FILE,pfileName)) || (!strcmp(LIBRA_WAPI_FW_FILE,pfileName)) ) {
+       
        status = request_firmware(&pAdapter->fw, pfileName, &pAdapter->hsdio_func_dev->dev);
    
        if(status || !pAdapter->fw || !pAdapter->fw->data) {

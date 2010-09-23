@@ -2513,6 +2513,8 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
             halTable_GetBssBcastStaIdx(pMac, bssIdx, &bcastStaIdx);
             // route all TxBds to FW_DPU_WQ 5
             pMac->hal.halMac.routeToFwDpuTxWq = TRUE;
+            /* Enable Listen Mode according to cfg */                     
+            halEnableListenMode(pMac, pMac->hal.ghalPhyAgcListenMode);                     
         } else {
             // If not AP role point the bcastStaIdx to the BSS staIdx
             halTable_SetBssBcastStaIdx(pMac, bssIdx, bssStaIdx);

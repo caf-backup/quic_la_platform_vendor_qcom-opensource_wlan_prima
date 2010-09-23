@@ -1878,13 +1878,15 @@ eHalStatus csrRoamIssueDisassociate( tpAniSirGlobal pMac, tANI_U32 sessionId,
         }
 #endif
 	csrRoamLinkDown(pMac, sessionId);
-		//no need to tell QoS that we are disassociating, it will be taken care off in assoc req for HO
-		if(eCSR_ROAM_SUBSTATE_DISASSOC_HANDOFF != NewSubstate)
-		{
-			//Tush-QoS: notify QoS module that disassoc happening
-			sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_DISCONNECT_REQ, NULL);
-		}
 
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
+        //no need to tell QoS that we are disassociating, it will be taken care off in assoc req for HO
+        if(eCSR_ROAM_SUBSTATE_DISASSOC_HANDOFF != NewSubstate)
+        {
+            //Tush-QoS: notify QoS module that disassoc happening
+            sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_DISCONNECT_REQ, NULL);
+        }
+#endif
      }
 
     return (status);
@@ -3341,7 +3343,9 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
     tScanResultList *pBSSList = (tScanResultList *)pCommand->u.roamCmd.hBSSList;
     tANI_BOOLEAN fDone = eANI_BOOLEAN_FALSE;
     tCsrRoamInfo roamInfo, *pRoamInfo = NULL;
-    v_U8_t acm_mask = 0; 
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
+    v_U8_t acm_mask = 0;
+#endif 
     tANI_U32 sessionId = pCommand->sessionId;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     tCsrRoamProfile *pProfile = &pCommand->u.roamCmd.roamProfile;
@@ -3435,9 +3439,13 @@ static eCsrJoinState csrRoamJoinNextBss( tpAniSirGlobal pMac, tSmeCmd *pCommand,
                     CSR_IS_QOS_BSS(pIesLocal) &&
                     CSR_IS_UAPSD_BSS(pIesLocal) )
                 {
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
+
                 acm_mask = sme_QosGetACMMask(pMac, &pScanResult->Result.BssDescriptor, 
                          pIesLocal);
                     pCommand->u.roamCmd.roamProfile.uapsd_mask &= ~(acm_mask);
+#endif /* WLAN_MDM_CODE_REDUCTION_OPT*/
+
             }
                 else
                 {
@@ -4074,7 +4082,7 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
     tCsrRoamInfo roamInfo;
     sme_QosAssocInfo assocInfo;
     sme_QosCsrEventIndType ind_qos;//indication for QoS module in SME
-    tANI_U8 acm_mask; //HDD needs the ACM mask in the assoc rsp callback
+    tANI_U8 acm_mask = 0; //HDD needs the ACM mask in the assoc rsp callback
     tDot11fBeaconIEs *pIes = NULL;
     tANI_U32 sessionId = pCommand->sessionId;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
@@ -4232,8 +4240,9 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 
                 assocInfo.pBssDesc = pSirBssDesc; //could be NULL
                 assocInfo.pProfile = pProfile;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                 sme_QosCsrEventInd(pMac, sessionId, ind_qos, &assocInfo);
-
+#endif
                 if(Context)
                 {
                     tSirSmeJoinRsp *pJoinRsp = (tSirSmeJoinRsp *)Context;
@@ -4314,7 +4323,9 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 roamInfo.pBssDesc = pSirBssDesc;
                 roamInfo.statusCode = pSession->joinFailStatusCode.statusCode;
                 roamInfo.reasonCode = pSession->joinFailStatusCode.reasonCode;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                 acm_mask = sme_QosGetACMMask(pMac, pSirBssDesc, NULL);
+#endif /* WLAN_MDM_CODE_REDUCTION_OPT*/
                 pSession->connectedProfile.acm_mask = acm_mask;
 
 #ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
@@ -4683,8 +4694,9 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
             break;
 
         case eCsrReassocFailure:
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
             sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_REASSOC_FAILURE, NULL);
-
+#endif
         case eCsrJoinWdsFailure:
             smsLog(pMac, LOGW, FL("failed to join WDS\n"));
             csrFreeConnectBssDesc(pMac, sessionId);
@@ -4733,7 +4745,9 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 case eCsrSmeIssuedReassocToSameAP:
                     csrRoamStateChange( pMac, eCSR_ROAMING_STATE_IDLE );
                     csrRoamCallCallback(pMac, sessionId, NULL, pCommand->u.roamCmd.roamId, eCSR_ROAM_DISASSOCIATED, eCSR_ROAM_RESULT_FORCED);
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                     sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_DISCONNECT_IND, NULL);
+#endif
                     csrRoamCompletion(pMac, sessionId, NULL, pCommand, eCSR_ROAM_RESULT_FAILURE, eANI_BOOLEAN_FALSE);
                     csrScanStartIdleScan(pMac);
                     break;
@@ -4751,14 +4765,18 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     {
                     csrRoamCallCallback(pMac, sessionId, NULL, pCommand->u.roamCmd.roamId, eCSR_ROAM_DISASSOCIATED, eCSR_ROAM_RESULT_FORCED);
                     }
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                     sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_DISCONNECT_IND, NULL);
+#endif
                     csrRoamLinkDown(pMac, sessionId);
                     csrScanStartIdleScan(pMac);
                     break;
                 case eCsrForcedDisassocMICFailure:
                     csrRoamStateChange( pMac, eCSR_ROAMING_STATE_IDLE );
                     csrRoamCallCallback(pMac, sessionId, NULL, pCommand->u.roamCmd.roamId, eCSR_ROAM_DISASSOCIATED, eCSR_ROAM_RESULT_MIC_FAILURE);
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                     sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_DISCONNECT_REQ, NULL);
+#endif
                     csrScanStartIdleScan(pMac);
                     break;
 #ifdef WLAN_SOFTAP_FEATURE
@@ -5784,7 +5802,9 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
    {
             if(pCommand && eCsrSmeIssuedAssocToSimilarAP == pCommand->u.roamCmd.roamReason)
             {
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                sme_QosCsrEventInd(pMac, pSmeJoinRsp->sessionId, SME_QOS_CSR_HANDOFF_COMPLETE, NULL);
+#endif
             }
             csrRoamComplete( pMac, eCsrJoinSuccess, (void *)pSmeJoinRsp );
    }
@@ -5816,7 +5836,9 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
                               (tCsrBssid *) pCommand->u.roamCmd.roamProfile.BSSIDs.bssid))
            {
               pCommand = NULL;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
               sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_HANDOFF_FAILURE, NULL);
+#endif
            }
            else
            {
@@ -6417,8 +6439,10 @@ static void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSm
              //msg
               fCallCallback = eANI_BOOLEAN_TRUE;
           }
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
           /* Notify sub-modules like QoS etc. that handoff happening         */
           sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_HANDOFF_ASSOC_REQ, NULL);
+#endif
           palFreeMemory(pMac->hHdd, pCurRoamProfile);
        }
        else
@@ -7320,9 +7344,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
             status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pDisassocInd->bssId, &sessionId );
             if( HAL_STATUS_SUCCESS( status ) )
             {
-		        pSession = CSR_GET_SESSION( pMac, sessionId );
+                pSession = CSR_GET_SESSION( pMac, sessionId );
                 pSession->connectState = eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                 sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_DISCONNECT_IND, NULL);
+#endif
                 csrRoamLinkDown(pMac, sessionId);
             	csrRoamIssueWmStatusChange( pMac, sessionId, eCsrDisassociated, pSirMsg );
       	    }
@@ -7334,9 +7360,11 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
             status = csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid *)pDeauthInd->bssId, &sessionId );
             if( HAL_STATUS_SUCCESS( status ) )
             {
-	            pSession = CSR_GET_SESSION( pMac, sessionId );
+                pSession = CSR_GET_SESSION( pMac, sessionId );
                 pSession->connectState = eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                 sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_DISCONNECT_IND, NULL);
+#endif
                 csrRoamLinkDown(pMac, sessionId);
                 csrRoamIssueWmStatusChange( pMac, sessionId, eCsrDeauthenticated, pSirMsg );
             }
@@ -9796,19 +9824,19 @@ static void csrPropareJoinReassocReqBuffer( tpAniSirGlobal pMac,
     }
     }
     //Check whether it is ok to enter UAPSD
-#ifndef WLAN_SAP_MEM_OPT
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     if( btcIsReadyForUapsd(pMac) )
-#endif /* WLAN_SAP_MEM_OPT*/
+#endif /* WLAN_MDM_CODE_REDUCTION_OPT*/
     {
        *pBuf++ = uapsdMask;
     }
-#ifndef WLAN_SAP_MEM_OPT
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     else
     {
         smsLog(pMac, LOGE, FL(" BTC doesn't allow UAPSD for uapsd_mask(0x%X)\n"), uapsdMask);
         *pBuf++ = 0;
     }
-#endif /* WLAN_SAP_MEM_OPT*/
+#endif /* WLAN_MDM_CODE_REDUCTION_OPT*/
   
 
     // move the entire BssDescription into the join request.
@@ -10037,7 +10065,9 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         //Tush-QoS: notify QoS module that join happening
         else
         {
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
            sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_JOIN_REQ, NULL);
+#endif
         }
     } while( 0 );
     return( status );
@@ -10209,7 +10239,9 @@ eHalStatus csrSendSmeReassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
         {
             if( CSR_IS_QOS_BSS(pIes) && CSR_IS_UAPSD_BSS(pIes) )
             {
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
             acm_mask = sme_QosGetACMMask(pMac, pBssDescription, pIes);
+#endif /* WLAN_MDM_CODE_REDUCTION_OPT*/
             uapsd_mask &= ~(acm_mask);
         }
             else
@@ -10220,9 +10252,10 @@ eHalStatus csrSendSmeReassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
         
         csrPropareJoinReassocReqBuffer( pMac, pBssDescription, pBuf, uapsd_mask);
         
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     //Tush-QoS: notify QoS module that reassoc happening
     sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_REASSOC_REQ, NULL);
-
+#endif
     status = palSendMBMessage( pMac->hHdd, pMsg );
     } while( 0 );
 

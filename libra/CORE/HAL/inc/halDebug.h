@@ -13,7 +13,7 @@
 
 
 #ifdef WLAN_DEBUG
-#ifdef WLAN_SAP_MEM_OPT
+#ifdef WLAN_MDM_CODE_REDUCTION_OPT
 #define HALLOGP(x0)  x0
 #define HALLOGE(x0)  x0
 #define HALLOGW(x0)  x0
@@ -23,7 +23,7 @@
 #define HALLOG4(x)  {}
 #define STR(x)  x
 
-#else /*WLAN_SAP_MEM_OPT*/
+#else /*WLAN_MDM_CODE_REDUCTION_OPT*/
 
 #define HALLOGP(x0)  x0
 #define HALLOGE(x0)  x0
@@ -50,7 +50,7 @@
 
 #define STR(x)  x
 
-#endif /*WLAN_SAP_MEM_OPT*/
+#endif /*WLAN_MDM_CODE_REDUCTION_OPT*/
 
 #else
 

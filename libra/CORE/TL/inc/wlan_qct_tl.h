@@ -57,6 +57,10 @@ when        who    what, where, why
 #include "vos_api.h" 
 #include "vos_packet.h" 
 #include "sirApi.h"
+#ifdef WLAN_SOFTAP_FEATURE
+#include "csrApi.h"
+#include "sapApi.h"
+#endif
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -415,6 +419,9 @@ typedef struct
    WLANTL_HO_NRT_TRAFFIC_STATUS_TYPE  nrtTrafficStatus;
 } WLANTL_HO_TRAFFIC_STATUS_TYPE;
 
+#ifdef WLAN_SOFTAP_FEATURE
+typedef tSap_SoftapStats WLANTL_TRANSFER_STA_TYPE;
+#else
 typedef struct
 {
    v_U32_t txUCFcnt;
@@ -433,6 +440,7 @@ typedef struct
    v_U32_t rxBcntCRCok;
    v_U32_t rxRate;
 }WLANTL_TRANSFER_STA_TYPE;
+#endif
 
 /* Under here not public items, just use for internal */
 /* 3 SME 1 HDD */
@@ -2180,6 +2188,25 @@ WLANTL_SetACWeights
   v_PVOID_t             pvosGCtx,
   v_U8_t*               pACWeights
 );
+
+#ifdef WLAN_SOFTAP_FEATURE
+/*==========================================================================
+  FUNCTION      WLANTL_GetSoftAPStatistics
+
+  DESCRIPTION   Collect the cumulative statistics for all Softap stations
+
+  DEPENDENCIES  NONE
+    
+  PARAMETERS    in pvosGCtx  - Pointer to the global vos context
+                out statsSum - pointer to collected statistics
+
+  RETURN VALUE  VOS_STATUS_SUCCESS : if the Statistics are successfully extracted
+
+  SIDE EFFECTS  NONE
+
+============================================================================*/
+VOS_STATUS WLANTL_GetSoftAPStatistics(v_PVOID_t pAdapter, WLANTL_TRANSFER_STA_TYPE *statsSum);
+#endif
 
 #ifdef __cplusplus
  }

@@ -69,6 +69,10 @@ static void halSetChainPowerState(tpAniSirGlobal pMac);
 extern eHalStatus halPrepareForBmpsEntry(tpAniSirGlobal pMac);
 extern eHalStatus halPrepareForBmpsExit(tpAniSirGlobal pMac);
 
+#ifdef WLAN_SOFTAP_FEATURE
+static eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId);
+#endif
+
 /* Constant Macros */
 /* Redefine OFF -> __OFF, ON-> __ON to avoid redefinition on AMSS */
 #define  MAX_VALID_CHAIN_STATE  8
@@ -3178,7 +3182,12 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
         case WNI_CFG_PS_ENABLE_RSSI_MONITOR:
             halPSRssiMonitorCfg(pMac, pMsg->bodyval);
             break;
-
+#ifdef WLAN_SOFTAP_FEATURE
+        case WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE:
+            halHandleEnableListenModeCfg(pMac, pMsg->bodyval);         
+            break;
+#endif  
+            
                 default:
                     HALLOGE( halLog(pMac, LOGE, FL("Cfg Id %d is not handled\n"), pMsg->bodyval));
                     break;
@@ -4349,3 +4358,54 @@ halTlPostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
     return  vos_mq_post_message(VOS_MQ_ID_TL, (vos_msg_t *) pMsg);
 #endif
 }
+
+#ifdef WLAN_SOFTAP_FEATURE
+/** -------------------------------------------------------------
+\fn     halHandleEnableListenModeCfg
+\brief  handles the CFG change for listen mode.
+\param  tpAniSirGlobal pMac
+\param  tANI_U32 cfgId
+\return eHalStatus status
+  -------------------------------------------------------------*/
+static
+eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId)
+{
+    tANI_U32 val;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgId, &val))
+    {
+        HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+        return eHAL_STATUS_FAILURE;
+    }
+    else
+    {    
+        pMac->hal.ghalPhyAgcListenMode = (tANI_BOOLEAN)val;      
+    }
+    
+    return status;
+}
+
+/** -------------------------------------------------------------
+\fn     halEnableListenMode
+\brief  hal API to enable / disable listen mode.
+\param  tpAniSirGlobal pMac
+\return eHalStatus status
+  -------------------------------------------------------------*/
+
+eHalStatus halEnableListenMode(tpAniSirGlobal pMac, tANI_BOOLEAN listenModeEnable)
+{
+    eHalStatus status;
+    
+    if (listenModeEnable) 
+    {
+        status = halPhyAGCEnableListenMode(pMac); 
+    }
+    else
+    {
+        status = halPhyAGCDisableListenMode(pMac);
+    }
+
+    return status;
+}
+#endif

@@ -4282,6 +4282,9 @@ WLANTL_RxFrames
   v_BOOL_t            selfBcastLoopback = VOS_FALSE;
   static v_U8_t       first_data_pkt_arrived = 0;
   v_U32_t             uDPUSig; 
+#ifdef WLAN_SOFTAP_FEATURE
+  v_U16_t             usPktLen;
+#endif
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -4386,6 +4389,9 @@ WLANTL_RxFrames
     ucFrmType = (v_U8_t)WLANHAL_RxBD_GetFrameTypeSubType( pvBDHeader, 
                                                           usFrmCtrl);
     WLANHAL_RX_BD_SET_TYPE_SUBTYPE(pvBDHeader, ucFrmType);
+#ifdef WLAN_SOFTAP_FEATURE
+    vos_pkt_get_packet_length(vosTempBuff, &usPktLen);
+#endif
     if ( WLANTL_IS_MGMT_FRAME(ucFrmType) )
     {
       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -4429,7 +4435,7 @@ WLANTL_RxFrames
       }
       pTLCb->tlMgmtFrmClient.pfnTlMgmtFrmRx( pvosGCtx, vosTempBuff); 
     }
-    else
+    else /* Data Frame */
     {
       ucSTAId = (v_U8_t)WLANHAL_RX_BD_GET_STA_ID( pvBDHeader );
       ucTid   = (v_U8_t)WLANHAL_RX_BD_GET_TID( pvBDHeader );
@@ -4494,7 +4500,11 @@ WLANTL_RxFrames
         WLANTL_CacheSTAFrame( pTLCb, ucSTAId, vosTempBuff, uDPUSig, broadcast);
 
         vosTempBuff = vosDataBuff;
+#ifdef WLAN_SOFTAP_FEATURE
+        goto count;
+#else
         continue;
+#endif
       }
 
       if ( WLAN_STA_BT_AMP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType )
@@ -4571,6 +4581,30 @@ WLANTL_RxFrames
     }/* else data frame*/
 
     vosTempBuff = vosDataBuff;
+
+#ifdef WLAN_SOFTAP_FEATURE
+    count:
+    /* RX Statistics Data */
+    if (vos_is_macaddr_broadcast(&pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSTAMACAddress))
+    {
+         /* This is RX BC frame */
+         pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxBCFcnt++;
+         pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxBCBcnt += usPktLen;
+    }
+    else if (vos_is_macaddr_group(&pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSTAMACAddress))
+    {
+         /* This is RX MC frame */
+         pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxMCFcnt++;
+         pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxMCBcnt += usPktLen;
+    }
+    else
+    {
+      /* This is RX UC frame */
+      pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxUCFcnt++;
+      pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxUCBcnt += usPktLen;
+    }
+#endif
+
   }/*while chain*/
 
   return VOS_STATUS_SUCCESS;
@@ -5212,6 +5246,29 @@ WLANTL_STATxConn
   /*security frames cannot be delayed*/
   pTLCb->bUrgent      = TRUE;
 
+#ifdef WLAN_SOFTAP_FEATURE
+  /* TX Statistics */
+  /* BC/MC/UC have to be determined by MAC address */
+  if (vos_is_macaddr_broadcast(&vDestMacAddr))
+  {
+    /* This TX is BC frame */
+    pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txBCFcnt++;
+    pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txBCBcnt += usPktLen;
+  }
+  else if (vos_is_macaddr_group(&vDestMacAddr))
+  {
+    /* This TX is MC frame */
+    pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txMCFcnt++;      
+    pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txMCBcnt += usPktLen;
+  }
+  else
+  {
+    /* This is TX UC frame */
+    pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txUCFcnt++;
+    pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txUCBcnt += usPktLen;
+  }
+#endif
+
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_STATxConn */
 
@@ -5618,6 +5675,30 @@ WLANTL_STATxAuth
     }
   }
 #endif
+
+#ifdef WLAN_SOFTAP_FEATURE
+  /* TX Statistics */
+      /* BC/MC/UC have to be determined by MAC address */
+      if (vos_is_macaddr_broadcast(&vDestMacAddr))
+      {
+        /* This TX is BC frame */
+        pStaClient->trafficStatistics.txBCFcnt++;
+        pStaClient->trafficStatistics.txBCBcnt += usPktLen;
+      }
+      else if (vos_is_macaddr_group(&vDestMacAddr))
+      {
+        /* This TX is MC frame */
+        pStaClient->trafficStatistics.txMCFcnt++;
+        pStaClient->trafficStatistics.txMCBcnt += usPktLen;
+      }
+      else
+      {
+        /* This is TX UC frame */
+        pStaClient->trafficStatistics.txUCFcnt++;
+        pStaClient->trafficStatistics.txUCBcnt += usPktLen;
+      }
+#endif
+
   /*-----------------------------------------------------------------------
     Update tx counter for BA session query for tx side
     -----------------------------------------------------------------------*/
@@ -10605,3 +10686,57 @@ static VOS_STATUS WLANTL_GetEtherType
   return vosStatus;
 }
 
+#ifdef WLAN_SOFTAP_FEATURE
+/*==========================================================================
+  FUNCTION      WLANTL_GetSoftAPStatistics
+
+  DESCRIPTION   Collect the cumulative statistics for all Softap stations
+
+  DEPENDENCIES  NONE
+    
+  PARAMETERS    in pvosGCtx  - Pointer to the global vos context
+                out statsSum - pointer to collected statistics
+
+  RETURN VALUE  VOS_STATUS_SUCCESS : if the Statistics are successfully extracted
+
+  SIDE EFFECTS  NONE
+
+============================================================================*/
+VOS_STATUS WLANTL_GetSoftAPStatistics(v_PVOID_t pAdapter, WLANTL_TRANSFER_STA_TYPE *statsSum)
+{
+    v_U8_t i = 0;
+    VOS_STATUS  vosStatus = VOS_STATUS_SUCCESS;
+    WLANTL_CbType *pTLCb  = VOS_GET_TL_CB(pAdapter);
+    WLANTL_TRANSFER_STA_TYPE statBufferTemp;
+    vos_mem_zero((v_VOID_t *)&statBufferTemp, sizeof(WLANTL_TRANSFER_STA_TYPE));
+    vos_mem_zero((v_VOID_t *)statsSum, sizeof(WLANTL_TRANSFER_STA_TYPE));
+
+    // Sum up all the statistics for stations of Soft AP from TL
+    for (i = 0; i < WLAN_MAX_STA_COUNT; i++)
+    {
+        if (pTLCb->atlSTAClients[i].wSTADesc.wSTAType == WLAN_STA_SOFTAP)
+        {
+           vosStatus = WLANTL_GetStatistics(pAdapter, &statBufferTemp, i);
+
+           if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+                return VOS_STATUS_E_FAULT;
+
+            // Add to the counters
+           statsSum->txUCFcnt += statBufferTemp.txUCFcnt;
+           statsSum->txMCFcnt += statBufferTemp.txMCFcnt;
+           statsSum->txBCFcnt += statBufferTemp.txBCFcnt;
+           statsSum->txUCBcnt += statBufferTemp.txUCBcnt;
+           statsSum->txMCBcnt += statBufferTemp.txMCBcnt;
+           statsSum->txBCBcnt += statBufferTemp.txBCBcnt;
+           statsSum->rxUCFcnt += statBufferTemp.rxUCFcnt;
+           statsSum->rxMCFcnt += statBufferTemp.rxMCFcnt;
+           statsSum->rxBCFcnt += statBufferTemp.rxBCFcnt;
+           statsSum->rxUCBcnt += statBufferTemp.rxUCBcnt;
+           statsSum->rxMCBcnt += statBufferTemp.rxMCBcnt;
+           statsSum->rxBCBcnt += statBufferTemp.rxBCBcnt;
+        }
+    }
+
+    return vosStatus;
+}
+#endif

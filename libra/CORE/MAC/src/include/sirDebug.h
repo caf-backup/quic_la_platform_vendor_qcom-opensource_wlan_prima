@@ -42,7 +42,7 @@
 #endif
 
 
-#ifdef  WLAN_SAP_MEM_OPT
+#ifdef  WLAN_MDM_CODE_REDUCTION_OPT
 #ifdef PE_DEBUG_LOGE
 #define PELOGE(p) { p }
 #else
@@ -61,7 +61,7 @@
 #define PELOG4(p) { }
 
 
-#else /* WLAN_SAP_MEM_OPT */
+#else /* WLAN_MDM_CODE_REDUCTION_OPT */
 
 #ifdef PE_DEBUG_LOGE
 #define PELOGE(p) { p }
@@ -99,7 +99,7 @@
 #define PELOG4(p) { }
 #endif
 
-#endif /* WLAN_SAP_MEM_OPT */
+#endif /* WLAN_MDM_CODE_REDUCTION_OPT */
 
 #define FL(x)    "%s: %d: "\
                  x, __FUNCTION__, __LINE__
