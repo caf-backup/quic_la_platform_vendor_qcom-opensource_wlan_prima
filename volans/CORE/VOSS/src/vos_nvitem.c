@@ -369,7 +369,7 @@ VOS_STATUS vos_nv_open(void)
     pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
     bufSize = sizeof(nvEFSTable_t);
-    status = hdd_request_firmware(LIBRA_NV_FILE,((VosContextType*)(pVosContext))->pHDDContext,(v_VOID_t**)&gnvEFSTable,&bufSize);
+    status = hdd_request_firmware(WCN1314_NV_FILE,((VosContextType*)(pVosContext))->pHDDContext,(v_VOID_t**)&gnvEFSTable,&bufSize);
 
     if ( (!VOS_IS_STATUS_SUCCESS( status )) || !gnvEFSTable)
     {
@@ -391,7 +391,7 @@ VOS_STATUS vos_nv_close(void)
          /*Get the global context */
     pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
-    status = hdd_release_firmware(LIBRA_NV_FILE,((VosContextType*)(pVosContext))->pHDDContext);
+    status = hdd_release_firmware(WCN1314_NV_FILE,((VosContextType*)(pVosContext))->pHDDContext);
 
     if ( !VOS_IS_STATUS_SUCCESS( status ))
     {

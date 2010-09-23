@@ -200,7 +200,7 @@ VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx)
    ENTER();
    
    
-   if( !strcmp(LIBRA_FW_FILE,pFileName)) {
+   if( !strcmp(WCN1314_FW_FILE,pFileName)) {
    
        if(pAdapter->fw) {
           release_firmware(pAdapter->fw);
@@ -209,7 +209,7 @@ VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx)
        else
           status = VOS_STATUS_E_FAILURE;
    }
-   else if (!strcmp(LIBRA_NV_FILE,pFileName)) {
+   else if (!strcmp(WCN1314_NV_FILE,pFileName)) {
        if(pAdapter->nv) {
           release_firmware(pAdapter->nv);
           pAdapter->nv = NULL;
@@ -246,7 +246,7 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
    hdd_adapter_t *pAdapter = (hdd_adapter_t*)pCtx;
    ENTER();
 
-   if( !strcmp(LIBRA_FW_FILE,pfileName)) {
+   if( !strcmp(WCN1314_FW_FILE,pfileName)) {
    
        status = request_firmware(&pAdapter->fw, pfileName, &pAdapter->hsdio_func_dev->dev);
    
@@ -261,7 +261,7 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
           hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Firmware size = %d",__func__, *pSize);
        }
    }
-   else if(!strcmp(LIBRA_NV_FILE,pfileName)) {
+   else if(!strcmp(WCN1314_NV_FILE,pfileName)) {
        
        status = request_firmware(&pAdapter->nv, pfileName, &pAdapter->hsdio_func_dev->dev);
    

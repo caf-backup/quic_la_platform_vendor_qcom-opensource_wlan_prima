@@ -523,7 +523,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   if(halStartParams.FW.pImage == NULL) {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
              "%s: Failed to allocate memory for firmware binary",__func__);
-    hdd_release_firmware(LIBRA_FW_FILE, pVosContext->pHDDContext);
+    hdd_release_firmware(WCN1314_FW_FILE, pVosContext->pHDDContext);
     goto err_bal_stop;
   }
 
@@ -536,7 +536,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   sirStatus = macStart(pVosContext->pMACContext,(v_PVOID_t)&halStartParams);
 
   /* Free up the FW image no matter what */
-  hdd_release_firmware(LIBRA_FW_FILE, pVosContext->pHDDContext);
+  hdd_release_firmware(WCN1314_FW_FILE, pVosContext->pHDDContext);
   vos_mem_free(halStartParams.FW.pImage);
   halStartParams.FW.pImage = NULL;
   halStartParams.FW.cbImage = 0;
