@@ -375,7 +375,7 @@ int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
 
     /* Attempt to get the firmware binary through VOS.  We need to pass this
            to the MAC when starting. */
-    vStatus = hdd_request_firmware(LIBRA_FW_FILE,pAdapter,
+    vStatus = hdd_request_firmware(WCN1314_FW_FILE,pAdapter,
                                (v_VOID_t **)&halStartParams.FW.pImage,
                                (v_SIZE_t *)&halStartParams.FW.cbImage);
 
@@ -398,7 +398,7 @@ int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
     /* Free uo the FW image no matter what */
     if( NULL != halStartParams.FW.pImage )
     {
-        hdd_release_firmware(LIBRA_FW_FILE,pVosContext->pHDDContext);
+        hdd_release_firmware(WCN1314_FW_FILE,pVosContext->pHDDContext);
         halStartParams.FW.pImage = NULL;
         halStartParams.FW.cbImage = 0;
     }

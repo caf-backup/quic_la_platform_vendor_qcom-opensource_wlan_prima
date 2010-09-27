@@ -1208,7 +1208,7 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
 
    memset(cfgIniTable, 0, sizeof(cfgIniTable));
 
-   status = request_firmware(&fw, LIBRA_CFG_INI_FILE, &pAdapter->hsdio_func_dev->dev);
+   status = request_firmware(&fw, WCN1314_CFG_INI_FILE, &pAdapter->hsdio_func_dev->dev);
    
    if(!fw || !fw->data) {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: qcom_cfg.ini download failed\n",__FUNCTION__);
