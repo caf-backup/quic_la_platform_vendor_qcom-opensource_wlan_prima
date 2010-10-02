@@ -49,7 +49,9 @@
 #include <linux/wait.h>
 
 #define TX_POST_EVENT_MASK               0x001
+#define TX_SUSPEND_EVENT_MASK            0x002
 #define MC_POST_EVENT_MASK               0x001
+#define MC_SUSPEND_EVENT_MASK            0x002
 #define TX_SHUTDOWN_EVENT_MASK           0x010
 #define MC_SHUTDOWN_EVENT_MASK           0x010
 #define WD_POST_EVENT_MASK               0x001
@@ -148,7 +150,12 @@ typedef struct _VosSchedContext
    wait_queue_head_t txWaitQueue;
 
    unsigned long     txEventFlag;
+   
+   /* Completion object to resume Mc thread */
+   struct completion ResumeMcEvent;
 
+   /* Completion object to resume Tx thread */
+   struct completion ResumeTxEvent;
 } VosSchedContext, *pVosSchedContext;
 
 /*

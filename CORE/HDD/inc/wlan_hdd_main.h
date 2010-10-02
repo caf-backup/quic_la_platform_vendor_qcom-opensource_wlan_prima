@@ -355,9 +355,16 @@ struct hdd_adapter_s
    /* completion variable for Linkup Event */
    struct completion linkup_event_var;
    
+   /* Completion  variable to indicate Tx Thread Suspended */
+   struct completion tx_sus_event_var;
+
+   /* Completion  variable to indicate Mc Thread Suspended */
+   struct completion mc_sus_event_var;
+
    /* Track whether the linkup handling is needed  */
    v_BOOL_t isLinkUpSvcNeeded;
 
+   v_BOOL_t isWlanSuspended;
    /**Track whether driver has been suspended.*/
    hdd_ps_state_t hdd_ps_state;
 
