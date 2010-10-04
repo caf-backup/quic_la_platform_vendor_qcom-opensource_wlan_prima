@@ -2198,6 +2198,7 @@ WLANTL_SetACWeights
   DEPENDENCIES  NONE
     
   PARAMETERS    in pvosGCtx  - Pointer to the global vos context
+                   bReset    - If set TL statistics will be cleared after reading
                 out statsSum - pointer to collected statistics
 
   RETURN VALUE  VOS_STATUS_SUCCESS : if the Statistics are successfully extracted
@@ -2205,7 +2206,7 @@ WLANTL_SetACWeights
   SIDE EFFECTS  NONE
 
 ============================================================================*/
-VOS_STATUS WLANTL_GetSoftAPStatistics(v_PVOID_t pAdapter, WLANTL_TRANSFER_STA_TYPE *statsSum);
+VOS_STATUS WLANTL_GetSoftAPStatistics(v_PVOID_t pAdapter, WLANTL_TRANSFER_STA_TYPE *statsSum, v_BOOL_t bReset);
 #endif
 
 #ifdef __cplusplus

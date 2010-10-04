@@ -57,7 +57,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
                  CFG_FRAG_THRESHOLD_DEFAULT, 
                  CFG_FRAG_THRESHOLD_MIN, 
-                 CFG_FRAG_THRESHOLD_MAX ),              
+                 CFG_FRAG_THRESHOLD_MAX ),
 
    REG_VARIABLE( CFG_CALIBRATION_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, Calibration, 
@@ -1155,11 +1155,18 @@ This is a Verizon required feature.
 
 #ifdef WLAN_SOFTAP_FEATURE
    REG_VARIABLE( CFG_AP_LISTEN_MODE_NAME , WLAN_PARAM_Integer,
-                 hdd_config_t, nEnableListenMode, 
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
-                 CFG_AP_LISTEN_MODE_DEFAULT, 
+                 hdd_config_t, nEnableListenMode,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_AP_LISTEN_MODE_DEFAULT,
                  CFG_AP_LISTEN_MODE_MIN, 
-                 CFG_AP_LISTEN_MODE_MAX ),                     
+                 CFG_AP_LISTEN_MODE_MAX ),
+
+   REG_VARIABLE( CFG_AP_AUTO_SHUT_OFF , WLAN_PARAM_Integer,
+                 hdd_config_t, nAPAutoShutOff,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_AP_AUTO_SHUT_OFF_DEFAULT,
+                 CFG_AP_AUTO_SHUT_OFF_MIN,
+                 CFG_AP_AUTO_SHUT_OFF_MAX ),
 #endif
 
     REG_VARIABLE( CFG_ENABLE_WAPI_NAME, WLAN_PARAM_Integer,
@@ -1362,18 +1369,21 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
       pAdapter->cfg_ini->staMacAddr.bytes[4],pAdapter->cfg_ini->staMacAddr.bytes[5]);
 
 #ifdef WLAN_SOFTAP_FEATURE
-  printk(KERN_ERR "Name = [gAPMacAddr] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]\n",
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAPMacAddr] Value =[0x%x 0x%x 0x%x 0x%x 0x%x 0x%x]\n",
       pAdapter->cfg_ini->apMacAddr.bytes[0],pAdapter->cfg_ini->apMacAddr.bytes[1],
       pAdapter->cfg_ini->apMacAddr.bytes[2],pAdapter->cfg_ini->apMacAddr.bytes[3],
       pAdapter->cfg_ini->apMacAddr.bytes[4],pAdapter->cfg_ini->apMacAddr.bytes[5]);
 
-  printk(KERN_ERR "Name = [gApEnableUapsd] value = [%u]\n",pAdapter->cfg_ini->apUapsdEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gApEnableUapsd] value = [%u]\n",pAdapter->cfg_ini->apUapsdEnabled);
 
-  printk(KERN_ERR "Name = [gAPCntryCode] Value =[%c%c%c]\n",
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAPCntryCode] Value =[%c%c%c]\n",
       pAdapter->cfg_ini->apCntryCode[0],pAdapter->cfg_ini->apCntryCode[1],
       pAdapter->cfg_ini->apCntryCode[2]);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApProt] value = [%u]", pAdapter->cfg_ini->apProtEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableListenMode] Value = [%u]\n", pAdapter->cfg_ini->nEnableListenMode);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAPAutoShutOff] Value = [%u]\n", pAdapter->cfg_ini->nAPAutoShutOff);
 
-  printk(KERN_ERR "Name = [gEnableApProt] value = [%u]\n",pAdapter->cfg_ini->apProtEnabled);
+  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApProt] value = [%u]\n",pAdapter->cfg_ini->apProtEnabled);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableListenMode] Value = [%u]\n", pAdapter->cfg_ini->nEnableListenMode);  
 #endif
   
@@ -1958,7 +1968,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_BA_AUTO_SETUP to CCM\n");
    }
-       
+
    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_FIXED_RATE, pConfig->TxRate, 
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
@@ -2093,7 +2103,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
         fStatus = FALSE;
         hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE to CCM\n");
      }
-   
+
    return fStatus;
 }
 

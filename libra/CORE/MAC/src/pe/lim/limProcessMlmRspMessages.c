@@ -3113,7 +3113,7 @@ limProcessIbssMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ ,tpPESession 
         //If ADD BSS was issued as part of IBSS coalescing, don't send the message to SME, as that is internal to LIM
         if(true == pMac->lim.gLimIbssCoalescingHappened)
         {
-            limIbssAddBssRspWhenCoalescing(pMac, limMsgQ->bodyptr);
+            limIbssAddBssRspWhenCoalescing(pMac, limMsgQ->bodyptr, psessionEntry);
             goto end;
         }
     }

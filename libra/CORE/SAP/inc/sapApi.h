@@ -1067,6 +1067,7 @@ VOS_STATUS WLANSAP_Set_WPARSNIes(v_PVOID_t pvosGCtx, v_U8_t *pWPARSNIEs, v_U32_t
 
     IN
         pvosGCtx: Pointer to vos global context structure
+        bReset: If set TL statistics will be cleared after reading
     OUT
         statBuf: Buffer to get the statistics
 
@@ -1077,7 +1078,7 @@ VOS_STATUS WLANSAP_Set_WPARSNIes(v_PVOID_t pvosGCtx, v_U8_t *pWPARSNIEs, v_U32_t
 
   SIDE EFFECTS   
 ============================================================================*/
-VOS_STATUS WLANSAP_GetStatistics(v_PVOID_t pvosGCtx, tSap_SoftapStats *statBuf);
+VOS_STATUS WLANSAP_GetStatistics(v_PVOID_t pvosGCtx, tSap_SoftapStats *statBuf, v_BOOL_t bReset);
 
 #ifdef __cplusplus
  }

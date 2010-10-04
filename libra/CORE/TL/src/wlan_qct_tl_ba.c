@@ -49,22 +49,13 @@
 #include "wlan_qct_hal.h" 
 #include "vos_list.h"
 #include "vos_lock.h"
-
+#include "tlDebug.h"
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
 //#define WLANTL_REORDER_DEBUG_MSG_ENABLE
 #define WLANTL_BA_REORDERING_AGING_TIMER   30   /* 30 millisec */
 #define WLANTL_BA_MIN_FREE_RX_VOS_BUFFER   5    /* RX VOS buffer low threshold */
-
-#define BAMSGERROR(a, b, c, d)                                           \
-        VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, a, b, c, d)
-#ifdef WLANTL_REORDER_DEBUG_MSG_ENABLE
-#define BAMSGDEBUG(a, b, c, d)                                           \
-        VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO, a, b, c, d)
-#else
-#define BAMSGDEBUG(a, b, c, d)          {}
-#endif /* WLANTL_REORDER_DEBUG_MSG_ENABLE */
 
 #ifdef WLANTL_REORDER_DEBUG_MSG_ENABLE
 static char *opCodeString[] = {
@@ -118,7 +109,7 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
 
    if(NULL == timerUdata)
    {
-      BAMSGERROR("Timer Callback User data NULL", 0, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Timer Callback User data NULL"));
       return;
    }
 
@@ -127,30 +118,29 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
    ucTID        = expireHandle->TID;
    if(WLANTL_STA_ID_INVALID(ucSTAID) || WLANTL_TID_INVALID(ucTID))
    {
-      BAMSGERROR("SID %d or TID %d is not valid",
-                  ucSTAID, ucTID, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"SID %d or TID %d is not valid",
+                  ucSTAID, ucTID));
       return;
    }
 
    pTLHandle    = (WLANTL_CbType *)expireHandle->pTLHandle;
    if(NULL == pTLHandle)
    {
-      BAMSGERROR("TL Controll block NULL", 0, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"TL Controll block NULL"));
       return;
    }
 
    ReorderInfo = &pTLHandle->atlSTAClients[ucSTAID].atlBAReorderInfo[ucTID];
    if(NULL == ReorderInfo)
    {
-      BAMSGERROR("Reorder data NULL, this could not happen SID %d, TID %d", 
-                  ucSTAID, ucTID, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Reorder data NULL, this could not happen SID %d, TID %d", 
+                  ucSTAID, ucTID));
       return;
    }
 
    if(!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&ReorderInfo->reorderLock)))
    {
-      BAMSGERROR("WLANTL_ReorderingAgingTimerExpierCB, Get LOCK Fail", 
-                  0, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_ReorderingAgingTimerExpierCB, Get LOCK Fail"));
       return;
    }
 
@@ -158,13 +148,13 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
    vosDataBuff = NULL;
 
 
-   BAMSGERROR("BA timeout with %d pending frames", ReorderInfo->pendingFramesCount, 0, 0);
+   TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"BA timeout with %d pending frames", ReorderInfo->pendingFramesCount));
 
    if(ReorderInfo->pendingFramesCount == 0)
    {
       if(!VOS_IS_STATUS_SUCCESS(vos_lock_release(&ReorderInfo->reorderLock)))
       {
-         BAMSGERROR("WLANTL_ReorderingAgingTimerExpierCB, Release LOCK Fail", 0, 0, 0);
+         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_ReorderingAgingTimerExpierCB, Release LOCK Fail"));
       }
       return;
    }
@@ -182,30 +172,30 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
                                   &vosDataBuff, ReorderInfo, NULL);
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
-      BAMSGERROR("Make packet chain fail with Qed frames %d", status, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make packet chain fail with Qed frames %d", status));
       if(!VOS_IS_STATUS_SUCCESS(vos_lock_release(&ReorderInfo->reorderLock)))
       {
-         BAMSGERROR("WLANTL_ReorderingAgingTimerExpierCB, Release LOCK Fail", 0, 0, 0);
+         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_ReorderingAgingTimerExpierCB, Release LOCK Fail"));
       }
       return;
    }
 
    if(NULL == pTLHandle->atlSTAClients[ucSTAID].pfnSTARx)
    {
-      BAMSGERROR("Callback function NULL with STAID %d", ucSTAID, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Callback function NULL with STAID %d", ucSTAID));
       if(!VOS_IS_STATUS_SUCCESS(vos_lock_release(&ReorderInfo->reorderLock)))
       {
-         BAMSGERROR("WLANTL_ReorderingAgingTimerExpierCB, Release LOCK Fail", 0, 0, 0);
+         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_ReorderingAgingTimerExpierCB, Release LOCK Fail"));
       }
       return;
    }
 
    if(NULL == vosDataBuff)
    {
-      BAMSGERROR("No pending frames, why triggered timer? ", 0, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"No pending frames, why triggered timer? "));
       if(!VOS_IS_STATUS_SUCCESS(vos_lock_release(&ReorderInfo->reorderLock)))
       {
-         BAMSGERROR("WLANTL_ReorderingAgingTimerExpierCB, Release LOCK Fail", 0, 0, 0);
+         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_ReorderingAgingTimerExpierCB, Release LOCK Fail"));
       }
       return;
    }
@@ -215,7 +205,7 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
                                             vosDataBuff, ucSTAID, &wRxMetaInfo);
    if(!VOS_IS_STATUS_SUCCESS(vos_lock_release(&ReorderInfo->reorderLock)))
    {
-      BAMSGERROR("WLANTL_ReorderingAgingTimerExpierCB, Release LOCK Fail", 0, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_ReorderingAgingTimerExpierCB, Release LOCK Fail"));
    }
    return;
 }/*WLANTL_ReorderingAgingTimerExpierCB*/
@@ -257,7 +247,7 @@ void WLANTL_InitBAReorderBuffer
       }
    }
 
-   BAMSGDEBUG("BA reorder buffer init", 0, 0, 0);
+   TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"BA reorder buffer init"));
    return;
 }
 
@@ -372,10 +362,10 @@ WLANTL_BaSessionAdd
       pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].reorderBuffer =
                                             &(pTLCb->reorderBufferPool[idx]);
       pTLCb->reorderBufferPool[idx].isAvailable = VOS_FALSE;
-      BAMSGDEBUG("%dth buffer avaialable, buffer PTR 0x%p",
+      TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"%dth buffer avaialable, buffer PTR 0x%p",
                   idx,
                   pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].reorderBuffer,
-                  0);
+                  ));
       break;
     }
   }
@@ -404,7 +394,7 @@ WLANTL_BaSessionAdd
                           (v_PVOID_t)(&reorderInfo->timerUdata));
   if(!VOS_IS_STATUS_SUCCESS(status))
   {
-     BAMSGERROR("Timer Init Fail", 0, 0, 0);
+     TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Timer Init Fail"));
      return status;
   }
 
@@ -414,7 +404,7 @@ WLANTL_BaSessionAdd
   status = vos_lock_init(&reorderInfo->reorderLock);
   if(!VOS_IS_STATUS_SUCCESS(status))
   {
-     BAMSGERROR("Lock Init Fail", 0, 0, 0);
+     TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Lock Init Fail"));
      return status;
   }
 
@@ -433,9 +423,9 @@ WLANTL_BaSessionAdd
   pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].SSN       = SSN;
   pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].sessionID = sessionID;
   pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].pendingFramesCount = 0;
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:New BA session added for STA: %d TID: %d",
-             ucSTAId, ucTid);
+             ucSTAId, ucTid));
 
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_BaSessionAdd */
@@ -555,8 +545,8 @@ WLANTL_BaSessionDel
    ------------------------------------------------------------------------*/
   reOrderInfo = &pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid];
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL: Fwd all packets to HDD on WLANTL_BaSessionDel");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL: Fwd all packets to HDD on WLANTL_BaSessionDel"));
 
   if(0 == reOrderInfo->ucCIndex)
   {
@@ -576,9 +566,9 @@ WLANTL_BaSessionDel
 
   if ((VOS_STATUS_SUCCESS == vosStatus) && (NULL != vosDataBuff))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL: Chaining was successful sending all pkts to HDD : %x",
-              vosDataBuff );
+              vosDataBuff ));
 
     wRxMetaInfo.ucUP = ucTid;
     pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, 
@@ -593,7 +583,7 @@ WLANTL_BaSessionDel
     vosStatus = vos_timer_stop(&reOrderInfo->agingTimer);
     if(!VOS_IS_STATUS_SUCCESS(vosStatus))
     { 
-       BAMSGERROR("Timer stop fail", vosStatus, 0, 0);
+       TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Timer stop fail", vosStatus));
        return vosStatus;
     }
   }
@@ -604,8 +594,8 @@ WLANTL_BaSessionDel
   }
   else
   {
-    BAMSGERROR("Timer is not stopped state current state is %d",
-                vos_timer_getCurrentState(&reOrderInfo->agingTimer), 0, 0);
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Timer is not stopped state current state is %d",
+                vos_timer_getCurrentState(&reOrderInfo->agingTimer)));
   }
   if ( VOS_STATUS_SUCCESS != vosStatus ) 
   {
@@ -624,9 +614,9 @@ WLANTL_BaSessionDel
   reOrderInfo->sessionID = 0;
 
   vos_lock_destroy(&reOrderInfo->reorderLock);
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL: BA session deleted for STA: %d TID: %d",
-             ucSTAId, ucTid);
+             ucSTAId, ucTid));
 
   memset((v_U8_t *)(&reOrderInfo->reorderBuffer->arrayBuffer[0]),
                     0,
@@ -736,8 +726,8 @@ WLANTL_AMSDUProcess
 
   if ( WLANHAL_RX_BD_AEF_SET == ucAef ) 
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:Error in AMSDU - dropping entire chain");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL:Error in AMSDU - dropping entire chain"));
 
     vos_pkt_return_packet(vosDataBuff);
     vosDataBuff = NULL;
@@ -754,7 +744,7 @@ WLANTL_AMSDUProcess
     vStatus = vos_pkt_pop_head(vosDataBuff, MPDUHeaderAMSDUHeader, ucMPDUHLen + TL_AMSDU_SUBFRM_HEADER_LEN);
     if(!VOS_IS_STATUS_SUCCESS(vStatus))
     {
-      BAMSGERROR("Pop MPDU AMSDU Header fail", 0, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Pop MPDU AMSDU Header fail"));
       vos_pkt_return_packet(vosDataBuff);
       vosDataBuff = NULL;
       return VOS_STATUS_SUCCESS; /*Not a transport error*/
@@ -772,7 +762,7 @@ WLANTL_AMSDUProcess
     }
     if(!VOS_IS_STATUS_SUCCESS(vStatus))
     {
-      BAMSGERROR("Trim Garbage Data fail", 0, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Trim Garbage Data fail"));
       vos_pkt_return_packet(vosDataBuff);
       vosDataBuff = NULL;
       return VOS_STATUS_SUCCESS; /*Not a transport error*/
@@ -782,7 +772,7 @@ WLANTL_AMSDUProcess
     vStatus = vos_pkt_pop_head(vosDataBuff, MPDUHeaderAMSDUHeader, ucMPDUHLen + TL_AMSDU_SUBFRM_HEADER_LEN);
     if(!VOS_IS_STATUS_SUCCESS(vStatus))
     {
-      BAMSGERROR("AMSDU Header Pop fail", 0, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"AMSDU Header Pop fail"));
       vos_pkt_return_packet(vosDataBuff);
       vosDataBuff = NULL;
       return VOS_STATUS_SUCCESS; /*Not a transport error*/
@@ -793,7 +783,7 @@ WLANTL_AMSDUProcess
   vStatus = vos_pkt_push_head(vosDataBuff, pTLCb->atlSTAClients[ucSTAId].aucMPDUHeader, pTLCb->atlSTAClients[ucSTAId].ucMPDUHeaderLen);
   if(!VOS_IS_STATUS_SUCCESS(vStatus))
   {
-    BAMSGERROR("MPDU Header Push back fail", 0, 0, 0);
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"MPDU Header Push back fail"));
     vos_pkt_return_packet(vosDataBuff);
     vosDataBuff = NULL;
     return VOS_STATUS_SUCCESS; /*Not a transport error*/
@@ -819,7 +809,7 @@ WLANTL_AMSDUProcess
   {
     /* Padding size is larger than Frame size, Actually negative */
     /* Not a valid case, not a valid frame, drop it */
-    BAMSGERROR("Padding Size is negative, no possible %d", paddingSize, 0, 0);
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Padding Size is negative, no possible %d", paddingSize));
     vos_pkt_return_packet(vosDataBuff);
     vosDataBuff = NULL;
     return VOS_STATUS_SUCCESS; /*Not a transport error*/
@@ -828,7 +818,7 @@ WLANTL_AMSDUProcess
   numAMSDUFrames++;
   if(0 == (numAMSDUFrames % 5000))
   {
-    BAMSGERROR("%lu AMSDU frames arrived", numAMSDUFrames, 0, 0);
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"%lu AMSDU frames arrived", numAMSDUFrames));
   }
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_AMSDUProcess */
@@ -885,8 +875,8 @@ VOS_STATUS WLANTL_MSDUReorder
 
    if((NULL == pTLCb) || (*vosDataBuff == NULL))
    {
-      BAMSGERROR("Invalid ARG pTLCb 0x%p, vosDataBuff 0x%p",
-                  pTLCb, *vosDataBuff, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Invalid ARG pTLCb 0x%p, vosDataBuff 0x%p",
+                  pTLCb, *vosDataBuff));
       return VOS_STATUS_E_INVAL;
    }
 
@@ -895,7 +885,7 @@ VOS_STATUS WLANTL_MSDUReorder
    lockStatus = vos_lock_acquire(&currentReorderInfo->reorderLock);
    if(!VOS_IS_STATUS_SUCCESS(lockStatus))
    {
-      BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
       return lockStatus;
    }
 
@@ -906,15 +896,14 @@ VOS_STATUS WLANTL_MSDUReorder
 #ifdef WLANTL_REORDER_DEBUG_MSG_ENABLE
    if (ucOpCode < WLANTL_OPCODE_MAX)
    {
-      BAMSGDEBUG("%s", opCodeString[ucOpCode], 0, 0);
+      TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"%s", opCodeString[ucOpCode]));
    }
    else
    {
-      BAMSGERROR("Unknown OpCode %d", ucOpCode, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Unknown OpCode %d", ucOpCode));
    }
-
-#endif /* WLANTL_REORDER_DEBUG_MSG_ENABLE */
-   BAMSGDEBUG("SI %d, FI %d, CI %d", ucSlotIdx, ucFwdIdx, currentReorderInfo->ucCIndex);
+#endif
+   TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"SI %d, FI %d, CI %d", ucSlotIdx, ucFwdIdx, currentReorderInfo->ucCIndex));
 
    // remember our current CI so that later we can tell if it advanced
    ucCIndexOrig = currentReorderInfo->ucCIndex;
@@ -932,7 +921,7 @@ VOS_STATUS WLANTL_MSDUReorder
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))
             {
-               BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                return lockStatus;
             }
             return status;
@@ -951,11 +940,11 @@ VOS_STATUS WLANTL_MSDUReorder
                                            pTLCb);
             if(!VOS_IS_STATUS_SUCCESS(status))
             {
-               BAMSGERROR("Make frame chain fail %d", status, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make frame chain fail %d", status));
                lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
                if(!VOS_IS_STATUS_SUCCESS(lockStatus))
                {
-                  BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+                  TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                   return lockStatus;
                }
                return status;
@@ -974,11 +963,11 @@ VOS_STATUS WLANTL_MSDUReorder
                                            pTLCb);
             if(!VOS_IS_STATUS_SUCCESS(status))
             {
-               BAMSGERROR("IMake frame chain fail %d", status, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"IMake frame chain fail %d", status));
                lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
                if(!VOS_IS_STATUS_SUCCESS(lockStatus))
                {
-                  BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+                  TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                   return lockStatus;
                }
                return status;
@@ -996,11 +985,11 @@ VOS_STATUS WLANTL_MSDUReorder
                                         pTLCb);
          if(!VOS_IS_STATUS_SUCCESS(status))
          {
-            BAMSGERROR("Make frame chain fail %d", status, 0, 0);
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make frame chain fail %d", status));
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))
             {
-               BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                return lockStatus;
             }
             return status;
@@ -1008,19 +997,19 @@ VOS_STATUS WLANTL_MSDUReorder
 
          if(NULL == vosPktIdx)
          {
-            BAMSGDEBUG("Nothing to chain, just send current frame\n", 0, 0, 0);
+            TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"Nothing to chain, just send current frame\n"));
          }
          else
          {
             status = vos_pkt_chain_packet(vosPktIdx, *vosDataBuff, 1);
             if(!VOS_IS_STATUS_SUCCESS(status))
             {
-               BAMSGERROR("Make frame chain with CUR frame fail %d",
-                           status, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make frame chain with CUR frame fail %d",
+                           status));
                lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
                if(!VOS_IS_STATUS_SUCCESS(lockStatus))
                {
-                  BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+                  TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                   return lockStatus;
                }
                return status;
@@ -1044,11 +1033,11 @@ VOS_STATUS WLANTL_MSDUReorder
                                            pTLCb);
             if(!VOS_IS_STATUS_SUCCESS(status))
             {
-               BAMSGERROR("Make frame chain fail %d", status, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make frame chain fail %d", status));
                lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
                if(!VOS_IS_STATUS_SUCCESS(lockStatus))
                {
-                  BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+                  TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                   return lockStatus;
                }
                return status;
@@ -1073,12 +1062,12 @@ VOS_STATUS WLANTL_MSDUReorder
                                         pTLCb);
          if(!VOS_IS_STATUS_SUCCESS(status))
          {
-            BAMSGERROR("Make cahin with buffered frame fail %d",
-                        status, 0, 0);
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make cahin with buffered frame fail %d",
+                        status));
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))
             {
-               BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                return lockStatus;
             }
             return status;
@@ -1098,11 +1087,11 @@ VOS_STATUS WLANTL_MSDUReorder
                                            pTLCb);
             if(!VOS_IS_STATUS_SUCCESS(status))
             {
-               BAMSGERROR("Make frame chain fail %d", status, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make frame chain fail %d", status));
                lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
                if(!VOS_IS_STATUS_SUCCESS(lockStatus))
                {
-                  BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+                  TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                   return lockStatus;
                }
                return status;
@@ -1123,12 +1112,12 @@ VOS_STATUS WLANTL_MSDUReorder
                                         pTLCb);
          if(!VOS_IS_STATUS_SUCCESS(status))
          {
-            BAMSGERROR("Make cahin with buffered frame fail %d",
-                        status, 0, 0);
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make cahin with buffered frame fail %d",
+                        status));
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))
             {
-               BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                return lockStatus;
             }
             return status;
@@ -1138,12 +1127,12 @@ VOS_STATUS WLANTL_MSDUReorder
          status = vos_pkt_return_packet(*vosDataBuff);
          if(!VOS_IS_STATUS_SUCCESS(status))
          {
-            BAMSGERROR("Drop BAR frame fail %d",
-                        status, 0, 0);
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Drop BAR frame fail %d",
+                        status));
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))
             {
-               BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                return lockStatus;
             }
             return status;
@@ -1160,12 +1149,12 @@ VOS_STATUS WLANTL_MSDUReorder
                                         pTLCb);
          if(!VOS_IS_STATUS_SUCCESS(status))
          {
-            BAMSGERROR("Make chain with buffered frame fail %d",
-                        status, 0, 0);
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make chain with buffered frame fail %d",
+                        status));
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))
             {
-               BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                return lockStatus;
             }
             return status;
@@ -1174,12 +1163,12 @@ VOS_STATUS WLANTL_MSDUReorder
          status = vos_pkt_return_packet(*vosDataBuff);
          if(!VOS_IS_STATUS_SUCCESS(status))
          {
-            BAMSGERROR("Drop BAR frame fail %d",
-                        status, 0, 0);
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Drop BAR frame fail %d",
+                        status));
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))
             {
-               BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                return lockStatus;
             }
             return status;
@@ -1197,12 +1186,12 @@ VOS_STATUS WLANTL_MSDUReorder
                                         pTLCb);
          if(!VOS_IS_STATUS_SUCCESS(status))
          {
-            BAMSGERROR("Make cahin with buffered frame fail %d",
-                        status, 0, 0);
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make cahin with buffered frame fail %d",
+                        status));
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))
             {
-               BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                return lockStatus;
             }
             return status;
@@ -1212,12 +1201,12 @@ VOS_STATUS WLANTL_MSDUReorder
                                       ucSlotIdx);
          if(!VOS_IS_STATUS_SUCCESS(status))
          {
-            BAMSGERROR("Q Current frame fail %d",
-                        status, 0, 0);
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Q Current frame fail %d",
+                        status));
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))
             {
-               BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                return lockStatus;
             }
             return status;
@@ -1246,9 +1235,9 @@ VOS_STATUS WLANTL_MSDUReorder
    vos_pkt_get_available_buffer_pool(VOS_PKT_TYPE_RX_RAW, &rxFree);
    if(WLANTL_BA_MIN_FREE_RX_VOS_BUFFER > rxFree)
    {
-      BAMSGERROR("RX Free", rxFree, 0, 0);
-      BAMSGERROR("RX free buffer count is too low, Pending frame count is %d",
-                  currentReorderInfo->pendingFramesCount, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"RX Free", rxFree));
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"RX free buffer count is too low, Pending frame count is %d",
+                  currentReorderInfo->pendingFramesCount));
       vosPktIdx = NULL;
       status = WLANTL_ChainFrontPkts(ucFwdIdx,
                                      WLANTL_OPCODE_FWDALL_DROPCUR, 
@@ -1257,18 +1246,18 @@ VOS_STATUS WLANTL_MSDUReorder
                                      pTLCb);
       if(!VOS_IS_STATUS_SUCCESS(status))
       {
-         BAMSGERROR("Make frame chain fail %d", status, 0, 0);
+         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make frame chain fail %d", status));
          lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
          if(!VOS_IS_STATUS_SUCCESS(lockStatus))
          {
-            BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
             return lockStatus;
          }
          return status;
       }
       if(NULL != *vosDataBuff)
       {
-         BAMSGDEBUG("Already something, Chain it",0 ,0 ,0);
+         TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"Already something, Chain it"));
          vos_pkt_chain_packet(*vosDataBuff, vosPktIdx, 1);
       }
       else
@@ -1289,8 +1278,8 @@ VOS_STATUS WLANTL_MSDUReorder
    if ((VOS_TIMER_STATE_RUNNING == timerState) &&
        (ucCIndexOrig != currentReorderInfo->ucCIndex))
    {
-      BAMSGDEBUG("HOLE filled, Pending Frames Count %d",
-                 currentReorderInfo->pendingFramesCount, 0, 0);
+      TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"HOLE filled, Pending Frames Count %d",
+                 currentReorderInfo->pendingFramesCount));
 
       // we forwarded some packets so stop aging the current hole
       timerStatus = vos_timer_stop(&currentReorderInfo->agingTimer);
@@ -1307,17 +1296,17 @@ VOS_STATUS WLANTL_MSDUReorder
    {
       if (VOS_TIMER_STATE_STOPPED == timerState)
       {
-         BAMSGDEBUG("There is a new HOLE, Pending Frames Count %d",
-                    currentReorderInfo->pendingFramesCount, 0, 0);
+         TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"There is a new HOLE, Pending Frames Count %d",
+                    currentReorderInfo->pendingFramesCount));
          timerStatus = vos_timer_start(&currentReorderInfo->agingTimer,
                                        WLANTL_BA_REORDERING_AGING_TIMER);
          if(!VOS_IS_STATUS_SUCCESS(timerStatus))
          {
-            BAMSGERROR("Timer start fail", timerStatus, 0, 0);
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Timer start fail", timerStatus));
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))
             {
-               BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
                return lockStatus;
             }
             return timerStatus;
@@ -1327,15 +1316,15 @@ VOS_STATUS WLANTL_MSDUReorder
       {
          // we didn't forward any packets and the timer was already
          // running so we're still aging the same hole
-         BAMSGDEBUG("Still HOLE, Pending Frames Count %d",
-                    currentReorderInfo->pendingFramesCount, 0, 0);
+         TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"Still HOLE, Pending Frames Count %d",
+                    currentReorderInfo->pendingFramesCount));
       }
    }
 
    lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
    if(!VOS_IS_STATUS_SUCCESS(lockStatus))
    {
-      BAMSGERROR("WLANTL_MSDUReorder, Release LOCK Fail", 0, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
       return lockStatus;
    }
    return VOS_STATUS_SUCCESS;
@@ -1380,22 +1369,22 @@ VOS_STATUS WLANTL_QueueCurrent
 {
    VOS_STATUS  status = VOS_STATUS_SUCCESS;
 
-   BAMSGDEBUG("vos Packet has to be Qed 0x%p",
-               *vosDataBuff, 0, 0);
+   TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"vos Packet has to be Qed 0x%p",
+               *vosDataBuff));
    if(NULL != pwBaReorder->reorderBuffer->arrayBuffer[ucSlotIndex])
    {
-      BAMSGERROR("One Cycle rounded, lost many frames already, not in Q %d\n",
-                  pwBaReorder->pendingFramesCount, 0, 0);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"One Cycle rounded, lost many frames already, not in Q %d\n",
+                  pwBaReorder->pendingFramesCount));
       return VOS_STATUS_E_RESOURCES;
    }
 
    pwBaReorder->reorderBuffer->arrayBuffer[ucSlotIndex] =
                                            (v_PVOID_t)(*vosDataBuff);
    pwBaReorder->pendingFramesCount++;
-   BAMSGDEBUG("Assigned, Pending Frames %d at slot %d, dataPtr 0x%x",
+   TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"Assigned, Pending Frames %d at slot %d, dataPtr 0x%x",
                pwBaReorder->pendingFramesCount,
                ucSlotIndex,
-               pwBaReorder->reorderBuffer->arrayBuffer[ucSlotIndex]);
+               pwBaReorder->reorderBuffer->arrayBuffer[ucSlotIndex]));
 
    return status;
 }/*WLANTL_QueueCurrent*/
@@ -1453,10 +1442,10 @@ VOS_STATUS WLANTL_ChainFrontPkts
       fwdIndex = pwBaReorder->ucCIndex + pwBaReorder->winSize;
    }
 
-   BAMSGDEBUG("Current Index %d, FWD Index %d, reorderBuffer 0x%p",
+   TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"Current Index %d, FWD Index %d, reorderBuffer 0x%p",
                pwBaReorder->ucCIndex % pwBaReorder->winSize,
                fwdIndex % pwBaReorder->winSize,
-               pwBaReorder->reorderBuffer);
+               pwBaReorder->reorderBuffer));
 
    negDetect = pwBaReorder->pendingFramesCount;
    for(idx = pwBaReorder->ucCIndex; idx < fwdIndex; idx++)
@@ -1465,18 +1454,18 @@ VOS_STATUS WLANTL_ChainFrontPkts
       pwBaReorder->reorderBuffer->arrayBuffer[idx % pwBaReorder->winSize];
       if(NULL != currentDataPtr)
       {
-         BAMSGDEBUG("There is buffered frame %d",
-                     idx % pwBaReorder->winSize, 0, 0);
+         TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"There is buffered frame %d",
+                     idx % pwBaReorder->winSize));
          if(NULL == *vosDataBuff)
          {
             *vosDataBuff = (vos_pkt_t *)currentDataPtr;
-            BAMSGDEBUG("This is new head %d",
-                        idx % pwBaReorder->winSize, 0, 0);
+            TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"This is new head %d",
+                        idx % pwBaReorder->winSize));
          }
          else
          {
-            BAMSGDEBUG("There is bufered Just add %d",
-                        idx % pwBaReorder->winSize, 0, 0);
+            TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"There is bufered Just add %d",
+                        idx % pwBaReorder->winSize));
             vos_pkt_chain_packet(*vosDataBuff,
                                  (vos_pkt_t *)currentDataPtr,
                                  VOS_TRUE);
@@ -1487,25 +1476,25 @@ VOS_STATUS WLANTL_ChainFrontPkts
          negDetect--;
          if(negDetect < 0)
          {
-            BAMSGERROR("This is not possible, some balance has problem\n", 0, 0, 0);
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"This is not possible, some balance has problem\n"));
             VOS_ASSERT(0);
             return VOS_STATUS_E_FAULT;
          }
-         BAMSGDEBUG("Slot Index %d, set as NULL, Pending Frames %d",
+         TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"Slot Index %d, set as NULL, Pending Frames %d",
                      idx  % pwBaReorder->winSize,
                      pwBaReorder->pendingFramesCount,
-                     0);
+                     ));
          pwBaReorder->ucCIndex = idx % pwBaReorder->winSize;
       }
       else
       {
-         BAMSGDEBUG("Empty Array %d",
-                     idx % pwBaReorder->winSize, 0, 0);
+         TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"Empty Array %d",
+                     idx % pwBaReorder->winSize));
       }
-      BAMSGDEBUG("Current Index %d, winSize %d",
+      TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"Current Index %d, winSize %d",
                   pwBaReorder->ucCIndex,
                   pwBaReorder->winSize,
-                  0);
+                  ));
    }
    return status; 
 }/*WLANTL_ChainFrontPkts*/

@@ -217,7 +217,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        pAdapter->aStaInfo[STAId].txSuspended = VOS_TRUE;
        pAdapter->aStaInfo[STAId].txSuspendedAc = ac; 
        netif_stop_queue(dev);
-       netif_carrier_off(dev);
+       //netif_carrier_off(dev);  // don't turn off carrier in softAP
                
        return NETDEV_TX_BUSY;
     }
@@ -1288,7 +1288,7 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_hostapd_adapter_t *pAdapter,
    // UMA is ready we inform TL not to do frame 
    // translation for WinMob 6.1
    // @@@@@ xg: what value
-   staDesc.ucSwFrameTXXlation = 1;
+   staDesc.ucSwFrameTXXlation = 0;
    staDesc.ucSwFrameRXXlation = 1;
    staDesc.ucAddRmvLLC = 1;
 

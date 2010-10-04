@@ -3999,7 +3999,7 @@ limProcessSmeAddtsRspTimeout(tpAniSirGlobal pMac, tANI_U32 param)
         return;
     }
 
-    if (  (psessionEntry->limSystemRole != eLIM_STA_ROLE) || (psessionEntry->limSystemRole != eLIM_BT_AMP_STA_ROLE)   )
+    if (  (psessionEntry->limSystemRole != eLIM_STA_ROLE) && (psessionEntry->limSystemRole != eLIM_BT_AMP_STA_ROLE)   )
     {
         limLog(pMac, LOGW, "AddtsRspTimeout in non-Sta role (%d)\n", psessionEntry->limSystemRole);
         pMac->lim.gLimAddtsSent = false;

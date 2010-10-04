@@ -19,7 +19,7 @@ tSirRetStatus limIbssStaAdd(tpAniSirGlobal, void *);
 tSirRetStatus limIbssAddStaRsp( tpAniSirGlobal, void *,tpPESession);
 void limIbssDelBssRsp( tpAniSirGlobal, void *,tpPESession);
 void limIbssDelBssRspWhenCoalescing(tpAniSirGlobal,  void *);
-void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void * msg);
+void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void * msg, tpPESession pSessionEntry);
 
 void limIbssDecideProtectionOnDelete(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpUpdateBeaconParams pBeaconParams);
 void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry);

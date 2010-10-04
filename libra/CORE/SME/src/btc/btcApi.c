@@ -8,10 +8,10 @@
 * Qualcomm Confidential and Proprietary.
 *
 ******************************************************************************/
-#ifndef WLAN_MDM_CODE_REDUCTION_OPT
 #include "aniGlobal.h"
 #include "smsDebug.h"
 #include "btcApi.h"
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
 #include "cfgApi.h"
 #include "pmc.h"
 #include "smeQosInternal.h"

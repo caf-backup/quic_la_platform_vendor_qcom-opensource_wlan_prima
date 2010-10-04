@@ -594,6 +594,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    //save mode during shutdown
    sme_DisablePowerSave(pAdapter->hHal, ePMC_IDLE_MODE_POWER_SAVE);
    sme_DisablePowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE);
+   sme_DisablePowerSave(pAdapter->hHal, ePMC_UAPSD_MODE_POWER_SAVE);
 
    //Ensure that device is in full power as we will touch H/W during vos_Stop
    init_completion(&pAdapter->full_pwr_comp_var);
@@ -627,12 +628,6 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    {
        wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var, 
        msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
-   }
- 
-   halStatus = sme_CloseSession(pAdapter->hHal, pAdapter->sessionId);
-   if(halStatus != eHAL_STATUS_SUCCESS)
-   {
-      hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Unable to close session with sessionId %d",__func__, pAdapter->sessionId);
    }
  
    //Stop all the modules

@@ -763,73 +763,66 @@ static eHalStatus halMsg_addStaUpdateADU(tpAniSirGlobal pMac, tANI_U8 staIdx, tp
         (((tANI_U32)param->staMac[4]) << 8) |
         ((tANI_U32)param->staMac[5]);
 
-    if(BssSystemRole == eSYSTEM_STA_ROLE)
-    {
+    if(BssSystemRole == eSYSTEM_STA_ROLE) {
         // In the case of infra program the default MAC address.
         // to be the APs/peers MAC address.
         status = halAdu_WriteUmaDefaultMacAddr(pMac, staMacAddrLo,
             staMacAddrHi, umaIdx);
-        if(status != eHAL_STATUS_SUCCESS)
-        {
+        if(status != eHAL_STATUS_SUCCESS) {
             HALLOGE( halLog( pMac, LOGE, FL("UMA programming failed\n")));
             return status;
         }
-    }
-    else if((BssSystemRole == eSYSTEM_STA_IN_IBSS_ROLE) ||
-            (BssSystemRole == eSYSTEM_BTAMP_STA_ROLE) ||
-            (BssSystemRole == eSYSTEM_BTAMP_AP_ROLE))
-    {
+    } else {
         // Put the remote ends address.
         status = halAdu_AddToUmaSearchTable(pMac, staMacAddrLo,
-            staMacAddrHi, umaIdx);
-        if(status != eHAL_STATUS_SUCCESS)
-        {
+                staMacAddrHi, umaIdx);
+        if(status != eHAL_STATUS_SUCCESS) {
             HALLOGE( halLog( pMac, LOGE, FL("UMA programming failed\n")));
             return status;
         }
-        // Get the GTK DPU index and signature
-        status = halTable_GetStaBcastDpuIdx( pMac, staIdx, &dpuBcastIdx );
-        if(status != eHAL_STATUS_SUCCESS)
-        {
-            HALLOGE( halLog( pMac, LOGE, FL("Invalid station index\n")));
-            return status;
-        }
 
-        status = halDpu_GetSignature( pMac, dpuBcastIdx, &dpuBcastSig );
-        if(status != eHAL_STATUS_SUCCESS)
-        {
-            HALLOGE( halLog( pMac, LOGE, FL("Sta signature not found\n")));
-            return status;
-        }
-
-        if ((status=halTable_GetStaUMABcastIdx(pMac, staIdx, &umaBcastIdx))
-            != eHAL_STATUS_SUCCESS)
-        {
-            HALLOGE( halLog(  pMac, LOGE,
-                FL("Unable to allocate umaBcaseyIdx for sta%d\n"), staIdx));
-            return status;
-        }
-
-        if (umaBcastIdx == HAL_INVALID_KEYID_INDEX)
-        {
-            // Allocate an index into UMA descriptor table.
-            if ((status = halUMA_AllocId(pMac, &umaBcastIdx)) != eHAL_STATUS_SUCCESS)
-            {
-                HALLOGE( halLog( pMac, LOGE, FL("UMA Bcast Idx programming failed, uma table full\n")));
+        if((BssSystemRole == eSYSTEM_STA_IN_IBSS_ROLE) ||
+                (BssSystemRole == eSYSTEM_BTAMP_STA_ROLE) ||
+                (BssSystemRole == eSYSTEM_BTAMP_AP_ROLE)) {
+            // Get the GTK DPU index and signature
+            status = halTable_GetStaBcastDpuIdx( pMac, staIdx, &dpuBcastIdx );
+            if(status != eHAL_STATUS_SUCCESS) {
+                HALLOGE( halLog( pMac, LOGE, FL("Invalid station index\n")));
                 return status;
             }
-            halTable_SetStaUMABcastIdx(pMac, staIdx, umaBcastIdx);
-        }
-        // For the broadcast RA also put the BSSID value as the A3.
-        FillUmaDescriptor( pMac, umaBcastIdx, fTEnable,
-            macAddrLo, macAddrHi,
-            dpuBcastIdx, dpuBcastSig, staIdx, param->wmmEnabled);
-        status = halAdu_AddToUmaSearchTable(pMac, 0xffffffff, 0xffff,
-                umaBcastIdx);
-        if(status != eHAL_STATUS_SUCCESS)
-        {
-            HALLOGE( halLog( pMac, LOGE, FL("UMA programming failed\n")));
-            return status;
+
+            status = halDpu_GetSignature( pMac, dpuBcastIdx, &dpuBcastSig );
+            if(status != eHAL_STATUS_SUCCESS) {
+                HALLOGE( halLog( pMac, LOGE, FL("Sta signature not found\n")));
+                return status;
+            }
+
+            if ((status=halTable_GetStaUMABcastIdx(pMac, staIdx, &umaBcastIdx))
+                    != eHAL_STATUS_SUCCESS) {
+                HALLOGE( halLog(  pMac, LOGE,
+                            FL("Unable to allocate umaBcaseyIdx for sta%d\n"), staIdx));
+                return status;
+            }
+
+            if (umaBcastIdx == HAL_INVALID_KEYID_INDEX) {
+                // Allocate an index into UMA descriptor table.
+                if ((status = halUMA_AllocId(pMac, &umaBcastIdx)) != eHAL_STATUS_SUCCESS)
+                {
+                    HALLOGE( halLog( pMac, LOGE, FL("UMA Bcast Idx programming failed, uma table full\n")));
+                    return status;
+                }
+                halTable_SetStaUMABcastIdx(pMac, staIdx, umaBcastIdx);
+            }
+            // For the broadcast RA also put the BSSID value as the A3.
+            FillUmaDescriptor( pMac, umaBcastIdx, fTEnable,
+                    macAddrLo, macAddrHi,
+                    dpuBcastIdx, dpuBcastSig, staIdx, param->wmmEnabled);
+            status = halAdu_AddToUmaSearchTable(pMac, 0xffffffff, 0xffff,
+                    umaBcastIdx);
+            if(status != eHAL_STATUS_SUCCESS) {
+                HALLOGE( halLog( pMac, LOGE, FL("UMA programming failed\n")));
+                return status;
+            }
         }
     }
 

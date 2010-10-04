@@ -408,6 +408,8 @@ void pmmInitBmpsPwrSave(tpAniSirGlobal pMac)
      * Heartbeat timer not running is an indication that PE have detected a
      * loss of link. In this case, reject BMPS request. 
      */
+     /* TODO : We need to have a better check. This check is not valid */
+#if 0
     if ( (pMac->sys.gSysEnableLinkMonitorMode) && (pMac->lim.limTimers.gLimHeartBeatTimer.pMac) )
     {
         if(VOS_TRUE != tx_timer_running(&pMac->lim.limTimers.gLimHeartBeatTimer)) 
@@ -418,6 +420,7 @@ void pmmInitBmpsPwrSave(tpAniSirGlobal pMac)
             goto failure;
         }
     }
+#endif
 
     //If the following function returns SUCCESS, then PMM will wait for an explicit
     //response message from softmac.

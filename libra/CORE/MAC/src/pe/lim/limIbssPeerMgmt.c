@@ -1181,12 +1181,12 @@ void limIbssDelBssRspWhenCoalescing(tpAniSirGlobal  pMac,  void *msg,tpPESession
 
 
 
-void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void *msg)
+void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void *msg, tpPESession pSessionEntry)
 {
     tANI_U8           infoLen;
     tSirSmeNewBssInfo newBssInfo;
 
-   tpAddBssParams pAddBss = (tpAddBssParams) msg;
+    tpAddBssParams pAddBss = (tpAddBssParams) msg;
 
     tpSirMacMgmtHdr   pHdr    = (tpSirMacMgmtHdr)   pMac->lim.ibssInfo.pHdr;
     tpSchBeaconStruct pBeacon = (tpSchBeaconStruct) pMac->lim.ibssInfo.pBeacon;
@@ -1212,6 +1212,13 @@ void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void *msg)
     limSendSmeWmStatusChangeNtf(pMac, eSIR_SME_JOINED_NEW_BSS,
                                 (tANI_U32 *) &newBssInfo,
                                 infoLen);
+#ifdef WLAN_SOFTAP_FEATURE
+    {
+        //Configure beacon and send beacons to HAL
+        limSendBeaconInd(pMac, pSessionEntry);
+    }
+#endif
+    
 
     end:
     ibss_coalesce_free(pMac);

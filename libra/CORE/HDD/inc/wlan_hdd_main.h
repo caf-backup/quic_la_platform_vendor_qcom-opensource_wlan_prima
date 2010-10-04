@@ -44,7 +44,11 @@
 /** Bytes to reserve in the headroom */
 #define LIBRA_HW_NEEDED_HEADROOM   128
 /** Hdd Tx Time out value */
+#ifdef LIBRA_LINUX_PC
+#define HDD_TX_TIMEOUT          (8000)
+#else
 #define HDD_TX_TIMEOUT          (2*HZ)
+#endif
 /** Hdd Default MTU */
 #define HDD_DEFAULT_MTU         (1500)
 /**event flags registered net device*/
@@ -320,10 +324,9 @@ struct hdd_adapter_s
    struct completion standby_comp_var;
    /** completion variable for disconnect callback */
    struct completion disconnect_comp_var;
-/* completion variable for Linkup Event */
-
+   /* completion variable for Linkup Event */
    struct completion linkup_event_var;
-   
+
    /* Completion  variable to indicate Tx Thread Suspended */
    struct completion tx_sus_event_var;
 
@@ -334,6 +337,7 @@ struct hdd_adapter_s
    v_BOOL_t isLinkUpSvcNeeded;
 
    v_BOOL_t isWlanSuspended;
+
    /**Track whether driver has been suspended.*/
    hdd_ps_state_t hdd_ps_state;
    /** ptt Process ID*/

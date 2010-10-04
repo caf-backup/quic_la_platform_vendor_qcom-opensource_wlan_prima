@@ -15,7 +15,6 @@
 /*--------------------------------------------------------------------------
   Include Files
   ------------------------------------------------------------------------*/
-#ifndef WLAN_MDM_CODE_REDUCTION_OPT
 
 #include "halInternal.h"
 #include "smeInside.h"
@@ -23,6 +22,8 @@
 #include "vos_diag_core_event.h"
 #include "vos_diag_core_log.h"
 #include "csrInsideApi.h"
+
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
 
 /* TODO : 6Mbps as Cisco APs seem to like only this value; analysis req.   */
 #define SME_QOS_MIN_PHY_RATE         0x5B8D80    

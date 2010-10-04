@@ -315,15 +315,15 @@ sapGotoDisconnected
 )
 {
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
-    ptWLAN_SAPEvent sapEvent = NULL;
+    tWLAN_SAPEvent sapEvent;
     // Processing has to be coded
     // Clean up stations from TL etc as AP BSS is shut down then set event
-    sapEvent->event = eSAP_MAC_READY_FOR_CONNECTIONS;// hardcoded
-    sapEvent->params = 0;
-    sapEvent->u1 = 0;
-    sapEvent->u2 = 0;
+    sapEvent.event = eSAP_MAC_READY_FOR_CONNECTIONS;// hardcoded
+    sapEvent.params = 0;
+    sapEvent.u1 = 0;
+    sapEvent.u2 = 0;
     /* Handle event */
-    vosStatus = sapFsm(sapContext, sapEvent);
+    vosStatus = sapFsm(sapContext, &sapEvent);
             
     return vosStatus;
 }

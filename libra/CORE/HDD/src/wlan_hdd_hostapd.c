@@ -169,10 +169,35 @@ static int hdd_hostapd_set_mac_address(struct net_device *dev, void *addr)
    return 0;
 }
 
+void hdd_hostapd_inactivity_timer_cb(v_PVOID_t usrDataForCallback)
+{
+    struct net_device *dev = (struct net_device *)usrDataForCallback;
+    v_BYTE_t we_custom_event[64];
+    union iwreq_data wrqu;
+
+    /* event_name space-delimiter driver_module_name */
+    /* Format of the event is "AUTO-SHUT.indication" " " "module_name" */
+    char * autoShutEvent = "AUTO-SHUT.indication" " "  KBUILD_MODNAME;
+    int event_len = strlen(autoShutEvent) + 1; /* For the NULL at the end */
+
+    ENTER();
+
+    memset(&we_custom_event, '\0', sizeof(we_custom_event));
+    memcpy(&we_custom_event, autoShutEvent, event_len);
+
+    memset(&wrqu, 0, sizeof(wrqu));
+    wrqu.data.length = event_len;
+
+    wireless_send_event(dev, IWEVCUSTOM, &wrqu, (char *)we_custom_event);    
+
+    EXIT();
+}
+
 VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCallback)
 {
     hdd_hostapd_adapter_t *pHostapdAdapter;
     hdd_hostapd_state_t *pHostapdState;
+    hdd_adapter_t *pAdapter = NULL;
     struct net_device *dev;
     eSapHddEvent sapEvent;
     union iwreq_data wrqu;
@@ -182,11 +207,13 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     u_int16_t staId;
     VOS_STATUS vos_status; 
     v_BOOL_t bWPSState;
-
+    v_BOOL_t bApActive = FALSE;
     tpSap_AssocMacAddr pAssocStasArray = NULL;
+
     dev = (struct net_device *)usrDataForCallback;
     pHostapdAdapter = (hdd_hostapd_adapter_t*)netdev_priv(dev);
     pHostapdState = pHostapdAdapter->pHostapdState; 
+    pAdapter = (hdd_adapter_t * )(netdev_priv(pHostapdAdapter->pWlanDev));
 
     sapEvent = pSapEvent->sapHddEventCode;
     memset(&wrqu, '\0', sizeof(wrqu));
@@ -212,6 +239,20 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 pHostapdAdapter->uBCStaId = pSapEvent->sapevt.sapStartBssCompleteEvent.staId;
                 //@@@ need wep logic here to set privacy bit
                 hdd_softap_Register_BC_STA(pHostapdAdapter, pHostapdAdapter->uPrivacy);
+            }
+            
+            if (0 != pAdapter->cfg_ini->nAPAutoShutOff)
+            {
+                // AP Inactivity timer init and start
+                vos_status = vos_timer_init( &pHostapdAdapter->hdd_ap_inactivity_timer, VOS_TIMER_TYPE_SW, 
+                                            hdd_hostapd_inactivity_timer_cb, (v_PVOID_t)dev );
+                if (!VOS_IS_STATUS_SUCCESS(vos_status))
+                   hddLog(LOGE, FL("Failed to init AP inactivity timer\n"));
+
+                vos_status = vos_timer_start( &pHostapdAdapter->hdd_ap_inactivity_timer, pAdapter->cfg_ini->nAPAutoShutOff * 1000);
+                if (!VOS_IS_STATUS_SUCCESS(vos_status))
+                   hddLog(LOGE, FL("Failed to init AP inactivity timer\n"));
+
             }
             return VOS_STATUS_SUCCESS;
 
@@ -288,6 +329,15 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                                        (v_MACADDR_t *)wrqu.addr.sa_data,
                                        pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled);
             } 
+            
+            // Stop AP inactivity timer
+            if (pHostapdAdapter->hdd_ap_inactivity_timer.state == VOS_TIMER_STATE_RUNNING)
+            {
+                vos_status = vos_timer_stop(&pHostapdAdapter->hdd_ap_inactivity_timer);
+                if (!VOS_IS_STATUS_SUCCESS(vos_status))
+                   hddLog(LOGE, FL("Failed to start AP inactivity timer\n"));
+            }
+
             break;
 
         case eSAP_STA_DISASSOC_EVENT:
@@ -310,6 +360,31 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             }
 
             hdd_softap_DeregisterSTA(pHostapdAdapter, staId);
+
+            if (0 != pAdapter->cfg_ini->nAPAutoShutOff)
+            {
+                // Start AP inactivity timer if no stations associated with it
+                for (i = 0; i < WLAN_MAX_STA_COUNT; i++)
+                {
+                    if (pHostapdAdapter->aStaInfo[i].isUsed && i != pHostapdAdapter->uBCStaId)
+                    {
+                        bApActive = TRUE;
+                        break;
+                    }
+                }
+
+                if (bApActive == FALSE)
+                {
+                    if (pHostapdAdapter->hdd_ap_inactivity_timer.state == VOS_TIMER_STATE_STOPPED)
+                    {
+                        vos_status = vos_timer_start(&pHostapdAdapter->hdd_ap_inactivity_timer, pAdapter->cfg_ini->nAPAutoShutOff * 1000);
+                        if (!VOS_IS_STATUS_SUCCESS(vos_status))
+                            hddLog(LOGE, FL("Failed to init AP inactivity timer\n"));
+                    }
+                    else
+                        VOS_ASSERT(vos_timer_getCurrentState(&pHostapdAdapter->hdd_ap_inactivity_timer) == VOS_TIMER_STATE_STOPPED);
+                }
+            }
             break;
 
         case eSAP_WPS_PBC_PROBE_REQ_EVENT:
@@ -578,7 +653,7 @@ static iw_softap_ap_stats(struct net_device *dev,
 
     pstatbuf = wrqu->data.pointer;
 
-    WLANSAP_GetStatistics(pHostapdAdapter->pvosContext, &statBuffer);  
+    WLANSAP_GetStatistics(pHostapdAdapter->pvosContext, &statBuffer, (v_BOOL_t)wrqu->data.flags);
 
     len = snprintf(pstatbuf, len,
             "RUF=%d RMF=%d RBF=%d "
@@ -957,8 +1032,9 @@ static int iw_set_encodeext(struct net_device *dev,
              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "[%4d] WLANSAP_DeleteKeysSta returned ERROR status= %d",
                         __LINE__, halStatus );
          }
+#endif         
          return halStatus;
-#endif
+
     }   
     
     vos_mem_zero(&setKey,sizeof(tCsrRoamSetKey));

@@ -348,6 +348,11 @@ typedef enum
 #define CFG_AP_LISTEN_MODE_MAX                (1) 
 #define CFG_AP_LISTEN_MODE_DEFAULT            (0)   
 
+#define CFG_AP_AUTO_SHUT_OFF                "gAPAutoShutOff"
+#define CFG_AP_AUTO_SHUT_OFF_MIN            ( 0 )
+#define CFG_AP_AUTO_SHUT_OFF_MAX            ( 4294967295UL )
+#define CFG_AP_AUTO_SHUT_OFF_DEFAULT        ( 0 )
+
 #endif
 
 #define CFG_BEACON_INTERVAL_NAME               "gBeaconInterval"
@@ -956,6 +961,7 @@ typedef struct
    char          apCntryCode[4];
    v_BOOL_t      apDisableIntraBssFwd;
    v_BOOL_t      nEnableListenMode;    
+   v_U32_t       nAPAutoShutOff;
 #endif
 
    v_U32_t       nBeaconInterval;

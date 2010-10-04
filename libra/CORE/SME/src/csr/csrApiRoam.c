@@ -477,7 +477,6 @@ eHalStatus csrStop(tpAniSirGlobal pMac)
     //Reset the domain back to the deault
     pMac->scan.domainIdCurrent = pMac->scan.domainIdDefault;
     csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE);
-    pmcDeregisterPowerSaveCheck(pMac, csrCheckPSReady);
     csrRoamStateChange( pMac, eCSR_ROAMING_STATE_STOP );
     pMac->roam.curSubState = eCSR_ROAM_SUBSTATE_NONE;
     
@@ -6635,6 +6634,7 @@ void csrRoamingStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
             {
                 csrRoamingStateConfigCnfProcessor( pMac, ((tCsrCfgSetRsp *)pSmeRsp)->respStatus );
             }
+            palFreeMemory(pMac->hHdd, pSmeRsp);
             break;
 
         //In case CSR issues STOP_BSS, we need to tell HDD about peer departed becasue PE is removing them
@@ -11103,6 +11103,8 @@ eHalStatus csrRoamCloseSession( tpAniSirGlobal pMac, tANI_U32 sessionId )
         tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
         csrRoamStop(pMac, sessionId);
         csrFreeConnectBssDesc(pMac, sessionId);
+        csrRoamFreeConnectProfile( pMac, &pSession->connectedProfile );
+        csrRoamFreeConnectedInfo ( pMac, &pSession->connectedInfo);
         palTimerFree(pMac->hHdd, pSession->hTimerRoaming);
         palTimerFree(pMac->hHdd, pSession->hTimerIbssJoining);
         csrInitSession( pMac, sessionId );

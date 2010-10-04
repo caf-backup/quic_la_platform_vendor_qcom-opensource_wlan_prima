@@ -1036,6 +1036,10 @@ halDpu_SetDescriptorAttributes(
         //And set a custom bit to indication whether it is for a WAPI station
         pDpuDesc->halDpuDescriptor.encryptMode = eSIR_ED_NONE;
         pDpuDesc->halDpuDescriptor.wapi = 1;
+	    if(defKeyId == 0)
+		    pDpuDesc->halDpuDescriptor.keyIndex0 = keyIdx;
+        else if(defKeyId == 1)
+		    pDpuDesc->halDpuDescriptor.keyIndex1 = keyIdx;
     }
     else
     {

@@ -109,7 +109,7 @@
 #include "wlan_qct_hal.h" 
 #include "wlan_qct_tl_hosupport.h"
 
-#include "vos_trace.h"
+#include "tlDebug.h"
 
 /* This header is for ADD and remove BA session */
 #include "halCommonApi.h"
@@ -372,9 +372,8 @@ WLANTL_Open
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if (( NULL == pTLCb ) || ( NULL == pTLConfig ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL: Invalid input pointer on WLANTL_Open TL %x"
-               " Config %x", pTLCb, pTLConfig );
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL: Invalid input pointer on WLANTL_Open TL %x Config %x", pTLCb, pTLConfig ));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -384,8 +383,8 @@ WLANTL_Open
   /*------------------------------------------------------------------------
     Clean up TL control block, initialize all values
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:WLANTL_Open");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:WLANTL_Open"));
 
   WLANTL_CleanCB(pTLCb, 0 /*do not empty*/);
 
@@ -425,8 +424,8 @@ WLANTL_Open
   status = WLANTL_HSInit(pvosGCtx);
   if(!VOS_IS_STATUS_SUCCESS(status))
   {
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "Handoff support module init fail");
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "Handoff support module init fail")));
     return status;
   }
 #endif
@@ -486,16 +485,16 @@ WLANTL_Start
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_Start");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_Start"));
     return VOS_STATUS_E_FAULT;
   }
 
   /*------------------------------------------------------------------------
     Register with BAL as transport layer client
   ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:WLAN TL:WLANTL_Start");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:WLAN TL:WLANTL_Start"));
 
   tlReg.receiveFrameCB = WLANTL_RxFrames;
   tlReg.getTXFrameCB         = WLANTL_GetFrames;
@@ -508,8 +507,8 @@ WLANTL_Start
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:TL failed to register with BAL, Err: %d", vosStatus);
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, 
+               "WLAN TL:TL failed to register with BAL, Err: %d", vosStatus));
     return vosStatus;
   }
 
@@ -523,9 +522,9 @@ WLANTL_Start
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                "WLAN TL:TL failed to get resources from BAL, Err: %d",
-               vosStatus);
+               vosStatus));
     return vosStatus;
   }
 
@@ -578,16 +577,16 @@ WLANTL_Stop
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-         "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+         "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState"));
     return VOS_STATUS_E_FAULT;
   }
 
   /*------------------------------------------------------------------------
     Stop TL and empty Station list
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:WLANTL_Stop");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:WLANTL_Stop"));
 
   /* Disable transmission */
   vos_atomic_set_U8( &pTLCb->ucTxSuspended, 1);
@@ -607,8 +606,8 @@ WLANTL_Stop
 #ifdef FEATURE_WLAN_GEN6_ROAMING
   if(VOS_STATUS_SUCCESS != WLANTL_HSStop(pvosGCtx))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
-               "Handoff Support module stop fail");
+    TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+               "Handoff Support module stop fail"));
   }
 #endif
 
@@ -666,23 +665,16 @@ WLANTL_Close
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-         "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+         "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState"));
     return VOS_STATUS_E_FAULT;
   }
 
-   if(!HAL_STATUS_SUCCESS(
-      pmcDeregisterDeviceStateUpdateInd(vos_get_context(VOS_MODULE_ID_SME, pvosGCtx), WLANTL_PowerStateChangedCB)))
-   {
-      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,
-                "%s: %d: cannot deregister with pmcDeregisterDeviceStateUpdateInd()",
-                __FUNCTION__, __LINE__);
-   }
   /*------------------------------------------------------------------------
     Cleanup TL control block.
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL: WLANTL_Close");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL: WLANTL_Close"));
   WLANTL_CleanCB(pTLCb, 1 /* empty queues/lists/pkts if any*/);
 
   /*------------------------------------------------------------------------
@@ -812,15 +804,15 @@ WLANTL_RegisterSTAClient
   if (( NULL == pwSTADescType ) || ( NULL == pfnSTARx ) ||
       ( NULL == pfnSTAFetchPkt ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_RegisterSTAClient");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_RegisterSTAClient"));
     return VOS_STATUS_E_INVAL;
   }
 
   if ( WLANTL_STA_ID_INVALID( pwSTADescType->ucSTAId ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-         "WLAN TL:Invalid station id requested on WLANTL_RegisterSTAClient");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+         "WLAN TL:Invalid station id requested on WLANTL_RegisterSTAClient"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -830,24 +822,24 @@ WLANTL_RegisterSTAClient
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-      "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_RegisterSTAClient");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_RegisterSTAClient"));
     return VOS_STATUS_E_FAULT;
   }
 
   if ( 0 != pTLCb->atlSTAClients[pwSTADescType->ucSTAId].ucExists )
   {
     pTLCb->atlSTAClients[pwSTADescType->ucSTAId].ucExists++;
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-      "WLAN TL:Station was already registered on WLANTL_RegisterSTAClient");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      "WLAN TL:Station was already registered on WLANTL_RegisterSTAClient"));
     return VOS_STATUS_E_EXISTS;
   }
 
   /*------------------------------------------------------------------------
     Register station with TL
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:Registering STA Client ID: %d", pwSTADescType->ucSTAId );
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:Registering STA Client ID: %d", pwSTADescType->ucSTAId ));
 
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].pfnSTARx       = pfnSTARx;
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].pfnSTAFetchPkt = pfnSTAFetchPkt;
@@ -865,10 +857,10 @@ WLANTL_RegisterSTAClient
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].wSTADesc.ucSTAId  =
     pwSTADescType->ucSTAId;
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:Registering STA Client ID: %d with UC %d and BC %d", 
              pwSTADescType->ucSTAId, 
-              pwSTADescType->ucUcastSig, pwSTADescType->ucBcastSig);
+              pwSTADescType->ucUcastSig, pwSTADescType->ucBcastSig));
 
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].wSTADesc.wSTAType =
     pwSTADescType->wSTAType;
@@ -882,12 +874,12 @@ WLANTL_RegisterSTAClient
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].wSTADesc.ucProtectedFrame =
     pwSTADescType->ucProtectedFrame;
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:Registering STA Client ID: %d QoS %d Add LLC %d ProtFrame %d", 
              pwSTADescType->ucSTAId, 
              pwSTADescType->ucQosEnabled,
              pwSTADescType->ucAddRmvLLC,
-             pwSTADescType->ucProtectedFrame);
+             pwSTADescType->ucProtectedFrame));
 
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].wSTADesc.ucSwFrameTXXlation =
     pwSTADescType->ucSwFrameTXXlation;
@@ -1056,8 +1048,8 @@ WLANTL_ClearSTAClient
    ------------------------------------------------------------------------*/
   if ( WLANTL_STA_ID_INVALID( ucSTAId ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-           "WLAN TL:Invalid station id requested on WLANTL_ClearSTAClient");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+           "WLAN TL:Invalid station id requested on WLANTL_ClearSTAClient"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -1067,15 +1059,15 @@ WLANTL_ClearSTAClient
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-       "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ClearSTAClient");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+       "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ClearSTAClient"));
     return VOS_STATUS_E_FAULT;
   }
 
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].ucExists )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-    "WLAN TL:Station was not previously registered on WLANTL_ClearSTAClient");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    "WLAN TL:Station was not previously registered on WLANTL_ClearSTAClient"));
     return VOS_STATUS_E_EXISTS;
   }
 
@@ -1088,12 +1080,12 @@ WLANTL_ClearSTAClient
   /*------------------------------------------------------------------------
     Clear station
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:Clearing STA Client ID: %d", ucSTAId );
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:Clearing STA Client ID: %d", ucSTAId ));
   WLANTL_CleanSTA(&pTLCb->atlSTAClients[ucSTAId], 1 /*empty packets*/);
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:Clearing STA Reset History RSSI and Region number");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:Clearing STA Reset History RSSI and Region number"));
   pTLCb->hoSupport.currentHOState.historyRSSI = 0;
   pTLCb->hoSupport.currentHOState.regionNumber = 0;
 
@@ -1160,15 +1152,15 @@ WLANTL_ChangeSTAState
    ------------------------------------------------------------------------*/
   if ( tlSTAState >= WLANTL_STA_MAX_STATE )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid parameter sent on WLANTL_ChangeSTAState");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid parameter sent on WLANTL_ChangeSTAState"));
     return VOS_STATUS_E_INVAL;
   }
 
   if ( WLANTL_STA_ID_INVALID( ucSTAId ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-             "WLAN TL:Invalid station id requested on WLANTL_ChangeSTAState");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+             "WLAN TL:Invalid station id requested on WLANTL_ChangeSTAState"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -1178,15 +1170,15 @@ WLANTL_ChangeSTAState
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-         "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+         "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState"));
     return VOS_STATUS_E_FAULT;
   }
 
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].ucExists )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-     "WLAN TL:Station was not previously registered on WLANTL_ChangeSTAState");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     "WLAN TL:Station was not previously registered on WLANTL_ChangeSTAState"));
     return VOS_STATUS_E_EXISTS;
   }
 
@@ -1194,9 +1186,9 @@ WLANTL_ChangeSTAState
     Change STA state
     No need to lock this operation, see restrictions above
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:Changing state for STA Client ID: %d from %d to %d",
-             ucSTAId, pTLCb->atlSTAClients[ucSTAId].tlState, tlSTAState);
+             ucSTAId, pTLCb->atlSTAClients[ucSTAId].tlState, tlSTAState));
 
   pTLCb->atlSTAClients[ucSTAId].tlState = tlSTAState;
 
@@ -1261,8 +1253,8 @@ WLANTL_STAPktPending
    ------------------------------------------------------------------------*/
   if ( WLANTL_STA_ID_INVALID( ucSTAId ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid station id requested on WLANTL_STAPktPending");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid station id requested on WLANTL_STAPktPending"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -1272,15 +1264,15 @@ WLANTL_STAPktPending
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-         "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STAPktPending");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+         "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STAPktPending"));
     return VOS_STATUS_E_FAULT;
   }
 
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].ucExists )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-    "WLAN TL:Station was not previously registered on WLANTL_STAPktPending");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    "WLAN TL:Station was not previously registered on WLANTL_STAPktPending"));
     return VOS_STATUS_E_EXISTS;
   }
 
@@ -1308,8 +1300,8 @@ WLANTL_STAPktPending
   if (( pTLCb->uResCount >=  WLANTL_MIN_RES_DATA ) &&
       ( 0 == pTLCb->ucTxSuspended ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-              "Issuing Xmit start request to BAL");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+              "Issuing Xmit start request to BAL"));
     WLANBAL_StartXmit(pvosGCtx);
   }
   else
@@ -1318,9 +1310,9 @@ WLANTL_STAPktPending
       No error code is sent because TL will resume tx autonomously if
       resources become available or tx gets resumed
      ---------------------------------------------------------------------*/
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
        "WLAN TL:Request to send but condition not met. Res: %d,Suspend: %d",
-               pTLCb->uResCount, pTLCb->ucTxSuspended );
+               pTLCb->uResCount, pTLCb->ucTxSuspended ));
 
   }
 
@@ -1377,8 +1369,8 @@ WLANTL_SetSTAPriority
    ------------------------------------------------------------------------*/
   if ( WLANTL_STA_ID_INVALID( ucSTAId ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "WLAN TL:Invalid station id requested on WLANTL_SetSTAPriority");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL:Invalid station id requested on WLANTL_SetSTAPriority"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -1388,24 +1380,24 @@ WLANTL_SetSTAPriority
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-        "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_SetSTAPriority");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+        "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_SetSTAPriority"));
     return VOS_STATUS_E_FAULT;
   }
 
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].ucExists )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-    "WLAN TL:Station was not previously registered on WLANTL_SetSTAPriority");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    "WLAN TL:Station was not previously registered on WLANTL_SetSTAPriority"));
     return VOS_STATUS_E_EXISTS;
   }
 
   /*------------------------------------------------------------------------
     Re-analize if lock is needed when adding multiple stations
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:Changing state for STA Pri ID: %d from %d to %d",
-             ucSTAId, pTLCb->atlSTAClients[ucSTAId].tlPri, tlSTAPri);
+             ucSTAId, pTLCb->atlSTAClients[ucSTAId].tlPri, tlSTAPri));
   pTLCb->atlSTAClients[ucSTAId].tlPri = tlSTAPri;
 
   return VOS_STATUS_SUCCESS;
@@ -1467,15 +1459,15 @@ WLANTL_RegisterBAPClient
    ------------------------------------------------------------------------*/
   if ( NULL == pfnTlBAPRxFrm )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid parameter sent on WLANTL_RegisterBAPClient");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid parameter sent on WLANTL_RegisterBAPClient"));
     return VOS_STATUS_E_INVAL;
   }
 
   if ( NULL == pfnFlushOpCompleteCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-      "Invalid Flush Complete Cb parameter sent on WLANTL_RegisterBAPClient");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      "Invalid Flush Complete Cb parameter sent on WLANTL_RegisterBAPClient"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -1485,8 +1477,8 @@ WLANTL_RegisterBAPClient
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-    "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_RegisterBAPClient");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_RegisterBAPClient"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -1496,16 +1488,16 @@ WLANTL_RegisterBAPClient
   if ( 0 != pTLCb->tlBAPClient.ucExists )
   {
     pTLCb->tlBAPClient.ucExists++;
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:BAP client was already registered");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:BAP client was already registered"));
     return VOS_STATUS_E_EXISTS;
   }
 
   /*------------------------------------------------------------------------
     Register station with TL
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:Registering BAP Client" );
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:Registering BAP Client" ));
 
   pTLCb->tlBAPClient.ucExists++;
 
@@ -1592,8 +1584,8 @@ WLANTL_TxBAPFrm
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_TxBAPFrm");
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_TxBAPFrm"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -1604,8 +1596,8 @@ WLANTL_TxBAPFrm
       ( WLANTL_STA_ID_INVALID(pTLCb->tlBAPClient.ucBAPSTAId) ))
   {
     pTLCb->tlBAPClient.ucExists++;
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:BAP client not register on WLANTL_TxBAPFrm");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:BAP client not register on WLANTL_TxBAPFrm"));
     return VOS_STATUS_E_EXISTS;
   }
 
@@ -1614,8 +1606,8 @@ WLANTL_TxBAPFrm
   ------------------------------------------------------------------------*/
   if ( NULL != pTLCb->tlBAPClient.vosPendingDataBuff )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-        "WLAN TL:BT-AMP Frame already pending tx in TL on WLANTL_TxBAPFrm");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+        "WLAN TL:BT-AMP Frame already pending tx in TL on WLANTL_TxBAPFrm"));
     return VOS_STATUS_E_BUSY;
   }
 
@@ -1624,8 +1616,6 @@ WLANTL_TxBAPFrm
     is met
     Save the tx complete fnct pointer as tl specific data in the vos buffer
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-            "WLAN TL:Attaching BD header to pkt on WLANTL_TxBAPFrm");
 
   /*------------------------------------------------------------------------
     Translate 802.3 frame to 802.11
@@ -1640,8 +1630,8 @@ WLANTL_TxBAPFrm
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL:Error when translating header WLANTL_TxBAPFrm");
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL:Error when translating header WLANTL_TxBAPFrm"));
 
       return vosStatus;
     }
@@ -1660,8 +1650,8 @@ WLANTL_TxBAPFrm
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Failed while attempting to prepare BD %d", vosStatus);
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Failed while attempting to prepare BD %d", vosStatus));
     return vosStatus;
   }
 
@@ -1680,8 +1670,8 @@ WLANTL_TxBAPFrm
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Failed while attempting to fill BD %d", vosStatus);
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Failed while attempting to fill BD %d", vosStatus));
     return vosStatus;
   }
 
@@ -1707,8 +1697,6 @@ WLANTL_TxBAPFrm
   if (( pTLCb->uResCount >=  WLANTL_MIN_RES_BAP ) &&
       ( 0 == pTLCb->ucTxSuspended ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:Issuing Xmit start request to BAL for BAP");
     WLANBAL_StartXmit(pvosGCtx);
   }
   else
@@ -1717,9 +1705,9 @@ WLANTL_TxBAPFrm
       No error code is sent because TL will resume tx autonomously if
       resources become available or tx gets resumed
      ---------------------------------------------------------------------*/
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
           "WLAN TL:Request to send from BAP but condition not met.Res: %d,"
-                 "Suspend: %d", pTLCb->uResCount, pTLCb->ucTxSuspended );
+                 "Suspend: %d", pTLCb->uResCount, pTLCb->ucTxSuspended ));
   }
 
   return VOS_STATUS_SUCCESS;
@@ -1784,15 +1772,15 @@ WLANTL_GetRssi
    ------------------------------------------------------------------------*/
   if ( NULL == puRssi )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_GetRssi");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_GetRssi"));
     return VOS_STATUS_E_INVAL;
   }
 
   if ( WLANTL_STA_ID_INVALID( ucSTAId ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid station id requested on WLANTL_GetRssi");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid station id requested on WLANTL_GetRssi"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -1802,15 +1790,15 @@ WLANTL_GetRssi
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_GetRssi");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_GetRssi"));
     return VOS_STATUS_E_FAULT;
   }
 
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].ucExists )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-         "WLAN TL:Station was not previously registered on WLANTL_GetRssi");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+         "WLAN TL:Station was not previously registered on WLANTL_GetRssi"));
     return VOS_STATUS_E_EXISTS;
   }
 
@@ -1826,8 +1814,8 @@ WLANTL_GetRssi
     *puRssi = pTLCb->atlSTAClients[ucSTAId].uRssiAvg;
   }
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-            "WLAN TL:WLANTL_GetRssi for STA: %d RSSI: %d", ucSTAId, *puRssi);
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+            "WLAN TL:WLANTL_GetRssi for STA: %d RSSI: %d", ucSTAId, *puRssi));
 
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_GetRssi */
@@ -1885,15 +1873,15 @@ WLANTL_GetLinkQuality
    ------------------------------------------------------------------------*/
   if ( NULL == puLinkQuality )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid parameter sent on WLANTL_GetLinkQuality");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "Invalid parameter sent on WLANTL_GetLinkQuality"));
     return VOS_STATUS_E_INVAL;
   }
 
   if ( WLANTL_STA_ID_INVALID( ucSTAId ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid station id requested on WLANTL_GetLinkQuality");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "Invalid station id requested on WLANTL_GetLinkQuality"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -1903,15 +1891,15 @@ WLANTL_GetLinkQuality
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid TL pointer from pvosGCtx on WLANTL_GetLinkQuality");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "Invalid TL pointer from pvosGCtx on WLANTL_GetLinkQuality"));
     return VOS_STATUS_E_FAULT;
   }
 
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].ucExists )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "Station was not previously registered on WLANTL_GetLinkQuality");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "Station was not previously registered on WLANTL_GetLinkQuality"));
     return VOS_STATUS_E_EXISTS;
   }
 
@@ -1920,8 +1908,8 @@ WLANTL_GetLinkQuality
    ------------------------------------------------------------------------*/
   *puLinkQuality = pTLCb->atlSTAClients[ucSTAId].uLinkQualityAvg;
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLANTL_GetLinkQuality for STA: %d LinkQuality: %d", ucSTAId, *puLinkQuality);
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLANTL_GetLinkQuality for STA: %d LinkQuality: %d", ucSTAId, *puLinkQuality));
 
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_GetLinkQuality */
@@ -1969,8 +1957,8 @@ WLANTL_FlushStaTID
 
   if ( WLANTL_STA_ID_INVALID( ucSTAId ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid station id requested on WLANTL_FlushStaTID");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "Invalid station id requested on WLANTL_FlushStaTID"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -1980,15 +1968,15 @@ WLANTL_FlushStaTID
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "Invalid TL pointer from pvosGCtx on WLANTL_FlushStaTID");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "Invalid TL pointer from pvosGCtx on WLANTL_FlushStaTID"));
     return VOS_STATUS_E_FAULT;
   }
 
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].ucExists )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "Station was not previously registered on WLANTL_FlushStaTID");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "Station was not previously registered on WLANTL_FlushStaTID"));
     return VOS_STATUS_E_EXISTS;
   }
 
@@ -1999,14 +1987,11 @@ WLANTL_FlushStaTID
 
   if ( NULL == FlushACReqPtr )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-        "WLAN TL: fatal failure, cannot allocate Flush Req structure");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+        "WLAN TL: fatal failure, cannot allocate Flush Req structure"));
     VOS_ASSERT(0);
     return VOS_STATUS_E_NOMEM;
   }
-
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-    "WLAN TL: Sending Flush Req to HAL Allocated %p", FlushACReqPtr);
 
   // Start constructing the message for HAL
   FlushACReqPtr->mesgType    = SIR_TL_HAL_FLUSH_AC_REQ;
@@ -2072,8 +2057,8 @@ WLANTL_RegisterMgmtFrmClient
    ------------------------------------------------------------------------*/
   if ( NULL == pfnTlMgmtFrmRx )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-           "WLAN TL:Invalid parameter sent on WLANTL_RegisterMgmtFrmClient");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+           "WLAN TL:Invalid parameter sent on WLANTL_RegisterMgmtFrmClient"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -2083,8 +2068,8 @@ WLANTL_RegisterMgmtFrmClient
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-          "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+          "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -2094,16 +2079,16 @@ WLANTL_RegisterMgmtFrmClient
   if ( 0 != pTLCb->tlMgmtFrmClient.ucExists )
   {
     pTLCb->tlMgmtFrmClient.ucExists++;
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Management frame client was already registered");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Management frame client was already registered"));
     return VOS_STATUS_E_EXISTS;
   }
 
   /*------------------------------------------------------------------------
     Register station with TL
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-            "WLAN TL:Registering Management Frame Client" );
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+            "WLAN TL:Registering Management Frame Client" ));
 
   pTLCb->tlMgmtFrmClient.ucExists++;
 
@@ -2158,8 +2143,8 @@ WLANTL_DeRegisterMgmtFrmClient
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-          "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+          "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -2168,23 +2153,23 @@ WLANTL_DeRegisterMgmtFrmClient
    ------------------------------------------------------------------------*/
   if ( 0 == pTLCb->tlMgmtFrmClient.ucExists )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Management frame client was never registered");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Management frame client was never registered"));
     return VOS_STATUS_E_EXISTS;
   }
 
   /*------------------------------------------------------------------------
     Clear registration with TL
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-            "WLAN TL:Deregistering Management Frame Client" );
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+            "WLAN TL:Deregistering Management Frame Client" ));
 
   pTLCb->tlMgmtFrmClient.pfnTlMgmtFrmRx = WLANTL_MgmtFrmRxDefaultCb;
   if ( NULL != pTLCb->tlMgmtFrmClient.vosPendingDataBuff)
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+    TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
               "WLAN TL:Management cache buffer not empty on deregistering"
-               " - dropping packet" );
+               " - dropping packet" ));
     vos_pkt_return_packet(pTLCb->tlMgmtFrmClient.vosPendingDataBuff);
 
     pTLCb->tlMgmtFrmClient.vosPendingDataBuff = NULL; 
@@ -2279,8 +2264,8 @@ WLANTL_TxMgmtFrm
    ------------------------------------------------------------------------*/
   if ( NULL == vosFrmBuf )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_TxMgmtFrm");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_TxMgmtFrm"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -2290,8 +2275,8 @@ WLANTL_TxMgmtFrm
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_TxMgmtFrm");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_TxMgmtFrm"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -2301,8 +2286,8 @@ WLANTL_TxMgmtFrm
   if ( 0 == pTLCb->tlMgmtFrmClient.ucExists )
   {
     pTLCb->tlMgmtFrmClient.ucExists++;
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-          "WLAN TL:Management Frame client not register on WLANTL_TxMgmtFrm");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+          "WLAN TL:Management Frame client not register on WLANTL_TxMgmtFrm"));
     return VOS_STATUS_E_EXISTS;
   }
 
@@ -2324,18 +2309,15 @@ WLANTL_TxMgmtFrm
 	        QdMgmtFrameCount++;
 		QdMgmtFrameTail = (QdMgmtFrameTail + 1) % MGMT_FRAME_Q_SIZE;
 
-                VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                    "WLAN TL:Management Frame Qd Subtype=%d", wFrmType);
-                VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                    "WLAN TL:Management Frame Qd Head=%d Tail=%d",
-		    QdMgmtFrameHead, QdMgmtFrameTail);
+                TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "WLAN TL:Management Frame Qd Subtype=%d Qd Head=%d Tail=%d", wFrmType,QdMgmtFrameHead, QdMgmtFrameTail));
                 return VOS_STATUS_SUCCESS;
 	    }
 	    else
 	    {
                 vos_pkt_return_packet(vosFrmBuf);
-                VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                    "WLAN TL:Management Frame already pending tx in TL %d: failing old one", wFrmType);
+                TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                    "WLAN TL:Management Frame already pending tx in TL %d: failing old one", wFrmType)));
                 return VOS_STATUS_E_BUSY;
 	    }
     }
@@ -2343,13 +2325,13 @@ WLANTL_TxMgmtFrm
     {
         // Dont care about probe responses.
         vos_pkt_return_packet(vosFrmBuf);
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "WLAN TL:Management Frame already pending tx in TL: failing old one");
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL:Management Frame already pending tx in TL: failing old one")));
         return VOS_STATUS_SUCCESS;
     }
 #endif
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-        "WLAN TL:Management Frame already pending tx in TL: failing old one");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+        "WLAN TL:Management Frame already pending tx in TL: failing old one"));
 
 
     /*Failing the tx for the previous packet enqued by PE*/
@@ -2390,17 +2372,17 @@ WLANTL_TxMgmtFrm
 	        MgmtFrmQ[QdMgmtFrameTail].pvBDHeader = pvBDHeader;
 	        QdMgmtFrameCount++;
 		QdMgmtFrameTail = (QdMgmtFrameTail + 1) % MGMT_FRAME_Q_SIZE;
-                VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                    "WLAN TL:Management Frame Qd Subtype=%d", wFrmType);
-                VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "WLAN TL:Management Frame Qd Subtype=%d", wFrmType));
+                TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                     "WLAN TL:Management Frame Qd #2 Head=%d Tail=%d",
-		    QdMgmtFrameHead, QdMgmtFrameTail);
+		    QdMgmtFrameHead, QdMgmtFrameTail));
 	    }
 	    else
 	    {
                 vos_pkt_return_packet(vosFrmBuf);
-                VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                    "WLAN TL:Management Frame already pending tx in TL %d: failing old one", wFrmType);
+                TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "WLAN TL:Management Frame already pending tx in TL %d: failing old one", wFrmType));
 	    }
       }
       pvBDHeader = MgmtFrmQ[QdMgmtFrameHead].pvBDHeader;
@@ -2412,9 +2394,9 @@ WLANTL_TxMgmtFrm
 	      QdMgmtFrameHead = 0;
 	      QdMgmtFrameTail = 0;
       }
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                     "WLAN TL:Management Frame Qd #3 Head=%d Tail=%d",
-		    QdMgmtFrameHead, QdMgmtFrameTail);
+		    QdMgmtFrameHead, QdMgmtFrameTail));
   }
 #endif
 
@@ -2432,13 +2414,10 @@ WLANTL_TxMgmtFrm
 
      if ( VOS_STATUS_SUCCESS != vosStatus )
      {
-       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL:Failed while attempting to get addr2 %d", vosStatus);
+       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL:Failed while attempting to get addr2 %d", vosStatus));
        return vosStatus;
      }
-
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:No BD header attached to pkt on WLANTL_TxMgmtFrm");
 
     /*----------------------------------------------------------------------
       INLINE function
@@ -2450,8 +2429,8 @@ WLANTL_TxMgmtFrm
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL:Failed while attempting to prepare BD %d", vosStatus);
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL:Failed while attempting to prepare BD %d", vosStatus));
       return vosStatus;
     }
 
@@ -2465,8 +2444,8 @@ WLANTL_TxMgmtFrm
 
     if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL:Failed while attempting to fill BD %d", vosStatus);
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL:Failed while attempting to fill BD %d", vosStatus));
       return vosStatus;
     }
    }/* if BD header not present */
@@ -2497,8 +2476,8 @@ WLANTL_TxMgmtFrm
    ------------------------------------------------------------------------*/
   if ( pTLCb->uResCount >=  WLANTL_MIN_RES_MF )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-              "WLAN TL:Issuing Xmit start request to BAL for MGMT");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+              "WLAN TL:Issuing Xmit start request to BAL for MGMT"));
     WLANBAL_StartXmit(pvosGCtx);
   }
   else
@@ -2507,9 +2486,9 @@ WLANTL_TxMgmtFrm
       No error code is sent because TL will resume tx autonomously if
       resources become available or tx gets resumed
      ---------------------------------------------------------------------*/
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
        "WLAN TL:Request to send for Mgmt Frm but condition not met. Res: %d",
-               pTLCb->uResCount);
+               pTLCb->uResCount));
   }
 
   return VOS_STATUS_SUCCESS;
@@ -2562,8 +2541,8 @@ WLANTL_ResetNotification
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-      "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ResetNotification");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ResetNotification"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -2629,8 +2608,8 @@ WLANTL_SuspendDataTx
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-          "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_SuspendDataTx");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+          "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_SuspendDataTx"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -2639,8 +2618,8 @@ WLANTL_SuspendDataTx
    ------------------------------------------------------------------------*/
   if ( NULL == pucSTAId )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-              "WLAN TL:General suspend requested");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+              "WLAN TL:General suspend requested"));
     vos_atomic_set_U8( &pTLCb->ucTxSuspended, 1);
     vosMsg.reserved = WLAN_MAX_STA_COUNT;
   }
@@ -2648,20 +2627,20 @@ WLANTL_SuspendDataTx
   {
     if ( WLANTL_STA_ID_INVALID( *pucSTAId ) )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-             "WLAN TL:Invalid station id requested on WLANTL_SuspendDataTx");
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+             "WLAN TL:Invalid station id requested on WLANTL_SuspendDataTx"));
       return VOS_STATUS_E_FAULT;
     }
 
     if ( 0 == pTLCb->atlSTAClients[*pucSTAId].ucExists )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-      "WLAN TL:Station was not previously registered on WLANTL_SuspendDataTx");
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      "WLAN TL:Station was not previously registered on WLANTL_SuspendDataTx"));
       return VOS_STATUS_E_EXISTS;
     }
 
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:Suspend request for station: %d", *pucSTAId);
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL:Suspend request for station: %d", *pucSTAId));
     vos_atomic_set_U8( &pTLCb->atlSTAClients[*pucSTAId].ucTxSuspended, 1);
     vosMsg.reserved = *pucSTAId;
   }
@@ -2725,8 +2704,8 @@ WLANTL_ResumeDataTx
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-           "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ResumeDataTx");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+           "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ResumeDataTx"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -2735,28 +2714,28 @@ WLANTL_ResumeDataTx
    ------------------------------------------------------------------------*/
   if ( NULL == pucSTAId )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-              "WLAN TL:General resume requested");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+              "WLAN TL:General resume requested"));
     vos_atomic_set_U8( &pTLCb->ucTxSuspended, 0);
   }
   else
   {
     if ( WLANTL_STA_ID_INVALID( *pucSTAId ) )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL:Invalid station id requested on WLANTL_ResumeDataTx");
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL:Invalid station id requested on WLANTL_ResumeDataTx"));
       return VOS_STATUS_E_FAULT;
     }
 
     if ( 0 == pTLCb->atlSTAClients[*pucSTAId].ucExists )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-      "WLAN TL:Station was not previously registered on WLANTL_ResumeDataTx");
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      "WLAN TL:Station was not previously registered on WLANTL_ResumeDataTx"));
       return VOS_STATUS_E_EXISTS;
     }
 
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:Resume request for station: %d", *pucSTAId);
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL:Resume request for station: %d", *pucSTAId));
     vos_atomic_set_U8( &pTLCb->atlSTAClients[*pucSTAId].ucTxSuspended, 0);
   }
 
@@ -2766,8 +2745,8 @@ WLANTL_ResumeDataTx
   if (( pTLCb->uResCount >=  WLANTL_MIN_RES_MF ) &&
       ( 0 == pTLCb->ucTxSuspended ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:Resuming transmission");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL:Resuming transmission"));
     WLANBAL_StartXmit(pvosGCtx);
   }
 
@@ -2819,8 +2798,8 @@ WLANTL_SuspendCB
    ------------------------------------------------------------------------*/
   if ( NULL == pfnSuspendCB )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_SuspendCB");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_SuspendCB"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -2830,8 +2809,8 @@ WLANTL_SuspendCB
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_SuspendCB");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_SuspendCB"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -2902,16 +2881,16 @@ WLANTL_GetTxPktCount
    ------------------------------------------------------------------------*/
   if ( NULL == puTxPktCount )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid parameter sent on WLANTL_GetTxPktCount");
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid parameter sent on WLANTL_GetTxPktCount"));
     return VOS_STATUS_E_INVAL;
   }
 
   if ( WLANTL_STA_ID_INVALID( ucSTAId ) || WLANTL_TID_INVALID( ucTid) )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
     "WLAN TL:Invalid station id %d/tid %d requested on WLANTL_GetTxPktCount",
-            ucSTAId, ucTid);
+            ucSTAId, ucTid));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -2921,16 +2900,16 @@ WLANTL_GetTxPktCount
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-          "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_GetTxPktCount");
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+          "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_GetTxPktCount"));
     return VOS_STATUS_E_FAULT;
   }
 
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].ucExists )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
     "WLAN TL:Station was not previously registered on WLANTL_GetTxPktCount %d",
-	ucSTAId);
+	ucSTAId));
     return VOS_STATUS_E_EXISTS;
   }
 
@@ -2996,16 +2975,16 @@ WLANTL_GetRxPktCount
    ------------------------------------------------------------------------*/
   if ( NULL == puRxPktCount )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_GetRxPktCount");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_GetRxPktCount"));
     return VOS_STATUS_E_INVAL;
   }
 
   if ( WLANTL_STA_ID_INVALID( ucSTAId ) || WLANTL_TID_INVALID( ucTid) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
     "WLAN TL:Invalid station id %d/tid %d requested on WLANTL_GetRxPktCount",
-             ucSTAId, ucTid);
+             ucSTAId, ucTid));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -3015,24 +2994,24 @@ WLANTL_GetRxPktCount
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-          "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_GetRxPktCount");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+          "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_GetRxPktCount"));
     return VOS_STATUS_E_FAULT;
   }
 
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].ucExists )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-    "WLAN TL:Station was not previously registered on WLANTL_GetRxPktCount");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    "WLAN TL:Station was not previously registered on WLANTL_GetRxPktCount"));
     return VOS_STATUS_E_EXISTS;
   }
 
   /*------------------------------------------------------------------------
     Return data
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_MED,
+  TLLOG3(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_MED,
             "WLAN TL:Requested rx packet count for STA: %d, TID: %d",
-             ucSTAId, ucTid);
+             ucSTAId, ucTid));
 
   *puRxPktCount = pTLCb->atlSTAClients[ucSTAId].auRxCount[ucTid];
 
@@ -3121,8 +3100,8 @@ WLANTL_GetFrames
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if (( NULL == pTLCb ) || ( NULL == pvosDataBuff ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-         "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+         "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState"));
     return ucResult;
   }
 
@@ -3149,31 +3128,25 @@ WLANTL_GetFrames
   {
     pMac = vos_get_context(VOS_MODULE_ID_HAL, pvosGCtx);
     systemRole = halGetGlobalSystemRole(pMac);
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-              "SystemRole %d", systemRole);
 #ifdef WLAN_SOFTAP_FEATURE
     if (eSYSTEM_AP_ROLE == systemRole)
     {
        if (pTLCb->done_once == 0 && NULL == pTLCb->vosTxFCBuf)
        {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                  "WLAN TL:TX fc frame %s", __FUNCTION__);
           WLANTL_TxFCFrame (pvosGCtx);
           pTLCb->done_once ++;
        }
     } 
     if ( NULL != pTLCb->vosTxFCBuf )
     {
-       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:send fc frame %s", __FUNCTION__);
        //there is flow control packet waiting to be sent
        WLANTL_PROCESS_LEN( pTLCb->vosTxFCBuf, usPktLen, uResLen, uTotalPktLen);
     
        if ( ( pTLCb->uResCount > uResLen ) &&
            ( uRemaining > uTotalPktLen ))
        {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "WLAN TL:Chaining FC frame first on GetFrame");
+          TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "WLAN TL:Chaining FC frame first on GetFrame"));
 
           vos_pkt_chain_packet( vosDataBuff, pTLCb->vosTxFCBuf, 1 /*true*/ );
 
@@ -3190,8 +3163,8 @@ WLANTL_GetFrames
        }
        else
        {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
-                "WLAN TL:send fc out of source %s", __FUNCTION__);
+          TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+                "WLAN TL:send fc out of source %s", __FUNCTION__));
           ucResult = ( pTLCb->uResCount > uResLen )?VOS_TRUE:VOS_FALSE;
           break; /* Out of resources or reached max len */
        }
@@ -3209,8 +3182,8 @@ WLANTL_GetFrames
       if ( ( pTLCb->uResCount > uResLen ) &&
            ( uRemaining > uTotalPktLen ))
       {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "WLAN TL:Chaining management frame on GetFrame");
+        TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "WLAN TL:Chaining management frame on GetFrame"));
 
         vos_pkt_chain_packet( vosDataBuff,
                               pTLCb->tlMgmtFrmClient.vosPendingDataBuff,
@@ -3246,8 +3219,8 @@ WLANTL_GetFrames
       if ( ( pTLCb->uResCount > (uResLen + WLANTL_MIN_RES_MF ) ) &&
            ( uRemaining > uTotalPktLen ))
       {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "WLAN TL:Chaining BT-AMP frame on GetFrame");
+        TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "WLAN TL:Chaining BT-AMP frame on GetFrame"));
 
         vos_pkt_chain_packet( vosDataBuff,
                               pTLCb->tlBAPClient.vosPendingDataBuff,
@@ -3288,8 +3261,8 @@ WLANTL_GetFrames
         ucSTAId             = pTLCb->ucCachedSTAId; 
         pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 0;
 
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "WLAN TL:Chaining cached data frame on GetFrame");
+        TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "WLAN TL:Chaining cached data frame on GetFrame"));
       }
       else
       {
@@ -3304,16 +3277,16 @@ WLANTL_GetFrames
             break;
         }
         pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
-                   "WLAN TL: %s get one data frame, station ID %d ", __FUNCTION__, ucSTAId);
+        TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
+                   "WLAN TL: %s get one data frame, station ID %d ", __FUNCTION__, ucSTAId));
         /*-------------------------------------------------------------------
         Check to see that STA is valid and tx is not suspended
          -------------------------------------------------------------------*/
         if ( ( ! WLANTL_STA_ID_INVALID( ucSTAId ) ) &&
            ( 0 == pTLCb->atlSTAClients[ucSTAId].ucTxSuspended ) )
         {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
-                   "WLAN TL: %s sta id valid and not suspended ",__FUNCTION__);
+          TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
+                   "WLAN TL: %s sta id valid and not suspended ",__FUNCTION__));
           wSTAEvent = pTLCb->atlSTAClients[ucSTAId].ucPendingTrigFrm?
                          WLANTL_TX_ON_UAPSD_EVENT:WLANTL_TX_EVENT;
 
@@ -3339,9 +3312,9 @@ WLANTL_GetFrames
         {
            if ( ! WLANTL_STA_ID_INVALID( ucSTAId ) ) 
            {
-                VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                   "WLAN TL:Not fetching frame because suspended for sta ID %d", 
-                   ucSTAId);
+                   ucSTAId));
            }
         }
       }/* data */
@@ -3352,14 +3325,14 @@ WLANTL_GetFrames
 
         VOS_ASSERT( usPktLen <= WLANTL_MAX_ALLOWED_LEN);
 
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                  "WLAN TL:Resources needed by frame: %d", uResLen);
+        TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
+                  "WLAN TL:Resources needed by frame: %d", uResLen));
 
         if ( ( pTLCb->uResCount >= (uResLen + WLANTL_MIN_RES_BAP ) ) &&
            ( uRemaining > uTotalPktLen ))
         {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                    "WLAN TL:Chaining data frame on GetFrame");
+          TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "WLAN TL:Chaining data frame on GetFrame"));
 
           vos_pkt_chain_packet( vosDataBuff, vosTempBuf, 1 /*true*/ );
           vosTempBuf =  NULL;
@@ -3389,8 +3362,8 @@ WLANTL_GetFrames
             pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
                          atlSTAClients[ucSTAId].ucServicedAC].ucDataSent = 0;
 
-			VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "WLAN TL:Stopping Delayed Tim; Restarting Service Tim");
+			TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "WLAN TL:Stopping Delayed Tim; Restarting Service Tim"));
 
 			if ( 0 != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
                         atlSTAClients[ucSTAId].ucServicedAC].ucDelayedMode)
@@ -3448,9 +3421,9 @@ WLANTL_GetFrames
       }
     else
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:Returning from GetFrame: resources = %d suspended = %d",
-                 pTLCb->uResCount, pTLCb->ucTxSuspended);
+                 pTLCb->uResCount, pTLCb->ucTxSuspended));
       break; /*out of min data resources*/
     }
 
@@ -3525,8 +3498,8 @@ WLANTL_TxComp
    ------------------------------------------------------------------------*/
   if ( NULL == vosDataBuff )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Extraneous NULL data pointer on WLANTL_TxComp");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Extraneous NULL data pointer on WLANTL_TxComp"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -3536,8 +3509,8 @@ WLANTL_TxComp
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_TxComp");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_TxComp"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -3551,15 +3524,15 @@ WLANTL_TxComp
     /*it should never be NULL - default handler should be registered if none*/
     if ( NULL == pfnTxComp )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL:NULL pointer to Tx Complete on WLANTL_TxComp");
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL:NULL pointer to Tx Complete on WLANTL_TxComp"));
       VOS_ASSERT(0);
       return VOS_STATUS_E_FAULT;
     }
 
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                "WLAN TL:Calling Tx complete for pkt %x in function %x",
-               vosDataBuff, pfnTxComp);
+               vosDataBuff, pfnTxComp));
 
     vosTempTx = vosDataBuff;
     vosStatus = vos_pkt_walk_packet_chain( vosDataBuff,
@@ -3569,27 +3542,18 @@ WLANTL_TxComp
 
     pTLCb->usPendingTxCompleteCount--;
   }
-#ifdef WLAN_SOFTAP_FEATURE
-  if ( pTLCb->uResCount <= WLANTL_TH_RES_DATA )
-#else
   if (( 0 == pTLCb->usPendingTxCompleteCount ) &&
       ( pTLCb->uResCount <= WLANTL_MIN_RES_DATA /*WLANTL_TH_RES_DATA*/ ))
-#endif
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL: Getting more resources because current values are:"
-               " resources = %d pTLCb->usPendingTxCompleteCount = %d",
-                   pTLCb->uResCount, pTLCb->usPendingTxCompleteCount);
-
     vosMsg.reserved = 0;
     vosMsg.bodyptr  = NULL;
     vosMsg.type     = WLANTL_TX_RES_NEEDED;
     vos_tx_mq_serialize( VOS_MQ_ID_TL, &vosMsg);
   }
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
             "WLAN TL: current TL values are: resources = %d "
             "pTLCb->usPendingTxCompleteCount = %d",
-              pTLCb->uResCount, pTLCb->usPendingTxCompleteCount);
+              pTLCb->uResCount, pTLCb->usPendingTxCompleteCount));
 
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_TxComp */
@@ -3648,27 +3612,24 @@ WLANTL_CacheSTAFrame
    -------------------------------------------------------------------------*/ 
   if (( NULL == pTLCb ) || ( NULL == vosTempBuff ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                "WLAN TL: Invalid input pointer on WLANTL_CacheSTAFrame TL %x"
-               " Packet %x", pTLCb, vosTempBuff );
+               " Packet %x", pTLCb, vosTempBuff ));
     return VOS_STATUS_E_FAULT;
   }
 
   if ( WLANTL_STA_ID_INVALID( ucSTAId ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-         "WLAN TL:Invalid station id requested on WLANTL_CacheSTAFrame");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+         "WLAN TL:Invalid station id requested on WLANTL_CacheSTAFrame"));
     return VOS_STATUS_E_FAULT;
   }
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:Attempting to cache pkt for STA %d, BD DPU Sig: %d", 
-             ucSTAId, uDPUSig);
-
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:STA was registered with sig UC: %d, BC: %d", 
-             pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucUcastSig, 
-             pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucBcastSig);
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:Attempting to cache pkt for STA %d, BD DPU Sig: %d with sig UC: %d, BC: %d", 
+             ucSTAId, uDPUSig,
+             pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucUcastSig,
+             pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucBcastSig));
 
   /*-------------------------------------------------------------------------
     Check if the packet that we are trying to cache belongs to the old
@@ -3702,12 +3663,12 @@ WLANTL_CacheSTAFrame
   -------------------------------------------------------------------------*/
   if ( bOldSTAPkt )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                "WLAN TL:Data packet matches old sig for sig DPU: %d UC: %d, "
                "BC: %d - dropping", 
                uDPUSig, 
                pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucUcastSig, 
-               pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucBcastSig);
+               pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucBcastSig));
     vos_pkt_return_packet(vosTempBuff); 
   }
   else
@@ -3775,16 +3736,16 @@ WLANTL_ForwardSTAFrames
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
         "WLAN TL: Invalid input pointer on WLANTL_ForwardSTAFrames TL %x",
-         pTLCb );
+         pTLCb ));
     return VOS_STATUS_E_FAULT;
   }
 
   if ( WLANTL_STA_ID_INVALID( ucSTAId ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-         "WLAN TL:Invalid station id requested on WLANTL_ForwardSTAFrames");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+         "WLAN TL:Invalid station id requested on WLANTL_ForwardSTAFrames"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -3793,8 +3754,8 @@ WLANTL_ForwardSTAFrames
    ------------------------------------------------------------------------*/ 
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].ucExists )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:Station has been deleted for STA %d - flushing cache", ucSTAId);
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+       "WLAN TL:Station has been deleted for STA %d - flushing cache", ucSTAId));
     WLANTL_FlushCachedFrames(pTLCb->atlSTAClients[ucSTAId].vosBegCachedFrame);
     return VOS_STATUS_SUCCESS; 
   }
@@ -3807,8 +3768,8 @@ WLANTL_ForwardSTAFrames
     the existence flag must be synchronized because these values are checked   
     during cached  
   ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:Preparing to fwd packets for STA %d", ucSTAId);
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+       "WLAN TL:Preparing to fwd packets for STA %d", ucSTAId));
 
   //WLAN_TL_LOCK_STA_CACHE(pTLCb->atlSTAClients[ucSTAId]); 
 
@@ -3818,17 +3779,17 @@ WLANTL_ForwardSTAFrames
   pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucUcastSig  = ucUcastSig;
   pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucBcastSig  = ucBcastSig;
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
        "WLAN TL:Fwd-ing packets for STA %d UC %d BC %d",
-       ucSTAId, ucUcastSig, ucBcastSig);
+       ucSTAId, ucUcastSig, ucBcastSig));
 
   /*-------------------------------------------------------------------------  
      Check to see if we have any cached data to forward 
    -------------------------------------------------------------------------*/ 
   if ( NULL != pTLCb->atlSTAClients[ucSTAId].vosBegCachedFrame ) 
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL: Fwd-ing Cached packets for station %d", ucSTAId );
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL: Fwd-ing Cached packets for station %d", ucSTAId ));
 
     WLANTL_RxCachedFrames( pTLCb, 
                            ucSTAId, 
@@ -3836,8 +3797,8 @@ WLANTL_ForwardSTAFrames
   }
   else
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL: NO cached packets for station %d", ucSTAId );
+     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL: NO cached packets for station %d", ucSTAId ));
   }
 
   /*-------------------------------------------------------------------------  
@@ -3924,9 +3885,9 @@ WLANTL_ProcessBAPFrame
   ucLLCHeader   = (v_U8_t)WLANHAL_RX_BD_GET_LLC(pvBDHeader);
   if ( 0 != ucLLCHeader)
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+    TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
           "WLAN TL:LLC header removed, cannot determine BT-AMP type -"
-              "dropping pkt");
+              "dropping pkt"));
     /* Drop packet */
     vos_pkt_return_packet(vosTempBuff);
     return VOS_TRUE; 
@@ -3944,9 +3905,9 @@ WLANTL_ProcessBAPFrame
      ( 0 == vos_mem_compare(ucOUI, (v_PVOID_t)WLANTL_BT_AMP_OUI,
                             WLANTL_LLC_OUI_SIZE ) ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+    TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
                 "LLC header points to diff OUI in BT-AMP station -"
-                "dropping pkt");
+                "dropping pkt"));
     /* Drop packet */
     vos_pkt_return_packet(vosTempBuff);
     return VOS_TRUE;
@@ -3962,9 +3923,9 @@ WLANTL_ProcessBAPFrame
   if (( VOS_STATUS_SUCCESS != vosStatus) ||
       ( sizeof(usType) != usTypeLen ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+    TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
                 "Unable to extract type on incoming BAP packet -"
-                "dropping pkt");
+                "dropping pkt"));
     /* Drop packet */
     vos_pkt_return_packet(vosTempBuff);
     return VOS_TRUE;
@@ -3977,15 +3938,15 @@ WLANTL_ProcessBAPFrame
 
   if (WLANTL_BAP_IS_NON_DATA_PKT_TYPE(usType))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
       "WLAN TL:Non-data packet received over BT-AMP link: %d, => BAP",
-               usType);
+               usType));
 
     /*Flatten packet as BAP expects to be able to peek*/
     if ( VOS_STATUS_SUCCESS != vos_pkt_flatten_rx_pkt(&vosTempBuff))
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
-                 "WLAN TL:Cannot flatten BT-AMP packet - dropping");
+      TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+                 "WLAN TL:Cannot flatten BT-AMP packet - dropping"));
       /* Drop packet */
       vos_pkt_return_packet(vosTempBuff);
       return VOS_TRUE;
@@ -4000,11 +3961,11 @@ WLANTL_ProcessBAPFrame
     ucMPDUHOffset = (v_U8_t)WLANHAL_RX_BD_GET_MPDU_H_OFFSET(aucBDHeader);
     usMPDULen     = (v_U16_t)WLANHAL_RX_BD_GET_MPDU_LEN(aucBDHeader);
     ucMPDUHLen    = (v_U8_t)WLANHAL_RX_BD_GET_MPDU_H_LEN(aucBDHeader);
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
        "WLAN TL:BD header processing data: HO %d DO %d Len %d HLen %d"
        " Tid %d BD %d",
        ucMPDUHOffset, usMPDUDOffset, usMPDULen, ucMPDUHLen,
-       WLANHAL_RX_BD_HEADER_SIZE);
+       WLANHAL_RX_BD_HEADER_SIZE));
 
     vos_pkt_get_packet_length( vosTempBuff, &usPktLen);
 
@@ -4017,8 +3978,8 @@ WLANTL_ProcessBAPFrame
     }
     else
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
-        "WLAN TL:BD header corrupted - dropping packet");
+      TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+        "WLAN TL:BD header corrupted - dropping packet"));
       /* Drop packet */
       vos_pkt_return_packet(vosTempBuff);
       return VOS_TRUE;
@@ -4026,9 +3987,9 @@ WLANTL_ProcessBAPFrame
 
     if ( 0 == WLANHAL_RX_BD_GET_FT(pvBDHeader) )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
           "Non-data packet received over BT-AMP link: Sending it for "
-          "frame Translation");
+          "frame Translation"));
 
       if (usMPDUDOffset > ucMPDUHOffset)
       {
@@ -4049,9 +4010,9 @@ WLANTL_ProcessBAPFrame
   }
   else
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
       "WLAN TL: BAP DATA packet received over BT-AMP link: %d, => BAP",
-               usType);
+               usType));
    /*!!!FIX ME!!*/
  #if 0
     /*--------------------------------------------------------------------
@@ -4136,8 +4097,8 @@ WLANTL_ProcessFCFrame
                  "Received FC Response");
   if ( (NULL == pTLCb) || (NULL == pvosDataBuff))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-        "WLAN TL:Invalid pointer in %s \n", __FUNCTION__);
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+        "WLAN TL:Invalid pointer in %s \n", __FUNCTION__));
     return VOS_STATUS_E_FAULT;
   }
   vosStatus = vos_pkt_peek_data( pvosDataBuff, 0, (v_PVOID_t)&pvFcRxBd,
@@ -4145,8 +4106,8 @@ WLANTL_ProcessFCFrame
 
   if ( (VOS_STATUS_SUCCESS != vosStatus) || (NULL == pvFcRxBd) )
   {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "WLAN TL:wrong FC Rx packet");
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WLAN TL:wrong FC Rx packet"));
       return VOS_STATUS_E_INVAL;
   }
   
@@ -4171,8 +4132,8 @@ WLANTL_ProcessFCFrame
       }
       else
       {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
-                 "WLAN TL: FW report LWM event but the station %d is not in LWM mode \n", ucSTAId);
+        TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
+                 "WLAN TL: FW report LWM event but the station %d is not in LWM mode \n", ucSTAId));
       }
     }
 
@@ -4190,16 +4151,16 @@ WLANTL_ProcessFCFrame
             (pTLCb->atlSTAClients[ucSTAId].uIngress_length >> 2))
          )
       {   
-         VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                    "WLAN TL:Enable LWM mode for station %d\n", ucSTAId);
+         TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "WLAN TL:Enable LWM mode for station %d\n", ucSTAId));
          pTLCb->atlSTAClients[ucSTAId].ucLwmModeEnabled = TRUE;
       }
       else
       {
         if( pTLCb->atlSTAClients[ucSTAId].ucLwmModeEnabled )
         {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                    "WLAN TL:Disable LWM mode for station %d\n", ucSTAId);
+          TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                    "WLAN TL:Disable LWM mode for station %d\n", ucSTAId));
           pTLCb->atlSTAClients[ucSTAId].ucLwmModeEnabled = FALSE;
         }
 
@@ -4287,16 +4248,16 @@ WLANTL_RxFrames
 #endif
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:TL Receive Frames called");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:TL Receive Frames called"));
 
   /*------------------------------------------------------------------------
     Sanity check
     ------------------------------------------------------------------------*/
   if ( NULL == vosDataBuff )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_RxFrames");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_RxFrames"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -4306,8 +4267,8 @@ WLANTL_RxFrames
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-        "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+        "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -4329,8 +4290,8 @@ WLANTL_RxFrames
 
     if ( NULL == pvBDHeader )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "WLAN TL:Cannot extract BD header");
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WLAN TL:Cannot extract BD header"));
       /* Drop packet */
       vos_pkt_return_packet(vosTempBuff);
       vosTempBuff = vosDataBuff;
@@ -4345,8 +4306,8 @@ WLANTL_RxFrames
     ---------------------------------------------------------------------*/
     if(WLANHAL_RX_BD_GET_FC(pvBDHeader))
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                 "WLAN TL:receive one FC frame");
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                 "WLAN TL:receive one FC frame"));
       WLANTL_ProcessFCFrame(vosTempBuff, pTLCb);
       /* Drop packet */
       vos_pkt_return_packet(vosTempBuff);
@@ -4367,8 +4328,8 @@ WLANTL_RxFrames
       if (( VOS_STATUS_SUCCESS != vosStatus ) || 
           ( sizeof(usFrmCtrl) != usFrmCtrlSize ))
       {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                   "WLAN TL:Cannot extract Frame Control Field");
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                   "WLAN TL:Cannot extract Frame Control Field"));
         /* Drop packet */
         vos_pkt_return_packet(vosTempBuff);
         vosTempBuff = vosDataBuff;
@@ -4394,12 +4355,12 @@ WLANTL_RxFrames
 #endif
     if ( WLANTL_IS_MGMT_FRAME(ucFrmType) )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                 "WLAN TL:Sending packet to management client");
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                 "WLAN TL:Sending packet to management client"));
       if ( VOS_STATUS_SUCCESS != vos_pkt_flatten_rx_pkt(&vosTempBuff))
       {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                   "WLAN TL:Cannot flatten packet - dropping");
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                   "WLAN TL:Cannot flatten packet - dropping"));
         /* Drop packet */
         vos_pkt_return_packet(vosTempBuff);
         vosTempBuff = vosDataBuff;
@@ -4424,8 +4385,8 @@ WLANTL_RxFrames
 
       if(!VOS_IS_STATUS_SUCCESS(vosStatus))
       {
-        VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
-          "Handle RX Management Frame fail within Handoff support module");
+        TLLOGW(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+          "Handle RX Management Frame fail within Handoff support module"));
         /* Do Not Drop packet at here 
          * Revisit why HO module return fail
         vos_pkt_return_packet(vosTempBuff);
@@ -4440,8 +4401,8 @@ WLANTL_RxFrames
       ucSTAId = (v_U8_t)WLANHAL_RX_BD_GET_STA_ID( pvBDHeader );
       ucTid   = (v_U8_t)WLANHAL_RX_BD_GET_TID( pvBDHeader );
 
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                 "WLAN TL:Data packet received for STA %d", ucSTAId);
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                 "WLAN TL:Data packet received for STA %d", ucSTAId));
 
       /*------------------------------------------------------------------
         This should be corrected when multipe sta support is added !!!
@@ -4451,8 +4412,8 @@ WLANTL_RxFrames
       //LYR: David's change for broadcast frames
       if ( WLANTL_STA_ID_BCAST == WLANHAL_RX_BD_GET_ADDR1_IDX(pvBDHeader))
       {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-        "WLAN TL:TL rx Bcast frame - sending to last registered station");
+        TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+        "WLAN TL:TL rx Bcast frame - sending to last registered station"));
         broadcast = VOS_TRUE;
         
         /*-------------------------------------------------------------------
@@ -4468,8 +4429,8 @@ WLANTL_RxFrames
 
       if ( WLANTL_STA_ID_INVALID(ucSTAId) )
       {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
-                   "WLAN TL:STA ID invalid - dropping pkt");
+        TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+                   "WLAN TL:STA ID invalid - dropping pkt"));
         /* Drop packet */
         vos_pkt_return_packet(vosTempBuff);
         vosTempBuff = vosDataBuff;
@@ -4557,8 +4518,8 @@ WLANTL_RxFrames
 #endif /*FEATURE_WLAN_GEN6_ROAMING*/
         if(!VOS_IS_STATUS_SUCCESS(vosStatus))
         {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
-            "Handle RX Data Frame fail within Handoff support module");
+          TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+            "Handle RX Data Frame fail within Handoff support module"));
           /* Do Not Drop packet at here 
            * Revisit why HO module return fail
           vos_pkt_return_packet(vosTempBuff);
@@ -4570,9 +4531,9 @@ WLANTL_RxFrames
       }
       else
         {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
+          TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
             "WLAN TL:NULL state function, STA:%d, State: %d- dropping packet",
-                   ucSTAId, pTLCb->atlSTAClients[ucSTAId].tlState);
+                   ucSTAId, pTLCb->atlSTAClients[ucSTAId].tlState));
           /* Drop packet */
           vos_pkt_return_packet(vosTempBuff);
           vosTempBuff = vosDataBuff;
@@ -4584,6 +4545,8 @@ WLANTL_RxFrames
 
 #ifdef WLAN_SOFTAP_FEATURE
     count:
+  if (!WLANTL_STA_ID_INVALID(ucSTAId))
+  {
     /* RX Statistics Data */
     if (vos_is_macaddr_broadcast(&pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSTAMACAddress))
     {
@@ -4603,6 +4566,7 @@ WLANTL_RxFrames
       pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxUCFcnt++;
       pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxUCBcnt += usPktLen;
     }
+  }
 #endif
 
   }/*while chain*/
@@ -4710,16 +4674,16 @@ WLANTL_RxCachedFrames
   v_U8_t              ucBcastSig; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:TL Receive Cached Frames called");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:TL Receive Cached Frames called"));
 
   /*------------------------------------------------------------------------
     Sanity check
     ------------------------------------------------------------------------*/
   if ( NULL == vosDataBuff )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_RxFrames");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_RxFrames"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -4732,8 +4696,8 @@ WLANTL_RxCachedFrames
         {
     vos_pkt_walk_packet_chain( vosDataBuff, &vosDataBuff, 1/*true*/ );
 
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:Sending new cached packet to station %d", ucSTAId);
+          TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL:Sending new cached packet to station %d", ucSTAId));
     /*---------------------------------------------------------------------
       Peek at BD header - do not remove
       !!! Optimize me: only part of header is needed; not entire one
@@ -4743,8 +4707,8 @@ WLANTL_RxCachedFrames
 
     if ( NULL == pvBDHeader )
           {
-            VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "WLAN TL:Cannot extract BD header");
+            TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WLAN TL:Cannot extract BD header"));
             /* Drop packet */
             vos_pkt_return_packet(vosTempBuff);
             vosTempBuff = vosDataBuff;
@@ -4773,8 +4737,8 @@ WLANTL_RxCachedFrames
      ------------------------------------------------------------------*/
     if ( WLANTL_STA_ID_BCAST == WLANHAL_RX_BD_GET_ADDR1_IDX(pvBDHeader))
     {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                 "WLAN TL:TL rx Bcast frame ");
+          TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                 "WLAN TL:TL rx Bcast frame "));
       broadcast = VOS_TRUE;
 
       /* If Addr1 is b/mcast, but Addr3 is our own self MAC, it is a b/mcast 
@@ -4811,13 +4775,13 @@ WLANTL_RxCachedFrames
     -------------------------------------------------------------------------*/
     if ( !bSigMatch )
     {
-            VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
         "WLAN TL: Cached packet does not match DPU Sig of the new STA - drop "
         " DPU Sig %d  UC %d BC %d B %d",
         uDPUSig,
         pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucUcastSig,
         pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucUcastSig,
-        broadcast);
+        broadcast));
 
             /* Drop packet */
             vos_pkt_return_packet(vosTempBuff);
@@ -4882,8 +4846,8 @@ WLANTL_RxCachedFrames
 #endif /*FEATURE_WLAN_GEN6_ROAMING*/
         if(!VOS_IS_STATUS_SUCCESS(vosStatus))
         {
-          VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "Handle RX Data Frame fail within Handoff support module");
+          TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "Handle RX Data Frame fail within Handoff support module"));
           /* Do Not Drop packet at here 
            * Revisit why HO module return fail
           vos_pkt_return_packet(vosTempBuff);
@@ -4896,9 +4860,9 @@ WLANTL_RxCachedFrames
       }
       else
       {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
             "WLAN TL:NULL state function, STA:%d, State: %d- dropping packet",
-                   ucSTAId, pTLCb->atlSTAClients[ucSTAId].tlState);
+                   ucSTAId, pTLCb->atlSTAClients[ucSTAId].tlState));
         /* Drop packet */
         vos_pkt_return_packet(vosTempBuff);
         vosTempBuff = vosDataBuff;
@@ -4953,8 +4917,8 @@ WLANTL_ResourceCB
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-        "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+        "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -4967,8 +4931,8 @@ WLANTL_ResourceCB
   if (( pTLCb->uResCount >=  WLANTL_MIN_RES_MF ) &&
       ( 0 == pTLCb->ucTxSuspended ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-         "WLAN TL:Issuing Xmit start request to BAL for avail res ASYNC");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+         "WLAN TL:Issuing Xmit start request to BAL for avail res ASYNC"));
     WLANBAL_StartXmit(pvosGCtx);
   }
 
@@ -5039,8 +5003,8 @@ WLANTL_STATxConn
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-             "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STATxConn");
+   TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+             "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STATxConn"));
    *pvosDataBuff = NULL;
     pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
     return VOS_STATUS_E_FAULT;
@@ -5073,8 +5037,8 @@ WLANTL_STATxConn
 
   if (( VOS_STATUS_SUCCESS != vosStatus ) || ( NULL == vosDataBuff ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:No more data at HDD status %d", vosStatus);
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:No more data at HDD status %d", vosStatus));
     *pvosDataBuff = NULL;
     pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
     return vosStatus;
@@ -5092,8 +5056,8 @@ WLANTL_STATxConn
    ------------------------------------------------------------------------*/
    if ( 0 == tlMetaInfo.ucIsEapol && 0 == tlMetaInfo.ucIsWai )
    {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL:Only EAPOL or WAI packets allowed before authentication");
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL:Only EAPOL or WAI packets allowed before authentication"));
 
      /* Fail tx for packet */
      pTLCb->atlSTAClients[ucSTAId].pfnSTATxComp( pvosGCtx, vosDataBuff,
@@ -5105,8 +5069,8 @@ WLANTL_STATxConn
 #else
    if ( 0 == tlMetaInfo.ucIsEapol )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                "WLAN TL:Received non EAPOL packet before authentication");
+     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                "WLAN TL:Received non EAPOL packet before authentication"));
 
     /* Fail tx for packet */
     pTLCb->atlSTAClients[ucSTAId].pfnSTATxComp( pvosGCtx, vosDataBuff,
@@ -5125,14 +5089,14 @@ WLANTL_STATxConn
   /*Make sure TID is valid*/
   if ( WLANTL_TID_INVALID(ucTid)) 
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
             "WLAN TL:Invalid TID sent in meta info %d - defaulting to 0 (BE)", 
-             ucTid);
+             ucTid));
      ucTid = 0; 
   }
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:Attaching BD header to pkt on WLANTL_STATxConn");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:Attaching BD header to pkt on WLANTL_STATxConn"));
 
   #ifdef FEATURE_WLAN_WAPI
   /*------------------------------------------------------------------------
@@ -5156,8 +5120,8 @@ WLANTL_STATxConn
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL:Error when translating header WLANTL_STATxConn");
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL:Error when translating header WLANTL_STATxConn"));
 
       return vosStatus;
     }
@@ -5175,8 +5139,8 @@ WLANTL_STATxConn
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Failed while attempting to prepare BD %d", vosStatus);
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Failed while attempting to prepare BD %d", vosStatus));
     *pvosDataBuff = NULL;
     return vosStatus;
   }
@@ -5211,8 +5175,8 @@ WLANTL_STATxConn
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL:Failed while attempting to fill BD %d", vosStatus);
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL:Failed while attempting to fill BD %d", vosStatus));
     *pvosDataBuff = NULL;
     return vosStatus;
   }
@@ -5238,8 +5202,8 @@ WLANTL_STATxConn
                           pvBDHeader);
   if(!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-              "Handle TX Frame fail within Handoff support module");
+    TLLOG2(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+              "Handle TX Frame fail within Handoff support module"));
     return VOS_STATUS_SUCCESS;
   }
 #endif
@@ -5251,13 +5215,13 @@ WLANTL_STATxConn
   /* BC/MC/UC have to be determined by MAC address */
   if (vos_is_macaddr_broadcast(&vDestMacAddr))
   {
-    /* This TX is BC frame */
+    /* This is TX BC frame */
     pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txBCFcnt++;
     pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txBCBcnt += usPktLen;
   }
   else if (vos_is_macaddr_group(&vDestMacAddr))
   {
-    /* This TX is MC frame */
+    /* This is TX MC frame */
     pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txMCFcnt++;      
     pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txMCBcnt += usPktLen;
   }
@@ -5338,9 +5302,9 @@ WLANTL_STATxAuth
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if (( NULL == pTLCb ) || ( NULL == pvosDataBuff ))
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
             "WLAN TL:Invalid input params on WLANTL_STATxAuth TL %x DB %x",
-             pTLCb, pvosDataBuff);
+             pTLCb, pvosDataBuff));
     *pvosDataBuff = NULL;
     pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
     return VOS_STATUS_E_FAULT;
@@ -5444,9 +5408,9 @@ WLANTL_STATxAuth
   /*Make sure TID is valid*/
   if ( WLANTL_TID_INVALID(ucTid)) 
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
             "WLAN TL:Invalid TID sent in meta info %d - defaulting to 0 (BE)", 
-             ucTid);
+             ucTid));
      ucTid = 0; 
   }
 
@@ -5490,10 +5454,10 @@ WLANTL_STATxAuth
          pStaClient->ucCurrentWeight = 
                          pTLCb->tlConfigInfo.ucAcWeights[ucNextAC];
 
-         VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+         TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                     "WLAN TL: Changing serviced AC to: %d with Weight: %d",
                     pStaClient->ucCurrentAC , 
-                    pStaClient->ucCurrentWeight);
+                    pStaClient->ucCurrentWeight));
          break;
       }
       ucAC = ucNextAC;
@@ -5503,8 +5467,8 @@ WLANTL_STATxAuth
   }
 #endif
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:Attaching BD header to pkt on WLANTL_STATxAuth");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:Attaching BD header to pkt on WLANTL_STATxAuth"));
 
   /*------------------------------------------------------------------------
     Translate 802.3 frame to 802.11
@@ -5546,8 +5510,8 @@ WLANTL_STATxAuth
         else
         {
 
-            VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                       "WLAN TL:Failed while attempting to fastFwd BD %d", vosStatus);
+            TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                       "WLAN TL:Failed while attempting to fastFwd BD %d", vosStatus));
             *pvosDataBuff = NULL;
             return vosStatus;
         }
@@ -5567,8 +5531,8 @@ WLANTL_STATxAuth
 
        if ( VOS_STATUS_SUCCESS != vosStatus )
        {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                    "WLAN TL:Error when translating header WLANTL_STATxAuth");
+          TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                    "WLAN TL:Error when translating header WLANTL_STATxAuth"));
     
     
           return vosStatus;
@@ -5588,15 +5552,15 @@ WLANTL_STATxAuth
 
        if ( VOS_STATUS_SUCCESS != vosStatus )
        {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                    "WLAN TL:Error when translating header WLANTL_STATxAuth");
+          TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                    "WLAN TL:Error when translating header WLANTL_STATxAuth"));
     
     
           return vosStatus;
        }
 
-       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
-                    "WLAN TL software translation success \n");
+       TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
+                    "WLAN TL software translation success \n"));
        ucSwFrmXtl = 1;
   }
 
@@ -5612,8 +5576,8 @@ WLANTL_STATxAuth
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Failed while attempting to prepare BD %d", vosStatus);
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Failed while attempting to prepare BD %d", vosStatus));
     *pvosDataBuff = NULL;
     return vosStatus;
   }
@@ -5653,8 +5617,8 @@ WLANTL_STATxAuth
 
   if(!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "Fill TX BD Error status %d", vosStatus);
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "Fill TX BD Error status %d", vosStatus));
 
     return vosStatus;
   }
@@ -5669,8 +5633,8 @@ WLANTL_STATxAuth
                                        pvBDHeader);
     if(!VOS_IS_STATUS_SUCCESS(vosStatus))
     {
-      VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                "Handle TX Frame fail within Handoff support module");
+      TLLOG2(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                "Handle TX Frame fail within Handoff support module"));
       return VOS_STATUS_SUCCESS;
     }
   }
@@ -5678,25 +5642,25 @@ WLANTL_STATxAuth
 
 #ifdef WLAN_SOFTAP_FEATURE
   /* TX Statistics */
-      /* BC/MC/UC have to be determined by MAC address */
-      if (vos_is_macaddr_broadcast(&vDestMacAddr))
-      {
-        /* This TX is BC frame */
-        pStaClient->trafficStatistics.txBCFcnt++;
-        pStaClient->trafficStatistics.txBCBcnt += usPktLen;
-      }
-      else if (vos_is_macaddr_group(&vDestMacAddr))
-      {
-        /* This TX is MC frame */
-        pStaClient->trafficStatistics.txMCFcnt++;
-        pStaClient->trafficStatistics.txMCBcnt += usPktLen;
-      }
-      else
-      {
-        /* This is TX UC frame */
-        pStaClient->trafficStatistics.txUCFcnt++;
-        pStaClient->trafficStatistics.txUCBcnt += usPktLen;
-      }
+  /* BC/MC/UC have to be determined by MAC address */
+  if (vos_is_macaddr_broadcast(&vDestMacAddr))
+  {
+    /* This is TX BC frame */
+    pStaClient->trafficStatistics.txBCFcnt++;
+    pStaClient->trafficStatistics.txBCBcnt += usPktLen;
+  }
+  else if (vos_is_macaddr_group(&vDestMacAddr))
+  {
+    /* This is TX MC frame */
+    pStaClient->trafficStatistics.txMCFcnt++;
+    pStaClient->trafficStatistics.txMCBcnt += usPktLen;
+  }
+  else
+  {
+    /* This is TX UC frame */
+    pStaClient->trafficStatistics.txUCFcnt++;
+    pStaClient->trafficStatistics.txUCBcnt += usPktLen;
+  }
 #endif
 
   /*-----------------------------------------------------------------------
@@ -5721,8 +5685,8 @@ WLANTL_STATxAuth
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Failed while attempting to fill BD %d", vosStatus);
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Failed while attempting to fill BD %d", vosStatus));
     *pvosDataBuff = NULL;
     return vosStatus;
   }
@@ -5792,9 +5756,9 @@ WLANTL_STATxAuthUAPSD
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if (( NULL == pTLCb ) || ( NULL == pvosDataBuff ))
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
             "WLAN TL:Invalid input params on WLANTL_STATxAuth TL %x DB %x",
-             pTLCb, pvosDataBuff);
+             pTLCb, pvosDataBuff));
     *pvosDataBuff = NULL;
     pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
     return VOS_STATUS_E_FAULT;
@@ -5859,8 +5823,8 @@ WLANTL_STATxAuthUAPSD
       /*trigger frames cannot be delayed*/
       pTLCb->bUrgent      = TRUE;
 
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                 "WLAN TL:Chaining trigger frame on GetFrame");
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                 "WLAN TL:Chaining trigger frame on GetFrame"));
       break;
      }
    }
@@ -5912,8 +5876,8 @@ WLANTL_STATxDisc
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STATxAuth");
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STATxAuth"));
     *pvosDataBuff = NULL;
      pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
     return VOS_STATUS_E_FAULT;
@@ -5922,9 +5886,9 @@ WLANTL_STATxDisc
   /*------------------------------------------------------------------------
     Error
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
     "WLAN TL:Packet should not be transmitted in state disconnected ignoring"
-            " request");
+            " request"));
 
   *pvosDataBuff = NULL;
    pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
@@ -5988,8 +5952,8 @@ WLANTL_STARxConn
    ------------------------------------------------------------------------*/
   if (( NULL == pvosDataBuff ) || ( NULL == ( vosDataBuff = *pvosDataBuff )))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_STARxConn");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_STARxConn"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -5999,8 +5963,8 @@ WLANTL_STARxConn
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-        "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+        "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ChangeSTAState"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -6017,9 +5981,9 @@ WLANTL_STARxConn
 
   vos_pkt_get_packet_length( vosDataBuff, &usPktLen);
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:BD header processing data: HO %d DO %d Len %d HLen %d",
-             ucMPDUHOffset, usMPDUDOffset, usMPDULen, ucMPDUHLen);
+             ucMPDUHOffset, usMPDUDOffset, usMPDULen, ucMPDUHLen));
 
   if (( ucMPDUHOffset >= WLANHAL_RX_BD_HEADER_SIZE ) &&
       ( usMPDUDOffset >  ucMPDUHOffset ) && ( usPktLen >= usMPDULen ) &&
@@ -6030,8 +5994,8 @@ WLANTL_STARxConn
   }
   else
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:BD header corrupted - dropping packet");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL:BD header corrupted - dropping packet"));
     /* Drop packet */
     vos_pkt_return_packet(vosDataBuff);
     return VOS_STATUS_SUCCESS;
@@ -6047,16 +6011,16 @@ WLANTL_STARxConn
     /* that we get an EAPOL packet in WAPI mode or vice versa? */
     if ( WLANTL_LLC_8021X_TYPE  != usEtherType && WLANTL_LLC_WAI_TYPE  != usEtherType )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "WLAN TL:Frame not EAPOL or WAI - dropping");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WLAN TL:Frame not EAPOL or WAI - dropping"));
     /* Drop packet */
     vos_pkt_return_packet(vosDataBuff);
   }
 #else
     if ( WLANTL_LLC_8021X_TYPE  != usEtherType )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "WLAN TL:Frame not EAPOL - dropping");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WLAN TL:Frame not EAPOL - dropping"));
     /* Drop packet */
     vos_pkt_return_packet(vosDataBuff);
   }
@@ -6076,8 +6040,8 @@ WLANTL_STARxConn
 
       if ( VOS_STATUS_SUCCESS != vosStatus ) 
       {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-          "WLAN TL:Failed to translate from 802.11 to 802.3 - dropping");
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+          "WLAN TL:Failed to translate from 802.11 to 802.3 - dropping"));
         /* Drop packet */
          vos_pkt_return_packet(vosDataBuff);
          return vosStatus;
@@ -6088,8 +6052,8 @@ WLANTL_STARxConn
      -------------------------------------------------------------------*/
     pTLCb->atlSTAClients[ucSTAId].auRxCount[ucTid]++;
 
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:Sending EAPoL frame to station %d AC %d", ucSTAId, ucTid);
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL:Sending EAPoL frame to station %d AC %d", ucSTAId, ucTid));
 
     /*-------------------------------------------------------------------
       !!!Assuming TID = UP mapping 
@@ -6097,8 +6061,8 @@ WLANTL_STARxConn
     wRxMetaInfo.ucUP = ucTid;
 
 #ifdef WLAN_SOFTAP_FEATURE
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
-               "WLAN TL %s:Sending data chain to station \n", __FUNCTION__);
+    TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
+               "WLAN TL %s:Sending data chain to station \n", __FUNCTION__));
     if ( WLAN_STA_SOFTAP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType )
     { 
     pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, WLAN_RX_SAP_SELF_STA_ID,
@@ -6174,8 +6138,8 @@ WLANTL_STARxAuth
    ------------------------------------------------------------------------*/
   if (( NULL == pvosDataBuff ) || ( NULL == ( vosDataBuff = *pvosDataBuff )))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid parameter sent on WLANTL_STARxAuth");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid parameter sent on WLANTL_STARxAuth"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -6185,8 +6149,8 @@ WLANTL_STARxAuth
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STARxAuth");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STARxAuth"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -6206,11 +6170,11 @@ WLANTL_STARxAuth
     ucPMPDUHLen = ucMPDUHLen;
   }
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:BD header processing data: HO %d DO %d Len %d HLen %d"
              " Tid %d BD %d",
              ucMPDUHOffset, usMPDUDOffset, usMPDULen, ucMPDUHLen, ucTid,
-             WLANHAL_RX_BD_HEADER_SIZE);
+             WLANHAL_RX_BD_HEADER_SIZE));
 
   vos_pkt_get_packet_length( vosDataBuff, &usPktLen);
 
@@ -6241,8 +6205,8 @@ WLANTL_STARxAuth
     }
     else
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                "WLAN TL:BD header corrupted - dropping packet");
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                "WLAN TL:BD header corrupted - dropping packet"));
       /* Drop packet */
       vos_pkt_return_packet(vosDataBuff);
       return VOS_STATUS_SUCCESS;
@@ -6250,8 +6214,8 @@ WLANTL_STARxAuth
   }
   else
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-              "WLAN TL:BD header corrupted - dropping packet");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+              "WLAN TL:BD header corrupted - dropping packet"));
     /* Drop packet */
     vos_pkt_return_packet(vosDataBuff);
     return VOS_STATUS_SUCCESS;
@@ -6267,8 +6231,8 @@ WLANTL_STARxAuth
       {        
         if ( !( WLANHAL_RX_IS_UNPROTECTED_WPI_FRAME(aucBDHeader)) )
         {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                     "WLAN TL:WAI frame was received encrypted - dropping");
+          TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                     "WLAN TL:WAI frame was received encrypted - dropping"));
           /* Drop packet */
           vos_pkt_return_packet(vosDataBuff); 
           return vosStatus; //returning success
@@ -6278,8 +6242,8 @@ WLANTL_STARxAuth
       {
         if (  WLANHAL_RX_IS_UNPROTECTED_WPI_FRAME(aucBDHeader) ) 
         {
-          VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                     "WLAN TL:Non-WAI frame was received unencrypted - dropping");
+          TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                     "WLAN TL:Non-WAI frame was received unencrypted - dropping"));
           /* Drop packet */
           vos_pkt_return_packet(vosDataBuff); 
           return vosStatus; //returning success
@@ -6288,8 +6252,8 @@ WLANTL_STARxAuth
     }
     else //could not extract EtherType - this should not happen
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "WLAN TL:Could not extract EtherType -dropping frame");
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "WLAN TL:Could not extract EtherType -dropping frame"));
       /* Drop packet */
       vos_pkt_return_packet(vosDataBuff); 
       return vosStatus; //returning failure
@@ -6313,8 +6277,8 @@ WLANTL_STARxAuth
 
   if ( 0 != ucAsf )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:Packet is AMSDU sub frame - sending for completion");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL:Packet is AMSDU sub frame - sending for completion"));
     WLANTL_AMSDUProcess( pvosGCtx, vosDataBuff, aucBDHeader, ucSTAId,
                          ucMPDUHLen, usMPDULen );
   }
@@ -6341,8 +6305,8 @@ WLANTL_STARxAuth
 
       if ( VOS_STATUS_SUCCESS != vosStatus )
       {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Failed to translate from 802.11 to 802.3 - dropping");
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Failed to translate from 802.11 to 802.3 - dropping"));
         /* Drop packet */
         vos_pkt_return_packet(vosDataBuff);
         return vosStatus;
@@ -6369,37 +6333,37 @@ WLANTL_STARxAuth
     wRxMetaInfo.ucUP = ucTid;
 
 #ifdef WLAN_SOFTAP_FEATURE
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
-               "WLAN TL:Sending data chain to station \n");
+    TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
+               "WLAN TL:Sending data chain to station \n"));
     if ( WLAN_STA_SOFTAP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType )
     { 
       vosStatus = vos_pkt_extract_data( vosDataBuff, 0, (v_VOID_t *)pDestMacAddress, &usMacAddSize);
 
       if ( VOS_STATUS_SUCCESS != vosStatus )
       {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                   "WLAN TL: recv corrupted data packet\n");
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                   "WLAN TL: recv corrupted data packet\n"));
         vos_pkt_return_packet(vosDataBuff);
         return vosStatus;
       }
 
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"station mac 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x \n", 
+      TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"station mac 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x \n", 
                  pDestMacAddress->bytes[0], pDestMacAddress->bytes[1], pDestMacAddress->bytes[2], 
-                 pDestMacAddress->bytes[3], pDestMacAddress->bytes[4], pDestMacAddress->bytes[5]);
+                 pDestMacAddress->bytes[3], pDestMacAddress->bytes[4], pDestMacAddress->bytes[5]));
 
       ucDesSTAId = WLANHAL_RX_BD_GET_ADDR3_IDX(aucBDHeader);
 
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
+      TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
                "WLAN TL: Sending from station %d to staion %d, add1 %d \n", 
-                 ucSTAId, ucDesSTAId, WLANHAL_RX_BD_GET_ADDR1_IDX(aucBDHeader));
+                 ucSTAId, ucDesSTAId, WLANHAL_RX_BD_GET_ADDR1_IDX(aucBDHeader)));
 
       if (vos_is_macaddr_broadcast( pDestMacAddress ) || vos_is_macaddr_group(pDestMacAddress))
       //if (WLANTL_STA_ID_BCAST == ucDesSTAId)
       {
         // destination is mc/bc station
         ucDesSTAId = WLAN_RX_BCMC_STA_ID;
-        VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
-                   "%s: BC/MC packet, id %d\n", __FUNCTION__, WLAN_RX_BCMC_STA_ID);
+        TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
+                   "%s: BC/MC packet, id %d\n", __FUNCTION__, WLAN_RX_BCMC_STA_ID));
       }
       else 
       {
@@ -6408,15 +6372,15 @@ WLANTL_STARxAuth
         {
           // destination is AP itself
           ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
-          VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
-                    "%s: packet to AP itself, id %d\n", __FUNCTION__, WLAN_RX_SAP_SELF_STA_ID);
+          TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
+                    "%s: packet to AP itself, id %d\n", __FUNCTION__, WLAN_RX_SAP_SELF_STA_ID));
         }
         //else if (eHAL_STATUS_SUCCESS != halTable_FindStaidByAddr(pMac, (tANI_U8 *)pDestMacAddress, &ucDesSTAId))
         else if ( WLAN_MAX_STA_COUNT <= ucDesSTAId )
         {
           // destination station is something else
-          VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
-                    "%s: get an station index larger than WLAN_MAX_STA_COUNT %d\n", __FUNCTION__, ucDesSTAId);
+          TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
+                    "%s: get an station index larger than WLAN_MAX_STA_COUNT %d\n", __FUNCTION__, ucDesSTAId));
           ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
         }
 
@@ -6486,8 +6450,8 @@ WLANTL_STARxAuthUAPSD
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if (( NULL == pTLCb ) || ( NULL == pvosDataBuff ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STARxAuth");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STARxAuth"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -6557,17 +6521,17 @@ WLANTL_STARxDisc
    ------------------------------------------------------------------------*/
   if (( NULL == pvosDataBuff ) || ( NULL ==  *pvosDataBuff ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid parameter sent on WLANTL_STARxDisc");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid parameter sent on WLANTL_STARxDisc"));
     return VOS_STATUS_E_INVAL;
   }
 
   /*------------------------------------------------------------------------
     Error - drop packet
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+  TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
              "WLAN TL:Packet should not be received in state disconnected"
-             " - dropping");
+             " - dropping"));
   vos_pkt_return_packet(*pvosDataBuff);
   *pvosDataBuff = NULL;
 
@@ -6628,8 +6592,8 @@ WLANTL_McProcessMsg
    ------------------------------------------------------------------------*/
   if ( NULL == message )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_ProcessMainMessage");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_ProcessMainMessage"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -6639,13 +6603,13 @@ WLANTL_McProcessMsg
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-     "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ProcessMainMessage");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_ProcessMainMessage"));
     return VOS_STATUS_E_FAULT;
   }
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-        "WLAN TL:Received message: %d through main flow", message->type);
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+        "WLAN TL:Received message: %d through main flow", message->type));
 
   switch( message->type )
   {
@@ -6655,8 +6619,8 @@ WLANTL_McProcessMsg
     // Make sure the call back function is not null.
     VOS_ASSERT(pTLCb->tlBAPClient.pfnFlushOpCompleteCb != NULL);
 
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-            "Received message:  Flush complete received by TL");
+    TLLOG2(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+            "Received message:  Flush complete received by TL"));
 
     // Since we have the response back from HAL, just call the BAP client
     // registered call back from TL. There is only 1 possible
@@ -6666,8 +6630,8 @@ WLANTL_McProcessMsg
             FlushACRspPtr->ucTid, FlushACRspPtr->status );
 
     // Free the PAL memory, we are done with it.
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-        "Flush complete received by TL: Freeing %p", FlushACRspPtr);
+    TLLOG2(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+        "Flush complete received by TL: Freeing %p", FlushACRspPtr));
     vos_mem_free((v_VOID_t *)FlushACRspPtr);
     break;
 
@@ -6684,24 +6648,24 @@ WLANTL_McProcessMsg
 
     if ( NULL == ptAddBaRsp )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL: fatal failure, cannot allocate BA Rsp structure");
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL: fatal failure, cannot allocate BA Rsp structure"));
       VOS_ASSERT(0);
       return VOS_STATUS_E_NOMEM;
     }
 
     if ( VOS_STATUS_SUCCESS == vosStatus )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                "WLAN TL: Sending success indication to HAL for ADD BA");
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                "WLAN TL: Sending success indication to HAL for ADD BA"));
       /*Send success*/
       ptAddBaRsp->mesgType    = SIR_HAL_HDD_ADDBA_RSP;
       vosMessage.type         = SIR_HAL_HDD_ADDBA_RSP;
     }
     else
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                 "WLAN TL: Sending failure indication to HAL for ADD BA");
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                 "WLAN TL: Sending failure indication to HAL for ADD BA"));
 
       /*Send failure*/
       ptAddBaRsp->mesgType    = SIR_HAL_BA_FAIL_IND;
@@ -6715,6 +6679,7 @@ WLANTL_McProcessMsg
     vosMessage.bodyptr = ptAddBaRsp;
 
     vos_mq_post_message( VOS_MQ_ID_HAL, &vosMessage );
+    WLANTL_McFreeMsg (pvosGCtx, message);
   break;
   case SIR_HAL_DELETEBA_IND:
     ptDelBaInd = (tDelBAInd*)(message->bodyptr);
@@ -6724,12 +6689,13 @@ WLANTL_McProcessMsg
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
               "WLAN TL: Failed to del BA session STA:%d TID:%d Status :%d",
                ptDelBaInd->staIdx,
                ptDelBaInd->baTID,
-               vosStatus);
+               vosStatus));
     }
+    WLANTL_McFreeMsg (pvosGCtx, message);
     break;
   default:
     /*no processing for now*/
@@ -6782,8 +6748,8 @@ WLANTL_McFreeMsg
    ------------------------------------------------------------------------*/
   if ( NULL == message )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_McFreeMsg");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_McFreeMsg"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -6793,13 +6759,13 @@ WLANTL_McFreeMsg
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-     "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_McFreeMsg");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_McFreeMsg"));
     return VOS_STATUS_E_FAULT;
   }
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-        "WLAN TL:Received message: %d through main free", message->type);
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+        "WLAN TL:Received message: %d through main free", message->type));
 
   switch( message->type )
   {
@@ -6867,16 +6833,16 @@ WLANTL_TxProcessMsg
    ------------------------------------------------------------------------*/
   if ( NULL == message )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_ProcessTxMessage");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_ProcessTxMessage"));
     return VOS_STATUS_E_INVAL;
   }
 
   /*------------------------------------------------------------------------
     Process message
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:Received message: %d through tx flow", message->type);
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:Received message: %d through tx flow", message->type));
 
   switch( message->type )
   {
@@ -7003,8 +6969,8 @@ WLANTL_TxFCFrame
     ------------------------------------------------------------------------*/
   if ( NULL == pvosGCtx )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter %s", __FUNCTION__);
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter %s", __FUNCTION__));
     return VOS_STATUS_E_INVAL;
   }
   /*------------------------------------------------------------------------
@@ -7014,8 +6980,8 @@ WLANTL_TxFCFrame
 
   if (NULL == pTLCb)
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-        "WLAN TL:Invalid pointer in %s \n", __FUNCTION__);
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+        "WLAN TL:Invalid pointer in %s \n", __FUNCTION__));
     return VOS_STATUS_E_INVAL;
   }
   
@@ -7032,8 +6998,8 @@ WLANTL_TxFCFrame
 
   if( VOS_STATUS_SUCCESS != vosStatus )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "%s: failed to reserve FC TX BD %d\n",__FUNCTION__, sizeof(tHalFcTxBd));
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "%s: failed to reserve FC TX BD %d\n",__FUNCTION__, sizeof(tHalFcTxBd)));
     vos_pkt_return_packet( pPacket );
     return VOS_STATUS_E_FAULT;
   }
@@ -7073,16 +7039,16 @@ WLANTL_TxFCFrame
 
   if( VOS_STATUS_SUCCESS != vosStatus )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Fill FC TX BD unsuccessful\n", __FUNCTION__);
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Fill FC TX BD unsuccessful\n", __FUNCTION__));
     vos_pkt_return_packet( pPacket );
     return VOS_STATUS_E_FAULT;
   }
 
   if (NULL != pTLCb->vosTxFCBuf)
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                 "%s: Previous FC TX BD not sent\n", __FUNCTION__);
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                 "%s: Previous FC TX BD not sent\n", __FUNCTION__));
     vos_pkt_return_packet(pTLCb->vosTxFCBuf);
   }
 
@@ -7092,8 +7058,8 @@ WLANTL_TxFCFrame
                                (v_PVOID_t)WLANTL_TxCompDefaultCb);
   WLANBAL_StartXmit(pvosGCtx);
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL: send FC frame leave %s", __FUNCTION__);
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL: send FC frame leave %s", __FUNCTION__));
   return VOS_STATUS_SUCCESS;
 }
 
@@ -7151,9 +7117,9 @@ WLANTL_GetTxResourcesCB
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                "WLAN TL:Invalid TL pointer from pvosGCtx on"
-               " WLANTL_ProcessTxMessage");
+               " WLANTL_ProcessTxMessage"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -7164,9 +7130,9 @@ WLANTL_GetTxResourcesCB
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                "WLAN TL:TL failed to get resources from BAL, Err: %d",
-               vosStatus);
+               vosStatus));
     return vosStatus;
   }
   pTLCb->uResCount = uResCount;
@@ -7175,14 +7141,12 @@ WLANTL_GetTxResourcesCB
   pTLCb->sendFCFrame ++;
   pMac = vos_get_context(VOS_MODULE_ID_HAL, pvosGCtx);
   systemRole = halGetGlobalSystemRole(pMac);
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-            "SystemRole %d", systemRole);
   if (eSYSTEM_AP_ROLE == systemRole)
   {
      if (pTLCb->sendFCFrame % 16 == 0)
      {
-         VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                "Transmit FC");
+         TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                "Transmit FC"));
          WLANTL_TxFCFrame (pvosGCtx);
      } 
   }
@@ -7193,15 +7157,15 @@ WLANTL_GetTxResourcesCB
   ucMgmt = ( pTLCb->uResCount >=  WLANTL_MIN_RES_MF ) &&
            ( NULL != pTLCb->tlMgmtFrmClient.vosPendingDataBuff );
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL: Eval Resume tx Res: %d DATA: %d BAP: %d MGMT: %d",
-             pTLCb->uResCount, ucData, ucBAP, ucMgmt);
+             pTLCb->uResCount, ucData, ucBAP, ucMgmt));
 
   if (( 0 == pTLCb->ucTxSuspended ) &&
       (( 0 != ucData ) || ( 0 != ucMgmt ) || ( 0 != ucBAP ) ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                 "Issuing Xmit start request to BAL for avail res SYNC");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                 "Issuing Xmit start request to BAL for avail res SYNC"));
     WLANBAL_StartXmit(pvosGCtx);
   }
   return VOS_STATUS_SUCCESS;
@@ -7270,8 +7234,8 @@ WLANTL_Translate8023To80211Header
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-     "WLAN TL: Packet pop header fails on WLANTL_Translate8023To80211Header");
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     "WLAN TL: Packet pop header fails on WLANTL_Translate8023To80211Header"));
      return vosStatus;
   }
 
@@ -7284,9 +7248,9 @@ WLANTL_Translate8023To80211Header
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                   "WLAN TL: Packet push ether type fails on"
-                  " WLANTL_Translate8023To80211Header");
+                  " WLANTL_Translate8023To80211Header"));
        return vosStatus;
     }
 
@@ -7300,9 +7264,9 @@ WLANTL_Translate8023To80211Header
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                  "WLAN TL: Packet push LLC header fails on"
-                  " WLANTL_Translate8023To80211Header");
+                  " WLANTL_Translate8023To80211Header"));
        return vosStatus;
     }
     }
@@ -7312,18 +7276,18 @@ WLANTL_Translate8023To80211Header
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                  "WLAN TL: Packet push LLC header fails on"
-                  " WLANTL_Translate8023To80211Header");
+                  " WLANTL_Translate8023To80211Header"));
        return vosStatus;
     }
 #endif
   }/*If add LLC is enabled*/
   else
   {
-       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+       TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                  "WLAN TL: STA Client registered to not remove LLC"
-                  " WLANTL_Translate8023To80211Header");
+                  " WLANTL_Translate8023To80211Header"));
   }
 
 #ifdef BTAMP_TEST
@@ -7345,14 +7309,14 @@ WLANTL_Translate8023To80211Header
 #endif
   }
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-      " WLANTL_Translate8023To80211Header : Header size = %d ", ucHeaderSize);
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+      " WLANTL_Translate8023To80211Header : Header size = %d ", ucHeaderSize));
 
   vos_pkt_reserve_head( vosDataBuff, &ppvBDHeader, ucHeaderSize );
   if ( NULL == ppvBDHeader )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL:VOSS packet corrupted ");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL:VOSS packet corrupted "));
     *pvosStatus = VOS_STATUS_E_INVAL;
     return *pvosStatus;
   }
@@ -7362,13 +7326,13 @@ WLANTL_Translate8023To80211Header
   if (*extraHeadSpace)
   {
 
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                "WLAN TL:VOSS reserving extra header space = %d", *extraHeadSpace);
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                "WLAN TL:VOSS reserving extra header space = %d", *extraHeadSpace));
     vos_pkt_reserve_head( vosDataBuff, &ppvBDHeader, *extraHeadSpace );
     if ( NULL == ppvBDHeader )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                  "WLAN TL:VOSS packet corrupted on Attach BD header while reserving extra header space");
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                  "WLAN TL:VOSS packet corrupted on Attach BD header while reserving extra header space"));
       *pvosStatus = VOS_STATUS_E_INVAL;
       return *pvosStatus;
     }
@@ -7444,9 +7408,9 @@ WLANTL_Translate8023To80211Header
         /* fill the optional A4 header */
         vos_mem_copy( pw80211Header->optvA4,
                 w8023Header.vSA, VOS_MAC_ADDR_SIZE);
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+        TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
             "BTAMP CASE NOW ---------staid=%d\n",
-            ucStaId);
+            ucStaId));
         break;
 
 #ifdef WLAN_SOFTAP_FEATURE
@@ -7460,9 +7424,9 @@ WLANTL_Translate8023To80211Header
               &pTLCb->atlSTAClients[ucStaId].wSTADesc.vSelfMACAddress);
         vos_mem_copy( pw80211Header->vA3,
                 w8023Header.vSA, VOS_MAC_ADDR_SIZE);
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+        TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
             "sw 802 to 80211 softap case  ---------staid=%d\n",
-            ucStaId);
+            ucStaId));
         break;
 #endif
 
@@ -7473,9 +7437,9 @@ WLANTL_Translate8023To80211Header
         vos_copy_macaddr( (v_MACADDR_t*)&pw80211Header->vA1,
               &pTLCb->atlSTAClients[ucStaId].wSTADesc.vSTAMACAddress);
         vos_mem_copy( pw80211Header->vA3, w8023Header.vDA , VOS_MAC_ADDR_SIZE);
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+        TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
             "REGULAR INFRA LINK CASE---------staid=%d\n",
-            ucStaId);
+            ucStaId));
         break;
   }
   // OK now we have the space. Fill the 80211 header
@@ -7509,15 +7473,15 @@ static v_VOID_t WLANTL_DebugFrame
    numBytes = dataSize % WLANTL_DEBUG_FRAME_BYTE_PER_LINE;
    linePointer = (v_U8_t *)dataPointer;
 
-   VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR, "WLAN TL:Frame Debug Frame Size %d, Pointer 0x%p", dataSize, dataPointer);
+   TLLOGE(VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR, "WLAN TL:Frame Debug Frame Size %d, Pointer 0x%p", dataSize, dataPointer));
    for(idx = 0; idx < numLines; idx++)
    {
       memset(lineBuffer, 0, WLANTL_DEBUG_FRAME_BYTE_PER_LINE);
       memcpy(lineBuffer, linePointer, WLANTL_DEBUG_FRAME_BYTE_PER_LINE);
-      VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR,
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR,
                 "WLAN TL:0x%2x 0x%2x 0x%2x 0x%2x 0x%2x 0x%2x 0x%2x 0x%2x 0x%2x 0x%2x 0x%2x 0x%2x 0x%2x 0x%2x 0x%2x 0x%2x",
                  lineBuffer[0], lineBuffer[1], lineBuffer[2], lineBuffer[3], lineBuffer[4], lineBuffer[5], lineBuffer[6], lineBuffer[7],
-                 lineBuffer[8], lineBuffer[9], lineBuffer[10], lineBuffer[11], lineBuffer[12], lineBuffer[13], lineBuffer[14], lineBuffer[15]);
+                 lineBuffer[8], lineBuffer[9], lineBuffer[10], lineBuffer[11], lineBuffer[12], lineBuffer[13], lineBuffer[14], lineBuffer[15]));
       linePointer += WLANTL_DEBUG_FRAME_BYTE_PER_LINE;
    }
 
@@ -7528,9 +7492,9 @@ static v_VOID_t WLANTL_DebugFrame
    memcpy(lineBuffer, linePointer, numBytes);
    for(idx = 0; idx < WLANTL_DEBUG_FRAME_BYTE_PER_LINE / WLANTL_DEBUG_FRAME_BYTE_PER_BYTE; idx++)
    {
-      VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR, "WLAN TL:0x%2x 0x%2x 0x%2x 0x%2x",
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR, "WLAN TL:0x%2x 0x%2x 0x%2x 0x%2x",
                 lineBuffer[idx * WLANTL_DEBUG_FRAME_BYTE_PER_BYTE], lineBuffer[1 + idx * WLANTL_DEBUG_FRAME_BYTE_PER_BYTE],
-                lineBuffer[2 + idx * WLANTL_DEBUG_FRAME_BYTE_PER_BYTE], lineBuffer[3 + idx * WLANTL_DEBUG_FRAME_BYTE_PER_BYTE]);
+                lineBuffer[2 + idx * WLANTL_DEBUG_FRAME_BYTE_PER_BYTE], lineBuffer[3 + idx * WLANTL_DEBUG_FRAME_BYTE_PER_BYTE]));
       if(((idx + 1) * WLANTL_DEBUG_FRAME_BYTE_PER_BYTE) >= numBytes)
          break;
    }
@@ -7594,9 +7558,9 @@ WLANTL_Translate80211To8023Header
 
   if ( sizeof(w80211Header) < ucHeaderLen )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
        "Warning !: Check the header size for the Rx frame structure=%d received=%dn",
-       sizeof(w80211Header), ucHeaderLen);
+       sizeof(w80211Header), ucHeaderLen));
      ucHeaderLen = sizeof(w80211Header);
   }
 
@@ -7606,9 +7570,9 @@ WLANTL_Translate80211To8023Header
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                 "WLAN TL: Failed to pop 80211 header from packet %d",
-                vosStatus);
+                vosStatus));
 
      return vosStatus;
   }
@@ -7622,9 +7586,9 @@ WLANTL_Translate80211To8023Header
       //SoftAP AP mode
       vos_mem_copy( w8023Header.vDA, w80211Header.vA3, VOS_MAC_ADDR_SIZE);
       vos_mem_copy( w8023Header.vSA, w80211Header.vA2, VOS_MAC_ADDR_SIZE);
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                   "WLAN TL SoftAP: 802 3 DA %08x SA %08x \n",
-                  w8023Header.vDA, w8023Header.vSA);
+                  w8023Header.vDA, w8023Header.vSA));
     }
     else 
     {
@@ -7664,9 +7628,9 @@ WLANTL_Translate80211To8023Header
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                   "WLAN TL: Failed to trim header from packet %d",
-                  vosStatus);
+                  vosStatus));
       return vosStatus;
     }
   }
@@ -7679,9 +7643,9 @@ WLANTL_Translate80211To8023Header
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                   "WLAN TL: Failed to pop LLC header from packet %d",
-                  vosStatus);
+                  vosStatus));
 
        return vosStatus;
     }
@@ -7698,16 +7662,16 @@ WLANTL_Translate80211To8023Header
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                   "WLAN TL: Failed to get packet length %d",
-                  vosStatus);
+                  vosStatus));
 
        return vosStatus;
     }
 
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
         "WLAN TL: BTAMP len (ethertype) fld = %d",
-        w8023Header.usLenType);
+        w8023Header.usLenType));
     w8023Header.usLenType = vos_cpu_to_be16(w8023Header.usLenType);
   }
 
@@ -7804,9 +7768,9 @@ WLANTL_FastHwFwdDataFrame
 
     if ( VOS_STATUS_SUCCESS != *pvosStatus ) 
     {
-       VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                   "WLAN TL:Failed while attempting to extract MAC Addr %d", 
-                  *pvosStatus);
+                  *pvosStatus));
        *pvosStatus = VOS_STATUS_E_INVAL;
        return;
     }
@@ -7819,8 +7783,8 @@ WLANTL_FastHwFwdDataFrame
                         ucDxEBDWLANHeaderLen );
     if ( NULL == pucBuffPtr )
     {
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                    "WLAN TL:No enough space in VOSS packet %p for DxE/BD/WLAN header", vosDataBuff);
+        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                    "WLAN TL:No enough space in VOSS packet %p for DxE/BD/WLAN header", vosDataBuff));
        *pvosStatus = VOS_STATUS_E_INVAL;
         return;
     }
@@ -7913,9 +7877,9 @@ WLANTL_PrepareBDHeader
 
   if ( WLANTL_MAC_HEADER_LEN(ucDisableFrmXtl) > *pusPktLen )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                "WLAN TL: Length of the packet smaller than expected network"
-               " header %d", *pusPktLen );
+               " header %d", *pusPktLen ));
 
     *pvosStatus = VOS_STATUS_E_INVAL;
     return;
@@ -7925,8 +7889,8 @@ WLANTL_PrepareBDHeader
                         ucBDHeaderLen );
   if ( NULL == *ppvBDHeader )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL:VOSS packet corrupted on Attach BD header");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL:VOSS packet corrupted on Attach BD header"));
     *pvosStatus = VOS_STATUS_E_INVAL;
     return;
   }
@@ -7955,9 +7919,9 @@ WLANTL_PrepareBDHeader
 #endif
   if ( VOS_STATUS_SUCCESS != *pvosStatus )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                 "WLAN TL:Failed while attempting to extract MAC Addr %d",
-                *pvosStatus);
+                *pvosStatus));
   }
   else
   {
@@ -7997,11 +7961,11 @@ WLANTL_PrepareBDHeader
                                           ucHeaderOffset + ucHeaderLen + extraHeadSpace);
     WLANHAL_TX_BD_SET_MPDU_LEN( *ppvBDHeader, *pusPktLen);
 
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                 "WLAN TL: VALUES ARE HLen=%x Hoff=%x doff=%x len=%x ex=%d",
                 ucHeaderLen, ucHeaderOffset, 
 		(ucHeaderOffset + ucHeaderLen + extraHeadSpace), 
-		*pusPktLen, extraHeadSpace);
+		*pusPktLen, extraHeadSpace));
   }/* if peek MAC success*/
 
 }/* WLANTL_PrepareBDHeader */
@@ -8069,8 +8033,8 @@ WLAN_TLAPGetNextTxIds
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-      "WLAN TL:Invalid TL pointer from pvosGCtx on WLAN_TLGetNextTxIds");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      "WLAN TL:Invalid TL pointer from pvosGCtx on WLAN_TLGetNextTxIds"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -8123,7 +8087,7 @@ WLAN_TLAPGetNextTxIds
       for ( ; ucNextSTA < WLAN_MAX_STA_COUNT; ucNextSTA ++ )
       {
         if ( (0 == pTLCb->atlSTAClients[ucNextSTA].ucExists) ||
-             (0 == pTLCb->atlSTAClients[ucNextSTA].ucPktPending) ||
+             ((0 == pTLCb->atlSTAClients[ucNextSTA].ucPktPending) && !(pTLCb->atlSTAClients[ucNextSTA].ucACMask)) ||
              (0 == (pTLCb->atlSTAClients[ucNextSTA].ucACMask & ucACFilter)) )
         {
           //current statioin does not exist or have any packet to serve.
@@ -8147,9 +8111,9 @@ WLAN_TLAPGetNextTxIds
         *pucSTAId = ucNextSTA;
         pTLCb->ucCurrentSTA = ucNextSTA;
   
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
+        TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
                    " TL serve one station AC: %d  W: %d StaId: %d",
-                   pTLCb->uCurServedAC, pTLCb->ucCurLeftWeight, pTLCb->ucCurrentSTA );
+                   pTLCb->uCurServedAC, pTLCb->ucCurLeftWeight, pTLCb->ucCurrentSTA ));
       
         return VOS_STATUS_SUCCESS;
       } //STA loop
@@ -8177,8 +8141,8 @@ WLAN_TLAPGetNextTxIds
 
   }// AC loop
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                   " TL can't find one station to serve \n" );
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                   " TL can't find one station to serve \n" ));
 
   pTLCb->uCurServedAC = WLANTL_AC_BK;
   pTLCb->ucCurLeftWeight = 1;
@@ -8234,8 +8198,6 @@ WLAN_TLGetNextTxIds
 
   pMac = vos_get_context(VOS_MODULE_ID_HAL, pvosGCtx);
   systemRole = halGetGlobalSystemRole(pMac);
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-			"SystemRole %d", systemRole);
   if (eSYSTEM_AP_ROLE == systemRole)
   {
   	 return WLAN_TLAPGetNextTxIds(pvosGCtx,pucSTAId);
@@ -8248,8 +8210,8 @@ WLAN_TLGetNextTxIds
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-      "WLAN TL:Invalid TL pointer from pvosGCtx on WLAN_TLGetNextTxIds");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      "WLAN TL:Invalid TL pointer from pvosGCtx on WLAN_TLGetNextTxIds"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -8270,9 +8232,9 @@ WLAN_TLGetNextTxIds
     if (( pTLCb->atlSTAClients[ucNextSTA].ucExists ) &&
         ( pTLCb->atlSTAClients[ucNextSTA].ucPktPending ))
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
       "WLAN TL:No station registered with TL at this point or Mask 0"
-      "STA ID: %d on WLAN_TLGetNextTxIds", *pucSTAId);
+      "STA ID: %d on WLAN_TLGetNextTxIds", *pucSTAId));
       pTLCb->ucCurrentSTA = ucNextSTA; 
       break;
     }
@@ -8283,9 +8245,9 @@ WLAN_TLGetNextTxIds
    if ( ( WLANTL_STA_ID_INVALID( *pucSTAId ) ) ||
         ( 0 == pTLCb->atlSTAClients[*pucSTAId].ucACMask ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
       "WLAN TL:No station registered with TL at this point or Mask 0"
-      "STA ID: %d on WLAN_TLGetNextTxIds", *pucSTAId);
+      "STA ID: %d on WLAN_TLGetNextTxIds", *pucSTAId));
 
      /*setting STA id to invalid if mask is 0*/
      *pucSTAId = WLAN_MAX_STA_COUNT;
@@ -8300,10 +8262,10 @@ WLAN_TLGetNextTxIds
   -----------------------------------------------------------------------*/
   if ( 0 < pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight  )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                   "WLAN TL: Maintaining serviced AC to: %d for Weight: %d",
                   pTLCb->atlSTAClients[*pucSTAId].ucCurrentAC ,
-                  pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight);
+                  pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight));
     return VOS_STATUS_SUCCESS;
   }
 
@@ -8311,16 +8273,16 @@ WLAN_TLGetNextTxIds
      Choose highest priority AC - !!! optimize me
   -----------------------------------------------------------------------*/
   ucNextAC = pTLCb->atlSTAClients[*pucSTAId].ucCurrentAC;
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "Next AC: %d", ucNextAC);
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "Next AC: %d", ucNextAC));
 
   while ( 0 != pTLCb->atlSTAClients[*pucSTAId].ucACMask )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              " AC Mask: %d Next: %d Res : %d",
                pTLCb->atlSTAClients[*pucSTAId].ucACMask,
                ( 1 << ucNextAC ),
-        ( pTLCb->atlSTAClients[*pucSTAId].ucACMask & ( 1 << ucNextAC )));
+        ( pTLCb->atlSTAClients[*pucSTAId].ucACMask & ( 1 << ucNextAC ))));
 
     if ( 0 != ( pTLCb->atlSTAClients[*pucSTAId].ucACMask &
         ( 1 << ucNextAC )))
@@ -8330,24 +8292,24 @@ WLAN_TLGetNextTxIds
        pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight =
                        pTLCb->tlConfigInfo.ucAcWeights[ucNextAC];
 
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+        TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                   "WLAN TL: Switching serviced AC to: %d with Weight: %d",
                   pTLCb->atlSTAClients[*pucSTAId].ucCurrentAC ,
-                  pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight);
+                  pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight));
        break;
     }
 
     ucNextAC = ( ucNextAC - 1 ) & WLANTL_MASK_AC;
 
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "Next AC %d", ucNextAC);
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "Next AC %d", ucNextAC));
 
   }
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              " C AC: %d C W: %d",
              pTLCb->atlSTAClients[*pucSTAId].ucCurrentAC,
-             pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight);
+             pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight));
 
   return VOS_STATUS_SUCCESS;
 }/* WLAN_TLGetNextTxIds */
@@ -8397,8 +8359,8 @@ WLAN_TLGetNextTxIds
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-      "WLAN TL:Invalid TL pointer from pvosGCtx on WLAN_TLGetNextTxIds");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      "WLAN TL:Invalid TL pointer from pvosGCtx on WLAN_TLGetNextTxIds"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -8419,9 +8381,9 @@ WLAN_TLGetNextTxIds
     if (( pTLCb->atlSTAClients[ucNextSTA].ucExists ) &&
         ( pTLCb->atlSTAClients[ucNextSTA].ucPktPending ))
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
       "WLAN TL:No station registered with TL at this point or Mask 0"
-      "STA ID: %d on WLAN_TLGetNextTxIds", *pucSTAId);
+      "STA ID: %d on WLAN_TLGetNextTxIds", *pucSTAId));
       pTLCb->ucCurrentSTA = ucNextSTA; 
       break;
     }
@@ -8432,9 +8394,9 @@ WLAN_TLGetNextTxIds
    if ( ( WLANTL_STA_ID_INVALID( *pucSTAId ) ) ||
         ( 0 == pTLCb->atlSTAClients[*pucSTAId].ucACMask ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
       "WLAN TL:No station registered with TL at this point or Mask 0"
-      "STA ID: %d on WLAN_TLGetNextTxIds", *pucSTAId);
+      "STA ID: %d on WLAN_TLGetNextTxIds", *pucSTAId));
 
      /*setting STA id to invalid if mask is 0*/
      *pucSTAId = WLAN_MAX_STA_COUNT;
@@ -8449,10 +8411,10 @@ WLAN_TLGetNextTxIds
   -----------------------------------------------------------------------*/
   if ( 0 < pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight  )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                   "WLAN TL: Maintaining serviced AC to: %d for Weight: %d",
                   pTLCb->atlSTAClients[*pucSTAId].ucCurrentAC ,
-                  pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight);
+                  pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight));
     return VOS_STATUS_SUCCESS;
   }
 
@@ -8460,16 +8422,16 @@ WLAN_TLGetNextTxIds
      Choose highest priority AC - !!! optimize me
   -----------------------------------------------------------------------*/
   ucNextAC = pTLCb->atlSTAClients[*pucSTAId].ucCurrentAC;
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "Next AC: %d", ucNextAC);
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "Next AC: %d", ucNextAC));
 
   while ( 0 != pTLCb->atlSTAClients[*pucSTAId].ucACMask )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              " AC Mask: %d Next: %d Res : %d",
                pTLCb->atlSTAClients[*pucSTAId].ucACMask,
                ( 1 << ucNextAC ),
-        ( pTLCb->atlSTAClients[*pucSTAId].ucACMask & ( 1 << ucNextAC )));
+        ( pTLCb->atlSTAClients[*pucSTAId].ucACMask & ( 1 << ucNextAC ))));
 
     if ( 0 != ( pTLCb->atlSTAClients[*pucSTAId].ucACMask &
         ( 1 << ucNextAC )))
@@ -8479,24 +8441,24 @@ WLAN_TLGetNextTxIds
        pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight =
                        pTLCb->tlConfigInfo.ucAcWeights[ucNextAC];
 
-        VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+        TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                   "WLAN TL: Switching serviced AC to: %d with Weight: %d",
                   pTLCb->atlSTAClients[*pucSTAId].ucCurrentAC ,
-                  pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight);
+                  pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight));
        break;
     }
 
     ucNextAC = ( ucNextAC - 1 ) & WLANTL_MASK_AC;
 
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "Next AC %d", ucNextAC);
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "Next AC %d", ucNextAC));
 
   }
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              " C AC: %d C W: %d",
              pTLCb->atlSTAClients[*pucSTAId].ucCurrentAC,
-             pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight);
+             pTLCb->atlSTAClients[*pucSTAId].ucCurrentWeight));
 
   return VOS_STATUS_SUCCESS;
 }/* WLAN_TLGetNextTxIds */
@@ -8531,8 +8493,8 @@ WLANTL_MgmtFrmRxDefaultCb
   v_PVOID_t  vosBuff
 )
 {
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
-             "WLAN TL:Fatal failure: No registered Mgmt Frm client on pkt RX");
+  TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
+             "WLAN TL:Fatal failure: No registered Mgmt Frm client on pkt RX"));
   VOS_ASSERT(0);
   return VOS_STATUS_E_FAILURE;
 }/*WLANTL_MgmtFrmRxDefaultCb*/
@@ -8563,8 +8525,8 @@ WLANTL_BAPRxDefaultCb
   WLANTL_BAPFrameEnumType frameType
 )
 {
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
-             "WLAN TL:Fatal failure: No registered BAP client on BAP pkt RX");
+  TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
+             "WLAN TL:Fatal failure: No registered BAP client on BAP pkt RX"));
 #ifndef BTAMP_TEST
   VOS_ASSERT(0);
 #endif
@@ -8599,9 +8561,9 @@ WLANTL_STARxDefaultCb
   WLANTL_RxMetaInfoType*  pRxMetaInfo
 )
 {
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+  TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
        "WLAN TL: No registered STA client rx cb for STAID: %d dropping pkt",
-               ucSTAId);
+               ucSTAId));
   vos_pkt_return_packet(vosDataBuff);
   return VOS_STATUS_E_FAILURE;
 }/*WLANTL_MgmtFrmRxDefaultCb*/
@@ -8636,8 +8598,8 @@ WLANTL_STAFetchPktDefaultCb
   WLANTL_MetaInfoType*   tlMetaInfo
 )
 {
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
-             "WLAN TL:Fatal failure: No registered STA client on data pkt RX");
+  TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
+             "WLAN TL:Fatal failure: No registered STA client on data pkt RX"));
   VOS_ASSERT(0);
   return VOS_STATUS_E_FAILURE;
 }/*WLANTL_MgmtFrmRxDefaultCb*/
@@ -8675,8 +8637,8 @@ WLANTL_TxCompDefaultCb
  VOS_STATUS     wTxSTAtus
 )
 {
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-         "WLAN TL:TXComp not registered, releasing pkt to prevent mem leak");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+         "WLAN TL:TXComp not registered, releasing pkt to prevent mem leak"));
   return vos_pkt_return_packet(vosDataBuff);
 }/*WLANTL_TxCompDefaultCb*/
 
@@ -8724,8 +8686,8 @@ WLANTL_CleanCB
    -------------------------------------------------------------------------*/
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_CleanCB");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_CleanCB"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -8830,17 +8792,17 @@ WLANTL_CleanSTA
    -------------------------------------------------------------------------*/
   if ( NULL == ptlSTAClient )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_CleanSTA");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_CleanSTA"));
     return VOS_STATUS_E_INVAL;
   }
 
   /*------------------------------------------------------------------------
     Clear station from TL
    ------------------------------------------------------------------------*/
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL: Clearing STA Client ID: %d, Empty flag: %d",
-             ptlSTAClient->wSTADesc.ucSTAId, ucEmpty );
+             ptlSTAClient->wSTADesc.ucSTAId, ucEmpty ));
 
   ptlSTAClient->pfnSTARx          = WLANTL_STARxDefaultCb;
   ptlSTAClient->pfnSTATxComp      = WLANTL_TxCompDefaultCb;
@@ -8980,8 +8942,8 @@ WLANTL_ServiceIntervalTimer
    -----------------------------------------------------------------------*/
   if ( NULL == pUAPSDInfo )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL: Fatal error: Service timer called with NULL data" );
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL: Fatal error: Service timer called with NULL data" ));
      VOS_ASSERT(0);
      return;
   }
@@ -8989,16 +8951,16 @@ WLANTL_ServiceIntervalTimer
   /*Session was disabled in the mean while*/
   if ( 0 == pUAPSDInfo->ucExists ) 
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-    "WLAN TL: Service timer called after session was disabled - abandoning" );
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    "WLAN TL: Service timer called after session was disabled - abandoning" ));
     return; 
   }
 
   /*Instance is still valid*/
   if ( NULL == ( pTLCb = (WLANTL_CbType*)pUAPSDInfo->pTLCb ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL: Fatal error: Service timer called with NULL data" );
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL: Fatal error: Service timer called with NULL data" ));
     VOS_ASSERT(0);
     return;
   }
@@ -9048,8 +9010,8 @@ WLANTL_DelayedIntervalTimer
    -----------------------------------------------------------------------*/
   if ( NULL == pUAPSDInfo )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL: Fatal error: Service timer called with NULL data" );
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL: Fatal error: Service timer called with NULL data" ));
      VOS_ASSERT(0);
      return;
   }
@@ -9057,16 +9019,16 @@ WLANTL_DelayedIntervalTimer
   /*Session was disabled in the mean while*/
   if ( 0 == pUAPSDInfo->ucExists ) 
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-    "WLAN TL: Service timer called after session was disabled - abandoning" );
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    "WLAN TL: Service timer called after session was disabled - abandoning" ));
     return; 
   }
 
   /*Instance is still valid*/
   if ( NULL == ( pTLCb = (WLANTL_CbType*)pUAPSDInfo->pTLCb ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL: Fatal error: Service timer called with NULL data" );
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL: Fatal error: Service timer called with NULL data" ));
     VOS_ASSERT(0);
     return;
   }
@@ -9114,14 +9076,14 @@ WLANTL_SuspendIntervalTimer
    -----------------------------------------------------------------------*/
   if ( NULL == pUAPSDInfo ) 
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL: Fatal error: Service timer called with NULL data" );
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL: Fatal error: Service timer called with NULL data" ));
      VOS_ASSERT(0);
      return;
   }
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "WLAN TL:Stopping Service Tim; Starting Delayed Tim");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "WLAN TL:Stopping Service Tim; Starting Delayed Tim"));
 
   /* stop service interval timer*/
   vos_timer_stop( &pUAPSDInfo->vosServiceTimer);
@@ -9198,8 +9160,8 @@ WLANTL_PackUpTriggerFrame
    ------------------------------------------------------------------------*/
   if ( NULL != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosTriggBuf ) 
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL: Trigger frame not NULL on WLANTL_PackUpTriggerFrame");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL: Trigger frame not NULL on WLANTL_PackUpTriggerFrame"));
   
     vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucPendingTrigFrm,
                         1); 
@@ -9219,8 +9181,8 @@ WLANTL_PackUpTriggerFrame
 
   if ( VOS_STATUS_SUCCESS != vosStatus ) 
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-             "WLAN TL: Failed to get vos packet on WLANTL_PackUpTriggerFrame");
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+             "WLAN TL: Failed to get vos packet on WLANTL_PackUpTriggerFrame"));
      VOS_ASSERT(0);
      return vosStatus;
   }
@@ -9256,9 +9218,9 @@ WLANTL_PackUpTriggerFrame
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                "WLAN TL: Packet push header fails on"
-               " WLANTL_PackUpTriggerFrame");
+               " WLANTL_PackUpTriggerFrame"));
      return vosStatus;
   }
 
@@ -9271,8 +9233,8 @@ WLANTL_PackUpTriggerFrame
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Failed while attempting to prepare BD %d", vosStatus);
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Failed while attempting to prepare BD %d", vosStatus));
     vos_pkt_return_packet(vosDataBuff);
     return vosStatus;
   }
@@ -9302,8 +9264,8 @@ WLANTL_PackUpTriggerFrame
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Failed while attempting to fill BD %d", vosStatus);
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Failed while attempting to fill BD %d", vosStatus));
     vos_pkt_return_packet(vosDataBuff);
     return vosStatus;
   }
@@ -9382,10 +9344,10 @@ WLANTL_EnableUAPSDForAC
   if (( NULL == pTLCb ) || WLANTL_STA_ID_INVALID( ucSTAId )
       ||   WLANTL_AC_INVALID(ucAC) || ( 0 == uServiceInt ) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                "WLAN TL:Invalid input params on WLANTL_EnableUAPSDForAC"
                " TL: %x  STA: %d  AC: %d SI: %d", 
-               pTLCb, ucSTAId, ucAC, uServiceInt );
+               pTLCb, ucSTAId, ucAC, uServiceInt ));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -9393,9 +9355,9 @@ WLANTL_EnableUAPSDForAC
 
   if ( 0 != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
      "WLAN TL:U-APSD already set for STA: %d AC: %d Restarting all timers", 
-               ucSTAId, ucAC);
+               ucSTAId, ucAC));
 
     vos_timer_stop(
            &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosServiceTimer);
@@ -9439,9 +9401,9 @@ WLANTL_EnableUAPSDForAC
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
          "WLAN TL:Unable to create SI timer on WLANTL_EnableUAPSDForAC %d",
-                 vosStatus);
+                 vosStatus));
       return vosStatus;
     }
 
@@ -9456,9 +9418,9 @@ WLANTL_EnableUAPSDForAC
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
          "WLAN TL:Unable to create SPI timer on WLANTL_EnableUAPSDForAC %d",
-                 vosStatus);
+                 vosStatus));
       return vosStatus;
     }
 
@@ -9473,9 +9435,9 @@ WLANTL_EnableUAPSDForAC
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
          "WLAN TL:Unable to create DI timer on WLANTL_EnableUAPSDForAC %d",
-                 vosStatus);
+                 vosStatus));
       return vosStatus;
     }
   }/* If exists*/
@@ -9483,10 +9445,10 @@ WLANTL_EnableUAPSDForAC
   vos_atomic_set_U8(
     &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists, 1);
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:U-APSD set for STA: %d AC: %d SI: %d SPI: %d DI: %d",
              ucSTAId, ucAC, uServiceInt, uSuspendInt,
-             pTLCb->tlConfigInfo.uDelayedTriggerFrmInt);
+             pTLCb->tlConfigInfo.uDelayedTriggerFrmInt));
 
   vos_timer_start(
     &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosServiceTimer,
@@ -9504,11 +9466,11 @@ WLANTL_EnableUAPSDForAC
   /*Set this flag in order to remember that this is a trigger enabled AC*/
   pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucSet = 1; 
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:Enabling U-APSD in FW for STA: %d AC: %d SI: %d SPI: %d "
              "DI: %d",
              ucSTAId, ucAC, uServiceInt, uSuspendInt,
-             pTLCb->tlConfigInfo.uDelayedTriggerFrmInt);
+             pTLCb->tlConfigInfo.uDelayedTriggerFrmInt));
 
   /*Save all info for HAL*/
   halUAPSDInfo.staidx         = ucSTAId; 
@@ -9573,9 +9535,9 @@ WLANTL_DisableUAPSDForAC
   if (( NULL == pTLCb ) || WLANTL_STA_ID_INVALID( ucSTAId )
       ||   WLANTL_AC_INVALID(ucAC) )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                "WLAN TL:Invalid input params on WLANTL_DisableUAPSDForAC"
-               " TL: %x  STA: %d  AC: %d", pTLCb, ucSTAId, ucAC );
+               " TL: %x  STA: %d  AC: %d", pTLCb, ucSTAId, ucAC ));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -9583,9 +9545,9 @@ WLANTL_DisableUAPSDForAC
 
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
      "WLAN TL:U-APSD not set for STA: %d AC: %d on WLANTL_DisableUAPSDForAC",
-      ucSTAId, ucAC);
+      ucSTAId, ucAC));
 
     return VOS_STATUS_E_EXISTS;
   }
@@ -9625,17 +9587,17 @@ WLANTL_DisableUAPSDForAC
   vos_timer_destroy(
            &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosDelayedTimer);
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:U-APSD deleted for STA: %d AC: %d ", ucSTAId, ucAC );
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "WLAN TL:U-APSD deleted for STA: %d AC: %d ", ucSTAId, ucAC ));
 
 #else
 
   /*Reset this flag as this is no longer a trigger enabled AC*/
   pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucSet = 1; 
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:Disabling U-APSD in FW for STA: %d AC: %d ",
-             ucSTAId, ucAC);
+             ucSTAId, ucAC));
 
   /*Notify HAL*/
   WLANHAL_DisableUapsdAcParams(pvosGCtx, ucSTAId, ucAC);
@@ -9690,8 +9652,8 @@ WLANTL_TxCompTriggFrameSI
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if (( NULL == pTLCb ) || ( NULL == vosDataBuff ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-     "WLAN TL:Invalid input pointers on WLANTL_TxCompTriggFrameSI");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     "WLAN TL:Invalid input pointers on WLANTL_TxCompTriggFrameSI"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -9706,8 +9668,8 @@ WLANTL_TxCompTriggFrameSI
 	 vosDataBuff, usAlignQosCtrl, (v_PVOID_t)&pusQOSCtrl, sizeof(*pusQOSCtrl))) ||
 		( NULL == pusQOSCtrl ))
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:TXComp service trig frm received: cannot extract QOS Ctrl");
+     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+       "WLAN TL:TXComp service trig frm received: cannot extract QOS Ctrl"));
 
      /*Return the VOS packet*/
      vos_pkt_return_packet(vosDataBuff);
@@ -9724,15 +9686,15 @@ WLANTL_TxCompTriggFrameSI
   /*Return the VOS packet*/
   vos_pkt_return_packet(vosDataBuff);
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-     "WLAN TL: WLANTL_TxCompTriggFrameSI STA ID: %d AC: %d", ucSTAId, ucAC);
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+     "WLAN TL: WLANTL_TxCompTriggFrameSI STA ID: %d AC: %d", ucSTAId, ucAC));
 
   if (( WLANTL_STA_ID_INVALID( ucSTAId )) ||
 	  ( WLANTL_AC_INVALID(ucAC)) ||
 	  ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists))
   {
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:TXComp service trig frm received: INVALID SESSION");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+       "WLAN TL:TXComp service trig frm received: INVALID SESSION"));
 
 	  return VOS_STATUS_E_FAULT;
   }
@@ -9740,8 +9702,8 @@ WLANTL_TxCompTriggFrameSI
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucDelayedMode )
   {
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-         "WLAN TL:TXComp service trig frm received: restarting Service Tim");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+         "WLAN TL:TXComp service trig frm received: restarting Service Tim"));
 
   /* Restart timer */
   vos_timer_start(
@@ -9750,8 +9712,8 @@ WLANTL_TxCompTriggFrameSI
   }
   else
   {
-     VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-         "WLAN TL:TXComp service trig frm received: but delayed mode active");
+     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+         "WLAN TL:TXComp service trig frm received: but delayed mode active"));
   }
 
   return VOS_STATUS_SUCCESS;
@@ -9803,8 +9765,8 @@ WLANTL_TxCompTriggFrameDI
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if (( NULL == pTLCb ) || ( NULL == vosDataBuff ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-     "WLAN TL:Invalid input pointers on WLANTL_TxCompTriggFrameDI");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+     "WLAN TL:Invalid input pointers on WLANTL_TxCompTriggFrameDI"));
     return VOS_STATUS_E_FAULT;
   }
 
@@ -9819,8 +9781,8 @@ WLANTL_TxCompTriggFrameDI
 	 vosDataBuff, usAlignQosCtrl, (v_PVOID_t)&pusQOSCtrl, sizeof(*pusQOSCtrl))) ||
 		( NULL == pusQOSCtrl ))
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:TXComp service trig frm received: cannot extract QOS Ctrl");
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+       "WLAN TL:TXComp service trig frm received: cannot extract QOS Ctrl"));
 
     /*Return the VOS packet*/
     vos_pkt_return_packet(vosDataBuff);
@@ -9837,15 +9799,15 @@ WLANTL_TxCompTriggFrameDI
   /*Return the VOS packet*/
   vos_pkt_return_packet(vosDataBuff);
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-     "WLAN TL: WLANTL_TxCompTriggFrameDI STA ID: %d AC: %d", ucSTAId, ucAC);
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+     "WLAN TL: WLANTL_TxCompTriggFrameDI STA ID: %d AC: %d", ucSTAId, ucAC));
 
   if (( WLANTL_STA_ID_INVALID( ucSTAId )) ||
 	  ( WLANTL_AC_INVALID(ucAC)) ||
 	  ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists))
   {
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:TXComp dealyed trig frm received: INVALID SESSION");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+       "WLAN TL:TXComp dealyed trig frm received: INVALID SESSION"));
 
 	  return VOS_STATUS_E_FAULT;
   }
@@ -9856,8 +9818,8 @@ WLANTL_TxCompTriggFrameDI
       ( 0 != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucDelayedMode ))
   {
 
-  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:TXComp for trigger frame received: restarting Delayed Tim");
+  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+       "WLAN TL:TXComp for trigger frame received: restarting Delayed Tim"));
 
   /* Restart timer */
   vos_timer_start(
@@ -9866,8 +9828,8 @@ WLANTL_TxCompTriggFrameDI
   }
   else
   {
-	  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:TXComp for trigger frame received but not in delayed mode");
+	  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+       "WLAN TL:TXComp for trigger frame received but not in delayed mode"));
   }
 
   return VOS_STATUS_SUCCESS;
@@ -10085,22 +10047,22 @@ VOS_STATUS WLANTL_GetStatistics
    ------------------------------------------------------------------------*/
   if (NULL == pTLCb) 
   {
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "WLAN TL:Invalid TL pointer on WLANTL_GetStatistics");
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL:Invalid TL pointer on WLANTL_GetStatistics"));
     return VOS_STATUS_E_FAULT;
   }
 
   if(0 == pTLCb->atlSTAClients[STAid].ucExists)
   {
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-    "WLAN TL: %d STA ID does not exist", STAid);
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    "WLAN TL: %d STA ID does not exist", STAid));
     return VOS_STATUS_E_INVAL;
   }
 
   if(NULL == statBuffer)
   {
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-    "WLAN TL:Invalid TL statistics buffer pointer on WLANTL_GetStatistics");
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    "WLAN TL:Invalid TL statistics buffer pointer on WLANTL_GetStatistics"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -10142,20 +10104,20 @@ VOS_STATUS WLANTL_ResetStatistics
    ------------------------------------------------------------------------*/
   if (NULL == pTLCb) 
   {
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "WLAN TL:Invalid TL pointer on WLANTL_GetStatistics");
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL:Invalid TL pointer on WLANTL_GetStatistics"));
     return VOS_STATUS_E_FAULT;
   }
 
   if(0 == pTLCb->atlSTAClients[STAid].ucExists)
   {
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-    "WLAN TL: %d STA ID does not exist", STAid);
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    "WLAN TL: %d STA ID does not exist", STAid));
     return VOS_STATUS_E_INVAL;
   }
 
   statistics = &pTLCb->atlSTAClients[STAid].trafficStatistics;
-  memset(statistics, 0, sizeof(WLANTL_TRANSFER_STA_TYPE));
+  vos_mem_zero((v_VOID_t *)statistics, sizeof(WLANTL_TRANSFER_STA_TYPE));
 
   return status;
 }
@@ -10196,22 +10158,22 @@ VOS_STATUS WLANTL_GetSpecStatistic
    ------------------------------------------------------------------------*/
   if (NULL == pTLCb) 
   {
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "WLAN TL:Invalid TL pointer on WLANTL_GetStatistics");
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL:Invalid TL pointer on WLANTL_GetStatistics"));
     return VOS_STATUS_E_FAULT;
   }
 
   if(0 == pTLCb->atlSTAClients[STAid].ucExists)
   {
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-    "WLAN TL: %d STA ID does not exist", STAid);
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    "WLAN TL: %d STA ID does not exist", STAid));
     return VOS_STATUS_E_INVAL;
   }
 
   if(NULL == buffer)
   {
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-    "WLAN TL:Invalid TL statistic buffer pointer on WLANTL_GetStatistics");
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    "WLAN TL:Invalid TL statistic buffer pointer on WLANTL_GetStatistics"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -10323,15 +10285,15 @@ VOS_STATUS WLANTL_ResetSpecStatistic
    ------------------------------------------------------------------------*/
   if (NULL == pTLCb) 
   {
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "WLAN TL:Invalid TL pointer on WLANTL_GetStatistics");
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "WLAN TL:Invalid TL pointer on WLANTL_GetStatistics"));
     return VOS_STATUS_E_FAULT;
   }
 
   if(0 == pTLCb->atlSTAClients[STAid].ucExists)
   {
-    VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-    "WLAN TL: %d STA ID does not exist", STAid);
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    "WLAN TL: %d STA ID does not exist", STAid));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -10431,7 +10393,7 @@ VOS_STATUS WLANTL_ReadRSSI
 
    if(NULL == tlCtxt)
    {
-      VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, "%s Invalid TL handle", __FUNCTION__);
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, "%s Invalid TL handle", __FUNCTION__));
       return VOS_STATUS_E_INVAL;
    }
 
@@ -10474,8 +10436,8 @@ WLANTL_GetACWeights
    ------------------------------------------------------------------------*/
   if ( NULL == pACWeights )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_GetACWeights");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_GetACWeights"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -10485,8 +10447,8 @@ WLANTL_GetACWeights
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_GetACWeights");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_GetACWeights"));
     return VOS_STATUS_E_FAULT;
   }
   for ( ucIndex = 0; ucIndex < WLANTL_MAX_AC ; ucIndex++)
@@ -10526,8 +10488,8 @@ WLANTL_SetACWeights
    ------------------------------------------------------------------------*/
   if ( NULL == pACWeights )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Invalid parameter sent on WLANTL_GetACWeights");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Invalid parameter sent on WLANTL_GetACWeights"));
     return VOS_STATUS_E_INVAL;
   }
 
@@ -10537,8 +10499,8 @@ WLANTL_SetACWeights
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_GetACWeights");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_GetACWeights"));
     return VOS_STATUS_E_FAULT;
   }
   for ( ucIndex = 0; ucIndex < WLANTL_MAX_AC ; ucIndex++)
@@ -10598,11 +10560,11 @@ void WLANTL_PowerStateChangedCB
       case REQUEST_ENTER_WOWL:
       case REQUEST_EXIT_WOWL:
       case WOWL:
-         VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN, "Not handle this events %d", newState );
+         TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN, "Not handle this events %d", newState ));
          break;
 
       default:
-         VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, "Not a valid event %d", newState );
+         TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, "Not a valid event %d", newState ));
          break;
    }
 
@@ -10664,23 +10626,23 @@ static VOS_STATUS WLANTL_GetEtherType
       ( sizeof(usEtherType) != usLLCSize ))
       
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Error extracting Ether type from data packet");
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+               "WLAN TL:Error extracting Ether type from data packet"));
     /* Drop packet */
     vos_pkt_return_packet(vosDataBuff);
     vosStatus = VOS_STATUS_E_FAILURE;
   }
   else
   {
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                "WLAN TL:Ether type retrieved before endianess conv: %d", 
-               usEtherType);
+               usEtherType));
 
     usEtherType = vos_be16_to_cpu(usEtherType);
     *pUsEtherType = usEtherType;
 
-    VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "WLAN TL:Ether type retrieved: %d", usEtherType);
+    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "WLAN TL:Ether type retrieved: %d", usEtherType));
   }
   
   return vosStatus;
@@ -10695,6 +10657,7 @@ static VOS_STATUS WLANTL_GetEtherType
   DEPENDENCIES  NONE
     
   PARAMETERS    in pvosGCtx  - Pointer to the global vos context
+                   bReset    - If set TL statistics will be cleared after reading
                 out statsSum - pointer to collected statistics
 
   RETURN VALUE  VOS_STATUS_SUCCESS : if the Statistics are successfully extracted
@@ -10702,7 +10665,7 @@ static VOS_STATUS WLANTL_GetEtherType
   SIDE EFFECTS  NONE
 
 ============================================================================*/
-VOS_STATUS WLANTL_GetSoftAPStatistics(v_PVOID_t pAdapter, WLANTL_TRANSFER_STA_TYPE *statsSum)
+VOS_STATUS WLANTL_GetSoftAPStatistics(v_PVOID_t pAdapter, WLANTL_TRANSFER_STA_TYPE *statsSum, v_BOOL_t bReset)
 {
     v_U8_t i = 0;
     VOS_STATUS  vosStatus = VOS_STATUS_SUCCESS;
@@ -10734,6 +10697,13 @@ VOS_STATUS WLANTL_GetSoftAPStatistics(v_PVOID_t pAdapter, WLANTL_TRANSFER_STA_TY
            statsSum->rxUCBcnt += statBufferTemp.rxUCBcnt;
            statsSum->rxMCBcnt += statBufferTemp.rxMCBcnt;
            statsSum->rxBCBcnt += statBufferTemp.rxBCBcnt;
+
+           if (bReset)
+           {
+              vosStatus = WLANTL_ResetStatistics(pAdapter, i);
+              if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+                return VOS_STATUS_E_FAULT;               
+          }
         }
     }
 

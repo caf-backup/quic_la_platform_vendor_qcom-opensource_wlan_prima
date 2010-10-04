@@ -747,6 +747,8 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             // This is the request from the MAC to download the configuration
             // data.  Format and send the Cfg Download to the MAC.
             vosStatus = sys_SendWniCfgDnldMsg( pVosContext );
+            if (pMsg->bodyptr) 
+               vos_mem_free(pMsg->bodyptr); 
             break;
          }
 
@@ -778,6 +780,8 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
                           "WNI_CFG_DNLD_CNF received with status= %d [0x%08lX]",
                           pSirMsg->data[ 0 ], pSirMsg->data[ 0 ] );
             }
+            if (pMsg->bodyptr) 
+               vos_mem_free(pMsg->bodyptr); 
             break;
          }
 
@@ -794,18 +798,14 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             // request from the MAC to download the configuration
             // data.  Format and send the Cfg Download to the MAC.
             vosStatus = sys_SendSmeStartReq( pVosContext );
+            if (pMsg->bodyptr) 
+                vos_mem_free(pMsg->bodyptr); 
             break;
          }
 
          case eWNI_SME_START_RSP:
          {
             tSirSmeRsp *pSirSmeRspMsg = (tSirSmeRsp *)pMsg->bodyptr;
-            tpAniSirGlobal pMac;
-            // get the HAL context...
-            hHal = vos_get_context( VOS_MODULE_ID_HAL, pVosContext );
-            VOS_ASSERT ( NULL != hHal );
-
-            pMac = PMAC_STRUCT( hHal );
 #ifdef WLAN_DEBUG
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
                        "eWNI_SME_START_RSP received with status code= %d [0x%08lX]",
@@ -818,7 +818,8 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             {
                gSysContext.mcStartCB( gSysContext.mcStartUserData );
             }
-            palFreeMemory(pMac->hHdd, pSirSmeRspMsg); 
+            if (pMsg->bodyptr) 
+                vos_mem_free(pMsg->bodyptr); 
             break;
          }
 
