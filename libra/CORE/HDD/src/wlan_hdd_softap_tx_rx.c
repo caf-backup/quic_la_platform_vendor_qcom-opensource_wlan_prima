@@ -920,8 +920,10 @@ VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    pPktMetaInfo->ucType = 0;          //FIXME Don't know what this is
    //Extract the destination address from ethernet frame
    pDestMacAddress = (v_MACADDR_t*)skb->data;
-   /* For BC/MC packets, disable hardware frame translation */
-   pPktMetaInfo->ucDisableFrmXtl = vos_is_macaddr_group( pDestMacAddress ) ? 1 : 0; 
+
+   // we need 802.3 to 802.11 frame translation
+   // (note that Bcast/Mcast will be translated in SW, unicast in HW)
+   pPktMetaInfo->ucDisableFrmXtl = 0;
    pPktMetaInfo->ucBcast = vos_is_macaddr_broadcast( pDestMacAddress ) ? 1 : 0;
    pPktMetaInfo->ucMcast = vos_is_macaddr_group( pDestMacAddress ) ? 1 : 0;
 

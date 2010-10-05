@@ -190,6 +190,8 @@ typedef struct rateStr2rateIndex_s
                       )
 #define PTT_HEADER_LENGTH 8
 
+#define FTM_VOS_EVENT_WAIT_TIME 10000
+
 #define SIZE_OF_TABLE(a) sizeof(a)/sizeof(a[0])                      
 
 int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter);

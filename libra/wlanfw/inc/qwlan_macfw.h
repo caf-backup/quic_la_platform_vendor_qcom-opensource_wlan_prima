@@ -1392,7 +1392,7 @@ typedef enum eHalMacRate
 #if 0 //  --> works, but let's wait until the feedback from the team
 #define RA_SAMPLING_RATES_MAX  8
 #else
-#define RA_SAMPLING_RATES_MAX  10
+#define RA_SAMPLING_RATES_MAX  12
 #endif
 /* ---------------------------------------------------------------------------
  * the sampling table is an array of rates that should be sampled to determine

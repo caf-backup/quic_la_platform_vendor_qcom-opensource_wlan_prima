@@ -44,6 +44,7 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"PS_ENABLE_HEART_BEAT",
 	(unsigned char *)"PS_ENABLE_RSSI_MONITOR",
 	(unsigned char *)"PS_DATA_INACTIVITY_TIMEOUT",
+	(unsigned char *)"RF_SETTLING_TIME_CLK",
 	(unsigned char *)"SUPPORTED_RATES_11B",
 	(unsigned char *)"SUPPORTED_RATES_11A",
 	(unsigned char *)"PHY_MODE",

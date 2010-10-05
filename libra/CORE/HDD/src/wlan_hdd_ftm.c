@@ -847,6 +847,15 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
     //wtan: initialize ftm_status structure
     _ftm_status_init();
 
+    /* Initialize the ftm vos event */
+    if (vos_event_init(&pAdapter->ftm.ftm_vos_event) != VOS_STATUS_SUCCESS)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Unable to init probeEvent",__func__);
+        VOS_ASSERT(0);
+        goto err_nl_srv_init;
+    }
+
     pAdapter->ftm.ftm_state = WLAN_FTM_INITIALIZED;
 
     return VOS_STATUS_SUCCESS;
@@ -912,6 +921,15 @@ int wlan_hdd_ftm_close(hdd_adapter_t *pAdapter)
 
     //Close VOSS
     wlan_ftm_vos_close(vosContext);
+
+
+    vosStatus = vos_event_destroy(&pAdapter->ftm.ftm_vos_event);
+    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+    {
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to destroy ftm_vos Event",__func__);
+        VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+    }
 
     //Free up dynamically allocated members inside HDD Adapter
     kfree(pAdapter->cfg_ini);
@@ -1243,7 +1261,7 @@ void wlan_hdd_process_ftm_cmd
 
         }
         /*Wait here until you get the response from HAL*/
-        if (vos_wait_single_event(&pAdapter->ftm.ftm_vos_event, 0)!= VOS_STATUS_SUCCESS)
+        if (vos_wait_single_event(&pAdapter->ftm.ftm_vos_event, FTM_VOS_EVENT_WAIT_TIME)!= VOS_STATUS_SUCCESS)
         {
             hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: vos_wait_single_event failed",__func__);

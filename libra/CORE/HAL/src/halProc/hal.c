@@ -3187,6 +3187,9 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             halHandleEnableListenModeCfg(pMac, pMsg->bodyval);         
             break;
 #endif  
+                case WNI_CFG_RF_SETTLING_TIME_CLK:
+                   halPSRfSettlingTimeClk(pMac, pMsg->bodyval);
+                   break;
             
                 default:
                     HALLOGE( halLog(pMac, LOGE, FL("Cfg Id %d is not handled\n"), pMsg->bodyval));

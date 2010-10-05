@@ -3640,4 +3640,45 @@ void halPSRssiMonitorCfg( tpAniSirGlobal pMac, tANI_U32 cfgId )
 
 
 
+/*
+ * halPSRfSettlingTimeClk
+ *
+ * DESCRIPTION:
+ *      RF Supply Settling Time Clock Units
+ *
+ * PARAMETERS:
+ *      pMac:   Pointer to the global adapter context
+ *      cfgId:  This will read from the CFG file set by HDD.
+ *
+ * RETURN:
+ *      void
+ */
+
+void halPSRfSettlingTimeClk( tpAniSirGlobal pMac, tANI_U32 cfgId )
+{
+    tANI_U32 rfSettlingTimeClk = 0;
+    Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)
+					pMac->hal.FwParam.pFwConfig;
+
+    if (cfgId == WNI_CFG_RF_SETTLING_TIME_CLK) {
+        if (eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfgId,
+						 &rfSettlingTimeClk)) {
+             HALLOGW( halLog(pMac, LOGW, FL("Failed to read Configuration "
+			"file for Rf Supply Settling Time Clock Units with  cfgId %d"), cfgId));
+             return;
+        }
+        /* RF Settling Time Clk value as read from CFG */
+        pFwConfig->ucRfSupplySettlingTimeClk = (tANI_U8)rfSettlingTimeClk;
+
+
+        pFwConfig->usBmpsSleepTimeOverheadsUs = HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_WITHOUT_RFXO_SETTLING_US + 
+                                                (rfSettlingTimeClk * HAL_PWR_SAVE_SLP_CLK_PERIOD_US);
+
+
+        /* Update FW SysConfig with Rf Supply Settling Time Clock Units Value */
+        halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr,
+                     (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
+     }
+     return;
+}
 

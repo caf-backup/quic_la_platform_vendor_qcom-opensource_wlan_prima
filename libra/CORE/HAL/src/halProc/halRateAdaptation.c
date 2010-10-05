@@ -54,7 +54,7 @@ _raRateIsSupportedAndValid(
 static tHalMacRate
 _getLowestRateByNwType(
     eRfBandMode band,
-    tSirNwType  nwType,
+    tStaRateMode operMode,
     tANI_U32 pure11g
 );
 
@@ -405,30 +405,24 @@ static void raLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,..
 
 
 static tHalMacRate
-_getLowestRateByNwType( eRfBandMode band,
-    tSirNwType  nwType, tANI_U32 pure11g)
+_getLowestRateByNwType( eRfBandMode band, tStaRateMode operMode, tANI_U32 pure11g)
 {
     tHalMacRate halRate = HALRATE_INVALID;
 
-    switch(nwType)
+    switch(operMode)
     {
-        case eSIR_11A_NW_TYPE:
+        case eSTA_11a:
             halRate = HALRATE_6;
             break;
-
-        case eSIR_11N_NW_TYPE:
-            if(band == eRF_BAND_5_GHZ || (pure11g)){
+        case eSTA_11bg:
+        case eSTA_11n:
+            if (band == eRF_BAND_5_GHZ || (pure11g)) {
                 halRate = HALRATE_6;
-            }else
+            } else {
                 halRate = HALRATE_1;
-
+            }
             break;
-
-        case eSIR_11G_NW_TYPE:
-            halRate = (pure11g) ? HALRATE_6 : HALRATE_1;
-            break;
-
-        case eSIR_11B_NW_TYPE:
+        case eSTA_11b:
         default:
             halRate = HALRATE_1;
             break;
@@ -954,7 +948,7 @@ _raStartStaAutoRate(
     {
         pur11g = false;
     }
-    selectedPrimaryRate = _getLowestRateByNwType(pMac->hal.currentRfBand,pMac->hal.nwType , pur11g);
+    selectedPrimaryRate = _getLowestRateByNwType(pMac->hal.currentRfBand, pRaInfo->opRateMode, pur11g);
 
     //non fixed rate, pick lowest rate and force restart sampling
     //Best rate would be selected by RA later
@@ -1637,7 +1631,7 @@ halMacRaStaInit(
      * locally through other means (such as dump commands)
      */
     /* initially set to lowest rate, may be overriden later if fixed rate is configured */
-    pRaInfo->currentRate = _getLowestRateByNwType(pMac->hal.currentRfBand,pMac->hal.nwType, (!pBss->bssRaInfo.u.bit.llbCoexist)|| pRaInfo->opRateMode != eSTA_11b);
+    pRaInfo->currentRate = _getLowestRateByNwType(pMac->hal.currentRfBand, pRaInfo->opRateMode, (!pBss->bssRaInfo.u.bit.llbCoexist));
 
     raLog(pMac, RALOG_STATS, FL("RA[STA%d]  opRateMode %d"), staid, pRates->opRateMode);
 
@@ -2038,7 +2032,7 @@ void halMacRaDumpHalSamplingRateTable(tpAniSirGlobal pMac, tANI_U32 bssIdx,
                     (pSample[sampIdx]< HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx]):0);
             }
 #endif
-            raLog(pMac, RALOG_CLI, "  %2d-%2d: %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d ...(x100Kbps) \n",
+            raLog(pMac, RALOG_CLI, "  %2d-%2d: %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d ...(x100Kbps) \n",
                     sampIdx, sampIdx+9,
                     (pSample[sampIdx] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx]):0,
                     (pSample[sampIdx+1] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+1]):0,
@@ -2049,9 +2043,11 @@ void halMacRaDumpHalSamplingRateTable(tpAniSirGlobal pMac, tANI_U32 bssIdx,
                     (pSample[sampIdx+6] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+6]):0,
                     (pSample[sampIdx+7] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+7]):0,
                     (pSample[sampIdx+8] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+8]):0,
-                    (pSample[sampIdx+9] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+9]):0                        
+                    (pSample[sampIdx+9] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+9]):0, 
+                    (pSample[sampIdx+10] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+10]):0,                        
+                    (pSample[sampIdx+11] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+11]):0
                  );
-            raLog(pMac, RALOG_CLI, "         %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d ...(tpeRateIdx) \n",
+            raLog(pMac, RALOG_CLI, "         %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d ...(tpeRateIdx) \n",
                     HAL_RA_TPERATEIDX_GET(pSample[sampIdx]),
                     HAL_RA_TPERATEIDX_GET(pSample[sampIdx+1]),
                     HAL_RA_TPERATEIDX_GET(pSample[sampIdx+2]),
@@ -2061,9 +2057,11 @@ void halMacRaDumpHalSamplingRateTable(tpAniSirGlobal pMac, tANI_U32 bssIdx,
                     HAL_RA_TPERATEIDX_GET(pSample[sampIdx+6]),
                     HAL_RA_TPERATEIDX_GET(pSample[sampIdx+7]),
                     HAL_RA_TPERATEIDX_GET(pSample[sampIdx+8]),
-                    HAL_RA_TPERATEIDX_GET(pSample[sampIdx+9])
+                    HAL_RA_TPERATEIDX_GET(pSample[sampIdx+9]),
+                    HAL_RA_TPERATEIDX_GET(pSample[sampIdx+10]),
+                    HAL_RA_TPERATEIDX_GET(pSample[sampIdx+11])
                  );
-            raLog(pMac, RALOG_CLI, "         %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d ...(Sensitivity/10) \n",
+            raLog(pMac, RALOG_CLI, "         %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d ...(Sensitivity/10) \n",
                     (pSample[sampIdx]< HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx]):0,
                     (pSample[sampIdx+1] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+1]):0,
                     (pSample[sampIdx+2] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+2]):0,
@@ -2073,7 +2071,9 @@ void halMacRaDumpHalSamplingRateTable(tpAniSirGlobal pMac, tANI_U32 bssIdx,
                     (pSample[sampIdx+6] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+6]):0,
                     (pSample[sampIdx+7] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+7]):0,
                     (pSample[sampIdx+8] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+8]):0,
-                    (pSample[sampIdx+9] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+9]):0
+                    (pSample[sampIdx+9] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+9]):0,
+                    (pSample[sampIdx+10] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+10]):0,
+                    (pSample[sampIdx+11] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+11]):0
                  );
         }
     }

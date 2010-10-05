@@ -524,6 +524,18 @@ NONE
 1    255    20
 
 
+*
+* RF Settling Time Clk (TU)
+*
+
+WNI_CFG_RF_SETTLING_TIME_CLK I    4    7
+V    RW    NP
+HAL
+50    255    50
+NV    RW    NP
+NONE
+50    255    50
+
 
 *
 * Supported Rate Set for 11b

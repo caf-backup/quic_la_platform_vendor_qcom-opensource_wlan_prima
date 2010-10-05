@@ -5476,12 +5476,22 @@ WLANTL_STATxAuth
   if ( 0 == tlMetaInfo.ucDisableFrmXtl )
   {
      /* Needs frame translation */
-
+     // if the client has not enabled SW-only frame translation
+     // and if the frame is a unicast frame
+     //   (HW frame translation does not support multiple broadcast domains
+     //    so we use SW frame translation for broadcast/multicast frames)
 #ifdef FEATURE_WLAN_WAPI
-     if ( ( 0 == pStaClient->wSTADesc.ucSwFrameTXXlation ) && ( tlMetaInfo.ucIsWai != 1 ) )
-#else
-     if ( 0 == pStaClient->wSTADesc.ucSwFrameTXXlation )
+     // and if the frame is not a WAPI frame
 #endif
+     // then use HW_based frame translation
+
+     if ( ( 0 == pStaClient->wSTADesc.ucSwFrameTXXlation ) &&
+          ( 0 == tlMetaInfo.ucBcast ) &&
+          ( 0 == tlMetaInfo.ucMcast )
+#ifdef FEATURE_WLAN_WAPI
+          && ( tlMetaInfo.ucIsWai != 1 )
+#endif
+        )
      {
 #ifdef WLAN_PERF 
         v_U32_t uFastFwdOK = 0;
@@ -5542,30 +5552,7 @@ WLANTL_STATxAuth
        tlMetaInfo.ucDisableFrmXtl = 1;
      }
   }
-#ifdef WLAN_SOFTAP_FEATURE
-  else
-  {
-      /* SW based translation */
-       vosStatus = WLANTL_Translate8023To80211Header( vosDataBuff, &vosStatus,
-                                                   pTLCb, ucSTAId,
-                                                   tlMetaInfo.ucUP, &ucWDSEnabled, &extraHeadSpace);
 
-       if ( VOS_STATUS_SUCCESS != vosStatus )
-       {
-          TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                    "WLAN TL:Error when translating header WLANTL_STATxAuth"));
-    
-    
-          return vosStatus;
-       }
-
-       TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
-                    "WLAN TL software translation success \n"));
-       ucSwFrmXtl = 1;
-  }
-
-
-#endif
   /*------------------------------------------------------------------------
     INLINE function
     Just some common processing

@@ -666,6 +666,11 @@ typedef enum
 #define CFG_NTH_BEACON_FILTER_MAX              ( WNI_CFG_NTH_BEACON_FILTER_STAMAX )
 #define CFG_NTH_BEACON_FILTER_DEFAULT          ( WNI_CFG_NTH_BEACON_FILTER_STADEF )
 
+#define CFG_RF_SETTLING_TIME_CLK_NAME          "rfSettlingTimeClk"
+#define CFG_RF_SETTLING_TIME_CLK_MIN           ( 50 )
+#define CFG_RF_SETTLING_TIME_CLK_MAX           ( 255 )
+#define CFG_RF_SETTLING_TIME_CLK_DEFAULT       ( 50 )
+
 //WMM configuration
 #define CFG_QOS_WMM_MODE_NAME                             "WmmIsEnabled"
 #define CFG_QOS_WMM_MODE_MIN                               (0)
@@ -1097,6 +1102,9 @@ typedef struct
 
    /* WAPI enabled or not */
    v_BOOL_t                    bWapiEnable;
+
+   /* RF Settling Time Clock */
+   v_U32_t                     rfSettlingTimeClk;
 
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 

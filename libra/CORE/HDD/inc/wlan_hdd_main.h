@@ -45,9 +45,9 @@
 #define LIBRA_HW_NEEDED_HEADROOM   128
 /** Hdd Tx Time out value */
 #ifdef LIBRA_LINUX_PC
-#define HDD_TX_TIMEOUT          (8000)
+#define HDD_TX_TIMEOUT          (8000)       
 #else
-#define HDD_TX_TIMEOUT          (2*HZ)
+#define HDD_TX_TIMEOUT          (2*HZ)    
 #endif
 /** Hdd Default MTU */
 #define HDD_DEFAULT_MTU         (1500)
