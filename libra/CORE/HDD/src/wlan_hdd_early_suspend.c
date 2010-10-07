@@ -251,6 +251,9 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
    vosStatus = vos_stop( pAdapter->pvosContext );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
+   vosStatus = WLANBAL_Stop( pAdapter->pvosContext );
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
    vosStatus = WLANBAL_SuspendChip( pAdapter->pvosContext );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
@@ -626,6 +629,9 @@ VOS_STATUS hdd_wlan_reset(void)
    //scenario should be a rare occurence, we need not worry about
    //any latency or performance hits.
    vosStatus = vos_close(pVosContext);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   vosStatus = WLANBAL_Close(pVosContext);
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
    //Open VOSS

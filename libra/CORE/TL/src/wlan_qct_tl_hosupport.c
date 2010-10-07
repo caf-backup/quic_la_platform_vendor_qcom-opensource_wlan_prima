@@ -1024,7 +1024,7 @@ VOS_STATUS WLANTL_HSHandleRXFrame
       TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,("RX frame AC %d, RT Frame Count %d, NRT Frame Count %d",
                    ac,
                    tlCtxt->hoSupport.currentTraffic.rtRXFrameCount,
-                   tlCtxt->hoSupport.currentTraffic.nrtRXFrameCount));
+                   tlCtxt->hoSupport.currentTraffic.nrtRXFrameCount)));
    }
 
    currentHO = &tlCtxt->hoSupport.currentHOState;
@@ -1231,7 +1231,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
          {
             for(sIdx = (currentHO->numThreshold - 1); (sIdx > idx) || (sIdx == idx); sIdx--)
             {
-               TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,("Shift %d array to %d", sIdx, sIdx + 1));
+               TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,("Shift %d array to %d", sIdx, sIdx + 1)));
                memcpy(&hoSupport->registeredInd[sIdx + 1], &hoSupport->registeredInd[sIdx], sizeof(WLANTL_HO_RSSI_INDICATION_TYPE));
                memset(&hoSupport->registeredInd[sIdx], 0, sizeof(WLANTL_HO_RSSI_INDICATION_TYPE));
 			   if(0 == sIdx)
@@ -1239,7 +1239,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
                   break;
                }
             }
-            TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Put in Here %d"idx));
+            TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"Put in Here %d", idx));
             hoSupport->registeredInd[idx].rssiValue    = rssiValue;
             hoSupport->registeredInd[idx].triggerEvent[0]    = triggerEvent;
             hoSupport->registeredInd[idx].crossCBFunction[0] = crossCBFunction;
@@ -1251,7 +1251,7 @@ VOS_STATUS WLANTL_HSRegRSSIIndicationCB
       }
       if(currentHO->numThreshold == idx)
       {
-         TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,"New threshold put in bottom"));
+         TLLOG1(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO, "New threshold put in bottom"));
 
          hoSupport->registeredInd[currentHO->numThreshold].rssiValue    = rssiValue;
          hoSupport->registeredInd[currentHO->numThreshold].triggerEvent[0] = triggerEvent;

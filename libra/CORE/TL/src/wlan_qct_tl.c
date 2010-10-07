@@ -425,7 +425,7 @@ WLANTL_Open
   if(!VOS_IS_STATUS_SUCCESS(status))
   {
     TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "Handoff support module init fail")));
+              "Handoff support module init fail"));
     return status;
   }
 #endif

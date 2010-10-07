@@ -1001,19 +1001,19 @@ eHalStatus pmcRequestFullPower (tHalHandle hHal, void (*callbackRoutine) (void *
     //If caller doesn't need a callback, simply waits up the chip.
     if( callbackRoutine )
     {
-    if (palAllocateMemory(pMac->hHdd, (void **)&pEntry, sizeof(tRequestFullPowerEntry)) != eHAL_STATUS_SUCCESS)
-    {
-        smsLog(pMac, LOGE, FL("Cannot allocate memory for request full power routine list entry\n"));
-        PMC_ABORT;
-        return eHAL_STATUS_FAILURE;
-    }
+        if (palAllocateMemory(pMac->hHdd, (void **)&pEntry, sizeof(tRequestFullPowerEntry)) != eHAL_STATUS_SUCCESS)
+        {
+            smsLog(pMac, LOGE, FL("Cannot allocate memory for request full power routine list entry\n"));
+            PMC_ABORT;
+            return eHAL_STATUS_FAILURE;
+        }
 
-    /* Store routine and context in entry. */
-    pEntry->callbackRoutine = callbackRoutine;
-    pEntry->callbackContext = callbackContext;
+        /* Store routine and context in entry. */
+        pEntry->callbackRoutine = callbackRoutine;
+        pEntry->callbackContext = callbackContext;
 
-    /* Add entry to list. */
-    csrLLInsertTail(&pMac->pmc.requestFullPowerList, &pEntry->link, FALSE);
+        /* Add entry to list. */
+        csrLLInsertTail(&pMac->pmc.requestFullPowerList, &pEntry->link, FALSE);
     }
 
     return eHAL_STATUS_PMC_PENDING;
@@ -1292,6 +1292,7 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
                 fRemoveCommand = eANI_BOOLEAN_FALSE;
                 break;
             }
+            pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_FALSE;
             /* Check that we are in the correct state for this message. */
             if (pMac->pmc.pmcState != REQUEST_BMPS)
             {

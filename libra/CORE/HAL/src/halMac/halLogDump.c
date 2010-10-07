@@ -3229,6 +3229,56 @@ dump_hal_write_register( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI
     return p;
 }
 
+static char *
+dump_hal_read_device_memory( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    tANI_U32 addr = (arg1 & ~(0x3));
+    tANI_U32 value1, value2, value3, value4, dwords, count;
+
+    (void) arg3; (void) arg4;
+
+    if (arg1) {
+        addr = (arg1 & ~(0x3));
+    } else {
+        HALLOGE(halLog(pMac, LOGE, FL("Invalid address 0x%08x\n"), arg1));
+        return p;
+    }
+
+    if (!arg2) {
+        dwords = 1;
+    }
+
+    if (arg3==4) {
+        dwords = (arg2+3)/4;
+        for (count=0; count<dwords; count++) {
+            halReadDeviceMemory(pMac, addr,    &value1, 4);
+            halReadDeviceMemory(pMac, addr+4,  &value2, 4);
+            halReadDeviceMemory(pMac, addr+8,  &value3, 4);
+            halReadDeviceMemory(pMac, addr+12, &value4, 4);
+            HALLOGE(halLog(pMac, LOGE, "0x%08x:  %08x %08x %08x %08x\n", addr, value1, value2, value3, value4));
+            addr += 16;
+        }
+    } else if (arg3 == 2) {
+        dwords = (arg2+1)/2;
+        for (count=0; count<dwords; count++) {
+            halReadDeviceMemory(pMac, addr,    &value1, 4);
+            halReadDeviceMemory(pMac, addr+4,  &value2, 4);
+            HALLOGE(halLog(pMac, LOGE, "0x%08x:  %08x %08x\n", addr, value1, value2));
+            addr += 8;
+        }
+    } else {
+        dwords = arg2;
+        for (count=0; count<dwords; count++) {
+            halReadDeviceMemory(pMac, addr,    &value1, 4);
+            HALLOGE(halLog(pMac, LOGE, "0x%08x:  %08x\n", addr, value1));
+            addr += 4;
+        }
+    }
+
+    return p;
+}
+
+
 #ifdef WLAN_SOFTAP_FEATURE
 static char *
 dump_hal_enable_listen_mode(  tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)  
@@ -3692,6 +3742,7 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {0,     "HAL Basic Procedures (60-80)",                             NULL},
     {7,     "HAL:Read Register <address>",                              dump_hal_read_register},
     {8,     "HAL:Write Register <address> <value>",                     dump_hal_write_register},
+    {9,     "HAL:Read Memory <address> <# of dwords> <1/2/4 block>",    dump_hal_read_device_memory},
     {10,    "HAL.Basic: zero memory arg1 = address, arg2 = length",     dump_hal_zero_mem},
     {11,    "HAL:Set CFG <cfg> <value>",                                dump_hal_set_cfg},
     {12,    "HAL:Get CFG <cfg>",                                        dump_hal_get_cfg},

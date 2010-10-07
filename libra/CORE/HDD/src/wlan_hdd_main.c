@@ -639,7 +639,15 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
 
-    msleep(50); 
+   vosStatus = WLANBAL_Stop( pVosContext );
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+         "%s: Failed to stop BAL",__func__);
+      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   }
+
+   msleep(50); 
 
    //Put the chip is standby before asserting deep sleep
    vosStatus = WLANBAL_SuspendChip( pAdapter->pvosContext );
@@ -710,6 +718,14 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
 
    //Close VOSS
    vos_close(pVosContext);
+
+   vosStatus = WLANBAL_Close(pVosContext);
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, 
+          "%s: Failed to close BAL",__func__);
+      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   }
 
    //Close Watchdog
    if(pAdapter->cfg_ini->fIsLogpEnabled)
@@ -835,6 +851,23 @@ VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
 
    return VOS_STATUS_SUCCESS;
 }
+
+// Routine to initialize the PMU
+static void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext)
+{
+    tANI_U32 regValue = 0;
+
+    // enable pmu_ana_deep_sleep_en in ldo_ctrl_reg
+    regValue  = QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_DEEP_SLEEP_EN_MASK |
+                QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_1P23_LPM_AON_MASK_MASK |
+                QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_1P23_LPM_SW_MASK_MASK |
+                QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_2P3_LPM_MASK_MASK;
+
+    WLANBAL_WriteRegister(pVosContext, QWLAN_PMU_LDO_CTRL_REG_REG, regValue);
+
+    return;
+}
+
 
 #ifdef CONFIG_QCOM_WLAN_HAVE_NET_DEVICE_OPS
 static struct net_device_ops sLibraNetDevOps = {
@@ -1038,13 +1071,45 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       }
    }
 
+   status = WLANBAL_Open(pAdapter->pvosContext);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        "%s: Failed to open BAL",__func__);
+     goto err_wdclose;
+   }
+
+   status = vos_chipVoteOnXOBuffer(NULL, NULL, NULL);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to configure 19.2 MHz Clock", __func__);
+      goto err_balclose;
+   }
+
+
+   status = WLANSAL_Start(pAdapter->pvosContext);
+   if (!VOS_IS_STATUS_SUCCESS(status))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to start SAL",__func__);
+      goto err_clkvote;
+   }
+
+  /* Start BAL */
+  status = WLANBAL_Start(pAdapter->pvosContext);
+  
+  if (!VOS_IS_STATUS_SUCCESS(status))
+  {
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+              "%s: Failed to start BAL",__func__);
+     goto err_salstop;
+  }
    // Open VOSS 
    status = vos_open( &pVosContext, 0);
    
    if ( !VOS_IS_STATUS_SUCCESS( status ))
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_open failed",__func__);
-      goto err_wdclose;   
+      goto err_balstop;   
    }
 
    /* Save the hal context in Adapter */
@@ -1090,28 +1155,13 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       goto err_vosclose;
    }
 
-   status = vos_chipVoteOnXOBuffer(NULL, NULL, NULL);
-   if(!VOS_IS_STATUS_SUCCESS(status))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to configure 19.2 MHz Clock", __func__);
-      goto err_vosclose;
-   }
-
-   /* Start SAL now */
-   status = WLANSAL_Start(pAdapter->pvosContext);
-   if (!VOS_IS_STATUS_SUCCESS(status))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to start SAL",__func__);
-      goto err_clkvote;
-   }
-
    /*Start VOSS which starts up the SME/MAC/HAL modules and everything else
      Note: Firmware image will be read and downloaded inside vos_start API */
    status = vos_start( pAdapter->pvosContext );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
-      goto err_salstop;
+      goto err_vosclose;
    }
 
    status = hdd_post_voss_start_config( pAdapter );
@@ -1229,14 +1279,22 @@ err_reg_netdev:
 err_vosstop:
    vos_stop(pVosContext);
 
+err_vosclose:	
+   vos_close(pVosContext ); 
+
+err_balstop:
+   wlan_hdd_enable_deepsleep(pAdapter->pvosContext);
+   WLANBAL_Stop(pAdapter->pvosContext);
+   WLANBAL_SuspendChip(pAdapter->pvosContext);
+
 err_salstop:
-	WLANSAL_Stop(pVosContext);
+   WLANSAL_Stop(pAdapter->pvosContext);
 
 err_clkvote:
     vos_chipVoteOffXOBuffer(NULL, NULL, NULL);
 
-err_vosclose:	
-   vos_close(pVosContext ); 
+err_balclose:
+   WLANBAL_Close(pAdapter->pvosContext);
 
 err_wdclose:
    if(pAdapter->cfg_ini->fIsLogpEnabled)
