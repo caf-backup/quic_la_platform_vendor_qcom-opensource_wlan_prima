@@ -1602,7 +1602,23 @@ eHalStatus pmcRequestBmps (
    status = pmcEnterBmpsCheck( pMac );
    if(HAL_STATUS_SUCCESS( status ))
    {
-       status = pmcEnterRequestBmpsState(hHal);
+      /* If already in BMPS/UAPSD, just return. */
+      if(pMac->pmc.pmcState == BMPS ||
+         pMac->pmc.pmcState == REQUEST_START_UAPSD ||
+         pMac->pmc.pmcState == UAPSD)
+      {
+        return eHAL_STATUS_SUCCESS;
+      }
+
+      if(pMac->pmc.pmcState == REQUEST_BMPS)
+      {
+        status = eHAL_STATUS_SUCCESS;
+      }
+      else
+      {
+        status = pmcEnterRequestBmpsState(hHal);
+      }
+
        /* Enter Request BMPS State. */
        if ( HAL_STATUS_SUCCESS( status ) )
        {

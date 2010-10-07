@@ -187,8 +187,8 @@ int vos_chip_power_qrf8600(int on)
          return -EIO;
       }
 
-      // Power up 2.5v Analog
-      rc = vreg_set_level(vreg_wlan2, 2500);
+      // Power up 2.4v Analog
+      rc = vreg_set_level(vreg_wlan2, 2400);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg set level failed (%d)",
             __func__, rc);
@@ -289,7 +289,7 @@ int vos_chip_power_qrf8600(int on)
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg disable failed (%d)", __func__, rc);
       }
-		
+
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Disabled power supply for WLAN", __func__);
    }
 
@@ -1034,7 +1034,7 @@ VOS_STATUS vos_chipVoteOnBBAnalogSupply
       return VOS_STATUS_E_FAILURE;
    }
 
-   rc = vreg_set_level(vreg_wlan2, 2500);
+   rc = vreg_set_level(vreg_wlan2, 2400);
    if (rc) {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: wlan2 vreg set "
           "level failed (%d)",__func__, rc);

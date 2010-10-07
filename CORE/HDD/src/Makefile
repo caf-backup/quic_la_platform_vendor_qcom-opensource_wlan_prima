@@ -10,8 +10,6 @@ BUILD_DEBUG_VERSION := 1
 
 #Enable this flag to build driver in diag version
 BUILD_DIAG_VERSION := 0
-#Enable this flag to build ftm driver
-BUILD_FTM_DRIVER := 0
 
 #KERNEL include dir
 KERNEL_INC ?= ./include/linux
@@ -406,28 +404,7 @@ EXTRA_CFLAGS += -march=armv6
 CDEFINES += -DMSM_PLATFORM_7x27_FFA
 endif
 
-ifeq ($(BUILD_FTM_DRIVER),1)
-CDEFINES += -DANI_MANF_DIAG \
-	-DANI_PHY_DEBUG
-endif
-
 KBUILD_CPPFLAGS += $(CDEFINES)
-
-ifeq ($(BUILD_FTM_DRIVER),1)
-obj-m += libra_ftm.o
-
-libra_ftm-objs := 	$(VOSS_OBJS) \
-                $(TL_OBJS)   \
-                $(SSC_OBJS)  \
-                $(SME_OBJS)  \
-								$(SYS_OBJS)  \
-                $(MAC_OBJS)  \
-                $(HAL_OBJS)  \
-								$(HDD_OBJS)  \
-								$(NLINK_OBJS) \
-								$(BTC_OBJS) \
-								$(PTT_OBJS)
-else
 
 obj-m += libra.o
 
@@ -442,7 +419,6 @@ libra-objs := 	$(VOSS_OBJS) \
 								$(NLINK_OBJS) \
 								$(BTC_OBJS) \
 								$(PTT_OBJS)
-endif
 all:
 	$(MAKE) $(MAKE_FLAGS) M=`pwd` modules
 

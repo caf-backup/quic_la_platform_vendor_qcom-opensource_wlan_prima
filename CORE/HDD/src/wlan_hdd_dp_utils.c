@@ -85,3 +85,30 @@ VOS_STATUS hdd_list_remove_back( hdd_list_t *pList, hdd_list_node_t **ppNode )
    return VOS_STATUS_SUCCESS;
 }
 
+VOS_STATUS hdd_list_remove_node( hdd_list_t *pList, hdd_list_node_t *pNodeToRemove )
+{
+   hdd_list_node_t *tmp;
+   int found = 0;
+
+   if ( list_empty( &pList->anchor ) )
+   {
+      return VOS_STATUS_E_EMPTY;
+   }
+
+    // verify that pNodeToRemove is indeed part of list pList
+   list_for_each(tmp, &pList->anchor) 
+   {
+     if (tmp == pNodeToRemove)
+     {
+        found = 1;
+        break;
+     }
+   }
+   if (found == 0)
+       return VOS_STATUS_E_INVAL;
+
+   list_del(pNodeToRemove); 
+   pList->count--;
+
+   return VOS_STATUS_SUCCESS;
+}

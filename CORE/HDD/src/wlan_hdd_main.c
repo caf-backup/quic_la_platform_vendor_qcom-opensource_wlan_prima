@@ -58,9 +58,9 @@
 #include "wlan_hdd_cfg80211.h"
 #endif
 
-#ifdef ANI_MANF_DIAG
 int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter);
-#endif
+int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter);
+static int ftm_driver = eDRIVER_TYPE_PRODUCTION;
 
 static int hdd_netdev_notifier_call(struct notifier_block * nb,
                                          unsigned long state,
@@ -557,10 +557,11 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
     struct wireless_dev *wdev = pWlanDev->ieee80211_ptr ;
 #endif 
    
-#ifdef ANI_MANF_DIAG
-    wlan_hdd_ftm_close(pAdapter);
-    return;
-#endif  
+   if(pAdapter->driver_type == eDRIVER_TYPE_MFG)
+   {
+     wlan_hdd_ftm_close(pAdapter);
+     return;
+   }
    //Stop the Interface TX queue.
    netif_tx_disable(pWlanDev);
    netif_carrier_off(pWlanDev);
@@ -619,6 +620,14 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
 
+   vosStatus = WLANBAL_Stop( pVosContext );
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+         "%s: Failed to stop BAL",__func__);
+      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   }
+   
     msleep(50); 
 
    //Put the chip is standby before asserting deep sleep
@@ -676,6 +685,14 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    //Close VOSS
    vos_close(pVosContext);
 
+   vosStatus = WLANBAL_Close(pVosContext);
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, 
+          "%s: Failed to close BAL",__func__);
+      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   }
+   
    //Close Watchdog
    if(pAdapter->cfg_ini->fIsLogpEnabled)
       vos_watchdog_close(pVosContext);
@@ -784,6 +801,22 @@ VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
    return VOS_STATUS_SUCCESS;
 }
 
+// Routine to initialize the PMU
+static void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext)
+{
+    tANI_U32 regValue = 0;
+
+    // enable pmu_ana_deep_sleep_en in ldo_ctrl_reg
+    regValue  = QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_DEEP_SLEEP_EN_MASK |
+                QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_1P23_LPM_AON_MASK_MASK |
+                QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_1P23_LPM_SW_MASK_MASK |
+                QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_2P3_LPM_MASK_MASK;
+
+    WLANBAL_WriteRegister(pVosContext, QWLAN_PMU_LDO_CTRL_REG_REG, regValue);
+
+    return;
+}
+
 /**---------------------------------------------------------------------------
   
   \brief hdd_wlan_sdio_probe() - HDD init function
@@ -809,7 +842,7 @@ VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
  #endif
 
 int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
-{
+{	
    VOS_STATUS status;
    struct net_device *pWlanDev = NULL;
    hdd_adapter_t *pAdapter = NULL;
@@ -873,7 +906,13 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    
    //Save the pointer to the net_device in the HDD adapter
    pAdapter->dev = pWlanDev;
-   
+
+   //Save the ftm_driver to the adapter for future usage
+   if(ftm_driver == 1)
+   {
+    pAdapter->driver_type = eDRIVER_TYPE_MFG ;
+   }
+      
    //Save the adapter context in global context for future.
    ((VosContextType*)(pVosContext))->pHDDContext = (v_VOID_t*)pAdapter;
 
@@ -929,11 +968,12 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 
    set_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
 
-#ifdef ANI_MANF_DIAG
-    wlan_hdd_ftm_open(pAdapter);
-    hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
-    return VOS_STATUS_SUCCESS;
-#endif
+    if(pAdapter->driver_type == eDRIVER_TYPE_MFG)
+    {
+       wlan_hdd_ftm_open(pAdapter);
+       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
+       return VOS_STATUS_SUCCESS;
+    }
 
    // Load all config first as TL config is needed during vos_open
    pAdapter->cfg_ini = (hdd_config_t*) kmalloc(sizeof(hdd_config_t), GFP_KERNEL);
@@ -942,7 +982,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed kmalloc hdd_config_t",__func__);
       goto err_netdev_unregister;
    }   
-
+   
    vos_mem_zero(pAdapter->cfg_ini, sizeof( hdd_config_t ));   
    
    // Read and parse the qcom_cfg.ini file
@@ -966,13 +1006,46 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       }
    }
 
+   status = WLANBAL_Open(pAdapter->pvosContext);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        "%s: Failed to open BAL",__func__);
+     goto err_wdclose;
+   }
+
+   status = vos_chipVoteOnXOBuffer(NULL, NULL, NULL);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to configure 19.2 MHz Clock", __func__);
+      goto err_balclose;
+   }
+
+
+   status = WLANSAL_Start(pAdapter->pvosContext);
+   if (!VOS_IS_STATUS_SUCCESS(status))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to start SAL",__func__);
+      goto err_clkvote;
+   }
+
+   /* Start BAL */
+   status = WLANBAL_Start(pAdapter->pvosContext);
+  
+   if (!VOS_IS_STATUS_SUCCESS(status))
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+              "%s: Failed to start BAL",__func__);
+      goto err_salstop;
+   }
+   
    // Open VOSS 
    status = vos_open( &pVosContext, 0);
    
    if ( !VOS_IS_STATUS_SUCCESS( status ))
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_open failed",__func__);
-      goto err_wdclose;   
+      goto err_balstop;   
    }
 
    /* Save the hal context in Adapter */
@@ -1018,28 +1091,13 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       goto err_vosclose;
    }
 
-   status = vos_chipVoteOnXOBuffer(NULL, NULL, NULL);
-   if (!VOS_IS_STATUS_SUCCESS(status))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to configure 19.2 MHz Clock", __func__);
-      goto err_vosclose;
-   }
-
-   /* Start SAL now */
-   status = WLANSAL_Start(pAdapter->pvosContext);
-   if (!VOS_IS_STATUS_SUCCESS(status))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to start SAL",__func__);
-      goto err_clkvote;
-   }
-
    /*Start VOSS which starts up the SME/MAC/HAL modules and everything else
      Note: Firmware image will be read and downloaded inside vos_start API */
    status = vos_start( pAdapter->pvosContext );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_start failed",__func__);
-      goto err_salstop;
+      goto err_vosclose;
    }
 
    status = hdd_post_voss_start_config( pAdapter );
@@ -1127,15 +1185,23 @@ err_reg_netdev:
 err_vosstop:
    vos_stop(pVosContext);
 
-err_salstop:
-	WLANSAL_Stop(pVosContext);
-
-err_clkvote:
-   vos_chipVoteOffXOBuffer(NULL, NULL, NULL);
-
 err_vosclose:	
    vos_close(pVosContext ); 
 
+err_balstop:
+   wlan_hdd_enable_deepsleep(pAdapter->pvosContext);
+   WLANBAL_Stop(pAdapter->pvosContext);
+   WLANBAL_SuspendChip(pAdapter->pvosContext);
+
+err_salstop:
+   WLANSAL_Stop(pAdapter->pvosContext);
+
+err_clkvote:
+    vos_chipVoteOffXOBuffer(NULL, NULL, NULL);
+
+err_balclose:
+   WLANBAL_Close(pAdapter->pvosContext);
+    
 err_wdclose:
    if(pAdapter->cfg_ini->fIsLogpEnabled)
       vos_watchdog_close(pVosContext);
@@ -1185,9 +1251,10 @@ static int __init hdd_module_init (void)
    struct sdio_func *sdio_func_dev = NULL;
    unsigned int attempts = 0;
    int ret_status = 0;
+   
    ENTER();
    
-   hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Wi-Fi loading driver",__func__);
+   hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Wi-Fi loading driver and ftm_driver_flag is %d",__func__, ftm_driver);
 
    //Power Up Libra WLAN card first if not already powered up
    status = vos_chipPowerUp(NULL,NULL,NULL);
@@ -1215,12 +1282,16 @@ static int __init hdd_module_init (void)
 
    }while (attempts < 3);
 
-   do {
+   do {   
       if (NULL == sdio_func_dev) {
          hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not found!!",__func__);
          ret_status = -1;
          break;
       }
+
+#ifdef MEMORY_DEBUG
+      vos_mem_init();
+#endif
 
       /* Preopen VOSS so that it is ready to start at least SAL */
       status = vos_preOpen(&pVosContext);
@@ -1231,14 +1302,14 @@ static int __init hdd_module_init (void)
          ret_status = -1;
          break;
       }
-      
+   
       /* Now Open SAL */
       status = WLANSAL_Open(pVosContext, 0);
 
       if(!VOS_IS_STATUS_SUCCESS(status))
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to open SAL", __func__);
-
+   
          /* If unable to open, cleanup and return failure */
          vos_preClose( &pVosContext );
          ret_status = -1;
@@ -1249,10 +1320,10 @@ static int __init hdd_module_init (void)
       if(hdd_wlan_sdio_probe(sdio_func_dev)) {
          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
              __func__);
-         WLANSAL_Close(pVosContext);
-         vos_preClose( &pVosContext );
-         ret_status = -1;
-         break;
+            ret_status = -1;
+            WLANSAL_Close(pVosContext);
+            vos_preClose( &pVosContext );
+            break;
       }
    } while (0);
 
@@ -1264,11 +1335,14 @@ static int __init hdd_module_init (void)
 
       //Vote off any PMIC voltage supplies
       vos_chipPowerDown(NULL, NULL, NULL);
+#ifdef MEMORY_DEBUG
+      vos_mem_exit(); 
+#endif
    }
-
+   
    EXIT();	
 
-   return ret_status;
+   return 0;
 }
 
 
@@ -1316,6 +1390,10 @@ static void __exit hdd_module_exit(void)
 
    vos_preClose( &pVosContext );
 
+#ifdef MEMORY_DEBUG
+   vos_mem_exit();
+#endif
+
    hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Exiting module exit",__func__);
 }
 
@@ -1323,7 +1401,8 @@ static void __exit hdd_module_exit(void)
 //Register the module init/exit functions
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);
-
+module_param(ftm_driver, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+MODULE_PARM_DESC(ftm_driver, "i");
 MODULE_LICENSE("Proprietary");
 MODULE_AUTHOR("QUALCOMM");
 MODULE_DESCRIPTION("WLAN HOST DEVICE DRIVER");

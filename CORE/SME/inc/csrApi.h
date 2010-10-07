@@ -363,6 +363,7 @@ typedef enum
 #ifdef FEATURE_WLAN_WAPI
     eCSR_ROAM_RESULT_NEW_WAPI_BSS,
 #endif /* FEATURE_WLAN_WAPI */
+    eCSR_ROAM_RESULT_DEAUTH_IND_HB_FAILURE
 }eCsrRoamResult;
 
 

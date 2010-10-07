@@ -53,8 +53,6 @@
 #include "sys_api.h"
 #include "pttModuleApi.h"
 #include "qwlan_version.h"
-
-#ifdef ANI_MANF_DIAG
 #define RXMODE_DISABLE_ALL 0
 #define RXMODE_ENABLE_ALL  1
 #define RXMODE_ENABLE_11GN 2
@@ -71,7 +69,8 @@
 
 extern const sHalNv nvDefaults;
 
-static void wlan_ftm_register_wext(hdd_adapter_t *pAdapter);
+static int wlan_ftm_register_wext(hdd_adapter_t *pAdapter);
+static v_VOID_t ftm_vos_sys_probe_thread_cback( v_VOID_t *pUserData );
 
 static const freq_chan_t  freq_chan_tbl[] = { 
      {2412, 1}, {2417, 2},{2422, 3}, {2427, 4}, {2432, 5}, {2437, 6}, {2442, 7}, 
@@ -233,6 +232,253 @@ static v_U32_t wlan_ftm_postmsg(v_U8_t *cmd_ptr, v_U16_t cmd_len)
 
     EXIT();
     return VOS_STATUS_SUCCESS;
+}
+
+/*---------------------------------------------------------------------------
+
+  \brief wlan_ftm_vos_open() - Open the vOSS Module
+
+  The \a wlan_ftm_vos_open() function opens the vOSS Scheduler
+  Upon successful initialization:
+
+     - All VOS submodules should have been initialized
+
+     - The VOS scheduler should have opened
+
+     - All the WLAN SW components should have been opened. This include
+       MAC.
+
+
+  \param  hddContextSize: Size of the HDD context to allocate.
+
+
+  \return VOS_STATUS_SUCCESS - Scheduler was successfully initialized and
+          is ready to be used.
+
+          VOS_STATUS_E_RESOURCES - System resources (other than memory)
+          are unavailable to initilize the scheduler
+
+
+          VOS_STATUS_E_FAILURE - Failure to initialize the scheduler/
+
+  \sa wlan_ftm_vos_open()
+
+---------------------------------------------------------------------------*/
+static VOS_STATUS wlan_ftm_vos_open( v_CONTEXT_t pVosContext, v_SIZE_t hddContextSize )
+{
+   VOS_STATUS vStatus      = VOS_STATUS_SUCCESS;
+   v_U8_t iter             = 0;
+   tSirRetStatus sirStatus = eSIR_SUCCESS;
+   tMacOpenParameters macOpenParms;
+   pVosContextType gpVosContext = (pVosContextType)pVosContext;
+
+   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: Opening VOSS", __func__);
+
+   if (NULL == gpVosContext)
+   {
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Trying to open VOSS without a PreOpen",__func__);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   /* Initialize the probe event */
+   if (vos_event_init(&gpVosContext->ProbeEvent) != VOS_STATUS_SUCCESS)
+   {
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Unable to init probeEvent",__func__);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   /* Initialize the free message queue */
+   vStatus = vos_mq_init(&gpVosContext->freeVosMq);
+   if (! VOS_IS_STATUS_SUCCESS(vStatus))
+   {
+
+      /* Critical Error ...  Cannot proceed further */
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to initialize VOS free message queue",__func__);
+      VOS_ASSERT(0);
+      goto err_probe_event;
+   }
+
+   for (iter =0; iter < VOS_CORE_MAX_MESSAGES; iter++)
+   {
+      (gpVosContext->aMsgWrappers[iter]).pVosMsg =
+         &(gpVosContext->aMsgBuffers[iter]);
+      INIT_LIST_HEAD(&gpVosContext->aMsgWrappers[iter].msgNode);
+      vos_mq_put(&gpVosContext->freeVosMq, &(gpVosContext->aMsgWrappers[iter]));
+   }
+
+   /* Now Open the VOS Scheduler */
+   vStatus= vos_sched_open(gpVosContext, &gpVosContext->vosSched,
+                           sizeof(VosSchedContext));
+
+   if (!VOS_IS_STATUS_SUCCESS(vStatus))
+   {
+      /* Critical Error ...  Cannot proceed further */
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to open VOS SCheduler", __func__);
+      VOS_ASSERT(0);
+      goto err_msg_queue;
+   }
+
+   /* Open the SYS module */
+   vStatus = sysOpen(gpVosContext);
+
+   if (!VOS_IS_STATUS_SUCCESS(vStatus))
+   {
+      /* Critical Error ...  Cannot proceed further */
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to open SYS module",__func__);
+      VOS_ASSERT(0);
+      goto err_sched_close;
+   }
+
+
+   /* initialize the NV module */
+   vStatus = vos_nv_open();
+   if (!VOS_IS_STATUS_SUCCESS(vStatus))
+   {
+     // NV module cannot be initialized, however the driver is allowed
+     // to proceed
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to initialize the NV module", __func__);
+     goto err_sys_close;
+   }
+
+   /* Probe the MC thread */
+   sysMcThreadProbe(gpVosContext,
+                    &ftm_vos_sys_probe_thread_cback,
+                    gpVosContext);
+
+   if (vos_wait_single_event(&gpVosContext->ProbeEvent, 0)!= VOS_STATUS_SUCCESS)
+   {
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: Failed to probe MC Thread", __func__);
+      VOS_ASSERT(0);
+      goto err_nv_close;
+   }
+
+   /* If we arrive here, both threads dispacthing messages correctly */
+
+   /* Now proceed to open the MAC */
+
+   /* UMA is supported in hardware for performing the
+      frame translation 802.11 <-> 802.3 */
+   macOpenParms.frameTransRequired = 1;
+   sirStatus = macOpen(&(gpVosContext->pMACContext), gpVosContext->pHDDContext,
+                         &macOpenParms);
+
+   if (eSIR_SUCCESS != sirStatus)
+   {
+     /* Critical Error ...  Cannot proceed further */
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+               "%s: Failed to open MAC", __func__);
+     VOS_ASSERT(0);
+     goto err_nv_close;
+   }
+
+   vStatus = WLANBAL_Open(gpVosContext);
+   if(!VOS_IS_STATUS_SUCCESS(vStatus))
+   {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        "%s: Failed to open BAL",__func__);
+     goto err_mac_close;
+   }
+
+   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: VOSS successfully Opened",__func__);
+
+   return VOS_STATUS_SUCCESS;
+err_mac_close:
+   macClose(gpVosContext->pMACContext);
+
+err_nv_close:
+   vos_nv_close();
+
+err_sys_close:
+   sysClose(gpVosContext);
+
+err_sched_close:
+   vos_sched_close(gpVosContext);
+err_msg_queue:
+   vos_mq_deinit(&gpVosContext->freeVosMq);
+
+err_probe_event:
+   vos_event_destroy(&gpVosContext->ProbeEvent);
+
+   return VOS_STATUS_E_FAILURE;
+
+} /* wlan_ftm_vos_open() */
+
+/*---------------------------------------------------------------------------
+
+  \brief wlan_ftm_vos_close() - Close the vOSS Module
+
+  The \a wlan_ftm_vos_close() function closes the vOSS Module
+
+  \param vosContext  context of vos
+
+  \return VOS_STATUS_SUCCESS - successfully closed
+
+  \sa wlan_ftm_vos_close()
+
+---------------------------------------------------------------------------*/
+
+static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
+{
+  VOS_STATUS vosStatus;
+  pVosContextType gpVosContext = (pVosContextType)vosContext;
+
+  vosStatus = WLANBAL_Close(vosContext);
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close BAL",__func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+  vosStatus = macClose( ((pVosContextType)vosContext)->pMACContext);
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close MAC",__func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+  ((pVosContextType)vosContext)->pMACContext = NULL;
+
+  vosStatus = vos_nv_close();
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close NV",__func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+
+  vosStatus = sysClose( vosContext );
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to close SYS",__func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+  vos_mq_deinit(&((pVosContextType)vosContext)->freeVosMq);
+
+  vosStatus = vos_event_destroy(&gpVosContext->ProbeEvent);
+  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to destroy ProbeEvent",__func__);
+     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  }
+
+  return VOS_STATUS_SUCCESS;
 }
 
 /**---------------------------------------------------------------------------
@@ -517,10 +763,6 @@ void HEXDUMP(char *s0, char *s1, int len)
 int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
 {
     VOS_STATUS vStatus       = VOS_STATUS_SUCCESS;
-    v_U8_t iter               = 0;
-    tSirRetStatus sirStatus = eSIR_SUCCESS;
-    tMacOpenParameters macOpenParms;
-
     pVosContextType pVosContext= NULL;
 
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -536,102 +778,26 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
         goto err_vos_status_failure;
     }
 
-    /* Initialize the probe event */
-    if (vos_event_init(&pVosContext->ProbeEvent) != VOS_STATUS_SUCCESS)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                    "%s: Unable to init probeEvent",__func__);
-        VOS_ASSERT(0);
-        goto err_vos_status_failure;
-    }
+   // Open VOSS
+   vStatus = wlan_ftm_vos_open( pVosContext, 0);
 
-    /* Initialize the free message queue */
-    vStatus = vos_mq_init(&pVosContext->freeVosMq);
-    if (! VOS_IS_STATUS_SUCCESS(vStatus))
-    {
+   if ( !VOS_IS_STATUS_SUCCESS( vStatus ))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_open failed",__func__);
+      goto err_vos_status_failure;
+   }
 
-        /* Critical Error ...  Cannot proceed further */
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s: Failed to initialize VOS free message queue",__func__);
-        VOS_ASSERT(0);
-        goto err_probe_event;
-    }
-
-    for (iter =0; iter < VOS_CORE_MAX_MESSAGES; iter++)
-    {
-        (pVosContext->aMsgWrappers[iter]).pVosMsg =
-         &(pVosContext->aMsgBuffers[iter]);
-        INIT_LIST_HEAD(&pVosContext->aMsgWrappers[iter].msgNode);
-        vos_mq_put(&pVosContext->freeVosMq, &(pVosContext->aMsgWrappers[iter]));
-    }
-
-    /* Now Open the VOS Scheduler */
-    vStatus= vos_sched_open(pVosContext, &pVosContext->vosSched,
-                           sizeof(VosSchedContext));
-
+    /* Start SAL now */
+    vStatus = WLANSAL_Start(pVosContext);
     if (!VOS_IS_STATUS_SUCCESS(vStatus))
     {
-       /* Critical Error ...  Cannot proceed further */
-       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s: Failed to open VOS SCheduler", __func__);
-       VOS_ASSERT(0);
-       goto err_msg_queue;
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+              "%s: Failed to start SAL",__func__);
+        goto err_vos_open_failure;
     }
 
-    /* Probe the MC thread */
-    sysMcThreadProbe(pVosContext,
-                    &ftm_vos_sys_probe_thread_cback,
-                    pVosContext);
-
-    if (vos_wait_single_event(&pVosContext->ProbeEvent, 0)!= VOS_STATUS_SUCCESS)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                "%s: Failed to probe MC Thread", __func__);
-        VOS_ASSERT(0);
-        goto err_sched_close;
-    }
-
-    /* initialize the NV module */
-    vStatus = vos_nv_open();
-
-    if (!VOS_IS_STATUS_SUCCESS(vStatus))
-    {
-        // NV module cannot be initialized, however the driver is allowed
-        // to proceed
-         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-          "%s: Failed to initialize the NV module", __func__);
-         goto err_sched_close;
-    }
-    /* If we arrive here, both threads dispacthing messages correctly */
-
-    /* Now proceed to open the MAC */
-
-    /* UMA is supported in hardware for performing the
-      frame translation 802.11 <-> 802.3 */
-    macOpenParms.frameTransRequired = 1;
-    sirStatus = macOpen(&(pVosContext->pMACContext), pVosContext->pHDDContext,
-                         &macOpenParms);
-
-    if (eSIR_SUCCESS != sirStatus)
-    {
-        /* Critical Error ...    Cannot proceed further */
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Failed to open MAC", __func__);
-        VOS_ASSERT(0);
-        goto err_nv_close;
-    }
-
-    vStatus = WLANBAL_Open(pVosContext);
-
-    if(!VOS_IS_STATUS_SUCCESS(vStatus))
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-        "%s: Failed to open BAL",__func__);
-        goto err_mac_close;
-    }
-
-    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
-               "%s: VOSS successfully Opened",__func__);
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+           "%s: SAL correctly started", __func__);
 
        /* Save the hal context in Adapter */
     pAdapter->hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_HAL, pVosContext );
@@ -639,15 +805,19 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
     if ( NULL == pAdapter->hHal )
     {
        hddLog(VOS_TRACE_LEVEL_ERROR,"%s: HAL context is null",__func__);
-       goto err_mac_close;
+       goto err_sal_close;
     }
 
-    wlan_ftm_register_wext(pAdapter); 
+    if( wlan_ftm_register_wext(pAdapter)!= 0 )
+    {
+       hddLog(VOS_TRACE_LEVEL_ERROR,"%S: hdd_register_wext failed",__func__); 
+       goto err_sal_close;
+    }
        //Initialize the nlink service
     if(nl_srv_init() != 0)
     {
        hddLog(VOS_TRACE_LEVEL_ERROR,"%S: nl_srv_init failed",__func__);
-       goto err_mac_close;
+       goto err_ftm_register_wext_close;
     }
 
 #ifdef PTT_SOCK_SVC_ENABLE
@@ -674,6 +844,15 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
     //wtan: initialize ftm_status structure
     _ftm_status_init();
 
+    /* Initialize the ftm vos event */
+    if (vos_event_init(&pAdapter->ftm.ftm_vos_event) != VOS_STATUS_SUCCESS)
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Unable to init probeEvent",__func__);
+        VOS_ASSERT(0);
+        goto err_nl_srv_init;
+    }
+
     pAdapter->ftm.ftm_state = WLAN_FTM_INITIALIZED;
 
     return VOS_STATUS_SUCCESS;
@@ -681,20 +860,14 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
 err_nl_srv_init:
 nl_srv_exit();
 
-err_mac_close:
-macClose(pVosContext->pMACContext);
+err_ftm_register_wext_close:
+hdd_UnregisterWext(pAdapter->dev);
 
-err_nv_close:
-vos_nv_close();
+err_sal_close:
+WLANSAL_Stop(pVosContext);
 
-err_sched_close:
-vos_sched_close(pVosContext);
-
-err_msg_queue:
-vos_mq_deinit(&pVosContext->freeVosMq);
-
-err_probe_event:
-vos_event_destroy(&pVosContext->ProbeEvent);
+err_vos_open_failure:
+wlan_ftm_vos_close(pVosContext);
 
 err_vos_status_failure:
 
@@ -709,39 +882,21 @@ int wlan_hdd_ftm_close(hdd_adapter_t *pAdapter)
     v_CONTEXT_t vosContext = pAdapter->pvosContext;
 
     ENTER();
-    vosStatus = WLANBAL_Close(vosContext);
-    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-    {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "%s: Failed to close BAL",__func__);
-       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-    }
-    vosStatus = macClose( ((pVosContextType)vosContext)->pMACContext);
-    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-    {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "%s: Failed to close MAC",__func__);
-       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-    }
-  
-    ((pVosContextType)vosContext)->pMACContext = NULL;
-  
-    vosStatus = vos_nv_close();
-    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-    {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "%s: Failed to close NV",__func__);
-       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-    }
 
-  
-    vosStatus = sysClose( vosContext );
-    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-    {
-       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "%s: Failed to close SYS",__func__);
+    vosStatus = WLANBAL_SuspendChip( pAdapter->pvosContext );
        VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-    }
+
+    vosStatus = WLANSAL_Stop(pAdapter->pvosContext);
+       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+  
+    //Assert Deep sleep signal now to put Libra HW in lowest power state
+    vosStatus = vos_chipAssertDeepSleep( NULL, NULL, NULL );
+       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+    //Vote off any PMIC voltage supplies
+    vos_chipPowerDown(NULL, NULL, NULL);
+  
+    vos_chipVoteOffXOBuffer(NULL, NULL, NULL);
 
     nl_srv_exit();
 
@@ -754,7 +909,28 @@ int wlan_hdd_ftm_close(hdd_adapter_t *pAdapter)
         clear_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
     }
 
-    vos_chipVoteOffXOBuffer(NULL, NULL, NULL);
+    vosStatus = vos_sched_close( vosContext );
+    if (!VOS_IS_STATUS_SUCCESS(vosStatus))       {
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+          "%s: Failed to close VOSS Scheduler",__func__);
+       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+    }
+
+    //Close VOSS
+    wlan_ftm_vos_close(vosContext);
+
+
+    vosStatus = vos_event_destroy(&pAdapter->ftm.ftm_vos_event);
+    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+    {
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to destroy ftm_vos Event",__func__);
+        VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+    }
+
+    //Free up dynamically allocated members inside HDD Adapter
+    kfree(pAdapter->cfg_ini);
+    pAdapter->cfg_ini= NULL;
 
     return 0;
 }
@@ -831,18 +1007,6 @@ static int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
         goto err_status_failure;
     }
 
-    /* Start SAL now */
-    vStatus = WLANSAL_Start(pVosContext);
-    if (!VOS_IS_STATUS_SUCCESS(vStatus))
-    {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-              "%s: Failed to start SAL",__func__);
-        goto err_status_failure;
-    }
-
-    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
-           "%s: SAL correctly started", __func__);
-
     /* Start BAL */
     vStatus = WLANBAL_Start(pVosContext);
 
@@ -908,21 +1072,10 @@ static int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
     /* START SYS. This will trigger the CFG download */
     sysMcStart(pVosContext, ftm_vos_sys_probe_thread_cback, pVosContext);
 
-    /* Initialize the ftm vos event */
-    if (vos_event_init(& pAdapter->ftm.ftm_vos_event) != VOS_STATUS_SUCCESS)
-    {
-        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                    "%s: Unable to init probeEvent",__func__);
-        VOS_ASSERT(0);
-        goto err_mac_stop;
-    }
-
     pAdapter->ftm.ftm_state = WLAN_FTM_STARTED;
 
     return VOS_STATUS_SUCCESS;
 
-err_mac_stop:
-macStop(pVosContext->pMACContext, HAL_STOP_TYPE_SYS_RESET);
 
 err_bal_stop:
 WLANBAL_Stop(pVosContext);
@@ -940,18 +1093,19 @@ err_status_failure:
 static int wlan_ftm_stop(hdd_adapter_t *pAdapter)
 {
    VOS_STATUS vosStatus;   
-   vos_call_status_type callType;
 
    if(pAdapter->ftm.ftm_state != WLAN_FTM_STARTED)
-{
+   {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:Ftm has not started.Please start the ftm. ",__func__);
        return VOS_STATUS_E_FAILURE;
    }
 
    if(pAdapter->ftm.cmd_iwpriv == TRUE)
    {
-       /* SYS STOP will stop SME and MAC */
-       vosStatus = sysStop( pAdapter->pvosContext);
+       /*  STOP MAC only */
+       v_VOID_t *hHal;
+       hHal = vos_get_context( VOS_MODULE_ID_HAL, pAdapter->pvosContext );
+       vosStatus = macStop(hHal, HAL_STOP_TYPE_SYS_DEEP_SLEEP );
        if (!VOS_IS_STATUS_SUCCESS(vosStatus))
        {
            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -965,22 +1119,9 @@ static int wlan_ftm_stop(hdd_adapter_t *pAdapter)
              "%s: Failed to stop BAL",__func__);
            VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
        }
-
-       vosStatus = WLANBAL_SuspendChip( pAdapter->pvosContext );
-       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-
-       vosStatus = WLANSAL_Stop(pAdapter->pvosContext);
-       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-
-       vosStatus = vos_chipAssertDeepSleep( &callType, NULL, NULL );
-       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-
-       vosStatus = vos_chipVoteOffBBAnalogSupply(&callType, NULL, NULL);
-       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-
-       vosStatus = vos_chipVoteOffRFSupply(&callType, NULL, NULL);
-       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
     }
+   
+   printk(KERN_EMERG "*** FTM Stop Successful****\n");
    return WLAN_FTM_SUCCESS;
 }
 
@@ -1117,7 +1258,7 @@ void wlan_hdd_process_ftm_cmd
 
         }
         /*Wait here until you get the response from HAL*/
-        if (vos_wait_single_event(&pAdapter->ftm.ftm_vos_event, 0)!= VOS_STATUS_SUCCESS)
+        if (vos_wait_single_event(&pAdapter->ftm.ftm_vos_event, FTM_VOS_EVENT_WAIT_TIME)!= VOS_STATUS_SUCCESS)
         {
             hddLog(VOS_TRACE_LEVEL_ERROR,
                "%s: vos_wait_single_event failed",__func__);
@@ -2532,11 +2673,9 @@ static int iw_ftm_get_char_setnone(struct net_device *dev, struct iw_request_inf
 
     return 0;
 }
-#endif//ANI_MANF_DIAG
 
 VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len)
 {
-#ifdef ANI_MANF_DIAG
     tAniHdr *wmsg = NULL;
     v_U8_t *pBuf;
     hdd_adapter_t *pAdapter;
@@ -2579,12 +2718,10 @@ VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len)
    }
 
     vos_mem_free((v_VOID_t*)wmsg);
-#endif
 
     return VOS_STATUS_SUCCESS;
 }
 
-#ifdef ANI_MANF_DIAG
 /*  action sub-ioctls */
 static int iw_ftm_setnone_getnone(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra)
@@ -2825,7 +2962,7 @@ const struct iw_handler_def we_ftm_handler_def = {
    .get_wireless_stats = NULL,
 };
 
-static void wlan_ftm_register_wext(hdd_adapter_t *pAdapter)
+static int wlan_ftm_register_wext(hdd_adapter_t *pAdapter)
 {
     
     hdd_wext_state_t *pwextBuf;
@@ -2833,7 +2970,7 @@ static void wlan_ftm_register_wext(hdd_adapter_t *pAdapter)
 
     if( !pwextBuf ) {
         hddLog( LOG1,"VOS unable to allocate memory\n");
-        return;
+        return 1;
     }
     // Zero the memory.  This zeros the profile structure.
     memset(pwextBuf, 0,sizeof(hdd_wext_state_t));
@@ -2844,14 +2981,11 @@ static void wlan_ftm_register_wext(hdd_adapter_t *pAdapter)
 
     pAdapter->dev->wireless_handlers = (struct iw_handler_def *)&we_ftm_handler_def;
 
-    return;
+    return 0;
 }
-
-#endif //ANI_MANF_DIAG
 
 VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message)
 {
-#ifdef ANI_MANF_DIAG
     ftm_rsp_msg_t   *pFtmMsgRsp;
 
     VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
@@ -2903,7 +3037,6 @@ VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message)
     }
     }
     EXIT();
-#endif
     return VOS_STATUS_SUCCESS;
 
 }

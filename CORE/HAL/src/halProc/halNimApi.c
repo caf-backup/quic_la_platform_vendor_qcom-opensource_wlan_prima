@@ -296,6 +296,7 @@ tSirRetStatus halMmhForwardMBmsg(void* pSirGlobal, tSirMbMsg* pMb)
 {
     tSirMsgQ msg;
     tpAniSirGlobal pMac = (tpAniSirGlobal)pSirGlobal;
+    tSirRetStatus status = eSIR_SUCCESS;
 
 #ifdef ANI_OS_TYPE_RTAI_LINUX
 
@@ -334,24 +335,24 @@ tSirRetStatus halMmhForwardMBmsg(void* pSirGlobal, tSirMbMsg* pMb)
     switch (msg.type & HAL_MMH_MB_MSG_TYPE_MASK)
     {
         case SIR_HAL_MSG_TYPES_BEGIN:    // Posts a message to the HAL MsgQ
-            halPostMsgApi(pMac, &msg);
+            status = halPostMsgApi(pMac, &msg);
             break;
 
         case SIR_LIM_MSG_TYPES_BEGIN:    // Posts a message to the LIM MsgQ
-            limPostMsgApi(pMac, &msg);
+            status = limPostMsgApi(pMac, &msg);
             break;
 
         case SIR_CFG_MSG_TYPES_BEGIN:    // Posts a message to the CFG MsgQ
-            halMntPostMsgApi(pMac, &msg);
+            status = halMntPostMsgApi(pMac, &msg);
             break;
 
         case SIR_PMM_MSG_TYPES_BEGIN:    // Posts a message to the PMM MsgQ
-            pmmPostMessage(pMac, &msg);
+            status = pmmPostMessage(pMac, &msg);
             break;
 
 #ifndef WLAN_FTM_STUB
         case SIR_PTT_MSG_TYPES_BEGIN:
-            halNimPTTPostMsgApi(pMac, &msg); // Posts a message to the NIM PTT MsgQ
+            status = halNimPTTPostMsgApi(pMac, &msg); // Posts a message to the NIM PTT MsgQ
         break;
 
 #endif
@@ -370,7 +371,7 @@ tSirRetStatus halMmhForwardMBmsg(void* pSirGlobal, tSirMbMsg* pMb)
             break;
     }
 
-    return eSIR_SUCCESS;
+    return status;
 
 } // halMmhForwardMBmsg()
 

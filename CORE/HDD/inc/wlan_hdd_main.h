@@ -26,9 +26,7 @@
 #include <wlan_hdd_dp_utils.h>
 #include <wlan_hdd_wmm.h>
 #include <wlan_hdd_cfg.h>
-#ifdef ANI_MANF_DIAG
 #include <wlan_hdd_ftm.h>
-#endif
 
 /*--------------------------------------------------------------------------- 
   Preprocessor definitions and constants
@@ -339,9 +337,7 @@ struct hdd_adapter_s
    /** Config values read from qcom_cfg.ini file */ 
    hdd_config_t *cfg_ini;
 
-  #ifdef ANI_MANF_DIAG
    wlan_hdd_ftm_status_t ftm; 
-  #endif
 
    /** completion variable for full power callback */
    struct completion full_pwr_comp_var;
@@ -370,6 +366,9 @@ struct hdd_adapter_s
 
    /** ptt Process ID*/
    v_SINT_t ptt_pid;
+
+   /* driver_type tells whether Driver need to configured to FTM or normal driver */
+   tDriverType driver_type;
 #ifdef FEATURE_WLAN_WAPI
    hdd_wapi_info_t wapi_info;
 #endif

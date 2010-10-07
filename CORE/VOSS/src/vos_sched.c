@@ -65,9 +65,7 @@ static pVosWatchdogContext gpVosWatchdogContext;
 static int VosMCThread(void * Arg);
 static int VosWDThread(void * Arg);
 
-#ifndef ANI_MANF_DIAG
 static int VosTXThread(void * Arg);
-#endif
 extern v_VOID_t vos_core_return_msg(v_PVOID_t pVContext, pVosMsgWrapper pMsgWrapper);
 
 /*---------------------------------------------------------------------------
@@ -121,6 +119,8 @@ vos_sched_open
 )
 {
   VOS_STATUS  vStatus = VOS_STATUS_SUCCESS;
+  int ftm_driver_flag = ((hdd_adapter_t*)(((VosContextType*)(pVosContext))->pHDDContext))->driver_type;
+
 /*-------------------------------------------------------------------------*/
 
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -152,14 +152,17 @@ vos_sched_open
   }
 
   // Initialize the helper events and event queues
-  init_completion(&pSchedContext->McStartEvent);
-  init_completion(&pSchedContext->TxStartEvent);
+  if( ftm_driver_flag == eDRIVER_TYPE_PRODUCTION )
+  {
+    init_completion(&pSchedContext->TxStartEvent);
+    init_completion(&pSchedContext->TxShutdown);
+    init_waitqueue_head(&pSchedContext->txWaitQueue);
+    pSchedContext->txEventFlag= 0;
+  }
+  init_completion(&pSchedContext->McStartEvent);  
   init_completion(&pSchedContext->McShutdown);
-  init_completion(&pSchedContext->TxShutdown);
   init_waitqueue_head(&pSchedContext->mcWaitQueue);
   pSchedContext->mcEventFlag = 0;
-  init_waitqueue_head(&pSchedContext->txWaitQueue);
-  pSchedContext->txEventFlag= 0;
 
   /*
   ** This initialization is critical as the threads will latter access the
@@ -186,56 +189,56 @@ vos_sched_open
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: VOSS Main Controller thread Created",__func__);
 
-#ifndef ANI_MANF_DIAG
-  pSchedContext->TxThread = kernel_thread(VosTXThread, pSchedContext,
-     CLONE_FS | CLONE_FILES | CLONE_SIGHAND | SIGCHLD);
-
-  if (pSchedContext->TxThread < 0)
+  if( ftm_driver_flag == eDRIVER_TYPE_PRODUCTION)
   {
-     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-               "%s: Could not Create VOSS TX Thread",__func__);
-    //De-initialize all the message queues
-    vos_sched_deinit_mqs(pSchedContext);
+     pSchedContext->TxThread = kernel_thread(VosTXThread, pSchedContext,
+        CLONE_FS | CLONE_FILES | CLONE_SIGHAND | SIGCHLD);
 
-    //Try and force the Main thread controller to exit
-    set_bit(MC_SHUTDOWN_EVENT_MASK, &pSchedContext->mcEventFlag);
-    set_bit(MC_POST_EVENT_MASK, &pSchedContext->mcEventFlag);
-    wake_up_interruptible(&pSchedContext->mcWaitQueue);
+     if (pSchedContext->TxThread < 0)
+     {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                  "%s: Could not Create VOSS TX Thread",__func__);
+       //De-initialize all the message queues
+       vos_sched_deinit_mqs(pSchedContext);
 
-    //Wait for MC to exit
-    wait_for_completion_interruptible(&pSchedContext->McShutdown);
+       //Try and force the Main thread controller to exit
+       set_bit(MC_SHUTDOWN_EVENT_MASK, &pSchedContext->mcEventFlag);
+       set_bit(MC_POST_EVENT_MASK, &pSchedContext->mcEventFlag);
+       wake_up_interruptible(&pSchedContext->mcWaitQueue);
 
-    vos_sched_deinit_mqs(pSchedContext);
-    return VOS_STATUS_E_RESOURCES;
+       //Wait for MC to exit
+       wait_for_completion_interruptible(&pSchedContext->McShutdown);
+
+       vos_sched_deinit_mqs(pSchedContext);
+       return VOS_STATUS_E_RESOURCES;
+     }
+
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+                ("VOSS TX thread Created\n"));
+
+     /*
+     ** Now make sure both threads have started before we exit.
+     ** Each thread should normally ACK back when it starts.
+     */
   }
-
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-             ("VOSS TX thread Created\n"));
-
-  /*
-  ** Now make sure both threads have started before we exit.
-  ** Each thread should normally ACK back when it starts.
-  */
- #endif
   wait_for_completion_interruptible(&pSchedContext->McStartEvent);
 
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: VOSS MC Thread has started",__func__);
 
- #ifndef ANI_MANF_DIAG
-
-  wait_for_completion_interruptible(&pSchedContext->TxStartEvent);
-
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-               "%s: VOSS Tx Thread has started",__func__);
-
-  /*
-  ** We're good now: Let's get the ball rolling!!!
-  */
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: VOSS Scheduler successfully Opened",__func__);
-  #endif
-
+  if( ftm_driver_flag == eDRIVER_TYPE_PRODUCTION )  
+  {
+     wait_for_completion_interruptible(&pSchedContext->TxStartEvent);
+    
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+                  "%s: VOSS Tx Thread has started",__func__);
+    
+     /*
+     ** We're good now: Let's get the ball rolling!!!
+     */
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: VOSS Scheduler successfully Opened",__func__);
+  }
   return VOS_STATUS_SUCCESS;
 
 } /* vos_sched_open() */
@@ -327,11 +330,10 @@ VosMCThread
   tpAniSirGlobal pMacContext     = NULL;
   tSirRetStatus macStatus        = eSIR_SUCCESS;
   VOS_STATUS vStatus             = VOS_STATUS_SUCCESS;
-  #ifndef ANI_MANF_DIAG
   eHalStatus hStatus             = eHAL_STATUS_SUCCESS;
-  #endif
   int retWaitStatus              = 0;
   v_BOOL_t shutdown              = VOS_FALSE;
+  int ftm_driver_flag            = ((hdd_adapter_t*)(((VosContextType*)(pSchedContext->pVContext))->pHDDContext))->driver_type;
   hdd_adapter_t *pAdapter        = NULL;
   v_CONTEXT_t pVosContext        = NULL;
 
@@ -455,117 +457,116 @@ VosMCThread
         vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
         continue;
       }
-#ifndef ANI_MANF_DIAG
 
-      // Check the PE queue
-      if (!vos_is_mq_empty(&pSchedContext->peMcMq))
+      if(ftm_driver_flag == eDRIVER_TYPE_PRODUCTION)
       {
-        /* Need some optimization*/
-        pMacContext = vos_get_context(VOS_MODULE_ID_HAL, pSchedContext->pVContext);
-
-        // Service the PE message queue
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                  "%s: Servicing the VOS PE MC Message queue",__func__);
-
-        if (pMsgWrapper == NULL)
+        // Check the PE queue
+        if (!vos_is_mq_empty(&pSchedContext->peMcMq))
         {
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-              "%s: pMsgWrapper is NULL", __FUNCTION__);
-           VOS_ASSERT(0);
-           break;
+          /* Need some optimization*/
+          pMacContext = vos_get_context(VOS_MODULE_ID_HAL, pSchedContext->pVContext);
+   
+          // Service the PE message queue
+          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                    "%s: Servicing the VOS PE MC Message queue",__func__);
+   
+          if (pMsgWrapper == NULL)
+          {
+             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: pMsgWrapper is NULL", __FUNCTION__);
+             VOS_ASSERT(0);
+             break;
+          }
+   
+          pMsgWrapper = vos_mq_get(&pSchedContext->peMcMq);
+          macStatus = peProcessMessages( pMacContext, (tSirMsgQ*)pMsgWrapper->pVosMsg);
+          if (eSIR_SUCCESS != macStatus)
+          {
+            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Issue Processing PE message",__func__);
+          }
+   
+          // return message to the Core
+          vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
+          continue;
         }
-
-        pMsgWrapper = vos_mq_get(&pSchedContext->peMcMq);
-        macStatus = peProcessMessages( pMacContext, (tSirMsgQ*)pMsgWrapper->pVosMsg);
-        if (eSIR_SUCCESS != macStatus)
+   
+        /** Check the SME queue **/
+        if (!vos_is_mq_empty(&pSchedContext->smeMcMq))
         {
-          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                     "%s: Issue Processing PE message",__func__);
+          /* Need some optimization*/
+          pMacContext = vos_get_context(VOS_MODULE_ID_HAL, pSchedContext->pVContext);
+   
+          // Service the SME message queue
+          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                    "%s: Servicing the VOS SME MC Message queue",__func__);
+   
+          pMsgWrapper = vos_mq_get(&pSchedContext->smeMcMq);
+          if (pMsgWrapper == NULL)
+          {
+             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 "%s: pMsgWrapper is NULL", __FUNCTION__);
+             VOS_ASSERT(0);
+             break;
+          }
+   
+          hStatus = sme_ProcessMsg( (tHalHandle)pMacContext, pMsgWrapper->pVosMsg);
+          if (!HAL_STATUS_SUCCESS(hStatus))
+          {
+            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Issue Processing SME message",__func__);
+          }
+   
+          // return message to the Core
+          vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
+          continue;
         }
-
-        // return message to the Core
-        vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
-        continue;
-      }
-
-      /** Check the SME queue **/
-      if (!vos_is_mq_empty(&pSchedContext->smeMcMq))
-      {
-        /* Need some optimization*/
-        pMacContext = vos_get_context(VOS_MODULE_ID_HAL, pSchedContext->pVContext);
-
-        // Service the SME message queue
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                  "%s: Servicing the VOS SME MC Message queue",__func__);
-
-        pMsgWrapper = vos_mq_get(&pSchedContext->smeMcMq);
-        if (pMsgWrapper == NULL)
+   
+        /** Check the TL queue **/
+        if (!vos_is_mq_empty(&pSchedContext->tlMcMq))
         {
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: pMsgWrapper is NULL", __FUNCTION__);
-           VOS_ASSERT(0);
-           break;
+          // Service the TL message queue
+          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                    ("Servicing the VOS TL MC Message queue"));
+   
+          pMsgWrapper = vos_mq_get(&pSchedContext->tlMcMq);
+          if (pMsgWrapper == NULL)
+          {
+             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "%s: pMsgWrapper is NULL", __FUNCTION__);
+             VOS_ASSERT(0);
+             break;
+          }
+   
+          vStatus = WLANTL_McProcessMsg( pSchedContext->pVContext,
+              pMsgWrapper->pVosMsg);
+   
+          if (!VOS_IS_STATUS_SUCCESS(vStatus))
+          {
+            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                       "%s: Issue Processing TL message",__func__);
+          }
+   
+          // return message to the Core
+          vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
+          continue;
         }
-
-        hStatus = sme_ProcessMsg( (tHalHandle)pMacContext, pMsgWrapper->pVosMsg);
-        if (!HAL_STATUS_SUCCESS(hStatus))
+        /* Check for any Suspend Indication */
+        if(test_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag))
         {
-          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                     "%s: Issue Processing SME message",__func__);
+          clear_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag);
+
+          /* Mc Thread Suspended */
+          complete(&pAdapter->mc_sus_event_var);
+
+          init_completion(&pSchedContext->ResumeMcEvent);
+
+          /* Wait foe Resume Indication */
+          wait_for_completion_interruptible(&pSchedContext->ResumeMcEvent);
         }
-
-        // return message to the Core
-        vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
-        continue;
-      }
-
-      /** Check the TL queue **/
-      if (!vos_is_mq_empty(&pSchedContext->tlMcMq))
-      {
-        // Service the TL message queue
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                  ("Servicing the VOS TL MC Message queue"));
-
-        pMsgWrapper = vos_mq_get(&pSchedContext->tlMcMq);
-        if (pMsgWrapper == NULL)
-        {
-           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-              "%s: pMsgWrapper is NULL", __FUNCTION__);
-           VOS_ASSERT(0);
-           break;
-        }
-
-        vStatus = WLANTL_McProcessMsg( pSchedContext->pVContext,
-            pMsgWrapper->pVosMsg);
-
-        if (!VOS_IS_STATUS_SUCCESS(vStatus))
-        {
-          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                     "%s: Issue Processing TL message",__func__);
-        }
-
-        // return message to the Core
-        vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
-        continue;
-      }
-     /* Check for any Suspend Indication */
-      if(test_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag))
-      {
-        clear_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag);
-
-        /* Mc Thread Suspended */
-        complete(&pAdapter->mc_sus_event_var);
-
-        init_completion(&pSchedContext->ResumeMcEvent);
-
-        /* Wait foe Resume Indication */
-        wait_for_completion_interruptible(&pSchedContext->ResumeMcEvent);
-      }
-#endif /* ANI_MANF_DIAG */
+      } // while message loop processing
       break; //All queues are empty now
-
-    } // while message loop processing
-
+    } // while message loop processing 
   } // while TRUE
 
   // If we get here the MC thread must exit
@@ -700,7 +701,6 @@ VosWDThread
   \sa VosTxThread()
 
   -------------------------------------------------------------------------*/
-#ifndef ANI_MANF_DIAG
 
 static int VosTXThread ( void * Arg )
 {
@@ -894,7 +894,6 @@ static int VosTXThread ( void * Arg )
 
 } /* VosTxThread() */
 
-#endif
 /*---------------------------------------------------------------------------
 
   \brief vos_sched_close() - Close the vOSS Scheduler
@@ -924,6 +923,7 @@ static int VosTXThread ( void * Arg )
 ---------------------------------------------------------------------------*/
 VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
 {
+    int ftm_driver_flag = ((hdd_adapter_t*)(((VosContextType*)(pVosContext))->pHDDContext))->driver_type;
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
         "%s: vos_schdeuler closing now", __FUNCTION__);
 
@@ -938,17 +938,26 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     set_bit(MC_POST_EVENT_MASK, &gpVosSchedContext->mcEventFlag);
     wake_up_interruptible(&gpVosSchedContext->mcWaitQueue);
 
-    set_bit(TX_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->txEventFlag);
-    set_bit(TX_POST_EVENT_MASK, &gpVosSchedContext->txEventFlag);
-    wake_up_interruptible(&gpVosSchedContext->txWaitQueue);
+    if(ftm_driver_flag == eDRIVER_TYPE_PRODUCTION)
+    {
+      set_bit(TX_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->txEventFlag);
+      set_bit(TX_POST_EVENT_MASK, &gpVosSchedContext->txEventFlag);
+      wake_up_interruptible(&gpVosSchedContext->txWaitQueue);
+    }
 
     //Wait for MC and TX to exit
     wait_for_completion_interruptible(&gpVosSchedContext->McShutdown);
-    wait_for_completion_interruptible(&gpVosSchedContext->TxShutdown);
+    if(ftm_driver_flag == eDRIVER_TYPE_PRODUCTION)
+    {
+       wait_for_completion_interruptible(&gpVosSchedContext->TxShutdown);
+    }
 
     //Clean up message queues of TX and MC thread
     vos_sched_flush_mc_mqs(gpVosSchedContext);
-    vos_sched_flush_tx_mqs(gpVosSchedContext);
+    if(ftm_driver_flag == eDRIVER_TYPE_PRODUCTION)
+    {
+      vos_sched_flush_tx_mqs(gpVosSchedContext);
+    }
 
     //Deinit all the TX and MC queues
     vos_sched_deinit_mqs(gpVosSchedContext);
@@ -1024,6 +1033,7 @@ VOS_STATUS vos_watchdog_chip_reset ( v_VOID_t )
 VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
 {
   VOS_STATUS vStatus = VOS_STATUS_SUCCESS;
+  int ftm_driver_flag =((hdd_adapter_t*)((VosContextType*)(pSchedContext->pVContext))->pHDDContext)->driver_type; 
 
   // Now intialize all the message queues
 
@@ -1039,46 +1049,48 @@ VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
     VOS_ASSERT(0);
     return vStatus;
   }
-#ifndef ANI_MANF_DIAG
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: Initializing the PE MC Message queue",__func__);
-
-  vStatus = vos_mq_init(&pSchedContext->peMcMq);
-
-  if (! VOS_IS_STATUS_SUCCESS(vStatus))
+  
+  if(ftm_driver_flag == eDRIVER_TYPE_PRODUCTION )
   {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            "%s: Failed to init PE MC Message queue",__func__);
-    VOS_ASSERT(0);
-    return vStatus;
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+              "%s: Initializing the PE MC Message queue",__func__);
+   
+    vStatus = vos_mq_init(&pSchedContext->peMcMq);
+   
+    if (! VOS_IS_STATUS_SUCCESS(vStatus))
+    {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+              "%s: Failed to init PE MC Message queue",__func__);
+      VOS_ASSERT(0);
+      return vStatus;
+    }
+   
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+              "%s: Initializing the SME MC Message queue", __func__);
+   
+    vStatus = vos_mq_init(&pSchedContext->smeMcMq);
+   
+    if (! VOS_IS_STATUS_SUCCESS(vStatus))
+    {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+              "%s: Failed to init SME MC Message queue",__func__);
+      VOS_ASSERT(0);
+      return vStatus;
+    }
+   
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+              "%s: Initializing the TL MC Message queue",__func__);
+   
+    vStatus = vos_mq_init(&pSchedContext->tlMcMq);
+   
+    if (! VOS_IS_STATUS_SUCCESS(vStatus))
+    {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+              "%s: Failed to init TL MC Message queue",__func__);
+      VOS_ASSERT(0);
+      return vStatus;
+    }
   }
-
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: Initializing the SME MC Message queue", __func__);
-
-  vStatus = vos_mq_init(&pSchedContext->smeMcMq);
-
-  if (! VOS_IS_STATUS_SUCCESS(vStatus))
-  {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            "%s: Failed to init SME MC Message queue",__func__);
-    VOS_ASSERT(0);
-    return vStatus;
-  }
-
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: Initializing the TL MC Message queue",__func__);
-
-  vStatus = vos_mq_init(&pSchedContext->tlMcMq);
-
-  if (! VOS_IS_STATUS_SUCCESS(vStatus))
-  {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            "%s: Failed to init TL MC Message queue",__func__);
-    VOS_ASSERT(0);
-    return vStatus;
-  }
-#endif
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: Initializing the SYS MC Message queue",__func__);
 
@@ -1091,44 +1103,45 @@ VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
     VOS_ASSERT(0);
     return vStatus;
   }
-#ifndef ANI_MANF_DIAG
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: Initializing the TL Tx Message queue",__func__);
-
-  vStatus = vos_mq_init(&pSchedContext->tlTxMq);
-
-  if (! VOS_IS_STATUS_SUCCESS(vStatus))
+  if(ftm_driver_flag == eDRIVER_TYPE_PRODUCTION )
   {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            "%s: Failed to init TL TX Message queue",__func__);
-    VOS_ASSERT(0);
-    return vStatus;
-  }
-
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: Initializing the SSC Tx Message queue",__func__);
-
-  vStatus = vos_mq_init(&pSchedContext->sscTxMq);
-
-  if (! VOS_IS_STATUS_SUCCESS(vStatus))
-  {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            "%s: Failed to init SSC TX Message queue",__func__);
-    VOS_ASSERT(0);
-    return vStatus;
-  }
-#endif
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: Initializing the SYS Tx Message queue",__func__);
-
-  vStatus = vos_mq_init(&pSchedContext->sysTxMq);
-
-  if (! VOS_IS_STATUS_SUCCESS(vStatus))
-  {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-            "%s: Failed to init SYS TX Message queue",__func__);
-    VOS_ASSERT(0);
-    return vStatus;
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+              "%s: Initializing the TL Tx Message queue",__func__);
+   
+    vStatus = vos_mq_init(&pSchedContext->tlTxMq);
+   
+    if (! VOS_IS_STATUS_SUCCESS(vStatus))
+    {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+              "%s: Failed to init TL TX Message queue",__func__);
+      VOS_ASSERT(0);
+      return vStatus;
+    }
+   
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+              "%s: Initializing the SSC Tx Message queue",__func__);
+   
+    vStatus = vos_mq_init(&pSchedContext->sscTxMq);
+   
+    if (! VOS_IS_STATUS_SUCCESS(vStatus))
+    {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+              "%s: Failed to init SSC TX Message queue",__func__);
+      VOS_ASSERT(0);
+      return vStatus;
+    }
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+              "%s: Initializing the SYS Tx Message queue",__func__);
+   
+    vStatus = vos_mq_init(&pSchedContext->sysTxMq);
+   
+    if (! VOS_IS_STATUS_SUCCESS(vStatus))
+    {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+              "%s: Failed to init SYS TX Message queue",__func__);
+      VOS_ASSERT(0);
+      return vStatus;
+    }
   }
 
   return VOS_STATUS_SUCCESS;
@@ -1151,31 +1164,37 @@ VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
   -------------------------------------------------------------------------*/
 void vos_sched_deinit_mqs ( pVosSchedContext pSchedContext )
 {
+  int ftm_driver_flag = ((hdd_adapter_t*)(((VosContextType*)(pSchedContext->pVContext))->pHDDContext))->driver_type;
+
   // Now de-intialize all message queues
 
   // MC HAL
+ 
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s De-Initializing the HAL MC Message queue",__func__);
 
   vos_mq_deinit(&pSchedContext->halMcMq);
 
-  //MC PE
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s De-Initializing the PE MC Message queue",__func__);
-
-  vos_mq_deinit(&pSchedContext->peMcMq);
-
-  //MC SME
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s De-Initializing the SME MC Message queue",__func__);
-
-  vos_mq_deinit(&pSchedContext->smeMcMq);
-
-  //MC TL
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s De-Initializing the TL MC Message queue",__func__);
-
-  vos_mq_deinit(&pSchedContext->tlMcMq);
+  if(ftm_driver_flag == eDRIVER_TYPE_PRODUCTION )
+  {
+     //MC PE
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s De-Initializing the PE MC Message queue",__func__);
+    
+     vos_mq_deinit(&pSchedContext->peMcMq);
+    
+     //MC SME
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s De-Initializing the SME MC Message queue",__func__);
+    
+     vos_mq_deinit(&pSchedContext->smeMcMq);
+    
+     //MC TL
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s De-Initializing the TL MC Message queue",__func__);
+    
+     vos_mq_deinit(&pSchedContext->tlMcMq);
+  }
 
   //MC SYS
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -1183,24 +1202,26 @@ void vos_sched_deinit_mqs ( pVosSchedContext pSchedContext )
 
   vos_mq_deinit(&pSchedContext->sysMcMq);
 
-  //Tx TL
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s De-Initializing the TL Tx Message queue",__func__);
-
-  vos_mq_deinit(&pSchedContext->tlTxMq);
-
-  //Tx SSC
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: DeInitializing the SSC Tx Message queue",__func__);
-
-  vos_mq_deinit(&pSchedContext->sscTxMq);
-
-  //Tx SYS
-  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-            "%s: DeInitializing the SYS Tx Message queue",__func__);
-
-  vos_mq_deinit(&pSchedContext->sysTxMq);
-
+  if(ftm_driver_flag == eDRIVER_TYPE_PRODUCTION )
+  {
+     //Tx TL
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s De-Initializing the TL Tx Message queue",__func__);
+    
+     vos_mq_deinit(&pSchedContext->tlTxMq);
+    
+     //Tx SSC
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: DeInitializing the SSC Tx Message queue",__func__);
+    
+     vos_mq_deinit(&pSchedContext->sscTxMq);
+    
+     //Tx SYS
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: DeInitializing the SYS Tx Message queue",__func__);
+    
+     vos_mq_deinit(&pSchedContext->sysTxMq);
+   }
 } /* vos_sched_deinit_mqs() */
 
 
@@ -1212,6 +1233,8 @@ void vos_sched_flush_mc_mqs ( pVosSchedContext pSchedContext )
   pVosMsgWrapper pMsgWrapper = NULL;
 
   pVosContextType vosCtx = (pVosContextType)(pSchedContext->pVContext);
+  
+  int ftm_driver_flag = ((hdd_adapter_t*)(((VosContextType*)(pSchedContext->pVContext))->pHDDContext))->driver_type;
 
   /*
   ** Here each of the MC thread MQ shall be drained and returned to the
@@ -1249,40 +1272,43 @@ void vos_sched_flush_mc_mqs ( pVosSchedContext pSchedContext )
     vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
   }
 
-  /* Flush the PE Mq */
-  while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->peMcMq) ))
+  if(ftm_driver_flag == eDRIVER_TYPE_PRODUCTION)
   {
-    VOS_TRACE( VOS_MODULE_ID_VOSS,
-               VOS_TRACE_LEVEL_INFO,
-               "%s: Freeing MC PE MSG message type %d",__func__,
-               pMsgWrapper->pVosMsg->type );
-
-    peFreeMsg(vosCtx->pMACContext, (tSirMsgQ*)pMsgWrapper->pVosMsg);
-    vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
-  }
-
-  /* Flush the SME Mq */
-  while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->smeMcMq) ))
-  {
-    VOS_TRACE( VOS_MODULE_ID_VOSS,
-               VOS_TRACE_LEVEL_INFO,
-               "%s: Freeing MC SME MSG message type %d", __func__,
-               pMsgWrapper->pVosMsg->type );
-
-    sme_FreeMsg(vosCtx->pMACContext, pMsgWrapper->pVosMsg);
-    vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
-  }
-
-    /* Flush the TL Mq */
-  while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->tlMcMq) ))
-  {
-    VOS_TRACE( VOS_MODULE_ID_VOSS,
-               VOS_TRACE_LEVEL_INFO,
-               "%s: Freeing MC TL message type %d",__func__,
-               pMsgWrapper->pVosMsg->type );
-
-    WLANTL_McFreeMsg(pSchedContext->pVContext, pMsgWrapper->pVosMsg);
-    vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
+     /* Flush the PE Mq */
+     while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->peMcMq) ))
+     {
+       VOS_TRACE( VOS_MODULE_ID_VOSS,
+                  VOS_TRACE_LEVEL_INFO,
+                  "%s: Freeing MC PE MSG message type %d",__func__,
+                  pMsgWrapper->pVosMsg->type );
+    
+       peFreeMsg(vosCtx->pMACContext, (tSirMsgQ*)pMsgWrapper->pVosMsg);
+       vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
+     }
+    
+     /* Flush the SME Mq */
+     while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->smeMcMq) ))
+     {
+       VOS_TRACE( VOS_MODULE_ID_VOSS,
+                  VOS_TRACE_LEVEL_INFO,
+                  "%s: Freeing MC SME MSG message type %d", __func__,
+                  pMsgWrapper->pVosMsg->type );
+    
+       sme_FreeMsg(vosCtx->pMACContext, pMsgWrapper->pVosMsg);
+       vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
+     }
+    
+       /* Flush the TL Mq */
+     while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->tlMcMq) ))
+     {
+       VOS_TRACE( VOS_MODULE_ID_VOSS,
+                  VOS_TRACE_LEVEL_INFO,
+                  "%s: Freeing MC TL message type %d",__func__,
+                  pMsgWrapper->pVosMsg->type );
+    
+       WLANTL_McFreeMsg(pSchedContext->pVContext, pMsgWrapper->pVosMsg);
+       vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
+     }
   }
 
 } /* vos_sched_flush_mc_mqs() */
