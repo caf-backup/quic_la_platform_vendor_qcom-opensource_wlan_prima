@@ -63,7 +63,7 @@
 #define WE_GET_TX_RATE        2
 #define WE_GET_FTM_VERSION   3
 #define WE_GET_FTM_STATUS    4
-
+#define WE_GET_RX_RSSI       5
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_FTM_PRIV_SET_NONE_GET_NONE   (SIOCIWFIRSTPRIV + 6)
@@ -189,6 +189,8 @@ typedef struct rateStr2rateIndex_s
                          (((tANI_U16)(A) & 0x00ff) << 8)   \
                       )
 #define PTT_HEADER_LENGTH 8
+
+#define FTM_VOS_EVENT_WAIT_TIME 10000
 
 #define SIZE_OF_TABLE(a) sizeof(a)/sizeof(a[0])                      
 

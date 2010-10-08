@@ -7048,7 +7048,7 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 type, tSirSmeRsp *pSir
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirSmeDeauthInd *pDeauthIndMsg;
     tSirSmeDisassocInd *pDisassocIndMsg;
-    eCsrRoamResult result = eCSR_ROAM_RESULT_LOSTLINK;
+    eCsrRoamResult result;
     tCsrRoamInfo *pRoamInfo = NULL;
     tCsrRoamInfo roamInfo;
 
@@ -7059,7 +7059,11 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 type, tSirSmeRsp *pSir
     }
     else if ( eWNI_SME_DEAUTH_IND == type )
     {
-        result = eCSR_ROAM_RESULT_DEAUTH_IND;
+        pDeauthIndMsg = (tSirSmeDeauthInd *)pSirMsg;
+        if(pDeauthIndMsg->statusCode == eSIR_SME_LOST_LINK_WITH_PEER_RESULT_CODE)
+            result = eCSR_ROAM_RESULT_DEAUTH_IND_HB_FAILURE;
+        else
+            result = eCSR_ROAM_RESULT_DEAUTH_IND;
     }
     else
     {
@@ -9101,20 +9105,33 @@ VOS_STATUS csrRoamTrafficIndCallback(tHalHandle hHal,
 {
    tpAniSirGlobal pMac = PMAC_STRUCT( context );
 
-   /* if RT traffic is on ignore the NRT traffic on indication for now, as soon
-      as RT traffic goes off we can decide if we need to move to NRT or NT*/
-   if((pMac->roam.handoffInfo.isNrtTrafficOn != trafficStatus.nrtTrafficStatus) &&
-      pMac->roam.handoffInfo.isRtTrafficOn)
+   /* 1. First Check the change of Traffic with RT -- if RT Traffic changed
+    * then update the RT status and sub-state (to 17) also.
+    * 2. Then check for the NRT traffic -- if NRT traffic also changed then
+    * just change the status but sub-state will be of RT (17) only.
+    * 3. If NRT traffic is there and RT is absent then "second if" only gets
+    * executed and updates the status of NRT and changes the sub-state (to 16)
+    *
+    * sub-state		NRT		RT
+    * ---------		---		---
+    *  15		Initially	Initially
+    *  15		0		0
+    *  17		0		1
+    *  16		1		0
+    *  17		1		1
+    *  */
+
+   if(pMac->roam.handoffInfo.isRtTrafficOn != trafficStatus.rtTrafficStatus)
    {
-       if(WLANTL_HO_NRT_TRAFFIC_STATUS_ON == trafficStatus.nrtTrafficStatus)
-       {
-          pMac->roam.handoffInfo.isNrtTrafficOn = TRUE;
-       }
-       else
-       {
-          pMac->roam.handoffInfo.isNrtTrafficOn = FALSE;
-       }
-       return VOS_STATUS_SUCCESS;
+      smsLog(pMac, LOGW, "csrRoamTrafficIndCallback: RT traffic status %d\n", trafficStatus.rtTrafficStatus);
+      if(WLANTL_HO_RT_TRAFFIC_STATUS_ON == trafficStatus.rtTrafficStatus)
+      {
+         csrRoamProcessRtTrafficOnInd(pMac);
+      }
+      else
+      {
+         csrRoamProcessRtTrafficOffInd(pMac);
+      }
    }
 
    if(pMac->roam.handoffInfo.isNrtTrafficOn != trafficStatus.nrtTrafficStatus)
@@ -9127,19 +9144,6 @@ VOS_STATUS csrRoamTrafficIndCallback(tHalHandle hHal,
       else
       {
          csrRoamProcessNrtTrafficOffInd(pMac);
-      }
-   }
-
-   if(pMac->roam.handoffInfo.isRtTrafficOn != trafficStatus.rtTrafficStatus)
-   {
-      smsLog(pMac, LOGW, "csrRoamTrafficIndCallback: RT traffic status %d\n", trafficStatus.rtTrafficStatus);
-      if(WLANTL_HO_RT_TRAFFIC_STATUS_ON == trafficStatus.rtTrafficStatus)
-      {
-         csrRoamProcessRtTrafficOnInd(pMac);
-      }
-      else
-      {
-         csrRoamProcessRtTrafficOffInd(pMac);
       }
    }
 

@@ -131,20 +131,20 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
-                    { -125 },                       //RF_CHAN_1,
-                    { -125 },                       //RF_CHAN_2,
-                    { -125 },                       //RF_CHAN_3,
-                    { -125 },                       //RF_CHAN_4,
-                    { -125 },                       //RF_CHAN_5,
-                    { -125 },                       //RF_CHAN_6,
-                    { -125 },                       //RF_CHAN_7,
-                    { -125 },                       //RF_CHAN_8,
-                    { -125 },                       //RF_CHAN_9,
-                    { -125 },                       //RF_CHAN_10,
-                    { -125 },                       //RF_CHAN_11,
-                    { -125 },                       //RF_CHAN_12,
-                    { -125 },                       //RF_CHAN_13,
-                    { -125 },                       //RF_CHAN_14,
+                    { 0 },                       //RF_CHAN_1,
+                    { 0 },                       //RF_CHAN_2,
+                    { 0 },                       //RF_CHAN_3,
+                    { 0 },                       //RF_CHAN_4,
+                    { 0 },                       //RF_CHAN_5,
+                    { 0 },                       //RF_CHAN_6,
+                    { 0 },                       //RF_CHAN_7,
+                    { 0 },                       //RF_CHAN_8,
+                    { 0 },                       //RF_CHAN_9,
+                    { 0 },                       //RF_CHAN_10,
+                    { 0 },                       //RF_CHAN_11,
+                    { 0 },                       //RF_CHAN_12,
+                    { 0 },                       //RF_CHAN_13,
+                    { 0 },                       //RF_CHAN_14,
                 }, // bRatePowerOffset end
 
                 { // gnRatePowerOffset start
@@ -192,20 +192,20 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
-                    { -125 },                       //RF_CHAN_1,
-                    { -125 },                       //RF_CHAN_2,
-                    { -125 },                       //RF_CHAN_3,
-                    { -125 },                       //RF_CHAN_4,
-                    { -125 },                       //RF_CHAN_5,
-                    { -125 },                       //RF_CHAN_6,
-                    { -125 },                       //RF_CHAN_7,
-                    { -125 },                       //RF_CHAN_8,
-                    { -125 },                       //RF_CHAN_9,
-                    { -125 },                       //RF_CHAN_10,
-                    { -125 },                       //RF_CHAN_11,
-                    { -125 },                       //RF_CHAN_12,
-                    { -125 },                       //RF_CHAN_13,
-                    { -125 },                       //RF_CHAN_14,
+                    { 0 },                       //RF_CHAN_1,
+                    { 0 },                       //RF_CHAN_2,
+                    { 0 },                       //RF_CHAN_3,
+                    { 0 },                       //RF_CHAN_4,
+                    { 0 },                       //RF_CHAN_5,
+                    { 0 },                       //RF_CHAN_6,
+                    { 0 },                       //RF_CHAN_7,
+                    { 0 },                       //RF_CHAN_8,
+                    { 0 },                       //RF_CHAN_9,
+                    { 0 },                       //RF_CHAN_10,
+                    { 0 },                       //RF_CHAN_11,
+                    { 0 },                       //RF_CHAN_12,
+                    { 0 },                       //RF_CHAN_13,
+                    { 0 },                       //RF_CHAN_14,
                 }, // bRatePowerOffset end
 
                 { // gnRatePowerOffset start
@@ -253,20 +253,20 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
-                    { -125 },                       //RF_CHAN_1,
-                    { -125 },                       //RF_CHAN_2,
-                    { -125 },                       //RF_CHAN_3,
-                    { -125 },                       //RF_CHAN_4,
-                    { -125 },                       //RF_CHAN_5,
-                    { -125 },                       //RF_CHAN_6,
-                    { -125 },                       //RF_CHAN_7,
-                    { -125 },                       //RF_CHAN_8,
-                    { -125 },                       //RF_CHAN_9,
-                    { -125 },                       //RF_CHAN_10,
-                    { -125 },                       //RF_CHAN_11,
-                    { -125 },                       //RF_CHAN_12,
-                    { -125 },                       //RF_CHAN_13,
-                    { -125 },                       //RF_CHAN_14,
+                    { 0 },                       //RF_CHAN_1,
+                    { 0 },                       //RF_CHAN_2,
+                    { 0 },                       //RF_CHAN_3,
+                    { 0 },                       //RF_CHAN_4,
+                    { 0 },                       //RF_CHAN_5,
+                    { 0 },                       //RF_CHAN_6,
+                    { 0 },                       //RF_CHAN_7,
+                    { 0 },                       //RF_CHAN_8,
+                    { 0 },                       //RF_CHAN_9,
+                    { 0 },                       //RF_CHAN_10,
+                    { 0 },                       //RF_CHAN_11,
+                    { 0 },                       //RF_CHAN_12,
+                    { 0 },                       //RF_CHAN_13,
+                    { 0 },                       //RF_CHAN_14,
                 }, // bRatePowerOffset end
 
                 { // gnRatePowerOffset start
@@ -314,20 +314,20 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
-                    { -125 },                       //RF_CHAN_1,
-                    { -125 },                       //RF_CHAN_2,
-                    { -125 },                       //RF_CHAN_3,
-                    { -125 },                       //RF_CHAN_4,
-                    { -125 },                       //RF_CHAN_5,
-                    { -125 },                       //RF_CHAN_6,
-                    { -125 },                       //RF_CHAN_7,
-                    { -125 },                       //RF_CHAN_8,
-                    { -125 },                       //RF_CHAN_9,
-                    { -125 },                       //RF_CHAN_10,
-                    { -125 },                       //RF_CHAN_11,
-                    { -125 },                       //RF_CHAN_12,
-                    { -125 },                       //RF_CHAN_13,
-                    { -125 },                       //RF_CHAN_14,
+                    { 0 },                       //RF_CHAN_1,
+                    { 0 },                       //RF_CHAN_2,
+                    { 0 },                       //RF_CHAN_3,
+                    { 0 },                       //RF_CHAN_4,
+                    { 0 },                       //RF_CHAN_5,
+                    { 0 },                       //RF_CHAN_6,
+                    { 0 },                       //RF_CHAN_7,
+                    { 0 },                       //RF_CHAN_8,
+                    { 0 },                       //RF_CHAN_9,
+                    { 0 },                       //RF_CHAN_10,
+                    { 0 },                       //RF_CHAN_11,
+                    { 0 },                       //RF_CHAN_12,
+                    { 0 },                       //RF_CHAN_13,
+                    { 0 },                       //RF_CHAN_14,
                 }, // bRatePowerOffset end
 
                 { // gnRatePowerOffset start
@@ -375,20 +375,20 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
-                    { -125 },                       //RF_CHAN_1,
-                    { -125 },                       //RF_CHAN_2,
-                    { -125 },                       //RF_CHAN_3,
-                    { -125 },                       //RF_CHAN_4,
-                    { -125 },                       //RF_CHAN_5,
-                    { -125 },                       //RF_CHAN_6,
-                    { -125 },                       //RF_CHAN_7,
-                    { -125 },                       //RF_CHAN_8,
-                    { -125 },                       //RF_CHAN_9,
-                    { -125 },                       //RF_CHAN_10,
-                    { -125 },                       //RF_CHAN_11,
-                    { -125 },                       //RF_CHAN_12,
-                    { -125 },                       //RF_CHAN_13,
-                    { -125 },                       //RF_CHAN_14,
+                    { 0 },                       //RF_CHAN_1,
+                    { 0 },                       //RF_CHAN_2,
+                    { 0 },                       //RF_CHAN_3,
+                    { 0 },                       //RF_CHAN_4,
+                    { 0 },                       //RF_CHAN_5,
+                    { 0 },                       //RF_CHAN_6,
+                    { 0 },                       //RF_CHAN_7,
+                    { 0 },                       //RF_CHAN_8,
+                    { 0 },                       //RF_CHAN_9,
+                    { 0 },                       //RF_CHAN_10,
+                    { 0 },                       //RF_CHAN_11,
+                    { 0 },                       //RF_CHAN_12,
+                    { 0 },                       //RF_CHAN_13,
+                    { 0 },                       //RF_CHAN_14,
                 }, // bRatePowerOffset end
 
                 { // gnRatePowerOffset start
@@ -436,20 +436,20 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
-                    { -125 },                       //RF_CHAN_1,
-                    { -125 },                       //RF_CHAN_2,
-                    { -125 },                       //RF_CHAN_3,
-                    { -125 },                       //RF_CHAN_4,
-                    { -125 },                       //RF_CHAN_5,
-                    { -125 },                       //RF_CHAN_6,
-                    { -125 },                       //RF_CHAN_7,
-                    { -125 },                       //RF_CHAN_8,
-                    { -125 },                       //RF_CHAN_9,
-                    { -125 },                       //RF_CHAN_10,
-                    { -125 },                       //RF_CHAN_11,
-                    { -125 },                       //RF_CHAN_12,
-                    { -125 },                       //RF_CHAN_13,
-                    { -125 },                       //RF_CHAN_14,
+                    { 0 },                       //RF_CHAN_1,
+                    { 0 },                       //RF_CHAN_2,
+                    { 0 },                       //RF_CHAN_3,
+                    { 0 },                       //RF_CHAN_4,
+                    { 0 },                       //RF_CHAN_5,
+                    { 0 },                       //RF_CHAN_6,
+                    { 0 },                       //RF_CHAN_7,
+                    { 0 },                       //RF_CHAN_8,
+                    { 0 },                       //RF_CHAN_9,
+                    { 0 },                       //RF_CHAN_10,
+                    { 0 },                       //RF_CHAN_11,
+                    { 0 },                       //RF_CHAN_12,
+                    { 0 },                       //RF_CHAN_13,
+                    { 0 },                       //RF_CHAN_14,
                 }, // bRatePowerOffset end
 
                 { // gnRatePowerOffset start
@@ -497,20 +497,20 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
-                    { -125 },                       //RF_CHAN_1,
-                    { -125 },                       //RF_CHAN_2,
-                    { -125 },                       //RF_CHAN_3,
-                    { -125 },                       //RF_CHAN_4,
-                    { -125 },                       //RF_CHAN_5,
-                    { -125 },                       //RF_CHAN_6,
-                    { -125 },                       //RF_CHAN_7,
-                    { -125 },                       //RF_CHAN_8,
-                    { -125 },                       //RF_CHAN_9,
-                    { -125 },                       //RF_CHAN_10,
-                    { -125 },                       //RF_CHAN_11,
-                    { -125 },                       //RF_CHAN_12,
-                    { -125 },                       //RF_CHAN_13,
-                    { -125 },                       //RF_CHAN_14,
+                    { 0 },                       //RF_CHAN_1,
+                    { 0 },                       //RF_CHAN_2,
+                    { 0 },                       //RF_CHAN_3,
+                    { 0 },                       //RF_CHAN_4,
+                    { 0 },                       //RF_CHAN_5,
+                    { 0 },                       //RF_CHAN_6,
+                    { 0 },                       //RF_CHAN_7,
+                    { 0 },                       //RF_CHAN_8,
+                    { 0 },                       //RF_CHAN_9,
+                    { 0 },                       //RF_CHAN_10,
+                    { 0 },                       //RF_CHAN_11,
+                    { 0 },                       //RF_CHAN_12,
+                    { 0 },                       //RF_CHAN_13,
+                    { 0 },                       //RF_CHAN_14,
                 }, // bRatePowerOffset end
 
                 { // gnRatePowerOffset start
@@ -558,20 +558,20 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
-                    { -125 },                       //RF_CHAN_1,
-                    { -125 },                       //RF_CHAN_2,
-                    { -125 },                       //RF_CHAN_3,
-                    { -125 },                       //RF_CHAN_4,
-                    { -125 },                       //RF_CHAN_5,
-                    { -125 },                       //RF_CHAN_6,
-                    { -125 },                       //RF_CHAN_7,
-                    { -125 },                       //RF_CHAN_8,
-                    { -125 },                       //RF_CHAN_9,
-                    { -125 },                       //RF_CHAN_10,
-                    { -125 },                       //RF_CHAN_11,
-                    { -125 },                       //RF_CHAN_12,
-                    { -125 },                       //RF_CHAN_13,
-                    { -125 },                       //RF_CHAN_14,
+                    { 0 },                       //RF_CHAN_1,
+                    { 0 },                       //RF_CHAN_2,
+                    { 0 },                       //RF_CHAN_3,
+                    { 0 },                       //RF_CHAN_4,
+                    { 0 },                       //RF_CHAN_5,
+                    { 0 },                       //RF_CHAN_6,
+                    { 0 },                       //RF_CHAN_7,
+                    { 0 },                       //RF_CHAN_8,
+                    { 0 },                       //RF_CHAN_9,
+                    { 0 },                       //RF_CHAN_10,
+                    { 0 },                       //RF_CHAN_11,
+                    { 0 },                       //RF_CHAN_12,
+                    { 0 },                       //RF_CHAN_13,
+                    { 0 },                       //RF_CHAN_14,
                 }, // bRatePowerOffset end
 
                 { // gnRatePowerOffset start
@@ -619,20 +619,20 @@ const sHalNv nvDefaults =
 
                 { // bRatePowerOffset start
                     //2.4GHz Band
-                    { -125 },                       //RF_CHAN_1,
-                    { -125 },                       //RF_CHAN_2,
-                    { -125 },                       //RF_CHAN_3,
-                    { -125 },                       //RF_CHAN_4,
-                    { -125 },                       //RF_CHAN_5,
-                    { -125 },                       //RF_CHAN_6,
-                    { -125 },                       //RF_CHAN_7,
-                    { -125 },                       //RF_CHAN_8,
-                    { -125 },                       //RF_CHAN_9,
-                    { -125 },                       //RF_CHAN_10,
-                    { -125 },                       //RF_CHAN_11,
-                    { -125 },                       //RF_CHAN_12,
-                    { -125 },                       //RF_CHAN_13,
-                    { -125 },                       //RF_CHAN_14,
+                    { 0 },                       //RF_CHAN_1,
+                    { 0 },                       //RF_CHAN_2,
+                    { 0 },                       //RF_CHAN_3,
+                    { 0 },                       //RF_CHAN_4,
+                    { 0 },                       //RF_CHAN_5,
+                    { 0 },                       //RF_CHAN_6,
+                    { 0 },                       //RF_CHAN_7,
+                    { 0 },                       //RF_CHAN_8,
+                    { 0 },                       //RF_CHAN_9,
+                    { 0 },                       //RF_CHAN_10,
+                    { 0 },                       //RF_CHAN_11,
+                    { 0 },                       //RF_CHAN_12,
+                    { 0 },                       //RF_CHAN_13,
+                    { 0 },                       //RF_CHAN_14,
                 }, // bRatePowerOffset end
 
                 { // gnRatePowerOffset start

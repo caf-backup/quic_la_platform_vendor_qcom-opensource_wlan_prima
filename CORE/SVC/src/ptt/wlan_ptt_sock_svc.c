@@ -15,9 +15,7 @@
 #include <vos_types.h>
 #include <vos_trace.h>
 
-#ifdef ANI_MANF_DIAG
 #include <wlan_hdd_ftm.h>
-#endif
 
 
 #define PTT_SOCK_DEBUG
@@ -281,11 +279,9 @@ static void ptt_proc_quarky_msg(tAniNlHdr *wnl, tAniHdr *wmsg, int radio)
             ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, wnl->nlh.nlmsg_pid);
             break;
 
-#ifdef ANI_MANF_DIAG
          case PTT_MSG_FTM_CMDS_TYPE:
             wlan_hdd_process_ftm_cmd(pAdapterHandle,wnl);
             break;
-#endif
 
          default:
             PTT_TRACE(VOS_TRACE_LEVEL_ERROR, "%s: Unknown ANI Msg [0x%X], length [0x%X]\n",

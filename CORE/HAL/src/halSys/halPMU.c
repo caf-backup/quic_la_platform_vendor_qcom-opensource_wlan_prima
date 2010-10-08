@@ -29,7 +29,6 @@ halPMU_Start(
     // in DXE clock gating.
     halWriteRegister(pMac,QWLAN_SCU_SYS_DISABLE_CLK_GATING_REG,
                      QWLAN_SCU_SYS_DISABLE_CLK_GATING_DXE_DISABLE_CLK_GATING_MASK);
-    halWriteRegister(pMac, QWLAN_MCU_MAC_CLK_GATING_ENABLE_REG, 0xffff);
 
     // enable pmu_ana_deep_sleep_en in ldo_ctrl_reg
     regValue  = QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_DEEP_SLEEP_EN_MASK |

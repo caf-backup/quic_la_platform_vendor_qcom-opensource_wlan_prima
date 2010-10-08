@@ -12,21 +12,13 @@ PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/firmware_bin/qcom_cfg.ini:sys
 ACP_BINARY_OUT := $(HOST_OUT)/bin/acp
 MAKE_MODULES_FOLDER := $(TARGET_OUT)/lib/modules
 WLAN_OUT := $(TARGET_OUT_INTERMEDIATES)/vendor/qcom/proprietary/wlan/CORE/HDD/src/libra.ko
-WLAN_FTM_OUT := $(TARGET_OUT_INTERMEDIATES)/vendor/qcom/proprietary/wlan/ftm/CORE/HDD/src/libra_ftm.ko
 WLAN_PRODUCT_OUT := $(TARGET_OUT)/lib/modules/libra.ko
-WLAN_FTM_PRODUCT_OUT := $(TARGET_OUT)/lib/modules/libra_ftm.ko
 WLAN_LIBRA_SDIOIF_OUT :=  $(TARGET_OUT)/lib/modules/librasdioif.ko
 
 file := $(WLAN_OUT)
 ALL_PREBUILT += $(file)
 
-file := $(WLAN_FTM_OUT)
-ALL_PREBUILT += $(file)
-
 file := $(WLAN_PRODUCT_OUT)
-ALL_PREBUILT += $(file)
-
-file := $(WLAN_FTM_PRODUCT_OUT)
 ALL_PREBUILT += $(file)
 
 file := $(WLAN_LIBRA_SDIOIF_OUT)
@@ -38,18 +30,12 @@ $(MAKE_MODULES_FOLDER) :
 $(WLAN_OUT): kernel $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL)
 	$(MAKE) -C kernel M=../vendor/qcom/proprietary/wlan/CORE/HDD/src O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- 
 
-$(WLAN_FTM_OUT): $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL) $(WLAN_OUT)
-	$(MAKE) -C kernel M=../vendor/qcom/proprietary/wlan/ftm/CORE/HDD/src O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- BUILD_FTM_DRIVER=1
-	
 $(WLAN_PRODUCT_OUT): $(ACP_BINARY_OUT) $(WLAN_OUT) $(MAKE_MODULES_FOLDER)
 	$(ACP) -f $(TARGET_OUT_INTERMEDIATES)/vendor/qcom/proprietary/wlan/CORE/HDD/src/libra.ko $(WLAN_PRODUCT_OUT)
 
-$(WLAN_FTM_PRODUCT_OUT): $(ACP_BINARY_OUT) $(WLAN_PRODUCT_OUT) $(WLAN_FTM_OUT) $(MAKE_MODULES_FOLDER)
-	$(ACP) -f $(TARGET_OUT_INTERMEDIATES)/vendor/qcom/proprietary/wlan/ftm/CORE/HDD/src/libra_ftm.ko $(WLAN_FTM_PRODUCT_OUT)
-	
 $(WLAN_LIBRA_SDIOIF_OUT): $(ACP_BINARY_OUT) $(WLAN_OUT) $(MAKE_MODULES_FOLDER) $(TARGET_PREBUILT_KERNEL)
 	$(ACP) -f $(KERNEL_OUT)/drivers/net/wireless/libra/librasdioif.ko $(WLAN_LIBRA_SDIOIF_OUT)
 
-all: $(WLAN_OUT) $(WLAN_FTM_OUT) $(WLAN_PRODUCT_OUT) $(WLAN_FTM_PRODUCT_OUT) $(WLAN_LIBRA_SDIOIF_OUT) $(MAKE_SYMBOLIC_LINK)
+all: $(WLAN_OUT) $(WLAN_PRODUCT_OUT) $(WLAN_LIBRA_SDIOIF_OUT) $(MAKE_SYMBOLIC_LINK)
 
 endif

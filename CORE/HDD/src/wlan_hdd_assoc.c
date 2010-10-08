@@ -537,7 +537,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
          pAdapter->wapi_info.fIsWapiSta = 0;
       }
 #endif  /* FEATURE_WLAN_WAPI */
-
+	
         // indicate 'connect' status to userspace
         hdd_SendAssociationEvent(dev,pRoamInfo);
 
@@ -559,15 +559,13 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         // Switch on the Carrier to activate the device
         netif_carrier_on(dev);
         
-            
         // Wait for the Link to up to ensure all the queues are set properly by the kernel
         wait_for_completion_interruptible_timeout(&pAdapter->linkup_event_var,
                                                    msecs_to_jiffies(ASSOC_LINKUP_TIMEOUT));
         
         // Disable Linkup Event Servicing - no more service required from the net device notifier call
         pAdapter->isLinkUpSvcNeeded = FALSE;
-
-
+	
         //For reassoc, the station is already registered, all we need is to change the state
         //of the STA in TL.
         //If authentication is required (WPA/WPA2/DWEP), change TL to CONNECTED instead of AUTHENTICATED
@@ -634,7 +632,6 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
 
         // Start the Queue
         netif_start_queue(dev);
-        
     }  
     else 
     {
@@ -1034,7 +1031,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
 {
     eHalStatus halStatus = eHAL_STATUS_SUCCESS;
     hdd_adapter_t *pAdapter = (hdd_adapter_t *)pContext;;
-
+    hdd_wext_state_t *pWextState= pAdapter->pWextState;
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,"CSR Callback: status= %d result= %d roamID=%ld", 
                     roamStatus, roamResult, roamId ); 
 
@@ -1054,7 +1051,25 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                     
         case eCSR_ROAM_ASSOCIATION_COMPLETION:
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "****eCSR_ROAM_ASSOCIATION_COMPLETION****");
-            halStatus = hdd_AssociationCompletionHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
+            if (  (roamResult != eCSR_ROAM_RESULT_ASSOCIATED)
+               && (   (pWextState->roamProfile.EncryptionType.encryptionType[0] == eCSR_ENCRYPT_TYPE_WEP40_STATICKEY) 
+                   || (pWextState->roamProfile.EncryptionType.encryptionType[0] == eCSR_ENCRYPT_TYPE_WEP104_STATICKEY)
+                  )
+               && (eCSR_AUTH_TYPE_SHARED_KEY != pAdapter->conn_info.authType)
+               )
+            {
+                v_U32_t roamId = 0;
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                        "****WEP open authentication failed, trying with shared authentication****");
+                pAdapter->conn_info.authType = eCSR_AUTH_TYPE_SHARED_KEY;
+                pWextState->roamProfile.AuthType.authType[0] = pAdapter->conn_info.authType;
+                halStatus = sme_RoamConnect( pAdapter->hHal, &(pWextState->roamProfile), NULL, &roamId);
+            }
+            else
+            {
+                halStatus = hdd_AssociationCompletionHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
+            }
+
             break;
 
         case eCSR_ROAM_IBSS_IND:

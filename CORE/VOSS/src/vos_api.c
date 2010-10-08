@@ -368,23 +368,12 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
      goto err_sme_close;
    }
 
-   vStatus = WLANBAL_Open(gpVosContext);
-   if(!VOS_IS_STATUS_SUCCESS(vStatus))
-   {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: Failed to open BAL",__func__);
-     goto err_tl_close;
-   }
-
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: VOSS successfully Opened",__func__);
 
    *pVosContext = gpVosContext;
 
    return VOS_STATUS_SUCCESS;
-
-err_tl_close:
-   WLANTL_Close(gpVosContext);
 
 err_sme_close:
    sme_Close(gpVosContext->pMACContext);
@@ -484,19 +473,6 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
      return VOS_STATUS_E_FAILURE;
   }
 
-  /* Start BAL */
-  vStatus = WLANBAL_Start(pVosContext);
-
-  if (!VOS_IS_STATUS_SUCCESS(vStatus))
-  {
-     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-              "%s: Failed to start BAL",__func__);
-     goto err_sal_stop;
-  }
-
-  VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-             "%s: BAL correctly started",__func__);
-
   /* Start the MAC */
   vos_mem_zero((v_PVOID_t)&halStartParams, sizeof(tHalMacStartParameters));
 
@@ -508,7 +484,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
              "%s: Failed to get firmware binary",__func__);
-    goto err_bal_stop;
+    return VOS_STATUS_E_FAILURE;
   }
 
   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
@@ -524,7 +500,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
              "%s: Failed to allocate memory for firmware binary",__func__);
     hdd_release_firmware(LIBRA_FW_FILE, pVosContext->pHDDContext);
-    goto err_bal_stop;
+    return VOS_STATUS_E_FAILURE;
   }
 
   vos_mem_copy(halStartParams.FW.pImage, pFwBinary, numFwBytes);
@@ -545,7 +521,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
               "%s: Failed to start MAC", __func__);
-    goto err_bal_stop;
+    return VOS_STATUS_E_FAILURE;
   }
 
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
@@ -600,12 +576,6 @@ err_sme_stop:
 err_mac_stop:
   macStop(pVosContext->pMACContext, HAL_STOP_TYPE_SYS_RESET);
 
-err_bal_stop:
-  WLANBAL_Stop(pVosContext);
-
-err_sal_stop:
-  WLANSAL_Stop(pVosContext);
-
   return VOS_STATUS_E_FAILURE;
 
 } /* vos_start() */
@@ -633,14 +603,6 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
-  vosStatus = WLANBAL_Stop( vosContext );
-  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-  {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to stop BAL",__func__);
-     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-  }
-
   return VOS_STATUS_SUCCESS;
 }
 
@@ -649,14 +611,6 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
 VOS_STATUS vos_close( v_CONTEXT_t vosContext )
 {
   VOS_STATUS vosStatus;
-
-  vosStatus = WLANBAL_Close(vosContext);
-  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-  {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close BAL",__func__);
-     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-  }
 
   vosStatus = WLANTL_Close(vosContext);
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))

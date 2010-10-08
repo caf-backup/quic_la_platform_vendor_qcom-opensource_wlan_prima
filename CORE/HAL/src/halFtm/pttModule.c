@@ -1338,20 +1338,32 @@ void pttCollectAdcRssiStats(tpAniSirGlobal pMac)
     /*assign rssiValues to response*/
     if(rssi0 > 0)
     {
-        pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] = (tANI_S8)rssi0 + RSSI_TO_DBM_OFFSET + pMac->hphy.nvCache.tables.rssiOffset[PHY_RX_CHAIN_0];
+        pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] = (tANI_S8)rssi0;
     }
 
     if(rssi1 >0)
     {
-        pMac->ptt.rssi.rx[PHY_RX_CHAIN_1] = (tANI_S8)rssi1 + RSSI_TO_DBM_OFFSET+ pMac->hphy.nvCache.tables.rssiOffset[PHY_RX_CHAIN_1];
+        pMac->ptt.rssi.rx[PHY_RX_CHAIN_1] = (tANI_S8)rssi1;
     }
 
 }
 
 void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
 {
-    rssi->rx[PHY_RX_CHAIN_0] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_0];
-    rssi->rx[PHY_RX_CHAIN_1] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_1];
+    eRfChannels curChan = rfGetChannelIndex(pMac->hphy.phy.test.testChannelId, pMac->hphy.phy.test.testCbState);
+    t2Decimal rssiOffset;
+
+    if(curChan == INVALID_RF_CHANNEL)
+    {
+        //default it to channel 1
+        curChan = RF_CHAN_1;
+    }
+
+    //use the gnpower offsets for RSSI as well. make sure you strip off last two decimal places
+    rssiOffset = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].gnRatePowerOffset[curChan].reported / 100;
+
+    rssi->rx[PHY_RX_CHAIN_0] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] + RSSI_TO_DBM_OFFSET + rssiOffset;
+    rssi->rx[PHY_RX_CHAIN_1] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_1] + RSSI_TO_DBM_OFFSET + rssiOffset;
 }
 
 

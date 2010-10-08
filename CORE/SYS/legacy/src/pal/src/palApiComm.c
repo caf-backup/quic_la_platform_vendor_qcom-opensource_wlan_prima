@@ -16,6 +16,21 @@ extern tSirRetStatus halMmhForwardMBmsg(void*, tSirMbMsg*);
 
 
 
+#ifdef MEMORY_DEBUG
+eHalStatus palAllocateMemory_debug( tHddHandle hHdd, void **ppMemory, tANI_U32 numBytes, tANI_U8* fileName, tANI_U32 lineNum )
+{
+   eHalStatus halStatus = eHAL_STATUS_SUCCESS;
+   
+   *ppMemory = vos_mem_malloc_debug( numBytes, fileName, lineNum );
+   
+   if ( NULL == *ppMemory ) 
+   {
+      halStatus = eHAL_STATUS_FAILURE;
+   }
+   
+   return( halStatus );
+}
+#else
 eHalStatus palAllocateMemory( tHddHandle hHdd, void **ppMemory, tANI_U32 numBytes )
 {
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
@@ -29,7 +44,7 @@ eHalStatus palAllocateMemory( tHddHandle hHdd, void **ppMemory, tANI_U32 numByte
    
    return( halStatus );
 }
-
+#endif
 
 
 eHalStatus palFreeMemory( tHddHandle hHdd, void *pMemory )
