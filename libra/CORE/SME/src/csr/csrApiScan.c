@@ -3811,42 +3811,39 @@ tANI_BOOLEAN csrIsDuplicateBssDescription( tpAniSirGlobal pMac, tSirBssDescripti
     pCap2 = (tSirMacCapabilityInfo *)&pSirBssDesc2->capabilityInfo;
     if(pCap1->ess == pCap2->ess)
     {
-        if(( csrIsNetworkTypeEqual( pSirBssDesc1, pSirBssDesc2 ) ))
+        if (pCap1->ess && 
+                csrIsMacAddressEqual( pMac, (tCsrBssid *)pSirBssDesc1->bssId, (tCsrBssid *)pSirBssDesc2->bssId))
         {
-            if (pCap1->ess && 
-                    csrIsMacAddressEqual( pMac, (tCsrBssid *)pSirBssDesc1->bssId, (tCsrBssid *)pSirBssDesc2->bssId))
-            {
-                fMatch = TRUE;
-            }
-            else if (pCap1->ibss && (pSirBssDesc1->channelId == pSirBssDesc2->channelId))
-            {
-                tDot11fBeaconIEs *pIesTemp = pIes2;
+            fMatch = TRUE;
+        }
+        else if (pCap1->ibss && (pSirBssDesc1->channelId == pSirBssDesc2->channelId))
+        {
+            tDot11fBeaconIEs *pIesTemp = pIes2;
 
-                do
+            do
+            {
+                if(!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc1, &pIes1)))
                 {
-                    if(!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc1, &pIes1)))
+                    break;
+                }
+				    if( NULL == pIesTemp )
+                {
+				        if(!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc2, &pIesTemp)))
                     {
                         break;
                     }
-					if( NULL == pIesTemp )
-					{
-						if(!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc2, &pIesTemp)))
-                        {
-                            break;
-                        }
-					}
-                    //Same channel cannot have same SSID for different IBSS
-                    if(pIes1->SSID.present && pIesTemp->SSID.present)
-                    {
-                        fMatch = csrIsSsidMatch(pMac, pIes1->SSID.ssid, pIes1->SSID.num_ssid, 
-                                                pIesTemp->SSID.ssid, pIesTemp->SSID.num_ssid, eANI_BOOLEAN_TRUE);
-                    }
-                }while(0);
-                if( (NULL == pIes2) && pIesTemp )
-                {
-					//locally allocated
-                    palFreeMemory(pMac->hHdd, pIesTemp);
                 }
+                //Same channel cannot have same SSID for different IBSS
+                if(pIes1->SSID.present && pIesTemp->SSID.present)
+                {
+                    fMatch = csrIsSsidMatch(pMac, pIes1->SSID.ssid, pIes1->SSID.num_ssid, 
+                                            pIesTemp->SSID.ssid, pIesTemp->SSID.num_ssid, eANI_BOOLEAN_TRUE);
+                }
+            }while(0);
+            if( (NULL == pIes2) && pIesTemp )
+            {
+		          //locally allocated
+                palFreeMemory(pMac->hHdd, pIesTemp);
             }
         }
     }

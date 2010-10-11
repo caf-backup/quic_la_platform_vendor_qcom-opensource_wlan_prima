@@ -2104,12 +2104,14 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_NTH_BEACON_FILTER configuration info to CCM\n"  );
 	 }
 
+#ifdef WLAN_SOFTAP_FEATURE
      if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE, pConfig->nEnableListenMode, 
         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
      {
         fStatus = FALSE;
         hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE to CCM\n");
      }
+#endif
 
 	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RF_SETTLING_TIME_CLK, pConfig->rfSettlingTimeClk, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)

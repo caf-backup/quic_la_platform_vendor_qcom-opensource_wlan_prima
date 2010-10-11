@@ -26,7 +26,6 @@
 #include "halRegBckup.h"
 #include <ani_assert.h>
 
-void setFrameFilterMaskForScan (tpAniSirGlobal pMac, tHalRxpModeFlag rxpMode);
 /* -------------------------------------------------------------------------
  * local definitions
  */
@@ -38,7 +37,6 @@ void setFrameFilterMaskForScan (tpAniSirGlobal pMac, tHalRxpModeFlag rxpMode);
 #define RXP_STALL_TIMEOUT_VALUE 0x2000
 #define HAL_RXP_TYPE_SUBTYPE_MASK 0xffff0000
 
-#define BTAMP_STA_RF_FIX
 typedef struct sRxpFilterConfig {
     tFrameType  frameType;
     tANI_U32    configValue;
@@ -3177,6 +3175,8 @@ void halRxp_setSystemRxpFilterMode(tpAniSirGlobal pMac,
     tANI_U32 finalRegHi = 0;
     tANI_U32 finalRegLo = 0;
     tANI_U32 bssIndex;
+    tANI_U32 maskValue = 0;
+    tANI_U32 bssMaskValue = 0;
     
     tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;
 
@@ -3186,19 +3186,12 @@ void halRxp_setSystemRxpFilterMode(tpAniSirGlobal pMac,
         return;
     }
 
-    HALLOG1(halLog( pMac, LOG1, 
-        FL("rxpMode = %x mode_flag=%s \n"), 
-        rxpMode, ((mode_flag==1) ? "SET" : "CLEAR")));
-    HALLOG1(halLog(pMac,LOG1,FL("#### halRxp_setSystemRxpFilterMode ####\n")));
-    HALLOG1(halLog(pMac,LOG1,FL("#### Mode Requested #### = %d\n"), rxpMode));
-
     switch (mode_flag) 
     {
         // Just the BSS settings are valid.
         case eHAL_USE_BSS_RXP:
             // This will be overriden by the BSS specific 
             // rxpMode.
-            HALLOG1(halLog(pMac,LOG1,FL("### IN IDLE MODE, DROP ALL FRAMES #### \n")));
             regHi = RXP_DROP_ALL_FRAME_TYPES;
             regLo = RXP_DROP_ALL_FRAME_TYPES;
             halRxp_storeSystemRxpMode(pMac, eRXP_IDLE_MODE);
@@ -3216,20 +3209,20 @@ void halRxp_setSystemRxpFilterMode(tpAniSirGlobal pMac,
     finalRegLo = regLo;
     finalRegHi = regHi;
 
+    /* Retrive the mask value for the current Rxp Mode */
+    maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
+
     for( bssIndex=0; bssIndex < pMac->hal.halMac.maxBssId; bssIndex++ )
     {
         if (bssTable[bssIndex].valid == 0) continue;
 
         // OK so we have the entry we need.
-        HALLOG1( halLog( pMac, LOG1, FL("Set global system rxpmode - %x\n"), 
-                bssTable[bssIndex].bssRxpMode));
-
 		halRxp_GetRegValRxpMode(pMac, bssTable[bssIndex].bssRxpMode, 
                 &regLo, &regHi);
         	 
-        HALLOG1( halLog( pMac, LOG1, FL("finalRegLo - %x finalRegHi = %x\n"), 
-            finalRegLo, finalRegHi));
-
+        /* Retrieve the mask value for the stored BSS RXP Mode */
+        bssMaskValue = halRxp_getFrameFilterMaskForMode (pMac, bssTable[bssIndex].bssRxpMode);
+        	 
         finalRegLo = finalRegLo & regLo;
         finalRegHi = finalRegHi & regHi;
    
@@ -3238,32 +3231,14 @@ void halRxp_setSystemRxpFilterMode(tpAniSirGlobal pMac,
      }
 
      setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
-    /* Set Frame FilterMask if it is in SCAN Mode */
-     setFrameFilterMaskForScan(pMac, rxpMode);
+     if (rxpMode != eRXP_SCAN_MODE)
+         maskValue =  bssMaskValue;
 
-    HALLOG1( halLog( pMac, LOG1, 
-        FL("NEW rxpMode = %x mode_flag=%s RegLo=%x RegHi=%x\n"), 
-        rxpMode, ((mode_flag==1) ? "SET" : "CLEAR"),
-        finalRegLo, finalRegHi));
+     halRxp_setFrameFilterMaskForBcnProbeRsp(pMac, maskValue);
 
     if ( halRxp_enable(pMac) != eHAL_STATUS_SUCCESS )
          HALLOGE( halLog( pMac, LOGE, "Failed to set ENABLE RXP \n"));
 
-    return;
-}
-
-void setFrameFilterMaskForScan (tpAniSirGlobal pMac, tHalRxpModeFlag rxpMode)
-{
-    tANI_U32 value = 0;
-
-    if (eRXP_SCAN_MODE == rxpMode) {
-        HALLOGE( halLog( pMac, LOGE,"### IN SCAN MODE, Apply Addr2 filters #####\n"));
-        // Accept beacons and probe responses from all address2
-        value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3);
-        halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
-        halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
-		
-    }
     return;
 }
 
@@ -3281,7 +3256,7 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
     tANI_U32 finalRegHi = 0;
     tANI_U32 finalRegLo = 0;
     int i=0, found = 0;
-    tANI_U32 value = 0;
+    tANI_U32 maskValue = 0;
     tRxpMode systemRxpMode = halRxp_getSystemRxpMode(pMac);
     tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;
 
@@ -3330,7 +3305,6 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
     // Apply the settings.
     setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
 
-#ifdef BTAMP_STA_RF_FIX
     switch (rxpMode) {
 
         case eRXP_IDLE_MODE:
@@ -3342,9 +3316,8 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
             setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
             // Unblock the A2 filter for beacons & probe repsonses, 
             // Accept beacons and probe responses from all address2
-            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3);
-            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
-            halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
+            maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
+            halRxp_setFrameFilterMaskForBcnProbeRsp(pMac, maskValue);
             break;
 
         case eRXP_BTAMP_PREASSOC_MODE:
@@ -3357,17 +3330,8 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
             setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
 
             // Accept only beacons & probe responses from specific address2, rest filter it out.
-            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3);
-            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
-            halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
-            // NOTE: Apply filters in Rxp to accept Auth and (Re)Assoc from addr1, 
-            // because after adding the addr2 entry of the BSS to which we are 
-            // about to connect Auth & Assoc do not pass through the filter if we 
-            // have ADDR2_ACCEPT_ALL, so applying only ADDR1 filter.
-            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER);
-            halRxp_setFrameFilterMask(pMac, eMGMT_AUTH, value);
-            halRxp_setFrameFilterMask(pMac, eMGMT_ASSOC_RSP, value);
-            halRxp_setFrameFilterMask(pMac, eMGMT_REASSOC_RSP, value);
+            maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
+            halRxp_setFrameFilterMaskForBcnProbeRsp(pMac, maskValue);
             break;
 
         case  eRXP_BTAMP_POSTASSOC_MODE:
@@ -3378,20 +3342,20 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
             setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
             // Accept only beacons & probe responses from address2 BSS to which 
             // are now associated, rest filter it out.
-            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3);
-            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
-            halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
+            maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
+            halRxp_setFrameFilterMaskForBcnProbeRsp(pMac, maskValue);
             break;
 
         case eRXP_AP_MODE:
             // Allow unknown ADDR2 data frames as well in AP mode, such that 
             // if the AP receives unknown ADDR2 data frame it would send back a DEAUTH frame
+            
             HALLOGE(halLog( pMac, LOGE,FL("##### AP MODE ######\n")));
-            value = (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER|RXP_ADDR1_ACCEPT_MULTICAST|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3|RXP_FCS|RXP_FRAME_TRANSLATION);
-            halRxp_setFrameFilterMask(pMac, eDATA_DATA, value);
-            halRxp_setFrameFilterMask(pMac, eDATA_NULL, value);
-            halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, value);
-            halRxp_setFrameFilterMask(pMac, eDATA_QOSNULL, value);
+            maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
+            halRxp_setFrameFilterMask(pMac, eDATA_DATA, maskValue);
+            halRxp_setFrameFilterMask(pMac, eDATA_NULL, maskValue);
+            halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, maskValue);
+            halRxp_setFrameFilterMask(pMac, eDATA_QOSNULL, maskValue);
             break;
 
         case eRXP_PROMISCUOUS_MODE:
@@ -3404,8 +3368,6 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
         default:
             break;
     }
-#endif
-
 
     if ( halRxp_enable(pMac) != eHAL_STATUS_SUCCESS )
         HALLOGE( halLog( pMac, LOGE, "Failed to set ENABLE RXP \n"));
@@ -3416,5 +3378,47 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
 
     return;
 }
+
+
+/* Returns the mask value to be set for different RXP Modes */
+
+tANI_U32 halRxp_getFrameFilterMaskForMode (tpAniSirGlobal pMac, tANI_U32 rxpMode)
+{
+    tANI_U32 maskValue = 0;
+
+    switch(rxpMode)
+    {
+        case eRXP_IDLE_MODE:
+        case eRXP_SCAN_MODE:
+            maskValue = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3);
+            break;
+
+        case eRXP_PRE_ASSOC_MODE:
+        case eRXP_POST_ASSOC_MODE:
+        case eRXP_BTAMP_PREASSOC_MODE:
+        case eRXP_BTAMP_POSTASSOC_MODE:
+            maskValue = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3);
+            break;
+
+        case eRXP_AP_MODE:
+            maskValue = (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER|RXP_ADDR1_ACCEPT_MULTICAST|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3|RXP_FCS|RXP_FRAME_TRANSLATION);
+            break;
+
+        default:
+            HALLOGE( halLog(pMac, LOGE, "ERROR : Unknown mode specified (%d)\n", 
+                rxpMode));
+    }
+    return maskValue;
+}
+
+
+/* Set the mask value for BEACON/PROBE RSP frames. This considers the mask value for multiple BSS*/
+
+void halRxp_setFrameFilterMaskForBcnProbeRsp(tpAniSirGlobal pMac, tANI_U32 maskValue)
+{
+     halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, maskValue);
+     halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, maskValue);
+}
+
 
 /* End of file */

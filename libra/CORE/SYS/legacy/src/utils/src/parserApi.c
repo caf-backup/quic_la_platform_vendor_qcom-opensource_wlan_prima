@@ -1514,14 +1514,28 @@ void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
     pParams->acbk_acwmax    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[1].cw.max );
     pParams->acbk_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[1].txoplimit;
 
-    pParams->acvi_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[2].aci.aifsn) );
+#ifdef WLAN_SOFTAP_FEATURE
+    if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
+        pParams->acvi_aifsn     = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].aci.aifsn );
+    else
+#endif 
+        pParams->acvi_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[2].aci.aifsn) );
+
+
+
     pParams->acvi_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[2].aci.acm );
     pParams->acvi_aci       = ( 0x3 & SIR_MAC_EDCAACI_VIDEO );
     pParams->acvi_acwmin    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].cw.min );
     pParams->acvi_acwmax    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].cw.max );
     pParams->acvi_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[2].txoplimit;
 
-    pParams->acvo_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[3].aci.aifsn) );
+#ifdef WLAN_SOFTAP_FEATURE
+    if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
+        pParams->acvo_aifsn     = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[3].aci.aifsn );
+    else
+#endif
+        pParams->acvo_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[3].aci.aifsn) );
+
     pParams->acvo_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[3].aci.acm );
     pParams->acvo_aci       = ( 0x3 & SIR_MAC_EDCAACI_VOICE );
     pParams->acvo_acwmin    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[3].cw.min );

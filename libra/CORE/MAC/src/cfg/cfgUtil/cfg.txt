@@ -1944,10 +1944,10 @@ NONE
 WNI_CFG_EDCA_WME_ACBE_LOCAL   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 3   0 15  3 255  0   0 31  3 255  0   0 15  3 255  0
+17   0 3   0 15  0 63  0   0 31  0 127  0   0 15  0 63  0
 V   RW  NP RESTART
 NONE
-17   0 3   0 15  3 255  0   0 31  3 255  0   0 15  3 255  0
+17   0 3   0 15  0 63  0   0 31  0 127  0   0 15  0 63  0
 
 *
 * Profile 1 (WME) parameters AC_VI Local
@@ -1957,10 +1957,10 @@ NONE
 WNI_CFG_EDCA_WME_ACVI_LOCAL   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 2  0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
+17   0 1  0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
 V   RW  NP RESTART
 NONE
-17   0 2  0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
+17   0 1  0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
 
 *
 * Profile 1 (WME) parameters AC_VO Local
@@ -1970,10 +1970,10 @@ NONE
 WNI_CFG_EDCA_WME_ACVO_LOCAL   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 2   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
+17   0 1   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
 V   RW  NP RESTART
 NONE
-17   0 2   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
+17   0 1   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
 
 *
 * Profile 1 (WME) parameters - AC_BK Broadcast
@@ -1996,10 +1996,10 @@ NONE
 WNI_CFG_EDCA_WME_ACBE   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 3   0 15  3 255  0   0 31  3 255  0   0 15  3 255  0
+17   0 3   0 15  0 63  0   0 31  0 127  0   0 15  0 63  0
 V   RW  NP RESTART
 NONE
-17   0 3   0 15  3 255  0   0 31  3 255  0   0 15  3 255  0
+17   0 3   0 15  0 63  0   0 31  0 127  0   0 15  0 63  0
 
 *
 * Profile 1 (WME) parameters AC_VI Broadcast
@@ -2009,10 +2009,10 @@ NONE
 WNI_CFG_EDCA_WME_ACVI   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 2   0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
+17   0 1   0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
 V   RW  NP RESTART
 NONE
-17   0 2   0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
+17   0 1   0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
 
 *
 * Profile 1 (WME) parameters AC_VO Broadcast
@@ -2022,10 +2022,10 @@ NONE
 WNI_CFG_EDCA_WME_ACVO   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 2   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
+17   0 1   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
 V   RW  NP RESTART
 NONE
-17   0 2   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
+17   0 1   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
 
 * ****************************************
 * Profile 2(Titan Demo) parameters - AC_BK Local

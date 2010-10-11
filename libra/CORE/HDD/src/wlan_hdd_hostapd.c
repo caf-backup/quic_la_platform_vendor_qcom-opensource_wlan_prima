@@ -906,7 +906,7 @@ int iw_get_genie(struct net_device *dev,
     hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     v_CONTEXT_t pVosContext = pHostapdAdapter->pvosContext; 
     eHalStatus status;
-    v_U32_t length;
+    v_U32_t length = DOT11F_IE_RSN_MAX_LEN;
     v_U8_t genIeBytes[DOT11F_IE_RSN_MAX_LEN];
     ENTER();
 

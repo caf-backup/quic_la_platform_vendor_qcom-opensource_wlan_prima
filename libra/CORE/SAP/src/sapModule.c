@@ -423,6 +423,8 @@ WLANSAP_CleanCB
     ------------------------------------------------------------------------*/
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "WLANSAP_CleanCB");
 
+    vos_mem_zero( pSapCtx, sizeof(tSapContext));
+
     pSapCtx->pvosGCtx = NULL;
 
     pSapCtx->sapsMachine= eSAP_DISCONNECTED;

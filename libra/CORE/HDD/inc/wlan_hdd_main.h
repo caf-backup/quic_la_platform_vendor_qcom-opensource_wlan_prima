@@ -324,9 +324,10 @@ struct hdd_adapter_s
    struct completion standby_comp_var;
    /** completion variable for disconnect callback */
    struct completion disconnect_comp_var;
-   /* completion variable for Linkup Event */
-   struct completion linkup_event_var;
+/* completion variable for Linkup Event */
 
+   struct completion linkup_event_var;
+   
    /* Completion  variable to indicate Tx Thread Suspended */
    struct completion tx_sus_event_var;
 

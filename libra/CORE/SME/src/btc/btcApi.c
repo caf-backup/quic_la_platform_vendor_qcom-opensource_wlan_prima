@@ -1652,7 +1652,7 @@ static void btcReplayEvents( tpAniSirGlobal pMac )
             {
                 pSyncHist = &pReplay->btcEventHist.btSyncConnectionEvent[i];
                 //Replay all SYNC events for this BD address/handle
-                for(j = 0; j < pAclHist->bNextEventIdx; j++)
+                for(j = 0; j < pSyncHist->bNextEventIdx; j++)
                 {
                     vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
                     vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );

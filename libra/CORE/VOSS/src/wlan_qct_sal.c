@@ -443,9 +443,10 @@ VOS_STATUS WLANSAL_Start
 
    gpsalHandle->isINTEnabled = VOS_TRUE;
 
+#ifndef LIBRA_LINUX_PC
    /* Register with SDIO driver as client for Suspend/Resume */
    libra_sdio_configure_suspend_resume(wlan_sdio_suspend_hdlr, wlan_sdio_resume_hdlr);
-
+#endif /* LIBRA_LINUX_PC */
    SEXIT();
 
    return VOS_STATUS_SUCCESS;
