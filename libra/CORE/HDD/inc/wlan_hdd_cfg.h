@@ -666,10 +666,10 @@ typedef enum
 #define CFG_NTH_BEACON_FILTER_MAX              ( WNI_CFG_NTH_BEACON_FILTER_STAMAX )
 #define CFG_NTH_BEACON_FILTER_DEFAULT          ( WNI_CFG_NTH_BEACON_FILTER_STADEF )
 
-#define CFG_RF_SETTLING_TIME_CLK_NAME          "rfSettlingTimeClk"
-#define CFG_RF_SETTLING_TIME_CLK_MIN           ( 50 )
-#define CFG_RF_SETTLING_TIME_CLK_MAX           ( 255 )
-#define CFG_RF_SETTLING_TIME_CLK_DEFAULT       ( 50 )
+#define CFG_RF_SETTLING_TIME_CLK_NAME          "rfSettlingTimeUs"
+#define CFG_RF_SETTLING_TIME_CLK_MIN           ( 0 )
+#define CFG_RF_SETTLING_TIME_CLK_MAX           ( 60000)
+#define CFG_RF_SETTLING_TIME_CLK_DEFAULT       ( 1500 )
 
 //WMM configuration
 #define CFG_QOS_WMM_MODE_NAME                             "WmmIsEnabled"
@@ -892,6 +892,10 @@ typedef enum
 #define CFG_ENABLE_WAPI_MAX                               (1) // WAPI Enabled
 #define CFG_ENABLE_WAPI_DEFAULT                           (0) // WAPI disabled
 
+#define CFG_SINGLE_TID_RC_NAME                             "SingleTIDRC"
+#define CFG_SINGLE_TID_RC_MIN                               (0) // Seperate replay counter for all TID
+#define CFG_SINGLE_TID_RC_MAX                               (1) // Single replay counter for all TID 
+#define CFG_SINGLE_TID_RC_DEFAULT                           (1) 
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1104,8 +1108,11 @@ typedef struct
    v_BOOL_t                    bWapiEnable;
 
    /* RF Settling Time Clock */
-   v_U32_t                     rfSettlingTimeClk;
+   v_U32_t                     rfSettlingTimeUs;
 
+   /* Control for Replay counetr. value 1 means 
+      single replay counter for all TID*/
+   v_BOOL_t                    bSingleTidRc;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

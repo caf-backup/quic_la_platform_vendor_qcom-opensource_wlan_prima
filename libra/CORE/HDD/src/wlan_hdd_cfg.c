@@ -1177,11 +1177,18 @@ This is a Verizon required feature.
                   CFG_ENABLE_WAPI_MAX ),
 
     REG_VARIABLE( CFG_RF_SETTLING_TIME_CLK_NAME, WLAN_PARAM_Integer,
-                  hdd_config_t, rfSettlingTimeClk,
+                  hdd_config_t, rfSettlingTimeUs,
                   VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                   CFG_RF_SETTLING_TIME_CLK_DEFAULT,
                   CFG_RF_SETTLING_TIME_CLK_MIN,
                   CFG_RF_SETTLING_TIME_CLK_MAX ),
+
+    REG_VARIABLE( CFG_SINGLE_TID_RC_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, bSingleTidRc,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_SINGLE_TID_RC_DEFAULT,
+                  CFG_SINGLE_TID_RC_MIN,
+                  CFG_SINGLE_TID_RC_MAX),
 };                                
 
 /*
@@ -1442,7 +1449,8 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqVoWeight] Value = [%u] ",pAdapter->cfg_ini->WfqVoWeight);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [DelayedTriggerFrmInt] Value = [%lu] ",pAdapter->cfg_ini->DelayedTriggerFrmInt);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [WAPI Enabled] Value = [%u] ",pAdapter->cfg_ini->bWapiEnable);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeClk] Value = [%u] ",pAdapter->cfg_ini->rfSettlingTimeClk);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pAdapter->cfg_ini->rfSettlingTimeUs);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [bSingleTidRc] Value = [%u] ",pAdapter->cfg_ini->bSingleTidRc);
 }
 
 
@@ -2113,13 +2121,19 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
      }
 #endif
 
-	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RF_SETTLING_TIME_CLK, pConfig->rfSettlingTimeClk, 
+	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RF_SETTLING_TIME_CLK, pConfig->rfSettlingTimeUs, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 	 {
 		fStatus = FALSE;
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RF_SETTLING_TIME_CLK configuration info to CCM\n"  );
 	 }
-   
+  
+	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_SINGLE_TID_RC, pConfig->bSingleTidRc, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_SINGLE_TID_RC configuration info to CCM\n"  );
+	 }
    return fStatus;
 }
 

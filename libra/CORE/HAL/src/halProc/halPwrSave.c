@@ -315,10 +315,8 @@ eHalStatus halPS_Config(tpAniSirGlobal pMac, tpSirPowerSaveCfg pPowerSaveConfig)
     pFwConfig->usBmpsMinSleepTimeUs = HAL_PWR_SAVE_FW_BMPS_MINIMUM_SLEEP_TIME_US;
     if(pFwConfig->bRfXoOn)
     {
-        pFwConfig->usBmpsSleepTimeOverheadsUs = HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US;
         pFwConfig->usBmpsSleepTimeOverheadsUs19_2 = HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US_19_2;
         pFwConfig->usBmpsForcedSleepTimeOverheadsUs = HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US;
-        pFwConfig->ucRfSupplySettlingTimeClk = HAL_PWR_SAVE_FW_BMPS_RF_SETTLING_TIME_CLKS;
         pFwConfig->ucRfSupplySettlingTimeClk19_2 = HAL_PWR_SAVE_FW_BMPS_RF_SETTLING_TIME_CLKS_19_2;
 
     }
@@ -3656,23 +3654,23 @@ void halPSRssiMonitorCfg( tpAniSirGlobal pMac, tANI_U32 cfgId )
 
 void halPSRfSettlingTimeClk( tpAniSirGlobal pMac, tANI_U32 cfgId )
 {
-    tANI_U32 rfSettlingTimeClk = 0;
+    tANI_U32 rfSettlingTimeUs = 0;
     Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)
 					pMac->hal.FwParam.pFwConfig;
 
     if (cfgId == WNI_CFG_RF_SETTLING_TIME_CLK) {
         if (eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfgId,
-						 &rfSettlingTimeClk)) {
+						 &rfSettlingTimeUs)) {
              HALLOGW( halLog(pMac, LOGW, FL("Failed to read Configuration "
 			"file for Rf Supply Settling Time Clock Units with  cfgId %d"), cfgId));
              return;
         }
         /* RF Settling Time Clk value as read from CFG */
-        pFwConfig->ucRfSupplySettlingTimeClk = (tANI_U8)rfSettlingTimeClk;
-
+        pFwConfig->ucRfSupplySettlingTimeClk = (tANI_U16)((rfSettlingTimeUs*1000)/QWLAN_PMIC_SLEEPCLK_PERIOD_NS);
+        pFwConfig->ucRfSupplySettlingTimeClk += ((rfSettlingTimeUs*1000)%QWLAN_PMIC_SLEEPCLK_PERIOD_NS)? 1 : 0;
 
         pFwConfig->usBmpsSleepTimeOverheadsUs = HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_WITHOUT_RFXO_SETTLING_US + 
-                                                (rfSettlingTimeClk * HAL_PWR_SAVE_SLP_CLK_PERIOD_US);
+                                                ((pFwConfig->ucRfSupplySettlingTimeClk * QWLAN_PMIC_SLEEPCLK_PERIOD_NS)/1000);
 
 
         /* Update FW SysConfig with Rf Supply Settling Time Clock Units Value */

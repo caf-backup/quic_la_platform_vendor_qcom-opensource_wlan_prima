@@ -1023,6 +1023,7 @@ tSirMsgQ           msgQ;
 tpSetBssKeyParams  pSetBssKeyParams = NULL;
 tLimMlmSetKeysCnf  mlmSetKeysCnf;
 tSirRetStatus      retCode;
+tANI_U32 val = 0;
 
   // Package SIR_HAL_SET_BSSKEY_REQ message parameters
 
@@ -1046,6 +1047,13 @@ tSirRetStatus      retCode;
   pSetBssKeyParams->bssIdx = psessionEntry->bssIdx;
   pSetBssKeyParams->encType = pMlmSetKeysReq->edType;
   pSetBssKeyParams->numKeys = pMlmSetKeysReq->numKeys;
+
+  if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_SINGLE_TID_RC, &val))
+  {
+     limLog( pMac, LOGP, FL( "Unable to read WNI_CFG_SINGLE_TID_RC\n" ));
+  }
+
+  pSetBssKeyParams->singleTidRc = val;
 
   /* Update PE session Id*/
   pSetBssKeyParams->sessionId = psessionEntry ->peSessionId;
@@ -1119,6 +1127,7 @@ tSirMsgQ           msgQ;
 tpSetStaKeyParams  pSetStaKeyParams = NULL;
 tLimMlmSetKeysCnf  mlmSetKeysCnf;
 tSirRetStatus      retCode;
+tANI_U32 val = 0;
 
   // Package SIR_HAL_SET_STAKEY_REQ message parameters
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **) &pSetStaKeyParams,
@@ -1131,6 +1140,14 @@ tSirRetStatus      retCode;
   // Update the SIR_HAL_SET_STAKEY_REQ parameters
   pSetStaKeyParams->staIdx = staIdx;
   pSetStaKeyParams->encType = pMlmSetKeysReq->edType;
+
+  
+  if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_SINGLE_TID_RC, &val))
+  {
+     limLog( pMac, LOGP, FL( "Unable to read WNI_CFG_SINGLE_TID_RC\n" ));
+  }
+
+  pSetStaKeyParams->singleTidRc = val;
 
   /* Update  PE session ID*/
   pSetStaKeyParams->sessionId = sessionEntry->peSessionId;

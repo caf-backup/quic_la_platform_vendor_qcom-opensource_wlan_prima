@@ -59,6 +59,8 @@ enum {
 #define MCU_MAILBOX_HOST2FW  QWLAN_MCU_MAILBOX_H2F_CTRL
 #define MCU_MAILBOX_FW2HOST  QWLAN_MCU_MAILBOX_F2H_CTRL
 
+#define QWLAN_PMIC_SLEEPCLK_PERIOD_NS 30518
+
 /*===========================================================================
    HOST AND FIRMWARE MACROS
 ===========================================================================*/
@@ -637,9 +639,9 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32   apMacAddrLo;
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32   apMacAddrHi : 16;
-   tANI_U32   bReserved3  : 16;
+   tANI_U32   ucRfSupplySettlingTimeClk : 16;
 #else
-   tANI_U32   bReserved3  : 16;
+   tANI_U32   ucRfSupplySettlingTimeClk : 16;
    tANI_U32   apMacAddrHi : 16;
 #endif
 
@@ -749,11 +751,11 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32   ucBmpsFirstBeaconTimeoutMs      : 8;
    tANI_U32   ucBdPduEmptyMonitorMs           : 8;
-   tANI_U32   ucRfSupplySettlingTimeClk       : 8;
+   tANI_U32   bReserved3                      : 8;
    tANI_U32   ucRfSupplySettlingTimeClk19_2   : 8;
 #else
    tANI_U32   ucRfSupplySettlingTimeClk19_2   : 8;
-   tANI_U32   ucRfSupplySettlingTimeClk       : 8;
+   tANI_U32   bReserved3                      : 8;
    tANI_U32   ucBdPduEmptyMonitorMs           : 8;
    tANI_U32   ucBmpsFirstBeaconTimeoutMs      : 8;
 #endif

@@ -525,16 +525,16 @@ NONE
 
 
 *
-* RF Settling Time Clk (TU)
+* RF Settling Time Clk (In US)
 *
 
 WNI_CFG_RF_SETTLING_TIME_CLK I    4    7
 V    RW    NP
 HAL
-50    255    50
+0    60000    1500
 NV    RW    NP
 NONE
-50    255    50
+0    60000    1500
 
 
 *
@@ -3483,3 +3483,15 @@ HAL
 V    RW    NP
 HAL
 0    1    0
+
+*
+* Single RC for all TID 
+*
+
+WNI_CFG_SINGLE_TID_RC    I    4    7
+V    RW    NP
+NONE
+0    1    1
+V    RW    NP
+NONE
+0    1    1
