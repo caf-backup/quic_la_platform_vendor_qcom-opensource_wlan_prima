@@ -11,8 +11,13 @@ PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/volans/firmware_bin/WCN1314_q
 
 ACP_BINARY_OUT := $(HOST_OUT)/bin/acp
 MAKE_MODULES_FOLDER := $(TARGET_OUT)/lib/modules
+
 WLAN_RF_VOLANS_OUT := $(TARGET_OUT_INTERMEDIATES)/vendor/qcom/proprietary/wlan/volans/CORE/HDD/src/WCN1314_rf.ko
+WLAN_RF_VOLANS_MDIR := ../vendor/qcom/proprietary/wlan/volans/CORE/HDD/src
+
 WLAN_RF_FTM_VOLANS_OUT := $(TARGET_OUT_INTERMEDIATES)/vendor/qcom/proprietary/wlan/volans/ftm/CORE/HDD/src/WCN1314_rf_ftm.ko
+WLAN_RF_FTM_VOLANS_MDIR := ../vendor/qcom/proprietary/wlan/volans/ftm/CORE/HDD/src
+
 WLAN_RF_PRODUCT_OUT := $(TARGET_OUT)/lib/modules/WCN1314_rf.ko
 WLAN_RF_FTM_PRODUCT_OUT := $(TARGET_OUT)/lib/modules/WCN1314_rf_ftm.ko
 WLAN_RF_LIBRA_SDIOIF_OUT :=  $(TARGET_OUT)/lib/modules/librasdioif.ko
@@ -35,11 +40,17 @@ ALL_PREBUILT += $(file)
 $(MAKE_MODULES_FOLDER) :
 	mkdir -p $(MAKE_MODULES_FOLDER)
 
-$(WLAN_RF_VOLANS_OUT): kernel $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL)
-	$(MAKE) -C kernel M=../vendor/qcom/proprietary/wlan/volans/CORE/HDD/src O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- 
+$(WLAN_RF_VOLANS_MDIR): $(KERNEL_OUT)
+	mkdir -p $(KERNEL_OUT)/$(WLAN_RF_VOLANS_MDIR)
 
-$(WLAN_RF_FTM_VOLANS_OUT): $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL) $(WLAN_RF_VOLANS_OUT)
-	$(MAKE) -C kernel M=../vendor/qcom/proprietary/wlan/volans/ftm/CORE/HDD/src O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- BUILD_FTM_DRIVER=1
+$(WLAN_RF_FTM_VOLANS_MDIR): $(KERNEL_OUT)
+	mkdir -p $(KERNEL_OUT)/$(WLAN_RF_FTM_VOLANS_MDIR)
+
+$(WLAN_RF_VOLANS_OUT): kernel $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL) $(WLAN_RF_VOLANS_MDIR) 
+	$(MAKE) -C kernel M=$(WLAN_RF_VOLANS_MDIR) O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi-
+
+$(WLAN_RF_FTM_VOLANS_OUT): $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL) $(WLAN_RF_VOLANS_OUT) $(WLAN_RF_FTM_VOLANS_MDIR)
+	$(MAKE) -C kernel M=$(WLAN_RF_FTM_VOLANS_MDIR) O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- BUILD_FTM_DRIVER=1
 
 $(WLAN_RF_PRODUCT_OUT): $(ACP_BINARY_OUT) $(WLAN_RF_VOLANS_OUT) $(MAKE_MODULES_FOLDER) 
 	$(ACP) -f $(WLAN_RF_VOLANS_OUT) $(WLAN_RF_PRODUCT_OUT)
