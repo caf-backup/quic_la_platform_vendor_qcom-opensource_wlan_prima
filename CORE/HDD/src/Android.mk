@@ -12,6 +12,7 @@ PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/firmware_bin/qcom_cfg.ini:sys
 ACP_BINARY_OUT := $(HOST_OUT)/bin/acp
 MAKE_MODULES_FOLDER := $(TARGET_OUT)/lib/modules
 WLAN_OUT := $(TARGET_OUT_INTERMEDIATES)/vendor/qcom/proprietary/wlan/CORE/HDD/src/libra.ko
+WLAN_MDIR := ../vendor/qcom/proprietary/wlan/CORE/HDD/src
 WLAN_PRODUCT_OUT := $(TARGET_OUT)/lib/modules/libra.ko
 WLAN_LIBRA_SDIOIF_OUT :=  $(TARGET_OUT)/lib/modules/librasdioif.ko
 
@@ -27,8 +28,11 @@ ALL_PREBUILT += $(file)
 $(MAKE_MODULES_FOLDER) :
 	mkdir -p $(MAKE_MODULES_FOLDER)
 
-$(WLAN_OUT): kernel $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL)
-	$(MAKE) -C kernel M=../vendor/qcom/proprietary/wlan/CORE/HDD/src O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- 
+$(WLAN_MDIR): $(KERNEL_OUT)
+	mkdir -p $(KERNEL_OUT)/$(WLAN_MDIR)
+
+$(WLAN_OUT): kernel $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL) $(WLAN_MDIR)
+	$(MAKE) -C kernel M=$(WLAN_MDIR) O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi-
 
 $(WLAN_PRODUCT_OUT): $(ACP_BINARY_OUT) $(WLAN_OUT) $(MAKE_MODULES_FOLDER)
 	$(ACP) -f $(TARGET_OUT_INTERMEDIATES)/vendor/qcom/proprietary/wlan/CORE/HDD/src/libra.ko $(WLAN_PRODUCT_OUT)
