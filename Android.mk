@@ -16,7 +16,7 @@ ifneq (, $(filter msm7630_surf, $(QCOM_TARGET_PRODUCT)))
         include vendor/qcom/proprietary/wlan/libra/utils/asf/src/Android.mk
 endif
 
-#Build/Package Volans Module only in case of msm8660_surf target
-ifneq (, $(filter msm8660_surf, $(QCOM_TARGET_PRODUCT)))
+#Build/Package Volans Module only in case of msm8660 target
+ifneq (, $(filter msm8660_surf msm8660_csfb, $(QCOM_TARGET_PRODUCT)))
         include vendor/qcom/proprietary/wlan/volans/CORE/HDD/src/Android.mk
 endif

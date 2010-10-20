@@ -1,8 +1,8 @@
 
 # Android makefile for the WLAN WCN1314 Module
 
-# Build/Package only in case of 7x30
-ifneq (, $(filter msm7630_surf msm8660_surf, $(QCOM_TARGET_PRODUCT)))
+# Build/Package only in case of 7x30 and msm8660
+ifneq (, $(filter msm7630_surf msm8660_surf msm8660_csfb, $(QCOM_TARGET_PRODUCT)))
 
 PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/volans/firmware_bin/WCN1314_qcom_fw.bin:system/etc/firmware/wlan/volans/WCN1314_qcom_fw.bin
 PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/volans/firmware_bin/WCN1314_qcom_wlan_nv.bin:persist/WCN1314_qcom_wlan_nv.bin
