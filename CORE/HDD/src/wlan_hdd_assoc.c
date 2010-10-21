@@ -1030,7 +1030,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                                 eRoamCmdStatus roamStatus, eCsrRoamResult roamResult )
 {
     eHalStatus halStatus = eHAL_STATUS_SUCCESS;
-    hdd_adapter_t *pAdapter = (hdd_adapter_t *)pContext;;
+    hdd_adapter_t *pAdapter = (hdd_adapter_t *)pContext;
     hdd_wext_state_t *pWextState= pAdapter->pWextState;
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,"CSR Callback: status= %d result= %d roamID=%ld", 
                     roamStatus, roamResult, roamId ); 
