@@ -1329,11 +1329,12 @@ tANI_BOOLEAN csrIsConnStateConnectedWds( tpAniSirGlobal pMac, tANI_U32 sessionId
 #ifdef WLAN_SOFTAP_FEATURE
 tANI_BOOLEAN csrIsConnStateConnectedInfraAp( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
-    return( (eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED == pMac->roam.roamSession[sessionId].connectState ) 
-         || (eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState) );
+    return( (eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED == pMac->roam.roamSession[sessionId].connectState) ||
+        (eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState)  ||
+        (eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED == pMac->roam.roamSession[sessionId].connectState) );
 }
-
 #endif
+
 tANI_BOOLEAN csrIsConnStateDisconnectedWds( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
     return( eCSR_ASSOC_STATE_TYPE_WDS_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState );

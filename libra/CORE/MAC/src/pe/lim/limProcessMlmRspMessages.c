@@ -1307,6 +1307,9 @@ limProcessMlmAssocInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 
     pSirSmeAssocInd->staId = pStaDs->staIndex;
+#ifdef WLAN_SOFTAP_FEATURE
+   pSirSmeAssocInd->reassocReq = pStaDs->mlmStaContext.subType;
+#endif
 
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT 

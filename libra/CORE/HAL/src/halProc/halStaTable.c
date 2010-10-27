@@ -1522,6 +1522,35 @@ eHalStatus halTable_SetStaIndexForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_
 
 }
 
+/*
+ * Get the OBSS protection for the bssidx in BSS entry.
+ */
+eHalStatus halTable_GetObssProtForBss(tpAniSirGlobal pMac, tANI_U8 bssIndex, tANI_U8 *obssProt)
+{
+    eHalStatus status = eHAL_STATUS_INVALID_BSSIDX;
+    tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+    if ((bssIndex < pMac->hal.halMac.maxBssId) && (t[bssIndex].valid)) {
+        *obssProt = t[bssIndex].obssProtEnabled;
+        status = eHAL_STATUS_SUCCESS;
+    }
+
+    return status;
+}
+
+/*
+ * Save the OBSS protection for the bssidx in BSS entry.
+ */
+eHalStatus halTable_SetObssProtForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 obssProt)
+{
+    tpBssStruct pBss = (tpBssStruct) pMac->hal.halMac.bssTable;
+    if ((bssIdx < pMac->hal.halMac.maxBssId) && (pBss[bssIdx].valid)) {
+        pBss[bssIdx].obssProtEnabled = obssProt;
+        return eHAL_STATUS_SUCCESS;
+    }
+    return eHAL_STATUS_INVALID_BSSIDX;
+}
+
 
 
 /* -------------------------------------------------------

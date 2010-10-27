@@ -1141,6 +1141,8 @@ limMlmAddBss (
     pAddBssParams->bHiddenSSIDEn = pMlmStartReq->ssidHidden;
     limLog( pMac, LOGE, FL( "TRYING TO HIDE SSID %d\n" ),pAddBssParams->bHiddenSSIDEn);
     pAddBssParams->bProxyProbeRespEn = 1;
+    pAddBssParams->obssProtEnabled = pMlmStartReq->obssProtEnabled;
+
 #endif
     mlm_add_sta(pMac, &pAddBssParams->staContext,
                 pAddBssParams->bssId, pAddBssParams->htCapable,psessionEntry);

@@ -49,6 +49,8 @@ eHalStatus halTable_GetStaIndexForBss(tpAniSirGlobal pMac, tANI_U8 bssIndex, tAN
 eHalStatus halTable_SetStaIndexForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 staIdx);
 eHalStatus halTable_GetBssIndexForSta(tpAniSirGlobal pMac, tANI_U8 *bssIndex, tANI_U8 staIndex);
 eHalStatus halTable_SetBssIndexForSta(tpAniSirGlobal pMac, tANI_U8 bssIndex, tANI_U8 staIndex);
+eHalStatus halTable_GetObssProtForBss(tpAniSirGlobal pMac, tANI_U8 bssIndex, tANI_U8 *obssProt);
+eHalStatus halTable_SetObssProtForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 obssProt);
 eHalStatus halTable_ValidateStaIndex(tpAniSirGlobal pMac, tANI_U8 staId);
 eHalStatus halTable_ValidateBssIndex(tpAniSirGlobal pMac, tANI_U8 bssIdx);
 eHalStatus halTable_UpdateBssACM(tpAniSirGlobal pMac, tEdcaParams *pEdcaParams, tANI_U8 *pPrevAcmMap, tANI_U8 *pNewAcmMap);

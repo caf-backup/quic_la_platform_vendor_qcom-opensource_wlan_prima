@@ -633,6 +633,7 @@ typedef struct sSirSmeStartBssReq
     tANI_U8                 ssidHidden;
     tANI_BOOLEAN            fwdWPSPBCProbeReq;
     tANI_BOOLEAN            protEnabled;
+    tANI_BOOLEAN            obssProtEnabled;
     tANI_U16                ht_capab;
     tAniAuthType            authType;
     tANI_U32                dtimPeriod;
@@ -656,11 +657,11 @@ typedef struct sSirBssDescription
 {
     //offset of the ieFields from bssId.
     tANI_U16             length;
-    tSirMacAddr     bssId;
+    tSirMacAddr          bssId;
     tANI_U32             timeStamp[2];
     tANI_U16             beaconInterval;
     tANI_U16             capabilityInfo;
-    tSirNwType      nwType; // Indicates 11a/b/g
+    tSirNwType           nwType; // Indicates 11a/b/g
     tANI_U8              aniIndicator;
     tANI_S8              rssi;
     tANI_S8              sinr;
@@ -1057,6 +1058,11 @@ typedef enum eSirBpIndicatorType
 
 /// Definition for join request
 /// ---> MAC
+/// WARNING! If you add a field in JOIN REQ. 
+///         Make sure to add it in REASSOC REQ 
+/// The Serdes function is the same and its 
+/// shared with REASSOC. So if we add a field
+//  here and dont add it in REASSOC REQ. It will BREAK!!! REASSOC.
 typedef struct sSirSmeJoinReq
 {
     tANI_U16            messageType;            // eWNI_SME_JOIN_REQ
@@ -1083,6 +1089,9 @@ typedef struct sSirSmeJoinReq
     tSirMacRateSet      extendedRateSet;    // Has 11g rates
     tSirRSNie           rsnIE;                  // RSN IE to be sent in
                                                 // (Re) Association Request
+    tAniEdType          UCEncryptionType;
+    tAniEdType          MCEncryptionType;
+    
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
     tAniBool            bpIndicator;
     tSirBpIndicatorType bpType;
@@ -1192,6 +1201,7 @@ typedef struct sSirSmeAssocInd
     /**************** QNE updated - END   **********************/
 #ifdef WLAN_SOFTAP_FEATURE
     tAniBool             wmmEnabledSta; /* if present - STA is WMM enabled */
+    tAniBool             reassocReq;
 #endif
 } tSirSmeAssocInd, *tpSirSmeAssocInd;
 
@@ -1212,6 +1222,11 @@ typedef struct sSirSmeAssocCnf
 
 /// Definition for Reassociation request
 /// ---> MAC
+/// WARNING! If you add a field in REASSOC REQ. 
+///         Make sure to add it in JOIN REQ 
+/// The Serdes function is the same and its 
+/// shared with REASSOC. So if we add a field
+//  here and dont add it in JOIN REQ. It will BREAK!!! JOIN.
 typedef struct sSirSmeReassocReq
 {
     tANI_U16            messageType; // eWNI_SME_REASSOC_REQ
@@ -1241,6 +1256,9 @@ typedef struct sSirSmeReassocReq
 
     tSirRSNie           rsnIE;     // RSN IE to be sent in
                                    // (Re) Association Request
+    tAniEdType          UCEncryptionType;
+    tAniEdType          MCEncryptionType;
+
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
     tAniBool             bpIndicator;
     tSirBpIndicatorType  bpType;

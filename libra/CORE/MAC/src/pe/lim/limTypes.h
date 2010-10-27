@@ -158,8 +158,9 @@ typedef struct sLimMlmStartReq
     tANI_U8                    dualCTSProtection;
     tANI_U8                    txChannelWidthSet;
 #ifdef WLAN_SOFTAP_FEATURE
-    tANI_U8                ssidHidden;
-    tANI_U8                wps_state;
+    tANI_U8              ssidHidden;
+    tANI_U8              wps_state;
+    tANI_U8              obssProtEnabled;
 #endif
 } tLimMlmStartReq, *tpLimMlmStartReq;
 

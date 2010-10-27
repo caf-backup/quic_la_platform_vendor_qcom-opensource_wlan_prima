@@ -99,7 +99,13 @@ extern tSirRetStatus limEnableHT20Protection(tpAniSirGlobal pMac, tANI_U8 enable
 extern tSirRetStatus limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable, tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession);
 extern tSirRetStatus limEnableHtRifsProtection(tpAniSirGlobal pMac, tANI_U8 enable, tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession psessionEntry);
 extern tSirRetStatus limEnableHTLsigTxopProtection(tpAniSirGlobal pMac, tANI_U8 enable, tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams,tpPESession);
+
+#ifdef WLAN_SOFTAP_FEATURE
+extern tSirRetStatus limEnableShortPreamble(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams pBeaconParams, tpPESession psessionEntry);
+#else
 extern tSirRetStatus limEnableShortPreamble(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams pBeaconParams);
+#endif
+
 extern tSirRetStatus limEnableHtOBSSProtection (tpAniSirGlobal pMac, tANI_U8 enable,  tANI_U8 overlap, tpUpdateBeaconParams pBeaconParams, tpPESession);
 void limDecideStaProtection(tpAniSirGlobal pMac, tpSchBeaconStruct pBeaconStruct, tpUpdateBeaconParams pBeaconParams, tpPESession psessionEntry);
 void limDecideStaProtectionOnAssoc(tpAniSirGlobal pMac, tpSchBeaconStruct pBeaconStruct, tpPESession psessionEntry);

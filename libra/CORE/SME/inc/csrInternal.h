@@ -274,43 +274,44 @@ typedef struct tagBssConfigParam
 
 typedef struct tagCsrRoamStartBssParams
 {
-    tSirMacSSid ssId;
-    tCsrBssid bssid;    //this is the BSSID for the party we want to join (only use for IBSS or WDS)
-    tSirNwType sirNwType;
+    tSirMacSSid         ssId;
+    tCsrBssid           bssid;    //this is the BSSID for the party we want to join (only use for IBSS or WDS)
+    tSirNwType          sirNwType;
     tAniCBSecondaryMode cbMode;
-    tSirMacRateSet operationalRateSet;
-    tSirMacRateSet extendedRateSet;
-    tANI_U8 operationChn;
-    eCsrCfgDot11Mode uCfgDot11Mode;
+    tSirMacRateSet      operationalRateSet;
+    tSirMacRateSet      extendedRateSet;
+    tANI_U8             operationChn;
+    eCsrCfgDot11Mode    uCfgDot11Mode;
 #ifdef WLAN_SOFTAP_FEATURE	
-    tANI_U8 privacy;
-    tANI_BOOLEAN fwdWPSPBCProbeReq;
-    tANI_BOOLEAN protEnabled;
-    tAniAuthType authType;
-    tANI_U16 beaconInterval;    //If this is 0, SME will fill in for caller.
-    tANI_U16 ht_protection;
-    tANI_U32 dtimPeriod;
-    tANI_U8  ApUapsdEnable;
-    tANI_U8  ssidHidden;
-    tANI_U8 wps_state;
+    tANI_U8             privacy;
+    tANI_BOOLEAN        fwdWPSPBCProbeReq;
+    tANI_BOOLEAN        protEnabled;
+    tANI_BOOLEAN        obssProtEnabled;
+    tAniAuthType        authType;
+    tANI_U16            beaconInterval;    //If this is 0, SME will fill in for caller.
+    tANI_U16            ht_protection;
+    tANI_U32            dtimPeriod;
+    tANI_U8             ApUapsdEnable;
+    tANI_U8             ssidHidden;
+    tANI_U8             wps_state;
 #endif
-    tANI_U16 nRSNIELength;  //The byte count in the pRSNIE, if 0, pRSNIE is ignored.
-    tANI_U8 *pRSNIE;     //If not null, it has the IE byte stream for RSN
+    tANI_U16            nRSNIELength;  //The byte count in the pRSNIE, if 0, pRSNIE is ignored.
+    tANI_U8             *pRSNIE;     //If not null, it has the IE byte stream for RSN
 }tCsrRoamStartBssParams;
 
 
 typedef struct tagScanCmd
 {
-    tANI_U32 scanID;
+    tANI_U32                scanID;
     csrScanCompleteCallback callback;
-    void *pContext;
-    eCsrScanReason reason;
-    eCsrRoamState lastRoamState;
-    tCsrRoamProfile *pToRoamProfile;
-    tANI_U32 roamId;    //this is the ID related to the pToRoamProfile
+    void                    *pContext;
+    eCsrScanReason          reason;
+    eCsrRoamState           lastRoamState;
+    tCsrRoamProfile         *pToRoamProfile;
+    tANI_U32                roamId;    //this is the ID related to the pToRoamProfile
     union
     {
-        tCsrScanRequest scanRequest;
+        tCsrScanRequest   scanRequest;
         tCsrBGScanRequest bgScanRequest;
     }u;
 }tScanCmd;

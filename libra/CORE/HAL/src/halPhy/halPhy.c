@@ -996,25 +996,28 @@ void halPhyAdcRssiStatsCollection(tHalHandle hHal)
 #endif
 
 #ifdef WLAN_SOFTAP_FEATURE
+#define RF_ANT_EN_MASK_FOR_1_RX      0x1
+#define RF_ANT_EN_MASK_FOR_2_RX      0x3
+
 // This function enables the AGC Listen Mode
-eHalStatus halPhyAGCEnableListenMode(tHalHandle hHal)
+eHalStatus halPhyAGCEnableListenMode(tHalHandle hHal, tANI_U8 EDETThreshold)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
-    tANI_U32   rf_ant_en = 1, number = 0, cw_detect_dis = 1, val;
-    tANI_U32   bbf_sat5_egy_thres_in = 0x7, bbf_sat5_egy_thres_man = 0;
+    tANI_U16   rf_ant_en = 1, number = 0, cw_detect_dis = 1, val;
+    tANI_U16   bbf_sat5_egy_thres_in, bbf_sat5_egy_thres_man = 0;
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     
     assert(pMac != 0);
         
     // get the RX antenna info to determine value of rf_ant_en  
-    val = (tANI_U32) halPhyQueryNumRxChains(pMac->hphy.phy.cfgChains);
+    val = (tANI_U16) halPhyQueryNumRxChains(pMac->hphy.phy.cfgChains);
     switch(val)
     { 
         case 1:
-           rf_ant_en = 1; 
+           rf_ant_en = RF_ANT_EN_MASK_FOR_1_RX; 
            break;
         case 2:
-           rf_ant_en = 3; 
+           rf_ant_en = RF_ANT_EN_MASK_FOR_2_RX; 
            break;  
         
         default:
@@ -1033,7 +1036,8 @@ eHalStatus halPhyAGCEnableListenMode(tHalHandle hHal)
     retVal = rdModWrAsicField( pMac, QWLAN_AGC_CW_DETECT_REG, QWLAN_AGC_CW_DETECT_DIS_MASK,
                                QWLAN_AGC_CW_DETECT_DIS_OFFSET, cw_detect_dis);
     
-    // configure register RFAPB_BBF_SAT5_REG         
+    // configure register RFAPB_BBF_SAT5_REG   
+    bbf_sat5_egy_thres_in = (tANI_U16) EDETThreshold;
     val = ((bbf_sat5_egy_thres_man << QWLAN_RFAPB_BBF_SAT5_EGY_THRES_MAN_OFFSET) | 
           (bbf_sat5_egy_thres_in  << QWLAN_RFAPB_BBF_SAT5_EGY_THRES_IN_OFFSET));
     SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_BBF_SAT5_REG, val);
@@ -1045,13 +1049,13 @@ eHalStatus halPhyAGCEnableListenMode(tHalHandle hHal)
 eHalStatus halPhyAGCDisableListenMode(tHalHandle hHal)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
-    tANI_U32   rf_ant_en = 0, number, cw_detect_dis = 0, val;
+    tANI_U16   rf_ant_en = 0, number, cw_detect_dis = 0, val;
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     
     assert(pMac != 0);
 
     // configure register AGC_N_LISTEN_REG
-    number = (tANI_U32) halPhyQueryNumRxChains(pMac->hphy.phy.cfgChains);
+    number = (tANI_U16) halPhyQueryNumRxChains(pMac->hphy.phy.cfgChains);
     val = ((rf_ant_en << QWLAN_AGC_N_LISTEN_RF_ANT_EN_OFFSET) | (number << QWLAN_AGC_N_LISTEN_NUMBER_OFFSET));
     SET_PHY_REG(pMac->hHdd, QWLAN_AGC_N_LISTEN_REG, val);
      

@@ -67,20 +67,20 @@ when           who                what, where, why
   defines and enum
   ------------------------------------------------------------------------*/
   
-#define       MAX_SSID_LEN              32
-#define       MAX_MAC_ADDRESS_ACCEPTED  15
-#define       MAX_MAC_ADDRESS_DENIED    MAX_MAC_ADDRESS_ACCEPTED
-#define       AUTO_CHANNEL_SELECT       0
-#define       MAX_NO_OF_ASSOC_STA       6 
-#define       MAX_ASSOC_IND_IE_LEN      255
+#define       MAX_SSID_LEN                 32
+#define       MAX_MAC_ADDRESS_ACCEPTED     15
+#define       MAX_MAC_ADDRESS_DENIED       MAX_MAC_ADDRESS_ACCEPTED
+#define       AUTO_CHANNEL_SELECT          0
+#define       MAX_NO_OF_ASSOC_STA          6 
+#define       MAX_ASSOC_IND_IE_LEN         255
 
 /* defines for WPS config states */
 #define       SAP_WPS_DISABLED             0
 #define       SAP_WPS_ENABLED_UNCONFIGURED 1
 #define       SAP_WPS_ENABLED_CONFIGURED   2
 
-#define       MAX_NAME_SIZE             64
-#define       MAX_TEXT_SIZE             32
+#define       MAX_NAME_SIZE                64
+#define       MAX_TEXT_SIZE                32
 
 
 /*--------------------------------------------------------------------------
@@ -133,16 +133,16 @@ typedef enum {
 
 typedef enum {
     eSAP_START_BSS_EVENT = 0, /*Event sent when BSS is started*/
-	eSAP_STOP_BSS_EVENT,      /*Event sent when BSS is stopped*/
-	eSAP_STA_ASSOC_EVENT,     /*Event sent when we have successfully associated a station and 
-						   upper layer neeeds to allocate a context*/
-	eSAP_STA_REASSOC_EVENT,   /*Event sent when we have successfully reassociated a station and 
-								   upper layer neeeds to allocate a context*/
-	eSAP_STA_DISASSOC_EVENT,  /*Event sent when associated a station has disassociated as a result of various conditions */
-	eSAP_STA_SET_KEY_EVENT,   /*Event sent when user called WLANSAP_SetKeySta */
-	eSAP_STA_DEL_KEY_EVENT,   /*Event sent when user called WLANSAP_DelKeySta */
-	eSAP_STA_MIC_FAILURE_EVENT, /*Event sent whenever there is MIC failure detected */
-	eSAP_ASSOC_STA_CALLBACK_EVENT,  /*Event sent when user called WLANSAP_GetAssocStations */
+    eSAP_STOP_BSS_EVENT,      /*Event sent when BSS is stopped*/
+    eSAP_STA_ASSOC_EVENT,     /*Event sent when we have successfully associated a station and 
+                                upper layer neeeds to allocate a context*/
+    eSAP_STA_REASSOC_EVENT,   /*Event sent when we have successfully reassociated a station and 
+                                upper layer neeeds to allocate a context*/
+    eSAP_STA_DISASSOC_EVENT,  /*Event sent when associated a station has disassociated as a result of various conditions */
+    eSAP_STA_SET_KEY_EVENT,   /*Event sent when user called WLANSAP_SetKeySta */
+    eSAP_STA_DEL_KEY_EVENT,   /*Event sent when user called WLANSAP_DelKeySta */
+    eSAP_STA_MIC_FAILURE_EVENT, /*Event sent whenever there is MIC failure detected */
+    eSAP_ASSOC_STA_CALLBACK_EVENT,  /*Event sent when user called WLANSAP_GetAssocStations */
     eSAP_GET_WPSPBC_SESSION_EVENT,  /* Event send when user call  WLANSAP_getWpsSessionOverlap */  
     eSAP_WPS_PBC_PROBE_REQ_EVENT, /* Event send on WPS PBC probe request is received */
 } eSapHddEvent;
@@ -160,46 +160,46 @@ typedef enum {
 
 /*Handle boolean over here*/
 typedef enum {
-	eSAP_FALSE,
-	eSAP_TRUE,
+    eSAP_FALSE,
+    eSAP_TRUE,
 }eSapBool;
 
 /*---------------------------------------------------------------------------
 SAP PAL "status" and "reason" error code defines 
  ---------------------------------------------------------------------------*/    
 typedef enum  {
-	eSAP_STATUS_SUCCESS,                 /* Success.  */
-	eSAP_STATUS_FAILURE,                 /* General Failure.  */
-	eSAP_START_BSS_CHANNEL_NOT_SELECTED, /* Channel not selected during intial scan.  */
-	eSAP_ERROR_MAC_START_FAIL,           /* Failed to start Infra BSS */
+    eSAP_STATUS_SUCCESS,                 /* Success.  */
+    eSAP_STATUS_FAILURE,                 /* General Failure.  */
+    eSAP_START_BSS_CHANNEL_NOT_SELECTED, /* Channel not selected during intial scan.  */
+    eSAP_ERROR_MAC_START_FAIL,           /* Failed to start Infra BSS */
 }eSapStatus;
 
 /*---------------------------------------------------------------------------
 SAP PAL "status" and "reason" error code defines 
  ---------------------------------------------------------------------------*/    
 typedef enum  {
-	eSAP_WPSPBC_OVERLAP_IN120S,                 /* Overlap */
-	eSAP_WPSPBC_NO_WPSPBC_PROBE_REQ_IN120S,     /* no WPS probe request in 120 second */
-	eSAP_WPSPBC_ONE_WPSPBC_PROBE_REQ_IN120S,    /* One WPS probe request in 120 second  */
+    eSAP_WPSPBC_OVERLAP_IN120S,                 /* Overlap */
+    eSAP_WPSPBC_NO_WPSPBC_PROBE_REQ_IN120S,     /* no WPS probe request in 120 second */
+    eSAP_WPSPBC_ONE_WPSPBC_PROBE_REQ_IN120S,    /* One WPS probe request in 120 second  */
 }eWPSPBCOverlap;
 
 /*----------------------------------------------------------------------------
  *  Typedefs
  * -------------------------------------------------------------------------*/
 typedef struct sap_StartBssCompleteEvent_s {
-	v_U8_t status;
-	v_U8_t operatingChannel;
+    v_U8_t  status;
+    v_U8_t  operatingChannel;
     v_U16_t staId; //self StaID
 } tSap_StartBssCompleteEvent;
 
 typedef struct sap_StopBssCompleteEvent_s {
-	v_U8_t status;
+    v_U8_t status;
 } tSap_StopBssCompleteEvent;
 
 typedef struct sap_StationAssocReassocCompleteEvent_s {
     v_MACADDR_t  staMac;
     v_U8_t       staId;
-	v_U8_t       status;
+    v_U8_t       status;
     v_U8_t       ies[MAX_ASSOC_IND_IE_LEN];
     v_U16_t      iesLen;
     v_U32_t      statusCode; 
@@ -208,21 +208,21 @@ typedef struct sap_StationAssocReassocCompleteEvent_s {
 } tSap_StationAssocReassocCompleteEvent;
 
 typedef struct sap_StationDisassocCompleteEvent_s {
-    v_MACADDR_t staMac;
-    v_U8_t      staId;    //STAID should not be used
-    v_U8_t      status;
-    v_U32_t    statusCode;
+    v_MACADDR_t        staMac;
+    v_U8_t             staId;    //STAID should not be used
+    v_U8_t             status;
+    v_U32_t            statusCode;
     eSapDisassocReason reason;
 } tSap_StationDisassocCompleteEvent;
 
 typedef struct sap_StationSetKeyCompleteEvent_s {
-	v_U8_t status;
-	v_MACADDR_t   peerMacAddr;
+    v_U8_t        status;
+    v_MACADDR_t   peerMacAddr;
 } tSap_StationSetKeyCompleteEvent;
 
 /*struct corresponding to SAP_STA_DEL_KEY_EVENT */
 typedef struct sap_StationDeleteKeyCompleteEvent_s {
-	v_U8_t status;
+    v_U8_t status;
     v_U8_t  keyId; /* Key index */
 } tSap_StationDeleteKeyCompleteEvent;
 
@@ -240,29 +240,29 @@ typedef struct sap_StationMICFailureEvent_s {
 /*Structure to return MAC address of associated stations */
 typedef struct sap_AssocMacAddr_s {
     v_MACADDR_t staMac; 	/*MAC address of Station that is associated*/
-    v_U8_t  assocId;		/*Association ID for the station that is associated*/
-    v_U8_t  staId;			/*Station Id that is allocated to the station*/
+    v_U8_t      assocId;		/*Association ID for the station that is associated*/
+    v_U8_t      staId;			/*Station Id that is allocated to the station*/
 } tSap_AssocMacAddr, *tpSap_AssocMacAddr;
 
 /*struct corresponding to SAP_ASSOC_STA_CALLBACK_EVENT */
 typedef struct sap_AssocStaListEvent_s {
-    VOS_MODULE_ID module; /* module id that was passed in WLANSAP_GetAssocStations API*/
-	v_U8_t noOfAssocSta;  /* Number of associated stations*/
-	tpSap_AssocMacAddr pAssocStas; /*Pointer to pre allocated memory to obtain list of associated 
+    VOS_MODULE_ID      module; /* module id that was passed in WLANSAP_GetAssocStations API*/
+    v_U8_t             noOfAssocSta;  /* Number of associated stations*/
+    tpSap_AssocMacAddr pAssocStas; /*Pointer to pre allocated memory to obtain list of associated 
 								    stations passed in WLANSAP_GetAssocStations API*/
 } tSap_AssocStaListEvent;
  
 typedef struct sap_GetWPSPBCSessionEvent_s {
-    v_U8_t status;
-     VOS_MODULE_ID module; /* module id that was passed in WLANSAP_GetAssocStations API*/       
-     v_U8_t   UUID_E[16];         // Unique identifier of the AP.
-     v_MACADDR_t addr;  
-     eWPSPBCOverlap wpsPBCOverlap;
+    v_U8_t         status;
+    VOS_MODULE_ID  module; /* module id that was passed in WLANSAP_GetAssocStations API*/       
+    v_U8_t         UUID_E[16];         // Unique identifier of the AP.
+    v_MACADDR_t    addr;  
+    eWPSPBCOverlap wpsPBCOverlap;
 } tSap_GetWPSPBCSessionEvent; 
 
 typedef struct sap_WPSPBCProbeReqEvent_s {
-    v_U8_t status;
-    VOS_MODULE_ID module; /* module id that was passed in WLANSAP_GetAssocStations API*/   
+    v_U8_t             status;
+    VOS_MODULE_ID      module; /* module id that was passed in WLANSAP_GetAssocStations API*/   
     tSirWPSPBCProbeReq WPSPBCProbeReq;
 } tSap_WPSPBCProbeReqEvent; 
 
@@ -273,19 +273,19 @@ typedef struct sap_WPSPBCProbeReqEvent_s {
 */
 
 typedef struct sap_Event_s {
-	eSapHddEvent sapHddEventCode;
-	union {
-		tSap_StartBssCompleteEvent  sapStartBssCompleteEvent; /*SAP_START_BSS_EVENT*/
-		tSap_StopBssCompleteEvent   sapStopBssCompleteEvent;  /*SAP_STOP_BSS_EVENT*/
-		tSap_StationAssocReassocCompleteEvent     sapStationAssocReassocCompleteEvent; /*SAP_STA_ASSOC_EVENT, SAP_STA_REASSOC_EVENT*/
-		tSap_StationDisassocCompleteEvent         sapStationDisassocCompleteEvent;/*SAP_STA_DISASSOC_EVENT*/
-		tSap_StationSetKeyCompleteEvent           sapStationSetKeyCompleteEvent;/*SAP_STA_SET_KEY_EVENT*/
-		tSap_StationDeleteKeyCompleteEvent        sapStationDeleteKeyCompleteEvent;/*SAP_STA_DEL_KEY_EVENT*/
-		tSap_StationMICFailureEvent sapStationMICFailureEvent; /*SAP_STA_MIC_FAILURE_EVENT */
-		tSap_AssocStaListEvent      sapAssocStaListEvent; /*SAP_ASSOC_STA_CALLBACK_EVENT */
-        tSap_GetWPSPBCSessionEvent  sapGetWPSPBCSessionEvent; /*SAP_GET_WPSPBC_SESSION_EVENT */
-        tSap_WPSPBCProbeReqEvent    sapPBCProbeReqEvent; /*eSAP_WPS_PBC_PROBE_REQ_EVENT */
-	  } sapevt;
+    eSapHddEvent sapHddEventCode;
+    union {
+        tSap_StartBssCompleteEvent                sapStartBssCompleteEvent; /*SAP_START_BSS_EVENT*/
+        tSap_StopBssCompleteEvent                 sapStopBssCompleteEvent;  /*SAP_STOP_BSS_EVENT*/
+        tSap_StationAssocReassocCompleteEvent     sapStationAssocReassocCompleteEvent; /*SAP_STA_ASSOC_EVENT, SAP_STA_REASSOC_EVENT*/
+        tSap_StationDisassocCompleteEvent         sapStationDisassocCompleteEvent;/*SAP_STA_DISASSOC_EVENT*/
+        tSap_StationSetKeyCompleteEvent           sapStationSetKeyCompleteEvent;/*SAP_STA_SET_KEY_EVENT*/
+        tSap_StationDeleteKeyCompleteEvent        sapStationDeleteKeyCompleteEvent;/*SAP_STA_DEL_KEY_EVENT*/
+        tSap_StationMICFailureEvent               sapStationMICFailureEvent; /*SAP_STA_MIC_FAILURE_EVENT */
+        tSap_AssocStaListEvent                    sapAssocStaListEvent; /*SAP_ASSOC_STA_CALLBACK_EVENT */
+        tSap_GetWPSPBCSessionEvent                sapGetWPSPBCSessionEvent; /*SAP_GET_WPSPBC_SESSION_EVENT */
+        tSap_WPSPBCProbeReqEvent                  sapPBCProbeReqEvent; /*eSAP_WPS_PBC_PROBE_REQ_EVENT */
+    } sapevt;
 } tSap_Event, *tpSap_Event;
 
 
@@ -295,44 +295,45 @@ typedef __ani_attr_pre_packed struct sap_SSID {
 } __ani_attr_packed tSap_SSID_t;
 
 typedef __ani_attr_pre_packed struct sap_SSIDInfo {
-   tSap_SSID_t     ssid;    /* SSID of the AP*/
-   v_U8_t       ssidHidden; /*SSID shouldn't/should be broadcast in probe RSP and beacon*/
+    tSap_SSID_t  ssid;       /*SSID of the AP*/
+    v_U8_t       ssidHidden; /*SSID shouldn't/should be broadcast in probe RSP and beacon*/
 } __ani_attr_packed tSap_SSIDInfo_t;
 
 typedef struct sap_Config {
     tSap_SSIDInfo_t SSIDinfo;
-    eSapPhyMode SapHw_mode; /* Wireless Mode */
-    eSapMacAddrACL SapMacaddr_acl;
-    v_MACADDR_t accept_mac[MAX_MAC_ADDRESS_ACCEPTED]; /* MAC filtering */
-    v_BOOL_t ieee80211d;    /*Specify if 11D is enabled or disabled*/
-    v_BOOL_t protEnabled; /*Specify if protection is enabled or disabled*/
-    v_MACADDR_t deny_mac[MAX_MAC_ADDRESS_DENIED];   /* MAC filtering */
-    v_MACADDR_t self_macaddr; //self macaddress or BSSID
+    eSapPhyMode     SapHw_mode; /* Wireless Mode */
+    eSapMacAddrACL  SapMacaddr_acl;
+    v_MACADDR_t     accept_mac[MAX_MAC_ADDRESS_ACCEPTED]; /* MAC filtering */
+    v_BOOL_t        ieee80211d;      /*Specify if 11D is enabled or disabled*/
+    v_BOOL_t        protEnabled;     /*Specify if protection is enabled or disabled*/
+    v_BOOL_t        obssProtEnabled; /*Specify if OBSS protection is enabled or disabled*/
+    v_MACADDR_t     deny_mac[MAX_MAC_ADDRESS_DENIED]; /* MAC filtering */
+    v_MACADDR_t     self_macaddr; //self macaddress or BSSID
    
-    v_U8_t channel;         /* Operation channel */
-    v_U8_t max_num_sta;     /* maximum number of STAs in station table */
-    v_U8_t dtim_period;     /* dtim interval */
-    v_U8_t num_accept_mac;
-    v_U8_t num_deny_mac;
-    v_U8_t *pRSNWPAReqIE;   //If not null, it has the IE byte stream for RSN /WPA
+    v_U8_t       channel;         /* Operation channel */
+    v_U8_t       max_num_sta;     /* maximum number of STAs in station table */
+    v_U8_t       dtim_period;     /* dtim interval */
+    v_U8_t       num_accept_mac;
+    v_U8_t       num_deny_mac;
+    v_U8_t       *pRSNWPAReqIE;   //If not null, it has the IE byte stream for RSN /WPA
 
-    v_U8_t countryCode[WNI_CFG_COUNTRY_CODE_LEN];  //it is ignored if [0] is 0.
-    v_U8_t RSNAuthType;
-    v_U8_t RSNEncryptType;
-    v_U8_t mcRSNEncryptType;
+    v_U8_t       countryCode[WNI_CFG_COUNTRY_CODE_LEN];  //it is ignored if [0] is 0.
+    v_U8_t       RSNAuthType;
+    v_U8_t       RSNEncryptType;
+    v_U8_t       mcRSNEncryptType;
     eSapAuthType authType;
-    v_BOOL_t privacy;
-    v_BOOL_t UapsdEnable;
-    v_BOOL_t fwdWPSPBCProbeReq;
-    v_U8_t  wps_state; // 0 - disabled, 1 - not configured , 2 - configured
+    v_BOOL_t     privacy;
+    v_BOOL_t     UapsdEnable;
+    v_BOOL_t     fwdWPSPBCProbeReq;
+    v_U8_t       wps_state; // 0 - disabled, 1 - not configured , 2 - configured
 
-    v_U16_t ht_capab;
-    v_U16_t RSNWPAReqIELength;   //The byte count in the pWPAReqIE
+    v_U16_t      ht_capab;
+    v_U16_t      RSNWPAReqIELength;   //The byte count in the pWPAReqIE
 
-    v_U32_t beacon_int;     /* Beacon Interval */
-    v_U32_t ap_table_max_size;
-    v_U32_t ap_table_expiration_time;
-    v_U32_t ht_op_mode_fixed;
+    v_U32_t      beacon_int;     /* Beacon Interval */
+    v_U32_t      ap_table_max_size;
+    v_U32_t      ap_table_expiration_time;
+    v_U32_t      ht_op_mode_fixed;
 
 } tsap_Config_t;
 
@@ -352,43 +353,43 @@ typedef struct sSapText {
     v_U8_t text[MAX_TEXT_SIZE];
 } tSapText;
 
-#define WPS_PROBRSP_VER_PRESENT    0x00000001
-#define WPS_PROBRSP_STATE_PRESENT    0x00000002
-#define WPS_PROBRSP_APSETUPLOCK_PRESENT    0x00000004
-#define WPS_PROBRSP_SELECTEDREGISTRA_PRESENT    0x00000008
-#define WPS_PROBRSP_DEVICEPASSWORDID_PRESENT    0x00000010
+#define WPS_PROBRSP_VER_PRESENT                          0x00000001
+#define WPS_PROBRSP_STATE_PRESENT                        0x00000002
+#define WPS_PROBRSP_APSETUPLOCK_PRESENT                  0x00000004
+#define WPS_PROBRSP_SELECTEDREGISTRA_PRESENT             0x00000008
+#define WPS_PROBRSP_DEVICEPASSWORDID_PRESENT             0x00000010
 #define WPS_PROBRSP_SELECTEDREGISTRACFGMETHOD_PRESENT    0x00000020
-#define WPS_PROBRSP_RESPONSETYPE_PRESENT    0x00000040
-#define WPS_PROBRSP_UUIDE_PRESENT    0x00000080
-#define WPS_PROBRSP_MANUFACTURE_PRESENT    0x00000100
-#define WPS_PROBRSP_MODELNAME_PRESENT    0x00000200
-#define WPS_PROBRSP_MODELNUMBER_PRESENT    0x00000400
-#define WPS_PROBRSP_SERIALNUMBER_PRESENT    0x00000800
-#define WPS_PROBRSP_PRIMARYDEVICETYPE_PRESENT    0x00001000
-#define WPS_PROBRSP_DEVICENAME_PRESENT    0x00002000
-#define WPS_PROBRSP_CONFIGMETHODS_PRESENT    0x00004000
-#define WPS_PROBRSP_RF_BANDS_PRESENT    0x00008000
+#define WPS_PROBRSP_RESPONSETYPE_PRESENT                 0x00000040
+#define WPS_PROBRSP_UUIDE_PRESENT                        0x00000080
+#define WPS_PROBRSP_MANUFACTURE_PRESENT                  0x00000100
+#define WPS_PROBRSP_MODELNAME_PRESENT                    0x00000200
+#define WPS_PROBRSP_MODELNUMBER_PRESENT                  0x00000400
+#define WPS_PROBRSP_SERIALNUMBER_PRESENT                 0x00000800
+#define WPS_PROBRSP_PRIMARYDEVICETYPE_PRESENT            0x00001000
+#define WPS_PROBRSP_DEVICENAME_PRESENT                   0x00002000
+#define WPS_PROBRSP_CONFIGMETHODS_PRESENT                0x00004000
+#define WPS_PROBRSP_RF_BANDS_PRESENT                     0x00008000
 
 typedef struct sap_WPSProbeRspIE_s {
-   v_U32_t  FieldPresent;
-   v_U32_t  Version;           // Version. 0x10 = version 1.0, 0x11 = etc.
-   v_U32_t  wpsState;          // 1 = unconfigured, 2 = configured.    
-   v_BOOL_t APSetupLocked;     // Must be included if value is TRUE
-   v_BOOL_t SelectedRegistra;  //BOOL:  indicates if the user has recently activated a Registrar to add an Enrollee.
-   v_U16_t  DevicePasswordID;  // Device Password ID
-   v_U16_t  SelectedRegistraCfgMethod; // Selected Registrar config method
-   v_U8_t   ResponseType;      // Response type
-   v_U8_t   UUID_E[16];         // Unique identifier of the AP.
-   tSapName   Manufacture;
-   tSapText   ModelName;
-   tSapText   ModelNumber;
-   tSapText  SerialNumber;
-   v_U32_t  PrimaryDeviceCategory ; // Device Category ID: 1Computer, 2Input Device, ...
-   v_U8_t   PrimaryDeviceOUI[4] ; // Vendor specific OUI for Device Sub Category
-   v_U32_t  DeviceSubCategory ; // Device Sub Category ID: 1-PC, 2-Server if Device Category ID is computer
-   tSapText	DeviceName;
-   v_U16_t	ConfigMethod;     // Configuaration method
-   v_U8_t	RFBand;           // RF bands available on the AP
+    v_U32_t     FieldPresent;
+    v_U32_t     Version;           // Version. 0x10 = version 1.0, 0x11 = etc.
+    v_U32_t     wpsState;          // 1 = unconfigured, 2 = configured.    
+    v_BOOL_t    APSetupLocked;     // Must be included if value is TRUE
+    v_BOOL_t    SelectedRegistra;  //BOOL:  indicates if the user has recently activated a Registrar to add an Enrollee.
+    v_U16_t     DevicePasswordID;  // Device Password ID
+    v_U16_t     SelectedRegistraCfgMethod; // Selected Registrar config method
+    v_U8_t      ResponseType;      // Response type
+    v_U8_t      UUID_E[16];         // Unique identifier of the AP.
+    tSapName    Manufacture;
+    tSapText    ModelName;
+    tSapText    ModelNumber;
+    tSapText    SerialNumber;
+    v_U32_t     PrimaryDeviceCategory ; // Device Category ID: 1Computer, 2Input Device, ...
+    v_U8_t      PrimaryDeviceOUI[4] ; // Vendor specific OUI for Device Sub Category
+    v_U32_t     DeviceSubCategory ; // Device Sub Category ID: 1-PC, 2-Server if Device Category ID is computer
+    tSapText	DeviceName;
+    v_U16_t	ConfigMethod;     // Configuaration method
+    v_U8_t	RFBand;           // RF bands available on the AP
 } tSap_WPSProbeRspIE;
 
 #define WPS_BEACON_VER_PRESENT                         0x00000001
@@ -401,15 +402,15 @@ typedef struct sap_WPSProbeRspIE_s {
 #define WPS_BEACON_RF_BANDS_PRESENT                    0x00000100
 
 typedef struct sap_WPSBeaconIE_s {
-   v_U32_t  FieldPresent;
-   v_U32_t  Version;           // Version. 0x10 = version 1.0, 0x11 = etc.
-   v_U32_t  wpsState;          // 1 = unconfigured, 2 = configured.    
-   v_BOOL_t APSetupLocked;     // Must be included if value is TRUE
-   v_BOOL_t SelectedRegistra;  //BOOL:  indicates if the user has recently activated a Registrar to add an Enrollee.
-   v_U16_t  DevicePasswordID;  // Device Password ID
-   v_U16_t  SelectedRegistraCfgMethod; // Selected Registrar config method
-   v_U8_t   UUID_E[16];        // Unique identifier of the AP.
-   v_U8_t   RFBand;           // RF bands available on the AP
+    v_U32_t  FieldPresent;
+    v_U32_t  Version;           // Version. 0x10 = version 1.0, 0x11 = etc.
+    v_U32_t  wpsState;          // 1 = unconfigured, 2 = configured.    
+    v_BOOL_t APSetupLocked;     // Must be included if value is TRUE
+    v_BOOL_t SelectedRegistra;  //BOOL:  indicates if the user has recently activated a Registrar to add an Enrollee.
+    v_U16_t  DevicePasswordID;  // Device Password ID
+    v_U16_t  SelectedRegistraCfgMethod; // Selected Registrar config method
+    v_U8_t   UUID_E[16];        // Unique identifier of the AP.
+    v_U8_t   RFBand;           // RF bands available on the AP
 } tSap_WPSBeaconIE;
 
 #define WPS_ASSOCRSP_VER_PRESENT             0x00000001
@@ -474,7 +475,7 @@ typedef struct sap_SoftapStats_s {
 VOS_STATUS
 WLANSAP_Set_WpsIe
 (
- v_PVOID_t pvosGCtx, tSap_WPSIE *pWPSIe
+    v_PVOID_t pvosGCtx, tSap_WPSIE *pWPSIe
 );
 
 /*==========================================================================
@@ -501,7 +502,7 @@ pvosGCtx: Pointer to vos global context structure
 VOS_STATUS
 WLANSAP_Update_WpsIe
 (
- v_PVOID_t pvosGCtx
+    v_PVOID_t pvosGCtx
 );
 
 /*==========================================================================
@@ -528,7 +529,7 @@ pvosGCtx: Pointer to vos global context structure
 VOS_STATUS
 WLANSAP_Stop_Wps
 (
- v_PVOID_t pvosGCtx
+    v_PVOID_t pvosGCtx
 );
 
 /*==========================================================================
@@ -558,7 +559,7 @@ pbWPSState: Pointer to variable to indicate if it is in WPS Registration state
 VOS_STATUS
 WLANSAP_Get_WPS_State
 (
- v_PVOID_t pvosGCtx, v_BOOL_t * pbWPSState
+    v_PVOID_t pvosGCtx, v_BOOL_t * pbWPSState
 ); 
 
 /*----------------------------------------------------------------------------
@@ -599,7 +600,7 @@ typedef v_PVOID_t tSapHandle, *ptSapHandle;
 VOS_STATUS 
 WLANSAP_Open
 ( 
-     v_PVOID_t  pvosGCtx 
+    v_PVOID_t  pvosGCtx 
 );
 
 /*==========================================================================
@@ -749,7 +750,9 @@ usrDataForCallback: Parameter that will be passed back in all the SAP callback e
 VOS_STATUS 
 WLANSAP_StartBss
 (
- v_PVOID_t  pvosGCtx, tpWLAN_SAPEventCB pSapEventCallback, tsap_Config_t *pConfig, v_PVOID_t  pUsrContext
+    v_PVOID_t  pvosGCtx, 
+    tpWLAN_SAPEventCB pSapEventCallback, 
+    tsap_Config_t *pConfig, v_PVOID_t  pUsrContext
 );
 
 /*==========================================================================
@@ -777,7 +780,7 @@ stopping BSS
 VOS_STATUS 
 WLANSAP_StopBss
 (
- v_PVOID_t  pvosGCtx
+    v_PVOID_t  pvosGCtx
 );
 
 /*==========================================================================
@@ -805,7 +808,7 @@ WLANSAP_StopBss
 VOS_STATUS 
 WLANSAP_DisassocSta
 (
- v_PVOID_t  pvosGCtx, v_U8_t *pPeerStaMac
+    v_PVOID_t  pvosGCtx, v_U8_t *pPeerStaMac
 );
 
 /*==========================================================================
@@ -833,7 +836,7 @@ WLANSAP_DisassocSta
 VOS_STATUS 
 WLANSAP_DeauthSta
 (
- v_PVOID_t  pvosGCtx, v_U8_t *pPeerStaMac
+    v_PVOID_t  pvosGCtx, v_U8_t *pPeerStaMac
 );
 
 /*==========================================================================
@@ -861,7 +864,7 @@ pSetKeyInfo: tCsrRoamSetKey structure for the station
 VOS_STATUS
 WLANSAP_SetKeySta
 (
- v_PVOID_t pvosGCtx, tCsrRoamSetKey *pSetKeyInfo
+    v_PVOID_t pvosGCtx, tCsrRoamSetKey *pSetKeyInfo
 ); 
 
 /*==========================================================================
@@ -889,7 +892,7 @@ pSetKeyInfo: tCsrRoamSetKey structure for the station
 VOS_STATUS
 WLANSAP_DelKeySta
 (
- v_PVOID_t pvosGCtx, tCsrRoamRemoveKey *pDelKeyInfo
+    v_PVOID_t pvosGCtx, tCsrRoamRemoveKey *pDelKeyInfo
 ); 
 
 
@@ -924,8 +927,8 @@ NOTE:- The memory for this list will be allocated by the caller of this API
 VOS_STATUS
 WLANSAP_GetAssocStations
 (
- v_PVOID_t pvosGCtx, VOS_MODULE_ID module, 
- tpSap_AssocMacAddr pAssocStas
+    v_PVOID_t pvosGCtx, VOS_MODULE_ID module, 
+    tpSap_AssocMacAddr pAssocStas
 ); 
 
 /*==========================================================================
@@ -955,7 +958,7 @@ uuide: Pointer to 16 bytes array for session UUID_E
 VOS_STATUS
 WLANSAP_getWpsSessionOverlap
 (
- v_PVOID_t pvosGCtx
+    v_PVOID_t pvosGCtx
 );
 
 /*==========================================================================
@@ -991,7 +994,7 @@ will come out of this state.
 VOS_STATUS
 WLANSAP_SetCounterMeasure
 (
- v_PVOID_t pvosGCtx, v_BOOL_t bEnable
+    v_PVOID_t pvosGCtx, v_BOOL_t bEnable
 );
 
 /*==========================================================================
@@ -1026,7 +1029,7 @@ WLANSap_getstationIE_information(v_PVOID_t pvosGCtx,
 VOS_STATUS
 WLANSAP_getWpsSessionOverlap
 (
- v_PVOID_t pvosGCtx
+    v_PVOID_t pvosGCtx
 );
 
 /*==========================================================================

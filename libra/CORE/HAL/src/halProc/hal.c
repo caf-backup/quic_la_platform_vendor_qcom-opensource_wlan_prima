@@ -73,6 +73,9 @@ extern eHalStatus halPrepareForBmpsExit(tpAniSirGlobal pMac);
 static eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId);
 #endif
 
+static 
+eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId);
+
 /* Constant Macros */
 /* Redefine OFF -> __OFF, ON-> __ON to avoid redefinition on AMSS */
 #define  MAX_VALID_CHAIN_STATE  8
@@ -3191,6 +3194,10 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                    halPSRfSettlingTimeClk(pMac, pMsg->bodyval);
                    break;
             
+                case WNI_CFG_MCAST_BCAST_FILTER_SETTING:
+                   halHandleMcastBcastFilterSetting(pMac, pMsg->bodyval);
+                   break;
+            
                 default:
                     HALLOGE( halLog(pMac, LOGE, FL("Cfg Id %d is not handled\n"), pMsg->bodyval));
                     break;
@@ -4362,6 +4369,25 @@ halTlPostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 #endif
 }
 
+static 
+eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId)
+{
+    tANI_U32 val;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgId, &val))
+    {
+        HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+        return eHAL_STATUS_FAILURE;
+    }
+    else
+    {    
+        pMac->hal.mcastBcastFilterSetting = (tANI_BOOLEAN)val;
+    }
+    
+    return status;
+}
+
 #ifdef WLAN_SOFTAP_FEATURE
 /** -------------------------------------------------------------
 \fn     halHandleEnableListenModeCfg
@@ -4383,26 +4409,27 @@ eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId)
     }
     else
     {    
-        pMac->hal.ghalPhyAgcListenMode = (tANI_BOOLEAN)val;      
+        pMac->hal.ghalPhyAgcListenMode = (tANI_U8)val;   
     }
     
     return status;
 }
 
-/** -------------------------------------------------------------
+/** ------------------------------------------------------------------------
 \fn     halEnableListenMode
-\brief  hal API to enable / disable listen mode.
+\brief  hal API to configure listen mode (disable or enable Listen mode 
+\       with EDET threshold settings).
 \param  tpAniSirGlobal pMac
+\param  tANI_U8 listenModeEnableParams
 \return eHalStatus status
-  -------------------------------------------------------------*/
-
-eHalStatus halEnableListenMode(tpAniSirGlobal pMac, tANI_BOOLEAN listenModeEnable)
+  --------------------------------------------------------------------------*/
+eHalStatus halEnableListenMode(tpAniSirGlobal pMac, tANI_U8 listenModeEnableParams)
 {
     eHalStatus status;
-    
-    if (listenModeEnable) 
+ 
+    if (listenModeEnableParams <= QWLAN_RFAPB_BBF_SAT5_EGY_THRES_IN_MASK) 
     {
-        status = halPhyAGCEnableListenMode(pMac); 
+        status = halPhyAGCEnableListenMode(pMac, listenModeEnableParams); 
     }
     else
     {

@@ -231,6 +231,7 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"LOW_GAIN_OVERRIDE",
 	(unsigned char *)"ENABLE_PHY_AGC_LISTEN_MODE",
 	(unsigned char *)"SINGLE_TID_RC",
+	(unsigned char *)"MCAST_BCAST_FILTER_SETTING",
 };
 
 

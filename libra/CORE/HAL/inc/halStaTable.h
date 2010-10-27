@@ -76,6 +76,7 @@ typedef struct
 
     // Number of 11b Ibss peers.
     tANI_U8 numIbssllbPeerCnt;
+    tANI_U8 obssProtEnabled;
 
 #ifdef WLAN_SOFTAP_FEATURE 
 	tANI_U32 bcnTimIeOffset;  /* for FW to fill TiM IE */

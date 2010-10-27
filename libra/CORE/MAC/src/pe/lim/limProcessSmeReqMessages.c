@@ -648,7 +648,6 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #endif
 
 #ifdef WLAN_SOFTAP_FEATURE
-        //TODO : need to be remove once these parameters are got from startBSS entry instead of configuration
         //Taken care for only softAP case rest need to be done
         if (psessionEntry->limSystemRole == eLIM_AP_ROLE){
             psessionEntry->gLimProtectionControl =  pSmeStartBssReq->protEnabled;
@@ -678,6 +677,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                           pSmeStartBssReq->ssId.length + 1);
 #ifdef WLAN_SOFTAP_FEATURE
             pMlmStartReq->ssidHidden = pSmeStartBssReq->ssidHidden;
+            pMlmStartReq->obssProtEnabled = pSmeStartBssReq->obssProtEnabled;
 #endif
 
 
@@ -808,7 +808,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #endif
         psessionEntry ->limPrevSmeState = psessionEntry->limSmeState;
         psessionEntry ->limSmeState     =  eLIM_SME_WT_START_BSS_STATE;
-	 MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
+	MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, pMac->lim.gLimSmeState));
 
         limPostMlmMessage(pMac, LIM_MLM_START_REQ, (tANI_U32 *) pMlmStartReq);
         return;
@@ -1331,6 +1331,7 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             palCopyMemory(pMac->hHdd, (void*)&pMlmJoinReq->operationalRateSet, (void*)&psessionEntry->rateSet,
 				           sizeof(tSirMacRateSet));
             
+            psessionEntry->encryptType = pSmeJoinReq->UCEncryptionType;
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && defined(ANI_PRODUCT_TYPE_AP)
             palCopyMemory( pMac->hHdd, pMlmJoinReq->bssDescription.bssId,
@@ -3507,7 +3508,7 @@ __limProcessSmeAssocCnfNew(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsg
     }
 
 end:
-	if(psessionEntry != NULL)
+	if((psessionEntry != NULL) && (pStaDs != NULL))
     {
 		if ( psessionEntry->parsedAssocReq[pStaDs->assocId] != NULL )
 		{

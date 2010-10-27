@@ -3285,10 +3285,10 @@ dump_hal_enable_listen_mode(  tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2,
 {
     (void) arg2; (void) arg3; (void) arg4;
     
-    pMac->hal.ghalPhyAgcListenMode = (tANI_BOOLEAN)arg1;
+    pMac->hal.ghalPhyAgcListenMode = (tANI_U8)arg1;
     halEnableListenMode(pMac, pMac->hal.ghalPhyAgcListenMode);
     
-    HALLOGE(halLog(pMac, LOGE, FL("Listen mode enable/disable<1/0> = %d\n"), pMac->hal.ghalPhyAgcListenMode));        
+    HALLOGE(halLog(pMac, LOGE, FL("Listen mode configuration <EDET threshold> = %d\n"), pMac->hal.ghalPhyAgcListenMode));        
     return p;
 }
 #endif
@@ -3824,7 +3824,7 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {263,   "SAP:link monitor at FW <1/0>",                             dump_hal_set_ap_link_monitor},                     
     {264,   "SAP:unknown addr2 handling at FW <1/0>",                   dump_hal_set_ap_unknown_addr2_handling},                
     {265,   "SAP:TIMBasedDisAssocFeatureEnable/Disable",                dump_hal_set_sap_fw_timBasedDisassoc}, 
-    {266,   "SAP:Enable/Disable AGC Listen Mode <1/0>",                 dump_hal_enable_listen_mode},   
+    {266,   "SAP:Config AGC Listen Mode <EDET threshold; 128-disable>", dump_hal_enable_listen_mode},   
 #endif
 
 };

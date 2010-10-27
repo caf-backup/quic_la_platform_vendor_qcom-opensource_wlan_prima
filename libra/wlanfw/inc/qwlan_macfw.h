@@ -1698,7 +1698,8 @@ typedef PACKED_PRE struct PACKED_POST sHalRaGlobalInfo
 typedef enum {
     BSS_TYPE_AP_SELF,   // BSS is for self AP
     BSS_TYPE_AP_PEER,   // BSS is for peer AP
-    BSS_TYPE_IBSS       // BSS is for IBSS
+    BSS_TYPE_IBSS,      // BSS is for IBSS
+    BSS_TYPE_BTAMP      // BSS is for BTAMP
 } tBssType;
 
 // STA types

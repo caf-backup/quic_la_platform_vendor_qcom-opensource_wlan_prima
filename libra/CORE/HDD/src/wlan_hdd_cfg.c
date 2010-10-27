@@ -410,11 +410,11 @@ REG_TABLE_ENTRY g_registry_table[] =
                         (void *)CFG_AP_MAC_ADDR_DEFAULT ),
 
    REG_VARIABLE( CFG_AP_QOS_UAPSD_MODE_NAME , WLAN_PARAM_Integer,
-                 hdd_config_t, apUapsdEnabled, 
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
-                 CFG_AP_QOS_UAPSD_MODE_DEFAULT, 
-                 CFG_AP_QOS_UAPSD_MODE_MIN, 
-                 CFG_AP_QOS_UAPSD_MODE_MAX ),
+                        hdd_config_t, apUapsdEnabled, 
+                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                        CFG_AP_QOS_UAPSD_MODE_DEFAULT, 
+                        CFG_AP_QOS_UAPSD_MODE_MIN, 
+                        CFG_AP_QOS_UAPSD_MODE_MAX ),
 
    REG_VARIABLE_STRING( CFG_AP_COUNTRY_CODE, WLAN_PARAM_String,
                         hdd_config_t, apCntryCode, 
@@ -428,12 +428,26 @@ REG_TABLE_ENTRY g_registry_table[] =
                         CFG_AP_PROTECTION_MODE_MIN,
                         CFG_AP_PROTECTION_MODE_MAX ),
                         
+   REG_VARIABLE( CFG_AP_OBSS_PROTECTION_MODE_NAME, WLAN_PARAM_Integer,
+                        hdd_config_t, apOBSSProtEnabled, 
+                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                        CFG_AP_OBSS_PROTECTION_MODE_DEFAULT,
+                        CFG_AP_OBSS_PROTECTION_MODE_MIN,
+                        CFG_AP_OBSS_PROTECTION_MODE_MAX ),
+                        
    REG_VARIABLE( CFG_AP_STA_SECURITY_SEPERATION_NAME, WLAN_PARAM_Integer,
                         hdd_config_t, apDisableIntraBssFwd, 
                         VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                         CFG_AP_STA_SECURITY_SEPERATION_DEFAULT,
                         CFG_AP_STA_SECURITY_SEPERATION_MIN,
                         CFG_AP_STA_SECURITY_SEPERATION_MAX ),
+
+ REG_VARIABLE( CFG_FRAMES_PROCESSING_TH_MODE_NAME, WLAN_PARAM_Integer,
+                        hdd_config_t, MinFramesProcThres, 
+                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                        CFG_FRAMES_PROCESSING_TH_DEFAULT,
+                        CFG_FRAMES_PROCESSING_TH_MIN,
+                        CFG_FRAMES_PROCESSING_TH_MAX ),
 #endif
 
    REG_VARIABLE( CFG_BEACON_INTERVAL_NAME, WLAN_PARAM_Integer,
@@ -1189,6 +1203,14 @@ This is a Verizon required feature.
                   CFG_SINGLE_TID_RC_DEFAULT,
                   CFG_SINGLE_TID_RC_MIN,
                   CFG_SINGLE_TID_RC_MAX),
+
+    REG_VARIABLE( CFG_MCAST_BCAST_FILTER_SETTING_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, mcastBcastFilterSetting,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_MCAST_BCAST_FILTER_SETTING_DEFAULT,
+                  CFG_MCAST_BCAST_FILTER_SETTING_MIN,
+                  CFG_MCAST_BCAST_FILTER_SETTING_MAX ),
+
 };                                
 
 /*
@@ -1397,6 +1419,7 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAPAutoShutOff] Value = [%u]\n", pAdapter->cfg_ini->nAPAutoShutOff);
 
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApProt] value = [%u]\n",pAdapter->cfg_ini->apProtEnabled);
+  VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApOBSSProt] value = [%u]\n",pAdapter->cfg_ini->apOBSSProtEnabled);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableListenMode] Value = [%u]\n", pAdapter->cfg_ini->nEnableListenMode);  
 #endif
   
@@ -1450,7 +1473,8 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [DelayedTriggerFrmInt] Value = [%lu] ",pAdapter->cfg_ini->DelayedTriggerFrmInt);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [WAPI Enabled] Value = [%u] ",pAdapter->cfg_ini->bWapiEnable);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pAdapter->cfg_ini->rfSettlingTimeUs);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [bSingleTidRc] Value = [%u] ",pAdapter->cfg_ini->bSingleTidRc);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [bSingleTidRc] Value = [%u] ",pAdapter->cfg_ini->bSingleTidRc);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [mcastBcastFilterSetting] Value = [%u] ",pAdapter->cfg_ini->mcastBcastFilterSetting);
 }
 
 
@@ -2133,6 +2157,13 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 	 {
 		fStatus = FALSE;
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_SINGLE_TID_RC configuration info to CCM\n"  );
+	 }
+
+	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_MCAST_BCAST_FILTER_SETTING, pConfig->mcastBcastFilterSetting, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_MCAST_BCAST_FILTER_SETTING configuration info to CCM\n"  );
 	 }
    return fStatus;
 }

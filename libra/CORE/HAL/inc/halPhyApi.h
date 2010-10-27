@@ -144,8 +144,8 @@ eHalStatus halPhyUpdateTxGainOverride(tHalHandle hHal, tANI_U8 txGain);
 // Routine to collect the adc rssi stats
 void halPhyAdcRssiStatsCollection(tHalHandle hHal);
 
-// Routine to enable/disable AGC listen mode
-eHalStatus halPhyAGCEnableListenMode(tHalHandle hHal);
+// Routine to configure AGC listen mode
+eHalStatus halPhyAGCEnableListenMode(tHalHandle hHal, tANI_U8 EDETThreshold);
 eHalStatus halPhyAGCDisableListenMode(tHalHandle hHal);
 
 #endif /* HALPHYAPI_H */

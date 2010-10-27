@@ -224,7 +224,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             hddLog(LOGE, FL("BSS configured status = %s, channel = %lu, bc sta Id = %d\n"),
                             pSapEvent->sapevt.sapStartBssCompleteEvent.status ? "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS",
                             pSapEvent->sapevt.sapStartBssCompleteEvent.operatingChannel,
-                              pSapEvent->sapevt.sapStartBssCompleteEvent.staId);
+                            pSapEvent->sapevt.sapStartBssCompleteEvent.staId);
 
             pHostapdState->vosStatus = pSapEvent->sapevt.sapStartBssCompleteEvent.status;
             vos_status = vos_event_set(&pHostapdState->vosEvent);
@@ -708,15 +708,15 @@ static iw_softap_commit(struct net_device *dev,
     switch(pCommitConfig->hw_mode )
     {
         case eQC_DOT11_MODE_11B:
-        pConfig->SapHw_mode = eSAP_DOT11_MODE_11b; 
+            pConfig->SapHw_mode = eSAP_DOT11_MODE_11b; 
             break;
 
         case eQC_DOT11_MODE_11G:
-        pConfig->SapHw_mode = eSAP_DOT11_MODE_11g;
+            pConfig->SapHw_mode = eSAP_DOT11_MODE_11g;
             break;
        
         case eQC_DOT11_MODE_11N:
-        pConfig->SapHw_mode = eSAP_DOT11_MODE_11n;
+            pConfig->SapHw_mode = eSAP_DOT11_MODE_11n;
             break;
 
         case eQC_DOT11_MODE_11G_ONLY:
@@ -728,7 +728,7 @@ static iw_softap_commit(struct net_device *dev,
             break;
 
         default:
-        pConfig->SapHw_mode = eSAP_DOT11_MODE_11n;
+            pConfig->SapHw_mode = eSAP_DOT11_MODE_11n;
             break;
             
     }
@@ -808,7 +808,8 @@ static iw_softap_commit(struct net_device *dev,
 
     //Uapsd Enabled Bit
     pConfig->UapsdEnable =  pAdapter->cfg_ini->apUapsdEnabled;
-    
+    //Enable OBSS protection
+    pConfig->obssProtEnabled = pAdapter->cfg_ini->apOBSSProtEnabled; 
     pHostapdAdapter->apDisableIntraBssFwd = pAdapter->cfg_ini->apDisableIntraBssFwd;
     
     hddLog(LOGW, FL("SOftAP macaddress : "MAC_ADDRESS_STR"\n"), MAC_ADDR_ARRAY(pHostapdAdapter->macAddressCurrent.bytes));
@@ -818,7 +819,7 @@ static iw_softap_commit(struct net_device *dev,
     hddLog(LOGW,FL("privacy=%d, authType=%d\n"), pConfig->privacy, pConfig->authType); 
     hddLog(LOGW,FL("RSN/WPALen=%d, \n"),(int)pConfig->RSNWPAReqIELength);
     hddLog(LOGW,FL("Uapsd = %d\n"),pConfig->UapsdEnable); 
-    hddLog(LOGW,FL("ProtEnabled = %d\n"),pConfig->protEnabled); 
+    hddLog(LOGW,FL("ProtEnabled = %d, OBSSProtEnabled = %d\n"),pConfig->protEnabled, pConfig->obssProtEnabled); 
     hddLog(LOGW,FL("DisableIntraBssFwd = %d\n"),pHostapdAdapter->apDisableIntraBssFwd); 
             
     pSapEventCallback = hdd_hostapd_SAPEventCB;

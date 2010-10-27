@@ -393,7 +393,11 @@ sapSignalHDDevent
        case eSAP_STA_ASSOC_EVENT:
            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, SAP event callback event = %s",
                 __FUNCTION__, "eSAP_STA_ASSOC_EVENT");
-           sapApAppEvent.sapHddEventCode = eSAP_STA_ASSOC_EVENT;
+           if (pCsrRoamInfo->fReassocReq)
+                sapApAppEvent.sapHddEventCode = eSAP_STA_REASSOC_EVENT;
+           else
+                sapApAppEvent.sapHddEventCode = eSAP_STA_ASSOC_EVENT;
+
            //TODO: Need to fill the SET KEY information and pass to HDD
            vos_mem_copy( &sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.staMac,
                          pCsrRoamInfo->peerMac,sizeof(tSirMacAddr));  
@@ -408,25 +412,7 @@ sapSignalHDDevent
           //sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.SapAuthType = pCsrRoamInfo->pProfile->negotiatedAuthType; 
            break;
 
-        case eSAP_STA_REASSOC_EVENT:
-            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, SAP event callback event = %s",
-                       __FUNCTION__, "eSAP_STA_REASSOC_EVENT");
-            sapApAppEvent.sapHddEventCode = eSAP_STA_ASSOC_EVENT;
-            //TODO: Need to fill the SET KEY information and pass to HDD
-            vos_mem_copy( &sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.staMac,
-                          pCsrRoamInfo->peerMac,sizeof(tSirMacAddr));  
-            sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.staId = pCsrRoamInfo->staId ; 
-            sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.iesLen = pCsrRoamInfo->rsnIELen;
-            vos_mem_copy(sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.ies, pCsrRoamInfo->prsnIE, 
-                         pCsrRoamInfo->rsnIELen);
-            sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.statusCode = pCsrRoamInfo->statusCode;
-            sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.wmmEnabled = pCsrRoamInfo->wmmEnabledSta;
-            sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.status = (eSapStatus )context;
-          //TODO: Need to fill sapAuthType Is it required ???
-          //sapApAppEvent.sapevt.sapStationAssocReassocCompleteEvent.SapAuthType = pCsrRoamInfo->pProfile->negotiatedAuthType; 
-           break;
-
-        case eSAP_STA_DISASSOC_EVENT :
+        case eSAP_STA_DISASSOC_EVENT:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, SAP event callback event = %s",
                        __FUNCTION__, "eSAP_STA_DISASSOC_EVENT");
             sapApAppEvent.sapHddEventCode = eSAP_STA_DISASSOC_EVENT;
@@ -783,8 +769,9 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     profile->ApUapsdEnable = pconfig_params->UapsdEnable;
 
     //Enable protection parameters
-    profile->protEnabled   = pconfig_params->protEnabled;
-    profile->cfg_protection  = pconfig_params->ht_capab;
+    profile->protEnabled       = pconfig_params->protEnabled;
+    profile->obssProtEnabled   = pconfig_params->obssProtEnabled;
+    profile->cfg_protection    = pconfig_params->ht_capab;
 
     //country code
     if (pconfig_params->countryCode[0])

@@ -985,7 +985,18 @@ halDpu_SetDescriptorAttributes(
 
     if(keyIdx != HAL_INVALID_KEYID_INDEX)
     {
-        pDpuDesc->halDpuDescriptor.keyIndex0 = pDpu->keyTable[keyIdx].hwIndex;
+        if(defKeyId == 0) {
+            pDpuDesc->halDpuDescriptor.keyIndex0 = pDpu->keyTable[keyIdx].hwIndex;
+        } else if(defKeyId == 1) {
+            pDpuDesc->halDpuDescriptor.keyIndex1 = pDpu->keyTable[keyIdx].hwIndex;
+        } else if(defKeyId == 2) {
+            pDpuDesc->halDpuDescriptor.keyIndex2 = pDpu->keyTable[keyIdx].hwIndex;
+        } else if(defKeyId == 3){
+            pDpuDesc->halDpuDescriptor.keyIndex3 = pDpu->keyTable[keyIdx].hwIndex;
+        } else {
+            pDpuDesc->halDpuDescriptor.keyIndex0 = pDpu->keyTable[keyIdx].hwIndex;
+            HALLOGW( halLog(pMac, LOGW, FL("Got invalid KeyIndex %d \n"), defKeyId));           
+        }
     }
     else
     {

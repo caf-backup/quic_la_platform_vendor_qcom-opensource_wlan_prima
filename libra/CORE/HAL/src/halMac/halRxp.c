@@ -1161,6 +1161,14 @@ eHalStatus halRxp_setMimoPwrSaveCtrlReg(tpAniSirGlobal pMac, tANI_U32 mask)
     return eHAL_STATUS_SUCCESS;
 }
 
+static eHalStatus halRxp_getFrameFilterMask(tpAniSirGlobal pMac, tANI_U32 frameType, tANI_U32* pRegValue)
+{
+    tANI_U32 address;
+
+    address = QWLAN_RXP_FRAME_FILTER_CONFIG_REG + (sizeof(tANI_U32)* frameType);
+    return(halReadRegister(pMac, address, pRegValue));
+}
+
 static eHalStatus halRxp_setFrameFilterMask(tpAniSirGlobal pMac, tANI_U32 frameType, tANI_U32 value)
 {
     tANI_U32 address;
@@ -1174,6 +1182,45 @@ static eHalStatus halRxp_setFrameFilterMask(tpAniSirGlobal pMac, tANI_U32 frameT
     return eHAL_STATUS_SUCCESS;
 }
 
+void halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN setFilter)
+{
+    tANI_U32 reg_value;
+    tANI_U32 mask = 0;
+    eHalStatus halStatus;
+
+    switch(pMac->hal.mcastBcastFilterSetting)
+    {
+        case FILTER_ALL_MULTICAST:
+            mask = RXP_ADDR1_BLOCK_MULTICAST;   
+        break;
+
+        case FILTER_ALL_BROADCAST:
+            mask = RXP_ADDR1_BLOCK_BROADCAST;   
+        break;
+
+        case FILTER_ALL_MULTICAST_BROADCAST:
+            mask = RXP_ADDR1_BLOCK_MULTICAST | RXP_ADDR1_BLOCK_BROADCAST;   
+        break;
+    }
+
+    halStatus = halRxp_getFrameFilterMask(pMac, eDATA_DATA, &reg_value);
+    if(eHAL_STATUS_SUCCESS == halStatus)
+    {
+        if(setFilter)
+            halRxp_setFrameFilterMask(pMac, eDATA_DATA, reg_value | mask);
+        else
+            halRxp_setFrameFilterMask(pMac, eDATA_DATA, reg_value & ~mask);
+    }
+
+    halStatus = halRxp_getFrameFilterMask(pMac, eDATA_QOSDATA, &reg_value);
+    if(eHAL_STATUS_SUCCESS == halStatus)
+    {
+        if(setFilter)
+            halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, reg_value | mask);
+        else
+            halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, reg_value & ~mask);
+    }
+}
 
 /* --------------------------------
  * halRxp_setFilterMask
@@ -3347,17 +3394,30 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
             break;
 
         case eRXP_AP_MODE:
+            {
+                tANI_U8 obssProt = 0; 
             // Allow unknown ADDR2 data frames as well in AP mode, such that 
             // if the AP receives unknown ADDR2 data frame it would send back a DEAUTH frame
+                HALLOGE(halLog( pMac, LOGE,FL("##### AP MODE ######\n")));
+
+                // Check if OBSS protection is turned on, if yes allow neighboring 
+                // beacons to come in.
+                halTable_GetObssProtForBss(pMac, bssIdx, &obssProt);
+                if (obssProt) {
+                    finalRegHi &= (~RXP_TYPE_SUBTYPE_MASK(eMGMT_BEACON));
+                } else {
+                    finalRegHi |= (RXP_TYPE_SUBTYPE_MASK(eMGMT_BEACON));
+                }
+                // Apply the RXP type/subtype settings.
+                setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
             
-            HALLOGE(halLog( pMac, LOGE,FL("##### AP MODE ######\n")));
             maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
             halRxp_setFrameFilterMask(pMac, eDATA_DATA, maskValue);
             halRxp_setFrameFilterMask(pMac, eDATA_NULL, maskValue);
             halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, maskValue);
             halRxp_setFrameFilterMask(pMac, eDATA_QOSNULL, maskValue);
             break;
-
+            }
         case eRXP_PROMISCUOUS_MODE:
         case eRXP_LEARN_MODE:
         case eRXP_POWER_SAVE_MODE:

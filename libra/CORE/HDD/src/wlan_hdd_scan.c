@@ -112,6 +112,12 @@ static eHalStatus hdd_GetWPARSNIEs( v_U8_t *ieFields, v_U16_t ie_length, char **
     {
         eid = element[0];
         elen = element[1];
+
+	/*If element length is greater than total remaining ie length,
+	 *break the loop*/
+        if ((elen+2) > tie_length)
+           break;
+	
         switch(eid)
         {
             case DOT11F_EID_WPA:

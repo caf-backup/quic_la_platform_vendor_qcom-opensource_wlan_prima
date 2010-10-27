@@ -250,6 +250,9 @@ typedef enum
   /* Forwarding RX cached frames */
   WLANTL_TX_FWD_CACHED  = 2,
 
+  /* Serialized STAID AC Indication */
+  WLANTL_TX_STAID_AC_IND = 3,
+
   WLANTL_TX_MAX
 }WLANTL_TxSignalsType;
 
@@ -842,6 +845,7 @@ typedef struct
   v_U32_t sendFCFrame;
 
   v_U8_t done_once;
+  v_U8_t uFramesProcThres;
 #endif
 }WLANTL_CbType;
 

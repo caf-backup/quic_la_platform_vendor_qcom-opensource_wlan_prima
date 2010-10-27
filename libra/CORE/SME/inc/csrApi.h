@@ -710,6 +710,7 @@ typedef struct tagCsrRoamProfile
     tANI_U32 dtimPeriod;
     tANI_BOOLEAN ApUapsdEnable;
     tANI_BOOLEAN protEnabled;
+    tANI_BOOLEAN obssProtEnabled;
     tANI_U16 cfg_protection;
     tANI_U8 wps_state;
 #endif

@@ -251,6 +251,9 @@ typedef struct
     /* Robust Management Frame (RMF) enabled/disabled */
     tANI_U8 rmfEnabled;
 
+    /* The unicast encryption type in the association */
+    tANI_U32 encryptType;
+    
     /*The DPU signatures will be sent eventually to TL to help it determine the 
       association to which a packet belongs to*/
     /*Unicast DPU index*/
@@ -352,6 +355,9 @@ typedef struct
 
     // Enable/Disable HT capabilities
     tANI_U8 htCapable;
+
+    // Enable/Disable OBSS protection
+    tANI_U8 obssProtEnabled;
 
     // RMF enabled/disabled
     tANI_U8 rmfEnabled;

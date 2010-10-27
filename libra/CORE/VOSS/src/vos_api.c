@@ -1538,5 +1538,8 @@ vos_fetch_tl_cfg_parms
   pTLConfig->ucAcWeights[2] = pConfig->WfqViWeight;
   pTLConfig->ucAcWeights[3] = pConfig->WfqVoWeight;
   pTLConfig->uDelayedTriggerFrmInt = pConfig->DelayedTriggerFrmInt;
+#ifdef WLAN_SOFTAP_FEATURE
+  pTLConfig->uMinFramesProcThres = pConfig->MinFramesProcThres;
+#endif
 
 }

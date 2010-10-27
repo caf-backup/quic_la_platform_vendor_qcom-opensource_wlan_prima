@@ -1096,6 +1096,10 @@ static eHalStatus halMsg_addStaUpdateRXP( tpAniSirGlobal pMac, tANI_U8 staIdx, t
     // Get the frame translation setting
     ftBit = halGetFrameTranslation(pMac);
 
+    if (param->encryptType != eSIR_ED_NONE) {
+        wep_keyId_extract = eANI_BOOLEAN_TRUE;
+    }
+    
     status = halRxp_AddEntry(
             pMac, (tANI_U8) staIdx, param->staMac, rxpRole, param->rmfEnabled,
             dpuPTKIdx, dpuGTKIdx, dpuIGTKIdx, dpuPTKSig, dpuGTKSig, dpuIGTKSig,
@@ -2494,6 +2498,10 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
     }
 
 #ifdef WLAN_SOFTAP_FEATURE
+
+    // Store it in the BSS table, will be used when RXP type/subtype filters are set
+    // during SET_LINK_STATE (AP_MODE), to enable all beacon reception 
+    halTable_SetObssProtForBss(pMac, bssIdx, param->obssProtEnabled);
 
 #ifdef HAL_BCAST_STA_PER_BSS
     {
@@ -4152,7 +4160,7 @@ eHalStatus halMsg_AddStaSelf(tpAniSirGlobal  pMac)
     tANI_U8      staIdx;
     tSirMacAddr  staMac;
     tSirMacAddr  bssid = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-    tANI_BOOLEAN wep_keyId_extract = 0; //No encryption.
+    tANI_BOOLEAN wep_keyId_extract = 0;  //No encryption.
     tANI_U8 dpuIdx = HAL_DPU_SELF_STA_DEFAULT_IDX;
     tANI_U8 dpuSignature = 0;
     eHalStatus status = eHAL_STATUS_SUCCESS;

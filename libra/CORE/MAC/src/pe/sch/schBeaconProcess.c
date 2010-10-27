@@ -347,10 +347,17 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         limDecideStaProtection(pMac, pBeacon, &beaconParams, psessionEntry);
         if (pBeacon->erpPresent)
         {
+#ifdef WLAN_SOFTAP_FEATURE
+              if (pBeacon->erpIEInfo.barkerPreambleMode)
+                  limEnableShortPreamble(pMac, false, &beaconParams, psessionEntry);
+              else
+                  limEnableShortPreamble(pMac, true, &beaconParams, psessionEntry);
+#else
               if (pBeacon->erpIEInfo.barkerPreambleMode)
                   limEnableShortPreamble(pMac, false, &beaconParams);
               else
                   limEnableShortPreamble(pMac, true, &beaconParams);
+#endif
           }
         limUpdateShortSlot(pMac, pBeacon, &beaconParams,psessionEntry);
 

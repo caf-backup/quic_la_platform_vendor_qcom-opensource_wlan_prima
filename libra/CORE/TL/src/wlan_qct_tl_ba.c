@@ -35,6 +35,7 @@
 
   when        who     what, where, why
 ----------    ---    --------------------------------------------------------
+2010-10-xx    dli     Change ucCIndex to point to the slot the next frame to be expected to fwd
 2008-08-22    sch     Update based on unit test
 2008-07-31    lti     Created module
 
@@ -57,20 +58,6 @@
 #define WLANTL_BA_REORDERING_AGING_TIMER   30   /* 30 millisec */
 #define WLANTL_BA_MIN_FREE_RX_VOS_BUFFER   5    /* RX VOS buffer low threshold */
 
-#ifdef WLANTL_REORDER_DEBUG_MSG_ENABLE
-static char *opCodeString[] = {
-                                "INVALID, Just forward CUR Frame",
-                                "QCU_FWBF, Q cur frame and FWD buffered frames",
-                                "FWBF_FWCU, FWD buffered frames and cur frame",
-                                "QCUR, Just put in cur frame into Q",
-                                "FWBF_QCU, FWD buffered frames and input cur frame",
-                                "FWBF_DCU, BAR frame, FWD buffered frames and drop BAR",
-                                "FWA_DCU, FWD all buffered frames and drop cur BAR",
-                                "FWA_QCU, FWD all buffered frames and Q cur",
-                                "TEARDOWN, unexpected frame, teardown BA session",
-                                "DCU, Drop cur frame",
-                             };
-#endif /* WLANTL_REORDER_DEBUG_MSG_ENABLE */
 
 /*==========================================================================
 
@@ -148,7 +135,7 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
    vosDataBuff = NULL;
 
 
-   TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"BA timeout with %d pending frames", ReorderInfo->pendingFramesCount));
+   TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"BA timeout with %d pending frames, curIdx %d", ReorderInfo->pendingFramesCount, ReorderInfo->ucCIndex));
 
    if(ReorderInfo->pendingFramesCount == 0)
    {
@@ -865,7 +852,7 @@ VOS_STATUS WLANTL_MSDUReorder
    v_U8_t               ucOpCode; 
    v_U8_t               ucSlotIdx;
    v_U8_t               ucFwdIdx;
-   v_U8_t               CSN;
+   v_U16_t              CSN;
    v_U32_t              ucCIndexOrig;
    VOS_STATUS           status      = VOS_STATUS_SUCCESS;
    VOS_STATUS           lockStatus  = VOS_STATUS_SUCCESS; 
@@ -892,18 +879,13 @@ VOS_STATUS WLANTL_MSDUReorder
    ucOpCode  = (v_U8_t)WLANHAL_RX_BD_GET_BA_OPCODE(pvBDHeader);
    ucSlotIdx = (v_U8_t)WLANHAL_RX_BD_GET_BA_SI(pvBDHeader);
    ucFwdIdx  = (v_U8_t)WLANHAL_RX_BD_GET_BA_FI(pvBDHeader);
-   CSN       = (v_U8_t)WLANHAL_RX_BD_GET_BA_CSN(pvBDHeader);
+   CSN       = (v_U16_t)WLANHAL_RX_BD_GET_BA_CSN(pvBDHeader);
+
 #ifdef WLANTL_REORDER_DEBUG_MSG_ENABLE
-   if (ucOpCode < WLANTL_OPCODE_MAX)
-   {
-      TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"%s", opCodeString[ucOpCode]));
-   }
-   else
-   {
-      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Unknown OpCode %d", ucOpCode));
-   }
+   TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"opCode %d SI %d, FI %d, CI %d seqNo %d", ucOpCode, ucSlotIdx, ucFwdIdx, currentReorderInfo->ucCIndex, CSN));
+#else
+   TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"opCode %d SI %d, FI %d, CI %d seqNo %d", ucOpCode, ucSlotIdx, ucFwdIdx, currentReorderInfo->ucCIndex, CSN));
 #endif
-   TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"SI %d, FI %d, CI %d", ucSlotIdx, ucFwdIdx, currentReorderInfo->ucCIndex));
 
    // remember our current CI so that later we can tell if it advanced
    ucCIndexOrig = currentReorderInfo->ucCIndex;
@@ -917,7 +899,8 @@ VOS_STATUS WLANTL_MSDUReorder
       case WLANTL_OPCODE_QCUR_FWDBUF:
          if(0 == currentReorderInfo->pendingFramesCount)
          {
-            currentReorderInfo->ucCIndex = ucSlotIdx;
+            //This frame will be fwd'ed to the OS. The next slot is the one we expect next
+            currentReorderInfo->ucCIndex = (ucSlotIdx + 1) % currentReorderInfo->winSize;
             lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
             if(!VOS_IS_STATUS_SUCCESS(lockStatus))
             {
@@ -935,7 +918,7 @@ VOS_STATUS WLANTL_MSDUReorder
             vosPktIdx = NULL;
             status = WLANTL_ChainFrontPkts(ucFwdIdx,
                                            WLANTL_OPCODE_FWDALL_QCUR, 
-                                          &vosPktIdx,
+                                           &vosPktIdx,
                                            currentReorderInfo,
                                            pTLCb);
             if(!VOS_IS_STATUS_SUCCESS(status))
@@ -958,7 +941,7 @@ VOS_STATUS WLANTL_MSDUReorder
             vosPktIdx = NULL;
             status = WLANTL_ChainFrontPkts(ucFwdIdx,
                                            WLANTL_OPCODE_QCUR_FWDBUF, 
-                                          &vosPktIdx,
+                                           &vosPktIdx,
                                            currentReorderInfo,
                                            pTLCb);
             if(!VOS_IS_STATUS_SUCCESS(status))
@@ -1016,6 +999,9 @@ VOS_STATUS WLANTL_MSDUReorder
             }
             *vosDataBuff = vosPktIdx;
          }
+         //ucFwdIdx is the slot this packet supposes to take but there is a hole there
+         //It looks that the chip will put the next packet into the slot ucFwdIdx.
+         currentReorderInfo->ucCIndex = ucFwdIdx;
          break;
 
       case WLANTL_OPCODE_QCUR:
@@ -1028,7 +1014,7 @@ VOS_STATUS WLANTL_MSDUReorder
             vosPktIdx = NULL;
             status = WLANTL_ChainFrontPkts(ucFwdIdx,
                                            WLANTL_OPCODE_FWDALL_QCUR, 
-                                          &vosPktIdx,
+                                           &vosPktIdx,
                                            currentReorderInfo,
                                            pTLCb);
             if(!VOS_IS_STATUS_SUCCESS(status))
@@ -1072,6 +1058,8 @@ VOS_STATUS WLANTL_MSDUReorder
             }
             return status;
          }
+         //This opCode means the window shift. Enforce the current Index
+         currentReorderInfo->ucCIndex = ucFwdIdx;
 
          status = WLANTL_QueueCurrent(currentReorderInfo,
                                       vosDataBuff,
@@ -1082,7 +1070,7 @@ VOS_STATUS WLANTL_MSDUReorder
             vosPktIdx = NULL;
             status = WLANTL_ChainFrontPkts(ucFwdIdx,
                                            WLANTL_OPCODE_FWDALL_QCUR, 
-                                          &vosPktIdx,
+                                           &vosPktIdx,
                                            currentReorderInfo,
                                            pTLCb);
             if(!VOS_IS_STATUS_SUCCESS(status))
@@ -1123,6 +1111,9 @@ VOS_STATUS WLANTL_MSDUReorder
             return status;
          }
 
+         //Since BAR frame received, set the index to the right location
+         currentReorderInfo->ucCIndex = ucFwdIdx;
+
          /* Current frame has to be dropped, BAR frame */
          status = vos_pkt_return_packet(*vosDataBuff);
          if(!VOS_IS_STATUS_SUCCESS(status))
@@ -1159,6 +1150,9 @@ VOS_STATUS WLANTL_MSDUReorder
             }
             return status;
          }
+
+         //Since BAR frame received and beyond cur window, set the index to the right location
+         currentReorderInfo->ucCIndex = 0;
 
          status = vos_pkt_return_packet(*vosDataBuff);
          if(!VOS_IS_STATUS_SUCCESS(status))
@@ -1427,9 +1421,14 @@ VOS_STATUS WLANTL_ChainFrontPkts
 )
 {
    VOS_STATUS          status = VOS_STATUS_SUCCESS;
-   v_U32_t             idx;
+   v_U32_t             idx; 
    v_PVOID_t           currentDataPtr = NULL;
    int                 negDetect;
+#ifdef WLANTL_REORDER_DEBUG_MSG_ENABLE
+#define WLANTL_OUT_OF_WINDOW_IDX    65
+   v_U32_t frameIdx[2] = {0, 0}, ffidx = fwdIndex, idx2 = WLANTL_OUT_OF_WINDOW_IDX;
+   int pending = pwBaReorder->pendingFramesCount, start = WLANTL_OUT_OF_WINDOW_IDX, end;
+#endif
 
    if(pwBaReorder->ucCIndex >= fwdIndex)
    {
@@ -1448,12 +1447,17 @@ VOS_STATUS WLANTL_ChainFrontPkts
                pwBaReorder->reorderBuffer));
 
    negDetect = pwBaReorder->pendingFramesCount;
-   for(idx = pwBaReorder->ucCIndex; idx < fwdIndex; idx++)
+   for(idx = pwBaReorder->ucCIndex; idx <= fwdIndex; idx++)
    {
       currentDataPtr = 
       pwBaReorder->reorderBuffer->arrayBuffer[idx % pwBaReorder->winSize];
       if(NULL != currentDataPtr)
       {
+#ifdef WLANTL_REORDER_DEBUG_MSG_ENABLE
+         idx2 = (idx >=  pwBaReorder->winSize) ? (idx -  pwBaReorder->winSize) : idx;
+         frameIdx[idx2 / 32] |= 1 << (idx2 % 32);
+         if(start == WLANTL_OUT_OF_WINDOW_IDX) start = idx2;
+#endif
          TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"There is buffered frame %d",
                      idx % pwBaReorder->winSize));
          if(NULL == *vosDataBuff)
@@ -1484,7 +1488,7 @@ VOS_STATUS WLANTL_ChainFrontPkts
                      idx  % pwBaReorder->winSize,
                      pwBaReorder->pendingFramesCount,
                      ));
-         pwBaReorder->ucCIndex = idx % pwBaReorder->winSize;
+         pwBaReorder->ucCIndex = (idx + 1) % pwBaReorder->winSize;
       }
       else
       {
@@ -1496,6 +1500,14 @@ VOS_STATUS WLANTL_ChainFrontPkts
                   pwBaReorder->winSize,
                   ));
    }
+
+#ifdef WLANTL_REORDER_DEBUG_MSG_ENABLE
+   end = idx2;
+
+   TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Fwd 0x%08X-%08X opCode %d fwdIdx %d windowSize %d pending frame %d fw no. %d from idx %d to %d",
+                     frameIdx[1], frameIdx[0], opCode, ffidx, pwBaReorder->winSize, pending, pending - negDetect, start, end));
+#endif
+
    return status; 
 }/*WLANTL_ChainFrontPkts*/
 

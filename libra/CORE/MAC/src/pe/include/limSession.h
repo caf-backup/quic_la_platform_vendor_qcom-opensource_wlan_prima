@@ -113,8 +113,8 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8                 fRIFSMode;
     tSirMacBeaconInterval   beaconInterval;
     tANI_U8                 dtimPeriod;
-    tSirMacRateSet       rateSet;
-    tSirMacRateSet       extRateSet;
+    tSirMacRateSet          rateSet;
+    tSirMacRateSet          extRateSet;
     tSirMacHTOperatingMode  htOperMode;
     tANI_U8                 currentOperChannel;
     tANI_U8                 LimRxedBeaconCntDuringHB;
@@ -136,6 +136,8 @@ typedef struct sPESession           // Added to Support BT-AMP
     tANI_U8                 *assocRsp;              //Used to store association response recieved while associating
     tAniSirDph              dph;
     void *                  *parsedAssocReq;        // Used to store parsed assoc req from various requesting station
+    
+    tANI_U32           	    encryptType;
 
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_BOOLEAN            bTkipCntrMeasActive;    // Used to keep record of TKIP counter measures start/stop
@@ -151,42 +153,42 @@ typedef struct sPESession           // Added to Support BT-AMP
     tCfgProtection          cfgProtection;
 	
     // Number of legacy STAs associated
-    tLimProtStaParams          gLim11bParams;
+    tLimProtStaParams       gLim11bParams;
 
     // Number of 11A STAs associated
-    tLimProtStaParams          gLim11aParams;
+    tLimProtStaParams       gLim11aParams;
 
     // Number of non-ht non-legacy STAs associated
-    tLimProtStaParams          gLim11gParams;
+    tLimProtStaParams       gLim11gParams;
 
     //Number of nonGf STA associated
     tLimProtStaParams       gLimNonGfParams;
 
     //Number of HT 20 STAs associated
-    tLimProtStaParams          gLimHt20Params;
+    tLimProtStaParams       gLimHt20Params;
 
     //Number of Lsig Txop not supported STAs associated
-    tLimProtStaParams          gLimLsigTxopParams;
+    tLimProtStaParams       gLimLsigTxopParams;
 
     // Number of STAs that do not support short preamble
-    tLimNoShortParams         gLimNoShortParams;
+    tLimNoShortParams       gLimNoShortParams;
 
     // Number of STAs that do not support short slot time
     tLimNoShortSlotParams   gLimNoShortSlotParams;
 
 
     // OLBC parameters
-    tLimProtStaParams  gLimOlbcParams;
+    tLimProtStaParams       gLimOlbcParams;
 
     // OLBC parameters
-    tLimProtStaParams  gLimOverlap11gParams;
+    tLimProtStaParams       gLimOverlap11gParams;
 
-    tLimProtStaParams  gLimOverlap11aParams;
-    tLimProtStaParams gLimOverlapHt20Params;
-    tLimProtStaParams gLimOverlapNonGfParams;
+    tLimProtStaParams       gLimOverlap11aParams;
+    tLimProtStaParams       gLimOverlapHt20Params;
+    tLimProtStaParams       gLimOverlapNonGfParams;
 
     //cache for each overlap
-    tCacheParams     protStaCache[LIM_PROT_STA_CACHE_SIZE];
+    tCacheParams            protStaCache[LIM_PROT_STA_CACHE_SIZE];
 
     tANI_U8                 privacy;
     tAniAuthType            authType;

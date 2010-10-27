@@ -143,7 +143,7 @@
 //Enable suspend on Android
 #define CFG_ENABLE_SUSPEND_NAME                "gEnableSuspend"
 #define CFG_ENABLE_SUSPEND_MIN                 ( 0 ) //No support for suspend
-#define CFG_ENABLE_SUSPEND_MAX                 ( 2 ) //Map to Deep Sleep
+#define CFG_ENABLE_SUSPEND_MAX                 ( 3 ) //Map to Deep Sleep
 #define CFG_ENABLE_SUSPEND_DEFAULT             ( 1 ) //Map to Standby
 
 //Driver start/stop command mappings
@@ -318,40 +318,50 @@ typedef enum
 #define CFG_STA_MAC_ADDR_DEFAULT               "000AF5898989"
 
 #ifdef WLAN_SOFTAP_FEATURE
-#define CFG_AP_MAC_ADDR_NAME                  "gAPMacAddr"
-#define CFG_AP_MAC_ADDR_MIN                   "000000000000"
-#define CFG_AP_MAC_ADDR_MAX                   "ffffffffffff"
-#define CFG_AP_MAC_ADDR_DEFAULT               "00deadbeef04"
+#define CFG_AP_MAC_ADDR_NAME                   "gAPMacAddr"
+#define CFG_AP_MAC_ADDR_MIN                    "000000000000"
+#define CFG_AP_MAC_ADDR_MAX                    "ffffffffffff"
+#define CFG_AP_MAC_ADDR_DEFAULT                "00deadbeef04"
 
-#define CFG_AP_QOS_UAPSD_MODE_NAME            "gEnableApUapsd" // ACs to setup U-APSD for at assoc
-#define CFG_AP_QOS_UAPSD_MODE_MIN             (0)
-#define CFG_AP_QOS_UAPSD_MODE_MAX             (1) 
-#define CFG_AP_QOS_UAPSD_MODE_DEFAULT         (1)   
+#define CFG_AP_QOS_UAPSD_MODE_NAME             "gEnableApUapsd" // ACs to setup U-APSD for at assoc
+#define CFG_AP_QOS_UAPSD_MODE_MIN              ( 0 )
+#define CFG_AP_QOS_UAPSD_MODE_MAX              ( 1 ) 
+#define CFG_AP_QOS_UAPSD_MODE_DEFAULT          ( 1 )   
 
-#define CFG_AP_COUNTRY_CODE                  "gAPCntryCode"
-#define CFG_AP_COUNTRY_CODE_MIN              "USI"
-#define CFG_AP_COUNTRY_CODE_MAX              "USI"
-#define CFG_AP_COUNTRY_CODE_DEFAULT          "FFF"
+#define CFG_AP_COUNTRY_CODE                    "gAPCntryCode"
+#define CFG_AP_COUNTRY_CODE_MIN                "USI"
+#define CFG_AP_COUNTRY_CODE_MAX                "USI"
+#define CFG_AP_COUNTRY_CODE_DEFAULT            "FFF"
 
 #define CFG_AP_PROTECTION_MODE_NAME            "gEnableApProt" 
-#define CFG_AP_PROTECTION_MODE_MIN             (0)
-#define CFG_AP_PROTECTION_MODE_MAX             (1) 
-#define CFG_AP_PROTECTION_MODE_DEFAULT         (1)   
+#define CFG_AP_PROTECTION_MODE_MIN             ( 0 )
+#define CFG_AP_PROTECTION_MODE_MAX             ( 1 ) 
+#define CFG_AP_PROTECTION_MODE_DEFAULT         ( 1 )   
 
-#define CFG_AP_STA_SECURITY_SEPERATION_NAME             "gAPDisableIntraBssFwd"
-#define CFG_AP_STA_SECURITY_SEPERATION_MIN              (0)
-#define CFG_AP_STA_SECURITY_SEPERATION_MAX              (1) 
-#define CFG_AP_STA_SECURITY_SEPERATION_DEFAULT          (0)   
+#define CFG_AP_OBSS_PROTECTION_MODE_NAME       "gEnableApOBSSProt" 
+#define CFG_AP_OBSS_PROTECTION_MODE_MIN        ( 0 )
+#define CFG_AP_OBSS_PROTECTION_MODE_MAX        ( 1 ) 
+#define CFG_AP_OBSS_PROTECTION_MODE_DEFAULT    ( 0 )   
 
-#define CFG_AP_LISTEN_MODE_NAME               "gEnablePhyAgcListenMode" 
-#define CFG_AP_LISTEN_MODE_MIN                (0)
-#define CFG_AP_LISTEN_MODE_MAX                (1) 
-#define CFG_AP_LISTEN_MODE_DEFAULT            (0)   
+#define CFG_AP_STA_SECURITY_SEPERATION_NAME    "gDisableIntraBssFwd"
+#define CFG_AP_STA_SECURITY_SEPERATION_MIN     ( 0 )
+#define CFG_AP_STA_SECURITY_SEPERATION_MAX     ( 1 ) 
+#define CFG_AP_STA_SECURITY_SEPERATION_DEFAULT ( 0 )   
 
-#define CFG_AP_AUTO_SHUT_OFF                "gAPAutoShutOff"
-#define CFG_AP_AUTO_SHUT_OFF_MIN            ( 0 )
-#define CFG_AP_AUTO_SHUT_OFF_MAX            ( 4294967295UL )
-#define CFG_AP_AUTO_SHUT_OFF_DEFAULT        ( 0 )
+#define CFG_AP_LISTEN_MODE_NAME                "gEnablePhyAgcListenMode" 
+#define CFG_AP_LISTEN_MODE_MIN                 ( 0 )
+#define CFG_AP_LISTEN_MODE_MAX                 ( 128 ) 
+#define CFG_AP_LISTEN_MODE_DEFAULT             ( 128 )   
+
+#define CFG_AP_AUTO_SHUT_OFF                   "gAPAutoShutOff"
+#define CFG_AP_AUTO_SHUT_OFF_MIN               ( 0 )
+#define CFG_AP_AUTO_SHUT_OFF_MAX               ( 4294967295UL )
+#define CFG_AP_AUTO_SHUT_OFF_DEFAULT           ( 0 )
+
+#define CFG_FRAMES_PROCESSING_TH_MODE_NAME     "gMinFramesProcThres"
+#define CFG_FRAMES_PROCESSING_TH_MIN           ( 0 )
+#define CFG_FRAMES_PROCESSING_TH_MAX           ( 39 )
+#define CFG_FRAMES_PROCESSING_TH_DEFAULT       ( 0 )
 
 #endif
 
@@ -896,6 +906,11 @@ typedef enum
 #define CFG_SINGLE_TID_RC_MIN                               (0) // Seperate replay counter for all TID
 #define CFG_SINGLE_TID_RC_MAX                               (1) // Single replay counter for all TID 
 #define CFG_SINGLE_TID_RC_DEFAULT                           (1) 
+
+#define CFG_MCAST_BCAST_FILTER_SETTING_NAME          "McastBcastFilter"
+#define CFG_MCAST_BCAST_FILTER_SETTING_MIN           (0)
+#define CFG_MCAST_BCAST_FILTER_SETTING_MAX           (3)
+#define CFG_MCAST_BCAST_FILTER_SETTING_DEFAULT       (0)
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -967,9 +982,11 @@ typedef struct
    v_MACADDR_t   apMacAddr;
    v_BOOL_t      apUapsdEnabled;
    v_BOOL_t      apProtEnabled;
+   v_BOOL_t      apOBSSProtEnabled;
+   v_U8_t        MinFramesProcThres;
    char          apCntryCode[4];
    v_BOOL_t      apDisableIntraBssFwd;
-   v_BOOL_t      nEnableListenMode;    
+   v_U8_t        nEnableListenMode;    
    v_U32_t       nAPAutoShutOff;
 #endif
 
@@ -1113,6 +1130,8 @@ typedef struct
    /* Control for Replay counetr. value 1 means 
       single replay counter for all TID*/
    v_BOOL_t                    bSingleTidRc;
+
+   v_U8_t                      mcastBcastFilterSetting;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

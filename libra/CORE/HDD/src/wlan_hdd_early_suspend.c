@@ -415,6 +415,19 @@ err_deep_sleep:
 
 }
 #ifdef CONFIG_HAS_EARLYSUSPEND
+
+static void hdd_conf_mcastbcast_filter(hdd_adapter_t* pAdapter, v_BOOL_t setfilter)
+{
+    hddLog(VOS_TRACE_LEVEL_ERROR, 
+	"%s: Configuring Mcast/Bacst Filter Setting. setfilter %d", __func__, setfilter);
+
+    halRxp_configureRxpFilterMcstBcst(
+       vos_get_context(VOS_MODULE_ID_SME, pAdapter->pvosContext), setfilter);
+
+    if(setfilter)
+      pAdapter->hdd_ps_state = eHDD_SUSPEND_MCAST_BCAST_FILTER;
+}
+
 //Suspend routine registered with Android OS
 void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
 {
@@ -446,6 +459,11 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
    else if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_DEEP_SLEEP) {
       //Execute deep sleep procedure
       hdd_enter_deep_sleep(pAdapter);
+   }
+   else if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) {
+      if(eConnectionState_Associated == pAdapter->conn_info.connState) {
+         hdd_conf_mcastbcast_filter(pAdapter, TRUE);
+      }
    }
    else {
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported suspend mapping %d",
@@ -484,6 +502,11 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: WLAN being resumed from deep sleep",__func__);
       hdd_exit_deep_sleep(pAdapter);
+   }
+   else if(pAdapter->hdd_ps_state == eHDD_SUSPEND_MCAST_BCAST_FILTER) {
+      if(eConnectionState_Associated == pAdapter->conn_info.connState) {
+         hdd_conf_mcastbcast_filter(pAdapter, FALSE);
+      }
    }
    else {
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unknown WLAN PS state during resume %d",

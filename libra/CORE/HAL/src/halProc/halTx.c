@@ -65,7 +65,7 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
     tBssSystemRole systemRole = eSYSTEM_UNKNOWN_ROLE;
 
     HALLOG1( halLog(pMac, LOG1, FL("Tx Mgmt Frame Subtype: %d alloc(%x)\n"), pFc->subType, pFrmBuf));
-    sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOGW, pData, frmLen);
+    sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOG4, pData, frmLen);
     //MTRACE(macTrace(pMac, TRACE_CODE_TX_MGMT, 0, pFc->subType);)
 
     // Reset the event to be not signalled
@@ -158,7 +158,7 @@ __DP_SRC_TX  eHalStatus halTxFrameWithTxComplete(tHalHandle hHal,
     tANI_U8 ucTypeSubType = pFc->type <<4 | pFc->subType;
     tANI_U8 ackRsp = 0;
     HALLOG1(halLog(pMac, LOG1, FL("Tx Mgmt Frame Subtype: %d\n"), pFc->subType));
-    sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOGW, pData, frmLen);
+    sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOG4, pData, frmLen);
     MTRACE(macTrace(pMac, TRACE_CODE_TX_MGMT, 0, pFc->subType);)
                         
     if(pCBackFnTxComp)

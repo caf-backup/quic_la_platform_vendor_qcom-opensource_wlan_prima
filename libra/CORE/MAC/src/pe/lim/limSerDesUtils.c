@@ -1335,6 +1335,12 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
        return eSIR_FAILURE;
 
+    //Extract OBSS Protection Enable 
+    pStartBssReq->obssProtEnabled = *pBuf++;
+    len--;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+       return eSIR_FAILURE;
+
     pStartBssReq->ht_capab = limGetU16(pBuf);
     pBuf += sizeof(tANI_U16);
     len  -= sizeof(tANI_U16);
@@ -1730,6 +1736,18 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
             return eSIR_FAILURE;
     }
 
+    pJoinReq->MCEncryptionType = limGetU32(pBuf);
+    pBuf += sizeof(tANI_U32);
+    len -= sizeof(tANI_U32);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;    
+    
+    pJoinReq->UCEncryptionType = limGetU32(pBuf);
+    pBuf += sizeof(tANI_U32);
+    len -= sizeof(tANI_U32);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;    
+    
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && defined(ANI_PRODUCT_TYPE_AP)
     // Extract BP Indicator
     pJoinReq->bpIndicator = (tAniBool) limGetU32(pBuf);
