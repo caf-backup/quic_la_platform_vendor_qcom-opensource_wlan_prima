@@ -52,8 +52,8 @@ eHalStatus halTable_Open(tHalHandle hHal, void *arg)
 
     // zero out the uma descriptor table
     palZeroMemory( pMac->hHdd,
-                (void *) pMac->hal.halMac.aduUmaDesc,
-                HAL_NUM_STA * sizeof( tAduUmaStaDesc ));
+                   (void *) pMac->hal.halMac.aduUmaDesc,
+                   sizeof( pMac->hal.halMac.aduUmaDesc ));
 
     // Store number of bssids and stas
     pMac->hal.halMac.maxBssId = max_bssid;
@@ -86,6 +86,15 @@ eHalStatus halTable_Start(tHalHandle hHal, void *arg)
     pMac->hal.halMac.maxSta = max_sta;
     pMac->hal.halMac.numOfValidSta= 0;
 
+#ifdef WLAN_SOFTAP_FEATURE
+    /** Zero out the BSS Table */
+    halZeroDeviceMemory(pMac, pMac->hal.memMap.bssTable_offset,
+                        pMac->hal.memMap.bssTable_size);
+
+    /** Zero out the Sta Table */
+    halZeroDeviceMemory(pMac, pMac->hal.memMap.staTable_offset,
+                        pMac->hal.memMap.staTable_size);
+#endif
 
     return eHAL_STATUS_SUCCESS;
 }
@@ -181,7 +190,7 @@ void halTableDbg_dumpBssTable(tpAniSirGlobal pMac)
                 bssTable[i].bcnDtimPeriod ));
 
             HALLOGW( halLog( pMac, LOGW, FL("\tSTAidx: %d, STA bmap: %x %x %x %x %x %x %x %x\n"),
-                    bssTable[i].staIdForBss, bssTable[i].staIdBitmap[0], bssTable[i].staIdBitmap[1], bssTable[i].staIdBitmap[2],
+                    bssTable[i].bssSelfStaIdx, bssTable[i].staIdBitmap[0], bssTable[i].staIdBitmap[1], bssTable[i].staIdBitmap[2],
                     bssTable[i].staIdBitmap[3],bssTable[i].staIdBitmap[4],bssTable[i].staIdBitmap[5],bssTable[i].staIdBitmap[6],
                     bssTable[i].staIdBitmap[7]));
 
@@ -196,7 +205,6 @@ void halTableDbg_dumpBssTable(tpAniSirGlobal pMac)
         }
     }
 }
-
 
 /* ------------------------------------------------------------
  * FUNCTION:  halTable_GetStaId
@@ -225,8 +233,33 @@ eHalStatus halTable_GetStaId(tpAniSirGlobal pMac, tANI_U8 type, tSirMacAddr bssI
     tpStaStruct   sta = 0;
     tANI_U8       found = HAL_STA_INVALID_IDX;
     eHalStatus    status;
+    tANI_U8 minIndex, maxIndex;
 
-    for (i=0; (found == HAL_STA_INVALID_IDX) && (i < pMac->hal.halMac.maxSta); i++, t++)
+    HALLOG1( halLog(pMac, LOG1, FL("bssId=%x:%x:%x:%x:%x:%x staMac=%x:%x:%x:%x:%x:%x\n"), 
+                bssId[0], bssId[1], bssId[2], bssId[3], bssId[4], bssId[5],
+                staAddr[0], staAddr[1], staAddr[2], staAddr[3], staAddr[4], staAddr[5] ));
+
+#ifdef HAL_BCAST_STA_PER_BSS
+    if (type == STA_ENTRY_BCAST) {
+        if (HAL_MAX_NUM_BCAST_STATIONS > 0) {
+            minIndex = HAL_MIN_BCAST_STA_INDEX;
+            maxIndex = HAL_MAX_NUM_BCAST_STATIONS;
+        } else {
+            return eHAL_STATUS_STA_TABLE_FULL;
+        }
+    } else {
+        minIndex = HAL_MIN_STA_INDEX;
+        maxIndex = (HAL_NUM_STA - HAL_MAX_NUM_BCAST_STATIONS);
+    }
+    t += minIndex;
+#else
+    minIndex = 0;
+    maxIndex =  pMac->hal.halMac.maxSta;
+#endif
+
+    HALLOG4( halLog(pMac, LOG4, FL("MinIndex = %d, MaxIndex = %d\n"), minIndex, maxIndex));
+
+    for (i=minIndex; (found == HAL_STA_INVALID_IDX) && (i < maxIndex); i++, t++)
     {
         if (! pMac->hal.loopback)
         {
@@ -236,7 +269,7 @@ eHalStatus halTable_GetStaId(tpAniSirGlobal pMac, tANI_U8 type, tSirMacAddr bssI
             {
                 if ( (t->valid == 1) && (sirCompareMacAddr(t->staAddr, staAddr)) )
                 {
-                    HALLOGW( halLog(pMac, LOGW, FL("This SELF STA mac addr already exist in entry %d. \n"),i));
+                    HALLOGE( halLog(pMac, LOGE, FL("This SELF STA mac addr already exist in entry %d. \n"),i));
                     *id = i;
                     sta = t;
                     found = i;
@@ -245,16 +278,16 @@ eHalStatus halTable_GetStaId(tpAniSirGlobal pMac, tANI_U8 type, tSirMacAddr bssI
             }
             else
             {
-#ifdef    HAL_TABLE_API_DEBUG
-                HALLOG1( halLog(pMac, LOG1, FL("Adding STA_ENTRY_PEER/OTHER, checking table entry[%d] \n"),i));
-#endif
+//#ifdef HAL_TABLE_API_DEBUG
+                HALLOG4( halLog(pMac, LOG4, FL("Adding STA_ENTRY_PEER/OTHER, checking table entry[%d] \n"),i));
+//#endif
                 if ((t->valid == 1) &&
                         (sirCompareMacAddr(t->staAddr, staAddr) &&
                          (sirCompareMacAddr(t->bssId, bssId))))
                 {
-#ifdef HAL_TABLE_API_DEBUG
-                    HALLOGW( halLog(pMac, LOGW, FL("This PEER mac addr already exist in entry %d. It's duplicate. \n"), i));
-#endif
+//#ifdef HAL_TABLE_API_DEBUG
+                    HALLOG1( halLog(pMac, LOG1, FL("This PEER mac addr already exist in entry %d. It's duplicate. \n"), i));
+//#endif
                     *id = i;
                     return eHAL_STATUS_DUPLICATE_STA;
                 }
@@ -274,9 +307,9 @@ eHalStatus halTable_GetStaId(tpAniSirGlobal pMac, tANI_U8 type, tSirMacAddr bssI
             break;
         }
     }
-#ifdef HAL_TABLE_API_DEBUG
+//#ifdef HAL_TABLE_API_DEBUG
     HALLOG1( halLog(pMac, LOG1, FL("Got station index %d \n"), found));
-#endif
+//#endif
 
     if ((i == pMac->hal.halMac.maxSta) && !sta)
     {
@@ -290,6 +323,10 @@ eHalStatus halTable_GetStaId(tpAniSirGlobal pMac, tANI_U8 type, tSirMacAddr bssI
     *id = found;
     sta->staId = *id;
 
+#ifdef HAL_SELF_STA_PER_BSS
+    sta->bssSelfStaIdx = *id;
+#endif
+
     /* let's fill in the bss index for use later */
     status = halTable_FindBssidByAddr(pMac, bssId, &sta->bssIdx);
     if (status != eHAL_STATUS_SUCCESS)
@@ -302,7 +339,6 @@ eHalStatus halTable_GetStaId(tpAniSirGlobal pMac, tANI_U8 type, tSirMacAddr bssI
     sta->bcastDpuIndex = HAL_INVALID_KEYID_INDEX;
     sta->bcastMgmtDpuIndex = HAL_INVALID_KEYID_INDEX;
     sta->umaIdx = HAL_INVALID_KEYID_INDEX;
-    sta->umaBcastIdx = HAL_INVALID_KEYID_INDEX;
     sta->opRateMode = eSTA_INVALID_RATE_MODE;
     
     // Initialize BA Session ID entries in this STA Entry
@@ -641,7 +677,7 @@ halTable_FindStaidByAddr(tHalHandle hHalHandle, tSirMacAddr staAddr, tANI_U8 *id
         staAddr[3], staAddr[4], staAddr[5], *id);
 #endif
 #else
-	tANI_U8 i;
+    tANI_U8 i;
     tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
 
     for (i=0; i < pMac->hal.halMac.maxSta; i++, t++)
@@ -816,6 +852,48 @@ eHalStatus halTable_SaveBssConfig(tpAniSirGlobal pMac,
     return status;
 }
 
+eHalStatus halTable_GetBssRaConfig(tpAniSirGlobal pMac, 
+         tANI_U8 rfBand, bssRaParam *config, tANI_U8 bssIdx)
+{
+    eHalStatus status = eHAL_STATUS_INVALID_BSSIDX;
+    tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+    if ((bssIdx < pMac->hal.halMac.maxBssId) && (t[bssIdx].valid))
+    {
+        config->dword = t[bssIdx].bssRaInfo.u.dword;
+        status = eHAL_STATUS_SUCCESS;
+    }
+
+    return status;
+}
+
+#ifdef WLAN_FEATURE_VOWIFI
+eHalStatus halTable_GetTxPowerLimitIndex(tpAniSirGlobal pMac, 
+         tANI_U8 rfBand, tPwrTemplateIndex *maxTxPwrIndex)
+{
+    eHalStatus status = eHAL_STATUS_INVALID_BSSIDX;
+    tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;
+    tANI_U8      bssIdx = 0;;
+
+    *maxTxPwrIndex = 0;
+    
+    while (bssIdx < pMac->hal.halMac.maxBssId)
+    {
+        if (t[bssIdx].valid)
+        {
+            if (t[bssIdx].bssRaInfo.u.bit.maxPwrIndex > *maxTxPwrIndex)
+            {
+                *maxTxPwrIndex = t[bssIdx].bssRaInfo.u.bit.maxPwrIndex;
+                status = eHAL_STATUS_SUCCESS;
+            }
+        }
+        bssIdx++;
+    }
+
+    return status;
+}
+#endif  /* WLAN_FEATURE_VOWIFI */
+
 eHalStatus
 halTable_SaveEncMode(tpAniSirGlobal pMac, tANI_U8 staIdx, tAniEdType encMode)
 {
@@ -829,6 +907,36 @@ halTable_SaveEncMode(tpAniSirGlobal pMac, tANI_U8 staIdx, tAniEdType encMode)
     return status;
 }
 
+eHalStatus halTable_GetStaTidToAcMap(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U32 *pTidToAcMap)
+{
+  tpStaStruct   t = (tpStaStruct) pMac->hal.halMac.staTable;
+
+  if((staIdx < pMac->hal.halMac.maxSta) && (0 != t[staIdx].valid))
+  {
+    *pTidToAcMap = t[staIdx].staParam.txTidAcMap;
+
+    if ( *pTidToAcMap == 0)
+        *pTidToAcMap = HAL_WMM_MAP_ALL_TID_TO_BE_MAP;
+
+    return eHAL_STATUS_SUCCESS;
+  }
+  else
+    return eHAL_STATUS_INVALID_STAIDX;
+}
+
+eHalStatus halTable_SetStaTidToAcMap(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U32 tidToAcMap)
+{
+  tpStaStruct   t = (tpStaStruct) pMac->hal.halMac.staTable;
+
+  if((staIdx < pMac->hal.halMac.maxSta) && (0 != t[staIdx].valid))
+  {
+    t[staIdx].staParam.txTidAcMap = tidToAcMap;
+    return eHAL_STATUS_SUCCESS;
+  }
+  else
+    return eHAL_STATUS_INVALID_STAIDX;
+}
+/** Nobody is using this function*/
 #ifdef FIXME_GEN6 
 eHalStatus halTable_GetBssType(tpAniSirGlobal pMac, tANI_U8 bssId, tANI_U8 *bssType)
 {
@@ -868,30 +976,6 @@ eHalStatus halTable_ValidateBssIndex(tpAniSirGlobal pMac, tANI_U8 bssIdx)
         return eHAL_STATUS_INVALID_BSSIDX;
 }
 
-eHalStatus halStaTableSetBssIdx(tpAniSirGlobal pMac, tANI_U8 staId, tANI_U8 bssIdx)
-{
-    tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
-    if ((staId < pMac->hal.halMac.maxSta) && (t[staId].valid))
-    {
-        t[staId].bssIdx = bssIdx;
-        return eHAL_STATUS_SUCCESS;
-    }
-    else
-        return eHAL_STATUS_INVALID_STAIDX;
-}
-
-eHalStatus halStaTableGetBssIdx(tpAniSirGlobal pMac, tANI_U8 staId, tANI_U8 *pBssIdx)
-{
-    tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
-    if ((staId < pMac->hal.halMac.maxSta) && (t[staId].valid))
-    {
-        *pBssIdx = t[staId].bssIdx;
-        return eHAL_STATUS_SUCCESS;
-    }
-    else
-        return eHAL_STATUS_INVALID_STAIDX;
-}
-
 eHalStatus halTable_SetBeaconIntervalForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U16 bcnInterval)
 {
      tpBssStruct pBss = (tpBssStruct) pMac->hal.halMac.bssTable;
@@ -918,6 +1002,31 @@ eHalStatus halTable_GetBeaconIntervalForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx,
         return eHAL_STATUS_INVALID_STAIDX;
 }
 
+eHalStatus halTable_SetSsidForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tSirMacSSid ssId)
+{
+     tpBssStruct pBss = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+     if ((bssIdx < pMac->hal.halMac.maxBssId) && (pBss[bssIdx].valid))
+     {
+        vos_mem_copy(&(pBss[bssIdx].ssId), &ssId, sizeof(tSirMacSSid));
+        return eHAL_STATUS_SUCCESS;
+     }
+     else
+        return eHAL_STATUS_INVALID_STAIDX;
+}
+
+eHalStatus halTable_GetSsidForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tSirMacSSid *ssId)
+{
+     tpBssStruct pBss = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+     if ((bssIdx < pMac->hal.halMac.maxBssId) && (pBss[bssIdx].valid))
+     {
+        vos_mem_copy(ssId, &(pBss[bssIdx].ssId), sizeof(tSirMacSSid));
+        return eHAL_STATUS_SUCCESS;
+     }
+     else
+        return eHAL_STATUS_INVALID_STAIDX;
+}
 
 eHalStatus halTable_GetStaType(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 *pStaType)
 {
@@ -1145,30 +1254,6 @@ eHalStatus halTable_GetStaUMAIdx(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 *p
         return eHAL_STATUS_INVALID_STAIDX;
 }
 
-eHalStatus halTable_SetStaUMABcastIdx(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 umaBcastIdx)
-{
-    tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
-    if ((staIdx < pMac->hal.halMac.maxSta) && (t[staIdx].valid))
-    {
-        t[staIdx].umaBcastIdx = umaBcastIdx;
-        return eHAL_STATUS_SUCCESS;
-    }
-    else
-        return eHAL_STATUS_INVALID_STAIDX;
-}
-
-eHalStatus halTable_GetStaUMABcastIdx(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 *pUMABcastIdx)
-{
-    tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
-    if ((staIdx < pMac->hal.halMac.maxSta) && (t[staIdx].valid))
-    {
-        *pUMABcastIdx = t[staIdx].umaBcastIdx ;
-        return eHAL_STATUS_SUCCESS;
-    }
-    else
-        return eHAL_STATUS_INVALID_STAIDX;
-}
-
 // Save the oprateMode passed to us from PE or when we init it.
 eHalStatus halTable_SetStaopRateMode(tpAniSirGlobal pMac, 
         tANI_U8 staIdx, tStaRateMode  opRateMode)
@@ -1290,6 +1375,76 @@ eHalStatus halTable_SetStaHtEnabled(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8
 }
 
 
+#ifdef HAL_SELF_STA_PER_BSS
+eHalStatus halTable_GetBssSelfStaIdxForSta(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 *idx)
+{
+     tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
+     if ((staIdx < pMac->hal.halMac.maxSta) && (t[staIdx].valid)) {
+         *idx = t[staIdx].bssSelfStaIdx;
+         return eHAL_STATUS_SUCCESS;
+     } else {
+         return eHAL_STATUS_INVALID_STAIDX;
+     }
+}
+
+eHalStatus halTable_SetBssSelfStaIdxForSta(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 idx)
+{
+     tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
+     if ((staIdx < pMac->hal.halMac.maxSta) && (t[staIdx].valid)) {
+         t[staIdx].bssSelfStaIdx = idx;
+         return eHAL_STATUS_SUCCESS;
+     } else {
+         return eHAL_STATUS_INVALID_STAIDX;
+     }
+}
+
+eHalStatus halTable_GetBssSelfStaIdxForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 *idx)
+{
+    tpBssStruct pBss = (tpBssStruct) pMac->hal.halMac.bssTable;
+    if ((bssIdx < pMac->hal.halMac.maxBssId) && (pBss[bssIdx].valid)) {
+        *idx = pBss[bssIdx].bssSelfStaIdx;
+        return eHAL_STATUS_SUCCESS;
+    } else {
+        return eHAL_STATUS_INVALID_STAIDX;
+    }
+}
+
+eHalStatus halTable_SetBssSelfStaIdxForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 idx)
+{
+    tpBssStruct pBss = (tpBssStruct) pMac->hal.halMac.bssTable;
+    if ((bssIdx < pMac->hal.halMac.maxBssId) && (pBss[bssIdx].valid)) {
+        pBss[bssIdx].bssSelfStaIdx = idx;
+        return eHAL_STATUS_SUCCESS;
+    } else {
+        return eHAL_STATUS_INVALID_STAIDX;
+    }
+}
+#endif
+
+#ifdef HAL_BCAST_STA_PER_BSS
+eHalStatus halTable_SetBssBcastStaIdx(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 idx)
+{
+    tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;
+    if(bssIdx < pMac->hal.halMac.maxBssId)
+    {
+        t[bssIdx].bcastStaIdx = idx;
+        return eHAL_STATUS_SUCCESS;
+    }
+    return eHAL_STATUS_INVALID_BSSIDX;
+}
+
+eHalStatus halTable_GetBssBcastStaIdx(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 *idx)
+{
+    tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;
+    if(bssIdx < pMac->hal.halMac.maxBssId)
+    {
+        *idx = t[bssIdx].bcastStaIdx;
+        return eHAL_STATUS_SUCCESS;
+    }
+    return eHAL_STATUS_INVALID_BSSIDX;
+}
+#endif
+
 // Find the staId for a station
 eHalStatus halTable_FindStaidByAddrAndType(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_U8 *id, tANI_U8 type)
 {
@@ -1309,26 +1464,6 @@ eHalStatus halTable_FindStaidByAddrAndType(tpAniSirGlobal pMac, tSirMacAddr staA
 
     return status;
 }
-
-/*
- * Save the sta Index for bssid in BSS entry.
- */
-eHalStatus halTable_SetStaIdxForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 staIdx)
-{
-    tpBssStruct pBss = (tpBssStruct) pMac->hal.halMac.bssTable;
-    tpStaStruct pSta = (tpStaStruct) pMac->hal.halMac.staTable;
-    if (((staIdx < pMac->hal.halMac.maxSta) && (pSta[staIdx].valid)) &&
-        ((bssIdx < pMac->hal.halMac.maxBssId) && (pBss[bssIdx].valid)))
-    {
-        pBss[bssIdx].staIdForBss = staIdx;
-        return eHAL_STATUS_SUCCESS;
-    }
-    else
-        return eHAL_STATUS_INVALID_STAIDX;
-
-}
-
-
 
 /*
  * Save the DTIM period as advertised by the AP in the bss table
@@ -1364,9 +1499,6 @@ eHalStatus halTable_GetDtimPeriod( tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 
 }
 
 
-
-
-
 /*
  * Following are defined as static inline for use in data path
  */
@@ -1376,9 +1508,24 @@ eHalStatus halTable_GetBssIndexForSta(tpAniSirGlobal pMac, tANI_U8 *bssIdx, tANI
     if ((staIdx < pMac->hal.halMac.maxSta) && (pSta[staIdx].valid))
     {
         *bssIdx = pSta[staIdx].bssIdx;
+        HALLOGW( halLog(pMac, LOGW, FL(" BssIdx = %d for Sta = %d\n"), *bssIdx, staIdx));
+        /* TODO: This is a hack */
+        if (staIdx == 0) {
+            *bssIdx = 0;
+        }
         return eHAL_STATUS_SUCCESS;
     }
-    else
+    return eHAL_STATUS_INVALID_STAIDX;
+}
+
+eHalStatus halTable_SetBssIndexForSta(tpAniSirGlobal pMac, tANI_U8 staId, tANI_U8 bssIdx)
+{
+    tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
+    if ((staId < pMac->hal.halMac.maxSta) && (t[staId].valid))
+    {
+        t[staId].bssIdx = bssIdx;
+        return eHAL_STATUS_SUCCESS;
+    }
         return eHAL_STATUS_INVALID_STAIDX;
 }
 
@@ -1395,6 +1542,68 @@ eHalStatus halTable_GetStaIndexForBss(tpAniSirGlobal pMac, tANI_U8 bssIndex, tAN
 
     return status;
 }
+
+/*
+ * Save the sta Index for bssid in BSS entry.
+ */
+eHalStatus halTable_SetStaIndexForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 staIdx)
+{
+    tpBssStruct pBss = (tpBssStruct) pMac->hal.halMac.bssTable;
+    tpStaStruct pSta = (tpStaStruct) pMac->hal.halMac.staTable;
+    if (((staIdx < pMac->hal.halMac.maxSta) && (pSta[staIdx].valid)) &&
+        ((bssIdx < pMac->hal.halMac.maxBssId) && (pBss[bssIdx].valid)))
+    {
+        pBss[bssIdx].staIdForBss = staIdx;
+        return eHAL_STATUS_SUCCESS;
+    }
+    else
+        return eHAL_STATUS_INVALID_STAIDX;
+
+}
+
+/*
+ * Get the OBSS protection for the bssidx in BSS entry.
+ */
+eHalStatus halTable_GetObssProtForBss(tpAniSirGlobal pMac, tANI_U8 bssIndex, tANI_U8 *obssProt)
+{
+    eHalStatus status = eHAL_STATUS_INVALID_BSSIDX;
+    tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+    if ((bssIndex < pMac->hal.halMac.maxBssId) && (t[bssIndex].valid)) {
+        *obssProt = t[bssIndex].obssProtEnabled;
+        status = eHAL_STATUS_SUCCESS;
+    }
+
+    return status;
+}
+
+eHalStatus halTable_GetBcastStaIndexForBss(tpAniSirGlobal pMac, tANI_U8 bssIndex, tANI_U8 *staIndex)
+{
+    eHalStatus status = eHAL_STATUS_INVALID_BSSIDX;
+    tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+    if ((bssIndex < pMac->hal.halMac.maxBssId) && (t[bssIndex].valid))
+    {
+        *staIndex = t[bssIndex].bcastStaIdx;
+        status = eHAL_STATUS_SUCCESS;
+    }
+
+    return status;
+}
+
+/*
+ * Save the OBSS protection for the bssidx in BSS entry.
+ */
+eHalStatus halTable_SetObssProtForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 obssProt)
+{
+    tpBssStruct pBss = (tpBssStruct) pMac->hal.halMac.bssTable;
+    if ((bssIdx < pMac->hal.halMac.maxBssId) && (pBss[bssIdx].valid)) {
+        pBss[bssIdx].obssProtEnabled = obssProt;
+        return eHAL_STATUS_SUCCESS;
+    }
+    return eHAL_STATUS_INVALID_BSSIDX;
+}
+
 
 
 /* -------------------------------------------------------
@@ -1875,14 +2084,14 @@ eHalStatus halTable_StaCacheOpen(tHalHandle hHal, void *arg)
     pMac->hal.halMac.staCache = (tANI_U8 *)rtlglue_alloc_data_scratchpad_memory(STA_CACHE_SIZE, "staCache");
 
     if (pMac->hal.halMac.staCache == NULL)            
-         status = palAllocateMemory(pMac->hHdd,(void *) &pMac->hal.halMac.staCache,
+         status = palAllocateMemory(pMac->hHdd,(void **) &pMac->hal.halMac.staCache,
                                          STA_CACHE_SIZE);
 
 #else    
     status = palAllocateMemory(pMac->hHdd, &pMac->hal.halMac.pStaCacheInfo,
                                     max_sta * sizeof(tStaCacheEntry));
     
-    status = palAllocateMemory(pMac->hHdd,(void *) &pMac->hal.halMac.staCache,
+    status = palAllocateMemory(pMac->hHdd,(void **) &pMac->hal.halMac.staCache,
                                     STA_CACHE_SIZE);
 #endif    
     pMac->hal.halMac.staCacheInfoFreeHeadIndex = 0;

@@ -53,10 +53,11 @@ static void setSchEdcaParams(tpAniSirGlobal pMac, tANI_U32 params[][WNI_CFG_EDCA
  * @return None
  */
 
-void schSetBeaconInterval(tpAniSirGlobal pMac)
+void schSetBeaconInterval(tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
     tANI_U32 bi;
-    wlan_cfgGetInt(pMac, WNI_CFG_BEACON_INTERVAL, &bi);
+
+    bi = psessionEntry->beaconInterval;
 
     if (bi < SCH_BEACON_INTERVAL_MIN || bi > SCH_BEACON_INTERVAL_MAX)
     {
@@ -115,17 +116,19 @@ schSetInitParams(tpAniSirGlobal pMac)
 
 void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
 {
-    //tpHalBufDesc    pBD;
-    tANI_U32 *pBD;
-    tpSirMacMgmtHdr mh;
-    tANI_U32             val;
-    tANI_U16             i;
-    tpDphHashNode   pSta;
+#ifdef FIXME_GEN6
+    tANI_U32            *pBD;
+    tpSirMacMgmtHdr     mh;
+    void                *pPacket;
+#endif
+    tANI_U32            val;
 
-    PELOG3(schLog(pMac, LOG3, FL("Received message (%x) \n"), pSchMsg->type);)
+	tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????
+	PELOG3(schLog(pMac, LOG3, FL("Received message (%x) \n"), pSchMsg->type);)
 
     switch (pSchMsg->type)
     {
+#ifdef FIXME_GEN6
         case SIR_BB_XPORT_MGMT_MSG:
             pMac->sch.gSchBBXportRcvCnt++;
 
@@ -143,23 +146,7 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
 
             if (mh->fc.type == SIR_MAC_MGMT_FRAME &&
                 mh->fc.subType == SIR_MAC_MGMT_BEACON)
-                schBeaconProcess(pMac, (tpHalBufDesc) pBD);
-#if (WNI_POLARIS_FW_PRODUCT == AP)
-            else if (mh->fc.type == SIR_MAC_DATA_FRAME &&
-                     mh->fc.subType & SIR_MAC_DATA_NULL_MASK)
-            {
-                if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
-                {                
-                    pMac->sch.gSchRRRecd = true;
-                }
-            }
-#endif
-            else if (mh->fc.type == SIR_MAC_DATA_FRAME &&
-                     mh->fc.subType == SIR_MAC_DATA_QOS_NULL)
-            {
-                // Should be handling Qos-null data frame???
-                PELOG3(schLog(pMac, LOG3, FL("Rcvd Qos-null data frame\n"));)
-            }
+                schBeaconProcess(pMac, pBD);
             else
             {
                 schLog(pMac, LOGE, FL("Unexpected message (%d,%d) rcvd\n"),
@@ -172,6 +159,7 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, pBD, (void *) pSchMsg->bodyptr) ;
 #endif
             break;
+#endif
 
         case SIR_SCH_CHANNEL_SWITCH_REQUEST:
             schLog(pMac, LOGE,
@@ -224,18 +212,9 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
                 case WNI_CFG_BEACON_INTERVAL:
                     // What to do for IBSS ?? - TBD
                     if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
-                        schSetBeaconInterval(pMac);
+                        schSetBeaconInterval(pMac,psessionEntry);
                     break;
 
-                case WNI_CFG_FRAGMENTATION_THRESHOLD:
-                    // Change frag threshold for each valid STA
-                    for (i=1; i<pMac->lim.maxStation; i++)
-                    {
-                        pSta = dphGetHashEntry(pMac, i);
-                        if (pSta && pSta->valid)
-                            pSta->fragSize = (tANI_U16) val;
-                    }
-                    break;
 
                 case WNI_CFG_DTIM_PERIOD:
                     pMac->sch.schObject.gSchDTIMCount = 0;
@@ -246,7 +225,7 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
                     break;
 
                 case WNI_CFG_EDCA_PROFILE:
-                    schEdcaProfileUpdate(pMac);
+                    schEdcaProfileUpdate(pMac, psessionEntry->limSystemRole);
                     break;
 
                 case WNI_CFG_EDCA_ANI_ACBK_LOCAL:
@@ -257,7 +236,7 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
                 case WNI_CFG_EDCA_WME_ACBE_LOCAL:
                 case WNI_CFG_EDCA_WME_ACVI_LOCAL:
                 case WNI_CFG_EDCA_WME_ACVO_LOCAL:
-                    if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
+                    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
                         schQosUpdateLocal(pMac);
                     break;
 
@@ -363,6 +342,7 @@ schGetParams(
     tANI_U32 val;
     tANI_U32 i,idx;
     tANI_U32 *prf;
+
     tANI_U32 ani_l[] = { WNI_CFG_EDCA_ANI_ACBE_LOCAL,WNI_CFG_EDCA_ANI_ACBK_LOCAL,
                    WNI_CFG_EDCA_ANI_ACVI_LOCAL, WNI_CFG_EDCA_ANI_ACVO_LOCAL };
     tANI_U32 wme_l[] = {WNI_CFG_EDCA_WME_ACBE_LOCAL, WNI_CFG_EDCA_WME_ACBK_LOCAL,
@@ -376,57 +356,23 @@ schGetParams(
     tANI_U32 demo_b[] = {WNI_CFG_EDCA_TIT_DEMO_ACBE, WNI_CFG_EDCA_TIT_DEMO_ACBK,
                    WNI_CFG_EDCA_TIT_DEMO_ACVI, WNI_CFG_EDCA_TIT_DEMO_ACVO};
 
-#if 0
-    //forcing the profile to be 'Airgo Profile' for IBSS
-    if(eLIM_STA_IN_IBSS_ROLE == pMac->lim.gLimSystemRole)
+    if (wlan_cfgGetInt(pMac, WNI_CFG_EDCA_PROFILE, &val) != eSIR_SUCCESS)
     {
-       val = WNI_CFG_EDCA_PROFILE_ANI;
-       PELOG1(schLog(pMac, LOG1, "Forcing the EDCA Profile to be Airgo profile for IBSS\n");)
+        schLog(pMac, LOGP, FL("failed to cfg get EDCA_PROFILE id %d\n"),
+               WNI_CFG_EDCA_PROFILE);
+        return eSIR_FAILURE;
     }
-    else
+
+    if (val >= WNI_CFG_EDCA_PROFILE_MAX)
     {
-#endif
-        if (wlan_cfgGetInt(pMac, WNI_CFG_EDCA_PROFILE, &val) != eSIR_SUCCESS)
-        {
-            schLog(pMac, LOGP, FL("failed to cfg get EDCA_PROFILE id %d\n"),
-                   WNI_CFG_EDCA_PROFILE);
-            return eSIR_FAILURE;
-        }
-        if (val >= WNI_CFG_EDCA_PROFILE_MAX)
-        {
-            schLog(pMac, LOGE, FL("Invalid EDCA_PROFILE %d, using %d instead\n"),
-                   val, WNI_CFG_EDCA_PROFILE_ANI);
-            val = WNI_CFG_EDCA_PROFILE_ANI;
-        }
-#if 0
+        schLog(pMac, LOGE, FL("Invalid EDCA_PROFILE %d, using %d instead\n"),
+               val, WNI_CFG_EDCA_PROFILE_ANI);
+        val = WNI_CFG_EDCA_PROFILE_ANI;
     }
-#endif
+
     schLog(pMac, LOGW, FL("EdcaProfile: Using %d (%s)\n"),  val,
            ((val == WNI_CFG_EDCA_PROFILE_WMM) ? "WMM"
-               : ( (val == WNI_CFG_EDCA_PROFILE_TIT_DEMO) ? "Titan"
-                   : "HiPerf")));
-
-    if (val != WNI_CFG_EDCA_PROFILE_TIT_DEMO)
-    {
-        /* determine if profile switching is required
-         * this applies on an AP if either WMM or 11eQos are enabled
-         * if there are some ANI peers in the BSS, we use the profile specified
-         * by the PROFILE_SWITCHING cfg instead of EDCA_PROFILE
-         */
-        if ((limGetSystemRole(pMac) == eLIM_AP_ROLE) &&
-            (pMac->lim.gLimWmeEnabled || pMac->lim.gLimQosEnabled))
-        {
-            tANI_U32 profile;
-            if (wlan_cfgGetInt(pMac, WNI_CFG_DYNAMIC_PROFILE_SWITCHING, &profile) != eSIR_SUCCESS)
-            {
-                schLog(pMac, LOGP, FL("failed to get PROFILE_SWITCHING id %d\n"),
-                       WNI_CFG_DYNAMIC_PROFILE_SWITCHING);
-                return eSIR_FAILURE;
-            }
-            if ((profile < WNI_CFG_EDCA_PROFILE_MAX) && (pMac->lim.gLimNumOfAniSTAs > 0))
-                val = profile;
-        }
-    }
+           : ( (val == WNI_CFG_EDCA_PROFILE_TIT_DEMO) ? "Titan" : "HiPerf")));
 
     if (local)
     {
@@ -486,11 +432,11 @@ schGetParams(
 void
 schQosUpdateBroadcast(tpAniSirGlobal pMac)
 {
-    tANI_U32 params[4][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN];
-    tANI_U32 cwminidx, cwmaxidx, txopidx;
-    tANI_U32 phyMode;
-    tANI_U8 i;
-
+    tANI_U32        params[4][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN];
+    tANI_U32        cwminidx, cwmaxidx, txopidx;
+    tANI_U32        phyMode;
+    tANI_U8         i;
+    tpPESession     psessionEntry = &pMac->lim.gpSession[0];//TBD-RAJESH HOW TO GET sessionEntry?????
     if (schGetParams(pMac, params, false) != eSIR_SUCCESS)
     {
         PELOGE(schLog(pMac, LOGE, FL("QosUpdateBroadcast: failed\n"));)
@@ -537,13 +483,17 @@ schQosUpdateBroadcast(tpAniSirGlobal pMac)
 
     }
 
-    if (schSetFixedBeaconFields(pMac) != eSIR_SUCCESS)
+    if (schSetFixedBeaconFields(pMac,psessionEntry) != eSIR_SUCCESS)
         PELOGE(schLog(pMac, LOGE, "Unable to set beacon fields!\n");)
 }
 
 void
 schQosUpdateLocal(tpAniSirGlobal pMac)
 {
+
+    tpPESession psessionEntry = &pMac->lim.gpSession[0];
+    //TBD-RAJESH - HOW to get SessionEntry
+    
     tANI_U32 params[4][WNI_CFG_EDCA_ANI_ACBK_LOCAL_LEN];
     tANI_BOOLEAN highPerformance=eANI_BOOLEAN_TRUE;
 
@@ -555,20 +505,20 @@ schQosUpdateLocal(tpAniSirGlobal pMac)
 
     setSchEdcaParams(pMac, params);
 
-    if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
+    if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
     {
         if (pMac->lim.gLimNumOfAniSTAs)
             highPerformance = eANI_BOOLEAN_TRUE;
         else
             highPerformance = eANI_BOOLEAN_FALSE;
     }
-    else if (pMac->lim.gLimSystemRole == eLIM_STA_IN_IBSS_ROLE)
+    else if (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)
     {
         highPerformance = eANI_BOOLEAN_TRUE;
     }
 
     //For AP, the bssID is stored in LIM Global context.
-    limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParams, pMac->lim.gLimBssIdx, highPerformance);
+    limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParams, psessionEntry->bssIdx, highPerformance);
 }
 
 /** ----------------------------------------------------------
@@ -698,36 +648,14 @@ getWmmLocalParams(tpAniSirGlobal  pMac,  tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK
 \return  none
 \ ------------------------------------------------------------ */
 void
-schEdcaProfileUpdate(tpAniSirGlobal pMac)
+schEdcaProfileUpdate(tpAniSirGlobal pMac, tLimSystemRole systemRole)
 {
-    if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE ||
-        pMac->lim.gLimSystemRole == eLIM_STA_IN_IBSS_ROLE)
+    if (systemRole == eLIM_AP_ROLE || systemRole == eLIM_STA_IN_IBSS_ROLE)
     {
         schQosUpdateLocal(pMac);
         pMac->sch.schObject.gSchEdcaParamSetCount++;
         schQosUpdateBroadcast(pMac);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // --------------------------------------------------------------------

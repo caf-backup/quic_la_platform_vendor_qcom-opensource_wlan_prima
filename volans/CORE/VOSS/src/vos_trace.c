@@ -69,6 +69,7 @@ typedef struct
 // the 3 character 'name' of the module for marking the trace logs.
 moduleTraceInfo gVosTraceInfo[ VOS_MODULE_ID_MAX ] =
 {
+   { (1<<VOS_TRACE_LEVEL_FATAL), "BAP" },
    { (1<<VOS_TRACE_LEVEL_FATAL), "TL " }, 
    { (1<<VOS_TRACE_LEVEL_FATAL), "BAL" }, 
    { (1<<VOS_TRACE_LEVEL_FATAL), "SAL" }, 
@@ -76,12 +77,17 @@ moduleTraceInfo gVosTraceInfo[ VOS_MODULE_ID_MAX ] =
    // Made HDD with info high as we need the assoc completion events
    // to determine if we are associated, disassociated etc.
    // important control path events.
-   { (1<<VOS_TRACE_LEVEL_FATAL) | (1<<VOS_TRACE_LEVEL_INFO_HIGH), "HDD" }, 
+   { (1<<VOS_TRACE_LEVEL_FATAL) , "HDD" }, 
    { (1<<VOS_TRACE_LEVEL_FATAL), "SME" }, 
    { (1<<VOS_TRACE_LEVEL_FATAL), "PE " }, 
    { (1<<VOS_TRACE_LEVEL_FATAL), "HAL" }, 
    { (1<<VOS_TRACE_LEVEL_FATAL), "SYS" }, 
    { (1<<VOS_TRACE_LEVEL_FATAL), "VOS" }
+#ifdef WLAN_SOFTAP_FEATURE
+   ,
+   { (1<<VOS_TRACE_LEVEL_FATAL), "SAP" },
+   { (1<<VOS_TRACE_LEVEL_FATAL), "HSP" }
+#endif
 };
 
 
@@ -119,7 +125,7 @@ void vos_trace_setValue( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, v_U8_t on)
       printk(KERN_CRIT "%s: Invalid trace level %d passed in!\n",__FUNCTION__, level);
       return;
    }
-	
+
    // Make sure the caller is passing in a valid module.
    if ( module < 0 || module >= VOS_MODULE_ID_MAX )
    {
@@ -139,7 +145,7 @@ void vos_trace_setValue( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, v_U8_t on)
    {
 	   gVosTraceInfo[ module ].moduleTraceLevel = 0xFFFF;
    }
-	
+
    else
    {
       if(on)
@@ -169,6 +175,16 @@ v_BOOL_t vos_trace_getLevel( VOS_MODULE_ID module, VOS_TRACE_LEVEL level )
 
    return( traceOn );
 }
+
+void vos_snprintf(char *strBuffer, unsigned  int size, char *strFormat, ...)
+{
+    va_list val;
+
+    va_start( val, strFormat );
+    snprintf (strBuffer, size, strFormat, val);
+    va_end( val );
+}
+
 
 
 #ifdef VOS_ENABLE_TRACING
@@ -230,7 +246,7 @@ void vos_trace_msg( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, char *strFormat
       switch(level)
       {
          default:
-            printk(KERN_CRIT "%s: Unknown trace level passed in!\n", __FUNCTION__); 
+            printk(KERN_CRIT "%s: Unknown trace level passed in!\n", __FUNCTION__);
             break;
 
          case VOS_TRACE_LEVEL_FATAL:
@@ -267,8 +283,8 @@ void vos_trace_msg( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, char *strFormat
 
 void vos_trace_display(void)
 {
-     printk(KERN_CRIT "     1)FATAL  2)ERROR  3)WARN  4)INFO  5)INFO_H  6)INFO_M  7)INFO_L\n"); 
-     printk(KERN_CRIT "0)TL     %s        %s        %s      %s       %s         %s         %s\n",
+     printk(KERN_CRIT "     1)FATAL  2)ERROR  3)WARN  4)INFO  5)INFO_H  6)INFO_M  7)INFO_L\n");
+         printk(KERN_CRIT "0)BAP    %s        %s       %s       %s        %s         %s         %s\n",
          (gVosTraceInfo[0].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_FATAL)) ? "X":"",
          (gVosTraceInfo[0].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_ERROR)) ? "X":"",
          (gVosTraceInfo[0].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_WARN)) ? "X":"",
@@ -277,7 +293,7 @@ void vos_trace_display(void)
          (gVosTraceInfo[0].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_MED)) ? "X":"",
          (gVosTraceInfo[0].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_LOW)) ? "X":""
          );
-     printk(KERN_CRIT "1)BAL    %s        %s       %s       %s        %s         %s         %s\n",
+     printk(KERN_CRIT "1)TL     %s        %s        %s      %s       %s         %s         %s\n",
          (gVosTraceInfo[1].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_FATAL)) ? "X":"",
          (gVosTraceInfo[1].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_ERROR)) ? "X":"",
          (gVosTraceInfo[1].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_WARN)) ? "X":"",
@@ -286,7 +302,7 @@ void vos_trace_display(void)
          (gVosTraceInfo[1].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_MED)) ? "X":"",
          (gVosTraceInfo[1].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_LOW)) ? "X":""
          );
-     printk(KERN_CRIT "2)SAL    %s        %s       %s       %s        %s         %s         %s\n",
+     printk(KERN_CRIT "2)BAL    %s        %s       %s       %s        %s         %s         %s\n",
          (gVosTraceInfo[2].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_FATAL)) ? "X":"",
          (gVosTraceInfo[2].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_ERROR)) ? "X":"",
          (gVosTraceInfo[2].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_WARN)) ? "X":"",
@@ -295,7 +311,7 @@ void vos_trace_display(void)
          (gVosTraceInfo[2].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_MED)) ? "X":"",
          (gVosTraceInfo[2].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_LOW)) ? "X":""
          );
-     printk(KERN_CRIT "3)SSC    %s        %s       %s       %s        %s         %s         %s\n",
+     printk(KERN_CRIT "3)SAL    %s        %s       %s       %s        %s         %s         %s\n",
          (gVosTraceInfo[3].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_FATAL)) ? "X":"",
          (gVosTraceInfo[3].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_ERROR)) ? "X":"",
          (gVosTraceInfo[3].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_WARN)) ? "X":"",
@@ -304,7 +320,7 @@ void vos_trace_display(void)
          (gVosTraceInfo[3].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_MED)) ? "X":"",
          (gVosTraceInfo[3].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_LOW)) ? "X":""
          );
-     printk(KERN_CRIT "4)HDD    %s        %s       %s       %s        %s         %s         %s\n",
+     printk(KERN_CRIT "4)SSC    %s        %s       %s       %s        %s         %s         %s\n",
          (gVosTraceInfo[4].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_FATAL)) ? "X":"",
          (gVosTraceInfo[4].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_ERROR)) ? "X":"",
          (gVosTraceInfo[4].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_WARN)) ? "X":"",
@@ -313,7 +329,7 @@ void vos_trace_display(void)
          (gVosTraceInfo[4].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_MED)) ? "X":"",
          (gVosTraceInfo[4].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_LOW)) ? "X":""
          );
-     printk(KERN_CRIT "5)SME    %s        %s       %s       %s        %s         %s         %s\n",
+     printk(KERN_CRIT "5)HDD    %s        %s       %s       %s        %s         %s         %s\n",
          (gVosTraceInfo[5].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_FATAL)) ? "X":"",
          (gVosTraceInfo[5].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_ERROR)) ? "X":"",
          (gVosTraceInfo[5].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_WARN)) ? "X":"",
@@ -322,7 +338,7 @@ void vos_trace_display(void)
          (gVosTraceInfo[5].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_MED)) ? "X":"",
          (gVosTraceInfo[5].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_LOW)) ? "X":""
          );
-     printk(KERN_CRIT "6)PE     %s        %s       %s       %s        %s         %s         %s\n",
+     printk(KERN_CRIT "6)SME    %s        %s       %s       %s        %s         %s         %s\n",
          (gVosTraceInfo[6].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_FATAL)) ? "X":"",
          (gVosTraceInfo[6].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_ERROR)) ? "X":"",
          (gVosTraceInfo[6].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_WARN)) ? "X":"",
@@ -331,7 +347,7 @@ void vos_trace_display(void)
          (gVosTraceInfo[6].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_MED)) ? "X":"",
          (gVosTraceInfo[6].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_LOW)) ? "X":""
          );
-     printk(KERN_CRIT "7)HAL    %s        %s       %s       %s        %s         %s         %s\n",
+     printk(KERN_CRIT "7)PE     %s        %s       %s       %s        %s         %s         %s\n",
          (gVosTraceInfo[7].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_FATAL)) ? "X":"",
          (gVosTraceInfo[7].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_ERROR)) ? "X":"",
          (gVosTraceInfo[7].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_WARN)) ? "X":"",
@@ -340,7 +356,7 @@ void vos_trace_display(void)
          (gVosTraceInfo[7].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_MED)) ? "X":"",
          (gVosTraceInfo[7].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_LOW)) ? "X":""
          );
-     printk(KERN_CRIT "8)SYS    %s        %s       %s       %s        %s         %s         %s\n",
+     printk(KERN_CRIT "8)HAL    %s        %s       %s       %s        %s         %s         %s\n",
          (gVosTraceInfo[8].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_FATAL)) ? "X":"",
          (gVosTraceInfo[8].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_ERROR)) ? "X":"",
          (gVosTraceInfo[8].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_WARN)) ? "X":"",
@@ -349,7 +365,7 @@ void vos_trace_display(void)
          (gVosTraceInfo[8].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_MED)) ? "X":"",
          (gVosTraceInfo[8].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_LOW)) ? "X":""
          );
-     printk(KERN_CRIT "9)VOS    %s        %s       %s       %s        %s         %s         %s\n",
+     printk(KERN_CRIT "9)SYS    %s        %s       %s       %s        %s         %s         %s\n",
          (gVosTraceInfo[9].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_FATAL)) ? "X":"",
          (gVosTraceInfo[9].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_ERROR)) ? "X":"",
          (gVosTraceInfo[9].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_WARN)) ? "X":"",
@@ -358,6 +374,26 @@ void vos_trace_display(void)
          (gVosTraceInfo[9].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_MED)) ? "X":"",
          (gVosTraceInfo[9].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_LOW)) ? "X":""
          );
+     printk(KERN_CRIT "10)VOS    %s        %s       %s       %s        %s         %s         %s\n",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_FATAL)) ? "X":"",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_ERROR)) ? "X":"",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_WARN)) ? "X":"",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO)) ? "X":"",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_HIGH)) ? "X":"",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_MED)) ? "X":"",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_LOW)) ? "X":""
+         );
+#ifdef WLAN_SOFTAP_FEATURE
+     printk(KERN_CRIT "11)SAP    %s        %s       %s       %s        %s         %s         %s\n",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_FATAL)) ? "X":"",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_ERROR)) ? "X":"",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_WARN)) ? "X":"",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO)) ? "X":"",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_HIGH)) ? "X":"",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_MED)) ? "X":"",
+         (gVosTraceInfo[10].moduleTraceLevel & (1 << VOS_TRACE_LEVEL_INFO_LOW)) ? "X":""
+         );
+#endif
 }
 
 

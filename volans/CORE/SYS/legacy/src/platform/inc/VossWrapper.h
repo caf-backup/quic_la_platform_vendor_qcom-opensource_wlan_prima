@@ -175,6 +175,7 @@ typedef struct TX_TIMER_STRUCT
     // Pointer to the MAC global structure, which stores the context for the NIC,
     // for which this timer is supposed to operate.
     v_PVOID_t  pMac;
+    tANI_U8 sessionId;
 
 } TX_TIMER;
 

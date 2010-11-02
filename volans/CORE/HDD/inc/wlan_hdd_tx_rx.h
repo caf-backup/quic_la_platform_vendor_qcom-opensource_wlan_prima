@@ -26,6 +26,9 @@
 #define HDD_ETHERTYPE_802_1_X              ( 0x888E )
 #define HDD_ETHERTYPE_802_1_X_FRAME_OFFSET ( 12 )
 #define HDD_ETHERTYPE_802_1_X_SIZE         ( 2 )
+#ifdef FEATURE_WLAN_WAPI
+#define HDD_ETHERTYPE_WAI                  ( 0x88b4 )
+#endif
 
 /*--------------------------------------------------------------------------- 
   Type declarations
@@ -165,5 +168,17 @@ extern VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
                                      vos_pkt_t *pVosPacket, 
                                      v_U8_t staId,
                                      WLANTL_RxMetaInfoType* pRxMetaInfo );
+
+#ifdef WLAN_SOFTAP_FEATURE
+
+/**============================================================================
+  @brief hdd_IsEAPOLPacket() - Checks the packet is EAPOL or not.
+
+  @param pVosPacket : [in] pointer to vos packet  
+  @return         : VOS_TRUE if the packet is EAPOL 
+                  : VOS_FALSE otherwise
+  ===========================================================================*/
+extern v_BOOL_t hdd_IsEAPOLPacket( vos_pkt_t *pVosPacket );
+#endif
 
 #endif    // end #if !defined( WLAN_HDD_TX_RX_H )

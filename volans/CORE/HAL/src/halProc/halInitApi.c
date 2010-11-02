@@ -30,6 +30,8 @@
 #include "halTLApi.h"   //halTLApInit() and halTLApiExit()
 #include "halAHB.h"
 #include "vos_power.h"
+#include "halFtmRx.h"
+
 
 #ifdef ANI_OS_TYPE_LINUX
 #include "ccmApi.h"
@@ -110,7 +112,7 @@ static void halCloseExit(tpAniSirGlobal pMac);
  */
 // FIXME  - These should come from header files.
 extern tSirRetStatus sysInitGlobals(tpAniSirGlobal pMac);
-extern void logInit (tpAniSirGlobal);
+extern tSirRetStatus logInit (tpAniSirGlobal);
 ////
 
 /* --------------------------------------------------------------------------
@@ -120,7 +122,6 @@ extern void logInit (tpAniSirGlobal);
  * during the corresponding halOpen/Start/Stop/Close functions.
  * If a module does not implement the corresponding function, use NULL
  */
-#ifndef ANI_MANF_DIAG
 static tFuncEntry funcTable[] = {
     // func pointer(open)  start                        stop                    close                    name (<20chars)
     { {halResetChip,     halResetChip,                  halResetChip,           halResetChip},           "ResetChip"        },
@@ -156,22 +157,27 @@ static tFuncEntry funcTable[] = {
     { {NULL,             (pFptr)halTLApiInit,           (pFptr)halTLApiExit,           NULL},                   "HAL TL API"       },
     { {halMacStats_Open, NULL,                          NULL,                   halMacStats_Close},      "Mac Stats"        },
 };
-#else //ANI_MANF_DIAG
+
+
+//eDRIVER_TYPE_MFG
+#ifndef WLAN_FTM_STUB
 //This alternate table is to
 static tFuncEntry funcFtmTable[] = {
     // func pointer(open)  start                        stop                    close                    name (<20chars)
     { {halResetChip,      halResetChip,                  halResetChip,           halResetChip},           "ResetChip"},
     { {NULL,              halSaveDeviceInfo,             NULL,                   NULL},                   "FillChipInfo"},
     { {NULL,              halPMU_Start,                  NULL,                   NULL},                   "PMU"              },
-    { {nvOpen,            NULL,                          NULL,                   nvClose},                "halNv"               },
+    { {nvOpen,            NULL,                          NULL,                   nvClose},                "halNv"           },
     { {phyOpen,           phyStart,                      phyStop,                phyClose},               "halPhy"          },
     { {NULL,              halMif_Start,                  NULL,                   NULL},                   "MIF"     },
     { {NULL,              halMcu_Start,                  NULL,                   NULL},                   "MCU"             },
-    //{ {NULL,              enAllInts,                     NULL,                   NULL},                   "EnAllInts"        },
+    //{ {NULL,              enAllInts,                     NULL,                   NULL},                   "EnAllInts"     },
     { {halMbox_Open,      halMbox_Start,                 halMbox_Stop,           halMbox_Close},          "Mailbox"             },
-    { {NULL,              NULL,                          NULL,                   nvClose},                "halNv"               },
+    { {NULL,              NULL,                          NULL,                   nvClose},                "halNv"           },
     { {NULL,              halFW_Init,                    halFW_Exit,             NULL},                   "Firmware"            },
-    { {NULL,              halFW_CheckInitComplete,       NULL,                   NULL},                   "Check FW Init"    },
+    { {halRxp_Open,       halRxp_Start,                  halRxp_Stop,            halRxp_Close},           "RXP"             },
+    { {NULL,              halFtmRx_Start,                NULL,                   NULL},                   "Add1_filter"     },
+    { {NULL,              halFW_CheckInitComplete,       NULL,                   NULL},                   "Check FW Init"   },
 
 };
 #endif
@@ -275,13 +281,18 @@ runModuleFunc (
     if (fIndex >= NUM_FUNCS)
         return eHAL_STATUS_INVALID_PARAMETER;
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
         pEntry = &funcFtmTable[0];
         numEntries = sizeof(funcFtmTable)/sizeof(funcFtmTable[0]);
-#else
-        pEntry = &funcTable[0];
-        numEntries = sizeof(funcTable)/sizeof(funcTable[0]);
+    }
+    else
 #endif
+    {
+    pEntry = &funcTable[0];
+        numEntries = sizeof(funcTable)/sizeof(funcTable[0]);
+    }
 
     for (i = 0; i < numEntries; i++, pEntry++)
     {
@@ -326,8 +337,8 @@ eHalStatus halSaveDeviceInfo(tHalHandle hHal, void *arg)
     revNum = ((revNum & QWLAN_SIF_SIF_CHIP_REV_ID_REG_CHIP_VERSION_MASK) >> QWLAN_SIF_SIF_CHIP_REV_ID_REG_CHIP_VERSION_OFFSET);
 
     //storing the rev num in HAL global field.
-    pMac->hal.chipRevNum = revNum;
-
+        pMac->hal.chipRevNum = revNum;
+    
     halReadRegister(pMac, QWLAN_RFAPB_REV_ID_REG, &revNum);
 
     //storing the rf rev id.
@@ -426,7 +437,7 @@ halStart(
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     eHalStatus status;
 
-    pMac->hal.halMac.fShortSlot = 1; //initializing as short slot enabled.
+    pMac->hal.halMac.fShortSlot = 1; //initializing as short slot enabled. 
     status = runModuleFunc(hHal, (void *) pHalMacStartParms, START_IDX);
     if (status != eHAL_STATUS_SUCCESS)
         return status;
@@ -448,10 +459,13 @@ halStart(
     // Set the HAL state to INIT
     halStateSet(pMac, eHAL_INIT);
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
      if(eHAL_STATUS_SUCCESS != halIntChipEnable((tHalHandle)pMac))
      {
          HALLOGP( halLog(pMac, LOGP, FL("halIntChipEnable failed\n")));
+        }
      }
 #endif
 
@@ -466,7 +480,7 @@ halStart(
 \return    eHalStatus
   -------------------------------------------------------------*/
 
-eHalStatus halStop( tHalHandle hHal, tHalStopType stopType )
+eHalStatus halStop( tHalHandle hHal , tHalStopType stopType )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
     eHalStatus     status = eHAL_STATUS_SUCCESS, nReturn = eHAL_STATUS_SUCCESS;
@@ -493,7 +507,7 @@ eHalStatus halStop( tHalHandle hHal, tHalStopType stopType )
 #if defined(ANI_LED_ENABLE)
     halCloseLed(pMac);
 #endif
-
+    
     halPS_ExecuteStandbyProcedure(pMac);
 
     halCleanup( pMac );
@@ -511,14 +525,10 @@ eHalStatus halStop( tHalHandle hHal, tHalStopType stopType )
 
 eHalStatus halReset(tHalHandle hHal, tANI_U32 rc)
 {
-	 VOS_TRACE(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, 
-	 	"halReset: Reason Code = %d", rc);
-
     //All reason codes handled uniformly. Not much value in optimizing code for
     //scenarios that would happen very rarely (if they happen at all).
     VOS_ASSERT(0);	 
     vos_chipReset(NULL, VOS_FALSE, NULL, NULL);
-
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -610,7 +620,7 @@ static void halOpenInit(tpAniSirGlobal pMac)
 {
     // Initialize the write register function pointer
     pMac->hal.funcWriteReg = halNormalWriteRegister;
-
+    
     // Initialize the read register function pointer
     pMac->hal.funcReadReg = halNormalReadRegister;
 }
@@ -626,8 +636,8 @@ static void halCloseExit(tpAniSirGlobal pMac)
 \fn halFreeMsg
 \brief Called by VOS scheduler (function vos_sched_flush_mc_mqs)
 \      to free a given HAL message on the TX and MC thread.
-\      This happens when there are messages pending in the HAL
-\      queue when system is being stopped and reset.
+\      This happens when there are messages pending in the HAL 
+\      queue when system is being stopped and reset. 
 \param   tpAniSirGlobal pMac
 \param   tSirMsgQ       pMsg
 \return  none

@@ -25,7 +25,9 @@
 #define HDD_WLAN_WMM_PARAM_SURPLUS_BANDWIDTH_ALLOWANCE 11
 #define HDD_WLAN_WMM_PARAM_SERVICE_INTERVAL            12
 #define HDD_WLAN_WMM_PARAM_SUSPENSION_INTERVAL         13
-#define HDD_WLAN_WMM_PARAM_COUNT                       14
+#define HDD_WLAN_WMM_PARAM_BURST_SIZE_DEFN             14
+#define HDD_WLAN_WMM_PARAM_ACK_POLICY                  15
+#define HDD_WLAN_WMM_PARAM_COUNT                       16
 
 typedef enum
 {
@@ -95,6 +97,13 @@ typedef enum
 
 } hdd_wlan_wmm_status_e;
 
+/** TS Info Ack Policy */
+typedef enum
+{
+   HDD_WLAN_WMM_TS_INFO_ACK_POLICY_NORMAL_ACK      = 0,
+   HDD_WLAN_WMM_TS_INFO_ACK_POLICY_HT_IMMEDIATE_BLOCK_ACK    = 1,
+} hdd_wlan_wmm_ts_info_ack_policy_e;
+
 /** Maximum Length of WPA/RSN IE */
 #define MAX_WPA_RSN_IE_LEN 40
 
@@ -131,6 +140,28 @@ typedef enum
 #define HDD_WPS_ELEM_ASSOCIATION_STATE      0x1002 
 #define HDD_WPS_ELEM_CONFIGURATION_ERROR    0x1009
 #define HDD_WPS_ELEM_DEVICE_PASSWORD_ID     0x1012 
+
+#ifdef WLAN_SOFTAP_FEATURE
+#define HDD_WPS_MANUFACTURER_LEN            64
+#define HDD_WPS_MODEL_NAME_LEN              32
+#define HDD_WPS_MODEL_NUM_LEN               32
+#define HDD_WPS_SERIAL_NUM_LEN              32
+#define HDD_WPS_DEVICE_OUI_LEN               4
+#define HDD_WPS_DEVICE_NAME_LEN             32
+
+#define HDD_WPS_ELEM_WPS_STATE              0x1044
+#define HDD_WPS_ELEM_APSETUPLOCK            0x1057
+#define HDD_WPS_ELEM_SELECTEDREGISTRA       0x1041  
+#define HDD_WPS_ELEM_RSP_TYPE               0x103B
+#define HDD_WPS_ELEM_MANUFACTURER           0x1021
+#define HDD_WPS_ELEM_MODEL_NAME             0x1023
+#define HDD_WPS_ELEM_MODEL_NUM              0x1024
+#define HDD_WPS_ELEM_SERIAL_NUM             0x1042 
+#define HDD_WPS_ELEM_DEVICE_NAME            0x1011
+#define HDD_WPS_ELEM_REGISTRA_CONF_METHODS  0x1053
+#endif
+
+ 
 
 
 typedef enum
@@ -185,7 +216,14 @@ typedef struct hdd_wext_state_s
    
    /**Completion Variable*/
    struct completion completion_var;
-   
+
+#ifdef FEATURE_INNAV_SUPPORT
+   /* Measurement in Progress */
+   v_BOOL_t inNavMeasurementInProgress;
+
+   /* Measurement ID */
+   v_U32_t inNavMeasurementID;
+#endif
 }hdd_wext_state_t;
 
 typedef struct ccp_freq_chan_map_s{
@@ -228,6 +266,6 @@ extern int iw_set_auth(struct net_device *dev,struct iw_request_info *info,
 extern int iw_get_auth(struct net_device *dev,struct iw_request_info *info,
                          union iwreq_data *wrqu,char *extra);
 
-
+void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result);
 #endif // __WEXT_IW_H__
 

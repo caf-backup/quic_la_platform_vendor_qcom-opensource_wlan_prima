@@ -40,7 +40,13 @@ enum
     eLIM_CHANNEL_SWITCH_TIMER,
     eLIM_LEARN_DURATION_TIMER,
     eLIM_QUIET_TIMER,
-    eLIM_QUIET_BSS_TIMER
+    eLIM_QUIET_BSS_TIMER,
+#ifdef WLAN_SOFTAP_FEATURE
+    eLIM_WPS_OVERLAP_TIMER, 
+#endif
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    eLIM_FT_PREAUTH_RSP_TIMER,
+#endif
 };
 
 // Timer Handler functions
@@ -51,13 +57,14 @@ void limAssocFailureTimerHandler(void *, tANI_U32);
 void limReassocFailureTimerHandler(void *, tANI_U32);
 
 void limDeactivateAndChangeTimer(tpAniSirGlobal, tANI_U32);
-void limReactivateTimer(tpAniSirGlobal, tANI_U32);
+void limHeartBeatDeactivateAndChangeTimer(tpAniSirGlobal, tpPESession);
+void limReactivateHeartBeatTimer(tpAniSirGlobal, tpPESession);
 void limDummyPktExpTimerHandler(void *, tANI_U32);
 void limSendDisassocFrameThresholdHandler(void *, tANI_U32);
 void limCnfWaitTmerHandler(void *, tANI_U32);
 void limKeepaliveTmerHandler(void *, tANI_U32);
 void limDeactivateAndChangePerStaIdTimer(tpAniSirGlobal, tANI_U32, tANI_U16);
-void limActivateCnfTimer(tpAniSirGlobal, tANI_U16);
+void limActivateCnfTimer(tpAniSirGlobal, tANI_U16, tpPESession);
 void limActivateAuthRspTimer(tpAniSirGlobal, tLimPreAuthNode *);
 #ifdef ANI_PRODUCT_TYPE_AP
 void limUpdateOlbcCacheTimerHandler(void *, tANI_U32);
@@ -88,4 +95,9 @@ void limCBScanDurationTimerHandler(void *, tANI_U32);
  */
 v_UINT_t limActivateHearBeatTimer(tpAniSirGlobal pMac);
 
+#ifdef WLAN_SOFTAP_FEATURE
+#if 0
+void limWPSOverlapTimerHandler(void *pMacGlobal, tANI_U32 param);
+#endif
+#endif
 #endif /* __LIM_TIMER_UTILS_H */

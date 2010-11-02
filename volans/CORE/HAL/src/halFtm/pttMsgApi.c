@@ -17,15 +17,16 @@
  */
 
 #include "ani_assert.h"
-#include "sys_api.h"
+#include <sys_api.h>
 #include "pttModuleApi.h"
 #include "halPhyUtil.h"
+#include <halPhyVersion.h>
 #ifndef VERIFY_HALPHY_SIMV_MODEL
 #include "wlan_qct_sys.h"
 #endif
 
 
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
+#ifndef WLAN_FTM_STUB
 
 extern void HEXDUMP(char *s0, char *s1, int len);
 
@@ -135,6 +136,15 @@ typedef struct
 
 extern void printFrameFields(tpAniSirGlobal pMac, tPhyDbgFrame *frame, eHalPhyRates rate);
 
+
+#ifndef VERIFY_HALPHY_SIMV_MODEL
+void pttSendMsgResponse(tpAniSirGlobal pMac, tPttMsgbuffer *pPttMsg)
+{
+     wlan_sys_ftm(pPttMsg);
+}
+#endif
+
+/* KEEP AROUND FOR DEBUGGING MESSAGES IN LINUX
 typedef struct
 {
     char string[50];
@@ -169,7 +179,7 @@ const sPttMsgIdStr pttMsgDbgStrings[] =
     { "PTT_MSG_GET_WAVEFORM_POWER_ADC",                    0x3073 },
     { "PTT_MSG_START_WAVEFORM",                            0x3074 },
     { "PTT_MSG_STOP_WAVEFORM",                             0x3075 },
-    { "PTT_MSG_SET_RX_WAVEFORM_GAIN",                      0x3076 },                 
+    { "PTT_MSG_SET_RX_WAVEFORM_GAIN",                      0x3076 },
     { "PTT_MSG_CONFIG_TX_PACKET_GEN",                      0x3081 },
     { "PTT_MSG_START_STOP_TX_PACKET_GEN",                  0x3082 },
     { "PTT_MSG_POLL_TX_PACKET_PROGRESS",                   0x3083 },
@@ -183,12 +193,9 @@ const sPttMsgIdStr pttMsgDbgStrings[] =
     { "PTT_MSG_SET_PWR_INDEX_SOURCE",                      0x30A4 },
     { "PTT_MSG_SET_TX_POWER",                              0x30A5 },
     { "PTT_MSG_GET_TX_POWER_REPORT",                       0x30A7 },
-    { "PTT_MSG_SAVE_TX_PWR_CAL_TABLE",                     0x30A8 },
     { "PTT_MSG_SET_POWER_LUT",                             0x30A9 },
     { "PTT_MSG_GET_POWER_LUT",                             0x30AA },
     { "PTT_MSG_GET_PACKET_TX_GAIN_TABLE",                  0x30AB },
-    { "PTT_MSG_SAVE_TX_PWR_FREQ_TABLE",                    0x30AC },
-    { "PTT_MSG_CLPC_TEMP_COMPENSATION",                    0x30AD },
     { "PTT_MSG_DISABLE_AGC_TABLES",                        0x30D0 },
     { "PTT_MSG_ENABLE_AGC_TABLES",                         0x30D1 },
     { "PTT_MSG_SET_AGC_TABLES",                            0x30D2 },
@@ -203,7 +210,6 @@ const sPttMsgIdStr pttMsgDbgStrings[] =
     { "PTT_MSG_RX_DCO_CAL",                                0x3101 },
     { "PTT_MSG_TX_CARRIER_SUPPRESS_CAL",                   0x3102 },
     { "PTT_MSG_TX_IQ_CAL",                                 0x3103 },
-    { "PTT_MSG_HDET_CAL",                                  0x3105 },
     { "PTT_MSG_SET_TX_CARRIER_SUPPRESS_CORRECT",           0x3110 },
     { "PTT_MSG_GET_TX_CARRIER_SUPPRESS_CORRECT",           0x3111 },
     { "PTT_MSG_SET_TX_IQ_CORRECT",                         0x3112 },
@@ -213,12 +219,10 @@ const sPttMsgIdStr pttMsgDbgStrings[] =
     { "PTT_MSG_SET_RX_DCO_CORRECT",                        0x3116 },
     { "PTT_MSG_GET_RX_DCO_CORRECT",                        0x3117 },
     { "PTT_MSG_SET_TX_IQ_PHASE_NV_TABLE",                  0x3118 },
-    { "PTT_MSG_GET_HDET_CORRECT",                          0x3119 },
     { "PTT_MSG_GET_TEMP_ADC",                              0x3202 },
     { "PTT_MSG_READ_RF_REG",                               0x3203 },
     { "PTT_MSG_WRITE_RF_REG",                              0x3204 },
     { "PTT_MSG_SYSTEM_RESET",                              0x32A0 },
-    { "PTT_MSG_LOG_DUMP",                                  0x32A1 },
     { "PTT_MSG_GET_BUILD_RELEASE_NUMBER",                  0x32A2 },
     { "PTT_MSG_ADAPTER_DISABLED_RSP",                      0x32A3 },
     { "PTT_MSG_ENABLE_ADAPTER",                            0x32A4 },
@@ -236,22 +240,33 @@ const sPttMsgIdStr pttMsgDbgStrings[] =
     { "PTT_MSG_SET_CALCONTROL_BITMAP",                     0x32B0 }
 };
 
-#ifdef ANI_MANF_DIAG
-//void pttSendMsgResponse(tpAniSirGlobal pMac, tPttMsgbuffer *pPttMsg);   //in pttMsgResponse.c
-#ifndef VERIFY_HALPHY_SIMV_MODEL
-void pttSendMsgResponse(tpAniSirGlobal pMac, tPttMsgbuffer *pPttMsg)
+
+static void dumpPttMsg(tPttMsgbuffer *pttMsg)
 {
-     wlan_sys_ftm(pPttMsg);
+    unsigned int i;
+
+    printk(KERN_ERR "0x%4X", pttMsg->msgId);
+    printk(KERN_ERR "0x%4X", pttMsg->msgBodyLength);
+    printk(KERN_ERR "0x%2X", pttMsg->msgResponse);
+
+    for (i = 0; i < pttMsg->msgBodyLength; i+=4)
+    {
+        printk(KERN_ERR "%3d: 0x%2X 0x%2X 0x%2X 0x%2X\n", i,
+               *(((unsigned char *)&pttMsg->msgBody) + i + 0),
+               *(((unsigned char *)&pttMsg->msgBody) + i + 1),
+               *(((unsigned char *)&pttMsg->msgBody) + i + 2),
+               *(((unsigned char *)&pttMsg->msgBody) + i + 3)
+              );
+    }
 }
-#endif
-
-
+*/
 
 void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
 {
     eQWPttStatus retVal = PTT_STATUS_SUCCESS;
 
     uPttMsgs *msgBody = (uPttMsgs *)&(pttMsg->msgBody);
+    //FOR DEBUG ONLY dumpPttMsg(pttMsg);
 
     assert(sizeof(tANI_BOOLEAN) == 1);
 
@@ -315,10 +330,7 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
         case PTT_MSG_SET_NV_TABLE:
         {
             HTONL(msgBody->SetNvTable.nvTable);
-            if (msgBody->SetNvTable.nvTable != NV_TABLE_TPC_CONFIG)
-            {
             halByteSwapNvTable(pMac, msgBody->SetNvTable.nvTable, &(msgBody->SetNvTable.tableData));
-            }
             retVal = pttSetNvTable(pMac, msgBody->SetNvTable.nvTable, &(msgBody->SetNvTable.tableData));
             NTOHL(msgBody->SetNvTable.nvTable);
 
@@ -624,7 +636,7 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
 
         case PTT_MSG_SET_RX_WAVEFORM_GAIN:
         {
-            HTONL(msgBody->SetRxWaveformGain.gain);
+            HTONL(msgBody->SetRxWaveformGain.rxChain);
 
             retVal = pttSetRxWaveformGain(pMac, msgBody->SetRxWaveformGain.rxChain, msgBody->SetRxWaveformGain.gain);
 
@@ -807,58 +819,6 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
             break;
         }
 
-        case PTT_MSG_SAVE_TX_PWR_FREQ_TABLE:
-        {
-            // tANI_U32 i, k, m;
-            // {
-            //     /* Use HTON on message body params
-            //
-            //     */
-            //
-            //     for (i = 0; i < msgBody->SaveTxPwrFreqTable.numTpcCalFreqs; i++)
-            //     {
-            //         HTONS(msgBody->SaveTxPwrFreqTable.table[i].freq);
-            //
-            //         for (k = 0; k < PHY_MAX_TX_CHAINS; k++)
-            //         {
-            //             HTONS(msgBody->SaveTxPwrFreqTable.table[i].empirical[k].numTpcCalPoints);
-            //             HTONS(msgBody->SaveTxPwrFreqTable.table[i].empirical[k].reserved);
-            //
-            //             for (m = 0; m < MAX_TPC_CAL_POINTS; m++)
-            //             {
-            //                 HTONS(msgBody->SaveTxPwrFreqTable.table[i].empirical[k].chain[m].absPowerMeasured.reported);
-            //             }
-            //         }
-            //     }
-            // }
-            //
-            // retVal = pttSaveTxPwrFreqTable(pMac, msgBody->SaveTxPwrFreqTable.numTpcCalFreqs,
-            //                     msgBody->SaveTxPwrFreqTable.table);
-            //
-            // for (i = 0; i < msgBody->SaveTxPwrFreqTable.numTpcCalFreqs; i++)
-            // {
-            //     NTOHS(msgBody->SaveTxPwrFreqTable.table[i].freq);
-            //
-            //     for (k = 0; k < PHY_MAX_TX_CHAINS; k++)
-            //     {
-            //         NTOHS(msgBody->SaveTxPwrFreqTable.table[i].empirical[k].numTpcCalPoints);
-            //         NTOHS(msgBody->SaveTxPwrFreqTable.table[i].empirical[k].reserved);
-            //
-            //         for (m = 0; m < MAX_TPC_CAL_POINTS; m++)
-            //         {
-            //             NTOHS(msgBody->SaveTxPwrFreqTable.table[i].empirical[k].chain[m].absPowerMeasured.reported);
-            //         }
-            //     }
-            // }
-
-            // !!! Now we should use PTT_MSG_SET_NV_TABLE to store the TPC config, not this message
-            // NV_TABLE_TPC_CONFIG is declared as sTpcFreqCalTable at the application layer
-            // but NV_TABLE_TPC_CONFIG is stored as tTpcConfig in the driver,
-            // so pttModule will convert it between the two formats.
-
-            break;
-        }
-
         case PTT_MSG_DISABLE_AGC_TABLES:
         {
             retVal = pttDisableAgcTables(pMac, msgBody->DisableAgcTables.gains);
@@ -956,10 +916,7 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
 
         case PTT_MSG_RX_DCO_CAL:
         {
-            HTONL(msgBody->RxDcoCal.gain);
-
             retVal = pttRxDcoCal(pMac, &(msgBody->RxDcoCal.calValues), msgBody->RxDcoCal.gain);
-            NTOHL(msgBody->RxDcoCal.gain);
 
             break;
         }
@@ -987,21 +944,6 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
         case PTT_MSG_EXECUTE_INITIAL_CALS:
         {
             retVal = pttExecuteInitialCals(pMac);
-            break;
-        }
-
-        case PTT_MSG_HDET_CAL:
-        {
-            retVal = pttHdetCal(pMac, &(msgBody->HdetCal.rfCalValues), msgBody->HdetCal.internal);
-
-            break;
-        }
-
-        case PTT_MSG_VCO_LINEARITY_CAL:
-        {
-#ifdef VERIFY_HALPHY_SIMV_MODEL
-            retVal = pttVcoLinearityCal(pMac);
-#endif
             break;
         }
 
@@ -1089,23 +1031,17 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
 
         case PTT_MSG_SET_RX_DCO_CORRECT:
         {
-            HTONL(msgBody->SetRxDcoCorrect.gain);
-
             pttSetRxDcoCorrect(pMac, msgBody->SetRxDcoCorrect.calValues,
                                      msgBody->SetRxDcoCorrect.gain
                               );
-            NTOHL(msgBody->SetRxDcoCorrect.gain);
             break;
         }
 
         case PTT_MSG_GET_RX_DCO_CORRECT:
         {
-            HTONL(msgBody->GetRxDcoCorrect.gain);
-
             pttGetRxDcoCorrect(pMac, &(msgBody->GetRxDcoCorrect.calValues),
                                      msgBody->GetRxDcoCorrect.gain
                               );
-            NTOHL(msgBody->GetRxDcoCorrect.gain);
             break;
         }
 
@@ -1131,18 +1067,9 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
             break;
         }
 
-        case PTT_MSG_GET_HDET_CORRECT:
-        {
-            retVal = pttGetHdetCorrect(pMac, &(msgBody->GetHdetCorrect.rfCalValues));
-
-            break;
-        }
-
         case PTT_MSG_GET_TEMP_ADC:
         {
-#ifdef VERIFY_HALPHY_SIMV_MODEL
-            retVal = pttGetTempAdc(pMac, &(msgBody->GetTempAdc.tempAdc));
-#endif
+            retVal = pttGetTempAdc(pMac, msgBody->GetTempAdc.tempSensor, &(msgBody->GetTempAdc.tempAdc));
             break;
         }
 
@@ -1233,34 +1160,13 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
             break;
         }
 
-        case PTT_MSG_LOG_DUMP:
-        {
-            HTONL(msgBody->LogDump.cmd);
-            HTONL(msgBody->LogDump.arg1);
-            HTONL(msgBody->LogDump.arg2);
-            HTONL(msgBody->LogDump.arg3);
-            HTONL(msgBody->LogDump.arg4);
-
-            retVal = pttLogDump(pMac,  msgBody->LogDump.cmd,
-                                       msgBody->LogDump.arg1,
-                                       msgBody->LogDump.arg2,
-                                       msgBody->LogDump.arg3,
-                                       msgBody->LogDump.arg4);
-
-            NTOHL(msgBody->LogDump.cmd);
-            NTOHL(msgBody->LogDump.arg1);
-            NTOHL(msgBody->LogDump.arg2);
-            NTOHL(msgBody->LogDump.arg3);
-            NTOHL(msgBody->LogDump.arg4);
-            break;
-        }
 
         case PTT_MSG_SET_CALCONTROL_BITMAP:
         {
 #ifdef VERIFY_HALPHY_SIMV_MODEL
             HTONL(msgBody->SetCalControlBitmap.option);
 
-            calDebugSetCalControlBitmap(); 
+            calDebugSetCalControlBitmap();
 
             NTOHL(msgBody->SetCalControlBitmap.option);
 #endif
@@ -1272,7 +1178,7 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
 #ifdef VERIFY_HALPHY_SIMV_MODEL
             HTONL(msgBody->InitOption.option);
 
-            HalPhy_Init(); 
+            HalPhy_Init();
 
             NTOHL(msgBody->InitOption.option);
 #endif
@@ -1325,6 +1231,7 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
             break;
     }
 
+/* KEEP AROUND FOR DEBUGGING MESSAGES IN LINUX
     //log messages coming through
     {
         tANI_U32 nMsgs = sizeof(pttMsgDbgStrings) / sizeof(sPttMsgIdStr);
@@ -1339,7 +1246,7 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
             }
         }
     }
-
+*/
     pttMsg->msgResponse = retVal;
     NTOHL(pttMsg->msgResponse);
 
@@ -1348,8 +1255,5 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
 
 }
 
-#endif
-
-
-#endif  //defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
+#endif  //ifndef WLAN_FTM_STUB
 

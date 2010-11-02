@@ -638,4 +638,35 @@ VOS_STATUS WLANSSC_ResumeChip
 );
 
 
+/**
+ @brief WLANSSC_DisableGlobalClkGating is used to disable the clock gating
+ globally. The feature is expected to help debugging any clock gating related
+ issues within the chip
+
+ @param Handle: SSC handle to operate on (returned in WLANSSC_Open)
+
+ @see NONE
+
+ @return Result of the function call
+*/
+VOS_STATUS WLANSSC_DisableGlobalClkGating
+(
+  WLANSSC_HandleType       Handle      
+);
+
+/**
+ @brief WLANSSC_EnableGlobalClkGating is used to enable global clock 
+ gating within the chip
+ 
+ @param Handle: SSC control block to operate on
+
+ @see NONE
+
+ @return Result of the function call
+*/
+VOS_STATUS WLANSSC_EnableGlobalClkGating
+(
+    WLANSSC_HandleType       Handle
+);
+
 #endif /* WLAN_QCT_SSC_H */

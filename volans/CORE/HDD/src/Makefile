@@ -1,6 +1,10 @@
+
 KERNEL_DIR ?= ../../../../../../../../kernel
 KERNEL_OUT ?= ../out/target/product/$(TARGET_PRODUCT)/obj/KERNEL_OBJ
-MAKE_FLAGS := -C $(KERNEL_DIR) O=$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi-
+
+TOOLCHAIN_PREFIX ?= arm-eabi-
+
+MAKE_FLAGS := -C $(KERNEL_DIR) O=$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=$(TOOLCHAIN_PREFIX)
 
 #Whether to build debug version
 BUILD_DEBUG_VERSION := 1
@@ -14,36 +18,79 @@ BUILD_FTM_DRIVER := 0
 KERNEL_INC ?= ./include/linux
 
 #WLAN root directory
-WLAN_DIR := ../vendor/qcom/proprietary/wlan/volans/CORE
-SAL_EXTERNAL_DIR := ../vendor/qcom/proprietary/wlan/external
-#WLANFW_DIR := ../vendor/qcom-proprietary/wlan/wlanfw
+# The WLAN is passed in from Android.mk as either:
+# eclair ../vendor/qcom-proprietary/wlan
+# froyo  ../vendor/qcom/proprietary/wlan
+ifndef WLAN
+# Local make not from Android.mk
+WLAN     := ../vendor/qcom/proprietary/wlan/volans/
+endif
 
-############## HDD ################################
-HDD_INC     = -I$(WLAN_DIR)/HDD/inc/
-HDD_SRC_DIR = ../../HDD/src
-HDD_OBJS    = $(HDD_SRC_DIR)/wlan_hdd_main.o  \
-            $(HDD_SRC_DIR)/wlan_hdd_scan.o  \
-            $(HDD_SRC_DIR)/wlan_hdd_assoc.o  \
-            $(HDD_SRC_DIR)/wlan_hdd_mib.o  \
-            $(HDD_SRC_DIR)/wlan_hdd_wext.o \
-            $(HDD_SRC_DIR)/wlan_hdd_tx_rx.o \
-			$(HDD_SRC_DIR)/wlan_hdd_dp_utils.o \
-            $(HDD_SRC_DIR)/wlan_hdd_wmm.o \
-            $(HDD_SRC_DIR)/wlan_hdd_cfg.o \
-            $(HDD_SRC_DIR)/wlan_hdd_wowl.o \
-			$(HDD_SRC_DIR)/wlan_hdd_early_suspend.o
+WLAN_DIR 		:= $(WLAN)/CORE
+SAL_EXTERNAL_DIR 	:= $(WLAN)/external
+WLANFW_DIR 		:= $(WLAN)/wlanfw
 
-####################################################
+############## HDD ###################
+HDD_INC := $(WLAN_DIR)/HDD/inc/
+HDD_OBJS := wlan_hdd_main.o  \
+            wlan_hdd_scan.o  \
+            wlan_hdd_assoc.o  \
+            wlan_hdd_mib.o  \
+            wlan_hdd_wext.o \
+            wlan_hdd_tx_rx.o   \
+            wlan_hdd_dp_utils.o \
+            wlan_hdd_early_suspend.o  \
+            wlan_hdd_wmm.o \
+	    wlan_hdd_cfg.o \
+            wlan_hdd_wowl.o \
+            wlan_hdd_innav.o \
+            wlan_hdd_ftm.o  \
+            wlan_hdd_hostapd.o  \
+            wlan_hdd_softap_tx_rx.o
+#            bap_hdd_main.o \
+
+ifeq ($(CONFIG_CFG80211), y)
+HDD_OBJS += wlan_hdd_cfg80211.o
+endif
+
+############# BAP ##################### 
+#BAP_INC := 	-I$(WLAN_DIR)/BAP/inc \
+#		-I$(WLAN_DIR)/BAP/src
+#
+#BAP_SRC_DIR := ../../BAP/src
+#BAP_OBJS := $(BAP_SRC_DIR)/bapModule.o        \
+#         $(BAP_SRC_DIR)/btampHCI.o         \
+#         $(BAP_SRC_DIR)/bapApiLinkCntl.o   \
+#         $(BAP_SRC_DIR)/bapApiHCBB.o       \
+#         $(BAP_SRC_DIR)/bapApiInfo.o       \
+#         $(BAP_SRC_DIR)/bapApiStatus.o     \
+#         $(BAP_SRC_DIR)/bapApiDebug.o      \
+#         $(BAP_SRC_DIR)/bapApiData.o       \
+#         $(BAP_SRC_DIR)/bapApiExt.o        \
+#         $(BAP_SRC_DIR)/bapApiTimer.o      \
+#         $(BAP_SRC_DIR)/btampFsm.o         \
+#         $(BAP_SRC_DIR)/bapRsn8021xAuthFsm.o \
+#         $(BAP_SRC_DIR)/bapRsn8021xSuppRsnFsm.o \
+#         $(BAP_SRC_DIR)/bapRsn8021xPrf.o     \
+#         $(BAP_SRC_DIR)/bapRsnAsfPacket.o    \
+#         $(BAP_SRC_DIR)/bapRsnSsmEapol.o     \
+#         $(BAP_SRC_DIR)/bapRsnSsmReplayCtr.o \
+#         $(BAP_SRC_DIR)/bapRsnTxRx.o         \
+#         $(BAP_SRC_DIR)/bapRsnSsmAesKeyWrap.o	\
+#	 $(BAP_SRC_DIR)/bapApiLinkSupervision.o
 
 ############# VOSS ################################
-VOSS_INC = -I$(WLAN_DIR)/VOSS/inc/ \
+VOSS_INC := -I$(WLAN_DIR)/VOSS/inc/ \
 		-I$(WLAN_DIR)/VOSS/inc/Linux \
            -I$(KERNEL_INC)\
-		-I$(WLAN_DIR)/VOSS/src \
-		-I$(SAL_EXTERNAL_DIR)
+           -I$(WLAN_DIR)/VOSS/src
 
-VOSS_SRC_DIR = ../../VOSS/src
-VOSS_OBJS =    $(VOSS_SRC_DIR)/vos_types.o \
+ifeq ($(TARGET_OS),Android)
+VOSS_INC += -I$(WLAN_DIR)/external
+endif
+
+VOSS_SRC_DIR := ../../VOSS/src
+VOSS_OBJS :=    $(VOSS_SRC_DIR)/vos_types.o \
                 $(VOSS_SRC_DIR)/vos_event.o  \
                 $(VOSS_SRC_DIR)/vos_getBin.o \
                 $(VOSS_SRC_DIR)/vos_list.o   \
@@ -60,27 +107,33 @@ VOSS_OBJS =    $(VOSS_SRC_DIR)/vos_types.o \
                 $(VOSS_SRC_DIR)/vos_sched.o   \
                 $(VOSS_SRC_DIR)/wlan_qct_bal.o \
                 $(VOSS_SRC_DIR)/wlan_qct_sal.o
-###################################################
+#                $(VOSS_SRC_DIR)/vos_utils.o   \
+#                $(VOSS_SRC_DIR)/aes_core.o \
+#		$(VOSS_SRC_DIR)/SHA1_sha1.o
+
+ifeq ($(BUILD_DIAG_VERSION),1)
+VOSS_OBJS += $(VOSS_SRC_DIR)/vos_diag.o
+endif
 
 ############# TL ##################### 
-TL_INC = -I$(WLAN_DIR)/TL/inc \
+TL_INC := 	-I$(WLAN_DIR)/TL/inc \
 		-I$(WLAN_DIR)/TL/src
 
-TL_SRC_DIR = ../../TL/src
-TL_OBJS    = $(TL_SRC_DIR)/wlan_qct_tl.o \
+TL_SRC_DIR := ../../TL/src
+TL_OBJS := 	$(TL_SRC_DIR)/wlan_qct_tl.o \
 		$(TL_SRC_DIR)/wlan_qct_tl_ba.o \
 		$(TL_SRC_DIR)/wlan_qct_tl_hosupport.o
 
 ############# SYS ##################### 
-SYS_INC =   -I$(WLAN_DIR)/SYS/common/inc \
+SYS_INC := 	-I$(WLAN_DIR)/SYS/common/inc \
 		-I$(WLAN_DIR)/SYS/legacy/src/pal/inc \
 		-I$(WLAN_DIR)/SYS/legacy/src/platform/inc \
 		-I$(WLAN_DIR)/SYS/legacy/src/system/inc \
 		-I$(WLAN_DIR)/SYS/legacy/src/utils/inc \
 
-SYS_COMMON_SRC_DIR = ../../SYS/common/src
-SYS_LEGACY_SRC_DIR = ../../SYS/legacy/src
-SYS_OBJS =  $(SYS_COMMON_SRC_DIR)/wlan_qct_sys.o \
+SYS_COMMON_SRC_DIR := ../../SYS/common/src
+SYS_LEGACY_SRC_DIR := ../../SYS/legacy/src
+SYS_OBJS :=	$(SYS_COMMON_SRC_DIR)/wlan_qct_sys.o \
 		$(SYS_LEGACY_SRC_DIR)/pal/src/palApiComm.o \
 		$(SYS_LEGACY_SRC_DIR)/pal/src/palApiSdio.o \
 		$(SYS_LEGACY_SRC_DIR)/pal/src/palTimer.o \
@@ -97,21 +150,23 @@ SYS_OBJS =  $(SYS_COMMON_SRC_DIR)/wlan_qct_sys.o \
 		$(SYS_LEGACY_SRC_DIR)/utils/src/utilsParser.o 
 
 ############# MAC ##################### 
-MAC_INC = -I$(WLAN_DIR)/MAC/inc \
+MAC_INC := 	-I$(WLAN_DIR)/MAC/inc \
 		-I$(WLAN_DIR)/MAC/src/include \
 		-I$(WLAN_DIR)/MAC/src/pe/include \
 		-I$(WLAN_DIR)/MAC/src/dph \
 		-I$(WLAN_DIR)/MAC/src/pe/lim \
 		-I$(WLAN_DIR)/MAC/src/dvt
-MAC_SRC_DIR =  ../../MAC/src
-MAC_CFG_OBJS = $(MAC_SRC_DIR)/cfg/cfgApi.o \
+
+MAC_SRC_DIR :=  ../../MAC/src
+
+MAC_CFG_OBJS := $(MAC_SRC_DIR)/cfg/cfgApi.o \
 		$(MAC_SRC_DIR)/cfg/cfgProcMsg.o \
 		$(MAC_SRC_DIR)/cfg/cfgSendMsg.o \
 		$(MAC_SRC_DIR)/cfg/cfgDebug.o \
 		$(MAC_SRC_DIR)/cfg/cfgParamName.o
 
-MAC_DPH_OBJS = $(MAC_SRC_DIR)/dph/dphHashTable.o
-MAC_LIM_OBJS = $(MAC_SRC_DIR)/pe/lim/limAIDmgmt.o               \
+MAC_DPH_OBJS := $(MAC_SRC_DIR)/dph/dphHashTable.o
+MAC_LIM_OBJS := $(MAC_SRC_DIR)/pe/lim/limAIDmgmt.o               \
           	$(MAC_SRC_DIR)/pe/lim/limApi.o                   \
          	$(MAC_SRC_DIR)/pe/lim/limAssocUtils.o            \
           	$(MAC_SRC_DIR)/pe/lim/limIbssPeerMgmt.o          \
@@ -146,10 +201,14 @@ MAC_LIM_OBJS = $(MAC_SRC_DIR)/pe/lim/limAIDmgmt.o               \
           	$(MAC_SRC_DIR)/pe/lim/limLogDump.o               \
           	$(MAC_SRC_DIR)/pe/lim/limDebug.o	         \
                 $(MAC_SRC_DIR)/pe/lim/limTrace.o		 \
-          	$(MAC_SRC_DIR)/pe/lim/limAdmitControl.o 
+            $(MAC_SRC_DIR)/pe/lim/limAdmitControl.o \
+            $(MAC_SRC_DIR)/pe/lim/limSession.o \
+            $(MAC_SRC_DIR)/pe/lim/limSessionUtils.o \
+            $(MAC_SRC_DIR)/pe/lim/limFT.o
 
 MAC_PMM_OBJS = $(MAC_SRC_DIR)/pe/pmm/pmmApi.o    \
-          	$(MAC_SRC_DIR)/pe/pmm/pmmDebug.o
+            $(MAC_SRC_DIR)/pe/pmm/pmmDebug.o     \
+            $(MAC_SRC_DIR)/pe/pmm/pmmAP.o
 
 MAC_SCH_OBJS = $(MAC_SRC_DIR)/pe/sch/schApi.o           \
           	$(MAC_SRC_DIR)/pe/sch/schBeaconGen.o     \
@@ -157,21 +216,26 @@ MAC_SCH_OBJS = $(MAC_SRC_DIR)/pe/sch/schApi.o           \
           	$(MAC_SRC_DIR)/pe/sch/schDebug.o         \
           	$(MAC_SRC_DIR)/pe/sch/schMessage.o
 
+MAC_RRM_OBJS = $(MAC_SRC_DIR)/pe/rrm/rrmApi.o
+
 MAC_OBJS = $(MAC_CFG_OBJS) \
                 $(MAC_DPH_OBJS) \
                 $(MAC_LIM_OBJS) \
                 $(MAC_PMM_OBJS) \
-                $(MAC_SCH_OBJS)
+           $(MAC_SCH_OBJS) \
+           $(MAC_RRM_OBJS)
 
 ############ HAL ##################### 
-HAL_INC = -I$(WLAN_DIR)/HAL/inc \
+HAL_INC := -I$(WLAN_DIR)/HAL/inc \
 		-I$(WLAN_DIR)/HAL/src/halPhy \
 		-I$(WLAN_DIR)/HAL/src/halFtm \
 		-I$(WLAN_DIR)/HAL/src/halProc \
 		-I$(WLAN_DIR)/HAL/src/halSys \
 		-I$(WLAN_DIR)/HAL/src/halMac
-HAL_SRC = ../../HAL/src
-HAL_MAC_OBJS =  $(HAL_SRC)/halMac/halAdu.o \
+
+HAL_SRC := ../../HAL/src
+
+HAL_MAC_OBJS :=	$(HAL_SRC)/halMac/halAdu.o \
 		$(HAL_SRC)/halMac/halApi.o \
 		$(HAL_SRC)/halMac/halBmu.o \
 		$(HAL_SRC)/halMac/halDPU.o \
@@ -191,31 +255,31 @@ HAL_MAC_OBJS =  $(HAL_SRC)/halMac/halAdu.o \
 		$(HAL_SRC)/halMac/halTpe.o \
 		$(HAL_SRC)/halMac/halTxp.o    
 
-HAL_PHY_OBJS = $(HAL_SRC)/halPhy/asicAGC.o \
+HAL_PHY_OBJS := $(HAL_SRC)/halPhy/asicAGC.o \
+        $(HAL_SRC)/halPhy/asic.o \
         $(HAL_SRC)/halPhy/asicTPC.o \
         $(HAL_SRC)/halPhy/asicWfm.o  \
         $(HAL_SRC)/halPhy/halPhyVos.o  \
         $(HAL_SRC)/halPhy/halPhy.o \
 		$(HAL_SRC)/halPhy/phyTxPower.o \
+	$(HAL_SRC)/halPhy/phyTxPowerPLUT.o \
         $(HAL_SRC)/halPhy/phyDebug.o \
         $(HAL_SRC)/halPhy/rfUtils.o
 
-
-ifeq ($(BUILD_FTM_DRIVER),1)
-HDD_OBJS += $(HDD_SRC_DIR)/wlan_hdd_ftm.o
-endif
-
-HAL_FTM_OBJ = $(HAL_SRC)/halFtm/asicCal.o \
+HAL_FTM_OBJS :=	$(HAL_SRC)/halFtm/pttMsgApi.o \
+		$(HAL_SRC)/halFtm/pttModule.o \
+		$(HAL_SRC)/halFtm/rfMidas.o \
+		$(HAL_SRC)/halFtm/asicTxFir.o \
+		$(HAL_SRC)/halFtm/asicCal.o \
         $(HAL_SRC)/halFtm/asicTxCtl.o \
-        $(HAL_SRC)/halFtm/halPhyRates.o \
         $(HAL_SRC)/halFtm/pttFrameGen.o \
         $(HAL_SRC)/halFtm/asicPhyDbg.o \
-        $(HAL_SRC)/halFtm/asicTxFir.o \
-        $(HAL_SRC)/halFtm/pttModule.o \
-        $(HAL_SRC)/halFtm/pttMsgApi.o \
-        $(HAL_SRC)/halFtm/rfMidas.o
+		$(HAL_SRC)/halFtm/halPhyRates.o \
+		$(HAL_SRC)/halFtm/halFtmRx.o
 
-HAL_PROC_OBJS =$(HAL_SRC)/halProc/halInitApi.o \
+
+
+HAL_PROC_OBJS :=$(HAL_SRC)/halProc/halInitApi.o \
 		$(HAL_SRC)/halProc/halAdaptThrsh.o \
 		$(HAL_SRC)/halProc/halRateAdaptation.o \
 		$(HAL_SRC)/halProc/halMsg.o \
@@ -231,77 +295,99 @@ HAL_PROC_OBJS =$(HAL_SRC)/halProc/halInitApi.o \
 		$(HAL_SRC)/halProc/halFwApi.o \
 		$(HAL_SRC)/halProc/halRegBckup.o \
 		$(HAL_SRC)/halProc/halDebug.o \
-		$(HAL_SRC)/halProc/halBtc.o
+        $(HAL_SRC)/halProc/halBtc.o \
+        $(HAL_SRC)/halProc/halInNav.o \
+        $(HAL_SRC)/halProc/halTLFlush.o
  
-HAL_SYS_OBJS = $(HAL_SRC)/halSys/halInterrupts.o \
+HAL_SYS_OBJS := $(HAL_SRC)/halSys/halInterrupts.o \
 		$(HAL_SRC)/halSys/halPMU.o \
 		$(HAL_SRC)/halSys/halDXE.o \
 		$(HAL_SRC)/halSys/halNv.o \
 		$(HAL_SRC)/halSys/halNvTables.o \
-		$(HAL_SRC)/halSys/halQFuse.o \
 		$(HAL_SRC)/halSys/wlanHalAHB.o
 
-HAL_OBJS = $(HAL_MAC_OBJS)  \
+HAL_OBJS := $(HAL_MAC_OBJS)  \
                 $(HAL_PHY_OBJS)  \
-           $(HAL_FTM_OBJ)   \
+           $(HAL_FTM_OBJS)  \
                 $(HAL_PROC_OBJS) \
                 $(HAL_SYS_OBJS)
 
 ############# SME ##################### 
-SME_INC = -I$(WLAN_DIR)/SME/inc \
+SME_INC := -I$(WLAN_DIR)/SME/inc \
 		-I$(WLAN_DIR)/SME/src/csr
 
-SME_SRC_DIR =  ../../SME/src
-SME_CCM_OBJS = $(SME_SRC_DIR)/ccm/ccmApi.o \
+SME_SRC_DIR := ../../SME/src
+
+SME_CCM_OBJS := $(SME_SRC_DIR)/ccm/ccmApi.o \
 		$(SME_SRC_DIR)/ccm/ccmLogDump.o
-SME_CSR_OBJS = $(SME_SRC_DIR)/csr/csrLinkList.o \
+SME_CSR_OBJS := $(SME_SRC_DIR)/csr/csrLinkList.o \
 		$(SME_SRC_DIR)/csr/csrApiScan.o \
 		$(SME_SRC_DIR)/csr/csrApiRoam.o \
 		$(SME_SRC_DIR)/csr/csrCmdProcess.o \
 		$(SME_SRC_DIR)/csr/csrUtil.o \
-		$(SME_SRC_DIR)/csr/csrLogDump.o
+        $(SME_SRC_DIR)/csr/csrLogDump.o \
+        $(SME_SRC_DIR)/csr/csrNeighborRoam.o 
 
-SME_PMC_OBJS = $(SME_SRC_DIR)/pmc/pmcApi.o \
+SME_PMC_OBJS := $(SME_SRC_DIR)/pmc/pmcApi.o \
 		$(SME_SRC_DIR)/pmc/pmc.o \
 		$(SME_SRC_DIR)/pmc/pmcLogDump.o
 
-SME_QOS_OBJS = $(SME_SRC_DIR)/QoS/sme_Qos.o
+SME_QOS_OBJS := $(SME_SRC_DIR)/QoS/sme_Qos.o
 
-SME_CMN_OBJS = $(SME_SRC_DIR)/sme_common/sme_Api.o
+SME_CMN_OBJS := $(SME_SRC_DIR)/sme_common/sme_Api.o $(SME_SRC_DIR)/sme_common/sme_FTApi.o
 
-SME_BTC_OBJS = $(SME_SRC_DIR)/btc/btcApi.o
+SME_BTC_OBJS := $(SME_SRC_DIR)/btc/btcApi.o
 
-SME_OBJS =  $(SME_CCM_OBJS) \
+SME_MEAS_OBJS := $(SME_SRC_DIR)/meas/measApi.o
+
+SME_RRM_OBJS := $(SME_SRC_DIR)/rrm/sme_rrm.o
+
+SME_OBJS :=  $(SME_CCM_OBJS) \
 		$(SME_CSR_OBJS) \
 		$(SME_PMC_OBJS) \
 		$(SME_QOS_OBJS) \
 		$(SME_CMN_OBJS) \
-		$(SME_BTC_OBJS)
+        $(SME_BTC_OBJS) \
+        $(SME_MEAS_OBJS) \
+        $(SME_RRM_OBJS)
 
 ############# SSC ##################### 
 SSC_INC = -I$(WLAN_DIR)/SSC/inc \
            -I$(WLAN_DIR)/SSC/src
 
-SSC_SRC_DIR = ../../SSC/src
+SSC_SRC_DIR := ../../SSC/src
 
-SSC_OBJS = $(SSC_SRC_DIR)/wlan_qct_ssc.o
+SSC_OBJS := $(SSC_SRC_DIR)/wlan_qct_ssc.o
 
 ############### SVC  #################
 
-SVC_INC =   -I$(WLAN_DIR)/SVC/inc/
-SVC_EXT_INC =  -I$(WLAN_DIR)/SVC/external
-NLINK_SRC_DIR = ../../SVC/src/nlink
-BTC_SRC_DIR = ../../SVC/src/btc
-PTT_SRC_DIR = ../../SVC/src/ptt
-NLINK_OBJS =    $(NLINK_SRC_DIR)/wlan_nlink_srv.o
-BTC_OBJS =      $(BTC_SRC_DIR)/wlan_btc_svc.o
-PTT_OBJS =      $(PTT_SRC_DIR)/wlan_ptt_sock_svc.o
+SVC_INC :=  	-I$(WLAN_DIR)/SVC/inc/
+SVC_EXT_INC :=  -I$(WLAN_DIR)/SVC/external
+NLINK_SRC_DIR := ../../SVC/src/nlink
+BTC_SRC_DIR := ../../SVC/src/btc
+PTT_SRC_DIR := ../../SVC/src/ptt
+NLINK_OBJS :=    $(NLINK_SRC_DIR)/wlan_nlink_srv.o
+BTC_OBJS :=      $(BTC_SRC_DIR)/wlan_btc_svc.o
+PTT_OBJS :=      $(PTT_SRC_DIR)/wlan_ptt_sock_svc.o
+
+############# SAP ##################### 
+SAP_INC = -I$(WLAN_DIR)/SAP/inc \
+          -I$(WLAN_DIR)/SAP/src
+
+SAP_SRC_DIR = ../../SAP/src
+
+SAP_OBJS = $(SAP_SRC_DIR)/sapApiLinkCntl.o \
+	$(SAP_SRC_DIR)/sapFsm.o \
+	$(SAP_SRC_DIR)/sapModule.o\
+	$(SAP_SRC_DIR)/sapChSelect.o
 
 ############### FW  #################
-FW_INC =    -I$(WLAN_DIR)/../wlanfw/inc/
+FW_INC =    -I$(WLANFW_DIR)/inc/
 
 EXTRA_CFLAGS += $(addprefix -I, $(KERNEL_INC))
-EXTRA_CFLAGS += $(HDD_INC)
+EXTRA_CFLAGS += $(addprefix -I, $(HDD_INC))
+#EXTRA_CFLAGS += $(BAP_INC)
+EXTRA_CFLAGS += $(SAP_INC)
 EXTRA_CFLAGS += $(VOSS_INC)
 EXTRA_CFLAGS += $(TL_INC)
 EXTRA_CFLAGS += $(SYS_INC)
@@ -312,11 +398,14 @@ EXTRA_CFLAGS += $(SSC_INC)
 EXTRA_CFLAGS += $(SVC_INC)
 EXTRA_CFLAGS += $(SVC_EXT_INC)
 EXTRA_CFLAGS += $(FW_INC)
-
 EXTRA_LDFLAGS += --strip-debug
-EXTRA_CFLAGS += -Wframe-larger-than=4096 
 
-CDEFINES  = -DANI_PRODUCT_TYPE_CLIENT=1 \
+ifneq (,$(findstring arm-eabi-4.4.0, $(ANDROID_EABI_TOOLCHAIN)))
+EXTRA_CFLAGS += -Wframe-larger-than=4096 
+endif
+
+
+CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
 		-DANI_BUS_TYPE_SDIO=1 \
 		-DANI_LITTLE_BYTE_ENDIAN \
 		-DANI_LITTLE_BIT_ENDIAN \
@@ -345,66 +434,91 @@ CDEFINES  = -DANI_PRODUCT_TYPE_CLIENT=1 \
 		-DFW_PRESENT \
 		-DFEATURE_WLAN_UAPSD_FW_TRG_FRAMES \
 		-DVOLANS_1_0_WORKAROUND \
-		-DMSM_PLATFORM \
-		-DWLANSSC_TX_AGGREGATION_INTERNAL \
 		-DVOLANS_PERF \
-        -DADU_MEM_OPT_ENABLED #\
+        -DADU_MEM_OPT_ENABLED \
+        -DWLAN_SOFTAP_FEATURE \
+        -Wall\
+        -DWLAN_FEATURE_VOWIFI \
+        -DWLAN_DEBUG \
+        -DRSSI_HACK \
+        -DWLAN_FEATURE_VOWIFI_11R \
+        -DWLAN_FEATURE_NEIGHBOR_ROAMING \
+        -D__linux__ \
+        -DWLANSSC_TX_AGGREGATION_INTERNAL \
+        -DFEATURE_INNAV_SUPPORT \
+        -DFEATURE_TX_PWR_CONTROL \
+        -DMSM_PLATFORM \
+        -DWLAN_FTM_STUB \
+        -DVOLANS_1_0_CLPC_WORKAROUND \
+        -DFEATURE_WLAN_WAPI #\
+        #-DFEATURE_TX_PWR_CONTROL
+        #-DWLAN_FEATURE_VOWIFI_11R_DEBUG \
+        #-DWLAN_VOWIFI_DEBUG
+        #-Wframe-larger-than=4096#\
         #-DVOLANS_PHY_TX_OPT_ENABLED #\
 
-ifeq ($(TARGET_PRODUCT),msm7630_surf)
-EXTRA_CFLAGS += -march=armv7-a
-CDEFINES += -DMSM_PLATFORM_7x30
-else ifeq ($(TARGET_PRODUCT),msm7627_ffa)
-EXTRA_CFLAGS += -march=armv7-a
-CDEFINES += -DMSM_PLATFORM_7x27
-else ifeq ($(TARGET_PRODUCT),msm7627_surf)
-EXTRA_CFLAGS += -march=armv7-a
-CDEFINES += -DMSM_PLATFORM_7x27
-else ifeq ($(TARGET_PRODUCT),msm8660_surf)
-EXTRA_CFLAGS += -march=armv7-a
-CDEFINES += -DMSM_PLATFORM_8660
-else ifeq ($(TARGET_PRODUCT),msm8660_csfb)
-EXTRA_CFLAGS += -march=armv7-a
-CDEFINES += -DMSM_PLATFORM_8660
-endif
 
-#ifeq ($(TARGET_PRODUCT),msm7630_surf)
-#EXTRA_CFLAGS += -march=armv7-a
-#CDEFINES += -DMSM_PLATFORM_7x30
-#endif
-
-
-ifneq (, $(filter msm7627_surf msm7627_7x_surf, $(TARGET_PRODUCT)))
-EXTRA_CFLAGS += -march=armv6
-endif
-
-
-ifneq (, $(filter msm7627_ffa msm7627_7x_ffa, $(TARGET_PRODUCT)))
-EXTRA_CFLAGS += -march=armv6
-CDEFINES += -DMSM_PLATFORM_7x27_FFA
-endif
 
 ifeq ($(BUILD_DEBUG_VERSION),1)
 CDEFINES += -DWLAN_DEBUG \
 		-DTRACE_RECORD \
 		-DPE_DEBUG_LOGW \
 		-DPE_DEBUG_LOGE \
-		-DDEBUG 		
+		-DDEBUG 
 endif
 
+ifeq ($(BUILD_DIAG_VERSION),1)
+CDEFINES += -DFEATURE_WLAN_DIAG_SUPPORT
+CDEFINES += -DFEATURE_WLAN_DIAG_SUPPORT_CSR
+CDEFINES += -DFEATURE_WLAN_DIAG_SUPPORT_LIM
+endif
+
+
+
+ifneq (, $(filter msm8660_surf msm8660_csfb, $(TARGET_PRODUCT)))
+EXTRA_CFLAGS += -march=armv7-a
+CDEFINES += -DMSM_PLATFORM_8660
+endif
+
+ifneq (, $(filter msm7630_surf msm7630_fusion, $(TARGET_PRODUCT)))
+EXTRA_CFLAGS += -march=armv7-a
+CDEFINES += -DMSM_PLATFORM_7x30
+endif
+
+ifneq (, $(filter msm7627_surf msm7627_7x_surf, $(TARGET_PRODUCT)))
+EXTRA_CFLAGS += -march=armv6
+CDEFINES += -DMSM_PLATFORM_7x27
+endif
+
+
+ifneq (, $(filter msm7627_ffa msm7627_7x_ffa, $(TARGET_PRODUCT)))
+EXTRA_CFLAGS += -march=armv6
+CDEFINES += -DMSM_PLATFORM_7x27
+endif
+
+#default TARGET_TYPE is RF
+TARGET_TYPE :=RF
+
+ifeq ($(TARGET_TYPE),RF)
 CDEFINES += -DVOLANS_RF
-CDEFINES += -DVOLANS_VSWR_WORKAROUND
-MODNAME := WCN1314_rf
+MODNAME :=  WCN1314_rf
+else ifeq ($(TARGET_TYPE),BB)
+CDEFINES += -DVOLANS_BB
+MODNAME := volans_bb
+else
+CDEFINES += -DVOLANS_FPGA
+MODNAME := volans_fpga
+endif
 
 ifeq ($(BUILD_FTM_DRIVER),1)
 CDEFINES += -DANI_MANF_DIAG \
+	-UWLAN_FTM_STUB \
 	-DANI_PHY_DEBUG
 MODNAME := $(MODNAME)_ftm
 endif
 
 ifeq ($(WLAN_DBG),1)
 CDEFINES += -DWLAN_DEBUG
-MODNAME := $(MODNAME)_dbg
 endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)
@@ -414,13 +528,14 @@ OBJS := $(VOSS_OBJS) \
                 $(TL_OBJS)   \
                 $(SSC_OBJS)  \
                 $(SME_OBJS)  \
-								$(SYS_OBJS)  \
+		$(SYS_OBJS)  \
+                $(SAP_OBJS)  \
                 $(MAC_OBJS)  \
                 $(HAL_OBJS)  \
-								$(HDD_OBJS)  \
-								$(NLINK_OBJS) \
-								$(BTC_OBJS) \
-								$(PTT_OBJS)
+		$(HDD_OBJS)  \
+		$(NLINK_OBJS) \
+		$(BTC_OBJS) \
+		$(PTT_OBJS)
 
 # Module information used by KBuild framework
 obj-m   := $(MODNAME).o

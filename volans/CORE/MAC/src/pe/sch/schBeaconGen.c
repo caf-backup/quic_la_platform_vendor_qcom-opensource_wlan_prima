@@ -85,7 +85,7 @@ tSirRetStatus schAppendAddnIE(tpAniSirGlobal pMac, tANI_U8 *pFrame, tANI_U32 max
  * @return None
  */
 
-tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac)
+tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
     tpAniBeaconStruct pBeacon = (tpAniBeaconStruct)
                                    pMac->sch.schObject.gSchBeaconFrameBegin;
@@ -113,8 +113,13 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac)
 
     for (i=0; i<6; i++)
         mac->da[i] = 0xff;
-    limGetMyMacAddr(pMac, mac->sa);
-    limGetBssid(pMac, mac->bssId);
+    
+	/* Knocking out Global pMac update */
+	/* limGetMyMacAddr(pMac, mac->sa); */
+    /* limGetBssid(pMac, mac->bssId); */
+
+	palCopyMemory(pMac->hHdd, mac->sa, psessionEntry->selfMacAddr, sizeof(psessionEntry->selfMacAddr));
+	palCopyMemory(pMac->hHdd, mac->bssId, psessionEntry->bssId, sizeof (psessionEntry->bssId));
 
     mac->fc.fromDS = 0;
     mac->fc.toDS = 0;
@@ -128,14 +133,30 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac)
     // Skip over the timestamp (it'll be updated later).
 
     bcn1.BeaconInterval.interval = pMac->sch.schObject.gSchBeaconInterval;
-    PopulateDot11fCapabilities( pMac, &bcn1.Capabilities );
+    PopulateDot11fCapabilities( pMac, &bcn1.Capabilities, psessionEntry );
     PopulateDot11fSSID2( pMac, &bcn1.SSID );
-    PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL, &bcn1.SuppRates );
-    PopulateDot11fDSParams( pMac, &bcn1.DSParams );
+
+    PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL, &bcn1.SuppRates,psessionEntry);
+    PopulateDot11fDSParams( pMac, &bcn1.DSParams, psessionEntry->currentOperChannel );
     PopulateDot11fIBSSParams( pMac, &bcn1.IBSSParams );
 
     offset = sizeof( tAniBeaconStruct );
     ptr    = pMac->sch.schObject.gSchBeaconFrameBegin + offset;
+
+#ifdef WLAN_SOFTAP_FEATURE
+    if((psessionEntry->limSystemRole == eLIM_AP_ROLE) && !psessionEntry->probe_rsp_template_set)
+    {
+        /* Initialize the default IE bitmap to zero */
+        palZeroMemory( pMac->hHdd, ( tANI_U8* )&(psessionEntry->DefProbeRspIeBitmap), (sizeof( tANI_U32 ) * 8));
+
+        /* Initialize the default IE bitmap to zero */
+        palZeroMemory( pMac->hHdd, ( tANI_U8* )&(psessionEntry->probeRespFrame), sizeof(psessionEntry->probeRespFrame));
+
+        /* Can be efficiently updated whenever new IE added  in Probe response in future */
+        limUpdateProbeRspTemplateIeBitmapBeacon1(pMac,&bcn1,&psessionEntry->DefProbeRspIeBitmap[0],
+                                                &psessionEntry->probeRespFrame);
+    }
+#endif
 
     nStatus = dot11fPackBeacon1( pMac, &bcn1, ptr,
                                  SCH_MAX_BEACON_SIZE - offset,
@@ -195,25 +216,47 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac)
     }
 #endif
 
+#ifdef WLAN_SOFTAP_FEATURE
+    PopulateDot11fERPInfo( pMac, &bcn2.ERPInfo, psessionEntry );
+#else
     PopulateDot11fERPInfo( pMac, &bcn2.ERPInfo );
+#endif
 
-    if(pMac->lim.htCapability)
+    if(psessionEntry->htCapabality)
     {
         PopulateDot11fHTCaps( pMac, &bcn2.HTCaps );
+#ifdef WLAN_SOFTAP_FEATURE
+        PopulateDot11fHTInfo( pMac, &bcn2.HTInfo, psessionEntry );
+#else
         PopulateDot11fHTInfo( pMac, &bcn2.HTInfo );
+#endif
     }
 
     PopulateDot11fExtSuppRates( pMac, &bcn2.ExtSuppRates );
     
-    PopulateDot11fWPA( pMac, &pMac->lim.gpLimStartBssReq->rsnIE,
+    PopulateDot11fWPA( pMac, &psessionEntry->pLimStartBssReq->rsnIE,
                        &bcn2.WPA );
-    PopulateDot11fRSN( pMac, &pMac->lim.gpLimStartBssReq->rsnIE,
+    PopulateDot11fRSN( pMac, &psessionEntry->pLimStartBssReq->rsnIE,
                        &bcn2.RSN );
     if(pMac->lim.gLimWmeEnabled)
     {
+#ifdef WLAN_SOFTAP_FEATURE
+        PopulateDot11fWMM( pMac, &bcn2.WMMInfoAp, &bcn2.WMMParams, &bcn2.WMMCaps, psessionEntry);
+#else
         PopulateDot11fWMM( pMac, &bcn2.WMMInfoAp, &bcn2.WMMParams, &bcn2.WMMCaps );
+#endif
     }
-
+#ifdef WLAN_SOFTAP_FEATURE
+    if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+    {
+        if(psessionEntry->wps_state != SAP_WPS_DISABLED)
+        {
+            PopulateDot11fBeaconWPSIEs( pMac, &bcn2.WscBeacon, psessionEntry);            
+        }
+    }
+    else
+    {
+#endif
     if (wlan_cfgGetInt(pMac, (tANI_U16) WNI_CFG_WPS_ENABLE, &tmp) != eSIR_SUCCESS)
         limLog(pMac, LOGP,"Failed to cfg get id %d\n", WNI_CFG_WPS_ENABLE );
     
@@ -235,7 +278,18 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac)
         DePopulateDot11fWscRegistrarInfo(pMac, &bcn2.WscBeacon);
         pMac->lim.wscIeInfo.wscEnrollmentState = eLIM_WSC_ENROLL_NOOP;
     }
+#ifdef WLAN_SOFTAP_FEATURE    
+    }
+#endif
 
+#ifdef WLAN_SOFTAP_FEATURE
+    if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+    {
+        /* Can be efficiently updated whenever new IE added  in Probe response in future */
+        limUpdateProbeRspTemplateIeBitmapBeacon2(pMac,&bcn2,&psessionEntry->DefProbeRspIeBitmap[0],
+                                                &psessionEntry->probeRespFrame);
+    }
+#endif
 
     nStatus = dot11fPackBeacon2( pMac, &bcn2,
                                  pMac->sch.schObject.gSchBeaconFrameEnd,
@@ -264,6 +318,158 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac)
 
     return eSIR_SUCCESS;
 }
+
+#ifdef WLAN_SOFTAP_FEATURE
+void limUpdateProbeRspTemplateIeBitmapBeacon1(tpAniSirGlobal pMac,
+                                              tDot11fBeacon1* beacon1,
+                                              tANI_U32* DefProbeRspIeBitmap,
+                                              tDot11fProbeResponse* prb_rsp)
+{
+    prb_rsp->BeaconInterval = beacon1->BeaconInterval;
+    palCopyMemory(pMac->hHdd,(void *)&prb_rsp->Capabilities,
+                            (void *)&beacon1->Capabilities,
+                            sizeof(beacon1->Capabilities));
+
+    /* SSID */
+    if(beacon1->SSID.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_SSID_EID);
+        /* populating it , because probe response has to go with SSID even in hidden case */
+        PopulateDot11fSSID2( pMac, &prb_rsp->SSID );
+    }
+    /* supported rates */
+    if(beacon1->SuppRates.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_RATESET_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->SuppRates,
+                            (void *)&beacon1->SuppRates,
+                            sizeof(beacon1->SuppRates));
+
+    }
+    /* DS Parameter set */
+    if(beacon1->DSParams.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_DS_PARAM_SET_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->DSParams,
+                            (void *)&beacon1->DSParams,
+                            sizeof(beacon1->DSParams));
+
+    }
+
+    /* IBSS params will not be present in the Beacons transmitted by AP */
+}
+
+void limUpdateProbeRspTemplateIeBitmapBeacon2(tpAniSirGlobal pMac,
+                                              tDot11fBeacon2* beacon2,
+                                              tANI_U32* DefProbeRspIeBitmap,
+                                              tDot11fProbeResponse* prb_rsp)
+{
+    /* IBSS parameter set - will not be present in probe response tx by AP */
+    /* country */
+    if(beacon2->Country.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_COUNTRY_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->Country,
+                            (void *)&beacon2->Country,
+                            sizeof(beacon2->Country));
+
+    }
+    /* Power constraint */
+    if(beacon2->PowerConstraints.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_PWR_CONSTRAINT_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->PowerConstraints,
+                            (void *)&beacon2->PowerConstraints,
+                            sizeof(beacon2->PowerConstraints));
+
+    }
+    /* Channel Switch Annoouncement SIR_MAC_CHNL_SWITCH_ANN_EID */
+    if(beacon2->ChanSwitchAnn.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_CHNL_SWITCH_ANN_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->ChanSwitchAnn,
+                            (void *)&beacon2->ChanSwitchAnn,
+                            sizeof(beacon2->ChanSwitchAnn));
+
+    }
+    /* ERP information */
+    if(beacon2->ERPInfo.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_ERP_INFO_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->ERPInfo,
+                            (void *)&beacon2->ERPInfo,
+                            sizeof(beacon2->ERPInfo));
+
+    }
+    /* Extended supported rates */
+    if(beacon2->ExtSuppRates.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_EXTENDED_RATE_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->ExtSuppRates,
+                            (void *)&beacon2->ExtSuppRates,
+                            sizeof(beacon2->ExtSuppRates));
+
+    }
+    /* RSN */
+    if(beacon2->RSN.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_RSN_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->RSN,
+                            (void *)&beacon2->RSN,
+                            sizeof(beacon2->RSN));
+
+    }
+/*
+    // BSS load
+    if(beacon2->QBSSLoad.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_QBSS_LOAD_EID);
+    }
+*/
+    /* EDCA Parameter set */
+    if(beacon2->EDCAParamSet.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_EDCA_PARAM_SET_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->EDCAParamSet,
+                            (void *)&beacon2->EDCAParamSet,
+                            sizeof(beacon2->EDCAParamSet));
+
+    }
+    /* Vendor specific - currently no vendor specific IEs added */
+    /* Requested IEs - currently we are not processing this will be added later */
+    if(beacon2->HTCaps.present)
+    {
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->HTCaps,
+                            (void *)&beacon2->HTCaps,
+                            sizeof(beacon2->HTCaps));
+    }
+    if(beacon2->HTInfo.present)
+    {
+
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->HTInfo,
+                            (void *)&beacon2->HTInfo,
+                            sizeof(beacon2->HTInfo));
+    }
+
+}
+
+void SetProbeRspIeBitmap(tANI_U32* IeBitmap,tANI_U32 pos)
+{
+    tANI_U32 index,temp;
+
+    index = pos >> 5;
+    if(index >= 8 )
+    {
+        return;
+    }
+    temp = IeBitmap[index];
+
+    temp |= 1 << (pos & 0x1F);
+
+    IeBitmap[index] = temp;
+}
+
+#endif
 
 #ifdef ANI_PRODUCT_TYPE_AP
 
@@ -334,7 +540,7 @@ __schUpdateCfpParam(tpAniSirGlobal pMac, tANI_U8 *ptr, tANI_U32 *pbeaconSize)
  * @return None
  */
 
-void writeBeaconToMemory(tpAniSirGlobal pMac, tANI_U16 size, tANI_U16 length)
+void writeBeaconToMemory(tpAniSirGlobal pMac, tANI_U16 size, tANI_U16 length, tpPESession psessionEntry)
 {
     tANI_U16          i;
     tpAniBeaconStruct pBeacon;
@@ -376,7 +582,7 @@ void writeBeaconToMemory(tpAniSirGlobal pMac, tANI_U16 size, tANI_U16 length)
         //
 
         size = (size + 3) & (~3);
-        if( eSIR_SUCCESS != schSendBeaconReq( pMac, pMac->sch.schObject.gSchBeaconFrameBegin, size ))
+        if( eSIR_SUCCESS != schSendBeaconReq( pMac, pMac->sch.schObject.gSchBeaconFrameBegin, size , psessionEntry))
             PELOGE(schLog(pMac, LOGE, FL("schSendBeaconReq() returned an error (zsize %d)\n"), size);)
         else
         {
@@ -402,29 +608,63 @@ void writeBeaconToMemory(tpAniSirGlobal pMac, tANI_U16 size, tANI_U16 length)
  */
 
 void
-schProcessPreBeaconInd(tpAniSirGlobal pMac)
+schProcessPreBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 {
+    tpBeaconGenParams  pMsg = (tpBeaconGenParams)limMsg->bodyptr;
     tANI_U32 beaconSize = pMac->sch.schObject.gSchBeaconOffsetBegin;
+    tpPESession psessionEntry;
+    tANI_U8 sessionId;
+
+    if((psessionEntry = peFindSessionByBssid(pMac,pMsg->bssId, &sessionId))== NULL)
+    {
+         	PELOGE(schLog(pMac, LOGE, FL("session lookup fails\n"));)
+		goto end;
+    } 
+           
+
 
     // If SME is not in normal mode, no need to generate beacon
-    if (pMac->lim.gLimSmeState != eLIM_SME_NORMAL_STATE)
-        return;
+    if (psessionEntry->limSmeState  != eLIM_SME_NORMAL_STATE)
+    {
+    	 PELOGE(schLog(pMac, LOGE, FL("PreBeaconInd received in invalid state: %d\n"), psessionEntry->limSmeState);)
+	 goto end;
+    }
 
-
-    switch(pMac->lim.gLimSystemRole){
+    switch(psessionEntry->limSystemRole){
 
     case eLIM_STA_IN_IBSS_ROLE:
+    case eLIM_BT_AMP_AP_ROLE:
+    case eLIM_BT_AMP_STA_ROLE:
         // generate IBSS parameter set
-        writeBeaconToMemory(pMac, (tANI_U16) beaconSize, (tANI_U16)beaconSize);
+        if(psessionEntry->statypeForBss == STA_ENTRY_SELF)
+            writeBeaconToMemory(pMac, (tANI_U16) beaconSize, (tANI_U16)beaconSize, psessionEntry);
+	else
+	    PELOGE(schLog(pMac, LOGE, FL("can not send beacon for PEER session entry\n"));)
         break;
 
+#ifdef WLAN_SOFTAP_FEATURE
+    case eLIM_AP_ROLE:{
+         tANI_U8 *ptr = &pMac->sch.schObject.gSchBeaconFrameBegin[pMac->sch.schObject.gSchBeaconOffsetBegin];
+         tANI_U16 timLength = 0;
+         if(psessionEntry->statypeForBss == STA_ENTRY_SELF){
+             pmmGenerateTIM(pMac, &ptr, &timLength, psessionEntry->dtimPeriod);
+	     beaconSize += 2 + timLength;
+	     writeBeaconToMemory(pMac, (tANI_U16) beaconSize, (tANI_U16)beaconSize, psessionEntry);
+	 }
+	 else
+	     PELOGE(schLog(pMac, LOGE, FL("can not send beacon for PEER session entry\n"));)
+         }
+	 break;
+#endif
+
 #ifdef ANI_PRODUCT_TYPE_AP
-    case eLIM_AP_ROLE: {
+    case eLIM_AP_ROLE: 
+    {
         tANI_U8 *ptr = &pMac->sch.schObject.gSchBeaconFrameBegin[pMac->sch.schObject.gSchBeaconOffsetBegin];
         tANI_U16 timLength = 0;
 
         if (pMac->sch.schObject.gSchCFPEnabled)
-            ptr = __schUpdateCfpParam( pMac, ptr, &beaconSize);
+          ptr = __schUpdateCfpParam( pMac, ptr, &beaconSize);
 
         // generate TIM
         pmmGenerateTIM(pMac, &ptr, &timLength);
@@ -437,16 +677,20 @@ schProcessPreBeaconInd(tpAniSirGlobal pMac)
         * appropriately update the fixed fields
         */
         specialBeaconProcessing(pMac, beaconSize);
-        writeBeaconToMemory(pMac, beaconSize, beaconSize);
-        
-        pmmHandleTimBasedDisassociation( pMac);
-    }break;
+        writeBeaconToMemory(pMac, beaconSize, beaconSize, psessionEntry);
+        pmmHandleTimBasedDisassociation( pMac, psessionEntry );
+    }
+	break;
 #endif
 
     default:
-        limLog(pMac, LOGE, FL("Error-PE has Receive PreBeconGenIndication when System is in %d role"),
-               pMac->lim.gLimSystemRole);
+        PELOGE(schLog(pMac, LOGE, FL("Error-PE has Receive PreBeconGenIndication when System is in %d role"),
+               psessionEntry->limSystemRole);)
     }
+	
+end:
+    palFreeMemory(pMac->hHdd, (void*)pMsg);
+
 }
 
 /**-------------------------------------------------------------
@@ -464,6 +708,8 @@ schProcessPreBeaconInd(tpAniSirGlobal pMac)
 static void
 specialBeaconProcessing( tpAniSirGlobal pMac, tANI_U32 beaconSize)
 {
+
+    tpPESession psessionEntry = &pMac->lim.gpSession[0]; //TBD-RAJESH HOW TO GET sessionEntry?????
     tANI_BOOLEAN fBeaconChanged = eANI_BOOLEAN_FALSE;
 
     fBeaconChanged = limUpdateQuietIEInBeacons( pMac );
@@ -507,8 +753,8 @@ specialBeaconProcessing( tpAniSirGlobal pMac, tANI_U32 beaconSize)
             /* length is set to 0, so that no beacon is transmitted without channel switch IE
                        * before switching  to new channel */
             pMac->sch.schObject.fBeaconChanged = 1;
-            writeBeaconToMemory(pMac, beaconSize, 0);
-            schSetFixedBeaconFields(pMac);
+            writeBeaconToMemory(pMac, beaconSize, 0, psessionEntry);
+            schSetFixedBeaconFields(pMac,psessionEntry);
 
            PELOG3(limLog(pMac, LOG3, FL("Channel switch state = %d\n"), pMac->lim.gLimChannelSwitch.state);)
             switch(pMac->lim.gLimChannelSwitch.state)
@@ -518,7 +764,7 @@ specialBeaconProcessing( tpAniSirGlobal pMac, tANI_U32 beaconSize)
                     break;
                 case eLIM_CHANNEL_SWITCH_SECONDARY_ONLY:
                     limSwitchPrimarySecondaryChannel(pMac,
-                                             pMac->lim.gLimCurrentChannelId,
+                                             psessionEntry->currentOperChannel,
                                              pMac->lim.gLimChannelSwitch.secondarySubBand);
                     break;
                 case eLIM_CHANNEL_SWITCH_PRIMARY_AND_SECONDARY:
@@ -552,7 +798,7 @@ specialBeaconProcessing( tpAniSirGlobal pMac, tANI_U32 beaconSize)
 
     if (fBeaconChanged)
     {
-        schSetFixedBeaconFields(pMac);
+        schSetFixedBeaconFields(pMac,psessionEntry);
 
         if (pMac->lim.gLimChannelSwitch.switchCount > 0)
             pMac->lim.gLimChannelSwitch.switchCount--;

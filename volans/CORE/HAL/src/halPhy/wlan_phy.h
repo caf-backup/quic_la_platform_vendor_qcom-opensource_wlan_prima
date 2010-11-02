@@ -22,8 +22,8 @@
 
 #include "halPhy.h"
 #include "phyTest.h"
-#include "phyTxPower.h"
-#include "asicPhyDbg.h" //needed for access to grab ram for rfFilterCal
+#include <phyTxPower.h>
+#include <asicPhyDbg.h> //needed for access to grab ram for rfFilterCal
 
 
 

@@ -91,7 +91,7 @@ void cfgDump(tANI_U32*);
 void cfgSave(void);
 
 /// Get capability info
-extern tSirRetStatus cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap);
+extern tSirRetStatus cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession psessionEntry);
 
 /// Set capability info
 extern void cfgSetCapabilityInfo(tpAniSirGlobal, tANI_U16);

@@ -240,6 +240,7 @@ halMacRaTxPktCountFromFW(
     tpAniSirGlobal  pMac, 
     tANI_U32 *pktCntArray);
 
+#ifndef FEATURE_RA_CHANGE
 eHalStatus
 halMacRaAddBssReq(
     tpAniSirGlobal pMac, 
@@ -261,6 +262,7 @@ eHalStatus
 halMacRaDelStaReq(
     tpAniSirGlobal pMac, 
     tANI_U32 staid);
+#endif
 
 eHalStatus
 halMacRaUpdateParamReq(

@@ -130,12 +130,15 @@
 
 // Action frame categories
 
-#define SIR_MAC_ACTION_SPECTRUM_MGMT		0
-#define SIR_MAC_ACTION_QOS_MGMT			1
-#define SIR_MAC_ACTION_DLP					2
-#define SIR_MAC_ACTION_BLKACK				3		
-#define SIR_MAC_ACTION_HT					7
-#define SIR_MAC_ACTION_WME					17	
+#define SIR_MAC_ACTION_SPECTRUM_MGMT   0
+#define SIR_MAC_ACTION_QOS_MGMT        1
+#define SIR_MAC_ACTION_DLP             2
+#define SIR_MAC_ACTION_BLKACK          3
+#if defined WLAN_FEATURE_VOWIFI
+#define SIR_MAC_ACTION_RRM             5
+#endif
+#define SIR_MAC_ACTION_HT              7
+#define SIR_MAC_ACTION_WME            17	
 
 // QoS management action codes
 
@@ -165,6 +168,28 @@
 #define SIR_MAC_CCA_MEASUREMENT_TYPE           1
 #define SIR_MAC_RPI_MEASUREMENT_TYPE           2
 #endif //ANI_SUPPORT_11H
+
+//RRM related.
+//Refer IEEE Std 802.11k-2008, Section 7.3.2.21, table 7.29
+#if defined WLAN_FEATURE_VOWIFI
+
+#define SIR_MAC_RRM_CHANNEL_LOAD_TYPE          3
+#define SIR_MAC_RRM_NOISE_HISTOGRAM_BEACON     4
+#define SIR_MAC_RRM_BEACON_TYPE                5
+#define SIR_MAC_RRM_FRAME_TYPE                 6
+#define SIR_MAC_RRM_STA_STATISTICS_TYPE        7
+#define SIR_MAC_RRM_LCI_TYPE                   8
+#define SIR_MAC_RRM_TSM_TYPE                   9
+
+//RRM action codes
+#define SIR_MAC_RRM_RADIO_MEASURE_REQ          0
+#define SIR_MAC_RRM_RADIO_MEASURE_RPT          1
+#define SIR_MAC_RRM_LINK_MEASUREMENT_REQ       2
+#define SIR_MAC_RRM_LINK_MEASUREMENT_RPT       3
+#define SIR_MAC_RRM_NEIGHBOR_REQ               4
+#define SIR_MAC_RRM_NEIGHBOR_RPT               5
+
+#endif
 
 // HT Action Field Codes
 #define SIR_MAC_SM_POWER_SAVE				1
@@ -473,6 +498,9 @@
 #define SIR_MAC_GET_QOS(x)               ((((tANI_U16) x) & 0x0200) >> 9)
 #define SIR_MAC_GET_SHORT_SLOT_TIME(x)   ((((tANI_U16) x) & 0x0400) >> 10)
 #define SIR_MAC_GET_APSD(x)              ((((tANI_U16) x) & 0x0800) >> 11)
+#if defined WLAN_FEATURE_VOWIFI
+#define SIR_MAC_GET_RRM(x)               ((((tANI_U16) x) & 0x1000) >> 12)
+#endif
 #define SIR_MAC_GET_BLOCK_ACK(x)         ((((tANI_U16) x) & 0xc000) >> CAPABILITY_INFO_DELAYED_BA_BIT)
 #define SIR_MAC_SET_ESS(x)               (((tANI_U16) x) | 0x0001)
 #define SIR_MAC_SET_IBSS(x)              (((tANI_U16) x) | 0x0002)
@@ -484,6 +512,9 @@
 #define SIR_MAC_SET_QOS(x)               (((tANI_U16) x) | 0x0200)
 #define SIR_MAC_SET_SHORT_SLOT_TIME(x)   (((tANI_U16) x) | 0x0400)
 #define SIR_MAC_SET_APSD(x)              (((tANI_U16) x) | 0x0800)
+#if defined WLAN_FEATURE_VOWIFI
+#define SIR_MAC_SET_RRM(x)               (((tANI_U16) x) | 0x1000) 
+#endif
 #define SIR_MAC_SET_GROUP_ACK(x)         (((tANI_U16) x) | 0x4000)
 
 // bitname must be one of the above, eg ESS, CF_POLLABLE, etc.
@@ -651,6 +682,17 @@ typedef enum eBAPolicyType
   eBA_POLICY_DELAYED,
   eBA_POLICY_IMMEDIATE
 } tBAPolicyType;
+
+#ifdef WLAN_FEATURE_VOWIFI
+/* Based on table 7-43a from 802.11k Spec */
+typedef enum eRrmNeighborReachability
+{
+    eREACHABILITY_RESERVED,
+    eREACHABILITY_NOT_REACHABLE,
+    eREACHABILITY_UNKNOWN,
+    eREACHABILITY_REACHABLE,
+} tRrmNeighborReachability;
+#endif /* WLAN_FEATURE_VOWIFI */
 
 /// Frame control field format (2 bytes)
 typedef  __ani_attr_pre_packed struct sSirMacFrameCtl
@@ -827,7 +869,7 @@ typedef __ani_attr_pre_packed struct sSirMacCapabilityInfo
     tANI_U16  immediateBA:1;
     tANI_U16  delayedBA:1;
     tANI_U16  dsssOfdm:1;
-    tANI_U16  reserved:1;
+    tANI_U16  rrm:1;
     tANI_U16  apsd:1;
     tANI_U16  shortSlotTime:1;
     tANI_U16  qos:1;
@@ -853,7 +895,7 @@ typedef __ani_attr_pre_packed struct sSirMacCapabilityInfo
     tANI_U16  qos:1;
     tANI_U16  shortSlotTime:1;
     tANI_U16  apsd:1;
-    tANI_U16  reserved:1;
+    tANI_U16  rrm:1;
     tANI_U16  dsssOfdm:1;
     tANI_U16  delayedBA:1;
     tANI_U16  immediateBA:1;
@@ -1064,6 +1106,14 @@ typedef __ani_attr_pre_packed struct sSirMacQbssLoadIE
 
 typedef __ani_attr_pre_packed struct sSirMacTSInfoTfc
 {
+#ifndef ANI_LITTLE_BIT_ENDIAN
+    tANI_U8        burstSizeDefn : 1;
+    tANI_U8        reserved :7;
+#else
+    tANI_U8        reserved :7;
+    tANI_U8        burstSizeDefn : 1;
+#endif
+
 #ifndef ANI_LITTLE_BIT_ENDIAN
     tANI_U16       ackPolicy : 2;
     tANI_U16       userPrio : 3;
@@ -2030,6 +2080,59 @@ typedef  struct sSirMacRpiMeasReportActionFrame
     tSirMacRpiReportIE          measReportIE;
 } tSirMacRpiMeasReportActionFrame, *tpSirMacRpiMeasReportActionFrame;
 
+#if defined WLAN_FEATURE_VOWIFI
+
+typedef struct sSirMacNeighborReportReq
+{
+   tANI_U8 dialogToken;
+   tANI_U8 ssid_present;
+   tSirMacSSid ssid;  
+} tSirMacNeighborReportReq, *tpSirMacNeighborReportReq;
+
+typedef struct sSirMacLinkReport
+{
+   tANI_U8 dialogToken;
+   tANI_U8 txPower;
+   tANI_U8 rxAntenna;
+   tANI_U8 txAntenna;
+   tANI_U8 rcpi;
+   tANI_U8 rsni;
+} tSirMacLinkReport, *tpSirMacLinkReport;
+
+#define BEACON_REPORT_MAX_IES 224 //Refer IEEE 802.11k-2008, Table 7-31d
+typedef struct sSirMacBeaconReport
+{
+   tANI_U8 regClass;
+   tANI_U8 channel;
+   tANI_U8 measStartTime[8];
+   tANI_U8 measDuration;
+   tANI_U8 phyType;
+   tANI_U8 bcnProbeRsp;
+   tANI_U8 rsni;
+   tANI_U8 rcpi;
+   tSirMacAddr bssid;
+   tANI_U8 antennaId;
+   tANI_U32 parentTSF;
+   tANI_U8 numIes;
+   tANI_U8 Ies[BEACON_REPORT_MAX_IES];  
+
+} tSirMacBeaconReport, *tpSirMacBeaconReport;
+
+#define RADIO_REPORTS_MAX_IN_A_FRAME 4
+typedef struct sSirMacRadioMeasureReport
+{
+   tANI_U8     token;
+   tANI_U8     refused;
+   tANI_U8     incapable;
+   tANI_U8     type;  
+   union 
+   {
+     tSirMacBeaconReport beaconReport;
+   }report;  
+
+}tSirMacRadioMeasureReport, *tpSirMacRadioMeasureReport;
+
+#endif
 
 // QOS action frame definitions
 

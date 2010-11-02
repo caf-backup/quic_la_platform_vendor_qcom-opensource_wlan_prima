@@ -33,7 +33,13 @@ extern void pmmProcessMessageQueue(tpAniSirGlobal pMac);
 extern void pmmProcessPSPoll(tpAniSirGlobal, tpHalBufDesc);
 extern void pmmUpdatePSPollState(tpAniSirGlobal);
 extern void pmmProcessRxActivity(tpAniSirGlobal, tANI_U16, tANI_U8);
+
+#ifdef WLAN_SOFTAP_FEATURE
+extern void pmmGenerateTIM(tpAniSirGlobal, tANI_U8 **, tANI_U16 *, tANI_U8);
+#else
 extern void pmmGenerateTIM(tpAniSirGlobal, tANI_U8 **, tANI_U16 *);
+#endif
+
 
 void pmmUpdateTIM(tpAniSirGlobal pMac, tpBeaconGenParams pBeaconGenParams);
 
@@ -45,11 +51,11 @@ extern void pmmUpdatePollablePMMode(tpAniSirGlobal, tANI_U16, tANI_U8, tANI_U16)
 extern void pmmUpdateNonPollablePMMode(tpAniSirGlobal, tANI_U16, tANI_U8, tANI_U16);
 
 /** Monitor the STA in PS*/
-void pmmHandleTimBasedDisassociation(tpAniSirGlobal pMac);
+void pmmHandleTimBasedDisassociation(tpAniSirGlobal pMac, tpPESession psessionEntry);
 
 //go into sleep state
 void pmmInitBmpsPwrSave(tpAniSirGlobal pMac);
-tSirRetStatus  pmmSendInitPowerSaveMsg(tpAniSirGlobal pMac);
+tSirRetStatus  pmmSendInitPowerSaveMsg(tpAniSirGlobal pMac,tpPESession);
 void pmmInitBmpsResponseHandler(tpAniSirGlobal pMac, eHalStatus rspStatus);
 tSirRetStatus  pmmSendChangePowerSaveMsg(tpAniSirGlobal pMac);
 tSirRetStatus pmmSendSleepIndicationToHal(tpAniSirGlobal pMac);

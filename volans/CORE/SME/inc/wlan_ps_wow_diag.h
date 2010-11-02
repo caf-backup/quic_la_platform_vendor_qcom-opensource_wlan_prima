@@ -6,6 +6,7 @@
 #include "vos_diag_core_log.h"
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT 
+
 typedef enum
 {
    WLAN_BMPS_ENTER_REQ =0,

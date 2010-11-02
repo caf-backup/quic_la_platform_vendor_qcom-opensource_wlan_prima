@@ -21,85 +21,10 @@
 eHalStatus asicTPCPowerOverride(tpAniSirGlobal pMac, tTxGain tx0, tTxGain tx1, tTxGain tx2, tTxGain tx3)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
-#if 0
-    tANI_U32 bkup0, bkup1, bkup2;
-
-    // Debugged tx gain override -
-    //     Prior to overriding the gains through the baseband registers:
-    //     Need to have the TPC, TxCtl, and TxFir dynamic clock gating disabled
-    //     Need to manually force tx RF enables
-    //     Need to have the ant_en and select_firmode bits set in the txctl.fir_mode register
-
-
-    //backup registers to restore after overriding the gain
-
-    GET_PHY_REG(pMac->hHdd, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, &bkup0);
-    GET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG, &bkup1);
-    GET_PHY_REG(pMac->hHdd, TXCTL_FIR_TX_MODE_REG, &bkup2);
-
-    SET_PHY_REG(pMac->hHdd, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG,
-                                bkup0 |
-                                QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXCTL_MASK |
-                                QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXFIR_MASK |
-                                QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TPC_MASK
-               );
-    SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG,
-                                TXCTL_DAC_OVERRIDE_EN_MASK |
-                                TXCTL_RF_OVERRIDE_EN_MASK |
-                                (TXCTL_DAC_TX0 | TXCTL_DAC_TX1 | TXCTL_DAC_TX2 | TXCTL_DAC_TX3) |
-                                TXCTL_DAC_RF_EN_MASK
-               );
-    SET_PHY_REG(pMac->hHdd, TXCTL_FIR_TX_MODE_REG,
-                                (TXCTL_FIR_TX_MODE_SELECT_MASK |
-                                 ((TXCTL_DAC_TX0 | TXCTL_DAC_TX1 | TXCTL_DAC_TX2 | TXCTL_DAC_TX3) << QWLAN_TXCTL_FIR_MODE_ANT_EN_OFFSET)
-                                )
-               );
-
-
-
-    SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, 0);   //turn off TPC closed loop control
-
-#ifdef ANI_PHY_DEBUG
-    {
-        //since we are overriding the gain, enable cannot be true
-        tANI_U32 val;
-        GET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, &val);
-        assert((val & TPC_TXPWR_ENABLE_MASK) == 0);
-    }
-#endif
-
-    //first, write the gains that we want to send to the RF and digital portion
-    SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_OVERRIDE0_REG,
-                    (QWLAN_TPC_TXPWR_OVERRIDE0_RF_POWER_MASK & (tx0.coarsePwr << QWLAN_TPC_TXPWR_OVERRIDE0_RF_POWER_OFFSET)) |
-                    (QWLAN_TPC_TXPWR_OVERRIDE0_FINE_POWER_MASK & (tx0.finePwr << QWLAN_TPC_TXPWR_OVERRIDE0_FINE_POWER_OFFSET))
-               );
-
-
-    SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, QWLAN_TPC_TXPWR_ENABLE_OVERRIDE_MASK);
-
-    //debug registers
-    // DUMP_PHY_REG(TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG);
-    // DUMP_PHY_REG(TXCTL_DAC_CONTROL_REG);
-    // DUMP_PHY_REG(TXCTL_FIR_TX_MODE_REG);
-    // DUMP_PHY_REG(TPC_TXPWR_OVERRIDE0_REG);
-    // DUMP_PHY_REG(TPC_TXPWR_OVERRIDE1_REG);
-    // DUMP_PHY_REG(TPC_TXPWR_OVERRIDE2_REG);
-    // DUMP_PHY_REG(TPC_TXPWR_OVERRIDE3_REG);
-    // DUMP_PHY_REG(TPC_TXPWR_ENABLE_REG);
-    //
-    // DUMP_RF_FIELD(QUASAR_FIELD_TX_GAIN_0);
-    // DUMP_RF_FIELD(QUASAR_FIELD_TX_GAIN_1);
-
-    //restore other registers
-    SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG, bkup1);
-    SET_PHY_REG(pMac->hHdd, TXCTL_FIR_TX_MODE_REG, bkup2);
-    SET_PHY_REG(pMac->hHdd, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, bkup0);   //restore this last
-
-    //asicAGCReset(pMac);
-#endif
     tANI_U32 bkup0, bkup1;
 
     //override = 1, en = 0
+    SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, 0);
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, QWLAN_TPC_TXPWR_ENABLE_OVERRIDE_MASK);
 
     GET_PHY_REG(pMac->hHdd, QWLAN_RXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, &bkup0);
@@ -125,6 +50,7 @@ eHalStatus asicTPCPowerOverride(tpAniSirGlobal pMac, tTxGain tx0, tTxGain tx1, t
                );
 
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_MAN_TXPWR_REG, QWLAN_TPC_MAN_TXPWR_STRB_MASK);
+    SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_TX_GAIN_CONTROL_REG, tx0.coarsePwr);    //RF gain isn't updated unless we enable a waveform or send a packet
 
 
     SET_PHY_REG(pMac->hHdd, QWLAN_RXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, bkup0);
@@ -135,35 +61,22 @@ eHalStatus asicTPCPowerOverride(tpAniSirGlobal pMac, tTxGain tx0, tTxGain tx1, t
 
 eHalStatus asicTPCAutomatic(tpAniSirGlobal pMac)
 {
-    eHalStatus retVal;
+    eHalStatus retVal = eHAL_STATUS_SUCCESS;
     assert(pMac != 0);
 
+    SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, 0);
 
-    SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, 0);   //turn off TPC closed loop control
-
-#if defined(ANI_MANF_DIAG)
-    SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, pMac->hphy.phy.test.testTpcClosedLoop);
-#else
-    if(halIsQFuseBlown(pMac) == eHAL_STATUS_SUCCESS) //assuming valid pwr table data in qFuse
+#ifndef WLAN_FTM_STUB
+    if (pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
-        SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, TPC_TXPWR_ENABLE_MASK);   //turn on TPC closed loop control
-    }
-    else
-    {
-        //Open the loop
-        tTxGain fineGain;
-        fineGain.coarsePwr = (eTxCoarseGain)(pMac->hphy.phy.openLoopTxGain);
-        fineGain.finePwr = (eTxFineGain)(0xF);
-
-        if ((retVal = asicTPCPowerOverride(pMac, fineGain, fineGain, fineGain, fineGain)) != eHAL_STATUS_SUCCESS) { return (retVal); }
-        pMac->hphy.phy.test.testTpcClosedLoop = eANI_BOOLEAN_FALSE;
-    }
+        SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, pMac->hphy.phy.test.testTpcClosedLoop);
+    } else
 #endif
-
-
+    {
+        SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, 1); //enable CLPC assuming characterized data is in place
+    }
 
     return (retVal);
-
 }
 
 
@@ -307,7 +220,7 @@ eHalStatus asicLoadTPCGainLUT(tpAniSirGlobal pMac, ePhyTxChains txChain, tTxGain
 
 }
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 eHalStatus asicGetTxGainAtIndex(tpAniSirGlobal pMac, ePhyTxChains txChain, tPwrTemplateIndex index, tTxGainCombo *retGain)
 {
     eHalStatus retVal;
@@ -403,7 +316,7 @@ eHalStatus asicGetTxPowerMeasurement(tpAniSirGlobal pMac, ePhyTxChains txChain, 
 
         //TODO:revisit
 
-        retVal = palWaitRegVal(pMac->hHdd, QWLAN_TPC_ADC_STATUS_REG, (TPC_ADC_BUSY_P_MASK | TPC_ADC_BUSY_T_MASK), 0, 1000, 10000, &status);
+        retVal = asicWaitRegVal(pMac->hHdd, QWLAN_TPC_ADC_STATUS_REG, (TPC_ADC_BUSY_P_MASK | TPC_ADC_BUSY_T_MASK), 0, 1000, 10000, &status);
 
         if (retVal != eHAL_STATUS_SUCCESS)
         {
@@ -425,8 +338,9 @@ eHalStatus asicGetTxPowerMeasurement(tpAniSirGlobal pMac, ePhyTxChains txChain, 
 
     return (retVal);
 }
+#endif
 
-eHalStatus asicTPCGetADCReading(tpAniSirGlobal pMac, tANI_U8 *pADC)
+eHalStatus asicTPCGetADCReading(tpAniSirGlobal pMac, tANI_U16 *pADC)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
     
@@ -452,11 +366,11 @@ eHalStatus asicTPCGetADCReading(tpAniSirGlobal pMac, tANI_U8 *pADC)
         tANI_U32 adc;
         GET_PHY_REG(pMac->hHdd, QWLAN_TPC_SENSED_PWR0_REG, &adc);
         
-        *pADC = (tANI_U8)adc;
+        *pADC = (tANI_U16)adc;
     }
 
     return (retVal);
 }
 
 
-#endif
+

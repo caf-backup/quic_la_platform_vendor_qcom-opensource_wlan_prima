@@ -107,5 +107,11 @@ typedef enum
 VOS_STATUS vos_get_binary_blob( VOS_BINARY_ID binaryId, 
                                 v_VOID_t *pBuffer, v_SIZE_t *pBufferSize );
 
+#ifdef WLAN_SOFTAP_FEATURE
+/**----------------------------------------------------------------------------
+	\brief vos_get_conparam()- function to read the insmod parameters
+-----------------------------------------------------------------------------*/	
+VOS_CON_MODE vos_get_conparam( void );
+#endif
 
 #endif // !defined __VOS_GETBIN_H

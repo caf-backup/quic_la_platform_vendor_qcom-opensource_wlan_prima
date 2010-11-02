@@ -567,6 +567,27 @@ limCreateTimers(tpAniSirGlobal pMac)
         }
     }
 #endif
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    // In future we need to use the auth timer, cause
+    // the pre auth session will be introduced before sending
+    // Auth frame.
+    // We need to go off channel and come back to home channel
+    cfgValue = 1000;
+    cfgValue = SYS_MS_TO_TICKS(cfgValue);
+
+    if (tx_timer_create(&pMac->lim.limTimers.gLimFTPreAuthRspTimer,
+                                    "FT PREAUTH RSP TIMEOUT",
+                                    limTimerHandler, SIR_LIM_FT_PREAUTH_RSP_TIMEOUT,
+                                    cfgValue, 0,
+                                    TX_NO_ACTIVATE) != TX_SUCCESS)
+    {
+        // Could not create Join failure timer.
+        // Log error
+        limLog(pMac, LOGP, FL("could not create Join failure timer\n"));
+        return;
+    }
+#endif    
+
     pMac->lim.gLimTimersCreated = 1;
 } /****** end limCreateTimers() ******/
 
@@ -1001,6 +1022,7 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                    FL("could not retrieve AssocFailureTimeout value\n"));
             }
             val = SYS_MS_TO_TICKS(val);
+			val = 5000;
 
             if (tx_timer_change(&pMac->lim.limTimers.gLimAssocFailureTimer,
                                 val, 0) != TX_SUCCESS)
@@ -1417,12 +1439,177 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                     FL( "Unable to change gLimQuietTimer! Will still attempt to re-activate anyway...\n" ));
             }
             break;
+
+
+#ifdef WLAN_SOFTAP_FEATURE
+#if 0
+        case eLIM_WPS_OVERLAP_TIMER:
+            {
+            // Restart Learn Interval timer
+            
+              tANI_U32 WPSOverlapTimer = SYS_MS_TO_TICKS(LIM_WPS_OVERLAP_TIMER_MS);
+
+              if (tx_timer_deactivate(
+                     &pMac->lim.limTimers.gLimWPSOverlapTimerObj.gLimWPSOverlapTimer) != TX_SUCCESS)
+              {
+                  // Could not deactivate Learn Interval timer.
+                  // Log error
+                  limLog(pMac, LOGP,
+                         FL("Unable to deactivate WPS overlap timer\n"));
+              }
+
+              if (tx_timer_change(
+                         &pMac->lim.limTimers.gLimWPSOverlapTimerObj.gLimWPSOverlapTimer,
+                         WPSOverlapTimer, 0) != TX_SUCCESS)
+              {
+                  // Could not change Learn Interval timer.
+                  // Log error
+                  limLog(pMac, LOGP, FL("Unable to change WPS overlap timer\n"));
+
+                  return;
+              }
+
+              limLog( pMac, LOGE,
+                  FL("Setting WPS overlap TIMER to %d ticks\n"),
+                  WPSOverlapTimer);
+            }
+            break;
+#endif
+#endif
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+        case eLIM_FT_PREAUTH_RSP_TIMER:
+            if (tx_timer_deactivate(&pMac->lim.limTimers.gLimFTPreAuthRspTimer) != TX_SUCCESS)
+            {
+                /**
+                ** Could not deactivate Join Failure
+                ** timer. Log error.
+                **/
+                limLog(pMac, LOGP, FL("Unable to deactivate Preauth response Failure timer\n"));
+            }
+            val = 1000;
+            val = SYS_MS_TO_TICKS(val);
+            if (tx_timer_change(&pMac->lim.limTimers.gLimFTPreAuthRspTimer,
+                                                val, 0) != TX_SUCCESS)
+            {
+                /**
+                * Could not change Join Failure
+                * timer. Log error.
+                */
+                limLog(pMac, LOGP, FL("Unable to change Join Failure timer\n"));
+            }
+            break;
+#endif
+
         default:
             // Invalid timerId. Log error
             break;
     }
 } /****** end limDeactivateAndChangeTimer() ******/
 
+
+
+/**---------------------------------------------------------------
+\fn     limHeartBeatDeactivateAndChangeTimer
+\brief  This function deactivates and changes the heart beat
+\       timer, eLIM_HEART_BEAT_TIMER. 
+\
+\param pMac
+\param psessionEntry 
+\return None
+------------------------------------------------------------------*/
+void
+limHeartBeatDeactivateAndChangeTimer(tpAniSirGlobal pMac, tpPESession psessionEntry)
+{
+    tANI_U32    val, val1;
+
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
+
+    if (tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer) != TX_SUCCESS)
+        limLog(pMac, LOGP, FL("Fail to deactivate HeartBeatTimer \n"));
+
+    val = psessionEntry->beaconInterval; 
+    PELOGW(limLog(pMac, LOGW, FL("session beaconInterval = %d\n"), val);)
+
+
+    if (wlan_cfgGetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, &val1) != eSIR_SUCCESS)
+        limLog(pMac, LOGP, FL("Fail to get WNI_CFG_HEART_BEAT_THRESHOLD \n"));
+
+    // Change timer to reactivate it in future
+    val = SYS_MS_TO_TICKS(val * val1);
+
+    if (tx_timer_change(&pMac->lim.limTimers.gLimHeartBeatTimer, val, 0) != TX_SUCCESS)
+        limLog(pMac, LOGP, FL("Fail to change HeartBeatTimer\n"));
+
+} /****** end limHeartBeatDeactivateAndChangeTimer() ******/
+
+
+/**---------------------------------------------------------------
+\fn     limReactivateHeartBeatTimer
+\brief  This function s called to deactivate, change and
+\       activate a timer.
+\
+\param pMac - Pointer to Global MAC structure
+\param psessionEntry 
+\return None
+------------------------------------------------------------------*/
+void
+limReactivateHeartBeatTimer(tpAniSirGlobal pMac, tpPESession psessionEntry)
+{
+    PELOG3(limLog(pMac, LOG3, FL("Rxed Heartbeat. Count=%d\n"), psessionEntry->LimRxedBeaconCntDuringHB);)
+              
+    limHeartBeatDeactivateAndChangeTimer(pMac, psessionEntry);
+    MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_HEART_BEAT_TIMER));
+
+    if (tx_timer_activate(&pMac->lim.limTimers.gLimHeartBeatTimer)!= TX_SUCCESS)
+    {
+        limLog(pMac, LOGP,FL("could not activate Heartbeat timer\n"));
+    }
+    limResetHBPktCount(psessionEntry);
+
+} /****** end limReactivateHeartBeatTimer() ******/
+
+#if 0
+/****** 
+ * Note: Use this code once you have converted all  
+ * limReactivateHeartBeatTimer() calls to 
+ * limReactivateTimer() calls.
+ * 
+ ******/
+
+Now, in dev/btamp2,  
+here are all the references to limReactivateHeartBeatTimer().
+
+C symbol: limReactivateHeartBeatTimer
+
+  File                      Function                  Line
+0 limTimerUtils.h           <global>                    55 void limReactivateHeartBeatTimer(tpAniSirGlobal , tpPESession);
+1 limIbssPeerMgmt.c         limIbssHeartBeatHandle    1282 limReactivateHeartBeatTimer(pMac, psessionEntry);
+2 limLinkMonitoringAlgo.c   limHandleHeartBeatFailure  395 limReactivateHeartBeatTimer(pMac, psessionEntry);
+3 limLinkMonitoringAlgo.c   limHandleHeartBeatFailure  410 limReactivateHeartBeatTimer(pMac, psessionEntry);
+4 limProcessMlmRspMessages. limProcessStaMlmAddStaRsp 2111 limReactivateHeartBeatTimer(pMac, psessionEntry);
+5 limProcessMlmRspMessages_ limProcessStaMlmAddStaRsp 2350 limReactivateHeartBeatTimer(pMac, psessionEntry);
+6 limProcessMlmRspMessages_ limProcessStaMlmAddStaRsp 2111 limReactivateHeartBeatTimer(pMac, psessionEntry);
+7 limTimerUtils.c           limReactivateHeartBeatTim 1473 limReactivateHeartBeatTimer(tpAniSirGlobal pMac, tpPESession psessionEntry)
+8 limUtils.c                limHandleHeartBeatFailure 6743 limReactivateHeartBeatTimer(pMac, psessionEntry);
+9 limUtils.c                limHandleHeartBeatFailure 6751 limReactivateHeartBeatTimer(pMac, psessionEntry);
+
+Now, in main/latest, on the other hand, 
+here are all the references to limReactivateTimer().
+
+C symbol: limReactivateTimer
+
+  File                      Function                  Line
+0 limTimerUtils.h           <global>                    54 void limReactivateTimer(tpAniSirGlobal, tANI_U32);
+1 limIbssPeerMgmt.c         limIbssHeartBeatHandle    1183 limReactivateTimer(pMac, eLIM_HEART_BEAT_TIMER);
+2 limIbssPeerMgmt.c         limIbssHeartBeatHandle    1246 limReactivateTimer(pMac, eLIM_HEART_BEAT_TIMER);
+3 limLinkMonitoringAlgo.c   limHandleHeartBeatFailure  283 limReactivateTimer(pMac, eLIM_HEART_BEAT_TIMER);
+4 limLinkMonitoringAlgo.c   limHandleHeartBeatFailure  320 limReactivateTimer(pMac, eLIM_HEART_BEAT_TIMER);
+5 limLinkMonitoringAlgo.c   limHandleHeartBeatFailure  335 limReactivateTimer(pMac, eLIM_HEART_BEAT_TIMER);
+6 limProcessMessageQueue.c  limProcessMessages        1210 limReactivateTimer(pMac, eLIM_HEART_BEAT_TIMER);
+7 limProcessMessageQueue.c  limProcessMessages        1218 limReactivateTimer(pMac, eLIM_HEART_BEAT_TIMER);
+8 limProcessMlmRspMessages. limProcessStaMlmAddStaRsp 1726 limReactivateTimer(pMac, eLIM_HEART_BEAT_TIMER);
+9 limTimerUtils.c           limReactivateTimer        1451 limReactivateTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
 
 
 /**
@@ -1466,7 +1653,7 @@ limReactivateTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
         limResetHBPktCount(pMac);
     }
 } /****** end limReactivateTimer() ******/
-
+#endif
 
 
 /**
@@ -1549,26 +1736,9 @@ limDeactivateAndChangePerStaIdTimer(tpAniSirGlobal pMac, tANI_U32 timerId, tANI_
             if (tx_timer_deactivate(&pMac->lim.limTimers.gpLimCnfWaitTimer[staId])
                             != TX_SUCCESS)
             {
-                tpDphHashNode pStaDs;
-
-                pStaDs = dphGetHashEntry(pMac, staId);
-                if (pStaDs)
-                {
-                    PELOGE(limLog(pMac, LOGE, FL("StaId %d in state "), staId);)
-                    limPrintMlmState(
-                            pMac,
-                            LOGE,
-                            (tLimMlmStates) pStaDs->mlmStaContext.mlmState);
-                    // Could not deactivate cnf wait timer.
-                    // Log error
-                    limLog(pMac, LOGP,
+                 limLog(pMac, LOGP,
                        FL("unable to deactivate CNF wait timer\n"));
-                }
-                else
-                {   // I don't think LOGP is necessary here??
-                    limLog(pMac, LOGE, FL("Deact CnfWaitTimer for sta %d: No dphContext!!\n"),
-                           staId);
-                }
+
             }
 
             // Change timer to reactivate it in future
@@ -1700,34 +1870,15 @@ limDeactivateAndChangePerStaIdTimer(tpAniSirGlobal pMac, tANI_U32 timerId, tANI_
  * @return None
  */
 
-void limActivateCnfTimer(tpAniSirGlobal pMac, tANI_U16 staId)
+void limActivateCnfTimer(tpAniSirGlobal pMac, tANI_U16 staId, tpPESession psessionEntry)
 {
     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_CNF_WAIT_TIMER));
+    pMac->lim.limTimers.gpLimCnfWaitTimer[staId].sessionId = psessionEntry->peSessionId;
     if (tx_timer_activate(&pMac->lim.limTimers.gpLimCnfWaitTimer[staId])
                 != TX_SUCCESS)
     {
-        tpDphHashNode    pStaDs;
-
-        pStaDs = dphGetHashEntry(pMac, staId);
-
-        if (pStaDs)
-        {
-            PELOGE(limLog(pMac, LOGE, FL("StaId %d in state "), staId);)
-            limPrintMlmState(pMac,
-                             LOGE,
-                             (tLimMlmStates) pStaDs->mlmStaContext.mlmState);
-
-            /// Could not activate cnf wait timer.
-            // Log error
-            limLog(pMac, LOGP,
+                limLog(pMac, LOGP,
                    FL("could not activate cnf wait timer\n"));
-        }
-        else
-        {   // I don't think LOGP is necessary here??
-            limLog(pMac, LOGE, FL("ActivateCnfTimer for sta %d: No dphContext!!\n"),
-                   staId);
-        }
-
     }
 }
 
@@ -1913,4 +2064,20 @@ limQuietBssTimerHandler(void *pMacGlobal, tANI_U32 param)
         FL("Post SIR_LIM_QUIET_BSS_TIMEOUT msg. \n"));)
     limPostMsgApi(pMac, &msg);
 }
-
+#ifdef WLAN_SOFTAP_FEATURE
+#if 0
+void
+limWPSOverlapTimerHandler(void *pMacGlobal, tANI_U32 param)
+{
+    tSirMsgQ    msg;
+    tpAniSirGlobal pMac = (tpAniSirGlobal)pMacGlobal;
+    
+    msg.type = SIR_LIM_WPS_OVERLAP_TIMEOUT;
+    msg.bodyval = (tANI_U32)param;
+    msg.bodyptr = NULL;
+    PELOG1(limLog(pMac, LOG1,
+        FL("Post SIR_LIM_WPS_OVERLAP_TIMEOUT msg. \n"));)
+    limPostMsgApi(pMac, &msg);
+}
+#endif
+#endif

@@ -38,7 +38,7 @@
 #define HAL_EXTRA_PRECISION_BITS   8
 
 
-//RSSI in dBm = rssi_stat – max_gain_db – 41
+//RSSI in dBm = rssi_stat Â– max_gain_db Â– 41
 #define HAL_CONVERT_HW_RSSI_UNIT_2_DB(rssi, maxgaindb) ((rssi) - maxgaindb - HAL_HW_RSSI_OFFSET)
 
 
@@ -292,9 +292,7 @@ static inline tANI_U8 halGetNoise(tpAniSirGlobal pMac)
     return 0;
 }
 
-static inline void halGetTxTSFtimer(tpAniSirGlobal pMac, tSirMacTimeStamp *pTime)
-{
-}
+void halGetTxTSFtimer(tpAniSirGlobal pMac, tSirMacTimeStamp *pTime);
 
 static inline void halSendRR(tpAniSirGlobal pMac, tANI_U8 pri)
 {

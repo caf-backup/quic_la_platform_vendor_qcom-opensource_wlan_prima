@@ -55,17 +55,15 @@
 
 
 void
-limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
+limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEntry)
 {
-    tANI_U8                    *pBody;
-    tANI_U32                   frameLen = 0;
-    tANI_U32                   cfg = sizeof(tSirMacAddr);
-    tSirMacAddr           currentBssId;
-    tpSirMacMgmtHdr       pHdr;
-    tSirProbeRespBeacon   probeRsp;
-    tANI_U8 qosEnabled = false;
-    tANI_U8 wmeEnabled = false;
-
+    tANI_U8                 *pBody;
+    tANI_U32                frameLen = 0;
+    tSirMacAddr             currentBssId;
+    tpSirMacMgmtHdr         pHdr;
+    tSirProbeRespBeacon     probeRsp;
+    tANI_U8 qosEnabled =    false;
+    tANI_U8 wmeEnabled =    false;
 
     probeRsp.ssId.length              = 0;
     probeRsp.wpa.length               = 0;
@@ -84,8 +82,9 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
              SIR_MAC_BD_TO_MPDU_LEN(pBd));
     limPrintMacAddr(pMac, pHdr->sa, LOG2);)
 
-    if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
+   if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
         return;
+
 
     /**
      * Expect Probe Response only when
@@ -103,13 +102,15 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
      *
      * Ignore Probe Response frame in all other states
      */
-    if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||
-        (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE) ||
-        (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE) ||
-        (pMac->lim.gLimMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE) ||
-        (pMac->lim.gLimMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE) ||
-        ((pMac->lim.gLimSystemRole == eLIM_STA_IN_IBSS_ROLE) &&
-         (pMac->lim.gLimMlmState == eLIM_MLM_BSS_STARTED_STATE)))
+        /*  */
+                                                                        // TO SUPPORT BT-AMP
+    if (((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||   //mlm state check should be global - 18th oct
+        (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE) ||     //mlm state check should be global - 18th oct
+        (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE) ||            //mlm state check should be global - 18th oct 
+        (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE) ||
+        (psessionEntry->limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE) )||
+        ((psessionEntry->limMlmState == eLIM_STA_IN_IBSS_ROLE) &&
+         (psessionEntry->limMlmState == eLIM_MLM_BSS_STARTED_STATE)))
     {
         frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
 
@@ -124,11 +125,11 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
                frameLen);)
             return;
         }
-
-        if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||
+                                                                            //To Support BT-AMP                    
+        if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||    //mlm state check should be global - 18th oct
             (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE))
             limCheckAndAddBssDescription(pMac, &probeRsp, pBd, ((pMac->lim.gLimHalScanState == eLIM_HAL_SCANNING_STATE) ? eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE));
-        else if (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE)
+        else if (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE)           //mlm state check should be global - 18th oct
         {
 #if defined(ANI_PRODUCT_TYPE_AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
             // STA/AP is in learn mode
@@ -143,30 +144,30 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
                probeRsp.propIEinfo.wdsLength);)
 #endif
         }
-        else if (pMac->lim.gLimMlmState ==
+        else if (psessionEntry->limMlmState ==
                                      eLIM_MLM_WT_JOIN_BEACON_STATE)
         {
-            if( pMac->lim.beacon != NULL ) //Either Beacon/probe response is required. Hence store it in same buffer.
+            if( psessionEntry->beacon != NULL ) //Either Beacon/probe response is required. Hence store it in same buffer.
             {
-                palFreeMemory(pMac->hHdd, pMac->lim.beacon);
-                pMac->lim.beacon = NULL;
+                palFreeMemory(pMac->hHdd, psessionEntry->beacon);
+                psessionEntry->beacon = NULL;
              }
-             pMac->lim.bcnLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
-             if( (palAllocateMemory(pMac->hHdd, (void**)&pMac->lim.beacon, pMac->lim.bcnLen)) != eSIR_SUCCESS)
+             psessionEntry->bcnLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
+             if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->beacon, psessionEntry->bcnLen)) != eSIR_SUCCESS)
              {
                 PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store beacon"));)
               }
               else
               {
                 //Store the Beacon/ProbeRsp. This is sent to csr/hdd in join cnf response. 
-                palCopyMemory(pMac->hHdd, pMac->lim.beacon, SIR_MAC_BD_TO_MPDUDATA(pBd), pMac->lim.bcnLen);
+                palCopyMemory(pMac->hHdd, psessionEntry->beacon, SIR_MAC_BD_TO_MPDUDATA(pBd), psessionEntry->bcnLen);
                }
              
         
             // STA in WT_JOIN_BEACON_STATE
-            limCheckAndAnnounceJoinSuccess(pMac, &probeRsp, pHdr);
+            limCheckAndAnnounceJoinSuccess(pMac, &probeRsp, pHdr,psessionEntry);
         }
-        else if(pMac->lim.gLimMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
+        else if(psessionEntry->limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
         {
             tpDphHashNode pStaDs = NULL;
             /**
@@ -174,6 +175,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
             * our Probe Request sent upon reaching
             * heart beat threshold
             */
+            #if 0
             if (wlan_cfgGetStr(pMac,
                           WNI_CFG_BSSID,
                           currentBssId,
@@ -182,28 +184,30 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
                 /// Could not get BSSID from CFG. Log error.
                 limLog(pMac, LOGP, FL("could not retrieve BSSID\n"));
             }
+            #endif //TO SUPPORT BT-AMP
+            sirCopyMacAddr(currentBssId,psessionEntry->bssId);
 
             if ( !palEqualMemory( pMac->hHdd,currentBssId, pHdr->bssId, sizeof(tSirMacAddr)) )
                 return;
 
-            if (!LIM_IS_CONNECTION_ACTIVE(pMac))
+            if (!LIM_IS_CONNECTION_ACTIVE(psessionEntry))
             {
                 limLog(pMac, LOGW,
                     FL("Received Probe Resp from AP. So it is alive!!\n"));
 
                 if (probeRsp.HTInfo.present)
-                    limReceivedHBHandler(pMac, (tANI_U8)probeRsp.HTInfo.primaryChannel);
-				else
-                    limReceivedHBHandler(pMac, (tANI_U8)probeRsp.channelNumber);
+                    limReceivedHBHandler(pMac, (tANI_U8)probeRsp.HTInfo.primaryChannel, psessionEntry);
+                else
+                    limReceivedHBHandler(pMac, (tANI_U8)probeRsp.channelNumber, psessionEntry);
             }
 
 #if defined ANI_PRODUCT_TYPE_CLIENT || defined (ANI_AP_CLIENT_SDK)
             
-            if (pMac->lim.gLimSystemRole == eLIM_STA_ROLE)
+            if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
             {
                 if (probeRsp.quietIEPresent)
                 {
-                    limUpdateQuietIEFromBeacon(pMac, &(probeRsp.quietIE));
+                    limUpdateQuietIEFromBeacon(pMac, &(probeRsp.quietIE), psessionEntry);
                 }
                 else if ((pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN) ||
                      (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING))
@@ -215,7 +219,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
                 if (probeRsp.channelSwitchPresent ||
                     probeRsp.propIEinfo.propChannelSwitchPresent)
                 {
-                    limUpdateChannelSwitch(pMac, &probeRsp);
+                    limUpdateChannelSwitch(pMac, &probeRsp, psessionEntry);
                 }
                 else if (pMac->lim.gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING)
                 {
@@ -233,7 +237,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
             *         then probe req is sent out to get the EDCA params.
             */
 
-            pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER);
+            pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
 
             limGetQosMode(pMac, &qosEnabled);
             limGetWmeMode(pMac, &wmeEnabled);
@@ -262,11 +266,86 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
 
             }
         }
-        else if ((pMac->lim.gLimSystemRole == eLIM_STA_IN_IBSS_ROLE) &&
-                 (pMac->lim.gLimMlmState == eLIM_MLM_BSS_STARTED_STATE))
-                limHandleIBSScoalescing(pMac, &probeRsp, pBd);
+        else if ((psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) &&
+                 (psessionEntry->limMlmState == eLIM_MLM_BSS_STARTED_STATE))
+                limHandleIBSScoalescing(pMac, &probeRsp, pBd,psessionEntry);
     } // if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) || ...
 
     // Ignore Probe Response frame in all other states
     return;
 } /*** end limProcessProbeRspFrame() ***/
+
+
+void
+limProcessProbeRspFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd)
+{
+    tANI_U8                 *pBody;
+    tANI_U32                frameLen = 0;
+    tpSirMacMgmtHdr         pHdr;
+    tSirProbeRespBeacon     probeRsp;
+
+    probeRsp.ssId.length              = 0;
+    probeRsp.wpa.length               = 0;
+    probeRsp.propIEinfo.apName.length = 0;
+#if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
+    probeRsp.propIEinfo.aniIndicator  = 0;
+    probeRsp.propIEinfo.wdsLength     = 0;
+#endif
+
+
+    pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
+
+
+    limLog(pMac, LOG2,
+             FL("Received Probe Response frame with length=%d from "),
+             SIR_MAC_BD_TO_MPDU_LEN(pBd));
+    limPrintMacAddr(pMac, pHdr->sa, LOG2);
+
+    if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
+        return;
+
+    /*  Since there is no psessionEntry, PE cannot be in the following states:
+     *   - eLIM_MLM_WT_JOIN_BEACON_STATE
+     *   - eLIM_MLM_LINK_ESTABLISHED_STATE
+     *   - eLIM_MLM_BSS_STARTED_STATE
+     *  Hence, expect Probe Response only when
+     *   1. STA is in scan mode waiting for Beacon/Probe response 
+     *  
+     *  Ignore Probe Response frame in all other states
+     */
+    if( (pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||
+        (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE)  ||     //mlm state check should be global - 18th oct
+        (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE) )
+    {
+        frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
+
+        // Get pointer to Probe Response frame body
+        pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
+
+        if (sirConvertProbeFrame2Struct(pMac, pBody, frameLen, &probeRsp) == eSIR_FAILURE)
+        {
+            limLog(pMac, LOG1, FL("Parse error ProbeResponse, length=%d\n"), frameLen);
+            return;
+        }
+
+        if( (pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||
+             (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE) )
+            limCheckAndAddBssDescription(pMac, &probeRsp, pBd, eANI_BOOLEAN_TRUE);
+        else if (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE)
+        {
+#if defined(ANI_PRODUCT_TYPE_AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
+            // STA/AP is in learn mode
+            /* Not sure whether the below 2 lines are needed for the station. TODO If yes, this should be 
+             * uncommented. Also when we tested enabling this, there is a crash as soon as the station
+             * comes up which needs to be fixed*/
+            //if (pMac->lim.gLimSystemRole == eLIM_STA_ROLE)
+              //  limCheckAndAddBssDescription(pMac, &probeRsp, pBd, eANI_BOOLEAN_TRUE);
+            limCollectMeasurementData(pMac, pBd, &probeRsp);
+            limLog(pMac, LOG3,
+               FL("Parsed WDS info in ProbeRsp frames: wdsLength=%d\n"),
+               probeRsp.propIEinfo.wdsLength);
+#endif
+        }
+    } 
+    return;
+} /*** end limProcessProbeRspFrameNew() ***/

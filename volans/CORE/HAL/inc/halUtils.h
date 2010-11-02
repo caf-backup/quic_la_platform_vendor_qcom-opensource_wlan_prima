@@ -43,4 +43,6 @@ void halUtil_GetDtimTbtt(tpAniSirGlobal pMac, tANI_U64 tbtt, tANI_U8 bssIdx,
 void halUtil_GetLeastRefDtimTbtt(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U64 dtimTbtt, tANI_U64 *pRefDtimTbtt, tANI_U16 dtimPeriod);
 void halUtil_GetRegPowerLimit(tpAniSirGlobal pMac, tANI_U8 currChannel,
         tANI_U8 localPwrConstraint, tANI_S8 *pRegLimit);
+
+void halUtil_DumpFwCorexLogs(void *pData);
 #endif /* _HALUTILS_H_ */

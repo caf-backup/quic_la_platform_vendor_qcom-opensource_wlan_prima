@@ -1,3 +1,4 @@
+
 /*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file sirApi.h contains definitions exported by
@@ -42,6 +43,8 @@
 
 /// Maximum DTIM Factor
 #define SIR_MAX_DTIM_FACTOR         32
+
+#define SIR_MDIE_SIZE               3
 
 
 
@@ -95,7 +98,9 @@ enum eSirHostMsgTypes
     SIR_HAL_HDD_ADDBA_REQ, // MAC -> HDD
     SIR_HAL_HDD_ADDBA_RSP, // HDD -> HAL        
     SIR_HAL_DELETEBA_IND, // MAC -> HDD
-    SIR_HAL_BA_FAIL_IND // HDD -> MAC
+    SIR_HAL_BA_FAIL_IND, // HDD -> MAC
+    SIR_TL_HAL_FLUSH_AC_REQ, 
+    SIR_HAL_TL_FLUSH_AC_RSP
 };
 
 
@@ -244,6 +249,7 @@ typedef enum eSirResultCodes
 
     eSIR_SME_CHANNEL_SWITCH_FAIL,        // failed to send out Channel Switch Action Frame
     eSIR_SME_INVALID_STA_ROLE,
+    eSIR_SME_INVALID_STATE,
 #ifdef GEN4_SCAN
     eSIR_SME_CHANNEL_SWITCH_DISABLED,    // either 11h is disabled or channelSwitch is currently active
     eSIR_SME_HAL_SCAN_INIT_FAILED,       // SIR_HAL_INIT_SCAN_RSP returned failed status
@@ -255,6 +261,9 @@ typedef enum eSirResultCodes
     eSIR_SME_CHANNEL_SWITCH_DISABLED,    // either 11h is disabled or channelSwitch is currently active
     eSIR_SME_HAL_SEND_MESSAGE_FAIL,      // Failed to send a message to HAL
 #endif // GEN4_SCAN
+#ifdef FEATURE_INNAV_SUPPORT
+    eSIR_SME_HAL_INNAV_MEAS_START_FAILED,
+#endif
     eSIR_SME_STOP_BSS_FAILURE,           // Failed to stop the bss
     eSIR_SME_STA_ASSOCIATED,
     eSIR_SME_INVALID_PMM_STATE,
@@ -264,6 +273,9 @@ typedef enum eSirResultCodes
     eSIR_SME_UAPSD_REQ_FAILED,
     eSIR_SME_WOWL_ENTER_REQ_FAILED,
     eSIR_SME_WOWL_EXIT_REQ_FAILED,
+#if defined WLAN_FEATURE_VOWIFI_11R
+    eSIR_SME_FT_REASSOC_FAILURE,
+#endif
     eSIR_DONOT_USE_RESULT_CODE = SIR_MAX_ENUM_SIZE
     
 } tSirResultCodes;
@@ -467,14 +479,19 @@ typedef struct sSirSmeRsp
 {
     tANI_U16             messageType; // eWNI_SME_*_RSP
     tANI_U16             length;
+    tANI_U8              sessionId;  // To support BT-AMP
+    tANI_U16             transactionId;   // To support BT-AMP
     tSirResultCodes statusCode;
 } tSirSmeRsp, *tpSirSmeRsp;
 
 /// Definition for kick starting Firmware on STA
 typedef struct sSirSmeStartReq
 {
-    tANI_U16   messageType; // eWNI_SME_START_REQ
-    tANI_U16   length;
+    tANI_U16   messageType;      // eWNI_SME_START_REQ
+    tANI_U16   length;    
+    tANI_U8      sessionId;      //Added for BT-AMP Support
+    tANI_U16     transcationId;  //Added for BT-AMP Support
+    tSirMacAddr  bssId;          //Added For BT-AMP Support   
     tANI_U32   roamingAtPolaris;
 #if (WNI_POLARIS_FW_PRODUCT == WLAN_STA) || defined(ANI_AP_CLIENT_SDK)
     tANI_U32   sendNewBssInd;
@@ -486,6 +503,7 @@ typedef struct sSirSmeReadyReq
 {
     tANI_U16   messageType; // eWNI_SME_SYS_READY_IND
     tANI_U16   length;
+    tANI_U16   transactionId;     
 } tSirSmeReadyReq, *tpSirSmeReadyReq;
 
 /// Definition for response message to previously issued start request
@@ -494,6 +512,7 @@ typedef struct sSirSmeStartRsp
     tANI_U16             messageType; // eWNI_SME_START_RSP
     tANI_U16             length;
     tSirResultCodes statusCode;
+    tANI_U16             transactionId;     
 } tSirSmeStartRsp, *tpSirSmeStartRsp;
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
@@ -520,7 +539,12 @@ typedef struct sSirLoad
 typedef enum eSirBssType
 {
     eSIR_INFRASTRUCTURE_MODE,
+#ifdef WLAN_SOFTAP_FEATURE
+    eSIR_INFRA_AP_MODE,                    //Added for softAP support
+#endif
     eSIR_IBSS_MODE,
+    eSIR_BTAMP_STA_MODE,                     //Added for BT-AMP support
+    eSIR_BTAMP_AP_MODE,                     //Added for BT-AMP support
     eSIR_AUTO_MODE,
     eSIR_DONOT_USE_BSS_TYPE = SIR_MAX_ENUM_SIZE
 } tSirBssType;
@@ -594,37 +618,62 @@ typedef struct sSirAlternateRadioList
 //*****NOTE: Please make sure all codes are updated if inserting field into this structure..**********
 typedef struct sSirSmeStartBssReq
 {
-    tANI_U16                     messageType;       // eWNI_SME_START_BSS_REQ
-    tANI_U16                     length;
+    tANI_U16                messageType;       // eWNI_SME_START_BSS_REQ
+    tANI_U16                length;
+    tANI_U8                 sessionId;       //Added for BT-AMP Support
+    tANI_U16                transactionId;   //Added for BT-AMP Support
+    tSirMacAddr             bssId;           //Added for BT-AMP Support
+    tSirMacAddr             selfMacAddr;     //Added for BT-AMP Support
+    tANI_U16                beaconInterval;  //Added for BT-AMP Support
+    tANI_U8                 dot11mode;
     tSirBssType             bssType;
     tSirMacSSid             ssId;
-    tANI_U8                      channelId;
+    tANI_U8                 channelId;
     tAniCBSecondaryMode     cbMode;
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
     tSirAlternateRadioList  alternateRadioList;
-    tANI_S8                      powerLevel;
+    tANI_S8                 powerLevel;
     tSirWdsInfo             wdsInfo;
 #endif
+    
+#ifdef WLAN_SOFTAP_FEATURE
+    tANI_U8                 privacy;
+    tANI_U8                 apUapsdEnable;
+    tANI_U8                 ssidHidden;
+    tANI_BOOLEAN            fwdWPSPBCProbeReq;
+    tANI_BOOLEAN            protEnabled;
+    tANI_BOOLEAN            obssProtEnabled;
+    tANI_U16                ht_capab;
+    tAniAuthType            authType;
+    tANI_U32                dtimPeriod;
+    tANI_U8                 wps_state;
+#endif
+
     tSirRSNie               rsnIE;             // RSN IE to be sent in
                                                // Beacon and Probe
                                                // Response frames
     tSirNwType              nwType;            // Indicates 11a/b/g
     tSirMacRateSet          operationalRateSet;// Has 11a or 11b rates
+    tSirMacRateSet          extendedRateSet;    // Has 11g rates
+
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
-    tANI_U8                      numSSID;
+    tANI_U8                 numSSID;
     tSirMacSSid             ssIdList[ANI_MAX_NUM_OF_SSIDS];
 #endif
 } tSirSmeStartBssReq, *tpSirSmeStartBssReq;
+
+#define GET_IE_LEN_IN_BSS(lenInBss) ( lenInBss + sizeof(lenInBss) - \
+              ((int) OFFSET_OF( tSirBssDescription, ieFields)))
 
 typedef struct sSirBssDescription
 {
     //offset of the ieFields from bssId.
     tANI_U16             length;
-    tSirMacAddr     bssId;
+    tSirMacAddr          bssId;
     tANI_U32             timeStamp[2];
     tANI_U16             beaconInterval;
     tANI_U16             capabilityInfo;
-    tSirNwType      nwType; // Indicates 11a/b/g
+    tSirNwType           nwType; // Indicates 11a/b/g
     tANI_U8              aniIndicator;
     tANI_S8              rssi;
     tANI_S8              sinr;
@@ -641,6 +690,14 @@ typedef struct sSirBssDescription
     //
     tANI_U32             titanHtCaps;
     tANI_TIMESTAMP nReceivedTime;     //base on a tick count. It is a time stamp, not a relative time.
+#if defined WLAN_FEATURE_VOWIFI
+    tANI_U32       parentTSF;
+    tANI_U32       startTSF[2];
+#endif
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    tANI_U8              mdiePresent;
+    tANI_U8              mdie[SIR_MDIE_SIZE];                // MDIE for 11r, picked from the beacons
+#endif
     tANI_U32             ieFields[1];
 } tSirBssDescription, *tpSirBssDescription;
 
@@ -649,10 +706,15 @@ typedef struct sSirBssDescription
 /// MAC --->
 typedef struct sSirSmeStartBssRsp
 {
-    tANI_U16             messageType; // eWNI_SME_START_BSS_RSP
-    tANI_U16             length;
-    tSirResultCodes statusCode;
-    tSirBssDescription bssDescription;
+    tANI_U16            messageType; // eWNI_SME_START_BSS_RSP
+    tANI_U16            length;
+    tSirResultCodes   statusCode;
+    tSirBssType         bssType;//Add new type for WDS mode
+    tANI_U8             sessionId;
+    tANI_U16            transactionId;//transaction ID for cmd
+    tANI_U16            beaconInterval;//Beacon Interval for both type
+    tANI_U32            staId;//Staion ID for Self  
+    tSirBssDescription  bssDescription;//Peer BSS description
 } tSirSmeStartBssRsp, *tpSirSmeStartBssRsp;
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
@@ -786,6 +848,7 @@ typedef struct sSirSmeMeasurementRsp
     tANI_U16                    messageType; // eWNI_SME_MEASUREMENT_RSP
     tANI_U16                    length;
     tSirResultCodes        statusCode;
+    tANI_U16            transactionId;     // Transaction ID for cmd
 } tSirSmeMeasurementRsp, *tpSirSmeMeasurementRsp;
 
 /// Definition for Measurement Matrix info
@@ -833,6 +896,7 @@ typedef struct sSirSmeSetWdsInfoReq
 {
     tANI_U16                messageType; // eWNI_SME_SET_WDS_INFO_REQ
     tANI_U16                length;
+    tANI_U16                transactionId;     
     tSirWdsInfo        wdsInfo;
 } tSirSmeSetWdsInfoReq, *tpSirSmeSetWdsInfoReq;
 
@@ -843,6 +907,7 @@ typedef struct sSirSmeSetWdsInfoRsp
     tANI_U16                messageType; // eWNI_SME_SET_WDS_INFO_RSP
     tANI_U16                length;
     tSirResultCodes    statusCode;
+    tANI_U16                transactionId;     
 } tSirSmeSetWdsInfoRsp, *tpSirSmeSetWdsInfoRsp;
 #endif
 #endif
@@ -878,14 +943,30 @@ typedef enum eSirLinkTrafficCheck
 /// Definition for scan request
 typedef struct sSirSmeScanReq
 {
-    tANI_U16             messageType; // eWNI_SME_SCAN_REQ
-    tANI_U16             length;
-    tSirBssType     bssType;
+    tANI_U16        messageType; // eWNI_SME_SCAN_REQ
+    tANI_U16        length;
+    tANI_U8         sessionId;         // Session ID
+    tANI_U16        transactionId;     // Transaction ID for cmd
     tSirMacAddr     bssId;
     tSirMacSSid     ssId;
+    tSirMacAddr     selfMacAddr; //Added For BT-AMP Support
+    tSirBssType     bssType;
+    tANI_U8         dot11mode;
     tSirScanType    scanType;
-    tANI_U32             minChannelTime;
-    tANI_U32             maxChannelTime;
+    /**
+     * minChannelTime. Not used if scanType is passive.
+     * 0x0 - Dont Use min channel timer. Only max channel timeout will used.
+     *       11k measurements set this to zero to user only single duration for scan.
+     * <valid timeout> - Timeout value used for min channel timeout.
+     */
+    tANI_U32        minChannelTime;
+    /**
+     * maxChannelTime.
+     * 0x0 - Invalid. In case of active scan.
+     * In case of passive scan, MAX( maxChannelTime, WNI_CFG_PASSIVE_MAXIMUM_CHANNEL_TIME) is used. 
+     *
+     */
+    tANI_U32        maxChannelTime;
     /**
      * returnAfterFirstMatch can take following values:
      * 0x00 - Return SCAN_RSP message after complete channel scan
@@ -933,12 +1014,65 @@ typedef struct sSirSmeScanReq
     tANI_U8              hiddenSsid;
 } tSirSmeScanReq, *tpSirSmeScanReq;
 
+#ifdef FEATURE_INNAV_SUPPORT
+
+typedef enum
+{
+    eRTS_CTS_BASED = 1,
+    eFRAME_BASED,
+} eSirInNavMeasurementMode;
+
+typedef struct sSirBSSIDChannelInfo
+{
+    tSirMacAddr     bssid;
+    tANI_U16        channel;
+} tSirBSSIDChannelInfo;
+
+typedef struct sSirMeasInNavMeasurementReq
+{
+    tANI_U16              messageType; // eWNI_SME_INNAV_MEAS_REQ
+    tANI_U16              length;
+    tANI_U8               numBSSIDs;
+    tANI_U8               numInNavMeasurements;
+    eSirInNavMeasurementMode measurementMode;
+    tSirBSSIDChannelInfo  bssidChannelInfo[1];
+} tSirMeasInNavMeasurementReq, *tpSirMeasInNavMeasurementReq;
+
+typedef struct sSirRttRssiTimeData
+{
+    tANI_U8     rssi;
+    tANI_U16    rtt;
+    tANI_U16    snr;
+    tANI_U32    measurementTime;
+    tANI_U32    measurementTimeHi;
+} tSirRttRssiTimeData, *tpSirRttRssiTimeData;
+
+typedef struct sSirRttRssiResults
+{
+    tSirMacAddr          bssid;
+    tANI_U8              numSuccessfulMeasurements;
+    tSirRttRssiTimeData  rttRssiTimeData[1];
+} tSirRttRssiResults, *tpSirRttRssiResults;
+
+typedef struct sSirMeasInNavMeasurementRsp
+{
+    tANI_U16             messageType; // eWNI_SME_INNAV_MEAS_RSP
+    tANI_U16             length;
+    tSirResultCodes      statusCode;
+    tANI_U8              numBSSIDs;
+    tSirRttRssiResults   rttRssiResults[1];
+} tSirMeasInNavMeasurementRsp, *tpSirMeasInNavMeasurementRsp;
+
+#endif //FEATURE_INNAV_SUPPORT
+
 /// Definition for response message to previously issued scan request
 typedef struct sSirSmeScanRsp
 {
     tANI_U16                messageType; // eWNI_SME_SCAN_RSP
     tANI_U16                length;
     tSirResultCodes    statusCode;
+    tANI_U8            sessionId;     
+    tANI_U16           transcationId; 
     tSirBssDescription bssDescription[1];
 } tSirSmeScanRsp, *tpSirSmeScanRsp;
 
@@ -962,18 +1096,23 @@ typedef struct sSirBackgroundScanInfo {
 /// Definition for Authentication request
 typedef struct sSirSmeAuthReq
 {
-    tANI_U16                messageType; // eWNI_SME_AUTH_REQ
-    tANI_U16                length;
+    tANI_U16           messageType; // eWNI_SME_AUTH_REQ
+    tANI_U16           length;
+    tANI_U8            sessionId;        // Session ID
+    tANI_U16           transactionId;    // Transaction ID for cmd
+    tSirMacAddr        bssId;            // Self BSSID
     tSirMacAddr        peerMacAddr;
     tAniAuthType       authType;
-    tANI_U8                 channelNumber;
+    tANI_U8            channelNumber;
 } tSirSmeAuthReq, *tpSirSmeAuthReq;
 
 /// Definition for reponse message to previously issued Auth request
 typedef struct sSirSmeAuthRsp
 {
-    tANI_U16                messageType; // eWNI_SME_AUTH_RSP
-    tANI_U16                length;
+    tANI_U16           messageType; // eWNI_SME_AUTH_RSP
+    tANI_U16           length;
+    tANI_U8            sessionId;      // Session ID
+    tANI_U16           transactionId;  // Transaction ID for cmd
     tSirMacAddr        peerMacAddr;
     tAniAuthType       authType;
     tSirResultCodes    statusCode;
@@ -991,7 +1130,7 @@ typedef enum eSirAssocType
 } tSirAssocType;
 #endif
 
-#if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
+#if (WNI_POLARIS_FW_PACKAGE == ADVANCED) 
 typedef enum eSirBpIndicatorType
 {
     eSIR_WIRELESS_BP,
@@ -1002,39 +1141,53 @@ typedef enum eSirBpIndicatorType
 
 /// Definition for join request
 /// ---> MAC
+/// WARNING! If you add a field in JOIN REQ. 
+///         Make sure to add it in REASSOC REQ 
+/// The Serdes function is the same and its 
+/// shared with REASSOC. So if we add a field
+//  here and dont add it in REASSOC REQ. It will BREAK!!! REASSOC.
 typedef struct sSirSmeJoinReq
 {
-    tANI_U16                 messageType; // eWNI_SME_JOIN_REQ
-    tANI_U16                 length;
+    tANI_U16            messageType;            // eWNI_SME_JOIN_REQ
+    tANI_U16            length;
+    tANI_U8             sessionId;              
+    tANI_U16            transactionId;  
+    tSirMacSSid         ssId;
+    tSirMacAddr         selfMacAddr;            // self Mac address
+    tSirBssType         bsstype;                // add new type for BT -AMP STA and AP Modules
+    tANI_U8             dot11mode;              // to support BT-AMP     
+    /*This contains the UAPSD Flag for all 4 AC
+     * B0: AC_VO UAPSD FLAG
+     * B1: AC_VI UAPSD FLAG
+     * B2: AC_BK UAPSD FLAG
+     * B3: AC_BE UASPD FLAG
+     */
+    tANI_U8                 uapsdPerAcBitmask;
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
-    tSirAssocType       assocType; // Indicates whether STA is
-                                   // sending (Re) Association
-                                   // due to load balance or not
+    tSirAssocType       assocType;              // Indicates whether STA is
+                                                // sending (Re) Association
+                                                // due to load balance or not
 #endif
-    tSirRSNie           rsnIE;     // RSN IE to be sent in
-                                   // (Re) Association Request
+    tSirMacRateSet      operationalRateSet;// Has 11a or 11b rates
+    tSirMacRateSet      extendedRateSet;    // Has 11g rates
+    tSirRSNie           rsnIE;                  // RSN IE to be sent in
+                                                // (Re) Association Request
+    tAniEdType          UCEncryptionType;
+    tAniEdType          MCEncryptionType;
+    
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
     tAniBool            bpIndicator;
     tSirBpIndicatorType bpType;
-    tSirNeighborBssList neighborBssList; // TBD Move this outside 'AP'
-                                         // flag
+    tSirNeighborBssList neighborBssList;        // TBD Move this outside 'AP'
+                                                // flag
 #endif
     tAniTitanCBNeighborInfo cbNeighbors;
-
-    tAniBool                spectrumMgtIndicator;
-    tSirMacPowerCapInfo     powerCap;
-    tSirSupChnl             supportedChannels;
-
-	/*This contains the UAPSD Flag for all 4 AC
-	 * B0: AC_VO UAPSD FLAG
-	 * B1: AC_VI UAPSD FLAG
-	 * B2: AC_BK UAPSD FLAG
-	 * B3: AC_BE UASPD FLAG
-	 */
-    tANI_U8                 uapsdPerAcBitmask;
-#if (WNI_POLARIS_FW_PRODUCT == WLAN_STA )
+    tAniBool            spectrumMgtIndicator;
+    tSirMacPowerCapInfo powerCap;
+    tSirSupChnl         supportedChannels;
+//#if (WNI_POLARIS_FW_PRODUCT == WLAN_STA )
     tSirBssDescription  bssDescription;
-#endif
+//#endif
 } tSirSmeJoinReq, *tpSirSmeJoinReq;
 
 /// Definition for reponse message to previously issued join request
@@ -1044,18 +1197,11 @@ typedef struct sSirSmeJoinRsp
     tANI_U16                messageType; // eWNI_SME_JOIN_RSP
     tANI_U16                length;
     tSirResultCodes    statusCode;
+    tANI_U8                 sessionId;         // Session ID
+    tANI_U16                transactionId;     // Transaction ID for cmd
 #if (WNI_POLARIS_FW_PRODUCT == WLAN_STA)
     tAniAuthType       authType;
-    tANI_U16           staId;             // Station ID for peer
-
-    /*The DPU signatures will be sent eventually to TL to help it determine the 
-      association to which a packet belongs to*/
-    /*Unicast DPU signature*/
-    tANI_U8            ucastSig;
-
-    /*Broadcast DPU signature*/
-    tANI_U8            bcastSig;
-
+//    tANI_U16           staId;             // Station ID for peer
 #endif
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
     // Following are needed for Roaming algorithm
@@ -1069,15 +1215,25 @@ typedef struct sSirSmeJoinRsp
     tANI_U32        beaconLength;
     tANI_U32        assocReqLength;
     tANI_U32        assocRspLength;
-    tANI_U8         frames[ 1 ];
+    tANI_U32        staId;//Station ID for peer
 
+    /*The DPU signatures will be sent eventually to TL to help it determine the 
+      association to which a packet belongs to*/
+    /*Unicast DPU signature*/
+    tANI_U8            ucastSig;
+
+    /*Broadcast DPU signature*/
+    tANI_U8            bcastSig;
+
+    tANI_U8         frames[ 1 ];
 } tSirSmeJoinRsp, *tpSirSmeJoinRsp;
 
 /// Definition for Authentication indication from peer
 typedef struct sSirSmeAuthInd
 {
-    tANI_U16                messageType; // eWNI_SME_AUTH_IND
-    tANI_U16                length;
+    tANI_U16           messageType; // eWNI_SME_AUTH_IND
+    tANI_U16           length;         
+    tSirMacAddr        bssId;             // Self BSSID
     tSirMacAddr        peerMacAddr;
     tAniAuthType       authType;
 } tSirSmeAuthInd, *tpSirSmeAuthInd;
@@ -1091,29 +1247,29 @@ typedef struct sSirSmeProbereq
     tANI_U16           devicePasswdId;
 } tSirSmeProbeReq, *tpSirSmeProbeReq;
 
-
-#if (WNI_POLARIS_FW_PRODUCT == AP)
 /// Definition for Association indication from peer
 /// MAC --->
 typedef struct sSirSmeAssocInd
 {
-    tANI_U16                  messageType; // eWNI_SME_ASSOC_IND
-    tANI_U16                  length;
+    tANI_U16             messageType; // eWNI_SME_ASSOC_IND
+    tANI_U16             length;
     tSirMacAddr          peerMacAddr;
-    tANI_U16                  aid;
-#if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
+    tANI_U16             aid;
+    tSirMacAddr          bssId; // Self BSSID
+    tANI_U16             staId; // Station ID for peer
+    tANI_U8              uniSig;  // DPU signature for unicast packets
+    tANI_U8              bcastSig; // DPU signature for broadcast packets
+    tAniAuthType         authType;    
+    tAniSSID             ssId; // SSID used by STA to associate
+    tSirRSNie            rsnIE;// RSN IE received from peer
+#if defined (ANI_PRODUCT_TYPE_AP)
     tANI_U16                  seqNum;
     tAniBool             wniIndicator;
     tAniBool             bpIndicator;
     tSirBpIndicatorType  bpType;
     tSirAssocType        assocType; // Indicates whether STA is LB'ed or not
-#endif
-    tAniAuthType         authType;
-#if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
     tSirLoad             load; // Current load on the radio for LB
     tSirNeighborBssList  neighborList; // List received from STA
-    tAniSSID             ssId; // SSID used by STA to associate
-    tSirRSNie            rsnIE;// RSN IE received from peer
     tANI_U16                  capabilityInfo; // STA capability
     tSirNwType           nwType;            // Indicates 11a/b/g
 #endif
@@ -1126,67 +1282,89 @@ typedef struct sSirSmeAssocInd
     /**************** QNE updated - BEGIN **********************/
     tSirMacWscInfo       wscInfo;
     /**************** QNE updated - END   **********************/
-} tSirSmeAssocInd, *tpSirSmeAssocInd;
+#ifdef WLAN_SOFTAP_FEATURE
+    tAniBool             wmmEnabledSta; /* if present - STA is WMM enabled */
 #endif
+} tSirSmeAssocInd, *tpSirSmeAssocInd;
 
 
 /// Definition for Association confirm
 /// ---> MAC
 typedef struct sSirSmeAssocCnf
 {
-    tANI_U16                  messageType; // eWNI_SME_ASSOC_Cnf
-    tANI_U16                  length;
-    tSirMacAddr          peerMacAddr;
+    tANI_U16             messageType; // eWNI_SME_ASSOC_CNF
+    tANI_U16             length;
     tSirResultCodes      statusCode;
-    tANI_U16                  aid;
+    tSirMacAddr          bssId;      // Self BSSID
+    tSirMacAddr          peerMacAddr;
+    tANI_U16             aid;
     tSirMacAddr          alternateBssId;
-    tANI_U8                   alternateChannelId;
+    tANI_U8              alternateChannelId;
 } tSirSmeAssocCnf, *tpSirSmeAssocCnf;
 
 /// Definition for Reassociation request
 /// ---> MAC
+/// WARNING! If you add a field in REASSOC REQ. 
+///         Make sure to add it in JOIN REQ 
+/// The Serdes function is the same and its 
+/// shared with REASSOC. So if we add a field
+//  here and dont add it in JOIN REQ. It will BREAK!!! JOIN.
 typedef struct sSirSmeReassocReq
 {
-    tANI_U16                  messageType; // eWNI_SME_REASSOC_REQ
-    tANI_U16                  length;
-#if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
-    tSirAssocType       assocType; // Indicates whether STA is
-                                   // sending (Re) Association
-                                   // due to load balance or not
-#endif
-    tSirRSNie           rsnIE;     // RSN IE to be sent in
-                                   // (Re) Association Request
-#if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
-    tAniBool             bpIndicator;
-    tSirBpIndicatorType  bpType;
-    tSirNeighborBssList  neighborBssList;
-#endif
-    tAniTitanCBNeighborInfo cbNeighbors;
-
-    tAniBool                spectrumMgtIndicator;
-    tSirMacPowerCapInfo     powerCap;
-    tSirSupChnl             supportedChannels;
-
+    tANI_U16            messageType; // eWNI_SME_REASSOC_REQ
+    tANI_U16            length;
+    tANI_U8             sessionId;              
+    tANI_U16            transactionId;  
+    tSirMacSSid         ssId;
+    tSirMacAddr         selfMacAddr;            // self Mac address
+    tSirBssType         bsstype;                // add new type for BT -AMP STA and AP Modules
+    tANI_U8             dot11mode;              // to support BT-AMP     
     /*This contains the UAPSD Flag for all 4 AC
      * B0: AC_VO UAPSD FLAG
      * B1: AC_VI UAPSD FLAG
      * B2: AC_BK UAPSD FLAG
      * B3: AC_BE UASPD FLAG
      */
-    tANI_U8                 uapsdPerAcBitmask;
+    tANI_U8             uapsdPerAcBitmask;
 
-#if (WNI_POLARIS_FW_PRODUCT == WLAN_STA )
+#if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
+    tSirAssocType       assocType; // Indicates whether STA is
+                                   // sending (Re) Association
+                                   // due to load balance or not
+#endif
+
+    tSirMacRateSet          operationalRateSet;// Has 11a or 11b rates
+    tSirMacRateSet          extendedRateSet;    // Has 11g rates
+
+    tSirRSNie           rsnIE;     // RSN IE to be sent in
+                                   // (Re) Association Request
+    tAniEdType          UCEncryptionType;
+    tAniEdType          MCEncryptionType;
+
+#if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
+    tAniBool             bpIndicator;
+    tSirBpIndicatorType  bpType;
+    tSirNeighborBssList  neighborBssList;
+#endif
+    tAniTitanCBNeighborInfo cbNeighbors;
+    tAniBool                spectrumMgtIndicator;
+    tSirMacPowerCapInfo     powerCap;
+    tSirSupChnl             supportedChannels;
+//#if (WNI_POLARIS_FW_PRODUCT == WLAN_STA )
     tSirBssDescription  bssDescription;
-#endif	
+//#endif
 } tSirSmeReassocReq, *tpSirSmeReassocReq;
 
 /// Definition for reponse message to previously issued
 /// Reassociation request
 typedef struct sSirSmeReassocRsp
 {
-    tANI_U16                messageType; // eWNI_SME_REASSOC_RSP
-    tANI_U16                length;
+    tANI_U16           messageType; // eWNI_SME_REASSOC_RSP
+    tANI_U16           length;
     tSirResultCodes    statusCode;
+    tANI_U8            sessionId;         // Session ID
+    tANI_U16           transactionId;     // Transaction ID for cmd
+    tANI_U8            staId;             // Station ID for peer
 #if (WNI_POLARIS_FW_PRODUCT == WLAN_STA)
     tAniAuthType       authType;
 #endif
@@ -1196,29 +1374,28 @@ typedef struct sSirSmeReassocRsp
 #endif
 } tSirSmeReassocRsp, *tpSirSmeReassocRsp;
 
-#if (WNI_POLARIS_FW_PRODUCT == AP)
 /// Definition for Reassociation indication from peer
 typedef struct sSirSmeReassocInd
 {
-    tANI_U16                  messageType; // eWNI_SME_REASSOC_IND
-    tANI_U16                  length;
-    tSirMacAddr          peerMacAddr;
-    tSirMacAddr          oldMacAddr;
-    tANI_U16                  aid;
+    tANI_U16            messageType; // eWNI_SME_REASSOC_IND
+    tANI_U16            length;
+    tSirMacAddr         peerMacAddr;
+    tSirMacAddr         oldMacAddr;
+    tANI_U16            aid;
+    tSirMacAddr         bssId;           // Self BSSID
+    tANI_U16            staId;           // Station ID for peer
+    tAniAuthType        authType;
+    tAniSSID            ssId;   // SSID used by STA to reassociate
+    tSirRSNie           rsnIE;  // RSN IE received from peer
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
-    tANI_U16                  seqNum;
+    tANI_U16             seqNum;
     tAniBool             wniIndicator;
     tAniBool             bpIndicator;
     tSirBpIndicatorType  bpType;
     tSirAssocType        reassocType; // Indicates whether STA is LB'ed or not
-#endif
-    tAniAuthType         authType;
-#if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
     tSirLoad             load; // Current load on the radio for LB
     tSirNeighborBssList  neighborList; // List received from STA
-    tAniSSID             ssId; // SSID used by STA to reassociate
-    tSirRSNie            rsnIE;// RSN IE received from peer
-    tANI_U16                  capabilityInfo; // STA capability
+    tANI_U16             capabilityInfo; // STA capability
     tSirNwType           nwType;            // Indicates 11a/b/g
 #endif
     tAniTitanHtCapabilityInfo titanHtCaps;
@@ -1231,7 +1408,6 @@ typedef struct sSirSmeReassocInd
     tSirMacWscInfo       wscInfo;
     /**************** QNE updated - END   **********************/
 } tSirSmeReassocInd, *tpSirSmeReassocInd;
-#endif
 
 /// Definition for Reassociation confirm
 /// ---> MAC
@@ -1239,8 +1415,9 @@ typedef struct sSirSmeReassocCnf
 {
     tANI_U16                  messageType; // eWNI_SME_REASSOC_CNF
     tANI_U16                  length;
-    tSirMacAddr          peerMacAddr;
     tSirResultCodes      statusCode;
+    tSirMacAddr          bssId;             // Self BSSID
+    tSirMacAddr          peerMacAddr;
     tANI_U16                  aid;
     tSirMacAddr          alternateBssId;
     tANI_U8                   alternateChannelId;
@@ -1331,6 +1508,7 @@ typedef struct sSirSmeWmStatusChangeNtf
     tANI_U16                     messageType; // eWNI_SME_WM_STATUS_CHANGE_NTF
     tANI_U16                     length;
     tSirSmeStatusChangeCode statusChangeCode;
+    tSirMacAddr             bssId;             // Self BSSID
     union
     {
         tANI_U16                 deAuthReasonCode; // eSIR_SME_DEAUTH_FROM_PEER
@@ -1355,19 +1533,45 @@ typedef struct sSirSmeWmStatusChangeNtf
 } tSirSmeWmStatusChangeNtf, *tpSirSmeWmStatusChangeNtf;
 
 /// Definition for Disassociation request
-typedef struct sSirSmeDisassocReq
+typedef
+#ifdef WLAN_SOFTAP_FEATURE
+__ani_attr_pre_packed
+#endif
+struct sSirSmeDisassocReq
 {
-    tANI_U16         messageType; // eWNI_SME_DISASSOC_REQ
-    tANI_U16         length;
+    tANI_U16            messageType; // eWNI_SME_DISASSOC_REQ
+    tANI_U16            length;
+    tANI_U8             sessionId;         // Session ID
+    tANI_U16            transactionId;     // Transaction ID for cmd
+    tSirMacAddr         bssId;             // Peer BSSID
     tSirMacAddr peerMacAddr;
     tANI_U16         reasonCode;
+    tANI_U8          doNotSendOverTheAir;  //This flag tells LIM whether to send the disassoc OTA or not
+                                           //This will be set in while handing off from one AP to other
 #if (WNI_POLARIS_FW_PRODUCT == AP)
     tANI_U16         aid;
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
     tANI_U16         seqNum;
 #endif
 #endif
-} tSirSmeDisassocReq, *tpSirSmeDisassocReq;
+}
+#ifdef WLAN_SOFTAP_FEATURE
+__ani_attr_packed
+#endif
+tSirSmeDisassocReq, *tpSirSmeDisassocReq;
+
+/// Definition for Tkip countermeasures request
+#ifdef WLAN_SOFTAP_FEATURE
+typedef __ani_attr_pre_packed struct sSirSmeTkipCntrMeasReq
+{
+    tANI_U16            messageType;    // eWNI_SME_DISASSOC_REQ
+    tANI_U16            length;
+    tANI_U8             sessionId;      // Session ID
+    tANI_U16            transactionId;  // Transaction ID for cmd
+    tSirMacAddr         bssId;          // Peer BSSID
+    tANI_BOOLEAN        bEnable;        // Start/stop countermeasures
+} __ani_attr_packed tSirSmeTkipCntrMeasReq, *tpSirSmeTkipCntrMeasReq;
+#endif
 
 typedef struct sAni64BitCounters
 {
@@ -1413,7 +1617,11 @@ typedef struct sAniSecStats
     tAni64BitCounters tkipMicError;
 
     tAniSecurityStat wep;
-
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
+    tAniSecurityStat wpi;
+    tAni64BitCounters wpiReplays;
+    tAni64BitCounters wpiMicError;
+#endif
 }tAniSecStats, *tpAniSecStats;    
 
 #define SIR_MAX_RX_CHAINS 3
@@ -1514,7 +1722,7 @@ typedef struct sAniGlobalStatStruct
 
   tAniTxRxStats     mcStats;
   tAniTxRxStats     bcStats;
-  	
+    
 }tAniGlobalStatStruct,*tpAniGlobalStatStruct;
 
 typedef enum sPacketType
@@ -1581,49 +1789,68 @@ typedef struct _sPermStaStats
 /// Definition for Disassociation response
 typedef struct sSirSmeDisassocRsp
 {
-    tANI_U16                messageType; // eWNI_SME_DISASSOC_RSP
-    tANI_U16                length;
-    tSirMacAddr        peerMacAddr;
+    tANI_U16           messageType; // eWNI_SME_DISASSOC_RSP
+    tANI_U16           length;
+    tANI_U8            sessionId;         // Session ID
+    tANI_U16           transactionId;     // Transaction ID for cmd
     tSirResultCodes    statusCode;
+    tSirMacAddr        peerMacAddr;
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-    tANI_U16                aid;
+    tANI_U16           aid;
 #endif
     tAniStaStatStruct  perStaStats; // STA stats
-} tSirSmeDisassocRsp, *tpSirSmeDisassocRsp;
+#ifdef WLAN_SOFTAP_FEATURE
+    tANI_U16           staId;
+#endif     
+}
+#ifdef WLAN_SOFTAP_FEATURE
+__ani_attr_packed
+#endif
+ tSirSmeDisassocRsp, *tpSirSmeDisassocRsp;
 
 /// Definition for Disassociation indication from peer
 typedef struct sSirSmeDisassocInd
 {
-    tANI_U16                messageType; // eWNI_SME_DISASSOC_IND
-    tANI_U16                length;
-    tSirResultCodes    statusCode;
-    tSirMacAddr        peerMacAddr;
+    tANI_U16            messageType; // eWNI_SME_DISASSOC_IND
+    tANI_U16            length;
+    tANI_U8             sessionId;  // Session Identifier
+    tANI_U16            transactionId;   // Transaction Identifier with PE
+    tSirResultCodes     statusCode;
+    tSirMacAddr         bssId;            
+    tSirMacAddr         peerMacAddr;
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-    tANI_U16                aid;
+    tANI_U16            aid;
 #endif
     tAniStaStatStruct  perStaStats; // STA stats
+#ifdef WLAN_SOFTAP_FEATURE
+    tANI_U16            staId;
+#endif
 } tSirSmeDisassocInd, *tpSirSmeDisassocInd;
 
 /// Definition for Disassociation confirm
 /// MAC --->
 typedef struct sSirSmeDisassocCnf
 {
-    tANI_U16                messageType; // eWNI_SME_DISASSOC_CNF
-    tANI_U16                length;
-    tSirMacAddr        peerMacAddr;
-    tSirResultCodes    statusCode;
+    tANI_U16            messageType; // eWNI_SME_DISASSOC_CNF
+    tANI_U16            length;
+    tSirResultCodes     statusCode;
+    tSirMacAddr         bssId;            
+    tSirMacAddr         peerMacAddr;
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-    tANI_U16                aid;
+    tANI_U16            aid;
 #endif
 } tSirSmeDisassocCnf, *tpSirSmeDisassocCnf;
 
 /// Definition for Deauthetication request
 typedef struct sSirSmeDeauthReq
 {
-    tANI_U16         messageType; // eWNI_SME_DEAUTH_REQ
-    tANI_U16         length;
-    tSirMacAddr peerMacAddr;
-    tANI_U16         reasonCode;
+    tANI_U16            messageType;   // eWNI_SME_DEAUTH_REQ
+    tANI_U16            length;
+    tANI_U8             sessionId;     // Session ID
+    tANI_U16            transactionId; // Transaction ID for cmd
+    tSirMacAddr         bssId;         // AP BSSID
+    tSirMacAddr         peerMacAddr;
+    tANI_U16            reasonCode;
 #if (WNI_POLARIS_FW_PRODUCT == AP)
     tANI_U16         aid;
 #endif
@@ -1634,8 +1861,10 @@ typedef struct sSirSmeDeauthRsp
 {
     tANI_U16                messageType; // eWNI_SME_DEAUTH_RSP
     tANI_U16                length;
+    tSirResultCodes     statusCode;
+    tANI_U8             sessionId;         // Session ID
+    tANI_U16            transactionId;     // Transaction ID for cmd
     tSirMacAddr        peerMacAddr;
-    tSirResultCodes    statusCode;
 #if (WNI_POLARIS_FW_PRODUCT == AP)
     tANI_U16                aid;
 #endif
@@ -1644,12 +1873,19 @@ typedef struct sSirSmeDeauthRsp
 /// Definition for Deauthetication indication from peer
 typedef struct sSirSmeDeauthInd
 {
-    tANI_U16                messageType; // eWNI_SME_DEAUTH_IND
-    tANI_U16                length;
-    tSirResultCodes    statusCode;
-    tSirMacAddr        peerMacAddr;
+    tANI_U16            messageType; // eWNI_SME_DEAUTH_IND
+    tANI_U16            length;
+    tSirResultCodes     statusCode;
+    tANI_U16            sessionId;       //Added for BT-AMP
+    tANI_U16            transactionId;  //Added for BT-AMP
+    tSirMacAddr         bssId;// AP BSSID
+    tSirMacAddr         peerMacAddr;
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-    tANI_U16                aid;
+    tANI_U16            aid;
+#endif
+
+#ifdef WLAN_SOFTAP_FEATURE
+    tANI_U16            staId;
 #endif
 } tSirSmeDeauthInd, *tpSirSmeDeauthInd;
 
@@ -1659,8 +1895,9 @@ typedef struct sSirSmeDeauthCnf
 {
     tANI_U16                messageType; // eWNI_SME_DEAUTH_CNF
     tANI_U16                length;
+    tSirResultCodes     statusCode;
+    tSirMacAddr         bssId;             // AP BSSID
     tSirMacAddr        peerMacAddr;
-    tSirResultCodes    statusCode;
 #if (WNI_POLARIS_FW_PRODUCT == AP)
     tANI_U16                aid;
 #endif
@@ -1669,9 +1906,12 @@ typedef struct sSirSmeDeauthCnf
 /// Definition for stop BSS request message
 typedef struct sSirSmeStopBssReq
 {
-    tANI_U16                messageType; // eWNI_SME_STOP_BSS_REQ
+    tANI_U16                messageType;    // eWNI_SME_STOP_BSS_REQ
     tANI_U16                length;
-    tSirResultCodes    reasonCode;
+    tANI_U8             sessionId;      //Session ID
+    tANI_U16            transactionId;  //tranSaction ID for cmd
+    tSirResultCodes         reasonCode;
+    tSirMacAddr             bssId;          //Self BSSID
 } tSirSmeStopBssReq, *tpSirSmeStopBssReq;
 
 /// Definition for stop BSS response message
@@ -1680,6 +1920,8 @@ typedef struct sSirSmeStopBssRsp
     tANI_U16             messageType; // eWNI_SME_STOP_BSS_RSP
     tANI_U16             length;
     tSirResultCodes statusCode;
+    tANI_U8             sessionId;         // Session ID
+    tANI_U16            transactionId;     // Transaction ID for cmd
 } tSirSmeStopBssRsp, *tpSirSmeStopBssRsp;
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
@@ -1689,6 +1931,7 @@ typedef struct sSirSmeSelectChannelReq
 {
     tANI_U16                messageType; // eWNI_SME_SELECT_CHL_REQ
     tANI_U16                length;
+    tANI_U16            transactionId;     // Transaction ID for cmd
     tANI_U8                 channelId;
 } tSirSmeSelectChannelReq, *tpSirSmeSelectChannelReq;
 
@@ -1699,6 +1942,7 @@ typedef struct sSirSmeSelectChannelRsp
     tANI_U16                messageType; // eWNI_SME_SELECT_CHL_RSP
     tANI_U16                length;
     tSirResultCodes    statusCode;
+    tANI_U16            transactionId;     // Transaction ID for cmd
 } tSirSmeSelectChannelRsp, *tpSirSmeSelectChannelRsp;
 
 /// Definition for Channel Switch request
@@ -1711,6 +1955,7 @@ typedef struct sSirSmeSwitchChannelReq
     tANI_U16                messageType;
 
     tANI_U16                length;
+    tANI_U16            transactionId;     // Transaction ID for cmd
     tANI_U8                 channelId;
     //
     // The cbMode field is applicable to TITAN only.
@@ -1734,9 +1979,21 @@ typedef struct sSirSmeSwitchChannelRsp
     tANI_U16                messageType; // eWNI_SME_SWITCH_CHL_RSP
     tANI_U16                length;
     tSirResultCodes    statusCode;
+    tANI_U16            transactionId;     // Transaction ID for cmd
 } tSirSmeSwitchChannelRsp, *tpSirSmeSwitchChannelRsp;
 
 #endif
+
+
+/// Definition for Channel Switch indication for station
+/// MAC --->
+typedef struct sSirSmeSwitchChannelInd
+{
+    tANI_U16                messageType; // eWNI_SME_SWITCH_CHL_REQ
+    tANI_U16                length;
+    tANI_U16    newChannelId;
+    tSirMacAddr        bssId;      // BSSID
+} tSirSmeSwitchChannelInd, *tpSirSmeSwitchChannelInd;
 
 /// Definition for ULA complete indication message
 typedef struct sirUlaCompleteInd
@@ -1784,6 +2041,7 @@ typedef struct sSirSmeMicFailureInd
 {
     tANI_U16                    messageType; // eWNI_SME_MIC_FAILURE_IND
     tANI_U16                    length;
+    tSirMacAddr         bssId;             // BSSID
     tSirMicFailureInfo     info;
 } tSirSmeMicFailureInd, *tpSirSmeMicFailureInd;
 
@@ -1792,9 +2050,12 @@ typedef struct sSirSmeMicFailureInd
 /// ---> MAC
 typedef struct sSirSmeSetContextReq
 {
-    tANI_U16                messageType; // eWNI_SME_SET_CONTEXT_REQ
-    tANI_U16                length;
+    tANI_U16           messageType; // eWNI_SME_SET_CONTEXT_REQ
+    tANI_U16          length;
     tSirMacAddr        peerMacAddr;
+    tSirMacAddr        bssId;      // BSSID
+    tANI_U8            sessionId;  //Session ID
+    tANI_U16           transactionId; //Transaction ID for cmd
 #if (WNI_POLARIS_FW_PRODUCT == AP)
     tANI_U16                aid;
 #endif
@@ -1810,8 +2071,10 @@ typedef struct sSirSmeSetContextRsp
 {
     tANI_U16                messageType; // eWNI_SME_SET_CONTEXT_RSP
     tANI_U16                length;
-    tSirMacAddr        peerMacAddr;
-    tSirResultCodes    statusCode;
+    tSirResultCodes     statusCode;
+    tANI_U8             sessionId;         // Session ID
+    tANI_U16            transactionId;     // Transaction ID for cmd
+    tSirMacAddr             peerMacAddr;
 #if (WNI_POLARIS_FW_PRODUCT == AP)
     tANI_U16                aid;
 #endif
@@ -1821,9 +2084,12 @@ typedef struct sSirSmeSetContextRsp
 /// ---> MAC
 typedef struct sSirSmeRemoveKeyReq
 {
-    tANI_U16                messageType; // eWNI_SME_REMOVE_KEY_REQ
+    tANI_U16                messageType;    // eWNI_SME_REMOVE_KEY_REQ
     tANI_U16                length;
-    tSirMacAddr        peerMacAddr;
+    tANI_U8             sessionId;         // Session ID
+    tANI_U16            transactionId;     // Transaction ID for cmd
+    tSirMacAddr         bssId;             // BSSID
+    tSirMacAddr             peerMacAddr;
 #if (WNI_POLARIS_FW_PRODUCT == AP)
     tANI_U16                aid;
 #endif
@@ -1839,8 +2105,10 @@ typedef struct sSirSmeRemoveKeyRsp
 {
     tANI_U16                messageType; // eWNI_SME_REMOVE_KEY_RSP
     tANI_U16                length;
-    tSirMacAddr        peerMacAddr;
-    tSirResultCodes    statusCode;
+    tSirResultCodes     statusCode;
+    tANI_U8             sessionId;         // Session ID
+    tANI_U16            transactionId;     // Transaction ID for cmd
+    tSirMacAddr             peerMacAddr;
 #if (WNI_POLARIS_FW_PRODUCT == AP)
     tANI_U16                aid;
 #endif
@@ -1852,6 +2120,7 @@ typedef struct sSirSmeSetPowerReq
 {
     tANI_U16                messageType; // eWNI_SME_SET_POWER_REQ
     tANI_U16                length;
+    tANI_U16            transactionId;     // Transaction ID for cmd
     tANI_S8                 powerLevel;
 } tSirSmeSetPowerReq, *tpSirSmeSetPowerReq;
 
@@ -1862,6 +2131,7 @@ typedef struct sSirSmeSetPowerRsp
     tANI_U16                messageType; // eWNI_SME_SET_POWER_RSP
     tANI_U16                length;
     tSirResultCodes    statusCode;
+    tANI_U16            transactionId;     // Transaction ID for cmd
 } tSirSmeSetPowerRsp, *tpSirSmeSetPowerRsp;
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
@@ -1871,7 +2141,8 @@ typedef struct sSirSmeSetClientLoadBalanceReq
 {
     tANI_U16                messageType; // eWNI_SME_CLIENT_LOAD_BALANCE_REQ
     tANI_U16                length;
-    tSirMacAddr        alternateBssId;
+    tANI_U16            transactionId;     // Transaction ID for cmd
+    tSirMacAddr             alternateBssId;
     tANI_U8                 alternateChannelId;
     tANI_U8                 numberStas;
 } tSirSmeClientLoadBalanceReq, *tpSirSmeClientLoadBalanceReq;
@@ -1882,7 +2153,8 @@ typedef struct sSirSmeSetClientLoadBalanceRsp
 {
     tANI_U16                messageType; // eWNI_SME_CLIENT_LOAD_BALANCE_RSP
     tANI_U16                length;
-    tSirResultCodes    statusCode;
+    tANI_U16            transactionId;     // Transaction ID for cmd
+    tSirResultCodes         statusCode;
 } tSirSmeClientLoadBalanceRsp, *tpSirSmeClientLoadBalanceRsp;
 #endif
 
@@ -1917,6 +2189,7 @@ typedef struct sSirSmeDFSreq
 {
     tANI_U16             messageType; // eWNI_SME_DFS_REQ
     tANI_U16             length;
+    tANI_U16            transactionId;     // Transaction ID for cmd
 } tSirSmeDFSrequest, *tpSirSmeDFSrequest;
 
 /// Definition for response message to previously
@@ -1926,6 +2199,7 @@ typedef struct sSirSmeDFSrsp
     tANI_U16             messageType; // eWNI_SME_DFS_RSP
     tANI_U16             length;
     tSirResultCodes statusCode;
+    tANI_U16            transactionId;     // Transaction ID for cmd
     tANI_U32             dfsReport[1];
 } tSirSmeDFSrsp, *tpSirSmeDFSrsp;
 
@@ -2067,11 +2341,13 @@ typedef struct sAniRadioStats
 typedef struct sAniGetStatsReq
 {
     // Common for all types are requests
-    tANI_U16                msgType; // message type is same as the request type
-    tANI_U16                msgLen;  // length of the entire request
-    tANI_U32                transactionId;
+    tANI_U16                msgType;    // message type is same as the request type
+    tANI_U16                msgLen;     // length of the entire request
+    tANI_U8                 sessionId;  //Session ID
+    tANI_U16                transactionId;
+    tSirMacAddr             bssId;      //BSSID
     // only used for clear stats and per sta stats clear
-    tAniStatSubTypes   stat;   // Clears the stats of the described types.
+    tAniStatSubTypes        stat;   // Clears the stats of the described types.
     tANI_U32                staId;  // Per STA stats request must contain valid
                                // values
     tANI_U8                 macAddr[6];
@@ -2083,7 +2359,7 @@ typedef struct sAniGetRadioStatsRsp
     tANI_U16            type;   // message type is same as the request type
     tANI_U16            msgLen; // length of the entire request
     tANI_U32            rc;
-    tANI_U32            transactionId;
+    tANI_U16            transactionId;
     tAniRadioStats radio;
 } tAniGetRadioStatsRsp, *tpAniGetRadioStatsRsp;
 
@@ -2093,7 +2369,7 @@ typedef struct sAniGetPerStaStatsRsp
     tANI_U16               type;   // message type is same as the request type
     tANI_U16               msgLen; // length of the entire request
     tANI_U32               rc;
-    tANI_U32               transactionId;
+    tANI_U16               transactionId;
     tAniStatSubTypes  stat;   // Sub type needed by AP. Returns the same value
     tAniStaStatStruct sta;
     tANI_U32               staId;
@@ -2106,7 +2382,7 @@ typedef struct sAniGetAggrStaStatsRsp
     tANI_U16               type;   // message type is same as the request type
     tANI_U16               msgLen; // length of the entire request
     tANI_U32               rc;
-    tANI_U32               transactionId;
+    tANI_U16               transactionId;
     tAniStaStatStruct sta;
 } tAniGetAggrStaStatsRsp, *tpAniGetAggrStaStatsRsp;
 
@@ -2119,7 +2395,7 @@ typedef struct sAniClearStatsRsp
     tANI_U32                rc;     // return code - will be filled by FW on
                                // response.
                        // Same transaction ID will be returned by the FW
-    tANI_U32                transactionId;
+    tANI_U16                transactionId;
     tAniStatSubTypes   stat;       // Clears the stats of the described types.
     tANI_U32                staId;      // Applicable only to PER STA stats clearing
     tANI_U8                 macAddr[6]; // Applicable only to PER STA stats clearing
@@ -2130,7 +2406,7 @@ typedef struct sAniGetGlobalStatsRsp
     tANI_U16            type;   // message type is same as the request type
     tANI_U16            msgLen; // length of the entire request
     tANI_U32            rc;
-    tANI_U32            transactionId;
+    tANI_U16            transactionId;
     tAniGlobalStatStruct global;
 } tAniGetGlobalStatsRsp, *tpAniGetGlobalStatsRsp;
 
@@ -2139,7 +2415,7 @@ typedef struct sAniGetStatSummaryRsp
     tANI_U16               type;   // message type is same as the request type
     tANI_U16               msgLen; // length of the entire request --Why?
     tANI_U32               rc;
-    tANI_U32               transactionId;
+    tANI_U16               transactionId;
     tAniStatSummaryStruct stat;
 } tAniGetStatSummaryRsp, *tpAniGetStatSummaryRsp;
 
@@ -2281,7 +2557,7 @@ typedef struct sAniGlobalClassBStatsInfo
 
 typedef struct sAniGlobalClassCStatsInfo
 {
-    tANI_U32 rx_amsdu_cnt;           //This counter shall be incremented for a received A-MSDU frame with the station’s 
+    tANI_U32 rx_amsdu_cnt;           //This counter shall be incremented for a received A-MSDU frame with the stations 
                                     //MAC address in the address 1 field or an A-MSDU frame with a group address in the 
                                     //address 1 field
     tANI_U32 rx_ampdu_cnt;           //This counter shall be incremented when the MAC receives an AMPDU from the PHY
@@ -2420,37 +2696,47 @@ typedef struct sSirAddtsReq
 {
     tANI_U16                messageType; // eWNI_SME_ADDTS_REQ
     tANI_U16                length;
+    tANI_U8                 sessionId;  //Session ID
+    tANI_U16                transactionId;
+    tSirMacAddr             bssId;      //BSSID
     tANI_U32                timeout; // in ms
     tANI_U8                 rspReqd;
-    tSirAddtsReqInfo   req;
+    tSirAddtsReqInfo        req;
 } tSirAddtsReq, *tpSirAddtsReq;
 
 typedef struct sSirAddtsRsp
 {
     tANI_U16                messageType; // eWNI_SME_ADDTS_RSP
     tANI_U16                length;
+    tANI_U8                 sessionId;  // sme sessionId  Added for BT-AMP support 
+    tANI_U16                transactionId; //sme transaction Id Added for BT-AMP Support 
     tANI_U32                rc;          // return code
-    tSirAddtsRspInfo   rsp;
+    tSirAddtsRspInfo        rsp;
 } tSirAddtsRsp, *tpSirAddtsRsp;
 
 typedef struct sSirDeltsReq
 {
     tANI_U16                messageType; // eWNI_SME_DELTS_REQ
     tANI_U16                length;
+    tANI_U8                 sessionId;//Session ID
+    tANI_U16                transactionId;
+    tSirMacAddr             bssId;  //BSSID
     tANI_U16                aid;  // use 0 if macAddr is being specified
     tANI_U8                 macAddr[6]; // only on AP to specify the STA
     tANI_U8                 rspReqd;
-    tSirDeltsReqInfo   req;
+    tSirDeltsReqInfo        req;
 } tSirDeltsReq, *tpSirDeltsReq;
 
 typedef struct sSirDeltsRsp
 {
     tANI_U16                messageType; // eWNI_SME_DELTS_RSP
     tANI_U16                length;
+    tANI_U8                 sessionId;  // sme sessionId  Added for BT-AMP support 
+    tANI_U16                transactionId; //sme transaction Id Added for BT-AMP Support 
     tANI_U32                rc;
     tANI_U16                aid;  // use 0 if macAddr is being specified
     tANI_U8                 macAddr[6]; // only on AP to specify the STA
-    tSirDeltsReqInfo   rsp;
+    tSirDeltsReqInfo        rsp;
 } tSirDeltsRsp, *tpSirDeltsRsp;
 
 typedef struct sSirSetTxPowerReq
@@ -2462,9 +2748,9 @@ typedef struct sSirSetTxPowerReq
 
 typedef struct sSirSetTxPowerRsp
 {
-    tANI_U16         messageType;
-    tANI_U16         length;
-    tANI_U32         status;
+    tANI_U16            messageType;
+    tANI_U16        length;
+    tANI_U32        status;
 } tSirSetTxPowerRsp, *tpSirSetTxPowerRsp;
 
 typedef struct sSirGetTxPowerReq
@@ -2568,6 +2854,8 @@ typedef enum eRequestFullPowerReason
    eSME_REASON_OTHER               /* No specific reason. General reason code */ 
 } tRequestFullPowerReason, tExitBmpsReason;
 
+
+
 //This is sent alongwith eWNI_PMC_EXIT_BMPS_REQ message
 typedef struct sExitBmpsInfo
 {
@@ -2598,6 +2886,8 @@ typedef struct sSmeDelBAPeerInd
     // Message Type
     tANI_U16 mesgType;
 
+    tSirMacAddr bssId;//BSSID 
+
     // Message Length
     tANI_U16 mesgLen;
 
@@ -2615,7 +2905,7 @@ typedef struct sSmeDelBAPeerInd
 
 typedef struct sSmeIbssPeerInd
 {
-    tANI_U16 	mesgType;
+    tANI_U16    mesgType;
     tANI_U16 mesgLen;
 
     tSirMacAddr    peerAddr;
@@ -2654,6 +2944,18 @@ typedef struct sLimScanChnInfo
     tLimScanChn scanChn[SIR_MAX_SUPPORTED_CHANNEL_LIST];
 }tLimScanChnInfo;
 
+#ifdef WLAN_SOFTAP_FEATURE
+typedef struct sSirSmeGetAssocSTAsReq
+{
+    tANI_U16    messageType;    // eWNI_SME_GET_ASSOC_STAS_REQ
+    tANI_U16    length;    
+    tSirMacAddr bssId;          // BSSID
+    tANI_U16    modId;
+    void        *pUsrContext;
+    void        *pSapEventCallback;
+    void        *pAssocStasArray;// Pointer to allocated memory passed in WLANSAP_GetAssocStations API
+} tSirSmeGetAssocSTAsReq, *tpSirSmeGetAssocSTAsReq;
+#endif
 
 /*--------------------------------------------------------------------*/
 /* BootLoader message definition                                      */
@@ -2843,15 +3145,15 @@ typedef __ani_attr_pre_packed struct sSirBoardCapabilities
 // This is a pass through message for PE
 typedef struct sSirWowlAddBcastPtrn
 {
-    tANI_U8  ucPatternId;  			// Pattern ID
+    tANI_U8  ucPatternId;           // Pattern ID
     // Pattern byte offset from beginning of the 802.11 packet to start of the
     // wake-up pattern
-    tANI_U8  ucPatternByteOffset; 	
-    tANI_U8  ucPatternSize; 		// Non-Zero Pattern size
+    tANI_U8  ucPatternByteOffset;   
+    tANI_U8  ucPatternSize;         // Non-Zero Pattern size
     tANI_U8  ucPattern[SIR_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern
-    tANI_U8  ucPatternMaskSize; 	// Non-zero pattern mask size
+    tANI_U8  ucPatternMaskSize;     // Non-zero pattern mask size
     tANI_U8  ucPatternMask[SIR_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern mask
-	
+    
 } tSirWowlAddBcastPtrn, *tpSirWowlAddBcastPtrn;
 
 
@@ -2869,13 +3171,13 @@ typedef struct sSirWowlDelBcastPtrn
 typedef struct sSirSmeWowlEnterParams
 {
     /* Enables/disables magic packet filtering */
-    tANI_U8   ucMagicPktEnable;	
+    tANI_U8   ucMagicPktEnable; 
 
     /* Magic pattern */
     tSirMacAddr magicPtrn;
 
     /* Enables/disables packet pattern filtering */
-    tANI_U8   ucPatternFilteringEnable;	
+    tANI_U8   ucPatternFilteringEnable; 
 
 } tSirSmeWowlEnterParams, * tpSirSmeWowlEnterParams;
 
@@ -2884,7 +3186,7 @@ typedef struct sSirSmeWowlEnterParams
 typedef struct sSirHalWowlEnterParams
 {
     /* Enables/disables magic packet filtering */
-    tANI_U8   ucMagicPktEnable;	
+    tANI_U8   ucMagicPktEnable; 
 
     /* Magic pattern */
     tSirMacAddr magicPtrn;
@@ -2933,7 +3235,7 @@ typedef struct sSirHalWowlEnterParams
     /* This configuration is valid only when magicPktEnable=1. 
      * This is a timeout value in units of microsec. It requests
      * hardware to unconditionally wake up after it has stayed
-     * in WoWLAN mode for some time. Set 0 to disable this feature. 	 
+     * in WoWLAN mode for some time. Set 0 to disable this feature.      
      */
     tANI_U8   ucWowMaxSleepUsec;
 
@@ -2944,6 +3246,170 @@ typedef struct sSirHalWowlEnterParams
 
 } tSirHalWowlEnterParams, *tpSirHalWowlEnterParams;
 
+#ifdef WLAN_SOFTAP_FEATURE
+
+#define SIR_MAX_NAME_SIZE 64
+#define SIR_MAX_TEXT_SIZE 32
+
+typedef struct sSirName {
+    v_U8_t num_name;
+    v_U8_t name[SIR_MAX_NAME_SIZE];
+} tSirName;
+
+typedef struct sSirText {
+    v_U8_t num_text;
+    v_U8_t text[SIR_MAX_TEXT_SIZE];
+} tSirText;
+
+
+#define SIR_WPS_PROBRSP_VER_PRESENT    0x00000001
+#define SIR_WPS_PROBRSP_STATE_PRESENT    0x00000002
+#define SIR_WPS_PROBRSP_APSETUPLOCK_PRESENT    0x00000004
+#define SIR_WPS_PROBRSP_SELECTEDREGISTRA_PRESENT    0x00000008
+#define SIR_WPS_PROBRSP_DEVICEPASSWORDID_PRESENT    0x00000010
+#define SIR_WPS_PROBRSP_SELECTEDREGISTRACFGMETHOD_PRESENT    0x00000020
+#define SIR_WPS_PROBRSP_RESPONSETYPE_PRESENT    0x00000040
+#define SIR_WPS_PROBRSP_UUIDE_PRESENT    0x00000080
+#define SIR_WPS_PROBRSP_MANUFACTURE_PRESENT    0x00000100
+#define SIR_WPS_PROBRSP_MODELNAME_PRESENT    0x00000200
+#define SIR_WPS_PROBRSP_MODELNUMBER_PRESENT    0x00000400
+#define SIR_WPS_PROBRSP_SERIALNUMBER_PRESENT    0x00000800
+#define SIR_WPS_PROBRSP_PRIMARYDEVICETYPE_PRESENT    0x00001000
+#define SIR_WPS_PROBRSP_DEVICENAME_PRESENT    0x00002000
+#define SIR_WPS_PROBRSP_CONFIGMETHODS_PRESENT    0x00004000
+#define SIR_WPS_PROBRSP_RF_BANDS_PRESENT    0x00008000
+
+
+typedef struct sSirWPSProbeRspIE {
+   v_U32_t  FieldPresent;
+   v_U32_t  Version;           // Version. 0x10 = version 1.0, 0x11 = etc.
+   v_U32_t  wpsState;          // 1 = unconfigured, 2 = configured.    
+   v_BOOL_t APSetupLocked;     // Must be included if value is TRUE
+   v_BOOL_t SelectedRegistra;  //BOOL:  indicates if the user has recently activated a Registrar to add an Enrollee.
+   v_U16_t  DevicePasswordID;  // Device Password ID
+   v_U16_t  SelectedRegistraCfgMethod; // Selected Registrar config method
+   v_U8_t   ResponseType;      // Response type
+   v_U8_t   UUID_E[16];         // Unique identifier of the AP.
+   tSirName   Manufacture;
+   tSirText   ModelName;
+   tSirText   ModelNumber;
+   tSirText  SerialNumber;
+   v_U32_t  PrimaryDeviceCategory ; // Device Category ID: 1Computer, 2Input Device, ...
+   v_U8_t   PrimaryDeviceOUI[4] ; // Vendor specific OUI for Device Sub Category
+   v_U32_t  DeviceSubCategory ; // Device Sub Category ID: 1-PC, 2-Server if Device Category ID is computer
+   tSirText DeviceName;
+   v_U16_t  ConfigMethod;     // Configuaration method
+   v_U8_t   RFBand;           // RF bands available on the AP
+} tSirWPSProbeRspIE;
+
+#define SIR_WPS_BEACON_VER_PRESENT    0x00000001
+#define SIR_WPS_BEACON_STATE_PRESENT    0x00000002
+#define SIR_WPS_BEACON_APSETUPLOCK_PRESENT    0x00000004
+#define SIR_WPS_BEACON_SELECTEDREGISTRA_PRESENT    0x00000008
+#define SIR_WPS_BEACON_DEVICEPASSWORDID_PRESENT    0x00000010
+#define SIR_WPS_BEACON_SELECTEDREGISTRACFGMETHOD_PRESENT    0x00000020
+#define SIR_WPS_BEACON_UUIDE_PRESENT    0x00000080
+#define SIR_WPS_BEACON_RF_BANDS_PRESENT    0x00000100
+
+typedef struct sSirWPSBeaconIE {
+   v_U32_t  FieldPresent;
+   v_U32_t  Version;           // Version. 0x10 = version 1.0, 0x11 = etc.
+   v_U32_t  wpsState;          // 1 = unconfigured, 2 = configured.    
+   v_BOOL_t APSetupLocked;     // Must be included if value is TRUE
+   v_BOOL_t SelectedRegistra;  //BOOL:  indicates if the user has recently activated a Registrar to add an Enrollee.
+   v_U16_t  DevicePasswordID;  // Device Password ID
+   v_U16_t  SelectedRegistraCfgMethod; // Selected Registrar config method
+   v_U8_t   UUID_E[16];        // Unique identifier of the AP.
+   v_U8_t   RFBand;           // RF bands available on the AP
+} tSirWPSBeaconIE;
+
+#define SIR_WPS_ASSOCRSP_VER_PRESENT    0x00000001
+#define SIR_WPS_ASSOCRSP_RESPONSETYPE_PRESENT    0x00000002
+
+typedef struct sSirWPSAssocRspIE {
+   v_U32_t FieldPresent;
+   v_U32_t Version;
+   v_U8_t ResposeType;
+} tSirWPSAssocRspIE;
+
+typedef struct sSirAPWPSIEs {
+   tSirWPSProbeRspIE  SirWPSProbeRspIE;    /*WPS Set Probe Respose IE*/
+   tSirWPSBeaconIE    SirWPSBeaconIE;      /*WPS Set Beacon IE*/
+   tSirWPSAssocRspIE  SirWPSAssocRspIE;    /*WPS Set Assoc Response IE*/
+} tSirAPWPSIEs, *tpSiriAPWPSIEs;
+
+typedef struct sSirUpdateAPWPSIEsReq
+{
+    tANI_U16       messageType;     // eWNI_SME_UPDATE_APWPSIE_REQ
+    tANI_U16       length;
+    tANI_U16       transactionId;   //Transaction ID for cmd
+    tSirMacAddr    bssId;           // BSSID
+    tANI_U8        sessionId;       //Session ID
+    tSirAPWPSIEs   APWPSIEs;
+} tSirUpdateAPWPSIEsReq, *tpSirUpdateAPWPSIEsReq;
+
+#define SIR_WPS_UUID_LEN 16
+#define SIR_WPS_PBC_WALK_TIME   120  // 120 Second
+
+typedef struct sSirWPSPBCSession {
+    struct sSirWPSPBCSession *next;
+    tSirMacAddr              addr;
+    tANI_U8                  uuid_e[SIR_WPS_UUID_LEN];
+    tANI_TIMESTAMP           timestamp;
+} tSirWPSPBCSession;
+
+typedef struct sSirSmeGetWPSPBCSessionsReq
+{
+    tANI_U16        messageType;    // eWNI_SME_GET_WPSPBC_SESSION_REQ
+    tANI_U16        length;
+    void            *pUsrContext;
+    void            *pSapEventCallback;
+    tSirMacAddr     bssId;          // BSSID
+}  tSirSmeGetWPSPBCSessionsReq, *tpSirSmeGetWPSPBCSessionsReq;
+
+typedef struct sSirWPSPBCProbeReq
+{
+    tSirMacAddr        peerMacAddr;
+    tANI_U16           probeReqIELen;
+    tANI_U8            probeReqIE[512];
+} tSirWPSPBCProbeReq, *tpSirWPSPBCProbeReq;
+
+// probereq from peer, when wsc is enabled
+typedef struct sSirSmeProbeReqInd
+{
+    tANI_U16           messageType; //  eWNI_SME_WPS_PBC_PROBE_REQ_IND
+    tANI_U16           length;
+    tSirMacAddr        bssId;
+    tSirWPSPBCProbeReq WPSPBCProbeReq;
+} tSirSmeProbeReqInd, *tpSirSmeProbeReqInd;
+
+typedef struct sSirUpdateAPWPARSNIEsReq
+{
+    tANI_U16       messageType;      // eWNI_SME_SET_APWPARSNIEs_REQ
+    tANI_U16       length;    
+    tANI_U16       transactionId; //Transaction ID for cmd
+    tSirMacAddr    bssId;      // BSSID
+    tANI_U8        sessionId;  //Session ID    
+    tSirRSNie      APWPARSNIEs;
+} tSirUpdateAPWPARSNIEsReq, *tpSirUpdateAPWPARSNIEsReq;
+
+#endif
+
+// SME -> HAL - This is the host offload request. 
+#define SIR_IPV4_ARP_REPLY_OFFLOAD           0
+#define SIR_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD  1
+#define SIR_OFFLOAD_DISABLE                  0
+#define SIR_OFFLOAD_ENABLE                   1
+typedef struct sSirHostOffloadReq
+{
+    tANI_U8 offloadType;
+    tANI_U8 enableOrDisable;
+    union
+    {
+        tANI_U8 hostIpv4Addr [4];
+        tANI_U8 hostIpv6Addr [16];
+    } params;
+} tSirHostOffloadReq, *tpSirHostOffloadReq;
 
 #define SIR_IS_FULL_POWER_REASON_DISCONNECTED(eReason) \
     ( ( eSME_LINK_DISCONNECTED_BY_HDD == (eReason) ) || ( eSME_LINK_DISCONNECTED_BY_OTHER == (eReason) ) )

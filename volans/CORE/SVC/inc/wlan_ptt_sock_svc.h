@@ -4,14 +4,12 @@
  ******************************************************************************/
 #ifndef PTT_SOCK_SVC_H
 #define PTT_SOCK_SVC_H
-
 #include <wlan_nlink_srv.h>
 #include <halTypes.h>
 #include <vos_status.h>
 #include <wlan_hdd_includes.h>
 #include <vos_trace.h>
 #include <wlan_nlink_common.h>
-
 /*
  * Quarky Message Format:
  * The following is the messaging protocol between Quarky and PTT Socket App.
@@ -26,7 +24,6 @@
  * +------------+-------+-------|--------+-------+---------+
  * <------4----><--4---><---2--><---2---><---4--><--------->
  */
-
 // PTT Socket App Message Ids
 #define PTT_MSG_READ_REGISTER       0x3040
 #define PTT_MSG_WRITE_REGISTER      0x3041
@@ -39,12 +36,10 @@
 #define ANI_DRIVER_MSG_START         0x0001
 #define ANI_MSG_APP_REG_REQ         (ANI_DRIVER_MSG_START + 0)
 #define ANI_MSG_APP_REG_RSP         (ANI_DRIVER_MSG_START + 1)
-
 #define ANI_MAX_RADIOS	    3
 #define ANI_NL_MSG_OK       0
 #define ANI_NL_MSG_ERROR    -1
 #define ANI_NL_MSG_OVERHEAD (NLMSG_SPACE(tAniHdr + 4))
-
 /*
  * Packet Format for READ_REGISTER & WRITE_REGISTER:
  * TotalMsgLen : 4 bytes  [value=20 bytes]
@@ -55,7 +50,6 @@
  * Address     : 4 bytes
  * Payload     : 4 bytes
 */
-
 /*
  * Packet Format for READ_MEMORY & WRITE_MEMORY :
  * TotalMsgLen : 4 bytes [value= 20+LEN_PAYLOAD bytes]
@@ -67,10 +61,8 @@
  * Length      : 4 bytes [LEN_PAYLOAD]
  * Payload     : LEN_PAYLOAD bytes
 */
-
 int ptt_sock_activate_svc(void *pAdapter);
 int ptt_sock_send_msg_to_app(tAniHdr *wmsg, int radio, int src_mod, int pid);
-
 
 /*
  * Format of message exchanged between the PTT Socket App in userspace and the
@@ -82,12 +74,10 @@ typedef struct sAniNlMsg {
     int radio;			      // unit number of the radio
     tAniHdr wmsg;		      // Airgo Message Header
 } tAniNlHdr;
-
 typedef struct sAniAppRegReq {
     tAniNlModTypes type;	// module id
     int pid;			      // process id
 } tAniNlAppRegReq;
-
 typedef struct sAniNlAppRegRsp {
     struct nlmsghdr nlh;	   // NetLink Msg Header
     int radio;			         // Radio unit
@@ -96,4 +86,3 @@ typedef struct sAniNlAppRegRsp {
     int ret;			         // Return code
 } tAniNlAppRegRsp;
 #endif
-

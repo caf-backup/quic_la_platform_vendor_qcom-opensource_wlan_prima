@@ -17,7 +17,11 @@
                                 SIR_MAC_WEP_ICV_LENGTH
 struct tLimPreAuthNode;
 
+#ifdef WLAN_SOFTAP_FEATURE
+tANI_U8        limIsAuthAlgoSupported(tpAniSirGlobal, tAniAuthType, tpPESession);
+#else
 tANI_U8        limIsAuthAlgoSupported(tpAniSirGlobal, tAniAuthType);
+#endif
 
 // MAC based authentication related functions
 void               limInitPreAuthList(tpAniSirGlobal);
@@ -27,7 +31,7 @@ void               limAddPreAuthNode(tpAniSirGlobal, struct tLimPreAuthNode *);
 void               limDeletePreAuthNode(tpAniSirGlobal, tSirMacAddr);
 void               limReleasePreAuthNode(tpAniSirGlobal pMac, tpLimPreAuthNode pAuthNode);
 void               limRestoreFromAuthState(tpAniSirGlobal,
-                                           tSirResultCodes, tANI_U16);
+                                           tSirResultCodes, tANI_U16,tpPESession);
 
 // Encryption/Decryption related functions
 tCfgWepKeyEntry    *limLookUpKeyMappings(tSirMacAddr);
@@ -36,12 +40,12 @@ void               limRC4(tANI_U8 *, tANI_U8 *, tANI_U8 *, tANI_U32, tANI_U16);
 void               limEncryptAuthFrame(tpAniSirGlobal, tANI_U8, tANI_U8 *, tANI_U8 *, tANI_U8 *, tANI_U32);
 tANI_U8                 limDecryptAuthFrame(tpAniSirGlobal, tANI_U8 *, tANI_U8 *, tANI_U8 *, tANI_U32, tANI_U16);
 
-void limSendSetBssKeyReq( tpAniSirGlobal, tLimMlmSetKeysReq * );
-void limSendSetStaKeyReq( tpAniSirGlobal, tLimMlmSetKeysReq *, tANI_U16, tANI_U8 );
+void limSendSetBssKeyReq( tpAniSirGlobal, tLimMlmSetKeysReq *,tpPESession );
+void limSendSetStaKeyReq( tpAniSirGlobal, tLimMlmSetKeysReq *, tANI_U16, tANI_U8,tpPESession);
 void limPostSmeSetKeysCnf( tpAniSirGlobal, tLimMlmSetKeysReq *, tLimMlmSetKeysCnf * );
 
-void limSendRemoveBssKeyReq(tpAniSirGlobal pMac, tLimMlmRemoveKeyReq * pMlmRemoveKeyReq);
-void limSendRemoveStaKeyReq(tpAniSirGlobal pMac, tLimMlmRemoveKeyReq * pMlmRemoveKeyReq, tANI_U16 staIdx);
+void limSendRemoveBssKeyReq(tpAniSirGlobal pMac, tLimMlmRemoveKeyReq * pMlmRemoveKeyReq,tpPESession);
+void limSendRemoveStaKeyReq(tpAniSirGlobal pMac, tLimMlmRemoveKeyReq * pMlmRemoveKeyReq, tANI_U16 staIdx,tpPESession);
 void limPostSmeRemoveKeyCnf(tpAniSirGlobal pMac, tLimMlmRemoveKeyReq * pMlmRemoveKeyReq, tLimMlmRemoveKeyCnf * mlmRemoveKeyCnf);
 
 #define  PTAPS  0xedb88320

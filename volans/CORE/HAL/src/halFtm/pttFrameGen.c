@@ -15,12 +15,12 @@
 #include "sys_api.h"
 #include "pttModuleApi.h"
 
-#ifdef ANI_MANF_DIAG
 
 
 #define SUCCESS     PTT_STATUS_SUCCESS
 #define FAILURE     PTT_STATUS_FAILURE
 
+#ifndef WLAN_FTM_STUB
 
 //Tx Frame Gen Service
 eQWPttStatus pttConfigTxPacketGen(tpAniSirGlobal pMac, sPttFrameGenParams frameParams)

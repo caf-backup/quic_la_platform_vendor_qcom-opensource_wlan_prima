@@ -26,6 +26,7 @@
 #include "limAssocUtils.h"
 #include "limSerDesUtils.h"
 #include "limPropExtsUtils.h"
+#include "limSession.h"
 
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
@@ -211,11 +212,16 @@ limInitMeasResources(tpAniSirGlobal pMac)
              LIM_TIMER_EXPIRY_LIST);
 #endif
 
+    #if 0
     if (wlan_cfgGetInt(pMac, WNI_CFG_BEACON_INTERVAL, &beaconInterval) != eSIR_SUCCESS)
     {
         limLog(pMac, LOGP, FL("Can't read beacon interval\n"));
         return eSIR_FAILURE;
     }
+    #endif // TO SUPPORT BT-AMP
+
+     /* Copy the beacon interval from the sessio Id */
+     beaconInterval = psessionEntry->beaconInterval;
    
     if ((learnInterval > ( 2 * beaconInterval)) &&
             (pMac->lim.gLimSystemRole == eLIM_AP_ROLE))
@@ -495,10 +501,10 @@ limProcessSmeSetWdsInfoReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     // check whether the WDS info is the same as current
     if ((wdsInfoReq.wdsInfo.wdsLength ==
-        pMac->lim.gpLimStartBssReq->wdsInfo.wdsLength) &&
+        psessionEntry->pLimStartBssReq->wdsInfo.wdsLength) &&
         (palEqualMemory( pMac->hHdd,wdsInfoReq.wdsInfo.wdsBytes,
-                   pMac->lim.gpLimStartBssReq->wdsInfo.wdsBytes,
-                   pMac->lim.gpLimStartBssReq->wdsInfo.wdsLength) ) )
+                   psessionEntry->pLimStartBssReq->wdsInfo.wdsBytes,
+                   psessionEntry->pLimStartBssReq->wdsInfo.wdsLength) ) )
     {
         /// Send success response to WSM
         limSendSmeRsp(pMac,
@@ -509,13 +515,13 @@ limProcessSmeSetWdsInfoReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 
     // copy WDS info
-    pMac->lim.gpLimStartBssReq->wdsInfo.wdsLength =
+    psessionEntry->pLimStartBssReq->wdsInfo.wdsLength =
             wdsInfoReq.wdsInfo.wdsLength;
     for (i=0; i<wdsInfoReq.wdsInfo.wdsLength; i++)
-        pMac->lim.gpLimStartBssReq->wdsInfo.wdsBytes[i] =
+        psessionEntry->pLimStartBssReq->wdsInfo.wdsBytes[i] =
             wdsInfoReq.wdsInfo.wdsBytes[i];
 
-    schSetFixedBeaconFields(pMac);
+    schSetFixedBeaconFields(pMac,psessionEntry);
 
     /// Send success response to WSM
     limSendSmeRsp(pMac, eWNI_SME_SET_WDS_INFO_RSP,
@@ -548,7 +554,7 @@ limProcessLearnDurationTimeout(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
     if ( pMac->lim.gLimHalScanState == eLIM_HAL_IDLE_SCAN_STATE)
     {
-        limSendHalInitScanReq(pMac, eLIM_HAL_INIT_LEARN_WAIT_STATE);
+        limSendHalInitScanReq(pMac, eLIM_HAL_INIT_LEARN_WAIT_STATE, eSIR_DONT_CHECK_LINK_TRAFFIC_BEFORE_SCAN );
         return;
     }
 
@@ -600,6 +606,19 @@ limProcessLearnDurationTimeout(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 void
 limProcessLearnIntervalTimeout(tpAniSirGlobal pMac)
 {
+    
+#ifdef GEN6_TODO
+    //fetch the sessionEntry based on the sessionId
+    //priority - MEDIUM
+    tpPESession sessionEntry;
+
+    if((sessionEntry = peFindSessionBySessionId(pMac, pMac->lim.gLimMeasParams.learnIntervalTimer.sessionId))== NULL) 
+    {
+        limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
+        return;
+    }
+#endif
+
     PELOG2(limLog(pMac, LOG2, FL("SME state = %d\n"), pMac->lim.gLimSmeState);)
 	if (!pMac->sys.gSysEnableLearnMode)
 	{

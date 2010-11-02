@@ -551,7 +551,7 @@ ProcSetReqInternal(tpAniSirGlobal pMac, tANI_U16 length, tANI_U32 *pParam, tANI_
     tANI_U16    cfgId, valueLen, valueLenRoundedUp4;
     tANI_U32    value, result;
 
-    PELOG1(cfgLog(pMac, LOG1, FL("Rcvd cfg set request %d bytes\n"), length);)
+    PELOG1(cfgLog(pMac, LOGW, FL("Rcvd cfg set request %d bytes\n"), length);)
     //for (i=0; i<length/4; i++)
       //  PELOG2(cfgLog(pMac, LOG2, FL("[%2d] 0x%08x\n"), i, pParam[i]);)
 
@@ -591,7 +591,7 @@ ProcSetReqInternal(tpAniSirGlobal pMac, tANI_U16 length, tANI_U32 *pParam, tANI_
             // Check for valid request before proceeding
             if (CheckParam(pMac, cfgId, CFG_CTL_WE, WNI_CFG_RO_PARAM, &result))
             {
-                PELOG1(cfgLog(pMac, LOG1, (char *) gCfgParamName[cfgId]);)
+                PELOG1(cfgLog(pMac, LOGW, (char *) gCfgParamName[cfgId]);)
                 // Process integer parameter
                 if ((pMac->cfg.gCfgEntry[cfgId].control & CFG_CTL_INT) != 0)
                 {
@@ -609,7 +609,7 @@ ProcSetReqInternal(tpAniSirGlobal pMac, tANI_U16 length, tANI_U32 *pParam, tANI_
 #else
                         value = *pParam;
 #endif
-                       PELOG1(cfgLog(pMac, LOG1, FL("Cfg set int %d len %d(%d) val %d\n"),
+                       PELOG1(cfgLog(pMac, LOGW, FL("Cfg set int %d len %d(%d) val %d\n"),
                                cfgId, valueLen, valueLenRoundedUp4, value);)
                         result = (cfgSetInt(pMac, cfgId, value) == eSIR_SUCCESS ?
                                   WNI_CFG_SUCCESS : WNI_CFG_OTHER_ERROR);
@@ -639,7 +639,7 @@ ProcSetReqInternal(tpAniSirGlobal pMac, tANI_U16 length, tANI_U32 *pParam, tANI_
                     else
                     {
                         GetStrValue((tANI_U8*)pParam, pMac->cfg.gSBuffer, valueLen);
-                       PELOG1(cfgLog(pMac, LOG1, FL("Cfg set str %d len %d(%d) bytes\n"),
+                       PELOG1(cfgLog(pMac, LOGW, FL("Cfg set str %d len %d(%d) bytes\n"),
                                cfgId, valueLen, valueLenRoundedUp4);)
                         result = (cfgSetStr(pMac, cfgId, pMac->cfg.gSBuffer, valueLen) == eSIR_SUCCESS ?
                                   WNI_CFG_SUCCESS : WNI_CFG_OTHER_ERROR);

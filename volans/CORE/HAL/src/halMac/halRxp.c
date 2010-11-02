@@ -28,7 +28,9 @@
 #include "halAdu.h"
 
 #include "halRegBckup.h"
+#include <ani_assert.h>
 
+void setFrameFilterMaskForScan (tpAniSirGlobal pMac, tHalRxpModeFlag rxpMode);
 /* -------------------------------------------------------------------------
  * local definitions
  */
@@ -40,6 +42,7 @@
 #define RXP_STALL_TIMEOUT_VALUE 0x2000
 #define HAL_RXP_TYPE_SUBTYPE_MASK 0xffff0000
 
+#define BTAMP_STA_RF_FIX
 typedef struct sRxpFilterConfig {
     tFrameSubType  frameType;
     tANI_U32    configValue;
@@ -135,19 +138,6 @@ static tRxpFilterName pktType[] = {
 };
 #endif
 
-#if 0
-static tRxpModeName modeType[] =
-{
-    {eRXP_SCAN_MODE,        STR("SCAN_MODE")         },     // 0
-    {eRXP_PRE_ASSOC_MODE,   STR("PRE_ASSOC_MODE")    },     // 1
-    {eRXP_POST_ASSOC_MODE,  STR("POST_ASSOC_MODE")   },     // 2
-    {eRXP_AP_MODE,          STR("AP_MODE")           },     // 3
-    {eRXP_PROMISCUOUS_MODE, STR("PROMISCUOUS_MODE")  },     // 4
-    {eRXP_LEARN_MODE,       STR("LEARN_MODE")        },     // 5
-    {eRXP_POWER_SAVE_MODE,  STR("POWER_SAVE_MODE")   }      // 6
-};
-#endif
-
 
 typedef struct sRxQIdMapping {
     tANI_U8     tid;
@@ -156,11 +146,11 @@ typedef struct sRxQIdMapping {
 /* BTQM QID->TID mapping */
 static tRxQIdMapping rxQIdMapping[] =
 { 
-    /* BTQM QID 0-7 => TID 0 - 7 */
+  /* BTQM QID 0-7 => TID 0 - 7 */
     {0}, {1}, {2}, {3}, {4}, {5}, {6}, {7},
-    /* BTQM QID 8 => nonQos, mgmt */
+  /* BTQM QID 8 => nonQos, mgmt */
     {0},
-    /* BTQM QID9-18: All map to TID 0 */
+  /* BTQM QID9-18: All map to TID 0 */
     {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}
 };
 
@@ -199,10 +189,17 @@ static eHalStatus halRxp_enable_multicast_broadcast(tpAniSirGlobal pMac);
 #define  NOT_FOUND        3
 #define DUPLICATE_ENTRY   0
 #define ENTRY_NOT_FOUND   1
-#define RXP_PUSH_WQ_CTRL_WQ3    0x03030303
-#define RXP_PUSH_WQ_CTRL2_WQ3   0x00030303
 #define ENTRY_FOUND     4
 
+#define RXP_PUSH_WQ_CTRL_SETTING    ((BMUWQ_SINK <<  QWLAN_RXP_PUSH_WQ_CTRL_ADDR1_254_CATEGORY_PUSH_WQ_INDEX_OFFSET) | \
+                                    (BMUWQ_SINK <<  QWLAN_RXP_PUSH_WQ_CTRL_ADDR1_255_CATEGORY_PUSH_WQ_INDEX_OFFSET) | \
+                                    (BMUWQ_FW_RECV_EXCEPTION <<  QWLAN_RXP_PUSH_WQ_CTRL_ADDR2_254_CATEGORY_PUSH_WQ_INDEX_OFFSET) | \
+                                    (BMUWQ_SINK <<  QWLAN_RXP_PUSH_WQ_CTRL_ADDR2_255_CATEGORY_PUSH_WQ_INDEX_OFFSET))                                    
+                                    
+
+#define RXP_PUSH_WQ_CTRL2_SETTING   ((BMUWQ_DPU_RX <<  QWLAN_RXP_PUSH_WQ_CTRL2_ADDR3_254_CATEGORY_PUSH_WQ_INDEX_OFFSET) | \
+                                    (BMUWQ_SINK <<  QWLAN_RXP_PUSH_WQ_CTRL2_ADDR3_255_CATEGORY_PUSH_WQ_INDEX_OFFSET) | \
+                                    (BMUWQ_SINK <<  QWLAN_RXP_PUSH_WQ_CTRL2_UNFILTERED_FRAME_PUSH_WQ_INDEX_OFFSET))
 
 tANI_U32 rxpDisableFrameScanModeHi =
 (
@@ -372,10 +369,312 @@ tANI_U32 rxpDisableFrameIbssModeLow =
     RXP_TYPE_SUBTYPE_MASK(eDATA_QOS_CFACK_CFPOLL)
 };
 
-//dummy value
-tANI_U32 rxpDisableFrameApModeHi = 0;
-tANI_U32 rxpDisableFrameApModeLow = 0;
 
+
+static tANI_U32 rxpDisableFrameBTAMPStaPreAssocModeHi = 
+(
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ASSOC_REQ) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_REASSOC_REQ) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_PROBE_REQ) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD1) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD2) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ATIM) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_DISASSOC) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ACTION) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ACTION_NOACK) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD4) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD1) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD2) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD3) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD4) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD5) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD6) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD7) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CONTROL_WRAPPER) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_BAR) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_BA) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_PSPOLL) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CFEND) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CFEND_CFACK)
+);
+    
+
+// Same as the STA PreAssocModeLow
+static tANI_U32 rxpDisableFrameBTAMPStaPreAssocModeLow = 
+(
+    /* We Need Data while in Multisession */
+    //RXP_TYPE_SUBTYPE_MASK(eDATA_DATA) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFPOLL) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK_CFPOLL) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_NULL) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK )| 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFPOLL) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK_CFPOLL) | 
+    //RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFACK) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFPOLL) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFACK_CFPOLL) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSNULL) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_RSVD1) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOS_CFPOLL) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOS_CFACK_CFPOLL)
+);
+
+static tANI_U32 rxpDisableFrameStaBTAMPPostAssocModeHi = 
+(
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ASSOC_REQ) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ASSOC_RSP) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_PROBE_REQ) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_REASSOC_REQ) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD1) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD2) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ATIM) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ACTION_NOACK) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD4) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD1) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD2) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD3) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD4) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD5) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD6) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD7) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CONTROL_WRAPPER) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_PSPOLL)
+);
+
+static tANI_U32 rxpDisableFrameBTAMPStaPostAssocModeLow = 
+(
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFPOLL) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFPOLL) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK_CFPOLL) | 
+    RXP_TYPE_SUBTYPE_MASK(eDATA_RSVD1)
+);
+
+tANI_U32 rxpDisableFrameBTAMPAPModeHi =
+{
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ASSOC_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_REASSOC_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_BEACON) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_PROBE_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD2) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ATIM) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ACTION_NOACK) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD4) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD2) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD3) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD4) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD5) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD6) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD7) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CONTROL_WRAPPER)
+};
+
+tANI_U32 rxpDisableFrameBTAMPAPModeLow =
+{
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFACK) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOS_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOS_CFACK_CFPOLL)
+};
+
+tANI_U32 rxpDisableFrameApModeHi = 
+{
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ASSOC_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_REASSOC_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_BEACON) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_PROBE_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD2) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ATIM) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ACTION_NOACK) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD4) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD2) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD3) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD4) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD5) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD6) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD7) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CONTROL_WRAPPER)
+};
+
+tANI_U32 rxpDisableFrameApModeLow = 
+{
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFACK) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOS_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOS_CFACK_CFPOLL)
+};
+
+#ifdef FEATURE_INNAV_SUPPORT
+tANI_U32 rxpDisableFrameInNavModeHi = 
+{
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ASSOC_REQ) | 
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ASSOC_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_REASSOC_REQ) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_REASSOC_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_PROBE_REQ) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_PROBE_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD2) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_BEACON) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ATIM) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_DISASSOC) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_AUTH) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_DEAUTH) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ACTION) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ACTION_NOACK) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD4) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD2) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD3) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD4) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD5) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD6) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD7) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CONTROL_WRAPPER) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_BAR) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_BA) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_PSPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RTS) |
+	//We need to receive only the CTS in the RTS-CTS mode
+    //RXP_TYPE_SUBTYPE_MASK(eCTRL_CTS) | 
+	//We will need to receive ACk in the frame based mode
+    //RXP_TYPE_SUBTYPE_MASK(eCTRL_ACK) | 
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CFEND) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CFEND_CFACK) // 31
+};
+
+tANI_U32 rxpDisableFrameInNavModeLow =
+{
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_NULL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFACK) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSNULL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOS_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOS_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD0) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD2) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD3) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD4) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD5) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD6) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD7) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD8) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD9) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD10) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD11) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD12) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD13) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD14) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD15) // 63
+};
+#endif
+
+#ifndef WLAN_FTM_STUB
+tANI_U32 rxpDisableFrameFtmModeHi =
+{
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD2) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_RSVD4) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ASSOC_REQ) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ASSOC_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_REASSOC_REQ) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_REASSOC_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_PROBE_REQ) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_PROBE_RSP) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_BEACON) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ATIM) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_DISASSOC) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_AUTH) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_DEAUTH) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ACTION) |
+    RXP_TYPE_SUBTYPE_MASK(eMGMT_ACTION_NOACK) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CONTROL_WRAPPER) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_BAR) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_BA) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_PSPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RTS) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CTS) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_ACK) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CFEND) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_CFEND_CFACK) |        
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD2) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD3) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD4) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD5) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD6) |
+    RXP_TYPE_SUBTYPE_MASK(eCTRL_RSVD7)
+};
+
+tANI_U32 rxpDisableFrameFtmModeLow =
+{
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK) |         
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFPOLL) |        
+    RXP_TYPE_SUBTYPE_MASK(eDATA_DATA_CFACK_CFPOLL) |  
+    RXP_TYPE_SUBTYPE_MASK(eDATA_NULL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK) |              
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFPOLL) |             
+    RXP_TYPE_SUBTYPE_MASK(eDATA_CFACK_CFPOLL) |       
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFACK) |      
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFPOLL) |     
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSDATA_CFACK_CFPOLL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOSNULL) |
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOS_CFPOLL) |         
+    RXP_TYPE_SUBTYPE_MASK(eDATA_QOS_CFACK_CFPOLL) |   
+    RXP_TYPE_SUBTYPE_MASK(eDATA_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD0) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD1) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD2) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD3) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD4) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD5) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD6) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD7) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD8) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD9) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD10) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD11) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD12) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD13) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD14) |
+    RXP_TYPE_SUBTYPE_MASK(eRSVD_RSVD15)
+};
+#endif
 
 /* ----------------------------------
  * RXP Frame Filter Table: ALL MODE
@@ -388,11 +687,11 @@ tRxpFilterConfig rxpFilterTable_AllMode[] = {
     {eMGMT_REASSOC_REQ,          (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_FCS) },
     {eMGMT_REASSOC_RSP,          (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|
                                   RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3) },
-    {eMGMT_PROBE_REQ,            (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_ADDR1_ACCEPT_MULTICAST|RXP_ADDR1_ACCEPT_UNICAST|RXP_ACCEPT_ALL_ADDR2|RXP_FCS) },
+    {eMGMT_PROBE_REQ,            (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_FCS) },
     {eMGMT_PROBE_RSP,            (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER|RXP_ADDR1_ACCEPT_MULTICAST|RXP_ADDR1_ACCEPT_UNICAST|RXP_FCS) },
     {eMGMT_RSVD1,                (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_FCS) },
     {eMGMT_RSVD2,                (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_FCS) },
-    {eMGMT_BEACON,               (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3) },
+    {eMGMT_BEACON,               (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3|RXP_ROUTING_FLAG_SEL) },
     {eMGMT_ATIM,                 (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_UNICAST|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|RXP_FCS) },
     {eMGMT_DISASSOC,             (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3|RXP_FCS) },
     {eMGMT_AUTH,                 (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_BLOCK_BROADCAST|RXP_ADDR1_BLOCK_MULTICAST|
@@ -542,18 +841,37 @@ eHalStatus halRxp_Start(tHalHandle hHal, void *arg)
         return eHAL_STATUS_FAILURE;
 
     /** Enable the WQ3 for routing the received flags */
-    halWriteRegister(pMac, QWLAN_RXP_PUSH_WQ_CTRL_REG, RXP_PUSH_WQ_CTRL_WQ3);
+    halWriteRegister(pMac, QWLAN_RXP_PUSH_WQ_CTRL_REG, RXP_PUSH_WQ_CTRL_SETTING);
 
-    halWriteRegister(pMac, QWLAN_RXP_PUSH_WQ_CTRL2_REG, RXP_PUSH_WQ_CTRL2_WQ3);
+    halWriteRegister(pMac, QWLAN_RXP_PUSH_WQ_CTRL2_REG, RXP_PUSH_WQ_CTRL2_SETTING);
+
+    //set the dpu routing flag to uma RX in RxBd for frames with any address as 255/254.
+    value = 0;
+    value = halReadRegister(pMac, QWLAN_RXP_DEFAULT_HW_INSERT_DPU_PARAM_REG, &value);
+    value |= (BMUWQ_ADU_UMA_RX << QWLAN_RXP_DEFAULT_HW_INSERT_DPU_PARAM_DPU_ROUTING_FLAG_OFFSET);
+    halWriteRegister(pMac, QWLAN_RXP_DEFAULT_HW_INSERT_DPU_PARAM_REG, value);
 
     /** Configure the QID mapping */
     halRxp_qid_mapping(pMac);
 
     halRxp_setFilterMask(pMac, rxpFilterTable_AllMode, 0);
 
-    // Initialize rxpMode to IDLE mode
-    halRxp_setRxpFilterMode(pMac, eRXP_IDLE_MODE, NULL);
-
+#ifndef WLAN_FTM_STUB
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        // Initialize rxpMode to FTM mode
+        //halRxp_setRxpFilterMode(pMac, eRXP_FTM_MODE, NULL);
+        halRxp_setSystemRxpFilterMode(pMac, eRXP_FTM_MODE, 
+                eHAL_USE_GLOBAL_AND_BSS_RXP);    
+    }
+    else
+#endif
+    {
+        // Initialize rxpMode to IDLE mode
+        //halRxp_setRxpFilterMode(pMac, eRXP_IDLE_MODE, NULL);
+        halRxp_setSystemRxpFilterMode(pMac, eRXP_IDLE_MODE, 
+                eHAL_USE_GLOBAL_AND_BSS_RXP);
+    }
     // Enable NAV set from CF parameter value in beacons
     halReadRegister(pMac, QWLAN_RXP_BEACON_TSF_TIM_EXTRACT_CTRL_REG, &value);
     value |= QWLAN_RXP_BEACON_TSF_TIM_EXTRACT_CTRL_BEACON_CFP_AWARENESS_ENABLE_MASK;
@@ -657,109 +975,6 @@ eHalStatus halRxp_Stop(tHalHandle hHal, void *arg)
     return eHAL_STATUS_SUCCESS;
 }
 
-/* ------------------------------------------------------
- * FUNCTION:  halRxp_SetFilter()
- *
- * NOTE:
- *   Set RXP Filter to the specified mode configuration.
- * ------------------------------------------------------
- */
-eHalStatus halRxp_SetFilter(tpAniSirGlobal pMac, tRxpMode mode)
-{
-    eHalStatus status = eHAL_STATUS_SUCCESS;
-    tANI_U32 value = 0;
-
-    HALLOG1( halLog(pMac, LOG1, FL("set RXP to mode = %d. \n"), mode));
-
-    /* Disable Rxp, this would block all frames while toggling between modes */
-    if (halRxp_disable(pMac) == eHAL_STATUS_FAILURE) {
-        HALLOGE(halLog(pMac, LOGE, FL("RXP Disable Failed\n")));
-        return eHAL_STATUS_FAILURE;
-    }
-
-    switch(mode)
-    {
-        case eRXP_IDLE_MODE:
-            setRxFrameDisableRegs(pMac, RXP_DROP_ALL_FRAME_TYPES, RXP_DROP_ALL_FRAME_TYPES);
-            // Put it back to the old default setting  
-            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3);
-            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
-            break;
-
-        case eRXP_SCAN_MODE:
-            setRxFrameDisableRegs(pMac, rxpDisableFrameScanModeLow , rxpDisableFrameScanModeHi);
-            // Unblock the A2 filter for beacons & probe repsonses, 
-            // Accept beacons and probe responses from all address2
-            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3);
-            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
-            halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
-            break;
-
-        case eRXP_PRE_ASSOC_MODE:
-            setRxFrameDisableRegs(pMac, rxpDisableFrameStaPreAssocModeLow , rxpDisableFrameStaPreAssocModeHi);
-            // Accept only beacons & probe responses from specific address2, rest filter it out.
-            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3);
-            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
-            halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
-            break;
-
-        case eRXP_POST_ASSOC_MODE:
-            setRxFrameDisableRegs(pMac, rxpDisableFrameStaPostAssocModeLow , rxpDisableFrameStaPostAssocModeHi);
-            // Accept only beacons & probe responses from address2 BSS to which 
-            // are now associated, rest filter it out.
-            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3);
-            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
-            halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
-            break;
-
-        case eRXP_AP_MODE:
-            break;
-
-        case eRXP_PROMISCUOUS_MODE:
-            break;
-
-        case eRXP_LEARN_MODE:
-            break;
-
-        case eRXP_POWER_SAVE_MODE:
-            break;
-
-        case eRXP_IBSS_MODE:
-            setRxFrameDisableRegs(pMac, rxpDisableFrameIbssModeLow , rxpDisableFrameIbssModeHi);
-            // Force to accept all A2 beacons. 
-            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3);
-            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
-            break;
-
-        default:
-            HALLOGE( halLog( pMac, LOGE, FL("halRxp_SetFilter: unknown mode specified (%d)\n"),  mode ));
-            status = eHAL_STATUS_FAILURE;
-            break;
-    }
-
-    /* Enable Rxp back, this would un-block all frames as per the filter */
-    halRxp_enable(pMac);
-    return( status );
-}
-
-
-/* -----------------------
- * halRxp_storeRxpMode()
- * halRxp_getRxpMode()
- * -----------------------
- */
-void halRxp_storeRxpMode(tpAniSirGlobal pMac, tRxpMode mode)
-{
-    HALLOG1( halLog( pMac, LOG1, FL("%s: store halMac.rxpMode to %d \n"),  __FUNCTION__, mode ));
-    pMac->hal.halMac.rxpMode = (tANI_U32) mode;
-    return;
-}
-
-tRxpMode halRxp_getRxpMode(tpAniSirGlobal pMac)
-{
-    return ((tRxpMode)pMac->hal.halMac.rxpMode);
-}
-
 eHalStatus halRxp_AddPreAssocAddr2Entry(tpAniSirGlobal pMac, tSirMacAddr macAddr)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -855,18 +1070,36 @@ static eHalStatus halRxp_config_control_reg(tpAniSirGlobal pMac)
     tANI_U32 cfgValue;
 
     // Program the CONFIG2 register
-    cfgValue = QWLAN_RXP_CONFIG2_CFG_BD_DPU_SOFTMACFIELDS_UPDATE_ENABLE_MASK |
-                QWLAN_RXP_CONFIG2_CFG_RPE_INTERFACE_ENABLE_MASK |
-                QWLAN_RXP_CONFIG2_BMU_PWR_UPDATE_ENABLED_MASK |
-                QWLAN_RXP_CONFIG2_CFG_FLT_GENERATE_HW_RESPONSE_ENABLED_MASK |
-                QWLAN_RXP_CONFIG2_CFG_MPR_TPE_INTERFACE_ENABLED_MASK |
-                QWLAN_RXP_CONFIG2_CFG_FLT_HW_SW_BASED_RESPONSE_SELECTION_ENABLE_MASK |
-                QWLAN_RXP_CONFIG2_CFG_FLT_FILTER_GO_TO_IDLE_ON_CLEAR_ENABLED_MASK |
-                QWLAN_RXP_CONFIG2_BD_CLEAR_ENABLE_ENABLE_MASK |
-                QWLAN_RXP_CONFIG2_CFG_MPR_BMU_BA_UPDATE_ENABLED_MASK |
-                QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_OVERWRITE_ENABLE_MASK |
-                (BMUWQ_DPU_RX << QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_OFFSET);
-                //RXP_CONFIG2_CFG_MPDU_PROC_WAIT_FOR_IDLE_FILTER_ENABLED_MASK  <** FIXME: Check if we require this ? */
+#ifndef WLAN_FTM_STUB    
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {    
+        cfgValue = QWLAN_RXP_CONFIG2_CFG_BD_DPU_SOFTMACFIELDS_UPDATE_ENABLE_MASK |
+                    QWLAN_RXP_CONFIG2_BMU_PWR_UPDATE_ENABLED_MASK |
+                    QWLAN_RXP_CONFIG2_CFG_FLT_GENERATE_HW_RESPONSE_ENABLED_MASK |
+                    QWLAN_RXP_CONFIG2_CFG_FLT_HW_SW_BASED_RESPONSE_SELECTION_ENABLE_MASK |
+                    QWLAN_RXP_CONFIG2_CFG_FLT_FILTER_GO_TO_IDLE_ON_CLEAR_ENABLED_MASK |
+                    QWLAN_RXP_CONFIG2_BD_CLEAR_ENABLE_ENABLE_MASK |
+                    QWLAN_RXP_CONFIG2_CFG_MPR_BMU_BA_UPDATE_ENABLED_MASK |
+                    QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_OVERWRITE_ENABLE_MASK |
+                    (BMUWQ_DPU_RX << QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_OFFSET);
+                    //RXP_CONFIG2_CFG_MPDU_PROC_WAIT_FOR_IDLE_FILTER_ENABLED_MASK  <** FIXME: Check if we require this ? */
+    }
+    else
+#endif        
+    {
+        cfgValue = QWLAN_RXP_CONFIG2_CFG_BD_DPU_SOFTMACFIELDS_UPDATE_ENABLE_MASK |
+                    QWLAN_RXP_CONFIG2_CFG_RPE_INTERFACE_ENABLE_MASK |
+                    QWLAN_RXP_CONFIG2_BMU_PWR_UPDATE_ENABLED_MASK |
+                    QWLAN_RXP_CONFIG2_CFG_FLT_GENERATE_HW_RESPONSE_ENABLED_MASK |
+                    QWLAN_RXP_CONFIG2_CFG_MPR_TPE_INTERFACE_ENABLED_MASK |
+                    QWLAN_RXP_CONFIG2_CFG_FLT_HW_SW_BASED_RESPONSE_SELECTION_ENABLE_MASK |
+                    QWLAN_RXP_CONFIG2_CFG_FLT_FILTER_GO_TO_IDLE_ON_CLEAR_ENABLED_MASK |
+                    QWLAN_RXP_CONFIG2_BD_CLEAR_ENABLE_ENABLE_MASK |
+                    QWLAN_RXP_CONFIG2_CFG_MPR_BMU_BA_UPDATE_ENABLED_MASK |
+                    QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_OVERWRITE_ENABLE_MASK |
+                    (BMUWQ_DPU_RX << QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_OFFSET);
+                    //RXP_CONFIG2_CFG_MPDU_PROC_WAIT_FOR_IDLE_FILTER_ENABLED_MASK  <** FIXME: Check if we require this ? */
+    }                
     halWriteRegister(pMac,  QWLAN_RXP_CONFIG2_REG,  cfgValue );
 
 //FIXME: This register not in VOlans netlist, does this mean we don't need this or it is actually missing??
@@ -880,6 +1113,14 @@ static eHalStatus halRxp_config_control_reg(tpAniSirGlobal pMac)
         cfgValue |= (QWLAN_RXP_CONFIG3_BAR_DMA_CONFIRM_ECO_EN_MASK | QWLAN_RXP_CONFIG3_TIMORDER_ECO_EN_MASK);
         halWriteRegister(pMac,  QWLAN_RXP_CONFIG3_REG,  cfgValue );
     }
+#endif
+
+#ifdef WLAN_SOFTAP_FEATURE
+    halReadRegister(pMac, QWLAN_RXP_CONFIG3_REG, &cfgValue);
+    cfgValue &= ((~QWLAN_RXP_CONFIG3_CFG_FLT_DPU_MAN_RTG_FLG_MASK) & (~QWLAN_RXP_CONFIG3_CFG_FLT_DPU_DATA_RTG_FLG_MASK));
+    cfgValue |= ((BMUWQ_ADU_UMA_RX << QWLAN_RXP_CONFIG3_CFG_FLT_DPU_MAN_RTG_FLG_OFFSET) | (BMUWQ_FW_RECV << QWLAN_RXP_CONFIG3_CFG_FLT_DPU_DATA_RTG_FLG_OFFSET));
+    halWriteRegister(pMac,  QWLAN_RXP_CONFIG3_REG,  cfgValue );
+
 #endif
     return eHAL_STATUS_SUCCESS;
 }
@@ -953,7 +1194,15 @@ static eHalStatus halRxp_setFilterMask(tpAniSirGlobal pMac, tRxpFilterConfig *ta
             regValue = table[frameType].configValue;
         else
             regValue = rsvd;
-
+#ifndef WLAN_FTM_STUB
+        if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+        {
+            if (frameType == eDATA_DATA || frameType == eDATA_QOSDATA)
+            {
+                regValue = regValue | RXP_ADDR2_ACCEPT_REMAIN | RXP_ADDR1_BLOCK_BROADCAST | RXP_ADDR1_BLOCK_MULTICAST | RXP_DROP_AT_DMA;
+            }
+        }
+#endif        
         status = halRxp_setFrameFilterMask(pMac, frameType, regValue);
         if(status != eHAL_STATUS_SUCCESS)
         {
@@ -2185,8 +2434,8 @@ eHalStatus halRxpDbg_PrintFilter(tpAniSirGlobal pMac)
         if (readValue != rxpFilterTable_AllMode[i].configValue) {
             HALLOGW( halLog(pMac, LOGW, FL("Scan Mode: For %s, expect register value 0x%x, but get 0x%x \n"),
                    pktType[i].frameName, rxpFilterTable_AllMode[i].configValue, readValue));
-            break;
-		}
+                break;
+    }
     }
     return eHAL_STATUS_SUCCESS;
 }
@@ -2298,52 +2547,11 @@ void halRxpDbg_dumpReg( tpAniSirGlobal pMac, tANI_U32 arg1)
 \param  tRxpMode       mode
 \return none.
   --------------------------------------------------------*/
-void halRxp_setRxpFilterMode(tpAniSirGlobal pMac, tRxpMode rxpMode, tSirMacAddr macAddr)
-{
-    HALLOGW( halLog(  pMac, LOGW, FL("Set RxP mode = %d \n"),  rxpMode ));
 
-    switch (rxpMode)
-    {
-        case eRXP_IDLE_MODE:
-            // Delete the A2 RXP filter (if any) for filtering out the beacons.
-            halRxp_RemovePreAssocAddr2Entry(pMac, macAddr);
-            halRxp_storeRxpMode(pMac, rxpMode);
-            break;
-        case eRXP_PRE_ASSOC_MODE:
-            // Add the A2 RXP filter to accept only beacons from the BSS to which
-            // we are going to connect.
-            halRxp_AddPreAssocAddr2Entry(pMac, macAddr);
-            halRxp_storeRxpMode(pMac, rxpMode);
-            break;
-        case eRXP_POST_ASSOC_MODE:
-        case eRXP_AP_MODE:
-        case eRXP_PROMISCUOUS_MODE:
-        case eRXP_IBSS_MODE:
-            halRxp_storeRxpMode(pMac, rxpMode);
-            break;
-
-        case eRXP_SCAN_MODE:
-        case eRXP_POWER_SAVE_MODE:
-        case eRXP_LEARN_MODE:
-            break;
-
-        default:
-            HALLOGE( halLog(pMac, LOGE, FL("invalid rxpMode %d \n"), rxpMode));
-            break;
-    }
-
-    if ( halRxp_SetFilter(pMac, rxpMode) != eHAL_STATUS_SUCCESS)
-        HALLOGE( halLog( pMac, LOGE, FL("halRxp_setFilter(%d) failed \n"),  rxpMode ));
-
-    if ( halRxp_enable(pMac) != eHAL_STATUS_SUCCESS )
-         HALLOGE( halLog( pMac, LOGE, FL("Failed to set ENABLE RXP \n")));
-
-    return;
-}
 
 /** ----------------------------------------------------------
 \fn     setRxFrameDisableRegs
-\brief  This function is called by halRxp_setFilter() to set
+\brief  This function is called by halRxp_setSystemRxpFilterMode to set
 \       the receive frame subtype filter to disable the respective type/susbtype.
 \param  tpAniSirGlobal pMac
 \param  tANI_U32       regLo  : value to be programmed in low register
@@ -2434,6 +2642,10 @@ eHalStatus halRxp_EnableBssBeaconParamFilter( tpAniSirGlobal pMac, tANI_U32 uBss
     tANI_U32 addr2Enable=0, addr3Enable=0, bcastEnable=0;
 #endif
     tANI_U32 regVal = 0;
+#ifdef HAL_SELF_STA_PER_BSS
+    tANI_U8 selfStaIdx;
+#endif
+    tBssSystemRole bssSystemRole = halGetBssSystemRole(pMac, (tANI_U8)uBssIdx);
 
     pBss = &pBss[uBssIdx];
 
@@ -2456,7 +2668,7 @@ eHalStatus halRxp_EnableBssBeaconParamFilter( tpAniSirGlobal pMac, tANI_U32 uBss
 
     //For IBSS, HAL programs the BSSID into Addr3 registers.
     //For Infra, HAL programs BSSID to both Addr2 and Addr3 filters.
-    if(pMac->hal.halSystemRole == eSYSTEM_STA_IN_IBSS_ROLE){
+    if(bssSystemRole == eSYSTEM_STA_IN_IBSS_ROLE){
         tsfMode = eRXP_TSF_MODE_IBSS;
 #ifndef WLAN_HAL_VOLANS
         //CR-0000142146 for Libra 1.0        
@@ -2491,10 +2703,16 @@ eHalStatus halRxp_EnableBssBeaconParamFilter( tpAniSirGlobal pMac, tANI_U32 uBss
         halWriteRegister(pMac, QWLAN_RXP_BEACON_ADDR3_LOW_FIELD_REG, (tANI_U32)bssidLo);
         halWriteRegister(pMac, QWLAN_RXP_BEACON_ADDR3_HIGH_FIELD_REG, (tANI_U32)bssidHi);
 #endif            
-    }else if (eSYSTEM_STA_ROLE == pMac->hal.halSystemRole){
+    }else if (eSYSTEM_STA_ROLE == bssSystemRole){
         timEnable = 1; /* enable TIM extraction in MTU */
         tsfMode = eRXP_TSF_MODE_STA;
+#ifdef HAL_SELF_STA_PER_BSS
+        // Get the selfstation index for the BSS
+        halTable_GetBssSelfStaIdxForBss(pMac, uBssIdx, &selfStaIdx);
+        halTable_GetStaAssocId(pMac, selfStaIdx, &aid);
+#else
         halTable_GetStaAssocId(pMac, (tANI_U8)pMac->hal.halMac.selfStaId, &aid);
+#endif
         halWriteRegister(pMac, QWLAN_RXP_BEACON_ADDR2_LOW_FIELD_REG, (tANI_U32)bssidLo);
         halWriteRegister(pMac, QWLAN_RXP_BEACON_ADDR2_HIGH_FIELD_REG, (tANI_U32)bssidHi);
 
@@ -2784,4 +3002,449 @@ eHalStatus halRxp_BckupRxpSearchTable(tpAniSirGlobal pMac, tANI_U32 *pMemAddr)
     return status;
 }
 
+/* -----------------------
+ * Get the link wide global rxpMode. 
+ * -----------------------
+ */
+tRxpMode halRxp_getSystemRxpMode(tpAniSirGlobal pMac)
+{
+    return ((tRxpMode)pMac->hal.halMac.systemRxpMode);
+}
 
+
+/* -----------------------
+ * halRxp_storeSystemRxpMode()
+ * halRxp_getRxpMode()
+ * -----------------------
+ */
+static void halRxp_storeSystemRxpMode(tpAniSirGlobal pMac, 
+        tRxpMode rxpMode)
+{
+    HALLOG1( halLog(pMac, LOG1, FL("Store halMac.systemRxpMode to %x \n"),
+            rxpMode));
+    pMac->hal.halMac.systemRxpMode = (tANI_U32) rxpMode;
+    return;
+}
+
+/* -----------------------
+ * halRxp_storeBssRxpMode()
+ * This function will store the BSS specific 
+ * link rxpMode.
+ * -----------------------
+ */
+static void halRxp_storeBssRxpMode(tpAniSirGlobal pMac, 
+        tRxpMode rxpMode, tANI_U8 bssIdx)
+{
+    tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;
+    HALLOG1( halLog(pMac, LOG1, FL("store storeBssRxpMode to %x \n"), 
+            rxpMode));
+    // In case of a JOIN REQ we dont have a valid bssIdx yet.
+    if (bssIdx < pMac->hal.halMac.maxBssId) 
+    {
+        bssTable[bssIdx].bssRxpMode=rxpMode;
+    }
+
+    return;
+}
+
+
+/* -----------------------
+ * This function will return the values for the global 
+ * RxP block message registers given the rxpMode.
+ * Return the rxp Lo and Hi register values based on the 
+ * value of the rxpMode which is the input to this function.
+ * -----------------------
+ */
+static void halRxp_GetRegValRxpMode(tpAniSirGlobal pMac, 
+        tRxpMode rxpMode, tANI_U32 *regLo, tANI_U32 *regHi)
+{
+    *regLo = RXP_DROP_ALL_FRAME_TYPES; 
+    *regHi = RXP_DROP_ALL_FRAME_TYPES;
+
+    switch(rxpMode)
+    {
+        case eRXP_IDLE_MODE:
+            HALLOG1( halLog(pMac, LOG1, 
+                        FL("RXP IDLE mode (drop all frames ). \n")));
+            *regLo = RXP_DROP_ALL_FRAME_TYPES; 
+            *regHi = RXP_DROP_ALL_FRAME_TYPES;
+            break;
+
+        case eRXP_SCAN_MODE:
+            HALLOG1(halLog(pMac, LOG1, FL("RXP filter to SCAN mode \n")));
+            *regLo = rxpDisableFrameScanModeLow; 
+            *regHi = rxpDisableFrameScanModeHi;
+
+            break;
+
+        case eRXP_PRE_ASSOC_MODE:
+            HALLOG1( halLog(pMac, LOG1, 
+                        FL("RXP filter to PRE-ASSOC mode \n")));
+            *regLo = rxpDisableFrameStaPreAssocModeLow; 
+            *regHi = rxpDisableFrameStaPreAssocModeHi;
+            break;
+
+        case eRXP_POST_ASSOC_MODE:
+            HALLOG1( halLog(pMac, LOG1, 
+                        FL("RXP filter to POST-ASSOC mode \n")));
+            *regLo = rxpDisableFrameStaPostAssocModeLow; 
+            *regHi = rxpDisableFrameStaPostAssocModeHi;
+            break;
+
+            // Default settings is for AP side. So BTAMP AP 
+            // just uses def. settings.
+        case eRXP_BTAMP_AP_MODE:
+            HALLOG1( halLog(pMac, LOG1, FL("RXP filter to BTAMP and \n")));
+            *regLo = rxpDisableFrameBTAMPAPModeLow;
+            *regHi = rxpDisableFrameBTAMPAPModeHi;
+
+            break;
+
+        case eRXP_AP_MODE:
+            HALLOG1( halLog(pMac, LOG1, 
+                        FL("RXP filter to AP mode \n")));
+            *regLo = rxpDisableFrameApModeLow; 
+            *regHi = rxpDisableFrameApModeHi;
+            break;
+
+#ifdef FEATURE_INNAV_SUPPORT
+        case eRXP_INNAV_MODE:
+            // Accept only the CTS and ACK responses only for this address, rest filter it out.
+            *regLo = rxpDisableFrameInNavModeLow;
+            *regHi = rxpDisableFrameInNavModeHi;
+            break;
+#endif
+
+        case eRXP_POWER_SAVE_MODE:
+            HALLOG1( halLog(pMac, LOG1, FL("RXP filter to POWER SAVE mode. \n")));
+
+            break;
+
+        case eRXP_IBSS_MODE:
+            HALLOG1( halLog(pMac, LOG1, FL("RXP filter to IBSS mode \n")));
+            *regLo = rxpDisableFrameIbssModeLow; 
+            *regHi = rxpDisableFrameIbssModeHi;
+            break;
+
+        case eRXP_BTAMP_PREASSOC_MODE:
+            HALLOG1( halLog(pMac, LOG1, 
+                        FL("RXP filter to BTAMP Pre ASSOC mode \n")));
+            *regLo = rxpDisableFrameBTAMPStaPreAssocModeLow; 
+            *regHi = rxpDisableFrameBTAMPStaPreAssocModeHi;
+            break;
+
+        case eRXP_BTAMP_POSTASSOC_MODE:
+            HALLOG1( halLog(pMac, LOG1, 
+                        FL("RXP filter to BTAMP POST ASSOC mode \n")));
+            *regLo = rxpDisableFrameBTAMPStaPostAssocModeLow;
+            *regHi = rxpDisableFrameStaBTAMPPostAssocModeHi;
+            break;
+
+#ifndef WLAN_FTM_STUB
+        case eRXP_FTM_MODE:
+            HALLOG1( halLog(pMac, LOG1, FL("RXP filter to FTM mode \n")));
+            *regLo = rxpDisableFrameFtmModeLow;
+            *regHi = rxpDisableFrameFtmModeHi;
+            break;
+#endif
+
+        default:
+            HALLOGE( halLog(pMac, LOGE, "ERROR : Unknown mode specified (%d)\n", 
+                        rxpMode));
+            assert(0);
+            break;
+    }
+}
+
+/* -----------------------
+ * This function will set the System wide rxpMode.
+ * -----------------------
+ */
+void halRxp_setSystemRxpFilterMode(tpAniSirGlobal pMac, 
+        tRxpMode rxpMode, tHalRxpModeFlag mode_flag)
+{
+    tANI_U32 regHi = 0;
+    tANI_U32 regLo = 0;
+    tANI_U32 finalRegHi = 0;
+    tANI_U32 finalRegLo = 0;
+    tANI_U32 bssIndex;
+    
+    tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+	/* Disable Rxp, this would block all frames while toggling between modes */
+    if (halRxp_disable(pMac) == eHAL_STATUS_FAILURE) {
+        HALLOGE(halLog(pMac, LOGE, FL("RXP Disable Failed\n")));
+        return;
+    }
+
+    HALLOG1(halLog( pMac, LOG1, 
+        FL("rxpMode = %x mode_flag=%s \n"), 
+        rxpMode, ((mode_flag==1) ? "SET" : "CLEAR")));
+    HALLOG1(halLog(pMac,LOG1,FL("#### halRxp_setSystemRxpFilterMode ####\n")));
+    HALLOG1(halLog(pMac,LOG1,FL("#### Mode Requested #### = %d\n"), rxpMode));
+
+    switch (mode_flag) 
+    {
+        // Just the BSS settings are valid.
+        case eHAL_USE_BSS_RXP:
+            // This will be overriden by the BSS specific 
+            // rxpMode.
+            HALLOG1(halLog(pMac,LOG1,FL("### IN IDLE MODE, DROP ALL FRAMES #### \n")));
+            regHi = RXP_DROP_ALL_FRAME_TYPES;
+            regLo = RXP_DROP_ALL_FRAME_TYPES;
+            halRxp_storeSystemRxpMode(pMac, eRXP_IDLE_MODE);
+            break;
+
+        // BSS settings and Global Rxp Mode setting are valid. 
+        case eHAL_USE_GLOBAL_AND_BSS_RXP:
+            halRxp_GetRegValRxpMode(pMac, rxpMode, &regLo, &regHi);
+            halRxp_storeSystemRxpMode(pMac, rxpMode);
+            break;
+    }
+
+    // Find the final rxp setting, based on the global rxpmode and
+    // all the bss specific rxpmode setting.
+    finalRegLo = regLo;
+    finalRegHi = regHi;
+
+    for( bssIndex=0; bssIndex < pMac->hal.halMac.maxBssId; bssIndex++ )
+    {
+        if (bssTable[bssIndex].valid == 0) continue;
+
+        // OK so we have the entry we need.
+        HALLOG1( halLog( pMac, LOG1, FL("Set global system rxpmode - %x\n"), 
+                bssTable[bssIndex].bssRxpMode));
+
+		halRxp_GetRegValRxpMode(pMac, bssTable[bssIndex].bssRxpMode, 
+                &regLo, &regHi);
+        	 
+        HALLOG1( halLog( pMac, LOG1, FL("finalRegLo - %x finalRegHi = %x\n"), 
+            finalRegLo, finalRegHi));
+
+        finalRegLo = finalRegLo & regLo;
+        finalRegHi = finalRegHi & regHi;
+   
+
+
+     }
+
+     setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
+    /* Set Frame FilterMask if it is in SCAN Mode */
+     setFrameFilterMaskForScan(pMac, rxpMode);
+
+    HALLOG1( halLog( pMac, LOG1, 
+        FL("NEW rxpMode = %x mode_flag=%s RegLo=%x RegHi=%x\n"), 
+        rxpMode, ((mode_flag==1) ? "SET" : "CLEAR"),
+        finalRegLo, finalRegHi));
+
+    if ( halRxp_enable(pMac) != eHAL_STATUS_SUCCESS )
+         HALLOGE( halLog( pMac, LOGE, "Failed to set ENABLE RXP \n"));
+
+    return;
+}
+
+void setFrameFilterMaskForScan (tpAniSirGlobal pMac, tHalRxpModeFlag rxpMode)
+{
+    tANI_U32 value = 0;
+
+    if (eRXP_SCAN_MODE == rxpMode) {
+        HALLOGE( halLog( pMac, LOGE,"### IN SCAN MODE, Apply Addr2 filters #####\n"));
+        // Accept beacons and probe responses from all address2
+        value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3);
+        halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
+        value |= RXP_ROUTING_FLAG_SEL;
+        halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
+		
+    }
+    return;
+}
+
+
+/* -----------------------
+ * This function will set the Bss specific rxpMode
+ *
+ * -----------------------
+ */ 
+void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac, 
+        tRxpMode rxpMode, tANI_U8 *bssid, tANI_U8 bssIdx)
+{
+    tANI_U32 regHi = 0;
+    tANI_U32 regLo = 0;
+    tANI_U32 finalRegHi = 0;
+    tANI_U32 finalRegLo = 0;
+    int i=0, found = 0;
+    tANI_U32 value;
+    tRxpMode systemRxpMode = halRxp_getSystemRxpMode(pMac);
+    tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+    /* Disable Rxp, this would block all frames while toggling between modes */
+    if (halRxp_disable(pMac) == eHAL_STATUS_FAILURE) {
+        HALLOGE(halLog(pMac, LOGE, FL("RXP Disable Failed\n")));
+        return;
+    }
+
+    // Get the global system rxp mode register values.
+    halRxp_GetRegValRxpMode(pMac, systemRxpMode, &regLo, &regHi);
+
+    // Find the final rxp setting, based on the global rxpmode and
+    // all the bss specific rxpmode setting.
+    finalRegLo = regLo;
+    finalRegHi = regHi;
+
+    // Go through all the valid BSS in existance
+    for( i=0; i < pMac->hal.halMac.maxBssId; i++ )
+    {
+        if (bssTable[i].valid == 0) continue;
+
+        // OK so we have the entry we need.
+        if (bssIdx == i) 
+        { 
+            // store this Bss specific rxpMode passed on to us.
+            halRxp_storeBssRxpMode(pMac, rxpMode, bssIdx);
+            found = 1;
+        }
+
+        halRxp_GetRegValRxpMode(pMac, bssTable[i].bssRxpMode, 
+                &regLo, &regHi);
+
+        finalRegLo = finalRegLo & regLo;
+        finalRegHi = finalRegHi & regHi;
+    }
+
+    if (found == 0)
+    {
+        // OK have a join req.
+        halRxp_GetRegValRxpMode(pMac, rxpMode, &regLo, &regHi);
+
+        HALLOG1(halLog( pMac, LOG1, FL("finalRegLo - %x finalRegHi = %x\n"), 
+                    finalRegLo, finalRegHi));
+
+        finalRegLo = finalRegLo & regLo;
+        finalRegHi = finalRegHi & regHi;
+    }
+
+    // Apply the settings.
+    setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
+
+#ifdef BTAMP_STA_RF_FIX
+    switch (rxpMode) {
+
+        case eRXP_IDLE_MODE:
+            // Delete the A2 RXP filter (if any) for filtering out the beacons.
+            halRxp_RemovePreAssocAddr2Entry(pMac, bssid);
+            break;
+
+        case  eRXP_SCAN_MODE:
+            setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
+            // Unblock the A2 filter for beacons & probe repsonses, 
+            // Accept beacons and probe responses from all address2
+            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3);
+            halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
+            value |= RXP_ROUTING_FLAG_SEL;
+            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
+            break;
+
+        case eRXP_BTAMP_PREASSOC_MODE:
+        case eRXP_PRE_ASSOC_MODE:
+            halRxp_AddPreAssocAddr2Entry(pMac, bssid);
+
+            halRxp_GetRegValRxpMode(pMac, rxpMode, &finalRegLo, &finalRegHi);
+            HALLOG1( halLog( pMac, LOG1, FL("BTAMP STA PRE ASSOC HACK: finalRegLo - %x finalRegHi = %x\n"), 
+                        finalRegLo, finalRegHi));
+
+            setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
+
+            // Accept only beacons & probe responses from specific address2, rest filter it out.
+            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3);
+            halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
+            value |= RXP_ROUTING_FLAG_SEL;
+            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
+            // NOTE: Apply filters in Rxp to accept Auth and (Re)Assoc from addr1, 
+            // because after adding the addr2 entry of the BSS to which we are 
+            // about to connect Auth & Assoc do not pass through the filter if we 
+            // have ADDR2_ACCEPT_ALL, so applying only ADDR1 filter.
+            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER);
+            halRxp_setFrameFilterMask(pMac, eMGMT_AUTH, value);
+            halRxp_setFrameFilterMask(pMac, eMGMT_ASSOC_RSP, value);
+            halRxp_setFrameFilterMask(pMac, eMGMT_REASSOC_RSP, value);
+            break;
+
+        case  eRXP_BTAMP_POSTASSOC_MODE:
+        case  eRXP_POST_ASSOC_MODE:
+            halRxp_GetRegValRxpMode(pMac, rxpMode, &finalRegLo, &finalRegHi);
+            HALLOGE( halLog( pMac, LOGE, FL("BTAMP STA POST ASSOC HACK: finalRegLo - %x finalRegHi = %x\n"), 
+                        finalRegLo, finalRegHi));
+    
+            setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
+            // Accept only beacons & probe responses from address2 BSS to which 
+            // are now associated, rest filter it out.
+            value = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ADDR2_FILTER|RXP_ACCEPT_ALL_ADDR3);
+            halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_RSP, value);
+            value |= RXP_ROUTING_FLAG_SEL;
+            halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, value);
+            break;
+
+        case eRXP_AP_MODE:
+            {
+                tANI_U8 obssProt = 0; 
+            // Allow unknown ADDR2 data frames as well in AP mode, such that 
+            // if the AP receives unknown ADDR2 data frame it would send back a DEAUTH frame
+                HALLOGE(halLog( pMac, LOGE,FL("##### AP MODE ######\n")));
+
+                // Check if OBSS protection is turned on, if yes allow neighboring 
+                // beacons to come in.
+                halTable_GetObssProtForBss(pMac, bssIdx, &obssProt);
+                if (obssProt) {
+                    finalRegHi &= (~RXP_TYPE_SUBTYPE_MASK(eMGMT_BEACON));
+                } else {
+                    finalRegHi |= (RXP_TYPE_SUBTYPE_MASK(eMGMT_BEACON));
+                }
+                // Apply the RXP type/subtype settings.
+                setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
+            value = (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER|RXP_ADDR1_ACCEPT_MULTICAST|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3|RXP_FCS|RXP_FRAME_TRANSLATION);
+            halRxp_setFrameFilterMask(pMac, eDATA_DATA, value);
+            halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, value);
+
+#if 0 //do we need to set the following for NULL and QosNULL frames? most likely not.
+            value = (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ADDR3_FILTER|RXP_FCS);        
+            halRxp_setFrameFilterMask(pMac, eDATA_NULL, value);
+            halRxp_setFrameFilterMask(pMac, eDATA_QOSNULL, value);
+#endif            
+            // workaround for issue where Volans AP changes PM state of associated station
+            // based on PM bit setting in the probeReq received from the station.
+            // So if the station is in power save and AP receives broadcast probeReq from that station
+            // AP thinks that station went out of power save because
+            // there is a filter match and PM = 0 in probeReq.
+            // So the workaround is to disable addr2 filter check for probeReq. With this change RXP will
+            // always push probeReq (even from associated stations) to exception work queue and will not 
+            // update PM state for the associated station based on PM bit in the probeReq frame received.
+            value = (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_FCS|RXP_ROUTING_FLAG_SEL);
+            halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_REQ, value);
+            break;
+            }
+        case eRXP_PROMISCUOUS_MODE:
+        case eRXP_LEARN_MODE:
+        case eRXP_POWER_SAVE_MODE:
+        case eRXP_IBSS_MODE:
+        case eRXP_BTAMP_AP_MODE:
+        case eRXP_BTAMP_STA_MODE:
+#ifndef WLAN_FTM_STUB
+    case eRXP_FTM_MODE:
+#endif
+            break;
+        default:
+            break;
+    }
+#endif
+
+    if ( halRxp_enable(pMac) != eHAL_STATUS_SUCCESS )
+        HALLOGE( halLog( pMac, LOGE, "Failed to set ENABLE RXP \n"));
+
+    HALLOGW( halLog( pMac, LOGW, 
+                FL("rxpMode = %x RegLo=%x RegHi=%x\n"), 
+                rxpMode, finalRegLo, finalRegHi));
+
+    return;
+}
+
+/* End of file */

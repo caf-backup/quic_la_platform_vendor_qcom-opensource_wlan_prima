@@ -657,6 +657,12 @@ typedef struct tagDot11IE11HLocalPowerConstraint
 
 }tDot11IE11HLocalPowerConstraint;
 
+typedef struct tagRoamingTimerInfo
+{
+    tpAniSirGlobal pMac;
+    tANI_U8 sessionId;
+} tCsrTimerInfo;
+
 
 #define CSR_IS_11A_BSS(pBssDesc)    ( eSIR_11A_NW_TYPE == (pBssDesc)->nwType )
 #define CSR_IS_BASIC_RATE(rate)     ((rate) & CSR_DOT11_BASIC_RATE_MASK)
@@ -684,13 +690,12 @@ tANI_U32 csrGetFragThresh( tHalHandle hHal );
 tANI_U32 csrGetRTSThresh( tHalHandle hHal );
 eCsrPhyMode csrGetPhyModeFromBssDesc( tSirBssDescription *pSirBssDesc );
 tANI_U32 csrGet11hPowerConstraint( tHalHandle hHal, tDot11fIEPowerConstraints *pPowerConstraint );
-tANI_U8 csrConstructRSNIe( tHalHandle hHal, tCsrRoamProfile *pProfile, 
+tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile *pProfile, 
                             tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes, tCsrRSNIe *pRSNIe );
 tANI_U8 csrConstructWpaIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc, 
                            tDot11fBeaconIEs *pIes, tCsrWpaIe *pWpaIe );
 #ifdef FEATURE_WLAN_WAPI
-tANI_U8 csrConstructWapiIe( tHalHandle hHal, tCsrRoamProfile *pProfile, 
-                            tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes, tCsrWapiIe *pWapiIe );
+
 tANI_BOOLEAN csrIsProfileWapi( tCsrRoamProfile *pProfile );
 #endif /* FEATURE_WLAN_WAPI */
 //If a WPAIE exists in the profile, just use it. Or else construct one from the BSS
@@ -708,12 +713,12 @@ tANI_BOOLEAN csrGetWpaRsnIe( tHalHandle hHal, tANI_U8 *pIes, tANI_U32 len,
                              tANI_U8 *pWpaIe, tANI_U8 *pcbWpaIe, tANI_U8 *pRSNIe, tANI_U8 *pcbRSNIe);
 //If a RSNIE exists in the profile, just use it. Or else construct one from the BSS
 //Caller allocated memory for pWpaIe and guarrantee it can contain a max length WPA IE
-tANI_U8 csrRetrieveRsnIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc, 
+tANI_U8 csrRetrieveRsnIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc, 
                           tDot11fBeaconIEs *pIes, tCsrRSNIe *pRsnIe );
 #ifdef FEATURE_WLAN_WAPI
 //If a WAPI IE exists in the profile, just use it. Or else construct one from the BSS
 //Caller allocated memory for pWapiIe and guarrantee it can contain a max length WAPI IE
-tANI_U8 csrRetrieveWapiIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc, 
+tANI_U8 csrRetrieveWapiIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc, 
                           tDot11fBeaconIEs *pIes, tCsrWapiIe *pWapiIe );
 #endif /* FEATURE_WLAN_WAPI */
 tANI_BOOLEAN csrSearchChannelListForTxPower(tHalHandle hHal, tSirBssDescription *pBssDescription, tCsrChannelSet *returnChannelGroup);
@@ -726,6 +731,7 @@ tANI_BOOLEAN csrIsSecurityMatch( tHalHandle hHal, tCsrAuthList *authType, tCsrEn
                                  eCsrAuthType *negotiatedAuthtype, eCsrEncryptionType *negotiatedUCCipher, eCsrEncryptionType *negotiatedMCCipher );
 tANI_BOOLEAN csrIsBSSTypeMatch(eCsrRoamBssType bssType1, eCsrRoamBssType bssType2);
 tANI_BOOLEAN csrIsBssTypeIBSS(eCsrRoamBssType bssType);
+tANI_BOOLEAN csrIsBssTypeWDS(eCsrRoamBssType bssType);
 //ppIes can be NULL. If caller want to get the *ppIes allocated by this function, pass in *ppIes = NULL
 //Caller needs to free the memory in this case
 tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrScanResultFilter *pFilter, 
@@ -733,7 +739,8 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
                           tDot11fBeaconIEs **ppIes);
 
 tANI_BOOLEAN csrIsBssidMatch( tHalHandle hHal, tCsrBssid *pProfBssid, tCsrBssid *BssBssid );
-tANI_BOOLEAN csrMatchBSSToConnectProfile( tHalHandle hHal, tSirBssDescription *pBssDesc, tDot11fBeaconIEs *pIes );
+tANI_BOOLEAN csrMatchBSSToConnectProfile( tHalHandle hHal, tCsrRoamConnectedProfile *pProfile,
+                                          tSirBssDescription *pBssDesc, tDot11fBeaconIEs *pIes );
 tANI_BOOLEAN csrRatesIsDot11RateSupported( tHalHandle hHal, tANI_U8 rate );
 tANI_U16 csrRatesFindBestRate( tSirMacRateSet *pSuppRates, tSirMacRateSet *pExtRates, tSirMacPropRateSet *pPropRates );
 tSirBssType csrTranslateBsstypeToMacType(eCsrRoamBssType csrtype);
@@ -755,7 +762,7 @@ eHalStatus csrGetPhyModeFromBss(tpAniSirGlobal pMac, tSirBssDescription *pBSSDes
 //The reason is that for UAPSD-bypass, the code underneath this call determine whether
 //to allow UAPSD. The information in pModProfileFields reflects what the user wants.
 //There may be discrepency in it. UAPSD-bypass logic should decide if it needs to reassoc
-eHalStatus csrReassoc(tpAniSirGlobal pMac, 
+eHalStatus csrReassoc(tpAniSirGlobal pMac, tANI_U32 sessionId,
                       tCsrRoamModifyProfileFields *pModProfileFields,
                       tANI_U32 *pRoamId, v_BOOL_t fForce);
 //Check whether SSID is valid

@@ -24,7 +24,7 @@
 #include <halPhyUtil.h>
 
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 
 typedef enum
 {
@@ -414,8 +414,11 @@ const tPhyDbgFrame defaultFrame =
 #define MIF_LSRAM_END       0x00080000L
 #endif
 
+#define RAMP_UP_11B_PACKETS     0x100
+#define RC_DELAY_11B_PACKETS    0x7ff
 
-extern eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex);
+
+extern eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode pwrMode, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex);
 void printFrameFields(tpAniSirGlobal pMac, tPhyDbgFrame *frame, eHalPhyRates rate);
 static eHalStatus CalcInterframeSpaceSetting(tpAniSirGlobal pMac, tANI_U32 numTestPackets, tANI_U32 interFrameSpace, tANI_U32 r_up, tANI_U32 r_down, tANI_U32 warmup_delay, int *ifsSetting);
 
@@ -494,6 +497,13 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
     if ((retVal = rdModWrAsicField(pMac, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_REG, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_APB_MASK, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_APB_OFFSET, 1)) != eHAL_STATUS_SUCCESS)
     {
         return(retVal);
+    }
+
+    if ((preamble == PHYDBG_PREAMBLE_SHORTB) || (preamble == PHYDBG_PREAMBLE_LONGB))
+    {
+        //For "11b sparking" issue, use a different ramp up time for sending 11b packets
+        SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_RAMP_UP_REG, RAMP_UP_11B_PACKETS);
+        SET_PHY_REG(pMac->hHdd, QWLAN_TPC_RC_DELAY_REG, RC_DELAY_11B_PACKETS);
     }
 
     {   //set interframe spacing and warmup_delay
@@ -599,59 +609,61 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
         frame.mpiHdr.tx_antenna_enable = 0;     //setting this to 0 requires the tx_fir_mode register to have the appropriate number of antennas
 
         if (//TEST ONLY (halIsQFuseBlown(pMac) == eHAL_STATUS_SUCCESS) &&   //if QFuse not blown, then pwrCfgPresent is only default data
-            (pMac->hphy.phyTPC.pwrCfgPresent == eANI_BOOLEAN_TRUE) &&    //must have CLPC data
+            //(pMac->hphy.phyTPC.pwrCfgPresent == eANI_BOOLEAN_TRUE) &&    //must have CLPC data
             (pMac->hphy.phy.regDomainInfo != NULL) &&                    //must have reg domain info
             (pMac->hphy.phy.test.testTpcClosedLoop == eANI_BOOLEAN_TRUE) //loop must be closed, otherwise we want the index = 0
            )
-                {
-                    eRfChannels rfChannel = rfGetCurChannel(pMac);
+        {
+            eRfChannels rfChannel = rfGetCurChannel(pMac);
 
-                    assert(rfChannel != INVALID_RF_CHANNEL);
+            assert(rfChannel != INVALID_RF_CHANNEL);
 
             if (pMac->hphy.phy.test.testTxGainIndexSource == REGULATORY_POWER_LIMITS)
-                    {
-                        if ((retVal =
-                             halPhyGetPowerForRate(pMac,
-                                                   rate,
-                                                   //the following param only used if the phy layer is set to regard this regulatory limit through pMac->hphy.phy.test.testTxGainIndexSource
-                                                   pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].channels[rfChannel].pwrLimit,
-                                                   &powerIndex)
-                            ) != eHAL_STATUS_SUCCESS
-                           )
-                        {
-                            return(retVal);
-                        }
-                    }
-                    else if ((pMac->hphy.phy.test.testTxGainIndexSource == RATE_POWER_NON_LIMITED) ||
-                             (pMac->hphy.phy.test.testTxGainIndexSource == FIXED_POWER_DBM) ||
-                             (pMac->hphy.phy.test.testTxGainIndexSource == FORCE_POWER_TEMPLATE_INDEX)
-                            )
-                    {
-                        if ((retVal =
-                             halPhyGetPowerForRate(pMac,
-                                                   rate,
-                                                   //the following param only used if the phy layer is set to regard this regulatory limit through pMac->hphy.phy.test.testTxGainIndexSource
-                                                   30,           //set power limitation to high value so as to be non-limiting, 0 to 31 valid range for set point
-                                                   &powerIndex)
-                            ) != eHAL_STATUS_SUCCESS
-                           )
-                        {
-                            return(retVal);
-                        }
-                    }
-                    else
-                    {
-                        return(eHAL_STATUS_FAILURE);   //no other test modes are for closed-loop control
-                    }
-
-
-                    assert(powerIndex < 32);
-                    frame.mpiHdr.tx_demanded_power = powerIndex;    // use powerIndex returned from halPhyGetPowerForRate
+            {
+                if ((retVal =
+                     halPhyGetPowerForRate(pMac,
+                                           rate,
+                                           POWER_MODE_HIGH_POWER,
+                                           //the following param only used if the phy layer is set to regard this regulatory limit through pMac->hphy.phy.test.testTxGainIndexSource
+                                           pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].channels[rfChannel].pwrLimit,
+                                           &powerIndex)
+                    ) != eHAL_STATUS_SUCCESS
+                   )
+                {
+                    return(retVal);
                 }
+            }
+            else if ((pMac->hphy.phy.test.testTxGainIndexSource == RATE_POWER_NON_LIMITED) ||
+                     (pMac->hphy.phy.test.testTxGainIndexSource == FIXED_POWER_DBM) ||
+                     (pMac->hphy.phy.test.testTxGainIndexSource == FORCE_POWER_TEMPLATE_INDEX)
+                    )
+            {
+                if ((retVal =
+                     halPhyGetPowerForRate(pMac,
+                                           rate,
+                                           POWER_MODE_HIGH_POWER,
+                                           //the following param only used if the phy layer is set to regard this regulatory limit through pMac->hphy.phy.test.testTxGainIndexSource
+                                           30,           //set power limitation to high value so as to be non-limiting, 0 to 31 valid range for set point
+                                           &powerIndex)
+                    ) != eHAL_STATUS_SUCCESS
+                   )
+                {
+                    return(retVal);
+                }
+            }
             else
             {
-            frame.mpiHdr.tx_demanded_power = 0; //TPC does not automatically update gain index 0
+                return(eHAL_STATUS_FAILURE);   //no other test modes are for closed-loop control
             }
+
+
+            assert(powerIndex < 32);
+            frame.mpiHdr.tx_demanded_power = powerIndex;    // use powerIndex returned from halPhyGetPowerForRate
+        }
+        else
+        {
+            frame.mpiHdr.tx_demanded_power = 0; //TPC does not automatically update gain index 0
+        }
 
         frame.mpiHdr.psdu_length = 0/*sizeof(sMPDUHeader)*/ + payloadLength;
         frame.mpiHdr.ppdu_length = 0/*sizeof(sMPDUHeader)*/ + payloadLength;
@@ -1074,7 +1086,9 @@ eHalStatus asicPhyDbgStopFrameGen(tpAniSirGlobal pMac)
         }
     }
 
-    // SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_RAMP_UP_REG, 0);
+    //For "11b sparking" issue, use a different ramp up time for sending 11b packets alone
+    SET_PHY_REG(pMac->hHdd, QWLAN_TPC_RC_DELAY_REG, QWLAN_TPC_RC_DELAY_DEFAULT);
+    SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_RAMP_UP_REG, QWLAN_TXCTL_RAMP_UP_DEFAULT);
     // SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_RAMP_DOWN_REG, 51);
 
     SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_RST1_REG, 0);        // may write 1 as well, this write access will reset the playback
@@ -1094,7 +1108,7 @@ eHalStatus asicPhyDbgStopFrameGen(tpAniSirGlobal pMac)
     // Explicitely disable clcok to PHYDBG module
 	/* These register bits are required for Volans to receive incoming frames
      * hence, commenting out
-     */
+     */ 
 #if 0
 	if ((retVal = rdModWrAsicField(pMac, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_REG, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_MASK, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_OFFSET, 0)) != eHAL_STATUS_SUCCESS)
     {
@@ -1110,8 +1124,8 @@ eHalStatus asicPhyDbgStopFrameGen(tpAniSirGlobal pMac)
     {
         return(retVal);
     }
-
-    SET_PHY_REG(pMac, QWLAN_MPI_MPI_ENABLE_REG, 0x1);
+   
+    SET_PHY_REG(pMac->hHdd, QWLAN_MPI_MPI_ENABLE_REG, 0x1);
 
     return(retVal);
 }
@@ -1226,7 +1240,7 @@ static eHalStatus DoGrabRamCapture(tpAniSirGlobal pMac, tANI_U32 rxChain, eGrabR
 #define READ_MEM_SIZE   128 //samples
 #define ONE_K_MEM_SIZE  1024
 
-#if defined(ANI_MANF_DIAG) && defined(SIR_RTAI) && (WNI_POLARIS_FW_OS == SIR_RTAI) && defined(ANI_LEXRA)
+#if !defined(WLAN_FTM_STUB) && defined(SIR_RTAI) && (WNI_POLARIS_FW_OS == SIR_RTAI) && defined(ANI_LEXRA)
 void    pal_rt_reset_watchdog(void);
 #endif
 
@@ -1246,7 +1260,7 @@ eHalStatus asicGrabAdcSamples(tpAniSirGlobal pMac, tANI_U32 startSample, tANI_U3
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
     tANI_U32 w, rxChain;
     tANI_U32 *pAdcSamples0;
     tANI_U16 data;
@@ -1282,10 +1296,12 @@ eHalStatus asicGrabAdcSamples(tpAniSirGlobal pMac, tANI_U32 startSample, tANI_U3
         if (sampleType == GRABRAM_POSTIQ)
         {
             data = (tANI_S16)((pAdcSamples0[w] >> 0) & MSK_11);
+            sampleBuffer[w - startSample].rx0.I = data;
             if (data > 1023)
                 sampleBuffer[w - startSample].rx0.I = data - 2048;
 
             data = (tANI_S16)((pAdcSamples0[w] >> 11) & MSK_11);
+            sampleBuffer[w - startSample].rx0.Q = data;
             if (data > 1023)
                 sampleBuffer[w - startSample].rx0.Q = data - 2048;
         }
@@ -1293,11 +1309,11 @@ eHalStatus asicGrabAdcSamples(tpAniSirGlobal pMac, tANI_U32 startSample, tANI_U3
         {
             sampleBuffer[w - startSample].rx0.I = (tANI_S16)(((pAdcSamples0[w] >> 0 ) & MSK_11) - 1024);
             sampleBuffer[w - startSample].rx0.Q = (tANI_S16)(((pAdcSamples0[w] >> 11) & MSK_11) - 1024);
-        }
+	    }
 	}
 
 #else
-    phyLog(pMac, LOGE, "Grab Ram capture only available in ANI_MANF_DIAG builds\n");
+    phyLog(pMac, LOGE, "Grab Ram capture only available in FTM builds\n")
 #endif
 
     return(retVal);
@@ -1456,7 +1472,7 @@ eHalStatus log_grab_ram(tpAniSirGlobal pMac, tANI_U32 startSample, tANI_U32 numS
 }
 
 
-#endif
+#endif //ifndef WLAN_FTM_STUB
 
 
 

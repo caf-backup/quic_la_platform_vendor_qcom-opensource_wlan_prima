@@ -19,7 +19,7 @@ extern void verifyVcoLinearityCal(void);
 #endif
 
 
-#if defined(ANI_PHY_DEBUG) || defined(ANI_MANF_DIAG)
+#ifndef WLAN_FTM_STUB
 #include "pttModuleApi.h"
 
 //Device Register Access
@@ -44,11 +44,6 @@ eQWPttStatus pttDbgWriteRegister(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32
     return (SUCCESS);
 }
 
-#endif
-
-
-
-#ifdef ANI_MANF_DIAG
 #include "pttModuleApi.h"
 
 
@@ -56,8 +51,6 @@ eQWPttStatus pttDbgWriteRegister(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32
 const tANI_U8 defaultSourceMacAddress[ANI_MAC_ADDR_SIZE] = { 0x22, 0x22, 0x44, 0x44, 0x33, 0x33 };  //STA
 const tANI_U8 defaultDestMacAddress[ANI_MAC_ADDR_SIZE] =   { 0x22, 0x22, 0x11, 0x11, 0x33, 0x33 };  //AP
 const tANI_U8 defaultBssIdMacAddress[ANI_MAC_ADDR_SIZE] =  { 0x22, 0x22, 0x11, 0x11, 0x33, 0x33 };
-
-static eQWPttStatus NormalizeTpcChainData(tpAniSirGlobal pMac, tTpcCalPoint *chainData, tANI_U16 numTpcCalPointsPerFreq, tTpcCaldPowerPoint tpcChainCfg[MAX_TPC_CAL_POINTS]);
 
 
 
@@ -72,16 +65,15 @@ void pttModuleInit(tpAniSirGlobal pMac)
 {
     /* uNvFields fields; */
 
-
     pMac->hphy.phy.test.testChannelId = 1;
     pMac->hphy.phy.test.testCbState = PHY_SINGLE_CHANNEL_CENTERED;
-    pMac->hphy.phy.test.testTpcClosedLoop = eANI_BOOLEAN_FALSE;
+    pMac->hphy.phy.test.testTpcClosedLoop = eANI_BOOLEAN_TRUE;
     pMac->hphy.phy.test.testTxGainIndexSource = RATE_POWER_NON_LIMITED;
     pMac->hphy.phy.test.testForcedTxPower = 0;
     pMac->hphy.phy.test.testLastPwrIndex = 0;
     pMac->hphy.phy.test.testForcedTxGainIndex = 0;
 
-    pMac->ptt.forcedTxGain[PHY_TX_CHAIN_0].coarsePwr = TPC_COARSE_TXPWR_POS_20_DBM;
+    pMac->ptt.forcedTxGain[PHY_TX_CHAIN_0].coarsePwr = TPC_COARSE_TXPWR_6;
     pMac->ptt.forcedTxGain[PHY_TX_CHAIN_0].finePwr = TPC_FINE_TXPWR_7;
 
     //initialize frame gen variables
@@ -141,9 +133,10 @@ void pttModuleInit(tpAniSirGlobal pMac)
                     );
 #endif
 
+#if 0
     // Clear stats
     pttResetRxPacketStatistics(pMac);
-
+#endif
 }
 
 
@@ -159,27 +152,6 @@ eQWPttStatus pttMsgInit(tpAniSirGlobal pMac, tPttModuleVariables** ptt)
 }
 
 
-/*
- * For Libra interpolating between 2dBm and 18dBm for TPC_MEM_POWER_LUT_DEPTH, the
- * slope value would be 8 and y-Intercept would be -16 and the straight line
- * looks like y = 8x - 16. where y being pAdc value and x being abs pwr measured
- */
-static t2Decimal absReportedWithPrecision(tANI_U8 pdet)
-{
-    tANI_S32 slope = TPC_MEM_POWER_LUT_DEPTH/(MAX_PWR_LUT_DBM - MIN_PWR_LUT_DBM);
-    tANI_S32 yIntercept = MIN_PWR_LUT_DBM * slope;  //actually it is -ve y-intercept
-    tANI_S16 reported2Decimal = (tANI_S16)((pdet + yIntercept) * 100/slope);
-
-    //If MTT commands 3.63dBm, the equivalent adjusted pwr would be 13.
-    //But when you try to convret back 13 to floating point commanded pwr, it gives 3.62.
-    //Again if MTT commands 3.62dBm, the equivalent adjusted pwr would be 12.
-    //So two consecutive set and get TPC_CONFIG table result in different values.
-    //To avoid this, add the precision. You are adding 1 to 362 to make it 363
-
-    reported2Decimal += (((pdet * 100) % slope) > 0) ? 1 : 0;
-
-    return (t2Decimal)reported2Decimal;
-}
 
 //NV Service
 eQWPttStatus pttGetNvTable(tpAniSirGlobal pMac, eNvTable nvTable, uNvTables *tableData)
@@ -190,43 +162,6 @@ eQWPttStatus pttGetNvTable(tpAniSirGlobal pMac, eNvTable nvTable, uNvTables *tab
 
     if (eHAL_STATUS_SUCCESS == rc)
     {
-        if (nvTable == NV_TABLE_TPC_CONFIG)
-        {
-            //convert tTpcConfig back to the sTpcFreqCalTable structure, which is used by pttApi
-            uNvTables tempTable;
-            tANI_U8 chan;
-            tANI_U8 txChain;
-            tANI_U8 point;
-
-            memcpy(&tempTable, tableData, sizeof(uNvTables));       //use temporary table to avoid accidental member overwriting
-            memset(tableData, 0x0, sizeof(uNvTables));
-
-            tableData->tpcFreqCal.numChannels = MAX_TPC_CHANNELS;
-
-            //need to convert all float values to t2Decimal format
-            for (chan = 0; chan < MAX_TPC_CHANNELS; chan++)
-            {
-                tableData->tpcFreqCal.calValues[chan].freq = tempTable.tpcConfig[chan].freq;
-
-                for (txChain = 0; txChain < PHY_MAX_TX_CHAINS; txChain++)
-                {
-                    tableData->tpcFreqCal.calValues[chan].empirical[txChain].numTpcCalPoints = MAX_TPC_CAL_POINTS;
-
-                    for (point = 0; point < MAX_TPC_CAL_POINTS; point++)
-                    {
-                        tableData->tpcFreqCal.calValues[chan].empirical[txChain].chain[point].txGain = 0;              //have nothing stored for this
-                        tableData->tpcFreqCal.calValues[chan].empirical[txChain].chain[point].temperatureAdc = 0;      //have nothing stored for this
-                        tableData->tpcFreqCal.calValues[chan].empirical[txChain].chain[point].pwrDetAdc = tempTable.tpcConfig[chan].empirical[txChain][point].pwrDetAdc;
-                        tableData->tpcFreqCal.calValues[chan].empirical[txChain].chain[point].absPowerMeasured.reported =
-                              absReportedWithPrecision(tempTable.tpcConfig[chan].empirical[txChain][point].adjustedPwrDet);
-
-                        //tableData->tpcFreqCal.calValues[chan].empirical[txChain].chain[point].absPowerMeasured.reported =
-                        //    phyGetAbsTxPowerForLutValue(pMac, txChain, tempTable.tpcConfig[chan].empirical[txChain][point].adjustedPwrDet);
-                    }
-                }
-            }
-        }
-
         return (SUCCESS);
     }
     else
@@ -257,27 +192,13 @@ eQWPttStatus pttSetNvTable(tpAniSirGlobal pMac, eNvTable nvTable, uNvTables *tab
             case NV_TABLE_RATE_POWER_SETTINGS:  //data received in t2Decimal format - see uAbsPwrPrecision
             case NV_TABLE_REGULATORY_DOMAINS:
             case NV_TABLE_DEFAULT_COUNTRY:
-            case NV_TABLE_RF_CAL_VALUES:
+            case NV_TABLE_CAL_MEMORY:
+            case NV_TABLE_CAL_STATUS:
                 if (eHAL_STATUS_FAILURE == halWriteNvTable(pMac, nvTable, tableData))
                 {
                     phyLog(pMac, LOGE, "Unable to write table %d\n", (tANI_U32)nvTable);
                     return (FAILURE);
                 }
-                break;
-            case NV_TABLE_TPC_CONFIG:
-                //data received in sTpcFreqCalTable format, with power values in t2Decimal format
-                // prescale TPC values in pttSaveTxPwrFreqTable(),
-                //  which writes the results in tTpcConfig format to NV cache
-                // The QFUSE implementation will pack/unpack between tTpcConfig and the QFuse bit layout.
-
-                //TODO: add byte swapping for the sTpcFreqCalTable format before calling pttSaveTxPwrFreqTable
-                return(pttSaveTxPwrFreqTable(pMac, tableData->tpcFreqCal.numChannels,
-                                                   &tableData->tpcFreqCal.calValues[0]
-                                            )
-                      );
-
-            case NV_TABLE_QFUSE:
-                phyLog(pMac, LOGE, "ERROR: QFuse can not be directly written or read\n");
                 break;
             default:
                 phyLog(pMac, LOGE, "ERROR: table %d not programmed\n", nvTable);
@@ -447,7 +368,7 @@ eQWPttStatus pttSetChannel(tpAniSirGlobal pMac, tANI_U32 chId, ePhyChanBondState
             || cbState == PHY_DOUBLE_CHANNEL_HIGH_PRIMARY
 #endif
          ) ||
-         (halPhySetChannel(pMac, (tANI_U8)chId, (ePhyChanBondState)cbState,TRUE) != eHAL_STATUS_SUCCESS)
+         (halPhySetChannel(pMac, (tANI_U8)chId, (ePhyChanBondState)cbState, TRUE) != eHAL_STATUS_SUCCESS)
        )
     {
         //failed channel setting - put back old settings
@@ -522,15 +443,11 @@ eQWPttStatus pttEnableChains(tpAniSirGlobal pMac, ePhyChainSelect chainSelection
             switch (chainSelection)
             {
                 case PHY_CHAIN_SEL_R0_T0_ON:
-                case PHY_CHAIN_SEL_R0R1_T0_ON:
-                case PHY_CHAIN_SEL_T0_R1_ON:
                 case PHY_CHAIN_SEL_T0_ON:
                     if (asicEnableTxDACs(pMac, PHY_TX_CHAIN_0, eANI_BOOLEAN_ON, pMac->ptt.wfmEnabled) != eHAL_STATUS_SUCCESS) { return (FAILURE); }
                     break;
 
-                case PHY_CHAIN_SEL_R1_ON:
                 case PHY_CHAIN_SEL_R0_ON:
-                case PHY_CHAIN_SEL_R0R1_ON:
                 case PHY_CHAIN_SEL_NO_RX_TX:
                     pttStopWaveform(pMac);
                     if (asicEnableTxDACs(pMac, PHY_NO_TX_CHAINS, eANI_BOOLEAN_ON, eANI_BOOLEAN_OFF) != eHAL_STATUS_SUCCESS) { return (FAILURE); }
@@ -680,10 +597,22 @@ eQWPttStatus pttStartWaveform(tpAniSirGlobal pMac)
     {
         if (asicStartTestWaveform(pMac, WAVE_CONTINUOUS, 0, pMac->ptt.numWfmSamples - 1) == eHAL_STATUS_SUCCESS)
         {
-            pMac->ptt.wfmEnabled = eANI_BOOLEAN_TRUE;   //must preceed enabling the chains
+            //pMac->ptt.wfmEnabled = eANI_BOOLEAN_TRUE;   //must preceed enabling the chains
 
             //make sure the chain selections are still accurate by resetting this again
-            return (pttEnableChains(pMac, pMac->hphy.phy.activeChains));
+            //return (pttEnableChains(pMac, pMac->hphy.phy.activeChains));
+            //set the waveform gain again after the change in enabled tx chains
+            if (eHAL_STATUS_SUCCESS != asicTPCPowerOverride(pMac,  pMac->ptt.forcedTxGain[PHY_TX_CHAIN_0],
+                                                                   pMac->ptt.forcedTxGain[PHY_TX_CHAIN_0],
+                                                                   pMac->ptt.forcedTxGain[PHY_TX_CHAIN_0],
+                                                                   pMac->ptt.forcedTxGain[PHY_TX_CHAIN_0]
+                                                           )
+               )
+            {
+                return (FAILURE);
+            }
+
+            return (SUCCESS);
         }
         else
         {
@@ -738,6 +667,8 @@ eQWPttStatus pttStopWaveform(tpAniSirGlobal pMac)
 
 eQWPttStatus pttCloseTpcLoop(tpAniSirGlobal pMac, tANI_BOOLEAN tpcClose)
 {
+    eHalStatus retVal;
+
     char onOffStr[2][4] =
     {
         "OFF",
@@ -758,6 +689,11 @@ eQWPttStatus pttCloseTpcLoop(tpAniSirGlobal pMac, tANI_BOOLEAN tpcClose)
     }
 
     pMac->hphy.phy.test.testTxGainIndexSource = RATE_POWER_NON_LIMITED;
+    {
+        tANI_U32 reg;
+        
+        GET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, &reg);
+    }
     return (SUCCESS);
 }
 
@@ -943,6 +879,7 @@ eQWPttStatus pttSetTxPower(tpAniSirGlobal pMac, t2Decimal dbmPwr)
     }
 
     phyLog(pMac, LOGE, "pttSetTxPower to %d.%d dBm\n", (dbmPwr / 100), (dbmPwr % 100));
+    
     pMac->hphy.phy.test.testForcedTxPower = dbmPwr;
     pMac->hphy.phy.test.testTxGainIndexSource = FIXED_POWER_DBM;
 
@@ -963,17 +900,19 @@ eQWPttStatus pttSetTxPower(tpAniSirGlobal pMac, t2Decimal dbmPwr)
 
 eQWPttStatus pttGetTxPowerReport(tpAniSirGlobal pMac, tTxPowerReport *pwrReport)
 {
-    tPowerDetect adc0;
-    tPwrTemplateRange lutRangeIndexed;
+    tANI_U32 adc0;
+    //tPwrTemplateRange lutRangeIndexed;
 
-    if (pMac->ptt.wfmEnabled)
-    {
-        //Waveform power is a direct measurement of the continuous waveform
-        if(asicGetTxPowerMeasurement(pMac, PHY_TX_CHAIN_0, &adc0) != eHAL_STATUS_SUCCESS) { return FAILURE; }
-    }
-    else if ((pMac->ptt.frameGenEnabled) && (pMac->ptt.phyDbgFrameGen))
+    // if (pMac->ptt.wfmEnabled)
+    // {
+    //     //Waveform power is a direct measurement of the continuous waveform
+    //     if(asicGetTxPowerMeasurement(pMac, PHY_TX_CHAIN_0, (tPowerDet *)&adc0) != eHAL_STATUS_SUCCESS) { return FAILURE; }
+    // }
+    // else 
+        if (((pMac->ptt.frameGenEnabled) && (pMac->ptt.phyDbgFrameGen)) || (pMac->ptt.wfmEnabled))
     {
         tANI_U32 sensed0;
+        tANI_U32 pdAdcOffset;
 
 #if 0//def ANI_PHY_DEBUG
         //this is to verify that the RF is setup to deliver correct power readings at SENSED_PWR0
@@ -1002,9 +941,13 @@ eQWPttStatus pttGetTxPowerReport(tpAniSirGlobal pMac, tTxPowerReport *pwrReport)
 #endif
         //packet power is retrieved from the preamble sync'd sample in SENSED_POWER
         palReadRegister(pMac->hHdd, QWLAN_TPC_SENSED_PWR0_REG, &sensed0);
+        phyLog(pMac, LOGE, "sensed_pwr0 = 0x%X\n", (unsigned int)sensed0);
+        palReadRegister(pMac->hHdd, QWLAN_TPC_PDADC_OFFSET_REG, &pdAdcOffset);
+        phyLog(pMac, LOGE, "pdAdc offset = 0x%X\n", (unsigned int)pdAdcOffset);
 
 
-        adc0 = (tPowerDetect)((sensed0 & QWLAN_TPC_SENSED_PWR0_VALUE_MASK) >> QWLAN_TPC_SENSED_PWR0_VALUE_OFFSET);
+        adc0 = ((sensed0 & QWLAN_TPC_SENSED_PWR0_VALUE_MASK) >> QWLAN_TPC_SENSED_PWR0_VALUE_OFFSET);
+        adc0 -= ((pdAdcOffset & QWLAN_TPC_PDADC_OFFSET_VALUE_MASK) >> QWLAN_TPC_PDADC_OFFSET_VALUE_OFFSET);
     }
     else
     {
@@ -1013,18 +956,17 @@ eQWPttStatus pttGetTxPowerReport(tpAniSirGlobal pMac, tTxPowerReport *pwrReport)
         return FAILURE;
     }
 
-
-
-    adc0 >>= 1;
+    adc0 >>= 3;
 
     pwrReport->channelId = pMac->hphy.phy.test.testChannelId;
     pwrReport->cbState = pMac->hphy.phy.test.testCbState;
     pwrReport->rate = pMac->ptt.frameGenParams.rate;
     pwrReport->pwrTemplateIndex = pMac->hphy.phy.test.testLastPwrIndex;
 
-    pwrReport->txChains[PHY_TX_CHAIN_0].adc = adc0;
+    pwrReport->txChains[PHY_TX_CHAIN_0].adc = (tPowerDetect)adc0;
     asicGetTxGainAtIndex(pMac, PHY_TX_CHAIN_0, pwrReport->pwrTemplateIndex, &pwrReport->txChains[PHY_TX_CHAIN_0].gain);
 
+/*
     if (pMac->hphy.phyTPC.pwrCfgPresent == eANI_BOOLEAN_TRUE)
     {
         lutRangeIndexed = phyGetTxPowerRangeForTempIndex(pMac, PHY_TX_CHAIN_0, pwrReport->pwrTemplateIndex);
@@ -1045,7 +987,7 @@ eQWPttStatus pttGetTxPowerReport(tpAniSirGlobal pMac, tTxPowerReport *pwrReport)
         pwrReport->txChains[PHY_TX_CHAIN_0].indexMaxMatch.abs.reported = 0;
         pwrReport->txChains[PHY_TX_CHAIN_0].output.abs.reported = 0;
     }
-
+*/
     return SUCCESS;
 }
 
@@ -1053,7 +995,7 @@ eQWPttStatus pttGetTxPowerReport(tpAniSirGlobal pMac, tTxPowerReport *pwrReport)
 
 
 
-
+/*
 #define MIN_POINT (0)
 #define MAX_POINT (MAX_TPC_CAL_POINTS - 1)
 static eQWPttStatus NormalizeTpcChainData(tpAniSirGlobal pMac, tTpcCalPoint *chainData, tANI_U16 numTpcCalPoints, tTpcCaldPowerPoint tpcChainCfg[MAX_TPC_CAL_POINTS])
@@ -1091,7 +1033,7 @@ static eQWPttStatus NormalizeTpcChainData(tpAniSirGlobal pMac, tTpcCalPoint *cha
         {
             phyLog(pMac, LOGE, "NormalizeTpcChainData(): reported pwr %d dBm > max pwr %d dbm, mapping pwr adc code %d to %d\n",
                                     x / 100, MAX_PWR_LUT_DBM_2DEC_PLACES / 100, chainData[calPoint].pwrDetAdc ,
-                                    ((TPC_MEM_POWER_LUT_DEPTH/* * EXTRA_TPC_LUT_MULT*/) -1));
+                                    ((TPC_MEM_POWER_LUT_DEPTH) -1));
             // The ADC reading for a power measurement greater than MAX_PWR_LUT_DBM is clipped
             //SET_FULL_PRECISION_TPC_LUT_VALUE(((TPC_MEM_POWER_LUT_DEPTH * EXTRA_TPC_LUT_MULT) -1), tpcChainCfg[calPoint]);
             tpcChainCfg[calPoint].adjustedPwrDet = TPC_MEM_POWER_LUT_DEPTH - 1;
@@ -1102,7 +1044,7 @@ static eQWPttStatus NormalizeTpcChainData(tpAniSirGlobal pMac, tTpcCalPoint *cha
             tANI_S32 x1 = (t2Decimal)(MIN_PWR_LUT_DBM_2DEC_PLACES);
             tANI_S32 y1 = 0;
             tANI_S32 x2 = (t2Decimal)(MAX_PWR_LUT_DBM_2DEC_PLACES);
-            tANI_S32 y2 = ((TPC_MEM_POWER_LUT_DEPTH/* * EXTRA_TPC_LUT_MULT*/) -1);
+            tANI_S32 y2 = ((TPC_MEM_POWER_LUT_DEPTH) -1);
             tTpcLutValue lutValue;
 
             // this simply scales the power measurements to the necessary range
@@ -1113,7 +1055,7 @@ static eQWPttStatus NormalizeTpcChainData(tpAniSirGlobal pMac, tTpcCalPoint *cha
 
             phyLog(pMac, LOGE, "NormalizeTpcChannelData(): measured pwr %d dbm, mapping pwr adc code %d to %d\n",
                                     (t2Decimal)(MIN_PWR_LUT_DBM_2DEC_PLACES), chainData[calPoint].pwrDetAdc,
-                                    tpcChainCfg[calPoint].adjustedPwrDet/*GET_FULL_PRECISION_TPC_LUT_VALUE(tpcChainCfg[calPoint].adjustedPwrDet, tpcChainCfg[calPoint].extraPrecision.hi8_adjustedPwrDet)*/ );
+                                    tpcChainCfg[calPoint].adjustedPwrDet );
         }
 
         //check for non-monotonic ADC or power
@@ -1145,7 +1087,7 @@ eQWPttStatus pttSaveTxPwrFreqTable(tpAniSirGlobal pMac, tANI_U8 numTpcCalFreqs, 
     tANI_U8 highestTxChain = PHY_MAX_TX_CHAINS; //(pMac->hphy.phy.cfgChains == PHY_CHAIN_SEL_R0R1_T0_ON ? 1 : 2);
 
 
-    if (/*(table[0].freq != START_TPC_CHANNEL) || (table[1].freq != END_TPC_CHANNEL) ||*/ (numTpcCalFreqs != MAX_TPC_CHANNELS))
+    //if ((table[0].freq != START_TPC_CHANNEL) || (table[1].freq != END_TPC_CHANNEL) || (numTpcCalFreqs != MAX_TPC_CHANNELS))
     {
         phyLog(pMac, LOGE, "pttSaveTxPwrFreqTable called with wrong input params\n");
         return (FAILURE);
@@ -1216,17 +1158,17 @@ eQWPttStatus pttSaveTxPwrFreqTable(tpAniSirGlobal pMac, tANI_U8 numTpcCalFreqs, 
         }
 
         //now reconfigure TPC to make changes take effect immediately
-        if (ConfigureTpcFromNv(pMac) != eHAL_STATUS_SUCCESS)
-        {
-            retVal = FAILURE;
-        }
+        // if (ConfigureTpcFromNv(pMac) != eHAL_STATUS_SUCCESS)
+        // {
+        //     retVal = FAILURE;
+        // }
     }
 
 
     return (retVal);
 
 }
-
+*/
 
 
 eQWPttStatus pttSetPowerLut(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_U8 minIndex, tANI_U8 maxIndex, tANI_U8 *powerLut)
@@ -1315,35 +1257,58 @@ eQWPttStatus pttEnableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcEnable enables)
 }
 
 
-void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
+void pttCollectAdcRssiStats(tpAniSirGlobal pMac)
 {
     tANI_U32 rssi0, rssi0Stats = 0;
-	tANI_U8 counter, validCounterRssi0 = 0;
+    tANI_U8 counter, validCounterRssi0 = 0;
 
-	/*check the valid bit '8th bit' before reading values
-	 which should be set to 1 for valid RSSI reads*/
+    /*check the valid bit '8th bit' before reading values
+     which should be set to 1 for valid RSSI reads*/
 
-	for (counter = 0; counter < 10; counter++ ) {
+    for (counter = 0; counter < 10; counter++ ) {
 
-    palReadRegister(pMac->hHdd, QWLAN_AGC_ADC_RSSI0_REG, &rssi0);
+        palReadRegister(pMac->hHdd, QWLAN_AGC_ADC_RSSI0_REG, &rssi0);
 
-		/*reading rssi0 value*/
-		if(rssi0 & QWLAN_AGC_ADC_RSSI0_INVALID_MASK)
-		{
-			rssi0Stats += (tANI_U8)(rssi0 & QWLAN_AGC_ADC_RSSI0_RSSI_MASK);
-			validCounterRssi0++;
-		}
-		else
-		{
-			rssi0Stats += 0;
-		}
-	}
+        /*reading rssi0 value*/
+        if(rssi0 & QWLAN_AGC_ADC_RSSI0_INVALID_MASK)
+        {
+            rssi0Stats += (tANI_U8)(rssi0 & QWLAN_AGC_ADC_RSSI0_RSSI_MASK);
+            validCounterRssi0++;
+        }
+        else
+        {
+            rssi0Stats += 0;
+        }
+     }
 
 	/*average the value over valid reads*/
 	rssi0 = ((rssi0Stats == 0)?0:(rssi0Stats/validCounterRssi0));
 
-	/*assign rssiValues to response*/
-    rssi->rx[PHY_RX_CHAIN_0] = (tANI_U8)rssi0;
+    /*assign rssiValues to response*/
+    if(rssi0 > 0)
+    {
+        pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] = (tANI_S8)rssi0;
+    }
+}
+
+void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
+{
+#ifdef FIXME_VOLANS
+    eRfChannels curChan = rfGetChannelIndex(pMac->hphy.phy.test.testChannelId, pMac->hphy.phy.test.testCbState);
+    t2Decimal rssiOffset;
+
+    if(curChan == INVALID_RF_CHANNEL)
+    {
+        //default it to channel 1
+        curChan = RF_CHAN_1;
+    }
+
+    //use the gnpower offsets for RSSI as well. make sure you strip off last two decimal places
+    rssiOffset = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].gnRatePowerOffset[curChan].reported / 100;
+
+    rssi->rx[PHY_RX_CHAIN_0] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] + RSSI_TO_DBM_OFFSET + rssiOffset;
+#endif
+    rssi->rx[PHY_RX_CHAIN_0] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_0];
 }
 
 
@@ -1579,152 +1544,6 @@ eQWPttStatus pttExecuteInitialCals(tpAniSirGlobal pMac)
     }
 }
 
-#define ABS(x)      ((x < 0) ? -x : x)
-eQWPttStatus pttHdetCal(tpAniSirGlobal pMac, sRfNvCalValues *rfCalValues, tANI_BOOLEAN internal)//gs_low=0,gs_high=15,detector='external')
-{
-    //tANI_U32 gs_low=0, gs_high=15, detector='external';
-    eHalStatus retVal;
-    tANI_S32 padc, curr_min;// = N.zeros((128,1),int)
-    tANI_S32 target_low = 10, target_high = 220;
-    tANI_U8 ib_scale, ib_rcal, dcoc, opt_val_atten = 0, ext_atten;
-    tANI_U32 opt_val, revId;
-
-    pMac->hphy.phy.test.testInternalHdetCal = internal;
-
-    if(pMac->hphy.phy.test.testInternalHdetCal == eANI_BOOLEAN_FALSE)
-    //if(pMac->hphy.rf.revId < 0x200)
-    {
-        //setup tx
-        SET_PHY_REG(pMac->hHdd, QWLAN_TPC_GAIN_LUT0_MREG, 0x5f);
-        sirBusyWait(50000000);
-
-        SET_PHY_REG(pMac->hHdd, QWLAN_RFIF_GC_CFG_REG, 0);
-
-        //always start with default values
-        SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_HDET_DCOC_REG, 0xc000);
-#if 1//def LIBRA_1_1
-        SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_HDET_CTL_REG, 0x3660);
-#else
-        SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_HDET_CTL_REG, 0x3667);
-#endif
-        rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_CTL_REG, QWLAN_RFAPB_HDET_CTL_HDET_PATH_SEL_MASK, QWLAN_RFAPB_HDET_CTL_HDET_PATH_SEL_OFFSET, 0);
-
-        GET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_REV_ID_REG, &revId);
-        SET_PHY_REG(pMac->hHdd, QWLAN_RFIF_GC_CFG_REG, (QWLAN_RFIF_GC_CFG_TX_GAIN_EN_MASK | QWLAN_RFIF_GC_CFG_RX_GAIN_EN_MASK));
-
-
-        //set gain to 0, sweep the hdet_dcoc, and pick a value near 10 for sensed power
-        curr_min = 1000;
-        for(ib_scale = 0; ib_scale < 2; ib_scale++)
-        {
-            rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_DCOC_REG, QWLAN_RFAPB_HDET_DCOC_IB_SCAL_EN_MASK, QWLAN_RFAPB_HDET_DCOC_IB_SCAL_EN_OFFSET, ib_scale);
-
-            for(ib_rcal = 0; ib_rcal < 2; ib_rcal++)
-            {
-                rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_DCOC_REG, QWLAN_RFAPB_HDET_DCOC_IB_RCAL_EN_MASK, QWLAN_RFAPB_HDET_DCOC_IB_RCAL_EN_OFFSET, ib_rcal);
-
-                for(dcoc = 0; dcoc < 32; dcoc++)
-                {
-#ifdef FIXME_VOLANS
-                    rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_DCOC_REG, QWLAN_RFAPB_HDET_DCOC_DCOC_CODE_5_0_MASK, QWLAN_RFAPB_HDET_DCOC_DCOC_CODE_5_0_OFFSET, dcoc);
-#endif
-                    sirBusyWait(50000000);
-
-                    GET_PHY_REG(pMac->hHdd, QWLAN_TPC_SENSED_PWR0_REG, &padc);
-                    if(ABS(padc-target_low) < curr_min)
-                    {
-                        curr_min = ABS(padc-target_low);
-                        GET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_HDET_DCOC_REG, &opt_val);
-                        phyLog(pMac, LOGE, "----- dcoc new opt -----\n");
-                    }
-                    phyLog(pMac, LOGE, "padc = %d, ib_scale = %d, ib_rcal = %d, dcoc = %d\n", padc, ib_scale, ib_rcal, dcoc);
-                }
-            }
-        }
-
-        SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_HDET_DCOC_REG, opt_val);
-
-        //now, set gain to max, sweep ext_atten and pick a value near high_target
-
-        SET_PHY_REG(pMac->hHdd, QWLAN_TPC_GAIN_LUT0_MREG, 0xff);
-        sirBusyWait(50000000);
-
-        SET_PHY_REG(pMac->hHdd, QWLAN_RFIF_GC_CFG_REG, 0);
-
-        GET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_REV_ID_REG, &revId);
-        SET_PHY_REG(pMac->hHdd, QWLAN_RFIF_GC_CFG_REG, (QWLAN_RFIF_GC_CFG_TX_GAIN_EN_MASK | QWLAN_RFIF_GC_CFG_RX_GAIN_EN_MASK));
-
-
-        curr_min = 1000;
-#if 1//def LIBRA_1_1
-        for(ext_atten = 0; ext_atten < 16; ext_atten++)
-        {
-#ifdef FIXME_VOLANS
-            rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_CTL_REG, QWLAN_RFAPB_HDET_CTL_EXT_ATTEN_3_0_MASK, QWLAN_RFAPB_HDET_CTL_EXT_ATTEN_3_0_OFFSET, ext_atten);
-#endif
-            sirBusyWait(50000000);
-
-            GET_PHY_REG(pMac->hHdd, QWLAN_TPC_SENSED_PWR0_REG, &padc);
-            if(ABS(padc-target_high)<curr_min)
-            {
-                curr_min = ABS(padc-target_high);
-                opt_val_atten = ext_atten;
-                phyLog(pMac, LOGE, "----- atten new opt -----\n");
-            }
-            phyLog(pMac, LOGE, "padc = %d, ext_atten = %d\n", padc, ext_atten);
-        }
-#else
-        opt_val_atten = 0x3;
-#endif
-#ifdef FIXME_VOLANS
-        rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_CTL_REG, QWLAN_RFAPB_HDET_CTL_EXT_ATTEN_3_0_MASK, QWLAN_RFAPB_HDET_CTL_EXT_ATTEN_3_0_OFFSET, opt_val_atten);
-        rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_CTL_REG, QWLAN_RFAPB_HDET_CTL_INT_ATTEN_3_0_MASK, QWLAN_RFAPB_HDET_CTL_INT_ATTEN_3_0_OFFSET, opt_val_atten);
-#endif
-
-        SET_PHY_REG(pMac->hHdd, QWLAN_TPC_GAIN_LUT0_MREG, 0xf);
-
-        //opt_val_atten, opt_val
-        pMac->ptt.rfCalValues.hdet_ctl_ext_atten              = (tANI_U8)(opt_val_atten);
-#ifdef FIXME_VOLANS
-        pMac->ptt.rfCalValues.hdet_dcoc_code                  = (tANI_U8)((opt_val & QWLAN_RFAPB_HDET_DCOC_DCOC_CODE_5_0_MASK) >> QWLAN_RFAPB_HDET_DCOC_DCOC_CODE_5_0_OFFSET);
-#endif
-        pMac->ptt.rfCalValues.hdet_dcoc_ib_rcal_en            = (tANI_U8)((opt_val & QWLAN_RFAPB_HDET_DCOC_IB_RCAL_EN_MASK) >> QWLAN_RFAPB_HDET_DCOC_IB_RCAL_EN_OFFSET);
-        pMac->ptt.rfCalValues.hdet_dcoc_ib_scal_en            = (tANI_U8)((opt_val & QWLAN_RFAPB_HDET_DCOC_IB_SCAL_EN_MASK) >> QWLAN_RFAPB_HDET_DCOC_IB_SCAL_EN_OFFSET);
-
-        memcpy(rfCalValues, &pMac->ptt.rfCalValues, sizeof(sRfNvCalValues));
-        memcpy(&pMac->hphy.nvCache.tables.rfCalValues, &pMac->ptt.rfCalValues, sizeof(sRfNvCalValues));
-    }
-    else
-    {
-        SET_PHY_REG(pMac->hHdd, QWLAN_RFIF_GC_CFG_REG, 0);
-
-        //trigger the internal cal
-        SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_HDET_DCOC_REG, 0x4000);
-        {
-            //eRfChannels tempChan = rfGetChannelIndex(pMac->hphy.phy.test.testChannelId, pMac->hphy.phy.test.testCbState);
-            SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_HDET_CTL_REG, 0xb112/*hdetVals[tempChan].hdetCalVal*/);
-        }
-
-        GET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_REV_ID_REG, &revId);
-        SET_PHY_REG(pMac->hHdd, QWLAN_RFIF_GC_CFG_REG, (QWLAN_RFIF_GC_CFG_TX_GAIN_EN_MASK | QWLAN_RFIF_GC_CFG_RX_GAIN_EN_MASK));
-
-
-    }
-    return SUCCESS;
-
-}
-
-
-eQWPttStatus pttVcoLinearityCal(tpAniSirGlobal pMac)
-{
-#ifdef VERIFY_HALPHY_SIMV_MODEL
-    rfVcoFreqLinearityCal();
-
-   verifyVcoLinearityCal();
-#endif
-
-    return SUCCESS;
-}
 
 //Phy Calibration Override Service
 eQWPttStatus pttSetTxCarrierSuppressCorrect(tpAniSirGlobal pMac, sTxChainsLoCorrections calValues, eGainSteps gain)
@@ -1887,8 +1706,11 @@ eQWPttStatus pttGetRxIqCorrect(tpAniSirGlobal pMac, sRxChainsIQCalValues *calVal
 }
 
 
+#define MAX_DCO_LUT_INDEX   31
 eQWPttStatus pttSetRxDcoCorrect(tpAniSirGlobal pMac, tRxChainsDcoCorrections calValues, tANI_U8 gain)
 {
+    tANI_U32 lutIdx = 0;
+
     if ((tANI_U32)gain > NUM_RF_RX_GAIN_STEPS)
     {
         phyLog(pMac, LOGE, "Incorrect Gain %d\n", gain);
@@ -1904,11 +1726,14 @@ eQWPttStatus pttSetRxDcoCorrect(tpAniSirGlobal pMac, tRxChainsDcoCorrections cal
         }
     }
 */
+    for (lutIdx = 0; lutIdx <= MAX_DCO_LUT_INDEX; lutIdx++) 
+    {
 #ifdef VERIFY_HALPHY_SIMV_MODEL
-    rfSetDCOffset(PHY_RX_CHAIN_0, gain, calValues.dco[PHY_RX_CHAIN_0]);
+        rfSetDCOffset(PHY_RX_CHAIN_0, lutIdx, calValues.dco[PHY_RX_CHAIN_0]);
 #else
-    rfSetDCOffset(pMac, PHY_RX_CHAIN_0, gain, calValues.dco[PHY_RX_CHAIN_0]);
+        rfSetDCOffset(pMac, PHY_RX_CHAIN_0, lutIdx, calValues.dco[PHY_RX_CHAIN_0]);
 #endif
+    }
 
     return (SUCCESS);
 }
@@ -1925,6 +1750,8 @@ eQWPttStatus pttSetRxIm2Correct(tpAniSirGlobal pMac, tRxChainsIm2Corrections cal
 
 eQWPttStatus pttGetRxDcoCorrect(tpAniSirGlobal pMac, tRxChainsDcoCorrections *calValues, tANI_U8 gain)
 {
+    gain = 31;  //All lutIndices have same value
+
     if ((tANI_U32)gain > NUM_RF_RX_GAIN_STEPS)
     {
         phyLog(pMac, LOGE, "Incorrect Gain %d\n", gain);
@@ -1957,22 +1784,13 @@ eQWPttStatus pttGetRxIm2Correct(tpAniSirGlobal pMac, tRxChainsIm2Corrections *ca
     return (SUCCESS);
 }
 
-eQWPttStatus pttGetHdetCorrect(tpAniSirGlobal pMac, sRfNvCalValues *rfCalValues)
-{
-    memcpy(rfCalValues, &pMac->ptt.rfCalValues, sizeof(sRfNvCalValues));
-
-    return SUCCESS;
-}
 
 
 
 //Rf Calibration Service
-eQWPttStatus pttGetTempAdc(tpAniSirGlobal pMac, tANI_U8 *tempAdc)
+eQWPttStatus pttGetTempAdc(tpAniSirGlobal pMac, eRfTempSensor tempSensor, tTempADCVal *tempAdc)
 {
-#ifdef VERIFY_HALPHY_SIMV_MODEL
-    rfTakeTemp((tTempADCVal *)tempAdc);
-#else
-    if (eHAL_STATUS_SUCCESS == rfTakeTemp(pMac, 0, 1, (tTempADCVal *)tempAdc))
+    if (eHAL_STATUS_SUCCESS == rfTakeTemp(pMac, tempSensor, 1, (tTempADCVal *)tempAdc))
     {
        return (SUCCESS);
     }
@@ -1980,7 +1798,6 @@ eQWPttStatus pttGetTempAdc(tpAniSirGlobal pMac, tANI_U8 *tempAdc)
     {
        return (FAILURE);
     }
-#endif
 
     return (SUCCESS);
 }
@@ -2003,7 +1820,7 @@ eQWPttStatus pttStopToneGen(tpAniSirGlobal pMac, tANI_U32 option)
 
 eQWPttStatus pttReadRfField(tpAniSirGlobal pMac, tANI_U32 addr, tANI_U32 mask, tANI_U32 shift, tANI_U32 *value)
 {
-    if (eHAL_STATUS_SUCCESS == rfReadField(pMac, MIDAS_CHIP, addr, mask, shift, value))
+    if (eHAL_STATUS_SUCCESS == rfReadField(pMac, addr, mask, shift, value))
     {
         return (SUCCESS);
     }
@@ -2016,7 +1833,7 @@ eQWPttStatus pttReadRfField(tpAniSirGlobal pMac, tANI_U32 addr, tANI_U32 mask, t
 
 eQWPttStatus pttWriteRfField(tpAniSirGlobal pMac, tANI_U32 addr, tANI_U32 mask, tANI_U32 shift, tANI_U32 value)
 {
-    if (eHAL_STATUS_SUCCESS == rfWriteField(pMac, MIDAS_CHIP, addr, mask, shift, value))
+    if (eHAL_STATUS_SUCCESS == rfWriteField(pMac, addr, mask, shift, value))
     {
         return (SUCCESS);
     }
@@ -2121,7 +1938,7 @@ eQWPttStatus pttDeepSleep(tpAniSirGlobal pMac)
         phyLog(pMac, LOGE, "QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG 0x%x\n", dumpVal);
     }
 #endif
-#endif
+#endif //FIXME_VOLANS
     return (SUCCESS);
 }
 
@@ -2131,20 +1948,5 @@ eQWPttStatus pttSystemReset(tpAniSirGlobal pMac)
     return (SUCCESS);
 }
 
-eQWPttStatus pttLogDump(tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4)
-{
-
-    tANI_U8 buf[3000];
-    buf[0] = '\0';
-#ifndef VERIFY_HALPHY_SIMV_MODEL
-    logRtaiDump(pMac, cmd, arg1, arg2, arg3, arg4, buf);
-#endif
-    buf[2999] = '\0';
-    phyLog(pMac, LOGE, "logDump %d %x %x %x %x \n",  cmd, arg1, arg2, arg3, arg4);
-    phyLog(pMac, LOGE, "logDump %s\n",  buf);
-
-    return (SUCCESS);
-}
-
-#endif // ANI_MANF_DIAG
+#endif //ifndef WLAN_FTM_STUB
 

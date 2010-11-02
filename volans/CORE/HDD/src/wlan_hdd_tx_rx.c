@@ -19,10 +19,21 @@
 #include <linux/skbuff.h>
 #include <linux/etherdevice.h>
 
+#ifdef CONFIG_CFG80211
+#include <linux/wireless.h>
+#include <net/cfg80211.h>
+#endif
 
 /*--------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/ 
+
+const v_U8_t hddWmmAcToHighestUp[] = {
+   SME_QOS_WMM_UP_RESV,
+   SME_QOS_WMM_UP_EE,
+   SME_QOS_WMM_UP_VI,
+   SME_QOS_WMM_UP_NC
+};
 
 /*--------------------------------------------------------------------------- 
   Type declarations
@@ -162,7 +173,7 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    skb_list_node_t *pktNode = NULL;
    hdd_list_node_t *anchor = NULL;
    v_SIZE_t pktListSize = 0;
-   hdd_adapter_t* pAdapter = netdev_priv(dev);
+   hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
    v_BOOL_t granted;
 
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
@@ -305,8 +316,9 @@ void hdd_tx_timeout(struct net_device *dev)
   ===========================================================================*/
 struct net_device_stats* hdd_stats(struct net_device *dev)
 {
-   hdd_adapter_t* priv = netdev_priv(dev);
-   return &priv->stats;
+   hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+   
+   return &pAdapter->stats;
 }
 
 
@@ -403,6 +415,36 @@ v_BOOL_t hdd_IsEAPOLPacket( vos_pkt_t *pVosPacket )
 }
 
 
+#ifdef FEATURE_WLAN_WAPI // Need to update this function
+/**============================================================================
+  @brief hdd_IsWAIPacket() - Checks the packet is WAI or not.
+
+  @param pVosPacket : [in] pointer to vos packet
+  @return         : VOS_TRUE if the packet is WAI
+                  : VOS_FALSE otherwise
+  ===========================================================================*/
+
+v_BOOL_t hdd_IsWAIPacket( vos_pkt_t *pVosPacket )
+{
+    VOS_STATUS vosStatus  = VOS_STATUS_SUCCESS;
+    v_BOOL_t   fIsWAI     = VOS_FALSE;
+    void       *pBuffer   = NULL;
+
+    // Need to update this function
+    vosStatus = vos_pkt_peek_data( pVosPacket, (v_SIZE_t)HDD_ETHERTYPE_802_1_X_FRAME_OFFSET,
+                          &pBuffer, HDD_ETHERTYPE_802_1_X_SIZE );
+
+    if (VOS_IS_STATUS_SUCCESS( vosStatus ) )
+    {
+       if ( vos_be16_to_cpu( *(unsigned short*)pBuffer ) == HDD_ETHERTYPE_WAI)
+       {
+          fIsWAI = VOS_TRUE;
+       }
+    }
+
+   return fIsWAI;
+}
+#endif /* FEATURE_WLAN_WAPI */
 
 /**============================================================================
   @brief hdd_tx_complete_cbk() - Callback function invoked by TL
@@ -492,8 +534,9 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    vos_pkt_t *pVosPacket = NULL;
    v_MACADDR_t* pDestMacAddress = NULL;
    v_TIME_t timestamp;
-   WLANTL_ACEnumType ac;
+   WLANTL_ACEnumType ac, newAc;
    v_SIZE_t size = 0;
+   tANI_U8   acAdmitted, i;
 
    //Sanity check on inputs
    if ( ( NULL == vosContext ) || 
@@ -646,6 +689,11 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       pPktMetaInfo->ucIsEapol = hdd_IsEAPOLPacket( pVosPacket ) ? 1 : 0;
 		
       	
+#ifdef FEATURE_WLAN_WAPI
+   // Override usIsEapol value when its zero for WAPI case
+      pPktMetaInfo->ucIsWai = hdd_IsWAIPacket( pVosPacket ) ? 1 : 0;
+#endif /* FEATURE_WLAN_WAPI */      	
+
    if ((HDD_WMM_USER_MODE_NO_QOS == pAdapter->cfg_ini->WmmMode) ||
        (!pAdapter->hddWmmStatus.wmmQap))
    {
@@ -655,8 +703,32 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    }
    else
    {
-      pPktMetaInfo->ucUP = pktNode->userPriority;
-      pPktMetaInfo->ucTID = pPktMetaInfo->ucUP;
+      /* 1. Check if ACM is set for this AC 
+       * 2. If set, check if this AC had already admitted 
+       * 3. If not already admitted, downgrade the UP to next best UP */
+      if(!pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessRequired ||
+         pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcTspecValid)
+      {
+        pPktMetaInfo->ucUP = pktNode->userPriority;
+        pPktMetaInfo->ucTID = pPktMetaInfo->ucUP;
+      }
+      else
+      {
+        //Downgrade the UP
+        acAdmitted = pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcTspecValid;
+        newAc = WLANTL_AC_BK;
+        for (i=ac-1; i>0; i--)
+        {
+            if (pAdapter->hddWmmStatus.wmmAcStatus[i].wmmAcAccessRequired == 0)
+            {
+                newAc = i;
+                break;
+            }
+        }
+        pPktMetaInfo->ucUP = hddWmmAcToHighestUp[newAc];
+        pPktMetaInfo->ucTID = pPktMetaInfo->ucUP;
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_LOW,"Downgrading UP %d to UP %d ", pktNode->userPriority, pPktMetaInfo->ucUP);
+      }
    }
 
    pPktMetaInfo->ucType = 0;          //FIXME Don't know what this is

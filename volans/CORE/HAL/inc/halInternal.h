@@ -68,8 +68,6 @@ typedef enum
 } eUpdateSmacCfg;
 
 eHalStatus    halGlobalInit( tpAniSirGlobal pMac );
-tSystemRole   halGetSystemRole( tpAniSirGlobal );
-void          halSetSystemRole( tpAniSirGlobal, tSystemRole );
 eHalStatus halSetPowerSaveMode(tpAniSirGlobal pMac, tSirMacHTMIMOPowerSaveState powerState);
 eHalStatus    halInitEdcaProfile(tHalHandle hHal, void *arg);
 eHalStatus    halPhy_ChangeChannel(tpAniSirGlobal pMac, tANI_U8 newChannel, ePhyChanBondState cbState, tANI_U8 calRequired, funcHalSetChanCB pFunc, void* pData, tANI_U16 dialog_token);

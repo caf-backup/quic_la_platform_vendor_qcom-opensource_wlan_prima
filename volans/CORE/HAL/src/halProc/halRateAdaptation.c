@@ -54,7 +54,7 @@ _raRateIsSupportedAndValid(
 static tHalMacRate
 _getLowestRateByNwType(
     eRfBandMode band,
-    tSirNwType  nwType,
+    tStaRateMode operMode,
     tANI_U32 pure11g
 );
 
@@ -83,12 +83,22 @@ _fillSupportedPreTitanRatesByIeRates(
     tANI_U8         numRates,
     tHalIeRateType  rateType);
 
+#ifdef FEATURE_TX_PWR_CONTROL
+static void
+_fillSupportedHTRatesByMcsBitmap(
+    tpAniSirGlobal  pMac,
+    tpHalRaInfo     pRaInfo,
+    tANI_U8        *pSupportedMcsRateBitmap,
+    tANI_U8         numBytes,
+    tANI_U8         isSelfSta);
+#else
 static void
 _fillSupportedHTRatesByMcsBitmap(
     tpAniSirGlobal  pMac,
     tpHalRaInfo     pRaInfo,
     tANI_U8        *pSupportedMcsRateBitmap,
     tANI_U8         numBytes);
+#endif
 
 #define _raAddRecord(pMac,pSta,code,netTx,netFail,prevRate,newRate)
 
@@ -269,7 +279,11 @@ halMacRaUpdateReq(tpAniSirGlobal pMac, tFwRaUpdateEnum raUpdateEvent, tANI_U16 m
    msg.raUpdateMsgLen = msgLen;
 
    if(msgLen)
-      vos_mem_copy(&msg.u.raAddStaMsg, msgBody, msgLen);
+#ifdef WLAN_SOFTAP_FEATURE    
+      vos_mem_copy(&msg.u.raUpdateParam, msgBody, msgLen);
+//#else
+//      vos_mem_copy(&msg.u.raAddStaMsg, msgBody, msgLen);
+#endif
    
    // Send the RA start request to firmware
    status = halFW_SendMsg(pMac, HAL_MODULE_ID_RA, QWLANFW_HOST2FW_RA_UPDATE,
@@ -277,6 +291,7 @@ halMacRaUpdateReq(tpAniSirGlobal pMac, tFwRaUpdateEnum raUpdateEvent, tANI_U16 m
    return status;
 }
 
+#ifndef FEATURE_RA_CHANGE
 eHalStatus
 halMacRaAddBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 selfStaIdx)
 {
@@ -355,6 +370,7 @@ halMacRaDelStaReq(tpAniSirGlobal pMac, tANI_U32 staid)
    status = halMacRaUpdateReq(pMac, QWLANFW_RA_UPDATE_DEL_STA, sizeof(Qwlanfw_RaDelStaMsgType), (tANI_U8 *)&msgBody);
    return status;
 }
+#endif
 
 eHalStatus
 halMacRaUpdateParamReq(tpAniSirGlobal pMac, tANI_U32 bmCode, tANI_U32 paramSpecific)
@@ -405,34 +421,29 @@ static void raLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,..
 
 
 static tHalMacRate
-_getLowestRateByNwType( eRfBandMode band,
-    tSirNwType  nwType, tANI_U32 pure11g)
+_getLowestRateByNwType( eRfBandMode band, tStaRateMode operMode, tANI_U32 pure11g)
 {
     tHalMacRate halRate = HALRATE_INVALID;
 
-    switch(nwType)
+    switch(operMode)
     {
-        case eSIR_11A_NW_TYPE:
+        case eSTA_11a:
             halRate = HALRATE_6;
             break;
-
-        case eSIR_11N_NW_TYPE:
-            if(band == eRF_BAND_5_GHZ || (pure11g)){
+        case eSTA_11bg:
+        case eSTA_11n:
+            if (band == eRF_BAND_5_GHZ || (pure11g)) {
                 halRate = HALRATE_6;
-            }else
+            } else {
                 halRate = HALRATE_1;
-
+            }
             break;
-
-        case eSIR_11G_NW_TYPE:
-            halRate = (pure11g) ? HALRATE_6 : HALRATE_1;
-            break;
-
-        case eSIR_11B_NW_TYPE:
+        case eSTA_11b:
         default:
             halRate = HALRATE_1;
             break;
     }
+
     return halRate;
 }
 
@@ -515,6 +526,11 @@ _updateStaValidRateBitmap(tpAniSirGlobal  pMac, tpStaStruct   pSta,  tANI_U32 se
 
             //enable all MCS 0-7 rates
             SET_HT_SIMO_ALLGI_RATES(vRates);
+
+#ifdef FEATURE_TX_PWR_CONTROL
+            //enable the corresponding bits for virtual rates
+           HALRATE_SETBIT(vRates, HALRATE_QUALCOMM_VIRTUAL_RATE_START, HALRATE_QUALCOMM_VIRTUAL_RATE_END);
+#endif
 
             //enable all MCS 8-15 rates
             SET_HT_MIMO_ALLGI_RATES(vRates);
@@ -605,6 +621,9 @@ halMacRaInitStaRate(
 {
     tHalMacRate fixedRate;
     tpHalRaInfo   pRaInfo;
+#ifdef HAL_SELF_STA_PER_BSS
+    tANI_U8 selfStaIdx;
+#endif    
     pRaInfo = HAL_RAINFO_PTR_GET(pSta);
 
     /* first get the fixed rate config */
@@ -623,9 +642,14 @@ halMacRaInitStaRate(
         }
     }
 
-    /* always recreate the valid rate bitmap for this sta based on its capability, BSS parameters and local STA's capability*/
+    /* always recreate the valid rate bitmap for this sta based on its 
+     * capability, BSS parameters and local STA's capability*/
+#ifdef HAL_SELF_STA_PER_BSS
+    halTable_GetBssSelfStaIdxForBss(pMac, pSta->bssIdx, &selfStaIdx);
+    _updateStaValidRateBitmap(pMac, pSta, selfStaIdx);
+#else
     _updateStaValidRateBitmap(pMac, pSta, pMac->hal.halMac.selfStaId);
-
+#endif
     //if peer does not support the fixed rate, let RA run on this STA.
     if( (fixedRate != HALRATE_INVALID) &&
             (eSIR_SUCCESS !=  _raRateIsSupportedAndValid( pMac, fixedRate, 
@@ -818,15 +842,37 @@ _fillSupportedPreTitanRatesByIeRates(
     }
 }
 
+#ifdef FEATURE_TX_PWR_CONTROL
+static void
+_fillSupportedHTRatesByMcsBitmap(
+    tpAniSirGlobal  pMac,
+    tpHalRaInfo     pRaInfo,
+    tANI_U8        *pSupportedMcsRates,
+    tANI_U8         numBytes,
+    tANI_U8         isSelfSta)
+#else
 static void
 _fillSupportedHTRatesByMcsBitmap(
     tpAniSirGlobal  pMac,
     tpHalRaInfo     pRaInfo,
     tANI_U8        *pSupportedMcsRates,
     tANI_U8         numBytes)
+#endif
 {
     //tHalMacRate halRate;
     tANI_U8 mcsIdx;
+
+#ifdef FEATURE_TX_PWR_CONTROL 
+    tANI_U32 txPwrCtrlEnabled;
+
+    if(wlan_cfgGetInt(pMac,WNI_CFG_TX_PWR_CTRL_ENABLE, &txPwrCtrlEnabled) != 
+                                                                eSIR_SUCCESS) {
+        raLog(pMac, RALOG_ERROR, FL("TX_PWR_ENABLED CFG get failed"));
+        return ;
+    }
+#endif
+
+
     for(mcsIdx = 0; mcsIdx < numBytes*8; mcsIdx++){
 
         if(mcsIdx>=16){
@@ -863,9 +909,25 @@ _fillSupportedHTRatesByMcsBitmap(
                 if(pRaInfo->shortGI20){
                     //SIMO+SGI
                     RA_BITVAL_SET((HALRATE_HT_SIMO_SGI_START + mcsIdx), pRaInfo->supportedRates);
+#ifdef FEATURE_TX_PWR_CONTROL
+                    /*set virtual rate bit for the 72Mbps Rate if SGI and 
+                    * TX power control feature is enabled*/
+                    if( txPwrCtrlEnabled && mcsIdx == 7)
+                        RA_BITVAL_SET((HALRATE_HT_SIMO_SGI_0722_VIRT_TPW1), pRaInfo->supportedRates);
+#endif
                 }
                 //SIMO
                 RA_BITVAL_SET((HALRATE_HT_SIMO_START + mcsIdx), pRaInfo->supportedRates);
+#ifdef FEATURE_TX_PWR_CONTROL
+                /*set the virtual rate bit for the 65Mbps Rate if TX power control feature is enabled
+                *and if self STA add the rate directly since it used for 
+                *updating the sampling table or If short GI is not supported 
+                *then only add the long GI virtual rate to avoid RA moving to 
+                *long GI virtual rate before selecting actual short GI rate*/
+                if((txPwrCtrlEnabled) && ( isSelfSta || !pRaInfo->shortGI20 ) &&
+                                                                  ( mcsIdx == 7 ))
+                    RA_BITVAL_SET((HALRATE_HT_SIMO_0650_VIRT_TPW1), pRaInfo->supportedRates);
+#endif                
             }
         }else{
             tANI_U32 idx = mcsIdx - 8;
@@ -938,7 +1000,7 @@ _raStartStaAutoRate(
     {
         pur11g = false;
     }
-    selectedPrimaryRate = _getLowestRateByNwType(pMac->hal.currentRfBand,pMac->hal.nwType , pur11g);
+    selectedPrimaryRate = _getLowestRateByNwType(pMac->hal.currentRfBand, pRaInfo->opRateMode, pur11g);
 
     //non fixed rate, pick lowest rate and force restart sampling
     //Best rate would be selected by RA later
@@ -1465,6 +1527,9 @@ halMacRaUpdateStaSuppRateBitmap_PeerType(
     tpHalRaInfo   pRaInfo;
     tSirRetStatus retval;
     tpStaStruct pSta = ((tpStaStruct) pMac->hal.halMac.staTable)+staid;
+#ifdef FEATURE_TX_PWR_CONTROL
+    tANI_U8     isSelfSta = (staid == pMac->hal.halMac.selfStaId)?1:0;
+#endif
 
     if((pSta == NULL) || (pRates == NULL))
     {
@@ -1496,7 +1561,13 @@ halMacRaUpdateStaSuppRateBitmap_PeerType(
             break;
 
         case eSTA_11n:
-            _fillSupportedHTRatesByMcsBitmap(pMac, pRaInfo, &pRates->supportedMCSSet[0], sizeof(pRates->supportedMCSSet));
+#ifdef FEATURE_TX_PWR_CONTROL
+            _fillSupportedHTRatesByMcsBitmap(pMac, pRaInfo, &pRates->supportedMCSSet[0], 
+                                    sizeof(pRates->supportedMCSSet), isSelfSta);
+#else
+            _fillSupportedHTRatesByMcsBitmap(pMac, pRaInfo, &pRates->supportedMCSSet[0], 
+                                       sizeof(pRates->supportedMCSSet));
+#endif
             /*TODO: Here assume 11n is operating in 2.4Ghz and set 11b rates in supported rate bitmap.
               if band is 5Ghz, 11b rates would be filtered later when creating valid rate bitmap*/
             if(pMac->hal.currentRfBand != eRF_BAND_5_GHZ)
@@ -1529,7 +1600,7 @@ tSirRetStatus halMacRaStaAdd(
     tpStaStruct         pSta = ((tpStaStruct) pMac->hal.halMac.staTable);
     tpHalRaInfo         pRaInfo;
 
-    if(pSta == NULL || (pMac->hal.memMap.maxStations < staid))
+    if(pSta == NULL || (pMac->hal.memMap.maxStations <= staid))
     {
         raLog(pMac, RALOG_ERROR, FL("halMacRaStaAdd: invalid sta[%d]!"), staid);
         return eSIR_HAL_STA_DOES_NOT_EXIST;
@@ -1553,7 +1624,7 @@ tSirRetStatus halMacRaStaDel(
     tpStaStruct         pSta = ((tpStaStruct) pMac->hal.halMac.staTable);
     tpHalRaInfo         pRaInfo;
 
-    if(pSta == NULL || (pMac->hal.memMap.maxStations < staid))
+    if(pSta == NULL || (pMac->hal.memMap.maxStations <= staid))
     {
         raLog(pMac, RALOG_ERROR, FL("halMacRaStaDel: invalid sta[%d]!"), staid);
         return eSIR_HAL_STA_DOES_NOT_EXIST;
@@ -1585,7 +1656,7 @@ halMacRaStaInit(
      * if the hash node is available, go ahead and initialize even if it is not valid
      * this function may be called before the valid bit is set
      */
-    if(pSta == NULL || (pMac->hal.memMap.maxStations < staid))
+    if(pSta == NULL || (pMac->hal.memMap.maxStations <= staid))
     {
         raLog(pMac, RALOG_ERROR, FL("invalid sta[%d]!"), staid);
         return eSIR_SUCCESS;
@@ -1598,6 +1669,7 @@ halMacRaStaInit(
 
     pRaInfo = HAL_RAINFO_PTR_GET(pSta);
     pRaInfo->opRateMode = pRates->opRateMode;
+    pRaInfo->bssIdx     = pSta->bssIdx;
 
     /* populate the station specific capability information */
     pRaInfo->cbMode   = pMode->channelBondingEnable;
@@ -1620,7 +1692,7 @@ halMacRaStaInit(
      * locally through other means (such as dump commands)
      */
     /* initially set to lowest rate, may be overriden later if fixed rate is configured */
-    pRaInfo->currentRate = _getLowestRateByNwType(pMac->hal.currentRfBand,pMac->hal.nwType, (!pBss->bssRaInfo.u.bit.llbCoexist)|| pRaInfo->opRateMode != eSTA_11b);
+    pRaInfo->currentRate = _getLowestRateByNwType(pMac->hal.currentRfBand, pRaInfo->opRateMode, (!pBss->bssRaInfo.u.bit.llbCoexist));
 
     raLog(pMac, RALOG_STATS, FL("RA[STA%d]  opRateMode %d"), staid, pRates->opRateMode);
 
@@ -1784,6 +1856,7 @@ halMacRaSetAllStaRetryRates(
     tHalMacRate     tRate)  /* tertiary rate */
 {
     tANI_U16 staid ; //startStaid;
+    tANI_U8  staType;
     tpHalRaGlobalInfo   pGlob   = &pMac->hal.halRaInfo;
 
     /* set global retry rate policy and rates
@@ -1794,19 +1867,21 @@ halMacRaSetAllStaRetryRates(
     pGlob->tRate = tRate;
 
     // update raGlobalInfo in the firmware memory
-    halMacRaGlobalInfoToFW(pMac, pGlob, offsetof(tHalRaGlobalInfo, rMode), sizeof(pGlob->rMode));
+    halMacRaGlobalInfoToFW(pMac, pGlob, offsetof(tHalRaGlobalInfo, rMode), 
+		    sizeof(pGlob->rMode));
 
     /* for each staid, force set the retry mode, then update STA rate */
     for (staid = 0; staid < pMac->hal.halMac.maxSta; staid++)
     {
         // Not required on selfSta.
-        if(staid == pMac->hal.halMac.selfStaId) {
+        if ((halTable_GetStaType(pMac, staid, &staType) == eHAL_STATUS_SUCCESS) && 
+            (staType == STA_ENTRY_SELF)) {
             continue;
         }
 
-        if(eSIR_SUCCESS == halMacRaSetStaRetryMode(pMac, staid, rMode, sRate, tRate))
+        if(eSIR_SUCCESS == halMacRaSetStaRetryMode(pMac, staid, rMode, sRate, tRate)) {
             halMacRaSetStaRetryMode(pMac, staid, rMode, sRate, tRate);
-
+	}
     }
     return eSIR_SUCCESS;
 }
@@ -2018,7 +2093,7 @@ void halMacRaDumpHalSamplingRateTable(tpAniSirGlobal pMac, tANI_U32 bssIdx,
                     (pSample[sampIdx]< HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx]):0);
             }
 #endif
-            raLog(pMac, RALOG_CLI, "  %2d-%2d: %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d ...(x100Kbps) \n",
+            raLog(pMac, RALOG_CLI, "  %2d-%2d: %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d ...(x100Kbps) \n",
                     sampIdx, sampIdx+9,
                     (pSample[sampIdx] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx]):0,
                     (pSample[sampIdx+1] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+1]):0,
@@ -2029,9 +2104,11 @@ void halMacRaDumpHalSamplingRateTable(tpAniSirGlobal pMac, tANI_U32 bssIdx,
                     (pSample[sampIdx+6] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+6]):0,
                     (pSample[sampIdx+7] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+7]):0,
                     (pSample[sampIdx+8] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+8]):0,
-                    (pSample[sampIdx+9] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+9]):0                        
+                    (pSample[sampIdx+9] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+9]):0, 
+                    (pSample[sampIdx+10] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+10]):0,                        
+                    (pSample[sampIdx+11] < HALRATE_INVALID)?HAL_RA_THRUPUT_GET(pSample[sampIdx+11]):0
                  );
-            raLog(pMac, RALOG_CLI, "         %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d ...(tpeRateIdx) \n",
+            raLog(pMac, RALOG_CLI, "         %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d ...(tpeRateIdx) \n",
                     HAL_RA_TPERATEIDX_GET(pSample[sampIdx]),
                     HAL_RA_TPERATEIDX_GET(pSample[sampIdx+1]),
                     HAL_RA_TPERATEIDX_GET(pSample[sampIdx+2]),
@@ -2041,9 +2118,11 @@ void halMacRaDumpHalSamplingRateTable(tpAniSirGlobal pMac, tANI_U32 bssIdx,
                     HAL_RA_TPERATEIDX_GET(pSample[sampIdx+6]),
                     HAL_RA_TPERATEIDX_GET(pSample[sampIdx+7]),
                     HAL_RA_TPERATEIDX_GET(pSample[sampIdx+8]),
-                    HAL_RA_TPERATEIDX_GET(pSample[sampIdx+9])
+                    HAL_RA_TPERATEIDX_GET(pSample[sampIdx+9]),
+                    HAL_RA_TPERATEIDX_GET(pSample[sampIdx+10]),
+                    HAL_RA_TPERATEIDX_GET(pSample[sampIdx+11])
                  );
-            raLog(pMac, RALOG_CLI, "         %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d ...(Sensitivity/10) \n",
+            raLog(pMac, RALOG_CLI, "         %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d %4d ...(Sensitivity/10) \n",
                     (pSample[sampIdx]< HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx]):0,
                     (pSample[sampIdx+1] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+1]):0,
                     (pSample[sampIdx+2] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+2]):0,
@@ -2053,7 +2132,9 @@ void halMacRaDumpHalSamplingRateTable(tpAniSirGlobal pMac, tANI_U32 bssIdx,
                     (pSample[sampIdx+6] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+6]):0,
                     (pSample[sampIdx+7] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+7]):0,
                     (pSample[sampIdx+8] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+8]):0,
-                    (pSample[sampIdx+9] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+9]):0
+                    (pSample[sampIdx+9] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+9]):0,
+                    (pSample[sampIdx+10] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+10]):0,
+                    (pSample[sampIdx+11] < HALRATE_INVALID)?HAL_RA_SENSITIVITY_GET(pSample[sampIdx+11]):0
                  );
         }
     }

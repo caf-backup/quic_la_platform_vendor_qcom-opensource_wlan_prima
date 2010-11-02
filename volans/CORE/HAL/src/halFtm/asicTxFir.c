@@ -15,12 +15,13 @@
   --------------------------------------------------------------------------
 
  */
-#if defined(ANI_MANF_DIAG) && !defined(VERIFY_HALPHY_SIMV_MODEL)
+
 
 #include <ani_assert.h>
 #include <wlan_bit.h>
 #include <sys_api.h>
 
+#if !defined(WLAN_FTM_STUB) && !defined(VERIFY_HALPHY_SIMV_MODEL)
 
 eHalStatus asicTxFirSetTxCarrierCorrection(tpAniSirGlobal pMac, eGainSteps gain, ePhyTxChains txChain, sTxFirLoCorrect correct)
 {
@@ -163,7 +164,7 @@ eHalStatus asicTxFirSetTxPhaseCorrection(tpAniSirGlobal pMac, eGainSteps gain, e
     SET_PHY_REG(pMac->hHdd, startWord, txIqLoCache[0]);
     SET_PHY_REG(pMac->hHdd, startWord+4, txIqLoCache[1]);
     SET_PHY_REG(pMac->hHdd, startWord+8, txIqLoCache[2]);
-	
+
     return (eHAL_STATUS_SUCCESS);
 }
 
@@ -202,5 +203,5 @@ eHalStatus asicTxFirGetTxPhaseCorrection(tpAniSirGlobal pMac, eGainSteps gain, e
     }    
     return (eHAL_STATUS_SUCCESS);
 }
-#endif
+#endif //not defined WLAN_FTM_STUB && not defined SIMV_MODEL
 

@@ -59,7 +59,7 @@ eANI_DVT_STATUS dvtGetSmacRuntimeStats(tpAniSirGlobal pMac, tDvtSmacRuntimeStat 
 
 eANI_DVT_STATUS dvtReadRegs(tpAniSirGlobal pMac, sDvtReadRegs *regs, tANI_U8 size);
 eANI_DVT_STATUS dvtGetCountPerSta(tpAniSirGlobal pMac, tANI_U32 *countPerSta, tANI_BOOLEAN isTx);
-eANI_DVT_STATUS dvtWriteBeaconToMemory(tpAniSirGlobal pMac, tANI_U8 *beacon, tANI_U16 bssIndex, tANI_U32 length);
+eANI_DVT_STATUS dvtWriteBeaconToMemory(tpAniSirGlobal pMac, tANI_U8 *beacon, tANI_U16 bssIndex, tANI_U32 length, tpPESession psessionEntry);
 
 eANI_DVT_STATUS dvtSetEepromBurstPageSize(tpAniSirGlobal pMac, tANI_U32 pageSize);
 void dvtFrameBoundsInit(tpAniSirGlobal pMac);

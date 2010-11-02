@@ -51,8 +51,9 @@
  VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter);
  VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter);
  VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter);
+#ifdef CONFIG_HAS_EARLYSUSPEND
  VOS_STATUS hdd_wlan_reset(void) ;
-
+#endif
 
 
 

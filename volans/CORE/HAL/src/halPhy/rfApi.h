@@ -40,8 +40,8 @@ extern "C"
 #define DUMP_RF_FIELD(fieldId)
 
 
-eHalStatus rfWriteField(tpAniSirGlobal pMac, eRfChipSelect chipSel, tANI_U32 regAddr, tANI_U32 dataMask, tANI_U32 dataShift, tANI_U32 data);
-eHalStatus rfReadField(tpAniSirGlobal pMac, eRfChipSelect chipSel, tANI_U32 regAddr, tANI_U32 dataMask, tANI_U32 dataShift, tANI_U32 *pData);
+eHalStatus rfWriteField(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32 dataMask, tANI_U32 dataShift, tANI_U32 data);
+eHalStatus rfReadField(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32 dataMask, tANI_U32 dataShift, tANI_U32 *pData);
 eHalStatus rfReadReg(tpAniSirGlobal pMac, tANI_U32 addr, tANI_U32 *value);
 eHalStatus rfWriteReg(tpAniSirGlobal pMac, tANI_U32 addr, tANI_U32 value);
 eRfSubBand rfGetBand(tpAniSirGlobal pMac, eRfChannels chan);
@@ -52,7 +52,7 @@ eRfChannels rfGetChannelIndex(tANI_U8 chanNum, ePhyChanBondState cbState);
 tANI_U8 rfGetChannelIdFromIndex(eRfChannels chIndex);
 
 
-#if defined(ANI_PHY_DEBUG) || defined(ANI_MANF_DIAG)
+
 #ifdef VERIFY_HALPHY_SIMV_MODEL
 eHalStatus rfSetDCOffset(ePhyRxChains rxChain, tANI_U8 dcoIndex, tRxDcoCorrect offset);
 eHalStatus rfGetDCOffset(ePhyRxChains rxChain, tANI_U8 dcoIndex, tRxDcoCorrect *offset);
@@ -65,11 +65,11 @@ eHalStatus rfSetDCOffset(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 dcoI
 eHalStatus rfGetDCOffset(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 dcoIndex, tRxDcoCorrect *offset);
 eHalStatus rfGetTxLoCorrect(tpAniSirGlobal pMac, ePhyTxChains txChain, eGainSteps txGain, tTxLoCorrect *corr);
 eHalStatus rfSetTxLoCorrect(tpAniSirGlobal pMac, ePhyTxChains txChain, eGainSteps txGain, tTxLoCorrect corr);
-eHalStatus rfTakeTemp(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_U8 nSamples, tTempADCVal *retTemperature);
+eHalStatus rfTakeTemp(tpAniSirGlobal pMac, eRfTempSensor setup, tANI_U8 nSamples, tTempADCVal *retTemp);
 #endif
 
 void dump_all_rf_fields(tpAniSirGlobal pMac);
-#endif
+
 
 
 #ifdef __cplusplus

@@ -345,7 +345,6 @@ v_VOID_t sysMcFreeMsg( v_CONTEXT_t pVosContext, vos_msg_t* pMsg );
   --------------------------------------------------------------------------*/
 v_VOID_t sysTxFreeMsg( v_CONTEXT_t pVContext, vos_msg_t* pMsg );
 
-#ifdef ANI_MANF_DIAG
 /*----------------------------------------------------------------------------
 
   \brief wlan_sys_ftm() - FTM Cmd Response from halPhy
@@ -362,8 +361,6 @@ v_VOID_t sysTxFreeMsg( v_CONTEXT_t pVContext, vos_msg_t* pMsg );
   --------------------------------------------------------------------------*/
 
 void wlan_sys_ftm(void *pMsgPtr);
-
-#endif /* ANI_MANF_DIAG */
 
 
 #endif  // WLAN_QCT_SYS_H__

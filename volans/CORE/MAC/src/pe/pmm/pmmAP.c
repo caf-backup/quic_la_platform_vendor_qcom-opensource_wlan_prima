@@ -10,8 +10,6 @@
  *
  */
 
-#if (WNI_POLARIS_FW_PRODUCT==AP)
-
 #include "sirCommon.h"
 
 #include "aniGlobal.h"
@@ -32,7 +30,7 @@
 // processing for that sta starts again
 #define PMM_PSPOLL_PERSISTENCE    2
 
-
+#if (WNI_POLARIS_FW_PRODUCT==AP)
 // --------------------------------------------------------------------
 /**
  *  @function: __isTimChanged
@@ -52,8 +50,8 @@
  *                                      eANI_BOOLEAN_FALSE - If there is no need to change in Tim
  */
 
-static inline
-tANI_BOOLEAN __isTimChanged(tpAniSirGlobal pMac, tpPmmTim pNewTim, tpPmmTim pPrevTim)
+static tANI_BOOLEAN 
+__isTimChanged(tpAniSirGlobal pMac, tpPmmTim pNewTim, tpPmmTim pPrevTim)
 {
     if ( pNewTim->dtimCount != pPrevTim->dtimCount ||
          pNewTim->maxAssocId != pPrevTim->maxAssocId ||
@@ -83,7 +81,7 @@ tANI_BOOLEAN __isTimChanged(tpAniSirGlobal pMac, tpPmmTim pNewTim, tpPmmTim pPre
  * @param globalHdr  global Header
  * @return None
  */
-static inline
+static /*inline */
 void    __updatePmmGlobal( tpAniSirGlobal pMac, tpPmmTim pNewTim)
 {
     tpPmmTim    pGlobalTim = &pMac->pmm.gPmmTim;
@@ -127,7 +125,7 @@ void pmmUpdatePSPollState(tpAniSirGlobal pMac)
         }
         pMac->pmm.gpPmmStaState[sta].psPollUpdate--;
         psFlag++;
-        PELOG4(pmmLog(pMac, LOG4, FL("UpdatePSPollState: sta %d, state %d (count %d)\n"), sta, ps, pMac->pmm.gpPmmStaState[sta].psPollUpdate);)
+        PELOG4(pmmLog(pMac, LOG4, FL("UpdatePSPollState: sta %d, state %d (count %d)\n"), sta, ps, pMac->pmm.gpPmmStaState[sta].psPollUpdate););
     }
 
     if (psFlag == 0)
@@ -150,7 +148,7 @@ void pmmUpdatePSPollState(tpAniSirGlobal pMac)
  * @return : none
  **/
  
-void pmmHandleTimBasedDisassociation (tpAniSirGlobal pMac)
+void pmmHandleTimBasedDisassociation (tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
     tpPmmStaInfo pmmStaInfo = pMac->pmm.gPmmTim.pStaInfo;
     tANI_U32    staCnt;
@@ -174,7 +172,7 @@ void pmmHandleTimBasedDisassociation (tpAniSirGlobal pMac)
                 /** If we have sent enough number of TIM's to the STA trigger DisAssoc*/
                 if ( !(--pSta->timWaitCount)) { 
                     PELOGE(pmmLog(pMac, LOGE, FL(" STA with AID %d did not respond to TIM, deleting..."),pmmStaInfo[staCnt].assocId);)
-                    limTriggerSTAdeletion(pMac, pSta);
+                    limTriggerSTAdeletion(pMac, pSta, psessionEntry);
                     continue;
                 }
             }else /** if the STA in PS came up and got some data*/
@@ -186,8 +184,9 @@ void pmmHandleTimBasedDisassociation (tpAniSirGlobal pMac)
     return;
  }
 
+#endif
 
-
+#ifdef WLAN_SOFTAP_FEATURE
 /**
  * pmmGenerateTIM
  *
@@ -205,12 +204,11 @@ void pmmHandleTimBasedDisassociation (tpAniSirGlobal pMac)
  * @param *timLength pointer to limLength, which needs to be returned.
  * @return None
  */
-
-void pmmGenerateTIM(tpAniSirGlobal pMac, tANI_U8 **pPtr, tANI_U16 *timLength)
+void pmmGenerateTIM(tpAniSirGlobal pMac, tANI_U8 **pPtr, tANI_U16 *timLength, tANI_U8 dtimPeriod)
 {
     tANI_U16 i,j;
     tANI_U8 *ptr = *pPtr;
-    tANI_U32 val;
+    tANI_U32 val = 0;
     tpPmmTim pPmmTim = &pMac->pmm.gPmmTim;
 
 
@@ -220,7 +218,7 @@ void pmmGenerateTIM(tpAniSirGlobal pMac, tANI_U8 **pPtr, tANI_U16 *timLength)
     if (N1 & 1) N1--;
 
     *timLength = N2 - N1 + 4;
-    wlan_cfgGetInt(pMac, WNI_CFG_DTIM_PERIOD, &val);
+    val = dtimPeriod;
 
 
     *ptr++ = SIR_MAC_TIM_EID;
@@ -248,7 +246,8 @@ void pmmGenerateTIM(tpAniSirGlobal pMac, tANI_U8 **pPtr, tANI_U16 *timLength)
 
     *pPtr = ptr;
 }
-
+#endif
+#ifdef ANI_PRODUCT_TYPE_AP
 /**
  * pmmUpdateTIM
  *

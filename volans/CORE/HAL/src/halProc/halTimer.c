@@ -28,6 +28,9 @@
 /** Wait 500 ms for Firware response message. */
 #define HAL_FW_RESPONSE_MESSAGE_TIMEOUT_MS             500
 
+/** adc rssi stat collection every 500 ms. */
+#define HAL_ADC_RSSI_STATS_INTERVAL_MS                      500
+
 /**
  *  @brief : This is the generic handler for hal timers which indentifies
  * @param param is a pointer to the tAniSirGlobal structure
@@ -143,103 +146,119 @@ static void halTimerAddBARspTimeoutHandler(void *pMacGlobal, tANI_U32 timerInfo)
 tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
 {
     tANI_U32 val;
-
-    if(wlan_cfgGetInt(pMac, WNI_CFG_BA_ACTIVITY_CHECK_TIMEOUT, &val) != eSIR_SUCCESS)
-    {
-        HALLOGP( halLog(pMac, LOGP, FL("could not get BA activity cfg value\n")));
-        return eSIR_FAILURE;
-    }
-
-    val = SYS_MS_TO_TICKS(val);
-
-    if(tx_timer_create(&pMac->hal.halMac.baActivityChkTmr, "BA Activity check timer",
-                halTimerHandler, SIR_HAL_TIMER_BA_ACTIVITY_REQ,
-                val, val, TX_NO_ACTIVATE) != TX_SUCCESS)
-    {
-        HALLOGP( halLog(pMac, LOGP, FL("Unable to create BA activity check timer\n")));
-        return eSIR_FAILURE;
-    }
-
-    if (tx_timer_create(&pMac->hal.halMac.wrapStats.statTimer, "WRAP_AROUND_STAT COLLECTION TIMER",
-                 halTimerHandler, SIR_HAL_TIMER_WRAP_AROUND_STATS_COLLECT_REQ,
-                 pMac->hal.halMac.wrapStats.statTmrVal,
-                 pMac->hal.halMac.wrapStats.statTmrVal, TX_AUTO_ACTIVATE) != TX_SUCCESS)
-    {
-        HALLOGP(halLog(pMac, LOGP, FL("Could not create wrap around Stat timer\n")));
-        return eSIR_FAILURE;
-    }
-
-#ifdef FIXME_GEN5
-    /** Create and Activate Temperature Measure Timer: Periodic calibration
-        is based on this timer and temp measurements are done only in
-        open tpc temp measure timer.*/
-    if (tx_timer_create(&pMac->hal.halMac.tempMeasTimer, "TEMP MEASURE TIMER",
-                 halTimerHandler, SIR_HAL_TIMER_TEMP_MEAS_REQ,
-                                  pMac->hal.halMac.tempMeasTmrVal,
-                 pMac->hal.halMac.tempMeasTmrVal, TX_AUTO_ACTIVATE) != TX_SUCCESS)
-    {
-        HALLOGP( halLog(pMac, LOGP, FL("Could not create Temp Measurement timer\n")));
-        return eSIR_FAILURE;
-    }
-
-    /** Start Aging timer.*/
-    if (tx_timer_create(&pMac->hal.halMac.macStats.statTimer, "STAT COLLECTION TIMER",
-                 halTimerHandler, SIR_HAL_TIMER_PERIODIC_STATS_COLLECT_REQ,
-                 pMac->hal.halMac.macStats.statTmrVal,
-                 pMac->hal.halMac.macStats.statTmrVal, TX_AUTO_ACTIVATE) != TX_SUCCESS)
-    {
-        HALLOGP( halLog(pMac, LOGP, FL("Could not create Stat timer\n")));
-        return eSIR_FAILURE;
-    }
-#endif
-
     if(pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
     {
+        if(wlan_cfgGetInt(pMac, WNI_CFG_BA_ACTIVITY_CHECK_TIMEOUT, &val) != eSIR_SUCCESS)
+        {
+            HALLOGP( halLog(pMac, LOGP, FL("could not get BA activity cfg value\n")));
+            return eSIR_FAILURE;
+        }
+
+        val = SYS_MS_TO_TICKS(val);
+
+        if(tx_timer_create(&pMac->hal.halMac.baActivityChkTmr, "BA Activity check timer",
+                    halTimerHandler, SIR_HAL_TIMER_BA_ACTIVITY_REQ,
+                    val, val, TX_NO_ACTIVATE) != TX_SUCCESS)
+        {
+            HALLOGP( halLog(pMac, LOGP, FL("Unable to create BA activity check timer\n")));
+            return eSIR_FAILURE;
+        }
+
+        if (tx_timer_create(&pMac->hal.halMac.wrapStats.statTimer, "WRAP_AROUND_STAT COLLECTION TIMER",
+                     halTimerHandler, SIR_HAL_TIMER_WRAP_AROUND_STATS_COLLECT_REQ,
+                     pMac->hal.halMac.wrapStats.statTmrVal,
+                     pMac->hal.halMac.wrapStats.statTmrVal, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+        {
+            HALLOGP(halLog(pMac, LOGP, FL("Could not create wrap around Stat timer\n")));
+            return eSIR_FAILURE;
+        }
+
+#ifdef FIXME_GEN5
+        /** Create and Activate Temperature Measure Timer: Periodic calibration
+            is based on this timer and temp measurements are done only in
+            open tpc temp measure timer.*/
+        if (tx_timer_create(&pMac->hal.halMac.tempMeasTimer, "TEMP MEASURE TIMER",
+                     halTimerHandler, SIR_HAL_TIMER_TEMP_MEAS_REQ,
+                                      pMac->hal.halMac.tempMeasTmrVal,
+                     pMac->hal.halMac.tempMeasTmrVal, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+        {
+            HALLOGP( halLog(pMac, LOGP, FL("Could not create Temp Measurement timer\n")));
+            return eSIR_FAILURE;
+        }
+
+        /** Start Aging timer.*/
+        if (tx_timer_create(&pMac->hal.halMac.macStats.statTimer, "STAT COLLECTION TIMER",
+                     halTimerHandler, SIR_HAL_TIMER_PERIODIC_STATS_COLLECT_REQ,
+                     pMac->hal.halMac.macStats.statTmrVal,
+                     pMac->hal.halMac.macStats.statTmrVal, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+        {
+            HALLOGP( halLog(pMac, LOGP, FL("Could not create Stat timer\n")));
+            return eSIR_FAILURE;
+        }
+#endif
         val = SYS_MS_TO_TICKS(HAL_CHIP_MONITOR_INTERVAL_MS);
         /** Create hal chip monitor timer */
         if (tx_timer_create(&pMac->hal.halMac.chipMonitorTimer, "CHIP MONITOR INTERVAL TIMER",
-                     halTimerHandler, SIR_HAL_TIMER_CHIP_MONITOR_TIMEOUT,
-                     val,
-                     val, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+                         halTimerHandler, SIR_HAL_TIMER_CHIP_MONITOR_TIMEOUT,
+                         val,
+                         val, TX_AUTO_ACTIVATE) != TX_SUCCESS)
         {
             HALLOGP( halLog(pMac, LOGP, FL("Could not create Chip monitor interval timer\n")));
             return eSIR_FAILURE;
         }
-    }
+
 #ifdef FIXME_GEN5
-    val = SYS_MS_TO_TICKS(HAL_TRAFFIC_ACTIVITY_MONITOR_INTERVAL_MS);
-    /** Create Traffic Activity Monitor timer */
-    if (tx_timer_create(&pMac->hal.trafficActivityTimer, "Traffic Activity Monitor timer",
-                 halTimerHandler, SIR_HAL_TIMER_TRAFFIC_ACTIVITY_REQ,
-                 val,
-                 val, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+        val = SYS_MS_TO_TICKS(HAL_TRAFFIC_ACTIVITY_MONITOR_INTERVAL_MS);
+        /** Create Traffic Activity Monitor timer */
+        if (tx_timer_create(&pMac->hal.trafficActivityTimer, "Traffic Activity Monitor timer",
+                     halTimerHandler, SIR_HAL_TIMER_TRAFFIC_ACTIVITY_REQ,
+                     val,
+                     val, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+        {
+            HALLOGP( halLog(pMac, LOGP, FL("Could not create Traffic Activity Monitor timer\n")));
+            return eSIR_FAILURE;
+        }
+#endif
+        /** Create timer for waiting for TL responce */
+        //Right now this is being used for addBA only. Later, may be used in other cases too.
+        if (tx_timer_create(&pMac->hal.addBARspTimer, "TL resp timeout timer",
+                     halTimerAddBARspTimeoutHandler, 0,
+                     SYS_ADD_BA_RSP_DUR /*SYS_TICK_DUR_MS*/,
+                     0, TX_NO_ACTIVATE) != TX_SUCCESS)
+        {
+            HALLOGP( halLog(pMac, LOGP, FL("Could not create TL AddBA resp timeout timer\n")));
+            return eSIR_FAILURE;
+        }
+
+
+        //Timer value in sys ticks unit.
+        // 2 sec more than the HAL timeout for TL TX frame.
+        val = (SYS_TICKS_PER_SECOND *2) + (HAL_TL_TX_FRAME_TIMEOUT / SYS_TICK_DUR_MS);
+
+        if (tx_timer_create(&pMac->hal.txCompTimer, "TxComplete wait timer",
+                     halTimerTxCompleteTimeoutHandler, 0,
+                     val, 0, TX_NO_ACTIVATE) != TX_SUCCESS)
+        {
+            HALLOGP( halLog(pMac, LOGP, FL("Could not create TxComplete timeout timer\n")));
+            return eSIR_FAILURE;
+        }
+    }
+
+#ifndef WLAN_FTM_STUB
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
-        HALLOGP( halLog(pMac, LOGP, FL("Could not create Traffic Activity Monitor timer\n")));
-        return eSIR_FAILURE;
+        val = SYS_MS_TO_TICKS(HAL_ADC_RSSI_STATS_INTERVAL_MS);
+        /** Create adc rssi stat collection timer */
+        if (tx_timer_create(&pMac->ptt.adcRssiStatsTimer, "ADC RSSI STAT COLLECTION TIMER",
+                     halTimerHandler, SIR_HAL_TIMER_ADC_RSSI_STATS,
+                     val,
+                     val, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+        {
+            HALLOGP( halLog(pMac, LOGP, FL("Could not create adc rssi stat collection timer\n")));
+            return eSIR_FAILURE;
+        }
     }
 #endif
-    /** Create timer for waiting for TL responce */
-    //Right now this is being used for addBA only. Later, may be used in other cases too.
-    if (tx_timer_create(&pMac->hal.addBARspTimer, "TL resp timeout timer",
-                 halTimerAddBARspTimeoutHandler, 0,
-                 SYS_TICK_DUR_MS,
-                 0, TX_NO_ACTIVATE) != TX_SUCCESS)
-    {
-        HALLOGP( halLog(pMac, LOGP, FL("Could not create TL AddBA resp timeout timer\n")));
-        return eSIR_FAILURE;
-    }
-
-    //Timer value in sys ticks unit.
-    // 2 sec more than the HAL timeout for TL TX frame.
-    val = (SYS_TICKS_PER_SECOND *2) + (HAL_TL_TX_FRAME_TIMEOUT / SYS_TICK_DUR_MS);
-
-    if (tx_timer_create(&pMac->hal.txCompTimer, "TxComplete wait timer",
-                 halTimerTxCompleteTimeoutHandler, 0,
-                 val, 0, TX_NO_ACTIVATE) != TX_SUCCESS)
-    {
-        HALLOGP( halLog(pMac, LOGP, FL("Could not create TxComplete timeout timer\n")));
-        return eSIR_FAILURE;
-    }
 
     return eSIR_SUCCESS;
 }
@@ -261,11 +280,21 @@ tSirRetStatus halTimersDestroy(tpAniSirGlobal pMac)
     tx_timer_deactivate(&pMac->hal.halMac.tempMeasTimer);
     tx_timer_delete(&pMac->hal.halMac.tempMeasTimer);
 
-#endif    
+#endif
 
     /** deactiviate and delete wrap around statistic collection timer.*/
     tx_timer_deactivate(&pMac->hal.halMac.wrapStats.statTimer);
     tx_timer_delete(&pMac->hal.halMac.wrapStats.statTimer);
+
+#ifndef WLAN_FTM_STUB
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        /** deactiviate and delete adc rssi stat collection timer.*/
+        tx_timer_deactivate(&pMac->ptt.adcRssiStatsTimer);
+        tx_timer_delete(&pMac->ptt.adcRssiStatsTimer);
+    }
+#endif
+
 
 #ifdef FIXME_GEN5
     /** deactiviate and delete statistic collection timer.*/

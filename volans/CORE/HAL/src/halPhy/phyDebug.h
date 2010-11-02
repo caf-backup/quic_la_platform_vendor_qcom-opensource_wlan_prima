@@ -10,6 +10,5 @@
 #include "sirParams.h"
 
 void phyLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...);
-        
 
 #endif  /* PHY_DEBUG_H */

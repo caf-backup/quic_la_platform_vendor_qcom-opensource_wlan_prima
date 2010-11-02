@@ -55,7 +55,7 @@ enum {
    QWLAN_MCU_MAILBOX_F2H_DIAG = 0x3,
 };
 
-
+#define FEATURE_RA_CHANGE //This flag enables the RA change to couple RA addSta and addBss with addSta and addBss.
 #define MCU_MAILBOX_HOST2FW  QWLAN_MCU_MAILBOX_H2F_CTRL
 #define MCU_MAILBOX_FW2HOST  QWLAN_MCU_MAILBOX_F2H_CTRL
 
@@ -193,6 +193,7 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_BEACON_HIST_PTBTT_HILO_FTBTT_HILO    (QWLANFW_LOG_CODE_MISC_BASE + 0x1a)
 #define QWLANFW_LOG_CODE_BEACON_HIST_NUM_BEACONS_MISSED       (QWLANFW_LOG_CODE_MISC_BASE + 0x1b)
 #define QWLANFW_LOG_CODE_REGULATE_TRAFFIC_IN_INVALID_STATE    (QWLANFW_LOG_CODE_MISC_BASE + 0x1c)
+#define QWLANFW_LOG_CODE_PARSE_BEACON_QUIET_FOUND             (QWLANFW_LOG_CODE_MISC_BASE + 0x1d)
 
 #define QWLANFW_LOG_CODE_SET_CHANNEL_BOND_STATE               (QWLANFW_LOG_CODE_MISC_BASE + 0x20)
 #define QWLANFW_LOG_CODE_SET_CHANNEL_NUM                      (QWLANFW_LOG_CODE_MISC_BASE + 0x21)
@@ -220,6 +221,7 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_RF_SET_CUR_CHAN_SAVE_VCOBANK         (QWLANFW_LOG_CODE_MISC_BASE + 0x36)
 #define QWLANFW_LOG_CODE_RSSI_MONITORING                      (QWLANFW_LOG_CODE_MISC_BASE + 0x37)
 #define QWLANFW_LOG_CODE_FAST_BPS                             (QWLANFW_LOG_CODE_MISC_BASE + 0x38)
+#define QWLANFW_LOG_CODE_ARP_REPLY                            (QWLANFW_LOG_CODE_MISC_BASE + 0x39)
 
 /* log codes for message handling
    (QWLANFW_LOG_EVENT_TYPE_MSG_HANDLING)
@@ -252,6 +254,7 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_WLAN_EVENT_HANDLER                 (QWLANFW_LOG_CODE_MSG_BASE + 0x32)
 #define QWLANFW_LOG_CODE_WLAN_EVENT_HANDLER_NEW_MODE        (QWLANFW_LOG_CODE_MSG_BASE + 0x33)
 #define QWLANFW_LOG_CODE_RA_UPDATE_MSG_HANDLER              (QWLANFW_LOG_CODE_MSG_BASE + 0x34)
+#define QWLANFW_LOG_CODE_MSG_HANDLER                        (QWLANFW_LOG_CODE_MSG_BASE + 0x35)
 
 #define QWLANFW_LOG_CODE_BT_ACL_CREATE_CONN                 (QWLANFW_LOG_CODE_MSG_BASE + 0x40)
 #define QWLANFW_LOG_CODE_BT_ACL_CONN_COMPLETE               (QWLANFW_LOG_CODE_MSG_BASE + 0x41)
@@ -260,6 +263,7 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_BT_SCO_CONN_UPDATE                 (QWLANFW_LOG_CODE_MSG_BASE + 0x44)
 #define QWLANFW_LOG_CODE_BT_DISCONNECT                      (QWLANFW_LOG_CODE_MSG_BASE + 0x45)
 #define QWLANFW_LOG_CODE_BT_ACL_CONN_UPDATE                 (QWLANFW_LOG_CODE_MSG_BASE + 0x46)
+#define QWLANFW_LOG_CODE_ENTER_SET_HOST_OFFLOAD_MSG_HANDLER (QWLANFW_LOG_CODE_MSG_BASE + 0x47)
 #ifdef LIBRA_WAPI_SUPPORT
 #define QWLANFW_LOG_CODE_WAPI_SET_KEY                       (QWLANFW_LOG_CODE_MSG_BASE + 0x50)
 #define QWLANFW_LOG_CODE_WAPI_REMOVE_KEY                    (QWLANFW_LOG_CODE_MSG_BASE + 0x51)
@@ -376,7 +380,33 @@ See binary.lds.in in firmware source build tree */
 
 /* Log code for All debug log to mimic UART 
 */
-#define QWLANFW_LOG_CODE_FW_LOG                            0x700
+#define QWLANFW_LOG_CODE_FW_LOG                             0x700
+
+/* log codes for common messages */
+
+#define QWLANFW_LOG_CODE_BASE                               0x800
+#define QWLANFW_LOG_CODE_ADD_STA                            (QWLANFW_LOG_CODE_BASE + 0x1)
+#define QWLANFW_LOG_CODE_DEL_STA                            (QWLANFW_LOG_CODE_BASE + 0x2)
+#define QWLANFW_LOG_CODE_ADD_BSS                            (QWLANFW_LOG_CODE_BASE + 0x3)
+#define QWLANFW_LOG_CODE_DEL_BSS                            (QWLANFW_LOG_CODE_BASE + 0x4)
+#define QWLANFW_LOG_CODE_UPDATE_BEACON_TEMPLATE             (QWLANFW_LOG_CODE_BASE + 0x5)
+#define QWLANFW_LOG_CODE_PROBE_RSP_FRM_SENT                 (QWLANFW_LOG_CODE_BASE + 0x6)
+#define QWLANFW_LOG_CODE_QOS_REPORT_BD_SENT                 (QWLANFW_LOG_CODE_BASE + 0x7)
+
+/* Log codes for mgmt utils */
+#define QWLANFW_LOG_CODE_MGMT_UTILS_BASE                    0x900
+#define QWLANFW_LOG_CODE_MGMT_UTILS_PREP_QUIET_BSS          (QWLANFW_LOG_CODE_MGMT_UTILS_BASE + 0x1)
+#define QWLANFW_LOG_CODE_MGMT_UTILS_TX_BOUNDARY_INTR        (QWLANFW_LOG_CODE_MGMT_UTILS_BASE + 0x2)
+#define QWLANFW_LOG_CODE_MGMT_UTILS_QUIET_INTERVAL          (QWLANFW_LOG_CODE_MGMT_UTILS_BASE + 0x3)
+#define QWLANFW_LOG_CODE_MGMT_UTILS_QUIET_DURATION          (QWLANFW_LOG_CODE_MGMT_UTILS_BASE + 0x4)
+
+/* log codes for INNAV (Indoor navigation support)
+*/
+#define QWLANFW_LOG_CODE_INNAV_BASE                         0x1000
+#define QWLANFW_LOG_CODE_INNAV_NO_MEAS_ACTIVE               (QWLANFW_LOG_CODE_INNAV_BASE + 0x1)
+#define QWLANFW_LOG_CODE_INNAV_MEAS_FAILED                  (QWLANFW_LOG_CODE_INNAV_BASE + 0x2)
+#define QWLANFW_LOG_CODE_INNAV_INVALID_RTT                  (QWLANFW_LOG_CODE_INNAV_BASE + 0x3)
+#define QWLANFW_LOG_CODE_INNAV_TIMEDOUT                     (QWLANFW_LOG_CODE_INNAV_BASE + 0x4)
 
 /*==========================================================================
   LOG RECORD DESC
@@ -618,9 +648,11 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32  bBcnMissHandling        : 1;
    tANI_U32  bBcnMissFastPath        : 1;
    tANI_U32  bBcnMissMLC             : 1;
-   tANI_U32  bReserved5              : 18;
+   tANI_U32  bTimBasedDisAssocEna    : 1;
+   tANI_U32  bReserved5              : 17;
 #else
-   tANI_U32  bReserved5              : 18;
+   tANI_U32  bReserved5              : 17;
+   tANI_U32  bTimBasedDisAssocEna    : 1;
    tANI_U32  bBcnMissMLC             : 1;
    tANI_U32  bBcnMissFastPath        : 1;
    tANI_U32  bBcnMissHandling        : 1;
@@ -782,8 +814,26 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #endif
 
    UapsdAcParamType acParam[QWLANFW_MAX_AC];
-
+#ifdef WLAN_SOFTAP_FEATURE
+   tANI_U32 apProbeReqValidIEBitmap[8];
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32 bFwProcProbeReqDisabled:1; //when set FW will always froward the probeReq to the host.
+   tANI_U32 fDisLinkMonitor:1; // when set link monitoring is disabled.
+   tANI_U32 fEnableFwUnknownAddr2Handling:1; //enables handling of unknown addr2 at FW.
+   tANI_U32 bReserved11:29;
+#else
+    tANI_U32 bReserved11:29;
+    tANI_U32 fEnableFwUnknownAddr2Handling:1; //enables handling of unknown addr2 at FW.
+    tANI_U32 fDisLinkMonitor:1; // when set link monitoring is disabled.
+    tANI_U32 bFwProcProbeReqDisabled:1;
+#endif
+    tANI_U32 ucApLinkMonitorMsec; //link monitoring timer interval
+    tANI_U32 ucUnknownAddr2CreditIntvMsec; //interval at which unkown addr2 credit will be reset to max.
+    tANI_U32 uBssTableOffset;
+    tANI_U32 uStaTableOffset;
+#endif
 } Qwlanfw_SysCfgType;
+
 
 /*===========================================================================
   RA CONFIGURATION
@@ -826,8 +876,8 @@ typedef enum
 typedef PACKED_PRE struct PACKED_POST sTpeStaDescRateInfo{
 
 #ifdef ANI_BIG_BYTE_ENDIAN
-    tANI_U32 reserved               : 4;
-    tANI_U32 protection_mode        : 2;
+    tANI_U32 reserved               : 3;
+    tANI_U32 protection_mode        : 3;
     tANI_U32 ampdu_density          : 7;
     tANI_U32 tx_power               : 5;
     tANI_U32 tx_antenna_enable      : 3;
@@ -839,8 +889,8 @@ typedef PACKED_PRE struct PACKED_POST sTpeStaDescRateInfo{
     tANI_U32 tx_antenna_enable      : 3;
     tANI_U32 tx_power               : 5;
     tANI_U32 ampdu_density          : 7;
-    tANI_U32 protection_mode        : 2;
-    tANI_U32 reserved               : 4;
+    tANI_U32 protection_mode        : 3;
+    tANI_U32 reserved               : 3;
 #endif
 }ALIGN_4 tTpeStaDescRateInfo, *tpTpeStaDescRateInfo;
 
@@ -973,6 +1023,9 @@ typedef enum
 #define RA_MM           0x800
 #define RA_QCOMM        0x1000
 #define RA_DISABLED     0x2000
+#ifdef FEATURE_TX_PWR_CONTROL
+#define RA_VIRTUAL      0x4000
+#endif
 
 /* bit 14-15 unused */
 
@@ -1212,49 +1265,56 @@ typedef enum eHalMacRate
     HALRATE_QUALCOMM_GF_6825 = HALRATE_QUALCOMM_GF_START,   /* +42 */
     HALRATE_QUALCOMM_GF_END = HALRATE_QUALCOMM_GF_6825,
 
+#ifdef FEATURE_TX_PWR_CONTROL
+    /*virtual rates for output power control */
+    HALRATE_QUALCOMM_VIRTUAL_RATE_START,
+    HALRATE_HT_SIMO_0650_VIRT_TPW1 = HALRATE_QUALCOMM_VIRTUAL_RATE_START,    /*+43*/
+    HALRATE_HT_SIMO_SGI_0722_VIRT_TPW1,                                      /*+44*/
+    HALRATE_QUALCOMM_VIRTUAL_RATE_END = HALRATE_HT_SIMO_SGI_0722_VIRT_TPW1,
+#endif
     // NOTE: As we have only one transmit chain, STBC rates
     // cannot be used in the transmit side.
-    HALRATE_MODE_TX_END,         /* 43 */
+    HALRATE_MODE_TX_END,         /* 45 */
 
     //MCS Index #0-7 (20MHz) STBC Rates Greenfield Mode
     HALRATE_STBC_START = HALRATE_MODE_TX_END,
     HALRATE_STBC_GF_START = HALRATE_STBC_START,
-    HALRATE_STBC_GF_0065 = HALRATE_STBC_GF_START,        /* +43 */
-    HALRATE_STBC_GF_0013,                          /* +44 */
-    HALRATE_STBC_GF_0195,                          /* +45 */
-    HALRATE_STBC_GF_0026,                          /* +46 */
-    HALRATE_STBC_GF_0039,                          /* +47 */
-    HALRATE_STBC_GF_0052,                          /* +48 */
-    HALRATE_STBC_GF_0585,                          /* +49 */
-    HALRATE_STBC_GF_0650,                                   /* +50 */
+    HALRATE_STBC_GF_0065 = HALRATE_STBC_GF_START,        /* +45 */
+    HALRATE_STBC_GF_0013,                          /* +46 */
+    HALRATE_STBC_GF_0195,                          /* +47 */
+    HALRATE_STBC_GF_0026,                          /* +48 */
+    HALRATE_STBC_GF_0039,                          /* +49 */
+    HALRATE_STBC_GF_0052,                          /* +50 */
+    HALRATE_STBC_GF_0585,                          /* +51 */
+    HALRATE_STBC_GF_0650,                                   /* +52 */
     HALRATE_STBC_GF_END = HALRATE_STBC_GF_0650,
 
     //MCS Index #0-15 (20MHz) STBC Rates Mixed Mode
     HALRATE_STBC_MM_START,
-    HALRATE_STBC_MM_0065 = HALRATE_STBC_MM_START,        /* +51 */
-    HALRATE_STBC_MM_SG_0072,                       /* +52 */
-    HALRATE_STBC_MM_0013,                          /* +53 */
-    HALRATE_STBC_MM_SG_0144,                       /* +54 */
-    HALRATE_STBC_MM_0195,                          /* +55 */
-    HALRATE_STBC_MM_SG_0217,                       /* +56 */
-    HALRATE_STBC_MM_0026,                          /* +57 */
-    HALRATE_STBC_MM_SG_0289,                       /* +58 */
-    HALRATE_STBC_MM_0039,                          /* +59 */
-    HALRATE_STBC_MM_SG_0433,                       /* +60 */
-    HALRATE_STBC_MM_0052,                          /* +61 */
-    HALRATE_STBC_MM_SG_0578,                       /* +62 */
-    HALRATE_STBC_MM_0585,                          /* +63 */
-    HALRATE_STBC_MM_SG_0650,                       /* +64 */
-    HALRATE_STBC_MM_0650,                          /* +65 */
-    HALRATE_STBC_MM_SG_0722,                       /* +66 */
+    HALRATE_STBC_MM_0065 = HALRATE_STBC_MM_START,        /* +53 */
+    HALRATE_STBC_MM_SG_0072,                       /* +54 */
+    HALRATE_STBC_MM_0013,                          /* +55 */
+    HALRATE_STBC_MM_SG_0144,                       /* +56 */
+    HALRATE_STBC_MM_0195,                          /* +57 */
+    HALRATE_STBC_MM_SG_0217,                       /* +58 */
+    HALRATE_STBC_MM_0026,                          /* +59 */
+    HALRATE_STBC_MM_SG_0289,                       /* +60 */
+    HALRATE_STBC_MM_0039,                          /* +61 */
+    HALRATE_STBC_MM_SG_0433,                       /* +62 */
+    HALRATE_STBC_MM_0052,                          /* +63 */
+    HALRATE_STBC_MM_SG_0578,                       /* +64 */
+    HALRATE_STBC_MM_0585,                          /* +65 */
+    HALRATE_STBC_MM_SG_0650,                       /* +66 */
+    HALRATE_STBC_MM_0650,                          /* +67 */
+    HALRATE_STBC_MM_SG_0722,                       /* +68 */
     HALRATE_STBC_MM_END = HALRATE_STBC_MM_SG_0722,
 
     //Qualcomm Proprietary Rates 20Mhz Mixed Mode
-    HALRATE_QUALCOMM_STBC_GF_6825_MBPS,                       /* +67 */
+    HALRATE_QUALCOMM_STBC_GF_6825_MBPS,                       /* +69 */
     HALRATE_STBC_END = HALRATE_QUALCOMM_STBC_GF_6825_MBPS,
 
     /* Invalid Rate */
-    HALRATE_INVALID, /* 68 */
+    HALRATE_INVALID, /* 70 */
 
     HALRATE_MODE_END,
 
@@ -1316,7 +1376,7 @@ typedef enum eHalMacRate
 #if 0 //  --> works, but let's wait until the feedback from the team
 #define RA_SAMPLING_RATES_MAX  8
 #else
-#define RA_SAMPLING_RATES_MAX  10
+#define RA_SAMPLING_RATES_MAX  12
 #endif
 /* ---------------------------------------------------------------------------
  * the sampling table is an array of rates that should be sampled to determine
@@ -1324,7 +1384,7 @@ typedef enum eHalMacRate
  * to determine which rate to jump to (subject to per restrictions)
  */
 typedef PACKED_PRE struct PACKED_POST sRateAdaptSamplingTable {
-    tANI_U8 sampleRate[CEIL_ALIGN(RA_SAMPLING_RATES_MAX,4)];
+    tANI_U8 sampleRate[RA_SAMPLING_RATES_MAX];
 } tRateAdaptSamplingTable, *tpRateAdaptSamplingTable;
 
 #define RA_GOODPERTHRESH_SENSITIVITY_TABLE_SIZE  10
@@ -1434,7 +1494,7 @@ typedef PACKED_PRE struct PACKED_POST sHalRaInfo {
 #endif
 
 #ifdef ANI_BIG_BYTE_ENDIAN
-    tANI_U8         reserved1;
+    tANI_U8         bssIdx;
     tANI_U8         minDataRateIdx;    /* Min Data Rate for this STA */
     tANI_U8         staType;
     tANI_U8         reserved2:1;
@@ -1456,7 +1516,7 @@ typedef PACKED_PRE struct PACKED_POST sHalRaInfo {
     tANI_U8         reserved2:1;
     tANI_U8         staType;
     tANI_U8         minDataRateIdx;    /* Min Data Rate for this STA */
-    tANI_U8         reserved1;
+    tANI_U8         bssIdx;
 #endif /* ANI_BIG_BYTE_ENDIAN */
 
     /* Previously reported Tx stats */
@@ -1467,8 +1527,15 @@ typedef PACKED_PRE struct PACKED_POST sHalRaInfo {
 
 typedef PACKED_PRE struct PACKED_POST sBssRaBit {
 #ifdef ANI_BIG_BYTE_ENDIAN
+#if defined (WLAN_FEATURE_VOWIFI) || defined (FEATURE_WLANFW_VOWIFI)
+    tANI_U32 maxPwrIndex:5;
     tANI_U32 selfStaIdx:8;
-    tANI_U32 reserved1:17;
+    tANI_U32 reserved1:10;
+#else
+    tANI_U32 selfStaIdx:8;
+    tANI_U32 reserved1:15;
+#endif /* FEATURE_VOWIFI */
+    tANI_U32 bssIdx:2;
     tANI_U32 fShortSlot:1;
     tANI_U32 rifsMode:1;
     tANI_U32 nonGfPresent:1;
@@ -1484,8 +1551,15 @@ typedef PACKED_PRE struct PACKED_POST sBssRaBit {
     tANI_U32 nonGfPresent:1;
     tANI_U32 rifsMode:1;
     tANI_U32 fShortSlot:1;
-    tANI_U32 reserved1:17;
+    tANI_U32 bssIdx:2;
+#if defined (WLAN_FEATURE_VOWIFI) || defined (FEATURE_WLANFW_VOWIFI)    
+    tANI_U32 reserved1:10;
+    tANI_U32 selfStaIdx:8;    
+    tANI_U32 maxPwrIndex:5;    
+#else
+    tANI_U32 reserved1:15;
     tANI_U32 selfStaIdx:8;
+#endif  /* FEATURE_VOWIFI */
 #endif
 } bssRaBit;
 
@@ -1516,9 +1590,9 @@ typedef PACKED_PRE struct PACKED_POST sHalRaGlobalInfo
    /* input from cfg */
    tANI_U8   txFailExceptionThreshold; /* when TxCount is frozen, only TX failures will cause exception */
    tANI_U8   protPolicy;  /* cfg.protPolicy update here */
-   tANI_U16  rtsThreshold; /* cfg.rtsThreshold update here */
+   tANI_U16  reserved;  /* used to be RTS threshold, now available for other uses */
 #else
-   tANI_U16  rtsThreshold; /* cfg.rtsThreshold update here */
+   tANI_U16  reserved;  /* used to be RTS threshold, now available for other uses */
    tANI_U8   protPolicy;  /* cfg.protPolicy update here */
    tANI_U8   txFailExceptionThreshold;
 #endif
@@ -1794,18 +1868,52 @@ typedef struct _PhyCalCorrStruct {
 #define QWLANFW_HOST2FW_CONNECTION_NONE        QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x13
 /* RA */
 #define QWLANFW_HOST2FW_RA_UPDATE              QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x14
+/*common*/
+#define QWLANFW_HOST2FW_COMMON_MSG             QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x15
+/* Host Offload */
+#define QWLANFW_HOST2FW_SET_HOST_OFFLOAD       QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x16
+
 #ifdef LIBRA_WAPI_SUPPORT
+
 /* WAPI */
-#define QWLANFW_HOST2FW_WPI_KEY_SET            QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x15
-#define QWLANFW_HOST2FW_WPI_KEY_REMOVED        QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x16
-#define QWLANFW_HOST2FW_MSG_TYPES_END          QWLANFW_HOST2FW_WPI_KEY_REMOVED
+#define QWLANFW_HOST2FW_WPI_KEY_SET            QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1C
+#define QWLANFW_HOST2FW_WPI_KEY_REMOVED        QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1D
+#define QWLANFW_HOST2FW_WPI_END                QWLANFW_HOST2FW_WPI_KEY_REMOVED
 #else
-#define QWLANFW_HOST2FW_MSG_TYPES_END          QWLANFW_HOST2FW_RA_UPDATE
+#define QWLANFW_HOST2FW_WPI_END                QWLANFW_HOST2FW_SET_HOST_OFFLOAD
 #endif
+
+/* INNAV */
+#ifdef FEATURE_INNAV_SUPPORT
+#define QWLANFW_HOST2FW_INNAV_MEAS_START       QWLANFW_HOST2FW_WPI_END + 0x1
+#define QWLANFW_HOST2FW_INNAV_END              QWLANFW_HOST2FW_INNAV_MEAS_START
+#else
+#define QWLANFW_HOST2FW_INNAV_END              QWLANFW_HOST2FW_WPI_END
+#endif
+
+#define QWLANFW_HOST2FW_MSG_TYPES_END          QWLANFW_HOST2FW_INNAV_END
+
+/* Note: We can't define HOST2FW_MSG_TYPES_XXX beyond 0x80 (127) */
 /*==================================================================================
   FW -> HOST MESSAGE TYPES
 ==================================================================================*/
-#define QWLANFW_FW2HOST_MSG_TYPES_BEGIN        QWLANFW_HOST2FW_MSG_TYPES_END   + 0x1
+/* CR#xxxxxx: 
+   Single host driver with both SOFTAP and WAPI features wants to download either SOFTAP+WAPI firmware or only SOFTAP enabled firmware
+   By making  FW2HOST_MSG_TYPES_BEGIN independent of HOST2FW_MSG_END, 
+   we can always receives FW2HOST_MSG correctly (including FW2HOST_STATUS(INIT_DONE) message)
+   no matter how many messages are defined in the HOST2FW for different feature set. */
+//#define QWLANFW_FW2HOST_MSG_TYPES_BEGIN        QWLANFW_HOST2FW_MSG_TYPES_END   + 0x1 /* original before CR#xxxxx */
+/* Initially, we decided to reserve half of message pool for HOST2FW message, and rest half for FW2HOST message. 
+   Currently 10 bit is reserved for usMsgType (see Qwlanfw_CtrlMsgType)
+*/   
+//#define QWLANFW_FW2HOST_MSG_TYPES_BEGIN        0x200  /* 512 */
+/* 512 is the half of the message pool for 10 bits, but in halFwApi.c, halFW_SendMsg(, tANI_U8 msgType, ) has only one byte of msgType. 
+I think this needs to be discussed in the team.
+Either argument of halFW_SendMsg() should be uint16 to have HOST2FW_MSG up to 512, or 
+we should redefine the Qwlanfw_CtrlMsgType->ubMsgType to uint8.
+Because of above reason and for smallest change, I reserved 128 for HOST2FW, and 128 for FW2HOST for now */ 
+#define QWLANFW_FW2HOST_MSG_TYPES_BEGIN        0x80   /* 128 */
+
 /*Status*/
 #define QWLANFW_FW2HOST_STATUS                 QWLANFW_FW2HOST_MSG_TYPES_BEGIN + 0x0
 /*IMPS*/
@@ -1826,8 +1934,25 @@ typedef struct _PhyCalCorrStruct {
 /*RSSI*/
 #define QWLANFW_FW2HOST_RSSI_NOTIFICATION      QWLANFW_FW2HOST_MSG_TYPES_BEGIN + 0xD
 /* RA */
-#define QWLANFW_FW2HOST_RA_NOTIFICATION        QWLANFW_FW2HOST_MSG_TYPES_BEGIN + 0xE
-#define QWLANFW_FW2HOST_MSG_TYPES_END          QWLANFW_FW2HOST_RA_NOTIFICATION
+#define QWLANFW_FW2HOST_RA_NOTIFICATOIN        QWLANFW_FW2HOST_MSG_TYPES_BEGIN + 0xE
+
+#ifdef WLAN_SOFTAP_FEATURE
+/* Keepalive / Unknown A2 / Tim-based dis */
+#define QWLANFW_FW2HOST_DEL_STA_CONTEXT        QWLANFW_FW2HOST_MSG_TYPES_BEGIN + 0xF
+#define QWLANFW_FW2HOST_SAP_END                QWLANFW_FW2HOST_DEL_STA_CONTEXT
+#else
+#define QWLANFW_FW2HOST_SAP_END                QWLANFW_FW2HOST_RA_NOTIFICATOIN
+#endif
+
+/* INNAV */
+#ifdef FEATURE_INNAV_SUPPORT
+#define QWLANFW_FW2HOST_INNAV_MEAS_RSP         QWLANFW_FW2HOST_SAP_END + 0x1
+#define QWLANFW_FW2HOST_INNAV_END              QWLANFW_FW2HOST_INNAV_MEAS_RSP
+#else
+#define QWLANFW_FW2HOST_INNAV_END              QWLANFW_FW2HOST_SAP_END
+#endif
+
+#define QWLANFW_FW2HOST_MSG_TYPES_END          QWLANFW_FW2HOST_INNAV_END
 
 /*==================================================================================
   HOST -> FW MESSAGE ENUMS
@@ -1890,10 +2015,13 @@ typedef enum
 
 /** BTC Executions Modes allowed to be set by user
 */
-#define QWLANFW_BTC_SMART_COEXISTENCE    (0)   /** BTC Mapping Layer decides whats best */
+#define QWLANFW_BTC_SMART_COEXISTENCE    (0)   /** BTC Mapping Layer decides whats best, balanced */
 #define	QWLANFW_BTC_WLAN_ONLY            (1)   /** WLAN takes all mode */
 #define	QWLANFW_BTC_PTA_ONLY             (2)   /** Allow only 3 wire protocol in H/W */
-#define	QWLANFW_BT_EXEC_MODE_MAX         (3)   /** This and beyond are invalid values */
+#define QWLANFW_BTC_SMART_MAX_WLAN       (3)   /** BTC Mapping Layer decides whats best, WLAN weighted */
+#define QWLANFW_BTC_SMART_MAX_BT         (4)   /** BTC Mapping Layer decides whats best, BT weighted */
+#define QWLANFW_BTC_SMART_BT_A2DP        (5)   /** BTC Mapping Layer decides whats best, balanced + BT A2DP weight */
+#define	QWLANFW_BT_EXEC_MODE_MAX         (6)   /** This and beyond are invalid values */
 
 /** Enumeration of different kinds actions that BTC Mapping Layer
     can do if PM indication (to AP) fails. */
@@ -2157,6 +2285,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_RemMatchPtrnMsgStruct
    /* This is followed by the patterns defined in the above format*/
 } Qwlanfw_RemMatchPtrnMsgType;
 
+
 /**
    @brief
     QWLANFW_HOST2FW_CAL_UPDATE_REQ
@@ -2167,6 +2296,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_CalUpdateReqStruct
    tANI_U32             usCalId;
    tANI_U32             usPeriodic;
 } Qwlanfw_CalUpdateReqType;
+
 
 /**
    @brief
@@ -2179,6 +2309,8 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SetChannelReqStruct
    tANI_U32             ucCbState;          // always 0 for 20MHz
    tANI_U32             ucRegDomain;        // enum according to eRegDomainId
    tANI_U32             ucCalRequired;      // flag to decide whether cal is needed or not.
+   tANI_U32             pdAdcOffset;
+   tANI_U8              tpcPowerLUT[128];
 } Qwlanfw_SetChannelReqType;
 
 /**
@@ -2383,16 +2515,21 @@ typedef PACKED_PRE struct PACKED_POST _Qwlanfw_BtEventMsgStruct
 typedef enum
 {
   QWLANFW_RA_UPDATE_STATS_ADAPT = 0,
+#ifndef FEATURE_RA_CHANGE    
   QWLANFW_RA_UPDATE_ADD_BSS = 1,    /* RA_TODO: not supported yet. only one bss; to reduce the transaction, ADD_STA include bss information, too*/
   QWLANFW_RA_UPDATE_DEL_BSS,        /* RA_TODO: not supported yet. only one bss */
   QWLANFW_RA_UPDATE_ADD_STA,        /* currently this will trigger the timer in FW */
   QWLANFW_RA_UPDATE_DEL_STA,
   QWLANFW_RA_UPDATE_TIMER,
+#else
+  QWLANFW_RA_UPDATE_TIMER = 1,    
+#endif
   QWLANFW_RA_UPDATE_PARAM,
   QWLANFW_RA_FORCE_STA_RATE,
   QWLANFW_RA_UPDATE_TYPE_MAX    //This and beyond are invalid values
 } tFwRaUpdateEnum;
 
+#ifndef FEATURE_RA_CHANGE
 typedef PACKED_PRE struct PACKED_POST _Qwlanfw_RaAddBssStruct
 {
 //  tANI_U32  bssIdx;   /* valid range: 0~1 */
@@ -2442,6 +2579,8 @@ typedef PACKED_PRE struct PACKED_POST _Qwlanfw_RaDelStaStruct
    // add more, but be careful about endian
 } Qwlanfw_RaDelStaMsgType;
 
+#endif
+
 #define RA_UPDATE_TIMER_START    1
 #define RA_UPDATE_TIMER_STOP     2
 #define RA_UPDATE_TIMER_PERIOD   3
@@ -2484,10 +2623,12 @@ typedef PACKED_PRE struct PACKED_POST _Qwlanfw_RaForceStaRateStruct
 } Qwlanfw_RaForceStaRateMsgType;
 
 typedef PACKED_PRE union PACKED_POST _Qwlanfw_raMsgType{
+#ifndef FEATURE_RA_CHANGE
    Qwlanfw_RaAddBssMsgType         raAddBssMsg;
     Qwlanfw_RaDelBssMsgType         raDelBssMsg;
     Qwlanfw_RaAddStaMsgType         raAddStaMsg;
     Qwlanfw_RaDelStaMsgType         raDelStaMsg;
+#endif
     Qwlanfw_RaTimerMsgType          raTimerMsg;
     Qwlanfw_RaUpdateParamMsgType    raUpdateParam;
     Qwlanfw_RaForceStaRateMsgType   raForceStaRate;
@@ -2506,6 +2647,289 @@ typedef PACKED_PRE struct PACKED_POST _Qwlanfw_RaUpdateStruct
 #endif
    Qwlanfw_raMsgType u;
 } Qwlanfw_RaUpdateMsgType;
+
+#ifdef FEATURE_INNAV_SUPPORT
+/* INNAV */
+
+typedef PACKED_PRE struct PACKED_POST _Qwlanfw_InNavBssidInfoStruct
+{
+#ifdef ANI_BIG_BYTE_ENDIAN
+	tANI_U8  bssidAddr0;
+	tANI_U8  bssidAddr1;
+	tANI_U8  bssidAddr2;
+	tANI_U8  bssidAddr3;
+#else
+	tANI_U8  bssidAddr3;
+	tANI_U8  bssidAddr2;
+	tANI_U8  bssidAddr1;
+	tANI_U8  bssidAddr0;
+#endif
+#ifdef ANI_BIG_BYTE_ENDIAN
+	tANI_U8  bssidAddr4;
+	tANI_U8  bssidAddr5;
+	tANI_U8  numRTTRSSIMeasurements;
+	tANI_U8  reserved0;
+#else
+	tANI_U8  reserved0;
+	tANI_U8  numRTTRSSIMeasurements;
+	tANI_U8  bssidAddr5;
+	tANI_U8  bssidAddr4;
+#endif
+	//This is followed by the space for the data
+	//according to the number of measurements needed
+} Qwlanfw_InNavBssidInfoType;
+
+typedef PACKED_PRE struct PACKED_POST _Qwlanfw_InNavMeasReqStruct
+{
+   Qwlanfw_CtrlMsgType  hdr;
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32  numBssidsInReq : 8;
+   tANI_U32  selfStaIndex : 8;
+   tANI_U32  reserved0 : 16;
+#else
+   tANI_U32  reserved0 : 16;
+   tANI_U32  selfStaIndex : 8;
+   tANI_U32  numBssidsInReq : 8;
+#endif
+   /* This is follwed by the list of bssid information */
+} Qwlanfw_InNavMeasReqType;
+
+#endif
+
+
+#ifdef WLAN_SOFTAP_FEATURE
+/*============================================================
+Generic messages HOST -> FW
+==============================================================*/
+
+/* Enumeration of all the different kinds of common messages */
+typedef enum
+{
+  QWLANFW_COMMON_ADD_STA = 0,
+  QWLANFW_COMMON_DEL_STA = 1,
+  QWLANFW_COMMON_ADD_BSS = 2,
+  QWLANFW_COMMON_DEL_BSS = 3,
+  QWLANFW_COMMON_UPDATE_BEACON = 4,
+  QWLANFW_COMMON_DUMP_STAT = 5, //to dump the stat.
+  QWLANFW_COMMON_MSG_TYPE_MAX    //This and beyond are invalid values 
+} tFwMsgTypeEnum;
+
+/* System Role definition on a per BSS */
+#define FW_SYSTEM_UNKNOWN_ROLE       0x0
+#define FW_SYSTEM_AP_ROLE            0x1
+#define FW_SYSTEM_STA_IN_IBSS_ROLE   0x2
+#define FW_SYSTEM_STA_ROLE           0x3
+#define FW_SYSTEM_BTAMP_STA_ROLE     0x4
+#define FW_SYSTEM_BTAMP_AP_ROLE      0x5
+#define FW_SYSTEM_LAST_ROLE          0x6
+#define FW_SYSTEM_MULTI_BSS_ROLE     FW_SYSTEM_LAST_ROLE
+
+#define FW_STA_ENTRY_SELF              0
+#define FW_STA_ENTRY_OTHER             1
+#define FW_STA_ENTRY_BSSID             2
+#define FW_STA_ENTRY_BCAST             3 //Special station id for transmitting broadcast frames.
+#define FW_STA_ENTRY_PEER              STA_ENTRY_OTHER
+
+typedef PACKED_PRE struct PACKED_POST sBssInfo {
+#ifdef ANI_BIG_BYTE_ENDIAN
+       tANI_U8 bssIdx;
+       tANI_U8 selfStaIdx;
+       tANI_U8 bcastStaIdx;
+       tANI_U8 hiddenSsid:1;
+       tANI_U8 valid:1;
+       tANI_U8 rsvd:6;
+#else
+        tANI_U8 rsvd:6;
+        tANI_U8 valid:1;
+        tANI_U8 hiddenSsid:1;
+        tANI_U8 bcastStaIdx;
+        tANI_U8 selfStaIdx;    
+        tANI_U8 bssIdx;
+#endif
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+        tANI_U32 bssRole:8;
+        tANI_U32 rsvd3:24;
+#else
+        tANI_U32 rsvd3:24;
+        tANI_U32 bssRole:8;
+#endif
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+        tANI_U16 bcnRateIdx;
+        tANI_U16 tuBcnIntv;
+#else
+        tANI_U16 tuBcnIntv;
+        tANI_U16 bcnRateIdx;
+#endif
+    
+        tANI_U8 ssId[32]; //max ssid length = 32.   
+#ifdef ANI_BIG_BYTE_ENDIAN
+        tANI_U16 timIeOffset;        
+        tANI_U8 ssIdLen;
+        tANI_U8 rsvd1;
+#else    
+        tANI_U8 rsvd1;    
+        tANI_U8 ssIdLen;    
+        tANI_U16 timIeOffset;
+#endif
+        tANI_U8* bcnTemplateAddr;
+        tANI_U8* probeRspTemplateAddr;
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+        tANI_U32  selfStaAddrHi:16;
+        tANI_U32  rsvd2:16;
+#else
+        tANI_U32  rsvd2:16;
+        tANI_U32  selfStaAddrHi:16;
+#endif
+        tANI_U32  selfStaAddrLo;
+        
+       // add more, but be careful about endian 
+
+} tBssInfo, *tpBssInfo;
+
+typedef PACKED_PRE struct PACKED_POST sStaInfo {
+#ifdef ANI_BIG_BYTE_ENDIAN
+        tANI_U8   staIdx;   
+        tANI_U8   aid; //assoc id.
+        tANI_U8   qosEnabled:1; //whether station is qos enabled.
+        tANI_U8   raGlobalUpdate:1; //flag indicates that RA global update for BSS needed.
+        tANI_U8   raStaUpdate:1; //flag indicates that RA update for this station needed.
+        tANI_U8   peerEntry:2;
+        tANI_U8   valid:1;
+        tANI_U8   rsvd:2;
+        tANI_U8   bssIdx; //bss index for this station.
+#else
+        tANI_U8   bssIdx; //bss index for this station.
+        tANI_U8   rsvd:2;
+        tANI_U8   valid:1;
+        tANI_U8   peerEntry:2;    
+        tANI_U8   raStaUpdate:1; //flag indicates that RA update for this station needed.
+        tANI_U8   raGlobalUpdate:1; //flag indicates that RA global update for BSS needed.
+        tANI_U8   qosEnabled:1; //whether station is qos enabled.
+        tANI_U8   aid; //assoc id.
+        tANI_U8   staIdx;   
+#endif
+#ifdef ANI_BIG_BYTE_ENDIAN
+        tANI_U16  listenInterval; //listen inteval for this station.
+       //current QID mask for delivery enabled ACs (zero if none or all
+       //ACs are delivery enabled)
+        tANI_U16  delEnbQidMask;
+#else
+        tANI_U16  delEnbQidMask;
+        tANI_U16  listenInterval;
+#endif
+    
+#ifdef ANI_BIG_BYTE_ENDIAN
+        tANI_U32  macAddrHi:16;
+        tANI_U32  rsvd1:16;
+#else
+        tANI_U32  rsvd1:16;
+        tANI_U32  macAddrHi:16;
+#endif
+        tANI_U32  macAddrLo;
+       // add more, but be careful about endian 
+    
+} tStaInfo, *tpStaInfo;
+
+
+typedef PACKED_PRE struct PACKED_POST _Qwlanfw_AddStaMsgStruct
+{
+#ifdef ANI_BIG_BYTE_ENDIAN
+    tANI_U8   staIdx;
+    tANI_U8   bssIdx;
+    tANI_U8   raGlobalUpdate:1; //when set means RA global update is needed. else update for this station is needed.
+    tANI_U8   rsvd1:7;
+    tANI_U8   rsvd2;
+#else
+    tANI_U8  rsvd2;
+    tANI_U8   rsvd1:7;
+    tANI_U8   raGlobalUpdate:1;
+    tANI_U8   bssIdx;
+    tANI_U8   staIdx;
+#endif
+} Qwlanfw_AddStaMsgType;
+
+
+typedef PACKED_PRE struct PACKED_POST _Qwlanfw_DelStaMsgStruct
+{
+#ifdef ANI_BIG_BYTE_ENDIAN
+    tANI_U8   staIdx;    /* valid range: 0~7 */
+    tANI_U8   rsvd1;
+    tANI_U16  rsvd2;    
+#else
+    tANI_U16  rsvd2;    
+    tANI_U8   rsvd1;
+    tANI_U8   staIdx;
+#endif
+   // add more, but be careful about endian 
+} Qwlanfw_DelStaMsgType;
+
+
+typedef PACKED_PRE struct PACKED_POST _Qwlanfw_AddBssMsgStruct
+{
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U8 bssIdx;
+   tANI_U8 rsvd1;
+   tANI_U16 rsvd2;
+#else
+    tANI_U16 rsvd2;
+    tANI_U8 rsvd1;
+    tANI_U8 bssIdx;
+#endif
+} Qwlanfw_AddBssMsgType;
+
+
+typedef PACKED_PRE struct PACKED_POST _Qwlanfw_DelBssMsgStruct
+{
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U8   bssIdx;
+   tANI_U8   rsvd1;
+   tANI_U16  rsvd2;
+#else
+   tANI_U16   rsvd2;
+   tANI_U8    rsvd1;
+   tANI_U8    bssIdx;
+#endif
+   // add more, but be careful about endian 
+} Qwlanfw_DelBssMsgType;
+
+typedef PACKED_PRE struct PACKED_POST Qwlanfw_UpdateBeaconMsgStruct
+{
+#ifdef ANI_BIG_BYTE_ENDIAN    
+    tANI_U8  bssIdx;
+    tANI_U8  rsvd1;
+    tANI_U16 rsvd2;
+#else
+    tANI_U16 rsvd2;
+    tANI_U8  rsvd1;
+    tANI_U8  bssIdx;
+#endif
+
+   // add more, but be careful about endian 
+} Qwlanfw_UpdateBeaconMsgType;
+
+typedef PACKED_PRE struct PACKED_POST _Qwlanfw_MsgStruct
+{
+   Qwlanfw_CtrlMsgType  hdr;
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U16 msgType;
+   tANI_U16 msgLen;
+#else
+   tANI_U16 msgLen;
+   tANI_U16 msgType;
+#endif
+    union PACKED_POST {
+    Qwlanfw_AddStaMsgType         addStaMsg;
+    Qwlanfw_DelStaMsgType         delStaMsg;
+    Qwlanfw_AddBssMsgType         addBssMsg;
+    Qwlanfw_DelBssMsgType         delBssMsg;
+    Qwlanfw_UpdateBeaconMsgType   updateBeaconMsg;
+    } u;
+} Qwlanfw_CommonMsgType;
+
+#endif
 
 /*==================================================================================
   FW -> HOST MESSAGE DEFINITIONS
@@ -2834,5 +3258,104 @@ typedef PACKED_PRE struct PACKED_POST _QWlanfw_MemMapInfo
     tANI_U32 reserved12;
     tANI_U32 reserved13;
 } QWlanfw_MemMapInfo;
+
+#ifdef FEATURE_INNAV_SUPPORT
+/* INNAV */
+
+typedef PACKED_PRE struct PACKED_POST _InNavMeasRsltStruct
+{
+#ifdef ANI_BIG_BYTE_ENDIAN
+	tANI_U32 rssi        :7;
+	tANI_U32 rtt         :10;
+	tANI_U32 bssidIndex  :7;
+	tANI_U32 snr         :8;
+#else
+	tANI_U32 snr         :8;
+	tANI_U32 bssidIndex  :7;
+	tANI_U32 rtt         :10;
+	tANI_U32 rssi        :7;
+#endif
+	tANI_U32 tsfLo;
+	tANI_U32 tsfHi;
+} InNavMeasRsltType;
+
+typedef PACKED_PRE struct PACKED_POST _Qwlanfw_InNavMeasStruct
+{
+	Qwlanfw_CtrlMsgType  hdr;
+#ifdef ANI_BIG_BYTE_ENDIAN
+	tANI_U32             numSuccessfulMeas : 8;
+	tANI_U32             reserved0 : 24;
+#else
+	tANI_U32             reserved0 : 24;
+	tANI_U32             numSuccessfulMeas : 8;
+#endif
+	//Followed by the result data for the bssid
+} Qwlanfw_InNavMeasRspType;
+
+#endif
+
+#ifdef WLAN_SOFTAP_FEATURE
+/**
+@brief
+QWLANFW_FW2HOST_DEL_STA_CONTEXT
+*/
+typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_DeleteStaContextStruct
+{
+   Qwlanfw_CtrlMsgType  hdr;
+   
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32  assocId     : 8;
+   tANI_U32  staIdx      : 8;
+   tANI_U32  bssIdx      : 8;
+   tANI_U32  uReasonCode : 8;
+#else
+   tANI_U32  uReasonCode : 8;
+   tANI_U32  bssIdx      : 8;
+   tANI_U32  staIdx      : 8;
+   tANI_U32  assocId     : 8;
+#endif
+
+   tANI_U32  uStatus;
+
+} tQwlanfw_DeleteStaContextType, * tpQwlanfw_DeleteStaContextType;
+
+enum {
+   QWLAN_DEL_STA_REASON_CODE_NONE       = 0x0,
+   QWLAN_DEL_STA_REASON_CODE_KEEP_ALIVE = 0x1,
+   QWLAN_DEL_STA_REASON_CODE_TIM_BASED  = 0x2,
+   QWLAN_DEL_STA_REASON_CODE_RA_BASED   = 0x3,
+   QWLAN_DEL_STA_REASON_CODE_UNKNOWN_A2 = 0x4
+};
+#endif //WLAN_SOFTAP_FEATURE
+
+/**
+   @brief
+    QWLANFW_HOST2FW_SET_HOST_OFFLOAD
+   
+*/
+
+#define HOST_OFFLOAD_IPV4_ARP_REPLY           0
+#define HOST_OFFLOAD_IPV6_NEIGHBOR_DISCOVERY  1
+#define HOST_OFFLOAD_DISABLE                  0
+#define HOST_OFFLOAD_ENABLE                   1
+
+typedef PACKED_PRE union PACKED_POST _Qwlanfw_HostOffloadParamsUnion
+{
+   tANI_U8 hostIpv4Addr [4];
+   tANI_U8 hostIpv6Addr [16];
+} Qwlanfw_HostOffloadParamsType;
+
+typedef PACKED_PRE struct PACKED_POST _Qwlanfw_HostOffloadReqStruct
+{
+   Qwlanfw_CtrlMsgType  hdr;
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32 offloadType : 16;
+   tANI_U32 enableOrDisable : 16;
+#else
+   tANI_U32 enableOrDisable : 16;
+   tANI_U32 offloadType : 16;
+#endif
+   Qwlanfw_HostOffloadParamsType params;
+} Qwlanfw_HostOffloadReqType;
 
 #endif /*_QWLAN_MACFW_H*/

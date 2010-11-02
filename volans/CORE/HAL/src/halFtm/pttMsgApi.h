@@ -109,7 +109,7 @@ typedef enum
     PTT_MSG_SET_POWER_LUT                        = 0x30A9,
     PTT_MSG_GET_POWER_LUT                        = 0x30AA,
     PTT_MSG_GET_PACKET_TX_GAIN_TABLE             = 0x30AB,
-    PTT_MSG_SAVE_TX_PWR_FREQ_TABLE               = 0x30AC,
+    PTT_MSG_SAVE_TX_PWR_FREQ_TABLE_OBSOLETE      = 0x30AC,
     PTT_MSG_CLPC_TEMP_COMPENSATION_OBSOLETE      = 0x30AD,
 
 //Rx Gain Service
@@ -134,8 +134,8 @@ typedef enum
     PTT_MSG_TX_CARRIER_SUPPRESS_CAL              = 0x3102,
     PTT_MSG_TX_IQ_CAL                            = 0x3103,
     PTT_MSG_EXECUTE_INITIAL_CALS                 = 0x3104,
-    PTT_MSG_HDET_CAL                             = 0x3105,
-    PTT_MSG_VCO_LINEARITY_CAL                    = 0x3106,
+    PTT_MSG_HDET_CAL_OBSOLETE                    = 0x3105,
+    PTT_MSG_VCO_LINEARITY_CAL_OBSOLETE           = 0x3106,
 
 //Phy Calibration Override Service
     PTT_MSG_SET_TX_CARRIER_SUPPRESS_CORRECT      = 0x3110,
@@ -147,7 +147,7 @@ typedef enum
     PTT_MSG_SET_RX_DCO_CORRECT                   = 0x3116,
     PTT_MSG_GET_RX_DCO_CORRECT                   = 0x3117,
     PTT_MSG_SET_TX_IQ_PHASE_NV_TABLE_OBSOLETE    = 0x3118,
-    PTT_MSG_GET_HDET_CORRECT                     = 0x3119,
+    PTT_MSG_GET_HDET_CORRECT_OBSOLETE            = 0x3119,
 
 //RF Chip Access
     PTT_MSG_GET_TEMP_ADC                         = 0x3202,
@@ -328,8 +328,7 @@ typedef struct
 
 typedef struct
 {
-    tANI_U32 startIndex;
-    tANI_U32 numSamples;
+    tANI_U32 notUsed;
 }tMsgPttStartWaveform;
 
 
@@ -424,14 +423,6 @@ typedef struct
 }tMsgPttGetPowerLut;
 
 
-typedef struct
-{
-    tANI_U8 numTpcCalFreqs;
-    tANI_U8 reserved[3];
-    tTpcFreqData table[MAX_TPC_CHANNELS];
-}tMsgPttSaveTxPwrFreqTable;
-
-
 
 
 //Rx Gain Service
@@ -512,18 +503,6 @@ typedef struct
 
 typedef struct
 {
-    sRfNvCalValues rfCalValues;
-    tANI_BOOLEAN internal;
-    tANI_U8 reserved[3];
-}tMsgPttHdetCal;
-
-typedef struct
-{
-    sRfNvCalValues rfCalValues;
-}tMsgGetHdetCorrect;
-
-typedef struct
-{
     sTxChainsIQCalValues calValues;
     eGainSteps gain;
 }tMsgPttTxIqCal;
@@ -533,12 +512,6 @@ typedef struct
     tANI_U32 unused;
 }tMsgPttExecuteInitialCals;
 
-#ifdef VERIFY_HALPHY_SIMV_MODEL
-typedef struct
-{
-    tANI_U32 unused;
-}tMsgPttVcoLinearityCal;
-#endif
 
 //Phy Calibration Override Service
 typedef struct
@@ -603,8 +576,9 @@ typedef struct
 
 typedef struct
 {
-    tANI_U8 tempAdc;
-    tANI_U8 reserved[3];
+    eRfTempSensor tempSensor;
+    tTempADCVal tempAdc;
+    tANI_U8 reserved[4 - sizeof(tTempADCVal)];
 }tMsgPttGetTempAdc;
 
 typedef struct
@@ -744,7 +718,6 @@ typedef union pttMsgUnion
     tMsgPttGetTxPowerReport                         GetTxPowerReport;
     tMsgPttSetPowerLut                              SetPowerLut;
     tMsgPttGetPowerLut                              GetPowerLut;
-    tMsgPttSaveTxPwrFreqTable                       SaveTxPwrFreqTable;
     tMsgPttDisableAgcTables                         DisableAgcTables;
     tMsgPttEnableAgcTables                          EnableAgcTables;
     tMsgPttGetRxRssi                                GetRxRssi;
@@ -758,10 +731,6 @@ typedef union pttMsgUnion
     tMsgPttTxCarrierSuppressCal                     TxCarrierSuppressCal;
     tMsgPttTxIqCal                                  TxIqCal;
     tMsgPttExecuteInitialCals                       ExecuteInitialCals;
-#ifdef VERIFY_HALPHY_SIMV_MODEL
-    tMsgPttVcoLinearityCal                          VcoLinearityCal;
-#endif
-    tMsgPttHdetCal                                  HdetCal;
     tMsgPttSetTxCarrierSuppressCorrect              SetTxCarrierSuppressCorrect;
     tMsgPttGetTxCarrierSuppressCorrect              GetTxCarrierSuppressCorrect;
     tMsgPttSetTxIqCorrect                           SetTxIqCorrect;
@@ -772,10 +741,9 @@ typedef union pttMsgUnion
     tMsgPttGetRxDcoCorrect                          GetRxDcoCorrect;
     tMsgPttSetRxIm2Correct                          SetRxIm2Correct;
     tMsgPttGetRxIm2Correct                          GetRxIm2Correct;
-    tMsgGetHdetCorrect                              GetHdetCorrect;
+    tMsgPttGetTempAdc                               GetTempAdc;
     tMsgPttReadRfField                              ReadRfField;
     tMsgPttWriteRfField                             WriteRfField;
-    tMsgPttGetTempAdc                               GetTempAdc;
 #ifdef VERIFY_HALPHY_SIMV_MODEL
     tMsgPttCalControlBitmap                         SetCalControlBitmap;
     tMsgPttHalPhyInit                               InitOption;

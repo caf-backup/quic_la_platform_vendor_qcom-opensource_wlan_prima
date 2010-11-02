@@ -101,26 +101,13 @@
  */
 
 /**
- *     FIXME:
- *     Bkoff timer usage in MTU
- *  Beacon
- *     MTU_BKID_BEACON = MTU_BKID_0,
- *  Reserved
- *     MTU_BKID_RESERVED = MTU_BKID_1,
- *  Management
- *     MTU_BKID_MGMT_HIGH = MTU_BKID_2,
- *     MTU_BKID_MGMT_LOW = MTU_BKID_3,
- *  EDCA data
- *     MTU_BKID_AC_VO = MTU_BKID_4,
- *     MTU_BKID_AC_VI = MTU_BKID_5,
- *     MTU_BKID_AC_BK = MTU_BKID_6,
- *     MTU_BKID_AC_BE = MTU_BKID_7,
+ * 
  */
 
-
+//Dinesh : need to change the backoff parametes of backoff 3 which is mapped for probeRsp.
 static tMtuParams sta_params[MAX_NUMBER_OF_MODES] =
 {
-  /** BCN psPoll Mgmt non-qos VO VI  BK  BE */
+  /** backoff id 0 -> 7 */
   { {43, 43, 34, 34, 34, 34, 79, 43},        /** 11a DIFS  */
     {4, 4, 4,  4,  2,  3,  4, 4},            /** 11a cwMin */
     {10, 10, 10, 10, 3, 4, 10, 10},            /** 11a cwMax */
@@ -135,7 +122,7 @@ static tMtuParams sta_params[MAX_NUMBER_OF_MODES] =
   },
 
 
-  /** BCN psPoll Mgmt non-qos VO VI  BK  BE */
+  /** backoff id 0 -> 7 */
   { {70, 70, 50, 50, 50, 50, 150, 70},       /** 11b DIFS  */
     {5, 5, 5,  5,  3,  4, 5, 5},             /** 11b cwMin */
     {10, 10, 10, 10, 4, 5, 10, 10},            /** 11b cwMax */
@@ -149,7 +136,7 @@ static tMtuParams sta_params[MAX_NUMBER_OF_MODES] =
     0                                        /** 11b N/A  */
   },
 
-  /** BCN psPoll Mgmt non-qos VO VI  BK  BE */
+  /** backoff id 0 -> 7 */
   { {70, 70, 50, 50, 50, 50, 150, 70},       /** 11g Mixed Mode DIFS  */
     {5, 5, 4,  4,  3,  4, 5, 5},             /** 11g Mixed Mode cwMin */
     {10, 10, 10, 10, 4, 5, 10, 10},            /** 11g Mixed Mode cwMax */
@@ -163,7 +150,7 @@ static tMtuParams sta_params[MAX_NUMBER_OF_MODES] =
     2                                        /** 11g Mixed Mode RIFS  */
   },
 
-  /** BCN psPoll Mgmt non-qos VO VI  BK  BE */
+  /** backoff id 0 -> 7 */
   { {37, 37, 28, 28, 28, 28, 73, 37},        /** 11g Pure Mode DIFS  */
     {4, 4, 4,  4,  2,  3,  4, 4},            /** 11g Pure Mode cwMin */
     {10, 10, 10, 10, 3, 4, 10, 10},          /** 11g Pure Mode cwMax */
@@ -551,7 +538,9 @@ void halMTU_updateTimingParams(tpAniSirGlobal pMac, tMtuMode mode)
     tANI_U32  value, idx;
     tMtuParams *modeParams;
 #ifdef WLAN_DEBUG
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     tANI_U8  modeStr[][10]={ "11a", "11b", "mixed11g", "pure11g" };
+#endif
 #endif
     tANI_U8 sifs;
 
@@ -1120,15 +1109,21 @@ void halMTU_GetActiveBss(tpAniSirGlobal pMac, tANI_U8 *activeBssCnt)
 }
 
 /**
- * \fn     :   halMTU_SetIbssValid
+ * \fn     :   halMTU_SetIbssValid_And_BTAMPMode
  *
- * \brief  :   To enable IBSS mode in MTU.
+ * \brief  :   To enable IBSS mode or btAmp mode based on the btamp_flag.
  *
  * \param  :   tpAniSirGlobal pMac : Handle to Mac Structure.
  *
  * \return :   VOID
+ *
+ * For the BTAMP mode
+ * We will need to set the BTAMP and the IBSS bit in MTU as per the HW programing instructions.
+ * In the BTAMP mode the regular TSF timer will be used.
+ *
  */
-void halMTU_SetIbssValid(tpAniSirGlobal pMac)
+void halMTU_SetIbssValid_And_BTAMPMode(tpAniSirGlobal pMac, 
+        tANI_U8 btamp_flag)
 {
     tANI_U32 value;
 
@@ -1138,38 +1133,46 @@ void halMTU_SetIbssValid(tpAniSirGlobal pMac)
 
     value |= QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_SW_MTU_IBSS_VALID_MASK;
 
+    if (btamp_flag) 
+        value |= QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_SW_MTU_BTAMP_MODE_MASK;
+
     /** Set the ibss valid bit */
     halWriteRegister(pMac, QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_REG,
                     value);
 
 }
 
+
 /**
- * \fn     :   halMTU_SetDtimPeriodAndInterval
+ * \fn     :   halMTU_SetDtim
  *
- * \brief  :   Update the DTIM Period and Interval.
+ * \brief  :   Update the DTIM related settings and enables DTIM
  *
  * \param  :   tpAniSirGlobal pMac   : Handle to Mac Structure.
  *
- * \param  :   tANI_U32 dtimPeriod   : DTIM Period that needs to be updated.
+ * \param  :   v_U32_t  dtimPeriod   : DTIM Period that needs to be updated.
  *
- * \param  :   tANI_U32 dtimInterval : DTIM Interval that needs to be updated.
+ * \param  :   v_U32_t  dtimThreshLimit : DTIM Threshold Limit that needs to be updated.
  *
- * \return :   void
+ * \return :   None
  */
-void halMTU_SetDtimPeriodAndInterval(tpAniSirGlobal pMac,
-                                tANI_U32 dtimPeriod, tANI_U32 dtimInterval)
+void halMTU_SetDtim(tpAniSirGlobal pMac, v_U32_t dtimPeriod,
+                                              v_U32_t dtimThreshLimit)
 {
+    v_U32_t value = 0;
 
-    /** Set the DTIM period */
-    halWriteRegister(pMac, QWLAN_MTU_MTU_DTIM_CNT_AND_PERIOD_REG,
-                    dtimPeriod << QWLAN_MTU_MTU_DTIM_CNT_AND_PERIOD_DTIM_PERIOD_OFFSET);
+    //set DTIM period and threshold;
+    halWriteRegister(pMac, QWLAN_MTU_MTU_DTIM_CNT_AND_PERIOD_REG, dtimPeriod << QWLAN_MTU_MTU_DTIM_CNT_AND_PERIOD_DTIM_PERIOD_OFFSET);
 
-    /** Set the DTIM Interval */
     halWriteRegister(pMac, QWLAN_MTU_DTIM_THRSH_CNT_AND_LIMIT_REG,
-                    dtimInterval << QWLAN_MTU_DTIM_THRSH_CNT_AND_LIMIT_DTIM_THRSH_CNT_OFFSET);
+                         dtimThreshLimit << QWLAN_MTU_DTIM_THRSH_CNT_AND_LIMIT_DTIM_THRSH_LIMIT_OFFSET);
 
+    /** Enable DTIM counter */
+    halReadRegister(pMac, QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_REG, &value);
+    value |= QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_SW_MTU_DTIM_CNT_EN_MASK;
+    halWriteRegister(pMac, QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_REG, value);
 }
+
 
 /**
  * \fn     :   halMTU_GetDtimCount
@@ -1212,9 +1215,12 @@ void halMTU_UpdateBeaconInterval(tpAniSirGlobal pMac, tANI_U32 beaconInterval)
     halReadRegister(pMac, QWLAN_MTU_BCN_BSSID_INTV_REG,
                                     &value) ;
 
+    // Clear the  Beacon Interval  before write new value.
+    value =  value & (~(QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_BEACON_INTV_MASK)); 
+
+
     /** Configure the beacon bssid register */
-    value |= QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_TBTT_ENABLE_MASK | 
-                (QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_BEACON_INTV_MASK & 
+    value |= (QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_BEACON_INTV_MASK & 
                   (beaconInterval << QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_BEACON_INTV_OFFSET));
 
     halWriteRegister(pMac, QWLAN_MTU_BCN_BSSID_INTV_REG,
@@ -1235,17 +1241,46 @@ void halMTU_DisableBeaconTransmission(tpAniSirGlobal pMac)
 {
     tANI_U32 value;
 
-    halReadRegister(pMac, QWLAN_MTU_BCN_BSSID_INTV_REG, &value);
+    palReadRegister(pMac->hHdd, QWLAN_MTU_BCN_BSSID_INTV_REG, &value);
 
     // Disable beacon transmission, is controlled by resetting this flag.
     value &= (~QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_TBTT_ENABLE_MASK);
 
-    halWriteRegister(pMac, QWLAN_MTU_BCN_BSSID_INTV_REG, value);
+    palWriteRegister(pMac->hHdd, QWLAN_MTU_BCN_BSSID_INTV_REG, value);
 
     HALLOG1(halLog(pMac, LOG1, FL("\nMTU Beacon Disable\n")));
 
     return; 
 }
+
+
+// Set the bit in MTU sw_mtu_tbtt_enable to start beacon transmission
+// This called when the beacon is ready from PE to be send out.
+void halMTU_EnableDisableBssidTBTTBeaconTransmission(tpAniSirGlobal pMac, 
+        tANI_U32 beaconInterval, tANI_U8 enable_flag)
+{
+    tANI_U32 value;
+
+    palReadRegister(pMac->hHdd, QWLAN_MTU_BCN_BSSID_INTV_REG,
+                                    &value);
+
+    /** Configure the beacon bssid register */
+    if (enable_flag)
+    {
+        value |= (QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_TBTT_ENABLE_MASK |
+                (1<<QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_MAX_BSSIDS_OFFSET));
+    }
+    else 
+    {
+        /** Configure the beacon bssid register */
+        value &= (~(QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_TBTT_ENABLE_MASK));
+    }
+
+    palWriteRegister(pMac->hHdd, QWLAN_MTU_BCN_BSSID_INTV_REG,
+                                    value);
+
+}
+
 
 /**
  * \fn     :   halMTU_UpdateNumBSS
@@ -1338,6 +1373,7 @@ eHalStatus halMTU_DeactivateTimer(tpAniSirGlobal pMac, tMtuTimer timer)
     return eHAL_STATUS_SUCCESS;
 }
 
+#ifndef WLAN_SOFTAP_FEATURE
 /**
  * \fn     :   __halMtu_UpdatePreBeaconTimer
  *
@@ -1438,6 +1474,7 @@ eHalStatus halIntMtuHandlePreBeaconTmr( tHalHandle hHal, eHalIntSources tsfTimer
 
     return eHAL_STATUS_SUCCESS;
 }
+#endif
 
 
 /**
@@ -1514,3 +1551,11 @@ eHalStatus halMTU_DefInterruptHandler( tHalHandle hHalHandle, eHalIntSources int
     
 }
 
+void halGetTxTSFtimer(tpAniSirGlobal pMac, tSirMacTimeStamp *pTime)
+{
+    tANI_U32 low = 0;
+    tANI_U32 high = 0;
+    (void) halMTU_GetTsfTimer(pMac, &low, &high);
+    *((tANI_U32 *)pTime) = low;
+    *(((tANI_U32 *)pTime) + 1) = high;
+}

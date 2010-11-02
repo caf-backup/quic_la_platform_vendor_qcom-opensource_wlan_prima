@@ -1,7 +1,7 @@
 
 
 #include "ani_assert.h"
-#if defined(ANI_PHY_DEBUG) || defined(ANI_MANF_DIAG)
+#ifndef WLAN_FTM_STUB
 #include "pttModuleApi.h"
 //#include "halPhyUtil.h"
 

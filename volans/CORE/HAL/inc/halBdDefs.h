@@ -38,7 +38,12 @@ typedef struct sHalRxBd {
         tANI_U32 rxChannel:4;
         tANI_U32 scanLearn:1;
 
+#if defined(LIBRA_WAPI_SUPPORT)
+        /** UnEncrypted Frame received over WAPI channel, only for WAPI*/
+        tANI_U32 uef:1;   
+#else
         tANI_U32 reserved0:1;
+#endif
     
         /** LLC Removed
         This bit is only used in Libra rsvd for Virgo1.0/Virgo2.0
@@ -108,7 +113,12 @@ typedef struct sHalRxBd {
         tANI_U32 rmf:1;
         tANI_U32 reserved1:1;
         tANI_U32 llc:1;
+#if defined(LIBRA_WAPI_SUPPORT)
+        /** UnEncrypted Frame received over WAPI channel, only for WAPI*/
+        tANI_U32 uef:1;   
+#else
         tANI_U32 reserved0:1;
+#endif
         tANI_U32 scanLearn:1;
         tANI_U32 rxChannel:4;
         tANI_U32 rtsf:1;
@@ -758,6 +768,588 @@ typedef struct sHalRxDeFragBd {
 
 } halRxDeFragBd_type, *pHalRxDeFragBd_type;
 
-#endif /* __ASSEMBLER__ */
+/** Data structure of Rx BD for better Qos TX flow control.    
+      This will be used to send FC report from FW to HOST.  */
+      
+#ifdef WLAN_SOFTAP_FEATURE
+//FC rx BD this will be used to send FLOW control report from FW to HOST.
+typedef struct sHalFcRxBd {
+        /* 0x00 */
+#ifdef ANI_BIG_BYTE_ENDIAN
+    
+        /** (Only used by the DPU)
+        This routing flag indicates the WQ number to which the DPU will push the
+        frame after it finished processing it. */
+        tANI_U32 dpuRF:8;
+    
+        /** This is DPU sig inserted by RXP. Signature on RA's DPU descriptor */
+        tANI_U32 dpuSignature:3;
+    
+        /** When set Sta is authenticated. SW needs to set bit
+        addr2_auth_extract_enable in rxp_config2 register. Then RXP will use bit 3
+        in DPU sig to say whether STA is authenticated or not. In this case only
+        lower 2bits of DPU Sig is valid */
+        tANI_U32 stAuF:1;
+    
+        /** When set address2 is not valid??? */
+        tANI_U32 A2HF:1;
+    
+        /** When set it indicates TPE has sent the Beacon frame */
+        tANI_U32 bsf:1;
+    
+        /** This bit filled by rxp when set indicates if the current tsf is smaller
+        than received tsf */
+        tANI_U32 rtsf:1;
+    
+        /** These two fields are used by SW to carry the Rx Channel number and SCAN bit in RxBD*/
+        tANI_U32 rxChannel:4;
+        tANI_U32 scanLearn:1;
+
+        tANI_U32 reserved0:1;
+    
+        /** LLC Removed
+        This bit is only used in Libra rsvd for Virgo1.0/Virgo2.0
+        Filled by ADU when it is set LLC is removed from packet */
+        tANI_U32 llcr:1;
+        
+        tANI_U32 umaByPass:1;
+    
+        /** This bit is only available in Virgo2.0/libra it is reserved in Virgo1.0
+        Robust Management frame. This bit indicates to DPU that the packet is a
+        robust management frame which requires decryption(this bit is only valid for
+        management unicast encrypted frames)
+        1 - Needs decryption
+        0 - No decryption required */
+        tANI_U32 rmf:1;
+    
+        /** 
+        This bit is only in Virgo2.0/libra it is reserved in Virgo 1.0
+        This 1-bit field indicates to DPU Unicast/BC/MC packet
+        0 - Unicast packet
+        1 - Broadcast/Multicast packet
+        This bit is only valid when RMF bit is 1 */
+        tANI_U32 ub:1;
+    
+        /** This is the KEY ID extracted from WEP packets and is used for determine
+        the RX Key Index to use in the DPU Descriptror.
+        This field  is 2bits for virgo 1.0
+        And 3 bits in virgo2.0 and Libra
+        In virgo2.0/libra it is 3bits for the BC/MC packets */
+        tANI_U32 rxKeyId:3;
+        
+        /**  (Only used by the DPU)    
+        No encryption/decryption
+        0: No action
+        1: DPU will not encrypt/decrypt the frame, and discard any encryption
+        related settings in the PDU descriptor. */
+        tANI_U32 dpuNE:1;
+    
+        /** 
+        This is only available in libra/virgo2.0  it is reserved for virgo1.0
+        This bit is filled by RXP and modified by ADU
+        This bit indicates to ADU/UMA module that the packet requires 802.11n to
+        802.3 frame translation. Once ADU/UMA is done with translation they
+        overwrite it with 1'b0/1'b1 depending on how the translation resulted
+        When used by ADU 
+        0 - No frame translation required
+        1 - Frame Translation required
+        When used by SW
+        0 - Frame translation not done, MPDU header offset points to 802.11 header..
+        1 - Frame translation done ;  hence MPDU header offset will point to a
+        802.3 header */
+        tANI_U32 ft:1;
+    
+        /** (Only used by the DPU)
+        BD Type 
+        00: 'Generic BD', as indicted above
+        01: De-fragmentation format 
+        10-11: Reserved for future use. */
+        tANI_U32 bdt:2;
+        
+#else
+        tANI_U32 bdt:2;
+        tANI_U32 ft:1;
+        tANI_U32 dpuNE:1;
+        tANI_U32 rxKeyId:3;
+        tANI_U32 ub:1;
+        tANI_U32 rmf:1;
+        tANI_U32 reserved1:1;
+        tANI_U32 llc:1;
+        tANI_U32 reserved0:1;
+        tANI_U32 scanLearn:1;
+        tANI_U32 rxChannel:4;
+        tANI_U32 rtsf:1;
+        tANI_U32 bsf:1;
+        tANI_U32 A2HF:1;
+        tANI_U32 stAuF:1;
+        tANI_U32 dpuSignature:3;
+        tANI_U32 dpuRF:8;
+#endif
+    
+        /* 0x04 */
+#ifdef ANI_BIG_BYTE_ENDIAN
+    
+        /** This is used for AMSDU this is the PDU index of the PDU which is the
+        one before last PDU; for all non AMSDU frames, this field SHALL be 0.
+        Used in ADU (for AMSDU deaggregation) */
+        tANI_U32 penultimatePduIdx:16;
+    
+        tANI_U32 aduFeedback:8;
+    
+        /** DPU feedback */
+        tANI_U32 dpuFeedback:8;
+        
+#else
+        tANI_U32 dpuFeedback:8;
+        tANI_U32 aduFeedback:8;
+        tANI_U32 penultimatePduIdx:16;
+#endif
+    
+        /* 0x08 */
+#ifdef ANI_BIG_BYTE_ENDIAN
+    
+        /** In case PDUs are linked to the BD, this field indicates the index of
+        the first PDU linked to the BD. When PDU count is zero, this field has an
+        undefined value. */
+        tANI_U32 headPduIdx:16;
+    
+        /** In case PDUs are linked to the BD, this field indicates the index of
+        the last PDU. When PDU count is zero, this field has an undefined value.*/
+        tANI_U32 tailPduIdx:16;
+        
+#else
+        tANI_U32 tailPduIdx:16;
+        tANI_U32 headPduIdx:16;
+#endif
+    
+        /* 0x0c */
+#ifdef ANI_BIG_BYTE_ENDIAN
+    
+        /** The length (in number of bytes) of the MPDU header. 
+        Limitation: The MPDU header offset + MPDU header length can never go beyond
+        the end of the first PDU */
+        tANI_U32 mpduHeaderLength:8;
+    
+        /** The start byte number of the MPDU header. 
+        The byte numbering is done in the BE format. Word 0x0, bits [31:24] has
+        byte index 0. */
+        tANI_U32 mpduHeaderOffset:8;
+    
+        /** The start byte number of the MPDU data. 
+        The byte numbering is done in the BE format. Word 0x0, bits [31:24] has
+        byte index 0. Note that this offset can point all the way into the first
+        linked PDU.
+        Limitation: MPDU DATA OFFSET can not point into the 2nd linked PDU */
+        tANI_U32 mpduDataOffset:9;
+    
+        /** The number of PDUs linked to the BD. 
+        This field should always indicate the correct amount. */
+        tANI_U32 pduCount:7;
+#else
+    
+        tANI_U32 pduCount:7;
+        tANI_U32 mpduDataOffset:9;
+        tANI_U32 mpduHeaderOffset:8;
+        tANI_U32 mpduHeaderLength:8;
+#endif
+    
+        /* 0x10 */
+#ifdef ANI_BIG_BYTE_ENDIAN
+    
+        /** This is the length (in number of bytes) of the entire MPDU 
+        (header and data). Note that the length does not include FCS field. */
+        tANI_U32 mpduLength:16;
+    
+        tANI_U32 reserved3:4;
+    
+        /** Traffic Identifier
+        Indicates the traffic class the frame belongs to. For non QoS frames,
+        this field is set to zero. */
+        tANI_U32 tid:4;
+        
+        tANI_U32 reserved4:7;
+        tANI_U32 fc:1; //bit indicating that this is a flow control frame. 
+#else
+        tANI_U32 fc:1;
+        tANI_U32 reserved4:7;
+        tANI_U32 tid:4;
+        tANI_U32 reserved3:4;
+        tANI_U32 mpduLength:16;
+#endif
+    
+        /* 0x14 */
+#ifdef ANI_BIG_BYTE_ENDIAN
+    
+        /** (Only used by the DPU)
+        The DPU descriptor index is used to calculate where in memory the DPU can
+        find the DPU descriptor related to this frame. The DPU calculates the
+        address by multiplying this index with the DPU descriptor size and adding
+        the DPU descriptors base address. The DPU descriptor contains information
+        specifying the encryption and compression type and contains references to
+        where encryption keys can be found. */
+        tANI_U32 dpuDescIdx:8;
+    
+        /** The result from the binary address search on the ADDR1 of the incoming
+        frame. See chapter: RXP filter for encoding of this field. */
+        tANI_U32 addr1Index:8;
+    
+        /** The result from the binary address search on the ADDR2 of the incoming
+        frame. See chapter: RXP filter for encoding of this field. */
+        tANI_U32 addr2Index:8;
+    
+        /** The result from the binary address search on the ADDR3 of the incoming
+        frame. See chapter: RXP filter for encoding of this field. */
+        tANI_U32 addr3Index:8;
+#else
+        tANI_U32 addr3Index:8;
+        tANI_U32 addr2Index:8;
+        tANI_U32 addr1Index:8;
+        tANI_U32 dpuDescIdx:8;
+#endif
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+    
+        /** Indicates Rate Index of packet received ??? */
+        tANI_U32 rateIndex:9;
+    
+        /** An overview of RXP status information related to receiving the frame.*/
+        tANI_U32 rxpFlags:23; 
+    
+#else
+    
+        tANI_U32 rxpFlags:23;                     /* RxP flags*/
+        tANI_U32 rateIndex:9;
+    
+#endif
+        /* 0x1c, 20 */
+        /** The PHY can be programmed to put all the PHY STATS received from the
+        PHY when receiving a frame in the BD.  */
+        tANI_U32 phyStats0;                      /* PHY status word 0*/
+        tANI_U32 phyStats1;                      /* PHY status word 1*/
+    
+        /* 0x24 */
+        /** The value of the TSF[31:0] bits at the moment that the RXP start
+        receiving a frame from the PHY RX. */
+        tANI_U32 mclkRxTimestamp;                /* Rx timestamp, microsecond based*/
+    
+        /* 0x28 */		
+#ifdef ANI_BIG_BYTE_ENDIAN  
+        /** One bit per STA. Bit X for STA id X, X=0~7. When set, corresponding STA is valid in FW's STA table.*/
+        tANI_U32 fcSTAValidMask:8;
+        /** One bit per STA. Bit X for STA id X, X=0~7. Valid only when corresponding bit in fcSTAValisMask is set.*/
+        tANI_U32 fcSTAPwrSaveStateMask:8;
+        /** One bit per STA. Bit X for STA id X, X=0~7. Valid only when corresponding bit in fcSTAValisMask is set. 
+	    When set, corresponding fcSTAThreshEnableMask bit in previous flow control request packet frame was enabled 
+	    AND the STA TxQ length is lower than configured fcSTAThresh<X> value. */		
+        tANI_U32 fcSTAThreshIndMask:8;
+        /** Bit 0 unit: 1=BD count(Libra SoftAP project default). 0=packet count. Bit 7-1: Reserved */
+        tANI_U32 fcSTATxQStatus:8;
+#else
+        tANI_U32 fcSTATxQStatus:8;
+        tANI_U32 fcSTAThreshIndMask:8;
+        tANI_U32 fcSTAPwrSaveStateMask:8;
+        tANI_U32 fcSTAValidMask:8;
+#endif
+        // with HAL_NUM_STA as 8 
+        /* 0x2c to 0x38*/
+        tANI_U8  fcSTATxQLen[HAL_NUM_STA];            // one byte per STA. 
+        tANI_U8  fcSTACurTxRate[HAL_NUM_STA];         // current Tx rate for each sta. 
+} halFcRxBd_type, *phalFcRxBd_type;
+
+
+/** Data structure of Tx BD for better Qos TX flow control.    
+      This will be used to send FC report from HOST to FW.  */
+
+typedef struct sHmacFcTxBd {
+        /* 0x00 */
+#ifdef ANI_BIG_BYTE_ENDIAN
+        /** (Only used by the DPU) This routing flag indicates the WQ number to
+        which the DPU will push the frame after it finished processing it. */
+        tANI_U32 dpuRF:8;
+    
+        /** DPU signature. Filled by Host in Virgo 1.0 but by ADU in Virgo 2.0 */
+        tANI_U32 dpuSignature:3;
+    
+        tANI_U32 reserved0:12;
+    
+        /** Only available in Virgo 2.0 and reserved in Virgo 1.0.
+        This bit indicates to DPU that the packet is a robust management frame
+        which requires  encryption(this bit is only valid for certain management
+        frames)
+        1 - Needs encryption
+        0 - No encrytion required
+        It is only set when Privacy bit=1 AND type/subtype=Deauth, Action,
+        Disassoc. Otherwise it should always be 0. */
+        tANI_U32 rmf:1;
+    
+        /** This bit is only in Virgo2.0/libra it is reserved in Virgo 1.0
+        This 1-bit field indicates to DPU Unicast/BC/MC packet
+        0 - Unicast packet
+        1 - Broadcast/Multicast packet
+        This bit is valid only if RMF bit is set */
+        tANI_U32 ub:1;
+    
+        tANI_U32 reserved1:1;
+    
+        /**  This bit is only in Virgo2.0/libra it is reserved in Virgo 1.0
+        This bit indicates TPE has to assert the TX complete interrupt.
+        0 - no interrupt
+        1 - generate interrupt */
+        tANI_U32 txComplete1:1;
+        tANI_U32 fwTxComplete0:1;
+        
+        /** (Only used by the DPU)
+        No encryption/decryption
+        0: No action
+        1: DPU will not encrypt/decrypt the frame, and discard any encryption
+        related settings in the PDU descriptor. */
+        tANI_U32 dpuNE:1;
+    
+        
+        /** This is only available in libra/virgo2.0  it is reserved for virgo1.0
+        This bit indicates to ADU/UMA module that the packet requires 802.11n
+        to 802.3 frame translation. When used by ADU 
+        0 - No frame translation required
+        1 - Frame Translation required */
+        tANI_U32 ft:1;
+    
+        /** BD Type 
+        00: 'Generic BD', as indicted above
+        01: De-fragmentation format 
+        10-11: Reserved for future use. */
+        tANI_U32 bdt:2;
+#else
+        tANI_U32 bdt:2;
+        tANI_U32 ft:1;
+        tANI_U32 dpuNE:1;
+        tANI_U32 fwTxComplete0:1; 
+        tANI_U32 txComplete1:1;
+        tANI_U32 reserved1:1;
+        tANI_U32 ub:1;
+        tANI_U32 rmf:1;
+        tANI_U32 reserved0:12;
+        tANI_U32 dpuSignature:3;
+        tANI_U32 dpuRF:8;
+#endif
+    
+        /* 0x04 */
+#ifdef ANI_BIG_BYTE_ENDIAN
+        tANI_U32 reserved2:16; /* MUST BE 0 otherwise triggers BMU error*/
+        tANI_U32 aduFeedback:8;
+    
+        /* DPU feedback in Tx path.*/
+        tANI_U32 dpuFeedback:8;
+    
+#else
+        tANI_U32 dpuFeedback:8;
+        tANI_U32 aduFeedback:8;
+        tANI_U32 reserved2:16;
+#endif
+    
+        /* 0x08 */
+#ifdef ANI_BIG_BYTE_ENDIAN
+        /** It is initially filled by DXE then if encryption is on, then DPU will
+        overwrite these fields. In case PDUs are linked to the BD, this field
+        indicates the index of the first PDU linked to the BD. When PDU count is
+        zero, this field has an undefined value. */
+        tANI_U32 headPduIdx:16;
+    
+        /**  It is initially filled by DXE then if encryption is on, then DPU will
+        overwrite these fields.In case PDUs are linked to the BD, this field
+        indicates the index of the last PDU. When PDU count is zero, this field
+        has an undefined value. */
+        tANI_U32 tailPduIdx:16;
+#else
+        tANI_U32 tailPduIdx:16;
+        tANI_U32 headPduIdx:16;
+#endif
+    
+        /* 0x0c */
+#ifdef ANI_BIG_BYTE_ENDIAN
+        /** This is filled by Host in Virgo 1.0 but it gets changed by ADU in
+        Virgo2.0/Libra. The length (in number of bytes) of the MPDU header.
+        Limitation: The MPDU header offset + MPDU header length can never go beyond
+        the end of the first PDU */
+        tANI_U32 mpduHeaderLength:8;
+    
+        /** This is filled by Host in Virgo 1.0 but it gets changed by ADU in
+        Virgo2.0/Libra. The start byte number of the MPDU header. The byte numbering
+        is done in the BE format. Word 0x0, bits [31:24] has byte index 0. */
+        tANI_U32 mpduHeaderOffset:8;
+    
+        /** This is filled by Host in Virgo 1.0 but it gets changed by ADU in
+        Virgo2.0/Libra. The start byte number of the MPDU data.  The byte numbering
+        is done in the BE format. Word 0x0, bits [31:24] has byte index 0.
+        Note that this offset can point all the way into the first linked PDU. 
+        Limitation: MPDU DATA OFFSET can not point into the 2nd linked PDU */
+        tANI_U32 mpduDataOffset:9;
+    
+        /** It is initially filled by DXE then if encryption is on, then DPU will
+        overwrite these fields. The number of PDUs linked to the BD. This field
+        should always indicate the correct amount. */
+        tANI_U32 pduCount:7;
+#else
+        tANI_U32 pduCount:7;
+        tANI_U32 mpduDataOffset:9;
+        tANI_U32 mpduHeaderOffset:8;
+        tANI_U32 mpduHeaderLength:8;
+#endif
+    
+        /* 0x10 */
+#ifdef ANI_BIG_BYTE_ENDIAN
+        /** This is filled by Host in Virgo 1.0 but it gets changed by ADU in
+        Virgo2.0/LibraMPDU length.This covers MPDU header length + MPDU data length.
+        This does not include FCS. For single frame transmission, PSDU size is
+        mpduLength + 4.*/
+        tANI_U32 mpduLength:16;
+    
+        tANI_U32 reserved3:2;
+        /** Sequence number insertion by DPU
+        00: Leave sequence number as is, as filled by host
+        01: DPU to insert non TID based sequence number (If it is not TID based,
+        then how does DPU know what seq to fill? Is this the non-Qos/Mgmt sequence
+        number?
+        10: DPU to insert a sequence number based on TID.
+        11: Reserved */
+        tANI_U32 bd_ssn:2;
+    
+        /** Traffic Identifier
+        Indicates the traffic class the frame belongs to. For non QoS frames, this
+        field is set to zero. */
+        tANI_U32 tid:4;
+        
+        tANI_U32 reserved4:7;
+        tANI_U32 fc:1; // when set indicates that its a flow control BD.
+    
+#else
+        tANI_U32 fc:1;
+        tANI_U32 reserved4:7;
+        tANI_U32 tid:4;
+        tANI_U32 bd_ssn:2;
+        tANI_U32 reserved3:2;
+        tANI_U32 mpduLength:16;
+#endif
+    
+        /* 0x14 */
+#ifdef ANI_BIG_BYTE_ENDIAN
+        /** (Only used by the DPU)
+        This is filled by Host in Virgo 1.0 but it gets filled by ADU in
+        Virgo2.0/Libra. The DPU descriptor index is used to calculate where in
+        memory the DPU can find the DPU descriptor related to this frame. The DPU
+        calculates the address by multiplying this index with the DPU descriptor
+        size and adding the DPU descriptors base address. The DPU descriptor
+        contains information specifying the encryption and compression type and
+        contains references to where encryption keys can be found. */
+        tANI_U32 dpuDescIdx:8;
+    
+        /** This is filled by Host in Virgo 1.0 but it gets filled by ADU in
+        Virgo2.0/Libra. The STAid of the RA address */
+        tANI_U32 staIndex:8;
+    
+        /** A field passed on to TPE which influences the ACK policy to be used for
+        this frame
+        00 - Iack
+        01,10,11 - No Ack */
+        tANI_U32 ap:2;
+    
+        /** Overwrite option for the transmit rate
+        00: Use rate programmed in the TPE STA descriptor
+        01: Use TPE BD rate 1
+        10: Use TPE BD rate 2
+        11: Delayed Use TPE BD rate 3 */
+        tANI_U32 bdRate:2;
+    
+        /** 
+        This is filled by Host in Virgo 1.0 but it gets filled by ADU in
+        Virgo2.0/Libra. Queue ID */
+        tANI_U32 queueId:5;
+    
+        tANI_U32 reserved5:7;
+#else
+        tANI_U32 reserved5:7;
+        tANI_U32 queueId:5;
+        tANI_U32 bdRate:2;
+        tANI_U32 ap:2;
+        tANI_U32 staIndex:8;
+        tANI_U32 dpuDescIdx:8;
+#endif
+
+        tANI_U32 txBdSignature;
+
+        /* 0x1C */
+        tANI_U32 reserved6;
+        /* 0x20 */
+        /* Timestamp filled by DXE. Timestamp for current transfer */
+        tANI_U32 dxeH2BStartTimestamp;
+    
+        /* 0x24 */
+        /* Timestamp filled by DXE. Timestamp for previous transfer */
+        tANI_U32 dxeH2BEndTimestamp;
+
+        /* 0x28 */
+#ifdef ANI_BIG_BYTE_ENDIAN  
+        tANI_U32 fcConfig:8;            //bit 0 fcSTAThresholdMode ( 1 -> BD count, 0 -> packet count). bit 1 (when set TL requests FW to report any pwrsave state change 
+										//among associated STAs
+        tANI_U32 fcSTATxMoreDataMask:8; //one bit per STA. TL indicates to FW whether there are more packets pending at host side.
+                                        //can be used for AP power save decision. 
+        tANI_U32 reserved7:8;
+        tANI_U32 fcSTAThreshEnabledMask:8; // one bti per STA. When set indicates that FW needs to send a report when the mem usage goes below 
+                                           // threshold for any of the enabled STAs in this mask.
+#else
+        tANI_U32 fcSTAThreshEnabledMask:8; 
+        tANI_U32 reserved7:8;
+        tANI_U32 fcSTATxMoreDataMask:8;
+        tANI_U32 fcConfig:8;
+#endif
+        /* 0x2c  to 0x30*/
+        //with HAL_NUM_STA as 8                                            
+        tANI_U8 fcSTAThresh[HAL_NUM_STA];  // one byte threshold to be set per STA.                                         
+} halFcTxBd_type, *pHalFcTxBd_type;
+
+
+//defintion for filling in BD for flow control frames going to host.
+#define FC_FRAME_FIELD_SET                    1
+
+#define FC_REPORT_MPDU_HDR_LEN               20
+#define FC_REPORT_MPDU_HDR_START_OFFSET    0x28
+#define FC_REPORT_MPDU_DATA_START_OFFSET   0x28
+#define FC_REPORT_MPDU_LEN                   20
+#define FC_REPORT_PDU_COUNT                   0
+#define FC_REPORT_HDR_PDU_INDEX               0
+#define FC_REPORT_TAIL_PDU_INDEX              0
+
+#define FC_REQUST_MPDU_HDR_LEN               12
+#define FC_REQUST_MPDU_HDR_START_OFFSET    0x28
+#define FC_REQUST_MPDU_DATA_START_OFFSET   0x28
+#define FC_REQUST_MPDU_LEN                   12
+#define FC_REQUST_PDU_COUNT                   0
+#define FC_REQUST_BD_SSN_HOST_FILLED          0    // HAL_TXBD_BD_SSN_FILL_HOST
+
+#define FC_REQUST_CONFIG_TXQ_STATUS_BIT_SET       (1<<0)
+#define FC_REQUST_CONFIG_PSM_STATUS_BIT_SET       (1<<1)
+#define FC_REQUST_CONFIG_IMMEDIATE_REPLY_BIT_SET  (1<<2)                  
+
+typedef struct sTxFcParams {
+        tANI_U8 fcConfig;                      //bit 0 fcSTAThresholdMode ( 1 -> BD count, 0 -> packet count). bit 1 (when set TL requests FW to report any pwrsave state change 
+                                               //among associated STAs
+        tANI_U8 fcSTATxMoreDataMask;           //one bit per STA. TL indicates to FW whether there are more packets pending at host side.
+                                               //can be used for AP power save decision. 
+        tANI_U8 fcSTAThreshEnabledMask;        // one bti per STA. When set indicates that FW needs to send a report when the mem usage goes below 
+                                               // threshold for any of the enabled STAs in this mask.
+        tANI_U8 fcSTAThresh[HAL_NUM_STA];      // one byte threshold to be set per STA HAL_NUM_STA = 8.                                         
+} tFcTxParams_type, *pFcTxParams_type;
+
+
+typedef struct sRxFcParams {
+        tANI_U32 mclkRxTimestamp;		     // Rx timestamp, microsecond based	
+        tANI_U8  fcSTAValidMask;
+        tANI_U8  fcSTAPwrSaveStateMask;
+        tANI_U8  fcSTAThreshIndMask;
+        tANI_U8  fcSTATxQStatus;
+        tANI_U8  fcSTATxQLen[HAL_NUM_STA];	     // one byte per STA. 
+        tANI_U8  fcSTACurTxRate[HAL_NUM_STA];	     // current Tx rate for each sta. 
+} tFcRxParams_type, *pFcRxParams_type;
+#endif //WLAN_SOFTAP_FEATURE
+#endif     //  __ASSEMBLER__
 
 #endif /*HAL_BD_DEFS_H*/

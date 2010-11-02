@@ -23,6 +23,7 @@
 #include "wlan_rf.h"
 #include "wlan_phy.h"
 #include "phyTxPower.h"
+#include <qwlanhw_volans.h>
 #include "asic.h"
 #include "halNv.h"
 
@@ -65,7 +66,7 @@ typedef struct
     //physical layer data - corresponds to individual modules
     tPhy        phy;
     tAsicTxFir  txfir;
-    tPhyTxPower phyTPC;
+    //tPhyTxPower phyTPC;
     tRF         rf;
     tAsicAgc    agc;
 
@@ -74,7 +75,6 @@ typedef struct
     tANI_BOOLEAN densityEnabled;
     ePhyNwDensity nwDensity20MHz;     // Network density value for 20MHz channel width
     ePhyNwDensity nwDensity40MHz;     // Network density value for 40MHz channel width
-    ePhyPowerSave pwr;                //current power save setting
     ePhyRxDisabledPktTypes modTypes;  //current disabled packet types
     volatile tANI_BOOLEAN setPhyMsgEvent;
 }tAniSirPhy;

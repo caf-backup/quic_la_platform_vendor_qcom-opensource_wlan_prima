@@ -14,7 +14,12 @@
 #include "sirMacProtDef.h" // tSirMacAddr
 #include "halMsgApi.h"
 
-#define   BROADCAST_STAID    255
+#ifdef WLAN_SOFTAP_FEATURE
+  #define   BROADCAST_STAID    252
+#else
+  #define   BROADCAST_STAID    255
+#endif
+
 #define   RXP_DROP_ALL_FRAME_TYPES   0xffffffff
 #define   RXP_PASS_ALL_FRAME_TYPES   0x0
 
@@ -74,6 +79,13 @@ typedef enum eRxpTsfProcessingMode {
     eRXP_TSF_MODE_IBSS =1
 } tRxpTsfProcessingMode;
 
+
+typedef enum sHalRxpModeFlag  
+{
+    eHAL_USE_BSS_RXP, // Implies that only BSS rxpMode is active
+    eHAL_USE_GLOBAL_AND_BSS_RXP // Implies that BSS rxpMode and global rxpMode is active
+} tHalRxpModeFlag;
+
 typedef struct sRxpAddrTable {
     tANI_U8    macAddr[6];              // MAC address
     tANI_U8    staid;                   // Station ID
@@ -117,8 +129,6 @@ eHalStatus halRxp_Start(tHalHandle hHal, void *arg);
 eHalStatus halRxp_Stop(tHalHandle hHal, void *arg);
 eHalStatus halRxp_Close(tHalHandle hHal, void *arg);
 
-void       halRxp_setRxpFilterMode(tpAniSirGlobal pMac, tRxpMode rxpMode, tSirMacAddr macAddr);
-eHalStatus halRxp_SetFilter(tpAniSirGlobal pMac, tRxpMode mode);
 eHalStatus halRxp_AddEntry(tpAniSirGlobal pMac, tANI_U8 staid, tSirMacAddr macAddr, tRxpRole role,
         tANI_U8 rmfBit,	tANI_U8 dpuIdx, tANI_U8 dpuRFOrMcBcIdx, tANI_U8 dpuMgmtMcBcIdx,
         tANI_U8 dpuTag, tANI_U8 dpuDataMcBcTag, tANI_U8 dpuMgmtMcBcTag,
@@ -129,8 +139,10 @@ eHalStatus halRxp_DelAllEntries(tpAniSirGlobal pMAc);
 eHalStatus halRxp_enable(tpAniSirGlobal pMac);
 eHalStatus halRxp_disable(tpAniSirGlobal pMac);
 eHalStatus halRxp_addBroadcastEntry(tpAniSirGlobal pMac);
+#if 0 //remove
 void       halRxp_storeRxpMode(tpAniSirGlobal pMac, tRxpMode mode);
-tRxpMode   halRxp_getRxpMode(tpAniSirGlobal pMac);
+#endif
+tRxpMode   halRxp_getSystemRxpMode(tpAniSirGlobal pMac);
 eHalStatus halRxp_AddBeaconBssidFilter(tpAniSirGlobal pMac, tSirMacAddr bssId);
 
 eHalStatus halRxp_setOperatingRfBand(tpAniSirGlobal pMac, eRfBandMode rfBand);
@@ -140,6 +152,7 @@ void halRxp_setScanLearn(tpAniSirGlobal pMac, tANI_U8 scanLearn);
 
 
 
+void halRxp_setRxpFilterMode(tpAniSirGlobal pMac, tRxpMode rxpMode);
 eHalStatus halRxpDbg_PrintFilter(tpAniSirGlobal pMac);
 void       halRxpDbg_PrintSearchTable(tpAniSirGlobal pMac);
 void       halRxpDbg_dumpReg( tpAniSirGlobal pMac, tANI_U32 arg1);
@@ -154,6 +167,10 @@ eHalStatus halRxp_DisableBssBeaconParamFilter( tpAniSirGlobal pMac, tANI_U32 uBs
 eHalStatus halRxp_EnableBssBeaconParamFilter( tpAniSirGlobal pMac, tANI_U32 uBssIdx);
 eHalStatus halRxp_EnableSSIDBasedFilter( tpAniSirGlobal pMac, tSirMacSSid *pSirMacSSid);
 
-
+void halRxp_setSystemRxpFilterMode(tpAniSirGlobal pMac, 
+        tRxpMode rxpMode, tHalRxpModeFlag mode_flag);
+void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac, 
+        tRxpMode rxpMode, tANI_U8 *bssid, tANI_U8 bssIdx);
+void setFrameFilterMaskForScan (tpAniSirGlobal pMac, tHalRxpModeFlag rxpMode);
 #endif /* _HALRXP_H_ */
 

@@ -249,6 +249,7 @@ tHalIntSourceInfo halIntInfo[eHAL_INT_MAX_SOURCE] = {
         halIntMifGroupHandler
     },
 
+#ifndef WLAN_SOFTAP_FEATURE
     //eHAL_INT_MCU_HOST_INT_MTU_TIMER_5
     {
         1, /* interrupt for MTU_TIMER5 as pre-beacon interrupt */
@@ -256,6 +257,7 @@ tHalIntSourceInfo halIntInfo[eHAL_INT_MAX_SOURCE] = {
         QWLAN_MCU_MAC_HOST_INT_EN_MTU_TIMER5_EN_MASK,
         halIntMtuHandlePreBeaconTmr
     },
+#endif    
     
     //eHAL_INT_MCU_HOST_INT_ADU    
     {
@@ -298,7 +300,7 @@ tHalIntSourceInfo halIntInfo[eHAL_INT_MAX_SOURCE] = {
         1,
         eHAL_INT_MCU_HOST_INT_REGISTER,
         QWLAN_MCU_MAC_HOST_INT_EN_DXE_MXU_CHAIN_0_INT_EN_MASK,
-        halIntDefaultHandler
+        halIntDXEErrorHandler
     },
 
     //eHAL_INT_MCU_HOST_INT_DXE_CH1    
@@ -306,7 +308,7 @@ tHalIntSourceInfo halIntInfo[eHAL_INT_MAX_SOURCE] = {
         1,
         eHAL_INT_MCU_HOST_INT_REGISTER,
         QWLAN_MCU_MAC_HOST_INT_EN_DXE_MXU_CHAIN_1_INT_EN_MASK,
-        halIntDefaultHandler
+        halIntDXEErrorHandler
     },
 
     //eHAL_INT_MCU_HOST_INT_DXE_CH2    
@@ -314,7 +316,7 @@ tHalIntSourceInfo halIntInfo[eHAL_INT_MAX_SOURCE] = {
         1,
         eHAL_INT_MCU_HOST_INT_REGISTER,
         QWLAN_MCU_MAC_HOST_INT_EN_DXE_MXU_CHAIN_2_INT_EN_MASK,
-        halIntDefaultHandler
+        halIntDXEErrorHandler
     },
 
     //eHAL_INT_MCU_HOST_INT_MBOX0    
@@ -449,7 +451,7 @@ tHalIntSourceInfo halIntInfo[eHAL_INT_MAX_SOURCE] = {
     {
         1, /* default group interrupt for BMU error */
         eHAL_INT_BMU_IDLE_BD_PDU_REGISTER,
-        QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_BMU_IDLE_BD_PDU_THRESHOLD_INTERRUPT_ENABLE_MASK | 0xC8,
+        QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_BMU_IDLE_BD_PDU_THRESHOLD_INTERRUPT_ENABLE_MASK | 0x1B8,
         halIntBMUIdleBdPduHandler
     },
 
@@ -637,7 +639,9 @@ eHalIntSources intRegMcuHostService[] = {
 
     eHAL_INT_MCU_HOST_INT_WQ_DATA_AVAIL,
     eHAL_INT_MCU_HOST_INT_MIF,
+#ifndef WLAN_SOFTAP_FEATURE    
     eHAL_INT_MCU_HOST_INT_MTU_TIMER_5,
+#endif    
     eHAL_INT_MCU_HOST_INT_ADU,
     eHAL_INT_MCU_HOST_INT_RPE,
     eHAL_INT_MCU_HOST_INT_COMBINED,
@@ -1310,7 +1314,7 @@ halIntCheck(tHalHandle hHalHandle)
                __FUNCTION__, mcuMacHostIntStatus, mcuMacHostIntMask));
 
         halIntClearStatus(hHalHandle, eHAL_INT_SIF_ASIC);   
-        
+
     }
 #endif // HAL_INT_MAX_ITERATIONS > 0
 
@@ -1322,6 +1326,7 @@ halIntHandler(v_PVOID_t pVosGCtx)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_HAL, pVosGCtx);
     tHalHandle hHalHandle = (tHalHandle) pMac;
+
 
     if (IS_PWRSAVE_STATE_IN_BMPS) { 
         halPS_SetHostBusy(pMac, HAL_PS_BUSY_INTR_CONTEXT); 

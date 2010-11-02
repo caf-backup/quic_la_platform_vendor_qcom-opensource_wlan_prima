@@ -21,9 +21,11 @@
 typedef struct sBmuStaQueueData {
     tANI_U8                 bssIdx;
     tANI_U8                 numOfSta;                /* Number of stations in power save, who have data pending*/
+#ifdef FIXME_VOLANS
     tANI_U8                 numOfStaWithoutData; /* Number of stations in power save, who don't have any data pending*/
     tANI_U8                 fBroadcastTrafficPending ;
     tANI_U8                 dtimCount;
+#endif /* FIXME_VOLANS */
     tANI_U8                 rsvd[3];                /** Align the Structure to 4 bytes as unalligned access will happen if
                                                     the staInfo is being Accessed */                                                        
     tANI_U16                assocId[HAL_NUM_STA];/* Station indices */
@@ -127,7 +129,11 @@ eHalStatus halBmu_get_qid_for_qos_tid(tpAniSirGlobal pMac, tANI_U8 tid, tANI_U8 
 
 eHalStatus halBmu_btqmStaTxWqStatus(tpAniSirGlobal pMac ,tANI_U8 staIdx, tANI_U32 *pbmuBtqmStaQueues);
 eHalStatus halBmu_GetStaWqStatus(tpAniSirGlobal pMac, tpBmuStaQueueData pStaQueueData );
-eHalStatus halBmu_StaCfgForPM(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U32 mask, tANI_U16 delEnbQIdMask, tANI_U16 trigEnbQIdMask);
+void halBmu_StaCfgForPM(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U32 mask, tANI_U16 delEnbQIdMask, tANI_U16 trigEnbQIdMask);
+void halBmu_UpdateStaBMUApMode(tpAniSirGlobal pMac, 
+                                 tANI_U16 staIdx, tANI_U8 uapsdACMask, 
+                                 tANI_U8 maxSPLen, tANI_U8 updateUapsdOnly);
+
 
 /**
     Dynamic BD PDU Threshold types
@@ -162,6 +168,8 @@ tANI_U16 halBmu_getQidMask(tANI_U8 acApsdflag);
 eHalStatus halBmu_ConfigureToSendBAR(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId);
 eHalStatus halBmu_ReadBtqmQFrmInfo(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId, tANI_U32 *pNumFrames, 
                                 tANI_U32 *pHeadBdIndex, tANI_U32 *pTailBdIndex );
+void halBmu_btqmStaClearState(tpAniSirGlobal pMac, tANI_U8 staIdx);
+
 eHalStatus halBmu_ReadBdInfo(tpAniSirGlobal pMac, tANI_U32 bdIdx, tpBmuBtqmBdInfo pBdInfo, tANI_U8 fDetailed );
 
 eHalStatus halIntBmuWqHandler(tHalHandle hHalHandle, eHalIntSources intSource);

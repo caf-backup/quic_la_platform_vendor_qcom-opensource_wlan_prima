@@ -1,3 +1,4 @@
+
 #if !defined( __VOS_SCHED_H )
 #define __VOS_SCHED_H
 
@@ -56,7 +57,7 @@
 #define WD_SHUTDOWN_EVENT_MASK           0x010
 #define WD_CHIP_RESET_EVENT_MASK         0x100
 
-
+ 
  
 /*
 ** Maximum number of messages in the system
@@ -219,6 +220,11 @@ typedef struct _VosContextType
    /* HDD Module Context  */
    v_VOID_t           *pHDDContext;
 
+#ifdef WLAN_SOFTAP_FEATURE
+   /* HDD SoftAP Module Context  */
+   v_VOID_t           *pHDDSoftAPContext;
+#endif
+
    /* TL Module Context  */
    v_VOID_t           *pTLContext;
 
@@ -233,6 +239,14 @@ typedef struct _VosContextType
 
    /* SSC Context */
    v_VOID_t           *pSSCContext;
+
+   /* BAP Context */
+   v_VOID_t           *pBAPContext;
+
+#ifdef WLAN_SOFTAP_FEATURE   
+   /* SAP Context */
+   v_VOID_t           *pSAPContext;
+#endif
    
    /* VOS Packet Context */
    vos_pkt_context_t   vosPacket; 
@@ -319,7 +333,7 @@ VOS_STATUS vos_sched_open( v_PVOID_t pVosContext,
           function 
           
           VOS_STATUS_E_FAILURE - Failure to initialize the Watchdog/   
-          
+
   \sa vos_watchdog_open()
   
   -------------------------------------------------------------------------*/

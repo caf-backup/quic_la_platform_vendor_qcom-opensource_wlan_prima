@@ -21,12 +21,20 @@ void halMsg_AddSta(tpAniSirGlobal pMac, tANI_U16 dialog_token, tpAddStaParams ms
 void halMsg_DelSta(tpAniSirGlobal pMac, tANI_U16 dialog_token, tpDeleteStaParams msg);
 void halMsg_AddBss(tpAniSirGlobal pMac, tANI_U16 dialog_token, tpAddBssParams msg);
 void halMsg_DelBss(tpAniSirGlobal pMac, tANI_U16 dialog_token, tpDeleteBssParams msg);
+void halMsg_UpdateUapsd(tpAniSirGlobal pMac, tpUpdateUapsdParams msg);
+#ifdef HAL_BCAST_STA_PER_BSS
+void halMsg_AddBcastSta(tpAniSirGlobal pMac, tANI_U8 bssIdx, tpAddBssParams msg);
+void halMsg_DelBcastSta(tpAniSirGlobal pMac, tANI_U8 bssIdx, tpDeleteBssParams msg);
+#endif
 void halMsg_InitScan(tpAniSirGlobal pMac, tANI_U16 dialog_token, tpInitScanParams msg);
 void halMsg_StartScan(tpAniSirGlobal pMac, tANI_U16 dialog_token, tpStartScanParams msg);
 void halMsg_FinishScan(tpAniSirGlobal pMac, tANI_U16 dialog_token, tpFinishScanParams msg);
 void halMsg_EndScan(tpAniSirGlobal pMac, tANI_U16 dialog_token, tpEndScanParams msg);
 void halMsg_ChannelSwitch(tpAniSirGlobal pMac, tpSwitchChannelParams param);
 void halMsg_SendBeacon(tpAniSirGlobal pMac, tpSendbeaconParams msg);
+#ifdef WLAN_SOFTAP_FEATURE
+void halMsg_UpdateProbeRspTemplate(tpAniSirGlobal pMac,tpUpdateProbeRspParams msg);
+#endif
 void halMsg_GenerateRsp(tpAniSirGlobal pMac, tANI_U16 msgType, tANI_U16 dialog_token, void *param, tANI_U32 value);
 void halMsg_UpdateTxCmdTemplate(tpAniSirGlobal  pMac,tANI_U16 dialog_token, tpUpdateTxCmdTemplParams  param);
 eHalStatus halMsg_updateRetryLimit(tpAniSirGlobal pMac);
@@ -41,7 +49,10 @@ eHalStatus halSetByteSwap(
 eHalStatus halToggleByteSwap(tpAniSirGlobal pMac);
 eHalStatus halInitWmParam(tHalHandle hHal, void *arg);
 eHalStatus halMsg_AddStaSelf(tpAniSirGlobal  pMac);
-void halMsg_setLinkState(tpAniSirGlobal pMac, tpLinkStateParams param);
+void halMsg_setBssLinkState(tpAniSirGlobal pMac, tSirLinkState state,
+        tANI_U8 bssIdx);
+void halMsg_ProcessSetLinkState(tpAniSirGlobal pMac,
+    tpLinkStateParams pLinkStateParams);
 
 
 void halMsg_GetDpuStats( tpAniSirGlobal  pMac, tANI_U16 dialog_token, tpDpuStatsParams  param);
@@ -81,13 +92,16 @@ void halMsg_sendSetTxPowerRsp(tpAniSirGlobal pMac, tANI_U32 status);
 void halMsg_sendGetTxPowerRsp(tpAniSirGlobal pMac, tANI_U32 power, eHalStatus status);
 void halMsg_sendGetNoiseRsp(tpAniSirGlobal pMac);
 
+#ifdef WLAN_FEATURE_VOWIFI
+eHalStatus halMsg_setTxPowerLimit(tpAniSirGlobal pMac, tpMaxTxPowerParams pSetMaxTxPwrReq);
+#endif /* WLAN_FEATURE_VOWIFI */
+
 eHalStatus halMsg_UpdateTpeProtectionThreshold(tpAniSirGlobal pMac, tANI_U32 val);
-void halMsg_SetKeyDone(tpAniSirGlobal pMac);
+void halMsg_SetKeyDone(tpAniSirGlobal pMac, tANI_U32 bssidx);
 
 /** ----- APIs to handle transmission freeze and resume ------- */
 eHalStatus
 halMsg_FrameTransmitControlInd(tpAniSirGlobal pMac, void *pBuffer);
-
 void halMsg_TXCompleteInd(tpAniSirGlobal pMac, tANI_U32 txCompleteSuccess);
 
 #endif  /* _HALMSGAPI_INTERNAL_H_ */

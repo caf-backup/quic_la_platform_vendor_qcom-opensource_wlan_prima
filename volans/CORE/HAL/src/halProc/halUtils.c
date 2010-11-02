@@ -15,6 +15,7 @@
 #include "halDebug.h"
 #include "halGlobal.h"       // halDeferMsgQ.size, halDeferMsgQ.write, HAL_MAX_DEFERRED_MSG_QUEUE_LEN
 #include "cfgApi.h"          //wlan_cfgGetInt
+#include "halFw.h"			//halUtil_DumpFwCorexLogs
 
 #ifdef CONFIG_X86_32
 //do_div() macro is required to do 64 bit division in 32 bit linux kernel. 
@@ -93,12 +94,12 @@ tHalMsgDecision halUtil_MsgDecision(tpAniSirGlobal pMac, tSirMsgQ *pMsg, tANI_U8
             // wake up the chip.
             case SIR_HAL_TIMER_BA_ACTIVITY_REQ:
             case SIR_HAL_TIMER_CHIP_MONITOR_TIMEOUT:
-                HALLOGE( halLog(pMac, LOGE, FL("##### In Power Save Message = %d (%s) #####"),
+                HALLOGW( halLog(pMac, LOGW, FL("##### In Power Save Message = %d (%s) #####"),
                         pMsg->type, halUtil_getMsgString(pMsg->type)));
                 return eHAL_MSG_VALID;
 
             default:
-                HALLOGE( halLog(pMac, LOGE, FL("##### In Power Save Message (Mutex) = %d (%s) #####"),
+                HALLOGW( halLog(pMac, LOGW, FL("##### In Power Save Message (Mutex) = %d (%s) #####"),
                         pMsg->type, halUtil_getMsgString(pMsg->type)));
 
                 if (IS_PWRSAVE_STATE_IN_BMPS) {
@@ -626,3 +627,114 @@ void halUtil_GetRegPowerLimit(tpAniSirGlobal pMac, tANI_U8 currChannel,
     }
 }
 
+// -------------------------------------------------------------------------------------
+// FW corex log routine and header info
+
+#define local_FEATURE_WLANFW_COREX_LOG_BUFFER_SIZE (0x1000)
+#define local_COREX_LOG_NUM_FILTERS (8)
+
+typedef struct {
+   tANI_U8 nLogLevel;
+   tANI_U8 nEventTypeMask;
+} local_CorexLog_EventFilterType;
+
+#define local_COREX_LOG_OVERHEAD \
+  (sizeof(tANI_U32) \
+   + sizeof(tANI_U32) \
+   + sizeof(tANI_U32) \
+   + (sizeof(local_CorexLog_EventFilterType) * local_COREX_LOG_NUM_FILTERS))
+
+#define local_FEATURE_WLANFW_COREX_LOG_BUFFER_ENTRIES \
+   ((local_FEATURE_WLANFW_COREX_LOG_BUFFER_SIZE - local_COREX_LOG_OVERHEAD) / sizeof(tANI_U32))
+
+typedef struct {
+   volatile tANI_U32 nHaltLogging;
+   volatile tANI_U32 nHeadIndex;
+   volatile tANI_U32 nTailIndex;
+   local_CorexLog_EventFilterType sEventFilter[local_COREX_LOG_NUM_FILTERS];
+   tANI_U32 aBuffer[local_FEATURE_WLANFW_COREX_LOG_BUFFER_ENTRIES];
+} local_CorexLog_LogDescType;
+
+typedef struct {
+   tANI_U8  nCodeLo;
+   tANI_U8  nCodeHi;
+   tANI_U8  nModuleIndex;
+   tANI_U8  nNumOfWords;
+
+   tANI_U32 nTimestamp;
+} local_CorexLog_EntryType;
+
+// local storage
+tANI_U8 local_fwCorexLog[sizeof(local_CorexLog_LogDescType)];
+
+// FW corex log decoding routine
+void halUtil_DumpFwCorexLogs(void *pData)
+{
+  tpAniSirGlobal pMac = (tpAniSirGlobal)pData;
+
+  unsigned int i;
+  unsigned int nHeadIndex, nTailIndex;
+  unsigned int nStartIndex, nEndIndex;
+  local_CorexLog_EntryType *pEntry;
+  local_CorexLog_LogDescType *pCorexLog_DescP;
+  unsigned int haltLogging;
+
+  HALLOGP(halLog(pMac, LOGW, FL("[LOG] In Function halUtil_DumpFwCorexLogs\n")));
+  haltLogging = 1;
+  palWriteDeviceMemory(pMac->hHdd,
+                       QWLANFW_MEM_FW_LOG_ADDR_OFFSET,
+                       (tANI_U8 *)&haltLogging,
+                       sizeof(unsigned int));
+
+  palReadDeviceMemory(pMac->hHdd,
+                      QWLANFW_MEM_FW_LOG_ADDR_OFFSET,
+                      (tANI_U8 *)&local_fwCorexLog,
+                      sizeof(local_CorexLog_LogDescType));
+
+  haltLogging = 0;
+  palWriteDeviceMemory(pMac->hHdd,
+                       QWLANFW_MEM_FW_LOG_ADDR_OFFSET,
+                       (tANI_U8 *)&haltLogging,
+                       sizeof(unsigned int));
+
+  pCorexLog_DescP = (local_CorexLog_LogDescType *)local_fwCorexLog;
+
+  nHeadIndex = pCorexLog_DescP->nHeadIndex;
+  nTailIndex = pCorexLog_DescP->nTailIndex;
+
+  while (nHeadIndex != nTailIndex)
+  {
+     pEntry = (local_CorexLog_EntryType *) &(pCorexLog_DescP->aBuffer[nHeadIndex]);
+
+     nStartIndex = nHeadIndex;
+     nEndIndex = nStartIndex + pEntry->nNumOfWords + 1;
+     if (nEndIndex >= local_FEATURE_WLANFW_COREX_LOG_BUFFER_ENTRIES)
+        nEndIndex -= local_FEATURE_WLANFW_COREX_LOG_BUFFER_ENTRIES;
+
+     if (++nHeadIndex == local_FEATURE_WLANFW_COREX_LOG_BUFFER_ENTRIES)
+        nHeadIndex = 0;
+
+     HALLOGP(halLog(pMac, LOGE, FL("%08x : (%u-%u) %u:0x%02x%02x %u[ "),
+        pCorexLog_DescP->aBuffer[nHeadIndex],
+        nStartIndex,
+        nEndIndex,
+        pEntry->nModuleIndex,
+        pEntry->nCodeHi,
+        pEntry->nCodeLo,
+        pEntry->nNumOfWords));
+
+     if (++nHeadIndex == local_FEATURE_WLANFW_COREX_LOG_BUFFER_ENTRIES)
+        nHeadIndex = 0;
+
+     for (i = 0; i < pEntry->nNumOfWords; ++i)
+     {
+        HALLOGE(halLog(pMac, LOGE, FL("%08x "), pCorexLog_DescP->aBuffer[nHeadIndex]));
+        if (++nHeadIndex == local_FEATURE_WLANFW_COREX_LOG_BUFFER_ENTRIES)
+           nHeadIndex = 0;
+     }
+
+     HALLOGE(halLog(pMac, LOGE, FL("]\r\n")));
+  }
+
+  return;
+}

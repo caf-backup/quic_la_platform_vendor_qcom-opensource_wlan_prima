@@ -14,7 +14,7 @@
 
 eHalStatus halPMU_Start(tHalHandle hHal, void *arg);
 
-/* 
+/*
  * Setting the address where register list is present in the ADU
  */
 eHalStatus halPmu_SetAduReInitAddress(tHalHandle hHal, tANI_U32 address);

@@ -26,6 +26,12 @@
 #include "halDebug.h"
 #include "halRegBckup.h"
 
+//for debugging RX BD corruption issue.
+//work around for BD corruption issue
+//remove it as soon root-caused.
+//#define WLAN_FEATURE_ADU_FW_DXE //FIXME_VOLANS 
+
+
 #ifdef ANI_SUPPORT_SMPS
 #ifdef SPICA
 static tHalRegCfg halAdu_mimoPScfg2to1[] = {
@@ -341,7 +347,11 @@ static eHalStatus __halAdu_initControl(tpAniSirGlobal pMac)
 #ifndef WLAN_HAL_VOLANS //FIXME_VOLANS            
             QWLAN_ADU_CONTROL_REG_REINIT_TO_BOTH_AHB_EN_MASK |
 #endif            
+#ifndef WLAN_FEATURE_ADU_FW_DXE
             (BMUWQ_DXE_RX << QWLAN_ADU_CONTROL_NEXT_WQ_OFFSET) |
+#else
+            (BMUWQ_BMU_WQ2 << QWLAN_ADU_CONTROL_NEXT_WQ_OFFSET) |            
+#endif
             ((BMUWQ_SINK << QWLAN_ADU_CONTROL_WOW_WQ_OFFSET) & QWLAN_ADU_CONTROL_WOW_WQ_MASK);
 
     halWriteRegister(pMac,  QWLAN_ADU_CONTROL_REG,  value );
@@ -444,7 +454,12 @@ eHalStatus halAdu_enableFrameTranslation(tpAniSirGlobal pMac)
                      (
 #ifdef WLAN_HAL_VOLANS
 					 (1 << QWLAN_ADU_UMA_CTRL2_RX_PRIORITY_ROUTING_WQ_EN_OFFSET )|
+#ifndef WLAN_FEATURE_ADU_FW_DXE
                       (BMUWQ_DXE_RX_HI << QWLAN_ADU_UMA_CTRL2_RX_PRIORITY_ROUTING_WQ_OFFSET)|
+#else
+                      (BMUWQ_BMU_WQ2 << QWLAN_ADU_UMA_CTRL2_RX_PRIORITY_ROUTING_WQ_OFFSET)|
+#endif
+
 #endif
                       (BMUWQ_SINK)));
 
@@ -639,9 +654,9 @@ eHalStatus halAdu_UpdateUmaDescForPrivacy(tpAniSirGlobal pMac,
         tANI_U16 staIdx)
 {
     tpAduUmaStaDesc pAduUmaStaDesc;
-    eHalStatus status = eHAL_STATUS_FAILURE;
-    tANI_U8 umaIdx=0, umaBcastIdx;
-    tSystemRole systemRole = eSYSTEM_UNKNOWN_ROLE;
+    eHalStatus status;
+    tANI_U8 umaIdx;
+
 
     // Get the UMA index associated with this staIdx.
     if ((status=halTable_GetStaUMAIdx(pMac, (tANI_U8)staIdx, &umaIdx))
@@ -669,36 +684,6 @@ eHalStatus halAdu_UpdateUmaDescForPrivacy(tpAniSirGlobal pMac,
         return status; 
     }
 
-    // Broadcast packets also get encrypted so take care
-    // of the IBSS broadcast packet.
-    systemRole = halGetSystemRole(pMac);
-    if (systemRole != eSYSTEM_STA_IN_IBSS_ROLE) return status;
-
-    // Get the UMA Broadcast index associated with this staIdx.
-    if ((status=halTable_GetStaUMABcastIdx(pMac, (tANI_U8)staIdx, &umaBcastIdx))
-            != eHAL_STATUS_SUCCESS) 
-    {
-        HALLOGE( halLog( pMac, LOGE, 
-                FL("Unable to get umaIdx for sta%d\n"), staIdx)); 
-        return status; 
-        
-    }
-    // Get the UMA descriptor table.
-    if (umaBcastIdx == HAL_INVALID_KEYID_INDEX) 
-    {
-        HALLOGE( halLog( pMac, LOGE, FL("UMA BcastIndex not available\n"))); 
-        return eHAL_STATUS_FAILURE; 
-    }
-
-    pAduUmaStaDesc = &(pMac->hal.halMac.aduUmaDesc[umaBcastIdx]);
-    pAduUmaStaDesc->wep = 1;
-    
-    status = halAdu_SetUmaStaDesc(pMac, umaBcastIdx, pAduUmaStaDesc);
-    if(status != eHAL_STATUS_SUCCESS)
-    {
-        HALLOGE(halLog( pMac, LOGE, FL("UMA programming failed\n")));
-        return status; 
-    }
     return status;
 }
 
@@ -960,8 +945,8 @@ eHalStatus halAdu_BckupUmaSearchTable(tpAniSirGlobal pMac, tANI_U32 *pAddr)
     tANI_U32 macAddrLo, macAddrHi;
     tANI_U32 value = 0;
     tANI_U8 i;
-    tSystemRole systemRole = eSYSTEM_UNKNOWN_ROLE;
-    tANI_U8 umaIdx = 0, umaBcastIdx = 0;
+    tBssSystemRole systemRole = eSYSTEM_UNKNOWN_ROLE;
+    tANI_U8 umaIdx = 0;
 
     for (i=0; i < pMac->hal.halMac.maxSta; i++) {
 
@@ -973,9 +958,14 @@ eHalStatus halAdu_BckupUmaSearchTable(tpAniSirGlobal pMac, tANI_U32 *pAddr)
 
         // If we are infra mode we do not have a search table
         // entry, we only have an entry in UMA default MAC address. 
-        // For IBSS we only have the BSSID in the UMA desc table.
-        systemRole = halGetSystemRole(pMac);
-        if (systemRole != eSYSTEM_STA_IN_IBSS_ROLE) continue;
+        systemRole = halGetBssSystemRoleFromStaIdx(pMac, pSta[i].staId);
+        if (eSYSTEM_STA_ROLE == systemRole) continue;
+
+        // In other modes we need to make sure an UMA entry was allocated
+        if (halTable_GetStaUMAIdx(pMac, i, &umaIdx) != eHAL_STATUS_SUCCESS)
+            continue;
+        if (HAL_INVALID_KEYID_INDEX == umaIdx)
+            continue;
 
         // Get the Mac address
         macAddrHi = (((tANI_U32)pSta[i].staAddr[0]) << 8) |
@@ -999,8 +989,6 @@ eHalStatus halAdu_BckupUmaSearchTable(tpAniSirGlobal pMac, tANI_U32 *pAddr)
         halWriteDeviceMemory(pMac, (tANI_U32)pMemAddr++,
                     (tANI_U8*)&value, sizeof(tANI_U32));
 
-        if (halTable_GetStaUMAIdx(pMac, i, &umaIdx) != eHAL_STATUS_SUCCESS)
-            return eHAL_STATUS_FAILURE;
         value = macAddrHi |
             (umaIdx << QWLAN_ADU_UMA_INDEX_TABLE_WDATA_U_UMA_SRCHTABLE_INDEX_OFFSET);
 
@@ -1017,43 +1005,6 @@ eHalStatus halAdu_BckupUmaSearchTable(tpAniSirGlobal pMac, tANI_U32 *pAddr)
 
         halWriteDeviceMemory(pMac, (tANI_U32)pMemAddr++,
                     (tANI_U8*)&value, sizeof(tANI_U32));
-
-        // For IBSS we also store the broadcast address in the
-        // UMA search table.
-        // Write the Low Data register address and value
-        value = QWLAN_ADU_UMA_INDEX_TABLE_WDATA_L_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED;
-        halWriteDeviceMemory(pMac, (tANI_U32)pMemAddr++,
-                    (tANI_U8*)&value, sizeof(tANI_U32)) ;
-
-        macAddrLo = 0xffffffff;
-        halWriteDeviceMemory(pMac, (tANI_U32)pMemAddr++,
-                    (tANI_U8*)&macAddrLo, sizeof(tANI_U32)) ;
-
-        // Write the High data register address and value
-        value = QWLAN_ADU_UMA_INDEX_TABLE_WDATA_U_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED;
-        halWriteDeviceMemory(pMac, (tANI_U32)pMemAddr++,
-                    (tANI_U8*)&value, sizeof(tANI_U32)) ;
-
-        if (halTable_GetStaUMABcastIdx(pMac, i, &umaBcastIdx) != 
-                eHAL_STATUS_SUCCESS)
-            return eHAL_STATUS_FAILURE;
-        macAddrHi= 0xffff;
-        value = macAddrHi |
-            (umaBcastIdx << QWLAN_ADU_UMA_INDEX_TABLE_WDATA_U_UMA_SRCHTABLE_INDEX_OFFSET);
-
-        halWriteDeviceMemory(pMac, (tANI_U32)pMemAddr++,
-                    (tANI_U8*)&value, sizeof(tANI_U32));
-
-        // Write the ctrl register address and value
-        value = QWLAN_ADU_UMA_INDEX_TABLE_ADDR_CTRL_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED;
-        halWriteDeviceMemory(pMac, (tANI_U32)pMemAddr++,
-                    (tANI_U8*)&value, sizeof(tANI_U32)) ;
-
-        //same staIdx is used for UMA search table indexing also
-        value = (1 << QWLAN_ADU_UMA_INDEX_TABLE_ADDR_CTRL_UMA_SRCHTABLE_RW_OFFSET) | umaBcastIdx;
-
-        halWriteDeviceMemory(pMac, (tANI_U32)pMemAddr++,
-                    (tANI_U8*)&value, sizeof(tANI_U32)) ;
 
     }
 

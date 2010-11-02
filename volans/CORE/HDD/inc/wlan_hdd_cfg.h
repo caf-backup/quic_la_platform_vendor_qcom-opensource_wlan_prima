@@ -312,10 +312,43 @@ typedef enum
 #define CFG_IBSS_BSSID_MAX                     "ffffffffffff"
 #define CFG_IBSS_BSSID_DEFAULT                 "000AF5040506"
 
-#define CFG_STA_MAC_ADDR_NAME                  "gStaMacAddr"
+#define CFG_STA_MAC_ADDR_NAME                  "NetworkAddress"
 #define CFG_STA_MAC_ADDR_MIN                   "000000000000"
 #define CFG_STA_MAC_ADDR_MAX                   "ffffffffffff"
 #define CFG_STA_MAC_ADDR_DEFAULT               "000AF5898989"
+
+#ifdef WLAN_SOFTAP_FEATURE
+#define CFG_AP_MAC_ADDR_NAME                   "gAPMacAddr"
+#define CFG_AP_MAC_ADDR_MIN                    "000000000000"
+#define CFG_AP_MAC_ADDR_MAX                    "ffffffffffff"
+#define CFG_AP_MAC_ADDR_DEFAULT                "00deadbeef04"
+
+#define CFG_AP_QOS_UAPSD_MODE_NAME             "gEnableApUapsd" // ACs to setup U-APSD for at assoc
+#define CFG_AP_QOS_UAPSD_MODE_MIN              ( 0 )
+#define CFG_AP_QOS_UAPSD_MODE_MAX              ( 1 ) 
+#define CFG_AP_QOS_UAPSD_MODE_DEFAULT          ( 1 )   
+
+#define CFG_AP_COUNTRY_CODE                    "gAPCntryCode"
+#define CFG_AP_COUNTRY_CODE_MIN                "USI"
+#define CFG_AP_COUNTRY_CODE_MAX                "USI"
+#define CFG_AP_COUNTRY_CODE_DEFAULT            "FFF"
+
+#define CFG_AP_PROTECTION_MODE_NAME            "gEnableApProt" 
+#define CFG_AP_PROTECTION_MODE_MIN             ( 0 )
+#define CFG_AP_PROTECTION_MODE_MAX             ( 1 ) 
+#define CFG_AP_PROTECTION_MODE_DEFAULT         ( 1 )   
+
+#define CFG_AP_OBSS_PROTECTION_MODE_NAME       "gEnableApOBSSProt" 
+#define CFG_AP_OBSS_PROTECTION_MODE_MIN        ( 0 )
+#define CFG_AP_OBSS_PROTECTION_MODE_MAX        ( 1 ) 
+#define CFG_AP_OBSS_PROTECTION_MODE_DEFAULT    ( 0 )   
+
+#define CFG_AP_STA_SECURITY_SEPERATION_NAME    "gAPDisableIntraBssFwd"
+#define CFG_AP_STA_SECURITY_SEPERATION_MIN     ( 0 )
+#define CFG_AP_STA_SECURITY_SEPERATION_MAX     ( 1 ) 
+#define CFG_AP_STA_SECURITY_SEPERATION_DEFAULT ( 0 )   
+
+#endif
 
 #define CFG_BEACON_INTERVAL_NAME               "gBeaconInterval"
 #define CFG_BEACON_INTERVAL_MIN                WNI_CFG_BEACON_INTERVAL_STAMIN
@@ -824,6 +857,28 @@ typedef enum
 #define CFG_TL_DELAYED_TRGR_FRM_INT_MAX                     (4294967295UL)
 #define CFG_TL_DELAYED_TRGR_FRM_INT_DEFAULT                 3000
 
+#if defined WLAN_FEATURE_VOWIFI
+#define CFG_RRM_ENABLE_NAME                              "gRrmEnable"
+#define CFG_RRM_ENABLE_MIN                               (0)
+#define CFG_RRM_ENABLE_MAX                               (1)  
+#define CFG_RRM_ENABLE_DEFAULT                           (0)
+
+#define CFG_RRM_OPERATING_CHAN_MAX_DURATION_NAME         "gRrmOperChanMax" //section 11.10.3 IEEE std. 802.11k-2008
+#define CFG_RRM_OPERATING_CHAN_MAX_DURATION_MIN          (0)             //Maxduration = 2^(maxDuration - 4) * bcnIntvl.
+#define CFG_RRM_OPERATING_CHAN_MAX_DURATION_MAX          (8)  
+#define CFG_RRM_OPERATING_CHAN_MAX_DURATION_DEFAULT      (3)             //max duration = 2^-1 * bcnIntvl (50% of bcn intvl)
+
+#define CFG_RRM_NON_OPERATING_CHAN_MAX_DURATION_NAME     "gRrmNonOperChanMax" //Same as above.
+#define CFG_RRM_NON_OPERATING_CHAN_MAX_DURATION_MIN      (0)
+#define CFG_RRM_NON_OPERATING_CHAN_MAX_DURATION_MAX      (8)  
+#define CFG_RRM_NON_OPERATING_CHAN_MAX_DURATION_DEFAULT  (3)
+
+#define CFG_RRM_MEAS_RANDOMIZATION_INTVL_NAME            "gRrmRandnIntvl"
+#define CFG_RRM_MEAS_RANDOMIZATION_INTVL_MIN             (10)
+#define CFG_RRM_MEAS_RANDOMIZATION_INTVL_MAX             (100)  
+#define CFG_RRM_MEAS_RANDOMIZATION_INTVL_DEFAULT         (100)
+#endif
+
 #define CFG_QOS_IMPLICIT_SETUP_ENABLED_NAME                 "ImplicitQosIsEnabled"
 #define CFG_QOS_IMPLICIT_SETUP_ENABLED_MIN                  (0)
 #define CFG_QOS_IMPLICIT_SETUP_ENABLED_MAX                  (1) 
@@ -838,6 +893,73 @@ typedef enum
 #define CFG_ENABLE_LOGP_MIN                                 ( 0 )
 #define CFG_ENABLE_LOGP_MAX                                 ( 1 )
 #define CFG_ENABLE_LOGP_DEFAULT                             ( 0 )
+
+#define CFG_BTC_EXECUTION_MODE_NAME                         "BtcExecutionMode"
+#define CFG_BTC_EXECUTION_MODE_MIN                          ( 0 )
+#define CFG_BTC_EXECUTION_MODE_MAX                          ( 5 )
+#define CFG_BTC_EXECUTION_MODE_DEFAULT                      ( 0 )
+
+#if defined WLAN_FEATURE_VOWIFI_11R
+#define CFG_FT_ENABLE_NAME                              "gFtEnabled"
+#define CFG_FT_ENABLE_MIN                               (0)
+#define CFG_FT_ENABLE_MAX                               (1)  
+#define CFG_FT_ENABLE_DEFAULT                           (0)
+
+#define CFG_FT_RESOURCE_REQ_NAME                        "gFTResourceReqSupported"
+#define CFG_FT_RESOURCE_REQ_MIN                         (0)
+#define CFG_FT_RESOURCE_REQ_MAX                         (1)
+#define CFG_FT_RESOURCE_REQ_DEFAULT                     (0)
+#endif
+
+#ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
+#define CFG_NEIGHBOR_SCAN_TIMER_PERIOD_NAME             "gNeighborScanTimerPeriod"
+#define CFG_NEIGHBOR_SCAN_TIMER_PERIOD_MIN              (0)
+#define CFG_NEIGHBOR_SCAN_TIMER_PERIOD_MAX              (1000)
+#define CFG_NEIGHBOR_SCAN_TIMER_PERIOD_DEFAULT          (200)
+
+#define CFG_NEIGHBOR_REASSOC_RSSI_THRESHOLD_NAME              "gNeighborReassocThreshold"
+#define CFG_NEIGHBOR_REASSOC_RSSI_THRESHOLD_MIN               (10)
+#define CFG_NEIGHBOR_REASSOC_RSSI_THRESHOLD_MAX               (125)
+#define CFG_NEIGHBOR_REASSOC_RSSI_THRESHOLD_DEFAULT           (125)
+
+#define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_NAME      "gNeighborLookupThreshold"
+#define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_MIN       (10)
+#define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_MAX       (120)
+#define CFG_NEIGHBOR_LOOKUP_RSSI_THRESHOLD_DEFAULT   (120)
+
+#define CFG_NEIGHBOR_SCAN_CHAN_LIST_NAME                      "gNeighborScanChannelList"
+#define CFG_NEIGHBOR_SCAN_CHAN_LIST_DEFAULT                   "1,6"
+
+#define CFG_NEIGHBOR_SCAN_MIN_CHAN_TIME_NAME                  "gNeighborScanChannelMinTime"
+#define CFG_NEIGHBOR_SCAN_MIN_CHAN_TIME_MIN                   (10)   
+#define CFG_NEIGHBOR_SCAN_MIN_CHAN_TIME_MAX                   (40)   
+#define CFG_NEIGHBOR_SCAN_MIN_CHAN_TIME_DEFAULT               (20)   
+
+#define CFG_NEIGHBOR_SCAN_MAX_CHAN_TIME_NAME                  "gNeighborScanChannelMaxTime"
+#define CFG_NEIGHBOR_SCAN_MAX_CHAN_TIME_MIN                   (10)   
+#define CFG_NEIGHBOR_SCAN_MAX_CHAN_TIME_MAX                   (40)   
+#define CFG_NEIGHBOR_SCAN_MAX_CHAN_TIME_DEFAULT               (30)   
+
+#define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_NAME           "gMaxNeighborReqTries"
+#define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_MIN            (1)
+#define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_MAX            (4)
+#define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_DEFAULT        (1)
+
+#define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_NAME         "gNeighborScanRefreshPeriod"
+#define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_MIN          (1000)
+#define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_MAX          (60000)
+#define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_DEFAULT      (20000)
+#endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */
+
+#define CFG_QOS_WMM_BURST_SIZE_DEFN_NAME                        "burstSizeDefinition" 
+#define CFG_QOS_WMM_BURST_SIZE_DEFN_MIN                         (0)
+#define CFG_QOS_WMM_BURST_SIZE_DEFN_MAX                         (1)
+#define CFG_QOS_WMM_BURST_SIZE_DEFN_DEFAULT                     (0)
+
+#define CFG_QOS_WMM_TS_INFO_ACK_POLICY_NAME                        "tsInfoAckPolicy" 
+#define CFG_QOS_WMM_TS_INFO_ACK_POLICY_MIN                         (0x00)
+#define CFG_QOS_WMM_TS_INFO_ACK_POLICY_MAX                         (0x01)
+#define CFG_QOS_WMM_TS_INFO_ACK_POLICY_DEFAULT                     (0x00)
 
 /*--------------------------------------------------------------------------- 
   Type declarations
@@ -876,6 +998,7 @@ typedef struct
    v_U8_t        nEnableDriverStop;
    v_BOOL_t      fIsImpsEnabled;
    v_BOOL_t      fIsLogpEnabled;
+   v_U8_t        btcExecutionMode;
    v_U32_t       nImpsModSleepTime;
    v_U32_t       nImpsMaxSleepTime;
    v_U32_t       nImpsMinSleepTime;
@@ -904,9 +1027,43 @@ typedef struct
    v_BOOL_t      fIsAutoIbssBssid;
    v_MACADDR_t   IbssBssid;
    v_MACADDR_t   staMacAddr;
+
+#ifdef WLAN_SOFTAP_FEATURE
+   v_MACADDR_t   apMacAddr;
+   v_BOOL_t      apUapsdEnabled;
+   v_BOOL_t      apProtEnabled;
+   v_BOOL_t      apOBSSProtEnabled;
+   v_U8_t          apCntryCode[4];
+   v_BOOL_t      apDisableIntraBssFwd;
+#endif
+
    v_U32_t       nBeaconInterval;
    v_U8_t        nTxPowerCap;   //In dBm
    v_BOOL_t      fIsLowGainOverride;
+
+#if defined WLAN_FEATURE_VOWIFI
+   v_BOOL_t      fRrmEnable;
+   v_U8_t        nInChanMeasMaxDuration;
+   v_U8_t        nOutChanMeasMaxDuration;
+   v_U16_t       nRrmRandnIntvl;
+#endif
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+   //Vowifi 11r params
+   v_BOOL_t      fFTEnable;
+   v_BOOL_t      fFTResourceReqSupported;
+#endif
+
+#ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
+   v_U16_t       nNeighborScanPeriod;
+   v_U16_t       nNeighborReassocRssiThreshold;
+   v_U16_t       nNeighborLookupRssiThreshold;
+   char          neighborScanChanList[100];         
+   v_U16_t       nNeighborScanMinChanTime; 
+   v_U16_t       nNeighborScanMaxChanTime; 
+   v_U16_t       nMaxNeighborReqTries;
+   v_U16_t       nNeighborResultsRefreshPeriod; 
+#endif
 
    //Handoff Parameters
    v_BOOL_t      fIsHandoffEnabled;
@@ -1035,6 +1192,8 @@ typedef struct
    char                        wowlPattern[1024];         
    v_BOOL_t                    b19p2MhzPmicClkEnabled;
 
+   v_BOOL_t                     burstSizeDefinition;
+   v_U8_t                       tsInfoAckPolicy;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

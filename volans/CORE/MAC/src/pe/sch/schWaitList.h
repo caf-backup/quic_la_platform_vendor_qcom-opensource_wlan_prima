@@ -172,14 +172,15 @@ schStaWaitListDecrement(tpAniSirGlobal pMac)
            pMac->sch.pStaWaitList[pMac->sch.staWaitListOut].count == 0)
     {
         tANI_U16 staId = pMac->sch.pStaWaitList[pMac->sch.staWaitListOut].staId;
-        
+
+#if 0   //BTAMP: commented out to compile. Need to clean this up       
         tpDphHashNode pSta = dphGetHashEntry(pMac, staId);
         if (pSta == NULL)
         {
             schDumpWaitList(pMac);
             schLog(pMac, LOGP, FL("schStaWaitListDecrement: STA %d not found\n"), staId);
         }
-            
+#endif            
         schSendSchCleanMsg(pMac, staId);
         
         pMac->sch.staWaitListOut = (pMac->sch.staWaitListOut + 1) % pMac->lim.maxStation;

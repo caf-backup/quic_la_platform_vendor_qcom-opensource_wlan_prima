@@ -675,7 +675,7 @@ OpenBinaryOutput (char *dir, char *name)
 }
 
 /**
- * LongArray
+ * ValArray
  *
  * FUNCTION:
  * These functions provide a array of unsigned longs.
@@ -691,48 +691,56 @@ OpenBinaryOutput (char *dir, char *name)
  * @return None
  */
 
+typedef unsigned int    ValueU32;
+
 typedef struct
 {
-    unsigned long       data[MAX_CFG_BIN_SIZE];
+    ValueU32            data[MAX_CFG_BIN_SIZE];
     int                 dataUsed;
 
-} LongArray;
+} ValArray;
 
 static void
-LongArray_Init (LongArray *array)
+ValArray_Init (ValArray *array)
 {
     array->dataUsed = 0;
 }
 
+static int
+ValArray_GetSize (ValArray *array)
+{
+    return array->dataUsed * sizeof (ValueU32);
+}
+
 static void
-LongArray_PutULong (LongArray *array, unsigned long val)
+ValArray_PutValue (ValArray *array, ValueU32 val)
 {
     array->data[array->dataUsed++] = val;
 }
 
 static void
-LongArray_PutArray (LongArray *dest, LongArray *src)
+ValArray_PutArray (ValArray *dest, ValArray *src)
 {
     memcpy (&dest->data[dest->dataUsed],
             src->data,
-            src->dataUsed * sizeof (unsigned long));
+            src->dataUsed * sizeof (ValueU32));
     dest->dataUsed += src->dataUsed;
 }
 
 static void
-LongArray_Write (LongArray *array, bool swap, FILE *fp)
+ValArray_Write (ValArray *array, bool swap, FILE *fp)
 {
     int                 i;
-    unsigned long       tmp;
+    ValueU32            tmp;
 
     if (!swap)
-        fwrite (array->data, sizeof (unsigned long), array->dataUsed, fp);
+        fwrite (array->data, sizeof (ValueU32), array->dataUsed, fp);
     else
     {
         for (i = 0; i < array->dataUsed; ++i)
         {
             tmp = SwapBytes (array->data[i]);
-            fwrite (&tmp, sizeof (unsigned long), 1, fp);
+            fwrite (&tmp, sizeof (ValueU32), 1, fp);
         }
     }
 }
@@ -755,7 +763,7 @@ LongArray_Write (LongArray *array, bool swap, FILE *fp)
  */
 
 static void
-SetStaData (LongArray *data)
+SetStaData (ValArray *data)
 {
     int                 i;
     int                 j;
@@ -769,16 +777,16 @@ SetStaData (LongArray *data)
     }
 
     /* Write STA header */
-    LongArray_PutULong (data, STA_DWORD);
-    LongArray_PutULong (data, STA_DWORD);
-    LongArray_PutULong (data, gIDCount);
-    LongArray_PutULong (data, gStaIBufCount);
-    LongArray_PutULong (data, staStrLen);
+    ValArray_PutValue (data, STA_DWORD);
+    ValArray_PutValue (data, STA_DWORD);
+    ValArray_PutValue (data, gIDCount);
+    ValArray_PutValue (data, gStaIBufCount);
+    ValArray_PutValue (data, staStrLen);
 
     /* Write STA control flags to STA binary file */
     for (i = 0; i < gIDCount; i++)
     {
-        LongArray_PutULong (data, gParamEntry[i].staControl |
+        ValArray_PutValue (data, gParamEntry[i].staControl |
                                   gParamEntry[i].staIndex);
     }
 
@@ -789,7 +797,7 @@ SetStaData (LongArray *data)
         if (((gParamEntry[i].staControl & CFG_CTL_VALID) != 0) &&
             ((gParamEntry[i].staControl & CFG_CTL_INT) != 0))
         {
-            LongArray_PutULong (data, gParamEntry[i].staDefVal);
+            ValArray_PutValue (data, gParamEntry[i].staDefVal);
         }
     }
 
@@ -801,7 +809,7 @@ SetStaData (LongArray *data)
         if (((gParamEntry[i].staControl & CFG_CTL_VALID) != 0) &&
             ((gParamEntry[i].staControl & CFG_CTL_INT) != 0))
         {
-            LongArray_PutULong (data, gParamEntry[i].staMinVal);
+            ValArray_PutValue (data, gParamEntry[i].staMinVal);
         }
     }
     /* Write STA max values */
@@ -811,7 +819,7 @@ SetStaData (LongArray *data)
         if (((gParamEntry[i].staControl & CFG_CTL_VALID) != 0) &&
             ((gParamEntry[i].staControl & CFG_CTL_INT) != 0))
         {
-            LongArray_PutULong (data, gParamEntry[i].staMaxVal);
+            ValArray_PutValue (data, gParamEntry[i].staMaxVal);
         }
     }
 #endif
@@ -824,11 +832,11 @@ SetStaData (LongArray *data)
             ((gParamEntry[i].staControl & CFG_CTL_INT) == 0))
         {
             /* TYPE,Length */
-            LongArray_PutULong (data, (i << 16) | gParamEntry[i].staLen);
+            ValArray_PutValue (data, (i << 16) | gParamEntry[i].staLen);
             /* Value */
             for (j=0; j < ((gParamEntry[i].staLen + 3) >> 2); j++)
             {
-                LongArray_PutULong (data,
+                ValArray_PutValue (data,
                                  gParamEntry[i].staVal[4*j] << 24 |
                                  gParamEntry[i].staVal[4*j+1] << 16 |
                                  gParamEntry[i].staVal[4*j+2] << 8 |
@@ -856,7 +864,7 @@ SetStaData (LongArray *data)
  */
 
 static void
-SetApData (LongArray *data)
+SetApData (ValArray *data)
 {
     int                 i;
     int                 j;
@@ -870,16 +878,16 @@ SetApData (LongArray *data)
     }
 
     /* Write AP header */
-    LongArray_PutULong (data, AP_DWORD);
-    LongArray_PutULong (data, AP_DWORD);
-    LongArray_PutULong (data, gIDCount);
-    LongArray_PutULong (data, gApIBufCount);
-    LongArray_PutULong (data, apStrLen);
+    ValArray_PutValue (data, AP_DWORD);
+    ValArray_PutValue (data, AP_DWORD);
+    ValArray_PutValue (data, gIDCount);
+    ValArray_PutValue (data, gApIBufCount);
+    ValArray_PutValue (data, apStrLen);
 
     /* Write control flags for AP binary file */
     for (i = 0; i < gIDCount; i++)
     {
-        LongArray_PutULong (data, gParamEntry[i].apControl |
+        ValArray_PutValue (data, gParamEntry[i].apControl |
                                         gParamEntry[i].apIndex);
     }
 
@@ -888,7 +896,7 @@ SetApData (LongArray *data)
     {
         if ((gParamEntry[i].staControl & CFG_CTL_INT) != 0)
         {
-            LongArray_PutULong (data, gParamEntry[i].apDefVal);
+            ValArray_PutValue (data, gParamEntry[i].apDefVal);
         }
     }
 
@@ -898,7 +906,7 @@ SetApData (LongArray *data)
     {
         if ((gParamEntry[i].staControl & CFG_CTL_INT) != 0)
         {
-            LongArray_PutULong (data, gParamEntry[i].apMinVal);
+            ValArray_PutValue (data, gParamEntry[i].apMinVal);
         }
     }
 
@@ -907,7 +915,7 @@ SetApData (LongArray *data)
     {
         if ((gParamEntry[i].staControl & CFG_CTL_INT) != 0)
         {
-            LongArray_PutULong (data, gParamEntry[i].apMaxVal);
+            ValArray_PutValue (data, gParamEntry[i].apMaxVal);
         }
     }
 #endif
@@ -920,11 +928,11 @@ SetApData (LongArray *data)
             ((gParamEntry[i].apControl & CFG_CTL_INT) == 0))
         {
             /* TYPE,Length */
-            LongArray_PutULong (data, (i << 16) | gParamEntry[i].apLen);
+            ValArray_PutValue (data, (i << 16) | gParamEntry[i].apLen);
             /* Value */
             for (j=0; j < ((gParamEntry[i].apLen + 3) >> 2); j++)
             {
-                LongArray_PutULong (data,
+                ValArray_PutValue (data,
                                  gParamEntry[i].apVal[4*j] << 24 |
                                  gParamEntry[i].apVal[4*j+1] << 16 |
                                  gParamEntry[i].apVal[4*j+2] << 8 |
@@ -954,9 +962,9 @@ SetApData (LongArray *data)
  */
 
 static void
-SetMergeData (LongArray *staData,
-              LongArray *apData,
-              LongArray *cfgBinData,
+SetMergeData (ValArray *staData,
+              ValArray *apData,
+              ValArray *cfgBinData,
               bool swapBytes,
               unsigned short *chkSum)
 {
@@ -970,30 +978,30 @@ SetMergeData (LongArray *staData,
 
     numFiles      = 2;
     checkSumSize  = sizeof (unsigned short);
-    staFileSize   = staData->dataUsed  * sizeof (unsigned long);
-    apFileSize    = apData->dataUsed   * sizeof (unsigned long);
-    offset        = (4 + numFiles * 3) * sizeof (unsigned long);
+    staFileSize   = ValArray_GetSize (staData);
+    apFileSize    = ValArray_GetSize (apData);
+    offset        = (4 + numFiles * 3) * sizeof (ValueU32);
     totalFileSize = offset           /* header size */
                   + staFileSize      /* wniCfgSta.bin size */
                   + apFileSize       /* wniCfgAp.bin size */
                   + checkSumSize;    /* check sum appended at end */
 
-    LongArray_PutULong (cfgBinData, 0x0b030c01); /* FileVersion */
-    LongArray_PutULong (cfgBinData, 0x01020001); /* HwCapabilities */
-    LongArray_PutULong (cfgBinData, totalFileSize);
-    LongArray_PutULong (cfgBinData, numFiles);
+    ValArray_PutValue (cfgBinData, 0x0b030c01); /* FileVersion */
+    ValArray_PutValue (cfgBinData, 0x01020001); /* HwCapabilities */
+    ValArray_PutValue (cfgBinData, totalFileSize);
+    ValArray_PutValue (cfgBinData, numFiles);
 
-    LongArray_PutULong (cfgBinData, ePOL_DIR_TYPE_STA_CONFIG);
-    LongArray_PutULong (cfgBinData, offset);
-    LongArray_PutULong (cfgBinData, staFileSize);
+    ValArray_PutValue (cfgBinData, ePOL_DIR_TYPE_STA_CONFIG);
+    ValArray_PutValue (cfgBinData, offset);
+    ValArray_PutValue (cfgBinData, staFileSize);
     offset += staFileSize;
 
-    LongArray_PutULong (cfgBinData, ePOL_DIR_TYPE_AP_CONFIG);
-    LongArray_PutULong (cfgBinData, offset);
-    LongArray_PutULong (cfgBinData, apFileSize);
+    ValArray_PutValue (cfgBinData, ePOL_DIR_TYPE_AP_CONFIG);
+    ValArray_PutValue (cfgBinData, offset);
+    ValArray_PutValue (cfgBinData, apFileSize);
 
-    LongArray_PutArray (cfgBinData, staData);
-    LongArray_PutArray (cfgBinData, apData);
+    ValArray_PutArray (cfgBinData, staData);
+    ValArray_PutArray (cfgBinData, apData);
 
                                 /*
                                  * Historically MergeBin reswapped
@@ -1047,9 +1055,9 @@ WriteBinFiles(void)
 {
     FILE *              fp;
     bool                swapBytes;
-    LongArray           staData;
-    LongArray           apData;
-    LongArray           cfgBinData;
+    ValArray            staData;
+    ValArray            apData;
+    ValArray            cfgBinData;
     unsigned short      chkSum;
     unsigned long       byteOrder = 0x12345678;
     unsigned char *     p = (unsigned char *) &byteOrder;
@@ -1059,9 +1067,9 @@ WriteBinFiles(void)
                                  */
     swapBytes = (p[0] == 0x12) ? 0 : 1;
 
-    LongArray_Init (&staData);
-    LongArray_Init (&apData);
-    LongArray_Init (&cfgBinData);
+    ValArray_Init (&staData);
+    ValArray_Init (&apData);
+    ValArray_Init (&cfgBinData);
 
                                 /* Set up binary file values */
     SetStaData (&staData);
@@ -1070,17 +1078,17 @@ WriteBinFiles(void)
 
                                 /* Write STA bin file */
     fp = OpenBinaryOutput (dstdir, "wniCfgSta.bin");
-    LongArray_Write (&staData, swapBytes, fp);
+    ValArray_Write (&staData, swapBytes, fp);
     fclose (fp);
 
                                 /* Write AP bin file */
     fp = OpenBinaryOutput (dstdir, "wniCfgAp.bin");
-    LongArray_Write (&apData, swapBytes, fp);
+    ValArray_Write (&apData, swapBytes, fp);
     fclose (fp);
 
                                 /* Write cfg.bin file */
     fp = OpenBinaryOutput (dstdir, OUT_FNAME);
-    LongArray_Write (&cfgBinData, FALSE, fp);
+    ValArray_Write (&cfgBinData, FALSE, fp);
     fwrite (&chkSum, sizeof (unsigned short), 1, fp);
     fclose (fp);
 
@@ -1174,7 +1182,7 @@ GetLine(FILE *pInF, char *pBuf)
 static int
 GetNext(unsigned char *pInput, unsigned char *pBuf, unsigned char **ppInput)
 {
-    signed long        len;
+    int len;
 
     len   = 0;
 

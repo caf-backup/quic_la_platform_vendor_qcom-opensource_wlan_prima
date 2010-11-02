@@ -237,10 +237,10 @@ eHalStatus halMbox_SendMsg(tpAniSirGlobal pMac, void *msg)
     tpMBoxMsgHdr pHdr = (tpMBoxMsgHdr)msg;
     tpMboxInfo pMbox = (tpMboxInfo)pMac->hal.halMac.mboxInfo;
 
-    HALLOG3( halLog(pMac, LOG3, FL("========================== \n")));
-    HALLOG3( halLog(pMac, LOG3, FL("    halMbox_SendMsg()     \n")));
-    HALLOG3( halLog(pMac, LOG3, FL("========================== \n")));
-    HALLOG3( halLog(pMac, LOG3, FL("msgType %d, msgLen %d \n"), pHdr->MsgType, pHdr->MsgLen));
+    HALLOGE( halLog(pMac, LOGE, FL("========================== \n")));
+    HALLOGE( halLog(pMac, LOGE, FL("    halMbox_SendMsg()     \n")));
+    HALLOGE( halLog(pMac, LOGE, FL("========================== \n")));
+    HALLOGE( halLog(pMac, LOGE, FL("msgType %d, msgLen %d \n"), pHdr->MsgType, pHdr->MsgLen));
 
     // message must be 4byte aligned
     if((pHdr->MsgLen & 3) != 0)
@@ -310,8 +310,9 @@ eHalStatus halMbox_SendReliableMsg(tpAniSirGlobal pMac, void *msg)
     readIdx = pMboxDQ->readIdx;
     writeIdx = pMboxDQ->writeIdx;
 
-#ifdef ANI_MANF_DIAG
-    pMbox[MCU_MAILBOX_HOST2FW].bMboxBusy = eANI_BOOLEAN_FALSE;
+#ifndef WLAN_FTM_STUB
+    if (pMac->gDriverType == eDRIVER_TYPE_MFG)
+        pMbox[MCU_MAILBOX_HOST2FW].bMboxBusy = eANI_BOOLEAN_FALSE;
 #endif
 
     /* check if this message needs defering */
@@ -380,14 +381,13 @@ eHalStatus halMbox_SendReliableMsg(tpAniSirGlobal pMac, void *msg)
 \param   tpAniSirGlobal  pMac
 \return  status
 \ ------------------------------------------------------------ */
-eHalStatus halMbox_RecvMsg( tHalHandle hHal )
+eHalStatus halMbox_RecvMsg( tHalHandle hHal, tANI_BOOLEAN fProcessInContext )
 {
     tANI_U32 readValue = 0;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     tMBoxMsgHdr header, *pMsgHdr;
     eHalStatus retStatus = eHAL_STATUS_SUCCESS;
     tANI_U8 *pMsg = NULL;
-    tANI_U8 bufConsumed = TRUE;
 
     tpMboxInfo  pMbox = (tpMboxInfo) pMac->hal.halMac.mboxInfo;
     pMsgHdr = (tMBoxMsgHdr *)&header;
@@ -422,14 +422,33 @@ eHalStatus halMbox_RecvMsg( tHalHandle hHal )
     halReadDeviceMemory(pMac, pMbox[FW2H_MAILBOX].pMboxStartAddr,
             pMsg, pMsgHdr->MsgLen);
 
-    // Handle the FW messages
-    retStatus = halFW_HandleFwMessages(pMac, pMsg, &bufConsumed);
     HALLOG1( halLog( pMac, LOG1,
             FL("Mbox %d interrupt received.\n"),
             FW2H_MAILBOX));
 
-    if(bufConsumed)
-       palFreeMemory(pMac->hHdd, pMsg);
+    if(fProcessInContext)
+    {
+        retStatus = halFW_HandleFwStatusMsg(pMac, pMsg);
+        palFreeMemory(pMac->hHdd, pMsg);
+    }
+    else
+    {
+        // Defer the FW messages to MC thread
+        if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+        {
+            //posting a msg to halMsgQ does not work for FTM driver
+            //invoke directly Fw msg handling
+            retStatus = halFW_HandleFwMessages(pMac, pMsg);
+        }
+        else
+        {
+            retStatus = halFw_PostFwRspMsg(pMac, pMsg);
+        }
+
+        if(!HAL_STATUS_SUCCESS(retStatus))
+            palFreeMemory(pMac->hHdd, pMsg);
+    }
+
     // READ the "concerned" MB Control REG in order to increment the READ count again
     halReadRegister(pMac, MCU_MB_CONTROL_REGISTER( MCU_MAILBOX_FW2HOST ),
         &readValue );
@@ -469,9 +488,11 @@ eHalStatus halMbox_SendMsgComplete( tHalHandle hHal )
     /* Reset Mailbox - Mark it as ready to send */
     pMbox[H2FW_MAILBOX].bMboxBusy = eANI_BOOLEAN_FALSE;
 
-    halReadRegister(pMac,
-                    MCU_MB_CONTROL_REGISTER(MCU_MAILBOX_HOST2FW),
-                    &uRegVal);
+    //For FTM driver posing of the msg to MC thread does not work
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        halReadRegister(pMac, MCU_MB_CONTROL_REGISTER(MCU_MAILBOX_HOST2FW), &uRegVal);
+    }
 
     /* send one message from the defer queue (if there are any) */
     readIdx = pMboxDQ->readIdx;
@@ -536,6 +557,29 @@ eHalStatus halMboxDbg_writeTest(tpAniSirGlobal pMac, tANI_U32 nMboxNum, tANI_U32
     return eHAL_STATUS_SUCCESS;
 }
 
+eHalStatus halFw_PostSendMsgComplete(tpAniSirGlobal pMac)
+{
+    tSirMsgQ msg;
+    tANI_U32 uRegVal;
+
+    halReadRegister(pMac,
+                    MCU_MB_CONTROL_REGISTER(MCU_MAILBOX_HOST2FW),
+                    &uRegVal);
+
+    msg.type     =  SIR_HAL_SEND_MSG_COMPLETE;
+    msg.reserved = 0;
+    msg.bodyptr  = NULL;
+    msg.bodyval  = 0;
+
+    if(halPostMsgApi(pMac,&msg) != eSIR_SUCCESS) {
+        HALLOGE(halLog(pMac, LOGE, FL("Posting SIR_HAL_HANDLE_FW_MBOX_RSP msg failed")));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    HALLOGW(halLog(pMac, LOGW, FL("Posting SIR_HAL_HANDLE_FW_MBOX_RSP msg\n")));
+    return eHAL_STATUS_SUCCESS;
+}
+
 eHalStatus halMbox_HandleInterrupt( tHalHandle hHal, eHalIntSources mbIntr )
 {
 
@@ -548,13 +592,20 @@ eHalStatus halMbox_HandleInterrupt( tHalHandle hHal, eHalIntSources mbIntr )
     switch (mbIntr) {
     case eHAL_INT_MCU_HOST_INT_MBOX1 : // FW2H_MAILBOX
         // Process Received mailbox message
-        halMbox_RecvMsg( pMac);
+        halMbox_RecvMsg( pMac, eANI_BOOLEAN_FALSE ); //The message will be processed in MC thread
         break;
 
     case eHAL_INT_MCU_HOST_INT_MBOX0 : // H2FW_MAILBOX
-        // Process Response received for mailbox Message send
-        halMbox_SendMsgComplete(pMac);
-
+        //For FTM driver posing of the msg to MC thread does not work
+        if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+        {
+            halMbox_SendMsgComplete(pMac);
+        }
+        else
+        {
+            // Process Response received for mailbox Message send
+            halFw_PostSendMsgComplete(pMac); //This message will be processed in MC thread
+        }
         break;
 
     default:

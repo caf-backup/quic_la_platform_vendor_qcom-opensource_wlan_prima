@@ -324,8 +324,819 @@ static tCsrIELenInfo gCsrIELengthTable[] = {
 };
 
 
+#if 0
+//Don't not insert entry into the table, put it to the end. If you have to insert, make sure it is also
+//reflected in eCsrCountryIndex
+static tCsrCountryInfo gCsrCountryInfo[eCSR_NUM_COUNTRY_INDEX] =
+{
+    {REG_DOMAIN_FCC, {'U', 'S', ' '}},       //USA/******The "US" MUST be at index 0*******/
+    {REG_DOMAIN_WORLD, {'A', 'D', ' '}},     //ANDORRA
+    {REG_DOMAIN_WORLD, {'A', 'E', ' '}},       //UAE
+    {REG_DOMAIN_WORLD, {'A', 'F', ' '}},     //AFGHANISTAN
+    {REG_DOMAIN_WORLD, {'A', 'G', ' '}},     //ANTIGUA AND BARBUDA
+    {REG_DOMAIN_WORLD, {'A', 'I', ' '}},     //ANGUILLA
+    {REG_DOMAIN_HI_5GHZ, {'A', 'L', ' '}},     //ALBANIA
+    {REG_DOMAIN_WORLD, {'A', 'M', ' '}},     //ARMENIA
+    {REG_DOMAIN_WORLD, {'A', 'N', ' '}},     //NETHERLANDS ANTILLES
+    {REG_DOMAIN_WORLD, {'A', 'O', ' '}},     //ANGOLA
+    {REG_DOMAIN_WORLD, {'A', 'Q', ' '}},     //ANTARCTICA
+    {REG_DOMAIN_HI_5GHZ, {'A', 'R', ' '}},    //ARGENTINA
+    {REG_DOMAIN_FCC, {'A', 'S', ' '}},     //AMERICAN SOMOA
+    {REG_DOMAIN_ETSI, {'A', 'T', ' '}},      //AUSTRIA
+    {REG_DOMAIN_ETSI, {'A', 'U', ' '}},      //AUSTRALIA
+    {REG_DOMAIN_WORLD, {'A', 'W', ' '}},     //ARUBA
+    {REG_DOMAIN_WORLD, {'A', 'X', ' '}},     //ALAND ISLANDS
+    {REG_DOMAIN_WORLD, {'A', 'Z', ' '}},     //AZERBAIJAN
+    {REG_DOMAIN_WORLD, {'B', 'A', ' '}},     //BOSNIA AND HERZEGOVINA
+    {REG_DOMAIN_WORLD, {'B', 'B', ' '}},     //BARBADOS
+    {REG_DOMAIN_WORLD, {'B', 'D', ' '}},     //BANGLADESH
+    {REG_DOMAIN_ETSI, {'B', 'E', ' '}},      //BELGIUM
+    {REG_DOMAIN_WORLD, {'B', 'F', ' '}},     //BURKINA FASO
+    {REG_DOMAIN_HI_5GHZ, {'B', 'G', ' '}},      //BULGARIA
+    {REG_DOMAIN_WORLD, {'B', 'H', ' '}},     //BAHRAIN
+    {REG_DOMAIN_WORLD, {'B', 'I', ' '}},     //BURUNDI
+    {REG_DOMAIN_WORLD, {'B', 'J', ' '}},     //BENIN
+    {REG_DOMAIN_WORLD, {'B', 'L', ' '}},     //SAINT BARTHELEMY
+    {REG_DOMAIN_ETSI, {'B', 'M', ' '}},     //BERMUDA
+    {REG_DOMAIN_WORLD, {'B', 'N', ' '}},     //BRUNEI DARUSSALAM
+    {REG_DOMAIN_WORLD, {'B', 'O', ' '}},     //BOLIVIA
+    {REG_DOMAIN_WORLD, {'B', 'R', ' '}},       //BRAZIL
+    {REG_DOMAIN_WORLD, {'B', 'S', ' '}},     //BAHAMAS
+    {REG_DOMAIN_WORLD, {'B', 'T', ' '}},     //BHUTAN
+    {REG_DOMAIN_WORLD, {'B', 'V', ' '}},     //BOUVET ISLAND
+    {REG_DOMAIN_WORLD, {'B', 'W', ' '}},     //BOTSWANA
+    {REG_DOMAIN_WORLD, {'B', 'Y', ' '}},     //BELARUS
+    {REG_DOMAIN_WORLD, {'B', 'Z', ' '}},     //BELIZE
+    {REG_DOMAIN_FCC, {'C', 'A', ' '}},       //CANADA
+    {REG_DOMAIN_WORLD, {'C', 'C', ' '}},     //COCOS (KEELING) ISLANDS
+    {REG_DOMAIN_WORLD, {'C', 'D', ' '}},     //CONGO, THE DEMOCRATIC REPUBLIC OF THE
+    {REG_DOMAIN_WORLD, {'C', 'F', ' '}},     //CENTRAL AFRICAN REPUBLIC
+    {REG_DOMAIN_WORLD, {'C', 'G', ' '}},     //CONGO
+    {REG_DOMAIN_ETSI, {'C', 'H', ' '}},      //SWITZERLAND
+    {REG_DOMAIN_WORLD, {'C', 'I', ' '}},     //COTE D'IVOIRE
+    {REG_DOMAIN_WORLD, {'C', 'K', ' '}},     //COOK ISLANDS
+    {REG_DOMAIN_WORLD, {'C', 'L', ' '}},       //CHILE
+    {REG_DOMAIN_WORLD, {'C', 'M', ' '}},     //CAMEROON
+    {REG_DOMAIN_HI_5GHZ, {'C', 'N', ' '}},   //CHINA
+    {REG_DOMAIN_WORLD, {'C', 'O', ' '}},       //COLOMBIA
+    {REG_DOMAIN_WORLD, {'C', 'R', ' '}},       //COSTA RICA
+    {REG_DOMAIN_WORLD, {'C', 'U', ' '}},     //CUBA  
+    {REG_DOMAIN_WORLD, {'C', 'V', ' '}},     //CAPE VERDE
+    {REG_DOMAIN_WORLD, {'C', 'X', ' '}},     //CHRISTMAS ISLAND
+    {REG_DOMAIN_WORLD, {'C', 'Y', ' '}},      //CYPRUS
+    {REG_DOMAIN_HI_5GHZ, {'C', 'Z', ' '}},      //CZECH REPUBLIC
+    {REG_DOMAIN_ETSI, {'D', 'E', ' '}},      //GERMANY
+    {REG_DOMAIN_WORLD, {'D', 'J', ' '}},     //DJIBOUTI
+    {REG_DOMAIN_ETSI, {'D', 'K', ' '}},      //DENMARK
+    {REG_DOMAIN_WORLD, {'D', 'M', ' '}},     //DOMINICA
+    {REG_DOMAIN_WORLD, {'D', 'O', ' '}},       //DOMINICAN REPUBLIC
+    {REG_DOMAIN_WORLD, {'D', 'Z', ' '}},     //ALGERIA
+    {REG_DOMAIN_WORLD, {'E', 'C', ' '}},       //ECUADOR
+    {REG_DOMAIN_HI_5GHZ, {'E', 'E', ' '}},      //ESTONIA
+    {REG_DOMAIN_WORLD, {'E', 'G', ' '}},     //EGYPT
+    {REG_DOMAIN_WORLD, {'E', 'H', ' '}},     //WESTERN SAHARA
+    {REG_DOMAIN_WORLD, {'E', 'R', ' '}},     //ERITREA
+    {REG_DOMAIN_ETSI, {'E', 'S', ' '}},      //SPAIN
+    {REG_DOMAIN_WORLD, {'E', 'T', ' '}},     //ETHIOPIA
+    {REG_DOMAIN_WORLD, {'F', 'I', ' '}},      //FINLAND
+    {REG_DOMAIN_WORLD, {'F', 'J', ' '}},     //FIJI
+    {REG_DOMAIN_WORLD, {'F', 'K', ' '}},     //FALKLAND ISLANDS (MALVINAS)
+    {REG_DOMAIN_WORLD, {'F', 'M', ' '}},     //MICRONESIA, FEDERATED STATES OF
+    {REG_DOMAIN_WORLD, {'F', 'O', ' '}},     //FAROE ISLANDS
+    {REG_DOMAIN_ETSI, {'F', 'R', ' '}},      //FRANCE
+    {REG_DOMAIN_WORLD, {'G', 'A', ' '}},     //GABON
+    {REG_DOMAIN_ETSI, {'G', 'B', ' '}},      //UNITED KINGDOM
+    {REG_DOMAIN_WORLD, {'G', 'D', ' '}},     //GRENADA
+    {REG_DOMAIN_HI_5GHZ, {'G', 'E', ' '}},     //GEORGIA
+    {REG_DOMAIN_WORLD, {'G', 'F', ' '}},     //FRENCH GUIANA
+    {REG_DOMAIN_ETSI, {'G', 'G', ' '}},      //GUERNSEY
+    {REG_DOMAIN_WORLD, {'G', 'H', ' '}},     //GHANA
+    {REG_DOMAIN_WORLD, {'G', 'I', ' '}},      //GIBRALTAR
+    {REG_DOMAIN_WORLD, {'G', 'L', ' '}},     //GREENLAND
+    {REG_DOMAIN_WORLD, {'G', 'M', ' '}},     //GAMBIA
+    {REG_DOMAIN_WORLD, {'G', 'N', ' '}},     //GUINEA
+    {REG_DOMAIN_WORLD, {'G', 'P', ' '}},     //GUADELOUPE
+    {REG_DOMAIN_WORLD, {'G', 'Q', ' '}},     //EQUATORIAL GUINEA
+    {REG_DOMAIN_ETSI, {'G', 'R', ' '}},      //GREECE
+    {REG_DOMAIN_WORLD, {'G', 'S', ' '}},     //SOUTH GEORGIA AND THE SOUTH SANDWICH ISLANDS
+    {REG_DOMAIN_WORLD, {'G', 'T', ' '}},       //GUATEMALA
+    {REG_DOMAIN_WORLD, {'G', 'U', ' '}},     //GUAM
+    {REG_DOMAIN_WORLD, {'G', 'W', ' '}},     //GUINEA-BISSAU
+    {REG_DOMAIN_WORLD, {'G', 'Y', ' '}},     //GUYANA
+    {REG_DOMAIN_WORLD, {'H', 'K', ' '}},      //HONGKONG
+    {REG_DOMAIN_WORLD, {'H', 'M', ' '}},     //HEARD ISLAND AND MCDONALD ISLANDS
+    {REG_DOMAIN_WORLD, {'H', 'N', ' '}},       //HONDURAS
+    {REG_DOMAIN_HI_5GHZ, {'H', 'R', ' '}},      //CROATIA
+    {REG_DOMAIN_WORLD, {'H', 'T', ' '}},     //HAITI
+    {REG_DOMAIN_HI_5GHZ, {'H', 'U', ' '}},      //HUNGARY
+    {REG_DOMAIN_APAC, {'I', 'D', ' '}},     //INDONESIA
+    {REG_DOMAIN_ETSI, {'I', 'E', ' '}},     //IRELAND        
+    {REG_DOMAIN_WORLD, {'I', 'L', ' '}},        //ISREAL
+    {REG_DOMAIN_ETSI, {'I', 'M', ' '}},      //ISLE OF MAN
+    {REG_DOMAIN_WORLD, {'I', 'N', ' '}},      //INDIA
+    {REG_DOMAIN_ETSI, {'I', 'O', ' '}},     //BRITISH INDIAN OCEAN TERRITORY
+    {REG_DOMAIN_WORLD, {'I', 'Q', ' '}},     //IRAQ
+    {REG_DOMAIN_WORLD, {'I', 'R', ' '}},     //IRAN, ISLAMIC REPUBLIC OF
+    {REG_DOMAIN_WORLD, {'I', 'S', ' '}},      //ICELAND
+    {REG_DOMAIN_ETSI, {'I', 'T', ' '}},      //ITALY
+    {REG_DOMAIN_ETSI, {'J', 'E', ' '}},      //JERSEY
+    {REG_DOMAIN_WORLD, {'J', 'M', ' '}},     //JAMAICA
+    {REG_DOMAIN_WORLD, {'J', 'O', ' '}},     //JORDAN
+    {REG_DOMAIN_JAPAN, {'J', 'P', ' '}},     //JAPAN
+    {REG_DOMAIN_WORLD, {'K', 'E', ' '}},     //KENYA
+    {REG_DOMAIN_WORLD, {'K', 'G', ' '}},     //KYRGYZSTAN
+    {REG_DOMAIN_WORLD, {'K', 'H', ' '}},     //CAMBODIA
+    {REG_DOMAIN_WORLD, {'K', 'I', ' '}},     //KIRIBATI
+    {REG_DOMAIN_WORLD, {'K', 'M', ' '}},     //COMOROS
+    {REG_DOMAIN_WORLD, {'K', 'N', ' '}},     //SAINT KITTS AND NEVIS
+    {REG_DOMAIN_KOREA, {'K', 'P', ' '}},     //KOREA, DEMOCRATIC PEOPLE'S REPUBLIC OF
+    {REG_DOMAIN_KOREA, {'K', 'R', ' '}},     //KOREA, REPUBLIC OF 
+    {REG_DOMAIN_WORLD, {'K', 'W', ' '}},     //KUWAIT
+    {REG_DOMAIN_WORLD, {'K', 'Y', ' '}},     //CAYMAN ISLANDS
+    {REG_DOMAIN_WORLD, {'K', 'Z', ' '}},     //KAZAKHSTAN
+    {REG_DOMAIN_WORLD, {'L', 'A', ' '}},     //LAO PEOPLE'S DEMOCRATIC REPUBLIC
+    {REG_DOMAIN_WORLD, {'L', 'B', ' '}},     //LEBANON
+    {REG_DOMAIN_WORLD, {'L', 'C', ' '}},     //SAINT LUCIA
+    {REG_DOMAIN_ETSI, {'L', 'I', ' '}},      //LIECHTENSTEIN
+    {REG_DOMAIN_WORLD, {'L', 'K', ' '}},     //SRI LANKA
+    {REG_DOMAIN_WORLD, {'L', 'R', ' '}},     //LIBERIA
+    {REG_DOMAIN_WORLD, {'L', 'S', ' '}},     //LESOTHO
+    {REG_DOMAIN_HI_5GHZ, {'L', 'T', ' '}},      //LITHUANIA
+    {REG_DOMAIN_ETSI, {'L', 'U', ' '}},      //LUXEMBOURG
+    {REG_DOMAIN_HI_5GHZ, {'L', 'V', ' '}},      //LATVIA
+    {REG_DOMAIN_WORLD, {'L', 'Y', ' '}},     //LIBYAN ARAB JAMAHIRIYA
+    {REG_DOMAIN_WORLD, {'M', 'A', ' '}},     //MOROCCO
+    {REG_DOMAIN_ETSI, {'M', 'C', ' '}},      //MONACO
+    {REG_DOMAIN_WORLD, {'M', 'D', ' '}},     //MOLDOVA, REPUBLIC OF
+    {REG_DOMAIN_WORLD, {'M', 'E', ' '}},     //MONTENEGRO
+    {REG_DOMAIN_WORLD, {'M', 'G', ' '}},     //MADAGASCAR
+    {REG_DOMAIN_WORLD, {'M', 'H', ' '}},     //MARSHALL ISLANDS
+    {REG_DOMAIN_WORLD, {'M', 'K', ' '}},     //MACEDONIA, THE FORMER YUGOSLAV REPUBLIC OF
+    {REG_DOMAIN_WORLD, {'M', 'L', ' '}},     //MALI
+    {REG_DOMAIN_WORLD, {'M', 'M', ' '}},     //MYANMAR
+    {REG_DOMAIN_HI_5GHZ, {'M', 'N', ' '}},     //MONGOLIA
+    {REG_DOMAIN_WORLD, {'M', 'O', ' '}},     //MACAO
+    {REG_DOMAIN_WORLD, {'M', 'P', ' '}},     //NORTHERN MARIANA ISLANDS
+    {REG_DOMAIN_WORLD, {'M', 'Q', ' '}},     //MARTINIQUE
+    {REG_DOMAIN_WORLD, {'M', 'R', ' '}},     //MAURITANIA
+    {REG_DOMAIN_WORLD, {'M', 'S', ' '}},     //MONTSERRAT
+    {REG_DOMAIN_WORLD, {'M', 'T', ' '}},      //MALTA     
+    {REG_DOMAIN_WORLD, {'M', 'U', ' '}},     //MAURITIUS
+    {REG_DOMAIN_WORLD, {'M', 'V', ' '}},     //MALDIVES
+    {REG_DOMAIN_WORLD, {'M', 'W', ' '}},     //MALAWI
+    {REG_DOMAIN_WORLD, {'M', 'X', ' '}},       //MEXICO
+    {REG_DOMAIN_HI_5GHZ, {'M', 'Y', ' '}},       //MALAYSIA
+    {REG_DOMAIN_WORLD, {'M', 'Z', ' '}},     //MOZAMBIQUE
+    {REG_DOMAIN_WORLD, {'N', 'A', ' '}},     //NAMIBIA
+    {REG_DOMAIN_WORLD, {'N', 'C', ' '}},     //NEW CALEDONIA
+    {REG_DOMAIN_WORLD, {'N', 'E', ' '}},     //NIGER
+    {REG_DOMAIN_WORLD, {'N', 'F', ' '}},     //NORFOLD ISLAND
+    {REG_DOMAIN_WORLD, {'N', 'G', ' '}},     //NIGERIA
+    {REG_DOMAIN_WORLD, {'N', 'I', ' '}},       //NICARAGUA
+    {REG_DOMAIN_ETSI, {'N', 'L', ' '}},      //NETHERLANDS
+    {REG_DOMAIN_WORLD, {'N', 'O', ' '}},      //NORWAY
+    {REG_DOMAIN_WORLD, {'N', 'P', ' '}},     //NEPAL
+    {REG_DOMAIN_WORLD, {'N', 'R', ' '}},     //NAURU
+    {REG_DOMAIN_WORLD, {'N', 'U', ' '}},     //NIUE
+    {REG_DOMAIN_ETSI, {'N', 'Z', ' '}},      //NEW ZEALAND
+    {REG_DOMAIN_WORLD, {'O', 'M', ' '}},     //OMAN
+    {REG_DOMAIN_WORLD, {'P', 'A', ' '}},       //PANAMA
+    {REG_DOMAIN_WORLD, {'P', 'E', ' '}},       //PERU
+    {REG_DOMAIN_WORLD, {'P', 'F', ' '}},     //FRENCH POLYNESIA
+    {REG_DOMAIN_WORLD, {'P', 'G', ' '}},     //PAPUA NEW GUINEA
+    {REG_DOMAIN_WORLD, {'P', 'H', ' '}},      //PHILIPPINES
+    {REG_DOMAIN_WORLD, {'P', 'K', ' '}},     //PAKISTAN
+    {REG_DOMAIN_WORLD, {'P', 'L', ' '}},      //POLAND
+    {REG_DOMAIN_WORLD, {'P', 'M', ' '}},     //SAINT PIERRE AND MIQUELON
+    {REG_DOMAIN_WORLD, {'P', 'N', ' '}},     //PITCAIRN
+    {REG_DOMAIN_FCC, {'P', 'R', ' '}},       //PUERTO RICO
+    {REG_DOMAIN_WORLD, {'P', 'S', ' '}},        //PALESTINIAN TERRITORY, OCCUPIED
+    {REG_DOMAIN_ETSI, {'P', 'T', ' '}},      //PORTUGAL
+    {REG_DOMAIN_WORLD, {'P', 'W', ' '}},     //PALAU
+    {REG_DOMAIN_WORLD, {'P', 'Y', ' '}},     //PARAGUAY
+    {REG_DOMAIN_WORLD, {'Q', 'A', ' '}},     //QATAR
+    {REG_DOMAIN_WORLD, {'R', 'E', ' '}},     //REUNION
+    {REG_DOMAIN_HI_5GHZ, {'R', 'O', ' '}},      //ROMANIA
+    {REG_DOMAIN_HI_5GHZ, {'R', 'S', ' '}},      //SERBIA
+    {REG_DOMAIN_WORLD, {'R', 'U', ' '}},       //RUSSIA
+    {REG_DOMAIN_WORLD, {'R', 'W', ' '}},     //RWANDA
+    {REG_DOMAIN_WORLD, {'S', 'A', ' '}},      //SAUDI ARABIA
+    {REG_DOMAIN_WORLD, {'S', 'B', ' '}},     //SOLOMON ISLANDS
+    {REG_DOMAIN_ETSI, {'S', 'C', ' '}},      //SEYCHELLES
+    {REG_DOMAIN_WORLD, {'S', 'D', ' '}},     //SUDAN
+    {REG_DOMAIN_ETSI, {'S', 'E', ' '}},      //SWEDEN
+    {REG_DOMAIN_APAC, {'S', 'G', ' '}},      //SINGAPORE
+    {REG_DOMAIN_WORLD, {'S', 'H', ' '}},     //SAINT HELENA
+    {REG_DOMAIN_HI_5GHZ, {'S', 'I', ' '}},      //SLOVENNIA
+    {REG_DOMAIN_WORLD, {'S', 'J', ' '}},     //SVALBARD AND JAN MAYEN
+    {REG_DOMAIN_HI_5GHZ, {'S', 'K', ' '}},      //SLOVAKIA
+    {REG_DOMAIN_WORLD, {'S', 'L', ' '}},     //SIERRA LEONE      
+    {REG_DOMAIN_WORLD, {'S', 'M', ' '}},     //SAN MARINO
+    {REG_DOMAIN_WORLD, {'S', 'N', ' '}},     //SENEGAL
+    {REG_DOMAIN_WORLD, {'S', 'O', ' '}},     //SOMALIA
+    {REG_DOMAIN_WORLD, {'S', 'R', ' '}},     //SURINAME
+    {REG_DOMAIN_WORLD, {'S', 'T', ' '}},     //SAO TOME AND PRINCIPE
+    {REG_DOMAIN_WORLD, {'S', 'V', ' '}},       //EL SALVADOR
+    {REG_DOMAIN_WORLD, {'S', 'Y', ' '}},     //SYRIAN ARAB REPUBLIC
+    {REG_DOMAIN_WORLD, {'S', 'Z', ' '}},     //SWAZILAND
+    {REG_DOMAIN_WORLD, {'T', 'C', ' '}},     //TURKS AND CAICOS ISLANDS
+    {REG_DOMAIN_WORLD, {'T', 'D', ' '}},     //CHAD
+    {REG_DOMAIN_WORLD, {'T', 'F', ' '}},     //FRENCH SOUTHERN TERRITORIES
+    {REG_DOMAIN_WORLD, {'T', 'G', ' '}},     //TOGO
+    {REG_DOMAIN_WORLD, {'T', 'H', ' '}},       //THAILAND
+    {REG_DOMAIN_WORLD, {'T', 'J', ' '}},     //TAJIKISTAN
+    {REG_DOMAIN_WORLD, {'T', 'K', ' '}},     //TOKELAU
+    {REG_DOMAIN_WORLD, {'T', 'L', ' '}},     //TIMOR-LESTE
+    {REG_DOMAIN_WORLD, {'T', 'M', ' '}},     //TURKMENISTAN
+    {REG_DOMAIN_WORLD, {'T', 'N', ' '}},     //TUNISIA
+    {REG_DOMAIN_WORLD, {'T', 'O', ' '}},     //TONGA
+    {REG_DOMAIN_WORLD, {'T', 'R', ' '}},      //TURKEY
+    {REG_DOMAIN_WORLD, {'T', 'T', ' '}},     //TRINIDAD AND TOBAGO
+    {REG_DOMAIN_WORLD, {'T', 'V', ' '}},     //TUVALU
+    {REG_DOMAIN_HI_5GHZ, {'T', 'W', ' '}},       //TAIWAN, PROVINCE OF CHINA
+    {REG_DOMAIN_WORLD, {'T', 'Z', ' '}},     //TANZANIA, UNITED REPUBLIC OF
+    {REG_DOMAIN_HI_5GHZ, {'U', 'A', ' '}},       //UKRAINE
+    {REG_DOMAIN_WORLD, {'U', 'G', ' '}},     //UGANDA
+    {REG_DOMAIN_FCC, {'U', 'M', ' '}},       //UNITED STATES MINOR OUTLYING ISLANDS
+    {REG_DOMAIN_WORLD, {'U', 'Y', ' '}},       //URUGUAY
+    {REG_DOMAIN_HI_5GHZ, {'U', 'Z', ' '}},     //UZBEKISTAN
+    {REG_DOMAIN_ETSI, {'V', 'A', ' '}},      //HOLY SEE (VATICAN CITY STATE)
+    {REG_DOMAIN_WORLD, {'V', 'C', ' '}},     //SAINT VINCENT AND THE GRENADINES
+    {REG_DOMAIN_HI_5GHZ, {'V', 'E', ' '}},       //VENEZUELA
+    {REG_DOMAIN_ETSI, {'V', 'G', ' '}},       //VIRGIN ISLANDS, BRITISH
+    {REG_DOMAIN_FCC, {'V', 'I', ' '}},       //VIRGIN ISLANDS, US
+    {REG_DOMAIN_WORLD, {'V', 'N', ' '}},      //VIET NAM
+    {REG_DOMAIN_WORLD, {'V', 'U', ' '}},     //VANUATU
+    {REG_DOMAIN_WORLD, {'W', 'F', ' '}},     //WALLIS AND FUTUNA
+    {REG_DOMAIN_WORLD, {'W', 'S', ' '}},     //SOMOA
+    {REG_DOMAIN_WORLD, {'Y', 'E', ' '}},     //YEMEN
+    {REG_DOMAIN_WORLD, {'Y', 'T', ' '}},     //MAYOTTE
+    {REG_DOMAIN_WORLD, {'Z', 'A', ' '}},      //SOUTH AFRICA
+    {REG_DOMAIN_WORLD, {'Z', 'M', ' '}},     //ZAMBIA
+    {REG_DOMAIN_WORLD, {'Z', 'W', ' '}},     //ZIMBABWE
+
+    {REG_DOMAIN_KOREA, {'K', '1', ' '}},    //Korea alternate 1
+    {REG_DOMAIN_KOREA, {'K', '2', ' '}},    //Korea alternate 2
+    {REG_DOMAIN_KOREA, {'K', '3', ' '}},    //Korea alternate 3
+    {REG_DOMAIN_KOREA, {'K', '4', ' '}},    //Korea alternate 4
+};
 
 
+//The channels listed here doesn't mean they are valid channels for certain domain. They are here only to present
+//whether they should be passive scanned.
+tCsrDomainChnInfo gCsrDoaminChnInfo[NUM_REG_DOMAINS] =
+{
+    //REG_DOMAIN_FCC
+    {
+        REG_DOMAIN_FCC,
+        45, //Num channels
+        //Channels
+        {
+            //5GHz
+            //5180 - 5240
+            {36, eSIR_ACTIVE_SCAN},
+            {40, eSIR_ACTIVE_SCAN},
+            {44, eSIR_ACTIVE_SCAN},
+            {48, eSIR_ACTIVE_SCAN},
+            //5250 to 5350
+            {52, eSIR_PASSIVE_SCAN},
+            {56, eSIR_PASSIVE_SCAN},
+            {60, eSIR_PASSIVE_SCAN},
+            {64, eSIR_PASSIVE_SCAN},
+            //5470 to 5725
+            {100, eSIR_PASSIVE_SCAN},
+            {104, eSIR_PASSIVE_SCAN},
+            {108, eSIR_PASSIVE_SCAN},
+            {112, eSIR_PASSIVE_SCAN},
+            {116, eSIR_PASSIVE_SCAN},
+            {120, eSIR_PASSIVE_SCAN},
+            {124, eSIR_PASSIVE_SCAN},
+            {128, eSIR_PASSIVE_SCAN},
+            {132, eSIR_PASSIVE_SCAN},
+            {136, eSIR_PASSIVE_SCAN},
+            {140, eSIR_PASSIVE_SCAN},
+            //5745 - 5825
+            {149, eSIR_ACTIVE_SCAN},
+            {153, eSIR_ACTIVE_SCAN},
+            {157, eSIR_ACTIVE_SCAN},
+            {161, eSIR_ACTIVE_SCAN},
+            {165, eSIR_ACTIVE_SCAN},
+            //4.9GHz
+            //4920 - 5080
+            {240, eSIR_ACTIVE_SCAN},
+            {244, eSIR_ACTIVE_SCAN},
+            {248, eSIR_ACTIVE_SCAN},
+            {252, eSIR_ACTIVE_SCAN},
+            {208, eSIR_ACTIVE_SCAN},
+            {212, eSIR_ACTIVE_SCAN},
+            {216, eSIR_ACTIVE_SCAN},
+            //2,4GHz
+            {1, eSIR_ACTIVE_SCAN},
+            {2, eSIR_ACTIVE_SCAN},
+            {3, eSIR_ACTIVE_SCAN},
+            {4, eSIR_ACTIVE_SCAN},
+            {5, eSIR_ACTIVE_SCAN},
+            {6, eSIR_ACTIVE_SCAN},
+            {7, eSIR_ACTIVE_SCAN},
+            {8, eSIR_ACTIVE_SCAN},
+            {9, eSIR_ACTIVE_SCAN},
+            {10, eSIR_ACTIVE_SCAN},
+            {11, eSIR_ACTIVE_SCAN},
+            {12, eSIR_ACTIVE_SCAN},
+            {13, eSIR_ACTIVE_SCAN},
+            {14, eSIR_ACTIVE_SCAN},
+        }
+    },
+    //REG_DOMAIN_ETSI
+    {
+        REG_DOMAIN_ETSI,
+        45, //Num channels
+        //Channels
+        {
+            //5GHz
+            //5180 - 5240
+            {36, eSIR_ACTIVE_SCAN},
+            {40, eSIR_ACTIVE_SCAN},
+            {44, eSIR_ACTIVE_SCAN},
+            {48, eSIR_ACTIVE_SCAN},
+            //5250 to 5350
+            {52, eSIR_PASSIVE_SCAN},
+            {56, eSIR_PASSIVE_SCAN},
+            {60, eSIR_PASSIVE_SCAN},
+            {64, eSIR_PASSIVE_SCAN},
+            //5470 to 5725
+            {100, eSIR_PASSIVE_SCAN},
+            {104, eSIR_PASSIVE_SCAN},
+            {108, eSIR_PASSIVE_SCAN},
+            {112, eSIR_PASSIVE_SCAN},
+            {116, eSIR_PASSIVE_SCAN},
+            {120, eSIR_PASSIVE_SCAN},
+            {124, eSIR_PASSIVE_SCAN},
+            {128, eSIR_PASSIVE_SCAN},
+            {132, eSIR_PASSIVE_SCAN},
+            {136, eSIR_PASSIVE_SCAN},
+            {140, eSIR_PASSIVE_SCAN},
+            //5745 - 5825
+            {149, eSIR_ACTIVE_SCAN},
+            {153, eSIR_ACTIVE_SCAN},
+            {157, eSIR_ACTIVE_SCAN},
+            {161, eSIR_ACTIVE_SCAN},
+            {165, eSIR_ACTIVE_SCAN},
+            //4.9GHz
+            //4920 - 5080
+            {240, eSIR_ACTIVE_SCAN},
+            {244, eSIR_ACTIVE_SCAN},
+            {248, eSIR_ACTIVE_SCAN},
+            {252, eSIR_ACTIVE_SCAN},
+            {208, eSIR_ACTIVE_SCAN},
+            {212, eSIR_ACTIVE_SCAN},
+            {216, eSIR_ACTIVE_SCAN},
+            //2,4GHz
+            {1, eSIR_ACTIVE_SCAN},
+            {2, eSIR_ACTIVE_SCAN},
+            {3, eSIR_ACTIVE_SCAN},
+            {4, eSIR_ACTIVE_SCAN},
+            {5, eSIR_ACTIVE_SCAN},
+            {6, eSIR_ACTIVE_SCAN},
+            {7, eSIR_ACTIVE_SCAN},
+            {8, eSIR_ACTIVE_SCAN},
+            {9, eSIR_ACTIVE_SCAN},
+            {10, eSIR_ACTIVE_SCAN},
+            {11, eSIR_ACTIVE_SCAN},
+            {12, eSIR_ACTIVE_SCAN},
+            {13, eSIR_ACTIVE_SCAN},
+            {14, eSIR_ACTIVE_SCAN},
+        }
+    },
+    //REG_DOMAIN_JAPAN
+    {
+        REG_DOMAIN_JAPAN,
+        45, //Num channels
+        //Channels
+        {
+            //5GHz
+            //5180 - 5240
+            {36, eSIR_ACTIVE_SCAN},
+            {40, eSIR_ACTIVE_SCAN},
+            {44, eSIR_ACTIVE_SCAN},
+            {48, eSIR_ACTIVE_SCAN},
+            //5250 to 5350
+            {52, eSIR_PASSIVE_SCAN},
+            {56, eSIR_PASSIVE_SCAN},
+            {60, eSIR_PASSIVE_SCAN},
+            {64, eSIR_PASSIVE_SCAN},
+            //5470 to 5725
+            {100, eSIR_PASSIVE_SCAN},
+            {104, eSIR_PASSIVE_SCAN},
+            {108, eSIR_PASSIVE_SCAN},
+            {112, eSIR_PASSIVE_SCAN},
+            {116, eSIR_PASSIVE_SCAN},
+            {120, eSIR_PASSIVE_SCAN},
+            {124, eSIR_PASSIVE_SCAN},
+            {128, eSIR_PASSIVE_SCAN},
+            {132, eSIR_PASSIVE_SCAN},
+            {136, eSIR_PASSIVE_SCAN},
+            {140, eSIR_PASSIVE_SCAN},
+            //5745 - 5825
+            {149, eSIR_ACTIVE_SCAN},
+            {153, eSIR_ACTIVE_SCAN},
+            {157, eSIR_ACTIVE_SCAN},
+            {161, eSIR_ACTIVE_SCAN},
+            {165, eSIR_ACTIVE_SCAN},
+            //4.9GHz
+            //4920 - 5080
+            {240, eSIR_ACTIVE_SCAN},
+            {244, eSIR_ACTIVE_SCAN},
+            {248, eSIR_ACTIVE_SCAN},
+            {252, eSIR_ACTIVE_SCAN},
+            {208, eSIR_ACTIVE_SCAN},
+            {212, eSIR_ACTIVE_SCAN},
+            {216, eSIR_ACTIVE_SCAN},
+            //2,4GHz
+            {1, eSIR_ACTIVE_SCAN},
+            {2, eSIR_ACTIVE_SCAN},
+            {3, eSIR_ACTIVE_SCAN},
+            {4, eSIR_ACTIVE_SCAN},
+            {5, eSIR_ACTIVE_SCAN},
+            {6, eSIR_ACTIVE_SCAN},
+            {7, eSIR_ACTIVE_SCAN},
+            {8, eSIR_ACTIVE_SCAN},
+            {9, eSIR_ACTIVE_SCAN},
+            {10, eSIR_ACTIVE_SCAN},
+            {11, eSIR_ACTIVE_SCAN},
+            {12, eSIR_ACTIVE_SCAN},
+            {13, eSIR_ACTIVE_SCAN},
+            {14, eSIR_ACTIVE_SCAN},
+        }
+    },
+    //REG_DOMAIN_WORLD
+    {
+        REG_DOMAIN_WORLD,
+        45, //Num channels
+        //Channels
+        {
+            //5GHz
+            //5180 - 5240
+            {36, eSIR_ACTIVE_SCAN},
+            {40, eSIR_ACTIVE_SCAN},
+            {44, eSIR_ACTIVE_SCAN},
+            {48, eSIR_ACTIVE_SCAN},
+            //5250 to 5350
+            {52, eSIR_ACTIVE_SCAN},
+            {56, eSIR_ACTIVE_SCAN},
+            {60, eSIR_ACTIVE_SCAN},
+            {64, eSIR_ACTIVE_SCAN},
+            //5470 to 5725
+            {100, eSIR_ACTIVE_SCAN},
+            {104, eSIR_ACTIVE_SCAN},
+            {108, eSIR_ACTIVE_SCAN},
+            {112, eSIR_ACTIVE_SCAN},
+            {116, eSIR_ACTIVE_SCAN},
+            {120, eSIR_ACTIVE_SCAN},
+            {124, eSIR_ACTIVE_SCAN},
+            {128, eSIR_ACTIVE_SCAN},
+            {132, eSIR_ACTIVE_SCAN},
+            {136, eSIR_ACTIVE_SCAN},
+            {140, eSIR_ACTIVE_SCAN},
+            //5745 - 5825
+            {149, eSIR_ACTIVE_SCAN},
+            {153, eSIR_ACTIVE_SCAN},
+            {157, eSIR_ACTIVE_SCAN},
+            {161, eSIR_ACTIVE_SCAN},
+            {165, eSIR_ACTIVE_SCAN},
+            //4.9GHz
+            //4920 - 5080
+            {240, eSIR_ACTIVE_SCAN},
+            {244, eSIR_ACTIVE_SCAN},
+            {248, eSIR_ACTIVE_SCAN},
+            {252, eSIR_ACTIVE_SCAN},
+            {208, eSIR_ACTIVE_SCAN},
+            {212, eSIR_ACTIVE_SCAN},
+            {216, eSIR_ACTIVE_SCAN},
+            //2,4GHz
+            {1, eSIR_ACTIVE_SCAN},
+            {2, eSIR_ACTIVE_SCAN},
+            {3, eSIR_ACTIVE_SCAN},
+            {4, eSIR_ACTIVE_SCAN},
+            {5, eSIR_ACTIVE_SCAN},
+            {6, eSIR_ACTIVE_SCAN},
+            {7, eSIR_ACTIVE_SCAN},
+            {8, eSIR_ACTIVE_SCAN},
+            {9, eSIR_ACTIVE_SCAN},
+            {10, eSIR_ACTIVE_SCAN},
+            {11, eSIR_ACTIVE_SCAN},
+            {12, eSIR_ACTIVE_SCAN},
+            {13, eSIR_ACTIVE_SCAN},
+            {14, eSIR_ACTIVE_SCAN},
+        }
+    },
+    //REG_DOMAIN_N_AMER_EXC_FCC
+    {
+        REG_DOMAIN_N_AMER_EXC_FCC,
+        45, //Num channels
+        //Channels
+        {
+            //5GHz
+            //5180 - 5240
+            {36, eSIR_ACTIVE_SCAN},
+            {40, eSIR_ACTIVE_SCAN},
+            {44, eSIR_ACTIVE_SCAN},
+            {48, eSIR_ACTIVE_SCAN},
+            //5250 to 5350
+            {52, eSIR_PASSIVE_SCAN},
+            {56, eSIR_PASSIVE_SCAN},
+            {60, eSIR_PASSIVE_SCAN},
+            {64, eSIR_PASSIVE_SCAN},
+            //5470 to 5725
+            {100, eSIR_ACTIVE_SCAN},
+            {104, eSIR_ACTIVE_SCAN},
+            {108, eSIR_ACTIVE_SCAN},
+            {112, eSIR_ACTIVE_SCAN},
+            {116, eSIR_ACTIVE_SCAN},
+            {120, eSIR_ACTIVE_SCAN},
+            {124, eSIR_ACTIVE_SCAN},
+            {128, eSIR_ACTIVE_SCAN},
+            {132, eSIR_ACTIVE_SCAN},
+            {136, eSIR_ACTIVE_SCAN},
+            {140, eSIR_ACTIVE_SCAN},
+            //5745 - 5825
+            {149, eSIR_ACTIVE_SCAN},
+            {153, eSIR_ACTIVE_SCAN},
+            {157, eSIR_ACTIVE_SCAN},
+            {161, eSIR_ACTIVE_SCAN},
+            {165, eSIR_ACTIVE_SCAN},
+            //4.9GHz
+            //4920 - 5080
+            {240, eSIR_ACTIVE_SCAN},
+            {244, eSIR_ACTIVE_SCAN},
+            {248, eSIR_ACTIVE_SCAN},
+            {252, eSIR_ACTIVE_SCAN},
+            {208, eSIR_ACTIVE_SCAN},
+            {212, eSIR_ACTIVE_SCAN},
+            {216, eSIR_ACTIVE_SCAN},
+            //2,4GHz
+            {1, eSIR_ACTIVE_SCAN},
+            {2, eSIR_ACTIVE_SCAN},
+            {3, eSIR_ACTIVE_SCAN},
+            {4, eSIR_ACTIVE_SCAN},
+            {5, eSIR_ACTIVE_SCAN},
+            {6, eSIR_ACTIVE_SCAN},
+            {7, eSIR_ACTIVE_SCAN},
+            {8, eSIR_ACTIVE_SCAN},
+            {9, eSIR_ACTIVE_SCAN},
+            {10, eSIR_ACTIVE_SCAN},
+            {11, eSIR_ACTIVE_SCAN},
+            {12, eSIR_ACTIVE_SCAN},
+            {13, eSIR_ACTIVE_SCAN},
+            {14, eSIR_ACTIVE_SCAN},
+        }
+    },
+    //REG_DOMAIN_APAC
+    {
+        REG_DOMAIN_APAC,
+        45, //Num channels
+        //Channels
+        {
+            //5GHz
+            //5180 - 5240
+            {36, eSIR_ACTIVE_SCAN},
+            {40, eSIR_ACTIVE_SCAN},
+            {44, eSIR_ACTIVE_SCAN},
+            {48, eSIR_ACTIVE_SCAN},
+            //5250 to 5350
+            {52, eSIR_PASSIVE_SCAN},
+            {56, eSIR_PASSIVE_SCAN},
+            {60, eSIR_PASSIVE_SCAN},
+            {64, eSIR_PASSIVE_SCAN},
+            //5470 to 5725
+            {100, eSIR_ACTIVE_SCAN},
+            {104, eSIR_ACTIVE_SCAN},
+            {108, eSIR_ACTIVE_SCAN},
+            {112, eSIR_ACTIVE_SCAN},
+            {116, eSIR_ACTIVE_SCAN},
+            {120, eSIR_ACTIVE_SCAN},
+            {124, eSIR_ACTIVE_SCAN},
+            {128, eSIR_ACTIVE_SCAN},
+            {132, eSIR_ACTIVE_SCAN},
+            {136, eSIR_ACTIVE_SCAN},
+            {140, eSIR_ACTIVE_SCAN},
+            //5745 - 5825
+            {149, eSIR_ACTIVE_SCAN},
+            {153, eSIR_ACTIVE_SCAN},
+            {157, eSIR_ACTIVE_SCAN},
+            {161, eSIR_ACTIVE_SCAN},
+            {165, eSIR_ACTIVE_SCAN},
+            //4.9GHz
+            //4920 - 5080
+            {240, eSIR_ACTIVE_SCAN},
+            {244, eSIR_ACTIVE_SCAN},
+            {248, eSIR_ACTIVE_SCAN},
+            {252, eSIR_ACTIVE_SCAN},
+            {208, eSIR_ACTIVE_SCAN},
+            {212, eSIR_ACTIVE_SCAN},
+            {216, eSIR_ACTIVE_SCAN},
+            //2,4GHz
+            {1, eSIR_ACTIVE_SCAN},
+            {2, eSIR_ACTIVE_SCAN},
+            {3, eSIR_ACTIVE_SCAN},
+            {4, eSIR_ACTIVE_SCAN},
+            {5, eSIR_ACTIVE_SCAN},
+            {6, eSIR_ACTIVE_SCAN},
+            {7, eSIR_ACTIVE_SCAN},
+            {8, eSIR_ACTIVE_SCAN},
+            {9, eSIR_ACTIVE_SCAN},
+            {10, eSIR_ACTIVE_SCAN},
+            {11, eSIR_ACTIVE_SCAN},
+            {12, eSIR_ACTIVE_SCAN},
+            {13, eSIR_ACTIVE_SCAN},
+            {14, eSIR_ACTIVE_SCAN},
+        }
+    },
+    //REG_DOMAIN_KOREA
+    {
+        REG_DOMAIN_KOREA,
+        45, //Num channels
+        //Channels
+        {
+            //5GHz
+            //5180 - 5240
+            {36, eSIR_ACTIVE_SCAN},
+            {40, eSIR_ACTIVE_SCAN},
+            {44, eSIR_ACTIVE_SCAN},
+            {48, eSIR_ACTIVE_SCAN},
+            //5250 to 5350
+            {52, eSIR_PASSIVE_SCAN},
+            {56, eSIR_PASSIVE_SCAN},
+            {60, eSIR_PASSIVE_SCAN},
+            {64, eSIR_PASSIVE_SCAN},
+            //5470 to 5725
+            {100, eSIR_PASSIVE_SCAN},
+            {104, eSIR_PASSIVE_SCAN},
+            {108, eSIR_PASSIVE_SCAN},
+            {112, eSIR_PASSIVE_SCAN},
+            {116, eSIR_PASSIVE_SCAN},
+            {120, eSIR_PASSIVE_SCAN},
+            {124, eSIR_PASSIVE_SCAN},
+            {128, eSIR_PASSIVE_SCAN},
+            {132, eSIR_PASSIVE_SCAN},
+            {136, eSIR_PASSIVE_SCAN},
+            {140, eSIR_PASSIVE_SCAN},
+            //5745 - 5825
+            {149, eSIR_ACTIVE_SCAN},
+            {153, eSIR_ACTIVE_SCAN},
+            {157, eSIR_ACTIVE_SCAN},
+            {161, eSIR_ACTIVE_SCAN},
+            {165, eSIR_ACTIVE_SCAN},
+            //4.9GHz
+            //4920 - 5080
+            {240, eSIR_ACTIVE_SCAN},
+            {244, eSIR_ACTIVE_SCAN},
+            {248, eSIR_ACTIVE_SCAN},
+            {252, eSIR_ACTIVE_SCAN},
+            {208, eSIR_ACTIVE_SCAN},
+            {212, eSIR_ACTIVE_SCAN},
+            {216, eSIR_ACTIVE_SCAN},
+            //2,4GHz
+            {1, eSIR_ACTIVE_SCAN},
+            {2, eSIR_ACTIVE_SCAN},
+            {3, eSIR_ACTIVE_SCAN},
+            {4, eSIR_ACTIVE_SCAN},
+            {5, eSIR_ACTIVE_SCAN},
+            {6, eSIR_ACTIVE_SCAN},
+            {7, eSIR_ACTIVE_SCAN},
+            {8, eSIR_ACTIVE_SCAN},
+            {9, eSIR_ACTIVE_SCAN},
+            {10, eSIR_ACTIVE_SCAN},
+            {11, eSIR_ACTIVE_SCAN},
+            {12, eSIR_ACTIVE_SCAN},
+            {13, eSIR_ACTIVE_SCAN},
+            {14, eSIR_ACTIVE_SCAN},
+        }
+    },
+    //REG_DOMAIN_HI_5GHZ
+    {
+        REG_DOMAIN_HI_5GHZ,
+        45, //Num channels
+        //Channels
+        {
+            //5GHz
+            //5180 - 5240
+            {36, eSIR_ACTIVE_SCAN},
+            {40, eSIR_ACTIVE_SCAN},
+            {44, eSIR_ACTIVE_SCAN},
+            {48, eSIR_ACTIVE_SCAN},
+            //5250 to 5350
+            {52, eSIR_ACTIVE_SCAN},
+            {56, eSIR_ACTIVE_SCAN},
+            {60, eSIR_ACTIVE_SCAN},
+            {64, eSIR_ACTIVE_SCAN},
+            //5470 to 5725
+            {100, eSIR_ACTIVE_SCAN},
+            {104, eSIR_ACTIVE_SCAN},
+            {108, eSIR_ACTIVE_SCAN},
+            {112, eSIR_ACTIVE_SCAN},
+            {116, eSIR_ACTIVE_SCAN},
+            {120, eSIR_ACTIVE_SCAN},
+            {124, eSIR_ACTIVE_SCAN},
+            {128, eSIR_ACTIVE_SCAN},
+            {132, eSIR_ACTIVE_SCAN},
+            {136, eSIR_ACTIVE_SCAN},
+            {140, eSIR_ACTIVE_SCAN},
+            //5745 - 5825
+            {149, eSIR_ACTIVE_SCAN},
+            {153, eSIR_ACTIVE_SCAN},
+            {157, eSIR_ACTIVE_SCAN},
+            {161, eSIR_ACTIVE_SCAN},
+            {165, eSIR_ACTIVE_SCAN},
+            //4.9GHz
+            //4920 - 5080
+            {240, eSIR_ACTIVE_SCAN},
+            {244, eSIR_ACTIVE_SCAN},
+            {248, eSIR_ACTIVE_SCAN},
+            {252, eSIR_ACTIVE_SCAN},
+            {208, eSIR_ACTIVE_SCAN},
+            {212, eSIR_ACTIVE_SCAN},
+            {216, eSIR_ACTIVE_SCAN},
+            //2,4GHz
+            {1, eSIR_ACTIVE_SCAN},
+            {2, eSIR_ACTIVE_SCAN},
+            {3, eSIR_ACTIVE_SCAN},
+            {4, eSIR_ACTIVE_SCAN},
+            {5, eSIR_ACTIVE_SCAN},
+            {6, eSIR_ACTIVE_SCAN},
+            {7, eSIR_ACTIVE_SCAN},
+            {8, eSIR_ACTIVE_SCAN},
+            {9, eSIR_ACTIVE_SCAN},
+            {10, eSIR_ACTIVE_SCAN},
+            {11, eSIR_ACTIVE_SCAN},
+            {12, eSIR_ACTIVE_SCAN},
+            {13, eSIR_ACTIVE_SCAN},
+            {14, eSIR_ACTIVE_SCAN},
+        }
+    },
+    //REG_DOMAIN_NO_5GHZ
+    {
+        REG_DOMAIN_NO_5GHZ,
+        45, //Num channels
+        //Channels
+        {
+            //5GHz
+            //5180 - 5240
+            {36, eSIR_ACTIVE_SCAN},
+            {40, eSIR_ACTIVE_SCAN},
+            {44, eSIR_ACTIVE_SCAN},
+            {48, eSIR_ACTIVE_SCAN},
+            //5250 to 5350
+            {52, eSIR_ACTIVE_SCAN},
+            {56, eSIR_ACTIVE_SCAN},
+            {60, eSIR_ACTIVE_SCAN},
+            {64, eSIR_ACTIVE_SCAN},
+            //5470 to 5725
+            {100, eSIR_ACTIVE_SCAN},
+            {104, eSIR_ACTIVE_SCAN},
+            {108, eSIR_ACTIVE_SCAN},
+            {112, eSIR_ACTIVE_SCAN},
+            {116, eSIR_ACTIVE_SCAN},
+            {120, eSIR_ACTIVE_SCAN},
+            {124, eSIR_ACTIVE_SCAN},
+            {128, eSIR_ACTIVE_SCAN},
+            {132, eSIR_ACTIVE_SCAN},
+            {136, eSIR_ACTIVE_SCAN},
+            {140, eSIR_ACTIVE_SCAN},
+            //5745 - 5825
+            {149, eSIR_ACTIVE_SCAN},
+            {153, eSIR_ACTIVE_SCAN},
+            {157, eSIR_ACTIVE_SCAN},
+            {161, eSIR_ACTIVE_SCAN},
+            {165, eSIR_ACTIVE_SCAN},
+            //4.9GHz
+            //4920 - 5080
+            {240, eSIR_ACTIVE_SCAN},
+            {244, eSIR_ACTIVE_SCAN},
+            {248, eSIR_ACTIVE_SCAN},
+            {252, eSIR_ACTIVE_SCAN},
+            {208, eSIR_ACTIVE_SCAN},
+            {212, eSIR_ACTIVE_SCAN},
+            {216, eSIR_ACTIVE_SCAN},
+            //2,4GHz
+            {1, eSIR_ACTIVE_SCAN},
+            {2, eSIR_ACTIVE_SCAN},
+            {3, eSIR_ACTIVE_SCAN},
+            {4, eSIR_ACTIVE_SCAN},
+            {5, eSIR_ACTIVE_SCAN},
+            {6, eSIR_ACTIVE_SCAN},
+            {7, eSIR_ACTIVE_SCAN},
+            {8, eSIR_ACTIVE_SCAN},
+            {9, eSIR_ACTIVE_SCAN},
+            {10, eSIR_ACTIVE_SCAN},
+            {11, eSIR_ACTIVE_SCAN},
+            {12, eSIR_ACTIVE_SCAN},
+            {13, eSIR_ACTIVE_SCAN},
+            {14, eSIR_ACTIVE_SCAN},
+        }
+    },
+};
+#endif
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -476,43 +1287,150 @@ tANI_BOOLEAN csrIsBssIdEqual( tHalHandle hHal, tSirBssDescription *pSirBssDesc1,
     return( fEqual );
 }
 
-tANI_BOOLEAN csrIsConnStateConnectedIbss( tpAniSirGlobal pMac )
+tANI_BOOLEAN csrIsConnStateConnectedIbss( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
-    return( eCSR_ASSOC_STATE_TYPE_IBSS_CONNECTED == pMac->roam.connectState );
+    return( eCSR_ASSOC_STATE_TYPE_IBSS_CONNECTED == pMac->roam.roamSession[sessionId].connectState );
 }
 
-tANI_BOOLEAN csrIsConnStateDisconnectedIbss( tpAniSirGlobal pMac )
+tANI_BOOLEAN csrIsConnStateDisconnectedIbss( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
-    return( eCSR_ASSOC_STATE_TYPE_IBSS_DISCONNECTED == pMac->roam.connectState );
+    return( eCSR_ASSOC_STATE_TYPE_IBSS_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState );
 }
 
-tANI_BOOLEAN csrIsConnStateConnectedInfra( tpAniSirGlobal pMac )
+tANI_BOOLEAN csrIsConnStateConnectedInfra( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
-    return( eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED == pMac->roam.connectState );
+    return( eCSR_ASSOC_STATE_TYPE_INFRA_ASSOCIATED == pMac->roam.roamSession[sessionId].connectState );
 }
 
-tANI_BOOLEAN csrIsConnStateConnected( tpAniSirGlobal pMac )
+tANI_BOOLEAN csrIsConnStateConnected( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
-    if( csrIsConnStateConnectedIbss( pMac ) || csrIsConnStateConnectedInfra( pMac ) )
+    if( csrIsConnStateConnectedIbss( pMac, sessionId ) || csrIsConnStateConnectedInfra( pMac, sessionId ) || csrIsConnStateConnectedWds( pMac, sessionId) )
         return TRUE;
     else
         return FALSE;
 }
 
-tANI_BOOLEAN csrIsConnStateInfra( tpAniSirGlobal pMac )
+tANI_BOOLEAN csrIsConnStateInfra( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
-    return( csrIsConnStateConnectedInfra( pMac ) );
+    return( csrIsConnStateConnectedInfra( pMac, sessionId ) );
 }
 
-tANI_BOOLEAN csrIsConnStateIbss( tpAniSirGlobal pMac )
+tANI_BOOLEAN csrIsConnStateIbss( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
-    return( csrIsConnStateConnectedIbss( pMac ) || csrIsConnStateDisconnectedIbss( pMac ) );
+    return( csrIsConnStateConnectedIbss( pMac, sessionId ) || csrIsConnStateDisconnectedIbss( pMac, sessionId ) );
 }
 
 
-tANI_BOOLEAN csrIsConnStateDisconnected(tpAniSirGlobal pMac)
+tANI_BOOLEAN csrIsConnStateConnectedWds( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
-    return (eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED == pMac->roam.connectState);
+    return( eCSR_ASSOC_STATE_TYPE_WDS_CONNECTED == pMac->roam.roamSession[sessionId].connectState );
+}
+
+#ifdef WLAN_SOFTAP_FEATURE
+tANI_BOOLEAN csrIsConnStateConnectedInfraAp( tpAniSirGlobal pMac, tANI_U32 sessionId )
+{
+    return( (eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED == pMac->roam.roamSession[sessionId].connectState ) 
+         || (eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState) );
+}
+
+#endif
+tANI_BOOLEAN csrIsConnStateDisconnectedWds( tpAniSirGlobal pMac, tANI_U32 sessionId )
+{
+    return( eCSR_ASSOC_STATE_TYPE_WDS_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState );
+}
+
+tANI_BOOLEAN csrIsConnStateWds( tpAniSirGlobal pMac, tANI_U32 sessionId )
+{
+    return( csrIsConnStateConnectedWds( pMac, sessionId ) ||
+        csrIsConnStateDisconnectedWds( pMac, sessionId ) );
+}
+
+tANI_BOOLEAN csrIsAnySessionInConnectState( tpAniSirGlobal pMac )
+{
+    tANI_U32 i;
+    tANI_BOOLEAN fRc = eANI_BOOLEAN_FALSE;
+
+    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+    {
+        if( CSR_IS_SESSION_VALID( pMac, i ) && 
+            ( csrIsConnStateInfra( pMac, i ) || csrIsConnStateIbss( pMac, i ) ) )
+        {
+            fRc = eANI_BOOLEAN_TRUE;
+            break;
+        }
+    }
+
+    return ( fRc );
+}
+
+tANI_BOOLEAN csrIsAllSessionDisconnected( tpAniSirGlobal pMac )
+{
+    tANI_U32 i;
+    tANI_BOOLEAN fRc = eANI_BOOLEAN_TRUE;
+
+    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+    {
+        if( CSR_IS_SESSION_VALID( pMac, i ) && !csrIsConnStateDisconnected( pMac, i ) )
+        {
+            fRc = eANI_BOOLEAN_FALSE;
+            break;
+        }
+    }
+
+    return ( fRc );
+}
+
+
+tANI_BOOLEAN csrIsInfraConnected( tpAniSirGlobal pMac )
+{
+    tANI_U32 i;
+    tANI_BOOLEAN fRc = eANI_BOOLEAN_FALSE;
+
+    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+    {
+        if( CSR_IS_SESSION_VALID( pMac, i ) && csrIsConnStateConnectedInfra( pMac, i ) )
+        {
+            fRc = eANI_BOOLEAN_TRUE;
+            break;
+        }
+    }
+
+    return ( fRc );
+}
+
+tANI_BOOLEAN csrIsIBSSStarted( tpAniSirGlobal pMac )
+{
+    tANI_U32 i;
+    tANI_BOOLEAN fRc = eANI_BOOLEAN_FALSE;
+
+    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+    {
+        if( CSR_IS_SESSION_VALID( pMac, i ) && csrIsConnStateIbss( pMac, i ) )
+        {
+            fRc = eANI_BOOLEAN_TRUE;
+            break;
+        }
+    }
+
+    return ( fRc );
+}
+
+
+tANI_BOOLEAN csrIsBTAMPStarted( tpAniSirGlobal pMac )
+{
+    //****Fix it for BT-AMP
+    return ( 0 );
+}
+
+tANI_BOOLEAN csrIsBTAMP( tpAniSirGlobal pMac, tANI_U32 sessionId )
+{
+    return ( 0 );
+}
+
+
+tANI_BOOLEAN csrIsConnStateDisconnected(tpAniSirGlobal pMac, tANI_U32 sessionId)
+{
+    return (eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED == pMac->roam.roamSession[sessionId].connectState);
 }
 
 
@@ -597,24 +1515,34 @@ tANI_BOOLEAN csrIsSsidEqual( tHalHandle hHal, tSirBssDescription *pSirBssDesc1,
     tSirMacSSid Ssid1, Ssid2;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     tDot11fBeaconIEs *pIes1 = NULL;
+    tDot11fBeaconIEs *pIesLocal = pIes2;
 
     do {
-        if( ( NULL == pSirBssDesc1 ) || ( NULL == pSirBssDesc2 ) || ( NULL == pIes2 ) ) break;
+        if( ( NULL == pSirBssDesc1 ) || ( NULL == pSirBssDesc2 ) ) break;
+        if( !pIesLocal && !HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc2, &pIesLocal)) )
+        {
+            smsLog(pMac, LOGE, FL("  fail to parse IEs\n"));
+            break;
+        }
         if(!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc1, &pIes1)))
         {
             break;
         }
-        if( ( !pIes1->SSID.present ) || ( !pIes2->SSID.present ) ) break;
-        if ( pIes1->SSID.num_ssid != pIes2->SSID.num_ssid ) break;
+        if( ( !pIes1->SSID.present ) || ( !pIesLocal->SSID.present ) ) break;
+        if ( pIes1->SSID.num_ssid != pIesLocal->SSID.num_ssid ) break;
         palCopyMemory(pMac->hHdd, Ssid1.ssId, pIes1->SSID.ssid, pIes1->SSID.num_ssid);
-        palCopyMemory(pMac->hHdd, Ssid2.ssId, pIes2->SSID.ssid, pIes2->SSID.num_ssid);
+        palCopyMemory(pMac->hHdd, Ssid2.ssId, pIesLocal->SSID.ssid, pIesLocal->SSID.num_ssid);
 
-        fEqual = palEqualMemory(pMac->hHdd, Ssid1.ssId, Ssid2.ssId, pIes2->SSID.num_ssid );
+        fEqual = palEqualMemory(pMac->hHdd, Ssid1.ssId, Ssid2.ssId, pIesLocal->SSID.num_ssid );
 
     } while( 0 );
     if(pIes1)
     {
         palFreeMemory(pMac->hHdd, pIes1);
+    }
+    if( pIesLocal && !pIes2 )
+    {
+        palFreeMemory(pMac->hHdd, pIesLocal);
     }
 
     return( fEqual );
@@ -781,7 +1709,7 @@ eHalStatus csrGetParsedBssDescriptionIEs(tHalHandle hHal, tSirBssDescription *pB
         {
             smsLog( pMac, LOGE, FL(" failed to allocate memory\n") );
             VOS_ASSERT( 0 );
-        }
+    }
     }
 
     return (status);
@@ -918,6 +1846,14 @@ tANI_U32 csrTranslateToWNICfgDot11Mode(tpAniSirGlobal pMac, eCsrCfgDot11Mode csr
     case eCSR_CFG_DOT11_MODE_TITAN:
         ret = WNI_CFG_DOT11_MODE_TITAN;
         break;
+#ifdef WLAN_SOFTAP_FEATURE
+    case eCSR_CFG_DOT11_MODE_11G_ONLY:
+       ret = WNI_CFG_DOT11_MODE_11G_ONLY;
+       break;
+    case eCSR_CFG_DOT11_MODE_11N_ONLY:
+       ret = WNI_CFG_DOT11_MODE_11N_ONLY;
+       break;
+#endif
     default:
         smsLog(pMac, LOGW, FL("doesn't expect %d as csrDo11Mode\n"), csrDot11Mode);
         if(eCSR_BAND_24 == pMac->roam.configParam.eBand)
@@ -952,16 +1888,8 @@ eHalStatus csrGetPhyModeFromBss(tpAniSirGlobal pMac, tSirBssDescription *pBSSDes
                 {
                     phyMode = eCSR_DOT11_MODE_TAURUS;
                 }
-                else if( PROP_CAPABILITY_GET( TITAN, pIes->Airgo.PropCapability.capability ))
-                {
-                    phyMode = eCSR_DOT11_MODE_TITAN;
                 }
-                else
-                {
-                    phyMode = eCSR_DOT11_MODE_POLARIS;
                 }
-            }
-        }
         if(pIes->HTCaps.present && (eCSR_DOT11_MODE_TAURUS != phyMode))
         {
             phyMode = eCSR_DOT11_MODE_11n;
@@ -1074,12 +2002,6 @@ tANI_BOOLEAN csrGetPhyModeInUse( eCsrPhyMode phyModeIn, eCsrPhyMode bssPhyMode, 
             case eCSR_DOT11_MODE_11a:
                 cfgDot11Mode = eCSR_CFG_DOT11_MODE_11A;
                 break;
-            case eCSR_DOT11_MODE_POLARIS:
-                cfgDot11Mode = eCSR_CFG_DOT11_MODE_POLARIS;
-                break;
-            case eCSR_DOT11_MODE_TITAN:
-                cfgDot11Mode = eCSR_CFG_DOT11_MODE_TITAN;
-                break;
             case eCSR_DOT11_MODE_11n:
             case eCSR_DOT11_MODE_TAURUS:
             default:
@@ -1093,64 +2015,6 @@ tANI_BOOLEAN csrGetPhyModeInUse( eCsrPhyMode phyModeIn, eCsrPhyMode bssPhyMode, 
             {
                 fMatch = TRUE;
                 cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
-            }
-            break;
-
-        case eCSR_DOT11_MODE_POLARIS:
-            fMatch = TRUE;
-            switch(bssPhyMode)
-            {
-            case eCSR_DOT11_MODE_11g:
-                cfgDot11Mode = eCSR_CFG_DOT11_MODE_11G;
-                break;
-            case eCSR_DOT11_MODE_11b:
-                cfgDot11Mode = eCSR_CFG_DOT11_MODE_11B;
-                break;
-            case eCSR_DOT11_MODE_11a:
-                cfgDot11Mode = eCSR_CFG_DOT11_MODE_11A;
-                break;
-            case eCSR_DOT11_MODE_POLARIS:
-            case eCSR_DOT11_MODE_TITAN:
-            case eCSR_DOT11_MODE_11n:
-            case eCSR_DOT11_MODE_TAURUS:
-            default:
-                cfgDot11Mode = eCSR_CFG_DOT11_MODE_POLARIS;
-                break;
-            }
-            break;
-
-        case eCSR_DOT11_MODE_TITAN:
-            if( eCSR_DOT11_MODE_11g == bssPhyMode )
-            {
-                fMatch = TRUE;
-                cfgDot11Mode = eCSR_CFG_DOT11_MODE_11G;
-            }
-            else if( eCSR_DOT11_MODE_11b == bssPhyMode )
-            {
-                fMatch = TRUE;
-                cfgDot11Mode = eCSR_CFG_DOT11_MODE_11B;
-            }
-            else if(!f5GhzBand)
-            {
-                if(eCSR_DOT11_MODE_POLARIS == bssPhyMode)
-                {
-                    fMatch = TRUE;
-                    cfgDot11Mode = eCSR_CFG_DOT11_MODE_POLARIS;
-                }
-                else if(eCSR_DOT11_MODE_TITAN == bssPhyMode || eCSR_DOT11_MODE_TAURUS == bssPhyMode
-                    || eCSR_DOT11_MODE_11n == bssPhyMode)
-                {
-                    fMatch = TRUE;
-                    cfgDot11Mode = eCSR_CFG_DOT11_MODE_TITAN;
-                }
-            }
-            break;
-
-        case eCSR_DOT11_MODE_TAURUS_ONLY:
-            if(eCSR_DOT11_MODE_TAURUS == bssPhyMode)
-            {
-                fMatch = TRUE;
-                cfgDot11Mode = eCSR_CFG_DOT11_MODE_TAURUS;
             }
             break;
 
@@ -1168,14 +2032,8 @@ tANI_BOOLEAN csrGetPhyModeInUse( eCsrPhyMode phyModeIn, eCsrPhyMode bssPhyMode, 
             case eCSR_DOT11_MODE_11a:
                 cfgDot11Mode = eCSR_CFG_DOT11_MODE_11A;
                 break;
-            case eCSR_DOT11_MODE_TITAN:
-                cfgDot11Mode = eCSR_CFG_DOT11_MODE_TITAN;
-                break;
             case eCSR_DOT11_MODE_11n:
                 cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
-                break;
-            case eCSR_DOT11_MODE_POLARIS:
-                cfgDot11Mode = eCSR_CFG_DOT11_MODE_POLARIS;
                 break;
             case eCSR_DOT11_MODE_TAURUS:
             default:
@@ -1300,6 +2158,50 @@ tANI_BOOLEAN csrIsPhyModeMatch( tpAniSirGlobal pMac, tANI_U32 phyMode,
 }
 
 
+eCsrCfgDot11Mode csrFindBestPhyMode( tpAniSirGlobal pMac, tANI_U32 phyMode )
+{
+    eCsrCfgDot11Mode cfgDot11ModeToUse;
+    eCsrBand eBand = pMac->roam.configParam.eBand;
+
+    if ( (0 == phyMode) || (eCSR_DOT11_MODE_AUTO & phyMode) || (eCSR_DOT11_MODE_TAURUS & phyMode))
+    {
+        cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11N;
+    }
+    else
+    {
+        if( ( eCSR_DOT11_MODE_11n | eCSR_DOT11_MODE_11n_ONLY ) & phyMode )
+        {
+            cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11N;
+        }
+        else if ( eCSR_DOT11_MODE_abg & phyMode )
+        {
+            if( eCSR_BAND_24 != eBand )
+            {
+                cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11A;
+            }
+            else
+            {
+                cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11G;
+            }
+        }
+        else if( ( eCSR_DOT11_MODE_11a | eCSR_DOT11_MODE_11a_ONLY ) & phyMode )
+        {
+            cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11A;
+        }
+        else if( ( eCSR_DOT11_MODE_11g | eCSR_DOT11_MODE_11g_ONLY ) & phyMode )
+        {
+            cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11G;
+        }
+        else
+        {
+            cfgDot11ModeToUse = eCSR_CFG_DOT11_MODE_11B;
+        }
+    }
+
+    return ( cfgDot11ModeToUse );
+}
+
+
 
 
 tANI_U32 csrGet11hPowerConstraint( tHalHandle hHal, tDot11fIEPowerConstraints *pPowerConstraint )
@@ -1361,6 +2263,10 @@ tANI_BOOLEAN csrIsProfileRSN( tCsrRoamProfile *pProfile )
     {
         case eCSR_AUTH_TYPE_RSN:
         case eCSR_AUTH_TYPE_RSN_PSK:
+#ifdef WLAN_FEATURE_VOWIFI_11R
+	case eCSR_AUTH_TYPE_FT_RSN:
+	case eCSR_AUTH_TYPE_FT_RSN_PSK:
+#endif 
             fRSNProfile = TRUE;
             break;
 
@@ -1582,6 +2488,35 @@ static tANI_BOOLEAN csrIsAuthWapiPsk( tpAniSirGlobal pMac, tANI_U8 AllSuites[][C
     return( csrIsWapiOuiMatch( pMac, AllSuites, cAllSuites, csrWapiOui[2], Oui ) );
 }
 #endif /* FEATURE_WLAN_WAPI */
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+
+/* 
+ * Function for 11R FT Authentication. We match the FT Authentication Cipher suite
+ * here. This matches for FT Auth with the 802.1X exchange.
+ *
+ */
+static tANI_BOOLEAN csrIsFTAuthRSN( tpAniSirGlobal pMac, tANI_U8 AllSuites[][CSR_RSN_OUI_SIZE],
+                                  tANI_U8 cAllSuites,
+                                  tANI_U8 Oui[] )
+{
+    return( csrIsOuiMatch( pMac, AllSuites, cAllSuites, csrRSNOui[03], Oui ) );
+}
+
+/* 
+ * Function for 11R FT Authentication. We match the FT Authentication Cipher suite
+ * here. This matches for FT Auth with the PSK.
+ *
+ */
+static tANI_BOOLEAN csrIsFTAuthRSNPsk( tpAniSirGlobal pMac, tANI_U8 AllSuites[][CSR_RSN_OUI_SIZE],
+                                      tANI_U8 cAllSuites,
+                                      tANI_U8 Oui[] )
+{
+    return( csrIsOuiMatch( pMac, AllSuites, cAllSuites, csrRSNOui[04], Oui ) );
+}
+
+#endif
+
 static tANI_BOOLEAN csrIsAuthRSN( tpAniSirGlobal pMac, tANI_U8 AllSuites[][CSR_RSN_OUI_SIZE],
                                   tANI_U8 cAllSuites,
                                   tANI_U8 Oui[] )
@@ -1765,36 +2700,45 @@ tANI_BOOLEAN csrGetRSNInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eCs
 
             if( pNegotiatedMCCipher )
                 *pNegotiatedMCCipher = pMCEncryption->encryptionType[i];
+            
+            for (i = 0 ; i < pAuthType->numEntries; i++)
+            {
+                //Ciphers are supported, Match authentication algorithm and pick first matching authtype.
+ #ifdef WLAN_FEATURE_VOWIFI_11R
+                /* Changed the AKM suites according to order of preference */
+                if ( csrIsFTAuthRSN( pMac, AuthSuites, cAuthSuites, Authentication ) )
+                {
+                    if (eCSR_AUTH_TYPE_FT_RSN == pAuthType->authType[i])
+                        negAuthType = eCSR_AUTH_TYPE_FT_RSN;
+                }
+                if ( (negAuthType == eCSR_AUTH_TYPE_UNKNOWN) && csrIsFTAuthRSNPsk( pMac, AuthSuites, cAuthSuites, Authentication ) )
+                {
+                    if (eCSR_AUTH_TYPE_FT_RSN_PSK == pAuthType->authType[i])
+                        negAuthType = eCSR_AUTH_TYPE_FT_RSN_PSK;
+                }
+#endif
+                if ( (negAuthType == eCSR_AUTH_TYPE_UNKNOWN) && csrIsAuthRSN( pMac, AuthSuites, cAuthSuites, Authentication ) )
+                {
+                    if (eCSR_AUTH_TYPE_RSN == pAuthType->authType[i])
+                        negAuthType = eCSR_AUTH_TYPE_RSN;
+                }
+                if ((negAuthType == eCSR_AUTH_TYPE_UNKNOWN) && csrIsAuthRSNPsk( pMac, AuthSuites, cAuthSuites, Authentication ) )
+                {
+                    if (eCSR_AUTH_TYPE_RSN_PSK == pAuthType->authType[i])
+                        negAuthType = eCSR_AUTH_TYPE_RSN_PSK;
+                }
 
-            //Ciphers are supported, Match authentication algorithm and pick first matching authtype.
-            if ( csrIsAuthRSN( pMac, AuthSuites, cAuthSuites, Authentication ) )
-            {
-                negAuthType = eCSR_AUTH_TYPE_RSN;
-            }
-            else if ( csrIsAuthRSNPsk( pMac, AuthSuites, cAuthSuites, Authentication ) )
-            {
-                negAuthType = eCSR_AUTH_TYPE_RSN_PSK;
-            }
-            else
-            {
-                fAcceptableCyphers = FALSE;
-                negAuthType = eCSR_AUTH_TYPE_UNKNOWN;
-            }
-            if( ( 0 == pAuthType->numEntries ) || ( FALSE == fAcceptableCyphers ) )
-            {
-                //Caller doesn't care about auth type, or BSS doesn't match
-                break;
-            }
-            fAcceptableCyphers = FALSE;
-            for( i = 0 ; i < pAuthType->numEntries; i++ )
-            {
-                if( pAuthType->authType[i] == negAuthType )
+                // The 1st auth type in the APs RSN IE, to match stations connecting
+                // profiles auth type will cause us to exit this loop
+                // This is added as some APs advertise multiple akms in the RSN IE.
+                if (eCSR_AUTH_TYPE_UNKNOWN != negAuthType)
                 {
                     fAcceptableCyphers = TRUE;
                     break;
                 }
-            }
+            } // for
         }
+
     }while (0);
 
     if ( fAcceptableCyphers )
@@ -1844,18 +2788,19 @@ tANI_BOOLEAN csrIsRSNMatch( tHalHandle hHal, tCsrAuthList *pAuthType, eCsrEncryp
 }
 
 
-tANI_BOOLEAN csrLookupPMKID( tpAniSirGlobal pMac, tANI_U8 *pBSSId, tANI_U8 *pPMKId )
+tANI_BOOLEAN csrLookupPMKID( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U8 *pBSSId, tANI_U8 *pPMKId )
 {
     tANI_BOOLEAN fRC = FALSE, fMatchFound = FALSE;
     tANI_U32 Index;
+    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
     do
     {
-        for( Index=0; Index < pMac->roam.NumPmkidCache; Index++ )
+        for( Index=0; Index < pSession->NumPmkidCache; Index++ )
         {
             smsLog(pMac, LOGW, "match PMKID %02X-%02X-%02X-%02X-%02X-%02X to \n",
                 pBSSId[0], pBSSId[1], pBSSId[2], pBSSId[3], pBSSId[4], pBSSId[5]);
-            if( palEqualMemory( pMac->hHdd, pBSSId, pMac->roam.PmkidCacheInfo[Index].BSSID, sizeof(tCsrBssid) ) )
+            if( palEqualMemory( pMac->hHdd, pBSSId, pSession->PmkidCacheInfo[Index].BSSID, sizeof(tCsrBssid) ) )
             {
                 // match found
                 fMatchFound = TRUE;
@@ -1865,18 +2810,19 @@ tANI_BOOLEAN csrLookupPMKID( tpAniSirGlobal pMac, tANI_U8 *pBSSId, tANI_U8 *pPMK
 
         if( !fMatchFound ) break;
 
-        palCopyMemory( pMac->hHdd, pPMKId, pMac->roam.PmkidCacheInfo[Index].PMKID, CSR_RSN_PMKID_SIZE );
+        palCopyMemory( pMac->hHdd, pPMKId, pSession->PmkidCacheInfo[Index].PMKID, CSR_RSN_PMKID_SIZE );
 
         fRC = TRUE;
     }
     while( 0 );
-    smsLog(pMac, LOGW, "csrLookupPMKID called return match = %d pMac->roam.NumPmkidCache = %d", fRC, pMac->roam.NumPmkidCache);
+    smsLog(pMac, LOGW, "csrLookupPMKID called return match = %d pMac->roam.NumPmkidCache = %d", 
+        fRC, pSession->NumPmkidCache);
 
     return fRC;
 }
 
 
-tANI_U8 csrConstructRSNIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
+tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile *pProfile,
                             tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes, tCsrRSNIe *pRSNIe )
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -1889,18 +2835,20 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
     tCsrRSNCapabilities RSNCapabilities;
     tCsrRSNPMKIe        *pPMK;
     tANI_U8 PMKId[CSR_RSN_PMKID_SIZE];
+    tDot11fBeaconIEs *pIesLocal = pIes;
 
     do
     {
         if ( !csrIsProfileRSN( pProfile ) ) break;
 
-        if( !pIes )
+        if( !pIesLocal && (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc, &pIesLocal))) )
         {
             break;
         }
 
         // See if the cyphers in the Bss description match with the settings in the profile.
-        fRSNMatch = csrGetRSNInformation( hHal, &pProfile->AuthType, pProfile->negotiatedUCEncryptionType, &pProfile->mcEncryptionType, &pIes->RSN,
+        fRSNMatch = csrGetRSNInformation( hHal, &pProfile->AuthType, pProfile->negotiatedUCEncryptionType, 
+                                            &pProfile->mcEncryptionType, &pIesLocal->RSN,
                                             UnicastCypher, MulticastCypher, AuthSuite, &RSNCapabilities, NULL, NULL );
         if ( !fRSNMatch ) break;
 
@@ -1928,7 +2876,7 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
 
         pPMK = (tCsrRSNPMKIe *)( ((tANI_U8 *)(&pAuthSuite->AuthOui[ 1 ])) + sizeof(tANI_U16) );
 
-        if( csrLookupPMKID( pMac, pSirBssDesc->bssId, &(PMKId[0]) ) )
+        if( csrLookupPMKID( pMac, sessionId, pSirBssDesc->bssId, &(PMKId[0]) ) )
         {
             pPMK->cPMKIDs = 1;
 
@@ -1955,6 +2903,12 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
         cbRSNIe = pRSNIe->IeHeader.Length + sizeof( pRSNIe->IeHeader );
 
     } while( 0 );
+
+    if( !pIes && pIesLocal )
+    {
+        //locally allocated
+        palFreeMemory(pMac->hHdd, pIesLocal);
+    }
 
     return( cbRSNIe );
 }
@@ -2005,7 +2959,7 @@ tANI_BOOLEAN csrGetWapiInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eC
             for( i = 0 ; i < pMCEncryption->numEntries ; i++ )
             {
                 fAcceptableCyphers = csrMatchWapiOUIIndex( pMac, MulticastCyphers,  cMulticastCyphers, 
-                            csrGetOUIIndexFromCipher( pMCEncryption->encryptionType[i] ), Multicast );
+                csrGetOUIIndexFromCipher( pMCEncryption->encryptionType[i] ), Multicast );
                 if(fAcceptableCyphers)
                 {
                     break;
@@ -2084,18 +3038,19 @@ tANI_BOOLEAN csrIsWapiMatch( tHalHandle hHal, tCsrAuthList *pAuthType, eCsrEncry
     return( fWapiMatch );
 }
 
-tANI_BOOLEAN csrLookupBKID( tpAniSirGlobal pMac, tANI_U8 *pBSSId, tANI_U8 *pBKId )
+tANI_BOOLEAN csrLookupBKID( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U8 *pBSSId, tANI_U8 *pBKId )
 {
     tANI_BOOLEAN fRC = FALSE, fMatchFound = FALSE;
     tANI_U32 Index;
+    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
     do
     {
-        for( Index=0; Index < pMac->roam.NumBkidCache; Index++ )
+        for( Index=0; Index < pSession->NumBkidCache; Index++ )
         {
             smsLog(pMac, LOGW, "match BKID %02X-%02X-%02X-%02X-%02X-%02X to \n",
                 pBSSId[0], pBSSId[1], pBSSId[2], pBSSId[3], pBSSId[4], pBSSId[5]);
-            if( palEqualMemory( pMac->hHdd, pBSSId, pMac->roam.BkidCacheInfo[Index].BSSID, sizeof(tCsrBssid) ) )
+            if( palEqualMemory( pMac->hHdd, pBSSId, pSession->BkidCacheInfo[Index].BSSID, sizeof(tCsrBssid) ) )
             {
                 // match found
                 fMatchFound = TRUE;
@@ -2105,20 +3060,19 @@ tANI_BOOLEAN csrLookupBKID( tpAniSirGlobal pMac, tANI_U8 *pBSSId, tANI_U8 *pBKId
 
         if( !fMatchFound ) break;
 
-        palCopyMemory( pMac->hHdd, pBKId, pMac->roam.BkidCacheInfo[Index].BKID, CSR_WAPI_BKID_SIZE );
+        palCopyMemory( pMac->hHdd, pBKId, pSession->BkidCacheInfo[Index].BKID, CSR_WAPI_BKID_SIZE );
 
         fRC = TRUE;
     }
     while( 0 );
-    smsLog(pMac, LOGW, "csrLookupBKID called return match = %d pMac->roam.NumBkidCache = %d", fRC, pMac->roam.NumBkidCache);
+    smsLog(pMac, LOGW, "csrLookupBKID called return match = %d pMac->roam.NumBkidCache = %d", fRC, pSession->NumBkidCache);
 
     return fRC;
 }
 
-tANI_U8 csrConstructWapiIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
+tANI_U8 csrConstructWapiIe( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfile *pProfile,
                             tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes, tCsrWapiIe *pWapiIe )
 {
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     tANI_BOOLEAN fWapiMatch = FALSE;
     tANI_U8 cbWapiIe = 0;
     tANI_U8 UnicastCypher[ CSR_WAPI_OUI_SIZE ];
@@ -2127,17 +3081,20 @@ tANI_U8 csrConstructWapiIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
     tANI_U8 BKId[CSR_WAPI_BKID_SIZE];
     tANI_U8 *pWapi = NULL;
     tANI_BOOLEAN fBKIDFound = FALSE;
+    tDot11fBeaconIEs *pIesLocal = pIes;
+
     do
     {
         if ( !csrIsProfileWapi( pProfile ) ) break;
 
-        if( !pIes )
+        if( !pIesLocal && (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc, &pIesLocal))) )
         {
             break;
         }
 
         // See if the cyphers in the Bss description match with the settings in the profile.
-        fWapiMatch = csrGetWapiInformation( hHal, &pProfile->AuthType, pProfile->negotiatedUCEncryptionType, &pProfile->mcEncryptionType, &pIes->WAPI,
+        fWapiMatch = csrGetWapiInformation( pMac, &pProfile->AuthType, pProfile->negotiatedUCEncryptionType, 
+                                            &pProfile->mcEncryptionType, &pIesLocal->WAPI,
                                             UnicastCypher, MulticastCypher, AuthSuite, NULL, NULL );
         if ( !fWapiMatch ) break;
 
@@ -2166,11 +3123,12 @@ tANI_U8 csrConstructWapiIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
         // & since we already did a memset pWapiIe to 0, skip these fields
         pWapi +=2;
 
-        fBKIDFound = csrLookupBKID( pMac, pSirBssDesc->bssId, &(BKId[0]) );
+        fBKIDFound = csrLookupBKID( pMac, sessionId, pSirBssDesc->bssId, &(BKId[0]) );
 
 
         if( fBKIDFound )
         {
+            /* Do we need to change the endianness here */
             *pWapi = (tANI_U16)1; //cBKIDs
             pWapi+=2;
             palCopyMemory( pMac->hHdd, pWapi, BKId, CSR_WAPI_BKID_SIZE );
@@ -2178,6 +3136,9 @@ tANI_U8 csrConstructWapiIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
         else
         {
             *pWapi = 0;
+            pWapi+=1;
+            *pWapi = 0;
+            pWapi+=1;
         }
 
         // Add in the IE fields except the IE header
@@ -2196,11 +3157,17 @@ tANI_U8 csrConstructWapiIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
 
     } while( 0 );
 
+    if( !pIes && pIesLocal )
+    {
+        //locally allocated
+        palFreeMemory(pMac->hHdd, pIesLocal);
+    }
+
     return( cbWapiIe );
 }
 #endif /* FEATURE_WLAN_WAPI */
 
-tANI_BOOLEAN csrGetWpaCyphers( tHalHandle hHal, tCsrAuthList *pAuthType, eCsrEncryptionType enType, tCsrEncryptionList *pMCEncryption,
+tANI_BOOLEAN csrGetWpaCyphers( tpAniSirGlobal pMac, tCsrAuthList *pAuthType, eCsrEncryptionType enType, tCsrEncryptionList *pMCEncryption,
                                tDot11fIEWPA *pWpaIe,
                            tANI_U8 *UnicastCypher,
                            tANI_U8 *MulticastCypher,
@@ -2208,7 +3175,6 @@ tANI_BOOLEAN csrGetWpaCyphers( tHalHandle hHal, tCsrAuthList *pAuthType, eCsrEnc
                            eCsrAuthType *pNegotiatedAuthtype,
                            eCsrEncryptionType *pNegotiatedMCCipher )
 {
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     tANI_BOOLEAN fAcceptableCyphers = FALSE;
     tANI_U8 cUnicastCyphers = 0;
     tANI_U8 cMulticastCyphers = 0;
@@ -2312,13 +3278,13 @@ tANI_BOOLEAN csrGetWpaCyphers( tHalHandle hHal, tCsrAuthList *pAuthType, eCsrEnc
 
 
 
-tANI_BOOLEAN csrIsWpaEncryptionMatch( tHalHandle hHal, tCsrAuthList *pAuthType, eCsrEncryptionType enType, tCsrEncryptionList *pEnMcType,
+tANI_BOOLEAN csrIsWpaEncryptionMatch( tpAniSirGlobal pMac, tCsrAuthList *pAuthType, eCsrEncryptionType enType, tCsrEncryptionList *pEnMcType,
                                         tDot11fBeaconIEs *pIes, eCsrAuthType *pNegotiatedAuthtype, eCsrEncryptionType *pNegotiatedMCCipher )
 {
     tANI_BOOLEAN fWpaMatch = eANI_BOOLEAN_FALSE;
 
         // See if the cyphers in the Bss description match with the settings in the profile.
-    fWpaMatch = csrGetWpaCyphers( hHal, pAuthType, enType, pEnMcType, &pIes->WPA, NULL, NULL, NULL, pNegotiatedAuthtype, pNegotiatedMCCipher );
+    fWpaMatch = csrGetWpaCyphers( pMac, pAuthType, enType, pEnMcType, &pIes->WPA, NULL, NULL, NULL, pNegotiatedAuthtype, pNegotiatedMCCipher );
 
     return( fWpaMatch );
 }
@@ -2334,18 +3300,19 @@ tANI_U8 csrConstructWpaIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDe
     tANI_U8 MulticastCypher[ CSR_WPA_OUI_SIZE ];
     tANI_U8 AuthSuite[ CSR_WPA_OUI_SIZE ];
     tCsrWpaAuthIe *pAuthSuite;
+    tDot11fBeaconIEs *pIesLocal = pIes;
 
     do
     {
         if ( !csrIsProfileWpa( pProfile ) ) break;
 
-        if( !pIes )
+        if( !pIesLocal && (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSirBssDesc, &pIesLocal))) )
         {
             break;
         }
         // See if the cyphers in the Bss description match with the settings in the profile.
         fWpaMatch = csrGetWpaCyphers( hHal, &pProfile->AuthType, pProfile->negotiatedUCEncryptionType, &pProfile->mcEncryptionType,
-                                      &pIes->WPA, UnicastCypher, MulticastCypher, AuthSuite, NULL, NULL );
+                                      &pIesLocal->WPA, UnicastCypher, MulticastCypher, AuthSuite, NULL, NULL );
         if ( !fWpaMatch ) break;
 
         pWpaIe->IeHeader.ElementID = SIR_MAC_WPA_EID;
@@ -2380,6 +3347,12 @@ tANI_U8 csrConstructWpaIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDe
         cbWpaIe = pWpaIe->IeHeader.Length + sizeof( pWpaIe->IeHeader );
 
     } while( 0 );
+
+    if( !pIes && pIesLocal )
+    {
+        //locally allocated
+        palFreeMemory(pMac->hHdd, pIesLocal);
+    }
 
     return( cbWpaIe );
 }
@@ -2537,7 +3510,7 @@ tANI_U8 csrRetrieveWpaIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDes
 
 //If a RSNIE exists in the profile, just use it. Or else construct one from the BSS
 //Caller allocated memory for pWpaIe and guarrantee it can contain a max length WPA IE
-tANI_U8 csrRetrieveRsnIe( tHalHandle hHal, tCsrRoamProfile *pProfile, 
+tANI_U8 csrRetrieveRsnIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile *pProfile, 
                          tSirBssDescription *pSirBssDesc, tDot11fBeaconIEs *pIes, tCsrRSNIe *pRsnIe )
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -2560,7 +3533,7 @@ tANI_U8 csrRetrieveRsnIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
         }
         else
         {
-            cbRsnIe = csrConstructRSNIe(pMac, pProfile, pSirBssDesc, pIes, pRsnIe);
+            cbRsnIe = csrConstructRSNIe(pMac, sessionId, pProfile, pSirBssDesc, pIes, pRsnIe);
         }
     }while(0);
 
@@ -2571,7 +3544,8 @@ tANI_U8 csrRetrieveRsnIe( tHalHandle hHal, tCsrRoamProfile *pProfile,
 #ifdef FEATURE_WLAN_WAPI
 //If a WAPI IE exists in the profile, just use it. Or else construct one from the BSS
 //Caller allocated memory for pWapiIe and guarrantee it can contain a max length WAPI IE
-tANI_U8 csrRetrieveWapiIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc, 
+tANI_U8 csrRetrieveWapiIe( tHalHandle hHal, tANI_U32 sessionId, 
+                          tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc, 
                           tDot11fBeaconIEs *pIes, tCsrWapiIe *pWapiIe )
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -2594,7 +3568,7 @@ tANI_U8 csrRetrieveWapiIe( tHalHandle hHal, tCsrRoamProfile *pProfile, tSirBssDe
         }
         else
         {
-            cbWapiIe = csrConstructWapiIe(pMac, pProfile, pSirBssDesc, pIes, pWapiIe);
+            cbWapiIe = csrConstructWapiIe(pMac, sessionId, pProfile, pSirBssDesc, pIes, pWapiIe);
         }
     }while(0);
 
@@ -2915,11 +3889,11 @@ tANI_BOOLEAN csrIsSecurityMatch( tHalHandle hHal, tCsrAuthList *authType, tCsrEn
                     if(pIes)
                     {
                         // First check if there is a RSN match
-                        fMatch = csrIsRSNMatch( hHal, authType, ucCipher, pMCEncryptionType, pIes, &negAuthType, &mcCipher );
+                        fMatch = csrIsRSNMatch( pMac, authType, ucCipher, pMCEncryptionType, pIes, &negAuthType, &mcCipher );
                         if( !fMatch )
                         {
                             // If not RSN, then check if there is a WPA match
-                            fMatch = csrIsWpaEncryptionMatch( hHal, authType, ucCipher, pMCEncryptionType, pIes, 
+                            fMatch = csrIsWpaEncryptionMatch( pMac, authType, ucCipher, pMCEncryptionType, pIes, 
                                                               &negAuthType, &mcCipher );
                         }
                     }
@@ -2967,7 +3941,7 @@ tANI_BOOLEAN csrIsSecurityMatch( tHalHandle hHal, tCsrAuthList *authType, tCsrEn
                         //Check WAPI
                         ucCipher = eCSR_ENCRYPT_TYPE_WPI;
                         fMatchAny = csrIsWapiMatch( hHal, authType, ucCipher, pMCEncryptionType, pIes, &negAuthType, &mcCipher );
-                    }
+                }
 #endif /* FEATURE_WLAN_WAPI */
                 }
                 if(!fMatchAny)
@@ -3045,10 +4019,9 @@ tANI_BOOLEAN csrIsBogusSsid( tANI_U8 *pSsid, tANI_U32 SsidLen )
 }
 
 
-tANI_BOOLEAN csrIsSsidMatch( tHalHandle hHal, tANI_U8 *ssid1, tANI_U8 ssid1Len, tANI_U8 *bssSsid,
+tANI_BOOLEAN csrIsSsidMatch( tpAniSirGlobal pMac, tANI_U8 *ssid1, tANI_U8 ssid1Len, tANI_U8 *bssSsid,
                             tANI_U8 bssSsidLen, tANI_BOOLEAN fSsidRequired )
 {
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     tANI_BOOLEAN fMatch = FALSE;
 
     do {
@@ -3189,6 +4162,10 @@ tANI_BOOLEAN csrIsBssTypeIBSS(eCsrRoamBssType bssType)
     return((tANI_BOOLEAN)(eCSR_BSS_TYPE_START_IBSS == bssType || eCSR_BSS_TYPE_IBSS == bssType));
 }
 
+tANI_BOOLEAN csrIsBssTypeWDS(eCsrRoamBssType bssType)
+{
+    return((tANI_BOOLEAN)(eCSR_BSS_TYPE_WDS_STA == bssType || eCSR_BSS_TYPE_WDS_AP == bssType));
+}
 
 tANI_BOOLEAN csrIsBSSTypeCapsMatch( eCsrRoamBssType bssType, tSirBssDescription *pSirBssDesc )
 {
@@ -3202,6 +4179,7 @@ tANI_BOOLEAN csrIsBSSTypeCapsMatch( eCsrRoamBssType bssType, tSirBssDescription 
                 break;
 
             case eCSR_BSS_TYPE_INFRASTRUCTURE:
+            case eCSR_BSS_TYPE_WDS_STA:
                 if( !csrIsInfraBssDesc( pSirBssDesc ) )
                     fMatch = FALSE;
 
@@ -3214,6 +4192,7 @@ tANI_BOOLEAN csrIsBSSTypeCapsMatch( eCsrRoamBssType bssType, tSirBssDescription 
 
                 break;
 
+            case eCSR_BSS_TYPE_WDS_AP: //For WDS AP, no need to match anything
             default:
                 fMatch = FALSE;
                 break;
@@ -3555,12 +4534,7 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
             if ( fCheck ) break;
         }
         if(!fCheck) break;
-        if ( !csrIsPhyModeMatch( pMac, pFilter->phyMode, pBssDesc, NULL, NULL, pIes ) ) break;
-        if ( (!pFilter->bWPSAssociation) &&
-             !csrIsSecurityMatch( pMac, &pFilter->authType, &pFilter->EncryptionType, &pFilter->mcEncryptionType, 
-                                 pBssDesc, pIes, pNegAuth, pNegUc, pNegMc ) ) break;
-        if ( !csrIsCapabilitiesMatch( pMac, pFilter->BSSType, pBssDesc ) ) break;
-        if ( !csrIsRateSetMatch( pMac, &pIes->SuppRates, &pIes->ExtSuppRates ) ) break;
+
         fCheck = eANI_BOOLEAN_TRUE;
         for(i = 0; i < pFilter->ChannelInfo.numOfChannels; i++)
         {
@@ -3569,6 +4543,20 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
         }
         if(!fCheck)
             break;
+#if defined WLAN_FEATURE_VOWIFI
+        /* If this is for measurement filtering */
+        if( pFilter->fMeasurement )
+        {
+           fRC = eANI_BOOLEAN_TRUE;
+           break;
+        }
+#endif
+        if ( !csrIsPhyModeMatch( pMac, pFilter->phyMode, pBssDesc, NULL, NULL, pIes ) ) break;
+        if ( (!pFilter->bWPSAssociation) &&
+             !csrIsSecurityMatch( pMac, &pFilter->authType, &pFilter->EncryptionType, &pFilter->mcEncryptionType,
+                                 pBssDesc, pIes, pNegAuth, pNegUc, pNegMc ) ) break;
+        if ( !csrIsCapabilitiesMatch( pMac, pFilter->BSSType, pBssDesc ) ) break;
+        if ( !csrIsRateSetMatch( pMac, &pIes->SuppRates, &pIes->ExtSuppRates ) ) break;
         //Tush-QoS: validate first if asked for APSD or WMM association
         if ( (eCsrRoamWmmQbssOnly == pMac->roam.configParam.WMMSupportMode) &&
              !CSR_IS_QOS_BSS(pIes) )
@@ -3581,6 +4569,18 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
         if(!fCheck)
             break;
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+        if (pFilter->MDID.mdiePresent)
+        {
+            if (pBssDesc->mdiePresent)
+            {
+                if (pFilter->MDID.mobilityDomain != (pBssDesc->mdie[1] << 8 | pBssDesc->mdie[0]))
+                    break;
+            }
+            else
+                break;
+        }
+#endif
         fRC = eANI_BOOLEAN_TRUE;
 
     } while( 0 );
@@ -3616,19 +4616,23 @@ tANI_BOOLEAN csrMatchConnectedBSSSecurity( tpAniSirGlobal pMac, tCsrRoamConnecte
 }
 
 
-tANI_BOOLEAN csrMatchBSSToConnectProfile( tHalHandle hHal, tSirBssDescription *pBssDesc, tDot11fBeaconIEs *pIes )
+tANI_BOOLEAN csrMatchBSSToConnectProfile( tHalHandle hHal, tCsrRoamConnectedProfile *pProfile,
+                                          tSirBssDescription *pBssDesc, tDot11fBeaconIEs *pIes )
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     tANI_BOOLEAN fRC = eANI_BOOLEAN_FALSE, fCheck;
-    tCsrRoamConnectedProfile *pProfile = &pMac->roam.connectedProfile;
+    tDot11fBeaconIEs *pIesLocal = pIes;
 
     do {
         if( !pIes )
         {
-            break;
+            if(!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pBssDesc, &pIesLocal)))
+            {
+                break;
+            }
         }
         fCheck = eANI_BOOLEAN_TRUE;
-        if(pIes->SSID.present)
+        if(pIesLocal->SSID.present)
         {
             tANI_BOOLEAN fCheckSsid = eANI_BOOLEAN_FALSE;
             if(pProfile->SSID.length)
@@ -3636,12 +4640,12 @@ tANI_BOOLEAN csrMatchBSSToConnectProfile( tHalHandle hHal, tSirBssDescription *p
                 fCheckSsid = eANI_BOOLEAN_TRUE;
             }
             fCheck = csrIsSsidMatch( pMac, pProfile->SSID.ssId, pProfile->SSID.length,
-                                        pIes->SSID.ssid, pIes->SSID.num_ssid, fCheckSsid );
+                                        pIesLocal->SSID.ssid, pIesLocal->SSID.num_ssid, fCheckSsid );
             if(!fCheck) break;
         }
-        if ( !csrMatchConnectedBSSSecurity( pMac, pProfile, pBssDesc, pIes) ) break;
+        if ( !csrMatchConnectedBSSSecurity( pMac, pProfile, pBssDesc, pIesLocal) ) break;
         if ( !csrIsCapabilitiesMatch( pMac, pProfile->BSSType, pBssDesc ) ) break;
-        if ( !csrIsRateSetMatch( pMac, &pIes->SuppRates, &pIes->ExtSuppRates ) ) break;
+        if ( !csrIsRateSetMatch( pMac, &pIesLocal->SuppRates, &pIesLocal->ExtSuppRates ) ) break;
         fCheck = csrIsChannelBandMatch( pMac, pProfile->operationChannel, pBssDesc );
         if(!fCheck)
             break;
@@ -3649,6 +4653,12 @@ tANI_BOOLEAN csrMatchBSSToConnectProfile( tHalHandle hHal, tSirBssDescription *p
         fRC = eANI_BOOLEAN_TRUE;
 
     } while( 0 );
+
+    if( !pIes && pIesLocal )
+    {
+        //locally allocated
+        palFreeMemory(pMac->hHdd, pIesLocal);
+    }
 
     return( fRC );
 }
@@ -3809,6 +4819,13 @@ void csrReleaseProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile)
             palFreeMemory(pMac->hHdd, pProfile->pWAPIReqIE);
         }
 #endif /* FEATURE_WLAN_WAPI */
+    
+        if(pProfile->ChannelInfo.ChannelList)
+        {
+            palFreeMemory(pMac->hHdd, pProfile->ChannelInfo.ChannelList);
+        }
+
+    
         palZeroMemory(pMac->hHdd, pProfile, sizeof(tCsrRoamProfile));
     }
 }
@@ -3833,23 +4850,27 @@ void csrFreeScanFilter(tpAniSirGlobal pMac, tCsrScanResultFilter *pScanFilter)
 }
 
 
-void csrFreeRoamProfile(tpAniSirGlobal pMac)
+void csrFreeRoamProfile(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
-    if(pMac->roam.pCurRoamProfile)
+    tCsrRoamSession *pSession = &pMac->roam.roamSession[sessionId];
+
+    if(pSession->pCurRoamProfile)
     {
-        csrReleaseProfile(pMac, pMac->roam.pCurRoamProfile);
-        palFreeMemory(pMac->hHdd, pMac->roam.pCurRoamProfile);
-        pMac->roam.pCurRoamProfile = NULL;
+        csrReleaseProfile(pMac, pSession->pCurRoamProfile);
+        palFreeMemory(pMac->hHdd, pSession->pCurRoamProfile);
+        pSession->pCurRoamProfile = NULL;
     }
 }
 
 
-void csrFreeConnectBssDesc(tpAniSirGlobal pMac)
+void csrFreeConnectBssDesc(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
-    if(pMac->roam.pConnectBssDesc)
+    tCsrRoamSession *pSession = &pMac->roam.roamSession[sessionId];
+
+    if(pSession->pConnectBssDesc)
     {
-        palFreeMemory(pMac->hHdd, pMac->roam.pConnectBssDesc);
-        pMac->roam.pConnectBssDesc = NULL;
+        palFreeMemory(pMac->hHdd, pSession->pConnectBssDesc);
+        pSession->pConnectBssDesc = NULL;
     }
 }
 
@@ -3882,6 +4903,24 @@ tSirResultCodes csrGetDeAuthRspStatusCode( tSirSmeDeauthRsp *pSmeRsp )
     return( ( tSirResultCodes )ret );
 }
 
+#if 0
+tSirScanType csrGetScanType(tANI_U8 chnId, eRegDomainId domainId, tANI_U8 *countryCode)
+{
+    tSirScanType scanType = eSIR_PASSIVE_SCAN;
+    tANI_U8 cc = 0;
+
+    while (cc++ < gCsrDoaminChnInfo[domainId].numChannels)
+    {
+        if(chnId == gCsrDoaminChnInfo[domainId].chnInfo[cc].chnId)
+        {
+            scanType = gCsrDoaminChnInfo[domainId].chnInfo[cc].scanType;
+            break;
+        }
+    }
+
+    return (scanType);
+}
+#endif
 
 tSirScanType csrGetScanType(tANI_U8 chnId, v_REGDOMAIN_t domainId)
 {
@@ -3892,7 +4931,6 @@ tSirScanType csrGetScanType(tANI_U8 chnId, v_REGDOMAIN_t domainId)
 
     return (scanType);
 }
-
 
 
 tANI_U8 csrToUpper( tANI_U8 ch )
@@ -3924,6 +4962,17 @@ tSirBssType csrTranslateBsstypeToMacType(eCsrRoamBssType csrtype)
     case eCSR_BSS_TYPE_START_IBSS:
         ret = eSIR_IBSS_MODE;
         break;
+    case eCSR_BSS_TYPE_WDS_AP:
+        ret = eSIR_BTAMP_AP_MODE;
+        break;
+    case eCSR_BSS_TYPE_WDS_STA:
+        ret = eSIR_BTAMP_STA_MODE;
+        break;
+#ifdef WLAN_SOFTAP_FEATURE
+    case eCSR_BSS_TYPE_INFRA_AP:
+        ret = eSIR_INFRA_AP_MODE;
+        break;
+#endif
     case eCSR_BSS_TYPE_ANY:
     default:
         ret = eSIR_AUTO_MODE;
@@ -3937,7 +4986,11 @@ tSirBssType csrTranslateBsstypeToMacType(eCsrRoamBssType csrtype)
 //This function use the parameters to decide the CFG value.
 //CSR never sets WNI_CFG_DOT11_MODE_ALL to the CFG
 //So PE should not see WNI_CFG_DOT11_MODE_ALL when it gets the CFG value
+#ifdef WLAN_SOFTAP_FEATURE
+eCsrCfgDot11Mode csrGetCfgDot11ModeFromCsrPhyMode(tCsrRoamProfile *pProfile, eCsrPhyMode phyMode, tANI_BOOLEAN fProprietary)
+#else
 eCsrCfgDot11Mode csrGetCfgDot11ModeFromCsrPhyMode(eCsrPhyMode phyMode, tANI_BOOLEAN fProprietary)
+#endif
 {
     tANI_U32 cfgDot11Mode = eCSR_CFG_DOT11_MODE_ABG;
 
@@ -3953,6 +5006,11 @@ eCsrCfgDot11Mode csrGetCfgDot11ModeFromCsrPhyMode(eCsrPhyMode phyMode, tANI_BOOL
         break;
     case eCSR_DOT11_MODE_11g:
     case eCSR_DOT11_MODE_11g_ONLY:
+#ifdef WLAN_SOFTAP_FEATURE
+        if(pProfile && (CSR_IS_INFRA_AP(pProfile)) && (phyMode == eCSR_DOT11_MODE_11g_ONLY))
+            cfgDot11Mode = eCSR_CFG_DOT11_MODE_11G_ONLY;
+        else
+#endif
         cfgDot11Mode = eCSR_CFG_DOT11_MODE_11G;
         break;
     case eCSR_DOT11_MODE_11n:
@@ -3966,16 +5024,14 @@ eCsrCfgDot11Mode csrGetCfgDot11ModeFromCsrPhyMode(eCsrPhyMode phyMode, tANI_BOOL
         }
         break;
     case eCSR_DOT11_MODE_11n_ONLY:
+#ifdef WLAN_SOFTAP_FEATURE
+       if(pProfile && CSR_IS_INFRA_AP(pProfile))
+           cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N_ONLY;
+       else
+#endif
        cfgDot11Mode = eCSR_CFG_DOT11_MODE_11N;
        break;
-    case eCSR_DOT11_MODE_POLARIS:
-        cfgDot11Mode = eCSR_CFG_DOT11_MODE_POLARIS;
-        break;
-    case eCSR_DOT11_MODE_TITAN:
-        cfgDot11Mode = eCSR_CFG_DOT11_MODE_TITAN;
-        break;
     case eCSR_DOT11_MODE_TAURUS:
-    case eCSR_DOT11_MODE_TAURUS_ONLY:
         cfgDot11Mode = eCSR_CFG_DOT11_MODE_TAURUS;
         break;
     case eCSR_DOT11_MODE_abg:
@@ -4023,16 +5079,8 @@ eHalStatus csrSetRegulatoryDomain(tpAniSirGlobal pMac, v_REGDOMAIN_t domainId, t
     }
     else if( !pMac->roam.configParam.fEnforceDefaultDomain )
     {
-        status = halPhySetRegDomain( pMac, domainId );
-        if( HAL_STATUS_SUCCESS(status) )
-        {
-            pMac->scan.domainIdCurrent = domainId;
-            fRestart = eANI_BOOLEAN_TRUE;
-        }
-        else
-        {
-            fRestart = eANI_BOOLEAN_FALSE;
-        }
+        pMac->scan.domainIdCurrent = domainId;
+        fRestart = eANI_BOOLEAN_TRUE;
     }
     else
     {
@@ -4054,6 +5102,35 @@ v_REGDOMAIN_t csrGetCurrentRegulatoryDomain(tpAniSirGlobal pMac)
     return (pMac->scan.domainIdCurrent);
 }
 
+#if 0
+eHalStatus csrGetRegulatoryDomainForCountry(tpAniSirGlobal pMac, tANI_U8 *pCountry, eRegDomainId *pDomainId)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tANI_U32 i, count = sizeof( gCsrCountryInfo ) / sizeof( gCsrCountryInfo[0] );
+
+    if(pCountry)
+    {
+        for(i = 0; i < count; i++)
+        {
+            if(palEqualMemory(pMac->hHdd, gCsrCountryInfo[i].countryCode, pCountry, 2))
+            {
+                if( pDomainId )
+                {
+                    *pDomainId = gCsrCountryInfo[i].domainId;
+                }
+                break;
+            }
+        }
+        if(i == count)
+        {
+            smsLog(pMac, LOGW, FL("  doesn't match country %c%c\n"), pCountry[0], pCountry[1]);
+            status = eHAL_STATUS_INVALID_PARAMETER;
+        }
+    }
+
+    return (status);
+}
+#endif
 
 eHalStatus csrGetRegulatoryDomainForCountry(tpAniSirGlobal pMac, tANI_U8 *pCountry, v_REGDOMAIN_t *pDomainId)
 {
@@ -4085,16 +5162,16 @@ eHalStatus csrGetRegulatoryDomainForCountry(tpAniSirGlobal pMac, tANI_U8 *pCount
     return (status);
 }
 
-
 //To check whether a country code matches the one in the IE
 //Only check the first two characters, ignoring in/outdoor
 //pCountry -- caller allocated buffer contain the country code that is checking against
 //the one in pIes. It can be NULL.
+//caller must provide pIes, it cannot be NULL
 //This function always return TRUE if 11d support is not turned on.
 tANI_BOOLEAN csrMatchCountryCode( tpAniSirGlobal pMac, tANI_U8 *pCountry, tDot11fBeaconIEs *pIes )
 {
     tANI_BOOLEAN fRet = eANI_BOOLEAN_TRUE;
-    v_REGDOMAIN_t domainId = REGDOMAIN_COUNT;	//This is init to invalid value
+    v_REGDOMAIN_t domainId = NUM_REG_DOMAINS;	//This is init to invalid value
     eHalStatus status;
 
     do
@@ -4103,10 +5180,15 @@ tANI_BOOLEAN csrMatchCountryCode( tpAniSirGlobal pMac, tANI_U8 *pCountry, tDot11
         {
             break;
         }
+        if( !pIes )
+        {
+            smsLog(pMac, LOGE, FL("  No IEs\n"));
+            break;
+        }
         //Make sure this country is recognizable
 		if( pIes->Country.present )
 		{
-			status = csrGetRegulatoryDomainForCountry( pMac, pIes->Country.country, &domainId );
+			status = csrGetRegulatoryDomainForCountry( pMac, pIes->Country.country,(v_REGDOMAIN_t *) &domainId );
 			if( !HAL_STATUS_SUCCESS( status ) )
 			{
 				fRet = eANI_BOOLEAN_FALSE;
@@ -4124,7 +5206,7 @@ tANI_BOOLEAN csrMatchCountryCode( tpAniSirGlobal pMac, tANI_U8 *pCountry, tDot11
 		}
         if( pMac->roam.configParam.fEnforceCountryCodeMatch )
         {
-            if( domainId >= REGDOMAIN_COUNT )
+            if( domainId >= NUM_REG_DOMAINS )
             {
                 fRet = eANI_BOOLEAN_FALSE;
                 break;
@@ -4155,10 +5237,111 @@ tANI_BOOLEAN csrMatchCountryCode( tpAniSirGlobal pMac, tANI_U8 *pCountry, tDot11
     return (fRet);
 }
 
+#if 0
+eHalStatus csrSetCountryDomainMapping(tpAniSirGlobal pMac, tCsrCountryDomainMapping *pCountryDomainMapping)
+{
+    eHalStatus status = eHAL_STATUS_INVALID_PARAMETER;
+    tANI_U32 i, j;
+    tANI_BOOLEAN fDomainChanged = eANI_BOOLEAN_FALSE;
+    tANI_U8 countryCode[WNI_CFG_COUNTRY_CODE_LEN];
 
+    i = WNI_CFG_COUNTRY_CODE_LEN;
+    //Get the currently used country code
+    status = ccmCfgGetStr(pMac, WNI_CFG_COUNTRY_CODE, countryCode, &i);
+    if(HAL_STATUS_SUCCESS(status))
+    {
+        if(pCountryDomainMapping && pCountryDomainMapping->numEntry)
+        {
+            for(i = 0; i < pCountryDomainMapping->numEntry; i++)
+            {
+                for(j = 0; j < eCSR_NUM_COUNTRY_INDEX; j++)
+                {
+                    if(palEqualMemory(pMac->hHdd, gCsrCountryInfo[j].countryCode, 
+                                    pCountryDomainMapping->pCountryInfo[i].countryCode, 2))
+                    {
+                        if(gCsrCountryInfo[j].domainId != pCountryDomainMapping->pCountryInfo[i].domainId)
+                        {
+                            gCsrCountryInfo[j].domainId = pCountryDomainMapping->pCountryInfo[i].domainId;
+                            //Check whether it matches the currently used country code
+                            //If matching, need to update base on the new domain setting.
+                            if(palEqualMemory(pMac->hHdd, countryCode, 
+                                        pCountryDomainMapping->pCountryInfo[i].countryCode, 2))
+                            {
+                                fDomainChanged = eANI_BOOLEAN_TRUE;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+            status = eHAL_STATUS_SUCCESS;
+            if(fDomainChanged)
+            {
+                tCsrChannel *pChannelList;
 
+                if(pMac->scan.f11dInfoApplied)
+                {
+                    //11d info already applied. Let's reapply with the new doamin setting
+                    if(pMac->scan.channels11d.numChannels)
+                    {
+                        pChannelList = &pMac->scan.channels11d;
+                    }
+                    else
+                    {
+                        pChannelList = &pMac->scan.base20MHzChannels;
+                    }
+                }
+                else
+                {
+                    //no 11d so we use the base channelist from EEPROM
+                    pChannelList = &pMac->scan.base20MHzChannels;
+                }
+                //set the new domain's scan requirement to CFG
+                csrSetCfgScanControlList(pMac, countryCode, pChannelList);
+            }
+        }
+    }
 
-eHalStatus csrGetModifyProfileFields(tpAniSirGlobal pMac, 
+    return (status);
+}
+
+eHalStatus csrSetDomainScanSetting(tpAniSirGlobal pMac, tCsrDomainFreqInfo *pDomainFreqInfo)
+{
+    eHalStatus status = eHAL_STATUS_INVALID_PARAMETER;
+    tANI_U32 i, j;
+    tANI_U16 freq;
+
+    if(pDomainFreqInfo && pDomainFreqInfo->numEntry && (pDomainFreqInfo->domainId < NUM_REG_DOMAINS))
+    {
+        tCsrDomainChnInfo *pDomainChnInfo = &gCsrDoaminChnInfo[pDomainFreqInfo->domainId];
+
+        for(j = 0; j < pDomainChnInfo->numChannels; j++)
+        {
+            if(HAL_STATUS_SUCCESS(halPhyChIdToFreqConversion(pDomainChnInfo->chnInfo[j].chnId, &freq)))
+            {
+                for(i = 0; i < pDomainFreqInfo->numEntry; i++)
+                {
+                    if((pDomainFreqInfo->pCsrScanFreqInfo[i].nStartFreq <= freq) &&
+                        (freq <= pDomainFreqInfo->pCsrScanFreqInfo[i].nEndFreq))
+                    {
+                        pDomainChnInfo->chnInfo[j].scanType = pDomainFreqInfo->pCsrScanFreqInfo[i].scanType;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                smsLog(pMac, LOGW, "   Failed to get frequency of channel %d", pDomainChnInfo->chnInfo[j].chnId);
+            }
+        }
+        status = eHAL_STATUS_SUCCESS;
+    }
+
+    return (status);
+}
+#endif
+
+eHalStatus csrGetModifyProfileFields(tpAniSirGlobal pMac, tANI_U32 sessionId,
                                      tCsrRoamModifyProfileFields *pModifyProfileFields)
 {
 
@@ -4168,17 +5351,18 @@ eHalStatus csrGetModifyProfileFields(tpAniSirGlobal pMac,
    }
 
    palCopyMemory( pMac->hHdd, pModifyProfileFields, 
-                  &pMac->roam.connectedProfile.modifyProfileFields, 
+                  &pMac->roam.roamSession[sessionId].connectedProfile.modifyProfileFields, 
                   sizeof(tCsrRoamModifyProfileFields) );
 
    return eHAL_STATUS_SUCCESS;
 }
 
-eHalStatus csrSetModifyProfileFields(tpAniSirGlobal pMac, 
+eHalStatus csrSetModifyProfileFields(tpAniSirGlobal pMac, tANI_U32 sessionId,
                                      tCsrRoamModifyProfileFields *pModifyProfileFields)
 {
+  tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );	
 
-   palCopyMemory( pMac->hHdd, &pMac->roam.connectedProfile.modifyProfileFields,
+   palCopyMemory( pMac->hHdd, &pSession->connectedProfile.modifyProfileFields,
                   pModifyProfileFields,
                   sizeof(tCsrRoamModifyProfileFields) );
 
@@ -4186,6 +5370,46 @@ eHalStatus csrSetModifyProfileFields(tpAniSirGlobal pMac,
 }
 
 
+#if 0
+/* ---------------------------------------------------------------------------
+    \fn csrGetSupportedCountryCode
+    \brief this function is to get a list of the country code current being supported
+    \param pBuf - Caller allocated buffer with at least 3 bytes, upon success return, 
+    this has the country code list. 3 bytes for each country code. This may be NULL if
+    caller wants to know the needed bytes.
+    \param pbLen - Caller allocated, as input, it indicates the length of pBuf. Upon success return,
+    this contains the length of the data in pBuf
+    \return eHalStatus     
+  -------------------------------------------------------------------------------*/
+eHalStatus csrGetSupportedCountryCode(tpAniSirGlobal pMac, tANI_U8 *pBuf, tANI_U32 *pbLen)
+{
+    tANI_U32 numOfCountry = sizeof( gCsrCountryInfo ) / sizeof( gCsrCountryInfo[0] );
+    tANI_U32 numBytes = 0;
+    eHalStatus status = eHAL_STATUS_INVALID_PARAMETER;
+
+    if( pbLen )
+    {
+        numBytes = *pbLen;
+        //Consider it ok, at least we can return the number of bytes needed;
+        *pbLen = numOfCountry * WNI_CFG_COUNTRY_CODE_LEN;
+        status = eHAL_STATUS_SUCCESS;
+        if( pBuf && ( numBytes >= *pbLen ) )
+        {
+            //The ugly part starts.
+            //We may need to alter the data structure and find a way to make this faster.
+            tANI_U32 i;
+
+            for( i = 0; i < numOfCountry; i++ )
+            {
+                palCopyMemory( pMac->hHdd, pBuf + ( i * WNI_CFG_COUNTRY_CODE_LEN ),
+                    gCsrCountryInfo[i].countryCode, WNI_CFG_COUNTRY_CODE_LEN );
+            }
+        }
+    }
+
+    return ( status );
+}
+#endif
 
 /* ---------------------------------------------------------------------------
     \fn csrGetSupportedCountryCode
@@ -4227,6 +5451,7 @@ eHalStatus csrGetSupportedCountryCode(tpAniSirGlobal pMac, tANI_U8 *pBuf, tANI_U
 
     return (status);
 }
+
 
 
 //Upper layer to get the list of the base channels to scan for passively 11d info from csr

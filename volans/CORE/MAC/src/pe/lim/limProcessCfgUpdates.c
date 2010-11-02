@@ -24,8 +24,11 @@
 #include "halCommonApi.h"
 #include "schApi.h"
 #include "pmmApi.h"
+#if defined WLAN_FEATURE_VOWIFI
+#include "rrmApi.h"
+#endif
 
-static void limUpdateConfig(tpAniSirGlobal pMac);
+static void limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry);
 
 #if 0
 /**
@@ -204,11 +207,34 @@ tANI_U32 defaultCfgList[] = {
 \param      tpAniSirGlobal    pMac
 \return      None
   -------------------------------------------------------------*/
+#ifdef WLAN_SOFTAP_FEATURE
+void limSetCfgProtection(tpAniSirGlobal pMac, tpPESession pesessionEntry)
+#else
 void limSetCfgProtection(tpAniSirGlobal pMac)
+#endif
 {
     tANI_U32 val = 0;
 
-
+#ifdef WLAN_SOFTAP_FEATURE
+    if(( pesessionEntry != NULL ) && (pesessionEntry->limSystemRole == eLIM_AP_ROLE )){
+	    if (pesessionEntry->gLimProtectionControl == WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE )
+            palZeroMemory( pMac->hHdd, (void *)&pesessionEntry->cfgProtection , sizeof(tCfgProtection));
+	    else{
+            limLog(pMac, LOG1, FL(" frm11a = %d, from11b = %d, frm11g = %d, ht20 = %d,\
+                                    ht20 = %d, nongf = %d, lsigTxop = %d, rifs = %d,\
+                                    obss = %d\n"),    
+                                    pesessionEntry->cfgProtection.fromlla,\
+                                    pesessionEntry->cfgProtection.fromllb,\
+                                    pesessionEntry->cfgProtection.fromllg,\
+                                    pesessionEntry->cfgProtection.ht20,\
+                                    pesessionEntry->cfgProtection.nonGf,\
+                                    pesessionEntry->cfgProtection.lsigTxop,\
+                                    pesessionEntry->cfgProtection.rifs,\
+                                    pesessionEntry->cfgProtection.obss);
+	    }
+    }
+	else{
+#endif
     if (wlan_cfgGetInt(pMac, WNI_CFG_FORCE_POLICY_PROTECTION, &val) != eSIR_SUCCESS)
     {
         limLog(pMac, LOGP, FL("reading WNI_CFG_FORCE_POLICY_PROTECTION cfg failed\n"));
@@ -249,8 +275,10 @@ void limSetCfgProtection(tpAniSirGlobal pMac)
             pMac->lim.cfgProtection.rifs = (val >> WNI_CFG_PROTECTION_ENABLED_RIFS) & 1;
 	     pMac->lim.cfgProtection.obss= (val >> WNI_CFG_PROTECTION_ENABLED_OBSS) & 1;
 	     
-			
         }
+#ifdef WLAN_SOFTAP_FEATURE
+}
+#endif	
 }
 
 
@@ -280,11 +308,13 @@ static tSirRetStatus limUpdateTriggerStaBkScanFlag(tpAniSirGlobal pMac)
     flag = (val) ? 1 : 0;
     if(flag != pMac->lim.gLimTriggerBackgroundScanDuringQuietBss)
     {
-    /* Update global flag */
-    pMac->lim.gLimTriggerBackgroundScanDuringQuietBss = flag;
-    /* Update beacon prop IE also if we're an AP */
-    if(pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
-        schSetFixedBeaconFields(pMac);
+        /* Update global flag */
+        pMac->lim.gLimTriggerBackgroundScanDuringQuietBss = flag;
+        /*Update beacon prop IE also if we're an AP */
+
+        //call a wrapper and if the session role is other than the sta call this function schsetfixedbeacon fields function
+        limUpdateBeacon(pMac);
+		    
     }
 
     return eSIR_FAILURE;
@@ -413,6 +443,12 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
                 limDeactivateAndChangeTimer(pMac,
                                            eLIM_PRE_AUTH_CLEANUP_TIMER);
 
+#ifdef GEN6_TODO
+                /* revisit this piece of code to assign the appropriate sessionId below
+                 * priority - MEDIUM
+                 */
+                pMac->lim.limTimers.gLimPreAuthClnupTimer.sessionId = sessionId;
+#endif
                 // Reactivate pre-auth cleanup timer
                 MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_PRE_AUTH_CLEANUP_TIMER));
                 if (tx_timer_activate(&pMac->lim.limTimers.gLimPreAuthClnupTimer)
@@ -508,14 +544,18 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         break;
 
     case WNI_CFG_PROTECTION_ENABLED:
+#ifdef WLAN_SOFTAP_FEATURE
+        limSetCfgProtection(pMac, NULL);
+#else
         limSetCfgProtection(pMac);
+#endif
         break;
     case WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA:
     case WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG:
         //Update beacon.
         if( (pMac->lim.gLimSmeState == eLIM_SME_NORMAL_STATE)  && 
              (pMac->lim.gLimSystemRole != eLIM_STA_ROLE) )
-                schSetFixedBeaconFields(pMac);
+                limUpdateBeacon(pMac);
         break;
     case WNI_CFG_GREENFIELD_CAPABILITY:
         if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS) 
@@ -656,7 +696,8 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
             else 
             {
 				pMac->sys.gSysEnableLinkMonitorMode = 1;
-				limReactivateTimer( pMac, eLIM_HEART_BEAT_TIMER );
+				//limReactivateTimer( pMac, eLIM_HEART_BEAT_TIMER );
+                               //limReactivateHeartBeatTimer(pMac, psessionEntry);
                 PELOGE(limLog(pMac, LOGE, "Reactivating heartbeat link monitoring\n");)
             }        
         case WNI_CFG_MAX_PS_POLL:
@@ -694,10 +735,8 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
             PELOGE(limLog(pMac, LOGE, FL("could not retrieve Dot11 Mode  CFG\n"));)
             break;
         }
-        pMac->lim.gLimDot11Mode = val1;
-        /*Depending on Operating mode update the HT Capability flag */
-        pMac->lim.htCapability = IS_DOT11_MODE_HT(pMac->lim.gLimDot11Mode);
-	
+        /* TODO */
+        //psessionEntry->dot11mode = val1;    //// un comment this line ...FORBUILD -TEMPFIX.. HOW TO GET sessionEntry?????
         break;
     case WNI_CFG_ADDBA_REQ_DECLINE:
         if(wlan_cfgGetInt(pMac, WNI_CFG_ADDBA_REQ_DECLINE, &val1) != eSIR_SUCCESS) {
@@ -743,20 +782,18 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
  */
 
 void
-limApplyConfiguration(tpAniSirGlobal pMac)
+limApplyConfiguration(tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
-    tANI_U32          val, phyMode;
-    tSirMacAddr       macAddr;
-    tSirMacRateSet    suppRateSet;
+    tANI_U32          val=0, phyMode;
 
-    PELOG2(limLog(pMac, LOG2, FL("Applying config\n"));)
-
+   PELOG2(limLog(pMac, LOG2, FL("Applying config\n"));)
+   	
 #if (defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))
         limCleanupMeasResources(pMac);
 #endif
     limInitWdsInfoParams(pMac);
 
-    pMac->lim.gLimSentCapsChangeNtf = false;
+    psessionEntry->limSentCapsChangeNtf = false;
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_PHY_MODE, &phyMode) != eSIR_SUCCESS)
     {
@@ -764,34 +801,11 @@ limApplyConfiguration(tpAniSirGlobal pMac)
         return;
     }
 
-    val = WNI_CFG_OPERATIONAL_RATE_SET_LEN;
-    if (wlan_cfgGetStr(pMac, WNI_CFG_OPERATIONAL_RATE_SET, (tANI_U8 *) &suppRateSet.rate, (tANI_U32 *) &val)
-        != eSIR_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("could not retrieve Operational rateset\n"));
-        return;
-    }
-    suppRateSet.numRates = (tANI_U8) val;
-
-    // Update self MAC address
-    val = sizeof(macAddr);
-    if (wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, (tANI_U8 *) macAddr, &val) != eSIR_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("could not retrive STA_ID\n"));
-        return;
-    }
-
+        
     // Set default keyId and keys
     limSetDefaultKeyIdAndKeys(pMac);
 
-    // Set POI
-    if (wlan_cfgGetInt(pMac, WNI_CFG_PRIVACY_ENABLED, &val) != eSIR_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("Unable to retrieve POI from CFG\n"));
-        return;
-    }
-
-    limUpdateConfig(pMac);
+    limUpdateConfig(pMac,psessionEntry);
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, &val)
             != eSIR_SUCCESS)
@@ -802,22 +816,15 @@ limApplyConfiguration(tpAniSirGlobal pMac)
     if (phyMode == WNI_CFG_PHY_MODE_11G)
     {
         // Program Polaris based on AP capability
-        if (pMac->lim.gLimMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE)
-        {
+
+        if (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE)
             // Joining BSS.
-            val = SIR_MAC_GET_SHORT_SLOT_TIME( pMac->lim.gLimCurrentBssCaps);
-            PELOG3(limLog(pMac, LOG3, FL("Joining BSS gLimCurrentBssCaps 0x%x val %d\n"),
-                pMac->lim.gLimCurrentBssCaps, val);)
-        }
-        else if (pMac->lim.gLimMlmState == eLIM_MLM_WT_REASSOC_RSP_STATE)
-        {
+            val = SIR_MAC_GET_SHORT_SLOT_TIME( psessionEntry->limCurrentBssCaps);
+        else if (psessionEntry->limMlmState == eLIM_MLM_WT_REASSOC_RSP_STATE)
             // Reassociating with AP.
-            val = SIR_MAC_GET_SHORT_SLOT_TIME( pMac->lim.gLimReassocBssCaps);
-            PELOG3(limLog(pMac, LOG3, FL("Reassociating with AP gLimReassocBssCaps 0x%x val %d\n"),
-                pMac->lim.gLimReassocBssCaps, val);)
-        }
-        
-        // Set short slot time at CFG so that Polaris is programmed.
+            val = SIR_MAC_GET_SHORT_SLOT_TIME( psessionEntry->limReassocBssCaps);
+
+ 
         if (cfgSetInt(pMac, WNI_CFG_SHORT_SLOT_TIME, val) != eSIR_SUCCESS)
         {
             limLog(pMac, LOGP, FL("could not update short slot time at CFG\n"));
@@ -831,17 +838,32 @@ limApplyConfiguration(tpAniSirGlobal pMac)
         {
             limLog(pMac, LOGP, FL("could not update short slot time at CFG\n"));
             return;
-        }
+    }
     }
     //apply protection related config.
-    limSetCfgProtection(pMac);    
 
-    if ((pMac->lim.gLimSystemRole == eLIM_AP_ROLE) ||
-        (pMac->lim.gLimSystemRole == eLIM_STA_IN_IBSS_ROLE))
+#ifdef WLAN_SOFTAP_FEATURE	
+    limSetCfgProtection(pMac, psessionEntry);    
+#else
+    limSetCfgProtection(pMac);    
+#endif
+
+
+    /* Added for BT - AMP Support */
+    if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE) ||
+         (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)||
+         (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)||
+         (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE) )
     {
-        PELOG1(limLog(pMac, LOG1, FL("Initializing beacon generation\n"));)
-        schSetBeaconInterval(pMac);
-        schSetFixedBeaconFields(pMac);
+		/* This check is required to ensure the beacon generation is not done 
+		     as a part of join request for a BT-AMP station */
+		     
+		if(psessionEntry->statypeForBss == STA_ENTRY_SELF)
+    	{
+        	PELOG1(limLog(pMac, LOG1, FL("Initializing BT-AMP beacon generation\n"));)
+        	schSetBeaconInterval(pMac,psessionEntry);
+        	schSetFixedBeaconFields(pMac,psessionEntry);
+    	}	
     }
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_SCAN_IN_POWERSAVE, &val) != eSIR_SUCCESS)
@@ -872,32 +894,19 @@ limApplyConfiguration(tpAniSirGlobal pMac)
  */
 
 static void
-limUpdateConfig(tpAniSirGlobal pMac)
+limUpdateConfig(tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
-    tANI_U32 len, val;
+    tANI_U32 val;
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_PHY_MODE, &pMac->lim.gLimPhyMode) != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("cfg get failed\n"));
 
-    if (wlan_cfgGetInt(pMac, WNI_CFG_DOT11_MODE, &pMac->lim.gLimDot11Mode) != eSIR_SUCCESS)
-        limLog(pMac, LOGP, FL("cfg get failed for Dot11 Mode\n"));
 
-
-    len = 6;
-    if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, pMac->lim.gLimBssid, &len) != eSIR_SUCCESS)
-        limLog(pMac, LOGP, FL("cfg get bssid failed\n"));
-
-    len = 6;
+    #if 0
     if (wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, pMac->lim.gLimMyMacAddr, &len) != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("cfg get sta id failed\n"));
-
-    PELOG1(limLog(pMac, LOG1, FL("BSSID : %x:%x:%x:%x:%x:%x\n"),
-                 pMac->lim.gLimBssid[0],
-                 pMac->lim.gLimBssid[1],
-                 pMac->lim.gLimBssid[2],
-                 pMac->lim.gLimBssid[3],
-                 pMac->lim.gLimBssid[4],
-                 pMac->lim.gLimBssid[5]);)
+    #endif //To SUPPORT BT-AMP
+    sirCopyMacAddr(pMac->lim.gLimMyMacAddr,psessionEntry->selfMacAddr);
 
     if (wlan_cfgGetInt(pMac, WNI_CFG_SHORT_PREAMBLE, &val) != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("cfg get short preamble failed\n"));
@@ -939,6 +948,9 @@ limUpdateConfig(tpAniSirGlobal pMac)
         limLog(pMac, LOGP, FL("cfg get 11d enabled failed\n"));
     pMac->lim.gLim11dEnabled = (val) ? 1 : 0;
 
+#if defined WLAN_FEATURE_VOWIFI
+    rrmUpdateConfig( pMac, psessionEntry ); 
+#endif
     PELOG1(limLog(pMac, LOG1, FL("Updated Lim shadow state based on CFG\n"));)
 
     

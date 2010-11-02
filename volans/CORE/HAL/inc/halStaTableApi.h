@@ -46,12 +46,15 @@ eHalStatus halTable_RestoreStaConfig(tpAniSirGlobal pMac, tHalCfgSta *staEntry, 
 eHalStatus halTable_GetStaConfig(tpAniSirGlobal pMac, tHalCfgSta **staEntry, tANI_U8 staIdx);
 eHalStatus halTable_GetBssType(tpAniSirGlobal pMac, tANI_U8 bssId, tANI_U8 *bssType);
 eHalStatus halTable_GetStaIndexForBss(tpAniSirGlobal pMac, tANI_U8 bssIndex, tANI_U8 *staIndex);
+eHalStatus halTable_SetStaIndexForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 staIdx);
 eHalStatus halTable_GetBssIndexForSta(tpAniSirGlobal pMac, tANI_U8 *bssIndex, tANI_U8 staIndex);
+eHalStatus halTable_SetBssIndexForSta(tpAniSirGlobal pMac, tANI_U8 bssIndex, tANI_U8 staIndex);
+eHalStatus halTable_GetObssProtForBss(tpAniSirGlobal pMac, tANI_U8 bssIndex, tANI_U8 *obssProt);
+eHalStatus halTable_SetObssProtForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 obssProt);
 eHalStatus halTable_ValidateStaIndex(tpAniSirGlobal pMac, tANI_U8 staId);
 eHalStatus halTable_ValidateBssIndex(tpAniSirGlobal pMac, tANI_U8 bssIdx);
 eHalStatus halTable_UpdateBssACM(tpAniSirGlobal pMac, tEdcaParams *pEdcaParams, tANI_U8 *pPrevAcmMap, tANI_U8 *pNewAcmMap);
 eHalStatus halTable_GetSelfMacAddr(tpAniSirGlobal pMac, tSirMacAddr selfMacAddr);
-eHalStatus halStaTableGetBssIdx(tpAniSirGlobal pMac, tANI_U8 staId, tANI_U8 *pBssIdx);
 eHalStatus halTable_SetStaType(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 staType);
 eHalStatus halTable_SetStaAddr(tpAniSirGlobal pMac, tANI_U8 staIdx, tSirMacAddr staAddr);
 eHalStatus halTable_GetStaAddr(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 **pStaAddr);
@@ -60,12 +63,10 @@ eHalStatus halTable_SetStaDpuIdx(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 dp
 eHalStatus halTable_GetStaDpuIdx(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 *pDpuIdx);
 eHalStatus halTable_SetStaUMAIdx(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 umaIdx);
 eHalStatus halTable_GetStaUMAIdx(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 *pUMAIdx);
-eHalStatus halTable_SetStaUMABcastIdx(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 umaBcastIdx);
 eHalStatus halTable_SetStaopRateMode(tpAniSirGlobal pMac, tANI_U8 staIdx, tStaRateMode  opRateMode);
 eHalStatus halTable_GetStaopRateMode(tpAniSirGlobal pMac, tANI_U8 staIdx, tStaRateMode *popRateMode);
 eHalStatus halTable_SetStaBcastDpuIdx(tpAniSirGlobal pMac,tANI_U8 staIdx,tANI_U8 dpuIdx);
 eHalStatus halTable_GetStaBcastDpuIdx(tpAniSirGlobal pMac,tANI_U8 staIdx,tANI_U8 * pDpuIdx);
-eHalStatus halTable_GetStaUMABcastIdx(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 *pUMABcastIdx);
 eHalStatus halTable_SetStaBcastMgmtDpuIdx(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 dpuIdx);
 eHalStatus halTable_GetStaBcastMgmtDpuIdx(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 *pDpuIdx);
 eHalStatus halTable_SetStaAssocId(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U16 assocId);
@@ -73,12 +74,24 @@ eHalStatus halTable_GetStaAssocId(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U16 
 eHalStatus halTable_SetStaSignature(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 staSignature);
 eHalStatus halTable_GetStaSignature(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 *pStaSignature);
 eHalStatus halTable_SetStaAuthState(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_BOOLEAN authenticated);
-eHalStatus halTable_SetStaIdxForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 staIdx);
+
+#ifdef HAL_SELF_STA_PER_BSS
+eHalStatus halTable_GetBssSelfStaIdxForSta(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 *idx);
+eHalStatus halTable_SetBssSelfStaIdxForSta(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 idx);
+eHalStatus halTable_GetBssSelfStaIdxForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 *idx);
+eHalStatus halTable_SetBssSelfStaIdxForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 idx);
+#endif
+#ifdef HAL_BCAST_STA_PER_BSS
+eHalStatus halTable_SetBssBcastStaIdx(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 idx);
+eHalStatus halTable_GetBssBcastStaIdx(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 *idx);
+#endif
 eHalStatus halTable_SetStaQosEnabled(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 qosEnabled);
 eHalStatus halTable_GetStaQosEnabled(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 *qosEnabled);
 eHalStatus halTable_SetStaHtEnabled(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 htEnabled, tANI_U8 gfEnabled);
 eHalStatus halTable_SetBeaconIntervalForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U16 bcnInterval);
 eHalStatus halTable_GetBeaconIntervalForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U16 *pbcnInterval);
+eHalStatus halTable_SetSsidForBss(tpAniSirGlobal pMac, tANI_U8 bssIdx, tSirMacSSid ssId);
+
 
 eHalStatus halIsBssTableEmpty(tpAniSirGlobal pMac);
 
@@ -130,6 +143,12 @@ eHalStatus halTable_StaCacheOpen(tHalHandle hHal, void *arg);
 eHalStatus halTable_StaCacheStart(tHalHandle hHal, void *arg);
 eHalStatus halTable_StaCacheStop(tHalHandle hHal, void *arg);
 eHalStatus halTable_StaCacheClose(tHalHandle hHal, void *arg);
+
+#ifdef WLAN_FEATURE_VOWIFI
+eHalStatus halTable_GetBssRaConfig(tpAniSirGlobal pMac, tANI_U8 rfBand, bssRaParam *config, tANI_U8 bssIdx);
+eHalStatus halTable_GetTxPowerLimitIndex(tpAniSirGlobal pMac, tANI_U8 rfBand, tPwrTemplateIndex *maxTxPwrIndex);
+#endif /* WLAN_FEATURE_VOWIFI */
+
 #define STA_ADDR_HASH(staAddr) (staAddr[5])
 #endif /* _HALSTA_TABLE_API_H_ */
 

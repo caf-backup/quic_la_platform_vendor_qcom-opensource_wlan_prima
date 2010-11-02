@@ -30,6 +30,16 @@
 #include "sme_QosApi.h"
 #include "smeQosInternal.h"
 
+
+#ifdef FEATURE_INNAV_SUPPORT
+#include "measInternal.h"
+#endif
+
+#if defined WLAN_FEATURE_VOWIFI
+#include "sme_RrmApi.h"
+#endif
+
+
 /*-------------------------------------------------------------------------- 
   Type declarations
   ------------------------------------------------------------------------*/
@@ -60,6 +70,7 @@ typedef struct tagSmeCmd
 {
     tListElem Link;
     eSmeCommandType command;
+	tANI_U32 sessionId;
     union
     {
         tScanCmd scanCmd;
@@ -69,6 +80,9 @@ typedef struct tagSmeCmd
         tRemoveKeyCmd removeKeyCmd;
         tGenericPmcCmd pmcCmd;
         tGenericQosCmd qosCmd;
+#ifdef FEATURE_INNAV_SUPPORT
+		tMeasCmd measCmd;
+#endif
     }u;
 }tSmeCmd;
 
@@ -101,13 +115,19 @@ void csrReinitSetKeyCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 void csrReinitRemoveKeyCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 eHalStatus csrRoamProcessSetKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 eHalStatus csrRoamProcessRemoveKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
-eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tCsrRoamSetKey *pSetKey, tANI_U32 roamId );
+//eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamSetKey *pSetKey, tANI_U32 roamId );
+eHalStatus csrRoamIssueRemoveKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessionId,
+                                         tCsrRoamRemoveKey *pRemoveKey, tANI_U32 roamId );
 eHalStatus csrIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pCommand, tRequestFullPowerReason *pReason,
                                  tANI_BOOLEAN *pfNeedPower);
 void csrAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStopping );
 
 eHalStatus sme_AcquireGlobalLock( tSmeStruct *psSme);
 eHalStatus sme_ReleaseGlobalLock( tSmeStruct *psSme);
+
+#ifdef FEATURE_INNAV_SUPPORT
+eHalStatus measProcessInNavMeasCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand);
+#endif
 
 
 #endif //#if !defined( __SMEINSIDE_H )

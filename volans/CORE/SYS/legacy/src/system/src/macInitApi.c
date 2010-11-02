@@ -67,7 +67,7 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
 	{
 	    for(i=0; i<MAX_DUMP_TABLE_ENTRY; i++)
 	    {
-            if(palAllocateMemory(pMac->hHdd, ((void *)&pMac->dumpTableEntry[i]), sizeof(tDumpModuleEntry))
+            if(palAllocateMemory(pMac->hHdd, ((void **)&pMac->dumpTableEntry[i]), sizeof(tDumpModuleEntry))
                 != eHAL_STATUS_SUCCESS)
             {
                 memAllocFailed = eANI_BOOLEAN_TRUE;
@@ -100,7 +100,7 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
         //Enable Tracing
         macTraceInit(pMac);
 #endif
-	    if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, ((void *)&pMac->pResetMsg), sizeof(tSirMbMsg))))
+	    if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, ((void **)&pMac->pResetMsg), sizeof(tSirMbMsg))))
 	    {
             sysLog(pMac, LOGE, FL("pMac->pResetMsg is NULL\n"));
             status = eSIR_FAILURE;
@@ -186,7 +186,7 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
      */
 
     /* Allocate pMac */
-    if (palAllocateMemory(hHdd, ((void *)&pMac), sizeof(tAniSirGlobal)) != eHAL_STATUS_SUCCESS)
+    if (palAllocateMemory(hHdd, ((void **)&pMac), sizeof(tAniSirGlobal)) != eHAL_STATUS_SUCCESS)
         return eSIR_FAILURE;
 
     /* Initialize the pMac structure */
@@ -207,7 +207,7 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
     }else
 #endif
     /* Allocate HalDxe */
-    if (palAllocateMemory(hHdd, ((void *)&pMac->hal.pHalDxe), sizeof(tAniHalDxe)) != eHAL_STATUS_SUCCESS){
+    if (palAllocateMemory(hHdd, ((void **)&pMac->hal.pHalDxe), sizeof(tAniHalDxe)) != eHAL_STATUS_SUCCESS){
         palFreeMemory(hHdd, pMac);
         return eSIR_FAILURE;
     }
@@ -224,9 +224,15 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
     pMac->pAdapter  = hHdd; //This line wil be removed
     *pHalHandle     = (tHalHandle)pMac;
 
-#ifndef ANI_MANF_DIAG
+    {
         /* Call various PE (and other layer init here) */
-        logInit(pMac);
+        if( eHAL_STATUS_SUCCESS != logInit(pMac))
+           return eSIR_FAILURE;
+            
+        /* Call routine to initialize CFG data structures */
+        if( eSIR_SUCCESS != cfgInit(pMac) )
+            return eSIR_FAILURE;
+
         sysInitGlobals(pMac);
 
         // This decides whether HW needs to translate the 802.3 frames
@@ -242,14 +248,11 @@ tSirRetStatus macOpen(tHalHandle *pHalHandle, tHddHandle hHdd, tMacOpenParameter
 #if defined( VOSS_ENABLED )
         tx_voss_wrapper_init(pMac, hHdd);
 #endif
-#endif /* ANI_MANF_DIAG */
+    }
     if (eHAL_STATUS_SUCCESS != halOpen(pMac, pHalHandle, hHdd, pMacOpenParms))
         return eSIR_FAILURE;
 
-#ifndef ANI_MANF_DIAG
     return peOpen(pMac, pMacOpenParms);
-#endif /* ANI_MANF_DIAG */
-	return eSIR_SUCCESS;
 }
 
 /** -------------------------------------------------------------
@@ -279,6 +282,11 @@ tSirRetStatus macClose(tHalHandle hHal)
 
     peClose(pMac);
     halClose(hHal);
+    
+    /* Call routine to free-up all CFG data structures */
+    cfgDeInit(pMac);
+
+    logDeinit(pMac);
 
     return eSIR_SUCCESS;
 }

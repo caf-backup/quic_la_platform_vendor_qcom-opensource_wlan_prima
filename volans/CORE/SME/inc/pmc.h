@@ -179,7 +179,7 @@ extern void pmcDoCallbacks (tHalHandle hHal, eHalStatus callbackStatus);
 extern void pmcDoBmpsCallbacks (tHalHandle hHal, eHalStatus callbackStatus);
 extern void pmcDoStartUapsdCallbacks (tHalHandle hHal, eHalStatus callbackStatus);
 extern void pmcDoStandbyCallbacks (tHalHandle hHal, eHalStatus callbackStatus);
-extern eHalStatus pmcStartTrafficTimer (tHalHandle hHal);
+extern eHalStatus pmcStartTrafficTimer (tHalHandle hHal, tANI_U32 expirationTime);
 extern void pmcStopTrafficTimer (tHalHandle hHal);
 extern void pmcImpsTimerExpired (tHalHandle hHal);
 extern void pmcTrafficTimerExpired (tHalHandle hHal);
@@ -205,5 +205,7 @@ extern eHalStatus pmcIssueCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType,
                                    tANI_U32 size, tANI_BOOLEAN fPutToListHead );
 extern eHalStatus pmcEnterImpsCheck( tpAniSirGlobal pMac );
 extern eHalStatus pmcEnterBmpsCheck( tpAniSirGlobal pMac );
+extern tANI_BOOLEAN pmcShouldBmpsTimerRun( tpAniSirGlobal pMac );
+
 
 #endif

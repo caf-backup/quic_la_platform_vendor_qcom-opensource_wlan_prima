@@ -10,6 +10,23 @@
 
   ========================================================================*/
 
+/*===========================================================================
+
+                      EDIT HISTORY FOR FILE
+
+
+  This section contains comments describing changes made to the module.
+  Notice that changes are listed in reverse chronological order.
+
+
+
+  when             who                 what, where, why
+----------       ---                --------------------------------------------------------
+06/03/10     js                     Added support to hostapd driven 
+ *                                  deauth/disassoc/mic failure
+
+===========================================================================*/
+
 /*--------------------------------------------------------------------------
   Include Files
   ------------------------------------------------------------------------*/
@@ -18,6 +35,11 @@
 #include "sme_Api.h"
 #include "csrInsideApi.h"
 #include "smeInside.h"
+#include "csrInternal.h"
+
+#ifdef WLAN_SOFTAP_FEATURE
+#include "sapApi.h"
+#endif
 
 // TxMB Functions
 extern tSirRetStatus halMmhForwardMBmsg(void* pSirGlobal, tSirMbMsg* pMb);
@@ -28,6 +50,8 @@ extern void qosReleaseCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 
 static eHalStatus initSmeCmdList(tpAniSirGlobal pMac);
 static void smeAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStopping );
+
+eCsrPhyMode sme_GetPhyMode(tHalHandle hHal);
 
 //Internal SME APIs
 eHalStatus sme_AcquireGlobalLock( tSmeStruct *psSme)
@@ -204,6 +228,11 @@ static eSmeCommandType smeIsFullPowerNeeded( tpAniSirGlobal pMac, tSmeCmd *pComm
         fFullPowerNeeded = ( ( eSmeCommandAddTs == pCommand->command ) || 
                     ( eSmeCommandDelTs ==  pCommand->command ) );
         if( fFullPowerNeeded ) break;
+#ifdef FEATURE_INNAV_SUPPORT
+        pmcState = pmcGetPmcState(pMac);
+        fFullPowerNeeded = (pmcState == IMPS && eSmeCommandMeas == pCommand->command);
+        if(fFullPowerNeeded) break;
+#endif
     } while(0);
 
     if( fFullPowerNeeded )
@@ -373,6 +402,13 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                             csrRoamProcessRemoveKeyCommand( pMac, pCommand );
                             break;
 
+#ifdef FEATURE_INNAV_SUPPORT
+                        case eSmeCommandMeas:
+                            csrLLUnlock(&pMac->sme.smeCmdActiveList);
+                            measProcessInNavMeasCommand(pMac, pCommand);
+                            break;
+#endif
+
                         case eSmeCommandEnterImps:
                         case eSmeCommandExitImps:
                         case eSmeCommandEnterBmps:
@@ -397,7 +433,7 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                         //Treat standby differently here because caller may not be able to handle 
                         //the failure so we do our best here
                         case eSmeCommandEnterStandby:
-                            if( csrIsConnStateDisconnected( pMac ) )
+                            if( csrIsConnStateDisconnected( pMac, pCommand->sessionId ) )
                             {
                                 //It can continue
                                 csrLLUnlock( &pMac->sme.smeCmdActiveList );
@@ -465,6 +501,7 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                         case eSmeCommandAddTs:
                         case eSmeCommandDelTs:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                             fContinue = qosProcessCommand( pMac, pCommand );
                             if( fContinue )
                             {
@@ -472,9 +509,12 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                                 if( csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, 
                                             &pCommand->Link, LL_ACCESS_NOLOCK ) )
                                 {
+//#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                                     qosReleaseCommand( pMac, pCommand );
+//#endif /* WLAN_MDM_CODE_REDUCTION_OPT*/
                                 }
                             }
+#endif
                             break;
 
                         default:
@@ -583,7 +623,7 @@ eHalStatus sme_Open(tHalHandle hHal)
          break;
       }
 
-      status = csrOpen(hHal);
+      status = csrOpen(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
          smsLog( pMac, LOGE, "csrOpen failed during initialization with \
                 status=%d\n", status );
@@ -597,6 +637,7 @@ eHalStatus sme_Open(tHalHandle hHal)
          break;
       }
 
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
       status = sme_QosOpen(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
          smsLog( pMac, LOGE, "Qos open failed during initialization with \
@@ -610,21 +651,120 @@ eHalStatus sme_Open(tHalHandle hHal)
               status=%d\n", status );
          break;
       }
+#endif
+#ifdef FEATURE_INNAV_SUPPORT
+      status = measInNavOpen(pMac);
+      if ( ! HAL_STATUS_SUCCESS( status ) ) {
+         smsLog(pMac, LOGE, "measInNavOpen failed during initialization with \
+              status=%d\n", status );
+         break;
+      }
+#endif
 
       if(!HAL_STATUS_SUCCESS((status = initSmeCmdList(pMac))))
           break;
+
+#ifdef WLAN_SOFTAP_FEATURE
+      if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
+         v_PVOID_t pvosGCtx = vos_get_global_context(VOS_MODULE_ID_SAP, NULL);
+         if ( NULL == pvosGCtx ){
+            smsLog( pMac, LOGE, "WLANSAP_Open open failed during initialization with \
+                 \n");
+            status = eHAL_STATUS_FAILURE;
+            break;
+         }  
+            
+         status = WLANSAP_Open( pvosGCtx );
+         if ( ! HAL_STATUS_SUCCESS( status ) ) {
+            smsLog( pMac, LOGE, "WLANSAP_Open open failed during initialization with \
+                 status=%d\n", status );
+            break;
+         }
+      }
+#endif
+#if defined WLAN_FEATURE_VOWIFI
+      status = rrmOpen(pMac);
+      if ( ! HAL_STATUS_SUCCESS( status ) ) {
+         smsLog( pMac, LOGE, "rrmOpen open failed during initialization with \
+              status=%d\n", status );
+         break;
+      }
+#endif
+
+#if defined WLAN_FEATURE_VOWIFI_11R
+      sme_FTOpen(pMac);
+#endif
 
    }while (0);
 
    return status;
 }
 
+#ifdef WLAN_SOFTAP_FEATURE
+/*--------------------------------------------------------------------------
+
+  \brief sme_set11dinfo() - Set the 11d information about valid channels
+   and there power using information from nvRAM 
+   This function is called only for AP.
+
+  This is a synchronuous call
+
+  \param hHal - The handle returned by macOpen.
+  \Param pSmeConfigParams - a pointer to a caller allocated object of
+  typedef struct _smeConfigParams.
+
+  \return eHAL_STATUS_SUCCESS - SME update the config parameters successfully.
+
+        Other status means SME is failed to update the config parameters.
+  \sa
+--------------------------------------------------------------------------*/
+
+eHalStatus sme_set11dinfo(tHalHandle hHal,  tpSmeConfigParams pSmeConfigParams)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   if (NULL == pSmeConfigParams ) {
+      smsLog( pMac, LOGE, "Empty config param structure for SME, nothing to \
+            update\n");
+      return status;
+   }    
+
+   status = csrSetChannels(hHal, &pSmeConfigParams->csrConfig );
+   if ( ! HAL_STATUS_SUCCESS( status ) ) {
+      smsLog( pMac, LOGE, "csrChangeDefaultConfigParam failed with status=%d\n",
+              status );
+   }
+    return status;
+}
+
+eHalStatus sme_setRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   if (NULL == apCntryCode ) {
+      smsLog( pMac, LOGE, "Empty Country Code, nothing to \
+            update\n");
+      return status;
+   }    
+
+   status = csrSetRegInfo(hHal, apCntryCode );
+   if ( ! HAL_STATUS_SUCCESS( status ) ) {
+      smsLog( pMac, LOGE, "csrSetRegInfo failed with status=%d\n",
+              status );
+   }
+    return status;
+}
+
+#endif
+
 /*--------------------------------------------------------------------------
 
   \brief sme_UpdateConfig() - Change configurations for all SME moduels
 
   The function updates some configuration for modules in SME, CCM, CSR, etc
-  during SME’s close -> open sequence.
+  during SMEs close open sequence.
 
   Modules inside SME apply the new configuration at the next transaction.
 
@@ -651,16 +791,24 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
       return status;
    }
 
-   status = csrChangeDefaultConfigParam(hHal, &pSmeConfigParams->csrConfig);
+   status = csrChangeDefaultConfigParam(pMac, &pSmeConfigParams->csrConfig);
 
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
       smsLog( pMac, LOGE, "csrChangeDefaultConfigParam failed with status=%d\n",
               status );
    }
 
+#if defined WLAN_FEATURE_VOWIFI
+   status = rrmChangeDefaultConfigParam(hHal, &pSmeConfigParams->rrmConfig);
+
+   if ( ! HAL_STATUS_SUCCESS( status ) ) {
+      smsLog( pMac, LOGE, "rrmChangeDefaultConfigParam failed with status=%d\n",
+              status );
+   }
+#endif
    //Apply the global config if SME is in ready state
    //We don't want to apply global CFG in connect state because that may cause some side affect
-   if( SME_IS_READY(pMac) && csrIsConnStateDisconnected(pMac) )
+   if( SME_IS_READY(pMac) && csrIsAllSessionDisconnected( pMac) )
    {
        csrSetGlobalCfgs(pMac);
    }
@@ -671,7 +819,7 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
 
 /*--------------------------------------------------------------------------
   
-  \brief sme_HoConfig() - Change handoff configurations for CSR during SME’s 
+  \brief sme_HoConfig() - Change handoff configurations for CSR during SMEs 
   close -> open sequence.
    
   Modules inside SME apply the new configuration at the next transaction.
@@ -699,11 +847,11 @@ eHalStatus sme_HoConfig(tHalHandle hHal, tpSmeHoConfigParams pSmeHoConfigParams)
 
    if(pSmeHoConfigParams)
    {
-	   status = csrHoConfigParams(hHal, &pSmeHoConfigParams->csrHoConfig);
+       status = csrHoConfigParams(hHal, &pSmeHoConfigParams->csrHoConfig);
    }
    else
    {
-	   status = csrHoConfigParams(hHal, NULL);
+       status = csrHoConfigParams(hHal, NULL);
    }
    
 
@@ -719,7 +867,7 @@ eHalStatus sme_HoConfig(tHalHandle hHal, tpSmeHoConfigParams pSmeHoConfigParams)
 /* ---------------------------------------------------------------------------
     \fn sme_ChangeConfigParams
     \brief The SME API exposed for HDD to provide config params to SME during
-    SME’s stop -> start sequence.
+    SMEs stop -> start sequence.
 
     If HDD changed the domain that will cause a reset. This function will
     provide the new set of 11d information for the new domain. Currrently this
@@ -750,7 +898,7 @@ eHalStatus sme_ChangeConfigParams(tHalHandle hHal,
       return status;
    }
 
-   status = csrChangeConfigParams(hHal, pUpdateConfigParam);
+   status = csrChangeConfigParams(pMac, pUpdateConfigParam);
 
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
       smsLog( pMac, LOGE, "csrUpdateConfigParam failed with status=%d\n",
@@ -791,7 +939,7 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
    do
    {
       csrSetGlobalCfgs( pMac );
-      status = csrInitChannelList( hHal );
+      status = csrInitChannelList( pMac );
       if ( ! HAL_STATUS_SUCCESS( status ) )
       {
          smsLog( pMac, LOGE, "csrInitChannelList failed during sme_HDDReadyInd with status=%d\n",
@@ -825,22 +973,35 @@ eHalStatus sme_HDDReadyInd(tHalHandle hHal)
       if ( (ePMC_SWITCH_OFF != hwWlanSwitchState) &&
            (ePMC_SWITCH_OFF != swWlanSwitchState) )
       {
-         status = csrReady(hHal);
+         status = csrReady(pMac);
          if ( ! HAL_STATUS_SUCCESS( status ) )
          {
             smsLog( pMac, LOGE, "csrReady failed with status=%d\n", status );
             break;
          }
          status = pmcReady(hHal);
-         if ( ! HAL_STATUS_SUCCESS( status ) ) {
+         if ( ! HAL_STATUS_SUCCESS( status ) ) 
+         {
              smsLog( pMac, LOGE, "pmcReady failed with status=%d\n", status );
              break;
          }
-         if(VOS_STATUS_SUCCESS != btcReady(hHal)) {
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
+         if(VOS_STATUS_SUCCESS != btcReady(hHal)) 
+         {
              status = eHAL_STATUS_FAILURE;
              smsLog( pMac, LOGE, "btcReady failed\n");
              break;
          }
+#endif
+
+#if defined WLAN_FEATURE_VOWIFI
+         if(VOS_STATUS_SUCCESS != rrmReady(hHal)) 
+         {
+             status = eHAL_STATUS_FAILURE;
+             smsLog( pMac, LOGE, "rrmReady failed\n");
+             break;
+         }
+#endif
       }
       pMac->sme.state = SME_STATE_READY;
    } while( 0 );
@@ -872,7 +1033,7 @@ eHalStatus sme_Start(tHalHandle hHal)
    {
       ccmStart(hHal);
 
-      status = csrStart(hHal);
+      status = csrStart(pMac);
       if ( ! HAL_STATUS_SUCCESS( status ) ) {
          smsLog( pMac, LOGE, "csrStart failed during smeStart with status=%d\n",
                  status );
@@ -886,6 +1047,16 @@ eHalStatus sme_Start(tHalHandle hHal)
          break;
       }
 
+#ifdef WLAN_SOFTAP_FEATURE
+      if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
+         status = WLANSAP_Start(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
+         if ( ! HAL_STATUS_SUCCESS( status ) ) {
+           smsLog( pMac, LOGE, "WLANSAP_Start failed during smeStart with status=%d\n",
+                 status );
+           break;
+        }
+     }
+#endif
       pMac->sme.state = SME_STATE_START;
    }while (0);
 
@@ -934,8 +1105,8 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
           case eWNI_PMC_SMPS_STATE_IND:
           case eWNI_PMC_ENTER_UAPSD_RSP:
           case eWNI_PMC_EXIT_UAPSD_RSP:
-	      case eWNI_PMC_ENTER_WOWL_RSP:
-	      case eWNI_PMC_EXIT_WOWL_RSP:
+          case eWNI_PMC_ENTER_WOWL_RSP:
+          case eWNI_PMC_EXIT_WOWL_RSP:
              //PMC
              if (pMsg->bodyptr) 
              {
@@ -969,12 +1140,46 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
              //QoS
              if (pMsg->bodyptr) 
              {
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
                 status = sme_QosMsgProcessor(pMac, pMsg->type, pMsg->bodyptr);
                 vos_mem_free( pMsg->bodyptr );
+#endif
              } else {
                 smsLog( pMac, LOGE, "Empty rsp message for QoS, nothing to process\n");
              }
              break;
+#if defined WLAN_FEATURE_VOWIFI
+          case eWNI_SME_NEIGHBOR_REPORT_IND:
+          case eWNI_SME_BEACON_REPORT_REQ_IND:
+#if defined WLAN_VOWIFI_DEBUG
+             smsLog( pMac, LOGE, "Recieved RRM message. Message Id = %d\n", pMsg->type );
+#endif
+             if(pMsg->bodyptr)
+             {
+                status = sme_RrmMsgProcessor( pMac, pMsg->type, pMsg->bodyptr );
+                 vos_mem_free(pMsg->bodyptr);
+             }
+             else
+             {
+                smsLog( pMac, LOGE, "Empty message for RRM, nothing to process\n");
+             }
+             break;
+#endif
+
+#ifdef FEATURE_INNAV_SUPPORT
+          //Handle the eWNI_SME_INNAV_MEAS_RSP:
+          case eWNI_SME_INNAV_MEAS_RSP:
+                if(pMsg->bodyptr)
+                {
+                        status = sme_MeasHandleInNavMeasRsp(pMac, pMsg->bodyptr);
+                        vos_mem_free(pMsg->bodyptr);
+                }
+                else
+                {
+                        smsLog( pMac, LOGE, "Empty rsp message for meas (eWNI_SME_INNAV_MEAS_RSP), nothing to process\n");
+                }
+                break;
+#endif
 
           default:
 
@@ -1066,15 +1271,25 @@ eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag)
       }
    }
 
-   status = csrStop(hHal);
+   status = csrStop(pMac);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
-      smsLog( pMac, LOGE, "csrStop failed during smeStop with status=%d\n",
+       smsLog( pMac, LOGE, "csrStop failed during smeStop with status=%d\n",
               status );
       fail_status = status;
-   }
+    }
 
    ccmStop(hHal);
 
+#ifdef WLAN_SOFTAP_FEATURE
+   if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
+       status = WLANSAP_Stop(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
+       if ( ! HAL_STATUS_SUCCESS( status ) ) {
+          smsLog( pMac, LOGE, "WLANSAP_Stop failed during smeStop with status=%d\n",
+              status );
+          fail_status = status;
+       }
+   }
+#endif
    purgeSmeCmdList(pMac);
 
    if (!HAL_STATUS_SUCCESS( fail_status )) {
@@ -1111,7 +1326,7 @@ eHalStatus sme_Close(tHalHandle hHal)
    eHalStatus fail_status = eHAL_STATUS_SUCCESS;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
-   status = csrClose(hHal);
+   status = csrClose(pMac);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
       smsLog( pMac, LOGE, "csrClose failed during sme close with status=%d\n",
               status );
@@ -1125,9 +1340,21 @@ eHalStatus sme_Close(tHalHandle hHal)
       fail_status = status;
    }
 
-   status = ccmClose(hHal);
+#ifdef WLAN_SOFTAP_FEATURE
+   if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
+         status = WLANSAP_Close(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
+         if ( ! HAL_STATUS_SUCCESS( status ) ) {
+             smsLog( pMac, LOGE, "WLANSAP_close failed during sme close with status=%d\n",
+                 status );
+             fail_status = status;
+         }
+   }
+#endif
+
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
+   status = btcClose(hHal);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
-      smsLog( pMac, LOGE, "ccmClose failed during sme close with status=%d\n",
+      smsLog( pMac, LOGE, "BTC close failed during sme close with status=%d\n",
               status );
       fail_status = status;
    }
@@ -1138,13 +1365,35 @@ eHalStatus sme_Close(tHalHandle hHal)
               status );
       fail_status = status;
    }
-
-   status = btcClose(hHal);
+#endif
+#ifdef FEATURE_INNAV_SUPPORT
+   status = measInNavClose(hHal);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
-      smsLog( pMac, LOGE, "BTC close failed during sme close with status=%d\n",
+       smsLog( pMac, LOGE, "INNAV close failed during sme close with status=%d\n", 
+              status );
+       fail_status = status;
+   }
+#endif
+
+   status = ccmClose(hHal);
+   if ( ! HAL_STATUS_SUCCESS( status ) ) {
+      smsLog( pMac, LOGE, "ccmClose failed during sme close with status=%d\n",
               status );
       fail_status = status;
    }
+
+#if defined WLAN_FEATURE_VOWIFI
+   status = rrmClose(hHal);
+   if ( ! HAL_STATUS_SUCCESS( status ) ) {
+      smsLog( pMac, LOGE, "RRM close failed during sme close with status=%d\n",
+            status );
+      fail_status = status;
+   }
+#endif
+
+#if defined WLAN_FEATURE_VOWIFI_11R
+   sme_FTClose(hHal);
+#endif
 
    freeSmeCmdList(pMac);
 
@@ -1172,7 +1421,7 @@ eHalStatus sme_Close(tHalHandle hHal)
     \param pContext - a pointer passed in for the callback
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_ScanRequest(tHalHandle hHal, tCsrScanRequest *pscanReq,
+eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *pscanReq, 
                            tANI_U32 *pScanRequestID,
                            csrScanCompleteCallback callback, void *pContext)
 {
@@ -1186,22 +1435,23 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tCsrScanRequest *pscanReq,
             status = sme_AcquireGlobalLock( &pMac->sme );
             if ( HAL_STATUS_SUCCESS( status ) )
             {
-                tANI_U32 lScanId = pMac->scan.nextScanID++; //let it wrap around
-                if(pScanRequestID)
-                {
-                    *pScanRequestID = lScanId;
-                }
 #ifdef FEATURE_WLAN_GEN6_ROAMING
                 //Since HO only happens for infra mode, we only check for the 
                 //connect status of infra link.
                 //This way is to save off channel time so AP has less chance of 
                 //deauth the Libra side when Libra doens't response to many TIM-ed beacons.
-                if( csrIsConnStateConnectedInfra( pMac ) && 
+            if( csrIsConnStateConnectedInfra( pMac, sessionId ) && 
                     (csrScanIsBgScanEnabled( pMac ) || csrScanGetChannelMask(pMac)) )
                 {
                     //background scan by HO is enable, no need to scan here
                     if( callback )
                     {
+                    tANI_U32 lScanId = pMac->scan.nextScanID++; //let it wrap around
+                    //Assign a scanID in case caller uses it during the callback.
+                    if(pScanRequestID)
+                    {
+                        *pScanRequestID = lScanId;
+                    }
                         sme_ReleaseGlobalLock( &pMac->sme );
                         callback( pMac, pContext, lScanId, eCSR_SCAN_SUCCESS );
                         status = sme_AcquireGlobalLock( &pMac->sme );
@@ -1217,7 +1467,7 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tCsrScanRequest *pscanReq,
                 {
 #ifdef FEATURE_WLAN_GEN6_ROAMING
                     //create the channel mask if needed
-                    if( csrIsConnStateConnectedInfra( pMac ) && 
+                    if( csrIsConnStateConnectedInfra( pMac, sessionId ) && 
                         (CSR_IS_ROAM_SUBSTATE_HO_NRT(pMac) || CSR_IS_ROAM_SUBSTATE_HO_RT(pMac)))
                     {
                         csrScanSetChannelMask(pMac, &pscanReq->ChannelInfo);
@@ -1243,7 +1493,7 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tCsrScanRequest *pscanReq,
     \param phResult - an object for the result.
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_ScanGetResult(tHalHandle hHal, tCsrScanResultFilter *pFilter,
+eHalStatus sme_ScanGetResult(tHalHandle hHal, tANI_U8 sessionId, tCsrScanResultFilter *pFilter, 
                             tScanResultHandle *phResult)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
@@ -1266,7 +1516,7 @@ eHalStatus sme_ScanGetResult(tHalHandle hHal, tCsrScanResultFilter *pFilter,
     This is a synchronuous call
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_ScanFlushResult(tHalHandle hHal)
+eHalStatus sme_ScanFlushResult(tHalHandle hHal, tANI_U8 sessionId)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -1300,7 +1550,7 @@ tCsrScanResultInfo *sme_ScanResultGetFirst(tHalHandle hHal,
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       pRet = csrScanResultGetFirst( hHal, hScanResult );
+       pRet = csrScanResultGetFirst( pMac, hScanResult );
        sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -1327,7 +1577,7 @@ tCsrScanResultInfo *sme_ScanResultGetNext(tHalHandle hHal,
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        pRet = csrScanResultGetNext( hHal, hScanResult );
+        pRet = csrScanResultGetNext( pMac, hScanResult );
         sme_ReleaseGlobalLock( &pMac->sme );
     }
 
@@ -1342,7 +1592,7 @@ tCsrScanResultInfo *sme_ScanResultGetNext(tHalHandle hHal,
     \param pScanReq - BG scan request structure
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_ScanSetBGScanparams(tHalHandle hHal, tCsrBGScanRequest *pScanReq)
+eHalStatus sme_ScanSetBGScanparams(tHalHandle hHal, tANI_U8 sessionId, tCsrBGScanRequest *pScanReq)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -1402,7 +1652,7 @@ eHalStatus sme_ScanResultPurge(tHalHandle hHal, tScanResultHandle hScanResult)
     \Note: pNumItems is a number of tPmkidCandidateInfo,
            not sizeof(tPmkidCandidateInfo) * something
   ---------------------------------------------------------------------------*/
-eHalStatus sme_ScanGetPMKIDCandidateList(tHalHandle hHal,
+eHalStatus sme_ScanGetPMKIDCandidateList(tHalHandle hHal, tANI_U8 sessionId,
                                         tPmkidCandidateInfo *pPmkidList,
                                         tANI_U32 *pNumItems )
 {
@@ -1412,7 +1662,7 @@ eHalStatus sme_ScanGetPMKIDCandidateList(tHalHandle hHal,
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       status = csrScanGetPMKIDCandidateList( hHal, pPmkidList, pNumItems );
+       status = csrScanGetPMKIDCandidateList( pMac, sessionId, pPmkidList, pNumItems );
        sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -1438,11 +1688,11 @@ eHalStatus sme_ScanGetPMKIDCandidateList(tHalHandle hHal,
 
   \return eHalStatus  
 -----------------------------------------------------------------------------*/
-eHalStatus sme_RoamRegisterLinkQualityIndCallback(tHalHandle hHal,
+eHalStatus sme_RoamRegisterLinkQualityIndCallback(tHalHandle hHal, tANI_U8 sessionId,
                                                   csrRoamLinkQualityIndCallback   callback,  
                                                   void                           *pContext)
 {
-   return(csrRoamRegisterLinkQualityIndCallback(hHal, callback, pContext));
+   return(csrRoamRegisterLinkQualityIndCallback((tpAniSirGlobal)hHal, callback, pContext));
 }
 
 /* ---------------------------------------------------------------------------
@@ -1457,30 +1707,43 @@ eHalStatus sme_RoamRegisterCallback(tHalHandle hHal,
                                     csrRoamCompleteCallback callback,
                                     void *pContext)
 {
-   return(csrRoamRegisterCallback(hHal, callback, pContext));
+   return(csrRoamRegisterCallback((tpAniSirGlobal)hHal, callback, pContext));
+}
+
+eCsrPhyMode sme_GetPhyMode(tHalHandle hHal)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    return pMac->roam.configParam.phyMode;
 }
 
 /* ---------------------------------------------------------------------------
     \fn sme_RoamConnect
     \brief a wrapper function to request CSR to inititiate an association
     This is an asynchronuous call.
+    \param sessionId - the sessionId returned by sme_OpenSession.
     \param pProfile - can be NULL to join to any open ones
     \param hBssListIn - a list of BSS descriptor to roam to. It is returned
                         from csrScanGetResult
     \param pRoamId - to get back the request ID
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamConnect(tHalHandle hHal, tCsrRoamProfile *pProfile,
-                          tScanResultHandle hBssListIn, tANI_U32 *pRoamId)
+eHalStatus sme_RoamConnect(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamProfile *pProfile, 
+                           tANI_U32 *pRoamId)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
-    smsLog( pMac, LOGE, FL(" \n") );
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        status = csrRoamConnect( hHal, pProfile, hBssListIn, pRoamId );
+        if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+        {
+            status = csrRoamConnect( pMac, sessionId, pProfile, NULL, pRoamId );
+        }
+        else
+        {
+            status = eHAL_STATUS_INVALID_PARAMETER;
+        }
         sme_ReleaseGlobalLock( &pMac->sme );
     }
 
@@ -1499,7 +1762,7 @@ eHalStatus sme_RoamConnect(tHalHandle hHal, tCsrRoamProfile *pProfile,
     \param pRoamId - to get back the request ID
     \return eHalStatus
   -------------------------------------------------------------------------------*/
-eHalStatus sme_RoamReassoc(tHalHandle hHal, tCsrRoamProfile *pProfile,
+eHalStatus sme_RoamReassoc(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamProfile *pProfile,
                           tCsrRoamModifyProfileFields modProfileFields,
                           tANI_U32 *pRoamId)
 {
@@ -1509,7 +1772,14 @@ eHalStatus sme_RoamReassoc(tHalHandle hHal, tCsrRoamProfile *pProfile,
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        status = csrRoamReassoc( pMac, pProfile, modProfileFields, pRoamId );
+        if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+        {
+            status = csrRoamReassoc( pMac, sessionId, pProfile, modProfileFields, pRoamId );
+        }
+        else
+        {
+            status = eHAL_STATUS_INVALID_PARAMETER;
+        }
         sme_ReleaseGlobalLock( &pMac->sme );
     }
 
@@ -1523,7 +1793,7 @@ eHalStatus sme_RoamReassoc(tHalHandle hHal, tCsrRoamProfile *pProfile,
     This is an asynchronuous call.
     \return eHalStatus. It returns fail if currently connected
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamConnectToLastProfile(tHalHandle hHal)
+eHalStatus sme_RoamConnectToLastProfile(tHalHandle hHal, tANI_U8 sessionId)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -1531,7 +1801,14 @@ eHalStatus sme_RoamConnectToLastProfile(tHalHandle hHal)
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       status = csrRoamConnectToLastProfile( hHal );
+      if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+      {
+         status = csrRoamConnectToLastProfile( pMac, sessionId );
+      }
+      else
+      {
+          status = eHAL_STATUS_INVALID_PARAMETER;
+      }
        sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -1546,21 +1823,249 @@ eHalStatus sme_RoamConnectToLastProfile(tHalHandle hHal)
                      eCSR_DISCONNECT_REASON_MIC_ERROR is meanful.
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamDisconnect(tHalHandle hHal, eCsrRoamDisconnectReason reason)
+eHalStatus sme_RoamDisconnect(tHalHandle hHal, tANI_U8 sessionId, eCsrRoamDisconnectReason reason)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
-   smsLog( pMac, LOGE, FL(" \n") );
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       status = csrRoamDisconnect( hHal, reason );
+      if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+      {
+         status = csrRoamDisconnect( pMac, sessionId, reason );
+      }
+      else
+      {
+          status = eHAL_STATUS_INVALID_PARAMETER;
+      }       
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (status);
+}
+
+#ifdef WLAN_SOFTAP_FEATURE
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamStopBss
+    \brief To stop BSS for Soft AP. This is an asynchronous API.
+    \param hHal - Global structure
+    \param sessionId - sessionId of SoftAP
+    \return eHalStatus  SUCCESS  Roam callback will be called to indicate actual results    
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamStopBss(tHalHandle hHal, tANI_U8 sessionId)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+      if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+      {
+         status = csrRoamIssueStopBssCmd( pMac, sessionId, eANI_BOOLEAN_TRUE );
+      }
+      else
+      {
+          status = eHAL_STATUS_INVALID_PARAMETER;
+      }
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (status);
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamDisconnectSta
+    \brief To disassociate a station. This is an asynchronous API.
+    \param hHal - Global structure
+    \param sessionId - sessionId of SoftAP
+    \param pPeerMacAddr - Caller allocated memory filled with peer MAC address (6 bytes)
+    \return eHalStatus  SUCCESS  Roam callback will be called to indicate actual results    
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamDisconnectSta(tHalHandle hHal, tANI_U8 sessionId,
+                                tANI_U8 *pPeerMacAddr)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+   
+   if ( NULL == pMac )
+   {
+     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     return status; 
+   }
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+      if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+      {
+         status = csrRoamIssueDisassociateSta( pMac, sessionId, pPeerMacAddr);
+      }
+      else
+      {
+         status = eHAL_STATUS_INVALID_PARAMETER;
+      }  
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (status);
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamDeauthSta
+    \brief To disassociate a station. This is an asynchronous API.
+    \param hHal - Global structure
+    \param sessionId - sessionId of SoftAP
+    \param pPeerMacAddr - Caller allocated memory filled with peer MAC address (6 bytes)
+    \return eHalStatus  SUCCESS  Roam callback will be called to indicate actual results    
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamDeauthSta(tHalHandle hHal, tANI_U8 sessionId,
+                                tANI_U8 *pPeerMacAddr)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+   
+   if ( NULL == pMac )
+   {
+     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     return status; 
+   }
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+      if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+      {
+         status = csrRoamIssueDeauthSta( pMac, sessionId, pPeerMacAddr);
+      }
+      else
+      {
+         status = eHAL_STATUS_INVALID_PARAMETER;
+      }  
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (status);
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamTKIPCounterMeasures
+    \brief To start or stop TKIP counter measures. This is an asynchronous API.
+    \param sessionId - sessionId of SoftAP
+    \param pPeerMacAddr - Caller allocated memory filled with peer MAC address (6 bytes)
+    \return eHalStatus
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamTKIPCounterMeasures(tHalHandle hHal, tANI_U8 sessionId,
+                                        tANI_BOOLEAN bEnable)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   if ( NULL == pMac )
+   {
+     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     return status; 
+   }
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+        if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+        {
+            status = csrRoamIssueTkipCounterMeasures( pMac, sessionId, bEnable);
+        }
+        else
+        {
+            status = eHAL_STATUS_INVALID_PARAMETER;
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (status);
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamGetAssociatedStas
+    \brief To probe the list of associated stations from various modules of CORE stack.
+    \This is an asynchronous API.
+    \param sessionId    - sessionId of SoftAP
+    \param modId        - Module from whom list of associtated stations is to be probed.
+                          If an invalid module is passed then by default VOS_MODULE_ID_PE will be probed
+    \param pUsrContext  - Opaque HDD context
+    \param pfnSapEventCallback  - Sap event callback in HDD
+    \param pAssocBuf    - Caller allocated memory to be filled with associatd stations info
+    \return eHalStatus
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamGetAssociatedStas(tHalHandle hHal, tANI_U8 sessionId,
+                                        VOS_MODULE_ID modId, void *pUsrContext,
+                                        void *pfnSapEventCallback, tANI_U8 *pAssocStasBuf)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   if ( NULL == pMac )
+   {
+     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     return status; 
+   }
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+        if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+        {
+            status = csrRoamGetAssociatedStas( pMac, sessionId, modId, pUsrContext, pfnSapEventCallback, pAssocStasBuf );
+        }
+        else
+        {
+            status = eHAL_STATUS_INVALID_PARAMETER;
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (status);
+}
+  
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamGetWpsSessionOverlap
+    \brief To get the WPS PBC session overlap information.
+    \This is an asynchronous API.
+    \param sessionId    - sessionId of SoftAP
+    \param pUsrContext  - Opaque HDD context
+    \param pfnSapEventCallback  - Sap event callback in HDD
+    \return eHalStatus
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamGetWpsSessionOverlap(tHalHandle hHal, tANI_U8 sessionId,
+                                        void *pUsrContext, void *pfnSapEventCallback)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   if ( NULL == pMac )
+   {
+     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     return status; 
+   }
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+        if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+        {
+            status = csrRoamGetWpsSessionOverlap( pMac, sessionId, pUsrContext, pfnSapEventCallback);
+        }
+        else
+        {
+            status = eHAL_STATUS_INVALID_PARAMETER;
+        }
        sme_ReleaseGlobalLock( &pMac->sme );
    }
 
    return (status);
 }
+
+#endif
 
 /* ---------------------------------------------------------------------------
     \fn sme_RoamGetConnectState
@@ -1569,7 +2074,7 @@ eHalStatus sme_RoamDisconnect(tHalHandle hHal, eCsrRoamDisconnectReason reason)
     This is a synchronuous call.
     \return eHalStatus
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetConnectState(tHalHandle hHal, eCsrConnectState *pState)
+eHalStatus sme_RoamGetConnectState(tHalHandle hHal, tANI_U8 sessionId, eCsrConnectState *pState)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -1577,7 +2082,14 @@ eHalStatus sme_RoamGetConnectState(tHalHandle hHal, eCsrConnectState *pState)
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        status = csrRoamGetConnectState( hHal, pState );
+       if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+       {
+          status = csrRoamGetConnectState( pMac, sessionId, pState );
+       }
+       else
+       {
+           status = eHAL_STATUS_INVALID_PARAMETER;
+       }
         sme_ReleaseGlobalLock( &pMac->sme );
     }
 
@@ -1594,7 +2106,7 @@ eHalStatus sme_RoamGetConnectState(tHalHandle hHal, eCsrConnectState *pState)
                       tCsrRoamConnectedProfile
     \return eHalStatus. Failure if not connected
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetConnectProfile(tHalHandle hHal,
+eHalStatus sme_RoamGetConnectProfile(tHalHandle hHal, tANI_U8 sessionId,
                                      tCsrRoamConnectedProfile *pProfile)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
@@ -1603,7 +2115,14 @@ eHalStatus sme_RoamGetConnectProfile(tHalHandle hHal,
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       status = csrRoamGetConnectProfile( hHal, pProfile );
+      if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+      {
+         status = csrRoamGetConnectProfile( pMac, sessionId, pProfile );
+      }
+      else
+      {
+          status = eHAL_STATUS_INVALID_PARAMETER;
+      }
        sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -1628,7 +2147,7 @@ eHalStatus sme_RoamFreeConnectProfile(tHalHandle hHal,
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       status = csrRoamFreeConnectProfile( hHal, pProfile );
+       status = csrRoamFreeConnectProfile( pMac, pProfile );
        sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -1650,7 +2169,7 @@ eHalStatus sme_RoamFreeConnectProfile(tHalHandle hHal,
     \Note: pNumItems is a number of tPmkidCacheInfo,
            not sizeof(tPmkidCacheInfo) * something
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tPmkidCacheInfo *pPMKIDCache,
+eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tANI_U8 sessionId, tPmkidCacheInfo *pPMKIDCache, 
                                   tANI_U32 numItems )
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
@@ -1659,7 +2178,14 @@ eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tPmkidCacheInfo *pPMKIDCache,
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        status = csrRoamSetPMKIDCache( hHal, pPMKIDCache, numItems );
+      if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+      {
+         status = csrRoamSetPMKIDCache( pMac, sessionId, pPMKIDCache, numItems );
+      }
+      else
+      {
+          status = eHAL_STATUS_INVALID_PARAMETER;
+      }
         sme_ReleaseGlobalLock( &pMac->sme );
     }
 
@@ -1679,7 +2205,7 @@ eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tPmkidCacheInfo *pPMKIDCache,
     \return eHalStatus - when fail, it usually means the buffer allocated is not
                          big enough
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetSecurityReqIE(tHalHandle hHal, tANI_U32 *pLen,
+eHalStatus sme_RoamGetSecurityReqIE(tHalHandle hHal, tANI_U8 sessionId, tANI_U32 *pLen,
                                   tANI_U8 *pBuf, eCsrSecurityType secType)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
@@ -1688,22 +2214,14 @@ eHalStatus sme_RoamGetSecurityReqIE(tHalHandle hHal, tANI_U32 *pLen,
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-       switch(secType)
+        if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+        {
+           status = csrRoamGetWpaRsnReqIE( hHal, sessionId, pLen, pBuf );
+        }
+        else
        {
-          case eCSR_SECURITY_TYPE_WPA:
-          case eCSR_SECURITY_TYPE_RSN:
-             status = csrRoamGetWpaRsnReqIE( hHal, pLen, pBuf );
-             break;
-#ifdef FEATURE_WLAN_WAPI
-          case eCSR_SECURITY_TYPE_WAPI:
-             status = csrRoamGetWapiReqIE( hHal, pLen, pBuf );
-             break;
-#endif /* FEATURE_WLAN_WAPI */
-          default:
-             smsLog( pMac, LOGW, "unknown secType =%d\n", secType);
-             break;
+           status = eHAL_STATUS_INVALID_PARAMETER;
        }
-        
        sme_ReleaseGlobalLock( &pMac->sme );
     }
 
@@ -1723,7 +2241,7 @@ eHalStatus sme_RoamGetSecurityReqIE(tHalHandle hHal, tANI_U32 *pLen,
     \return eHalStatus - when fail, it usually means the buffer allocated is not
                          big enough
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetSecurityRspIE(tHalHandle hHal, tANI_U32 *pLen,
+eHalStatus sme_RoamGetSecurityRspIE(tHalHandle hHal, tANI_U8 sessionId, tANI_U32 *pLen,
                                   tANI_U8 *pBuf, eCsrSecurityType secType)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
@@ -1732,22 +2250,14 @@ eHalStatus sme_RoamGetSecurityRspIE(tHalHandle hHal, tANI_U32 *pLen,
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-       switch(secType)
+        if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+        {
+           status = csrRoamGetWpaRsnRspIE( pMac, sessionId, pLen, pBuf );
+        }
+        else
        {
-          case eCSR_SECURITY_TYPE_WPA:
-          case eCSR_SECURITY_TYPE_RSN:
-             status = csrRoamGetWpaRsnRspIE( hHal, pLen, pBuf );
-             break;
-#ifdef FEATURE_WLAN_WAPI
-          case eCSR_SECURITY_TYPE_WAPI:
-             status = csrRoamGetWapiRspIE( hHal, pLen, pBuf );
-             break;
-#endif /* FEATURE_WLAN_WAPI */
-          default:
-             smsLog( pMac, LOGW, "unknown secType =%d\n", secType);
-             break;
+           status = eHAL_STATUS_INVALID_PARAMETER;
        }
-
         sme_ReleaseGlobalLock( &pMac->sme );
     }
 
@@ -1763,7 +2273,7 @@ eHalStatus sme_RoamGetSecurityRspIE(tHalHandle hHal, tANI_U32 *pLen,
     This is a synchronuous call.
     \return tANI_U32 - the number of PMKID cache entries
   ---------------------------------------------------------------------------*/
-tANI_U32 sme_RoamGetNumPMKIDCache(tHalHandle hHal)
+tANI_U32 sme_RoamGetNumPMKIDCache(tHalHandle hHal, tANI_U8 sessionId)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -1772,7 +2282,15 @@ tANI_U32 sme_RoamGetNumPMKIDCache(tHalHandle hHal)
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        numPmkidCache = csrRoamGetNumPMKIDCache( hHal );
+        if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+        {
+           numPmkidCache = csrRoamGetNumPMKIDCache( pMac, sessionId );
+           status = eHAL_STATUS_SUCCESS;
+        }
+        else
+        {
+           status = eHAL_STATUS_INVALID_PARAMETER;
+        }
         sme_ReleaseGlobalLock( &pMac->sme );
     }
 
@@ -1791,7 +2309,7 @@ tANI_U32 sme_RoamGetNumPMKIDCache(tHalHandle hHal)
     \return eHalStatus - when fail, it usually means the buffer allocated is not
                          big enough
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetPMKIDCache(tHalHandle hHal, tANI_U32 *pNum,
+eHalStatus sme_RoamGetPMKIDCache(tHalHandle hHal, tANI_U8 sessionId, tANI_U32 *pNum, 
                                  tPmkidCacheInfo *pPmkidCache)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
@@ -1800,7 +2318,14 @@ eHalStatus sme_RoamGetPMKIDCache(tHalHandle hHal, tANI_U32 *pNum,
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       status = csrRoamGetPMKIDCache( hHal, pNum, pPmkidCache );
+       if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+       {
+          status = csrRoamGetPMKIDCache( pMac, sessionId, pNum, pPmkidCache );
+       }
+       else
+       {
+          status = eHAL_STATUS_INVALID_PARAMETER;
+       }
        sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -1824,7 +2349,7 @@ eHalStatus sme_GetConfigParam(tHalHandle hHal, tCsrConfigParam *pParam)
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       status = csrGetConfigParam(hHal, pParam);
+       status = csrGetConfigParam(pMac, pParam);
        sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -1885,7 +2410,7 @@ eHalStatus sme_CfgSetStr(tHalHandle hHal, tANI_U32 cfgId, tANI_U8 *pStr,
 
     \return eHalStatus
   -------------------------------------------------------------------------------*/
-eHalStatus sme_GetModifyProfileFields(tHalHandle hHal,
+eHalStatus sme_GetModifyProfileFields(tHalHandle hHal, tANI_U8 sessionId,
                                      tCsrRoamModifyProfileFields * pModifyProfileFields)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
@@ -1894,7 +2419,14 @@ eHalStatus sme_GetModifyProfileFields(tHalHandle hHal,
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       status = csrGetModifyProfileFields(hHal, pModifyProfileFields);
+       if( CSR_IS_SESSION_VALID( pMac, sessionId ) )
+       {
+          status = csrGetModifyProfileFields(pMac, sessionId, pModifyProfileFields);
+       }
+       else
+       {
+          status = eHAL_STATUS_INVALID_PARAMETER;
+       }
        sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -1915,7 +2447,7 @@ eHalStatus sme_GetModifyProfileFields(tHalHandle hHal,
     \return eHalStatus
   --------------------------------------------------------------------------*/
 eHalStatus sme_SetConfigPowerSave(tHalHandle hHal, tPmcPowerSavingMode psMode,
-			                      void *pConfigParams)
+                                  void *pConfigParams)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -1946,7 +2478,7 @@ eHalStatus sme_SetConfigPowerSave(tHalHandle hHal, tPmcPowerSavingMode psMode,
     \return eHalStatus
   --------------------------------------------------------------------------*/
 eHalStatus sme_GetConfigPowerSave(tHalHandle hHal, tPmcPowerSavingMode psMode,
-			                      void *pConfigParams)
+                                  void *pConfigParams)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -2402,8 +2934,8 @@ eHalStatus sme_DeregisterDeviceStateUpdateInd (
     \param  hHal - The handle returned by macOpen.
     \param  pattern -  Pattern to be added
     \return eHalStatus
-            eHAL_STATUS_FAILURE – Cannot add pattern
-            eHAL_STATUS_SUCCESS – Request accepted.
+            eHAL_STATUS_FAILURE  Cannot add pattern
+            eHAL_STATUS_SUCCESS  Request accepted.
   ---------------------------------------------------------------------------*/
 eHalStatus sme_WowlAddBcastPattern (
    tHalHandle hHal,
@@ -2427,8 +2959,8 @@ eHalStatus sme_WowlAddBcastPattern (
     \param  hHal - The handle returned by macOpen.
     \param  pattern -  Pattern to be deleted
     \return eHalStatus
-            eHAL_STATUS_FAILURE – Cannot delete pattern
-            eHAL_STATUS_SUCCESS – Request accepted.
+            eHAL_STATUS_FAILURE  Cannot delete pattern
+            eHAL_STATUS_SUCCESS  Request accepted.
   ---------------------------------------------------------------------------*/
 eHalStatus sme_WowlDelBcastPattern (
    tHalHandle hHal,
@@ -2467,9 +2999,9 @@ eHalStatus sme_WowlDelBcastPattern (
     \param  callbackContext - A cookie passed by HDD, that is passed back to HDD
                               at the time of callback.
     \return eHalStatus
-            eHAL_STATUS_SUCCESS – Device is already in WoWLAN mode
-            eHAL_STATUS_FAILURE – Device cannot enter WoWLAN mode.
-            eHAL_STATUS_PMC_PENDING – Request accepted. SME will enable WOWL after
+            eHAL_STATUS_SUCCESS  Device is already in WoWLAN mode
+            eHAL_STATUS_FAILURE  Device cannot enter WoWLAN mode.
+            eHAL_STATUS_PMC_PENDING  Request accepted. SME will enable WOWL after
                                       BMPS mode is entered.
   ---------------------------------------------------------------------------*/
 eHalStatus sme_EnterWowl (
@@ -2495,8 +3027,8 @@ eHalStatus sme_EnterWowl (
             mode.
     \param  hHal - The handle returned by macOpen.
     \return eHalStatus
-            eHAL_STATUS_FAILURE – Device cannot exit WoWLAN mode.
-            eHAL_STATUS_SUCCESS – Request accepted to exit WoWLAN mode.
+            eHAL_STATUS_FAILURE  Device cannot exit WoWLAN mode.
+            eHAL_STATUS_SUCCESS  Request accepted to exit WoWLAN mode.
   ---------------------------------------------------------------------------*/
 eHalStatus sme_ExitWowl (tHalHandle hHal)
 {
@@ -2521,18 +3053,22 @@ eHalStatus sme_ExitWowl (tHalHandle hHal)
 
     \param pSetKeyInfo - pointer to a caller allocated object of tCsrSetContextInfo
 
-    \param pRoamId – Upon success return, this is the id caller can use to identify the request in roamcallback
+    \param pRoamId  Upon success return, this is the id caller can use to identify the request in roamcallback
 
-    \return eHalStatus – SUCCESS – Roam callback will be called indicate actually results
+    \return eHalStatus  SUCCESS  Roam callback will be called indicate actually results
 
-                         FAILURE or RESOURCES – The API finished and failed.
+                         FAILURE or RESOURCES  The API finished and failed.
 
   -------------------------------------------------------------------------------*/
-eHalStatus sme_RoamSetKey(tHalHandle hHal, tCsrRoamSetKey *pSetKey, tANI_U32 *pRoamId)
+eHalStatus sme_RoamSetKey(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamSetKey *pSetKey, tANI_U32 *pRoamId)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
    tANI_U32 roamId;
+#ifdef WLAN_SOFTAP_FEATURE
+   tANI_U32 i;
+   tCsrRoamSession *pSession = NULL;
+#endif
 
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
@@ -2542,7 +3078,34 @@ eHalStatus sme_RoamSetKey(tHalHandle hHal, tCsrRoamSetKey *pSetKey, tANI_U32 *pR
       {
          *pRoamId = roamId;
       }
-      status = csrRoamSetKey ( pMac, pSetKey, roamId );
+
+#ifdef WLAN_SOFTAP_FEATURE
+      smsLog(pMac, LOGE, FL("keyLength\n"), pSetKey->keyLength);
+
+      for(i=0; i<pSetKey->keyLength; i++)
+          smsLog(pMac, LOGE, FL("%02x"), pSetKey->Key[i]); 
+
+      smsLog(pMac, LOGE, "\n sessionId=%d roamId=%d\n", sessionId, roamId);       
+
+      pSession = CSR_GET_SESSION(pMac, sessionId);
+      
+      if(CSR_IS_INFRA_AP(&pSession->connectedProfile))
+      {
+
+          if ( ( eCSR_ENCRYPT_TYPE_WEP40 == pSetKey->encType ) ||
+             ( eCSR_ENCRYPT_TYPE_WEP40_STATICKEY == pSetKey->encType ))
+              pSession->pCurRoamProfile->negotiatedUCEncryptionType = eCSR_ENCRYPT_TYPE_WEP40_STATICKEY;
+ 
+          if ( ( eCSR_ENCRYPT_TYPE_WEP104 == pSetKey->encType ) ||
+             ( eCSR_ENCRYPT_TYPE_WEP104_STATICKEY == pSetKey->encType ))
+          {
+          pSession->pCurRoamProfile->negotiatedUCEncryptionType = eCSR_ENCRYPT_TYPE_WEP104_STATICKEY;
+          }
+
+      }
+#endif
+      
+      status = csrRoamSetKey ( pMac, sessionId, pSetKey, roamId );
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -2558,14 +3121,15 @@ eHalStatus sme_RoamSetKey(tHalHandle hHal, tCsrRoamSetKey *pSetKey, tANI_U32 *pR
 
     \param pRemoveKey - pointer to a caller allocated object of tCsrRoamRemoveKey
 
-    \param pRoamId – Upon success return, this is the id caller can use to identify the request in roamcallback
+    \param pRoamId  Upon success return, this is the id caller can use to identify the request in roamcallback
 
-    \return eHalStatus – SUCCESS – Roam callback will be called indicate actually results
+    \return eHalStatus  SUCCESS  Roam callback will be called indicate actually results
 
-                         FAILURE or RESOURCES – The API finished and failed.
+                         FAILURE or RESOURCES  The API finished and failed.
 
   -------------------------------------------------------------------------------*/
-eHalStatus sme_RoamRemoveKey(tHalHandle hHal, tCsrRoamRemoveKey *pRemoveKey, tANI_U32 *pRoamId)
+eHalStatus sme_RoamRemoveKey(tHalHandle hHal, tANI_U8 sessionId, 
+                             tCsrRoamRemoveKey *pRemoveKey, tANI_U32 *pRoamId)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -2579,13 +3143,12 @@ eHalStatus sme_RoamRemoveKey(tHalHandle hHal, tCsrRoamRemoveKey *pRemoveKey, tAN
       {
          *pRoamId = roamId;
       }
-      status = csrRoamIssueRemoveKeyCommand( pMac, pRemoveKey, roamId );
+      status = csrRoamIssueRemoveKeyCommand( pMac, sessionId, pRemoveKey, roamId );
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 
    return (status);
 }
-
 
 /* ---------------------------------------------------------------------------
     \fn sme_GetStatistics
@@ -2614,7 +3177,7 @@ eHalStatus sme_GetStatistics(tHalHandle hHal, eCsrStatsRequesterType requesterId
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-      status = csrGetStatistics( hHal, requesterId , statsMask, callback, 
+      status = csrGetStatistics( pMac, requesterId , statsMask, callback, 
                                  periodicity, cache, staId, pContext);
       sme_ReleaseGlobalLock( &pMac->sme );
    }
@@ -2634,14 +3197,14 @@ eHalStatus sme_GetStatistics(tHalHandle hHal, eCsrStatsRequesterType requesterId
 
     \param pBuf - pointer to a caller allocated buffer for returned country code.
 
-    \param pbLen – For input, this parameter indicates how big is the buffer.
+    \param pbLen  For input, this parameter indicates how big is the buffer.
                    Upon return, this parameter has the number of bytes for country. If pBuf
                    doesn't have enough space, this function returns
                    fail status and this parameter contains the number that is needed.
 
-    \return eHalStatus – SUCCESS.
+    \return eHalStatus  SUCCESS.
 
-                         FAILURE or RESOURCES – The API finished and failed.
+                         FAILURE or RESOURCES  The API finished and failed.
 
   -------------------------------------------------------------------------------*/
 eHalStatus sme_GetCountryCode(tHalHandle hHal, tANI_U8 *pBuf, tANI_U8 *pbLen)
@@ -2662,12 +3225,12 @@ eHalStatus sme_GetCountryCode(tHalHandle hHal, tANI_U8 *pBuf, tANI_U8 *pbLen)
 
     \param pCountry - pointer to a caller allocated buffer for the country code.
 
-    \param pfRestartNeeded – A pointer to caller allocated memory, upon successful return, it indicates
+    \param pfRestartNeeded  A pointer to caller allocated memory, upon successful return, it indicates
     whether a reset is required.
 
-    \return eHalStatus – SUCCESS.
+    \return eHalStatus  SUCCESS.
 
-                         FAILURE or RESOURCES – The API finished and failed.
+                         FAILURE or RESOURCES  The API finished and failed.
 
   -------------------------------------------------------------------------------*/
 eHalStatus sme_SetCountryCode(tHalHandle hHal, tANI_U8 *pCountry, tANI_BOOLEAN *pfRestartNeeded)
@@ -2718,9 +3281,9 @@ eHalStatus sme_GetSupportedCountryCode(tHalHandle hHal, tANI_U8 *pBuf, tANI_U32 
     This function must be called after CFG is downloaded and all the band/mode setting already passed into
     SME. The function fails if 11d support is turned off.
     \param pDomain - Caller allocated buffer to return the current domain.
-    \return eHalStatus – SUCCESS.
+    \return eHalStatus  SUCCESS.
 
-                         FAILURE or RESOURCES – The API finished and failed.     
+                         FAILURE or RESOURCES  The API finished and failed.     
   -------------------------------------------------------------------------------*/
 eHalStatus sme_GetCurrentRegulatoryDomain(tHalHandle hHal, v_REGDOMAIN_t *pDomain)
 {
@@ -2771,12 +3334,12 @@ eHalStatus sme_SetRegulatoryDomain(tHalHandle hHal, v_REGDOMAIN_t domainId, tANI
 
     \param pCountry - pointer to a caller allocated buffer for input country code.
 
-    \param pDomainId – Upon successful return, it is the domain that country belongs to.
+    \param pDomainId  Upon successful return, it is the domain that country belongs to.
     If it is NULL, returning success means that the country code is known.
 
-    \return eHalStatus – SUCCESS.
+    \return eHalStatus  SUCCESS.
 
-                         FAILURE or RESOURCES – The API finished and failed.
+                         FAILURE or RESOURCES  The API finished and failed.
 
   -------------------------------------------------------------------------------*/
 eHalStatus sme_GetRegulatoryDomainForCountry(tHalHandle hHal, tANI_U8 *pCountry, v_REGDOMAIN_t *pDomainId)
@@ -2797,14 +3360,14 @@ eHalStatus sme_GetRegulatoryDomainForCountry(tHalHandle hHal, tANI_U8 *pCountry,
 
     \param pDomains - pointer to a caller allocated buffer for returned regulatory domains.
 
-    \param pNumDomains – For input, this parameter indicates howm many domains pDomains can hold.
+    \param pNumDomains  For input, this parameter indicates howm many domains pDomains can hold.
                          Upon return, this parameter has the number for supported domains. If pDomains
                          doesn't have enough space for all the supported domains, this function returns
                          fail status and this parameter contains the number that is needed.
 
-    \return eHalStatus – SUCCESS.
+    \return eHalStatus  SUCCESS.
 
-                         FAILURE or RESOURCES – The API finished and failed.
+                         FAILURE or RESOURCES  The API finished and failed.
 
   -------------------------------------------------------------------------------*/
 eHalStatus sme_GetSupportedRegulatoryDomains(tHalHandle hHal, v_REGDOMAIN_t *pDomains, tANI_U32 *pNumDomains)
@@ -2886,14 +3449,15 @@ eHalStatus sme_ScanGetBaseChannels( tHalHandle hHal, tCsrChannelInfo * pChannelI
     \param  pBtEvent -  Pointer to a caller allocated object of type tSmeBtEvent
                         Caller owns the memory and is responsible for freeing it.
     \return VOS_STATUS
-            VOS_STATUS_E_FAILURE – BT Event not passed to HAL. This can happen
+            VOS_STATUS_E_FAILURE  BT Event not passed to HAL. This can happen
                                    if BTC execution mode is set to BTC_WLAN_ONLY
                                    or BTC_PTA_ONLY. 
-            VOS_STATUS_SUCCESS   – BT Event passed to HAL 
+            VOS_STATUS_SUCCESS    BT Event passed to HAL 
   ---------------------------------------------------------------------------*/
 VOS_STATUS sme_BtcSignalBtEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
 {
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
@@ -2901,7 +3465,7 @@ VOS_STATUS sme_BtcSignalBtEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
         status = btcSignalBTEvent (hHal, pBtEvent);
         sme_ReleaseGlobalLock( &pMac->sme );
     }
-
+#endif
     return (status);
 }
 
@@ -2914,20 +3478,20 @@ VOS_STATUS sme_BtcSignalBtEvent (tHalHandle hHal, tpSmeBtEvent pBtEvent)
     \param  pSmeBtcConfig - Pointer to a caller allocated object of type tSmeBtcConfig. 
                             Caller owns the memory and is responsible for freeing it.
     \return VOS_STATUS
-            VOS_STATUS_E_FAILURE – Config not passed to HAL. 
-            VOS_STATUS_SUCCESS – Config passed to HAL 
+            VOS_STATUS_E_FAILURE  Config not passed to HAL. 
+            VOS_STATUS_SUCCESS  Config passed to HAL 
   ---------------------------------------------------------------------------*/
 VOS_STATUS sme_BtcSetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
 {
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
     {
         status = btcSetConfig (hHal, pSmeBtcConfig);
         sme_ReleaseGlobalLock( &pMac->sme );
     }
-
+#endif
     return (status);
 }
 
@@ -2940,11 +3504,12 @@ VOS_STATUS sme_BtcSetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
                             for freeing it.
     \return VOS_STATUS
             VOS_STATUS_E_FAILURE - failure
-            VOS_STATUS_SUCCESS – success
+            VOS_STATUS_SUCCESS  success
   ---------------------------------------------------------------------------*/
 VOS_STATUS sme_BtcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
 {
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
@@ -2952,10 +3517,58 @@ VOS_STATUS sme_BtcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
         status = btcGetConfig (hHal, pSmeBtcConfig);
         sme_ReleaseGlobalLock( &pMac->sme );
     }
+#endif
+    return (status);
+}
+/* ---------------------------------------------------------------------------
+    \fn sme_SetCfgPrivacy
+    \brief  API to set configure privacy parameters
+    \param  hHal - The handle returned by macOpen.
+    \param  pProfile - Pointer CSR Roam profile.
+    \param  fPrivacy - This parameter indicates status of privacy 
+                            
+    \return void
+  ---------------------------------------------------------------------------*/
+void sme_SetCfgPrivacy( tHalHandle hHal, 
+                        tCsrRoamProfile *pProfile,
+                        tANI_BOOLEAN fPrivacy 
+                        )
+{                    
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
+    {
+        csrSetCfgPrivacy(pMac, pProfile, fPrivacy);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+}
+
+#if defined WLAN_FEATURE_VOWIFI
+/* ---------------------------------------------------------------------------
+    \fn sme_NeighborReportRequest
+    \brief  API to request neighbor report.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRrmNeighborReq - Pointer to a caller allocated object of type
+                            tRrmNeighborReq. Caller owns the memory and is responsible
+                            for freeing it.
+    \return VOS_STATUS
+            VOS_STATUS_E_FAILURE - failure
+            VOS_STATUS_SUCCESS  success
+  ---------------------------------------------------------------------------*/
+VOS_STATUS sme_NeighborReportRequest (tHalHandle hHal, tANI_U8 sessionId, 
+                                    tpRrmNeighborReq pRrmNeighborReq, tpRrmNeighborRspCallbackInfo callbackInfo)
+{
+    VOS_STATUS status = VOS_STATUS_E_FAILURE;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+    if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
+    {
+        status = sme_RrmNeighborReportRequest (hHal, sessionId, pRrmNeighborReq, callbackInfo);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
 
     return (status);
 }
-
+#endif
 
 //The following are debug APIs to support direct read/write register/memory
 //They are placed in SME because HW cannot be access when in LOW_POWER state
@@ -2967,16 +3580,22 @@ VOS_STATUS sme_DbgReadRegister(tHalHandle hHal, v_U32_t regAddr, v_U32_t *pRegVa
 {
     v_PVOID_t pvosGCTx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *)hHal);
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
-#ifdef ANI_MANF_DIAG
-    status = WLANBAL_ReadRegister( pvosGCTx, regAddr, pRegValue );
-#else
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    // To make Quarky work in FTM mode
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+    status = WLANBAL_ReadRegister( pvosGCTx, regAddr, pRegValue );
+    }
+    else
+    {
     tPmcPowerState PowerState;
+    tANI_U32 sessionId = 0;
+
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
     {
         if( HAL_STATUS_SUCCESS( pmcQueryPowerState( pMac, &PowerState, NULL, NULL ) ) )
         {
-            if( !csrIsConnStateDisconnected(pMac) || ( ePMC_LOW_POWER != PowerState ) )
+            if( !csrIsConnStateDisconnected(pMac,sessionId) || ( ePMC_LOW_POWER != PowerState ) )
             {
                 status = WLANBAL_ReadRegister( pvosGCTx, regAddr, pRegValue );
             }
@@ -2990,7 +3609,7 @@ VOS_STATUS sme_DbgReadRegister(tHalHandle hHal, v_U32_t regAddr, v_U32_t *pRegVa
         }
         sme_ReleaseGlobalLock( &pMac->sme );
     }
-#endif
+    }
     return ( status );
 }
 
@@ -3001,24 +3620,29 @@ VOS_STATUS sme_DbgWriteRegister(tHalHandle hHal, v_U32_t regAddr, v_U32_t regVal
 {
     v_PVOID_t pvosGCTx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *)hHal);
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
-#ifdef ANI_MANF_DIAG
-    status = WLANBAL_WriteRegister( pvosGCTx, regAddr, regValue );
-#else
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    // To make Quarky work in FTM mode
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+    status = WLANBAL_WriteRegister( pvosGCTx, regAddr, regValue );
+    }
+    else
+    {
     tPmcPowerState PowerState;
+    tANI_U32 sessionId = 0;
+
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
     {
         if( HAL_STATUS_SUCCESS( pmcQueryPowerState( pMac, &PowerState, NULL, NULL ) ) )
         {
-            if( !csrIsConnStateDisconnected(pMac) || ( ePMC_LOW_POWER != PowerState ) )
+            if( !csrIsConnStateDisconnected(pMac,sessionId) || ( ePMC_LOW_POWER != PowerState ) )
             {
                 status = WLANBAL_WriteRegister( pvosGCTx, regAddr, regValue );
             }
         }
         sme_ReleaseGlobalLock( &pMac->sme );
     }
-#endif
-
+    }
     return ( status );
 }
 
@@ -3031,31 +3655,37 @@ VOS_STATUS sme_DbgReadMemory(tHalHandle hHal, v_U32_t memAddr, v_U8_t *pBuf, v_U
 {
     v_PVOID_t pvosGCTx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *)hHal);
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
-#ifdef ANI_MANF_DIAG
-    status = WLANBAL_ReadMemory( pvosGCTx, memAddr, ( void * )( pBuf ), nLen );
-#else
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    // To make Quarky work in FTM mode
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        status = WLANBAL_WriteMemory( pvosGCTx, memAddr, ( void * )( pBuf ), nLen );
+    }
+    else
+    {
     tPmcPowerState PowerState;
+    tANI_U32 sessionId = 0;
+
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
     {
         if( HAL_STATUS_SUCCESS( pmcQueryPowerState( pMac, &PowerState, NULL, NULL ) ) )
         {
-            if( !csrIsConnStateDisconnected(pMac) || ( ePMC_LOW_POWER != PowerState ) )
+            if( !csrIsConnStateDisconnected(pMac,sessionId) || ( ePMC_LOW_POWER != PowerState ) )
             {
                 status = WLANBAL_ReadMemory( pvosGCTx, memAddr, ( void * )( pBuf ), nLen );
             }
-			else
-			{
+            else
+            {
                 //This is a hack for Qualky/pttWniSocket
                 //Current implementation doesn't allow pttWniSocket to inform Qualky an error
-				vos_mem_set(pBuf, nLen, 0xCD);
-				status = eHAL_STATUS_SUCCESS;
-				smsLog(pMac, LOGE, FL(" filled with 0xCD because it cannot access the hardware\n"));
-			}
+                vos_mem_set(pBuf, nLen, 0xCD);
+                status = eHAL_STATUS_SUCCESS;
+                smsLog(pMac, LOGE, FL(" filled with 0xCD because it cannot access the hardware\n"));
+            }
         }
         sme_ReleaseGlobalLock( &pMac->sme );
     }
-#endif
+    }
     return ( status );
 }
 
@@ -3066,31 +3696,35 @@ VOS_STATUS sme_DbgWriteMemory(tHalHandle hHal, v_U32_t memAddr, v_U8_t *pBuf, v_
 {
     v_PVOID_t pvosGCTx = vos_get_global_context(VOS_MODULE_ID_PE, (v_VOID_t *)hHal);
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
-#ifdef ANI_MANF_DIAG
-    status = WLANBAL_WriteMemory( pvosGCTx, memAddr, ( void * )( pBuf ), nLen );
-#else
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    // To make Quarky work in FTM mode
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+    status = WLANBAL_WriteMemory( pvosGCTx, memAddr, ( void * )( pBuf ), nLen );
+    }
+    else
+    {
     tPmcPowerState PowerState;
+    tANI_U32 sessionId = 0;
 
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
     {
         if( HAL_STATUS_SUCCESS( pmcQueryPowerState( pMac, &PowerState, NULL, NULL ) ) )
         {
-            if( !csrIsConnStateDisconnected(pMac) || ( ePMC_LOW_POWER != PowerState ) )
+            if( !csrIsConnStateDisconnected(pMac,sessionId) || ( ePMC_LOW_POWER != PowerState ) )
             {
                 status = WLANBAL_WriteMemory( pvosGCTx, memAddr, ( void * )( pBuf ), nLen );
             }
         }
         sme_ReleaseGlobalLock( &pMac->sme );
     }
-#endif
-
+    }
     return ( status );
 }
 
 
 void smsLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...) 
-{	
+{   
 #ifdef WLAN_DEBUG
     // Verify against current log level
     if ( loglevel > pMac->utils.gLogDbgLevel[LOG_INDEX_FOR_MODULE( SIR_SMS_MODULE_ID )] )
@@ -3114,7 +3748,7 @@ void smsLog(tpAniSirGlobal pMac, tANI_U32 loglevel, const char *pString,...)
     \param  version - Points to the FwVersionInfo structure.
     \return VOS_STATUS
             VOS_STATUS_E_INVAL - failure
-            VOS_STATUS_SUCCESS – success
+            VOS_STATUS_SUCCESS  success
   ---------------------------------------------------------------------------*/
   
 VOS_STATUS sme_GetFwVersion (tHalHandle hHal,FwVersionInfo *pVersion)
@@ -3136,7 +3770,6 @@ VOS_STATUS sme_GetFwVersion (tHalHandle hHal,FwVersionInfo *pVersion)
     return (status);
 }
 
-
 #ifdef FEATURE_WLAN_WAPI
 /* ---------------------------------------------------------------------------
     \fn sme_RoamSetBKIDCache
@@ -3150,7 +3783,7 @@ VOS_STATUS sme_GetFwVersion (tHalHandle hHal,FwVersionInfo *pVersion)
     \return eHalStatus - when fail, it usually means the buffer allocated is not 
     big enough and pNumItems has the number of tBkidCacheInfo.
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamSetBKIDCache( tHalHandle hHal, tBkidCacheInfo *pBKIDCache,
+eHalStatus sme_RoamSetBKIDCache( tHalHandle hHal, tANI_U32 sessionId, tBkidCacheInfo *pBKIDCache,
                                  tANI_U32 numItems )
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
@@ -3159,7 +3792,7 @@ eHalStatus sme_RoamSetBKIDCache( tHalHandle hHal, tBkidCacheInfo *pBKIDCache,
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       status = csrRoamSetBKIDCache( hHal, pBKIDCache, numItems );
+       status = csrRoamSetBKIDCache( pMac, sessionId, pBKIDCache, numItems );
        sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -3189,7 +3822,8 @@ eHalStatus sme_RoamGetBKIDCache(tHalHandle hHal, tANI_U32 *pNum,
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       status = csrRoamGetBKIDCache( hHal, pNum, pBkidCache );
+       smsLog(pMac, LOGE, FL(" !!!!!!!!!!!!!!!!!!SessionId is hardcoded\n"));
+       status = csrRoamGetBKIDCache( pMac, 0, pNum, pBkidCache );
        sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -3204,7 +3838,7 @@ eHalStatus sme_RoamGetBKIDCache(tHalHandle hHal, tANI_U32 *pNum,
     it is opened (by calling halOpen).
     \return tANI_U32 - the number of BKID cache entries.
   ---------------------------------------------------------------------------*/
-tANI_U32 sme_RoamGetNumBKIDCache(tHalHandle hHal)
+tANI_U32 sme_RoamGetNumBKIDCache(tHalHandle hHal, tANI_U32 sessionId)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -3213,7 +3847,7 @@ tANI_U32 sme_RoamGetNumBKIDCache(tHalHandle hHal)
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-       numBkidCache = csrRoamGetNumBKIDCache( hHal );
+       numBkidCache = csrRoamGetNumBKIDCache( pMac, sessionId );
        sme_ReleaseGlobalLock( &pMac->sme );
    }
 
@@ -3235,7 +3869,7 @@ tANI_U32 sme_RoamGetNumBKIDCache(tHalHandle hHal)
     \Note: pNumItems is a number of tBkidCandidateInfo, 
            not sizeof(tBkidCandidateInfo) * something
   ---------------------------------------------------------------------------*/
-eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, 
+eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, tANI_U32 sessionId,
                                         tBkidCandidateInfo *pBkidList, 
                                         tANI_U32 *pNumItems )
 {
@@ -3245,11 +3879,273 @@ eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal,
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
-        status = csrScanGetBKIDCandidateList( hHal, pBkidList, pNumItems );
+        status = csrScanGetBKIDCandidateList( pMac, sessionId, pBkidList, pNumItems );
         sme_ReleaseGlobalLock( &pMac->sme );
     }
 
     return (status);
 }
 #endif /* FEATURE_WLAN_WAPI */
+
+#ifdef FEATURE_INNAV_SUPPORT
+
+/*****************************************************************************
+ INNAV related modifications and function additions
+ *****************************************************************************/
+
+/* ---------------------------------------------------------------------------
+    \fn sme_getInNavMeasurementResult
+    \brief a wrapper function to obtain the RSSI/RTT measurement results
+    \param pInNavMeasRsp - A pointer to the response object
+    \param pContext - a pointer passed in for the callback
+    \return eHalStatus     
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_getInNavMeasurementResult(tHalHandle hHal, 
+        tInNavMeasurementResponse **pInNavMeasRsp)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    do
+    {
+        //acquire the lock for the sme object
+        status = sme_AcquireGlobalLock(&pMac->sme);
+
+        if(!HAL_STATUS_SUCCESS(status))
+        {
+            break;
+        }
+
+        if(pMac->innavMeas.pMeasurementResult != NULL)
+        {
+            *pInNavMeasRsp = pMac->innavMeas.pMeasurementResult;
+        }
+        else
+        {
+            status = eHAL_STATUS_FAILURE;
+        }
+
+        //release the lock for the sme object
+        sme_ReleaseGlobalLock( &pMac->sme );
+
+    } while(0);
+
+    return status;
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_InNavMeasurementRequest
+    \brief a wrapper function to Request RSSI/RTT measurements
+    \param pMeasurementRequestID - pointer to an object to get back the request ID
+    \param callback - a callback function that meas calls upon finish, will not 
+                      be called if measMeasurementRequest returns error
+    \param pContext - a pointer passed in for the callback
+    \return eHalStatus     
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal, 
+        tInNavMeasurementConfig *pInNavMeasConfig, 
+        tANI_U32 *pMeasurementRequestID, 
+        measMeasurementCompleteCallback callback, 
+        void *pContext)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+    smsLog(pMac, LOG1, "%s new innav measurement request\n", __FUNCTION__);
+    smsLog(pMac, LOG1, "%s #bssids                 = %u\n", __FUNCTION__, pInNavMeasConfig->numBSSIDs);
+    smsLog(pMac, LOG1, "%s #measurements           = %u\n", __FUNCTION__, pInNavMeasConfig->numInNavMeasurements);
+    smsLog(pMac, LOG1, "%s #repetetions            = %u\n", __FUNCTION__, pInNavMeasConfig->numSetRepetitions);
+    smsLog(pMac, LOG1, "%s time-interval (ms)      = %u\n", __FUNCTION__, pInNavMeasConfig->measurementTimeInterval);
+
+    do
+    {
+        //acquire the lock for the sme object
+        status = sme_AcquireGlobalLock(&pMac->sme);
+        if(HAL_STATUS_SUCCESS(status))
+        {
+            tANI_U32 lMeasId = pMac->innavMeas.nextMeasurementId++; //let it wrap around
+
+            if(pMeasurementRequestID)
+            {
+                *pMeasurementRequestID = lMeasId;
+            }
+
+            status = measInNavMeasurementRequest(hHal, pInNavMeasConfig, pMeasurementRequestID, callback, pContext);
+
+            //release the lock for the sme object
+            sme_ReleaseGlobalLock( &pMac->sme );
+        }
+    } while(0);
+
+    smsLog(pMac, LOGW, "exiting function %s\n", __FUNCTION__);
+
+    return(status);
+}
+
+#endif /*FEATURE_INNAV_SUPPORT*/
+
+/*--------------------------------------------------------------------------
+    
+  \brief sme_OpenSession() - Open a session for scan/roam operation. 
+  
+  This is a synchronous API.
+
+  
+  \param hHal - The handle returned by macOpen.
+  \param callback - A pointer to the function caller specifies for roam/connect status indication
+  \param pContext - The context passed with callback
+  \param pSelfMacAddr - Caller allocated memory filled with self MAC address (6 bytes)
+  \param pbSessionId - pointer to a caller allocated buffer for returned session ID
+  
+  \return eHAL_STATUS_SUCCESS - session is opened. sessionId returned.
+  
+          Other status means SME is failed to open the session.  
+          eHAL_STATUS_RESOURCES - no more session available.
+  \sa
+  
+  --------------------------------------------------------------------------*/
+eHalStatus sme_OpenSession(tHalHandle hHal, csrRoamCompleteCallback callback, void *pContext, 
+                           tANI_U8 *pSelfMacAddr, tANI_U8 *pbSessionId)
+{
+   eHalStatus status;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   if( NULL == pbSessionId )
+   {
+      status = eHAL_STATUS_INVALID_PARAMETER;
+   }
+   else
+   {
+      status = sme_AcquireGlobalLock( &pMac->sme );
+      if ( HAL_STATUS_SUCCESS( status ) )
+      {      
+         status = csrRoamOpenSession( pMac, callback, pContext, pSelfMacAddr, pbSessionId );
+
+         sme_ReleaseGlobalLock( &pMac->sme );
+      }
+   }
+
+   return ( status );
+}
+
+
+/*--------------------------------------------------------------------------
+  
+  \brief sme_CloseSession() - Open a session for scan/roam operation. 
+  
+  This is a synchronous API.
+
+  
+  \param hHal - The handle returned by macOpen.
+
+  \param sessionId - A previous opened session's ID.
+  
+  \return eHAL_STATUS_SUCCESS - session is closed. 
+  
+          Other status means SME is failed to open the session.  
+          eHAL_STATUS_INVALID_PARAMETER - session is not opened. 
+  \sa
+  
+  --------------------------------------------------------------------------*/
+eHalStatus sme_CloseSession(tHalHandle hHal, tANI_U8 sessionId)
+{
+   eHalStatus status;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+      status = csrRoamCloseSession( pMac, sessionId );
+
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return ( status );
+}
+
+#ifdef WLAN_SOFTAP_FEATURE
+/* ---------------------------------------------------------------------------
+
+    \fn sme_RoamUpdateAPWPSIE
+
+    \brief To update AP's WPS IE. This function should be called after SME AP session is created
+    This is an asynchronous API.
+
+    \param pAPWPSIES - pointer to a caller allocated object of tSirAPWPSIEs
+
+    \return eHalStatus Â– SUCCESS Â– 
+
+                         FAILURE or RESOURCES Â– The API finished and failed.
+
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamUpdateAPWPSIE(tHalHandle hHal, tANI_U8 sessionId, tSirAPWPSIEs *pAPWPSIES)
+{
+
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+   
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+
+      status = csrRoamUpdateAPWPSIE( pMac, sessionId, pAPWPSIES );
+
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (status);
+}
+/* ---------------------------------------------------------------------------
+
+    \fn sme_RoamUpdateAPWPARSNIEs
+
+    \brief To update AP's WPA/RSN IEs. This function should be called after SME AP session is created
+    This is an asynchronous API.
+
+    \param pAPSirRSNie - pointer to a caller allocated object of tSirRSNie with WPS/RSN IEs
+
+    \return eHalStatus Â– SUCCESS Â– 
+
+                         FAILURE or RESOURCES Â– The API finished and failed.
+
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamUpdateAPWPARSNIEs(tHalHandle hHal, tANI_U8 sessionId, tSirRSNie * pAPSirRSNie)
+{
+
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+                   
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+
+      status = csrRoamUpdateWPARSNIEs( pMac, sessionId, pAPSirRSNie);
+
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+
+   return (status);
+}
+#endif
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetHostOffload
+    \brief  API to set the host offload feature.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRequest -  Pointer to the offload request.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus status;
+
+    if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme ) ) )
+    {
+        status = pmcSetHostOffload (hHal, pRequest);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return (status);
+}
 

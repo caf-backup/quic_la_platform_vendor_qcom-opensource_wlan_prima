@@ -106,11 +106,8 @@ typedef struct sAniSirStats
     tAniTxRxStats        globalBCStats; //Holds BC tx/rx frames and bytes across association/disassociation.
     tAniTxRxStats        globalMCStats; //Holds MC tx/rx frames and bytes across association/disassociation.
 
-
-    tAniRadioStats       radio;
     TX_TIMER             statTimer;
     tANI_U32             statTmrVal;
-
 
     tANI_U8              lastStatStaId;  
 }tAniSirStats, *tpAniSirStats;
@@ -177,12 +174,12 @@ typedef struct sAniSirHalMac
     tANI_U8  fShortSlot:1;          // this flag is for per BSS shortSlot setting..
     tANI_U8  rsvd1_sAniSirHalMac:7;  //reserved.
 
-	tANI_U32 beaconInterval;
-								  
-	tANI_U32 activeBss;
+    tANI_U32 beaconInterval;
+
+    tANI_U32 activeBss;
 
     tANI_U16 BeaconRateIndex;        //Beacon rate index for beacon frames
-    tANI_U16 NonBeaconRateIndex;     //Rate index for non-beacon frames   « 
+    tANI_U16 NonBeaconRateIndex;     //Rate index for non-beacon frames
     tANI_U16 MulticastRateIndex;     //Rate index for multicast frames 
 
     // Global BSS and STA table
@@ -213,8 +210,9 @@ typedef struct sAniSirHalMac
    *****************************************/
 
     void  *rxpInfo;   /* rxp module private info */
-    // Place holder for RXP filter mode
-    tANI_U32               rxpMode;
+
+    // Place holder for system wide RXP filter mode
+    tRxpMode     systemRxpMode;
 
    /****************************************
    /DPU related field
@@ -317,21 +315,27 @@ typedef struct sAniSirHalMac
     tANI_U32  mpiTxSent;    //pkts count sent to TX
     tANI_U32  mpiTxAbort;   //pkts aborted in TX
     tANI_U8   phyHangThr;   //max threshold to reset on phy hang
-
     // Frame translation support by ADU/UMA
     tANI_U8     frameTransEnabled;
 #ifdef WLAN_PERF
     tANI_U8     uBdSigSerialNum;
 #endif
-	tANI_U32	rpeErrIntrStatusVal;
-	tANI_U8		rpeErrCntThreshold;
-	tANI_U8		rpeErrCnt;
+    tANI_U32    rpeErrIntrStatusVal;
+    tANI_U8     rpeErrCntThreshold;
+    tANI_U8     rpeErrCnt;
 
-	/** Maintain a copy of ADU UMA STA Desc */
-	tAduUmaStaDesc aduUmaDesc[HAL_NUM_STA];
+    /** Maintain a copy of ADU UMA STA Desc */
+    tAduUmaStaDesc aduUmaDesc[HAL_NUM_UMA_DESC_ENTRIES];
 
-	tHalRxBd rxAmsduBdFixMask;
-	tHalRxBd rxAmsduFirstBdCache;
+    tHalRxBd rxAmsduBdFixMask;
+    tHalRxBd rxAmsduFirstBdCache;
+
+#ifdef FEATURE_ON_CHIP_REORDERING
+    /* Number of BA sessions for which reordering is done on-chip */
+    tANI_U8 numOfOnChipReorderSessions;
+    /* Max Number on-chip reordering sessions*/
+    tANI_U8 maxNumOfOnChipReorderSessions;
+#endif
 } tAniSirHalMac, *tpAniSirHalMac;
 
 #endif

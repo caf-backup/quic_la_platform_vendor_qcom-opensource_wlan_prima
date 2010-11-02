@@ -57,6 +57,9 @@ typedef enum eAniAuthType
 {
     eSIR_OPEN_SYSTEM,
     eSIR_SHARED_KEY,
+#if defined WLAN_FEATURE_VOWIFI_11R
+    eSIR_FT_AUTH,
+#endif
     eSIR_AUTO_SWITCH,
     eSIR_DONOT_USE_AUTH_TYPE = SIR_MAX_ENUM_SIZE
 } tAniAuthType;
@@ -69,13 +72,13 @@ typedef enum eAniEdType
     eSIR_ED_WEP104,
     eSIR_ED_TKIP,
     eSIR_ED_CCMP,
+#if defined(FEATURE_WLAN_WAPI)
+    eSIR_ED_WPI,
+#endif
     /*DPU HW treats encryption mode 4 plus RMF bit set in TX BD as BIP.
       Thus while setting BIP encryption mode in corresponding DPU Desc 
       eSIR_ED_AES_128_CMAC should be set to eSIR_ED_CCMP*/
     eSIR_ED_AES_128_CMAC,
-#if defined(FEATURE_WLAN_WAPI)
-    eSIR_ED_WPI,
-#endif
     eSIR_ED_NOT_IMPLEMENTED = SIR_MAX_ENUM_SIZE
 } tAniEdType;
 
@@ -93,6 +96,9 @@ typedef enum eAniKeyDirection
     eSIR_TX_ONLY,
     eSIR_RX_ONLY,
     eSIR_TX_RX,
+#ifdef WLAN_SOFTAP_FEATURE
+    eSIR_TX_DEFAULT,
+#endif
     eSIR_DONOT_USE_KEY_DIRECTION = SIR_MAX_ENUM_SIZE
 } tAniKeyDirection;
 

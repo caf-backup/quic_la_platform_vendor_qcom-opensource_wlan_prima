@@ -15,10 +15,11 @@
   --------------------------------------------------------------------------
 
  */
-#ifdef ANI_MANF_DIAG
+
 #include <sys_api.h>
 #ifndef VERIFY_HALPHY_SIMV_MODEL
 
+#ifndef WLAN_FTM_STUB
 
 #define GET_CLIPPED(val) ( (val < -255) ? -255 : ( (val > 255) ? 255 : val ) )
 eHalStatus asicWriteRxPhaseCorrection(tpAniSirGlobal pMac, eGainSteps gain, ePhyRxChains rxChain, sIQCalValues iqCorrect)
@@ -100,8 +101,8 @@ eHalStatus asicReadRxPhaseCorrection(tpAniSirGlobal pMac, eGainSteps gain, ePhyR
 #endif
     return (eHAL_STATUS_SUCCESS);	
 }
-#endif
-#endif
+#endif //ifndef WLAN_FTM_STUB
+#endif //ifndef VERIFY_HALPHY_SIMV_MODEL
 
 
 

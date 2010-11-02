@@ -13,6 +13,18 @@
 #include "cfgPriv.h"
 #include "cfgDebug.h"
 
+//---------------------------------------------------------------------
+// Static Variables
+//----------------------------------------------------------------------
+static tCfgCtl   __gCfgEntry[CFG_PARAM_MAX_NUM]                ;
+static tANI_U32  __gCfgIBufMin[CFG_STA_IBUF_MAX_SIZE]          ;
+static tANI_U32  __gCfgIBufMax[CFG_STA_IBUF_MAX_SIZE]          ;
+static tANI_U32  __gCfgIBuf[CFG_STA_IBUF_MAX_SIZE]             ;
+static tANI_U8   __gCfgSBuf[CFG_STA_SBUF_MAX_SIZE]             ;
+static tANI_U8   __gSBuffer[CFG_MAX_STR_LEN]                   ;
+static tANI_U32  __gParamList[WNI_CFG_MAX_PARAM_NUM + 
+                              WNI_CFG_GET_PER_STA_STAT_RSP_NUM];
+
 static void Notify(tpAniSirGlobal, tANI_U16, tANI_U32);
 
 
@@ -54,13 +66,42 @@ wlan_cfgInit(tpAniSirGlobal pMac)
 {
     // Set status to not-ready
     pMac->cfg.gCfgStatus = CFG_INCOMPLETE;
-
-    // Send CFG_DNLD_REQ to host
+  
+     // Send CFG_DNLD_REQ to host
     PELOGW(cfgLog(pMac, LOGW, FL("Sending CFG_DNLD_REQ\n"));)
     cfgSendHostMsg(pMac, WNI_CFG_DNLD_REQ, WNI_CFG_DNLD_REQ_LEN,
                    WNI_CFG_DNLD_REQ_NUM, 0, 0, 0);
 
 } /*** end wlan_cfgInit() ***/
+
+
+//---------------------------------------------------------------------
+#if (WNI_POLARIS_FW_PRODUCT != AP)
+tSirRetStatus cfgInit(tpAniSirGlobal pMac)
+{
+   pMac->cfg.gCfgIBufMin  = __gCfgIBufMin;
+   pMac->cfg.gCfgIBufMax  = __gCfgIBufMax;
+   pMac->cfg.gCfgIBuf     = __gCfgIBuf;
+   pMac->cfg.gCfgSBuf     = __gCfgSBuf;
+   pMac->cfg.gSBuffer     = __gSBuffer;
+   pMac->cfg.gCfgEntry    = __gCfgEntry;
+   pMac->cfg.gParamList   = __gParamList;
+        
+   return (eSIR_SUCCESS);
+}
+
+//----------------------------------------------------------------------
+void cfgDeInit(tpAniSirGlobal pMac)
+{
+   pMac->cfg.gCfgIBufMin  = NULL;
+   pMac->cfg.gCfgIBufMax  = NULL;
+   pMac->cfg.gCfgIBuf     = NULL;
+   pMac->cfg.gCfgSBuf     = NULL;
+   pMac->cfg.gSBuffer     = NULL;
+   pMac->cfg.gCfgEntry    = NULL;
+   pMac->cfg.gParamList   = NULL;
+}
+#endif
 
 // ---------------------------------------------------------------------
 /**
@@ -354,10 +395,10 @@ cfgSetStr(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U8 *pStr, tANI_U32 length)
         PELOGE(cfgLog(pMac, LOGE, FL("Invalid cfg id %d\n"), cfgId);)
         retVal = eSIR_CFG_INVALID_ID;
     }
-    else if (index >= (sizeof(pMac->cfg.gCfgSBuf)/sizeof(pMac->cfg.gCfgSBuf[0])))
+    else if (index >= CFG_STA_SBUF_MAX_SIZE)
     {
-        PELOGE(cfgLog(pMac, LOGE, FL("Invalid Sbuf index %d (max %d)\n"),
-               index, (sizeof(pMac->cfg.gCfgSBuf)/sizeof(pMac->cfg.gCfgSBuf[0])));)
+        PELOGE(cfgLog(pMac, LOGE, FL("Invalid Sbuf index %d (max size %d)\n"),
+               index, CFG_STA_SBUF_MAX_SIZE);)
         retVal = eSIR_CFG_INVALID_ID;
     }
     else
@@ -706,7 +747,7 @@ tPowerdBm cfgGetRegulatoryMaxTransmitPower(tpAniSirGlobal pMac, tANI_U8 channel)
  */
 
 tSirRetStatus
-cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap)
+cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap,tpPESession sessionEntry)
 {
     tANI_U32 val = 0;
     tpSirMacCapabilityInfo pCapInfo;
@@ -714,16 +755,16 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap)
     *pCap = 0;
     pCapInfo = (tpSirMacCapabilityInfo) pCap;
 
-    if (limGetSystemRole(pMac) == eLIM_STA_IN_IBSS_ROLE)
+    if (limGetSystemRole(sessionEntry) == eLIM_STA_IN_IBSS_ROLE)
         pCapInfo->ibss = 1; // IBSS bit
-    else if (limGetSystemRole(pMac) == eLIM_AP_ROLE ||
-             limGetSystemRole(pMac) == eLIM_STA_ROLE)
+    else if ( (limGetSystemRole(sessionEntry) == eLIM_AP_ROLE) ||(limGetSystemRole(sessionEntry)== eLIM_BT_AMP_AP_ROLE)||(limGetSystemRole(sessionEntry)== eLIM_BT_AMP_STA_ROLE) ||
+             (limGetSystemRole(sessionEntry) == eLIM_STA_ROLE) )
         pCapInfo->ess = 1; // ESS bit
     else
         cfgLog(pMac, LOGP, FL("can't get capability, role is UNKNOWN!!\n"));
 
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-    if (limGetSystemRole(pMac) == eLIM_AP_ROLE)
+    if( (limGetSystemRole(sessionEntry) == eLIM_AP_ROLE) )
     {
         // CF-pollable bit
         if (wlan_cfgGetInt(pMac, WNI_CFG_CF_POLLABLE, &val) != eSIR_SUCCESS)
@@ -745,12 +786,23 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap)
     }
 #endif
 
+#ifdef WLAN_SOFTAP_FEATURE
+    if((limGetSystemRole(sessionEntry) == eLIM_AP_ROLE))
+    {
+        val = sessionEntry->privacy;
+    }
+    else
+    {
+#endif
     // PRIVACY bit
     if (wlan_cfgGetInt(pMac, WNI_CFG_PRIVACY_ENABLED, &val) != eSIR_SUCCESS)
     {
         cfgLog(pMac, LOGP, FL("cfg get WNI_CFG_PRIVACY_ENABLED failed\n"));
         return eSIR_FAILURE;
     }
+#ifdef WLAN_SOFTAP_FEATURE
+    }
+#endif
     if (val)
         pCapInfo->privacy = 1;
 
@@ -770,7 +822,7 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap)
     // Channel agility bit
     pCapInfo->channelAgility = 0;
     //If STA/AP operating in 11B mode, don't set rest of the capability info bits.
-    if(pMac->lim.gLimDot11Mode == WNI_CFG_DOT11_MODE_11B)
+    if(sessionEntry->dot11mode == WNI_CFG_DOT11_MODE_11B)
         return eSIR_SUCCESS;
 
 
@@ -813,10 +865,9 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap)
                 return eSIR_FAILURE;
             }
             if (val)
-                pCapInfo->shortSlotTime = 1;
-        }
+            pCapInfo->shortSlotTime = 1;
     }
-
+    }
 
     // Spectrum Management bit
     if((eLIM_STA_IN_IBSS_ROLE != pMac->lim.gLimSystemRole) &&
@@ -849,6 +900,21 @@ cfgGetCapabilityInfo(tpAniSirGlobal pMac, tANI_U16 *pCap)
     if (val)
         pCapInfo->apsd = 1;
 
+#if defined WLAN_FEATURE_VOWIFI
+    if ((limGetSystemRole(sessionEntry) == eLIM_STA_ROLE) )
+    {
+      if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_ENABLED, &val) != eSIR_SUCCESS)
+      {
+        cfgLog(pMac, LOGP, FL("cfg get WNI_CFG_RRM_ENABLED failed\n"));
+        return eSIR_FAILURE;
+      }
+#if defined WLAN_VOWIFI_DEBUG
+      PELOGE(cfgLog( pMac, LOGE, "RRM = %d\n",val );)
+#endif
+      if (val)
+        pCapInfo->rrm = 1;
+    }
+#endif
     //DSSS-OFDM
     //FIXME : no config defined yet. 
     

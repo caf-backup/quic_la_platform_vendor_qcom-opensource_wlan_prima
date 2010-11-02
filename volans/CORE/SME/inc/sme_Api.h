@@ -1,4 +1,3 @@
-
 #if !defined( __SME_API_H )
 #define __SME_API_H
 
@@ -30,6 +29,15 @@
 #include "btcApi.h"
 #include "vos_nvitem.h"
 #include "halFw.h"
+
+#ifdef FEATURE_INNAV_SUPPORT
+#include "measApi.h"
+#endif
+
+#if defined WLAN_FEATURE_VOWIFI
+#include "smeRrmInternal.h"
+#endif
+
 /*-------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
@@ -47,6 +55,9 @@
 typedef struct _smeConfigParams
 {
    tCsrConfigParam  csrConfig;
+#if defined WLAN_FEATURE_VOWIFI
+   tRrmConfigParam  rrmConfig;
+#endif
 } tSmeConfigParams, *tpSmeConfigParams;
 
 #ifdef FEATURE_WLAN_GEN6_ROAMING
@@ -141,10 +152,56 @@ eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag);
 
 /*--------------------------------------------------------------------------
   
+  \brief sme_OpenSession() - Open a session for scan/roam operation. 
+  
+  This is a synchronous API.
+
+  
+  \param hHal - The handle returned by macOpen.
+  \param callback - A pointer to the function caller specifies for roam/connect status indication
+  \param pContext - The context passed with callback
+  \param pSelfMacAddr - Caller allocated memory filled with self MAC address (6 bytes)
+  \param pbSessionId - pointer to a caller allocated buffer for returned session ID
+  
+  \return eHAL_STATUS_SUCCESS - session is opened. sessionId returned.
+  
+          Other status means SME is failed to open the session.  
+          eHAL_STATUS_RESOURCES - no more session available.
+  \sa
+  
+  --------------------------------------------------------------------------*/
+eHalStatus sme_OpenSession(tHalHandle hHal, csrRoamCompleteCallback callback, void *pContext, 
+                           tANI_U8 *pSelfMacAddr, tANI_U8 *pbSessionId);
+
+
+/*--------------------------------------------------------------------------
+  
+  \brief sme_CloseSession() - Open a session for scan/roam operation. 
+  
+  This is a synchronous API.
+
+  
+  \param hHal - The handle returned by macOpen.
+
+  \param sessionId - A previous opened session's ID.
+  
+  \return eHAL_STATUS_SUCCESS - session is closed. 
+  
+          Other status means SME is failed to open the session.  
+          eHAL_STATUS_INVALID_PARAMETER - session is not opened. 
+  \sa
+  
+  --------------------------------------------------------------------------*/
+eHalStatus sme_CloseSession(tHalHandle hHal, tANI_U8 sessionId);
+
+
+
+/*--------------------------------------------------------------------------
+  
   \brief sme_UpdateConfig() - Change configurations for all SME moduels
   
   The function updates some configuration for modules in SME, CCM, CSR, etc
-  during SME’s close -> open sequence.
+  during SMEs close -> open sequence.
    
   Modules inside SME apply the new configuration at the next transaction.
 
@@ -161,9 +218,33 @@ eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag);
   --------------------------------------------------------------------------*/
 eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams);
 
+#ifdef WLAN_SOFTAP_FEATURE
 /*--------------------------------------------------------------------------
   
-  \brief sme_HoConfig() - Change handoff configurations for CSR during SME’s 
+  \brief sme_set11dinfo() - Set the 11d information about valid channels
+   and there power using information from nvRAM 
+   This function is called only for AP.
+
+  This is a synchronuous call
+
+  \param hHal - The handle returned by macOpen.
+  \Param pSmeConfigParams - a pointer to a caller allocated object of
+  typedef struct _smeConfigParams.
+
+  \return eHAL_STATUS_SUCCESS - SME update the config parameters successfully.
+
+		Other status means SME is failed to update the config parameters.
+  \sa
+--------------------------------------------------------------------------*/
+
+eHalStatus sme_set11dinfo(tHalHandle hHal,  tpSmeConfigParams pSmeConfigParams);
+
+eHalStatus sme_setRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode);
+
+#endif
+/*--------------------------------------------------------------------------
+  
+  \brief sme_HoConfig() - Change handoff configurations for CSR during SMEs 
   close -> open sequence.
    
   Modules inside SME apply the new configuration at the next transaction.
@@ -185,7 +266,7 @@ eHalStatus sme_HoConfig(tHalHandle hHal, tpSmeHoConfigParams pSmeHoConfigParams)
 /* ---------------------------------------------------------------------------
     \fn sme_ChangeConfigParams
     \brief The SME API exposed for HDD to provide config params to SME during 
-    SME’s stop -> start sequence. 
+    SMEs stop -> start sequence. 
     
     If HDD changed the domain that will cause a reset. This function will 
     provide the new set of 11d information for the new domain. Currrently this
@@ -257,7 +338,7 @@ v_VOID_t sme_FreeMsg( tHalHandle hHal, vos_msg_t* pMsg );
     \param pContext - a pointer passed in for the callback
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
-eHalStatus sme_ScanRequest(tHalHandle hHal, tCsrScanRequest *, 
+eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *, 
                            tANI_U32 *pScanRequestID, 
                            csrScanCompleteCallback callback, void *pContext);
 
@@ -268,7 +349,7 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tCsrScanRequest *,
     \param pScanReq - BG scan request structure
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
-eHalStatus sme_ScanSetBGScanparams(tHalHandle hHal, tCsrBGScanRequest *pScanReq);
+eHalStatus sme_ScanSetBGScanparams(tHalHandle hHal, tANI_U8 sessionId, tCsrBGScanRequest *pScanReq);
 
 
 /* ---------------------------------------------------------------------------
@@ -278,7 +359,7 @@ eHalStatus sme_ScanSetBGScanparams(tHalHandle hHal, tCsrBGScanRequest *pScanReq)
     \param phResult - an object for the result.
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
-eHalStatus sme_ScanGetResult(tHalHandle hHal, tCsrScanResultFilter *pFilter, 
+eHalStatus sme_ScanGetResult(tHalHandle hHal, tANI_U8 sessionId, tCsrScanResultFilter *pFilter, 
                             tScanResultHandle *phResult);
 
 
@@ -287,7 +368,7 @@ eHalStatus sme_ScanGetResult(tHalHandle hHal, tCsrScanResultFilter *pFilter,
     \brief a wrapper function to request CSR to clear scan results.
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
-eHalStatus sme_ScanFlushResult(tHalHandle hHal);
+eHalStatus sme_ScanFlushResult(tHalHandle hHal, tANI_U8 sessionId);
 
 
 /* ---------------------------------------------------------------------------
@@ -337,7 +418,7 @@ eHalStatus sme_ScanResultPurge(tHalHandle hHal, tScanResultHandle hScanResult);
     \Note: pNumItems is a number of tPmkidCandidateInfo, 
            not sizeof(tPmkidCandidateInfo) * something
   ---------------------------------------------------------------------------*/
-eHalStatus sme_ScanGetPMKIDCandidateList(tHalHandle hHal, 
+eHalStatus sme_ScanGetPMKIDCandidateList(tHalHandle hHal, tANI_U8 sessionId,
                                         tPmkidCandidateInfo *pPmkidList, 
                                         tANI_U32 *pNumItems );
 
@@ -361,33 +442,21 @@ eHalStatus sme_ScanGetPMKIDCandidateList(tHalHandle hHal,
 
   \return eHalStatus  
 -----------------------------------------------------------------------------*/
-eHalStatus sme_RoamRegisterLinkQualityIndCallback(tHalHandle hHal,
+eHalStatus sme_RoamRegisterLinkQualityIndCallback(tHalHandle hHal, tANI_U8 sessionId,
                                                   csrRoamLinkQualityIndCallback   callback,  
                                                   void                           *pContext);
 
-/* ---------------------------------------------------------------------------
-    \fn sme_RoamRegisterCallback
-    \brief a wrapper function to allow HDD to register a callback with CSR. 
-           Unlike scan, roam has one callback for all the roam requests
-    \param callback - a callback function that roam calls upon when state changes
-    \param pContext - a pointer passed in for the callback
-    \return eHalStatus     
-  ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamRegisterCallback(tHalHandle hHal, 
-                                    csrRoamCompleteCallback callback, 
-                                    void *pContext);
 
 /* ---------------------------------------------------------------------------
     \fn sme_RoamConnect
     \brief a wrapper function to request CSR to inititiate an association
+    \param sessionId - the sessionId returned by sme_OpenSession.
     \param pProfile - can be NULL to join to any open ones
-    \param hBssListIn - a list of BSS descriptor to roam to. It is returned 
-                        from csrScanGetResult
     \param pRoamId - to get back the request ID
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamConnect(tHalHandle hHal, tCsrRoamProfile *pProfile, 
-                          tScanResultHandle hBssListIn, tANI_U32 *pRoamId);
+eHalStatus sme_RoamConnect(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamProfile *pProfile, 
+                           tANI_U32 *pRoamId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_RoamReassoc
@@ -401,7 +470,7 @@ eHalStatus sme_RoamConnect(tHalHandle hHal, tCsrRoamProfile *pProfile,
     \param pRoamId - to get back the request ID
     \return eHalStatus     
   -------------------------------------------------------------------------------*/
-eHalStatus sme_RoamReassoc(tHalHandle hHal, tCsrRoamProfile *pProfile,
+eHalStatus sme_RoamReassoc(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamProfile *pProfile,
                           tCsrRoamModifyProfileFields modProfileFields,
                           tANI_U32 *pRoamId);
 
@@ -411,7 +480,7 @@ eHalStatus sme_RoamReassoc(tHalHandle hHal, tCsrRoamProfile *pProfile,
            the same profile
     \return eHalStatus. It returns fail if currently connected     
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamConnectToLastProfile(tHalHandle hHal);
+eHalStatus sme_RoamConnectToLastProfile(tHalHandle hHal, tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_RoamDisconnect
@@ -420,7 +489,73 @@ eHalStatus sme_RoamConnectToLastProfile(tHalHandle hHal);
                      eCSR_DISCONNECT_REASON_MIC_ERROR is meanful.
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamDisconnect(tHalHandle hHal, eCsrRoamDisconnectReason reason);
+eHalStatus sme_RoamDisconnect(tHalHandle hHal, tANI_U8 sessionId, eCsrRoamDisconnectReason reason);
+
+#ifdef WLAN_SOFTAP_FEATURE
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamStopBss
+    \brief a wrapper function to request CSR to stop bss
+    \param sessionId    - sessionId of SoftAP
+    \return eHalStatus     
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_RoamStopBss(tHalHandle hHal, tANI_U8 sessionId);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamGetAssociatedStas
+    \brief To probe the list of associated stations from various modules of CORE stack.
+    \This is an asynchronous API.
+    \param sessionId    - sessionId of SoftAP
+    \param modId        - Module from whom list of associtated stations is to be probed.
+                          If an invalid module is passed then by default VOS_MODULE_ID_PE will be probed
+    \param pUsrContext  - Opaque HDD context
+    \param pfnSapEventCallback  - Sap event callback in HDD
+    \param pAssocBuf    - Caller allocated memory to be filled with associatd stations info
+    \return eHalStatus
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamGetAssociatedStas(tHalHandle hHal, tANI_U8 sessionId,
+                                        VOS_MODULE_ID modId, void *pUsrContext,
+                                        void *pfnSapEventCallback, tANI_U8 *pAssocStasBuf);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamDisconnectSta
+    \brief To disassociate a station. This is an asynchronous API.
+    \param pPeerMacAddr - Caller allocated memory filled with peer MAC address (6 bytes)
+    \return eHalStatus  SUCCESS  Roam callback will be called to indicate actual results
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamDisconnectSta(tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pPeerMacAddr);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamDeauthSta
+    \brief To disassociate a station. This is an asynchronous API.
+    \param hHal - Global structure
+    \param sessionId - sessionId of SoftAP
+    \param pPeerMacAddr - Caller allocated memory filled with peer MAC address (6 bytes)
+    \return eHalStatus  SUCCESS  Roam callback will be called to indicate actual results    
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamDeauthSta(tHalHandle hHal, tANI_U8 sessionId,
+                                tANI_U8 *pPeerMacAddr);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamTKIPCounterMeasures
+    \brief To start or stop TKIP counter measures. This is an asynchronous API.
+    \param sessionId - sessionId of SoftAP
+    \param bEnable - Flag to start/stop TKIP countermeasures
+    \return eHalStatus  SUCCESS  Roam callback will be called to indicate actual results    
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamTKIPCounterMeasures(tHalHandle hHal, tANI_U8 sessionId, tANI_BOOLEAN bEnable);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_RoamGetWpsSessionOverlap
+    \brief To get the WPS PBC session overlap information.
+    \This is an asynchronous API.
+    \param sessionId    - sessionId of SoftAP
+    \param pUsrContext  - Opaque HDD context
+    \param pfnSapEventCallback  - Sap event callback in HDD
+    \return eHalStatus
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamGetWpsSessionOverlap(tHalHandle hHal, tANI_U8 sessionId,
+                                        void *pUsrContext, void *pfnSapEventCallback);
+#endif
 
 /* ---------------------------------------------------------------------------
     \fn sme_RoamGetConnectState
@@ -428,7 +563,7 @@ eHalStatus sme_RoamDisconnect(tHalHandle hHal, eCsrRoamDisconnectReason reason);
            of Roaming
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetConnectState(tHalHandle hHal, eCsrConnectState *pState);
+eHalStatus sme_RoamGetConnectState(tHalHandle hHal, tANI_U8 sessionId, eCsrConnectState *pState);
 
 /* ---------------------------------------------------------------------------
     \fn sme_RoamGetConnectProfile
@@ -439,7 +574,7 @@ eHalStatus sme_RoamGetConnectState(tHalHandle hHal, eCsrConnectState *pState);
                       tCsrRoamConnectedProfile
     \return eHalStatus. Failure if not connected     
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetConnectProfile(tHalHandle hHal, 
+eHalStatus sme_RoamGetConnectProfile(tHalHandle hHal, tANI_U8 sessionId,
                                      tCsrRoamConnectedProfile *pProfile);
 
 /* ---------------------------------------------------------------------------
@@ -467,7 +602,7 @@ eHalStatus sme_RoamFreeConnectProfile(tHalHandle hHal,
     \Note: pNumItems is a number of tPmkidCacheInfo, 
            not sizeof(tPmkidCacheInfo) * something
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tPmkidCacheInfo *pPMKIDCache, 
+eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tANI_U8 sessionId, tPmkidCacheInfo *pPMKIDCache, 
                                   tANI_U32 numItems );
 
 /* ---------------------------------------------------------------------------
@@ -475,6 +610,7 @@ eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tPmkidCacheInfo *pPMKIDCache,
     \brief a wrapper function to request CSR to return the WPA or RSN or WAPI IE CSR
            passes to PE to JOIN request or START_BSS request
     This is a synchronuous call.
+    \param sessionId - returned by sme_OpenSession.
     \param pLen - caller allocated memory that has the length of pBuf as input. 
                   Upon returned, *pLen has the needed or IE length in pBuf.
     \param pBuf - Caller allocated memory that contain the IE field, if any, 
@@ -483,13 +619,14 @@ eHalStatus sme_RoamSetPMKIDCache( tHalHandle hHal, tPmkidCacheInfo *pPMKIDCache,
     \return eHalStatus - when fail, it usually means the buffer allocated is not 
                          big enough
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetSecurityReqIE(tHalHandle hHal, tANI_U32 *pLen,
+eHalStatus sme_RoamGetSecurityReqIE(tHalHandle hHal, tANI_U8 sessionId, tANI_U32 *pLen,
                                   tANI_U8 *pBuf, eCsrSecurityType secType);
 
 /* ---------------------------------------------------------------------------
     \fn sme_RoamGetSecurityRspIE
     \brief a wrapper function to request CSR to return the WPA or RSN or WAPI IE from 
            the beacon or probe rsp if connected
+    \param sessionId - returned by sme_OpenSession.
     \param pLen - caller allocated memory that has the length of pBuf as input. 
                   Upon returned, *pLen has the needed or IE length in pBuf.
     \param pBuf - Caller allocated memory that contain the IE field, if any, 
@@ -498,7 +635,7 @@ eHalStatus sme_RoamGetSecurityReqIE(tHalHandle hHal, tANI_U32 *pLen,
     \return eHalStatus - when fail, it usually means the buffer allocated is not 
                          big enough
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetSecurityRspIE(tHalHandle hHal, tANI_U32 *pLen,
+eHalStatus sme_RoamGetSecurityRspIE(tHalHandle hHal, tANI_U8 sessionId, tANI_U32 *pLen,
                                   tANI_U8 *pBuf, eCsrSecurityType secType);
 
 
@@ -508,7 +645,7 @@ eHalStatus sme_RoamGetSecurityRspIE(tHalHandle hHal, tANI_U32 *pLen,
            entries
     \return tANI_U32 - the number of PMKID cache entries
   ---------------------------------------------------------------------------*/
-tANI_U32 sme_RoamGetNumPMKIDCache(tHalHandle hHal);
+tANI_U32 sme_RoamGetNumPMKIDCache(tHalHandle hHal, tANI_U8 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_RoamGetPMKIDCache
@@ -521,7 +658,7 @@ tANI_U32 sme_RoamGetNumPMKIDCache(tHalHandle hHal);
     \return eHalStatus - when fail, it usually means the buffer allocated is not 
                          big enough
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamGetPMKIDCache(tHalHandle hHal, tANI_U32 *pNum, 
+eHalStatus sme_RoamGetPMKIDCache(tHalHandle hHal, tANI_U8 sessionId, tANI_U32 *pNum, 
                                  tPmkidCacheInfo *pPmkidCache);
 
 /* ---------------------------------------------------------------------------
@@ -611,7 +748,7 @@ eHalStatus sme_CfgSetStr(tHalHandle hHal, tANI_U32 cfgId, tANI_U8 *pStr,
 
     \return eHalStatus     
   -------------------------------------------------------------------------------*/
-eHalStatus sme_GetModifyProfileFields(tHalHandle hHal, 
+eHalStatus sme_GetModifyProfileFields(tHalHandle hHal, tANI_U8 sessionId, 
                                      tCsrRoamModifyProfileFields * pModifyProfileFields);
 
 
@@ -897,8 +1034,8 @@ extern eHalStatus sme_DeregisterDeviceStateUpdateInd (
     \param  hHal - The handle returned by macOpen.
     \param  pattern -  Pattern to be added
     \return eHalStatus
-            eHAL_STATUS_FAILURE – Cannot add pattern
-            eHAL_STATUS_SUCCESS – Request accepted. 
+            eHAL_STATUS_FAILURE  Cannot add pattern
+            eHAL_STATUS_SUCCESS  Request accepted. 
   ---------------------------------------------------------------------------*/
 extern eHalStatus sme_WowlAddBcastPattern (
    tHalHandle hHal, 
@@ -910,8 +1047,8 @@ extern eHalStatus sme_WowlAddBcastPattern (
     \param  hHal - The handle returned by macOpen.
     \param  pattern -  Pattern to be deleted
     \return eHalStatus
-            eHAL_STATUS_FAILURE – Cannot delete pattern
-            eHAL_STATUS_SUCCESS – Request accepted. 
+            eHAL_STATUS_FAILURE  Cannot delete pattern
+            eHAL_STATUS_SUCCESS  Request accepted. 
   ---------------------------------------------------------------------------*/
 extern eHalStatus sme_WowlDelBcastPattern (
    tHalHandle hHal, 
@@ -942,9 +1079,9 @@ extern eHalStatus sme_WowlDelBcastPattern (
     \param  callbackContext - A cookie passed by HDD, that is passed back to HDD 
                               at the time of callback.
     \return eHalStatus
-            eHAL_STATUS_SUCCESS – Device is already in WoWLAN mode
-            eHAL_STATUS_FAILURE – Device cannot enter WoWLAN mode.
-            eHAL_STATUS_PMC_PENDING – Request accepted. SME will enable WOWL when BMPS
+            eHAL_STATUS_SUCCESS  Device is already in WoWLAN mode
+            eHAL_STATUS_FAILURE  Device cannot enter WoWLAN mode.
+            eHAL_STATUS_PMC_PENDING  Request accepted. SME will enable WOWL when BMPS
                                       mode is entered.
   ---------------------------------------------------------------------------*/
 extern eHalStatus sme_EnterWowl ( 
@@ -959,10 +1096,10 @@ extern eHalStatus sme_EnterWowl (
             mode. Any Buffered request for WoWL will be cleared after this API.
     \param  hHal - The handle returned by macOpen.
     \return eHalStatus
-            eHAL_STATUS_FAILURE – Device cannot exit WoWLAN mode. This can happen
+            eHAL_STATUS_FAILURE  Device cannot exit WoWLAN mode. This can happen
                                   only if the previous "Enter WOWL" transaction has
                                   not even completed.
-            eHAL_STATUS_SUCCESS – Request accepted to exit WoWLAN mode. 
+            eHAL_STATUS_SUCCESS  Request accepted to exit WoWLAN mode. 
   ---------------------------------------------------------------------------*/
 extern eHalStatus sme_ExitWowl (tHalHandle hHal);
 
@@ -975,14 +1112,14 @@ extern eHalStatus sme_ExitWowl (tHalHandle hHal);
 
     \param pSetKeyInfo - pointer to a caller allocated object of tCsrSetContextInfo
 
-    \param pRoamId – Upon success return, this is the id caller can use to identify the request in roamcallback
+    \param pRoamId  Upon success return, this is the id caller can use to identify the request in roamcallback
 
-    \return eHalStatus – SUCCESS – Roam callback will be called indicate actually results
+    \return eHalStatus  SUCCESS  Roam callback will be called indicate actually results
 
-                         FAILURE or RESOURCES – The API finished and failed.
+                         FAILURE or RESOURCES  The API finished and failed.
 
   -------------------------------------------------------------------------------*/
-eHalStatus sme_RoamSetKey(tHalHandle, tCsrRoamSetKey *pSetKey, tANI_U32 *pRoamId);
+eHalStatus sme_RoamSetKey(tHalHandle, tANI_U8 sessionId, tCsrRoamSetKey *pSetKey, tANI_U32 *pRoamId);
 
 /* ---------------------------------------------------------------------------
 
@@ -992,14 +1129,14 @@ eHalStatus sme_RoamSetKey(tHalHandle, tCsrRoamSetKey *pSetKey, tANI_U32 *pRoamId
 
     \param pRemoveKey - pointer to a caller allocated object of tCsrRoamRemoveKey
 
-    \param pRoamId – Upon success return, this is the id caller can use to identify the request in roamcallback
+    \param pRoamId  Upon success return, this is the id caller can use to identify the request in roamcallback
 
-    \return eHalStatus – SUCCESS – Roam callback will be called indicate actually results
+    \return eHalStatus  SUCCESS  Roam callback will be called indicate actually results
 
-                         FAILURE or RESOURCES – The API finished and failed.
+                         FAILURE or RESOURCES  The API finished and failed.
 
   -------------------------------------------------------------------------------*/
-eHalStatus sme_RoamRemoveKey(tHalHandle, tCsrRoamRemoveKey *pRemoveKey, tANI_U32 *pRoamId);
+eHalStatus sme_RoamRemoveKey(tHalHandle, tANI_U8 sessionId, tCsrRoamRemoveKey *pRemoveKey, tANI_U32 *pRoamId);
 
 
 /* ---------------------------------------------------------------------------
@@ -1013,14 +1150,14 @@ eHalStatus sme_RoamRemoveKey(tHalHandle, tCsrRoamRemoveKey *pRemoveKey, tANI_U32
 
     \param pBuf - pointer to a caller allocated buffer for returned country code.
 
-    \param pbLen – For input, this parameter indicates how big is the buffer.
+    \param pbLen  For input, this parameter indicates how big is the buffer.
                    Upon return, this parameter has the number of bytes for country. If pBuf
                    doesn't have enough space, this function returns
                    fail status and this parameter contains the number that is needed.
 
-    \return eHalStatus – SUCCESS.
+    \return eHalStatus  SUCCESS.
 
-                         FAILURE or RESOURCES – The API finished and failed.
+                         FAILURE or RESOURCES  The API finished and failed.
 
   -------------------------------------------------------------------------------*/
 eHalStatus sme_GetCountryCode(tHalHandle hHal, tANI_U8 *pBuf, tANI_U8 *pbLen);
@@ -1035,12 +1172,12 @@ eHalStatus sme_GetCountryCode(tHalHandle hHal, tANI_U8 *pBuf, tANI_U8 *pbLen);
 
     \param pCountry - pointer to a caller allocated buffer for the country code.
 
-    \param pfRestartNeeded – A pointer to caller allocated memory, upon successful return, it indicates
+    \param pfRestartNeeded  A pointer to caller allocated memory, upon successful return, it indicates
     whether a reset is required.
 
-    \return eHalStatus – SUCCESS.
+    \return eHalStatus  SUCCESS.
 
-                         FAILURE or RESOURCES – The API finished and failed.
+                         FAILURE or RESOURCES  The API finished and failed.
 
   -------------------------------------------------------------------------------*/
 eHalStatus sme_SetCountryCode(tHalHandle hHal, tANI_U8 *pCountry, tANI_BOOLEAN *pfRestartNeeded);
@@ -1073,9 +1210,9 @@ eHalStatus sme_GetSupportedCountryCode(tHalHandle hHal, tANI_U8 *pBuf, tANI_U32 
     This function must be called after CFG is downloaded and all the band/mode setting already passed into
     SME. The function fails if 11d support is turned off.
     \param pDomain - Caller allocated buffer to return the current domain.
-    \return eHalStatus – SUCCESS.
+    \return eHalStatus  SUCCESS.
 
-                         FAILURE or RESOURCES – The API finished and failed.     
+                         FAILURE or RESOURCES  The API finished and failed.     
   -------------------------------------------------------------------------------*/
 eHalStatus sme_GetCurrentRegulatoryDomain(tHalHandle hHal, v_REGDOMAIN_t *pDomain);
 
@@ -1100,12 +1237,12 @@ eHalStatus sme_SetRegulatoryDomain(tHalHandle hHal, v_REGDOMAIN_t domainId, tANI
 
     \param pCountry - pointer to a caller allocated buffer for input country code.
 
-    \param pDomainId – Upon successful return, it is the domain that country belongs to.
+    \param pDomainId  Upon successful return, it is the domain that country belongs to.
     If it is NULL, returning success means that the country code is known.
 
-    \return eHalStatus – SUCCESS.
+    \return eHalStatus  SUCCESS.
 
-                         FAILURE or RESOURCES – The API finished and failed.
+                         FAILURE or RESOURCES  The API finished and failed.
 
   -------------------------------------------------------------------------------*/
 eHalStatus sme_GetRegulatoryDomainForCountry(tHalHandle hHal, tANI_U8 *pCountry, v_REGDOMAIN_t *pDomainId);
@@ -1120,14 +1257,14 @@ eHalStatus sme_GetRegulatoryDomainForCountry(tHalHandle hHal, tANI_U8 *pCountry,
 
     \param pDomains - pointer to a caller allocated buffer for returned regulatory domains.
 
-    \param pNumDomains – For input, this parameter indicates howm many domains pDomains can hold.
+    \param pNumDomains  For input, this parameter indicates howm many domains pDomains can hold.
                          Upon return, this parameter has the number for supported domains. If pDomains
                          doesn't have enough space for all the supported domains, this function returns
                          fail status and this parameter contains the number that is needed.
 
-    \return eHalStatus – SUCCESS.
+    \return eHalStatus  SUCCESS.
 
-                         FAILURE or RESOURCES – The API finished and failed.
+                         FAILURE or RESOURCES  The API finished and failed.
 
   -------------------------------------------------------------------------------*/
 eHalStatus sme_GetSupportedRegulatoryDomains(tHalHandle hHal, v_REGDOMAIN_t *pDomains, tANI_U32 *pNumDomains);
@@ -1149,10 +1286,10 @@ eHalStatus sme_ScanGetBaseChannels( tHalHandle hHal, tCsrChannelInfo * pChannelI
     \param  pBtcBtEvent -  Pointer to a caller allocated object of type tSmeBtEvent
                            Caller owns the memory and is responsible for freeing it.
     \return VOS_STATUS
-            VOS_STATUS_E_FAILURE – BT Event not passed to HAL. This can happen
+            VOS_STATUS_E_FAILURE  BT Event not passed to HAL. This can happen
                                    if driver has not yet been initialized or if BTC 
                                    Events Layer has been disabled.
-            VOS_STATUS_SUCCESS   – BT Event passed to HAL 
+            VOS_STATUS_SUCCESS    BT Event passed to HAL 
   ---------------------------------------------------------------------------*/
 VOS_STATUS sme_BtcSignalBtEvent (tHalHandle hHal, tpSmeBtEvent pBtcBtEvent);
 
@@ -1166,8 +1303,8 @@ VOS_STATUS sme_BtcSignalBtEvent (tHalHandle hHal, tpSmeBtEvent pBtcBtEvent);
                             tSmeBtcConfig. Caller owns the memory and is responsible
                             for freeing it.
     \return VOS_STATUS
-            VOS_STATUS_E_FAILURE – Config not passed to HAL. 
-            VOS_STATUS_SUCCESS – Config passed to HAL 
+            VOS_STATUS_E_FAILURE  Config not passed to HAL. 
+            VOS_STATUS_SUCCESS  Config passed to HAL 
   ---------------------------------------------------------------------------*/
 VOS_STATUS sme_BtcSetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig);
 
@@ -1179,10 +1316,36 @@ VOS_STATUS sme_BtcSetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig);
                             Caller owns the memory and is responsible for freeing it.
     \return VOS_STATUS
             VOS_STATUS_E_FAILURE - failure
-            VOS_STATUS_SUCCESS – success
+            VOS_STATUS_SUCCESS  success
   ---------------------------------------------------------------------------*/
 VOS_STATUS sme_BtcGetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig);
 
+/* ---------------------------------------------------------------------------
+    \fn sme_SetCfgPrivacy
+    \brief  API to set configure privacy parameters
+    \param  hHal - The handle returned by macOpen.
+    \param  pProfile - Pointer CSR Roam profile.
+    \param  fPrivacy - This parameter indicates status of privacy 
+                            
+    \return void
+  ---------------------------------------------------------------------------*/
+void sme_SetCfgPrivacy(tHalHandle hHal, tCsrRoamProfile *pProfile, tANI_BOOLEAN fPrivacy);
+
+#if defined WLAN_FEATURE_VOWIFI
+/* ---------------------------------------------------------------------------
+    \fn sme_NeighborReportRequest
+    \brief  API to request neighbor report.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRrmNeighborReq - Pointer to a caller allocated object of type
+                            tRrmNeighborReq. Caller owns the memory and is responsible
+                            for freeing it.
+    \return VOS_STATUS
+            VOS_STATUS_E_FAILURE - failure
+            VOS_STATUS_SUCCESS  success
+  ---------------------------------------------------------------------------*/
+VOS_STATUS sme_NeighborReportRequest (tHalHandle hHal, tANI_U8 sessionId, 
+                tpRrmNeighborReq pRrmNeighborReq, tpRrmNeighborRspCallbackInfo callbackInfo);
+#endif
 
 //The following are debug APIs to support direct read/write register/memory
 //They are placed in SME because HW cannot be access when in LOW_POWER state
@@ -1207,6 +1370,9 @@ VOS_STATUS sme_DbgWriteMemory(tHalHandle hHal, v_U32_t memAddr, v_U8_t *pBuf, v_
 
 //sme_GetFwVersion
 VOS_STATUS sme_GetFwVersion (tHalHandle hHal,FwVersionInfo *pVersion);
+eHalStatus sme_RoamRegisterCallback(tHalHandle hHal,
+                                    csrRoamCompleteCallback callback,
+                                    void *pContext);
 
 #ifdef FEATURE_WLAN_WAPI
 /* ---------------------------------------------------------------------------
@@ -1221,7 +1387,7 @@ VOS_STATUS sme_GetFwVersion (tHalHandle hHal,FwVersionInfo *pVersion);
     \return eHalStatus - when fail, it usually means the buffer allocated is not 
     big enough and pNumItems has the number of tBkidCacheInfo.
   ---------------------------------------------------------------------------*/
-eHalStatus sme_RoamSetBKIDCache( tHalHandle hHal, tBkidCacheInfo *pBKIDCache,
+eHalStatus sme_RoamSetBKIDCache( tHalHandle hHal, tANI_U32 sessionId, tBkidCacheInfo *pBKIDCache,
                                  tANI_U32 numItems );
 
 /* ---------------------------------------------------------------------------
@@ -1249,7 +1415,7 @@ eHalStatus sme_RoamGetBKIDCache(tHalHandle hHal, tANI_U32 *pNum,
     it is opened (by calling halOpen).
     \return tANI_U32 - the number of BKID cache entries.
   ---------------------------------------------------------------------------*/
-tANI_U32 sme_RoamGetNumBKIDCache(tHalHandle hHal);
+tANI_U32 sme_RoamGetNumBKIDCache(tHalHandle hHal, tANI_U32 sessionId);
 
 /* ---------------------------------------------------------------------------
     \fn sme_ScanGetBKIDCandidateList
@@ -1266,9 +1432,88 @@ tANI_U32 sme_RoamGetNumBKIDCache(tHalHandle hHal);
     \Note: pNumItems is a number of tBkidCandidateInfo, 
            not sizeof(tBkidCandidateInfo) * something
   ---------------------------------------------------------------------------*/
-eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, 
+eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, tANI_U32 sessionId,
                                         tBkidCandidateInfo *pBkidList, 
                                         tANI_U32 *pNumItems );
 #endif /* FEATURE_WLAN_WAPI */
+
+#ifdef FEATURE_INNAV_SUPPORT
+/********************************************************************************************
+  InNav related modifications
+*********************************************************************************************/
+/* ---------------------------------------------------------------------------
+    \fn sme_InNavMeasurementRequest
+    \brief a wrapper function to Request RSSI/RTT measurements
+    \param pMeasurementRequestID - pointer to an object to get back the request ID
+    \param callback - a callback function that meas calls upon finish, will not 
+                      be called if measMeasurementRequest returns error
+    \param pContext - a pointer passed in for the callback
+    \return eHalStatus     
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal, 
+		tInNavMeasurementConfig *, 
+		tANI_U32 *pMeasurementRequestID, 
+		measMeasurementCompleteCallback callback, 
+		void *pContext);
+
+/* ---------------------------------------------------------------------------
+    \fn sme_getInNavMeasurementResult
+    \brief a wrapper function to obtain the RSSI/RTT measurement results
+	\param pInNavMeasRsp - A pointer to the response object
+    \param pMeasurementRequestID - pointer to an object to get back the request ID
+    \return eHalStatus     
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_getInNavMeasurementResult(tHalHandle hHal, 
+		tInNavMeasurementResponse **pInNavMeasRsp);
+
+#endif /*FEATURE_INNAV_SUPPORT*/
+
+
+#ifdef WLAN_SOFTAP_FEATURE
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_RoamUpdateAPWPSIE
+
+    \brief To update AP's WPS IE. This function should be called after SME AP session is created
+    This is an asynchronous API.
+
+    \param pAPWPSIES - pointer to a caller allocated object of tCsrRoamAPWPSIES
+
+    \return eHalStatus Â– SUCCESS Â– Roam callback will be called indicate actually results
+
+                         FAILURE or RESOURCES Â– The API finished and failed.
+
+  -------------------------------------------------------------------------------*/
+
+eHalStatus sme_RoamUpdateAPWPSIE(tHalHandle, tANI_U8 sessionId, tSirAPWPSIEs *pAPWPSIES);
+/* ---------------------------------------------------------------------------
+
+    \fn sme_RoamUpdateAPWPARSNIEs
+
+    \brief To update AP's WPA/RSN IEs. This function should be called after SME AP session is created
+    This is an asynchronous API.
+
+    \param pAPSirRSNie - pointer to a caller allocated object of tSirRSNie with WPS/RSN IEs
+
+    \return eHalStatus Â– SUCCESS Â– 
+
+                         FAILURE or RESOURCES Â– The API finished and failed.
+
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RoamUpdateAPWPARSNIEs(tHalHandle hHal, tANI_U8 sessionId, tSirRSNie * pAPSirRSNie);
+
+#endif
+
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetHostOffload
+    \brief  API to set the host offload feature.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRequest -  Pointer to the offload request.
+    \return eHalStatus
+   ---------------------------------------------------------------------------*/
+eHalStatus sme_SetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest);
+
 
 #endif //#if !defined( __SME_API_H )

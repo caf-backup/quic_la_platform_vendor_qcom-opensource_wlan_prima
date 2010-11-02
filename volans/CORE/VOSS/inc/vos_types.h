@@ -80,6 +80,7 @@
 /// in the software system.
 typedef enum
 {
+   VOS_MODULE_ID_BAP,
    VOS_MODULE_ID_TL,  
    VOS_MODULE_ID_BAL,
    VOS_MODULE_ID_SAL,   
@@ -90,7 +91,10 @@ typedef enum
    VOS_MODULE_ID_HAL,
    VOS_MODULE_ID_SYS,
    VOS_MODULE_ID_VOSS,
-   
+#ifdef WLAN_SOFTAP_FEATURE
+   VOS_MODULE_ID_SAP,
+   VOS_MODULE_ID_HDD_SOFTAP,
+#endif   
    // not a real module ID.  This is used to identify the maxiumum
    // number of VOS_MODULE_IDs and should always be at the END of
    // this enum.  If IDs are added, they need to go in front of this
@@ -98,7 +102,17 @@ typedef enum
 
 } VOS_MODULE_ID;
 
-  
+#ifdef WLAN_SOFTAP_FEATURE
+/// Cocurrency role.  These are generic IDs that identify the various roles
+/// in the software system.
+typedef enum
+{
+    VOS_STA_MODE, 
+    VOS_STA_SAP_MODE //to support softAp + sta mode 
+
+} VOS_CON_MODE;
+#endif 
+ 
 #if !defined( NULL )
 #ifdef __cplusplus
 #define NULL	0
@@ -401,6 +415,44 @@ v_U32_t vos_atomic_increment_U32( v_U32_t *pTarget );
   
   --------------------------------------------------------------------------*/                                                 
 v_U32_t vos_atomic_decrement_U32( v_U32_t *pTarget );
+
+/*----------------------------------------------------------------------------
+  
+  \brief vos_atomic_increment_U32_by_value() - Increment a U32 variable atomically
+  by a given value
+  
+  \param pTarget - pointer to the v_U32_t to decrement.
+  \param value   - the value that needs to be added to target
+  
+  \return This function returns the value of the variable after the 
+          decrement occurs.
+    
+  \sa vos_atomic_increment_U32(), vos_atomic_set_U32()
+  
+  --------------------------------------------------------------------------*/                                                 
+v_U32_t vos_atomic_increment_U32_by_value( v_U32_t *pTarget, v_U32_t value  );
+
+/*----------------------------------------------------------------------------
+  
+  \brief vos_atomic_decrement_U32_by_value() - Decrement a U32 variable atomically
+  by a given value
+  
+  \param pTarget - pointer to the v_U32_t to decrement.
+  \param value   - the value that needs to be substracted from target
+  
+  \return This function returns the value of the variable after the 
+          decrement occurs.
+    
+  \sa vos_atomic_increment_U32(), vos_atomic_set_U32()
+  
+  --------------------------------------------------------------------------*/                                                 
+v_U32_t vos_atomic_decrement_U32_by_value( v_U32_t *pTarget, v_U32_t value  );
+
+
+v_U32_t vos_get_skip_ssid_check(void); 
+
+v_U32_t vos_get_skip_11e_check(void); 
+
 
 
 #endif // if !defined __VOSS_TYPES_H

@@ -20,6 +20,10 @@
 //Libra Rate Table
 static tHalRateTable halRateTable[MAX_LIBRA_RATE_NUM];
 
+#ifdef FEATURE_TX_PWR_CONTROL
+/*To accommodate the txpower for virtual rates ghalRateTxPwrIndexTable is defined*/
+static tANI_U8 ghalRateTxPwrIndexTable[HAL_MAC_MAX_RATES];
+#endif
 /* -------------------------------------------
  *  Response Rate Index Table (index 0 - 67)
  * -------------------------------------------
@@ -983,7 +987,11 @@ tHalRateInfo gHalRateInfo[HAL_MAC_MAX_RATES]  = {
     { 390, 326, 120,   4, 0, 0, (RA_HT_20_SIMO|RA_16QAM|RA_CODERATE_3_4), TPE_RT_IDX_MCS_1NSS_MM_39_MBPS },
     { 520, 435, 180,   5, 0, 0, (RA_HT_20_SIMO|RA_64QAM|RA_CODERATE_2_3), TPE_RT_IDX_MCS_1NSS_MM_52_MBPS },
     { 585, 492, 200,   6, 0, 0, (RA_HT_20_SIMO|RA_64QAM|RA_CODERATE_3_4), TPE_RT_IDX_MCS_1NSS_MM_58_5_MBPS },
+#ifdef FEATURE_TX_PWR_CONTROL
+    { 650, 517, 220,   7, 0, 0, (RA_HT_20_SIMO|RA_64QAM|RA_CODERATE_5_6), TPE_RT_IDX_MCS_1NSS_MM_65_MBPS },
+#else
     { 650, 548, 220,   7, 0, 0, (RA_HT_20_SIMO|RA_64QAM|RA_CODERATE_5_6), TPE_RT_IDX_MCS_1NSS_MM_65_MBPS },
+#endif
 
     //HT SIMO SGI
     {  72,  59,  30,   0, 0, 0, (RA_DISABLED|RA_HT_20_SIMO_SGI|RA_BPSK|RA_CODERATE_1_2), TPE_RT_IDX_MCS_1NSS_MM_SG_7_2_MBPS },
@@ -993,7 +1001,11 @@ tHalRateInfo gHalRateInfo[HAL_MAC_MAX_RATES]  = {
     { 434, 363, 120,   4, 0, 0, (RA_DISABLED|RA_HT_20_SIMO_SGI|RA_16QAM|RA_CODERATE_3_4), TPE_RT_IDX_MCS_1NSS_MM_SG_43_3_MBPS },
     { 578, 486, 180,   5, 0, 0, (RA_DISABLED|RA_HT_20_SIMO_SGI|RA_64QAM|RA_CODERATE_2_3), TPE_RT_IDX_MCS_1NSS_MM_SG_57_8_MBPS },
     { 650, 548, 200,   6, 0, 0, (RA_DISABLED|RA_HT_20_SIMO_SGI|RA_64QAM|RA_CODERATE_3_4), TPE_RT_IDX_MCS_1NSS_MM_SG_65_MBPS },
+#ifdef FEATURE_TX_PWR_CONTROL
+    { 722, 576, 236,   7, 0, 0, (RA_HT_20_SIMO_SGI|RA_64QAM|RA_CODERATE_5_6), TPE_RT_IDX_MCS_1NSS_MM_SG_72_2_MBPS },
+#else
     { 722, 606, 230,   7, 0, 0, (RA_HT_20_SIMO_SGI|RA_64QAM|RA_CODERATE_5_6), TPE_RT_IDX_MCS_1NSS_MM_SG_72_2_MBPS },
+#endif
 
     //SLR Rates //FIXME: Check if all the values are right?
     {   2,   1,  30,   0, 0, 0, (RA_DISABLED|RA_SLR|RA_BPSK|RA_CODERATE_1_2),  TPE_RT_IDX_SLR_0_25_MBPS },
@@ -1011,6 +1023,13 @@ tHalRateInfo gHalRateInfo[HAL_MAC_MAX_RATES]  = {
 
     //Qualcomm proprietary rates //FIXME: Check if all the values are right?
     { 682, 576, 230, 1100,0, 0, (RA_DISABLED|RA_QCOMM_20_SIMO|RA_64QAM|RA_CODERATE_7_8), TPE_RT_IDX_ANI_GF_68_25_MBPS },
+
+#ifdef FEATURE_TX_PWR_CONTROL
+    //virtual rate for highest rate(65Mbps) in mode HT SIMO
+    { 670, 548, 235,   7, 0, 0, (RA_VIRTUAL|RA_HT_20_SIMO|RA_64QAM|RA_CODERATE_5_6), TPE_RT_IDX_MCS_1NSS_MM_65_MBPS },
+    //virtual rate for highest rate(72.2Mbps) in mode HT SIMO SGI 
+    { 740, 606, 251,   7, 0, 0, (RA_VIRTUAL|RA_HT_20_SIMO_SGI|RA_64QAM|RA_CODERATE_5_6), TPE_RT_IDX_MCS_1NSS_MM_SG_72_2_MBPS },
+#endif
 
     //STBC GF SIMO
     {  65,  54,  30,   0, 0, 0, (RA_DISABLED|RA_STBC|RA_HT_20_SIMO|RA_BPSK|RA_CODERATE_1_2),  TPE_RT_IDX_MCS_1NSS_STBC_GF_6_5_MBPS },
@@ -1103,7 +1122,11 @@ tHalMacRate halRate_tpeRate2HalRate(tANI_U32 tpeRate)
     if(tpeRate == TPE_RT_IDX_INVALID)
         return HALRATE_INVALID;
 #ifdef WLAN_HAL_VOLANS
+#ifdef FEATURE_TX_PWR_CONTROL
+    else if(tpeRate < HALRATE_MODE_TX_END){
+#else
     else if(tpeRate < MAX_LIBRA_TX_RATE_NUM){
+#endif
 #else
     else if(tpeRate < MAX_LIBRA_RATE_NUM){
 #endif
@@ -1252,7 +1275,11 @@ eHalStatus halRate_TxPwrIndexToFW(tpAniSirGlobal pMac, int startIndex, int endIn
 
     /* 1. construct pwrIndexTable (extract from halRateInfo) */
     for(i=0; i<HAL_MAC_MAX_TX_RATES; i++) {
+#ifdef FEATURE_TX_PWR_CONTROL
+        halRateTxPwrIndexTable[i] = ghalRateTxPwrIndexTable[i];
+#else
         halRateTxPwrIndexTable[i] = halRateTable[i].txPwr;
+#endif
                     }
 
 #ifdef ANI_LITTLE_BYTE_ENDIAN /* if host is little endian, firmware needs big endian */
@@ -1270,7 +1297,6 @@ eHalStatus halRate_TxPwrIndexToFW(tpAniSirGlobal pMac, int startIndex, int endIn
         &halRateTxPwrIndexTable[startIndex_4], sizeof(tANI_U32)*(endIndex_4-startIndex_4));
     return status;
     }
-
 #ifdef WLAN_HAL_VOLANS
 void halRate_UpdateRateTableDynamicData(tpAniSirGlobal pMac, tANI_U32 rateIdx)
 {
@@ -1317,7 +1343,11 @@ eHalStatus halRate_Start(tHalHandle hHal, void *arg)
 
     if (halRate_UpdateRateTablePower(pMac,
 #ifdef WLAN_HAL_VOLANS //FIXME_VOLANS this change should go to Libra as well
+#ifdef FEATURE_TX_PWR_CONTROL
+                (tTpeRateIdx)HALRATE_MODE_START, (tTpeRateIdx)HAL_MAC_MAX_TX_RATES, FALSE) != eHAL_STATUS_SUCCESS) {
+#else
                 (tTpeRateIdx)MIN_LIBRA_RATE_NUM, (tTpeRateIdx)MAX_LIBRA_TX_RATE_NUM, FALSE) != eHAL_STATUS_SUCCESS) {
+#endif
 #else
                 s(tTpeRateIdx)MIN_LIBRA_RATE_NUM, (tTpeRateIdx)MAX_LIBRA_RATE_NUM, FALSE) != eHAL_STATUS_SUCCESS) {
 #endif
@@ -1432,7 +1462,6 @@ void halRate_getProtectionInfo(tpAniSirGlobal pMac, tANI_U32 staId,
         tANI_U32 *pProtPolicy)
 {
     tTpeProtPolicy protPolicy = TPE_RATE_PROTECTION_NONE;
-    tANI_U32 rtsThreshold = HAL_RTS_THRESHOLD_MAX;
     tANI_BOOLEAN bssProt = FALSE;
     tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;
     tpHalRaGlobalInfo pGlobInfo = &pMac->hal.halRaInfo;
@@ -1441,25 +1470,11 @@ void halRate_getProtectionInfo(tpAniSirGlobal pMac, tANI_U32 staId,
     halUtil_getProtectionMode(pMac, &protPolicy);
     pGlobInfo->protPolicy = (tANI_U8)protPolicy;
 
-    // Get the CFG set RTS threshold
-    if (wlan_cfgGetInt(pMac, WNI_CFG_RTS_THRESHOLD,
-                &rtsThreshold) != eSIR_SUCCESS) {
-        HALLOGE(halLog(pMac, LOGE, FL("cfgGet WNI_CFG_RTS_THRESHOLD Failed\n")));
-    }
-    pGlobInfo->rtsThreshold = (tANI_U16)rtsThreshold;
-
     // Check protection is set in the BSS
     if ((bssTable->bssRaInfo.u.bit.llbCoexist) &&
             (HALRATE_IS_11B(halDataRateIdx) == 0) &&
             (pMac->hal.currentRfBand == eRF_BAND_2_4_GHZ)) {
         bssProt = TRUE;
-    }
-
-    // If RTS threshold is less than the max, override the protection
-    // policy to RTS protection, as the HW relies on the protection mode
-    // to be set to RTS for the RTS threshold to take effect
-    if(rtsThreshold < HAL_RTS_THRESHOLD_MAX) {
-        protPolicy = TPE_RATE_PROTECTION_RTS;
     }
 
     // If the BSS protection is turned ON, check the configured
@@ -1472,7 +1487,6 @@ void halRate_getProtectionInfo(tpAniSirGlobal pMac, tANI_U32 staId,
                 break;
 
             case TPE_RATE_PROTECTION_RTS:
-                rtsThreshold = 0;
                 break;
 
             case TPE_RATE_PROTECTION_DUAL_CTS:
@@ -1480,30 +1494,20 @@ void halRate_getProtectionInfo(tpAniSirGlobal pMac, tANI_U32 staId,
 
             case TPE_RATE_PROTECTION_RTS_ALWAYS:
                 protPolicy = TPE_RATE_PROTECTION_RTS;
-                rtsThreshold = 0;
                 break;
 
             case TPE_RATE_PROTECTION_AUTO:
                 protPolicy = TPE_RATE_PROTECTION_CTS;
-
                 break;
+
             default:
                 protPolicy = TPE_RATE_PROTECTION_NONE;
                 break;
         }
-    } else {
-        // If RTS threshold is max then protection is not required to be
-        // enabled
-        if(rtsThreshold == HAL_RTS_THRESHOLD_MAX) {
-            protPolicy = TPE_RATE_PROTECTION_NONE;
-        }
-    }
+    } else
+        protPolicy = TPE_RATE_PROTECTION_NONE;
 
     *pProtPolicy = protPolicy;
-
-    // Set the modified RTS threshold in to the HW
-    halTpe_SetProtectionThreshold(pMac, rtsThreshold);
-
 }
 
 
@@ -1549,8 +1553,11 @@ eHalStatus halRate_getPowerIndex(tpAniSirGlobal pMac, tANI_U32 rateIndex,
         //       rateIndex, HAL_RATETABLE_RATEINDEX_BEGIN, HAL_RATETABLE_RATEINDEX_END));
         return eHAL_STATUS_FAILURE;
     }
-
+#ifdef FEATURE_TX_PWR_CONTROL
+    *pwrIndex = (tPwrTemplateIndex)ghalRateTxPwrIndexTable[rateIndex];
+#else
     *pwrIndex = (tPwrTemplateIndex)halRateTable[rateIndex].txPwr;
+#endif
     HALLOGW( halLog(pMac, LOGW, FL("tpeRateIndex %d:  txPower=%d \n"), rateIndex, *pwrIndex));
 
     return eHAL_STATUS_SUCCESS;
@@ -1568,7 +1575,6 @@ halMacRaTxPktCountFromFW(
 
     return status;
     }
-
 
 /* Funtion to update Tx power only for a given rate into the Hal Rate table
  * and the TPE rate table */
@@ -1605,7 +1611,11 @@ void halRate_UpdateRateTxPower(tpAniSirGlobal pMac,
     }
 
     // Update the tx power into the local halRatetable
+#ifdef FEATURE_TX_PWR_CONTROL
+    ghalRateTxPwrIndexTable[rateIndex] = power;
+#else
     halRateTable[rateIndex].txPwr = power;
+#endif
 
     return;
 }
@@ -1637,6 +1647,11 @@ void halRate_DumpRateTxPower(tpAniSirGlobal pMac)
 {
     tANI_U8 index;
 
+#ifdef FEATURE_TX_PWR_CONTROL
+    for (index = HALRATE_MODE_START; index < HALRATE_MODE_TX_END; index++) {
+        HALLOGE(halLog(pMac, LOGE, "RateId %d = Power %02d", index, ghalRateTxPwrIndexTable[index]));
+    }
+#else
 #ifdef WLAN_HAL_VOLANS //FIXME_VOLANS should go to Libra as well
     for (index = MIN_LIBRA_RATE_NUM; index < MAX_LIBRA_TX_RATE_NUM; index++) {
 #else
@@ -1644,6 +1659,7 @@ void halRate_DumpRateTxPower(tpAniSirGlobal pMac)
 #endif
         HALLOGE(halLog(pMac, LOGE, "RateId %d = Power %02d", index, halRateTable[index].txPwr));
     }
+#endif
     return;
 }
 
@@ -1721,6 +1737,7 @@ const eHalPhyRates macPhyRateIndex[TPE_RT_IDX_MAX_RATES] =
     HAL_PHY_RATE_INVALID                    // TPE_RT_IDX_ANI_STBC_GF_68_25_MBPS = 67,
 };
 
+
 /* Funtion to update the Ctrl/Rsp rate's TX power in the local cache
  * and the TPE MMPI command table if updateTpeHW is set */
 void halRate_UpdateCtrlRspTxPower(tpAniSirGlobal pMac, tTpeRateIdx rateIdx,
@@ -1781,8 +1798,24 @@ void halRate_GetTxPwrForRate(tpAniSirGlobal pMac, tTpeRateIdx rateIdx,
     tPowerdBm    powerLimit = 0;
     eHalPhyRates phyRate;
     tPwrTemplateIndex  power=0;
+#ifdef FEATURE_TX_PWR_CONTROL
+    ePowerMode pwrMode;
+#endif
 
+#ifdef FEATURE_TX_PWR_CONTROL
+    if(gHalRateInfo[rateIdx].rateProperty & RA_VIRTUAL)
+    {
+        phyRate = macPhyRateIndex[gHalRateInfo[rateIdx].tpeRateIdx];
+        pwrMode = POWER_MODE_LOW_POWER;
+    }
+    else
+    {
+        phyRate = macPhyRateIndex[rateIdx];
+        pwrMode = POWER_MODE_HIGH_POWER;
+    }
+#else
     phyRate = macPhyRateIndex[rateIdx];
+#endif
 
     if (phyRate != HAL_PHY_RATE_INVALID) {
         /* The CFGs WNI_CFG_MAX_TX_POWER_2_4 and WNI_CFG_MAX_TX_POWER_5 are always
@@ -1817,10 +1850,19 @@ void halRate_GetTxPwrForRate(tpAniSirGlobal pMac, tTpeRateIdx rateIdx,
                     powerLimit,
                     phyRate));
 
+#ifdef FEATURE_TX_PWR_CONTROL
         if (halPhyGetPowerForRate( pMac,
                     phyRate,
+                    pwrMode,
                     powerLimit,
                     &power) != eHAL_STATUS_SUCCESS) {
+#else
+        if (halPhyGetPowerForRate( pMac,
+                    phyRate,
+                    POWER_MODE_HIGH_POWER,
+                    powerLimit,
+                    &power) != eHAL_STATUS_SUCCESS) {
+#endif
             HALLOGP( halLog(pMac, LOGP, FL("halPhyGetPowerForRate(rateIndex %d) failed \n"), rateIdx));
             return ;
 
@@ -1853,8 +1895,14 @@ eHalStatus halRate_UpdateRateTablePower(tpAniSirGlobal pMac, tTpeRateIdx startRa
     tPowerdBm regPowerLimit;
     tPwrTemplateIndex txPower;
 
-    // Get the regulatory power limit for the given channel and given power constraint
+    // Get the regulatory power limit for the given channel. The power constraint can always be 0
+    // because it is handled as a part of BSSRA Info and RA algorithm will pickup the min of reg
+    // domain limit and the constrained max power from the BssRaInfo.
+#ifndef WLAN_FEATURE_VOWIFI
     halUtil_GetRegPowerLimit(pMac, pMac->hal.currentChannel, pMac->hal.gHalLocalPwrConstraint, &regPowerLimit);
+#else
+    halUtil_GetRegPowerLimit(pMac, pMac->hal.currentChannel, 0, &regPowerLimit);
+#endif /* WLAN_FEATURE_VOWIFI */
 
     for (index = startRateIdx; index < endRateIdx; index++) {
         // Get the TX power for the given rate

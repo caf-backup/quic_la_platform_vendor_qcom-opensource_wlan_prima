@@ -274,13 +274,13 @@ void limAbortBackgroundScan(tpAniSirGlobal pMac)
         pMac->lim.gLimBackgroundScanStarted = FALSE;
 
         if (pMac->lim.gLimSmeScanResultLength == 0)
-            limSendSmeScanRsp(pMac, scanRspLen, eSIR_SME_SUCCESS);
+            limSendSmeScanRsp(pMac, scanRspLen, eSIR_SME_SUCCESS, 0, 0);
         else
         {
             scanRspLen = sizeof(tSirSmeScanRsp) +
                          pMac->lim.gLimSmeScanResultLength -
                          sizeof(tSirBssDescription);
-            limSendSmeScanRsp(pMac, scanRspLen, eSIR_SME_SUCCESS);
+            limSendSmeScanRsp(pMac, scanRspLen, eSIR_SME_SUCCESS, 0, 0);
         }       
     }
 	

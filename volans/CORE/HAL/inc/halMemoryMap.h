@@ -31,7 +31,13 @@
 #define HOST2MCPU_MSG_SIZE             0x100    // 256 bytes (0x100), should match QWLANFW_MBOX_MSG_LENGTH in qwlan_macfw.h
 
 #define DXE_RXDESC_INFO_SIZE           0x80                          // 128 bytes
-#define BEACON_TEMPLATE_SIZE           0x300                         // 2K bytes  (0x800)
+#define BEACON_TEMPLATE_SIZE           0x180
+#ifdef WLAN_SOFTAP_FEATURE
+#define PROBE_RSP_TEMPLATE_MAX_SIZE    0x180 //unit byte.
+#define STA_INFO_SIZE                   sizeof(tStaInfo)
+#define BSS_INFO_SIZE                   sizeof(tBssInfo)
+#endif
+
 
 #define MAX_STA_ENTRIES_PER_RC_SET MAX_RC_ENTRIES_PER_SET / MAX_NUM_OF_TIDS
 
@@ -58,11 +64,17 @@
 
 #define ADU_UMA_STA_DESC_ENTRY_SIZE		sizeof(tAduUmaStaDesc)
 
+#ifdef FEATURE_ON_CHIP_REORDERING
+#define MAX_NUM_OF_ONCHIP_REORDER_SESSIONS   2
+#define NO_OF_RPE_REORDER_STA_DS_ENTRIES     (BA_DEFAULT_RX_BUFFER_SIZE/2)
+#define RPE_REORDER_STA_DS_SIZE         sizeof(sRpeReorderStaData)
+#endif
+
 #ifdef VOLANS_PHY_TX_OPT_ENABLED
-#define ADU_REG_RECONFIG_TABLE_SIZE     0x32C8   /* 0x5000 - (size occupied by Phy TX registers). This can be still reduced */
+#define ADU_REG_RECONFIG_TABLE_SIZE     0xAC8   /* 0x2800 - (size occupied by Phy TX registers). This can be still reduced */
 #define ADU_PHY_TX_REG_RECONFIG_TABLE_SIZE     0x1D38   /* Approx 850 Phy registers. With 10% extra space */
 #else
-#define ADU_REG_RECONFIG_TABLE_SIZE     0x5000   /* 14K for the register re-initialization list */
+#define ADU_REG_RECONFIG_TABLE_SIZE     0x2800   /* 14K for the register re-initialization list */
 #endif /* VOLANS_PHY_TX_OPT_ENABLED */
 
 #define ADU_MIMO_PS_PRG_SIZE            0x200    /* 256bytes to start with... may need to be increased */
@@ -82,7 +94,7 @@
 #define RPE_STA_DESC_QUEUE_SIZE         sizeof(tRpeStaQueueInfo)
 #define TPE_PER_STA_STATS_START_OFFSET  TPE_STA_DESC_ENTRY_SIZE
 
-#define SW_TEMPLATE_SIZE				0x800
+#define SW_TEMPLATE_SIZE				0x100
 
 eHalStatus halMemoryMap_Open(tHalHandle hHal, void *arg);
 eHalStatus halMemoryMap_Start(tHalHandle hHal, void *arg);

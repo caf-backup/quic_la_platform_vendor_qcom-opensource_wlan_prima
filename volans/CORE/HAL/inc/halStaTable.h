@@ -45,10 +45,19 @@ typedef struct
     tANI_U8 dpuIdx;            
     tANI_U8 dpuIdxBcastMgmt;   // DPU index for IGTK
     tANI_U8 staIdForBss;       // Sta Index for the BSS
-	tANI_U32 staIdBitmap[8];   // Sta Index bitmap for this BSS, indicating the STAs
-    tANI_U8 valid:1;	
-    tANI_U8 ssid[32];
+#ifdef HAL_SELF_STA_PER_BSS
+    tANI_U8 bssSelfStaIdx;     // Self station used for the BSS
+#endif
 
+#ifdef HAL_BCAST_STA_PER_BSS
+    tANI_U8 bcastStaIdx;		// Broadcast station indes for the BSS.
+#endif
+    
+    tANI_U32 staIdBitmap[8];   
+    // Sta Index bitmap for this BSS, indicating the STAs
+    tANI_U8 valid:1;	
+    tANI_U8 hiddenSsid:1;
+    tSirMacSSid ssId;
 	// Per AC ACM parameters that are configured as part of the EDCA parameter set
 	tANI_BOOLEAN acm[MAX_NUM_AC];
     
@@ -60,8 +69,18 @@ typedef struct
     tANI_U16 tuBeaconInterval;
     tHalRaBssInfo bssRaInfo;
 
+    /* multi BSS co-existance */
+    tRxpMode        bssRxpMode; // Rxp setting for a BSS 
+    tSirLinkState   bssLinkState;
+    tBssSystemRole  bssSystemRole;    // Role of a BSS. 
+
     // Number of 11b Ibss peers.
     tANI_U8 numIbssllbPeerCnt;
+    tANI_U8 obssProtEnabled;
+
+#ifdef WLAN_SOFTAP_FEATURE 
+    tANI_U8 defaultKeyId;
+#endif
 } tBssStruct, * tpBssStruct;
 
 /*
@@ -146,6 +165,12 @@ typedef struct sHalCfgSta {
     //Status: TODO
     tANI_U8 mimoPwrSaveMode;
 
+    /* TID to AC mapping. From LSB, each 2 bits are allocated to each TID.
+     * 2 bits data has "AC" index for corresponding TID. For example, 
+     * 0xfa41 maps TID 0 and 3 to AC_BE, TID 1 and 2 to AC_BK, and so on.
+     */
+    tANI_U32 txTidAcMap;
+
     /* Tpe Rate Information per sta for each of the primary, secondary & 
      * tertiary rates for 20MHz */
     tTpeStaDescRateInfo rateInfo[HAL_RA_MAX_RATES][HAL_RA_TXRATE_CHANNEL_NUM];
@@ -172,6 +197,9 @@ typedef struct
 
     tANI_U8 bssIdx;                         // BSS Index
     tANI_U8 staId;
+#ifdef HAL_SELF_STA_PER_BSS
+    tANI_U8 bssSelfStaIdx; // Self station used for the BSS to which this station belongs
+#endif
     tANI_U8 staType;
     tAniEdType encMode;
 
@@ -224,9 +252,9 @@ typedef struct
 
     //per TID stat as of last polling at global BA timeout
     tANI_U32 framesTxedLastPoll[STACFG_MAX_TC];
-    // per Sta the umaIdx and Bcast Idx used in IBSS 
+
+    // the UMA index used for frame translation
     tANI_U8 umaIdx;
-    tANI_U8 umaBcastIdx;
 
     /* Adding a bitmap of TIDs which stores BA sessions established */
     tANI_U8  baInitiatorTidBitMap;
@@ -234,6 +262,11 @@ typedef struct
 
     // For IBSS the mode of the STA
     tStaRateMode  opRateMode;
+
+    
+    //current QID mask for delivery enabled ACs (zero if none or all
+    //ACs are delivery enabled)
+    tANI_U16 delEnbQidMask;
 } tStaStruct, *tpStaStruct;
 
 #if defined(ANI_OS_TYPE_LINUX)

@@ -20,11 +20,10 @@
 
 
 
-eHalStatus csrMsgProcessor( tHalHandle hHal,  void *pMsgBuf )
+eHalStatus csrMsgProcessor( tpAniSirGlobal pMac,  void *pMsgBuf )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirSmeRsp *pSmeRsp = (tSirSmeRsp *)pMsgBuf;
-    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
     smsLog( pMac, LOG2, "  Message %d[0x%04X] received in curState %d and substate %d\n",
                 pSmeRsp->messageType, pSmeRsp->messageType, pMac->roam.curState,

@@ -16,20 +16,18 @@
 #ifndef HALNVTABLES_H
 #define HALNVTABLES_H
 
-#include "halPhyCfg.h"
-#include "halQFuse.h"
+#include <halPhyCalMemory.h>
+#include <halPhyRates.h>
 
 typedef enum
 {
     NV_FIELDS_IMAGE                 = 0,    //contains all fields
-    NV_TABLE_QFUSE                  = 1,    //this table contains NV_TABLE_TPC_CONFIG and NV_TABLE_RX_GAIN_SHIFT, 
-                                                // and can not be directly read or written, only stored
-    NV_TABLE_RATE_POWER_SETTINGS    = 2,
-    NV_TABLE_REGULATORY_DOMAINS     = 3,
-    NV_TABLE_DEFAULT_COUNTRY        = 4,
-    NV_TABLE_TPC_CONFIG             = 5,    //this table only exists in cache, and is stored with NV_TABLE_QFUSE
-    NV_TABLE_RX_GAIN_SHIFT          = 6,    //OBSOLETE - James says not needed
-    NV_TABLE_RF_CAL_VALUES          = 7,    //this table only exists in cache, and is stored with NV_TABLE_QFUSE
+
+    NV_TABLE_RATE_POWER_SETTINGS    = 1,
+    NV_TABLE_REGULATORY_DOMAINS     = 2,
+    NV_TABLE_DEFAULT_COUNTRY        = 3,
+    NV_TABLE_CAL_MEMORY             = 4,    //cal memory structure from halPhyCalMemory.h preceded by status
+    NV_TABLE_CAL_STATUS             = 5,
 
     NUM_NV_TABLE_IDS,
     NV_ALL_TABLES                   = 0xFFF,
@@ -46,26 +44,20 @@ typedef struct
 
 typedef union
 {
-    sQFuseConfig                qFuseData;                                      // NV_TABLE_QFUSE
     tRateGroupPwr               pwrOptimum[NUM_RF_SUBBANDS];                    // NV_TABLE_RATE_POWER_SETTINGS
     sRegulatoryDomains          regDomains[NUM_REG_DOMAINS];                    // NV_TABLE_REGULATORY_DOMAINS
     sDefaultCountry             defaultCountryTable;                            // NV_TABLE_DEFAULT_COUNTRY
-    tTpcConfig                  tpcConfig[MAX_TPC_CHANNELS];                    // NV_TABLE_TPC_CONFIG
-    sTpcFreqCalTable            tpcFreqCal;                                     // NV_TABLE_TPC_CONFIG 
-                                 //tpcFreqCal is compiled into pttApi.h where the cal data is converted from float to t2decimal
-                                 //it shares the same enum value, but the structure is converted in pttModule to tTpcConfig
-    sRfNvCalValues              rfCalValues;                                    // NV_TABLE_RF_CAL_VALUES
+    sCalFlashMemory             calFlashMemory;                                 // NV_TABLE_CAL_MEMORY
+    sCalStatus                  calStatus;                                      // NV_TABLE_CAL_STATUS
 }uNvTables;
 
 typedef struct
 {
-    sQFuseConfig                qFuseData;                                      // NV_TABLE_QFUSE
     tRateGroupPwr               pwrOptimum[NUM_RF_SUBBANDS];                    // NV_TABLE_RATE_POWER_SETTINGS
     sRegulatoryDomains          regDomains[NUM_REG_DOMAINS];                    // NV_TABLE_REGULATORY_DOMAINS
     sDefaultCountry             defaultCountryTable;                            // NV_TABLE_DEFAULT_COUNTRY
-    tTpcConfig                  tpcConfig[MAX_TPC_CHANNELS];                    // NV_TABLE_TPC_CONFIG
-    sRfNvCalValues              rfCalValues;                                    // NV_TABLE_RF_CAL_VALUES
-
+    sCalFlashMemory             calFlashMemory;                                 // NV_TABLE_CAL_MEMORY
+    sCalStatus                  calStatus;                                      // NV_TABLE_CAL_STATUS
 }sNvTables;
 
 

@@ -38,27 +38,27 @@ typedef struct sAniSirCfg
     // CFG module status
     tANI_U8    gCfgStatus;
 
-    tCfgCtl       gCfgEntry[CFG_PARAM_MAX_NUM];
+    tCfgCtl    *gCfgEntry;
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-    tANI_U32           gCfgIBufMin[CFG_AP_IBUF_MAX_SIZE];
-    tANI_U32           gCfgIBufMax[CFG_AP_IBUF_MAX_SIZE];
-    tANI_U32           gCfgIBuf[CFG_AP_IBUF_MAX_SIZE];
-    tANI_U8            gCfgSBuf[CFG_AP_SBUF_MAX_SIZE];
+    tANI_U32   gCfgIBufMin[CFG_AP_IBUF_MAX_SIZE];
+    tANI_U32   gCfgIBufMax[CFG_AP_IBUF_MAX_SIZE];
+    tANI_U32   gCfgIBuf[CFG_AP_IBUF_MAX_SIZE];
+    tANI_U8    gCfgSBuf[CFG_AP_SBUF_MAX_SIZE];
 #else
-    tANI_U32           gCfgIBufMin[CFG_STA_IBUF_MAX_SIZE];
-    tANI_U32           gCfgIBufMax[CFG_STA_IBUF_MAX_SIZE];
-    tANI_U32           gCfgIBuf[CFG_STA_IBUF_MAX_SIZE];
-    tANI_U8            gCfgSBuf[CFG_STA_SBUF_MAX_SIZE];
+    tANI_U32   *gCfgIBufMin;
+    tANI_U32   *gCfgIBufMax;
+    tANI_U32   *gCfgIBuf;
+    tANI_U8    *gCfgSBuf;
 #endif
 
     tANI_U16    gCfgMaxIBufSize;
     tANI_U16    gCfgMaxSBufSize;
 
     // Static buffer for string parameter (must be word-aligned)
-    tANI_U8    gSBuffer[CFG_MAX_STR_LEN];
+    tANI_U8    *gSBuffer;
 
     // Message parameter list buffer (enough for largest possible response)
-    tANI_U32   gParamList[WNI_CFG_MAX_PARAM_NUM + WNI_CFG_GET_PER_STA_STAT_RSP_NUM];
-} tAniSirCfg, *tpAniSirCfg;
+    tANI_U32   *gParamList;
+} tAniSirCfg,  *tpAniSirCfg;
 
 #endif

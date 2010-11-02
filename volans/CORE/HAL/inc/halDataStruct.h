@@ -91,11 +91,19 @@ typedef tHalRxBd *tpHalBufDesc;
 #define HAL_PHY_RATE_MIMO_CB_240        HAL_PHY_RATE_CB_120
 
 
-#define HAL_RXFIR0_MASK       0x0000FF00
-#define HAL_RXFIR1_MASK       0x000000FF
 #define HAL_RSSI_OFFSET        100
 
-#define HAL_GET_RSSI0_DB(phystats0)  (((phystats0  & HAL_RXFIR0_MASK) >> 8) - HAL_RSSI_OFFSET)
+#ifdef WLAN_HAL_VOLANS
+#define HAL_RXFIR0_MASK             0xFF000000
+#define HAL_RXFIR1_MASK             0x00000000
+#define HAL_PHY_STATS0_RSSI_OFFSET  24
+#else /* Libra */
+#define HAL_RXFIR0_MASK       0x0000FF00
+#define HAL_RXFIR1_MASK       0x000000FF
+#define HAL_PHY_STATS0_RSSI_OFFSET  8
+#endif
+
+#define HAL_GET_RSSI0_DB(phystats0)  (((phystats0  & HAL_RXFIR0_MASK) >> HAL_PHY_STATS0_RSSI_OFFSET) - HAL_RSSI_OFFSET)
 #define HAL_GET_RSSI1_DB(phystats0)  (((phystats0) & HAL_RXFIR1_MASK) - HAL_RSSI_OFFSET)
 #define HAL_MAX_OF_TWO(val1, val2)   ( ((val1) > (val2)) ? (val1) : (val2))
 
@@ -120,16 +128,17 @@ typedef tHalRxBd *tpHalBufDesc;
 #define SIR_MAC_BD_TO_PHY_STATS1(pBd)            (((tpHalBufDesc) pBd)->phyStats1)
 #define SIR_MAC_BD_TO_RATE_INDEX(pBd)            (tANI_U8)(((tpHalBufDesc) pBd)->rateIndex)
 #define SIR_MAC_BD_TO_SCAN_LEARN(pBd)            (tANI_U8)(((tpHalBufDesc) pBd)->scanLearn)
+#if defined WLAN_FEATURE_VOWIFI
+#define SIR_MAC_BD_RX_TIMESTAMP(pBd)               (tANI_U32)(((tpHalBufDesc) pBd)->mclkRxTimestamp)
+#endif
 
 #define SIR_MAC_BD_TO_RSSI_DB(pBd)               HAL_GET_RSSI_DB(SIR_MAC_BD_TO_PHY_STATS0(pBd))
-
 
 #define WLANTL_HO_IS_AN_AMPDU                    0x4000
 #define WLANTL_HO_LAST_MPDU_OF_AMPDU             0x400
 
 #define WLAN_HAL_IS_AN_AMPDU(pBD)                (WLANHAL_RX_BD_GET_RXP_FLAGS(pBD) & WLANTL_HO_IS_AN_AMPDU)
 #define WLAN_HAL_IS_LAST_MPDU(pBD)               (WLANHAL_RX_BD_GET_RXP_FLAGS(pBD) & WLANTL_HO_LAST_MPDU_OF_AMPDU) 
-
 
 
 /*

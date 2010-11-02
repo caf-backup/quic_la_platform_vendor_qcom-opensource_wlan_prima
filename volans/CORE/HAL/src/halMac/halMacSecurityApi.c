@@ -342,6 +342,59 @@ halDpu_GenerateDerivedKeys(tpAniSirGlobal pMac, tANI_U8 *pKey, tANI_U8 *pDerived
     return eHAL_STATUS_SUCCESS;
 }
 
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
+/*
+ * halDPU_SetWAPISTAxKeyIndexes
+ *
+ * FUNCTION:
+ *  This function programs WAPI_STAX_key_indexes register
+ *
+ *
+ * @param: wapiStaID - Gives the index of the register to be programmed (0-7)
+ * @param: defKeyId - Key ID given by the supplicant
+ * @param: fGTK - Indicates if the defKeyId is GTK/PTK
+ *
+ * @return: Success or failure.
+ */
+eHalStatus
+halDPU_SetWAPISTAxKeyIndexes(tpAniSirGlobal  pMac, tANI_U8 wapiStaID, tANI_U8 defKeyId, tANI_BOOLEAN fGTK)
+{
+  tANI_U32   value = 0;
+  tANI_U32   regAddress = QWLAN_DPU_WAPI_STA0_KEY_INDEXES_REG;
+  tANI_U8   offset;
+
+  if(wapiStaID < WAPI_STA_LOW_INDEX || wapiStaID > WAPI_STA_HIGH_INDEX)
+  {
+    HALLOGE( halLog(pMac, LOGE, FL("Invalid wapiStaID:%d\n"), wapiStaID));
+    return eHAL_STATUS_FAILURE;
+  }
+
+  regAddress += wapiStaID * 4;
+
+  /* Read QWLAN_DPU_WAPI_STAx_KEY_INDEXES_REG followed by read of QWLAN_DPU_WAPI_STA_KEY_INDEX_VALUES_REG
+    * Value of QWLAN_DPU_WAPI_STAx_KEY_INDEXES_REG after read will be reflected in QWLAN_DPU_WAPI_STA_KEY_INDEX_VALUES_REG
+    */
+  halReadRegister(pMac, regAddress, &value);
+  halReadRegister(pMac, QWLAN_DPU_WAPI_STA_KEY_INDEX_VALUES_REG, &value);
+
+  offset = (fGTK == 1) ? QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX1_OFFSET: QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX0_OFFSET;
+
+  if(fGTK == 1)
+  {
+    value = value & (~QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX1_MASK);
+  }
+  else
+  {
+    value = value & (~QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX0_MASK);
+  }
+
+  value |= (defKeyId << offset);
+
+  halWriteRegister(pMac, regAddress, value);
+
+  return eHAL_STATUS_SUCCESS;
+}
+#endif
 
 // ---------------------------------------------------------------------------
 /**
@@ -387,6 +440,10 @@ halSetPerStaKey(
     tANI_U8 tmpIdx;
     tANI_U8 derivedKey[SIR_MAC_MAX_KEY_LENGTH];
     tANI_BOOLEAN fGTK = eANI_BOOLEAN_FALSE;
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
+    tANI_U8     wapiStaID = 0;
+#endif
+    tpDpuInfo pDpu = (tpDpuInfo) pMac->hal.halMac.dpuInfo;
 
     newDpuIdx = keyIdx = derivedKeyIdx = micKeyIdx = rcIdx = HAL_INVALID_KEYID_INDEX;
 
@@ -428,15 +485,33 @@ halSetPerStaKey(
     
     status = halDpu_GetRCId(pMac, dpuIdx, &tmpIdx);
     if(eHAL_STATUS_SUCCESS == status)
+    {
         halDpu_ReleaseRCId(pMac, dpuIdx, tmpIdx);
+        pDpu->descTable[dpuIdx].rcIdx = HAL_INVALID_KEYID_INDEX;
+    }
     
     status = halDpu_GetKeyId(pMac, dpuIdx, &tmpIdx);
     if(eHAL_STATUS_SUCCESS == status)
+    {
+#if defined(FEATURE_WLAN_WAPI)
+        //To avoid the new packet number being overwritten by decoding packet using the old
+        //GTK/PTK (and old PN) during rekeying. Invalidate the old key so we won't receive 
+        //packet encrypted by old key
+        if(eSIR_ED_WPI == encType)
+        {
+           halInvalidateStaKey(pMac, tmpIdx, eSIR_ED_WPI); 
+        }
+#endif
         halDpu_ReleaseKeyId(pMac, tmpIdx);
+        pDpu->descTable[dpuIdx].keyIdx = HAL_INVALID_KEYID_INDEX;
+    }
     
     status = halDpu_GetMicKeyId(pMac, dpuIdx, &tmpIdx);
     if(eHAL_STATUS_SUCCESS == status)
+    {
         halDpu_ReleaseMicKeyId(pMac, tmpIdx);
+        pDpu->descTable[dpuIdx].micKeyIdx = HAL_INVALID_KEYID_INDEX;
+    }
 
 
     if(eSIR_ED_NONE != encType)
@@ -535,14 +610,25 @@ halSetPerStaKey(
 #if defined(FEATURE_WLAN_WAPI)
         if(eSIR_ED_WPI == encType)
         {
-            tANI_U8 txPN[WLAN_WAPI_KEY_RSC_LEN] = {0x5C, 0x36, 0x5C, 0x36,
-                                                   0x5C, 0x36, 0x5C, 0x36,
-                                                   0x5C, 0x36, 0x5C, 0x36,
-                                                   0x5C, 0x36, 0x5C, 0x36};
-            tANI_U8 rxPN[WLAN_WAPI_KEY_RSC_LEN] = {0x5C, 0x36, 0x5C, 0x36,
-                                                   0x5C, 0x36, 0x5C, 0x36,
-                                                   0x5C, 0x36, 0x5C, 0x36,
-                                                   0x5C, 0x36, 0x5C, 0x37};
+#ifdef LIBRA_WAPI_SUPPORT
+          tANI_U8 txPN[WLAN_WAPI_KEY_RSC_LEN] = {0x5C, 0x36, 0x5C, 0x36,
+                                                 0x5C, 0x36, 0x5C, 0x36,
+                                                 0x5C, 0x36, 0x5C, 0x36,
+                                                 0x5C, 0x36, 0x5C, 0x36};
+          tANI_U8 rxPN[WLAN_WAPI_KEY_RSC_LEN] = {0x5C, 0x36, 0x5C, 0x36,
+                                                 0x5C, 0x36, 0x5C, 0x36,
+                                                 0x5C, 0x36, 0x5C, 0x36,
+                                                 0x5C, 0x36, 0x5C, 0x37};
+#else
+          tANI_U8 txPN[WLAN_WAPI_KEY_RSC_LEN] = {0x36, 0x5C, 0x36, 0x5C,
+                                                 0x36, 0x5C, 0x36, 0x5C,
+                                                 0x36, 0x5C, 0x36, 0x5C,
+                                                 0x36, 0x5C, 0x36, 0x5C};
+          tANI_U8 rxPN[WLAN_WAPI_KEY_RSC_LEN] = {0x37, 0x5C, 0x36, 0x5C,
+                                                 0x36, 0x5C, 0x36, 0x5C,
+                                                 0x36, 0x5C, 0x36, 0x5C,
+                                                 0x36, 0x5C, 0x36, 0x5C};
+#endif
 
             //For supplicant, the packet number(PN) starts at 0x5C365C365C365C365C365C365C365C36
             //For authenticator, the packet number(PN) starts at 0x5C365C365C365C365C365C365C365C37
@@ -599,8 +685,27 @@ halSetPerStaKey(
     {
        encType = eSIR_ED_CCMP;
     }
+
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
+    if(eSIR_ED_WPI == encType)
+    {
+      /* Programming wapiStaID changes for WAPI in case of IBSS*/
+      /* Currently WAPI is supported only in Infrastructure mode */
+      wapiStaID = 0;
+      status = halDPU_SetWAPISTAxKeyIndexes(pMac, wapiStaID, defKeyId, fGTK);
+      if(status != eHAL_STATUS_SUCCESS)
+        goto failed;
+    }
+#endif
+
     status = halDpu_SetDescriptorAttributes(pMac, dpuIdx, encType,
-            keyIdx, derivedKeyIdx, micKeyIdx, rcIdx, singleTidRc, defKeyId );
+            keyIdx, derivedKeyIdx, micKeyIdx, rcIdx, singleTidRc, defKeyId
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
+            , wapiStaID
+            , fGTK
+#endif
+    );
+
     if(status == eHAL_STATUS_SUCCESS)
     {
 #if defined(LIBRA_WAPI_SUPPORT)

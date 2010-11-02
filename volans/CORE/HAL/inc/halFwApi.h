@@ -53,10 +53,13 @@
 #define HAL_MODULE_ID_PHY       0
 #define HAL_MODULE_ID_PWR_SAVE  1
 #define HAL_MODULE_ID_BTC       2
+#define HAL_MODULE_ID_RA        3
+#define HAL_MODULE_ID_FW        4
 #if defined(LIBRA_WAPI_SUPPORT)
-#define HAL_MODULE_ID_WAPI      3
+#define HAL_MODULE_ID_WAPI      5
 #endif
-#define HAL_MODULE_ID_RA        4
+
+
 
 // Define FW endianess here
 //#define FW_LITTLE_BYTE_ENDIAN       1
@@ -74,6 +77,10 @@
 #define halConvertU16FwToHost(x)    ani_be16_to_cpu(x)
 #define halConvertU32FwToHost(x)    ani_be32_to_cpu(x)
 #endif
+
+#define QWLANFW_AP_LINK_MONITOR_TIMEOUT_MSEC  3000 //3 sec 
+#define QWLANFW_UNKNOWN_ADDR2_NOTIFCATION_INTERVAL_MS       10000
+
 
 /* HAL-FW parameters */
 typedef struct sHalFwParams
@@ -112,7 +119,7 @@ eHalStatus halFW_UpdateSystemConfig(tpAniSirGlobal pMac,
 eHalStatus halFW_UpdateReInitRegListStartAddr(tpAniSirGlobal pMac, tANI_U32 value);
 
 /* Handle FW messages to the Host */
-eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void* pFwMsg, tANI_U8* bufConsumed);
+eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void* pFwMsg);
 eHalStatus halFw_PostFwRspMsg(tpAniSirGlobal pMac, void *pFwMsg);
 
 /* Function to handle the FW status message */
@@ -123,9 +130,22 @@ void halFW_HeartBeatMonitor(tpAniSirGlobal pMac);
 
 void halFW_StartChipMonitor(tpAniSirGlobal pMac);
 void halFW_StopChipMonitor(tpAniSirGlobal pMac);
+eHalStatus halFW_WriteProbeRspToMemory(tpAniSirGlobal pMac, tANI_U8 *probeRsp,
+                                    tANI_U8 selfStaIdxBss, tANI_U16 probeRspIndex, tANI_U32 mpduLen);
+eHalStatus halFW_UpdateProbeRspIeBitmap(tpAniSirGlobal pMac, tpUpdateProbeRspIeBitmap pMsg);
+
+
 eHalStatus halFW_SendScanStartMesg(tpAniSirGlobal pMac);
 eHalStatus halFW_SendScanStopMesg(tpAniSirGlobal pMac);
 eHalStatus halFW_SendConnectionEndMesg(tpAniSirGlobal pMac);
 eHalStatus halFW_SendConnectionStatusMesg(tpAniSirGlobal pMac, tSirLinkState linkStatus);
-
+#ifdef WLAN_SOFTAP_FEATURE
+eHalStatus halFW_UpdateBeaconReq(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U16 timIeOffset);
+eHalStatus halFW_AddBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx);
+eHalStatus halFW_DelBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx);
+eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobalUpdate, tANI_U8 raStaUpdate);
+eHalStatus halFW_DelStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx);
+eHalStatus halFW_MsgReq(tpAniSirGlobal pMac, tFwMsgTypeEnum msgType, tANI_U16 msgLen, tANI_U8* msgBody);
+eHalStatus halFW_HandleFwDelStaMsg(tpAniSirGlobal pMac, void* pFwMsg);
+#endif
 #endif //_HALFWAPI_H_

@@ -39,12 +39,12 @@ when        who    what, where, why
                           INCLUDE FILES FOR MODULE
 
 ===========================================================================*/
-#ifdef FEATURE_WLAN_GEN6_ROAMING
+#include "wlan_qct_tl.h" 
+
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/
-#include "wlan_qct_tl.h" 
-
 /*==========================================================================
 
    FUNCTION

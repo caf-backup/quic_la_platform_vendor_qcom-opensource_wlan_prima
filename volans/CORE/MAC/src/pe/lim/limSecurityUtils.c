@@ -24,6 +24,7 @@
 #include "utilsApi.h"
 #include "limUtils.h"
 #include "limSecurityUtils.h"
+#include "limSession.h"
 
 
 #define LIM_SEED_LENGTH 16
@@ -52,14 +53,29 @@
  *
  * @return true if passed authType is enabled else false
  */
-
+#ifdef WLAN_SOFTAP_FEATURE
+tANI_U8
+limIsAuthAlgoSupported(tpAniSirGlobal pMac, tAniAuthType authType, tpPESession psessionEntry)
+#else
 tANI_U8
 limIsAuthAlgoSupported(tpAniSirGlobal pMac, tAniAuthType authType)
+#endif
 {
     tANI_U32 algoEnable, privacyOptImp;
 
     if (authType == eSIR_OPEN_SYSTEM)
     {
+
+#ifdef WLAN_SOFTAP_FEATURE
+        if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+        {
+           if((psessionEntry->authType == eSIR_OPEN_SYSTEM) || (psessionEntry->authType == eSIR_AUTO_SWITCH))
+              return true;
+           else
+              return false; 
+        }
+#endif
+
         if (wlan_cfgGetInt(pMac, WNI_CFG_OPEN_SYSTEM_AUTH_ENABLE,
                       &algoEnable) != eSIR_SUCCESS)
         {
@@ -77,6 +93,19 @@ limIsAuthAlgoSupported(tpAniSirGlobal pMac, tAniAuthType authType)
     }
     else
     {
+
+#ifdef WLAN_SOFTAP_FEATURE
+        if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+        {
+            if((psessionEntry->authType == eSIR_SHARED_KEY) || (psessionEntry->authType == eSIR_AUTO_SWITCH))
+                algoEnable = true;
+            else
+                algoEnable = false;
+            
+        }
+        else
+#endif
+
         if (wlan_cfgGetInt(pMac, WNI_CFG_SHARED_KEY_AUTH_ENABLE,
                       &algoEnable) != eSIR_SUCCESS)
         {
@@ -90,6 +119,14 @@ limIsAuthAlgoSupported(tpAniSirGlobal pMac, tAniAuthType authType)
             return false;
         }
 
+#ifdef WLAN_SOFTAP_FEATURE
+        if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+        {
+            privacyOptImp = psessionEntry->privacy;
+        }
+        else
+#endif
+
         if (wlan_cfgGetInt(pMac, WNI_CFG_PRIVACY_ENABLED,
                       &privacyOptImp) != eSIR_SUCCESS)
         {
@@ -102,7 +139,6 @@ limIsAuthAlgoSupported(tpAniSirGlobal pMac, tAniAuthType authType)
 
             return false;
         }
-        else
             return (algoEnable && privacyOptImp);
     }
 } /****** end limIsAuthAlgoSupported() ******/
@@ -134,7 +170,7 @@ limInitPreAuthList(tpAniSirGlobal pMac)
     pMac->lim.pLimPreAuthList = NULL;
 
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-    if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
+    if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE )
     {
         tANI_U32 authClnupTimeout;
         //tANI_U32 cfgValue;
@@ -448,6 +484,18 @@ limPreAuthClnupHandler(tpAniSirGlobal pMac)
     tpDphHashNode    pStaDs;
     struct tLimPreAuthNode  *pPrevNode, *pCurrNode;
 
+#ifdef GEN6_TODO
+    //fetch the sessionEntry based on the sessionId
+    //priority - MEDIUM
+    tpPESession sessionEntry;
+
+    if((sessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimPreAuthClnupTimer.sessionId))== NULL) 
+    {
+        limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
+        return;
+    }
+#endif
+
     pCurrNode = pPrevNode = pMac->lim.pLimPreAuthList;
 
     while (pCurrNode != NULL)
@@ -487,7 +535,7 @@ limPreAuthClnupHandler(tpAniSirGlobal pMac)
                 limSendDeauthMgmtFrame(
                                pMac,
                                eSIR_MAC_PREV_AUTH_NOT_VALID_REASON, //=2
-                               pCurrNode->peerMacAddr);
+                               pCurrNode->peerMacAddr,sessionEntry);
             }
 
             limLog(pMac,
@@ -547,9 +595,8 @@ limPreAuthClnupHandler(tpAniSirGlobal pMac)
  */
 
 void
-limRestoreFromAuthState(tpAniSirGlobal pMac, tSirResultCodes resultCode, tANI_U16 protStatusCode)
+limRestoreFromAuthState(tpAniSirGlobal pMac, tSirResultCodes resultCode, tANI_U16 protStatusCode,tpPESession sessionEntry)
 {
-    tANI_U32             cfg = sizeof(tSirMacAddr);
     tSirMacAddr     currentBssId;
     tLimMlmAuthCnf  mlmAuthCnf;
 
@@ -559,25 +606,33 @@ limRestoreFromAuthState(tpAniSirGlobal pMac, tSirResultCodes resultCode, tANI_U1
     mlmAuthCnf.authType   = pMac->lim.gpLimMlmAuthReq->authType;
     mlmAuthCnf.resultCode = resultCode;
     mlmAuthCnf.protStatusCode = protStatusCode;
+    
+    /* Update PE session ID*/
+    mlmAuthCnf.sessionId = sessionEntry->peSessionId;
 
     /// Free up buffer allocated
     /// for pMac->lim.gLimMlmAuthReq
     palFreeMemory( pMac->hHdd, pMac->lim.gpLimMlmAuthReq);
     pMac->lim.gpLimMlmAuthReq = NULL;
+
+    sessionEntry->limMlmState = sessionEntry->limPrevMlmState;
     
-    pMac->lim.gLimMlmState = pMac->lim.gLimPrevMlmState;
     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+
 
     // 'Change' timer for future activations
     limDeactivateAndChangeTimer(pMac, eLIM_AUTH_FAIL_TIMER);
 
+    #if 0
     if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) != eSIR_SUCCESS)
     {
         /// Could not get BSSID from CFG. Log error.
         limLog(pMac, LOGP, FL("could not retrieve BSSID\n"));
     }
+    #endif //TO SUPPORT BT-AMP
+    sirCopyMacAddr(currentBssId,sessionEntry->bssId);
 
-    if (pMac->lim.gLimSmeState == eLIM_SME_WT_PRE_AUTH_STATE)
+    if (sessionEntry->limSmeState == eLIM_SME_WT_PRE_AUTH_STATE)
     {
         pMac->lim.gLimPreAuthChannelNumber = 0;
     }
@@ -961,7 +1016,8 @@ void limPostSmeRemoveKeyCnf( tpAniSirGlobal pMac,
  * @return none
  */
 void limSendSetBssKeyReq( tpAniSirGlobal pMac,
-    tLimMlmSetKeysReq *pMlmSetKeysReq )
+    tLimMlmSetKeysReq *pMlmSetKeysReq,
+    tpPESession    psessionEntry)
 {
 tSirMsgQ           msgQ;
 tpSetBssKeyParams  pSetBssKeyParams = NULL;
@@ -987,9 +1043,12 @@ tSirRetStatus      retCode;
          sizeof( tSetBssKeyParams ));     
 
   // Update the SIR_HAL_SET_BSSKEY_REQ parameters
-  pSetBssKeyParams->bssIdx = pMac->lim.gLimBssIdx;
+  pSetBssKeyParams->bssIdx = psessionEntry->bssIdx;
   pSetBssKeyParams->encType = pMlmSetKeysReq->edType;
   pSetBssKeyParams->numKeys = pMlmSetKeysReq->numKeys;
+
+  /* Update PE session Id*/
+  pSetBssKeyParams->sessionId = psessionEntry ->peSessionId;
 
   palCopyMemory( pMac->hHdd,
       (tANI_U8 *) &pSetBssKeyParams->key,
@@ -1053,7 +1112,8 @@ end:
 void limSendSetStaKeyReq( tpAniSirGlobal pMac,
     tLimMlmSetKeysReq *pMlmSetKeysReq,
     tANI_U16 staIdx,
-    tANI_U8 defWEPIdx )
+    tANI_U8 defWEPIdx,
+    tpPESession sessionEntry)
 {
 tSirMsgQ           msgQ;
 tpSetStaKeyParams  pSetStaKeyParams = NULL;
@@ -1072,6 +1132,9 @@ tSirRetStatus      retCode;
   pSetStaKeyParams->staIdx = staIdx;
   pSetStaKeyParams->encType = pMlmSetKeysReq->edType;
 
+  /* Update  PE session ID*/
+  pSetStaKeyParams->sessionId = sessionEntry->peSessionId;
+
     /**
       * For WEP - defWEPIdx indicates the default WEP
       * Key to be used for TX
@@ -1081,15 +1144,16 @@ tSirRetStatus      retCode;
       */
 
     pSetStaKeyParams->defWEPIdx = defWEPIdx;
+    
     /** Store the Previous MlmState*/
-    pMac->lim.gLimPrevMlmState = pMac->lim.gLimMlmState;
+    sessionEntry->limPrevMlmState = sessionEntry->limMlmState;
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
     
-    if(pMac->lim.gLimSystemRole == eLIM_STA_IN_IBSS_ROLE && !pMlmSetKeysReq->key[0].unicast) {
-        pMac->lim.gLimMlmState = eLIM_MLM_WT_SET_STA_BCASTKEY_STATE;
+    if(sessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE && !pMlmSetKeysReq->key[0].unicast) {
+        sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_BCASTKEY_STATE;
         msgQ.type = SIR_HAL_SET_STA_BCASTKEY_REQ;
     }else {
-        pMac->lim.gLimMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
+        sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
         msgQ.type = SIR_HAL_SET_STAKEY_REQ;
     }
     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
@@ -1103,18 +1167,25 @@ tSirRetStatus      retCode;
     case eSIR_ED_WEP40:
     case eSIR_ED_WEP104:
       // FIXME! Is this OK?
-        if( 0 == pMlmSetKeysReq->numKeys ) 
-	{
-       	pSetStaKeyParams->wepType = eSIR_WEP_STATIC;
-            	pMac->lim.gLimMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
-		MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
-        }
-	else 
-	{
-        	pSetStaKeyParams->wepType = eSIR_WEP_DYNAMIC;
-            	palCopyMemory( pMac->hHdd,
-            	(tANI_U8 *) &pSetStaKeyParams->key,
-            	(tANI_U8 *) &pMlmSetKeysReq->key[0], sizeof( tSirKeys ));
+        if( 0 == pMlmSetKeysReq->numKeys ) {
+#ifdef WLAN_SOFTAP_FEATURE
+         tANI_U32 i;
+
+         for(i=0; i < SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS ;i++)
+         { 
+           palCopyMemory( pMac->hHdd,
+            (tANI_U8 *) &pSetStaKeyParams->key[i],
+            (tANI_U8 *) &pMlmSetKeysReq->key[i], sizeof( tSirKeys ));
+         }
+#endif
+        pSetStaKeyParams->wepType = eSIR_WEP_STATIC;
+            sessionEntry->limMlmState = eLIM_MLM_WT_SET_STA_KEY_STATE;
+  	     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+        }else {
+        pSetStaKeyParams->wepType = eSIR_WEP_DYNAMIC;
+            palCopyMemory( pMac->hHdd,
+            (tANI_U8 *) &pSetStaKeyParams->key,
+            (tANI_U8 *) &pMlmSetKeysReq->key[0], sizeof( tSirKeys ));
         }        
       break;
     case eSIR_ED_TKIP:
@@ -1123,7 +1194,7 @@ tSirRetStatus      retCode;
     case eSIR_ED_WPI: 
 #endif
         {
-            palCopyMemory( pMac->hHdd, (tANI_U8 *) &pSetStaKeyParams->key,
+        palCopyMemory( pMac->hHdd, (tANI_U8 *) &pSetStaKeyParams->key,
                                         (tANI_U8 *) &pMlmSetKeysReq->key[0], sizeof( tSirKeys ));
         }
         break;
@@ -1174,7 +1245,8 @@ tSirRetStatus      retCode;
  * @return none
  */
 void limSendRemoveBssKeyReq( tpAniSirGlobal pMac,
-    tLimMlmRemoveKeyReq *pMlmRemoveKeyReq )
+    tLimMlmRemoveKeyReq *pMlmRemoveKeyReq,
+    tpPESession   psessionEntry)
 {
 tSirMsgQ           msgQ;
 tpRemoveBssKeyParams  pRemoveBssKeyParams = NULL;
@@ -1200,10 +1272,14 @@ tSirRetStatus      retCode;
          sizeof( tRemoveBssKeyParams ));     
 
   // Update the SIR_HAL_REMOVE_BSSKEY_REQ parameters
-  pRemoveBssKeyParams->bssIdx = pMac->lim.gLimBssIdx;
+  pRemoveBssKeyParams->bssIdx = psessionEntry->bssIdx;
   pRemoveBssKeyParams->encType = pMlmRemoveKeyReq->edType;
   pRemoveBssKeyParams->keyId = pMlmRemoveKeyReq->keyId;
   pRemoveBssKeyParams->wepType = pMlmRemoveKeyReq->wepType;
+
+  /* Update PE session Id*/
+
+  pRemoveBssKeyParams->sessionId = psessionEntry->peSessionId;
 
   msgQ.type = SIR_HAL_REMOVE_BSSKEY_REQ;
   //
@@ -1261,12 +1337,15 @@ end:
  */
 void limSendRemoveStaKeyReq( tpAniSirGlobal pMac,
     tLimMlmRemoveKeyReq *pMlmRemoveKeyReq,
-    tANI_U16 staIdx )
+    tANI_U16 staIdx ,
+    tpPESession sessionEntry)
 {
 tSirMsgQ           msgQ;
 tpRemoveStaKeyParams  pRemoveStaKeyParams = NULL;
 tLimMlmRemoveKeyCnf  mlmRemoveKeyCnf;
 tSirRetStatus      retCode;
+
+
 
   if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
           (void **) &pRemoveStaKeyParams,
@@ -1297,6 +1376,9 @@ tSirRetStatus      retCode;
   pRemoveStaKeyParams->encType = pMlmRemoveKeyReq->edType;
   pRemoveStaKeyParams->keyId = pMlmRemoveKeyReq->keyId;
   pRemoveStaKeyParams->unicast = pMlmRemoveKeyReq->unicast;
+
+  /* Update PE session ID*/
+  pRemoveStaKeyParams->sessionId = sessionEntry->peSessionId;
 
   SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
   

@@ -574,20 +574,21 @@ NONE
 WNI_CFG_DOT11_MODE     I     4     9
 V    RW    NP RESTART
 LIM
-0    7    0
+0    9    0
 V    RW    NP RESTART
 LIM
-0    7    0
+0    9    0
 
 #ENUM  ALL           0
 #ENUM  11A           1
 #ENUM  11B           2
 #ENUM  11G           3
 #ENUM  11N           4
-#ENUM  POLARIS     5
-#ENUM  TITAN        6
-#ENUM  TAURUS      7
-
+#ENUM  POLARIS       5
+#ENUM  TITAN         6
+#ENUM  TAURUS        7
+#ENUM  11G_ONLY      8
+#ENUM  11N_ONLY      9
 
 
 
@@ -1467,7 +1468,7 @@ NONE
 WNI_CFG_PROTECTION_ENABLED    I    4    9
 V    RW    NP  RESTART
 LIM
-0    0xff    0xff
+0    0xffff    0xffff
 V    RW    NP  RESTART
 LIM
 0    0xffff    0xffff
@@ -1603,7 +1604,7 @@ HAL
 *
 
 WNI_CFG_11G_ONLY_POLICY    I    4    12
-NV    RW    NP
+V    RW    NP
 NONE
 0    1     0
 V    RW    NP
@@ -1662,7 +1663,7 @@ NONE
  * triggered by WMM STA. 
  * 1) If AP sends WMM IE with the UAPSD bit 0, max_sp_length=0
  * 2) If WMM STA's all 4 UAPSD flag are set to 0, max_sp_length=0 
- * 3) If AP sends WMM IE with UAPSD=1, and at least one of station’s 
+ * 3) If AP sends WMM IE with UAPSD=1, and at least one of stations 
  *    UAPSD flag is set to 1, then max_sp_length can be set to:
  *    [b5:b6]=0x00: WMM AP may deliver all buffered frames
  *    [b5:b6]=0x10: WMM AP may deliver max 2 buffered frames
@@ -1931,10 +1932,10 @@ NONE
 WNI_CFG_EDCA_WME_ACBE_LOCAL   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 3   0 15  0 63  0   0 31  0 127  0   0 15  0 63  0
+17   0 3   0 15  3 255  0   0 31  3 255  0   0 15  3 255  0
 V   RW  NP RESTART
 NONE
-17   0 3   0 15  0 63  0   0 31  0 127  0   0 15  0 63  0
+17   0 3   0 15  3 255  0   0 31  3 255  0   0 15  3 255  0
 
 *
 * Profile 1 (WME) parameters AC_VI Local
@@ -1944,10 +1945,10 @@ NONE
 WNI_CFG_EDCA_WME_ACVI_LOCAL   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 1  0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
+17   0 2  0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
 V   RW  NP RESTART
 NONE
-17   0 1  0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
+17   0 2  0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
 
 *
 * Profile 1 (WME) parameters AC_VO Local
@@ -1957,10 +1958,10 @@ NONE
 WNI_CFG_EDCA_WME_ACVO_LOCAL   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 1   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
+17   0 2   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
 V   RW  NP RESTART
 NONE
-17   0 1   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
+17   0 2   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
 
 *
 * Profile 1 (WME) parameters - AC_BK Broadcast
@@ -2670,13 +2671,13 @@ LIM
 * Minimum MPDU Start Spacing
 * Determines the minimum time between the start of adjacent MPDUs within an AMPDU.
 * Set to 0 for no restriction
-* Set to 1 for 1/4 ìs
-* Set to 2 for 1/2 ìs
-* Set to 3 for 1 ìs
-* Set to 4 for 2 ìs
-* Set to 5 for 4 ìs
-* Set to 6 for 8 ìs
-* Set to 7 for 16 ìs
+* Set to 1 for 1/4 s
+* Set to 2 for 1/2 s
+* Set to 3 for 1 s
+* Set to 4 for 2 s
+* Set to 5 for 4 s
+* Set to 6 for 8 s
+* Set to 7 for 16 s
 * default is set to 0
 WNI_CFG_MPDU_DENSITY    I    4    7
 V    RW    NP    RESTART
@@ -2845,7 +2846,7 @@ NONE
 
 * *********************************************************
 *
-* WoWLAN Configuration – The following configurations 
+* WoWLAN Configuration  The following configurations 
 * are valid only when magicPktEnable = 1. 
 *
 WNI_CFG_WOWLAN_UCAST_PATTERN_FILTER_ENABLE    I    4    5
@@ -3317,7 +3318,7 @@ LIM
 *   8                   No DHCP response
 *   9                   Failed DHCP config
 *  10                   IP address conflict
-*  11                   Couldn’t connect to Registrar
+*  11                   Couldnt connect to Registrar
 *  12                   Multiple PBC sessions detected
 *  13                   Rogue activity suspected
 *  14                   Device busy
@@ -3458,3 +3459,126 @@ HAL
 V    RW    NP
 HAL
 0    1    0
+
+*
+* On chip reodering polling threshold
+*
+
+WNI_CFG_RPE_POLLING_THRESHOLD    I    4    2
+V    RW    NP
+HAL
+0    65535    10
+V    RW    NP
+HAL
+0    65535    10
+
+*
+* On chip reodering aging threshold for AC0
+*
+
+WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC0_REG    I    4    2
+V    RW    NP
+HAL
+0    65535    30
+V    RW    NP
+HAL
+0    65535    30
+
+*
+* On chip reodering aging threshold for AC1
+*
+
+WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC1_REG    I    4    2
+V    RW    NP
+HAL
+0    65535    30
+V    RW    NP
+HAL
+0    65535    30
+
+*
+* On chip reodering aging threshold for AC2
+*
+
+WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC2_REG    I    4    2
+V    RW    NP
+HAL
+0    65535    30
+V    RW    NP
+HAL
+0    65535    30
+
+*
+* On chip reodering aging threshold for AC3
+*
+
+WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC3_REG    I    4    2
+V    RW    NP
+HAL
+0    65535    30
+V    RW    NP
+HAL
+0    65535    30
+
+*
+* Number of On-Chip reorder sessions
+*
+
+WNI_CFG_NO_OF_ONCHIP_REORDER_SESSIONS    I    4    2
+V    RW    NP
+HAL
+0    2    1
+V    RW    NP
+HAL
+0    2    1
+
+*
+* RRM Enabled 
+*
+
+WNI_CFG_RRM_ENABLED    I    4    8
+V    RW    NP 
+NONE
+0    1    0
+V    RW    NP 
+NONE
+0    1    0
+
+*
+* RRM measurement max duration. Section 11.10.3 802.11k-2008.
+* Max Duration represented as maxDuration inTUs = 2^(*WNI_CFG_RRM_IN_CHAN_MAX - 4) * bcnIntvl
+* Operating channel max measurement duration.
+*
+
+WNI_CFG_RRM_OPERATING_CHAN_MAX    I    4    8
+V    RW    NP 
+NONE
+0    8    0
+V    RW    NP 
+NONE
+0    8    0
+
+*
+* Non-Operating channel max measurement duration.
+*
+
+WNI_CFG_RRM_NON_OPERATING_CHAN_MAX    I    4    8
+V    RW    NP 
+NONE
+0    8    0
+V    RW    NP 
+NONE
+0    8    0
+   
+*
+* TX power control feature
+*
+
+WNI_CFG_TX_PWR_CTRL_ENABLE    I   4   8
+V    RW    NP
+NONE
+0    1    1
+V    RW    NP
+NONE
+0    1    1
+ 

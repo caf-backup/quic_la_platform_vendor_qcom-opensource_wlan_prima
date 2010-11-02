@@ -13,9 +13,9 @@
 
    ========================================================================== */
 
-#include "halPhyRates.h"
+#include <halPhyRates.h>
 
-#if defined(ANI_PHY_DEBUG) || defined(ANI_MANF_DIAG)
+#if defined(ANI_PHY_DEBUG)
 const char rateStr[NUM_HAL_PHY_RATES][50]=
 {
     //802.11b Rates

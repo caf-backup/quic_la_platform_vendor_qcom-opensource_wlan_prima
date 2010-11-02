@@ -82,16 +82,90 @@ enum {
     BC_STATS_QID_15_MASK
 };
 
+#define IMMEDIATE_ACK_POL 0
+#define NO_ACK_POL 1
+#define ACK_POL_NUM_BITS_PER_QUEUE 2
+
 /*  QID8 is for broadcast data which uses no ACK policy.
     For QID9 at self STA, we use it for unicast mgmt and set ACK policy to normal ACK.
     QID 10 at self STA, we use it for b/mcast mgmt and set ACK policy to NO ACK.
 */
-#define SELF_STA_PER_QUEUE_ACK_POLICY_Q0_15     0x55525555
-#define SELF_STA_PER_QUEUE_ACK_POLICY_Q16_19    0x15
 
-#define PEER_STA_PER_QUEUE_ACK_POLICY_Q0_15     0x00000000
-#define PEER_STA_PER_QUEUE_ACK_POLICY_Q16_19    0x00
+#ifdef WLAN_HAL_VOLANS
 
+#define SELF_STA_PER_QUEUE_ACK_POLICY_Q0_15     NO_ACK_POL << (BTQM_QID0 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID1 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID2 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID3 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID4 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID5 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID6 * ACK_POL_NUM_BITS_PER_QUEUE)| \
+                                                NO_ACK_POL << (BTQM_QID7 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID8 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID9 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID10 * ACK_POL_NUM_BITS_PER_QUEUE)                                                
+#define SELF_STA_PER_QUEUE_ACK_POLICY_Q16_19    0
+                                                
+#define PEER_STA_PER_QUEUE_ACK_POLICY_Q0_15     IMMEDIATE_ACK_POL << (BTQM_QID0 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID1 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID2 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID3 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID4 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID5 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID6 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID7 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID8 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID9 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID10 * ACK_POL_NUM_BITS_PER_QUEUE) 
+                                                
+#define PEER_STA_PER_QUEUE_ACK_POLICY_Q16_19    0
+
+#else
+
+#define SELF_STA_PER_QUEUE_ACK_POLICY_Q0_15     NO_ACK_POL << (BTQM_QID0 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID1 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID2 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID3 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID4 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID5 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID6 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID7 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID8 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID9 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID10 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID11 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID12 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID13 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID14 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID15 * ACK_POL_NUM_BITS_PER_QUEUE) 
+                                                
+#define SELF_STA_PER_QUEUE_ACK_POLICY_Q16_19    NO_ACK_POL << (BTQM_QID16 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID17 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                NO_ACK_POL << (BTQM_QID18 * ACK_POL_NUM_BITS_PER_QUEUE) 
+                                                
+#define PEER_STA_PER_QUEUE_ACK_POLICY_Q0_15     IMMEDIATE_ACK_POL << (BTQM_QID0 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID1 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID2 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID3 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID4 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID5 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID6 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID7 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID8 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID9 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID10 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID11 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID12 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID13 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID14 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID15 * ACK_POL_NUM_BITS_PER_QUEUE) 
+                                                
+#define PEER_STA_PER_QUEUE_ACK_POLICY_Q16_19    IMMEDIATE_ACK_POL << (BTQM_QID16 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID17 * ACK_POL_NUM_BITS_PER_QUEUE) | \
+                                                IMMEDIATE_ACK_POL << (BTQM_QID18 * ACK_POL_NUM_BITS_PER_QUEUE) 
+
+
+#endif
 typedef __ani_attr_pre_packed struct sTemplateHeader {
 #ifndef ANI_BIG_BYTE_ENDIAN
     tANI_U32  protocol  : 2;
@@ -416,9 +490,12 @@ typedef __ani_attr_pre_packed struct sTpeStaDesc {
 
     /** Byte 12 - 15 */
 #ifdef ANI_BIG_BYTE_ENDIAN
-    tANI_U32 reserved1              : 6;
+    tANI_U32 rtt_queue_id           : 5;
+    tANI_U32 rtt_mode               : 2;    
     tANI_U32 protection_type        : 2;
-    tANI_U32 reserved2              : 12;
+	/*Changed from 12 to 11 bits */
+	/*to accomodate the 7 bits for rtt*/
+    tANI_U32 reserved2              : 11; 
     tANI_U32 retry_threshold2       : 4;
     tANI_U32 retry_threshold1       : 4;
     tANI_U32 retry_threshold0       : 4;
@@ -426,9 +503,12 @@ typedef __ani_attr_pre_packed struct sTpeStaDesc {
     tANI_U32 retry_threshold0       : 4;
     tANI_U32 retry_threshold1       : 4;
     tANI_U32 retry_threshold2       : 4;
-    tANI_U32 reserved2              : 12;
+	/*Changed from 12 to 11 bits */
+	/*to accomodate the 7 bits for rtt*/
+    tANI_U32 reserved2              : 11;
     tANI_U32 protection_type        : 2;
-    tANI_U32 reserved1              : 6;
+    tANI_U32 rtt_mode               : 2;
+    tANI_U32 rtt_queue_id           : 5;
 #endif
 
     /** Byte 16-19 */
@@ -558,7 +638,6 @@ typedef __ani_attr_pre_packed struct sTpeStaDesc {
     //    in QOS feature support is provided.
     //Reserving space for additional bytes in TPE sta descriptor
     tANI_U32 rsvd[TPE_STA_DESC_RESERVED_SPACE];
-
 } __ani_attr_packed __ani_attr_aligned_4 tTpeStaDesc, *tpTpeStaDesc;
 
 /**
@@ -919,7 +998,6 @@ eHalStatus halTpe_GetStaRaStats(tpAniSirGlobal pMac, tANI_U8 staId,
 eHalStatus halTpe_ClearStaRaStats(tpAniSirGlobal pMac, tANI_U8 staId);
 eHalStatus halTpe_SetSifsCycle(tpAniSirGlobal pMac, tANI_U32 cfgValue, tANI_U32 mask);
 eHalStatus halTpe_SetPmBit(tpAniSirGlobal pMac, tHalBitVal mask);
-
 eHalStatus halTpe_SetBeaconTemplate(tpAniSirGlobal pMac, tANI_U16 beaconIndex, tSirMacAddr  bssId);
 eHalStatus halTpe_SaveStaConfig(tpAniSirGlobal pMac, tpTpeStaDesc tpeStaDescCfg, tANI_U8 staIdx);
 eHalStatus halTpe_GetStaConfig(tpAniSirGlobal pMac, tpTpeStaDesc *tpeStaDescCfg, tANI_U8 staIdx);
@@ -942,9 +1020,13 @@ eHalStatus halTpe_EnableBeacon(tpAniSirGlobal pMac, tANI_U16 beaconIndex);
 eHalStatus halTpe_DisableBeacon(tpAniSirGlobal pMac, tANI_U16 beaconIndex);
 eHalStatus halTpe_ReEnableBeacon(tpAniSirGlobal pMac, tANI_U16 beaconIndex);
 eHalStatus halTpe_UpdateEdcaTxOp(tpAniSirGlobal pMac, tANI_U16 *pTxOp);
-eHalStatus halTpe_UpdateMtuMaxBssid(tpAniSirGlobal pMac);
+void halTpe_UpdateMtuMaxBssid(tpAniSirGlobal pMac);
+#ifdef WLAN_SOFTAP_FEATURE
+eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac,tANI_U8 * beacon,tANI_U16 bssIndex,tANI_U32 length,tANI_U16 timIeOffset);
+#else
 eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac, tANI_U8 *beacon,
                                     tANI_U16 beaconIndex, tANI_U32 length);
+#endif
 void halTpe_UpdateMaxMpduInAmpdu(tpAniSirGlobal pMac, tANI_U32 mpdusInAmpdu);
 void halTpe_TerminateAmpduAtRateChange(tpAniSirGlobal pMac, tANI_U8 enable);
 void halTpe_SetAmpduTxTime(tpAniSirGlobal pMac, tANI_U32 maxAmpduTxTime);
@@ -965,4 +1047,9 @@ eHalStatus halTpe_InitSwTemplateBase(tpAniSirGlobal pMac,
 #endif //CONFIGURE_SW_TEMPLATE
 eHalStatus halTpe_SetSwTemplate(tpAniSirGlobal pMac, tSwTemplate *swTemplate);
 eHalStatus halTpe_Set11gProtectionCntrlIndex(tpAniSirGlobal pMac, tANI_U8 set);
+
+#ifdef WLAN_FEATURE_VOWIFI
+eHalStatus halTpe_UpdateDescPowerParams(tpAniSirGlobal pMac, tANI_U8 staIdx, 
+                            tTpeRateType type, tPwrTemplateIndex maxPwrIndex);
+#endif /* WLAN_FEATURE_VOWIFI */
 #endif /**< __HAL_TPE_H_ */

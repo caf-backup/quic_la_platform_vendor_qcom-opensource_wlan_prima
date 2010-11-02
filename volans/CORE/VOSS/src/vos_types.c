@@ -1,3 +1,4 @@
+
 /**=========================================================================
   
   \file  vos_Types.c
@@ -19,6 +20,8 @@
   ------------------------------------------------------------------------*/
 #include "vos_types.h"
 #include "vos_trace.h"
+
+//#include "wlan_libra_config.h"
 
 /*-------------------------------------------------------------------------- 
   Preprocessor definitions and constants
@@ -117,3 +120,27 @@ v_U32_t vos_atomic_decrement_U32( v_U32_t *pTarget )
    return (*pTarget);
 }
 
+v_U32_t vos_atomic_increment_U32_by_value( v_U32_t *pTarget, v_U32_t value )
+{
+    return ( *pTarget +  value );
+}    
+
+v_U32_t vos_atomic_decrement_U32_by_value( v_U32_t *pTarget, v_U32_t value )
+{
+    return ( *pTarget - value );
+}
+
+
+v_U32_t vos_get_skip_ssid_check(void)
+{
+/**This is needed by only AMSS for interoperatability **/
+
+    return 1;
+}    
+
+
+v_U32_t vos_get_skip_11e_check(void)
+{
+    /* this is needed only for AMSS for interopratability **/
+    return 1;
+}    

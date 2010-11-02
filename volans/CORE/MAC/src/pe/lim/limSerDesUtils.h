@@ -22,8 +22,8 @@
 tSirRetStatus   limStartBssReqSerDes(tpAniSirGlobal, tpSirSmeStartBssReq, tANI_U8 *);
 tSirRetStatus   limStopBssReqSerDes(tpAniSirGlobal, tpSirSmeStopBssReq, tANI_U8 *);
 tSirRetStatus   limJoinReqSerDes(tpAniSirGlobal, tpSirSmeJoinReq, tANI_U8 *);
-void            limAssocIndSerDes(tpAniSirGlobal, tpLimMlmAssocInd, tANI_U8 *);
-void            limReassocIndSerDes(tpAniSirGlobal, tpLimMlmReassocInd, tANI_U8 *);
+void            limAssocIndSerDes(tpAniSirGlobal, tpLimMlmAssocInd, tANI_U8 *, tpPESession);
+void            limReassocIndSerDes(tpAniSirGlobal, tpLimMlmReassocInd, tANI_U8 *, tpPESession psessionEntry);
 tSirRetStatus   limAssocCnfSerDes(tpAniSirGlobal, tpSirSmeAssocCnf, tANI_U8 *);
 tSirRetStatus   limDisassocCnfSerDes(tpAniSirGlobal, tpSirSmeDisassocCnf, tANI_U8 *);
 tSirRetStatus   limSetContextReqSerDes(tpAniSirGlobal, tpSirSmeSetContextReq, tANI_U8 *);
@@ -31,6 +31,7 @@ tSirRetStatus   limDisassocReqSerDes(tpAniSirGlobal, tSirSmeDisassocReq *, tANI_
 tSirRetStatus   limDeauthReqSerDes(tpAniSirGlobal, tSirSmeDeauthReq *, tANI_U8 *);
 void		limAuthIndSerDes(tpAniSirGlobal, tpLimMlmAuthInd, tANI_U8 *);
 void 		limStatSerDes(tpAniSirGlobal, tpAniStaStatStruct, tANI_U8 *);
+void        limGetSessionInfo(tpAniSirGlobal pMac, tANI_U8 *, tANI_U8 *, tANI_U16 *);
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
 tSirRetStatus   limMeasurementReqSerDes(tpAniSirGlobal, tpSirSmeMeasurementReq, tANI_U8 *);
@@ -51,6 +52,14 @@ tANI_U32 limGetNeighborBssInfo(tpAniSirGlobal, tpSirNeighborBssInfo, tANI_U8 *);
 #endif
 
 tSirRetStatus limRemoveKeyReqSerDes(tpAniSirGlobal pMac, tpSirSmeRemoveKeyReq pRemoveKeyReq, tANI_U8 * pBuf);
+
+#ifdef WLAN_SOFTAP_FEATURE
+tANI_BOOLEAN    limIsSmeGetAssocSTAsReqValid(tpAniSirGlobal pMac, tpSirSmeGetAssocSTAsReq pGetAssocSTAsReq, tANI_U8 *pBuf);
+tSirRetStatus   limTkipCntrMeasReqSerDes(tpAniSirGlobal pMac, tpSirSmeTkipCntrMeasReq  ptkipCntrMeasReq, tANI_U8 *pBuf);
+
+tSirRetStatus limUpdateAPWPSIEsReqSerDes(tpAniSirGlobal pMac, tpSirUpdateAPWPSIEsReq pUpdateAPWPSIEsReq, tANI_U8 *pBuf);
+tSirRetStatus limUpdateAPWPARSNIEsReqSerDes(tpAniSirGlobal pMac, tpSirUpdateAPWPARSNIEsReq pUpdateAPWPARSNIEsReq, tANI_U8 *pBuf);
+#endif
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
 tANI_BOOLEAN limIsSmeSwitchChannelReqValid(tpAniSirGlobal, tANI_U8 *, tpSirSmeSwitchChannelReq);

@@ -71,7 +71,6 @@ cfgSendHostMsg(tpAniSirGlobal pMac, tANI_U16 msgType, tANI_U32 msgLen, tANI_U32 
     switch (msgType)
     {
         case WNI_CFG_GET_RSP:
-        case WNI_CFG_PARAM_UPDATE_IND:
         case WNI_CFG_DNLD_REQ:
         case WNI_CFG_DNLD_CNF:
         case WNI_CFG_SET_CNF:
