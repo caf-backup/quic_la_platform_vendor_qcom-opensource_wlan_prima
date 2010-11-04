@@ -1,3 +1,4 @@
+
 /*
  * Airgo Networks, Inc proprietary. All rights reserved.
  * This file limProcessDisassocFrame.cc contains the code
@@ -49,7 +50,7 @@
  * @return None
  */
 void
-limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
+limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tpPESession psessionEntry)
 {
     tANI_U8                 *pBody;
     tANI_U16                aid, reasonCode;
@@ -94,7 +95,7 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
    * Extract 'associated' context for STA, if any.
    * This is maintained by DPH and created by LIM.
    */
-     pStaDs = dphLookupHashEntry(pMac, pHdr->sa, &aid);
+     pStaDs = dphLookupHashEntry(pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable);
 
     if (pStaDs == NULL)
     {
@@ -111,28 +112,29 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
     }
 
     /** If we are in the Wait for ReAssoc Rsp state */
-    if (limIsReassocInProgress(pMac)) {
+    if (limIsReassocInProgress(pMac,psessionEntry)) {
         /** If we had received the DisAssoc from,
         *     a. the Current AP during ReAssociate to different AP in same ESS
         *     b. Unknown AP
         *   drop/ignore the DisAssoc received
         */
-        if (!IS_REASSOC_BSSID(pMac,pHdr->sa)) {
+        if (!IS_REASSOC_BSSID(pMac,pHdr->sa,psessionEntry)) {
             PELOGW(limLog(pMac, LOGW, FL("Ignore the DisAssoc received, while Processing ReAssoc with different/unknown AP\n"));)
             return;
         }
         /** If the Disassoc is received from the new AP to which we tried to ReAssociate
          *  Drop ReAssoc and Restore the Previous context( current connected AP).
          */
-        if (!IS_CURRENT_BSSID(pMac, pHdr->sa)) {
+        if (!IS_CURRENT_BSSID(pMac, pHdr->sa,psessionEntry)) {
             PELOGW(limLog(pMac, LOGW, FL("received Disassoc from the New AP to which ReAssoc is sent \n"));)
             limRestorePreReassocState(pMac,
-                                  eSIR_SME_REASSOC_REFUSED, reasonCode);
+                                  eSIR_SME_REASSOC_REFUSED, reasonCode,psessionEntry);
             return;
         }
     }
 
-    if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
+    if ( (psessionEntry->limSystemRole == eLIM_AP_ROLE) ||
+		(psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) )
     {
         switch (reasonCode)
         {
@@ -156,7 +158,8 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
                 break;
         }
     }
-    else if (pMac->lim.gLimSystemRole == eLIM_STA_ROLE)
+    else if (  (psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
+		       (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE) )
     {
         switch (reasonCode)
         {
@@ -203,7 +206,7 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
         // or un-known role. Log error and ignore it
         limLog(pMac, LOGE,
                FL("received Disassoc frame with invalid reasonCode %d in role %d from \n"),
-               reasonCode, pMac->lim.gLimSystemRole);
+               reasonCode, psessionEntry->limSystemRole);
         limPrintMacAddr(pMac, pHdr->sa, LOGE);
 
         return;
@@ -249,10 +252,11 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
      * EDCA parameters to local values in the CFG and 
      * send the update to HAL.
      */
-    if (pMac->lim.gLimSystemRole == eLIM_STA_ROLE )
+    if ( (psessionEntry->limSystemRole == eLIM_STA_ROLE ) ||
+		(psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE ) )
 	{
         schSetDefaultEdcaParams(pMac);
-        pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER);
+        pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
         if (pStaDs != NULL)
         {
             if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE) 
@@ -277,29 +281,33 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
 #endif
     mlmDisassocInd.disassocTrigger = eLIM_PEER_ENTITY_DISASSOC;
 
+    /* Update PE session Id  */
+	mlmDisassocInd.sessionId = psessionEntry->peSessionId;
+
+    if (limIsReassocInProgress(pMac,psessionEntry)) {
 
     /* If we're in the middle of ReAssoc and received disassoc from 
      * the ReAssoc AP, then notify SME by sending REASSOC_RSP with 
      * failure result code. By design, SME will then issue "Disassoc"  
      * and cleanup will happen at that time. 
      */
-    if (limIsReassocInProgress(pMac)) {
         PELOGE(limLog(pMac, LOGE, FL("received Disassoc from AP while waiting for Reassoc Rsp\n"));)
      
-        if (pMac->lim.gLimAssocResponseData) {
-            palFreeMemory(pMac->hHdd, pMac->lim.gLimAssocResponseData);
-            pMac->lim.gLimAssocResponseData = NULL;                            
+        if (psessionEntry->limAssocResponseData) {
+            palFreeMemory(pMac->hHdd, psessionEntry->limAssocResponseData);
+            psessionEntry->limAssocResponseData = NULL;                            
         }
 
-        limRestorePreReassocState(pMac,eSIR_SME_REASSOC_REFUSED, reasonCode);
+        limRestorePreReassocState(pMac,eSIR_SME_REASSOC_REFUSED, reasonCode,psessionEntry);
         return;
     }
 
     limPostSmeMessage(pMac, LIM_MLM_DISASSOC_IND,
                       (tANI_U32 *) &mlmDisassocInd);
 
+
     // send eWNI_SME_DISASSOC_IND to SME  
-	limSendSmeDisassocInd(pMac, pStaDs);
+    limSendSmeDisassocInd(pMac, pStaDs,psessionEntry);
 
     return;
 } /*** end limProcessDisassocFrame() ***/

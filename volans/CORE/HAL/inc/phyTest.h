@@ -17,7 +17,7 @@
 #define PHYTEST_H
 
 #include "halPhy.h"
-#include "phyTxPower.h"
+#include <phyTxPower.h>
 
 //supports testing of closed-loop power control
 typedef enum
@@ -27,7 +27,7 @@ typedef enum
     FIXED_POWER_DBM            = 2,  //only use to specify fixed power, ignoring rate/channel/reg limits
     REGULATORY_POWER_LIMITS    = 3,  //use production power Lut settings limited by power limit table per channel
     RATE_POWER_NON_LIMITED     = 4,   //use power specified per rate and channel group, but don't limit power by channel
-    POWER_INDX_SRC_MAX_VAL		= 0xFFFFFFFF, //dummy val to set enum to 4 bytes
+    POWER_INDX_SRC_MAX_VAL      = 0xFFFFFFFF, //dummy val to set enum to 4 bytes
 }ePowerTempIndexSource;
 
 
@@ -48,7 +48,7 @@ typedef struct
     tANI_BOOLEAN testLogSpiRegs;
     tANI_BOOLEAN testDisableFilterCalOptimization;
     tANI_U8 testDcoCalGainIndex;
-    eInitCals testCalMode;
+    eCalSelection testCalMode;
     tANI_BOOLEAN testInternalHdetCal;
     tANI_U8 reserved[3];
 }tPhyTest;

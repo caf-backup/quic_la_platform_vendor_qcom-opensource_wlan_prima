@@ -20,6 +20,7 @@
 #define ASICAPI_H
 
 #include "phyDebug.h"
+#include <pttFrameGen.h>
 
 //use these macros to set/get register valuse and handle failures by returning immediately
 //requires eHalStatus retVal to be declared previously
@@ -228,10 +229,6 @@ static inline eHalStatus rdModWrAsicField(tpAniSirGlobal pMac, tANI_U32 regAddr,
 #define asicCeaseOverrideAGCRxChainGain host_asicCeaseOverrideAGCRxChainGain
 #define asicSetDisabledRxPacketTypes    host_asicSetDisabledRxPacketTypes
 #define asicFftGetToneData              host_asicFftGetToneData 
-#define phyAsicInit                     host_phyAsicInit
-#define phyAsicSetFreq                  host_phyAsicSetFreq
-#define phyAsicRfEnBand                 host_phyAsicRfEnBand
-#define phyAsicRfEnChains               host_phyAsicRfEnChains
 #define asicTPCPowerOverride            host_asicTPCPowerOverride
 #define asicTPCAutomatic                host_asicTPCAutomatic
 #define asicTPCGetADCReading            host_asicTPCGetADCReading
@@ -249,6 +246,9 @@ static inline eHalStatus rdModWrAsicField(tpAniSirGlobal pMac, tANI_U32 regAddr,
 #endif
 
 
+eHalStatus asicWaitRegVal( tHddHandle hHdd, tANI_U32 reg, tANI_U32 mask,
+                             tANI_U32 waitRegVal, tANI_U32 perIterWaitInNanoSec,
+                             tANI_U32 numIter, tANI_U32 *pReadRegVal );
 
 
 eHalStatus phyAsicInit(tpAniSirGlobal pMac);
@@ -306,7 +306,7 @@ eHalStatus asicLoadTPCGainLUT(tpAniSirGlobal pMac, ePhyTxChains txChain, tTxGain
 eHalStatus asicGetTxGainAtIndex(tpAniSirGlobal pMac, ePhyTxChains txChain, tPwrTemplateIndex index, tTxGainCombo *retGain);
 eHalStatus asicGetTxPowerLutAtIndex(tpAniSirGlobal pMac, ePhyTxChains txChain, tPowerDetect adcIndex, tPowerDetect *retPwr);
 eHalStatus asicGetTxPowerMeasurement(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_U8 *retAdc);
-eHalStatus asicTPCGetADCReading(tpAniSirGlobal pMac, tANI_U8 *pADC);
+eHalStatus asicTPCGetADCReading(tpAniSirGlobal pMac, tANI_U16 *pADC);
 
 
 //asicTXCTL functions
@@ -358,7 +358,6 @@ eHalStatus asicStopTestWaveform(tpAniSirGlobal pMac);
 #endif
 
 
-#ifdef ANI_MANF_DIAG
 //asicPhyDbg.c
 eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac, 
                                    eHalPhyRates rate, 
@@ -376,9 +375,6 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
 eHalStatus asicPhyDbgStopFrameGen(tpAniSirGlobal pMac);
 eHalStatus asicPhyDbgQueryStatus(tpAniSirGlobal pMac, sTxFrameCounters *numFrames, ePhyDbgTxStatus *status);
 eHalStatus asicGrabAdcSamples(tpAniSirGlobal pMac, tANI_U32 startSample, tANI_U32 numSamples, eGrabRamSampleType sampleType, tGrabRamSample *sampleBuffer);
-
-
-#endif
 
 
 

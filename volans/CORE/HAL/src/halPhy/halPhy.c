@@ -21,18 +21,19 @@
 #include "sys_api.h"
 #include "halFw.h"
 #include "halFwApi.h"
-#ifdef ANI_MANF_DIAG
 #include "pttModuleApi.h"
-#endif
 #include "halPhyVos.h"
+#include "halTimer.h"
 
 
 //if the testChannelId is set to NORMAL_CHANNEL_SETTING, then we will allow all channel changes to take effect, not just those from a test
 #define NORMAL_CHANNEL_SETTING     0xFF
-#ifdef ANI_MANF_DIAG
+
 #define SET_CHAIN_SELECT_WAIT       250000000
 #define CAL_UPDATE_WAIT             500000000
-#endif
+
+extern const tANI_U8 plutCharacterized[MAX_TPC_CHANNELS][TPC_MEM_POWER_LUT_DEPTH];
+extern const tANI_U16 plutPdadcOffset[MAX_TPC_CHANNELS];
 
 //config called before init but after halNvOpen
 eHalStatus halPhyOpen(tHalHandle hHal)
@@ -46,15 +47,6 @@ eHalStatus halPhyOpen(tHalHandle hHal)
     tANI_U8 nTx = PHY_MAX_TX_CHAINS;
     tANI_U8 nRx = PHY_MAX_RX_CHAINS;
 
-#ifdef ANI_MANF_DIAG
-    //allocate ADC capture cache
-    if(palAllocateMemory(pMac->hHdd, (void **)&pMac->ptt.pADCCaptureCache, PHY_MAX_RX_CHAINS * GRAB_RAM_DBLOCK_SIZE * sizeof(tANI_U32)) != eHAL_STATUS_SUCCESS)
-    {
-        phyLog(pMac, LOGE, "unable to allocate memory for ADC capture. \n");
-        return eHAL_STATUS_FAILURE;
-    }
-#endif
-
     pMac->hphy.phy.cfgChains = halPhyGetChainSelect(pMac, nTx, nRx);
     pMac->hphy.phy.openLoopTxGain = OPEN_LOOP_TX_HIGH_GAIN_OVERRIDE;
 
@@ -67,6 +59,8 @@ eHalStatus halPhyOpen(tHalHandle hHal)
 #endif
 
     //if ((retVal = ConfigureTpcFromNv(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
+    pMac->hphy.phy.regDomainInfo = pMac->hphy.nvTables[NV_TABLE_REGULATORY_DOMAINS ];
+    pMac->hphy.phy.pwrOptimal = pMac->hphy.nvTables[NV_TABLE_RATE_POWER_SETTINGS];
     if ((retVal = halPhySetRegDomain(pMac, curDomain)) != eHAL_STATUS_SUCCESS) { return (retVal); }
 
     //intialize the setChan event for wait blocking around halPhySetChannel
@@ -75,18 +69,6 @@ eHalStatus halPhyOpen(tHalHandle hHal)
 
 eHalStatus halPhyClose(tHalHandle hHal)
 {
-    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-    eHalStatus retVal = eHAL_STATUS_SUCCESS;
-
-    if ((retVal = phyTxPowerClose(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
-
-#ifdef ANI_MANF_DIAG
-    if(pMac->ptt.pADCCaptureCache)
-    {
-        palFreeMemory(pMac->hHdd, pMac->ptt.pADCCaptureCache);
-    }
-#endif
-
     //destroy the setChan event for wait blocking around halPhySetChannel
     return (halPhy_VosEventDestroy(hHal));
 }
@@ -98,13 +80,13 @@ eHalStatus halPhyStart(tHalHandle hHal)
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
 
     pMac->hphy.phy.chanBondState = PHY_SINGLE_CHANNEL_CENTERED;
-    pMac->hphy.phy.activeChains = PHY_CHAIN_SEL_R0R1_T0_ON;
+    pMac->hphy.phy.activeChains = PHY_CHAIN_SEL_R0_T0_ON;
     pMac->hphy.phy.openLoopTxGain = OPEN_LOOP_TX_HIGH_GAIN_OVERRIDE;
 
-    pMac->hphy.rf.curChannel = RF_CHAN_1;
-
-    //do we need this?
-    pMac->hphy.pwr = PHY_POWER_NORMAL;
+    pMac->hphy.rf.curChannel = RF_CHAN_1;   //channel 1 automatically initialized in firmware
+    
+    // //do we need this?
+    // pMac->hphy.pwr = PHY_POWER_NORMAL;
 
 #ifdef VOLANS_RF
     pMac->hphy.phy.test.testDisableRfAccess = eANI_BOOLEAN_FALSE;
@@ -114,13 +96,48 @@ eHalStatus halPhyStart(tHalHandle hHal)
     pMac->hphy.phy.test.testDisablePhyRegAccess = eANI_BOOLEAN_TRUE;
 #endif
 
-#if defined(ANI_MANF_DIAG) && defined(VOLANS_RF)
+#ifndef WLAN_FTM_STUB
+    if (pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        //allocate ADC capture cache
+        if (palAllocateMemory(pMac->hHdd, (void **)&pMac->ptt.pADCCaptureCache, PHY_MAX_RX_CHAINS * GRAB_RAM_DBLOCK_SIZE * sizeof(tANI_U32)) != eHAL_STATUS_SUCCESS)
+        {
+            phyLog(pMac, LOGE, "unable to allocate memory for ADC capture. \n");
+            return eHAL_STATUS_FAILURE;
+        }
+    }
+#endif
+
+#if !defined(WLAN_FTM_STUB) && defined(VOLANS_RF)
+    if (pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
         pttModuleInit(pMac);
+
+        //start the ADC RSSI stats collection timer
+        halTimersCreate(pMac);
     }
 #endif
 
     return (retVal);
+}
+
+
+eHalStatus halPhyStop(tHalHandle hHal)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
+    pMac->hphy.rf.curChannel = INVALID_RF_CHANNEL;
+
+#ifndef WLAN_FTM_STUB
+    if (pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        if(pMac->ptt.pADCCaptureCache)
+        {
+            palFreeMemory(pMac->hHdd, pMac->ptt.pADCCaptureCache);
+        }
+    }
+#endif
+
+    return (eHAL_STATUS_SUCCESS);
 }
 
 
@@ -145,9 +162,10 @@ eHalStatus halPhySetRxPktsDisabled(tHalHandle hHal, ePhyRxDisabledPktTypes rxDis
 
     {
         //automatically enable 11b packets - agreed that the mac would never expect llb packets to be off
-#ifndef ANI_MANF_DIAG //don't do this for manufacturing driver since it interfere's with external control
-        rxDisabled &= ~PHY_RX_DISABLE_11B;
-#endif
+        if(pMac->gDriverType == eDRIVER_TYPE_PRODUCTION) //don't do this for manufacturing driver since it interfere's with external control
+        {
+            rxDisabled &= ~PHY_RX_DISABLE_11B;
+        }
     }
 
     retVal = asicSetDisabledRxPacketTypes(pMac, rxDisabled);
@@ -197,8 +215,6 @@ ePhyChainSelect halPhyGetChainSelect(tHalHandle hHal, tANI_U8 numTxChains, tANI_
                 return (PHY_CHAIN_SEL_T0_ON);     //test mode
             case 1:
                 return (PHY_CHAIN_SEL_R0_T0_ON);
-            case 2:
-                return (PHY_CHAIN_SEL_R0R1_T0_ON);
             default:
                 return (INVALID_PHY_CHAIN_SEL);
         }
@@ -211,8 +227,6 @@ ePhyChainSelect halPhyGetChainSelect(tHalHandle hHal, tANI_U8 numTxChains, tANI_
                 return (PHY_CHAIN_SEL_NO_RX_TX);
             case 1:
                 return (PHY_CHAIN_SEL_R0_ON);
-            case 2:
-                return (PHY_CHAIN_SEL_R0R1_ON);
             default:
                 return (INVALID_PHY_CHAIN_SEL);
         }
@@ -229,12 +243,7 @@ tANI_U8 halPhyQueryNumRxChains(ePhyChainSelect phyRxTxAntennaMode)
             return (0);
         case PHY_CHAIN_SEL_R0_T0_ON:
         case PHY_CHAIN_SEL_R0_ON:
-        case PHY_CHAIN_SEL_T0_R1_ON:
-        case PHY_CHAIN_SEL_R1_ON:
             return (1);
-        case PHY_CHAIN_SEL_R0R1_T0_ON:
-        case PHY_CHAIN_SEL_R0R1_ON:
-            return (2);
         default:
             //assert(0);  //no other valid modes
             return(0);
@@ -246,14 +255,10 @@ tANI_U8 halPhyQueryNumTxChains(ePhyChainSelect phyRxTxAntennaMode)
     switch (phyRxTxAntennaMode)
     {
         case PHY_CHAIN_SEL_R0_ON:
-        case PHY_CHAIN_SEL_R0R1_ON:
-        case PHY_CHAIN_SEL_R1_ON:
         case PHY_CHAIN_SEL_NO_RX_TX:
             return (0);
         case PHY_CHAIN_SEL_R0_T0_ON:
-        case PHY_CHAIN_SEL_R0R1_T0_ON:
         case PHY_CHAIN_SEL_T0_ON:
-        case PHY_CHAIN_SEL_T0_R1_ON:
             return (1);
         default:
             //assert(0);  //no other valid modes
@@ -295,9 +300,12 @@ eHalStatus halPhySetChainSelect(tHalHandle hHal, ePhyChainSelect phyChainSelecti
                            TRUE,
                            NULL
                           );
-#ifdef ANI_MANF_DIAG
-        halPhyWaitForInterrupt(hHal, QWLANFW_FW2HOST_SET_CHAIN_SELECT_RSP);
-        pMac->hphy.phy.activeChains = phyChainSelections;
+#ifndef WLAN_FTM_STUB
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+       halPhyWaitForInterrupt(hHal, QWLANFW_FW2HOST_SET_CHAIN_SELECT_RSP);
+       pMac->hphy.phy.activeChains = phyChainSelections;
+    }
 #endif
    
    pMac->hphy.phy.cfgChains = phyChainSelections;
@@ -318,11 +326,14 @@ eHalStatus halPhyCalUpdate(tHalHandle hHal)
     Qwlanfw_CalUpdateReqType calUpdate;
     calUpdate.usPeriodic = 1;
 
-#ifdef ANI_MANF_DIAG
-    calUpdate.usCalId = pMac->hphy.phy.test.testCalMode;
-#else
-    calUpdate.usCalId = ALL_CALS;
-#endif
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        calUpdate.usCalId = pMac->hphy.phy.test.testCalMode;
+    }
+    else
+    {
+        calUpdate.usCalId = ALL_CALS;
+    }
 
     pMac->hphy.setPhyMsgEvent = eANI_BOOLEAN_TRUE;
 
@@ -337,30 +348,31 @@ eHalStatus halPhyCalUpdate(tHalHandle hHal)
                            NULL
                           );
      
-#ifdef ANI_MANF_DIAG
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
        halPhyWaitForInterrupt(hHal, QWLANFW_FW2HOST_CAL_UPDATE_RSP); 
-       //vos_sleep(300); 
        //sirBusyWait(CAL_UPDATE_WAIT);
-#endif
-    
+    }
     return (retVal);
 }
 
-eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber, ePhyChanBondState cbState, tANI_U8 calRequired)
+eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber,
+        ePhyChanBondState cbState, tANI_U8 calRequired)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     tANI_U16 dialogToken = 0;
+    eRfChannels rfChannel;
     Qwlanfw_SetChannelReqType setChan;
 
-   assert(cbState == PHY_SINGLE_CHANNEL_CENTERED);
-   assert(channelNumber <= NUM_2_4GHZ_CHANNELS);
+    assert(cbState == PHY_SINGLE_CHANNEL_CENTERED);
+    assert(channelNumber <= NUM_2_4GHZ_CHANNELS);
 
     setChan.usChanNum = channelNumber;
     setChan.ucCbState = (tANI_U8)cbState;
     //TODO: setChan.ucRegDomain = (tANI_U8)halPhyGetRegDomain(pMac);
     setChan.ucRegDomain = 0;
-    setChan.ucCalRequired = calRequired;
+    setChan.ucCalRequired = (tANI_U32)NO_CALS;
 
 #ifdef ANI_PHY_DEBUG
     //test interface is in control of channel setting
@@ -383,47 +395,51 @@ eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber, ePhyChanBond
 
     pMac->hphy.setPhyMsgEvent = eANI_BOOLEAN_TRUE;
 
+    {
+        rfChannel = rfGetChannelIndex(channelNumber, cbState);
+
+        /* Don't do copy in case of scanning, PLUTs are not used */
+        if (calRequired)
+        {
+            tANI_U32 *tempPtr = (tANI_U32 *)&setChan.tpcPowerLUT[0];
+            tANI_U32 *pTpcPwrLUT = (tANI_U32 *)&plutCharacterized[rfChannel][0];
+            tANI_U32 i = 0;
+
+            setChan.pdAdcOffset = plutPdadcOffset[rfChannel];
+
+            for (;i < TPC_MEM_POWER_LUT_DEPTH; i += 4)
+            {
+                *tempPtr = sirSwapU32(*pTpcPwrLUT);
+                tempPtr++;
+                pTpcPwrLUT++;
+            }
+
+#ifdef ANI_MANF_DIAG
+            setChan.ucCalRequired = (tANI_U32)ALL_CALS;
+#else
+            setChan.ucCalRequired = (tANI_U32)RX_DCO_CAL_ONLY;
+#endif
+        }
+    }
+    
     //send a mailbox message to the firmware to set the channel
     retVal = halFW_SendMsg(pMac, HAL_MODULE_ID_PHY, QWLANFW_HOST2FW_SET_CHANNEL_REQ, dialogToken,
                                  sizeof(Qwlanfw_SetChannelReqType), &setChan, FALSE, NULL);
     if(retVal != eHAL_STATUS_SUCCESS) { return (retVal); }
-
-#ifdef ANI_MANF_DIAG
+    
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
        halPhyWaitForInterrupt(hHal, QWLANFW_FW2HOST_SET_CHANNEL_RSP); 
        //sirBusyWait(SET_CHANNEL_WAIT);
-#endif
+    }
 
     {
-        //Set the tx power. handle this in halSetChannel response handler
-        eRfChannels chan = rfGetChannelIndex(channelNumber, PHY_SINGLE_CHANNEL_CENTERED/*cbState*/);
-        tANI_U16 freq = rfChIdToFreqCoversion(rfGetChannelIdFromIndex(chan));
-        eRfSubBand bandIndex = RF_SUBBAND_2_4_GHZ;
-
         pMac->hphy.phy.chanBondState = PHY_SINGLE_CHANNEL_CENTERED/*cbState*/;
 
-        switch (bandIndex)
-        {
-            case RF_SUBBAND_2_4_GHZ:
-                bandIndex = RF_BAND_2_4_GHZ;
-                break;
-
-            default:
-                phyLog(pMac, LOGE, "ERROR: band not found\n");
-                return (retVal);
-        }
-
-        //use calRequired var to determine whether it is operating channel or not.
-        //load the power det values only if it is an operating channel for production driver.
-        {
-            if ((retVal = phySetTxPower(pMac, freq, bandIndex)) != eHAL_STATUS_SUCCESS)
-            {
-                return (retVal);
-            }
-        }
-
-        pMac->hphy.rf.curChannel = chan;
-        return eHAL_STATUS_SUCCESS;
+        pMac->hphy.rf.curChannel = rfChannel;
     }
+
+    return eHAL_STATUS_SUCCESS;
 }
 
 
@@ -472,127 +488,43 @@ eHalStatus halPhySetNwDensity(tHalHandle hHal, tANI_BOOLEAN densityOn, ePhyNwDen
 
 
 
-
-//this function will display phy settings and attempt to diagnose any problems in the physical layer
-
-eHalStatus halPhyDiagnose(tHalHandle hHal, char *callerStr)
-{
-    eHalStatus retVal = eHAL_STATUS_SUCCESS;
-
-    return (retVal);
-}
-
-eHalStatus halPhyGetRxGainRange(tHalHandle hHal, tANI_U8 *maxGainIndex, tANI_U8 *topGaindB, tANI_U8 *bottomGain)
-{
-    return (eHAL_STATUS_SUCCESS);
-}
-
-eHalStatus halPhyChIdToFreqConversion(tANI_U8 num, tANI_U16 *pfreq)
-{
-    tANI_U16 freq;
-
-    if (!pfreq) return eHAL_STATUS_FAILURE;
-
-    freq = rfChIdToFreqCoversion(num);
-    if (!freq) return eHAL_STATUS_FAILURE;
-
-    *pfreq = freq;
-
-    return eHAL_STATUS_SUCCESS;
-
-} // End halPhyChIdToFreqCoversion.
-
-
-eHalStatus halPhyStop(tHalHandle hHal)
-{
-    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-    pMac->hphy.rf.curChannel = INVALID_RF_CHANNEL;
-
-    return (eHAL_STATUS_SUCCESS);
-}
-
-eHalStatus halPhySetPowerSave(tHalHandle hHal, ePhyPowerSave pwr)
-{
-    return (eHAL_STATUS_SUCCESS);
-}
-
-
-/*
-* Description:
-* This API is provided to override
-* the default behavior of the PHY
-* to "not" drop packets received
-* with the "sounding bit" set
-*
-* This lets us be bug compatible
-* with MRVL chipsets that exhibit
-* this behavior
-*/
-eHalStatus halPhyRxSoundingBitFrames( tHalHandle hHal, tANI_BOOLEAN enable )
-{
-    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-    eHalStatus retVal = eHAL_STATUS_SUCCESS;
-
-    retVal = rdModWrAsicField( pMac,
-            QWLAN_RACTL_RACTL_TEST_REG,
-            QWLAN_RACTL_RACTL_TEST_SOUNDING_BIT_CHK_EN_MASK,
-            QWLAN_RACTL_RACTL_TEST_SOUNDING_BIT_CHK_EN_OFFSET,
-            (eANI_BOOLEAN_TRUE == enable)? 0: 1 );
-
-    return retVal;
-}
-
-eHalStatus halPhyConfigureTpc(tHalHandle hHal)
-{
-    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-    eHalStatus retVal = eHAL_STATUS_SUCCESS;
-
-    retVal = ConfigureTpcFromNv(pMac);
-
-    return retVal;
-
-}
-
-
-eHalStatus halPhyLoadTxPowerDetValues(tHalHandle hHal)
-{
-    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-    eHalStatus retVal = eHAL_STATUS_SUCCESS;
-
-    //Set the tx power. handle this in halSetChannel response handler
-    eRfChannels chan = rfGetChannelIndex(pMac->hal.currentChannel, PHY_SINGLE_CHANNEL_CENTERED/*pMac->hal.currentCBState*/);
-    tANI_U16 freq = rfChIdToFreqCoversion(rfGetChannelIdFromIndex(chan));
-
-    //use calRequired var to determine whether it is operating channel or not.
-    //load the power det values only if it is an operating channel for production driver.
-
-    retVal = phySetTxPower(pMac, freq, pMac->hal.currentRfBand);
-    phyLog(pMac, LOGE, FL("phySetTxPower, freq : %d, band : %d \n"), freq, pMac->hal.currentRfBand);
-
-    return retVal;
-}
-
 eHalStatus halPhyUpdateTxGainOverride(tHalHandle hHal, tANI_U8 txGain)
 {
-#ifdef VOLANS_FPGA
-    return eHAL_STATUS_SUCCESS;
-#else
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
     Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
 
-    pMac->hphy.phy.openLoopTxGain = txGain;
+    pFwConfig->ucOpenLoopTxGain = txGain;
 
-    if ((retVal = asicTPCAutomatic(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
+    if ((retVal = asicTPCAutomatic(pMac)) != eHAL_STATUS_SUCCESS)
+    {
+        return (retVal);
+    }
 
     pFwConfig->ucOpenLoopTxGain = pMac->hphy.phy.openLoopTxGain;
     retVal = halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
 
     return retVal;
-
-#endif //#ifdef VOLANS_FPGA
 }
 
+eHalStatus halPhyTxPowerInit(tHalHandle hHal)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
+
+
+    status = phyTxPowerInit(pMac);
+
+    return status;
+}
+#ifndef WLAN_FTM_STUB
+void halPhyAdcRssiStatsCollection(tHalHandle hHal)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
+
+    pttCollectAdcRssiStats(pMac);
+}
+#endif
 #ifndef VERIFY_HALPHY_SIMV_MODEL
 inline void hv_printLog(const char *str, ...)
 {

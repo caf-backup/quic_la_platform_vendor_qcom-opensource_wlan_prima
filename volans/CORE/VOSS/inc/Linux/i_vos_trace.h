@@ -1,3 +1,4 @@
+
 #if !defined( __I_VOS_TRACE_H )
 #define __I_VOS_TRACE_H
 
@@ -63,6 +64,10 @@ void vos_trace_setValue( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, v_U8_t on 
 #else
 #define VOS_TRACE(arg...) 
 #endif
+
+
+void vos_snprintf(char *strBuffer, unsigned  int size, char *strFormat, ...);
+#define VOS_SNPRINTF vos_snprintf
 
 #ifdef VOS_ENABLE_TRACING
 

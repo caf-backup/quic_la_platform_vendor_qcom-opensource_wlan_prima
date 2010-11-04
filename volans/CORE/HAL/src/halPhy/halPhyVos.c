@@ -108,7 +108,8 @@ eHalStatus halPhy_HandlerFwRspMsg(tHalHandle hHal, void* pFwMsg)
 
         case QWLANFW_FW2HOST_SET_CHANNEL_RSP:
         {
-#ifdef ANI_MANF_DIAG
+            if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+            {
                 Qwlanfw_SetChannelRspType *setChanRsp = (Qwlanfw_SetChannelRspType *)pFwMsg;
                 pMac->hphy.setPhyMsgEvent = eANI_BOOLEAN_FALSE;
                 if(setChanRsp->uStatus == eHAL_STATUS_SUCCESS)
@@ -122,9 +123,12 @@ eHalStatus halPhy_HandlerFwRspMsg(tHalHandle hHal, void* pFwMsg)
                     //pMac->hphy.fwSetChannelStatus = eHAL_STATUS_FAILURE;
                     //retVal = eHAL_STATUS_FAILURE;
                 }
-#else
+            }
+            else
+            {
                 halPhy_HandleSetChannelRsp(hHal, pFwMsg);
-#endif
+            }
+
         break;
         }
 

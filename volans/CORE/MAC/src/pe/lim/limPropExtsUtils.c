@@ -30,7 +30,7 @@
 #include "limPropExtsUtils.h"
 #include "limSerDesUtils.h"
 #include "limTrace.h"
-
+#include "limSession.h"
 
 #define LIM_GET_NOISE_MAX_TRY 5
 #if (defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))
@@ -86,16 +86,20 @@ limGetCurrentLearnChannel(tpAniSirGlobal pMac)
 
 void
 limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
-                       tANI_U8 *qosCap, tANI_U16 *propCap, tANI_U8 *uapsd)
+                       tANI_U8 *qosCap, tANI_U16 *propCap, tANI_U8 *uapsd, 
+                       tPowerdBm *localConstraint
+                       )
 {
     tSirProbeRespBeacon beaconStruct;
+#if !defined WLAN_FEATURE_VOWIFI
     tANI_U32            localPowerConstraints = 0;
+#endif
 
     palZeroMemory( pMac->hHdd, (tANI_U8 *) &beaconStruct, sizeof(beaconStruct));
 
     *qosCap = 0;
     *propCap = 0;
-	*uapsd = 0;
+    *uapsd = 0;
 
     PELOG3(limLog( pMac, LOG3,
         FL("In limExtractApCapability: The IE's being received are:\n"));
@@ -122,15 +126,26 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
         if (beaconStruct.wmeEdcaPresent)
             *uapsd = beaconStruct.edcaParams.qosInfo.uapsd;
 
-        if (beaconStruct.powerConstraintPresent && pMac->lim.gLim11hEnable)
+        if (beaconStruct.powerConstraintPresent && ( pMac->lim.gLim11hEnable
+#if defined WLAN_FEATURE_VOWIFI
+                 || pMac->rrm.rrmPEContext.rrmEnable
+#endif
+                 ))
         {
-            localPowerConstraints = (tANI_U32)beaconStruct.localPowerConstraint.localPowerConstraints;
+#if defined WLAN_FEATURE_VOWIFI
+           *localConstraint = beaconStruct.localPowerConstraint.localPowerConstraints;
+#else
+           localPowerConstraints = (tANI_U32)beaconStruct.localPowerConstraint.localPowerConstraints;
+           *localConstraint = 0; 
+#endif
         }
 
+#if !defined WLAN_FEATURE_VOWIFI
         if (cfgSetInt(pMac, WNI_CFG_LOCAL_POWER_CONSTRAINT, localPowerConstraints) != eSIR_SUCCESS)
         {
             limLog(pMac, LOGP, FL("Could not update local power constraint to cfg.\n"));
         }
+#endif
     }
 
     return;
@@ -832,6 +847,18 @@ limSendSmeMeasurementInd(tpAniSirGlobal pMac)
     tANI_U16         len = 0;
     tSirMsgQ    mmhMsg;
 
+#ifdef GEN6_TODO
+    //fetch the sessionEntry based on the sessionId
+    //priority - MEDIUM
+    tpPESession sessionEntry;
+
+    if((sessionEntry = peFindSessionBySessionId(pMac, pMac->lim.gLimMeasParams.measurementIndTimer.sessionId))== NULL) 
+    {
+        limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
+        return;
+    }
+#endif
+
 	if (!pMac->sys.gSysEnableLearnMode ||
 		(pMac->lim.gpLimMeasReq == NULL))
 	{
@@ -1083,12 +1110,15 @@ void limDeleteCurrentBssWdsNode(tpAniSirGlobal pMac)
     tANI_U32                 cfg = sizeof(tSirMacAddr);
     tSirMacAddr         currentBssId;
 
+#if 0
     if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) !=
                                 eSIR_SUCCESS)
     {
         /// Could not get BSSID from CFG. Log error.
         limLog(pMac, LOGP, FL("could not retrieve BSSID\n"));
     }
+#endif //TO SUPPORT BT-AMP
+    sirCopyMacAddr(currentBssId,sessionEntry->bssId);
 
     if (!pMac->lim.gpLimMeasData)
         return;
@@ -1373,7 +1403,7 @@ void setupCBState( tpAniSirGlobal pMac,
  * @param  pMac      Pointer to Global MAC structure
  * @return Channel number
  */
-tANI_U8 limGetCurrentCBSecChannel( tpAniSirGlobal pMac )
+tANI_U8 limGetCurrentCBSecChannel( tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
 tANI_U8 chanNum;
 
@@ -1382,7 +1412,7 @@ tANI_U8 chanNum;
   // Need to have a clean way of determining the current
   // CB secondary channel!!
   //
-  chanNum = pMac->lim.gLimCurrentChannelId;
+  chanNum = psessionEntry->currentOperChannel;
   if( GET_CB_OPER_STATE( pMac->lim.gCbState ))
   {
     if( GET_CB_SEC_CHANNEL( pMac->lim.gCbState ))

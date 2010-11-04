@@ -13,7 +13,7 @@
 #include "limSendMessages.h"
 #include "cfgApi.h"
 #include "limTrace.h"
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
+#ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT
 #include "vos_diag_core_log.h"
 #endif //FEATURE_WLAN_DIAG_SUPPORT 
 
@@ -23,21 +23,24 @@
  * The format of the table is:
  *    - EID
  *    - Check for IE presence
- *    - Byte offset 
- *    - Byte value 
+ *    - Byte offset
+ *    - Byte value
  *    - Bit Mask
- *    - Byte refrence 
+ *    - Byte refrence
  */
 static tBeaconFilterIe beaconFilterTable[] = {
-    {SIR_MAC_DS_PARAM_SET_EID,    0, {0, 0, DS_PARAM_CHANNEL_MASK, 0}},
-	{SIR_MAC_ERP_INFO_EID,        0, {0, 0, ERP_FILTER_MASK,       0}},
-	{SIR_MAC_EDCA_PARAM_SET_EID,  0, {0, 0, EDCA_FILTER_MASK,      0}},
-	{SIR_MAC_QOS_CAPABILITY_EID,  0, {0, 0, QOS_FILTER_MASK,       0}},
-	{SIR_MAC_CHNL_SWITCH_ANN_EID, 1, {0, 0, 0,                     0}},
-	{SIR_MAC_QUIET_EID,           1, {0, 0, 0,                     0}},
-	{SIR_MAC_HT_INFO_EID,         0, {0, 0, HT_BYTE0_FILTER_MASK,  0}},  
-	{SIR_MAC_HT_INFO_EID,         0, {2, 0, HT_BYTE2_FILTER_MASK,  0}}, 
-	{SIR_MAC_HT_INFO_EID,         0, {5, 0, HT_BYTE5_FILTER_MASK,  0}}
+   {SIR_MAC_DS_PARAM_SET_EID,    0, {0, 0, DS_PARAM_CHANNEL_MASK, 0}},
+   {SIR_MAC_ERP_INFO_EID,        0, {0, 0, ERP_FILTER_MASK,       0}},
+   {SIR_MAC_EDCA_PARAM_SET_EID,  0, {0, 0, EDCA_FILTER_MASK,      0}},
+   {SIR_MAC_QOS_CAPABILITY_EID,  0, {0, 0, QOS_FILTER_MASK,       0}},
+   {SIR_MAC_CHNL_SWITCH_ANN_EID, 1, {0, 0, 0,                     0}},
+   {SIR_MAC_QUIET_EID,           1, {0, 0, 0,                     0}},
+   {SIR_MAC_HT_INFO_EID,         0, {0, 0, HT_BYTE0_FILTER_MASK,  0}},  
+   {SIR_MAC_HT_INFO_EID,         0, {2, 0, HT_BYTE2_FILTER_MASK,  0}}, 
+   {SIR_MAC_HT_INFO_EID,         0, {5, 0, HT_BYTE5_FILTER_MASK,  0}}
+#if defined WLAN_FEATURE_VOWIFI
+   ,{SIR_MAC_PWR_CONSTRAINT_EID,  0, {0, 0, 0, 0}}
+#endif
 };
 
 
@@ -99,7 +102,7 @@ tSirRetStatus limSendCFParams(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U8 cfpCo
 
     if( eSIR_SUCCESS != (retCode = halPostMsgApi( pMac, &msgQ )))
     {
-    	palFreeMemory(pMac->hHdd, pCFParams);
+        palFreeMemory(pMac->hHdd, pCFParams);
         limLog( pMac, LOGP,
                     FL("Posting  SIR_HAL_UPDATE_CF_IND to HAL failed, reason=%X\n"),
                     retCode );
@@ -133,7 +136,9 @@ returnFailure:
  * @return success if message send is ok, else false.
  */
 
-tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac, tpUpdateBeaconParams pUpdatedBcnParams)
+tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac, 
+                                tpUpdateBeaconParams pUpdatedBcnParams,
+								tpPESession  psessionEntry )
 {
     tpUpdateBeaconParams pBcnParams = NULL;
     tSirRetStatus   retCode = eSIR_SUCCESS;
@@ -162,11 +167,14 @@ tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac, tpUpdateBeaconParams pUpd
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
     if( eSIR_SUCCESS != (retCode = halPostMsgApi( pMac, &msgQ )))
     {
-    	palFreeMemory(pMac->hHdd, pBcnParams);
+        palFreeMemory(pMac->hHdd, pBcnParams);
         limLog( pMac, LOGP,
                     FL("Posting  SIR_HAL_UPDATE_BEACON_IND to HAL failed, reason=%X\n"),
                     retCode );
     }
+#ifdef WLAN_SOFTAP_FEATURE
+    limSendBeaconInd(pMac, psessionEntry);
+#endif
 
     return retCode;
 }
@@ -194,15 +202,34 @@ tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac, tpUpdateBeaconParams pUpd
  * @return success if message send is ok, else false.
  */
 
-tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac, 
-                                      tANI_U8 chnlNumber, 
+#if !defined WLAN_FEATURE_VOWIFI  
+tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
+                                      tANI_U8 chnlNumber,
                                       tSirMacHTSecondaryChannelOffset secondaryChnlOffset,
-                                      tANI_U8 localPwrConstraint)
+                                      tANI_U8 localPwrConstraint, tANI_U8 peSessionId)
+#else
+tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
+                                      tANI_U8 chnlNumber,
+                                      tSirMacHTSecondaryChannelOffset secondaryChnlOffset,
+                                      tPowerdBm maxTxPower, tANI_U8 peSessionId)
+
+#endif
 {
     tpSwitchChannelParams pChnlParams = NULL;
     tSirRetStatus   retCode = eSIR_SUCCESS;
     tSirMsgQ msgQ;
+#if defined WLAN_FEATURE_VOWIFI
+    tpPESession pSessionEntry;
 
+    if((pSessionEntry = peFindSessionBySessionId(pMac , peSessionId)) == NULL)
+    {
+       limLog( pMac, LOGP,
+             FL( "Unable to get Session for session Id %d\n" ), peSessionId);
+       return eSIR_FAILURE;
+
+    }
+
+#endif
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
           (void **) &pChnlParams,
@@ -219,7 +246,15 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
 
     pChnlParams->secondaryChannelOffset = secondaryChnlOffset;
     pChnlParams->channelNumber= chnlNumber;
+#if defined WLAN_FEATURE_VOWIFI  
+    pChnlParams->maxTxPower = maxTxPower;
+    palCopyMemory( pMac->hHdd, pChnlParams->bssId, pSessionEntry->bssId, sizeof(tSirMacAddr) );
+    palCopyMemory( pMac->hHdd, pChnlParams->selfStaMacAddr, pSessionEntry->selfMacAddr, sizeof(tSirMacAddr) );
+#else
     pChnlParams->localPowerConstraint = localPwrConstraint;
+#endif
+
+    pChnlParams->peSessionId = peSessionId;
     
     //we need to defer the message until we get the response back from HAL.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
@@ -229,9 +264,15 @@ tSirRetStatus limSendSwitchChnlParams(tpAniSirGlobal pMac,
     msgQ.bodyptr = pChnlParams;
     msgQ.bodyval = 0;
 
-    limLog( pMac, LOG3,
+#if !defined WLAN_FEATURE_VOWIFI  
+    PELOG3(limLog( pMac, LOG3,
+		FL( "Sending SIR_HAL_CHNL_SWITCH_REQ with SecondaryChnOffset - %d, ChannelNumber - %d, maxTxPower - %d"),
+        pChnlParams->secondaryChannelOffset, pChnlParams->channelNumber, pChnlParams->maxTxPower);)
+#else
+    PELOG3(limLog( pMac, LOG3,
 		FL( "Sending SIR_HAL_CHNL_SWITCH_REQ with SecondaryChnOffset - %d, ChannelNumber - %d, LocalPowerConstraint - %d"),
-        pChnlParams->secondaryChannelOffset, pChnlParams->channelNumber, pChnlParams->localPowerConstraint);
+        pChnlParams->secondaryChannelOffset, pChnlParams->channelNumber, pChnlParams->localPowerConstraint);)
+#endif
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
     if( eSIR_SUCCESS != (retCode = halPostMsgApi( pMac, &msgQ )))
     {
@@ -297,7 +338,6 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
     msgQ.bodyptr = pEdcaParams;
     msgQ.bodyval = 0;
 
-
     {
         tANI_U8 i;
         PELOG1(limLog( pMac, LOG1,FL("Sending SIR_HAL_UPDATE_EDCA_PROFILE_IND with EDCA Parameters:" ));)
@@ -326,12 +366,12 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
  *
  * FUNCTION:
  *  This function is called to set the most up-to-date EDCA parameters
- *  given the default local EDCA parameters.  The rules are as following: 
+ *  given the default local EDCA parameters.  The rules are as following:
  *  - If ACM bit is set for all ACs, then downgrade everything to Best Effort.
  *  - If ACM is not set for any AC, then PE will use the default EDCA
- *    parameters as advertised by AP. 
+ *    parameters as advertised by AP.
  *  - If ACM is set in any of the ACs, PE will use the EDCA parameters
- *    from the next best AC for which ACM is not enabled. 
+ *    from the next best AC for which ACM is not enabled.
  *
  * @param pMac  pointer to Global Mac structure.
  * @param plocalEdcaParams pointer to the local EDCA parameters
@@ -341,7 +381,7 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
 {
     tANI_U8   ac, newAc, i;
     tANI_U8   acAdmitted;
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
+#ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT
     vos_log_qos_edca_pkt_type *log_ptr = NULL;
 #endif //FEATURE_WLAN_DIAG_SUPPORT 
 
@@ -352,28 +392,29 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
     pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_VO] = plocalEdcaParams[EDCA_AC_VO];
 
     /* An AC requires downgrade if the ACM bit is set, and the AC has not
-     * yet been admitted.  
-	 * If an AC requires downgrade, it will downgrade to the next beset AC
-     * for which ACM is not enabled. 
+     * yet been admitted in uplink or bi-directions.
+     * If an AC requires downgrade, it will downgrade to the next beset AC
+     * for which ACM is not enabled.
      *
-	 * - There's no need to downgrade AC_BE since it IS the lowest AC. Hence
+     * - There's no need to downgrade AC_BE since it IS the lowest AC. Hence
      *   start the for loop with AC_BK.
-     * - If ACM bit is set for an AC, initially downgrade it to AC_BE. Then 
-     *   traverse thru the AC list. If we do find the next best AC which is 
+     * - If ACM bit is set for an AC, initially downgrade it to AC_BE. Then
+     *   traverse thru the AC list. If we do find the next best AC which is
      *   better than AC_BE, then use that one. For example, if ACM bits are set
      *   such that: BE_ACM=1, BK_ACM=1, VI_ACM=1, VO_ACM=0
-     *   then all AC will be downgraded to AC_BE. 
+     *   then all AC will be downgraded to AC_BE.
      */
-    limLog(pMac, LOG1, FL("adAdmitMask = 0x%x \n"),  pMac->lim.gAcAdmitMask );
+    limLog(pMac, LOG1, FL("adAdmitMask[UPLINK] = 0x%x \n"),  pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] );
+    limLog(pMac, LOG1, FL("adAdmitMask[DOWNLINK] = 0x%x \n"),  pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] );
     for (ac = EDCA_AC_BK; ac <= EDCA_AC_VO; ac++)
     {
-        acAdmitted = ( (pMac->lim.gAcAdmitMask & (1 << ac)) >> ac );
+        acAdmitted = ( (pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] & (1 << ac)) >> ac );
         limLog(pMac, LOG1, FL("For AC[%d]: acm=%d,  acAdmit=%d \n"), ac, plocalEdcaParams[ac].aci.acm, acAdmitted);
 
         if ( (plocalEdcaParams[ac].aci.acm == 1) && (acAdmitted == 0) )
         {
             limLog(pMac, LOG1, FL("We need to downgrade AC %d!! "), ac);
-            newAc = EDCA_AC_BE;   
+            newAc = EDCA_AC_BE;
             for (i=ac-1; i>0; i--)
             {
                 if (plocalEdcaParams[i].aci.acm == 0)
@@ -387,7 +428,7 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
         }
     }
 //log: LOG_WLAN_QOS_EDCA_C
-#ifdef FEATURE_WLAN_DIAG_SUPPORT
+#ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT
     WLAN_VOS_DIAG_LOG_ALLOC(log_ptr, vos_log_qos_edca_pkt_type, LOG_WLAN_QOS_EDCA_C);
     if(log_ptr)
     {
@@ -422,8 +463,9 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
 \param   tSirLinkState      state
 \return  None
   -----------------------------------------------------------*/
-  /*
-tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state)
+ //Original code with out anu's change
+#if 0
+tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAddr bssId)
 {
     tSirMsgQ msg;
     tSirRetStatus retCode;
@@ -439,7 +481,7 @@ tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state)
 
     return retCode;
 }
-*/
+#endif //0
 
 tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAddr bssId)
 {
@@ -569,10 +611,11 @@ tSirRetStatus limSendBeaconFilterInfo(tpAniSirGlobal pMac)
     tSirRetStatus      retCode = eSIR_SUCCESS;
     tSirMsgQ           msgQ;
     tANI_U8            *ptr;
-    tANI_U32           beaconInterval;
     tANI_U32           i;
     tANI_U32           msgSize;
     tpBeaconFilterIe   pIe;
+    tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH get the sessionEntry from the caller
+
 
     msgSize = sizeof(tBeaconFilterMsg) + sizeof(beaconFilterTable);
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
@@ -585,16 +628,12 @@ tSirRetStatus limSendBeaconFilterInfo(tpAniSirGlobal pMac)
     palZeroMemory( pMac->hHdd, (tANI_U8 *) pBeaconFilterMsg, msgSize);
 
     // Fill in capability Info and mask
-    pBeaconFilterMsg->capabilityInfo = pMac->lim.gLimCurrentBssCaps;
+    //TBD-RAJESH get the BSS capability from session.
+    //Don't send this message if no active Infra session is found.
+    pBeaconFilterMsg->capabilityInfo = psessionEntry->limCurrentBssCaps;
     pBeaconFilterMsg->capabilityMask = CAPABILITY_FILTER_MASK;
- 
-    // Fill in beacon interval
-    if (wlan_cfgGetInt(pMac, WNI_CFG_BEACON_INTERVAL, &beaconInterval) != eSIR_SUCCESS)
-    {
-        limLog(pMac, LOGP, FL("CfgGet beacon interval failed\n"));
-        return eSIR_FAILURE;
-    }
-    pBeaconFilterMsg->beaconInterval = (tANI_U16) beaconInterval;
+
+    pBeaconFilterMsg->beaconInterval = (tANI_U16) psessionEntry->beaconInterval;
 
     // Fill in number of IEs in beaconFilterTable
 	pBeaconFilterMsg->ieNum = (tANI_U16) (sizeof(beaconFilterTable) / sizeof(tBeaconFilterIe));
@@ -622,7 +661,7 @@ tSirRetStatus limSendBeaconFilterInfo(tpAniSirGlobal pMac)
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
     if( eSIR_SUCCESS != (retCode = halPostMsgApi( pMac, &msgQ )))
     {
-    	palFreeMemory(pMac->hHdd, pBeaconFilterMsg);
+        palFreeMemory(pMac->hHdd, pBeaconFilterMsg);
         limLog( pMac, LOGP,
             FL("Posting  SIR_HAL_BEACON_FILTER_IND to HAL failed, reason=%X\n"),
             retCode );

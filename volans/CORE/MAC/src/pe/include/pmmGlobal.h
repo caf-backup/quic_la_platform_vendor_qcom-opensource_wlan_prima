@@ -160,11 +160,15 @@ typedef struct sAniSirPmm
 #ifdef ANI_PRODUCT_TYPE_AP
     tPmmStaState *gpPmmStaState; // Used for HCF - PS Poll 
     tANI_U8 *gpPmmPSState;          // To Store the PS States in AP
+#endif
+#ifdef WLAN_SOFTAP_FEATURE
     tPmmTim gPmmTim;
 #endif
 
-    //Reason for which PMC is sending an EXIT_BMPS_REQ to PE
+
+	 //Reason for which PMC is sending an EXIT_BMPS_REQ to PE
     tExitBmpsReason   gPmmExitBmpsReasonCode;
+    tANI_U8  sessionId;      //This sessio Id is added to know the bsstype , infra/btamp .......in power save mode
 
 } tAniSirPmm, *tpAniSirPmm;
 

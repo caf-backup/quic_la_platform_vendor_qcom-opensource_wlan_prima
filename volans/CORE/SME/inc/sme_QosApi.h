@@ -144,12 +144,29 @@ typedef enum
 }sme_QosWmmDirType;
 
 /*---------------------------------------------------------------------------
+   Enumeration of the various TSPEC ack policies.
+   
+   From 802.11 WMM specification
+---------------------------------------------------------------------------*/
+
+typedef enum
+{
+   SME_QOS_WMM_TS_ACK_POLICY_NORMAL_ACK   = 0,
+   SME_QOS_WMM_TS_ACK_POLICY_RESV1 = 1,
+   SME_QOS_WMM_TS_ACK_POLICY_RESV2     = 2,   /* Reserved                          */
+   SME_QOS_WMM_TS_ACK_POLICY_HT_IMMEDIATE_BLOCK_ACK     = 3,
+
+}sme_QosWmmAckPolicyType;
+
+/*---------------------------------------------------------------------------
    TS Info field in the WMM TSPEC
    
    See suggestive values above
 ---------------------------------------------------------------------------*/
 typedef struct
 {
+   v_U8_t              burst_size_defn;
+   sme_QosWmmAckPolicyType    ack_policy;
    sme_QosWmmUpType    up;        /* User priority                    */
    v_U8_t              psb;       /* power-save bit                   */
    sme_QosWmmDirType   direction; /* Direction                        */
@@ -218,6 +235,9 @@ typedef eHalStatus (*sme_QosCallback)(tHalHandle hHal, void * HDDcontext,
   default params.
   
   \param hHal - The handle returned by macOpen.
+  \param sessionId - sessionId returned by sme_OpenSession. Current QOS code doesn't 
+                     support multiple session. This function returns failure when different
+                     sessionId is passed in before calling sme_QosReleaseReq.
   \param pQoSInfo - Pointer to sme_QosWmmTspecInfo which contains the WMM TSPEC
                     related info as defined above, provided by HDD
   \param QoSCallback - The callback which is registered per flow while 
@@ -241,7 +261,7 @@ typedef eHalStatus (*sme_QosCallback)(tHalHandle hHal, void * HDDcontext,
   \sa
   
   --------------------------------------------------------------------------*/
-sme_QosStatusType sme_QosSetupReq(tHalHandle hHal, 
+sme_QosStatusType sme_QosSetupReq(tHalHandle hHal, tANI_U32 sessionId,
                                   sme_QosWmmTspecInfo * pQoSInfo,
                                   sme_QosCallback QoSCallback, void * HDDcontext,
                                   sme_QosWmmUpType UPType, v_U32_t * pQosFlowID);
@@ -292,5 +312,24 @@ sme_QosStatusType sme_QosModifyReq(tHalHandle hHal,
   
   --------------------------------------------------------------------------*/
 sme_QosStatusType sme_QosReleaseReq(tHalHandle hHal, v_U32_t QosFlowID);
+
+/*--------------------------------------------------------------------------
+  \brief sme_QosIsTSInfoAckPolicyValid() - The SME QoS API exposed to HDD to 
+  check if TS info ack policy field can be set to "HT-immediate block acknowledgement" 
+  
+  \param pMac - The handle returned by macOpen.
+  \param pQoSInfo - Pointer to sme_QosWmmTspecInfo which contains the WMM TSPEC
+                    related info, provided by HDD
+  \param sessionId - sessionId returned by sme_OpenSession.
+  
+  \return VOS_TRUE - Current Association is HT association and so TS info ack policy
+                     can be set to "HT-immediate block acknowledgement"
+  
+  \sa
+  
+  --------------------------------------------------------------------------*/
+v_BOOL_t sme_QosIsTSInfoAckPolicyValid(tpAniSirGlobal pMac,
+    sme_QosWmmTspecInfo * pQoSInfo,
+    v_U8_t sessionId);
 
 #endif //#if !defined( __SME_QOSAPI_H )

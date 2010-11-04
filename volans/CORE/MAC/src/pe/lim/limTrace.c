@@ -29,7 +29,6 @@ tANI_U32 gMgmtFrameStats[14];
 
 static tANI_U8* __limTraceGetTimerString( tANI_U16 timerId )
 {
-
     switch( timerId )
     {
         CASE_RETURN_STRING(eLIM_MIN_CHANNEL_TIMER);
@@ -208,6 +207,7 @@ void limTraceDump(tpAniSirGlobal pMac, tpTraceRecord pRecord, tANI_U16 recIndex)
 
 void macTraceMsgTx(tpAniSirGlobal pMac, tANI_U8 session, tANI_U32 data)
 {
+
     tANI_U16 msgId = (tANI_U16)MAC_TRACE_GET_MSG_ID(data);
     tANI_U8 moduleId = (tANI_U8)MAC_TRACE_GET_MODULE_ID(data);
 
@@ -225,7 +225,7 @@ void macTraceMsgTx(tpAniSirGlobal pMac, tANI_U8 session, tANI_U32 data)
         case SIR_CFG_MODULE_ID:
             macTrace(pMac, TRACE_CODE_TX_CFG_MSG, session, data);
             break;
-        }
+    }
 }
 
 

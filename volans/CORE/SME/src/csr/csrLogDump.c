@@ -2,46 +2,39 @@
 Copyright (c) 2007 QUALCOMM Incorporated.
 All Rights Reserved.
 Qualcomm Confidential and Proprietary
-
 csrLogDump.c
-
 Implements the dump commands specific to the csr module. 
 ============================================================================*/
-
 #include "aniGlobal.h"
 #include "csrApi.h"
 #include "btcApi.h"
 #include "logDump.h"
 #include "smsDebug.h"
 #include "smeInside.h"
-
-
+#include "csrInsideApi.h"
 #if defined(ANI_LOGDUMP)
-
 static char *
 dump_csr( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p )
 {
 	static tCsrRoamProfile x;
 	static tSirMacSSid ssid;   //To be allocated for array of SSIDs
+    static tANI_U8 sessionId = 0; // Defined for fixed session ID
     palZeroMemory(pMac->hHdd, (void*)&x, sizeof(x)); 
     x.SSIDs.numOfSSIDs=1 ;
     x.SSIDs.SSIDList[0].SSID = ssid ;
     ssid.length=6 ;
     palCopyMemory(pMac->hHdd, ssid.ssId, "AniNet", 6);
 	if(HAL_STATUS_SUCCESS(sme_AcquireGlobalLock( &pMac->sme )))
-	{
-		(void)csrRoamConnect(pMac, &x, NULL, NULL);
+    {
+		(void)csrRoamConnect(pMac, sessionId, &x, NULL, NULL);
 		sme_ReleaseGlobalLock( &pMac->sme );
 	}
-
     return p;
 }
-
 static char *dump_btcSetEvent( tpAniSirGlobal pMac, tANI_U32 arg1, 
                                tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p )
 {
     tSmeBtEvent btEvent;
-
     if( arg1 < BT_EVENT_TYPE_MAX )
     {
         smsLog(pMac, LOGE, FL(" signal BT event (%d) handle (%d) 3rd param(%d)\n"), arg1, arg2, arg3);
@@ -54,38 +47,34 @@ static char *dump_btcSetEvent( tpAniSirGlobal pMac, tANI_U32 arg1,
             btEvent.uEventParam.btSyncConnection.connectionHandle = (v_U16_t)arg2;
             btEvent.uEventParam.btSyncConnection.status = (v_U8_t)arg3;
             break;
-
         case BT_EVENT_DISCONNECTION_COMPLETE:
 			btEvent.uEventParam.btDisconnect.connectionHandle = (v_U16_t)arg2;
 			break;
-
         case BT_EVENT_CREATE_ACL_CONNECTION:
         case BT_EVENT_ACL_CONNECTION_COMPLETE:
             btEvent.uEventParam.btAclConnection.connectionHandle = (v_U16_t)arg2;
 			btEvent.uEventParam.btAclConnection.status = (v_U8_t)arg3;
             break;
-
         case BT_EVENT_MODE_CHANGED:
             btEvent.uEventParam.btAclModeChange.connectionHandle = (v_U16_t)arg2;
             break;
-
         default:
             break;
         }
-		if(HAL_STATUS_SUCCESS(sme_AcquireGlobalLock( &pMac->sme )))
-		{
-			btcSignalBTEvent(pMac, &btEvent);
-			sme_ReleaseGlobalLock( &pMac->sme );
-		}
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
+        if(HAL_STATUS_SUCCESS(sme_AcquireGlobalLock( &pMac->sme )))
+        {
+            btcSignalBTEvent(pMac, &btEvent);
+            sme_ReleaseGlobalLock( &pMac->sme );
+        }
+#endif
     }
     else
     {
         smsLog(pMac, LOGE, FL(" invalid event (%d)\n"), arg1);
     }
-
     return p;
 }
-
 
 static tDumpFuncEntry csrMenuDumpTable[] = {
 	{0,     "CSR (850-860)",                                    NULL},
@@ -99,6 +88,4 @@ void csrDumpInit(tHalHandle hHal)
 						  sizeof(csrMenuDumpTable)/sizeof(csrMenuDumpTable[0]) );
 }
 
-
 #endif //#if defined(ANI_LOGDUMP)
-

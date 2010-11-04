@@ -145,6 +145,10 @@ eHalStatus halRpe_Start(tHalHandle hHal, void *arg)
 	tpAniSirGlobal 	pMac = (tpAniSirGlobal)hHal;
 	tANI_U32		drop_pkts, good_pkts;
 
+#ifdef FEATURE_ON_CHIP_REORDERING
+    tANI_U32 value;
+#endif
+
     /** Initialize the number of Queues and Stations */
 	if (halRpe_program_staid_qid(pMac, pMac->hal.memMap.maxStations - 1,
                 	pMac->hal.memMap.maxHwQueues) != eHAL_STATUS_SUCCESS)
@@ -165,6 +169,53 @@ eHalStatus halRpe_Start(tHalHandle hHal, void *arg)
     /** Enable error interrupts */
     if (rpe_init_error_interrupt(pMac) != eHAL_STATUS_SUCCESS)
         return eHAL_STATUS_FAILURE;
+
+#ifdef FEATURE_ON_CHIP_REORDERING
+    /* Forward out of order packets packets arriving in reorder */
+    halWriteRegister(pMac, QWLAN_RPE_RPE_CONFIG_REG,
+         QWLAN_RPE_RPE_CONFIG_DEFAULT | (1 << QWLAN_RPE_RPE_CONFIG_OUOFORD_PKT_FWD_OFFSET));
+
+    halWriteRegister(pMac, QWLAN_RPE_MEMORY_THRESHOLD_FOR_RPE_REG,
+                    QWLAN_RPE_MEMORY_THRESHOLD_FOR_RPE_MEMORY_UNITS_DEFAULT | 
+                    QWLAN_RPE_MEMORY_THRESHOLD_FOR_RPE_MEMORY_THRESHOLD_DEFAULT);
+
+    /* Program qid_to_acx_mapping registers where x:0-3*/
+    value = QWLAN_RPE_QID_TO_AC0_MAPPING_QID3_AC0_MAPPING_DEFAULT |
+            QWLAN_RPE_QID_TO_AC0_MAPPING_QID2_AC0_MAPPING_DEFAULT;
+    value |= (BTQM_QUEUE_TX_TID_3 << QWLAN_RPE_QID_TO_AC0_MAPPING_QID1_AC0_MAPPING_OFFSET |
+             BTQM_QUEUE_TX_TID_0 << QWLAN_RPE_QID_TO_AC0_MAPPING_QID0_AC0_MAPPING_OFFSET);
+
+    halWriteRegister(pMac, QWLAN_RPE_QID_TO_AC0_MAPPING_REG, value);
+
+    value = QWLAN_RPE_QID_TO_AC1_MAPPING_QID3_AC1_MAPPING_DEFAULT |
+            QWLAN_RPE_QID_TO_AC1_MAPPING_QID2_AC1_MAPPING_DEFAULT;
+    value |= (BTQM_QUEUE_TX_TID_2 << QWLAN_RPE_QID_TO_AC1_MAPPING_QID1_AC1_MAPPING_OFFSET |
+            BTQM_QUEUE_TX_TID_1 << QWLAN_RPE_QID_TO_AC1_MAPPING_QID0_AC1_MAPPING_OFFSET);
+
+    halWriteRegister(pMac, QWLAN_RPE_QID_TO_AC1_MAPPING_REG, value);
+
+    value = QWLAN_RPE_QID_TO_AC2_MAPPING_QID3_AC2_MAPPING_DEFAULT |
+            QWLAN_RPE_QID_TO_AC2_MAPPING_QID2_AC2_MAPPING_DEFAULT;
+    value |= (BTQM_QUEUE_TX_TID_4 << QWLAN_RPE_QID_TO_AC2_MAPPING_QID1_AC2_MAPPING_OFFSET |
+            BTQM_QUEUE_TX_TID_5 << QWLAN_RPE_QID_TO_AC2_MAPPING_QID0_AC2_MAPPING_OFFSET);
+
+    halWriteRegister(pMac, QWLAN_RPE_QID_TO_AC2_MAPPING_REG, value);
+
+    value = QWLAN_RPE_QID_TO_AC3_MAPPING_QID3_AC3_MAPPING_DEFAULT |
+            QWLAN_RPE_QID_TO_AC3_MAPPING_QID2_AC3_MAPPING_DEFAULT;
+    value |= (BTQM_QUEUE_TX_TID_6 << QWLAN_RPE_QID_TO_AC3_MAPPING_QID1_AC3_MAPPING_OFFSET |
+            BTQM_QUEUE_TX_TID_7 << QWLAN_RPE_QID_TO_AC3_MAPPING_QID0_AC3_MAPPING_OFFSET);
+
+    halWriteRegister(pMac, QWLAN_RPE_QID_TO_AC3_MAPPING_REG, value);
+
+    pMac->hal.halMac.numOfOnChipReorderSessions = 0;
+    pMac->hal.halMac.maxNumOfOnChipReorderSessions = 0;
+
+    /* Zero out the RPE STA descriptor */
+    halZeroDeviceMemory(pMac, pMac->hal.memMap.rpeReOrderSTADataStructure_offset,
+                                    pMac->hal.memMap.rpeReOrderSTADataStructure_size);
+
+#endif /* FEATURE_ON_CHIP_REORDERING */
 
     /** Zero out the RPE Partial Bit Map */
 	halZeroDeviceMemory(pMac, pMac->hal.memMap.rpePartialBitmap_offset,
@@ -448,6 +499,11 @@ eHalStatus halRpe_BlockAndFlushFrames(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_
 	if (halRpe_FlushBitMapCache(pMac) != eHAL_STATUS_SUCCESS)
     	return eHAL_STATUS_FAILURE;
 
+#ifdef FEATURE_ON_CHIP_REORDERING
+    if (halRpe_FlushReorderPacketMemory(pMac, staIdx, queueId) != eHAL_STATUS_SUCCESS)
+    	return eHAL_STATUS_FAILURE;
+#endif
+
 	if (halRpe_FlushrsrcEntry(pMac, staIdx, queueId) != eHAL_STATUS_SUCCESS)
     	return eHAL_STATUS_FAILURE;
 
@@ -587,3 +643,68 @@ eHalStatus halRpe_ErrIntHandler(tHalHandle hHalHandle, eHalIntSources intSource)
 
     return (eHAL_STATUS_SUCCESS);
 }
+
+#ifdef FEATURE_ON_CHIP_REORDERING
+eHalStatus halRpe_FlushReorderPacketMemory(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId)
+{
+  tANI_U32 value;
+  tANI_U32 error_status;
+
+  /* Flush Reorder Packet Memory for this STA and QID */
+  do {
+    value = (staIdx << QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_CFG_FWD_TO_DPU_STAID_OFFSET) |
+              (queueId << QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_CFG_FWD_TO_DPU_QID_OFFSET) |
+              QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_CFG_FWD_TO_DPU_MASK;
+
+    halWriteRegister(pMac, QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_REG, value);
+
+    halReadRegister(pMac, QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_REG, &value);
+
+    /* Check fwd_to_dpu_fail_status and issue cfg_fwd_to_dpu again in case if the status is failed */
+    error_status = value & QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_FWD_TO_DPU_FAIL_STATUS_MASK;
+  } while(error_status);
+
+  /* fwd_to_dpu_done_status is set in case if the packets from RPE Reorder Packet Memory are forwarded to DPU */
+  /* Reset fwd_to_dpu_done_status */
+  value = QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_FWD_TO_DPU_DONE_STATUS_DEFAULT << 
+    QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_FWD_TO_DPU_DONE_STATUS_OFFSET;
+
+  halWriteRegister(pMac, QWLAN_RPE_SW_FLUSH_BITMAP_CACHE_REG, value);
+
+  return eHAL_STATUS_SUCCESS;
+}
+
+eHalStatus halRPE_UpdateOnChipReorderThreshold(tpAniSirGlobal pMac, tANI_U32 threshold, tANI_U32 value)
+{
+  switch(threshold)
+  {
+    case WNI_CFG_RPE_POLLING_THRESHOLD:
+      halWriteRegister(pMac, QWLAN_RPE_POLLING_THRESHOLD_FOR_RPE_REG, value*1000);
+      break;
+
+    case WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC0_REG:
+      halWriteRegister(pMac, QWLAN_RPE_AGING_THRESHOLD_FOR_AC0_REG, value*1000);
+      break;
+
+    case WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC1_REG:
+      halWriteRegister(pMac, QWLAN_RPE_AGING_THRESHOLD_FOR_AC1_REG, value*1000);
+      break;
+
+    case WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC2_REG:
+      halWriteRegister(pMac, QWLAN_RPE_AGING_THRESHOLD_FOR_AC2_REG, value*1000);
+      break;
+
+    case WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC3_REG:
+      halWriteRegister(pMac, QWLAN_RPE_AGING_THRESHOLD_FOR_AC3_REG, value*1000);
+      break;
+
+    default:
+        HALLOG1( halLog(pMac, LOG1, FL("This case should never hit\n")));
+        break;
+  }
+
+  return eHAL_STATUS_SUCCESS;
+}
+
+#endif /* FEATURE_ON_CHIP_REORDERING */
+

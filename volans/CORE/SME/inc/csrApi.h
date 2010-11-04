@@ -1,3 +1,4 @@
+
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  
 
@@ -18,6 +19,10 @@
 #include "halRfTypes.h"
 #include "csrLinkList.h"
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "sme_FTApi.h" // Required for SME FT Context in aniGlobal
+#endif /* WLAN_FEATURE_VOWIFI_11R */
+
 typedef enum 
 {
     eCSR_AUTH_TYPE_NONE,    //never used
@@ -33,14 +38,15 @@ typedef enum
 
     eCSR_AUTH_TYPE_RSN,
     eCSR_AUTH_TYPE_RSN_PSK,
+#if defined WLAN_FEATURE_VOWIFI_11R
+    eCSR_AUTH_TYPE_FT_RSN,
+    eCSR_AUTH_TYPE_FT_RSN_PSK,
+#endif
 #ifdef FEATURE_WLAN_WAPI
     eCSR_AUTH_TYPE_WAPI_WAI_CERTIFICATE,
     eCSR_AUTH_TYPE_WAPI_WAI_PSK,
-
-    eCSR_NUM_OF_SUPPORT_AUTH_TYPE = eCSR_AUTH_TYPE_WAPI_WAI_PSK + 1,
-#else
-    eCSR_NUM_OF_SUPPORT_AUTH_TYPE = eCSR_AUTH_TYPE_RSN_PSK + 1,
 #endif /* FEATURE_WLAN_WAPI */
+    eCSR_NUM_OF_SUPPORT_AUTH_TYPE,
     eCSR_AUTH_TYPE_FAILED = 0xff,
     eCSR_AUTH_TYPE_UNKNOWN = eCSR_AUTH_TYPE_FAILED,
 
@@ -71,7 +77,7 @@ typedef enum
 /*---------------------------------------------------------------------------
    Enumeration of the various Security types
 ---------------------------------------------------------------------------*/
-typedef enum 
+typedef enum
 {
     eCSR_SECURITY_TYPE_WPA,
     eCSR_SECURITY_TYPE_RSN,
@@ -84,7 +90,7 @@ typedef enum
 
 typedef enum
 {
-    eCSR_DOT11_MODE_TAURUS = 0, //Taurus mean everything because it covers all thing we support
+    eCSR_DOT11_MODE_TAURUS = 0, //This mean everything because it covers all thing we support
     eCSR_DOT11_MODE_abg = 0x0001,    //11a/b/g only, no HT, no proprietary
     eCSR_DOT11_MODE_11a = 0x0002,
     eCSR_DOT11_MODE_11b = 0x0004,
@@ -110,8 +116,13 @@ typedef tANI_U8 tCsrBssid[WNI_CFG_BSSID_LEN];
 typedef enum
 {
     eCSR_BSS_TYPE_INFRASTRUCTURE,
+#ifdef WLAN_SOFTAP_FEATURE
+    eCSR_BSS_TYPE_INFRA_AP,       // SoftAP AP
+#endif
     eCSR_BSS_TYPE_IBSS,           // an IBSS network we will NOT start
     eCSR_BSS_TYPE_START_IBSS,     // an IBSS network we will start if no partners detected.
+    eCSR_BSS_TYPE_WDS_AP,         // BT-AMP AP
+    eCSR_BSS_TYPE_WDS_STA,        // BT-AMP station
     eCSR_BSS_TYPE_ANY,            // any BSS type (IBSS or Infrastructure).
 }eCsrRoamBssType;
 
@@ -236,6 +247,15 @@ typedef struct tagCsrAuthList
     eCsrAuthType authType[eCSR_NUM_OF_SUPPORT_AUTH_TYPE];
 }tCsrAuthList, *tpCsrAuthList;
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+typedef struct tagCsrMobilityDomainInfo
+{
+    tANI_U8 mdiePresent;
+    tANI_U16 mobilityDomain;
+} tCsrMobilityDomainInfo;
+#endif
+
+
 typedef struct tagCsrScanResultFilter
 {
     tCsrBSSIDs BSSIDs;    //each bssid has a length of WNI_CFG_BSSID_LEN (6)
@@ -254,6 +274,13 @@ typedef struct tagCsrScanResultFilter
     tANI_U8 uapsd_mask; 
     /*For WPS filtering if true => auth and ecryption should be ignored*/
     tANI_BOOLEAN bWPSAssociation;
+#if defined WLAN_FEATURE_VOWIFI
+    /*For measurement reports --> if set, only SSID, BSSID and channel is considered for filtering.*/
+    tANI_BOOLEAN fMeasurement;
+#endif
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    tCsrMobilityDomainInfo MDID;
+#endif
 }tCsrScanResultFilter;
 
 
@@ -315,6 +342,17 @@ typedef enum
     eCSR_ROAM_GEN_INFO,
     eCSR_ROAM_SET_KEY_COMPLETE,
     eCSR_ROAM_REMOVE_KEY_COMPLETE,
+    eCSR_ROAM_IBSS_LEAVE, //IBSS indications.
+    //BSS in WDS mode status indication
+    eCSR_ROAM_WDS_IND,
+#ifdef WLAN_SOFTAP_FEATURE
+    //BSS in SoftAP mode status indication
+    eCSR_ROAM_INFRA_IND,
+    eCSR_ROAM_WPS_PBC_PROBE_REQ_IND,
+#endif
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    eCSR_ROAM_FT_RESPONSE,
+#endif
 }eRoamCmdStatus;
 
 
@@ -362,6 +400,35 @@ typedef enum
 #ifdef FEATURE_WLAN_WAPI
     eCSR_ROAM_RESULT_NEW_WAPI_BSS,
 #endif /* FEATURE_WLAN_WAPI */
+    // WDS started successfully
+    eCSR_ROAM_RESULT_WDS_STARTED,
+    // WDS start failed
+    eCSR_ROAM_RESULT_WDS_START_FAILED,
+    // WDS stopped
+    eCSR_ROAM_RESULT_WDS_STOPPED,
+    // WDS joined successfully in STA mode
+    eCSR_ROAM_RESULT_WDS_ASSOCIATED,
+    // A station joined WDS AP 
+    eCSR_ROAM_RESULT_WDS_ASSOCIATION_IND,
+    // WDS join failed in STA mode
+    eCSR_ROAM_RESULT_WDS_NOT_ASSOCIATED,
+    // WDS disassociated
+    eCSR_ROAM_RESULT_WDS_DISASSOCIATED,
+#ifdef WLAN_SOFTAP_FEATURE
+    // INFRA started successfully
+    eCSR_ROAM_RESULT_INFRA_STARTED,
+    // INFRA start failed
+    eCSR_ROAM_RESULT_INFRA_START_FAILED,
+    // INFRA stopped
+    eCSR_ROAM_RESULT_INFRA_STOPPED,
+    // A station joining INFRA AP
+    eCSR_ROAM_RESULT_INFRA_ASSOCIATION_IND,
+    // A station joined INFRA AP
+    eCSR_ROAM_RESULT_INFRA_ASSOCIATION_CNF,
+    // INFRA disassociated
+    eCSR_ROAM_RESULT_INFRA_DISASSOCIATED,
+    eCSR_ROAM_RESULT_WPS_PBC_PROBE_REQ_IND,
+#endif    
 }eCsrRoamResult;
 
 
@@ -390,6 +457,7 @@ typedef enum
     eCSR_DISCONNECT_REASON_DEAUTH,
 	eCSR_DISCONNECT_REASON_HANDOFF,
     eCSR_DISCONNECT_REASON_IBSS_JOIN_FAILURE,
+    eCSR_DISCONNECT_REASON_IBSS_LEAVE,
 }eCsrRoamDisconnectReason;
 
 typedef enum 
@@ -403,6 +471,16 @@ typedef enum
     eCSR_ASSOC_STATE_TYPE_IBSS_DISCONNECTED,
     // Participating in an IBSS network with partner stations also present
     eCSR_ASSOC_STATE_TYPE_IBSS_CONNECTED,
+    // Participating in a WDS network in AP or STA mode but not connected yet
+    eCSR_ASSOC_STATE_TYPE_WDS_DISCONNECTED,
+    // Participating in a WDS network and connected peer to peer
+    eCSR_ASSOC_STATE_TYPE_WDS_CONNECTED,
+#ifdef WLAN_SOFTAP_FEATURE
+    // Participating in a Infra network in AP not yet in connected state
+    eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED,
+    // Participating in a Infra network and connected to a peer
+    eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED,
+#endif
 
 }eCsrConnectState;
 
@@ -604,9 +682,11 @@ typedef struct tagCsrRoamModifyProfileFields
    tANI_U16    listen_interval;
 }tCsrRoamModifyProfileFields;
 
-
 typedef struct tagCsrRoamProfile
 {
+    //For eCSR_BSS_TYPE_WDS_AP. There must be one SSID in SSIDs.
+    //For eCSR_BSS_TYPE_WDS_STA. There must be two SSIDs. Index 0 is the SSID of the WDS-AP
+    //that we need to join. Index 1 is the SSID for self BSS.
     tCsrSSIDs SSIDs;
     tCsrBSSIDs BSSIDs;
     tANI_U32 phyMode;   //this is a bit mask of all the needed phy mode defined in eCsrPhyMode
@@ -628,6 +708,8 @@ typedef struct tagCsrRoamProfile
     tCsrKeys Keys;
     eCsrCBChoice CBMode; //up, down or auto
     tCsrChannelInfo ChannelInfo;
+    tANI_U8 operationChannel;   
+    tANI_U16 beaconInterval;    //If this is 0, SME will fill in for caller.
     // during connect this specifies ACs U-APSD is to be setup 
     //   for (Bit0:VO; Bit1:VI; Bit2:BK; Bit3:BE all other bits are ignored).
     //  During assoc response this COULD carry confirmation of what ACs U-APSD got setup for
@@ -643,6 +725,22 @@ typedef struct tagCsrRoamProfile
     tANI_U8 countryCode[WNI_CFG_COUNTRY_CODE_LEN];  //it is ignored if [0] is 0.
     /*WPS Association if true => auth and ecryption should be ignored*/
     tANI_BOOLEAN bWPSAssociation;
+
+#ifdef WLAN_SOFTAP_FEATURE
+    tANI_U8 privacy;
+    tANI_BOOLEAN fwdWPSPBCProbeReq;
+    tAniAuthType csr80211AuthType;
+    tANI_U32 dtimPeriod;
+    tANI_BOOLEAN ApUapsdEnable;
+    tANI_BOOLEAN protEnabled;
+    tANI_BOOLEAN obssProtEnabled;
+    tANI_U16 cfg_protection;
+    tANI_U8 wps_state;
+#endif
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    tCsrMobilityDomainInfo MDID;
+#endif
 }tCsrRoamProfile;
 
 
@@ -671,6 +769,10 @@ typedef struct tagCsrRoamConnectedProfile
     tSirBssDescription *pBssDesc;   
     tANI_BOOLEAN   qap; //AP supports QoS
     tANI_BOOLEAN   qosConnection; //A connection is QoS enabled
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    tCsrMobilityDomainInfo MDID;
+#endif
+    
 }tCsrRoamConnectedProfile;
 
 #ifdef FEATURE_WLAN_GEN6_ROAMING
@@ -744,6 +846,29 @@ typedef struct tagCsrHandoffConfigParams
 } tCsrHandoffConfigParams;
 #endif
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+typedef struct tagCsr11rConfigParams
+{
+    tANI_BOOLEAN   IsFTSupportEnabled;
+    tANI_BOOLEAN   IsFTResourceReqSupported;
+} tCsr11rConfigParams;
+#endif
+
+#ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
+typedef struct tagCsrNeighborRoamConfigParams
+{
+
+    tANI_U32       nNeighborScanTimerPeriod;
+    tANI_U8        nNeighborLookupRssiThreshold;
+    tANI_U8        nNeighborReassocRssiThreshold;
+    tANI_U16       nNeighborScanMinChanTime;
+    tANI_U16       nNeighborScanMaxChanTime;
+    sCsrChannel    neighborScanChanList;
+    tANI_U8        nMaxNeighborRetries;
+    tANI_U16       nNeighborResultsRefreshPeriod;
+}tCsrNeighborRoamConfigParams;
+#endif
+
 typedef struct tagCsrConfigParam
 {
     tANI_U32 FragmentationThreshold;
@@ -803,6 +928,14 @@ typedef struct tagCsrConfigParam
     tANI_U8 nTxPowerCap;     
     tANI_U32  statsReqPeriodicity;  //stats request frequency from PE while in full power
     tANI_U32  statsReqPeriodicityInPS;//stats request frequency from PE while in power save
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    tCsr11rConfigParams  csr11rConfig;
+#endif
+
+#ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
+    tCsrNeighborRoamConfigParams    neighborRoamConfig;
+#endif
+
 }tCsrConfigParam;   
 
 //Tush
@@ -839,12 +972,24 @@ typedef struct tagCsrRoamInfo
     tANI_U8            bcastSig;
 
     tANI_BOOLEAN fAuthRequired;   //FALSE means auth needed from supplicant. TRUE means authenticated(static WEP, open)
+    tANI_U8 sessionId;
+    tANI_U8 rsnIELen;
+    tANI_U8 *prsnIE;
 
     union
     {
         tSirMicFailureInfo *pMICFailureInfo;
         tCsrRoamConnectedProfile *pConnectedProfile;
+#ifdef WLAN_SOFTAP_FEATURE
+        tSirWPSPBCProbeReq *pWPSPBCProbeReq;
+#endif
     } u;
+
+#ifdef WLAN_SOFTAP_FEATURE
+    tANI_BOOLEAN wmmEnabledSta;   //set to true if WMM enabled STA
+    tANI_U32 dtimPeriod;
+#endif
+
 }tCsrRoamInfo;
 
 
@@ -959,7 +1104,7 @@ typedef struct tagCsrRoamSetKey
 {
     eCsrEncryptionType encType;
     tAniKeyDirection keyDirection;    //Tx, Rx or Tx-and-Rx
-    tCsrBssid peerMac;   //Peer’s MAC address. ALL 1's for group key
+    tCsrBssid peerMac;   //Peers MAC address. ALL 1's for group key
     tANI_U8 paeRole;      //0 for supplicant
     tANI_U8 keyId;  // Kye index
     tANI_U16 keyLength;  //Number of bytes containing the key in pKey
@@ -970,7 +1115,7 @@ typedef struct tagCsrRoamSetKey
 typedef struct tagCsrRoamRemoveKey
 {
     eCsrEncryptionType encType;
-    tCsrBssid peerMac;   //Peer’s MAC address. ALL 1's for group key
+    tCsrBssid peerMac;   //Peers MAC address. ALL 1's for group key
     tANI_U8 keyId;  //key index
 } tCsrRoamRemoveKey;
 
@@ -989,106 +1134,6 @@ typedef eHalStatus (*csrScanCompleteCallback)(tHalHandle, void *p2, tANI_U32 sca
 
 
 
-/* ---------------------------------------------------------------------------
-    \fn csrScanEnable
-    \brief Enable the scanning feature of CSR. It must be called before any scan request can be performed.
-    \param tHalHandle - HAL context handle
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrScanEnable(tHalHandle);
-
-/* ---------------------------------------------------------------------------
-    \fn csrScanDisable
-    \brief Disableing the scanning feature of CSR. After this function return success, no scan is performed until 
-a successfull to csrScanEnable
-    \param tHalHandle - HAL context handle
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrScanDisable(tHalHandle);
-
-/* ---------------------------------------------------------------------------
-    \fn csrScanRequest
-    \brief Request a 11d or full scan.
-    \param pScanRequestID - pointer to an object to get back the request ID
-    \param callback - a callback function that scan calls upon finish, will not be called if csrScanRequest returns error
-    \param pContext - a pointer passed in for the callback
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrScanRequest(tHalHandle, tCsrScanRequest *, tANI_U32 *pScanRequestID, 
-                            csrScanCompleteCallback callback, void *pContext);
-
-/* ---------------------------------------------------------------------------
-    \fn csrScanAbort
-    \brief If a scan request is abort, the scan complete callback will be called first before csrScanAbort returns.
-    \param pScanRequestID - The request ID returned from csrScanRequest
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrScanAbort(tHalHandle, tANI_U32 scanRequestID);
-
-eHalStatus csrScanSetBGScanparams(tHalHandle, tCsrBGScanRequest *);
-eHalStatus csrScanBGScanAbort(tHalHandle);
-
-/* ---------------------------------------------------------------------------
-    \fn csrScanGetResult
-    \brief Return scan results.
-    \param pFilter - If pFilter is NULL, all cached results are returned
-    \param phResult - an object for the result.
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrScanGetResult(tHalHandle, tCsrScanResultFilter *pFilter, tScanResultHandle *phResult);
-
-/* ---------------------------------------------------------------------------
-    \fn csrScanFlushResult
-    \brief Clear scan results.
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrScanFlushResult(tHalHandle);
-
-/* ---------------------------------------------------------------------------
-    \fn csrScanBGScanGetParam
-    \brief Returns the current background scan settings.
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrScanBGScanGetParam(tHalHandle, tCsrBGScanRequest *);
-
-/* ---------------------------------------------------------------------------
-    \fn csrScanResultGetFirst
-    \brief Returns the first element of scan result.
-    \param hScanResult - returned from csrScanGetResult
-    \return tCsrScanResultInfo * - NULL if no result     
-  -------------------------------------------------------------------------------*/
-tCsrScanResultInfo *csrScanResultGetFirst(tHalHandle, tScanResultHandle hScanResult);
-/* ---------------------------------------------------------------------------
-    \fn csrScanResultGetNext
-    \brief Returns the next element of scan result. It can be called without calling csrScanResultGetFirst first
-    \param hScanResult - returned from csrScanGetResult
-    \return Null if no result or reach the end     
-  -------------------------------------------------------------------------------*/
-tCsrScanResultInfo *csrScanResultGetNext(tHalHandle, tScanResultHandle hScanResult);
-
-/* ---------------------------------------------------------------------------
-    \fn csrScanResultPurge
-    \brief remove all items(tCsrScanResult) in the list and free memory for each item
-    \param hScanResult - returned from csrScanGetResult. hScanResult is considered gone by 
-    calling this function and even before this function reutrns.
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrScanResultPurge(tHalHandle hHal, tScanResultHandle hScanResult);
-
-/* ---------------------------------------------------------------------------
-    \fn csrScanGetPMKIDCandidateList
-    \brief return the PMKID candidate list
-    \param pPmkidList - caller allocated buffer point to an array of tPmkidCandidateInfo
-    \param pNumItems - pointer to a variable that has the number of tPmkidCandidateInfo allocated
-    when retruning, this is either the number needed or number of items put into pPmkidList
-    \return eHalStatus - when fail, it usually means the buffer allocated is not big enough and pNumItems
-    has the number of tPmkidCandidateInfo.
-    \Note: pNumItems is a number of tPmkidCandidateInfo, not sizeof(tPmkidCandidateInfo) * something
-  -------------------------------------------------------------------------------*/
-eHalStatus csrScanGetPMKIDCandidateList(tHalHandle hHal, tPmkidCandidateInfo *pPmkidList, tANI_U32 *pNumItems );
-
-///////////////////////////////////////////Common Scan ends
-
 ///////////////////////////////////////////Common Roam starts
 
 //pContext is the pContext passed in with the roam request
@@ -1101,127 +1146,11 @@ typedef eHalStatus (*csrRoamCompleteCallback)(void *pContext, tCsrRoamInfo *pPar
                                               eRoamCmdStatus roamStatus, eCsrRoamResult roamResult);
 
 /* ---------------------------------------------------------------------------
-    \fn csrRoamRegisterCallback
-    \brief HDD can register a callback. Unlike scan, roam has one callback for all the roam requests
-    \param callback - a callback function that roam calls upon when state changes
-    \param pContext - a pointer passed in for the callback
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrRoamRegisterCallback(tHalHandle hHal, csrRoamCompleteCallback callback, void *pContext);
-/* ---------------------------------------------------------------------------
-    \fn csrRoamConnect
-    \brief To inititiate an association
-    \param pProfile - can be NULL to join to any open ones
-    \param hBssListIn - a list of BSS descriptor to roam to. It is returned from csrScanGetResult
-    \param pRoamId - to get back the request ID
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrRoamConnect(tHalHandle hHal, tCsrRoamProfile *pProfile, tScanResultHandle hBssListIn, tANI_U32 *pRoamId);
-
-/* ---------------------------------------------------------------------------
-    \fn csrRoamReconnect
-    \brief To disconnect and reconnect with the same profile
-    \return eHalStatus. It returns fail if currently not connected     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrRoamReconnect(tHalHandle hHal);
-
-/* ---------------------------------------------------------------------------
-    \fn csrRoamConnectToLastProfile
-    \brief To disconnect and reconnect with the same profile
-    \return eHalStatus. It returns fail if currently connected     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrRoamConnectToLastProfile(tHalHandle hHal);
-
-/* ---------------------------------------------------------------------------
-    \fn csrRoamDisconnect
-    \brief To disconnect from a network
-    \param reason -- To indicate the reason for disconnecting. Currently, only eCSR_DISCONNECT_REASON_MIC_ERROR is meanful.
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrRoamDisconnect(tHalHandle hHal, eCsrRoamDisconnectReason reason);
-
-/* ---------------------------------------------------------------------------
-    \fn csrRoamGetConnectState
-    \brief To return the current connect state of Roaming
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrRoamGetConnectState(tHalHandle hHal, eCsrConnectState *pState);
-
-/* ---------------------------------------------------------------------------
-    \fn csrRoamGetConnectProfile
-    \brief To return the current connect profile. Caller must call csrRoamFreeConnectProfile
-           after it is done and before reuse for another csrRoamGetConnectProfile call.
-    \param pProfile - pointer to a caller allocated structure tCsrRoamConnectedProfile
-    \return eHalStatus. Failure if not connected     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrRoamGetConnectProfile(tHalHandle hHal, tCsrRoamConnectedProfile *pProfile);
-
-/* ---------------------------------------------------------------------------
-    \fn csrRoamFreeConnectProfile
-    \brief To free and reinitialize the profile return previous by csrRoamGetConnectProfile.
-    \param pProfile - pointer to a caller allocated structure tCsrRoamConnectedProfile
-    \return eHalStatus.      
-  -------------------------------------------------------------------------------*/
-eHalStatus csrRoamFreeConnectProfile(tHalHandle hHal, tCsrRoamConnectedProfile *pProfile);
-
-/* ---------------------------------------------------------------------------
-    \fn csrRoamSetPMKIDCache
-    \brief return the PMKID candidate list
-    \param pPMKIDCache - caller allocated buffer point to an array of tPmkidCacheInfo
-    \param numItems - a variable that has the number of tPmkidCacheInfo allocated
-    when retruning, this is either the number needed or number of items put into pPMKIDCache
-    \return eHalStatus - when fail, it usually means the buffer allocated is not big enough and pNumItems
-    has the number of tPmkidCacheInfo.
-    \Note: pNumItems is a number of tPmkidCacheInfo, not sizeof(tPmkidCacheInfo) * something
-  -------------------------------------------------------------------------------*/
-eHalStatus csrRoamSetPMKIDCache( tHalHandle hHal, tPmkidCacheInfo *pPMKIDCache, tANI_U32 numItems );
-
-/* ---------------------------------------------------------------------------
-    \fn csrRoamGetWpaRsnReqIE
-    \brief return the WPA or RSN IE CSR passes to PE to JOIN request or START_BSS request
-    \param pLen - caller allocated memory that has the length of pBuf as input. Upon returned, *pLen has the 
-    needed or IE length in pBuf.
-    \param pBuf - Caller allocated memory that contain the IE field, if any, upon return
-    \return eHalStatus - when fail, it usually means the buffer allocated is not big enough
-  -------------------------------------------------------------------------------*/
-eHalStatus csrRoamGetWpaRsnReqIE(tHalHandle hHal, tANI_U32 *pLen, tANI_U8 *pBuf);
-
-/* ---------------------------------------------------------------------------
-    \fn csrRoamGetWpaRsnRspIE
-    \brief return the WPA or RSN IE from the beacon or probe rsp if connected
-    \param pLen - caller allocated memory that has the length of pBuf as input. Upon returned, *pLen has the 
-    needed or IE length in pBuf.
-    \param pBuf - Caller allocated memory that contain the IE field, if any, upon return
-    \return eHalStatus - when fail, it usually means the buffer allocated is not big enough
-  -------------------------------------------------------------------------------*/
-eHalStatus csrRoamGetWpaRsnRspIE(tHalHandle hHal, tANI_U32 *pLen, tANI_U8 *pBuf);
-#ifdef FEATURE_WLAN_WAPI
-/* ---------------------------------------------------------------------------
-    \fn csrRoamGetWapiReqIE
-    \brief return the WAPI IE CSR passes to PE to JOIN request or START_BSS request
-    \param pLen - caller allocated memory that has the length of pBuf as input. Upon returned, *pLen has the 
-    needed or IE length in pBuf.
-    \param pBuf - Caller allocated memory that contain the IE field, if any, upon return
-    \return eHalStatus - when fail, it usually means the buffer allocated is not big enough
-  -------------------------------------------------------------------------------*/
-eHalStatus csrRoamGetWapiReqIE(tHalHandle hHal, tANI_U32 *pLen, tANI_U8 *pBuf);
-
-/* ---------------------------------------------------------------------------
-    \fn csrRoamGetWapiRspIE
-    \brief return the WAPI IE from the beacon or probe rsp if connected
-    \param pLen - caller allocated memory that has the length of pBuf as input. Upon returned, *pLen has the 
-    needed or IE length in pBuf.
-    \param pBuf - Caller allocated memory that contain the IE field, if any, upon return
-    \return eHalStatus - when fail, it usually means the buffer allocated is not big enough
-  -------------------------------------------------------------------------------*/
-eHalStatus csrRoamGetWapiRspIE(tHalHandle hHal, tANI_U32 *pLen, tANI_U8 *pBuf);
-#endif /* FEATURE_WLAN_WAPI */
-/* ---------------------------------------------------------------------------
     \fn csrRoamGetNumPMKIDCache
     \brief return number of PMKID cache entries
     \return tANI_U32 - the number of PMKID cache entries
   -------------------------------------------------------------------------------*/
-tANI_U32 csrRoamGetNumPMKIDCache(tHalHandle hHal);
+//tANI_U32 csrRoamGetNumPMKIDCache(tHalHandle hHal);
 
 /* ---------------------------------------------------------------------------
     \fn csrRoamGetPMKIDCache
@@ -1231,110 +1160,48 @@ tANI_U32 csrRoamGetNumPMKIDCache(tHalHandle hHal);
     \param pPmkidCache - Caller allocated memory that contains PMKID cache, if any, upon return
     \return eHalStatus - when fail, it usually means the buffer allocated is not big enough
   -------------------------------------------------------------------------------*/
-eHalStatus csrRoamGetPMKIDCache(tHalHandle hHal, tANI_U32 *pNum, tPmkidCacheInfo *pPmkidCache);
+//eHalStatus csrRoamGetPMKIDCache(tHalHandle hHal, tANI_U32 *pNum, tPmkidCacheInfo *pPmkidCache);
 
 //pProfile - pointer to tCsrRoamProfile
 #define CSR_IS_START_IBSS(pProfile) (eCSR_BSS_TYPE_START_IBSS == (pProfile)->BSSType)
 #define CSR_IS_JOIN_TO_IBSS(pProfile) (eCSR_BSS_TYPE_IBSS == (pProfile)->BSSType)
+#define CSR_IS_IBSS(pProfile) ( CSR_IS_START_IBSS(pProfile) || CSR_IS_JOIN_TO_IBSS(pProfile) )
 #define CSR_IS_INFRASTRUCTURE(pProfile) (eCSR_BSS_TYPE_INFRASTRUCTURE == (pProfile)->BSSType)
 #define CSR_IS_ANY_BSS_TYPE(pProfile) (eCSR_BSS_TYPE_ANY == (pProfile)->BSSType)
+#define CSR_IS_WDS_AP( pProfile )  ( eCSR_BSS_TYPE_WDS_AP == (pProfile)->BSSType )
+#define CSR_IS_WDS_STA( pProfile ) ( eCSR_BSS_TYPE_WDS_STA == (pProfile)->BSSType )
+#define CSR_IS_WDS( pProfile )  ( CSR_IS_WDS_AP( pProfile ) || CSR_IS_WDS_STA( pProfile ) )
+#ifdef WLAN_SOFTAP_FEATURE
+#define CSR_IS_INFRA_AP( pProfile )  ( eCSR_BSS_TYPE_INFRA_AP == (pProfile)->BSSType )
+#endif
+
+//pProfile - pointer to tCsrRoamConnectedProfile
+#ifdef WLAN_SOFTAP_FEATURE
+#define CSR_IS_CONN_INFRA_AP( pProfile )  ( eCSR_BSS_TYPE_INFRA_AP == (pProfile)->BSSType )
+#endif
+#define CSR_IS_CONN_WDS_AP( pProfile )  ( eCSR_BSS_TYPE_WDS_AP == (pProfile)->BSSType )
+#define CSR_IS_CONN_WDS_STA( pProfile ) ( eCSR_BSS_TYPE_WDS_STA == (pProfile)->BSSType )
+#define CSR_IS_CONN_WDS( pProfile )  ( CSR_IS_WDS_AP( pProfile ) || CSR_IS_WDS_STA( pProfile ) )
 
 
 
 ///////////////////////////////////////////Common Roam ends
 
 
-/* ---------------------------------------------------------------------------
-    \fn csrOpen
-    \brief This function must be called before any API call to CSR. 
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrOpen(tHalHandle hHal);
-/* ---------------------------------------------------------------------------
-    \fn csrClose
-    \brief To close down CSR module. There should not be any API call into CSR after calling this function.
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrClose(tHalHandle hHal);
 
+#ifdef WLAN_SOFTAP_FEATURE
 /* ---------------------------------------------------------------------------
-    \fn csrStart
-    \brief To start CSR.
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrStart(tHalHandle hHal);
-/* ---------------------------------------------------------------------------
-    \fn csrStop
-    \brief To stop CSR. CSR still keeps its current setting.
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrStop(tHalHandle hHal);
-
-/* ---------------------------------------------------------------------------
-    \fn csrReady
-    \brief To let CSR is ready to operate
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrReady(tHalHandle hHal);
-
-/* ---------------------------------------------------------------------------
-    \fn csrMsgProcessor
-    \brief HDD calls this function for the messages that are handled by CSR.
-    \param pMsgBuf - a pointer to a buffer that maps to various structures base on the message type.
-    The beginning of the buffer can always map to tSirSmeRsp.
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrMsgProcessor( tHalHandle hHal,  void *pMsgBuf );
-
-/* ---------------------------------------------------------------------------
-    \fn csrMsgProcessor
+    \fn csrSetChannels
     \brief HDD calls this function to change some global settings. 
     caller must set the all fields or call csrGetConfigParam to prefill the fields.
     \param pParam - caller allocated memory
     \return eHalStatus     
   -------------------------------------------------------------------------------*/
-eHalStatus csrChangeDefaultConfigParam(tHalHandle hHal, tCsrConfigParam *pParam);
 
-/* ---------------------------------------------------------------------------
-    \fn csrGetConfigParam
-    \brief HDD calls this function to get the global settings currently maintained by CSR. 
-    \param pParam - caller allocated memory
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrGetConfigParam(tHalHandle hHal, tCsrConfigParam *pParam);
+eHalStatus csrSetChannels(tHalHandle hHal,  tCsrConfigParam *pParam  );
 
-
-
-/* ---------------------------------------------------------------------------
-    \fn csrInitChannelList
-    \brief HDD calls this function to set the WNI_CFG_VALID_CHANNEL_LIST base on the band/mode settings.
-    This function must be called after CFG is downloaded and all the band/mode setting already passed into
-    CSR.
-    \return eHalStatus     
-  -------------------------------------------------------------------------------*/
-eHalStatus csrInitChannelList( tHalHandle hHal );
-
-//Tush
-/* ---------------------------------------------------------------------------
-    \fn csrChangeConfigParams
-    \brief The CSR API exposed for HDD to provide config params to CSR during 
-    SME’s stop -> start sequence.
-    If HDD changed the domain that will cause a reset. This function will 
-    provide the new set of 11d information for the new domain. Currrently this
-    API provides info regarding 11d only at reset but we can extend this for
-    other params (PMC, QoS) which needs to be initialized again at reset.
-    \param 
-    hHal - Handle to the HAL. The HAL handle is returned by the HAL after it is 
-           opened (by calling halOpen).
-    pUpdateConfigParam - a pointer to a structure (tCsrUpdateConfigParam) that 
-                currently provides 11d related information like Country code, 
-                Regulatory domain, valid channel list, Tx power per channel, a 
-                list with active/passive scan allowed per valid channel. 
-
-    \return eHalStatus     
-  ---------------------------------------------------------------------------*/
-eHalStatus csrChangeConfigParams(tHalHandle hHal, 
-                                 tCsrUpdateConfigParam *pUpdateConfigParam);
+eHalStatus csrSetRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode);
+#endif
 
 
 //enum to string conversion for debug output
@@ -1375,28 +1242,6 @@ void csrDumpInit(tHalHandle hHal);
 typedef void (* csrRoamLinkQualityIndCallback)
              (eCsrRoamLinkQualityInd  ind, void *pContext);
 
-/*----------------------------------------------------------------------------
-  \fn csrRoamRegisterLinkQualityIndCallback
-
-  \brief
-  a CSR function to allow HDD to register a callback handler with CSR for 
-  link quality indications. 
-
-  Only one callback may be registered at any time.
-  In order to deregister the callback, a NULL cback may be provided.
-
-  Registration happens in the task context of the caller.
-
-  \param callback - Call back being registered
-  \param pContext - user data
-  
-  DEPENDENCIES: After CSR open
-
-  \return eHalStatus  
------------------------------------------------------------------------------*/
-eHalStatus csrRoamRegisterLinkQualityIndCallback(tHalHandle hHal,
-                                                 csrRoamLinkQualityIndCallback   callback,  
-                                                 void                           *pContext);
 
 /*---------------------------------------------------------------------------
   This is the type for a statistics callback to be registered with SME
@@ -1414,38 +1259,9 @@ eHalStatus csrRoamRegisterLinkQualityIndCallback(tHalHandle hHal,
 ---------------------------------------------------------------------------*/
 typedef void ( *tCsrStatsCallback) (void * stats, void *pContext);
 
-/* ---------------------------------------------------------------------------
-    \fn csrGetStatistics
-    \brief csr function that client calls to register a callback to get 
-    different PHY level statistics from CSR. 
-    
-    \param requesterId - different client requesting for statistics, HDD, UMA/GAN etc
-    \param statsMask - The different category/categories of stats requester is looking for
-    \param callback - SME sends back the requested stats using the callback
-    \param periodicity - If requester needs periodic update, 0 means it's an one 
-                         time request
-    \param cache - If requester is happy with cached stats
-    \param staId - The station ID for which the stats is requested for
-    \param pContext - user context to be passed back along with the callback
+#ifdef WLAN_FEATURE_VOWIFI_11R
+eHalStatus csrRoamIssueFTPreauthReq(tHalHandle hHal, tANI_U32 sessionId, tpSirBssDescription pBssDescription);
+#endif
 
-    \return eHalStatus     
-  ---------------------------------------------------------------------------*/
-eHalStatus csrGetStatistics(tHalHandle hHal, eCsrStatsRequesterType requesterId, 
-                            tANI_U32 statsMask, 
-                            tCsrStatsCallback callback, 
-                            tANI_U32 periodicity, tANI_BOOLEAN cache, 
-                            tANI_U8 staId, void *pContext);
-
-#ifdef FEATURE_WLAN_WAPI
-eHalStatus csrRoamSetBKIDCache( tHalHandle hHal, tBkidCacheInfo *pBKIDCache,
-                                 tANI_U32 numItems );
-
-eHalStatus csrRoamGetBKIDCache(tHalHandle hHal, tANI_U32 *pNum,
-                                tBkidCacheInfo *pBkidCache);
-
-tANI_U32 csrRoamGetNumBKIDCache(tHalHandle hHal);
-
-eHalStatus csrScanGetBKIDCandidateList(tHalHandle hHal, tBkidCandidateInfo *pBkidList, tANI_U32 *pNumItems );
-#endif /* FEATURE_WLAN_WAPI */
 #endif
 

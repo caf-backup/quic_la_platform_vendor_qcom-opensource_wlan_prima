@@ -3,14 +3,14 @@
 
 /*===========================================================================
 
-               W L A N   T R A N S P O R T   L A Y E R 
+               W L A N   T R A N S P O R T   L A Y E R
                      I N T E R N A L   A P I
-                
-                   
+
+
 DESCRIPTION
-  This file contains the internal declarations used within wlan transport 
+  This file contains the internal declarations used within wlan transport
   layer module.
-        
+
   Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved.
   Qualcomm Confidential and Proprietary
 ===========================================================================*/
@@ -32,18 +32,18 @@ when        who    what, where, why
 --------    ---    ----------------------------------------------------------
 02/19/10    bad     Fixed 802.11 to 802.3 ft issues with WAPI
 01/14/10    rnair   Fixed the byte order for the WAI packet type.
-01/08/10    lti     Added TL Data Caching 
+01/08/10    lti     Added TL Data Caching
 10/09/09    rnair   Add support for WAPI
 02/02/09    sch     Add Handoff support
-12/09/08    lti     Fixes for AMSS compilation 
-12/02/08    lti     Fix fo trigger frame generation 
+12/09/08    lti     Fixes for AMSS compilation
+12/02/08    lti     Fix fo trigger frame generation
 10/31/08    lti     Fix fo TL tx suspend
 10/01/08    lti     Merged in fixes from reordering
-09/05/08    lti     Fixes following QOS unit testing 
-08/06/08    lti     Added QOS support 
+09/05/08    lti     Fixes following QOS unit testing
+08/06/08    lti     Added QOS support
 07/18/08    lti     Fixes following integration
                     Added frame translation
-06/26/08    lti     Fixes following unit testing 
+06/26/08    lti     Fixes following unit testing
 05/05/08    lti     Created module.
 
 ===========================================================================*/
@@ -59,13 +59,15 @@ when        who    what, where, why
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/
-#include "vos_packet.h" 
-#include "vos_api.h" 
-#include "vos_timer.h" 
-#include "vos_mq.h" 
+#include "vos_packet.h"
+#include "vos_api.h"
+#include "vos_timer.h"
+#include "vos_mq.h"
 #include "vos_list.h"
-#include "wlan_qct_bal.h" 
+#include "wlan_qct_bal.h"
+#include "wlan_qct_tl.h"
 #include "pmcApi.h"
+#include "halBdDefs.h"
 
 #define STATIC  static
 
@@ -76,9 +78,11 @@ when        who    what, where, why
 /*Maximum number of TIDs */
 #define WLAN_MAX_TID                          8
 
+/** The define is moved to external header file to be used by HDD */
+#ifndef WLAN_SOFTAP_FEATURE
 /*Maximum number of supported stations */
 #define WLAN_MAX_STA_COUNT                    5
-
+#endif
 
 /*Offset of the OUI field inside the LLC/SNAP header*/
 #define WLANTL_LLC_OUI_OFFSET                 3
@@ -94,7 +98,7 @@ when        who    what, where, why
 
 /*802.1x protocol type */
 #define WLANTL_LLC_8021X_TYPE            0x888E
- 
+
 /*WAPI protocol type */
 #define WLANTL_LLC_WAI_TYPE              0x88b4
 
@@ -123,16 +127,19 @@ when        who    what, where, why
 #define  WLANTL_802_11_HEADER_HT_CTL          4
 
 /* Offset of Addr1 field in a 802.11 header*/
-#define  WLANTL_802_11_HEADER_ADDR1_OFFSET    4 
+#define  WLANTL_802_11_HEADER_ADDR1_OFFSET    4
+
+/*802.11 ADDR4 MAC addr field len */
+#define  WLANTL_802_11_HEADER_ADDR4_LEN       VOS_MAC_ADDR_SIZE
 
 /* Length of an AMSDU sub-frame */
 #define TL_AMSDU_SUBFRM_HEADER_LEN           14
 
 /* Length of the LLC header*/
-#define WLANTL_LLC_HEADER_LEN   8 
+#define WLANTL_LLC_HEADER_LEN   8
 
 /*As per 802.11 spec */
-#define WLANTL_MGMT_FRAME_TYPE       0x00 
+#define WLANTL_MGMT_FRAME_TYPE       0x00
 #define WLANTL_CTRL_FRAME_TYPE       0x10
 #define WLANTL_DATA_FRAME_TYPE       0x20
 
@@ -155,49 +162,32 @@ when        who    what, where, why
 #define WLAN_LIBRA_HEADER_LEN              20+8
 
 /*The lenght of the tx BD header*/
-#define WLAN_LIBRA_BD_HEADER_LEN            128 
+#define WLAN_LIBRA_BD_HEADER_LEN            128
 
 #define WLANTL_MAX_MSDU                    1538
 
 #define WLANTL_MIN_RES_MF                          13 /*Keeping for MF*/
 #define WLANTL_MIN_RES_BAP    WLANTL_MIN_RES_MF  + 13 /*Another for BAP*/
 #define WLANTL_MIN_RES_DATA   WLANTL_MIN_RES_BAP + 13 /*Min 12 for data*/
-#define WLANTL_TH_RES_DATA                        100
+#define WLANTL_TH_RES_DATA                        254
 /*-------------------------------------------------------------------------
   BT-AMP related definition - !!! should probably be moved to BT-AMP header
 ---------------------------------------------------------------------------*/
-
-/*BT-AMP packet of type data*/
-#define WLANTL_BT_AMP_TYPE_DATA       0x0001
-
-/*BT-AMP packet of type activity report*/
-#define WLANTL_BT_AMP_TYPE_AR         0x0002
-
-/*BT-AMP packet of type security frame*/
-#define WLANTL_BT_AMP_TYPE_SEC        0x0003
-
-//For RSSI from RX BD
-#define WLANTL_RXFIR0_MASK       0x0000FF00
-#define WLANTL_RXFIR1_MASK       0x000000FF
-#define WLANTL_SIZE_BYTE         8
-#define WLANTL_SNR_MASK          0xFC000000
-#define WLANTL_RSSI_OFFSET       100
-
 
 /*-------------------------------------------------------------------------
   Helper macros
 ---------------------------------------------------------------------------*/
  /*Checks STA index validity*/
-#define WLANTL_STA_ID_INVALID( _staid )( _staid >= WLAN_MAX_STA_COUNT ) 
+#define WLANTL_STA_ID_INVALID( _staid )( _staid >= WLAN_MAX_STA_COUNT )
 
 /*As per Libra behavior */
-#define WLANTL_STA_ID_BCAST     0xFF 
+#define WLANTL_STA_ID_BCAST     0xFF
 
 /*Checks TID validity*/
-#define WLANTL_TID_INVALID( _tid )     ( _tid >= WLAN_MAX_TID ) 
+#define WLANTL_TID_INVALID( _tid )     ( _tid >= WLAN_MAX_TID )
 
 /*Checks AC validity*/
-#define WLANTL_AC_INVALID( _tid )     ( _tid >= WLANTL_MAX_AC ) 
+#define WLANTL_AC_INVALID( _tid )     ( _tid >= WLANTL_MAX_AC )
 
 /*Determines the addr field offset based on the frame xtl bit*/
 #define WLANTL_MAC_ADDR_ALIGN( _dxtl )                                    \
@@ -209,38 +199,47 @@ when        who    what, where, why
       ( ( 0 == _dxtl )?                               \
          WLANTL_802_3_HEADER_LEN:WLANTL_802_11_HEADER_LEN )
 
-/*Determines the necesary length of the BD header - in case 
+/*Determines the necesary length of the BD header - in case
   UMA translation is enabled enough room needs to be left in front of the
   packet for the 802.11 header to be inserted*/
 #define WLANTL_BD_HEADER_LEN( _dxtl )                                    \
       ( ( 0 == _dxtl )?                               \
-         (WLANHAL_TX_BD_HEADER_SIZE+WLANTL_802_11_MAX_HEADER_LEN): WLANHAL_TX_BD_HEADER_SIZE ) 
+         (WLANHAL_TX_BD_HEADER_SIZE+WLANTL_802_11_MAX_HEADER_LEN): WLANHAL_TX_BD_HEADER_SIZE )
 
 
-#define WLAN_TL_CEIL( _a, _b)  (( 0 != (_a)%(_b))? (_a)/(_b) + 1: (_a)/(_b)) 
+#define WLAN_TL_CEIL( _a, _b)  (( 0 != (_a)%(_b))? (_a)/(_b) + 1: (_a)/(_b))
 
 /*get TL control block from vos global context */
 #define VOS_GET_TL_CB(_pvosGCtx) \
         (WLANTL_CbType*)vos_get_context( VOS_MODULE_ID_TL, _pvosGCtx)
 
+/* Check whether Rx frame is LS or EAPOL packet (other than data) */
+#define WLANTL_BAP_IS_NON_DATA_PKT_TYPE(usType) \
+        (WLANTL_BT_AMP_TYPE_AR == usType) || (WLANTL_BT_AMP_TYPE_SEC == usType) || \
+        (WLANTL_BT_AMP_TYPE_LS_REQ == usType) || (WLANTL_BT_AMP_TYPE_LS_REP == usType)
+
 /*get RSSI0 from a RX BD*/
 #define WLANTL_GETRSSI0(pBD)    \
-    (v_S7_t)(((SIR_MAC_BD_TO_PHY_STATS0((pBD)) & WLANTL_RXFIR0_MASK) \
-             >> WLANTL_SIZE_BYTE) - WLANTL_RSSI_OFFSET)
+    (v_S7_t)(HAL_GET_RSSI0_DB(SIR_MAC_BD_TO_PHY_STATS0(pBD)))
 
 /*get RSSI1 from a RX BD*/
 #define WLANTL_GETRSSI1(pBD)    \
-    (v_S7_t)((SIR_MAC_BD_TO_PHY_STATS0((pBD)) & WLANTL_RXFIR1_MASK) - WLANTL_RSSI_OFFSET)
+    (v_S7_t)(HAL_GET_RSSI1_DB(SIR_MAC_BD_TO_PHY_STATS0(pBD))) 
+
+/* Check whether Rx frame is LS or EAPOL packet (other than data) */
+#define WLANTL_BAP_IS_NON_DATA_PKT_TYPE(usType) \
+        (WLANTL_BT_AMP_TYPE_AR == usType) || (WLANTL_BT_AMP_TYPE_SEC == usType) || \
+        (WLANTL_BT_AMP_TYPE_LS_REQ == usType) || (WLANTL_BT_AMP_TYPE_LS_REP == usType)
 
 /*---------------------------------------------------------------------------
-  TL signals for TX thread 
----------------------------------------------------------------------------*/      
+  TL signals for TX thread
+---------------------------------------------------------------------------*/
 typedef enum
 {
   /*Suspend signal - following serialization of a HAL suspend request*/
   WLANTL_TX_SIG_SUSPEND = 0,
 
-  /*Res need signal - triggered when all pending TxComp have been received 
+  /*Res need signal - triggered when all pending TxComp have been received
    and TL is low on resources*/
   WLANTL_TX_RES_NEEDED  = 1,
 
@@ -252,7 +251,7 @@ typedef enum
 
 /*---------------------------------------------------------------------------
   STA Event type
----------------------------------------------------------------------------*/      
+---------------------------------------------------------------------------*/
 typedef enum
 {
   /* Transmit frame event */
@@ -267,25 +266,25 @@ typedef enum
   /* Receive frame event when U-APSD is enabled for AC*/
   WLANTL_RX_ON_UAPSD_EVENT = 3,
 
-  WLANTL_MAX_EVENT 
+  WLANTL_MAX_EVENT
 }WLANTL_STAEventType;
 
 /*---------------------------------------------------------------------------
 
-  DESCRIPTION 
-    State machine used by transport layer for receiving or transmitting 
-    packets. 
-    
-  PARAMETERS 
+  DESCRIPTION
+    State machine used by transport layer for receiving or transmitting
+    packets.
+
+  PARAMETERS
 
    IN
-   pAdapter:        pointer to the global adapter context; a handle to TL's 
-                    control block can be extracted from its context 
-   ucSTAId:         identifier of the station being processed 
+   pAdapter:        pointer to the global adapter context; a handle to TL's
+                    control block can be extracted from its context
+   ucSTAId:         identifier of the station being processed
    vosDataBuff:    pointer to the tx/rx vos buffer
-   
+
   RETURN VALUE
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
 ---------------------------------------------------------------------------*/
 typedef VOS_STATUS (*WLANTL_STAFuncType)( v_PVOID_t     pAdapter,
@@ -294,7 +293,7 @@ typedef VOS_STATUS (*WLANTL_STAFuncType)( v_PVOID_t     pAdapter,
 
 /*---------------------------------------------------------------------------
   STA FSM Entry type
----------------------------------------------------------------------------*/      
+---------------------------------------------------------------------------*/
 typedef struct
 {
   WLANTL_STAFuncType  pfnSTATbl[WLANTL_MAX_EVENT];
@@ -341,7 +340,7 @@ VOS_STATUS WLANTL_STATxDisc( v_PVOID_t     pAdapter,
                              vos_pkt_t**   pvosDataBuff );
 
 /* TL State Machine */
-STATIC const WLANTL_STAFsmEntryType tlSTAFsm[WLANTL_STA_MAX_STATE] = 
+STATIC const WLANTL_STAFsmEntryType tlSTAFsm[WLANTL_STA_MAX_STATE] =
 {
   /* WLANTL_STA_INIT */
   { {
@@ -354,20 +353,20 @@ STATIC const WLANTL_STAFsmEntryType tlSTAFsm[WLANTL_STA_MAX_STATE] =
   /* WLANTL_STA_CONNECTED */
   { {
     WLANTL_STATxConn,      /* WLANTL_TX_EVENT - only EAPoL or WAI frames are allowed*/
-    WLANTL_STATxConn,      /* WLANTL_TX_ON_UAPSD_EVENT - same as above; 
+    WLANTL_STATxConn,      /* WLANTL_TX_ON_UAPSD_EVENT - same as above;
                               no distinction will be made for UAPSD*/
     WLANTL_STARxConn,      /* WLANTL_RX_EVENT - only EAPoL or WAI frames can be rx*/
-    WLANTL_STARxConn,      /* WLANTL_RX_ON_UAPSD_EVENT - same as above; 
+    WLANTL_STARxConn,      /* WLANTL_RX_ON_UAPSD_EVENT - same as above;
                               no distinction will be made for UAPSD*/
   } },
 
   /* WLANTL_STA_AUTHENTICATED */
   { {
     WLANTL_STATxAuth,      /* WLANTL_TX_EVENT - all data frames allowed*/
-    WLANTL_STATxAuthUAPSD, /* WLANTL_TX_ON_UAPSD_EVENT - all data frames can 
+    WLANTL_STATxAuthUAPSD, /* WLANTL_TX_ON_UAPSD_EVENT - all data frames can
                         be tx in addition trigger frames can be tx-ed*/
     WLANTL_STARxAuth,      /* WLANTL_RX_EVENT - all data frames can be rx */
-    WLANTL_STARxAuthUAPSD, /* WLANTL_RX_ON_UAPSD_EVENT - all data frames can 
+    WLANTL_STARxAuthUAPSD, /* WLANTL_RX_ON_UAPSD_EVENT - all data frames can
                         be rx in addition Serv Int timer will be restarted*/
   } },
 
@@ -376,14 +375,14 @@ STATIC const WLANTL_STAFsmEntryType tlSTAFsm[WLANTL_STA_MAX_STATE] =
     WLANTL_STATxDisc,      /* WLANTL_TX_EVENT - do nothing */
     WLANTL_STATxDisc,      /* WLANTL_TX_ON_UAPSD_EVENT - do nothing */
     WLANTL_STARxDisc,      /* WLANTL_RX_EVENT - frames will still be fwd-ed*/
-    WLANTL_STARxDisc,      /* WLANTL_RX_ON_UAPSD_EVENT - frames will still be 
+    WLANTL_STARxDisc,      /* WLANTL_RX_ON_UAPSD_EVENT - frames will still be
                               fwd-ed*/
   } }
 };
 
 /*---------------------------------------------------------------------------
   Reordering information
----------------------------------------------------------------------------*/      
+---------------------------------------------------------------------------*/
 
 #define WLANTL_MAX_WINSIZE      64
 #define WLANTL_MAX_BA_SESSION   8
@@ -422,7 +421,7 @@ typedef struct
   v_U8_t             ucExists;
 
   /* Current Index */
-  v_U32_t             ucCIndex; 
+  v_U32_t             ucCIndex;
 
   /* Count of the total packets in list*/
   v_U16_t            usCount;
@@ -457,20 +456,20 @@ typedef struct
 
 /*---------------------------------------------------------------------------
   UAPSD information
----------------------------------------------------------------------------*/      
+---------------------------------------------------------------------------*/
 typedef struct
 {
   /*specifies if re-order session exists*/
   v_U8_t             ucExists;
 
   /*Service interval timer*/
-  vos_timer_t        vosServiceTimer; 
+  vos_timer_t        vosServiceTimer;
 
   /*Suspend interval timer*/
-  vos_timer_t        vosSuspendTimer; 
+  vos_timer_t        vosSuspendTimer;
 
   /*Delayed interval timer*/
-  vos_timer_t        vosDelayedTimer; 
+  vos_timer_t        vosDelayedTimer;
 
   /*Delayed mode flag*/
   v_U8_t             ucDelayedMode;
@@ -488,7 +487,7 @@ typedef struct
   WLANTL_TSDirType   wTSpecDir;
 
   /* Station Id for which the UAPSD has been setup*/
-  v_U8_t             ucStaId; 
+  v_U8_t             ucStaId;
 
   /* Access Category for which the UAPSD has been setup*/
   WLANTL_ACEnumType   ucAC;
@@ -512,29 +511,29 @@ typedef struct
   v_U8_t              ucDataSent;
 
   /* flag set when a UAPSD session with triggers generated in fw is being set*/
-  v_U8_t              ucSet; 
+  v_U8_t              ucSet;
 }WLANTL_UAPSDInfoType;
 
 /*---------------------------------------------------------------------------
   STA Client type
----------------------------------------------------------------------------*/      
+---------------------------------------------------------------------------*/
 typedef struct
 {
-  /* Flag that keeps track of registration; only one STA with unique 
+  /* Flag that keeps track of registration; only one STA with unique
      ID allowed */
   v_U8_t                        ucExists;
 
-  /*The flag controls the Rx path for the station - as long as there are 
+  /*The flag controls the Rx path for the station - as long as there are
     packets at sta level that need to be fwd-ed the Rx path will be blocked,
     it will become unblocked only when the cached frames were fwd-ed;
     while the rx path is blocked all rx-ed frames for that STA will be cached
     */
-  v_U8_t                        ucRxBlocked; 
+  v_U8_t                        ucRxBlocked;
 
   /* Function pointer to the receive packet handler from HDD */
-  WLANTL_STARxCBType            pfnSTARx;  
+  WLANTL_STARxCBType            pfnSTARx;
 
-  /* Function pointer to the transmit complete confirmation handler 
+  /* Function pointer to the transmit complete confirmation handler
     from HDD */
   WLANTL_TxCompCBType           pfnSTATxComp;
 
@@ -556,6 +555,9 @@ typedef struct
   /* Value of the averaged RSSI for this station */
   v_S7_t                        uRssiAvg;
 
+  /* Value of the averaged RSSI for this station */
+  v_U32_t                       uLinkQualityAvg;
+
   /* Tx packet count per station per TID */
   v_U32_t                       auTxCount[WLAN_MAX_TID];
 
@@ -565,7 +567,7 @@ typedef struct
   /*	Suspend flag */
   v_U8_t                        ucTxSuspended;
 
-  /*	Pointer to the AMSDU chain maintained by the AMSDU de-aggregation 
+  /*	Pointer to the AMSDU chain maintained by the AMSDU de-aggregation
       completion sub-module */
   vos_pkt_t*                    vosAMSDUChainRoot;
 
@@ -579,16 +581,23 @@ typedef struct
   v_U8_t                        ucMPDUHeaderLen;
 
   /*Enabled ACs currently serviced by TL (automatic setup in TL)*/
-  v_U8_t                        ucACMask; 
+  v_U8_t                        ucACMask;
 
   /*	Current AC to be retrieved */
   WLANTL_ACEnumType             ucCurrentAC;
+
+  /*Packet pending flag - set if tx is pending for the station*/
+  v_U8_t                        ucPktPending;
+  
+  /*used on tx packet to signal when there is no more data to tx for the 
+   moment=> packets can be passed to BAL */
+  v_U8_t                    ucNoMoreData;
 
   /*	Last serviced AC to be retrieved */
   WLANTL_ACEnumType             ucServicedAC;
 
    /*	Current weight for the AC */
-  v_U8_t                        ucCurrentWeight; 
+  v_U8_t                        ucCurrentWeight;
 
   /* Info used for UAPSD trigger frame generation  */
   WLANTL_UAPSDInfoType          wUAPSDInfo[WLANTL_MAX_AC];
@@ -600,55 +609,107 @@ typedef struct
 
   /*Members needed for packet caching in TL*/
   /*Begining of the cached packets chain*/
-  vos_pkt_t*                 vosBegCachedFrame; 
+  vos_pkt_t*                 vosBegCachedFrame;
 
   /*Begining of the cached packets chain*/
-  vos_pkt_t*                 vosEndCachedFrame; 
-#ifdef ANI_CHIPSET_VOLANS 
- /* 1 means replay check is needed for the station,
-  * 0 means replay check is not needed for the station*/ 
-  v_BOOL_t      ucIsReplayCheckValid; 
+  vos_pkt_t*                 vosEndCachedFrame;
 
- /* It contains 48-bit replay counter per TID*/ 
+#ifdef WLAN_SOFTAP_FEATURE
+
+  /* LWM related fields */
+
+  //current station is slow. LWM mode is enabled.
+  v_BOOL_t ucLwmModeEnabled;
+  //LWM events is reported when LWM mode is on. Able to send more traffic
+  //under the constraints of uBuffThresholdMax
+  v_BOOL_t ucLwmEventReported;
+
+  //v_U8_t uLwmEventReported;
+
+  /* Flow control fields */
+  //memory used in previous round
+  v_U8_t bmuMemConsumed;
+
+  //the number packets injected in this round
+  v_U32_t uIngress_length;
+
+  //number of packets allowed in current round beforing receiving new FW memory updates
+  v_U32_t uBuffThresholdMax;
+
+
+  // v_U32_t uEgress_length;
+
+  // v_U32_t uIngress_length;
+
+  // v_U32_t uBuffThresholdMax;
+
+  // v_U32_t uBuffThresholdUsed;
+
+  /* Value used to set LWM in FW. Initialized to 1/3* WLAN_STA_BMU_THRESHOLD_MAX
+     In the future, it can be dynamically adjusted if we find the reason to implement
+     such algorithm. */
+  v_U32_t uLwmThreshold;
+
+  /** HDD buffer status for packet scheduling. Once HDD
+   *  stores a new packet in a previously empty queue, it
+   *  will call TL interface to set the fields. The fields
+   *  will be cleaned by TL when TL can't fetch more packets
+   *  from the queue. */
+  // the fields are ucPktPending and ucACMask;
+
+  /* Queue to keep unicast station management frame */
+  vos_list_t pStaManageQ;
+#endif
+
+#ifdef ANI_CHIPSET_VOLANS
+ /* 1 means replay check is needed for the station,
+  * 0 means replay check is not needed for the station*/
+  v_BOOL_t      ucIsReplayCheckValid;
+
+ /* It contains 48-bit replay counter per TID*/
   v_U64_t       ullReplayCounter[WLANTL_MAX_TID];
 
  /* It contains no of replay packets found per STA.
     It is for debugging purpose only.*/
   v_U32_t       ulTotalReplayPacketsDetected;
 #endif
+
 }WLANTL_STAClientType;
 
 /*---------------------------------------------------------------------------
   BAP Client type
----------------------------------------------------------------------------*/ 
+---------------------------------------------------------------------------*/
 typedef struct
 {
-  /* flag that keeps track of registration; only one non-data BT-AMP client 
+  /* flag that keeps track of registration; only one non-data BT-AMP client
      allowed */
   v_U8_t                    ucExists;
 
   /* pointer to the receive processing routine for non-data BT-AMP frames */
-  WLANTL_BAPRxCBType        pfnTlBAPRx;  
+  WLANTL_BAPRxCBType        pfnTlBAPRx;
+
+  /* pointer to the flush call back complete function */
+  WLANTL_FlushOpCompCBType    pfnFlushOpCompleteCb;
 
   /* pointer to the non-data BT-AMP frame pending transmission */
   vos_pkt_t*                vosPendingDataBuff;
 
   /* BAP station ID */
-  v_U8_t                    ucBAPSTAId; 
+  v_U8_t                    ucBAPSTAId;
 }WLANTL_BAPClientType;
 
 
 /*---------------------------------------------------------------------------
   Management Frame Client type
----------------------------------------------------------------------------*/  
+---------------------------------------------------------------------------*/
 typedef struct
 {
-  /* flag that keeps track of registration; only one management frame 
+  /* flag that keeps track of registration; only one management frame
      client allowed */
   v_U8_t                       ucExists;
 
   /* pointer to the receive processing routine for management frames */
-  WLANTL_MgmtFrmRxCBType       pfnTlMgmtFrmRx;  
+  WLANTL_MgmtFrmRxCBType       pfnTlMgmtFrmRx;
 
   /* pointer to the management frame pending transmission */
   vos_pkt_t*                   vosPendingDataBuff;
@@ -698,8 +759,8 @@ typedef struct
 
 /*---------------------------------------------------------------------------
   TL control block type
----------------------------------------------------------------------------*/ 
-typedef struct 
+---------------------------------------------------------------------------*/
+typedef struct
 {
   /* TL configuration information */
   WLANTL_ConfigInfoType     tlConfigInfo;
@@ -731,13 +792,12 @@ typedef struct
   /* The value of the station id for the cached buffer */
   v_U8_t                    ucCachedSTAId;
 
-  /* Last registered STA - until multiple sta support is added this will 
+  /* Last registered STA - until multiple sta support is added this will
      be used always for tx */
   v_U8_t                    ucRegisteredStaId;
 
-  /*used on tx packet to signal when there is no more data to tx for the 
-   moment=> packets can be passed to BAL */
-  v_U8_t                    ucNoMoreData;
+  /*Current TL STA used for TX*/
+  v_U8_t                    ucCurrentSTA;
 
   WLANTL_REORDER_BUFFER_T   reorderBufferPool[WLANTL_MAX_BA_SESSION];
 
@@ -745,6 +805,54 @@ typedef struct
 
   v_BOOL_t                  bUrgent;
 
+#ifdef WLAN_SOFTAP_FEATURE
+
+  /* resource flag */
+  v_U32_t bd_pduResCount;
+
+  /* time interval to evaluate LWM mode*/
+  //vos_timer_t tThresholdSamplingTimer;
+
+  //information fields for flow control
+  tFcTxParams_type tlFCInfo;
+
+  vos_pkt_t*                vosTxFCBuf;
+
+  /* LWM mode is enabled or not for each station. Bit-wise operation.32 station maximum. */
+  //  v_U32_t uStaLwmMask;
+
+  /* LWM event is reported by FW. */
+  //  v_U32_t uStaLwmEventReported;
+
+  /** Multiple Station Scheduling and TL queue management.
+      4 HDD BC/MC data packet queue status is specified as Station 0's status. Weights used
+      in WFQ algorith are initialized in WLANTL_OPEN and contained in tlConfigInfo field.
+      Each station has fields of ucPktPending and AC mask to tell whether a AC has traffic
+      or not.
+
+      Stations are served in a round-robin fashion from highest priority to lowest priority.
+      The number of round-robin times of each prioirty equals to the WFQ weights and differetiates
+      the traffic of different prioirty. As such, stations can not provide low priority packets if
+      high priority packets are all served.
+      */
+
+  /* Currently served station id. Reuse ucCurrentSTA field. */
+  //v_U8_t uCurStaId;
+
+  /* Current served station ID in round-robin method to traverse all stations.*/
+  WLANTL_ACEnumType	uCurServedAC;
+
+  /* How many weights have not been served in current AC. */
+  v_U8_t ucCurLeftWeight;
+
+  /* BC/MC management queue. Current implementation uses queue size 1. Will check whether
+    size N is supported. */
+  vos_list_t pMCBCManageQ;
+
+  v_U32_t sendFCFrame;
+
+  v_U8_t done_once;
+#endif
   /*whether we are in BMPS/UAPSD/WOWL mode, since the latter 2 need to be BMPS first*/
   v_BOOL_t                  isBMPS;
 }WLANTL_CbType;
@@ -753,42 +861,42 @@ typedef struct
 
   FUNCTION    WLANTL_GetFrames
 
-  DESCRIPTION 
+  DESCRIPTION
 
-    BAL calls this function at the request of the lower bus interface. 
-    When this request is being received TL will retrieve packets from HDD 
-    in accordance with the priority rules and the count supplied by BAL. 
-    
-  DEPENDENCIES 
+    BAL calls this function at the request of the lower bus interface.
+    When this request is being received TL will retrieve packets from HDD
+    in accordance with the priority rules and the count supplied by BAL.
 
-    HDD must have registered with TL at least one STA before this function 
+  DEPENDENCIES
+
+    HDD must have registered with TL at least one STA before this function
     can be called.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
-    pAdapter:       pointer to the global adapter context; a handle to TL's 
-                    or BAL's control block can be extracted from its context 
+    pAdapter:       pointer to the global adapter context; a handle to TL's
+                    or BAL's control block can be extracted from its context
     uSize:          maximum size accepted by the lower layer
-                    
+
     OUT
-    vosDataBuff:   it will contain a pointer to the first buffer supplied 
-                    by TL, if there is more than one packet supplied, TL 
+    vosDataBuff:   it will contain a pointer to the first buffer supplied
+                    by TL, if there is more than one packet supplied, TL
                     will chain them through vOSS buffers
-   
+
   RETURN VALUE
 
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
-    TRUE: if there are still frames to fetch 
-    FALSE: error or HDD queues are drained 
-    
-  SIDE EFFECTS 
-  
+    TRUE: if there are still frames to fetch
+    FALSE: error or HDD queues are drained
+
+  SIDE EFFECTS
+
 ============================================================================*/
-v_BOOL_t 
+v_BOOL_t
 WLANTL_GetFrames
-( 
+(
   v_PVOID_t       pAdapter,
   vos_pkt_t**     vosDataBuff,
   v_U32_t         uSize,
@@ -799,33 +907,33 @@ WLANTL_GetFrames
 
   FUNCTION    WLANTL_TxComp
 
-  DESCRIPTION 
-    It is being called by BAL upon asynchronous notification of the packet 
+  DESCRIPTION
+    It is being called by BAL upon asynchronous notification of the packet
     or packets  being sent over the bus.
-    
-  DEPENDENCIES 
-    Tx complete cannot be called without a previous transmit. 
 
-  PARAMETERS 
+  DEPENDENCIES
+    Tx complete cannot be called without a previous transmit.
+
+  PARAMETERS
 
     IN
-    pAdapter:       pointer to the global adapter context; a handle to TL's 
-                    or BAL's control block can be extracted from its context 
-    vosDataBuff:   it will contain a pointer to the first buffer for which 
-                    the BAL report is being made, if there is more then one 
-                    packet they will be chained using vOSS buffers. 
-    wTxSTAtus:      the status of the transmitted packet, see above chapter 
-                    on HDD interaction for a list of possible values 
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
+    pAdapter:       pointer to the global adapter context; a handle to TL's
+                    or BAL's control block can be extracted from its context
+    vosDataBuff:   it will contain a pointer to the first buffer for which
+                    the BAL report is being made, if there is more then one
+                    packet they will be chained using vOSS buffers.
+    wTxSTAtus:      the status of the transmitted packet, see above chapter
+                    on HDD interaction for a list of possible values
 
-  SIDE EFFECTS 
-  
+  RETURN VALUE
+    The result code associated with performing the operation
+
+  SIDE EFFECTS
+
 ============================================================================*/
-VOS_STATUS 
+VOS_STATUS
 WLANTL_TxComp
-( 
+(
   v_PVOID_t      pAdapter,
   vos_pkt_t*     vosDataBuff,
   VOS_STATUS     wTxStatus
@@ -835,36 +943,36 @@ WLANTL_TxComp
 
   FUNCTION    WLANTL_RxFrames
 
-  DESCRIPTION 
-    Callback registered by TL and called by BAL when a packet is received 
-    over the bus. Upon the call of this function TL will make the necessary 
-    decision with regards to the forwarding or queuing of this packet and 
-    the layer it needs to be delivered to. 
-    
-  DEPENDENCIES 
-    TL must be initiailized before this function gets called. 
-    If the frame carried is a data frame then the station for which it is
-    destined to must have been previously registered with TL. 
+  DESCRIPTION
+    Callback registered by TL and called by BAL when a packet is received
+    over the bus. Upon the call of this function TL will make the necessary
+    decision with regards to the forwarding or queuing of this packet and
+    the layer it needs to be delivered to.
 
-  PARAMETERS 
+  DEPENDENCIES
+    TL must be initiailized before this function gets called.
+    If the frame carried is a data frame then the station for which it is
+    destined to must have been previously registered with TL.
+
+  PARAMETERS
 
     IN
-    pAdapter:       pointer to the global adapter context; a handle to TL's 
-                    or BAL's control block can be extracted from its context 
+    pAdapter:       pointer to the global adapter context; a handle to TL's
+                    or BAL's control block can be extracted from its context
 
-    vosDataBuff:   it will contain a pointer to the first buffer received, 
-                    if there is more then one packet they will be chained 
-                    using vOSS buffers. 
-   
+    vosDataBuff:   it will contain a pointer to the first buffer received,
+                    if there is more then one packet they will be chained
+                    using vOSS buffers.
+
   RETURN VALUE
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
-  SIDE EFFECTS 
-  
+  SIDE EFFECTS
+
 ============================================================================*/
-VOS_STATUS 
+VOS_STATUS
 WLANTL_RxFrames
-( 
+(
   v_PVOID_t      pAdapter,
   vos_pkt_t*     vosDataBuff
 );
@@ -878,7 +986,7 @@ WLANTL_RxFrames
 
   DEPENDENCIES
     TL must be initiailized before this function gets called.
-    
+
   PARAMETERS
 
     IN
@@ -906,7 +1014,7 @@ WLANTL_FlushCachedFrames
 
   DESCRIPTION
     Utility function used by TL to forward the cached frames to a particular
-    station; 
+    station;
 
   DEPENDENCIES
     TL must be initiailized before this function gets called.
@@ -916,7 +1024,7 @@ WLANTL_FlushCachedFrames
   PARAMETERS
 
     IN
-    pTLCb:   pointer to TL handle 
+    pTLCb:   pointer to TL handle
 
     ucSTAId:    station for which we need to forward the packets
 
@@ -948,24 +1056,24 @@ WLANTL_RxCachedFrames
   FUNCTION    WLANTL_CacheSTAFrame
 
   DESCRIPTION
-    Internal utility function for for caching incoming data frames that do 
-    not have a registered station yet. 
+    Internal utility function for for caching incoming data frames that do
+    not have a registered station yet.
 
   DEPENDENCIES
     TL must be initiailized before this function gets called.
     In order to benefit from thsi caching, the components must ensure that
     they will only register with TL at the moment when they are fully setup
-    and ready to receive incoming data 
-   
+    and ready to receive incoming data
+
   PARAMETERS
 
     IN
-    
+
     pTLCb:                  TL control block
     ucSTAId:                station id
     vosTempBuff:            the data packet
     uDPUSig:                DPU signature of the incoming packet
-    bBcast:                 true if packet had the MC/BC bit set 
+    bBcast:                 true if packet had the MC/BC bit set
 
   RETURN VALUE
     The result code associated with performing the operation
@@ -993,15 +1101,15 @@ WLANTL_CacheSTAFrame
 
   DESCRIPTION
     Internal utility function for forwarding cached data to the station after
-    the station has been registered. 
+    the station has been registered.
 
   DEPENDENCIES
     TL must be initiailized before this function gets called.
-   
+
   PARAMETERS
 
     IN
-    
+
     pTLCb:                  TL control block
     ucSTAId:                station id
 
@@ -1027,28 +1135,28 @@ WLANTL_ForwardSTAFrames
 /*==========================================================================
   FUNCTION    WLANTL_ResourceCB
 
-  DESCRIPTION 
-    Called by the TL when it has packets available for transmission. 
+  DESCRIPTION
+    Called by the TL when it has packets available for transmission.
 
-  DEPENDENCIES 
-    The TL must be registered with BAL before this function can be called. 
-    
-  PARAMETERS 
+  DEPENDENCIES
+    The TL must be registered with BAL before this function can be called.
+
+  PARAMETERS
 
     IN
-    pAdapter:       pointer to the global adapter context; a handle to TL's 
-                    or BAL's control block can be extracted from its context 
-    uCount:         avail resource count obtained from hw 
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
+    pAdapter:       pointer to the global adapter context; a handle to TL's
+                    or BAL's control block can be extracted from its context
+    uCount:         avail resource count obtained from hw
 
-  SIDE EFFECTS 
-  
+  RETURN VALUE
+    The result code associated with performing the operation
+
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANTL_ResourceCB
-( 
+(
   v_PVOID_t       pAdapter,
   v_U32_t         uCount
 );
@@ -1057,26 +1165,26 @@ WLANTL_ResourceCB
 /*==========================================================================
   FUNCTION    WLANTL_ProcessMainMessage
 
-  DESCRIPTION 
+  DESCRIPTION
     Called by VOSS when a message was serialized for TL through the
-    main thread/task. 
+    main thread/task.
 
-  DEPENDENCIES 
-    The TL must be initialized before this function can be called. 
-    
-  PARAMETERS 
+  DEPENDENCIES
+    The TL must be initialized before this function can be called.
+
+  PARAMETERS
 
     IN
-    pAdapter:       pointer to the global adapter context; a handle to TL's 
-                    control block can be extracted from its context 
-    message:        type and content of the message 
-                    
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
+    pAdapter:       pointer to the global adapter context; a handle to TL's
+                    control block can be extracted from its context
+    message:        type and content of the message
 
-  SIDE EFFECTS 
-  
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANTL_ProcessMainMessage
@@ -1088,29 +1196,29 @@ WLANTL_ProcessMainMessage
 /*==========================================================================
   FUNCTION    WLANTL_ProcessTxMessage
 
-  DESCRIPTION 
+  DESCRIPTION
     Called by VOSS when a message was serialized for TL through the
-    tx thread/task. 
+    tx thread/task.
 
-  DEPENDENCIES 
-    The TL must be initialized before this function can be called. 
-    
-  PARAMETERS 
+  DEPENDENCIES
+    The TL must be initialized before this function can be called.
+
+  PARAMETERS
 
     IN
-    pAdapter:       pointer to the global adapter context; a handle to TL's 
-                    control block can be extracted from its context 
-    message:        type and content of the message 
-                    
-   
+    pAdapter:       pointer to the global adapter context; a handle to TL's
+                    control block can be extracted from its context
+    message:        type and content of the message
+
+
   RETURN VALUE
 
-    The result code associated with performing the operation  
-    VOS_STATUS_SUCCESS:  Everything is good :) 
+    The result code associated with performing the operation
+    VOS_STATUS_SUCCESS:  Everything is good :)
 
 
-  SIDE EFFECTS 
-  
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANTL_ProcessTxMessage
@@ -1122,21 +1230,21 @@ WLANTL_ProcessTxMessage
 /*==========================================================================
   FUNCTION    WLAN_TLGetNextTxIds
 
-  DESCRIPTION 
+  DESCRIPTION
     Gets the next station and next AC in the list
 
-  DEPENDENCIES 
-         
-  PARAMETERS 
+  DEPENDENCIES
+
+  PARAMETERS
 
    OUT
-   pucSTAId:    STAtion ID 
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
+   pucSTAId:    STAtion ID
 
-  SIDE EFFECTS 
-  
+  RETURN VALUE
+    The result code associated with performing the operation
+
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLAN_TLGetNextTxIds
@@ -1149,26 +1257,26 @@ WLAN_TLGetNextTxIds
 
   FUNCTION    WLANTL_CleanCb
 
-  DESCRIPTION 
+  DESCRIPTION
     Cleans TL control block
-    
-  DEPENDENCIES 
-    
-  PARAMETERS 
+
+  DEPENDENCIES
+
+  PARAMETERS
 
     IN
-    pTLCb:       pointer to TL's control block 
+    pTLCb:       pointer to TL's control block
     ucEmpty:     set if TL has to clean up the queues and release pedning pkts
-        
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-  SIDE EFFECTS 
-  
+  RETURN VALUE
+    The result code associated with performing the operation
+
+  SIDE EFFECTS
+
 ============================================================================*/
-VOS_STATUS 
+VOS_STATUS
 WLANTL_CleanCB
-( 
+(
   WLANTL_CbType*  pTLCb,
   v_U8_t          ucEmpty
 );
@@ -1177,27 +1285,27 @@ WLANTL_CleanCB
 
   FUNCTION    WLANTL_CleanSTA
 
-  DESCRIPTION 
-    Cleans a station control block. 
-    
-  DEPENDENCIES 
-    
-  PARAMETERS 
+  DESCRIPTION
+    Cleans a station control block.
+
+  DEPENDENCIES
+
+  PARAMETERS
 
     IN
-    pAdapter:       pointer to the global adapter context; a handle to TL's 
-                    control block can be extracted from its context 
+    pAdapter:       pointer to the global adapter context; a handle to TL's
+                    control block can be extracted from its context
     ucEmpty:        if set the queues and pending pkts will be emptyed
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-  SIDE EFFECTS 
-  
+  RETURN VALUE
+    The result code associated with performing the operation
+
+  SIDE EFFECTS
+
 ============================================================================*/
-VOS_STATUS 
+VOS_STATUS
 WLANTL_CleanSTA
-( 
+(
   WLANTL_STAClientType*  ptlSTAClient,
   v_U8_t                 ucEmpty
 );
@@ -1205,31 +1313,31 @@ WLANTL_CleanSTA
 /*==========================================================================
   FUNCTION    WLANTL_GetTxResourcesCB
 
-  DESCRIPTION 
+  DESCRIPTION
     Processing function for Resource needed signal. A request will be issued
-    to BAL to get mor tx resources. 
+    to BAL to get mor tx resources.
 
-  DEPENDENCIES 
-    The TL must be initialized before this function can be called. 
-    
-  PARAMETERS 
+  DEPENDENCIES
+    The TL must be initialized before this function can be called.
+
+  PARAMETERS
 
     IN
-    pvosGCtx:       pointer to the global vos context; a handle to TL's 
-                    control block can be extracted from its context 
-                    
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
+    pvosGCtx:       pointer to the global vos context; a handle to TL's
+                    control block can be extracted from its context
 
-    VOS_STATUS_E_FAULT:   pointer to TL cb is NULL ; access would cause a 
-                          page fault  
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:   pointer to TL cb is NULL ; access would cause a
+                          page fault
     VOS_STATUS_SUCCESS:   Everything is good :)
 
-  Other values can be returned as a result of a function call, please check 
-  corresponding API for more info. 
-  SIDE EFFECTS 
-  
+  Other values can be returned as a result of a function call, please check
+  corresponding API for more info.
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANTL_GetTxResourcesCB
@@ -1240,64 +1348,65 @@ WLANTL_GetTxResourcesCB
 /*==========================================================================
   FUNCTION    WLANTL_PrepareBDHeader
 
-  DESCRIPTION 
+  DESCRIPTION
     Callback function for serializing Suspend signal through Tx thread
 
-  DEPENDENCIES 
+  DEPENDENCIES
     Just notify HAL that suspend in TL is complete.
-     
-  PARAMETERS 
+
+  PARAMETERS
 
    IN
-   pAdapter:       pointer to the global adapter context; a handle to TL's 
-                   control block can be extracted from its context 
+   pAdapter:       pointer to the global adapter context; a handle to TL's
+                   control block can be extracted from its context
    pUserData:      user data sent with the callback
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
 
-  SIDE EFFECTS 
-  
+  RETURN VALUE
+    The result code associated with performing the operation
+
+  SIDE EFFECTS
+
 ============================================================================*/
 void
 WLANTL_PrepareBDHeader
-( 
+(
   vos_pkt_t*      vosDataBuff,
   v_PVOID_t*      ppvBDHeader,
   v_MACADDR_t*    pvDestMacAdddr,
   v_U8_t          ucDisableFrmXtl,
   VOS_STATUS*     pvosSTAtus,
   v_U16_t*        usPktLen,
-  v_U8_t          ucQosEnabled, 
+  v_U8_t          ucQosEnabled,
+  v_U8_t          ucWDSEnabled,
   v_U8_t          extraHeadSpace
 );
 
 /*==========================================================================
   FUNCTION    WLANTL_Translate8023To80211Header
 
-  DESCRIPTION 
+  DESCRIPTION
     Inline function for translating and 802.3 header into an 802.11 header.
 
-  DEPENDENCIES 
-    
-     
-  PARAMETERS 
+  DEPENDENCIES
+
+
+  PARAMETERS
 
    IN
-    pTLCb:            TL control block 
-    ucStaId:          station ID 
-    
+    pTLCb:            TL control block
+    ucStaId:          station ID
+
    IN/OUT
     vosDataBuff:      vos data buffer, will contain the new header on output
 
    OUT
     pvosStatus:       status of the operation
-   
-  RETURN VALUE
-    No return.   
 
-  SIDE EFFECTS 
-  
+  RETURN VALUE
+    No return.
+
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANTL_Translate8023To80211Header
@@ -1307,37 +1416,38 @@ WLANTL_Translate8023To80211Header
   WLANTL_CbType*  pTLCb,
   v_U8_t          ucStaId,
   v_U8_t          ucUP,
+  v_U8_t          *ucWDSEnabled,
   v_U8_t          *extraHeadSpace
 );
 
 /*==========================================================================
   FUNCTION    WLANTL_Translate80211To8023Header
 
-  DESCRIPTION 
+  DESCRIPTION
     Inline function for translating and 802.11 header into an 802.3 header.
 
-  DEPENDENCIES 
-    
-     
-  PARAMETERS 
+  DEPENDENCIES
+
+
+  PARAMETERS
 
    IN
-    pTLCb:            TL control block 
-    ucStaId:          station ID 
-    ucHeaderLen:      Length of the header from BD    
+    pTLCb:            TL control block
+    ucStaId:          station ID
+    ucHeaderLen:      Length of the header from BD
     ucActualHLen:	  Length of header including padding or any other trailers
-    
+
    IN/OUT
     vosDataBuff:      vos data buffer, will contain the new header on output
 
    OUT
     pvosStatus:       status of the operation
-   
+
   RETURN VALUE
     Status of the operation
 
-  SIDE EFFECTS 
-  
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANTL_Translate80211To8023Header
@@ -1354,24 +1464,24 @@ WLANTL_Translate80211To8023Header
 
   FUNCTION    WLANTL_MgmtFrmRxDefaultCb
 
-  DESCRIPTION 
-    Default Mgmt Frm rx callback: asserts all the time. If this function gets 
+  DESCRIPTION
+    Default Mgmt Frm rx callback: asserts all the time. If this function gets
     called  it means there is no registered rx cb pointer for Mgmt Frm.
-    
-  DEPENDENCIES 
-    
-  PARAMETERS 
+
+  DEPENDENCIES
+
+  PARAMETERS
 
     Not used.
-  
-  RETURN VALUE 
+
+  RETURN VALUE
    Always FAILURE.
 
 ============================================================================*/
-VOS_STATUS 
+VOS_STATUS
 WLANTL_MgmtFrmRxDefaultCb
 (
-  v_PVOID_t  pAdapter, 
+  v_PVOID_t  pAdapter,
   v_PVOID_t  vosBuff
 );
 
@@ -1379,47 +1489,48 @@ WLANTL_MgmtFrmRxDefaultCb
 
   FUNCTION    WLANTL_STARxDefaultCb
 
-  DESCRIPTION 
-    Default BAP rx callback: asserts all the time. If this function gets 
+  DESCRIPTION
+    Default BAP rx callback: asserts all the time. If this function gets
     called  it means there is no registered rx cb pointer for BAP.
-    
-  DEPENDENCIES 
-    
-  PARAMETERS 
+
+  DEPENDENCIES
+
+  PARAMETERS
 
     Not used.
-  
-  RETURN VALUE 
+
+  RETURN VALUE
    Always FAILURE.
 
 ============================================================================*/
-VOS_STATUS 
+VOS_STATUS
 WLANTL_BAPRxDefaultCb
 (
   v_PVOID_t    pAdapter,
-  vos_pkt_t*   vosDataBuff
+  vos_pkt_t*   vosDataBuff,
+  WLANTL_BAPFrameEnumType frameType
 );
 
 /*==========================================================================
 
   FUNCTION    WLANTL_STARxDefaultCb
 
-  DESCRIPTION 
-    Default STA rx callback: asserts all the time. If this function gets 
+  DESCRIPTION
+    Default STA rx callback: asserts all the time. If this function gets
     called  it means there is no registered rx cb pointer for station.
-    (Mem corruption most likely, it should never happen) 
-    
-  DEPENDENCIES 
-    
-  PARAMETERS 
+    (Mem corruption most likely, it should never happen)
+
+  DEPENDENCIES
+
+  PARAMETERS
 
     Not used.
-  
-  RETURN VALUE 
+
+  RETURN VALUE
    Always FAILURE.
 
 ============================================================================*/
-VOS_STATUS 
+VOS_STATUS
 WLANTL_STARxDefaultCb
 (
   v_PVOID_t               pAdapter,
@@ -1432,22 +1543,22 @@ WLANTL_STARxDefaultCb
 
   FUNCTION    WLANTL_STAFetchPktDefaultCb
 
-  DESCRIPTION 
-    Default fetch callback: asserts all the time. If this function gets 
+  DESCRIPTION
+    Default fetch callback: asserts all the time. If this function gets
     called  it means there is no registered fetch cb pointer for station.
-    (Mem corruption most likely, it should never happen) 
-    
-  DEPENDENCIES 
-    
-  PARAMETERS 
+    (Mem corruption most likely, it should never happen)
+
+  DEPENDENCIES
+
+  PARAMETERS
 
     Not used.
-  
-  RETURN VALUE 
+
+  RETURN VALUE
    Always FAILURE.
 
 ============================================================================*/
-VOS_STATUS 
+VOS_STATUS
 WLANTL_STAFetchPktDefaultCb
 (
   v_PVOID_t              pAdapter,
@@ -1461,124 +1572,124 @@ WLANTL_STAFetchPktDefaultCb
 
   FUNCTION    WLANTL_TxCompDefaultCb
 
-  DESCRIPTION   
-    Default tx complete handler. It will release the completed pkt to 
-    prevent memory leaks.  
+  DESCRIPTION
+    Default tx complete handler. It will release the completed pkt to
+    prevent memory leaks.
 
-  PARAMETERS 
+  PARAMETERS
 
     IN
-    pAdapter:       pointer to the global adapter context; a handle to 
-                    TL/HAL/PE/BAP/HDD control block can be extracted from 
-                    its context 
-    vosDataBuff:   pointer to the VOSS data buffer that was transmitted 
-    wTxSTAtus:      status of the transmission 
+    pAdapter:       pointer to the global adapter context; a handle to
+                    TL/HAL/PE/BAP/HDD control block can be extracted from
+                    its context
+    vosDataBuff:   pointer to the VOSS data buffer that was transmitted
+    wTxSTAtus:      status of the transmission
 
-  
-  RETURN VALUE 
-    The result code associated with performing the operation; please 
-    check vos_pkt_return_pkt for possible error codes. 
+
+  RETURN VALUE
+    The result code associated with performing the operation; please
+    check vos_pkt_return_pkt for possible error codes.
 
 ============================================================================*/
-VOS_STATUS 
+VOS_STATUS
 WLANTL_TxCompDefaultCb
-( 
+(
  v_PVOID_t      pAdapter,
  vos_pkt_t*     vosDataBuff,
- VOS_STATUS     wTxSTAtus 
+ VOS_STATUS     wTxSTAtus
 );
 
 /*==========================================================================
-  
-  FUNCTION    WLANTL_PackUpTriggerFrame
-    
-  DESCRIPTION 
-    Packs up a trigger frame and places it in TL's cache for tx and notifies 
-    BAL 
 
-  DEPENDENCIES 
-         
-  PARAMETERS 
+  FUNCTION    WLANTL_PackUpTriggerFrame
+
+  DESCRIPTION
+    Packs up a trigger frame and places it in TL's cache for tx and notifies
+    BAL
+
+  DEPENDENCIES
+
+  PARAMETERS
 
   IN
     pTLCb:         pointer to the TL control block
-    pfnSTATxComp:  Tx Complete Cb to be used when frame is received 
-    ucSTAId:       station id 
+    pfnSTATxComp:  Tx Complete Cb to be used when frame is received
+    ucSTAId:       station id
     ucAC:          access category
-      
+
   RETURN VALUE
     None
 
-  SIDE EFFECTS 
-  
+  SIDE EFFECTS
+
 ============================================================================*/
 VOS_STATUS
 WLANTL_PackUpTriggerFrame
-( 
+(
   WLANTL_CbType*            pTLCb,
   WLANTL_TxCompCBType       pfnSTATxComp,
   v_U8_t                    ucSTAId,
-  WLANTL_ACEnumType         ucAC 
+  WLANTL_ACEnumType         ucAC
 );
 
 /*==========================================================================
-  
+
   FUNCTION    WLANTL_TxCompTriggFrameSI
 
-  DESCRIPTION   
-    Tx complete handler for the service interval trigger frame. 
-    It will restart the SI timer. 
-         
-  PARAMETERS 
+  DESCRIPTION
+    Tx complete handler for the service interval trigger frame.
+    It will restart the SI timer.
+
+  PARAMETERS
 
    IN
-    pvosGCtx:       pointer to the global vos context; a handle to 
-                    TL/HAL/PE/BAP/HDD control block can be extracted from 
-                    its context 
-    vosDataBuff:   pointer to the VOSS data buffer that was transmitted 
-    wTxSTAtus:      status of the transmission 
+    pvosGCtx:       pointer to the global vos context; a handle to
+                    TL/HAL/PE/BAP/HDD control block can be extracted from
+                    its context
+    vosDataBuff:   pointer to the VOSS data buffer that was transmitted
+    wTxSTAtus:      status of the transmission
 
-      
+
   RETURN VALUE
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
  ============================================================================*/
 VOS_STATUS
 WLANTL_TxCompTriggFrameSI
-( 
+(
   v_PVOID_t      pvosGCtx,
   vos_pkt_t*     vosDataBuff,
-  VOS_STATUS     wTxSTAtus 
+  VOS_STATUS     wTxSTAtus
 );
 
 /*==========================================================================
-  
+
   FUNCTION    WLANTL_TxCompTriggFrameSI
 
-  DESCRIPTION   
-    Tx complete handler for the service interval trigger frame. 
-    It will restart the SI timer. 
-         
-  PARAMETERS 
+  DESCRIPTION
+    Tx complete handler for the service interval trigger frame.
+    It will restart the SI timer.
+
+  PARAMETERS
 
    IN
-    pvosGCtx:       pointer to the global vos context; a handle to 
-                    TL/HAL/PE/BAP/HDD control block can be extracted from 
-                    its context 
-    vosDataBuff:   pointer to the VOSS data buffer that was transmitted 
-    wTxSTAtus:      status of the transmission 
-         
-  
+    pvosGCtx:       pointer to the global vos context; a handle to
+                    TL/HAL/PE/BAP/HDD control block can be extracted from
+                    its context
+    vosDataBuff:   pointer to the VOSS data buffer that was transmitted
+    wTxSTAtus:      status of the transmission
+
+
   RETURN VALUE
-    The result code associated with performing the operation  
+    The result code associated with performing the operation
 
 ============================================================================*/
 VOS_STATUS
 WLANTL_TxCompTriggFrameDI
-( 
+(
  v_PVOID_t      pvosGCtx,
- vos_pkt_t*     vosDataBuff, 
- VOS_STATUS     wTxSTAtus 
+ vos_pkt_t*     vosDataBuff,
+ VOS_STATUS     wTxSTAtus
 );
 
 /*==========================================================================
@@ -1586,8 +1697,8 @@ WLANTL_TxCompTriggFrameDI
    FUNCTION
 
    DESCRIPTION   Read RSSI value out of a RX BD
-    
-   PARAMETERS: Caller must validate all parameters 
+
+   PARAMETERS: Caller must validate all parameters
 
    RETURN VALUE
 

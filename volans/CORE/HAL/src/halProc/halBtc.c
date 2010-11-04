@@ -28,6 +28,7 @@
 
 void halBtc_SetBtcCfg(tpAniSirGlobal pMac, void *pBuffer)
 {
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     eHalStatus status;
     tpSmeBtcConfig pBtcCfg = (tpSmeBtcConfig)pBuffer;
     Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
@@ -48,14 +49,17 @@ void halBtc_SetBtcCfg(tpAniSirGlobal pMac, void *pBuffer)
             HALLOGE(halLog(pMac,LOGE, FL("Failed to config FW BTC config")));
     }
 
+#endif //WLAN_MDM_CODE_REDUCTION_OPT
+
     palFreeMemory( pMac->hHdd, pBuffer);
     return;
 
 }
 
 
-void halBtc_SendBtEventToFW(tpAniSirGlobal pMac, void *pBuffer){
-
+void halBtc_SendBtEventToFW(tpAniSirGlobal pMac, void *pBuffer)
+{
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     eHalStatus status;
     tANI_U16 dialogToken = 0;
     tANI_U16 size = sizeof(Qwlanfw_BtEventMsgType); 
@@ -130,8 +134,8 @@ void halBtc_SendBtEventToFW(tpAniSirGlobal pMac, void *pBuffer){
 
     status = halFW_SendMsg(pMac, HAL_MODULE_ID_BTC,
         QWLANFW_HOST2FW_BT_EVENT, dialogToken, size, &msg, TRUE, NULL);
-
 out:
+#endif //WLAN_MDM_CODE_REDUCTION_OPT
 
     palFreeMemory( pMac->hHdd, pBuffer);
     return;

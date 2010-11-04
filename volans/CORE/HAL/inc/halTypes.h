@@ -16,10 +16,9 @@
 
 #ifndef HALTYPES_H
 #define HALTYPES_H
-
-#ifndef WINXP_APPS_BUILD
-
+#ifndef WINXP_APPS_BUILD    //TODO: this header dependency does not belong in this file
 #include "wlan_qct_bal.h"
+
 #ifdef WLAN_HAL_VOLANS
 #include "volansDefs.h"
 #else
@@ -219,15 +218,20 @@ enum {
    eDBG
 };
 
-/// System role definition
-// FIXME - Change the type
-typedef enum eSystemRole
+/// System role definition on a per BSS
+typedef enum eBssSystemRole
 {
     eSYSTEM_UNKNOWN_ROLE,
     eSYSTEM_AP_ROLE,
     eSYSTEM_STA_IN_IBSS_ROLE,
-    eSYSTEM_STA_ROLE
-} tSystemRole;
+    eSYSTEM_STA_ROLE,
+    eSYSTEM_BTAMP_STA_ROLE,
+    eSYSTEM_BTAMP_AP_ROLE,
+
+    eSYSTEM_LAST_ROLE,
+    eSYSTEM_MULTI_BSS_ROLE = eSYSTEM_LAST_ROLE
+} tBssSystemRole;
+
 
 // ---------------------------------------
 // Channel Bonding Sideband configuration
@@ -243,7 +247,7 @@ typedef enum sHalCBsidebandType
 
 /// HAL states
 typedef enum {
-	eHAL_IDLE,
+    eHAL_IDLE,
     eHAL_INIT,
     eHAL_CFG, //CFG download completed.
     eHAL_STARTED, //halProcessStartEvent compelted.

@@ -54,10 +54,12 @@ typedef enum eSmeCommandType
     eSmeCommandExitWowl,
     eSmeCommandEnterStandby,
     //QOS
-    eSmeQosCommandMask = 0x40000,  //To identofy Qos commands
+    eSmeQosCommandMask = 0x40000,  //To identify Qos commands
     eSmeCommandAddTs,
     eSmeCommandDelTs,
-
+#ifdef FEATURE_INNAV_SUPPORT
+	eSmeCommandMeas = 0x50000, //To identify the InNav meas commands
+#endif
 } eSmeCommandType;
 
 

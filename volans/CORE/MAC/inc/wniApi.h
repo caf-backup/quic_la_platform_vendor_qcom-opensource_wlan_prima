@@ -85,6 +85,10 @@ enum eWniMsgTypes
     eWNI_SME_SCAN_REQ,
     eWNI_SME_SCAN_ABORT_IND,
     eWNI_SME_SCAN_RSP,
+#ifdef FEATURE_INNAV_SUPPORT
+    eWNI_SME_INNAV_MEAS_REQ,
+    eWNI_SME_INNAV_MEAS_RSP,
+#endif
     eWNI_SME_JOIN_REQ,
     eWNI_SME_JOIN_RSP,
     eWNI_SME_SETCONTEXT_REQ,
@@ -115,10 +119,6 @@ enum eWniMsgTypes
     eWNI_SME_STOP_BSS_REQ,
     eWNI_SME_STOP_BSS_RSP,
     eWNI_SME_DEL_BA_PEER_IND,
-    eWNI_SME_DEFINE_QOS_REQ,
-    eWNI_SME_DEFINE_QOS_RSP,
-    eWNI_SME_DELETE_QOS_REQ,
-    eWNI_SME_DELETE_QOS_RSP,
     eWNI_SME_PROMISCUOUS_MODE_REQ,
     eWNI_SME_PROMISCUOUS_MODE_RSP,
     eWNI_SME_LINK_TEST_START_REQ,
@@ -177,11 +177,18 @@ enum eWniMsgTypes
     eWNI_SME_GET_NOISE_RSP,
     eWNI_SME_LOW_RSSI_IND,
     eWNI_SME_GET_STATISTICS_REQ,
-    eWNI_SME_GET_STATISTICS_RSP,    
-    eWNI_SME_MSG_TYPES_END,
+    eWNI_SME_GET_STATISTICS_RSP,
+#ifdef WLAN_SOFTAP_FEATURE
+    eWNI_SME_GET_ASSOC_STAS_REQ,
+    eWNI_SME_TKIP_CNTR_MEAS_REQ,
+    eWNI_SME_UPDATE_APWPSIE_REQ,
+    eWNI_SME_GET_WPSPBC_SESSION_REQ,
+    eWNI_SME_WPS_PBC_PROBE_REQ_IND,
+    eWNI_SME_SET_APWPARSNIEs_REQ,
+#endif
 
     //General Power Save Messages
-    eWNI_PMC_MSG_TYPES_BEGIN = eWNI_SME_MSG_TYPES_END,
+    eWNI_PMC_MSG_TYPES_BEGIN,
     eWNI_PMC_PWR_SAVE_CFG,
 
     //BMPS Messages
@@ -214,8 +221,26 @@ enum eWniMsgTypes
     eWNI_PMC_EXIT_WOWL_REQ,
     eWNI_PMC_EXIT_WOWL_RSP,
 
-    eWNI_PMC_MSG_TYPES_END
+    eWNI_PMC_MSG_TYPES_END,
+
+#if defined WLAN_FEATURE_VOWIFI
+    eWNI_SME_RRM_MSG_TYPE_BEGIN,
     
+    eWNI_SME_NEIGHBOR_REPORT_REQ_IND,
+    eWNI_SME_NEIGHBOR_REPORT_IND,
+    eWNI_SME_BEACON_REPORT_REQ_IND,
+    eWNI_SME_BEACON_REPORT_RESP_XMIT_IND,
+   
+    eWNI_SME_RRM_MSG_TYPE_END,
+   
+#endif
+
+#if defined WLAN_FEATURE_VOWIFI_11R
+    eWNI_SME_FT_PRE_AUTH_REQ,
+    eWNI_SME_FT_PRE_AUTH_RSP,
+#endif
+  
+    eWNI_SME_MSG_TYPES_END 
 };
 
 #define WNI_CFG_MSG_TYPES_BEGIN        0x1100
@@ -237,7 +262,6 @@ enum eWniMsgTypes
 /*---------------------------------------------------------------------*/
 /* CFG to HDD message types                                            */
 /*---------------------------------------------------------------------*/
-#define WNI_CFG_PARAM_UPDATE_IND       (WNI_CFG_MSG_TYPES_BEGIN | 0x00)
 #define WNI_CFG_DNLD_REQ               (WNI_CFG_MSG_TYPES_BEGIN | 0x01)
 #define WNI_CFG_DNLD_CNF               (WNI_CFG_MSG_TYPES_BEGIN | 0x02)
 #define WNI_CFG_GET_RSP                (WNI_CFG_MSG_TYPES_BEGIN | 0x03)
@@ -268,13 +292,6 @@ enum eWniMsgTypes
 /*                                   parameters and MB header but      */
 /*                                   excluding variable data length    */
 /*---------------------------------------------------------------------*/
-
-// Parameter update indication
-#define WNI_CFG_PARAM_UPDATE_IND_PID   0
-
-#define WNI_CFG_PARAM_UPDATE_IND_NUM   1
-#define WNI_CFG_PARAM_UPDATE_IND_LEN   (WNI_CFG_MB_HDR_LEN + \
-                                       (WNI_CFG_PARAM_UPDATE_IND_NUM << 2))
 
 // Configuration download request
 #define WNI_CFG_DNLD_REQ_NUM           0
@@ -380,8 +397,8 @@ enum eWniMsgTypes
 // Get attribute request
 //#define WNI_CFG_GET_ATTRIB_REQ_PID   0
 
-//#define WNI_CFG_GET_ATTRIB_REQ_NUM   1
-//#define WNI_CFG_GET_ATTRIB_REQ_LEN   (WNI_CFG_MB_HDR_LEN + \
+//#define WNI_CFG_GET_ATTRIB_REQ_NUM     1
+//#define WNI_CFG_GET_ATTRIB_REQ_LEN     (WNI_CFG_MB_HDR_LEN + \
                                        (WNI_CFG_GET_ATTRIB_REQ_NUM << 2))
 // Add group address request
 #define WNI_CFG_ADD_GRP_ADDR_REQ_MAC_ADDR    0 

@@ -31,13 +31,19 @@
 #define LIM_POL_SYS_LEARN_MODE     1
 
 
+/* Macro to count heartbeat */
+
+#define limResetHBPktCount(psessionEntry)   (psessionEntry->LimRxedBeaconCntDuringHB = 0)
+
+
+
 /* Useful macros for fetching various states in pMac->lim */
 /* gLimSystemRole */
-#define GET_LIM_SYSTEM_ROLE(pMac)		(pMac->lim.gLimSystemRole)
+#define GET_LIM_SYSTEM_ROLE(psessionEntry)		(psessionEntry->limSystemRole)
 #define SET_LIM_SYSTEM_ROLE(pMac, role)		(pMac->lim.gLimSystemRole = role)
-#define LIM_IS_AP_ROLE(pMac)			(GET_LIM_SYSTEM_ROLE(pMac) == eLIM_AP_ROLE)
-#define LIM_IS_STA_ROLE(pMac)			(GET_LIM_SYSTEM_ROLE(pMac) == eLIM_STA_ROLE)
-#define LIM_IS_IBSS_ROLE(pMac)			(GET_LIM_SYSTEM_ROLE(pMac) == eLIM_STA_IN_IBSS_ROLE)
+#define LIM_IS_AP_ROLE(psessionEntry)			(GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_AP_ROLE)
+#define LIM_IS_STA_ROLE(psessionEntry)			(GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_ROLE)
+#define LIM_IS_IBSS_ROLE(psessionEntry)			(GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_IN_IBSS_ROLE)
 /* gLimSmeState */
 #define GET_LIM_SME_STATE(pMac	)		(pMac->lim.gLimSmeState)
 #define SET_LIM_SME_STATE(pMac, state)		(pMac->lim.gLimSmeState = state)
@@ -51,7 +57,7 @@
 #define GET_LIM_QUIET_STATE(pMac)		(pMac->lim.gLimSpecMgmt.quietState)
 #define SET_LIM_QUIET_STATE(pMac, state)	(pMac->lim.gLimSpecMgmt.quietState = state)
 
-#define LIM_IS_CONNECTION_ACTIVE(pMac)  ((pMac)->lim.gLimRxedBeaconCntDuringHB)
+#define LIM_IS_CONNECTION_ACTIVE(psessionEntry)  (psessionEntry->LimRxedBeaconCntDuringHB)
 
 /*pMac->lim.gLimProcessDefdMsgs*/
 #define GET_LIM_PROCESS_DEFD_MESGS(pMac) (pMac->lim.gLimProcessDefdMsgs)
@@ -154,7 +160,7 @@ extern void limReEnableLearnMode(tpAniSirGlobal);
  */
 extern tSirRetStatus limHandleIBSScoalescing(tpAniSirGlobal,
                                               tpSchBeaconStruct,
-                                              tANI_U32 *);
+                                              tANI_U32 *,tpPESession);
 
 /// Function used by other Sirius modules to read global SME state
  static inline tLimSmeStates
@@ -162,14 +168,12 @@ limGetSmeState(tpAniSirGlobal pMac) { return pMac->lim.gLimSmeState; }
 
 /// Function used by other Sirius modules to read global system role
  static inline tLimSystemRole
-limGetSystemRole(tpAniSirGlobal pMac) { return pMac->lim.gLimSystemRole; }
+limGetSystemRole(tpPESession psessionEntry) { return psessionEntry->limSystemRole; }
 
-/// Function used by other Sirius modules to read assigned AID on STA
- static inline tANI_U16
-limGetAID(tpAniSirGlobal pMac) { return pMac->lim.gLimAID; }
+//limGetAID(tpPESession psessionEntry) { return psessionEntry->limAID; }
 
-extern void limReceivedHBHandler(tpAniSirGlobal, tANI_U8);
-extern void limResetHBPktCount(tpAniSirGlobal);
+extern void limReceivedHBHandler(tpAniSirGlobal, tANI_U8, tpPESession);
+//extern void limResetHBPktCount(tpPESession);
 
 extern void limCheckAndQuietBSS(tpAniSirGlobal);
 
@@ -180,15 +184,15 @@ extern void limProcessWdsInfo(tpAniSirGlobal, tSirPropIEStruct);
 extern void limInitWdsInfoParams(tpAniSirGlobal);
 
 /// Function that triggers STA context deletion
-extern void limTriggerSTAdeletion(tpAniSirGlobal pMac, tpDphHashNode pStaDs);
+extern void limTriggerSTAdeletion(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession psessionEntry);
 
 
 /// Function that checks for change in AP's capabilties on STA
 extern void limDetectChangeInApCapabilities(tpAniSirGlobal,
-                                             tpSirProbeRespBeacon);
+                                             tpSirProbeRespBeacon,tpPESession);
 tSirRetStatus limUpdateShortSlot(tpAniSirGlobal pMac, 
                                                             tpSirProbeRespBeacon pBeacon, 
-                                                            tpUpdateBeaconParams pBeaconParams);
+                                                            tpUpdateBeaconParams pBeaconParams,tpPESession);
 
 
 /// creates an addts request action frame and sends it out to staid
@@ -196,7 +200,7 @@ extern void limSendAddtsReq (tpAniSirGlobal pMac, tANI_U16 staid, tANI_U8 tsid, 
 /// creates a delts request action frame and sends it out to staid
 extern void limSendDeltsReq (tpAniSirGlobal pMac, tANI_U16 staid, tANI_U8 tsid, tANI_U8 userPrio, tANI_U8 wme);
 /// creates a SM Power State Mode update request action frame and sends it out to staid
-extern tSirRetStatus limSMPowerSaveStateInd(tpAniSirGlobal pMac, tSirMacHTMIMOPowerSaveState State);
+extern  tSirRetStatus limSMPowerSaveStateInd(tpAniSirGlobal pMac, tSirMacHTMIMOPowerSaveState State);
 
 
 extern void limPostStartLearnModeMsgToSch(tpAniSirGlobal pMac);

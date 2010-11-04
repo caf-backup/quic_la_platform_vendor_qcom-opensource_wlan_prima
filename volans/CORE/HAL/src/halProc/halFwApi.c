@@ -27,6 +27,10 @@
 #include "halMailbox.h"
 #include "halPhyVos.h"
 
+#ifdef FEATURE_INNAV_SUPPORT
+#include "halInNav.h"
+#endif
+
 #ifndef VERIFY_HALPHY_SIMV_MODEL
 
 /* Static Functions */
@@ -57,7 +61,7 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
     pMac->hal.memMap.fwSystemConfig_size = QWLAN_FW_SYS_CONFIG_MMAP_SIZE;
     pMac->hal.halMac.isFwInitialized = eANI_BOOLEAN_FALSE;
 
-    status = palAllocateMemory( pMac, (void *) &pFwConfig,
+    status = palAllocateMemory( pMac, (void **) &pFwConfig,
             sizeof(Qwlanfw_SysCfgType));
     if (status != eHAL_STATUS_SUCCESS) {
         HALLOGE( halLog( pMac, LOGE, FL("Memory Allocation Failed!!!") ));
@@ -74,11 +78,7 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
     pFwConfig->ucNumRxAntennas = HAL_FW_NUM_RX_ANTENNAS;
     pFwConfig->ucOpenLoopTxGain = pMac->hphy.phy.openLoopTxGain;
 
-    //if the qFuse is blown, then update the closedLoop param
-    if(halIsQFuseBlown(pMac) == eHAL_STATUS_SUCCESS)
-    {
-        pFwConfig->bClosedLoop = CLOSED_LOOP_CONTROL;
-    }
+    //pFwConfig->bClosedLoop = CLOSED_LOOP_CONTROL;
 
     pFwConfig->bRfXoOn = TRUE;
 
@@ -175,14 +175,15 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
     tANI_U8 *fwImage;
     tANI_U32 *tempPtr;
     tANI_U32 value = 0, length = 0;
-    //tANI_U32 verifyLength;
+#ifdef VERIFY_FW_DOWNLOAD
+    tANI_U8 *verifyBuf;
+#endif
     tANI_U32 len, offset,i;
 
     pStartParams = (tHalMacStartParameters *) arg;
 
     fwImage = pStartParams->FW.pImage;
     length  = pStartParams->FW.cbImage;
-    //verifyLength = length;
 
     if (fwImage == NULL) {
         HALLOGW( halLog(pMac, LOGW, FL("No FW biinary image => no download!\n") ));
@@ -202,7 +203,6 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
 
     //Disable the aCPU 'wait for Interrupt' instruction generation at the boot address.
     halReadRegister(pMac, QWLAN_MCU_ACPU_CONTROL_REG, &value);
-
     //QWLAN_MCU_ACPU_CONTROL_MCU_ACPU_STANDBY_P_MASK should be cleared by hardware
     //assert(!(value & QWLAN_MCU_ACPU_CONTROL_MCU_ACPU_STANDBY_P_MASK));
 
@@ -211,78 +211,94 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
     halWriteRegister(pMac, QWLAN_MCU_ACPU_CONTROL_REG , value);
     value = 0;
 
-    tempPtr = (tANI_U32 *)fwImage;
-    for (i=0; i<length; i+=4) {
-       *tempPtr = sirSwapU32(*tempPtr);
-       tempPtr+=1;
-    }
-    HALLOGW( halLog(pMac, LOGW, FL("Download firmware image (%d bytes) \n"),  length ));
-
     offset = 0;
-    len = 0x800 ;/*16K*/
+    len = 0x800 ;/*2K*/
+
+    /* Allocate 2K memory to store the firmware fragment and Endian conversion */
+    status = palAllocateMemory( pMac, (void **) &tempPtr, len);
+    if (status != eHAL_STATUS_SUCCESS) {
+        HALLOGE( halLog( pMac, LOGE, FL("Memory Allocation Failed!!!") ));
+        return status;
+    }
+
+#ifdef VERIFY_FW_DOWNLOAD
+    if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void **)&verifyBuf, len))
+    {
+        /* Free the allocated memory */
+        palFreeMemory(pMac, tempPtr);
+        HALLOGE( halLog( pMac, LOGE, FL("Memory Allocation Failed!!!") ));
+        return (eHAL_STATUS_FAILURE);   //couldn't allocate
+    }
+#endif
+
     while (length) {
+
       if (length < len)
           len = length;
 
+      /* Copy firmware fragment */
+      palCopyMemory(pMac, (void*)tempPtr, (void*)((tANI_U8 *)fwImage + offset), len);
+
+      /* Swap the bytes before writing to HW */
+      for (i=0; i<len; i+=4) {
+          *tempPtr = sirSwapU32(*tempPtr);
+          tempPtr+=1;
+      }
+
+      tempPtr -= i/4;
+
       halWriteDeviceMemory(pMac, FW_IMAGE_MEMORY_BASE_ADDRESS + offset,
-               ((tANI_U8 *)fwImage + offset), len) ;
+               tempPtr, len);
+
+#ifdef VERIFY_FW_DOWNLOAD
+      if (halReadDeviceMemory(pMac, FW_IMAGE_MEMORY_BASE_ADDRESS + offset, verifyBuf, len) != eHAL_STATUS_SUCCESS)
+      {
+          /* Free the allocated memory */
+          palFreeMemory(pMac, tempPtr);
+          palFreeMemory(pMac, verifyBuf);
+          return eHAL_STATUS_FAILURE;
+      }
+      else
+      {
+          if (vos_mem_compare((tANI_U8 *)tempPtr, verifyBuf, len) != VOS_TRUE)
+          {
+              // !VERIFY ERROR
+              halLog( pMac, LOGE, FL("Verify ERROR\n"));
+              /* Free the allocated memory */
+              palFreeMemory(pMac, tempPtr);
+              palFreeMemory(pMac, verifyBuf);
+              return (eHAL_STATUS_FAILURE);
+          }
+      }
+#endif
       offset += len;
       length -= len;
     }
-
-
-/*  some code to verify that firmware was written correctly to the device memory
-        {
-            tANI_U8 *verifyBuf;
-
-            if (eHAL_STATUS_SUCCESS == palAllocateMemory(pMac->hHdd, (void **)&verifyBuf, 0x4000))  //verify 16K byte chunks
-            {
-
-                offset = 0;
-                len = 0x800;
-                while (verifyLength)
-                {
-                    if (verifyLength < len)
-                    {
-                        len = verifyLength;
-                    }
-
-                    if (halReadDeviceMemory(pMac, FW_IMAGE_MEMORY_BASE_ADDRESS + offset, verifyBuf, len) != eHAL_STATUS_SUCCESS)
-                    {
-                        return eHAL_STATUS_FAILURE;
-                    }
-                    else
-                    {
-                        if (memcmp(((tANI_U8 *)fwImage + offset), verifyBuf, len) != 0)
-                        {
-                            // !VERIFY ERROR
-                            halLog( pMac, LOGE, FL("Verify ERROR\n"));
-                            return (eHAL_STATUS_FAILURE);
-                        }
-                    }
-
-                    offset += len;
-                    verifyLength -= len;
-                }
-
-                if (palFreeMemory(pMac->hHdd, verifyBuf) != eHAL_STATUS_SUCCESS)
-                {
-                    return (eHAL_STATUS_FAILURE);   //couldn't free
-                }
-            }
-            else
-            {
-                return (eHAL_STATUS_FAILURE);   //couldn't allocate
-            }
-        }
-*/
+    /* Free the allocated memory */
+    palFreeMemory(pMac, tempPtr);
+#ifdef VERIFY_FW_DOWNLOAD
+    palFreeMemory(pMac, verifyBuf);
+#endif
 
     // Update the Traffic monitoring
     pFwConfig->ucRegulateTrafficMonitorMsec = QWLANFW_TRAFFIC_MONITOR_TIMEOUT_MSEC;
+#ifdef WLAN_SOFTAP_FEATURE
+    pFwConfig->ucApLinkMonitorMsec = QWLANFW_AP_LINK_MONITOR_TIMEOUT_MSEC;
+    pFwConfig->ucUnknownAddr2CreditIntvMsec = QWLANFW_UNKNOWN_ADDR2_NOTIFCATION_INTERVAL_MS;
+#endif
     pFwConfig->usBdPduOffset = QWLANFW_NUM_BDPDU_THRESHOLD;
 
     pFwConfig->ucMaxBss = HAL_NUM_BSSID;
     pFwConfig->ucMaxSta = HAL_NUM_STA;
+
+#ifdef WLAN_SOFTAP_FEATURE
+    pFwConfig->uBssTableOffset = pMac->hal.memMap.bssTable_offset;
+    pFwConfig->uStaTableOffset = pMac->hal.memMap.staTable_offset;
+    pFwConfig->bFwProcProbeReqDisabled = 1;
+    halZeroDeviceMemory(pMac,pMac->hal.memMap.bssTable_offset, pMac->hal.memMap.bssTable_size);
+    halZeroDeviceMemory(pMac,pMac->hal.memMap.staTable_offset, pMac->hal.memMap.staTable_size);
+#endif
+
 
     // Write the required system config parameters into the
     // device memory
@@ -297,34 +313,66 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
         Qwlanfw_CalControlBitmask calControl =
         {
 #ifdef BYTE_ORDER_BIG_ENDIAN
-            1/* Channel Number to tune to after cal */, 0/* Reserved */,
-            0/* Channel Tune after cal */, 0/* Temperature Measure Periodically */,
-            0/* Temperature Measure at Init */, 0/* Tx DPD */,
-            0/* CLPC Temp Adjustment */, 0/* CLPC */,
-            1/* Rx IQ */, 0/* Rx GM-stage linearity */,
-            1/* Tx IQ */, 1/* Tx Lo Leakage */,
-            1/* Rx DCO */, 0/* RxDCO + IM2 Cal w/ Noise */,
-            0/* RxDCO + IM2 Cal w/ Rx Tone Gen */, 0/* LNA Gain adjust */,
-            0/* LNA Band tuning */, 0/* LNA Bias Setting */,
-            0/* PLL VCO Freq Linearity Cal */, 0/* Process Monitor */,
-            0/* C Tuner */, 0/* In-Situ Tuner */,
-            0/* Rtuner */, 0/* HDET DCO */,
-            1/* Firmware Initialization */, 0/* Use cal data prior to calibrations */
+            1/* Channel Number to tune to after cal */,
+            0/* Reserved */,
+
+            1/* Channel Tune after cal */,
+            0/* Temperature Measure Periodically */,
+            0/* Temperature Measure at Init */,
+            0/* Tx DPD */,
+            0/* CLPC Temp Adjustment */,
+            0/* CLPC */,
+            1/* Rx IQ */,
+            0/* Rx GM-stage linearity */,
+
+            1/* Tx IQ */,
+            1/* Tx Lo Leakage */,
+            1/* Rx DCO */,
+            0/* RxDCO + IM2 Cal w/ Noise */,
+            0/* RxDCO + IM2 Cal w/ Rx Tone Gen */,
+            0/* LNA Gain adjust */,
+            0/* LNA Band tuning */,
+            0/* LNA Bias Setting */,
+
+            0/* PLL VCO Freq Linearity Cal */,
+            0/* Process Monitor */,
+            0/* C Tuner */,
+            0/* In-Situ Tuner */,
+            0/* Rtuner */,
+            0/* HDET DCO */,
+            1/* Firmware Initialization */,
+            0/* Use cal data prior to calibrations */
 
 #else
-            0/* Use cal data prior to calibrations */, 1/* Firmware Initialization */,
-            0/* HDET DCO */, 0/* Rtuner */,
-            0/* In-Situ Tuner */, 0/* C Tuner */,
-            0/* Process Monitor */, 0/* PLL VCO Freq Linearity Cal */,
-            0/* LNA Bias Setting */, 0/* LNA Band tuning */,
-            0/* LNA Gain adjust */, 0/* RxDCO + IM2 Cal w/ Rx Tone Gen */,
-            0/* RxDCO + IM2 Cal w/ Noise */, 1/* Rx DCO */,
-            1/* Tx Lo Leakage */, 1/* Tx IQ */,
-            0/* Rx GM-stage linearity */, 1/* Rx IQ */,
-            0/* CLPC */, 0/* CLPC Temp Adjustment */,
-            0/* Tx DPD */, 0/* Temperature Measure at Init */,
-            0/* Temperature Measure Periodically */, 0/* Channel Tune after cal */,
-            0/* Reserved */, 1/* Channel Number to tune to after cal */
+            0/* Use cal data prior to calibrations */,
+            1/* Firmware Initialization */,
+            0/* HDET DCO */,
+            0/* Rtuner */,
+            0/* In-Situ Tuner */,
+            0/* C Tuner */,
+            0/* Process Monitor */,
+            0/* PLL VCO Freq Linearity Cal */,
+
+            0/* LNA Bias Setting */,
+            0/* LNA Band tuning */,
+            0/* LNA Gain adjust */,
+            0/* RxDCO + IM2 Cal w/ Rx Tone Gen */,
+            0/* RxDCO + IM2 Cal w/ Noise */,
+            1/* Rx DCO */,
+            1/* Tx Lo Leakage */,
+            1/* Tx IQ */,
+
+            0/* Rx GM-stage linearity */,
+            1/* Rx IQ */,
+            0/* CLPC */,
+            0/* CLPC Temp Adjustment */,
+            0/* Tx DPD */,
+            0/* Temperature Measure at Init */,
+            0/* Temperature Measure Periodically */,
+            1/* Channel Tune after cal */,
+
+            0/* Reserved */,
+            1/* Channel Number to tune to after cal */
 #endif
         };
 
@@ -424,11 +472,11 @@ eHalStatus halFW_CheckInitComplete(tHalHandle hHal, void *arg)
         // Is there any message received?
         if (writeCount > readCount) {
             // Parse the message type of the received message
-            status = halMbox_RecvMsg(hHal);
+            status = halMbox_RecvMsg(hHal, eANI_BOOLEAN_TRUE);
             break;
         }
-		// Introduce a wait of 20ms
-		vos_sleep(20);
+        // Introduce a wait of 20ms
+        vos_sleep(20);
     }
 
     /*FIXME_GEN6*/
@@ -449,6 +497,11 @@ eHalStatus halFW_CheckInitComplete(tHalHandle hHal, void *arg)
     }
     else
     {
+        if ((status = halPhyTxPowerInit((tHalHandle)pMac)) != eHAL_STATUS_SUCCESS)
+        {
+            HALLOGP(halLog (pMac, LOGP, FL("Could not initialize the TPC module\n")));
+            return status;
+        }
         /*
            send Mbox msg to fw to inform halRateInfo table was updated.
            This is required, because firmware will look into halRateInfoTable in shared
@@ -491,9 +544,8 @@ eHalStatus halFW_SendScanStopMesg(tpAniSirGlobal pMac){
 }
 
 
-
-eHalStatus halFW_SendConnectionStatusMesg(tpAniSirGlobal pMac, tSirLinkState linkStatus){
-#if defined(LIBRA_WAPI_SUPPORT)
+eHalStatus halFW_SendConnectionStatusMesg(tpAniSirGlobal pMac, tSirLinkState linkStatus)
+{
     tANI_U8    uFwMesgType = QWLANFW_HOST2FW_MSG_TYPES_END + 1;
     union {
         Qwlanfw_ConnectionSetupStartType  sConnSetupStartNotify;
@@ -537,7 +589,6 @@ eHalStatus halFW_SendConnectionStatusMesg(tpAniSirGlobal pMac, tSirLinkState lin
 
         }
     }
-#endif
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -555,8 +606,6 @@ eHalStatus halFW_SendConnectionEndMesg(tpAniSirGlobal pMac)
 
     return eHAL_STATUS_SUCCESS;
 }
-
-
 
 /*
  * DESCRIPTION:
@@ -634,7 +683,7 @@ eHalStatus halFW_UpdateReInitRegListStartAddr(tpAniSirGlobal pMac, tANI_U32 valu
     tHalFwParams *pFw = &pMac->hal.FwParam;
     Qwlanfw_SysCfgType *pFwConfig;
 #ifdef VOLANS_PHY_TX_OPT_ENABLED
-	tHalRegBckup *pRegBckup = &pMac->hal.RegBckupParam;
+    tHalRegBckup *pRegBckup = &pMac->hal.RegBckupParam;
 #endif /* VOLANS_PHY_TX_OPT_ENABLED */
 
 
@@ -684,7 +733,7 @@ eHalStatus halFW_UpdateSystemConfig(tpAniSirGlobal pMac,
     // Check whether the size of the config is within the boundaries
     // assigned for system config
     if((address + size) > configEndAddr) {
-        HALLOGE( halLog(pMac, LOGE, FL("Invalid size for updating system config") ));
+        HALLOGE( halLog(pMac, LOGE, FL("Invalid size for updating system config[%X][%X]"), (address + size),configEndAddr  ));
         return eHAL_STATUS_FAILURE;
     }
 
@@ -707,11 +756,10 @@ eHalStatus halFW_UpdateSystemConfig(tpAniSirGlobal pMac,
  *      eHAL_STATUS_FAILURE
  */
 /*  */
-eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void *pFwMsg, tANI_U8* bufConsumed)
+eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void *pFwMsg)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tMBoxMsgHdr *pMsgHdr = (tMBoxMsgHdr*)pFwMsg;
-    *bufConsumed = TRUE;
 
     // Handle the type of FW message received
     switch(pMsgHdr->MsgType) {
@@ -762,17 +810,20 @@ eHalStatus halFW_HandleFwMessages(tpAniSirGlobal pMac, void *pFwMsg, tANI_U8* bu
 #endif
         case QWLANFW_FW2HOST_CAL_UPDATE_RSP:
         case QWLANFW_FW2HOST_SET_CHAIN_SELECT_RSP:
+        case QWLANFW_FW2HOST_SET_CHANNEL_RSP:
            status = halPhy_HandlerFwRspMsg(pMac, pFwMsg);
            break;
 
-        case QWLANFW_FW2HOST_SET_CHANNEL_RSP:
-#ifdef ANI_MANF_DIAG
-           status = halPhy_HandlerFwRspMsg(pMac, pFwMsg);
-#else
-            status = halFw_PostFwRspMsg(pMac, pFwMsg);
-            *bufConsumed = (status == eHAL_STATUS_SUCCESS) ? FALSE : TRUE;
+#ifdef WLAN_SOFTAP_FEATURE
+        case QWLANFW_FW2HOST_DEL_STA_CONTEXT:
+            status = halFW_HandleFwDelStaMsg(pMac, pFwMsg);
+              break;
 #endif
+#ifdef FEATURE_INNAV_SUPPORT
+        case QWLANFW_FW2HOST_INNAV_MEAS_RSP:
+            status = halInNav_HandleFwStartInNavMeasRsp(pMac, pFwMsg);
             break;
+#endif
 
         default:
             status = eHAL_STATUS_FW_MSG_INVALID;
@@ -902,7 +953,6 @@ void halFW_HeartBeatMonitor(tpAniSirGlobal pMac)
 }
 
 
-
 // Function to start the periodic CHIP monitor
 void halFW_StartChipMonitor(tpAniSirGlobal pMac)
 {
@@ -914,4 +964,381 @@ void halFW_StopChipMonitor(tpAniSirGlobal pMac)
 {
     tx_timer_deactivate(&pMac->hal.halMac.chipMonitorTimer);
 }
+
+#ifdef WLAN_SOFTAP_FEATURE
+/*
+ * DESCRIPTION:
+ *      Function to handle the FW delete STA context messages
+ *
+ * PARAMETERS:
+ *      pMac:   Pointer to the global adapter context
+ *      pFwMsg: Pointer to the FW message
+ *
+ * RETURN:
+ *      eHAL_STATUS_SUCCESS
+ *      eHAL_STATUS_FAILURE
+ */
+eHalStatus halFW_HandleFwDelStaMsg(tpAniSirGlobal pMac, void* pFwMsg)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    tQwlanfw_DeleteStaContextType *pFwDelStaMsg = (tQwlanfw_DeleteStaContextType *) pFwMsg;
+    tpDeleteStaContext  pDeleteStaMsg;
+
+    HALLOGE(halLog(pMac, LOGE, FL("DelStaInd aid=%d, stId=%d, rc=%d\n"),
+            pFwDelStaMsg->assocId , pFwDelStaMsg->staIdx ,pFwDelStaMsg->uReasonCode ));
+
+    if( eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void **)&pDeleteStaMsg, sizeof(tDeleteStaContext)) )
+    {
+       /* No need for LOGP since its not a fatal error if we
+       * can't send the indication to LIM. And if palAllocateMemory()
+       * fails again, the next LOGP will take care of it.
+       */
+       HALLOGE( halLog(pMac, LOGE, FL("Failed to allocate memory \r\n")));
+       status = eHAL_STATUS_FAILURE;
+    }
+    else
+    {
+       pDeleteStaMsg->assocId    = (tANI_U16)pFwDelStaMsg->assocId;
+       pDeleteStaMsg->staId      = (tANI_U16)pFwDelStaMsg->staIdx;
+       pDeleteStaMsg->reasonCode = (tANI_U16)pFwDelStaMsg->uReasonCode;
+
+       if( eHAL_STATUS_SUCCESS != halTable_FindAddrByBssid(pMac, (tANI_U8)pFwDelStaMsg->bssIdx, pDeleteStaMsg->bssId))
+       {
+           HALLOGE(halLog(pMac, LOGE, FL(" Failed to Delete STA bssIdx[%d] \r\n"), pFwDelStaMsg->bssIdx));
+           status = eHAL_STATUS_FAILURE;
+       }
+       else
+       {
+           halMsg_GenerateRsp( pMac, SIR_LIM_DELETE_STA_CONTEXT_IND, (tANI_U16) 0, (void *)pDeleteStaMsg, 0);
+           status = eHAL_STATUS_SUCCESS;
+       }
+    }
+
+    return status;
+}
 #endif
+
+
+
+#ifdef WLAN_SOFTAP_FEATURE
+
+//Dinesh move the following defintions to the right place.
+#define PROBE_RSP_MPDU_MAX_LEN 0x400 //Dinesh needs to revisit. this length should be less tx bd header and 4 bytes length field. than the lengh tat FW.
+#define PROBE_RSP_MPDU_HDR_LEN 24
+
+eHalStatus halFW_WriteProbeRspToMemory(tpAniSirGlobal pMac, tANI_U8 *probeRsp,
+                                    tANI_U8 selfStaIdxBss, tANI_U16 probeRspIndex, tANI_U32 mpduLen)
+{
+    /** Update Beacon Memory */
+    tANI_U32 probeRspOffset;
+    tANI_U32 alignedLen;
+    halTxBd_type txBd;
+    tANI_U32 templateLen = 0;
+    tpBssStruct pBss = &(((tpBssStruct) pMac->hal.halMac.bssTable)[0 /*probeRspIndex 0 for now*/]);
+
+    if(mpduLen > PROBE_RSP_MPDU_MAX_LEN)
+    {
+        HALLOGE(halLog(pMac, LOGE, FL("the probeRsp mpdu length (%u) is greater than the max length (%u)"),
+            mpduLen, PROBE_RSP_MPDU_MAX_LEN));
+        return eHAL_STATUS_FAILURE;
+    }
+    vos_mem_zero(&txBd, sizeof(txBd));
+    //Fill in txbd.
+    txBd.fwTxComplete0 = 0;
+    txBd.queueId = BTQM_QUEUE_SELF_STA_PROBE_RSP; /*Using Low priority Mgmt Q*/
+    txBd.mpduHeaderOffset = sizeof(halTxBd_type);
+    txBd.staIndex = pBss->bssSelfStaIdx; //self station index for the BSS.
+    txBd.bdRate = 0x0;
+    txBd.bd_ssn = 1;
+    txBd.dpuRF = BMUWQ_BTQM_TX_MGMT;
+    txBd.mpduHeaderLength = PROBE_RSP_MPDU_HDR_LEN;
+    txBd.mpduLength = mpduLen;
+    txBd.mpduDataOffset = sizeof(halTxBd_type)+ txBd.mpduHeaderLength;
+
+    probeRspOffset = pMac->hal.memMap.probeRspTemplate_offset + (probeRspIndex * PROBE_RSP_TEMPLATE_MAX_SIZE);
+
+    templateLen = mpduLen + sizeof(halTxBd_type);  //mpdu length + TX bd header
+
+    halWriteDeviceMemory(pMac, probeRspOffset ,
+                            (tANI_U8 *)&templateLen, 4); //4 //4 bytes template length.
+
+    halWriteDeviceMemory(pMac, probeRspOffset + 4,
+                            (tANI_U8 *)&txBd, sizeof(halTxBd_type)); //4 //TxBd
+
+
+    //halWriteDevicememory requires length to be mulltiple of four and aligned to 4 byte boundry.
+    alignedLen = ( mpduLen + 3 ) & ~3 ;
+
+    // beacon body need to be swapped sicne there is another swap occurs while BAL writes
+    // the beacon to Libra.
+    sirSwapU32BufIfNeeded((tANI_U32*)probeRsp, alignedLen>>2);
+
+    halWriteDeviceMemory(pMac, probeRspOffset + 4 + sizeof(halTxBd_type),
+                            (tANI_U8 *)probeRsp, alignedLen );
+
+    return eHAL_STATUS_SUCCESS;
+}
+
+eHalStatus halFW_MsgReq(tpAniSirGlobal pMac, tFwMsgTypeEnum msgType, tANI_U16 msgLen, tANI_U8* msgBody)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    Qwlanfw_CommonMsgType msg;
+
+    /* send message to firmware */
+    msg.msgType = (tANI_U16)msgType;
+    msg.msgLen = msgLen;
+
+    if(msgLen)
+       vos_mem_copy(&msg.u.addStaMsg, msgBody, msgLen);
+
+    // Send common message down to FW.
+    status = halFW_SendMsg(pMac, HAL_MODULE_ID_FW, QWLANFW_HOST2FW_COMMON_MSG,
+            0, sizeof(Qwlanfw_CommonMsgType), &msg, FALSE, NULL);
+    return status;
+}
+
+eHalStatus halFW_UpdateBeaconReq(tpAniSirGlobal pMac, tANI_U8 bssIdx,
+                                           tANI_U16 timIeOffset)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    Qwlanfw_UpdateBeaconMsgType msgBody;
+    tBssInfo bssInfo;
+    tpBssStruct pBss;
+    halReadDeviceMemory(pMac, (pMac->hal.memMap.bssTable_offset + (bssIdx * BSS_INFO_SIZE)), &bssInfo, sizeof(bssInfo));
+    if(bssIdx < HAL_NUM_BSSID)
+    {
+        pBss = &(((tpBssStruct) (pMac->hal.halMac.bssTable))[bssIdx]);
+        if(pBss && pBss->valid)
+        {
+            msgBody.bssIdx = pBss->bssIdx;
+            bssInfo.timIeOffset = timIeOffset;
+            halWriteDeviceMemory(pMac, (pMac->hal.memMap.bssTable_offset + (bssIdx * BSS_INFO_SIZE)), &bssInfo, sizeof(bssInfo));
+            /* send message to firmware */
+            HALLOGE(halLog(pMac, LOGE, FL("Sending message QWLANFW_UPDATE_BEACON to FW for bssIdx = %u, bssTable Address = 0x%x\n"), pBss->bssIdx,
+                    (pMac->hal.memMap.bssTable_offset + (bssIdx * BSS_INFO_SIZE))));
+            status = halFW_MsgReq(pMac, QWLANFW_COMMON_UPDATE_BEACON, sizeof(Qwlanfw_UpdateBeaconMsgType), (tANI_U8 *)&msgBody);
+        }
+    }
+    return status;
+}
+
+tANI_U8 mapHostToFwBssSystemRole(tpAniSirGlobal pMac, tBssSystemRole hostBssSystemRole)
+{
+    tANI_U8 fwRole = FW_SYSTEM_UNKNOWN_ROLE;
+    switch(hostBssSystemRole)
+    {
+        case eSYSTEM_UNKNOWN_ROLE:
+            fwRole = FW_SYSTEM_UNKNOWN_ROLE;
+            break;
+
+        case eSYSTEM_AP_ROLE:
+            fwRole = FW_SYSTEM_AP_ROLE;
+            break;
+
+        case eSYSTEM_STA_IN_IBSS_ROLE:
+            fwRole = FW_SYSTEM_STA_IN_IBSS_ROLE;
+            break;
+
+        case eSYSTEM_STA_ROLE:
+            fwRole = FW_SYSTEM_STA_ROLE;
+            break;
+
+        case eSYSTEM_BTAMP_STA_ROLE:
+            fwRole = FW_SYSTEM_BTAMP_STA_ROLE;
+            break;
+
+        case eSYSTEM_BTAMP_AP_ROLE:
+            fwRole = FW_SYSTEM_BTAMP_AP_ROLE;
+            break;
+
+        case eSYSTEM_MULTI_BSS_ROLE:
+            fwRole = FW_SYSTEM_MULTI_BSS_ROLE;
+            break;
+        default:
+            HALLOGE(halLog(pMac, LOGE, FL("invalid bss system role = %d \n"), hostBssSystemRole));
+            fwRole = FW_SYSTEM_UNKNOWN_ROLE;
+            break;
+    }
+    return fwRole;
+}
+eHalStatus halFW_AddBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    tBssInfo bssInfo;
+    Qwlanfw_AddBssMsgType msgBody;
+    tpBssStruct pBss;
+    tpStaStruct pSta;
+    tHalFwParams *pFw = &pMac->hal.FwParam;
+    Qwlanfw_SysCfgType *pFwConfig;
+
+    pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
+
+    status = halFW_UpdateSystemConfig(pMac,
+            pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
+            sizeof(*pFwConfig));
+
+    vos_mem_zero(&bssInfo, sizeof(bssInfo));
+    if(bssIdx < HAL_NUM_BSSID)
+    {
+        pBss = &(((tpBssStruct) (pMac->hal.halMac.bssTable))[bssIdx]);
+        if(pBss && pBss->valid)
+        {
+            //in AP mode enable link monitoring and unknown addr2 handling.
+            if(pBss->bssSystemRole == eSYSTEM_AP_ROLE)
+            {
+                pFwConfig->fDisLinkMonitor = 0;
+                pFwConfig->fEnableFwUnknownAddr2Handling = 1;
+            }
+
+            msgBody.bssIdx = pBss->bssIdx;
+            bssInfo.bssIdx = pBss->bssIdx;
+            bssInfo.selfStaIdx = pBss->bssSelfStaIdx;
+            bssInfo.bcastStaIdx = pBss->bcastStaIdx;
+            bssInfo.bssRole = mapHostToFwBssSystemRole(pMac, pBss->bssSystemRole);
+            bssInfo.tuBcnIntv = pBss->tuBeaconInterval;
+            bssInfo.hiddenSsid = pBss->hiddenSsid;
+            bssInfo.valid = 1;
+            pSta = &(((tpStaStruct) (pMac->hal.halMac.staTable))[pBss->staIdForBss]);
+            bssInfo.selfStaAddrLo = *((tANI_U32*)pSta->staAddr);
+            bssInfo.selfStaAddrHi = *((tANI_U16*)(pSta->staAddr + 4));
+
+            vos_mem_copy(bssInfo.ssId, pBss->ssId.ssId, pBss->ssId.length);
+            bssInfo.ssIdLen = pBss->ssId.length;
+            //need to take care of multiple BSSid.
+            bssInfo.bcnTemplateAddr = (tANI_U8*)pMac->hal.memMap.beaconTemplate_offset;
+            bssInfo.probeRspTemplateAddr = (tANI_U8*)pMac->hal.memMap.probeRspTemplate_offset;
+            halWriteDeviceMemory(pMac, (pMac->hal.memMap.bssTable_offset + (bssIdx * BSS_INFO_SIZE)) , &bssInfo, sizeof(bssInfo));
+            HALLOGE(halLog(pMac, LOGE, FL("Sending message QWLANFW_COMMON_ADD_BSS to FW for bssIdx = %u, staIdxForBss = %u, bcastStaIdxForBss %u\n"),
+                pBss->bssIdx, pBss->bssSelfStaIdx, pBss->bcastStaIdx));
+            /* send message to firmware */
+            status = halFW_MsgReq(pMac, QWLANFW_COMMON_ADD_BSS, sizeof(Qwlanfw_AddBssMsgType), (tANI_U8 *)&msgBody);
+        }
+    }
+    return status;
+}
+
+eHalStatus halFW_DelBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    Qwlanfw_DelBssMsgType msgBody;
+    tpBssStruct pBss;
+    tHalFwParams *pFw = &pMac->hal.FwParam;
+    Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
+    if(bssIdx < HAL_NUM_BSSID)
+    {
+        pBss = &(((tpBssStruct) (pMac->hal.halMac.bssTable))[bssIdx]);
+        if(pBss && pBss->valid)
+        {
+            //in AP is getting deleted disable link monitoring and unknown addr2 handling.
+            if(pBss->bssSystemRole == eSYSTEM_AP_ROLE)
+            {
+                pFwConfig->fDisLinkMonitor = 1;
+                pFwConfig->fEnableFwUnknownAddr2Handling = 0;
+            }
+
+             msgBody.bssIdx = bssIdx;
+            /* send message to firmware */
+            status = halFW_MsgReq(pMac, QWLANFW_COMMON_DEL_BSS, sizeof(Qwlanfw_DelBssMsgType), (tANI_U8 *)&msgBody);
+        }
+    }
+    return status;
+}
+
+eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobalUpdate, tANI_U8 raStaUpdate)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    tStaInfo staInfo;
+    Qwlanfw_AddStaMsgType msgBody;
+    tpStaStruct pSta;
+    vos_mem_zero(&staInfo, sizeof(staInfo));
+    if(staIdx < HAL_NUM_STA)
+    {
+        pSta = &(((tpStaStruct)(pMac->hal.halMac.staTable))[staIdx]);
+        if((pSta) && pSta->valid)
+        {
+            msgBody.staIdx = pSta->staId;
+            staInfo.bssIdx = pSta->bssIdx;
+            staInfo.staIdx = pSta->staId;
+            staInfo.aid = pSta->assocId;
+            staInfo.valid = 1;
+            staInfo.delEnbQidMask = pSta->delEnbQidMask;
+            staInfo.qosEnabled = pSta->qosEnabled;
+            staInfo.peerEntry = ((pSta->staType == STA_ENTRY_PEER)?1:0);
+            staInfo.macAddrLo = *((tANI_U32*)pSta->staAddr);
+            staInfo.macAddrHi = *((tANI_U16*)(pSta->staAddr + 4));
+
+            msgBody.bssIdx = pSta->bssIdx;
+            if(raGlobalUpdate)
+            {
+                tHalRaGlobalInfo *pGlobRaInfo = &pMac->hal.halRaInfo;
+
+                /* Download the table to the target. */
+                /* Note : As a workaround, update globalInfo here. This is supposed to be called
+                               after initializtaion of RaGlobalInfo in halMacRaStart().
+                               However, rtsThreshold and protPolicy is not initialized properly at that moment,
+                               because Cfg is not initialized yet.
+                            */
+                halMacRaGlobalInfoToFW(pMac, pGlobRaInfo, 0, sizeof(tHalRaGlobalInfo));
+                msgBody.raGlobalUpdate = raGlobalUpdate;
+            }
+
+            halWriteDeviceMemory(pMac, (pMac->hal.memMap.staTable_offset + (staIdx * STA_INFO_SIZE)), &staInfo, sizeof(staInfo));
+
+            /* send message to firmware */
+            HALLOGE(halLog(pMac, LOGE, FL("Sending message QWLANFW_COMMON_ADD_STA to FW for staId = %u\n"), pSta->staId));
+            status = halFW_MsgReq(pMac, QWLANFW_COMMON_ADD_STA, sizeof(Qwlanfw_AddStaMsgType), (tANI_U8 *)&msgBody);
+        }
+    }
+    return status;
+}
+
+eHalStatus halFW_DelStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    Qwlanfw_DelStaMsgType msgBody;
+//    tpStaStruct pSta;
+    if(staIdx < HAL_NUM_STA)
+    {
+//Dinesh no need to check.
+//        pSta = &(((tpStaStruct)(pMac->hal.halMac.staTable))[staIdx]);
+//        if((pSta) && pSta->valid)
+        {
+             msgBody.staIdx = staIdx;
+            /* send message to firmware */
+            status = halFW_MsgReq(pMac, QWLANFW_COMMON_DEL_STA, sizeof(Qwlanfw_DelStaMsgType), (tANI_U8 *)&msgBody);
+        }
+    }
+    return status;
+}
+
+/*
+ * DESCRIPTION:
+ *      Update bitmap for unhandled IEs in probeRsp by FW.
+ *
+ * PARAMETERS:
+ *      pMac:   Pointer to the global adapter context
+ *      value:  Address value to be written into the system config
+ *
+ * RETURN:
+ *      eHAL_STATUS_SUCCESS
+ *      eHAL_STATUS_FAILURE
+ */
+eHalStatus halFW_UpdateProbeRspIeBitmap(tpAniSirGlobal pMac, tpUpdateProbeRspIeBitmap pMsg)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tHalFwParams *pFw = &pMac->hal.FwParam;
+    Qwlanfw_SysCfgType *pFwConfig;
+
+    pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
+    vos_mem_copy(pFwConfig->apProbeReqValidIEBitmap, pMsg->probeRspIeBitmap, sizeof(pFwConfig->apProbeReqValidIEBitmap));
+    pFwConfig->bFwProcProbeReqDisabled = pMsg->fwProcessingdisabled;
+
+    status = halFW_UpdateSystemConfig(pMac,
+            pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
+            sizeof(*pFwConfig));
+    palFreeMemory( pMac->hHdd, (tANI_U8 *) pMsg );
+    return status;
+}
+
+#endif
+#endif //#ifndef VERIFY_HALPHY

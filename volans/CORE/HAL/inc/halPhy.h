@@ -18,7 +18,7 @@
 
 #ifndef HALPHY_H
 #define HALPHY_H
-#include <halRfTypes.h>
+#include <halPhyCalMemory.h>
 
 //for 30second periodic interrupt, do this every 5 minutes
 #define HAL_PHY_PERIODIC_CAL_ITER_LIMIT       10
@@ -28,22 +28,13 @@ typedef enum
     //these show which rx and tx chains are enabled, other chains are disable accordingly
     //Production modes
     PHY_CHAIN_SEL_R0_T0_ON,
-    PHY_CHAIN_SEL_R0R1_T0_ON,
     
     PHY_CHAIN_SEL_BT_R0_T0_ON,      //simultaneous bluetooth receive enabled
-    PHY_CHAIN_SEL_BT_R0R1_T0_ON,    //simultaneous bluetooth receive enabled
     
 
     //test modes 
     PHY_CHAIN_SEL_R0_ON,
-    PHY_CHAIN_SEL_R0R1_ON,
-    
     PHY_CHAIN_SEL_T0_ON,
-    
-    PHY_CHAIN_SEL_T0_R1_ON,
-    
-    PHY_CHAIN_SEL_R1_ON,    
-    
     PHY_CHAIN_SEL_NO_RX_TX,
 
     MAX_PHY_CHAIN_SEL,
@@ -56,11 +47,14 @@ typedef enum
     PHY_DOUBLE_CHANNEL_LOW_PRIMARY = 1,     // 40MHz IF bandwidth with lower 20MHz supporting the primary channel
     //not allowed PHY_DOUBLE_CHANNEL_CENTERED = 2,        // 40MHz IF bandwidth centered on IF carrier
     PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3     // 40MHz IF bandwidth with higher 20MHz supporting the primary channel
+
 }ePhyChanBondState;
 
 typedef enum
 {
+#ifdef CHANNEL_BONDED_CAPABLE
     PHY_CCA_40MHZ_SOURCE = 0,
+#endif
     PHY_CCA_20MHZ_SOURCE = 1
 }ePhyCCASource;
 
@@ -101,15 +95,6 @@ typedef enum
     PHY_NW_DENSITY_ADAPTIVE
 } ePhyNwDensity;
 
-typedef enum
-{
-    PHY_POWER_NORMAL,            //all power enabled for full functionality
-    PHY_POWER_STATIC_RX_SM,      //receive 1-chain limitation for partial power savings
-    PHY_POWER_DYNAMIC_RX_SM,     //SoftMac may change the receive chain configuration for dynamic SM mode
-    PHY_POWER_RF_CHIP_DISABLED,  //Rf PLL disabled, but XO, XO_BUF enabled
-    PHY_POWER_OFF                //XO off - Rf chip in lowest power state
-}ePhyPowerSave;
-
 
 typedef tPowerdBm tChannelPwrLimit;
 
@@ -130,7 +115,7 @@ typedef enum
     RX_IQ_CAL_ONLY,
     TX_IQ_CAL_ONLY,
     NO_CALS = 0xFF
-}eInitCals;
+}eCalSelection;
 
 
 #ifdef VERIFY_HALPHY_SIMV_MODEL

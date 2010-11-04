@@ -20,8 +20,9 @@
 #define PTTMODULE_H
 
 #include "phyTest.h"
-#include "asicWfm.h"
-#include "halPhyCfg.h"  //this includes those types that are needed to store the associate NV tables
+#include <asicWfm.h>
+#include <asicTPC.h>
+#include <halPhyCfg.h>  //this includes those types that are needed to store the associate NV tables
 
 #include "pttFrameGen.h"
 
@@ -41,6 +42,7 @@ typedef struct
     tANI_U16 drvMin;
     tANI_U16 pttMax;
     tANI_U16 pttMin;
+    FwVersionInfo fwVer;
 }sBuildReleaseParams;
 
 typedef struct
@@ -125,10 +127,11 @@ typedef struct
     //Rx Gain Service
     sRxChainsAgcEnable agcEnables;
 
-    //Hdet cal values
-    sRfNvCalValues rfCalValues;
-
     tANI_U32 *pADCCaptureCache; //pointer to allocate ADC capture cache
+
+    TX_TIMER  adcRssiStatsTimer; //Create adc rssi stat collection timer
+
+    sRxChainsRssi rssi;
 }tPttModuleVariables;
 
 

@@ -71,7 +71,7 @@
 #include "vos_mq.h"
 #include "vos_memory.h"
 #include "vos_threads.h"
-#include "vos_trace.h"
+#include "sscDebug.h"
 
 /* SDIO services                                                           */
 #include "wlan_qct_sal.h"
@@ -90,19 +90,6 @@
 ---------------------------------------------------------------------------*/
 #define WLANSSC_COOKIE 0x6C797972
 
-/*---------------------------------------------------------------------------
-   WLANSSC_MSG
-
-   This is a placeholder for actual VOS MACRO to dump messages
-
-   String should already have the type and location of variables (e.g. %d)
----------------------------------------------------------------------------*/
-#define WLANSSC_MSG(String_, Variable1_, Variable2_, Variable3_)            \
-do                                                                          \
-{                                                                           \
-  VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, String_, Variable1_, Variable2_, Variable3_ );  \
-} while ( 0 )
-
 #ifdef DUMP_SSC_STATS
 #define WLANSSC_MSG_INFO2(String_, Variable1_, Variable2_, Variable3_)            \
 do                                                                          \
@@ -110,19 +97,6 @@ do                                                                          \
    VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO_HIGH, String_, Variable1_, Variable2_, Variable3_ );   \
 } while ( 0 )
 #endif /* DUMP_SSC_STATS */
-
-/*---------------------------------------------------------------------------
-   WLANSSC_ERR
-
-   This is a placeholder for actual VOS MACRO to log errors
-
-   String should already have the type and location of variables (e.g. %d)
----------------------------------------------------------------------------*/
-#define WLANSSC_ERR(String_, Variable1_, Variable2_, Variable3_)            \
-do                                                                          \
-{                                                                           \
-  VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, String_, Variable1_, Variable2_, Variable3_ );  \
-} while ( 0 )
 
 /*---------------------------------------------------------------------------
    WLANSSC_ASSERT
@@ -148,7 +122,7 @@ do                                                                          \
   if( VOS_STATUS_SUCCESS != vos_lock_acquire( &((pControlBlock_)->stSSCTxLock) ) ) \
   {                                                                         \
     WLANSSC_ASSERT( 0 );                                                    \
-    WLANSSC_ERR( "Error acquiring SSC lock", 0, 0, 0 );                     \
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error acquiring SSC lock"));                     \
   }                                                                         \
 } while ( 0 )
 
@@ -164,7 +138,7 @@ do                                                                          \
   if( VOS_STATUS_SUCCESS != vos_lock_release( &((pControlBlock_)->stSSCTxLock) ) ) \
   {                                                                         \
     WLANSSC_ASSERT( 0 );                                                    \
-    WLANSSC_ERR( "Error releasing SSC lock", 0, 0, 0 );                     \
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error releasing SSC lock"));                     \
   }                                                                         \
 } while ( 0 )
 
@@ -180,7 +154,7 @@ do                                                                          \
   if( VOS_STATUS_SUCCESS != vos_lock_acquire( &((pControlBlock_)->stSSCRxLock) ) ) \
   {                                                                         \
     WLANSSC_ASSERT( 0 );                                                    \
-    WLANSSC_ERR( "Error acquiring SSC lock", 0, 0, 0 );                     \
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error acquiring SSC lock"));                     \
   }                                                                         \
 } while ( 0 )
 
@@ -196,7 +170,7 @@ do                                                                          \
   if( VOS_STATUS_SUCCESS != vos_lock_release( &((pControlBlock_)->stSSCRxLock) ) ) \
   {                                                                         \
     WLANSSC_ASSERT( 0 );                                                    \
-    WLANSSC_ERR( "Error releasing SSC lock", 0, 0, 0 );                     \
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error releasing SSC lock"));                     \
   }                                                                         \
 } while ( 0 )
 
@@ -213,12 +187,12 @@ do                                                                          \
   if( VOS_STATUS_SUCCESS != vos_lock_acquire( &((pControlBlock_)->stSSCTxLock) ) ) \
   {                                                                         \
     WLANSSC_ASSERT( 0 );                                                    \
-    WLANSSC_ERR( "Error acquiring SSC lock", 0, 0, 0 );                     \
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error acquiring SSC lock"));                     \
   }                                                                         \
   if( VOS_STATUS_SUCCESS != vos_lock_acquire( &((pControlBlock_)->stSSCRxLock) ) ) \
   {                                                                         \
     WLANSSC_ASSERT( 0 );                                                    \
-    WLANSSC_ERR( "Error acquiring SSC lock", 0, 0, 0 );                     \
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error acquiring SSC lock"));                     \
   }                                                                         \
 } while ( 0 )
 
@@ -235,12 +209,12 @@ do                                                                          \
   if( VOS_STATUS_SUCCESS != vos_lock_release( &((pControlBlock_)->stSSCRxLock) ) ) \
   {                                                                         \
     WLANSSC_ASSERT( 0 );                                                    \
-    WLANSSC_ERR( "Error releasing SSC lock", 0, 0, 0 );                     \
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error releasing SSC lock"));                     \
   }                                                                         \
   if( VOS_STATUS_SUCCESS != vos_lock_release( &((pControlBlock_)->stSSCTxLock) ) ) \
   {                                                                         \
     WLANSSC_ASSERT( 0 );                                                    \
-    WLANSSC_ERR( "Error releasing SSC lock", 0, 0, 0 );                     \
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error releasing SSC lock"));                     \
   }                                                                         \
 } while ( 0 )
 
@@ -394,7 +368,7 @@ interrupt and sizes for the subsequent CMD53s are derived from the already read 
  */
 #if defined(LIBRA_FPGA) || defined(VOLANS_FPGA)
 //#define WLANSSC_SUSPENDWLANWAIT  10000
-#define WLANSSC_SUSPENDWLANWAIT  (100 * 6)   //ravij (FPGA is 6 times slower than actual chip)
+#define WLANSSC_SUSPENDWLANWAIT  (100 * 6)
 #else
 #define WLANSSC_SUSPENDWLANWAIT  100
 #endif
@@ -432,8 +406,15 @@ interrupt and sizes for the subsequent CMD53s are derived from the already read 
 
   Number of rx buffers to process (from ProcessRxData) before yielding to tx
 ---------------------------------------------------------------------------*/
-#define WLANSSC_RXYIELDTOTXTHRESHOLD   10
+#define WLANSSC_RXYIELDTOTXTHRESHOLD  3 
 
+
+/*---------------------------------------------------------------------------
+   WLANSSC_SIF_PWR_SAVE_BPS_SIF_FREEZE_DELAY 
+
+  Number of AHB clock cycles SIF delays the freeze/unfreeze requrest 
+---------------------------------------------------------------------------*/
+#define WLANSSC_SIF_PWR_SAVE_BPS_SIF_FREEZE_DELAY 0x200
 
 /*---------------------------------------------------------------------------
  * Type Declarations
@@ -1240,7 +1221,7 @@ static const WLANSSC_InterruptHandlerTableType gWLANSSC_InterruptHandlerTable =
   },
   /* WLANSSC_TX_FIFO_FULL_TIMEOUT_INTERRUPT                                */
   {
-    QWLAN_SIF_SIF_INT_STATUS_TX_FIFO_FULL_TIMEOUT_INTR_MASK,
+    QWLAN_SIF_SIF_INT_STATUS_TX_FIFO_FULL_TIMEOUT_INTR_MASK, 
     WLANSSC_FatalInterruptHandler,
   },
   /* WLANSSC_HOST_ABORTED_TX_FRAME_INTERRUPT                               */
@@ -1279,6 +1260,16 @@ static const WLANSSC_InterruptHandlerTableType gWLANSSC_InterruptHandlerTable =
     WLANSSC_RxFIFOEmptyInterruptHandler,
   },
 };
+
+
+/*---------------------------------------------------------------------------
+   gWLANSSC_TxMsgCnt
+
+   This is a count to force the tx msg count not to ever exceed an arbitrary
+   value - this is a temporary workaround for TL posting multiple requests to
+   SSC for a potentially single fetch operation.
+---------------------------------------------------------------------------*/
+static v_U32_t gWLANSSC_TxMsgCnt = 0;
 
 
 /*---------------------------------------------------------------------------
@@ -1335,7 +1326,7 @@ VOS_STATUS WLANSSC_Open
   }
   else
   {
-    WLANSSC_MSG( "SSC Handle is NULL as expected", 0, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SSC Handle is NULL as expected"));
   }
 
   /* Create SSC Context                                                    */
@@ -1343,7 +1334,7 @@ VOS_STATUS WLANSSC_Open
                                                    (v_PVOID_t)&pControlBlock,
                                                    UserData ) )
   {
-    WLANSSC_ERR( "Error creating SSC context", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error creating SSC context"));
     return VOS_STATUS_E_RESOURCES;
   }
 
@@ -1353,14 +1344,14 @@ VOS_STATUS WLANSSC_Open
     /* Should never happen!                                                */
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error initializing SSC context", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error initializing SSC context"));
     return VOS_STATUS_E_FAILURE;
   }
 
   /* Initialize control block                                              */
   if( VOS_STATUS_SUCCESS != WLANSSC_InitControlBlock(pControlBlock) )
   {
-    WLANSSC_ERR( "Error initializing SSC control block", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error initializing SSC control block"));
     return VOS_STATUS_E_RESOURCES;
   }
 
@@ -1376,7 +1367,7 @@ VOS_STATUS WLANSSC_Open
     /* Should never happen!                                                */
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error executing Open event", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error executing Open event"));
 
     WLANSSC_UNLOCKTXRX( pControlBlock );
     (v_VOID_t) WLANSSC_DestroyControlBlock( pControlBlock );
@@ -1431,7 +1422,7 @@ VOS_STATUS WLANSSC_Close
     /* Should never happen!                                                */
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error executing Close event", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error executing Close event"));
 
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
@@ -1520,7 +1511,7 @@ VOS_STATUS WLANSSC_Start
     /* Should never happen!                                                */
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error executing Start event", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error executing Start event"));
 
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
@@ -1569,7 +1560,7 @@ VOS_STATUS WLANSSC_Stop
     /* Should never happen!                                                */
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error executing Stop event", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error executing Stop event"));
 
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
@@ -1619,7 +1610,7 @@ VOS_STATUS WLANSSC_Reset
     /* Should never happen!                                                */
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error executing Reset event", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error executing Reset event"));
 
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
@@ -1654,9 +1645,18 @@ VOS_STATUS WLANSSC_StartTransmit
   vos_msg_t                    sMessage;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+  if(gWLANSSC_TxMsgCnt)
+  {
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Avoiding serializing SSC Start Xmit event %x", 
+                 Handle));
+    return VOS_STATUS_SUCCESS;
+  }
+
+  gWLANSSC_TxMsgCnt++;
+
   /* Signal the OS to serialize our event                                  */
-  WLANSSC_MSG( "Serializing SSC Start Xmit event for control block %x", 
-               Handle, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Serializing SSC Start Xmit event for control block %x", 
+               Handle));
 
   vos_mem_zero( &sMessage, sizeof(vos_msg_t) );
 
@@ -1737,7 +1737,7 @@ VOS_STATUS WLANSSC_Suspend
       /* If someone misuses SSC, be kind to them and don't assert!         */
       //WLANSSC_ASSERT( 0 );
       
-      WLANSSC_ERR( "Error executing Suspend event", 0, 0, 0 );
+      SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error executing Suspend event"));
       
       WLANSSC_UNLOCKTXRX( pControlBlock );
       return VOS_STATUS_E_FAILURE;
@@ -1846,13 +1846,13 @@ VOS_STATUS WLANSSC_Resume
 
     default:
       /* Default to no change                                              */
-      WLANSSC_ERR("No flow specified to resume!", 0, 0, 0 );
+      SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR,"No flow specified to resume!"));
   } /* ResumedFlow */
 
   if( VOS_STATUS_SUCCESS != WLANSSC_ExecuteEvent( pControlBlock, 
                                                   WLANSSC_RESUME_EVENT ) )
   {     
-    WLANSSC_ERR( "Error executing Resume event", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error executing Resume event"));
     
     eStatus = VOS_STATUS_E_FAILURE;
   }
@@ -1922,7 +1922,7 @@ VOS_STATUS WLANSSC_SuspendChip
     return VOS_STATUS_E_FAILURE;
   }
 
-  WLANSSC_MSG( "Waiting for SIF rx engine reset", 0, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Waiting for SIF rx engine reset"));
 
   while( WLANSSC_RESETLOOPCOUNT > uResetCount++ )
   {
@@ -1947,12 +1947,12 @@ VOS_STATUS WLANSSC_SuspendChip
     }
   }
 
-  WLANSSC_MSG( "SIF rx fifo reset complete", 0, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SIF rx fifo reset complete"));
 
   /* Flush out SSC buffers and completely reset `host rx state'            */
   if( NULL != pControlBlock->pMemAvailFrame )
   {
-    WLANSSC_MSG( "Returning pending VOS packet during suspend chip", 0, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Returning pending VOS packet during suspend chip"));
     (v_VOID_t) vos_pkt_return_packet( pControlBlock->pMemAvailFrame );
   }
 
@@ -1972,7 +1972,7 @@ VOS_STATUS WLANSSC_SuspendChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error suspending chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -1987,7 +1987,7 @@ VOS_STATUS WLANSSC_SuspendChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error suspending chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2003,7 +2003,7 @@ VOS_STATUS WLANSSC_SuspendChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error suspending chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2018,7 +2018,7 @@ VOS_STATUS WLANSSC_SuspendChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error suspending chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2036,7 +2036,7 @@ VOS_STATUS WLANSSC_SuspendChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error suspending chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2051,7 +2051,7 @@ VOS_STATUS WLANSSC_SuspendChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error suspending chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2068,7 +2068,7 @@ VOS_STATUS WLANSSC_SuspendChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error suspending chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2083,7 +2083,7 @@ VOS_STATUS WLANSSC_SuspendChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error suspending chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2099,7 +2099,7 @@ VOS_STATUS WLANSSC_SuspendChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error suspending chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2114,7 +2114,7 @@ VOS_STATUS WLANSSC_SuspendChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error suspending chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2127,13 +2127,13 @@ VOS_STATUS WLANSSC_SuspendChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error suspending chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
 
   pControlBlock->bChipSuspended = VOS_TRUE;
-  WLANSSC_ERR( "Suspend Chip status %x", uRegValue, 0, 0 );
+  SSCLOG2(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO_HIGH, "Suspend Chip status %x", uRegValue));
 
   /* Release Lock                                                          */
   WLANSSC_UNLOCKTXRX( pControlBlock );
@@ -2185,7 +2185,7 @@ VOS_STATUS WLANSSC_ResumeChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error resuming chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error resuming chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2200,7 +2200,7 @@ VOS_STATUS WLANSSC_ResumeChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error resuming chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error resuming chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2216,7 +2216,7 @@ VOS_STATUS WLANSSC_ResumeChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error resuming chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error resuming chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2231,7 +2231,7 @@ VOS_STATUS WLANSSC_ResumeChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error resuming chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error resuming chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2247,7 +2247,7 @@ VOS_STATUS WLANSSC_ResumeChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error resuming chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error resuming chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2262,7 +2262,7 @@ VOS_STATUS WLANSSC_ResumeChip
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error resuming chip", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error resuming chip"));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2270,19 +2270,19 @@ VOS_STATUS WLANSSC_ResumeChip
   vos_sleep(WLANSSC_SUSPENDWLANWAIT);
 
 
-  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
-                                                         QWLAN_SIF_BAR4_WLAN_STATUS_REG_REG,
-                                                         &uRegValue,
-                                                         WLANSSC_TX_REGBUFFER) )
-  {
-    WLANSSC_ASSERT( 0 );
+    if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
+                                                           QWLAN_SIF_BAR4_WLAN_STATUS_REG_REG,
+                                                           &uRegValue,
+                                                           WLANSSC_TX_REGBUFFER) )
+    {
+      WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Error resuming chip", 0, 0, 0 );
-    WLANSSC_UNLOCKTXRX( pControlBlock );
-    return VOS_STATUS_E_FAILURE;
-  }
+      SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error resuming chip"));
+      WLANSSC_UNLOCKTXRX( pControlBlock );
+      return VOS_STATUS_E_FAILURE;
+    }
 
-   WLANSSC_ERR( "Resume chip Status %x", uRegValue, 0, 0 );
+   SSCLOG2(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO_HIGH, "Resume chip Status %x", uRegValue));
 
    pControlBlock->bChipSuspended = VOS_FALSE;
 
@@ -2307,7 +2307,7 @@ VOS_STATUS WLANSSC_ResumeChip
                                                         (uInterruptsEnabled |
                                                          QWLAN_SIF_SIF_INT_EN_RX_FIFO_DATA_AVAIL_INTR_EN_MASK) ) )
      {
-       WLANSSC_ERR( "Error enabling interrupt %x", uInterruptsEnabled, 0, 0 );
+       SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error enabling interrupt %x", uInterruptsEnabled));
        WLANSSC_UNLOCKTXRX( pControlBlock );
        return VOS_STATUS_E_FAILURE;
      }
@@ -2341,7 +2341,7 @@ VOS_STATUS WLANSSC_EnableASICInterrupt
 {
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  WLANSSC_ERR( "Deprecated API - Please use WLANSSC_EnableASICInterruptEx()", 0, 0, 0 );
+  SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Deprecated API - Please use WLANSSC_EnableASICInterruptEx()"));
 
   /* For now, this will fallback to enabling all ASIC interrupts           */
   return WLANSSC_EnableASICInterruptEx( Handle, ~WLANSSC_NONASICINTERRUPTMASK);
@@ -2368,7 +2368,7 @@ VOS_STATUS WLANSSC_DisableASICInterrupt
 {
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  WLANSSC_ERR( "Deprecated API - Please use WLANSSC_DisableASICInterruptEx()", 0, 0, 0 );
+  SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Deprecated API - Please use WLANSSC_DisableASICInterruptEx()"));
 
   /* For now, this will fallback to enabling all ASIC interrupts           */
   return WLANSSC_DisableASICInterruptEx( Handle, ~WLANSSC_NONASICINTERRUPTMASK);
@@ -2440,7 +2440,7 @@ VOS_STATUS WLANSSC_EnableASICInterruptEx
                                                      pControlBlock->uASICInterruptMask | uInterruptsEnabled |
                                    QWLAN_SIF_SIF_INT_EN_RX_FIFO_DATA_AVAIL_INTR_EN_MASK ) )
   {
-    WLANSSC_ERR( "Error enabling ASIC interrupt %x", uInterruptMask, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error enabling ASIC interrupt %x", uInterruptMask));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2509,7 +2509,7 @@ VOS_STATUS WLANSSC_DisableASICInterruptEx
   if( VOS_STATUS_SUCCESS != WLANSSC_DisableInterrupt( pControlBlock,
                                                       uInterruptMask ) )
   {
-    WLANSSC_ERR( "Error disabling ASIC interrupt %x", uInterruptMask , 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error disabling ASIC interrupt %x", uInterruptMask));
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
@@ -2563,7 +2563,7 @@ VOS_STATUS WLANSSC_ProcessMsg
 
   WLANSSC_ASSERT( VOS_TRUE == WLANSSC_ISCONTEXTVALID( pControlBlock ) );
 
-  WLANSSC_MSG( "Processing SSC message: %x for context: %x", pMsg->type, pContext, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Processing SSC message: %x for context: %x", pMsg->type, pContext ));
 
   /* Acquire Lock to tx only!                                              */
   WLANSSC_LOCKTX( pControlBlock );
@@ -2574,11 +2574,11 @@ VOS_STATUS WLANSSC_ProcessMsg
 
     if( WLANSSC_MEMAVAIL_MESSAGE == pMsg->type )
     {
-      WLANSSC_ERR("Returning mem avail vos pkt : %x", pMsg->bodyval, 0, 0 );
+      SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR,"Returning mem avail vos pkt : %x", pMsg->bodyval));
       (v_VOID_t) vos_pkt_return_packet( (vos_pkt_t *)pMsg->bodyval );
     }
 
-    WLANSSC_ERR("Cannot process tx msg while chip suspended", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR,"Cannot process tx msg while chip suspended"));
 
     WLANSSC_UNLOCKTX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
@@ -2589,12 +2589,25 @@ VOS_STATUS WLANSSC_ProcessMsg
   {
     case WLANSSC_TXPENDING_MESSAGE:
 
+      /** Critical to decrement count before handling xmit
+          to reduce race conditions - this guarantees we
+          process at least one message after StartXmit
+          might have bailed out
+          Need the extra check to avoid counting below
+          zero: note that we can only increment in other
+          thread so this should be safe on race conditions
+       */
+      if( gWLANSSC_TxMsgCnt )
+      {
+        gWLANSSC_TxMsgCnt--;   
+      }
+
       /* Execute the transmit event : this is the only event from tx thread*/
       if( VOS_STATUS_SUCCESS != WLANSSC_ExecuteEvent( pControlBlock, 
                                                       WLANSSC_TRANSMIT_EVENT ) )
       {
         /* Should never happen!                                            */
-        WLANSSC_ERR("Cannot transmit in state: %d", pControlBlock->eState, 0, 0 );
+        SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR,"Cannot transmit in state: %d", pControlBlock->eState));
 
         WLANSSC_UNLOCKTX( pControlBlock );
         return VOS_STATUS_E_FAILURE;
@@ -2610,9 +2623,9 @@ VOS_STATUS WLANSSC_ProcessMsg
       }
       else
       {
-        WLANSSC_MSG("Existing frame: %x; Extra frame received: %x freeing new and continuing", 
+        SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO,"Existing frame: %x; Extra frame received: %x freeing new and continuing", 
                     pControlBlock->pMemAvailFrame,
-                    pMsg->bodyval, 0 );
+                    pMsg->bodyval ));
 
        /* We could actually return here, but to be safe, we read more     */
         (v_VOID_t) vos_pkt_return_packet( (vos_pkt_t *)pMsg->bodyval );
@@ -2627,7 +2640,7 @@ VOS_STATUS WLANSSC_ProcessMsg
                                                       WLANSSC_RECEIVE_EVENT ) )
       {
         /* Should never happen!                                            */
-        WLANSSC_ERR("Cannot receive in state: %d", pControlBlock->eState, 0, 0 );
+        SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR,"Cannot receive in state: %d", pControlBlock->eState));
 
         WLANSSC_UNLOCKTX( pControlBlock );
         return VOS_STATUS_E_FAILURE;
@@ -2672,7 +2685,7 @@ VOS_STATUS WLANSSC_FreeMsg
 
   WLANSSC_ASSERT( NULL != pMsg );
 
-  WLANSSC_MSG( "Freeing message: %x for context: %x", pMsg->type, pContext, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Freeing message: %x for context: %x", pMsg->type, pContext ));
 
   pMsg->bodyptr = 0;
   pMsg->bodyval = 0;
@@ -2715,21 +2728,21 @@ static VOS_STATUS WLANSSC_ExecuteEvent
 
   WLANSSC_ASSERT( NULL != pControlBlock );
 
-  WLANSSC_MSG( "Event: %d in state : %d", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Event: %d in state : %d", 
                eEvent,
-               pControlBlock->eState, 0 );
+               pControlBlock->eState));
 
   WLANSSC_ASSERT( VOS_TRUE == WLANSSC_ISCONTEXTVALID( pControlBlock ) );
 
   if( NULL != WLANSSC_StateTable[pControlBlock->eState][eEvent] )
   {
-    WLANSSC_MSG( "Executing event", 0, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Executing event"));
 
     eStatus = WLANSSC_StateTable[pControlBlock->eState][eEvent]( pControlBlock );
   }
   else
   {
-    WLANSSC_ERR( "Invalid event in current state", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Invalid event in current state"));
     eStatus = VOS_STATUS_E_PERM;
   }
 
@@ -2763,9 +2776,9 @@ static v_VOID_t WLANSSC_TransitionState
 
   WLANSSC_ASSERT( NULL != pControlBlock );
 
-  WLANSSC_MSG( "Changing state from %d to %d", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Changing state from %d to %d", 
                pControlBlock->eState, 
-               eState, 0 );
+               eState));
 
   pControlBlock->eState = eState;
 
@@ -2853,8 +2866,8 @@ static VOS_STATUS WLANSSC_InitContext
 
   WLANSSC_ASSERT( NULL != pControlBlock );
 
-  WLANSSC_MSG( "Initing SSC context : %x", 
-               pControlBlock, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Initing SSC context : %x", 
+               pControlBlock));
 
   pControlBlock->bInitialized = VOS_TRUE;
   pControlBlock->nCookie = WLANSSC_COOKIE;
@@ -2884,8 +2897,8 @@ static VOS_STATUS WLANSSC_InitControlBlock
 
   WLANSSC_ASSERT( NULL != pControlBlock );
 
-  WLANSSC_MSG( "Initing SSC control block : %x", 
-               pControlBlock, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Initing SSC control block : %x", 
+               pControlBlock));
 
   WLANSSC_ASSERT( VOS_TRUE == WLANSSC_ISCONTEXTVALID( pControlBlock ) );
 
@@ -2896,7 +2909,7 @@ static VOS_STATUS WLANSSC_InitControlBlock
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Failed to allocate tx buffer", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Failed to allocate tx buffer"));
     return VOS_STATUS_E_RESOURCES;
   }
 
@@ -2914,7 +2927,7 @@ static VOS_STATUS WLANSSC_InitControlBlock
   {
     WLANSSC_ASSERT( 0 );
 
-    WLANSSC_ERR( "Failed to allocate rx buffer", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Failed to allocate rx buffer"));
     return VOS_STATUS_E_RESOURCES;
   }
 
@@ -2929,7 +2942,7 @@ static VOS_STATUS WLANSSC_InitControlBlock
     {
       WLANSSC_ASSERT( 0 );
 
-      WLANSSC_ERR( "Failed to allocate reg buffer: %d", uRegBufferCnt, 0, 0 );
+      SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Failed to allocate reg buffer: %d", uRegBufferCnt ));
       return VOS_STATUS_E_RESOURCES;
     }
 
@@ -2973,13 +2986,13 @@ static VOS_STATUS WLANSSC_InitControlBlock
 
   if( VOS_STATUS_SUCCESS != vos_lock_init( &(pControlBlock->stSSCTxLock) ) )
   {
-    WLANSSC_MSG( "Initing SSC Tx lock failed", 0, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Initing SSC Tx lock failed"));
     return VOS_STATUS_E_RESOURCES;
   }
 
   if( VOS_STATUS_SUCCESS != vos_lock_init( &(pControlBlock->stSSCRxLock) ) )
   {
-    WLANSSC_MSG( "Initing SSC Rx lock failed", 0, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Initing SSC Rx lock failed"));
     return VOS_STATUS_E_RESOURCES;
   }
 
@@ -3011,8 +3024,8 @@ static VOS_STATUS WLANSSC_DestroyContext
 
   WLANSSC_ASSERT( NULL != pControlBlock );
 
-  WLANSSC_MSG( "Destroying SSC context : %x", 
-               pControlBlock, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Destroying SSC context : %x", 
+               pControlBlock));
 
   pControlBlock->bInitialized = VOS_FALSE;
   pControlBlock->nCookie = 0;
@@ -3042,8 +3055,8 @@ static VOS_STATUS WLANSSC_DestroyControlBlock
 
   WLANSSC_ASSERT( NULL != pControlBlock );
 
-  WLANSSC_MSG( "Destroying SSC control block : %x", 
-               pControlBlock, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Destroying SSC control block : %x", 
+               pControlBlock));
 
   WLANSSC_ASSERT( VOS_TRUE == WLANSSC_ISCONTEXTVALID( pControlBlock ) );
 
@@ -3094,13 +3107,13 @@ static VOS_STATUS WLANSSC_DestroyControlBlock
 
   if( VOS_STATUS_SUCCESS != vos_lock_destroy( &(pControlBlock->stSSCTxLock) ) )
   {
-    WLANSSC_MSG( "Destroying SSC Tx lock failed", 0, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Destroying SSC Tx lock failed"));
     return VOS_STATUS_E_RESOURCES;
   }
 
   if( VOS_STATUS_SUCCESS != vos_lock_destroy( &(pControlBlock->stSSCRxLock) ) )
   {
-    WLANSSC_MSG( "Destroying SSC Rx lock failed", 0, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Destroying SSC Rx lock failed"));
     return VOS_STATUS_E_RESOURCES;
   }
 
@@ -3142,9 +3155,9 @@ static VOS_STATUS WLANSSC_EnableInterrupt
   uMaskToSet = uInterruptMask | pControlBlock->uInterruptEnableMask |
     pControlBlock->uASICInterruptMask;
 
-  WLANSSC_MSG( "New interrupts: %x for ctrl blk : %x", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "New interrupts: %x for ctrl blk : %x", 
                uMaskToSet,
-               pControlBlock, 0 );
+               pControlBlock));
 
   /* Update register on the Libra device                                 */
   if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegister( pControlBlock,
@@ -3193,9 +3206,9 @@ static VOS_STATUS WLANSSC_DisableInterrupt
   uMaskToSet = ~uInterruptMask & 
     ( pControlBlock->uInterruptEnableMask | pControlBlock->uASICInterruptMask );
 
-  WLANSSC_MSG( "Disabled interrupts: %x for ctrl blk : %x", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Disabled interrupts: %x for ctrl blk : %x", 
                uMaskToSet,
-               pControlBlock, 0 );
+               pControlBlock));
 
   /* Update register on the Libra device                                 */
   if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegister( pControlBlock,
@@ -3244,12 +3257,12 @@ static VOS_STATUS WLANSSC_ClearAllInterrupts
   /* Optimization to avoid unnecessary bus accesses                        */
   if( 0 == uInterruptMaskToBeCleared )
   {
-    WLANSSC_MSG( "SSC ignoring zero clear for interrupts", 0, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SSC ignoring zero clear for interrupts"));
     return VOS_STATUS_SUCCESS;
   }
 
-  WLANSSC_MSG( "Clearing all interrupts for ctrl blk : %x; %x", 
-               pControlBlock, uInterruptMaskToBeCleared, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Clearing all interrupts for ctrl blk : %x; %x", 
+               pControlBlock, uInterruptMaskToBeCleared));
 
   /* Update register on the Libra device                                   */
   if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegister( pControlBlock,
@@ -3328,10 +3341,10 @@ static VOS_STATUS WLANSSC_ReadRegister
   /* Copy over the value from the dma buffer                               */
   *pValue = *(pControlBlock->pRegBuffer[eRegType]);
 
-  WLANSSC_MSG( "Read register ptr: %x for ctrl blk : %x; register: %x", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Read register ptr: %x for ctrl blk : %x; register: %x", 
                pValue,
                pControlBlock,
-               uRegister );
+               uRegister ));
 
   return VOS_STATUS_SUCCESS;
 
@@ -3402,10 +3415,10 @@ static VOS_STATUS WLANSSC_WriteRegister
     return VOS_STATUS_E_FAILURE;
   }
 
-  WLANSSC_MSG( "Write register ptr: %x for ctrl blk : %x; register: %x", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Write register ptr: %x for ctrl blk : %x; register: %x", 
                pValue,
                pControlBlock,
-               uRegister );
+               uRegister ));
 
   return VOS_STATUS_SUCCESS;
 
@@ -3463,10 +3476,10 @@ static VOS_STATUS WLANSSC_ReadRegisterFuncZero
   /* Copy over the value from the dma buffer                               */
   *pValue = *((v_U8_t *) pControlBlock->pRegBuffer[eRegType]);
 
-  WLANSSC_MSG( "Read func0 register ptr: %x for ctrl blk : %x; register: %x", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Read func0 register ptr: %x for ctrl blk : %x; register: %x", 
                pValue,
                pControlBlock,
-               uRegister );
+               uRegister ));
 
   return VOS_STATUS_SUCCESS;
 
@@ -3525,10 +3538,10 @@ static VOS_STATUS WLANSSC_WriteRegisterFuncZero
     return VOS_STATUS_E_FAILURE;
   }
 
-  WLANSSC_MSG( "Write func0 register ptr: %x for ctrl blk : %x; register: %x", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Write func0 register ptr: %x for ctrl blk : %x; register: %x", 
                pValue,
                pControlBlock,
-               uRegister );
+               uRegister ));
 
   return VOS_STATUS_SUCCESS;
 
@@ -3560,8 +3573,8 @@ static VOS_STATUS WLANSSC_ResetChip
 
   WLANSSC_ASSERT( VOS_TRUE == WLANSSC_ISCONTEXTVALID( pControlBlock ) );
 
-  WLANSSC_MSG( "Resetting Libra device for ctrl blk : %x", 
-               pControlBlock, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Resetting Libra device for ctrl blk : %x", 
+               pControlBlock));
 
   /* Do we need to write to cccr io_reset?                                 */
 
@@ -3584,7 +3597,7 @@ static VOS_STATUS WLANSSC_ResetChip
     return VOS_STATUS_E_FAILURE;
   }
 
-  WLANSSC_MSG( "Waiting for SIF CSR engine reset", 0, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Waiting for SIF CSR engine reset"));
 
   while( WLANSSC_RESETLOOPCOUNT > uResetCount++ )
   {
@@ -3608,7 +3621,7 @@ static VOS_STATUS WLANSSC_ResetChip
     }
   }
 
-  WLANSSC_MSG( "SIF CSR engine reset complete", 0, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SIF CSR engine reset complete"));
 
   /* Reset the WLAN CSR access engine in SIF                               */
   if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegister(pControlBlock,
@@ -3630,7 +3643,7 @@ static VOS_STATUS WLANSSC_ResetChip
     return VOS_STATUS_E_FAILURE;
   }
 
-  WLANSSC_MSG( "Waiting for SIF tx/rx engine reset", 0, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Waiting for SIF tx/rx engine reset"));
 
   while( WLANSSC_RESETLOOPCOUNT > uResetCount++ )
   {
@@ -3655,7 +3668,7 @@ static VOS_STATUS WLANSSC_ResetChip
     }
   }
 
-  WLANSSC_MSG( "SIF reset complete", 0, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SIF reset complete"));
 
   return VOS_STATUS_SUCCESS;
 
@@ -3738,7 +3751,7 @@ static VOS_STATUS WLANSSC_EnableRx
   if( VOS_STATUS_SUCCESS != WLANSSC_EnableInterrupt(pControlBlock,
                                                     QWLAN_SIF_SIF_INT_EN_RX_FIFO_DATA_AVAIL_INTR_EN_MASK) )
   {
-    WLANSSC_ERR( "Error enabling interrupts", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error enabling interrupts"));
     return VOS_STATUS_E_FAILURE;
   }
 
@@ -3768,7 +3781,7 @@ static VOS_STATUS WLANSSC_DisableRx
   if( VOS_STATUS_SUCCESS != WLANSSC_DisableInterrupt(pControlBlock,
                                                      QWLAN_SIF_SIF_INT_EN_RX_FIFO_DATA_AVAIL_INTR_EN_MASK) )
   {
-    WLANSSC_ERR( "Error disabling interrupts", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error disabling interrupts"));
     return VOS_STATUS_E_FAILURE;
   }
 
@@ -3839,10 +3852,10 @@ static VOS_STATUS WLANSSC_SendData
   /* Update statistics                                                     */
   pControlBlock->sStatsInfo.uNumTxCmd53++;
 
-  WLANSSC_MSG( "Send data ptr: %x for ctrl blk : %x; size: %d", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Send data ptr: %x for ctrl blk : %x; size: %d", 
                pBuffer,
                pControlBlock,
-               uDataSize );
+               uDataSize ));
 
   return VOS_STATUS_SUCCESS;
 
@@ -3924,8 +3937,8 @@ static VOS_STATUS WLANSSC_TransmitChainInternal
   v_BOOL_t                        bUrgent;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  WLANSSC_MSG( "SSC Walking packet chain for ctrl blk : %x", 
-               pControlBlock, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SSC Walking packet chain for ctrl blk : %x", 
+               pControlBlock));
 
   /* Get packet chain from client                                          */
   WLANSSC_ASSERT( NULL != 
@@ -3941,11 +3954,11 @@ static VOS_STATUS WLANSSC_TransmitChainInternal
                                                                               &bUrgent) )
   {
     /* No more data to send - clear out tx pending flag                    */
-    WLANSSC_MSG( "No more data from TL", 0, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "No more data from TL"));
   }
   else
   {
-    WLANSSC_ERR( "TL has more data than can be chained in one shot by SSC - optimize buffer size!", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "TL has more data than can be chained in one shot by SSC - optimize buffer size!"));
 
     /* Serialize another message to SSC to resume operations after cmd53   */
     if( VOS_STATUS_SUCCESS != WLANSSC_StartTransmit( (WLANSSC_HandleType) pControlBlock ) )
@@ -3990,10 +4003,10 @@ static VOS_STATUS WLANSSC_TransmitChainInternal
     /* Sanity check to make sure we are not writing beyond allowed size    */
     WLANSSC_ASSERT( (WLANSSC_MAXTXBUFSIZE-sizeof(WLANSSC_TxStartDescriptorType)) >= (u16PayloadSize + u16PacketLength) );
 
-    WLANSSC_MSG( "SSC extracting packet: %x from chain : %x of length: %d", 
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SSC extracting packet: %x from chain : %x of length: %d", 
                  pTxPacket, 
                  pControlBlock->pTxChain , 
-                 u16PacketLength);
+                 u16PacketLength));
 
     /** Extract data from the packet chain into tx buffer beyond start desc
     *   Extract into the tx buffer beyond the last packet.
@@ -4012,8 +4025,8 @@ static VOS_STATUS WLANSSC_TransmitChainInternal
   /* Important - next DXE header *must* start at 4-byte aligned location */
   u16PayloadSize += ( (u16PacketLength + 0x3) & ~0x3 );
 
-  WLANSSC_MSG( "SSC tx payload after extraction and alignment: %d", 
-         u16PayloadSize, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SSC tx payload after extraction and alignment: %d", 
+         u16PayloadSize));
 
     /* Walk the chain to the next packet                                   */
     eStatus = vos_pkt_walk_packet_chain( pTxPacket, &pTxPacket, VOS_FALSE);
@@ -4021,8 +4034,8 @@ static VOS_STATUS WLANSSC_TransmitChainInternal
     if( (VOS_STATUS_SUCCESS != eStatus) &&
         (VOS_STATUS_E_EMPTY != eStatus) )
     {
-      WLANSSC_ERR( "SSC Walking packet chain returned status : %d", 
-                   eStatus, 0, 0 );
+      SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "SSC Walking packet chain returned status : %d", 
+                   eStatus));
       WLANSSC_ASSERT( 0 );
 
       return WLANSSC_TransmitCompleteNotifyAndReturnStatus( pControlBlock,
@@ -4030,8 +4043,8 @@ static VOS_STATUS WLANSSC_TransmitChainInternal
     }
   }
 
-  WLANSSC_MSG( "SSC aggregated tx packet length: %d", 
-               u16PayloadSize, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SSC aggregated tx packet length: %d", 
+               u16PayloadSize));
 
   /* Prepare the header for the buffer                                     */
   pTxStartDescriptor = (WLANSSC_TxStartDescriptorType *) &pControlBlock->pTxBuffer[0];
@@ -4104,8 +4117,8 @@ static VOS_STATUS WLANSSC_TransmitSingleInternal
   v_BOOL_t                        bUrgent;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  WLANSSC_MSG( "SSC Walking packet chain for ctrl blk : %x", 
-               pControlBlock, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SSC Walking packet chain for ctrl blk : %x", 
+               pControlBlock));
 
   /* Get packet chain from client                                          */
   WLANSSC_ASSERT( NULL != 
@@ -4121,11 +4134,11 @@ static VOS_STATUS WLANSSC_TransmitSingleInternal
                                                                               &bUrgent) )
   {
     /* No more data to send - clear out tx pending flag                    */
-    WLANSSC_MSG( "No more data from TL", 0, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "No more data from TL"));
   }
   else
   {
-    WLANSSC_ERR( "TL has more data than can be chained in one shot by SSC - optimize buffer size!", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "TL has more data than can be chained in one shot by SSC - optimize buffer size!"));
 
     /* Serialize another message to SSC to resume operations after cmd53   */
     if( VOS_STATUS_SUCCESS != WLANSSC_StartTransmit( (WLANSSC_HandleType) pControlBlock ) )
@@ -4170,10 +4183,10 @@ static VOS_STATUS WLANSSC_TransmitSingleInternal
     /* Sanity check to make sure we are not writing beyond allowed size    */
     WLANSSC_ASSERT( (WLANSSC_MAXTXBUFSIZE-sizeof(WLANSSC_TxStartDescriptorType)) >= (u16PayloadSize + u16PacketLength) );
 
-    WLANSSC_MSG( "SSC extracting packet: %x from chain : %x of length: %d", 
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SSC extracting packet: %x from chain : %x of length: %d", 
                  pTxPacket, 
                  pControlBlock->pTxChain , 
-                 u16PacketLength);
+                 u16PacketLength));
 
     /** Extract data from the packet chain into tx buffer beyond start desc
     *   Extract into the tx buffer beyond the last packet.
@@ -4192,8 +4205,8 @@ static VOS_STATUS WLANSSC_TransmitSingleInternal
     /* Important - next DXE header *must* start at 4-byte aligned location */
     u16PayloadSize += ( (u16PacketLength + 0x3) & ~0x3 );
 
-    WLANSSC_MSG( "SSC tx payload after extraction and alignment: %d", 
-         u16PayloadSize, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SSC tx payload after extraction and alignment: %d", 
+         u16PayloadSize));
 
     /* Prepare the header for the buffer                                     */
     pTxStartDescriptor = (WLANSSC_TxStartDescriptorType *) &pControlBlock->pTxBuffer[0];
@@ -4219,8 +4232,8 @@ static VOS_STATUS WLANSSC_TransmitSingleInternal
     if( (VOS_STATUS_SUCCESS != eStatus) &&
         (VOS_STATUS_E_EMPTY != eStatus) )
     {
-      WLANSSC_ERR( "SSC Walking packet chain returned status : %d", 
-                   eStatus, 0, 0 );
+      SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "SSC Walking packet chain returned status : %d", 
+                   eStatus));
       WLANSSC_ASSERT( 0 );
 
       return WLANSSC_TransmitCompleteNotifyAndReturnStatus( pControlBlock,
@@ -4341,22 +4354,22 @@ static VOS_STATUS WLANSSC_Receive
   /* Scheduler should not kick rx in if we cannot guarantee getting ED     */
   WLANSSC_ASSERT( WLANSSC_MAXPKTSIZE <= uMaxAllowedPktSize );
 
-  WLANSSC_MSG( "Receive status enter.. pending: %d; currdata: %d; currpos: %d", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Receive status enter.. pending: %d; currdata: %d; currpos: %d", 
                pControlBlock->sRxBufferInfo.uPendingTargetData,
                pControlBlock->sRxBufferInfo.uCurrentRxDataSize,
-               pControlBlock->sRxBufferInfo.uCurrentRxDataPosition );
+               pControlBlock->sRxBufferInfo.uCurrentRxDataPosition ));
 
   /* If we are suspended, we bail out and wait to be resumed for rx        */
   if( WLANSSC_RXSUSPENDEDMASK & pControlBlock->uSuspendedFlowMask )
   {
-    WLANSSC_MSG("SSC suspended: no rx possible", 0, 0, 0);
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO,"SSC suspended: no rx possible"));
     return VOS_STATUS_E_BUSY;
   }
 
   /* If we have no data to process, read some from chip                    */
   if( 0 == pControlBlock->sRxBufferInfo.uCurrentRxDataSize )
   {
-    WLANSSC_MSG("Rx notification obtained via interrupt status reg", 0, 0, 0);
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO,"Rx notification obtained via interrupt status reg"));
 
     uDataToRead = ( (pControlBlock->sRxBufferInfo.uPendingTargetData + WLANSSC_BLOCKSIZE - 1)/WLANSSC_BLOCKSIZE ) * WLANSSC_BLOCKSIZE;
 
@@ -4392,7 +4405,7 @@ static VOS_STATUS WLANSSC_Receive
     {
       case VOS_STATUS_E_NOMEM:
         /* Nothing to do for now: wait for callback                        */
-        WLANSSC_MSG( "Out of memory for rx!", 0, 0, 0 );
+        SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Out of memory for rx!"));
 
         /* Set pending data to get fresh data at least once after resume   */
         if( 0 != pControlBlock->sRxBufferInfo.uPendingTargetData )
@@ -4403,7 +4416,7 @@ static VOS_STATUS WLANSSC_Receive
 
       case VOS_STATUS_E_AGAIN:
         /* Nothing to do for now: wait till tx completes                   */
-        WLANSSC_MSG( "Rx yielding to tx!", 0, 0, 0 );
+        SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Rx yielding to tx!"));
 
         /* Set pending data to get fresh data at least once after resume   */
         if( 0 != pControlBlock->sRxBufferInfo.uPendingTargetData )
@@ -4413,11 +4426,11 @@ static VOS_STATUS WLANSSC_Receive
         return eStatus;
 
       case VOS_STATUS_SUCCESS:
-        WLANSSC_MSG( "All rx data processed successfully", 0, 0, 0 );
+        SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "All rx data processed successfully"));
         break;
 
       case VOS_STATUS_E_RESOURCES:
-        WLANSSC_MSG( "Not enough resources to complete rx buffer", 0, 0, 0 );
+        SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Not enough resources to complete rx buffer"));
 
         /* Adjust the buffer for a later read to complete the frame        */
         if( pControlBlock->sRxBufferInfo.uPendingTargetData >
@@ -4439,7 +4452,7 @@ static VOS_STATUS WLANSSC_Receive
       case VOS_STATUS_E_FAILURE:
       default:
         WLANSSC_ASSERT( 0 );
-        WLANSSC_ERR( "Unexpected status code: %d", eStatus, 0, 0 );
+        SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Unexpected status code: %d", eStatus));
     } /* eStatus */
 
 
@@ -4447,9 +4460,9 @@ static VOS_STATUS WLANSSC_Receive
     if( 0 < pControlBlock->sRxBufferInfo.uPendingTargetData )
     {
       /* Read from current position: there should be enough space          */
-      WLANSSC_MSG( "Reading more data into rx buffer from position: %d; size: %d", 
+      SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Reading more data into rx buffer from position: %d; size: %d", 
                    pControlBlock->sRxBufferInfo.uCurrentRxDataPosition,
-                   pControlBlock->sRxBufferInfo.uPendingTargetData, 0 );
+                   pControlBlock->sRxBufferInfo.uPendingTargetData));
 
       /* Take the minimum of max allowed pkt size and pending data         */
       uReceiveDataSize = VOS_MIN( uMaxAllowedPktSize - pControlBlock->sRxBufferInfo.uCurrentRxDataSize, 
@@ -4488,10 +4501,10 @@ static VOS_STATUS WLANSSC_Receive
 
   /* We now yield to the scheduler to see if anything else needs to run    */
 
-  WLANSSC_MSG( "Receive status exit.. pending: %d; currdata: %d; currpos: %d", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Receive status exit.. pending: %d; currdata: %d; currpos: %d", 
                pControlBlock->sRxBufferInfo.uPendingTargetData,
                pControlBlock->sRxBufferInfo.uCurrentRxDataSize,
-               pControlBlock->sRxBufferInfo.uCurrentRxDataPosition );
+               pControlBlock->sRxBufferInfo.uCurrentRxDataPosition ));
 
   return eStatus;
 
@@ -4565,7 +4578,7 @@ static VOS_STATUS WLANSSC_ProcessRxData
     uSDPosition = uSDPosition + sizeof(WLANSSC_RxEndDescriptorType) +
       WLANSSC_GetNextRxEDFromBuffer( (v_U8_t * )pRxSD );
 
-    WLANSSC_MSG( "New SD position: %d", uSDPosition, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "New SD position: %d", uSDPosition));
 
     WLANSSC_ASSERT( 0 < uSDPosition );
 
@@ -4591,7 +4604,7 @@ static VOS_STATUS WLANSSC_ProcessRxData
         /** Padding frame
             Trash this frame, but update the control block
         */
-        WLANSSC_MSG( "Padding frame", 0, 0, 0 );
+        SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Padding frame"));
 
         /* Update statistics                                               */
         pControlBlock->sStatsInfo.uNumRxPadding++;
@@ -4603,7 +4616,7 @@ static VOS_STATUS WLANSSC_ProcessRxData
       case WLANSSC_UNDERFLOWREMAINDER_RXSDCODE:
         /** Remainder - check for temp buffer, append and send up if needed
         */
-        WLANSSC_MSG( "Remainder frame", 0, 0, 0 );
+        SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Remainder frame"));
 
         /* Update statistics                                                   */
         pControlBlock->sStatsInfo.uNumRxRemainder++;
@@ -4633,8 +4646,8 @@ static VOS_STATUS WLANSSC_ProcessRxData
           if( (0 == pControlBlock->sRxBufferInfo.uPendingTargetData) &&
               (WLANSSC_NONE_RXEDCODE != pRxED->controlInfo0.sCtrlBits0.uEndDescriptorCode) )
           {
-            WLANSSC_MSG( "ED code indicates more data! : %d ", 
-                         pRxED->controlInfo0.sCtrlBits0.uEndDescriptorCode, 0, 0 );
+            SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "ED code indicates more data! : %d ", 
+                         pRxED->controlInfo0.sCtrlBits0.uEndDescriptorCode));
             WLANSSC_ASSERT( WLANSSC_UNDERFLOWERROR_RXEDCODE != 
                             pRxED->controlInfo0.sCtrlBits0.uEndDescriptorCode );
 
@@ -4656,7 +4669,7 @@ static VOS_STATUS WLANSSC_ProcessRxData
       case WLANSSC_COMPLETEFRAME_RXSDCODE:
         /** Check for partial frame, dump to temp frame if needed
         */
-        WLANSSC_MSG( "New frame", 0, 0, 0 );
+        SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "New frame"));
 
         /* Regardless of whether it was fully received, dump into vos pkt  */
         eStatus = WLANSSC_PrepareRxPkt( pControlBlock, 
@@ -4689,8 +4702,8 @@ static VOS_STATUS WLANSSC_ProcessRxData
           if( (0 == pControlBlock->sRxBufferInfo.uPendingTargetData) &&
               (WLANSSC_NONE_RXEDCODE != pRxED->controlInfo0.sCtrlBits0.uEndDescriptorCode) )
           {
-            WLANSSC_MSG( "ED code indicates more data! : %d ", 
-                         pRxED->controlInfo0.sCtrlBits0.uEndDescriptorCode, 0, 0 );
+            SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "ED code indicates more data! : %d ", 
+                         pRxED->controlInfo0.sCtrlBits0.uEndDescriptorCode));
             WLANSSC_ASSERT( WLANSSC_UNDERFLOWERROR_RXEDCODE != 
                             pRxED->controlInfo0.sCtrlBits0.uEndDescriptorCode );
 
@@ -4714,8 +4727,8 @@ static VOS_STATUS WLANSSC_ProcessRxData
 
       default:
         WLANSSC_ASSERT( 0 );
-        WLANSSC_ERR( "Invalid SD code", 
-                     pRxSD->controlInfo.sCtrlBits.uStartDescriptorCode, 0, 0 );
+        SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Invalid SD code", 
+                     pRxSD->controlInfo.sCtrlBits.uStartDescriptorCode));
         eStatus = VOS_STATUS_E_FAILURE;
 
     } /* pRxSD->sCtrlBits.uStartDescriptorCode */
@@ -4734,14 +4747,14 @@ static VOS_STATUS WLANSSC_ProcessRxData
 
   }
 
-  WLANSSC_MSG( "SD Position after traversing buffer: %d ", uSDPosition, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SD Position after traversing buffer: %d ", uSDPosition));
 
   /* If we have reached the end of the buffer, then reset the rx info      */
   if( VOS_STATUS_SUCCESS == eStatus  )
   {
     WLANSSC_ASSERT( uSDPosition == pControlBlock->sRxBufferInfo.uCurrentRxDataSize );
 
-    WLANSSC_MSG( "End of buffer reached", 0, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "End of buffer reached"));
 
     /* Extra protection removed to reduce overhead on data path            */
 #ifdef FEATURE_LIBRA_UNSUPPORTED
@@ -4833,10 +4846,10 @@ static VOS_STATUS WLANSSC_ReceiveData
   /* Update statistics                                                   */
   pControlBlock->sStatsInfo.uNumRxCmd53++;
 
-  WLANSSC_MSG( "Receive data ptr: %x for ctrl blk : %x; size: %d", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Receive data ptr: %x for ctrl blk : %x; size: %d", 
                pBuffer,
                pControlBlock,
-               uDataSize );
+               uDataSize));
 
   return VOS_STATUS_SUCCESS;
 
@@ -4933,7 +4946,7 @@ static VOS_STATUS WLANSSC_PrepareRxPkt
 
   WLANSSC_ASSERT( NULL != pBuffer );
 
-  WLANSSC_MSG( "Preparing frame", 0, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Preparing frame") );
 
   if( 0 < uCompletePacketSize )
   {
@@ -4949,8 +4962,8 @@ static VOS_STATUS WLANSSC_PrepareRxPkt
     if( VOS_STATUS_SUCCESS != vos_pkt_get_packet_length( pControlBlock->pTempRxFrame, 
                                                          &u16TempRxFrameSize ) ) 
     {
-      WLANSSC_ERR("Error computing pkt length; default to current data size",
-                  uCurrentDataSize, 0, 0 );
+      SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR,"Error computing pkt length; default to current data size",
+                  uCurrentDataSize));
       u16TempRxFrameSize = 0;
     }
 
@@ -4960,7 +4973,7 @@ static VOS_STATUS WLANSSC_PrepareRxPkt
 
   if( NULL == pControlBlock->pMemAvailFrame )
   {
-    WLANSSC_MSG( "Creating new packet", 0, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Creating new packet"));
 
     /* Need to create a new packet for this buffer                         */
     if( VOS_STATUS_SUCCESS != vos_pkt_get_packet( &pTailFrame,
@@ -4978,7 +4991,7 @@ static VOS_STATUS WLANSSC_PrepareRxPkt
   {
     /* We are resuming after being suspended - reuse the MemAvailFrame     */
 
-    WLANSSC_MSG( "Using frame from VOS mem avail callback", 0, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Using frame from VOS mem avail callback"));
 
     pTailFrame = pControlBlock->pMemAvailFrame;
     pControlBlock->pMemAvailFrame = NULL;
@@ -4992,9 +5005,9 @@ static VOS_STATUS WLANSSC_PrepareRxPkt
                                                uCurrentDataSize ) )
   {
     WLANSSC_ASSERT( 0 );
-    WLANSSC_ERR( "SSC push head failed on pkt: %x; size: %d", 
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "SSC push head failed on pkt: %x; size: %d", 
                  pTailFrame,
-                 uCurrentDataSize, 0 );
+                 uCurrentDataSize));
   }
 
   if( 0 < uCompletePacketSize )
@@ -5021,9 +5034,9 @@ static VOS_STATUS WLANSSC_PrepareRxPkt
                                                 u16TempRxFrameSize ) )
     {
       WLANSSC_ASSERT( 0 );
-      WLANSSC_ERR( "SSC pop head failed on pkt: %x; size: %d", 
+      SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "SSC pop head failed on pkt: %x; size: %d", 
                    pControlBlock->pTempRxFrame,
-                   u16TempRxFrameSize, 0 );
+                   u16TempRxFrameSize));
     }
 
     /* Free the temp frame                                                 */
@@ -5036,9 +5049,9 @@ static VOS_STATUS WLANSSC_PrepareRxPkt
                                                  u16TempRxFrameSize ) )
     {
       WLANSSC_ASSERT( 0 );
-      WLANSSC_ERR( "SSC push head failed on pkt: %x; size: %d", 
+      SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "SSC push head failed on pkt: %x; size: %d", 
                    pTailFrame,
-                   u16TempRxFrameSize, 0 );
+                   u16TempRxFrameSize));
     }
 
     /* Store this value back in the temp frame                             */
@@ -5168,7 +5181,7 @@ static v_U32_t WLANSSC_GetRxPktInterruptStatus
   /* Now we should have a pointer to the last ED if available              */
   if( NULL == pRxED )
   {
-    WLANSSC_MSG("Insufficient rx data for ED %d", pControlBlock->sRxBufferInfo.uCurrentRxDataSize, 0, 0 );
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO,"Insufficient rx data for ED %d", pControlBlock->sRxBufferInfo.uCurrentRxDataSize));
 
     if( (uSDPosition + sizeof(WLANSSC_RxStartDescriptorType)) < pControlBlock->sRxBufferInfo.uCurrentRxDataSize )
     {
@@ -5192,9 +5205,9 @@ static v_U32_t WLANSSC_GetRxPktInterruptStatus
                                         (v_U32_t)( (pRxED->controlInfo1.sCtrlBits1.interruptInfo.uInterruptStatus)
                                                    & WLANSSC_EDINTERRUPTMASK ) );
 
-  WLANSSC_MSG( "New interrupt status: %x for Control block: %x", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "New interrupt status: %x for Control block: %x", 
                pControlBlock->uInterruptSnapshot,
-               pControlBlock, 0 );
+               pControlBlock));
 
   return 0;
 
@@ -5259,7 +5272,7 @@ static v_U32_t WLANSSC_GetNextRxEDFromBuffer
   {
     /* Should not happen                                                   */
     WLANSSC_ASSERT( 0 );
-    WLANSSC_ERR( "Invalid Rx SD", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Invalid Rx SD"));
     uPosition = 0;
   }
 
@@ -5325,10 +5338,10 @@ static VOS_STATUS WLANSSC_ProcessInterrupt
 
   WLANSSC_ASSERT( NULL != pControlBlock );
 
-  WLANSSC_MSG( "Processing interrupt status: %x for Control block: %x", 
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Processing interrupt status: %x for Control block: %x", 
                pControlBlock->uInterruptSnapshot,
-               pControlBlock, 0 );
-
+               pControlBlock));
+  
   WLANSSC_ASSERT( WLANSSC_INVALIDINTERRUPTSNAPSHOT !=
                   pControlBlock->uInterruptSnapshot );
 
@@ -5404,7 +5417,7 @@ static VOS_STATUS WLANSSC_MemoryAvailableCallback
   vos_msg_t                   sMessage;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  WLANSSC_MSG( "SSC memavail handler invoked: serializing to tx thread", 0, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SSC memavail handler invoked: serializing to tx thread"));
 
   vos_mem_zero( &sMessage, sizeof(vos_msg_t) );
   
@@ -5436,7 +5449,7 @@ static VOS_STATUS WLANSSC_InterruptHandlerCallback
   WLANSSC_ControlBlockType    *pControlBlock;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  WLANSSC_MSG( "SSC interrupt handler invoked", 0, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SSC interrupt handler invoked"));
 
   WLANSSC_ASSERT( NULL != pSSCHandle );
 
@@ -5460,7 +5473,7 @@ static VOS_STATUS WLANSSC_InterruptHandlerCallback
     {
       /* Should never happen!                                                */
       WLANSSC_ASSERT( 0 );
-      WLANSSC_ERR("Interrupt handling failed!", 0, 0, 0 );
+      SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR,"Interrupt handling failed!"));
     }
   }
 
@@ -5585,7 +5598,7 @@ static VOS_STATUS WLANSSC_FatalErrorEventHandler
                                                                pControlBlock->stClientCbacks.UserData);
   }
 
-  WLANSSC_ERR( "Fatal error interrupt received!", 0, 0, 0 );
+  SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Fatal error interrupt received!"));
 
   /* Change back to CLOSED_STATE and wait for a reset                      */
   WLANSSC_TransitionState( pControlBlock, 
@@ -5702,18 +5715,18 @@ static VOS_STATUS WLANSSC_StartEventHandler
   /* Set block size if needed                                              */
   if( WLANSSC_BLOCKSIZE != sCardInfo.blockSize )
   {
-    WLANSSC_MSG( "Updating blocksize from %d to %d", 
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Updating blocksize from %d to %d", 
                  sCardInfo.blockSize, 
-                 WLANSSC_BLOCKSIZE, 0 );
+                 WLANSSC_BLOCKSIZE));
     sCardInfo.blockSize = WLANSSC_BLOCKSIZE;
   }
 
   /* Do we need to set the clock here?                                     */
   if( WLANSSC_SDIOCLOCKRATE != sCardInfo.clockRate )
   {
-    WLANSSC_MSG( "Updating clock rate from %d to %d", 
+    SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Updating clock rate from %d to %d", 
                  sCardInfo.clockRate, 
-                 WLANSSC_SDIOCLOCKRATE, 0 );
+                 WLANSSC_SDIOCLOCKRATE));
     sCardInfo.clockRate = WLANSSC_SDIOCLOCKRATE;
   }
 
@@ -5826,7 +5839,7 @@ static VOS_STATUS WLANSSC_StartEventHandler
                                                          (v_U8_t*)&uRegValue,
                                                          WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ERR( "Error reading QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error reading QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG"));
     return VOS_STATUS_E_FAILURE;
   }
   
@@ -5837,7 +5850,7 @@ static VOS_STATUS WLANSSC_StartEventHandler
                                                           (v_U8_t*)&uRegValue,
                                                           WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ERR( "Error writing register QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error writing register QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG"));
     return VOS_STATUS_E_FAILURE;
   }
   
@@ -5847,7 +5860,7 @@ static VOS_STATUS WLANSSC_StartEventHandler
                                                          (v_U8_t*)&uRegValue,
                                                          WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ERR( "Error reading QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error reading QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG"));
     return VOS_STATUS_E_FAILURE;
   }
   
@@ -5858,7 +5871,33 @@ static VOS_STATUS WLANSSC_StartEventHandler
                                                           (v_U8_t*)&uRegValue,
                                                           WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ERR( "Error writing register QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error writing register QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG"));
+    return VOS_STATUS_E_FAILURE;
+  }
+
+  /* The following register needs to be fixed in SIF for responding to SIF freeze/unfreeze request.
+   * This is required for Cmd53 timeout seen during Beacon mode power-save mode
+   */
+  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegister(pControlBlock,
+                                                 QWLAN_SIF_BPS_ACK_DLY_CNT_REG,
+                                                 &uRegValue,
+                                                 WLANSSC_TX_REGBUFFER) )
+  {
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, 
+       "Error reading QWLAN_SIF_BPS_ACK_DLY_CNT_REG"));
+    return VOS_STATUS_E_FAILURE;
+  }
+  
+  uRegValue &= ~(QWLAN_SIF_BPS_ACK_DLY_CNT_BPS_ACK_DLY_CNT_MASK);
+  uRegValue |=  (WLANSSC_SIF_PWR_SAVE_BPS_SIF_FREEZE_DELAY);
+  
+  if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegister(pControlBlock,
+                                                  QWLAN_SIF_BPS_ACK_DLY_CNT_REG,
+                                                  &uRegValue,
+                                                  WLANSSC_TX_REGBUFFER) )
+  {
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, 
+        "Error writing register QWLAN_SIF_BPS_ACK_DLY_CNT_REG"));
     return VOS_STATUS_E_FAILURE;
   }
 
@@ -5881,7 +5920,7 @@ static VOS_STATUS WLANSSC_StartEventHandler
                                                      QWLAN_SIF_SIF_INT_EN_TX_PKT_OUT_OF_SYNC_INTR_EN_MASK |
                                                      QWLAN_SIF_SIF_INT_EN_TX_CMD53_XACTION_LT_PKT_LEN_ERR_INTR_EN_MASK ) )
   {
-    WLANSSC_ERR( "Error enabling interrupts", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error enabling interrupts"));
     return VOS_STATUS_E_FAILURE;
   }
 
@@ -5925,7 +5964,7 @@ static VOS_STATUS WLANSSC_StopEventHandler
                                                       QWLAN_SIF_SIF_INT_EN_TX_PKT_OUT_OF_SYNC_INTR_EN_MASK |
                                                       QWLAN_SIF_SIF_INT_EN_TX_CMD53_XACTION_LT_PKT_LEN_ERR_INTR_EN_MASK))
   {
-    WLANSSC_ERR( "Error disabling interrupts", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error disabling interrupts"));
     return VOS_STATUS_E_FAILURE;
   }
 
@@ -6132,7 +6171,7 @@ static VOS_STATUS WLANSSC_R_TransmitEventHandler
   /* If suspended we bail out: a later resume on tx should start tx again  */
   if( WLANSSC_TXSUSPENDEDMASK & pControlBlock->uSuspendedFlowMask )
   {
-    WLANSSC_ERR( "Tx triggered when suspended!", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Tx triggered when suspended!"));
 
     /* Return success just to be nice                                      */
     return VOS_STATUS_SUCCESS;
@@ -6146,12 +6185,12 @@ static VOS_STATUS WLANSSC_R_TransmitEventHandler
 
   if( VOS_STATUS_E_EMPTY == eStatus )
   {
-    WLANSSC_ERR( "Tx triggered without pending packets", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Tx triggered without pending packets"));
   }
   else if( VOS_STATUS_SUCCESS != eStatus )
   {
     WLANSSC_ASSERT( 0 );
-    WLANSSC_ERR( "Tx Request failed!", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Tx Request failed!"));
     return VOS_STATUS_E_FAILURE;
   }
 
@@ -6247,13 +6286,13 @@ static VOS_STATUS WLANSSC_R_ReceiveEventHandler
       if( VOS_STATUS_SUCCESS != vos_tx_mq_serialize(VOS_MQ_ID_SSC, &sMessage) )
       {
         WLANSSC_ASSERT(0);
-        WLANSSC_ERR("Serialize into tx failed!", 0, 0, 0 );
+        SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR,"Serialize into tx failed!"));
       }
       break;
 
     default:
       /* Ignore */
-      WLANSSC_ERR("Receive event status not handled", 0, 0, 0 );
+      SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR,"Receive event status not handled"));
   } /* eStatus */
 
   return VOS_STATUS_SUCCESS;
@@ -6335,7 +6374,7 @@ static VOS_STATUS WLANSSC_SD_StopEventHandler
                                                       QWLAN_SIF_SIF_INT_EN_TX_PKT_OUT_OF_SYNC_INTR_EN_MASK |
                                                       QWLAN_SIF_SIF_INT_EN_TX_CMD53_XACTION_LT_PKT_LEN_ERR_INTR_EN_MASK))
   {
-    WLANSSC_ERR( "Error disabling interrupts", 0, 0, 0 );
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error disabling interrupts"));
     return VOS_STATUS_E_FAILURE;
   }
 
@@ -6451,7 +6490,7 @@ static VOS_STATUS WLANSSC_UnexpectedInterruptHandler
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   WLANSSC_ASSERT( NULL != pControlBlock );
-
+  
   /* This interrupt should never be generated                              */
   WLANSSC_ASSERT( 0 );
 
@@ -6562,7 +6601,7 @@ static VOS_STATUS WLANSSC_RxFIFOFullHandler
 
   WLANSSC_ASSERT( NULL != pControlBlock );
 
-  WLANSSC_ERR( "Rx FIFO Full: scheduler needs optimizing", 0, 0, 0 );
+  SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Rx FIFO Full: scheduler needs optimizing"));
 
   /** For now, this interrupt is not handled; but if need be, this can feed
       into the scheduler to optimize performance
@@ -6600,7 +6639,8 @@ static VOS_STATUS WLANSSC_RxFIFODataAvailInterruptHandler
   WLANSSC_DisableRx( pControlBlock );
 
   /* We serialize into tx thread all the rx activity                       */
-  WLANSSC_MSG( "SSC rx data avail handler invoked: serializing to tx thread", 0, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SSC rx data avail handler invoked: serializing to tx thread"));
+  
   vos_mem_zero( &sMessage, sizeof(vos_msg_t) );
   
   sMessage.bodyptr = (v_PVOID_t)pControlBlock;
@@ -6633,7 +6673,7 @@ static VOS_STATUS WLANSSC_RxFIFOEmptyInterruptHandler
 
   WLANSSC_ASSERT( NULL != pControlBlock );
 
-  WLANSSC_ERR( "Rx FIFO empty interrupt", 0, 0, 0 );
+  SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Rx FIFO empty interrupt"));
 
   return VOS_STATUS_SUCCESS;
 
@@ -6662,7 +6702,7 @@ static VOS_STATUS WLANSSC_ASICInterruptHandler
 
   WLANSSC_ASSERT( NULL != pControlBlock );
 
-  WLANSSC_MSG( "ASIC interrupt", 0, 0, 0 );
+  SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "ASIC interrupt"));
 
   WLANSSC_ASSERT( NULL!= pControlBlock->stClientCbacks.pfnASICInterruptIndicationCback );
 
@@ -6672,3 +6712,132 @@ static VOS_STATUS WLANSSC_ASICInterruptHandler
 
 } /* WLANSSC_ASICInterruptHandler() */
 #endif /* FEATURE_WLAN_UNSUPPORTED */
+
+/**
+ @brief WLANSSC_DisableGlobalClkGating is used to disable global clock 
+ gating within the chip
+ 
+ @param Handle: SSC control block to operate on
+
+ @see NONE
+
+ @return Result of the function call
+*/
+VOS_STATUS WLANSSC_DisableGlobalClkGating
+(
+    WLANSSC_HandleType       Handle
+)
+{
+    WLANSSC_ControlBlockType    *pControlBlock;
+    v_U8_t                       uRegValue = 0;
+
+  WLANSSC_ASSERT( NULL != Handle );
+  pControlBlock = (WLANSSC_ControlBlockType *) Handle;
+  WLANSSC_ASSERT( VOS_TRUE == WLANSSC_ISCONTEXTVALID( pControlBlock ) );
+
+  /* Acquire Lock                                                          */
+  WLANSSC_LOCKTXRX( pControlBlock );
+
+  /* Read the current value just in case                                   */
+  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
+                                                         QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG,
+                                                         &uRegValue,
+                                                         WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR,
+        "Error Reading the WLAN_PWR_SAVE_CTRL_REG"));
+    WLANSSC_UNLOCKTXRX( pControlBlock );
+    return VOS_STATUS_E_FAILURE;
+  }
+
+  /* Disable Global Clock gating */
+  uRegValue |= QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_WLAN_GLOBAL_CLK_GATE_DISABLE_MASK;
+
+  if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
+                                                          QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG,
+                                                          &uRegValue,
+                                                          WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, 
+        "Error disabling global clock gating"));
+    WLANSSC_UNLOCKTXRX( pControlBlock );
+    return VOS_STATUS_E_FAILURE;
+  }
+
+  /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
+  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
+  
+  /* Release Lock                                                          */
+  WLANSSC_UNLOCKTXRX( pControlBlock );
+
+  return VOS_STATUS_SUCCESS;
+}
+
+/**
+ @brief WLANSSC_EnableGlobalClkGating is used to enable global clock 
+ gating within the chip
+ 
+ @param Handle: SSC control block to operate on
+
+ @see NONE
+
+ @return Result of the function call
+*/
+VOS_STATUS WLANSSC_EnableGlobalClkGating
+(
+    WLANSSC_HandleType       Handle
+)
+{
+    WLANSSC_ControlBlockType    *pControlBlock;
+    v_U8_t                       uRegValue = 0;
+
+  WLANSSC_ASSERT( NULL != Handle );
+  pControlBlock = (WLANSSC_ControlBlockType *) Handle;
+  WLANSSC_ASSERT( VOS_TRUE == WLANSSC_ISCONTEXTVALID( pControlBlock ) );
+
+  /* Acquire Lock                                                          */
+  WLANSSC_LOCKTXRX( pControlBlock );
+
+  /* Read the current value just in case                                   */
+  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
+                                                         QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG,
+                                                         &uRegValue,
+                                                         WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, 
+        "Error Reading the WLAN_PWR_SAVE_CTRL_REG"));
+    WLANSSC_UNLOCKTXRX( pControlBlock );
+    return VOS_STATUS_E_FAILURE;
+  }
+
+  /* Enable Global Clock gating */
+  uRegValue &= ~(QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_WLAN_GLOBAL_CLK_GATE_DISABLE_MASK);
+
+  if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
+                                                          QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG,
+                                                          &uRegValue,
+                                                          WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, 
+        "Error enabling global clock gating"));
+    WLANSSC_UNLOCKTXRX( pControlBlock );
+    return VOS_STATUS_E_FAILURE;
+  }
+
+  /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
+  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
+  
+  /* Release Lock                                                          */
+  WLANSSC_UNLOCKTXRX( pControlBlock );
+
+  return VOS_STATUS_SUCCESS;
+}
+

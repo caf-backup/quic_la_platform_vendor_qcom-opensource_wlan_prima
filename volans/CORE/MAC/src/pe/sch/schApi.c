@@ -30,6 +30,9 @@
 
 #include "schSysParams.h"
 #include "limTrace.h"
+#ifdef WLAN_SOFTAP_FEATURE
+#include "limTypes.h"
+#endif
 
 // --------------------------------------------------------------------
 /**
@@ -206,7 +209,7 @@ void
 schSendStartScanRsp(tpAniSirGlobal pMac)
 {
     tSirMsgQ        msgQ;
-    tANI_U32             retCode;
+    tANI_U32        retCode;
 
     PELOG1(schLog(pMac, LOG1, FL("Sending LIM message to go into scan\n"));)
     msgQ.type = SIR_SCH_START_SCAN_RSP;
@@ -240,11 +243,11 @@ schSendStartScanRsp(tpAniSirGlobal pMac)
  *
  * @return eHalStatus
  */
-tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tANI_U16 size )
+tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tANI_U16 size, tpPESession psessionEntry)
 {
-tSirMsgQ msgQ;
-tpSendbeaconParams beaconParams = NULL;
-tSirRetStatus retCode;
+    tSirMsgQ msgQ;
+    tpSendbeaconParams beaconParams = NULL;
+    tSirRetStatus retCode;
 
   schLog( pMac, LOG2,
       FL( "Indicating HAL to copy the beacon template [%d bytes] to memory\n" ),
@@ -261,7 +264,17 @@ tSirRetStatus retCode;
   msgQ.reserved = 0;
 
   // Fill in tSendbeaconParams members
-  limGetBssid( pMac, beaconParams->bssId );
+  /* Knock off all pMac global addresses */
+  // limGetBssid( pMac, beaconParams->bssId);
+  palCopyMemory(pMac, beaconParams->bssId, psessionEntry->bssId, sizeof(psessionEntry->bssId));
+
+#ifdef WLAN_SOFTAP_FEATURE
+  beaconParams->timIeOffset = pMac->sch.schObject.gSchBeaconOffsetBegin;
+#ifdef WLAN_SOFTAP_FW_BEACON_TX_PRNT_LOG
+  schLog(pMac, LOGE,FL("TimIeOffset:[%d]\n"),beaconParams->TimIeOffset );
+#endif
+#endif
+
   beaconParams->beacon = beaconPayload;
   beaconParams->beaconLength = (tANI_U32) size;
   msgQ.bodyptr = beaconParams;
@@ -275,7 +288,158 @@ tSirRetStatus retCode;
     schLog( pMac, LOG2,
         FL("Successfully posted SIR_HAL_SEND_BEACON_REQ to HAL\n"));
 
-  return retCode;
+//#ifdef WLAN_SOFTAP_FEATURE
+#if 0 //Dinesh : commnting out because probeRsp template message structure defined by libra_softap team is different that LLD.
+      //Need to uncomment when we make a decision on this.
+
+    if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+    {
+        if(!psessionEntry->probe_rsp_template_set || pMac->sch.schObject.fBeaconChanged )
+        {
+            if(eSIR_FAILURE == limSendProbeRspTemplateToHal(pMac,psessionEntry,
+                                        &psessionEntry->DefProbeRspIeBitmap[0]))
+            {
+                /* check whether we have to free any memory */
+                schLog(pMac, LOGE, FL("limSendProbeRspMgmtFrame: FAILED to send probe response template of bytes %d\n"),beaconParams->beaconLength);
+            }
+            else
+            {
+                /* Need to decide, if this should be done with any flag/feature check */
+                psessionEntry->probe_rsp_template_set = 1;
+            }
+        }
+    }
+#endif
+
+    return retCode;
 }
 
+//#ifdef WLAN_SOFTAP_FEATURE
+#if 0 //Dinesh : need to uncomment when we make a decision on the message structure for probeRsp template.
+tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEntry
+                                    ,tANI_U32* IeBitmap)
+{
+    tSirMsgQ  msgQ;
+    tANI_U8 *pFrame2Hal = pMac->sch.schObject.gSchProbeRspTemplate;
+    tpSendProbeRespParams pprobeRespParams=NULL;
+    tANI_U32  retCode = eSIR_FAILURE;
+    tANI_U32             nPayload,nBytes,nStatus;
+    tpSirMacMgmtHdr      pMacHdr;
+    tANI_U32             addnIEPresent;
+    tANI_U32             addnIELen=0;
+    tSirRetStatus        nSirStatus;
+
+    nStatus = dot11fGetPackedProbeResponseSize( pMac, &psessionEntry->probeRespFrame, &nPayload );
+    if ( DOT11F_FAILED( nStatus ) )
+    {
+        schLog( pMac, LOGE, FL("Failed to calculate the packed size f"
+                               "or a Probe Response (0x%08x).\n"),
+                nStatus );
+        // We'll fall back on the worst case scenario:
+        nPayload = sizeof( tDot11fProbeResponse );
+    }
+    else if ( DOT11F_WARNED( nStatus ) )
+    {
+        schLog( pMac, LOGE, FL("There were warnings while calculating"
+                               "the packed size for a Probe Response "
+                               "(0x%08x).\n"), nStatus );
+    }
+
+    nBytes = nPayload + sizeof( tSirMacMgmtHdr );
+    
+    //TODO: If additional IE needs to be added. Add then alloc required buffer.
+    if(wlan_cfgGetInt(pMac, WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, &addnIEPresent) != eSIR_SUCCESS)
+    {
+        schLog(pMac, LOGE, FL("Unable to get WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG\n"));
+        return retCode;
+    }
+    
+    if(addnIEPresent)
+    {
+        if(wlan_cfgGetStrLen(pMac, WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA, &addnIELen) != eSIR_SUCCESS)
+        {
+            schLog(pMac, LOGE, FL("Unable to get WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA length"));
+            return retCode;
+        }
+
+        if((nBytes + addnIELen) <= SIR_MAX_PACKET_SIZE ) 
+            nBytes += addnIELen;
+       else 
+            addnIEPresent = false; //Dont include the IE.     
+    }
+       
+    // Paranoia:
+    palZeroMemory( pMac->hHdd, pFrame2Hal, nBytes );
+
+    // Next, we fill out the buffer descriptor:
+    nSirStatus = limPopulateBD( pMac, pFrame2Hal, SIR_MAC_MGMT_FRAME,
+                                SIR_MAC_MGMT_PROBE_RSP, psessionEntry->selfMacAddr,psessionEntry->selfMacAddr);
+
+    if ( eSIR_SUCCESS != nSirStatus )
+    {
+        schLog( pMac, LOGE, FL("Failed to populate the buffer descrip"
+                               "tor for a Probe Response (%d).\n"),
+                nSirStatus );
+        return retCode;
+    }
+
+    pMacHdr = ( tpSirMacMgmtHdr ) pFrame2Hal;
+  
+    sirCopyMacAddr(pMacHdr->bssId,psessionEntry->bssId);
+    
+    // That done, pack the Probe Response:
+    nStatus = dot11fPackProbeResponse( pMac, &psessionEntry->probeRespFrame, pFrame2Hal + sizeof(tSirMacMgmtHdr),
+                                       nPayload, &nPayload );
+
+    if ( DOT11F_FAILED( nStatus ) )
+    {
+        schLog( pMac, LOGE, FL("Failed to pack a Probe Response (0x%08x).\n"),
+                nStatus );
+        return retCode;                 // allocated!
+    }
+    else if ( DOT11F_WARNED( nStatus ) )
+    {
+        schLog( pMac, LOGE, FL("There were warnings while packing a P"
+                               "robe Response (0x%08x).\n") );
+    }
+
+    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
+                                                (void **) &pprobeRespParams,
+                                                sizeof( tSendProbeRespParams )))
+    {
+        schLog( pMac, LOGE, FL("limSendProbeRspTemplateToHal: HAL probe response params malloc failed for byted %d\n"), nBytes );
+    }
+    else
+    {
+        /*
+        PELOGE(sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOGE,
+                            pFrame2Hal,
+                            nBytes);)
+        */
+
+        sirCopyMacAddr( pprobeRespParams->bssId  ,  psessionEntry->bssId);
+        pprobeRespParams->pProbeRespTemplate   = pFrame2Hal;
+        pprobeRespParams->probeRespTemplateLen = nBytes;
+        palCopyMemory(pMac,pprobeRespParams->ucProxyProbeReqValidIEBmap,IeBitmap,
+                            (sizeof(tANI_U32) * 8));
+        msgQ.type     = SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND; 
+        msgQ.reserved = 0;
+        msgQ.bodyptr  = pprobeRespParams;
+        msgQ.bodyval  = 0;
+
+        if( eSIR_SUCCESS != (retCode = halPostMsgApi( pMac, &msgQ )))
+        {
+            /* free the allocated Memory */
+            schLog( pMac,LOGE, FL("limSendProbeRspTemplateToHal: FAIL bytes %d retcode[%X]\n"), nBytes , retCode );
+            palFreeMemory(pMac->hHdd,pprobeRespParams);
+        }
+        else
+        {
+            schLog( pMac,LOGE, FL("limSendProbeRspTemplateToHal: Probe response template msg posted to HAL of bytes %d \n"),nBytes );
+        }
+    }
+
+    return retCode;
+}
+#endif
 

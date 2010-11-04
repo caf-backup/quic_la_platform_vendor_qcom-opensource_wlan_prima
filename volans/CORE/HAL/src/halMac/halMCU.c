@@ -20,7 +20,6 @@
 #include "halAdu.h"
 
 #define  MCU_MAX_NUM_OF_MAILBOX             4
-#define  MCU_MAX_NUM_OF_MUTEX               8
 #define  MCU_MAILBOX_CONTROL_REG_ADDR(n)    (QWLAN_MCU_MB0_CONTROL_REG + (n * 8))
 #define  MCU_MUTEX_REG_ADDR(n)              (QWLAN_MCU_MUTEX0_REG + (n * 4))
 

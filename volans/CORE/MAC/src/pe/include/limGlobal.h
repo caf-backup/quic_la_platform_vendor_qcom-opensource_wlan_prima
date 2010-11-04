@@ -19,7 +19,10 @@
 #include "sirCommon.h"
 #include "sirDebug.h"
 #include "wniCfgAp.h"
-
+#ifdef WLAN_SOFTAP_FEATURE
+#include "csrApi.h"
+#include "sapApi.h"
+#endif
 
 /// Maximum number of scan hash table entries
 #define LIM_MAX_NUM_OF_SCAN_RESULTS 256
@@ -65,7 +68,9 @@ typedef enum eLimSystemRole
     eLIM_UNKNOWN_ROLE,
     eLIM_AP_ROLE,
     eLIM_STA_IN_IBSS_ROLE,
-    eLIM_STA_ROLE
+    eLIM_STA_ROLE,
+    eLIM_BT_AMP_STA_ROLE,
+    eLIM_BT_AMP_AP_ROLE
 } tLimSystemRole;
 
 /**
@@ -146,7 +151,11 @@ typedef enum eLimMlmStates
     eLIM_MLM_WT_ADDBA_RSP_STATE,
     eLIM_MLM_WT_REMOVE_BSS_KEY_STATE,
     eLIM_MLM_WT_REMOVE_STA_KEY_STATE,
-    eLIM_MLM_WT_SET_MIMOPS_STATE
+    eLIM_MLM_WT_SET_MIMOPS_STATE,
+#if defined WLAN_FEATURE_VOWIFI_11R
+    eLIM_MLM_WT_ADD_BSS_RSP_FT_REASSOC_STATE,
+    eLIM_MLM_WT_FT_REASSOC_RSP_STATE,
+#endif
 } tLimMlmStates;
 
 // 11h channel quiet states
@@ -182,6 +191,10 @@ typedef enum eLimDot11hChanSwStates
 } tLimDot11hChanSwStates;
 
 #ifdef GEN4_SCAN
+
+//WLAN_SUSPEND_LINK Related
+typedef void (*SUSPEND_RESUME_LINK_CALLBACK)(tpAniSirGlobal pMac, eHalStatus status, tANI_U32 *data);
+
 // LIM to HAL SCAN Management Message Interface states
 typedef enum eLimHalScanState
 {
@@ -195,6 +208,11 @@ typedef enum eLimHalScanState
   eLIM_HAL_END_LEARN_WAIT_STATE,
   eLIM_HAL_FINISH_LEARN_WAIT_STATE,
   eLIM_HAL_SCANNING_STATE,
+//WLAN_SUSPEND_LINK Related
+  eLIM_HAL_SUSPEND_LINK_WAIT_STATE,
+  eLIM_HAL_SUSPEND_LINK_STATE,
+  eLIM_HAL_RESUME_LINK_WAIT_STATE,
+//end WLAN_SUSPEND_LINK Related
 } tLimLimHalScanState;
 #endif // GEN4_SCAN
 
@@ -288,13 +306,15 @@ typedef struct sLimMlmAuthReq
 {
     tSirMacAddr    peerMacAddr;
     tAniAuthType   authType;
-    tANI_U32            authFailureTimeout;
+    tANI_U32       authFailureTimeout;
+    tANI_U8        sessionId; 
 } tLimMlmAuthReq, *tpLimMlmAuthReq;
 
 typedef struct sLimMlmJoinReq
 {
     tANI_U32               joinFailureTimeout;
     tSirMacRateSet         operationalRateSet;
+    tANI_U8                 sessionId;
     tSirBssDescription     bssDescription;
 } tLimMlmJoinReq, *tpLimMlmJoinReq;
 
@@ -307,6 +327,7 @@ typedef struct sLimMlmScanReq
     tANI_U32           minChannelTime;
     tANI_U32           maxChannelTime;
     tSirBackgroundScanMode  backgroundScanMode;
+    tANI_U32 dot11mode;
     //channelList MUST be the last field of this structure
     tSirChannelList    channelList;
 } tLimMlmScanReq, *tpLimMlmScanReq;
@@ -317,6 +338,25 @@ struct tLimScanResultNode
     tLimScanResultNode *next;
     tSirBssDescription bssDescription;
 };
+
+#ifdef FEATURE_INNAV_SUPPORT
+// InNav related structure definitions
+typedef struct sLimMlmInNavMeasReq
+{
+    tANI_U8               numBSSIDs;
+    tANI_U8               numInNavMeasurements;
+    eSirInNavMeasurementMode measurementMode;
+    tSirBSSIDChannelInfo  bssidChannelInfo[1];
+} tLimMlmInNavMeasReq, *tpLimMlmInNavMeasReq;
+
+typedef struct sLimMlmInNavMeasRsp
+{
+    tANI_U8             numBSSIDs;
+    tANI_U16            resultLength;
+    tSirResultCodes     resultCode;
+    tSirRttRssiResults  rttRssiResults[1];
+} tLimMlmInNavMeasRsp, *tpLimMlmInNavMeasRsp;
+#endif
 
 // Pre-authentication structure definition
 typedef struct tLimPreAuthNode
@@ -389,32 +429,30 @@ typedef struct sLimTraceParams
 
 typedef struct sCfgProtection
 {
-#if (defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))
-tANI_U32 overlapFromlla:1;
-tANI_U32 overlapFromllb:1;
-tANI_U32 overlapFromllg:1;
-tANI_U32 overlapHt20:1;
-tANI_U32 overlapNonGf:1;
-tANI_U32 overlapLsigTxop:1;
-tANI_U32 overlapRifs:1;
-tANI_U32 overlapOBSS:1; /* added for obss */
-#endif
-tANI_U32 fromlla:1;
-tANI_U32 fromllb:1;
-tANI_U32 fromllg:1;
-tANI_U32 ht20:1;
-tANI_U32 nonGf:1;
-tANI_U32 lsigTxop:1;
-tANI_U32 rifs:1;
-tANI_U32 obss:1; /* added for Obss */
+    tANI_U32 overlapFromlla:1;
+    tANI_U32 overlapFromllb:1;
+    tANI_U32 overlapFromllg:1;
+    tANI_U32 overlapHt20:1;
+    tANI_U32 overlapNonGf:1;
+    tANI_U32 overlapLsigTxop:1;
+    tANI_U32 overlapRifs:1;
+    tANI_U32 overlapOBSS:1; /* added for obss */
+    tANI_U32 fromlla:1;
+    tANI_U32 fromllb:1;
+    tANI_U32 fromllg:1;
+    tANI_U32 ht20:1;
+    tANI_U32 nonGf:1;
+    tANI_U32 lsigTxop:1;
+    tANI_U32 rifs:1;
+    tANI_U32 obss:1; /* added for Obss */
 }tCfgProtection, *tpCfgProtection;
 
 typedef enum eLimProtStaCacheType
 {
-eLIM_PROT_STA_CACHE_TYPE_INVALID,
-eLIM_PROT_STA_CACHE_TYPE_llB,
-eLIM_PROT_STA_CACHE_TYPE_llG,  
-eLIM_PROT_STA_CACHE_TYPE_HT20
+    eLIM_PROT_STA_CACHE_TYPE_INVALID,
+    eLIM_PROT_STA_CACHE_TYPE_llB,
+    eLIM_PROT_STA_CACHE_TYPE_llG,  
+    eLIM_PROT_STA_CACHE_TYPE_HT20
 }tLimProtStaCacheType;
 
 typedef struct sCacheParams
@@ -429,8 +467,13 @@ typedef struct sCacheParams
 #define LIM_PROT_STA_OVERLAP_CACHE_SIZE     10
 #define LIM_PROT_STA_CACHE_SIZE 256
 #else
-#define LIM_PROT_STA_OVERLAP_CACHE_SIZE     5
-#define LIM_PROT_STA_CACHE_SIZE 5
+#ifdef WLAN_SOFTAP_FEATURE
+#define LIM_PROT_STA_OVERLAP_CACHE_SIZE    MAX_NO_OF_ASSOC_STA
+#define LIM_PROT_STA_CACHE_SIZE            MAX_NO_OF_ASSOC_STA 
+#else
+#define LIM_PROT_STA_OVERLAP_CACHE_SIZE    5
+#define LIM_PROT_STA_CACHE_SIZE            5
+#endif
 #endif
 
 typedef struct sLimProtStaParams
@@ -442,14 +485,14 @@ typedef struct sLimProtStaParams
 
 typedef struct sLimNoShortParams
 {
-    tANI_U8              numNonShortPreambleSta;
-    tCacheParams    staNoShortCache[LIM_PROT_STA_CACHE_SIZE];
+    tANI_U8           numNonShortPreambleSta;
+    tCacheParams      staNoShortCache[LIM_PROT_STA_CACHE_SIZE];
 } tLimNoShortParams, *tpLimNoShortParams;
 
 typedef struct sLimNoShortSlotParams
 {
-    tANI_U8              numNonShortSlotSta;
-    tCacheParams    staNoShortSlotCache[LIM_PROT_STA_CACHE_SIZE];
+    tANI_U8           numNonShortSlotSta;
+    tCacheParams      staNoShortSlotCache[LIM_PROT_STA_CACHE_SIZE];
 } tLimNoShortSlotParams, *tpLimNoShortSlotParams;
 
 
@@ -633,5 +676,5 @@ typedef struct sLimSpecMgmtInfo
     tANI_BOOLEAN       fRadarIntrConfigured; /* Whether radar interrupt has been configured */
 }tLimSpecMgmtInfo, *tpLimSpecMgmtInfo;
 
-#endif
 
+#endif

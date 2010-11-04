@@ -33,7 +33,7 @@ void limMeasurementTimerHandler(VOID*, tANI_U32);
 #endif
 
 /// Function to extract AP's HCF capability from IE fields
-void limExtractApCapability(tpAniSirGlobal, tANI_U8 *, tANI_U16, tANI_U8 *, tANI_U16 *, tANI_U8 *);
+void limExtractApCapability(tpAniSirGlobal, tANI_U8 *, tANI_U16, tANI_U8 *, tANI_U16 *, tANI_U8 *, tPowerdBm*);
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && defined(ANI_PRODUCT_TYPE_AP)
 /// Function to extract current Learn channel
@@ -44,6 +44,8 @@ void handleNonTitanBss( tpAniSirGlobal, tSirNeighborBssWdsInfo );
 ePhyChanBondState limGetPhyCBState( tpAniSirGlobal );
 tStaRateMode limGetStaPeerType( tpAniSirGlobal, tpDphHashNode );
 void setupCBState( tpAniSirGlobal, tAniCBSecondaryMode );
-tANI_U8 limGetCurrentCBSecChannel( tpAniSirGlobal );
+
+tANI_U8 limGetCurrentCBSecChannel( tpAniSirGlobal,tpPESession );
+
 #endif /* __LIM_PROP_EXTS_UTILS_H */
 

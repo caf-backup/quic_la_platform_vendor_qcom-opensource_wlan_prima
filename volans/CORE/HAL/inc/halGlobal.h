@@ -29,11 +29,14 @@
 #include   "halAdaptThrsh.h"
 #include   "wlan_nv.h"
 #include   "sirParams.h"
-#include   "halLED.h"
 #include   "halPwrSave.h"
 #include   "halFwApi.h"
 #include   "halRFBringup.h"
 #include "vos_event.h"
+
+#ifdef FEATURE_INNAV_SUPPORT
+#include "halInNav.h"
+#endif
 
 #define TIME_UNIT_IN_USEC 	1024
 
@@ -129,6 +132,16 @@ typedef struct sHalMemMap
     tANI_U32   beaconTemplate_offset;
     tANI_U32   beaconTemplate_size;
 
+#ifdef WLAN_SOFTAP_FEATURE
+    tANI_U32   bssTable_offset;
+    tANI_U32   bssTable_size;
+    
+    tANI_U32   staTable_offset;
+    tANI_U32   staTable_size;
+    tANI_U32   probeRspTemplate_offset;
+    tANI_U32   probeRspTemplate_size;
+#endif
+
     tANI_U32   aduUmaStaDesc_offset;
     tANI_U32   aduUmaStaDesc_size;
 
@@ -136,11 +149,19 @@ typedef struct sHalMemMap
     tANI_U32   aduRegRecfgTbl_size;
     tANI_U32   aduRegRecfgTbl_curPtr;
 
+    tANI_U32   aduMimoPSprg_offset;
+    tANI_U32   aduMimoPSprg_size;
+
 #ifdef VOLANS_PHY_TX_OPT_ENABLED
     tANI_U32   aduPhyTxRegRecfgTbl_offset;
     tANI_U32   aduPhyTxRegRecfgTbl_size;
     tANI_U32   aduPhyTxRegRecfgTbl_curPtr;
 #endif /* VOLANS_PHY_TX_OPT_ENABLED */
+
+#ifdef FEATURE_ON_CHIP_REORDERING
+    tANI_U32   rpeReOrderSTADataStructure_offset;
+    tANI_U32   rpeReOrderSTADataStructure_size;
+#endif
 
     tANI_U32   packetMemory_offset;
     tANI_U32   packetMemory_endAddr;
@@ -241,7 +262,7 @@ typedef struct sAniSirHal
 {
     //multBssTable gets populated by Nv in open and start both sequences.
     //sMultipleBssTable *multBssTable;
-    tSystemRole   halSystemRole;     // AP or STA?
+    tBssSystemRole halGlobalSystemRole; // STA, AP, IBSS, MULTI-BSS etc.
     tANI_U8       currentChannel;
     eRfBandMode   currentRfBand;
     ePhyChanBondState currentCBState;
@@ -278,9 +299,6 @@ typedef struct sAniSirHal
 
     TX_TIMER           addBARspTimer; //timer for hdd/softmac addBA rsp
 
-    // LED Related
-    tHalLedParam       ledParam;
-
     // Traffic Activity Monitor timer
     TX_TIMER           trafficActivityTimer;
 
@@ -313,6 +331,16 @@ typedef struct sAniSirHal
 
     /* Firmware parameters */
     tHalFwParams    FwParam;
+
+#ifdef FEATURE_INNAV_SUPPORT
+    tHalInNavMeasParam  innavMeasParam;
+
+    /* For saving the rxp filter state 
+    which needs to be restored after 
+    the innav measurements are done */
+    tANI_U32            rxpFilterRegLo;
+    tANI_U32            rxpFilterRegHi;
+#endif
 
     //callback function pointer for Tx Complete
     //There will be only one request pending. If this pointer is not NULL

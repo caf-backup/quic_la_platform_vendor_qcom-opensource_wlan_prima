@@ -32,11 +32,6 @@ const sHalNv nvDefaults =
     }, //fields
 
     {
-        // NV_TABLE_QFUSE
-        {   0x0, 0x0, 0x0, 0x0      //default to nothing blown
-        },
-
-
         // NV_TABLE_RATE_POWER_SETTINGS
         {
             // typedef tANI_S8 tPowerdBm;
@@ -44,45 +39,45 @@ const sHalNv nvDefaults =
             //tRateGroupPwr       pwrOptimum[NUM_RF_SUBBANDS];
             {
                     //802.11b Rates
-                {1600},    // HAL_PHY_RATE_11B_LONG_1_MBPS,
-                {1600},    // HAL_PHY_RATE_11B_LONG_2_MBPS,
-                {1600},    // HAL_PHY_RATE_11B_LONG_5_5_MBPS,
-                {1600},    // HAL_PHY_RATE_11B_LONG_11_MBPS,
-                {1600},    // HAL_PHY_RATE_11B_SHORT_2_MBPS,
-                {1600},    // HAL_PHY_RATE_11B_SHORT_5_5_MBPS,
-                {1600},    // HAL_PHY_RATE_11B_SHORT_11_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_LONG_1_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_LONG_2_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_LONG_5_5_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_LONG_11_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_SHORT_2_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_SHORT_5_5_MBPS,
+                {1900},    // HAL_PHY_RATE_11B_SHORT_11_MBPS,
 
                     //SLR Rates
-                {1550},    // HAL_PHY_RATE_SLR_0_25_MBPS,
-                {1550},    // HAL_PHY_RATE_SLR_0_5_MBPS,
+                {1900},    // HAL_PHY_RATE_SLR_0_25_MBPS,
+                {1900},    // HAL_PHY_RATE_SLR_0_5_MBPS,
 
                     //11A 20MHz Rates
-                {1300},    // HAL_PHY_RATE_11A_6_MBPS,
-                {1300},    // HAL_PHY_RATE_11A_9_MBPS,
-                {1250},    // HAL_PHY_RATE_11A_12_MBPS,
-                {1200},    // HAL_PHY_RATE_11A_18_MBPS,
-                {1150},    // HAL_PHY_RATE_11A_24_MBPS,
-                {1100},    // HAL_PHY_RATE_11A_36_MBPS,
-                {1050},    // HAL_PHY_RATE_11A_48_MBPS,
-                {1000},    // HAL_PHY_RATE_11A_54_MBPS,
+                {1500},    // HAL_PHY_RATE_11A_6_MBPS,
+                {1500},    // HAL_PHY_RATE_11A_9_MBPS,
+                {1500},    // HAL_PHY_RATE_11A_12_MBPS,
+                {1500},    // HAL_PHY_RATE_11A_18_MBPS,
+                {1500},    // HAL_PHY_RATE_11A_24_MBPS,
+                {1500},    // HAL_PHY_RATE_11A_36_MBPS,
+                {1500},    // HAL_PHY_RATE_11A_48_MBPS,
+                {1500},    // HAL_PHY_RATE_11A_54_MBPS,
 
                     //MCS Index #0-15 (20MHz)
-                {1300},    // HAL_PHY_RATE_MCS_1NSS_6_5_MBPS,
-                {1250},    // HAL_PHY_RATE_MCS_1NSS_13_MBPS,
-                {1200},    // HAL_PHY_RATE_MCS_1NSS_19_5_MBPS,
-                {1150},    // HAL_PHY_RATE_MCS_1NSS_26_MBPS,
-                {1100},    // HAL_PHY_RATE_MCS_1NSS_39_MBPS,
-                {1050},    // HAL_PHY_RATE_MCS_1NSS_52_MBPS,
-                {1000},    // HAL_PHY_RATE_MCS_1NSS_58_5_MBPS,
-                { 900},    // HAL_PHY_RATE_MCS_1NSS_65_MBPS,
-                {1300},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_7_2_MBPS,
-                {1250},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_14_4_MBPS,
-                {1200},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_21_7_MBPS,
-                {1150},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_28_9_MBPS,
-                {1100},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_43_3_MBPS,
-                {1050},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_57_8_MBPS,
-                {1000},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_65_MBPS,
-                { 900}     // HAL_PHY_RATE_MCS_1NSS_MM_SG_72_2_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_6_5_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_13_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_19_5_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_26_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_39_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_52_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_58_5_MBPS,
+                {1300},    // HAL_PHY_RATE_MCS_1NSS_65_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_7_2_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_14_4_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_21_7_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_28_9_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_43_3_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_57_8_MBPS,
+                {1500},    // HAL_PHY_RATE_MCS_1NSS_MM_SG_65_MBPS,
+                {1300}     // HAL_PHY_RATE_MCS_1NSS_MM_SG_72_2_MBPS,
             },  //    RF_SUBBAND_2_4_GHZ,
         },
 
@@ -109,17 +104,17 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_11,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_12,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_13,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
@@ -152,19 +147,19 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 19},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 19},           //RF_CHAN_13,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
@@ -195,20 +190,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_TRUE, 18},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
                 {
@@ -238,20 +233,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
                 {
@@ -281,17 +276,17 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_11,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_12,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_13,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
@@ -324,20 +319,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
                 {
@@ -367,20 +362,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
                 {
@@ -410,20 +405,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
                 {
@@ -453,20 +448,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
                 {
@@ -504,68 +499,1078 @@ const sHalNv nvDefaults =
             0,                  // regDomain
             { 'U', 'S', 'I' }   // countryCode
         },
-
-        // NV_TABLE_TPC_CONFIG
+        
+        //NV_TABLE_CAL_MEMORY
         {
-            // #define MAX_TPC_CAL_POINTS      (4)
-            // #define MAX_TPC_CHANNELS        (2)
-            // #define START_TPC_CHANNEL       2412
-            // #define END_TPC_CHANNEL         2472
-            //
-            // typedef tANI_U8 tPowerDetect;        //7-bit power detect reading
-            // typedef struct
-            // {
-            //     tPowerDetect pwrDetAdc;            //= SENSED_PWR register, which reports the 8-bit ADC
-            //                                        // the stored ADC value gets shifted to 7-bits as the index to the LUT
-            //     tPowerDetect adjustedPwrDet;       //7-bit value that goes into the LUT at the LUT[pwrDet] location
-            //                                        //MSB set if extraPrecision.hi8_adjustedPwrDet is used
-            // }tTpcCaldPowerPoint;
-            //
-            // typedef tTpcCaldPowerPoint tTpcCaldPowerTable[PHY_MAX_TX_CHAINS][MAX_TPC_CAL_POINTS];
-            //
-            // typedef struct
-            // {
-            //     tANI_U16 freq;                                     //frequency in MHz
-            //     tANI_U16 reserved;
-            //     tPowerdBmRange absPower;                           //Power range common to all chains
-            //     tTpcCaldPowerTable empirical;                      //calibrated power points
-            // }tTpcConfig;
+            0x7FFF,      // tANI_U16    process_monitor;
+            0x00,        // tANI_U8     hdet_cal_code;
+            0x00,        // tANI_U8     rxfe_gm_2;
+                    
+            0x00,        // tANI_U8     tx_bbf_rtune;
+            0x00,        // tANI_U8     pa_rtune_reg;
+            0x00,        // tANI_U8     rt_code;
+            0x00,        // tANI_U8     bias_rtune;
 
-            {
-                START_TPC_CHANNEL,
-                0,
-                { MIN_PWR_LUT_DBM_2DEC_PLACES, MAX_PWR_LUT_DBM_2DEC_PLACES },   //tPowerdBmRange absPower;
+            0x00,        // tANI_U8     bb_bw1;
+            0x00,        // tANI_U8     bb_bw2;
+            { 0x00, 0x00 },        // tANI_U8     reserved[2];
+
+            0x00,        // tANI_U8     bb_bw3;
+            0x00,        // tANI_U8     bb_bw4;
+            0x00,        // tANI_U8     bb_bw5;
+            0x00,        // tANI_U8     bb_bw6;
+
+            0x7FFF,      // tANI_U16    rcMeasured;
+            0x00,        // tANI_U8     tx_bbf_ct;
+            0x00,        // tANI_U8     tx_bbf_ctr;
+
+            0x00,        // tANI_U8     csh_maxgain_reg;
+            0x00,        // tANI_U8     csh_0db_reg;
+            0x00,        // tANI_U8     csh_m3db_reg;
+            0x00,        // tANI_U8     csh_m6db_reg;
+
+            0x00,        // tANI_U8     cff_0db_reg;
+            0x00,        // tANI_U8     cff_m3db_reg;
+            0x00,        // tANI_U8     cff_m6db_reg;
+            0x00,        // tANI_U8     rxfe_gpio_ctl_1;
+
+            0x00,        // tANI_U8     mix_bal_cnt_2;
+            0x00,        // tANI_S8     rxfe_lna_highgain_bias_ctl_delta;
+            0x00,        // tANI_U8     rxfe_lna_load_ctune;
+            0x00,        // tANI_U8     rxfe_lna_ngm_rtune;
+
+            0x00,        // tANI_U8     rx_im2_i_cfg0;
+            0x00,        // tANI_U8     rx_im2_i_cfg1;
+            0x00,        // tANI_U8     rx_im2_q_cfg0;
+            0x00,        // tANI_U8     rx_im2_q_cfg1;
+
+            0x00,        // tANI_U8     pll_vfc_reg3_b0;
+            0x00,        // tANI_U8     pll_vfc_reg3_b1;
+            0x00,        // tANI_U8     pll_vfc_reg3_b2;
+            0x00,        // tANI_U8     pll_vfc_reg3_b3;
+
+            0x7FFF,        // tANI_U16    tempStart;
+            0x7FFF,        // tANI_U16    tempFinish;
+
+            { //txLoCorrections
                 {
-                    { // pwrDetAdc, adjustedPwrDet
-                        { 9,     6 },   //cal point 0
-                        { 14,   38 },   //cal point 1
-                        { 28,   70 },   //cal point 2
-                        { 115, 105 }    //cal point 3
-                    } //PHY_TX_CHAIN_0
-                } //empirical
-            }, //START_TPC_CHANNEL
-
-            {
-                END_TPC_CHANNEL,
-                0,
-                { MIN_PWR_LUT_DBM_2DEC_PLACES, MAX_PWR_LUT_DBM_2DEC_PLACES },   //tPowerdBmRange absPower;
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_1
                 {
-                    { // pwrDetAdc, adjustedPwrDet
-                        { 9,     6 },   //cal point 0
-                        { 14,   38 },   //cal point 1
-                        { 28,   70 },   //cal point 2
-                        { 115, 105 }    //cal point 3
-                    } //PHY_TX_CHAIN_0
-                } //empirical
-            } //END_TPC_CHANNEL
-        },
-
-        // NV_TABLE_RF_CAL_VALUES
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_2
+                {
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_3
+                {
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_4
+                {
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_5
+                {
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_6
+                {
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_7
+                {
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_8
+                {
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_9
+                {
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_10
+                {
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_11
+                {
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_12
+                {
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_13
+                {
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_0
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_1
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_2
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_3
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_4
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_5
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_6
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_7
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_8
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_9
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_10
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_11
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_12
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_13
+                    { 0x00, 0x00 }, // TX_GAIN_STEP_14
+                    { 0x00, 0x00 }  // TX_GAIN_STEP_15
+                }  //RF_CHAN_14
+            },        // tTxLoCorrections    txLoValues;
+            
+            { //sTxIQChannel
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_1
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_2
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_3
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_4
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_5
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_6
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_7
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_8
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_9
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_10
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_11
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_12
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }, //RF_CHAN_13
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // TX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // TX_GAIN_STEP_15
+                }  //RF_CHAN_14
+            },        // sTxIQChannel        txIqValues;
+            
+            { //sRxIQChannel
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }, //RF_CHAN_1
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }, //RF_CHAN_2
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }, //RF_CHAN_3
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }, //RF_CHAN_4
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }, //RF_CHAN_5
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }, //RF_CHAN_6
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }, //RF_CHAN_7
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }, //RF_CHAN_8
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }, //RF_CHAN_9
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }, //RF_CHAN_10
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }, //RF_CHAN_11
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }, //RF_CHAN_12
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }, //RF_CHAN_13
+                {
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_0
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_1
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_2
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_3
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_4
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_5
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_6
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_7
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_8
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_9
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_10
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_11
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_12
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_13
+                    { 0x0000, 0x0000, 0x0000 }, // RX_GAIN_STEP_14
+                    { 0x0000, 0x0000, 0x0000 }  // RX_GAIN_STEP_15
+                }  //RF_CHAN_14
+            },        // sRxIQChannel        rxIqValues;
+            
+            { // tTpcConfig          clpcData[MAX_TPC_CHANNELS]
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                }, // RF_CHAN_1
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                }, // RF_CHAN_2
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                }, // RF_CHAN_3
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                }, // RF_CHAN_4
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                }, // RF_CHAN_5
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                }, // RF_CHAN_6
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                }, // RF_CHAN_7
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                }, // RF_CHAN_8
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                }, // RF_CHAN_9
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                }, // RF_CHAN_10
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                }, // RF_CHAN_11
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                }, // RF_CHAN_12
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                },  // RF_CHAN_13
+                {
+                    {
+                        {
+                            { 0x00, 0x00 }, //CAL_POINT_0
+                            { 0x00, 0x00 }, //CAL_POINT_1
+                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL_POINT_3
+                            { 0x00, 0x00 }, //CAL_POINT_4
+                            { 0x00, 0x00 }, //CAL_POINT_5
+                            { 0x00, 0x00 }, //CAL_POINT_6
+                            { 0x00, 0x00 }  //CAL_POINT_7
+                        } // PHY_TX_CHAIN_0
+                    } // empirical
+                }  // RF_CHAN_14
+            },        // tTpcConfig          clpcData[MAX_TPC_CHANNELS];
+            
+            {
+                { 0x0000, { 0x00, 0x00 } }, // RF_CHAN_1: pdadc_offset, reserved[2]
+                { 0x0000, { 0x00, 0x00 } }, // RF_CHAN_2: pdadc_offset, reserved[2]
+                { 0x0000, { 0x00, 0x00 } }, // RF_CHAN_3: pdadc_offset, reserved[2]
+                { 0x0000, { 0x00, 0x00 } }, // RF_CHAN_4: pdadc_offset, reserved[2]
+                { 0x0000, { 0x00, 0x00 } }, // RF_CHAN_5: pdadc_offset, reserved[2]
+                { 0x0000, { 0x00, 0x00 } }, // RF_CHAN_6: pdadc_offset, reserved[2]
+                { 0x0000, { 0x00, 0x00 } }, // RF_CHAN_7: pdadc_offset, reserved[2]
+                { 0x0000, { 0x00, 0x00 } }, // RF_CHAN_8: pdadc_offset, reserved[2]
+                { 0x0000, { 0x00, 0x00 } }, // RF_CHAN_9: pdadc_offset, reserved[2]
+                { 0x0000, { 0x00, 0x00 } }, // RF_CHAN_10: pdadc_offset, reserved[2]
+                { 0x0000, { 0x00, 0x00 } }, // RF_CHAN_11: pdadc_offset, reserved[2]
+                { 0x0000, { 0x00, 0x00 } }, // RF_CHAN_12: pdadc_offset, reserved[2]
+                { 0x0000, { 0x00, 0x00 } }, // RF_CHAN_13: pdadc_offset, reserved[2]
+                { 0x0000, { 0x00, 0x00 } }  // RF_CHAN_14: pdadc_offset, reserved[2]
+            }        // tTpcParams          clpcParams[MAX_TPC_CHANNELS];
+            
+        }, //NV_TABLE_CAL_MEMORY
+        
+        //NV_TABLE_CAL_STATUS
         {
-            7,      // hdet_ctl_ext_atten;
-            29,      // hdet_dcoc_code;
-            1,      // hdet_dcoc_ib_rcal_en;
-            1       // hdet_dcoc_ib_scal_en;
+            0xFF,        // tANI_U8     overall;
+            0xFF,        // tANI_U8     fwInit;
+            0xFF,        // tANI_U8     hdet_dco;
+            0xFF,        // tANI_U8     rtuner;
+            0xFF,        // tANI_U8     ctuner;
+            0xFF,        // tANI_U8     insitu;
+            0xFF,        // tANI_U8     process_monitor;
+            0xFF,        // tANI_U8     pllVcoLinearity;
+            0xFF,        // tANI_U8     txIQ;
+            0xFF,        // tANI_U8     rxIQ;
+            0xFF,        // tANI_U8     rxDco;
+            0xFF,        // tANI_U8     txLo;
+            0xFF,        // tANI_U8     lnaBias;
+            0xFF,        // tANI_U8     lnaBandTuning;
+            0xFF,        // tANI_U8     lnaGainAdjust;
+            0xFF,        // tANI_U8     im2UsingNoisePwr;
+            0xFF,        // tANI_U8     temperature;
+            0xFF,        // tANI_U8     clpc;
+            0xFF,        // tANI_U8     clpc_temp_adjust;
+            0xFF,        // tANI_U8     txDpd;
+            0xFF,        // tANI_U8     channelTune;
+            0xFF,        // tANI_U8     rxGmStageLinearity;
+            0xFF,        // tANI_U8     im2UsingToneGen;
+            {
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00
+            }        // tANI_U8     unused[9];
         }
 
     } // tables

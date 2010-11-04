@@ -22,6 +22,51 @@
 #include "halRegBckup.h"
 #include "btcApi.h"
 #include "halTLApi.h"
+//halPhy header files
+#include "asicApi.h"
+
+#if (defined(ANI_OS_TYPE_ANDROID) || defined(ANI_OS_TYPE_LINUX))
+#include <linux/firmware.h>
+#include <linux/string.h>
+#include <../../../HDD/inc/wlan_hdd_main.h>
+#include <linux/mmc/sdio_func.h>
+
+
+typedef struct
+{
+    char templateFileName[50];
+    tANI_U32 template_type;
+    tANI_U32 template_subtype;
+    tANI_U32 template_resp_type;
+    tANI_U32 template_resp_subtype;
+    tANI_U32 template_ignore_expected_resp;
+    tANI_U32 template_resp_is_expected;    
+}tTemplateStruct;
+
+typedef struct
+{
+    char templateFileName[50];
+    tANI_U32 mpduHdrLen;
+}tBtqmTemplateStruct;
+
+tTemplateStruct templateList[10] = {
+ {"wlan/psPoll", SIR_MAC_CTRL_FRAME, SIR_MAC_CTRL_PS_POLL, SIR_MAC_CTRL_FRAME, SIR_MAC_CTRL_ACK, 0, 0},
+ {"wlan/probeRsp", SIR_MAC_MGMT_FRAME, SIR_MAC_MGMT_PROBE_RSP, SIR_MAC_CTRL_FRAME, SIR_MAC_CTRL_ACK, 0, 0},
+ {"wlan/data", SIR_MAC_DATA_FRAME, SIR_MAC_DATA_DATA, SIR_MAC_CTRL_FRAME, SIR_MAC_CTRL_ACK, 0, 0},
+ {"wlan/qosData", SIR_MAC_DATA_FRAME, SIR_MAC_DATA_QOS_DATA, SIR_MAC_CTRL_FRAME, SIR_MAC_CTRL_ACK, 0, 0},      
+ {"wlan/probeReq", SIR_MAC_MGMT_FRAME, SIR_MAC_MGMT_PROBE_REQ, SIR_MAC_CTRL_FRAME, SIR_MAC_CTRL_ACK, 0, 0},
+
+ };
+
+tBtqmTemplateStruct btqmTemplateList[10] = {
+ {"wlan/psPoll", 24},
+ {"wlan/probeRsp", 24},
+ {"wlan/data", 24}, 
+ {"wlan/qosData", 26}
+
+ };
+
+#endif
 
 /* ---------------------------------------------
  * FUNCTION:  halLog_printRxpBinarySearchTable()
@@ -459,7 +504,6 @@ void halLog_printStaTable(tpAniSirGlobal pMac)
             HALLOGW( halLog( pMac, LOGW, FL("\t   prt TID BA sessionId:  %d,%d,%d,%d - %d,%d,%d,%d"),
                 table->baSessionID[0],table->baSessionID[1],table->baSessionID[2],table->baSessionID[3],
                 table->baSessionID[4],table->baSessionID[5],table->baSessionID[6],table->baSessionID[7] ));
-
             if(table->addStaParam.cap11nHT){
                 HALLOGW( halLog(  pMac, LOGW, FL("\t 11n HT Capable %c\n"),  table->addStaParam.cap11nHT?'Y':'N'  ));
                 HALLOGW( halLog(  pMac, LOGW, FL("\t    MIMO Power Save mode %u\n"),  table->addStaParam.mimoPwrSaveMode  ));
@@ -1496,11 +1540,13 @@ dump_hal_set_global_enable_rates
     }
     halRate_halRateInfoTableToFW(pMac, arg2, arg3);
 
+//#ifndef WLAN_SOFTAP_FEATURE
+#if 0
     //now update global sample rate table
     if(HAL_STA_INVALID_IDX != pMac->hal.halMac.selfStaId)
         /* this will invoke firmware to re-organize sampling table */
         halMacRaAddBssReq(pMac, 0, (tANI_U8)pMac->hal.halMac.selfStaId); /* is this ok ? bssIdx == 0 ? */
-
+#endif //FIXME_VOLANS
     //retry rates would be updated next time when HAL selects a new rate
 
     return p;
@@ -1513,40 +1559,35 @@ dump_pMac_Size( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3
     (void) arg1; (void) arg2; (void) arg3; (void) arg4;
     HALLOGW( halLog(pMac, LOGW, FL("******** pMac Size Breakup ******** \n")));
     HALLOGW( halLog(pMac, LOGW, FL("pMac = %d\n"), sizeof(tAniSirGlobal)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->hal = %d\n"), sizeof(pMac->hal)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->lim = %d\n"), sizeof(pMac->lim)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->ccm = %d\n"), sizeof(pMac->ccm)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->cfg = %d\n"), sizeof(pMac->cfg)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->dph = %d\n"), sizeof(pMac->dph)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->dumpTableEntry = %d\n"), sizeof(pMac->dumpTableEntry[0]) * MAX_DUMP_TABLE_ENTRY));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->pmc = %d\n"), sizeof(pMac->pmc)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->pmm = %d\n"), sizeof(pMac->pmm)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->pResetMsg = %d\n"), sizeof(pMac->pResetMsg[0])));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->roam = %d\n"), sizeof(pMac->roam)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->scan = %d\n"), sizeof(pMac->scan)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->sch = %d\n"), sizeof(pMac->sch)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->sme = %d\n"), sizeof(pMac->sme)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->sys = %d\n"), sizeof(pMac->sys)));
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->hal = %d\n"), sizeof(pMac->hal)));            
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->lim = %d\n"), sizeof(pMac->lim)));    
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->ccm = %d\n"), sizeof(pMac->ccm)));  
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->cfg = %d\n"), sizeof(pMac->cfg)));    
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->dumpTableEntry = %d\n"), sizeof(pMac->dumpTableEntry[0]) * MAX_DUMP_TABLE_ENTRY));    
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->pmc = %d\n"), sizeof(pMac->pmc)));    
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->pmm = %d\n"), sizeof(pMac->pmm)));    
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->pResetMsg = %d\n"), sizeof(pMac->pResetMsg[0])));    
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->roam = %d\n"), sizeof(pMac->roam)));    
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->scan = %d\n"), sizeof(pMac->scan)));    
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->sch = %d\n"), sizeof(pMac->sch)));    
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->sme = %d\n"), sizeof(pMac->sme)));    
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->sys = %d\n"), sizeof(pMac->sys)));    
 #ifdef ANI_OS_TYPE_WINDOWS
     HALLOGW( halLog(pMac, LOGW, FL("pMac->txWrapper = %d\n"), sizeof(pMac->txWrapper)));
 #endif
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->utils = %d\n"), sizeof(pMac->utils)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->hPhy = %d\n"), sizeof(pMac->hphy)));
-
-
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->utils = %d\n"), sizeof(pMac->utils)));    
+    HALLOGW( halLog(pMac, LOGW, FL("pMac->hPhy = %d\n"), sizeof(pMac->hphy)));        
     HALLOGW( halLog(pMac, LOGW, FL("******** pMac->hal Breakup ******** \n")));
     HALLOGW( halLog(pMac, LOGW, FL("pMac->hal.halIntErrStats = %d\n"), sizeof(pMac->hal.halIntErrStats)));
     HALLOGW( halLog(pMac, LOGW, FL("pMac->hal.halMac = %d\n"), sizeof(pMac->hal.halMac)));
     HALLOGW( halLog(pMac, LOGW, FL("pMac->hal.halRaInfo = %d\n"), sizeof(pMac->hal.halRaInfo)));
     HALLOGW( halLog(pMac, LOGW, FL("pMac->hal.intEnableCache = %d\n"), sizeof(pMac->hal.intEnableCache)));
     HALLOGW( halLog(pMac, LOGW, FL("pMac->hal.intStatusCache = %d\n"), sizeof(pMac->hal.intStatusCache)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->hal.ledParam = %d\n"), sizeof(pMac->hal.ledParam)));
     HALLOGW( halLog(pMac, LOGW, FL("pMac->hal.memMap = %d\n"), sizeof(pMac->hal.memMap)));
     HALLOGW( halLog(pMac, LOGW, FL("pMac->hal.PsParam = %d\n"), sizeof(pMac->hal.PsParam)));
     HALLOGW( halLog(pMac, LOGW, FL("pMac->hal.scanParam = %d\n"), sizeof(pMac->hal.scanParam)));
     HALLOGW( halLog(pMac, LOGW, FL("pMac->hal.TLParam = %d\n"), sizeof(pMac->hal.TLParam)));
     HALLOGW( halLog(pMac, LOGW, FL("pMac->hal.halAdaptThresh = %d\n"), sizeof(pMac->hal.halAdaptThresh)));
-    HALLOGW( halLog(pMac, LOGW, FL("pMac->hal.ledParam = %d\n"), sizeof(pMac->hal.ledParam)));
 
     HALLOGW( halLog(pMac, LOGW, FL("***pMac->hal.halMac breakup****\n")));
     HALLOGW( halLog(pMac, LOGW, FL("pMac->hal.halMac.tspecInfo = %d\n"), sizeof(pMac->hal.halMac.tspecInfo)));
@@ -1709,17 +1750,424 @@ dump_set_ba_activity_check_timeout( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32
       return p;
 }
 
+
+#if (defined(ANI_OS_TYPE_ANDROID) || defined(ANI_OS_TYPE_LINUX))
+void getFrmTemplate(tpAniSirGlobal pMac, tANI_U32 templateType /*0 = templateList, 1 = btqmTemplateList*/,
+            tANI_U32 templateNum, tANI_U8* templateBuf, tANI_U32* templateFrmSize)
+{
+    int status, i = 0, j = 0;
+
+   /** Pointer for firmware image data */
+   const struct firmware *fw;
+   hdd_adapter_t* pAdapter = (hdd_adapter_t*)pMac->pAdapter; 
+   char *buffer;
+   char buffer1[2048];
+   tANI_U32 val = 0;
+
+   *templateFrmSize = 0;
+   if(templateNum > 9)
+     return;
+   
+   memset(buffer1, 0, sizeof(buffer1));
+
+   if(templateType == 0)
+   {
+       status = request_firmware(&fw, templateList[templateNum].templateFileName, &(pAdapter->hsdio_func_dev->dev));
+   }
+   else if(templateType == 1)
+   {
+       status = request_firmware(&fw, btqmTemplateList[templateNum].templateFileName, &(pAdapter->hsdio_func_dev->dev));
+   }
+    
+   
+   if(!fw || !fw->data) 
+   {
+      halLog(pMac, LOGE, FL("%s: template download failed\n"));
+	  return;
+   } 
+
+   buffer = (char *)fw->data;
+
+   for(i = 0; i < fw->size; i++)
+   {
+       if((buffer[i] >= 48) && (buffer[i] <= 57))
+       {
+           buffer1[i] = buffer[i] - 48;
+       }
+       else if((buffer[i] >= 97) && (buffer[i] <= 102))
+       {
+           buffer1[i] = buffer[i] - 87;
+       }
+       else if((buffer[i] >= 65) && (buffer[i] <= 70))
+       {
+           buffer1[i] = buffer[i] - 55;
+       }
+       
+       else
+           continue;
+  
+       if(j%2)
+       {
+           val += buffer1[i];
+           templateBuf[*templateFrmSize] = val;
+           (*templateFrmSize)++;
+           halLog(pMac, LOGE, FL("%x\n"), val);
+       }
+       else
+       {
+           val = buffer1[i] * 16;
+       }
+       j++;
+   }
+  
+
+   release_firmware(fw);
+   return;
+}
+
+
+static char* SendTemplateFrame(tpAniSirGlobal pMac, tANI_U32 templateNum, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char* p)
+{
+#ifdef CONFIGURE_SW_TEMPLATE
+
+#if (defined(ANI_OS_TYPE_ANDROID) || defined(ANI_OS_TYPE_LINUX))
+
+    tSwTemplate swTemplate;
+    tTpeRateIdx rateIndex = TPE_RT_IDX_11B_RATE_LONG_PR_BASE_OFFSET;
+    tANI_U32    alignedLen;
+    tANI_U32    templateFrmSize = 0;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    static tANI_U8 swBaseTemplateInit = FALSE;
+    tANI_U8 templateBuf[2048];
+
+    (void)arg2; (void)arg3; (void)arg4;        
+    /** Initialize SW Template base */
+    if (swBaseTemplateInit == FALSE) {
+        if (halTpe_InitSwTemplateBase(pMac, pMac->hal.memMap.swTemplate_offset) 
+            != eHAL_STATUS_SUCCESS) {
+            return p;    
+        }
+        swBaseTemplateInit = TRUE;
+    }
+
+    /** Zero out the SW Template memory */
+    halZeroDeviceMemory(pMac, pMac->hal.memMap.swTemplate_offset, 
+                                    sizeof (tSwTemplate) + sizeof( tANI_U32 ));
+
+    palZeroMemory(pMac->hHdd, templateBuf, sizeof(templateBuf));
+
+    palZeroMemory(pMac->hHdd, &swTemplate, sizeof(tSwTemplate));
+
+    //allocate template buffer.
+    //pass a stuct which will have buffer as well as ohter related filed like type/subtype etc.
+    getFrmTemplate(pMac, 0 /*templateList*/, templateNum, templateBuf, &templateFrmSize);
+
+
+    swTemplate.template_type     = templateList[templateNum].template_type;
+    swTemplate.template_sub_type     = templateList[templateNum].template_subtype;
+    swTemplate.expected_resp_sub_type = templateList[templateNum].template_resp_subtype;
+    swTemplate.expected_resp_type     = templateList[templateNum].template_resp_type;
+    swTemplate.ignore_expected_resp = templateList[templateNum].template_ignore_expected_resp;
+    swTemplate.resp_is_expected    = templateList[templateNum].template_resp_is_expected;
+    halGetNonBcnRateIdx(pMac, &rateIndex);
+    swTemplate.primary_data_rate_index = rateIndex;
+    swTemplate.template_len = templateFrmSize + SW_TEMPLATE_CRC;
+    status = halWriteDeviceMemory(pMac, 
+            pMac->hal.memMap.swTemplate_offset,
+            (tANI_U8 *)&swTemplate, SW_TEMPLATE_HEADER_LEN);
+
+    alignedLen = (templateFrmSize + 3 ) & ~3 ;
+
+    //need to be swapped since there is another swap occurs while BAL writes
+    sirSwapU32BufIfNeeded((tANI_U32*)&templateBuf, alignedLen >> 2);
+
+    status = halWriteDeviceMemory(pMac, pMac->hal.memMap.swTemplate_offset + SW_TEMPLATE_HEADER_LEN,
+            (tANI_U8 *)&templateBuf, alignedLen);
+
+    halTpe_TriggerSwTemplate(pMac);
+
+#endif
+#endif //#ifdef CONFIGURE_SW_TEMPLATE
+    return p;
+}
+
+
+
+static char* SendFrmBdIdx(tpAniSirGlobal pMac, tANI_U32 staIdx, tANI_U32 qid, tANI_U32 templateNum, tANI_U32 arg4, char *p)
+{
+    tANI_U32 bmuPushBdCmd, bmuGetBdCmd, regVal = 0;
+    
+    tANI_U32 alignedLen, templateOffset;
+    halTxBd_type *pTxBd,  txBd;
+    tANI_U32 bdIdx = 0;
+    tANI_U32 mpduLen = 0;
+    tANI_U8 buff[2048];
+
+    if((staIdx >= HAL_NUM_STA)|| (qid > pMac->hal.memMap.maxHwQueues) ||(templateNum > 9))
+        return p;
+    vos_mem_zero(buff, sizeof(buff));
+
+    getFrmTemplate(pMac, 1 /*btqmTemplateList*/, templateNum, buff, &mpduLen);
+
+    bmuGetBdCmd = (BMU_COMMAND_BASE_ADDRESS    |
+              1 << BMU_NUM_BD_GET_SHIFT   |
+              8 << BMU_MASTER_ID_SHIFT    |
+              GET_BD_PDU_CMDTYPE);
+
+    palReadRegister(pMac->hHdd, bmuGetBdCmd, &bdIdx);
+
+    palReadRegister(pMac->hHdd, QWLAN_MCU_BD_PDU_BASE_ADDR_REG, &regVal);
+    pTxBd = (halTxBd_type*) (regVal + bdIdx * BMU_BD_SIZE);
+    halZeroDeviceMemory(pMac, (tANI_U32)pTxBd, BMU_BD_SIZE);
+
+    //Fill in txbd.
+    vos_mem_zero(&txBd, sizeof(txBd));
+    txBd.txComplete1 = 0;
+    txBd.queueId = qid; 
+    txBd.mpduHeaderOffset = sizeof(halTxBd_type);
+    txBd.staIndex = staIdx;
+    txBd.bdRate = 0x0;
+    txBd.mpduHeaderLength = btqmTemplateList[templateNum].mpduHdrLen;
+    txBd.mpduLength = mpduLen; 
+    txBd.mpduDataOffset = sizeof(halTxBd_type)+ txBd.mpduHeaderLength;
+
+    halWriteDeviceMemory(pMac, (tANI_U32)pTxBd, &txBd, sizeof(halTxBd_type));
+
+    //halWriteDevicememory requires length to be mulltiple of four and aligned to 4 byte boundry.
+    alignedLen = ( mpduLen + 3 ) & ~3 ;
+
+    // beacon body need to be swapped sicne there is another swap occurs while BAL writes
+
+    sirSwapU32BufIfNeeded((tANI_U32*)buff, alignedLen>>2);
+
+    templateOffset = (tANI_U32) (((tANI_U8*)pTxBd) + sizeof(halTxBd_type));
+
+    halWriteDeviceMemory(pMac, templateOffset,
+                            (tANI_U8 *)buff, alignedLen );
+    
+
+    // send to BTQM
+    bmuPushBdCmd = BMU_COMMAND_BASE_ADDRESS |
+         BMUWQ_BTQM << 8 |
+         PUSH_WQ_CMDTYPE;
+
+    // push the frame to the next queue
+    palWriteRegister(pMac->hHdd, bmuPushBdCmd, bdIdx);
+
+    return p;
+}
+
+#endif
+
+#ifdef WLAN_DEBUG
+tANI_U8 beaconPayload[] = {0xbe, 0x00, 0x00, 0x00, //beacon length
+                              0x80, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0xde, 0xad, 0xbe, 0xef, 0x00,
+                              0x00, 0xde, 0xad, 0xbe, 0xef, 0x00, 0x00, 0x00, 0x87, 0x51, 0xd0, 0x32, 0x11, 0x00, 0x00, 0x00,
+                              0x64, 0x00, 0x21, 0x04, 0x00, 0x08, 0x51, 0x75, 0x61, 0x6c, 0x63, 0x6f, 0x6d, 0x6d, 0x01, 0x04,
+                              0x82, 0x84, 0x8b, 0x96, 0x03, 0x01, 0x06, 0x05, 0x04, 0x00, 0x01, 0x00, 0x00, 0x2a, 0x01, 0x00,
+                              0x32, 0x08, 0x0c, 0x12, 0x18, 0x24, 0x30, 0x48, 0x60, 0x6c, 0x2d, 0x1a, 0xec, 0x91, 0x03, 0xff,
+                              0xff, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3d, 0x16, 0x06, 0x08, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00,
+                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xdd, 0x18,
+                              0x00, 0x50, 0xf2, 0x02, 0x01, 0x01, 0x81, 0x00, 0x03, 0xa4, 0x00, 0x00, 0x27, 0xa4, 0x00, 0x00,
+                              0x42, 0x43, 0x5e, 0x00, 0x62, 0x32, 0x2f, 0x00, 0xdd, 0x14, 0x00, 0x0a, 0xf5, 0x00, 0x03, 0x01,
+                              0x03, 0x05, 0x0a, 0x02, 0x80, 0xc0, 0x12, 0x06, 0xff, 0xff, 0xff, 0xff, 0xb0, 0x0d, 0xdd, 0x0e,
+                              0x00, 0x50, 0xf2, 0x04, 0x10, 0x4a, 0x00, 0x01, 0x10, 0x10, 0x44, 0x00, 0x01, 0x01};
+
+tANI_U8 probeRspPayLoad[] = { 0x50, 0x00, 0x3A, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+                                 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x20, 0x4D, 0xC1, 0xFD, 0xBD, 0xF7, 0x0C, 0x00, 0x00, 0x00,
+                                 0x64, 0x00, 0x21, 0x00, 0x00, 0x08, 0x51, 0x75, 0x61, 0x6C, 0x63, 0x6F, 0x6D, 0x6D, 0x01, 0x04,
+                                 0x82, 0x84, 0x8B, 0x0C, 0x03, 0x01, 0x01, 0x2A, 0x01, 0x00, 0x85, 0x1E, 0x00, 0x00, 0x84, 0x00,
+                                 0x0F, 0x00, 0xFF, 0x03, 0x19, 0x00, 0x61, 0x70, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x25, 0xDD, 0x06, 0x00, 0x40, 0x96, 0x01,
+                                 0x01, 0x00, 0xDD, 0x05, 0x00, 0x40, 0x96, 0x03, 0x04, 0xDD, 0x05, 0x00, 0x40, 0x96, 0x0B, 0x01,
+                                 0xDD, 0x18, 0x00, 0x50, 0xF2, 0x02, 0x01, 0x01, 0x81, 0xDD, 0x18, 0x00, 0x50, 0xF2, 0x02, 0x01,
+                                 0x01, 0x81, 0x00, 0x03, 0xA4, 0x00, 0x00, 0x27, 0xA4, 0x00, 0x00, 0x42, 0x43, 0x5E, 0x00, 0x62,
+                                 0x32, 0x2F, 0x00};
+
+#endif
+
+#ifdef WLAN_SOFTAP_FEATURE
+static char* dump_updateProbeRspTemplate(tpAniSirGlobal pMac, tANI_U32 bssIdx, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char* p)
+{
+#ifdef WLAN_DEBUG
+    tSirMsgQ msgQ;
+    tpUpdateProbeRspParams probeRspParams = NULL;
+
+    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
+            (void **) &probeRspParams,
+            sizeof( tUpdateProbeRspParams )))
+      return p;
+
+    msgQ.type = SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND;
+
+    // No Dialog Token reqd, as a response is not solicited
+    msgQ.reserved = 0;
+
+    // Fill in tSendbeaconParams members
+    /* Knock off all pMac global addresses */
+    // limGetBssid( pMac, beaconParams->bssId);
+    palCopyMemory(pMac, probeRspParams->bssId, &addr_bssid[bssIdx], sizeof(tSirMacAddr));
+    probeRspParams->probeRsp = probeRspPayLoad;
+    probeRspParams->probeRspLength = sizeof(probeRspPayLoad);
+    msgQ.bodyptr = probeRspParams;
+    msgQ.bodyval = 0;
+    if(eSIR_SUCCESS != halPostMsgApi( pMac, &msgQ ))
+    {
+        palFreeMemory(pMac, (void*)probeRspParams);    
+        halLog( pMac, LOGE,
+              FL("could not post SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND to HAL\n"));
+    }
+
+
+#endif
+
+    return p;
+}
+#endif
+void halLog_SendBeaconReq( tpAniSirGlobal pMac, tANI_U8 bssIdx)
+{
+#ifdef WLAN_DEBUG
+    tSirMsgQ msgQ;
+    tpSendbeaconParams beaconParams = NULL;
+#ifdef WLAN_SOFTAP_FEATURE    
+    tANI_U32 timIeOffset = BEACON_TEMPLATE_HEADER + 55; //template header length + TIM ie offset starting from the beacon.
+#endif    
+
+  if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
+          (void **) &beaconParams,
+          sizeof( tSendbeaconParams )))
+    return;
+
+  msgQ.type = SIR_HAL_SEND_BEACON_REQ;
+
+  // No Dialog Token reqd, as a response is not solicited
+  msgQ.reserved = 0;
+
+  // Fill in tSendbeaconParams members
+  /* Knock off all pMac global addresses */
+  // limGetBssid( pMac, beaconParams->bssId);
+  palCopyMemory(pMac, beaconParams->bssId, &addr_bssid[bssIdx], sizeof(tSirMacAddr));
+  beaconParams->beacon = beaconPayload;
+  beaconParams->beaconLength = sizeof(beaconPayload);
+#ifdef WLAN_SOFTAP_FEATURE  
+  beaconParams->timIeOffset = timIeOffset;
+#endif  
+  msgQ.bodyptr = beaconParams;
+  msgQ.bodyval = 0;
+  if(eSIR_SUCCESS != halPostMsgApi( pMac, &msgQ ))
+  {
+    palFreeMemory(pMac, (void*)beaconParams);  
+    halLog( pMac, LOGE,
+            FL("could not post SIR_HAL_SEND_BEACON_REQ to HAL\n"));
+  }
+#endif
+  return;
+}
+
+static char* dump_setLinkState( tpAniSirGlobal pMac, tANI_U32 bssIdx, tANI_U32 state, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    tSirMsgQ msgQ;
+    tpLinkStateParams pLinkStateParams = NULL;
+    tpBssStruct pBss;
+    tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;    
+
+
+    if(bssIdx >= HAL_NUM_BSSID)
+    {
+        HALLOGE(halLog(pMac, LOGE, FL("invalid bssIdx requested\n")));
+        return p;
+    }
+        
+    pBss = &t[bssIdx];
+
+    if(state >  eSIR_LINK_FINISH_CAL_STATE) //greater than the max state
+    {
+        HALLOGE(halLog(pMac, LOGE, FL("invalid link state requested\n")));
+        return p;
+    }
+    // Allocate memory.
+    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
+          (void **) &pLinkStateParams,
+          sizeof(tLinkStateParams)))
+    {
+        halLog( pMac, LOGP,
+        FL( "Unable to PAL allocate memory while sending Set Link State\n" ));
+        return p;
+    }
+
+    palZeroMemory( pMac->hHdd, (tANI_U8 *) pLinkStateParams, sizeof(tLinkStateParams));
+
+    pLinkStateParams->state = state;
+
+    /* Copy Mac address */
+    sirCopyMacAddr(pLinkStateParams->bssid, pBss->bssId);
+
+
+    msgQ.type = SIR_HAL_SET_LINK_STATE;
+    msgQ.reserved = 0;
+    msgQ.bodyptr = pLinkStateParams;
+    msgQ.bodyval = 0;
+    
+    if (halPostMsgApi(pMac, &msgQ) != eSIR_SUCCESS)
+    {
+        palFreeMemory(pMac, (void*)pLinkStateParams);
+        halLog(pMac, LOGP, FL("Posting link state failed\n"));
+    }
+
+    return p;
+}
+
+#ifdef WLAN_SOFTAP_FEATURE
+static char* dump_setProbeRspIeBitmap(tpAniSirGlobal pMac, tANI_U32 enable, tANI_U32 enableDisableAllIe, tANI_U32 arg3, tANI_U32 arg4, char* p)
+{
+    tpUpdateProbeRspIeBitmap pMsg;
+    tSirMsgQ halMsg;
+
+    if (palAllocateMemory(pMac->hHdd, (void **)&pMsg, sizeof(tpUpdateProbeRspIeBitmap)) != eHAL_STATUS_SUCCESS)
+    {
+        HALLOGW( halLog(pMac, LOGW, FL("palAllocateMemory Failed\n")));
+        return p;
+    }
+
+    pMsg->fwProcessingdisabled = (!enable);
+    if(!enableDisableAllIe) //disable all IEs
+    {
+        vos_mem_zero(pMsg->probeRspIeBitmap, sizeof(pMsg->probeRspIeBitmap));
+    }
+    else
+    {//enable all IEs
+        vos_mem_set(pMsg->probeRspIeBitmap, sizeof(pMsg->probeRspIeBitmap), 0xff);
+    }
+    halMsg.type = SIR_HAL_UPDATE_PROBE_RSP_IE_BITMAP_IND;
+    halMsg.reserved = 0;
+    halMsg.bodyptr = pMsg;
+    halMsg.bodyval = 0;
+    
+    if (halPostMsgApi(pMac, &halMsg) != eSIR_SUCCESS)
+    {
+        palFreeMemory(pMac, (void*)pMsg);
+        halLog(pMac, LOGP, FL("Posting  SIR_HAL_UPDATE_PROBE_RSP_IE_BITMAP_IND failed\n"));
+    }
+    return p;
+}
+#endif
+
 static void
 halLog_testAddBss(tpAniSirGlobal pMac, tANI_U32 bssType, tANI_U32 bssidNum)
 {
     tpAddBssParams pMsg;
     tSirMsgQ halMsg;
     tSirMacAddr *bssid;
+#define MAX_DUMP_ADD_BSS_BSSTYPE 6
 
-    if ((bssType != 1) && (bssType != 2))
+    if (bssType > MAX_DUMP_ADD_BSS_BSSTYPE)
     {
         HALLOGW( halLog(pMac, LOGW, FL("ERROR - mode should be 1 for AP (START BSS), 2 for STA (Join BSS)\n"
-            "3 for STA (Create BSS)")));
+            "3 for STA (Create IBSS)\n"
+            "4 for BTAMP AP Add Bss Req\n"
+            "5 for BTAMP STA Add Bss Req\n"
+            )));
         return;
     }
 
@@ -1740,22 +2188,124 @@ halLog_testAddBss(tpAniSirGlobal pMac, tANI_U32 bssType, tANI_U32 bssidNum)
 
     palCopyMemory(pMac->hHdd, (void *) &pMsg->bssId, (void *)bssid, 6);
 
-    pMsg->operMode = (bssType == 1) ? BSS_OPERATIONAL_MODE_AP : BSS_OPERATIONAL_MODE_STA;
-
-    HALLOGW( halLog(pMac, LOGW, FL("AddBss adding bssid %d-%d-%d-%d-%d-%d as %s"),
-           (*bssid)[0], (*bssid)[1], (*bssid)[2],
-           (*bssid)[3], (*bssid)[4], (*bssid)[5],
-           ((bssType == 1) ? "AP" : "STA")));
-
+    // Default
     pMsg->bssType = eSIR_INFRASTRUCTURE_MODE;
-    if (bssType == 3)
-        pMsg->bssType = eSIR_IBSS_MODE;
+    pMsg->operMode = BSS_OPERATIONAL_MODE_STA;
+    palCopyMemory( pMac->hHdd,  pMsg->selfMacAddr, bssid, sizeof(tSirMacAddr));
 
-    pMsg->beaconInterval = 0;
-    pMsg->dtimPeriod = 2;
+    switch (bssType) {
+        case 1:
+            pMsg->operMode = BSS_OPERATIONAL_MODE_AP;
+            {
+                int      i;
+                tpAddStaParams  pSta = &pMsg->staContext;
+                
+
+                pSta->staType = STA_ENTRY_SELF; // Identifying self
+                palCopyMemory( pMac->hHdd,  pSta->bssId,   bssid,  sizeof( tSirMacAddr ));
+                palCopyMemory( pMac->hHdd,  pSta->staMac, bssid, sizeof(tSirMacAddr));
+                pSta->listenInterval = 2;
+                pSta->shortPreambleSupported = 1;
+                pSta->assocId               = 0; 
+                pSta->wmmEnabled            = 0;
+                pSta->uAPSD                 = 0;
+                pSta->maxSPLen              = 0;
+                pSta->us32MaxAmpduDuration  = 0;
+                pSta->maxAmpduSize          = 0; // 0: 8k, 1: 16k,2: 32k,3: 64k
+
+
+#if 0 
+                if(IS_DOT11_MODE_HT(psessionEntry->dot11mode)) 
+                {
+                    pSta->htCapable         = htCapable;
+                    pSta->greenFieldCapable = limGetHTCapability( pMac, eHT_GREENFIELD );
+                    pSta->txChannelWidthSet = limGetHTCapability( pMac, eHT_SUPPORTED_CHANNEL_WIDTH_SET );
+                    pSta->mimoPS            = (tSirMacHTMIMOPowerSaveState)limGetHTCapability( pMac, eHT_MIMO_POWER_SAVE );
+                    pSta->rifsMode          = limGetHTCapability( pMac, eHT_RIFS_MODE );
+                    pSta->lsigTxopProtection = limGetHTCapability( pMac, eHT_LSIG_TXOP_PROTECTION );
+                    pSta->delBASupport      = limGetHTCapability( pMac, eHT_DELAYED_BA );
+                    pSta->maxAmpduDensity   = limGetHTCapability( pMac, eHT_MPDU_DENSITY );
+                    pSta->maxAmsduSize      = limGetHTCapability( pMac, eHT_MAX_AMSDU_LENGTH );
+                    pSta->fDsssCckMode40Mhz = limGetHTCapability( pMac, eHT_DSSS_CCK_MODE_40MHZ);
+                    pSta->fShortGI20Mhz     = limGetHTCapability( pMac, eHT_SHORT_GI_20MHZ);
+                    pSta->fShortGI40Mhz     = limGetHTCapability( pMac, eHT_SHORT_GI_40MHZ);
+                }
+
+                limPopulateOwnRateSet(pMac, &pSta->supportedRates, NULL, false,psessionEntry);
+                limFillSupportedRatesInfo(pMac, NULL, &pSta->supportedRates,psessionEntry);
+                
+                limLog( pMac, LOGE, FL( "GF: %d, ChnlWidth: %d, MimoPS: %d, lsigTXOP: %d, dsssCCK: %d, SGI20: %d, SGI40%d\n") ,
+                                                      pSta->greenFieldCapable, pSta->txChannelWidthSet, pSta->mimoPS, pSta->lsigTxopProtection, 
+                                                      pSta->fDsssCckMode40Mhz,pSta->fShortGI20Mhz, pSta->fShortGI40Mhz);
+
+#endif
+
+                //Disable BA. It will be set as part of ADDBA negotiation.
+                for( i = 0; i < STACFG_MAX_TC; i++ )
+                {
+                    pSta->staTCParams[i].txUseBA = eBA_DISABLE;
+                    pSta->staTCParams[i].rxUseBA = eBA_DISABLE;
+                }
+                
+            }            
+            HALLOGW(halLog(pMac, LOGW, "AddBss infra adding bssid %d-%d-%d-%d-%d-%d as %s",
+                (*bssid)[0], (*bssid)[1], (*bssid)[2],
+                (*bssid)[3], (*bssid)[4], (*bssid)[5],
+                "AP"));
+            break;
+
+        case 3:
+            pMsg->bssType = eSIR_IBSS_MODE;
+            HALLOGW(halLog(pMac, LOGW, "AddBss IBSS adding bssid %d-%d-%d-%d-%d-%d as %s",
+                (*bssid)[0], (*bssid)[1], (*bssid)[2],
+                (*bssid)[3], (*bssid)[4], (*bssid)[5],
+                "STA"));
+            break;
+
+        case 4: // BTAMP-AP
+            pMsg->bssType = eSIR_BTAMP_AP_MODE;
+            pMsg->operMode = BSS_OPERATIONAL_MODE_AP;
+            pMsg->staContext.staType = STA_ENTRY_SELF; // AP sends out only 1 type 
+            HALLOGW(halLog(pMac, LOGW, "AddBss BTAMP-AP adding bssid %d-%d-%d-%d-%d-%d as %s",
+                (*bssid)[0], (*bssid)[1], (*bssid)[2],
+                (*bssid)[3], (*bssid)[4], (*bssid)[5],
+                "AP")); 
+            break;
+
+        case 5:
+            pMsg->bssType = eSIR_BTAMP_STA_MODE;
+            pMsg->operMode = BSS_OPERATIONAL_MODE_STA;
+            pMsg->staContext.staType = STA_ENTRY_SELF; // STA sends out 2 types. this is the 1st.
+            HALLOGW(halLog(pMac, LOGW, "AddBss BTAMP-STA adding bssid %d-%d-%d-%d-%d-%d as %s",
+                (*bssid)[0], (*bssid)[1], (*bssid)[2],
+                (*bssid)[3], (*bssid)[4], (*bssid)[5],
+                "STA")); 
+            break;
+
+        case 6:
+            pMsg->bssType = eSIR_BTAMP_AP_MODE;  // BTAMP STA is requesting joining the BTAMP-AP
+            pMsg->operMode = BSS_OPERATIONAL_MODE_STA;
+            pMsg->staContext.staType = STA_ENTRY_PEER; // STA sends out 2 types. this is the 2nd.
+            HALLOGW(halLog(pMac, LOGW, "AddBss BTAMP-STA adding bssid %d-%d-%d-%d-%d-%d as %s",
+                (*bssid)[0], (*bssid)[1], (*bssid)[2],
+                (*bssid)[3], (*bssid)[4], (*bssid)[5],
+                "STA")); 
+            break;
+
+        default:
+            HALLOGW(halLog(pMac, LOGW, "AddBss infra adding bssid %d-%d-%d-%d-%d-%d as %s",
+                (*bssid)[0], (*bssid)[1], (*bssid)[2],
+                (*bssid)[3], (*bssid)[4], (*bssid)[5],
+                "STA")); 
+            break;
+    }
+
+
+    pMsg->beaconInterval = 500;
+    pMsg->dtimPeriod = 20;
     pMsg->respReqd = 0;
     pMsg->nwType = eSIR_11G_NW_TYPE;
-    pMsg->currentOperChannel = 6;
+    pMsg->currentOperChannel = 1;
 
     halMsg.type =  SIR_HAL_ADD_BSS_REQ;
     halMsg.reserved = dialogToken++;
@@ -1767,6 +2317,154 @@ halLog_testAddBss(tpAniSirGlobal pMac, tANI_U32 bssType, tANI_U32 bssidNum)
 
     return;
 }
+
+#ifdef WLAN_SOFTAP_FEATURE
+//uapsdMask : LSB 4 bits for delivery enabled AC. MSB 4 bits for trigger enabled AC. 1 bit per AC.
+//  b7  b6  b5  b4  b3  b2  b1  b0
+//  BE  BK VI   VO BE  BK VI  VO
+static char* 
+halLog_updateUapsd(tpAniSirGlobal pMac, tANI_U32 staIdx, tANI_U32 uapsdACMask, tANI_U32 maxSpLen, tANI_U32 arg4, char* p)
+{
+    tSirMsgQ halMsg;
+    tpUpdateUapsdParams pMsg;
+
+    (void) arg4;
+
+    if (palAllocateMemory(pMac->hHdd, (void **)&pMsg, sizeof(tUpdateUapsdParams)) != eHAL_STATUS_SUCCESS)
+    {
+        HALLOGW( halLog(pMac, LOGW, FL("palAllocateMemory Failed\n")));
+        return p;
+    }
+
+    pMsg->staIdx = (tANI_U16) staIdx;
+    pMsg->uapsdACMask = (tANI_U8) uapsdACMask;
+    pMsg->maxSpLen = (tANI_U8) maxSpLen;
+    halMsg.type = SIR_HAL_UPDATE_UAPSD_IND;
+    halMsg.reserved = dialogToken++;
+    halMsg.bodyptr = pMsg;
+    halMsg.bodyval = 0;
+
+    if (halPostMsgApi(pMac, &halMsg) != eHAL_STATUS_SUCCESS)
+        palFreeMemory(pMac->hHdd, pMsg);
+
+    return p;
+}
+
+static char* 
+dump_sendFcFrameToFw(tpAniSirGlobal pMac, tANI_U32 staIdx, tANI_U32 memTh, tANI_U32 fcConfig, tANI_U32 arg4, char* p)
+{
+    tANI_U32 bdIdx = 0, bmuGetBdCmd = 0, bmuPushBdCmd = 0, regVal = 0;
+    halFcTxBd_type *pFcTxBd;
+    halFcTxBd_type fcTxBd;
+
+    if(staIdx >= HAL_NUM_STA)
+        return p;
+
+    bmuGetBdCmd = (BMU_COMMAND_BASE_ADDRESS    |
+              1 << BMU_NUM_BD_GET_SHIFT   |
+              8 << BMU_MASTER_ID_SHIFT    |
+              GET_BD_PDU_CMDTYPE);
+
+    palReadRegister(pMac->hHdd, bmuGetBdCmd, &bdIdx);
+
+    palReadRegister(pMac->hHdd, QWLAN_MCU_BD_PDU_BASE_ADDR_REG, &regVal);
+    pFcTxBd = (halFcTxBd_type*) (regVal + bdIdx * BMU_BD_SIZE);
+    halZeroDeviceMemory(pMac, (tANI_U32)pFcTxBd, BMU_BD_SIZE);
+
+    //fill flow control BD
+    vos_mem_zero(&fcTxBd, sizeof(fcTxBd));
+    fcTxBd.fc = 1;
+    fcTxBd.dpuNE = HAL_NO_ENCRYPTION_ENABLED;
+    fcTxBd.dpuRF = BMUWQ_FW_DPU_TX;
+    fcTxBd.mpduHeaderLength = FC_REQUST_MPDU_HDR_LEN;
+    fcTxBd.mpduHeaderOffset = FC_REQUST_MPDU_HDR_START_OFFSET;
+    fcTxBd.mpduLength = FC_REQUST_MPDU_LEN;
+    //fcTxBd.ft = 0;
+    fcTxBd.fcConfig = (fcConfig & 0xff);
+    fcTxBd.fcSTAThreshEnabledMask = (1 << staIdx); //for station id 2.
+    fcTxBd.fcSTAThresh[staIdx] = (memTh & 0xff);
+
+    halWriteDeviceMemory(pMac, (tANI_U32)pFcTxBd, &fcTxBd, sizeof(halFcTxBd_type));
+
+    // send to FW queue.
+    bmuPushBdCmd = BMU_COMMAND_BASE_ADDRESS |
+         BMUWQ_FW_TRANSMIT << 8 |
+         PUSH_WQ_CMDTYPE;
+
+    // push the frame to the next queue
+    palWriteRegister(pMac->hHdd, bmuPushBdCmd, bdIdx);
+    HALLOGE( halLog( pMac, LOGE, FL("bdIdx=%d, addr=0x%x, staIdx=%d, memTh=%d, fcConfig=0x%x\n"), bdIdx, pFcTxBd, staIdx, memTh, fcConfig));
+    return p;
+}
+
+static char*
+dump_addStaWithUapsd(tpAniSirGlobal pMac, tANI_U32 staType, tANI_U32 staidNum, tANI_U32 bssidNum, tANI_U32 uapsdAcMask,char* p)
+{
+    tpAddStaParams pMsg;
+    tSirMacAddr *bssid;
+    tSirMacAddr *staid;
+    tSirMsgQ halMsg;
+
+    if ((staType != 0) && (staType != 1))
+    {
+        HALLOGW( halLog(pMac, LOGW, FL("ERROR - sta type should be 0 for STA (self) and 1 for Remote (BSS adding)\n")));
+        return p;
+    }
+
+    if ((staidNum >= NUM_STAID) || (bssidNum >= NUM_BSSID))
+    {
+        HALLOGW( halLog(pMac, LOGW, FL("ERROR - bssid should be in [0,%d], staid should be in [0,%d]\n"),
+               NUM_BSSID, NUM_STAID));
+        return p;
+    }
+
+    if (palAllocateMemory(pMac->hHdd, (void **)&pMsg, sizeof(tAddStaParams)) != eHAL_STATUS_SUCCESS)
+    {
+        HALLOGW( halLog(pMac, LOGW, FL("palAllocateMemory Failed\n")));
+        return p;
+    }
+
+    bssid = &addr_bssid[bssidNum];
+    staid = &addr_staid[staidNum];
+
+    palZeroMemory(pMac->hHdd, (void *) pMsg, sizeof (tAddStaParams));
+    palCopyMemory(pMac->hHdd, (void *) &pMsg->bssId, (void *)bssid, 6);
+    palCopyMemory(pMac->hHdd, (void *) &pMsg->staMac, (void *)staid, 6);
+
+    pMsg->staIdx = HAL_STA_INVALID_IDX; 
+    pMsg->assocId = staidNum + 1; // may not work in all the cases. 
+    pMsg->staType = (staType == 0) ? STA_ENTRY_SELF : STA_ENTRY_PEER;
+    HALLOGW( halLog(pMac, LOGW, FL("Adding STA %d-%d-%d-%d-%d-%d %s. "),
+           (*staid)[0], (*staid)[1], (*staid)[2],
+           (*staid)[3], (*staid)[4], (*staid)[5],
+
+           ((staType == 0) ? "as STA (self)" : "on AP")));
+
+    pMsg->listenInterval = 5;
+    pMsg->supportedRates.opRateMode =  eSTA_TAURUS;
+    pMsg->uAPSD = (uapsdAcMask & 0xff);
+
+
+    pMsg->htCapable = 1;
+    pMsg->wmmEnabled = 1;
+
+    HALLOGW( halLog(pMac, LOGW, FL("Adding STA with 11n %s, Qos %s \n"),
+           ((pMsg->htCapable == 1)  ? "ON" : "OFF"),
+           ((pMsg->wmmEnabled == 1) ? "ON" : "OFF") ));
+
+    pMsg->respReqd = 0;
+
+    halMsg.type =  SIR_HAL_ADD_STA_REQ;
+    halMsg.reserved = dialogToken++;
+    halMsg.bodyptr = pMsg;
+    halMsg.bodyval = 0;
+
+    if (halPostMsgApi(pMac, &halMsg) != eHAL_STATUS_SUCCESS)
+        palFreeMemory(pMac->hHdd, pMsg);
+
+    return p;
+}
+#endif
 
 static void
 halLog_testAddSta(tpAniSirGlobal pMac, tANI_U32 staType, tANI_U32 staidNum, tANI_U32 bssidNum, tANI_U32 qos_11n)
@@ -1802,6 +2500,8 @@ halLog_testAddSta(tpAniSirGlobal pMac, tANI_U32 staType, tANI_U32 staidNum, tANI
     palCopyMemory(pMac->hHdd, (void *) &pMsg->bssId, (void *)bssid, 6);
     palCopyMemory(pMac->hHdd, (void *) &pMsg->staMac, (void *)staid, 6);
 
+    pMsg->staIdx = HAL_STA_INVALID_IDX; 
+    pMsg->assocId = staidNum + 1; // may not work in all the cases. 
     pMsg->staType = (staType == 0) ? STA_ENTRY_SELF : STA_ENTRY_PEER;
     HALLOGW( halLog(pMac, LOGW, FL("Adding STA %d-%d-%d-%d-%d-%d %s. "),
            (*staid)[0], (*staid)[1], (*staid)[2],
@@ -1964,6 +2664,16 @@ dump_hal_test_add_bss( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U
     return p;
 }
 
+static char *
+dump_hal_test_update_beacon_template( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    (void) arg2; (void) arg3; (void) arg4;
+    halLog_SendBeaconReq(pMac, arg1);
+    return p;
+}
+
+
+
 
 static char *
 dump_hal_test_del_bss( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
@@ -2115,6 +2825,69 @@ dump_hal_show_descr( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32
     return p;
 }
 
+static char *
+dump_hal_show_multi_bss_info( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+	tANI_U16 bssIdx;
+    tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+	HALLOGW(halLog(pMac, LOGW, FL("Current global link state = %s\n"),
+             ((pMac->hal.halGlobalSystemRole == eSYSTEM_AP_ROLE) ? "AP Mode" :
+             ((pMac->hal.halGlobalSystemRole == eSYSTEM_STA_IN_IBSS_ROLE) ? "IBSS Mode" : 
+             ((pMac->hal.halGlobalSystemRole == eSYSTEM_STA_ROLE) ? "Infra Station Mode" : 
+             ((pMac->hal.halGlobalSystemRole == eSYSTEM_BTAMP_STA_ROLE) ? "BTAMP Station Mode" : 
+             ((pMac->hal.halGlobalSystemRole == eSYSTEM_BTAMP_AP_ROLE) ? "BTAMP AP Mode" : 
+             ((pMac->hal.halGlobalSystemRole == eSYSTEM_MULTI_BSS_ROLE) ? "Multi-BSS in Existance" : 
+              "UNKNOWN"
+             ))))))));
+
+
+	for (bssIdx = 0; bssIdx < pMac->hal.halMac.maxBssId; bssIdx++)
+	{
+        if (t[bssIdx].valid)
+		{
+	        HALLOGW( halLog(pMac, LOGE, FL("BSS[%x] link state = %s\n"), bssIdx, 
+                ((t[bssIdx].bssLinkState == eSIR_LINK_IDLE_STATE) ? "Idle state" :
+                ((t[bssIdx].bssLinkState == eSIR_LINK_PREASSOC_STATE) ? "Pre-Assoc State" :
+                ((t[bssIdx].bssLinkState == eSIR_LINK_POSTASSOC_STATE) ? "Post-Assoc State" :
+                ((t[bssIdx].bssLinkState == eSIR_LINK_AP_STATE) ? "AP State" :
+                ((t[bssIdx].bssLinkState == eSIR_LINK_IBSS_STATE) ? "IBSS STATE" :
+                ((t[bssIdx].bssLinkState == eSIR_LINK_BTAMP_PREASSOC_STATE) ? "BTAMP_PREASSOC_STATE " :
+                ((t[bssIdx].bssLinkState == eSIR_LINK_BTAMP_POSTASSOC_STATE) ? "BTAMP_POSTASSOC_STATE " :
+                ((t[bssIdx].bssLinkState == eSIR_LINK_BTAMP_AP_STATE) ? "BTAMP_AP_STATE " :
+                ((t[bssIdx].bssLinkState == eSIR_LINK_BTAMP_STA_STATE) ? "BTAMP STA STATE" :
+                "UNKNOWN"
+                )))))))))));
+
+	        HALLOGW( halLog(pMac, LOGE, FL("BSS[%x] rxp Mode = %s\n"), bssIdx, 
+                ((t[bssIdx].bssRxpMode == eRXP_IDLE_MODE) ? "Idle Mode" :
+                ((t[bssIdx].bssRxpMode == eRXP_SCAN_MODE) ? "SCAN_MODE Mode" :
+                ((t[bssIdx].bssRxpMode == eRXP_PRE_ASSOC_MODE) ? "PRE_ASSOC_MODE Mode" :
+                ((t[bssIdx].bssRxpMode == eRXP_POST_ASSOC_MODE) ? "POST_ASSOC_MODE Mode" :
+                ((t[bssIdx].bssRxpMode == eRXP_AP_MODE) ? "AP_MODE Mode" :
+                ((t[bssIdx].bssRxpMode == eRXP_POWER_SAVE_MODE) ? "POWER_SAVE_MODE Mode" :
+                ((t[bssIdx].bssRxpMode == eRXP_IBSS_MODE) ? "IBSS_MODE Mode" :
+                ((t[bssIdx].bssRxpMode == eRXP_BTAMP_PREASSOC_MODE) ? "BTAMP_PREASSOC Mode" :
+                ((t[bssIdx].bssRxpMode == eRXP_BTAMP_POSTASSOC_MODE) ? "BTAMP_POSTASSOC Mode" :
+                ((t[bssIdx].bssRxpMode == eRXP_BTAMP_AP_MODE) ? "BTAMP_AP Mode" :
+                ((t[bssIdx].bssRxpMode == eRXP_BTAMP_STA_MODE) ? "BTAMP_STA Mode" :
+                "UNKNOWN"
+                )))))))))))));
+
+	        HALLOGW( halLog(pMac, LOGE, FL("BSS[%x] role = %s\n"), bssIdx, 
+                ((t[bssIdx].bssSystemRole == eSYSTEM_AP_ROLE) ? "AP Mode" :
+                ((t[bssIdx].bssSystemRole == eSYSTEM_STA_IN_IBSS_ROLE) ? "IBSS Mode" :
+                ((t[bssIdx].bssSystemRole == eSYSTEM_STA_ROLE) ? "Station Mode" :
+                ((t[bssIdx].bssSystemRole == eSYSTEM_BTAMP_STA_ROLE) ? "BTAMP Station Mode" :
+                ((t[bssIdx].bssSystemRole == eSYSTEM_BTAMP_AP_ROLE) ? "BTAMP AP Mode" :
+                "UNKNOWN"
+                )))))));
+            HALLOGW(halLog(pMac, LOGW, FL("bssSelfStaIdx = %u, bcastStaIdx = %u"), t[bssIdx].bssSelfStaIdx, t[bssIdx].bcastStaIdx));
+		}
+	}
+	return p;
+}
+
 static char *dump_hal_show_TLTxRxStat(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     tANI_U8 curSta = (tANI_U8) arg1;
@@ -2128,9 +2901,7 @@ static char *dump_hal_show_TLTxRxStat(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U
         HALLOGE(halLog(pMac, LOGE, FL("tid = %d, txPcktCount = %d, rxPcktCount = %d/n"), tId, txPcktCount, rxPcktCount));
     }
     return p;
-
 }
-
 static char *dump_hal_send_wowl_enter(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     tSirMsgQ halMsg;
@@ -2745,6 +3516,7 @@ static char *dump_hal_phy_regs(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2
 
 static char *dump_hal_set_btc_config(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
     tSmeBtcConfig btcConfig;
 
     btcConfig.btcWlanIntervalMode1 = (v_U8_t)arg1;
@@ -2753,7 +3525,7 @@ static char *dump_hal_set_btc_config(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U3
     btcConfig.btcActionOnPmFail = (v_U8_t)arg4;
 
     btcSetConfig((tHalHandle)pMac, &btcConfig);
-
+#endif
     return p;
 }
 
@@ -2838,6 +3610,15 @@ static char *dump_hal_view_fw_log_filters(tpAniSirGlobal pMac, tANI_U32 arg1, tA
     return p;
 }
 
+static char *dump_hal_view_fw_log_records(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    halUtil_DumpFwCorexLogs((void *)pMac);
+
+    HALLOGW(halLog(pMac, LOGW, FL("[LOG] In Function dump_hal_view_fw_log_records\n")));
+    return p;
+
+}
+
 static char *dump_hal_rf_change_channel(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     (void) arg2; (void) arg3; (void) arg4;
@@ -2877,6 +3658,37 @@ dump_hal_set_max_ps_poll( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tAN
     halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
     return p;
 }
+
+#ifdef WLAN_SOFTAP_FEATURE
+static char *
+dump_hal_set_ap_link_monitor( tpAniSirGlobal pMac, tANI_U32 enable, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
+    (void) arg2; (void) arg3; (void) arg4;
+    pFwConfig->fDisLinkMonitor = (!enable);
+    HALLOGW( halLog(pMac, LOGW, FL("link monitoring enabled = %u  %d\n"), !pFwConfig->fDisLinkMonitor));
+    halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
+    return p;
+}
+
+static char *
+dump_hal_set_ap_unknown_addr2_handling( tpAniSirGlobal pMac, tANI_U32 enable, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
+    (void) arg2; (void) arg3; (void) arg4;
+    pFwConfig->fEnableFwUnknownAddr2Handling = (!enable);
+    HALLOGW( halLog(pMac, LOGW, FL("unknown addr2 handling enabled = %u  %d\n"), pFwConfig->fEnableFwUnknownAddr2Handling));
+    halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
+    return p;
+}
+
+static char *
+dump_hal_Fw_Stat( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    halFW_MsgReq(pMac, QWLANFW_COMMON_DUMP_STAT, 0, 0);
+    return p;
+}
+#endif
 
 static char *
 dump_hal_set_fw_timeout( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
@@ -3111,8 +3923,8 @@ dump_hal_read_register( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_
     HALLOGE(halLog(pMac, LOGE, FL("Register Value = 0x%08x\n"), regValue));
 
     return p;
-
 }
+
 static char *
 dump_hal_write_register( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
@@ -3123,9 +3935,58 @@ dump_hal_write_register( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI
     halReadRegister(pMac, arg1, &regValue);
 
     HALLOGE(halLog(pMac, LOGE, FL("Register Value Written = 0x%08x\n"), regValue));
+    return p;
+}
+
+static char *
+dump_hal_read_device_memory( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    tANI_U32 addr = (arg1 & ~(0x3));
+    tANI_U32 value1, value2, value3, value4, dwords, count;
+
+    (void) arg3; (void) arg4;
+
+    if (arg1) {
+        addr = (arg1 & ~(0x3));
+    } else {
+        HALLOGE(halLog(pMac, LOGE, FL("Invalid address 0x%08x\n"), arg1));
+        return p;
+    }
+
+    if (!arg2) {
+        dwords = 1;
+    }
+
+    if (arg3==4) {
+        dwords = (arg2+3)/4;
+        for (count=0; count<dwords; count++) {
+            halReadDeviceMemory(pMac, addr,    &value1, 4);
+            halReadDeviceMemory(pMac, addr+4,  &value2, 4);
+            halReadDeviceMemory(pMac, addr+8,  &value3, 4);
+            halReadDeviceMemory(pMac, addr+12, &value4, 4);
+            HALLOGE(halLog(pMac, LOGE, "0x%08x:  %08x %08x %08x %08x\n", addr, value1, value2, value3, value4));
+            addr += 16;
+        }
+    } else if (arg3 == 2) {
+        dwords = (arg2+1)/2;
+        for (count=0; count<dwords; count++) {
+            halReadDeviceMemory(pMac, addr,    &value1, 4);
+            halReadDeviceMemory(pMac, addr+4,  &value2, 4);
+            HALLOGE(halLog(pMac, LOGE, "0x%08x:  %08x %08x\n", addr, value1, value2));
+            addr += 8;
+        }
+    } else {
+        dwords = arg2;
+        for (count=0; count<dwords; count++) {
+            halReadDeviceMemory(pMac, addr,    &value1, 4);
+            HALLOGE(halLog(pMac, LOGE, "0x%08x:  %08x\n", addr, value1));
+            addr += 4;
+        }
+    }
 
     return p;
 }
+
 
 static char *
 dump_hal_stop_fw_heartbeat( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
@@ -3137,7 +3998,6 @@ dump_hal_stop_fw_heartbeat( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
     } else {
         halFW_StopChipMonitor(pMac);
     }
-
     return p;
 }
 static char *
@@ -3251,6 +4111,7 @@ dump_hal_phy_get_power_for_rate( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 ar
     //make sure to update the rate cmd table
     if (halPhyGetPowerForRate( pMac,
                                phyRate,
+                               POWER_MODE_HIGH_POWER,
                                (tANI_S8)arg2,
                 &power) != eHAL_STATUS_SUCCESS) {
         HALLOGE( halLog(pMac, LOGE, FL("halPhyGetPowerForRate(rateIndex %d) failed \n"), arg1));
@@ -3289,6 +4150,35 @@ dump_hal_phy_open_close_tpc_loop( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 a
 }
 
 static char *
+dump_hal_phy_set_open_loop_gain( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    (void) arg3; (void) arg4;
+
+    if (arg1 > 15 || arg2 > 15)
+    {
+        HALLOGE(halLog(pMac, LOGE, FL("RF/Digital gain cannot be more than 15\n")));
+        return p;
+    }
+
+    {
+        tTxGain tx;
+
+        tx.coarsePwr    = (eTxCoarseGain)arg1;
+        tx.finePwr      = (eTxFineGain)arg2;
+
+        if (asicTPCPowerOverride(pMac, tx, tx, tx, tx) != eHAL_STATUS_SUCCESS)
+        {
+            HALLOGE(halLog(pMac, LOGE, FL("Setting the open loop gain failed!\n")));
+        }
+        else
+        {
+            HALLOGE(halLog(pMac, LOGE, FL("Setting the open loop gain successful!\n")));
+        }
+    }
+    return p;
+}
+
+static char *
 dump_hal_rate_tx_power( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     (void) arg1; (void) arg2; (void) arg3; (void) arg4;
@@ -3299,6 +4189,7 @@ dump_hal_rate_tx_power( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_
 static char *
 dump_hal_phy_update_tpcCfg_cal_point( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
+/*
     if((arg1 < 2) && (arg2 < 4))
     {
         pMac->hphy.nvCache.tables.tpcConfig[arg1].empirical[0][arg2].pwrDetAdc = (tPowerDetect)arg3;
@@ -3308,7 +4199,8 @@ dump_hal_phy_update_tpcCfg_cal_point( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U
     {
         HALLOGE(halLog(pMac, LOGE, FL("Invalid arguments. Make sure the freqIdx < 2 and pointIdx < 4 \n")));
     }
-
+*/
+    HALLOGE(halLog(pMac, LOGE, FL("Obsolete dump command \n")));
     return p;
 
 }
@@ -3317,6 +4209,7 @@ dump_hal_phy_update_tpcCfg_cal_point( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U
 static char *
 dump_hal_phy_update_start_end_cal_freq( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
+/*
     const tANI_U16 rfChans[NUM_RF_CHANNELS] =
     {
         //RF_SUBBAND_2_4_GHZ
@@ -3346,7 +4239,7 @@ dump_hal_phy_update_start_end_cal_freq( tpAniSirGlobal pMac, tANI_U32 arg1, tANI
     {
         HALLOGE(halLog(pMac, LOGE, FL("Invalid arguments. Make sure the freqIdx < 2 and chan <= 14 \n")));
     }
-
+*/
     return p;
 
 }
@@ -3354,6 +4247,7 @@ dump_hal_phy_update_start_end_cal_freq( tpAniSirGlobal pMac, tANI_U32 arg1, tANI
 static char *
 dump_hal_phy_config_tpc( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
+/*
     Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
     (void) arg1; (void) arg2; (void) arg3; (void) arg4;
 
@@ -3368,10 +4262,15 @@ dump_hal_phy_config_tpc( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI
     halWriteRegister(pMac, QWLAN_TPC_TXPWR_ENABLE_REG, TPC_TXPWR_ENABLE_MASK);
 
     //configure TPC from NV cache
-    halPhyConfigureTpc(pMac);
+    //halPhyConfigureTpc(pMac);
 
     //update whole TPE rate power table.
+#ifdef FEATURE_TX_PWR_CONTROL
+    halRate_UpdateRateTablePower(pMac, (tTpeRateIdx)HALRATE_MODE_START, (tTpeRateIdx)HAL_MAC_MAX_TX_RATES, TRUE);
+#else
     halRate_UpdateRateTablePower(pMac, (tTpeRateIdx)MIN_LIBRA_RATE_NUM, (tTpeRateIdx)MAX_LIBRA_TX_RATE_NUM, TRUE);
+#endif
+*/
 
     return p;
 
@@ -3422,6 +4321,43 @@ dump_hal_set_cfg( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 ar
     return p;
 }
 
+/* The dump command gets the power save related counters from firmware */
+static char *
+dump_hal_get_pwr_save_counters( tpAniSirGlobal pMac, 
+                                tANI_U32 arg1, 
+                                tANI_U32 arg2, 
+                                tANI_U32 arg3, 
+                                tANI_U32 arg4, 
+                                char *p)
+{
+    /* The dump command reads the power-save counters and dumps on the console.
+     * Currently, the routine does not care for the power save status of the chip. 
+     * It will wake up the chip to read power save counters.
+     */
+    eHalStatus status;
+    unsigned int i=0;
+    unsigned int startAddr = QWLANFW_MEM_FW_PS_COUNTERS_ADDR_OFFSET;
+    unsigned int size = QWLANFW_MEM_FW_PS_COUNTERS_SIZE;
+    unsigned char buffer[QWLANFW_MEM_FW_PS_COUNTERS_SIZE] = { 0 };
+    unsigned int *puBuf;
+
+    status = halReadDeviceMemory(pMac, startAddr, (void*)buffer, size);
+    
+    if (status != eHAL_STATUS_SUCCESS)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("***** PWRSAVE counters could not be read *****")));
+        return p;
+    }
+
+    puBuf = (unsigned int *)buffer;
+
+    for (i=0; i < (size/sizeof(unsigned int)); i++)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("buffer[%d] = %d"), i, *puBuf++));
+    }
+    
+    return p;
+}
 
 static tDumpFuncEntry halMenuDumpTable[] = {
     {0,     "HAL Specific (50-299)",                                    NULL},
@@ -3429,17 +4365,36 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {0,     "HAL Basic Procedures (60-80)",                             NULL},
     {7,     "HAL:Read Register <address>",                              dump_hal_read_register},
     {8,     "HAL:Write Register <address> <value>",                     dump_hal_write_register},
+    {9,     "HAL:Read Memory <address> <# of dwords> <1/2/4 block>",    dump_hal_read_device_memory},
     {10,    "HAL.Basic: zero memory arg1 = address, arg2 = length",     dump_hal_zero_mem},
     {11,    "HAL:Set CFG <cfg> <value>",                                dump_hal_set_cfg},
     {12,    "HAL:Get CFG <cfg>",                                        dump_hal_get_cfg},
     {50,    "HAL.Basic: pMac size details",                             dump_pMac_Size},
+#ifdef WLAN_SOFTAP_FEATURE    
+    {55,    "send flow contorl frame to fw <staIdx> <memUsage Threshold> <fcConfig>", dump_sendFcFrameToFw},    
+    {56,    "add sta with Uapsd <staType> <staNum> <bssIdx> <uapsdAcMask>", dump_addStaWithUapsd},        
+    {57,    "update probe response template <bssIdx>",                  dump_updateProbeRspTemplate},    
+    {58,    "set probeRsp IE bitmap for FW: <flag: enable/disable the feature>, , <flag: enableDisableAllIes>",
+                                                                        dump_setProbeRspIeBitmap},    
+    {59,    "update UAPSD setting for a peer station(staIdx, uapsdACMask, maxSpLen)", halLog_updateUapsd},    
+#endif    
     {60,    "Test AddSta (staType, staId, bssId, qos_11n)",             dump_hal_test_add_sta},
     {61,    "Test DelSta (staId)",                                      dump_hal_test_del_sta},
     {62,    "Test AddBss (bssType, bssId)",                             dump_hal_test_add_bss},
     {63,    "Test DelBss (bssId)",                                      dump_hal_test_del_bss},
     {64,    "Show all descriptors",                                     dump_hal_show_descr},
     {65,    "Show TL Tx/Rx counters",                                   dump_hal_show_TLTxRxStat},    
+    {66,    "update beacon template (bssIdx)",                          dump_hal_test_update_beacon_template},     
+#if (defined(ANI_OS_TYPE_ANDROID) || defined(ANI_OS_TYPE_LINUX))    
+    {67,    "transmit frame template (templateFile number < 10)",       SendTemplateFrame},         
+    {68,    "transmit frame template using BTQM (staIdx, templateFile number < 10)",            SendFrmBdIdx},  
+#endif    
+    {69,    "set link state of a bss (bssIdx, link sate <= 13)",        dump_setLinkState},  
 
+
+    {0,    "Multi-BSS Info (70-80)",        NULL},
+    {70,   "Print current active Bss information", 
+                                            dump_hal_show_multi_bss_info}, 
 
     {0,     "PowerSave (90-100)",                                       NULL},
     {90,    "Chip Power down Control <1/0>",                            dump_hal_control_fw_chip_powerdown},
@@ -3451,6 +4406,13 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {97,    "HAL.FW: toggle RfXo at FW",                                dump_hal_set_rf_xo},
     {98,    "HAL.FW: Insert ADU-reinit regEntry <index><Addr><value><hostfilled>",  dump_hal_insert_adu_reinit_reg_entry},
     {99,    "dump RSSI register values>",                               dump_hal_pmu_rssi_regs},
+    {100,   "Dump Power-save Counters>",                                dump_hal_get_pwr_save_counters},
+#ifdef WLAN_SOFTAP_FEATURE    
+    {101,   "ap link monitor at FW <1/0>",                             dump_hal_set_ap_link_monitor},   
+    {102,   "ap unknown addr2 handling at FW <1/0>",                   dump_hal_set_ap_unknown_addr2_handling}, 
+    {103,   "dump FW stat",                                            dump_hal_Fw_Stat},
+#endif    
+    
     {127,   "HAL: enable/disable BA activity check timer. arg1 = enable(1)/disable(0)",  (tpFunc)dump_set_ba_activity_check_timeout},
 
     {0,     "RateAdaptation (180-220)",                                                        NULL},
@@ -3491,12 +4453,14 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {243,   "halphySetChainSelect<numTx><numRx>",                       dump_hal_phy_set_chain_select},
     {244,   "getPwr <rateidx><pwrCap>",                                 dump_hal_phy_get_power_for_rate},
     {245,   "open TPC loop <1/0>",                                      dump_hal_phy_open_close_tpc_loop},
+    {246,   "Set open loop gain<rfGgain><digGain>",                     dump_hal_phy_set_open_loop_gain},
 
     {0,     "BTC (250-259)",                                            NULL},
     {250,   "change BTC paramters (WLAN interval, BT interval, mode, action)", dump_hal_set_btc_config},
     {251,   "view BTC paramters",                                       dump_hal_view_btc_config},
     {252,   "set FW log collection filters (module index, log level, event mask)", dump_hal_set_fw_log_filters},
     {253,   "view FW log collection filters",                           dump_hal_view_fw_log_filters},
+    {255,   "dump FW Logs",                                             dump_hal_view_fw_log_records},
 };
 
 void halDumpInit(tpAniSirGlobal pMac)

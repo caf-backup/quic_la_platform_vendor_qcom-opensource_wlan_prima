@@ -19,10 +19,18 @@
 #include "halDebug.h"
 #include "cfgApi.h"
 #include "halPhyApi.h"
+#ifdef WLAN_SOFTAP_FEATURE
+#include "halHddApis.h"
+#endif
+
+#include <ani_assert.h>
 
 /// convert the CW values into a tANI_U16
 #define GET_CW(pCw) ((tANI_U16) ((*(pCw) << 8) + *((pCw) + 1)))
 
+#ifdef WLAN_SOFTAP_FEATURE
+#define HAL_DEFAULT_BC_STA_ID (0x00)
+#endif
 
 /**
  * \fn   halGlobalInit
@@ -40,9 +48,10 @@ eHalStatus halGlobalInit( tpAniSirGlobal pMac )
 {
     eHalStatus  rc = eHAL_STATUS_SUCCESS;
 
-    // Start up in eSYSTEM_STA_ROLE
-    // This should get updated appropriately at a later stage
-    halSetSystemRole( pMac, eSYSTEM_STA_ROLE );
+    // Start up in eSYSTEM_STA_ROLE, we start with this as the default
+    // even when we support Multi-Bss.
+    pMac->hal.halGlobalSystemRole = eSYSTEM_STA_ROLE; 
+
     pMac->hal.currentRfBand = eRF_BAND_UNKNOWN;
     pMac->hal.currentChannel = 0;
     pMac->hal.currentCBState = PHY_SINGLE_CHANNEL_CENTERED;
@@ -67,21 +76,21 @@ eHalStatus halGlobalInit( tpAniSirGlobal pMac )
 
 eHalStatus halSetPowerSaveMode(tpAniSirGlobal  pMac, tSirMacHTMIMOPowerSaveState powerState)
 {
-    eHalStatus retVal;
+    eHalStatus retVal = eHAL_STATUS_SUCCESS;
 
     switch (powerState) {
     case eSIR_HT_MIMO_PS_DYNAMIC:
-        retVal =  halPhySetPowerSave(pMac, PHY_POWER_DYNAMIC_RX_SM) ;
+        //retVal =  halPhySetPowerSave(pMac, PHY_POWER_DYNAMIC_RX_SM) ;
         HALLOG1( halLog(pMac, LOG1, FL("Updated the Rxp Chains for Dynamic SM PS Mode \n")));
         break;
 
     case eSIR_HT_MIMO_PS_STATIC:
-        retVal =  halPhySetPowerSave(pMac, PHY_POWER_STATIC_RX_SM) ;
+        //retVal =  halPhySetPowerSave(pMac, PHY_POWER_STATIC_RX_SM) ;
         HALLOG1( halLog(pMac, LOG1, FL("Updated the Rxp Chains for Static SM PS Mode \n")));
         break;
 
     default:
-        retVal =  halPhySetPowerSave(pMac, PHY_POWER_NORMAL) ;
+        //retVal =  halPhySetPowerSave(pMac, PHY_POWER_NORMAL) ;
         HALLOG1( halLog(pMac, LOG1, FL("Updated the Rxp Chains for Normal SM PS Mode \n")));
     break;
     }
@@ -89,15 +98,152 @@ eHalStatus halSetPowerSaveMode(tpAniSirGlobal  pMac, tSirMacHTMIMOPowerSaveState
     return retVal;
 }
 
-
-tSystemRole halGetSystemRole(tpAniSirGlobal pMac)
+/* ---------------------------------------------------------
+ * FUNCTION:  halGetBssSystemRole()
+ *
+ * Get the BSS specific HAL system role. 
+ * ---------------------------------------------------------
+ */
+tBssSystemRole halGetBssSystemRole(tpAniSirGlobal pMac, tANI_U8 bssIdx)
 {
-    return pMac->hal.halSystemRole;
+    tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+    return  (t[bssIdx].bssSystemRole);
 }
 
-void halSetSystemRole(tpAniSirGlobal pMac, tSystemRole role)
+/* ---------------------------------------------------------
+ * FUNCTION:  halSetBssSystemRole()
+ *
+ * Set the BSS specific HAL system role. Pass the 
+ * bssIdx to the function to access the BSS specific table.
+ * ---------------------------------------------------------
+ */
+void halSetBssSystemRole(tpAniSirGlobal pMac, tBssSystemRole role, 
+    tANI_U8 bssIdx)
 {
-   pMac->hal.halSystemRole = role;
+    tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+//    assert(i < pMac->hal.halMac.maxBssId);
+
+    t[bssIdx].bssSystemRole = role;
+}
+
+/* ---------------------------------------------------------
+ * FUNCTION:  halGetBssLinkState()
+ *
+ * ---------------------------------------------------------
+ */
+tSirLinkState halGetBssLinkState(tpAniSirGlobal pMac, tANI_U8 bssIdx)
+{
+    tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+   // assert(i < pMac->hal.halMac.maxBssId);
+
+    return  (t[bssIdx].bssLinkState);
+}
+
+/* ---------------------------------------------------------
+ * FUNCTION:  halSetBssLinkState()
+ *
+ * ---------------------------------------------------------
+ */
+void halSetBssLinkState(tpAniSirGlobal pMac, tSirLinkState linkstate, 
+    tANI_U8 bssIdx)
+{
+    tpBssStruct t = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+    t[bssIdx].bssLinkState = linkstate;
+}
+
+/* ---------------------------------------------------------
+ * FUNCTION:  halGetGlobalSystemRole()
+ *
+ * Get the global HAL system role. 
+ * ---------------------------------------------------------
+ */
+tBssSystemRole halGetGlobalSystemRole(tpAniSirGlobal pMac)
+{
+    return  (pMac->hal.halGlobalSystemRole);
+}
+
+/* ---------------------------------------------------------
+ * FUNCTION:  halSetGlobalSystemRole()
+ *
+ * Set the HAL global system role. This is the full system role.
+ * When there are multiple BSS this reflects with a multi bss
+ * system role.
+ * ---------------------------------------------------------
+ */
+void halSetGlobalSystemRole(tpAniSirGlobal pMac, tBssSystemRole role)
+{
+    tANI_U8 activeBssCnt = 0;
+    int i;
+    tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;
+
+    halMTU_GetActiveBss(pMac, &activeBssCnt);
+
+    if (activeBssCnt == 0) 
+    {
+        // Ok set it to the default.
+        pMac->hal.halGlobalSystemRole = eSYSTEM_STA_ROLE; 
+        return;
+    }
+         
+    if (activeBssCnt == 1) 
+    {
+        if (role != eSYSTEM_UNKNOWN_ROLE)
+        {
+            // BSS specific role when only 1 BSS active.
+            pMac->hal.halGlobalSystemRole = role;
+            return;
+        }
+        // Implies we are deleting the current one and 
+        // there is still one more BSS active.
+        HALLOG1( halLog( pMac, LOG1, "Maximum BSS Table size - %d\n", pMac->hal.halMac.maxBssId ));
+        for( i=0; i < pMac->hal.halMac.maxBssId; i++ )
+        {
+            if( bssTable[i].valid == 0) continue;
+            // OK so we have the entry we need.
+            pMac->hal.halGlobalSystemRole = bssTable[i].bssSystemRole;
+            HALLOG1( halLog( pMac, LOG1, "Set global system role - %d\n", 
+                    pMac->hal.halGlobalSystemRole ));
+
+            return;
+        }
+    }
+
+    // Cant be > 2, we dont support it right now.
+    assert (activeBssCnt == 2);
+
+    // If there are more than 1 active BSS, then set it to Multi.
+    pMac->hal.halGlobalSystemRole = eSYSTEM_MULTI_BSS_ROLE;
+}
+
+/* ---------------------------------------------------------
+ * FUNCTION:  halGetBssSystemRoleFromStaIdx()
+ *
+ * ---------------------------------------------------------
+ */
+tBssSystemRole halGetBssSystemRoleFromStaIdx(tpAniSirGlobal pMac, 
+        tANI_U8 staIdx)
+{
+    tANI_U8     bssIdx;
+    tBssSystemRole systemRole;
+    eHalStatus status=eHAL_STATUS_SUCCESS;
+
+    if (staIdx != HAL_STA_INVALID_IDX) {
+        if ((status = halTable_GetBssIndexForSta(pMac, &bssIdx, 
+                    staIdx)) == eHAL_STATUS_SUCCESS) {
+            // Find the system role of the bss and return that.
+            return (halGetBssSystemRole(pMac, bssIdx));
+        }
+    }
+
+    // Ok so the BssIdx is not set as yet so we are not in multi bss
+    // mode yet for sure. So return the global HAL system role.
+    systemRole = halGetGlobalSystemRole(pMac);
+
+    return (systemRole);
 }
 
 /**
@@ -231,7 +377,7 @@ tANI_U32 getInternalMemory(tpAniSirGlobal pMac)
      * remaining for internal memory.
      */
 #ifdef WLAN_HAL_VOLANS
-    return BMU_INTERNAL_MEMORY_SIZE_208K - MIN_DAFCA_MEMORY;
+    return pMac->hal.memMap.packetMemory_endAddr;
 #else
     return BMU_INTERNAL_MEMORY_SIZE_128K;
 #endif
@@ -443,18 +589,27 @@ eHalStatus halMemoryMap_Start(tHalHandle hHal, void *arg)
        pMac->hal.memMap.dxeRxDescInfo_offset - pMac->hal.memMap.tpeStaDesc_size;
 #endif
     pMac->hal.memMap.rpeStaDesc_size =
-        pMac->hal.memMap.maxStations * RPE_STA_DESC_ENTRY_SIZE;
+       pMac->hal.memMap.maxStations * RPE_STA_DESC_ENTRY_SIZE;
     pMac->hal.memMap.rpeStaDesc_offset =
         (pMac->hal.memMap.tpeStaDesc_offset - pMac->hal.memMap.rpeStaDesc_size);
 
     pMac->hal.memMap.rpePartialBitmap_size = RPE_PARTIAL_BITMAP_SIZE;
     pMac->hal.memMap.rpePartialBitmap_offset =
         (pMac->hal.memMap.rpeStaDesc_offset - pMac->hal.memMap.rpePartialBitmap_size);
+    currentOffset = pMac->hal.memMap.rpePartialBitmap_offset;
+
+#ifdef FEATURE_ON_CHIP_REORDERING
+        pMac->hal.memMap.rpeReOrderSTADataStructure_size =
+              MAX_NUM_OF_ONCHIP_REORDER_SESSIONS * RPE_REORDER_STA_DS_SIZE;
+        pMac->hal.memMap.rpeReOrderSTADataStructure_offset =
+            (currentOffset - pMac->hal.memMap.rpeReOrderSTADataStructure_size);
+        currentOffset = pMac->hal.memMap.rpeReOrderSTADataStructure_offset;
+#endif
 
     pMac->hal.memMap.btqmTxQueue_size =
-        pMac->hal.memMap.maxStations * HW_MAX_QUEUES * BTQM_STA_QUEUE_ENTRY_SIZE;
+       pMac->hal.memMap.maxStations * HW_MAX_QUEUES * BTQM_STA_QUEUE_ENTRY_SIZE;
     pMac->hal.memMap.btqmTxQueue_offset =
-        (pMac->hal.memMap.rpePartialBitmap_offset - pMac->hal.memMap.btqmTxQueue_size);
+        (currentOffset - pMac->hal.memMap.btqmTxQueue_size);
 
     pMac->hal.memMap.hwTemplate_size = HW_TEMPLATE_SIZE;
     pMac->hal.memMap.hwTemplate_offset =
@@ -464,15 +619,32 @@ eHalStatus halMemoryMap_Start(tHalHandle hHal, void *arg)
     pMac->hal.memMap.swTemplate_offset =
         (pMac->hal.memMap.hwTemplate_offset - pMac->hal.memMap.swTemplate_size);
 
-    pMac->hal.memMap.beaconTemplate_size = BEACON_TEMPLATE_SIZE;
+    pMac->hal.memMap.beaconTemplate_size = pMac->hal.memMap.maxBssids * BEACON_TEMPLATE_SIZE;
     pMac->hal.memMap.beaconTemplate_offset = (pMac->hal.memMap.swTemplate_offset -
-        (pMac->hal.memMap.beaconTemplate_size * pMac->hal.memMap.maxBssids));
+        pMac->hal.memMap.beaconTemplate_size);
+
+#ifdef WLAN_SOFTAP_FEATURE
+    pMac->hal.memMap.probeRspTemplate_size = pMac->hal.memMap.maxBssids * PROBE_RSP_TEMPLATE_MAX_SIZE;
+    pMac->hal.memMap.probeRspTemplate_offset =
+       pMac->hal.memMap.beaconTemplate_offset - pMac->hal.memMap.probeRspTemplate_size;
+    
+    pMac->hal.memMap.bssTable_size   = pMac->hal.memMap.maxBssids * BSS_INFO_SIZE;
+    pMac->hal.memMap.bssTable_offset = pMac->hal.memMap.probeRspTemplate_offset - pMac->hal.memMap.bssTable_size;
+    
+    pMac->hal.memMap.staTable_size   = pMac->hal.memMap.maxStations * STA_INFO_SIZE;
+    pMac->hal.memMap.staTable_offset = pMac->hal.memMap.bssTable_offset - pMac->hal.memMap.staTable_size;
+
+    pMac->hal.memMap.aduUmaStaDesc_size = HAL_NUM_UMA_DESC_ENTRIES * ADU_UMA_STA_DESC_ENTRY_SIZE;
+    pMac->hal.memMap.aduUmaStaDesc_offset =
+        pMac->hal.memMap.staTable_offset - pMac->hal.memMap.aduUmaStaDesc_size;
+
+#else 
 
     pMac->hal.memMap.aduUmaStaDesc_size = HAL_NUM_UMA_DESC_ENTRIES *
                                             ADU_UMA_STA_DESC_ENTRY_SIZE;
     pMac->hal.memMap.aduUmaStaDesc_offset =
         (pMac->hal.memMap.beaconTemplate_offset - pMac->hal.memMap.aduUmaStaDesc_size);
-    
+#endif    
     pMac->hal.memMap.aduRegRecfgTbl_size = ADU_REG_RECONFIG_TABLE_SIZE;
     pMac->hal.memMap.aduRegRecfgTbl_offset =
        (pMac->hal.memMap.aduUmaStaDesc_offset - pMac->hal.memMap.aduRegRecfgTbl_size);
@@ -490,7 +662,8 @@ eHalStatus halMemoryMap_Start(tHalHandle hHal, void *arg)
     pMac->hal.memMap.packetMemory_offset = ((sirSwapU32(pMemMapInfo->fwEndAddr))/HAL_BD_SIZE + 1) * HAL_BD_SIZE; //((currentOffset)/HAL_BD_SIZE + 1) * HAL_BD_SIZE;
     pMac->hal.memMap.packetMemory_endAddr = currentOffset;
 
-    HALLOGW( halLog(pMac, LOGW, FL("DPU Desc offset 0x%x\n"), pMac->hal.memMap.dpuDescriptor_offset));
+    HALLOGW( halLog(pMac, LOGW, FL("maxBss %u , maxSta %u\n"), pMac->hal.memMap.maxBssids, pMac->hal.memMap.maxStations));
+        HALLOGW( halLog(pMac, LOGW, FL("DPU Desc offset 0x%x\n"), pMac->hal.memMap.dpuDescriptor_offset));
     HALLOGW( halLog(pMac, LOGW, FL("KEY Desc offset 0x%x\n"), pMac->hal.memMap.keyDescriptor_offset));
     HALLOGW( halLog(pMac, LOGW, FL("MIC KEY offset 0x%x\n"), pMac->hal.memMap.micKey_offset));
     HALLOGW( halLog(pMac, LOGW, FL("Replay Counters offset 0x%x\n"), pMac->hal.memMap.replayCounter_offset));
@@ -502,6 +675,10 @@ eHalStatus halMemoryMap_Start(tHalHandle hHal, void *arg)
     HALLOGW( halLog(pMac, LOGW, FL("RPE STA Desc Size 0x%x\n"), pMac->hal.memMap.rpeStaDesc_size));
     HALLOGW( halLog(pMac, LOGW, FL("RPE Partial Bitmap Offset 0x%x\n"), pMac->hal.memMap.rpePartialBitmap_offset));
     HALLOGW( halLog(pMac, LOGW, FL("RPE Partial Bitmap Size 0x%x\n"), pMac->hal.memMap.rpePartialBitmap_size));
+#ifdef FEATURE_ON_CHIP_REORDERING
+        HALLOGW( halLog(pMac, LOGW, FL("RPE Reorder STA Data Structure offset 0x%x\n"), pMac->hal.memMap.rpeReOrderSTADataStructure_offset));
+        HALLOGW( halLog(pMac, LOGW, FL("RPE Reorder STA Data Structure Table size 0x%x\n"), pMac->hal.memMap.rpeReOrderSTADataStructure_size));
+#endif
     HALLOGW( halLog(pMac, LOGW, FL("BTQM Tx WQ offset 0x%x\n"), pMac->hal.memMap.btqmTxQueue_offset));
     HALLOGW( halLog(pMac, LOGW, FL("BTQM Tx WQ size 0x%x\n"), pMac->hal.memMap.btqmTxQueue_size));
     HALLOGW( halLog(pMac, LOGW, FL("HW Template offset 0x%x\n"), pMac->hal.memMap.hwTemplate_offset));
@@ -509,6 +686,14 @@ eHalStatus halMemoryMap_Start(tHalHandle hHal, void *arg)
     HALLOGW( halLog(pMac, LOGW, FL("SW Template size 0x%x\n"), pMac->hal.memMap.swTemplate_size));
     HALLOGW( halLog(pMac, LOGW, FL("Beacon Template offset 0x%x\n"), pMac->hal.memMap.beaconTemplate_offset));
     HALLOGW( halLog(pMac, LOGW, FL("Beacon Template size 0x%x\n"), pMac->hal.memMap.beaconTemplate_size));
+#ifdef WLAN_SOFTAP_FEATURE    
+    HALLOGW( halLog(pMac, LOGW, FL("ProbeRsp Template offset 0x%x\n"), pMac->hal.memMap.probeRspTemplate_offset));
+    HALLOGW( halLog(pMac, LOGW, FL("ProbeRsp Template size 0x%x\n"), pMac->hal.memMap.probeRspTemplate_size));
+    HALLOGW( halLog(pMac, LOGW, FL("bssTable offset 0x%x\n"), pMac->hal.memMap.bssTable_offset));    
+    HALLOGW( halLog(pMac, LOGW, FL("bssTable size 0x%x\n"), pMac->hal.memMap.bssTable_size));
+    HALLOGW( halLog(pMac, LOGW, FL("staTable offset 0x%x\n"), pMac->hal.memMap.staTable_offset));    
+    HALLOGW( halLog(pMac, LOGW, FL("staTable size 0x%x\n"), pMac->hal.memMap.staTable_size));    
+#endif    
     HALLOGW( halLog(pMac, LOGW, FL("ADU UMA STA Desc offset 0x%x\n"), pMac->hal.memMap.aduUmaStaDesc_offset));
     HALLOGW( halLog(pMac, LOGW, FL("ADU UMA STA Desc Size 0x%x\n"), pMac->hal.memMap.aduUmaStaDesc_size));
     HALLOGW( halLog(pMac, LOGW, FL("ADU Reg Recfg Table offset 0x%x\n"), pMac->hal.memMap.aduRegRecfgTbl_offset));

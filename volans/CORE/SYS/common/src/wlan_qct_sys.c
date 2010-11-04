@@ -47,7 +47,7 @@ when        who         what, where, why
 #include "sme_Api.h"
 #include "macInitApi.h"
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message);
 
 #endif
@@ -56,7 +56,7 @@ VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message);
 // Cookie for SYS messages.  Note that anyone posting a SYS Message has to
 // write the COOKIE in the reserved field of the message.  The SYS Module
 // relies on this COOKIE
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 #define	SYS_MSG_ID_FTM_RSP	11
 #define	FTM_SYS_MSG_COOKIE	0xFACE
 #endif
@@ -706,13 +706,15 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
 
             break;
          }
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
         case SYS_MSG_ID_FTM_RSP:
         {
+#ifndef ANI_OS_TYPE_WINDOWS //TODO: remove this once WM HDD FTM code is main/lined
                 WLANFTM_McProcessMsg((v_VOID_t *)pMsg->bodyptr);
+#endif
                 break;
         }
-#endif /* ANI_MANF_DIAG */
+#endif
 
          default:
          {
@@ -745,6 +747,8 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             // This is the request from the MAC to download the configuration
             // data.  Format and send the Cfg Download to the MAC.
             vosStatus = sys_SendWniCfgDnldMsg( pVosContext );
+            if (pMsg->bodyptr) 
+               vos_mem_free(pMsg->bodyptr); 
             break;
          }
 
@@ -776,6 +780,8 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
                           "WNI_CFG_DNLD_CNF received with status= %d [0x%08lX]",
                           pSirMsg->data[ 0 ], pSirMsg->data[ 0 ] );
             }
+            if (pMsg->bodyptr) 
+               vos_mem_free(pMsg->bodyptr); 
             break;
          }
 
@@ -792,14 +798,15 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             // request from the MAC to download the configuration
             // data.  Format and send the Cfg Download to the MAC.
             vosStatus = sys_SendSmeStartReq( pVosContext );
+            if (pMsg->bodyptr) 
+                vos_mem_free(pMsg->bodyptr); 
             break;
          }
 
          case eWNI_SME_START_RSP:
          {
-#ifdef WLAN_DEBUG
             tSirSmeRsp *pSirSmeRspMsg = (tSirSmeRsp *)pMsg->bodyptr;
-
+#ifdef WLAN_DEBUG
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO,
                        "eWNI_SME_START_RSP received with status code= %d [0x%08lX]",
                        pSirSmeRspMsg->statusCode, pSirSmeRspMsg->statusCode );
@@ -811,6 +818,8 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             {
                gSysContext.mcStartCB( gSysContext.mcStartUserData );
             }
+            if (pMsg->bodyptr) 
+                vos_mem_free(pMsg->bodyptr); 
             break;
          }
 
@@ -979,7 +988,7 @@ SysProcessMmhMsg
 
 
     case WNI_CFG_SET_CNF:
-    case eWNI_SME_DISASSOC_RSP:
+/*   case eWNI_SME_DISASSOC_RSP:
     case eWNI_SME_STA_STAT_RSP:
     case eWNI_SME_AGGR_STAT_RSP:
     case eWNI_SME_GLOBAL_STAT_RSP:
@@ -993,7 +1002,7 @@ SysProcessMmhMsg
 	case eWNI_PMC_EXIT_UAPSD_RSP:
 	case eWNI_PMC_ENTER_WOWL_RSP:
 	case eWNI_PMC_EXIT_WOWL_RSP:
-    case eWNI_SME_SWITCH_CHL_REQ:
+    case eWNI_SME_SWITCH_CHL_REQ: */ //Taken care by the check in default case
     {
        /* Forward this message to the SME module */
       targetMQ = VOS_MQ_ID_SME;
@@ -1026,7 +1035,7 @@ SysProcessMmhMsg
 
 } /* SysProcessMmhMsg() */
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 /*==========================================================================
   FUNCTION    WLAN_FTM_SYS_FTM
 

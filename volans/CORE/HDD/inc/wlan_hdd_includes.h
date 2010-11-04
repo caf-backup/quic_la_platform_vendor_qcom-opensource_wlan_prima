@@ -42,4 +42,10 @@
 #include "wlan_hdd_version.h"
 #include "wlan_hdd_tx_rx.h"
 
+#ifdef FEATURE_INNAV_SUPPORT
+/*include for innav specific structures*/
+/*and function declarations*/
+#include "wlan_hdd_innav.h" 
+#endif
+
 #endif    // end #if !defined( HDD_INCLUDES_H__ )

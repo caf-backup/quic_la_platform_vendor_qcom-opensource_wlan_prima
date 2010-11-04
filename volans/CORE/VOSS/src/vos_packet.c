@@ -21,6 +21,9 @@
 #include <i_vos_packet.h>
 #include <vos_timer.h>
 #include <vos_trace.h>
+#ifdef WLAN_SOFTAP_FEATURE
+#include <wlan_hdd_misc.h>   
+#endif
 
 /*--------------------------------------------------------------------------
   Preprocessor definitions and constants
@@ -370,6 +373,9 @@ VOS_STATUS vos_packet_open( v_VOID_t *pVosContext,
             break;
          }
          list_add_tail(&pPkt->node, pFreeList);
+#ifdef WLAN_SOFTAP_FEATURE
+         pVosPacketContext->uctxDataFreeListCount++;
+#endif
       }
 
       // exit if any problems so far
@@ -382,6 +388,7 @@ VOS_STATUS vos_packet_open( v_VOID_t *pVosContext,
       pFreeList = &pVosPacketContext->txMgmtFreeList;
       INIT_LIST_HEAD(pFreeList);
 
+      spin_lock_init(&gpVosPacketContext->lock);
       // fill the txMgmt free list
       for (idx = 0; idx < VPKT_NUM_TX_MGMT_PACKETS; idx++)
       {
@@ -452,6 +459,10 @@ VOS_STATUS vos_packet_close( v_PVOID_t pVosContext )
    (void) vos_pkti_list_destroy(&gpVosPacketContext->txDataFreeList);
    (void) vos_pkti_list_destroy(&gpVosPacketContext->rxRawFreeList);
    (void) vos_pkti_list_destroy(&gpVosPacketContext->rxReplenishList);
+
+#ifdef WLAN_SOFTAP_FEATURE
+      gpVosPacketContext->uctxDataFreeListCount = 0;
+#endif
 
    return VOS_STATUS_SUCCESS;
 }
@@ -814,6 +825,9 @@ VOS_STATUS vos_pkt_wrap_data_packet( vos_pkt_t **ppPacket,
    // remove the first record from the free pool
    pVosPacket = list_first_entry(pPktFreeList, struct vos_pkt_t, node);
    list_del(&pVosPacket->node);
+#ifdef WLAN_SOFTAP_FEATURE
+   gpVosPacketContext->uctxDataFreeListCount --;
+#endif
 
    // clear out the User Data pointers in the voss packet..
    memset(&pVosPacket->pvUserData, 0, sizeof(pVosPacket->pvUserData));
@@ -1224,6 +1238,9 @@ VOS_STATUS vos_pkt_return_packet( vos_pkt_t *pPacket )
       case VOS_PKT_TYPE_TX_802_3_DATA:
          pPktFreeList = &gpVosPacketContext->txDataFreeList;
          pLowResourceInfo = &gpVosPacketContext->txDataLowResourceInfo;
+#ifdef WLAN_SOFTAP_FEATURE
+         gpVosPacketContext->uctxDataFreeListCount ++;
+#endif
          break;
 
       default:
@@ -1275,8 +1292,9 @@ VOS_STATUS vos_pkt_return_packet( vos_pkt_t *pPacket )
    } // while (pPacket)
 
    // see if we need to replenish the Rx Raw pool
-   vos_pkti_replenish_raw_pool();
-
+   spin_lock(&gpVosPacketContext->lock);
+   vos_pkti_replenish_raw_pool();   
+   spin_unlock(&gpVosPacketContext->lock);
    return VOS_STATUS_SUCCESS;
 }
 
@@ -2046,7 +2064,7 @@ VOS_STATUS vos_pkt_reserve_head( vos_pkt_t *pPacket,
    // check (except skb_push() will panic the kernel)
    if (unlikely(skb_headroom(skb) < dataSize))
    {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
                 "VPKT [%d]: Insufficient headroom, "
                 "head[%p], data[%p], req[%d]",
                 __LINE__, skb->head, skb->data, dataSize);
@@ -2636,6 +2654,14 @@ VOS_STATUS vos_pkt_get_available_buffer_pool (VOS_PKT_TYPE  pktType,
 
    case VOS_PKT_TYPE_TX_802_11_DATA:
    case VOS_PKT_TYPE_TX_802_3_DATA:
+#ifdef WLAN_SOFTAP_FEATURE
+      if (VOS_STA_SAP_MODE == hdd_get_conparam())
+      {
+         *vosFreeBuffer = gpVosPacketContext->uctxDataFreeListCount;  
+          return VOS_STATUS_SUCCESS;
+      }
+      else
+#endif
       pList = &gpVosPacketContext->txDataFreeList;
       break;
 

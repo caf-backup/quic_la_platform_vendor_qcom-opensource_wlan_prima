@@ -161,5 +161,6 @@ void halTLRSSINotification(tpAniSirGlobal pMac, tpSirRSSINotification pRSSINotif
 void halTLGetTxPktCount(tpAniSirGlobal pMac, tANI_U8 curSta, tANI_U8 tId, tANI_U32 *txPcktCount );
 void halTLGetRxPktCount(tpAniSirGlobal pMac, tANI_U8 curSta, tANI_U8 tId, tANI_U32 *rxPcktCount );
 
-#endif /*_HALTLAPI_H_*/
+void halTLGetTxPktCount(tpAniSirGlobal pMac, tANI_U8 curSta, tANI_U8 tId, tANI_U32 *txPcktCount );
 
+#endif /*_HALTLAPI_H_*/

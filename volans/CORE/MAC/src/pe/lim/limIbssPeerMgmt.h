@@ -13,13 +13,14 @@
 #include "limUtils.h"
 
 void limIbssInit(tpAniSirGlobal);
-void limIbssDelete(tpAniSirGlobal);
-tSirRetStatus limIbssCoalesce(tpAniSirGlobal, tpSirMacMgmtHdr, tpSchBeaconStruct, tANI_U8*,tANI_U32, tANI_U16);
+void limIbssDelete(tpAniSirGlobal,tpPESession psessionEntry);
+tSirRetStatus limIbssCoalesce(tpAniSirGlobal, tpSirMacMgmtHdr, tpSchBeaconStruct, tANI_U8*,tANI_U32, tANI_U16,tpPESession);
 tSirRetStatus limIbssStaAdd(tpAniSirGlobal, void *);
-tSirRetStatus limIbssAddStaRsp( tpAniSirGlobal, void *);
-void limIbssDelBssRsp( tpAniSirGlobal, void *);
+tSirRetStatus limIbssAddStaRsp( tpAniSirGlobal, void *,tpPESession);
+void limIbssDelBssRsp( tpAniSirGlobal, void *,tpPESession);
 void limIbssDelBssRspWhenCoalescing(tpAniSirGlobal,  void *);
-void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void * msg);
-void limIbssHeartBeatHandle(tpAniSirGlobal pMac);
+void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void * msg, tpPESession pSessionEntry);
+
 void limIbssDecideProtectionOnDelete(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpUpdateBeaconParams pBeaconParams);
+void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry);
 

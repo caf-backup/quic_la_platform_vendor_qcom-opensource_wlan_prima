@@ -24,6 +24,9 @@
 #include <vos_status.h>
 #include <linux/spinlock.h>
 #include <vos_trace.h>
+#ifdef WLAN_SOFTAP_FEATURE
+#include <vos_list.h>
+#endif
 
 /**-----------------------------------------------------------------------------
   Preprocessor definitions and constants
@@ -86,5 +89,6 @@ VOS_STATUS hdd_list_remove_front( hdd_list_t *pList, hdd_list_node_t **ppNode );
 
 VOS_STATUS hdd_list_remove_back( hdd_list_t *pList, hdd_list_node_t **ppNode );
 
+VOS_STATUS hdd_list_remove_node( hdd_list_t *pList, hdd_list_node_t *pNodeToRemove );
 
 #endif //__WLAN_HDD_DP_UTILS_H

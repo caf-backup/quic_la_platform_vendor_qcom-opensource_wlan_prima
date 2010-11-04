@@ -13,6 +13,10 @@
 #include "limUtils.h"
 #include "limSerDesUtils.h"
 #include "limApi.h"
+#include "limSession.h"
+#if defined WLAN_FEATURE_VOWIFI
+#include "rrmApi.h"
+#endif
 
 
 
@@ -23,6 +27,8 @@
  * This function is called during scan upon receiving
  * Beacon/Probe Response frame to deactivate MIN channel
  * timer if running.
+ *
+ * This function should be called only when pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE
  *
  *LOGIC:
  *
@@ -43,25 +49,23 @@ limDeactivateMinChannelTimerDuringScan(tpAniSirGlobal pMac)
     if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) && (pMac->lim.gLimHalScanState == eLIM_HAL_SCANNING_STATE))
     {
         /**
-         * Beacon/Probe Response is received during active scanning.
-         * Deactivate MIN channel timer if running.
-         */
+            * Beacon/Probe Response is received during active scanning.
+            * Deactivate MIN channel timer if running.
+            */
+        
         limDeactivateAndChangeTimer(pMac,eLIM_MIN_CHANNEL_TIMER);
         MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_MAX_CHANNEL_TIMER));
         if (tx_timer_activate(&pMac->lim.limTimers.gLimMaxChannelTimer)
-                                            == TX_TIMER_ERROR)
+                                          == TX_TIMER_ERROR)
         {
             /// Could not activate max channel timer.
             // Log error
-            limLog(pMac,
-                   LOGP,
-                   FL("could not activate max channel timer\n"));
+            limLog(pMac,LOGP, FL("could not activate max channel timer\n"));
 
             limCompleteMlmScan(pMac, eSIR_SME_RESOURCES_UNAVAILABLE);
             return TX_TIMER_ERROR;
         }
     }
-
     return eSIR_SUCCESS;
 } /*** end limDeactivateMinChannelTimerDuringScan() ***/
 
@@ -87,21 +91,32 @@ limDeactivateMinChannelTimerDuringScan(tpAniSirGlobal pMac)
  * @param  pMac - Pointer to Global MAC structure
  * @param  pBPR - Pointer to parsed Beacon/Probe Response structure
  * @param  pBd  - Pointer to Received frame's BD
+ * ---------if defined WLAN_FEATURE_VOWIFI------
+ * @param  fScanning - flag to indicate if it is during scan.
+ * ---------------------------------------------
  *
  * @return None
  */
-
+#if defined WLAN_FEATURE_VOWIFI
+void
+limCollectBssDescription(tpAniSirGlobal pMac,
+                         tSirBssDescription *pBssDescr,
+                         tpSirProbeRespBeacon pBPR,
+                         tANI_U32 *pBd,
+                         tANI_U8  fScanning)
+#else
 void
 limCollectBssDescription(tpAniSirGlobal pMac,
                          tSirBssDescription *pBssDescr,
                          tpSirProbeRespBeacon pBPR,
                          tANI_U32 *pBd)
+#endif
 {
-    tANI_U8                   *pBody;
-    tANI_U32                  ieLen = 0;
-    tpSirMacMgmtHdr      pHdr;
-    tANI_U8                   channelNum;
-    tANI_U8                   rxChannel;
+    tANI_U8             *pBody;
+    tANI_U32            ieLen = 0;
+    tpSirMacMgmtHdr     pHdr;
+    tANI_U8             channelNum;
+    tANI_U8             rxChannel;
 
     pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
     ieLen    = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd) - SIR_MAC_B_PR_SSID_OFFSET;
@@ -197,6 +212,28 @@ limCollectBssDescription(tpAniSirGlobal pMac,
 
     pBssDescr->nReceivedTime = (tANI_TIMESTAMP)palGetTickCount(pMac->hHdd);
 
+#if defined WLAN_FEATURE_VOWIFI
+    if( fScanning )
+    {
+       rrmGetStartTSF( pMac, pBssDescr->startTSF );
+       pBssDescr->parentTSF = SIR_MAC_BD_RX_TIMESTAMP(pBd); 
+    }
+#endif
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    // MobilityDomain
+    pBssDescr->mdie[0] = 0;
+    pBssDescr->mdie[1] = 0;
+    pBssDescr->mdie[2] = 0;
+    pBssDescr->mdiePresent = FALSE;
+    if( pBPR->mdiePresent) 
+    {
+        pBssDescr->mdiePresent = TRUE;
+        pBssDescr->mdie[0] = pBPR->mdie[0];
+        pBssDescr->mdie[1] = pBPR->mdie[1];
+        pBssDescr->mdie[2] = pBPR->mdie[2];
+    }
+#endif
     // Copy IE fields
     palCopyMemory( pMac->hHdd, (tANI_U8 *) &pBssDescr->ieFields,
                   pBody + SIR_MAC_B_PR_SSID_OFFSET,
@@ -248,7 +285,6 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
 {
     tLimScanResultNode   *pBssDescr;
     tANI_U32                  frameLen, ieLen = 0;
-
 
     /**
      * Compare SSID with the one sent in
@@ -302,8 +338,13 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
     }
 
     // In scan state, store scan result.
+#if defined WLAN_FEATURE_VOWIFI
+    limCollectBssDescription(pMac, &pBssDescr->bssDescription,
+                             pBPR, pBd, fScanning);
+#else
     limCollectBssDescription(pMac, &pBssDescr->bssDescription,
                              pBPR, pBd);
+#endif
 
     pBssDescr->next = NULL;
 

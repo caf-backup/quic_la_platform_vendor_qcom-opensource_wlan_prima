@@ -15,23 +15,27 @@
 #include "limTypes.h"
 
 // Scan result hash related functions
-tANI_U8      limScanHashFunction(tSirMacAddr);
+tANI_U8 limScanHashFunction(tSirMacAddr);
 void    limInitHashTable(tpAniSirGlobal);
-void    limLookupNaddHashEntry(tpAniSirGlobal,
-                               tLimScanResultNode *, tANI_U8);
+void    limLookupNaddHashEntry(tpAniSirGlobal, tLimScanResultNode *, tANI_U8);
 void    limDeleteHashEntry(tLimScanResultNode *);
 void    limDeleteCachedScanResults(tpAniSirGlobal);
 void    limRestorePreScanState(tpAniSirGlobal);
 void    limCopyScanResult(tpAniSirGlobal, tANI_U8 *);
 void    limReInitScanResults(tpAniSirGlobal);
-tANI_U32     limDeactivateMinChannelTimerDuringScan(tpAniSirGlobal);
-void    limCheckAndAddBssDescription(tpAniSirGlobal,
-                                     tpSirProbeRespBeacon,
-                                     tANI_U32 *,
-                                     tANI_BOOLEAN);
+tANI_U32 limDeactivateMinChannelTimerDuringScan(tpAniSirGlobal);
+void    limCheckAndAddBssDescription(tpAniSirGlobal, tpSirProbeRespBeacon, tANI_U32 *, tANI_BOOLEAN);
+#if defined WLAN_FEATURE_VOWIFI
+void    limCollectBssDescription(tpAniSirGlobal,
+                                 tSirBssDescription *,
+                                 tpSirProbeRespBeacon,
+                                 tANI_U32 *,
+                                 tANI_U8);
+#else
 void    limCollectBssDescription(tpAniSirGlobal,
                                  tSirBssDescription *,
                                  tpSirProbeRespBeacon,
                                  tANI_U32 *);
+#endif
 
 #endif /* __LIM_SCAN_UTILS_H */

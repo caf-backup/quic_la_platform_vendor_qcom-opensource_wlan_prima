@@ -228,6 +228,16 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"WPS_DEVICE_PASSWORD_ID",
 	(unsigned char *)"WPS_ASSOC_METHOD",
 	(unsigned char *)"LOW_GAIN_OVERRIDE",
+	(unsigned char *)"RPE_POLLING_THRESHOLD",
+	(unsigned char *)"RPE_AGING_THRESHOLD_FOR_AC0_REG",
+	(unsigned char *)"RPE_AGING_THRESHOLD_FOR_AC1_REG",
+	(unsigned char *)"RPE_AGING_THRESHOLD_FOR_AC2_REG",
+	(unsigned char *)"RPE_AGING_THRESHOLD_FOR_AC3_REG",
+	(unsigned char *)"NO_OF_ONCHIP_REORDER_SESSIONS",
+	(unsigned char *)"RRM_ENABLED",
+	(unsigned char *)"RRM_OPERATING_CHAN_MAX",
+	(unsigned char *)"RRM_NON_OPERATING_CHAN_MAX",
+	(unsigned char *)"TX_PWR_CTRL_ENABLE",
 };
 
 

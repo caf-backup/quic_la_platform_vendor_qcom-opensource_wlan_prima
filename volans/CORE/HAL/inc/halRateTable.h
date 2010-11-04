@@ -754,7 +754,9 @@ typedef struct sHalRateTable {
     tANI_U8         validEntry;
     tANI_U8    		stbcValid;
     tANI_U8    		txAntEnable;
+#ifndef FEATURE_TX_PWR_CONTROL	
     tANI_U8    		txPwr;
+#endif	
 } tHalRateTable, *tpHalRateTable;
 
 #else

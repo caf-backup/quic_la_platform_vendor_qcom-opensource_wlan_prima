@@ -64,11 +64,10 @@ when           who        what, where, why
 #define WLAN_LOW_SD_CLOCK_FREQ 16027000
 #elif defined MSM_PLATFORM_7x27
 #define WLAN_HIGH_SD_CLOCK_FREQ 49152000
-#define WLAN_LOW_SD_CLOCK_FREQ 16027000
+#define WLAN_LOW_SD_CLOCK_FREQ 16000000
 #elif defined MSM_PLATFORM_8660
 #define WLAN_HIGH_SD_CLOCK_FREQ 48000000
 #define WLAN_LOW_SD_CLOCK_FREQ 16000000
-// Low and High SD clock frequencies should be determined
 #endif
 #endif /* VOLANS_1_0_WORKAROUND */
 /*----------------------------------------------------------------------------
@@ -976,6 +975,8 @@ VOS_STATUS WLANBAL_Close
    VOS_STATUS         status = VOS_STATUS_SUCCESS;
 
    BENTER();
+
+   vos_mem_dma_free(gbalHandle->dmaBuffer);
 
    status = WLANSSC_Close(sscHandle);
    if(!VOS_IS_STATUS_SUCCESS(status))

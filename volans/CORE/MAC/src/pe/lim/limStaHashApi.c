@@ -13,30 +13,6 @@
 #include "limStaHashApi.h"
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /**
  * limGetStaHashBssidx()
  *
@@ -58,9 +34,9 @@
  * @return success if GET operation is ok, else Failure.
  */
 
-tSirRetStatus limGetStaHashBssidx(tpAniSirGlobal pMac, tANI_U16 assocId, tANI_U8 *bssidx)
+tSirRetStatus limGetStaHashBssidx(tpAniSirGlobal pMac, tANI_U16 assocId, tANI_U8 *bssidx, tpPESession psessionEntry)
 {
-    tpDphHashNode pSta = dphGetHashEntry(pMac, assocId);
+    tpDphHashNode pSta = dphGetHashEntry(pMac, assocId, &psessionEntry->dph.dphHashTable);
 
     if (pSta == NULL)
     {

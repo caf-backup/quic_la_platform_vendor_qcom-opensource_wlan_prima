@@ -154,6 +154,12 @@ typedef struct vos_pkt_context_s
    struct list_head txDataFreeList;
    struct list_head txMgmtFreeList;
 
+#ifdef WLAN_SOFTAP_FEATURE
+   //Existing list_size opearation traverse the list. Too slow for data path.
+   //Add the field to enable faster flow control on tx path
+   v_U32_t uctxDataFreeListCount;
+#endif
+
    // We keep a separate count of the number of RX_RAW packets
    // waiting to be replenished
    v_SIZE_t rxReplenishListCount;
@@ -163,7 +169,8 @@ typedef struct vos_pkt_context_s
    // RX_RAW, TX_DATA, and TX_MGMT.
    vos_pkt_low_resource_info rxRawLowResourceInfo;
    vos_pkt_low_resource_info txDataLowResourceInfo;
-   vos_pkt_low_resource_info txMgmtLowResourceInfo;
+   vos_pkt_low_resource_info txMgmtLowResourceInfo;   
+   spinlock_t lock;
 
 } vos_pkt_context_t;
 

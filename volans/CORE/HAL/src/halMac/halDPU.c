@@ -104,6 +104,10 @@ dpu_hw_init(
     halZeroDeviceMemory(pMac, pMac->hal.memMap.micKey_offset, pMac->hal.memMap.micKey_size);
     halWriteRegister(pMac, QWLAN_DPU_DPU_MICKEYBASE_ADDR_REG, pMac->hal.memMap.micKey_offset);
 
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
+    halWriteRegister(pMac, QWLAN_DPU_DPU_WAPIMICKEYBASE_ADDR_REG, pMac->hal.memMap.micKey_offset);
+#endif
+
     /* Init Replay Counter data structure */
     halZeroDeviceMemory(pMac, pMac->hal.memMap.replayCounter_offset, pMac->hal.memMap.replayCounter_size);
     halWriteRegister(pMac, QWLAN_DPU_DPU_RCBASE_ADDR_REG, pMac->hal.memMap.replayCounter_offset);
@@ -749,7 +753,7 @@ halDpu_SetWepKeys(
 
     if(dpuId >= pDpu->maxEntries)
     {
-        HALLOGW( halLog(pMac, LOGW, FL("Got invalid index %d \n"), dpuId));
+        HALLOGE( halLog(pMac, LOGE, FL("Got invalid index %d \n"), dpuId));
         return eHAL_STATUS_INVALID_PARAMETER;
     }
 
@@ -944,6 +948,7 @@ halDpu_GetStatus(
  *
  * ------------------------------------------------------------
  */
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
 eHalStatus
 halDpu_SetDescriptorAttributes(
     tpAniSirGlobal  pMac,
@@ -954,12 +959,29 @@ halDpu_SetDescriptorAttributes(
     tANI_U8         micKeyIdx,
     tANI_U8         rcIdx,
     tANI_U8         singleTidRc,
-    tANI_U8         defKeyId)
+    tANI_U8         defKeyId,
+    tANI_U8         wapiStaID,
+    tANI_BOOLEAN    fGTK )
+#else
+eHalStatus
+halDpu_SetDescriptorAttributes(
+    tpAniSirGlobal  pMac,
+    tANI_U8         dpuIdx,
+    tAniEdType      encType,
+    tANI_U8         keyIdx,
+    tANI_U8         derivedKeyIdx,
+    tANI_U8         micKeyIdx,
+    tANI_U8         rcIdx,
+    tANI_U8         singleTidRc,
+    tANI_U8         defKeyId )
+#endif
 {
     tHalDpuDescEntry   *pDpuDesc;
     int                 tid;
     tANI_U8 rcIdxBase;
     tpDpuInfo pDpu = (tpDpuInfo) pMac->hal.halMac.dpuInfo;
+    /* RC Descriptor count. For non-WPI, rcDescCount is 1. */
+    tANI_U8 rcDescCount = 1;
 
     if(dpuIdx >= pDpu->maxEntries)
     {
@@ -1004,7 +1026,18 @@ halDpu_SetDescriptorAttributes(
 
     if(keyIdx != HAL_INVALID_KEYID_INDEX)
     {
-        pDpuDesc->halDpuDescriptor.keyIndex0 = pDpu->keyTable[keyIdx].hwIndex;
+        if(defKeyId == 0) {
+            pDpuDesc->halDpuDescriptor.keyIndex0 = pDpu->keyTable[keyIdx].hwIndex;
+        } else if(defKeyId == 1) {
+            pDpuDesc->halDpuDescriptor.keyIndex1 = pDpu->keyTable[keyIdx].hwIndex;
+        } else if(defKeyId == 2) {
+            pDpuDesc->halDpuDescriptor.keyIndex2 = pDpu->keyTable[keyIdx].hwIndex;
+        } else if(defKeyId == 3){
+            pDpuDesc->halDpuDescriptor.keyIndex3 = pDpu->keyTable[keyIdx].hwIndex;
+        } else {
+            pDpuDesc->halDpuDescriptor.keyIndex0 = pDpu->keyTable[keyIdx].hwIndex;
+            HALLOGW( halLog(pMac, LOGW, FL("Got invalid KeyIndex %d \n"), defKeyId));           
+        }
     }
     else
     {
@@ -1055,6 +1088,10 @@ halDpu_SetDescriptorAttributes(
         //And set a custom bit to indication whether it is for a WAPI station
         pDpuDesc->halDpuDescriptor.encryptMode = eSIR_ED_NONE;
         pDpuDesc->halDpuDescriptor.wapi = 1;
+	    if(defKeyId == 0)
+		    pDpuDesc->halDpuDescriptor.keyIndex0 = keyIdx;
+        else if(defKeyId == 1)
+		    pDpuDesc->halDpuDescriptor.keyIndex1 = keyIdx;
     }
     else
     {
@@ -1084,12 +1121,24 @@ halDpu_SetDescriptorAttributes(
 
     pDpuDesc->halDpuDescriptor.txKeyId = defKeyId;
 
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
+    if(encType == eSIR_ED_WPI)
+    {
+      rcDescCount = HAL_WAPI_RC_DESCRIPTOR_COUNT;
+      pDpuDesc->halDpuDescriptor.wapiStaID = wapiStaID;
+      if(fGTK)
+      {
+        pDpuDesc->halDpuDescriptor.keyIndex1 = pDpuDesc->halDpuDescriptor.keyIndex0;
+      }
+    }
+#endif
+
     for( tid = 0; tid < MAX_NUM_OF_TIDS; tid++ )
     {
       // For RC Id0..Id15 indices
       HAL_SET_DPU_RCIDX( &pDpuDesc->halDpuDescriptor,
           (tANI_U8) tid,
-          (tANI_U8) (rcIdxBase + tid));
+          (tANI_U8) (rcIdxBase + (tid * rcDescCount)));
     }
     /* Retrive the fragmentation threshold value from DPU and Use*/
     pDpuDesc->halDpuDescriptor.txFragThreshold4B = 
@@ -1153,6 +1202,7 @@ halDpu_SetFragThreshold(
            dpuIdx, fragSize, fragSize>>2));
 
     // The Fragmentation Threshold should account for the MPDU header
+    // Fragmentation Threshold = 802.11 mpdu hdr + Encryption Mode hdr + FCS
     switch( pDpu->descTable[dpuIdx].halDpuDescriptor.encryptMode )
     {
       case eSIR_ED_WEP40:
@@ -1170,6 +1220,15 @@ halDpu_SetFragThreshold(
         if(fragSize >= 48)
             fragSize -= 48;
         break;
+
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
+      /* fragSize = 802.11 mpdu hdr (26 bytes) + WPI hdr (34 bytes) + FCS (4 bytes) = 64 bytes
+       * WPI hdr = 16-bytes PN + 16-bytes MIC + 1-byte KeyID + 1-byte reserved = 34 bytes */
+      case (eSIR_ED_WPI):
+        if(fragSize >= 64)
+            fragSize -= 64;
+        break;
+#endif
 
       case eSIR_ED_NONE:
       default:
@@ -1412,7 +1471,7 @@ halDpu_SetKeyDescriptor(
 
     if (id >= pDpu->maxEntries)
     {
-        HALLOGW( halLog(pMac, LOGW, FL("Got invalid index %d \n"), id));
+        HALLOGE( halLog(pMac, LOGE, FL("Got invalid index %d \n"), id));
         return eHAL_STATUS_INVALID_PARAMETER;
     }
 
@@ -1812,32 +1871,13 @@ halDpu_AllocRCId(
     tANI_U8       i;
     tANI_U8       found = 0;
     tpDpuInfo pDpu = (tpDpuInfo) pMac->hal.halMac.dpuInfo;
+    /* RC Descriptor count. For non-WPI, rcDescCount is 1. */
+    tANI_U8 rcDescCount = 1;    
 
     for (i=0; i < pDpu->maxEntries; i++ )
     {
         if(pDpu->rcDescTable[i].used == 0)
         {
-#ifdef FEATURE_WLAN_WAPI
-            if( eSIR_ED_WPI == encType )
-            {
-                //need two RC descriptors
-                if( i == pDpu->maxEntries - 2 )
-                {
-                    //No more, 
-                    HALLOGE( halLog( pMac, LOGE, FL(" runs out of RC desc for WAPI\n") ) );
-                    break;
-                }
-                //NOTE: Since we need one more for Volans, may as well allocate that for Libra
-                if( (pDpu->rcDescTable[i+1].used != 0 ) || (pDpu->rcDescTable[i+2].used != 0 ) )
-                {
-                    //doesn't fit, try again
-                    continue;
-                }
-                //We allocate two RC descriptors for each RC because WAPI needs 32 bytes
-                pDpu->rcDescTable[i+1].used = 1;
-                pDpu->rcDescTable[i+2].used = 1;
-            }
-#endif
             found = 1;
             break;
         }
@@ -1848,7 +1888,14 @@ halDpu_AllocRCId(
         HALLOGW( halLog(pMac, LOGW, FL("Got DPU Replay Counter index %d \n"), i));
         *id = i;
         pDpu->rcDescTable[i].used = 1;
-        pDpu->rcDescTable[i].hwIndex = i * MAX_NUM_OF_TIDS;
+
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
+    if(encType == eSIR_ED_WPI)
+    {
+      rcDescCount = HAL_WAPI_RC_DESCRIPTOR_COUNT;
+    }
+#endif
+        pDpu->rcDescTable[i].hwIndex = i * MAX_NUM_OF_TIDS * rcDescCount;	
     }
     else
     {
@@ -1915,8 +1962,7 @@ halDpu_SetRCDescriptor( tpAniSirGlobal  pMac,
 
 
 #if defined(FEATURE_WLAN_WAPI)
-//For Chips have other than Libra, this needs to be redefine
-eHalStatus halDpu_SetWAPIRCDescriptor( tpAniSirGlobal pMac, tANI_U8 id, tANI_U8 *pTxRC, tANI_U8 *pRxRC )
+eHalStatus halDpu_SetWAPIRCDescriptor(tpAniSirGlobal pMac, tANI_U8 id, tANI_U8 *pTxRC, tANI_U8 *pRxRC)
 {
     int i;
     eHalStatus status;
@@ -1934,6 +1980,12 @@ eHalStatus halDpu_SetWAPIRCDescriptor( tpAniSirGlobal pMac, tANI_U8 id, tANI_U8 
     {
         palCopyMemory(pMac->hHdd, (void *)pDpu->rcDescTable[id].u.halWpiDpuRC[i].txReplayCount, pTxRC, 16);
         palCopyMemory(pMac->hHdd, (void *)pDpu->rcDescTable[id].u.halWpiDpuRC[i].rxReplayCount, pRxRC, 16);
+
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
+        pDpu->rcDescTable[id].u.halWpiDpuRC[i].replayChkEnabled = 1;
+        pDpu->rcDescTable[id].u.halWpiDpuRC[i].winChkEnabled = 0;// WAPI spec doesn't explicitly support 11n AMPDU .
+        pDpu->rcDescTable[id].u.halWpiDpuRC[i].winChkSize = 0;// Window Size
+#endif
 
         status = dpu_set_rc_descriptor( pMac,
                 pDpu->rcDescTable[id].hwRCBaseIndex,
@@ -1972,14 +2024,6 @@ halDpu_ReleaseRCId(
         return eHAL_STATUS_INVALID_PARAMETER;
     }
     pDpu->rcDescTable[id].used = 0;
-#ifdef FEATURE_WLAN_WAPI
-    if( pDpu->descTable[dpuIdx].halDpuDescriptor.wapi )
-    {
-        VOS_ASSERT( (id < pDpu->maxEntries - 2) && (pDpu->rcDescTable[id+1].used) && (pDpu->rcDescTable[id+2].used));
-        pDpu->rcDescTable[id+1].used = 0;
-        pDpu->rcDescTable[id+2].used = 0;
-    }
-#endif
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -2028,18 +2072,18 @@ halDpu_SetTxReservedBdPdu(
     tpAniSirGlobal pMac)
 {
     tANI_U32  addr[] = {
-                        QWLAN_DPU_DPU_WQ_3_RESERVE_REG,
+        QWLAN_DPU_DPU_WQ_3_RESERVE_REG,
 #ifndef WLAN_HAL_VOLANS
-                        QWLAN_DPU_DPU_WQ_4_RESERVE_REG,
+        QWLAN_DPU_DPU_WQ_4_RESERVE_REG,
 #endif
-                        QWLAN_DPU_DPU_WQ_5_RESERVE_REG,
-                        QWLAN_DPU_DPU_WQ_6_RESERVE_REG,
+        QWLAN_DPU_DPU_WQ_5_RESERVE_REG,
+        QWLAN_DPU_DPU_WQ_6_RESERVE_REG,
                         QWLAN_DPU_DPU_WQ_7_RESERVE_REG
 
 #ifndef WLAN_HAL_VOLANS
                         ,
-                        QWLAN_DPU_DPU_WQ_8_RESERVE_REG,
-                        QWLAN_DPU_DPU_WQ_9_RESERVE_REG,
+        QWLAN_DPU_DPU_WQ_8_RESERVE_REG,
+        QWLAN_DPU_DPU_WQ_9_RESERVE_REG,
                         QWLAN_DPU_DPU_WQ_10_RESERVE_REG
 #endif
                        };
@@ -2352,6 +2396,7 @@ void halDpu_MICErrorIndication(tpAniSirGlobal pMac)
         pMicInd->messageType = eWNI_SME_MIC_FAILURE_IND;
         pMicInd->length = sizeof(tSirSmeMicFailureInd);    // len in bytes
 #endif
+        palCopyMemory(pMac->hHdd, pMicInd->bssId,pMicInd->info.taMacAddr,sizeof(tSirMacAddr));
         HALLOGE( halLog( pMac, LOGE, FL("Posting DPU MIC Error to HDD!!\n")));
         if (halMmhPostMsgApi(pMac, &msg, eHI_PRI) != eSIR_SUCCESS)
         {
@@ -2456,4 +2501,33 @@ eHalStatus halDpu_ResetEncryMode(tpAniSirGlobal pMac, tANI_U8 dpuIdx)
     }
     return eHAL_STATUS_FAILURE;
 }
+
+#ifdef FEATURE_ON_CHIP_REORDERING
+/*****************************************************
+  * FUNCTION:  halDpu_SetReplayCheckForTID
+  *
+  * LOGIC:
+  * This API is used to enable the replay counter
+  * replay check for a given TID
+  *
+  *****************************************************/
+eHalStatus halDpu_SetReplayCheckForTID( tpAniSirGlobal pMac,
+          tANI_U8 rcId,
+          tANI_U8 tid,
+          tANI_U16 bRCE)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpDpuInfo pDpu = (tpDpuInfo) pMac->hal.halMac.dpuInfo;
+
+    pDpu->rcDescTable[rcId].u.halDpuRC[tid].replayChkEnabled = bRCE;
+
+    status = dpu_set_rc_descriptor(
+            pMac, pDpu->rcDescTable[rcId].hwRCBaseIndex, 
+            (tANI_U8) (pDpu->rcDescTable[rcId].hwIndex + tid), 
+            (tANI_U8 *)&pDpu->rcDescTable[rcId].u.halDpuRC[tid],
+            sizeof( tDpuReplayCounterDescriptor ));
+
+    return status;
+}
+#endif
 

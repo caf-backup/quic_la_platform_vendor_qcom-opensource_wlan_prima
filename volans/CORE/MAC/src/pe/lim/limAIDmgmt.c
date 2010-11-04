@@ -20,6 +20,10 @@
 #include "sirParams.h"
 #include "limUtils.h"
 #include "limTimerUtils.h"
+#include "limSession.h"
+#ifdef WLAN_SOFTAP_FEATURE
+#include "sapApi.h"
+#endif
 
 #define LIM_START_AID_AP    2
 #define LIM_START_AID_STA   1
@@ -73,12 +77,13 @@
  */
 
 void
-limInitAIDpool(tpAniSirGlobal pMac)
+limInitAIDpool(tpAniSirGlobal pMac,tpPESession sessionEntry)
 {
     tANI_U8 i;
+    tANI_U8 maxAssocSta = pMac->lim.maxStation;
 
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-    if (limGetSystemRole(pMac) == eLIM_AP_ROLE)
+    if (limGetSystemRole(sessionEntry) == eLIM_AP_ROLE)
     {
         pMac->lim.gpLimAIDpool[0]=pMac->lim.gpLimAIDpool[1]=0;
         pMac->lim.delayedRelease=1;
@@ -86,14 +91,21 @@ limInitAIDpool(tpAniSirGlobal pMac)
     }
 #endif
 #if defined(ANI_PRODUCT_TYPE_CLIENT) || defined(ANI_AP_CLIENT_SDK)
-    if (limGetSystemRole(pMac) != eLIM_AP_ROLE)
+#ifndef WLAN_SOFTAP_FEATURE
+    if (limGetSystemRole(sessionEntry) != eLIM_AP_ROLE)
+#endif		
     {
         pMac->lim.gpLimAIDpool[0]=0;
         pMac->lim.freeAidHead=LIM_START_AID_STA;
     }
 #endif
 
-    for (i=pMac->lim.freeAidHead;i<pMac->lim.maxStation-1; i++)
+#ifdef WLAN_SOFTAP_FEATURE
+    maxAssocSta = MAX_NO_OF_ASSOC_STA;   
+    for (i=pMac->lim.freeAidHead;i<maxAssocSta-1; i++)
+#else    
+    for (i=pMac->lim.freeAidHead;i<maxAssocSta-1; i++)
+#endif
     {
         pMac->lim.gpLimAIDpool[i]         = i+1;
     }
@@ -102,7 +114,7 @@ limInitAIDpool(tpAniSirGlobal pMac)
     pMac->lim.freeAidTail=i;
 
 #if (WNI_POLARIS_FW_PRODUCT == AP)
-    if (limGetSystemRole(pMac) == eLIM_AP_ROLE)
+    if (limGetSystemRole(sessionEntry) == eLIM_AP_ROLE)
     {
         pMac->lim.toBeReleasedHead=0;
         pMac->lim.toBeReleasedTail=0;
@@ -222,7 +234,7 @@ limReleaseAID(tpAniSirGlobal pMac, tANI_U16 aid)
 
 }
 
-#if (WNI_POLARIS_FW_PRODUCT == AP)
+
 /**
  * limReleaseAIDtoTBRList()
  *
@@ -244,6 +256,7 @@ limReleaseAID(tpAniSirGlobal pMac, tANI_U16 aid)
  * @return None
  */
 void limAddAIDtoTBRList(tpAniSirGlobal pMac, tANI_U16 aid) {
+#if (WNI_POLARIS_FW_PRODUCT == AP)
     if (pMac->lim.delayedRelease)
     {
         /* insert at tail of to be released list */
@@ -255,6 +268,13 @@ void limAddAIDtoTBRList(tpAniSirGlobal pMac, tANI_U16 aid) {
         else
         {
             pMac->lim.toBeReleasedTail=pMac->lim.toBeReleasedHead=(tANI_U8)aid;
+
+#ifdef GEN6_TODO
+            /* revisit this piece to fetch the appropriate sessionId below
+             * priority - MEDIUM
+             */
+            pMac->lim.limTimers.gLimAIDreleaseTimer.sessionId = sessionId;
+#endif
             /* the list was empty: activate release timer */
             MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_RELEASE_AID_TIMER));
             tx_timer_activate(&pMac->lim.limTimers.gLimAIDreleaseTimer);
@@ -262,11 +282,13 @@ void limAddAIDtoTBRList(tpAniSirGlobal pMac, tANI_U16 aid) {
         pMac->lim.gpLimAIDpool[(tANI_U8)aid]=0;
         pMac->lim.numReleasedThisCycle++;
         //PELOG2(limLog(pMac, LOG2,FL("Release aid to TBR aid%d num %d\n"),aid,pMac->lim.numReleasedThisCycle);)
-
     }
-    else limReleaseAID(pMac,aid);
+    else 
+#endif
+       limReleaseAID(pMac,aid);
 }
 
+#if (WNI_POLARIS_FW_PRODUCT == AP)
 /**
  * limReleaseAIDHandler()
  *
@@ -295,6 +317,18 @@ void
 limReleaseAIDHandler(tpAniSirGlobal pMac)
 {
     tANI_U8 i, aid;
+    
+#ifdef GEN6_TODO
+    // use the following sessionEntry, if at all the AIDpool is maintained per session
+    // priority - MEDIUM
+    tpPESession sessionEntry;
+
+    if(sessionEntry = (peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimAIDreleaseTimer.sessionId))== NULL) 
+    {
+        limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
+        return;
+    }
+#endif
 
     /* free the Aid released during previous cycle */
     for (i=0;i<pMac->lim.numReleasedLastCycle;i++)

@@ -192,6 +192,36 @@ typedef  __ani_attr_pre_packed struct sRpeStaDesc {
 	tRpeStaQueueInfo	rpeStaQueueInfo[HW_MAX_QUEUES];
 } __ani_attr_packed __ani_attr_aligned_4 tRpeStaDesc, *tpRpeStaDesc;
 
+#ifdef FEATURE_ON_CHIP_REORDERING
+/**
+  * 	RPE Reorder STA Data Structure Entry
+  */
+
+typedef  __ani_attr_pre_packed struct sRpeReorderStaDataEntry {
+    /** Byte 0 - 3 */
+#ifdef ANI_BIG_BYTE_ENDIAN
+    tANI_U32 no_of_mem_units1    : 4;
+    tANI_U32 bd_idx1             : 12;
+    tANI_U32 no_of_mem_units0    : 4;
+    tANI_U32 bd_idx0             : 12;
+#else
+    tANI_U32 bd_idx0             : 12;
+    tANI_U32 no_of_mem_units0    : 4;
+    tANI_U32 bd_idx1             : 12;
+    tANI_U32 no_of_mem_units1    : 4;
+#endif
+
+} __ani_attr_packed __ani_attr_aligned_4 sRpeReorderStaDataEntry;
+
+/**
+  * 	RPE Reorder STA Data Structure
+  */
+
+typedef  __ani_attr_pre_packed struct sRpeReorderStaData {
+    sRpeReorderStaDataEntry    rpeReorderStaData[NO_OF_RPE_REORDER_STA_DS_ENTRIES];
+} __ani_attr_packed __ani_attr_aligned_4 sRpeReorderStaData;
+#endif
+
 eHalStatus halRpe_Start(tHalHandle hHal, void *arg);
 eHalStatus halRpe_CfgRoutingFlag(tpAniSirGlobal pMac, tANI_U32 drop_pkts,
 									tANI_U32 good_pkts);
@@ -224,6 +254,10 @@ eHalStatus halRpe_BlockAndFlushFrames(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_
  eHalStatus halRpe_FlushBitMapCache(tpAniSirGlobal pMac);
  eHalStatus halRpe_FlushrsrcEntry(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId);
 eHalStatus halRpe_ErrIntHandler(tHalHandle hHalHandle, eHalIntSources intSource);
+#ifdef FEATURE_ON_CHIP_REORDERING
+eHalStatus halRpe_FlushReorderPacketMemory(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId);
+eHalStatus halRPE_UpdateOnChipReorderThreshold(tpAniSirGlobal pMac, tANI_U32 threshold, tANI_U32 value);
+#endif
 
 #endif
 

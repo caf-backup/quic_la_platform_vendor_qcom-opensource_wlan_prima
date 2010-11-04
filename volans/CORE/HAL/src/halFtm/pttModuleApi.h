@@ -21,7 +21,7 @@
 #include "sys_defs.h"
 
 
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)  //ANI_PHY_DEBUG will be removed for production/mfg driver
+
 #include "pttMsgApi.h"
 
 //these are accessible for mfg and debug production drivers
@@ -31,12 +31,6 @@ eQWPttStatus pttDbgReadRegister(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32 
 eQWPttStatus pttDbgWriteRegister(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32 regValue);
 eQWPttStatus pttDbgReadMemory(tpAniSirGlobal pMac, tANI_U32 memAddr, tANI_U32 nBytes, tANI_U32 *pMemBuf);
 eQWPttStatus pttDbgWriteMemory(tpAniSirGlobal pMac, tANI_U32 memAddr, tANI_U32 nBytes, tANI_U32 *pMemBuf);
-
-#endif
-
-
-
-#ifdef ANI_MANF_DIAG
 
 
 
@@ -92,13 +86,13 @@ eQWPttStatus pttSetTxPower(tpAniSirGlobal pMac, t2Decimal dbmPwr);
 eQWPttStatus pttGetTxPowerReport(tpAniSirGlobal pMac, tTxPowerReport *pwrTempIndex);
 eQWPttStatus pttSetPowerLut(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_U8 minIndex, tANI_U8 maxIndex, tANI_U8 *powerLut);
 eQWPttStatus pttGetPowerLut(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_U8 *powerLut);
-eQWPttStatus pttSaveTxPwrFreqTable(tpAniSirGlobal pMac, tANI_U8 numTpcCalFreqs, const tTpcFreqData *table);
 
 
 //Rx Gain Service
 eQWPttStatus pttDisableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcDisable gains);
 eQWPttStatus pttEnableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcEnable enables);
 void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi);
+void pttCollectAdcRssiStats(tpAniSirGlobal pMac);
 
 
 //Rx Frame Catcher Service
@@ -119,7 +113,6 @@ eQWPttStatus pttRxIqCal(tpAniSirGlobal pMac, sRxChainsIQCalValues *calValues, eG
 eQWPttStatus pttTxIqCal(tpAniSirGlobal pMac, sTxChainsIQCalValues *calValues, eGainSteps gain);
 eQWPttStatus pttTxCarrierSuppressCal(tpAniSirGlobal pMac, sTxChainsLoCorrections *calValues, eGainSteps gain);
 eQWPttStatus pttExecuteInitialCals(tpAniSirGlobal pMac);
-eQWPttStatus pttHdetCal(tpAniSirGlobal pMac, sRfNvCalValues *rfCalValues, tANI_BOOLEAN internal);
 
 //Phy Calibration Override Service
 eQWPttStatus pttSetTxCarrierSuppressCorrect(tpAniSirGlobal pMac, sTxChainsLoCorrections calValues, eGainSteps gain);
@@ -130,14 +123,13 @@ eQWPttStatus pttSetRxIqCorrect(tpAniSirGlobal pMac, sRxChainsIQCalValues calValu
 eQWPttStatus pttGetRxIqCorrect(tpAniSirGlobal pMac, sRxChainsIQCalValues *calValues, eGainSteps gain);
 eQWPttStatus pttSetRxDcoCorrect(tpAniSirGlobal pMac, tRxChainsDcoCorrections calValues, tANI_U8 gain);
 eQWPttStatus pttGetRxDcoCorrect(tpAniSirGlobal pMac, tRxChainsDcoCorrections *calValues, tANI_U8 gain);
-eQWPttStatus pttGetHdetCorrect(tpAniSirGlobal pMac, sRfNvCalValues *rfCalValues);
 eQWPttStatus pttGetRxIm2Correct(tpAniSirGlobal pMac, tRxChainsIm2Corrections *calValues, tANI_U8 dummy);
 eQWPttStatus pttSetRxIm2Correct(tpAniSirGlobal pMac, tRxChainsIm2Corrections calValues, tANI_U8 dummy);
 
 
 
 //Rf Services
-eQWPttStatus pttGetTempAdc(tpAniSirGlobal pMac, tANI_U8 *tempAdc);
+eQWPttStatus pttGetTempAdc(tpAniSirGlobal pMac, eRfTempSensor tempSensor, tTempADCVal *tempAdc);
 eQWPttStatus pttReadRfField(tpAniSirGlobal pMac, tANI_U32 addr, tANI_U32 mask, tANI_U32 shift, tANI_U32 *value);
 eQWPttStatus pttWriteRfField(tpAniSirGlobal pMac, tANI_U32 addr, tANI_U32 mask, tANI_U32 shift, tANI_U32 value);
 
@@ -146,7 +138,5 @@ eQWPttStatus pttDeepSleep(tpAniSirGlobal pMac);
 
 //Misc.
 eQWPttStatus pttSystemReset(tpAniSirGlobal pMac);
-eQWPttStatus pttLogDump(tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4);
 
-#endif
 #endif

@@ -314,6 +314,14 @@ static eHalStatus __halUpdateSecurityStats(tpAniSirGlobal pMac, tANI_U8 dpuIdx, 
             pSecStat = &pSecurityStats->aes;
             __halUpdate32bitValue(&pSecurityStats->aesReplays, dpuStats.replays);
             break;
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
+         case eSIR_ED_WPI:
+            //Update WPI related config
+            pSecStat = &pSecurityStats->wpi;
+            __halUpdate32bitValue(&pSecurityStats->wpiReplays, dpuStats.replays);
+            __halUpdate32bitValue(&pSecurityStats->wpiMicError, dpuStats.micErrorCnt);
+            break;
+#endif
         default:
             //Error!!!
             return eHAL_STATUS_FAILURE;
@@ -403,16 +411,26 @@ static void __halUpdateStaFrameStatCounters( tpAniSirGlobal pMac, tANI_U8 staIdx
 static eHalStatus __halGetPeriodicPerStaStats( tpAniSirGlobal pMac, tANI_U8 staIdx )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    tSystemRole systemRole;
+    tBssSystemRole BssSystemRole;
+    tANI_U8 bssIdx = eHAL_STATUS_INVALID_BSSIDX; 
 
     //Update Frame Counters.
     __halUpdateStaFrameStatCounters( pMac, staIdx );
 
     status = __halUpdateStaSecStats(pMac, staIdx);
-     if(status != eHAL_STATUS_SUCCESS) return status;
+    if (status != eHAL_STATUS_SUCCESS) return status;
 
-    systemRole = halGetSystemRole(pMac);
-     if( systemRole == (tSystemRole)eSYSTEM_STA_IN_IBSS_ROLE)
+    status = halTable_GetBssIndexForSta( pMac, &bssIdx, staIdx );
+    if (eHAL_STATUS_SUCCESS != status) return status;
+
+    halLog(pMac, LOG2, FL("**Bssidx=%d STaidx: %d\n"), 
+        bssIdx, staIdx);
+
+    BssSystemRole = halGetBssSystemRole(pMac, bssIdx);
+
+    if ((BssSystemRole == eSYSTEM_STA_IN_IBSS_ROLE) ||
+        (BssSystemRole == eSYSTEM_BTAMP_AP_ROLE) ||
+        (BssSystemRole == eSYSTEM_BTAMP_STA_ROLE))
      {
         //Update multicast/unicast stats.
         status = __halUpdateStaBcSecStats(pMac, staIdx);
@@ -850,7 +868,7 @@ static void __halMacHandleGlobalStatsReq( tpAniSirGlobal pMac, tpAniGetStatsReq 
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tpAniGetGlobalStatsRsp pRsp;
     tANI_U8 i;
-    tSystemRole systemRole;
+    tANI_U8 bssIdx;
 
     if( eHAL_STATUS_SUCCESS != (status = palAllocateMemory (pMac->hHdd, (void**) &pRsp, sizeof(tAniGetGlobalStatsRsp))))
     {
@@ -867,23 +885,34 @@ static void __halMacHandleGlobalStatsReq( tpAniSirGlobal pMac, tpAniGetStatsReq 
 
     palCopyMemory(pMac->hHdd, &pRsp->global, &pMac->hal.halMac.macStats.globalStat, sizeof(tAniGlobalStatStruct));
     //Update Security stats from each of the stations bcast DPU in IBSS.
-    systemRole = halGetSystemRole(pMac);
-    if( systemRole == (tSystemRole)eSYSTEM_STA_IN_IBSS_ROLE)
+    for (i = 0; i < pMac->hal.halMac.maxSta; i++)
     {
-        for (i = 0; i < pMac->hal.halMac.maxSta; i++)
+        if (halTable_GetBssIndexForSta( pMac, &bssIdx, i ) !=
+                eHAL_STATUS_SUCCESS) continue;
+        if (halGetBssSystemRole(pMac, bssIdx) != eSYSTEM_STA_IN_IBSS_ROLE) continue;
+        if ( (status = halTable_ValidateStaIndex(pMac, i)) == eHAL_STATUS_SUCCESS )
         {
-            if ( (status = halTable_ValidateStaIndex(pMac, i)) == eHAL_STATUS_SUCCESS )
-            {
-                __halAddTxRxCounters ( &pRsp->global.bcStats, &pMac->hal.halMac.macStats.pPerStaStats[i].staStat.bcStats );
-                __halAddTxRxCounters ( &pRsp->global.mcStats, &pMac->hal.halMac.macStats.pPerStaStats[i].staStat.mcStats );
+            __halAddTxRxCounters ( &pRsp->global.bcStats, &pMac->hal.halMac.macStats.pPerStaStats[i].staStat.bcStats );
+            __halAddTxRxCounters ( &pRsp->global.mcStats, &pMac->hal.halMac.macStats.pPerStaStats[i].staStat.mcStats );
 
                 __halMacAddBcStats(pMac, &pRsp->global.securityStats.aes, &pMac->hal.halMac.macStats.pPerStaStats[i].staBcStat.aes);
                 __halMacAddBcStats(pMac, &pRsp->global.securityStats.tkip, &pMac->hal.halMac.macStats.pPerStaStats[i].staBcStat.tkip);
                 __halMacAddBcStats(pMac, &pRsp->global.securityStats.wep, &pMac->hal.halMac.macStats.pPerStaStats[i].staBcStat.wep);
-                __halAdd64bitCounters(&pRsp->global.securityStats.tkipMicError, &pMac->hal.halMac.macStats.pPerStaStats[i].staBcStat.tkipMicError);
-                __halAdd64bitCounters(&pRsp->global.securityStats.tkipReplays, &pMac->hal.halMac.macStats.pPerStaStats[i].staBcStat.tkipReplays);
-                __halAdd64bitCounters(&pRsp->global.securityStats.aesReplays, &pMac->hal.halMac.macStats.pPerStaStats[i].staBcStat.aesReplays);
-            }
+                __halAdd64bitCounters(&pRsp->global.securityStats.tkipMicError, 
+                                      &pMac->hal.halMac.macStats.pPerStaStats[i].staBcStat.tkipMicError);
+                __halAdd64bitCounters(&pRsp->global.securityStats.tkipReplays, 
+                                      &pMac->hal.halMac.macStats.pPerStaStats[i].staBcStat.tkipReplays);
+                __halAdd64bitCounters(&pRsp->global.securityStats.aesReplays, 
+                                      &pMac->hal.halMac.macStats.pPerStaStats[i].staBcStat.aesReplays);
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
+                __halMacAddBcStats(pMac, 
+                                   &pRsp->global.securityStats.wpi, 
+                                   &pMac->hal.halMac.macStats.pPerStaStats[i].staBcStat.wpi);
+                __halAdd64bitCounters(&pRsp->global.securityStats.wpiMicError, 
+                                      &pMac->hal.halMac.macStats.pPerStaStats[i].staBcStat.wpiMicError);
+                __halAdd64bitCounters(&pRsp->global.securityStats.wpiReplays, 
+                                      &pMac->hal.halMac.macStats.pPerStaStats[i].staBcStat.wpiReplays);
+#endif
         }
     }
 
@@ -893,7 +922,6 @@ static void __halMacHandleGlobalStatsReq( tpAniSirGlobal pMac, tpAniGetStatsReq 
     pRsp->rc = status;
 
     halMsg_GenerateRsp( pMac, SIR_HAL_GLOBAL_STAT_RSP, (tANI_U16) 0, pRsp, 0);
-
 }
 
 static void __halMacUpdateAggrSecStat( tpAniSecurityStat pAggr, tpAniSecurityStat pSta)
@@ -944,6 +972,12 @@ static void __halMacHandleAggrStatsReq( tpAniSirGlobal pMac, tpAniGetStatsReq pR
             __halAdd64bitCounters( &pSta->securityStats.tkipReplays, &pMac->hal.halMac.macStats.pPerStaStats[i].staStat.securityStats.tkipReplays);
             __halAdd64bitCounters( &pSta->securityStats.aesReplays, &pMac->hal.halMac.macStats.pPerStaStats[i].staStat.securityStats.aesReplays);
             __halAdd64bitCounters( &pSta->securityStats.tkipMicError, &pMac->hal.halMac.macStats.pPerStaStats[i].staStat.securityStats.tkipMicError);
+
+#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
+            __halMacUpdateAggrSecStat( &pSta->securityStats.wpi, &pMac->hal.halMac.macStats.pPerStaStats[i].staStat.securityStats.wpi);
+            __halAdd64bitCounters( &pSta->securityStats.wpiReplays, &pMac->hal.halMac.macStats.pPerStaStats[i].staStat.securityStats.wpiReplays);
+            __halAdd64bitCounters( &pSta->securityStats.wpiMicError, &pMac->hal.halMac.macStats.pPerStaStats[i].staStat.securityStats.wpiMicError);
+#endif
         }
     }
 

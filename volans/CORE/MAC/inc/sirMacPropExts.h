@@ -92,11 +92,18 @@
           (dot11Mode == WNI_CFG_DOT11_MODE_TAURUS) || \
           (dot11Mode == WNI_CFG_DOT11_MODE_ALL)) ? TRUE: FALSE)
 
+#ifdef WLAN_SOFTAP_FEATURE
+#define IS_DOT11_MODE_HT(dot11Mode) \
+        (((dot11Mode == WNI_CFG_DOT11_MODE_11N) || \
+          (dot11Mode ==  WNI_CFG_DOT11_MODE_11N_ONLY) || \
+          (dot11Mode ==  WNI_CFG_DOT11_MODE_TAURUS) || \
+          (dot11Mode ==  WNI_CFG_DOT11_MODE_ALL)) ? TRUE: FALSE)
+#else
 #define IS_DOT11_MODE_HT(dot11Mode) \
         (((dot11Mode == WNI_CFG_DOT11_MODE_11N) || \
           (dot11Mode ==  WNI_CFG_DOT11_MODE_TAURUS) || \
           (dot11Mode ==  WNI_CFG_DOT11_MODE_ALL)) ? TRUE: FALSE)
-
+#endif
         /*
         * When Titan capabilities can be turned on based on the 
         * Proprietary Extensions CFG, then this macro can be used.

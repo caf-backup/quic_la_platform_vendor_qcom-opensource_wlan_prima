@@ -31,6 +31,7 @@ DESCRIPTION
 
 when        who    what, where, why
 --------    ---    ----------------------------------------------------------
+01/08/10    lti     Added TL Data Caching 
 10/15/09    rnair   Modifying STADescType struct
 10/06/09    rnair   Adding support for WAPI 
 09/22/09    lti     Add deregistration API for management client
@@ -40,7 +41,7 @@ when        who    what, where, why
 08/06/08    lti     Added QOS support 
 05/01/08    lti     Created module.
 
-============================================================================*/
+===========================================================================*/
 
 
 
@@ -56,6 +57,10 @@ when        who    what, where, why
 #include "vos_api.h" 
 #include "vos_packet.h" 
 #include "sirApi.h"
+#ifdef WLAN_SOFTAP_FEATURE
+#include "csrApi.h"
+#include "sapApi.h"
+#endif
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -64,6 +69,11 @@ when        who    what, where, why
  extern "C" {
  #endif 
  
+/*Offset of the OUI field inside the LLC/SNAP header*/
+#define WLANTL_LLC_OUI_OFFSET                 3
+
+/*Size of the OUI type field inside the LLC/SNAP header*/
+#define WLANTL_LLC_OUI_SIZE                   3
 
 /*============================================================================
  *     GENERIC STRUCTURES - not belonging to TL 
@@ -72,10 +82,30 @@ when        who    what, where, why
 /*Maximum number of ACs */
 #define WLANTL_MAX_AC                         4
 
+#ifdef WLAN_SOFTAP_FEATURE
+
+/* Maximum number of station supported by TL, including BC. */
+#define WLAN_MAX_STA_COUNT  8
+
+/* The symbolic station ID return to HDD to specify the packet is bc/mc */
+#define WLAN_RX_BCMC_STA_ID (WLAN_MAX_STA_COUNT + 1)
+
+/* The symbolic station ID return to HDD to specify the packet is to soft-AP itself */
+#define WLAN_RX_SAP_SELF_STA_ID (WLAN_MAX_STA_COUNT + 2)
+
+/* Used by HDS systme. This station ID is used by TL to tell upper layer that
+   this packet is for WDS and not for a loopback for an associated station. */
+#define WLANTL_RX_WDS_STAID WLAN_MAX_STA_COUNT
+
+/* Station ID used for BC traffic. This value will be used when upper layer registers
+   the broadcast client or allocate station strcuture to keep per-station info.*/
+//#define WLANTL_BC_STA_ID  0x00
+
+#endif
+
 #ifdef ANI_CHIPSET_VOLANS
 #define WLANTL_MAX_TID                        15
 #endif
-
 /*--------------------------------------------------------------------------
   Access category enum used by TL
   - order must be kept as these values are used to setup the AC mask
@@ -102,10 +132,49 @@ typedef enum
   /* BT-AMP link*/
   WLAN_STA_BT_AMP,
 
+#ifdef WLAN_SOFTAP_FEATURE
+  /* SoftAP station */
+  WLAN_STA_SOFTAP,
+#endif
+
   /* Invalid link*/
   WLAN_STA_MAX
 
 }WLAN_STAType;
+
+/*---------------------------------------------------------------------------
+  BAP Management frame type
+---------------------------------------------------------------------------*/
+typedef enum
+{
+    /* BT-AMP packet of type data */
+    WLANTL_BT_AMP_TYPE_DATA = 0x0001,
+
+    /* BT-AMP packet of type activity report */
+    WLANTL_BT_AMP_TYPE_AR = 0x0002,
+
+    /* BT-AMP packet of type security frame */
+    WLANTL_BT_AMP_TYPE_SEC = 0x0003,
+
+    /* BT-AMP packet of type Link Supervision request frame */
+    WLANTL_BT_AMP_TYPE_LS_REQ = 0x0004,
+
+    /* BT-AMP packet of type Link Supervision reply frame */
+    WLANTL_BT_AMP_TYPE_LS_REP = 0x0005,
+
+    /* Invalid Frame */
+    WLANTL_BAP_INVALID_FRAME
+
+} WLANTL_BAPFrameEnumType;
+
+#ifdef WLAN_SOFTAP_FEATURE
+/* Type used to specify LWM threshold unit */
+typedef enum  {
+    WLAN_LWM_THRESHOLD_BYTE = 0,
+
+    WLAN_LWM_THRESHOLD_PACKET
+} WLAN_LWM_Threshold_Type;
+#endif
 
 /*---------------------------------------------------------------------------
   TL States
@@ -165,12 +234,12 @@ typedef struct
   v_U8_t         ucProtectedFrame;
 
  /*DPU Signature used for unicast data - used for data caching*/
-  v_U8_t         ucUcastSig;
+  v_U8_t              ucUcastSig;
  /*Flag to indicate if STA is a WAPI STA*/
   v_U8_t         ucIsWapiSta;
 
   /*DPU Signature used for broadcast data - used for data caching*/
-  v_U8_t         ucBcastSig;
+  v_U8_t              ucBcastSig;
 
   /*Initial state at which the STA should be brought up to*/
   WLANTL_STAStateType ucInitState;
@@ -276,10 +345,10 @@ typedef struct
 
   /* notifying TL if this is an EAPOL frame or not */
   v_U8_t    ucIsEapol;
-
+#ifdef FEATURE_WLAN_WAPI
   /* notifying TL if this is a WAI frame or not */
   v_U8_t    ucIsWai;
-
+#endif
   /* frame is 802.11 and it does not need translation */
   v_U8_t    ucDisableFrmXtl;
 
@@ -358,6 +427,9 @@ typedef struct
    WLANTL_HO_NRT_TRAFFIC_STATUS_TYPE  nrtTrafficStatus;
 } WLANTL_HO_TRAFFIC_STATUS_TYPE;
 
+#ifdef WLAN_SOFTAP_FEATURE
+typedef tSap_SoftapStats WLANTL_TRANSFER_STA_TYPE;
+#else
 typedef struct
 {
    v_U32_t txUCFcnt;
@@ -376,6 +448,7 @@ typedef struct
    v_U32_t rxBcntCRCok;
    v_U32_t rxRate;
 }WLANTL_TRANSFER_STA_TYPE;
+#endif
 
 /* Under here not public items, just use for internal */
 /* 3 SME 1 HDD */
@@ -506,6 +579,32 @@ typedef VOS_STATUS (*WLANTL_STARxCBType)( v_PVOID_t              pvosGCtx,
   PARAMETERS 
 
     IN
+    pvosGCtx:      pointer to the global vos context; a handle to TL's 
+                   or SME's control block can be extracted from its context 
+    vosDataBuff:   pointer to the vOSS buffer containing the received packet; 
+                   no chaining will be done on this path
+    frameType:     type of the frame to be indicated to BAP.
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+
+----------------------------------------------------------------------------*/
+typedef VOS_STATUS (*WLANTL_BAPRxCBType)( v_PVOID_t               pvosGCtx,
+                                          vos_pkt_t*              vosDataBuff,
+                                          WLANTL_BAPFrameEnumType frameType);
+
+/*----------------------------------------------------------------------------
+
+  DESCRIPTION   
+    Callback registered with TL for BAP, this is required inorder for
+    TL to inform BAP, that the flush operation requested has been completed. 
+    
+    The registered reception callback is being triggered by TL whenever a 
+    frame SIR_TL_HAL_FLUSH_AC_RSP is received by TL from HAL.
+
+  PARAMETERS 
+
+    IN
     pvosGCtx:       pointer to the global vos context; a handle to TL's 
                     or SME's control block can be extracted from its context 
     vosDataBuff:   pointer to the vOSS buffer containing the received packet; 
@@ -515,9 +614,10 @@ typedef VOS_STATUS (*WLANTL_STARxCBType)( v_PVOID_t              pvosGCtx,
     The result code associated with performing the operation
 
 ----------------------------------------------------------------------------*/
-typedef VOS_STATUS (*WLANTL_BAPRxCBType)( v_PVOID_t         pvosGCtx,
-                                          vos_pkt_t*        vosDataBuff);
-
+typedef VOS_STATUS (*WLANTL_FlushOpCompCBType)( v_PVOID_t     pvosGCtx,
+                                                v_U8_t        ucStaId,
+                                                v_U8_t        ucTID, 
+                                                v_U8_t        status);
 /*----------------------------------------------------------------------------
     INTERACTION WITH PE
  ---------------------------------------------------------------------------*/
@@ -933,8 +1033,8 @@ WLANTL_ChangeSTAState
 
     RESTRICTION: TL will not count packets for pending notification. 
                  HDD is expected to send the notification only when 
-                 “non-empty” event gets triggered. Worst case scenario 
-                 is that TL might end up making a call when Hdd’s 
+                 non-empty event gets triggered. Worst case scenario 
+                 is that TL might end up making a call when Hdds 
                  queues are actually empty. 
 
   PARAMETERS 
@@ -1028,6 +1128,9 @@ WLANTL_SetSTAPriority
                     or SME's control block can be extracted from its context 
     pfnTlBAPRxFrm:  pointer to the receive processing routine for non-data 
                     BT-AMP packets
+    pfnFlushOpCompleteCb: 
+                    pointer to the function that will inform BAP that the 
+                    flush operation is complete.
    
   RETURN VALUE
   
@@ -1045,8 +1148,9 @@ WLANTL_SetSTAPriority
 VOS_STATUS  
 WLANTL_RegisterBAPClient 
 ( 
-  v_PVOID_t               pvosGCtx,
-  WLANTL_BAPRxCBType      pfnTlBAPRx
+  v_PVOID_t                   pvosGCtx,
+  WLANTL_BAPRxCBType          pfnTlBAPRx,
+  WLANTL_FlushOpCompCBType    pfnFlushOpCompleteCb
 );
 
 
@@ -1154,6 +1258,87 @@ WLANTL_GetRssi
   v_S7_t*               puRssi
 );
 
+/*==========================================================================
+
+  FUNCTION    WLANTL_GetLinkQuality
+
+  DESCRIPTION 
+    TL will extract the LinkQuality information from every data packet from the 
+    ongoing traffic and will store it. It will provide the result to SME 
+    upon request.
+
+  DEPENDENCIES 
+
+    WARNING: the read and write of this value will not be protected 
+             by locks, therefore the information obtained after a read 
+             might not always be consistent.  
+    
+  PARAMETERS 
+
+    IN
+    pvosGCtx:       pointer to the global vos context; a handle to TL's 
+                    or SME's control block can be extracted from its context 
+    ucSTAId:        station identifier for the requested value
+
+    OUT
+    puLinkQuality:         the average value of the LinkQuality
+
+   
+  RETURN VALUE
+    The result code associated with performing the operation  
+
+    VOS_STATUS_E_INVAL:  Input parameters are invalid 
+    VOS_STATUS_E_FAULT:  Station ID is outside array boundaries or pointer 
+                         to TL cb is NULL ; access would cause a page fault  
+    VOS_STATUS_E_EXISTS: STA was not yet registered
+    VOS_STATUS_SUCCESS:  Everything is good :) 
+    
+  SIDE EFFECTS 
+  
+============================================================================*/
+VOS_STATUS  
+WLANTL_GetLinkQuality 
+( 
+  v_PVOID_t             pvosGCtx,
+  v_U8_t                ucSTAId,
+  v_U32_t*              puLinkQuality
+);
+
+/*==========================================================================
+
+  FUNCTION    WLANTL_FlushStaTID
+
+  DESCRIPTION 
+    TL provides this API as an interface to SME (BAP) layer. TL inturn posts a 
+    message to HAL. This API is called by the SME inorder to perform a flush 
+    operation.
+
+  DEPENDENCIES 
+
+  PARAMETERS 
+
+    IN
+    pvosGCtx:       pointer to the global vos context; a handle to TL's 
+                    or SME's control block can be extracted from its context 
+    ucSTAId:        station identifier for the requested value
+    ucTid:          Tspec ID for the new BA session
+
+    OUT
+    The response for this post is received in the main thread, via a response 
+    message from HAL to TL. 
+   
+  RETURN VALUE
+    VOS_STATUS_SUCCESS:  Everything is good :) 
+    
+  SIDE EFFECTS 
+============================================================================*/
+VOS_STATUS  
+WLANTL_FlushStaTID 
+( 
+  v_PVOID_t             pvosGCtx,
+  v_U8_t                ucSTAId,
+  v_U8_t                ucTid
+);
 
 /*----------------------------------------------------------------------------
     INTERACTION WITH PE
@@ -1741,7 +1926,7 @@ WLANTL_DisableUAPSDForAC
   WLANTL_ACEnumType  ucACId
 );
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
 /*==========================================================================
   FUNCTION     WLANTL_RegRSSIIndicationCB
 
@@ -1971,47 +2156,6 @@ VOS_STATUS WLANTL_ResetSpecStatistic
    WLANTL_TRANSFER_STATIC_TYPE  statType,
    v_U8_t                       STAid
 );
-
-
-
-/*
- DESCRIPTION 
-    TL returns the weight currently maintained in TL.
- IN
-    pvosGCtx:       pointer to the global vos context; a handle to TL's 
-                    or SME's control block can be extracted from its context 
-
- OUT
-    pACWeights:     Caller allocated memory for filling in weights
-
- RETURN VALUE  VOS_STATUS
-*/
-VOS_STATUS  
-WLANTL_GetACWeights 
-( 
-  v_PVOID_t             pvosGCtx,
-  v_U8_t*               pACWeights
-);
-
-
-/*
- DESCRIPTION 
-    Change the weight currently maintained by TL.
- IN
-    pvosGCtx:       pointer to the global vos context; a handle to TL's 
-                    or SME's control block can be extracted from its context 
-    pACWeights:     Caller allocated memory contain the weights to use
-
-
- RETURN VALUE  VOS_STATUS
-*/
-VOS_STATUS  
-WLANTL_SetACWeights 
-( 
-  v_PVOID_t             pvosGCtx,
-  v_U8_t*               pACWeights
-);
-
 #ifdef ANI_CHIPSET_VOLANS
 /*===============================================================================
   FUNCTION      WLANTL_IsReplayPacket
@@ -2055,6 +2199,66 @@ WLANTL_GetReplayCounterFromRxBD
    v_U8_t *pucRxBDHeader
 );
 #endif /*End of #ifdef ANI_CHIPSET_VOLANS*/
+
+
+
+/*
+ DESCRIPTION 
+    TL returns the weight currently maintained in TL.
+ IN
+    pvosGCtx:       pointer to the global vos context; a handle to TL's 
+                    or SME's control block can be extracted from its context 
+
+ OUT
+    pACWeights:     Caller allocated memory for filling in weights
+
+ RETURN VALUE  VOS_STATUS
+*/
+VOS_STATUS  
+WLANTL_GetACWeights 
+( 
+  v_PVOID_t             pvosGCtx,
+  v_U8_t*               pACWeights
+);
+
+
+/*
+ DESCRIPTION 
+    Change the weight currently maintained by TL.
+ IN
+    pvosGCtx:       pointer to the global vos context; a handle to TL's 
+                    or SME's control block can be extracted from its context 
+    pACWeights:     Caller allocated memory contain the weights to use
+
+
+ RETURN VALUE  VOS_STATUS
+*/
+VOS_STATUS  
+WLANTL_SetACWeights 
+( 
+  v_PVOID_t             pvosGCtx,
+  v_U8_t*               pACWeights
+);
+
+#ifdef WLAN_SOFTAP_FEATURE
+/*==========================================================================
+  FUNCTION      WLANTL_GetSoftAPStatistics
+
+  DESCRIPTION   Collect the cumulative statistics for all Softap stations
+
+  DEPENDENCIES  NONE
+    
+  PARAMETERS    in pvosGCtx  - Pointer to the global vos context
+                   bReset    - If set TL statistics will be cleared after reading
+                out statsSum - pointer to collected statistics
+
+  RETURN VALUE  VOS_STATUS_SUCCESS : if the Statistics are successfully extracted
+
+  SIDE EFFECTS  NONE
+
+============================================================================*/
+VOS_STATUS WLANTL_GetSoftAPStatistics(v_PVOID_t pAdapter, WLANTL_TRANSFER_STA_TYPE *statsSum, v_BOOL_t bReset);
+#endif
 
 #ifdef __cplusplus
  }

@@ -15,6 +15,7 @@
 #include <stdarg.h>
 #include "sirMacPropExts.h"
 #include "dot11f.h"
+#include "limSession.h"
 
 #define COUNTRY_STRING_LENGTH    (  3 )
 #define COUNTRY_INFO_MAX_CHANNEL ( 84 )
@@ -64,6 +65,9 @@ typedef struct sSirProbeRespBeacon
     tDot11fIEQuiet            quietIE;
     tDot11fIEHTCaps           HTCaps;
     tDot11fIEHTInfo           HTInfo;
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    tANI_U8                   mdie[SIR_MDIE_SIZE];
+#endif
 
     tANI_U8                   ssidPresent;
     tANI_U8                   suppRatesPresent;
@@ -87,6 +91,10 @@ typedef struct sSirProbeRespBeacon
     tANI_U8                   quietIEPresent;
     tANI_U8                   tpcReportPresent;
     tANI_U8                   powerConstraintPresent;
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    tANI_U8                   mdiePresent;
+#endif
 
 } tSirProbeRespBeacon, *tpSirProbeRespBeacon;
 
@@ -127,7 +135,9 @@ typedef struct sSirAssocReq
     tSirMacPowerCapabilityIE  powerCapability;
     tSirMacSupportedChannelIE supportedChannels;
     tDot11fIEHTCaps   HTCaps;
-
+#ifdef WLAN_SOFTAP_FEATURE
+    tDot11fIEWMMInfoStation   WMMInfoStation;
+#endif
     /// This is set if the frame is a reassoc request:
     tANI_U8                   reassocRequest;
     tANI_U8                   ssidPresent;
@@ -165,6 +175,10 @@ typedef struct sSirAssocRsp
     tSirAddtsRspInfo          addtsRsp;
     tDot11fIEHTCaps   HTCaps;
     tDot11fIEHTInfo           HTInfo;
+#if defined WLAN_FEATURE_VOWIFI_11R
+    tDot11fIEFTInfo           FTInfo;
+    tANI_U8                   mdie[SIR_MDIE_SIZE];
+#endif
 
     tANI_U8                   suppRatesPresent;
     tANI_U8                   extendedRatesPresent;
@@ -173,6 +187,10 @@ typedef struct sSirAssocRsp
     tANI_U8                   wmeEdcaPresent;
     tANI_U8                   addtsPresent;
     tANI_U8                   wsmCapablePresent;
+#if defined WLAN_FEATURE_VOWIFI_11R
+    tANI_U8                   ftinfoPresent;
+    tANI_U8                   mdiePresent;
+#endif
 } tSirAssocRsp, *tpSirAssocRsp;
 
 tANI_U8
@@ -325,7 +343,8 @@ sirConvertMeasReqFrame2Struct(struct sAniSirGlobal *, tANI_U8 *,
 
 tSirRetStatus
 PopulateDot11fCapabilities(tpAniSirGlobal         pMac,
-                           tDot11fFfCapabilities *pDot11f);
+                           tDot11fFfCapabilities *pDot11f,
+                           tpPESession            psessionEntry);
 
 /**
  * \brief Populated a tDot11fFfCapabilities
@@ -351,7 +370,8 @@ struct sDphHashNode;
 tSirRetStatus
 PopulateDot11fCapabilities2(tpAniSirGlobal         pMac,
                             tDot11fFfCapabilities *pDot11f,
-                            struct sDphHashNode   *pSta);
+                            struct sDphHashNode   *pSta,
+                            tpPESession            psessionEntry);
 
 /// Populate a tDot11fIEChanSwitchAnn
 void
@@ -371,25 +391,34 @@ PopulateDot11fCountry(tpAniSirGlobal    pMac,
 /// Populated a PopulateDot11fDSParams
 tSirRetStatus
 PopulateDot11fDSParams(tpAniSirGlobal     pMac,
-                       tDot11fIEDSParams *pDot11f);
+                       tDot11fIEDSParams *pDot11f, tANI_U8 channel);
 
-/// Populated a PopulateDot11fDSParams
-tSirRetStatus
-PopulateDot11fDSParams(tpAniSirGlobal     pMac,
-                       tDot11fIEDSParams *pDot11f);
 
 /// Populated a tDot11fIEEDCAParamSet
 void
 PopulateDot11fEDCAParamSet(tpAniSirGlobal         pMac,
                            tDot11fIEEDCAParamSet *pDot11f);
 
+#ifdef WLAN_SOFTAP_FEATURE
+tSirRetStatus
+PopulateDot11fERPInfo(tpAniSirGlobal    pMac,
+                      tDot11fIEERPInfo *pDot11f, tpPESession psessionEntry);
+#else
 tSirRetStatus
 PopulateDot11fERPInfo(tpAniSirGlobal    pMac,
                       tDot11fIEERPInfo *pDot11f);
+#endif
 
 tSirRetStatus
 PopulateDot11fExtSuppRates(tpAniSirGlobal         pMac,
                            tDot11fIEExtSuppRates *pDot11f);
+
+#if defined WLAN_FEATURE_VOWIFI
+tSirRetStatus 
+PopulateDot11fBeaconReport(tpAniSirGlobal       pMac, 
+                           tDot11fIEMeasurementReport *pDot11f, 
+                           tSirMacBeaconReport *pBeaconReport );
+#endif
 
 /**
  * \brief Populate a tDot11fIEExtSuppRates
@@ -421,9 +450,16 @@ tSirRetStatus
 PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
                              tDot11fIEHTCaps *pDot11f);
 
+#ifdef WLAN_SOFTAP_FEATURE
+tSirRetStatus
+PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
+                     tDot11fIEHTInfo *pDot11f,
+                     tpPESession      psessionEntry);
+#else
 tSirRetStatus
 PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
                      tDot11fIEHTInfo *pDot11f);
+#endif
 
 void
 PopulateDot11fIBSSParams(tpAniSirGlobal       pMac,
@@ -450,9 +486,9 @@ PopulateDot11fMeasurementReport2(tpAniSirGlobal              pMac,
 
 /// Populate a tDot11fIEPowerCaps
 void
-PopulateDot11fPowerCaps(tpAniSirGlobal      pMac,
+PopulateDot11fPowerCaps(tpAniSirGlobal  pMac,
                         tDot11fIEPowerCaps *pCaps,
-                        tANI_U8 nAssocType);
+                        tANI_U8 nAssocType,tpPESession psessionEntry);
 
 /// Populate a tDot11fIEPowerConstraints
 tSirRetStatus
@@ -542,7 +578,7 @@ PopulateDot11fSchedule(tSirMacScheduleIE *pSchedule,
 void
 PopulateDot11fSuppChannels(tpAniSirGlobal         pMac,
                            tDot11fIESuppChannels *pDot11f,
-                           tANI_U8 nAssocType);
+                           tANI_U8 nAssocType,tpPESession psessionEntry);
 
 /**
  * \brief Populated a tDot11fIESuppRates
@@ -570,7 +606,7 @@ PopulateDot11fSuppChannels(tpAniSirGlobal         pMac,
 tSirRetStatus
 PopulateDot11fSuppRates(tpAniSirGlobal      pMac,
                         tANI_U8                  nChannelNum,
-                        tDot11fIESuppRates *pDot11f);
+                        tDot11fIESuppRates *pDot11f,tpPESession);
 
 
 tSirRetStatus PopulateDot11fTPCReport(tpAniSirGlobal      pMac,
@@ -581,21 +617,41 @@ void PopulateDot11fTSInfo(tSirMacTSInfo   *pInfo,
                           tDot11fFfTSInfo *pDot11f);
 
 
+#ifdef WLAN_SOFTAP_FEATURE
+void PopulateDot11fWMM(tpAniSirGlobal      pMac,
+                       tDot11fIEWMMInfoAp  *pInfo,
+                       tDot11fIEWMMParams *pParams,
+                       tDot11fIEWMMCaps   *pCaps,
+                       tpPESession        psessionEntry);
+#else
 void PopulateDot11fWMM(tpAniSirGlobal      pMac,
                        tDot11fIEWMMInfoAp *pInfo,
                        tDot11fIEWMMParams *pParams,
                        tDot11fIEWMMCaps   *pCaps);
+#endif
 
 void PopulateDot11fWMMCaps(tDot11fIEWMMCaps *pCaps);
 
+#ifdef WLAN_SOFTAP_FEATURE
+void PopulateDot11fWMMInfoAp(tpAniSirGlobal      pMac,
+                             tDot11fIEWMMInfoAp *pInfo,
+                             tpPESession psessionEntry);
+#else
 void PopulateDot11fWMMInfoAp(tpAniSirGlobal      pMac,
                              tDot11fIEWMMInfoAp *pInfo);
+#endif
 
 void PopulateDot11fWMMInfoStation(tpAniSirGlobal           pMac,
                                   tDot11fIEWMMInfoStation *pInfo);
 
+#ifdef WLAN_SOFTAP_FEATURE
+void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
+                             tDot11fIEWMMParams *pParams,
+                             tpPESession        psessionEntry);
+#else
 void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
                              tDot11fIEWMMParams *pParams);
+#endif
 
 /**
  * \brief Populate a tDot11fIEWMMSchedule
@@ -688,6 +744,12 @@ tSirRetStatus PopulateDot11fWscRegistrarInfo(tpAniSirGlobal pMac,
 tSirRetStatus DePopulateDot11fWscRegistrarInfo(tpAniSirGlobal pMac,
                                                tDot11fIEWscBeacon *pDot11f);
 
+#ifdef WLAN_SOFTAP_FEATURE
+tSirRetStatus PopulateDot11fProbeResWPSIEs(tpAniSirGlobal pMac, tDot11fIEWscProbeRes *pDot11f, tpPESession psessionEntry);
+tSirRetStatus PopulateDot11fAssocResWPSIEs(tpAniSirGlobal pMac, tDot11fIEWscAssocRes *pDot11f, tpPESession psessionEntry);
+tSirRetStatus PopulateDot11fBeaconWPSIEs(tpAniSirGlobal pMac, tDot11fIEWscBeacon *pDot11f, tpPESession psessionEntry);
+#endif
+
 tSirRetStatus PopulateDot11fWscInProbeRes(tpAniSirGlobal pMac,
                                           tDot11fIEWscProbeRes *pDot11f);
 
@@ -697,6 +759,7 @@ tSirRetStatus PopulateDot11fWscRegistrarInfoInProbeRes(tpAniSirGlobal pMac,
 tSirRetStatus DePopulateDot11fWscRegistrarInfoInProbeRes(tpAniSirGlobal pMac,
                                                          tDot11fIEWscProbeRes *pDot11f);
 
+
 tSirRetStatus PopulateDot11fWscInAssocRes(tpAniSirGlobal pMac,
                                           tDot11fIEWscAssocRes *pDot11f);
 
@@ -705,4 +768,21 @@ tSirRetStatus PopulateDot11fWscAssocReq( tpAniSirGlobal        pMac,
 
 tSirRetStatus PopulateDot11fWscProbeReq( tpAniSirGlobal        pMac,
                                          tDot11fIEWscProbeReq *pDot11f );
+
+#if defined WLAN_FEATURE_VOWIFI
+tSirRetStatus PopulateDot11fWFATPC( tpAniSirGlobal        pMac,
+                                    tDot11fIEWFATPC *pDot11f, tANI_U8 txPower, tANI_U8 linkMargin );
+
+tSirRetStatus PopulateDot11fRRMIe( tpAniSirGlobal pMac, 
+                                   tDot11fIERRMEnabledCap *pDot11f, 
+                                   tpPESession    psessionEntry );
+#endif
+
+#if defined WLAN_FEATURE_VOWIFI_11R
+void PopulateMDIE( tpAniSirGlobal        pMac,
+                   tDot11fIEMobilityDomain *pDot11f, tANI_U8 mdie[] );
+void PopulateFTInfo( tpAniSirGlobal      pMac,
+                     tDot11fIEFTInfo     *pDot11f );
+#endif
+
 #endif

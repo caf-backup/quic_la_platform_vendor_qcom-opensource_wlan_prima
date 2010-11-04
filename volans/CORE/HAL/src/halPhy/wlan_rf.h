@@ -9,11 +9,11 @@
    rf.h defines common data types for RF chips.
 
 
-   Author:	Mark Nelson
-   Date:	3/28/08
+   Author:  Mark Nelson
+   Date:    3/28/08
 
    History -
-   Date	       Modified by	            Modification Information
+   Date        Modified by              Modification Information
   --------------------------------------------------------------------------
 
  */
@@ -22,18 +22,6 @@
 #define RF_H
 
 #include <halRfTypes.h>
-
-#if defined(RF_CHIP_MIDAS)
-#include "rfMidas.h"
-#endif
-
-
-
-typedef enum
-{
-    MIDAS_CHIP = 0,
-    MAX_RF_CHIPS
-}eRfChipSelect;
 
 
 typedef struct

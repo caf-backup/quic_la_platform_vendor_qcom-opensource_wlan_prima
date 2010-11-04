@@ -107,6 +107,10 @@ typedef struct sRxBASessionTable
   // - an Entry is marked as "valid" in the BA Session Table
   //tANI_U16 baSessionID:11;
 
+#ifdef FEATURE_ON_CHIP_REORDERING
+  tANI_BOOLEAN isReorderingDoneOnChip;
+#endif
+
 } tRxBASessionTable, *tpRxBASessionTable;
 
 void baInit( tpAniSirGlobal pMac );
@@ -139,7 +143,14 @@ eHalStatus baAddReqTL( tpAniSirGlobal pMac, tANI_U16 baSessionID,
 
 eHalStatus baDelNotifyTL( tpAniSirGlobal pMac,
     tANI_U16 baSessionID );
-eHalStatus baProcessTLAddBARsp(tpAniSirGlobal pMac, tANI_U16 baSessionID,tANI_U16 tlWindowSize);
+eHalStatus baProcessTLAddBARsp(
+                    tpAniSirGlobal pMac,
+                    tANI_U16 baSessionID,
+                    tANI_U16 tlWindowSize
+                    #ifdef FEATURE_ON_CHIP_REORDERING
+                    ,tANI_BOOLEAN isReorderingDoneOnChip
+                    #endif
+                    );
 void halBaCheckActivity(tpAniSirGlobal pMac);
 void  halGetBaCandidates(tpAniSirGlobal pMac, tANI_U8* pStaList,  tANI_U16* pBaCandidateCnt );
 eHalStatus halStartBATimer(tpAniSirGlobal  pMac);
@@ -153,4 +164,8 @@ void fillFrameCtrlInfo (tSirMacFrameCtl *pfc);
 
 eHalStatus halTpe_TriggerSwTemplate(tpAniSirGlobal pMac);
 #endif //CONFIGURE_SW_TEMPLATE
+
+#ifdef FEATURE_ON_CHIP_REORDERING
+eHalStatus halGetBASession(tpAniSirGlobal pMac, tANI_U16 baStaIndex, tANI_U8 baTID, tpRxBASessionTable* pBA);
+#endif
 #endif // _HALMAC_BA_H_

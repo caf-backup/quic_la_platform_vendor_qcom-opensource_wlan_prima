@@ -1,10 +1,15 @@
-
-
+/*
+ * Qualcomm, Inc proprietary. All rights reserved.
+ *
+ * Date            Modified by    Modification Information
+ * --------------------------------------------------------------------
+ */
 #ifndef WLAN_QCT_HAL_H
 #define WLAN_QCT_HAL_H
 #include "vos_status.h"
 #include "halTypes.h"
 #ifndef PALTYPES_H__
+
 
 /// unsigned 8-bit types
 #define tANI_U8        v_U8_t
@@ -148,7 +153,6 @@ typedef struct sUapsdInfo {
 
 #define WLANHAL_RX_BD_GET_MPDU_H_LEN( _pvBDHeader )      (((tpHalRxBd)_pvBDHeader)->mpduHeaderLength)
 
-
 #define WLANHAL_RX_BD_GET_FT( _pvBDHeader )        (((tpHalRxBd)_pvBDHeader)->ft)
 
 #define WLANHAL_RX_BD_GET_LLC( _pvBDHeader )        (((tpHalRxBd)_pvBDHeader)->llc)
@@ -168,10 +172,54 @@ typedef struct sUapsdInfo {
 #define WLANHAL_RX_BD_GET_ADDR1_IDX( _pvBDHeader )     (((tpHalRxBd)_pvBDHeader)->addr1Index)
 
 #define WLANHAL_TX_BD_GET_TID( _pvBDHeader )           (((tpHalTxBd)_pvBDHeader)->tid)
-
-#define WLANHAL_TX_BD_GET_STA_ID( _pvBDHeader )     (((tpHalTxBd)_pvBDHeader)->staIndex)
+#define WLANHAL_TX_BD_GET_STA_ID( _pvBDHeader ) 	(((tpHalTxBd)_pvBDHeader)->staIndex)
 
 #define WLANHAL_RX_BD_GET_DPU_SIG( _pvBDHeader )   (((tpHalRxBd)_pvBDHeader)->dpuSignature)
+
+#ifdef WLAN_SOFTAP_FEATURE
+#define WLANHAL_FC_RX_BD_REPORT_CONTENT_SIZE        2*HAL_NUM_STA*sizeof(tANI_U8)   // size of fcSTATxQLen[HAL_NUM_STA]+fcSTACurTxRate[HAL_NUM_STA]
+#define WLANHAL_FC_TX_BD_HEADER_SIZE                sizeof(tHalFcTxBd)
+#define WLANHAL_RX_BD_GET_FC( _pvBDHeader )                      (((tpHalFcRxBd)_pvBDHeader)->fc)
+#define WLANHAL_RX_BD_GET_RX_TIME_STAMP( _pvBDHeader )           (((tpHalFcRxBd)_pvBDHeader)->mclkRxTimestamp)
+#define WLANHAL_RX_BD_GET_STA_VALID_MASK( _pvBDHeader )          (((tpHalFcRxBd)_pvBDHeader)->fcSTAValidMask)
+#define WLANHAL_RX_BD_GET_STA_PS_STATE( _pvBDHeader )            (((tpHalFcRxBd)_pvBDHeader)->fcSTAPwrSaveStateMask)
+#define WLANHAL_RX_BD_GET_STA_TH_IND( _pvBDHeader )              (((tpHalFcRxBd)_pvBDHeader)->fcSTAThreshIndMask)
+#define WLANHAL_RX_BD_GET_STA_TXQ_STATUS( _pvBDHeader )          (((tpHalFcRxBd)_pvBDHeader)->fcSTATxQStatus)
+#define WLANHAL_RX_BD_GET_STA_TXQ_LEN( _pvBDHeader, staIdx )     (((tpHalFcRxBd)_pvBDHeader)->fcSTATxQLen[staIdx])
+#define WLANHAL_RX_BD_GET_STA_CUR_TX_RATE( _pvBDHeader, staIdx ) (((tpHalFcRxBd)_pvBDHeader)->fcSTACurTxRate[staIdx])
+#define tHalFcRxBd       halFcRxBd_type             
+#define tpHalFcRxBd      phalFcRxBd_type
+#define tHalFcTxBd       halFcTxBd_type
+#define tpHalFcTxBd      pHalFcTxBd_type              
+#define tHalFcTxParams   tFcTxParams_type
+#define tHalFcRxParams   tFcRxParams_type               
+#define tpHalFcTxParams  pFcTxParams_type               
+#define tpHalFcRxParams  pFcRxParams_type             
+#endif
+
+/*------------ RSSI and SNR Information extraction -------------*/
+#define WLANHAL_RX_BD_GET_RSSI0( _pvBDHeader )  \
+    (((((tpHalRxBd)_pvBDHeader)->phyStats0) >> 24) & 0xff)
+#define WLANHAL_RX_BD_GET_RSSI1( _pvBDHeader )  \
+    (((((tpHalRxBd)_pvBDHeader)->phyStats0) >> 16) & 0xff)
+#define WLANHAL_RX_BD_GET_RSSI2( _pvBDHeader )  \
+    (((((tpHalRxBd)_pvBDHeader)->phyStats0) >> 0) & 0xff)
+#define WLANHAL_RX_BD_GET_RSSI3( _pvBDHeader )  \
+    ((((tpHalRxBd)_pvBDHeader)->phyStats0) & 0xff)
+
+// Get the average of the 4 values.
+#define WLANHAL_GET_RSSI_AVERAGE( _pvBDHeader ) \
+    (((WLANHAL_RX_BD_GET_RSSI0(_pvBDHeader)) + \
+    (WLANHAL_RX_BD_GET_RSSI1(_pvBDHeader)) + \
+    (WLANHAL_RX_BD_GET_RSSI2(_pvBDHeader)) + \
+    (WLANHAL_RX_BD_GET_RSSI3(_pvBDHeader))) / 4)
+
+// Get the SNR value from PHY Stats
+#define WLANHAL_RX_BD_GET_SNR( _pvBDHeader )    \
+    (((((tpHalRxBd)_pvBDHeader)->phyStats1) >> 24) & 0xff)
+/*-----------------------------------------------------------------*/
+#define WLANHAL_RX_BD_GET_DPU_SIG( _pvBDHeader )   (((tpHalRxBd)_pvBDHeader)->dpuSignature)
+
 
 #define WLANHAL_TX_BD_SET_MPDU_DATA_OFFSET( _bd, _off )        (((tpHalTxBd)_bd)->mpduDataOffset = _off)
  
@@ -217,8 +265,14 @@ typedef struct sUapsdInfo {
 #define WLANHAL_RX_BD_FT_DONE                  1 /* The value of the field when frame xtl was done*/
 
 //Check whether a RX frame is unprotected over the air
+#if defined(LIBRA_WAPI_SUPPORT)
+#define WLANHAL_RX_IS_UNPROTECTED_WPI_FRAME(_pvBDHeader)  \
+        (((tpHalRxBd)_pvBDHeader)->uef)
+
+#else
 #define WLANHAL_RX_IS_UNPROTECTED_WPI_FRAME(_pvBDHeader)  \
         (DPU_FEEDBACK_WPI_UNPROTECTED == ((tpHalRxBd)_pvBDHeader)->dpuFeedback)
+#endif
 
 
 /*==========================================================================
@@ -300,12 +354,20 @@ tANI_U8 WLANHAL_RxBD_GetFrameTypeSubType(v_PVOID_t _pvBDHeader, tANI_U16 usFrmCt
   SIDE EFFECTS 
   
 ============================================================================*/
-VOS_STATUS WLANHAL_FillTxBd(void *pAdaptor, tANI_U8 typeSubtype, void *pDestMacAddr,
+VOS_STATUS WLANHAL_FillTxBd(void *pAdaptor, tANI_U8 typeSubtype, void *pDestMacAddr, void *pAddr2,
         tANI_U8* ptid, tANI_U8 disableFrmXtl, void *pTxBd, tANI_U8 txFlag, tANI_U32 timeStamp);
+
+#ifdef WLAN_SOFTAP_FEATURE
+VOS_STATUS WLANHAL_FillFcTxBd(void *pVosGCtx, void *pFcParams, void *pFcTxBd);
+/** To swap the report part of FC RxBD */
+void WLANHAL_SwapFcRxBd(tANI_U8 *pBd);
+#endif
+
+/* To swap the data */
+void WLANHAL_Swap32Bytes(tANI_U8* pData, tANI_U32 size);
 
 /** To swap the RxBD */
 void WLANHAL_SwapRxBd(tANI_U8 *pBd);
-
 void WLANHAL_RxAmsduBdFix(void *pVosGCtx,v_PVOID_t _pvBDHeader);
 
 #ifdef WLAN_PERF
@@ -318,6 +380,10 @@ VOS_STATUS WLANHAL_DisableUapsdAcParams(void* pVosGCtx, tANI_U8 staIdx, tANI_U8 
 #endif
 
 VOS_STATUS WLANHAL_EnableIdleBdPduInterrupt(void* pVosGCtx, tANI_U8 idleBdPduThreshold);
+
+#ifdef FEATURE_ON_CHIP_REORDERING
+tANI_U8 WLANHAL_IsOnChipReorderingEnabledForTID(void* pVosGCtx, tANI_U8 staIdx, tANI_U8 tid);
+#endif
 
 #define tHalRxBd	halRxBd_type
 #define tpHalRxBd	phalRxBd_type
@@ -418,6 +484,55 @@ typedef struct sDelBAInd
 
 } tDelBAInd, *tpDelBAInd;
 #endif
+
+/*===============================================
+ *
+ *  TL <-> HAL structures 
+ *
+ *===============================================
+ */
+//
+// TL -> HAL 
+// tSirMsgQ.type = SIR_HAL_TL_FLUSH_AC_REQ
+//
+typedef struct sFlushACReq
+{
+    // Message Type
+    tANI_U16 mesgType;
+
+    // Message Length
+    tANI_U16 mesgLen;
+
+    // Station Index. originates from HAL
+    tANI_U8  ucSTAId;
+
+    // TID for which the transmit queue is being flushed 
+    tANI_U8   ucTid;
+
+} tFlushACReq, *tpFlushACReq;
+
+//
+//
+// HAL -> TL 
+// tSirMsgQ.type = SIR_HAL_TL_FLUSH_AC_RSP
+//
+typedef struct sFlushACRsp
+{
+    // Message Type
+    tANI_U16 mesgType;
+
+    // Message Length
+    tANI_U16 mesgLen;
+
+    // Station Index. originates from HAL
+    tANI_U8  ucSTAId;
+
+    // TID for which the transmit queue is being flushed 
+    tANI_U8   ucTid;
+
+    // status of the Flush operation 
+    tANI_U8 status;
+} tFlushACRsp, *tpFlushACRsp;
 
 #endif
 

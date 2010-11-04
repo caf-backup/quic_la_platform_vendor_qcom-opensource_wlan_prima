@@ -74,15 +74,32 @@ eHalStatus halNvOpen(tHalHandle hMac)
                  return (eHAL_STATUS_FAILURE);
         }
     }
+
+    if (vos_nv_getValidity(VNV_CAL_MEMORY, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE)
+        {
+            if(vos_nv_read( VNV_CAL_MEMORY, (v_VOID_t *)&pMac->hphy.nvCache.tables.calFlashMemory, NULL, sizeof(sCalFlashMemory) ) != VOS_STATUS_SUCCESS) 
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
+
+    if (vos_nv_getValidity(VNV_CAL_STATUS, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE)
+        {
+            if(vos_nv_read( VNV_DEFAULT_LOCATION, (v_VOID_t *)&pMac->hphy.nvCache.tables.calStatus, NULL, sizeof(sCalStatus) ) != VOS_STATUS_SUCCESS) 
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
 }
 #endif
     pMac->hphy.nvTables[NV_FIELDS_IMAGE             ] = &pMac->hphy.nvCache.fields;
-    pMac->hphy.nvTables[NV_TABLE_QFUSE              ] = &pMac->hphy.nvCache.tables.qFuseData;
     pMac->hphy.nvTables[NV_TABLE_RATE_POWER_SETTINGS] = &pMac->hphy.nvCache.tables.pwrOptimum[0];
     pMac->hphy.nvTables[NV_TABLE_REGULATORY_DOMAINS ] = &pMac->hphy.nvCache.tables.regDomains[0];
     pMac->hphy.nvTables[NV_TABLE_DEFAULT_COUNTRY    ] = &pMac->hphy.nvCache.tables.defaultCountryTable;
-    pMac->hphy.nvTables[NV_TABLE_TPC_CONFIG         ] = &pMac->hphy.nvCache.tables.tpcConfig[0];
-    pMac->hphy.nvTables[NV_TABLE_RF_CAL_VALUES      ] = &pMac->hphy.nvCache.tables.rfCalValues;
+    pMac->hphy.nvTables[NV_TABLE_CAL_MEMORY         ] = &pMac->hphy.nvCache.tables.calFlashMemory;
+    pMac->hphy.nvTables[NV_TABLE_CAL_STATUS         ] = &pMac->hphy.nvCache.tables.calStatus;
 
     return status;
 }
@@ -221,20 +238,15 @@ eHalStatus halWriteNvField(tHalHandle hMac, eNvField field, uNvFields *fieldData
     }
 }
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 
 eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
 {
-#ifndef VERIFY_HALPHY_SIMV_MODEL
+#ifndef VERIFY_HALPHY_SIMV_MODEL // SIMV doesn't compile vos_nv_items
     tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
     VOS_STATUS vosStatus;
 
 
-    if ((tableID == NV_TABLE_QFUSE) && (halIsQFuseBlown(hMac) == eHAL_STATUS_FAILURE))
-    {
-        return (halQFuseWrite(hMac));    //blow QFuse permanently
-    }
-    else
     {
         switch (tableID)
         {
@@ -267,8 +279,20 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                 }
                 break;
 
-            case NV_TABLE_TPC_CONFIG:       //stored through QFUSE
-            case NV_TABLE_RF_CAL_VALUES:    //stored through QFUSE
+            case NV_TABLE_CAL_MEMORY:
+                if ((vosStatus = vos_nv_write(VNV_CAL_MEMORY, (void *)&pMac->hphy.nvCache.tables.calFlashMemory, sizeof(sCalFlashMemory))) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
+
+            case NV_TABLE_CAL_STATUS:
+                if ((vosStatus = vos_nv_write(VNV_CAL_STATUS, (void *)&pMac->hphy.nvCache.tables.calStatus, sizeof(sCalStatus))) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
+
             default:
                 return (eHAL_STATUS_FAILURE);
                 break;
@@ -359,12 +383,9 @@ eHalStatus halIsTableInNv(tHalHandle hMac, eNvTable nvTable)
                 }
 
                 return (eHAL_STATUS_FAILURE);
-*/
 
-        case NV_TABLE_QFUSE:
-        case NV_TABLE_TPC_CONFIG:
-        case NV_TABLE_RF_CAL_VALUES:
             return halIsQFuseBlown(hMac);
+*/
 
         default:
             return (eHAL_STATUS_FAILURE);
@@ -383,11 +404,6 @@ eHalStatus halReadNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDat
             memcpy(tableData, &pMac->hphy.nvCache.fields, sizeof(sNvFields));
             break;
 
-        case NV_TABLE_QFUSE:
-            memcpy(tableData, &pMac->hphy.nvCache.tables.qFuseData, sizeof(sQFuseConfig));
-            retVal = halIsQFuseBlown(pMac);
-            break;
-
         case NV_TABLE_RATE_POWER_SETTINGS:
             memcpy(tableData, &pMac->hphy.nvCache.tables.pwrOptimum[0], sizeof(tRateGroupPwr) * NUM_RF_SUBBANDS);
             break;
@@ -400,12 +416,12 @@ eHalStatus halReadNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDat
             memcpy(tableData, &pMac->hphy.nvCache.tables.defaultCountryTable, sizeof(sDefaultCountry));
             break;
 
-        case NV_TABLE_TPC_CONFIG:
-            memcpy(tableData, &pMac->hphy.nvCache.tables.tpcConfig[0], sizeof(tTpcConfig) * MAX_TPC_CHANNELS);
+        case NV_TABLE_CAL_MEMORY:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.calFlashMemory, sizeof(sCalFlashMemory));
             break;
 
-        case NV_TABLE_RF_CAL_VALUES:
-            memcpy(tableData, &pMac->hphy.nvCache.tables.rfCalValues, sizeof(sRfNvCalValues));
+        case NV_TABLE_CAL_STATUS:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.calStatus, sizeof(sCalStatus));
             break;
 
         default:
@@ -424,17 +440,6 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
     tANI_U16 numOfEntries;
     tANI_U16 sizeOfEntry;
 
-    if (nvTable == NV_TABLE_QFUSE)
-    {
-        if (halIsQFuseBlown(hMac) == eHAL_STATUS_SUCCESS)
-        {
-            //qFuse has already been written
-            HALLOGE(halLog(pMac, LOGE, "WARNING: overwriting qfuse cache which was already blown\n"));
-        }
-        numOfEntries = 1;
-        sizeOfEntry = sizeof(sQFuseConfig);
-    }
-    else
     {
         switch (nvTable)
         {
@@ -458,14 +463,14 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
                 sizeOfEntry = sizeof(sDefaultCountry);
                 break;
 
-            case NV_TABLE_TPC_CONFIG:
-                numOfEntries = 2;
-                sizeOfEntry = sizeof(tTpcConfig);
+            case NV_TABLE_CAL_MEMORY:
+                numOfEntries = 1;
+                sizeOfEntry = sizeof(sCalFlashMemory);
                 break;
 
-            case NV_TABLE_RF_CAL_VALUES:
+            case NV_TABLE_CAL_STATUS:
                 numOfEntries = 1;
-                sizeOfEntry = sizeof(sRfNvCalValues);
+                sizeOfEntry = sizeof(sCalStatus);
                 break;
 
             default:
@@ -478,27 +483,12 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
                            tableData,
                            (numOfEntries * sizeOfEntry)
                           );
-    if (retVal == eHAL_STATUS_SUCCESS)
-    {
-        switch (nvTable)
-        {
-            case NV_TABLE_TPC_CONFIG:
-            case NV_TABLE_RF_CAL_VALUES:
-                //if either of these change from previous values, then reconfigure TPC so it stays up to date.
-                if ((retVal = ConfigureTpcFromNv(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
-
-                break;
-            default:
-                break;
-        }
-    }
-
 
 
     return retVal;
 }
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 {
 #ifndef VERIFY_HALPHY_SIMV_MODEL
@@ -508,21 +498,6 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 
     switch (nvTable)
     {
-        case NV_TABLE_QFUSE:
-            if (halIsQFuseBlown(hMac) == eHAL_STATUS_SUCCESS)
-            {
-                //qFuse has already been written
-                HALLOGE(halLog(pMac, LOGE, "ERROR: QFUSE already blown, can't remove\n"));
-            }
-            else
-            {
-                memcpy(&pMac->hphy.nvCache.tables.tpcConfig[0], &nvDefaults.tables.tpcConfig[0], sizeof(tTpcConfig) * MAX_TPC_CHANNELS);
-                memcpy(&pMac->hphy.nvCache.tables.rfCalValues, &nvDefaults.tables.rfCalValues, sizeof(sRfNvCalValues));
-                halQFusePackBits(hMac);
-            }
-
-            break;
-
             case NV_FIELDS_IMAGE:
                 if ((vosStatus = vos_nv_setValidity(VNV_FIELD_IMAGE, VOS_FALSE)) == VOS_STATUS_SUCCESS)
                 {
@@ -570,15 +545,29 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 
                 break;
 
-        case NV_TABLE_TPC_CONFIG:
-            memcpy(&pMac->hphy.nvCache.tables.tpcConfig[0], &nvDefaults.tables.tpcConfig[0], sizeof(tTpcConfig) * MAX_TPC_CHANNELS);
-            halQFusePackBits(hMac);
-            break;
+            case NV_TABLE_CAL_MEMORY:
+                if ((vosStatus = vos_nv_setValidity(VNV_CAL_MEMORY, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+                {
+                    memcpy(&pMac->hphy.nvCache.tables.calFlashMemory, &nvDefaults.tables.calFlashMemory, sizeof(sCalFlashMemory));
+                }
+                else
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
 
-        case NV_TABLE_RF_CAL_VALUES:
-            memcpy(&pMac->hphy.nvCache.tables.rfCalValues, &nvDefaults.tables.rfCalValues, sizeof(sRfNvCalValues));
-            halQFusePackBits(hMac);
-            break;
+                break;
+
+            case NV_TABLE_CAL_STATUS:
+                if ((vosStatus = vos_nv_setValidity(VNV_CAL_STATUS, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+                {
+                    memcpy(&pMac->hphy.nvCache.tables.calStatus, &nvDefaults.tables.calStatus, sizeof(sCalStatus));
+                }
+                else
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+
+                break;
 
         default:
             return (eHAL_STATUS_FAILURE);
@@ -588,24 +577,21 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 
     return (retVal);
 #else
-	return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 #endif
 }
-#endif
 
-#ifdef ANI_MANF_DIAG
 eHalStatus halBlankNv(tHalHandle hMac)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
     //tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
 
     halRemoveNvTable(hMac, NV_FIELDS_IMAGE             );
-    halRemoveNvTable(hMac, NV_TABLE_QFUSE              );
     halRemoveNvTable(hMac, NV_TABLE_RATE_POWER_SETTINGS);
     halRemoveNvTable(hMac, NV_TABLE_REGULATORY_DOMAINS );
     halRemoveNvTable(hMac, NV_TABLE_DEFAULT_COUNTRY    );
-    halRemoveNvTable(hMac, NV_TABLE_TPC_CONFIG         );
-    halRemoveNvTable(hMac, NV_TABLE_RF_CAL_VALUES      );
+    halRemoveNvTable(hMac, NV_TABLE_CAL_MEMORY         );
+    halRemoveNvTable(hMac, NV_TABLE_CAL_STATUS         );
 
     return (retVal);
 }
@@ -616,7 +602,6 @@ void halByteSwapNvTable(tHalHandle hMac, eNvTable tableID, uNvTables *tableData)
 
     switch (tableID)
     {
-        case NV_TABLE_RF_CAL_VALUES:
         case NV_TABLE_RATE_POWER_SETTINGS:
         case NV_TABLE_DEFAULT_COUNTRY:
         {
@@ -645,23 +630,6 @@ void halByteSwapNvTable(tHalHandle hMac, eNvTable tableID, uNvTables *tableData)
             break;
         }
 
-
-        case NV_TABLE_TPC_CONFIG:
-        {
-            tANI_U32 i;
-
-            for (i = 0; i < MAX_TPC_CHANNELS; i++)
-            {
-                BYTE_SWAP_S(tableData->tpcConfig[i].freq);
-                BYTE_SWAP_S(tableData->tpcConfig[i].reserved);
-                BYTE_SWAP_S(tableData->tpcConfig[i].absPower.min);
-                BYTE_SWAP_S(tableData->tpcConfig[i].absPower.max);
-
-                //empirical array is all single bytes
-            }
-
-            break;
-        }
 
         case NV_FIELDS_IMAGE:
         {

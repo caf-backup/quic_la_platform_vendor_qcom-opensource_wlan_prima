@@ -124,21 +124,15 @@ typedef enum
     MTU_BKID_HI_END   = MTU_BKID_7,
     MTU_BKID_HI_NUM   = 8,
 
-    /* Low priority backoff timers */
-    MTU_BKID_LO_START = MTU_BKID_8,
-    MTU_BKID_LO_END   = MTU_BKID_11,
-    MTU_BKID_LO_NUM   = 4,
-
     /* PS-Poll response */
     MTU_BKID_PSPOLL   = MTU_BKID_1,
-    /* Management */
-    MTU_BKID_MGMT     = MTU_BKID_2,
-    MTU_BKID_nQoS     = MTU_BKID_3,
     /* EDCA data */
     MTU_BKID_AC_VO    = MTU_BKID_4,
     MTU_BKID_AC_VI    = MTU_BKID_5,
     MTU_BKID_AC_BK    = MTU_BKID_6,
     MTU_BKID_AC_BE    = MTU_BKID_7,
+    MTU_BKID_MGMT_BCAST = MTU_BKID_3,
+    MTU_BKID_MGMT_UCAST = MTU_BKID_2,
 
     /* Unused */
     MTU_BKID_RESERVED = MTU_BKID_11,
@@ -147,7 +141,7 @@ typedef enum
 
 // In register QWLAN_MTU_BKOF_CONTROL_REG, bits indicating the Data backoffs.
 // 3,4,5,6,7. These assignments are done below in the enum
-#define SW_MTU_STALL_DATA_BKOF_MASK ((1<< MTU_BKID_AC_BE) | (1<< MTU_BKID_AC_BK) | (1<< MTU_BKID_AC_VI) | (1<< MTU_BKID_AC_VO) | (1<< MTU_BKID_nQoS)) 
+#define SW_MTU_STALL_DATA_BKOF_MASK ((1<< MTU_BKID_AC_BE) | (1<< MTU_BKID_AC_BK) | (1<< MTU_BKID_AC_VI) | (1<< MTU_BKID_AC_VO)) 
 
 typedef enum {
     /* Normal priority. For mCPU these timers generate level 3 interrupts. */
@@ -211,18 +205,19 @@ void halMTU_SetTbttTimer(tpAniSirGlobal pMac, tANI_U32 tbttLo, tANI_U32 tbttHi);
 void halMTU_GetTbttTimer(tpAniSirGlobal pMac, tANI_U32 *tbttLo, tANI_U32 *tbttHi);
 void halMTU_GetTsfTimer(tpAniSirGlobal pMac, tANI_U32 *tsfTimerLo, tANI_U32 *tsfTimerHi);
 void halMTU_SetTsfTimer(tpAniSirGlobal pMac, tANI_U32 tsfTimerLo, tANI_U32 tsfTimerHi);
-void halMTU_SetIbssValid(tpAniSirGlobal pMac);
-
-
+void halMTU_SetIbssValid_And_BTAMPMode(tpAniSirGlobal pMac, 
+        tANI_U8 btamp_flag);
 eHalStatus halMTU_InitIntHanlder(tpAniSirGlobal pMac);
-void halMTU_SetDtimPeriodAndInterval(tpAniSirGlobal pMac,
-                                tANI_U32 dtimPeriod, tANI_U32 dtimInterval);
+void halMTU_SetDtim(tpAniSirGlobal pMac, v_U32_t dtimPeriod,
+                                              v_U32_t dtimThreshLimit);
 void halMTU_GetDtimCount(tpAniSirGlobal pMac, tANI_U16 *dtimCnt);
 void halMTU_UpdateMbssInterval(tpAniSirGlobal pMac, tANI_U32 mbssInterval);
 void halMTU_DisableBeaconTransmission(tpAniSirGlobal pMac);
 void halMTU_UpdateNumBSS(tpAniSirGlobal pMac, tANI_U8 numBSS);
 void halMTU_UpdateBeaconInterval(tpAniSirGlobal pMac, tANI_U32 beaconInterval);
 
+void halMTU_EnableDisableBssidTBTTBeaconTransmission(tpAniSirGlobal pMac, 
+        tANI_U32 beaconInterval, tANI_U8 enable_flag);
 eHalStatus halMTU_UpdateValidBssid(tpAniSirGlobal pMac, tANI_U16 bssIdx, tHalBitVal bitOp);
 
 void halMTU_updateRetryLimit(tpAniSirGlobal pMac, tANI_U8 shortRetry, tANI_U8 longRetry);
@@ -231,7 +226,11 @@ eHalStatus halMTU_DefInterruptHandler( tHalHandle hHalHandle, eHalIntSources int
 
 eHalStatus halMTU_DeactivateTimer(tpAniSirGlobal pMac, tMtuTimer timer);
 
+#ifndef WLAN_SOFTAP_FEATURE
 eHalStatus halInitPreBeaconTmr( tpAniSirGlobal pMac );
+eHalStatus halIntMtuHandlePreBeaconTmr( tHalHandle hHal, eHalIntSources tsfTimerIntr );
+#endif
+
 eHalStatus halIntMtuHandlePreBeaconTmr( tHalHandle hHal, eHalIntSources tsfTimerIntr );
 tANI_U32 __halMTU_ac2BkoffIndex(tpAniSirGlobal pMac, tANI_U32 ac);
 

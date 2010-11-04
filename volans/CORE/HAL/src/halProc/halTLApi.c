@@ -129,6 +129,7 @@ eHalStatus halTLApiExit(tpAniSirGlobal pMac, void* arg)
         return eHAL_STATUS_FAILURE;
     }
 
+
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -165,6 +166,7 @@ VOS_STATUS halTLSuspendTxCallBack(v_PVOID_t pVosGCtx, v_U8_t* pStaId, VOS_STATUS
         HALLOGE( halLog(pMac, LOGE, FL("VOS Event init failed - status = %d\n"),  vosStatus ));
     };
 
+    
     // If TL suspended had timedout before this callback was called, resume back TL.
     if (pMac->hal.TLParam.txSuspendTimedOut) {
         HALLOGE( halLog(pMac, LOGE, FL("Late TLSuspendCallback, resmuing TL back again\n")));
@@ -423,6 +425,12 @@ tANI_U32 WLANHAL_TxBdFastFwd(void *pVosGCtx, tANI_U8 *pDestMac, tANI_U8 tid, tAN
 
 #endif
 
+void WLANHAL_Swap32Bytes(tANI_U8* pData, tANI_U32 size)
+{
+#ifndef ANI_BIG_BYTE_ENDIAN
+    swapBytes(pData, size);
+#endif
+}
 
 /** To swap the RxBD */
 void WLANHAL_SwapRxBd(tANI_U8 *pBd)
@@ -440,6 +448,23 @@ static inline void WLANHAL_SwapTxBd(tANI_U8 *pBd)
     swapBytes(pBd , WLANHAL_TX_BD_HEADER_SIZE);
 #endif
 }
+
+#ifdef WLAN_SOFTAP_FEATURE
+/** To swap the FcRxBD */
+void WLANHAL_SwapFcRxBd(tANI_U8 *pBd)
+{
+#ifndef ANI_BIG_BYTE_ENDIAN
+    swapBytes(pBd , WLANHAL_FC_RX_BD_REPORT_CONTENT_SIZE);                         // need to swap the last 8 bytes
+#endif
+}
+/** To swap the FC TxBD */
+static inline void WLANHAL_SwapFcTxBd(tANI_U8 *pBd)
+{
+#ifndef ANI_BIG_BYTE_ENDIAN
+    swapBytes(pBd , WLANHAL_FC_TX_BD_HEADER_SIZE - HAL_NUM_STA*sizeof(tANI_U8));    // No need to swap the last 8 bytes
+#endif
+}
+#endif
 
 void WLANHAL_RxAmsduBdFix(void *pVosGCtx, v_PVOID_t _pvBDHeader)
 {
@@ -514,7 +539,7 @@ void WLANHAL_RxAmsduBdFix(void *pVosGCtx, v_PVOID_t _pvBDHeader)
   
 ============================================================================*/
 
-VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacAddr,
+VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacAddr, void *pAddr2,
                     tANI_U8* pTid, tANI_U8 disableFrmXtl, void *pTxBd, tANI_U8 txFlag, tANI_U32 timeStamp)
 {
     tANI_U8         tid = *pTid; 
@@ -522,20 +547,16 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
     tpAniSirGlobal  pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_HAL, (v_CONTEXT_t) pVosGCtx);
     eHalStatus      status = eHAL_STATUS_SUCCESS;
     tANI_U8         unicastDst = 0, dpuSig = 0;
-    tANI_U8         type = 0, subType = 0, isRMF = 0;
-    tANI_U32        cfgLen = 0;
+    tANI_U8         type = 0, subType = 0, isRMF = 0, staType;
 #ifdef WLAN_PERF
     tANI_U32        txBdSignature = pBd->txBdSignature;
 #endif
-    tSirMacAddr     macAddr;
-    tSystemRole     systemRole = halGetSystemRole(pMac);
 
     type = (typeSubtype & HAL_FRAME_TYPE_MASK) >> HAL_FRAME_TYPE_OFFSET;
     subType = (typeSubtype & HAL_FRAME_SUBTYPE_MASK);
 
-    HALLOG1( halLog(pMac, LOG1, FL("Type: %d/%d, MAC: %08x., Tid=%d, frmXlat=%d, pTxBD=%08x txFlag 0x%X\n"), 
-        type, subType, *((tANI_U32 *) pDestMacAddr), tid, !disableFrmXtl, pTxBd, txFlag 
-    ));
+    HALLOG1( halLog(pMac, LOG1, FL("Type: %d/%d, Tid=%d, frmXlat=%d, pTxBD=%08x\n"), 
+                type, subType, tid, !disableFrmXtl, pTxBd ));
 
     /* - Set common fields in TxBD
      *     bdt: always HWBD_TYPE_GENERIC
@@ -564,12 +585,16 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
 
 
     pBd->tid   = tid; 
+    // Clear the reserved field as this field is used for defining special 
+    // flow control BD.
+    pBd->reserved4 = 0;
     pBd->fwTxComplete0 = 0;
     pBd->txComplete1 = (txFlag & HAL_TXCOMP_REQUESTED_MASK) ? 1 : 0; /* This bit is for host to register TxComplete Interrupt */
 
     pBd->ap     = HAL_ACKPOLICY_ACK_REQUIRED; 
     pBd->dpuNE = HAL_NO_ENCRYPTION_DISABLED;  
     
+    unicastDst = !(((tANI_U8 *)pDestMacAddr)[0] & 0x01);
     *((tANI_U32 *)pBd + HAL_DPU_FEEDBACK_OFFSET) = 0;
 
     if (type == SIR_MAC_DATA_FRAME){
@@ -583,36 +608,25 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
          *     u/b: If Addr1 of this frame in its 802.11 form is unicast, set to 0. Otherwise set to 1.
          * - Sanity: Force disable HW frame translation if incoming frame is NULL data frame
          */
-
         if ((subType & SIR_MAC_DATA_QOS_DATA)&&(subType != SIR_MAC_DATA_QOS_NULL)){
             pBd->bd_ssn = HAL_TXBD_BD_SSN_FILL_DPU_QOS;
         }else{
             pBd->bd_ssn = HAL_TXBD_BD_SSN_FILL_DPU_NON_QOS;
         }
 
-        /* Unicast/Mcast decision:
-         *  In Infra STA role, all frames to AP are unicast frames.
-         *  For IBSS, then check the actual DA MAC address 
-         *  This implementation doesn't support multi BSS and AP case.
-         */
-
-        if(eSYSTEM_STA_IN_IBSS_ROLE == systemRole)
-            unicastDst = !(((tANI_U8 *)pDestMacAddr)[0] & 0x01);
-        else
-            unicastDst = HAL_DEFAULT_UNICAST_ENABLED;
-
+#ifdef WLAN_SOFTAP_FEATURE
+        pBd->bdRate = HAL_TXBD_BDRATE_DEFAULT;
+#else
         pBd->bdRate = (unicastDst)? HAL_TXBD_BDRATE_DEFAULT : HAL_BDRATE_BCDATA_FRAME;
+#endif
         pBd->rmf    = HAL_RMF_DISABLED;     
 
         /* sanity: Might already be set by caller, but enforce it here again */
         if( SIR_MAC_DATA_NULL == (subType & ~SIR_MAC_DATA_QOS_DATA)){
             disableFrmXtl = 1;
-            if (txFlag & HAL_TXCOMP_REQUESTED_MASK) 
-            {
+            if (txFlag & HAL_TXCOMP_REQUESTED_MASK) {
                 pBd->dpuRF = BMUWQ_FW_TRANSMIT; //Send to FW to transmit NULL frames.
-            }
-            else
-            {
+            } else {
 #ifdef LIBRA_WAPI_SUPPORT
                 if (txFlag & HAL_WAPI_STA_MASK)
                 {
@@ -639,15 +653,14 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
                 pBd->dpuRF = BMUWQ_WAPI_DPU_TX;
             }
 #endif //LIBRA_WAPI_SUPPORT
-#if defined(WLAN_PERF)
+#if defined WLAN_PERF
             txBdSignature = computeTxBdSignature(pMac, pDestMacAddr, tid, unicastDst);
-#endif //defined(WLAN_PERF)
+#endif
         }
 #endif        
     }
     else if (type == SIR_MAC_MGMT_FRAME)
     {
-
         /* - Set common fields for mgmt frames
          *     bd_ssn: Always let DPU auto generate seq # from the nonQos sequence number counter.
          *     bd_rate:Always use bcast mgmt rate for ucast/mcast mgmt frames
@@ -658,21 +671,22 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
          *     rmf:    NOT SET here. would be set later after STA id lookup is done.
          * - Sanity: Force HW frame translation OFF for mgmt frames.
          */
+#ifdef WLAN_SOFTAP_FEATURE
+         pBd->bdRate = (unicastDst) ? HAL_BDRATE_BCMGMT_FRAME : HAL_TXBD_BDRATE_DEFAULT; /* apply to both ucast/mcast mgmt frames */
+#else
          pBd->bdRate = HAL_BDRATE_BCMGMT_FRAME; /* apply to both ucast/mcast mgmt frames */
+#endif
          pBd->bd_ssn = HAL_TXBD_BD_SSN_FILL_DPU_NON_QOS;
-         if((subType == SIR_MAC_MGMT_ACTION) || (subType == SIR_MAC_MGMT_DEAUTH) || 
-            (subType == SIR_MAC_MGMT_DISASSOC))
+        if ((subType == SIR_MAC_MGMT_ACTION) || 
+            (subType == SIR_MAC_MGMT_DEAUTH) || 
+            (subType == SIR_MAC_MGMT_DISASSOC)) {
             isRMF = 1;
+        }
          disableFrmXtl = 1;
-         
-        /* 
-         * Always use Addr1 byte0 to decide unicast/bcast 
-         */
-         unicastDst = !(((tANI_U8 *)pDestMacAddr)[0] & 0x01);
-
     } else {    // Control Packet
         /* We should never get a control packet, asserting here since something is wrong */
-        VOS_ASSERT(0);
+        HALLOGE(halLog(pMac, LOGE, FL("halFillTxBD: THIS IS A BUG Received an invalid frame, need to check who is sending this \n")));
+        //   VOS_ASSERT(0);
     }
 
     pBd->ub = !unicastDst;
@@ -699,7 +713,6 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
          *    BTQM Queue ID
          * - For mgmt frames, also update rmf bits
          */
-    
         tpStaStruct  pSta = (tpStaStruct) pMac->hal.halMac.staTable;
         tANI_U8 staId;
 
@@ -708,49 +721,81 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
         txBdSignature = HAL_TXBD_SIG_MGMT_MAGIC; /* Mark the BD could not be reused */
 #endif
         
-        /* If frame is a mgmt frame, always use self STA id.
-         * Also if STA overwriting is requested, use self station id.
-         */
-
-        if((type == SIR_MAC_MGMT_FRAME) || (txFlag & HAL_USE_SELF_STA_REQUESTED_MASK))
-        {
+        if(txFlag & HAL_USE_SELF_STA_REQUESTED_MASK) {
+#ifdef HAL_SELF_STA_PER_BSS
+            // Get the (self) station index from ADDR2, which should be the self MAC addr
+            status = halTable_FindStaidByAddr((tHalHandle)pMac, *(tSirMacAddr *)pAddr2, &staId);
+            if (eHAL_STATUS_SUCCESS != status) {
+                HALLOGE( halLog(pMac, LOGE, FL("Failed to get SelfSta Id for Addr2\n")));
+                return VOS_STATUS_E_FAILURE;
+            }
+            HALLOG1( halLog(pMac, LOG1, FL("SelfSta requested StaId =%d\n"), staId));
+#else
             staId = (tANI_U8)pMac->hal.halMac.selfStaId;
-        }else{
-
-            /* Look-up staId by data frame's DA
-             * If incoming frame is 802.11 frame then the look-up is based on Addr1, otherwise it is 
-             * DA field in 802.3/Ethernet frame.
-             */
-            status = halTable_FindStaidByAddr((tHalHandle)pMac, *(tSirMacAddr *)pDestMacAddr, &staId);
-
-            /* Normally if incoming frame is 802.3/Ethernet, there won't be a match. 
-             * If there is indeed a match, in Gen6 use cases, it means DA is an IBSS peer or BTAMP STA
-             * In case there is no match, use peer MAC (BSSID) and search again.
-             */
-            if (eHAL_STATUS_SUCCESS != status)
-            {
-                cfgLen = SIR_MAC_ADDR_LENGTH;
-
-                /* Look-up failed, get the Peer MAC from Config */
-                status = wlan_cfgGetStr(pMac, WNI_CFG_BSSID, (tANI_U8 *)&macAddr, &cfgLen);
-
-                if (eHAL_STATUS_SUCCESS != status)
-                    return VOS_STATUS_E_FAILURE;
-
-                /* Look-up BSSID from STA table */
-                status = halTable_FindStaidByAddr((tHalHandle)pMac, macAddr, &staId);
-
-                if (eHAL_STATUS_SUCCESS != status)
+            HALLOG1( halLog(pMac, LOG1, FL("SelfSta requested StaId =%d\n"), staId));
+#endif
+        } else {
+              /*_____________________________________________________________________________________________
+               |    |       |                 Data                  ||                Mgmt                   |
+               |____|_______|_______________________________________||_______________________________________|
+               |    | Mode  | DestAddr          | Addr2 (selfMac)   || DestAddr          | Addr2 (selfMac)   |
+               |____|_______|___________________|___________________||___________________|___________________|
+               |    |       |                   |                   ||                   |                   |
+               |    | STA   | DestAddr->staIdx  | When DestAddr     || DestAddr->staIdx  | -                 |
+               |    |       |                   | lookup fails,     ||                   |                   |
+               |    |       |                   | Addr2->staIdx     ||                   |                   |
+               |U/C | IBSS  | DestAddr->staIdx  |        -          || DestAddr->staIdx  | -                 |
+               |    | SoftAP| DestAddr->staIdx  |        -          || DestAddr->staIdx  | When DestAddr     |
+               |    |       |                   |                   ||                   | lookup fails,     |
+               |    |       |                   |                   ||                   | Addr2->StaIdx     |
+               |    | Idle  |     N/A           |        N/A        ||         -         | Addr2->StaIdx     |
+               |____|_______|___________________|___________________||___________________|___________________|
+               |    |       |                   |                   ||                   |                   |
+               |    | STA   |     N/A           |        N/A        ||         -         | Addr2->staIdx->   |
+               |    |       |                   |                   ||                   | bssIdx->bcasStaIdx|
+               |B/C | IBSS  |     -             | Addr2->staIdx->   ||         -         | Addr2->staIdx->   |
+               |    |       |                   | bssIdx->bcasStaIdx||                   | bssIdx->bcasStaIdx|
+               |    | SoftAP|     -             | Addr2->staIdx->   ||         -         | Addr2->staIdx->   |
+               |    |       |                   | bssIdx->bcasStaIdx||                   | bssIdx->bcasStaIdx|
+               |    | Idle  |     N/A           |        N/A        ||         -         | Addr2->staIdx->   |
+               |    |       |                   |                   ||                   | bssIdx->bcasStaIdx|
+               |____|_______|___________________|___________________||___________________|___________________|*/
+            // Get the station index based on the above table
+            if (unicastDst) {
+                status = halTable_FindStaidByAddr((tHalHandle)pMac, *(tSirMacAddr *)pDestMacAddr, &staId);
+                // Only case this look would fail would be in STA mode, in AP & IBSS mode 
+                // this look should pass. In STA mode the unicast data frame could be 
+                // transmitted to a DestAddr for which there might not be an entry in 
+                // HAL STA table and the lookup would fail. In such cases use the Addr2 
+                // (self MAC address) to get the selfStaIdx.
+                if (eHAL_STATUS_SUCCESS != status) {
+                    // Get the station index for ADDR2, which should be the self MAC addr
+                    status = halTable_FindStaidByAddr((tHalHandle)pMac, *(tSirMacAddr *)pAddr2, &staId);
+                    if (eHAL_STATUS_SUCCESS != status) {
+                        HALLOGE( halLog(pMac, LOGE, FL("UC: Could not find Addr2 entry %08x\n"), *((tANI_U32 *)pAddr2)));
+                        return VOS_STATUS_E_FAILURE;
+                    }
+                }
+                HALLOG1( halLog(pMac, LOG1, FL("Unicast StaId =%d\n"), staId));
+            } else {
+                // For bcast frames use the bcast station index
+                tpBssStruct pBss = (tpBssStruct) pMac->hal.halMac.bssTable;
+                tANI_U8 bssIdx;
+                // Get the station index for ADDR2, which should be the self MAC addr
+                status = halTable_FindStaidByAddr((tHalHandle)pMac, (tANI_U8 *)pAddr2, &staId);
+                if (eHAL_STATUS_SUCCESS != status) {
+                    HALLOGE( halLog(pMac, LOGE, FL("BC: Could not find Addr2 entry %08x\n"), *((tANI_U32 *)pAddr2)));
                     return VOS_STATUS_E_FAILURE;
             }
-            /* else matched: IBSS or BTAMP STA*/
-            if (staId >= pMac->hal.halMac.maxSta)
-                return VOS_STATUS_E_FAILURE;
-          
+                // Get the Bss Index related to the staId
+                bssIdx = pSta[staId].bssIdx;
+                // Get the broadcast station index for this bss
+                staId = pBss[bssIdx].bcastStaIdx;
+            }
         }
 
         pBd->staIndex = staId;
-        
+
         pSta += staId;  // Go to the curresponding station's station table
 
         if(type == SIR_MAC_MGMT_FRAME){
@@ -765,10 +810,11 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
 
             if(isRMF && pSta->rmfEnabled){
                 pBd->rmf = 1;
-                if(!unicastDst)
+                if(!unicastDst) {
                     pBd->dpuDescIdx = pSta->bcastMgmtDpuIndex; /* IGTK */
-                else
+                } else {
                     pBd->dpuDescIdx = pSta->dpuIndex; /* PTK */
+                }
             }else{
                 pBd->dpuNE = HAL_NO_ENCRYPTION_ENABLED;  
                 pBd->rmf = 0;
@@ -778,15 +824,29 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
             /* data frames */
             /* TID->QID is one-to-one mapping, the same way as followed in H/W */
             tANI_U8 queueId = 0;
-
-            if(unicastDst && (staId == pMac->hal.halMac.selfStaId))
+            halTable_GetStaType(pMac, staId, &staType);
+#ifdef WLAN_SOFTAP_FEATURE
+            if(!unicastDst)
+                pBd->queueId = BTQM_QID0;
+            else if(unicastDst && (staType == STA_ENTRY_SELF)) {
                 pBd->queueId = BTQM_QUEUE_SELF_STA_UCAST_DATA;
-            else if (pSta->qosEnabled) {
+            } else if (pSta->qosEnabled) {
+            halBmu_get_qid_for_qos_tid(pMac, tid, &queueId);
+                pBd->queueId = (tANI_U32) queueId;
+            } else {
+                pBd->queueId = BTQM_QUEUE_TX_nQOS;
+            }
+
+#else
+            if(unicastDst && (staType == STA_ENTRY_SELF)) {
+                pBd->queueId = BTQM_QUEUE_SELF_STA_UCAST_DATA;
+            } else if (pSta->qosEnabled) {
 	        halBmu_get_qid_for_qos_tid(pMac, tid, &queueId);
                 pBd->queueId = (tANI_U32) queueId;
-	    }
-            else
+            } else {
                 pBd->queueId = BTQM_QUEUE_TX_nQOS;
+	    }
+#endif
             if(unicastDst){
                 pBd->dpuDescIdx = pSta->dpuIndex; /*unicast data frames: PTK*/
             }else{
@@ -795,13 +855,14 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
         }
 
 
-        if(eHAL_STATUS_SUCCESS == halDpu_GetSignature(pMac, pSta->dpuIndex, &dpuSig))
+        if(eHAL_STATUS_SUCCESS == halDpu_GetSignature(pMac, pSta->dpuIndex, &dpuSig)) {
             pBd->dpuSignature = dpuSig;
-        else{   
+        } else{   
             HALLOGE(halLog(pMac, LOGE, FL("halDpu_GetSignature() failed for dpuId = %d\n"), pBd->dpuDescIdx));
             return VOS_STATUS_E_FAILURE;
         }
 
+        HALLOGW(halLog(pMac, LOGW, FL("UC=%d, staid = %d, Dpu idx = %d, Dpu Sig =%d\n"), unicastDst, staId, pBd->dpuDescIdx, dpuSig));
     } 
     
     /* Over SDIO bus, SIF won't swap data bytes to/from data FIFO. 
@@ -976,6 +1037,35 @@ VOS_STATUS WLANHAL_DisableUapsdAcParams(void* pVosGCtx, tANI_U8 staIdx, tANI_U8 
 
 #endif //FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
 
+#ifdef WLAN_SOFTAP_FEATURE
+VOS_STATUS WLANHAL_FillFcTxBd(void *pVosGCtx, void *pFcParams, void *pFcTxBd)
+{
+    tpHalFcTxBd       pBd = (tpHalFcTxBd) pFcTxBd;
+    tpHalFcTxParams   pBdParams = (tpHalFcTxParams) pFcParams;
+    /* Fill flow control fixed BD */
+    vos_mem_zero(pBd, WLANHAL_TX_BD_HEADER_SIZE);
+    pBd->ft = 0;   /* Disable frame translation*/
+    pBd->dpuNE = HAL_NO_ENCRYPTION_ENABLED;  
+    pBd->fc    = FC_FRAME_FIELD_SET;
+    pBd->mpduHeaderLength = FC_REQUST_MPDU_HDR_LEN;
+    pBd->mpduHeaderOffset = FC_REQUST_MPDU_HDR_START_OFFSET;
+    pBd->mpduLength = FC_REQUST_MPDU_LEN;
+    pBd->dpuRF = BMUWQ_FW_TRANSMIT;  
+    //pBd->bd_ssn = FC_REQUST_BD_SSN_HOST_FILLED;   // it's 0
+    /* Fill flow control dynamic BD portion */
+    pBd->fcConfig = pBdParams->fcConfig;
+    pBd->fcSTATxMoreDataMask = pBdParams->fcSTATxMoreDataMask;
+    pBd->fcSTAThreshEnabledMask = pBdParams->fcSTAThreshEnabledMask; 
+    vos_mem_copy(pBd->fcSTAThresh, pBdParams->fcSTAThresh, HAL_NUM_STA);
+    /* Over SDIO bus, SIF won't swap data bytes to/from data FIFO. 
+     * In order for MAC modules to recognize BD in Libra's default endian format (Big endian)
+     * All BD fields need to be swaped here
+     */
+    WLANHAL_SwapFcTxBd((tANI_U8 *)pBd);     
+    return VOS_STATUS_SUCCESS;
+}
+#endif
+
 /*
  * DESCRIPTION:
  *      Routine to enable the Idle BD PDU interrupt on invocation from TL     
@@ -1011,3 +1101,26 @@ void halTLHandleIdleBdPduInterrupt(tpAniSirGlobal pMac)
    v_CONTEXT_t pVosGCtx = vos_get_global_context(VOS_MODULE_ID_HAL, (v_VOID_t *) pMac);
    WLANTL_PostResNeeded(pVosGCtx);
 }
+
+#ifdef FEATURE_ON_CHIP_REORDERING
+tANI_U8 WLANHAL_IsOnChipReorderingEnabledForTID(void* pVosGCtx, tANI_U8 staIdx, tANI_U8 tid)
+{
+  tpAniSirGlobal pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_HAL, (v_CONTEXT_t) pVosGCtx);
+  tpRxBASessionTable pBASession = pMac->hal.halMac.baSessionTable;
+
+  if (halGetBASession(pMac, staIdx, tid, &pBASession) != eHAL_STATUS_SUCCESS)
+  {
+    HALLOGW( halLog( pMac, LOGW,
+             FL("Cannot get BA session for STA index %d, TID %d \n"),
+             staIdx, tid));
+    return FALSE;
+  }
+
+  if(pBASession->isReorderingDoneOnChip == TRUE)
+  {
+    return TRUE;
+  }
+  return FALSE;
+}
+#endif
+

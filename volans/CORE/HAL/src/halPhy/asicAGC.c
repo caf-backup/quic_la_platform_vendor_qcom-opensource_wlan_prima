@@ -170,7 +170,7 @@ eHalStatus asicAGCSetDensity(tpAniSirGlobal pMac, tANI_BOOLEAN densityOn, ePhyNw
     return (retVal);
 }
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 eHalStatus asicOverrideAGCRxChainGain(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 gain)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;

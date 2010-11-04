@@ -39,6 +39,7 @@
 #define HAL_PWR_SAVE_BMPS_STATE         (1<<2)
 #define HAL_PWR_SAVE_SUSPEND_BMPS_STATE (1<<3)
 #define HAL_PWR_SAVE_UAPSD_STATE        (1<<4)
+#define HAL_PWR_SAVE_BMPS_REQUESTED     (1<<5)
 
 // TODO: this defines need to go into sirParams.h
 #define SIR_HAL_SUSPEND_BMPS            1101
@@ -65,8 +66,8 @@
  */
 #if !defined(VOLANS_FPGA)
 //RF and BB values
-#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US       50000
-#define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US     50000
+#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US       5000
+#define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US     5000
 #define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US_19_2  7652 /* FIXME */  
 #else
 //FPGA values
@@ -116,7 +117,7 @@
 #define HAL_PS_MUTEX_ACQ_RETRY_COUNT    10
 #define HAL_PS_MUTEX_MAX_COUNT          1
 
-#define IS_PWRSAVE_STATE_IN_BMPS    (pMac->hal.PsParam.pwrSaveState.p.psState & HAL_PWR_SAVE_BMPS_STATE)
+#define IS_PWRSAVE_STATE_IN_BMPS    (pMac->hal.PsParam.pwrSaveState.p.psState & (HAL_PWR_SAVE_BMPS_STATE | HAL_PWR_SAVE_BMPS_REQUESTED))
 #define IS_HOST_BUSY_INTR_CNTX      (pMac->hal.PsParam.mutexIntrCount)
 #define IS_HOST_BUSY_GENERIC_CNTX   (pMac->hal.PsParam.mutexCount)
 
@@ -253,6 +254,9 @@ eHalStatus halPS_SetPsPollParam(tpAniSirGlobal pMac, tANI_U8 staIdx,
 /* Update the beacon interval parameter into the Sys config */
 eHalStatus halPS_SetBeaconInterval(tpAniSirGlobal pMac, tANI_U16 beaconInterval);
 
+/* Update the listen interval parameter into the Sys config */
+eHalStatus halPS_SetListenIntervalParam(tpAniSirGlobal pMac, tANI_U16 listenInterval);
+
 /* Idle Mode Power Save (IMPS) functions */
 /* Functions to handle IMPS request messages from upper layer PE */
 eHalStatus halPS_HandleEnterImpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken);
@@ -322,5 +326,8 @@ void halPSDataInActivityTimeout( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSFWHeartBeatCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSBcnFilterCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSRssiMonitorCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
+
+/* Set host offload configuration in firmware */
+eHalStatus halPS_SetHostOffloadInFw(tpAniSirGlobal pMac, tpSirHostOffloadReq pRequest);
 
 #endif //_HALPWRSAVE_H_

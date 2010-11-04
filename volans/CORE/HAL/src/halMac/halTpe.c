@@ -30,6 +30,7 @@
 #include "halAdu.h"
 #include "halRxp.h"
 #include "halTLApi.h"
+#include "halFw.h"
 
 /**
  * \brief Writes Hw template to device memory.
@@ -154,17 +155,15 @@ static eHalStatus __halTpe_InitHwTemplateBase(tpAniSirGlobal pMac,
  *
  * \return eHalStatus Beacon Template Base configuration status
  */
-static eHalStatus __halTpe_InitBeaconTemplateBase(tpAniSirGlobal pMac,
-                                    tANI_U32 tpe_beacon_template_offset)
+static void __halTpe_InitBeaconTemplateBase(tpAniSirGlobal pMac)
 {
     /** Zero out the TPE Beacon template address */
     halZeroDeviceMemory(pMac, pMac->hal.memMap.beaconTemplate_offset,
             pMac->hal.memMap.beaconTemplate_size);
 
     halWriteRegister(pMac, QWLAN_TPE_SW_BEACON_BASE_ADDR_REG,
-                tpe_beacon_template_offset) ;
+                pMac->hal.memMap.beaconTemplate_offset) ;
 
-    return eHAL_STATUS_SUCCESS;
 }
 
 /**
@@ -450,9 +449,7 @@ eHalStatus halTpe_Start(tHalHandle hHal, void *arg)
         return eHAL_STATUS_FAILURE;
 
     /** Initialize the Beacon Template base */
-    if (__halTpe_InitBeaconTemplateBase(pMac, pMac->hal.memMap.beaconTemplate_offset)
-                                                != eHAL_STATUS_SUCCESS)
-        return eHAL_STATUS_FAILURE;
+    __halTpe_InitBeaconTemplateBase(pMac);
 
     /** Set the Tx SIFS cycles */
     value = (SW_TX_SIFS_A_MODE_CYCLES << QWLAN_TPE_SW_PM_SW_TX_SIFS_A_MODE_CYCLES_OFFSET) |
@@ -981,6 +978,7 @@ eHalStatus halTpe_SetBeaconTemplate(tpAniSirGlobal pMac, tANI_U16 beaconIndex, t
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tANI_U32 beaconOffset;
     tTpeRateIdx rateIndex;
+    tPwrTemplateIndex txPower = 0;
 
     beaconTemplate.template_header.template_type = SIR_MAC_MGMT_FRAME;
     beaconTemplate.template_header.template_sub_type = SIR_MAC_MGMT_BEACON;
@@ -990,11 +988,12 @@ eHalStatus halTpe_SetBeaconTemplate(tpAniSirGlobal pMac, tANI_U16 beaconIndex, t
     beaconTemplate.template_header.template_len = 0;
     beaconTemplate.template_header.reserved1 = 0;
     halGetBcnRateIdx(pMac, &rateIndex);
+    halRate_getPowerIndex(pMac, rateIndex, &txPower);
     beaconTemplate.template_header.primary_data_rate_index = rateIndex;
     beaconTemplate.template_header.stbc = 0;
     beaconTemplate.template_header.reserved2 = 0;
     beaconTemplate.template_header.reserved3 = 0;
-    beaconTemplate.template_header.tx_power = 0;
+    beaconTemplate.template_header.tx_power = txPower;
     beaconTemplate.template_header.tx_antenna_enable = 0;
     beaconTemplate.template_header.tsf_offset = TPE_BEACON_1MBPS_LONG_TSF_OFFSET;
     beaconTemplate.template_header.reserved4 = 0;
@@ -1012,27 +1011,23 @@ eHalStatus halTpe_SetBeaconTemplate(tpAniSirGlobal pMac, tANI_U16 beaconIndex, t
      halWriteDeviceMemory(pMac, beaconOffset ,
                             (tANI_U8 *)&beaconTemplate.template_header, BEACON_TEMPLATE_HEADER);
 
+    halLog(pMac, LOGE, FL("halTpe_SetBeaconTemplate resets memory at address %u length %u \n"), beaconOffset, BEACON_TEMPLATE_HEADER);
     return status;
 }
 
-
-
-eHalStatus halTpe_EnableBeacon(tpAniSirGlobal pMac, tANI_U16 beaconIndex)
+eHalStatus halTpe_EnableBeacon(tpAniSirGlobal pMac, 
+    tSirMacBeaconInterval beaconInterval)
 {
-    tANI_U32 beaconInterval, mbssidInterval;
+    tANI_U32 mbssidInterval;
     tANI_U8 activeBssCnt = 0;
     
-    if (beaconIndex > pMac->hal.memMap.maxBssids) {
-        HALLOGW( halLog(pMac, LOGW, FL("%s: Invalid beaconIndex specified\n")));
-        return eHAL_STATUS_FAILURE;
-    }
-
-    /** Program the Beacon interval */
-    if ( wlan_cfgGetInt(pMac, WNI_CFG_BEACON_INTERVAL, &beaconInterval) != eSIR_SUCCESS)
-        HALLOGE( halLog(pMac, LOGE, FL("cfgGet WNI_CFG_BEACON_INTERVAL Failed\n")));
-
+    
     /** For further reference */
     pMac->hal.halMac.beaconInterval = beaconInterval;
+    /** For further reference */
+    pMac->hal.halMac.beaconInterval = beaconInterval;
+    HALLOG1( halLog(pMac, LOG1, FL("BTAMP BRANCH===> beacon interval %x\n"),
+            beaconInterval));
 
     /** Uncomment this once the cfg is added */
 #ifdef FIXME_GEN5
@@ -1059,31 +1054,37 @@ eHalStatus halTpe_EnableBeacon(tpAniSirGlobal pMac, tANI_U16 beaconIndex)
      * be =80sec+100ms. Now despite the fact that TSF is reset, 
      * the TBTT timer will still be tracking the (80sec + 100ms) value.
      */
+	/* This also applies in BT-AMP case */
+#ifndef WLAN_SOFTAP_FEATURE    
     if (activeBssCnt <= 1) {
         halMTU_SetTsfTimer(pMac, 0, 0);
         halMTU_SetTbttTimer(pMac, 0, 0);
     } /** FIXME TODO Should take care of Multiple BSSID case.*/
-
-
+#endif
     /** \fixme \todo  Do we need to set the mtbtt register.
      *  As per ram it is an internal register.
      */
     if (activeBssCnt > 1)
     {
+#ifndef WLAN_SOFTAP_FEATURE    
         if (activeBssCnt == 2)
         {
+            // When we start an IBSS set the TSF timer to be 0.
+            // Also set tbtt to 0.
             halMTU_SetTsfTimer(pMac, 0, 0);
             halMTU_SetTbttTimer(pMac, 0, 0);
         }
-
+#endif
         halMTU_UpdateMbssInterval(pMac, mbssidInterval);
-
-
     }
 
     halMTU_UpdateNumBSS(pMac, activeBssCnt);
 
     halMTU_UpdateBeaconInterval(pMac, beaconInterval);
+    // If we truely want multiple BSS with multiple beacon transmission
+    // we need to support the new mtbtt timer code here.
+    // Since we have only 1 BSS sending beacon at any point in
+    // time now, code here only sets TBTT timer.
 
 
     return eHAL_STATUS_SUCCESS;
@@ -1302,7 +1303,7 @@ eHalStatus halTpe_UpdateStaDescRateInfo(tpAniSirGlobal pMac, tANI_U32 staIdx,
             halWriteDeviceMemory(pMac, 
                     address + offsetof(tTpeStaDesc, rate_params_20Mhz),
                                         (tANI_U8 *)ptpeStaDescRateInfo,
-                    sizeof(tTpeStaDescRateInfo));
+                    sizeof(tTpeStaDescRateInfo) * TPE_STA_MAX_RETRY_RATE); //Need to update PRI/SEC/TERTIARY rates. So multiply by 3
             break;
 
         case TPE_STA_40MHZ_RATE:
@@ -1310,7 +1311,7 @@ eHalStatus halTpe_UpdateStaDescRateInfo(tpAniSirGlobal pMac, tANI_U32 staIdx,
             halWriteDeviceMemory(pMac, 
                     address + offsetof(tTpeStaDesc, rate_params_40Mhz),
                                         (tANI_U8 *)ptpeStaDescRateInfo,
-                    sizeof(tTpeStaDescRateInfo));
+                    sizeof(tTpeStaDescRateInfo) * TPE_STA_MAX_RETRY_RATE); //Need to update PRI/SEC/TERTIARY rates. So multiply by 3
             break;
 
         case TPE_STA_BD_RATE:
@@ -1318,7 +1319,7 @@ eHalStatus halTpe_UpdateStaDescRateInfo(tpAniSirGlobal pMac, tANI_U32 staIdx,
             halWriteDeviceMemory(pMac, 
                     address + offsetof(tTpeStaDesc, bd_rate_params),
                                         (tANI_U8 *)ptpeStaDescRateInfo,
-                    sizeof(tTpeStaDescRateInfo));
+                    sizeof(tTpeStaDescRateInfo) * TPE_STA_MAX_RETRY_RATE); //Need to update PRI/SEC/TERTIARY rates. So multiply by 3
             break;
         default:
             break;
@@ -1403,7 +1404,7 @@ void halTpe_DumpEdcaTxOp(tpAniSirGlobal pMac)
  * \return :   eHalStatus
  */
 
-eHalStatus halTpe_UpdateMtuMaxBssid(tpAniSirGlobal pMac)
+void halTpe_UpdateMtuMaxBssid(tpAniSirGlobal pMac)
 {
     tANI_U8 activeBssCnt;
 
@@ -1415,9 +1416,6 @@ eHalStatus halTpe_UpdateMtuMaxBssid(tpAniSirGlobal pMac)
     halMTU_GetActiveBss(pMac, &activeBssCnt);
 
     halMTU_UpdateNumBSS(pMac, activeBssCnt);
-
-
-    return eHAL_STATUS_SUCCESS;
 }
 
 /**
@@ -1462,6 +1460,7 @@ eHalStatus halTpe_ReEnableBeacon(tpAniSirGlobal pMac, tANI_U16 beaconIndex)
     return status;
 }
 
+#ifndef WLAN_SOFTAP_FEATURE
 /**
  * \fn halTpe_UpdateBeaconMemory
  *
@@ -1524,6 +1523,73 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
 
 }
 
+#else
+/**
+ * \fn halTpe_UpdateBeaconMemory
+ *
+ * \brief Function to Update the beacon memory
+ *
+ * \param pMac The global tpAniSirGlobal object
+ *
+ * \param beacon Pointer to beacon memory to update
+ *
+ * \param beaconIndex Beacon Index to update
+ *
+ * \param length Length of the beacon body
+ *
+ * \return eHalStatus Beacon memory update status
+ */
+void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
+                                    tANI_U16 beaconIndex, tANI_U32 length)
+{
+    tBeaconTemplateHeader beaconTemplateHeader;
+    tPwrTemplateIndex txPower = 0;    
+    tTpeRateIdx rateIndex;
+    tANI_U32 beaconOffset;
+    tANI_U32 alignedLen;
+
+    beaconTemplateHeader.template_type = SIR_MAC_MGMT_FRAME;
+    beaconTemplateHeader.template_sub_type = SIR_MAC_MGMT_BEACON;
+    beaconTemplateHeader.resp_is_expected = 0;
+    beaconTemplateHeader.expected_resp_type = 0;
+    beaconTemplateHeader.expected_resp_sub_type = 0;
+    beaconTemplateHeader.reserved1 = 0;
+    beaconTemplateHeader.stbc = 0;
+    beaconTemplateHeader.reserved2 = 0;
+    beaconTemplateHeader.reserved3 = 0;
+    beaconTemplateHeader.tx_antenna_enable = 0;
+    beaconTemplateHeader.tsf_offset = TPE_BEACON_1MBPS_LONG_TSF_OFFSET;
+    beaconTemplateHeader.reserved4 = 0;
+    beaconTemplateHeader.reserved5 = 0;
+    
+    halGetBcnRateIdx(pMac, &rateIndex);
+    halRate_getPowerIndex(pMac, rateIndex, &txPower);
+    beaconTemplateHeader.primary_data_rate_index = rateIndex;
+    beaconTemplateHeader.tx_power = txPower;
+
+    beaconTemplateHeader.template_len = length + BEACON_TEMPLATE_CRC;
+
+    beaconOffset = pMac->hal.memMap.beaconTemplate_offset + (beaconIndex * BEACON_TEMPLATE_SIZE);
+
+    halWriteDeviceMemory(pMac, beaconOffset ,
+                            (tANI_U8 *)&beaconTemplateHeader, BEACON_TEMPLATE_HEADER);
+
+    //FIXME: halWriteDevicememory requires lenght to be mulltiple of four and aligned to 4 byte boundry.
+    alignedLen = (( beaconTemplateHeader.template_len + 3 ) & (~3)) ;
+
+    // beacon body need to be swapped sicne there is another swap occurs while BAL writes
+    // the beacon to Libra.
+    sirSwapU32BufIfNeeded((tANI_U32*)beacon, alignedLen>>2);
+
+    halWriteDeviceMemory(pMac, beaconOffset + BEACON_TEMPLATE_HEADER,
+                            (tANI_U8 *)beacon, alignedLen );
+
+    halLog(pMac, LOGW, FL("halTpe_UpdateBeaconMemory beacon template \n"));
+    sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOGW, (tANI_U8*)&beaconTemplateHeader, alignedLen);    
+    sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOGW, beacon, alignedLen);
+}
+
+#endif
 /**
  * \fn halTpe_UpdateBeacon
  *
@@ -1539,6 +1605,61 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
  *
  * \return eHalStatus Beacon update status
  */
+ #ifdef WLAN_SOFTAP_FEATURE
+eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac, tANI_U8 *beacon,
+                                    tANI_U16 bssIndex, tANI_U32 length, tANI_U16 timIeOffset)
+{
+    tANI_U32 value;
+    tANI_U32 loop = 0;
+
+    /** Update beacon request */
+    halReadRegister(pMac, QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_REG, &value);
+
+    /** Initially clear the sw update beacon request */
+    /* also clear the beacon template size */
+    value &= ~(QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_SW_UPDATE_BCN_REQ_MASK | QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_SW_BEACON_MAX_SIZE_MASK);
+
+    halWriteRegister(pMac,  QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_REG, value);
+
+    /** Set the sw update beacon request */
+    value |= QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_SW_UPDATE_BCN_REQ_MASK |
+         (BEACON_TEMPLATE_SIZE << QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_SW_BEACON_MAX_SIZE_OFFSET) | 
+         (bssIndex << QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_SW_UPDATE_BCN_INDEX_OFFSET);
+
+    halWriteRegister(pMac,  QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_REG, value);
+
+    /** Poll on sw update beacon request bit to set to grant the update request */
+    do {
+        halReadRegister(pMac , QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_REG, &value);
+        loop++;
+
+        if (loop > 1000) {
+            HALLOGW(halLog(pMac, LOGW, FL("HAL TPE sw update beacon request Interrupt not generated \n")));
+            break;
+        }
+
+    } while (!(value & QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_MAIN_SW_UPDATE_BCN_GNT_BY_HW_MASK));
+
+    /** Update Beacon Memory */
+    halTpe_UpdateBeaconMemory(pMac, beacon, bssIndex, length);
+
+    /** Unlock the beacon ownership */
+    halReadRegister(pMac, QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_REG, &value);
+
+    value |= QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_SW_BCN_UN_LOCK_BY_SW_MASK;
+
+    halWriteRegister(pMac, QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_REG, value);
+
+    if(halFW_UpdateBeaconReq(pMac, (tANI_U8) bssIndex, (tANI_U16)timIeOffset) != eHAL_STATUS_SUCCESS)
+    {
+        HALLOGE(halLog(pMac, LOGE, FL("halFW_UpdateBeaconReq failed")));
+        return eHAL_STATUS_FAILURE;
+    }
+    
+    return eHAL_STATUS_SUCCESS;
+}
+
+#else
 eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac, tANI_U8 *beacon,
                                     tANI_U16 beaconIndex, tANI_U32 length)
 {
@@ -1583,6 +1704,7 @@ eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac, tANI_U8 *beacon,
     return eHAL_STATUS_SUCCESS;
 }
 
+#endif
 /**
  * \fn halTpe_UpdateMaxMpduInAmpdu
  *
@@ -1913,3 +2035,56 @@ eHalStatus halTpe_Set11gProtectionCntrlIndex(tpAniSirGlobal pMac, tANI_U8 set)
 
     return eHAL_STATUS_SUCCESS;
 }
+
+#ifdef WLAN_FEATURE_VOWIFI
+
+/* 
+* \brief Updates the TX power for rates in TPE station descriptor for the given staIdx
+*
+*
+* \param pMac The global tpAniSirGlobal object
+*
+* \param staIdx Index of station descriptor that needs to be updated
+*
+*\param type - Type of the rate to be updated. 20MHz/40MHz/BD rates
+*
+*\param maxPwrIndex - Max power that is allowed for transmission
+*
+* \return eHalStatus SW Template Base configuration status
+*/
+
+eHalStatus halTpe_UpdateDescPowerParams(tpAniSirGlobal pMac, tANI_U8 staIdx, 
+                            tTpeRateType type, tPwrTemplateIndex maxPwrIndex)
+{
+    tpTpeStaDescRateInfo    tpeRateInfo;
+    tANI_U8                 index;
+    tANI_BOOLEAN            pwrChanged = FALSE;
+    eHalStatus              status = eHAL_STATUS_FAILURE;
+
+    /* Get the current rate info in the TPE descriptor for the given staIdx. This would 
+           also give the current TX power index used for all the rates. This function returns the 
+           pointer to the rateDesc from the staTable. So, any update here will automatically 
+           update the staTable */
+    status = halTpe_GetStaDescRateInfo(pMac, staIdx, type, &tpeRateInfo);
+    if (eHAL_STATUS_SUCCESS == status)
+    {
+        for (index = 0; index < TPE_STA_MAX_RETRY_RATE; index++)
+        {
+            /* Check the current power in TPE sta desc is above the max pwr allowed 
+                        and update it correspondingly for all the rates. (PRI/SEC/TER)*/
+            if (maxPwrIndex < tpeRateInfo[index].tx_power)
+            {
+                tpeRateInfo[index].tx_power = maxPwrIndex;
+                pwrChanged = TRUE;
+            }
+        }
+        /* If anything got changed, update the TPE station descriptor in the hardware */
+        if (TRUE == pwrChanged)
+        {
+            status = halTpe_UpdateStaDescRateInfo(pMac, staIdx, type, tpeRateInfo);
+        }
+    }
+    return status;
+}
+#endif /* WLAN_FEATURE_VOWIFI */
+

@@ -67,7 +67,7 @@
 
 static sme_QosWmmUpType hddWmmDscpToUpMap[WLAN_HDD_MAX_DSCP+1];
 
-static const v_U8_t hddWmmUpToAcMap[] = {
+const v_U8_t hddWmmUpToAcMap[] = {
    WLANTL_AC_BE,
    WLANTL_AC_BK,
    WLANTL_AC_BK,
@@ -78,6 +78,7 @@ static const v_U8_t hddWmmUpToAcMap[] = {
    WLANTL_AC_VO
 };
 
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
 /**
   @brief hdd_wmm_enable_tl_uapsd() - function which decides whether and
   how to update UAPSD parameters in TL
@@ -194,7 +195,6 @@ static void hdd_wmm_enable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
 
 }
 
-
 /**
   @brief hdd_wmm_disable_tl_uapsd() - function which decides whether
   to disable UAPSD parameters in TL
@@ -237,6 +237,7 @@ static void hdd_wmm_disable_tl_uapsd (hdd_wmm_qos_context_t* pQosContext)
    }
 }
 
+#endif
 
 /**
   @brief hdd_wmm_free_context() - function which frees a QoS context
@@ -254,19 +255,18 @@ static void hdd_wmm_free_context (hdd_wmm_qos_context_t* pQosContext)
              "%s: Entered, context %p",
              __FUNCTION__, pQosContext);
 
+   if (unlikely((NULL == pQosContext) ||
+                (HDD_WMM_CTX_MAGIC != pQosContext->magic)))
+   {
+      // must have been freed in another thread
+      return;
+   }
+
    // get pointer to the adapter context
    pAdapter = pQosContext->pAdapter;
 
    // take the wmmLock since we're manipulating the context list
    mutex_lock(&pAdapter->hddWmmStatus.wmmLock);
-
-   if (unlikely((NULL == pQosContext) ||
-                (HDD_WMM_CTX_MAGIC != pQosContext->magic)))
-   {
-      // must have been freed in another thread
-      mutex_unlock(&pAdapter->hddWmmStatus.wmmLock);
-      return;
-   }
 
    // make sure nobody thinks this is a valid context
    pQosContext->magic = 0;
@@ -282,7 +282,7 @@ static void hdd_wmm_free_context (hdd_wmm_qos_context_t* pQosContext)
 
 }
 
-
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
 /**
   @brief hdd_wmm_notify_app() - function which notifies an application
                                 changes in state of it flow
@@ -578,6 +578,14 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
          pQosContext->lastStatus = HDD_WLAN_WMM_STATUS_SETUP_FAILED;
          hdd_wmm_notify_app(pQosContext);
       }
+
+      /* Setting up QoS Failed, QoS context can be released.
+       * SME is releasing this flow information and if HDD doen't release this context,
+       * next time if application uses the same handle to set-up QoS, HDD (as it has 
+       * QoS context for this handle) will issue Modify QoS request to SME but SME will
+       * reject as no it has no information for this flow.
+       */
+      hdd_wmm_free_context(pQosContext);
       break;
 
    case SME_QOS_STATUS_SETUP_INVALID_PARAMS_RSP:
@@ -1017,7 +1025,7 @@ static eHalStatus hdd_wmm_sme_callback (tHalHandle hHal,
 
    return eHAL_STATUS_SUCCESS;
 }
-
+#endif
 
 /**============================================================================
   @brief hdd_wmm_do_implicit_qos() - Function which will attempt to setup
@@ -1034,8 +1042,10 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
    hdd_adapter_t* pAdapter;
    WLANTL_ACEnumType acType;
    hdd_wmm_ac_status_t *pAc;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
    VOS_STATUS status;
    sme_QosStatusType smeStatus;
+#endif
    sme_QosWmmTspecInfo qosInfo;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
@@ -1126,11 +1136,38 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
       break;
    }
 
+   qosInfo.ts_info.burst_size_defn = pAdapter->cfg_ini->burstSizeDefinition;
+
+   switch (pAdapter->cfg_ini->tsInfoAckPolicy)
+   {
+     case HDD_WLAN_WMM_TS_INFO_ACK_POLICY_NORMAL_ACK:
+       qosInfo.ts_info.ack_policy = SME_QOS_WMM_TS_ACK_POLICY_NORMAL_ACK;
+       break;
+
+     case HDD_WLAN_WMM_TS_INFO_ACK_POLICY_HT_IMMEDIATE_BLOCK_ACK:
+       qosInfo.ts_info.ack_policy = SME_QOS_WMM_TS_ACK_POLICY_HT_IMMEDIATE_BLOCK_ACK;
+       break;
+
+     default:
+       // unknown
+       qosInfo.ts_info.ack_policy = SME_QOS_WMM_TS_ACK_POLICY_NORMAL_ACK;
+   }
+
+   if(qosInfo.ts_info.ack_policy == SME_QOS_WMM_TS_ACK_POLICY_HT_IMMEDIATE_BLOCK_ACK)
+   {
+     if(!sme_QosIsTSInfoAckPolicyValid((tpAniSirGlobal)pAdapter->hHal, &qosInfo, pAdapter->sessionId))
+     {
+       qosInfo.ts_info.ack_policy = SME_QOS_WMM_TS_ACK_POLICY_NORMAL_ACK;
+     }
+   }
+
    mutex_lock(&pAdapter->hddWmmStatus.wmmLock);
    list_add(&pQosContext->node, &pAdapter->hddWmmStatus.wmmContextList);
    mutex_unlock(&pAdapter->hddWmmStatus.wmmLock);
 
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
    smeStatus = sme_QosSetupReq(pAdapter->hHal,
+                               pAdapter->sessionId,
                                &qosInfo,
                                hdd_wmm_sme_callback,
                                pQosContext,
@@ -1199,6 +1236,7 @@ static void hdd_wmm_do_implicit_qos(struct work_struct *work)
                  __FUNCTION__, smeStatus );
       VOS_ASSERT(0);
    }
+#endif
 
 }
 
@@ -1282,7 +1320,6 @@ VOS_STATUS hdd_wmm_close ( hdd_adapter_t* pAdapter )
    {
       pQosContext = list_first_entry(&pAdapter->hddWmmStatus.wmmContextList,
                                      hdd_wmm_qos_context_t, node);
-      list_del(&pQosContext->node);
       hdd_wmm_free_context(pQosContext);
    }
 
@@ -1593,6 +1630,21 @@ VOS_STATUS hdd_wmm_assoc( hdd_adapter_t* pAdapter,
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
              "%s: Entered", __FUNCTION__);
 
+   if (pRoamInfo->fReassocReq)
+   {
+      // when we reassociate we should continue to use whatever
+      // parameters were previously established.  if we are
+      // reassociating due to a U-APSD change for a particular
+      // Access Category, then the change will be communicated
+      // to HDD via the QoS callback associated with the given
+      // flow, and U-APSD parameters will be updated there
+
+      VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW, 
+                "%s: Reassoc so no work, Exiting", __FUNCTION__);
+
+      return VOS_STATUS_SUCCESS;
+   }
+
    // get the negotiated UAPSD Mask
    uapsdMask = pRoamInfo->u.pConnectedProfile->modifyProfileFields.uapsd_mask;
 
@@ -1837,8 +1889,10 @@ hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
                                      sme_QosWmmTspecInfo* pTspec )
 {
    hdd_wmm_qos_context_t *pQosContext;
-   hdd_wlan_wmm_status_e status;
+   hdd_wlan_wmm_status_e status = HDD_WLAN_WMM_STATUS_SETUP_SUCCESS ;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
    sme_QosStatusType smeStatus;
+#endif
    v_BOOL_t found = VOS_FALSE;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
@@ -1863,8 +1917,44 @@ hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
       VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_ERROR,
                 "%s: Record already exists with handle 0x%x",
                 __FUNCTION__, handle);
-      return HDD_WLAN_WMM_STATUS_SETUP_FAILED_BAD_PARAM;
 
+      /* Application is trying to modify some of the Tspec params. Allow it */
+      smeStatus = sme_QosModifyReq(pAdapter->hHal,
+                                  pTspec,
+                                  pQosContext->qosFlowId);
+
+      // need to check the return value and act appropriately
+      switch (smeStatus)
+      {
+        case SME_QOS_STATUS_MODIFY_SETUP_PENDING_RSP:
+          status = HDD_WLAN_WMM_STATUS_MODIFY_PENDING;
+          break;
+        case SME_QOS_STATUS_MODIFY_SETUP_SUCCESS_NO_ACM_NO_APSD_RSP:
+          status = HDD_WLAN_WMM_STATUS_MODIFY_SUCCESS_NO_ACM_NO_UAPSD;
+          break;
+        case SME_QOS_STATUS_MODIFY_SETUP_SUCCESS_APSD_SET_ALREADY:
+          status = HDD_WLAN_WMM_STATUS_MODIFY_SUCCESS_NO_ACM_UAPSD_EXISTING;
+          break;
+        case SME_QOS_STATUS_MODIFY_SETUP_INVALID_PARAMS_RSP:
+          status = HDD_WLAN_WMM_STATUS_MODIFY_FAILED_BAD_PARAM;
+          break;
+        case SME_QOS_STATUS_MODIFY_SETUP_FAILURE_RSP:
+          status = HDD_WLAN_WMM_STATUS_MODIFY_FAILED;
+          break;
+        case SME_QOS_STATUS_SETUP_NOT_QOS_AP_RSP:
+          status = HDD_WLAN_WMM_STATUS_SETUP_FAILED_NO_WMM;
+          break;
+        default:
+          // we didn't get back one of the SME_QOS_STATUS_MODIFY_* status codes
+          VOS_TRACE( VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_ERROR,
+                     "%s: unexpected SME Status=%d\n", smeStatus );
+          VOS_ASSERT(0);
+          return HDD_WLAN_WMM_STATUS_MODIFY_FAILED;
+      }
+
+      // we were successful, save the status
+      pQosContext->lastStatus = status;
+      return status;
    }
 
    pQosContext = kmalloc(sizeof(*pQosContext), GFP_KERNEL);
@@ -1892,7 +1982,9 @@ hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
    list_add(&pQosContext->node, &pAdapter->hddWmmStatus.wmmContextList);
    mutex_unlock(&pAdapter->hddWmmStatus.wmmLock);
 
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
    smeStatus = sme_QosSetupReq(pAdapter->hHal,
+                               pAdapter->sessionId,
                                pTspec,
                                hdd_wmm_sme_callback,
                                pQosContext,
@@ -1926,6 +2018,9 @@ hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
       // AP rejected it versus when SME encounterd an internal error
       hdd_wmm_free_context(pQosContext);
       return HDD_WLAN_WMM_STATUS_SETUP_FAILED;
+   case SME_QOS_STATUS_SETUP_NOT_QOS_AP_RSP:
+      hdd_wmm_free_context(pQosContext);
+      return HDD_WLAN_WMM_STATUS_SETUP_FAILED_NO_WMM;
    default:
       // we didn't get back one of the SME_QOS_STATUS_SETUP_* status codes
       hdd_wmm_free_context(pQosContext);
@@ -1934,6 +2029,7 @@ hdd_wlan_wmm_status_e hdd_wmm_addts( hdd_adapter_t* pAdapter,
       VOS_ASSERT(0);
       return HDD_WLAN_WMM_STATUS_SETUP_FAILED;
    }
+#endif
 
    // we were successful, save the status
    pQosContext->lastStatus = status;
@@ -1957,8 +2053,10 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
    v_BOOL_t found = VOS_FALSE;
    WLANTL_ACEnumType acType = 0;
    v_U32_t qosFlowId = 0;
-   hdd_wlan_wmm_status_e status;
+   hdd_wlan_wmm_status_e status = HDD_WLAN_WMM_STATUS_SETUP_SUCCESS ;
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
    sme_QosStatusType smeStatus;
+#endif
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
              "%s: Entered with handle 0x%x", __FUNCTION__, handle);
@@ -1992,6 +2090,7 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
              "%s: found handle 0x%x, flow %d, AC %d, context %p",
              __FUNCTION__, handle, qosFlowId, acType, pQosContext);
 
+#ifndef WLAN_MDM_CODE_REDUCTION_OPT
    smeStatus = sme_QosReleaseReq( pAdapter->hHal, qosFlowId );
 
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
@@ -2004,13 +2103,13 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
       // this flow is the only one on that AC, so go ahead and update 
       // our TSPEC state for the AC
       pAdapter->hddWmmStatus.wmmAcStatus[acType].wmmAcTspecValid = VOS_FALSE;
-#ifdef NOT_NEEDED
+
       // need to tell TL to stop trigger timer, etc
       hdd_wmm_disable_tl_uapsd(pQosContext);
 
       // we are done with this context
       hdd_wmm_free_context(pQosContext);
-#endif
+
       // SME must not fire any more callbacks for this flow since the context 
       // is no longer valid
       
@@ -2038,6 +2137,7 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
       status = HDD_WLAN_WMM_STATUS_RELEASE_FAILED;
    }
 
+#endif
    pQosContext->lastStatus = status;
    return status;
 }
@@ -2068,6 +2168,10 @@ hdd_wlan_wmm_status_e hdd_wmm_checkts( hdd_adapter_t* pAdapter,
    {
       if (pQosContext->handle == handle)
       {
+         VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
+                   "%s: found handle 0x%x, context %p",
+                   __FUNCTION__, handle, pQosContext);
+
          status = pQosContext->lastStatus;
          break;
       }

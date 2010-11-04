@@ -41,6 +41,7 @@
 /// Clocks in a milisecond
 #define SYS_CLOCKS_PER_MS   120000 // 120 MHz 
 
+#define SYS_ADD_BA_RSP_DUR   1000
 /// System timer tick duration in clocks
 #define SYS_TICK_DUR_CLK    (SYS_TICK_DUR_MS * SYS_CLOCKS_PER_MS)
 
@@ -99,10 +100,8 @@
 /// RX Message Queue
 # define SYS_RX_Q_SIZE           2048   // Holds up to 400 messages
 
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
 /// PTT  Message Queue
 # define SYS_NIM_PTT_Q_SIZE   200             // Holds up to 25 messages
-#endif
 
 /// Semaphore definitions
 // Data Semaphore
@@ -160,11 +159,9 @@
 # define SYS_MMH_STACK_SIZE            8192
 # define SYS_MMH_THREAD_PRIORITY        10
 
-#if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
 // tNIM_MNT_PKT_GEN
 
 # define SYS_NIM_PTT_THREAD_STACK_SIZE 8192
 # define SYS_NIM_PTT_THREAD_PRIORITY   28
-#endif
 
 #endif // __SYSDEF_H

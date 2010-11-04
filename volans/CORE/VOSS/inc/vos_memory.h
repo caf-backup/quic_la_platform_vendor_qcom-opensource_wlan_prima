@@ -26,6 +26,10 @@
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
 
+#ifdef MEMORY_DEBUG
+v_VOID_t vos_mem_init(v_VOID_t);
+v_VOID_t vos_mem_exit(v_VOID_t);
+#endif
 
 /*-------------------------------------------------------------------------- 
   Type declarations
@@ -52,7 +56,12 @@
   \sa
   
   --------------------------------------------------------------------------*/
+#ifdef MEMORY_DEBUG
+#define vos_mem_malloc(size) vos_mem_malloc_debug(size, __FILE__, __LINE__)
+v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, v_S7_t* fileName, v_U32_t lineNum);
+#else
 v_VOID_t * vos_mem_malloc( v_SIZE_t size );
+#endif
 
 
 /*----------------------------------------------------------------------------
@@ -178,6 +187,32 @@ v_VOID_t vos_mem_move( v_VOID_t *pDst, const v_VOID_t *pSrc, v_SIZE_t numBytes )
   -------------------------------------------------------------------------------*/
 v_BOOL_t vos_mem_compare( v_VOID_t *pMemory1, v_VOID_t *pMemory2, v_U32_t numBytes ); 
 
+
+/** ---------------------------------------------------------------------------
+
+    \fn vos_mem_compare2()
+
+    \brief vos_mem_compare2() - Memory compare
+    
+    Function to compare two pieces of memory, similar to memcmp function 
+    in standard C.
+
+    \param pMemory1 - pointer to one location in memory to compare.
+
+    \param pMemory2 - pointer to second location in memory to compare.
+    
+    \param numBytes - the number of bytes to compare.
+    
+    \return v_SINT_t - returns a boolean value that tells if the memory
+                       locations are equal or not equal. 
+                       0 -- equal
+                       < 0 -- *pMemory1 is less than *pMemory2
+                       > 0 -- *pMemory1 is bigger than *pMemory2
+    
+  -------------------------------------------------------------------------------*/
+v_SINT_t vos_mem_compare2( v_VOID_t *pMemory1, v_VOID_t *pMemory2, v_U32_t numBytes );
+
+
 /*----------------------------------------------------------------------------
   
   \brief vos_mem_dma_malloc() - vOSS DMA Memory Allocation
@@ -199,7 +234,12 @@ v_BOOL_t vos_mem_compare( v_VOID_t *pMemory1, v_VOID_t *pMemory2, v_U32_t numByt
   \sa
   
   --------------------------------------------------------------------------*/
+#ifdef MEMORY_DEBUG
+#define vos_mem_dma_malloc(size) vos_mem_dma_malloc_debug(size, __FILE__, __LINE__)
+v_VOID_t * vos_mem_dma_malloc_debug( v_SIZE_t size, v_U8_t* fileName, v_U32_t lineNum);
+#else
 v_VOID_t * vos_mem_dma_malloc( v_SIZE_t size );
+#endif
 
 
 /*----------------------------------------------------------------------------

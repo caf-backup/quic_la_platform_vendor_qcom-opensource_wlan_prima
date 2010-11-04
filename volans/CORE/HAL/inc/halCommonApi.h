@@ -32,6 +32,7 @@
 #include "halBDApi.h"
 #include "halMacBA.h"
 #include "halHddApis.h"
+#include "halFw.h"
 
 #define HAL_MMH_MB_MSG_TYPE_MASK    0xFF00
 #define LIBRA_CHIP_REV_ID_1_0       0x0
@@ -39,8 +40,16 @@
 
 extern tpSirBoardCapabilities halGetBoardCapabilities(void *pMacGlobal);
 extern tSirRetStatus halMmhPostMsgApi(tpAniSirGlobal, tSirMsgQ* , tANI_U8);
-extern tSystemRole halGetSystemRole(tpAniSirGlobal);
-extern void halSetSystemRole(tpAniSirGlobal, tSystemRole);
+
+/* ----------------- Global and per BSS System Role ---------- */
+extern tBssSystemRole halGetBssSystemRole(tpAniSirGlobal pMac, tANI_U8 bssIdx);
+extern void halSetBssSystemRole(tpAniSirGlobal pMac, tBssSystemRole role, 
+    tANI_U8 bssIdx);
+extern tBssSystemRole halGetGlobalSystemRole(tpAniSirGlobal pMac);
+extern void halSetGlobalSystemRole(tpAniSirGlobal pMac, tBssSystemRole role);
+extern tBssSystemRole halGetSystemRoleFromStaIdx(tpAniSirGlobal pMac, tANI_U8 staIdx);
+extern tBssSystemRole halGetBssSystemRoleFromStaIdx(tpAniSirGlobal pMac, tANI_U8 staIdx);
+
 /** =========================================================================
     Function prototypes
     =========================================================================*/

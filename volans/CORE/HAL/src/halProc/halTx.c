@@ -61,10 +61,11 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
     tpSirMacFrameCtl pFc = (tpSirMacFrameCtl ) pData;
     tANI_U8 ucTypeSubType = pFc->type <<4 | pFc->subType;
-    tANI_U8 eventIdx = 0;
+    tANI_U8 eventIdx = 0, txFlag = 0;
+    tBssSystemRole systemRole = eSYSTEM_UNKNOWN_ROLE;
 
     HALLOG1( halLog(pMac, LOG1, FL("Tx Mgmt Frame Subtype: %d alloc(%x)\n"), pFc->subType, pFrmBuf));
-    sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOGW, pData, frmLen);
+    sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOG4, pData, frmLen);
     //MTRACE(macTrace(pMac, TRACE_CODE_TX_MGMT, 0, pFc->subType);)
                         
     // Reset the event to be not signalled
@@ -76,16 +77,29 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
         return eHAL_STATUS_FAILURE;
     }
 
+    pMac->hal.TLParam.txMgmtFrameStatus = HAL_TL_TX_FAILURE;
+    // Get system role, use the self station if in unknown role or STA role
+    systemRole = halGetGlobalSystemRole(pMac);
+    HALLOG1(halLog(pMac, LOG1, FL("SystemRole=%d\n"),systemRole));
+    if ((systemRole == eSYSTEM_UNKNOWN_ROLE) || (systemRole == eSYSTEM_STA_ROLE)) {
+        txFlag = HAL_USE_SELF_STA_REQUESTED_MASK;     
+    }
+
+    // Divert Disassoc/Deauth frame thr self station, as by the time unicast 
+    // disassoc frame reaches the HW, HAL has already deleted the peer station
+    if ((pFc->type == SIR_MAC_MGMT_FRAME) &&
+        ((pFc->subType == SIR_MAC_MGMT_DISASSOC) || (pFc->subType == SIR_MAC_MGMT_DEAUTH))) {
+        txFlag = HAL_USE_SELF_STA_REQUESTED_MASK;
+    }
+
     if(  (vosStatus = WLANTL_TxMgmtFrm(pVosGCtx, (vos_pkt_t *)pFrmBuf, frmLen, 
                 ucTypeSubType, tid, 
-                halTxComplete, NULL, 0)) != VOS_STATUS_SUCCESS) {
+                    halTxComplete, NULL, txFlag)) != VOS_STATUS_SUCCESS) {
         HALLOGE(halLog(pMac, LOGE, FL("Sending Mgmt Frame failed - status = %d\n"), 
             vosStatus));
         halTxComplete(pVosGCtx, (vos_pkt_t *)pFrmBuf, vosStatus);
         return eHAL_STATUS_FAILURE;
     }
-
-    pMac->hal.TLParam.txMgmtFrameStatus = HAL_TL_TX_FAILURE;
 
     // Wait for the event to be set by the TL, to get the response of TX 
     // complete, this event should be set by the Callback function called by TL
@@ -141,7 +155,7 @@ __DP_SRC_TX  eHalStatus halTxFrameWithTxComplete(tHalHandle hHal,
     tANI_U8 ucTypeSubType = pFc->type <<4 | pFc->subType;
     tANI_U8 ackRsp = 0;
     HALLOG1(halLog(pMac, LOG1, FL("Tx Mgmt Frame Subtype: %d\n"), pFc->subType));
-    sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOGW, pData, frmLen);
+    sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOG4, pData, frmLen);
     MTRACE(macTrace(pMac, TRACE_CODE_TX_MGMT, 0, pFc->subType);)
                         
     if(pCBackFnTxComp)
@@ -172,7 +186,6 @@ __DP_SRC_TX  eHalStatus halTxFrameWithTxComplete(tHalHandle hHal,
     return retCode;
 }    
 
-
 __DP_SRC_TX VOS_STATUS halTxComplete( v_PVOID_t pVosGCtx, vos_pkt_t *pData, VOS_STATUS status )
 //__DP_SRC_TX VOS_STATUS halTxComplete( v_CONTEXT_t pVosGCtx, void *pData, VOS_STATUS status )
 //#else
@@ -193,7 +206,6 @@ __DP_SRC_TX VOS_STATUS halTxComplete( v_PVOID_t pVosGCtx, vos_pkt_t *pData, VOS_
     if(!VOS_IS_STATUS_SUCCESS(vosStatus)) {
         HALLOGE(halLog(pMac, LOGE, FL("NEW VOS Event Set failed - status = %d\n"), vosStatus));
     }    
-
 
     limTxComplete(hHal, pData);
     return VOS_STATUS_SUCCESS;

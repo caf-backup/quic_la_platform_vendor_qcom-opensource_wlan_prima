@@ -21,6 +21,8 @@
 #include <linux/earlysuspend.h>
 #include <wlan_hdd_includes.h>
 #include <wlan_qct_driver.h>
+#endif
+
 #include "halTypes.h"
 #include "sme_Api.h"
 #include <vos_api.h>
@@ -46,7 +48,9 @@
 * ----------------------------------------------------------------------------*/
 #include "wlan_hdd_power.h"
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static struct early_suspend wlan_early_suspend;
+#endif
 static eHalStatus g_full_pwr_status;
 static eHalStatus g_standby_status;
 
@@ -106,15 +110,15 @@ VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter)
    eHalStatus halStatus;
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
          
-   //Stop the Interface TX queue.
-   netif_tx_disable(pAdapter->dev);
-   netif_carrier_off(pAdapter->dev);
-
    //Disable IMPS/BMPS as we do not want the device to enter any power
    //save mode on its own during suspend sequence
    sme_DisablePowerSave(pAdapter->hHal, ePMC_IDLE_MODE_POWER_SAVE);
    sme_DisablePowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE);
 
+   //Note we do not disable queues unnecessarily. Queues should already be disabled
+   //if STA is disconnected or the queue will be disabled as and when disconnect
+   //happens because of standby procedure.
+   
    //Ensure that device is in full power first. There is scope for optimization
    //here especially in scenarios where PMC is already in IMPS or REQUEST_IMPS.
    //Core s/w needs to be optimized to handle this. Until then we request full
@@ -148,7 +152,9 @@ VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter)
 
    //Request standby. Standby will cause the STA to disassociate first. TX queues
    //will be disabled (by HDD) when STA disconnects. You do not want to disable TX
-   //queues here.
+   //queues here. Also do not assert if the failure code is eHAL_STATUS_PMC_NOT_NOW as PMC
+   //will send this failure code in case of concurrent sessions. Power Save cannot be supported
+   //when there are concurrent sessions.
    init_completion(&pAdapter->standby_comp_var);
    g_standby_status = eHAL_STATUS_FAILURE;
    halStatus = sme_RequestStandby(pAdapter->hHal, hdd_suspend_standby_cbk, pAdapter);
@@ -156,9 +162,9 @@ VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter)
    if (halStatus == eHAL_STATUS_PMC_PENDING) 
    {
       //Wait till WLAN device enters standby mode
-		wait_for_completion_timeout(&pAdapter->standby_comp_var, 
+      wait_for_completion_timeout(&pAdapter->standby_comp_var, 
          msecs_to_jiffies(WLAN_WAIT_TIME_STANDBY));
-		if (g_standby_status != eHAL_STATUS_SUCCESS)
+      if (g_standby_status != eHAL_STATUS_SUCCESS && g_standby_status != eHAL_STATUS_PMC_NOT_NOW)
       {
          hddLog(VOS_TRACE_LEVEL_ERROR,"%s: sme_RequestStandby failed",__func__);
          VOS_ASSERT(0);
@@ -166,7 +172,7 @@ VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter)
          goto failure;
       }
    }
-   else if (halStatus != eHAL_STATUS_SUCCESS) {
+   else if (halStatus != eHAL_STATUS_SUCCESS && halStatus != eHAL_STATUS_PMC_NOT_NOW) {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: sme_RequestStandby failed - status %d",
          __func__, halStatus);
       VOS_ASSERT(0);
@@ -230,7 +236,7 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
    //Issue a disconnect. This is required to inform the supplicant that
    //STA is getting disassociated and for GUI to be updated properly
    init_completion(&pAdapter->disconnect_comp_var);
-   halStatus = sme_RoamDisconnect(pAdapter->hHal, eCSR_DISCONNECT_REASON_UNSPECIFIED);
+   halStatus = sme_RoamDisconnect(pAdapter->hHal, pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
 
    //Success implies disconnect command got queued up successfully
    if(halStatus == eHAL_STATUS_SUCCESS)
@@ -239,7 +245,8 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
       wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var, 
          msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
    }
-   
+
+
    //None of the steps should fail after this. Continue even in case of failure
    vosStatus = vos_stop( pAdapter->pvosContext );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
@@ -276,6 +283,7 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
 {
    vos_call_status_type callType;
    VOS_STATUS vosStatus;
+   eHalStatus halStatus;
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
       "%s: calling vos_chipVoteOnRFSupply",__func__);
@@ -376,6 +384,18 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
       goto err_voss_stop;
    }
 
+
+   //Open a SME session for future operation
+   halStatus = sme_OpenSession( pAdapter->hHal, hdd_smeRoamCallback, pAdapter,
+                                (tANI_U8 *)&pAdapter->macAddressCurrent, &pAdapter->sessionId );
+   if ( !HAL_STATUS_SUCCESS( halStatus ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"sme_OpenSession() failed with status code %08d [x%08lx]",
+                    halStatus, halStatus );
+      goto err_voss_stop;
+
+   }
+
    pAdapter->hdd_ps_state = eHDD_SUSPEND_NONE;
 
    //Trigger the initial scan
@@ -391,6 +411,7 @@ err_deep_sleep:
    return VOS_STATUS_E_FAILURE;
 
 }
+#ifdef CONFIG_HAS_EARLYSUSPEND
 //Suspend routine registered with Android OS
 void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
 {

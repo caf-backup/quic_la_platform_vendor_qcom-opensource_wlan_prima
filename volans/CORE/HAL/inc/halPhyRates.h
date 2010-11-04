@@ -16,7 +16,16 @@
 #ifndef HALPHYRATES_H
 #define HALPHYRATES_H
 
-#include <halTypes.h>
+#include <halPhyTypes.h>
+
+
+typedef enum
+{
+    POWER_MODE_HIGH_POWER = 0,  //Highest possible power for actual rates
+    POWER_MODE_LOW_POWER,       //Reduced power for Virtual rates   
+    POWER_MODE_WIFI_DIRECT,     //0dBm for Wifi direct
+    POWER_MODE_INVALID          //Should not be used
+} ePowerMode;
 
 typedef enum
 {
@@ -113,7 +122,9 @@ typedef enum
 #define TEST_PHY_RATE_IS_DUP(rate)      eANI_BOOLEAN_FALSE
 #endif
 
+#define NUM_RATE_POWER_GROUPS           NUM_HAL_PHY_RATES  //total number of rate power groups including the CB_RATE_POWER_OFFSET
 
+typedef uAbsPwrPrecision tRateGroupPwr[NUM_RATE_POWER_GROUPS];
 
 #endif
 

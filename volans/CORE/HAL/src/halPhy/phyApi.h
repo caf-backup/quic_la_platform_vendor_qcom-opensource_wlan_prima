@@ -126,9 +126,9 @@ static inline eHalStatus FindEncompassingFreqs(tANI_U16 freq, void *list, tANI_U
 
 //phyCalService
 eHalStatus phyInitialCalStart(tpAniSirGlobal pMac);
-eHalStatus RunInitialCal(tpAniSirGlobal pMac, eInitCals calId);
+eHalStatus RunInitialCal(tpAniSirGlobal pMac, eCalSelection calId);
 eHalStatus phyCalFromBringupTables(tpAniSirGlobal pMac, tANI_U16 freq);
-eHalStatus phyPeriodicCal(tpAniSirGlobal pMac, eInitCals calId);
+eHalStatus phyPeriodicCal(tpAniSirGlobal pMac, eCalSelection calId);
 
 
 //phyCalRxIQ
@@ -160,16 +160,18 @@ eHalStatus phyPeriodicDcoCalRxChain(tpAniSirGlobal pMac, ePhyRxChains rxChain, e
 
 
 //phyTxPower
-eHalStatus ConfigureTpcFromNv(tpAniSirGlobal pMac);
+//eHalStatus ConfigureTpcFromNv(tpAniSirGlobal pMac);
 eHalStatus phyTxPowerInit(tpAniSirGlobal pMac);
-eHalStatus phyTxPowerConfig(tpAniSirGlobal pMac, tTpcConfig *tpcConfig, tANI_U8 numFreqs, tANI_U8 numCalPointsPerFreq, eRfSubBand bandCfg);
-eHalStatus phyTxPowerClose(tpAniSirGlobal pMac);
-eHalStatus phySetTxPower(tpAniSirGlobal pMac, tANI_U32 freq, eRfSubBand bandCfg);
+//eHalStatus phyTxPowerConfig(tpAniSirGlobal pMac, tTpcConfig *tpcConfig, tANI_U8 numFreqs, tANI_U8 numCalPointsPerFreq, eRfSubBand bandCfg);
+//eHalStatus phyTxPowerClose(tpAniSirGlobal pMac);
+//eHalStatus phySetTxPower(tpAniSirGlobal pMac, tANI_U32 freq, eRfSubBand bandCfg);
 tPowerdBmRange InterpolateAbsPowerPerFreq(tpAniSirGlobal pMac, tANI_U16 freq);
 tPowerDetect phyGetTxPowerLutValForAbsPower(tpAniSirGlobal pMac, ePhyTxChains txChain, t2Decimal absPwr);
 t2Decimal phyGetAbsTxPowerForLutValue(tpAniSirGlobal pMac, ePhyTxChains txChain, tPowerDetect lutValue);
 tPwrTemplateRange phyGetTxPowerRangeForTempIndex(tpAniSirGlobal pMac, ePhyTxChains txChain, tPwrTemplateIndex pwrIndex);
-eHalStatus LoadRecentCalValues(tpAniSirGlobal pMac, eInitCals calId, eRfSubBand bandIndex);
+eHalStatus LoadRecentCalValues(tpAniSirGlobal pMac, eCalSelection calId, eRfSubBand bandIndex);
+
+eHalStatus phyLoadCharacterizedPowerLut(tpAniSirGlobal pMac, eRfChannels chan);
 
 #ifdef __cplusplus
 }

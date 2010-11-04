@@ -30,6 +30,8 @@
 #ifdef FEATURE_WLAN_WAPI
 #define HAL_WPI_KEY_LENGTH      16
 #define HAL_WPI_MICKEY_LENGTH   16
+#define WAPI_STA_LOW_INDEX 0
+#define WAPI_STA_HIGH_INDEX 7
 #endif
 
 #define HAL_DPU_DEFAULT_RCE_ON  0xFF

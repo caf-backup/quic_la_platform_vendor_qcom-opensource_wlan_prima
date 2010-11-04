@@ -527,14 +527,68 @@ void ConverttoBigEndian(void *ptr, tANI_U16	size)
 	}
 }
 
+
+void CreateScanDataNullFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tANI_U8 pwrMgmt, tSirMacAddr bssid)
+{
+
+	macMgmtHdr->fc.type = SIR_MAC_DATA_FRAME;
+	macMgmtHdr->fc.subType = SIR_MAC_DATA_NULL;
+	macMgmtHdr->fc.protVer = SIR_MAC_PROTOCOL_VERSION;
+	macMgmtHdr->fc.order = 0;
+	macMgmtHdr->fc.wep = 0;
+	macMgmtHdr->fc.moreData =0;
+	macMgmtHdr->fc.powerMgmt = pwrMgmt;
+	macMgmtHdr->fc.retry = 0;
+	macMgmtHdr->fc.moreFrag = 0;
+	macMgmtHdr->fc.fromDS = 0;
+	macMgmtHdr->fc.toDS = 0;
+	macMgmtHdr->durationLo = (tANI_U8) (SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff);
+	macMgmtHdr->durationHi = (tANI_U8) ((SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff00) >> 8);
+	macMgmtHdr->seqControl.fragNum = 0;
+	macMgmtHdr->seqControl.seqNumLo = 0;
+	macMgmtHdr->seqControl.seqNumHi = 2;
+	palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->da,     (void *)bssid, sizeof(tSirMacAddr));
+	palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->sa,     (void *)pMac->lim.gSelfMacAddr, sizeof(tSirMacAddr));
+	palCopyMemory(pMac->hHdd, (void *)&macMgmtHdr->bssId, (void *)bssid, sizeof(tSirMacAddr));
+	
+	return;
+}
+
+
+void CreateScanCtsFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr)
+{
+	macMgmtHdr->fc.type = SIR_MAC_CTRL_FRAME;
+	macMgmtHdr->fc.subType = SIR_MAC_CTRL_CTS;
+	macMgmtHdr->fc.order = 0;
+	macMgmtHdr->fc.wep = 0;
+	macMgmtHdr->fc.moreData =0;
+	macMgmtHdr->fc.powerMgmt = 0;  
+	macMgmtHdr->fc.retry = 0;
+	macMgmtHdr->fc.moreFrag = 0;
+	macMgmtHdr->fc.fromDS = 0;
+	macMgmtHdr->fc.toDS = 0;
+	macMgmtHdr->durationLo = (tANI_U8) (SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff);
+	macMgmtHdr->durationHi = (tANI_U8) ((SIR_MAC_MAX_DURATION_MICRO_SECONDS & 0xff00) >> 8);
+	palCopyMemory(pMac->hHdd, (void *)macMgmtHdr->da, (void *)pMac->lim.gSelfMacAddr, sizeof(tSirMacAddr));
+			
+	return;
+}
+
+
+
+
+
+
+
 /**
 	@brief	:	This functions creates a DATA_NULL/CTS2SELF frame in Big endian format 
 	@param	:	Global MAC structure, pointer to return the created packet, role which is Station/AP
 	@return	:	void
 */
 
-void CreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tSystemRole role)
+void CreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tBssSystemRole role)
 {
+#if 0
 	tpStaStruct pSta = (tpStaStruct) pMac->hal.halMac.staTable;
 	
 	if (role == eSYSTEM_STA_ROLE)
@@ -576,6 +630,7 @@ void CreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tSy
 		palCopyMemory(pMac->hHdd, (void *)macMgmtHdr->da, (void *)pSta[0].staAddr, 6);
 	}
 	return;
+#endif
 }
 
 /**
@@ -585,8 +640,9 @@ void CreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tSy
 */
 
 
-void CreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tSystemRole role)
+void CreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tBssSystemRole role)
 {
+#if 0
 	tpStaStruct pSta = (tpStaStruct) pMac->hal.halMac.staTable;
 
 	if (role == eSYSTEM_STA_ROLE)
@@ -614,6 +670,7 @@ void CreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, t
 	}
 	
 	return;
+#endif
 }
 
 

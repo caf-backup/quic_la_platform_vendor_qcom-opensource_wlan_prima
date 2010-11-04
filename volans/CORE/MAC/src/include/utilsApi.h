@@ -59,9 +59,13 @@ extern void logPrintf(tpAniSirGlobal, tANI_U32, tANI_U32 arg1, tANI_U32 arg2, tA
 extern int logRtaiDump(tpAniSirGlobal, tANI_U32, tANI_U32, tANI_U32, tANI_U32, tANI_U32, tANI_U8 *);
 
 /// Log initialization
-extern void logInit (tpAniSirGlobal);
+extern tSirRetStatus logInit (tpAniSirGlobal);
 
+extern void
+logDeinit(tpAniSirGlobal );
 
+extern tSirRetStatus cfgInit(tpAniSirGlobal);
+extern void cfgDeInit(tpAniSirGlobal);
 
 // -------------------------------------------------------------------
 /**
@@ -964,8 +968,11 @@ halRoundS32(tANI_S32 p)
 #define ani_be32_to_cpu(x)  ani_cpu_to_be32(x)
 
 void ConverttoBigEndian(void *ptr, tANI_U16	size);
-void CreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tSystemRole role);
-void CreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tSystemRole role);
+void CreateScanCtsFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr);
+void CreateScanDataNullFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tANI_U8 pwrMgmt, tSirMacAddr bssid);
+
+void CreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tBssSystemRole role);
+void CreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tBssSystemRole role);
 
 #endif /* __UTILSAPI_H */
 

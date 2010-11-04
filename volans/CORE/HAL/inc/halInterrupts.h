@@ -62,7 +62,9 @@ typedef enum {
     eHAL_INT_SIF_ASIC,
     eHAL_INT_MCU_HOST_INT_WQ_DATA_AVAIL, 
     eHAL_INT_MCU_HOST_INT_MIF,
+#ifndef WLAN_SOFTAP_FEATURE    
     eHAL_INT_MCU_HOST_INT_MTU_TIMER_5,
+#endif    
     eHAL_INT_MCU_HOST_INT_ADU,
     eHAL_INT_MCU_HOST_INT_RPE,
     eHAL_INT_MCU_HOST_INT_COMBINED,
@@ -130,9 +132,9 @@ typedef enum {
         eHAL_INT_MIF_ERR_ACPU_INVALID_RADDR,
         eHAL_INT_MIF_ERR_AHB_INVALID_WADDR,    
 #else
-        eHAL_INT_MIF_ERR_DEFAULT,
+    eHAL_INT_MIF_ERR_DEFAULT,
 #endif
-    
+
     // eHAL_INT_ADU_REGISTER,
     eHAL_INT_ADU_ERR_DEFAULT,  // this intr handles all ADU errors
 
@@ -166,7 +168,8 @@ typedef enum {
 #define QWLAN_SIF_INT_ASIC_INTERRUPT_MASK            0x3ffe0001
             
 /* Don't register any WQs to the default handler */
-#define QWLAN_MCU_BMU_WQ_HOST_INT_EN_DEFAULT_MASK 0
+//except for unknown addr2 WQ.
+#define QWLAN_MCU_BMU_WQ_HOST_INT_EN_DEFAULT_MASK (1 << BMUWQ_HOST_RX_UNKNOWN_ADDR2_FRAMES)
 
 /* default BMU errors */
 #define QWLAN_BMU_ERR_INTR_EN_DEFAULT_MASK ( \

@@ -37,13 +37,13 @@ extern void schSetDefaultEdcaParams(tpAniSirGlobal pMac);
 extern void schQosUpdateLocal(tpAniSirGlobal pMac);
 
 // update the edca profile parameters
-extern void schEdcaProfileUpdate(tpAniSirGlobal pMac);
+extern void schEdcaProfileUpdate(tpAniSirGlobal pMac, tLimSystemRole systemRole);
 
 /// Check for RR timer expiry
 extern void schCheckRRTimerExpiry(tpAniSirGlobal pMac);
 
 /// Set the fixed fields in a beacon frame
-extern tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac);
+extern tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEntry);
 
 /// Initializations
 extern void schInitialize(tpAniSirGlobal pMac);
@@ -76,7 +76,7 @@ extern void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg);
 extern void schProcessDphActivityQueue(tpAniSirGlobal pMac);
 
 /// The beacon Indication handler function
-extern void schProcessPreBeaconInd(tpAniSirGlobal pMac);
+extern void schProcessPreBeaconInd(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
 
 /// Post a message to the scheduler message queue
 extern tSirRetStatus schPostMessage(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
@@ -96,15 +96,23 @@ extern tANI_U16 schGetCFPDurRemaining(tpAniSirGlobal pMac);
 
 #endif
 
-extern void schBeaconProcess(tpAniSirGlobal pMac, tpHalBufDesc pBD);
+extern void schBeaconProcess(tpAniSirGlobal pMac, tANI_U32* pBD, tpPESession psessionEntry);
 extern tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *edca);
 
 
 #define SCH_RR_TIMEOUT                   (SCH_RR_TIMEOUT_MS / SYS_TICK_DUR_MS)
 
-void schSetBeaconInterval(tpAniSirGlobal pMac);
+void schSetBeaconInterval(tpAniSirGlobal pMac,tpPESession psessionEntry);
 
-tSirRetStatus schSendBeaconReq( tpAniSirGlobal, tANI_U8 *, tANI_U16 );
+tSirRetStatus schSendBeaconReq( tpAniSirGlobal, tANI_U8 *, tANI_U16, tpPESession psessionEntry );
+
+#ifdef WLAN_SOFTAP_FEATURE
+void limUpdateProbeRspTemplateIeBitmapBeacon1(tpAniSirGlobal,tDot11fBeacon1*,tANI_U32*,tDot11fProbeResponse*);
+void limUpdateProbeRspTemplateIeBitmapBeacon2(tpAniSirGlobal,tDot11fBeacon2*,tANI_U32*,tDot11fProbeResponse*);
+void SetProbeRspIeBitmap(tANI_U32*,tANI_U32);
+tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal,tpPESession,
+                                    tANI_U32*);
+#endif
 
 
 #endif

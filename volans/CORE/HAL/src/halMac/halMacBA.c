@@ -82,13 +82,16 @@ void baHandleCFG( tpAniSirGlobal pMac, tANI_U32 cfgId )
 {
 tANI_U32 cfg, val, i = 0;
 tANI_U32 baActivityCheckCfgVal =0;
-tANI_U32 defaultCfgList[] = { WNI_CFG_BA_TIMEOUT,
+
+  tANI_U32 defaultCfgList[] = {
+     WNI_CFG_BA_TIMEOUT,
   WNI_CFG_MAX_BA_BUFFERS,
   WNI_CFG_MAX_BA_SESSIONS,
   WNI_CFG_BA_THRESHOLD_HIGH,
   ANI_IGNORE_CFG_ID,
   WNI_CFG_BA_ACTIVITY_CHECK_TIMEOUT,
-  WNI_CFG_BA_AUTO_SETUP};
+     WNI_CFG_BA_AUTO_SETUP
+  };
 
   do
   {
@@ -105,7 +108,6 @@ tANI_U32 defaultCfgList[] = { WNI_CFG_BA_TIMEOUT,
     {
       case WNI_CFG_BA_AUTO_SETUP:
           {
-              tANI_BOOLEAN selfHtCapable = halIsSelfHtCapable(pMac);
               if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfg, &val ))
               {
                   HALLOGP( halLog( pMac, LOGP,
@@ -113,9 +115,11 @@ tANI_U32 defaultCfgList[] = { WNI_CFG_BA_TIMEOUT,
                   return;
               }
 
-              //if not already setup, config is enabled and we are htCapable, then we need to start timer.
-              if((false == pMac->hal.halMac.baAutoSetupEnabled) && (true == val) &&
-                  (eANI_BOOLEAN_TRUE == selfHtCapable))
+                    // NOTE: Instead of reading selfSta capability get the System's HT capability
+                    // from some CFG
+              //if not already setup, config is enabled and we are htCapable, 
+	      //then we need to start timer.
+              if((false == pMac->hal.halMac.baAutoSetupEnabled) && (true == val)) 
               {
                   pMac->hal.halMac.baAutoSetupEnabled = true;
                   if(tx_timer_activate(&pMac->hal.halMac.baActivityChkTmr) != TX_SUCCESS)
@@ -137,9 +141,9 @@ tANI_U32 defaultCfgList[] = { WNI_CFG_BA_TIMEOUT,
               }
               else
               {
-                  HALLOGW( halLog(pMac, LOGW, FL("can't change BaActivityCheck timer, CFG BA_AUTO_SETUP = %d \
-                              for htCapability = %d, baAutoSetup already enabled = %d"),
-                    selfHtCapable, pMac->hal.halMac.baAutoSetupEnabled));
+                   HALLOGW( halLog(pMac, LOGW, FL("can't change BaActivityCheck timer, \
+                            CFG BA_AUTO_SETUP = %d, baAutoSetup already enabled = %d"),
+                                    val, pMac->hal.halMac.baAutoSetupEnabled));
               }
           }
           break;
@@ -480,6 +484,48 @@ tpRxBASessionTable pBASession = pMac->hal.halMac.baSessionTable;
   return retStatus;
 }
 
+#ifdef FEATURE_ON_CHIP_REORDERING
+eHalStatus halGetBASession(tpAniSirGlobal pMac, tANI_U16 baStaIndex, tANI_U8 baTID, tpRxBASessionTable* pBA)
+{
+  tANI_U8 i, found = 0;
+  tANI_U32 maxBASessions = 0;
+  tpRxBASessionTable pBASession = pMac->hal.halMac.baSessionTable;
+
+  // Determine the MAX allowed BA sessions
+  if( eSIR_SUCCESS != wlan_cfgGetInt( pMac,
+        WNI_CFG_MAX_BA_SESSIONS,
+        &maxBASessions ))
+    return eHAL_STATUS_FAILURE;
+  if (maxBASessions > BA_MAX_SESSIONS)
+    maxBASessions = BA_MAX_SESSIONS;
+
+  for( i = 0; i < maxBASessions; i++, pBASession++ )
+  {
+    if(( 1 == pBASession->baValid ) &&
+        ( baStaIndex == pBASession->baStaIndex ) &&
+        ( baTID == pBASession->baTID ))
+    {
+      found = 1;
+      break;
+    }
+  }
+
+  if( found )
+  {
+    *(pBA) = pBASession;
+    return eHAL_STATUS_SUCCESS;
+  }
+  else
+  {
+    HALLOGW( halLog( pMac, LOGW,
+        FL("A valid BA Session ID not found for STA Index %d, TID %d!\n"),
+        baStaIndex,
+        baTID ));
+    return eHAL_STATUS_BA_RX_INVALID_SESSION_ID;
+  }
+}
+#endif /* FEATURE_ON_CHIP_REORDERING */
+
 /**
  * \brief Release the given BA session ID after the
  * coresponding BA session has been deleted
@@ -531,7 +577,64 @@ tpRxBASessionTable pBASession = pMac->hal.halMac.baSessionTable;
     // Notify HDD about this deletion...
     // TODO - Should we watch out for the return status?
 
+#ifdef FEATURE_ON_CHIP_REORDERING
+
+    if(pBASession->isReorderingDoneOnChip != eANI_BOOLEAN_TRUE)
+    {
+#endif
     baDelNotifyTL( pMac, i );// Session ID
+#ifdef FEATURE_ON_CHIP_REORDERING
+    }
+#endif
+
+#ifdef FEATURE_ON_CHIP_REORDERING
+    if(pBASession->isReorderingDoneOnChip == eANI_BOOLEAN_TRUE)
+    {
+      tANI_U8 dpuIdx;
+      tHalDpuDescEntry *pDpuDesc;
+      tpDpuInfo pDpu = (tpDpuInfo) pMac->hal.halMac.dpuInfo;
+      eHalStatus status ;
+
+      pBASession->isReorderingDoneOnChip = eANI_BOOLEAN_FALSE;
+      pMac->hal.halMac.numOfOnChipReorderSessions = pMac->hal.halMac.numOfOnChipReorderSessions - 1;
+
+      /* if encryption mode is TKIP or AES then disabled DPU reply check */
+      if( (eHAL_STATUS_SUCCESS != 
+          (status = halTable_GetStaDpuIdx( pMac,
+                                           (tANI_U8)baStaIndex,
+                                           &dpuIdx ))) ||
+           (dpuIdx == HAL_INVALID_KEYID_INDEX) ||
+           (dpuIdx >= pDpu->maxEntries))
+      {
+        HALLOG1( halLog( pMac, LOG1,
+                  FL("Unable to get DPU index for STA index %d\n"), baStaIndex));
+        return  status;
+      }
+
+      pDpuDesc = & pDpu->descTable[dpuIdx];
+
+      if(pDpuDesc->used != 0 && 
+         (pDpuDesc->halDpuDescriptor.encryptMode == eSIR_ED_TKIP ||
+          pDpuDesc->halDpuDescriptor.encryptMode == eSIR_ED_CCMP)
+        )
+      {
+        status = halDpu_SetReplayCheckForTID( pMac,
+                            pDpuDesc->rcIdx,
+                            baTID,
+                            HAL_DPU_DEFAULT_RCE_OFF);
+
+        if(status != eHAL_STATUS_SUCCESS)
+        {
+          HALLOG1( halLog( pMac, LOG1,
+                    FL("Failed to set DPU RC descriptor :%d\n"), pDpuDesc->rcIdx));
+        }
+      }
+
+      HALLOG1( halLog( pMac, LOG1,
+                FL("On-Chip reordering disabled for STA index %d, TID %d, numOfOnChipReorderSessions %d\n"),
+                baStaIndex, baTID, pMac->hal.halMac.numOfOnChipReorderSessions));
+    }
+#endif /* FEATURE_ON_CHIP_REORDERING */
 
     // Update the BA Session parameters
     pBASession->baValid = 0;
@@ -614,6 +717,10 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
     tpStaStruct pSta = (tpStaStruct)pMac->hal.halMac.staTable;
     tANI_U8 queueId;
 
+#ifdef FEATURE_ON_CHIP_REORDERING
+    tANI_BOOLEAN isReorderingDoneOnChip = eANI_BOOLEAN_FALSE;
+#endif
+
     tTpeStaDesc tpeStaDescCfg;
     tANI_U32 ampduValQid;
 
@@ -669,18 +776,48 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
         pSta[pAddBAParams->staIdx].addBAReqParams[pAddBAParams->baTID].
         addBAState = eHAL_ADDBA_WT_HDD_RSP;
 
-        if( eHAL_STATUS_SUCCESS !=
-            (status = baAddReqTL( pMac,
-                              pSta[pAddBAParams->staIdx].baSessionID[pAddBAParams->baTID],
-                              pAddBAParams->baTID,
-			      pAddBAParams->staIdx,
-                              (tANI_U8)pAddBAParams->baBufferSize )))
+#ifdef FEATURE_ON_CHIP_REORDERING
+        if(pMac->hal.halMac.numOfOnChipReorderSessions < pMac->hal.halMac.maxNumOfOnChipReorderSessions)
         {
-            HALLOGW( halLog( pMac, LOGW,
-                FL("Cannot tell TL about a new BA session, STA index %d, TID %d\n"),
-                pAddBAParams->staIdx, pAddBAParams->baTID ));
-            return  eHAL_STATUS_FAILURE;;
+          isReorderingDoneOnChip = eANI_BOOLEAN_TRUE;
+          HALLOGW( halLog( pMac, LOGW,
+              FL("Enabling on-chip reordering for a new BA session, STA index %d, TID %d\n"),
+              pAddBAParams->staIdx, pAddBAParams->baTID ));
         }
+#endif
+
+#ifdef FEATURE_ON_CHIP_REORDERING
+        if(isReorderingDoneOnChip == eANI_BOOLEAN_TRUE)
+        {
+          if(eHAL_STATUS_SUCCESS != baProcessTLAddBARsp(pMac,
+                                    pSta[pAddBAParams->staIdx].baSessionID[pAddBAParams->baTID],
+                                    (tANI_U8)pAddBAParams->baBufferSize,
+                                    eANI_BOOLEAN_TRUE))
+          {
+              HALLOGW( halLog( pMac, LOGW,
+                  FL("Failed to enabled on-chip reordering for a new BA session, STA index %d, TID %d\n"),
+                  pAddBAParams->staIdx, pAddBAParams->baTID ));
+              return  eHAL_STATUS_FAILURE;;
+          }
+        }
+        else
+        {
+#endif
+          if( eHAL_STATUS_SUCCESS !=
+              (status = baAddReqTL( pMac,
+                               pSta[pAddBAParams->staIdx].baSessionID[pAddBAParams->baTID],
+                                pAddBAParams->baTID,
+			        pAddBAParams->staIdx,
+                                (tANI_U8)pAddBAParams->baBufferSize )))
+          {
+              HALLOGW( halLog( pMac, LOGW,
+                  FL("Cannot tell TL about a new BA session, STA index %d, TID %d\n"),
+                  pAddBAParams->staIdx, pAddBAParams->baTID ));
+              return  eHAL_STATUS_FAILURE;;
+          }
+#ifdef FEATURE_ON_CHIP_REORDERING
+        }
+#endif
 
         pSta[pAddBAParams->staIdx].baReceipientTidBitMap |=  (1 << pAddBAParams->baTID);
 
@@ -987,7 +1124,10 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
         rpeStaQueueInfo.reorder_ssn = 0;
         rpeStaQueueInfo.reorder_sval = 0;
         rpeStaQueueInfo.reserved2 = 0;
-
+#ifdef FEATURE_ON_CHIP_REORDERING
+        rpeStaQueueInfo.rod = 1;
+        rpeStaQueueInfo.mem_location_staId_qId = 0;
+#endif
 
         // Save station queue configuration
         if ((status = halRpe_SaveStaQueueConfig(pMac, (tANI_U8)pDelBAParams->staIdx, (tANI_U32) queueId,
@@ -1231,7 +1371,14 @@ tpRxBASessionTable baSessionParams = (tpRxBASessionTable) &pMac->hal.halMac.baSe
 \param     tANI_U16 baSessionID : SessionID of the current BA session.
 \return    Success or Failure.
   -------------------------------------------------------------*/
-eHalStatus baProcessTLAddBARsp(tpAniSirGlobal pMac, tANI_U16 baSessionID, tANI_U16 tlWindowSize)
+eHalStatus baProcessTLAddBARsp(
+                    tpAniSirGlobal pMac,
+                    tANI_U16 baSessionID,
+                    tANI_U16 tlWindowSize
+                    #ifdef FEATURE_ON_CHIP_REORDERING
+                    ,tANI_BOOLEAN isReorderingDoneOnChip
+                    #endif
+                    )
 {
     tRxBASessionTable baSessionParams = pMac->hal.halMac.baSessionTable[baSessionID];
     eHalStatus status = eHAL_STATUS_FAILURE;
@@ -1379,6 +1526,17 @@ eHalStatus baProcessTLAddBARsp(tpAniSirGlobal pMac, tANI_U16 baSessionID, tANI_U
                         rpeStaQueueInfo.reorder_ssn = rpeStaQueueInfo.ba_ssn + (rpeStaQueueInfo.staId_queueId_BAbitmapLo & 1);
 #endif
 
+#ifdef FEATURE_ON_CHIP_REORDERING
+                        if(isReorderingDoneOnChip == eANI_BOOLEAN_TRUE)
+                        {
+                          rpeStaQueueInfo.rod = 0;
+                          rpeStaQueueInfo.mem_location_staId_qId = 
+                            pMac->hal.memMap.rpeReOrderSTADataStructure_offset + 
+                            pMac->hal.halMac.numOfOnChipReorderSessions * RPE_REORDER_STA_DS_SIZE;
+                            //(pAddBAParams->staIdx * MAX_NUM_OF_TIDS) + (queueId * 16);
+                        }
+#endif
+
                         // Save station queue configuration
                         if ((status = halRpe_SaveStaQueueConfig(pMac, (tANI_U8)pAddBAParams->staIdx, (tANI_U32)  queueId,
                                                                 &rpeStaQueueInfo)) != eHAL_STATUS_SUCCESS)
@@ -1439,6 +1597,68 @@ eHalStatus baProcessTLAddBARsp(tpAniSirGlobal pMac, tANI_U16 baSessionID, tANI_U
                             goto Fail;
                         }
 
+#ifdef FEATURE_ON_CHIP_REORDERING
+                        {
+                          tpRxBASessionTable pBASession = pMac->hal.halMac.baSessionTable;
+                          tANI_U8 dpuIdx;
+                          tHalDpuDescEntry *pDpuDesc;
+                          tpDpuInfo pDpu = (tpDpuInfo) pMac->hal.halMac.dpuInfo;
+
+                          if ((status = halGetBASession(pMac, pAddBAParams->staIdx, pAddBAParams->baTID, &pBASession)) != eHAL_STATUS_SUCCESS)
+                          {
+                                 HALLOGW( halLog( pMac, LOGW,
+                                         FL("Cannot get BA session for STA index %d, TID %d \n"),
+                                         pAddBAParams->staIdx, pAddBAParams->baTID));
+                                 goto Fail;
+                          }
+
+                          pBASession->isReorderingDoneOnChip = eANI_BOOLEAN_FALSE;
+
+                          if((status == eHAL_STATUS_SUCCESS) && (isReorderingDoneOnChip == eANI_BOOLEAN_TRUE))
+                          {
+                            pBASession->isReorderingDoneOnChip = eANI_BOOLEAN_TRUE;
+                            pMac->hal.halMac.numOfOnChipReorderSessions++;
+
+                            /* Disable A-MPDU window check in DPU RC descriptor */
+                            /* if encryption mode is TKIP or AES then enable reply check also*/
+                            if( (eHAL_STATUS_SUCCESS !=
+                                (status = halTable_GetStaDpuIdx( pMac,
+                                                                 (tANI_U8)pAddBAParams->staIdx,
+                                                                 &dpuIdx ))) ||
+                                 (dpuIdx == HAL_INVALID_KEYID_INDEX) ||
+                                 (dpuIdx >= pDpu->maxEntries))
+                            {
+                              HALLOG1( halLog( pMac, LOG1,
+                                        FL("Unable to get DPU index for STA index %d\n"), pAddBAParams->staIdx));
+                              goto Fail;
+                            }
+        
+                            pDpuDesc = & pDpu->descTable[dpuIdx];
+        
+                            if(pDpuDesc->used != 0 && 
+                               (pDpuDesc->halDpuDescriptor.encryptMode == eSIR_ED_TKIP ||
+                                pDpuDesc->halDpuDescriptor.encryptMode == eSIR_ED_CCMP)
+                              )
+                            {
+                              status = halDpu_SetReplayCheckForTID( pMac,
+                                                  pDpuDesc->rcIdx,
+                                                  pAddBAParams->baTID,
+                                                  HAL_DPU_DEFAULT_RCE_ON);
+
+                              if(status != eHAL_STATUS_SUCCESS)
+                              {
+                                HALLOG1( halLog( pMac, LOG1,
+                                          FL("Failed to set DPU RC descriptor :%d TID:%d\n"), pDpuDesc->rcIdx, pAddBAParams->baTID));
+                              }
+                            }
+                            HALLOG1( halLog( pMac, LOG1,
+                                      FL("On-Chip reordering enabled for STA index %d, queue ID %d, numOfOnChipReorderSessions %d\n"),
+                                      pAddBAParams->staIdx, queueId, pMac->hal.halMac.numOfOnChipReorderSessions));
+                          }
+                        }
+#endif /* FEATURE_ON_CHIP_REORDERING */
+
+
                     }
 
                 // Enable  RXP interface with BMU FOR BA update
@@ -1474,15 +1694,8 @@ Fail:
   return status;
 }
 
-/**
- * @brief : Check for activity on all the TIDs for all valid station entries.
- *
- * @param pMac an instance of MAC parameters
- * @param arg1 - unused.
- * @return None.
- */
 
-
+// Will remove once code is reviewed for Multi-BSS case
 void halBaCheckActivity(tpAniSirGlobal pMac)
 {
     tpAddBaCandidate pTemp;
@@ -1490,11 +1703,9 @@ void halBaCheckActivity(tpAniSirGlobal pMac)
     tANI_U8 curSta;
     tANI_U8 tid;
     tANI_U16 baCandidateCnt = 0;
-    tpStaStruct       pStaTable = (tpStaStruct) (pMac->hal.halMac.staTable);
-    tpStaStruct pSta = pStaTable;
+    tpStaStruct pSta = (tpStaStruct) (pMac->hal.halMac.staTable);
     tANI_U16 bufSize;
     tANI_U16 sequenceNum =0;
-    tANI_U8 resetNeeded = 0;
     tANI_U8 newBaCandidate = 0;
     
     if(pMac->hal.pPECallBack == NULL)
@@ -1533,41 +1744,43 @@ void halBaCheckActivity(tpAniSirGlobal pMac)
                       (pSta->framesTxed[tid] >= pSta->framesTxedLastPoll[tid] + HAL_BA_TX_FRM_THRESHOLD))
                 {
 
-		    /* Knocked-off the code to read the sequence number from BTQM to address CR 190148,
-		     * where-in in PS, since we block/unblock BTQM, F/W was running out of BD/PDUs.
-		     */
+                    /* Knocked-off the code to read the sequence number from BTQM to address CR 190148,
+                     * where-in in PS, since we block/unblock BTQM, F/W was running out of BD/PDUs.
+                     */
 
                     /* Retrieve the QueueId from the Tid */
-                        /* Get the sequence number from the DPU Descriptor */
+                    /* Get the sequence number from the DPU Descriptor */
 
-                        if (eHAL_STATUS_SUCCESS != halDpu_GetSequence(pMac, pSta->dpuIndex, tid, &sequenceNum)) {
-                            HALLOGE( halLog(pMac, LOGE, FL("Cannot get Sequence number from DPU Descriptor with DPU Indx %d \n"), pSta->dpuIndex));
-                            baCandidateCnt = 0;
-                            goto out;
-                        }
+                    if (eHAL_STATUS_SUCCESS != halDpu_GetSequence(pMac, pSta->dpuIndex, tid, &sequenceNum)) {
+                        HALLOGE( halLog(pMac, LOGE, FL("Cannot get Sequence number from DPU Descriptor with DPU Indx %d \n"), pSta->dpuIndex));
+                        baCandidateCnt = 0;
+                        goto out;
+                    }
 
-                   HALLOG3( halLog(pMac, LOG3, FL("STA %d (DPU %d) TID %d seqNum is %d (0x%x)\n"), curSta, pSta->dpuIndex, tid,  sequenceNum, sequenceNum));
+                    HALLOG3( halLog(pMac, LOG3, FL("STA %d (DPU %d) TID %d seqNum is %d (0x%x)\n"), curSta, pSta->dpuIndex, tid,  sequenceNum, sequenceNum));
 
                     /* We read the btqm queue or the DPU descriptor to retrieve the updated sequence number */
-                                    /* pTemp->baInfo[tid].startingSeqNum = pSta->seqNum[tid] + 1; */
+                    /* pTemp->baInfo[tid].startingSeqNum = pSta->seqNum[tid] + 1; */
                     pTemp->baInfo[tid].startingSeqNum = sequenceNum;
                     newBaCandidate = 1; //got at least one new BA candidate for this station.
                     pTemp->baInfo[tid].fBaEnable = 1;                    
 
-                }                      
+                }
 
                 pSta->framesTxedLastPoll[tid] = pSta->framesTxed[tid];
 
             }
             baCandidateCnt += newBaCandidate; //This is the no. if stations for BA candidate.
-            if(newBaCandidate) //This station has at least one BA candidate. Need to move the pointer to next station.
+            if(newBaCandidate) {//This station has at least one BA candidate. Need to move the pointer to next station. 
                 pTemp++;
+                sirCopyMacAddr(pBaActivityInd->bssId, pSta->bssId);
+            }
         }
     }
 
 out:
 
-    if((baCandidateCnt > 0) && !resetNeeded)
+    if(baCandidateCnt > 0)
     {   
         pBaActivityInd->baCandidateCnt = baCandidateCnt;    
         (void) (pMac->hal.pPECallBack)(pMac, SIR_LIM_ADD_BA_IND, pBaActivityInd);
@@ -1576,21 +1789,16 @@ out:
     {
         palFreeMemory(pMac->hHdd, pBaActivityInd);
     }
-    if(resetNeeded)
-    {
-        HALLOGP(halLog(pMac, LOGP, FL("Unexpected hardware error. Reset Needed\n")));
-        return;
-    }
 
 baActivityTimer:
 
 
-     if (tx_timer_deactivate(&pMac->hal.halMac.baActivityChkTmr) != TX_SUCCESS)
+    if (tx_timer_deactivate(&pMac->hal.halMac.baActivityChkTmr) != TX_SUCCESS)
     {
         /** Could not deactivate
                     Log error*/
         HALLOGP( halLog(pMac, LOGP,
-               FL("Unable to deactivate baActicity check timer\n")));
+               FL("Unable to deactivate baActivity check timer\n")));
         return;
     }
           
@@ -1655,6 +1863,7 @@ eHalStatus halStartBATimer(tpAniSirGlobal  pMac)
     
     return eHAL_STATUS_SUCCESS;
 }
+
 
 #ifdef CONFIGURE_SW_TEMPLATE
 /**

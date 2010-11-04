@@ -20,6 +20,7 @@
 #define HALPHYAPI_H
 
 #include "halPhy.h"
+#include <halPhyRates.h>
 
 #ifdef VERIFY_HALPHY_SIMV_MODEL //To get rid of multiple definition error, in eazy way.
 #define halPhySetRxPktsDisabled     host_halPhySetRxPktsDisabled
@@ -63,8 +64,6 @@ tANI_U8 halPhyQueryNumTxChains(ePhyChainSelect phyRxTxAntennaMode);
 ePhyChainSelect halPhyGetActiveChainSelect(tHalHandle hHal);
 eHalStatus halPhySetChainSelect(tHalHandle hHal, ePhyChainSelect phyRxTxAntennaMode);
 
-//Function to put physical layer in different levels of power save
-eHalStatus halPhySetPowerSave(tHalHandle hHal, ePhyPowerSave pwr);
 
 //to determine if it is time to perform a calibration
 eHalStatus halPhyAssessCal(tHalHandle hHal, tANI_BOOLEAN *performCal);
@@ -99,7 +98,8 @@ eHalStatus halPhySetNwDensity(tHalHandle hHal, tANI_BOOLEAN densityOn, ePhyNwDen
 
 //gets the Transmit power template index to use for the specified rate, for the current channel and regulatory domain limits
 //OUTPUT: retTemplateIndex
-eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex);
+eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode pwrMode,
+                                    tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex);
 
 
 tPowerdBm halPhyGetRegDomainLimit(tHalHandle hHal, eHalPhyRates rate);
@@ -108,12 +108,6 @@ tPowerdBm halPhyGetRegDomainLimit(tHalHandle hHal, eHalPhyRates rate);
 //the callerStr is required to annotate the location that this was called from.
 //Note this can be used internally at key points or also externally through a test command.
 eHalStatus halPhyDiagnose(tHalHandle hHal, char *callerStr);
-
-// Retrieve a frequency (in MHz) given a channel number
-eHalStatus halPhyChIdToFreqConversion(tANI_U8 num, tANI_U16 *pfreq);
-
-//returns the current receive gain range in dB, and the corresponding max AGC index used
-eHalStatus halPhyGetRxGainRange(tHalHandle hHal, tANI_U8 *maxGainIndex, tANI_U8 *topGaindB, tANI_U8 *bottomGain);
 
 
 //returns the power template index corresponding to the desired total output mWatts
@@ -124,14 +118,6 @@ eHalStatus halPhySetTxMilliWatts(tHalHandle hHal, t_mW mWatts, tPwrTemplateIndex
 //returns an integer number of milli-watts based on the pwrTemplateIndex
 eHalStatus halPhyGetTxMilliWatts(tHalHandle hHal, tPwrTemplateIndex pwrTemplateIndex, t_mW *ret_mWatts);
 
-// Enables RACTL to enable PHY reception of frames with HT_SIG.sounding_bit SET
-eHalStatus halPhyRxSoundingBitFrames( tHalHandle hHal, tANI_BOOLEAN enable );
-
-// used only for debugging till the availability of qFuse 
-eHalStatus halPhyConfigureTpc(tHalHandle hHal);
-
-// Routine to load the tx power det values.
-eHalStatus halPhyLoadTxPowerDetValues(tHalHandle hHal);
 
 //The get the supported channel list.
 //As input, pNum20MhzChannels is the size of the array of p20MhzChannels.
@@ -142,5 +128,19 @@ eHalStatus halPhyGetSupportedChannels( tHalHandle hHal, tANI_U8 *p20MhzChannels,
 
 // Routine to update tpc tx gain override in open loop mode.
 eHalStatus halPhyUpdateTxGainOverride(tHalHandle hHal, tANI_U8 txGain);
+
+
+// Routine to collect the adc rssi stats
+void halPhyAdcRssiStatsCollection(tHalHandle hHal);
+
+// Routine to initialize CLPC in the Physical layer.
+eHalStatus halPhyTxPowerInit(tHalHandle hHal);
+/* Currently the below APIs are used only by the VOWIFI feature. This can be removed if
+this should be present as an utility irrespective of the feature */
+#ifdef WLAN_FEATURE_VOWIFI
+tPwrTemplateIndex halPhyGetPwrIndexForDbm(tPowerdBm dBm);
+tPowerdBm  halPhyGetDbmForPwrIndex(tPwrTemplateIndex pwrIndex);
+#endif /* WLAN_FEATURE_VOWIFI */
+
 
 #endif /* HALPHYAPI_H */

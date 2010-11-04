@@ -378,13 +378,15 @@ tListElem *csrLLPeekHead( tDblLinkList *pList, tANI_BOOLEAN fInterlocked )
 
 void csrLLPurge( tDblLinkList *pList, tANI_BOOLEAN fInterlocked )
 {
+    tListElem *pEntry;
+
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
         if ( fInterlocked ) 
         {  
             csrLLLock( pList );
         }
-        while( csrLLRemoveHead( pList, LL_ACCESS_NOLOCK ) != NULL ) 
+        while( (pEntry = csrLLRemoveHead( pList, LL_ACCESS_NOLOCK )) ) 
         {
             // just remove everything from the list until 
             // nothing left on the list.

@@ -31,6 +31,9 @@
 #include "limAdmitControl.h"
 #include "wmmApsd.h"
 #include "limSendMessages.h"
+#if defined WLAN_FEATURE_VOWIFI
+#include "rrmApi.h"
+#endif
 
 #define BA_DEFAULT_TX_BUFFER_SIZE 64
 
@@ -62,7 +65,7 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac)
         /* Resume the transmission */
         limFrameTransmissionControl(pMac, eLIM_TX_ALL, eLIM_RESUME_TX);
     }
-    
+
     if (pMac->lim.gLimChannelSwitch.switchCount == 0)
     {
         /** If switch Count == 0 switch the channel right away */
@@ -70,6 +73,13 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac)
         return;
     }
     MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_CHANNEL_SWITCH_TIMER));
+
+#ifdef GEN6_TODO
+    /* revisit this piece of code to assign the appropriate sessionId below
+     * priority - MEDIUM
+     */
+    pMac->lim.limTimers.gLimChannelSwitchTimer.sessionId = sessionId;
+#endif
     if (tx_timer_activate(&pMac->lim.limTimers.gLimChannelSwitchTimer) != TX_SUCCESS)
     {
         limLog(pMac, LOGP, FL("tx_timer_activate failed\n"));
@@ -79,14 +89,15 @@ void limStopTxAndSwitchChannel(tpAniSirGlobal pMac)
 
 /**------------------------------------------------------------
 \fn     limStartChannelSwitch
-\brief  Switches the channel if switch count == 0, otherwise 
+\brief  Switches the channel if switch count == 0, otherwise
         starts the timer for channel switch and stops BG scan
         and heartbeat timer tempororily.
 
 \param  pMac
+\param  psessionEntry
 \return NONE
 ------------------------------------------------------------*/
-tSirRetStatus limStartChannelSwitch(tpAniSirGlobal pMac)
+tSirRetStatus limStartChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
     PELOG1(limLog(pMac, LOG1, FL("Starting the channel switch\n"));)
     /* Deactivate and change reconfigure the timeout value */
@@ -95,7 +106,7 @@ tSirRetStatus limStartChannelSwitch(tpAniSirGlobal pMac)
     /* Follow the channel switch, forget about the previous quiet. */
     //If quiet is running, chance is there to resume tx on its timeout.
     //so stop timer for a safer side.
-    if (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN) 
+    if (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN)
     {
         MTRACE(macTrace(pMac, TRACE_CODE_TIMER_DEACTIVATE, 0, eLIM_QUIET_TIMER));
         if (tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietTimer) != TX_SUCCESS)
@@ -116,7 +127,7 @@ tSirRetStatus limStartChannelSwitch(tpAniSirGlobal pMac)
     pMac->lim.gLimSpecMgmt.quietState = eLIM_QUIET_INIT;
 
     /* Prepare for 11h channel switch */
-    limPrepareFor11hChannelSwitch(pMac);
+    limPrepareFor11hChannelSwitch(pMac, psessionEntry);
 
     /** Dont add any more statements here as we posted finish scan request
      * to HAL, wait till we get the response
@@ -142,7 +153,8 @@ tSirRetStatus limStartChannelSwitch(tpAniSirGlobal pMac)
  */
 
 static void
-__limProcessChannelSwitchActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
+
+__limProcessChannelSwitchActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEntry)
 {
 
     tpSirMacMgmtHdr         pHdr;
@@ -153,7 +165,7 @@ __limProcessChannelSwitchActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
     tANI_U32                frameLen;
     tANI_U32                nStatus;
     eHalStatus              status;
-    
+
     pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
     pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
     frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
@@ -190,22 +202,27 @@ __limProcessChannelSwitchActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
             frameLen);
     }
 
-    if (palEqualMemory( pMac->hHdd,(tANI_U8 *) &pMac->lim.gLimCurrentBssId,
+    if (palEqualMemory( pMac->hHdd,(tANI_U8 *) &psessionEntry->bssId,
                   (tANI_U8 *) &pHdr->sa,
                   sizeof(tSirMacAddr)))
     {
+        #if 0
         if (wlan_cfgGetInt(pMac, WNI_CFG_BEACON_INTERVAL, &val) != eSIR_SUCCESS)
         {
             palFreeMemory(pMac->hHdd, pChannelSwitchFrame);
             limLog(pMac, LOGP, FL("could not retrieve Beacon interval\n"));
             return;
         }
-    
+        #endif// TO SUPPORT BT-AMP
+
+        /* copy the beacon interval from psessionEntry*/
+        val = psessionEntry->beaconInterval;
+
         beaconPeriod = (tANI_U16) val;
 
         pMac->lim.gLimChannelSwitch.primaryChannel = pChannelSwitchFrame->ChanSwitchAnn.newChannel;
         pMac->lim.gLimChannelSwitch.switchCount = pChannelSwitchFrame->ChanSwitchAnn.switchCount;
-        pMac->lim.gLimChannelSwitch.switchTimeoutValue = SYS_MS_TO_TICKS(beaconPeriod) * 
+        pMac->lim.gLimChannelSwitch.switchTimeoutValue = SYS_MS_TO_TICKS(beaconPeriod) *
                                                          pMac->lim.gLimChannelSwitch.switchCount;
         pMac->lim.gLimChannelSwitch.switchMode = pChannelSwitchFrame->ChanSwitchAnn.switchMode;
 
@@ -215,7 +232,7 @@ __limProcessChannelSwitchActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
         /* Only primary channel switch element is present */
         pMac->lim.gLimChannelSwitch.state = eLIM_CHANNEL_SWITCH_PRIMARY_ONLY;
         pMac->lim.gLimChannelSwitch.secondarySubBand = eANI_CB_SECONDARY_NONE;
-     
+
         if(GET_CB_ADMIN_STATE(pMac->lim.gCbState))
         {
             switch(pChannelSwitchFrame->ExtChanSwitchAnn.secondaryChannelOffset)
@@ -243,7 +260,7 @@ __limProcessChannelSwitchActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
         PELOG1(limLog(pMac, LOG1, FL("LIM: Received action frame not from our BSS, dropping..."));)
     }
 
-    if (eSIR_SUCCESS != limStartChannelSwitch(pMac))
+    if (eSIR_SUCCESS != limStartChannelSwitch(pMac, psessionEntry))
     {
         PELOG1(limLog(pMac, LOG1, FL("Could not start channel switch\n"));)
     }
@@ -254,7 +271,7 @@ __limProcessChannelSwitchActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
 
 
 static void
-__limProcessAddTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd)
+__limProcessAddTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry)
 {
 #if (WNI_POLARIS_FW_PRODUCT == AP)
 
@@ -267,20 +284,20 @@ __limProcessAddTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd)
     tANI_U16              aid;
     tANI_U32              frameLen;
     tANI_U8              *pBody;
-    tANI_U8 tspecIdx = 0; //index in the sch tspec table.    
+    tANI_U8 tspecIdx = 0; //index in the sch tspec table.
 
     pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
     pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
     frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
 
 
-    if (pMac->lim.gLimSystemRole != eLIM_AP_ROLE)
+    if ((psessionEntry->limSystemRole != eLIM_AP_ROLE)||(psessionEntry->limSystemRole != eLIM_BT_AMP_AP_ROLE))
     {
         PELOGW(limLog(pMac, LOGW, FL("AddTs request at non-AP: ignoring\n"));)
         return;
     }
 
-    pSta = dphLookupHashEntry(pMac, pHdr->sa, &aid);
+    pSta = dphLookupHashEntry(pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable);
     if (pSta == NULL)
     {
         PELOGE(limLog(pMac, LOGE, FL("Station context not found - ignoring AddTs\n"));)
@@ -345,12 +362,12 @@ __limProcessAddTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd)
 
     if (status != eSIR_MAC_SUCCESS_STATUS)
     {
-        limSendAddtsRspActionFrame(pMac, pHdr->sa, status, &addts, NULL);
+        limSendAddtsRspActionFrame(pMac, pHdr->sa, status, &addts, NULL,psessionEntry);
         return;
     }
 
     // try to admit the STA and send the appropriate response
-    retval = limAdmitControlAddTS(pMac, &pSta->staAddr[0], &addts, NULL, pSta->assocId, true, &schedule, &tspecIdx);
+    retval = limAdmitControlAddTS(pMac, &pSta->staAddr[0], &addts, NULL, pSta->assocId, true, &schedule, &tspecIdx, psessionEntry);
     if (retval != eSIR_SUCCESS)
     {
         PELOGW(limLog(pMac, LOGW, FL("Unable to admit TS\n"));)
@@ -365,16 +382,16 @@ __limProcessAddTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd)
                  addts.tspec.tsinfo.traffic.userPrio);
           status = (addts.wmeTspecPresent) ?
                    eSIR_MAC_WME_REFUSED_STATUS : eSIR_MAC_UNSPEC_FAILURE_STATUS;
-        
+
            limAdmitControlDeleteTS(pMac, pSta->assocId, &addts.tspec.tsinfo, NULL, &tspecIdx);
         }
         if (status != eSIR_MAC_SUCCESS_STATUS)
         {
-            limSendAddtsRspActionFrame(pMac, pHdr->sa, status, &addts, NULL);
+            limSendAddtsRspActionFrame(pMac, pHdr->sa, status, &addts, NULL,psessionEntry);
             return;
         }
     }
-#if 0 //only EDCA is supported now.    
+#if 0 //only EDCA is supported now.
     else if (addts.numTclas > 1)
     {
         limLog(pMac, LOGE, FL("Sta %d: Too many Tclas (%d), only 1 supported\n"),
@@ -392,13 +409,14 @@ __limProcessAddTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd)
 
     limLog(pMac, LOGW, "AddTs Request from STA %d: Sending AddTs Response with status %d\n",
            aid, status);
-    limSendAddtsRspActionFrame(pMac, pHdr->sa, status, &addts, &schedule);
+
+    limSendAddtsRspActionFrame(pMac, pHdr->sa, status, &addts, &schedule,psessionEntry);
 #endif
 }
 
 
 static void
-__limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd)
+__limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry)
 {
     tSirAddtsRspInfo addts;
     tSirRetStatus    retval;
@@ -421,13 +439,13 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd)
 
 
     PELOGW(limLog(pMac, LOGW, "Recv AddTs Response\n");)
-    if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
+    if ((psessionEntry->limSystemRole == eLIM_AP_ROLE)||(psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE))
     {
         PELOGW(limLog(pMac, LOGW, FL("AddTsRsp recvd at AP: ignoring\n"));)
         return;
     }
 
-    pSta = dphLookupHashEntry(pMac, pHdr->sa, &aid);
+    pSta = dphLookupHashEntry(pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable);
     if (pSta == NULL)
     {
         PELOGE(limLog(pMac, LOGE, FL("Station context not found - ignoring AddTsRsp\n"));)
@@ -441,6 +459,7 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd)
         return;
     }
 
+#ifdef REASSOC_WHEN_ACM_NOT_SET
     // if no Admit Control, ignore the response
     if ((addts.tspec.tsinfo.traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA) &&
         (! pMac->sch.schObject.gSchEdcaParams[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm))
@@ -449,6 +468,7 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd)
                addts.tspec.tsinfo.traffic.userPrio);
         return;
     }
+#endif
 
     // don't have to check for qos/wme capabilities since we wouldn't have this
     // flag set otherwise
@@ -503,7 +523,8 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd)
         limLog(pMac, LOGW, "Recv AddTsRsp: tsid %d, UP %d, status %d \n",
               addts.tspec.tsinfo.traffic.tsid, addts.tspec.tsinfo.traffic.userPrio,
               addts.status);
-        limSendSmeAddtsRsp(pMac, true, addts.status, addts.tspec);
+        limSendSmeAddtsRsp(pMac, true, addts.status, psessionEntry, addts.tspec, 
+                psessionEntry->smeSessionId, psessionEntry->transactionId);
 
         // clear the addts flag
         pMac->lim.gLimAddtsSent = false;
@@ -529,10 +550,23 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd)
      * to HAL. 
      */
     ac = upToAc(addts.tspec.tsinfo.traffic.userPrio);
-    pMac->lim.gAcAdmitMask |= (1 << ac);	
+    if(addts.tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_UPLINK)
+    {
+      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
+    }
+    else if(addts.tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_DNLINK)
+    {
+      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
+    }
+    else if(addts.tspec.tsinfo.traffic.direction == SIR_MAC_DIRECTION_BIDIR)
+    {
+      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] |= (1 << ac);
+      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
+    }
+
     limSetActiveEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParams);
 
-    pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER);
+    pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
     if (pStaDs != NULL)
     {
         if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE) 
@@ -550,11 +584,17 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd)
     if(eSIR_SUCCESS != limTspecAdd(pMac, pSta->staAddr, pSta->assocId, &addts.tspec,  addts.schedule.svcInterval, &tspecInfo))
     {
         PELOGE(limLog(pMac, LOGE, FL("Adding entry in lim Tspec Table failed \n"));)
-        limSendDeltsReqActionFrame(pMac, peerMacAddr, rspReqd, &addts.tspec.tsinfo, &addts.tspec);
+        limSendDeltsReqActionFrame(pMac, peerMacAddr, rspReqd, &addts.tspec.tsinfo, &addts.tspec,
+                psessionEntry);
         pMac->lim.gLimAddtsSent = false;
         return;   //Error handling. send the response with error status. need to send DelTS to tear down the TSPEC status.
     }
 
+#ifndef REASSOC_WHEN_ACM_NOT_SET
+    if((addts.tspec.tsinfo.traffic.accessPolicy != SIR_MAC_ACCESSPOLICY_EDCA) ||
+       (pMac->sch.schObject.gSchEdcaParams[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm))
+    {
+#endif
     retval = limSendHalMsgAddTs(pMac, pSta->staIndex, tspecInfo->idx, addts.tspec);
     if(eSIR_SUCCESS != retval)
     {
@@ -564,14 +604,27 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd)
         cfgLen = sizeof(tSirMacAddr);
         if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, peerMacAddr, &cfgLen) != eSIR_SUCCESS)
             limLog(pMac, LOGP, FL("Fail to retrieve BSSID \n"));
-        limSendDeltsReqActionFrame(pMac, peerMacAddr, rspReqd, &addts.tspec.tsinfo, &addts.tspec);
-        limSendSmeAddtsRsp(pMac, true, retval, addts.tspec);
+        limSendDeltsReqActionFrame(pMac, peerMacAddr, rspReqd, &addts.tspec.tsinfo, &addts.tspec,
+                psessionEntry);
+        limSendSmeAddtsRsp(pMac, true, retval, psessionEntry, addts.tspec,
+                psessionEntry->smeSessionId, psessionEntry->transactionId);
         pMac->lim.gLimAddtsSent = false;
         return;
     }
-        
     PELOGW(limLog(pMac, LOGW, FL("AddTsRsp received successfully(UP %d, TSID %d)\n"),
            addts.tspec.tsinfo.traffic.userPrio, addts.tspec.tsinfo.traffic.tsid);)
+#ifndef REASSOC_WHEN_ACM_NOT_SET
+    }
+    else
+    {
+      PELOGW(limLog(pMac, LOGW, FL("AddTsRsp received successfully(UP %d, TSID %d)\n"),
+             addts.tspec.tsinfo.traffic.userPrio, addts.tspec.tsinfo.traffic.tsid);)
+      PELOGW(limLog(pMac, LOGW, FL("no ACM: Bypass sending SIR_HAL_ADD_TS_REQ to HAL \n"));)
+      // Use the smesessionId and smetransactionId from the PE session context
+      limSendSmeAddtsRsp(pMac, true, eSIR_SME_SUCCESS, psessionEntry, addts.tspec,
+              psessionEntry->smeSessionId, psessionEntry->transactionId);
+    }
+#endif
 
     // clear the addts flag
     pMac->lim.gLimAddtsSent = false;
@@ -580,7 +633,7 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd)
 
 
 static void
-__limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd)
+__limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry)
 {
     tSirRetStatus    retval;
     tSirDeltsReqInfo delts;
@@ -600,7 +653,7 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd)
     pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
     frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
 
-    pSta = dphLookupHashEntry(pMac, pHdr->sa, &aid);
+    pSta = dphLookupHashEntry(pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable);
     if (pSta == NULL)
     {
         PELOGE(limLog(pMac, LOGE, FL("Station context not found - ignoring DelTs\n"));)
@@ -643,10 +696,10 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd)
     // if no Admit Control, ignore the request
     if ((tsinfo->traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA))
     {
-#if(defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))          
+#if(defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))
         if ((pMac->lim.gLimSystemRole == eLIM_AP_ROLE &&
         (! pMac->sch.schObject.gSchEdcaParamsBC[upToAc(tsinfo->traffic.userPrio)].aci.acm)) ||
-        (pMac->lim.gLimSystemRole != eLIM_AP_ROLE && 
+        (pMac->lim.gLimSystemRole != eLIM_AP_ROLE &&
         (! pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)))
 #else
         if (! pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
@@ -681,24 +734,47 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd)
       }
     }
 
-    /* We successfully deleted the TSPEC. Update the dynamic UAPSD Mask
-     * The AC for this TSPEC is no longer trigger enabled or delivery
-     * enabled
+    /* We successfully deleted the TSPEC. Update the dynamic UAPSD Mask.
+     * The AC for this TSPEC is no longer trigger enabled if this Tspec
+     * was set-up in uplink direction only.
+     * The AC for this TSPEC is no longer delivery enabled if this Tspec
+     * was set-up in downlink direction only.
+     * The AC for this TSPEC is no longer triiger enabled and delivery 
+     * enabled if this Tspec was a bidirectional TSPEC.
      */
     limSetTspecUapsdMask(pMac, tsinfo, CLEAR_UAPSD_MASK);
 
 
-    /* We're deleting the TSPEC, so this particular AC is no  
-     * longer admitted.  PE needs to downgrade the EDCA parameter 
+    /* We're deleting the TSPEC.
+     * The AC for this TSPEC is no longer admitted in uplink/downlink direction
+     * if this TSPEC was set-up in uplink/downlink direction only.
+     * The AC for this TSPEC is no longer admitted in both uplink and downlink
+     * directions if this TSPEC was a bi-directional TSPEC.
+     * If ACM is set for this AC and this AC is admitted only in downlink
+     * direction, PE needs to downgrade the EDCA parameter 
      * (for the AC for which TS is being deleted) to the
      * next best AC for which ACM is not enabled, and send the
      * updated values to HAL. 
      */ 
     ac = upToAc(tsinfo->traffic.userPrio);
-    pMac->lim.gAcAdmitMask &= ~(1 << ac);	
+
+    if(tsinfo->traffic.direction == SIR_MAC_DIRECTION_UPLINK)
+    {
+      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
+    }
+    else if(tsinfo->traffic.direction == SIR_MAC_DIRECTION_DNLINK)
+    {
+      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
+    }
+    else if(tsinfo->traffic.direction == SIR_MAC_DIRECTION_BIDIR)
+    {
+      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_UPLINK] &= ~(1 << ac);
+      pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
+    }
+
     limSetActiveEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParams);
 
-    pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER);
+    pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
     if (pStaDs != NULL)
     {
         if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE) 
@@ -710,8 +786,8 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd)
         limLog(pMac, LOGE, FL("Self entry missing in Hash Table \n"));
 
     PELOG1(limLog(pMac, LOG1, FL("DeleteTS succeeded\n"));)
-    if(pMac->lim.gLimSystemRole != eLIM_AP_ROLE)
-      limSendSmeDeltsInd(pMac, &delts, aid);
+    if((psessionEntry->limSystemRole != eLIM_AP_ROLE)||(psessionEntry->limSystemRole != eLIM_BT_AMP_AP_ROLE))
+      limSendSmeDeltsInd(pMac, &delts, aid,psessionEntry);
 }
 
 
@@ -964,7 +1040,7 @@ __limProcessTpcRequestFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
  *         eSIR_FAILURE is some problem is encountered
  */
 
-static tSirMacStatusCodes 
+static tSirMacStatusCodes
 __limValidateAddBAParameterSet( tpAniSirGlobal pMac,
     tpDphHashNode pSta,
     tDot11fFfAddBAParameterSet baParameterSet,
@@ -1041,8 +1117,8 @@ tSirMacStatusCodes statusCode = eSIR_MAC_STA_BLK_ACK_NOT_SUPPORTED_STATUS;
  * \return none
  *
  */
-static void 
-__limProcessAddBAReq( tpAniSirGlobal pMac, tANI_U8 *pBd )
+static void
+__limProcessAddBAReq( tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry)
 {
     tDot11fAddBAReq frmAddBAReq;
     tpSirMacMgmtHdr pHdr;
@@ -1080,7 +1156,7 @@ __limProcessAddBAReq( tpAniSirGlobal pMac, tANI_U8 *pBd )
         PELOG2(sirDumpBuf( pMac, SIR_DBG_MODULE_ID, LOG2, pBody, frameLen );)
     }
 
-    pSta = dphLookupHashEntry( pMac, pHdr->sa, &aid );
+    pSta = dphLookupHashEntry( pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable );
     if( pSta == NULL )
     {
         limLog( pMac, LOGE,
@@ -1110,7 +1186,7 @@ __limProcessAddBAReq( tpAniSirGlobal pMac, tANI_U8 *pBd )
         if( eSIR_SUCCESS != limPostMsgDelBAInd( pMac,
             pSta,
             (tANI_U8)frmAddBAReq.AddBAParameterSet.tid,
-            eBA_RECIPIENT ))
+            eBA_RECIPIENT,psessionEntry))
         {
             status = eSIR_MAC_UNSPEC_FAILURE_STATUS;
             goto returnAfterError;
@@ -1119,12 +1195,12 @@ __limProcessAddBAReq( tpAniSirGlobal pMac, tANI_U8 *pBd )
 
   // Check if the ADD BA Declined configuration is Disabled
     if ((pMac->lim.gAddBA_Declined & ( 1 << frmAddBAReq.AddBAParameterSet.tid ) )) {
-        limLog( pMac, LOGE, FL( "Declined the ADDBA Req for the TID %d  \n" ), 
+        limLog( pMac, LOGE, FL( "Declined the ADDBA Req for the TID %d  \n" ),
                         frmAddBAReq.AddBAParameterSet.tid);
         status = eSIR_MAC_REQ_DECLINED_STATUS;
         goto returnAfterError;
     }
-    
+
   //
   // Post SIR_HAL_ADDBA_REQ to HAL.
   // If HAL/HDD decide to allow this ADDBA Req session,
@@ -1143,7 +1219,7 @@ __limProcessAddBAReq( tpAniSirGlobal pMac, tANI_U8 *pBd )
         frmAddBAReq.AddBAParameterSet.bufferSize,
         frmAddBAReq.BATimeout.timeout,
         (tANI_U16) frmAddBAReq.BAStartingSequenceControl.ssn,
-        eBA_RECIPIENT ))
+        eBA_RECIPIENT,psessionEntry))
     status = eSIR_MAC_UNSPEC_FAILURE_STATUS;
   else
     return;
@@ -1162,7 +1238,7 @@ returnAfterError:
         (tANI_U8) frmAddBAReq.AddBAParameterSet.tid,
         (tANI_U8) frmAddBAReq.AddBAParameterSet.policy,
         frmAddBAReq.AddBAParameterSet.bufferSize,
-        frmAddBAReq.BATimeout.timeout))
+        frmAddBAReq.BATimeout.timeout,psessionEntry))
   {
     limLog( pMac, LOGW,
         FL( "Failed to post LIM_MLM_ADDBA_RSP to " ));
@@ -1183,8 +1259,8 @@ returnAfterError:
  * \return none
  *
  */
-static void 
-__limProcessAddBARsp( tpAniSirGlobal pMac, tANI_U8 *pBd )
+static void
+__limProcessAddBARsp( tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry)
 {
 tDot11fAddBARsp frmAddBARsp;
 tpSirMacMgmtHdr pHdr;
@@ -1198,7 +1274,7 @@ tANI_U8 *pBody;
   pBody = SIR_MAC_BD_TO_MPDUDATA( pBd );
   frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN( pBd );
 
-  pSta = dphLookupHashEntry( pMac, pHdr->sa, &aid );
+  pSta = dphLookupHashEntry( pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable );
   if( pSta == NULL )
   {
     limLog( pMac, LOGE,
@@ -1261,7 +1337,7 @@ tANI_U8 *pBody;
     goto returnAfterError;
 
   // Change STA state to wait for ADDBA Rsp from HAL
-  LIM_SET_STA_BA_STATE(pSta, frmAddBARsp.AddBAParameterSet.tid, eLIM_BA_STATE_WT_ADD_RSP);  
+  LIM_SET_STA_BA_STATE(pSta, frmAddBARsp.AddBAParameterSet.tid, eLIM_BA_STATE_WT_ADD_RSP);
 
   //
   // Post SIR_HAL_ADDBA_REQ to HAL.
@@ -1276,8 +1352,8 @@ tANI_U8 *pBody;
         (tANI_U8) frmAddBARsp.AddBAParameterSet.policy,
         frmAddBARsp.AddBAParameterSet.bufferSize,
         frmAddBARsp.BATimeout.timeout,
-        0, 
-        eBA_INITIATOR ))
+        0,
+        eBA_INITIATOR,psessionEntry))
     reasonCode = eSIR_MAC_UNSPEC_FAILURE_REASON;
   else
     return;
@@ -1304,7 +1380,7 @@ returnAfterError:
           pSta,
           eBA_INITIATOR,
           (tANI_U8) frmAddBARsp.AddBAParameterSet.tid,
-          reasonCode))
+          reasonCode, psessionEntry))
     {
       limLog( pMac, LOGW,
           FL( "Failed to post LIM_MLM_DELBA_REQ to " ));
@@ -1325,8 +1401,8 @@ returnAfterError:
  * \return none
  *
  */
-static void 
-__limProcessDelBAReq( tpAniSirGlobal pMac, tANI_U8 *pBd )
+static void
+__limProcessDelBAReq( tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry)
 {
 tDot11fDelBAInd frmDelBAInd;
 tpSirMacMgmtHdr pHdr;
@@ -1339,14 +1415,14 @@ tANI_U8 *pBody;
   pBody = SIR_MAC_BD_TO_MPDUDATA( pBd );
   frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN( pBd );
 
-  pSta = dphLookupHashEntry( pMac, pHdr->sa, &aid );
+  pSta = dphLookupHashEntry( pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable );
   if( pSta == NULL )
   {
     limLog( pMac, LOGE, FL( "STA context not found - ignoring DELBA from \n"));
     limPrintMacAddr( pMac, pHdr->sa, LOGW );
     return;
   }
- 
+
   limLog( pMac, LOG1, FL( "DELBA Ind from STA with AID %d\n" ), aid );
 
   // Unpack the received frame
@@ -1393,16 +1469,17 @@ tANI_U8 *pBody;
         pSta,
         (tANI_U8) frmDelBAInd.DelBAParameterSet.tid,
         (eBA_RECIPIENT == frmDelBAInd.DelBAParameterSet.initiator)?
-          eBA_INITIATOR: eBA_RECIPIENT ))
+          eBA_INITIATOR: eBA_RECIPIENT,psessionEntry))
     limLog( pMac, LOGE, FL( "Posting SIR_HAL_DELBA_IND to HAL failed \n"));
 
   return;
 
 }
 
-static void 
-__limProcessSMPowerSaveUpdate(tpAniSirGlobal pMac, tANI_U8 *pBd )
+static void
+__limProcessSMPowerSaveUpdate(tpAniSirGlobal pMac, tANI_U8 *pBd ,tpPESession psessionEntry)
 {
+
 #if 0
         tpSirMacMgmtHdr                           pHdr;
         tDot11fSMPowerSave                    frmSMPower;
@@ -1416,7 +1493,7 @@ __limProcessSMPowerSaveUpdate(tpAniSirGlobal pMac, tANI_U8 *pBd )
         pBody = SIR_MAC_BD_TO_MPDUDATA( pBd );
         frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN( pBd );
 
-        pSta = dphLookupHashEntry(pMac, pHdr->sa, &aid );
+        pSta = dphLookupHashEntry(pMac, pHdr->sa, &aid, &psessionEntry->dph.dphHashTable );
         if( pSta == NULL ) {
             limLog( pMac, LOGE,FL( "STA context not found - ignoring UpdateSM PSave Mode from \n" ));
             limPrintMacAddr( pMac, pHdr->sa, LOGW );
@@ -1446,7 +1523,7 @@ __limProcessSMPowerSaveUpdate(tpAniSirGlobal pMac, tANI_U8 *pBd )
             state = eSIR_HT_MIMO_PS_DYNAMIC;
         else if ((frmSMPower.SMPowerModeSet.PowerSave_En) && (frmSMPower.SMPowerModeSet.Mode ==0))
             state = eSIR_HT_MIMO_PS_STATIC;
-        else if ((frmSMPower.SMPowerModeSet.PowerSave_En == 0) && (frmSMPower.SMPowerModeSet.Mode == 0))  
+        else if ((frmSMPower.SMPowerModeSet.PowerSave_En == 0) && (frmSMPower.SMPowerModeSet.Mode == 0))
             state = eSIR_HT_MIMO_PS_NO_LIMIT;
         else {
             PELOGW(limLog(pMac, LOGW, FL("Received SM Power save Mode update Frame with invalid mode"));)
@@ -1461,13 +1538,123 @@ __limProcessSMPowerSaveUpdate(tpAniSirGlobal pMac, tANI_U8 *pBd )
         /** Update in the HAL Station Table for the Update of the Protection Mode */
         pSta->htMIMOPSState = state;
         limPostSMStateUpdate(pMac,pSta->staIndex, pSta->htMIMOPSState);
+
 #endif
         
 }
-      
 
+#if defined WLAN_FEATURE_VOWIFI
 
+static void
+__limProcessRadioMeasureRequest( tpAniSirGlobal pMac, tANI_U8 *pBd ,tpPESession psessionEntry )
+{
+     tpSirMacMgmtHdr                pHdr;
+     tDot11fRadioMeasurementRequest frm;
+     tANI_U32                       frameLen, nStatus;
+     tANI_U8                        *pBody;
 
+     pHdr = SIR_MAC_BD_TO_MPDUHEADER( pBd );
+     pBody = SIR_MAC_BD_TO_MPDUDATA( pBd );
+     frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN( pBd );
+
+     if( psessionEntry == NULL )
+     {
+          return;
+     }
+
+     /**Unpack the received frame */
+     nStatus = dot11fUnpackRadioMeasurementRequest( pMac, pBody, frameLen, &frm );
+
+     if( DOT11F_FAILED( nStatus )) {
+          limLog( pMac, LOGE, FL( "Failed to unpack and parse a Radio Measure request (0x%08x, %d bytes):\n"),
+                    nStatus, frameLen );
+          PELOG2(sirDumpBuf( pMac, SIR_DBG_MODULE_ID, LOG2, pBody, frameLen );)
+               return;
+     }else if ( DOT11F_WARNED( nStatus ) ) {
+          limLog(pMac, LOGW, FL( "There were warnings while unpacking a Radio Measure request (0x%08x, %d bytes):\n"),
+                    nStatus, frameLen );
+          PELOG2(sirDumpBuf( pMac, SIR_DBG_MODULE_ID, LOG2, pBody, frameLen );)
+     }
+
+     // Call rrm function to handle the request.
+
+     rrmProcessRadioMeasurementRequest( pMac, pHdr->sa, &frm, psessionEntry );
+}
+
+static void
+__limProcessLinkMeasurementReq( tpAniSirGlobal pMac, tANI_U8 *pBd ,tpPESession psessionEntry )
+{
+     tpSirMacMgmtHdr               pHdr;
+     tDot11fLinkMeasurementRequest frm;
+     tANI_U32                      frameLen, nStatus;
+     tANI_U8                       *pBody;
+
+     pHdr = SIR_MAC_BD_TO_MPDUHEADER( pBd );
+     pBody = SIR_MAC_BD_TO_MPDUDATA( pBd );
+     frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN( pBd );
+
+     if( psessionEntry == NULL )
+     {
+          return;
+     }
+
+     /**Unpack the received frame */
+     nStatus = dot11fUnpackLinkMeasurementRequest( pMac, pBody, frameLen, &frm );
+
+     if( DOT11F_FAILED( nStatus )) {
+          limLog( pMac, LOGE, FL( "Failed to unpack and parse a Link Measure request (0x%08x, %d bytes):\n"),
+                    nStatus, frameLen );
+          PELOG2(sirDumpBuf( pMac, SIR_DBG_MODULE_ID, LOG2, pBody, frameLen );)
+               return;
+     }else if ( DOT11F_WARNED( nStatus ) ) {
+          limLog(pMac, LOGW, FL( "There were warnings while unpacking a Link Measure request (0x%08x, %d bytes):\n"),
+                    nStatus, frameLen );
+          PELOG2(sirDumpBuf( pMac, SIR_DBG_MODULE_ID, LOG2, pBody, frameLen );)
+     }
+
+     // Call rrm function to handle the request.
+
+     rrmProcessLinkMeasurementRequest( pMac, pBd, &frm, psessionEntry );
+
+}
+
+static void
+__limProcessNeighborReport( tpAniSirGlobal pMac, tANI_U8 *pBd ,tpPESession psessionEntry )
+{
+     tpSirMacMgmtHdr               pHdr;
+     tDot11fNeighborReportResponse frm;
+     tANI_U32                      frameLen, nStatus;
+     tANI_U8                       *pBody;
+
+     pHdr = SIR_MAC_BD_TO_MPDUHEADER( pBd );
+     pBody = SIR_MAC_BD_TO_MPDUDATA( pBd );
+     frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN( pBd );
+
+     if( psessionEntry == NULL )
+     {
+          return;
+     }
+
+     /**Unpack the received frame */
+     nStatus = dot11fUnpackNeighborReportResponse( pMac, pBody, frameLen, &frm );
+
+     if( DOT11F_FAILED( nStatus )) {
+          limLog( pMac, LOGE, FL( "Failed to unpack and parse a Neighbor report response (0x%08x, %d bytes):\n"),
+                    nStatus, frameLen );
+          PELOG2(sirDumpBuf( pMac, SIR_DBG_MODULE_ID, LOG2, pBody, frameLen );)
+               return;
+     }else if ( DOT11F_WARNED( nStatus ) ) {
+          limLog(pMac, LOGW, FL( "There were warnings while unpacking a Neighbor report response (0x%08x, %d bytes):\n"),
+                    nStatus, frameLen );
+          PELOG2(sirDumpBuf( pMac, SIR_DBG_MODULE_ID, LOG2, pBody, frameLen );)
+     }
+
+     //Call rrm function to handle the request.
+     rrmProcessNeighborReportResponse( pMac, &frm, psessionEntry ); 
+
+}
+
+#endif
 
 /**
  * limProcessActionFrame
@@ -1488,7 +1675,7 @@ __limProcessSMPowerSaveUpdate(tpAniSirGlobal pMac, tANI_U8 *pBd )
  */
 
 void
-limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
+limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEntry)
 {
     tANI_U8 *pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
     tpSirMacActionFrameHdr pActionHdr = (tpSirMacActionFrameHdr) pBody;
@@ -1502,15 +1689,15 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
                 switch (pActionHdr->actionID)
                 {
                     case SIR_MAC_QOS_ADD_TS_REQ:
-                        __limProcessAddTsReq(pMac, (tANI_U8 *) pBd);
+                        __limProcessAddTsReq(pMac, (tANI_U8 *) pBd,psessionEntry);
                         break;
 
                     case SIR_MAC_QOS_ADD_TS_RSP:
-                        __limProcessAddTsRsp(pMac, (tANI_U8 *) pBd);
+                        __limProcessAddTsRsp(pMac, (tANI_U8 *) pBd,psessionEntry);
                         break;
 
                     case SIR_MAC_QOS_DEL_TS_REQ:
-                        __limProcessDelTsReq(pMac, (tANI_U8 *) pBd);
+                        __limProcessDelTsReq(pMac, (tANI_U8 *) pBd,psessionEntry);
                         break;
 
                     default:
@@ -1548,7 +1735,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
                 case SIR_MAC_ACTION_CHANNEL_SWITCH_ID:
                     if (pMac->lim.gLimSystemRole == eLIM_STA_ROLE)
                     {
-                        __limProcessChannelSwitchActionFrame(pMac, pBd);
+                        __limProcessChannelSwitchActionFrame(pMac, pBd,psessionEntry);
                     }
                     break;
                 default:
@@ -1567,15 +1754,15 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
             switch(pActionHdr->actionID)
             {
                 case SIR_MAC_QOS_ADD_TS_REQ:
-                    __limProcessAddTsReq(pMac, (tANI_U8 *) pBd);
+                    __limProcessAddTsReq(pMac, (tANI_U8 *) pBd,psessionEntry);
                     break;
 
                 case SIR_MAC_QOS_ADD_TS_RSP:
-                    __limProcessAddTsRsp(pMac, (tANI_U8 *) pBd);
+                    __limProcessAddTsRsp(pMac, (tANI_U8 *) pBd,psessionEntry);
                     break;
 
                 case SIR_MAC_QOS_DEL_TS_REQ:
-                    __limProcessDelTsReq(pMac, (tANI_U8 *) pBd);
+                    __limProcessDelTsReq(pMac, (tANI_U8 *) pBd,psessionEntry);
                     break;
 
                 default:
@@ -1589,15 +1776,15 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
             switch(pActionHdr->actionID)
             {
               case SIR_MAC_BLKACK_ADD_REQ:
-                __limProcessAddBAReq( pMac, (tANI_U8 *) pBd );
+                __limProcessAddBAReq( pMac, (tANI_U8 *) pBd,psessionEntry);
                 break;
 
               case SIR_MAC_BLKACK_ADD_RSP:
-                __limProcessAddBARsp( pMac, (tANI_U8 *) pBd );
+                __limProcessAddBARsp( pMac, (tANI_U8 *) pBd,psessionEntry);
                 break;
 
               case SIR_MAC_BLKACK_DEL:
-                __limProcessDelBAReq( pMac, (tANI_U8 *) pBd );
+                __limProcessDelBAReq( pMac, (tANI_U8 *) pBd,psessionEntry);
                 break;
 
               default:
@@ -1609,14 +1796,34 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd)
         /** Type of HT Action to be performed*/
         switch(pActionHdr->actionID) {
         case SIR_MAC_SM_POWER_SAVE:
-            __limProcessSMPowerSaveUpdate(pMac, (tANI_U8 *) pBd);
+            __limProcessSMPowerSaveUpdate(pMac, (tANI_U8 *) pBd,psessionEntry);
             break;
         default:
             PELOGE(limLog(pMac, LOGE, FL("Action ID %d not handled in HT Action category\n"), pActionHdr->actionID);)
             break;
-        }           
-        
+        }
         break;
+
+#if defined WLAN_FEATURE_VOWIFI
+    case SIR_MAC_ACTION_RRM:
+        switch(pActionHdr->actionID) {
+           case SIR_MAC_RRM_RADIO_MEASURE_REQ:
+              __limProcessRadioMeasureRequest( pMac, (tANI_U8 *) pBd, psessionEntry );
+              break;
+           case SIR_MAC_RRM_LINK_MEASUREMENT_REQ:
+              __limProcessLinkMeasurementReq( pMac, (tANI_U8 *) pBd, psessionEntry );
+              break;
+           case SIR_MAC_RRM_NEIGHBOR_RPT:   
+              __limProcessNeighborReport( pMac, (tANI_U8*) pBd, psessionEntry );
+              break;
+           default:
+              PELOGE( limLog( pMac, LOGE, FL("Action ID %d not handled in RRM\n"), pActionHdr->actionID);)
+              break;
+
+        }
+        break;
+#endif
+
         default:
             PELOGE(limLog(pMac, LOGE, FL("Action category %d not handled\n"), pActionHdr->category);)
             break;

@@ -37,11 +37,12 @@ limAdmitControlAddTS(
     tpAniSirGlobal          pMac,
     tANI_U8                     *pAddr,
     tSirAddtsReqInfo       *addts,
-    tSirMacQosCapabilityIE *qos,
+    tSirMacQosCapabilityStaIE *qos,
     tANI_U16                     assocId,
     tANI_U8                    alloc,
     tSirMacScheduleIE      *pSch,
-    tANI_U8                   *pTspecIdx //index to the lim tspec table.
+    tANI_U8                   *pTspecIdx ,//index to the lim tspec table.
+    tpPESession psessionEntry
     );
 
 static inline tSirRetStatus

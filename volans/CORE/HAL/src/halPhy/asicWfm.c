@@ -1050,7 +1050,7 @@ const tWaveformSample pWave[1024] = {
 #endif
 
 
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 eHalStatus asicTxFirSetChainBypass(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_BOOLEAN chainBypassEnable)
 {
     switch (txChain)
@@ -1124,8 +1124,6 @@ eHalStatus asicSetupTestWaveform(tpAniSirGlobal pMac, const tWaveformSample *pWa
 
     pMac->hphy.wfm_clk80 = clk80;                   //records what clock sample rate 1 = 80, 0 = 20 MHz
 
-
-    hv_printLog("%s: Entering\n", __FUNCTION__);
     rdModWrAsicField(pMac, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_REG, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_MASK, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_OFFSET, 1);
     rdModWrAsicField(pMac, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_REG, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_APB_MASK, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_APB_OFFSET, 1);
 
@@ -1133,27 +1131,26 @@ eHalStatus asicSetupTestWaveform(tpAniSirGlobal pMac, const tWaveformSample *pWa
 
     {
         tANI_U16 sample = 0;
-        tANI_U32 Samples[MAX_TEST_WAVEFORM_SAMPLES * 2];
+        tANI_U32 Samples[2];
 
         //lower 16 bits goes into even numbered U32 words, and the higher 16 bits goes into the odd numbered U32 words
         for (sample = 0; (sample < numSamples); sample++)
         {
-            Samples[sample * 2] = ((tANI_U32)pWave[sample].I & 0x7FF) | (((tANI_U32)pWave[sample].Q & 0x1F) << 11);  //11 bits for I, 5 LSBs of Q
-            Samples[(sample * 2) + 1] = (((tANI_U32)pWave[sample].Q & 0x7FF) >> 5);
-            Samples[(sample * 2) + 1] = SignExtend(Samples[(sample * 2) + 1], 6) & 0xffff;
+            Samples[0] = ((tANI_U32)pWave[sample].I & 0x7FF) | (((tANI_U32)pWave[sample].Q & 0x1F) << 11);  //11 bits for I, 5 LSBs of Q
+            Samples[1] = (((tANI_U32)pWave[sample].Q & 0x7FF) >> 5);
+            Samples[1] = SignExtend(Samples[1], 6) & 0xffff;
 
-            SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_DBGMEM_MREG + (sample * 8), Samples[sample * 2]);
-            SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_DBGMEM_MREG + ((sample * 8) + 4), Samples[(sample * 2) + 1]);
+            SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_DBGMEM_MREG + (sample * 8), Samples[0]);
+            SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_DBGMEM_MREG + ((sample * 8) + 4), Samples[1]);
             //phyLog(LOGE, "I=%d        Q=%d\n", pWave[sample].I, pWave[sample].Q);
         }
 
         //SET_PHY_MEMORY(pMac->hHdd, QWLAN_PHYDBG_DBGMEM_MREG, Samples, numSamples * 2);
     }
-    hv_printLog("%s: Exiting\n", __FUNCTION__);
 
     return (retVal);
 }
-#ifdef ANI_MANF_DIAG
+#ifndef WLAN_FTM_STUB
 #ifndef VERIFY_HALPHY_SIMV_MODEL
 
 tANI_BOOLEAN playing_wfm = eANI_BOOLEAN_FALSE;
@@ -1520,5 +1517,5 @@ eHalStatus asicStopTestWaveform(tpAniSirGlobal pMac)
 
     return retVal;
 }
-#endif
-#endif
+#endif //SIMV_MODEL
+#endif //FTM

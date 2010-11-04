@@ -301,7 +301,7 @@ eHalStatus halDXE_Open(tHalHandle hHalHandle,  void *arg)
     eHalStatus status = eHAL_STATUS_FAILURE;
     
     /* Allocate HalDxe */
-    status = palAllocateMemory(pMac->hHdd, ((void *)&pMac->hal.pHalDxe), sizeof(tAniHalDxe));
+    status = palAllocateMemory(pMac->hHdd, ((void **)&pMac->hal.pHalDxe), sizeof(tAniHalDxe));
     if (eHAL_STATUS_SUCCESS != status){
         HALLOGW( halLog(pMac, LOGW, FL("DxE Open failed\n")));
         return status;
