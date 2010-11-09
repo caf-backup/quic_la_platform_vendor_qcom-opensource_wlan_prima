@@ -530,7 +530,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  psessionEntry->dtimPeriod = pSmeStartBssReq->dtimPeriod;
                  /*Enable/disable UAPSD*/  
                  psessionEntry->apUapsdEnable = pSmeStartBssReq->apUapsdEnable;
-                 psessionEntry->probe_rsp_template_set = 0;
+                 psessionEntry->proxyProbeRspEn = 1;
                  psessionEntry->ssidHidden = pSmeStartBssReq->ssidHidden;
                  psessionEntry->wps_state = pSmeStartBssReq->wps_state;
                  break;

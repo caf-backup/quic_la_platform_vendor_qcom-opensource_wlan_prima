@@ -110,14 +110,14 @@ eHalStatus halPhyClose(tHalHandle hHal)
 
 eHalStatus halPhyFwInitDone(tHalHandle hHal)
 {
-    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
+    //tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
 
-    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
-    {
-        //for FTM driver leave init_gain at 74 as suggested by James
-        SET_PHY_REG(pMac->hHdd, QWLAN_AGC_INIT_GAIN_REG, 74);
-    }
+    //if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    //{
+    //    //for FTM driver leave init_gain at 74 as suggested by James
+    //    SET_PHY_REG(pMac->hHdd, QWLAN_AGC_INIT_GAIN_REG, 74);
+    //}
 
     return retVal;
 
@@ -304,7 +304,7 @@ tANI_U8 halPhyQueryNumRxChains(ePhyChainSelect phyRxTxAntennaMode)
         case PHY_CHAIN_SEL_R0_ON:
         case PHY_CHAIN_SEL_T0_R1_ON:
         case PHY_CHAIN_SEL_R1_ON:
-        case PHY_CHAIN_SEL_BT_R0_T0_ON:      
+        case PHY_CHAIN_SEL_BT_R0_T0_ON:
             return (1);
         case PHY_CHAIN_SEL_R0R1_T0_ON:
         case PHY_CHAIN_SEL_R0R1_ON:
@@ -1006,13 +1006,13 @@ eHalStatus halPhyAGCEnableListenMode(tHalHandle hHal, tANI_U8 EDETThreshold)
     tANI_U16   rf_ant_en = 1, number = 0, cw_detect_dis = 1, val;
     tANI_U16   bbf_sat5_egy_thres_in, bbf_sat5_egy_thres_man = 0;
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-    
+
     assert(pMac != 0);
-        
-    // get the RX antenna info to determine value of rf_ant_en  
+
+    // get the RX antenna info to determine value of rf_ant_en
     val = (tANI_U16) halPhyQueryNumRxChains(pMac->hphy.phy.cfgChains);
     switch(val)
-    { 
+    {
         case 1:
            rf_ant_en = RF_ANT_EN_MASK_FOR_1_RX; 
            break;
@@ -1027,11 +1027,11 @@ eHalStatus halPhyAGCEnableListenMode(tHalHandle hHal, tANI_U8 EDETThreshold)
     // configure register AGC_N_LISTEN_REG
     val = ((rf_ant_en << QWLAN_AGC_N_LISTEN_RF_ANT_EN_OFFSET) | (number << QWLAN_AGC_N_LISTEN_NUMBER_OFFSET));
     SET_PHY_REG(pMac->hHdd, QWLAN_AGC_N_LISTEN_REG, val);
-    
-    // configure register AGC_N_CAPTURE_REG 
+
+    // configure register AGC_N_CAPTURE_REG
     val = ((rf_ant_en << QWLAN_AGC_N_CAPTURE_RF_ANT_EN_OFFSET) | (number << QWLAN_AGC_N_CAPTURE_NUMBER_OFFSET));
     SET_PHY_REG(pMac->hHdd, QWLAN_AGC_N_CAPTURE_REG, val);
-    
+
     // configure register AGC_CW_DETECT_REG
     retVal = rdModWrAsicField( pMac, QWLAN_AGC_CW_DETECT_REG, QWLAN_AGC_CW_DETECT_DIS_MASK,
                                QWLAN_AGC_CW_DETECT_DIS_OFFSET, cw_detect_dis);
@@ -1051,24 +1051,24 @@ eHalStatus halPhyAGCDisableListenMode(tHalHandle hHal)
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
     tANI_U16   rf_ant_en = 0, number, cw_detect_dis = 0, val;
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-    
+
     assert(pMac != 0);
 
     // configure register AGC_N_LISTEN_REG
     number = (tANI_U16) halPhyQueryNumRxChains(pMac->hphy.phy.cfgChains);
     val = ((rf_ant_en << QWLAN_AGC_N_LISTEN_RF_ANT_EN_OFFSET) | (number << QWLAN_AGC_N_LISTEN_NUMBER_OFFSET));
     SET_PHY_REG(pMac->hHdd, QWLAN_AGC_N_LISTEN_REG, val);
-     
-    // configure register AGC_N_CAPTURE_REG 
+
+    // configure register AGC_N_CAPTURE_REG
     val = ((rf_ant_en << QWLAN_AGC_N_CAPTURE_RF_ANT_EN_OFFSET) | (number << QWLAN_AGC_N_CAPTURE_NUMBER_OFFSET));
     SET_PHY_REG(pMac->hHdd, QWLAN_AGC_N_CAPTURE_REG, val);
-    
+
     // configure register AGC_CW_DETECT_REG
     retVal = rdModWrAsicField( pMac, QWLAN_AGC_CW_DETECT_REG, QWLAN_AGC_CW_DETECT_DIS_MASK,
                                QWLAN_AGC_CW_DETECT_DIS_OFFSET, cw_detect_dis);
-             
-    // configure register RFAPB_BBF_SAT5_REG 
-    val = ((QWLAN_RFAPB_BBF_SAT5_EGY_THRES_MAN_DEFAULT << QWLAN_RFAPB_BBF_SAT5_EGY_THRES_MAN_OFFSET) | 
+
+    // configure register RFAPB_BBF_SAT5_REG
+    val = ((QWLAN_RFAPB_BBF_SAT5_EGY_THRES_MAN_DEFAULT << QWLAN_RFAPB_BBF_SAT5_EGY_THRES_MAN_OFFSET) |
           (QWLAN_RFAPB_BBF_SAT5_EGY_THRES_IN_DEFAULT  << QWLAN_RFAPB_BBF_SAT5_EGY_THRES_IN_OFFSET));
     SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_BBF_SAT5_REG, val);
 

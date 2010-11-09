@@ -290,21 +290,15 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
 
 #ifdef WLAN_SOFTAP_FEATURE
 
-    if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+    if( (psessionEntry->limSystemRole == eLIM_AP_ROLE ) 
+        && (psessionEntry->proxyProbeRspEn)
+        && (pMac->sch.schObject.fBeaconChanged))
     {
-        if(!psessionEntry->probe_rsp_template_set || pMac->sch.schObject.fBeaconChanged )
+        if(eSIR_FAILURE == limSendProbeRspTemplateToHal(pMac,psessionEntry,
+                                    &psessionEntry->DefProbeRspIeBitmap[0]))
         {
-            if(eSIR_FAILURE == limSendProbeRspTemplateToHal(pMac,psessionEntry,
-                                        &psessionEntry->DefProbeRspIeBitmap[0]))
-            {
-                /* check whether we have to free any memory */
-                schLog(pMac, LOGE, FL("limSendProbeRspMgmtFrame: FAILED to send probe response template of bytes %d\n"),beaconParams->beaconLength);
-            }
-            else
-            {
-                /* Need to decide, if this should be done with any flag/feature check */
-                psessionEntry->probe_rsp_template_set = 1;
-            }
+            /* check whether we have to free any memory */
+            schLog(pMac, LOGE, FL("limSendProbeRspMgmtFrame: FAILED to send probe response template of bytes %d\n"),beaconParams->beaconLength);
         }
     }
 #endif

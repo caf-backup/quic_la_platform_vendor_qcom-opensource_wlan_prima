@@ -486,6 +486,11 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
     {
         return(retVal);
     }
+    if ((preamble == PHYDBG_PREAMBLE_SHORTB) || (preamble == PHYDBG_PREAMBLE_LONGB))
+    {
+        //For "11b sparking" issue, use a different ramp up time for sending 11b packets
+        SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_RAMP_UP_REG, 100);
+    }
 
     {   //set interframe spacing and warmup_delay
         int ifsSetting = 10;
@@ -1058,6 +1063,9 @@ eHalStatus asicPhyDbgStopFrameGen(tpAniSirGlobal pMac)
     }
 
     // SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_RAMP_UP_REG, 0);
+    //For "11b sparking" issue, use a different ramp up time for sending 11b packets alone
+    SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_RAMP_UP_REG, QWLAN_TXCTL_RAMP_UP_DEFAULT);
+
     // SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_RAMP_DOWN_REG, 51);
 
     SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_RST1_REG, 0);        // may write 1 as well, this write access will reset the playback

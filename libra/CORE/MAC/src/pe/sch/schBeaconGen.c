@@ -96,6 +96,9 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     tDot11fBeacon2  bcn2;
     tANI_U32        i, nStatus, nBytes;
     tANI_U32        wpsApEnable=0, tmp;
+#ifdef WLAN_SOFTAP_FEATURE
+    tDot11fIEWscProbeRes      WscProbeRes;
+#endif
 
     PELOG1(schLog(pMac, LOG1, FL("Setting fixed beacon fields\n"));)
 
@@ -144,7 +147,8 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
     ptr    = pMac->sch.schObject.gSchBeaconFrameBegin + offset;
 
 #ifdef WLAN_SOFTAP_FEATURE
-    if((psessionEntry->limSystemRole == eLIM_AP_ROLE) && !psessionEntry->probe_rsp_template_set)
+    if((psessionEntry->limSystemRole == eLIM_AP_ROLE) 
+        && (psessionEntry->proxyProbeRspEn))
     {
         /* Initialize the default IE bitmap to zero */
         palZeroMemory( pMac->hHdd, ( tANI_U8* )&(psessionEntry->DefProbeRspIeBitmap), (sizeof( tANI_U32 ) * 8));
@@ -283,11 +287,34 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
 #endif
 
 #ifdef WLAN_SOFTAP_FEATURE
-    if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+    if((psessionEntry->limSystemRole == eLIM_AP_ROLE) 
+        && (psessionEntry->proxyProbeRspEn))
     {
         /* Can be efficiently updated whenever new IE added  in Probe response in future */
         limUpdateProbeRspTemplateIeBitmapBeacon2(pMac,&bcn2,&psessionEntry->DefProbeRspIeBitmap[0],
                                                 &psessionEntry->probeRespFrame);
+
+        /* update probe response WPS IE instead of beacon WPS IE
+        * */
+        if(psessionEntry->wps_state != SAP_WPS_DISABLED)
+        {
+
+            if(psessionEntry->APWPSIEs.SirWPSProbeRspIE.FieldPresent)
+            {
+                WscProbeRes.present = psessionEntry->APWPSIEs.SirWPSProbeRspIE.FieldPresent;
+                PopulateDot11fProbeResWPSIEs(pMac, &WscProbeRes, psessionEntry);
+            }
+
+            if(WscProbeRes.present)
+            {
+                SetProbeRspIeBitmap(&psessionEntry->DefProbeRspIeBitmap[0],SIR_MAC_WPA_EID);
+                palCopyMemory(pMac->hHdd,
+                            (void *)&psessionEntry->probeRespFrame.WscProbeRes,
+                            (void *)&WscProbeRes,
+                            sizeof(WscProbeRes));
+            }
+        }
+
     }
 #endif
 
@@ -437,18 +464,38 @@ void limUpdateProbeRspTemplateIeBitmapBeacon2(tpAniSirGlobal pMac,
     }
     /* Vendor specific - currently no vendor specific IEs added */
     /* Requested IEs - currently we are not processing this will be added later */
+    //HT capability IE
     if(beacon2->HTCaps.present)
     {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_HT_CAPABILITIES_EID);
         palCopyMemory(pMac->hHdd,(void *)&prb_rsp->HTCaps,
                             (void *)&beacon2->HTCaps,
                             sizeof(beacon2->HTCaps));
     }
+    // HT Info IE
     if(beacon2->HTInfo.present)
     {
-
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_HT_INFO_EID);
         palCopyMemory(pMac->hHdd,(void *)&prb_rsp->HTInfo,
                             (void *)&beacon2->HTInfo,
                             sizeof(beacon2->HTInfo));
+    }
+
+    //WMM IE
+    if(beacon2->WMMParams.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_WPA_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->WMMParams,
+                            (void *)&beacon2->WMMParams,
+                            sizeof(beacon2->WMMParams));
+    }
+    //WMM capability - most of the case won't be present
+    if(beacon2->WMMCaps.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_WPA_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->WMMCaps,
+                            (void *)&beacon2->WMMCaps,
+                            sizeof(beacon2->WMMCaps));
     }
 
 }

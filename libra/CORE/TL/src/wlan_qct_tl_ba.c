@@ -188,8 +188,19 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
    }
 
    wRxMetaInfo.ucUP = ucTID;
-   pTLHandle->atlSTAClients[ucSTAID].pfnSTARx(expireHandle->pAdapter,
-                                            vosDataBuff, ucSTAID, &wRxMetaInfo);
+#ifdef WLAN_SOFTAP_FEATURE  
+   if( WLAN_STA_SOFTAP == pTLHandle->atlSTAClients[ucSTAID].wSTADesc.wSTAType)
+   {
+      WLANTL_FwdPktToHDD( expireHandle->pAdapter, vosDataBuff, ucSTAID, 0xFF,
+                                            &wRxMetaInfo );
+   }
+   else
+#endif
+   {
+
+      pTLHandle->atlSTAClients[ucSTAID].pfnSTARx(expireHandle->pAdapter,
+                                           vosDataBuff, ucSTAID, &wRxMetaInfo);
+   }
    if(!VOS_IS_STATUS_SUCCESS(vos_lock_release(&ReorderInfo->reorderLock)))
    {
       TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_ReorderingAgingTimerExpierCB, Release LOCK Fail"));
@@ -351,7 +362,7 @@ WLANTL_BaSessionAdd
       pTLCb->reorderBufferPool[idx].isAvailable = VOS_FALSE;
       TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"%dth buffer avaialable, buffer PTR 0x%p",
                   idx,
-                  pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].reorderBuffer,
+                  pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].reorderBuffer
                   ));
       break;
     }
@@ -1486,7 +1497,7 @@ VOS_STATUS WLANTL_ChainFrontPkts
          }
          TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"Slot Index %d, set as NULL, Pending Frames %d",
                      idx  % pwBaReorder->winSize,
-                     pwBaReorder->pendingFramesCount,
+                     pwBaReorder->pendingFramesCount
                      ));
          pwBaReorder->ucCIndex = (idx + 1) % pwBaReorder->winSize;
       }
@@ -1497,7 +1508,7 @@ VOS_STATUS WLANTL_ChainFrontPkts
       }
       TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"Current Index %d, winSize %d",
                   pwBaReorder->ucCIndex,
-                  pwBaReorder->winSize,
+                  pwBaReorder->winSize
                   ));
    }
 

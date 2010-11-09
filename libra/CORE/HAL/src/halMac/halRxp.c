@@ -764,14 +764,16 @@ eHalStatus halRxp_Start(tHalHandle hHal, void *arg)
 
     halRxp_setFilterMask(pMac, rxpFilterTable_AllMode, 0);
 
+#ifndef WLAN_FTM_STUB
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
         // Initialize rxpMode to FTM mode
         //halRxp_setRxpFilterMode(pMac, eRXP_FTM_MODE, NULL);
-    	 halRxp_setSystemRxpFilterMode(pMac, eRXP_IDLE_MODE, 
+        halRxp_setSystemRxpFilterMode(pMac, eRXP_FTM_MODE, 
             eHAL_USE_GLOBAL_AND_BSS_RXP);    
     }
     else
+#endif        
     {
     // Initialize rxpMode to IDLE mode
     //halRxp_setRxpFilterMode(pMac, eRXP_IDLE_MODE, NULL);
@@ -1081,6 +1083,7 @@ static eHalStatus halRxp_config_control_reg(tpAniSirGlobal pMac)
     tANI_U32 cfgValue;
 
     // Program the CONFIG2 register
+#ifndef WLAN_FTM_STUB        
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)
     {    
     cfgValue = QWLAN_RXP_CONFIG2_CFG_BD_DPU_SOFTMACFIELDS_UPDATE_ENABLE_MASK |
@@ -1095,6 +1098,7 @@ static eHalStatus halRxp_config_control_reg(tpAniSirGlobal pMac)
                     //RXP_CONFIG2_CFG_MPDU_PROC_WAIT_FOR_IDLE_FILTER_ENABLED_MASK  <** FIXME: Check if we require this ? */
     }
     else
+#endif        
     {
         cfgValue = QWLAN_RXP_CONFIG2_CFG_BD_DPU_SOFTMACFIELDS_UPDATE_ENABLE_MASK |
                 QWLAN_RXP_CONFIG2_CFG_RPE_INTERFACE_ENABLE_MASK |
@@ -1238,6 +1242,7 @@ static eHalStatus halRxp_setFilterMask(tpAniSirGlobal pMac, tRxpFilterConfig *ta
         else
             regValue = rsvd;
 
+#ifndef WLAN_FTM_STUB
         if(pMac->gDriverType == eDRIVER_TYPE_MFG)
         {
             if (frameType == eDATA_DATA || frameType == eDATA_QOSDATA)
@@ -1245,6 +1250,7 @@ static eHalStatus halRxp_setFilterMask(tpAniSirGlobal pMac, tRxpFilterConfig *ta
                 regValue = regValue | RXP_ADDR2_ACCEPT_REMAIN | RXP_ADDR1_BLOCK_BROADCAST | RXP_ADDR1_BLOCK_MULTICAST | RXP_DROP_AT_DMA;
             }
         }
+#endif        
         status = halRxp_setFrameFilterMask(pMac, frameType, regValue);
         if(status != eHAL_STATUS_SUCCESS)
         {
@@ -3196,11 +3202,13 @@ static void halRxp_GetRegValRxpMode(tpAniSirGlobal pMac,
             *regHi = rxpDisableFrameStaBTAMPPostAssocModeHi;
             break;
 
+#ifndef WLAN_FTM_STUB
 		case eRXP_FTM_MODE:
             HALLOG1( halLog(pMac, LOG1, FL("RXP filter to FTM mode \n")));
             *regLo = rxpDisableFrameFtmModeLow;
             *regHi = rxpDisableFrameFtmModeHi;
             break;
+#endif
 
         default:
             HALLOGE( halLog(pMac, LOGE, "ERROR : Unknown mode specified (%d)\n", 
@@ -3411,6 +3419,9 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
                 // Apply the RXP type/subtype settings.
                 setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
             
+                maskValue = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3);
+                halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, maskValue);
+            
             maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
             halRxp_setFrameFilterMask(pMac, eDATA_DATA, maskValue);
             halRxp_setFrameFilterMask(pMac, eDATA_NULL, maskValue);
@@ -3421,9 +3432,16 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
         case eRXP_PROMISCUOUS_MODE:
         case eRXP_LEARN_MODE:
         case eRXP_POWER_SAVE_MODE:
+		break;
         case eRXP_IBSS_MODE:
+                maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);
+                halRxp_setFrameFilterMask(pMac, eMGMT_BEACON, maskValue);
+		break;
         case eRXP_BTAMP_AP_MODE:
         case eRXP_BTAMP_STA_MODE:
+#ifndef WLAN_FTM_STUB
+        case eRXP_FTM_MODE:
+#endif
             break;
         default:
             break;
@@ -3463,6 +3481,11 @@ tANI_U32 halRxp_getFrameFilterMaskForMode (tpAniSirGlobal pMac, tANI_U32 rxpMode
         case eRXP_AP_MODE:
             maskValue = (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_FILTER|RXP_ADDR1_ACCEPT_MULTICAST|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3|RXP_FCS|RXP_FRAME_TRANSLATION);
             break;
+
+        case eRXP_IBSS_MODE:
+            maskValue = (RXP_VERSION|RXP_NAV_SET|RXP_FCS|RXP_ADDR1_FILTER|RXP_ACCEPT_ALL_ADDR2|RXP_ACCEPT_ALL_ADDR3);
+            break;
+	
 
         default:
             HALLOGE( halLog(pMac, LOGE, "ERROR : Unknown mode specified (%d)\n", 

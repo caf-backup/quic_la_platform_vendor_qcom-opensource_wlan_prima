@@ -2385,7 +2385,7 @@ sendIndToSme:
      * BTAMP, we're directly adding station before waiting for
      * SME_ASSOC_CNF, so we can do this now.  
      */
-    if (!updateContext)
+         if (!updateContext)
     {
         pStaDs->mlmStaContext.updateContext = 0;
 
@@ -2404,7 +2404,6 @@ sendIndToSme:
         pStaDs->mlmStaContext.updateContext = 1;
 
 #ifdef WLAN_SOFTAP_FEATURE
-        pStaDs->shortPreambleEnabled = pAssocReq->capabilityInfo.shortPreamble;
         mlmPrevState = pStaDs->mlmStaContext.mlmState;
 
         /* As per the HAL/FW needs the reassoc req need not be calling limDelSta */
@@ -2442,6 +2441,8 @@ sendIndToSme:
 #endif
 
     }
+    pStaDs->shortPreambleEnabled = pAssocReq->capabilityInfo.shortPreamble;
+    pStaDs->shortSlotTimeEnabled = pAssocReq->capabilityInfo.shortSlotTime;
 
     return;
 

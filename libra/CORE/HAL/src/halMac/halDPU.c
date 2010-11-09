@@ -2235,7 +2235,8 @@ static eHalStatus halDpu_GetDpuMICErrorInfoFromBD(tpAniSirGlobal pMac, tpHalRxBd
     palCopyMemory(pMac->hHdd, pMicInfo->srcMacAddr, sa, sizeof(tSirMacAddr));
     palCopyMemory(pMac->hHdd, pMicInfo->taMacAddr, ta, sizeof(tSirMacAddr));
     palCopyMemory(pMac->hHdd, pMicInfo->dstMacAddr, da, sizeof(tSirMacAddr));
-
+    palCopyMemory(pMac->hHdd, pMicInfo->rxMacAddr, pHdr->addr1, sizeof(tSirMacAddr));
+    
     HALLOG1( halLog( pMac, LOG1, FL("DPU MIC ERROR SRC MAC ADDR [%x]:[%x]:[%x]:[%x]:[%x]:[%x]\n"), sa[5], sa[4], sa[3], sa[2], sa[1], sa[0]));
     HALLOG1( halLog( pMac, LOG1, FL("DPU MIC ERROR TRANSMIT MAC ADDR [%x]:[%x]:[%x]:[%x]:[%x]:[%x]\n"), ta[5], ta[4], ta[3], ta[2], ta[1], ta[0]));
     HALLOG1( halLog( pMac, LOG1, FL("DPU MIC ERROR DST MAC ADDR [%x]:[%x]:[%x]:[%x]:[%x]:[%x]\n"), da[5], da[4], da[3], da[2], da[1], da[0]));
@@ -2278,6 +2279,7 @@ void halDpu_MICErrorIndication(tpAniSirGlobal pMac)
     eHalStatus status;
     tHalRxBd   *pDpuErrorBD;
     tpSirSmeMicFailureInd pMicInd;
+    tBssSystemRole BssSystemRole = eSYSTEM_UNKNOWN_ROLE;
 
     /** Allocating for two BD/PDU just in case if the MPDU Header+Data dosent fit in BD.*/
     status = palAllocateMemory( pMac->hHdd, (void **) &pDpuErrorBD, HAL_BD_SIZE * 2);
@@ -2328,7 +2330,7 @@ void halDpu_MICErrorIndication(tpAniSirGlobal pMac)
         msg.reserved = 0;
         msg.bodyval = 0;
         msg.bodyptr = pMicInd;
-        
+
 #if defined(ANI_OS_TYPE_LINUX) && defined(ANI_LITTLE_BYTE_ENDIAN)
         sirStoreU16N((tANI_U8 *) &pMicInd->messageType, eWNI_SME_MIC_FAILURE_IND);
         sirStoreU16N((tANI_U8 *) &pMicInd->length, sizeof(tSirSmeMicFailureInd));
@@ -2336,7 +2338,17 @@ void halDpu_MICErrorIndication(tpAniSirGlobal pMac)
         pMicInd->messageType = eWNI_SME_MIC_FAILURE_IND;
         pMicInd->length = sizeof(tSirSmeMicFailureInd);    // len in bytes
 #endif
-        palCopyMemory(pMac->hHdd, pMicInd->bssId,pMicInd->info.taMacAddr,sizeof(tSirMacAddr));
+
+        BssSystemRole = halGetBssSystemRoleFromStaIdx(pMac, pDpuErrorBD->addr2Index);
+
+        if(BssSystemRole == eSYSTEM_AP_ROLE)
+        {
+            palCopyMemory(pMac->hHdd, pMicInd->bssId, pMicInd->info.rxMacAddr,sizeof(tSirMacAddr));
+        } else
+        {   
+            palCopyMemory(pMac->hHdd, pMicInd->bssId,pMicInd->info.taMacAddr,sizeof(tSirMacAddr));            
+        }
+        
         HALLOGE( halLog( pMac, LOGE, FL("Posting DPU MIC Error to HDD!!\n")));
         if (halMmhPostMsgApi(pMac, &msg, eHI_PRI) != eSIR_SUCCESS)
         {

@@ -1520,6 +1520,8 @@ VOS_STATUS WLANSSC_Start
 
   pControlBlock->stClientCbacks.pfnTxCompleteCback = 
     pStartParams->pfnTxCompleteCback;
+  
+  gWLANSSC_TxMsgCnt = 0;
 
   /* Execute the actual event which triggers the start procedure           */
   if( VOS_STATUS_SUCCESS != WLANSSC_ExecuteEvent( pControlBlock, 

@@ -387,9 +387,21 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     // Timestamp to be updated by TFP, below.
 
     // Beacon Interval:
-    CFG_LIM_GET_INT_NO_STATUS( nSirStatus, pMac,
-                               WNI_CFG_BEACON_INTERVAL, cfg );
-    frm.BeaconInterval.interval = ( tANI_U16 ) cfg;
+#ifdef WLAN_SOFTAP_FEATURE
+    if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+    {
+        frm.BeaconInterval.interval = pMac->sch.schObject.gSchBeaconInterval;        
+    }
+    else
+    {
+#endif
+        CFG_LIM_GET_INT_NO_STATUS( nSirStatus, pMac,
+                                   WNI_CFG_BEACON_INTERVAL, cfg );
+        frm.BeaconInterval.interval = ( tANI_U16 ) cfg;
+#ifdef WLAN_SOFTAP_FEATURE
+    }
+#endif
+
 
     PopulateDot11fCapabilities( pMac, &frm.Capabilities, psessionEntry );
     PopulateDot11fSSID( pMac, ( tSirMacSSid* )pSsid, &frm.SSID );

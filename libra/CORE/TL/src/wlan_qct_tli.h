@@ -1710,6 +1710,46 @@ void WLANTL_PowerStateChangedCB
    tPmcState newState
 );
 
+#ifdef WLAN_SOFTAP_FEATURE
+/*==========================================================================
+  FUNCTION   WLANTL_FwdPktToHDD 
 
+  DESCRIPTION
+    Determine the Destation Station ID and route the Frame to Upper Layer
 
+  DEPENDENCIES
+
+  PARAMETERS
+
+   IN
+   pvosGCtx:       pointer to the global vos context; a handle to TL's
+                   control block can be extracted from its context
+   ucSTAId:        identifier of the station being processed
+   ucDesSTAId:      identifier of the station Packet is destined too.
+   vosDataBuff:   pointer to the rx vos buffer
+   wRxMetaInfo:   MetaInfo which holds User Priority which is passed to upper Layer
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_INVAL:   invalid input parameters
+    VOS_STATUS_E_FAULT:   pointer to TL cb is NULL ; access would cause a
+                          page fault
+    VOS_STATUS_SUCCESS:   Everything is good :)
+
+  SIDE EFFECTS
+
+============================================================================*/
+
+VOS_STATUS
+WLANTL_FwdPktToHDD
+(
+  v_PVOID_t       pvosGCtx,
+  vos_pkt_t*     pvosDataBuff,
+  v_U8_t          ucSTAId,
+  v_U8_t          ucDesSTAId,
+  WLANTL_RxMetaInfoType*    wRxMetaInfo
+);
+
+#endif /* #ifdef WLANTL_SOFTAP_FEATURE */
 #endif /* #ifndef WLAN_QCT_TLI_H */

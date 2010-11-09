@@ -22,7 +22,7 @@
 typedef enum
 {
     NV_FIELDS_IMAGE                 = 0,    //contains all fields
-    NV_TABLE_QFUSE                  = 1,    //this table contains NV_TABLE_TPC_CONFIG and NV_TABLE_RX_GAIN_SHIFT, 
+    NV_TABLE_QFUSE                  = 1,    //this table contains NV_TABLE_TPC_CONFIG and NV_TABLE_RX_GAIN_SHIFT,
                                                 // and can not be directly read or written, only stored
     NV_TABLE_RATE_POWER_SETTINGS    = 2,
     NV_TABLE_REGULATORY_DOMAINS     = 3,
@@ -34,7 +34,8 @@ typedef enum
 
     NUM_NV_TABLE_IDS,
     NV_ALL_TABLES                   = 0xFFF,
-    NV_BINARY_IMAGE                 = 0x1000
+    NV_BINARY_IMAGE                 = 0x1000,
+    NV_MAX_TABLE                    = 0xFFFFFFFF  /* define as 4 bytes data */
 }eNvTable;
 
 #define NV_FIELD_COUNTRY_CODE_SIZE  3
@@ -52,7 +53,7 @@ typedef union
     sRegulatoryDomains          regDomains[NUM_REG_DOMAINS];                    // NV_TABLE_REGULATORY_DOMAINS
     sDefaultCountry             defaultCountryTable;                            // NV_TABLE_DEFAULT_COUNTRY
     tTpcConfig                  tpcConfig[MAX_TPC_CHANNELS];                    // NV_TABLE_TPC_CONFIG
-    sTpcFreqCalTable            tpcFreqCal;                                     // NV_TABLE_TPC_CONFIG 
+    sTpcFreqCalTable            tpcFreqCal;                                     // NV_TABLE_TPC_CONFIG
                                  //tpcFreqCal is compiled into pttApi.h where the cal data is converted from float to t2decimal
                                  //it shares the same enum value, but the structure is converted in pttModule to tTpcConfig
     sRfNvCalValues              rfCalValues;                                    // NV_TABLE_RF_CAL_VALUES

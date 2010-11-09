@@ -4395,6 +4395,11 @@ void limProcessMlmHalAddBARsp( tpAniSirGlobal pMac,
     //now LIM can process any defer message.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
 
+    if (pAddBAParams == NULL) {
+        PELOGE(limLog(pMac, LOGE,FL("NULL ADD BA Response from HAL\n"));)
+        return;
+    }
+
     if((psessionEntry = peFindSessionBySessionId(pMac, pAddBAParams->sessionId))==NULL)
     {
         PELOGE(limLog(pMac, LOGE,FL("session does not exist for given sessionID: %d\n"),pAddBAParams->sessionId );)

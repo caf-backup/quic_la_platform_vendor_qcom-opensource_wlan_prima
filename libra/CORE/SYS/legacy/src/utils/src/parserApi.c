@@ -732,9 +732,12 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
 #ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
     union {
         tANI_U16         nCfgValue16;
-        tSirMacHTInfoField2 infoField2;
         tSirMacHTInfoField3 infoField3;
     }uHTInfoField;
+    union {
+        tANI_U16         nCfgValue16;
+        tSirMacHTInfoField2 infoField2;
+    }uHTInfoField2;
 #else
     tANI_U16            htInfoField3;
     tSirMacHTInfoField3 *pHTInfoField3;
@@ -765,13 +768,13 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE ){
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_HT_INFO_FIELD2, nCfgValue );
 
-    uHTInfoField.nCfgValue16 = nCfgValue & 0xFFFF; // this is added for fixing CRs on MDM9K platform - 257951, 259577
+    uHTInfoField2.nCfgValue16 = nCfgValue & 0xFFFF; // this is added for fixing CRs on MDM9K platform - 257951, 259577
 
-    uHTInfoField.infoField2.opMode   =  psessionEntry->htOperMode;
-    uHTInfoField.infoField2.nonGFDevicesPresent = psessionEntry->gHTNonGFDevicesPresent;
-    uHTInfoField.infoField2.obssNonHTStaPresent = psessionEntry->gHTObssMode;	/*added for Obss  */
+    uHTInfoField2.infoField2.opMode   =  psessionEntry->htOperMode;
+    uHTInfoField2.infoField2.nonGFDevicesPresent = psessionEntry->gHTNonGFDevicesPresent;
+    uHTInfoField2.infoField2.obssNonHTStaPresent = psessionEntry->gHTObssMode;	/*added for Obss  */
 
-    uHTInfoField.infoField2.reserved = 0;
+    uHTInfoField2.infoField2.reserved = 0;
 
    }else{
 #endif
@@ -824,10 +827,10 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     pDot11f->serviceIntervalGranularity    = pHTInfoField1->serviceIntervalGranularity;
 
 #ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
-    pDot11f->opMode                        = uHTInfoField.infoField2.opMode;
-    pDot11f->nonGFDevicesPresent           = uHTInfoField.infoField2.nonGFDevicesPresent;
-    pDot11f->obssNonHTStaPresent           = uHTInfoField.infoField2.obssNonHTStaPresent;
-    pDot11f->reserved                      = uHTInfoField.infoField2.reserved;
+    pDot11f->opMode                        = uHTInfoField2.infoField2.opMode;
+    pDot11f->nonGFDevicesPresent           = uHTInfoField2.infoField2.nonGFDevicesPresent;
+    pDot11f->obssNonHTStaPresent           = uHTInfoField2.infoField2.obssNonHTStaPresent;
+    pDot11f->reserved                      = uHTInfoField2.infoField2.reserved;
 
 #else
     pDot11f->opMode                        = pHTInfoField2->opMode;

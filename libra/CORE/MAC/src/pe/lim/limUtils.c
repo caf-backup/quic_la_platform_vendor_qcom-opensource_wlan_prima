@@ -2036,8 +2036,8 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
             PELOG1(limLog(pMac, LOG1, FL("Disabling short preamble\n"));)
 
 #ifdef WLAN_SOFTAP_FEATURE
-            if (limEnableShortPreamble(pMac, false, pBeaconParams, psessionEntry) != eSIR_SUCCESS)
-                PELOGE(limLog(pMac, LOGE, FL("Cannot enable long preamble\n"));)
+                if (limEnableShortPreamble(pMac, false, pBeaconParams, psessionEntry) != eSIR_SUCCESS)
+                    PELOGE(limLog(pMac, LOGE, FL("Cannot enable long preamble\n"));)
 #else
             if (limEnableShortPreamble(pMac, false, pBeaconParams) != eSIR_SUCCESS)
                 PELOGE(limLog(pMac, LOGE, FL("Cannot enable long preamble\n"));)
@@ -4258,12 +4258,14 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                     limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams,psessionEntry);     
                 }
             }
-        }else if ((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole) &&
-              (true == psessionEntry->htCapabality)){
+        }
+        else if ((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole) &&
+              (true == psessionEntry->htCapabality))
 #else		
         if(((eLIM_AP_ROLE == psessionEntry->limSystemRole)|| (eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)) &&
-              (true == psessionEntry->htCapabality)) {
+              (true == psessionEntry->htCapabality))
 #endif
+        {
                 if(overlap)
                 {
                     pMac->lim.gLimOlbcParams.protectionEnabled = true;
@@ -4288,7 +4290,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                }
            }
 		
-        //This part is common for staiton as well.
+        //This part is common for station as well.
         if(false == psessionEntry->llbCoexist)
         {
             PELOG1(limLog(pMac, LOG1, FL("=> 11G Protection Enabled\n"));)
@@ -4460,6 +4462,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     }
     return eSIR_SUCCESS;
 }
+    
 /** -------------------------------------------------------------
 \fn limEnableHtProtectionFrom11g
 \brief based on cofig enables\disables protection from 11g.
@@ -4484,7 +4487,8 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
 			// protection disabled.
             PELOG3(limLog(pMac, LOG3, FL("overlap protection from 11g is disabled\n")););
             return eSIR_SUCCESS;
-		}else if ((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) && (!pMac->lim.cfgProtection.overlapFromllg))
+		}
+        else if ((psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) && (!pMac->lim.cfgProtection.overlapFromllg))
 #else
         if(((psessionEntry->limSystemRole == eLIM_AP_ROLE ) ||(psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)) && (!pMac->lim.cfgProtection.overlapFromllg))
 #endif
@@ -4521,8 +4525,8 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
 
 #ifdef WLAN_SOFTAP_FEATURE
         if(eLIM_AP_ROLE == psessionEntry->limSystemRole)
-		{
-			if(overlap)
+        {
+            if(overlap)
             {
                 psessionEntry->gLimOverlap11gParams.protectionEnabled = true;
                 //11g exists in overlap BSS.
@@ -4532,8 +4536,9 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
                     (eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode))
                 {
                     psessionEntry->htOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
-                    limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
                 }
+                limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
+                limEnableHtOBSSProtection(pMac,  true , overlap, pBeaconParams, psessionEntry);
             }
             else
             {
@@ -4547,7 +4552,8 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
                     limEnableHtOBSSProtection(pMac,  true , overlap, pBeaconParams,psessionEntry);        
                 }
             }
-		}else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
+	}
+        else if (eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
 #else
         if((eLIM_AP_ROLE == psessionEntry->limSystemRole)||(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole))
 #endif
@@ -4579,7 +4585,7 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
             }
         }
 
-        //This part is common for staiton as well.
+        //This part is common for station as well.
         if(false == psessionEntry->llgCoexist)
         {
             pBeaconParams->llgCoexist = psessionEntry->llgCoexist = true;
@@ -4591,9 +4597,9 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
         //for AP role.
         //we need to take care of HT OP mode change if needed.
         //We need to take care of Overlap cases.
-		
 #ifdef WLAN_SOFTAP_FEATURE
-        if(eLIM_AP_ROLE == psessionEntry->limSystemRole){
+        if (eLIM_AP_ROLE == psessionEntry->limSystemRole)
+        {
 			if(overlap)
             {
                 //Overlap Legacy protection disabled.
@@ -4663,7 +4669,8 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
                 pBeaconParams->llgCoexist = psessionEntry->llgCoexist = false;
                 pBeaconParams->paramChangeBitmap |= PARAM_llGCOEXIST_CHANGED;
             }
-		}else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
+		}
+        else if (eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
 #else
         if((eLIM_AP_ROLE == psessionEntry->limSystemRole)||(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole))
 #endif
@@ -4799,7 +4806,7 @@ limEnableHtOBSSProtection(tpAniSirGlobal pMac, tANI_U8 enable,
 
 
 #ifdef WLAN_SOFTAP_FEATURE
-    if(psessionEntry->limSystemRole){
+    if (eLIM_AP_ROLE == psessionEntry->limSystemRole){
 		if ((enable) && (false == psessionEntry->gHTObssMode) )
         {
             PELOG1(limLog(pMac, LOG1, FL("=>obss protection enabled\n"));)

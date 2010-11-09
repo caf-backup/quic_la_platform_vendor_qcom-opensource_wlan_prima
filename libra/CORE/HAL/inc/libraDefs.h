@@ -200,13 +200,13 @@ typedef enum sBmuGetBdReqCode {
 //reference section 4.7.1 in libra_wmac_sys_programmers_guide.doc
 // ----------------------------
 #define BMU_RXP_BD_THRESHOLD        0x35
-#define BMU_DPUTX_BD_THRESHOLD      0x1
-#define BMU_DPURX_BD_THRESHOLD      0x1
-#define BMU_ADU_BD_THRESHOLD        0x1
+#define BMU_DPUTX_BD_THRESHOLD      0x5
+#define BMU_DPURX_BD_THRESHOLD      0x5
+#define BMU_ADU_BD_THRESHOLD        0x5
 #define BMU_RPE_BD_THRESHOLD        0x15
 #define BMU_DXE_CH0_BD_THRESHOLD    0x40
 #define BMU_DXE_CH1_BD_THRESHOLD    0
-#define BMU_DXE_CH2_BD_THRESHOLD    0x35
+#define BMU_DXE_CH2_BD_THRESHOLD    0x4
 #define BMU_MACSW_BD_THRESHOLD      0x35
 #define BMU_RXP_PDU_THRESHOLD       0xa0
 #define BMU_DPUTX_PDU_THRESHOLD     0x1
@@ -215,7 +215,7 @@ typedef enum sBmuGetBdReqCode {
 #define BMU_RPE_PDU_THRESHOLD       0x60
 #define BMU_DXE_CH0_PDU_THRESHOLD   0x100
 #define BMU_DXE_CH1_PDU_THRESHOLD   0
-#define BMU_DXE_CH2_PDU_THRESHOLD   0xa0
+#define BMU_DXE_CH2_PDU_THRESHOLD   0x0
 #define BMU_MACSW_PDU_THRESHOLD     0xa0
 
 

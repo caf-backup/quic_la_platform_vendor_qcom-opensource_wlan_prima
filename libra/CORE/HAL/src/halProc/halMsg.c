@@ -2899,6 +2899,7 @@ halMsg_DelBss(
             tANI_U32 offset = pMac->hal.memMap.bssTable_offset + ( pDelBssReq->bssIdx * pMac->hal.memMap.bssTable_size);
             // BSS valid bit
             bssInfo.valid       = 0;
+            bssInfo.bProxyProbeRespEn = FALSE;
             halWriteDeviceMemory(pMac, offset, (void*)&bssInfo, pMac->hal.memMap.bssTable_size);
             halFW_DelBssMsg( pMac,  pDelBssReq->bssIdx);
             // Stop routing all TxBds to FW_DPU_WQ 5

@@ -352,11 +352,16 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
 static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tANI_U8 pwrMgmt, tANI_U8* notifyBss)
 {
     tANI_U8   i;
-    tANI_U8 sendCts = FALSE; 
     tANI_U8 sendDataNull = FALSE;
     tSirMacAddr bssid;
     *notifyBss = FALSE;
     
+
+/* Don't send CTS to self as we have issue with BTQM queues where BTQM can not handle transmition of CTS2self frames
+ * Sending CTS 2 self at this juncture also doesn't serve much purpose as probe request frames go out immediately
+ * No need to notify BSS in IBSS case.
+ * */
+
 
     for(i =0; i < pMac->lim.maxBssId; i++)
     {
@@ -364,34 +369,20 @@ static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *mac
         {
             if(pMac->lim.gpSession[i].limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
            {
-                 //BT-STA can either be in LINK-ESTB state or BSS_STARTED State
-                 //for BT, need to send CTS2Self
-                if(pMac->lim.gpSession[i].bssType == eSIR_BTAMP_STA_MODE)
-                    sendCts = TRUE;
-                else
-                {
+                    /* Fr BT_AMP STA case, we don't nned to notify BSS with a NULL data */
+                    /* Send NULL data only for Infra STA */
                     sendDataNull = TRUE;
                     palCopyMemory(pMac->hHdd, (void *)bssid, (void *)pMac->lim.gpSession[i].bssId, sizeof(tSirMacAddr));
-                }
-                *notifyBss =  TRUE;
-
-            }
-            else if (pMac->lim.gpSession[i].limMlmState == eLIM_MLM_BSS_STARTED_STATE) 
-            {
-                sendCts = TRUE;
-                *notifyBss = TRUE;
+                    *notifyBss =  TRUE;
             }
         }
     }
 
-    //If sendCts and sendDataNull both are set, send only CTS2Self
     //This will be the scenario, when we have multiple sessions Infra+IBSS or Infra+BT
-    if(sendCts)
-	CreateScanCtsFrame(pMac, macMgmtHdr);
-    else if(sendDataNull)
-    	{
-	CreateScanDataNullFrame(pMac, macMgmtHdr, pwrMgmt, bssid);
-    	}
+    if(sendDataNull)
+    {
+         CreateScanDataNullFrame(pMac, macMgmtHdr, pwrMgmt, bssid);
+    }
 
 }
 

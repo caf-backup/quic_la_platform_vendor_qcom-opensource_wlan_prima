@@ -118,7 +118,7 @@ ap_beacon_process(
               //11g device overlaps
               if (pBcnStruct->erpPresent &&
                   !(pBcnStruct->erpIEInfo.useProtection || 
-                    pBcnStruct->erpIEInfo.nonErpPresent))
+                    pBcnStruct->erpIEInfo.nonErpPresent) && !(pBcnStruct->HTInfo.present))
               {
                    limUpdateOverlapStaParam(pMac, pMh->bssId, &(pMac->lim.gLimOverlap11gParams));
 
@@ -500,19 +500,19 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U32* pBD, tpPESession psessionEn
     * 
     */
     
-    if(  (pAPSession = limIsApSessionActive(pMac)) != NULL )
+    if ((pAPSession = limIsApSessionActive(pMac)) != NULL)
     {
         beaconParams.bssIdx = pAPSession->bssIdx;
-        if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
+        if (pAPSession->gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
             ap_beacon_process(pMac,  pBD, &beaconStruct, &beaconParams, pAPSession);
 
-        if(beaconParams.paramChangeBitmap)
+        if (beaconParams.paramChangeBitmap)
         {
             //Update the beacons and apply the new settings to HAL
             schSetFixedBeaconFields(pMac, pAPSession);
             PELOG1(schLog(pMac, LOG1, FL("Beacon for PE session[%d] got changed.  \n"), pAPSession->peSessionId);)
             PELOG1(schLog(pMac, LOG1, FL("sending beacon param change bitmap: 0x%x \n"), beaconParams.paramChangeBitmap);)
-            limSendBeaconParams(pMac, &beaconParams, psessionEntry );
+            limSendBeaconParams(pMac, &beaconParams, pAPSession);
         }
     }
 
