@@ -156,7 +156,7 @@ int hdd_open (struct net_device *dev)
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
                  "%s: Enabling Tx Queues" , __FUNCTION__);
 
-      netif_start_queue(dev);
+      netif_tx_start_all_queues(dev);
    }
 
    return 0;
@@ -179,7 +179,7 @@ int hdd_stop (struct net_device *dev)
    //Stop the Interface TX queue. netif_stop_queue should not be used when
    //transmission is being disabled anywhere other than hard_start_xmit
    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Disabling OS Tx queues",__func__);
-   netif_tx_disable(dev);
+   netif_tx_stop_all_queues(dev);
 
    return 0;
 }
@@ -205,7 +205,9 @@ VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx)
    ENTER();
    
    
-   if( !strcmp(LIBRA_FW_FILE,pFileName)) {
+   if( (!strcmp(LIBRA_FW_FILE,pFileName)) || (!strcmp(LIBRA_WAPI_FW_FILE,pFileName)) ) {
+   
+       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Loaded firmware file is %s",__func__,pFileName);
    
        if(pAdapter->fw) {
           release_firmware(pAdapter->fw);
@@ -251,8 +253,8 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
    hdd_adapter_t *pAdapter = (hdd_adapter_t*)pCtx;
    ENTER();
 
-   if( !strcmp(LIBRA_FW_FILE,pfileName)) {
-   
+   if( (!strcmp(LIBRA_FW_FILE,pfileName)) || (!strcmp(LIBRA_WAPI_FW_FILE,pfileName)) ) {
+       
        status = request_firmware(&pAdapter->fw, pfileName, &pAdapter->hsdio_func_dev->dev);
    
        if(status || !pAdapter->fw || !pAdapter->fw->data) {
@@ -563,7 +565,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
      return;
    }
    //Stop the Interface TX queue.
-   netif_tx_disable(pWlanDev);
+   netif_tx_stop_all_queues(pWlanDev);
    netif_carrier_off(pWlanDev);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -1130,7 +1132,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    hdd_register_wext(pWlanDev);
 
    //Stop the Interface TX queue.
-   netif_tx_disable(pWlanDev);
+   netif_tx_stop_all_queues(pWlanDev);
    netif_carrier_off(pWlanDev);
 
    //Safe to register the hard_start_xmit function again

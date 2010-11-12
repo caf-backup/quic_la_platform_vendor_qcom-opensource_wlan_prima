@@ -1111,6 +1111,14 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_BTC_EXECUTION_MODE_MIN, 
                  CFG_BTC_EXECUTION_MODE_MAX ),
 
+   REG_VARIABLE( CFG_ENABLE_WAPI_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, bWapiEnable,
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                CFG_ENABLE_WAPI_DEFAULT,
+                CFG_ENABLE_WAPI_MIN,
+                CFG_ENABLE_WAPI_MAX ),
+
+
 };                                
 
 /*
@@ -1350,6 +1358,7 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqViWeight] Value = [%u] ",pAdapter->cfg_ini->WfqViWeight);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqVoWeight] Value = [%u] ",pAdapter->cfg_ini->WfqVoWeight);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [DelayedTriggerFrmInt] Value = [%lu] ",pAdapter->cfg_ini->DelayedTriggerFrmInt);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WAPI Enabled] Value = [%u] ",pAdapter->cfg_ini->bWapiEnable);
 
 }
 

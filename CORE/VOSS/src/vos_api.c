@@ -512,7 +512,13 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   sirStatus = macStart(pVosContext->pMACContext,(v_PVOID_t)&halStartParams);
 
   /* Free up the FW image no matter what */
-  hdd_release_firmware(LIBRA_FW_FILE, pVosContext->pHDDContext);
+  if(((hdd_adapter_t*)( pVosContext->pHDDContext))->cfg_ini->bWapiEnable) {
+     hdd_release_firmware(LIBRA_WAPI_FW_FILE, pVosContext->pHDDContext);
+  }
+  else {
+     hdd_release_firmware(LIBRA_FW_FILE, pVosContext->pHDDContext);
+  }
+
   vfree(halStartParams.FW.pImage);
   halStartParams.FW.pImage = NULL;
   halStartParams.FW.cbImage = 0;

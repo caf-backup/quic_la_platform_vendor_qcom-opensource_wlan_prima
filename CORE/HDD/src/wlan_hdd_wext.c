@@ -2053,7 +2053,7 @@ static int iw_set_mlme(struct net_device *dev,
                     hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate : csrRoamDisconnect failure returned %d \n",
                        __FUNCTION__, (int)mlme->cmd, (int)status );
 
-               netif_tx_disable(dev);
+               netif_tx_stop_all_queues(dev);
                netif_carrier_off(dev);
 
             }

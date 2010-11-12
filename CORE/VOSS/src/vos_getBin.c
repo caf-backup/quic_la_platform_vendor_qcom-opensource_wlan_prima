@@ -21,8 +21,9 @@
 #include <vos_api.h>
 #include <vos_sched.h>
 #include <wlan_hdd_misc.h>
-
+#include <wlan_hdd_main.h>
 /**-----------------------------------------------------------------------------
+
   Preprocessor definitions and constants
   ----------------------------------------------------------------------------*/
 
@@ -150,7 +151,15 @@ VOS_STATUS vos_get_fwbinary( v_VOID_t **ppBinary, v_SIZE_t *pNumBytes )
 
    if(pVosContext) {
 
-       status = hdd_request_firmware(LIBRA_FW_FILE,((VosContextType*)(pVosContext))->pHDDContext,ppBinary,pNumBytes);
+
+       if(((hdd_adapter_t*)(((VosContextType*)(pVosContext))->pHDDContext))->cfg_ini->bWapiEnable) {
+         status = hdd_request_firmware(LIBRA_WAPI_FW_FILE,((VosContextType*)(pVosContext))->pHDDContext,ppBinary,pNumBytes);
+       }
+       else
+       {
+         status = hdd_request_firmware(LIBRA_FW_FILE,((VosContextType*)(pVosContext))->pHDDContext,ppBinary,pNumBytes);
+       }    
+
    }
 
    return status;

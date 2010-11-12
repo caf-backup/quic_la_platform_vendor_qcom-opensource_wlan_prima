@@ -63,6 +63,7 @@ typedef enum
 
     //possible tx chain combinations
     PHY_NO_TX_CHAINS,
+    PHY_TX_CHAIN_MAX = 0xFFFFFFFF  /* define as 4 bytes data */
 }ePhyTxChains;
 
 typedef enum
@@ -115,7 +116,8 @@ typedef enum
     NUM_RX_GAIN_STEPS = 16,
     MAX_RX_GAIN_STEP = RX_GAIN_STEP_15,
 
-    INVALID_GAIN_STEP
+    INVALID_GAIN_STEP,
+    MAX_GAIN_STEP = 0xFFFFFFFF  /* define as 4 bytes data */
 }eGainSteps;
 
 // Keeping these definitions in case we need to revive them later

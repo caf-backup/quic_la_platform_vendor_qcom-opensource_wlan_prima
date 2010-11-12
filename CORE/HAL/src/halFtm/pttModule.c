@@ -1294,7 +1294,7 @@ eQWPttStatus pttEnableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcEnable enables)
     return (SUCCESS);
 }
 
-#define RSSI_TO_DBM_OFFSET     -105
+#define RSSI_TO_DBM_OFFSET     -107
 
 void pttCollectAdcRssiStats(tpAniSirGlobal pMac)
 {
@@ -1359,8 +1359,21 @@ void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
         curChan = RF_CHAN_1;
     }
 
-    //use the gnpower offsets for RSSI as well. make sure you strip off last two decimal places
+    //use the bgnpower offsets for RSSI as well. make sure you strip off last two decimal places
+    {
+        tANI_U32 pktMode;
+
+        palReadRegister(pMac->hHdd, QWLAN_AGC_DIS_MODE_REG, &pktMode);
+
+        if(pktMode & QWLAN_AGC_DIS_MODE_DISABLE_11AG_MASK)
+        {
+            rssiOffset = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].bRatePowerOffset[curChan].reported / 100;
+        }
+        else
+        {
     rssiOffset = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].gnRatePowerOffset[curChan].reported / 100;
+        }
+    }
 
     rssi->rx[PHY_RX_CHAIN_0] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] + RSSI_TO_DBM_OFFSET + rssiOffset;
     rssi->rx[PHY_RX_CHAIN_1] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_1] + RSSI_TO_DBM_OFFSET + rssiOffset;

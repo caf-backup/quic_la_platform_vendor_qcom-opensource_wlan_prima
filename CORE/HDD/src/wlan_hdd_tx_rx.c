@@ -201,7 +201,7 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
                  "%s: TX queue full for AC=%d Disable OS TX queue", 
                  __FUNCTION__, ac );
 
-      netif_stop_queue(dev);
+      netif_tx_stop_queue(netdev_get_tx_queue(dev, skb_get_queue_mapping(skb)));
       pAdapter->isTxSuspended = VOS_TRUE;
       pAdapter->txSuspendedAc = ac;
       return NETDEV_TX_BUSY;
@@ -717,8 +717,8 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                  "%s: TX queue re-enabled", __FUNCTION__);
       pAdapter->isTxSuspended = VOS_FALSE;
-      netif_start_queue(pAdapter->dev);
-      netif_wake_queue(pAdapter->dev);
+      netif_tx_wake_queue(netdev_get_tx_queue(pAdapter->dev, 
+                                        skb_get_queue_mapping(skb) ));
    }    
 
    // We're giving the packet to TL so consider it transmitted from

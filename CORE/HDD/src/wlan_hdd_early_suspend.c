@@ -107,7 +107,7 @@ VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter)
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
          
    //Stop the Interface TX queue.
-   netif_tx_disable(pAdapter->dev);
+   netif_tx_stop_all_queues(pAdapter->dev);
    netif_carrier_off(pAdapter->dev);
 
    //Disable IMPS/BMPS as we do not want the device to enter any power
@@ -197,7 +197,7 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
    vos_call_status_type callType;
 
    //Stop the Interface TX queue.
-   netif_tx_disable(pAdapter->dev);
+   netif_tx_stop_all_queues(pAdapter->dev);
    netif_carrier_off(pAdapter->dev);
 
    //Disable IMPS,BMPS as we do not want the device to enter any power
@@ -503,7 +503,7 @@ VOS_STATUS hdd_wlan_reset(void)
    }
 	
    //Stop the Interface TX queue.
-   netif_tx_disable(pAdapter->dev);
+   netif_tx_stop_all_queues(pAdapter->dev);
    netif_carrier_off(pAdapter->dev);
 
    //Record whether STA is associated

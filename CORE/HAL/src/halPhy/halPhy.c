@@ -110,14 +110,14 @@ eHalStatus halPhyClose(tHalHandle hHal)
 
 eHalStatus halPhyFwInitDone(tHalHandle hHal)
 {
-    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
+    //tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
 
-    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
-    {
-        //for FTM driver leave init_gain at 74 as suggested by James
-        SET_PHY_REG(pMac->hHdd, QWLAN_AGC_INIT_GAIN_REG, 74);
-    }
+    //if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    //{
+    //    //for FTM driver leave init_gain at 74 as suggested by James
+    //    SET_PHY_REG(pMac->hHdd, QWLAN_AGC_INIT_GAIN_REG, 74);
+    //}
 
     return retVal;
 

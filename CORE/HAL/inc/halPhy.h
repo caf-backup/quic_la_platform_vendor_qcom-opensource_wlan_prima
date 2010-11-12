@@ -29,25 +29,26 @@ typedef enum
     //Production modes
     PHY_CHAIN_SEL_R0_T0_ON,
     PHY_CHAIN_SEL_R0R1_T0_ON,
-    
+
     PHY_CHAIN_SEL_BT_R0_T0_ON,      //simultaneous bluetooth receive enabled
     PHY_CHAIN_SEL_BT_R0R1_T0_ON,    //simultaneous bluetooth receive enabled
-    
 
-    //test modes 
+
+    //test modes
     PHY_CHAIN_SEL_R0_ON,
     PHY_CHAIN_SEL_R0R1_ON,
-    
+
     PHY_CHAIN_SEL_T0_ON,
-    
+
     PHY_CHAIN_SEL_T0_R1_ON,
-    
-    PHY_CHAIN_SEL_R1_ON,    
-    
+
+    PHY_CHAIN_SEL_R1_ON,
+
     PHY_CHAIN_SEL_NO_RX_TX,
 
     MAX_PHY_CHAIN_SEL,
-    INVALID_PHY_CHAIN_SEL
+    INVALID_PHY_CHAIN_SEL,
+    PHY_MAX_CHAIN_SELECT = 0xFFFFFFFF  /* define as 4 bytes data */
 }ePhyChainSelect;
 
 typedef enum
@@ -55,7 +56,8 @@ typedef enum
     PHY_SINGLE_CHANNEL_CENTERED = 0,        // 20MHz IF bandwidth centered on IF carrier
     PHY_DOUBLE_CHANNEL_LOW_PRIMARY = 1,     // 40MHz IF bandwidth with lower 20MHz supporting the primary channel
     //not allowed PHY_DOUBLE_CHANNEL_CENTERED = 2,        // 40MHz IF bandwidth centered on IF carrier
-    PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3     // 40MHz IF bandwidth with higher 20MHz supporting the primary channel
+    PHY_DOUBLE_CHANNEL_HIGH_PRIMARY = 3,     // 40MHz IF bandwidth with higher 20MHz supporting the primary channel
+    PHY_MAX_CHANNEL_BOND_STATE       = 0xFFFFFFFF  /* define as 4 bytes data */
 }ePhyChanBondState;
 
 typedef enum

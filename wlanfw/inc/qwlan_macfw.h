@@ -1806,10 +1806,28 @@ typedef struct _PhyCalCorrStruct {
 #else
 #define QWLANFW_HOST2FW_MSG_TYPES_END          QWLANFW_HOST2FW_RA_UPDATE
 #endif
+
+/* Note: We can't define HOST2FW_MSG_TYPES_XXX beyond 0x80 (127) */
 /*==================================================================================
   FW -> HOST MESSAGE TYPES
 ==================================================================================*/
-#define QWLANFW_FW2HOST_MSG_TYPES_BEGIN        QWLANFW_HOST2FW_MSG_TYPES_END   + 0x1
+/* CR#xxxxxx: 
+   Single host driver with both SOFTAP and WAPI features wants to download either SOFTAP+WAPI firmware or only SOFTAP enabled firmware
+   By making  FW2HOST_MSG_TYPES_BEGIN independent of HOST2FW_MSG_END, 
+   we can always receives FW2HOST_MSG correctly (including FW2HOST_STATUS(INIT_DONE) message)
+   no matter how many messages are defined in the HOST2FW for different feature set. */
+//#define QWLANFW_FW2HOST_MSG_TYPES_BEGIN        QWLANFW_HOST2FW_MSG_TYPES_END   + 0x1 /* original before CR#xxxxx */
+/* Initially, we decided to reserve half of message pool for HOST2FW message, and rest half for FW2HOST message. 
+   Currently 10 bit is reserved for usMsgType (see Qwlanfw_CtrlMsgType)
+*/   
+//#define QWLANFW_FW2HOST_MSG_TYPES_BEGIN        0x200  /* 512 */
+/* 512 is the half of the message pool for 10 bits, but in halFwApi.c, halFW_SendMsg(…, tANI_U8 msgType, …) has only one byte of msgType. 
+I think this needs to be discussed in the team.
+Either argument of halFW_SendMsg() should be uint16 to have HOST2FW_MSG up to 512, or 
+we should redefine the Qwlanfw_CtrlMsgType->ubMsgType to uint8.
+Because of above reason and for smallest change, I reserved 128 for HOST2FW, and 128 for FW2HOST for now */ 
+#define QWLANFW_FW2HOST_MSG_TYPES_BEGIN        0x80   /* 128 */
+
 /*Status*/
 #define QWLANFW_FW2HOST_STATUS                 QWLANFW_FW2HOST_MSG_TYPES_BEGIN + 0x0
 /*IMPS*/

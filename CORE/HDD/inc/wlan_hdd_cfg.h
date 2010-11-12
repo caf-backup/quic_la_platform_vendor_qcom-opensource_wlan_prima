@@ -844,6 +844,12 @@ typedef enum
 #define CFG_BTC_EXECUTION_MODE_MAX                          ( 5 )
 #define CFG_BTC_EXECUTION_MODE_DEFAULT                      ( 0 )
 
+#define CFG_ENABLE_WAPI_NAME                             "WAPIIsEnabled"
+#define CFG_ENABLE_WAPI_MIN                               (0)
+#define CFG_ENABLE_WAPI_MAX                               (1) // WAPI Enabled
+#define CFG_ENABLE_WAPI_DEFAULT                           (0) // WAPI disabled
+
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1040,6 +1046,10 @@ typedef struct
    /* Wowl pattern */
    char                        wowlPattern[1024];         
    v_BOOL_t                    b19p2MhzPmicClkEnabled;
+
+   /* WAPI enabled or not */
+   v_BOOL_t                    bWapiEnable;
+
 
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
