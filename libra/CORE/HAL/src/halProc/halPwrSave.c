@@ -2652,13 +2652,26 @@ eHalStatus halPS_SendBeaconMissInd(tpAniSirGlobal pMac)
  */
 eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 {
-    tANI_U32 regValue = 0, curCnt = 0;
+    tANI_U32 regValue = 0, curCnt = 0, retryCnt = 0;
 
-    palReadRegister(pMac, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, &regValue);
+    eHalStatus mutexAcq = eHAL_STATUS_FW_PS_BUSY;
 
-    curCnt = (regValue & QWLAN_MCU_MUTEX0_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX0_CURRENTCOUNT_OFFSET;
-    if(curCnt <= 1) {
-        HALLOGP(halLog(pMac, LOGP, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
+    while((eHAL_STATUS_FW_PS_BUSY == mutexAcq)&& (retryCnt < 3)) {
+        palReadRegister(pMac, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, &regValue);
+
+        curCnt = (regValue & QWLAN_MCU_MUTEX0_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX0_CURRENTCOUNT_OFFSET;
+        if(curCnt <= 1) {
+            HALLOGP(halLog(pMac, LOGP, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
+            ++retryCnt;
+        }
+        else {
+            mutexAcq = eHAL_STATUS_SUCCESS;
+        }
+    }
+
+    if(eHAL_STATUS_FW_PS_BUSY == mutexAcq)
+    {
+        HALLOGP(halLog(pMac, LOGP, "Host Busy Mutex is not Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
         VOS_ASSERT(0);
     }
 

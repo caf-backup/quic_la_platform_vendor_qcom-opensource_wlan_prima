@@ -1578,6 +1578,11 @@ static int iw_set_ap_genie(struct net_device *dev,
     {
         case DOT11F_EID_WPA: 
         case DOT11F_EID_RSN:
+            if(pHostapdAdapter->uPrivacy == 0)
+            {
+                hdd_softap_Deregister_BC_STA(pHostapdAdapter);
+                hdd_softap_Register_BC_STA(pHostapdAdapter, 1);
+            }            
             pHostapdAdapter->uPrivacy = 1;
             halStatus = WLANSAP_Set_WPARSNIes(pVosContext, wrqu->data.pointer, wrqu->data.length);
             break;

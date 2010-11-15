@@ -5356,7 +5356,14 @@ WLANTL_STATxAuth
                "WLAN TL:Failed while attempting to fetch pkt from HDD %d",
                    vosStatus);
     *pvosDataBuff = NULL;
+#ifdef WLAN_SOFTAP_FEATURE
+    // original code (in #else clause) is no longer applicable
+    // HDD may not have a packet in the requested AC but may still
+    // have packets in another AC.  Other logic further below
+    // will now determine if the STA has no more data
+#else
     pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
+#endif
     /*--------------------------------------------------------------------
       Reset AC for the serviced station to the highest priority AC
       -> due to no more data at the station
@@ -5366,10 +5373,19 @@ WLANTL_STATxAuth
     pStaClient->ucCurrentAC     = WLANTL_AC_VO;
     pStaClient->ucCurrentWeight = 0;
 #ifdef WLAN_SOFTAP_FEATURE
-    if ( (0 == pStaClient->ucACMask) && 
-         (WLAN_STA_SOFTAP == pStaClient->wSTADesc.wSTAType))
+    if (WLAN_STA_SOFTAP == pStaClient->wSTADesc.wSTAType)
     {
-      vos_atomic_set_U8( &pStaClient->ucPktPending, 0);
+       // for softap make sure the client doesn't have data on another AC
+       if (0 == pStaClient->ucACMask)
+       {
+          vos_atomic_set_U8( &pStaClient->ucPktPending, 0);
+          pStaClient->ucNoMoreData = 1;
+       }
+    }
+    else
+    {
+       // for sta if no packet returned than all ACs have been serviced
+       pStaClient->ucNoMoreData = 1;
     }
 #endif
 

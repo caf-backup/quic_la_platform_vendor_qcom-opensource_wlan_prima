@@ -1207,6 +1207,11 @@ void halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN setFilt
         break;
     }
 
+    if (IS_PWRSAVE_STATE_IN_BMPS) 
+    {
+        halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
+    }
+
     halStatus = halRxp_getFrameFilterMask(pMac, eDATA_DATA, &reg_value);
     if(eHAL_STATUS_SUCCESS == halStatus)
     {
@@ -1223,6 +1228,11 @@ void halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN setFilt
             halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, reg_value | mask);
         else
             halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, reg_value & ~mask);
+    }
+
+    if (IS_PWRSAVE_STATE_IN_BMPS) 
+    {
+        halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
     }
 }
 

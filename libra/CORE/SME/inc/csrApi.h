@@ -943,6 +943,22 @@ typedef struct tagCsrFreqScanInfo
 }tCsrFreqScanInfo;
 
 
+#ifdef WLAN_SOFTAP_FEATURE
+typedef struct sSirSmeAssocIndToUpperLayerCnf
+{
+    tANI_U16             messageType; // eWNI_SME_ASSOC_CNF
+    tANI_U16             length;
+    tSirResultCodes      statusCode;
+    tSirMacAddr          bssId;      // Self BSSID
+    tSirMacAddr          peerMacAddr;
+    tANI_U16             aid;
+    tSirMacAddr          alternateBssId;
+    tANI_U8              alternateChannelId;
+    tANI_U8              wmmEnabledSta;   //set to true if WMM enabled STA
+    tSirRSNie            rsnIE;           // RSN IE received from peer
+    tANI_U8              reassocReq;      //set to true if reassoc
+} tSirSmeAssocIndToUpperLayerCnf, *tpSirSmeAssocIndToUpperLayerCnf;
+#endif
 
 typedef struct tagCsrSummaryStatsInfo
 {

@@ -90,6 +90,7 @@ VOS_STATUS btcClose (tHalHandle hHal)
 
    pMac->btc.btcReady = VOS_FALSE;
    pMac->btc.btcUapsdOk = VOS_FALSE;
+   vos_timer_stop(&pMac->btc.restoreHBTimer);
    vosStatus = vos_timer_destroy(&pMac->btc.restoreHBTimer);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "btcClose: Fail to destroy timer");
