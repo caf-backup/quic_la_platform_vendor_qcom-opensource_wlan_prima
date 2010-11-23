@@ -108,6 +108,7 @@ void phyInitialCalStart(void);
 void phyPeriodicCal(eCalSelection calId);
 
 //phyCalMemory
+void PreProcessCalControlBitMask(void);
 void ProcessCalControlBitMask(void);
 
 //phyCalRxIQ

@@ -3949,10 +3949,10 @@ static tANI_BOOLEAN csrScanValidateScanResult( tpAniSirGlobal pMac, tANI_U8 *pCh
                 palFreeMemory( pMac->hHdd, pIes );
             }
         }
-		else
-		{
-			fValidChannel = FALSE;
-		}
+        else
+        {
+            fValidChannel = FALSE;
+        }
     }
 
     return( fValidChannel );   
@@ -4070,13 +4070,13 @@ static tANI_BOOLEAN csrScanProcessScanResults( tpAniSirGlobal pMac, tSmeCmd *pCo
         {
             smsLog( pMac, LOGW, " Scanrsp fail (0x%08X), length = %d\n", pScanRsp->statusCode, pScanRsp->length );
             //HO bg scan/probe failed no need to try autonomously
-    	    if(eCsrScanBgScan == pCommand->u.scanCmd.reason ||
-		       eCsrScanProbeBss == pCommand->u.scanCmd.reason ||
-		       eCsrScanSetBGScanParam == pCommand->u.scanCmd.reason)
-		    {
-			    fRemoveCommand = eANI_BOOLEAN_TRUE;
+            if(eCsrScanBgScan == pCommand->u.scanCmd.reason ||
+		         eCsrScanProbeBss == pCommand->u.scanCmd.reason ||
+		         eCsrScanSetBGScanParam == pCommand->u.scanCmd.reason)
+		      {
+			       fRemoveCommand = eANI_BOOLEAN_TRUE;
             }
-    }
+        }
     }while(0);
     if ( eSIR_SME_MORE_SCAN_RESULTS_FOLLOW != pScanRsp->statusCode )
     {
@@ -4303,28 +4303,28 @@ tANI_BOOLEAN csrScanAgeOutBss(tpAniSirGlobal pMac, tCsrScanResult *pResult)
         if( CSR_IS_SESSION_VALID( pMac, i ) )
         {
             pSession = CSR_GET_SESSION( pMac, i );
-    //Not to remove the BSS we are connected to.
+            //Not to remove the BSS we are connected to.
             if(csrIsConnStateDisconnected(pMac, i) || (NULL == pSession->pConnectBssDesc) ||
-        (!csrIsDuplicateBssDescription(pMac, &pResult->Result.BssDescriptor, 
-                                                pSession->pConnectBssDesc, NULL))
-        )
-    {
-        smsLog(pMac, LOGW, "Aging out BSS %02X-%02X-%02X-%02X-%02X-%02X Channel %d\n",
-                                    pResult->Result.BssDescriptor.bssId[0],
-                                    pResult->Result.BssDescriptor.bssId[1],
-                                    pResult->Result.BssDescriptor.bssId[2],
-                                    pResult->Result.BssDescriptor.bssId[3],
-                                    pResult->Result.BssDescriptor.bssId[4],
-                                    pResult->Result.BssDescriptor.bssId[5],
-                                    pResult->Result.BssDescriptor.channelId);
-        //No need to hold the spin lock because caller should hold the lock for pMac->scan.scanResultList
-        if( csrLLRemoveEntry(&pMac->scan.scanResultList, &pResult->Link, LL_ACCESS_NOLOCK) )
-		{
-			csrFreeScanResultEntry(pMac, pResult);
-		}
-        fRet = eANI_BOOLEAN_TRUE;
+              (!csrIsDuplicateBssDescription(pMac, &pResult->Result.BssDescriptor, 
+                                                      pSession->pConnectBssDesc, NULL))
+              )
+            {
+                smsLog(pMac, LOGW, "Aging out BSS %02X-%02X-%02X-%02X-%02X-%02X Channel %d\n",
+                                          pResult->Result.BssDescriptor.bssId[0],
+                                          pResult->Result.BssDescriptor.bssId[1],
+                                          pResult->Result.BssDescriptor.bssId[2],
+                                          pResult->Result.BssDescriptor.bssId[3],
+                                          pResult->Result.BssDescriptor.bssId[4],
+                                          pResult->Result.BssDescriptor.bssId[5],
+                                          pResult->Result.BssDescriptor.channelId);
+                //No need to hold the spin lock because caller should hold the lock for pMac->scan.scanResultList
+                if( csrLLRemoveEntry(&pMac->scan.scanResultList, &pResult->Link, LL_ACCESS_NOLOCK) )
+		          {
+			           csrFreeScanResultEntry(pMac, pResult);
+		          }
+                fRet = eANI_BOOLEAN_TRUE;
                 break;
-    }
+            }
         } //valid session
     } //for
     if( CSR_ROAM_SESSION_MAX == i )
@@ -7736,7 +7736,7 @@ void csrSaveTxPowerToCfg( tpAniSirGlobal pMac, tDblLinkList *pList, tANI_U32 cfg
                 for( idx = 0; idx < pChannelSet->numChannels; idx++ )
                 {
                     pChannelPowerSet->firstChanNum = (tSirMacChanNum)(pChannelSet->firstChannel + ( idx * pChannelSet->interChannelOffset ));
-					smsLog(pMac, LOG3, " Setting Channel Number %d\n", pChannelPowerSet->firstChanNum);
+                    smsLog(pMac, LOG3, " Setting Channel Number %d\n", pChannelPowerSet->firstChanNum);
                     pChannelPowerSet->numChannels  = 1;
 #ifdef WLAN_SOFTAP_FEATURE
                     pChannelPowerSet->maxTxPower = CSR_ROAM_MIN( pChannelSet->txPower, pMac->roam.configParam.nTxPowerCap );
@@ -7751,7 +7751,7 @@ void csrSaveTxPowerToCfg( tpAniSirGlobal pMac, tDblLinkList *pList, tANI_U32 cfg
             else
             {
                 pChannelPowerSet->firstChanNum = pChannelSet->firstChannel;
-				smsLog(pMac, LOG3, " Setting Channel Number %d\n", pChannelPowerSet->firstChanNum);
+                smsLog(pMac, LOG3, " Setting Channel Number %d\n", pChannelPowerSet->firstChanNum);
                 pChannelPowerSet->numChannels = pChannelSet->numChannels;
 #ifdef WLAN_SOFTAP_FEATURE
                 pChannelPowerSet->maxTxPower = CSR_ROAM_MIN( pChannelSet->txPower, pMac->roam.configParam.nTxPowerCap );

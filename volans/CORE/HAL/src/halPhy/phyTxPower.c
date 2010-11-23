@@ -21,6 +21,7 @@ extern const char rateStr[NUM_HAL_PHY_RATES][50];
 #endif
 
 extern const tANI_U8 plutCharacterized[MAX_TPC_CHANNELS][TPC_MEM_POWER_LUT_DEPTH];
+extern const tANI_U8 plutCharacterizedVolans2[MAX_TPC_CHANNELS][TPC_MEM_POWER_LUT_DEPTH];
 
 tTxGain tpcGainLut[PHY_MAX_TX_CHAINS][TPC_MEM_GAIN_LUT_DEPTH] =
 {
@@ -143,9 +144,19 @@ tTxGain tpcGainLut[PHY_MAX_TX_CHAINS][TPC_MEM_GAIN_LUT_DEPTH] =
 eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
+    tANI_U8 *pPlut = NULL;
+
+    if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
+    {
+        pPlut = (tANI_U8 *)&plutCharacterizedVolans2[pMac->hphy.rf.curChannel];
+    }
+    else
+    {
+        pPlut = (tANI_U8 *)&plutCharacterized[pMac->hphy.rf.curChannel];
+    }
     
     if ((retVal = asicLoadTPCPowerLUT(pMac, PHY_TX_CHAIN_0,
-            (tANI_U8 *)&plutCharacterized[pMac->hphy.rf.curChannel])) != eHAL_STATUS_SUCCESS)
+                                            pPlut)) != eHAL_STATUS_SUCCESS)
     { 
         return (retVal);
     }
@@ -157,6 +168,7 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
     {
         return (retVal);
     }
+
     //load gain LUTs
     if (
         ((retVal = asicLoadTPCGainLUT(pMac, PHY_TX_CHAIN_0, &(tpcGainLut[PHY_TX_CHAIN_0][0]))) != eHAL_STATUS_SUCCESS)
@@ -558,8 +570,10 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 
 
 //-0.25dBm adjustment to be made to compensate b rates, because we cal with OFDM rates
-#define B_RATE_CAL_ADJUSTMENT       -150
-#define GN_RATE_BANDEDGE_ADJUSTMENT -100
+#define B_RATE_CAL_ADJUSTMENT               -150
+#define B_RATE_CAL_ADJUSTMENT_VOLANS2       -100
+#define GN_RATE_BANDEDGE_ADJUSTMENT         -100
+#define GN_RATE_BANDEDGE_ADJUSTMENT_VOLANS2 0
 
 #define TPC_INDEX_WIFI_DIRECT   0
 #ifdef VOLANS_1_0_CLPC_WORKAROUND
@@ -595,7 +609,6 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
         default:
             break;
     }
-
 
 #ifndef WLAN_FTM_STUB
     if (pMac->gDriverType == eDRIVER_TYPE_MFG)
@@ -765,7 +778,15 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                 case HAL_PHY_RATE_SLR_0_25_MBPS:
                 case HAL_PHY_RATE_SLR_0_5_MBPS:
                     absPwr += bRateLimitAdjustment;
-                    absPwr += B_RATE_CAL_ADJUSTMENT;
+                        
+                    if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
+                    {
+                        absPwr += B_RATE_CAL_ADJUSTMENT_VOLANS2;
+                    }
+                    else
+                    {
+                        absPwr += B_RATE_CAL_ADJUSTMENT;
+                    }
                     break;
 
                 //Spica_Virgo 11A 20MHz Rates
@@ -797,7 +818,14 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                 case HAL_PHY_RATE_MCS_1NSS_MM_SG_72_2_MBPS:
                     if ((curChan == RF_CHAN_1) || (curChan == RF_CHAN_11))
                     {
-                        absPwr += GN_RATE_BANDEDGE_ADJUSTMENT;
+                        if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
+                        {
+                            absPwr += GN_RATE_BANDEDGE_ADJUSTMENT_VOLANS2;
+                        }
+                        else
+                        {
+                            absPwr += GN_RATE_BANDEDGE_ADJUSTMENT;
+                        }
                     }
                     break;
 

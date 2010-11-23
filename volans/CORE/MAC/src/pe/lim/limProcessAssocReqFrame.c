@@ -1128,7 +1128,6 @@ sendIndToSme:
         pStaDs->mlmStaContext.updateContext = 1;
 
 #ifdef WLAN_SOFTAP_FEATURE
-        pStaDs->shortPreambleEnabled = pAssocReq->capabilityInfo.shortPreamble;
         mlmPrevState = pStaDs->mlmStaContext.mlmState;
 
         /* As per the HAL/FW needs the reassoc req need not be calling limDelSta */
@@ -1166,6 +1165,8 @@ sendIndToSme:
 #endif
 
     }
+    pStaDs->shortPreambleEnabled = pAssocReq->capabilityInfo.shortPreamble;
+    pStaDs->shortSlotTimeEnabled = pAssocReq->capabilityInfo.shortSlotTime;
 
     return;
 

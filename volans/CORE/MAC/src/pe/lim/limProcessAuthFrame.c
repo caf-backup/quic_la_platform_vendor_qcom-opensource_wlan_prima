@@ -1565,6 +1565,7 @@ int limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd, void *body)
     tANI_U16  frameLen;
     tSirMacAuthFrameBody rxAuthFrame;
     tSirMacAuthFrameBody *pRxAuthFrameBody = NULL;
+    int ret_status = eSIR_FAILURE;
 
     pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
     pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
@@ -1614,7 +1615,7 @@ int limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd, void *body)
     // Save off the auth resp.
     if ((sirConvertAuthFrame2Struct(pMac, pBody, frameLen, &rxAuthFrame) != eSIR_SUCCESS))
     {
-        limSendFTPreAuthRsp(pMac, eSIR_FAILURE, NULL, 0, psessionEntry);
+        limHandleFTPreAuthRsp(pMac, eSIR_FAILURE, NULL, 0, psessionEntry);
         return eSIR_FAILURE;
     }
     pRxAuthFrameBody = &rxAuthFrame;
@@ -1636,9 +1637,11 @@ int limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd, void *body)
                 PELOGE(limLog( pMac, LOGE, "Auth status code received is  %d\n", 
                     (tANI_U32) pRxAuthFrameBody->authStatusCode);)
 #endif
-                limSendFTPreAuthRsp(pMac, eSIR_FAILURE, NULL, 0, psessionEntry);
-                return eSIR_FAILURE;
             }
+	    else 
+	    {
+                ret_status = eSIR_SUCCESS;
+	    }
             break;
 
         default:
@@ -1646,15 +1649,13 @@ int limProcessAuthFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd, void *body)
             PELOGE(limLog( pMac, LOGE, "Seq. no incorrect expected 2 received %d\n", 
                 (tANI_U32) pRxAuthFrameBody->authTransactionSeqNumber);)
 #endif
-            limSendFTPreAuthRsp(pMac, eSIR_FAILURE, NULL, 0, psessionEntry);
-            return eSIR_FAILURE;
             break;
     }
 
     // Send the Auth response to SME
-    limSendFTPreAuthRsp(pMac, eSIR_SUCCESS, pBody, frameLen, psessionEntry);
+    limHandleFTPreAuthRsp(pMac, ret_status, pBody, frameLen, psessionEntry);
 
-    return eSIR_SUCCESS;
+    return ret_status;
 }
 
 #endif /* WLAN_FEATURE_VOWIFI_11R */

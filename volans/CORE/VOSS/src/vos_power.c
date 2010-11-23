@@ -67,6 +67,14 @@ when       who     what, where, why
 
 #include <vos_sched.h>
 
+//To work around issues of fail to turn WIFI back on after turning it off
+#define VOS_PWR_WIFI_ON_OFF_HACK
+#ifdef VOS_PWR_WIFI_ON_OFF_HACK
+#define VOS_PWR_SLEEP(ms) msleep(ms)
+#else
+#define VOS_PWR_SLEEP(ms)
+#endif
+
 /*===========================================================================
 
                         DEFINITIONS AND TYPES
@@ -75,6 +83,10 @@ when       who     what, where, why
 
 #define CHIP_POWER_ON         1
 #define CHIP_POWER_OFF        0
+
+#ifdef MSM_PLATFORM_8660
+    int vos_chip_power_qrf8615(int on);
+#endif
 
 #ifdef MSM_PLATFORM_7x30
 
@@ -106,6 +118,7 @@ int vos_chip_power_qrf8600(int on)
     struct vreg *vreg_s2 = NULL;
     int rc = 0;
 
+VOS_PWR_SLEEP(100);
     //2.9v PA from LDO13
     vreg_wlan = vreg_get(NULL, "wlan");
     if (IS_ERR(vreg_wlan)) {
@@ -146,7 +159,7 @@ int vos_chip_power_qrf8600(int on)
                             __func__, wlan_gpios_reset[0].gpio_num, rc);
             return -EIO;
         }
-
+        VOS_PWR_SLEEP(300);
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "WLAN put in reset mode \n");
 #if 0
         rc = pmapp_clock_vote("wlan", PMAPP_CLOCK_ID_A0, PMAPP_CLOCK_VOTE_ON);
@@ -244,20 +257,20 @@ int vos_chip_power_qrf8600(int on)
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg set level failed (%d)\n", __func__, rc);
             return -EIO;
         }
-
+        VOS_PWR_SLEEP(300);
         rc = vreg_enable(vreg_s2);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg enable failed. .(%d)\n",__func__, rc);
             return -EIO;
         }
-
+msleep(1);
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "1.3V sw Power Supply is enabled \n");
         printk(KERN_ERR "1.3V sw is enabled \n");
 
     } else {
 
         /* TODO: Remove the code to disable 1.2V sw and 1.3V sw once we have the API to set these power supplies Pin controllable */
-
+        printk(KERN_ERR "power down switchable\n");
         rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S2, 0);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg set level failed (%d)\n", __func__, rc);
@@ -316,7 +329,6 @@ int vos_chip_power_qrf8600(int on)
 //Helper routine to power up Libra keypad on the 7x27 FFA
 int vos_chip_power_7x27_keypad( int on )
 {
-#ifdef FIXME_VOLANS
    struct vreg *vreg_wlan, *vreg_bt = NULL;
    int rc = 0;
 	
@@ -348,7 +360,7 @@ int vos_chip_power_7x27_keypad( int on )
          return -EIO;
       }
 
-      //Set VDD_WLAN_2V6 to 1.8v first.
+      //Set TCXO to 1.8v.
       rc = vreg_set_level(vreg_wlan, 1800);
       if (rc) {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: vreg set level failed (%d)", __func__, rc);
@@ -363,7 +375,7 @@ int vos_chip_power_7x27_keypad( int on )
 
       msleep(100);
 
-      //Pull deep sleep signal high to begin with.
+      // Pull MPP4 high to turn on various supply voltages.
       rc = mpp_config_digital_out(MPP_4_CHIP_PWD_L, 
          MPP_CFG(MPP_DLOGIC_LVL_MSMP, MPP_DLOGIC_OUT_CTRL_HIGH));
       if (rc) {
@@ -371,16 +383,6 @@ int vos_chip_power_7x27_keypad( int on )
          return -EIO;
       }
 
-      //Wait for voltage to settle
-      msleep(400);
-
-      //Set VDD_WLAN_2V6 to 2.6v
-      rc = vreg_set_level(vreg_wlan, 2600);
-      if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: vreg set level failed (%d)", __func__, rc);
-         return -EIO;
-      }
-      
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Enabled power supply for WLAN", __func__);
  
       msleep(500);
@@ -389,7 +391,6 @@ int vos_chip_power_7x27_keypad( int on )
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: Disabled power supply for WLAN", __func__);
    }
-#endif //FIXME_VOLANS
 
    return 0;
 }
@@ -436,6 +437,11 @@ VOS_STATUS vos_chipPowerUp
 )
 {
 
+#ifdef MSM_PLATFORM_8660
+   if(vos_chip_power_qrf8615(CHIP_POWER_ON))
+      return VOS_STATUS_E_FAILURE;
+#endif
+
 #ifdef MSM_PLATFORM_7x30
    if(vos_chip_power_qrf8600(CHIP_POWER_ON))
       return VOS_STATUS_E_FAILURE;
@@ -481,9 +487,16 @@ VOS_STATUS vos_chipPowerDown
 )
 {
 
+#ifdef MSM_PLATFORM_8660
+   if(vos_chip_power_qrf8615(CHIP_POWER_OFF))
+      return VOS_STATUS_E_FAILURE;
+#endif
+
 #ifdef MSM_PLATFORM_7x30
+#ifndef VOS_PWR_WIFI_ON_OFF_HACK
    if(vos_chip_power_qrf8600(CHIP_POWER_OFF))
       return VOS_STATUS_E_FAILURE;
+#endif
 #endif
 
 #ifdef MSM_PLATFORM_7x27_FFA

@@ -49,6 +49,7 @@ when           who        what, where, why
 #include <wlan_qct_hal.h>
 #ifdef ANI_CHIPSET_VOLANS
 #include <qwlanhw_volans.h>
+#include <volansDefs.h>
 #else
 #include <libra.h>
 #endif
@@ -67,6 +68,9 @@ when           who        what, where, why
 #define WLAN_LOW_SD_CLOCK_FREQ 16000000
 #elif defined MSM_PLATFORM_8660
 #define WLAN_HIGH_SD_CLOCK_FREQ 48000000
+#define WLAN_LOW_SD_CLOCK_FREQ 16000000
+#elif defined MSM_PLATFORM_7x27_FFA
+#define WLAN_HIGH_SD_CLOCK_FREQ 49152000
 #define WLAN_LOW_SD_CLOCK_FREQ 16000000
 #endif
 #endif /* VOLANS_1_0_WORKAROUND */
@@ -760,6 +764,7 @@ VOS_STATUS WLANBAL_Start
    WLANSSC_HandleType       sscHandle = (WLANSSC_HandleType)VOS_GET_SSC_CTXT(pAdapter);
    WLANSSC_StartParamsType  sscReg;
    VOS_STATUS               status    = VOS_STATUS_SUCCESS;
+   tANI_U16                 cardId;
 #if defined (VOLANS_BB) || defined(VOLANS_RF)
 #ifdef VOLANS_1_0_WORKAROUND
    tANI_U32                 uRegVal=0;
@@ -781,23 +786,29 @@ VOS_STATUS WLANBAL_Start
       return VOS_STATUS_E_NOMEM;
    }
 
-
    sscReg.pfnGetMultipleTxPacketCback           = balGetTXFramesCB;
    sscReg.pfnTxCompleteCback                    = balTXCompleteCB;
    sscReg.pfnRxPacketHandlerCback               = balRecieveFramesCB;
    sscReg.pfnASICInterruptIndicationCback       = balASICInterruptCB;
    sscReg.pfnFatalErrorIndicationCback          = balFatalErrorCB;
-
+   
+   /* Volans 1.0 specific changes */
+   WLANBAL_GetSDIOCardIdentifier(pAdapter, &cardId);
+   
+   if(cardId == VOLANS_VER_1_0_CARD_ID)
+   {
 
 #if defined (VOLANS_BB) || defined(VOLANS_RF)
 #ifdef VOLANS_1_0_WORKAROUND
-   /* Lowering the SD clock frequency is necessary before accessing
-      the below BBPLL registers. This is a workaround for the bug in 
-      Volans ASIC */
-   WLANSAL_SetSDIOClock(WLAN_LOW_SD_CLOCK_FREQ); 
-   vos_sleep(30);
+       /* Lowering the SD clock frequency is necessary before accessing
+          the below BBPLL registers. This is a workaround for the bug in 
+          Volans ASIC */
+       WLANSAL_SetSDIOClock(WLAN_LOW_SD_CLOCK_FREQ); 
+       vos_sleep(30);
 #endif /* VOLANS_1_0_WORKAROUND */
 #endif /* VOLANS_BB */
+
+   }
 
    status = WLANSSC_Start(sscHandle, &sscReg, pAdapter);
    if(!VOS_IS_STATUS_SUCCESS(status))
@@ -817,57 +828,61 @@ VOS_STATUS WLANBAL_Start
     * is available. This configuration needs to be done one time when the driver
     * loads as soon as IO_READY is received from the SIF
     */
+   if(cardId == VOLANS_VER_1_0_CARD_ID)
+   {
+
 #if defined (VOLANS_BB) || defined(VOLANS_RF)
 #ifdef VOLANS_1_0_WORKAROUND
-   /* The sleep is necessary for the driver to load. Without this delay,
-    * driver won't load.
-    */
-   vos_sleep(50);
+       /* The sleep is necessary for the driver to load. Without this delay,
+        * driver won't load.
+        */
+       vos_sleep(50);
 
-   /* pmu register configuration for BBPLL restoration */
-   status = WLANBAL_ReadRegister(pAdapter, QWLAN_PMU_PMU_ANA_PLL1_CONFIG_REG, &uRegVal);
-   if(!VOS_IS_STATUS_SUCCESS(status))
-   {
-      BMSGERROR("PMU REGISTER QWLAN_PMU_PMU_ANA_PLL1_CONFIG_REG READ FAILED", 0, 0, 0);
-      BEXIT();
-      return VOS_STATUS_E_FAILURE;
-   }
+       /* pmu register configuration for BBPLL restoration */
+       status = WLANBAL_ReadRegister(pAdapter, QWLAN_PMU_PMU_ANA_PLL1_CONFIG_REG, &uRegVal);
+       if(!VOS_IS_STATUS_SUCCESS(status))
+       {
+          BMSGERROR("PMU REGISTER QWLAN_PMU_PMU_ANA_PLL1_CONFIG_REG READ FAILED", 0, 0, 0);
+          BEXIT();
+          return VOS_STATUS_E_FAILURE;
+       }
 
-   /* No bits defined, hence using the raw bits */	
-   uRegVal &= (~0x3);
-   uRegVal |= 0x3;
+       /* No bits defined, hence using the raw bits */	
+       uRegVal &= (~0x3);
+       uRegVal |= 0x3;
 
-   status = WLANBAL_WriteRegister(pAdapter, QWLAN_PMU_PMU_ANA_PLL1_CONFIG_REG, uRegVal);
-   if(!VOS_IS_STATUS_SUCCESS(status))
-   {
-      BMSGERROR("PMU REGISTER QWLAN_PMU_PMU_ANA_PLL1_CONFIG_REG WRITE FAILED", 0, 0, 0);
-      BEXIT();
-      return VOS_STATUS_E_FAILURE;
-   }
+       status = WLANBAL_WriteRegister(pAdapter, QWLAN_PMU_PMU_ANA_PLL1_CONFIG_REG, uRegVal);
+       if(!VOS_IS_STATUS_SUCCESS(status))
+       {
+          BMSGERROR("PMU REGISTER QWLAN_PMU_PMU_ANA_PLL1_CONFIG_REG WRITE FAILED", 0, 0, 0);
+          BEXIT();
+          return VOS_STATUS_E_FAILURE;
+       }
 
-   /**
-    * Increasing the delay from 5ms to 20ms. This value has been verified by VI/simulation 
-	* team. Before configuring this register, all transactions happen at 19.2 MHz, after
-	* writing to above register, PLL frequency is fixed and starts generating the frequency
-    * at 80 MHz. Currently, it is expected to take anywhere between 5ms to tens of milliseconds.
-    * VI seems to have found 20ms works. Hence changing the delay from 5ms to 20ms
-    **/	
-   vos_sleep(20);
+       /**
+        * Increasing the delay from 5ms to 20ms. This value has been verified by VI/simulation 
+	    * team. Before configuring this register, all transactions happen at 19.2 MHz, after
+	    * writing to above register, PLL frequency is fixed and starts generating the frequency
+        * at 80 MHz. Currently, it is expected to take anywhere between 5ms to tens of milliseconds.
+        * VI seems to have found 20ms works. Hence changing the delay from 5ms to 20ms
+        **/	
+       vos_sleep(20);
 
-   /* Reset work around */
-   WLANBAL_DisableClkGate(pAdapter);
-   WLANBAL_SoftReset(pAdapter);
-   WLANBAL_EnableClkGate(pAdapter);
+       /* Reset work around */
+       WLANBAL_DisableClkGate(pAdapter);
+       WLANBAL_SoftReset(pAdapter);
+       WLANBAL_EnableClkGate(pAdapter);
 
-	vos_sleep(5);
+	    vos_sleep(5);
 
-   /* Increase the clock frequency back to higher value for performance */
-   WLANSAL_SetSDIOClock(WLAN_HIGH_SD_CLOCK_FREQ);
-   vos_sleep(15);
+       /* Increase the clock frequency back to higher value for performance */
+       WLANSAL_SetSDIOClock(WLAN_HIGH_SD_CLOCK_FREQ);
+       vos_sleep(15);
 
-	
 #endif /* VOLANS_1_0_WORKAROUND */
 #endif /* VOLANS_BB */
+
+    }
    
    /* DXE Header CFG set as default */
    gbalHandle->sdioDXEConfig.TXChannel.shortDescriptor    = VOS_TRUE;
@@ -2114,6 +2129,33 @@ VOS_STATUS WLANBAL_StartXmit
    return VOS_STATUS_SUCCESS;
 }
 
+/*----------------------------------------------------------------------------
+
+  @brief Routine to get vendor specific SDIO card ID
+
+  @param v_PVOID_t pAdapter
+         Global adapter handle
+         
+         v_U16_t   *pCard_Id
+         ASIC vendor specific id
+
+  @return General status code
+        VOS_STATUS_SUCCESS      Notify success
+        VOS_STATUS_E_FAILURE    BAL is not ready
+      
+----------------------------------------------------------------------------*/
+VOS_STATUS WLANBAL_GetSDIOCardIdentifier
+(
+   v_PVOID_t pAdapter,
+   v_U16_t   *pCardId
+)
+{
+    BENTER();
+    WLANSAL_GetSDIOCardId(pCardId);
+    BEXIT();
+    
+    return VOS_STATUS_SUCCESS;
+}
 
 /*=========================================================================
  * END Interactions with TL

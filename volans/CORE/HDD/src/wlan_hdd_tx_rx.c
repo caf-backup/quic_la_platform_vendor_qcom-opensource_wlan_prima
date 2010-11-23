@@ -749,7 +749,6 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
                  "%s: TX queue re-enabled", __FUNCTION__);
       pAdapter->isTxSuspended = VOS_FALSE;
-      netif_start_queue(pAdapter->dev);
       netif_wake_queue(pAdapter->dev);
    }    
 

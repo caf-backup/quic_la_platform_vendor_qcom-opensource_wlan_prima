@@ -2277,6 +2277,7 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
     int ret = 0; /* sucess */
 #ifdef WLAN_FEATURE_VOWIFI
     hdd_adapter_t *pAdapter = (netdev_priv(dev));   
+    hdd_config_t  *pConfig = pAdapter->cfg_ini;
 #endif /* WLAN_FEATURE_VOWIFI */
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Received length %d", __FUNCTION__, wrqu->data.length);
@@ -2298,19 +2299,26 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
              tRrmNeighborReq neighborReq; 
              tRrmNeighborRspCallbackInfo callbackInfo;
              
-             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "Neighbor Request\n");
-             neighborReq.no_ssid = (wrqu->data.length - 1) ? false : true ;
-             if( !neighborReq.no_ssid )
+             if (pConfig->fRrmEnable) 
              {
-                neighborReq.ssid.length = (wrqu->data.length - 1) > 32 ? 32 : (wrqu->data.length - 1) ;
-                vos_mem_copy( neighborReq.ssid.ssId, wrqu->data.pointer, neighborReq.ssid.length );
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "Neighbor Request\n");
+                neighborReq.no_ssid = (wrqu->data.length - 1) ? false : true ;
+                if( !neighborReq.no_ssid )
+                {
+                   neighborReq.ssid.length = (wrqu->data.length - 1) > 32 ? 32 : (wrqu->data.length - 1) ;
+                   vos_mem_copy( neighborReq.ssid.ssId, wrqu->data.pointer, neighborReq.ssid.length );
+                }
+    
+                callbackInfo.neighborRspCallback = NULL;
+                callbackInfo.neighborRspCallbackContext = NULL;
+                callbackInfo.timeout = 5000;   //5 seconds
+                sme_NeighborReportRequest( pAdapter->hHal, pAdapter->sessionId, &neighborReq, &callbackInfo );
              }
-
-             callbackInfo.neighborRspCallback = NULL;
-             callbackInfo.neighborRspCallbackContext = NULL;
-             callbackInfo.timeout = 5000;   //5 seconds
-             sme_NeighborReportRequest( pAdapter->hHal, pAdapter->sessionId, &neighborReq, &callbackInfo );
-
+             else
+             {
+                hddLog(LOGE, "%s: Ignoring neighbor request as RRM is not enabled\n", __func__);
+                ret = -EINVAL;
+             }
           }
           break;
 #endif

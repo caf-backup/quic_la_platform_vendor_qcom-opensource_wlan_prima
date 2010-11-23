@@ -89,7 +89,7 @@ mlm_get_ext_chnl(
 
 #define IS_MLM_SCAN_REQ_BACKGROUND_SCAN_AGGRESSIVE(pMac)    (pMac->lim.gpLimMlmScanReq->backgroundScanMode == eSIR_AGGRESSIVE_BACKGROUND_SCAN)
 
-    
+  	
 /**
  * limProcessMlmReqMessages()
  *
@@ -122,19 +122,19 @@ limProcessMlmReqMessages(tpAniSirGlobal pMac, tpSirMsgQ Msg)
 {
     switch (Msg->type)
     {
-        case LIM_MLM_START_REQ:     limProcessMlmStartReq(pMac, Msg->bodyptr);   break;
-        case LIM_MLM_SCAN_REQ:      limProcessMlmScanReq(pMac, Msg->bodyptr);    break;
+        case LIM_MLM_START_REQ:             limProcessMlmStartReq(pMac, Msg->bodyptr);   break;
+        case LIM_MLM_SCAN_REQ:              limProcessMlmScanReq(pMac, Msg->bodyptr);    break;
 #ifdef FEATURE_INNAV_SUPPORT
         case LIM_MLM_INNAV_MEAS_REQ: limProcessMlmInNavMeasurementReq(pMac, Msg->bodyptr); break;
 #endif
-        case LIM_MLM_JOIN_REQ:      limProcessMlmJoinReq(pMac, Msg->bodyptr);    break;
-        case LIM_MLM_AUTH_REQ:      limProcessMlmAuthReq(pMac, Msg->bodyptr);    break;
-        case LIM_MLM_ASSOC_REQ:     limProcessMlmAssocReq(pMac, Msg->bodyptr);   break;
-        case LIM_MLM_REASSOC_REQ:   limProcessMlmReassocReq(pMac, Msg->bodyptr); break;
-        case LIM_MLM_DISASSOC_REQ:  limProcessMlmDisassocReq(pMac, Msg->bodyptr);  break;
-        case LIM_MLM_DEAUTH_REQ:    limProcessMlmDeauthReq(pMac, Msg->bodyptr);  break;
-        case LIM_MLM_SETKEYS_REQ:  limProcessMlmSetKeysReq(pMac, Msg->bodyptr);  break;
-        case LIM_MLM_REMOVEKEY_REQ: limProcessMlmRemoveKeyReq(pMac, Msg->bodyptr); break;
+        case LIM_MLM_JOIN_REQ:              limProcessMlmJoinReq(pMac, Msg->bodyptr);    break;
+        case LIM_MLM_AUTH_REQ:              limProcessMlmAuthReq(pMac, Msg->bodyptr);    break;
+        case LIM_MLM_ASSOC_REQ:             limProcessMlmAssocReq(pMac, Msg->bodyptr);   break;
+        case LIM_MLM_REASSOC_REQ:           limProcessMlmReassocReq(pMac, Msg->bodyptr); break;
+        case LIM_MLM_DISASSOC_REQ:          limProcessMlmDisassocReq(pMac, Msg->bodyptr);  break;
+        case LIM_MLM_DEAUTH_REQ:            limProcessMlmDeauthReq(pMac, Msg->bodyptr);  break;
+        case LIM_MLM_SETKEYS_REQ:           limProcessMlmSetKeysReq(pMac, Msg->bodyptr);  break;
+        case LIM_MLM_REMOVEKEY_REQ:         limProcessMlmRemoveKeyReq(pMac, Msg->bodyptr); break;
         case SIR_LIM_MIN_CHANNEL_TIMEOUT:   limProcessMinChannelTimeout(pMac);  break;
         case SIR_LIM_MAX_CHANNEL_TIMEOUT:   limProcessMaxChannelTimeout(pMac);  break;
         case SIR_LIM_JOIN_FAIL_TIMEOUT:     limProcessJoinFailureTimeout(pMac);  break;
@@ -144,10 +144,10 @@ limProcessMlmReqMessages(tpAniSirGlobal pMac, tpSirMsgQ Msg)
 #ifdef WLAN_FEATURE_VOWIFI_11R
         case SIR_LIM_FT_PREAUTH_RSP_TIMEOUT: limProcessFTPreauthRspTimeout(pMac); break;
 #endif
-        case LIM_MLM_ADDBA_REQ: limProcessMlmAddBAReq( pMac, Msg->bodyptr ); break;
-        case LIM_MLM_ADDBA_RSP: limProcessMlmAddBARsp( pMac, Msg->bodyptr ); break;
-        case LIM_MLM_DELBA_REQ: limProcessMlmDelBAReq( pMac, Msg->bodyptr ); break;
-        case LIM_MLM_TSPEC_REQ:
+        case LIM_MLM_ADDBA_REQ:             limProcessMlmAddBAReq( pMac, Msg->bodyptr ); break;
+        case LIM_MLM_ADDBA_RSP:             limProcessMlmAddBARsp( pMac, Msg->bodyptr ); break;
+        case LIM_MLM_DELBA_REQ:             limProcessMlmDelBAReq( pMac, Msg->bodyptr ); break;
+        case LIM_MLM_TSPEC_REQ:                 
         default:
             break;
     } // switch (msgType)
@@ -341,7 +341,7 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
 {
     tANI_U8 channelNum;
     tANI_U8 handleError = 0;
-
+    
     if( pMac->lim.abortScan )
     {
         pMac->lim.abortScan = 0;
@@ -381,13 +381,13 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
             limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
 
 #ifdef GEN6_TODO
-              /* revisit this piece of code to assign the appropriate sessionId below
-               * priority - LOW/might not be needed
-               */ 
-              pMac->lim.limTimers.gLimMinChannelTimer.sessionId = sessionId;
+            /* revisit this piece of code to assign the appropriate sessionId below
+             * priority - LOW/might not be needed
+             */ 
+            pMac->lim.limTimers.gLimMinChannelTimer.sessionId = sessionId;
 #endif            
-
-         MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_MIN_CHANNEL_TIMER));
+            
+            MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_MIN_CHANNEL_TIMER));
 
             if (tx_timer_activate(&pMac->lim.limTimers.gLimMinChannelTimer) != TX_SUCCESS)
             {
@@ -415,7 +415,7 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
                  return; 
               }
 
-           }
+    }
 #endif
         }
     }
@@ -470,7 +470,7 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
 #endif
                 //Pick the longer stay time
                 val = (val > val1) ? val : val1;
-          MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_MAX_CHANNEL_TIMER));
+		  MTRACE(macTrace(pMac, TRACE_CODE_TIMER_ACTIVATE, 0, eLIM_MAX_CHANNEL_TIMER));
                 if (tx_timer_change(&pMac->lim.limTimers.gLimMaxChannelTimer,
                                 val, 0) != TX_SUCCESS)
                 {
@@ -526,11 +526,16 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
 static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tANI_U8 pwrMgmt, tANI_U8* notifyBss)
 {
     tANI_U8   i;
-    tANI_U8 sendCts = FALSE; 
     tANI_U8 sendDataNull = FALSE;
     tSirMacAddr bssid;
     *notifyBss = FALSE;
     
+
+/* Don't send CTS to self as we have issue with BTQM queues where BTQM can not handle transmition of CTS2self frames
+ * Sending CTS 2 self at this juncture also doesn't serve much purpose as probe request frames go out immediately
+ * No need to notify BSS in IBSS case.
+ * */
+
 
     for(i =0; i < pMac->lim.maxBssId; i++)
     {
@@ -538,34 +543,20 @@ static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *mac
         {
             if(pMac->lim.gpSession[i].limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
            {
-                 //BT-STA can either be in LINK-ESTB state or BSS_STARTED State
-                 //for BT, need to send CTS2Self
-                if(pMac->lim.gpSession[i].bssType == eSIR_BTAMP_STA_MODE)
-                    sendCts = TRUE;
-                else
-                {
+                    /* Fr BT_AMP STA case, we don't nned to notify BSS with a NULL data */
+                    /* Send NULL data only for Infra STA */
                     sendDataNull = TRUE;
                     palCopyMemory(pMac->hHdd, (void *)bssid, (void *)pMac->lim.gpSession[i].bssId, sizeof(tSirMacAddr));
-                }
                 *notifyBss =  TRUE;
-
             }
-            else if (pMac->lim.gpSession[i].limMlmState == eLIM_MLM_BSS_STARTED_STATE) 
-            {
-                sendCts = TRUE;
-                *notifyBss = TRUE;
             }
         }
-    }
 
-    //If sendCts and sendDataNull both are set, send only CTS2Self
     //This will be the scenario, when we have multiple sessions Infra+IBSS or Infra+BT
-    if(sendCts)
-    CreateScanCtsFrame(pMac, macMgmtHdr);
-    else if(sendDataNull)
-        {
-    CreateScanDataNullFrame(pMac, macMgmtHdr, pwrMgmt, bssid);
-        }
+    if(sendDataNull)
+    	{
+	CreateScanDataNullFrame(pMac, macMgmtHdr, pwrMgmt, bssid);
+    	}
 
 }
 
@@ -599,13 +590,13 @@ static void __limCreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *m
                 if(pMac->lim.gpSession[i].bssType == eSIR_BTAMP_STA_MODE)
                 {
                     sendDataNull = FALSE;
-                *notifyBss = FALSE;
-            break;
+	        	*notifyBss = FALSE;
+			break;
                 }
                 else
                 {
                     sendDataNull = TRUE;
-               *notifyBss =  TRUE;
+		       *notifyBss =  TRUE;
                     palCopyMemory(pMac->hHdd, (void *)bssid, (void *)pMac->lim.gpSession[i].bssId, sizeof(tSirMacAddr));
                 }
 
@@ -613,13 +604,13 @@ static void __limCreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *m
             else if (pMac->lim.gpSession[i].limMlmState == eLIM_MLM_BSS_STARTED_STATE) 
             {
                sendDataNull = FALSE;
-            *notifyBss = FALSE;
+	        *notifyBss = FALSE;
                 break;
             }
         }
     }
     if(sendDataNull)
-    CreateScanDataNullFrame(pMac, macMgmtHdr, FALSE, bssid);
+	CreateScanDataNullFrame(pMac, macMgmtHdr, FALSE, bssid);
 
 }
 
@@ -633,12 +624,12 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
 {
 
 
-    tSirMsgQ msg;
-    tpInitScanParams pInitScanParam;
-    tSirRetStatus rc = eSIR_SUCCESS;
-
+    tSirMsgQ                msg;
+    tpInitScanParams        pInitScanParam;
+    tSirRetStatus           rc = eSIR_SUCCESS;
+        
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pInitScanParam,
-                                                   sizeof(*pInitScanParam)))
+                                               sizeof(*pInitScanParam)))
     {
        PELOGW(limLog(pMac, LOGW, FL("palAllocateMemor() failed\n"));)
        goto error;
@@ -647,7 +638,7 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
     msg.type = SIR_HAL_INIT_SCAN_REQ;
     msg.bodyptr = pInitScanParam;
     msg.bodyval = 0;
-    
+
     palZeroMemory( pMac->hHdd, (tANI_U8 *)&pInitScanParam->macMgmtHdr, sizeof(tSirMacMgmtHdr));
     if (nextState == eLIM_HAL_INIT_LEARN_WAIT_STATE)
     {
@@ -717,7 +708,7 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
        __limCreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr,  TRUE,  &pInitScanParam->notifyBss);
        pInitScanParam->frameType = pInitScanParam->macMgmtHdr.fc.type;
 
-       
+      
     
        /* Inform HAL whether it should check for traffic on the link
         * prior to performing a background scan
@@ -740,7 +731,7 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
 #endif
     }
     pInitScanParam->frameLength = sizeof(tSirMacMgmtHdr);
-
+    
 
     pMac->lim.gLimHalScanState = nextState;
     SET_LIM_PROCESS_DEFD_MESGS(pMac, false);
@@ -810,12 +801,12 @@ error:
 void
 limSendHalStartScanReq(tpAniSirGlobal pMac, tANI_U8 channelNum, tLimLimHalScanState nextState)
 {
-    tSirMsgQ msg;
-    tpStartScanParams pStartScanParam;
-    tSirRetStatus rc = eSIR_SUCCESS;
+    tSirMsgQ            msg;
+    tpStartScanParams   pStartScanParam;
+    tSirRetStatus       rc = eSIR_SUCCESS;
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pStartScanParam,
-                                                   sizeof(*pStartScanParam)))
+                                           sizeof(*pStartScanParam)))
     {
        PELOGW(limLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));)
        goto error;
@@ -870,12 +861,12 @@ error:
 
 void limSendHalEndScanReq(tpAniSirGlobal pMac, tANI_U8 channelNum, tLimLimHalScanState nextState)
 {
-    tSirMsgQ msg;
-    tpEndScanParams pEndScanParam;
-    tSirRetStatus rc = eSIR_SUCCESS;
+    tSirMsgQ            msg;
+    tpEndScanParams     pEndScanParam;
+    tSirRetStatus       rc = eSIR_SUCCESS;
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pEndScanParam,
-                                                   sizeof(*pEndScanParam)))
+                                           sizeof(*pEndScanParam)))
     {
        PELOGW(limLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));)
        goto error;
@@ -949,9 +940,9 @@ error:
 void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
 {
 
-    tSirMsgQ msg;
-    tpFinishScanParams pFinishScanParam;
-    tSirRetStatus rc = eSIR_SUCCESS;
+    tSirMsgQ            msg;
+    tpFinishScanParams  pFinishScanParam;
+    tSirRetStatus       rc = eSIR_SUCCESS;
 
     if(pMac->lim.gLimHalScanState == nextState)
     {
@@ -967,7 +958,7 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
 
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pFinishScanParam,
-                                                   sizeof(*pFinishScanParam)))
+                                           sizeof(*pFinishScanParam)))
     {
        PELOGW(limLog(pMac, LOGW, FL("palAllocateMemory() failed\n"));)
        goto error;
@@ -999,12 +990,12 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
          * the AP via either DATA-NULL
          */
         pFinishScanParam->scanMode = eHAL_SYS_MODE_SCAN;
-            pFinishScanParam->notifyHost = FALSE;
+        pFinishScanParam->notifyHost = FALSE;
         __limCreateFinishScanRawFrame(pMac, &pFinishScanParam->macMgmtHdr, &pFinishScanParam->notifyBss);
-        pFinishScanParam->frameType = pFinishScanParam->macMgmtHdr.fc.type;
-            pFinishScanParam->frameLength = sizeof(tSirMacMgmtHdr);
+	    pFinishScanParam->frameType = pFinishScanParam->macMgmtHdr.fc.type;
+        pFinishScanParam->frameLength = sizeof(tSirMacMgmtHdr);
         pFinishScanParam->currentOperChannel = peGetCurrentChannel(pMac);
-            pFinishScanParam->cbState = limGetPhyCBState(pMac);
+        pFinishScanParam->cbState = limGetPhyCBState(pMac);
 //WLAN_SUSPEND_LINK Related
       pMac->lim.gLimHalScanState = nextState;
 //end WLAN_SUSPEND_LINK Related
@@ -1083,7 +1074,7 @@ limContinueChannelScan(tpAniSirGlobal pMac)
     {
 #ifndef ANI_SNIFFER
         pMac->lim.abortScan = 0;
-        
+
         /// Done scanning all required channels
         limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE);
 #endif
@@ -1150,7 +1141,7 @@ limContinueChannelScan(tpAniSirGlobal pMac)
 void
 limRestorePreScanState(tpAniSirGlobal pMac)
 {
-
+    
     /// Deactivate MIN/MAX channel timers if running
     limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
     limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
@@ -1317,11 +1308,11 @@ mlm_add_sta(
 {
     tANI_U32 val;
     int      i;
-
+    
 
     pSta->staType = STA_ENTRY_SELF; // Identifying self
 
-    palCopyMemory( pMac->hHdd,  pSta->bssId, pBssid, sizeof( tSirMacAddr ));
+    palCopyMemory( pMac->hHdd,  pSta->bssId,   pBssid,  sizeof( tSirMacAddr ));
     palCopyMemory( pMac->hHdd,  pSta->staMac, psessionEntry->selfMacAddr, sizeof(tSirMacAddr));
 
     /* Configuration related parameters to be changed to support BT-AMP */
@@ -1330,7 +1321,7 @@ mlm_add_sta(
         limLog(pMac, LOGP, FL("Couldn't get LISTEN_INTERVAL\n"));
     
     pSta->listenInterval = (tANI_U16) val;
-
+    
     if (eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_SHORT_PREAMBLE, &val) )
         limLog(pMac, LOGP, FL("Couldn't get SHORT_PREAMBLE\n"));
     pSta->shortPreambleSupported = (tANI_U8)val;
@@ -1346,7 +1337,7 @@ mlm_add_sta(
     if(IS_DOT11_MODE_HT(psessionEntry->dot11mode)) 
     {
         pSta->htCapable         = htCapable;
-#ifdef WLAN_SOFTAP_FEATURE      
+#ifdef WLAN_SOFTAP_FEATURE		
         pSta->greenFieldCapable = limGetHTCapability( pMac, eHT_GREENFIELD, psessionEntry);
         pSta->txChannelWidthSet = limGetHTCapability( pMac, eHT_SUPPORTED_CHANNEL_WIDTH_SET, psessionEntry );
         pSta->mimoPS            = (tSirMacHTMIMOPowerSaveState)limGetHTCapability( pMac, eHT_MIMO_POWER_SAVE, psessionEntry );
@@ -1408,7 +1399,7 @@ limMlmAddBss (
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_U32 val = 0;
 #endif
-
+    
     // Package SIR_HAL_ADD_BSS_REQ message parameters
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
@@ -1427,10 +1418,10 @@ limMlmAddBss (
 
     // Fill in tAddBssParams selfMacAddr
     palCopyMemory ( pMac->hHdd,  pAddBssParams->selfMacAddr, 
-            psessionEntry->selfMacAddr,
+		    psessionEntry->selfMacAddr,
                    sizeof( tSirMacAddr ));
     
-    pAddBssParams->bssType                      = pMlmStartReq->bssType;
+    pAddBssParams->bssType = pMlmStartReq->bssType;
     if ((pMlmStartReq->bssType == eSIR_IBSS_MODE) || 
         (pMlmStartReq->bssType == eSIR_BTAMP_AP_MODE)|| 
         (pMlmStartReq->bssType == eSIR_BTAMP_STA_MODE)) {
@@ -1439,8 +1430,8 @@ limMlmAddBss (
 #ifdef WLAN_SOFTAP_FEATURE
     else if (pMlmStartReq->bssType == eSIR_INFRA_AP_MODE){
 #else
-    else{
-#endif      
+	else{
+#endif		
         pAddBssParams->operMode                 = BSS_OPERATIONAL_MODE_AP;
     }
 
@@ -1582,18 +1573,18 @@ limProcessMlmStartReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         mlmStartCnf.resultCode = eSIR_SME_BSS_ALREADY_STARTED_OR_JOINED;
         goto end;
     }
-
+    
     #if 0
      if (cfgSetInt(pMac, WNI_CFG_CURRENT_CHANNEL, pMlmStartReq->channelNumber)!= eSIR_SUCCESS)
             limLog(pMac, LOGP, FL("could not set CURRENT_CHANNEL at CFG\n"));
-
-    pMac->lim.gLimCurrentChannelId = pMlmStartReq->channelNumber;
+     
+        pMac->lim.gLimCurrentChannelId = pMlmStartReq->channelNumber;
     #endif //TO SUPPORT BT-AMP
 
 
     // Update BSSID & SSID at CFG database
     #if 0 //We are not using the BSSID and SSID from the config file, instead we are reading form the session table
-    if (cfgSetStr(pMac, WNI_CFG_BSSID, (tANI_U8 *) pMlmStartReq->bssId, sizeof(tSirMacAddr))
+     if (cfgSetStr(pMac, WNI_CFG_BSSID, (tANI_U8 *) pMlmStartReq->bssId, sizeof(tSirMacAddr))
         != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("could not update BSSID at CFG\n"));
 
@@ -1614,20 +1605,20 @@ limProcessMlmStartReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
    // pMac->lim.gLimCurrentSSID.length = pMlmStartReq->ssId.length;
 
     #if 0
-
+    
     /* WNI_CFG_PHY_MODE is to made sessio specific  ???*/
     if (cfgSetInt(pMac, WNI_CFG_PHY_MODE, psessionEntry->pLimStartBssReq->nwType)!= eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("could not set networkType at CFG\n"));
     #endif
 
         #if 0
-    if (cfgSetStr(pMac, WNI_CFG_OPERATIONAL_RATE_SET,
+        if (cfgSetStr(pMac, WNI_CFG_OPERATIONAL_RATE_SET,
            (tANI_U8 *) &pMac->lim.gpLimStartBssReq->operationalRateSet.rate,
            pMac->lim.gpLimStartBssReq->operationalRateSet.numRates)
         != eSIR_SUCCESS)
         limLog(pMac, LOGP, FL("could not update Operational Rateset at CFG\n"));
         #endif //TO SUPPORT BT-AMP
-
+        
 
 #if defined(ANI_PRODUCT_TYPE_AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
     if (cfgSetInt(pMac, WNI_CFG_CURRENT_TX_POWER_LEVEL, pMac->lim.gpLimStartBssReq->powerLevel)
@@ -1708,18 +1699,18 @@ static tANI_U8 __limMlmScanAllowed(tpAniSirGlobal pMac)
         if(pMac->lim.gpSession[i].valid == TRUE)
         {
             if(!( ( (  (pMac->lim.gpSession[i].bssType == eSIR_INFRASTRUCTURE_MODE) ||
-                        (pMac->lim.gpSession[i].bssType == eSIR_BTAMP_STA_MODE))&&
+	                    (pMac->lim.gpSession[i].bssType == eSIR_BTAMP_STA_MODE))&&
                        (pMac->lim.gpSession[i].limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE) )||
                   
                   (    ( (pMac->lim.gpSession[i].bssType == eSIR_IBSS_MODE)||
                            (pMac->lim.gpSession[i].bssType == eSIR_BTAMP_AP_MODE)||
                            (pMac->lim.gpSession[i].bssType == eSIR_BTAMP_STA_MODE) )&&
                        (pMac->lim.gpSession[i].limMlmState == eLIM_MLM_BSS_STARTED_STATE) )))
-                {
-            return FALSE;
+            	{
+			return FALSE;
 
               }
-        }
+    	}
     }
 
     return TRUE;
@@ -1748,7 +1739,7 @@ static tANI_U8 __limMlmScanAllowed(tpAniSirGlobal pMac)
 static void
 limProcessMlmScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
-    tLimMlmScanCnf           mlmScanCnf;
+    tLimMlmScanCnf       mlmScanCnf;
 
     if (pMac->lim.gLimSystemInScanLearnMode)
     {
@@ -1758,7 +1749,7 @@ limProcessMlmScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 
  if(__limMlmScanAllowed(pMac) && 
-        (((tLimMlmScanReq *) pMsgBuf)->channelList.numChannels != 0))
+ 	 (((tLimMlmScanReq *) pMsgBuf)->channelList.numChannels != 0))
         
     {
         /// Hold onto SCAN REQ criteria
@@ -1773,7 +1764,7 @@ limProcessMlmScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             pMac->lim.gLimMlmState = eLIM_MLM_WT_PROBE_RESP_STATE;
         else // eSIR_PASSIVE_SCAN
             pMac->lim.gLimMlmState = eLIM_MLM_PASSIVE_SCAN_STATE;
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+	MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
 
         pMac->lim.gLimSystemInScanLearnMode = 1;
         limSetScanMode(pMac);
@@ -1915,8 +1906,8 @@ limProcessMlmJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tpPESession         psessionEntry;
 
     sessionId = ((tpLimMlmJoinReq)pMsgBuf)->sessionId;
-
-    if((psessionEntry = peFindSessionBySessionId(pMac,sessionId))== NULL)
+	
+	if((psessionEntry = peFindSessionBySessionId(pMac,sessionId))== NULL)
     {
         limLog(pMac, LOGP, FL("session does not exist for given sessionId\n"));
 
@@ -1966,7 +1957,7 @@ limProcessMlmJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         
 #if 0
-
+        
         // Update BSSID at CFG database
         if (cfgSetStr(pMac, WNI_CFG_BSSID, pMac->lim.gpLimMlmJoinReq->bssDescription.bssId,
                       sizeof(tSirMacAddr))
@@ -2004,10 +1995,10 @@ limProcessMlmJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     else
     {
         /**
-         * Should not have received JOIN req in states other than
+              * Should not have received JOIN req in states other than
               * Idle state or on AP.
-         * Return join confirm with invalid parameters code.
-         */
+              * Return join confirm with invalid parameters code.
+              */
         PELOGE(limLog(pMac, LOGE,
                FL("Unexpected Join request for role %d state %X\n"),
                psessionEntry->limSystemRole,
@@ -2023,8 +2014,8 @@ error:
         
         mlmJoinCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
         mlmJoinCnf.sessionId = sessionId;
-    mlmJoinCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
-    limPostSmeMessage(pMac, LIM_MLM_JOIN_CNF, (tANI_U32 *) &mlmJoinCnf);
+        mlmJoinCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
+        limPostSmeMessage(pMac, LIM_MLM_JOIN_CNF, (tANI_U32 *) &mlmJoinCnf);
 
 
 } /*** limProcessMlmJoinReq() ***/
@@ -2052,12 +2043,12 @@ error:
 static void
 limProcessMlmAuthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
-    tANI_U32                      numPreAuthContexts;
-    tSirMacAddr              currentBssId;
-    tSirMacAuthFrameBody     authFrameBody;
-    tLimMlmAuthCnf           mlmAuthCnf;
-    struct tLimPreAuthNode          *preAuthNode;
-    tpDphHashNode            pStaDs;
+    tANI_U32                numPreAuthContexts;
+    tSirMacAddr             currentBssId;
+    tSirMacAuthFrameBody    authFrameBody;
+    tLimMlmAuthCnf          mlmAuthCnf;
+    struct tLimPreAuthNode  *preAuthNode;
+    tpDphHashNode           pStaDs;
     tANI_U8                 sessionId;
     tpPESession             psessionEntry;
 
@@ -2146,7 +2137,7 @@ limProcessMlmAuthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
             mlmAuthCnf.resultCode = (tSirResultCodes)
                                     eSIR_MAC_SUCCESS_STATUS;
-
+            
 
             goto end;
         }
@@ -2293,7 +2284,7 @@ limProcessMlmAssocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
     #endif //TO SUPPORT BT-AMP
     sirCopyMacAddr(currentBssId,psessionEntry->bssId);
-
+    
     if ( (psessionEntry->limSystemRole != eLIM_AP_ROLE || psessionEntry->limSystemRole != eLIM_BT_AMP_AP_ROLE) &&
          (psessionEntry->limMlmState == eLIM_MLM_AUTHENTICATED_STATE || psessionEntry->limMlmState == eLIM_MLM_JOINED_STATE) &&
          (palEqualMemory(pMac->hHdd,pMlmAssocReq->peerMacAddr, currentBssId, sizeof(tSirMacAddr))) )
@@ -2322,18 +2313,18 @@ limProcessMlmAssocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
         psessionEntry->limMlmState = eLIM_MLM_WT_ASSOC_RSP_STATE;
-     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
-
+	 MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+ 
         /// Prepare and send Association request frame
         limSendAssocReqMgmtFrame(pMac, pMlmAssocReq,psessionEntry);
 
-        //Set the link state to postAssoc, so HW can start receiving frames from AP.
+  //Set the link state to postAssoc, so HW can start receiving frames from AP.
     if (psessionEntry->bssType == eSIR_BTAMP_STA_MODE)
     {
        if(limSetLinkState(pMac, eSIR_LINK_BTAMP_POSTASSOC_STATE, currentBssId) != eSIR_SUCCESS)
             PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
     } else {
-       if(limSetLinkState(pMac, eSIR_LINK_POSTASSOC_STATE, currentBssId) != eSIR_SUCCESS)
+           if(limSetLinkState(pMac, eSIR_LINK_POSTASSOC_STATE, currentBssId) != eSIR_SUCCESS)
             PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
     }
 
@@ -2396,9 +2387,9 @@ static void
 limProcessMlmReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
     tANI_U8                       chanNum;
-    struct tLimPreAuthNode          *pAuthNode;
-    tLimMlmReassocReq        *pMlmReassocReq;
-    tLimMlmReassocCnf        mlmReassocCnf;
+    struct tLimPreAuthNode  *pAuthNode;
+    tLimMlmReassocReq       *pMlmReassocReq;
+    tLimMlmReassocCnf       mlmReassocCnf;
     tpPESession             psessionEntry;
 
     if(pMsgBuf == NULL)
@@ -2408,7 +2399,7 @@ limProcessMlmReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 
     pMlmReassocReq = (tLimMlmReassocReq *) pMsgBuf;
-
+    
     if((psessionEntry = peFindSessionBySessionId(pMac,pMlmReassocReq->sessionId)) == NULL)
     {
         PELOGE(limLog(pMac, LOGE,FL("Session Does not exist for given sessionId\n"));)
@@ -2421,9 +2412,9 @@ limProcessMlmReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         if (psessionEntry->pLimMlmReassocReq)
             palFreeMemory( pMac->hHdd, psessionEntry->pLimMlmReassocReq);
 
-    /* Hold Re-Assoc request as part of Session, knock-out pMac */
+	/* Hold Re-Assoc request as part of Session, knock-out pMac */
         /// Hold onto Reassoc request parameters
-    psessionEntry->pLimMlmReassocReq = pMlmReassocReq;
+	psessionEntry->pLimMlmReassocReq = pMlmReassocReq;
         
         // See if we have pre-auth context with new AP
         pAuthNode = limSearchPreAuthList(pMac, psessionEntry->limReAssocbssId);
@@ -2448,7 +2439,7 @@ limProcessMlmReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
         psessionEntry->limMlmState    = eLIM_MLM_WT_REASSOC_RSP_STATE;
-     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
 
 #if 0
         // Update BSSID at CFG database
@@ -2479,14 +2470,14 @@ limProcessMlmReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         limApplyConfiguration(pMac,psessionEntry);
 
         //store the channel switch sessionEntry in the lim global var
-    /* We have already saved the ReAssocreq Pointer abobe */
+	/* We have already saved the ReAssocreq Pointer abobe */
         //psessionEntry->pLimReAssocReq = (void *)pMlmReassocReq;
         psessionEntry->channelChangeReasonCode = LIM_SWITCH_CHANNEL_REASSOC;
-        
+
         /** Switch channell to the new Operating channel for Reassoc*/
         limSetChannel(pMac, psessionEntry->limReassocTitanHtCaps, chanNum, psessionEntry->maxTxPower, psessionEntry->peSessionId);
 
-        return;        
+        return;
     }
     else
     {
@@ -2545,7 +2536,7 @@ end:
 static void
 limProcessMlmDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
-    tANI_U16                      aid;
+    tANI_U16                 aid;
     tSirMacAddr              currentBssId;
     tpDphHashNode            pStaDs;
     tLimMlmDisassocReq       *pMlmDisassocReq;
@@ -2656,7 +2647,7 @@ limProcessMlmDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
      * as advertised by AP and send the update to HAL;
      */
     if  ( (psessionEntry->limSystemRole == eLIM_STA_ROLE )|| (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE ) )
-    {
+	{
         schSetDefaultEdcaParams(pMac);
         if (pStaDs != NULL)
         {
@@ -2669,7 +2660,7 @@ limProcessMlmDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         {
             PELOGE(limLog(pMac, LOGE, FL("Self entry missing in Hash Table \n"));)
         }
-    }
+	}
 
     /// Receive path cleanup with dummy packet
     if(eSIR_SUCCESS != limCleanupRxPath(pMac, pStaDs,psessionEntry))
@@ -2689,7 +2680,7 @@ end:
                   sizeof(tSirMacAddr));
     mlmDisassocCnf.aid = pMlmDisassocReq->aid;
     mlmDisassocCnf.disassocTrigger = pMlmDisassocReq->disassocTrigger;
-
+    
     /* Update PE session ID*/
     mlmDisassocCnf.sessionId = pMlmDisassocReq->sessionId;
 
@@ -2723,20 +2714,20 @@ end:
 static void
 limProcessMlmDeauthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
-    tANI_U16               aid;
-    tSirMacAddr       currentBssId;
-    tpDphHashNode     pStaDs;
-    struct tLimPreAuthNode   *pAuthNode;
-    tLimMlmDeauthReq  *pMlmDeauthReq;
-    tLimMlmDeauthCnf  mlmDeauthCnf;
-    tpPESession             psessionEntry;
-
+    tANI_U16				aid;
+    tSirMacAddr       		currentBssId;
+    tpDphHashNode     		pStaDs;
+    struct tLimPreAuthNode  *pAuthNode;
+    tLimMlmDeauthReq  		*pMlmDeauthReq;
+    tLimMlmDeauthCnf  		mlmDeauthCnf;
+    tpPESession       		psessionEntry;
+	
     if(pMsgBuf == NULL)
     {
         PELOGE(limLog(pMac, LOGE,FL("Buffer is Pointing to NULL\n"));)
         return;
     }
-    
+	
     pMlmDeauthReq = (tLimMlmDeauthReq *) pMsgBuf;
 
     if((psessionEntry = peFindSessionBySessionId(pMac,pMlmDeauthReq->sessionId))== NULL)
@@ -2783,7 +2774,7 @@ limProcessMlmDeauthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
                         PELOGE(limLog(pMac, LOGE, FL("\n CFG BSSID Addr : "));)
                         limPrintMacAddr(pMac, currentBssId,LOGE);
-                        
+						
                         /// Prepare and Send LIM_MLM_DEAUTH_CNF
 
                         mlmDeauthCnf.resultCode = eSIR_SME_INVALID_PARAMETERS;
@@ -2806,7 +2797,7 @@ limProcessMlmDeauthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                         /// Prepare and Send LIM_MLM_DEAUTH_CNF
                         mlmDeauthCnf.resultCode = eSIR_SME_SUCCESS;
                         psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
-               MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+			   			MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
                         goto end;
                     }
                     else
@@ -2910,7 +2901,7 @@ limProcessMlmDeauthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
      * as advertised by AP and send the update to HAL;
      */
     if (pMac->lim.gLimSystemRole == eLIM_STA_ROLE )
-    {
+	{
         schSetDefaultEdcaParams(pMac);
         if (pStaDs != NULL)
         {
@@ -2921,7 +2912,7 @@ limProcessMlmDeauthReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         }
         else
             PELOGE(limLog(pMac, LOGE, FL("Self entry missing in Hash Table \n"));)
-    }
+	}
 
     //pStaDs->mlmStaContext.rxPurgeReq     = 1;
     pStaDs->mlmStaContext.disassocReason = (tSirMacReasonCodes)
@@ -3114,7 +3105,7 @@ tpPESession        psessionEntry;
     if(limIsAddrBC( pMlmSetKeysReq->peerMacAddr )) {
   psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
   psessionEntry->limMlmState = eLIM_MLM_WT_SET_BSS_KEY_STATE;
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+  MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
         limLog( pMac, LOG1, FL("Trying to set Group Keys...%d \n"), 
             psessionEntry->peSessionId);
 
@@ -3168,7 +3159,7 @@ tLimMlmRemoveKeyCnf  mlmRemoveKeyCnf;
            return;
     }
 
-  pMlmRemoveKeyReq = (tLimMlmRemoveKeyReq *) pMsgBuf;
+    pMlmRemoveKeyReq = (tLimMlmRemoveKeyReq *) pMsgBuf;
 
 
     if((psessionEntry = peFindSessionBySessionId(pMac,pMlmRemoveKeyReq->sessionId))== NULL)
@@ -3179,17 +3170,17 @@ tLimMlmRemoveKeyCnf  mlmRemoveKeyCnf;
     }
 
 
-  if( pMac->lim.gpLimMlmRemoveKeyReq != NULL )
-  {
+    if( pMac->lim.gpLimMlmRemoveKeyReq != NULL )
+    {
         // Free any previous requests.
         palFreeMemory( pMac->hHdd, (tANI_U8 *) pMac->lim.gpLimMlmRemoveKeyReq);
         pMac->lim.gpLimMlmRemoveKeyReq = NULL;
-  }
-  // Hold onto the RemoveKeys request parameters
-  pMac->lim.gpLimMlmRemoveKeyReq = (void *) pMlmRemoveKeyReq; 
+    }
+    // Hold onto the RemoveKeys request parameters
+    pMac->lim.gpLimMlmRemoveKeyReq = (void *) pMlmRemoveKeyReq; 
 
     #if 0
-  if( eSIR_SUCCESS != wlan_cfgGetStr( pMac,
+    if( eSIR_SUCCESS != wlan_cfgGetStr( pMac,
         WNI_CFG_BSSID,
         currentBssId,
         &cfg ))
@@ -3198,40 +3189,40 @@ tLimMlmRemoveKeyCnf  mlmRemoveKeyCnf;
     sirCopyMacAddr(currentBssId,psessionEntry->bssId);
 
     switch( psessionEntry->limSystemRole )
-  {
-    case eLIM_STA_ROLE:
+    {
+        case eLIM_STA_ROLE:
         case eLIM_BT_AMP_STA_ROLE:
-      if(( limIsAddrBC( pMlmRemoveKeyReq->peerMacAddr ) != true ) &&
+        if(( limIsAddrBC( pMlmRemoveKeyReq->peerMacAddr ) != true ) &&
           (!palEqualMemory( pMac->hHdd,pMlmRemoveKeyReq->peerMacAddr,
                          currentBssId,
                          sizeof(tSirMacAddr))))
-      {
-        limLog( pMac, LOGW,
+        {
+            limLog( pMac, LOGW,
             FL("Received MLM_REMOVEKEY_REQ with invalid BSSID\n"));
-        limPrintMacAddr( pMac, pMlmRemoveKeyReq->peerMacAddr, LOGW );
+            limPrintMacAddr( pMac, pMlmRemoveKeyReq->peerMacAddr, LOGW );
 
-        // Prepare and Send LIM_MLM_REMOVEKEY_CNF with error code
-        mlmRemoveKeyCnf.resultCode = eSIR_SME_INVALID_PARAMETERS;
-        goto end;
-      }
-      break;
+            // Prepare and Send LIM_MLM_REMOVEKEY_CNF with error code
+            mlmRemoveKeyCnf.resultCode = eSIR_SME_INVALID_PARAMETERS;
+            goto end;
+        }
+        break;
 
-    case eLIM_STA_IN_IBSS_ROLE:
-    default: // eLIM_AP_ROLE
-      // Fall thru...
-      break;
-  }
+        case eLIM_STA_IN_IBSS_ROLE:
+        default: // eLIM_AP_ROLE
+                 // Fall thru...
+                break;
+    }
 
 
     psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
-  if(limIsAddrBC( pMlmRemoveKeyReq->peerMacAddr )) //Second condition for IBSS or AP role.
-  {
+    if(limIsAddrBC( pMlmRemoveKeyReq->peerMacAddr )) //Second condition for IBSS or AP role.
+    {
         psessionEntry->limMlmState = eLIM_MLM_WT_REMOVE_BSS_KEY_STATE;
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
-    // Package SIR_HAL_REMOVE_BSSKEY_REQ message parameters
+        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));    
+        // Package SIR_HAL_REMOVE_BSSKEY_REQ message parameters
         limSendRemoveBssKeyReq( pMac,pMlmRemoveKeyReq,psessionEntry);
-    return;
-  }
+        return;
+    }
 
   /**
     * Check if there exists a context for the
@@ -3255,7 +3246,7 @@ tLimMlmRemoveKeyCnf  mlmRemoveKeyCnf;
       // Prepare and Send LIM_MLM_REMOVEKEY_CNF
       mlmRemoveKeyCnf.resultCode = eSIR_SME_INVALID_PARAMETERS;
       mlmRemoveKeyCnf.sessionId = pMlmRemoveKeyReq->sessionId;
-
+      
 
       goto end;
   }
@@ -3300,7 +3291,7 @@ static void
 limProcessMinChannelTimeout(tpAniSirGlobal pMac)
 {
     tANI_U8 channelNum;
-
+    
 #ifdef GEN6_TODO
     //if the min Channel is maintained per session, then use the below seesionEntry
     //priority - LOW/might not be needed
@@ -3321,13 +3312,13 @@ limProcessMinChannelTimeout(tpAniSirGlobal pMac)
         PELOG1(limLog(pMac, LOG1, FL("Scanning : min channel timeout occurred\n"));)
 
         /// Min channel timer timed out
-            limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
-            channelNum = (tANI_U8)limGetCurrentScanChannel(pMac);
-            limSendHalEndScanReq(pMac, channelNum, eLIM_HAL_END_SCAN_WAIT_STATE);
+        limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
+        channelNum = (tANI_U8)limGetCurrentScanChannel(pMac);
+        limSendHalEndScanReq(pMac, channelNum, eLIM_HAL_END_SCAN_WAIT_STATE);
     }
     else
     {
-        /**
+    /**
          * MIN channel timer should not have timed out
          * in states other than wait_probe_response.
          * Log error.
@@ -3417,7 +3408,7 @@ limProcessJoinFailureTimeout(tpAniSirGlobal pMac)
     
     //fetch the sessionEntry based on the sessionId
     tpPESession psessionEntry;
-    
+	
     if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimJoinFailureTimer.sessionId))== NULL) 
     {
         limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
@@ -3448,20 +3439,20 @@ limProcessJoinFailureTimeout(tpAniSirGlobal pMac)
         mlmJoinCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
 
         psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
-        MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+		MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
         if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, psessionEntry->bssId) != eSIR_SUCCESS)
             PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
         /* Update PE session Id */
         mlmJoinCnf.sessionId = psessionEntry->peSessionId;
-
-
+        
+       
         // Freeup buffer allocated to join request
         if (psessionEntry->pLimMlmJoinReq)
         {
             palFreeMemory( pMac->hHdd, psessionEntry->pLimMlmJoinReq);
             psessionEntry->pLimMlmJoinReq = NULL;
         }
-
+        
         limPostSmeMessage(pMac,
                           LIM_MLM_JOIN_CNF,
                           (tANI_U32 *) &mlmJoinCnf);
@@ -3522,7 +3513,7 @@ limProcessAuthFailureTimeout(tpAniSirGlobal pMac)
              * Issue MLM auth confirm with timeout reason code
              */
 
-
+             
             limRestoreFromAuthState(pMac,eSIR_SME_AUTH_TIMEOUT_RESULT_CODE,eSIR_MAC_UNSPEC_FAILURE_REASON,psessionEntry);
             break;
 
@@ -3633,7 +3624,7 @@ static void
 limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
 {
 
-    tLimMlmAssocCnf   mlmAssocCnf;
+    tLimMlmAssocCnf     mlmAssocCnf;
     tpPESession         psessionEntry;
     
     //to fetch the lim/mlm state based on the sessionId, use the below sessionEntry
@@ -3653,7 +3644,7 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
         limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
         return;
     }
-
+    
     /**
      * Expected Re/Association Response frame
      * not received within Re/Association Failure Timeout.
@@ -3701,12 +3692,12 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
             PELOGE(limLog(pMac, LOGE,  FL("Assoc Failure Timeout occurred.\n"));)
 
             psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
-         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+	     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
             
             //Set the RXP mode to IDLE, so it starts filtering the frames.
             if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE,psessionEntry->bssId) != eSIR_SUCCESS)
                 PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
-
+         
             // 'Change' timer for future activations
             limDeactivateAndChangeTimer(pMac, eLIM_ASSOC_FAIL_TIMER);
 
@@ -3723,7 +3714,7 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
             {
 
                if (limSearchPreAuthList(pMac, currentBssId))
-
+                
                 #if 0    
                 if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) !=
                                     eSIR_SUCCESS)
@@ -3758,7 +3749,7 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
              * Set BSSID to currently associated AP address.
              */
             psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
-         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+	     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
 
             limRestorePreReassocState(pMac, 
                 eSIR_SME_REASSOC_TIMEOUT_RESULT_CODE, eSIR_MAC_UNSPEC_FAILURE_STATUS,psessionEntry);
@@ -3828,7 +3819,7 @@ tSirRetStatus status = eSIR_SUCCESS;
 tpLimMlmAddBAReq pMlmAddBAReq;
 tpLimMlmAddBACnf pMlmAddBACnf;
   tpPESession     psessionEntry;
-
+    
   if(pMsgBuf == NULL)
   {
          PELOGE(limLog(pMac, LOGE,FL("Buffer is Pointing to NULL\n"));)
@@ -3867,8 +3858,8 @@ tpLimMlmAddBACnf pMlmAddBACnf;
     }
     else
     {
-      palZeroMemory( pMac->hHdd, (void *) pMlmAddBACnf, sizeof( tLimMlmAddBACnf ));
-      palCopyMemory( pMac->hHdd,
+        palZeroMemory( pMac->hHdd, (void *) pMlmAddBACnf, sizeof( tLimMlmAddBACnf ));
+        palCopyMemory( pMac->hHdd,
           (void *) pMlmAddBACnf->peerMacAddr,
           (void *) pMlmAddBAReq->peerMacAddr,
           sizeof( tSirMacAddr ));
@@ -3919,14 +3910,14 @@ tpLimMlmAddBARsp pMlmAddBARsp;
    tpDphHashNode pSta;
    tpPESession  psessionEntry;
 
-
+    
     if(pMsgBuf == NULL)
     {
            PELOGE(limLog(pMac, LOGE,FL("Buffer is Pointing to NULL\n"));)
            return;
     }
 
-  pMlmAddBARsp = (tpLimMlmAddBARsp) pMsgBuf;
+    pMlmAddBARsp = (tpLimMlmAddBARsp) pMsgBuf;
 
     if(( psessionEntry = peFindSessionBySessionId(pMac,pMlmAddBARsp->sessionId))== NULL)
     {
@@ -3940,12 +3931,12 @@ tpLimMlmAddBARsp pMlmAddBARsp;
   if( eSIR_SUCCESS != limSendAddBARsp( pMac,pMlmAddBARsp,psessionEntry))
   {
     limLog( pMac, LOGE,
-        FL("Failed to send ADDBA Rsp to peer \n"));
+    FL("Failed to send ADDBA Rsp to peer \n"));
     limPrintMacAddr( pMac, pMlmAddBARsp->peerMacAddr, LOGE );
     /* Clean the BA context maintained by HAL and TL on failure */
     pSta = dphLookupHashEntry( pMac, pMlmAddBARsp->peerMacAddr, &aid, 
             &psessionEntry->dph.dphHashTable);
-    if( NULL != pSta )
+     if( NULL != pSta )
     {
         limPostMsgDelBAInd( pMac, pSta, pMlmAddBARsp->baTID, eBA_RECIPIENT, 
                 psessionEntry);
@@ -3976,10 +3967,10 @@ void limProcessMlmDelBAReq( tpAniSirGlobal pMac,
     tANI_U32 *pMsgBuf )
 {
     tSirRetStatus status = eSIR_SUCCESS;
-  tpLimMlmDelBAReq pMlmDelBAReq;
-  tpLimMlmDelBACnf pMlmDelBACnf;
+    tpLimMlmDelBAReq pMlmDelBAReq;
+    tpLimMlmDelBACnf pMlmDelBACnf;
     tpPESession  psessionEntry;
-
+  
     
     if(pMsgBuf == NULL)
     {
@@ -3988,13 +3979,13 @@ void limProcessMlmDelBAReq( tpAniSirGlobal pMac,
     }
 
   // TODO - Need to validate MLME state
-  pMlmDelBAReq = (tpLimMlmDelBAReq) pMsgBuf;
+    pMlmDelBAReq = (tpLimMlmDelBAReq) pMsgBuf;
 
     if((psessionEntry = peFindSessionBySessionId(pMac,pMlmDelBAReq->sessionId))== NULL)
-  {
+    {
         PELOGE(limLog(pMac, LOGE,FL("session does not exist for given bssId\n"));)
         return;
-  }
+    }
 
   // Send DELBA Ind over the air
   if( eSIR_SUCCESS !=
@@ -4043,7 +4034,7 @@ void limProcessMlmDelBAReq( tpAniSirGlobal pMac,
 
     // Update DELBA result code
     pMlmDelBACnf->delBAReasonCode = pMlmDelBAReq->delBAReasonCode;
-
+    
     /* Update PE session Id*/
     pMlmDelBACnf->sessionId = pMlmDelBAReq->sessionId;
 
@@ -4085,7 +4076,7 @@ limSMPowerSaveStateInd(tpAniSirGlobal pMac, tSirMacHTMIMOPowerSaveState state)
     tANI_U16                   cfgVal2;                 
     tSirMacHTCapabilityInfo *pHTCapabilityInfo;         
     tpDphHashNode pSta = NULL;
-    
+
     tpPESession psessionEntry  = &pMac->lim.gpSession[0]; //TBD-RAJESH HOW TO GET sessionEntry?????
     /** Verify the Mode of operation */    
     if (pMac->lim.gLimSystemRole != eSYSTEM_STA_ROLE) {  
@@ -4192,7 +4183,7 @@ limSetChannel(tpAniSirGlobal pMac, tANI_U32 titanHtcap, tANI_U8 channel, tPowerd
            return;
     }
     #endif // TO SUPPORT BT-AMP
-    
+
 #if defined WLAN_FEATURE_VOWIFI  
     limSendSwitchChnlParams( pMac, channel, limGetPhyCBState( pMac ), maxTxPower, peSessionId);
 #else

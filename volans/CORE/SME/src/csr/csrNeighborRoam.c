@@ -1351,7 +1351,7 @@ void csrNeighborRoamResultsRefreshTimerCallback(void *context)
     csrNeighborRoamResetConnectedStateControlInfo(pMac);
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
-    if (pNeighborRoamInfo->is11rAssoc)
+    if ((pNeighborRoamInfo->is11rAssoc) && (pMac->rrm.rrmSmeContext.rrmConfig.rrmEnabled))
     {
         NEIGHBOR_ROAM_DEBUG(pMac, LOGE, FL("11R Association:Neighbor Lookup Down event received in CONNECTED state"));
         vosStatus = csrNeighborRoamIssueNeighborRptRequest(pMac);
@@ -1797,7 +1797,7 @@ VOS_STATUS  csrNeighborRoamNeighborLookupDownEvent(tpAniSirGlobal pMac)
             
            
 #ifdef WLAN_FEATURE_VOWIFI_11R
-            if (pNeighborRoamInfo->is11rAssoc)
+            if ((pNeighborRoamInfo->is11rAssoc) && (pMac->rrm.rrmSmeContext.rrmConfig.rrmEnabled))
             {
                
                 NEIGHBOR_ROAM_DEBUG(pMac, LOGE, FL("11R Association:Neighbor Lookup Down event received in CONNECTED state"));

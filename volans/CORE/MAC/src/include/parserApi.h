@@ -785,4 +785,6 @@ void PopulateFTInfo( tpAniSirGlobal      pMac,
                      tDot11fIEFTInfo     *pDot11f );
 #endif
 
+void PopulateDot11fAssocRspRates ( tpAniSirGlobal pMac, tDot11fIESuppRates *pSupp, 
+      tDot11fIEExtSuppRates *pExt, tANI_U16 *_11bRates, tANI_U16 *_11aRates );
 #endif

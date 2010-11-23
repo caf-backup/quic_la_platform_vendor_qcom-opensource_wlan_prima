@@ -67,12 +67,12 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
     HALLOG1( halLog(pMac, LOG1, FL("Tx Mgmt Frame Subtype: %d alloc(%x)\n"), pFc->subType, pFrmBuf));
     sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOG4, pData, frmLen);
     //MTRACE(macTrace(pMac, TRACE_CODE_TX_MGMT, 0, pFc->subType);)
-                        
+
     // Reset the event to be not signalled
     vosStatus = vos_event_reset(&pMac->hal.TLParam.txMgmtFrameEvent);
     if(!VOS_IS_STATUS_SUCCESS(vosStatus)) {
         HALLOGE(halLog(pMac, LOGE, FL("VOS Event reset failed - status = %d\n"), 
-            vosStatus));
+                    vosStatus));
         halTxComplete(pVosGCtx, (vos_pkt_t *)pFrmBuf, vosStatus);
         return eHAL_STATUS_FAILURE;
     }
@@ -88,15 +88,18 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
     // Divert Disassoc/Deauth frame thr self station, as by the time unicast 
     // disassoc frame reaches the HW, HAL has already deleted the peer station
     if ((pFc->type == SIR_MAC_MGMT_FRAME) &&
-        ((pFc->subType == SIR_MAC_MGMT_DISASSOC) || (pFc->subType == SIR_MAC_MGMT_DEAUTH))) {
+            ((pFc->subType == SIR_MAC_MGMT_DISASSOC) || 
+             (pFc->subType == SIR_MAC_MGMT_DEAUTH) || 
+             (pFc->subType == SIR_MAC_MGMT_REASSOC_RSP) ||  
+             (pFc->subType == SIR_MAC_MGMT_PROBE_RSP))) {
         txFlag = HAL_USE_SELF_STA_REQUESTED_MASK;
     }
 
     if(  (vosStatus = WLANTL_TxMgmtFrm(pVosGCtx, (vos_pkt_t *)pFrmBuf, frmLen, 
-                ucTypeSubType, tid, 
+                    ucTypeSubType, tid, 
                     halTxComplete, NULL, txFlag)) != VOS_STATUS_SUCCESS) {
         HALLOGE(halLog(pMac, LOGE, FL("Sending Mgmt Frame failed - status = %d\n"), 
-            vosStatus));
+                    vosStatus));
         halTxComplete(pVosGCtx, (vos_pkt_t *)pFrmBuf, vosStatus);
         return eHAL_STATUS_FAILURE;
     }
@@ -107,7 +110,7 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
             HAL_TL_TX_MGMT_FRAME_TIMEOUT, &eventIdx);
     if(!VOS_IS_STATUS_SUCCESS(vosStatus)) {
         HALLOGE(halLog(pMac, LOGE, FL("VOS Event wait failed - status = %d\n"), 
-            vosStatus));
+                    vosStatus));
         return eHAL_STATUS_FAILURE;
     }
     if(pMac->hal.TLParam.txMgmtFrameStatus != HAL_TL_TX_SUCCESS) {

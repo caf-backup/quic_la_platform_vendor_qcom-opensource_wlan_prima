@@ -34,6 +34,15 @@
 #include "limTypes.h"
 #endif
 
+//--------------------------------------------------------------------
+//
+//                          Static Variables
+//
+//-------------------------------------------------------------------
+static tANI_U8 gSchProbeRspTemplate[SCH_MAX_PROBE_RESP_SIZE];
+static tANI_U8 gSchBeaconFrameBegin[SCH_MAX_BEACON_SIZE];
+static tANI_U8 gSchBeaconFrameEnd[SCH_MAX_BEACON_SIZE];
+
 // --------------------------------------------------------------------
 /**
  * schGetCFPCount
@@ -150,6 +159,10 @@ schInitGlobals(tpAniSirGlobal pMac)
     pMac->sch.multipleSched = 1;
     pMac->sch.maxPollTimeouts = 20;
     pMac->sch.checkCfbFlagStuck = 0;
+
+    pMac->sch.schObject.gSchProbeRspTemplate = gSchProbeRspTemplate;
+    pMac->sch.schObject.gSchBeaconFrameBegin = gSchBeaconFrameBegin;
+    pMac->sch.schObject.gSchBeaconFrameEnd   = gSchBeaconFrameEnd;
 
 }
 

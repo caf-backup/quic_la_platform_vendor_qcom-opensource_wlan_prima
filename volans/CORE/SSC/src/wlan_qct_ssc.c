@@ -76,6 +76,11 @@
 /* SDIO services                                                           */
 #include "wlan_qct_sal.h"
 
+#ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
+ #include "wlan_qct_bal.h"
+ v_CONTEXT_t pVosGCtx;
+#endif
+
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * ------------------------------------------------------------------------*/
@@ -1516,6 +1521,15 @@ VOS_STATUS WLANSSC_Start
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
+
+#ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
+  pVosGCtx = vos_get_global_context(VOS_MODULE_ID_SSC, NULL); 
+  if(NULL == pVosGCtx)
+  {
+  	SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error retrieving VOSS Context"));
+	WLANSSC_ASSERT( 0 );
+  }
+#endif
 
   /* Release Lock                                                          */
   WLANSSC_UNLOCKTXRX( pControlBlock );
@@ -3818,6 +3832,34 @@ static VOS_STATUS WLANSSC_SendData
 
   WLANSSC_ASSERT( NULL != pBuffer );
 
+#ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
+  /* FIXME: This change is required to address SIF issues in Power-save case.
+   * The SIF is using Rate-Matching FIFO even in the SIF-Freeze case which is
+   * causing DxE errors in high SD frequencies on 7x30 platform.
+   */
+  {
+      v_U32_t uRegValue, curCnt=0;
+
+      do {
+
+        /* Acquire Mutex1 here */
+        WLANBAL_ReadRegister(pVosGCtx, QWLAN_MCU_MUTEX1_REG, &uRegValue);
+        curCnt = (uRegValue & QWLAN_MCU_MUTEX1_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX1_CURRENTCOUNT_OFFSET;
+      }while(curCnt < 1);
+       
+      /* Once mutex1 is acquired, touch BPS_REQ bit in PMU that would unfreeze SIF for Tx-FIFO acesses
+       * It is necessary that host acquire the mutex here and not inside the DO-WHILE Loop. This addresses the
+       * corner case in which firmware acquires both mutex counts of MUTEX1 and issues SIF_FREEZE request. 
+       * And SIF_FREEZE is going on. In the mean time, the host has something to tranfer and attempts to acquire
+       * the mutex but won't be able to. And as part of polling, host issues SIF_UNFREEZE request while firmware
+       * initiated SIF_FREEZE request is happening. In other words, SIF state is not synchronized between host
+       * and firmware. Which can cause unpleasant results. With this, the host issue SIF_UNFREEZE request if-and-only-if
+       * it gets hold of mutex for SIF Tx-FIFO access
+       */
+      WLANBAL_WriteRegister(pVosGCtx, QWLAN_PMU_PMU_CLIENT_IF_BPS_REQ_CTRL_REG_REG, 0x0);
+  }
+#endif      
+
   vos_mem_zero( &sCmd53Request, sizeof(WLANSAL_Cmd53ReqType) );
 
   /* TX FIFO                                                               */
@@ -3847,6 +3889,15 @@ static VOS_STATUS WLANSSC_SendData
                                            &sCmd53Request ) )
   {
     return VOS_STATUS_E_FAILURE;
+  }
+
+  {
+#ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
+      /* FIXME: Release the mutex after SIF-TxFIFO Access */
+
+      v_U32_t uRegValue = (1 << 0x8);
+      WLANBAL_WriteRegister(pVosGCtx, QWLAN_MCU_MUTEX1_REG, uRegValue);
+#endif
   }
 
   /* Update statistics                                                     */

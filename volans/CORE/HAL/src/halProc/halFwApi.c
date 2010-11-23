@@ -315,6 +315,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
 #ifdef BYTE_ORDER_BIG_ENDIAN
             1/* Channel Number to tune to after cal */,
             0/* Reserved */,
+            1/* Uses 6 gain settings from process monitor table which are associated with Tx gain LUTs */,
 
             1/* Channel Tune after cal */,
             0/* Temperature Measure Periodically */,
@@ -334,7 +335,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             0/* LNA Band tuning */,
             0/* LNA Bias Setting */,
 
-            0/* PLL VCO Freq Linearity Cal */,
+            1/* PLL VCO Freq Linearity Cal */,
             0/* Process Monitor */,
             0/* C Tuner */,
             0/* In-Situ Tuner */,
@@ -351,7 +352,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             0/* In-Situ Tuner */,
             0/* C Tuner */,
             0/* Process Monitor */,
-            0/* PLL VCO Freq Linearity Cal */,
+            1/* PLL VCO Freq Linearity Cal */,
 
             0/* LNA Bias Setting */,
             0/* LNA Band tuning */,
@@ -371,16 +372,23 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             0/* Temperature Measure Periodically */,
             1/* Channel Tune after cal */,
 
+            1/* Uses 6 gain settings from process monitor table which are associated with Tx gain LUTs */,
             0/* Reserved */,
             1/* Channel Number to tune to after cal */
 #endif
         };
 
+        if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS1))
+        {
+            calControl.rTuner = 0;
+            calControl.cTuner = 0;
+            calControl.processMonitor = 0;
+        }
+
         /* Configure calControl Bitmask */
         halWriteDeviceMemory(pMac, QWLANFW_MEM_PHY_CAL_CONTROL_BITMAP_ADDR_OFFSET,
                                 (tANI_U8 *)&calControl, sizeof(calControl));
     }
-
 
     // Take the ARM out of reset after FW is downloaded
     halReadRegister(pMac,
@@ -490,7 +498,6 @@ eHalStatus halFW_CheckInitComplete(tHalHandle hHal, void *arg)
                      QWLAN_MCU_MAC_HOST_INT_CLEAR_ACPU_TO_HOST_MB1_INT_CLEAR_MASK);
 
     halIntClearStatus(hHal, eHAL_INT_SIF_ASIC);
-
 
     if ((status != eHAL_STATUS_SUCCESS) || (i >= HAL_MB_REG_READ_POLL_COUNT)) {
         HALLOGP(halLog (pMac, LOGP, FL("Could not receive FW INIT DONE mesg")));
@@ -1173,10 +1180,6 @@ eHalStatus halFW_AddBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx)
 
     pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
 
-    status = halFW_UpdateSystemConfig(pMac,
-            pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
-            sizeof(*pFwConfig));
-
     vos_mem_zero(&bssInfo, sizeof(bssInfo));
     if(bssIdx < HAL_NUM_BSSID)
     {
@@ -1208,10 +1211,17 @@ eHalStatus halFW_AddBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx)
             bssInfo.bcnTemplateAddr = (tANI_U8*)pMac->hal.memMap.beaconTemplate_offset;
             bssInfo.probeRspTemplateAddr = (tANI_U8*)pMac->hal.memMap.probeRspTemplate_offset;
             halWriteDeviceMemory(pMac, (pMac->hal.memMap.bssTable_offset + (bssIdx * BSS_INFO_SIZE)) , &bssInfo, sizeof(bssInfo));
-            HALLOGE(halLog(pMac, LOGE, FL("Sending message QWLANFW_COMMON_ADD_BSS to FW for bssIdx = %u, staIdxForBss = %u, bcastStaIdxForBss %u\n"),
-                pBss->bssIdx, pBss->bssSelfStaIdx, pBss->bcastStaIdx));
-            /* send message to firmware */
-            status = halFW_MsgReq(pMac, QWLANFW_COMMON_ADD_BSS, sizeof(Qwlanfw_AddBssMsgType), (tANI_U8 *)&msgBody);
+            status = halFW_UpdateSystemConfig(pMac,
+                    pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
+                    sizeof(*pFwConfig));
+
+            if(eHAL_STATUS_SUCCESS == status)
+            {
+                HALLOGE(halLog(pMac, LOGE, FL("Sending message QWLANFW_COMMON_ADD_BSS to FW for bssIdx = %u, staIdxForBss = %u, bcastStaIdxForBss %u\n"),
+                    pBss->bssIdx, pBss->bssSelfStaIdx, pBss->bcastStaIdx));
+                /* send message to firmware */
+                status = halFW_MsgReq(pMac, QWLANFW_COMMON_ADD_BSS, sizeof(Qwlanfw_AddBssMsgType), (tANI_U8 *)&msgBody);
+            }
         }
     }
     return status;
@@ -1239,6 +1249,9 @@ eHalStatus halFW_DelBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx)
              msgBody.bssIdx = bssIdx;
             /* send message to firmware */
             status = halFW_MsgReq(pMac, QWLANFW_COMMON_DEL_BSS, sizeof(Qwlanfw_DelBssMsgType), (tANI_U8 *)&msgBody);
+            status = halFW_UpdateSystemConfig(pMac,
+                    pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
+                    sizeof(*pFwConfig));
         }
     }
     return status;
@@ -1250,6 +1263,7 @@ eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobal
     tStaInfo staInfo;
     Qwlanfw_AddStaMsgType msgBody;
     tpStaStruct pSta;
+    tANI_U8 uSig;
     vos_mem_zero(&staInfo, sizeof(staInfo));
     if(staIdx < HAL_NUM_STA)
     {
@@ -1266,6 +1280,11 @@ eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobal
             staInfo.peerEntry = ((pSta->staType == STA_ENTRY_PEER)?1:0);
             staInfo.macAddrLo = *((tANI_U32*)pSta->staAddr);
             staInfo.macAddrHi = *((tANI_U16*)(pSta->staAddr + 4));
+
+            staInfo.dpuDescIndx = pSta->dpuIndex;
+
+            halDpu_GetSignature(pMac, pSta->dpuIndex, &uSig);
+            staInfo.dpuSig = uSig; 
 
             msgBody.bssIdx = pSta->bssIdx;
             if(raGlobalUpdate)

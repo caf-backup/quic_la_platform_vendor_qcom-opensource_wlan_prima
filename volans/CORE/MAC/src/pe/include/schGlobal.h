@@ -55,12 +55,14 @@
 
 struct schMisc {
 
-    tANI_U8 gSchProbeRspTemplate[SCH_MAX_PROBE_RESP_SIZE];
+    tANI_U8 *gSchProbeRspTemplate;
+
     /// Beginning portion of the beacon frame to be written to TFP
-    tANI_U8 gSchBeaconFrameBegin[SCH_MAX_BEACON_SIZE];
+    tANI_U8 *gSchBeaconFrameBegin;
 
     /// Trailing portion of the beacon frame to be written to TFP
-    tANI_U8 gSchBeaconFrameEnd[SCH_MAX_BEACON_SIZE];
+    tANI_U8 *gSchBeaconFrameEnd;
+    
     /// Size of the beginning portion
     tANI_U16 gSchBeaconOffsetBegin;
     /// Size of the trailing portion

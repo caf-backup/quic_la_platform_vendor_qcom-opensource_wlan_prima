@@ -36,7 +36,7 @@ typedef struct sSirFTPreAuthReq
    tANI_U8     preAuthchannelNum;
    tSirMacAddr currbssId;        // BSSID currently associated to suspend the link
    tSirMacAddr preAuthbssId;     // BSSID to preauth to
-   tANI_U32    ft_ies_length;
+   tANI_U16    ft_ies_length;
    tANI_U8     ft_ies[MAX_FTIE_SIZE];
    tpSirBssDescription  pbssDescription;
 } tSirFTPreAuthReq, *tpSirFTPreAuthReq;
@@ -51,9 +51,9 @@ typedef struct sSirFTPreAuthRsp
    tSirMacAddr preAuthbssId;     // BSSID to preauth to
    tANI_U8     status;
    tANI_U8     smeSessionId;
-   tANI_U32    ft_ies_length;
+   tANI_U16    ft_ies_length;
    tANI_U8     ft_ies[MAX_FTIE_SIZE];
-   tANI_U32    ric_ies_length;
+   tANI_U16    ric_ies_length;
    tANI_U8     ric_ies[MAX_FTIE_SIZE];
 } tSirFTPreAuthRsp, *tpSirFTPreAuthRsp;
 
@@ -64,6 +64,9 @@ typedef struct sFTPEContext
 {
     tpSirFTPreAuthReq pFTPreAuthReq;                      // Saved FT Pre Auth Req
     void              *psavedsessionEntry;                
+    tANI_U8           ftPreAuthStatus;
+    tANI_U16          saved_auth_rsp_length;
+    tANI_U8           saved_auth_rsp[MAX_FTIE_SIZE];
 
     // Items created for the new FT, session
     void              *pftSessionEntry;                   // Saved session created for pre-auth 

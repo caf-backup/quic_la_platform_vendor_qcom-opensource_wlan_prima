@@ -143,7 +143,7 @@ typedef struct hdd_hostapd_adapter_s
    hdd_config_t *cfg_ini;
 
   #ifdef ANI_MANF_DIAG
-   wlan_hdd_ftm_status_t ftm; 
+   wlan_hdd_ftm_status_t ftm;
   #endif
 
    /** completion variable for full power callback */
@@ -167,13 +167,15 @@ typedef struct hdd_hostapd_adapter_s
    v_U8_t uBCStaId;
 
    v_U8_t uPrivacy;  // The privacy bits of configuration
-   
+
    tSirWPSPBCProbeReq WPSPBCProbeReq;
-   
+
    struct semaphore semWpsPBCOverlapInd;
-   
+
    v_BOOL_t apDisableIntraBssFwd;
-      
+   
+   vos_timer_t hdd_ap_inactivity_timer;
+
 } hdd_hostapd_adapter_t;
 
 int hdd_wlan_create_ap_dev(struct net_device *pWlanDev);

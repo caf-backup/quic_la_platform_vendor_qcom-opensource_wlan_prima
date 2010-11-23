@@ -28,9 +28,10 @@
 #endif
 
 
-extern const tRfRxGain rfGainTable[NUM_RF_SUBBANDS][NUM_RF_RX_GAIN_STEPS];
-extern const tRfTxGain rfTxGainTable[NUM_TEMPERATURE_BINS][NUM_TX_GAIN_STEPS];
-
+extern DATA_HPHY_INIT const tRfRxGain rfGainTable[NUM_RF_SUBBANDS][NUM_RF_RX_GAIN_STEPS];
+extern DATA_HPHY_INIT const tRfTxGain rfTxGainTableVolans2[NUM_TX_GAIN_STEPS];
+extern DATA_HPHY_INIT const tRfTxGain rfTxDAGainTable[NUM_TX_GAIN_STEPS];
+extern DATA_HPHY_INIT const tRfTxGain rfTxGainTable[NUM_TX_GAIN_STEPS];
 
 
 #define TX_DCO_RANGE_SETTING 1
@@ -57,5 +58,6 @@ extern tANI_U8 pllVfcReg3B1;
 extern tANI_U8 pllVfcReg3B2;
 extern tANI_U8 pllVfcReg3B3;
 
+#define RF_CHIP_VERSION(x)      (hphy.rf.version.ver == (x))
 
 #endif /* RF_H */

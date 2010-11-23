@@ -118,6 +118,7 @@ typedef struct sPmcInfo
     tANI_BOOLEAN autoBmpsEntryEnabled;  /* TRUE if auto BMPS entry is enabled. If set to TRUE, PMC will
                                            attempt to put the device into BMPS on entry into full Power */
     tANI_BOOLEAN bmpsRequestedByHdd; /*TRUE if BMPS mode has been requested by HDD */
+    tANI_BOOLEAN bmpsRequestQueued; /*If a enter BMPS request is queued*/
     tANI_BOOLEAN smpsEnabled;  /* TRUE if SMPS is enabled */
     tANI_U32 impsPeriod;  /* amount of time to remain in IMPS */
     void (*impsCallbackRoutine) (void *callbackContext, eHalStatus status);  /* routine to call when IMPS period

@@ -136,6 +136,7 @@ typedef enum
    eHDD_SUSPEND_NONE = 0,
    eHDD_SUSPEND_DEEP_SLEEP,
    eHDD_SUSPEND_STANDBY,
+   eHDD_SUSPEND_MCAST_BCAST_FILTER,
 } hdd_ps_state_t;
 
 typedef struct roaming_info_s

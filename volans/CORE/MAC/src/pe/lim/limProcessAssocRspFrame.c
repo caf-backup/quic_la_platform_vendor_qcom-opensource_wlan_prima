@@ -494,6 +494,9 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType,tpPE
 #endif
             pmmResetPmmState(pMac);
 
+            // Store assigned AID for TIM processing
+            psessionEntry->limAID = pAssocRsp->aid & 0x3FFF;
+
             limAddFTStaSelf(pMac, (pAssocRsp->aid & 0x3FFF), psessionEntry);
 
             return;

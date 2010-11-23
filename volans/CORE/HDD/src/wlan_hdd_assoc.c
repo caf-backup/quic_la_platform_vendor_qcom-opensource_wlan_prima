@@ -300,7 +300,7 @@ void hdd_SendFTEvent(hdd_adapter_t *pAdapter)
     union iwreq_data wrqu;
     //struct wpabuf *ric = NULL;
     char *buff;
-    tANI_U32 auth_resp_len = 0;
+    tANI_U16 auth_resp_len = 0;
     tANI_U32 ric_ies_length = 0;
 
     // We need to send the IEs to the supplicant.
@@ -1165,6 +1165,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
 {
     eHalStatus halStatus = eHAL_STATUS_SUCCESS;
     hdd_adapter_t *pAdapter = (hdd_adapter_t *)pContext;
+    hdd_wext_state_t *pWextState= pAdapter->pWextState;
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,"CSR Callback: status= %d result= %d roamID=%ld", 
                     roamStatus, roamResult, roamId ); 
@@ -1203,7 +1204,25 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                     
         case eCSR_ROAM_ASSOCIATION_COMPLETION:
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "****eCSR_ROAM_ASSOCIATION_COMPLETION****");
-            halStatus = hdd_AssociationCompletionHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
+            if (  (roamResult != eCSR_ROAM_RESULT_ASSOCIATED)
+               && (   (pWextState->roamProfile.EncryptionType.encryptionType[0] == eCSR_ENCRYPT_TYPE_WEP40_STATICKEY) 
+                   || (pWextState->roamProfile.EncryptionType.encryptionType[0] == eCSR_ENCRYPT_TYPE_WEP104_STATICKEY)
+                  )
+               && (eCSR_AUTH_TYPE_SHARED_KEY != pAdapter->conn_info.authType)
+               )
+            {
+                v_U32_t roamId = 0;
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
+                        "****WEP open authentication failed, trying with shared authentication****");
+                pAdapter->conn_info.authType = eCSR_AUTH_TYPE_SHARED_KEY;
+                pWextState->roamProfile.AuthType.authType[0] = pAdapter->conn_info.authType;
+                halStatus = sme_RoamConnect( pAdapter->hHal, pAdapter->sessionId, &(pWextState->roamProfile), &roamId);
+            }
+            else
+            {
+                halStatus = hdd_AssociationCompletionHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
+            }
+
             break;
         case eCSR_ROAM_IBSS_IND:
             halStatus = roamRoamIbssIndicationHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );

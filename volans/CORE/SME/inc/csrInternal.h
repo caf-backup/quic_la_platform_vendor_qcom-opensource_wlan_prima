@@ -773,16 +773,17 @@ typedef struct tagCsrRoamStruct
     tDblLinkList channelList24;
     tCsrConfig configParam;
     tANI_U32 numChannelsEeprom; //total channels of eeprom
-    tCsrChannel base20MHzChannels;   //The channel base to work on
-    tCsrChannel base40MHzChannels;   //center channels for 40MHz channels
+    tCsrChannel base20MHzChannels;   //The channel base to work on              
+    tCsrChannel base40MHzChannels;   //center channels for 40MHz channels      
     eCsrRoamState curState;  
     eCsrRoamSubState curSubState;
     //This may or may not have the up-to-date valid channel list
     //It is used to get WNI_CFG_VALID_CHANNEL_LIST and not allocate memory all the time
     tSirMacChanNum validChannelList[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+    
     tANI_S32 sPendingCommands;
-    tChannelListWithPower powerTableFromEeprom[WNI_CFG_VALID_CHANNEL_LIST_LEN];
-    tChannelListWithPower powerTableFromEeprom40MHz[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+    tChannelListWithPower   *powerTableFromEeprom;
+    tChannelListWithPower   *powerTableFromEeprom40MHz;
     tPalTimerHandle hTimerWaitForKey;  //To support timeout for WaitForKey state
 #ifdef FEATURE_WLAN_GEN6_ROAMING    
 	 /* TODO : Per session members .?*/
@@ -812,7 +813,7 @@ typedef struct tagCsrRoamStruct
     v_U8_t ucACWeights[WLANTL_MAX_AC];
     /* TODO : Upto here */
     tCsrTimerInfo WaitForKeyTimerInfo;
-    tCsrRoamSession roamSession[CSR_ROAM_SESSION_MAX];
+    tCsrRoamSession   *roamSession;
     tANI_U32 transactionId;        // Current transaction ID for internal use. 
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING    
     tCsrNeighborRoamControlInfo neighborRoamInfo;

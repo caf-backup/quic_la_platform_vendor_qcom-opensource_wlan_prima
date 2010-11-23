@@ -172,6 +172,9 @@ int bdPduInterruptGetThreshold = WLANTL_BD_PDU_INTERRUPT_GET_THRESHOLD;
 
 //Maximal on-fly packet per station in LWM mode
 #define WLANTL_STA_BMU_THRESHOLD_MAX (256)
+
+#define WLANTL_AC_MASK (0x7)
+#define WLANTL_STAID_OFFSET (0x4)
 #endif
 
 /* UINT32 type endian swap */
@@ -417,6 +420,8 @@ WLANTL_Open
   pTLCb->tlFCInfo.fcConfig = 0x1;
 
   pTLCb->vosTxFCBuf = NULL;
+  pTLCb->tlConfigInfo.uMinFramesProcThres =
+                pTLConfig->uMinFramesProcThres;
 #endif
 
   pTLCb->tlConfigInfo.uDelayedTriggerFrmInt =
@@ -1269,6 +1274,9 @@ WLANTL_STAPktPending
 )
 {
   WLANTL_CbType*  pTLCb = NULL;
+#ifdef WLAN_SOFTAP_FEATURE
+  vos_msg_t      vosMsg;
+#endif
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
@@ -1314,34 +1322,47 @@ WLANTL_STAPktPending
     Enable this AC in the AC mask in order for TL to start servicing it
     Set packet pending flag 
   -----------------------------------------------------------------------*/
-  vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucACMask,
+#ifdef WLAN_SOFTAP_FEATURE
+    if (WLAN_STA_SOFTAP != pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType)
+    {
+#endif
+       vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucACMask,
                       pTLCb->atlSTAClients[ucSTAId].ucACMask| ( 1 << ucAc));
 
-  vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucPktPending, 1);
+       vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucPktPending, 1);
 
-  /*------------------------------------------------------------------------
-    Check if there are enough resources for transmission and tx is not
-    suspended.
-   ------------------------------------------------------------------------*/
-  if (( pTLCb->uResCount >=  WLANTL_MIN_RES_DATA ) &&
-      ( 0 == pTLCb->ucTxSuspended ))
-  {
-    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-              "Issuing Xmit start request to BAL"));
-    WLANBAL_StartXmit(pvosGCtx);
-  }
-  else
-  {
-    /*---------------------------------------------------------------------
-      No error code is sent because TL will resume tx autonomously if
-      resources become available or tx gets resumed
-     ---------------------------------------------------------------------*/
-    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:Request to send but condition not met. Res: %d,Suspend: %d",
-               pTLCb->uResCount, pTLCb->ucTxSuspended ));
-
-  }
-
+       /*------------------------------------------------------------------------
+       Check if there are enough resources for transmission and tx is not
+       suspended.
+       ------------------------------------------------------------------------*/
+       if (( pTLCb->uResCount >=  WLANTL_MIN_RES_DATA ) &&
+          ( 0 == pTLCb->ucTxSuspended ))
+       {
+           TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+               "Issuing Xmit start request to BAL"));
+           WLANBAL_StartXmit(pvosGCtx);
+       }
+       else
+       {
+           /*---------------------------------------------------------------------
+           No error code is sent because TL will resume tx autonomously if
+           resources become available or tx gets resumed
+           ---------------------------------------------------------------------*/
+           TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                 "WLAN TL:Request to send but condition not met. Res: %d,Suspend: %d",
+                  pTLCb->uResCount, pTLCb->ucTxSuspended ));
+       }
+#ifdef WLAN_SOFTAP_FEATURE
+    }
+    else
+    {
+        vosMsg.reserved = 0;
+        vosMsg.bodyval  = 0;
+        vosMsg.bodyval = (ucAc | (ucSTAId << WLANTL_STAID_OFFSET));
+        vosMsg.type     = WLANTL_TX_STAID_AC_IND;
+        vos_tx_mq_serialize( VOS_MQ_ID_TL, &vosMsg);
+    }
+#endif
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_STAPktPending */
 
@@ -3148,9 +3169,14 @@ WLANTL_GetFrames
     There is still data - until FSM function says otherwise
    -----------------------------------------------------------------------*/
   pTLCb->bUrgent      = FALSE;
+
+#ifdef WLAN_SOFTAP_FEATURE
+  while (( pTLCb->tlConfigInfo.uMinFramesProcThres < pTLCb->uResCount ) &&
+         ( 0 < uRemaining ))
+#else
   while (( 0 < pTLCb->uResCount ) &&
          ( 0 < uRemaining ))
-
+#endif
   {
     pMac = vos_get_context(VOS_MODULE_ID_HAL, pvosGCtx);
     systemRole = halGetGlobalSystemRole(pMac);
@@ -6959,6 +6985,10 @@ WLANTL_TxProcessMsg
    v_U8_t          ucSTAId; 
    v_U8_t          ucUcastSig;
    v_U8_t          ucBcastSig;
+#ifdef WLAN_SOFTAP_FEATURE
+   WLANTL_CbType*  pTLCb = NULL;
+   WLANTL_ACEnumType    ucAC;
+#endif
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -6987,7 +7017,7 @@ WLANTL_TxProcessMsg
   case WLANTL_TX_RES_NEEDED:
     vosStatus = WLANTL_GetTxResourcesCB( pvosGCtx );
      break;
-
+  
   case WLANTL_TX_FWD_CACHED:
     /*---------------------------------------------------------------------
      The data sent with the message has the following structure: 
@@ -7001,6 +7031,25 @@ WLANTL_TxProcessMsg
     vosStatus   = WLANTL_ForwardSTAFrames( pvosGCtx, ucSTAId, 
                                            ucUcastSig, ucBcastSig);
     break;
+#ifdef WLAN_SOFTAP_FEATURE
+  case WLANTL_TX_STAID_AC_IND:
+      pTLCb = VOS_GET_TL_CB(pvosGCtx);
+      if ( NULL == pTLCb )
+      {
+         TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STAPktPending"));
+         return VOS_STATUS_E_FAULT;
+      }
+
+      ucAC = message->bodyval &  WLANTL_AC_MASK;
+      ucSTAId = message->bodyval >> WLANTL_STAID_OFFSET;  
+      vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucACMask,
+                      pTLCb->atlSTAClients[ucSTAId].ucACMask| ( 1 << (ucAC)));
+
+      vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucPktPending, 1);
+      WLANBAL_StartXmit(pvosGCtx);
+      break;
+#endif 
   default:
     /*no processing for now*/
     break;

@@ -217,8 +217,6 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        pAdapter->aStaInfo[STAId].txSuspended = VOS_TRUE;
        pAdapter->aStaInfo[STAId].txSuspendedAc = ac; 
        netif_stop_queue(dev);
-       //netif_carrier_off(dev);  // don't turn off carrier in softAP
-               
        return NETDEV_TX_BUSY;
     }
 #else
@@ -934,8 +932,7 @@ VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
                  "%s: TX queue re-enabled", __FUNCTION__);
       pAdapter->aStaInfo[STAId].txSuspended = VOS_FALSE;
-      netif_carrier_on(pAdapter->pDev);
-      netif_start_queue(pAdapter->pDev);
+      netif_wake_queue(pAdapter->pDev);
    }    
 
 #if 0

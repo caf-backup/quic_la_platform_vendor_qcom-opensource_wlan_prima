@@ -62,6 +62,9 @@
  * local funcs
  */
 static void halDpu_FreePendingErrorPackets(tpAniSirGlobal pMac);
+static void halDpu_EnableCcmNonceFix(tpAniSirGlobal pMac, tANI_BOOLEAN fSet);
+static void halDpu_EnableWapiKeyIndexFix(tpAniSirGlobal pMac, tANI_BOOLEAN fSet);
+
 /* -------------------------------------------------------------
  * FUNCTION:  dpu_hw_init()
  *
@@ -123,8 +126,6 @@ dpu_hw_init(
     value = 0xffffffff;
 
     halWriteRegister(pMac, QWLAN_DPU_DPU_ERROR_WQ_SELECT_REG, value);
-    
-
 
 #ifdef FIXME_GEN6
     /* enable the use of reservation for DPU tx (but don't do this for rx) */
@@ -139,6 +140,28 @@ dpu_hw_init(
     value |= QWLAN_DPU_DPU_CONTROL_WQ_TX_RSV_EN_MASK | QWLAN_DPU_DPU_CONTROL_PASS_ZERO_LEN_MASK;
     halWriteRegister(pMac, QWLAN_DPU_DPU_CONTROL_REG, value);
 #endif
+
+#if defined(FEATURE_WLAN_WAPI)
+    //Always set this bit. It works for non-Qos WAPI as well
+    halDpu_SetWapiQos( pMac, eANI_BOOLEAN_TRUE );
+#endif
+
+    /* Volans 2.0 Specific changes */
+    if(pMac->hal.deviceCardId == VOLANS_VER_2_0_CARD_ID)
+    {
+        /* DPU is not setting Management bit and zeros out QoS field in the CCM Nonce generation. 
+         * This problem exists in both transmit and receive path. The issue is fixed in Volans2.0 
+         * through ECO and added a config bit (enable_11w_uc_mgmt_fix in DPU_spare_reg) to enable this fix. 
+         * When this bit is ‘1’, fix is enabled. By default this bit is zero.
+         */
+        halDpu_EnableCcmNonceFix(pMac, eANI_BOOLEAN_TRUE);
+
+        /* DPU RTL is picking keyIndex value instead of keyID for WAPI encryption/decryption. 
+         * The issue is fixed in Volans2.0 and added config bit(enable_wapi_kid_fix in DPU_spare_reg) 
+         * to enable this fix. When this bit is ‘1’ , fix is enabled. By default this bit is zero.
+         */
+        halDpu_EnableWapiKeyIndexFix(pMac, eANI_BOOLEAN_TRUE);
+    }
 
 }
 
@@ -2530,4 +2553,69 @@ eHalStatus halDpu_SetReplayCheckForTID( tpAniSirGlobal pMac,
     return status;
 }
 #endif
+
+
+#if defined(FEATURE_WLAN_WAPI)
+eHalStatus halDpu_SetWapiQos( tpAniSirGlobal pMac, tANI_BOOLEAN fSet )
+{
+    tANI_U32 value;
+    eHalStatus status;
+
+    status = halReadRegister(pMac, QWLAN_DPU_DPU_CONTROL_REG, &value);
+
+    if(HAL_STATUS_SUCCESS(status))
+    {
+        if(fSet)
+        {
+            value |= QWLAN_DPU_DPU_CONTROL_WAPI_QOS_EN_MASK;
+        }
+        else
+        {
+            value &= ~(QWLAN_DPU_DPU_CONTROL_WAPI_QOS_EN_MASK);
+        }
+        status = halWriteRegister(pMac, QWLAN_DPU_DPU_CONTROL_REG, value);
+    }
+
+    return status;
+}
+#endif //#if defined(FEATURE_WLAN_WAPI)
+
+static void
+halDpu_EnableCcmNonceFix(tpAniSirGlobal pMac, tANI_BOOLEAN fSet)
+{
+    tANI_U32 value;
+
+    halReadRegister(pMac, QWLAN_DPU_DPU_SPARE_REG_REG, &value);
+
+    if(fSet)
+    {
+        value |= QWLAN_DPU_DPU_SPARE_REG_ENABLE_11W_UC_MGMT_FIX_MASK;
+    }
+    else
+    {
+        value &= ~(QWLAN_DPU_DPU_SPARE_REG_ENABLE_11W_UC_MGMT_FIX_MASK);
+    }
+    
+    halWriteRegister(pMac, QWLAN_DPU_DPU_SPARE_REG_REG, value);
+}
+
+static void
+halDpu_EnableWapiKeyIndexFix(tpAniSirGlobal pMac, tANI_BOOLEAN fSet)
+{
+    tANI_U32 value;
+
+    halReadRegister(pMac, QWLAN_DPU_DPU_SPARE_REG_REG, &value);
+
+    if(fSet)
+    {
+        value |= QWLAN_DPU_DPU_SPARE_REG_ENABLE_WAPI_KID_FIX_MASK;
+    }
+    else
+    {
+        value &= ~(QWLAN_DPU_DPU_SPARE_REG_ENABLE_WAPI_KID_FIX_MASK);
+    }
+    
+    halWriteRegister(pMac, QWLAN_DPU_DPU_SPARE_REG_REG, value);
+}
+
 

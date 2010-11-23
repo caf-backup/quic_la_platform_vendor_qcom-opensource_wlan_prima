@@ -361,6 +361,7 @@ eHalStatus halDpu_SetMicKeyDescriptor(tpAniSirGlobal pMac, tANI_U8 id,
 #if defined(FEATURE_WLAN_WAPI)
 eHalStatus halDpu_SetWPIMicKeyDescriptor(tpAniSirGlobal pMac, tANI_U8 id,
                         tANI_U8 *pKey, tANI_U8 paeRole );
+eHalStatus halDpu_SetWapiQos( tpAniSirGlobal pMac, tANI_BOOLEAN fSet );
 #endif
 eHalStatus halDpu_GetRCId( tpAniSirGlobal pMac, tANI_U8 dpuIndex, tANI_U8 *rcIndex );
 eHalStatus halDpu_EnableRCWinChk( tpAniSirGlobal pMac, tANI_U8 dpuIndex, tANI_U32 queueId );

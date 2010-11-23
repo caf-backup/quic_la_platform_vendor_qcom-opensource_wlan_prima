@@ -414,9 +414,9 @@ WLANTL_BaSessionAdd
       pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].reorderBuffer =
                                             &(pTLCb->reorderBufferPool[idx]);
       pTLCb->reorderBufferPool[idx].isAvailable = VOS_FALSE;
-      TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"%dth buffer avaialable, buffer PTR 0x%p",
+      TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"%dth buffer available, buffer PTR 0x%p",
                   idx,
-                  pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].reorderBuffer,
+                  pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].reorderBuffer
                   ));
       break;
     }
@@ -1590,7 +1590,7 @@ VOS_STATUS WLANTL_ChainFrontPkts
          }
          TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"Slot Index %d, set as NULL, Pending Frames %d",
                      idx  % pwBaReorder->winSize,
-                     pwBaReorder->pendingFramesCount,
+                     pwBaReorder->pendingFramesCount
                      ));
          pwBaReorder->ucCIndex = (idx + 1) % pwBaReorder->winSize;
       }
@@ -1601,7 +1601,7 @@ VOS_STATUS WLANTL_ChainFrontPkts
       }
       TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"Current Index %d, winSize %d",
                   pwBaReorder->ucCIndex,
-                  pwBaReorder->winSize,
+                  pwBaReorder->winSize
                   ));
    }
 

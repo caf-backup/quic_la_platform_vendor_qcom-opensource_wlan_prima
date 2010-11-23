@@ -571,6 +571,18 @@ void WLANSAL_SetSDIOClock(unsigned int hz);
 #endif /*ANI_OS_TYPE_WINDOWS*/
 #endif /* VOLANS_1_0_WORKAROUND */
 
+/*----------------------------------------------------------------------------
+
+   @brief API exported from SAL to get the vendor specific SD card id. 
+          This needs to have the libra_sdio_set_clock API exported from 
+          librasdioif driver
+   @param card_id - Card ID to get
+   
+   @return void
+
+----------------------------------------------------------------------------*/
+void WLANSAL_GetSDIOCardId(unsigned short *sdioCardId);
+
 #ifdef __cplusplus
 }
 #endif

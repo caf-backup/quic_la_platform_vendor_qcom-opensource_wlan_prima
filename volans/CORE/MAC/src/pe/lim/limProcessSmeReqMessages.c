@@ -1783,7 +1783,7 @@ __limProcessSmeReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 goto end;
             }
 
-            limProcessSmeFTReassocReq(pMac, pMsgBuf, psessionEntry);
+            limProcessMlmFTReassocReq(pMac, pMsgBuf, psessionEntry);
             return;
         }
 #endif
@@ -3587,7 +3587,7 @@ __limProcessSmeAssocCnfNew(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsg
     }
 
 end:
-    if(psessionEntry != NULL)
+	if((psessionEntry != NULL) && (pStaDs != NULL))
     {
         if ( psessionEntry->parsedAssocReq[pStaDs->assocId] != NULL )
         {
@@ -4573,19 +4573,22 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
        case eWNI_SME_UPDATE_APWPSIE_REQ: 
             __limProcessSmeUpdateAPWPSIEs(pMac, pMsgBuf);
+            break;
+            
+        case eWNI_SME_GET_WPSPBC_SESSION_REQ:
+             limProcessSmeGetWPSPBCSessions(pMac, pMsgBuf); 
+             break;
+         
+        case eWNI_SME_SET_APWPARSNIEs_REQ:
+              __limProcessSmeSetWPARSNIEs(pMac, pMsgBuf);        
+              break;
+            
 #endif
 #if defined WLAN_FEATURE_VOWIFI
         case eWNI_SME_NEIGHBOR_REPORT_REQ_IND:
         case eWNI_SME_BEACON_REPORT_RESP_XMIT_IND:
             rrmProcessMessage(pMac, pMsg);
             break;
-
-       case eWNI_SME_GET_WPSPBC_SESSION_REQ:
-            limProcessSmeGetWPSPBCSessions(pMac, pMsgBuf); 
-            break;
-        
-       case eWNI_SME_SET_APWPARSNIEs_REQ:
-             __limProcessSmeSetWPARSNIEs(pMac, pMsgBuf);        
 #endif
 
 #if defined WLAN_FEATURE_VOWIFI_11R

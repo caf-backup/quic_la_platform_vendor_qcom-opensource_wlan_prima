@@ -26,7 +26,8 @@ typedef enum
 }eRfCalMode;
 
 
-
+#define RF_CHIP_ID_VOLANS1      4358
+#define RF_CHIP_ID_VOLANS2      4608
 
 
 #endif /* _RFMIDAS_H_ */

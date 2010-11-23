@@ -77,6 +77,13 @@
 #define CSR_DONT_SEND_DISASSOC_OVER_THE_AIR 1
 
 /*-------------------------------------------------------------------------- 
+  Static Type declarations
+  ------------------------------------------------------------------------*/
+static tChannelListWithPower csrRoamPowerTableFromEeprom[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+static tChannelListWithPower csrRoamPowerTableFromEeprom40MHz[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+static tCsrRoamSession       csrRoamRoamSession[CSR_ROAM_SESSION_MAX];
+
+/*-------------------------------------------------------------------------- 
   Type declarations
   ------------------------------------------------------------------------*/
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
@@ -297,6 +304,28 @@ static eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessi
 //static eHalStatus csrRoamProcessStopBss( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 static eHalStatus csrRoamGetQosInfoFromBss(tpAniSirGlobal pMac, tSirBssDescription *pBssDesc);
 
+//Initialize global variables
+static void csrRoamInitGlobals(tpAniSirGlobal pMac)
+{
+    if(pMac)
+    {
+        pMac->roam.powerTableFromEeprom      = csrRoamPowerTableFromEeprom;
+        pMac->roam.powerTableFromEeprom40MHz = csrRoamPowerTableFromEeprom40MHz;
+        pMac->roam.roamSession               = csrRoamRoamSession;
+    }
+    return;
+}
+
+static void csrRoamDeInitGlobals(tpAniSirGlobal pMac)
+{
+    if(pMac)
+    {
+        pMac->roam.powerTableFromEeprom      = NULL;
+        pMac->roam.powerTableFromEeprom40MHz = NULL;
+        pMac->roam.roamSession               = NULL;
+    }
+    return;
+}
 
 eHalStatus csrOpen(tpAniSirGlobal pMac)
 {
@@ -305,6 +334,9 @@ eHalStatus csrOpen(tpAniSirGlobal pMac)
     
     do
     {
+        /* Initialize CSR Roam Globals */
+        csrRoamInitGlobals(pMac);
+
         csrRoamStateChange( pMac, eCSR_ROAMING_STATE_STOP );
         initConfigParam(pMac);
         if(!HAL_STATUS_SUCCESS((status = csrScanOpen(pMac))))
@@ -417,6 +449,10 @@ eHalStatus csrClose(tpAniSirGlobal pMac)
     csrLLClose(&pMac->roam.statsClientReqList);
     csrLLClose(&pMac->roam.peStatsReqList);
     csrLLClose(&pMac->roam.roamCmdPendingList);
+
+    /* DeInit Globals */
+    csrRoamDeInitGlobals(pMac);
+
     return (status);
 } 
 

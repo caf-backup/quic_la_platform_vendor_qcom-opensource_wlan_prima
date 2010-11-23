@@ -744,13 +744,6 @@ limProcessLmmMessages(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsgBuf)
 
             break;
 
-        case eWNI_SME_SET_POWER_REQ:
-        case eWNI_SME_CLIENT_SIDE_LOAD_BALANCE_REQ:
-        case eWNI_SME_SELECT_CHANNEL_REQ:
-        case eWNI_SME_SET_PROPRIETARY_IE_REQ:
-
-            break;
-
         case SIR_LIM_MEASUREMENT_IND_TIMEOUT:
             // Time to send Measurement Indication to WSM
             limSendSmeMeasurementInd(pMac);

@@ -184,7 +184,7 @@ typedef struct
 #define NUM_RF_TX_GAIN_STEPS    (16)
 #define MAX_RF_TX_GAIN_STEP     (NUM_RF_TX_GAIN_STEPS - 1)
 
-#define RF_AGC_GAIN_LUT_DEPTH   (64)
+#define RF_AGC_GAIN_LUT_DEPTH   (128)
 #define NUM_RF_DCO_VALUES       (128) //There are only 32 DCO values, but our algorithm it makes more sense for us to access these by AGC gain index
 #define MAX_RF_DCO_VALUE        (NUM_RF_DCO_VALUES - 1)
 
