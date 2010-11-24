@@ -473,6 +473,9 @@ VOS_STATUS WLANSAL_Stop
 
    SENTER();
 
+   /* Register with SDIO driver as client for Suspend/Resume */
+   libra_sdio_configure_suspend_resume(NULL, NULL);
+
    // release sdio irq claim from our driver
    libra_sdio_deconfigure(gpsalHandle->sdio_func_dev);
 
