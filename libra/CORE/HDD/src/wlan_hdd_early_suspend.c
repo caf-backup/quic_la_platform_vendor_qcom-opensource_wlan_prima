@@ -354,6 +354,15 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
       goto err_sal_stop;
    }
 
+   vosStatus = WLANBAL_Start(pAdapter->pvosContext);
+
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+               "%s: Failed to start BAL",__func__);
+      goto err_sal_stop;
+   }
+   
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
       "%s: calling hdd_set_sme_config",__func__);
    vosStatus = hdd_set_sme_config( pAdapter );
@@ -362,7 +371,7 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
    {
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
          "%s: Failed in hdd_set_sme_config",__func__);
-      goto err_sal_stop;
+      goto err_bal_stop;
    }
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
@@ -373,7 +382,7 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
    {
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
          "%s: Failed in vos_start",__func__);
-      goto err_sal_stop;
+      goto err_bal_stop;
    }
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
@@ -408,6 +417,8 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
 
 err_voss_stop:
    vos_stop(pAdapter->pvosContext);
+err_bal_stop:
+   WLANBAL_Stop(pAdapter->pvosContext);
 err_sal_stop:
    WLANSAL_Stop(pAdapter->pvosContext);
 err_deep_sleep:
@@ -526,6 +537,7 @@ VOS_STATUS hdd_wlan_reset(void)
    union iwreq_data wrqu;
    eHalStatus halStatus;
    v_BOOL_t sendDisconnect = 0;
+   pVosSchedContext vosSchedContext = NULL;
 	
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN being reset",__func__);
 
@@ -543,6 +555,8 @@ VOS_STATUS hdd_wlan_reset(void)
       return VOS_STATUS_E_FAILURE;
    }
 
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Disabling TX queues ",__func__);
+
    //Stop the Interface TX queue.
    netif_tx_disable(pAdapter->dev);
    netif_carrier_off(pAdapter->dev);
@@ -556,6 +570,7 @@ VOS_STATUS hdd_wlan_reset(void)
    sme_DisablePowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE);
    sme_DisablePowerSave(pAdapter->hHal, ePMC_UAPSD_MODE_POWER_SAVE);
    
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: requesting SME for FULL Power ",__func__);
    //Ensure that device is in full power as we will touch H/W during vos_Stop
    init_completion(&pAdapter->full_pwr_comp_var);
    
@@ -572,13 +587,18 @@ VOS_STATUS hdd_wlan_reset(void)
      }
      else
      {
-        hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Request for Full Power failed. halStatus %d\n", __func__, halStatus);
+        hddLog(VOS_TRACE_LEVEL_FATAL,
+	"%s: Request for Full Power failed. halStatus %d\n", __func__, halStatus);
         VOS_ASSERT(0);
      }
    }
    
+   hddLog(VOS_TRACE_LEVEL_FATAL, 
+           "%s: requesting SME for Disconnect from AP",__func__);
+
    init_completion(&pAdapter->disconnect_comp_var);
-   halStatus = sme_RoamDisconnect(pAdapter->hHal, pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
+   halStatus = sme_RoamDisconnect(pAdapter->hHal, pAdapter->sessionId, 
+		   eCSR_DISCONNECT_REASON_UNSPECIFIED);
    
    //success implies disconnect command got queued up successfully
    if(halStatus == eHAL_STATUS_SUCCESS)
@@ -587,15 +607,43 @@ VOS_STATUS hdd_wlan_reset(void)
        msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
    }
    
-   //Stop all the modules
-   vosStatus = vos_stop( pVosContext );
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: Failed to stop VOSS",__func__);
+    //Kill all the threads first. We do not want any messages
+   //to be a processed any more and the best way to ensure that
+   //is to terminate the threads gracefully.
+   vosSchedContext = get_vos_sched_ctxt();
+
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down MC thread",__func__);
+   set_bit(MC_SHUTDOWN_EVENT_MASK, &vosSchedContext->mcEventFlag);
+   set_bit(MC_POST_EVENT_MASK, &vosSchedContext->mcEventFlag);
+
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Shutting down TX thread",__func__);
+   set_bit(TX_SHUTDOWN_EVENT_MASK, &vosSchedContext->txEventFlag);
+   set_bit(TX_POST_EVENT_MASK, &vosSchedContext->txEventFlag);
+
+   wake_up_interruptible(&vosSchedContext->mcWaitQueue);
+   wake_up_interruptible(&vosSchedContext->txWaitQueue);
+
+   //Wait for MC and TX to exit
+   wait_for_completion_interruptible(&vosSchedContext->McShutdown);
+   wait_for_completion_interruptible(&vosSchedContext->TxShutdown);
+
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing SME STOP",__func__);
+   //Stop SME - Cannot invoke vos_stop as vos_stop relies
+   //on threads being running to process the SYS Stop
+   vosStatus = sme_Stop( pAdapter->hHal, TRUE );
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing MAC STOP",__func__);
+   //Stop MAC (PE and HAL)
+   vosStatus = macStop( pAdapter->hHal, HAL_STOP_TYPE_SYS_RESET);
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing TL STOP",__func__);
+   //Stop TL
+   vosStatus = WLANTL_Stop( pVosContext );
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-   }
    
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing BAL STOP",__func__);
    vosStatus = WLANBAL_Stop( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
    {
@@ -606,6 +654,7 @@ VOS_STATUS hdd_wlan_reset(void)
    
    msleep(50); 
    
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing Suspend Chip",__func__);
    //Put the chip is standby before asserting deep sleep
    vosStatus = WLANBAL_SuspendChip( pAdapter->pvosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -615,6 +664,7 @@ VOS_STATUS hdd_wlan_reset(void)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
    
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing SAL Stop",__func__);
    //Invoke SAL stop
    vosStatus = WLANSAL_Stop( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -624,6 +674,7 @@ VOS_STATUS hdd_wlan_reset(void)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
    
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Power Down Chip",__func__);
    //Assert Deep sleep signal now to put Libra HW in lowest power state
    vosStatus = vos_chipAssertDeepSleep( NULL, NULL, NULL );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
@@ -637,17 +688,19 @@ VOS_STATUS hdd_wlan_reset(void)
    hdd_deinit_tx_rx(pAdapter);
    hdd_wmm_close(pAdapter);
    
-   //Close the scheduler before closing other modules.	
-   vosStatus = vos_sched_close( pVosContext );  
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus))	{
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-         "%s: Failed to close VOSS Scheduler",__func__);
-      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-   }
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Flush Queues",__func__);
+   //Clean up message queues of TX and MC thread
+   vos_sched_flush_mc_mqs(vosSchedContext);
+   vos_sched_flush_tx_mqs(vosSchedContext);
+
+   //Deinit all the TX and MC queues
+   vos_sched_deinit_mqs(vosSchedContext);
    
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing VOS Close",__func__);
    //Close VOSS
    vos_close(pVosContext);
    
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing BAL Close",__func__);
    vosStatus = WLANBAL_Close(pVosContext);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
    {
@@ -656,6 +709,7 @@ VOS_STATUS hdd_wlan_reset(void)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
 
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Powering Up chip Again",__func__);
    //Power Up Libra WLAN card first if not already powered up
    vosStatus = vos_chipPowerUp(NULL,NULL,NULL);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -795,6 +849,7 @@ VOS_STATUS hdd_wlan_reset(void)
    //Trigger the initial scan
    hdd_wlan_initial_scan(pAdapter);
 
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: CHIP RESET is done sucessfully",__func__);
    goto success;
 
 err_vosstop:

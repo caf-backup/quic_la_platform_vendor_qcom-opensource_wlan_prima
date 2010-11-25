@@ -322,7 +322,11 @@ typedef enum sBmuGetBdReqCode {
 #define HAL_11AG_54MBPS_TSF_COMPENSATION_VALUE 0x05
 #define HAL_11AG_OTHER_TSF_COMPENSATION_VALUE 0x11
 
-
+#ifdef WLAN_SOFTAP_FEATURE
+  #define   BROADCAST_STAID    252
+#else
+  #define   BROADCAST_STAID    255
+#endif
 
 /* --------------------------------------------------------------------- */
 /* DPU */

@@ -2632,6 +2632,21 @@ eHalStatus sme_RequestBmps (
 }
 
 /* ---------------------------------------------------------------------------
+    \fn  sme_SetDHCPTillPowerActiveFlag
+    \brief  Sets/Clears DHCP related flag in PMC to disable/enable auto BMPS 
+            entry by PMC 
+    \param  hHal - The handle returned by macOpen.
+  ---------------------------------------------------------------------------*/
+void  sme_SetDHCPTillPowerActiveFlag(tHalHandle hHal, tANI_U8 flag)
+{
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   // Set/Clear the DHCP flag which will disable/enable auto BMPS entery by PMC
+   pMac->pmc.remainInPowerActiveTillDHCP = flag;
+}
+
+
+/* ---------------------------------------------------------------------------
     \fn sme_StartUapsd
     \brief  Request that the device be put in UAPSD state. If the device is in
             Full Power it will be put in BMPS mode first and then into UAPSD

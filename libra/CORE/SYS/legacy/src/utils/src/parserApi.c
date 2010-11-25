@@ -4443,4 +4443,33 @@ tSirRetStatus PopulateDot11fWscProbeReq( tpAniSirGlobal        pMac,
 
 } // End PopulateDot11fWscProbeReq.
 
+void PopulateDot11fAssocRspRates ( tpAniSirGlobal pMac, tDot11fIESuppRates *pSupp, 
+      tDot11fIEExtSuppRates *pExt, tANI_U16 *_11bRates, tANI_U16 *_11aRates )
+{
+  tANI_U8 i,j;
+  tANI_U8 num_supp = 0, num_ext = 0;
+
+  for( i = 0 ; (i < HAL_NUM_11B_RATES && _11bRates[i]) ; i++, num_supp++ )
+  {
+      pSupp->rates[num_supp] = _11bRates[i];
+  }  
+  for( j = 0 ; (j < HAL_NUM_11A_RATES && _11aRates[j]) ; j++ )
+  {
+     if( num_supp < 8 )
+         pSupp->rates[num_supp++] = _11aRates[j];
+     else
+         pExt->rates[num_ext++] =  _11aRates[j]; 
+  }  
+
+  if( num_supp )
+  {
+      pSupp->num_rates = num_supp;
+      pSupp->present = 1;
+  }
+  if( num_ext )
+  {
+     pExt->num_rates = num_ext;
+     pExt->present = 1;
+  }
+} 
 // parserApi.c ends here.

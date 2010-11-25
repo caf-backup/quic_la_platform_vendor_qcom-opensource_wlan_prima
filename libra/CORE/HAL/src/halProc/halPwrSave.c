@@ -2652,7 +2652,7 @@ eHalStatus halPS_SendBeaconMissInd(tpAniSirGlobal pMac)
  */
 eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 {
-    tANI_U32 regValue = 0, curCnt = 0, retryCnt = 0;
+tANI_U32 regValue = 0, curCnt = 0, retryCnt = 0;
 
     eHalStatus mutexAcq = eHAL_STATUS_FW_PS_BUSY;
 
@@ -2661,7 +2661,7 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 
         curCnt = (regValue & QWLAN_MCU_MUTEX0_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX0_CURRENTCOUNT_OFFSET;
         if(curCnt <= 1) {
-            HALLOGP(halLog(pMac, LOGP, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
+            HALLOGW(halLog(pMac, LOGW, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
             ++retryCnt;
         }
         else {
@@ -2676,9 +2676,9 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
     }
 
     if (ctx == HAL_PS_BUSY_GENERIC) {
-        pMac->hal.PsParam.mutexCount++;
+        pMac->hal.PsParam.mutexCount += retryCnt+1;
     } else {
-        pMac->hal.PsParam.mutexIntrCount++;
+        pMac->hal.PsParam.mutexIntrCount += retryCnt+1;
     }
 
     HALLOGW(halLog(pMac, LOGW, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
@@ -2704,20 +2704,31 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
  */
 eHalStatus halPS_ReleaseHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 {
-    tANI_U32 regValue = 0;
+tANI_U32 regValue = 0;
+    tANI_U32 cntr = 0;
+    int i = 0;
+
+    if (ctx == HAL_PS_BUSY_GENERIC)
+        cntr = pMac->hal.PsParam.mutexCount;
+    else
+        cntr = pMac->hal.PsParam.mutexIntrCount;
+
 
     regValue =  (1 << QWLAN_MCU_MUTEX0_MAXCOUNT_OFFSET);
-    palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, regValue);
+
+    for (i = 0; i <cntr; i++)
+        palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, regValue);
 
     if (ctx == HAL_PS_BUSY_GENERIC) {
-        pMac->hal.PsParam.mutexCount--;
+        pMac->hal.PsParam.mutexCount -= cntr;
     } else {
-        pMac->hal.PsParam.mutexIntrCount--;
+        pMac->hal.PsParam.mutexIntrCount -= cntr;
     }
 
     HALLOGW(halLog(pMac, LOGW, "Released = %d,%d", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount));
 
     return eHAL_STATUS_SUCCESS;
+
 }
 
 /*

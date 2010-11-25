@@ -248,6 +248,7 @@ eQWPttStatus pttSetNvTable(tpAniSirGlobal pMac, eNvTable nvTable, uNvTables *tab
             case NV_TABLE_DEFAULT_COUNTRY:
             case NV_TABLE_RF_CAL_VALUES:
             case NV_TABLE_RSSI_OFFSETS:
+            case NV_TABLE_RSSI_CHANNEL_OFFSETS:
                 if (eHAL_STATUS_FAILURE == halWriteNvTable(pMac, nvTable, tableData))
                 {
                     phyLog(pMac, LOGE, "Unable to write table %d\n", (tANI_U32)nvTable);
@@ -1294,7 +1295,7 @@ eQWPttStatus pttEnableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcEnable enables)
     return (SUCCESS);
 }
 
-#define RSSI_TO_DBM_OFFSET     -107
+#define RSSI_TO_DBM_OFFSET     -105
 
 void pttCollectAdcRssiStats(tpAniSirGlobal pMac)
 {
@@ -1351,7 +1352,7 @@ void pttCollectAdcRssiStats(tpAniSirGlobal pMac)
 void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
 {
     eRfChannels curChan = rfGetChannelIndex(pMac->hphy.phy.test.testChannelId, pMac->hphy.phy.test.testCbState);
-    t2Decimal rssiOffset;
+    t2Decimal rssiOffset0, rssiOffset1;
 
     if(curChan == INVALID_RF_CHANNEL)
     {
@@ -1362,21 +1363,26 @@ void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
     //use the bgnpower offsets for RSSI as well. make sure you strip off last two decimal places
     {
         tANI_U32 pktMode;
+        sRssiChannelOffsets *rssiChanOffsets = (sRssiChannelOffsets *)(&pMac->hphy.nvCache.tables.rssiChanOffsets[0]);
 
         palReadRegister(pMac->hHdd, QWLAN_AGC_DIS_MODE_REG, &pktMode);
 
         if(pktMode & QWLAN_AGC_DIS_MODE_DISABLE_11AG_MASK)
         {
-            rssiOffset = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].bRatePowerOffset[curChan].reported / 100;
+            //rssiOffset = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].bRatePowerOffset[curChan].reported / 100;
+            rssiOffset0 = rssiChanOffsets[PHY_RX_CHAIN_0].bRssiOffset[curChan] / 100;
+            rssiOffset1 = rssiChanOffsets[PHY_RX_CHAIN_1].bRssiOffset[curChan] / 100;
         }
         else
         {
-            rssiOffset = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].gnRatePowerOffset[curChan].reported / 100;
+            //rssiOffset = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].gnRatePowerOffset[curChan].reported / 100;
+            rssiOffset0 = rssiChanOffsets[PHY_RX_CHAIN_0].gnRssiOffset[curChan] / 100;
+            rssiOffset1 = rssiChanOffsets[PHY_RX_CHAIN_1].gnRssiOffset[curChan] / 100;
         }
     }
 
-    rssi->rx[PHY_RX_CHAIN_0] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] + RSSI_TO_DBM_OFFSET + rssiOffset;
-    rssi->rx[PHY_RX_CHAIN_1] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_1] + RSSI_TO_DBM_OFFSET + rssiOffset;
+    rssi->rx[PHY_RX_CHAIN_0] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] + RSSI_TO_DBM_OFFSET + rssiOffset0;
+    rssi->rx[PHY_RX_CHAIN_1] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_1] + RSSI_TO_DBM_OFFSET + rssiOffset1;
 }
 
 

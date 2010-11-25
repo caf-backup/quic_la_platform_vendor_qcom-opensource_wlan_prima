@@ -1085,6 +1085,7 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
             return status;
         }
 
+#ifndef WLAN_SOFTAP_FEATURE
         // Update the station descriptor
         if ((status = halTpe_UpdateStaDesc(pMac, (tANI_U8)pDelBAParams->staIdx,
                         &tpeStaDescCfg)) != eHAL_STATUS_SUCCESS)
@@ -1094,6 +1095,8 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
                         pDelBAParams->staIdx ));
             return status;
         }
+#endif
+
 #ifdef WLAN_SOFTAP_FEATURE
         // Send the Update BA message to FW, as FW would take care of setting the AMPDU valid bit
         // This is to take care of aggregation not happening when STA is in PS

@@ -3134,11 +3134,6 @@ WLANTL_GetFrames
    -----------------------------------------------------------------------*/
   vosRoot = vosDataBuff;
   
-  for ( i = 0; i < WLAN_MAX_STA_COUNT; i++)
-  {
-        pTLCb->atlSTAClients[i].ucNoMoreData = 1;
-  }
-    
   /*-----------------------------------------------------------------------
     There is still data - until FSM function says otherwise
    -----------------------------------------------------------------------*/

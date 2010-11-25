@@ -14,12 +14,6 @@
 #include "sirMacProtDef.h" // tSirMacAddr
 #include "halMsgApi.h"
 
-#ifdef WLAN_SOFTAP_FEATURE
-  #define   BROADCAST_STAID    252
-#else
-  #define   BROADCAST_STAID    255
-#endif
-
 #define   RXP_DROP_ALL_FRAME_TYPES   0xffffffff
 #define   RXP_PASS_ALL_FRAME_TYPES   0x0
 

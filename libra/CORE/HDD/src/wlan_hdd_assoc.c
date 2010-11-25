@@ -1448,6 +1448,9 @@ int iw_set_essid(struct net_device *dev,
     }
 #endif /* FEATURE_WLAN_WAPI */
 
+    // Disable auto BMPS entry by PMC until DHCP is done
+    sme_SetDHCPTillPowerActiveFlag(pAdapter->hHal, TRUE);
+    
     status = sme_RoamConnect( pAdapter->hHal,pAdapter->sessionId, &(pWextState->roamProfile),&roamId);
     
     if(pWextState->wpsMode == eWEXT_WPS_ON)    

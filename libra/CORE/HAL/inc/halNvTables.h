@@ -31,6 +31,7 @@ typedef enum
     NV_TABLE_RX_GAIN_SHIFT          = 6,    //OBSOLETE - James says not needed
     NV_TABLE_RF_CAL_VALUES          = 7,    //this table only exists in cache, and is stored with NV_TABLE_QFUSE
     NV_TABLE_RSSI_OFFSETS           = 8,
+    NV_TABLE_RSSI_CHANNEL_OFFSETS   = 9,
 
     NUM_NV_TABLE_IDS,
     NV_ALL_TABLES                   = 0xFFF,
@@ -58,6 +59,7 @@ typedef union
                                  //it shares the same enum value, but the structure is converted in pttModule to tTpcConfig
     sRfNvCalValues              rfCalValues;                                    // NV_TABLE_RF_CAL_VALUES
     tANI_S16                    rssiOffset[PHY_MAX_RX_CHAINS];                  // NV_TABLE_RSSI_OFFSETS
+    sRssiChannelOffsets         rssiChanOffsets[PHY_MAX_RX_CHAINS];             // NV_TABLE_RSSI_CHANNEL_OFFSETS
 }uNvTables;
 
 typedef struct
@@ -69,6 +71,7 @@ typedef struct
     tTpcConfig                  tpcConfig[MAX_TPC_CHANNELS];                    // NV_TABLE_TPC_CONFIG
     sRfNvCalValues              rfCalValues;                                    // NV_TABLE_RF_CAL_VALUES
     tANI_S16                    rssiOffset[PHY_MAX_RX_CHAINS];                  // NV_TABLE_RSSI_OFFSETS
+    sRssiChannelOffsets         rssiChanOffsets[PHY_MAX_RX_CHAINS];             // NV_TABLE_RSSI_CHANNEL_OFFSETS
 
 }sNvTables;
 

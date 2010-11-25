@@ -264,10 +264,18 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
         if ( pMac->pmc.rfSuppliesVotedOff )
         {
            status = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
-           VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+
+            if(VOS_STATUS_SUCCESS != status)
+            {
+                return eHAL_STATUS_FAILURE;
+            }
 
            status = vos_chipVoteOnXOBuffer(&callType, NULL, NULL);
-           VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+
+            if(VOS_STATUS_SUCCESS != status)
+            {
+                return eHAL_STATUS_FAILURE;
+            }
 
            pMac->pmc.rfSuppliesVotedOff = FALSE;
         }
@@ -300,10 +308,16 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
         if ( pMac->pmc.rfSuppliesVotedOff )
         {
            status = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
-           VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+            if(VOS_STATUS_SUCCESS != status)
+            {
+                return eHAL_STATUS_FAILURE;
+            }
 
            status = vos_chipVoteOnXOBuffer(&callType, NULL, NULL);
-           VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+            if(VOS_STATUS_SUCCESS != status)
+            {
+                return eHAL_STATUS_FAILURE;
+            }
 
            pMac->pmc.rfSuppliesVotedOff = FALSE;
         }
@@ -988,6 +1002,24 @@ void pmcTrafficTimerExpired (tHalHandle hHal)
         smsLog(pMac, LOGE, FL("Got traffic timer expiration in state %d"), pMac->pmc.pmcState);
         return;
     }
+
+    /* Untill DHCP is not completed remain in power active */
+    if(pMac->pmc.remainInPowerActiveTillDHCP)
+    {
+        smsLog(pMac, LOGE, FL("BMPS Traffic Timer expired before DHCP completion ignore enter BMPS\n"));
+        pMac->pmc.remainInPowerActiveThreshold++;
+        if( pMac->pmc.remainInPowerActiveThreshold >= DHCP_REMAIN_POWER_ACTIVE_THRESHOLD)
+        {
+           smsLog(pMac, LOGE, FL("Remain in power active DHCP threshold reached FALLBACK to enable enter BMPS\n"));
+           /*FALLBACK: reset the flag to make BMPS entry possible*/
+           pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
+           pMac->pmc.remainInPowerActiveThreshold = 0;
+        }
+        return;
+    }
+    
+    /* Clear remain in power active threshold */
+    pMac->pmc.remainInPowerActiveThreshold = 0;
 
     /* Check if the timer should be running */
     if (!pmcShouldBmpsTimerRun(pMac))

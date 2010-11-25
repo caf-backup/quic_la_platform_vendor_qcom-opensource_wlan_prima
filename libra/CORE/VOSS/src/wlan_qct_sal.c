@@ -476,6 +476,11 @@ VOS_STATUS WLANSAL_Stop
 
    SENTER();
 
+#ifndef LIBRA_LINUX_PC
+   /* Register with SDIO driver as client for Suspend/Resume */
+   libra_sdio_configure_suspend_resume(NULL, NULL);
+#endif /* LIBRA_LINUX_PC */
+
    // release sdio irq claim from our driver
    libra_sdio_deconfigure(gpsalHandle->sdio_func_dev);
 

@@ -318,6 +318,7 @@ tANI_U8 WLANHAL_RxBD_GetFrameTypeSubType(v_PVOID_t _pvBDHeader, tANI_U16 usFrmCt
 #ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
 #define HAL_TRIGGER_ENABLED_AC_MASK         0x10 //bit 4 for data frames belonging to trigger enabled AC
 #endif
+#define HAL_USE_NO_ACK_REQUESTED_MASK       0x20
 
 /*==========================================================================
 

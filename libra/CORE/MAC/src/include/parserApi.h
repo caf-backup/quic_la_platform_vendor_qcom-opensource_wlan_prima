@@ -746,4 +746,6 @@ tSirRetStatus PopulateDot11fWscAssocReq( tpAniSirGlobal        pMac,
 
 tSirRetStatus PopulateDot11fWscProbeReq( tpAniSirGlobal        pMac,
                                          tDot11fIEWscProbeReq *pDot11f );
+void PopulateDot11fAssocRspRates ( tpAniSirGlobal pMac, tDot11fIESuppRates *pSupp, 
+      tDot11fIEExtSuppRates *pExt, tANI_U16 *_11bRates, tANI_U16 *_11aRates );
 #endif

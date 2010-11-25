@@ -1371,10 +1371,54 @@ static int __init hdd_module_init (void)
          hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN detecton succeeded",__func__);
          break;
       }
+
+      if(attempts == 2)
+        break;
+      
       msleep(1000);
 
    }while (attempts < 3);
 
+   //Retry to detect the card again by Powering Down the chip and Power up the chip 
+   //again. This retry is done to recover from CRC Error
+   if (NULL == sdio_func_dev) {
+
+      attempts = 0;
+      
+      //Vote off any PMIC voltage supplies
+      vos_chipPowerDown(NULL, NULL, NULL);
+
+      msleep(1000);
+
+      //Power Up Libra WLAN card first if not already powered up
+      status = vos_chipPowerUp(NULL,NULL,NULL);
+      if (!VOS_IS_STATUS_SUCCESS(status))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN not Powered Up."
+             "exiting", __func__);
+         return -1;
+      }
+
+      do {
+         sdio_func_dev = libra_getsdio_funcdev();
+         if (NULL == sdio_func_dev) {
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN not detected yet.",__func__);
+            attempts++;
+         }
+         else {
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN detecton succeeded",__func__);
+            break;
+         }
+
+         if(attempts == 2)
+           break;
+      
+         msleep(1000);
+
+      }while (attempts < 3);
+      
+   }   
+   
    do {
       if (NULL == sdio_func_dev) {
          hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not found!!",__func__);

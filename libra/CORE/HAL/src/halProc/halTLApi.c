@@ -809,6 +809,10 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
             if (unicastDst) {
                 /* Assigning Queue Id configured to Ack */
                 pBd->queueId = BTQM_QUEUE_SELF_STA_UCAST_MGMT;
+                // If no ack is requested use the bcast queue
+                if (txFlag & HAL_USE_NO_ACK_REQUESTED_MASK) {
+                    pBd->queueId = BTQM_QUEUE_SELF_STA_BCAST_MGMT;
+                }
             } else {
                 /* Assigning to Queue Id configured to No Ack */
                 pBd->queueId = BTQM_QUEUE_SELF_STA_BCAST_MGMT;

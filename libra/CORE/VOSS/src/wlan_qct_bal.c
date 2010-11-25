@@ -654,6 +654,7 @@ VOS_STATUS WLANBAL_Start
    WLANSSC_HandleType       sscHandle = (WLANSSC_HandleType)VOS_GET_SSC_CTXT(pAdapter);
    WLANSSC_StartParamsType  sscReg;
    VOS_STATUS               status    = VOS_STATUS_SUCCESS;
+   tANI_U32 uRegVal = 0;
 
    BENTER();
 
@@ -716,6 +717,29 @@ VOS_STATUS WLANBAL_Start
       BEXIT();
       return VOS_STATUS_E_FAILURE;
    }
+
+   /*NCMC issue- CR#262404 fix */
+   /* Moving the setting of Consider_BT_Lo_Priority on TPE_SW_PM earlier than
+      the firmware to take care of BT_A2DP audio gap during WLAN power-up*/
+
+   status = WLANBAL_ReadRegister(pAdapter, QWLAN_TPE_SW_PM_REG , (v_U32_t *)&uRegVal);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      BMSGERROR("Failed to Read TPE_SW_PM register", 0, 0, 0);
+      BEXIT();
+      return VOS_STATUS_E_FAILURE;
+   }
+   //setting Consider_BT_Low_Priority bit in TPE_SW_PM register
+   uRegVal |= (1 << QWLAN_TPE_SW_PM_SW_CONSIDER_BT_LOW_PRI_OFFSET);
+   status = WLANBAL_WriteRegister(pAdapter, QWLAN_TPE_SW_PM_REG , (v_U32_t)uRegVal);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      BMSGERROR("Failed to Write to TPE_SW_PM register", 0, 0, 0);
+      BEXIT();
+      return VOS_STATUS_E_FAILURE;
+   }
+   /*NCMC Issues Fix ends*/
+
 
    BEXIT();
    return status;

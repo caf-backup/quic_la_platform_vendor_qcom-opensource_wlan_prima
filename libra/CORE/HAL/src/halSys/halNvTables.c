@@ -733,6 +733,26 @@ const sHalNv nvDefaults =
         //NV_TABLE_RSSI_OFFSETS
         {
             0, 0    //rssiOffset[PHY_MAX_RX_CHAINS];
+        },
+
+        //NV_TABLE_RSSI_CHANNEL_OFFSETS
+        {
+            //PHY_RX_CHAIN_0
+            {
+                //bRssiOffset
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+
+                //gnRssiOffset
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+            },
+            //PHY_RX_CHAIN_1
+            {
+                //bRssiOffset
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+
+                //gnRssiOffset
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+            }
         }
 
     } // tables

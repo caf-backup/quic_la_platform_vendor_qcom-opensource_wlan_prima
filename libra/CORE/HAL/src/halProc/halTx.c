@@ -87,12 +87,18 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
 
     // Divert Disassoc/Deauth frame thr self station, as by the time unicast 
     // disassoc frame reaches the HW, HAL has already deleted the peer station
-    if ((pFc->type == SIR_MAC_MGMT_FRAME) &&
-            ((pFc->subType == SIR_MAC_MGMT_DISASSOC) || 
+    if ((pFc->type == SIR_MAC_MGMT_FRAME)) {
+        if ((pFc->subType == SIR_MAC_MGMT_DISASSOC) || 
              (pFc->subType == SIR_MAC_MGMT_DEAUTH) || 
-             (pFc->subType == SIR_MAC_MGMT_REASSOC_RSP) ||  
-             (pFc->subType == SIR_MAC_MGMT_PROBE_RSP))) {
+                (pFc->subType == SIR_MAC_MGMT_REASSOC_RSP)) {
         txFlag = HAL_USE_SELF_STA_REQUESTED_MASK;
+        } 
+
+        // Since we donot want probe responses to be retried, send probe responses
+        // through the NO_ACK queues
+        if (pFc->subType == SIR_MAC_MGMT_PROBE_RSP) {
+            txFlag = HAL_USE_NO_ACK_REQUESTED_MASK;
+        }
     }
 
     if(  (vosStatus = WLANTL_TxMgmtFrm(pVosGCtx, (vos_pkt_t *)pFrmBuf, frmLen, 

@@ -437,6 +437,17 @@ void limUpdateProbeRspTemplateIeBitmapBeacon2(tpAniSirGlobal pMac,
                             sizeof(beacon2->ExtSuppRates));
 
     }
+
+    /* WPA */
+    if(beacon2->WPA.present)
+    {
+        SetProbeRspIeBitmap(DefProbeRspIeBitmap,SIR_MAC_WPA_EID);
+        palCopyMemory(pMac->hHdd,(void *)&prb_rsp->WPA,
+                            (void *)&beacon2->WPA,
+                            sizeof(beacon2->WPA));
+
+    }
+
     /* RSN */
     if(beacon2->RSN.present)
     {

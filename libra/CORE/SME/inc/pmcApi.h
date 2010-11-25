@@ -29,6 +29,7 @@
 //This timer value determines the default periodicity at which BMPS retries will happen
 //This default value is overwritten typicaly by OS specific registry/INI values. 
 #define BMPS_TRAFFIC_TIMER_DEFAULT 5000  //unit = ms
+#define DHCP_REMAIN_POWER_ACTIVE_THRESHOLD 12 // (12 * 5) sec = 60 seconds = 1 min
 
 //This timer value is used when starting the timer right after association. This value
 //should be large enough to allow the auth, DHCP handshake to complete

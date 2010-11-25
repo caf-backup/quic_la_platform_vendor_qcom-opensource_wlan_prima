@@ -886,8 +886,7 @@ VOS_STATUS vos_chipVoteOnRFSupply
 
    rc = pmapp_smps_mode_vote( "WLAN", PMAPP_VREG_S4, PMAPP_SMPS_MODE_VOTE_PWM );
    if( rc ) {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,\
-             "%s: Attempting to vote for PMIC SMPS mode PWM failed with (%d)",__func__, rc);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Attempting to vote for PMIC SMPS mode PWM failed with (%d)",__func__, rc);
       return VOS_STATUS_E_FAILURE;
    }
 

@@ -36,6 +36,7 @@
 #include <wlan_hdd_wowl.h>
 #include <wlan_hdd_cfg.h>
 #include <wlan_hdd_wmm.h>
+#include <sme_Api.h>
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
@@ -1298,7 +1299,7 @@ static int iw_set_priv(struct net_device *dev,
         else {
             hddLog(VOS_TRACE_LEVEL_INFO_LOW, "%s: Not in standby or deep sleep. "
                "Ignore start cmd %d", __func__, pAdapter->hdd_ps_state);
-            status = VOS_STATUS_E_FAILURE;
+            status = VOS_STATUS_SUCCESS;
         }
         
         if(status == VOS_STATUS_SUCCESS) {
@@ -1462,6 +1463,10 @@ static int iw_set_priv(struct net_device *dev,
             status = sme_RequestFullPower(pAdapter->hHal, iw_priv_callback_fn,
                           &pWextState->completion_var, eSME_FULL_PWR_NEEDED_BY_HDD);
        
+            // Enter Full power command received from GUI this means we are disconnected 
+            // Set PMC remainInPowerActiveTillDHCP flag to disable auto BMPS entry by PMC
+            sme_SetDHCPTillPowerActiveFlag(pAdapter->hHal, TRUE);
+       
             if(status == eHAL_STATUS_PMC_PENDING)
                 wait_for_completion_interruptible(&pWextState->completion_var);
         }
@@ -1471,7 +1476,14 @@ static int iw_set_priv(struct net_device *dev,
             if (pAdapter->cfg_ini->fIsBmpsEnabled) {
                 
                 hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Wlan driver Entering Bmps\n");
+
+                // Enter BMPS command received from GUI this means DHCP is completed
+                // Clear PMC remainInPowerActiveTillDHCP flag to enable auto BMPS entry by PMC 
+                sme_SetDHCPTillPowerActiveFlag(pAdapter->hHal, FALSE);
+		
                 status = sme_RequestBmps(pAdapter->hHal, iw_priv_callback_fn, &pAdapter->pWextState->completion_var);
+
+		
     
                 if (status == eHAL_STATUS_PMC_PENDING)
                     wait_for_completion_interruptible(&pWextState->completion_var);
@@ -2061,6 +2073,9 @@ static int iw_set_mlme(struct net_device *dev,
                 else
                     hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate : csrRoamDisconnect failure returned %d \n",
                        __FUNCTION__, (int)mlme->cmd, (int)status );
+
+               /* Resetting authKeyMgmt */		
+               pAdapter->pWextState->authKeyMgmt = 0;
 
                netif_tx_disable(dev);
                netif_carrier_off(dev);

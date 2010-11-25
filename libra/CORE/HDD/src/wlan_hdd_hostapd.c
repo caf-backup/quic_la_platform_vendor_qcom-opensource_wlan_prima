@@ -54,6 +54,8 @@
 	(IS_UP((_ic)->ic_dev) && (_ic)->ic_roaming == IEEE80211_ROAMING_AUTO)
 #define WE_WLAN_VERSION     1
 
+#define WE_MAX_STR_LEN 1024
+
 extern int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra);
 
@@ -669,6 +671,109 @@ static iw_softap_ap_stats(struct net_device *dev,
     wrqu->data.length -= len;
     return 0;
 }
+
+
+static int iw_softap_get_stats(struct net_device *dev,
+                               struct iw_request_info *info,
+                               union iwreq_data *wrqu, char *extra)
+{
+    hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_tx_rx_stats_t *pStats = &pHostapdAdapter->hdd_stats.hddTxRxStats;
+
+    snprintf(extra, WE_MAX_STR_LEN,
+             "\nTransmit"
+             "\ncalled %u, dropped %u, backpressured %u, queued %u"
+             "\n      dropped BK %u, BE %u, VI %u, VO %u"
+             "\n   classified BK %u, BE %u, VI %u, VO %u"
+             "\nbackpressured BK %u, BE %u, VI %u, VO %u"
+             "\n       queued BK %u, BE %u, VI %u, VO %u"
+             "\nfetched %u, empty %u, lowres %u, deqerr %u"
+             "\ndequeued %u, depressured %u, completed %u, flushed %u"
+             "\n      fetched BK %u, BE %u, VI %u, VO %u"
+             "\n     dequeued BK %u, BE %u, VI %u, VO %u"
+             "\n  depressured BK %u, BE %u, VI %u, VO %u"
+             "\n      flushed BK %u, BE %u, VI %u, VO %u"
+             "\n\nReceive"
+             "\nchains %u, packets %u, dropped %u, delivered %u, refused %u"
+             "\n",
+             pStats->txXmitCalled,
+             pStats->txXmitDropped,
+             pStats->txXmitBackPressured,
+             pStats->txXmitQueued,
+
+             pStats->txXmitDroppedAC[WLANTL_AC_BK],
+             pStats->txXmitDroppedAC[WLANTL_AC_BE],
+             pStats->txXmitDroppedAC[WLANTL_AC_VI],
+             pStats->txXmitDroppedAC[WLANTL_AC_VO],
+
+             pStats->txXmitClassifiedAC[WLANTL_AC_BK],
+             pStats->txXmitClassifiedAC[WLANTL_AC_BE],
+             pStats->txXmitClassifiedAC[WLANTL_AC_VI],
+             pStats->txXmitClassifiedAC[WLANTL_AC_VO],
+
+             pStats->txXmitBackPressuredAC[WLANTL_AC_BK],
+             pStats->txXmitBackPressuredAC[WLANTL_AC_BE],
+             pStats->txXmitBackPressuredAC[WLANTL_AC_VI],
+             pStats->txXmitBackPressuredAC[WLANTL_AC_VO],
+
+             pStats->txXmitQueuedAC[WLANTL_AC_BK],
+             pStats->txXmitQueuedAC[WLANTL_AC_BE],
+             pStats->txXmitQueuedAC[WLANTL_AC_VI],
+             pStats->txXmitQueuedAC[WLANTL_AC_VO],
+
+             pStats->txFetched,
+             pStats->txFetchEmpty,
+             pStats->txFetchLowResources,
+             pStats->txFetchDequeueError,
+
+             pStats->txFetchDequeued,
+             pStats->txFetchDePressured,
+             pStats->txCompleted,
+             pStats->txFlushed,
+
+             pStats->txFetchedAC[WLANTL_AC_BK],
+             pStats->txFetchedAC[WLANTL_AC_BE],
+             pStats->txFetchedAC[WLANTL_AC_VI],
+             pStats->txFetchedAC[WLANTL_AC_VO],
+
+             pStats->txFetchDequeuedAC[WLANTL_AC_BK],
+             pStats->txFetchDequeuedAC[WLANTL_AC_BE],
+             pStats->txFetchDequeuedAC[WLANTL_AC_VI],
+             pStats->txFetchDequeuedAC[WLANTL_AC_VO],
+
+             pStats->txFetchDePressuredAC[WLANTL_AC_BK],
+             pStats->txFetchDePressuredAC[WLANTL_AC_BE],
+             pStats->txFetchDePressuredAC[WLANTL_AC_VI],
+             pStats->txFetchDePressuredAC[WLANTL_AC_VO],
+
+             pStats->txFlushedAC[WLANTL_AC_BK],
+             pStats->txFlushedAC[WLANTL_AC_BE],
+             pStats->txFlushedAC[WLANTL_AC_VI],
+             pStats->txFlushedAC[WLANTL_AC_VO],
+
+             pStats->rxChains,
+             pStats->rxPackets,
+             pStats->rxDropped,
+             pStats->rxDelivered,
+             pStats->rxRefused
+
+             );
+    wrqu->data.length = strlen(extra)+1;
+    return 0;
+}
+
+
+static int iw_softap_clr_stats(struct net_device *dev,
+                               struct iw_request_info *info,
+                               union iwreq_data *wrqu, char *extra)
+{
+    hdd_hostapd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    hdd_tx_rx_stats_t *pStats = &pHostapdAdapter->hdd_stats.hddTxRxStats;
+
+    memset(pStats, 0, sizeof(*pStats));
+    return 0;
+}
+
 
 int
 static iw_softap_commit(struct net_device *dev,
@@ -1687,7 +1792,10 @@ static const struct iw_priv_args hostapd_private_args[] = {
   { QCSAP_IOCTL_DISASSOC_STA, 0,
         IW_PRIV_TYPE_BYTE | IW_PRIV_SIZE_FIXED | 6 , "disassoc_sta" },
   { QCSAP_IOCTL_AP_STATS,
-        IW_PRIV_TYPE_BYTE | QCSAP_MAX_WSC_IE, 0, "ap_stats" }
+        IW_PRIV_TYPE_BYTE | QCSAP_MAX_WSC_IE, 0, "ap_stats" },
+  { QCSAP_IOCTL_GET_STATS, 0,
+    IW_PRIV_TYPE_CHAR | WE_MAX_STR_LEN, "getStats" },
+  { QCSAP_IOCTL_CLR_STATS, 0, 0, "clrStats" }
 };
 
 static const iw_handler hostapd_private[] = {
@@ -1703,7 +1811,9 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_GET_CHANNEL - SIOCIWFIRSTPRIV] = iw_softap_getchannel,
    [QCSAP_IOCTL_ASSOC_STA_MACADDR - SIOCIWFIRSTPRIV] = iw_softap_getassoc_stamacaddr,
    [QCSAP_IOCTL_DISASSOC_STA - SIOCIWFIRSTPRIV] = iw_softap_disassoc_sta,
-   [QCSAP_IOCTL_AP_STATS - SIOCIWFIRSTPRIV] = iw_softap_ap_stats
+   [QCSAP_IOCTL_AP_STATS - SIOCIWFIRSTPRIV] = iw_softap_ap_stats,
+   [QCSAP_IOCTL_GET_STATS - SIOCIWFIRSTPRIV] = iw_softap_get_stats,
+   [QCSAP_IOCTL_CLR_STATS - SIOCIWFIRSTPRIV] = iw_softap_clr_stats
 };
 
 const struct iw_handler_def hostapd_handler_def = {
