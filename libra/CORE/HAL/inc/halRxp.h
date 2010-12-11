@@ -166,6 +166,6 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
 void setFrameFilterMaskForScan (tpAniSirGlobal pMac, tHalRxpModeFlag rxpMode);
 tANI_U32 halRxp_getFrameFilterMaskForMode (tpAniSirGlobal pMac, tANI_U32 rxpMode);
 void halRxp_setFrameFilterMaskForBcnProbeRsp(tpAniSirGlobal pMac, tANI_U32 maskValue);
-void halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN setFilter);
+eHalStatus halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN setFilter);
 #endif /* _HALRXP_H_ */
 

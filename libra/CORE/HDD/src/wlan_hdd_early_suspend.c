@@ -150,6 +150,10 @@ VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter)
       goto failure;
    }
 
+   if(pAdapter->hdd_ps_state == eHDD_SUSPEND_MCAST_BCAST_FILTER) {
+         hdd_conf_mcastbcast_filter(pAdapter, FALSE);
+   }
+
    //Request standby. Standby will cause the STA to disassociate first. TX queues
    //will be disabled (by HDD) when STA disconnects. You do not want to disable TX
    //queues here. Also do not assert if the failure code is eHAL_STATUS_PMC_NOT_NOW as PMC
@@ -425,20 +429,21 @@ err_deep_sleep:
    return VOS_STATUS_E_FAILURE;
 
 }
-#ifdef CONFIG_HAS_EARLYSUSPEND
 
-static void hdd_conf_mcastbcast_filter(hdd_adapter_t* pAdapter, v_BOOL_t setfilter)
+void hdd_conf_mcastbcast_filter(hdd_adapter_t* pAdapter, v_BOOL_t setfilter)
 {
-    hddLog(VOS_TRACE_LEVEL_ERROR, 
+    eHalStatus halStatus;
+    hddLog(VOS_TRACE_LEVEL_ERROR,
 	"%s: Configuring Mcast/Bacst Filter Setting. setfilter %d", __func__, setfilter);
 
-    halRxp_configureRxpFilterMcstBcst(
+    halStatus = halRxp_configureRxpFilterMcstBcst(
        vos_get_context(VOS_MODULE_ID_SME, pAdapter->pvosContext), setfilter);
 
-    if(setfilter)
+    if(setfilter && (eHAL_STATUS_SUCCESS == halStatus))
       pAdapter->hdd_ps_state = eHDD_SUSPEND_MCAST_BCAST_FILTER;
 }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
 //Suspend routine registered with Android OS
 void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
 {
@@ -515,9 +520,7 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
       hdd_exit_deep_sleep(pAdapter);
    }
    else if(pAdapter->hdd_ps_state == eHDD_SUSPEND_MCAST_BCAST_FILTER) {
-      if(eConnectionState_Associated == pAdapter->conn_info.connState) {
          hdd_conf_mcastbcast_filter(pAdapter, FALSE);
-      }
    }
    else {
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unknown WLAN PS state during resume %d",

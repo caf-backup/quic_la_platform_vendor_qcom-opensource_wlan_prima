@@ -58,6 +58,6 @@
  VOS_STATUS hdd_wlan_reset(void) ;
 #endif
 
-
+void hdd_conf_mcastbcast_filter(hdd_adapter_t* pAdapter, v_BOOL_t setfilter);
 
 #endif // if !defined __WLAN_QCT_DRIVER_H
