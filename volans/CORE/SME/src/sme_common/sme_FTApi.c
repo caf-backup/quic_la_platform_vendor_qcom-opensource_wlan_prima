@@ -40,6 +40,8 @@ void sme_FTOpen(tHalHandle hHal)
         return;
     }                 
 
+    pMac->ft.ftSmeContext.psavedFTPreAuthRsp = NULL;                        
+
     pMac->ft.ftSmeContext.FTState = eFT_START_READY;
 }
 
@@ -61,7 +63,7 @@ void sme_FTClose(tHalHandle hHal)
     }
     pMac->ft.ftSmeContext.auth_ft_ies_length = 0;                        
 
-    if (pMac->ft.ftSmeContext.reassoc_ft_ies == NULL)
+    if (pMac->ft.ftSmeContext.reassoc_ft_ies != NULL)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
         smsLog( pMac, LOGE, "%s: Freeing %p and setting to NULL\n", 
@@ -75,7 +77,7 @@ void sme_FTClose(tHalHandle hHal)
     pMac->ft.ftSmeContext.FTState = eFT_START_READY;
     vos_mem_zero(pMac->ft.ftSmeContext.preAuthbssId, ANI_MAC_ADDR_SIZE);
 
-    if (pMac->ft.ftSmeContext.psavedFTPreAuthRsp == NULL)
+    if (pMac->ft.ftSmeContext.psavedFTPreAuthRsp != NULL)
     {
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
         smsLog( pMac, LOGE, "%s: Freeing %p and setting to NULL\n", 
@@ -84,17 +86,10 @@ void sme_FTClose(tHalHandle hHal)
         vos_mem_free(pMac->ft.ftSmeContext.psavedFTPreAuthRsp);
         pMac->ft.ftSmeContext.psavedFTPreAuthRsp = NULL;                        
     }
+
+    palTimerFree(pMac->hHdd, pMac->ft.ftSmeContext.preAuthReassocIntvlTimer);
 }
 
-
-
-/*--------------------------------------------------------------------------
-  Find if the MIC control is non-zero, when we get Reassoc Req. 
-  ------------------------------------------------------------------------*/
-static inline int isMICcontrolNonZero(tANI_U8 *ft_ies)
-{
-    return TRUE;
-}
 
 /*--------------------------------------------------------------------------
   Each time the supplicant sends down the FT IEs to the driver.
@@ -102,7 +97,7 @@ static inline int isMICcontrolNonZero(tANI_U8 *ft_ies)
   the FT IEs to PE.
   ------------------------------------------------------------------------*/
 void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *ft_ies, 
-        tANI_U32 ft_ies_length )
+        tANI_U16 ft_ies_length )
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     eHalStatus status = eHAL_STATUS_FAILURE;
@@ -185,12 +180,6 @@ void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *ft_ies,
                 vos_mem_free(pMac->ft.ftSmeContext.reassoc_ft_ies);
                 pMac->ft.ftSmeContext.reassoc_ft_ies_length = 0; 
             }
-            if (isMICcontrolNonZero(ft_ies) != TRUE) 
-            {
-                smsLog( pMac, LOGE, 
-                    "%s: MIC is 0, while waiting for reassoc req ft_ies_length=%d\n", 
-                    __func__, ft_ies_length);
-            }
 
             // Save the FT IEs
             pMac->ft.ftSmeContext.reassoc_ft_ies = vos_mem_malloc(ft_ies_length);
@@ -225,7 +214,7 @@ void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *ft_ies,
  * Reassoc Req.
  *
  *------------------------------------------------------------------------*/
-void sme_GetFTPreAuthResponse( tHalHandle hHal, tANI_U8 *ft_ies, tANI_U32 *ft_ies_length )
+void sme_GetFTPreAuthResponse( tHalHandle hHal, tANI_U8 *ft_ies, tANI_U16 *ft_ies_length )
 {
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
     eHalStatus status = eHAL_STATUS_FAILURE;

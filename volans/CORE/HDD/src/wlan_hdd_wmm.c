@@ -1439,13 +1439,17 @@ v_BOOL_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
       }
       else
       {
-         // default
+          // default
 #ifdef HDD_WMM_DEBUG
-         VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_WARN,
-                   "%s: Unhandled Protocol, using default tos",
-                   __FUNCTION__);
+          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_WARN,
+                  "%s: Unhandled Protocol, using default tos",
+                  __FUNCTION__);
 #endif // HDD_WMM_DEBUG
-         tos = 0;
+          //Give the highest priority to 802.1x packet
+          if (pHdr->eth_II.h_proto == htons(HDD_ETHERTYPE_802_1_X))
+              tos = 0xC0;
+          else
+              tos = 0;
       }
 
       dscp = (tos>>2) & 0x3f;
@@ -1472,13 +1476,17 @@ v_BOOL_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
       }
       else
       {
-         // not VLAN tagged, use default
+          // not VLAN tagged, use default
 #ifdef HDD_WMM_DEBUG
-         VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_WARN,
-                   "%s: Untagged frame, using default UP",
-                   __FUNCTION__);
+          VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_WARN,
+                  "%s: Untagged frame, using default UP",
+                  __FUNCTION__);
 #endif // HDD_WMM_DEBUG
-         userPri = SME_QOS_WMM_UP_BE;
+          //Give the highest priority to 802.1x packet
+          if (pHdr->eth_II.h_proto == htons(HDD_ETHERTYPE_802_1_X))
+              userPri = SME_QOS_WMM_UP_VO;
+          else
+              userPri = SME_QOS_WMM_UP_BE;
       }
    }
    else

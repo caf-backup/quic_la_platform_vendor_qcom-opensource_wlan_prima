@@ -1126,8 +1126,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_SETCONTEXT_REQ:
         case eWNI_SME_REMOVEKEY_REQ:
 #ifndef WNI_ASKEY_NON_SUPPORT_FEATURE
-        case eWNI_SME_LINK_TEST_START_REQ:
-        case eWNI_SME_LINK_TEST_STOP_REQ:
         case eWNI_SME_PROMISCUOUS_MODE_REQ:
 #endif
         case eWNI_SME_DISASSOC_CNF:
@@ -1227,10 +1225,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && defined(ANI_PRODUCT_TYPE_AP)
         case eWNI_SME_MEASUREMENT_REQ:
         case eWNI_SME_SET_WDS_INFO_REQ:
-        case eWNI_SME_SET_POWER_REQ:
-        case eWNI_SME_CLIENT_SIDE_LOAD_BALANCE_REQ:
-        case eWNI_SME_SELECT_CHANNEL_REQ:
-        case eWNI_SME_SET_PROPRIETARY_IE_REQ:
             // Message to support ANI feature set
             // These are handled by LMM sub module
             if (limIsSystemInScanState(pMac))

@@ -9,54 +9,71 @@ typedef sIQCalValues sTxIQChannel[NUM_RF_CHANNELS][NUM_TX_GAIN_STEPS];
 typedef sIQCalValues sRxIQChannel[NUM_RF_CHANNELS][NUM_TX_GAIN_STEPS];
 
 
+typedef tANI_U8  tRuntime_pa_ctune_reg;
+typedef tANI_U16 tRuntime_tx_bbf_gain_cnt            [NUM_TEMPERATURE_BINS][NUM_TX_GAIN_STEPS];
+typedef tANI_U16 tRuntime_tx_bbf_lin_adj             [NUM_TEMPERATURE_BINS][NUM_TX_GAIN_STEPS];
+typedef tANI_U16 tRuntime_lo_mix_da_gain_cntl        [NUM_TEMPERATURE_BINS][NUM_TX_GAIN_STEPS];
+typedef tANI_U16 tRuntime_pa_gain_cntl               [NUM_TEMPERATURE_BINS][NUM_TX_GAIN_STEPS];
+typedef tANI_U16 tRuntime_da_pa_bias_1_cnt           [NUM_TEMPERATURE_BINS][NUM_TX_GAIN_STEPS];
+typedef tANI_U16 tRuntime_da_pa_bias_2_cntl          [NUM_TEMPERATURE_BINS][NUM_TX_GAIN_STEPS];
+typedef tANI_U8  tRuntime_tcxo_reg_prg               [NUM_TEMPERATURE_BINS];
+typedef tANI_U8  tRuntime_cp_gain                    [NUM_TEMPERATURE_BINS];
+typedef tANI_U8  tRuntime_rxfe_lna_highgain_bias_ctl [NUM_TEMPERATURE_BINS];
+typedef tANI_U8  tRuntime_rxfe_gm_ibias_core_ctrl    [NUM_TEMPERATURE_BINS];
+typedef tANI_U8  tRuntime_rxfe_gm_bias_ctrl          [NUM_TEMPERATURE_BINS];
+typedef tANI_U8  tRuntime_tia_ibias                  [NUM_TEMPERATURE_BINS];
+typedef tANI_U8  tRuntime_im2_vcm_bq                 [NUM_TEMPERATURE_BINS];
+typedef tANI_U8  tRuntime_im2_vgf                    [NUM_TEMPERATURE_BINS];
+typedef tANI_U16 tRuntime_hdet_bias                  [NUM_TEMPERATURE_BINS];
+typedef tANI_U16 tRuntime_hdet_test                  [NUM_TEMPERATURE_BINS];
+typedef tANI_U16 tRuntime_hdet_ctl                   [NUM_TEMPERATURE_BINS];
+typedef tANI_U16 tRuntime_pll_ac_reg5                [NUM_TEMPERATURE_BINS];
+typedef tANI_U16 tRuntime_pll_ac_reg1                [NUM_TEMPERATURE_BINS];
+typedef tANI_U16 tRuntime_pll_pc_reg3                [NUM_TEMPERATURE_BINS];
+typedef tANI_U16 tRuntime_tx_lo_mix_da_adj           [NUM_TEMPERATURE_BINS];
+typedef tANI_U16 tRuntime_pll_pc_reg2                [NUM_TEMPERATURE_BINS];
+typedef tANI_U16 tRuntime_pll_reg6                   [NUM_TEMPERATURE_BINS];
+typedef tANI_U16 tRuntime_pll_reg4                   [NUM_TEMPERATURE_BINS];
+typedef tANI_U16 tRuntime_pll_vb_reg0                [NUM_TEMPERATURE_BINS];
+typedef tANI_U16 tRuntime_pll_ac_reg0                [NUM_TEMPERATURE_BINS];
+typedef tANI_U8  tRuntime_bbf_ctl3                   [NUM_TEMPERATURE_BINS];
+typedef tANI_U8  tRuntime_bbf_ctl4                   [NUM_TEMPERATURE_BINS];
+typedef tANI_U16 tRuntime_pll_ac_reg10               [NUM_TEMPERATURE_BINS];
 
-
-typedef tANI_U8 tRuntime_pa_ctune_reg               [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_pa_Istg1_tune              [NUM_TEMPERATURE_BINS][NUM_TX_GAIN_STEPS];
-typedef tANI_U8 tRuntime_pa_Istg2_tune              [NUM_TEMPERATURE_BINS][NUM_TX_GAIN_STEPS];
-typedef tANI_U8 tRuntime_pa_Ibn_stg3_tune           [NUM_TEMPERATURE_BINS][NUM_TX_GAIN_STEPS];
-typedef tANI_U8 tRuntime_pa_Icas_stg3_tune          [NUM_TEMPERATURE_BINS][NUM_TX_GAIN_STEPS];
-typedef tANI_U8 tRuntime_pa_gain1                   [NUM_TEMPERATURE_BINS][NUM_TX_GAIN_STEPS];
-typedef tANI_U8 tRuntime_pa_gain2                   [NUM_TEMPERATURE_BINS][NUM_TX_GAIN_STEPS];
-typedef tANI_U8 tRuntime_tcxo_reg_prg               [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_sel_vco_Rreg_3_0           [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_lo_knob_1_0                [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_cp_gain                    [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_rxfe_lna_highgain_bias_ctl [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_rxfe_gm_ibias_core_ctrl    [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_rxfe_gm_bias_ctrl          [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_tia_icq                    [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_bq_icq                     [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_bq_ibias                   [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_pga_icq                    [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_pga_ibias_rx               [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_tia_ibias                  [NUM_TEMPERATURE_BINS];
-
-typedef tANI_U8 tRuntime_hdet_bias                  [NUM_TEMPERATURE_BINS];
-typedef tANI_U8 tRuntime_hdet_test                  [NUM_TEMPERATURE_BINS];
 
 typedef struct
 {
     tRuntime_pa_ctune_reg               pa_ctune_reg;
-    tRuntime_pa_Istg1_tune              pa_Istg1_tune;
-    tRuntime_pa_Istg2_tune              pa_Istg2_tune;
-    tRuntime_pa_Ibn_stg3_tune           pa_Ibn_stg3_tune;
-    tRuntime_pa_Icas_stg3_tune          pa_Icas_stg3_tune;
-    tRuntime_pa_gain1                   pa_gain1;
-    tRuntime_pa_gain2                   pa_gain2;
+    tANI_U8 reserved[3];    //padding
+    tRuntime_tx_bbf_gain_cnt            tx_bbf_gain_cnt;
+    tRuntime_tx_bbf_lin_adj             tx_bbf_lin_adj;
+    tRuntime_lo_mix_da_gain_cntl        lo_mix_da_gain_cntl;
+    tRuntime_pa_gain_cntl               pa_gain_cntl;
+    tRuntime_da_pa_bias_1_cnt           da_pa_bias_1_cnt;
+    tRuntime_da_pa_bias_2_cntl          da_pa_bias_2_cntl;
     tRuntime_tcxo_reg_prg               tcxo_reg_prg;
-    tRuntime_sel_vco_Rreg_3_0           sel_vco_Rreg_3_0;
-    tRuntime_lo_knob_1_0                lo_knob_1_0;
     tRuntime_cp_gain                    cp_gain;
     tRuntime_rxfe_lna_highgain_bias_ctl rxfe_lna_highgain_bias_ctl;
     tRuntime_rxfe_gm_ibias_core_ctrl    rxfe_gm_ibias_core_ctrl;
     tRuntime_rxfe_gm_bias_ctrl          rxfe_gm_bias_ctrl;
-    tRuntime_tia_icq                    tia_icq;
-    tRuntime_bq_icq                     bq_icq;
-    tRuntime_bq_ibias                   bq_ibias;
-    tRuntime_pga_icq                    pga_icq;
-    tRuntime_pga_ibias_rx               pga_ibias_rx;
     tRuntime_tia_ibias                  tia_ibias;
+    tRuntime_im2_vcm_bq                 im2_vcm_bq;
+    tRuntime_im2_vgf                    im2_vgf;
+    tRuntime_hdet_bias                  hdet_bias;
+    tRuntime_hdet_test                  hdet_test;
+    tRuntime_hdet_ctl                   hdet_ctl;
+    tRuntime_pll_ac_reg5                pll_ac_reg5;
+    tRuntime_pll_ac_reg1                pll_ac_reg1;
+    tRuntime_pll_pc_reg3                pll_pc_reg3;
+    tRuntime_tx_lo_mix_da_adj           tx_lo_mix_da_adj;
+    tRuntime_pll_pc_reg2                pll_pc_reg2;
+    tRuntime_pll_reg6                   pll_reg6;
+    tRuntime_pll_reg4                   pll_reg4;
+    tRuntime_pll_vb_reg0                pll_vb_reg0;
+    tRuntime_pll_ac_reg0                pll_ac_reg0;
+    tRuntime_bbf_ctl3                   bbf_ctl3;
+    tRuntime_bbf_ctl4                   bbf_ctl4;
+    tRuntime_pll_ac_reg10               pll_ac_reg10;
 }sRuntimePMValues;
 
 #define NUM_PROCESS_MONITOR_BINS    5
@@ -80,51 +97,99 @@ typedef enum
     NUM_PM_BINS
 }ePMBins;
 
-typedef tRuntime_pa_ctune_reg               tFull_pa_ctune_reg                  [NUM_PROCESS_MONITOR_BINS][NUM_CTUNE_BINS];
-typedef tRuntime_pa_Istg1_tune              tFull_pa_Istg1_tune                 [NUM_PROCESS_MONITOR_BINS][NUM_CTUNE_BINS];
-typedef tRuntime_pa_Istg2_tune              tFull_pa_Istg2_tune                 [NUM_PROCESS_MONITOR_BINS][NUM_CTUNE_BINS];
-typedef tRuntime_pa_Ibn_stg3_tune           tFull_pa_Ibn_stg3_tune              [NUM_PROCESS_MONITOR_BINS][NUM_CTUNE_BINS];
-typedef tRuntime_pa_Icas_stg3_tune          tFull_pa_Icas_stg3_tune             [NUM_PROCESS_MONITOR_BINS][NUM_CTUNE_BINS];
-typedef tRuntime_pa_gain1                   tFull_pa_gain1                      [NUM_PROCESS_MONITOR_BINS][NUM_CTUNE_BINS];
-typedef tRuntime_pa_gain2                   tFull_pa_gain2                      [NUM_PROCESS_MONITOR_BINS][NUM_CTUNE_BINS];
-typedef tRuntime_tcxo_reg_prg               tFull_tcxo_reg_prg                  [NUM_PROCESS_MONITOR_BINS];
-typedef tRuntime_sel_vco_Rreg_3_0           tFull_sel_vco_Rreg_3_0              [NUM_PROCESS_MONITOR_BINS];
-typedef tRuntime_lo_knob_1_0                tFull_lo_knob_1_0                   [NUM_PROCESS_MONITOR_BINS];
-typedef tRuntime_cp_gain                    tFull_cp_gain                       [NUM_PROCESS_MONITOR_BINS];
-typedef tRuntime_rxfe_lna_highgain_bias_ctl tFull_rxfe_lna_highgain_bias_ctl    [NUM_PROCESS_MONITOR_BINS];
-typedef tRuntime_rxfe_gm_ibias_core_ctrl    tFull_rxfe_gm_ibias_core_ctrl       [NUM_PROCESS_MONITOR_BINS];
-typedef tRuntime_rxfe_gm_bias_ctrl          tFull_rxfe_gm_bias_ctrl             [NUM_PROCESS_MONITOR_BINS];
-typedef tRuntime_tia_icq                    tFull_tia_icq                       [NUM_PROCESS_MONITOR_BINS];
-typedef tRuntime_bq_icq                     tFull_bq_icq                        [NUM_PROCESS_MONITOR_BINS];
-typedef tRuntime_bq_ibias                   tFull_bq_ibias                      [NUM_PROCESS_MONITOR_BINS];
-typedef tRuntime_pga_icq                    tFull_pga_icq                       [NUM_PROCESS_MONITOR_BINS];
-typedef tRuntime_pga_ibias_rx               tFull_pga_ibias_rx                  [NUM_PROCESS_MONITOR_BINS];
-typedef tRuntime_tia_ibias                  tFull_tia_ibias                     [NUM_PROCESS_MONITOR_BINS];
-
+typedef tRuntime_pa_ctune_reg                tFull_pa_ctune_reg                  [NUM_PROCESS_MONITOR_BINS][32];
+typedef tRuntime_tx_bbf_gain_cnt             tFull_tx_bbf_gain_cnt               [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_tx_bbf_lin_adj              tFull_tx_bbf_lin_adj;
+typedef tRuntime_lo_mix_da_gain_cntl         tFull_lo_mix_da_gain_cntl;
+typedef tRuntime_pa_gain_cntl                tFull_pa_gain_cntl                  [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_da_pa_bias_1_cnt            tFull_da_pa_bias_1_cnt              [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_da_pa_bias_2_cntl           tFull_da_pa_bias_2_cntl             [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_tcxo_reg_prg                tFull_tcxo_reg_prg                  [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_cp_gain                     tFull_cp_gain                       [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_rxfe_lna_highgain_bias_ctl  tFull_rxfe_lna_highgain_bias_ctl    [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_rxfe_gm_ibias_core_ctrl     tFull_rxfe_gm_ibias_core_ctrl       [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_rxfe_gm_bias_ctrl           tFull_rxfe_gm_bias_ctrl             [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_tia_ibias                   tFull_tia_ibias                     [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_im2_vcm_bq                  tFull_im2_vcm_bq                    [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_im2_vgf                     tFull_im2_vgf                       [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_hdet_bias                   tFull_hdet_bias                     [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_hdet_test                   tFull_hdet_test                     [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_hdet_ctl                    tFull_hdet_ctl                      [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_pll_ac_reg5                 tFull_pll_ac_reg5                   [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_pll_ac_reg1                 tFull_pll_ac_reg1                   [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_pll_pc_reg3                 tFull_pll_pc_reg3                   [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_tx_lo_mix_da_adj            tFull_tx_lo_mix_da_adj              [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_pll_pc_reg2                 tFull_pll_pc_reg2                   [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_pll_reg6                    tFull_pll_reg6                      [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_pll_reg4                    tFull_pll_reg4                      [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_pll_vb_reg0                 tFull_pll_vb_reg0                   [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_pll_ac_reg0                 tFull_pll_ac_reg0                   [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_bbf_ctl3                    tFull_bbf_ctl3                      [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_bbf_ctl4                    tFull_bbf_ctl4                      [NUM_PROCESS_MONITOR_BINS];
+typedef tRuntime_pll_ac_reg10                tFull_pll_ac_reg10                  [NUM_PROCESS_MONITOR_BINS];
 
 typedef struct
 {
     tFull_pa_ctune_reg               pa_ctune_reg;
-    tFull_pa_Istg1_tune              pa_Istg1_tune;
-    tFull_pa_Istg2_tune              pa_Istg2_tune;
-    tFull_pa_Ibn_stg3_tune           pa_Ibn_stg3_tune;
-    tFull_pa_Icas_stg3_tune          pa_Icas_stg3_tune;
-    tFull_pa_gain1                   pa_gain1;
-    tFull_pa_gain2                   pa_gain2;
+    tFull_tx_bbf_gain_cnt            tx_bbf_gain_cnt;
+    tFull_tx_bbf_lin_adj             tx_bbf_lin_adj;
+    tFull_lo_mix_da_gain_cntl        lo_mix_da_gain_cntl;
+    tFull_pa_gain_cntl               pa_gain_cntl;
+    tFull_da_pa_bias_1_cnt           da_pa_bias_1_cnt;
+    tFull_da_pa_bias_2_cntl          da_pa_bias_2_cntl;
     tFull_tcxo_reg_prg               tcxo_reg_prg;
-    tFull_sel_vco_Rreg_3_0           sel_vco_Rreg_3_0;
-    tFull_lo_knob_1_0                lo_knob_1_0;
     tFull_cp_gain                    cp_gain;
     tFull_rxfe_lna_highgain_bias_ctl rxfe_lna_highgain_bias_ctl;
     tFull_rxfe_gm_ibias_core_ctrl    rxfe_gm_ibias_core_ctrl;
     tFull_rxfe_gm_bias_ctrl          rxfe_gm_bias_ctrl;
-    tFull_tia_icq                    tia_icq;
-    tFull_bq_icq                     bq_icq;
-    tFull_bq_ibias                   bq_ibias;
-    tFull_pga_icq                    pga_icq;
-    tFull_pga_ibias_rx               pga_ibias_rx;
     tFull_tia_ibias                  tia_ibias;
+    tFull_im2_vcm_bq                 im2_vcm_bq;
+    tFull_im2_vgf                    im2_vgf;
+    tFull_hdet_bias                  hdet_bias;
+    tFull_hdet_test                  hdet_test;
+    tFull_hdet_ctl                   hdet_ctl;
+    tFull_pll_ac_reg5                pll_ac_reg5;
+    tFull_pll_ac_reg1                pll_ac_reg1;
+    tFull_pll_pc_reg3                pll_pc_reg3;
+    tFull_tx_lo_mix_da_adj           tx_lo_mix_da_adj;
+    tFull_pll_pc_reg2                pll_pc_reg2;
+    tFull_pll_reg6                   pll_reg6;
+    tFull_pll_reg4                   pll_reg4;
+    tFull_pll_vb_reg0                pll_vb_reg0;
+    tFull_pll_ac_reg0                pll_ac_reg0;
+    tFull_bbf_ctl3                   bbf_ctl3;
+    tFull_bbf_ctl4                   bbf_ctl4;
 }sFullPMValues;
+
+typedef struct
+{
+    tFull_pa_ctune_reg               pa_ctune_reg;
+    tFull_tx_bbf_gain_cnt            tx_bbf_gain_cnt;
+    tFull_tx_bbf_lin_adj             tx_bbf_lin_adj;
+    tFull_lo_mix_da_gain_cntl        lo_mix_da_gain_cntl;
+    tFull_pa_gain_cntl               pa_gain_cntl;
+    tFull_da_pa_bias_1_cnt           da_pa_bias_1_cnt;
+    tFull_da_pa_bias_2_cntl          da_pa_bias_2_cntl;
+    tFull_rxfe_lna_highgain_bias_ctl rxfe_lna_highgain_bias_ctl;
+    tFull_rxfe_gm_ibias_core_ctrl    rxfe_gm_ibias_core_ctrl;
+    tFull_rxfe_gm_bias_ctrl          rxfe_gm_bias_ctrl;
+    tFull_tia_ibias                  tia_ibias;
+    tFull_hdet_bias                  hdet_bias;
+    tFull_hdet_test                  hdet_test;
+    tFull_hdet_ctl                   hdet_ctl;
+    tFull_pll_ac_reg5                pll_ac_reg5;
+    tFull_pll_ac_reg1                pll_ac_reg1;
+    tFull_pll_pc_reg3                pll_pc_reg3;
+    tFull_tx_lo_mix_da_adj           tx_lo_mix_da_adj;
+    tFull_pll_pc_reg2                pll_pc_reg2;
+    tFull_pll_reg6                   pll_reg6;
+    tFull_pll_reg4                   pll_reg4;
+    tFull_pll_vb_reg0                pll_vb_reg0;
+    tFull_pll_ac_reg0                pll_ac_reg0;
+    tFull_pll_ac_reg10               pll_ac_reg10;
+    tFull_bbf_ctl3                   bbf_ctl3;
+    tFull_bbf_ctl4                   bbf_ctl4;
+}sFullPMValuesVolans2;
 
 
 #define CAL_STATUS_OVERALL_SUCCESS 0
@@ -295,12 +360,13 @@ typedef struct
 
 typedef struct
 {
-    sCalStatus          calStatus;
-    sCalFlashMemory     calFlash;
-    sRuntimePMValues    tempGainDependentRF;
+    sCalStatus              calStatus;
+    sCalFlashMemory         calFlash;
+    sRuntimePMValues        tempGainDependentRF;
 }sCalMemory;
 
 extern const sFullPMValues PMTable; //large table exists in 80KB segment of memory only at initialization
+extern const sFullPMValuesVolans2 PMTableVolans2; //large table exists in 80KB segment of memory only at initialization
 extern sCalMemory *calMemory;  //smaller table resides in 128KB segment of memory for runtime use
 
 #endif

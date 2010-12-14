@@ -437,6 +437,9 @@ halStart(
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     eHalStatus status;
 
+    /* Get the device Card ID here. Required to perform device specific configurations */
+    WLANBAL_GetSDIOCardIdentifier(pMac->pAdapter, &pMac->hal.deviceCardId);
+
     pMac->hal.halMac.fShortSlot = 1; //initializing as short slot enabled. 
     status = runModuleFunc(hHal, (void *) pHalMacStartParms, START_IDX);
     if (status != eHAL_STATUS_SUCCESS)

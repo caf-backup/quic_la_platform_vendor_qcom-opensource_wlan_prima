@@ -53,6 +53,7 @@ when           who        what, where, why
 #ifdef VOLANS_1_0_WORKAROUND
 /* The below funxtion definintion is in librasdioif driver */
 extern void libra_sdio_set_clock(struct sdio_func *func, unsigned int clk_freq);
+extern void libra_sdio_get_card_id(struct sdio_func *func, unsigned short *card_id);
 #endif /* VOLANS_1_0_WORKAROUND */
 
 #ifdef MSM_PLATFORM /* Specific to Android Platform */
@@ -287,13 +288,17 @@ VOS_STATUS WLANSAL_Start
 
    // Set the global sdio func dev handle
    gpsalHandle->sdio_func_dev = libra_getsdio_funcdev();
-   balHandle->sdio_func_dev = libra_getsdio_funcdev();
+   balHandle->sdio_func_dev   = libra_getsdio_funcdev();
 
    cardConfig.blockSize = WLANSAL_MAX_BLOCK_SIZE;
    WLANSAL_CardInfoUpdate(pAdapter, &cardConfig);
 
    gpsalHandle->isINTEnabled = VOS_TRUE;
 
+#ifndef LIBRA_LINUX_PC
+   /* Register with SDIO driver as client for Suspend/Resume */
+   ///libra_sdio_configure_suspend_resume(wlan_sdio_suspend_hdlr, wlan_sdio_resume_hdlr);
+#endif /* LIBRA_LINUX_PC */
    SEXIT();
 
    return VOS_STATUS_SUCCESS;
@@ -508,7 +513,6 @@ VOS_STATUS WLANSAL_Cmd53
    // Get the lock, going native
    sd_claim_host(gpsalHandle->sdio_func_dev);
 
-
    if (WLANSAL_DIRECTION_READ == cmd53Req->busDirection)
    {
       if (WLANSAL_ADDRESS_FIXED == cmd53Req->addressHandle) {
@@ -575,7 +579,7 @@ VOS_STATUS WLANSAL_Cmd53
       }
    }
 
-   // Release lock
+  // Release lock
    sd_release_host(gpsalHandle->sdio_func_dev);
 
    if (err_ret)
@@ -810,8 +814,23 @@ void WLANSAL_SetSDIOClock(unsigned int hz)
   VOS_ASSERT(NULL != gpsalHandle);
   libra_sdio_set_clock(gpsalHandle->sdio_func_dev, hz);
 }
+
 #endif /* VOLANS_1_0_WORKAROUND */
 
+/*----------------------------------------------------------------------------
+
+   @brief API exported from SAL to get the vendor specific card ID. This needs to
+          have the libra_sdio_get_card_id API exported from librasdioif driver
+   @param *card_id - To receive the card id
+
+   @return void
+
+----------------------------------------------------------------------------*/
+void WLANSAL_GetSDIOCardId(unsigned short *sdioCardId)
+{
+  VOS_ASSERT(NULL != gpsalHandle);
+  libra_sdio_get_card_id(gpsalHandle->sdio_func_dev, sdioCardId);
+}
 
 /*----------------------------------------------------------------------------
 

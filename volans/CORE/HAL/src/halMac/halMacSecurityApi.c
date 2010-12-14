@@ -377,14 +377,16 @@ halDPU_SetWAPISTAxKeyIndexes(tpAniSirGlobal  pMac, tANI_U8 wapiStaID, tANI_U8 de
   halReadRegister(pMac, regAddress, &value);
   halReadRegister(pMac, QWLAN_DPU_WAPI_STA_KEY_INDEX_VALUES_REG, &value);
 
-  offset = (fGTK == 1) ? QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX1_OFFSET: QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX0_OFFSET;
+  offset = (fGTK == 0) ? QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX1_OFFSET: QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX0_OFFSET;
 
-  if(fGTK == 1)
+  if(fGTK == 0)
   {
     value = value & (~QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX1_MASK);
   }
   else
   {
+    //This is a hack for always set to 0 because it works. Need to double check with Rama about this
+    defKeyId = 0;
     value = value & (~QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX0_MASK);
   }
 
@@ -513,7 +515,6 @@ halSetPerStaKey(
         pDpu->descTable[dpuIdx].micKeyIdx = HAL_INVALID_KEYID_INDEX;
     }
 
-
     if(eSIR_ED_NONE != encType)
     {
         /* Alloc a new key descriptor for this sta key */
@@ -521,6 +522,18 @@ halSetPerStaKey(
         if(status != eHAL_STATUS_SUCCESS)
             goto failed;
 
+#if defined(FEATURE_WLAN_WAPI)
+        if( eSIR_ED_WPI == encType )
+        {
+            //For volans 1.0, WAPI key id in DPU desc must match the physical index in key desc
+            //This code just to provide a warning in case WAPI is not working due to this reason
+            //This portion can be removed when volans 2.0 is available.
+            if( (keyIdx != defKeyId) && !fGTK )
+            {
+                HALLOGE(halLog(pMac, LOGE, "Volans 1.0 WAPI keyid(%d) must match keyIdx(%d)\n", defKeyId, keyIdx);)
+            }
+        }
+#endif //WAPI
         if((eSIR_ED_WEP40 != encType) && (eSIR_ED_WEP104 != encType))
         {
             HALLOGE(halLog(pMac, LOGE, "  HAL Set keyIdx (%d) encType(%d) key = %02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",

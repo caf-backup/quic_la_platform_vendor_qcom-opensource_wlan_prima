@@ -1826,7 +1826,7 @@ void halBmu_UpdateStaBMUApMode(tpAniSirGlobal pMac,
             delEnbQidMask  = halBmu_getQidMask(uapsdACMask);
             trigEnbQidMask = halBmu_getQidMask((uapsdACMask & 0xF0) >> 4);
 
-            if ((delEnbQidMask & allAcMask) == allAcMask)
+            if ((uapsdACMask & allAcMask) == allAcMask)
             {
                 //when all ACs are delivery enabled need to set all the queues to be delivery enabled
                 // so that frames buffered in queues other than beloging to AC queue can be transmitted

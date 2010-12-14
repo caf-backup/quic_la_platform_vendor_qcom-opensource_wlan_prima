@@ -443,7 +443,6 @@ typedef enum sBmuWqId {
 
     /* DXE RX */
     BMUWQ_DXE_RX = 11,
-
     BMUWQ_DXE_RX_HI = 4,
 
     /* ADU/UMA */
@@ -727,8 +726,13 @@ typedef enum eFrameSubType {
 #define ADU_REG_BKUP_POLL_CMD_VALUE_OFFSET 0x10
 #define ADU_REG_BKUP_POLL_CMD_VALUE_MASK   0xFFFF0000
 
-
 #define ADU_BKUP_CMD_REG_ADDR_MASK 0x0FFFFFFC
+
+/*----------------------------------------------------------------------------
+ *  SDIO Vendor specific device IDs
+ *--------------------------------------------------------------------------*/
+#define VOLANS_VER_1_0_CARD_ID      0x0 
+#define VOLANS_VER_2_0_CARD_ID      0x2881
 
 #endif //__ASSEMBLER__
 #endif // __VOLANS_DEFS_H

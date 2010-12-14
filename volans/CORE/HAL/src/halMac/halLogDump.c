@@ -3938,6 +3938,20 @@ dump_hal_write_register( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI
     return p;
 }
 
+#ifdef WLAN_SOFTAP_FEATURE
+static char *
+dump_hal_enable_listen_mode(  tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)  
+{
+    (void) arg2; (void) arg3; (void) arg4;
+    
+    pMac->hal.ghalPhyAgcListenMode = (tANI_BOOLEAN)arg1;
+    halEnableListenMode(pMac, pMac->hal.ghalPhyAgcListenMode);
+    
+    HALLOGE(halLog(pMac, LOGE, FL("Listen mode enable/disable<1/0> = %d\n"), pMac->hal.ghalPhyAgcListenMode));        
+    return p;
+}
+#endif
+
 static char *
 dump_hal_read_device_memory( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
@@ -4460,7 +4474,13 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {251,   "view BTC paramters",                                       dump_hal_view_btc_config},
     {252,   "set FW log collection filters (module index, log level, event mask)", dump_hal_set_fw_log_filters},
     {253,   "view FW log collection filters",                           dump_hal_view_fw_log_filters},
+
     {255,   "dump FW Logs",                                             dump_hal_view_fw_log_records},
+
+#ifdef WLAN_SOFTAP_FEATURE
+    {0,     "SAP (260-269)",                                            NULL},
+    {260,   "SAP:Enable/Disable AGC Listen Mode <1/0>",                 dump_hal_enable_listen_mode},   
+#endif
 };
 
 void halDumpInit(tpAniSirGlobal pMac)

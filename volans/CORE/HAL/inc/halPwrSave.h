@@ -66,14 +66,16 @@
  */
 #if !defined(VOLANS_FPGA)
 //RF and BB values
-#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US       5000
-#define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US     5000
-#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US_19_2  7652 /* FIXME */  
+#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US                   5000
+#define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US                 5000
+#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US_19_2              7652 /* FIXME */  
+#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_WITHOUT_RFXO_SETTLING_US  1735 /* FIXME */  
 #else
 //FPGA values
-#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US       8000 
-#define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US     8000
-#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US_19_2  7652 /* FIXME */ 
+#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US                   8000 
+#define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US                 8000
+#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US_19_2              7652 /* FIXME */ 
+#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_WITHOUT_RFXO_SETTLING_US  1735 /* FIXME */  
 #endif
 
 #define HAL_PWR_SAVE_FW_BMPS_BEACON_MODE_EARLY_TIMEOUT_US     2000  //TO DO
@@ -83,6 +85,7 @@
  * 1.5ms which is equivalent to 50 sleep clocks.
  */
 #define HAL_PWR_SAVE_FW_BMPS_RF_SETTLING_TIME_CLKS             50
+#define HAL_PWR_SAVE_SLP_CLK_PERIOD_US                         31
 /* The total time required for TCXO power up time for 19.2Mhz operation. 
  * By spec it is 6ms which is equivalent to 197 sleep clocks. Since 
  * FW already adds 3 sleep clocks (default value) on top of this define, 
@@ -90,9 +93,9 @@
  */
 #define HAL_PWR_SAVE_FW_BMPS_RF_SETTLING_TIME_CLKS_19_2       194
 #define HAL_PWR_SAVE_FW_UAPSD_DATA_RECEPTION_TIMEOUT_MS         3
-#define HAL_PWR_SAVE_MAX_CONS_BCN_MISS                         10
+#define HAL_PWR_SAVE_MAX_CONS_BCN_MISS                          5
 #define HAL_PWR_SAVE_BCN_MISS_GRACE_PERIOD_US                 200
-#define HAL_PWR_SAVE_BCN_MISS_WAIT_TU                           6
+#define HAL_PWR_SAVE_BCN_MISS_WAIT_TU                           10
 
 // Frames to be passed to host while in WOWL mode
 #define HAL_PWR_SAVE_FW_WOWL_FRAMES_PASSED_TO_HOST        ((1<<SIR_MAC_MGMT_DISASSOC) |(1 << SIR_MAC_MGMT_DEAUTH))
@@ -326,6 +329,7 @@ void halPSDataInActivityTimeout( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSFWHeartBeatCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSBcnFilterCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSRssiMonitorCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
+void halPSRfSettlingTimeClk(tpAniSirGlobal pMac, tANI_U32 cfgId);
 
 /* Set host offload configuration in firmware */
 eHalStatus halPS_SetHostOffloadInFw(tpAniSirGlobal pMac, tpSirHostOffloadReq pRequest);

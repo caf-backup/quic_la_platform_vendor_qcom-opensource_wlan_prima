@@ -53,7 +53,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
                  CFG_FRAG_THRESHOLD_DEFAULT, 
                  CFG_FRAG_THRESHOLD_MIN, 
-                 CFG_FRAG_THRESHOLD_MAX ),              
+                 CFG_FRAG_THRESHOLD_MAX ),
 
    REG_VARIABLE( CFG_CALIBRATION_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, Calibration, 
@@ -437,6 +437,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                         CFG_AP_STA_SECURITY_SEPERATION_DEFAULT,
                         CFG_AP_STA_SECURITY_SEPERATION_MIN,
                         CFG_AP_STA_SECURITY_SEPERATION_MAX ),
+
+ REG_VARIABLE( CFG_FRAMES_PROCESSING_TH_MODE_NAME, WLAN_PARAM_Integer,
+                        hdd_config_t, MinFramesProcThres, 
+                        VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                        CFG_FRAMES_PROCESSING_TH_DEFAULT,
+                        CFG_FRAMES_PROCESSING_TH_MIN,
+                        CFG_FRAMES_PROCESSING_TH_MAX ),
 #endif
 
    REG_VARIABLE( CFG_BEACON_INTERVAL_NAME, WLAN_PARAM_Integer,
@@ -1156,6 +1163,21 @@ This is a Verizon required feature.
                  CFG_BTC_EXECUTION_MODE_MIN, 
                  CFG_BTC_EXECUTION_MODE_MAX ),
 
+#ifdef WLAN_SOFTAP_FEATURE
+   REG_VARIABLE( CFG_AP_LISTEN_MODE_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nEnableListenMode, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_AP_LISTEN_MODE_DEFAULT, 
+                 CFG_AP_LISTEN_MODE_MIN, 
+                 CFG_AP_LISTEN_MODE_MAX ),                     
+
+   REG_VARIABLE( CFG_AP_AUTO_SHUT_OFF , WLAN_PARAM_Integer,
+                 hdd_config_t, nAPAutoShutOff,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_AP_AUTO_SHUT_OFF_DEFAULT,
+                 CFG_AP_AUTO_SHUT_OFF_MIN,
+                 CFG_AP_AUTO_SHUT_OFF_MAX ),
+#endif
 
 #if defined WLAN_FEATURE_VOWIFI
    REG_VARIABLE( CFG_RRM_ENABLE_NAME, WLAN_PARAM_Integer,
@@ -1266,6 +1288,13 @@ This is a Verizon required feature.
                  CFG_QOS_WMM_BURST_SIZE_DEFN_MIN, 
                  CFG_QOS_WMM_BURST_SIZE_DEFN_MAX ),
 
+   REG_VARIABLE( CFG_MCAST_BCAST_FILTER_SETTING_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, mcastBcastFilterSetting,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MCAST_BCAST_FILTER_SETTING_DEFAULT,
+                 CFG_MCAST_BCAST_FILTER_SETTING_MIN,
+                 CFG_MCAST_BCAST_FILTER_SETTING_MAX ),
+
    REG_VARIABLE( CFG_QOS_WMM_TS_INFO_ACK_POLICY_NAME , WLAN_PARAM_HexInteger,
                  hdd_config_t, tsInfoAckPolicy, 
                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
@@ -1273,6 +1302,18 @@ This is a Verizon required feature.
                  CFG_QOS_WMM_TS_INFO_ACK_POLICY_MIN, 
                  CFG_QOS_WMM_TS_INFO_ACK_POLICY_MAX ),
 
+    REG_VARIABLE( CFG_SINGLE_TID_RC_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, bSingleTidRc,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_SINGLE_TID_RC_DEFAULT,
+                  CFG_SINGLE_TID_RC_MIN,
+                  CFG_SINGLE_TID_RC_MAX),
+   REG_VARIABLE( CFG_RF_SETTLING_TIME_CLK_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, rfSettlingTimeUs,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_RF_SETTLING_TIME_CLK_DEFAULT,
+                 CFG_RF_SETTLING_TIME_CLK_MIN,
+                 CFG_RF_SETTLING_TIME_CLK_MAX ),
 };                                
 
 /*
@@ -1483,7 +1524,10 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAPCntryCode] Value =[%c%c%c]\n",
       pAdapter->cfg_ini->apCntryCode[0],pAdapter->cfg_ini->apCntryCode[1],
       pAdapter->cfg_ini->apCntryCode[2]);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApProt] value = [%u]", pAdapter->cfg_ini->apProtEnabled);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAPAutoShutOff] Value = [%u]\n", pAdapter->cfg_ini->nAPAutoShutOff);
 
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableListenMode] Value = [%u]\n", pAdapter->cfg_ini->nEnableListenMode);  
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApProt] value = [%u]\n",pAdapter->cfg_ini->apProtEnabled);
   VOS_TRACE (VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableApOBSSProt] value = [%u]\n",pAdapter->cfg_ini->apOBSSProtEnabled);
 #endif
@@ -1536,6 +1580,7 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqViWeight] Value = [%u] ",pAdapter->cfg_ini->WfqViWeight);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqVoWeight] Value = [%u] ",pAdapter->cfg_ini->WfqVoWeight);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [DelayedTriggerFrmInt] Value = [%lu] ",pAdapter->cfg_ini->DelayedTriggerFrmInt);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [mcastBcastFilterSetting] Value = [%u] ",pAdapter->cfg_ini->mcastBcastFilterSetting);
 #ifdef WLAN_FEATURE_VOWIFI_11R  
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fFTEnable] Value = [%lu] ",pAdapter->cfg_ini->fFTEnable);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [fFTResourceReqSupported] Value = [%lu] ",pAdapter->cfg_ini->fFTResourceReqSupported);
@@ -1552,6 +1597,9 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
 #endif
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [burstSizeDefinition] Value = [0x%x] ",pAdapter->cfg_ini->burstSizeDefinition);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [tsInfoAckPolicy] Value = [0x%x] ",pAdapter->cfg_ini->tsInfoAckPolicy);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pAdapter->cfg_ini->rfSettlingTimeUs);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [bSingleTidRc] Value = [%u] ",pAdapter->cfg_ini->bSingleTidRc);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pAdapter->cfg_ini->rfSettlingTimeUs);
 }
 
 
@@ -2131,7 +2179,7 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
       fStatus = FALSE;
       hddLog(LOGE, "Could not pass on WNI_CFG_BA_AUTO_SETUP to CCM\n");
    }
-       
+
    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_FIXED_RATE, pConfig->TxRate, 
       NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
    {
@@ -2260,6 +2308,15 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_NTH_BEACON_FILTER configuration info to CCM\n"  );
 	 }
 
+#ifdef WLAN_SOFTAP_FEATURE
+     if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE, pConfig->nEnableListenMode, 
+        NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+     {
+        fStatus = FALSE;
+        hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE to CCM\n");
+     }
+#endif
+   
 #if defined WLAN_FEATURE_VOWIFI
 	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RRM_ENABLED, pConfig->fRrmEnable, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
@@ -2281,7 +2338,24 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 		fStatus = FALSE;
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RRM_OUT_CHAN_MAX configuration info to CCM\n"  );
 	 }
+
+	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_MCAST_BCAST_FILTER_SETTING, pConfig->mcastBcastFilterSetting, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
 #endif
+  
+     if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_SINGLE_TID_RC, pConfig->bSingleTidRc, 
+         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+        hddLog(LOGE,"Failure: Could not pass on WNI_CFG_SINGLE_TID_RC configuration info to CCM\n"  );
+     }
+
+    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RF_SETTLING_TIME_CLK, pConfig->rfSettlingTimeUs,
+        NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+    {
+        fStatus = FALSE;
+        hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RF_SETTLING_TIME_CLK configuration info to CCM\n"  );
+    }
 
    return fStatus;
 }

@@ -245,6 +245,7 @@ static inline eHalStatus rdModWrAsicField(tpAniSirGlobal pMac, tANI_U32 regAddr,
 #define phySetPowerLimit                host_phySetPowerLimit
 #endif
 
+eHalStatus asicEnablePhyClocks(tpAniSirGlobal pMac);
 
 eHalStatus asicWaitRegVal( tHddHandle hHdd, tANI_U32 reg, tANI_U32 mask,
                              tANI_U32 waitRegVal, tANI_U32 perIterWaitInNanoSec,

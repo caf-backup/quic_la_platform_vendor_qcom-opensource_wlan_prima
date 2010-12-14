@@ -184,7 +184,13 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
         pCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
     }
     else {
-        smsLog( pMac, LOGE, "Out of command buffer....\n" );
+        pEntry = csrLLPeekHead( &pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK );
+        if( pEntry )
+        {
+           pCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
+        }
+        smsLog( pMac, LOGE, "Out of command buffer.... command (%d) stuck\n", 
+           (pCmd) ? pCmd->command : eSmeNoCommand );
     }
 
     return( pCmd );
@@ -311,6 +317,7 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                     if( !CSR_IS_SET_KEY_COMMAND( pCommand ) )
                     {
                         csrLLUnlock( &pMac->sme.smeCmdActiveList );
+                        smsLog(pMac, LOGE, "  Cannot process command(%d) while waiting for key\n", pCommand->command);
                         return ( eANI_BOOLEAN_FALSE );
                     }
                 }

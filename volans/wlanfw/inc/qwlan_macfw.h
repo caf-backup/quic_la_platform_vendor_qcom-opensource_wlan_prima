@@ -59,6 +59,8 @@ enum {
 #define MCU_MAILBOX_HOST2FW  QWLAN_MCU_MAILBOX_H2F_CTRL
 #define MCU_MAILBOX_FW2HOST  QWLAN_MCU_MAILBOX_F2H_CTRL
 
+#define QWLAN_PMIC_SLEEPCLK_PERIOD_NS 30518
+
 /*===========================================================================
    HOST AND FIRMWARE MACROS
 ===========================================================================*/
@@ -614,9 +616,9 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32   apMacAddrLo;
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32   apMacAddrHi : 16;
-   tANI_U32   bReserved3  : 16;
+   tANI_U32   ucRfSupplySettlingTimeClk : 16;
 #else
-   tANI_U32   bReserved3  : 16;
+   tANI_U32   ucRfSupplySettlingTimeClk : 16;
    tANI_U32   apMacAddrHi : 16;
 #endif
 
@@ -726,11 +728,11 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32   ucBmpsFirstBeaconTimeoutMs      : 8;
    tANI_U32   ucBdPduEmptyMonitorMs           : 8;
-   tANI_U32   ucRfSupplySettlingTimeClk       : 8;
+   tANI_U32   Reserved3                       : 8;
    tANI_U32   ucRfSupplySettlingTimeClk19_2   : 8;
 #else
    tANI_U32   ucRfSupplySettlingTimeClk19_2   : 8;
-   tANI_U32   ucRfSupplySettlingTimeClk       : 8;
+   tANI_U32   Reserved3                       : 8;
    tANI_U32   ucBdPduEmptyMonitorMs           : 8;
    tANI_U32   ucBmpsFirstBeaconTimeoutMs      : 8;
 #endif
@@ -2829,6 +2831,23 @@ typedef PACKED_PRE struct PACKED_POST sStaInfo {
         tANI_U32  macAddrHi:16;
 #endif
         tANI_U32  macAddrLo;
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+        tANI_U32  dpuDescIndx:8;
+        tANI_U32  dpuSig:3;
+        tANI_U32  ftBit:1;
+        tANI_U32  rmfBit:1;
+        tANI_U32  maxSPLen:2;
+        tANI_U32  uReserved0:17;
+#else
+        tANI_U32  uReserved0:17;
+        tANI_U32  maxSPLen:2;
+        tANI_U32  rmfBit:1;
+        tANI_U32  ftBit:1;
+        tANI_U32  dpuSig:3;
+        tANI_U32  dpuDescIndx:8;
+#endif
+
        // add more, but be careful about endian 
     
 } tStaInfo, *tpStaInfo;
@@ -3141,7 +3160,8 @@ typedef PACKED_PRE struct PACKED_POST _Qwlanfw_CalControlBitmask
 {
 #ifdef BYTE_ORDER_BIG_ENDIAN
     tANI_U32 channelNumber       :4; // Channel Number to tune to after cal
-    tANI_U32 reserved            :4; // Reserved
+    tANI_U32 reserved            :3; // Reserved
+    tANI_U32 use_pa_gain_table   :1; // Uses 6 gain settings from process monitor table which are associated with Tx gain LUTs
 
     tANI_U32 channelTune         :1; // Channel Tune after cal
     tANI_U32 tempMeasurePeriodic :1; // Temperature Measure Periodically
@@ -3197,7 +3217,8 @@ typedef PACKED_PRE struct PACKED_POST _Qwlanfw_CalControlBitmask
     tANI_U32 tempMeasurePeriodic :1; // Temperature Measure Periodically
     tANI_U32 channelTune         :1; // Channel Tune after cal
 
-    tANI_U32 reserved            :4; // Reserved
+    tANI_U32 use_pa_gain_table   :1; // Uses 6 gain settings from process monitor table which are associated with Tx gain LUTs
+    tANI_U32 reserved            :3; // Reserved
     tANI_U32 channelNumber       :4; // Channel Number to tune to after cal
 #endif
 } Qwlanfw_CalControlBitmask;
@@ -3244,6 +3265,8 @@ typedef PACKED_PRE struct PACKED_POST _QWlanfw_MemMapInfo
     tANI_U32 sysCfgAddr;            /* gEntry_SysCfgAddr */
     tANI_U32 fwPSCountersAddr;      /* gEntry_FwPSCountersAddr */
     tANI_U32 raTableAddr;           /* gEntry_RATableAddr */
+    tANI_U32 fwHPhyPMTable2Start;   /* gEntry_HPhyPMTable2Start */
+    tANI_U32 fwHPhyPMTable2End;     /* gEntry_HPhyPMTable2End */
     tANI_U32 reserved1;
     tANI_U32 reserved2;
     tANI_U32 reserved3;
@@ -3255,8 +3278,6 @@ typedef PACKED_PRE struct PACKED_POST _QWlanfw_MemMapInfo
     tANI_U32 reserved9;
     tANI_U32 reserved10;
     tANI_U32 reserved11;
-    tANI_U32 reserved12;
-    tANI_U32 reserved13;
 } QWlanfw_MemMapInfo;
 
 #ifdef FEATURE_INNAV_SUPPORT

@@ -349,6 +349,17 @@ typedef struct sAniSirHal
     tpCBackFnTxComp pCBackFnTxComp;
 
     TX_TIMER        txCompTimer; //Timer to wait for TX complete interrupt.
+
+#ifdef WLAN_SOFTAP_FEATURE
+    /* Listen mode enable parameters */
+    tANI_BOOLEAN    ghalPhyAgcListenMode;
+#endif    
+    tANI_U8         mcastBcastFilterSetting;
+
+    // Device CardID. The cardID is used by the bus driver to identify the
+    // device version. We are using it here to differentiate between different
+    // chip versions within the same chip family (volans_1_0, volans_2_0 etc)
+    tANI_U16        deviceCardId;
 } tAniSirHal, *tpAniSirHal;
 
 /* Invalid operating channel. Used during startup */
@@ -356,5 +367,9 @@ typedef struct sAniSirHal
 #define HAL_MAX_TXPOWER_INVALID       127
 
 #define isChannelValid(channel) (((channel) > HAL_INVALID_OPERATING_CHANNEL) ? TRUE : FALSE)
+
+#define FILTER_ALL_MULTICAST 0x01
+#define FILTER_ALL_BROADCAST 0x02
+#define FILTER_ALL_MULTICAST_BROADCAST 0x03
 
 #endif /* __HAL_GLOBAL_H__ */

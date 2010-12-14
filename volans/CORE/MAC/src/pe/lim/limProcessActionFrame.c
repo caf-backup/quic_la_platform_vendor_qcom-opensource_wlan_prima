@@ -1806,20 +1806,28 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
 
 #if defined WLAN_FEATURE_VOWIFI
     case SIR_MAC_ACTION_RRM:
-        switch(pActionHdr->actionID) {
-           case SIR_MAC_RRM_RADIO_MEASURE_REQ:
-              __limProcessRadioMeasureRequest( pMac, (tANI_U8 *) pBd, psessionEntry );
-              break;
-           case SIR_MAC_RRM_LINK_MEASUREMENT_REQ:
-              __limProcessLinkMeasurementReq( pMac, (tANI_U8 *) pBd, psessionEntry );
-              break;
-           case SIR_MAC_RRM_NEIGHBOR_RPT:   
-              __limProcessNeighborReport( pMac, (tANI_U8*) pBd, psessionEntry );
-              break;
-           default:
-              PELOGE( limLog( pMac, LOGE, FL("Action ID %d not handled in RRM\n"), pActionHdr->actionID);)
-              break;
+        if( pMac->rrm.rrmPEContext.rrmEnable )
+        {
+            switch(pActionHdr->actionID) {
+                case SIR_MAC_RRM_RADIO_MEASURE_REQ:
+                    __limProcessRadioMeasureRequest( pMac, (tANI_U8 *) pBd, psessionEntry );
+                    break;
+                case SIR_MAC_RRM_LINK_MEASUREMENT_REQ:
+                    __limProcessLinkMeasurementReq( pMac, (tANI_U8 *) pBd, psessionEntry );
+                    break;
+                case SIR_MAC_RRM_NEIGHBOR_RPT:   
+                    __limProcessNeighborReport( pMac, (tANI_U8*) pBd, psessionEntry );
+                    break;
+                default:
+                    PELOGE( limLog( pMac, LOGE, FL("Action ID %d not handled in RRM\n"), pActionHdr->actionID);)
+                    break;
 
+            }
+        }
+        else
+        {
+            // Else we will just ignore the RRM messages.
+            PELOGE( limLog( pMac, LOGE, FL("RRM Action frame ignored as RRM is disabled in cfg\n"));)
         }
         break;
 #endif

@@ -27,6 +27,9 @@
  //gEnableSuspend = 2 in INI file implies suspend to deep sleep
  #define WLAN_MAP_SUSPEND_TO_DEEP_SLEEP  2
 
+ //gEnableSuspend = 3 in INI file implies suspend to set MCAST/BCAST filter 
+ #define WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER  3
+
  //gEnableDriverStop = 1 implies map driver stop to standby
  #define WLAN_MAP_DRIVER_STOP_TO_STANDBY     1
 

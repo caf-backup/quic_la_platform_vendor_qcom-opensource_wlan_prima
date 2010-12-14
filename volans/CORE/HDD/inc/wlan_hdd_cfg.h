@@ -143,7 +143,7 @@
 //Enable suspend on Android
 #define CFG_ENABLE_SUSPEND_NAME                "gEnableSuspend"
 #define CFG_ENABLE_SUSPEND_MIN                 ( 0 ) //No support for suspend
-#define CFG_ENABLE_SUSPEND_MAX                 ( 2 ) //Map to Deep Sleep
+#define CFG_ENABLE_SUSPEND_MAX                 ( 3 ) //Map to Deep Sleep
 #define CFG_ENABLE_SUSPEND_DEFAULT             ( 1 ) //Map to Standby
 
 //Driver start/stop command mappings
@@ -347,6 +347,21 @@ typedef enum
 #define CFG_AP_STA_SECURITY_SEPERATION_MIN     ( 0 )
 #define CFG_AP_STA_SECURITY_SEPERATION_MAX     ( 1 ) 
 #define CFG_AP_STA_SECURITY_SEPERATION_DEFAULT ( 0 )   
+
+#define CFG_AP_LISTEN_MODE_NAME               "gEnablePhyAgcListenMode" 
+#define CFG_AP_LISTEN_MODE_MIN                (0)
+#define CFG_AP_LISTEN_MODE_MAX                (128) 
+#define CFG_AP_LISTEN_MODE_DEFAULT            (128)   
+
+#define CFG_AP_AUTO_SHUT_OFF                "gAPAutoShutOff"
+#define CFG_AP_AUTO_SHUT_OFF_MIN            ( 0 )
+#define CFG_AP_AUTO_SHUT_OFF_MAX            ( 4294967295UL )
+#define CFG_AP_AUTO_SHUT_OFF_DEFAULT        ( 0 )
+
+#define CFG_FRAMES_PROCESSING_TH_MODE_NAME     "gMinFramesProcThres"
+#define CFG_FRAMES_PROCESSING_TH_MIN           ( 0 )
+#define CFG_FRAMES_PROCESSING_TH_MAX           ( 39 )
+#define CFG_FRAMES_PROCESSING_TH_DEFAULT       ( 0 )
 
 #endif
 
@@ -661,6 +676,11 @@ typedef enum
 #define CFG_NTH_BEACON_FILTER_MAX              ( WNI_CFG_NTH_BEACON_FILTER_STAMAX )
 #define CFG_NTH_BEACON_FILTER_DEFAULT          ( WNI_CFG_NTH_BEACON_FILTER_STADEF )
 
+#define CFG_RF_SETTLING_TIME_CLK_NAME          "rfSettlingTimeUs"
+#define CFG_RF_SETTLING_TIME_CLK_MIN           ( 0 )
+#define CFG_RF_SETTLING_TIME_CLK_MAX           ( 60000 )
+#define CFG_RF_SETTLING_TIME_CLK_DEFAULT       ( 1500 )
+
 //WMM configuration
 #define CFG_QOS_WMM_MODE_NAME                             "WmmIsEnabled"
 #define CFG_QOS_WMM_MODE_MIN                               (0)
@@ -961,6 +981,14 @@ typedef enum
 #define CFG_QOS_WMM_TS_INFO_ACK_POLICY_MAX                         (0x01)
 #define CFG_QOS_WMM_TS_INFO_ACK_POLICY_DEFAULT                     (0x00)
 
+#define CFG_SINGLE_TID_RC_NAME                             "SingleTIDRC"
+#define CFG_SINGLE_TID_RC_MIN                               (0) // Seperate replay counter for all TID
+#define CFG_SINGLE_TID_RC_MAX                               (1) // Single replay counter for all TID 
+#define CFG_SINGLE_TID_RC_DEFAULT                           (1) 
+#define CFG_MCAST_BCAST_FILTER_SETTING_NAME          "McastBcastFilter"
+#define CFG_MCAST_BCAST_FILTER_SETTING_MIN           (0)
+#define CFG_MCAST_BCAST_FILTER_SETTING_MAX           (3)
+#define CFG_MCAST_BCAST_FILTER_SETTING_DEFAULT       (0)
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1033,8 +1061,11 @@ typedef struct
    v_BOOL_t      apUapsdEnabled;
    v_BOOL_t      apProtEnabled;
    v_BOOL_t      apOBSSProtEnabled;
-   v_U8_t          apCntryCode[4];
+   v_U8_t        MinFramesProcThres;
+   v_U8_t        apCntryCode[4];
    v_BOOL_t      apDisableIntraBssFwd;
+   v_U8_t        nEnableListenMode;    
+   v_U32_t       nAPAutoShutOff;
 #endif
 
    v_U32_t       nBeaconInterval;
@@ -1192,8 +1223,16 @@ typedef struct
    char                        wowlPattern[1024];         
    v_BOOL_t                    b19p2MhzPmicClkEnabled;
 
+   /* Control for Replay counetr. value 1 means 
+      single replay counter for all TID*/
+   v_BOOL_t                    bSingleTidRc;
+   v_U8_t                      mcastBcastFilterSetting;
    v_BOOL_t                     burstSizeDefinition;
    v_U8_t                       tsInfoAckPolicy;
+   
+   /* RF Settling Time Clock */
+   v_U32_t                     rfSettlingTimeUs;
+
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

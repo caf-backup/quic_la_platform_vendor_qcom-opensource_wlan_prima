@@ -1148,7 +1148,15 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 
     frm.AID.associd = aid | LIM_AID_MASK;
 
-    PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL, &frm.SuppRates,psessionEntry);
+    if ( NULL == pSta )
+    {
+       PopulateDot11fSuppRates( pMac, POPULATE_DOT11F_RATES_OPERATIONAL, &frm.SuppRates,psessionEntry);
+    }
+    else
+    {
+       PopulateDot11fAssocRspRates( pMac, &frm.SuppRates, &frm.ExtSuppRates,
+                      pSta->supportedRates.llbRates, pSta->supportedRates.llaRates );
+    }
 
 #ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
@@ -1171,7 +1179,8 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
     }
 #endif
     
-    PopulateDot11fExtSuppRates( pMac, &frm.ExtSuppRates );
+    if( NULL == pSta )
+         PopulateDot11fExtSuppRates( pMac, &frm.ExtSuppRates );
 
     if ( NULL != pSta )
     {

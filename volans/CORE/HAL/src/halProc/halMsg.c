@@ -2470,6 +2470,8 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
             halMsg_AddBcastSta(pMac, bssIdx, param);
             // Get the allocated bcast station index
             halTable_GetBssBcastStaIdx(pMac, bssIdx, &bcastStaIdx);
+            /* Enable Listen Mode according to cfg */                     
+            halEnableListenMode(pMac, pMac->hal.ghalPhyAgcListenMode);                     
         } else {
             // If not AP role point the bcastStaIdx to the BSS staIdx
             halTable_SetBssBcastStaIdx(pMac, bssIdx, bssStaIdx);

@@ -486,16 +486,6 @@ char *limMsgStr(tANI_U32 msgType)
             return "eWNI_SME_PROMISCUOUS_MODE_REQ\n";
         case eWNI_SME_PROMISCUOUS_MODE_RSP:
             return "eWNI_SME_PROMISCUOUS_MODE_RSP\n";
-        case eWNI_SME_LINK_TEST_START_REQ:
-            return "eWNI_SME_LINK_TEST_START_REQ\n";
-        case eWNI_SME_LINK_TEST_START_RSP:
-            return "eWNI_SME_LINK_TEST_START_RSP\n";
-        case eWNI_SME_LINK_TEST_STOP_REQ:
-            return "eWNI_SME_LINK_TEST_STOP_REQ\n";
-        case eWNI_SME_LINK_TEST_STOP_RSP:
-            return "eWNI_SME_LINK_TEST_STOP_RSP\n";
-        case eWNI_SME_LINK_TEST_REPORT_IND:
-            return "eWNI_SME_LINK_TEST_REPORT_IND\n";
         case eWNI_SME_NEIGHBOR_BSS_IND:
             return "eWNI_SME_NEIGHBOR_BSS_IND\n";
         case eWNI_SME_MEASUREMENT_REQ:
@@ -510,24 +500,6 @@ char *limMsgStr(tANI_U32 msgType)
             return "eWNI_SME_SET_WDS_INFO_RSP\n";
         case eWNI_SME_WDS_INFO_IND:
             return "eWNI_SME_WDS_INFO_IND\n";
-        case eWNI_SME_SET_POWER_REQ:
-            return "eWNI_SME_SET_POWER_REQ\n";
-        case eWNI_SME_SET_POWER_RSP:
-            return "eWNI_SME_SET_POWER_RSP\n";
-        case eWNI_SME_CLIENT_SIDE_LOAD_BALANCE_REQ:
-            return "eWNI_SME_CLIENT_SIDE_LOAD_BALANCE_REQ\n";
-        case eWNI_SME_CLIENT_SIDE_LOAD_BALANCE_RSP:
-            return "eWNI_SME_CLIENT_SIDE_LOAD_BALANCE_RSP\n";
-        case eWNI_SME_SELECT_CHANNEL_REQ:
-            return "eWNI_SME_SELECT_CHANNEL_REQ\n";
-        case eWNI_SME_SELECT_CHANNEL_RSP:
-            return "eWNI_SME_SELECT_CHANNEL_RSP\n";
-        case eWNI_SME_SET_PROPRIETARY_IE_REQ:
-            return "eWNI_SME_SET_PROPRIETARY_IE_REQ\n";
-        case eWNI_SME_SET_PROPRIETARY_IE_RSP:
-            return "eWNI_SME_SET_PROPRIETARY_IE_RSP\n";
-        case eWNI_SME_DISCARD_SKB_NTF:
-            return "eWNI_SME_DISCARD_SKB_NTF\n";
         case eWNI_SME_DEAUTH_CNF:
             return "eWNI_SME_DEAUTH_CNF\n";
         case eWNI_SME_MIC_FAILURE_IND:
@@ -1239,6 +1211,7 @@ limPostMsgApiNoWait(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
     return TX_SUCCESS;
 #endif
 } /*** end limPostMsgApiNoWait() ***/
+
 
 
 /**
@@ -2043,8 +2016,8 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
             PELOG1(limLog(pMac, LOG1, FL("Disabling short preamble\n"));)
 
 #ifdef WLAN_SOFTAP_FEATURE
-            if (limEnableShortPreamble(pMac, false, pBeaconParams, psessionEntry) != eSIR_SUCCESS)
-                PELOGE(limLog(pMac, LOGE, FL("Cannot enable long preamble\n"));)
+                if (limEnableShortPreamble(pMac, false, pBeaconParams, psessionEntry) != eSIR_SUCCESS)
+                    PELOGE(limLog(pMac, LOGE, FL("Cannot enable long preamble\n"));)
 #else
             if (limEnableShortPreamble(pMac, false, pBeaconParams) != eSIR_SUCCESS)
                 PELOGE(limLog(pMac, LOGE, FL("Cannot enable long preamble\n"));)
@@ -4209,6 +4182,7 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
 
     return eSIR_SUCCESS;
 }
+
 /** -------------------------------------------------------------
 \fn limEnable11gProtection
 \brief based on config setting enables\disables 11g protection.
@@ -4290,11 +4264,12 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 }
             }
         }else if ((eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole) &&
-              (true == psessionEntry->htCapabality)){
+              (true == psessionEntry->htCapabality))
 #else		
         if(((eLIM_AP_ROLE == psessionEntry->limSystemRole)|| (eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)) &&
-              (true == psessionEntry->htCapabality)) {
+              (true == psessionEntry->htCapabality))
 #endif
+        {
                 if(overlap)
                 {
                     pMac->lim.gLimOlbcParams.protectionEnabled = true;
@@ -4491,6 +4466,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
     }
     return eSIR_SUCCESS;
 }
+    
 /** -------------------------------------------------------------
 \fn limEnableHtProtectionFrom11g
 \brief based on cofig enables\disables protection from 11g.
@@ -7601,4 +7577,5 @@ void limDiagEventReport(tpAniSirGlobal pMac, tANI_U16 eventType, tpPESession pSe
     WLAN_VOS_DIAG_EVENT_REPORT(&peEvent, EVENT_WLAN_PE);
     return;
 }
+
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */

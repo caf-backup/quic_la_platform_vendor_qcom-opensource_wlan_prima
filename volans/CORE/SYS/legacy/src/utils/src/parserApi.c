@@ -577,24 +577,51 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
 {
     tANI_U32                         nCfgValue, nCfgLen;
     tANI_U8                          nCfgValue8;
-    tANI_U16                         nCfgValue16;
     tSirRetStatus                    nSirStatus;
-    tSirMacHTCapabilityInfo         *pHTCapabilityInfo;
     tSirMacHTParametersInfo         *pHTParametersInfo;
+#ifdef WLAN_SOFTAP_FEATURE // this is added for fixing CRs on MDM9K platform - 257951, 259577
+    union {
+        tANI_U16                        nCfgValue16;
+        tSirMacHTCapabilityInfo         htCapInfo;
+        tSirMacExtendedHTCapabilityInfo extHtCapInfo;
+    } uHTCapabilityInfo;
+#else
+    tANI_U16                         nCfgValue16;
+    tSirMacHTCapabilityInfo         *pHTCapabilityInfo;
     tSirMacExtendedHTCapabilityInfo *pExtendedHTCapabilityInfo;
+#endif
+
     tSirMacTxBFCapabilityInfo       *pTxBFCapabilityInfo;
     tSirMacASCapabilityInfo         *pASCapabilityInfo;
 
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_HT_CAP_INFO, nCfgValue );
 
+#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
+    uHTCapabilityInfo.nCfgValue16 = nCfgValue & 0xFFFF;
+#else
     nCfgValue16 = ( tANI_U16 ) nCfgValue;
-
     pHTCapabilityInfo = ( tSirMacHTCapabilityInfo* ) &nCfgValue16;
-
+#endif
 
     dot11fLog( pMac, LOG1, FL( "HT Caps: %x\n" ), nCfgValue);
 
 
+#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
+    pDot11f->advCodingCap             = uHTCapabilityInfo.htCapInfo.advCodingCap;
+    pDot11f->supportedChannelWidthSet = uHTCapabilityInfo.htCapInfo.supportedChannelWidthSet;
+    pDot11f->mimoPowerSave            = uHTCapabilityInfo.htCapInfo.mimoPowerSave;
+    pDot11f->greenField               = uHTCapabilityInfo.htCapInfo.greenField;
+    pDot11f->shortGI20MHz             = uHTCapabilityInfo.htCapInfo.shortGI20MHz;
+    pDot11f->shortGI40MHz             = uHTCapabilityInfo.htCapInfo.shortGI40MHz;
+    pDot11f->txSTBC                   = uHTCapabilityInfo.htCapInfo.txSTBC;
+    pDot11f->rxSTBC                   = uHTCapabilityInfo.htCapInfo.rxSTBC;
+    pDot11f->delayedBA                = uHTCapabilityInfo.htCapInfo.delayedBA;
+    pDot11f->maximalAMSDUsize         = uHTCapabilityInfo.htCapInfo.maximalAMSDUsize;
+    pDot11f->dsssCckMode40MHz         = uHTCapabilityInfo.htCapInfo.dsssCckMode40MHz;
+    pDot11f->psmp                     = uHTCapabilityInfo.htCapInfo.psmp;
+    pDot11f->stbcControlFrame         = uHTCapabilityInfo.htCapInfo.stbcControlFrame;
+    pDot11f->lsigTXOPProtection       = uHTCapabilityInfo.htCapInfo.lsigTXOPProtection;
+#else
     pDot11f->advCodingCap             = pHTCapabilityInfo->advCodingCap;
     pDot11f->supportedChannelWidthSet = pHTCapabilityInfo->supportedChannelWidthSet;
     pDot11f->mimoPowerSave            = pHTCapabilityInfo->mimoPowerSave;
@@ -609,6 +636,7 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
     pDot11f->psmp                     = pHTCapabilityInfo->psmp;
     pDot11f->stbcControlFrame         = pHTCapabilityInfo->stbcControlFrame;
     pDot11f->lsigTXOPProtection       = pHTCapabilityInfo->lsigTXOPProtection;
+#endif
 
     dot11fLog(pMac, LOG1, FL("SupportedChnlWidth: %d, mimoPS: %d, GF: %d, shortGI20:%d, shortGI40: %d, dsssCck: %d\n"),
                                             pDot11f->supportedChannelWidthSet, pDot11f->mimoPowerSave,  pDot11f->greenField,
@@ -634,12 +662,20 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
 
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_EXT_HT_CAP_INFO, nCfgValue );
 
-    nCfgValue16 = ( tANI_U16 ) nCfgValue;
+#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
+    uHTCapabilityInfo.nCfgValue16 = nCfgValue & 0xFFFF;
 
+    pDot11f->pco            = uHTCapabilityInfo.extHtCapInfo.pco;
+    pDot11f->transitionTime = uHTCapabilityInfo.extHtCapInfo.transitionTime;
+    pDot11f->mcsFeedback    = uHTCapabilityInfo.extHtCapInfo.mcsFeedback;
+
+#else
+    nCfgValue16 = ( tANI_U16 ) nCfgValue ;
     pExtendedHTCapabilityInfo = ( tSirMacExtendedHTCapabilityInfo* ) &nCfgValue16;
     pDot11f->pco            = pExtendedHTCapabilityInfo->pco;
     pDot11f->transitionTime = pExtendedHTCapabilityInfo->transitionTime;
     pDot11f->mcsFeedback    = pExtendedHTCapabilityInfo->mcsFeedback;
+#endif
 
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_TX_BF_CAP, nCfgValue );
 
@@ -692,11 +728,24 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
 {
     tANI_U32             nCfgValue, nCfgLen;
     tANI_U8              htInfoField1;
-    tANI_U16            htInfoField2, htInfoField3;
+    tANI_U16            htInfoField2;
     tSirRetStatus        nSirStatus;
     tSirMacHTInfoField1 *pHTInfoField1;
     tSirMacHTInfoField2 *pHTInfoField2;
+#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
+    union {
+        tANI_U16         nCfgValue16;
+        tSirMacHTInfoField3 infoField3;
+    }uHTInfoField;
+    union {
+        tANI_U16         nCfgValue16;
+        tSirMacHTInfoField2 infoField2;
+    }uHTInfoField2;
+#else
+    tANI_U16            htInfoField3;
     tSirMacHTInfoField3 *pHTInfoField3;
+#endif
+
 #ifndef WLAN_SOFTAP_FEATURE
     tpPESession         psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????
 #endif
@@ -722,14 +771,13 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE ){
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_HT_INFO_FIELD2, nCfgValue );
 
-    htInfoField2 = ( tANI_U16 ) nCfgValue;
+    uHTInfoField2.nCfgValue16 = nCfgValue & 0xFFFF; // this is added for fixing CRs on MDM9K platform - 257951, 259577
 
-    pHTInfoField2 = ( tSirMacHTInfoField2* ) &htInfoField2;
-    pHTInfoField2->opMode   =  psessionEntry->htOperMode;
-    pHTInfoField2->nonGFDevicesPresent = psessionEntry->gHTNonGFDevicesPresent;
-    pHTInfoField2->obssNonHTStaPresent = psessionEntry->gHTObssMode;	/*added for Obss  */
+    uHTInfoField2.infoField2.opMode   =  psessionEntry->htOperMode;
+    uHTInfoField2.infoField2.nonGFDevicesPresent = psessionEntry->gHTNonGFDevicesPresent;
+    uHTInfoField2.infoField2.obssNonHTStaPresent = psessionEntry->gHTObssMode;	/*added for Obss  */
 
-    pHTInfoField2->reserved = 0;
+    uHTInfoField2.infoField2.reserved = 0;
 
    }else{
 #endif
@@ -749,7 +797,21 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
 
     CFG_GET_INT( nSirStatus, pMac, WNI_CFG_HT_INFO_FIELD3, nCfgValue );
 
-    htInfoField3 = ( tANI_U16 ) nCfgValue;
+
+#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
+    uHTInfoField.nCfgValue16 = nCfgValue & 0xFFFF;
+
+
+    uHTInfoField.infoField3.basicSTBCMCS                  = pMac->lim.gHTSTBCBasicMCS;
+    uHTInfoField.infoField3.dualCTSProtection             = pMac->lim.gHTDualCTSProtection;
+    uHTInfoField.infoField3.secondaryBeacon               = pMac->lim.gHTSecondaryBeacon;
+    uHTInfoField.infoField3.lsigTXOPProtectionFullSupport = pMac->lim.gHTLSigTXOPFullSupport;
+    uHTInfoField.infoField3.pcoActive                     = pMac->lim.gHTPCOActive;
+    uHTInfoField.infoField3.pcoPhase                      = pMac->lim.gHTPCOPhase;
+    uHTInfoField.infoField3.reserved                      = 0;
+
+#else
+    htInfoField3 = (tANI_U16) nCfgValue;
 
     pHTInfoField3 = ( tSirMacHTInfoField3* ) &htInfoField3;
     pHTInfoField3->basicSTBCMCS                  = pMac->lim.gHTSTBCBasicMCS;
@@ -759,6 +821,7 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     pHTInfoField3->pcoActive                     = pMac->lim.gHTPCOActive;
     pHTInfoField3->pcoPhase                      = pMac->lim.gHTPCOPhase;
     pHTInfoField3->reserved                      = 0;
+#endif
 
     pDot11f->secondaryChannelOffset        = pHTInfoField1->secondaryChannelOffset;
     pDot11f->recommendedTxWidthSet         = pHTInfoField1->recommendedTxWidthSet;
@@ -766,11 +829,28 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     pDot11f->controlledAccessOnly          = pHTInfoField1->controlledAccessOnly;
     pDot11f->serviceIntervalGranularity    = pHTInfoField1->serviceIntervalGranularity;
 
+#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
+    pDot11f->opMode                        = uHTInfoField2.infoField2.opMode;
+    pDot11f->nonGFDevicesPresent           = uHTInfoField2.infoField2.nonGFDevicesPresent;
+    pDot11f->obssNonHTStaPresent           = uHTInfoField2.infoField2.obssNonHTStaPresent;
+    pDot11f->reserved                      = uHTInfoField2.infoField2.reserved;
+
+#else
     pDot11f->opMode                        = pHTInfoField2->opMode;
     pDot11f->nonGFDevicesPresent           = pHTInfoField2->nonGFDevicesPresent;
-    pDot11f->obssNonHTStaPresent	   = pHTInfoField2->obssNonHTStaPresent;
+    pDot11f->obssNonHTStaPresent           = pHTInfoField2->obssNonHTStaPresent;
     pDot11f->reserved                      = pHTInfoField2->reserved;
+#endif
 
+#ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
+    pDot11f->basicSTBCMCS                  = uHTInfoField.infoField3.basicSTBCMCS;
+    pDot11f->dualCTSProtection             = uHTInfoField.infoField3.dualCTSProtection;
+    pDot11f->secondaryBeacon               = uHTInfoField.infoField3.secondaryBeacon;
+    pDot11f->lsigTXOPProtectionFullSupport = uHTInfoField.infoField3.lsigTXOPProtectionFullSupport;
+    pDot11f->pcoActive                     = uHTInfoField.infoField3.pcoActive;
+    pDot11f->pcoPhase                      = uHTInfoField.infoField3.pcoPhase;
+    pDot11f->reserved2                     = uHTInfoField.infoField3.reserved;
+#else
     pDot11f->basicSTBCMCS                  = pHTInfoField3->basicSTBCMCS;
     pDot11f->dualCTSProtection             = pHTInfoField3->dualCTSProtection;
     pDot11f->secondaryBeacon               = pHTInfoField3->secondaryBeacon;
@@ -778,7 +858,7 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     pDot11f->pcoActive                     = pHTInfoField3->pcoActive;
     pDot11f->pcoPhase                      = pHTInfoField3->pcoPhase;
     pDot11f->reserved2                     = pHTInfoField3->reserved;
-
+#endif
     CFG_GET_STR( nSirStatus, pMac, WNI_CFG_BASIC_MCS_SET,
                  pDot11f->basicMCSSet, nCfgLen,
                  SIZE_OF_BASIC_MCS_SET );
@@ -1521,14 +1601,28 @@ void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
     pParams->acbk_acwmax    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[1].cw.max );
     pParams->acbk_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[1].txoplimit;
 
-    pParams->acvi_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[2].aci.aifsn) );
+#ifdef WLAN_SOFTAP_FEATURE
+    if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
+        pParams->acvi_aifsn     = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].aci.aifsn );
+    else
+#endif 
+        pParams->acvi_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[2].aci.aifsn) );
+
+
+
     pParams->acvi_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[2].aci.acm );
     pParams->acvi_aci       = ( 0x3 & SIR_MAC_EDCAACI_VIDEO );
     pParams->acvi_acwmin    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].cw.min );
     pParams->acvi_acwmax    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].cw.max );
     pParams->acvi_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[2].txoplimit;
 
-    pParams->acvo_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[3].aci.aifsn) );
+#ifdef WLAN_SOFTAP_FEATURE
+    if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
+        pParams->acvo_aifsn     = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[3].aci.aifsn );
+    else
+#endif
+        pParams->acvo_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[3].aci.aifsn) );
+
     pParams->acvo_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[3].aci.acm );
     pParams->acvo_aci       = ( 0x3 & SIR_MAC_EDCAACI_VOICE );
     pParams->acvo_acwmin    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[3].cw.min );
@@ -4503,4 +4597,33 @@ void PopulateFTInfo( tpAniSirGlobal      pMac,
 }
 #endif
 
+void PopulateDot11fAssocRspRates ( tpAniSirGlobal pMac, tDot11fIESuppRates *pSupp, 
+      tDot11fIEExtSuppRates *pExt, tANI_U16 *_11bRates, tANI_U16 *_11aRates )
+{
+  tANI_U8 i,j;
+  tANI_U8 num_supp = 0, num_ext = 0;
+
+  for( i = 0 ; (i < HAL_NUM_11B_RATES && _11bRates[i]) ; i++, num_supp++ )
+  {
+      pSupp->rates[num_supp] = _11bRates[i];
+  }  
+  for( j = 0 ; (j < HAL_NUM_11A_RATES && _11aRates[j]) ; j++ )
+  {
+     if( num_supp < 8 )
+         pSupp->rates[num_supp++] = _11aRates[j];
+     else
+         pExt->rates[num_ext++] =  _11aRates[j]; 
+  }  
+
+  if( num_supp )
+  {
+      pSupp->num_rates = num_supp;
+      pSupp->present = 1;
+  }
+  if( num_ext )
+  {
+     pExt->num_rates = num_ext;
+     pExt->present = 1;
+  }
+} 
 // parserApi.c ends here.

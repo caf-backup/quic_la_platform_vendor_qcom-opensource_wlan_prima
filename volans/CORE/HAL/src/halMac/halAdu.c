@@ -26,12 +26,6 @@
 #include "halDebug.h"
 #include "halRegBckup.h"
 
-//for debugging RX BD corruption issue.
-//work around for BD corruption issue
-//remove it as soon root-caused.
-//#define WLAN_FEATURE_ADU_FW_DXE //FIXME_VOLANS 
-
-
 #ifdef ANI_SUPPORT_SMPS
 #ifdef SPICA
 static tHalRegCfg halAdu_mimoPScfg2to1[] = {
@@ -347,11 +341,7 @@ static eHalStatus __halAdu_initControl(tpAniSirGlobal pMac)
 #ifndef WLAN_HAL_VOLANS //FIXME_VOLANS            
             QWLAN_ADU_CONTROL_REG_REINIT_TO_BOTH_AHB_EN_MASK |
 #endif            
-#ifndef WLAN_FEATURE_ADU_FW_DXE
             (BMUWQ_DXE_RX << QWLAN_ADU_CONTROL_NEXT_WQ_OFFSET) |
-#else
-            (BMUWQ_BMU_WQ2 << QWLAN_ADU_CONTROL_NEXT_WQ_OFFSET) |            
-#endif
             ((BMUWQ_SINK << QWLAN_ADU_CONTROL_WOW_WQ_OFFSET) & QWLAN_ADU_CONTROL_WOW_WQ_MASK);
 
     halWriteRegister(pMac,  QWLAN_ADU_CONTROL_REG,  value );
@@ -454,12 +444,7 @@ eHalStatus halAdu_enableFrameTranslation(tpAniSirGlobal pMac)
                      (
 #ifdef WLAN_HAL_VOLANS
 					 (1 << QWLAN_ADU_UMA_CTRL2_RX_PRIORITY_ROUTING_WQ_EN_OFFSET )|
-#ifndef WLAN_FEATURE_ADU_FW_DXE
                       (BMUWQ_DXE_RX_HI << QWLAN_ADU_UMA_CTRL2_RX_PRIORITY_ROUTING_WQ_OFFSET)|
-#else
-                      (BMUWQ_BMU_WQ2 << QWLAN_ADU_UMA_CTRL2_RX_PRIORITY_ROUTING_WQ_OFFSET)|
-#endif
-
 #endif
                       (BMUWQ_SINK)));
 

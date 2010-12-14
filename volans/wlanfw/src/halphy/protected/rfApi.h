@@ -92,6 +92,7 @@ void rfReadDataField(tANI_U32 regAddr, tANI_U32 dataMask, tANI_U32 dataShift, tA
 
 //initialization, enable, and chain selection
 void rfInit();
+void rfInitVolans2();
 void rfGetVersion(tRfChipVer *chipVer);
 void rfSetChainSelectionMode(ePhyChainSelect rfSysRxTxAntennaMode);
 void rfSetModeSelectionControl(ePhyChainSelect phyChainSelections);

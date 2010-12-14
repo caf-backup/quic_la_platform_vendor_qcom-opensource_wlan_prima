@@ -31,6 +31,9 @@ typedef struct
 }tRF;
 
 
+#define RF_CHIP_ID_VOLANS1      4358
+#define RF_CHIP_ID_VOLANS2      4608
 
+#define RF_CHIP_VERSION(x)      (pMac->hphy.rf.revId == (x))
 
 #endif /* RF_H */

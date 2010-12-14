@@ -144,6 +144,13 @@ eHalStatus halPS_Init(tHalHandle hHal, void *arg)
     pHalPwrSave->mutexCount     = 0;
     pHalPwrSave->mutexIntrCount = 0;
 
+#ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
+    /* FIXME: Volans 1.0 Power-save workaround. Needs to be removed 
+     * as soon as fix is available in the hardware
+     */
+    halMcu_ResetMutexCount(pMac, QWLAN_MCU_MUTEX_HOSTFW_SYNC_INDEX + 1, 2);
+#endif
+    
     /* This bit in MCU_HOST_INT_EN_REG is not mapped to interrupt
      * lines. Hence this bit is only used to enable the SIF unfreeze
      * to happen when Host accesss comes in during power save mode.
@@ -3711,6 +3718,44 @@ eHalStatus halPS_SetHostOffloadInFw(tpAniSirGlobal pMac, tpSirHostOffloadReq pRe
     return status;
 }
 
+/*
+ * halPSRfSettlingTimeClk
+ *
+ * DESCRIPTION:
+ *      RF Supply Settling Time Clock Units
+ *
+ * PARAMETERS:
+ *      pMac:   Pointer to the global adapter context
+ *      cfgId:  This will read from the CFG file set by HDD.
+ *
+ * RETURN:
+ *      void
+ */
+ 
+ void halPSRfSettlingTimeClk( tpAniSirGlobal pMac, tANI_U32 cfgId )
+ {
+    tANI_U32 rfSettlingTimeUs = 0;
+    Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)
+    pMac->hal.FwParam.pFwConfig;
+    
+    if (cfgId == WNI_CFG_RF_SETTLING_TIME_CLK) {
+        if (eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfgId, &rfSettlingTimeUs)) {
+            HALLOGW( halLog(pMac, LOGW, FL("Failed to read Configuration "
+            "file for Rf Supply Settling Time Clock Units with  cfgId %d"), cfgId));
+            return;
+        }
+    /* RF Settling Time Clk value as read from CFG */
+    pFwConfig->ucRfSupplySettlingTimeClk = (tANI_U16)((rfSettlingTimeUs*1000)/QWLAN_PMIC_SLEEPCLK_PERIOD_NS);
+    pFwConfig->ucRfSupplySettlingTimeClk += ((rfSettlingTimeUs*1000)%QWLAN_PMIC_SLEEPCLK_PERIOD_NS)? 1 : 0;
 
-
+    pFwConfig->usBmpsSleepTimeOverheadsUs = HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_WITHOUT_RFXO_SETTLING_US + 
+					((pFwConfig->ucRfSupplySettlingTimeClk * QWLAN_PMIC_SLEEPCLK_PERIOD_NS)/1000);
+ 
+    /* Update FW SysConfig with Rf Supply Settling Time Clock Units Value */
+    halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr,
+                     (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
+   }
+   
+   return;
+}
 

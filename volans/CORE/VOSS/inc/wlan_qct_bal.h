@@ -716,6 +716,26 @@ VOS_STATUS WLANBAL_StartXmit
    v_PVOID_t pAdapter
 );
 
+/*----------------------------------------------------------------------------
+
+  @brief Routine to get vendor specific SDIO card ID
+
+  @param v_PVOID_t pAdapter
+         Global adapter handle
+         
+         v_U16_t   *pCard_Id
+         ASIC vendor specific id
+
+  @return General status code
+        VOS_STATUS_SUCCESS      Notify success
+        VOS_STATUS_E_FAILURE    BAL is not ready
+      
+----------------------------------------------------------------------------*/
+VOS_STATUS WLANBAL_GetSDIOCardIdentifier
+(
+   v_PVOID_t pAdapter,
+   v_U16_t   *pCardId
+);
 
 /*=========================================================================
  * END Interactions with TL

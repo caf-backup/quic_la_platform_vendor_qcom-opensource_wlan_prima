@@ -1329,11 +1329,12 @@ tANI_BOOLEAN csrIsConnStateConnectedWds( tpAniSirGlobal pMac, tANI_U32 sessionId
 #ifdef WLAN_SOFTAP_FEATURE
 tANI_BOOLEAN csrIsConnStateConnectedInfraAp( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
-    return( (eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED == pMac->roam.roamSession[sessionId].connectState ) 
-         || (eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState) );
+    return( (eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED == pMac->roam.roamSession[sessionId].connectState) ||
+        (eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState)  ||
+        (eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED == pMac->roam.roamSession[sessionId].connectState) );
 }
-
 #endif
+
 tANI_BOOLEAN csrIsConnStateDisconnectedWds( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
     return( eCSR_ASSOC_STATE_TYPE_WDS_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState );
@@ -3941,7 +3942,7 @@ tANI_BOOLEAN csrIsSecurityMatch( tHalHandle hHal, tCsrAuthList *authType, tCsrEn
                         //Check WAPI
                         ucCipher = eCSR_ENCRYPT_TYPE_WPI;
                         fMatchAny = csrIsWapiMatch( hHal, authType, ucCipher, pMCEncryptionType, pIes, &negAuthType, &mcCipher );
-                }
+                    }
 #endif /* FEATURE_WLAN_WAPI */
                 }
                 if(!fMatchAny)
@@ -4518,14 +4519,14 @@ tANI_BOOLEAN csrMatchBSS( tHalHandle hHal, tSirBssDescription *pBssDesc, tCsrSca
         fCheck = eANI_BOOLEAN_TRUE;
         if(pIes->SSID.present)
         {
-        for(i = 0; i < pFilter->SSIDs.numOfSSIDs; i++)
-        {
-            fCheck = csrIsSsidMatch( pMac, pFilter->SSIDs.SSIDList[i].SSID.ssId, pFilter->SSIDs.SSIDList[i].SSID.length,
+            for(i = 0; i < pFilter->SSIDs.numOfSSIDs; i++)
+            {
+                fCheck = csrIsSsidMatch( pMac, pFilter->SSIDs.SSIDList[i].SSID.ssId, pFilter->SSIDs.SSIDList[i].SSID.length,
                                         pIes->SSID.ssid,
                                         pIes->SSID.num_ssid, eANI_BOOLEAN_TRUE );
-            if ( fCheck ) break;
-        }
-        if(!fCheck) break;
+                if ( fCheck ) break;
+            }
+            if(!fCheck) break;
         }
         fCheck = eANI_BOOLEAN_TRUE;
         for(i = 0; i < pFilter->BSSIDs.numOfBSSIDs; i++)

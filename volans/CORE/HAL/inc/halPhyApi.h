@@ -133,6 +133,9 @@ eHalStatus halPhyUpdateTxGainOverride(tHalHandle hHal, tANI_U8 txGain);
 // Routine to collect the adc rssi stats
 void halPhyAdcRssiStatsCollection(tHalHandle hHal);
 
+// Routine to enable/disable AGC listen mode
+eHalStatus halPhyAGCEnableListenMode(tHalHandle hHal);
+eHalStatus halPhyAGCDisableListenMode(tHalHandle hHal);
 // Routine to initialize CLPC in the Physical layer.
 eHalStatus halPhyTxPowerInit(tHalHandle hHal);
 /* Currently the below APIs are used only by the VOWIFI feature. This can be removed if
@@ -141,6 +144,5 @@ this should be present as an utility irrespective of the feature */
 tPwrTemplateIndex halPhyGetPwrIndexForDbm(tPowerdBm dBm);
 tPowerdBm  halPhyGetDbmForPwrIndex(tPwrTemplateIndex pwrIndex);
 #endif /* WLAN_FEATURE_VOWIFI */
-
 
 #endif /* HALPHYAPI_H */

@@ -261,6 +261,11 @@ typedef struct
   /*Delayed trigger frame timmer: - used by TL to send trigger frames less 
     often when it has established that the App is suspended*/
   v_U32_t  uDelayedTriggerFrmInt;  
+
+#ifdef WLAN_SOFTAP_FEATURE
+  /* Min Threshold for Processing Frames in TL */
+  v_U8_t   uMinFramesProcThres;
+#endif
 }WLANTL_ConfigInfoType;
 
 /*---------------------------------------------------------------------------

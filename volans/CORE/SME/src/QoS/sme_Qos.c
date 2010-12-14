@@ -63,6 +63,8 @@
 #define SME_QOS_SEARCH_KEY_INDEX_1       1
 #define SME_QOS_SEARCH_KEY_INDEX_2       2
 #define SME_QOS_SEARCH_KEY_INDEX_3       4
+#define SME_QOS_SEARCH_KEY_INDEX_4       8  // ac + direction
+#define SME_QOS_SEARCH_KEY_INDEX_5       0x10  // ac + tspec_mask
 
 //special value for searching any Session Id
 #define SME_QOS_SEARCH_SESSION_ID_ANY    CSR_ROAM_SESSION_MAX
@@ -349,6 +351,8 @@ typedef struct sme_QosSearchInfo_s
    v_U8_t           sessionId;
    v_U8_t           index;
    sme_QosSearchKey key;
+   sme_QosWmmDirType   direction;
+   v_U8_t              tspec_mask;
 }sme_QosSearchInfo;
 
 /*---------------------------------------------------------------------------
@@ -513,6 +517,9 @@ static eHalStatus sme_QosRequestReassoc(tpAniSirGlobal pMac, tANI_U8 sessionId,
 #endif
 static v_U32_t sme_QosAssignFlowId(void);
 static v_U8_t sme_QosAssignDialogToken(void);
+static eHalStatus sme_QosUpdateTspecMask(v_U8_t sessionId,
+                                      sme_QosSearchInfo search_key,
+                                      v_U8_t new_tspec_mask);
 
 /*-------------------------------------------------------------------------- 
                          External APIs definitions
@@ -1611,51 +1618,62 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
                return status;
             }
 
-            // [TODO] the current aggregation logic does not conform to the
-            // WMM Spec.  CR 251684 has been opened to address this issue
-
-            // need to aggregate?
-            //if both the indices are not in use try to find out if the new 
-            //request is looking for a different direction
+            /* Flow aggregation */
             if(SME_QOS_TSPEC_MASK_BIT_1_2_SET != pACInfo->tspec_mask_status)
             {
-               //if the direction is different, no aggregation
-               if(pACInfo->curr_QoSInfo[pACInfo->tspec_mask_status - 1].
-                  ts_info.direction != Tspec_Info.ts_info.direction)
-               {
-                  new_tmask = SME_QOS_TSPEC_MASK_BIT_1_2_SET & ~pACInfo->tspec_mask_status;
-                  pACInfo->requested_QoSInfo[new_tmask - 1] = 
-                     Tspec_Info;
-                  pACInfo->tspec_mask_status = SME_QOS_TSPEC_MASK_BIT_1_2_SET;
-                  //indicates NO aggregation
-                  tmask = SME_QOS_TSPEC_MASK_CLEAR;
-                  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, 
-                            "%s: %d: tspec_mask_status = %d for AC = %d "
-                            "with new_tmask =%d",
-                            __FUNCTION__, __LINE__, 
-                            pACInfo->tspec_mask_status, ac, new_tmask);
-
-               }
-               else
-               {
-                  //aggregate on the index mentioned below
-                  tmask = pACInfo->tspec_mask_status;
-               }
+              /* Either of upstream, downstream or bidirectional flows are present */
+              /* If either of new stream or current stream is for bidirecional, aggregate 
+               * the new stream with the current streams present and send out aggregated Tspec.*/
+              if((Tspec_Info.ts_info.direction == SME_QOS_WMM_TS_DIR_BOTH) ||
+                 (pACInfo->curr_QoSInfo[pACInfo->tspec_mask_status - 1].
+                      ts_info.direction == SME_QOS_WMM_TS_DIR_BOTH))
+              {
+                // Aggregate the new stream with the current stream(s).
+                tmask = pACInfo->tspec_mask_status;
+              }
+              /* None of new stream or current (aggregated) streams are for bidirectional.
+               * Check if the new stream direction matches the current stream direction. */
+              else if(pACInfo->curr_QoSInfo[pACInfo->tspec_mask_status - 1].
+                  ts_info.direction == Tspec_Info.ts_info.direction)
+              {
+                // Aggregate the new stream with the current stream(s).
+                tmask = pACInfo->tspec_mask_status;
+              }
+              /* New stream is in different direction. */
+              else
+              {
+                // No Aggregation. Mark the 2nd tpsec index also as active.
+                tmask = SME_QOS_TSPEC_MASK_CLEAR;
+                new_tmask = SME_QOS_TSPEC_MASK_BIT_1_2_SET & ~pACInfo->tspec_mask_status;
+                pACInfo->tspec_mask_status = SME_QOS_TSPEC_MASK_BIT_1_2_SET;
+              }
             }
             else
             {
-               //Since we already have 2 tspec running, pick your best match
-               if(pACInfo->curr_QoSInfo[SME_QOS_TSPEC_INDEX_0].ts_info.direction != 
-                  Tspec_Info.ts_info.direction)
-               {
-                  tmask = SME_QOS_TSPEC_MASK_BIT_2_SET;
-               }
-               else
-               {
-                  tmask = SME_QOS_TSPEC_MASK_BIT_1_SET;
-               }
-
+              /* Both uplink and downlink streams are present. */
+              /* If new stream is bidirectional, aggregate new stream with all existing
+               * upstreams and downstreams. Send out new aggregated tpsec. */
+              if(Tspec_Info.ts_info.direction == SME_QOS_WMM_TS_DIR_BOTH)
+              {
+                // Only one tspec index (0) will be in use after this aggregation.
+                tmask = SME_QOS_TSPEC_MASK_BIT_1_2_SET;
+                pACInfo->tspec_mask_status = SME_QOS_TSPEC_MASK_BIT_1_SET;
+              }
+              /* New stream is also uni-directional
+               * Find out the tsepc index with which it needs to be aggregated */
+              else if(pACInfo->curr_QoSInfo[SME_QOS_TSPEC_INDEX_0].ts_info.direction != 
+                   Tspec_Info.ts_info.direction)
+              {
+                // Aggregate with 2nd tspec index
+                tmask = SME_QOS_TSPEC_MASK_BIT_2_SET;
+              }
+              else
+              {
+                // Aggregate with 1st tspec index
+                tmask = SME_QOS_TSPEC_MASK_BIT_1_SET;
+              }
             }
+
 #ifdef REASSOC_WHEN_ACM_NOT_SET
          }
          else
@@ -1679,10 +1697,31 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
 
          if(tmask)
          {
+
             // create the aggregate TSPEC
-            hstatus = sme_QosAggregateParams(&Tspec_Info, 
-                                             &pACInfo->curr_QoSInfo[tmask - 1],
-                                             &pACInfo->requested_QoSInfo[tmask - 1]);
+            if(tmask != SME_QOS_TSPEC_MASK_BIT_1_2_SET)
+            {
+              hstatus = sme_QosAggregateParams(&Tspec_Info, 
+                                               &pACInfo->curr_QoSInfo[tmask - 1],
+                                               &pACInfo->requested_QoSInfo[tmask - 1]);
+            }
+            else
+            {
+              /* Aggregate the new bidirectional stream with the existing upstreams and 
+               * downstreams in tspec indices 0 and 1. */
+              tmask = SME_QOS_TSPEC_MASK_BIT_1_SET;
+
+              if((hstatus = sme_QosAggregateParams(&Tspec_Info, 
+                                                   &pACInfo->curr_QoSInfo[SME_QOS_TSPEC_INDEX_0],
+                                                   &pACInfo->requested_QoSInfo[tmask - 1]))
+                          == eHAL_STATUS_SUCCESS)
+              {
+                hstatus = sme_QosAggregateParams(&pACInfo->curr_QoSInfo[SME_QOS_TSPEC_INDEX_1], 
+                                                 &pACInfo->requested_QoSInfo[tmask - 1],
+                                                 NULL);
+              }
+            }
+
             if(!HAL_STATUS_SUCCESS(hstatus))
             {
                //err msg
@@ -1971,16 +2010,16 @@ sme_QosStatusType sme_QosInternalModifyReq(tpAniSirGlobal pMac,
       return SME_QOS_STATUS_MODIFY_SETUP_INVALID_PARAMS_RSP;
    }
 
-  /* Accept modify when only one stream exists for this AC */
-   if(pACInfo->num_flows[flow_info->tspec_mask - 1] > 1 ||
-      pACInfo->num_flows[(~flow_info->tspec_mask & SME_QOS_TSPEC_MASK_BIT_1_2_SET) - 1] > 0)
+   // For modify, make sure that direction, TID and UP are not being altered
+   if((pQoSInfo->ts_info.direction != flow_info->QoSInfo.ts_info.direction) ||
+      (pQoSInfo->ts_info.up != flow_info->QoSInfo.ts_info.up) ||
+      (pQoSInfo->ts_info.tid != flow_info->QoSInfo.ts_info.tid))
    {
-     // multiple flows. Reject the request
      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
-               "%s: %d: Multiple flows exists for this AC, Modify is being rejected",
+               "%s: %d: Modification of direction/tid/up is not allowed",
                __FUNCTION__, __LINE__);
 
-     return SME_QOS_STATUS_MODIFY_SETUP_FAILURE_RSP;
+     return SME_QOS_STATUS_MODIFY_SETUP_INVALID_PARAMS_RSP;
    }
 
    // need to vote off powersave for the duration of this request
@@ -2315,6 +2354,10 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
    v_U8_t sessionId;
    v_BOOL_t bufferCommand;
    eHalStatus hstatus;
+   v_BOOL_t biDirectionalFlowsPresent = VOS_FALSE;
+   v_BOOL_t uplinkFlowsPresent = VOS_FALSE;
+   v_BOOL_t downlinkFlowsPresent = VOS_FALSE;
+   tListElem *pResult= NULL;
 
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
              "%s: %d: invoked for flow %d",
@@ -2435,7 +2478,102 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
          //is requested
          flow_info->reason = SME_QOS_REASON_RELEASE;
 
-         //update TSPEC
+         /* Check if the flow being released is for bi-diretional.
+          * Following flows may present in the system. 
+          * a) bi-directional flows
+          * b) uplink flows
+          * c) downlink flows. 
+          * If the flow being released is for bidirectional, splitting of existing 
+          * streams into two tspec indices is required in case ff (b), (c) are present 
+          * and not (a).
+          * In case if split occurs, all upstreams are aggregated into tspec index 0, 
+          * downstreams are aggregaed into tspec index 1 and two tspec requests for 
+          * (aggregated) upstream(s) followed by (aggregated) downstream(s) is sent
+          * to AP. */
+         if(flow_info->QoSInfo.ts_info.direction == SME_QOS_WMM_TS_DIR_BOTH)
+         {
+           //set the key type & the key to be searched in the Flow List
+           search_key.key.ac_type = ac;
+           search_key.index = SME_QOS_SEARCH_KEY_INDEX_4;
+           search_key.sessionId = sessionId;
+           search_key.direction = SME_QOS_WMM_TS_DIR_BOTH;
+
+           pResult = sme_QosFindInFlowList(search_key);
+           if(pResult)
+             biDirectionalFlowsPresent = VOS_TRUE;
+
+           if(!biDirectionalFlowsPresent)
+           {
+             // The only existing bidirectional flow is being released
+
+             // Check if uplink flows exist
+             search_key.direction = SME_QOS_WMM_TS_DIR_UPLINK;
+             pResult = sme_QosFindInFlowList(search_key);
+             if(pResult)
+               uplinkFlowsPresent = VOS_TRUE;
+
+             // Check if downlink flows exist
+             search_key.direction = SME_QOS_WMM_TS_DIR_DOWNLINK;
+             pResult = sme_QosFindInFlowList(search_key);
+             if(pResult)
+               downlinkFlowsPresent = VOS_TRUE;
+
+             if(uplinkFlowsPresent && downlinkFlowsPresent)
+             {
+               // Need to split the uni-directional flows into SME_QOS_TSPEC_INDEX_0 and SME_QOS_TSPEC_INDEX_1
+
+               // Mark all downstream flows as using tspec index 1
+               search_key.key.ac_type = ac;
+               search_key.index = SME_QOS_SEARCH_KEY_INDEX_4;
+               search_key.sessionId = sessionId;
+               search_key.direction = SME_QOS_WMM_TS_DIR_DOWNLINK;
+               sme_QosUpdateTspecMask(sessionId, search_key, SME_QOS_TSPEC_MASK_BIT_2_SET);
+
+               // Aggregate all downstream flows
+               hstatus = sme_QosUpdateParams(sessionId,
+                                             ac, SME_QOS_TSPEC_MASK_BIT_2_SET,
+                                             &Aggr_Tspec_Info);
+
+               VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                         "%s: %d: On session %d buffering the AddTS request "
+                            "for AC %d in state %d as Addts is pending "
+                         "on other Tspec index of this AC",
+                         __FUNCTION__, __LINE__,
+                         sessionId, ac, pACInfo->curr_state);
+
+               // Buffer the (aggregated) tspec request for downstream flows.
+               // Please note that the (aggregated) tspec for upstream flows is sent 
+               // out by the susequent logic.
+               cmd.command = SME_QOS_RESEND_REQ;
+               cmd.pMac = pMac;
+               cmd.sessionId = sessionId;
+               cmd.u.resendCmdInfo.ac = ac;
+               cmd.u.resendCmdInfo.tspecMask = SME_QOS_TSPEC_MASK_BIT_2_SET;
+               cmd.u.resendCmdInfo.QoSInfo = Aggr_Tspec_Info;
+               pACInfo->requested_QoSInfo[SME_QOS_TSPEC_MASK_BIT_2_SET - 1] = Aggr_Tspec_Info;
+               if(!HAL_STATUS_SUCCESS(sme_QosBufferCmd(&cmd, VOS_FALSE)))
+               {
+                  VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                            "%s: %d: On session %d unable to buffer the AddTS "
+                            "request for AC %d TSPEC %d in state %d",
+                            __FUNCTION__, __LINE__,
+                            sessionId, ac, SME_QOS_TSPEC_MASK_BIT_2_SET, pACInfo->curr_state);
+
+                  // unable to buffer the request
+                  // nothing is pending so vote powersave back on
+                  pSession->readyForPowerSave = VOS_TRUE;
+
+                  return SME_QOS_STATUS_MODIFY_SETUP_FAILURE_RSP;
+               }
+               pACInfo->tspec_mask_status = SME_QOS_TSPEC_MASK_BIT_1_2_SET;
+
+             }
+           }
+         }
+
+         /* In case of splitting of existing streams,
+          * tspec_mask will be pointing to tspec index 0 and 
+          * aggregated tspec for upstream(s) is sent out here. */
          hstatus = sme_QosUpdateParams(sessionId,
                                        ac, flow_info->tspec_mask,
                                        &Aggr_Tspec_Info);
@@ -4405,6 +4543,95 @@ eHalStatus sme_QosProcessAddTsFailureRsp(tpAniSirGlobal pMac,
 }
 
 /*--------------------------------------------------------------------------
+  \brief sme_QosUpdateTspecMask() - Utiltity function to update the tspec.
+  Typical usage while aggregating unidirectional flows into a bi-directional
+  flow on AC which is running multiple flows
+  
+  \param sessionId - Session upon which the TSPEC is being updated
+  \param ac - Enumeration of the various EDCA Access Categories.
+  \param old_tspec_mask - on which tspec per AC, the update is requested
+  \param new_tspec_mask - tspec to be set for this AC
+  
+  \return eHalStatus
+  
+  \sa
+  
+  --------------------------------------------------------------------------*/
+static eHalStatus sme_QosUpdateTspecMask(v_U8_t sessionId,
+                                      sme_QosSearchInfo search_key,
+                                      v_U8_t new_tspec_mask)
+{
+   tListElem *pEntry= NULL, *pNextEntry = NULL;
+   sme_QosFlowInfoEntry *flow_info = NULL;
+   sme_QosSessionInfo *pSession;
+   sme_QosACInfo *pACInfo;
+
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+             "%s: %d: invoked on session %d for AC %d TSPEC %d",
+             __FUNCTION__, __LINE__,
+             sessionId, search_key.key.ac_type, new_tspec_mask);
+
+   pSession = &sme_QosCb.sessionInfo[sessionId];
+   pACInfo = &pSession->ac_info[search_key.key.ac_type];
+
+   pEntry = csrLLPeekHead( &sme_QosCb.flow_list, VOS_FALSE );
+   if(!pEntry)
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                "%s: %d: Flow List empty, nothing to update",
+                __FUNCTION__, __LINE__);
+      return eHAL_STATUS_FAILURE;
+   }
+
+   while( pEntry )
+   {
+      pNextEntry = csrLLNext( &sme_QosCb.flow_list, pEntry, VOS_FALSE );
+      flow_info = GET_BASE_ADDR( pEntry, sme_QosFlowInfoEntry, link );
+
+      if(search_key.sessionId == flow_info->sessionId)
+      {
+         if(search_key.index & SME_QOS_SEARCH_KEY_INDEX_4)
+         {
+            if((search_key.key.ac_type == flow_info->ac_type) &&
+               (search_key.direction == flow_info->QoSInfo.ts_info.direction))
+            {
+               //msg
+               VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+                         "%s: %d: Flow %d matches",
+                         __FUNCTION__, __LINE__,
+                         flow_info->QosFlowID);
+
+               pACInfo->num_flows[flow_info->tspec_mask - 1]--;
+               pACInfo->num_flows[new_tspec_mask - 1]++;
+               flow_info->tspec_mask = new_tspec_mask;
+            }
+         }
+         else if(search_key.index & SME_QOS_SEARCH_KEY_INDEX_5)
+         {
+            if((search_key.key.ac_type == flow_info->ac_type) &&
+               (search_key.tspec_mask == flow_info->tspec_mask))
+            {
+               //msg
+               VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+                         "%s: %d: Flow %d matches",
+                         __FUNCTION__, __LINE__,
+                         flow_info->QosFlowID);
+
+               pACInfo->num_flows[flow_info->tspec_mask - 1]--;
+               pACInfo->num_flows[new_tspec_mask - 1]++;
+               flow_info->tspec_mask = new_tspec_mask;
+            }
+         }
+      }
+
+      pEntry = pNextEntry;
+   }
+
+   return eHAL_STATUS_SUCCESS;
+
+}
+
+/*--------------------------------------------------------------------------
   \brief sme_QosProcessAddTsSuccessRsp() - Function to process the
   Addts request success response came from PE 
   
@@ -4491,6 +4718,19 @@ eHalStatus sme_QosProcessAddTsSuccessRsp(tpAniSirGlobal pMac,
 
    pACInfo->curr_QoSInfo[tspec_pending - 1] = 
       pACInfo->requested_QoSInfo[tspec_pending - 1];
+
+   /* Check if the current flow is for bi-directional. If so, update the number of flows
+    * to reflect that all flows are aggregated into tspec index 0. */
+   if((pACInfo->curr_QoSInfo[pACInfo->tspec_pending - 1].ts_info.direction == SME_QOS_WMM_TS_DIR_BOTH) &&
+      (pACInfo->num_flows[SME_QOS_TSPEC_INDEX_1] > 0))
+   {
+     /* update tspec_mask for all the flows having SME_QOS_TSPEC_MASK_BIT_2_SET to SME_QOS_TSPEC_MASK_BIT_1_SET */
+     search_key.key.ac_type = ac;
+     search_key.index = SME_QOS_SEARCH_KEY_INDEX_5;
+     search_key.sessionId = sessionId;
+     search_key.tspec_mask = SME_QOS_TSPEC_MASK_BIT_2_SET;
+     sme_QosUpdateTspecMask(sessionId, search_key, SME_QOS_TSPEC_MASK_BIT_1_SET);
+   }
 
    //set the horenewal field in control block if needed
    search_key1.index = SME_QOS_SEARCH_KEY_INDEX_3;
@@ -4759,8 +4999,17 @@ eHalStatus sme_QosAggregateParams(
       TspecInfo.surplus_bw_allowance = SME_QOS_SURPLUS_BW_ALLOWANCE;
    }
 
-   TspecInfo.ts_info.ack_policy = pInput_Tspec_Info->ts_info.ack_policy;
-   TspecInfo.ts_info.burst_size_defn = pInput_Tspec_Info->ts_info.burst_size_defn;
+   /* Set ack_policy to block ack even if one stream requests block ack policy */
+   if((pInput_Tspec_Info->ts_info.ack_policy == SME_QOS_WMM_TS_ACK_POLICY_HT_IMMEDIATE_BLOCK_ACK) ||
+      (pCurrent_Tspec_Info->ts_info.ack_policy == SME_QOS_WMM_TS_ACK_POLICY_HT_IMMEDIATE_BLOCK_ACK))
+   {
+     TspecInfo.ts_info.ack_policy = SME_QOS_WMM_TS_ACK_POLICY_HT_IMMEDIATE_BLOCK_ACK;
+   }
+
+   if(pInput_Tspec_Info->ts_info.burst_size_defn || pCurrent_Tspec_Info->ts_info.burst_size_defn )
+   {
+     TspecInfo.ts_info.burst_size_defn = 1;
+   }
 
    if(pUpdated_Tspec_Info)
    {
@@ -5025,6 +5274,19 @@ tListElem *sme_QosFindInFlowList(sme_QosSearchInfo search_key)
          else if(search_key.index & SME_QOS_SEARCH_KEY_INDEX_3)
          {
             if(search_key.key.reason == flow_info->reason)
+            {
+               //msg
+               VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+                         "%s: %d: match found on reason, ending search",
+                         __FUNCTION__, __LINE__);
+
+               break;
+            }
+         }
+         else if(search_key.index & SME_QOS_SEARCH_KEY_INDEX_4)
+         {
+            if((search_key.key.ac_type == flow_info->ac_type) && 
+               (search_key.direction == flow_info->QoSInfo.ts_info.direction))
             {
                //msg
                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 

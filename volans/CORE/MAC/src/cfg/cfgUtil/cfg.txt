@@ -524,6 +524,17 @@ NONE
 1    255    20
 
 
+*
+* RF Settling Time Clk (In US)
+*
+
+WNI_CFG_RF_SETTLING_TIME_CLK I    4    7
+V    RW    NP
+HAL
+0    60000    1500
+NV    RW    NP
+NONE
+0    60000    1500
 
 *
 * Supported Rate Set for 11b
@@ -1932,10 +1943,10 @@ NONE
 WNI_CFG_EDCA_WME_ACBE_LOCAL   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 3   0 15  3 255  0   0 31  3 255  0   0 15  3 255  0
+17   0 3   0 15  0 63  0   0 31  0 127  0   0 15  0 63  0
 V   RW  NP RESTART
 NONE
-17   0 3   0 15  3 255  0   0 31  3 255  0   0 15  3 255  0
+17   0 3   0 15  0 63  0   0 31  0 127  0   0 15  0 63  0
 
 *
 * Profile 1 (WME) parameters AC_VI Local
@@ -1945,10 +1956,10 @@ NONE
 WNI_CFG_EDCA_WME_ACVI_LOCAL   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 2  0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
+17   0 1  0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
 V   RW  NP RESTART
 NONE
-17   0 2  0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
+17   0 1  0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
 
 *
 * Profile 1 (WME) parameters AC_VO Local
@@ -1958,10 +1969,10 @@ NONE
 WNI_CFG_EDCA_WME_ACVO_LOCAL   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 2   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
+17   0 1   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
 V   RW  NP RESTART
 NONE
-17   0 2   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
+17   0 1   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
 
 *
 * Profile 1 (WME) parameters - AC_BK Broadcast
@@ -1984,10 +1995,10 @@ NONE
 WNI_CFG_EDCA_WME_ACBE   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 3   0 15  3 255  0   0 31  3 255  0   0 15  3 255  0
+17   0 3   0 15  0 63  0   0 31  0 127  0   0 15  0 63  0
 V   RW  NP RESTART
 NONE
-17   0 3   0 15  3 255  0   0 31  3 255  0   0 15  3 255  0
+17   0 3   0 15  0 63  0   0 31  0 127  0   0 15  0 63  0
 
 *
 * Profile 1 (WME) parameters AC_VI Broadcast
@@ -1997,10 +2008,10 @@ NONE
 WNI_CFG_EDCA_WME_ACVI   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 2   0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
+17   0 1   0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
 V   RW  NP RESTART
 NONE
-17   0 2   0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
+17   0 1   0 7  0 15  94   0 15  0 31  188   0 7  0 15  94
 
 *
 * Profile 1 (WME) parameters AC_VO Broadcast
@@ -2010,10 +2021,10 @@ NONE
 WNI_CFG_EDCA_WME_ACVO   S   20  8
 V   RW  NP RESTART
 NONE
-17   0 2   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
+17   0 1   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
 V   RW  NP RESTART
 NONE
-17   0 2   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
+17   0 1   0 3  0 7  47   0 7  0 15  102   0 3  0 7  47
 
 * ****************************************
 * Profile 2(Titan Demo) parameters - AC_BK Local
@@ -3461,6 +3472,18 @@ HAL
 0    1    0
 
 *
+* Listen Mode Enable/Disable
+*
+
+WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE    I    4    7
+V    RW    NP
+HAL
+0    128    128
+V    RW    NP
+HAL
+0    128    128
+
+*
 * On chip reodering polling threshold
 *
 
@@ -3532,6 +3555,19 @@ V    RW    NP
 HAL
 0    2    1
 
+
+*
+* Single RC for all TID 
+*
+
+WNI_CFG_SINGLE_TID_RC    I    4    7
+V    RW    NP
+NONE
+0    1    1
+V    RW    NP
+NONE
+0    1    1
+
 *
 * RRM Enabled 
 *
@@ -3581,4 +3617,16 @@ NONE
 V    RW    NP
 NONE
 0    1    1
- 
+
+*
+*  MCAST BCAST filter Setting
+*  0: No filter, 1: Block Mcast, 2: Block Bcast, 3: Block Mcast and Bcast
+*
+
+WNI_CFG_MCAST_BCAST_FILTER_SETTING    I    4    7
+V    RW    NP
+HAL
+0    3    0
+V    RW    NP
+HAL
+0    3    0
