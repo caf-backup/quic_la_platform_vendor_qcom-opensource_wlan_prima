@@ -263,21 +263,21 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
     case IMPS:
         if ( pMac->pmc.rfSuppliesVotedOff )
         {
-           status = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
+
+            status = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
+            if(VOS_STATUS_SUCCESS != status)
+            {
+                return eHAL_STATUS_FAILURE;
+            }
+
+            status = vos_chipVoteOnXOBuffer(&callType, NULL, NULL);
 
             if(VOS_STATUS_SUCCESS != status)
             {
                 return eHAL_STATUS_FAILURE;
             }
 
-           status = vos_chipVoteOnXOBuffer(&callType, NULL, NULL);
-
-            if(VOS_STATUS_SUCCESS != status)
-            {
-                return eHAL_STATUS_FAILURE;
-            }
-
-           pMac->pmc.rfSuppliesVotedOff = FALSE;
+            pMac->pmc.rfSuppliesVotedOff = FALSE;
         }
 
         if (pmcIssueCommand( pMac, eSmeCommandExitImps, NULL, 0, FALSE ) != eHAL_STATUS_SUCCESS)
@@ -307,19 +307,18 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
     case STANDBY:
         if ( pMac->pmc.rfSuppliesVotedOff )
         {
-           status = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
+            status = vos_chipVoteOnXOBuffer(&callType, NULL, NULL);
+            if(VOS_STATUS_SUCCESS != status)
+            {
+                return eHAL_STATUS_FAILURE;
+            }
+            status = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
             if(VOS_STATUS_SUCCESS != status)
             {
                 return eHAL_STATUS_FAILURE;
             }
 
-           status = vos_chipVoteOnXOBuffer(&callType, NULL, NULL);
-            if(VOS_STATUS_SUCCESS != status)
-            {
-                return eHAL_STATUS_FAILURE;
-            }
-
-           pMac->pmc.rfSuppliesVotedOff = FALSE;
+            pMac->pmc.rfSuppliesVotedOff = FALSE;
         }
 
         if (pmcIssueCommand(hHal, eSmeCommandExitImps, NULL, 0, FALSE) !=

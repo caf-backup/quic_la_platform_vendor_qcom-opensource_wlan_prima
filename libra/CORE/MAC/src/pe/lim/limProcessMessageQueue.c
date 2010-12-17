@@ -1093,7 +1093,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             break;
 
         case eWNI_PMC_SMPS_STATE_IND :
-#if 0
+#ifdef SUPPORT_eWNI_PMC_SMPS_STATE_IND
         {
             tSirMbMsg *pMBMsg;
             tSirMacHTMIMOPowerSaveState mimoPSstate;
@@ -1115,6 +1115,11 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 }
             }
         }
+#else
+            // not currently handled
+            // return the message
+            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
+            limMsg->bodyptr = NULL;
 #endif
             break;
 
@@ -1384,11 +1389,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             // Message from ISR upon SP's Replay threshold interrupt
 
             break;
-#if defined(ANI_PRODUCT_TYPE_AP)            
-        case SIR_LIM_UPDATE_OLBC_CACHEL_TIMEOUT:
-            limHandleUpdateOlbcCache(pMac);
-            break;
-#endif
 
         case SIR_LIM_CHANNEL_SWITCH_TIMEOUT:
             limProcessChannelSwitchTimeout(pMac);
@@ -1403,6 +1403,9 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             break;
 
 #ifdef WLAN_SOFTAP_FEATURE
+        case SIR_LIM_UPDATE_OLBC_CACHEL_TIMEOUT:
+            limHandleUpdateOlbcCache(pMac);
+            break;
 #if 0
         case SIR_LIM_WPS_OVERLAP_TIMEOUT:
             limProcessWPSOverlapTimeout(pMac);

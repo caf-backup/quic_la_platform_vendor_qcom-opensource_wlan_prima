@@ -64,8 +64,10 @@ typedef struct {
    
    /**Track whether OS TX queue has been disabled.*/
    v_BOOL_t txSuspended;
-   v_U8_t   txSuspendedAc;   
+   v_U8_t   txSuspendedAc;
 
+   /** Track QoS status of station */
+   v_BOOL_t isQosEnabled;
 } hdd_station_info_t;
 
 typedef struct hdd_hostapd_adapter_s

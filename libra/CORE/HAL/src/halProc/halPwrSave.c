@@ -2652,7 +2652,7 @@ eHalStatus halPS_SendBeaconMissInd(tpAniSirGlobal pMac)
  */
 eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 {
-tANI_U32 regValue = 0, curCnt = 0, retryCnt = 0;
+    tANI_U32 regValue = 0, curCnt = 0, retryCnt = 0;
 
     eHalStatus mutexAcq = eHAL_STATUS_FW_PS_BUSY;
 
@@ -2704,7 +2704,7 @@ tANI_U32 regValue = 0, curCnt = 0, retryCnt = 0;
  */
 eHalStatus halPS_ReleaseHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 {
-tANI_U32 regValue = 0;
+    tANI_U32 regValue = 0;
     tANI_U32 cntr = 0;
     int i = 0;
 

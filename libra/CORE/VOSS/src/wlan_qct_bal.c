@@ -1,15 +1,15 @@
 /*=========================================================================
-  
+
   @file  wlan_qct_bal.c
-  
+
   @brief WLAN BUS ABSTRACTION LAYER EXTERNAL API
-               
+
    This file contains the external API exposed by the wlan bus abstraction layer module.
-  
+
    Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
-   
+
    Qualcomm Confidential and Proprietary.
-  
+
   ========================================================================*/
 
 /*===========================================================================
@@ -53,7 +53,7 @@ when           who        what, where, why
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
 #ifdef WLAN_SOFTAP_FEATURE
-#ifdef LIBRA_LINUX_PC 
+#ifdef LIBRA_LINUX_PC
 #define SDIO_CLK_FREQ 32500000
 #endif
 #endif // WLAN_SOFTAP_FEATURE
@@ -76,8 +76,8 @@ balHandleType *gbalHandle;
   @return General status code
         VOS_STATUS_SUCCESS      Open Success
         VOS_STATUS_E_NOMEM      Open Fail, Resource alloc fail
-        VOS_STATUS_E_FAILURE    Open Fail, Unknown reason        
-      
+        VOS_STATUS_E_FAILURE    Open Fail, Unknown reason
+
 ----------------------------------------------------------------------------*/
 static VOS_STATUS balHandleDXEHeader
 (
@@ -98,17 +98,17 @@ static VOS_STATUS balHandleDXEHeader
    while(1)
    {
 
-#ifdef WLAN_PERF 
+#ifdef WLAN_PERF
       v_U32_t uBalUserData;
 
       uBalUserData = 0;
       if(currentPktPtr)
       {
          /* BAL user data is set only by TL when STA is authenticated and a frame could be fast forwarded.
-          * Therefore if the value returned is nonzero, BAL just returns without overhead of 
+          * Therefore if the value returned is nonzero, BAL just returns without overhead of
           * building DxE header and calling other VOSS APIs.
           */
-         vos_pkt_get_user_data_ptr( currentPktPtr, VOS_PKT_USER_DATA_ID_BAL, 
+         vos_pkt_get_user_data_ptr( currentPktPtr, VOS_PKT_USER_DATA_ID_BAL,
                                     (v_PVOID_t)&uBalUserData);
          if(uBalUserData)
                goto skip;
@@ -168,7 +168,7 @@ skip:
 
 /*----------------------------------------------------------------------------
 
-  @brief Translate 32bit address into different 17 bit address. based SIF and 
+  @brief Translate 32bit address into different 17 bit address. based SIF and
          NON-SIF address space.
          SIF address space  0x0XXXX
          NON-SIF address space 0x1YYYY + Base address
@@ -181,8 +181,8 @@ skip:
   @return General status code
         VOS_STATUS_SUCCESS      Open Success
         VOS_STATUS_E_NOMEM      Open Fail, Resource alloc fail
-        VOS_STATUS_E_FAILURE    Open Fail, Unknown reason        
-      
+        VOS_STATUS_E_FAILURE    Open Fail, Unknown reason
+
 ----------------------------------------------------------------------------*/
 static VOS_STATUS balAddressTranslation
 (
@@ -196,7 +196,7 @@ static VOS_STATUS balAddressTranslation
    v_U32_t                 baseAddress;
    v_U32_t                 targetBase;
    VOS_STATUS              status = VOS_STATUS_SUCCESS;
-  
+
    VOS_ASSERT(gbalHandle);
    VOS_ASSERT(targetAddress);
 
@@ -236,7 +236,7 @@ static VOS_STATUS balAddressTranslation
    gbalHandle->currentBaseAddress = baseAddress;
    *targetAddress = (inAddress & WLANBAL_ADDRESS_TARGET_MASK) | WLANBAL_ADDRESS_NON_SIF_MASK;
 
-   BMSGINFO("%s: NON SIF BASE Address 0x%x, Target address 0x%x", __func__, baseAddress, 
+   BMSGINFO("%s: NON SIF BASE Address 0x%x, Target address 0x%x", __func__, baseAddress,
       *targetAddress);
 
    BEXIT();
@@ -254,8 +254,8 @@ static VOS_STATUS balAddressTranslation
   @return General status code
         VOS_STATUS_SUCCESS      Open Success
         VOS_STATUS_E_NOMEM      Open Fail, Resource alloc fail
-        VOS_STATUS_E_FAILURE    Open Fail, Unknown reason        
-      
+        VOS_STATUS_E_FAILURE    Open Fail, Unknown reason
+
 ----------------------------------------------------------------------------*/
 static VOS_STATUS balSSCCtxtReqCB
 (
@@ -294,8 +294,8 @@ static VOS_STATUS balSSCCtxtReqCB
   @return General status code
         VOS_STATUS_SUCCESS      Open Success
         VOS_STATUS_E_NOMEM      Open Fail, Resource alloc fail
-        VOS_STATUS_E_FAILURE    Open Fail, Unknown reason        
-      
+        VOS_STATUS_E_FAILURE    Open Fail, Unknown reason
+
 ----------------------------------------------------------------------------*/
 static v_VOID_t balGetTXResTimerExpierCB
 (
@@ -347,7 +347,7 @@ static v_VOID_t balGetTXResTimerExpierCB
       gbalHandle->tlReg.txResourceCB(pAdapter, availableTxBuffer);
       backoffCounter = 1;
    }
-   
+
    BEXIT();
    return;
 }
@@ -364,7 +364,7 @@ static v_VOID_t balGetTXResTimerExpierCB
 
   @return v_BOOL_t  TRUE, there are frames have to be sent
                     FALSE, no frame left
-      
+
 ----------------------------------------------------------------------------*/
 v_BOOL_t balGetTXFramesCB
 (
@@ -418,7 +418,7 @@ v_BOOL_t balGetTXFramesCB
   @param v_PVOID_t     tlHandle  TL Handle
 
   @return NONE
-      
+
 ----------------------------------------------------------------------------*/
 v_VOID_t balTXCompleteCB
 (
@@ -458,8 +458,8 @@ v_VOID_t balTXCompleteCB
   @param v_PVOID_t pAdapter  Global adapter handle
   @param vos_pkt_t *pktChainPtr received frame pointer
 
-  @return NONE       
-      
+  @return NONE
+
 ----------------------------------------------------------------------------*/
 v_VOID_t balRecieveFramesCB
 (
@@ -494,8 +494,8 @@ v_VOID_t balRecieveFramesCB
   @param v_PVOID_t pAdapter  Global adapter handle
   @param WLANSSC_ReasonCodeType reason Fatal error reason
 
-  @return NONE        
-      
+  @return NONE
+
 ----------------------------------------------------------------------------*/
 v_VOID_t balFatalErrorCB
 (
@@ -526,13 +526,13 @@ v_VOID_t balFatalErrorCB
 
 /*----------------------------------------------------------------------------
 
-  @brief  On ASIC Interrupt notification from SSC calls this function. Which 
-          in turn calls a HAL function to actually handle ASIC interrupts. 
+  @brief  On ASIC Interrupt notification from SSC calls this function. Which
+          in turn calls a HAL function to actually handle ASIC interrupts.
 
   @param v_PVOID_t pAdapter  Global adapter handle
 
-  @return NONE       
-      
+  @return NONE
+
 ----------------------------------------------------------------------------*/
 v_VOID_t balASICInterruptCB
 (
@@ -560,11 +560,11 @@ v_VOID_t balASICInterruptCB
 }
 /*=========================================================================
  * Interactions with vOSS
- *=========================================================================*/ 
+ *=========================================================================*/
 
 /*----------------------------------------------------------------------------
 
-  @brief During open process, resources are needed have to be allocated and 
+  @brief During open process, resources are needed have to be allocated and
         internal structure have to be initialized. And have to open trigger
         SAL and SSC module
 
@@ -574,9 +574,9 @@ v_VOID_t balASICInterruptCB
   @return General status code
         VOS_STATUS_SUCCESS      Open Success
         VOS_STATUS_E_NOMEM      Open Fail, Resource alloc fail
-        VOS_STATUS_E_FAILURE    Open Fail, Unknown reason        
+        VOS_STATUS_E_FAILURE    Open Fail, Unknown reason
 
-      
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_Open
 (
@@ -672,7 +672,7 @@ VOS_STATUS WLANBAL_Start
    }
 
 #ifdef WLAN_SOFTAP_FEATURE
-#ifdef LIBRA_LINUX_PC 
+#ifdef LIBRA_LINUX_PC
    WLANSAL_SetSDIOClock(SDIO_CLK_FREQ);
 #endif
 #endif //WLAN_SOFTAP_FEATURE
@@ -755,8 +755,8 @@ VOS_STATUS WLANBAL_Start
 
   @return General status code
         VOS_STATUS_SUCCESS      Stop Success
-        VOS_STATUS_E_FAILURE    Stop Fail, BAL not started     
-        
+        VOS_STATUS_E_FAILURE    Stop Fail, BAL not started
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_Stop
 (
@@ -794,8 +794,8 @@ VOS_STATUS WLANBAL_Stop
 
   @return General status code
         VOS_STATUS_SUCCESS      Close Success
-        VOS_STATUS_E_FAILURE    Close Fail, BAL not open 
-      
+        VOS_STATUS_E_FAILURE    Close Fail, BAL not open
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_Close
 (
@@ -846,7 +846,7 @@ VOS_STATUS WLANBAL_Close
         Global adapter handle
 
   @return General status code
-      
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_Reset
 (
@@ -882,12 +882,12 @@ VOS_STATUS WLANBAL_Reset
 
 /*=========================================================================
  * END Interactions with vOSS
- *=========================================================================*/ 
+ *=========================================================================*/
 
 /*=========================================================================
  * Interactions with HAL
- *=========================================================================*/ 
- 
+ *=========================================================================*/
+
 /*----------------------------------------------------------------------------
 
   @brief Register HAL Callback functions to BAL.
@@ -896,7 +896,7 @@ VOS_STATUS WLANBAL_Reset
 
   @param v_PVOID_t pAdapter
         Global adapter handle
-      
+
   @param WLANBAL_HalRegType
         HAL Registration elements.
         ASIC interrupt callback function, Fatal error notification function
@@ -906,7 +906,7 @@ VOS_STATUS WLANBAL_Reset
         VOS_STATUS_SUCCESS       Registration success
         VOS_STATUS_E_RESOURCES   BAL resources are not ready
         VOS_STATUS_E_INVAL       Invalid argument
-      
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_RegHalCBFunctions
 (
@@ -938,18 +938,18 @@ VOS_STATUS WLANBAL_RegHalCBFunctions
 
   @param v_PVOID_t pAdapter
         Global adapter handle
-      
+
   @param v_U32_t regAddress
         Register address have to be read
 
   @param v_U32_t *bufferPtr
         Buffer pointer will store data
-      
+
   @return General status code
         VOS_STATUS_SUCCESS       Read success
         VOS_STATUS_E_INVAL       bufferPtr is not valid
         VOS_STATUS_E_FAILURE     BAL is not ready
-        
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_ReadRegister
 (
@@ -994,7 +994,7 @@ VOS_STATUS WLANBAL_ReadRegister
    cmd53.function      = WLANSAL_FUNCTION_ONE;
    cmd53.address       = targetAddress;
    cmd53.dataSize      = WLANBAL_ASIC_REGISTER_SIZE;
-   cmd53.dataPtr       = gbalHandle->dmaBuffer; 
+   cmd53.dataPtr       = gbalHandle->dmaBuffer;
    cmd53.addressHandle = WLANSAL_ADDRESS_INCREMENT;
    cmd53.addressHandle = WLANSAL_ADDRESS_INCREMENT;
    cmd53.mode          = WLANSAL_MODE_BYTE;
@@ -1027,7 +1027,7 @@ VOS_STATUS WLANBAL_ReadRegister
 
   @param v_PVOID_t pAdapter
         Global adapter handle
-      
+
   @param v_U32_t regAddress
         Register address have to be read
 
@@ -1036,12 +1036,12 @@ VOS_STATUS WLANBAL_ReadRegister
 
   @param v_U32_t numRegisters
         Count of Registers have to be read
-      
+
   @return General status code
         VOS_STATUS_SUCCESS       Read success
         VOS_STATUS_E_INVAL       bufferPtr is not valid
         VOS_STATUS_E_FAILURE     BAL is not ready
-        
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_ReadMultipleRegisters
 (
@@ -1072,7 +1072,7 @@ VOS_STATUS WLANBAL_ReadMultipleRegisters
 
    if(WLANBAL_ASIC_REGISTER_SIZE * numRegisters > WLANBAL_DMA_MAX_BUFFER_SIZE)
    {
-      BMSGERROR("%s: Invalid number of registers, MAX buffer size is %d", 
+      BMSGERROR("%s: Invalid number of registers, MAX buffer size is %d",
          __func__, WLANBAL_DMA_MAX_BUFFER_SIZE, 0);
       BEXIT();
       return VOS_STATUS_E_INVAL;
@@ -1132,17 +1132,17 @@ VOS_STATUS WLANBAL_ReadMultipleRegisters
 
   @param v_PVOID_t pAdapter
         Global adapter handle
-      
+
   @param v_U32_t regAddress
         Register address has to be write
-        
+
   @param v_U32_t regData
         Data value will be written
 
   @return General status code
         VOS_STATUS_SUCCESS       Write success
         VOS_STATUS_E_FAILURE     BAL is not ready
-      
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_WriteRegister
 (
@@ -1216,14 +1216,14 @@ VOS_STATUS WLANBAL_WriteRegister
 
   @param v_PVOID_t pAdapter
         Global adapter handle
-      
+
   @param v_U32_t memAddress
         v_U8_t length
 
   @param v_PVOID_t *bufferPtr
-      
+
   @return General status code
-      
+
 ----------------------------------------------------------------------------*/
 static VOS_STATUS WLANBAL_ReadDeviceMemory
 (
@@ -1255,11 +1255,11 @@ static VOS_STATUS WLANBAL_ReadDeviceMemory
 
    if (WLANBAL_DMA_MAX_BUFFER_SIZE < length)
    {
-      BMSGERROR("Read Memory fail, data size %x is larger then dma buffer size %x\n", 
+      BMSGERROR("Read Memory fail, data size %x is larger then dma buffer size %x\n",
          (unsigned int)length, (unsigned int)WLANBAL_DMA_MAX_BUFFER_SIZE, 0);
       BEXIT();
       return VOS_STATUS_E_FAILURE;
-   } 
+   }
 
    // Get the lock, going native
    sd_claim_host(gbalHandle->sdio_func_dev);
@@ -1311,7 +1311,7 @@ static VOS_STATUS WLANBAL_ReadDeviceMemory
   @param v_U8_t    length
 
   @return General status code
-      
+
 ----------------------------------------------------------------------------*/
 static VOS_STATUS WLANBAL_WriteDeviceMemory
 (
@@ -1364,7 +1364,7 @@ static VOS_STATUS WLANBAL_WriteDeviceMemory
    BMSGINFO("%s: Total Length %x\n", __func__, length, 0);
    if(WLANBAL_DMA_MAX_BUFFER_SIZE < length)
    {
-      BMSGERROR("%s: Write Memory fail, data size %x is larger then dma buffer size %x\n", 
+      BMSGERROR("%s: Write Memory fail, data size %x is larger then dma buffer size %x\n",
          __func__, (unsigned int)length, (unsigned int)WLANBAL_DMA_MAX_BUFFER_SIZE);
 
       // Release lock
@@ -1372,9 +1372,9 @@ static VOS_STATUS WLANBAL_WriteDeviceMemory
       BEXIT();
       return VOS_STATUS_E_FAILURE;
    }
-   memcpy(gbalHandle->dmaBuffer, bufferPtr, length); 
+   memcpy(gbalHandle->dmaBuffer, bufferPtr, length);
 
-   cmd53.address       = targetAddress; 
+   cmd53.address       = targetAddress;
    cmd53.dataSize      = length;
    cmd53.dataPtr       = gbalHandle->dmaBuffer;
    cmd53.mode          = WLANSAL_MODE_BYTE;
@@ -1521,7 +1521,7 @@ WLANBAL_WriteMemory
         Global adapter handle
 
   @return General status code
-      
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_EnableASICInterrupt
 (
@@ -1534,7 +1534,7 @@ VOS_STATUS WLANBAL_EnableASICInterrupt
    BENTER();
 
    if(!IS_VALID_1_ARG(gbalHandle))
-   {      
+   {
       BEXIT();
       return VOS_STATUS_E_FAILURE;
    }
@@ -1569,7 +1569,7 @@ VOS_STATUS WLANBAL_EnableASICInterruptEx
         Global adapter handle
 
   @return General status code
-      
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_DisableASICInterrupt
 (
@@ -1615,7 +1615,7 @@ VOS_STATUS WLANBAL_DisableASICInterruptEx
   @param WLANBAL_SDIODXEHeaderConfigType    ConfigInfo Default channel config infromation
 
   @return General status code
-      
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_DXEHeaderConfig
 (
@@ -1752,7 +1752,7 @@ VOS_STATUS WLANBAL_ResumeChip
    v_PVOID_t         sscHandle = (v_PVOID_t)VOS_GET_SSC_CTXT(pAdapter);
    VOS_STATUS        status = VOS_STATUS_SUCCESS;
 
-   VOS_ASSERT(gbalHandle); 
+   VOS_ASSERT(gbalHandle);
    VOS_ASSERT(sscHandle);
 
    BENTER();
@@ -1767,11 +1767,11 @@ VOS_STATUS WLANBAL_ResumeChip
 
 /*=========================================================================
  * END Interactions with HAL
- *=========================================================================*/ 
+ *=========================================================================*/
 
 /*=========================================================================
  * Interactions with TL
- *=========================================================================*/ 
+ *=========================================================================*/
 
 /*----------------------------------------------------------------------------
 
@@ -1782,7 +1782,7 @@ VOS_STATUS WLANBAL_ResumeChip
 
   @param v_PVOID_t pAdapter
         Global adapter handle
-      
+
   @param WLANBAL_TlRegType *tlReg
         TL registration element type.
         Receive frame CB, TX complete CB, get TX Frame CB, TX resources CB
@@ -1792,7 +1792,7 @@ VOS_STATUS WLANBAL_ResumeChip
         VOS_STATUS_SUCCESS       Registration success
         VOS_STATUS_E_INVAL       Invalid argument
         VOS_STATUS_E_FAILURE     BAL is not ready
-      
+
 ----------------------------------------------------------------------------*/
 /* CODE TEST */
 VOS_STATUS WLANBAL_RegTlCbFunctions
@@ -1802,7 +1802,7 @@ VOS_STATUS WLANBAL_RegTlCbFunctions
 )
 {
 
-   VOS_ASSERT(gbalHandle); 
+   VOS_ASSERT(gbalHandle);
    VOS_ASSERT(tlReg);
 
    BENTER();
@@ -1831,12 +1831,12 @@ VOS_STATUS WLANBAL_RegTlCbFunctions
 
   @param v_U32_t *availableTxBuffer
         Buffer pointer have to be stored TX resource size
-      
+
   @return General status code
         VOS_STATUS_SUCCESS      Notify success
         VOS_STATUS_E_INVAL      Invalid argument
         VOS_STATUS_E_FAILURE    BAL is not ready
-      
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_GetTxResources
 (
@@ -1849,13 +1849,13 @@ VOS_STATUS WLANBAL_GetTxResources
    v_U16_t        pduBufferCount = 0;
    v_U32_t        switchBuffer;
 
-   VOS_ASSERT(gbalHandle); 
+   VOS_ASSERT(gbalHandle);
    VOS_ASSERT(availableTxBuffer);
 
    BENTER();
 
    // CAUTION!!! here the code assumes that this is called with the
-   // sd claim host lock in place. 
+   // sd claim host lock in place.
    status = WLANBAL_ReadRegister(pAdapter,
                                  QWLAN_SIF_BMU_BD_PDU_RSV_ALL_REG,
                                  availableTxBuffer);
@@ -1879,7 +1879,7 @@ VOS_STATUS WLANBAL_GetTxResources
 
    if(gbalHandle->tlReg.txResourceThreashold > (v_U32_t)(bdBufferCount + pduBufferCount))
    {
-      BMSGERROR("%s: Not enough resource try again BD %d, PDU %d", __func__, bdBufferCount, 
+      BMSGERROR("%s: Not enough resource try again BD %d, PDU %d", __func__, bdBufferCount,
          pduBufferCount);
       if (VOS_TIMER_STATE_STOPPED == vos_timer_getCurrentState(&gbalHandle->timer))
       {
@@ -1913,7 +1913,7 @@ VOS_STATUS WLANBAL_GetTxResources
   @return General status code
         VOS_STATUS_SUCCESS      Notify success
         VOS_STATUS_E_FAILURE    BAL is not ready
-      
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_StartXmit
 (
@@ -1938,12 +1938,12 @@ VOS_STATUS WLANBAL_StartXmit
 
 /*=========================================================================
  * END Interactions with TL
- *=========================================================================*/ 
+ *=========================================================================*/
 
 /*=========================================================================
  * Interactions with SSC
- *=========================================================================*/ 
+ *=========================================================================*/
 
 /*=========================================================================
  * END Interactions with SSC
- *=========================================================================*/ 
+ *=========================================================================*/

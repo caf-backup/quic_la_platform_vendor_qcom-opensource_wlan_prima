@@ -17,7 +17,7 @@ extern tSirRetStatus halMmhForwardMBmsg(void*, tSirMbMsg*);
 
 
 #ifdef MEMORY_DEBUG
-eHalStatus palAllocateMemory_debug( tHddHandle hHdd, void **ppMemory, tANI_U32 numBytes, tANI_U8* fileName, tANI_U32 lineNum )
+eHalStatus palAllocateMemory_debug( tHddHandle hHdd, void **ppMemory, tANI_U32 numBytes, char* fileName, tANI_U32 lineNum )
 {
    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
    

@@ -1462,7 +1462,7 @@ static int iw_set_priv(struct net_device *dev,
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Wlan driver Entering Full Power\n");
             status = sme_RequestFullPower(pAdapter->hHal, iw_priv_callback_fn,
                           &pWextState->completion_var, eSME_FULL_PWR_NEEDED_BY_HDD);
-       
+
             // Enter Full power command received from GUI this means we are disconnected 
             // Set PMC remainInPowerActiveTillDHCP flag to disable auto BMPS entry by PMC
             sme_SetDHCPTillPowerActiveFlag(pAdapter->hHal, TRUE);
@@ -1480,7 +1480,7 @@ static int iw_set_priv(struct net_device *dev,
                 // Enter BMPS command received from GUI this means DHCP is completed
                 // Clear PMC remainInPowerActiveTillDHCP flag to enable auto BMPS entry by PMC 
                 sme_SetDHCPTillPowerActiveFlag(pAdapter->hHal, FALSE);
-		
+
                 status = sme_RequestBmps(pAdapter->hHal, iw_priv_callback_fn, &pAdapter->pWextState->completion_var);
 
 		

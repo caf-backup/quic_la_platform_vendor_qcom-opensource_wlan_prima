@@ -45,7 +45,7 @@ static v_U8_t WLAN_MEM_TAIL[]   =  {0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x
 struct s_vos_mem_struct
 {
    hdd_list_node_t pNode;
-   v_U8_t* fileName;
+   char* fileName;
    unsigned int lineNum;
    unsigned int size;
    v_U8_t header[8];
@@ -108,7 +108,7 @@ void vos_mem_exit()
     hdd_list_destroy(&vosMemList);
 }
 
-v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, v_S7_t* fileName, v_U32_t lineNum)
+v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
 {
    struct s_vos_mem_struct* memStruct;
    v_VOID_t* memPtr = NULL;
@@ -135,7 +135,7 @@ v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, v_S7_t* fileName, v_U32_t lineNu
    {
       VOS_STATUS vosStatus;
 
-      memStruct->fileName = (v_U8_t*)fileName;
+      memStruct->fileName = fileName;
       memStruct->lineNum  = lineNum;
       memStruct->size     = size;
 
@@ -295,7 +295,7 @@ v_SINT_t vos_mem_compare2( v_VOID_t *pMemory1, v_VOID_t *pMemory2, v_U32_t numBy
   
   --------------------------------------------------------------------------*/
 #ifdef MEMORY_DEBUG
-v_VOID_t * vos_mem_dma_malloc_debug( v_SIZE_t size, v_U8_t* fileName, v_U32_t lineNum)
+v_VOID_t * vos_mem_dma_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
 {
    struct s_vos_mem_struct* memStruct;
    v_VOID_t* memPtr = NULL;

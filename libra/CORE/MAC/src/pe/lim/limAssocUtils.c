@@ -611,6 +611,8 @@ limCleanupRxPath(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESession psessionE
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, eLIM_MLM_WT_DEL_STA_RSP_STATE));
         psessionEntry->limMlmState = eLIM_MLM_WT_DEL_STA_RSP_STATE;
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, eLIM_MLM_WT_DEL_STA_RSP_STATE));
+	/* Deactivating probe after heart beat timer */
+        limDeactivateAndChangeTimer(pMac, eLIM_PROBE_AFTER_HB_TIMER);
         limHeartBeatDeactivateAndChangeTimer(pMac, psessionEntry);
         limDeactivateAndChangeTimer(pMac, eLIM_KEEPALIVE_TIMER);
         pMac->lim.gLastBeaconDtimCount = 0;

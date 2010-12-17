@@ -120,10 +120,10 @@ ap_beacon_process(
                   !(pBcnStruct->erpIEInfo.useProtection || 
                     pBcnStruct->erpIEInfo.nonErpPresent) && !(pBcnStruct->HTInfo.present))
               {
-                   limUpdateOverlapStaParam(pMac, pMh->bssId, &(pMac->lim.gLimOverlap11gParams));
+                    limUpdateOverlapStaParam(pMac, pMh->bssId, &(psessionEntry->gLimOverlap11gParams));
 
-                  if (pMac->lim.gLimOverlap11gParams.numSta &&
-                      !pMac->lim.gLimOverlap11gParams.protectionEnabled)
+                  if (psessionEntry->gLimOverlap11gParams.numSta && 
+                      !psessionEntry->gLimOverlap11gParams.protectionEnabled)
                   {
                       limEnableHtProtectionFrom11g(pMac, true, true, pBeaconParams,psessionEntry);
                   }
@@ -145,10 +145,9 @@ ap_beacon_process(
                       if((eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode) &&
                           (eSIR_HT_OP_MODE_OVERLAP_LEGACY != pMac->lim.gHTOperMode))
                       {
-                          limUpdateOverlapStaParam(pMac, pMh->bssId, &(pMac->lim.gLimOverlap11gParams));
-
-                          if (pMac->lim.gLimOverlap11gParams.numSta &&
-                              !pMac->lim.gLimOverlap11gParams.protectionEnabled)
+                          limUpdateOverlapStaParam(pMac, pMh->bssId, &(psessionEntry->gLimOverlap11gParams));
+                          if (psessionEntry->gLimOverlap11gParams.numSta &&
+                              !psessionEntry->gLimOverlap11gParams.protectionEnabled)
                           {
                               limEnableHtProtectionFrom11g(pMac, true, true, pBeaconParams,psessionEntry);
                           }
@@ -156,10 +155,9 @@ ap_beacon_process(
                   }           
                   else if(eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT == pBcnStruct->HTInfo.opMode)
                   {
-                      limUpdateOverlapStaParam(pMac, pMh->bssId, &(pMac->lim.gLimOverlapHt20Params));
-
-                      if (pMac->lim.gLimOverlapHt20Params.numSta &&
-                          !pMac->lim.gLimOverlapHt20Params.protectionEnabled)
+                      limUpdateOverlapStaParam(pMac, pMh->bssId, &(psessionEntry->gLimOverlapHt20Params));
+                      if (psessionEntry->gLimOverlapHt20Params.numSta &&
+                          !psessionEntry->gLimOverlapHt20Params.protectionEnabled)
                       {
                           limEnableHT20Protection(pMac, true, true, pBeaconParams,psessionEntry);
                       }

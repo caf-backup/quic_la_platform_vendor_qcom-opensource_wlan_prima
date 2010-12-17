@@ -1255,13 +1255,6 @@ eHalStatus sme_Close(tHalHandle hHal)
       fail_status = status;
    }
 
-   status = pmcClose(hHal);
-   if ( ! HAL_STATUS_SUCCESS( status ) ) {
-      smsLog( pMac, LOGE, "pmcClose failed during sme close with status=%d\n",
-              status );
-      fail_status = status;
-   }
-
 #ifdef WLAN_SOFTAP_FEATURE
    if(VOS_STA_SAP_MODE == vos_get_conparam ( )){
          status = WLANSAP_Close(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
@@ -1291,6 +1284,13 @@ eHalStatus sme_Close(tHalHandle hHal)
    status = ccmClose(hHal);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
       smsLog( pMac, LOGE, "ccmClose failed during sme close with status=%d\n",
+              status );
+      fail_status = status;
+   }
+
+   status = pmcClose(hHal);
+   if ( ! HAL_STATUS_SUCCESS( status ) ) {
+      smsLog( pMac, LOGE, "pmcClose failed during sme close with status=%d\n",
               status );
       fail_status = status;
    }

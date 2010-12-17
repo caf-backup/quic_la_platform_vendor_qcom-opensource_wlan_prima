@@ -4466,6 +4466,10 @@ static VOS_STATUS WLANSSC_Receive
         }
         return eStatus;
 
+      case VOS_STATUS_E_INVAL:
+        SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Improper Length Packet. Already Handled. Ignore"));
+        break;
+
       case VOS_STATUS_SUCCESS:
         SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "All rx data processed successfully"));
         break;
@@ -4664,22 +4668,29 @@ static VOS_STATUS WLANSSC_ProcessRxData
 
         WLANSSC_ASSERT( NULL != pControlBlock->pTempRxFrame );
 
-        eStatus = WLANSSC_PrepareRxPkt( pControlBlock, 
+        if ( NULL != pControlBlock->pTempRxFrame )
+        {            
+           eStatus = WLANSSC_PrepareRxPkt( pControlBlock, 
                                         (v_U8_t *)pRxSD + sizeof(WLANSSC_RxStartDescriptorType),
                                         pRxED->controlInfo0.sCtrlBits0.uActualXferLength,
                                         0 /* indicates a remainder frame */);
 
-        if( VOS_STATUS_SUCCESS != eStatus )
-        {
-          /* Get out of the switch: should not notify upper layer          */
-          break;
-        }
+           if( VOS_STATUS_SUCCESS != eStatus )
+           {
+               /* Get out of the switch: should not notify upper layer.       */
+               break;
+           }
+        }          
 
         if( pRxSD->controlInfo.sCtrlBits.uFrameLength ==
             pRxED->controlInfo0.sCtrlBits0.uActualXferLength )
         {
-          /* Complete remainder: pass up                                   */
-          eStatus = WLANSSC_NotifyRxPkt( pControlBlock );
+          /* Complete frame: pass up ONLY if TempRx is NULL. 
+           **/
+          if ( NULL != pControlBlock->pTempRxFrame ) 
+          {
+             eStatus = WLANSSC_NotifyRxPkt( pControlBlock );
+          }
           pControlBlock->sRxBufferInfo.uPendingTargetData = VOS_MAX( pRxED->controlInfo1.sCtrlBits1.uBMURxWQByteCount,
                                                                      pControlBlock->sRxBufferInfo.uPendingTargetData );
 
@@ -4718,9 +4729,10 @@ static VOS_STATUS WLANSSC_ProcessRxData
                                         pRxED->controlInfo0.sCtrlBits0.uActualXferLength,
                                         pRxSD->controlInfo.sCtrlBits.uFrameLength /* indicates a new frame */);
 
-        if( VOS_STATUS_SUCCESS != eStatus )
+
+        if(( VOS_STATUS_SUCCESS != eStatus ) && (VOS_STATUS_E_INVAL != eStatus))
         {
-          /* Get out of the switch: should not notify upper layer          */
+          /* Get out of the switch: should not notify upper layer. For E_INVAL we will continue the Loop          */
           break;
         }
 
@@ -4730,8 +4742,13 @@ static VOS_STATUS WLANSSC_ProcessRxData
           /* Update statistics                                             */
           pControlBlock->sStatsInfo.uNumRxFrames++;
 
-          /* Complete frame: pass up                                       */
-          eStatus = WLANSSC_NotifyRxPkt( pControlBlock );
+          /* Complete frame: pass up ONLY if result isnt E_INVAL. For Packets more than MTU size 
+           *  VOS will return E_INVAL where in which we need to Drop the Current Buffer and continue
+           *  Extracting next Buffer. */
+          if (VOS_STATUS_E_INVAL != eStatus)
+          {
+             eStatus = WLANSSC_NotifyRxPkt( pControlBlock );
+          }
           pControlBlock->sRxBufferInfo.uPendingTargetData = VOS_MAX( pRxED->controlInfo1.sCtrlBits1.uBMURxWQByteCount,
                                                                      pControlBlock->sRxBufferInfo.uPendingTargetData );
 
@@ -4772,9 +4789,10 @@ static VOS_STATUS WLANSSC_ProcessRxData
 
     /** If any of the above operations in the switch failed, we should not
         update our uCurrentRxDataPosition since we want to resume next time
-        from the previous SD!
+        from the previous SD! E_INVAL is exception. Ignore and continue Fetch Next
+        Frame as previous Frame was of Invalid Length ( > MTU Len)
     */
-    if( VOS_STATUS_SUCCESS != eStatus )
+    if(( VOS_STATUS_SUCCESS != eStatus ) && (VOS_STATUS_E_INVAL != eStatus))
     {
       break;
     }
@@ -4977,6 +4995,7 @@ static VOS_STATUS WLANSSC_PrepareRxPkt
 
   /* vos_push_tail() is not supported: this is used as workaround          */
   vos_pkt_t   *pTailFrame = NULL;
+  VOS_STATUS   eStatus = VOS_STATUS_SUCCESS;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   WLANSSC_ASSERT( NULL != pControlBlock );
@@ -5013,15 +5032,21 @@ static VOS_STATUS WLANSSC_PrepareRxPkt
     SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "Creating new packet"));
 
     /* Need to create a new packet for this buffer                         */
-    if( VOS_STATUS_SUCCESS != vos_pkt_get_packet( &pTailFrame,
-                                                  VOS_PKT_TYPE_RX_RAW, 
-                                                  uComputedCompletePacketSize, 
-                                                  1, /* Number of packets  */
-                                                  VOS_FALSE, 
-                                                  WLANSSC_MemoryAvailableCallback,
-                                                  (v_PVOID_t)pControlBlock ) )
+    eStatus = vos_pkt_get_packet(&pTailFrame,
+                                 VOS_PKT_TYPE_RX_RAW, 
+                                 uComputedCompletePacketSize, 
+                                 1, /* Number of packets  */
+                                 VOS_FALSE, 
+                                 WLANSSC_MemoryAvailableCallback,
+                                 (v_PVOID_t)pControlBlock );
+    /* Return NO_MEM when VOS is out of Resources but Return INVAL for Inavlid Packet Length ( > MTU len) */
+    if (eStatus == VOS_STATUS_E_RESOURCES)
     {
       return VOS_STATUS_E_NOMEM;
+    }
+    else if (eStatus == VOS_STATUS_E_INVAL)
+    {
+        return eStatus;
     }
   }
   else

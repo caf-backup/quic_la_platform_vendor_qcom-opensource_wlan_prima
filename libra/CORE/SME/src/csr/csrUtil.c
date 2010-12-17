@@ -3956,38 +3956,12 @@ tANI_BOOLEAN csrIsSecurityMatch( tHalHandle hHal, tCsrAuthList *authType, tCsrEn
 }
 
 
-tANI_BOOLEAN csrIsBogusSsid( tANI_U8 *pSsid, tANI_U32 SsidLen )
-{
-    tANI_BOOLEAN fBogusSsid = FALSE;
-    tANI_U32 idx;
-
-    for( idx = 0; idx < SsidLen; idx++ )
-    {
-        // 0x20 <blank> is the smallest displayable ASCII hex value and 0x7E is the
-        // largest displayable ASCII value.  if the character is not within the
-        // displayable ASCII range of values, then the SSID is bogus (actually invalid
-        // by 802.11 standards). Also consider 0 a valid
-        if ( ( 0 != pSsid[ idx ] ) &&
-             ( ( pSsid[ idx ] < 0x20 ) || ( pSsid[ idx ] > 0x7E ) ) )
-        {
-            fBogusSsid = TRUE;
-            break;
-        }
-    }
-    return( fBogusSsid );
-}
-
-
 tANI_BOOLEAN csrIsSsidMatch( tpAniSirGlobal pMac, tANI_U8 *ssid1, tANI_U8 ssid1Len, tANI_U8 *bssSsid,
                             tANI_U8 bssSsidLen, tANI_BOOLEAN fSsidRequired )
 {
     tANI_BOOLEAN fMatch = FALSE;
 
     do {
-
-        // if the profile has the 'bogus' SSID, then we should not match anything to this
-        // profile....
-        if ( csrIsBogusSsid( ssid1, ssid1Len ) ) break;
 
         // There are a few special cases.  If the Bss description has a Broadcast SSID,
         // then our Profile must have a single SSID without Wildcards so we can program

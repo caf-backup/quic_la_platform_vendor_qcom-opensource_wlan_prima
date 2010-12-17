@@ -190,8 +190,9 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       }
    }
    //Classify the packet
-   if ( (HDD_WMM_USER_MODE_NO_QOS != pStaAdapter->cfg_ini->WmmMode) &&
-         !hdd_wmm_classify_pkt (pStaAdapter, skb, &ac, &up) )
+   if ( pAdapter->aStaInfo[STAId].isQosEnabled &&
+        (HDD_WMM_USER_MODE_NO_QOS != pStaAdapter->cfg_ini->WmmMode) &&
+        !hdd_wmm_classify_pkt (pStaAdapter, skb, &ac, &up) )
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
                  "%s: Failed to classify packet..pkt dropped", __FUNCTION__);
@@ -370,6 +371,11 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_HIGH,
               "%s: enter\n", __FUNCTION__);
+
+   /* If the QoS is not enabled on the receiving station, then send it with BE priority */
+   if ( !pAdapter->aStaInfo[STAId].isQosEnabled )
+       up = SME_QOS_WMM_UP_BE;
+
    ac = hddWmmUpToAcMap[up];
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
@@ -505,6 +511,12 @@ VOS_STATUS hdd_softap_init_tx_rx( hdd_hostapd_adapter_t *pAdapter )
 
    v_U8_t STAId = 0;
 
+   v_U8_t pACWeights[] = {
+                           HDD_SOFTAP_BK_WEIGHT_DEFAULT, 
+                           HDD_SOFTAP_BE_WEIGHT_DEFAULT, 
+                           HDD_SOFTAP_VI_WEIGHT_DEFAULT, 
+                           HDD_SOFTAP_VO_WEIGHT_DEFAULT
+                         };
    pAdapter->isVosOutOfResource = VOS_FALSE;
    pAdapter->isTxSuspended = VOS_FALSE;
 
@@ -529,6 +541,9 @@ VOS_STATUS hdd_softap_init_tx_rx( hdd_hostapd_adapter_t *pAdapter )
          hdd_list_init(&pAdapter->aStaInfo[STAId].wmm_tx_queue[i], HDD_TX_QUEUE_MAX_LEN);
       }
    }
+
+   /* Update the AC weights suitable for SoftAP mode of operation */
+   WLANTL_SetACWeights(pAdapter->pvosContext, pACWeights);
 
    return status;
 }
@@ -1181,13 +1196,13 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
       else if(pAdapter->apDisableIntraBssFwd)
       {
          ++pAdapter->hdd_stats.hddTxRxStats.rxDropped;
-        kfree_skb(skb);   
+         kfree_skb(skb);   
       } 
       else
       {
          //loopback traffic
          ++pAdapter->hdd_stats.hddTxRxStats.rxDelivered;
-        status = hdd_softap_sta_2_sta_xmit(skb, skb->dev,staId,(pRxMetaInfo->ucUP)); 
+         status = hdd_softap_sta_2_sta_xmit(skb, skb->dev,staId,(pRxMetaInfo->ucUP)); 
       }
 
       // now process the next packet in the chain
@@ -1339,6 +1354,8 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_hostapd_adapter_t *pAdapter,
    
    //VOS_ASSERT( fConnected );
    pAdapter->aStaInfo[staId].ucSTAId = staId;
+   pAdapter->aStaInfo[staId].isQosEnabled = fWmmEnabled;
+
    if ( !fAuthRequired )
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,

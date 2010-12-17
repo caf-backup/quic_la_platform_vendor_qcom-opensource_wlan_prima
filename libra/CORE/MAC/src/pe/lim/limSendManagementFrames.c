@@ -395,9 +395,9 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     else
     {
 #endif
-        CFG_LIM_GET_INT_NO_STATUS( nSirStatus, pMac,
-                                   WNI_CFG_BEACON_INTERVAL, cfg );
-        frm.BeaconInterval.interval = ( tANI_U16 ) cfg;
+    CFG_LIM_GET_INT_NO_STATUS( nSirStatus, pMac,
+                               WNI_CFG_BEACON_INTERVAL, cfg );
+    frm.BeaconInterval.interval = ( tANI_U16 ) cfg;
 #ifdef WLAN_SOFTAP_FEATURE
     }
 #endif
@@ -476,7 +476,8 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
 #endif
 
 #ifdef WLAN_SOFTAP_FEATURE
-    PopulateDot11fERPInfo( pMac, &frm.ERPInfo, psessionEntry);
+    if (psessionEntry->dot11mode != WNI_CFG_DOT11_MODE_11B)
+        PopulateDot11fERPInfo( pMac, &frm.ERPInfo, psessionEntry);
 #else
     PopulateDot11fERPInfo( pMac, &frm.ERPInfo );
 #endif
@@ -1870,9 +1871,9 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
 
 
     if ( pMac->lim.gLim11hEnable  &&
-         psessionEntry->pLimJoinReq->spectrumMgtIndicator == eSIR_TRUE )
+         psessionEntry->pLimJoinReq->spectrumMgtIndicator == eSIR_TRUE ) 
     {
-        PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_ASSOC,psessionEntry);
+	PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_ASSOC,psessionEntry);
         PopulateDot11fSuppChannels( pMac, &frm.SuppChannels, LIM_ASSOC,psessionEntry);
     }
 
@@ -2132,7 +2133,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     if ( pMac->lim.gLim11hEnable  &&
          psessionEntry->pLimReAssocReq->spectrumMgtIndicator == eSIR_TRUE )
     {
-        PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_REASSOC,psessionEntry);
+	PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_REASSOC,psessionEntry);
         PopulateDot11fSuppChannels( pMac, &frm.SuppChannels, LIM_REASSOC,psessionEntry);
     }
 

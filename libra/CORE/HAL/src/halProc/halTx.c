@@ -89,9 +89,9 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
     // disassoc frame reaches the HW, HAL has already deleted the peer station
     if ((pFc->type == SIR_MAC_MGMT_FRAME)) {
         if ((pFc->subType == SIR_MAC_MGMT_DISASSOC) || 
-             (pFc->subType == SIR_MAC_MGMT_DEAUTH) || 
+                (pFc->subType == SIR_MAC_MGMT_DEAUTH) || 
                 (pFc->subType == SIR_MAC_MGMT_REASSOC_RSP)) {
-        txFlag = HAL_USE_SELF_STA_REQUESTED_MASK;
+            txFlag = HAL_USE_SELF_STA_REQUESTED_MASK;
         } 
 
         // Since we donot want probe responses to be retried, send probe responses

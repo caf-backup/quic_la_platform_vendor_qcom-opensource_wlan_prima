@@ -3902,10 +3902,6 @@ static tANI_BOOLEAN csrScanIsBssAllowed(tpAniSirGlobal pMac, tSirBssDescription 
             break;
         }
     }
-    if( fAllowed && pIes && pIes->SSID.present )
-    {
-        fAllowed = !( csrIsBogusSsid( pIes->SSID.ssid, pIes->SSID.num_ssid ) );
-    }
 
     return (fAllowed);
 }

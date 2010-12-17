@@ -433,7 +433,7 @@ err_deep_sleep:
 void hdd_conf_mcastbcast_filter(hdd_adapter_t* pAdapter, v_BOOL_t setfilter)
 {
     eHalStatus halStatus;
-    hddLog(VOS_TRACE_LEVEL_ERROR,
+    hddLog(VOS_TRACE_LEVEL_INFO,
 	"%s: Configuring Mcast/Bacst Filter Setting. setfilter %d", __func__, setfilter);
 
     halStatus = halRxp_configureRxpFilterMcstBcst(
@@ -644,7 +644,7 @@ VOS_STATUS hdd_wlan_reset(void)
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing TL STOP",__func__);
    //Stop TL
    vosStatus = WLANTL_Stop( pVosContext );
-      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing BAL STOP",__func__);
    vosStatus = WLANBAL_Stop( pVosContext );
@@ -690,7 +690,7 @@ VOS_STATUS hdd_wlan_reset(void)
    //clean up HDD Data Path
    hdd_deinit_tx_rx(pAdapter);
    hdd_wmm_close(pAdapter);
-   
+  
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Flush Queues",__func__);
    //Clean up message queues of TX and MC thread
    vos_sched_flush_mc_mqs(vosSchedContext);
@@ -698,7 +698,7 @@ VOS_STATUS hdd_wlan_reset(void)
 
    //Deinit all the TX and MC queues
    vos_sched_deinit_mqs(vosSchedContext);
-   
+
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing VOS Close",__func__);
    //Close VOSS
    vos_close(pVosContext);

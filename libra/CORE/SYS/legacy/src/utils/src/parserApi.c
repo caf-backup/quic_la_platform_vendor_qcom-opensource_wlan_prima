@@ -1603,7 +1603,7 @@ void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
         pParams->acvi_aifsn     = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].aci.aifsn );
     else
 #endif 
-        pParams->acvi_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[2].aci.aifsn) );
+    pParams->acvi_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[2].aci.aifsn) );
 
 
 
@@ -1618,7 +1618,7 @@ void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
         pParams->acvo_aifsn     = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[3].aci.aifsn );
     else
 #endif
-        pParams->acvo_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[3].aci.aifsn) );
+    pParams->acvo_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[3].aci.aifsn) );
 
     pParams->acvo_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[3].aci.acm );
     pParams->acvo_aci       = ( 0x3 & SIR_MAC_EDCAACI_VOICE );
@@ -2630,7 +2630,7 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     pPayload = SIR_MAC_BD_TO_MPDUDATA( pFrame );
     nPayload = SIR_MAC_BD_TO_PAYLOAD_LEN( pFrame );
     pHdr     = SIR_MAC_BD_TO_MPDUHEADER( pFrame );
-
+    
     // Zero-init our [out] parameter,
     palZeroMemory( pMac->hHdd, ( tANI_U8* )pBeaconStruct, sizeof(tSirProbeRespBeacon) );
     palZeroMemory( pMac->hHdd, ( tANI_U8* )&beacon, sizeof(tDot11fBeacon) );
