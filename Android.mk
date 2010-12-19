@@ -1,4 +1,5 @@
 
+ifneq ($(BUILD_ID), GINGERBREAD)
 
 #Build/Package Module only in case of 7x27 and msm7630_fusion target
 ifneq (, $(filter msm7627_surf msm7627_ffa msm7627_7x_ffa msm7627_7x_surf msm7630_fusion, $(QCOM_TARGET_PRODUCT)))
@@ -20,3 +21,4 @@ endif
 ifneq (, $(filter msm8660_surf msm8660_csfb, $(QCOM_TARGET_PRODUCT)))
         include vendor/qcom/proprietary/wlan/volans/CORE/HDD/src/Android.mk
 endif
+endif # GINGERBREAD
