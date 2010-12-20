@@ -146,6 +146,10 @@ VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter)
       goto failure;
    }
 
+   if(pAdapter->hdd_ps_state == eHDD_SUSPEND_MCAST_BCAST_FILTER) {
+         hdd_conf_mcastbcast_filter(pAdapter, FALSE);
+   }
+
    //Request standby. Standby will cause the STA to disassociate first. TX queues
    //will be disabled (by HDD) when STA disconnects. You do not want to disable TX
    //queues here.
@@ -347,6 +351,17 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
    }
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+      "%s: calling WLANBAL_Start",__func__);
+   vosStatus = WLANBAL_Start(pAdapter->pvosContext);
+
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "%s: Failed to start BAL",__func__);
+      goto err_sal_stop;
+   }
+
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
       "%s: calling hdd_set_sme_config",__func__);
    vosStatus = hdd_set_sme_config( pAdapter );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
@@ -354,7 +369,7 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
    {
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
          "%s: Failed in hdd_set_sme_config",__func__);
-      goto err_sal_stop;
+      goto err_bal_stop;
    }
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
@@ -365,7 +380,7 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
    {
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
          "%s: Failed in vos_start",__func__);
-      goto err_sal_stop;
+      goto err_bal_stop;
    }
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
@@ -388,12 +403,29 @@ VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
 
 err_voss_stop:
    vos_stop(pAdapter->pvosContext);
+err_bal_stop:
+   WLANBAL_Stop(pAdapter->pvosContext);
 err_sal_stop:
    WLANSAL_Stop(pAdapter->pvosContext);
 err_deep_sleep:
    return VOS_STATUS_E_FAILURE;
 
 }
+
+void hdd_conf_mcastbcast_filter(hdd_adapter_t* pAdapter, v_BOOL_t setfilter)
+{
+    eHalStatus halStatus;
+    hddLog(VOS_TRACE_LEVEL_INFO, 
+	"%s: Configuring Mcast/Bacst Filter Setting. setfilter %d", __func__, setfilter);
+
+    halStatus = halRxp_configureRxpFilterMcstBcst(
+       vos_get_context(VOS_MODULE_ID_SME, pAdapter->pvosContext), setfilter);
+
+    if(setfilter && (eHAL_STATUS_SUCCESS == halStatus))
+      pAdapter->hdd_ps_state = eHDD_SUSPEND_MCAST_BCAST_FILTER;
+}
+
+
 //Suspend routine registered with Android OS
 void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
 {
@@ -425,6 +457,11 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
    else if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_DEEP_SLEEP) {
       //Execute deep sleep procedure
       hdd_enter_deep_sleep(pAdapter);
+   }
+   else if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) {
+      if(eConnectionState_Associated == pAdapter->conn_info.connState) {
+         hdd_conf_mcastbcast_filter(pAdapter, TRUE);
+      }
    }
    else {
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported suspend mapping %d",
@@ -463,6 +500,9 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: WLAN being resumed from deep sleep",__func__);
       hdd_exit_deep_sleep(pAdapter);
+   }
+   else if(pAdapter->hdd_ps_state == eHDD_SUSPEND_MCAST_BCAST_FILTER) {
+         hdd_conf_mcastbcast_filter(pAdapter, FALSE);
    }
    else {
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unknown WLAN PS state during resume %d",

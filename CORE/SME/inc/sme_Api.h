@@ -782,6 +782,17 @@ extern eHalStatus sme_RequestBmps (
    void (*callbackRoutine) (void *callbackContext, eHalStatus status),
    void *callbackContext);
 
+
+/* ---------------------------------------------------------------------------
+    \fn  sme_SetDHCPTillPowerActiveFlag
+    \brief  Sets/Clears DHCP related flag in PMC to disable/enable auto BMPS 
+            entry by PMC
+    \param  hHal - The handle returned by macOpen.
+  ---------------------------------------------------------------------------*/
+void  sme_SetDHCPTillPowerActiveFlag(tHalHandle hHal, tANI_U8 flag);
+
+
+
 /* ---------------------------------------------------------------------------
     \fn sme_StartUapsd
     \brief  Request that the device be put in UAPSD state. If the device is in

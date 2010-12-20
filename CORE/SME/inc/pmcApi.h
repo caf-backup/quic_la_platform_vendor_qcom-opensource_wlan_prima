@@ -14,6 +14,8 @@
 #define __PMC_API_H__
 
 #define BMPS_TRAFFIC_TIMER_DEFAULT 5000  //unit = ms
+#define DHCP_REMAIN_POWER_ACTIVE_THRESHOLD 12 // (12 * 5) sec = 60 seconds = 1 min
+
 
 #define PMC_IS_CHIP_ACCESSIBLE(pmcState) ( (IMPS != (pmcState)) && (REQUEST_IMPS != (pmcState)) \
     && (STANDBY != (pmcState)) && (REQUEST_STANDBY != (pmcState)) )

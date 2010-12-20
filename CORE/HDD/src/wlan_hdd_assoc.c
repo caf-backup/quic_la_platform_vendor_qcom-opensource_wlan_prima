@@ -33,7 +33,7 @@
 #include "dot11f.h"
 #include "wlan_nlink_common.h"
 #include "wlan_btc_svc.h"
-
+#include "wlan_hdd_power.h"
 #ifdef CONFIG_CFG80211
 #include <linux/ieee80211.h>
 #include <linux/wireless.h>
@@ -1047,6 +1047,11 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
         case eCSR_ROAM_IBSS_LEAVE:
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "****eCSR_ROAM_DISASSOCIATED****");
             halStatus = hdd_DisConnectHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
+
+            /* Check if Mcast/Bcast Filters are set, if yes clear the filters here */
+            if(pAdapter->hdd_ps_state == eHDD_SUSPEND_MCAST_BCAST_FILTER) {
+                  hdd_conf_mcastbcast_filter(pAdapter, FALSE);
+            }
             break;
                     
         case eCSR_ROAM_ASSOCIATION_COMPLETION:
@@ -1567,6 +1572,9 @@ int iw_set_essid(struct net_device *dev,
     }
 #endif /* FEATURE_WLAN_WAPI */
 
+    // Disable auto BMPS entry by PMC until DHCP is done
+    sme_SetDHCPTillPowerActiveFlag(pAdapter->hHal, TRUE);
+    
     status = sme_RoamConnect( pAdapter->hHal, &(pWextState->roamProfile), NULL, &roamId);
     
 

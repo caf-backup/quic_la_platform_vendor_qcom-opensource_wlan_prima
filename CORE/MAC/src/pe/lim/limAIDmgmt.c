@@ -127,7 +127,7 @@ limInitAIDpool(tpAniSirGlobal pMac)
             /// Create and start AID release timeout
             if (tx_timer_create(&pMac->lim.limTimers.gLimAIDreleaseTimer, "AIDmgmt",
                         limTimerHandler, SIR_LIM_AID_RELEASE_TIMEOUT,
-                        cfgValue, cfgValue, 0) != TX_SUCCESS)
+                        cfgValue, cfgValue, 0, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
             {
                 /// Could not create ReleaseAID timer.
                 // Log error

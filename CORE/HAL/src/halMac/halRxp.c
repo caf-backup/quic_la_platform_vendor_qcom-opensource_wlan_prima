@@ -1002,6 +1002,14 @@ eHalStatus halRxp_setMimoPwrSaveCtrlReg(tpAniSirGlobal pMac, tANI_U32 mask)
     return eHAL_STATUS_SUCCESS;
 }
 
+static eHalStatus halRxp_getFrameFilterMask(tpAniSirGlobal pMac, tANI_U32 frameType, tANI_U32* pRegValue)
+{
+    tANI_U32 address;
+
+    address = QWLAN_RXP_FRAME_FILTER_CONFIG_REG + (sizeof(tANI_U32)* frameType);
+    return(halReadRegister(pMac, address, pRegValue));
+}
+
 static eHalStatus halRxp_setFrameFilterMask(tpAniSirGlobal pMac, tANI_U32 frameType, tANI_U32 value)
 {
     tANI_U32 address;
@@ -1015,6 +1023,60 @@ static eHalStatus halRxp_setFrameFilterMask(tpAniSirGlobal pMac, tANI_U32 frameT
     return eHAL_STATUS_SUCCESS;
 }
 
+eHalStatus halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN setFilter)
+{
+    tANI_U32 reg_value;
+    tANI_U32 mask = 0;
+    eHalStatus halStatus;
+
+    if (setFilter && !(IS_PWRSAVE_STATE_IN_BMPS))
+    {
+        HALLOGE(halLog(pMac, LOGE, 
+           FL("%s: Cannot set McastBcast filter, as device is not in BMPS\n"), __FUNCTION__));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    switch(pMac->hal.mcastBcastFilterSetting)
+    {
+        case FILTER_ALL_MULTICAST:
+            mask = RXP_ADDR1_BLOCK_MULTICAST;   
+        break;
+
+        case FILTER_ALL_BROADCAST:
+            mask = RXP_ADDR1_BLOCK_BROADCAST;   
+        break;
+
+        case FILTER_ALL_MULTICAST_BROADCAST:
+            mask = RXP_ADDR1_BLOCK_MULTICAST | RXP_ADDR1_BLOCK_BROADCAST;   
+        break;
+    }
+
+    if (IS_PWRSAVE_STATE_IN_BMPS)
+        halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
+
+    halStatus = halRxp_getFrameFilterMask(pMac, eDATA_DATA, &reg_value);
+    if(eHAL_STATUS_SUCCESS == halStatus)
+    {
+        if(setFilter)
+            halRxp_setFrameFilterMask(pMac, eDATA_DATA, reg_value | mask);
+        else
+            halRxp_setFrameFilterMask(pMac, eDATA_DATA, reg_value & ~mask);
+    }
+
+    halStatus = halRxp_getFrameFilterMask(pMac, eDATA_QOSDATA, &reg_value);
+    if(eHAL_STATUS_SUCCESS == halStatus)
+    {
+        if(setFilter)
+            halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, reg_value | mask);
+        else
+            halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, reg_value & ~mask);
+    }
+
+    if (IS_PWRSAVE_STATE_IN_BMPS)
+        halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC);
+ 
+    return eHAL_STATUS_SUCCESS;
+}
 
 /* --------------------------------
  * halRxp_setFilterMask

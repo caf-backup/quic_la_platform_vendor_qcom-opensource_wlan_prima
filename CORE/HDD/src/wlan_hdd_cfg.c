@@ -1112,11 +1112,25 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_BTC_EXECUTION_MODE_MAX ),
 
    REG_VARIABLE( CFG_ENABLE_WAPI_NAME, WLAN_PARAM_Integer,
-                hdd_config_t, bWapiEnable,
-                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                CFG_ENABLE_WAPI_DEFAULT,
-                CFG_ENABLE_WAPI_MIN,
-                CFG_ENABLE_WAPI_MAX ),
+                 hdd_config_t, bWapiEnable,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_WAPI_DEFAULT,
+                 CFG_ENABLE_WAPI_MIN,
+                 CFG_ENABLE_WAPI_MAX ),
+
+   REG_VARIABLE( CFG_SINGLE_TID_RC_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, bSingleTidRc,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_SINGLE_TID_RC_DEFAULT,
+                 CFG_SINGLE_TID_RC_MIN,
+                 CFG_SINGLE_TID_RC_MAX),
+
+   REG_VARIABLE( CFG_MCAST_BCAST_FILTER_SETTING_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, mcastBcastFilterSetting,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_MCAST_BCAST_FILTER_SETTING_DEFAULT,
+                 CFG_MCAST_BCAST_FILTER_SETTING_MIN,
+                 CFG_MCAST_BCAST_FILTER_SETTING_MAX ),
 
 
 };                                
@@ -1359,6 +1373,8 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WfqVoWeight] Value = [%u] ",pAdapter->cfg_ini->WfqVoWeight);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [DelayedTriggerFrmInt] Value = [%lu] ",pAdapter->cfg_ini->DelayedTriggerFrmInt);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WAPI Enabled] Value = [%u] ",pAdapter->cfg_ini->bWapiEnable);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [bSingleTidRc] Value = [%u] ",pAdapter->cfg_ini->bSingleTidRc);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [mcastBcastFilterSetting] Value = [%u] ",pAdapter->cfg_ini->mcastBcastFilterSetting);
 
 }
 
@@ -2021,6 +2037,19 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_NTH_BEACON_FILTER configuration info to CCM\n"  );
 	 }
 
+	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_SINGLE_TID_RC, pConfig->bSingleTidRc, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_SINGLE_TID_RC configuration info to CCM\n"  );
+	 }
+
+	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_MCAST_BCAST_FILTER_SETTING, pConfig->mcastBcastFilterSetting, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_MCAST_BCAST_FILTER_SETTING configuration info to CCM\n"  );
+	 }
    return fStatus;
 }
 

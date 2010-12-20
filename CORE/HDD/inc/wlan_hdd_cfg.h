@@ -143,7 +143,7 @@
 //Enable suspend on Android
 #define CFG_ENABLE_SUSPEND_NAME                "gEnableSuspend"
 #define CFG_ENABLE_SUSPEND_MIN                 ( 0 ) //No support for suspend
-#define CFG_ENABLE_SUSPEND_MAX                 ( 2 ) //Map to Deep Sleep
+#define CFG_ENABLE_SUSPEND_MAX                 ( 3 ) //Map to Deep Sleep
 #define CFG_ENABLE_SUSPEND_DEFAULT             ( 1 ) //Map to Standby
 
 //Driver start/stop command mappings
@@ -849,6 +849,15 @@ typedef enum
 #define CFG_ENABLE_WAPI_MAX                               (1) // WAPI Enabled
 #define CFG_ENABLE_WAPI_DEFAULT                           (0) // WAPI disabled
 
+#define CFG_SINGLE_TID_RC_NAME                             "SingleTIDRC"
+#define CFG_SINGLE_TID_RC_MIN                               (0) // Seperate replay counter for all TID
+#define CFG_SINGLE_TID_RC_MAX                               (1) // Single replay counter for all TID 
+#define CFG_SINGLE_TID_RC_DEFAULT                           (1) 
+
+#define CFG_MCAST_BCAST_FILTER_SETTING_NAME          "McastBcastFilter"
+#define CFG_MCAST_BCAST_FILTER_SETTING_MIN           (0)
+#define CFG_MCAST_BCAST_FILTER_SETTING_MAX           (3)
+#define CFG_MCAST_BCAST_FILTER_SETTING_DEFAULT       (0)
 
 /*--------------------------------------------------------------------------- 
   Type declarations
@@ -1050,7 +1059,11 @@ typedef struct
    /* WAPI enabled or not */
    v_BOOL_t                    bWapiEnable;
 
-
+   /* Control for Replay counetr. value 1 means 
+      single replay counter for all TID*/
+   v_BOOL_t                    bSingleTidRc;
+   
+   v_U8_t                      mcastBcastFilterSetting;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

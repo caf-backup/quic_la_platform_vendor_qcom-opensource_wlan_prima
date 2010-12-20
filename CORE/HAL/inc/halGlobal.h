@@ -306,6 +306,9 @@ typedef struct sAniSirHal
     tpCBackFnTxComp pCBackFnTxComp;
 
     TX_TIMER        txCompTimer; //Timer to wait for TX complete interrupt.
+
+    tANI_U8         mcastBcastFilterSetting;
+
 } tAniSirHal, *tpAniSirHal;
 
 /* Invalid operating channel. Used during startup */
@@ -313,5 +316,9 @@ typedef struct sAniSirHal
 #define HAL_MAX_TXPOWER_INVALID       127
 
 #define isChannelValid(channel) (((channel) > HAL_INVALID_OPERATING_CHANNEL) ? TRUE : FALSE)
+
+#define FILTER_ALL_MULTICAST 0x01
+#define FILTER_ALL_BROADCAST 0x02
+#define FILTER_ALL_MULTICAST_BROADCAST 0x03
 
 #endif /* __HAL_GLOBAL_H__ */

@@ -144,7 +144,7 @@ limInitMeasResources(tpAniSirGlobal pMac)
                         SIR_LIM_MEASUREMENT_IND_TIMEOUT,
                         val,
                         val,
-                        TX_NO_ACTIVATE) != TX_SUCCESS)
+                        TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             /// Could not create MeasInd timer.
             // Log error
@@ -172,7 +172,7 @@ limInitMeasResources(tpAniSirGlobal pMac)
                         SIR_LIM_LEARN_INTERVAL_TIMEOUT,
                         SYS_MS_TO_TICKS(learnInterval),
                         0,
-                        TX_NO_ACTIVATE) != TX_SUCCESS)
+                        TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
     {
         /// Could not create learnInterval timer.
         // Log error
@@ -195,7 +195,7 @@ limInitMeasResources(tpAniSirGlobal pMac)
           SIR_LIM_LEARN_DURATION_TIMEOUT,
           val,
           0,
-          TX_NO_ACTIVATE) != TX_SUCCESS)
+          TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
     {
         /// Could not create LearnDuration timer.
         // Log error
@@ -230,7 +230,7 @@ limInitMeasResources(tpAniSirGlobal pMac)
           SIR_LIM_QUIET_BSS_TIMEOUT,
             val, // initial_ticks
           0, // reschedule_ticks
-          TX_NO_ACTIVATE ))
+          TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE ))
     {
       limLog( pMac, LOGP,
           FL( "Failed to create gLimQuietBssTimer!\n" ));

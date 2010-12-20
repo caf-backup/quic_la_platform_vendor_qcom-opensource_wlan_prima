@@ -71,7 +71,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                         "MIN CHANNEL TIMEOUT",
                         limTimerHandler, SIR_LIM_MIN_CHANNEL_TIMEOUT,
                         cfgValue, 0,
-                        TX_NO_ACTIVATE) != TX_SUCCESS)
+                        TX_NO_ACTIVATE, TX_TIMER_NON_DEFFERABLE) != TX_SUCCESS)
     {
         /// Could not start min channel timer.
         // Log error
@@ -102,7 +102,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                         "MAX CHANNEL TIMEOUT",
                         limTimerHandler, SIR_LIM_MAX_CHANNEL_TIMEOUT,
                         cfgValue, 0,
-                        TX_NO_ACTIVATE) != TX_SUCCESS)
+                        TX_NO_ACTIVATE, TX_TIMER_NON_DEFFERABLE) != TX_SUCCESS)
     {
         /// Could not start max channel timer.
         // Log error
@@ -127,7 +127,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                             0,                         // expiration_input
                             LIM_CHANNEL_SWITCH_TIMER_TICKS,  // initial_ticks
                             0,                         // reschedule_ticks
-                            TX_NO_ACTIVATE) != TX_SUCCESS)
+                            TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             limLog(pMac, LOGP, FL("failed to create Channel Switch timer\n"));
             return;
@@ -144,7 +144,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                             SIR_LIM_QUIET_TIMEOUT,     // expiration_input
                             LIM_QUIET_TIMER_TICKS,     // initial_ticks
                             0,                         // reschedule_ticks
-                            TX_NO_ACTIVATE) != TX_SUCCESS)
+                            TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             limLog(pMac, LOGP, FL("failed to create Quiet Begin Timer\n"));
             return;
@@ -163,7 +163,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                             SIR_LIM_QUIET_BSS_TIMEOUT, // expiration_input
                             LIM_QUIET_BSS_TIMER_TICK,  // initial_ticks
                             0,                         // reschedule_ticks
-                            TX_NO_ACTIVATE) != TX_SUCCESS)
+                            TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             limLog(pMac, LOGP, FL("failed to create Quiet Begin Timer\n"));
             return;
@@ -186,7 +186,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                         "JOIN FAILURE TIMEOUT",
                         limTimerHandler, SIR_LIM_JOIN_FAIL_TIMEOUT,
                         cfgValue, 0,
-                        TX_NO_ACTIVATE) != TX_SUCCESS)
+                        TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             /// Could not create Join failure timer.
             // Log error
@@ -216,7 +216,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                         "ASSOC FAILURE TIMEOUT",
                         limAssocFailureTimerHandler, LIM_ASSOC,
                         cfgValue, 0,
-                        TX_NO_ACTIVATE) != TX_SUCCESS)
+                        TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             /// Could not create Assoc failure timer.
             // Log error
@@ -242,7 +242,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                             "REASSOC FAILURE TIMEOUT",
                             limAssocFailureTimerHandler, LIM_REASSOC,
                             cfgValue, 0,
-                            TX_NO_ACTIVATE) != TX_SUCCESS)
+                            TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             /// Could not create Reassoc failure timer.
             // Log error
@@ -263,7 +263,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                             limAddtsResponseTimerHandler,
                             SIR_LIM_ADDTS_RSP_TIMEOUT,
                             cfgValue, 0,
-                            TX_NO_ACTIVATE) != TX_SUCCESS)
+                            TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             /// Could not create Auth failure timer.
             // Log error
@@ -290,7 +290,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                             limTimerHandler,
                             SIR_LIM_AUTH_FAIL_TIMEOUT,
                             cfgValue, 0,
-                            TX_NO_ACTIVATE) != TX_SUCCESS)
+                            TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             /// Could not create Auth failure timer.
             // Log error
@@ -320,7 +320,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                             SIR_LIM_HEART_BEAT_TIMEOUT,
                             cfgValue,
                             0,
-                            TX_NO_ACTIVATE) != TX_SUCCESS)
+                            TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             /// Could not start Heartbeat timer.
             // Log error
@@ -348,7 +348,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                             SIR_LIM_PROBE_HB_FAILURE_TIMEOUT,
                             cfgValue,
                             0,
-                            TX_NO_ACTIVATE) != TX_SUCCESS)
+                            TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             // Could not creat wt-probe-after-HeartBeat-failure timer.
             // Log error
@@ -395,7 +395,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                             SIR_LIM_CHANNEL_SCAN_TIMEOUT,
                             cfgValue,
                             cfgValue,
-                            TX_NO_ACTIVATE) != TX_SUCCESS)
+                            TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             /// Could not start background scan timer.
             // Log error
@@ -415,7 +415,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                         SIR_LIM_HASH_MISS_THRES_TIMEOUT,
                         cfgValue,
                         cfgValue,
-                        TX_AUTO_ACTIVATE) != TX_SUCCESS)
+                        TX_AUTO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
     {
         /// Could not start Send Disassociate Frame Threshold timer.
         // Log error
@@ -463,7 +463,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                         cfgValue,
                         cfgValue,
                         (pMac->lim.gLimSystemRole == eLIM_AP_ROLE) ?
-                         TX_AUTO_ACTIVATE : TX_NO_ACTIVATE)
+                         TX_AUTO_ACTIVATE : TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE)
                   != TX_SUCCESS)
     {
         // Cannot create keepalive timer.  Log error.
@@ -494,7 +494,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                             (tANI_U32)i,
                             cfgValue,
                             0,
-                            TX_NO_ACTIVATE) != TX_SUCCESS)
+                            TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             // Cannot create timer.  Log error.
             limLog(pMac, LOGP, FL("Cannot create CNF wait timer.\n"));
@@ -559,7 +559,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                 0,
                 cfgValue,
                 cfgValue,
-                TX_AUTO_ACTIVATE) != TX_SUCCESS)
+                TX_AUTO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             // Cannot create update OLBC cache timer
             // Log error

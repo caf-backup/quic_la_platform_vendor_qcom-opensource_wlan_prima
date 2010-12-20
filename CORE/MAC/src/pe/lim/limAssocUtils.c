@@ -478,6 +478,8 @@ limCleanupRxPath(tpAniSirGlobal pMac, tpDphHashNode pStaDs)
     {
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, eLIM_MLM_WT_DEL_STA_RSP_STATE));
         pMac->lim.gLimMlmState = eLIM_MLM_WT_DEL_STA_RSP_STATE;
+	/* Deactivating probe after heart beat timer */
+        limDeactivateAndChangeTimer(pMac, eLIM_PROBE_AFTER_HB_TIMER);
         limDeactivateAndChangeTimer(pMac, eLIM_HEART_BEAT_TIMER);
         limDeactivateAndChangeTimer(pMac, eLIM_KEEPALIVE_TIMER);
         pMac->lim.gLastBeaconTimeStamp = 0;
@@ -3158,7 +3160,7 @@ void limInitPreAuthTimerTable(tpAniSirGlobal pMac, tpLimPreAuthTable pPreAuthTim
                         authNodeIdx,
                         cfgValue,
                         0,
-                        TX_NO_ACTIVATE) != TX_SUCCESS)
+                        TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             // Cannot create timer.  Log error.
             limLog(pMac, LOGP, FL("Cannot create Auth Rsp timer of Index :%d.\n"), authNodeIdx);

@@ -76,24 +76,36 @@ eHalStatus halNvOpen(tHalHandle hMac)
         }
     }
 
-     if (vos_nv_getValidity(VNV_RSSI_OFFSETS, &itemIsValid) == VOS_STATUS_SUCCESS)
+    if (vos_nv_getValidity(VNV_RSSI_OFFSETS, &itemIsValid) == VOS_STATUS_SUCCESS)
     {
         if (itemIsValid == VOS_TRUE)
-	{
+    	{
             if(vos_nv_read( VNV_RSSI_OFFSETS, (v_VOID_t *)&pMac->hphy.nvCache.tables.rssiOffset[0], NULL, sizeof(tANI_S16) * PHY_MAX_RX_CHAINS ) != VOS_STATUS_SUCCESS)
                  return (eHAL_STATUS_FAILURE);
         }
     }
+
+#ifdef ANI_OS_TYPE_ANDROID
+    if (vos_nv_getValidity(VNV_RSSI_CHANNEL_OFFSETS, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE)
+        {
+            if(vos_nv_read( VNV_RSSI_CHANNEL_OFFSETS, (v_VOID_t *)&pMac->hphy.nvCache.tables.rssiChanOffsets[0], NULL, sizeof(sRssiChannelOffsets) * PHY_MAX_RX_CHAINS ) != VOS_STATUS_SUCCESS)
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
+#endif
 }
 #endif
-    pMac->hphy.nvTables[NV_FIELDS_IMAGE             ] = &pMac->hphy.nvCache.fields;
-    pMac->hphy.nvTables[NV_TABLE_QFUSE              ] = &pMac->hphy.nvCache.tables.qFuseData;
-    pMac->hphy.nvTables[NV_TABLE_RATE_POWER_SETTINGS] = &pMac->hphy.nvCache.tables.pwrOptimum[0];
-    pMac->hphy.nvTables[NV_TABLE_REGULATORY_DOMAINS ] = &pMac->hphy.nvCache.tables.regDomains[0];
-    pMac->hphy.nvTables[NV_TABLE_DEFAULT_COUNTRY    ] = &pMac->hphy.nvCache.tables.defaultCountryTable;
-    pMac->hphy.nvTables[NV_TABLE_TPC_CONFIG         ] = &pMac->hphy.nvCache.tables.tpcConfig[0];
-    pMac->hphy.nvTables[NV_TABLE_RF_CAL_VALUES      ] = &pMac->hphy.nvCache.tables.rfCalValues;
-    pMac->hphy.nvTables[NV_TABLE_RSSI_OFFSETS       ] = &pMac->hphy.nvCache.tables.rssiOffset[0];
+    pMac->hphy.nvTables[NV_FIELDS_IMAGE              ] = &pMac->hphy.nvCache.fields;
+    pMac->hphy.nvTables[NV_TABLE_QFUSE               ] = &pMac->hphy.nvCache.tables.qFuseData;
+    pMac->hphy.nvTables[NV_TABLE_RATE_POWER_SETTINGS ] = &pMac->hphy.nvCache.tables.pwrOptimum[0];
+    pMac->hphy.nvTables[NV_TABLE_REGULATORY_DOMAINS  ] = &pMac->hphy.nvCache.tables.regDomains[0];
+    pMac->hphy.nvTables[NV_TABLE_DEFAULT_COUNTRY     ] = &pMac->hphy.nvCache.tables.defaultCountryTable;
+    pMac->hphy.nvTables[NV_TABLE_TPC_CONFIG          ] = &pMac->hphy.nvCache.tables.tpcConfig[0];
+    pMac->hphy.nvTables[NV_TABLE_RF_CAL_VALUES       ] = &pMac->hphy.nvCache.tables.rfCalValues;
+    pMac->hphy.nvTables[NV_TABLE_RSSI_OFFSETS        ] = &pMac->hphy.nvCache.tables.rssiOffset[0];
+    pMac->hphy.nvTables[NV_TABLE_RSSI_CHANNEL_OFFSETS] = &pMac->hphy.nvCache.tables.rssiChanOffsets[0];
 
     return status;
 }
@@ -284,6 +296,15 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                 }
                 break;
 
+#ifdef ANI_OS_TYPE_ANDROID
+            case NV_TABLE_RSSI_CHANNEL_OFFSETS:
+                if ((vosStatus = vos_nv_write(VNV_RSSI_CHANNEL_OFFSETS, (void *)&pMac->hphy.nvCache.tables.rssiChanOffsets[0], sizeof(sRssiChannelOffsets) * PHY_MAX_RX_CHAINS)) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
+#endif
+
             case NV_TABLE_TPC_CONFIG:       //stored through QFUSE
             case NV_TABLE_RF_CAL_VALUES:    //stored through QFUSE
             default:
@@ -426,6 +447,10 @@ eHalStatus halReadNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDat
             memcpy(tableData, &pMac->hphy.nvCache.tables.rssiOffset[0], sizeof(tANI_S16) * PHY_MAX_RX_CHAINS);
             break;
 
+        case NV_TABLE_RSSI_CHANNEL_OFFSETS:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.rssiChanOffsets[0], sizeof(sRssiChannelOffsets) * PHY_MAX_RX_CHAINS);
+            break;
+
         default:
             return (eHAL_STATUS_FAILURE);
             break;
@@ -489,6 +514,11 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
             case NV_TABLE_RSSI_OFFSETS:
                 numOfEntries = 2;
                 sizeOfEntry = sizeof(tANI_S16);
+                break;
+
+            case NV_TABLE_RSSI_CHANNEL_OFFSETS:
+                numOfEntries = 2;
+                sizeOfEntry = sizeof(sRssiChannelOffsets);
                 break;
 
             default:
@@ -605,6 +635,20 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 
             break;
 
+#ifdef ANI_OS_TYPE_ANDROID
+        case NV_TABLE_RSSI_CHANNEL_OFFSETS:
+            if ((vosStatus = vos_nv_setValidity(VNV_RSSI_CHANNEL_OFFSETS, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+            {
+                memcpy(&pMac->hphy.nvCache.tables.rssiChanOffsets[0], &nvDefaults.tables.rssiChanOffsets[0], sizeof(sRssiChannelOffsets) * PHY_MAX_RX_CHAINS);
+            }
+            else
+            {
+                return (eHAL_STATUS_FAILURE);
+            }
+
+            break;
+#endif
+
         case NV_TABLE_TPC_CONFIG:
             memcpy(&pMac->hphy.nvCache.tables.tpcConfig[0], &nvDefaults.tables.tpcConfig[0], sizeof(tTpcConfig) * MAX_TPC_CHANNELS);
             halQFusePackBits(hMac);
@@ -630,14 +674,15 @@ eHalStatus halBlankNv(tHalHandle hMac)
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
     //tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
 
-    halRemoveNvTable(hMac, NV_FIELDS_IMAGE             );
-    halRemoveNvTable(hMac, NV_TABLE_QFUSE              );
-    halRemoveNvTable(hMac, NV_TABLE_RATE_POWER_SETTINGS);
-    halRemoveNvTable(hMac, NV_TABLE_REGULATORY_DOMAINS );
-    halRemoveNvTable(hMac, NV_TABLE_DEFAULT_COUNTRY    );
-    halRemoveNvTable(hMac, NV_TABLE_TPC_CONFIG         );
-    halRemoveNvTable(hMac, NV_TABLE_RF_CAL_VALUES      );
-    halRemoveNvTable(hMac, NV_TABLE_RSSI_OFFSETS       );
+    halRemoveNvTable(hMac, NV_FIELDS_IMAGE              );
+    halRemoveNvTable(hMac, NV_TABLE_QFUSE               );
+    halRemoveNvTable(hMac, NV_TABLE_RATE_POWER_SETTINGS );
+    halRemoveNvTable(hMac, NV_TABLE_REGULATORY_DOMAINS  );
+    halRemoveNvTable(hMac, NV_TABLE_DEFAULT_COUNTRY     );
+    halRemoveNvTable(hMac, NV_TABLE_TPC_CONFIG          );
+    halRemoveNvTable(hMac, NV_TABLE_RF_CAL_VALUES       );
+    halRemoveNvTable(hMac, NV_TABLE_RSSI_OFFSETS        );
+    halRemoveNvTable(hMac, NV_TABLE_RSSI_CHANNEL_OFFSETS);
 
     return (retVal);
 }
@@ -710,6 +755,21 @@ void halByteSwapNvTable(tHalHandle hMac, eNvTable tableID, uNvTables *tableData)
             for (i = 0; i < PHY_MAX_RX_CHAINS; i++)
             {
                 BYTE_SWAP_S(tableData->rssiOffset[i]);
+            }
+            break;
+        }
+
+        case NV_TABLE_RSSI_CHANNEL_OFFSETS:
+        {
+            tANI_U8 i, j;
+
+            for (i = 0; i < PHY_MAX_RX_CHAINS; i++)
+            {
+                for (j = 0; j < NUM_2_4GHZ_CHANNELS; j++)
+                {
+                    BYTE_SWAP_S(tableData->rssiChanOffsets[i].bRssiOffset[j]);
+                    BYTE_SWAP_S(tableData->rssiChanOffsets[i].gnRssiOffset[j]);
+                }
             }
             break;
         }
@@ -810,6 +870,20 @@ void halDumpNVtable(tHalHandle hMac, eNvTable tableID)
             for (i = 0; i < PHY_MAX_RX_CHAINS; i++)
             {
                 HALLOGE(halLog(pMac, LOGE, "[%d]: rssi: %d\n", i, pMac->hphy.nvCache.tables.rssiOffset[i]));
+            }
+            break;
+        }
+
+        case NV_TABLE_RSSI_CHANNEL_OFFSETS:
+        {
+            tANI_U8 i, j;
+
+            for (i = 0; i < PHY_MAX_RX_CHAINS; i++)
+            {
+                for (j = 0; j < NUM_2_4GHZ_CHANNELS; j++)
+                {
+                    HALLOGE(halLog(pMac, LOGE, "[%d]: rssi bOffset: %d, gnOffset: %d\n", i, pMac->hphy.nvCache.tables.rssiChanOffsets[i].bRssiOffset[j], pMac->hphy.nvCache.tables.rssiChanOffsets[i].gnRssiOffset[j]));
+                }
             }
             break;
         }

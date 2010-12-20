@@ -154,6 +154,7 @@ eHalStatus halRxp_DisableBssBeaconParamFilter( tpAniSirGlobal pMac, tANI_U32 uBs
 eHalStatus halRxp_EnableBssBeaconParamFilter( tpAniSirGlobal pMac, tANI_U32 uBssIdx, tANI_U8 staType);
 eHalStatus halRxp_EnableSSIDBasedFilter( tpAniSirGlobal pMac, tSirMacSSid *pSirMacSSid);
 
+eHalStatus halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN setFilter);
 
 #endif /* _HALRXP_H_ */
 

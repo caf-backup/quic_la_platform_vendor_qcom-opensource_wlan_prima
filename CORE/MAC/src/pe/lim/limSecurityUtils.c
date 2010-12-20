@@ -159,7 +159,7 @@ limInitPreAuthList(tpAniSirGlobal pMac)
                             limTimerHandler,
                             SIR_LIM_PREAUTH_CLNUP_TIMEOUT,
                             authClnupTimeout, authClnupTimeout,
-                            TX_AUTO_ACTIVATE) != TX_SUCCESS)
+                            TX_AUTO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             /// Could not create PreAuthCleanup timer.
             // Log error
@@ -967,6 +967,7 @@ tSirMsgQ           msgQ;
 tpSetBssKeyParams  pSetBssKeyParams = NULL;
 tLimMlmSetKeysCnf  mlmSetKeysCnf;
 tSirRetStatus      retCode;
+tANI_U32 val = 0;
 
   // Package SIR_HAL_SET_BSSKEY_REQ message parameters
 
@@ -990,6 +991,14 @@ tSirRetStatus      retCode;
   pSetBssKeyParams->bssIdx = pMac->lim.gLimBssIdx;
   pSetBssKeyParams->encType = pMlmSetKeysReq->edType;
   pSetBssKeyParams->numKeys = pMlmSetKeysReq->numKeys;
+
+  if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_SINGLE_TID_RC, &val))
+  {
+     limLog( pMac, LOGP, FL( "Unable to read WNI_CFG_SINGLE_TID_RC\n" ));
+  }
+
+  pSetBssKeyParams->singleTidRc = val;
+  
 
   palCopyMemory( pMac->hHdd,
       (tANI_U8 *) &pSetBssKeyParams->key,
@@ -1059,6 +1068,7 @@ tSirMsgQ           msgQ;
 tpSetStaKeyParams  pSetStaKeyParams = NULL;
 tLimMlmSetKeysCnf  mlmSetKeysCnf;
 tSirRetStatus      retCode;
+tANI_U32 val = 0;
 
   // Package SIR_HAL_SET_STAKEY_REQ message parameters
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **) &pSetStaKeyParams,
@@ -1072,6 +1082,13 @@ tSirRetStatus      retCode;
   pSetStaKeyParams->staIdx = staIdx;
   pSetStaKeyParams->encType = pMlmSetKeysReq->edType;
 
+  if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_SINGLE_TID_RC, &val))
+  {
+     limLog( pMac, LOGP, FL( "Unable to read WNI_CFG_SINGLE_TID_RC\n" ));
+  }
+
+  pSetStaKeyParams->singleTidRc = val;
+  
     /**
       * For WEP - defWEPIdx indicates the default WEP
       * Key to be used for TX

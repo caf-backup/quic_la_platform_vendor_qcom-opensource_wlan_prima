@@ -1214,7 +1214,7 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tCsrScanRequest *pscanReq,
                     if( callback )
                     {
                         sme_ReleaseGlobalLock( &pMac->sme );
-                        callback( pMac, pContext, lScanId, eCSR_SCAN_SUCCESS );
+                        callback( pMac, pContext, lScanId, eCSR_SCAN_ONGOING );
                         status = sme_AcquireGlobalLock( &pMac->sme );
                         if ( !HAL_STATUS_SUCCESS( status ) )
                         {
@@ -2209,6 +2209,26 @@ eHalStatus sme_RequestBmps (
 
    return (status);
 }
+
+
+/* ---------------------------------------------------------------------------
+    \fn  sme_SetDHCPTillPowerActiveFlag
+    \brief  Sets/Clears DHCP related flag in PMC to disable/enable auto BMPS 
+            entry by PMC 
+    \param  hHal - The handle returned by macOpen.
+  ---------------------------------------------------------------------------*/
+void  sme_SetDHCPTillPowerActiveFlag(tHalHandle hHal, tANI_U8 flag)
+{
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   // Set/Clear the DHCP flag which will disable/enable auto BMPS entery by PMC
+   pMac->pmc.remainInPowerActiveTillDHCP = flag;
+}
+
+
+
+
+
 
 /* ---------------------------------------------------------------------------
     \fn sme_StartUapsd

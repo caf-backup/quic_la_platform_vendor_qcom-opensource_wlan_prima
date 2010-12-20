@@ -177,6 +177,8 @@ eHalStatus pmcStart (tHalHandle hHal)
     pMac->pmc.uapsdSessionRequired = FALSE;
     pMac->pmc.wowlModeRequired = FALSE;
     pMac->pmc.bmpsRequestedByHdd = FALSE;
+    pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
+    pMac->pmc.remainInPowerActiveThreshold = 0;
 
     /* WLAN Switch initial states. */
     pMac->pmc.hwWlanSwitchState = ePMC_SWITCH_ON;

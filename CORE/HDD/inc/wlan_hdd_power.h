@@ -27,6 +27,9 @@
  //gEnableSuspend = 2 in INI file implies suspend to deep sleep
  #define WLAN_MAP_SUSPEND_TO_DEEP_SLEEP  2
 
+ //gEnableSuspend = 3 in INI file implies suspend to set MCAST/BCAST filter 
+ #define WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER  3
+
  //gEnableDriverStop = 1 implies map driver stop to standby
  #define WLAN_MAP_DRIVER_STOP_TO_STANDBY     1
 
@@ -52,7 +55,7 @@
  VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter);
  VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter);
  VOS_STATUS hdd_wlan_reset(void) ;
-
+void hdd_conf_mcastbcast_filter(hdd_adapter_t* pAdapter, v_BOOL_t setfilter);
 
 
 

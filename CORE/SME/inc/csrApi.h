@@ -137,6 +137,9 @@ typedef enum
     eCSR_SCAN_SUCCESS,
     eCSR_SCAN_FAILURE,
     eCSR_SCAN_ABORT,
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+    eCSR_SCAN_ONGOING,
+#endif
 }eCsrScanStatus;
 
 #define CSR_SCAN_TIME_DEFAULT       0

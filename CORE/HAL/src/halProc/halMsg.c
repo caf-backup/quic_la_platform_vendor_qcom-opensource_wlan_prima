@@ -5079,6 +5079,15 @@ void halMsg_BAFail(tpAniSirGlobal pMac, tANI_U16 dialog_token,
 
     HALLOG1( halLog( pMac, LOG1, FL("In halMsg_BAFail.......... \n")));
 
+    /* Deactivate the addBARspTimer, as we are sending ADD BA RSP to AP with failure information. */
+    if (tx_timer_deactivate(&pMac->hal.addBARspTimer) != TX_SUCCESS)
+    {
+	/** Could not deactivate Log error*/
+	HALLOGP( halLog(pMac, LOGP,
+		  FL("Unable to deactivate addBARsp timer\n")));
+	//return eHAL_STATUS_FAILURE;
+	return ;
+    }
 
     for(staIdx = 0; staIdx < pMac->hal.halMac.maxSta; staIdx++)
     {
@@ -5094,8 +5103,10 @@ void halMsg_BAFail(tpAniSirGlobal pMac, tANI_U16 dialog_token,
                     {
                         delBAParams.staIdx = pAddBAParams->staIdx;
                         delBAParams.baTID = pAddBAParams->baTID;
-                        delBAParams.baDirection = eBA_INITIATOR;
 
+			/* The baDirection is to be copied from AddBAParams, it cannot be assumed to be eBA_INITIATOR always*/
+			delBAParams.baDirection = pAddBAParams->baDirection;
+			
                         /* Reset the H/W configuration which we did while establishing BA */
                            baDelBASession(pMac, &delBAParams);
                         // Update the STA context with the BA Session ID

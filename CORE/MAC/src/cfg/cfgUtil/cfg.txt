@@ -3458,3 +3458,28 @@ HAL
 V    RW    NP
 HAL
 0    1    0
+
+*
+* Single RC for all TID 
+*
+
+WNI_CFG_SINGLE_TID_RC    I    4    7
+V    RW    NP
+NONE
+0    1    1
+V    RW    NP
+NONE
+0    1    1
+
+*
+*  MCAST BCAST filter Setting
+*  0: No filter, 1: Block Mcast, 2: Block Bcast, 3: Block Mcast and Bcast
+*
+
+WNI_CFG_MCAST_BCAST_FILTER_SETTING    I    4    7
+V    RW    NP
+HAL
+0    3    0
+V    RW    NP
+HAL
+0    3    0

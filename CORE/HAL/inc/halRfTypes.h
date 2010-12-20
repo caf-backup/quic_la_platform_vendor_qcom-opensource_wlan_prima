@@ -84,6 +84,11 @@ typedef struct
     uAbsPwrPrecision gnRatePowerOffset[NUM_2_4GHZ_CHANNELS];
 }sRegulatoryDomains;
 
+typedef struct
+{
+    tANI_S16 bRssiOffset[NUM_2_4GHZ_CHANNELS];
+    tANI_S16 gnRssiOffset[NUM_2_4GHZ_CHANNELS];
+}sRssiChannelOffsets;
 
 typedef enum
 {

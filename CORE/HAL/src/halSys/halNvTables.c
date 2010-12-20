@@ -109,17 +109,17 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_11,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_12,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_13,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
@@ -170,19 +170,19 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 19},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 19},           //RF_CHAN_13,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
@@ -231,20 +231,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_TRUE, 18},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
                 {
@@ -292,20 +292,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
                 {
@@ -353,17 +353,17 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_11,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_12,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_13,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
@@ -414,20 +414,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
                 {
@@ -475,20 +475,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
                 {
@@ -536,20 +536,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
                 {
@@ -597,20 +597,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                                        //2.4GHz Band
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_TRUE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 12},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                 }, //sRegulatoryChannel end
                 {
@@ -733,6 +733,26 @@ const sHalNv nvDefaults =
         //NV_TABLE_RSSI_OFFSETS
         {
             0, 0    //rssiOffset[PHY_MAX_RX_CHAINS];
+        },
+
+        //NV_TABLE_RSSI_CHANNEL_OFFSETS
+        {
+            //PHY_RX_CHAIN_0
+            {
+                //bRssiOffset
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+
+                //gnRssiOffset
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+            },
+            //PHY_RX_CHAIN_1
+            {
+                //bRssiOffset
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+
+                //gnRssiOffset
+                {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+            }
         }
 
     } // tables

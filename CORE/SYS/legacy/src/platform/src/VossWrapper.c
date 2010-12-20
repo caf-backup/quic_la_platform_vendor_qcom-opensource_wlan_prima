@@ -312,7 +312,7 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
    char *name_ptr, 
    v_VOID_t ( *expiration_function )( v_PVOID_t, tANI_U32 ),
    tANI_U32 expiration_input, v_ULONG_t initScheduleTimeInTicks, 
-   v_ULONG_t rescheduleTimeInTicks, v_ULONG_t auto_activate )
+   v_ULONG_t rescheduleTimeInTicks, v_ULONG_t auto_activate, tANI_U8 timer_type )
 {
    VOS_STATUS status;
 
@@ -341,8 +341,18 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
     strcpy(timer_ptr->timerName, name_ptr);
 #endif // Store the timer name, for Debug build only
 
+    if( TX_TIMER_NON_DEFFERABLE == timer_type)//non-deferrable
+    {
+       status = vos_timer_init( &timer_ptr->vosTimer, VOS_TIMER_TYPE_WAKE_APPS, 
+             tx_main_timer_func, (v_PVOID_t)timer_ptr );
+    }
+    else
+    {
     status = vos_timer_init( &timer_ptr->vosTimer, VOS_TIMER_TYPE_SW, 
           tx_main_timer_func, (v_PVOID_t)timer_ptr );
+    }
+
+
     if (VOS_STATUS_SUCCESS != status)
     {
        VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,

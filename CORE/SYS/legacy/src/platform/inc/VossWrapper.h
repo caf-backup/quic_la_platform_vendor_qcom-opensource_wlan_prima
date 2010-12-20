@@ -127,7 +127,12 @@ extern "C" {
 #define TX_DISABLE_INTR tx_disable_intr()
 #define TX_ENABLE_INTR  tx_enable_intr()
 
-#define  tx_timer_create(a, b, c, d, e, f, g)   tx_timer_create_intern((v_PVOID_t)pMac, a, b, c, d, e, f, g)
+/* Timer types.  */
+#define TX_TIMER_DEFFERABLE      0x00
+#define TX_TIMER_NON_DEFFERABLE  0x01
+
+
+#define  tx_timer_create(a, b, c, d, e, f, g, h)   tx_timer_create_intern((v_PVOID_t)pMac, a, b, c, d, e, f, g, h)
 
 
 /*-------------------------------------------------------------------------*/
@@ -193,7 +198,7 @@ extern v_ULONG_t tx_time_get(v_VOID_t);
 extern v_UINT_t  tx_timer_activate(TX_TIMER*);
 extern v_UINT_t  tx_timer_change(TX_TIMER*, v_ULONG_t, v_ULONG_t);
 extern v_UINT_t  tx_timer_change_context(TX_TIMER*, tANI_U32);
-extern v_UINT_t  tx_timer_create_intern(v_PVOID_t, TX_TIMER*, char *, v_VOID_t(*)(v_PVOID_t, tANI_U32), tANI_U32, v_ULONG_t, v_ULONG_t, v_ULONG_t);
+extern v_UINT_t  tx_timer_create_intern(v_PVOID_t, TX_TIMER*, char *, v_VOID_t(*)(v_PVOID_t, tANI_U32), tANI_U32, v_ULONG_t, v_ULONG_t, v_ULONG_t, tANI_U8);
 extern v_UINT_t  tx_timer_deactivate(TX_TIMER*);
 extern v_UINT_t  tx_timer_delete(TX_TIMER*);
 extern v_BOOL_t  tx_timer_running(TX_TIMER*);

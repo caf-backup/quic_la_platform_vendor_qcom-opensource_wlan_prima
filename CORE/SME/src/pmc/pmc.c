@@ -1012,6 +1012,27 @@ void pmcTrafficTimerExpired (tHalHandle hHal)
         return;
     }
 
+    /* Untill DHCP is not completed remain in power active */
+    if(pMac->pmc.remainInPowerActiveTillDHCP)
+    {
+        smsLog(pMac, LOGE, FL("BMPS Traffic Timer expired before DHCP completion ignore enter BMPS\n"));
+        pMac->pmc.remainInPowerActiveThreshold++;
+        if( pMac->pmc.remainInPowerActiveThreshold >= DHCP_REMAIN_POWER_ACTIVE_THRESHOLD)
+        {
+           smsLog(pMac, LOGE, FL("Remain in power active DHCP threshold reached FALLBACK to enable enter BMPS\n"));
+           /*FALLBACK: reset the flag to make BMPS entry possible*/
+           pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
+           pMac->pmc.remainInPowerActiveThreshold = 0;
+        }
+        return;
+    }
+    
+    /* Clear remain in power active threshold */
+    pMac->pmc.remainInPowerActiveThreshold = 0;
+   
+    
+    
+
 #ifndef GEN6_ONWARDS 
     /* Get the current unicast frame counts. */
     palGetUnicastStats(pMac->hHdd, &cTxUnicastFrames, &cRxUnicastFrames);

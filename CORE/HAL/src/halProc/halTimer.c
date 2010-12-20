@@ -158,7 +158,7 @@ tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
 
         if(tx_timer_create(&pMac->hal.halMac.baActivityChkTmr, "BA Activity check timer",
                     halTimerHandler, SIR_HAL_TIMER_BA_ACTIVITY_REQ,
-                    val, val, TX_NO_ACTIVATE) != TX_SUCCESS)
+                    val, val, TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             HALLOGP( halLog(pMac, LOGP, FL("Unable to create BA activity check timer\n")));
             return eSIR_FAILURE;
@@ -167,7 +167,7 @@ tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
         if (tx_timer_create(&pMac->hal.halMac.wrapStats.statTimer, "WRAP_AROUND_STAT COLLECTION TIMER",
                      halTimerHandler, SIR_HAL_TIMER_WRAP_AROUND_STATS_COLLECT_REQ,
                      pMac->hal.halMac.wrapStats.statTmrVal,
-                     pMac->hal.halMac.wrapStats.statTmrVal, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+                     pMac->hal.halMac.wrapStats.statTmrVal, TX_AUTO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             HALLOGP(halLog(pMac, LOGP, FL("Could not create wrap around Stat timer\n")));
             return eSIR_FAILURE;
@@ -180,7 +180,7 @@ tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
         if (tx_timer_create(&pMac->hal.halMac.tempMeasTimer, "TEMP MEASURE TIMER",
                      halTimerHandler, SIR_HAL_TIMER_TEMP_MEAS_REQ,
                                       pMac->hal.halMac.tempMeasTmrVal,
-                     pMac->hal.halMac.tempMeasTmrVal, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+                     pMac->hal.halMac.tempMeasTmrVal, TX_AUTO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             HALLOGP( halLog(pMac, LOGP, FL("Could not create Temp Measurement timer\n")));
             return eSIR_FAILURE;
@@ -190,7 +190,7 @@ tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
         if (tx_timer_create(&pMac->hal.halMac.macStats.statTimer, "STAT COLLECTION TIMER",
                      halTimerHandler, SIR_HAL_TIMER_PERIODIC_STATS_COLLECT_REQ,
                      pMac->hal.halMac.macStats.statTmrVal,
-                     pMac->hal.halMac.macStats.statTmrVal, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+                     pMac->hal.halMac.macStats.statTmrVal, TX_AUTO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             HALLOGP( halLog(pMac, LOGP, FL("Could not create Stat timer\n")));
             return eSIR_FAILURE;
@@ -204,7 +204,7 @@ tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
             if (tx_timer_create(&pMac->hal.halMac.chipMonitorTimer, "CHIP MONITOR INTERVAL TIMER",
                          halTimerHandler, SIR_HAL_TIMER_CHIP_MONITOR_TIMEOUT,
                          val,
-                         val, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+                         val, TX_AUTO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
             {
                 HALLOGP( halLog(pMac, LOGP, FL("Could not create Chip monitor interval timer\n")));
                 return eSIR_FAILURE;
@@ -216,7 +216,7 @@ tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
         if (tx_timer_create(&pMac->hal.trafficActivityTimer, "Traffic Activity Monitor timer",
                      halTimerHandler, SIR_HAL_TIMER_TRAFFIC_ACTIVITY_REQ,
                      val,
-                     val, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+                     val, TX_AUTO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             HALLOGP( halLog(pMac, LOGP, FL("Could not create Traffic Activity Monitor timer\n")));
             return eSIR_FAILURE;
@@ -228,7 +228,7 @@ tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
         if (tx_timer_create(&pMac->hal.addBARspTimer, "TL resp timeout timer",
                      halTimerAddBARspTimeoutHandler, 0,
                      val /*SYS_TICK_DUR_MS*/,
-                     0, TX_NO_ACTIVATE) != TX_SUCCESS)
+                     0, TX_NO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             HALLOGP( halLog(pMac, LOGP, FL("Could not create TL AddBA resp timeout timer\n")));
             return eSIR_FAILURE;
@@ -240,7 +240,7 @@ tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
 
         if (tx_timer_create(&pMac->hal.txCompTimer, "TxComplete wait timer",
                      halTimerTxCompleteTimeoutHandler, 0,
-                     val, 0, TX_NO_ACTIVATE) != TX_SUCCESS)
+                     val, 0, TX_NO_ACTIVATE, TX_TIMER_NON_DEFFERABLE) != TX_SUCCESS)
         {
             HALLOGP( halLog(pMac, LOGP, FL("Could not create TxComplete timeout timer\n")));
             return eSIR_FAILURE;
@@ -254,7 +254,7 @@ tSirRetStatus halTimersCreate(tpAniSirGlobal pMac)
         if (tx_timer_create(&pMac->ptt.adcRssiStatsTimer, "ADC RSSI STAT COLLECTION TIMER",
                      halTimerHandler, SIR_HAL_TIMER_ADC_RSSI_STATS,
                      val,
-                     val, TX_AUTO_ACTIVATE) != TX_SUCCESS)
+                     val, TX_AUTO_ACTIVATE, TX_TIMER_DEFFERABLE) != TX_SUCCESS)
         {
             HALLOGP( halLog(pMac, LOGP, FL("Could not create adc rssi stat collection timer\n")));
             return eSIR_FAILURE;

@@ -66,6 +66,9 @@ static void halSetChainPowerState(tpAniSirGlobal pMac);
 extern eHalStatus halPrepareForBmpsEntry(tpAniSirGlobal pMac);
 extern eHalStatus halPrepareForBmpsExit(tpAniSirGlobal pMac);
 
+static 
+eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId);
+
 /* Constant Macros */
 /* Redefine OFF -> __OFF, ON-> __ON to avoid redefinition on AMSS */
 #define  MAX_VALID_CHAIN_STATE  8
@@ -3089,6 +3092,10 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             halPSRssiMonitorCfg(pMac, pMsg->bodyval);
             break;
 
+                case WNI_CFG_MCAST_BCAST_FILTER_SETTING:
+                   halHandleMcastBcastFilterSetting(pMac, pMsg->bodyval);
+                   break;
+
                 default:
                     HALLOGE( halLog(pMac, LOGE, FL("Cfg Id %d is not handled\n"), pMsg->bodyval));
                     break;
@@ -4219,4 +4226,23 @@ halTlPostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 #ifdef VOSS_ENABLED
     return  vos_mq_post_message(VOS_MQ_ID_TL, (vos_msg_t *) pMsg);
 #endif
+}
+
+static 
+eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId)
+{
+    tANI_U32 val;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgId, &val))
+    {
+        HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+        return eHAL_STATUS_FAILURE;
+    }
+    else
+    {    
+        pMac->hal.mcastBcastFilterSetting = (tANI_BOOLEAN)val;
+    }
+    
+    return status;
 }

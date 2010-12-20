@@ -899,6 +899,22 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
            }
            break;
 
+       case VNV_RSSI_CHANNEL_OFFSETS:
+
+           itemSize = sizeof(gnvEFSTable->halnv.tables.rssiChanOffsets);
+
+           if(bufferSize != itemSize) {
+
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                 itemSize);
+               status = VOS_STATUS_E_INVAL;
+           }
+           else {
+               memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.rssiChanOffsets,bufferSize);
+           }
+           break;
+
        default:
          break;
    }
@@ -1077,6 +1093,22 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
             }
             else {
                 memcpy(&gnvEFSTable->halnv.tables.rssiOffset[0],inputVoidBuffer,bufferSize);
+            }
+            break;
+
+         case VNV_RSSI_CHANNEL_OFFSETS:
+
+            itemSize = sizeof(gnvEFSTable->halnv.tables.rssiChanOffsets);
+
+            if(bufferSize != itemSize) {
+
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
+                status = VOS_STATUS_E_INVAL;
+            }
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.rssiChanOffsets[0],inputVoidBuffer,bufferSize);
             }
             break;
 
