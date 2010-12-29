@@ -140,7 +140,7 @@ eHalStatus asicLoadTPCPowerLUT(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_U
     tANI_U32 enable;
     tANI_U32 point;
 #ifdef ANI_PHY_DEBUG
-    tANI_U32 tpcLutCache[TPC_MEM_POWER_LUT_DEPTH];
+    tANI_U32 *tpcLutCache = NULL;
 #endif
     tANI_U32 pwrLutOffset;
 
@@ -166,7 +166,10 @@ eHalStatus asicLoadTPCPowerLUT(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_U
     }
 
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_APBACCESS_REG, QWLAN_TPC_APBACCESS_SELECT_MASK);
-
+#ifdef ANI_PHY_DEBUG   
+    tpcLutCache = kmalloc(sizeof(tANI_U32) * TPC_MEM_POWER_LUT_DEPTH, GFP_KERNEL);
+    memset(tpcLutCache, 0, sizeof(tANI_U32) * TPC_MEM_POWER_LUT_DEPTH);
+#endif
     for (point = 0; point < TPC_MEM_POWER_LUT_DEPTH; point++)
     {
 #ifdef ANI_PHY_DEBUG
@@ -207,6 +210,9 @@ eHalStatus asicLoadTPCPowerLUT(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_U
         SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, TPC_TXPWR_ENABLE_MASK)
     }
 
+#ifdef ANI_PHY_DEBUG
+	kfree(tpcLutCache);
+#endif
 
     return (retVal);
 }

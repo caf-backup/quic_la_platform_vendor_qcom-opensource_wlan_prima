@@ -295,8 +295,9 @@ static eHalStatus csrRoamGetQosInfoFromBss(tpAniSirGlobal pMac, tSirBssDescripti
 eHalStatus csrOpen(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-	uNvTables nvTables;
-    
+	uNvTables *nvTables=NULL;
+	nvTables = vos_mem_malloc(sizeof(uNvTables));
+    vos_mem_set(nvTables,sizeof(uNvTables),0);    
     do
     {
         csrRoamStateChange( pMac, eCSR_ROAMING_STATE_STOP );
@@ -316,11 +317,11 @@ eHalStatus csrOpen(tpAniSirGlobal pMac)
         pMac->scan.domainIdDefault = halPhyGetRegDomain(pMac);
         pMac->scan.domainIdCurrent = pMac->scan.domainIdDefault;
 
-        status = halReadNvTable( pMac, NV_TABLE_DEFAULT_COUNTRY, &nvTables );
+        status = halReadNvTable( pMac, NV_TABLE_DEFAULT_COUNTRY, nvTables );
 		if (HAL_STATUS_SUCCESS( status ))
 		{
             palCopyMemory( pMac->hHdd, pMac->scan.countryCodeDefault, 
-					nvTables.defaultCountryTable.countryCode, WNI_CFG_COUNTRY_CODE_LEN );
+					nvTables->defaultCountryTable.countryCode, WNI_CFG_COUNTRY_CODE_LEN );
 		}
 		else
 		{
@@ -336,7 +337,7 @@ eHalStatus csrOpen(tpAniSirGlobal pMac)
 		status = csrInitGetChannels( pMac );
 
     }while(0);
-    
+    vos_mem_free(nvTables); 
     return (status);
 }
 
@@ -3671,13 +3672,14 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     case eCsrHddIssuedReassocToSameAP:
     case eCsrSmeIssuedReassocToSameAP:
     {
-        tDot11fBeaconIEs Ies;
+        tDot11fBeaconIEs *Ies=NULL;
 
-
+		Ies = vos_mem_malloc(sizeof(tDot11fBeaconIEs));
+		vos_mem_set(Ies,sizeof(tDot11fBeaconIEs),0);
         if( pSession->pConnectBssDesc )
         {
-            palZeroMemory(pMac->hHdd, (void *)&Ies, sizeof(tDot11fBeaconIEs));
-            status = csrParseBssDescriptionIEs(pMac, pSession->pConnectBssDesc, &Ies);
+            palZeroMemory(pMac->hHdd, (void *)Ies, sizeof(tDot11fBeaconIEs));
+            status = csrParseBssDescriptionIEs(pMac, pSession->pConnectBssDesc, Ies);
             if( HAL_STATUS_SUCCESS( status ) )
             {
                 roamInfo.reasonCode = eCsrRoamReasonStaCapabilityChanged;
@@ -3690,10 +3692,11 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                                      eCSR_ROAM_ASSOCIATION_START, eCSR_ROAM_RESULT_NONE );
    
                 smsLog(pMac, LOGE, FL("  calling csrRoamIssueReassociate\n"));
-                csrRoamIssueReassociate( pMac, sessionId, pSession->pConnectBssDesc, &Ies,
+                csrRoamIssueReassociate( pMac, sessionId, pSession->pConnectBssDesc, Ies,
                                          &pCommand->u.roamCmd.roamProfile );
             }
         }
+		vos_mem_free(Ies);
         break;
     }
 

@@ -215,7 +215,8 @@ void vos_snprintf(char *strBuffer, unsigned  int size, char *strFormat, ...)
   --------------------------------------------------------------------------*/
 void vos_trace_msg( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, char *strFormat, ... )
 {
-   char strBuffer[VOS_TRACE_BUFFER_SIZE];
+     char *strBuffer=NULL;
+     strBuffer = kmalloc(VOS_TRACE_BUFFER_SIZE,GFP_KERNEL);
 
    // Print the trace message when the desired level bit is set in the module
    // tracel level mask.
@@ -280,6 +281,7 @@ void vos_trace_msg( VOS_MODULE_ID module, VOS_TRACE_LEVEL level, char *strFormat
       }
       va_end( val);
    }
+   kfree(strBuffer);
 }
 
 void vos_trace_display(void)

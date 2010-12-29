@@ -182,12 +182,15 @@ eQWPttStatus pttGetNvTable(tpAniSirGlobal pMac, eNvTable nvTable, uNvTables *tab
         if (nvTable == NV_TABLE_TPC_CONFIG)
         {
             //convert tTpcConfig back to the sTpcFreqCalTable structure, which is used by pttApi
-            uNvTables tempTable;
+            uNvTables *tempTable = NULL;
             tANI_U8 chan;
             tANI_U8 txChain;
             tANI_U8 point;
 
-            memcpy(&tempTable, tableData, sizeof(uNvTables));       //use temporary table to avoid accidental member overwriting
+			tempTable = kmalloc(sizeof(uNvTables), GFP_KERNEL);
+            memset(tempTable, 0x0, sizeof(uNvTables));
+
+            memcpy(tempTable, tableData, sizeof(uNvTables));       //use temporary table to avoid accidental member overwriting
             memset(tableData, 0x0, sizeof(uNvTables));
 
             tableData->tpcFreqCal.numChannels = MAX_TPC_CHANNELS;
@@ -195,7 +198,7 @@ eQWPttStatus pttGetNvTable(tpAniSirGlobal pMac, eNvTable nvTable, uNvTables *tab
             //need to convert all float values to t2Decimal format
             for (chan = 0; chan < MAX_TPC_CHANNELS; chan++)
             {
-                tableData->tpcFreqCal.calValues[chan].freq = tempTable.tpcConfig[chan].freq;
+                tableData->tpcFreqCal.calValues[chan].freq = tempTable->tpcConfig[chan].freq;
 
                 for (txChain = 0; txChain < PHY_MAX_TX_CHAINS; txChain++)
                 {
@@ -205,15 +208,16 @@ eQWPttStatus pttGetNvTable(tpAniSirGlobal pMac, eNvTable nvTable, uNvTables *tab
                     {
                         tableData->tpcFreqCal.calValues[chan].empirical[txChain].chain[point].txGain = 0;              //have nothing stored for this
                         tableData->tpcFreqCal.calValues[chan].empirical[txChain].chain[point].temperatureAdc = 0;      //have nothing stored for this
-                        tableData->tpcFreqCal.calValues[chan].empirical[txChain].chain[point].pwrDetAdc = tempTable.tpcConfig[chan].empirical[txChain][point].pwrDetAdc;
+                        tableData->tpcFreqCal.calValues[chan].empirical[txChain].chain[point].pwrDetAdc = tempTable->tpcConfig[chan].empirical[txChain][point].pwrDetAdc;
                         tableData->tpcFreqCal.calValues[chan].empirical[txChain].chain[point].absPowerMeasured.reported =
-                              absReportedWithPrecision(tempTable.tpcConfig[chan].empirical[txChain][point].adjustedPwrDet);
+                              absReportedWithPrecision(tempTable->tpcConfig[chan].empirical[txChain][point].adjustedPwrDet);
 
                         //tableData->tpcFreqCal.calValues[chan].empirical[txChain].chain[point].absPowerMeasured.reported =
                         //    phyGetAbsTxPowerForLutValue(pMac, txChain, tempTable.tpcConfig[chan].empirical[txChain][point].adjustedPwrDet);
                     }
                 }
             }
+			kfree(tempTable);
         }
 
         return (SUCCESS);
@@ -2088,13 +2092,16 @@ eQWPttStatus pttSystemReset(tpAniSirGlobal pMac)
 eQWPttStatus pttLogDump(tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4)
 {
 
-    tANI_U8 buf[3000];
+    tANI_U8 *buf = NULL;
+	buf = kmalloc(sizeof(tANI_U8) * 3000, GFP_KERNEL);
+	memset(buf, 0, sizeof(tANI_U8) * 3000);
     buf[0] = '\0';
     logRtaiDump(pMac, cmd, arg1, arg2, arg3, arg4, buf);
     buf[2999] = '\0';
     phyLog(pMac, LOGE, "logDump %d %x %x %x %x \n",  cmd, arg1, arg2, arg3, arg4);
     phyLog(pMac, LOGE, "logDump %s\n",  buf);
 
+	kfree(buf);
     return (SUCCESS);
 }
 

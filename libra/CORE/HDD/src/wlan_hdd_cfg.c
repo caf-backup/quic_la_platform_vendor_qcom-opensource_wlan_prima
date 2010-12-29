@@ -1310,10 +1310,11 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
    char *buffer, *line,*pTemp;
    size_t size;
    char *name, *value;
-   tCfgIniEntry cfgIniTable[MAX_CFG_INI_ITEMS];
+   tCfgIniEntry *cfgIniTable=NULL;
    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
-
-   memset(cfgIniTable, 0, sizeof(cfgIniTable));
+   
+   cfgIniTable = vos_mem_malloc(sizeof(tCfgIniEntry) * MAX_CFG_INI_ITEMS);
+   memset(cfgIniTable, 0, sizeof(tCfgIniEntry) * MAX_CFG_INI_ITEMS);
 
    status = request_firmware(&fw, "wlan/qcom_cfg.ini", &pAdapter->hsdio_func_dev->dev);
    
@@ -1380,6 +1381,7 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
 
    release_firmware(fw);
    vos_mem_free(pTemp);
+   vos_mem_free(cfgIniTable);
    return vos_status;
 } 
 

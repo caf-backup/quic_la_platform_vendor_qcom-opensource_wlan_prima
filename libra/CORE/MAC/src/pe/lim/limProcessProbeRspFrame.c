@@ -61,16 +61,19 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
     tANI_U32                frameLen = 0;
     tSirMacAddr             currentBssId;
     tpSirMacMgmtHdr         pHdr;
-    tSirProbeRespBeacon     probeRsp;
+    tSirProbeRespBeacon     *probeRsp = NULL;
     tANI_U8 qosEnabled =    false;
     tANI_U8 wmeEnabled =    false;
 
-    probeRsp.ssId.length              = 0;
-    probeRsp.wpa.length               = 0;
-    probeRsp.propIEinfo.apName.length = 0;
+	probeRsp = vos_mem_malloc(sizeof(tSirProbeRespBeacon));
+	vos_mem_set(probeRsp, sizeof(tSirProbeRespBeacon), 0);
+
+    probeRsp->ssId.length              = 0;
+    probeRsp->wpa.length               = 0;
+    probeRsp->propIEinfo.apName.length = 0;
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
-    probeRsp.propIEinfo.aniIndicator  = 0;
-    probeRsp.propIEinfo.wdsLength     = 0;
+    probeRsp->propIEinfo.aniIndicator  = 0;
+    probeRsp->propIEinfo.wdsLength     = 0;
 #endif
 
 
@@ -82,8 +85,10 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
              SIR_MAC_BD_TO_MPDU_LEN(pBd));
     limPrintMacAddr(pMac, pHdr->sa, LOG2);)
 
-   if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
+   if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS){
+		vos_mem_free(probeRsp);
         return;
+	}
 
 
     /**
@@ -117,18 +122,19 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
         // Get pointer to Probe Response frame body
         pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
 
-        if (sirConvertProbeFrame2Struct(pMac, pBody, frameLen, &probeRsp)
+        if (sirConvertProbeFrame2Struct(pMac, pBody, frameLen, probeRsp)
                           ==eSIR_FAILURE)
         {
             PELOG1(limLog(pMac, LOG1,
                FL("PArse error ProbeResponse, length=%d\n"),
                frameLen);)
+			vos_mem_free(probeRsp);
             return;
         }
                                                                             //To Support BT-AMP                    
         if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||    //mlm state check should be global - 18th oct
             (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE))
-            limCheckAndAddBssDescription(pMac, &probeRsp, pBd, ((pMac->lim.gLimHalScanState == eLIM_HAL_SCANNING_STATE) ? eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE));
+            limCheckAndAddBssDescription(pMac, probeRsp, pBd, ((pMac->lim.gLimHalScanState == eLIM_HAL_SCANNING_STATE) ? eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE));
         else if (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE)           //mlm state check should be global - 18th oct
         {
 #if defined(ANI_PRODUCT_TYPE_AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
@@ -138,10 +144,10 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
              * comes up which needs to be fixed*/
             //if (pMac->lim.gLimSystemRole == eLIM_STA_ROLE)
               //  limCheckAndAddBssDescription(pMac, &probeRsp, pBd, eANI_BOOLEAN_TRUE);
-            limCollectMeasurementData(pMac, pBd, &probeRsp);
+            limCollectMeasurementData(pMac, pBd, probeRsp);
            PELOG3(limLog(pMac, LOG3,
                FL("Parsed WDS info in ProbeRsp frames: wdsLength=%d\n"),
-               probeRsp.propIEinfo.wdsLength);)
+               probeRsp->propIEinfo.wdsLength);)
 #endif
         }
         else if (psessionEntry->limMlmState ==
@@ -165,7 +171,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
              
         
             // STA in WT_JOIN_BEACON_STATE
-            limCheckAndAnnounceJoinSuccess(pMac, &probeRsp, pHdr,psessionEntry);
+            limCheckAndAnnounceJoinSuccess(pMac, probeRsp, pHdr,psessionEntry);
         }
         else if(psessionEntry->limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
         {
@@ -195,19 +201,19 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
                 limLog(pMac, LOGW,
                     FL("Received Probe Resp from AP. So it is alive!!\n"));
 
-                if (probeRsp.HTInfo.present)
-                    limReceivedHBHandler(pMac, (tANI_U8)probeRsp.HTInfo.primaryChannel, psessionEntry);
+                if (probeRsp->HTInfo.present)
+                    limReceivedHBHandler(pMac, (tANI_U8)probeRsp->HTInfo.primaryChannel, psessionEntry);
                 else
-                    limReceivedHBHandler(pMac, (tANI_U8)probeRsp.channelNumber, psessionEntry);
+                    limReceivedHBHandler(pMac, (tANI_U8)probeRsp->channelNumber, psessionEntry);
             }
 
 #if defined ANI_PRODUCT_TYPE_CLIENT || defined (ANI_AP_CLIENT_SDK)
             
             if (psessionEntry->limSystemRole == eLIM_STA_ROLE)
             {
-                if (probeRsp.quietIEPresent)
+                if (probeRsp->quietIEPresent)
                 {
-                    limUpdateQuietIEFromBeacon(pMac, &(probeRsp.quietIE), psessionEntry);
+                    limUpdateQuietIEFromBeacon(pMac, &(probeRsp->quietIE), psessionEntry);
                 }
                 else if ((pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_BEGIN) ||
                      (pMac->lim.gLimSpecMgmt.quietState == eLIM_QUIET_RUNNING))
@@ -216,10 +222,10 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
                     limCancelDot11hQuiet(pMac);
                 }
 
-                if (probeRsp.channelSwitchPresent ||
-                    probeRsp.propIEinfo.propChannelSwitchPresent)
+                if (probeRsp->channelSwitchPresent ||
+                    probeRsp->propIEinfo.propChannelSwitchPresent)
                 {
-                    limUpdateChannelSwitch(pMac, &probeRsp, psessionEntry);
+                    limUpdateChannelSwitch(pMac, probeRsp, psessionEntry);
                 }
                 else if (pMac->lim.gLimSpecMgmt.dot11hChanSwState == eLIM_11H_CHANSW_RUNNING)
                 {
@@ -243,13 +249,13 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
             limGetWmeMode(pMac, &wmeEnabled);
            PELOG2(limLog(pMac, LOG2,
                     FL("wmeEdcaPresent: %d wmeEnabled: %d, edcaPresent: %d, qosEnabled: %d,  edcaParams.qosInfo.count: %d schObject.gSchEdcaParamSetCount: %d\n"),
-                          probeRsp.wmeEdcaPresent, wmeEnabled, probeRsp.edcaPresent, qosEnabled,
-                          probeRsp.edcaParams.qosInfo.count, pMac->sch.schObject.gSchEdcaParamSetCount);)
-            if (((probeRsp.wmeEdcaPresent && wmeEnabled) ||
-                (probeRsp.edcaPresent && qosEnabled)) &&
-                (probeRsp.edcaParams.qosInfo.count != pMac->sch.schObject.gSchEdcaParamSetCount))
+                          probeRsp->wmeEdcaPresent, wmeEnabled, probeRsp->edcaPresent, qosEnabled,
+                          probeRsp->edcaParams.qosInfo.count, pMac->sch.schObject.gSchEdcaParamSetCount);)
+            if (((probeRsp->wmeEdcaPresent && wmeEnabled) ||
+                (probeRsp->edcaPresent && qosEnabled)) &&
+                (probeRsp->edcaParams.qosInfo.count != pMac->sch.schObject.gSchEdcaParamSetCount))
             {
-                if (schBeaconEdcaProcess(pMac, &probeRsp.edcaParams) != eSIR_SUCCESS)
+                if (schBeaconEdcaProcess(pMac, &probeRsp->edcaParams) != eSIR_SUCCESS)
                     PELOGE(limLog(pMac, LOGE, FL("EDCA parameter processing error\n"));)
                 else if (pStaDs != NULL)
                 {
@@ -268,9 +274,9 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionE
         }
         else if ((psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) &&
                  (psessionEntry->limMlmState == eLIM_MLM_BSS_STARTED_STATE))
-                limHandleIBSScoalescing(pMac, &probeRsp, pBd,psessionEntry);
+                limHandleIBSScoalescing(pMac, probeRsp, pBd,psessionEntry);
     } // if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) || ...
-
+	vos_mem_free(probeRsp);
     // Ignore Probe Response frame in all other states
     return;
 } /*** end limProcessProbeRspFrame() ***/
@@ -282,14 +288,17 @@ limProcessProbeRspFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd)
     tANI_U8                 *pBody;
     tANI_U32                frameLen = 0;
     tpSirMacMgmtHdr         pHdr;
-    tSirProbeRespBeacon     probeRsp;
+    tSirProbeRespBeacon     *probeRsp = NULL;
 
-    probeRsp.ssId.length              = 0;
-    probeRsp.wpa.length               = 0;
-    probeRsp.propIEinfo.apName.length = 0;
+	probeRsp = vos_mem_malloc(sizeof(tSirProbeRespBeacon));
+	vos_mem_set(probeRsp, sizeof(tSirProbeRespBeacon), 0);
+
+    probeRsp->ssId.length              = 0;
+    probeRsp->wpa.length               = 0;
+    probeRsp->propIEinfo.apName.length = 0;
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
-    probeRsp.propIEinfo.aniIndicator  = 0;
-    probeRsp.propIEinfo.wdsLength     = 0;
+    probeRsp->propIEinfo.aniIndicator  = 0;
+    probeRsp->propIEinfo.wdsLength     = 0;
 #endif
 
 
@@ -301,8 +310,10 @@ limProcessProbeRspFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd)
              SIR_MAC_BD_TO_MPDU_LEN(pBd));
     limPrintMacAddr(pMac, pHdr->sa, LOG2);
 
-    if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
+    if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS){
+		vos_mem_free(probeRsp); 
         return;
+	}
 
     /*  Since there is no psessionEntry, PE cannot be in the following states:
      *   - eLIM_MLM_WT_JOIN_BEACON_STATE
@@ -322,15 +333,16 @@ limProcessProbeRspFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd)
         // Get pointer to Probe Response frame body
         pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
 
-        if (sirConvertProbeFrame2Struct(pMac, pBody, frameLen, &probeRsp) == eSIR_FAILURE)
+        if (sirConvertProbeFrame2Struct(pMac, pBody, frameLen, probeRsp) == eSIR_FAILURE)
         {
             limLog(pMac, LOG1, FL("Parse error ProbeResponse, length=%d\n"), frameLen);
+			vos_mem_free(probeRsp); 
             return;
         }
 
         if( (pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||
              (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE) )
-            limCheckAndAddBssDescription(pMac, &probeRsp, pBd, eANI_BOOLEAN_TRUE);
+            limCheckAndAddBssDescription(pMac, probeRsp, pBd, eANI_BOOLEAN_TRUE);
         else if (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE)
         {
 #if defined(ANI_PRODUCT_TYPE_AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
@@ -340,12 +352,14 @@ limProcessProbeRspFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd)
              * comes up which needs to be fixed*/
             //if (pMac->lim.gLimSystemRole == eLIM_STA_ROLE)
               //  limCheckAndAddBssDescription(pMac, &probeRsp, pBd, eANI_BOOLEAN_TRUE);
-            limCollectMeasurementData(pMac, pBd, &probeRsp);
+            limCollectMeasurementData(pMac, pBd, probeRsp);
             limLog(pMac, LOG3,
                FL("Parsed WDS info in ProbeRsp frames: wdsLength=%d\n"),
-               probeRsp.propIEinfo.wdsLength);
+               probeRsp->propIEinfo.wdsLength);
 #endif
         }
-    } 
+    }
+
+	vos_mem_free(probeRsp); 
     return;
 } /*** end limProcessProbeRspFrameNew() ***/

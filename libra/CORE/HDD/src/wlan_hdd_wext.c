@@ -1267,6 +1267,157 @@ void iw_priv_callback_fn (void *callbackContext, eHalStatus status)
     complete(completion_var);
 }
 
+static eHalStatus hdd_CscanRequestCallback(tHalHandle halHandle, void *pContext,
+                         tANI_U32 scanId, eCsrScanStatus status)
+{
+    struct net_device *dev = (struct net_device *) pContext;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
+    hdd_wext_state_t *pwextBuf = pAdapter->pWextState;
+    union iwreq_data wrqu;
+    int we_event;
+    char *msg;
+    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+    ENTER();
+
+   hddLog(LOG1,"%s called with halHandle = %p, pContext = %p, scanID = %d,"
+           " returned status = %d\n", __FUNCTION__, halHandle, pContext,
+            (int) scanId, (int) status);
+
+    /* Check the scanId */
+    if (pwextBuf->scanId != scanId)
+    {
+        hddLog(LOG1,"%s called with mismatched scanId pWextState->scanId = %d "
+               "scanId = %d \n", __FUNCTION__, (int) pwextBuf->scanId,
+                (int) scanId);
+    }
+
+    /* Scan is no longer pending */
+    pwextBuf->mScanPending = VOS_FALSE;
+   
+    // notify any applications that may be interested
+    memset(&wrqu, '\0', sizeof(wrqu));
+    we_event = SIOCGIWSCAN;
+    msg = NULL;
+    wireless_send_event(dev, we_event, &wrqu, msg);
+
+    vos_status = vos_event_set(&pwextBuf->vosevent);
+   
+    if (!VOS_IS_STATUS_SUCCESS(vos_status))
+    {    
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!\n"));
+       return VOS_STATUS_E_FAILURE;
+    }
+
+    EXIT();
+
+    return eHAL_STATUS_SUCCESS;
+}
+
+
+int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
+                 union iwreq_data *wrqu, char *extra)
+{
+   VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
+   hdd_wext_state_t *pwextBuf = pAdapter->pWextState;
+   tCsrScanRequest scanRequest;
+   v_U32_t scanId = 0;
+   eHalStatus status = eHAL_STATUS_SUCCESS;
+//   struct iw_scan_req *scanReq = (struct iw_scan_req *)extra;
+
+   ENTER();
+
+   if(pwextBuf->mScanPending == TRUE)
+   {
+       hddLog(LOG1,"%s: mScanPending is TRUE\n",__func__);
+       return -EBUSY;                  
+   }
+   
+   vos_mem_zero( &scanRequest, sizeof(scanRequest));
+ 
+   if (NULL != wrqu->data.pointer)
+   {      
+       /* set scanType, active or passive */
+      
+       if (eSIR_ACTIVE_SCAN == pAdapter->pWextState->scan_mode)
+       {
+           scanRequest.scanType = eSIR_ACTIVE_SCAN;
+       }
+       else
+       {
+           scanRequest.scanType = eSIR_PASSIVE_SCAN;
+       }
+#if 0
+       /* set bssid using sockaddr from iw_scan_req */
+       vos_mem_copy(scanRequest.bssid,
+                       &scanReq->bssid.sa_data, sizeof(scanRequest.bssid) );
+      
+      if (wrqu->data.flags & IW_SCAN_THIS_ESSID)  {
+
+          if(scanReq->essid_len) {
+              scanRequest.SSIDs.numOfSSIDs = 1;
+              scanRequest.SSIDs.SSIDList =( tCsrSSIDInfo *)vos_mem_malloc(sizeof(tCsrSSIDInfo));
+              scanRequest.SSIDs.SSIDList->SSID.length = scanReq->essid_len;
+              vos_mem_copy(scanRequest.SSIDs.SSIDList->SSID.ssId,scanReq->essid,scanReq->essid_len);
+          }
+      }
+ 
+       /* set min and max channel time */
+       scanRequest.minChnTime = scanReq->min_channel_time;
+       scanRequest.maxChnTime = scanReq->max_channel_time;
+#else
+
+       scanRequest.minChnTime = 0;//scanReq->min_channel_time;
+       scanRequest.maxChnTime = 0;//scanReq->max_channel_time;
+#endif
+   }
+   else
+   {
+       if(pAdapter->pWextState->scan_mode == eSIR_ACTIVE_SCAN) {
+           /* set the scan type to active */
+           scanRequest.scanType = eSIR_ACTIVE_SCAN;
+       } else {                      
+           scanRequest.scanType = eSIR_PASSIVE_SCAN;
+       }
+ 
+       vos_mem_set( scanRequest.bssid, sizeof( tCsrBssid ), 0xff );
+       
+       /* set min and max channel time to zero */
+       scanRequest.minChnTime = 0;
+       scanRequest.maxChnTime = 0;
+   }
+   
+   /* set BSSType to default type */
+   scanRequest.BSSType = eCSR_BSS_TYPE_ANY;
+ 
+   /*Scan all the channels */
+   scanRequest.ChannelInfo.numOfChannels = 0;
+
+   scanRequest.ChannelInfo.ChannelList = NULL;
+ 
+   /* set requestType to full scan */
+   scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;
+   
+   pwextBuf->mScanPending = TRUE;
+   
+   status = sme_ScanRequest( pAdapter->hHal, pAdapter->sessionId,&scanRequest, &scanId, &hdd_CscanRequestCallback, dev ); 
+      
+   pwextBuf->scanId = scanId;
+
+   vos_status = vos_wait_single_event(&pwextBuf->vosevent,3000);
+   
+   if (!VOS_IS_STATUS_SUCCESS(vos_status))
+   {
+      pwextBuf->mScanPending = FALSE;
+      return VOS_STATUS_E_FAILURE;
+   }
+   if (wrqu->data.flags & IW_SCAN_THIS_ESSID)
+       vos_mem_free(scanRequest.SSIDs.SSIDList);
+
+   EXIT();
+   return status;
+}
+
 static int iw_set_priv(struct net_device *dev,
                          struct iw_request_info *info,
                          union iwreq_data *wrqu, char *extra)
@@ -1281,7 +1432,14 @@ static int iw_set_priv(struct net_device *dev,
 
     hddLog(VOS_TRACE_LEVEL_INFO_MED, "***Received %s cmd from Wi-Fi GUI***", cmd);
 
-    if( strcasecmp(cmd, "start") == 0 ) {
+    if(strncmp(cmd, "CSCAN",5) == 0 ){
+		int status= VOS_STATUS_SUCCESS;
+		
+		status = iw_set_cscan(dev, info,wrqu, extra);
+		return status;
+
+	}
+    else if( strcasecmp(cmd, "start") == 0 ) {
 
         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Start command\n");
         /*Exit from Deep sleep or standby if we get the driver START cmd from android GUI*/

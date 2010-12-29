@@ -955,30 +955,33 @@ eHalStatus halTpe_TriggerSwTemplate(tpAniSirGlobal pMac)
  */
 eHalStatus halTpe_SetBeaconTemplate(tpAniSirGlobal pMac, tANI_U16 beaconIndex, tSirMacAddr  bssId)
 {
-    tBeaconTemplate beaconTemplate;
+    tBeaconTemplate *beaconTemplate = NULL;
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tANI_U32 beaconOffset;
     tTpeRateIdx rateIndex;
     tPwrTemplateIndex txPower = 0;
+	
+	beaconTemplate = vos_mem_malloc(sizeof(tBeaconTemplate));
+	vos_mem_set(beaconTemplate, sizeof(tBeaconTemplate), 0);
 
-    beaconTemplate.template_header.template_type = SIR_MAC_MGMT_FRAME;
-    beaconTemplate.template_header.template_sub_type = SIR_MAC_MGMT_BEACON;
-    beaconTemplate.template_header.resp_is_expected = 0;
-    beaconTemplate.template_header.expected_resp_type = 0;
-    beaconTemplate.template_header.expected_resp_sub_type = 0;
-    beaconTemplate.template_header.template_len = 0;
-    beaconTemplate.template_header.reserved1 = 0;
+    beaconTemplate->template_header.template_type = SIR_MAC_MGMT_FRAME;
+    beaconTemplate->template_header.template_sub_type = SIR_MAC_MGMT_BEACON;
+    beaconTemplate->template_header.resp_is_expected = 0;
+    beaconTemplate->template_header.expected_resp_type = 0;
+    beaconTemplate->template_header.expected_resp_sub_type = 0;
+    beaconTemplate->template_header.template_len = 0;
+    beaconTemplate->template_header.reserved1 = 0;
     halGetBcnRateIdx(pMac, &rateIndex);
     halRate_getPowerIndex(pMac, rateIndex, &txPower);
-    beaconTemplate.template_header.primary_data_rate_index = rateIndex;
-    beaconTemplate.template_header.stbc = 0;
-    beaconTemplate.template_header.reserved2 = 0;
-    beaconTemplate.template_header.reserved3 = 0;
-    beaconTemplate.template_header.tx_power = txPower;
-    beaconTemplate.template_header.tx_antenna_enable = 0;
-    beaconTemplate.template_header.tsf_offset = TPE_BEACON_1MBPS_LONG_TSF_OFFSET;
-    beaconTemplate.template_header.reserved4 = 0;
-    beaconTemplate.template_header.reserved5 = 0;
+    beaconTemplate->template_header.primary_data_rate_index = rateIndex;
+    beaconTemplate->template_header.stbc = 0;
+    beaconTemplate->template_header.reserved2 = 0;
+    beaconTemplate->template_header.reserved3 = 0;
+    beaconTemplate->template_header.tx_power = txPower;
+    beaconTemplate->template_header.tx_antenna_enable = 0;
+    beaconTemplate->template_header.tsf_offset = TPE_BEACON_1MBPS_LONG_TSF_OFFSET;
+    beaconTemplate->template_header.reserved4 = 0;
+    beaconTemplate->template_header.reserved5 = 0;
 
     /** TODO: Get txPower and txAntenna enable */
 
@@ -990,8 +993,9 @@ eHalStatus halTpe_SetBeaconTemplate(tpAniSirGlobal pMac, tANI_U16 beaconIndex, t
 
     /** Write the beacon header */
     halWriteDeviceMemory(pMac, beaconOffset ,
-            (tANI_U8 *)&beaconTemplate.template_header, BEACON_TEMPLATE_HEADER);
-
+            (tANI_U8 *)&beaconTemplate->template_header, BEACON_TEMPLATE_HEADER);
+	
+	vos_mem_free(beaconTemplate);
     return status;
 }
 
@@ -1461,7 +1465,7 @@ eHalStatus halTpe_ReEnableBeacon(tpAniSirGlobal pMac, tANI_U16 beaconIndex)
 void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
                                     tANI_U16 beaconIndex, tANI_U32 length)
 {
-    tBeaconTemplate beaconTemplate;
+    tBeaconTemplate *beaconTemplate = NULL;
     tPwrTemplateIndex txPower = 0;
     tTpeRateIdx rateIndex;
     tANI_U32 beaconOffset;
@@ -1476,33 +1480,35 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
     HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx]halTpe_UpdateBeaconMemory-[Entry]- length:[%d]...\n"), length ));
 #endif
 
+	beaconTemplate = vos_mem_malloc(sizeof(tBeaconTemplate));
+	vos_mem_set(beaconTemplate, sizeof(tBeaconTemplate), 0);
 
-    beaconTemplate.template_header.template_type = SIR_MAC_MGMT_FRAME;
-    beaconTemplate.template_header.template_sub_type = SIR_MAC_MGMT_BEACON;
-    beaconTemplate.template_header.resp_is_expected = 0;
-    beaconTemplate.template_header.expected_resp_type = 0;
-    beaconTemplate.template_header.expected_resp_sub_type = 0;
-    beaconTemplate.template_header.reserved1 = 0;
-    beaconTemplate.template_header.stbc = 0;
-    beaconTemplate.template_header.reserved2 = 0;
-    beaconTemplate.template_header.reserved3 = 0;
-    beaconTemplate.template_header.tx_antenna_enable = 0;
-    beaconTemplate.template_header.tsf_offset = TPE_BEACON_1MBPS_LONG_TSF_OFFSET;
-    beaconTemplate.template_header.reserved4 = 0;
-    beaconTemplate.template_header.reserved5 = 0;
+    beaconTemplate->template_header.template_type = SIR_MAC_MGMT_FRAME;
+    beaconTemplate->template_header.template_sub_type = SIR_MAC_MGMT_BEACON;
+    beaconTemplate->template_header.resp_is_expected = 0;
+    beaconTemplate->template_header.expected_resp_type = 0;
+    beaconTemplate->template_header.expected_resp_sub_type = 0;
+    beaconTemplate->template_header.reserved1 = 0;
+    beaconTemplate->template_header.stbc = 0;
+    beaconTemplate->template_header.reserved2 = 0;
+    beaconTemplate->template_header.reserved3 = 0;
+    beaconTemplate->template_header.tx_antenna_enable = 0;
+    beaconTemplate->template_header.tsf_offset = TPE_BEACON_1MBPS_LONG_TSF_OFFSET;
+    beaconTemplate->template_header.reserved4 = 0;
+    beaconTemplate->template_header.reserved5 = 0;
 
     halGetBcnRateIdx(pMac, &rateIndex);
     halRate_getPowerIndex(pMac, rateIndex, &txPower);
-    beaconTemplate.template_header.primary_data_rate_index = rateIndex;
-    beaconTemplate.template_header.tx_power = txPower;
+    beaconTemplate->template_header.primary_data_rate_index = rateIndex;
+    beaconTemplate->template_header.tx_power = txPower;
 
-    beaconTemplate.template_header.template_len = length + BEACON_TEMPLATE_CRC;
+    beaconTemplate->template_header.template_len = length + BEACON_TEMPLATE_CRC;
 
     beaconOffset = pMac->hal.memMap.beaconTemplate_offset + (beaconIndex * BEACON_TEMPLATE_SIZE);
 
 
     halWriteDeviceMemory(pMac, beaconOffset ,
-            (tANI_U8 *)&beaconTemplate.template_header, BEACON_TEMPLATE_HEADER);
+            (tANI_U8 *)&beaconTemplate->template_header, BEACON_TEMPLATE_HEADER);
 #if WLAN_SOFTAP_FW_BEACON_TX_PRNT_LOG
     HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx] halTpe_UpdateBeaconMemory Dump B2Swap-Start... \n")));   
     for( ii = 0; ii < length; ii+= 4 )
@@ -1511,7 +1517,7 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
 #endif
 
     //FIXME: halWriteDevicememory requires lenght to be mulltiple of four and aligned to 4 byte boundry.
-    alignedLen = ( beaconTemplate.template_header.template_len + 3 ) & ~3 ;
+    alignedLen = ( beaconTemplate->template_header.template_len + 3 ) & ~3 ;
 
 #if WLAN_SOFTAP_FW_BEACON_TX_PRNT_LOG
     HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx]halTpe_UpdateBeaconMemory-alignedLen :[%d]  \n"), alignedLen ));
@@ -1534,6 +1540,8 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
 #ifdef WLAN_SOFTAP_FEATURE
     HALLOGE(halLog(pMac, LOGE, FL("[SoftApFwBcnTx] halTpe_UpdateBeaconMemory-BknBodyOffset:[%X] alignedLen [%d] \n"), (beaconOffset + BEACON_TEMPLATE_HEADER) , alignedLen ));
 #endif
+
+vos_mem_free(beaconTemplate);
 
 }
 

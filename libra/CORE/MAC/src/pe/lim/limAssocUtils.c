@@ -3043,11 +3043,12 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
     tpAddBssParams pAddBssParams = NULL;
     tANI_U32 retCode;
     tANI_U8 i;
-    tSchBeaconStruct beaconStruct;
+    tSchBeaconStruct *beaconStruct = NULL;
     tANI_U8 chanWidthSupp = 0;
     tpSirBssDescription bssDescription = &psessionEntry->pLimJoinReq->bssDescription;
 
-
+	beaconStruct = vos_mem_malloc(sizeof(tSchBeaconStruct));
+	vos_mem_set(beaconStruct, sizeof(tSchBeaconStruct), 0);
     // Package SIR_HAL_ADD_BSS_REQ message parameters
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
                                                   (void **) &pAddBssParams,
@@ -3065,10 +3066,10 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
     limExtractApCapabilities( pMac,
                             (tANI_U8 *) bssDescription->ieFields,
                             limGetIElenFromBssDescription( bssDescription ),
-                            &beaconStruct );
+                            beaconStruct );
 
     if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
-        limDecideStaProtectionOnAssoc(pMac, &beaconStruct, psessionEntry);
+        limDecideStaProtectionOnAssoc(pMac, beaconStruct, psessionEntry);
         palCopyMemory( pMac->hHdd,  pAddBssParams->bssId,bssDescription->bssId,
                    sizeof( tSirMacAddr ));
 
@@ -3087,57 +3088,57 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
 
     pAddBssParams->beaconInterval = bssDescription->beaconInterval;
     
-    pAddBssParams->dtimPeriod = beaconStruct.tim.dtimPeriod;
+    pAddBssParams->dtimPeriod = beaconStruct->tim.dtimPeriod;
     pAddBssParams->updateBss = updateEntry;
 
 
-    pAddBssParams->cfParamSet.cfpCount = beaconStruct.cfParamSet.cfpCount;
-    pAddBssParams->cfParamSet.cfpPeriod = beaconStruct.cfParamSet.cfpPeriod;
-    pAddBssParams->cfParamSet.cfpMaxDuration = beaconStruct.cfParamSet.cfpMaxDuration;
-    pAddBssParams->cfParamSet.cfpDurRemaining = beaconStruct.cfParamSet.cfpDurRemaining;
+    pAddBssParams->cfParamSet.cfpCount = beaconStruct->cfParamSet.cfpCount;
+    pAddBssParams->cfParamSet.cfpPeriod = beaconStruct->cfParamSet.cfpPeriod;
+    pAddBssParams->cfParamSet.cfpMaxDuration = beaconStruct->cfParamSet.cfpMaxDuration;
+    pAddBssParams->cfParamSet.cfpDurRemaining = beaconStruct->cfParamSet.cfpDurRemaining;
 
 
-    pAddBssParams->rateSet.numRates = beaconStruct.supportedRates.numRates;
+    pAddBssParams->rateSet.numRates = beaconStruct->supportedRates.numRates;
     palCopyMemory( pMac->hHdd,  pAddBssParams->rateSet.rate,
-                   beaconStruct.supportedRates.rate, beaconStruct.supportedRates.numRates );
+                   beaconStruct->supportedRates.rate, beaconStruct->supportedRates.numRates );
 
     pAddBssParams->nwType = bssDescription->nwType;
     
-    pAddBssParams->shortSlotTimeSupported = (tANI_U8)beaconStruct.capabilityInfo.shortSlotTime; 
+    pAddBssParams->shortSlotTimeSupported = (tANI_U8)beaconStruct->capabilityInfo.shortSlotTime; 
     pAddBssParams->llaCoexist = (tANI_U8) psessionEntry->llaCoexist;//(tANI_U8) pMac->lim.llaCoexist;    
     pAddBssParams->llbCoexist = (tANI_U8) psessionEntry->llbCoexist;//(tANI_U8) pMac->lim.llbCoexist;
     pAddBssParams->llgCoexist = (tANI_U8) psessionEntry->llgCoexist;// pMac->lim.llgCoexist;
     pAddBssParams->ht20Coexist = (tANI_U8) psessionEntry->ht20Coexist; //pMac->lim.ht20MhzCoexist;   
 
     // Use the advertised capabilities from the received beacon/PR
-    if (IS_DOT11_MODE_HT(psessionEntry->dot11mode) && ( beaconStruct.HTCaps.present ))
+    if (IS_DOT11_MODE_HT(psessionEntry->dot11mode) && ( beaconStruct->HTCaps.present ))
     {
-        pAddBssParams->htCapable = beaconStruct.HTCaps.present;
+        pAddBssParams->htCapable = beaconStruct->HTCaps.present;
 
-        if ( beaconStruct.HTInfo.present )
+        if ( beaconStruct->HTInfo.present )
         {
-            pAddBssParams->htOperMode = (tSirMacHTOperatingMode)beaconStruct.HTInfo.opMode;
-            pAddBssParams->dualCTSProtection = ( tANI_U8 ) beaconStruct.HTInfo.dualCTSProtection;
+            pAddBssParams->htOperMode = (tSirMacHTOperatingMode)beaconStruct->HTInfo.opMode;
+            pAddBssParams->dualCTSProtection = ( tANI_U8 ) beaconStruct->HTInfo.dualCTSProtection;
 
 #ifdef WLAN_SOFTAP_FEATURE
             chanWidthSupp = limGetHTCapability( pMac, eHT_SUPPORTED_CHANNEL_WIDTH_SET, psessionEntry);
 #else 
             chanWidthSupp = limGetHTCapability( pMac, eHT_SUPPORTED_CHANNEL_WIDTH_SET);
 #endif
-            if( (beaconStruct.HTCaps.supportedChannelWidthSet) &&
+            if( (beaconStruct->HTCaps.supportedChannelWidthSet) &&
                 (chanWidthSupp) )
             {
-                pAddBssParams->txChannelWidthSet = ( tANI_U8 ) beaconStruct.HTInfo.recommendedTxWidthSet;
-                pAddBssParams->currentExtChannel = beaconStruct.HTInfo.secondaryChannelOffset;
+                pAddBssParams->txChannelWidthSet = ( tANI_U8 ) beaconStruct->HTInfo.recommendedTxWidthSet;
+                pAddBssParams->currentExtChannel = beaconStruct->HTInfo.secondaryChannelOffset;
             }
             else
             {
                 pAddBssParams->txChannelWidthSet = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
                 pAddBssParams->currentExtChannel = eHT_SECONDARY_CHANNEL_OFFSET_NONE;
             }
-            pAddBssParams->llnNonGFCoexist = (tANI_U8)beaconStruct.HTInfo.nonGFDevicesPresent;
-            pAddBssParams->fLsigTXOPProtectionFullSupport = (tANI_U8)beaconStruct.HTInfo.lsigTXOPProtectionFullSupport;
-            pAddBssParams->fRIFSMode = beaconStruct.HTInfo.rifsMode;
+            pAddBssParams->llnNonGFCoexist = (tANI_U8)beaconStruct->HTInfo.nonGFDevicesPresent;
+            pAddBssParams->fLsigTXOPProtectionFullSupport = (tANI_U8)beaconStruct->HTInfo.lsigTXOPProtectionFullSupport;
+            pAddBssParams->fRIFSMode = beaconStruct->HTInfo.rifsMode;
         }
     }
 
@@ -3156,39 +3157,39 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
         pAddBssParams->staContext.assocId = 0; // Is SMAC OK with this?
         pAddBssParams->staContext.uAPSD = 0;
         pAddBssParams->staContext.maxSPLen = 0;
-        pAddBssParams->staContext.shortPreambleSupported = (tANI_U8)beaconStruct.capabilityInfo.shortPreamble;
-	 pAddBssParams->staContext.updateSta = updateEntry;
+        pAddBssParams->staContext.shortPreambleSupported = (tANI_U8)beaconStruct->capabilityInfo.shortPreamble;
+	    pAddBssParams->staContext.updateSta = updateEntry;
 
-        if (IS_DOT11_MODE_HT(psessionEntry->dot11mode) && ( beaconStruct.HTCaps.present ))
+        if (IS_DOT11_MODE_HT(psessionEntry->dot11mode) && ( beaconStruct->HTCaps.present ))
         {
             pAddBssParams->staContext.us32MaxAmpduDuration = 0;
             pAddBssParams->staContext.htCapable = 1;
-            pAddBssParams->staContext.greenFieldCapable  = ( tANI_U8 ) beaconStruct.HTCaps.greenField;
-            pAddBssParams->staContext.lsigTxopProtection = ( tANI_U8 ) beaconStruct.HTCaps.lsigTXOPProtection;
-            if( (beaconStruct.HTCaps.supportedChannelWidthSet) &&
+            pAddBssParams->staContext.greenFieldCapable  = ( tANI_U8 ) beaconStruct->HTCaps.greenField;
+            pAddBssParams->staContext.lsigTxopProtection = ( tANI_U8 ) beaconStruct->HTCaps.lsigTXOPProtection;
+            if( (beaconStruct->HTCaps.supportedChannelWidthSet) &&
                 (chanWidthSupp) )
             {
-                pAddBssParams->staContext.txChannelWidthSet = ( tANI_U8 )beaconStruct.HTInfo.recommendedTxWidthSet;
+                pAddBssParams->staContext.txChannelWidthSet = ( tANI_U8 )beaconStruct->HTInfo.recommendedTxWidthSet;
             }
             else
             {
                 pAddBssParams->staContext.txChannelWidthSet = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
             }                                                           
-            pAddBssParams->staContext.mimoPS             = (tSirMacHTMIMOPowerSaveState)beaconStruct.HTCaps.mimoPowerSave;
-            pAddBssParams->staContext.delBASupport       = ( tANI_U8 ) beaconStruct.HTCaps.delayedBA;
-            pAddBssParams->staContext.maxAmsduSize       = ( tANI_U8 ) beaconStruct.HTCaps.maximalAMSDUsize;
-            pAddBssParams->staContext.maxAmpduDensity    =             beaconStruct.HTCaps.mpduDensity;
-            pAddBssParams->staContext.fDsssCckMode40Mhz = (tANI_U8)beaconStruct.HTCaps.dsssCckMode40MHz;
-            pAddBssParams->staContext.fShortGI20Mhz = (tANI_U8)beaconStruct.HTCaps.shortGI20MHz;
-            pAddBssParams->staContext.fShortGI40Mhz = (tANI_U8)beaconStruct.HTCaps.shortGI40MHz;
-            pAddBssParams->staContext.maxAmpduSize= beaconStruct.HTCaps.maxRxAMPDUFactor;
+            pAddBssParams->staContext.mimoPS             = (tSirMacHTMIMOPowerSaveState)beaconStruct->HTCaps.mimoPowerSave;
+            pAddBssParams->staContext.delBASupport       = ( tANI_U8 ) beaconStruct->HTCaps.delayedBA;
+            pAddBssParams->staContext.maxAmsduSize       = ( tANI_U8 ) beaconStruct->HTCaps.maximalAMSDUsize;
+            pAddBssParams->staContext.maxAmpduDensity    =             beaconStruct->HTCaps.mpduDensity;
+            pAddBssParams->staContext.fDsssCckMode40Mhz  = (tANI_U8)beaconStruct->HTCaps.dsssCckMode40MHz;
+            pAddBssParams->staContext.fShortGI20Mhz      = (tANI_U8)beaconStruct->HTCaps.shortGI20MHz;
+            pAddBssParams->staContext.fShortGI40Mhz      = (tANI_U8)beaconStruct->HTCaps.shortGI40MHz;
+            pAddBssParams->staContext.maxAmpduSize       = beaconStruct->HTCaps.maxRxAMPDUFactor;
             
-            if( beaconStruct.HTInfo.present )
-                pAddBssParams->staContext.rifsMode = beaconStruct.HTInfo.rifsMode;
+            if( beaconStruct->HTInfo.present )
+                pAddBssParams->staContext.rifsMode = beaconStruct->HTInfo.rifsMode;
         }
 
-        if ((pMac->lim.gLimWmeEnabled && beaconStruct.wmeEdcaPresent) ||
-                (pMac->lim.gLimQosEnabled && beaconStruct.edcaPresent))
+        if ((pMac->lim.gLimWmeEnabled && beaconStruct->wmeEdcaPresent) ||
+                (pMac->lim.gLimQosEnabled && beaconStruct->edcaPresent))
             pAddBssParams->staContext.wmmEnabled = 1;
         else 
             pAddBssParams->staContext.wmmEnabled = 0;
@@ -3196,7 +3197,7 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
         //Update the rates
         
         limPopulateOwnRateSet(pMac, &pAddBssParams->staContext.supportedRates, 
-                                                    beaconStruct.HTCaps.supportedMCSSet, false,psessionEntry);
+                                                    beaconStruct->HTCaps.supportedMCSSet, false,psessionEntry);
         limFillSupportedRatesInfo(pMac, NULL, &pAddBssParams->staContext.supportedRates,psessionEntry);
 
     }
@@ -3247,10 +3248,12 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
         goto returnFailure;
 
     }
-    else
+    else{
+		vos_mem_free(beaconStruct);
         return retCode;
-
+	}
  returnFailure:
+	vos_mem_free(beaconStruct);
     // Clean-up will be done by the caller...
     return retCode;
 }

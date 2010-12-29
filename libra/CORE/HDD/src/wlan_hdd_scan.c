@@ -288,7 +288,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
  
    if (ie_length > 0)
    {
-       tDot11fBeaconIEs dot11BeaconIEs; 
+       tDot11fBeaconIEs *dot11BeaconIEs = NULL; 
        tDot11fIESSID *pDot11SSID;
        tDot11fIESuppRates *pDot11SuppRates;
        tDot11fIEExtSuppRates *pDot11ExtSuppRates;
@@ -297,11 +297,14 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
        int maxNumRates = 0;
  
        pDot11IEHTCaps = NULL;
- 
+
+	   dot11BeaconIEs = vos_mem_malloc(sizeof(tDot11fBeaconIEs));
+	   vos_mem_set(dot11BeaconIEs, sizeof(tDot11fBeaconIEs), 0);
+
        dot11fUnpackBeaconIEs ((tpAniSirGlobal) 
-           hHal, (tANI_U8 *) descriptor->ieFields, ie_length,  &dot11BeaconIEs);
+           hHal, (tANI_U8 *) descriptor->ieFields, ie_length,  dot11BeaconIEs);
  
-       pDot11SSID = &dot11BeaconIEs.SSID; 
+       pDot11SSID = &dot11BeaconIEs->SSID; 
  
  
        if (pDot11SSID->present ) {    
@@ -317,6 +320,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
           if(last_event == current_event)
           { /* no space to add event */
              hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWESSID\n");
+		     vos_mem_free(dot11BeaconIEs);
              return -E2BIG; 
           }
        }
@@ -324,6 +328,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
       if( hdd_GetWPARSNIEs( ( tANI_U8 *) descriptor->ieFields, ie_length, &last_event, &current_event, scanInfo )  < 0    )
       {
           hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWESSID\n");
+		  vos_mem_free(dot11BeaconIEs);
           return -E2BIG;
       }
 
@@ -335,7 +340,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
       event.cmd = SIOCGIWRATE;
 
 
-      pDot11SuppRates = &dot11BeaconIEs.SuppRates;
+      pDot11SuppRates = &dot11BeaconIEs->SuppRates;
 
       if (pDot11SuppRates->present ) 
       {
@@ -356,7 +361,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
                
       }
 
-      pDot11ExtSuppRates = &dot11BeaconIEs.ExtSuppRates;
+      pDot11ExtSuppRates = &dot11BeaconIEs->ExtSuppRates;
 
       if (pDot11ExtSuppRates->present ) 
       {   
@@ -392,6 +397,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
           if (last_event == current_event)
           { /* no space to add event */
               hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWRATE\n");
+		     vos_mem_free(dot11BeaconIEs);
               return -E2BIG;
           }
       }
@@ -418,8 +424,10 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
       if(last_event == current_event)
       { /* no space to add event 
                Error code, may be E2BIG */
+		  vos_mem_free(dot11BeaconIEs);
           return -E2BIG; 
       }
+	  vos_mem_free(dot11BeaconIEs);
    }
   
    last_event = current_event;

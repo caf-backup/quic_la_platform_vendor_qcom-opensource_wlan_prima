@@ -667,10 +667,11 @@ eHalStatus asicSetupTestWaveform(tpAniSirGlobal pMac, const tWaveformSample *pWa
 
     rdModWrAsicField(pMac, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_REG, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_MASK, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_OFFSET, 1);
     rdModWrAsicField(pMac, QWLAN_TXCLKCTRL_APB_BLOCK_CLK_EN_REG, QWLAN_TXCLKCTRL_APB_BLOCK_CLK_EN_WFM_MASK, QWLAN_TXCLKCTRL_APB_BLOCK_CLK_EN_WFM_OFFSET, 1);
-    {
+	{
         tANI_U16 sample = 0;
-        tANI_U32 Samples[MAX_TEST_WAVEFORM_SAMPLES * 2];
-
+        tANI_U32 *Samples = NULL;//[MAX_TEST_WAVEFORM_SAMPLES * 2];
+	
+		Samples = vos_mem_malloc(sizeof(Samples) * MAX_TEST_WAVEFORM_SAMPLES * 2);
         //lower 16 bits goes into even numbered U32 words, and the higher 16 bits goes into the odd numbered U32 words
         for (sample = 0; (sample < numSamples); sample++)
         {
@@ -683,6 +684,7 @@ eHalStatus asicSetupTestWaveform(tpAniSirGlobal pMac, const tWaveformSample *pWa
         }
 
         //SET_PHY_MEMORY(pMac->hHdd, QWLAN_PHYDBG_DBGMEM_MREG, Samples, numSamples * 2);
+		vos_mem_free(Samples);
     }
 
     return (retVal);
