@@ -4614,6 +4614,7 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->llgCoexist = psessionEntry->llgCoexist = true;
             pBeaconParams->paramChangeBitmap |= PARAM_llGCOEXIST_CHANGED;
         }
+#ifdef WLAN_SOFTAP_FEATURE
         else if (true == psessionEntry->gLimOverlap11gParams.protectionEnabled)
         {
             // As operating mode changed after G station assoc some way to update beacon
@@ -4621,6 +4622,7 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
             //pMac->sch.schObject.fBeaconChanged = 1;
             pBeaconParams->paramChangeBitmap |= PARAM_llGCOEXIST_CHANGED;
         }
+#endif
     }
     else if (true == psessionEntry->llgCoexist)
     {

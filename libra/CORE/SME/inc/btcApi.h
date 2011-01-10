@@ -187,6 +187,7 @@ typedef struct sSmeBtcBtEvent
 typedef struct sSmeBtcConfig
 {
    v_U8_t       btcExecutionMode;
+   v_U8_t       btcConsBtSlotsToBlockDuringDhcp;
    v_U8_t       btcActionOnPmFail;
    v_U8_t       btcBtIntervalMode1;
    v_U8_t       btcWlanIntervalMode1;

@@ -1215,30 +1215,38 @@ eHalStatus halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN s
     }
 
     if (IS_PWRSAVE_STATE_IN_BMPS)
-       halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC);
+        halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC);
 
     halStatus = halRxp_getFrameFilterMask(pMac, eDATA_DATA, &reg_value);
-    if(eHAL_STATUS_SUCCESS == halStatus)
-    {
-        if(setFilter)
-            halRxp_setFrameFilterMask(pMac, eDATA_DATA, reg_value | mask);
-        else
-            halRxp_setFrameFilterMask(pMac, eDATA_DATA, reg_value & ~mask);
-    }
+
+    if(eHAL_STATUS_SUCCESS != halStatus)
+        return halStatus;
+
+    if(setFilter)
+        halStatus = halRxp_setFrameFilterMask(pMac, eDATA_DATA, reg_value | mask);
+    else
+        halStatus = halRxp_setFrameFilterMask(pMac, eDATA_DATA, reg_value & ~mask);
+
+    if(eHAL_STATUS_SUCCESS != halStatus)
+        return halStatus;
 
     halStatus = halRxp_getFrameFilterMask(pMac, eDATA_QOSDATA, &reg_value);
-    if(eHAL_STATUS_SUCCESS == halStatus)
-    {
-        if(setFilter)
-            halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, reg_value | mask);
-        else
-            halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, reg_value & ~mask);
-    }
+
+    if(eHAL_STATUS_SUCCESS != halStatus)
+        return halStatus;
+
+    if(setFilter)
+        halStatus = halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, reg_value | mask);
+    else
+        halStatus = halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, reg_value & ~mask);
+
+    if(eHAL_STATUS_SUCCESS != halStatus)
+        return halStatus;
 
     if (IS_PWRSAVE_STATE_IN_BMPS)
-       halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC);
+        halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC);
 
-    return eHAL_STATUS_SUCCESS;
+    return halStatus;
 }
 
 /* --------------------------------
@@ -1284,12 +1292,14 @@ static eHalStatus halRxp_setFilterMask(tpAniSirGlobal pMac, tRxpFilterConfig *ta
 static eHalStatus setRegister(tpAniSirGlobal pMac, tANI_U32 address, tANI_U32 value)
 {
     tANI_U32  readValue;
+    eHalStatus halStatus;
 
-    halWriteRegister(pMac, address, value);
+    halStatus = halWriteRegister(pMac, address, value);
 
-    halReadRegister(pMac, address, &readValue);
+    if(halStatus == eHAL_STATUS_SUCCESS) 
+       halStatus = halReadRegister(pMac, address, &readValue);
 
-    return eHAL_STATUS_SUCCESS;
+    return halStatus;
 }
 
 /* ---------------------------------------------------

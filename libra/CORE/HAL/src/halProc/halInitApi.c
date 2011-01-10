@@ -45,6 +45,7 @@
 #include "halPwrSave.h"
 #include "halFwApi.h"
 #include "halRegBckup.h"
+#include "vos_api.h"
 
 /* --------------------------------------------------------------------------
  * local types and defs
@@ -411,9 +412,6 @@ eHalStatus halClose( tHalHandle hHal )
     // Final exit operation on HAL
     halCloseExit(pMac);
 
-    // Finally, de-allocate the global MAC datastructure:
-    palFreeMemory( pMac->hHdd, pMac );
-
     return nReturn;
 
 } // End halClose.
@@ -487,10 +485,12 @@ eHalStatus halStop( tHalHandle hHal , tHalStopType stopType )
     if ( NULL == hHal ) return eHAL_STATUS_NOT_OPEN;
 
     // Disable interrupts from SIF
-    status = halIntChipDisable( hHal );
+    if (!vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) {
+        status = halIntChipDisable( hHal );
 
-    if ( ! HAL_STATUS_SUCCESS( status ) )
-        nReturn = status;
+        if ( ! HAL_STATUS_SUCCESS( status ) )
+            nReturn = status;
+    }
 
     /** Disable all default interrupt services.*/
     halIntDefaultRegServicesEnable(hHal, eANI_BOOLEAN_FALSE);
@@ -507,7 +507,9 @@ eHalStatus halStop( tHalHandle hHal , tHalStopType stopType )
     halCloseLed(pMac);
 #endif
 
-    halPS_ExecuteStandbyProcedure(pMac);
+    if (!vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) {
+        halPS_ExecuteStandbyProcedure(pMac);
+    }
 
     halCleanup( pMac );
     return nReturn;

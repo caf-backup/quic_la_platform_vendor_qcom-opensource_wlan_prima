@@ -232,6 +232,8 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"ENABLE_PHY_AGC_LISTEN_MODE",
 	(unsigned char *)"SINGLE_TID_RC",
 	(unsigned char *)"MCAST_BCAST_FILTER_SETTING",
+	(unsigned char *)"BTC_DHCP_BT_SLOTS_TO_BLOCK",
+	(unsigned char *)"DYNAMIC_PS_POLL_VALUE",
 };
 
 

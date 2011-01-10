@@ -23,6 +23,7 @@
 #include "limSecurityUtils.h"
 #include "limSendMessages.h"
 #include "limSession.h"
+#include "limIbssPeerMgmt.h"
 
 #include <ani_assert.h>
 

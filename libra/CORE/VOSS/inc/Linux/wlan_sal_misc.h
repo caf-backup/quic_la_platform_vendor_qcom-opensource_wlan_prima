@@ -72,6 +72,7 @@ extern "C" {
 
 #endif
 
+#define SMSGFATAL(a, b, c, d)          VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, a, b, c, d)
 #define SMSGERROR(a, b, c, d)          VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR, a, b, c, d)
 #define SMSGWARN(a, b, c, d)           VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_WARN, a, b, c, d)
 #define SMSGINFO(a, b, c, d)           VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_INFO_LOW, a, b, c, d)

@@ -21,8 +21,17 @@
 
 #include "vos_diag_core_log.h"
 #include "vos_diag_core_event.h"
+
+/* Purpose of HIDDEN_TIMER 
+** When we remove hidden ssid from the profile i.e., forget the SSID via GUI that SSID shouldn't see in the profile
+** For above requirement we used timer limit, logic is explained below
+** Timer value is initialsed to current time  when it receives corresponding probe response of hidden SSID (The probe request is
+** received regularly till SSID in the profile. Once it is removed from profile probe request is not sent.) when we receive probe response
+** for broadcast probe request, during update SSID with saved SSID we will diff current time with saved SSID time if it is greater than 1 min
+** then we are not updating with old one
+*/
                                                                      
-                                                                     
+#define HIDDEN_TIMER (1*60*1000) 
 #define CSR_SCAN_RESULT_RSSI_WEIGHT     80 // must be less than 100, represent the persentage of new RSSI
                                                                      
 /*---------------------------------------------------------------------------
@@ -1996,7 +2005,8 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                 pResult->ucEncryptionType = uc;
                 pResult->mcEncryptionType = mc;
                 pResult->authType = auth;
-
+                pResult->Result.ssId = pBssDesc->Result.ssId;
+                pResult->Result.timer = 0;
 				//save the pIes for later use
                         pResult->Result.pvIes = pNewIes;
 				//save bss description
@@ -2204,7 +2214,7 @@ eHalStatus csrScanningStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
 
 //pIes may be NULL
 tANI_BOOLEAN csrRemoveDupBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pSirBssDescr,
-                                         tDot11fBeaconIEs *pIes ) 
+                                         tDot11fBeaconIEs *pIes, tAniSSID *pSsid , v_TIME_t *timer) 
 {
     tListElem *pEntry;
 
@@ -2237,6 +2247,8 @@ tANI_BOOLEAN csrRemoveDupBssDescription( tpAniSirGlobal pMac, tSirBssDescription
             {
             // !we need to free the memory associated with this node
                 //If failed to remove, assuming someone else got it.
+                *pSsid = pBssDesc->Result.ssId;
+                *timer = pBssDesc->Result.timer;
                 csrFreeScanResultEntry( pMac, pBssDesc );
             }
             else
@@ -2454,9 +2466,11 @@ static void csrMoveTempScanResultsToMainList( tpAniSirGlobal pMac )
 #endif /* FEATURE_WLAN_WAPI */
     tDot11fBeaconIEs *pIesLocal = NULL;
     tANI_U32 sessionId = CSR_SESSION_ID_INVALID;
-
+    tAniSSID tmpSsid;
+    v_TIME_t timer=0;
     cand_Bss_rssi = -128; // RSSI coming from PE is -ve
 
+    tmpSsid.length = 0;
     // remove the BSS descriptions from temporary list
     while( ( pEntry = csrLLRemoveTail( &pMac->scan.tempScanResults, LL_ACCESS_LOCK ) ) != NULL)
     {
@@ -2470,14 +2484,14 @@ static void csrMoveTempScanResultsToMainList( tpAniSirGlobal pMac )
                 pBssDescription->Result.BssDescriptor.rssi * (-1) );
 
         //At this time, pBssDescription->Result.pvIes may be NULL
-		pIesLocal = (tDot11fBeaconIEs *)( pBssDescription->Result.pvIes );
+	pIesLocal = (tDot11fBeaconIEs *)( pBssDescription->Result.pvIes );
         if( !pIesLocal && (!HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, &pBssDescription->Result.BssDescriptor, &pIesLocal))) )
         {
             smsLog(pMac, LOGE, FL("  Cannot pared IEs\n"));
             csrFreeScanResultEntry(pMac, pBssDescription);
             continue;
         }
-        fDupBss = csrRemoveDupBssDescription( pMac, &pBssDescription->Result.BssDescriptor, pIesLocal );
+        fDupBss = csrRemoveDupBssDescription( pMac, &pBssDescription->Result.BssDescriptor, pIesLocal, &tmpSsid , &timer );
         //Check whether we have reach out limit
         if( CSR_SCAN_IS_OVER_BSS_LIMIT(pMac) )
         {
@@ -2500,6 +2514,24 @@ static void csrMoveTempScanResultsToMainList( tpAniSirGlobal pMac )
             if( CSR_SESSION_ID_INVALID != sessionId)
             {
                 fNewBSSForCurConnection = eANI_BOOLEAN_TRUE;
+            }
+        }
+        else
+        {
+            //Check if the new one has SSID it it, if not, use the older SSID if it exists.
+            if( (0 == pBssDescription->Result.ssId.length) && tmpSsid.length )
+            {
+                //New BSS has a hidden SSID and old one has the SSID. Keep the SSID only 
+                //if diff of saved SSID time and current time is less than 1 min to avoid
+                //side effect of saving SSID with old one is that if AP changes its SSID while remain
+                //hidden, we may never see it and also to address the requirement of 
+                //When we remove hidden ssid from the profile i.e., forget the SSID via 
+                // GUI that SSID shouldn't see in the profile
+                if( (vos_timer_get_system_time() - timer) <= HIDDEN_TIMER)
+                {
+                   pBssDescription->Result.timer = timer;
+                   pBssDescription->Result.ssId = tmpSsid;
+                }
             }
         }
 
@@ -2590,9 +2622,31 @@ tCsrScanResult *csrScanAppendBssDescription( tpAniSirGlobal pMac,
                                              tDot11fBeaconIEs *pIes )
 {
     tCsrScanResult *pCsrBssDescription = NULL;
+    tAniSSID tmpSsid;
+    v_TIME_t timer = 0;
+    int result;
 
-    csrRemoveDupBssDescription( pMac, pSirBssDescription, pIes );
+    tmpSsid.length = 0;
+    result = csrRemoveDupBssDescription( pMac, pSirBssDescription, pIes, &tmpSsid, &timer );
     pCsrBssDescription = csrScanSaveBssDescription( pMac, pSirBssDescription, pIes );
+    if(result)
+    {
+        //Check if the new one has SSID it it, if not, use the older SSID if it exists.
+        if( (0 == pCsrBssDescription->Result.ssId.length) && tmpSsid.length )
+        {
+            //New BSS has a hidden SSID and old one has the SSID. Keep the SSID only
+            //if diff of saved SSID time and current time is less than 1 min to avoid
+            //side effect of saving SSID with old one is that if AP changes its SSID while remain
+            //hidden, we may never see it and also to address the requirement of
+            //When we remove hidden ssid from the profile i.e., forget the SSID via
+            // GUI that SSID shouldn't see in the profile
+            if((vos_timer_get_system_time()-timer) <= HIDDEN_TIMER)
+            { 
+              pCsrBssDescription->Result.ssId = tmpSsid;
+              pCsrBssDescription->Result.timer = timer;
+            }
+        }
+    }
 
     return( pCsrBssDescription );
 }
@@ -3772,7 +3826,8 @@ static void csrScanRemoveDupBssDescriptionFromInterimList( tpAniSirGlobal pMac,
 //Caller allocated memory pfNewBssForConn to return whether new candidate for
 //current connection is found. Cannot be NULL
 tCsrScanResult *csrScanSaveBssDescriptionToInterimList( tpAniSirGlobal pMac, 
-                                                        tSirBssDescription *pBSSDescription)
+                                                        tSirBssDescription *pBSSDescription,
+                                                        tDot11fBeaconIEs *pIes)
 {
     tCsrScanResult *pCsrBssDescription = NULL;
     tANI_U32 cbBSSDesc;
@@ -3791,6 +3846,15 @@ tCsrScanResult *csrScanSaveBssDescriptionToInterimList( tpAniSirGlobal pMac,
         palZeroMemory(pMac->hHdd, pCsrBssDescription, cbAllocated);
         pCsrBssDescription->AgingCount = (tANI_S32)pMac->roam.configParam.agingCount;
         palCopyMemory(pMac->hHdd, &pCsrBssDescription->Result.BssDescriptor, pBSSDescription, cbBSSDesc );
+        //Save SSID separately for later use
+        if( pIes->SSID.present && !csrIsNULLSSID(pIes->SSID.ssid, pIes->SSID.num_ssid) )
+        {
+            //SSID not hidden
+            pCsrBssDescription->Result.ssId.length = pIes->SSID.num_ssid;
+            pCsrBssDescription->Result.timer = vos_timer_get_system_time();
+            palCopyMemory(pMac->hHdd, pCsrBssDescription->Result.ssId.ssId, 
+                pIes->SSID.ssid, pIes->SSID.num_ssid );
+        }
         csrLLInsertTail( &pMac->scan.tempScanResults, &pCsrBssDescription->Link, LL_ACCESS_LOCK );
     }
 
@@ -4031,11 +4095,11 @@ static tANI_BOOLEAN csrScanProcessScanResults( tpAniSirGlobal pMac, tSmeCmd *pCo
                 if ( csrScanValidateScanResult( pMac, pChannelList, cChannels, pSirBssDescription, &pIes ) ) 
                 {
                     csrScanRemoveDupBssDescriptionFromInterimList(pMac, pSirBssDescription, pIes);
-                    csrScanSaveBssDescriptionToInterimList( pMac, pSirBssDescription );
+                    csrScanSaveBssDescriptionToInterimList( pMac, pSirBssDescription, pIes );
                     if( eSIR_PASSIVE_SCAN == pMac->scan.curScanType )
                     {
                         if( csrIs11dSupported( pMac) )
-                        {
+                        {	
                             //Check whether the BSS is acceptable base on 11d info and our configs.
                             if( csrMatchCountryCode( pMac, NULL, pIes ) )
                             {
@@ -7530,7 +7594,7 @@ eHalStatus csrScanForSSID(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
             status = csrQueueSmeCommand(pMac, pScanCmd, eANI_BOOLEAN_FALSE);
             if( !HAL_STATUS_SUCCESS( status ) )
             {
-                smsLog( pMac, LOGE, FL(" fail to send message status = %d\n"), status );
+                smsLog( pMac, LOGE, FL(" fail to send  message status = %d\n"), status );
                 break;
             }
         }while(0);

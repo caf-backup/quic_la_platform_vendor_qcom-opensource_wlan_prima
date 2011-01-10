@@ -28,6 +28,13 @@ void send_btc_nlink_msg (int type, int dest_pid)
    tAniMsgHdr *aniHdr;
    tWlanAssocData *assocData;
 
+   /* Note nothing is blocked here even if LOGP handling is in progress. First of all
+      we do not send any nlink message during the reset progress. Secondly we do want to
+      send the WLAN_MODULE_DOWN_IND in response to the WLAN_MODULE_DOWN private ioctl from
+      Wifi.c in the scenario where rmmod is triggered when LOGP handling is in progress.
+      Note we also do not check for isLoadUnloadInProgress because we do want certain
+      BT events to go out while insmod/rmmod is in progress. */
+
    skb = alloc_skb(NLMSG_SPACE(WLAN_NL_MAX_PAYLOAD), GFP_KERNEL);
    if(skb == NULL) {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
@@ -103,6 +110,25 @@ int btc_msg_callback (struct sk_buff * skb)
    nlh = (struct nlmsghdr *)skb->data;
    msg_hdr = NLMSG_DATA(nlh);
    
+   /* If LOGP reset in progress, no need to process any BT event. No BT state is lost bcoz 
+      we send (fake) a WLAN_MODULE_DOWN_IND, at the end of successful reset to retrigger 
+      replay of BT events anyways. Note we also check for isLoadUnloadInProgress because 
+      we do not want BT events to be propagated to MAC while rmmod is in progress */
+   if(pAdapterHandle != NULL) {
+      if(pAdapterHandle->isLogpInProgress) {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore BT event!!",__func__);
+         return 0;
+      }
+
+     if(pAdapterHandle->isLoadUnloadInProgress) {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:Load-Unload in Progress. Ignore BT event!!",__func__);
+         return 0;
+     }
+   } else {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:pAdapter NULL, bailing out !!!",__func__);
+      return 0;
+   }
+
    /* Continue with parsing payload. */
    switch(msg_hdr->type)
    {

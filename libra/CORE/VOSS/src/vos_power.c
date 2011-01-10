@@ -51,6 +51,7 @@ when       who     what, where, why
 
 ===========================================================================*/
 #include <vos_power.h>
+#include <vos_api.h>
 
 #ifndef LIBRA_LINUX_PC
 #include <mach/mpp.h>
@@ -72,7 +73,11 @@ when       who     what, where, why
 #endif
 
 #include <vos_sched.h>
+#include <wlan_hdd_main.h>
 
+#ifdef WLAN_DBG_GPIO
+#include <mach/gpio.h>
+#endif
 /*===========================================================================
 
                         DEFINITIONS AND TYPES
@@ -187,14 +192,6 @@ int vos_chip_power_qrf8600(int on)
          return -EIO;
       }
 
-      // Configure GPIO 23 for Deep Sleep
-      rc = pm8058_gpio_config(wlan_gpios_power_on[2].gpio_num, &wlan_gpios_power_on[2].gpio_cfg);
-      if (rc) {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
-            __func__, wlan_gpios_power_on[2].gpio_num, rc);
-         return -EIO;
-      }
-
       // Power up 2.4v Analog
       rc = vreg_set_level(vreg_wlan2, 2400);
       if (rc) {
@@ -211,6 +208,15 @@ int vos_chip_power_qrf8600(int on)
 
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Wait for 2.5v supply to settle",__func__);
       msleep(500);
+
+      // Configure GPIO 23 for Deep Sleep
+      rc = pm8058_gpio_config(wlan_gpios_power_on[2].gpio_num, &wlan_gpios_power_on[2].gpio_cfg);
+      if (rc) {
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: pmic GPIO %d config failed (%d)",
+            __func__, wlan_gpios_power_on[2].gpio_num, rc);
+         return -EIO;
+      }
+      msleep(100);
 
       // Power up 1.3v RF
       rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S2, 1300);
@@ -439,6 +445,11 @@ VOS_STATUS vos_chipPowerUp
       return VOS_STATUS_E_FAILURE;
 #endif
 
+#ifdef WLAN_DBG_GPIO
+     gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_2MA), GPIO_ENABLE);
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: GPIO 181 should be HIGH now", __func__);
+#endif
+ 
    return VOS_STATUS_SUCCESS;
 }
 
@@ -529,6 +540,12 @@ VOS_STATUS vos_chipReset
 )
 {
    VOS_STATUS vstatus;
+
+#ifdef WLAN_DBG_GPIO
+     gpio_tlmm_config(GPIO_CFG(181, 0, GPIO_OUTPUT, GPIO_PULL_DOWN, GPIO_2MA), GPIO_ENABLE);
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: GPIO 181 should be LOW now", __func__);
+#endif
+
    vstatus = vos_watchdog_chip_reset();
    return vstatus;
 }

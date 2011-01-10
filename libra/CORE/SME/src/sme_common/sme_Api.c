@@ -1353,7 +1353,7 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
                         *pScanRequestID = lScanId;
                     }
                     sme_ReleaseGlobalLock( &pMac->sme );
-                    callback( pMac, pContext, lScanId, eCSR_SCAN_SUCCESS );
+                    callback( pMac, pContext, lScanId, eCSR_SCAN_ONGOING );
                     status = sme_AcquireGlobalLock( &pMac->sme );
                     if ( !HAL_STATUS_SUCCESS( status ) )
                     {

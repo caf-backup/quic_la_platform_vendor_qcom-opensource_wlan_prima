@@ -1014,6 +1014,12 @@ void pmcTrafficTimerExpired (tHalHandle hHal)
            pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
            pMac->pmc.remainInPowerActiveThreshold = 0;
         }
+	//Activate the Traffic Timer again for entering into BMPS
+        vosStatus = vos_timer_start(&pMac->pmc.hTrafficTimer, pMac->pmc.bmpsConfig.trafficMeasurePeriod);
+        if ( !VOS_IS_STATUS_SUCCESS(vosStatus) && (VOS_STATUS_E_ALREADY != vosStatus) )
+        {
+            smsLog(pMac, LOGP, FL("Cannot re-start traffic timer\n"));
+        }
         return;
     }
     

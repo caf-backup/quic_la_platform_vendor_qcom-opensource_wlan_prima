@@ -154,11 +154,11 @@ static eHalStatus hdd_GetWPARSNIEs( v_U8_t *ieFields, v_U16_t ie_length, char **
   
   --------------------------------------------------------------------------*/      
 #define MAX_CUSTOM_LEN 64
-static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
-                                 tSirBssDescription *descriptor)
+static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,tCsrScanResultInfo *scan_result)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(scanInfo->dev) ;
    tHalHandle hHal = pAdapter->hHal;
+   tSirBssDescription *descriptor = &scan_result->BssDescriptor;
    struct iw_event event;
    char *current_event = scanInfo->start;
    char *end = scanInfo->end;
@@ -288,7 +288,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
  
    if (ie_length > 0)
    {
-       tDot11fBeaconIEs *dot11BeaconIEs = NULL; 
+       tDot11fBeaconIEs dot11BeaconIEs; 
        tDot11fIESSID *pDot11SSID;
        tDot11fIESuppRates *pDot11SuppRates;
        tDot11fIEExtSuppRates *pDot11ExtSuppRates;
@@ -297,14 +297,11 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
        int maxNumRates = 0;
  
        pDot11IEHTCaps = NULL;
-
-	   dot11BeaconIEs = vos_mem_malloc(sizeof(tDot11fBeaconIEs));
-	   vos_mem_set(dot11BeaconIEs, sizeof(tDot11fBeaconIEs), 0);
-
-       dot11fUnpackBeaconIEs ((tpAniSirGlobal) 
-           hHal, (tANI_U8 *) descriptor->ieFields, ie_length,  dot11BeaconIEs);
  
-       pDot11SSID = &dot11BeaconIEs->SSID; 
+       dot11fUnpackBeaconIEs ((tpAniSirGlobal) 
+           hHal, (tANI_U8 *) descriptor->ieFields, ie_length,  &dot11BeaconIEs);
+ 
+       pDot11SSID = &dot11BeaconIEs.SSID; 
  
  
        if (pDot11SSID->present ) {    
@@ -313,14 +310,13 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
  
           event.cmd = SIOCGIWESSID;
           event.u.data.flags = 1;
-          event.u.data.length = pDot11SSID->num_ssid;
+          event.u.data.length = scan_result->ssId.length;
           current_event = iwe_stream_add_point (scanInfo->info,current_event, end, 
-                  &event, (char *)pDot11SSID->ssid);
+				  &event, (char *)scan_result->ssId.ssId);
  
           if(last_event == current_event)
           { /* no space to add event */
              hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWESSID\n");
-		     vos_mem_free(dot11BeaconIEs);
              return -E2BIG; 
           }
        }
@@ -328,7 +324,6 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
       if( hdd_GetWPARSNIEs( ( tANI_U8 *) descriptor->ieFields, ie_length, &last_event, &current_event, scanInfo )  < 0    )
       {
           hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWESSID\n");
-		  vos_mem_free(dot11BeaconIEs);
           return -E2BIG;
       }
 
@@ -340,7 +335,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
       event.cmd = SIOCGIWRATE;
 
 
-      pDot11SuppRates = &dot11BeaconIEs->SuppRates;
+      pDot11SuppRates = &dot11BeaconIEs.SuppRates;
 
       if (pDot11SuppRates->present ) 
       {
@@ -361,7 +356,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
                
       }
 
-      pDot11ExtSuppRates = &dot11BeaconIEs->ExtSuppRates;
+      pDot11ExtSuppRates = &dot11BeaconIEs.ExtSuppRates;
 
       if (pDot11ExtSuppRates->present ) 
       {   
@@ -397,7 +392,6 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
           if (last_event == current_event)
           { /* no space to add event */
               hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWRATE\n");
-		     vos_mem_free(dot11BeaconIEs);
               return -E2BIG;
           }
       }
@@ -424,10 +418,8 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
       if(last_event == current_event)
       { /* no space to add event 
                Error code, may be E2BIG */
-		  vos_mem_free(dot11BeaconIEs);
           return -E2BIG; 
       }
-	  vos_mem_free(dot11BeaconIEs);
    }
   
    last_event = current_event;
@@ -565,6 +557,11 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
        return -EBUSY;                  
    }
    
+   if (pAdapter->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+      return -EBUSY;
+   }
+   
    vos_mem_zero( &scanRequest, sizeof(scanRequest));
  
    if (NULL != wrqu->data.pointer)
@@ -680,6 +677,11 @@ int iw_get_scan(struct net_device *dev,
        hddLog(LOG1,"iw_get_scan: mScanPending \n");
        return -EAGAIN;
    }
+
+   if (pAdapter->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+      return -EAGAIN;
+   }
  
    scanInfo.dev = dev;
    scanInfo.start = extra;
@@ -707,7 +709,7 @@ int iw_get_scan(struct net_device *dev,
  
    while (pScanResult)
    {
-       status = hdd_IndicateScanResult(&scanInfo,&pScanResult->BssDescriptor);
+       status = hdd_IndicateScanResult(&scanInfo,pScanResult);
        if (0 != status)
        {
            break;

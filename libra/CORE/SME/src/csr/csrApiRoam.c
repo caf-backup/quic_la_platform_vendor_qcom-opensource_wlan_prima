@@ -295,9 +295,9 @@ static eHalStatus csrRoamGetQosInfoFromBss(tpAniSirGlobal pMac, tSirBssDescripti
 eHalStatus csrOpen(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-	uNvTables *nvTables=NULL;
-	nvTables = vos_mem_malloc(sizeof(uNvTables));
-    vos_mem_set(nvTables,sizeof(uNvTables),0);    
+	uNvTables nvTables;
+    v_REGDOMAIN_t regId;
+    
     do
     {
         csrRoamStateChange( pMac, eCSR_ROAMING_STATE_STOP );
@@ -314,14 +314,11 @@ eHalStatus csrOpen(tpAniSirGlobal pMac)
         if(!HAL_STATUS_SUCCESS(csrLLOpen(pMac->hHdd, &pMac->roam.roamCmdPendingList)))
            break;
 
-        pMac->scan.domainIdDefault = halPhyGetRegDomain(pMac);
-        pMac->scan.domainIdCurrent = pMac->scan.domainIdDefault;
-
-        status = halReadNvTable( pMac, NV_TABLE_DEFAULT_COUNTRY, nvTables );
+        status = halReadNvTable( pMac, NV_TABLE_DEFAULT_COUNTRY, &nvTables );
 		if (HAL_STATUS_SUCCESS( status ))
 		{
             palCopyMemory( pMac->hHdd, pMac->scan.countryCodeDefault, 
-					nvTables->defaultCountryTable.countryCode, WNI_CFG_COUNTRY_CODE_LEN );
+					nvTables.defaultCountryTable.countryCode, WNI_CFG_COUNTRY_CODE_LEN );
 		}
 		else
 		{
@@ -332,12 +329,18 @@ eHalStatus csrOpen(tpAniSirGlobal pMac)
             pMac->scan.countryCodeDefault[2] = 'I';
 		}
 		smsLog( pMac, LOGE, FL(" country Code from nvRam %s\n"), pMac->scan.countryCodeDefault );
+
+        csrGetRegulatoryDomainForCountry(pMac, pMac->scan.countryCodeDefault, &regId);
+        halPhySetRegDomain(pMac, regId);
+        pMac->scan.domainIdDefault = regId;
+        pMac->scan.domainIdCurrent = pMac->scan.domainIdDefault;
+
 		status = palCopyMemory(pMac->hHdd, pMac->scan.countryCodeCurrent, 
                          pMac->scan.countryCodeDefault, WNI_CFG_COUNTRY_CODE_LEN);
 		status = csrInitGetChannels( pMac );
 
     }while(0);
-    vos_mem_free(nvTables); 
+    
     return (status);
 }
 
@@ -1119,26 +1122,26 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         //otherwise keep using the defaults
         if(pParam->nScanResultAgeCount)
         {
-        pMac->roam.configParam.agingCount = pParam->nScanResultAgeCount;
+            pMac->roam.configParam.agingCount = pParam->nScanResultAgeCount;
         }
 
         if(pParam->scanAgeTimeNCNPS)
         {
-        pMac->roam.configParam.scanAgeTimeNCNPS = pParam->scanAgeTimeNCNPS;  
+            pMac->roam.configParam.scanAgeTimeNCNPS = pParam->scanAgeTimeNCNPS;  
         }
 
         if(pParam->scanAgeTimeNCPS)
         {
-        pMac->roam.configParam.scanAgeTimeNCPS = pParam->scanAgeTimeNCPS;   
+            pMac->roam.configParam.scanAgeTimeNCPS = pParam->scanAgeTimeNCPS;   
         }
 
         if(pParam->scanAgeTimeCNPS)
         {
-        pMac->roam.configParam.scanAgeTimeCNPS = pParam->scanAgeTimeCNPS;   
+            pMac->roam.configParam.scanAgeTimeCNPS = pParam->scanAgeTimeCNPS;   
         }
         if(pParam->scanAgeTimeCPS)
         {
-        pMac->roam.configParam.scanAgeTimeCPS = pParam->scanAgeTimeCPS;   
+            pMac->roam.configParam.scanAgeTimeCPS = pParam->scanAgeTimeCPS;   
         }
         
         csrAssignRssiForCategory(pMac, pParam->bCatRssiOffset);
@@ -1156,8 +1159,11 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
 		//Assign this before calling CsrInit11dInfo
         pMac->roam.configParam.nTxPowerCap = pParam->nTxPowerCap;
 
-        status = CsrInit11dInfo(pMac, &pParam->Csr11dinfo);
-        if( !csrIs11dSupported( pMac ) )
+        if( csrIs11dSupported( pMac ) )
+        {
+            status = CsrInit11dInfo(pMac, &pParam->Csr11dinfo);
+        }
+        else
         {
             pMac->scan.curScanType = eSIR_ACTIVE_SCAN;
         }
@@ -3672,14 +3678,13 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     case eCsrHddIssuedReassocToSameAP:
     case eCsrSmeIssuedReassocToSameAP:
     {
-        tDot11fBeaconIEs *Ies=NULL;
+        tDot11fBeaconIEs Ies;
 
-		Ies = vos_mem_malloc(sizeof(tDot11fBeaconIEs));
-		vos_mem_set(Ies,sizeof(tDot11fBeaconIEs),0);
+
         if( pSession->pConnectBssDesc )
         {
-            palZeroMemory(pMac->hHdd, (void *)Ies, sizeof(tDot11fBeaconIEs));
-            status = csrParseBssDescriptionIEs(pMac, pSession->pConnectBssDesc, Ies);
+            palZeroMemory(pMac->hHdd, (void *)&Ies, sizeof(tDot11fBeaconIEs));
+            status = csrParseBssDescriptionIEs(pMac, pSession->pConnectBssDesc, &Ies);
             if( HAL_STATUS_SUCCESS( status ) )
             {
                 roamInfo.reasonCode = eCsrRoamReasonStaCapabilityChanged;
@@ -3692,11 +3697,10 @@ eHalStatus csrRoamProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                                      eCSR_ROAM_ASSOCIATION_START, eCSR_ROAM_RESULT_NONE );
    
                 smsLog(pMac, LOGE, FL("  calling csrRoamIssueReassociate\n"));
-                csrRoamIssueReassociate( pMac, sessionId, pSession->pConnectBssDesc, Ies,
+                csrRoamIssueReassociate( pMac, sessionId, pSession->pConnectBssDesc, &Ies,
                                          &pCommand->u.roamCmd.roamProfile );
             }
         }
-		vos_mem_free(Ies);
         break;
     }
 
@@ -6310,7 +6314,6 @@ static void csrRoamRoamingStateReassocRspProcessor( tpAniSirGlobal pMac, tSirSme
 
 static void csrRoamRoamingStateStopBssRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSmeRsp)
 {
-    tpSirSmeStopBssRsp pStopBssRsp = (tpSirSmeStopBssRsp)pSmeRsp;
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
     {
@@ -6320,7 +6323,7 @@ static void csrRoamRoamingStateStopBssRspProcessor(tpAniSirGlobal pMac, tSirSmeR
         if(pIbssLog)
         {
             pIbssLog->eventId = WLAN_IBSS_EVENT_STOP_RSP;
-            if(eSIR_SME_SUCCESS != pSmeReassocRsp->statusCode)
+            if(eSIR_SME_SUCCESS != pSmeRsp->statusCode)
             {
                 pIbssLog->status = WLAN_IBSS_STATUS_FAILURE;
             }
@@ -6329,7 +6332,7 @@ static void csrRoamRoamingStateStopBssRspProcessor(tpAniSirGlobal pMac, tSirSmeR
     }
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
 
-    pMac->roam.roamSession[pStopBssRsp->sessionId].connectState = eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED;
+    pMac->roam.roamSession[pSmeRsp->sessionId].connectState = eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED;
     if(CSR_IS_ROAM_SUBSTATE_STOP_BSS_REQ( pMac ))
     {
         csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
@@ -6565,6 +6568,14 @@ static void csrRoamRoamingStateStartBssRspProcessor( tpAniSirGlobal pMac, tSirSm
 #endif
 }
 
+
+/*
+  We need to be careful on whether to cast pMsgBuf (pSmeRsp) to other type of strucutres.
+  It depends on how the message is constructed. If the message is sent by limSendSmeRsp,
+  the pMsgBuf is only a generic response and can only be used as pointer to tSirSmeRsp.
+  For the messages where sender allocates memory for specific structures, then it can be 
+  cast accordingly.
+*/
 void csrRoamingStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
 {
     tSirSmeRsp *pSmeRsp;

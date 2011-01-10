@@ -88,12 +88,10 @@ void
 limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
                        tANI_U8 *qosCap, tANI_U16 *propCap, tANI_U8 *uapsd)
 {
-    tSirProbeRespBeacon *beaconStruct = NULL;
+    tSirProbeRespBeacon beaconStruct;
     tANI_U32            localPowerConstraints = 0;
 
-	beaconStruct = vos_mem_malloc(sizeof(tSirProbeRespBeacon));
-//	vos_mem_set(beaconStruct, sizeof(tSirProbeRespBeacon), 0);
-    palZeroMemory( pMac->hHdd, (tANI_U8 *) beaconStruct, sizeof(tSirProbeRespBeacon));
+    palZeroMemory( pMac->hHdd, (tANI_U8 *) &beaconStruct, sizeof(beaconStruct));
 
     *qosCap = 0;
     *propCap = 0;
@@ -102,31 +100,31 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
     PELOG3(limLog( pMac, LOG3,
         FL("In limExtractApCapability: The IE's being received are:\n"));
     sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOG3, pIE, ieLen );)
-    if (sirParseBeaconIE(pMac, beaconStruct, pIE, (tANI_U32)ieLen) == eSIR_SUCCESS)
+    if (sirParseBeaconIE(pMac, &beaconStruct, pIE, (tANI_U32)ieLen) == eSIR_SUCCESS)
     {
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
-        if (beaconStruct->propIEinfo.hcfEnabled)
+        if (beaconStruct.propIEinfo.hcfEnabled)
             LIM_BSS_CAPS_SET(HCF, *qosCap);
 #endif
-        if (beaconStruct->wmeInfoPresent || beaconStruct->wmeEdcaPresent)
+        if (beaconStruct.wmeInfoPresent || beaconStruct.wmeEdcaPresent)
             LIM_BSS_CAPS_SET(WME, *qosCap);
-        if (LIM_BSS_CAPS_GET(WME, *qosCap) && beaconStruct->wsmCapablePresent)
+        if (LIM_BSS_CAPS_GET(WME, *qosCap) && beaconStruct.wsmCapablePresent)
             LIM_BSS_CAPS_SET(WSM, *qosCap);
-        if (beaconStruct->propIEinfo.aniIndicator &&
-            beaconStruct->propIEinfo.capabilityPresent)
-            *propCap = beaconStruct->propIEinfo.capability;
-        if (beaconStruct->HTCaps.present)
+        if (beaconStruct.propIEinfo.aniIndicator &&
+            beaconStruct.propIEinfo.capabilityPresent)
+            *propCap = beaconStruct.propIEinfo.capability;
+        if (beaconStruct.HTCaps.present)
             pMac->lim.htCapabilityPresentInBeacon = 1;
         else
             pMac->lim.htCapabilityPresentInBeacon = 0;
 
         // Extract the UAPSD flag from WMM Parameter element
-        if (beaconStruct->wmeEdcaPresent)
-            *uapsd = beaconStruct->edcaParams.qosInfo.uapsd;
+        if (beaconStruct.wmeEdcaPresent)
+            *uapsd = beaconStruct.edcaParams.qosInfo.uapsd;
 
-        if (beaconStruct->powerConstraintPresent && pMac->lim.gLim11hEnable)
+        if (beaconStruct.powerConstraintPresent && pMac->lim.gLim11hEnable)
         {
-            localPowerConstraints = (tANI_U32)beaconStruct->localPowerConstraint.localPowerConstraints;
+            localPowerConstraints = (tANI_U32)beaconStruct.localPowerConstraint.localPowerConstraints;
         }
 
         if (cfgSetInt(pMac, WNI_CFG_LOCAL_POWER_CONSTRAINT, localPowerConstraints) != eSIR_SUCCESS)
@@ -134,7 +132,7 @@ limExtractApCapability(tpAniSirGlobal pMac, tANI_U8 *pIE, tANI_U16 ieLen,
             limLog(pMac, LOGP, FL("Could not update local power constraint to cfg.\n"));
         }
     }
-	vos_mem_free(beaconStruct);
+
     return;
 } /****** end limExtractApCapability() ******/
 

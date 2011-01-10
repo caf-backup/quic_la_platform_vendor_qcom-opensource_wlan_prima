@@ -120,10 +120,17 @@ ap_beacon_process(
                   !(pBcnStruct->erpIEInfo.useProtection || 
                     pBcnStruct->erpIEInfo.nonErpPresent) && !(pBcnStruct->HTInfo.present))
               {
+#ifdef WLAN_SOFTAP_FEATURE
                     limUpdateOverlapStaParam(pMac, pMh->bssId, &(psessionEntry->gLimOverlap11gParams));
 
                   if (psessionEntry->gLimOverlap11gParams.numSta && 
                       !psessionEntry->gLimOverlap11gParams.protectionEnabled)
+#else
+                   limUpdateOverlapStaParam(pMac, pMh->bssId, &(pMac->lim.gLimOverlap11gParams));
+
+                  if (pMac->lim.gLimOverlap11gParams.numSta &&
+                      !pMac->lim.gLimOverlap11gParams.protectionEnabled)
+#endif
                   {
                       limEnableHtProtectionFrom11g(pMac, true, true, pBeaconParams,psessionEntry);
                   }
@@ -145,9 +152,16 @@ ap_beacon_process(
                       if((eSIR_HT_OP_MODE_MIXED != pMac->lim.gHTOperMode) &&
                           (eSIR_HT_OP_MODE_OVERLAP_LEGACY != pMac->lim.gHTOperMode))
                       {
+#ifdef WLAN_SOFTAP_FEATURE
                           limUpdateOverlapStaParam(pMac, pMh->bssId, &(psessionEntry->gLimOverlap11gParams));
                           if (psessionEntry->gLimOverlap11gParams.numSta &&
                               !psessionEntry->gLimOverlap11gParams.protectionEnabled)
+#else
+                          limUpdateOverlapStaParam(pMac, pMh->bssId, &(pMac->lim.gLimOverlap11gParams));
+
+                          if (pMac->lim.gLimOverlap11gParams.numSta &&
+                              !pMac->lim.gLimOverlap11gParams.protectionEnabled)
+#endif
                           {
                               limEnableHtProtectionFrom11g(pMac, true, true, pBeaconParams,psessionEntry);
                           }
@@ -155,9 +169,16 @@ ap_beacon_process(
                   }           
                   else if(eSIR_HT_OP_MODE_NO_LEGACY_20MHZ_HT == pBcnStruct->HTInfo.opMode)
                   {
+#ifdef WLAN_SOFTAP_FEATURE
                       limUpdateOverlapStaParam(pMac, pMh->bssId, &(psessionEntry->gLimOverlapHt20Params));
                       if (psessionEntry->gLimOverlapHt20Params.numSta &&
                           !psessionEntry->gLimOverlapHt20Params.protectionEnabled)
+#else
+                      limUpdateOverlapStaParam(pMac, pMh->bssId, &(pMac->lim.gLimOverlapHt20Params));
+
+                      if (pMac->lim.gLimOverlapHt20Params.numSta &&
+                          !pMac->lim.gLimOverlapHt20Params.protectionEnabled)
+#endif
                       {
                           limEnableHT20Protection(pMac, true, true, pBeaconParams,psessionEntry);
                       }
@@ -501,7 +522,11 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U32* pBD, tpPESession psessionEn
     if ((pAPSession = limIsApSessionActive(pMac)) != NULL)
     {
         beaconParams.bssIdx = pAPSession->bssIdx;
+#ifdef WLAN_SOFTAP_FEATURE
         if (pAPSession->gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
+#else
+        if (pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
+#endif
             ap_beacon_process(pMac,  pBD, &beaconStruct, &beaconParams, pAPSession);
 
         if (beaconParams.paramChangeBitmap)

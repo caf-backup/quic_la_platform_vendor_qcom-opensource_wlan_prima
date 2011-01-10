@@ -51,10 +51,7 @@ void
 limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEntry)
 {
     tpSirMacMgmtHdr      pHdr;
-    tSchBeaconStruct     *beacon = NULL;
-
-    beacon = vos_mem_malloc(sizeof(tSchBeaconStruct));
-    vos_mem_set(beacon, sizeof(tSchBeaconStruct), 0);
+    tSchBeaconStruct     beacon;
 
     pMac->lim.gLimNumBeaconsRcvd++;
 
@@ -70,10 +67,7 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
     limPrintMacAddr(pMac, pHdr->sa, LOG2);)
 
     if (limDeactivateMinChannelTimerDuringScan(pMac) != eSIR_SUCCESS)
-	{
-		vos_mem_free(beacon);
         return;
-	}
 
     /**
      * Expect Beacon only when
@@ -89,7 +83,7 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
     {
         // Parse received Beacon
         if (sirConvertBeaconFrame2Struct(pMac, (tANI_U8 *) pBd,
-                                         beacon) != eSIR_SUCCESS)
+                                         &beacon) != eSIR_SUCCESS)
         {
             // Received wrongly formatted/invalid Beacon.
             // Ignore it and move on.
@@ -97,18 +91,17 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
                    FL("Received invalid Beacon in state %X\n"),
                    psessionEntry->limMlmState);
             limPrintMlmState(pMac, LOGW,  psessionEntry->limMlmState);
-		    vos_mem_free(beacon);
             return;
         }
 
 
-       MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT_TSF, 0, beacon->timeStamp[0]);)
-       MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT_TSF, 0, beacon->timeStamp[1]);)
+       MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT_TSF, 0, beacon.timeStamp[0]);)
+       MTRACE(macTrace(pMac, TRACE_CODE_RX_MGMT_TSF, 0, beacon.timeStamp[1]);)
 
 
         if ((psessionEntry->limMlmState  == eLIM_MLM_WT_PROBE_RESP_STATE) ||
             (psessionEntry->limMlmState  == eLIM_MLM_PASSIVE_SCAN_STATE))
-            limCheckAndAddBssDescription(pMac, beacon, pBd, ((pMac->lim.gLimHalScanState == eLIM_HAL_SCANNING_STATE) ? eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE));
+            limCheckAndAddBssDescription(pMac, &beacon, pBd, ((pMac->lim.gLimHalScanState == eLIM_HAL_SCANNING_STATE) ? eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE));
         else if (psessionEntry->limMlmState == eLIM_MLM_LEARN_STATE)
         {
 #if (WNI_POLARIS_FW_PRODUCT == AP) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
@@ -118,9 +111,9 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
              * comes up which needs to be fixed*/
             //if (pMac->lim.gLimSystemRole == eLIM_STA_ROLE)
               //  limCheckAndAddBssDescription(pMac, &beacon, pBd, eANI_BOOLEAN_TRUE);
-            limCollectMeasurementData(pMac, pBd, beacon);
+            limCollectMeasurementData(pMac, pBd, &beacon);
            PELOG3(limLog(pMac, LOG3, FL("Parsed WDS info in Beacon frames: wdsLength=%d\n"),
-               beacon->propIEinfo.wdsLength);)
+               beacon.propIEinfo.wdsLength);)
 #endif
         }
         else
@@ -143,7 +136,7 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
                }
              
              // STA in WT_JOIN_BEACON_STATE (IBSS)
-            limCheckAndAnnounceJoinSuccess(pMac, beacon, pHdr,psessionEntry);
+            limCheckAndAnnounceJoinSuccess(pMac, &beacon, pHdr,psessionEntry);
         } // if (pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE)
     } // if ((pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) || ...
     else
@@ -175,7 +168,7 @@ limProcessBeaconFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,tpPESession psessionEnt
 #endif
         }
     }
-    vos_mem_free(beacon);
+
     return;
 } /*** end limProcessBeaconFrame() ***/
 
@@ -193,10 +186,7 @@ void
 limProcessBeaconFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd)
 {
     tpSirMacMgmtHdr      pHdr;
-    tSchBeaconStruct     *beacon = NULL;
-
-	beacon = vos_mem_malloc(sizeof(tSchBeaconStruct));
-	vos_mem_set(beacon, sizeof(tSchBeaconStruct), 0);
+    tSchBeaconStruct     beacon;
 
     pMac->lim.gLimNumBeaconsRcvd++;
     pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
@@ -217,19 +207,18 @@ limProcessBeaconFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd)
         (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE) ||
         (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE))
     {
-        if (sirConvertBeaconFrame2Struct(pMac, (tANI_U8 *) pBd, beacon) != eSIR_SUCCESS)
+        if (sirConvertBeaconFrame2Struct(pMac, (tANI_U8 *) pBd, &beacon) != eSIR_SUCCESS)
         {
             // Received wrongly formatted/invalid Beacon. Ignore and move on. 
             limLog(pMac, LOGW, FL("Received invalid Beacon in global MLM state %X\n"), pMac->lim.gLimMlmState);
             limPrintMlmState(pMac, LOGW,  pMac->lim.gLimMlmState);
-			vos_mem_free(beacon);
             return;
         }
 
         if ( (pMac->lim.gLimMlmState == eLIM_MLM_WT_PROBE_RESP_STATE) ||
              (pMac->lim.gLimMlmState == eLIM_MLM_PASSIVE_SCAN_STATE) )
 		{
-            limCheckAndAddBssDescription(pMac, beacon, pBd, eANI_BOOLEAN_TRUE);
+            limCheckAndAddBssDescription(pMac, &beacon, pBd, eANI_BOOLEAN_TRUE);
 		}
         else if (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE)
         {
@@ -240,9 +229,9 @@ limProcessBeaconFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd)
              * comes up which needs to be fixed*/
             //if (pMac->lim.gLimSystemRole == eLIM_STA_ROLE)
               //  limCheckAndAddBssDescription(pMac, &beacon, pBd, eANI_BOOLEAN_TRUE);
-            limCollectMeasurementData(pMac, pBd, beacon);
+            limCollectMeasurementData(pMac, pBd, &beacon);
             limLog(pMac, LOG3, FL("Parsed WDS info in Beacon frames: wdsLength=%d\n"),
-               beacon->propIEinfo.wdsLength);
+               beacon.propIEinfo.wdsLength);
 #endif
         }  // end of eLIM_MLM_LEARN_STATE)       
     } // end of (eLIM_MLM_WT_PROBE_RESP_STATE) || (eLIM_MLM_PASSIVE_SCAN_STATE)
@@ -255,7 +244,6 @@ limProcessBeaconFrameNoSession(tpAniSirGlobal pMac, tANI_U32 *pBd)
 #endif
     }
 
-	vos_mem_free(beacon);
     return;
 } /*** end limProcessBeaconFrameNoSession() ***/
 

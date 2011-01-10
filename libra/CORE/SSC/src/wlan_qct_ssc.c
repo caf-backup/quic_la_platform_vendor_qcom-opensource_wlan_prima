@@ -1917,6 +1917,7 @@ VOS_STATUS WLANSSC_SuspendChip
   /* Acquire Lock                                                          */
   WLANSSC_LOCKTXRX( pControlBlock );
 
+  if (!vos_is_logp_in_progress(VOS_MODULE_ID_SSC, NULL)) {
   /* Sanity check to make sure flows have previously been suspended        */
   // WLANSSC_ASSERT( WLANSSC_SUSPENDED_STATE == pControlBlock->eState );
 
@@ -1967,6 +1968,7 @@ VOS_STATUS WLANSSC_SuspendChip
   }
 
   SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SIF rx fifo reset complete"));
+  }
 
   /* Flush out SSC buffers and completely reset `host rx state'            */
   if( NULL != pControlBlock->pMemAvailFrame )
@@ -1997,6 +1999,8 @@ VOS_STATUS WLANSSC_SuspendChip
   }
 
   uRegValue |= QWLAN_SIF_BAR4_WLAN_CONTROL_REG_DEFAULT;
+  uRegValue &= ~(QWLAN_SIF_BAR4_WLAN_CONTROL_REG_SDIOC_CMD_ACTIVE_CHECK_DISABLE_MASK);	
+
   /* TRSW Bit 1 should be 0 before entering standby OR deepsleep*/
   uRegValue &= ~(QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_TRSW_SUPPLY_CTRL_1_MASK);
 
@@ -2207,6 +2211,7 @@ VOS_STATUS WLANSSC_ResumeChip
 
   /* Turn on PMU ROSC pwr enable in the register status and write back     */
   uRegValue |= QWLAN_SIF_BAR4_WLAN_CONTROL_REG_PMU_ROSC_PWR_EN_MASK;
+  uRegValue &= ~(QWLAN_SIF_BAR4_WLAN_CONTROL_REG_SDIOC_CMD_ACTIVE_CHECK_DISABLE_MASK);	
 
   if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
                                                           QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,
@@ -3359,6 +3364,11 @@ static VOS_STATUS WLANSSC_ReadRegister
 
   WLANSSC_ASSERT( NULL != pValue );
 
+  if (vos_is_logp_in_progress(VOS_MODULE_ID_SSC, NULL)) {
+     printk("%s: LOGP in progress, aborting this command \n", __FUNCTION__);
+     return VOS_STATUS_SUCCESS;
+  }
+
   vos_mem_zero( &sCmd53Request, sizeof(WLANSAL_Cmd53ReqType) );
 
   sCmd53Request.address = uRegister;
@@ -3434,6 +3444,11 @@ static VOS_STATUS WLANSSC_WriteRegister
   WLANSSC_ASSERT( NULL != pValue );
 
   WLANSSC_ASSERT( WLANSSC_MAX_REGBUFFER > eRegType );
+
+  if (vos_is_logp_in_progress(VOS_MODULE_ID_SSC, NULL)) {
+     printk("%s: LOGP in progress, aborting this command \n", __FUNCTION__);
+     return VOS_STATUS_SUCCESS;
+  }
 
   /* Copy over the value into the dma buffer                               */
   *(pControlBlock->pRegBuffer[eRegType]) = *pValue;
@@ -4805,7 +4820,7 @@ static VOS_STATUS WLANSSC_ProcessRxData
   SSCLOG1(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO, "SD Position after traversing buffer: %d ", uSDPosition));
 
   /* If we have reached the end of the buffer, then reset the rx info      */
-  if( VOS_STATUS_SUCCESS == eStatus  )
+  if(( VOS_STATUS_SUCCESS == eStatus  ) || (VOS_STATUS_E_INVAL == eStatus))
   {
     WLANSSC_ASSERT( uSDPosition == pControlBlock->sRxBufferInfo.uCurrentRxDataSize );
 
@@ -4819,6 +4834,9 @@ static VOS_STATUS WLANSSC_ProcessRxData
 
     pControlBlock->sRxBufferInfo.uCurrentRxDataPosition = 0;
     pControlBlock->sRxBufferInfo.uCurrentRxDataSize = 0;
+    /* updating the status to success so that we can enable the Rx interrupt
+    again*/
+    eStatus = VOS_STATUS_SUCCESS;
   }
 
   return eStatus;
@@ -5927,6 +5945,7 @@ static VOS_STATUS WLANSSC_StartEventHandler
   }
   
   uRegValue &= ~QWLAN_SIF_BAR4_WLAN_CONTROL_REG_TRSW_SUPPLY_CTRL_0_MASK;
+  uRegValue &= ~(QWLAN_SIF_BAR4_WLAN_CONTROL_REG_SDIOC_CMD_ACTIVE_CHECK_DISABLE_MASK);	
   
   if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
                                                           QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,

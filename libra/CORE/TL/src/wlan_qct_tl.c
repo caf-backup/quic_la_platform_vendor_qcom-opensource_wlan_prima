@@ -6241,7 +6241,9 @@ WLANTL_STARxAuth
    VOS_STATUS               vosStatus;
    WLANTL_RxMetaInfoType    wRxMetaInfo;
    static v_U8_t            ucPMPDUHLen = 0;
+#ifdef WLAN_SOFTAP_FEATURE
    v_U8_t*                  STAMetaInfoPtr;
+#endif
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------

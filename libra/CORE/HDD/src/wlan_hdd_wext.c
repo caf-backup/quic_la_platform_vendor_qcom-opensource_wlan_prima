@@ -296,6 +296,11 @@ static int iw_set_mode(struct net_device *dev,
        
     ENTER();
 
+    if (pAdapter->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return 0;
+    } 
+
     pWextState = pAdapter->pWextState; 
     if (pWextState == NULL)
     {
@@ -362,6 +367,11 @@ static int iw_get_mode(struct net_device *dev,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
     hddLog (LOG1, "In %s",__FUNCTION__);
+
+    if (pAdapter->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return 0;
+    }
       
     pWextState = pAdapter->pWextState;
     if (pWextState == NULL)
@@ -405,6 +415,11 @@ static int iw_set_freq(struct net_device *dev, struct iw_request_info *info,
     tHalHandle hHal = pAdapter->hHal;
     tCsrRoamProfile * pRoamProfile;
     ENTER();
+
+    if (pAdapter->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return status;
+    }
    
     pWextState = pAdapter->pWextState;
    
@@ -493,6 +508,11 @@ static int iw_get_freq(struct net_device *dev, struct iw_request_info *info,
    tCsrRoamProfile * pRoamProfile;
 
    ENTER();
+
+   if (pAdapter->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+      return status;
+   }
    
    pWextState = pAdapter->pWextState;
    hHal = pAdapter->hHal;
@@ -534,6 +554,11 @@ static int iw_get_tx_power(struct net_device *dev,
   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
   
   ENTER();
+  
+  if (pAdapter->isLogpInProgress) {
+     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+     return status;
+  }
   
   if(eConnectionState_Associated != pAdapter->conn_info.connState) {
    
@@ -584,6 +609,11 @@ static int iw_set_tx_power(struct net_device *dev,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle hHal = pAdapter->hHal;
 
+    if (pAdapter->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return 0;
+    }
+
     ENTER();
       
     if ( ccmCfgSetInt(hHal, WNI_CFG_CURRENT_TX_POWER_LEVEL, wrqu->txpower.value, ccmCfgSetCallback, eANI_BOOLEAN_TRUE) != eHAL_STATUS_SUCCESS ) 
@@ -606,6 +636,11 @@ static int iw_get_bitrate(struct net_device *dev,
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    
    ENTER();
+   
+   if (pAdapter->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+      return status;
+   }
    
    if(eConnectionState_Associated != pAdapter->conn_info.connState) {
       
@@ -661,6 +696,11 @@ static int iw_set_bitrate(struct net_device *dev,
     v_U32_t valid_rate = FALSE, active_phy_mode = 0;
 
     ENTER();
+    
+    if (pAdapter->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return 0;
+    }
    
     pWextState =  pAdapter->pWextState;
 
@@ -731,6 +771,11 @@ static int iw_set_genie(struct net_device *dev,
       return 0;
 
    hddLog(LOG1,"iw_set_genie ioctl IE[0x%X], LEN[%d]\n", genie[0], genie[1]);
+
+   if (pAdapter->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+      return 0;
+   }
 
    switch ( genie[0] ) 
    {
@@ -908,6 +953,11 @@ static int iw_get_genie(struct net_device *dev,
     v_U8_t genIeBytes[DOT11F_IE_RSN_MAX_LEN];
 
     ENTER();
+    
+    if (pAdapter->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return 0;
+    }
 
     hddLog(LOG1,"getGEN_IE ioctl\n");
    
@@ -953,6 +1003,11 @@ static int iw_get_encode(struct net_device *dev,
     int i;
 
     ENTER();
+    
+    if (pAdapter->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return 0;
+    }
 
     keyId = pRoamProfile->Keys.defaultIndex;
 
@@ -1431,6 +1486,11 @@ static int iw_set_priv(struct net_device *dev,
     ENTER();
 
     hddLog(VOS_TRACE_LEVEL_INFO_MED, "***Received %s cmd from Wi-Fi GUI***", cmd);
+
+    if (pAdapter->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return status;
+    } 
 
     if(strncmp(cmd, "CSCAN",5) == 0 ){
 		int status= VOS_STATUS_SUCCESS;

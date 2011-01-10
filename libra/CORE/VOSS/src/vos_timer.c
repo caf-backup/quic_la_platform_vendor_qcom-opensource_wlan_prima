@@ -390,8 +390,12 @@ VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
    switch ( timer->state )
    {
       case VOS_TIMER_STATE_STARTING:
-      case VOS_TIMER_STATE_RUNNING:
          vStatus = VOS_STATUS_E_BUSY;
+         break;
+      case VOS_TIMER_STATE_RUNNING:
+         /* Stop the timer first */
+         del_timer_sync(&(timer->platformInfo.Timer));
+         vStatus = VOS_STATUS_SUCCESS;
          break;
       case VOS_TIMER_STATE_STOPPED:
          vStatus = VOS_STATUS_SUCCESS;

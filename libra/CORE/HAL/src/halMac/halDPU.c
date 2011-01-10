@@ -115,9 +115,8 @@ dpu_hw_init(
     value = 0xffffffff;
 
     halWriteRegister(pMac, QWLAN_DPU_DPU_ERROR_WQ_SELECT_REG, value);
-    
-
-
+ 
+ 
 #ifdef FIXME_GEN6
     /* enable the use of reservation for DPU tx (but don't do this for rx) */
     halReadRegister(pMac, QWLAN_DPU_DPU_CONTROL_REG, &value);
@@ -131,6 +130,19 @@ dpu_hw_init(
     value |= QWLAN_DPU_DPU_CONTROL_WQ_TX_RSV_EN_MASK | QWLAN_DPU_DPU_CONTROL_PASS_ZERO_LEN_MASK;
     halWriteRegister(pMac, QWLAN_DPU_DPU_CONTROL_REG, value);
 #endif
+
+    /* The following two registers need to be set correctly. Otherwise it'll cause the MIC failure in 
+       WPA-TKIP mode with Ninento-PS2. CR 266792 */
+
+    /* Set Priority bit in dpu_mask_reg */
+    halReadRegister(pMac, QWLAN_DPU_DPU_TKIP_MASK_REG, &value);
+    value |= QWLAN_DPU_DPU_TKIP_MASK_PRIORITY_MASK_7_MASK;
+    halWriteRegister(pMac, QWLAN_DPU_DPU_TKIP_MASK_REG, value);
+
+    /* Set priority bit in dpu_bug_fix */
+    halReadRegister(pMac, QWLAN_DPU_DPU_BUG_FIX_REG, &value);
+    value |= QWLAN_DPU_DPU_BUG_FIX_TKIP_PRIORITY_SEL_MASK;
+    halWriteRegister(pMac, QWLAN_DPU_DPU_BUG_FIX_REG, value);
 
 }
 

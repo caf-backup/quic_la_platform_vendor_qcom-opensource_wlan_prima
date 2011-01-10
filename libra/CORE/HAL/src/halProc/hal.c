@@ -75,6 +75,7 @@ static eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfg
 
 static 
 eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId);
+static eHalStatus halHandleDynamicPsPollValue(tpAniSirGlobal pMac, tANI_U32 cfgId);
 
 /* Constant Macros */
 /* Redefine OFF -> __OFF, ON-> __ON to avoid redefinition on AMSS */
@@ -3198,6 +3199,10 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                    halHandleMcastBcastFilterSetting(pMac, pMsg->bodyval);
                    break;
             
+                case WNI_CFG_DYNAMIC_PS_POLL_VALUE:
+                   halHandleDynamicPsPollValue(pMac, pMsg->bodyval);
+                   break;
+            
                 default:
                     HALLOGE( halLog(pMac, LOGE, FL("Cfg Id %d is not handled\n"), pMsg->bodyval));
                     break;
@@ -4383,6 +4388,25 @@ eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId)
     else
     {    
         pMac->hal.mcastBcastFilterSetting = (tANI_BOOLEAN)val;
+    }
+    
+    return status;
+}
+
+static 
+eHalStatus halHandleDynamicPsPollValue(tpAniSirGlobal pMac, tANI_U32 cfgId)
+{
+    tANI_U32 val;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgId, &val))
+    {
+        HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+        return eHAL_STATUS_FAILURE;
+    }
+    else
+    {    
+        pMac->hal.dynamicPsPollValue = (tANI_BOOLEAN)val;
     }
     
     return status;
