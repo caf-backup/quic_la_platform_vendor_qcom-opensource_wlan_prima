@@ -833,7 +833,7 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
     netif_carrier_off(pAdapter->dev);
 
     //Stop the Interface TX queue. Just being safe
-    netif_tx_disable(pAdapter->dev);
+    netif_tx_stop_all_queues(pAdapter->dev);
 
     //wtan: initialize ftm_status structure
     _ftm_status_init();

@@ -132,7 +132,7 @@ void halFW_StartChipMonitor(tpAniSirGlobal pMac);
 void halFW_StopChipMonitor(tpAniSirGlobal pMac);
 eHalStatus halFW_WriteProbeRspToMemory(tpAniSirGlobal pMac, tANI_U8 *probeRsp,
                                     tANI_U8 selfStaIdxBss, tANI_U16 probeRspIndex, tANI_U32 mpduLen);
-eHalStatus halFW_UpdateProbeRspIeBitmap(tpAniSirGlobal pMac, tpUpdateProbeRspIeBitmap pMsg);
+eHalStatus halFW_UpdateProbeRspIeBitmap(tpAniSirGlobal pMac, tANI_U32 *pIeBitmap);
 
 
 eHalStatus halFW_SendScanStartMesg(tpAniSirGlobal pMac);

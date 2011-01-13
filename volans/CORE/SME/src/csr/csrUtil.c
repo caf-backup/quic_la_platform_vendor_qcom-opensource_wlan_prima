@@ -2702,6 +2702,8 @@ tANI_BOOLEAN csrGetRSNInformation( tHalHandle hHal, tCsrAuthList *pAuthType, eCs
             if( pNegotiatedMCCipher )
                 *pNegotiatedMCCipher = pMCEncryption->encryptionType[i];
             
+	      /* Initializing with FALSE as it has TRUE value already */
+            fAcceptableCyphers = FALSE;
             for (i = 0 ; i < pAuthType->numEntries; i++)
             {
                 //Ciphers are supported, Match authentication algorithm and pick first matching authtype.

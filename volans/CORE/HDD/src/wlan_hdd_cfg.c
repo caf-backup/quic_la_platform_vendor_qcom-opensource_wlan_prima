@@ -1402,8 +1402,8 @@ void dump_cfg_ini (tCfgIniEntry* iniTable, unsigned long entries)
    unsigned long i;
 
    for (i = 0; i < entries; i++) {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "qcom_cfg.ini entry Name=[%s] value=[%s]", 
-           iniTable[i].name, iniTable[i].value);
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "%s entry Name=[%s] value=[%s]", 
+           INI_FILE, iniTable[i].name, iniTable[i].value);
      }
 }
 #endif 
@@ -1425,10 +1425,10 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
 
    memset(cfgIniTable, 0, sizeof(cfgIniTable));
 
-   status = request_firmware(&fw, "wlan/qcom_cfg.ini", &pAdapter->hsdio_func_dev->dev);
+   status = request_firmware(&fw, INI_FILE, &pAdapter->hsdio_func_dev->dev);
    
    if(!fw || !fw->data) {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: qcom_cfg.ini download failed\n",__FUNCTION__);
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: %s download failed\n",__FUNCTION__, INI_FILE);
 	    return VOS_STATUS_E_FAILURE;
    } 
    buffer = (char*)vos_mem_malloc(fw->size);
@@ -1474,8 +1474,8 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
                   cfgIniTable[i].name= name;
                   cfgIniTable[i++].value= value;
                   if(i >= MAX_CFG_INI_ITEMS) {
-                     hddLog(LOGE,"%s: Number of items in qcom_cfg.ini > %d \n",
-                        __FUNCTION__, MAX_CFG_INI_ITEMS);
+                     hddLog(LOGE,"%s: Number of items in %s > %d \n",
+                        __FUNCTION__, INI_FILE, MAX_CFG_INI_ITEMS);
                      break;
                   }
                }
@@ -1708,8 +1708,8 @@ static VOS_STATUS find_cfg_item (tCfgIniEntry* iniTable, unsigned long entries,
    for (i = 0; i < entries; i++) {
      if (strcmp(iniTable[i].name, name) == 0) {
        *value = iniTable[i].value;
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Found qcom_cfg.ini entry for Name=[%s] Value=[%s] ",
-           name, *value);
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Found %s entry for Name=[%s] Value=[%s] ",
+           INI_FILE, name, *value);
        return VOS_STATUS_SUCCESS;
      }
    }
@@ -1835,8 +1835,8 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
             len_value_str = strlen(value_str);
 
             if(len_value_str > (pRegEntry->VarSize - 1)) {
-               hddLog(LOGE, "%s: Invalid Value=[%s] specified for Name=[%s] in qcom_cfg.ini\n", 
-                  __FUNCTION__, value_str, pRegEntry->RegName);
+               hddLog(LOGE, "%s: Invalid Value=[%s] specified for Name=[%s] in %s\n", 
+                  __FUNCTION__, value_str, pRegEntry->RegName, INI_FILE);
                cbOutString = utilMin( strlen( (char *)pRegEntry->VarDefault ), pRegEntry->VarSize - 1 );
                memcpy( pField, (void *)(pRegEntry->VarDefault), cbOutString );
                ( (v_U8_t *)pField )[ cbOutString ] = '\0';
@@ -1866,8 +1866,8 @@ static VOS_STATUS hdd_apply_cfg_ini( hdd_adapter_t *pAdapter, tCfgIniEntry* iniT
          if ( match_status == VOS_STATUS_SUCCESS) {
             len_value_str = strlen(value_str);
             if(len_value_str != (VOS_MAC_ADDR_SIZE*2)) {
-               hddLog(LOGE, "%s: Invalid MAC addr [%s] specified for Name=[%s] in qcom_cfg.ini\n", 
-                  __FUNCTION__, value_str, pRegEntry->RegName);
+               hddLog(LOGE, "%s: Invalid MAC addr [%s] specified for Name=[%s] in %s\n", 
+                  __FUNCTION__, value_str, pRegEntry->RegName, INI_FILE);
             }
             else
                candidate = value_str;

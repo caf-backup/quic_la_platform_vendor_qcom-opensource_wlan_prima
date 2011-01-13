@@ -543,7 +543,9 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry
 	 */
     if (addts.tspec.tsinfo.traffic.psb == 1)
 	    limSetTspecUapsdMask(pMac, &addts.tspec.tsinfo, SET_UAPSD_MASK);
- 
+    else 
+	    limSetTspecUapsdMask(pMac, &addts.tspec.tsinfo, CLEAR_UAPSD_MASK);
+
 
     /* ADDTS success, so AC is now admitted. We shall now use the default
      * EDCA parameters as advertised by AP and send the updated EDCA params

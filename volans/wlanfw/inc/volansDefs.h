@@ -135,13 +135,13 @@ typedef enum eBmuCmdType {
 //reference section 4.7.1 in Volans_wmac_sys_programmers_guide.doc
 // ----------------------------
 #define BMU_RXP_BD_THRESHOLD        0x35
-#define BMU_DPUTX_BD_THRESHOLD      0x1
-#define BMU_DPURX_BD_THRESHOLD      0x1
-#define BMU_ADU_BD_THRESHOLD        0x1
+#define BMU_DPUTX_BD_THRESHOLD      0x5
+#define BMU_DPURX_BD_THRESHOLD      0x5
+#define BMU_ADU_BD_THRESHOLD        0x5
 #define BMU_RPE_BD_THRESHOLD        0x15
 #define BMU_DXE_CH0_BD_THRESHOLD    0x40
 #define BMU_DXE_CH1_BD_THRESHOLD    0
-#define BMU_DXE_CH2_BD_THRESHOLD    0x35
+#define BMU_DXE_CH2_BD_THRESHOLD    0x4
 #define BMU_MACSW_BD_THRESHOLD      0x35
 #define BMU_RXP_PDU_THRESHOLD       0xa0
 #define BMU_DPUTX_PDU_THRESHOLD     0x1
@@ -150,26 +150,26 @@ typedef enum eBmuCmdType {
 #define BMU_RPE_PDU_THRESHOLD       0x60
 #define BMU_DXE_CH0_PDU_THRESHOLD   0x100
 #define BMU_DXE_CH1_PDU_THRESHOLD   0
-#define BMU_DXE_CH2_PDU_THRESHOLD   0xa0
+#define BMU_DXE_CH2_PDU_THRESHOLD   0
 #define BMU_MACSW_PDU_THRESHOLD     0xa0
 
 
 // thresholds to use for internal memory only case (interchangeable bd/pdu)
 #define BMU_RXP_BD_THRESHOLD_INT        0x35
-#define BMU_DPUTX_BD_THRESHOLD_INT      0x1
-#define BMU_DPURX_BD_THRESHOLD_INT      0x1
-#define BMU_ADU_BD_THRESHOLD_INT        0x1
+#define BMU_DPUTX_BD_THRESHOLD_INT      0x5
+#define BMU_DPURX_BD_THRESHOLD_INT      0x5
+#define BMU_ADU_BD_THRESHOLD_INT        0x5
 #define BMU_RPE_BD_THRESHOLD_INT        0x15
 #define BMU_DXE_CH0_BD_THRESHOLD_INT    0x40
 #define BMU_DXE_CH1_BD_THRESHOLD_INT    0x0
-#define BMU_DXE_CH2_BD_THRESHOLD_INT    0x35
+#define BMU_DXE_CH2_BD_THRESHOLD_INT    0x4
 #define BMU_MACSW_BD_THRESHOLD_INT      0x35
 #define BMU_DPUTX_PDU_THRESHOLD_INT     0x1
 #define BMU_DPURX_PDU_THRESHOLD_INT     0x1
 #define BMU_ADU_PDU_THRESHOLD_INT       0x1
 #define BMU_RPE_PDU_THRESHOLD_INT       0x60
 #define BMU_DXE_CH1_PDU_THRESHOLD_INT   0
-#define BMU_DXE_CH2_PDU_THRESHOLD_INT   0xa0
+#define BMU_DXE_CH2_PDU_THRESHOLD_INT   0
 #define BMU_MACSW_PDU_THRESHOLD_INT     0xa0
 
 /* If DAFCA trace debug is enabled, then only 128K
@@ -577,6 +577,11 @@ enum {
 #define QWLAN_MCU_MUTEX_HOSTFW_SYNC_INDEX   0
 #define QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR    QWLAN_MCU_MUTEX0_REG
 #define QWLAN_HOSTFW_SYNC_MUTEX_MAX_COUNT   7
+
+/* The Transmit Synchronization Mutex */
+#define QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_INDEX   1
+#define QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR    QWLAN_MCU_MUTEX1_REG
+#define QWLAN_HOSTFW_TX_SYNC_MUTEX_MAX_COUNT   3
 
 /*-------------------------------------------------------------------------*/
 /* ADU*/

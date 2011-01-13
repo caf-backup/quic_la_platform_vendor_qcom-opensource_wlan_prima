@@ -37,7 +37,7 @@ typedef tANI_S16 t2Decimal;
 #define CONVERT_FROM_2DECIMAL_PLACES(x) (x / 100)
 
 #ifndef PTT_FLOAT
-#define PTT_FLOAT tANI_U32  // driver code can't include float, 
+#define PTT_FLOAT tANI_U32  // driver code can't include float,
                             // so this reserves space in our structures to allow customer measurements in float
                             // driver code always uses t2decimal, whereas the pttApi always expects float.
 #endif
@@ -66,6 +66,7 @@ typedef enum
 
     //possible tx chain combinations
     PHY_NO_TX_CHAINS,
+    PHY_TX_CHAIN_MAX = 0xFFFFFFFF  /* define as 4 bytes data */
 }ePhyTxChains;
 
 typedef enum
@@ -118,7 +119,8 @@ typedef enum
     NUM_RX_GAIN_STEPS = 16,
     MAX_RX_GAIN_STEP = RX_GAIN_STEP_15,
 
-    INVALID_GAIN_STEP
+    INVALID_GAIN_STEP,
+    MAX_GAIN_STEP = 0xFFFFFFFF  /* define as 4 bytes data */
 }eGainSteps;
 
 // Keeping these definitions in case we need to revive them later
@@ -173,7 +175,7 @@ typedef struct
 
 typedef struct
 {
-    tANI_U8 rx[PHY_MAX_RX_CHAINS];
+    tANI_S8 rx[PHY_MAX_RX_CHAINS];
 }sRxChainsData;
 
 

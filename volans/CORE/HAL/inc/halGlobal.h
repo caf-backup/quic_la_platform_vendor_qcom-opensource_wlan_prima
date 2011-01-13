@@ -135,12 +135,12 @@ typedef struct sHalMemMap
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_U32   bssTable_offset;
     tANI_U32   bssTable_size;
-    
+
     tANI_U32   staTable_offset;
     tANI_U32   staTable_size;
     tANI_U32   probeRspTemplate_offset;
     tANI_U32   probeRspTemplate_size;
-#endif
+#endif	
 
     tANI_U32   aduUmaStaDesc_offset;
     tANI_U32   aduUmaStaDesc_size;
@@ -265,6 +265,7 @@ typedef struct sAniSirHal
     tBssSystemRole halGlobalSystemRole; // STA, AP, IBSS, MULTI-BSS etc.
     tANI_U8       currentChannel;
     eRfBandMode   currentRfBand;
+    tANI_U8       currentCalReqd;
     ePhyChanBondState currentCBState;
     tHalIntRegisterCache intStatusCache[eHAL_INT_MAX_REGISTER];
     tHalIntErrStat     halIntErrStats;
@@ -351,8 +352,8 @@ typedef struct sAniSirHal
     TX_TIMER        txCompTimer; //Timer to wait for TX complete interrupt.
 
 #ifdef WLAN_SOFTAP_FEATURE
-    /* Listen mode enable parameters */
-    tANI_BOOLEAN    ghalPhyAgcListenMode;
+    /* Listen mode configure parameters */
+    tANI_U8    ghalPhyAgcListenMode;
 #endif    
     tANI_U8         mcastBcastFilterSetting;
 

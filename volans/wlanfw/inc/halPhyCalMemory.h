@@ -365,6 +365,82 @@ typedef struct
     sRuntimePMValues        tempGainDependentRF;
 }sCalMemory;
 
+typedef enum
+{
+    eNV_CALID_PROCESS_MONITOR   = 0x1,
+    eNV_CALID_HDET_CAL_CODE     = 0x2,
+    eNV_CALID_PLL_VCO_LINEARITY = 0x4,
+    eNV_CALID_RTUNER            = 0x8,
+    eNV_CALID_CTUNER            = 0x10,
+    eNV_CALID_RX_IM2            = 0x20,
+    eNV_CALID_TEMPERATURE       = 0x40,
+    eNV_CALID_RXFE_GM2          = 0x80,
+    eNV_CALID_LNA_BANDSETTING   = 0x100,
+    eNV_CALID_LNA_BANDTUNING    = 0x200,
+    eNV_CALID_LNA_GAINADJUST    = 0x400
+}eNvCalID;
+
+typedef struct
+{
+    tANI_U16    process_monitor;
+    tANI_U8     hdet_cal_code;
+    tANI_U8     rxfe_gm_2;
+
+    tANI_U8     tx_bbf_rtune;
+    tANI_U8     pa_rtune_reg;
+    tANI_U8     rt_code;
+    tANI_U8     bias_rtune;
+
+    tANI_U8     bb_bw1;
+    tANI_U8     bb_bw2;
+    tANI_U8     reserved0;
+    tANI_U8     reserved1;
+
+    tANI_U8     bb_bw3;
+    tANI_U8     bb_bw4;
+    tANI_U8     bb_bw5;
+    tANI_U8     bb_bw6;
+
+    tANI_U16    rcMeasured;
+    tANI_U8     tx_bbf_ct;
+    tANI_U8     tx_bbf_ctr;
+
+    tANI_U8     csh_maxgain_reg;
+    tANI_U8     csh_0db_reg;
+    tANI_U8     csh_m3db_reg;
+    tANI_U8     csh_m6db_reg;
+
+    tANI_U8     cff_0db_reg;
+    tANI_U8     cff_m3db_reg;
+    tANI_U8     cff_m6db_reg;
+    tANI_U8     rxfe_gpio_ctl_1;
+
+    tANI_U8     mix_bal_cnt_2;
+    tANI_S8     rxfe_lna_highgain_bias_ctl_delta;
+    tANI_U8     rxfe_lna_load_ctune;
+    tANI_U8     rxfe_lna_ngm_rtune;
+
+    tANI_U8     rx_im2_spare0;
+    tANI_U8     rx_im2_spare1;
+    tANI_U8     reserved2;
+    tANI_U8     reserved3;
+
+    tANI_U8     pll_vfc_reg3_b0;
+    tANI_U8     pll_vfc_reg3_b1;
+    tANI_U8     pll_vfc_reg3_b2;
+    tANI_U8     pll_vfc_reg3_b3;
+
+    tANI_U16    tempStart;
+    tANI_U16    tempFinish;
+
+}sCalData;
+
+typedef struct
+{
+    tANI_U32 calStatus;  //use eNvCalID
+    sCalData calData;
+}sRFCalValues;
+
 extern const sFullPMValues PMTable; //large table exists in 80KB segment of memory only at initialization
 extern const sFullPMValuesVolans2 PMTableVolans2; //large table exists in 80KB segment of memory only at initialization
 extern sCalMemory *calMemory;  //smaller table resides in 128KB segment of memory for runtime use

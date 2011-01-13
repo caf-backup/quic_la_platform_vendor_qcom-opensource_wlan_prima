@@ -683,7 +683,7 @@ static inline tANI_U8 convertCW(tANI_U16 cw)
  *   UP(4, 5) ---> AC_VI(2)
  *   UP(6, 7) ---> AC_VO(3)
  */
-#define WLAN_UP_TO_AC_MAP            0x33221001
+#define WLAN_UP_TO_AC_MAP            0x33220110
 #define upToAc(up)                ((WLAN_UP_TO_AC_MAP >> ((up) << 2)) & 0x0f)
 
 #if defined VOSS_ENABLED

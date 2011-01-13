@@ -75,20 +75,56 @@ eHalStatus halNvOpen(tHalHandle hMac)
         }
     }
 
-    if (vos_nv_getValidity(VNV_CAL_MEMORY, &itemIsValid) == VOS_STATUS_SUCCESS)
+    if (vos_nv_getValidity(VNV_TPC_POWER_TABLE, &itemIsValid) == VOS_STATUS_SUCCESS)
     {
         if (itemIsValid == VOS_TRUE)
         {
-            if(vos_nv_read( VNV_CAL_MEMORY, (v_VOID_t *)&pMac->hphy.nvCache.tables.calFlashMemory, NULL, sizeof(sCalFlashMemory) ) != VOS_STATUS_SUCCESS) 
+            if(vos_nv_read( VNV_TPC_POWER_TABLE, (v_VOID_t *)&pMac->hphy.nvCache.tables.plutCharacterized[0], NULL, sizeof(tTpcPowerTable) * NUM_2_4GHZ_CHANNELS ) != VOS_STATUS_SUCCESS)
                  return (eHAL_STATUS_FAILURE);
         }
     }
 
-    if (vos_nv_getValidity(VNV_CAL_STATUS, &itemIsValid) == VOS_STATUS_SUCCESS)
+    if (vos_nv_getValidity(VNV_TPC_PDADC_OFFSETS, &itemIsValid) == VOS_STATUS_SUCCESS)
     {
         if (itemIsValid == VOS_TRUE)
         {
-            if(vos_nv_read( VNV_DEFAULT_LOCATION, (v_VOID_t *)&pMac->hphy.nvCache.tables.calStatus, NULL, sizeof(sCalStatus) ) != VOS_STATUS_SUCCESS) 
+            if(vos_nv_read( VNV_TPC_PDADC_OFFSETS, (v_VOID_t *)&pMac->hphy.nvCache.tables.plutPdadcOffset[0], NULL, sizeof(tANI_U16) * NUM_2_4GHZ_CHANNELS ) != VOS_STATUS_SUCCESS)
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
+
+ //   if (vos_nv_getValidity(VNV_CAL_MEMORY, &itemIsValid) == VOS_STATUS_SUCCESS)
+ //   {
+ //       if (itemIsValid == VOS_TRUE)
+ //       {
+ //           if(vos_nv_read( VNV_CAL_MEMORY, (v_VOID_t *)&pMac->hphy.nvCache.tables.calFlashMemory, NULL, sizeof(sCalFlashMemory) ) != VOS_STATUS_SUCCESS)
+ //                return (eHAL_STATUS_FAILURE);
+ //       }
+ //   }
+
+ //   if (vos_nv_getValidity(VNV_CAL_STATUS, &itemIsValid) == VOS_STATUS_SUCCESS)
+ //   {
+ //       if (itemIsValid == VOS_TRUE)
+ //       {
+ //           if(vos_nv_read( VNV_DEFAULT_LOCATION, (v_VOID_t *)&pMac->hphy.nvCache.tables.calStatus, NULL, sizeof(sCalStatus) ) != VOS_STATUS_SUCCESS)
+ //                return (eHAL_STATUS_FAILURE);
+ //       }
+ //   }
+
+    if (vos_nv_getValidity(VNV_RSSI_CHANNEL_OFFSETS, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE)
+        {
+            if(vos_nv_read( VNV_RSSI_CHANNEL_OFFSETS, (v_VOID_t *)&pMac->hphy.nvCache.tables.rssiChanOffsets[0], NULL, sizeof(sRssiChannelOffsets) * 2 ) != VOS_STATUS_SUCCESS)
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
+
+    if (vos_nv_getValidity(VNV_RF_CAL_VALUES, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE)
+        {
+            if(vos_nv_read( VNV_RF_CAL_VALUES, (v_VOID_t *)&pMac->hphy.nvCache.tables.rFCalValues, NULL, sizeof(sRFCalValues) ) != VOS_STATUS_SUCCESS)
                  return (eHAL_STATUS_FAILURE);
         }
     }
@@ -98,8 +134,12 @@ eHalStatus halNvOpen(tHalHandle hMac)
     pMac->hphy.nvTables[NV_TABLE_RATE_POWER_SETTINGS] = &pMac->hphy.nvCache.tables.pwrOptimum[0];
     pMac->hphy.nvTables[NV_TABLE_REGULATORY_DOMAINS ] = &pMac->hphy.nvCache.tables.regDomains[0];
     pMac->hphy.nvTables[NV_TABLE_DEFAULT_COUNTRY    ] = &pMac->hphy.nvCache.tables.defaultCountryTable;
-    pMac->hphy.nvTables[NV_TABLE_CAL_MEMORY         ] = &pMac->hphy.nvCache.tables.calFlashMemory;
-    pMac->hphy.nvTables[NV_TABLE_CAL_STATUS         ] = &pMac->hphy.nvCache.tables.calStatus;
+    pMac->hphy.nvTables[NV_TABLE_TPC_POWER_TABLE] = &pMac->hphy.nvCache.tables.plutCharacterized[0];
+    pMac->hphy.nvTables[NV_TABLE_TPC_PDADC_OFFSETS  ] = &pMac->hphy.nvCache.tables.plutPdadcOffset[0];
+    //pMac->hphy.nvTables[NV_TABLE_CAL_MEMORY         ] = &pMac->hphy.nvCache.tables.calFlashMemory;
+    //pMac->hphy.nvTables[NV_TABLE_CAL_STATUS         ] = &pMac->hphy.nvCache.tables.calStatus;
+    pMac->hphy.nvTables[NV_TABLE_RSSI_CHANNEL_OFFSETS] = &pMac->hphy.nvCache.tables.rssiChanOffsets[0];
+    pMac->hphy.nvTables[NV_TABLE_RF_CAL_VALUES] = &pMac->hphy.nvCache.tables.rFCalValues;
 
     return status;
 }
@@ -279,15 +319,43 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                 }
                 break;
 
-            case NV_TABLE_CAL_MEMORY:
-                if ((vosStatus = vos_nv_write(VNV_CAL_MEMORY, (void *)&pMac->hphy.nvCache.tables.calFlashMemory, sizeof(sCalFlashMemory))) != VOS_STATUS_SUCCESS)
+            case NV_TABLE_TPC_POWER_TABLE:
+                if ((vosStatus = vos_nv_write(VNV_TPC_POWER_TABLE, (void *)&pMac->hphy.nvCache.tables.plutCharacterized[0], sizeof(tTpcPowerTable) * NUM_2_4GHZ_CHANNELS)) != VOS_STATUS_SUCCESS)
                 {
                     return (eHAL_STATUS_FAILURE);
                 }
                 break;
 
-            case NV_TABLE_CAL_STATUS:
-                if ((vosStatus = vos_nv_write(VNV_CAL_STATUS, (void *)&pMac->hphy.nvCache.tables.calStatus, sizeof(sCalStatus))) != VOS_STATUS_SUCCESS)
+            case NV_TABLE_TPC_PDADC_OFFSETS:
+                if ((vosStatus = vos_nv_write(VNV_TPC_PDADC_OFFSETS, (void *)&pMac->hphy.nvCache.tables.plutPdadcOffset[0], sizeof(tANI_U16) * NUM_2_4GHZ_CHANNELS)) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
+
+      //      case NV_TABLE_CAL_MEMORY:
+      //          if ((vosStatus = vos_nv_write(VNV_CAL_MEMORY, (void *)&pMac->hphy.nvCache.tables.calFlashMemory, sizeof(sCalFlashMemory))) != VOS_STATUS_SUCCESS)
+      //          {
+      //              return (eHAL_STATUS_FAILURE);
+      //          }
+      //          break;
+
+      //      case NV_TABLE_CAL_STATUS:
+      //          if ((vosStatus = vos_nv_write(VNV_CAL_STATUS, (void *)&pMac->hphy.nvCache.tables.calStatus, sizeof(sCalStatus))) != VOS_STATUS_SUCCESS)
+      //          {
+      //              return (eHAL_STATUS_FAILURE);
+      //          }
+      //          break;
+
+            case NV_TABLE_RSSI_CHANNEL_OFFSETS:
+                if ((vosStatus = vos_nv_write(VNV_RSSI_CHANNEL_OFFSETS, (void *)&pMac->hphy.nvCache.tables.rssiChanOffsets[0], sizeof(sRssiChannelOffsets) * 2)) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
+
+            case NV_TABLE_RF_CAL_VALUES:
+                if ((vosStatus = vos_nv_write(VNV_RF_CAL_VALUES, (void *)&pMac->hphy.nvCache.tables.rFCalValues, sizeof(sRFCalValues))) != VOS_STATUS_SUCCESS)
                 {
                     return (eHAL_STATUS_FAILURE);
                 }
@@ -416,12 +484,28 @@ eHalStatus halReadNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDat
             memcpy(tableData, &pMac->hphy.nvCache.tables.defaultCountryTable, sizeof(sDefaultCountry));
             break;
 
-        case NV_TABLE_CAL_MEMORY:
-            memcpy(tableData, &pMac->hphy.nvCache.tables.calFlashMemory, sizeof(sCalFlashMemory));
+        case NV_TABLE_TPC_POWER_TABLE:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.plutCharacterized[0], sizeof(tTpcPowerTable) * NUM_2_4GHZ_CHANNELS);
             break;
 
-        case NV_TABLE_CAL_STATUS:
-            memcpy(tableData, &pMac->hphy.nvCache.tables.calStatus, sizeof(sCalStatus));
+        case NV_TABLE_TPC_PDADC_OFFSETS:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.plutPdadcOffset[0], sizeof(tANI_U16) * NUM_2_4GHZ_CHANNELS);
+            break;
+
+    //    case NV_TABLE_CAL_MEMORY:
+    //        memcpy(tableData, &pMac->hphy.nvCache.tables.calFlashMemory, sizeof(sCalFlashMemory));
+    //        break;
+
+    //    case NV_TABLE_CAL_STATUS:
+    //        memcpy(tableData, &pMac->hphy.nvCache.tables.calStatus, sizeof(sCalStatus));
+    //        break;
+
+        case NV_TABLE_RSSI_CHANNEL_OFFSETS:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.rssiChanOffsets[0], sizeof(sRssiChannelOffsets) * 2);
+            break;
+
+        case NV_TABLE_RF_CAL_VALUES:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.rFCalValues, sizeof(sRFCalValues));
             break;
 
         default:
@@ -463,14 +547,34 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
                 sizeOfEntry = sizeof(sDefaultCountry);
                 break;
 
-            case NV_TABLE_CAL_MEMORY:
-                numOfEntries = 1;
-                sizeOfEntry = sizeof(sCalFlashMemory);
+            case NV_TABLE_TPC_POWER_TABLE:
+                numOfEntries = NUM_2_4GHZ_CHANNELS;
+                sizeOfEntry = sizeof(tTpcPowerTable);
                 break;
 
-            case NV_TABLE_CAL_STATUS:
+            case NV_TABLE_TPC_PDADC_OFFSETS:
+                numOfEntries = NUM_2_4GHZ_CHANNELS;
+                sizeOfEntry = sizeof(tANI_U16);
+                break;
+
+      //      case NV_TABLE_CAL_MEMORY:
+      //          numOfEntries = 1;
+      //          sizeOfEntry = sizeof(sCalFlashMemory);
+      //          break;
+
+      //      case NV_TABLE_CAL_STATUS:
+      //          numOfEntries = 1;
+      //          sizeOfEntry = sizeof(sCalStatus);
+      //          break;
+
+            case NV_TABLE_RSSI_CHANNEL_OFFSETS:
+                numOfEntries = 2;
+                sizeOfEntry = sizeof(sRssiChannelOffsets);
+                break;
+
+            case NV_TABLE_RF_CAL_VALUES:
                 numOfEntries = 1;
-                sizeOfEntry = sizeof(sCalStatus);
+                sizeOfEntry = sizeof(sRFCalValues);
                 break;
 
             default:
@@ -545,10 +649,10 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 
                 break;
 
-            case NV_TABLE_CAL_MEMORY:
-                if ((vosStatus = vos_nv_setValidity(VNV_CAL_MEMORY, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+            case NV_TABLE_TPC_POWER_TABLE:
+                if ((vosStatus = vos_nv_setValidity(VNV_TPC_POWER_TABLE, VOS_FALSE)) == VOS_STATUS_SUCCESS)
                 {
-                    memcpy(&pMac->hphy.nvCache.tables.calFlashMemory, &nvDefaults.tables.calFlashMemory, sizeof(sCalFlashMemory));
+                    memcpy(&pMac->hphy.nvCache.tables.plutCharacterized[0], &nvDefaults.tables.plutCharacterized[0], sizeof(tTpcPowerTable) * NUM_2_4GHZ_CHANNELS);
                 }
                 else
                 {
@@ -557,10 +661,58 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 
                 break;
 
-            case NV_TABLE_CAL_STATUS:
-                if ((vosStatus = vos_nv_setValidity(VNV_CAL_STATUS, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+            case NV_TABLE_TPC_PDADC_OFFSETS:
+                if ((vosStatus = vos_nv_setValidity(VNV_TPC_PDADC_OFFSETS, VOS_FALSE)) == VOS_STATUS_SUCCESS)
                 {
-                    memcpy(&pMac->hphy.nvCache.tables.calStatus, &nvDefaults.tables.calStatus, sizeof(sCalStatus));
+                    memcpy(&pMac->hphy.nvCache.tables.plutPdadcOffset[0], &nvDefaults.tables.plutPdadcOffset[0], sizeof(tANI_U16) * NUM_2_4GHZ_CHANNELS);
+                }
+                else
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+
+                break;
+
+      //      case NV_TABLE_CAL_MEMORY:
+      //          if ((vosStatus = vos_nv_setValidity(VNV_CAL_MEMORY, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+      //          {
+      //              memcpy(&pMac->hphy.nvCache.tables.calFlashMemory, &nvDefaults.tables.calFlashMemory, sizeof(sCalFlashMemory));
+      //          }
+      //          else
+      //          {
+      //              return (eHAL_STATUS_FAILURE);
+      //          }
+      //
+      //          break;
+
+      //      case NV_TABLE_CAL_STATUS:
+      //          if ((vosStatus = vos_nv_setValidity(VNV_CAL_STATUS, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+      //          {
+      //              memcpy(&pMac->hphy.nvCache.tables.calStatus, &nvDefaults.tables.calStatus, sizeof(sCalStatus));
+      //          }
+      //          else
+      //          {
+      //              return (eHAL_STATUS_FAILURE);
+      //          }
+      //
+      //          break;
+
+            case NV_TABLE_RSSI_CHANNEL_OFFSETS:
+                if ((vosStatus = vos_nv_setValidity(VNV_RSSI_CHANNEL_OFFSETS, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+                {
+                    memcpy(&pMac->hphy.nvCache.tables.rssiChanOffsets[0], &nvDefaults.tables.rssiChanOffsets[0], sizeof(sRssiChannelOffsets) * 2);
+                }
+                else
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+
+                break;
+
+            case NV_TABLE_RF_CAL_VALUES:
+                if ((vosStatus = vos_nv_setValidity(VNV_RF_CAL_VALUES, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+                {
+                    memcpy(&pMac->hphy.nvCache.tables.rFCalValues, &nvDefaults.tables.rFCalValues, sizeof(sRFCalValues));
                 }
                 else
                 {
@@ -586,12 +738,16 @@ eHalStatus halBlankNv(tHalHandle hMac)
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
     //tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
 
-    halRemoveNvTable(hMac, NV_FIELDS_IMAGE             );
-    halRemoveNvTable(hMac, NV_TABLE_RATE_POWER_SETTINGS);
-    halRemoveNvTable(hMac, NV_TABLE_REGULATORY_DOMAINS );
-    halRemoveNvTable(hMac, NV_TABLE_DEFAULT_COUNTRY    );
-    halRemoveNvTable(hMac, NV_TABLE_CAL_MEMORY         );
-    halRemoveNvTable(hMac, NV_TABLE_CAL_STATUS         );
+    halRemoveNvTable(hMac, NV_FIELDS_IMAGE                );
+    halRemoveNvTable(hMac, NV_TABLE_RATE_POWER_SETTINGS   );
+    halRemoveNvTable(hMac, NV_TABLE_REGULATORY_DOMAINS    );
+    halRemoveNvTable(hMac, NV_TABLE_DEFAULT_COUNTRY       );
+    halRemoveNvTable(hMac, NV_TABLE_TPC_POWER_TABLE       );
+    halRemoveNvTable(hMac, NV_TABLE_TPC_PDADC_OFFSETS     );
+    //halRemoveNvTable(hMac, NV_TABLE_CAL_MEMORY            );
+    //halRemoveNvTable(hMac, NV_TABLE_CAL_STATUS            );
+    halRemoveNvTable(hMac, NV_TABLE_RSSI_CHANNEL_OFFSETS  );
+    halRemoveNvTable(hMac, NV_TABLE_RF_CAL_VALUES  );
 
     return (retVal);
 }
@@ -636,6 +792,32 @@ void halByteSwapNvTable(tHalHandle hMac, eNvTable tableID, uNvTables *tableData)
             sHalNv *nv = (sHalNv *)tableData;
 
             BYTE_SWAP_S(nv->fields.productId);
+            break;
+        }
+
+        case NV_TABLE_TPC_PDADC_OFFSETS:
+        {
+            tANI_U8 j;
+
+            for (j = 0; j < NUM_2_4GHZ_CHANNELS; j++)
+            {
+                BYTE_SWAP_S(tableData->plutPdadcOffset[j]);
+            }
+            break;
+        }
+
+        case NV_TABLE_RSSI_CHANNEL_OFFSETS:
+        {
+            tANI_U8 i, j;
+
+            for (i = 0; i < PHY_MAX_RX_CHAINS; i++)
+            {
+                for (j = 0; j < NUM_2_4GHZ_CHANNELS; j++)
+                {
+                    BYTE_SWAP_S(tableData->rssiChanOffsets[i].bRssiOffset[j]);
+                    BYTE_SWAP_S(tableData->rssiChanOffsets[i].gnRssiOffset[j]);
+                }
+            }
             break;
         }
 

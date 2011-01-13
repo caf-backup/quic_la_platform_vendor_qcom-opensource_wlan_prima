@@ -2584,7 +2584,7 @@ limDeleteDphHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_U16 staId,t
 #endif
 
             //Send message to HAL about beacon parameter change.
-            PELOGW(limLog(pMac, LOGW, FL("limDecideIbssProtectionOnDelete: param bitmap = %d \n"), beaconParams.paramChangeBitmap);)
+            PELOGW(limLog(pMac, LOGW, FL("param bitmap = %d \n"), beaconParams.paramChangeBitmap);)
             if(beaconParams.paramChangeBitmap)
             {
                 schSetFixedBeaconFields(pMac,psessionEntry);    

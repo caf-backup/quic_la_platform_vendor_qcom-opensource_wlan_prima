@@ -1284,6 +1284,7 @@ typedef struct sSirSmeAssocInd
     /**************** QNE updated - END   **********************/
 #ifdef WLAN_SOFTAP_FEATURE
     tAniBool             wmmEnabledSta; /* if present - STA is WMM enabled */
+    tAniBool             reassocReq;
 #endif
 } tSirSmeAssocInd, *tpSirSmeAssocInd;
 

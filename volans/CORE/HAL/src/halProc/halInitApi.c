@@ -413,9 +413,6 @@ eHalStatus halClose( tHalHandle hHal )
     // Final exit operation on HAL
     halCloseExit(pMac);
 
-    // Finally, de-allocate the global MAC datastructure:
-    palFreeMemory( pMac->hHdd, pMac );
-
     return nReturn;
 
 } // End halClose.
@@ -582,28 +579,34 @@ eHalStatus halWriteRegister(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 regValue
 eHalStatus halWriteDeviceMemory( tHalHandle hHal, tANI_U32 dstOffset, void *pSrcBuffer, tANI_U32 numBytes )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
-    return( palWriteDeviceMemory( pMac->hHdd, dstOffset, (tANI_U8 *)pSrcBuffer, numBytes ) );
+    
+    if ((pMac->hal.PsParam.mutexCount == 0) && (pMac->hal.PsParam.mutexIntrCount == 0)) {
+        HALLOGW(halLog(pMac, LOGW, "WMutex not acquired for device memory write %d, %d, %d (Please report to HAL team, except for dump commands)", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxCount));
+    }
+    return (palWriteDeviceMemory( pMac->hHdd, dstOffset, (tANI_U8 *)pSrcBuffer, numBytes ));
 }
-
 
 eHalStatus halReadDeviceMemory( tHalHandle hHal, tANI_U32 srcOffset, void *pBuffer, tANI_U32 numBytes )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
-
-    return( palReadDeviceMemory( pMac->hHdd, srcOffset, pBuffer, numBytes ) );
+    
+    if ((pMac->hal.PsParam.mutexCount == 0) && (pMac->hal.PsParam.mutexIntrCount == 0)) {
+        HALLOGW(halLog(pMac, LOGW, "WMutex not acquired for device memory read %d, %d, %d (Please report to HAL team, except for dump commands)", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxCount));
+    }
+    
+    return (palReadDeviceMemory( pMac->hHdd, srcOffset, pBuffer, numBytes ));
 }
 
 eHalStatus halFillDeviceMemory( tHalHandle hHal, tANI_U32 memOffset, tANI_U32 numBytes, tANI_BYTE fillValue )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
-
-    return palFillDeviceMemory( pMac->hHdd, memOffset, numBytes, fillValue );
+    return (palFillDeviceMemory( pMac->hHdd, memOffset, numBytes, fillValue ));
 }
 
 eHalStatus halZeroDeviceMemory( tHalHandle hHal, tANI_U32 memOffset, tANI_U32 numBytes )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
-    return( palFillDeviceMemory( pMac->hHdd, memOffset, numBytes, 0 ) );
+    return (palFillDeviceMemory( pMac->hHdd, memOffset, numBytes, 0 ));
 }
 
 eHalStatus halNormalWriteRegister( tHalHandle hHal, tANI_U32 regAddr, tANI_U32 regValue)

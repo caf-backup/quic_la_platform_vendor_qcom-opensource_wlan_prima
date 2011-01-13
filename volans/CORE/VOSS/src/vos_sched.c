@@ -258,6 +258,9 @@ VosMCThread
   #endif
   int retWaitStatus              = 0;
   v_BOOL_t shutdown              = VOS_FALSE;
+  hdd_adapter_t *pAdapter        = NULL;
+  v_CONTEXT_t pVosContext        = NULL;
+
   if (Arg == NULL)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -274,11 +277,28 @@ VosMCThread
   complete(&pSchedContext->McStartEvent);
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
       "%s: MC Thread %d (%s) starting up",__func__, current->pid, current->comm);
+
+  /* Get the Global VOSS Context */
+  pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+  if(!pVosContext) {
+     hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Global VOS context is Null", __func__);
+     return 0;
+  }
+
+  /* Get the HDD context */
+  pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
+  if(!pAdapter) {
+     hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
+     return 0;
+  }
+
   while(!shutdown)
   {
     // This implements the execution model algorithm
     retWaitStatus = wait_event_interruptible(pSchedContext->mcWaitQueue,
-       test_bit(MC_POST_EVENT_MASK, &pSchedContext->mcEventFlag));
+       test_bit(MC_POST_EVENT_MASK, &pSchedContext->mcEventFlag) || 
+       test_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag));
+
     if(retWaitStatus == -ERESTARTSYS)
     {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -426,6 +446,19 @@ VosMCThread
         vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
         continue;
       }
+     /* Check for any Suspend Indication */
+      if(test_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag))
+      {
+        clear_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag);
+
+        /* Mc Thread Suspended */
+        complete(&pAdapter->mc_sus_event_var);
+
+        init_completion(&pSchedContext->ResumeMcEvent);
+
+        /* Wait foe Resume Indication */
+        wait_for_completion_interruptible(&pSchedContext->ResumeMcEvent);
+      }
 #endif /* ANI_MANF_DIAG */
       break; //All queues are empty now
     } // while message loop processing
@@ -544,6 +577,9 @@ static int VosTXThread ( void * Arg )
   VOS_STATUS       vStatus       = VOS_STATUS_SUCCESS;
   int              retWaitStatus = 0;
   v_BOOL_t shutdown = VOS_FALSE;
+  hdd_adapter_t *pAdapter        = NULL;
+  v_CONTEXT_t pVosContext        = NULL;
+
   set_user_nice(current, -1);
 
   if (Arg == NULL)
@@ -560,11 +596,30 @@ static int VosTXThread ( void * Arg )
   complete(&pSchedContext->TxStartEvent);
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
       "%s: TX Thread %d (%s) starting up!",__func__, current->pid, current->comm);
+
+  /* Get the Global VOSS Context */
+  pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+  if(!pVosContext) {
+     hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Global VOS context is Null", __func__);
+     return 0;
+  }
+
+  /* Get the HDD context */
+  pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
+  if(!pAdapter) {
+     hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
+     return 0;
+  }
+
+
   while(!shutdown)
   {
     // This implements the execution model algorithm
     retWaitStatus = wait_event_interruptible(pSchedContext->txWaitQueue,
-        test_bit(TX_POST_EVENT_MASK, &pSchedContext->txEventFlag));
+        test_bit(TX_POST_EVENT_MASK, &pSchedContext->txEventFlag) || 
+        test_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag));
+
+
     if(retWaitStatus == -ERESTARTSYS)
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -657,6 +712,20 @@ static int VosTXThread ( void * Arg )
         vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
         continue;
       }
+      /* Check for any Suspend Indication */
+      if(test_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag))
+      {
+        clear_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag);
+
+        /* Tx Thread Suspended */
+        complete(&pAdapter->tx_sus_event_var);
+
+        init_completion(&pSchedContext->ResumeTxEvent);
+
+        /* Wait foe Resume Indication */
+        wait_for_completion_interruptible(&pSchedContext->ResumeTxEvent);
+      }
+
       break; //All queues are empty now
     } // while message loop processing
   } // while TRUE

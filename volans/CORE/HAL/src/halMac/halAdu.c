@@ -669,7 +669,7 @@ eHalStatus halAdu_UpdateUmaDescForPrivacy(tpAniSirGlobal pMac,
         return status; 
     }
 
-    return status;
+        return status; 
 }
 
 /**
@@ -1054,8 +1054,7 @@ eHalStatus halUMA_AllocId(tpAniSirGlobal pMac, tANI_U8 *umaIdx)
 
     pAduUmaStaDesc = &(pMac->hal.halMac.aduUmaDesc[i]);
 
-    palZeroDeviceMemory(pMac->hHdd, (tANI_U32)pAduUmaStaDesc,
-        ADU_UMA_STA_DESC_ENTRY_SIZE);
+    palZeroMemory(pMac->hHdd, pAduUmaStaDesc, ADU_UMA_STA_DESC_ENTRY_SIZE);
 
     return eHAL_STATUS_SUCCESS;
 }

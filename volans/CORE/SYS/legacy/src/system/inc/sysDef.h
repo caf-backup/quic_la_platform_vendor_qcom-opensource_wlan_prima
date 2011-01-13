@@ -41,7 +41,9 @@
 /// Clocks in a milisecond
 #define SYS_CLOCKS_PER_MS   120000 // 120 MHz 
 
+// In Milliseconds
 #define SYS_ADD_BA_RSP_DUR   1000
+
 /// System timer tick duration in clocks
 #define SYS_TICK_DUR_CLK    (SYS_TICK_DUR_MS * SYS_CLOCKS_PER_MS)
 

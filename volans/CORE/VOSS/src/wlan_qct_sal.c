@@ -36,12 +36,14 @@ when           who        what, where, why
  * Include Files
  * -------------------------------------------------------------------------*/
 #include <wlan_hdd_includes.h>
+#include <wlan_hdd_power.h>
 #include <wlan_qct_sal.h>
 #include <wlan_sal_misc.h> // Linux specific includes
 #include <wlan_qct_hal.h>
 #include <wlan_bal_misc.h> // Linux specific includes
 #include <linux/mmc/sdio.h>
 #include <vos_power.h>
+#include <vos_sched.h>
 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -50,11 +52,9 @@ when           who        what, where, why
 /*----------------------------------------------------------------------------
  *  Type Declarations
  * -------------------------------------------------------------------------*/
-#ifdef VOLANS_1_0_WORKAROUND
 /* The below funxtion definintion is in librasdioif driver */
 extern void libra_sdio_set_clock(struct sdio_func *func, unsigned int clk_freq);
 extern void libra_sdio_get_card_id(struct sdio_func *func, unsigned short *card_id);
-#endif /* VOLANS_1_0_WORKAROUND */
 
 #ifdef MSM_PLATFORM /* Specific to Android Platform */
 extern int sdio_reset_comm(struct mmc_card *card);
@@ -63,6 +63,190 @@ extern int sdio_reset_comm(struct mmc_card *card);
  * Global variables.
  *-------------------------------------------------------------------------*/
 static salHandleType *gpsalHandle;
+
+/*----------------------------------------------------------------------------
+
+   @brief Function to suspend the wlan driver.
+
+   @param HDD_ADAPTER_HANDLE
+
+
+   @return None
+
+----------------------------------------------------------------------------*/
+static int wlan_suspend(hdd_adapter_t* pAdapter)
+{
+   int rc = 0;
+
+   pVosSchedContext vosSchedContext = NULL;
+
+   /* Get the global VOSS context */
+   vosSchedContext = get_vos_sched_ctxt();
+
+   if(!vosSchedContext) {
+      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: Global VOS_SCHED context is Null",__func__);
+      return 0;
+   }
+
+   /*
+     Suspending MC Thread and Tx Thread as the SDIO driver is going to Suspend.     
+   */
+   VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_INFO, "%s: Suspending Mc and Tx Threads",__func__);
+
+   init_completion(&pAdapter->mc_sus_event_var);
+
+   /* Indicate Mc Thread to Suspend */
+   set_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
+
+   wake_up_interruptible(&vosSchedContext->mcWaitQueue);
+
+   /* Wait for Suspend Confirmation from Mc Thread */
+   rc = wait_for_completion_interruptible_timeout(&pAdapter->mc_sus_event_var, msecs_to_jiffies(200));
+
+   if(!rc)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: Not able to suspend MC thread timeout happened", __func__);
+
+       clear_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
+  
+       return -1;
+   }
+
+   init_completion(&pAdapter->tx_sus_event_var);
+
+   /* Indicate Tx Thread to Suspend */
+   set_bit(TX_SUSPEND_EVENT_MASK, &vosSchedContext->txEventFlag);
+
+   wake_up_interruptible(&vosSchedContext->txWaitQueue);
+
+   /* Wait for Suspend Confirmation from Tx Thread */
+   rc = wait_for_completion_interruptible_timeout(&pAdapter->tx_sus_event_var, msecs_to_jiffies(200));
+
+   if(!rc)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: Not able to suspend TX thread timeout happened", __func__);
+       clear_bit(TX_SUSPEND_EVENT_MASK, &vosSchedContext->txEventFlag);
+
+       /* Indicate Mc Thread to Resume */
+       complete(&vosSchedContext->ResumeMcEvent);
+
+       return -1;
+   }
+
+   /* Set the Station state as Suspended */
+   pAdapter->isWlanSuspended = TRUE;
+
+   return 0;
+
+}
+
+/*----------------------------------------------------------------------------
+
+   @brief Function to resume the wlan driver.
+
+   @param HDD_ADAPTER_HANDLE
+
+
+   @return None
+
+----------------------------------------------------------------------------*/
+static void wlan_resume(hdd_adapter_t* pAdapter)
+{
+   pVosSchedContext vosSchedContext = NULL;
+
+   //Get the global VOSS context.
+   vosSchedContext = get_vos_sched_ctxt();
+
+   if(!vosSchedContext) {
+      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: Global VOS_SCHED context is Null",__func__);
+      return;
+   }
+
+   /*
+     Resuming Mc and Tx Thread as SDIO Driver is resuming.
+   */
+   VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_INFO, "%s: Resuming Mc and Tx Thread",__func__);
+
+   /* Indicate MC Thread to Resume */
+   complete(&vosSchedContext->ResumeMcEvent);
+
+   /* Indicate Tx Thread to Resume */
+   complete(&vosSchedContext->ResumeTxEvent);
+
+   /* Set the Station state as Suspended */
+   pAdapter->isWlanSuspended = FALSE;
+}
+
+/*----------------------------------------------------------------------------
+
+   @brief Function to suspend the wlan driver.
+   This function will get called by SDIO driver Suspend on System Suspend
+
+   @param SD_DEVICE_HANDLE sdio_func_device
+
+
+   @return None
+
+----------------------------------------------------------------------------*/
+int wlan_sdio_suspend_hdlr(struct sdio_func* sdio_func_dev)
+{
+   int ret = 0;
+   hdd_adapter_t* pAdapter = NULL;
+   pAdapter =  (hdd_adapter_t*)libra_sdio_getprivdata(sdio_func_dev);
+
+   VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_INFO, "%s: WLAN suspended by SDIO",__func__);
+
+   /* Get the HDD context */
+   if(!pAdapter) 
+   {
+      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
+      return 0;
+   }
+
+   if(pAdapter->isWlanSuspended == TRUE)
+   {
+      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: WLAN is alredy in suspended state",__func__);
+      return 0;
+   }
+
+   /* Suspend the wlan driver */
+   ret = wlan_suspend(pAdapter);
+   if(ret != 0)
+   {
+      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: Not able to suspend wlan",__func__);
+      return ret;
+   }
+
+   return 0;   
+}
+
+/*----------------------------------------------------------------------------
+
+   @brief Function to resume the wlan driver.
+   This function will get called by SDIO driver Resume on System Resume 
+
+   @param SD_DEVICE_HANDLE sdio_func_device 
+
+
+   @return None
+
+----------------------------------------------------------------------------*/
+void wlan_sdio_resume_hdlr(struct sdio_func* sdio_func_dev)
+{
+   hdd_adapter_t* pAdapter = NULL;
+   pAdapter =  (hdd_adapter_t*)libra_sdio_getprivdata(sdio_func_dev);
+
+   VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_INFO, "%s: WLAN being resumed by Android OS",__func__);
+
+   if(pAdapter->isWlanSuspended != TRUE)
+   {
+      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: WLAN is alredy in resumed state",__func__);
+      return;
+   }
+
+   /* Resume the wlan driver */
+   wlan_resume(pAdapter);
+}
 
 /*----------------------------------------------------------------------------
 
@@ -297,7 +481,7 @@ VOS_STATUS WLANSAL_Start
 
 #ifndef LIBRA_LINUX_PC
    /* Register with SDIO driver as client for Suspend/Resume */
-   ///libra_sdio_configure_suspend_resume(wlan_sdio_suspend_hdlr, wlan_sdio_resume_hdlr);
+   libra_sdio_configure_suspend_resume(wlan_sdio_suspend_hdlr, wlan_sdio_resume_hdlr);
 #endif /* LIBRA_LINUX_PC */
    SEXIT();
 
@@ -358,8 +542,11 @@ VOS_STATUS WLANSAL_Close
 {
    SENTER();
 
-   // Destroy the mutex
-   mutex_destroy(&gpsalHandle->lock);
+   // Just warn if mutex is still locked. 
+   if (mutex_is_locked(&gpsalHandle->lock))
+   {
+      VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_WARN,"%s: Sal lock not released.\n");
+   }
 
    vos_free_context(pAdapter, VOS_MODULE_ID_SAL, gpsalHandle);
 
@@ -798,7 +985,6 @@ VOS_STATUS WLANSAL_SetCardStatusNotfPath
    return VOS_STATUS_SUCCESS;
 }
 
-#ifdef VOLANS_1_0_WORKAROUND
 /*----------------------------------------------------------------------------
 
    @brief API exported from SAL to set the SD clock frequency. This needs to
@@ -809,13 +995,15 @@ VOS_STATUS WLANSAL_SetCardStatusNotfPath
    @return void
 
 ----------------------------------------------------------------------------*/
-void WLANSAL_SetSDIOClock(unsigned int hz)
+void WLANSAL_SetSDIOClock
+(
+    v_PVOID_t    pAdapter,
+    v_UINT_t     hz
+)
 {
   VOS_ASSERT(NULL != gpsalHandle);
   libra_sdio_set_clock(gpsalHandle->sdio_func_dev, hz);
 }
-
-#endif /* VOLANS_1_0_WORKAROUND */
 
 /*----------------------------------------------------------------------------
 
@@ -826,7 +1014,11 @@ void WLANSAL_SetSDIOClock(unsigned int hz)
    @return void
 
 ----------------------------------------------------------------------------*/
-void WLANSAL_GetSDIOCardId(unsigned short *sdioCardId)
+void WLANSAL_GetSDIOCardId
+(
+    v_PVOID_t   pAdapter,
+    v_U16_t     *sdioCardId
+)
 {
   VOS_ASSERT(NULL != gpsalHandle);
   libra_sdio_get_card_id(gpsalHandle->sdio_func_dev, sdioCardId);

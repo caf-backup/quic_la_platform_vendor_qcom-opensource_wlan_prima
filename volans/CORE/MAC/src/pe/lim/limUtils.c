@@ -3848,7 +3848,9 @@ tSirMacASCapabilityInfo macASCapabilityInfo = {0};
           if( eSIR_SUCCESS != wlan_cfgGetInt( pMac, WNI_CFG_HT_CAP_INFO, &cfgValue ))
             cfgValue = 0;
           ptr = (tANI_U8 *) &macHTCapabilityInfo;
-          *((tANI_U16 *)ptr) =  (tANI_U16) (cfgValue & 0xffff);
+          // CR 265282 MDM SoftAP 2.4PL: SoftAP boot up crash in 2.4 PL builds while same WLAN SU is working on 2.1 PL
+          *ptr++ = cfgValue & 0xff;
+          *ptr = (cfgValue >> 8) & 0xff;
         }
       }
     }
@@ -4293,7 +4295,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                      }
                }
            }
-		
+
         //This part is common for staiton as well.
         if(false == psessionEntry->llbCoexist)
         {
@@ -4528,8 +4530,8 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
 
 #ifdef WLAN_SOFTAP_FEATURE
         if(eLIM_AP_ROLE == psessionEntry->limSystemRole)
-		{
-			if(overlap)
+        {
+            if(overlap)
             {
                 psessionEntry->gLimOverlap11gParams.protectionEnabled = true;
                 //11g exists in overlap BSS.
@@ -4539,8 +4541,9 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
                     (eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode))
                 {
                     psessionEntry->htOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
-                    limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
                 }
+                limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
+                limEnableHtOBSSProtection(pMac,  true , overlap, pBeaconParams, psessionEntry);
             }
             else
             {
@@ -4554,7 +4557,7 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
                     limEnableHtOBSSProtection(pMac,  true , overlap, pBeaconParams,psessionEntry);        
                 }
             }
-		}else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
+        }else if(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole)
 #else
         if((eLIM_AP_ROLE == psessionEntry->limSystemRole)||(eLIM_BT_AMP_AP_ROLE == psessionEntry->limSystemRole))
 #endif
@@ -4598,10 +4601,10 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
         //for AP role.
         //we need to take care of HT OP mode change if needed.
         //We need to take care of Overlap cases.
-		
+
 #ifdef WLAN_SOFTAP_FEATURE
         if(eLIM_AP_ROLE == psessionEntry->limSystemRole){
-			if(overlap)
+            if(overlap)
             {
                 //Overlap Legacy protection disabled.
                 psessionEntry->gLimOverlap11gParams.protectionEnabled = false;
@@ -4806,8 +4809,8 @@ limEnableHtOBSSProtection(tpAniSirGlobal pMac, tANI_U8 enable,
 
 
 #ifdef WLAN_SOFTAP_FEATURE
-    if(psessionEntry->limSystemRole){
-		if ((enable) && (false == psessionEntry->gHTObssMode) )
+    if (eLIM_AP_ROLE == psessionEntry->limSystemRole){
+        if ((enable) && (false == psessionEntry->gHTObssMode) )
         {
             PELOG1(limLog(pMac, LOG1, FL("=>obss protection enabled\n"));)
             psessionEntry->gHTObssMode = true;
@@ -4821,7 +4824,7 @@ limEnableHtOBSSProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->paramChangeBitmap |= PARAM_OBSS_MODE_CHANGED;
 
          }
-	} else
+    } else
 #endif
     {
         if ((enable) && (false == pMac->lim.gHTObssMode) )
@@ -7454,7 +7457,7 @@ void limHandleHeartBeatFailureTimeout(tpAniSirGlobal pMac)
     tpPESession psessionEntry;
     if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId))== NULL) 
     {
-        limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
+        limLog(pMac, LOGE,FL("Session Does not exist for given sessionID\n"));
         return;
     }
     

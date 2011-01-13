@@ -540,7 +540,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  psessionEntry->dtimPeriod = pSmeStartBssReq->dtimPeriod;
                  /*Enable/disable UAPSD*/  
                  psessionEntry->apUapsdEnable = pSmeStartBssReq->apUapsdEnable;
-                 psessionEntry->probe_rsp_template_set = 0;
+                 psessionEntry->proxyProbeRspEn = 1;
                  psessionEntry->ssidHidden = pSmeStartBssReq->ssidHidden;
                  psessionEntry->wps_state = pSmeStartBssReq->wps_state;
                  break;
@@ -1217,6 +1217,17 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 
     PELOG1(limLog(pMac, LOG1, FL("Received SME_JOIN_REQ\n"));)
+
+#ifdef WLAN_FEATURE_VOWIFI
+    /* Need to read the CFG here itself as this is used in limExtractAPCapability() below.
+    * This CFG is actually read in rrmUpdateConfig() which is called later. Because this is not
+    * read, RRM related path before calling rrmUpdateConfig() is not getting executed causing issues 
+    * like not honoring power constraint on 1st association after driver loading. */
+    if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_ENABLED, &val) != eSIR_SUCCESS)
+        limLog(pMac, LOGP, FL("cfg get rrm enabled failed\n"));
+    pMac->rrm.rrmPEContext.rrmEnable = (val) ? 1 : 0;
+    val = 0;
+#endif /* WLAN_FEATURE_VOWIFI */
 
    /**
      * Expect Join request in idle state.
@@ -4574,7 +4585,7 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
        case eWNI_SME_UPDATE_APWPSIE_REQ: 
             __limProcessSmeUpdateAPWPSIEs(pMac, pMsgBuf);
             break;
-            
+#endif            
         case eWNI_SME_GET_WPSPBC_SESSION_REQ:
              limProcessSmeGetWPSPBCSessions(pMac, pMsgBuf); 
              break;
@@ -4583,7 +4594,6 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
               __limProcessSmeSetWPARSNIEs(pMac, pMsgBuf);        
               break;
             
-#endif
 #if defined WLAN_FEATURE_VOWIFI
         case eWNI_SME_NEIGHBOR_REPORT_REQ_IND:
         case eWNI_SME_BEACON_REPORT_RESP_XMIT_IND:

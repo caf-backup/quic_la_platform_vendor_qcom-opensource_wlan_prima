@@ -182,7 +182,7 @@ VOS_PWR_SLEEP(100);
         msleep(10);
 
         /* Enable L13 to output 2.9V (default 2.9V) */
-        rc = vreg_set_level(vreg_wlan, 2900);
+        rc = vreg_set_level(vreg_wlan, 3050);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: wlan vreg set level failed (%d)\n", __func__, rc);
             return -EIO;
@@ -195,7 +195,7 @@ VOS_PWR_SLEEP(100);
         }
 
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "2.9V Power Supply Enabled \n");
-        printk(KERN_ERR "2.9V Supply Enabled \n");
+        printk(KERN_ERR "3.05V Supply Enabled \n");
 
         /* Enable L24 to output 1.2V AON(default 1.3V) */
         rc = vreg_set_level(vreg_gp16, 1200);
@@ -209,6 +209,8 @@ VOS_PWR_SLEEP(100);
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: gp16 vreg enable failed. (%d)\n",__func__, rc);
             return -EIO;
         }
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "1.2V AON Power Supply Enabled \n");
+        printk(KERN_ERR "1.2V AON Supply Enabled \n");
 
         //Wait 300usec
         msleep(1);
@@ -238,37 +240,83 @@ VOS_PWR_SLEEP(100);
             return -EIO;
         }
 
+#ifdef WLAN_FEATURE_VOS_POWER_VOTED_SUPPLY
         rc = vreg_enable(vreg_gp15);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: gp15 vreg enable failed. (%d)\n",__func__, rc);
             return -EIO;
         }
+#else        
+        /* 1.2v switchable supply is following the clk_pwr_req signal */
+        rc = pmapp_vreg_pincntrl_vote(id, PMAPP_VREG_LDO22, PMAPP_CLOCK_ID_A0, VOS_TRUE);
+        if (rc) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: gp15 vreg enable failed. (%d)\n",__func__, rc);
+            return -EIO;
+        }
+        vos_sleep(5);
+#endif
 
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "1.2V sw Power Supply is enabled \n");
         printk(KERN_ERR "1.2V sw is enabled \n");
 		
         /* Enable 1.3 switcheable power supply */
-
-        /* TODO: Revert the voltage level of RF supply to 1.3V once we have the hardware ready to do so */
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "Setting 1.3V sw to 1.4V for now \n");
-
-        rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S2, 1400);
+        rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S2, 1300);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg set level failed (%d)\n", __func__, rc);
             return -EIO;
         }
         VOS_PWR_SLEEP(300);
+
+#ifdef WLAN_FEATURE_VOS_POWER_VOTED_SUPPLY
         rc = vreg_enable(vreg_s2);
         if (rc) {
             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg enable failed. .(%d)\n",__func__, rc);
             return -EIO;
         }
-msleep(1);
+        msleep(1);
+#else        
+        /* 1.3v switchable supply is following the clk_pwr_req signal */
+        rc = pmapp_vreg_pincntrl_vote(id, PMAPP_VREG_S2, PMAPP_CLOCK_ID_A0, VOS_TRUE);
+        if (rc) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: s2 vreg enable failed. (%d)\n",__func__, rc);
+            return -EIO;
+        }
+        vos_sleep(5);
+#endif
+
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "1.3V sw Power Supply is enabled \n");
         printk(KERN_ERR "1.3V sw is enabled \n");
 
     } else {
 
+        /**
+        Assert the external POR to keep the chip in reset state. When the chip is turned
+        on the next time, it won't be detected by the bus driver until we deassert it.
+        This is to work-around the issue where it fails sometimes when turning WIFI off and on
+        though GUI. The theory is that, even though we vote off 1.2V AON, it may still on because
+        it is shared by other components. When the next time to turn on WIFI, polling is turned on
+        first and when librasdioif.ko is loaded, the card is detected right away before wlan driver loads. 
+        The bus driver may have finished configuration of the device. When WLAN driver loads, 
+        it resets the device that causes issues when the bus driver tries to assess the chip later.
+        This setting draws more power after the driver is unloaded.
+
+        The load sequence is
+        1. Enable polling
+        2. insmod librasdioif.ko (if card detected, stop polling)
+        3. insmod libra.ko (reset the chip)
+        4. stop polling
+        **/
+        /* Program GPIO 23 to de-assert (drive 1) external_por_n to prevent chip detection
+           until it is asserted.
+        */
+        rc = pm8058_gpio_config(wlan_gpios_reset[0].gpio_num, &wlan_gpios_reset[0].gpio_cfg);
+        if (rc) {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "%s: pmic gpio %d config failed (%d)\n",
+                            __func__, wlan_gpios_reset[0].gpio_num, rc);
+            return -EIO;
+        }
+
+#ifdef WLAN_FEATURE_VOS_POWER_VOTED_SUPPLY
         /* TODO: Remove the code to disable 1.2V sw and 1.3V sw once we have the API to set these power supplies Pin controllable */
         printk(KERN_ERR "power down switchable\n");
         rc = pmapp_vreg_level_vote(id, PMAPP_VREG_S2, 0);
@@ -284,7 +332,7 @@ msleep(1);
             return -EIO;
         }
 
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "1.3V sw is disabled \n");
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "1.3V sw is disabled \n");
 
         /* 1.2V sw */
         rc = vreg_disable(vreg_gp15); 
@@ -294,6 +342,7 @@ msleep(1);
         }
 
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "1.2V sw is disabled \n");
+#endif //#ifdef WLAN_FEATURE_VOS_POWER_VOTED_SUPPLY
 
         /* 1.2V AON */
         rc = vreg_disable(vreg_gp16); 
@@ -493,10 +542,10 @@ VOS_STATUS vos_chipPowerDown
 #endif
 
 #ifdef MSM_PLATFORM_7x30
-#ifndef VOS_PWR_WIFI_ON_OFF_HACK
+///#ifndef VOS_PWR_WIFI_ON_OFF_HACK
    if(vos_chip_power_qrf8600(CHIP_POWER_OFF))
       return VOS_STATUS_E_FAILURE;
-#endif
+///#endif
 #endif
 
 #ifdef MSM_PLATFORM_7x27_FFA

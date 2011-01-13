@@ -38,8 +38,10 @@ typedef enum
 
 typedef struct
 {
-    tANI_U16 drvMax;
-    tANI_U16 drvMin;
+    tANI_U16 drvMjr;
+    tANI_U16 drvMnr;
+    tANI_U16 drvPtch;
+    tANI_U16 drvBld;
     tANI_U16 pttMax;
     tANI_U16 pttMin;
     FwVersionInfo fwVer;
@@ -56,6 +58,8 @@ typedef struct
 typedef struct
 {
     tANI_U32 totalRxPackets;
+    tANI_U32 totalMacRxPackets;
+    tANI_U32 totalMacFcsErrPackets;
 }sRxFrameCounters;
 
 

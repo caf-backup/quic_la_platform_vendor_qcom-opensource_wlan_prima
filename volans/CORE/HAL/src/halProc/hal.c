@@ -271,15 +271,15 @@ tSirRetStatus halProcessCfgDownloadComplete(tpAniSirGlobal pMac)
 
     if(pMac->gDriverType != eDRIVER_TYPE_MFG) // Enable periodic calibration only if it is not the Manufacturing Diagnostics
     {
-                          // driver build.
-        rc = halConfigCalControl(pMac);
-        if (rc != eSIR_SUCCESS)
-        {
-            HALLOGE(halLog(pMac, LOGE, FL("halConfigCalControl: CFG Failed Calibration Control\n")));
-            macSysResetReq(pMac, rc);
-            goto end;
-        }
-        //pMac->hal.trigCalFlag = (tANI_U8) val;
+                      // driver build.
+    rc = halConfigCalControl(pMac);
+    if (rc != eSIR_SUCCESS)
+    {
+        HALLOGE(halLog(pMac, LOGE, FL("halConfigCalControl: CFG Failed Calibration Control\n")));
+        macSysResetReq(pMac, rc);
+        goto end;
+    }
+    //pMac->hal.trigCalFlag = (tANI_U8) val;
 
     }
 
@@ -449,8 +449,8 @@ tSirRetStatus halProcessStartEvent(tpAniSirGlobal pMac)
 
             if(pMac->gDriverType != eDRIVER_TYPE_MFG)
             {
-                // Init BA parameters
-                baInit( pMac );
+            // Init BA parameters
+            baInit( pMac );
             }
             pMac->hal.halMac.nonRifsBssCount = pMac->hal.halMac.rifsBssCount= 0;
 
@@ -465,7 +465,7 @@ tSirRetStatus halProcessStartEvent(tpAniSirGlobal pMac)
 
             if(pMac->gDriverType != eDRIVER_TYPE_MFG)
             {
-                halPhy_setNwDensityAndProximity(pMac);
+            halPhy_setNwDensityAndProximity(pMac);
             }
 
             msg.type = SIR_LIM_RESUME_ACTIVITY_NTF;
@@ -484,22 +484,22 @@ tSirRetStatus halProcessStartEvent(tpAniSirGlobal pMac)
 #if !defined(LOOPBACK) && !defined(ANI_DVT_DEBUG)
             if(pMac->gDriverType != eDRIVER_TYPE_MFG)
             {
-                if (halMsg_AddStaSelf(pMac) != eHAL_STATUS_SUCCESS)
-                {
-                    HALLOGW( halLog(pMac, LOGW, FL("Failed at halMsg_AddStaSelf() \n")));
-                    rc = eSIR_FAILURE;
-                    break;
-                }
+           if (halMsg_AddStaSelf(pMac) != eHAL_STATUS_SUCCESS)
+           {
+               HALLOGW( halLog(pMac, LOGW, FL("Failed at halMsg_AddStaSelf() \n")));
+               rc = eSIR_FAILURE;
+               break;
+           }
             }
 #endif
             if(pMac->gDriverType != eDRIVER_TYPE_MFG)
             {
-                if (halRxp_addBroadcastEntry(pMac) != eHAL_STATUS_SUCCESS)
-                {
-                    HALLOGW( halLog(pMac, LOGW, FL("Failed at halRxp_addBroadcastEntry() \n")));
-                    rc = eSIR_FAILURE;
-                    break;
-                }
+           if (halRxp_addBroadcastEntry(pMac) != eHAL_STATUS_SUCCESS)
+           {
+               HALLOGW( halLog(pMac, LOGW, FL("Failed at halRxp_addBroadcastEntry() \n")));
+               rc = eSIR_FAILURE;
+               break;
+           }
             }
             // Start HAL timers create
             if ((rc = halTimersCreate(pMac)) != eSIR_SUCCESS)
@@ -689,23 +689,23 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
     // free the body pointer and return success
     if(pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
     {
-        if(eHAL_IDLE == halStateGet(pMac)) {
-            if(pMsg->bodyptr) {
-                vos_mem_free((v_VOID_t*)pMsg->bodyptr);
-            }
-            return eSIR_SUCCESS;
+    if(eHAL_IDLE == halStateGet(pMac)) {
+        if(pMsg->bodyptr) {
+            vos_mem_free((v_VOID_t*)pMsg->bodyptr);
         }
+        return eSIR_SUCCESS;
+    }
     }
 
 #ifndef WLAN_FTM_STUB
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
-        tANI_U32                    pttType;
-        tPttMsgbuffer               *pPttMsg;
-        tANI_U8                     *pReq;
-        pReq = (tANI_U8*) pMsg->bodyptr;
-        pPttMsg = (tPttMsgbuffer *)pReq;
-        pttType = pMsg->type & HAL_MMH_MB_MSG_TYPE_MASK;
+    tANI_U32                    pttType;
+    tPttMsgbuffer               *pPttMsg;
+    tANI_U8                     *pReq;
+    pReq = (tANI_U8*) pMsg->bodyptr;
+    pPttMsg = (tPttMsgbuffer *)pReq;
+    pttType = pMsg->type & HAL_MMH_MB_MSG_TYPE_MASK;
 
         if (pttType >= PTT_MSG_TYPES_BEGIN_30 &&  pttType <= PTT_MSG_TYPES_BEGIN_32)
         {
@@ -971,16 +971,16 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                      break;
 */
                 case WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT:
-                     halPSDataInActivityTimeout(pMac, pMsg->bodyval);
-                     break;
+            halPSDataInActivityTimeout(pMac, pMsg->bodyval);
+            break;
 
-                case WNI_CFG_PS_ENABLE_HEART_BEAT:
-                     halPSFWHeartBeatCfg(pMac, pMsg->bodyval);
-                     break;
+        case WNI_CFG_PS_ENABLE_HEART_BEAT:
+            halPSFWHeartBeatCfg(pMac, pMsg->bodyval);
+            break;
 
-                case WNI_CFG_PS_ENABLE_BCN_FILTER:
-                     halPSBcnFilterCfg(pMac, pMsg->bodyval);
-                     break;
+        case WNI_CFG_PS_ENABLE_BCN_FILTER:
+            halPSBcnFilterCfg(pMac, pMsg->bodyval);
+            break;
 
 #ifdef WLAN_SOFTAP_FEATURE
         case WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE:
@@ -993,15 +993,15 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
            
                 case WNI_CFG_MCAST_BCAST_FILTER_SETTING:
                      halHandleMcastBcastFilterSetting(pMac, pMsg->bodyval);
-                     break;
+                   break;
        
                 case WNI_CFG_RF_SETTLING_TIME_CLK:
                       halPSRfSettlingTimeClk(pMac, pMsg->bodyval);
                       break;
 
                 default:
-                     HALLOGE( halLog(pMac, LOGE, FL("Cfg Id %d is not handled\n"), pMsg->bodyval));
-                     break;
+                    HALLOGE( halLog(pMac, LOGE, FL("Cfg Id %d is not handled\n"), pMsg->bodyval));
+                    break;
             }
 
             break;
@@ -1077,12 +1077,14 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 
 #ifdef WLAN_SOFTAP_FEATURE
         case SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND:
-            halMsg_UpdateProbeRspTemplate(pMac, (tpUpdateProbeRspParams)(pMsg->bodyptr));
+            halMsg_UpdateProbeRspTemplate(pMac, (tpSendProbeRespParams)(pMsg->bodyptr));
             break;
+#if 0 //separate setting for ie bitmap for probeRsp. Not in use right now.           
         case SIR_HAL_UPDATE_PROBE_RSP_IE_BITMAP_IND:
             halFW_UpdateProbeRspIeBitmap(pMac, (tpUpdateProbeRspIeBitmap)(pMsg->bodyptr));
             break;
 #endif            
+#endif
 
         case SIR_HAL_INIT_CFG_REQ:
             break;
@@ -1092,7 +1094,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             break;
 
         case SIR_HAL_SET_BSSKEY_REQ:
-            halMsg_SetBssKey(pMac, pMsg->reserved, (tpSetBssKeyParams) (pMsg->bodyptr));
+             halMsg_SetBssKey(pMac, pMsg->reserved, (tpSetBssKeyParams) (pMsg->bodyptr));
             break;
 
         case SIR_HAL_SET_STAKEY_REQ:
@@ -1153,7 +1155,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             halMsg_SetKeyDone(pMac, pMsg->bodyval);
             break;
 
-      case SIR_HAL_HANDLE_FW_MBOX_RSP:
+       case SIR_HAL_HANDLE_FW_MBOX_RSP:
             HALLOGW( halLog(pMac, LOGW, FL("Fw Rsp Msg \n")));
             halFW_HandleFwMessages(pMac, pMsg->bodyptr);
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
@@ -1161,7 +1163,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             break;
 
        case SIR_HAL_SEND_MSG_COMPLETE:
-            HALLOGE( halLog(pMac, LOGE, FL("Fw Rsp Msg \n")));
+            HALLOGE( halLog(pMac, LOGE, FL("Send Msg \n")));
             halMbox_SendMsgComplete(pMac);
             break;
 
@@ -1272,7 +1274,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
         case SIR_HAL_BEACON_PRE_IND:
             halMsg_BeaconPre(pMac);
             break;
-#endif            
+#endif 
 
         case SIR_HAL_STA_STAT_REQ:
         case SIR_HAL_AGGR_STAT_REQ:
@@ -1423,6 +1425,7 @@ halCleanup(tpAniSirGlobal pMac)
     halSetGlobalSystemRole(pMac, eSYSTEM_STA_ROLE);
 
     pMac->hal.currentChannel = 0;
+    pMac->hal.currentCalReqd = (tANI_U8)NO_CALS;
     pMac->hal.currentRfBand = eRF_BAND_UNKNOWN;
     pMac->hal.currentCBState = PHY_SINGLE_CHANNEL_CENTERED;
     //resetting the halDeferMsgQ.
@@ -1570,6 +1573,7 @@ eHalStatus halSetNewChannelParams(tpAniSirGlobal pMac)
     pMac->hal.currentChannel = pMac->hphy.setChanCntx.newChannel;
     pMac->hal.currentRfBand  = pMac->hphy.setChanCntx.newRfBand;
     pMac->hal.currentCBState = pMac->hphy.setChanCntx.newCbState;
+    pMac->hal.currentCalReqd = pMac->hphy.setChanCntx.newCalReqd;
 
     // Update MTU timing parameters when channel is changed and only
     // when MTU mode needs to be changed.
@@ -1600,19 +1604,21 @@ eHalStatus halPhy_ChangeChannel(tpAniSirGlobal pMac,
         tANI_U8 calRequired, funcHalSetChanCB pFunc,
         void* pData, tANI_U16 dialog_token)
 {
-    eHalStatus status;
+    eHalStatus     status;
 
     // Cache the channel information and the context to return
     pMac->hphy.setChanCntx.newChannel   = newChannel;
     pMac->hphy.setChanCntx.newRfBand    = halUtil_GetRfBand(pMac, newChannel);
     pMac->hphy.setChanCntx.newCbState   = newCbState;
+    pMac->hphy.setChanCntx.newCalReqd   = calRequired;
     pMac->hphy.setChanCntx.pFunc        = pFunc;
     pMac->hphy.setChanCntx.pData        = pData;
     pMac->hphy.setChanCntx.dialog_token = dialog_token;
 
     // Check if the current channel is same as the channel requested
     if( (newChannel == pMac->hal.currentChannel) &&
-        (newCbState == pMac->hal.currentCBState)) {
+        (newCbState == pMac->hal.currentCBState) &&
+        (calRequired == pMac->hal.currentCalReqd)) {
         HALLOG1( halLog(pMac, LOG1,
                     FL("Channel(%d) and CB State(%d) are the same as the previous settings, so not changing.\n"),
                                               newChannel, newCbState));
@@ -1627,15 +1633,15 @@ eHalStatus halPhy_ChangeChannel(tpAniSirGlobal pMac,
     halRadar_SetInterrupt((tHalHandle) pMac, eANI_BOOLEAN_FALSE);
 #endif
 
-    halPhyDisableAllPackets(pMac);
+        halPhyDisableAllPackets(pMac);
     if (newCbState == PHY_SINGLE_CHANNEL_CENTERED) {
-        halPhySetAgcCCAMode(pMac, PHY_CCA_ED_OR_CD_AND_CS, PHY_CCA_FORCED_ON);
+            halPhySetAgcCCAMode(pMac, PHY_CCA_ED_OR_CD_AND_CS, PHY_CCA_FORCED_ON);
     } else {
-        halPhySetAgcCCAMode(pMac, PHY_CCA_ED_OR_CD_AND_CS, PHY_CCA_SEC_ED40_AND_NOR_PKTDET40_PKTDET20);
+            halPhySetAgcCCAMode(pMac, PHY_CCA_ED_OR_CD_AND_CS, PHY_CCA_SEC_ED40_AND_NOR_PKTDET40_PKTDET20);
     }
 
-    HALLOGW( halLog(pMac, LOGW, FL("halPhySetChannel(channel %d, cbState %d) \n"), newChannel, newCbState));
-    status = halPhySetChannel(pMac, newChannel, newCbState, calRequired);
+        HALLOGW( halLog(pMac, LOGW, FL("halPhySetChannel(channel %d, cbState %d) \n"), newChannel, newCbState));
+        status = halPhySetChannel(pMac, newChannel, newCbState, calRequired);
 #ifdef FW_PRESENT
     return status;
 #else
@@ -1661,16 +1667,16 @@ void halPhy_HandleSetChannelRsp(tHalHandle hHal,  void* pFwMsg)
         (void) halSetNewChannelParams(pMac);
 
     } else {
-        HALLOGE( halLog(pMac, LOGE, FL("halPhySetChannel failed with status code: %d\n"), status));
+            HALLOGE( halLog(pMac, LOGE, FL("halPhySetChannel failed with status code: %d\n"), status));
         status = eHAL_STATUS_FAILURE;
 
         if (pMac->hal.currentCBState == PHY_SINGLE_CHANNEL_CENTERED) {
-            halPhySetAgcCCAMode(pMac, PHY_CCA_ED_OR_CD_AND_CS, PHY_CCA_FORCED_ON);
+                halPhySetAgcCCAMode(pMac, PHY_CCA_ED_OR_CD_AND_CS, PHY_CCA_FORCED_ON);
         } else {
-            halPhySetAgcCCAMode(pMac, PHY_CCA_ED_OR_CD_AND_CS, PHY_CCA_SEC_ED40_AND_NOR_PKTDET40_PKTDET20);
+                halPhySetAgcCCAMode(pMac, PHY_CCA_ED_OR_CD_AND_CS, PHY_CCA_SEC_ED40_AND_NOR_PKTDET40_PKTDET20);
         }
-    }
-    //Enable the packet reception.
+        }
+        //Enable the packet reception.
     (void)halPhySetRxPktsDisabled(pMac, pMac->hphy.modTypes);
     // Resume to the context of the caller
     pSetChanCtx->pFunc(pMac, pSetChanCtx->pData, status, pSetChanCtx->dialog_token);
@@ -2199,26 +2205,27 @@ eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId)
     }
     else
     {    
-        pMac->hal.ghalPhyAgcListenMode = (tANI_BOOLEAN)val;      
+        pMac->hal.ghalPhyAgcListenMode = (tANI_U8)val;   
     }
     
     return status;
 }
 
-/** -------------------------------------------------------------
+/** ------------------------------------------------------------------------
 \fn     halEnableListenMode
-\brief  hal API to enable / disable listen mode.
+\brief  hal API to configure listen mode (disable or enable Listen mode 
+\       with EDET threshold settings).
 \param  tpAniSirGlobal pMac
+\param  tANI_U8 listenModeEnableParams
 \return eHalStatus status
-  -------------------------------------------------------------*/
-
-eHalStatus halEnableListenMode(tpAniSirGlobal pMac, tANI_BOOLEAN listenModeEnable)
+  --------------------------------------------------------------------------*/
+eHalStatus halEnableListenMode(tpAniSirGlobal pMac, tANI_U8 listenModeEnableParams)
 {
     eHalStatus status;
     
-    if (listenModeEnable) 
+    if (listenModeEnableParams <= QWLAN_RFAPB_BBF_SAT5_EGY_THRES_IN_MASK) 
     {
-        status = halPhyAGCEnableListenMode(pMac); 
+        status = halPhyAGCEnableListenMode(pMac, listenModeEnableParams); 
     }
     else
     {

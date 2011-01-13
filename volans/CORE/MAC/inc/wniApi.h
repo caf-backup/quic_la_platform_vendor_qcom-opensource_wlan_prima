@@ -171,6 +171,7 @@ enum eWniMsgTypes
     eWNI_SME_GET_WPSPBC_SESSION_REQ,
     eWNI_SME_WPS_PBC_PROBE_REQ_IND,
     eWNI_SME_SET_APWPARSNIEs_REQ,
+    eWNI_SME_UPPER_LAYER_ASSOC_CNF,
 #endif
 
     //General Power Save Messages

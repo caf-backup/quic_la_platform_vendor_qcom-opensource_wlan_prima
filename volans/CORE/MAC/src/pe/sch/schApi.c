@@ -294,41 +294,34 @@ tSirRetStatus schSendBeaconReq( tpAniSirGlobal pMac, tANI_U8 *beaconPayload, tAN
   msgQ.bodyval = 0;
   MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
   if( eSIR_SUCCESS != (retCode = halPostMsgApi( pMac, &msgQ )))
+  {
     schLog( pMac, LOGE,
         FL("Posting SEND_BEACON_REQ to HAL failed, reason=%X\n"),
         retCode );
-  else
+  } else
+  {
     schLog( pMac, LOG2,
         FL("Successfully posted SIR_HAL_SEND_BEACON_REQ to HAL\n"));
 
-//#ifdef WLAN_SOFTAP_FEATURE
-#if 0 //Dinesh : commnting out because probeRsp template message structure defined by libra_softap team is different that LLD.
-      //Need to uncomment when we make a decision on this.
-
-    if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+#ifdef WLAN_SOFTAP_FEATURE
+    if( (psessionEntry->limSystemRole == eLIM_AP_ROLE ) 
+        && (psessionEntry->proxyProbeRspEn)
+        && (pMac->sch.schObject.fBeaconChanged))
     {
-        if(!psessionEntry->probe_rsp_template_set || pMac->sch.schObject.fBeaconChanged )
+        if(eSIR_SUCCESS != (retCode = limSendProbeRspTemplateToHal(pMac,psessionEntry,
+                                    &psessionEntry->DefProbeRspIeBitmap[0])))
         {
-            if(eSIR_FAILURE == limSendProbeRspTemplateToHal(pMac,psessionEntry,
-                                        &psessionEntry->DefProbeRspIeBitmap[0]))
-            {
-                /* check whether we have to free any memory */
-                schLog(pMac, LOGE, FL("limSendProbeRspMgmtFrame: FAILED to send probe response template of bytes %d\n"),beaconParams->beaconLength);
-            }
-            else
-            {
-                /* Need to decide, if this should be done with any flag/feature check */
-                psessionEntry->probe_rsp_template_set = 1;
-            }
+            /* check whether we have to free any memory */
+            schLog(pMac, LOGE, FL("FAILED to send probe response template with retCode %d\n"), retCode);
         }
     }
 #endif
+  }
 
-    return retCode;
+  return retCode;
 }
 
-//#ifdef WLAN_SOFTAP_FEATURE
-#if 0 //Dinesh : need to uncomment when we make a decision on the message structure for probeRsp template.
+#ifdef WLAN_SOFTAP_FEATURE
 tANI_U32 limSendProbeRspTemplateToHal(tpAniSirGlobal pMac,tpPESession psessionEntry
                                     ,tANI_U32* IeBitmap)
 {

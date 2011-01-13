@@ -3327,6 +3327,7 @@ eHalStatus sme_QosAddTsReq(tpAniSirGlobal pMac,
    else
    {
       pMsg->req.tspec.tsinfo.traffic.psb = 0;
+      pTspec_Info->ts_info.psb = 0;
    }
    pMsg->req.tspec.tsinfo.traffic.tsid = pTspec_Info->ts_info.tid;
    pMsg->req.tspec.tsinfo.traffic.userPrio = pTspec_Info->ts_info.up;

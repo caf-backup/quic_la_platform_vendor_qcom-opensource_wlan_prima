@@ -113,6 +113,7 @@ eQWPttStatus pttRxIqCal(tpAniSirGlobal pMac, sRxChainsIQCalValues *calValues, eG
 eQWPttStatus pttTxIqCal(tpAniSirGlobal pMac, sTxChainsIQCalValues *calValues, eGainSteps gain);
 eQWPttStatus pttTxCarrierSuppressCal(tpAniSirGlobal pMac, sTxChainsLoCorrections *calValues, eGainSteps gain);
 eQWPttStatus pttExecuteInitialCals(tpAniSirGlobal pMac);
+eQWPttStatus pttHdetCal(tpAniSirGlobal pMac, sRfHdetCalValues *hdetCalValues);
 
 //Phy Calibration Override Service
 eQWPttStatus pttSetTxCarrierSuppressCorrect(tpAniSirGlobal pMac, sTxChainsLoCorrections calValues, eGainSteps gain);

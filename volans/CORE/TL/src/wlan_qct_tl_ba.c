@@ -250,8 +250,19 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
    }
 
    wRxMetaInfo.ucUP = ucTID;
-   pTLHandle->atlSTAClients[ucSTAID].pfnSTARx(expireHandle->pAdapter,
-                                            vosDataBuff, ucSTAID, &wRxMetaInfo);
+#ifdef WLAN_SOFTAP_FEATURE  
+   if( WLAN_STA_SOFTAP == pTLHandle->atlSTAClients[ucSTAID].wSTADesc.wSTAType)
+   {
+      WLANTL_FwdPktToHDD( expireHandle->pAdapter, vosDataBuff, ucSTAID, 0xFF,
+                                            &wRxMetaInfo );
+   }
+   else
+#endif
+   {
+
+      pTLHandle->atlSTAClients[ucSTAID].pfnSTARx(expireHandle->pAdapter,
+                                           vosDataBuff, ucSTAID, &wRxMetaInfo);
+   }
    if(!VOS_IS_STATUS_SUCCESS(vos_lock_release(&ReorderInfo->reorderLock)))
    {
       TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_ReorderingAgingTimerExpierCB, Release LOCK Fail"));

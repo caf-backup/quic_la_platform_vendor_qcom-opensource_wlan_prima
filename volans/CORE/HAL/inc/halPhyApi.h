@@ -133,16 +133,14 @@ eHalStatus halPhyUpdateTxGainOverride(tHalHandle hHal, tANI_U8 txGain);
 // Routine to collect the adc rssi stats
 void halPhyAdcRssiStatsCollection(tHalHandle hHal);
 
-// Routine to enable/disable AGC listen mode
-eHalStatus halPhyAGCEnableListenMode(tHalHandle hHal);
+// Routine to configure AGC listen mode
+eHalStatus halPhyAGCEnableListenMode(tHalHandle hHal, tANI_U8 EDETThreshold);
 eHalStatus halPhyAGCDisableListenMode(tHalHandle hHal);
-// Routine to initialize CLPC in the Physical layer.
-eHalStatus halPhyTxPowerInit(tHalHandle hHal);
-/* Currently the below APIs are used only by the VOWIFI feature. This can be removed if
-this should be present as an utility irrespective of the feature */
-#ifdef WLAN_FEATURE_VOWIFI
-tPwrTemplateIndex halPhyGetPwrIndexForDbm(tPowerdBm dBm);
-tPowerdBm  halPhyGetDbmForPwrIndex(tPwrTemplateIndex pwrIndex);
-#endif /* WLAN_FEATURE_VOWIFI */
+// Routine to do PHY settings post fw init
+eHalStatus halPhyFwInitDone(tHalHandle hHal);
 
+/* Routine to return the power in Dbm for the given rate from Rate 2 power table */
+eHalStatus halPhyGetPwrFromRate2PwrTable(tHalHandle hHal, eHalPhyRates rate, t2Decimal *pwr2dec);
+/* Routine to return the maxPwrIndex that can be used for the given absolute power limit in dBm */
+inline eHalStatus halPhyGetMaxTxPowerIndex(tHalHandle hHal, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex);
 #endif /* HALPHYAPI_H */

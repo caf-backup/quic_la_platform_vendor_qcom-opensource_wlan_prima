@@ -30,7 +30,8 @@ typedef enum
     NV_COMMON_MAC_ADDR,                 // 4
     NV_COMMON_MFG_SERIAL_NUMBER,        // 5
 
-    NUM_NV_FIELDS
+    NUM_NV_FIELDS,
+    NV_MAX_FIELD = 0xFFFFFFFF  /* define as 4 bytes data */
 
 }eNvField;
 
@@ -42,9 +43,9 @@ typedef enum
     PRODUCT_BAND_11_B_G     = 0,    //Gen6.0 is only this setting
     PRODUCT_BAND_11_A_B_G   = 1,
     PRODUCT_BAND_11_A       = 2,
-    
+
     NUM_PRODUCT_BANDS
-}eNvProductBands;           //NV_COMMON_PRODUCT_BANDS 
+}eNvProductBands;           //NV_COMMON_PRODUCT_BANDS
 
 
 typedef union
@@ -67,7 +68,7 @@ typedef struct
     tANI_U16  productId;
     tANI_U8   productBands;
     tANI_U8   unused1[1];
-    
+
     tANI_U8   numOfTxChains;
     tANI_U8   numOfRxChains;
     tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];

@@ -1364,6 +1364,9 @@ limProcessMlmAssocInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 
     pSirSmeAssocInd->staId = pStaDs->staIndex;
+#ifdef WLAN_SOFTAP_FEATURE
+   pSirSmeAssocInd->reassocReq = pStaDs->mlmStaContext.subType;
+#endif
 
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT 
@@ -4684,6 +4687,11 @@ void limProcessMlmHalAddBARsp( tpAniSirGlobal pMac,
 
     //now LIM can process any defer message.
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+
+    if (pAddBAParams == NULL) {
+        PELOGE(limLog(pMac, LOGE,FL("NULL ADD BA Response from HAL\n"));)
+        return;
+    }
 
     if((psessionEntry = peFindSessionBySessionId(pMac, pAddBAParams->sessionId))==NULL)
     {

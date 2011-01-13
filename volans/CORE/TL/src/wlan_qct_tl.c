@@ -400,6 +400,28 @@ WLANTL_Open
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:WLANTL_Open"));
 
+  pTLCb->atlSTAClients = vos_mem_malloc(sizeof(WLANTL_STAClientType) * WLAN_MAX_STA_COUNT);
+  if (NULL == pTLCb->atlSTAClients)
+  {
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, "WLAN TL: StaClients allocation failed\n"));
+    vos_free_context(pvosGCtx, VOS_MODULE_ID_TL, pTLCb);
+    return VOS_STATUS_E_FAULT;
+  }
+
+  vos_mem_zero((v_VOID_t *)pTLCb->atlSTAClients, sizeof(WLANTL_STAClientType) * WLAN_MAX_STA_COUNT);
+
+  pTLCb->reorderBufferPool = vos_mem_malloc(sizeof(WLANTL_REORDER_BUFFER_T) * WLANTL_MAX_BA_SESSION);
+  if (NULL == pTLCb->reorderBufferPool)
+  {
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR, "WLAN TL: Reorder buffer allocation failed\n"));
+    vos_mem_free(pTLCb->atlSTAClients);
+    vos_free_context(pvosGCtx, VOS_MODULE_ID_TL, pTLCb);
+    return VOS_STATUS_E_FAULT;
+         
+  }
+
+  vos_mem_zero((v_VOID_t *)pTLCb->reorderBufferPool, sizeof(WLANTL_REORDER_BUFFER_T) * WLANTL_MAX_BA_SESSION);
+
   WLANTL_CleanCB(pTLCb, 0 /*do not empty*/);
 
   for ( ucIndex = 0; ucIndex < WLANTL_MAX_AC ; ucIndex++)
@@ -442,6 +464,9 @@ WLANTL_Open
   {
     TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
               "Handoff support module init fail"));
+    vos_mem_free(pTLCb->atlSTAClients);
+    vos_mem_free(pTLCb->reorderBufferPool);
+    vos_free_context(pvosGCtx, VOS_MODULE_ID_TL, pTLCb);
     return status;
   }
 #endif
@@ -692,6 +717,9 @@ WLANTL_Close
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL: WLANTL_Close"));
   WLANTL_CleanCB(pTLCb, 1 /* empty queues/lists/pkts if any*/);
+
+  vos_mem_free(pTLCb->atlSTAClients);
+  vos_mem_free(pTLCb->reorderBufferPool);
 
   /*------------------------------------------------------------------------
     Free TL context from VOSS global
@@ -4516,11 +4544,7 @@ WLANTL_RxFrames
         WLANTL_CacheSTAFrame( pTLCb, ucSTAId, vosTempBuff, uDPUSig, broadcast);
 
         vosTempBuff = vosDataBuff;
-#ifdef WLAN_SOFTAP_FEATURE
-        goto count;
-#else
         continue;
-#endif
       }
 
       if ( WLAN_STA_BT_AMP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType )
@@ -4594,36 +4618,17 @@ WLANTL_RxFrames
           vosTempBuff = vosDataBuff;
           continue;
         }
+
+#ifdef WLAN_SOFTAP_FEATURE
+    /* RX Statistics Data */
+      /* This is RX UC data frame */
+      pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxUCFcnt++;
+      pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxUCBcnt += usPktLen;
+#endif
+
     }/* else data frame*/
 
     vosTempBuff = vosDataBuff;
-
-#ifdef WLAN_SOFTAP_FEATURE
-    count:
-  if (!WLANTL_STA_ID_INVALID(ucSTAId))
-  {
-    /* RX Statistics Data */
-    if (vos_is_macaddr_broadcast(&pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSTAMACAddress))
-    {
-         /* This is RX BC frame */
-         pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxBCFcnt++;
-         pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxBCBcnt += usPktLen;
-    }
-    else if (vos_is_macaddr_group(&pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSTAMACAddress))
-    {
-         /* This is RX MC frame */
-         pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxMCFcnt++;
-         pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxMCBcnt += usPktLen;
-    }
-    else
-    {
-      /* This is RX UC frame */
-      pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxUCFcnt++;
-      pTLCb->atlSTAClients[ucSTAId].trafficStatistics.rxUCBcnt += usPktLen;
-    }
-  }
-#endif
-
   }/*while chain*/
 
   return VOS_STATUS_SUCCESS;
@@ -5267,20 +5272,7 @@ WLANTL_STATxConn
 
 #ifdef WLAN_SOFTAP_FEATURE
   /* TX Statistics */
-  /* BC/MC/UC have to be determined by MAC address */
-  if (vos_is_macaddr_broadcast(&vDestMacAddr))
-  {
-    /* This is TX BC frame */
-    pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txBCFcnt++;
-    pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txBCBcnt += usPktLen;
-  }
-  else if (vos_is_macaddr_group(&vDestMacAddr))
-  {
-    /* This is TX MC frame */
-    pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txMCFcnt++;      
-    pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txMCBcnt += usPktLen;
-  }
-  else
+   if (!(tlMetaInfo.ucBcast || tlMetaInfo.ucMcast))
   {
     /* This is TX UC frame */
     pTLCb->atlSTAClients[ucSTAId].trafficStatistics.txUCFcnt++;
@@ -5421,7 +5413,14 @@ WLANTL_STATxAuth
                "WLAN TL:Failed while attempting to fetch pkt from HDD %d",
                    vosStatus);
     *pvosDataBuff = NULL;
+#ifdef WLAN_SOFTAP_FEATURE
+    // original code (in #else clause) is no longer applicable
+    // HDD may not have a packet in the requested AC but may still
+    // have packets in another AC.  Other logic further below
+    // will now determine if the STA has no more data
+#else
     pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
+#endif
     /*--------------------------------------------------------------------
       Reset AC for the serviced station to the highest priority AC
       -> due to no more data at the station
@@ -5431,10 +5430,19 @@ WLANTL_STATxAuth
     pStaClient->ucCurrentAC     = WLANTL_AC_VO;
     pStaClient->ucCurrentWeight = 0;
 #ifdef WLAN_SOFTAP_FEATURE
-    if ( (0 == pStaClient->ucACMask) && 
-         (WLAN_STA_SOFTAP == pStaClient->wSTADesc.wSTAType))
+    if (WLAN_STA_SOFTAP == pStaClient->wSTADesc.wSTAType)
     {
-      vos_atomic_set_U8( &pStaClient->ucPktPending, 0);
+       // for softap make sure the client doesn't have data on another AC
+       if (0 == pStaClient->ucACMask)
+       {
+          vos_atomic_set_U8( &pStaClient->ucPktPending, 0);
+          pStaClient->ucNoMoreData = 1;
+       }
+    }
+    else
+    {
+       // for sta if no packet returned than all ACs have been serviced
+       pStaClient->ucNoMoreData = 1;
     }
 #endif
 
@@ -5685,20 +5693,7 @@ WLANTL_STATxAuth
 
 #ifdef WLAN_SOFTAP_FEATURE
   /* TX Statistics */
-  /* BC/MC/UC have to be determined by MAC address */
-  if (vos_is_macaddr_broadcast(&vDestMacAddr))
-  {
-    /* This is TX BC frame */
-    pStaClient->trafficStatistics.txBCFcnt++;
-    pStaClient->trafficStatistics.txBCBcnt += usPktLen;
-  }
-  else if (vos_is_macaddr_group(&vDestMacAddr))
-  {
-    /* This is TX MC frame */
-    pStaClient->trafficStatistics.txMCFcnt++;
-    pStaClient->trafficStatistics.txMCBcnt += usPktLen;
-  }
-  else
+  if (!(tlMetaInfo.ucBcast || tlMetaInfo.ucMcast))
   {
     /* This is TX UC frame */
     pStaClient->trafficStatistics.txUCFcnt++;
@@ -6121,6 +6116,120 @@ WLANTL_STARxConn
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_STARxConn */
 
+#ifdef WLAN_SOFTAP_FEATURE
+/*==========================================================================
+  FUNCTION    WLANTL_FwdPktToHDD
+
+  DESCRIPTION
+    Determine the Destation Station ID and route the Frame to Upper Layer
+
+  DEPENDENCIES
+
+  PARAMETERS
+
+   IN
+   pvosGCtx:       pointer to the global vos context; a handle to TL's
+                   control block can be extracted from its context
+   ucSTAId:        identifier of the station being processed
+   ucDesSTAId:      identifier of the station Packet is destined too.
+   vosDataBuff:   pointer to the rx vos buffer
+   wRxMetaInfo:   MetaInfo which holds User Priority which is passed to upper Layer
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_INVAL:   invalid input parameters
+    VOS_STATUS_E_FAULT:   pointer to TL cb is NULL ; access would cause a
+                          page fault
+    VOS_STATUS_SUCCESS:   Everything is good :)
+
+  SIDE EFFECTS
+
+============================================================================*/
+
+VOS_STATUS
+WLANTL_FwdPktToHDD
+(
+  v_PVOID_t       pvosGCtx,
+  vos_pkt_t*     pvosDataBuff,
+  v_U8_t          ucSTAId,
+  v_U8_t          ucDesSTAId,
+  WLANTL_RxMetaInfoType*    wRxMetaInfo
+)
+{
+   v_MACADDR_t DestMacAddress;
+   v_MACADDR_t *pDestMacAddress = &DestMacAddress;
+   v_SIZE_t usMacAddSize = VOS_MAC_ADDR_SIZE;
+   WLANTL_CbType*           pTLCb = NULL;
+   vos_pkt_t*               vosDataBuff ;
+   VOS_STATUS               vosStatus;
+
+
+  /*------------------------------------------------------------------------
+    Sanity check
+   ------------------------------------------------------------------------*/
+  if (( NULL == pvosDataBuff ) || ( NULL == ( vosDataBuff = pvosDataBuff )))
+  {
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid parameter sent on WLANTL_FwdPktToHdd"));
+    return VOS_STATUS_E_INVAL;
+  }
+
+  /*------------------------------------------------------------------------
+    Extract TL control block
+   ------------------------------------------------------------------------*/
+  pTLCb = VOS_GET_TL_CB(pvosGCtx);
+  if ( NULL == pTLCb )
+  {
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_FwdPktToHdd"));
+    return VOS_STATUS_E_FAULT;
+  }
+
+  vosStatus = vos_pkt_extract_data( vosDataBuff, 0, (v_VOID_t *)pDestMacAddress, &usMacAddSize);
+  if ( VOS_STATUS_SUCCESS != vosStatus )
+  {
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL: recv corrupted data packet\n"));
+     vos_pkt_return_packet(vosDataBuff);
+     return vosStatus;
+   }
+
+   TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"station mac 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x \n",
+              pDestMacAddress->bytes[0], pDestMacAddress->bytes[1], pDestMacAddress->bytes[2],
+              pDestMacAddress->bytes[3], pDestMacAddress->bytes[4], pDestMacAddress->bytes[5]));
+
+   if (vos_is_macaddr_broadcast( pDestMacAddress ) || vos_is_macaddr_group(pDestMacAddress))
+   {
+       // destination is mc/bc station
+       ucDesSTAId = WLAN_RX_BCMC_STA_ID;
+       TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
+                  "%s: BC/MC packet, id %d\n", __FUNCTION__, WLAN_RX_BCMC_STA_ID));
+   }
+   else
+   {
+     if (vos_is_macaddr_equal(pDestMacAddress, &pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSelfMACAddress))
+     {
+       // destination is AP itself
+       ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
+       TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
+                 "%s: packet to AP itself, id %d\n", __FUNCTION__, WLAN_RX_SAP_SELF_STA_ID));
+     }
+     else if ( WLAN_MAX_STA_COUNT <= ucDesSTAId )
+     {
+       // destination station is something else
+       TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
+                 "%s: get an station index larger than WLAN_MAX_STA_COUNT %d\n", __FUNCTION__, ucDesSTAId));
+       ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
+     }
+
+     //loopback unicast station comes here
+   }
+   pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucDesSTAId,
+                                            wRxMetaInfo );
+   return VOS_STATUS_SUCCESS;
+}
+#endif /* WLANTL_SOFTAP_FEATURE */ 
 /*==========================================================================
   FUNCTION    WLANTL_STARxAuth
 
@@ -6174,6 +6283,7 @@ WLANTL_STARxAuth
    VOS_STATUS               vosStatus;
    WLANTL_RxMetaInfoType    wRxMetaInfo;
    static v_U8_t            ucPMPDUHLen = 0;
+    v_U8_t                  ucDesSTAId = 0xFF;
 #ifdef ANI_CHIPSET_VOLANS
    v_U8_t                   ucEsf=0; /* first subframe of AMSDU flag */
    v_U64_t                  ullcurrentReplayCounter=0; /*current replay counter*/
@@ -6482,76 +6592,21 @@ if(0 == ucUnicastBroadcastType
 
   if ( NULL != vosDataBuff )
   {
-#ifdef WLAN_SOFTAP_FEATURE
-    v_U8_t ucDesSTAId = ucSTAId;
-    v_MACADDR_t DestMacAddress;
-    v_MACADDR_t *pDestMacAddress = &DestMacAddress;
-    v_SIZE_t usMacAddSize = VOS_MAC_ADDR_SIZE;
-#endif
 
     wRxMetaInfo.ucUP = ucTid;
-
+    ucDesSTAId = WLANHAL_RX_BD_GET_ADDR3_IDX(aucBDHeader);
 #ifdef WLAN_SOFTAP_FEATURE
-    TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
-               "WLAN TL:Sending data chain to station \n"));
-    if ( WLAN_STA_SOFTAP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType )
-    { 
-      vosStatus = vos_pkt_extract_data( vosDataBuff, 0, (v_VOID_t *)pDestMacAddress, &usMacAddSize);
-
-      if ( VOS_STATUS_SUCCESS != vosStatus )
-      {
-        TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                   "WLAN TL: recv corrupted data packet\n"));
-        vos_pkt_return_packet(vosDataBuff);
-        return vosStatus;
-      }
-
-      TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"station mac 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x \n", 
-                 pDestMacAddress->bytes[0], pDestMacAddress->bytes[1], pDestMacAddress->bytes[2], 
-                 pDestMacAddress->bytes[3], pDestMacAddress->bytes[4], pDestMacAddress->bytes[5]));
-
-      ucDesSTAId = WLANHAL_RX_BD_GET_ADDR3_IDX(aucBDHeader);
-
-      TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
-               "WLAN TL: Sending from station %d to staion %d, add1 %d \n", 
-                 ucSTAId, ucDesSTAId, WLANHAL_RX_BD_GET_ADDR1_IDX(aucBDHeader)));
-
-      if (vos_is_macaddr_broadcast( pDestMacAddress ) || vos_is_macaddr_group(pDestMacAddress))
-      //if (WLANTL_STA_ID_BCAST == ucDesSTAId)
-      {
-        // destination is mc/bc station
-        ucDesSTAId = WLAN_RX_BCMC_STA_ID;
-        TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
-                   "%s: BC/MC packet, id %d\n", __FUNCTION__, WLAN_RX_BCMC_STA_ID));
-      }
-      else 
-      {
-        if (vos_is_macaddr_equal(pDestMacAddress, &pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSelfMACAddress))
-        //if ( WLANHAL_RX_BD_ADDR3_SELF_IDX == ucDesSTAId )
-        {
-          // destination is AP itself
-          ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
-          TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
-                    "%s: packet to AP itself, id %d\n", __FUNCTION__, WLAN_RX_SAP_SELF_STA_ID));
-        }
-        //else if (eHAL_STATUS_SUCCESS != halTable_FindStaidByAddr(pMac, (tANI_U8 *)pDestMacAddress, &ucDesSTAId))
-        else if ( WLAN_MAX_STA_COUNT <= ucDesSTAId )
-        {
-          // destination station is something else
-          TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
-                    "%s: get an station index larger than WLAN_MAX_STA_COUNT %d\n", __FUNCTION__, ucDesSTAId));
-          ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
-        }
-
-        //loopback unicast station comes here
-      }
+    if( WLAN_STA_SOFTAP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType)
+    {
+       WLANTL_FwdPktToHDD( pvosGCtx, vosDataBuff, ucSTAId, ucDesSTAId,
+                                                &wRxMetaInfo );
     }
-    pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucDesSTAId,
-                                            &wRxMetaInfo );
-#else
-    pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
-                                            &wRxMetaInfo );
+    else
 #endif
+    {
+       pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
+                                            &wRxMetaInfo );
+    }
   }/* if not NULL */
 
   return VOS_STATUS_SUCCESS;
@@ -10882,7 +10937,7 @@ VOS_STATUS WLANTL_GetSoftAPStatistics(v_PVOID_t pAdapter, WLANTL_TRANSFER_STA_TY
     {
         if (pTLCb->atlSTAClients[i].wSTADesc.wSTAType == WLAN_STA_SOFTAP)
         {
-           vosStatus = WLANTL_GetStatistics(pAdapter, &statBufferTemp, i);
+           vosStatus = WLANTL_GetStatistics(pAdapter, &statBufferTemp, i);// Can include staId 1 because statistics not collected for it
 
            if (!VOS_IS_STATUS_SUCCESS(vosStatus))
                 return VOS_STATUS_E_FAULT;

@@ -78,6 +78,9 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
     pFwConfig->ucNumRxAntennas = HAL_FW_NUM_RX_ANTENNAS;
     pFwConfig->ucOpenLoopTxGain = pMac->hphy.phy.openLoopTxGain;
 
+    // configure the current regulatory domain
+    pFwConfig->ucRegDomain = (tANI_U8)( halPhyGetRegDomain(hHal) );
+
     //pFwConfig->bClosedLoop = CLOSED_LOOP_CONTROL;
 
     pFwConfig->bRfXoOn = TRUE;
@@ -319,7 +322,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
 
             1/* Channel Tune after cal */,
             0/* Temperature Measure Periodically */,
-            0/* Temperature Measure at Init */,
+            1/* Temperature Measure at Init */,
             0/* Tx DPD */,
             0/* CLPC Temp Adjustment */,
             0/* CLPC */,
@@ -336,10 +339,10 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             0/* LNA Bias Setting */,
 
             1/* PLL VCO Freq Linearity Cal */,
-            0/* Process Monitor */,
-            0/* C Tuner */,
+            1/* Process Monitor */,
+            1/* C Tuner */,
             0/* In-Situ Tuner */,
-            0/* Rtuner */,
+            1/* Rtuner */,
             0/* HDET DCO */,
             1/* Firmware Initialization */,
             0/* Use cal data prior to calibrations */
@@ -348,10 +351,10 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             0/* Use cal data prior to calibrations */,
             1/* Firmware Initialization */,
             0/* HDET DCO */,
-            0/* Rtuner */,
+            1/* Rtuner */,
             0/* In-Situ Tuner */,
-            0/* C Tuner */,
-            0/* Process Monitor */,
+            1/* C Tuner */,
+            1/* Process Monitor */,
             1/* PLL VCO Freq Linearity Cal */,
 
             0/* LNA Bias Setting */,
@@ -368,7 +371,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             0/* CLPC */,
             0/* CLPC Temp Adjustment */,
             0/* Tx DPD */,
-            0/* Temperature Measure at Init */,
+            1/* Temperature Measure at Init */,
             0/* Temperature Measure Periodically */,
             1/* Channel Tune after cal */,
 
@@ -382,6 +385,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
         {
             calControl.rTuner = 0;
             calControl.cTuner = 0;
+            calControl.tempMeasureAtInit = 0;
             calControl.processMonitor = 0;
         }
 
@@ -504,9 +508,9 @@ eHalStatus halFW_CheckInitComplete(tHalHandle hHal, void *arg)
     }
     else
     {
-        if ((status = halPhyTxPowerInit((tHalHandle)pMac)) != eHAL_STATUS_SUCCESS)
+        if ((status = halPhyFwInitDone((tHalHandle)pMac)) != eHAL_STATUS_SUCCESS)
         {
-            HALLOGP(halLog (pMac, LOGP, FL("Could not initialize the TPC module\n")));
+            HALLOGP(halLog (pMac, LOGP, FL("Could not initialize the halPhy module post fwinit\n")));
             return status;
         }
         /*
@@ -1076,8 +1080,8 @@ eHalStatus halFW_WriteProbeRspToMemory(tpAniSirGlobal pMac, tANI_U8 *probeRsp,
     //halWriteDevicememory requires length to be mulltiple of four and aligned to 4 byte boundry.
     alignedLen = ( mpduLen + 3 ) & ~3 ;
 
-    // beacon body need to be swapped sicne there is another swap occurs while BAL writes
-    // the beacon to Libra.
+    // probeRsp body need to be swapped sicne there is another swap occurs while BAL writes
+    // the probeRsp to Libra.
     sirSwapU32BufIfNeeded((tANI_U32*)probeRsp, alignedLen>>2);
 
     halWriteDeviceMemory(pMac, probeRspOffset + 4 + sizeof(halTxBd_type),
@@ -1265,6 +1269,8 @@ eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobal
     tpStaStruct pSta;
     tANI_U8 uSig;
     vos_mem_zero(&staInfo, sizeof(staInfo));
+    vos_mem_zero(&msgBody, sizeof(Qwlanfw_AddStaMsgType));
+
     if(staIdx < HAL_NUM_STA)
     {
         pSta = &(((tpStaStruct)(pMac->hal.halMac.staTable))[staIdx]);
@@ -1284,7 +1290,7 @@ eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobal
             staInfo.dpuDescIndx = pSta->dpuIndex;
 
             halDpu_GetSignature(pMac, pSta->dpuIndex, &uSig);
-            staInfo.dpuSig = uSig; 
+            staInfo.dpuSig = uSig;
 
             msgBody.bssIdx = pSta->bssIdx;
             if(raGlobalUpdate)
@@ -1342,20 +1348,19 @@ eHalStatus halFW_DelStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx)
  *      eHAL_STATUS_SUCCESS
  *      eHAL_STATUS_FAILURE
  */
-eHalStatus halFW_UpdateProbeRspIeBitmap(tpAniSirGlobal pMac, tpUpdateProbeRspIeBitmap pMsg)
+eHalStatus halFW_UpdateProbeRspIeBitmap(tpAniSirGlobal pMac, tANI_U32* pIeBitmap)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tHalFwParams *pFw = &pMac->hal.FwParam;
     Qwlanfw_SysCfgType *pFwConfig;
 
     pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
-    vos_mem_copy(pFwConfig->apProbeReqValidIEBitmap, pMsg->probeRspIeBitmap, sizeof(pFwConfig->apProbeReqValidIEBitmap));
-    pFwConfig->bFwProcProbeReqDisabled = pMsg->fwProcessingdisabled;
+    vos_mem_copy(pFwConfig->apProbeReqValidIEBitmap, pIeBitmap, sizeof(pFwConfig->apProbeReqValidIEBitmap));
+    pFwConfig->bFwProcProbeReqDisabled = 0; //enable the feature;
 
     status = halFW_UpdateSystemConfig(pMac,
             pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
             sizeof(*pFwConfig));
-    palFreeMemory( pMac->hHdd, (tANI_U8 *) pMsg );
     return status;
 }
 

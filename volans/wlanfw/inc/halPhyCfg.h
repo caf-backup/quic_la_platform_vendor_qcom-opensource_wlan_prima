@@ -51,6 +51,12 @@
 #define MIN_PWR_LUT_DBM_2DEC_PLACES  (MIN_PWR_LUT_DBM * 100)
 #define MAX_PWR_LUT_DBM_2DEC_PLACES  ((MAX_PWR_LUT_DBM * 100) - (1 + (100 * (MAX_PWR_LUT_DBM - MIN_PWR_LUT_DBM))/TPC_MEM_POWER_LUT_DEPTH))
 
+// The Station capability is added to this file.
+// This will need to be removed, so dependency of
+// host(SME) on the hal/fw file is removed.
+#define MIN_STA_PWR_CAP_DBM         13
+#define MAX_STA_PWR_CAP_DBM         19 
+
 #define MAX_TPC_GAIN_LUT_DBM    (24)
 #define MIN_TPC_GAIN_LUT_DBM    (9)
 
@@ -65,6 +71,7 @@
 typedef tANI_U8 tPowerDetect;        //7-bit power detect reading
 typedef tANI_U8 tTxGainCombo;        //7-bit gain value used to get the power measurement
 typedef tANI_U8 tTpcLutValue;
+typedef tANI_U16 tPowerAdc;
 
 
 typedef struct
@@ -134,11 +141,11 @@ typedef struct
 //     tANI_S8 dbmAdjustLut1;      //chain 1 integer +/- adjustment to the LUT value at the current ADC index for the commanded power
 //     tANI_U8 reserved;           //save this for third Tx chain later
 // }tTPCPowerCorrectPoint;
-// 
+//
 // #define MAX_TPC_CORRECT_POWER_POINTS   5
 // #define MAX_TPC_CORRECT_TEMPERATURES   4    //probably 0, 20, 40, & 60 degrees C but not necessarily
-// 
-// 
+//
+//
 // //We expect these correction power points to be taken in increasing order, starting at index 0
 // typedef struct
 // {
@@ -146,7 +153,7 @@ typedef struct
 //     tTempADCVal temp;
 //     tANI_U8 reserved[3];
 // }tTPCTempCompensation;
-// 
+//
 // typedef tTPCTempCompensation tTPCTempCompSubband[MAX_TPC_CORRECT_TEMPERATURES];
 
 
@@ -156,19 +163,19 @@ typedef struct
 //     tANI_U8 rfLoopbackGains;   //bit 0 = tx_lb_gain, bit 1 = rx_lb_gain
 //     tANI_U8 rxGain;
 // }sTxLoCalClipGains;
-// 
+//
 // typedef struct
 // {
 //     tANI_U8 rfDetGain;
 //     tANI_U8 rxGain;
 // }sTxIqCalClipGains;
-// 
+//
 // typedef struct
 // {
 //     tANI_U8 rfLoopbackGains;      //bit 0 = tx_lb_gain, bit 1 = rx_lb_gain
 //     tANI_U8 txGain;             //override tx gain value = coarse & fine
 // }sRxIqCalClipGains;
-// 
+//
 // typedef struct
 // {
 //     tANI_BOOLEAN    useDcoCorrection;
@@ -178,7 +185,7 @@ typedef struct
 //     tTxLoCorrect    txloCorrection[PHY_MAX_TX_CHAINS];
 //     sTxLoCorrectChannel txloBasebandCorrection;
 // }sCalTable;
-// 
+//
 
 
 /* TX Power Calibration & Report Types */
@@ -192,36 +199,36 @@ typedef struct
 //     tANI_U8  reserved;
 //     uAbsPwrPrecision absPowerMeasured;      //= dBm measurement, will be truncated to two decimal places
 // }tTpcCalPoint;
-// 
-// 
+//
+//
 // typedef struct
 // {
 //     tANI_U16 numTpcCalPoints;
 //     tANI_U16 reserved;
 //     tTpcCalPoint chain[MAX_TPC_CAL_POINTS];
 // }tTpcChainData;
-// 
-// 
+//
+//
 // typedef struct
 // {
 //     tANI_U16 freq;                                          //frequency in MHz
 //     tANI_U16 reserved;
 //     tTpcChainData empirical[PHY_MAX_TX_CHAINS];  //TPC samples passed in
 // }tTpcFreqData;
-// 
+//
 // typedef struct
 // {
 //     tANI_U8 numChannels;
 //     tANI_U8 reserved[3];
 //     tTpcFreqData calValues[MAX_TPC_CHANNELS];
 // }sTpcFreqCalTable;
-// 
-// 
+//
+//
 typedef struct
 {
     tPowerDetect lut;                   //7-bit value in the power Lookup Table
     tANI_U8 reserved[3];
-    
+
     uAbsPwrPrecision abs;               //LUT value conversion to absolute dBm
 }tTxPowerLutOutput;
 
@@ -229,8 +236,8 @@ typedef struct
 {
     tANI_U8      gain;                  //8-bit coarse(bits 4-7) & fine(bits 0-3) gain commanded for the current index
     tPowerDetect adc;                   //8-bit power ADC sampled during the packet preamble
-    tANI_U8 reserved[2];
-    
+    tPowerAdc rawAdc;                   //11-bit power raw ADC sampled during the packet preamble
+
     tTxPowerLutOutput indexMinMatch;    //minimum LUT matching power that satisfies the power template index setting
     tTxPowerLutOutput indexMaxMatch;    //maximum LUT matching power that satisfies the power template index setting
     tTxPowerLutOutput output;           //output power values corresponding to power ADC index

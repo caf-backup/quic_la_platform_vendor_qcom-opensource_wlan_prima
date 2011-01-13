@@ -27,7 +27,7 @@
 /*  The following SET/GET_PHY_REG is used for debug purposes to record all phy register access.
     It was reported that this method was taking too much time on some platforms, so it was reduced to the
     basic minimum. Leaving it #if 0'd, so we can use it when we need to compare register differences.
-    
+
     We are leaving the debug version to use the syncronous version of register writing, but moving to asyncronous
     register writes, primarily to facilitate USB driver efficiency.
 */
@@ -97,8 +97,8 @@ tANI_U16 signMagnitude(tANI_S16 val, tANI_U8 nBits);
 */
 void rdModWrAsicField(tANI_U32 regAddr, tANI_U32 mask, tANI_U32 offset, tANI_U32 val);
 /*
-    converts a signed integer to unsigned. 
-    for eg: -5(1000) is converted to (10101) 
+    converts a signed integer to unsigned.
+    for eg: -5(1000) is converted to (10101)
 */
 tANI_S16 convert_sign_mag(tANI_S16 value, tANI_U16 nbits);
 
@@ -135,7 +135,7 @@ void asicAGCReset();
 void asicAGCInit();
 void asicAGCCalcGainLutsForChannel(eRfChannels chan);
 void asicSetAGCGainLut(ePhyRxChains rxChain, tANI_U8 minIndex, tANI_U8 maxIndex, const tRxGain *agcTable);
-void asicGetAgcGainLut(ePhyRxChains rxChain, tRxGain *agcTable /* NUM_AGC_GAINS */); 
+void asicGetAgcGainLut(ePhyRxChains rxChain, tRxGain *agcTable /* NUM_AGC_GAINS */);
 void asicSetAgcCCAMode(ePhyCCAMode primaryCcaMode, ePhyCCAMode secondaryCcaMode);
 void asicSetAGCChannelBondState(ePhyChanBondState chBondState);
 void asicOverrideAGCRxChainGain(ePhyRxChains rxChain, tANI_U8 gain);
@@ -178,7 +178,7 @@ void asicTxFirGetTxCarrierCorrection(eGainSteps gain, ePhyTxChains txChain, sTxF
 void asicTxFirSetTxPhaseCorrection(eGainSteps gain, ePhyTxChains txChain, sIQCalValues correct);
 void asicTxFirGetTxPhaseCorrection(eGainSteps gain, ePhyTxChains txChain, sIQCalValues *correct);
 void asicTxFirApplyCoef(eRfChannels channel, eRegDomainId regDomain);
-void asicTxFirApply20MHzOFDMCoef(eRfChannels channel);
+void asicTxFirApply20MHzOFDMCoef(eRfChannels channel, eRegDomainId regDomain);
 void asicTxFirApply11bCoef(eRfChannels channel);
 
 

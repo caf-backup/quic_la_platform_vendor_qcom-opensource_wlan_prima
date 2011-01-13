@@ -1,4 +1,3 @@
-
 KERNEL_DIR ?= ../../../../../../../../kernel
 KERNEL_OUT ?= ../out/target/product/$(TARGET_PRODUCT)/obj/KERNEL_OBJ
 
@@ -21,6 +20,7 @@ KERNEL_INC ?= ./include/linux
 # The WLAN is passed in from Android.mk as either:
 # eclair ../vendor/qcom-proprietary/wlan
 # froyo  ../vendor/qcom/proprietary/wlan
+
 ifndef WLAN
 # Local make not from Android.mk
 WLAN     := ../vendor/qcom/proprietary/wlan/volans/
@@ -81,7 +81,7 @@ endif
 
 ############# VOSS ################################
 VOSS_INC := -I$(WLAN_DIR)/VOSS/inc/ \
-		-I$(WLAN_DIR)/VOSS/inc/Linux \
+           -I$(WLAN_DIR)/VOSS/inc/Linux \
            -I$(KERNEL_INC)\
            -I$(WLAN_DIR)/VOSS/src
 
@@ -117,90 +117,90 @@ endif
 
 ############# TL ##################### 
 TL_INC := 	-I$(WLAN_DIR)/TL/inc \
-		-I$(WLAN_DIR)/TL/src
+         -I$(WLAN_DIR)/TL/src
 
 TL_SRC_DIR := ../../TL/src
 TL_OBJS := 	$(TL_SRC_DIR)/wlan_qct_tl.o \
-		$(TL_SRC_DIR)/wlan_qct_tl_ba.o \
-		$(TL_SRC_DIR)/wlan_qct_tl_hosupport.o
+             $(TL_SRC_DIR)/wlan_qct_tl_ba.o \
+             $(TL_SRC_DIR)/wlan_qct_tl_hosupport.o
 
 ############# SYS ##################### 
 SYS_INC := 	-I$(WLAN_DIR)/SYS/common/inc \
-		-I$(WLAN_DIR)/SYS/legacy/src/pal/inc \
-		-I$(WLAN_DIR)/SYS/legacy/src/platform/inc \
-		-I$(WLAN_DIR)/SYS/legacy/src/system/inc \
-		-I$(WLAN_DIR)/SYS/legacy/src/utils/inc \
+        -I$(WLAN_DIR)/SYS/legacy/src/pal/inc \
+        -I$(WLAN_DIR)/SYS/legacy/src/platform/inc \
+        -I$(WLAN_DIR)/SYS/legacy/src/system/inc \
+        -I$(WLAN_DIR)/SYS/legacy/src/utils/inc \
 
 SYS_COMMON_SRC_DIR := ../../SYS/common/src
 SYS_LEGACY_SRC_DIR := ../../SYS/legacy/src
 SYS_OBJS :=	$(SYS_COMMON_SRC_DIR)/wlan_qct_sys.o \
-		$(SYS_LEGACY_SRC_DIR)/pal/src/palApiComm.o \
-		$(SYS_LEGACY_SRC_DIR)/pal/src/palApiSdio.o \
-		$(SYS_LEGACY_SRC_DIR)/pal/src/palTimer.o \
-		$(SYS_LEGACY_SRC_DIR)/platform/src/VossWrapper.o \
-		$(SYS_LEGACY_SRC_DIR)/system/src/macInitApi.o \
-		$(SYS_LEGACY_SRC_DIR)/system/src/sysEntryFunc.o \
-		$(SYS_LEGACY_SRC_DIR)/system/src/sysWinStartup.o \
-		$(SYS_LEGACY_SRC_DIR)/utils/src/dot11f.o \
-		$(SYS_LEGACY_SRC_DIR)/utils/src/logApi.o \
-		$(SYS_LEGACY_SRC_DIR)/utils/src/logDump.o \
-		$(SYS_LEGACY_SRC_DIR)/utils/src/macTrace.o \
-		$(SYS_LEGACY_SRC_DIR)/utils/src/parserApi.o \
-		$(SYS_LEGACY_SRC_DIR)/utils/src/utilsApi.o \
-		$(SYS_LEGACY_SRC_DIR)/utils/src/utilsParser.o 
+        $(SYS_LEGACY_SRC_DIR)/pal/src/palApiComm.o \
+        $(SYS_LEGACY_SRC_DIR)/pal/src/palApiSdio.o \
+        $(SYS_LEGACY_SRC_DIR)/pal/src/palTimer.o \
+        $(SYS_LEGACY_SRC_DIR)/platform/src/VossWrapper.o \
+        $(SYS_LEGACY_SRC_DIR)/system/src/macInitApi.o \
+        $(SYS_LEGACY_SRC_DIR)/system/src/sysEntryFunc.o \
+        $(SYS_LEGACY_SRC_DIR)/system/src/sysWinStartup.o \
+        $(SYS_LEGACY_SRC_DIR)/utils/src/dot11f.o \
+        $(SYS_LEGACY_SRC_DIR)/utils/src/logApi.o \
+        $(SYS_LEGACY_SRC_DIR)/utils/src/logDump.o \
+        $(SYS_LEGACY_SRC_DIR)/utils/src/macTrace.o \
+        $(SYS_LEGACY_SRC_DIR)/utils/src/parserApi.o \
+        $(SYS_LEGACY_SRC_DIR)/utils/src/utilsApi.o \
+        $(SYS_LEGACY_SRC_DIR)/utils/src/utilsParser.o
 
 ############# MAC ##################### 
 MAC_INC := 	-I$(WLAN_DIR)/MAC/inc \
-		-I$(WLAN_DIR)/MAC/src/include \
-		-I$(WLAN_DIR)/MAC/src/pe/include \
-		-I$(WLAN_DIR)/MAC/src/dph \
-		-I$(WLAN_DIR)/MAC/src/pe/lim \
-		-I$(WLAN_DIR)/MAC/src/dvt
+        -I$(WLAN_DIR)/MAC/src/include \
+        -I$(WLAN_DIR)/MAC/src/pe/include \
+        -I$(WLAN_DIR)/MAC/src/dph \
+        -I$(WLAN_DIR)/MAC/src/pe/lim \
+        -I$(WLAN_DIR)/MAC/src/dvt
 
 MAC_SRC_DIR :=  ../../MAC/src
 
 MAC_CFG_OBJS := $(MAC_SRC_DIR)/cfg/cfgApi.o \
-		$(MAC_SRC_DIR)/cfg/cfgProcMsg.o \
-		$(MAC_SRC_DIR)/cfg/cfgSendMsg.o \
-		$(MAC_SRC_DIR)/cfg/cfgDebug.o \
-		$(MAC_SRC_DIR)/cfg/cfgParamName.o
+        $(MAC_SRC_DIR)/cfg/cfgProcMsg.o \
+        $(MAC_SRC_DIR)/cfg/cfgSendMsg.o \
+        $(MAC_SRC_DIR)/cfg/cfgDebug.o \
+        $(MAC_SRC_DIR)/cfg/cfgParamName.o
 
 MAC_DPH_OBJS := $(MAC_SRC_DIR)/dph/dphHashTable.o
 MAC_LIM_OBJS := $(MAC_SRC_DIR)/pe/lim/limAIDmgmt.o               \
-          	$(MAC_SRC_DIR)/pe/lim/limApi.o                   \
-         	$(MAC_SRC_DIR)/pe/lim/limAssocUtils.o            \
-          	$(MAC_SRC_DIR)/pe/lim/limIbssPeerMgmt.o          \
-          	$(MAC_SRC_DIR)/pe/lim/limLinkMonitoringAlgo.o    \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessActionFrame.o    \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessAssocReqFrame.o  \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessAssocRspFrame.o  \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessAuthFrame.o      \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessBeaconFrame.o    \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessCfgUpdates.o     \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessDeauthFrame.o    \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessDisassocFrame.o  \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessLmmMessages.o    \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessMessageQueue.o   \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessMlmReqMessages.o \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessMlmRspMessages.o \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessProbeReqFrame.o  \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessProbeRspFrame.o  \
-          	$(MAC_SRC_DIR)/pe/lim/limProcessSmeReqMessages.o \
-          	$(MAC_SRC_DIR)/pe/lim/limPropExtsUtils.o         \
-          	$(MAC_SRC_DIR)/pe/lim/limRoamingAlgo.o           \
-          	$(MAC_SRC_DIR)/pe/lim/limScanResultUtils.o       \
-          	$(MAC_SRC_DIR)/pe/lim/limSecurityUtils.o         \
-          	$(MAC_SRC_DIR)/pe/lim/limSendManagementFrames.o  \
-          	$(MAC_SRC_DIR)/pe/lim/limSendMessages.o          \
-          	$(MAC_SRC_DIR)/pe/lim/limSendSmeRspMessages.o    \
-          	$(MAC_SRC_DIR)/pe/lim/limSerDesUtils.o           \
-          	$(MAC_SRC_DIR)/pe/lim/limSmeReqUtils.o           \
-          	$(MAC_SRC_DIR)/pe/lim/limStaHashApi.o            \
-          	$(MAC_SRC_DIR)/pe/lim/limTimerUtils.o            \
-          	$(MAC_SRC_DIR)/pe/lim/limUtils.o                 \
-          	$(MAC_SRC_DIR)/pe/lim/limLogDump.o               \
-          	$(MAC_SRC_DIR)/pe/lim/limDebug.o	         \
-                $(MAC_SRC_DIR)/pe/lim/limTrace.o		 \
+            $(MAC_SRC_DIR)/pe/lim/limApi.o                   \
+            $(MAC_SRC_DIR)/pe/lim/limAssocUtils.o            \
+            $(MAC_SRC_DIR)/pe/lim/limIbssPeerMgmt.o          \
+            $(MAC_SRC_DIR)/pe/lim/limLinkMonitoringAlgo.o    \
+            $(MAC_SRC_DIR)/pe/lim/limProcessActionFrame.o    \
+            $(MAC_SRC_DIR)/pe/lim/limProcessAssocReqFrame.o  \
+            $(MAC_SRC_DIR)/pe/lim/limProcessAssocRspFrame.o  \
+            $(MAC_SRC_DIR)/pe/lim/limProcessAuthFrame.o      \
+            $(MAC_SRC_DIR)/pe/lim/limProcessBeaconFrame.o    \
+            $(MAC_SRC_DIR)/pe/lim/limProcessCfgUpdates.o     \
+            $(MAC_SRC_DIR)/pe/lim/limProcessDeauthFrame.o    \
+            $(MAC_SRC_DIR)/pe/lim/limProcessDisassocFrame.o  \
+            $(MAC_SRC_DIR)/pe/lim/limProcessLmmMessages.o    \
+            $(MAC_SRC_DIR)/pe/lim/limProcessMessageQueue.o   \
+            $(MAC_SRC_DIR)/pe/lim/limProcessMlmReqMessages.o \
+            $(MAC_SRC_DIR)/pe/lim/limProcessMlmRspMessages.o \
+            $(MAC_SRC_DIR)/pe/lim/limProcessProbeReqFrame.o  \
+            $(MAC_SRC_DIR)/pe/lim/limProcessProbeRspFrame.o  \
+            $(MAC_SRC_DIR)/pe/lim/limProcessSmeReqMessages.o \
+            $(MAC_SRC_DIR)/pe/lim/limPropExtsUtils.o         \
+            $(MAC_SRC_DIR)/pe/lim/limRoamingAlgo.o           \
+            $(MAC_SRC_DIR)/pe/lim/limScanResultUtils.o       \
+            $(MAC_SRC_DIR)/pe/lim/limSecurityUtils.o         \
+            $(MAC_SRC_DIR)/pe/lim/limSendManagementFrames.o  \
+            $(MAC_SRC_DIR)/pe/lim/limSendMessages.o          \
+            $(MAC_SRC_DIR)/pe/lim/limSendSmeRspMessages.o    \
+            $(MAC_SRC_DIR)/pe/lim/limSerDesUtils.o           \
+            $(MAC_SRC_DIR)/pe/lim/limSmeReqUtils.o           \
+            $(MAC_SRC_DIR)/pe/lim/limStaHashApi.o            \
+            $(MAC_SRC_DIR)/pe/lim/limTimerUtils.o            \
+            $(MAC_SRC_DIR)/pe/lim/limUtils.o                 \
+            $(MAC_SRC_DIR)/pe/lim/limLogDump.o               \
+            $(MAC_SRC_DIR)/pe/lim/limDebug.o             \
+            $(MAC_SRC_DIR)/pe/lim/limTrace.o         \
             $(MAC_SRC_DIR)/pe/lim/limAdmitControl.o \
             $(MAC_SRC_DIR)/pe/lim/limSession.o \
             $(MAC_SRC_DIR)/pe/lim/limSessionUtils.o \
@@ -211,49 +211,49 @@ MAC_PMM_OBJS = $(MAC_SRC_DIR)/pe/pmm/pmmApi.o    \
             $(MAC_SRC_DIR)/pe/pmm/pmmAP.o
 
 MAC_SCH_OBJS = $(MAC_SRC_DIR)/pe/sch/schApi.o           \
-          	$(MAC_SRC_DIR)/pe/sch/schBeaconGen.o     \
-          	$(MAC_SRC_DIR)/pe/sch/schBeaconProcess.o \
-          	$(MAC_SRC_DIR)/pe/sch/schDebug.o         \
-          	$(MAC_SRC_DIR)/pe/sch/schMessage.o
+            $(MAC_SRC_DIR)/pe/sch/schBeaconGen.o     \
+            $(MAC_SRC_DIR)/pe/sch/schBeaconProcess.o \
+            $(MAC_SRC_DIR)/pe/sch/schDebug.o         \
+            $(MAC_SRC_DIR)/pe/sch/schMessage.o
 
 MAC_RRM_OBJS = $(MAC_SRC_DIR)/pe/rrm/rrmApi.o
 
 MAC_OBJS = $(MAC_CFG_OBJS) \
-                $(MAC_DPH_OBJS) \
-                $(MAC_LIM_OBJS) \
-                $(MAC_PMM_OBJS) \
+           $(MAC_DPH_OBJS) \
+           $(MAC_LIM_OBJS) \
+           $(MAC_PMM_OBJS) \
            $(MAC_SCH_OBJS) \
            $(MAC_RRM_OBJS)
 
 ############ HAL ##################### 
 HAL_INC := -I$(WLAN_DIR)/HAL/inc \
-		-I$(WLAN_DIR)/HAL/src/halPhy \
-		-I$(WLAN_DIR)/HAL/src/halFtm \
-		-I$(WLAN_DIR)/HAL/src/halProc \
-		-I$(WLAN_DIR)/HAL/src/halSys \
-		-I$(WLAN_DIR)/HAL/src/halMac
+        -I$(WLAN_DIR)/HAL/src/halPhy \
+        -I$(WLAN_DIR)/HAL/src/halFtm \
+        -I$(WLAN_DIR)/HAL/src/halProc \
+        -I$(WLAN_DIR)/HAL/src/halSys \
+        -I$(WLAN_DIR)/HAL/src/halMac
 
 HAL_SRC := ../../HAL/src
 
 HAL_MAC_OBJS :=	$(HAL_SRC)/halMac/halAdu.o \
-		$(HAL_SRC)/halMac/halApi.o \
-		$(HAL_SRC)/halMac/halBmu.o \
-		$(HAL_SRC)/halMac/halDPU.o \
-		$(HAL_SRC)/halMac/halLogDump.o \
-		$(HAL_SRC)/halMac/halMacBA.o \
-		$(HAL_SRC)/halMac/halMacSecurityApi.o \
-		$(HAL_SRC)/halMac/halMacStats.o \
-		$(HAL_SRC)/halMac/halMacWmmApi.o \
-		$(HAL_SRC)/halMac/halMailbox.o  \
-		$(HAL_SRC)/halMac/halMCPU.o \
-		$(HAL_SRC)/halMac/halMCU.o \
-		$(HAL_SRC)/halMac/halMIF.o \
-		$(HAL_SRC)/halMac/halMTU.o \
-		$(HAL_SRC)/halMac/halRateTable.o \
-		$(HAL_SRC)/halMac/halRpe.o \
-		$(HAL_SRC)/halMac/halRxp.o \
-		$(HAL_SRC)/halMac/halTpe.o \
-		$(HAL_SRC)/halMac/halTxp.o    
+        $(HAL_SRC)/halMac/halApi.o \
+        $(HAL_SRC)/halMac/halBmu.o \
+        $(HAL_SRC)/halMac/halDPU.o \
+        $(HAL_SRC)/halMac/halLogDump.o \
+        $(HAL_SRC)/halMac/halMacBA.o \
+        $(HAL_SRC)/halMac/halMacSecurityApi.o \
+        $(HAL_SRC)/halMac/halMacStats.o \
+        $(HAL_SRC)/halMac/halMacWmmApi.o \
+        $(HAL_SRC)/halMac/halMailbox.o  \
+        $(HAL_SRC)/halMac/halMCPU.o \
+        $(HAL_SRC)/halMac/halMCU.o \
+        $(HAL_SRC)/halMac/halMIF.o \
+        $(HAL_SRC)/halMac/halMTU.o \
+        $(HAL_SRC)/halMac/halRateTable.o \
+        $(HAL_SRC)/halMac/halRpe.o \
+        $(HAL_SRC)/halMac/halRxp.o \
+        $(HAL_SRC)/halMac/halTpe.o \
+        $(HAL_SRC)/halMac/halTxp.o
 
 HAL_PHY_OBJS := $(HAL_SRC)/halPhy/asicAGC.o \
         $(HAL_SRC)/halPhy/asic.o \
@@ -261,7 +261,7 @@ HAL_PHY_OBJS := $(HAL_SRC)/halPhy/asicAGC.o \
         $(HAL_SRC)/halPhy/asicWfm.o  \
         $(HAL_SRC)/halPhy/halPhyVos.o  \
         $(HAL_SRC)/halPhy/halPhy.o \
-		$(HAL_SRC)/halPhy/phyTxPower.o \
+	$(HAL_SRC)/halPhy/phyTxPower.o \
 	$(HAL_SRC)/halPhy/phyTxPowerPLUT.o \
         $(HAL_SRC)/halPhy/phyDebug.o \
         $(HAL_SRC)/halPhy/rfUtils.o
@@ -280,57 +280,57 @@ HAL_FTM_OBJS :=	$(HAL_SRC)/halFtm/pttMsgApi.o \
 
 
 HAL_PROC_OBJS :=$(HAL_SRC)/halProc/halInitApi.o \
-		$(HAL_SRC)/halProc/halAdaptThrsh.o \
-		$(HAL_SRC)/halProc/halRateAdaptation.o \
-		$(HAL_SRC)/halProc/halMsg.o \
-		$(HAL_SRC)/halProc/hal.o \
-		$(HAL_SRC)/halProc/halNimApi.o \
-		$(HAL_SRC)/halProc/halMnt.o \
-		$(HAL_SRC)/halProc/halStaTable.o \
-		$(HAL_SRC)/halProc/halTimer.o \
-		$(HAL_SRC)/halProc/halTx.o \
-		$(HAL_SRC)/halProc/halUtils.o \
-		$(HAL_SRC)/halProc/halTLApi.o \
-		$(HAL_SRC)/halProc/halPwrSave.o \
-		$(HAL_SRC)/halProc/halFwApi.o \
-		$(HAL_SRC)/halProc/halRegBckup.o \
-		$(HAL_SRC)/halProc/halDebug.o \
+        $(HAL_SRC)/halProc/halAdaptThrsh.o \
+        $(HAL_SRC)/halProc/halRateAdaptation.o \
+        $(HAL_SRC)/halProc/halMsg.o \
+        $(HAL_SRC)/halProc/hal.o \
+        $(HAL_SRC)/halProc/halNimApi.o \
+        $(HAL_SRC)/halProc/halMnt.o \
+        $(HAL_SRC)/halProc/halStaTable.o \
+        $(HAL_SRC)/halProc/halTimer.o \
+        $(HAL_SRC)/halProc/halTx.o \
+        $(HAL_SRC)/halProc/halUtils.o \
+        $(HAL_SRC)/halProc/halTLApi.o \
+        $(HAL_SRC)/halProc/halPwrSave.o \
+        $(HAL_SRC)/halProc/halFwApi.o \
+        $(HAL_SRC)/halProc/halRegBckup.o \
+        $(HAL_SRC)/halProc/halDebug.o \
         $(HAL_SRC)/halProc/halBtc.o \
         $(HAL_SRC)/halProc/halInNav.o \
         $(HAL_SRC)/halProc/halTLFlush.o
- 
+
 HAL_SYS_OBJS := $(HAL_SRC)/halSys/halInterrupts.o \
-		$(HAL_SRC)/halSys/halPMU.o \
-		$(HAL_SRC)/halSys/halDXE.o \
-		$(HAL_SRC)/halSys/halNv.o \
-		$(HAL_SRC)/halSys/halNvTables.o \
-		$(HAL_SRC)/halSys/wlanHalAHB.o
+        $(HAL_SRC)/halSys/halPMU.o \
+        $(HAL_SRC)/halSys/halDXE.o \
+        $(HAL_SRC)/halSys/halNv.o \
+        $(HAL_SRC)/halSys/halNvTables.o \
+        $(HAL_SRC)/halSys/wlanHalAHB.o
 
 HAL_OBJS := $(HAL_MAC_OBJS)  \
-                $(HAL_PHY_OBJS)  \
+           $(HAL_PHY_OBJS)  \
            $(HAL_FTM_OBJS)  \
-                $(HAL_PROC_OBJS) \
-                $(HAL_SYS_OBJS)
+           $(HAL_PROC_OBJS) \
+           $(HAL_SYS_OBJS)
 
 ############# SME ##################### 
 SME_INC := -I$(WLAN_DIR)/SME/inc \
-		-I$(WLAN_DIR)/SME/src/csr
+          -I$(WLAN_DIR)/SME/src/csr
 
 SME_SRC_DIR := ../../SME/src
 
 SME_CCM_OBJS := $(SME_SRC_DIR)/ccm/ccmApi.o \
-		$(SME_SRC_DIR)/ccm/ccmLogDump.o
+               $(SME_SRC_DIR)/ccm/ccmLogDump.o
 SME_CSR_OBJS := $(SME_SRC_DIR)/csr/csrLinkList.o \
-		$(SME_SRC_DIR)/csr/csrApiScan.o \
-		$(SME_SRC_DIR)/csr/csrApiRoam.o \
-		$(SME_SRC_DIR)/csr/csrCmdProcess.o \
-		$(SME_SRC_DIR)/csr/csrUtil.o \
+        $(SME_SRC_DIR)/csr/csrApiScan.o \
+        $(SME_SRC_DIR)/csr/csrApiRoam.o \
+        $(SME_SRC_DIR)/csr/csrCmdProcess.o \
+        $(SME_SRC_DIR)/csr/csrUtil.o \
         $(SME_SRC_DIR)/csr/csrLogDump.o \
         $(SME_SRC_DIR)/csr/csrNeighborRoam.o 
 
 SME_PMC_OBJS := $(SME_SRC_DIR)/pmc/pmcApi.o \
-		$(SME_SRC_DIR)/pmc/pmc.o \
-		$(SME_SRC_DIR)/pmc/pmcLogDump.o
+        $(SME_SRC_DIR)/pmc/pmc.o \
+        $(SME_SRC_DIR)/pmc/pmcLogDump.o
 
 SME_QOS_OBJS := $(SME_SRC_DIR)/QoS/sme_Qos.o
 
@@ -343,17 +343,17 @@ SME_MEAS_OBJS := $(SME_SRC_DIR)/meas/measApi.o
 SME_RRM_OBJS := $(SME_SRC_DIR)/rrm/sme_rrm.o
 
 SME_OBJS :=  $(SME_CCM_OBJS) \
-		$(SME_CSR_OBJS) \
-		$(SME_PMC_OBJS) \
-		$(SME_QOS_OBJS) \
-		$(SME_CMN_OBJS) \
+        $(SME_CSR_OBJS) \
+        $(SME_PMC_OBJS) \
+        $(SME_QOS_OBJS) \
+        $(SME_CMN_OBJS) \
         $(SME_BTC_OBJS) \
         $(SME_MEAS_OBJS) \
         $(SME_RRM_OBJS)
 
 ############# SSC ##################### 
 SSC_INC = -I$(WLAN_DIR)/SSC/inc \
-           -I$(WLAN_DIR)/SSC/src
+          -I$(WLAN_DIR)/SSC/src
 
 SSC_SRC_DIR := ../../SSC/src
 
@@ -400,41 +400,41 @@ EXTRA_CFLAGS += $(SVC_EXT_INC)
 EXTRA_CFLAGS += $(FW_INC)
 EXTRA_LDFLAGS += --strip-debug
 
-ifneq (,$(findstring arm-eabi-4.4.0, $(ANDROID_EABI_TOOLCHAIN)))
-EXTRA_CFLAGS += -Wframe-larger-than=4096 
+ifneq (,$(findstring arm-eabi-4.4, $(ANDROID_EABI_TOOLCHAIN)))
+EXTRA_CFLAGS += -Wframe-larger-than=4096
 endif
 
 
 CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
-		-DANI_BUS_TYPE_SDIO=1 \
-		-DANI_LITTLE_BYTE_ENDIAN \
-		-DANI_LITTLE_BIT_ENDIAN \
-		-DWLAN_STA=1 \
-		-DAP=2 \
-		-DWNI_POLARIS_FW_PRODUCT=1 \
-		-DANI_CHIPSET_VOLANS \
-		-DINTEGRATION_READY \
-		-DVOSS_ENABLED \
-		-DDOT11F_LITTLE_ENDIAN_HOST \
-		-DGEN6_ONWARDS \
-		-DANI_COMPILER_TYPE_GCC \
-		-DANI_OS_TYPE_ANDROID=6 \
-	 	-DWNI_POLARIS_FW_OS=6 \
-		-DADVANCED=3 \
-		-DWNI_POLARIS_FW_PACKAGE=9 \
+        -DANI_BUS_TYPE_SDIO=1 \
+        -DANI_LITTLE_BYTE_ENDIAN \
+        -DANI_LITTLE_BIT_ENDIAN \
+        -DWLAN_STA=1 \
+        -DAP=2 \
+        -DWNI_POLARIS_FW_PRODUCT=1 \
+        -DANI_CHIPSET_VOLANS \
+        -DINTEGRATION_READY \
+        -DVOSS_ENABLED \
+        -DDOT11F_LITTLE_ENDIAN_HOST \
+        -DGEN6_ONWARDS \
+        -DANI_COMPILER_TYPE_GCC \
+        -DANI_OS_TYPE_ANDROID=6 \
+        -DWNI_POLARIS_FW_OS=6 \
+        -DADVANCED=3 \
+        -DWNI_POLARIS_FW_PACKAGE=9 \
         -DTRACE_RECORD \
         -DPE_DEBUG_LOGW \
         -DPE_DEBUG_LOGE \
         -DDEBUG \
-		-DANI_LOGDUMP \
-		-DWLAN_PERF \
+        -DANI_LOGDUMP \
+        -DWLAN_PERF \
         -DWLAN_HAL_VOLANS\
-		-DUSE_LOCKED_QUEUE \
-		-DPTT_SOCK_SVC_ENABLE \
-		-DFW_PRESENT \
-		-DFEATURE_WLAN_UAPSD_FW_TRG_FRAMES \
-		-DVOLANS_1_0_WORKAROUND \
-		-DVOLANS_PERF \
+        -DUSE_LOCKED_QUEUE \
+        -DPTT_SOCK_SVC_ENABLE \
+        -DFW_PRESENT \
+        -DFEATURE_WLAN_UAPSD_FW_TRG_FRAMES \
+        -DVOLANS_1_0_WORKAROUND \
+        -DVOLANS_PERF \
         -DADU_MEM_OPT_ENABLED \
         -DWLAN_SOFTAP_FEATURE \
         -Wall\
@@ -474,8 +474,6 @@ CDEFINES += -DFEATURE_WLAN_DIAG_SUPPORT_CSR
 CDEFINES += -DFEATURE_WLAN_DIAG_SUPPORT_LIM
 endif
 
-
-
 ifneq (, $(filter msm8660_surf msm8660_csfb, $(TARGET_PRODUCT)))
 EXTRA_CFLAGS += -march=armv7-a
 CDEFINES += -DMSM_PLATFORM_8660
@@ -486,13 +484,13 @@ EXTRA_CFLAGS += -march=armv7-a
 CDEFINES += -DMSM_PLATFORM_7x30
 endif
 
-ifneq (, $(filter msm7627_surf msm7627_7x_surf, $(TARGET_PRODUCT)))
+ifneq (, $(filter msm7627_surf, $(TARGET_PRODUCT)))
 EXTRA_CFLAGS += -march=armv6
 CDEFINES += -DMSM_PLATFORM_7x27
 endif
 
 
-ifneq (, $(filter msm7627_ffa msm7627_7x_ffa, $(TARGET_PRODUCT)))
+ifneq (, $(filter msm7627_ffa, $(TARGET_PRODUCT)))
 EXTRA_CFLAGS += -march=armv6
 CDEFINES += -DMSM_PLATFORM_7x27_FFA
 endif
@@ -502,7 +500,7 @@ TARGET_TYPE :=RF
 
 ifeq ($(TARGET_TYPE),RF)
 CDEFINES += -DVOLANS_RF
-MODNAME :=  WCN1314_rf
+MODNAME := WCN1314_rf
 else ifeq ($(TARGET_TYPE),BB)
 CDEFINES += -DVOLANS_BB
 MODNAME := volans_bb
@@ -529,14 +527,14 @@ OBJS := $(VOSS_OBJS) \
                 $(TL_OBJS)   \
                 $(SSC_OBJS)  \
                 $(SME_OBJS)  \
-		$(SYS_OBJS)  \
+                $(SYS_OBJS)  \
                 $(SAP_OBJS)  \
                 $(MAC_OBJS)  \
                 $(HAL_OBJS)  \
-		$(HDD_OBJS)  \
-		$(NLINK_OBJS) \
-		$(BTC_OBJS) \
-		$(PTT_OBJS)
+                $(HDD_OBJS)  \
+                $(NLINK_OBJS) \
+                $(BTC_OBJS) \
+                $(PTT_OBJS)
 
 # Module information used by KBuild framework
 obj-m   := $(MODNAME).o

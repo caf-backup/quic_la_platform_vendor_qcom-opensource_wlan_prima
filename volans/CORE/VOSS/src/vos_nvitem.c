@@ -38,7 +38,7 @@
 // this wrapper structure is identical to nv_cmd_type except the
 // data_ptr type is changed void* to avoid exceeding the debug information
 // module size as there are too many elements within nv_items_type union
- 
+
 // structure for code and regulatory domain of a single country
 typedef struct
 {
@@ -380,7 +380,7 @@ VOS_STATUS vos_nv_close(void)
   a country given its country code.  This is done from reading a cached
   copy of the binary file.
   \param pRegDomain  - pointer to regulatory domain
-  \param countryCode - country code 
+  \param countryCode - country code
   \return VOS_STATUS_SUCCESS - regulatory domain is found for the given country
           VOS_STATUS_E_FAULT - invalid pointer error
           VOS_STATUS_E_EMPTY - country code table is empty
@@ -722,6 +722,60 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
                memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.defaultCountryTable,bufferSize);
            }
            break;
+       case VNV_TPC_POWER_TABLE:
+           itemSize = sizeof(gnvEFSTable->halnv.tables.plutCharacterized);
+           if(bufferSize != itemSize) {
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                 itemSize);
+               status = VOS_STATUS_E_INVAL;
+           }
+           else {
+               memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.plutCharacterized[0],bufferSize);
+           }
+           break;
+       case VNV_TPC_PDADC_OFFSETS:
+           itemSize = sizeof(gnvEFSTable->halnv.tables.plutPdadcOffset);
+           if(bufferSize != itemSize) {
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                 itemSize);
+               status = VOS_STATUS_E_INVAL;
+           }
+           else {
+               memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.plutPdadcOffset[0],bufferSize);
+           }
+           break;
+       case VNV_RSSI_CHANNEL_OFFSETS:
+
+           itemSize = sizeof(gnvEFSTable->halnv.tables.rssiChanOffsets);
+
+           if(bufferSize != itemSize) {
+
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                 itemSize);
+               status = VOS_STATUS_E_INVAL;
+           }
+           else {
+               memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.rssiChanOffsets[0],bufferSize);
+           }
+           break;
+       case VNV_RF_CAL_VALUES:
+
+           itemSize = sizeof(gnvEFSTable->halnv.tables.rFCalValues);
+
+           if(bufferSize != itemSize) {
+
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                 itemSize);
+               status = VOS_STATUS_E_INVAL;
+           }
+           else {
+               memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.rFCalValues,bufferSize);
+           }
+           break;
        default:
          break;
    }
@@ -781,7 +835,7 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
                 memcpy(&gnvEFSTable->halnv.fields,inputVoidBuffer,bufferSize);
             }
             break;
-    
+
         case VNV_RATE_TO_POWER_TABLE:
             itemSize = sizeof(gnvEFSTable->halnv.tables.pwrOptimum);
             if(bufferSize != itemSize) {
@@ -816,6 +870,60 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
             }
             else {
                 memcpy(&gnvEFSTable->halnv.tables.defaultCountryTable,inputVoidBuffer,bufferSize);
+            }
+            break;
+        case VNV_TPC_POWER_TABLE:
+            itemSize = sizeof(gnvEFSTable->halnv.tables.plutCharacterized);
+            if(bufferSize != itemSize) {
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
+                status = VOS_STATUS_E_INVAL;
+            }
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.plutCharacterized[0],inputVoidBuffer,bufferSize);
+            }
+            break;
+        case VNV_TPC_PDADC_OFFSETS:
+            itemSize = sizeof(gnvEFSTable->halnv.tables.plutPdadcOffset);
+            if(bufferSize != itemSize) {
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
+                status = VOS_STATUS_E_INVAL;
+            }
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.plutPdadcOffset[0],inputVoidBuffer,bufferSize);
+            }
+            break;
+         case VNV_RSSI_CHANNEL_OFFSETS:
+
+            itemSize = sizeof(gnvEFSTable->halnv.tables.rssiChanOffsets);
+
+            if(bufferSize != itemSize) {
+
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
+                status = VOS_STATUS_E_INVAL;
+            }
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.rssiChanOffsets[0],inputVoidBuffer,bufferSize);
+            }
+            break;
+         case VNV_RF_CAL_VALUES:
+
+            itemSize = sizeof(gnvEFSTable->halnv.tables.rFCalValues);
+
+            if(bufferSize != itemSize) {
+
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
+                status = VOS_STATUS_E_INVAL;
+            }
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.rFCalValues,inputVoidBuffer,bufferSize);
             }
             break;
 

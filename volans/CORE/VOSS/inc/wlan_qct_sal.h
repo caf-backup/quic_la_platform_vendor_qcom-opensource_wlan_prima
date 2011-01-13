@@ -539,25 +539,6 @@ v_BOOL_t WLANSAL_IsSDHCSupportDeepSleep
    v_PVOID_t             pAdapter
 );
 
-#ifdef VOLANS_1_0_WORKAROUND
-#ifdef ANI_OS_TYPE_WINDOWS
-/*----------------------------------------------------------------------------
-
-   @brief API exported from SAL to set the SD clock frequency.
-   
-   @param v_PVOID_t pAdater
-        Global adapter handle
-   @param hz - Frequency to be set
-   
-   @return void
-
-----------------------------------------------------------------------------*/
-void WLANSAL_SetSDIOClock
-(
-   v_PVOID_t              pAdapter,
-   unsigned int hz
-);
-#else
 /*----------------------------------------------------------------------------
 
    @brief API exported from SAL to set the SD clock frequency. This needs to 
@@ -567,9 +548,11 @@ void WLANSAL_SetSDIOClock
    @return void
 
 ----------------------------------------------------------------------------*/
-void WLANSAL_SetSDIOClock(unsigned int hz);
-#endif /*ANI_OS_TYPE_WINDOWS*/
-#endif /* VOLANS_1_0_WORKAROUND */
+void WLANSAL_SetSDIOClock
+(
+    v_PVOID_t    pAdapter,
+    v_UINT_t     hz
+);
 
 /*----------------------------------------------------------------------------
 
@@ -581,7 +564,11 @@ void WLANSAL_SetSDIOClock(unsigned int hz);
    @return void
 
 ----------------------------------------------------------------------------*/
-void WLANSAL_GetSDIOCardId(unsigned short *sdioCardId);
+void WLANSAL_GetSDIOCardId
+(
+    v_PVOID_t      pAdapter,
+    v_U16_t        *sdioCardId
+);
 
 #ifdef __cplusplus
 }

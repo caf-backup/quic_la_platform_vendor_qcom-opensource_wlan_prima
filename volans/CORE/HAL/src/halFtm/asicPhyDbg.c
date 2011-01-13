@@ -420,7 +420,7 @@ const tPhyDbgFrame defaultFrame =
 
 extern eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode pwrMode, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex);
 void printFrameFields(tpAniSirGlobal pMac, tPhyDbgFrame *frame, eHalPhyRates rate);
-static eHalStatus CalcInterframeSpaceSetting(tpAniSirGlobal pMac, tANI_U32 numTestPackets, tANI_U32 interFrameSpace, tANI_U32 r_up, tANI_U32 r_down, tANI_U32 warmup_delay, int *ifsSetting);
+static eHalStatus CalcInterframeSpaceSetting(tpAniSirGlobal pMac, tANI_U32 numTestPackets, int interFrameSpace, int r_up, int r_down, int warmup_delay, int *ifsSetting);
 
 eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
                                    eHalPhyRates rate,
@@ -447,9 +447,9 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
     //
     // !Important, when writing to phyDbg memory over the 16-bit AHB bus, we need
     // to chop the 32-bit words into two subsequent writes on subsequent 32-bit boundaries.
-    tANI_U32 pktWords = (sizeof(sPhyDbgHdr) / 4) + sizeof(sMpiHdr) + 0/*sizeof(sMPDUHeader)*/;
+    tANI_U32 pktWords = (sizeof(sPhyDbgHdr) / 4) + sizeof(sMpiHdr) + sizeof(sMPDUHeader);
     tANI_U32 *bufWord;
-    tANI_U32 frameBuf[((sizeof(sPhyDbgHdr) / 4) + sizeof(sMpiHdr) + 0/*sizeof(sMPDUHeader)*/) * 2];
+    tANI_U32 frameBuf[((sizeof(sPhyDbgHdr) / 4) + sizeof(sMpiHdr) + sizeof(sMPDUHeader)) * 2];
 
 
     assert(rate < NUM_HAL_PHY_RATES);
@@ -514,7 +514,7 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
         GET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_RAMP_UP_REG, &ramp_up);
         GET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_RAMP_DOWN_REG, &ramp_down);
 
-        CalcInterframeSpaceSetting(pMac, numTestPackets, interFrameSpace, ramp_up, ramp_down, warmup_delay, &ifsSetting);
+        CalcInterframeSpaceSetting(pMac, numTestPackets, (int)interFrameSpace, (int)ramp_up, (int)ramp_down, (int)warmup_delay, &ifsSetting);
 
         frame.phyDbgHdr.ipg = ifsSetting & MSK_24;
 
@@ -618,6 +618,7 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
 
             assert(rfChannel != INVALID_RF_CHANNEL);
 
+
             if (pMac->hphy.phy.test.testTxGainIndexSource == REGULATORY_POWER_LIMITS)
             {
                 if ((retVal =
@@ -658,6 +659,7 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
 
 
             assert(powerIndex < 32);
+
             frame.mpiHdr.tx_demanded_power = powerIndex;    // use powerIndex returned from halPhyGetPowerForRate
         }
         else
@@ -665,8 +667,8 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
             frame.mpiHdr.tx_demanded_power = 0; //TPC does not automatically update gain index 0
         }
 
-        frame.mpiHdr.psdu_length = 0/*sizeof(sMPDUHeader)*/ + payloadLength;
-        frame.mpiHdr.ppdu_length = 0/*sizeof(sMPDUHeader)*/ + payloadLength;
+        frame.mpiHdr.psdu_length = sizeof(sMPDUHeader) + payloadLength;
+        frame.mpiHdr.ppdu_length = sizeof(sMPDUHeader) + payloadLength;
         //frame.mpiHdr.psdu_length = payloadLength;
         //frame.mpiHdr.ppdu_length = payloadLength;
 
@@ -676,15 +678,15 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
             frame.mpiHdr.ppdu_length += 4;
         }
 
-        // memcpy(&frame.mpduHdr.MACAddress1[0], addr1, ANI_MAC_ADDR_SIZE);         // &pMac->ptt.destMacAddress[0],
-        // memcpy(&frame.mpduHdr.MACAddress2[0], addr2, ANI_MAC_ADDR_SIZE);         // &pMac->ptt.sourceMacAddress[0]
-        // memcpy(&frame.mpduHdr.MACAddress3[0], addr3, ANI_MAC_ADDR_SIZE);         // &pMac->ptt.bssIdMacAddress[0],
-        //
-        // frame.mpduHdr.duration = FDUR_DURATION_MASK;    //set for max duration
-        //
-        // frame.mpduHdr.seqNum = 7;
+        memcpy(&frame.mpduHdr.MACAddress1[0], addr1, ANI_MAC_ADDR_SIZE);         // &pMac->ptt.destMacAddress[0],
+        memcpy(&frame.mpduHdr.MACAddress2[0], addr2, ANI_MAC_ADDR_SIZE);         // &pMac->ptt.sourceMacAddress[0]
+        memcpy(&frame.mpduHdr.MACAddress3[0], addr3, ANI_MAC_ADDR_SIZE);         // &pMac->ptt.bssIdMacAddress[0],
 
-        frame.phyDbgHdr.pyldf_len = 0/*sizeof(sMPDUHeader)*/;    //initialize the fixed length to the fixed size mpdu header
+         frame.mpduHdr.duration = FDUR_DURATION_MASK;    //set for max duration
+
+         frame.mpduHdr.seqNum = 7;
+
+        frame.phyDbgHdr.pyldf_len = sizeof(sMPDUHeader);    //initialize the fixed length to the fixed size mpdu header
                                                             //frame.phyDbgHdr.pyldf_len = size of the MPDU header being used
                                                             //in this frame formatting;
 
@@ -812,7 +814,7 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
                 volatile tANI_U32 i = 0;
 
                 //for (byte = (tANI_U8 *)&frame.mpiHdr; byte < ((tANI_U8 *)&frame + sizeof(tPhyDbgFrame)); byte++, i++)
-                for (byte = (tANI_U8 *)&frame.mpiHdr; byte < ((tANI_U8 *)&frame + sizeof(sPhyDbgHdr) + sizeof(sMpiHdr)); byte++, i++)
+                for (byte = (tANI_U8 *)&frame.mpiHdr; byte < ((tANI_U8 *)&frame + sizeof(sPhyDbgHdr) + sizeof(sMpiHdr)  + sizeof(sMPDUHeader)); byte++, i++)
                 {
                     tANI_U32 intByte = *byte;
 
@@ -832,11 +834,12 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
                 i = i; //only for debug purposes to verify how many bytes are counted
             }
             //palWriteRegMemory takes the number of bytes, so multiply the number of words by 4
-            //retVal = palWriteRegMemory(pMac->hHdd, QWLAN_PHYDBG_DBGMEM_MREG, (tANI_U8 *)&frameBuf[0], ((pktWords * 2) * 4));
-            //if (retVal != eHAL_STATUS_SUCCESS)
-            //{
-            //    return(retVal);
-            //}
+            retVal = palWriteRegMemory(pMac->hHdd, QWLAN_PHYDBG_DBGMEM_MREG, (tANI_U8 *)&frameBuf[0], ((pktWords * 2) * 4));
+            if (retVal != eHAL_STATUS_SUCCESS)
+            {
+                return(retVal);
+            }
+#if 0
             {
                 tANI_U32 wordCnt;
                 for(wordCnt = 0; wordCnt < (pktWords * 2); wordCnt++)
@@ -844,6 +847,7 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
                     SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_DBGMEM_MREG + (4 * wordCnt), frameBuf[wordCnt]);
                 }
             }
+#endif
 /*
 
                 {
@@ -1011,32 +1015,49 @@ void printFrameFields(tpAniSirGlobal pMac, tPhyDbgFrame *frame, eHalPhyRates rat
 
 
 //following extracted from Brian's sendpacket.py script
-#define OVERHEAD1    (27)
-#define OVERHEAD2    (105)
+#define OVERHEAD1    (52)
+#define OVERHEAD2    (29)
+#define OVERHEAD3    (28)
+#define OVERHEAD4    (44)
+#define OVERHEAD5    (106)
 
-static eHalStatus CalcInterframeSpaceSetting(tpAniSirGlobal pMac, tANI_U32 numTestPackets, tANI_U32 interFrameSpace, tANI_U32 r_up, tANI_U32 r_down, tANI_U32 warmup_delay, int *ifsSetting)
+static eHalStatus CalcInterframeSpaceSetting(tpAniSirGlobal pMac, tANI_U32 numTestPackets, int interFrameSpace, int r_up, int r_down, int warmup_delay, int *ifsSetting)
 {
     eHalStatus retVal;
-    tANI_U32 ramp_up = r_up;
-    tANI_U32 ramp_down = r_down;
+    int ramp_up = r_up;
+    int ramp_down = r_down;
     int warmup = warmup_delay;
     int derived_ifs;
-    tANI_U32 paGuard;
-    tANI_U32 nClocksPerUs = 80;
-    tANI_U32 ifs_requested = (interFrameSpace * nClocksPerUs);
+    int paGuard;
+    int nClocksPerUs = 80;
+    int ifs_requested = (interFrameSpace * nClocksPerUs);
 
     GET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_PA_GUARD_REG, &paGuard);
 
-    warmup = MAX_VAL(1, (warmup * nClocksPerUs) - (paGuard + ramp_up));
+    warmup = MAX_VAL(1, (280/*warmup * nClocksPerUs*/) - (paGuard + ramp_up + OVERHEAD1));
 
 
-    derived_ifs = ifs_requested - warmup -paGuard - ramp_up - ramp_down - OVERHEAD1;
+    derived_ifs = ifs_requested - warmup - paGuard - ramp_up - ramp_down - OVERHEAD2;
 
-    if (derived_ifs < 62)
+    if (derived_ifs < 1)
     {
-        warmup += ramp_down + paGuard - (OVERHEAD2 - OVERHEAD1);
+        warmup = 0;
 
+        derived_ifs = ifs_requested - paGuard - ramp_up - ramp_down - OVERHEAD3;
 
+        if (derived_ifs < (ramp_down - OVERHEAD4))
+        {
+            derived_ifs = ifs_requested - ramp_up - OVERHEAD5;
+            if (derived_ifs > (ramp_down - OVERHEAD4 - 4))
+            {
+                phyLog(pMac, LOGE, "Warning:  The IFS specified cannot be obtained precisely with the current ramp_up/ramp_down/pa_guard times.\n");
+            }
+            if (derived_ifs < 1)
+            {
+                phyLog(pMac, LOGE, "Warning:  Min IFS obtainable with current ramp_up setting is %d us.\n", ((OVERHEAD5 + ramp_up + 1)/nClocksPerUs));
+            }
+        }
+/*
         if (derived_ifs < 0)
         {
             warmup = ifs_requested - ramp_up - OVERHEAD2;
@@ -1047,14 +1068,14 @@ static eHalStatus CalcInterframeSpaceSetting(tpAniSirGlobal pMac, tANI_U32 numTe
             }
             derived_ifs = 1;    //limit to min of 1 because 0 causes phydbg to hang
         }
-
+*/
     }
 
     //SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_RAMP_UP_REG, ramp_up);
     //SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_RAMP_DOWN_REG, ramp_down);
     SET_PHY_REG(pMac->hHdd,QWLAN_PHYDBG_WARMUP_DLY_REG, (warmup & MSK_16));
 
-    *ifsSetting = derived_ifs;
+    *ifsSetting = MAX_VAL(derived_ifs, 1); //limit to min of 1 because 0 causes phydbg to hang
 
     return(eHAL_STATUS_SUCCESS);
 
@@ -1108,7 +1129,7 @@ eHalStatus asicPhyDbgStopFrameGen(tpAniSirGlobal pMac)
     // Explicitely disable clcok to PHYDBG module
 	/* These register bits are required for Volans to receive incoming frames
      * hence, commenting out
-     */ 
+     */
 #if 0
 	if ((retVal = rdModWrAsicField(pMac, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_REG, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_MASK, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_OFFSET, 0)) != eHAL_STATUS_SUCCESS)
     {
@@ -1124,7 +1145,7 @@ eHalStatus asicPhyDbgStopFrameGen(tpAniSirGlobal pMac)
     {
         return(retVal);
     }
-   
+
     SET_PHY_REG(pMac->hHdd, QWLAN_MPI_MPI_ENABLE_REG, 0x1);
 
     return(retVal);
@@ -1240,11 +1261,6 @@ static eHalStatus DoGrabRamCapture(tpAniSirGlobal pMac, tANI_U32 rxChain, eGrabR
 #define READ_MEM_SIZE   128 //samples
 #define ONE_K_MEM_SIZE  1024
 
-#if !defined(WLAN_FTM_STUB) && defined(SIR_RTAI) && (WNI_POLARIS_FW_OS == SIR_RTAI) && defined(ANI_LEXRA)
-void    pal_rt_reset_watchdog(void);
-#endif
-
-
 /*
     asicGrabAdcSamples for Libra is designed to capture the samples at bottom half of the SRAM internal memory.
     The upper half of SRAM is consumed by firmware src code. Also we can capture only one chain at a time.
@@ -1313,7 +1329,7 @@ eHalStatus asicGrabAdcSamples(tpAniSirGlobal pMac, tANI_U32 startSample, tANI_U3
 	}
 
 #else
-    phyLog(pMac, LOGE, "Grab Ram capture only available in FTM builds\n")
+    phyLog(pMac, LOGE, "Grab Ram capture only available in FTM builds\n");
 #endif
 
     return(retVal);
@@ -1386,6 +1402,7 @@ static eHalStatus DoGrabRamCapture(tpAniSirGlobal pMac, tANI_U32 rxChain, eGrabR
 
     if (sampleType == GRABRAM_POSTIQ)
     {
+        //capture the I/Q samples post Rx FIR correction
         SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_CAPT_CFG2_REG, QWLAN_PHYDBG_CAPT_CFG2_XBAR_PIC_DATASEL_MASK);
     }
     else
@@ -1472,7 +1489,7 @@ eHalStatus log_grab_ram(tpAniSirGlobal pMac, tANI_U32 startSample, tANI_U32 numS
 }
 
 
-#endif //ifndef WLAN_FTM_STUB
+#endif /* #ifndef WLAN_FTM_STUB */
 
 
 

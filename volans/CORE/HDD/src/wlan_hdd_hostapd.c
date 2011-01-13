@@ -1087,11 +1087,13 @@ static int iw_softap_setwpsie(struct net_device *dev,
    u_int8_t WPSIeType;
    u_int16_t length;   
    ENTER();
+
+   if(!wrqu->data.length)
+      return 0;
+
    pSap_WPSIe = vos_mem_malloc(sizeof(tSap_WPSIE));
    vos_mem_zero(pSap_WPSIe, sizeof(tSap_WPSIE));
  
-   if(!wrqu->data.length)
-      return 0;
    hddLog(LOGE,"%s WPS IE type[0x%X] IE[0x%X], LEN[%d]\n", __FUNCTION__, wps_genie[0], wps_genie[1], wps_genie[2]);
    WPSIeType = wps_genie[0];
    if ( wps_genie[0] == eQC_WPS_BEACON_IE)
@@ -1102,7 +1104,10 @@ static int iw_softap_setwpsie(struct net_device *dev,
       {
          case DOT11F_EID_WPA: 
             if (wps_genie[1] < 2 + 4)
+            {
+               vos_mem_free(pSap_WPSIe); 
                return -EINVAL;
+            }
             else if (memcmp(&wps_genie[2], "\x00\x50\xf2\x04", 4) == 0) 
             {
              hddLog (LOGE, "%s Set WPS BEACON IE(len %d)",__FUNCTION__, wps_genie[1]+2);
@@ -1173,6 +1178,7 @@ static int iw_softap_setwpsie(struct net_device *dev,
                    
                    default:
                       hddLog (LOGE, "UNKNOWN TLV in WPS IE(%x)\n", (*pos<<8 | *(pos+1)));
+                      vos_mem_free(pSap_WPSIe);
                       return -EINVAL; 
                 }
               }  
@@ -1184,6 +1190,7 @@ static int iw_softap_setwpsie(struct net_device *dev,
                  
          default:
             hddLog (LOGE, "%s Set UNKNOWN IE %X",__FUNCTION__, wps_genie[0]);
+            vos_mem_free(pSap_WPSIe);
             return 0;
       }
     } 
@@ -1195,7 +1202,10 @@ static int iw_softap_setwpsie(struct net_device *dev,
       {
          case DOT11F_EID_WPA: 
             if (wps_genie[1] < 2 + 4)
+            {
+               vos_mem_free(pSap_WPSIe); 
                return -EINVAL;
+            }
             else if (memcmp(&wps_genie[2], "\x00\x50\xf2\x04", 4) == 0) 
             {
              hddLog (LOGE, "%s Set WPS PROBE RSP IE(len %d)",__FUNCTION__, wps_genie[1]+2);
@@ -1412,6 +1422,11 @@ static int iw_set_ap_genie(struct net_device *dev,
     {
         case DOT11F_EID_WPA: 
         case DOT11F_EID_RSN:
+            if(pHostapdAdapter->uPrivacy == 0)
+            {
+                hdd_softap_Deregister_BC_STA(pHostapdAdapter);
+                hdd_softap_Register_BC_STA(pHostapdAdapter, 1);
+            }   
             pHostapdAdapter->uPrivacy = 1;
             halStatus = WLANSAP_Set_WPARSNIes(pVosContext, wrqu->data.pointer, wrqu->data.length);
             break;

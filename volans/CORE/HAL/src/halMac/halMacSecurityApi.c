@@ -342,61 +342,7 @@ halDpu_GenerateDerivedKeys(tpAniSirGlobal pMac, tANI_U8 *pKey, tANI_U8 *pDerived
     return eHAL_STATUS_SUCCESS;
 }
 
-#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
-/*
- * halDPU_SetWAPISTAxKeyIndexes
- *
- * FUNCTION:
- *  This function programs WAPI_STAX_key_indexes register
- *
- *
- * @param: wapiStaID - Gives the index of the register to be programmed (0-7)
- * @param: defKeyId - Key ID given by the supplicant
- * @param: fGTK - Indicates if the defKeyId is GTK/PTK
- *
- * @return: Success or failure.
- */
-eHalStatus
-halDPU_SetWAPISTAxKeyIndexes(tpAniSirGlobal  pMac, tANI_U8 wapiStaID, tANI_U8 defKeyId, tANI_BOOLEAN fGTK)
-{
-  tANI_U32   value = 0;
-  tANI_U32   regAddress = QWLAN_DPU_WAPI_STA0_KEY_INDEXES_REG;
-  tANI_U8   offset;
 
-  if(wapiStaID < WAPI_STA_LOW_INDEX || wapiStaID > WAPI_STA_HIGH_INDEX)
-  {
-    HALLOGE( halLog(pMac, LOGE, FL("Invalid wapiStaID:%d\n"), wapiStaID));
-    return eHAL_STATUS_FAILURE;
-  }
-
-  regAddress += wapiStaID * 4;
-
-  /* Read QWLAN_DPU_WAPI_STAx_KEY_INDEXES_REG followed by read of QWLAN_DPU_WAPI_STA_KEY_INDEX_VALUES_REG
-    * Value of QWLAN_DPU_WAPI_STAx_KEY_INDEXES_REG after read will be reflected in QWLAN_DPU_WAPI_STA_KEY_INDEX_VALUES_REG
-    */
-  halReadRegister(pMac, regAddress, &value);
-  halReadRegister(pMac, QWLAN_DPU_WAPI_STA_KEY_INDEX_VALUES_REG, &value);
-
-  offset = (fGTK == 0) ? QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX1_OFFSET: QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX0_OFFSET;
-
-  if(fGTK == 0)
-  {
-    value = value & (~QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX1_MASK);
-  }
-  else
-  {
-    //This is a hack for always set to 0 because it works. Need to double check with Rama about this
-    defKeyId = 0;
-    value = value & (~QWLAN_DPU_WAPI_STA0_KEY_INDEXES_KEY_INDEX0_MASK);
-  }
-
-  value |= (defKeyId << offset);
-
-  halWriteRegister(pMac, regAddress, value);
-
-  return eHAL_STATUS_SUCCESS;
-}
-#endif
 
 // ---------------------------------------------------------------------------
 /**
@@ -698,18 +644,6 @@ halSetPerStaKey(
     {
        encType = eSIR_ED_CCMP;
     }
-
-#if defined(FEATURE_WLAN_WAPI) && !defined(LIBRA_WAPI_SUPPORT)
-    if(eSIR_ED_WPI == encType)
-    {
-      /* Programming wapiStaID changes for WAPI in case of IBSS*/
-      /* Currently WAPI is supported only in Infrastructure mode */
-      wapiStaID = 0;
-      status = halDPU_SetWAPISTAxKeyIndexes(pMac, wapiStaID, defKeyId, fGTK);
-      if(status != eHAL_STATUS_SUCCESS)
-        goto failed;
-    }
-#endif
 
     status = halDpu_SetDescriptorAttributes(pMac, dpuIdx, encType,
             keyIdx, derivedKeyIdx, micKeyIdx, rcIdx, singleTidRc, defKeyId

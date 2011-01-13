@@ -33,7 +33,7 @@ void halMsg_EndScan(tpAniSirGlobal pMac, tANI_U16 dialog_token, tpEndScanParams 
 void halMsg_ChannelSwitch(tpAniSirGlobal pMac, tpSwitchChannelParams param);
 void halMsg_SendBeacon(tpAniSirGlobal pMac, tpSendbeaconParams msg);
 #ifdef WLAN_SOFTAP_FEATURE
-void halMsg_UpdateProbeRspTemplate(tpAniSirGlobal pMac,tpUpdateProbeRspParams msg);
+void halMsg_UpdateProbeRspTemplate(tpAniSirGlobal pMac,tpSendProbeRespParams msg);
 #endif
 void halMsg_GenerateRsp(tpAniSirGlobal pMac, tANI_U16 msgType, tANI_U16 dialog_token, void *param, tANI_U32 value);
 void halMsg_UpdateTxCmdTemplate(tpAniSirGlobal  pMac,tANI_U16 dialog_token, tpUpdateTxCmdTemplParams  param);

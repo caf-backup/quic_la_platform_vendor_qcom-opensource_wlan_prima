@@ -809,7 +809,7 @@ void halRate_GetTxPwrForRate(tpAniSirGlobal pMac, tTpeRateIdx rateIdx,
 void halRate_DumpRateTxPower(tpAniSirGlobal pMac);
 eHalStatus halRate_halRateInfoTableToFW(tpAniSirGlobal pMac, int startIndex, int endIndex);
 eHalStatus halRate_TxPwrIndexToFW(tpAniSirGlobal pMac, int startIndex, int endIndex);
-
+inline eHalPhyRates halRate_MacRateIdxtoPhyRateIdx(tpAniSirGlobal pMac, tTpeRateIdx tpeRateIdx);
 #endif /* _HALRATETABLE_H_ */
 
 

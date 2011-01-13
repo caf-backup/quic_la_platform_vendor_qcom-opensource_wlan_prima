@@ -148,7 +148,7 @@ eHalStatus halPS_Init(tHalHandle hHal, void *arg)
     /* FIXME: Volans 1.0 Power-save workaround. Needs to be removed 
      * as soon as fix is available in the hardware
      */
-    halMcu_ResetMutexCount(pMac, QWLAN_MCU_MUTEX_HOSTFW_SYNC_INDEX + 1, 2);
+    halMcu_ResetMutexCount(pMac, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_INDEX, QWLAN_HOSTFW_TX_SYNC_MUTEX_MAX_COUNT);
 #endif
     
     /* This bit in MCU_HOST_INT_EN_REG is not mapped to interrupt
@@ -552,7 +552,6 @@ eHalStatus halPS_GetRssi(tpAniSirGlobal pMac, tANI_S8 *pRssi)
 
     // Release the mutex
         halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC);
-
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -2671,13 +2670,58 @@ eHalStatus halPS_SendBeaconMissInd(tpAniSirGlobal pMac)
  */
 eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 {
-    tANI_U32 regValue = 0, curCnt = 0;
+    tANI_U32 regValue = 0, curCnt = 0, retryCnt = 0;
+    eHalStatus mutexAcq = eHAL_STATUS_FW_PS_BUSY;
 
-    palReadRegister(pMac, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, &regValue);
+#ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
+	  /* FIXME: This change is required to address SIF issues in Power-save case.
+	   * The SIF is using Rate-Matching FIFO even in the SIF-Freeze case which is
+	   * causing DxE errors in high SD frequencies on 7x30 platform.
+	   */
+	  {
+		  tANI_U32 uRegValue, curCnt=0;
+	
+		  do {
+			/* Acquire Mutex1 here */
+			palReadRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, &uRegValue);
+			curCnt = (uRegValue & QWLAN_MCU_MUTEX1_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX1_CURRENTCOUNT_OFFSET;
+		  }while(curCnt < 1);
+          
+          	  /* Tracking the protection for device writes */
+          	  pMac->hal.PsParam.mutexTxCount++;
+		   
+		  /* Once mutex1 is acquired, touch BPS_REQ bit in PMU that would unfreeze SIF for Register-FIFO acesses
+		   * It is necessary that host acquire the mutex here and not inside the DO-WHILE Loop. This addresses the
+		   * corner case in which firmware acquires both mutex counts of MUTEX1 and issues SIF_FREEZE request. 
+		   * And SIF_FREEZE is going on. In the mean time, the host has something to tranfer and attempts to acquire
+		   * the mutex but won't be able to. And as part of polling, host issues SIF_UNFREEZE request while firmware
+		   * initiated SIF_FREEZE request is happening. In other words, SIF state is not synchronized between host
+		   * and firmware. Which can cause unpleasant results. With this, the host issue SIF_UNFREEZE request if-and-only-if
+		   * it gets hold of mutex for SIF Register-FIFO access
+		   */
+	       palWriteRegister(pMac->hHdd, QWLAN_PMU_PMU_CLIENT_IF_BPS_REQ_CTRL_REG_REG, 0x0);
+	  }
+#endif
+	
+    while((eHAL_STATUS_FW_PS_BUSY == mutexAcq)&& (retryCnt < 3)) {
+        palReadRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, &regValue);
 
-    curCnt = (regValue & QWLAN_MCU_MUTEX0_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX0_CURRENTCOUNT_OFFSET;
-    if(curCnt <= 1) {
-        HALLOGP(halLog(pMac, LOGP, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
+        curCnt = (regValue & QWLAN_MCU_MUTEX0_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX0_CURRENTCOUNT_OFFSET;
+        if(curCnt <= 1) {
+            HALLOGP(halLog(pMac, LOGP, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
+            ++retryCnt;
+        }
+        else {
+            mutexAcq = eHAL_STATUS_SUCCESS;
+       }
+    }
+
+    if(eHAL_STATUS_FW_PS_BUSY == mutexAcq)
+    {
+        HALLOGP(halLog(pMac, LOGP, "Host Busy Mutex is not Acquired = %d,%d, %x", 
+                                    pMac->hal.PsParam.mutexCount, 
+                                    pMac->hal.PsParam.mutexIntrCount, 
+                                    regValue));
         VOS_ASSERT(0);
     }
 
@@ -2721,8 +2765,17 @@ eHalStatus halPS_ReleaseHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
         pMac->hal.PsParam.mutexIntrCount--;
     }
 
-    HALLOGW(halLog(pMac, LOGE, "Released = %d,%d", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount));
+#ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
+    {
+	    /* FIXME: Release the mutex after SIF Register-FIFO Access */
+	
+	    v_U32_t uRegValue = (1 << QWLAN_MCU_MUTEX1_MAXCOUNT_OFFSET);
+	    palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, uRegValue);
+        pMac->hal.PsParam.mutexTxCount--;
+    }
+#endif
 
+    HALLOGW(halLog(pMac, LOGE, "Released = %d,%d,%d", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxCount));
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -3429,7 +3482,7 @@ eHalStatus halPS_RegisterWrite(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 regVa
     tANI_U32 offset = (tANI_U32)&((Qwlanfw_SysCfgType *)0)->uRegWriteCount;
 
     if ((pMac->hal.PsParam.mutexCount == 0) && (pMac->hal.PsParam.mutexIntrCount == 0)) {
-        HALLOGE(halLog(pMac, LOGE, "WMutex not acquired, %d, %d (Please report to HAL team, except for dump commands)", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount));
+        HALLOGE(halLog(pMac, LOGE, "WMutex not acquired, %d, %d, %d (Please report to HAL team, except for dump commands)", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxCount));
 //        VOS_ASSERT(0);
     }
 
@@ -3451,11 +3504,11 @@ eHalStatus halPS_RegisterWrite(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 regVa
 eHalStatus halPS_RegisterRead(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 *pRegValue)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
-    if ((pMac->hal.PsParam.mutexCount == 0) && (pMac->hal.PsParam.mutexIntrCount == 0)) {
-        HALLOGE(halLog(pMac, LOGE, "RMutex not acquired, %d, %d (Please report to HAL team, except for dump commands)", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount));
-//        VOS_ASSERT(0);
-    }
 
+    if ((pMac->hal.PsParam.mutexCount == 0) && (pMac->hal.PsParam.mutexIntrCount == 0)) {
+        HALLOGE(halLog(pMac, LOGE, "RMutex not acquired, %d, %d, %d (Please report to HAL team, except for dump commands)", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxCount));
+    }
+    
     palReadRegister(pMac->hHdd, regAddr, pRegValue);
 
     return eHAL_STATUS_SUCCESS;

@@ -172,7 +172,7 @@ int hdd_open (struct net_device *dev)
    if(hdd_connIsConnected(pAdapter)) {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
                  "%s: Enabling Tx Queues" , __FUNCTION__);
-      netif_start_queue(dev);
+      netif_tx_start_all_queues(dev);
    }
 
    return 0;
@@ -196,7 +196,7 @@ int hdd_stop (struct net_device *dev)
    //Stop the Interface TX queue. netif_stop_queue should not be used when
    //transmission is being disabled anywhere other than hard_start_xmit
    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Disabling OS Tx queues",__func__);
-   netif_tx_disable(dev);
+   netif_tx_stop_all_queues(dev);
 
    return 0;
 }
@@ -585,7 +585,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
     return;
 #endif  
    //Stop the Interface TX queue.
-   netif_tx_disable(pWlanDev);
+   netif_tx_stop_all_queues(pWlanDev);
    netif_carrier_off(pWlanDev);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -1060,7 +1060,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    status = hdd_parse_config_ini( pAdapter );
    if ( VOS_STATUS_SUCCESS != status )
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: error parsing qcom_cfg.ini",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: error parsing %s",__func__, INI_FILE);
       goto err_config;   
    }   
 
@@ -1221,7 +1221,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    hdd_register_wext(pWlanDev);
 
    //Stop the Interface TX queue.
-   netif_tx_disable(pWlanDev);
+   netif_tx_stop_all_queues(pWlanDev);
    netif_carrier_off(pWlanDev);
 
    //Safe to register the hard_start_xmit function again

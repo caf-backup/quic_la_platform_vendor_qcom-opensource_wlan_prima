@@ -8,6 +8,7 @@ All Rights Reserved.
 Qualcomm Confidential and Proprietary
  ============================================================================*/
 
+#include "vos_types.h"
 #include "limApi.h"
 
 #if defined(ANI_LOGDUMP)

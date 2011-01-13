@@ -108,10 +108,6 @@
 #define AGC_RX_OVERRIDE_REG_VAL_RX_3  (( ( (~(tANI_U32 )AGC_ALL_RX) &AGC_RX_OVERRIDE_MASK) << AGC_RX_OVERRIDE_EN_OFFSET) |  \
                                                                                     ( (((tANI_U32 )AGC_ALL_RX) &AGC_RX_OVERRIDE_MASK ) << AGC_RX_OVERRIDE_ENRX_VAL_OFFSET) | \
                                                                                     ( ( (~(tANI_U32 )AGC_ALL_RX) &AGC_RX_OVERRIDE_MASK) << AGC_RX_OVERRIDE_STBY_VAL_OFFSET) )
-#ifdef WLAN_FEATURE_VOWIFI
-extern const eHalPhyRates macPhyRateIndex[TPE_RT_IDX_MAX_RATES];
-#endif /* WLAN_FEATURE_VOWIFI */
-
 #ifdef ANI_SUPPORT_SMPS
 
 /** @brief :    This Structure stores the Register Indexes and the Values that are
@@ -1455,7 +1451,7 @@ halMsg_AddSta(
                 /* this will send selfSta information in shared memory only without messaging */
                 halMacRaStaAdd(pMac, selfStaIdx, STA_ENTRY_BSSID);
 #ifdef WLAN_SOFTAP_FEATURE
-                halFW_AddStaReq(pMac, staIdx, 1, 0);
+                halFW_AddStaReq(pMac, selfStaIdx, 1, 0);
 #endif
 #ifndef FEATURE_RA_CHANGE
                 /* send RA_ADD_BSS message to let firmware to build AutoSampleTable */
@@ -2040,6 +2036,7 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
 #ifdef WLAN_FEATURE_VOWIFI
     tPwrTemplateIndex   pwrIndex;
     eHalPhyRates        phyRateIndex;
+    t2Decimal           pwrDbm;
 #endif /* WLAN_FEATURE_VOWIFI */
 
     tANI_U8      savedBTStatype=0;
@@ -2233,11 +2230,11 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
       bssRaParam config;
       config.bit.reserved1     = 0;
 #ifndef HAL_SELF_STA_PER_BSS
-        config.bit.selfStaIdx    = pMac->hal.halMac.selfStaId;
+      config.bit.selfStaIdx    = pMac->hal.halMac.selfStaId;
 #else
-        config.bit.selfStaIdx    = idx;
+      config.bit.selfStaIdx    = idx;
 #endif
-        config.bit.bssIdx         = bssIdx;
+      config.bit.bssIdx         = bssIdx;
       config.bit.llbCoexist    = param->llbCoexist;
       config.bit.ht20Coexist   = param->ht20Coexist;
       config.bit.llgCoexist    = param->llgCoexist;
@@ -2247,28 +2244,36 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
       config.bit.fShortPreamble = param->staContext.shortPreambleSupported;
 #ifdef WLAN_FEATURE_VOWIFI        
         //Need to pass maxPowerIndex instead of power in dBm. 
-        config.bit.maxPwrIndex    = halPhyGetPwrIndexForDbm(param->maxTxPower);
-
+        /* Now we should get the power index by taking maxTxPower(power constraint) into consideration
+         * and set this power index as the maxPwrIndex in RA BSS Info. No frames should be transmitted 
+         * with the power value greater than this */
+        halPhyGetMaxTxPowerIndex(pMac, param->maxTxPower, &pwrIndex);
+        config.bit.maxPwrIndex = pwrIndex;
         HALLOGE(halLog(pMac, LOGE, FL("Add BSS: BSSIDX = %d, Power(dBm) = %d, Pwr Index = %d"),
                                     bssIdx, param->maxTxPower, config.bit.maxPwrIndex));
+#else        
+        config.bit.maxPwrIndex = 0;
 #endif /* WLAN_FEATURE_VOWIFI */
 
       halTable_SaveBssConfig(pMac, rfBand, config, bssIdx);
 
 #ifdef WLAN_FEATURE_VOWIFI
         /* Need  to return the power for management frames in the response */
-        phyRateIndex = macPhyRateIndex[rateIndex];
+        phyRateIndex = halRate_MacRateIdxtoPhyRateIdx(pMac, rateIndex);
         if (HAL_PHY_RATE_INVALID == phyRateIndex)
         {
-            HALLOGP(halLog(pMac, LOGE, FL("Invalid Phy rate index for management frames, setting default")));
+            HALLOGE(halLog(pMac, LOGE, FL("Invalid Phy rate index for management frames, setting default")));
             phyRateIndex = HAL_PHY_RATE_11B_LONG_1_MBPS;
-    }
-        halPhyGetPowerForRate(pMac, phyRateIndex, POWER_MODE_HIGH_POWER, param->maxTxPower, &pwrIndex);
-        pwrIndex = ((pwrIndex < config.bit.maxPwrIndex) ? pwrIndex: config.bit.maxPwrIndex);
-        
+        }
         /* The power returned to the PE is used to fill the TX power in WFA TPC report in 802.11k Link measurement frames 
-                and probe request frames */
-        param->txMgmtPower = halPhyGetDbmForPwrIndex(pwrIndex);
+           and probe request frames */
+        status = halPhyGetPwrFromRate2PwrTable(pMac, phyRateIndex, &pwrDbm);
+        if (eHAL_STATUS_SUCCESS != status)
+        {
+            HALLOGP(halLog(pMac, LOGP, FL("Get power from rate2pwr table for rateindex %d failed with status %d\n"), phyRateIndex, status));
+        }
+        pwrDbm /= 100;      //The halPhyGetPwrFromRate2PwrTable provides pwrDbm as 1900 for 19dBm. So, divide by 100
+        param->txMgmtPower = VOS_MIN(param->maxTxPower, pwrDbm);
         HALLOGE(halLog(pMac, LOGE, FL("Add Bss: Mgmt Rate Index = %d, Power = %d"),
                                             rateIndex, param->txMgmtPower));
 #endif /* WLAN_FEATURE_VOWIFI */
@@ -2848,6 +2853,10 @@ halMsg_DelBss(
 
     halRxp_DisableBssBeaconParamFilter(pMac, pDelBssReq->bssIdx);
 
+      // This will update the Global HAL System Role. 
+      // Since we dont know all the Bss that are active, we pass the unknown state 
+    halSetGlobalSystemRole(pMac, eSYSTEM_UNKNOWN_ROLE);
+
 generate_response:
 #ifndef WLAN_SOFTAP_FEATURE
 //    halMacRaDelBssReq(pMac, (tANI_U8) pDelBssReq->bssIdx);
@@ -2963,6 +2972,7 @@ void halMsg_ScanComplete(tpAniSirGlobal pMac)
                 (BssSystemRole == eSYSTEM_STA_IN_IBSS_ROLE))
         {
             needToBeaconFlag = TRUE;
+            break;
         }
     }
 
@@ -3295,7 +3305,7 @@ void halMsg_StartScanPostSetChan(tpAniSirGlobal pMac, void* pData,
     tPowerdBm             regPowerLimit = 0;
     tTpeRateIdx           rateIndex;
     eHalPhyRates          phyRateIndex;
-    tPwrTemplateIndex     pwrIndex;
+    t2Decimal             pwrDbm;
 #endif
 
     if (status != eHAL_STATUS_SUCCESS) {
@@ -3337,16 +3347,22 @@ void halMsg_StartScanPostSetChan(tpAniSirGlobal pMac, void* pData,
     /* Get the regulatory power limit for the current channel and calculate the 
         power in dBm for management frames */
     halUtil_GetRegPowerLimit(pMac, pMac->hal.currentChannel, 0, &regPowerLimit);
-    phyRateIndex = macPhyRateIndex[rateIndex];
+    phyRateIndex = halRate_MacRateIdxtoPhyRateIdx(pMac, rateIndex);
     if (HAL_PHY_RATE_INVALID == phyRateIndex)
     {
-        HALLOGP(halLog(pMac, LOGE, FL("Invalid Phy rate index for management frames, setting default")));
+        HALLOGE(halLog(pMac, LOGE, FL("Invalid Phy rate index for management frames, setting default")));
         phyRateIndex = HAL_PHY_RATE_11B_LONG_1_MBPS;
     }
-    halPhyGetPowerForRate(pMac, phyRateIndex, POWER_MODE_HIGH_POWER, regPowerLimit, &pwrIndex);
+    status = halPhyGetPwrFromRate2PwrTable(pMac, phyRateIndex, &pwrDbm);
+    if (eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGP(halLog(pMac, LOGP, FL("Get power from rate2pwr table for rateindex %d failed with status %d\n"), phyRateIndex, status));
+    }
+    pwrDbm /= 100;      //The halPhyGetPwrFromRate2PwrTable provides pwrDbm as 1900 for 19dBm. So, divide by 100
+    param->txMgmtPower = VOS_MIN(regPowerLimit, pwrDbm);
+    
     /* The power returned to the PE is used to fill the TX power in WFA TPC report in 802.11k Link measurement frames 
             and probe request frames */
-    param->txMgmtPower = halPhyGetDbmForPwrIndex(pwrIndex);
     
     HALLOGE(halLog(pMac, LOGE, FL("Start scan Rsp: Mgmt Rate Index = %d, Power = %d"), rateIndex, param->txMgmtPower);)
 #endif
@@ -3415,6 +3431,7 @@ void halMsg_ChannelSwitchPostSetChan(tpAniSirGlobal pMac, void *pData,
     tPwrTemplateIndex     pwrIndex;
     bssRaParam            bssRaInfo;
     tANI_U8               staIdx;
+    t2Decimal             pwrDbm;
 #endif /* WLAN_FEATURE_VOWIFI */
 
     if ( status != eHAL_STATUS_SUCCESS ){
@@ -3449,7 +3466,11 @@ void halMsg_ChannelSwitchPostSetChan(tpAniSirGlobal pMac, void *pData,
         rfBand = halUtil_GetRfBand(pMac, pMac->hal.currentChannel);
         halTable_GetBssRaConfig(pMac, rfBand, &bssRaInfo, bssIdx);
         //Should convert the max Tx power to power index and save it in RA BSS info
-        bssRaInfo.bit.maxPwrIndex = halPhyGetPwrIndexForDbm(param->maxTxPower);
+        /* Now we should get the power index by taking maxTxPower(power constraint) into consideration
+         * and set this power index as the maxPwrIndex in RA BSS Info. No frames should be transmitted 
+         * with the power value greater than this */
+        halPhyGetMaxTxPowerIndex(pMac, param->maxTxPower, &pwrIndex);
+        bssRaInfo.bit.maxPwrIndex = pwrIndex;
         halTable_SaveBssConfig(pMac, rfBand, bssRaInfo, bssIdx);
         HALLOGE(halLog(pMac, LOGE, FL("Channel Switch: BSSIDX = %d, Power(dBm) = %d, Pwr Index = %d"),
                                     bssIdx, param->maxTxPower, bssRaInfo.bit.maxPwrIndex));
@@ -3465,20 +3486,23 @@ generate_response:
     /* Need  to return the power for management frames in the response */
     halGetNonBcnRateIdx(pMac,(tTpeRateIdx *) &rateIndex);
 
-    phyRateIndex = macPhyRateIndex[rateIndex];
+    phyRateIndex = halRate_MacRateIdxtoPhyRateIdx(pMac, rateIndex);
     if (HAL_PHY_RATE_INVALID == phyRateIndex)
     {
-        HALLOGP(halLog(pMac, LOGE, FL("Invalid Phy rate index for management frames, setting default")));
+        HALLOGE(halLog(pMac, LOGE, FL("Invalid Phy rate index for management frames, setting default")));
         phyRateIndex = HAL_PHY_RATE_11B_LONG_1_MBPS;
     }
-    halPhyGetPowerForRate(pMac, phyRateIndex, POWER_MODE_HIGH_POWER, param->maxTxPower, &pwrIndex);
-    pwrIndex = (pwrIndex < bssRaInfo.bit.maxPwrIndex) ? pwrIndex : bssRaInfo.bit.maxPwrIndex;
+    status = halPhyGetPwrFromRate2PwrTable(pMac, phyRateIndex, &pwrDbm);
+    if (eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGP(halLog(pMac, LOGP, FL("Get power from rate2pwr table for rateindex %d failed with status %d\n"), phyRateIndex, status));
+    }
+    pwrDbm /= 100;      //The halPhyGetPwrFromRate2PwrTable provides pwrDbm as 1900 for 19dBm. So, divide by 100
     /* The power returned to the PE is used to fill the TX power in WFA TPC report in 802.11k Link measurement frames 
-            and probe request frames */
-    param->txMgmtPower = halPhyGetDbmForPwrIndex(pwrIndex);
+       and probe request frames */
+    param->txMgmtPower = VOS_MIN(param->maxTxPower, pwrDbm);
     HALLOGE(halLog(pMac, LOGE, FL("Channel Switch Rsp: Mgmt Rate Index = %d, Power = %d"),
                                         rateIndex, param->txMgmtPower));
-    
 #endif /* WLAN_FEATURE_VOWIFI */    
 
     HALLOG1(halLog(pMac, LOG1, FL("Send SIR_HAL_SWITCH_CHANNEL_RSP to LIM (status %d)\n"), status));
@@ -3933,7 +3957,7 @@ eHalStatus halMsg_setPromiscMode(tpAniSirGlobal pMac)
 void
 halMsg_UpdateProbeRspTemplate(
     tpAniSirGlobal      pMac,
-    tpUpdateProbeRspParams msg)
+    tpSendProbeRespParams msg)
 {
     tANI_U8 bssIndex;
 
@@ -3957,8 +3981,8 @@ halMsg_UpdateProbeRspTemplate(
     }else
     {
         tpBssStruct pBss = &(((tpBssStruct) pMac->hal.halMac.bssTable)[bssIndex]);            
-        if (halFW_WriteProbeRspToMemory(pMac, (tANI_U8 *) &(((tAniProbeRspStruct*) msg->probeRsp)->macHdr), 
-            pBss->bssSelfStaIdx, bssIndex, msg->probeRspLength)!= eHAL_STATUS_SUCCESS){
+        if (halFW_WriteProbeRspToMemory(pMac, (tANI_U8 *) &(((tAniProbeRspStruct*) msg->pProbeRespTemplate)->macHdr), 
+            pBss->bssSelfStaIdx, bssIndex, msg->probeRespTemplateLen)!= eHAL_STATUS_SUCCESS){
 
           HALLOGE( halLog(  pMac, LOGE,
               FL("Failed to write probeRsp template for BSSID %x:%x:%x:%x:%x:%x/BSS Index %d\n"),
@@ -3970,9 +3994,13 @@ halMsg_UpdateProbeRspTemplate(
               msg->bssId[5] ));
         }
     }
+    //update probeRsp IE bitmap
+    halFW_UpdateProbeRspIeBitmap(pMac, msg->ucProxyProbeReqValidIEBmap);
+    
     // Free memory that was allocated by SCH
     // No need to send any response
     palFreeMemory( pMac->hHdd, (tANI_U8 *) msg );
+
 }
 
 #endif
@@ -6657,8 +6685,10 @@ eHalStatus halMsg_setTxPowerLimit(tpAniSirGlobal pMac, tpMaxTxPowerParams pSetMa
     tTpeRateIdx           rateIndex;
     eHalPhyRates          phyRateIndex;
     tPwrTemplateIndex     pwrIndex;
-    bssRaParam   bssRaInfo;
-        
+    bssRaParam            bssRaInfo;
+    eHalStatus            status;
+    t2Decimal             pwrDbm;
+
     if (eHAL_STATUS_SUCCESS != halTable_FindBssidByAddr(pMac, pSetMaxTxPwrReq->bssId, &bssIdx))
     {
         HALLOGE(halLog(pMac, LOGE, FL("Not a valid BSS IDX")));
@@ -6670,15 +6700,20 @@ eHalStatus halMsg_setTxPowerLimit(tpAniSirGlobal pMac, tpMaxTxPowerParams pSetMa
         tPwrTemplateIndex maxPwrIndex1, maxPwrIndex2;
         
         /* The power constraint from the higher layers are set by configuring the maxPwrIndex 
-                per BSS which is shared between host and firmware. RA algorithm, when picking up the 
-                power for a rate, would apply this constraint and selects the minimum of power in rate to 
-                power index table and the maxPwrIndex constraint. Hence the rate/power table need not be updated 
-                in the host as this table remains constant in the firmware memory irrespective of the power constraints.*/
+           per BSS which is shared between host and firmware. RA algorithm, when picking up the 
+           power for a rate, would apply this constraint and selects the minimum of power in rate to 
+           power index table and the maxPwrIndex constraint. Hence the rate/power table need not be updated 
+           in the host as this table remains constant in the firmware memory irrespective of the power constraints.*/
         rfBand = halUtil_GetRfBand(pMac, pMac->hal.currentChannel);
         halTable_GetTxPowerLimitIndex(pMac, rfBand, &maxPwrIndex1);
         halTable_GetBssRaConfig(pMac, rfBand, &bssRaInfo, bssIdx);
+        
         //Should convert the max Tx power to power index and save it in RA BSS info
-        bssRaInfo.bit.maxPwrIndex = halPhyGetPwrIndexForDbm(pSetMaxTxPwrReq->power);
+        /* Now we should get the power index by taking maxTxPower(power constraint) into consideration
+         * and set this power index as the maxPwrIndex in RA BSS Info. No frames should be transmitted 
+         * with the power value greater than this */
+        halPhyGetMaxTxPowerIndex(pMac, pSetMaxTxPwrReq->power, &pwrIndex);
+        bssRaInfo.bit.maxPwrIndex = pwrIndex;
         halTable_SaveBssConfig(pMac, rfBand, bssRaInfo, bssIdx);
         HALLOGE(halLog(pMac, LOGE, FL("Set TX Pwr Limit Req: BSSIDX = %d, Power(dBm) = %d, Pwr Index = %d"),
                                     bssIdx, pSetMaxTxPwrReq->power, bssRaInfo.bit.maxPwrIndex));
@@ -6686,11 +6721,11 @@ eHalStatus halMsg_setTxPowerLimit(tpAniSirGlobal pMac, tpMaxTxPowerParams pSetMa
         halTable_GetTxPowerLimitIndex(pMac, rfBand, &maxPwrIndex2);
 
         /* Update the TPE sram table only if the max power before the setting and after 
-                    the setting are different */
+           the setting are different */
         if (maxPwrIndex2 != maxPwrIndex1)
         {
             /* The control rsp power is common across all the BSS. Hence always maintain highest power for Cntrl/Rsp
-                        frames */
+               frames */
             for(index = (tTpeRateIdx)MIN_LIBRA_RATE_NUM; index < (tTpeRateIdx)MAX_LIBRA_TX_RATE_NUM; index++) {
                 // Update the cntrl/rsp rate tx power locally and in the TPE
                 halRate_UpdateCtrlRspTxPower(pMac, index, maxPwrIndex2, TRUE);
@@ -6699,10 +6734,10 @@ eHalStatus halMsg_setTxPowerLimit(tpAniSirGlobal pMac, tpMaxTxPowerParams pSetMa
 
          /* Need  to return the power for management frames in the response */
         halGetNonBcnRateIdx(pMac,(tTpeRateIdx *) &rateIndex);
-        phyRateIndex = macPhyRateIndex[rateIndex];
+        phyRateIndex = halRate_MacRateIdxtoPhyRateIdx(pMac, rateIndex);
         if (HAL_PHY_RATE_INVALID == phyRateIndex)
         {
-            HALLOGP(halLog(pMac, LOGE, FL("Invalid Phy rate index for management frames, setting default")));
+            HALLOGE(halLog(pMac, LOGE, FL("Invalid Phy rate index for management frames, setting default")));
             phyRateIndex = HAL_PHY_RATE_11B_LONG_1_MBPS;
         }
         halPhyGetPowerForRate(pMac, phyRateIndex, POWER_MODE_HIGH_POWER, pSetMaxTxPwrReq->power, &pwrIndex);
@@ -6710,7 +6745,13 @@ eHalStatus halMsg_setTxPowerLimit(tpAniSirGlobal pMac, tpMaxTxPowerParams pSetMa
         
         /* The power returned to the PE is used to fill the TX power in WFA TPC report in 802.11k Link measurement frames 
                 and probe request frames */
-        pSetMaxTxPwrReq->power = halPhyGetDbmForPwrIndex(pwrIndex);
+        status = halPhyGetPwrFromRate2PwrTable(pMac, phyRateIndex, &pwrDbm);
+        if (eHAL_STATUS_SUCCESS != status)
+        {
+            HALLOGP(halLog(pMac, LOGP, FL("Get power from rate2pwr table for rateindex %d failed with status %d\n"), phyRateIndex, status));
+        }
+        pwrDbm /= 100;      //The halPhyGetPwrFromRate2PwrTable provides pwrDbm as 1900 for 19dBm. So, divide by 100
+        pSetMaxTxPwrReq->power = VOS_MIN(pSetMaxTxPwrReq->power, pwrDbm);
         HALLOGE(halLog(pMac, LOGE, FL("Set TX Pwr Limit Rsp: Mgmt Rate Index = %d, Power = %d"),
                                             rateIndex, pSetMaxTxPwrReq->power));
         //Need to update the power for the BD rates in the TPE station descriptor

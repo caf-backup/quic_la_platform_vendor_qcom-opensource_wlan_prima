@@ -46,16 +46,6 @@
           *pBufferSize is not big enough to contain the binary.
   \sa
   --------------------------------------------------------------------------*/
-
-
-#define LIBRA_CFG_FILE      "wlan/cfg.dat"
-
-#define LIBRA_FW_FILE       "wlan/qcom_fw.bin"
-
-#define LIBRA_COUNTRY_INFO_FILE     "wlan_country_info.dat"
-
-#define LIBRA_HO_CFG_FILE   "wlan_ho_config"
-
 VOS_STATUS vos_get_binary_blob( VOS_BINARY_ID binaryId,
                                 v_VOID_t *pBuffer, v_SIZE_t *pBufferSize )
 {

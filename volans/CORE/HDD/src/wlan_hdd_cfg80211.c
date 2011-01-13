@@ -1879,7 +1879,7 @@ static int wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
             }
 
             /*stop tx queues*/
-            netif_tx_disable(dev);
+            netif_tx_stop_all_queues(dev);
             netif_carrier_off(dev);
         }
     }

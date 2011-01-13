@@ -63,9 +63,9 @@ typedef enum
     MIN_20MHZ_RF_CHANNEL = RF_CHAN_1,
     MAX_20MHZ_RF_CHANNEL = RF_CHAN_14,
     NUM_20MHZ_RF_CHANNELS = (MAX_20MHZ_RF_CHANNEL - MIN_20MHZ_RF_CHANNEL + 1),
-    
+
     NUM_TPC_2_4GHZ_CHANNELS = 14,
-    
+
     INVALID_RF_CHANNEL = 0xBAD
 }eRfChannels;
 
@@ -81,8 +81,14 @@ typedef struct
     sRegulatoryChannel channels[NUM_RF_CHANNELS];
     uAbsPwrPrecision antennaGain[NUM_RF_SUBBANDS];
     uAbsPwrPrecision bRatePowerOffset[NUM_2_4GHZ_CHANNELS];
+    uAbsPwrPrecision gnRatePowerOffset[NUM_2_4GHZ_CHANNELS];
 }sRegulatoryDomains;
 
+typedef struct
+{
+    tANI_S16 bRssiOffset[NUM_2_4GHZ_CHANNELS];
+    tANI_S16 gnRssiOffset[NUM_2_4GHZ_CHANNELS];
+}sRssiChannelOffsets;
 
 typedef enum
 {
@@ -124,7 +130,7 @@ typedef enum
     RF_CAL_TONE_20POS,
     RF_CAL_TONE_24POS,
     RF_CAL_TONE_28POS,
-    
+
     NUM_RF_TONES,
 
     MIN_RF_TONE = RF_CAL_TONE_28NEG,
@@ -230,6 +236,11 @@ typedef enum
     NUM_TEMPERATURE_BINS
 }eTemperatureBins;
 
+typedef struct
+{
+    tANI_U16 hdetDcocCode;
+    tANI_U16 hdetDcoOffset;
+}sRfHdetCalValues;
 
 #endif
 

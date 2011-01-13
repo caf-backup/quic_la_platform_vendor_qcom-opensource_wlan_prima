@@ -46,6 +46,7 @@ typedef struct sPhySetChanCntx {
     tANI_U8 newChannel;
     tANI_U8 newRfBand;
     tANI_U8 newCbState;
+    tANI_U8 newCalReqd;
     void*   pData;
     funcHalSetChanCB pFunc;
     tANI_U16 dialog_token;
@@ -77,6 +78,7 @@ typedef struct
     ePhyNwDensity nwDensity40MHz;     // Network density value for 40MHz channel width
     ePhyRxDisabledPktTypes modTypes;  //current disabled packet types
     volatile tANI_BOOLEAN setPhyMsgEvent;
+    tANI_U32 hdetResidualDCO;
 }tAniSirPhy;
 
 #endif /* PHYGLOBAL_H */

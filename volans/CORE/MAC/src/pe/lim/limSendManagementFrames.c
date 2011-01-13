@@ -401,9 +401,21 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     // Timestamp to be updated by TFP, below.
 
     // Beacon Interval:
-    CFG_LIM_GET_INT_NO_STATUS( nSirStatus, pMac,
-                               WNI_CFG_BEACON_INTERVAL, cfg );
-    frm.BeaconInterval.interval = ( tANI_U16 ) cfg;
+#ifdef WLAN_SOFTAP_FEATURE
+    if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
+    {
+        frm.BeaconInterval.interval = pMac->sch.schObject.gSchBeaconInterval;        
+    }
+    else
+    {
+#endif
+        CFG_LIM_GET_INT_NO_STATUS( nSirStatus, pMac,
+                                   WNI_CFG_BEACON_INTERVAL, cfg );
+        frm.BeaconInterval.interval = ( tANI_U16 ) cfg;
+#ifdef WLAN_SOFTAP_FEATURE
+    }
+#endif
+
 
     PopulateDot11fCapabilities( pMac, &frm.Capabilities, psessionEntry );
     PopulateDot11fSSID( pMac, ( tSirMacSSid* )pSsid, &frm.SSID );
@@ -1839,6 +1851,16 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     caps = pMlmAssocReq->capabilityInfo;
     if ( PROP_CAPABILITY_GET( 11EQOS, psessionEntry->limCurrentBssPropCap ) )
         ((tSirMacCapabilityInfo *) &caps)->qos = 0;
+#if defined(FEATURE_WLAN_WAPI)
+    /* CR: 262463 : 
+    According to WAPI standard:
+    7.3.1.4 Capability Information field
+    In WAPI, non-AP STAs within an ESS set the Privacy subfield to 0 in transmitted 
+    Association or Reassociation management frames. APs ignore the Privacy subfield within received Association and 
+    Reassociation management frames. */
+    if ( psessionEntry->encryptType == eSIR_ED_WPI)
+        ((tSirMacCapabilityInfo *) &caps)->privacy = 0;
+#endif
     swapBitField16(caps, ( tANI_U16* )&frm.Capabilities );
 
     CFG_LIM_GET_INT_NO_STATUS( nSirStatus, pMac, WNI_CFG_WPS_ASSOC_METHOD,
@@ -2173,6 +2195,16 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     caps = pMlmReassocReq->capabilityInfo;
     if (PROP_CAPABILITY_GET(11EQOS, psessionEntry->limReassocBssPropCap))
         ((tSirMacCapabilityInfo *) &caps)->qos = 0;
+#if defined(FEATURE_WLAN_WAPI)
+    /* CR: 262463 : 
+    According to WAPI standard:
+    7.3.1.4 Capability Information field
+    In WAPI, non-AP STAs within an ESS set the Privacy subfield to 0 in transmitted 
+    Association or Reassociation management frames. APs ignore the Privacy subfield within received Association and 
+    Reassociation management frames. */
+    if ( psessionEntry->encryptType == eSIR_ED_WPI)
+        ((tSirMacCapabilityInfo *) &caps)->privacy = 0;
+#endif
     swapBitField16(caps, ( tANI_U16* )&frm.Capabilities );
 
     CFG_LIM_GET_INT_NO_STATUS( nSirStatus, pMac, WNI_CFG_WPS_ASSOC_METHOD,
@@ -2397,6 +2429,16 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     caps = pMlmReassocReq->capabilityInfo;
     if (PROP_CAPABILITY_GET(11EQOS, psessionEntry->limReassocBssPropCap))
         ((tSirMacCapabilityInfo *) &caps)->qos = 0;
+#if defined(FEATURE_WLAN_WAPI)
+    /* CR: 262463 : 
+    According to WAPI standard:
+    7.3.1.4 Capability Information field
+    In WAPI, non-AP STAs within an ESS set the Privacy subfield to 0 in transmitted 
+    Association or Reassociation management frames. APs ignore the Privacy subfield within received Association and 
+    Reassociation management frames. */
+    if ( psessionEntry->encryptType == eSIR_ED_WPI)
+        ((tSirMacCapabilityInfo *) &caps)->privacy = 0;
+#endif
     swapBitField16(caps, ( tANI_U16* )&frm.Capabilities );
 
     CFG_LIM_GET_INT_NO_STATUS( nSirStatus, pMac, WNI_CFG_WPS_ASSOC_METHOD,

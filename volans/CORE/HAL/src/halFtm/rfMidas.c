@@ -6,6 +6,10 @@
 static eHalStatus rfWriteDataField(tpAniSirGlobal pMac, tANI_U32 regNum, tANI_U32 dataMask, tANI_U32 dataShift, tANI_U32 data);
 static eHalStatus rfReadDataField(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32 dataMask, tANI_U32 dataShift, tANI_U32 *pData);
 
+#define PWR_MEAS_DELAY          80
+#define PWR_MEAS_WAIT_TIME      100
+#define SETTLING_TIME           200
+
 #define TX_DCO_RANGE_SETTING    1
 #define RX_DCO_RANGE_SETTING    1
 
@@ -56,7 +60,7 @@ eHalStatus rfReadReg(tpAniSirGlobal pMac, tANI_U32 addr, tANI_U32 *value)
 static eHalStatus rfWriteDataField(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32 dataMask, tANI_U32 dataShift, tANI_U32 data)
 {
     tANI_U32 regData;
-    
+
 
     GET_RF_CHIP_REG(regAddr, &regData);
 
@@ -70,7 +74,7 @@ static eHalStatus rfWriteDataField(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U
 
 static eHalStatus rfReadDataField(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32 dataMask, tANI_U32 dataShift, tANI_U32 *pData)
 {
-    
+
 
     GET_RF_CHIP_REG(regAddr, pData);
 
@@ -83,7 +87,7 @@ static eHalStatus rfReadDataField(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U3
 
 eHalStatus rfWriteField(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32 dataMask, tANI_U32 dataShift, tANI_U32 data)
 {
-    
+
 
     SET_RF_FIELD(regAddr, dataMask, dataShift, data);
 
@@ -92,7 +96,7 @@ eHalStatus rfWriteField(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32 dataMask
 
 eHalStatus rfReadField(tpAniSirGlobal pMac, tANI_U32 regAddr, tANI_U32 dataMask, tANI_U32 dataShift, tANI_U32 *pData)
 {
-    
+
 
     GET_RF_FIELD(regAddr, dataMask, dataShift, pData);
 
@@ -107,14 +111,14 @@ eHalStatus rfTakeTemp(tpAniSirGlobal pMac, eRfTempSensor setup, tANI_U8 nSamples
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
     tANI_U32 avg = 0;
     tANI_U32 i;
-    tANI_U32 bkup0, bkup1, bkup2, bkup3;
+    tANI_U32 bkup0, /*bkup1,*/ bkup2, bkup3;
     tANI_U16 adc = 0;
 
     assert (nSamples > 0);
     //assumes that we are not transmitting
 
     GET_PHY_REG(pMac->hHdd, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, &bkup0);
-    GET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG, &bkup1);
+    //GET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG, &bkup1);
     GET_PHY_REG(pMac->hHdd, QWLAN_TPC_RC_DELAY_REG, &bkup2);       //when sampling hdet directly, only sample for 80 clocks = 1 microsecond
     GET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, &bkup3);
 
@@ -126,13 +130,13 @@ eHalStatus rfTakeTemp(tpAniSirGlobal pMac, eRfTempSensor setup, tANI_U8 nSamples
                                 QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TPC_MASK
                );
 
-    SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG,
-                QWLAN_TXCTL_DAC_CONTROL_TXEN_OVERRIDE_EN_MASK |
-                QWLAN_TXCTL_DAC_CONTROL_TXEN0_OVERRIDE_VAL_MASK |
-                QWLAN_TXCTL_DAC_CONTROL_CH3STDBY_OVERRIDE_VAL_MASK |
-                QWLAN_TXCTL_DAC_CONTROL_CH2STDBY_OVERRIDE_VAL_MASK |
-                QWLAN_TXCTL_DAC_CONTROL_CH1STDBY_OVERRIDE_VAL_MASK
-               );
+    //SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG,
+    //            QWLAN_TXCTL_DAC_CONTROL_TXEN_OVERRIDE_EN_MASK |
+    //            QWLAN_TXCTL_DAC_CONTROL_TXEN0_OVERRIDE_VAL_MASK |
+    //            QWLAN_TXCTL_DAC_CONTROL_CH3STDBY_OVERRIDE_VAL_MASK |
+    //            QWLAN_TXCTL_DAC_CONTROL_CH2STDBY_OVERRIDE_VAL_MASK |
+    //            QWLAN_TXCTL_DAC_CONTROL_CH1STDBY_OVERRIDE_VAL_MASK
+    //           );
 
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, 0);   //turn off TPC closed loop control
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_RC_DELAY_REG, 80);       //when sampling hdet directly, only sample for 80 clocks = 1 microsecond
@@ -168,7 +172,7 @@ eHalStatus rfTakeTemp(tpAniSirGlobal pMac, eRfTempSensor setup, tANI_U8 nSamples
     //select hdet_in
     SET_RF_FIELD(QWLAN_RFAPB_HDET_CTL_REG, QWLAN_RFAPB_HDET_CTL_HDET_OUT_SEL_MASK, QWLAN_RFAPB_HDET_CTL_HDET_OUT_SEL_OFFSET, 1);
 
-    SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG, bkup1);
+    //SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG, bkup1);
     SET_PHY_REG(pMac->hHdd, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, bkup0);
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_RC_DELAY_REG, bkup2);
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, bkup3);
@@ -189,7 +193,7 @@ eHalStatus rfSetDCOffset(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 dcoI
 #ifdef VOLANS_RF
         assert (dcoIndex < NUM_RF_DCO_VALUES);
         assert(rxChain < PHY_MAX_RX_CHAINS);
-    
+
         SET_RF_CHIP_REG(QWLAN_RFAPB_RX_DCOC_IQ_0_REG + MIDAS_REG_STEP * dcoIndex,
                         (offset.IDcoCorrect << QWLAN_RFAPB_RX_DCOC_IQ_0_RX_DCOC_I_0_OFFSET) |
                         (offset.QDcoCorrect << QWLAN_RFAPB_RX_DCOC_IQ_0_RX_DCOC_Q_0_OFFSET)
@@ -204,9 +208,9 @@ eHalStatus rfGetDCOffset(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 dcoI
 {
 #ifdef VOLANS_RF
         tANI_U32 value = 0;
-    
+
         assert (dcoIndex < NUM_RF_DCO_VALUES);
-    
+
         GET_RF_CHIP_REG(QWLAN_RFAPB_RX_DCOC_IQ_0_REG + MIDAS_REG_STEP * dcoIndex, &value);
 
         offset->IDcoCorrect = (tDcoCorrect)((value & QWLAN_RFAPB_RX_DCOC_IQ_0_RX_DCOC_I_0_MASK)
@@ -222,11 +226,11 @@ eHalStatus rfGetTxLoCorrect(tpAniSirGlobal pMac, ePhyTxChains txChain, eGainStep
 {
 #ifdef VOLANS_RF
         tANI_U32 value = 0;
-    
+
         assert (corr != NULL);
-    
+
         GET_RF_CHIP_REG(QWLAN_RFAPB_TX_BBF_OFFSET_0_REG + MIDAS_REG_STEP * txGain, &value);
-    
+
         corr->IDcoCorrect = (tDcoCorrect)((value & QWLAN_RFAPB_TX_BBF_OFFSET_0_TX_OFFS_DAC_I_0_MASK)
                                                             >> QWLAN_RFAPB_TX_BBF_OFFSET_0_TX_OFFS_DAC_I_0_OFFSET);
         corr->QDcoCorrect = (tDcoCorrect)((value & QWLAN_RFAPB_TX_BBF_OFFSET_0_TX_OFFS_DAC_Q_0_MASK)
@@ -247,4 +251,110 @@ eHalStatus rfSetTxLoCorrect(tpAniSirGlobal pMac, ePhyTxChains txChain, eGainStep
 #endif
     return eHAL_STATUS_SUCCESS;
 }
+
+eHalStatus rfHdetDCOCal(tpAniSirGlobal pMac, tANI_U16 *hdetDcocCode)
+{
+    eHalStatus retVal = eHAL_STATUS_SUCCESS;
+#ifdef VOLANS_RF
+    tANI_U32 regVal;
+    //tANI_U32 timestamp = 0;
+    tANI_U8 hdetCalCode;
+
+    GET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_1_EN_REG, &regVal);
+    SET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_1_EN_REG, (regVal |
+                    QWLAN_RFAPB_TX_RF_1_EN_RF_EN_1_OVERWRITE_MASK |
+                    QWLAN_RFAPB_TX_RF_1_EN_TX_BIAS_EN_OVRWRT_MASK));
+
+    GET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_2_EN_REG, &regVal);
+    SET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_2_EN_REG, (regVal |
+                    QWLAN_RFAPB_TX_RF_2_EN_RF_EN_2_OVERWRITE_MASK |
+                    QWLAN_RFAPB_TX_RF_2_EN_HDET_EN_OVRWRT_MASK));
+
+    rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_CTL_REG,
+                    QWLAN_RFAPB_HDET_CTL_HDET_CSTART_MASK,
+                    QWLAN_RFAPB_HDET_CTL_HDET_CSTART_OFFSET, 1);
+
+    //GET_TIMESTAMP(&timestamp);
+    //do
+    //{
+    //    GET_RF_CHIP_REG(QWLAN_RFAPB_HDET_CTL_REG, &regVal);
+    //
+    //    regVal &= QWLAN_RFAPB_HDET_CTL_HDET_CSTART_MASK;
+    //} while (regVal && (ELAPSED_MICROSECONDS(timestamp) < 40));
+    DELAY_MICROSECONDS(40);
+
+
+    GET_RF_CHIP_REG(QWLAN_RFAPB_CAL_DATA_REG, &regVal);
+
+    hdetCalCode = ((regVal & QWLAN_RFAPB_CAL_DATA_HDET_CAL_CODE_MASK)
+                            >> QWLAN_RFAPB_CAL_DATA_HDET_CAL_CODE_OFFSET);
+
+    SET_RF_FIELD(QWLAN_RFAPB_HDET_DCOC_REG,
+            QWLAN_RFAPB_HDET_DCOC_DCOC_CODE_MASK,
+            QWLAN_RFAPB_HDET_DCOC_DCOC_CODE_OFFSET,
+            hdetCalCode);
+    SET_RF_FIELD(QWLAN_RFAPB_HDET_DCOC_REG,
+            QWLAN_RFAPB_HDET_DCOC_OVRD_HDET_MASK,
+            QWLAN_RFAPB_HDET_DCOC_OVRD_HDET_OFFSET, 1);
+
+    SET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_1_EN_REG, 0);
+    SET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_2_EN_REG, 0);
+
+#endif
+    *hdetDcocCode = hdetCalCode;
+
+    return retVal;
+}
+
+eHalStatus rfGetHdetDCOffset(tpAniSirGlobal pMac, tANI_U16 *hdetDcoOffset)
+{
+    eHalStatus retVal = eHAL_STATUS_SUCCESS;
+#ifdef VOLANS_RF
+    tANI_U32 regVal;
+    tANI_U32 bkup1, bkup2;
+    tANI_U32 rcDelay;
+
+    GET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_1_EN_REG, &regVal);
+    SET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_1_EN_REG, (regVal |
+                                    QWLAN_RFAPB_TX_RF_1_EN_RF_EN_1_OVERWRITE_MASK |
+                                    QWLAN_RFAPB_TX_RF_1_EN_TX_BIAS_EN_OVRWRT_MASK));
+
+    GET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_2_EN_REG, &regVal);
+    SET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_2_EN_REG, (regVal |
+                                    QWLAN_RFAPB_TX_RF_2_EN_RF_EN_2_OVERWRITE_MASK |
+                                    QWLAN_RFAPB_TX_RF_2_EN_HDET_EN_OVRWRT_MASK));
+
+    GET_PHY_REG(pMac->hHdd, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, &bkup1);
+    SET_PHY_REG(pMac->hHdd, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, (bkup1 |
+                    QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TPC_MASK |
+                    QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXFIR_MASK |
+                    QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXFIR_APB_MASK |
+                    QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXCTL_MASK));
+
+    GET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG, &regVal);
+    bkup2 = regVal;
+    regVal |= QWLAN_TXCTL_DAC_CONTROL_TXEN_OVERRIDE_EN_MASK;
+    regVal &= ~QWLAN_TXCTL_DAC_CONTROL_TXEN0_OVERRIDE_VAL_MASK;
+    SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG, regVal);
+    DELAY_MICROSECONDS(SETTLING_TIME);
+
+    GET_PHY_REG(pMac->hHdd, QWLAN_TPC_RC_DELAY_REG, &rcDelay);
+    SET_PHY_REG(pMac->hHdd, QWLAN_TPC_RC_DELAY_REG, PWR_MEAS_DELAY);
+
+    SET_PHY_REG(pMac->hHdd, QWLAN_TPC_ADC_CTRL_GET_ADC_REG, QWLAN_TPC_ADC_CTRL_GET_ADC_GET_ADC_MASK);
+    DELAY_MICROSECONDS(PWR_MEAS_WAIT_TIME);
+
+    GET_PHY_REG(pMac->hHdd, QWLAN_TPC_SENSED_PWR0_REG, &regVal);
+    SET_PHY_REG(pMac->hHdd, QWLAN_TPC_RC_DELAY_REG, rcDelay);
+
+    SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG, bkup2);
+    SET_PHY_REG(pMac->hHdd, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, bkup1);
+    SET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_1_EN_REG, 0);
+    SET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_2_EN_REG, 0);
+
+    *hdetDcoOffset = (tANI_U16)regVal;
+#endif
+    return retVal;
+}
+
 #endif /* #ifndef VERIFY_HALPHY */

@@ -1462,6 +1462,7 @@ void halRate_getProtectionInfo(tpAniSirGlobal pMac, tANI_U32 staId,
         tANI_U32 *pProtPolicy)
 {
     tTpeProtPolicy protPolicy = TPE_RATE_PROTECTION_NONE;
+    tANI_U32 rtsThreshold = HAL_RTS_THRESHOLD_MAX;
     tANI_BOOLEAN bssProt = FALSE;
     tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;
     tpHalRaGlobalInfo pGlobInfo = &pMac->hal.halRaInfo;
@@ -1470,12 +1471,20 @@ void halRate_getProtectionInfo(tpAniSirGlobal pMac, tANI_U32 staId,
     halUtil_getProtectionMode(pMac, &protPolicy);
     pGlobInfo->protPolicy = (tANI_U8)protPolicy;
 
+    // Get the CFG set RTS threshold
+    if (wlan_cfgGetInt(pMac, WNI_CFG_RTS_THRESHOLD,
+                &rtsThreshold) != eSIR_SUCCESS) {
+        HALLOGE(halLog(pMac, LOGE, FL("cfgGet WNI_CFG_RTS_THRESHOLD Failed\n")));
+    }
+    pGlobInfo->rtsThreshold = (tANI_U16)rtsThreshold;
+
     // Check protection is set in the BSS
     if ((bssTable->bssRaInfo.u.bit.llbCoexist) &&
             (HALRATE_IS_11B(halDataRateIdx) == 0) &&
             (pMac->hal.currentRfBand == eRF_BAND_2_4_GHZ)) {
         bssProt = TRUE;
     }
+
 
     // If the BSS protection is turned ON, check the configured
     if(bssProt) {
@@ -1504,8 +1513,9 @@ void halRate_getProtectionInfo(tpAniSirGlobal pMac, tANI_U32 staId,
                 protPolicy = TPE_RATE_PROTECTION_NONE;
                 break;
         }
-    } else
-        protPolicy = TPE_RATE_PROTECTION_NONE;
+    } else {
+            protPolicy = TPE_RATE_PROTECTION_NONE;
+    }
 
     *pProtPolicy = protPolicy;
 }
@@ -2386,3 +2396,8 @@ eHalStatus halRate_BckupTpeRateTable(tpAniSirGlobal pMac, tANI_U32 *pAddr)
     return eHAL_STATUS_SUCCESS;
 }
 
+/* Returns PHY rate index for the given TPE rate index */
+inline eHalPhyRates halRate_MacRateIdxtoPhyRateIdx(tpAniSirGlobal pMac, tTpeRateIdx tpeRateIdx)
+{
+    return macPhyRateIndex[tpeRateIdx];
+}

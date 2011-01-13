@@ -347,8 +347,25 @@ limTearDownLinkWithAp(tpAniSirGlobal pMac)
 
     pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
 
-    if (pStaDs != NULL)
-        limTriggerSTAdeletion(pMac, pStaDs, psessionEntry );
+    
+    if(pStaDs != NULL)
+    {
+        tLimMlmDeauthInd  mlmDeauthInd;
+
+        pStaDs->mlmStaContext.disassocReason = eSIR_MAC_UNSPEC_FAILURE_REASON;
+        pStaDs->mlmStaContext.cleanupTrigger = eLIM_LINK_MONITORING_DEAUTH;
+
+        /// Issue Deauth Indication to SME.
+        palCopyMemory( pMac->hHdd, (tANI_U8 *) &mlmDeauthInd.peerMacAddr,
+                      pStaDs->staAddr,
+                      sizeof(tSirMacAddr));
+        mlmDeauthInd.reasonCode    = (tANI_U8) pStaDs->mlmStaContext.disassocReason;
+        mlmDeauthInd.deauthTrigger =  pStaDs->mlmStaContext.cleanupTrigger;
+
+        limPostSmeMessage(pMac, LIM_MLM_DEAUTH_IND, (tANI_U32 *) &mlmDeauthInd);
+
+        limSendSmeDeauthInd(pMac, pStaDs, psessionEntry);
+    }    
 } /*** limTearDownLinkWithAp() ***/
 
 
@@ -373,7 +390,6 @@ limTearDownLinkWithAp(tpAniSirGlobal pMac)
 
 void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
 {
-    tSirMacSSid    ssId;
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT
     vos_log_beacon_update_pkt_type *log_ptr = NULL;
@@ -435,9 +451,8 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
          * it is still around. Wait until certain
          * timeout for Probe Response from AP.
          */
-        ssId.length = 0;
         PELOGW(limLog(pMac, LOGW, FL("Heart Beat missed from AP. Sending Probe Req\n"));)
-        limSendProbeReqMgmtFrame(pMac, &ssId, psessionEntry->bssId,
+        limSendProbeReqMgmtFrame(pMac, &psessionEntry->ssId, psessionEntry->bssId,
                                   psessionEntry->currentOperChannel,psessionEntry->selfMacAddr,
                                   psessionEntry->dot11mode);
 

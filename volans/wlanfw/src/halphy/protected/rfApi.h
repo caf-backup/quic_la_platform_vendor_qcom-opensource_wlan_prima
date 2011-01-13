@@ -129,6 +129,8 @@ void rfGetTxLoCorrect(ePhyTxChains txChain, eGainSteps txGain, tTxLoCorrect *cor
 void rfSetTxLoCorrect(ePhyTxChains txChain, eGainSteps txGain, tTxLoCorrect corr);
 void rfSetIm2Correct(tRxIm2Correct im2Corr);
 void rfGetIm2Correct(tRxIm2Correct *im2Corr);
+void disableIm2ToneGen(tANI_BOOLEAN inBand);
+void enableIm2ToneGen(tANI_BOOLEAN inBand);
 
 tANI_U8 rfHdetDCOCal(void);
 void rfRTuningCal(void);
@@ -139,6 +141,8 @@ tANI_S8 rfLNABiasSetting(tANI_U8 rTune);
 tANI_U8 rfLNABandTuning(void);
 tANI_U8 rfLNAGainAdjust(void);
 tANI_U16 rfVcoFreqLinearityCal(void);
+void rfSetNormalRxSensSettings(void);
+void rfSetLowPwrRxSensSettings(void);
 
 
 #ifdef FEATURE_WLANFW_PHY_DEBUG

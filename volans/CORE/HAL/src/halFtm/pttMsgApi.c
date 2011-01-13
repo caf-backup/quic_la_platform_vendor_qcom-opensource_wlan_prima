@@ -20,6 +20,7 @@
 #include <sys_api.h>
 #include "pttModuleApi.h"
 #include "halPhyUtil.h"
+#include "qwlan_version.h"
 #include <halPhyVersion.h>
 #ifndef VERIFY_HALPHY_SIMV_MODEL
 #include "wlan_qct_sys.h"
@@ -240,7 +241,6 @@ const sPttMsgIdStr pttMsgDbgStrings[] =
     { "PTT_MSG_SET_CALCONTROL_BITMAP",                     0x32B0 }
 };
 
-
 static void dumpPttMsg(tPttMsgbuffer *pttMsg)
 {
     unsigned int i;
@@ -260,7 +260,6 @@ static void dumpPttMsg(tPttMsgbuffer *pttMsg)
     }
 }
 */
-
 void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
 {
     eQWPttStatus retVal = PTT_STATUS_SUCCESS;
@@ -848,6 +847,8 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
             pttGetRxPktCounts(pMac, &(msgBody->GetRxPktCounts.counters));
 
             NTOHL(msgBody->GetRxPktCounts.counters.totalRxPackets);
+            NTOHL(msgBody->GetRxPktCounts.counters.totalMacRxPackets);
+            NTOHL(msgBody->GetRxPktCounts.counters.totalMacFcsErrPackets);
             break;
         }
 
@@ -944,6 +945,13 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
         case PTT_MSG_EXECUTE_INITIAL_CALS:
         {
             retVal = pttExecuteInitialCals(pMac);
+            break;
+        }
+
+        case PTT_MSG_HDET_CAL:
+        {
+            retVal = pttHdetCal(pMac, &(msgBody->HdetCal.hdetCalValues));
+
             break;
         }
 
@@ -1211,8 +1219,11 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
 
         case PTT_MSG_GET_BUILD_RELEASE_NUMBER:
         {
-            msgBody->GetBuildReleaseNumber.relParams.drvMax = HAL_PHY_MAX_VERSION;
-            msgBody->GetBuildReleaseNumber.relParams.drvMin = HAL_PHY_MIN_VERSION;
+            msgBody->GetBuildReleaseNumber.relParams.drvMjr = QWLAN_VERSION_MAJOR;
+            msgBody->GetBuildReleaseNumber.relParams.drvMnr = QWLAN_VERSION_MINOR;
+            msgBody->GetBuildReleaseNumber.relParams.drvPtch = QWLAN_VERSION_PATCH;
+            msgBody->GetBuildReleaseNumber.relParams.drvBld = QWLAN_VERSION_BUILD;
+            vos_mem_copy((v_VOID_t*)&msgBody->GetBuildReleaseNumber.relParams.fwVer,(v_VOID_t*)&pMac->hal.FwParam.fwVersion, sizeof(FwVersionInfo));
 
             break;
         }

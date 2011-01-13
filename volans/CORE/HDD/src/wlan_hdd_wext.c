@@ -1311,7 +1311,15 @@ static int iw_set_priv(struct net_device *dev,
 
     hddLog(VOS_TRACE_LEVEL_INFO_MED, "***Received %s cmd from Wi-Fi GUI***", cmd);
 
-    if( strcasecmp(cmd, "start") == 0 ) {
+	if(strncmp(cmd, "CSCAN",5) == 0 )
+	{
+		int status= VOS_STATUS_SUCCESS;
+		
+		status = iw_set_cscan(dev, info,wrqu, extra);
+		return status;
+
+	}
+	else if( strcasecmp(cmd, "start") == 0 ) {
 
         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Start command\n");
         /*Exit from Deep sleep or standby if we get the driver START cmd from android GUI*/
@@ -1361,7 +1369,8 @@ static int iw_set_priv(struct net_device *dev,
         else if(pAdapter->cfg_ini->nEnableDriverStop == WLAN_MAP_DRIVER_STOP_TO_DEEP_SLEEP) {
             //Execute deep sleep procedure
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Wlan driver entering deep sleep mode\n");
-            status = hdd_enter_deep_sleep(pAdapter);
+            //status = hdd_enter_deep_sleep(pAdapter);      
+            status  = hdd_enter_standby(pAdapter);
         }
         else {
             hddLog(VOS_TRACE_LEVEL_INFO_LOW, "%s: Driver stop is not enabled %d",
@@ -2098,7 +2107,7 @@ static int iw_set_mlme(struct net_device *dev,
                     hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate : csrRoamDisconnect failure returned %d \n",
                        __FUNCTION__, (int)mlme->cmd, (int)status );
                 
-               netif_tx_disable(dev);
+               netif_tx_stop_all_queues(dev);
                netif_carrier_off(dev);
 
             }

@@ -63,7 +63,12 @@
  */
 static void halDpu_FreePendingErrorPackets(tpAniSirGlobal pMac);
 static void halDpu_EnableCcmNonceFix(tpAniSirGlobal pMac, tANI_BOOLEAN fSet);
+
+#if defined(FEATURE_WLAN_WAPI)
 static void halDpu_EnableWapiKeyIndexFix(tpAniSirGlobal pMac, tANI_BOOLEAN fSet);
+static void halDpu_InitWapiStaKeyIndexes(tpAniSirGlobal pMac);
+eHalStatus halDpu_SetWapiQos( tpAniSirGlobal pMac, tANI_BOOLEAN fSet );
+#endif
 
 /* -------------------------------------------------------------
  * FUNCTION:  dpu_hw_init()
@@ -156,11 +161,14 @@ dpu_hw_init(
          */
         halDpu_EnableCcmNonceFix(pMac, eANI_BOOLEAN_TRUE);
 
+#if defined(FEATURE_WLAN_WAPI)
         /* DPU RTL is picking keyIndex value instead of keyID for WAPI encryption/decryption. 
          * The issue is fixed in Volans2.0 and added config bit(enable_wapi_kid_fix in DPU_spare_reg) 
          * to enable this fix. When this bit is ‘1’ , fix is enabled. By default this bit is zero.
          */
         halDpu_EnableWapiKeyIndexFix(pMac, eANI_BOOLEAN_TRUE);
+        halDpu_InitWapiStaKeyIndexes(pMac);
+#endif
     }
 
 }
@@ -2308,7 +2316,6 @@ static eHalStatus halDpu_GetDpuMICErrorInfoFromBD(tpAniSirGlobal pMac, tpHalRxBd
             sa = pHdr->addr2;
         }
     }
-
     HALLOG1( halLog( pMac, LOG1, FL("DPU MIC ERROR Dpu feedback : %d\n"), pBD->dpuFeedback));
 
     pPayload = SIR_MAC_BD_TO_MPDUDATA(pBD);
@@ -2318,7 +2325,8 @@ static eHalStatus halDpu_GetDpuMICErrorInfoFromBD(tpAniSirGlobal pMac, tpHalRxBd
     palCopyMemory(pMac->hHdd, pMicInfo->srcMacAddr, sa, sizeof(tSirMacAddr));
     palCopyMemory(pMac->hHdd, pMicInfo->taMacAddr, ta, sizeof(tSirMacAddr));
     palCopyMemory(pMac->hHdd, pMicInfo->dstMacAddr, da, sizeof(tSirMacAddr));
-
+    palCopyMemory(pMac->hHdd, pMicInfo->rxMacAddr, pHdr->addr1, sizeof(tSirMacAddr));
+    
     HALLOG1( halLog( pMac, LOG1, FL("DPU MIC ERROR SRC MAC ADDR [%x]:[%x]:[%x]:[%x]:[%x]:[%x]\n"), sa[5], sa[4], sa[3], sa[2], sa[1], sa[0]));
     HALLOG1( halLog( pMac, LOG1, FL("DPU MIC ERROR TRANSMIT MAC ADDR [%x]:[%x]:[%x]:[%x]:[%x]:[%x]\n"), ta[5], ta[4], ta[3], ta[2], ta[1], ta[0]));
     HALLOG1( halLog( pMac, LOG1, FL("DPU MIC ERROR DST MAC ADDR [%x]:[%x]:[%x]:[%x]:[%x]:[%x]\n"), da[5], da[4], da[3], da[2], da[1], da[0]));
@@ -2361,6 +2369,7 @@ void halDpu_MICErrorIndication(tpAniSirGlobal pMac)
     eHalStatus status;
     tHalRxBd   *pDpuErrorBD;
     tpSirSmeMicFailureInd pMicInd;
+    tBssSystemRole BssSystemRole = eSYSTEM_UNKNOWN_ROLE;
 
     /** Allocating for two BD/PDU just in case if the MPDU Header+Data dosent fit in BD.*/
     status = palAllocateMemory( pMac->hHdd, (void **) &pDpuErrorBD, HAL_BD_SIZE * 2);
@@ -2411,7 +2420,7 @@ void halDpu_MICErrorIndication(tpAniSirGlobal pMac)
         msg.reserved = 0;
         msg.bodyval = 0;
         msg.bodyptr = pMicInd;
-        
+
 #if defined(ANI_OS_TYPE_LINUX) && defined(ANI_LITTLE_BYTE_ENDIAN)
         sirStoreU16N((tANI_U8 *) &pMicInd->messageType, eWNI_SME_MIC_FAILURE_IND);
         sirStoreU16N((tANI_U8 *) &pMicInd->length, sizeof(tSirSmeMicFailureInd));
@@ -2419,7 +2428,17 @@ void halDpu_MICErrorIndication(tpAniSirGlobal pMac)
         pMicInd->messageType = eWNI_SME_MIC_FAILURE_IND;
         pMicInd->length = sizeof(tSirSmeMicFailureInd);    // len in bytes
 #endif
-        palCopyMemory(pMac->hHdd, pMicInd->bssId,pMicInd->info.taMacAddr,sizeof(tSirMacAddr));
+
+        BssSystemRole = halGetBssSystemRoleFromStaIdx(pMac, pDpuErrorBD->addr2Index);
+
+        if(BssSystemRole == eSYSTEM_AP_ROLE)
+        {
+            palCopyMemory(pMac->hHdd, pMicInd->bssId, pMicInd->info.rxMacAddr, sizeof(tSirMacAddr));
+        } else
+        {   
+            palCopyMemory(pMac->hHdd, pMicInd->bssId, pMicInd->info.taMacAddr, sizeof(tSirMacAddr));            
+        }
+        
         HALLOGE( halLog( pMac, LOGE, FL("Posting DPU MIC Error to HDD!!\n")));
         if (halMmhPostMsgApi(pMac, &msg, eHI_PRI) != eSIR_SUCCESS)
         {
@@ -2578,6 +2597,43 @@ eHalStatus halDpu_SetWapiQos( tpAniSirGlobal pMac, tANI_BOOLEAN fSet )
 
     return status;
 }
+
+
+static void
+halDpu_EnableWapiKeyIndexFix(tpAniSirGlobal pMac, tANI_BOOLEAN fSet)
+{
+    tANI_U32 value;
+
+    halReadRegister(pMac, QWLAN_DPU_DPU_SPARE_REG_REG, &value);
+
+    if(fSet)
+    {
+        value |= QWLAN_DPU_DPU_SPARE_REG_ENABLE_WAPI_KID_FIX_MASK;
+    }
+    else
+    {
+        value &= ~(QWLAN_DPU_DPU_SPARE_REG_ENABLE_WAPI_KID_FIX_MASK);
+    }
+    
+    halWriteRegister(pMac, QWLAN_DPU_DPU_SPARE_REG_REG, value);
+}
+
+static void
+halDpu_InitWapiStaKeyIndexes(tpAniSirGlobal pMac)
+{
+#define DPU_STA_KEY_INDEXES_DEFAULT_VALUE  0x00000100
+    //The DPU_STAx_key_indexes registers are used to map the keyindex to the keyidex slot in 
+    //DPU descriptor. 0 to 0 and 1 to 1. There are total 4 but WAPI only uses 0 and 1.
+    halWriteRegister(pMac, QWLAN_DPU_WAPI_STA0_KEY_INDEXES_REG, DPU_STA_KEY_INDEXES_DEFAULT_VALUE);
+    halWriteRegister(pMac, QWLAN_DPU_WAPI_STA1_KEY_INDEXES_REG, DPU_STA_KEY_INDEXES_DEFAULT_VALUE);
+    halWriteRegister(pMac, QWLAN_DPU_WAPI_STA2_KEY_INDEXES_REG, DPU_STA_KEY_INDEXES_DEFAULT_VALUE);
+    halWriteRegister(pMac, QWLAN_DPU_WAPI_STA3_KEY_INDEXES_REG, DPU_STA_KEY_INDEXES_DEFAULT_VALUE);
+    halWriteRegister(pMac, QWLAN_DPU_WAPI_STA4_KEY_INDEXES_REG, DPU_STA_KEY_INDEXES_DEFAULT_VALUE);
+    halWriteRegister(pMac, QWLAN_DPU_WAPI_STA5_KEY_INDEXES_REG, DPU_STA_KEY_INDEXES_DEFAULT_VALUE);
+    halWriteRegister(pMac, QWLAN_DPU_WAPI_STA6_KEY_INDEXES_REG, DPU_STA_KEY_INDEXES_DEFAULT_VALUE);
+    halWriteRegister(pMac, QWLAN_DPU_WAPI_STA7_KEY_INDEXES_REG, DPU_STA_KEY_INDEXES_DEFAULT_VALUE);
+}
+
 #endif //#if defined(FEATURE_WLAN_WAPI)
 
 static void
@@ -2594,25 +2650,6 @@ halDpu_EnableCcmNonceFix(tpAniSirGlobal pMac, tANI_BOOLEAN fSet)
     else
     {
         value &= ~(QWLAN_DPU_DPU_SPARE_REG_ENABLE_11W_UC_MGMT_FIX_MASK);
-    }
-    
-    halWriteRegister(pMac, QWLAN_DPU_DPU_SPARE_REG_REG, value);
-}
-
-static void
-halDpu_EnableWapiKeyIndexFix(tpAniSirGlobal pMac, tANI_BOOLEAN fSet)
-{
-    tANI_U32 value;
-
-    halReadRegister(pMac, QWLAN_DPU_DPU_SPARE_REG_REG, &value);
-
-    if(fSet)
-    {
-        value |= QWLAN_DPU_DPU_SPARE_REG_ENABLE_WAPI_KID_FIX_MASK;
-    }
-    else
-    {
-        value &= ~(QWLAN_DPU_DPU_SPARE_REG_ENABLE_WAPI_KID_FIX_MASK);
     }
     
     halWriteRegister(pMac, QWLAN_DPU_DPU_SPARE_REG_REG, value);

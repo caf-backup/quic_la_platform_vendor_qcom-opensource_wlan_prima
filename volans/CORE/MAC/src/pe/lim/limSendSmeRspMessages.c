@@ -10,6 +10,7 @@
  * --------------------------------------------------------------------
  */
 
+#include "vos_types.h"
 #include "wniApi.h"
 #include "halDataStruct.h"
 #include "sirCommon.h"
@@ -891,11 +892,6 @@ limSendSmeDisassocNtf(tpAniSirGlobal pMac,
     tSirMsgQ                mmhMsg;
     tSirSmeDisassocRsp      *pSirSmeDisassocRsp;
     tSirSmeDisassocInd      *pSirSmeDisassocInd;
-#ifdef WLAN_SOFTAP_FEATURE
-    tpDphHashNode               pStaDs = dphGetHashEntry (pMac, 
-                                            aid, &psessionEntry->dph.dphHashTable);
-#endif
-            
     
     switch (disassocTrigger)
     {
@@ -907,12 +903,6 @@ limSendSmeDisassocNtf(tpAniSirGlobal pMac,
              * Disassociation response due to
              * host triggered disassociation
              */
-#ifdef WLAN_SOFTAP_FEATURE
-            if((psessionEntry->bssType == eSIR_INFRA_AP_MODE) && (!pStaDs)){
-                PELOGE(limLog(pMac, LOGE, FL("Error: Station Descriptor\n"));)
-                return;
-            }
-#endif
 
             if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pSirSmeDisassocRsp, sizeof(tSirSmeDisassocRsp)))
             {
@@ -960,13 +950,6 @@ limSendSmeDisassocNtf(tpAniSirGlobal pMac,
             //for sta, it is always 1, IBSS is handled at halInitSta
 
 #endif//#if (WNI_POLARIS_FW_PRODUCT == AP)
-
-#ifdef WLAN_SOFTAP_FEATURE
-            if(pStaDs)
-                pSirSmeDisassocRsp->staId = pStaDs->staIndex;
-            else
-                pSirSmeDisassocRsp->staId = 0;
-#endif
 
             mmhMsg.type = eWNI_SME_DISASSOC_RSP;
             mmhMsg.bodyptr = pSirSmeDisassocRsp;

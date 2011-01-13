@@ -2967,12 +2967,12 @@ void csrApplyCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce )
                 }
 #endif //#ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
 
-        pMac->scan.domainIdCurrent = domainId;
-        csrApplyChannelPowerCountryInfo( pMac, &pMac->scan.channels11d, pMac->scan.countryCode11d );
-        // switch to active scans using this new channel list
-        pMac->scan.curScanType = eSIR_ACTIVE_SCAN;
-        pMac->scan.f11dInfoApplied = eANI_BOOLEAN_TRUE;
-        pMac->scan.f11dInfoReset = eANI_BOOLEAN_FALSE;
+                pMac->scan.domainIdCurrent = domainId;
+                csrApplyChannelPowerCountryInfo( pMac, &pMac->scan.channels11d, pMac->scan.countryCode11d );
+                // switch to active scans using this new channel list
+                pMac->scan.curScanType = eSIR_ACTIVE_SCAN;
+                pMac->scan.f11dInfoApplied = eANI_BOOLEAN_TRUE;
+                pMac->scan.f11dInfoReset = eANI_BOOLEAN_FALSE;
             }
         }
 
@@ -3276,8 +3276,8 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
                 //Check whether we can use this country's 11d information
                 if( !pMac->roam.configParam.fEnforceDefaultDomain )
                 {
-                pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_TRUE;
-            }
+                    pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_TRUE;
+                }
                 else 
                 {
                     VOS_ASSERT( pMac->scan.domainIdCurrent == pMac->scan.domainIdDefault );
@@ -3285,14 +3285,14 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
                                 pMac, pIesLocal->Country.country, &domainId )) &&
                                 ( domainId == pMac->scan.domainIdCurrent ) )
                     {
-                        //Two countries in the same domain, do we consider this ambiguious?
+                        //Two countries in the same domain
                     }
                 }
-        }
+            }
         }
         else //Tush
         {
-          pMac->scan.fCurrent11dInfoMatch = eANI_BOOLEAN_TRUE;
+            pMac->scan.fCurrent11dInfoMatch = eANI_BOOLEAN_TRUE;
         }
 
         //In case that some channels in 5GHz have the same channel number as 2.4GHz (<= 14)
@@ -7780,6 +7780,7 @@ void csrSaveTxPowerToCfg( tpAniSirGlobal pMac, tDblLinkList *pList, tANI_U32 cfg
 void csrSetCfgCountryCode( tpAniSirGlobal pMac, tANI_U8 *countryCode )
 {
     tANI_U8 cc[WNI_CFG_COUNTRY_CODE_LEN];
+    ///v_REGDOMAIN_t DomainId;
     
 	smsLog( pMac, LOG3, "Setting Country Code in Cfg from csrSetCfgCountryCode %s\n",countryCode );   
 	palCopyMemory( pMac->hHdd, cc, countryCode, WNI_CFG_COUNTRY_CODE_LEN );
@@ -7795,6 +7796,13 @@ void csrSetCfgCountryCode( tpAniSirGlobal pMac, tANI_U8 *countryCode )
         cc[ 1 ] = 'R';
     }
     ccmCfgSetStr(pMac, WNI_CFG_COUNTRY_CODE, cc, WNI_CFG_COUNTRY_CODE_LEN, NULL, eANI_BOOLEAN_FALSE);
+
+    //Need to let HALPHY know about the current domain so it can apply some 
+    //domain-specific settings (TX filter...)
+    /*if(HAL_STATUS_SUCCESS(csrGetRegulatoryDomainForCountry(pMac, cc, &DomainId)))
+    {
+        halPhySetRegDomain(pMac, DomainId);
+    }*/
 }
 
 

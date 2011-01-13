@@ -249,7 +249,7 @@ eHalStatus halTable_GetStaId(tpAniSirGlobal pMac, tANI_U8 type, tSirMacAddr bssI
         }
     } else {
         minIndex = HAL_MIN_STA_INDEX;
-        maxIndex = (HAL_NUM_STA - HAL_MAX_NUM_BCAST_STATIONS);
+        maxIndex = HAL_NUM_STA;
     }
     t += minIndex;
 #else

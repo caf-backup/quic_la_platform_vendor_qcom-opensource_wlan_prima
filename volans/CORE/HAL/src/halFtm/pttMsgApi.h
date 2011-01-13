@@ -134,7 +134,7 @@ typedef enum
     PTT_MSG_TX_CARRIER_SUPPRESS_CAL              = 0x3102,
     PTT_MSG_TX_IQ_CAL                            = 0x3103,
     PTT_MSG_EXECUTE_INITIAL_CALS                 = 0x3104,
-    PTT_MSG_HDET_CAL_OBSOLETE                    = 0x3105,
+    PTT_MSG_HDET_CAL                             = 0x3105,
     PTT_MSG_VCO_LINEARITY_CAL_OBSOLETE           = 0x3106,
 
 //Phy Calibration Override Service
@@ -185,7 +185,8 @@ typedef enum
     PTT_MSG_SET_CALCONTROL_BITMAP                = 0x32B0,
 
     PTT_MSG_EXIT                                 = 0x32ff,
-    PTT_MAX_MSG_ID                               = PTT_MSG_EXIT
+    PTT_MAX_MSG_ID                               = PTT_MSG_EXIT,
+    PTT_MSG_INVALID                              = 0x7fffffff
 }ePttMsgId;
 
 
@@ -512,6 +513,10 @@ typedef struct
     tANI_U32 unused;
 }tMsgPttExecuteInitialCals;
 
+typedef struct
+{
+    sRfHdetCalValues hdetCalValues;
+}tMsgPttHdetCal;
 
 //Phy Calibration Override Service
 typedef struct
@@ -731,6 +736,7 @@ typedef union pttMsgUnion
     tMsgPttTxCarrierSuppressCal                     TxCarrierSuppressCal;
     tMsgPttTxIqCal                                  TxIqCal;
     tMsgPttExecuteInitialCals                       ExecuteInitialCals;
+    tMsgPttHdetCal                                  HdetCal;
     tMsgPttSetTxCarrierSuppressCorrect              SetTxCarrierSuppressCorrect;
     tMsgPttGetTxCarrierSuppressCorrect              GetTxCarrierSuppressCorrect;
     tMsgPttSetTxIqCorrect                           SetTxIqCorrect;

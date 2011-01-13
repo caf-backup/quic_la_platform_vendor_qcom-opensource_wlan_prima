@@ -2,15 +2,15 @@
 #define __VOS_NVITEM_H
 
 /**=========================================================================
-  
+
   \file  vos_nvitem.h
-  
+
   \brief virtual Operating System Services (vOSS): Non-Volatile storage API
-  
+
    Copyright 2008 (c) Qualcomm, Incorporated.  All Rights Reserved.
-   
+
    Qualcomm Confidential and Proprietary.
-  
+
   ========================================================================*/
 
 /* $Header$ */
@@ -21,12 +21,12 @@
 #include "vos_types.h"
 #include "vos_status.h"
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
 // NV Items with their parameters are specified below
-// Parameters include: enum label in VNV_TYPE (_name), 
-// element count (_cnt), element size (_size), 
+// Parameters include: enum label in VNV_TYPE (_name),
+// element count (_cnt), element size (_size),
 // enum of first element in NV module (_label)
 
 /*
@@ -34,7 +34,7 @@
  * //source/qcom/qct/wconnect/wlan/private/csw/nv/ @ CL 431102
  *
  * VNV_REGULATORY_DOMAIN_TABLE - contains regulatory domain information;
- * the table is stored as $(REGDOMAIN_COUNT) NV items where each NV item 
+ * the table is stored as $(REGDOMAIN_COUNT) NV items where each NV item
  * contains information for one domain; see definition of v_REGDOMAIN_t
  * for the regulatory domains
  *
@@ -44,31 +44,35 @@
  *
  * VNV_DEFAULT_LOCATION  - default country code and regulatory domain
  *
- * VNV_MAXIMUM_TX_POWER 
+ * VNV_MAXIMUM_TX_POWER
  *
  * VNV_RX_SENSITIVITY - table of sensitivity for each of %(MAC_RATE_COUNT) MAC
  * rates; see definition of v_MAC_RATE_t for the MAC rates
  *
  * VNV_NETWORK_TYPE - either A, B or G type
  *
- * VOV_QFUSE - 16 byte QFUSE data 
+ * VOV_QFUSE - 16 byte QFUSE data
  */
 #define VNV_ITEM_TABLE \
-ADD_VNV_ITEM( VNV_REGULARTORY_DOMAIN_TABLE, REGDOMAIN_COUNT, 104, \
+ADD_VNV_ITEM( VNV_REGULARTORY_DOMAIN_TABLE, REGDOMAIN_COUNT, 144, \
       NV_WLAN_REGULATORY_DOMAIN_FCC_I ) \
 ADD_VNV_ITEM( VNV_FIELD_IMAGE, 1, 52, NV_WLAN_FIELD_IMAGE_I ) \
 ADD_VNV_ITEM( VNV_RATE_TO_POWER_TABLE, 2, 66, NV_WLAN_RATE_TO_POWER_LIST_I )\
 ADD_VNV_ITEM( VNV_DEFAULT_LOCATION, 1, 4, NV_WLAN_DEFAULT_LOCATION_INFO_I ) \
+ADD_VNV_ITEM( VNV_TPC_POWER_TABLE, 14, 128, NV_WLAN_TPC_POWER_TABLE_I ) \
+ADD_VNV_ITEM( VNV_TPC_PDADC_OFFSETS, 14, 2, NV_WLAN_TPC_PDADC_OFFSETS_I ) \
 ADD_VNV_ITEM( VNV_MAXIMUM_TX_POWER, 1, 1, NV_WLAN_MAX_TX_POWER_I ) \
 ADD_VNV_ITEM( VNV_RX_SENSITIVITY, 1, MAC_RATE_COUNT, NV_WLAN_RX_SENSITIVITY_I)\
 ADD_VNV_ITEM( VNV_NETWORK_TYPE, 1, 1, NV_WLAN_NETWORK_TYPE_I ) \
 ADD_VNV_ITEM( VNV_CAL_MEMORY, 1, 3460, NV_WLAN_CAL_MEMORY_I ) \
 ADD_VNV_ITEM( VNV_CAL_STATUS, 1, 32, NV_WLAN_CAL_STATUS_I ) \
+ADD_VNV_ITEM( VNV_RSSI_CHANNEL_OFFSETS, 2, 56, NV_WLAN_RSSI_CHANNEL_OFFSETS_I ) \
+ADD_VNV_ITEM( VNV_RF_CAL_VALUES, 1, 48, NV_WLAN_RF_CAL_VALUES_I ) \
 
 #define VOS_COUNTRY_CODE_LEN  2
 #define VOS_MAC_ADDRESS_LEN   6
 
-/*-------------------------------------------------------------------------- 
+/*--------------------------------------------------------------------------
   Type declarations
   ------------------------------------------------------------------------*/
 // enum of RX sensitivity table index
@@ -101,7 +105,7 @@ typedef enum
    MAC_RATE_11N_MCS_7,
 
    MAC_RATE_COUNT
-   
+
 } v_MAC_RATE_t;
 
 // enum of regulatory doamains in WLAN
@@ -137,35 +141,35 @@ typedef v_U8_t v_COUNTRYCODE_t[VOS_COUNTRY_CODE_LEN];
 // MAC address type
 typedef v_U8_t v_MAC_ADDRESS_t[VOS_MAC_ADDRESS_LEN];
 
-/*------------------------------------------------------------------------- 
+/*-------------------------------------------------------------------------
   Function declarations and documenation
   ------------------------------------------------------------------------*/
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_init() - initialize the NV module
-  
+
   The \a vos_nv_init() initializes the NV module.  This read the binary
   file for country code and regulatory domain information.
-  
+
   \return VOS_STATUS_SUCCESS - module is initialized successfully
           otherwise  - module is not initialized
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_init(void);
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_getRegDomainFromCountryCode() - get the regulatory domain of
   a country given its country code
-  
+
   The \a vos_nv_getRegDomainFromCountryCode() returns the regulatory domain of
   a country given its country code.  This is done from reading a cached
   copy of the binary file.
-  
+
   \param pRegDomain  - pointer to regulatory domain
 
-  \param countryCode - country code 
+  \param countryCode - country code
 
   \return VOS_STATUS_SUCCESS - regulatory domain is found for the given country
           VOS_STATUS_E_FAULT - invalid pointer error
@@ -173,46 +177,46 @@ VOS_STATUS vos_nv_init(void);
           VOS_STATUS_E_EXISTS - given country code does not exist in table
 
   \sa
-  
+
   -------------------------------------------------------------------------*/
-VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain, 
+VOS_STATUS vos_nv_getRegDomainFromCountryCode( v_REGDOMAIN_t *pRegDomain,
       const v_COUNTRYCODE_t countryCode );
 
 /**------------------------------------------------------------------------
-  
-  \brief vos_nv_getSupportedCountryCode() - get the list of supported 
+
+  \brief vos_nv_getSupportedCountryCode() - get the list of supported
   country codes
-  
+
   The \a vos_nv_getSupportedCountryCode() encodes the list of supported
   country codes with paddings in the provided buffer
-  
+
   \param pBuffer     - pointer to buffer where supported country codes
                        and paddings are encoded; this may be set to NULL
                        if user wishes to query the required buffer size to
                        get the country code list
 
-  \param pBufferSize - this is the provided buffer size on input; 
+  \param pBufferSize - this is the provided buffer size on input;
                        this is the required or consumed buffer size on output
 
   \return VOS_STATUS_SUCCESS - country codes are successfully encoded
-          VOS_STATUS_E_NOMEM - country codes are not encoded because either 
+          VOS_STATUS_E_NOMEM - country codes are not encoded because either
                                the buffer is NULL or buffer size is
                                sufficient
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_getSupportedCountryCode( v_BYTE_t *pBuffer, v_SIZE_t *pBufferSize,
       v_SIZE_t paddingSize );
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_setValidity() - set the validity of an NV item.
-  
-  The \a vos_nv_setValidity() validates and invalidates an NV item.  The 
-  validity information is stored in NV memory.  
-  One would get the VOS_STATUS_E_EXISTS error when reading an invalid item.  
+
+  The \a vos_nv_setValidity() validates and invalidates an NV item.  The
+  validity information is stored in NV memory.
+  One would get the VOS_STATUS_E_EXISTS error when reading an invalid item.
   An item becomes valid when one has written to it successfully.
-  
+
   \param type        - NV item type
 
   \param itemIsValid - boolean value indicating the item's validity
@@ -221,75 +225,75 @@ VOS_STATUS vos_nv_getSupportedCountryCode( v_BYTE_t *pBuffer, v_SIZE_t *pBufferS
           VOS_STATUS_E_INVAL - one of the parameters is invalid
           VOS_STATUS_E_FAILURE - unknown error
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_setValidity( VNV_TYPE type, v_BOOL_t itemIsValid );
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_getValidity() - get the validity of an NV item.
-  
-  The \a vos_nv_getValidity() indicates if an NV item is valid.  The 
-  validity information is stored in NV memory.  
-  One would get the VOS_STATUS_E_EXISTS error when reading an invalid item.  
+
+  The \a vos_nv_getValidity() indicates if an NV item is valid.  The
+  validity information is stored in NV memory.
+  One would get the VOS_STATUS_E_EXISTS error when reading an invalid item.
   An item becomes valid when one has written to it successfully.
-  
+
   \param type        - NV item type
 
-  \param pItemIsValid- pointer to the boolean value indicating the item's 
+  \param pItemIsValid- pointer to the boolean value indicating the item's
                        validity
 
   \return VOS_STATUS_SUCCESS - validity is determined successfully
           VOS_STATUS_E_INVAL - one of the parameters is invalid
           VOS_STATUS_E_FAILURE - unknown error
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_getValidity( VNV_TYPE type, v_BOOL_t *pItemIsValid );
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_read() - read a NV item to an output buffer
-  
+
   The \a vos_nv_read() reads a NV item to an output buffer.  If the item is
   an array, this function would read the entire array. One would get a
-  VOS_STATUS_E_EXISTS error when reading an invalid item. 
-  
-  For error conditions of VOS_STATUS_E_EXISTS and VOS_STATUS_E_FAILURE, 
-  if a default buffer is provided (with a non-NULL value), 
-  the default buffer content is copied to the output buffer. 
+  VOS_STATUS_E_EXISTS error when reading an invalid item.
+
+  For error conditions of VOS_STATUS_E_EXISTS and VOS_STATUS_E_FAILURE,
+  if a default buffer is provided (with a non-NULL value),
+  the default buffer content is copied to the output buffer.
 
   \param type  - NV item type
 
   \param outputBuffer   - output buffer
 
   \param defaultBuffer  - default buffer
-  
+
   \param bufferSize  - output buffer size
-  
+
   \return VOS_STATUS_SUCCESS - NV item is read successfully
           VOS_STATUS_E_INVAL - one of the parameters is invalid
           VOS_STATUS_E_FAULT - defaultBuffer point is NULL
           VOS_STATUS_E_EXISTS - NV type is unsupported
           VOS_STATUS_E_FAILURE - unknown error
   \sa
-  
+
   -------------------------------------------------------------------------*/
-VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputBuffer, 
+VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputBuffer,
       v_VOID_t *defaultBuffer, v_SIZE_t bufferSize );
 
 /**------------------------------------------------------------------------
-  
-  \brief vos_nv_readAtIndex() - read an element of a NV array to an output 
+
+  \brief vos_nv_readAtIndex() - read an element of a NV array to an output
   buffer
-  
-  The \a vos_nv_readAtIndex() reads an element of a NV item to an output 
+
+  The \a vos_nv_readAtIndex() reads an element of a NV item to an output
   buffer. If the item is not array, this function only works for index of 0.
   One would get a VOS_STATUS_E_EXISTS error when reading an invalid item.
-  
-  For error conditions of VOS_STATUS_E_EXISTS and VOS_STATUS_E_FAILURE, 
-  if a default buffer is provided (with a non-NULl value), 
-  the default buffer content is copied to the output buffer. 
+
+  For error conditions of VOS_STATUS_E_EXISTS and VOS_STATUS_E_FAILURE,
+  if a default buffer is provided (with a non-NULl value),
+  the default buffer content is copied to the output buffer.
 
   \param type  - NV item type
 
@@ -298,50 +302,50 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputBuffer,
   \param outputBuffer   - output buffer
 
   \param defaultBuffer  - default buffer
-  
+
   \param bufferSize  - output buffer size
-  
+
   \return VOS_STATUS_SUCCESS - NV item is read successfully
           VOS_STATUS_E_INVAL - one of the parameters is invalid
           VOS_STATUS_E_FAULT - defaultBuffer point is NULL
           VOS_STATUS_E_EXISTS - NV type is unsupported
           VOS_STATUS_E_FAILURE - unknown error
   \sa
-  
+
   -------------------------------------------------------------------------*/
-VOS_STATUS vos_nv_readAtIndex( VNV_TYPE type, v_UINT_t index, 
+VOS_STATUS vos_nv_readAtIndex( VNV_TYPE type, v_UINT_t index,
       v_VOID_t *outputBuffer, v_VOID_t *defaultBuffer, v_SIZE_t bufferSize );
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_write() - write to a NV item from an input buffer
-  
+
   The \a vos_nv_write() writes to a NV item from an input buffer. This would
   validate the NV item if the write operation is successful.
 
   \param type - NV item type
 
   \param inputBuffer - input buffer
-  
+
   \param inputBufferSize - input buffer size
-  
+
   \return VOS_STATUS_SUCCESS - NV item is read successfully
           VOS_STATUS_E_INVAL - one of the parameters is invalid
-          VOS_STATUS_E_FAULT - outputBuffer pointer is NULL 
+          VOS_STATUS_E_FAULT - outputBuffer pointer is NULL
           VOS_STATUS_E_EXISTS - NV type is unsupported
           VOS_STATUS_E_FAILURE   - unknown error
   \sa
-  
+
   -------------------------------------------------------------------------*/
-VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputBuffer, 
+VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputBuffer,
        v_SIZE_t inputBufferSize );
 
 /**------------------------------------------------------------------------
-  
-  \brief vos_nv_writeAtIndex() - write to an element of a NV array from an 
+
+  \brief vos_nv_writeAtIndex() - write to an element of a NV array from an
   input buffer
-  
-  The \a vos_nv_writeAtIndex() writes to an element of a NV array from an 
+
+  The \a vos_nv_writeAtIndex() writes to an element of a NV array from an
   input buffer.  If the item is not an array, this function only works for
   an array index of 0.  This would automatically validate the NV item if the
   write operation is successful.
@@ -351,24 +355,24 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputBuffer,
   \param index - NV array index
 
   \param inputBuffer - input buffer
-  
+
   \param inputBufferSize - input buffer size
-  
+
   \return VOS_STATUS_SUCCESS - NV item is read successfully
           VOS_STATUS_E_INVAL - one of the parameters is invalid
-          VOS_STATUS_E_FAULT - outputBuffer pointer is NULL 
+          VOS_STATUS_E_FAULT - outputBuffer pointer is NULL
           VOS_STATUS_E_EXISTS - NV type is unsupported
           VOS_STATUS_E_FAILURE   - unknown error
   \sa
-  
+
   -------------------------------------------------------------------------*/
-VOS_STATUS vos_nv_writeAtIndex( VNV_TYPE type, v_UINT_t index, 
+VOS_STATUS vos_nv_writeAtIndex( VNV_TYPE type, v_UINT_t index,
       v_VOID_t *inputBuffer, v_SIZE_t inputBufferSize );
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_getElementCount() - return element count of a NV array
-  
+
   The \a vos_nv_getElementCount() returns element count of a NV array
 
   \param type - NV item type
@@ -376,7 +380,7 @@ VOS_STATUS vos_nv_writeAtIndex( VNV_TYPE type, v_UINT_t index,
   \return count if type is valid; 0 otherwise
 
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_INLINE_FN v_SIZE_t vos_nv_getElementCount( VNV_TYPE type )
 {
@@ -391,9 +395,9 @@ VOS_INLINE_FN v_SIZE_t vos_nv_getElementCount( VNV_TYPE type )
 }
 
 /**------------------------------------------------------------------------
-  
-  \brief vos_nv_getElementSize() - return size of a NV element 
-  
+
+  \brief vos_nv_getElementSize() - return size of a NV element
+
   The \a vos_nv_getElementSize() returns size of a NV element.
 
   \param type - NV item type
@@ -401,7 +405,7 @@ VOS_INLINE_FN v_SIZE_t vos_nv_getElementCount( VNV_TYPE type )
   \return size if type is valid; 0 otherwise
 
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_INLINE_FN v_SIZE_t vos_nv_getElementSize( VNV_TYPE type )
 {
@@ -416,9 +420,9 @@ VOS_INLINE_FN v_SIZE_t vos_nv_getElementSize( VNV_TYPE type )
 }
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_getItemSize() - return size of a NV item
-  
+
   The \a vos_nv_getItemSize() returns size of a NV item.
 
   \param type - NV item type
@@ -426,18 +430,18 @@ VOS_INLINE_FN v_SIZE_t vos_nv_getElementSize( VNV_TYPE type )
   \return size of a NV item array if type is valid; 0 otherwise
 
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_INLINE_FN v_SIZE_t vos_nv_getItemSize( VNV_TYPE type )
 {
    return vos_nv_getElementCount(type) * vos_nv_getElementSize(type);
 }
 
-// TODO: HAL NV interface should be used to access individual NV items 
+// TODO: HAL NV interface should be used to access individual NV items
 // instead of below functions once that is ready
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_readTxAntennaCount() - return number of TX antenna
 
   \param pTxAntennaCount   - antenna count
@@ -445,12 +449,12 @@ VOS_INLINE_FN v_SIZE_t vos_nv_getItemSize( VNV_TYPE type )
   \return status of the NV read operation
 
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_readTxAntennaCount( v_U8_t *pTxAntennaCount );
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_readRxAntennaCount() - return number of RX antenna
 
   \param pRxAntennaCount   - antenna count
@@ -458,12 +462,12 @@ VOS_STATUS vos_nv_readTxAntennaCount( v_U8_t *pTxAntennaCount );
   \return status of the NV read operation
 
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_readRxAntennaCount( v_U8_t *pRxAntennaCount );
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_readMacAddress() - return the MAC address
 
   \param pMacAddress - MAC address
@@ -471,37 +475,37 @@ VOS_STATUS vos_nv_readRxAntennaCount( v_U8_t *pRxAntennaCount );
   \return status of the NV read operation
 
   \sa
-  
+
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_readMacAddress( v_MAC_ADDRESS_t pMacAddress );
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_open() - initialize the NV module
-  
+
   The \a vos_nv_open() initializes the NV module.  This function read the binary
   file qcom_nv.bin for macaddress,country code,regulatory domain information and etc.
-  
+
   \return VOS_STATUS_SUCCESS - module is initialized successfully
           otherwise  - module is not initialized
   \sa
-  
+
   -------------------------------------------------------------------------*/
 
 
 VOS_STATUS vos_nv_open(void);
 
 /**------------------------------------------------------------------------
-  
+
   \brief vos_nv_close() - uninitialize the NV module
-  
+
   The \a vos_nv_init() uninitializes the NV module.  This function release the binary
   file qcom_nv.bin data buffer.
-  
+
   \return VOS_STATUS_SUCCESS - module is initialized successfully
           otherwise  - module is not initialized
   \sa
-  
+
   -------------------------------------------------------------------------*/
 
 VOS_STATUS vos_nv_close(void);

@@ -171,6 +171,7 @@ typedef struct sSirMicFailureInfo
 	tANI_U8     IV1;            // first byte of IV
 	tANI_U8     keyId;          // second byte of IV
 	tANI_U8     TSC[SIR_CIPHER_SEQ_CTR_SIZE]; // sequence number
+    tSirMacAddr            rxMacAddr; // receive address
 
 } tSirMicFailureInfo, *tpSirMicFailureInfo;
  

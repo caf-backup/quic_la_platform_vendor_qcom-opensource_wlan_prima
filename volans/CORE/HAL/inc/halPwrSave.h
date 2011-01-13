@@ -66,8 +66,8 @@
  */
 #if !defined(VOLANS_FPGA)
 //RF and BB values
-#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US                   5000
-#define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US                 5000
+#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US                   1650
+#define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US                 1650
 #define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US_19_2              7652 /* FIXME */  
 #define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_WITHOUT_RFXO_SETTLING_US  1735 /* FIXME */  
 #else
@@ -172,7 +172,8 @@ typedef struct sHalPwrSave
     tHalPsStates    pwrSaveState;   // Holds the power save state
     tANI_U16        dialogToken;    // Dialog Token used for the message
     tANI_U8         mutexCount;     // Count of mutex acquired.
-    tANI_U8         mutexIntrCount;     // Count of mutex acquired.
+    tANI_U8         mutexIntrCount; // Count of mutex acquired
+    tANI_S8         mutexTxCount;   // Tx Mutex acquisition
 
     vos_event_t     fwRspEvent;     // VOSS event required for FW responses
 

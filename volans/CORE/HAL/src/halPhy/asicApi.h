@@ -28,10 +28,12 @@
 /*  The following SET/GET_PHY_REG is used for debug purposes to record all phy register access.
     It was reported that this method was taking too much time on some platforms, so it was reduced to the
     basic minimum. Leaving it #if 0'd, so we can use it when we need to compare register differences.
-    
+
     We are leaving the debug version to use the syncronous version of register writing, but moving to asyncronous
     register writes, primarily to facilitate USB driver efficiency.
 */
+
+#define DELAY_MICROSECONDS(time) vos_sleep_us(time) //this is in microseconds
 
 #if 0
 #define SET_PHY_REG(hHdd, regAddr, regVal) \
@@ -228,7 +230,7 @@ static inline eHalStatus rdModWrAsicField(tpAniSirGlobal pMac, tANI_U32 regAddr,
 #define asicSetAgcCCAMode               host_asicSetAgcCCAMode
 #define asicCeaseOverrideAGCRxChainGain host_asicCeaseOverrideAGCRxChainGain
 #define asicSetDisabledRxPacketTypes    host_asicSetDisabledRxPacketTypes
-#define asicFftGetToneData              host_asicFftGetToneData 
+#define asicFftGetToneData              host_asicFftGetToneData
 #define asicTPCPowerOverride            host_asicTPCPowerOverride
 #define asicTPCAutomatic                host_asicTPCAutomatic
 #define asicTPCGetADCReading            host_asicTPCGetADCReading
@@ -283,7 +285,7 @@ eHalStatus asicAGCReset(tpAniSirGlobal pMac);
 eHalStatus asicAGCInit(tpAniSirGlobal pMac);
 eHalStatus asicAGCCalcGainLutsForChannel(tpAniSirGlobal pMac, eRfChannels chan);
 eHalStatus asicSetAGCGainLut(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 minIndex, tANI_U8 maxIndex, const tRxGain *agcTable);
-eHalStatus asicGetAgcGainLut(tpAniSirGlobal pMac, ePhyRxChains rxChain, tRxGain *agcTable /* NUM_AGC_GAINS */); 
+eHalStatus asicGetAgcGainLut(tpAniSirGlobal pMac, ePhyRxChains rxChain, tRxGain *agcTable /* NUM_AGC_GAINS */);
 eHalStatus asicSetAgcCCAMode(tpAniSirGlobal pMac, ePhyCCAMode primaryCcaMode, ePhyCCAMode secondaryCcaMode);
 eHalStatus asicSetAGCChannelBondState(tpAniSirGlobal pMac, ePhyChanBondState chBondState);
 eHalStatus asicOverrideAGCRxChainGain(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 gain);
@@ -360,14 +362,14 @@ eHalStatus asicStopTestWaveform(tpAniSirGlobal pMac);
 
 
 //asicPhyDbg.c
-eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac, 
-                                   eHalPhyRates rate, 
-                                   tANI_U16 payloadLength, 
-                                   ePayloadContents payloadContents, 
+eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
+                                   eHalPhyRates rate,
+                                   tANI_U16 payloadLength,
+                                   ePayloadContents payloadContents,
                                    tANI_U8 payloadFillByte,
-                                   tANI_U8 *payload, 
-                                   tANI_U32 numTestPackets, 
-                                   tANI_U32 interFrameSpace, 
+                                   tANI_U8 *payload,
+                                   tANI_U32 numTestPackets,
+                                   tANI_U32 interFrameSpace,
                                    tANI_BOOLEAN pktAutoSeqNum,
                                    tANI_U8 pktScramblerSeed,
                                    ePhyDbgPreamble preamble,

@@ -500,7 +500,7 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
   
     struct net_device *dev = pAdapter->dev;
     // notify apps that we can't pass traffic anymore
-    netif_tx_disable(dev);
+    netif_tx_stop_all_queues(dev);
     netif_carrier_off(dev);
     
     hdd_connSetConnectionState( pAdapter, eConnectionState_NotConnected );
@@ -804,7 +804,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         }
 
         // Start the Queue
-        netif_start_queue(dev);
+        netif_tx_start_all_queues(dev);
     }  
     else 
     {
@@ -823,7 +823,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                 GFP_KERNEL);
 #endif 
    
-        netif_tx_disable(dev);
+        netif_tx_stop_all_queues(dev);
         netif_carrier_off(dev);
     }
             
@@ -1115,7 +1115,7 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
          }
          
          netif_carrier_on(pAdapter->dev);
-         netif_start_queue(pAdapter->dev);
+         netif_tx_start_all_queues(pAdapter->dev);
          break;
       }
          
@@ -1142,7 +1142,7 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
       case eCSR_ROAM_RESULT_IBSS_INACTIVE:
       {
          // Stop only when we are inactive
-         netif_tx_disable(pAdapter->dev);
+         netif_tx_stop_all_queues(pAdapter->dev);
          netif_carrier_off(pAdapter->dev);
          hdd_connSetConnectionState( pAdapter, eConnectionState_NotConnected );
          

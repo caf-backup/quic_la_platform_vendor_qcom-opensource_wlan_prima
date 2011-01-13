@@ -1992,11 +1992,11 @@ static char* dump_updateProbeRspTemplate(tpAniSirGlobal pMac, tANI_U32 bssIdx, t
 {
 #ifdef WLAN_DEBUG
     tSirMsgQ msgQ;
-    tpUpdateProbeRspParams probeRspParams = NULL;
+    tpSendProbeRespParams probeRspParams = NULL;
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
             (void **) &probeRspParams,
-            sizeof( tUpdateProbeRspParams )))
+            sizeof( tSendProbeRespParams )))
       return p;
 
     msgQ.type = SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND;
@@ -2008,8 +2008,8 @@ static char* dump_updateProbeRspTemplate(tpAniSirGlobal pMac, tANI_U32 bssIdx, t
     /* Knock off all pMac global addresses */
     // limGetBssid( pMac, beaconParams->bssId);
     palCopyMemory(pMac, probeRspParams->bssId, &addr_bssid[bssIdx], sizeof(tSirMacAddr));
-    probeRspParams->probeRsp = probeRspPayLoad;
-    probeRspParams->probeRspLength = sizeof(probeRspPayLoad);
+    probeRspParams->pProbeRespTemplate = probeRspPayLoad;
+    probeRspParams->probeRespTemplateLen = sizeof(probeRspPayLoad);
     msgQ.bodyptr = probeRspParams;
     msgQ.bodyval = 0;
     if(eSIR_SUCCESS != halPostMsgApi( pMac, &msgQ ))
@@ -2117,41 +2117,6 @@ static char* dump_setLinkState( tpAniSirGlobal pMac, tANI_U32 bssIdx, tANI_U32 s
 
     return p;
 }
-
-#ifdef WLAN_SOFTAP_FEATURE
-static char* dump_setProbeRspIeBitmap(tpAniSirGlobal pMac, tANI_U32 enable, tANI_U32 enableDisableAllIe, tANI_U32 arg3, tANI_U32 arg4, char* p)
-{
-    tpUpdateProbeRspIeBitmap pMsg;
-    tSirMsgQ halMsg;
-
-    if (palAllocateMemory(pMac->hHdd, (void **)&pMsg, sizeof(tpUpdateProbeRspIeBitmap)) != eHAL_STATUS_SUCCESS)
-    {
-        HALLOGW( halLog(pMac, LOGW, FL("palAllocateMemory Failed\n")));
-        return p;
-    }
-
-    pMsg->fwProcessingdisabled = (!enable);
-    if(!enableDisableAllIe) //disable all IEs
-    {
-        vos_mem_zero(pMsg->probeRspIeBitmap, sizeof(pMsg->probeRspIeBitmap));
-    }
-    else
-    {//enable all IEs
-        vos_mem_set(pMsg->probeRspIeBitmap, sizeof(pMsg->probeRspIeBitmap), 0xff);
-    }
-    halMsg.type = SIR_HAL_UPDATE_PROBE_RSP_IE_BITMAP_IND;
-    halMsg.reserved = 0;
-    halMsg.bodyptr = pMsg;
-    halMsg.bodyval = 0;
-    
-    if (halPostMsgApi(pMac, &halMsg) != eSIR_SUCCESS)
-    {
-        palFreeMemory(pMac, (void*)pMsg);
-        halLog(pMac, LOGP, FL("Posting  SIR_HAL_UPDATE_PROBE_RSP_IE_BITMAP_IND failed\n"));
-    }
-    return p;
-}
-#endif
 
 static void
 halLog_testAddBss(tpAniSirGlobal pMac, tANI_U32 bssType, tANI_U32 bssidNum)
@@ -3938,20 +3903,6 @@ dump_hal_write_register( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI
     return p;
 }
 
-#ifdef WLAN_SOFTAP_FEATURE
-static char *
-dump_hal_enable_listen_mode(  tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)  
-{
-    (void) arg2; (void) arg3; (void) arg4;
-    
-    pMac->hal.ghalPhyAgcListenMode = (tANI_BOOLEAN)arg1;
-    halEnableListenMode(pMac, pMac->hal.ghalPhyAgcListenMode);
-    
-    HALLOGE(halLog(pMac, LOGE, FL("Listen mode enable/disable<1/0> = %d\n"), pMac->hal.ghalPhyAgcListenMode));        
-    return p;
-}
-#endif
-
 static char *
 dump_hal_read_device_memory( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
@@ -4001,6 +3952,20 @@ dump_hal_read_device_memory( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, 
     return p;
 }
 
+
+#ifdef WLAN_SOFTAP_FEATURE
+static char *
+dump_hal_enable_listen_mode(  tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)  
+{
+    (void) arg2; (void) arg3; (void) arg4;
+    
+    pMac->hal.ghalPhyAgcListenMode = (tANI_U8)arg1;
+    halEnableListenMode(pMac, pMac->hal.ghalPhyAgcListenMode);
+    
+    HALLOGE(halLog(pMac, LOGE, FL("Listen mode configuration <EDET threshold> = %d\n"), pMac->hal.ghalPhyAgcListenMode));        
+    return p;
+}
+#endif
 
 static char *
 dump_hal_stop_fw_heartbeat( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
@@ -4171,7 +4136,7 @@ dump_hal_phy_set_open_loop_gain( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 ar
     if (arg1 > 15 || arg2 > 15)
     {
         HALLOGE(halLog(pMac, LOGE, FL("RF/Digital gain cannot be more than 15\n")));
-        return p;
+    return p;
     }
 
     {
@@ -4354,13 +4319,13 @@ dump_hal_get_pwr_save_counters( tpAniSirGlobal pMac,
     unsigned int size = QWLANFW_MEM_FW_PS_COUNTERS_SIZE;
     unsigned char buffer[QWLANFW_MEM_FW_PS_COUNTERS_SIZE] = { 0 };
     unsigned int *puBuf;
-
+ 
     status = halReadDeviceMemory(pMac, startAddr, (void*)buffer, size);
-    
+ 
     if (status != eHAL_STATUS_SUCCESS)
     {
         HALLOGE( halLog(pMac, LOGE, FL("***** PWRSAVE counters could not be read *****")));
-        return p;
+    return p;
     }
 
     puBuf = (unsigned int *)buffer;
@@ -4369,7 +4334,7 @@ dump_hal_get_pwr_save_counters( tpAniSirGlobal pMac,
     {
         HALLOGE( halLog(pMac, LOGE, FL("buffer[%d] = %d"), i, *puBuf++));
     }
-    
+
     return p;
 }
 
@@ -4388,8 +4353,8 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {55,    "send flow contorl frame to fw <staIdx> <memUsage Threshold> <fcConfig>", dump_sendFcFrameToFw},    
     {56,    "add sta with Uapsd <staType> <staNum> <bssIdx> <uapsdAcMask>", dump_addStaWithUapsd},        
     {57,    "update probe response template <bssIdx>",                  dump_updateProbeRspTemplate},    
-    {58,    "set probeRsp IE bitmap for FW: <flag: enable/disable the feature>, , <flag: enableDisableAllIes>",
-                                                                        dump_setProbeRspIeBitmap},    
+//    {58,    "set probeRsp IE bitmap for FW: <flag: enable/disable the feature>, , <flag: enableDisableAllIes>",
+//                                                                        dump_setProbeRspIeBitmap},    
     {59,    "update UAPSD setting for a peer station(staIdx, uapsdACMask, maxSpLen)", halLog_updateUapsd},    
 #endif    
     {60,    "Test AddSta (staType, staId, bssId, qos_11n)",             dump_hal_test_add_sta},
@@ -4479,7 +4444,8 @@ static tDumpFuncEntry halMenuDumpTable[] = {
 
 #ifdef WLAN_SOFTAP_FEATURE
     {0,     "SAP (260-269)",                                            NULL},
-    {260,   "SAP:Enable/Disable AGC Listen Mode <1/0>",                 dump_hal_enable_listen_mode},   
+    {260,   "SAP:Enable/Disable AGC Listen Mode <1/0>",                 dump_hal_enable_listen_mode},
+    {266,   "SAP:Config AGC Listen Mode <EDET threshold; 128-disable>", dump_hal_enable_listen_mode},   
 #endif
 };
 

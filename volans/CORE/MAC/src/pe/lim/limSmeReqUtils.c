@@ -489,11 +489,11 @@ limIsSmeStartBssReqValid(tpAniSirGlobal pMac,
         case eSIR_IBSS_MODE:
             break;
 
-        /* Added for BT AMP support */
+            /* Added for BT AMP support */
         case eSIR_BTAMP_STA_MODE:              
             break;
             
-        /* Added for BT AMP support */
+            /* Added for BT AMP support */
         case eSIR_BTAMP_AP_MODE:
             break;
 
@@ -503,7 +503,7 @@ limIsSmeStartBssReqValid(tpAniSirGlobal pMac,
             break;
 #endif
         
-	default:
+        default:
             /**
              * Should not have received start BSS req with bssType
              * other than Infrastructure/IBSS.

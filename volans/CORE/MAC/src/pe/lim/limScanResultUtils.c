@@ -395,6 +395,10 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
                    pMac->lim.gLim24Band11dScanDone,
                    pMac->lim.gLim50Band11dScanDone);
 
+            //Need to disable the timers. If they fire, they will send END_SCAN
+            //while we already send FINISH_SCAN here. This may mess up the gLimHalScanState
+            limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
+            limDeactivateAndChangeTimer(pMac, eLIM_MAX_CHANNEL_TIMER);
             limSendHalFinishScanReq( pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE );
         }
     }//(eANI_BOOLEAN_TRUE == fScanning)

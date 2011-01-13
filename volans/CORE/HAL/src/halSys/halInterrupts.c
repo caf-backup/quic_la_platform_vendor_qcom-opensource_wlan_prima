@@ -451,7 +451,7 @@ tHalIntSourceInfo halIntInfo[eHAL_INT_MAX_SOURCE] = {
     {
         1, /* default group interrupt for BMU error */
         eHAL_INT_BMU_IDLE_BD_PDU_REGISTER,
-        QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_BMU_IDLE_BD_PDU_THRESHOLD_INTERRUPT_ENABLE_MASK | 0x1B8,
+        QWLAN_BMU_BMU_IDLE_BD_PDU_STATUS_BMU_IDLE_BD_PDU_THRESHOLD_INTERRUPT_ENABLE_MASK | 0x21C,
         halIntBMUIdleBdPduHandler
     },
 

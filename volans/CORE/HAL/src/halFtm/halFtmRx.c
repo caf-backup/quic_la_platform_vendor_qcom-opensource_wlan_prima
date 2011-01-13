@@ -14,7 +14,6 @@
                                         development. The new requirement is to have FCS count for unicast frames received in FTM mode
    ========================================================================== */
 #ifndef WLAN_FTM_STUB
-
 #include "halFtmRx.h"
 #include "halDebug.h"
 #include "halCommonApi.h"
@@ -62,5 +61,4 @@ eHalStatus halFtm_AddStaSelf(tpAniSirGlobal     pMac)
     }
     return status;
 }
-
 #endif

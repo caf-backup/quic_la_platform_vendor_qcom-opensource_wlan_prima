@@ -66,6 +66,8 @@ eHalStatus rfGetDCOffset(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 dcoI
 eHalStatus rfGetTxLoCorrect(tpAniSirGlobal pMac, ePhyTxChains txChain, eGainSteps txGain, tTxLoCorrect *corr);
 eHalStatus rfSetTxLoCorrect(tpAniSirGlobal pMac, ePhyTxChains txChain, eGainSteps txGain, tTxLoCorrect corr);
 eHalStatus rfTakeTemp(tpAniSirGlobal pMac, eRfTempSensor setup, tANI_U8 nSamples, tTempADCVal *retTemp);
+eHalStatus rfHdetDCOCal(tpAniSirGlobal pMac, tANI_U16 *hdetDcocCode);
+eHalStatus rfGetHdetDCOffset(tpAniSirGlobal pMac, tANI_U16 *hdetDcoOffset);
 #endif
 
 void dump_all_rf_fields(tpAniSirGlobal pMac);

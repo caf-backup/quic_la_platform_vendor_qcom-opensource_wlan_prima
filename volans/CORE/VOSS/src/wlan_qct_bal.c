@@ -660,7 +660,7 @@ VOS_STATUS WLANBAL_DisableClkGate
 {
 
   tANI_U32 uRegVal = 0;
-  
+
   WLANBAL_ReadRegister(pAdapter, QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG, &SpModeRegVal[0]);
   WLANBAL_ReadRegister(pAdapter, QWLAN_PMU_WMAC_SYS_CLKGATE_DISABLE_REG_REG, &SpModeRegVal[1]);
   WLANBAL_ReadRegister(pAdapter, QWLAN_SIF_BAR4_SIF_CLK_GATING_CTRL_REG_REG, &SpModeRegVal[2]);
@@ -680,11 +680,11 @@ VOS_STATUS WLANBAL_DisableClkGate
                                 QWLAN_SIF_BAR4_SIF_CLK_GATING_CTRL_REG_SIF_TXF_CLK_GATING_DISABLE_MASK |
                                 QWLAN_SIF_BAR4_SIF_CLK_GATING_CTRL_REG_SIF_BAR4_SIF_DISABLE_CLK_GATING_MASK));
   WLANBAL_WriteRegister(pAdapter, QWLAN_SIF_BAR4_SIF_CLK_GATING_CTRL_REG_REG, uRegVal);
- 
+
   uRegVal =  (SpModeRegVal[3] | (QWLAN_SIF_BAR4_PMU_CLK_CTRL_REG_SIF_BAR4_SYS_ENABLE_SIF_CLK_MASK |
                                  QWLAN_SIF_BAR4_PMU_CLK_CTRL_REG_SIF_BAR4_PMU_CONFIG_CLK_GATE_DISABLE_MASK |
                                  QWLAN_SIF_BAR4_PMU_CLK_CTRL_REG_SIF_PMU_GAS_CLK_GATE_DISABLE_MASK |
-                                 QWLAN_SIF_BAR4_PMU_CLK_CTRL_REG_SIF_BAR4_ENABLE_PMU_CLK_MASK)); 
+                                 QWLAN_SIF_BAR4_PMU_CLK_CTRL_REG_SIF_BAR4_ENABLE_PMU_CLK_MASK));
   WLANBAL_WriteRegister(pAdapter, QWLAN_SIF_BAR4_PMU_CLK_CTRL_REG_REG, uRegVal);
 
   return VOS_STATUS_SUCCESS;
@@ -706,11 +706,11 @@ VOS_STATUS WLANBAL_SoftReset
   WLANBAL_WriteRegister(pAdapter, QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG, uRegVal2);
 
   vos_sleep(2);
-  
+
   WLANBAL_WriteRegister(pAdapter, QWLAN_SIF_BAR4_MRCM_OVERRIDE_SIF_SOFT_RESET_REG_REG, uRegVal1);
   uRegVal2 |= (QWLAN_SIF_BAR4_WLAN_CONTROL_REG_WLAN_SOFT_RESET_N_MASK);
   WLANBAL_WriteRegister(pAdapter, QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG, uRegVal2);
-  
+
   return VOS_STATUS_SUCCESS;
 }
 
@@ -739,7 +739,7 @@ VOS_STATUS WLANBAL_EnableClkGate
 }
 
 #endif /* VOLANS_1_0_WORKAROUND */
-  
+
 
 
 /*----------------------------------------------------------------------------
@@ -765,10 +765,11 @@ VOS_STATUS WLANBAL_Start
    WLANSSC_StartParamsType  sscReg;
    VOS_STATUS               status    = VOS_STATUS_SUCCESS;
    tANI_U16                 cardId;
+   tANI_U32 				regVal=0;
 #if defined (VOLANS_BB) || defined(VOLANS_RF)
 #ifdef VOLANS_1_0_WORKAROUND
-   tANI_U32                 uRegVal=0;
-#endif
+     tANI_U32 uRegVal=0;
+   #endif
 #endif
 
    BENTER();
@@ -791,19 +792,19 @@ VOS_STATUS WLANBAL_Start
    sscReg.pfnRxPacketHandlerCback               = balRecieveFramesCB;
    sscReg.pfnASICInterruptIndicationCback       = balASICInterruptCB;
    sscReg.pfnFatalErrorIndicationCback          = balFatalErrorCB;
-   
+
    /* Volans 1.0 specific changes */
    WLANBAL_GetSDIOCardIdentifier(pAdapter, &cardId);
-   
+
    if(cardId == VOLANS_VER_1_0_CARD_ID)
    {
 
 #if defined (VOLANS_BB) || defined(VOLANS_RF)
 #ifdef VOLANS_1_0_WORKAROUND
        /* Lowering the SD clock frequency is necessary before accessing
-          the below BBPLL registers. This is a workaround for the bug in 
+          the below BBPLL registers. This is a workaround for the bug in
           Volans ASIC */
-       WLANSAL_SetSDIOClock(WLAN_LOW_SD_CLOCK_FREQ); 
+       WLANSAL_SetSDIOClock(pAdapter, WLAN_LOW_SD_CLOCK_FREQ);
        vos_sleep(30);
 #endif /* VOLANS_1_0_WORKAROUND */
 #endif /* VOLANS_BB */
@@ -847,7 +848,7 @@ VOS_STATUS WLANBAL_Start
           return VOS_STATUS_E_FAILURE;
        }
 
-       /* No bits defined, hence using the raw bits */	
+       /* No bits defined, hence using the raw bits */
        uRegVal &= (~0x3);
        uRegVal |= 0x3;
 
@@ -860,12 +861,12 @@ VOS_STATUS WLANBAL_Start
        }
 
        /**
-        * Increasing the delay from 5ms to 20ms. This value has been verified by VI/simulation 
+        * Increasing the delay from 5ms to 20ms. This value has been verified by VI/simulation
 	    * team. Before configuring this register, all transactions happen at 19.2 MHz, after
 	    * writing to above register, PLL frequency is fixed and starts generating the frequency
         * at 80 MHz. Currently, it is expected to take anywhere between 5ms to tens of milliseconds.
         * VI seems to have found 20ms works. Hence changing the delay from 5ms to 20ms
-        **/	
+        **/
        vos_sleep(20);
 
        /* Reset work around */
@@ -876,14 +877,14 @@ VOS_STATUS WLANBAL_Start
 	    vos_sleep(5);
 
        /* Increase the clock frequency back to higher value for performance */
-       WLANSAL_SetSDIOClock(WLAN_HIGH_SD_CLOCK_FREQ);
+       WLANSAL_SetSDIOClock(pAdapter, WLAN_HIGH_SD_CLOCK_FREQ);
        vos_sleep(15);
 
 #endif /* VOLANS_1_0_WORKAROUND */
 #endif /* VOLANS_BB */
 
     }
-   
+
    /* DXE Header CFG set as default */
    gbalHandle->sdioDXEConfig.TXChannel.shortDescriptor    = VOS_TRUE;
    gbalHandle->sdioDXEConfig.TXChannel.descriptorControl  = WLANBAL_DXE_TX_DESC_CTRL;
@@ -924,6 +925,29 @@ VOS_STATUS WLANBAL_Start
       BEXIT();
       return VOS_STATUS_E_FAILURE;
    }
+
+   /*NCMC issue- CR#262404 fix */
+   /* Moving the setting of Consider_BT_Lo_Priority on TPE_SW_PM earlier than
+      the firmware to take care of BT_A2DP audio gap during WLAN power-up*/
+
+   status = WLANBAL_ReadRegister(pAdapter, QWLAN_TPE_SW_PM_REG , (v_U32_t *)&regVal);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      BMSGERROR("Failed to Read TPE_SW_PM register", 0, 0, 0);
+      BEXIT();
+      return VOS_STATUS_E_FAILURE;
+   }
+   //setting Consider_BT_Low_Priority bit in TPE_SW_PM register
+   regVal |= (1 << QWLAN_TPE_SW_PM_SW_CONSIDER_BT_LOW_PRI_OFFSET);
+   status = WLANBAL_WriteRegister(pAdapter, QWLAN_TPE_SW_PM_REG , (v_U32_t)regVal);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      BMSGERROR("Failed to Write to TPE_SW_PM register", 0, 0, 0);
+      BEXIT();
+      return VOS_STATUS_E_FAILURE;
+   }
+   /*NCMC Issues Fix ends*/
+
 
    BEXIT();
    return status;
@@ -1463,20 +1487,20 @@ static VOS_STATUS WLANBAL_ReadDeviceMemory
            currentLength = WLANBAL_DMA_MAX_BUFFER_SIZE;
        else
            currentLength = length;
-       
-       cmd53.address       = targetAddress;
+
+   cmd53.address       = targetAddress;
        cmd53.dataSize      = currentLength;
-       cmd53.dataPtr       = gbalHandle->dmaBuffer;
-       cmd53.mode          = WLANSAL_MODE_BLOCK;
-       status = WLANSAL_Cmd53(pAdapter, &cmd53);
-       if(!VOS_IS_STATUS_SUCCESS(status))
-       {
-           BMSGERROR("Read Memory fail %d", status, 0, 0);
-           // Release lock
-           sd_release_host(gbalHandle->sdio_func_dev);
-           BEXIT();
-           return status;
-       }
+   cmd53.dataPtr       = gbalHandle->dmaBuffer;
+   cmd53.mode          = WLANSAL_MODE_BLOCK;
+   status = WLANSAL_Cmd53(pAdapter, &cmd53);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      BMSGERROR("Read Memory fail %d", status, 0, 0);
+      // Release lock
+      sd_release_host(gbalHandle->sdio_func_dev);
+      BEXIT();
+      return status;
+   }
        memcpy(bufferPtr, cmd53.dataPtr, currentLength);
        length -= currentLength;
        bufferPtr += currentLength;
@@ -1562,22 +1586,22 @@ static VOS_STATUS WLANBAL_WriteDeviceMemory
 
        memcpy(gbalHandle->dmaBuffer, bufferPtr, currentLength);
 
-       cmd53.address       = targetAddress;
+   cmd53.address       = targetAddress;
        cmd53.dataSize      = currentLength;
-       cmd53.dataPtr       = gbalHandle->dmaBuffer;
-       cmd53.mode          = WLANSAL_MODE_BYTE;
-       status = WLANSAL_Cmd53(pAdapter, &cmd53);
-       if(!VOS_IS_STATUS_SUCCESS(status))
-       {
-           BMSGERROR("Write Memory fail %d", status, 0, 0);
-           // Release lock
-           sd_release_host(gbalHandle->sdio_func_dev);
-           BEXIT();
-           return status;
-       }
+   cmd53.dataPtr       = gbalHandle->dmaBuffer;
+   cmd53.mode          = WLANSAL_MODE_BYTE;
+   status = WLANSAL_Cmd53(pAdapter, &cmd53);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      BMSGERROR("Write Memory fail %d", status, 0, 0);
+      // Release lock
+      sd_release_host(gbalHandle->sdio_func_dev);
+      BEXIT();
+      return status;
+   }
        bufferPtr += currentLength;
        length -= currentLength;
-   } 
+   }
 
    // Release lock
    sd_release_host(gbalHandle->sdio_func_dev);
@@ -2135,14 +2159,14 @@ VOS_STATUS WLANBAL_StartXmit
 
   @param v_PVOID_t pAdapter
          Global adapter handle
-         
+
          v_U16_t   *pCard_Id
          ASIC vendor specific id
 
   @return General status code
         VOS_STATUS_SUCCESS      Notify success
         VOS_STATUS_E_FAILURE    BAL is not ready
-      
+
 ----------------------------------------------------------------------------*/
 VOS_STATUS WLANBAL_GetSDIOCardIdentifier
 (
@@ -2151,9 +2175,9 @@ VOS_STATUS WLANBAL_GetSDIOCardIdentifier
 )
 {
     BENTER();
-    WLANSAL_GetSDIOCardId(pCardId);
+    WLANSAL_GetSDIOCardId(pAdapter, pCardId);
     BEXIT();
-    
+
     return VOS_STATUS_SUCCESS;
 }
 

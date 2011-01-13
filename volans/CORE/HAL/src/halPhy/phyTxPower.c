@@ -75,18 +75,18 @@ tTxGain tpcGainLut[PHY_MAX_TX_CHAINS][TPC_MEM_GAIN_LUT_DEPTH] =
 //     tTpcParams *tpcParams = NULL;
 //     tTpcConfig *tpcConfig = NULL;
 //     tTpcParams myTpcParams;
-// 
+//
 //     tpcParams = &myTpcParams;
-// 
+//
 //     //For Gen6, we are fixed at 2 frequencies and 4 cal points per freq.
 //     myTpcParams.numTpcCalPointsPerFreq = 4;
 //     myTpcParams.numTpcCalFreqs = 2;
-// 
+//
 //     //Note that this may be a reconfiguration after MTT removes TPC data and we need to correctly eliminate old TPC data
 //     if (pMac->hphy.phyTPC.pwrCfgPresent == eANI_BOOLEAN_TRUE)
 //     {
 //         //previous configuration
-// 
+//
 //         // if (pMac->hphy.phyTPC.combinedBands.pwrInterp != NULL)
 //         // {
 //         //     if ((retVal = palFreeMemory(pMac->hHdd, pMac->hphy.phyTPC.combinedBands.pwrInterp)) != eHAL_STATUS_SUCCESS)
@@ -97,7 +97,7 @@ tTxGain tpcGainLut[PHY_MAX_TX_CHAINS][TPC_MEM_GAIN_LUT_DEPTH] =
 //         // }
 //         pMac->hphy.phyTPC.pwrCfgPresent = eANI_BOOLEAN_FALSE;
 //     }
-// 
+//
 //     // The result of having the TPC configuration is that we will use it and set pwrCfgPresent to TRUE.
 //     // If these tables don't exist, the driver will still continue, but with pwrCfgPresent set to FALSE.
 //     // This logic is necessary to use the manfDiag driver and PTT GUI with a device where these have not calibrated yet.
@@ -107,7 +107,7 @@ tTxGain tpcGainLut[PHY_MAX_TX_CHAINS][TPC_MEM_GAIN_LUT_DEPTH] =
 //     {
 //         assert(tpcParams != NULL);
 //         assert(tpcConfig != NULL);
-// 
+//
 //         if ((retVal = phyTxPowerConfig(pMac, tpcConfig, tpcParams->numTpcCalFreqs, tpcParams->numTpcCalPointsPerFreq, RF_BAND_2_4_GHZ)) == eHAL_STATUS_SUCCESS)
 //         {
 //             pMac->hphy.phyTPC.pwrCfgPresent = eANI_BOOLEAN_TRUE;
@@ -117,26 +117,26 @@ tTxGain tpcGainLut[PHY_MAX_TX_CHAINS][TPC_MEM_GAIN_LUT_DEPTH] =
 //             return (retVal);
 //         }
 //     }
-// 
+//
 //     {
 //         tANI_U16 freq = rfChIdToFreqCoversion(rfGetChannelIdFromIndex(rfGetCurChannel(pMac)));
-// 
+//
 //         if ((retVal = phySetTxPower(pMac, freq, RF_SUBBAND_2_4_GHZ)) != eHAL_STATUS_SUCCESS)
 //         {
 //             return (retVal);
 //         }
 //     }
-// 
+//
 //     if (((retVal = halGetNvTableLoc(pMac, NV_TABLE_REGULATORY_DOMAINS, (uNvTables **)&pMac->hphy.phy.regDomainInfo)) != eHAL_STATUS_SUCCESS) ||
 //         ((retVal = halGetNvTableLoc(pMac, NV_TABLE_RATE_POWER_SETTINGS, (uNvTables **)&pMac->hphy.phy.pwrOptimal)) != eHAL_STATUS_SUCCESS)
 //          )
 //     {
 //           //these tables should have been stored before the power configuration, which is done in manufacturing
 //           phyLog(pMac, LOGE, "ERROR: Could not find necessary transmit power information\n");
-//     
+//
 //           return (eHAL_STATUS_SUCCESS);   //return success anyway so driver loads - otherwise we won't be able to write these tables
 //     }
-// 
+//
 //     return (retVal);
 // }
 
@@ -148,19 +148,20 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 
     if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
     {
-        pPlut = (tANI_U8 *)&plutCharacterizedVolans2[pMac->hphy.rf.curChannel];
+        tTpcPowerTable *plutCharacterizedVolans2 = (tTpcPowerTable *)(&pMac->hphy.nvCache.tables.plutCharacterized[0]);
+        pPlut = (tANI_U8 *)&(plutCharacterizedVolans2[pMac->hphy.rf.curChannel][0][0]);
     }
     else
     {
         pPlut = (tANI_U8 *)&plutCharacterized[pMac->hphy.rf.curChannel];
     }
-    
+
     if ((retVal = asicLoadTPCPowerLUT(pMac, PHY_TX_CHAIN_0,
                                             pPlut)) != eHAL_STATUS_SUCCESS)
-    { 
+    {
         return (retVal);
     }
-    
+
     //tx power configuration should have preceded this
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_PDADC_SCALE_REG, 0);
     retVal = asicTPCAutomatic(pMac);
@@ -177,12 +178,12 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
         return (retVal);
     }
 
+    if (pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
+    {
+        //halPhyGetPowerForRate relies on this to use the limits, even for the production build.
+        pMac->hphy.phy.test.testTxGainIndexSource = REGULATORY_POWER_LIMITS;
+    }
 
-
-#ifndef ANI_MANF_DIAG
-    //halPhyGetPowerForRate relies on this to use the limits, even for the production build.
-    pMac->hphy.phy.test.testTxGainIndexSource = REGULATORY_POWER_LIMITS;
-#endif
     return (retVal);
 }
 
@@ -195,7 +196,7 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //     eHalStatus retVal = eHAL_STATUS_SUCCESS;
 //     tANI_U32 channel, revId;
 //     tPhyTxPowerBand *band;
-// 
+//
 //     if (!(numFreqs <= NUM_20MHZ_RF_CHANNELS) )
 //     {
 //         phyLog(pMac, LOGE, "ERROR: Incorrect Num freqs in Transmit Power Configuration\n");
@@ -211,9 +212,9 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //         phyLog(pMac, LOGE, "ERROR: Incorrect band in Transmit Power Configuration\n");
 //         return (eHAL_STATUS_FAILURE);
 //     }
-// 
+//
 //     band = &pMac->hphy.phyTPC.combinedBands;
-// 
+//
 //     assert(numFreqs == 2);
 //     // FOR GEN6, We are fixed at 2 frequencies, but keep this code for future
 //     // if (numFreqs == 2)
@@ -234,21 +235,21 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //     // }
 //     //
 //     //if ( (retVal = palAllocateMemory(pMac->hHdd, (void **)&band->pwrInterp, numFreqs * sizeof(tTpcPowerTable))) == eHAL_STATUS_SUCCESS)
-// 
+//
 //     //for GEN6, remove dynamic allocation of pwr data - use allocations in the same structure as the pointers.
 //     band->pwrInterp = band->pwrInterpAllocation;
 //     band->pwrSampled = band->pwrSampledAllocation;
-// 
+//
 //     //add protection to avoid corrupting various RFAPB registers due to a bug with the way the GC bus is handled
 //     SET_PHY_REG(pMac->hHdd, QWLAN_RFIF_GC_CFG_REG, 0);
-// 
+//
 // #ifndef WLAN_HAL_VOLANS //FIXME_VOLANS
 // #ifndef INTERNAL_PATH_SEL
 //     rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_CTL_REG,  QWLAN_RFAPB_HDET_CTL_HDET_PATH_SEL_MASK,  QWLAN_RFAPB_HDET_CTL_HDET_PATH_SEL_OFFSET,  QWLAN_RFAPB_HDET_CTL_HDET_PATH_SEL_EHDET_PATH_SEL_0 );
 // #endif
 //     rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_CTL_REG,  QWLAN_RFAPB_HDET_CTL_EXT_ATTEN_3_0_MASK,  QWLAN_RFAPB_HDET_CTL_EXT_ATTEN_3_0_OFFSET,  pMac->hphy.nvCache.tables.rfCalValues.hdet_ctl_ext_atten  );
 //     rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_DCOC_REG, QWLAN_RFAPB_HDET_DCOC_DCOC_CODE_5_0_MASK, QWLAN_RFAPB_HDET_DCOC_DCOC_CODE_5_0_OFFSET, pMac->hphy.nvCache.tables.rfCalValues.hdet_dcoc_code      );
-// #endif //WLAN_HAL_VOLANS    
+// #endif //WLAN_HAL_VOLANS
 //     rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_DCOC_REG, QWLAN_RFAPB_HDET_DCOC_IB_RCAL_EN_MASK,    QWLAN_RFAPB_HDET_DCOC_IB_RCAL_EN_OFFSET,    pMac->hphy.nvCache.tables.rfCalValues.hdet_dcoc_ib_rcal_en);
 //     rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_DCOC_REG, QWLAN_RFAPB_HDET_DCOC_IB_SCAL_EN_MASK,    QWLAN_RFAPB_HDET_DCOC_IB_SCAL_EN_OFFSET,    pMac->hphy.nvCache.tables.rfCalValues.hdet_dcoc_ib_scal_en);
 //     rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_DCOC_REG, QWLAN_RFAPB_HDET_DCOC_HDET_ENABLE_MASK,   QWLAN_RFAPB_HDET_DCOC_HDET_ENABLE_OFFSET,   1);
@@ -256,22 +257,22 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 // #ifdef INTERNAL_PATH_SEL
 //     rdModWrAsicField(pMac, QWLAN_RFAPB_HDET_CTL_REG,  QWLAN_RFAPB_HDET_CTL_INT_ATTEN_3_0_MASK,  QWLAN_RFAPB_HDET_CTL_INT_ATTEN_3_0_OFFSET,  pMac->hphy.nvCache.tables.rfCalValues.hdet_ctl_ext_atten  );
 // #endif
-// 
+//
 //     GET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_REV_ID_REG, &revId);
 //     SET_PHY_REG(pMac->hHdd, QWLAN_RFIF_GC_CFG_REG, (QWLAN_RFIF_GC_CFG_TX_GAIN_EN_MASK | QWLAN_RFIF_GC_CFG_RX_GAIN_EN_MASK));
-// 
+//
 //     {
 //         //memory allocated to hold interpolated data for each sampled channel
 //         for (channel = 0; channel < numFreqs; channel++)
 //         {
 //             memcpy(&(band->pwrSampled[channel]), &(tpcConfig[channel]), sizeof(tTpcConfig));
-// 
+//
 //             InterpolateCalPowerPoints(pMac, channel, bandCfg);
 //         }
-// 
+//
 //         {
 //             pMac->hphy.phy.test.testTxGainIndexSource = RATE_POWER_NON_LIMITED;
-// 
+//
 //             //find out if TPC cal tables are in NV
 //             if (!(
 //                   //(eHAL_STATUS_SUCCESS == halIsTableInNv(pMac, NV_TABLE_TPC_PARAMS)) &&
@@ -281,7 +282,7 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //             {
 //                 //we don't have a closed-loop configuration in NV - new device - keep power control as open loop
 //                 pMac->hphy.phy.test.testTpcClosedLoop = eANI_BOOLEAN_FALSE;
-// 
+//
 // #if !defined(ANI_MANF_DIAG)
 //                 phyLog(pMac, LOGE, "ERROR: No CLPC Calibration in NV\n");
 // #endif
@@ -301,11 +302,11 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 // eHalStatus phyTxPowerClose(tpAniSirGlobal pMac)
 // {
 //     eHalStatus retVal = eHAL_STATUS_SUCCESS;
-// 
+//
 //     if (pMac->hphy.phyTPC.pwrCfgPresent == eANI_BOOLEAN_TRUE)
 //     {
 //         //previous configuration - free pwrInterp memory and it will be reallocated accordingly
-// 
+//
 //         // if (pMac->hphy.phyTPC.combinedBands.pwrInterp != NULL)
 //         // {
 //         //     if ( (retVal = palFreeMemory(pMac->hHdd, pMac->hphy.phyTPC.combinedBands.pwrInterp)) != eHAL_STATUS_SUCCESS)
@@ -314,10 +315,10 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //         //         return(retVal);
 //         //     }
 //         // }
-// 
+//
 //         pMac->hphy.phyTPC.pwrCfgPresent = eANI_BOOLEAN_FALSE;
 //     }
-// 
+//
 //     return(retVal);
 // }
 
@@ -328,19 +329,19 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //     tTpcCaldPowerPoint *lastPoint;
 //     tPhyTxPowerBand *band;
 //     tANI_U8 highestTxChain =  PHY_MAX_TX_CHAINS; //halPhyQueryNumTxChains(pMac->hphy.phy.cfgChains);
-// 
+//
 //     band = &pMac->hphy.phyTPC.combinedBands;
-// 
+//
 //     assert(band->pwrSampled != NULL);
 //     assert(band->pwrInterp != NULL);    //should have been previously allocated
-// 
-// 
+//
+//
 //     for (chain = PHY_TX_CHAIN_0; chain < highestTxChain; chain++)
 //     {
 //         tANI_U8 point;
 //         tPowerDetect x1, x2;
 //         tTpcLutValue y1, y2;
-// 
+//
 //         {
 //             //fill the power LUT values
 //             for (point = 0; point <= band->pwrSampled[tpcChannel].empirical[chain][0].pwrDetAdc; point++)
@@ -351,15 +352,15 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //                 //                                 band->pwrSampled[tpcChannel].empirical[chain][0].extraPrecision.hi8_adjustedPwrDet
 //                 //                                );
 //             }
-// 
+//
 //             //for (calPoint = 0; calPoint < (band->numTpcCalPointsPerFreq - 1); calPoint++)
 //             for (calPoint = 0; calPoint < (MAX_TPC_CAL_POINTS - 1); calPoint++)
 //             {
 //                 tPowerDetect interpPoint;
-// 
+//
 //                 x1 = band->pwrSampled[tpcChannel].empirical[chain][calPoint].pwrDetAdc;
 //                 x2 = band->pwrSampled[tpcChannel].empirical[chain][calPoint + 1].pwrDetAdc;
-// 
+//
 //                 //tTpcLutValue y1 = GET_FULL_PRECISION_TPC_LUT_VALUE(band->pwrSampled[tpcChannel].empirical[chain][calPoint].adjustedPwrDet,
 //                 //                                                   band->pwrSampled[tpcChannel].empirical[chain][calPoint].extraPrecision.hi8_adjustedPwrDet
 //                 //                                                  );
@@ -368,15 +369,15 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //                 //                                                   band->pwrSampled[tpcChannel].empirical[chain][calPoint + 1].extraPrecision.hi8_adjustedPwrDet
 //                 //                                                  );
 //                 y2 = band->pwrSampled[tpcChannel].empirical[chain][calPoint + 1].adjustedPwrDet;
-// 
+//
 //                 assert(x2 >= x1);
-// 
+//
 //                 band->pwrInterp[tpcChannel][chain][x1] = y1;
 //                 band->pwrInterp[tpcChannel][chain][x2] = y2;
-// 
+//
 //                 if (x1 == 0xff) //the last point, stop interpolation
 //                     break;
-// 
+//
 //                 for (interpPoint = x1 + 1; interpPoint < x2; interpPoint++)
 //                 {
 //                     //fill in interpolated adjustedPwrDet values between calibrated points
@@ -384,11 +385,11 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //                     (tTpcLutValue)InterpolateBetweenPoints(x1, y1, x2, y2, interpPoint);
 //                 }
 //             }
-// 
+//
 //             lastPoint =
 //             &(band->pwrSampled[tpcChannel].empirical[chain][MAX_TPC_CAL_POINTS - 1]);
 //             //&(band->pwrSampled[tpcChannel].empirical[chain][band->numTpcCalPointsPerFreq - 1]);
-// 
+//
 //             for (point = lastPoint->pwrDetAdc; point < TPC_MEM_POWER_LUT_DEPTH; point++)
 //             {
 //                 //extrapolate all values following the last cal point with the same slope of the last two cal points
@@ -397,7 +398,7 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //                 {
 //                     band->pwrInterp[tpcChannel][chain][point] = TPC_MEM_POWER_LUT_DEPTH - 1;
 //                 }
-// 
+//
 //                 //GET_FULL_PRECISION_TPC_LUT_VALUE(lastPoint->adjustedPwrDet, lastPoint->extraPrecision.hi8_adjustedPwrDet);
 //             }
 //         }
@@ -414,11 +415,11 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //     tANI_U32 highFreq;
 //     tANI_U32 highestFreq;
 //     tPhyTxPowerBand *band;
-// 
+//
 //     band = &pMac->hphy.phyTPC.combinedBands;
-// 
+//
 //     assert(band != NULL);
-// 
+//
 //     if (pMac->hphy.phyTPC.pwrCfgPresent == eANI_BOOLEAN_FALSE)
 // #if !defined(ANI_MANF_DIAG) || defined(ANI_DVT_DEBUG)
 //     {
@@ -445,28 +446,28 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //         phyLog(pMac, LOGE, "ERROR: Band not configured for transmit power - Requires manufacturing calibration\n");
 //         return(eHAL_STATUS_SUCCESS);   //return success anyway
 //     }
-// 
+//
 //     //lowestFreq =   rfChIdToFreqCoversion(
 //     //               rfGetChannelIdFromIndex(
 //     //               rfGetIndexFromFreq((tANI_U16)band->pwrSampled[0].freq, PHY_SINGLE_CHANNEL_CENTERED)));
 //     lowestFreq = band->pwrSampled[0].freq;
-// 
+//
 //     if (freq < lowestFreq)
 //     {
 //         freq = lowestFreq;  //this will force the lowest freq's cal data to be used
 //     }
-// 
+//
 //     //highestFreq =  rfChIdToFreqCoversion(
 //     //               rfGetChannelIdFromIndex(
 //     //               rfGetIndexFromFreq(
 //     //                (tANI_U16)band->pwrSampled[((tANI_U32)band->numTpcCalFreqs - 1)].freq, PHY_SINGLE_CHANNEL_CENTERED)));
 //     highestFreq = band->pwrSampled[MAX_TPC_CHANNELS - 1].freq;
-// 
+//
 //     if (freq > highestFreq)
 //     {
 //         freq = highestFreq;  //this will force the highest freq's cal data to be used
 //     }
-// 
+//
 //     //first, find the two cal channels that encompass the requested frequency
 //     //for (channel = 0; channel < ((tANI_U32)band->numTpcCalFreqs - 1); channel++)
 //     for (channel = 0; channel < ((tANI_U32)MAX_TPC_CHANNELS - 1); channel++)
@@ -480,7 +481,7 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //         //                     rfGetIndexFromFreq((tANI_U16)band->pwrSampled[channel + 1].freq, PHY_SINGLE_CHANNEL_CENTERED)));
 //         lowFreq = band->pwrSampled[channel].freq;
 //         highFreq = band->pwrSampled[channel + 1].freq;
-// 
+//
 //         if ( (freq >= lowFreq) && (freq <= highFreq) )
 //         {
 //             //found encompassing calibrated channels
@@ -497,7 +498,7 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //                 memcpy(&(pMac->hphy.phyTPC.curTpcPwrLUT[PHY_TX_CHAIN_0][0]),
 //                        &(band->pwrInterp[channel + 1][PHY_TX_CHAIN_0][0]),
 //                        TPC_MEM_POWER_LUT_DEPTH * sizeof(tTpcLutValue));
-// 
+//
 //             }
 //             else
 //             {
@@ -507,28 +508,28 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //             break;  //freq found and curTpcPwrLUT filled, break out of loop
 //         }
 //     }
-// 
+//
 //     {
 //         //Here's where we divide out the extra precision bits before loading them into the LUTs
 //         tANI_U32 i;
 //         tPowerDetect lutValues[PHY_MAX_TX_CHAINS][TPC_MEM_POWER_LUT_DEPTH];
-// 
+//
 //         for (i = 0; i < TPC_MEM_POWER_LUT_DEPTH; i++)
 //         {
 //             lutValues[PHY_TX_CHAIN_0][i] = (tPowerDetect)(pMac->hphy.phyTPC.curTpcPwrLUT[PHY_TX_CHAIN_0][i]);// / EXTRA_TPC_LUT_MULT);
-// 
+//
 //             assert(lutValues[PHY_TX_CHAIN_0][i] < TPC_MEM_POWER_LUT_DEPTH);
 //         }
-// 
-// 
+//
+//
 //         if (
 //            ((retVal = asicLoadTPCPowerLUT(pMac, PHY_TX_CHAIN_0, &(lutValues[PHY_TX_CHAIN_0][0]))) != eHAL_STATUS_SUCCESS)
 //            )
 //         {
 //             return(retVal);
 //         }
-// 
-// 
+//
+//
 //     }
 // #endif
 //     return(retVal);
@@ -539,17 +540,17 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 // {
 //     tANI_U8 point;
 //     tANI_U32 chain;
-// 
+//
 //     tANI_U8 highestTxChain = PHY_MAX_TX_CHAINS; //halPhyQueryNumTxChains(pMac->hphy.phy.cfgChains);
 //     tPhyTxPowerBand *band;
-// 
+//
 //     band = &pMac->hphy.phyTPC.combinedBands;
-// 
+//
 //     assert(band != NULL);
-// 
+//
 //     assert(band->pwrInterp != NULL);
 //     assert(band->pwrSampled != NULL);
-// 
+//
 //     for (chain = PHY_TX_CHAIN_0; chain < highestTxChain; chain++)
 //     {
 //         for (point = 0; point < TPC_MEM_POWER_LUT_DEPTH; point++)
@@ -559,7 +560,7 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 //             tANI_U32 x2 = band->pwrSampled[highTpcChan].freq;
 //             tTpcLutValue y1 = band->pwrInterp[lowTpcChan][chain][point];
 //             tTpcLutValue y2 = band->pwrInterp[highTpcChan][chain][point];
-// 
+//
 //             pMac->hphy.phyTPC.curTpcPwrLUT[chain][point] =
 //             (tTpcLutValue)InterpolateBetweenPoints(x1, (tANI_S32)y1, x2, (tANI_S32)y2, (tANI_S32)interpFreq);
 //         }
@@ -588,6 +589,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
     eRfSubBand rfSubband;
     t2Decimal absPwrLimit_2dec;
     t2Decimal bRateLimitAdjustment = 0;
+    t2Decimal gnRateLimitAdjustment = 0;
 
     ePhyChanBondState cbState;
 
@@ -679,6 +681,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
         case RF_CHAN_14:
             assert(cbState == PHY_SINGLE_CHANNEL_CENTERED);
             bRateLimitAdjustment = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].bRatePowerOffset[curChan].reported;
+            gnRateLimitAdjustment = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].gnRatePowerOffset[curChan].reported;
             rfSubband = RF_SUBBAND_2_4_GHZ;
             break;
 
@@ -757,6 +760,13 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
         }
 #endif
 
+        //now we have absolute powers comparable for a single tx chain
+        if (absPwr > absPwrLimit_2dec)
+        {
+            //limit power to regulatory domain
+            absPwr = absPwrLimit_2dec;
+        }
+
         if (rate > NUM_HAL_PHY_RATES)
         {
             assert(0);
@@ -778,7 +788,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                 case HAL_PHY_RATE_SLR_0_25_MBPS:
                 case HAL_PHY_RATE_SLR_0_5_MBPS:
                     absPwr += bRateLimitAdjustment;
-                        
+
                     if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
                     {
                         absPwr += B_RATE_CAL_ADJUSTMENT_VOLANS2;
@@ -816,6 +826,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                 case HAL_PHY_RATE_MCS_1NSS_MM_SG_57_8_MBPS:
                 case HAL_PHY_RATE_MCS_1NSS_MM_SG_65_MBPS:
                 case HAL_PHY_RATE_MCS_1NSS_MM_SG_72_2_MBPS:
+                    absPwr += gnRateLimitAdjustment;
                     if ((curChan == RF_CHAN_1) || (curChan == RF_CHAN_11))
                     {
                         if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
@@ -834,15 +845,8 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
             }
         }
 
-        //now we have absolute powers comparable for a single tx chain
-        if (absPwr > absPwrLimit_2dec)
         {
-            //limit power to regulatory domain
-            absPwr = absPwrLimit_2dec;
-        }
-
-        {
-            //y = mx + c where y is the TPC Gain LUT Index, m is the slope of the 
+            //y = mx + c where y is the TPC Gain LUT Index, m is the slope of the
             //Power-GainLUT curve, c is the the minimum power, x is the power in dBm.
             //m = (y2 - y1)/(x2 - x1) = (31 - 1)/(24 - 9) = 2
             //c = y1 - mx1 = 1 - 2*9 = -17
@@ -1354,6 +1358,18 @@ eHalStatus halPhySetRegDomain(tHalHandle hHal, eRegDomainId regDomain)
 
     if ( (tANI_U32)regDomain < NUM_REG_DOMAINS)
     {
+        {
+            Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
+
+            if(pFwConfig != NULL)
+            {
+                // Update the sytem config
+                pFwConfig->ucRegDomain = (tANI_U8)regDomain;
+
+                halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
+            }
+        }
+
         pMac->hphy.phy.curRegDomain = regDomain;
         return(eHAL_STATUS_SUCCESS);
     }
@@ -1370,32 +1386,69 @@ eRegDomainId halPhyGetRegDomain(tHalHandle hHal)
     return(pMac->hphy.phy.curRegDomain);
 }
 
-/* Currently the below APIs are used only by the VOWIFI feature. This can be removed if
-this should be present as an utility irrespective of the feature */
-#ifdef WLAN_FEATURE_VOWIFI
-tPwrTemplateIndex halPhyGetPwrIndexForDbm(tPowerdBm dBm)
+/* This interface returns power in dBm for the given rate based on rate to power table contents. Please
+ * note that this will return pwrIndBm * 100. So, the caller should do divide by 100 on the value obtained */
+eHalStatus halPhyGetPwrFromRate2PwrTable(tHalHandle hHal, eHalPhyRates rate, t2Decimal *pwr2dec)
 {
-    //This is only a high level implementation. To get accurate pwr Index, antenna gain/CLPC should be taken into
-    //consideration. 
-    if (dBm < MIN_TPC_GAIN_LUT_DBM)
-        dBm = MIN_TPC_GAIN_LUT_DBM;
+    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
+    eRfSubBand  rfSubBand;
+    eRfChannels curChan = rfGetCurChannel(pMac);
 
-    if (dBm > MAX_TPC_GAIN_LUT_DBM)
-        dBm = MAX_TPC_GAIN_LUT_DBM;
+    if (NULL == pwr2dec)
+    {
+        phyLog(pMac, LOGE, FL("Null pointer issued to store pwr for rate"));
+        VOS_ASSERT(0);
+        return eHAL_STATUS_FAILURE;
+    }
 
-    return (((dBm - MIN_TPC_GAIN_LUT_DBM) << 1) + MIN_TPC_GAIN_INDEX);
+    switch (curChan)
+    {
+        //2.4GHz Band
+        case RF_CHAN_1:
+        case RF_CHAN_2:
+        case RF_CHAN_3:
+        case RF_CHAN_4:
+        case RF_CHAN_5:
+        case RF_CHAN_6:
+        case RF_CHAN_7:
+        case RF_CHAN_8:
+        case RF_CHAN_9:
+        case RF_CHAN_10:
+        case RF_CHAN_11:
+        case RF_CHAN_12:
+        case RF_CHAN_13:
+        case RF_CHAN_14:
+            rfSubBand = RF_SUBBAND_2_4_GHZ;
+            break;
+
+        default:
+            phyLog(pMac, LOGE, FL("Current Channel %d is not valid\n"), curChan);
+            VOS_ASSERT(0);
+            return(eHAL_STATUS_FAILURE);
+    }
+
+    *pwr2dec = pMac->hphy.phy.pwrOptimal[rfSubBand][rate].reported;
+    phyLog(pMac, LOG1, FL("Power for rate %d is %d\n"), rate, *pwr2dec);
+    return eHAL_STATUS_SUCCESS;
 }
 
-tPowerdBm  halPhyGetDbmForPwrIndex(tPwrTemplateIndex pwrIndex)
+/* Return the maxPwrIndex that can be used for a given absolute power limit in dBm */
+inline eHalStatus halPhyGetMaxTxPowerIndex(tHalHandle hHal, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex)
 {
-    //This is only a high level implementation. To get accurate dBm, antenna gain/CLPC should be taken into
-    //consideration. 
-    if (pwrIndex < MIN_TPC_GAIN_INDEX)
-        pwrIndex = MIN_TPC_GAIN_INDEX;
-    
-    if (pwrIndex > MAX_TPC_GAIN_INDEX)
-        pwrIndex = MAX_TPC_GAIN_INDEX;
+    VOS_ASSERT(NULL != retTemplateIndex);
 
-    return (((pwrIndex - MIN_TPC_GAIN_INDEX) >> 1) + MIN_TPC_GAIN_LUT_DBM);
+    /* Get the max power index by getting the power index for 1Mbps 11b rate as this rate can
+     * have the maxpower compared to other rates. In case if systems team changes this in future to use max TX
+     * power for some other rate(s), only this function should be modified and the interface should remain the same.
+     */
+
+    if (halPhyGetPowerForRate(hHal, HAL_PHY_RATE_11B_LONG_1_MBPS, POWER_MODE_HIGH_POWER,
+                            absPwrLimit, retTemplateIndex) != eHAL_STATUS_SUCCESS)
+    {
+        phyLog(hHal, LOGP, FL("Failed\n"));
+        return eHAL_STATUS_FAILURE;
+    }
+
+    phyLog(hHal, LOG1, FL("MAX Pwr Idx to be used for abs power of %d is %d\n"), absPwrLimit, *retTemplateIndex);
+    return eHAL_STATUS_SUCCESS;
 }
-#endif /* WLAN_FEATURE_VOWIFI */

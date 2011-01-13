@@ -68,8 +68,7 @@ typedef struct
 typedef enum
 {
     GRABRAM_RAWADC = 0,
-    GRABRAM_POSTIQ = 1,
-    GRABRAM_INVALID = 0x7FFFFFFF
+    GRABRAM_POSTIQ
 }eGrabRamSampleType;
 
 #endif
