@@ -396,12 +396,7 @@ CDEFINES += -DMSM_PLATFORM_7x30
 endif
 
 
-ifneq (, $(filter msm7627_surf msm7627_7x_surf, $(TARGET_PRODUCT)))
-EXTRA_CFLAGS += -march=armv6
-endif
-
-
-ifneq (, $(filter msm7627_ffa msm7627_7x_ffa, $(TARGET_PRODUCT)))
+ifneq (, $(filter msm7627_surf msm7627_7x_surf msm7627_ffa msm7627_7x_ffa, $(TARGET_PRODUCT)))
 EXTRA_CFLAGS += -march=armv6
 CDEFINES += -DMSM_PLATFORM_7x27_FFA
 endif
