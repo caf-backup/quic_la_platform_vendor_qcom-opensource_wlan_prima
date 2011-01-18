@@ -1271,7 +1271,14 @@ static int iw_set_priv(struct net_device *dev,
 
     hddLog(VOS_TRACE_LEVEL_INFO_MED, "***Received %s cmd from Wi-Fi GUI***", cmd);
 
-    if( strcasecmp(cmd, "start") == 0 ) {
+	if(strncmp(cmd, "CSCAN",5) == 0 )
+	{
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "CSCAN command\n");
+		status = iw_set_cscan(dev, info,wrqu, extra);
+		return status;
+
+	}
+	else if( strcasecmp(cmd, "start") == 0 ) {
 
         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Start command\n");
         /*Exit from Deep sleep or standby if we get the driver START cmd from android GUI*/

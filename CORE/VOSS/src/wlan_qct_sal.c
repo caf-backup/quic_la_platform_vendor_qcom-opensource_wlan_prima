@@ -69,8 +69,9 @@ static salHandleType *gpsalHandle;
    @return None
 
 ----------------------------------------------------------------------------*/
-static void wlan_suspend(hdd_adapter_t* pAdapter)
+static int wlan_suspend(hdd_adapter_t* pAdapter)
 {
+
    pVosSchedContext vosSchedContext = NULL;
 
    /* Get the global VOSS context */
@@ -78,7 +79,7 @@ static void wlan_suspend(hdd_adapter_t* pAdapter)
 
    if(!vosSchedContext) {
       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: Global VOS_SCHED context is Null",__func__);
-      return;
+      return 0;
    }
 
    /* Set the Station state as Suspended */
@@ -108,6 +109,7 @@ static void wlan_suspend(hdd_adapter_t* pAdapter)
 
    /* Wait for Suspend Confirmation from Tx Thread */
    wait_for_completion_interruptible(&pAdapter->mc_sus_event_var);
+   return 0;
 
 }
 
@@ -159,27 +161,36 @@ static void wlan_resume(hdd_adapter_t* pAdapter)
    @return None
 
 ----------------------------------------------------------------------------*/
-void wlan_sdio_suspend_hdlr(struct sdio_func* sdio_func_dev)
+int wlan_sdio_suspend_hdlr(struct sdio_func* sdio_func_dev)
 {
+   int ret = 0;
    hdd_adapter_t* pAdapter = NULL;
    pAdapter =  (hdd_adapter_t*)libra_sdio_getprivdata(sdio_func_dev);
 
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_INFO, "%s: WLAN suspended by SDIO",__func__);
 
    /* Get the HDD context */
-   if(!pAdapter) {
+   if(!pAdapter) 
+   {
       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
-      return;
+      return 0;
    }
 
    if(pAdapter->isWlanSuspended == TRUE)
    {
       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: WLAN is alredy in suspended state",__func__);
-      return;
+      return 0;
    }
 
    /* Suspend the wlan driver */
-   wlan_suspend(pAdapter);
+   ret = wlan_suspend(pAdapter);
+   if(ret != 0)
+   {
+      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: Not able to suspend wlan",__func__);
+      return ret;
+   }
+
+   return 0;   
 }
 
 /*----------------------------------------------------------------------------

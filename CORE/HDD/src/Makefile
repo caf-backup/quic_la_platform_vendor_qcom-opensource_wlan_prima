@@ -349,7 +349,7 @@ EXTRA_CFLAGS += -I$(WLANFW_DIR)/inc
 EXTRA_LDFLAGS += --strip-debug
 
 
-ifneq (,$(findstring arm-eabi-4.4.0, $(ANDROID_EABI_TOOLCHAIN)))
+ifneq (,$(findstring arm-eabi-4.4, $(ANDROID_EABI_TOOLCHAIN)))
 EXTRA_CFLAGS += -Wframe-larger-than=4096 
 endif
 
