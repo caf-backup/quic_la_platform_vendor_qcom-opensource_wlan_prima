@@ -4840,9 +4840,7 @@ limHandleDelBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESe
             tpDphHashNode   pStaDs;
             tSirRetStatus       retStatus = eSIR_SUCCESS;
 #ifdef ANI_PRODUCT_TYPE_CLIENT
-            tSchBeaconStruct *beaconStruct = NULL;
-			beaconStruct = vos_mem_malloc(sizeof(tSchBeaconStruct));
-			vos_mem_set(beaconStruct, sizeof(tSchBeaconStruct), 0);
+            tSchBeaconStruct beaconStruct;
 #endif
             /** Delete the older STA Table entry */
             limDeleteDphHashEntry(pMac, psessionEntry->bssId, DPH_STA_HASH_INDEX_PEER, psessionEntry);
@@ -4873,26 +4871,25 @@ limHandleDelBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESe
             limExtractApCapabilities( pMac,
                   (tANI_U8 *) psessionEntry->pLimReAssocReq->bssDescription.ieFields,
                   limGetIElenFromBssDescription( &psessionEntry->pLimReAssocReq->bssDescription ),
-                    beaconStruct );
+                    &beaconStruct );
 
             if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
 
-                limDecideStaProtectionOnAssoc(pMac, beaconStruct, psessionEntry);
-                if(beaconStruct->erpPresent) {
+                limDecideStaProtectionOnAssoc(pMac, &beaconStruct, psessionEntry);
+                if(beaconStruct.erpPresent) {
 
-                if (beaconStruct->erpIEInfo.barkerPreambleMode)
+                if (beaconStruct.erpIEInfo.barkerPreambleMode)
                     pMac->lim.gLimShortPreamble = 0;
                 else
                     pMac->lim.gLimShortPreamble = 1;
             }
 
             //updateBss flag is false, as in this case, PE is first deleting the existing BSS and then adding a new one.
-            if (eSIR_SUCCESS != limStaSendAddBss( pMac, assocRsp, beaconStruct, 
+            if (eSIR_SUCCESS != limStaSendAddBss( pMac, assocRsp, &beaconStruct, 
                                                     &psessionEntry->pLimReAssocReq->bssDescription, false, psessionEntry))  {
                 limLog( pMac, LOGE, FL( "Posting ADDBSS in the ReAssocContext has Failed \n"));
                 retStatus = eSIR_FAILURE;
             }
-			vos_mem_free(beaconStruct);
 #elif defined(ANI_AP_CLIENT_SDK)
 
             if (eSIR_SUCCESS != limStaSendAddBss( pMac, (*assocRsp), &psessionEntry->pLimReAssocReq->neighborBssList.bssList[0],
@@ -5050,10 +5047,7 @@ limHandleAddBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPES
             tpDphHashNode   pStaDs;
             tSirRetStatus       retStatus = eSIR_SUCCESS;
 #ifdef ANI_PRODUCT_TYPE_CLIENT
-            tSchBeaconStruct *beaconStruct = NULL;
-			
-			beaconStruct = vos_mem_malloc(sizeof(tSchBeaconStruct));
-			vos_mem_set(beaconStruct, sizeof(tSchBeaconStruct), 0);
+            tSchBeaconStruct beaconStruct;
 #endif
 
             // Get the AP entry from DPH hash table
@@ -5076,25 +5070,23 @@ limHandleAddBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPES
             limExtractApCapabilities( pMac,
                   (tANI_U8 *) psessionEntry->pLimReAssocReq->bssDescription.ieFields,
                   limGetIElenFromBssDescription( &psessionEntry->pLimReAssocReq->bssDescription ),
-                    beaconStruct );
+                    &beaconStruct );
 
             if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
-                limDecideStaProtectionOnAssoc(pMac, beaconStruct, psessionEntry);
-                if(beaconStruct->erpPresent) {
-                if (beaconStruct->erpIEInfo.barkerPreambleMode)
+                limDecideStaProtectionOnAssoc(pMac, &beaconStruct, psessionEntry);
+                if(beaconStruct.erpPresent) {
+                if (beaconStruct.erpIEInfo.barkerPreambleMode)
                     pMac->lim.gLimShortPreamble = 0;
                 else
                     pMac->lim.gLimShortPreamble = 1;
             }
             
     
-            if (eSIR_SUCCESS != limStaSendAddBss( pMac, assocRsp, beaconStruct, 
+            if (eSIR_SUCCESS != limStaSendAddBss( pMac, assocRsp, &beaconStruct, 
                                                     &psessionEntry->pLimReAssocReq->bssDescription, true, psessionEntry))  {
                 limLog( pMac, LOGE, FL( "Posting ADDBSS in the ReAssocContext has Failed \n"));
                 retStatus = eSIR_FAILURE;
             }
-
-	        vos_mem_free(beaconStruct);
 #elif defined(ANI_AP_CLIENT_SDK)
 
             if (eSIR_SUCCESS != limStaSendAddBss( pMac, (*assocRsp), &pMac->lim.gpLimReassocReq->neighborBssList.bssList[0], true))  {
@@ -5140,7 +5132,7 @@ limHandleAddBssInReAssocContext(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPES
             goto Error;
     }
 
-	return;
+return;
 Error:
     limPostSmeMessage(pMac, LIM_MLM_REASSOC_CNF, (tANI_U32 *) &mlmReassocCnf);
 

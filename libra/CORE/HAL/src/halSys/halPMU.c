@@ -37,6 +37,17 @@ halPMU_Start(
                 QWLAN_PMU_LDO_CTRL_REG_PMU_ANA_2P3_LPM_MASK_MASK;
     halWriteRegister(pMac, QWLAN_PMU_LDO_CTRL_REG_REG, regValue);
 
+#ifdef HAL_WLAN_1P2_AON_SW_STAIRCASE
+    /* Set AON low current mode */
+    halWriteRegister(pMac, QWLAN_SPIM_CONFIG_REG,  0x0);
+    halWriteRegister(pMac, QWLAN_SPIM_WRITE_LSW_REG, (QWLAN_ATB_LDO_SW_CTRL0_REG << 9) | (0xA8));
+    halWriteRegister(pMac, QWLAN_SPIM_CONTROL_REG, 0x840e);
+    /* Set the switchable low current mode */
+    halWriteRegister(pMac, QWLAN_SPIM_CONFIG_REG,  0x0);
+    halWriteRegister(pMac, QWLAN_SPIM_WRITE_LSW_REG, (QWLAN_ATB_LDO_AON_CTRL0_REG << 9) | (0xA8));
+    halWriteRegister(pMac, QWLAN_SPIM_CONTROL_REG, 0x840e);
+#endif
+
     return eHAL_STATUS_SUCCESS;
 }
 

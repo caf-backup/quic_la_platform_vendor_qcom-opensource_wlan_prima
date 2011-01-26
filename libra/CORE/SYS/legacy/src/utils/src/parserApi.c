@@ -1826,18 +1826,15 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
                                           tpSirProbeRespBeacon pProbeResp)
 {
     tANI_U32             status;
-    tDot11fProbeResponse *pr = NULL;
-
-	pr = vos_mem_malloc(sizeof(tDot11fProbeResponse));
-	vos_mem_set(pr, sizeof(tDot11fProbeResponse), 0);
+    tDot11fProbeResponse pr;
 
     // Ok, zero-init our [out] parameter,
     palZeroMemory( pMac->hHdd, ( tANI_U8* )pProbeResp, sizeof(tSirProbeRespBeacon) );
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )pr, sizeof(tDot11fProbeResponse) );
+    palZeroMemory( pMac->hHdd, ( tANI_U8* )&pr, sizeof(tDot11fProbeResponse) );
 
     
     // delegate to the framesc-generated code,
-    status = dot11fUnpackProbeResponse( pMac, pFrame, nFrame, pr );
+    status = dot11fUnpackProbeResponse( pMac, pFrame, nFrame, &pr );
     if ( DOT11F_FAILED( status ) )
     {
         limLog(pMac, LOGE, FL("Failed to parse a Probe Response (0x%08x, %d bytes):\n"),
@@ -1855,159 +1852,159 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
     // & "transliterate" from a 'tDot11fProbeResponse' to a 'tSirProbeRespBeacon'...
 
     // Timestamp
-    palCopyMemory( pMac->hHdd, ( tANI_U8* )pProbeResp->timeStamp, ( tANI_U8* )&pr->TimeStamp, sizeof(tSirMacTimeStamp) );
+    palCopyMemory( pMac->hHdd, ( tANI_U8* )pProbeResp->timeStamp, ( tANI_U8* )&pr.TimeStamp, sizeof(tSirMacTimeStamp) );
 
     // Beacon Interval
-    pProbeResp->beaconInterval = pr->BeaconInterval.interval;
+    pProbeResp->beaconInterval = pr.BeaconInterval.interval;
 
     // Capabilities
-    pProbeResp->capabilityInfo.ess            = pr->Capabilities.ess;
-    pProbeResp->capabilityInfo.ibss           = pr->Capabilities.ibss;
-    pProbeResp->capabilityInfo.cfPollable     = pr->Capabilities.cfPollable;
-    pProbeResp->capabilityInfo.cfPollReq      = pr->Capabilities.cfPollReq;
-    pProbeResp->capabilityInfo.privacy        = pr->Capabilities.privacy;
-    pProbeResp->capabilityInfo.shortPreamble  = pr->Capabilities.shortPreamble;
-    pProbeResp->capabilityInfo.pbcc           = pr->Capabilities.pbcc;
-    pProbeResp->capabilityInfo.channelAgility = pr->Capabilities.channelAgility;
-    pProbeResp->capabilityInfo.spectrumMgt    = pr->Capabilities.spectrumMgt;
-    pProbeResp->capabilityInfo.qos            = pr->Capabilities.qos;
-    pProbeResp->capabilityInfo.shortSlotTime  = pr->Capabilities.shortSlotTime;
-    pProbeResp->capabilityInfo.apsd           = pr->Capabilities.apsd;
-    pProbeResp->capabilityInfo.reserved       = pr->Capabilities.reserved;
-    pProbeResp->capabilityInfo.dsssOfdm       = pr->Capabilities.dsssOfdm;
-    pProbeResp->capabilityInfo.delayedBA      = pr->Capabilities.delayedBA;
-    pProbeResp->capabilityInfo.immediateBA    = pr->Capabilities.immediateBA;
+    pProbeResp->capabilityInfo.ess            = pr.Capabilities.ess;
+    pProbeResp->capabilityInfo.ibss           = pr.Capabilities.ibss;
+    pProbeResp->capabilityInfo.cfPollable     = pr.Capabilities.cfPollable;
+    pProbeResp->capabilityInfo.cfPollReq      = pr.Capabilities.cfPollReq;
+    pProbeResp->capabilityInfo.privacy        = pr.Capabilities.privacy;
+    pProbeResp->capabilityInfo.shortPreamble  = pr.Capabilities.shortPreamble;
+    pProbeResp->capabilityInfo.pbcc           = pr.Capabilities.pbcc;
+    pProbeResp->capabilityInfo.channelAgility = pr.Capabilities.channelAgility;
+    pProbeResp->capabilityInfo.spectrumMgt    = pr.Capabilities.spectrumMgt;
+    pProbeResp->capabilityInfo.qos            = pr.Capabilities.qos;
+    pProbeResp->capabilityInfo.shortSlotTime  = pr.Capabilities.shortSlotTime;
+    pProbeResp->capabilityInfo.apsd           = pr.Capabilities.apsd;
+    pProbeResp->capabilityInfo.reserved       = pr.Capabilities.reserved;
+    pProbeResp->capabilityInfo.dsssOfdm       = pr.Capabilities.dsssOfdm;
+    pProbeResp->capabilityInfo.delayedBA       = pr.Capabilities.delayedBA;
+    pProbeResp->capabilityInfo.immediateBA    = pr.Capabilities.immediateBA;
 
-    if ( ! pr->SSID.present )
+    if ( ! pr.SSID.present )
     {
         PELOGW(limLog(pMac, LOGW, FL("Mandatory IE SSID not present!\n"));)
     }
     else
     {
         pProbeResp->ssidPresent = 1;
-        ConvertSSID( pMac, &pProbeResp->ssId, &pr->SSID );
+        ConvertSSID( pMac, &pProbeResp->ssId, &pr.SSID );
     }
 
-    if ( ! pr->SuppRates.present )
+    if ( ! pr.SuppRates.present )
     {
         PELOGW(limLog(pMac, LOGW, FL("Mandatory IE Supported Rates not present!\n"));)
     }
     else
     {
         pProbeResp->suppRatesPresent = 1;
-        ConvertSuppRates( pMac, &pProbeResp->supportedRates, &pr->SuppRates );
+        ConvertSuppRates( pMac, &pProbeResp->supportedRates, &pr.SuppRates );
     }
 
-    if ( pr->ExtSuppRates.present )
+    if ( pr.ExtSuppRates.present )
     {
         pProbeResp->extendedRatesPresent = 1;
-        ConvertExtSuppRates( pMac, &pProbeResp->extendedRates, &pr->ExtSuppRates );
+        ConvertExtSuppRates( pMac, &pProbeResp->extendedRates, &pr.ExtSuppRates );
     }
 
-    if ( pr->DSParams.present )
+    if ( pr.DSParams.present )
     {
         pProbeResp->dsParamsPresent = 1;
-        pProbeResp->channelNumber = pr->DSParams.curr_channel;
+        pProbeResp->channelNumber = pr.DSParams.curr_channel;
     }
 
-    if ( pr->CFParams.present )
+    if ( pr.CFParams.present )
     {
         pProbeResp->cfPresent = 1;
-        ConvertCFParams( pMac, &pProbeResp->cfParamSet, &pr->CFParams );
+        ConvertCFParams( pMac, &pProbeResp->cfParamSet, &pr.CFParams );
     }
 
-    if ( pr->Country.present )
+    if ( pr.Country.present )
     {
         pProbeResp->countryInfoPresent = 1;
-        ConvertCountry( pMac, &pProbeResp->countryInfoParam, &pr->Country );
+        ConvertCountry( pMac, &pProbeResp->countryInfoParam, &pr.Country );
     }
 
-    if ( pr->EDCAParamSet.present )
+    if ( pr.EDCAParamSet.present )
     {
         pProbeResp->edcaPresent = 1;
-        ConvertEDCAParam( pMac, &pProbeResp->edcaParams, &pr->EDCAParamSet );
+        ConvertEDCAParam( pMac, &pProbeResp->edcaParams, &pr.EDCAParamSet );
     }
 
-    if ( pr->ChanSwitchAnn.present )
+    if ( pr.ChanSwitchAnn.present )
     {
         pProbeResp->channelSwitchPresent = 1;
-        palCopyMemory( pMac, &pProbeResp->channelSwitchIE, &pr->ChanSwitchAnn,
+        palCopyMemory( pMac, &pProbeResp->channelSwitchIE, &pr.ChanSwitchAnn,
 			                                    sizeof(tDot11fIEExtChanSwitchAnn) );
     }
 
-    if ( pr->ExtChanSwitchAnn.present )
+       if ( pr.ExtChanSwitchAnn.present )
     {
         pProbeResp->extChannelSwitchPresent = 1;
-        palCopyMemory( pMac, &pProbeResp->extChannelSwitchIE, &pr->ExtChanSwitchAnn,
+        palCopyMemory( pMac, &pProbeResp->extChannelSwitchIE, &pr.ExtChanSwitchAnn,
 			                                    sizeof(tDot11fIEExtChanSwitchAnn) );
     }
 
-    if( pr->TPCReport.present)
+    if( pr.TPCReport.present)
     {
         pProbeResp->tpcReportPresent = 1;
-        palCopyMemory(pMac->hHdd, &pProbeResp->tpcReport, &pr->TPCReport, sizeof(tDot11fIETPCReport));
+        palCopyMemory(pMac->hHdd, &pProbeResp->tpcReport, &pr.TPCReport, sizeof(tDot11fIETPCReport));
     }
 
-    if( pr->PowerConstraints.present)
+    if( pr.PowerConstraints.present)
     {
         pProbeResp->powerConstraintPresent = 1;
-        palCopyMemory(pMac->hHdd, &pProbeResp->localPowerConstraint, &pr->PowerConstraints, sizeof(tDot11fIEPowerConstraints));
+        palCopyMemory(pMac->hHdd, &pProbeResp->localPowerConstraint, &pr.PowerConstraints, sizeof(tDot11fIEPowerConstraints));
     }
 
-    if ( pr->Quiet.present )
+    if ( pr.Quiet.present )
     {
         pProbeResp->quietIEPresent = 1;
-        palCopyMemory( pMac, &pProbeResp->quietIE, &pr->Quiet, sizeof(tDot11fIEQuiet) );
+        palCopyMemory( pMac, &pProbeResp->quietIE, &pr.Quiet, sizeof(tDot11fIEQuiet) );
     }
 
-    if ( pr->HTCaps.present )
+    if ( pr.HTCaps.present )
     {
-        palCopyMemory( pMac, &pProbeResp->HTCaps, &pr->HTCaps, sizeof( tDot11fIEHTCaps ) );
+        palCopyMemory( pMac, &pProbeResp->HTCaps, &pr.HTCaps, sizeof( tDot11fIEHTCaps ) );
     }
 
-    if ( pr->HTInfo.present )
+    if ( pr.HTInfo.present )
     {
-        palCopyMemory( pMac, &pProbeResp->HTInfo, &pr->HTInfo, sizeof( tDot11fIEHTInfo ) );
+        palCopyMemory( pMac, &pProbeResp->HTInfo, &pr.HTInfo, sizeof( tDot11fIEHTInfo ) );
     }
 
-    if ( pr->RSN.present )
+    if ( pr.RSN.present )
     {
         pProbeResp->rsnPresent = 1;
-        ConvertRSN( pMac, &pProbeResp->rsn, &pr->RSN );
+        ConvertRSN( pMac, &pProbeResp->rsn, &pr.RSN );
     }
 
-    if ( pr->WPA.present )
+    if ( pr.WPA.present )
     {
         pProbeResp->wpaPresent = 1;
-        ConvertWPA( pMac, &pProbeResp->wpa, &pr->WPA );
+        ConvertWPA( pMac, &pProbeResp->wpa, &pr.WPA );
     }
 
-    if ( pr->WMMParams.present )
+    if ( pr.WMMParams.present )
     {
         pProbeResp->wmeEdcaPresent = 1;
-        ConvertWMMParams( pMac, &pProbeResp->edcaParams, &pr->WMMParams );
+        ConvertWMMParams( pMac, &pProbeResp->edcaParams, &pr.WMMParams );
         PELOG1(limLog(pMac, LOG1, FL("WMM Parameter present in Probe Response Frame!\n"));
-                                __printWMMParams(pMac, &pr->WMMParams);)
+                                __printWMMParams(pMac, &pr.WMMParams);)
     }
 
-    if ( pr->WMMInfoAp.present )
+    if ( pr.WMMInfoAp.present )
     {
         pProbeResp->wmeInfoPresent = 1;
         PELOG1(limLog(pMac, LOG1, FL("WMM Information Element present in Probe Response Frame!\n"));)
     }
 
-    if ( pr->WMMCaps.present )
+    if ( pr.WMMCaps.present )
     {
         pProbeResp->wsmCapablePresent = 1;
     }
 
 
-    if ( pr->ERPInfo.present )
+    if ( pr.ERPInfo.present )
     {
         pProbeResp->erpPresent = 1;
-        ConvertERPInfo( pMac, &pProbeResp->erpIEInfo, &pr->ERPInfo );
+        ConvertERPInfo( pMac, &pProbeResp->erpIEInfo, &pr.ERPInfo );
     }
-	vos_mem_free(pr);
+
     return eSIR_SUCCESS;
 
 } // End sirConvertProbeFrame2Struct.
@@ -2018,17 +2015,15 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
                                tANI_U32            nFrame,
                                tpSirAssocReq  pAssocReq)
 {
-    tDot11fAssocRequest *ar = NULL;
+    tDot11fAssocRequest ar;
     tANI_U32                 status;
 
-	ar = vos_mem_malloc(sizeof(tDot11fAssocRequest));
-	vos_mem_set(ar, sizeof(tDot11fAssocRequest), 0);
     // Zero-init our [out] parameter,
     palZeroMemory( pMac->hHdd, ( tANI_U8* )pAssocReq, sizeof(tSirAssocReq) );
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )ar, sizeof( tDot11fAssocRequest ) );
+    palZeroMemory( pMac->hHdd, ( tANI_U8* )&ar, sizeof( tDot11fAssocRequest ) );
 
     // delegate to the framesc-generated code,
-    status = dot11fUnpackAssocRequest( pMac, pFrame, nFrame, ar );
+    status = dot11fUnpackAssocRequest( pMac, pFrame, nFrame, &ar );
     if ( DOT11F_FAILED( status ) )
     {
         limLog(pMac, LOGE, FL("Failed to parse an Association Request (0x%08x, %d bytes):\n"),
@@ -2049,136 +2044,133 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
     pAssocReq->reassocRequest = 0;
 
     // Capabilities
-    pAssocReq->capabilityInfo.ess            = ar->Capabilities.ess;
-    pAssocReq->capabilityInfo.ibss           = ar->Capabilities.ibss;
-    pAssocReq->capabilityInfo.cfPollable     = ar->Capabilities.cfPollable;
-    pAssocReq->capabilityInfo.cfPollReq      = ar->Capabilities.cfPollReq;
-    pAssocReq->capabilityInfo.privacy        = ar->Capabilities.privacy;
-    pAssocReq->capabilityInfo.shortPreamble  = ar->Capabilities.shortPreamble;
-    pAssocReq->capabilityInfo.pbcc           = ar->Capabilities.pbcc;
-    pAssocReq->capabilityInfo.channelAgility = ar->Capabilities.channelAgility;
-    pAssocReq->capabilityInfo.spectrumMgt    = ar->Capabilities.spectrumMgt;
-    pAssocReq->capabilityInfo.qos            = ar->Capabilities.qos;
-    pAssocReq->capabilityInfo.shortSlotTime  = ar->Capabilities.shortSlotTime;
-    pAssocReq->capabilityInfo.apsd           = ar->Capabilities.apsd;
-    pAssocReq->capabilityInfo.reserved       = ar->Capabilities.reserved;
-    pAssocReq->capabilityInfo.dsssOfdm       = ar->Capabilities.dsssOfdm;
-    pAssocReq->capabilityInfo.delayedBA      = ar->Capabilities.delayedBA;
-    pAssocReq->capabilityInfo.immediateBA    = ar->Capabilities.immediateBA;
+    pAssocReq->capabilityInfo.ess            = ar.Capabilities.ess;
+    pAssocReq->capabilityInfo.ibss           = ar.Capabilities.ibss;
+    pAssocReq->capabilityInfo.cfPollable     = ar.Capabilities.cfPollable;
+    pAssocReq->capabilityInfo.cfPollReq      = ar.Capabilities.cfPollReq;
+    pAssocReq->capabilityInfo.privacy        = ar.Capabilities.privacy;
+    pAssocReq->capabilityInfo.shortPreamble  = ar.Capabilities.shortPreamble;
+    pAssocReq->capabilityInfo.pbcc           = ar.Capabilities.pbcc;
+    pAssocReq->capabilityInfo.channelAgility = ar.Capabilities.channelAgility;
+    pAssocReq->capabilityInfo.spectrumMgt    = ar.Capabilities.spectrumMgt;
+    pAssocReq->capabilityInfo.qos            = ar.Capabilities.qos;
+    pAssocReq->capabilityInfo.shortSlotTime  = ar.Capabilities.shortSlotTime;
+    pAssocReq->capabilityInfo.apsd           = ar.Capabilities.apsd;
+    pAssocReq->capabilityInfo.reserved       = ar.Capabilities.reserved;
+    pAssocReq->capabilityInfo.dsssOfdm       = ar.Capabilities.dsssOfdm;
+    pAssocReq->capabilityInfo.delayedBA       = ar.Capabilities.delayedBA;
+    pAssocReq->capabilityInfo.immediateBA    = ar.Capabilities.immediateBA;
 
     // Listen Interval
-    pAssocReq->listenInterval 				= ar->ListenInterval.interval;
+    pAssocReq->listenInterval = ar.ListenInterval.interval;
 
     // SSID
-    if ( ar->SSID.present )
+    if ( ar.SSID.present )
     {
         pAssocReq->ssidPresent = 1;
-        ConvertSSID( pMac, &pAssocReq->ssId, &ar->SSID );
+        ConvertSSID( pMac, &pAssocReq->ssId, &ar.SSID );
     }
 
     // Supported Rates
-    if ( ar->SuppRates.present )
+    if ( ar.SuppRates.present )
     {
         pAssocReq->suppRatesPresent = 1;
-        ConvertSuppRates( pMac, &pAssocReq->supportedRates, &ar->SuppRates );
+        ConvertSuppRates( pMac, &pAssocReq->supportedRates, &ar.SuppRates );
     }
 
     // Extended Supported Rates
-    if ( ar->ExtSuppRates.present )
+    if ( ar.ExtSuppRates.present )
     {
         pAssocReq->extendedRatesPresent = 1;
-        ConvertExtSuppRates( pMac, &pAssocReq->extendedRates, &ar->ExtSuppRates );
+        ConvertExtSuppRates( pMac, &pAssocReq->extendedRates, &ar.ExtSuppRates );
     }
 
     // QOS Capabilities:
-    if ( ar->QOSCapsStation.present )
+    if ( ar.QOSCapsStation.present )
     {
         pAssocReq->qosCapabilityPresent = 1;
-        ConvertQOSCapsStation( pMac, &pAssocReq->qosCapability, &ar->QOSCapsStation );
+        ConvertQOSCapsStation( pMac, &pAssocReq->qosCapability, &ar.QOSCapsStation );
     }
 
     // WPA
-    if ( ar->WPAOpaque.present )
+    if ( ar.WPAOpaque.present )
     {
         pAssocReq->wpaPresent = 1;
-        ConvertWPAOpaque( pMac, &pAssocReq->wpa, &ar->WPAOpaque );
+        ConvertWPAOpaque( pMac, &pAssocReq->wpa, &ar.WPAOpaque );
     }
 
     // RSN
-    if ( ar->RSNOpaque.present )
+    if ( ar.RSNOpaque.present )
     {
         pAssocReq->rsnPresent = 1;
-        ConvertRSNOpaque( pMac, &pAssocReq->rsn, &ar->RSNOpaque );
+        ConvertRSNOpaque( pMac, &pAssocReq->rsn, &ar.RSNOpaque );
     }
 
 
     // Power Capabilities
-    if ( ar->PowerCaps.present )
+    if ( ar.PowerCaps.present )
     {
         pAssocReq->powerCapabilityPresent     = 1;
-        ConvertPowerCaps( pMac, &pAssocReq->powerCapability, &ar->PowerCaps );
+        ConvertPowerCaps( pMac, &pAssocReq->powerCapability, &ar.PowerCaps );
     }
 
     // Supported Channels
-    if ( ar->SuppChannels.present )
+    if ( ar.SuppChannels.present )
     {
         pAssocReq->supportedChannelsPresent = 1;
-        ConvertSuppChannels( pMac, &pAssocReq->supportedChannels, &ar->SuppChannels );
+        ConvertSuppChannels( pMac, &pAssocReq->supportedChannels, &ar.SuppChannels );
     }
 
-    if ( ar->HTCaps.present )
+    if ( ar.HTCaps.present )
     {
-        palCopyMemory( pMac, &pAssocReq->HTCaps, &ar->HTCaps, sizeof( tDot11fIEHTCaps ) );
+        palCopyMemory( pMac, &pAssocReq->HTCaps, &ar.HTCaps, sizeof( tDot11fIEHTCaps ) );
     }
 
-    if ( ar->WMMInfoStation.present )
+    if ( ar.WMMInfoStation.present )
     {
         pAssocReq->wmeInfoPresent = 1;
 #ifdef WLAN_SOFTAP_FEATURE
-        palCopyMemory( pMac, &pAssocReq->WMMInfoStation, &ar->WMMInfoStation, sizeof( tDot11fIEWMMInfoStation ) );
+        palCopyMemory( pMac, &pAssocReq->WMMInfoStation, &ar.WMMInfoStation, sizeof( tDot11fIEWMMInfoStation ) );
 #endif
 
     }
 
 
-    if ( ar->WMMCaps.present ) pAssocReq->wsmCapablePresent = 1;
+    if ( ar.WMMCaps.present ) pAssocReq->wsmCapablePresent = 1;
 
     if ( ! pAssocReq->ssidPresent )
     {
         PELOG2(limLog(pMac, LOG2, FL("Received Assoc without SSID IE.\n"));)
-        vos_mem_free(ar);
         return eSIR_FAILURE;
     }
 
     if (!pAssocReq->suppRatesPresent)
     {
         PELOG2(limLog(pMac, LOG2, FL("Received Assoc without supp rate IE.\n"));)
-        vos_mem_free(ar);
         return eSIR_FAILURE;
     }
 
     /* Initialize wscInfo. */
     memset(&pAssocReq->wscInfo, 0, sizeof(tSirMacWscInfo));
 
-    if ( ar->WscAssocReq.present )
+    if ( ar.WscAssocReq.present )
     {
         pAssocReq->wscInfo.present = 1;
 
         /* Copy the element info from tDot11fAssocRequest(ar) to
 					 tSirAssocReq(pAssocReq) structure, if present */
 
-        if (ar->WscAssocReq.Version.present){
+        if (ar.WscAssocReq.Version.present){
                 /* Get the version from Minor and Major; Also consider endianness. */
-					pAssocReq->wscInfo.wpsVersion   = ( (ar->WscAssocReq.Version.major << 4)
-																							| ar->WscAssocReq.Version.minor );
+					pAssocReq->wscInfo.wpsVersion   = ( (ar.WscAssocReq.Version.major << 4)
+																							| ar.WscAssocReq.Version.minor );
         }
 
-        if (ar->WscAssocReq.RequestType.present){
-            pAssocReq->wscInfo.wpsRequestType   = ar->WscAssocReq.RequestType.reqType;
-    	}
+        if (ar.WscAssocReq.RequestType.present){
+            pAssocReq->wscInfo.wpsRequestType   = ar.WscAssocReq.RequestType.reqType;
+    }
 	}
 
-    vos_mem_free(ar);
     return eSIR_SUCCESS;
 
 } // End sirConvertAssocReqFrame2Struct.
@@ -2286,17 +2278,14 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
                                  tANI_U32            nFrame,
                                  tpSirAssocReq  pAssocReq)
 {
-    tDot11fReAssocRequest *ar = NULL;
+    tDot11fReAssocRequest ar;
     tANI_U32                   status;
-
-	ar = vos_mem_malloc(sizeof(tDot11fReAssocRequest));
-	vos_mem_set(ar, sizeof(tDot11fReAssocRequest), 0);
 
     // Zero-init our [out] parameter,
     palZeroMemory( pMac->hHdd, ( tANI_U8* )pAssocReq, sizeof(tSirAssocReq) );
 
     // delegate to the framesc-generated code,
-    status = dot11fUnpackReAssocRequest( pMac, pFrame, nFrame, ar );
+    status = dot11fUnpackReAssocRequest( pMac, pFrame, nFrame, &ar );
     if ( DOT11F_FAILED( status ) )
     {
         limLog(pMac, LOGE, FL("Failed to parse a Re-association Request (0x%08x, %d bytes):\n"),
@@ -2317,111 +2306,109 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
     pAssocReq->reassocRequest = 1;
 
     // Capabilities
-    pAssocReq->capabilityInfo.ess            = ar->Capabilities.ess;
-    pAssocReq->capabilityInfo.ibss           = ar->Capabilities.ibss;
-    pAssocReq->capabilityInfo.cfPollable     = ar->Capabilities.cfPollable;
-    pAssocReq->capabilityInfo.cfPollReq      = ar->Capabilities.cfPollReq;
-    pAssocReq->capabilityInfo.privacy        = ar->Capabilities.privacy;
-    pAssocReq->capabilityInfo.shortPreamble  = ar->Capabilities.shortPreamble;
-    pAssocReq->capabilityInfo.pbcc           = ar->Capabilities.pbcc;
-    pAssocReq->capabilityInfo.channelAgility = ar->Capabilities.channelAgility;
-    pAssocReq->capabilityInfo.spectrumMgt    = ar->Capabilities.spectrumMgt;
-    pAssocReq->capabilityInfo.qos            = ar->Capabilities.qos;
-    pAssocReq->capabilityInfo.shortSlotTime  = ar->Capabilities.shortSlotTime;
-    pAssocReq->capabilityInfo.apsd           = ar->Capabilities.apsd;
-    pAssocReq->capabilityInfo.reserved       = ar->Capabilities.reserved;
-    pAssocReq->capabilityInfo.dsssOfdm       = ar->Capabilities.dsssOfdm;
-    pAssocReq->capabilityInfo.delayedBA      = ar->Capabilities.delayedBA;
-    pAssocReq->capabilityInfo.immediateBA    = ar->Capabilities.immediateBA;
+    pAssocReq->capabilityInfo.ess            = ar.Capabilities.ess;
+    pAssocReq->capabilityInfo.ibss           = ar.Capabilities.ibss;
+    pAssocReq->capabilityInfo.cfPollable     = ar.Capabilities.cfPollable;
+    pAssocReq->capabilityInfo.cfPollReq      = ar.Capabilities.cfPollReq;
+    pAssocReq->capabilityInfo.privacy        = ar.Capabilities.privacy;
+    pAssocReq->capabilityInfo.shortPreamble  = ar.Capabilities.shortPreamble;
+    pAssocReq->capabilityInfo.pbcc           = ar.Capabilities.pbcc;
+    pAssocReq->capabilityInfo.channelAgility = ar.Capabilities.channelAgility;
+    pAssocReq->capabilityInfo.spectrumMgt    = ar.Capabilities.spectrumMgt;
+    pAssocReq->capabilityInfo.qos            = ar.Capabilities.qos;
+    pAssocReq->capabilityInfo.shortSlotTime  = ar.Capabilities.shortSlotTime;
+    pAssocReq->capabilityInfo.apsd           = ar.Capabilities.apsd;
+    pAssocReq->capabilityInfo.reserved       = ar.Capabilities.reserved;
+    pAssocReq->capabilityInfo.dsssOfdm      = ar.Capabilities.dsssOfdm;
+    pAssocReq->capabilityInfo.delayedBA       = ar.Capabilities.delayedBA;
+    pAssocReq->capabilityInfo.immediateBA    = ar.Capabilities.immediateBA;
 
     // Listen Interval
-    pAssocReq->listenInterval 				= ar->ListenInterval.interval;
+    pAssocReq->listenInterval = ar.ListenInterval.interval;
 
     // SSID
-    if ( ar->SSID.present )
+    if ( ar.SSID.present )
     {
         pAssocReq->ssidPresent = 1;
-        ConvertSSID( pMac, &pAssocReq->ssId, &ar->SSID );
+        ConvertSSID( pMac, &pAssocReq->ssId, &ar.SSID );
     }
 
     // Supported Rates
-    if ( ar->SuppRates.present )
+    if ( ar.SuppRates.present )
     {
         pAssocReq->suppRatesPresent = 1;
-        ConvertSuppRates( pMac, &pAssocReq->supportedRates, &ar->SuppRates );
+        ConvertSuppRates( pMac, &pAssocReq->supportedRates, &ar.SuppRates );
     }
 
     // Extended Supported Rates
-    if ( ar->ExtSuppRates.present )
+    if ( ar.ExtSuppRates.present )
     {
         pAssocReq->extendedRatesPresent = 1;
         ConvertExtSuppRates( pMac, &pAssocReq->extendedRates,
-                             &ar->ExtSuppRates );
+                             &ar.ExtSuppRates );
     }
 
     // QOS Capabilities:
-    if ( ar->QOSCapsStation.present )
+    if ( ar.QOSCapsStation.present )
     {
         pAssocReq->qosCapabilityPresent = 1;
-        ConvertQOSCapsStation( pMac, &pAssocReq->qosCapability, &ar->QOSCapsStation );
+        ConvertQOSCapsStation( pMac, &pAssocReq->qosCapability, &ar.QOSCapsStation );
     }
 
     // WPA
-    if ( ar->WPAOpaque.present )
+    if ( ar.WPAOpaque.present )
     {
         pAssocReq->wpaPresent = 1;
-        ConvertWPAOpaque( pMac, &pAssocReq->wpa, &ar->WPAOpaque );
+        ConvertWPAOpaque( pMac, &pAssocReq->wpa, &ar.WPAOpaque );
     }
 
     // RSN
-    if ( ar->RSNOpaque.present )
+    if ( ar.RSNOpaque.present )
     {
         pAssocReq->rsnPresent = 1;
-        ConvertRSNOpaque( pMac, &pAssocReq->rsn, &ar->RSNOpaque );
+        ConvertRSNOpaque( pMac, &pAssocReq->rsn, &ar.RSNOpaque );
     }
 
 
     // Power Capabilities
-    if ( ar->PowerCaps.present )
+    if ( ar.PowerCaps.present )
     {
         pAssocReq->powerCapabilityPresent     = 1;
-        ConvertPowerCaps( pMac, &pAssocReq->powerCapability, &ar->PowerCaps );
+        ConvertPowerCaps( pMac, &pAssocReq->powerCapability, &ar.PowerCaps );
     }
 
     // Supported Channels
-    if ( ar->SuppChannels.present )
+    if ( ar.SuppChannels.present )
     {
         pAssocReq->supportedChannelsPresent = 1;
-        ConvertSuppChannels( pMac, &pAssocReq->supportedChannels, &ar->SuppChannels );
+        ConvertSuppChannels( pMac, &pAssocReq->supportedChannels, &ar.SuppChannels );
     }
 
-    if ( ar->HTCaps.present )
+    if ( ar.HTCaps.present )
     {
-        palCopyMemory( pMac, &pAssocReq->HTCaps, &ar->HTCaps, sizeof( tDot11fIEHTCaps ) );
+        palCopyMemory( pMac, &pAssocReq->HTCaps, &ar.HTCaps, sizeof( tDot11fIEHTCaps ) );
     }
 
-    if ( ar->WMMInfoStation.present )
+    if ( ar.WMMInfoStation.present )
     {
         pAssocReq->wmeInfoPresent = 1;
 #ifdef WLAN_SOFTAP_FEATURE
-        palCopyMemory( pMac, &pAssocReq->WMMInfoStation, &ar->WMMInfoStation, sizeof( tDot11fIEWMMInfoStation ) );
+        palCopyMemory( pMac, &pAssocReq->WMMInfoStation, &ar.WMMInfoStation, sizeof( tDot11fIEWMMInfoStation ) );
 #endif
 
     }
 
-    if ( ar->WMMCaps.present ) pAssocReq->wsmCapablePresent = 1;
+    if ( ar.WMMCaps.present ) pAssocReq->wsmCapablePresent = 1;
 
     if ( ! pAssocReq->ssidPresent )
     {
         PELOG2(limLog(pMac, LOG2, FL("Received Assoc without SSID IE.\n"));)
-		vos_mem_free(ar);
         return eSIR_FAILURE;
     }
 
     if ( ! pAssocReq->suppRatesPresent )
     {
         PELOG2(limLog(pMac, LOG2, FL("Received Assoc without supp rate IE.\n"));)
-		vos_mem_free(ar);
         return eSIR_FAILURE;
     }
 
@@ -2430,21 +2417,20 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
 
 		memset(&pAssocReq->wscInfo, 0, sizeof(tSirMacWscInfo));
 
-    if ( ar->WscAssocReq.present )
+    if ( ar.WscAssocReq.present )
     {
         /* Copy the element info from tDot11fAssocRequest(ar) to tSirAssocReq(pAssocReq)
            structure, if present */
-        if (ar->WscAssocReq.Version.present){
+        if (ar.WscAssocReq.Version.present){
                 /* Get the version from Minor and Major; Also consider endianness. */
-                pAssocReq->wscInfo.wpsVersion   = (ar->WscAssocReq.Version.major << 4) | ar->WscAssocReq.Version.minor;
+                pAssocReq->wscInfo.wpsVersion   = (ar.WscAssocReq.Version.major << 4) | ar.WscAssocReq.Version.minor;
         }
 
-        if (ar->WscAssocReq.RequestType.present){
-            pAssocReq->wscInfo.wpsRequestType   = ar->WscAssocReq.RequestType.reqType;
+        if (ar.WscAssocReq.RequestType.present){
+            pAssocReq->wscInfo.wpsRequestType   = ar.WscAssocReq.RequestType.reqType;
         }
     }
 
-	vos_mem_free(ar);
     return eSIR_SUCCESS;
 
 } // End sirConvertReassocReqFrame2Struct.
@@ -2455,16 +2441,14 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
                  tANI_U8                   *pPayload,
                  tANI_U32                   nPayload)
 {
-    tDot11fBeaconIEs *bies=NULL;
+    tDot11fBeaconIEs bies;
     tANI_U32              status;
 
-	bies = vos_mem_malloc(sizeof(tDot11fBeaconIEs));
-	vos_mem_set(bies,sizeof(tDot11fBeaconIEs),0);
     // Zero-init our [out] parameter,
     palZeroMemory( pMac->hHdd, ( tANI_U8* )pBeaconStruct, sizeof(tSirProbeRespBeacon) );
 
     // delegate to the framesc-generated code,
-    status = dot11fUnpackBeaconIEs( pMac, pPayload, nPayload, bies );
+    status = dot11fUnpackBeaconIEs( pMac, pPayload, nPayload, &bies );
     if ( DOT11F_FAILED( status ) )
     {
         limLog(pMac, LOGE, FL("Failed to parse Beacon IEs (0x%08x, %d bytes):\n"),
@@ -2480,155 +2464,155 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
     }
 
     // & "transliterate" from a 'tDot11fBeaconIEs' to a 'tSirProbeRespBeacon'...
-    if ( ! bies->SSID.present )
+    if ( ! bies.SSID.present )
     {
         PELOGW(limLog(pMac, LOGW, FL("Mandatory IE SSID not present!\n"));)
     }
     else
     {
         pBeaconStruct->ssidPresent = 1;
-        ConvertSSID( pMac, &pBeaconStruct->ssId, &bies->SSID );
+        ConvertSSID( pMac, &pBeaconStruct->ssId, &bies.SSID );
     }
 
-    if ( ! bies->SuppRates.present )
+    if ( ! bies.SuppRates.present )
     {
         PELOGW(limLog(pMac, LOGW, FL("Mandatory IE Supported Rates not present!\n"));)
     }
     else
     {
         pBeaconStruct->suppRatesPresent = 1;
-        ConvertSuppRates( pMac, &pBeaconStruct->supportedRates, &bies->SuppRates );
+        ConvertSuppRates( pMac, &pBeaconStruct->supportedRates, &bies.SuppRates );
     }
 
-    if ( bies->ExtSuppRates.present )
+    if ( bies.ExtSuppRates.present )
     {
         pBeaconStruct->extendedRatesPresent = 1;
-        ConvertExtSuppRates( pMac, &pBeaconStruct->extendedRates, &bies->ExtSuppRates );
+        ConvertExtSuppRates( pMac, &pBeaconStruct->extendedRates, &bies.ExtSuppRates );
     }
 
-    if ( bies->DSParams.present )
+    if ( bies.DSParams.present )
     {
         pBeaconStruct->dsParamsPresent = 1;
-        pBeaconStruct->channelNumber = bies->DSParams.curr_channel;
+        pBeaconStruct->channelNumber = bies.DSParams.curr_channel;
     }
 
-    if ( bies->CFParams.present )
+    if ( bies.CFParams.present )
     {
         pBeaconStruct->cfPresent = 1;
-        ConvertCFParams( pMac, &pBeaconStruct->cfParamSet, &bies->CFParams );
+        ConvertCFParams( pMac, &pBeaconStruct->cfParamSet, &bies.CFParams );
     }
 
-    if ( bies->TIM.present )
+    if ( bies.TIM.present )
     {
         pBeaconStruct->timPresent = 1;
-        ConvertTIM( pMac, &pBeaconStruct->tim, &bies->TIM );
+        ConvertTIM( pMac, &pBeaconStruct->tim, &bies.TIM );
     }
 
-    if ( bies->Country.present )
+    if ( bies.Country.present )
     {
         pBeaconStruct->countryInfoPresent = 1;
-        ConvertCountry( pMac, &pBeaconStruct->countryInfoParam, &bies->Country );
+        ConvertCountry( pMac, &pBeaconStruct->countryInfoParam, &bies.Country );
     }
 
     // 11h IEs
-    if(bies->TPCReport.present)
+    if(bies.TPCReport.present)
     {
         pBeaconStruct->tpcReportPresent = 1;
         palCopyMemory(pMac,
                       &pBeaconStruct->tpcReport,
-                      &bies->TPCReport,
+                      &bies.TPCReport,
                       sizeof( tDot11fIETPCReport));
     }
 
-    if(bies->PowerConstraints.present)
+    if(bies.PowerConstraints.present)
     {
         pBeaconStruct->powerConstraintPresent = 1;
         palCopyMemory(pMac,
                       &pBeaconStruct->localPowerConstraint,
-                      &bies->PowerConstraints,
+                      &bies.PowerConstraints,
                       sizeof(tDot11fIEPowerConstraints));
     }
 
-    if ( bies->EDCAParamSet.present )
+    if ( bies.EDCAParamSet.present )
     {
         pBeaconStruct->edcaPresent = 1;
-        ConvertEDCAParam( pMac, &pBeaconStruct->edcaParams, &bies->EDCAParamSet );
+        ConvertEDCAParam( pMac, &pBeaconStruct->edcaParams, &bies.EDCAParamSet );
     }
 
     // QOS Capabilities:
-    if ( bies->QOSCapsAp.present )
+    if ( bies.QOSCapsAp.present )
     {
         pBeaconStruct->qosCapabilityPresent = 1;
-        ConvertQOSCaps( pMac, &pBeaconStruct->qosCapability, &bies->QOSCapsAp );
+        ConvertQOSCaps( pMac, &pBeaconStruct->qosCapability, &bies.QOSCapsAp );
     }
 
 
 
-    if ( bies->ChanSwitchAnn.present )
+    if ( bies.ChanSwitchAnn.present )
     {
         pBeaconStruct->channelSwitchPresent = 1;
-        palCopyMemory(pMac->hHdd, &pBeaconStruct->channelSwitchIE, &bies->ChanSwitchAnn,
+        palCopyMemory(pMac->hHdd, &pBeaconStruct->channelSwitchIE, &bies.ChanSwitchAnn,
 			                                              sizeof(tDot11fIEChanSwitchAnn));
     }
 
-    if ( bies->ExtChanSwitchAnn.present)
+    if ( bies.ExtChanSwitchAnn.present)
     {
         pBeaconStruct->extChannelSwitchPresent= 1;
-        palCopyMemory(pMac->hHdd, &pBeaconStruct->extChannelSwitchIE, &bies->ExtChanSwitchAnn,
+        palCopyMemory(pMac->hHdd, &pBeaconStruct->extChannelSwitchIE, &bies.ExtChanSwitchAnn,
 			                                              sizeof(tDot11fIEExtChanSwitchAnn));
     }
 
-    if ( bies->Quiet.present )
+    if ( bies.Quiet.present )
     {
         pBeaconStruct->quietIEPresent = 1;
-        palCopyMemory( pMac, &pBeaconStruct->quietIE, &bies->Quiet, sizeof(tDot11fIEQuiet) );
+        palCopyMemory( pMac, &pBeaconStruct->quietIE, &bies.Quiet, sizeof(tDot11fIEQuiet) );
     }
 
-    if ( bies->HTCaps.present )
+    if ( bies.HTCaps.present )
     {
-        palCopyMemory( pMac, &pBeaconStruct->HTCaps, &bies->HTCaps, sizeof( tDot11fIEHTCaps ) );
+        palCopyMemory( pMac, &pBeaconStruct->HTCaps, &bies.HTCaps, sizeof( tDot11fIEHTCaps ) );
     }
 
-    if ( bies->HTInfo.present )
+    if ( bies.HTInfo.present )
     {
-        palCopyMemory( pMac, &pBeaconStruct->HTInfo, &bies->HTInfo, sizeof( tDot11fIEHTInfo ) );
+        palCopyMemory( pMac, &pBeaconStruct->HTInfo, &bies.HTInfo, sizeof( tDot11fIEHTInfo ) );
     }
 
-    if ( bies->RSN.present )
+    if ( bies.RSN.present )
     {
         pBeaconStruct->rsnPresent = 1;
-        ConvertRSN( pMac, &pBeaconStruct->rsn, &bies->RSN );
+        ConvertRSN( pMac, &pBeaconStruct->rsn, &bies.RSN );
     }
 
-    if ( bies->WPA.present )
+    if ( bies.WPA.present )
     {
         pBeaconStruct->wpaPresent = 1;
-        ConvertWPA( pMac, &pBeaconStruct->wpa, &bies->WPA );
+        ConvertWPA( pMac, &pBeaconStruct->wpa, &bies.WPA );
     }
 
-    if ( bies->WMMParams.present )
+    if ( bies.WMMParams.present )
     {
         pBeaconStruct->wmeEdcaPresent = 1;
-        ConvertWMMParams( pMac, &pBeaconStruct->edcaParams, &bies->WMMParams );
+        ConvertWMMParams( pMac, &pBeaconStruct->edcaParams, &bies.WMMParams );
     }
 
-    if ( bies->WMMInfoAp.present )
+    if ( bies.WMMInfoAp.present )
     {
         pBeaconStruct->wmeInfoPresent = 1;
     }
 
-    if ( bies->WMMCaps.present )
+    if ( bies.WMMCaps.present )
     {
         pBeaconStruct->wsmCapablePresent = 1;
     }
 
 
-    if ( bies->ERPInfo.present )
+    if ( bies.ERPInfo.present )
     {
         pBeaconStruct->erpPresent = 1;
-        ConvertERPInfo( pMac, &pBeaconStruct->erpIEInfo, &bies->ERPInfo );
+        ConvertERPInfo( pMac, &pBeaconStruct->erpIEInfo, &bies.ERPInfo );
     }
-	vos_mem_free(bies);
+
     return eSIR_SUCCESS;
 
 } // End sirParseBeaconIE.
@@ -2638,25 +2622,24 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
                              tANI_U8             *pFrame,
                              tpSirProbeRespBeacon pBeaconStruct)
 {
-    tDot11fBeacon   *beacon=NULL;
+    tDot11fBeacon   beacon;
     tANI_U32        status, nPayload;
     tANI_U8        *pPayload;
     tpSirMacMgmtHdr pHdr;
-	beacon = vos_mem_malloc(sizeof(tDot11fBeacon));
-	vos_mem_set(beacon, sizeof(tDot11fBeacon),0);
+
     pPayload = SIR_MAC_BD_TO_MPDUDATA( pFrame );
     nPayload = SIR_MAC_BD_TO_PAYLOAD_LEN( pFrame );
     pHdr     = SIR_MAC_BD_TO_MPDUHEADER( pFrame );
     
     // Zero-init our [out] parameter,
     palZeroMemory( pMac->hHdd, ( tANI_U8* )pBeaconStruct, sizeof(tSirProbeRespBeacon) );
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )beacon, sizeof(tDot11fBeacon) );
+    palZeroMemory( pMac->hHdd, ( tANI_U8* )&beacon, sizeof(tDot11fBeacon) );
 
     // get the MAC address out of the BD,
     palCopyMemory( pMac->hHdd, pBeaconStruct->bssid, pHdr->sa, 6 );
 
     // delegate to the framesc-generated code,
-    status = dot11fUnpackBeacon( pMac, pPayload, nPayload, beacon );
+    status = dot11fUnpackBeacon( pMac, pPayload, nPayload, &beacon );
     if ( DOT11F_FAILED( status ) )
     {
         limLog(pMac, LOGE, FL("Failed to parse Beacon IEs (0x%08x, %d bytes):\n"),
@@ -2673,174 +2656,174 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
 
     // & "transliterate" from a 'tDot11fBeacon' to a 'tSirProbeRespBeacon'...
     // Timestamp
-    palCopyMemory( pMac->hHdd, ( tANI_U8* )pBeaconStruct->timeStamp, ( tANI_U8* )&beacon->TimeStamp, sizeof(tSirMacTimeStamp) );
+    palCopyMemory( pMac->hHdd, ( tANI_U8* )pBeaconStruct->timeStamp, ( tANI_U8* )&beacon.TimeStamp, sizeof(tSirMacTimeStamp) );
 
     // Beacon Interval
-    pBeaconStruct->beaconInterval = beacon->BeaconInterval.interval;
+    pBeaconStruct->beaconInterval = beacon.BeaconInterval.interval;
 
     // Capabilities
-    pBeaconStruct->capabilityInfo.ess            = beacon->Capabilities.ess;
-    pBeaconStruct->capabilityInfo.ibss           = beacon->Capabilities.ibss;
-    pBeaconStruct->capabilityInfo.cfPollable     = beacon->Capabilities.cfPollable;
-    pBeaconStruct->capabilityInfo.cfPollReq      = beacon->Capabilities.cfPollReq;
-    pBeaconStruct->capabilityInfo.privacy        = beacon->Capabilities.privacy;
-    pBeaconStruct->capabilityInfo.shortPreamble  = beacon->Capabilities.shortPreamble;
-    pBeaconStruct->capabilityInfo.pbcc           = beacon->Capabilities.pbcc;
-    pBeaconStruct->capabilityInfo.channelAgility = beacon->Capabilities.channelAgility;
-    pBeaconStruct->capabilityInfo.spectrumMgt    = beacon->Capabilities.spectrumMgt;
-    pBeaconStruct->capabilityInfo.qos            = beacon->Capabilities.qos;
-    pBeaconStruct->capabilityInfo.shortSlotTime  = beacon->Capabilities.shortSlotTime;
-    pBeaconStruct->capabilityInfo.apsd           = beacon->Capabilities.apsd;
-    pBeaconStruct->capabilityInfo.reserved       = beacon->Capabilities.reserved;
-    pBeaconStruct->capabilityInfo.dsssOfdm      = beacon->Capabilities.dsssOfdm;
-    pBeaconStruct->capabilityInfo.delayedBA     = beacon->Capabilities.delayedBA;
-    pBeaconStruct->capabilityInfo.immediateBA    = beacon->Capabilities.immediateBA;
+    pBeaconStruct->capabilityInfo.ess            = beacon.Capabilities.ess;
+    pBeaconStruct->capabilityInfo.ibss           = beacon.Capabilities.ibss;
+    pBeaconStruct->capabilityInfo.cfPollable     = beacon.Capabilities.cfPollable;
+    pBeaconStruct->capabilityInfo.cfPollReq      = beacon.Capabilities.cfPollReq;
+    pBeaconStruct->capabilityInfo.privacy        = beacon.Capabilities.privacy;
+    pBeaconStruct->capabilityInfo.shortPreamble  = beacon.Capabilities.shortPreamble;
+    pBeaconStruct->capabilityInfo.pbcc           = beacon.Capabilities.pbcc;
+    pBeaconStruct->capabilityInfo.channelAgility = beacon.Capabilities.channelAgility;
+    pBeaconStruct->capabilityInfo.spectrumMgt    = beacon.Capabilities.spectrumMgt;
+    pBeaconStruct->capabilityInfo.qos            = beacon.Capabilities.qos;
+    pBeaconStruct->capabilityInfo.shortSlotTime  = beacon.Capabilities.shortSlotTime;
+    pBeaconStruct->capabilityInfo.apsd           = beacon.Capabilities.apsd;
+    pBeaconStruct->capabilityInfo.reserved       = beacon.Capabilities.reserved;
+    pBeaconStruct->capabilityInfo.dsssOfdm      = beacon.Capabilities.dsssOfdm;
+    pBeaconStruct->capabilityInfo.delayedBA     = beacon.Capabilities.delayedBA;
+    pBeaconStruct->capabilityInfo.immediateBA    = beacon.Capabilities.immediateBA;
  
-    if ( ! beacon->SSID.present )
+    if ( ! beacon.SSID.present )
     {
         PELOGW(limLog(pMac, LOGW, FL("Mandatory IE SSID not present!\n"));)
     }
     else
     {
         pBeaconStruct->ssidPresent = 1;
-        ConvertSSID( pMac, &pBeaconStruct->ssId, &beacon->SSID );
+        ConvertSSID( pMac, &pBeaconStruct->ssId, &beacon.SSID );
     }
 
-    if ( ! beacon->SuppRates.present )
+    if ( ! beacon.SuppRates.present )
     {
         PELOGW(limLog(pMac, LOGW, FL("Mandatory IE Supported Rates not present!\n"));)
     }
     else
     {
         pBeaconStruct->suppRatesPresent = 1;
-        ConvertSuppRates( pMac, &pBeaconStruct->supportedRates, &beacon->SuppRates );
+        ConvertSuppRates( pMac, &pBeaconStruct->supportedRates, &beacon.SuppRates );
     }
 
-    if ( beacon->ExtSuppRates.present )
+    if ( beacon.ExtSuppRates.present )
     {
         pBeaconStruct->extendedRatesPresent = 1;
-        ConvertExtSuppRates( pMac, &pBeaconStruct->extendedRates, &beacon->ExtSuppRates );
+        ConvertExtSuppRates( pMac, &pBeaconStruct->extendedRates, &beacon.ExtSuppRates );
     }
 
-    if ( beacon->DSParams.present )
+    if ( beacon.DSParams.present )
     {
         pBeaconStruct->dsParamsPresent = 1;
-        pBeaconStruct->channelNumber = beacon->DSParams.curr_channel;
+        pBeaconStruct->channelNumber = beacon.DSParams.curr_channel;
     }
 
-    if ( beacon->CFParams.present )
+    if ( beacon.CFParams.present )
     {
         pBeaconStruct->cfPresent = 1;
-        ConvertCFParams( pMac, &pBeaconStruct->cfParamSet, &beacon->CFParams );
+        ConvertCFParams( pMac, &pBeaconStruct->cfParamSet, &beacon.CFParams );
     }
 
-    if ( beacon->TIM.present )
+    if ( beacon.TIM.present )
     {
         pBeaconStruct->timPresent = 1;
-        ConvertTIM( pMac, &pBeaconStruct->tim, &beacon->TIM );
+        ConvertTIM( pMac, &pBeaconStruct->tim, &beacon.TIM );
     }
 
-    if ( beacon->Country.present )
+    if ( beacon.Country.present )
     {
         pBeaconStruct->countryInfoPresent = 1;
-        ConvertCountry( pMac, &pBeaconStruct->countryInfoParam, &beacon->Country );
+        ConvertCountry( pMac, &pBeaconStruct->countryInfoParam, &beacon.Country );
     }
 
     // QOS Capabilities:
-    if ( beacon->QOSCapsAp.present )
+    if ( beacon.QOSCapsAp.present )
     {
         pBeaconStruct->qosCapabilityPresent = 1;
-        ConvertQOSCaps( pMac, &pBeaconStruct->qosCapability, &beacon->QOSCapsAp );
+        ConvertQOSCaps( pMac, &pBeaconStruct->qosCapability, &beacon.QOSCapsAp );
     }
 
-    if ( beacon->EDCAParamSet.present )
+    if ( beacon.EDCAParamSet.present )
     {
         pBeaconStruct->edcaPresent = 1;
-        ConvertEDCAParam( pMac, &pBeaconStruct->edcaParams, &beacon->EDCAParamSet );
+        ConvertEDCAParam( pMac, &pBeaconStruct->edcaParams, &beacon.EDCAParamSet );
     }
 
-    if ( beacon->ChanSwitchAnn.present )
+    if ( beacon.ChanSwitchAnn.present )
     {
         pBeaconStruct->channelSwitchPresent = 1;
-        palCopyMemory( pMac, &pBeaconStruct->channelSwitchIE, &beacon->ChanSwitchAnn,
+        palCopyMemory( pMac, &pBeaconStruct->channelSwitchIE, &beacon.ChanSwitchAnn,
                                                        sizeof(tDot11fIEChanSwitchAnn) );
     }
 
-    if ( beacon->ExtChanSwitchAnn.present )
+    if ( beacon.ExtChanSwitchAnn.present )
     {
         pBeaconStruct->extChannelSwitchPresent = 1;
-        palCopyMemory( pMac, &pBeaconStruct->extChannelSwitchIE, &beacon->ExtChanSwitchAnn,
+        palCopyMemory( pMac, &pBeaconStruct->extChannelSwitchIE, &beacon.ExtChanSwitchAnn,
                                                        sizeof(tDot11fIEExtChanSwitchAnn) );
     }
 
-    if( beacon->TPCReport.present)
+    if( beacon.TPCReport.present)
     {
         pBeaconStruct->tpcReportPresent = 1;
-        palCopyMemory(pMac->hHdd, &pBeaconStruct->tpcReport, &beacon->TPCReport,
+        palCopyMemory(pMac->hHdd, &pBeaconStruct->tpcReport, &beacon.TPCReport,
                                                      sizeof(tDot11fIETPCReport));
     }
 
-    if( beacon->PowerConstraints.present)
+    if( beacon.PowerConstraints.present)
     {
         pBeaconStruct->powerConstraintPresent = 1;
-        palCopyMemory(pMac->hHdd, &pBeaconStruct->localPowerConstraint, &beacon->PowerConstraints,
+        palCopyMemory(pMac->hHdd, &pBeaconStruct->localPowerConstraint, &beacon.PowerConstraints,
                                                                sizeof(tDot11fIEPowerConstraints));
     }
 
-    if ( beacon->Quiet.present )
+    if ( beacon.Quiet.present )
     {
         pBeaconStruct->quietIEPresent = 1;
-        palCopyMemory( pMac, &pBeaconStruct->quietIE, &beacon->Quiet, sizeof(tDot11fIEQuiet));
+        palCopyMemory( pMac, &pBeaconStruct->quietIE, &beacon.Quiet, sizeof(tDot11fIEQuiet));
     }
 
-    if ( beacon->HTCaps.present )
+    if ( beacon.HTCaps.present )
     {
-        palCopyMemory( pMac, &pBeaconStruct->HTCaps, &beacon->HTCaps, sizeof( tDot11fIEHTCaps ) );
+        palCopyMemory( pMac, &pBeaconStruct->HTCaps, &beacon.HTCaps, sizeof( tDot11fIEHTCaps ) );
     }
 
-    if ( beacon->HTInfo.present )
+    if ( beacon.HTInfo.present )
     {
-        palCopyMemory( pMac, &pBeaconStruct->HTInfo, &beacon->HTInfo, sizeof( tDot11fIEHTInfo) );
+        palCopyMemory( pMac, &pBeaconStruct->HTInfo, &beacon.HTInfo, sizeof( tDot11fIEHTInfo) );
 
     }
 
-    if ( beacon->RSN.present )
+    if ( beacon.RSN.present )
     {
         pBeaconStruct->rsnPresent = 1;
-        ConvertRSN( pMac, &pBeaconStruct->rsn, &beacon->RSN );
+        ConvertRSN( pMac, &pBeaconStruct->rsn, &beacon.RSN );
     }
 
-    if ( beacon->WPA.present )
+    if ( beacon.WPA.present )
     {
         pBeaconStruct->wpaPresent = 1;
-        ConvertWPA( pMac, &pBeaconStruct->wpa, &beacon->WPA );
+        ConvertWPA( pMac, &pBeaconStruct->wpa, &beacon.WPA );
     }
 
-    if ( beacon->WMMParams.present )
+    if ( beacon.WMMParams.present )
     {
         pBeaconStruct->wmeEdcaPresent = 1;
-        ConvertWMMParams( pMac, &pBeaconStruct->edcaParams, &beacon->WMMParams );
+        ConvertWMMParams( pMac, &pBeaconStruct->edcaParams, &beacon.WMMParams );
         PELOG1(limLog(pMac, LOG1, FL("WMM Parameter present in Beacon Frame!\n"));
-        __printWMMParams(pMac, &beacon->WMMParams); )
+        __printWMMParams(pMac, &beacon.WMMParams); )
     }
 
-    if ( beacon->WMMInfoAp.present )
+    if ( beacon.WMMInfoAp.present )
     {
         pBeaconStruct->wmeInfoPresent = 1;
         PELOG1(limLog(pMac, LOG1, FL("WMM Info present in Beacon Frame!\n"));)
     }
 
-    if ( beacon->WMMCaps.present )
+    if ( beacon.WMMCaps.present )
     {
         pBeaconStruct->wsmCapablePresent = 1;
     }
 
-    if ( beacon->ERPInfo.present )
+    if ( beacon.ERPInfo.present )
     {
         pBeaconStruct->erpPresent = 1;
-        ConvertERPInfo( pMac, &pBeaconStruct->erpIEInfo, &beacon->ERPInfo );
+        ConvertERPInfo( pMac, &pBeaconStruct->erpIEInfo, &beacon.ERPInfo );
     }
-	vos_mem_free(beacon);
+
     return eSIR_SUCCESS;
 
 } // End sirConvertBeaconFrame2Struct.

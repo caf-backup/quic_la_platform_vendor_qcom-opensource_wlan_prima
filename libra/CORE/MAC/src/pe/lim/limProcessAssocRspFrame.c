@@ -255,10 +255,8 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType,tpPE
     tpSirAssocRsp         pAssocRsp;
     tLimMlmAssocCnf       mlmAssocCnf;
     
-#ifdef ANI_PRODUCT_TYPE_CLIENT
-    tSchBeaconStruct *beaconStruct = NULL;
-	beaconStruct = vos_mem_malloc(sizeof(tSchBeaconStruct));
-	vos_mem_set(beaconStruct, sizeof(tSchBeaconStruct), 0);
+    #ifdef ANI_PRODUCT_TYPE_CLIENT
+    tSchBeaconStruct beaconStruct;
 #endif
 
     //Initialize status code to success.
@@ -540,13 +538,13 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType,tpPE
     limExtractApCapabilities( pMac,
                             (tANI_U8 *) psessionEntry->pLimJoinReq->bssDescription.ieFields,
                             limGetIElenFromBssDescription( &psessionEntry->pLimJoinReq->bssDescription ),
-                            beaconStruct );
+                            &beaconStruct );
 
     if(pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
-        limDecideStaProtectionOnAssoc(pMac, beaconStruct, psessionEntry);
+        limDecideStaProtectionOnAssoc(pMac, &beaconStruct, psessionEntry);
     
-    if(beaconStruct->erpPresent) {
-        if (beaconStruct->erpIEInfo.barkerPreambleMode)
+    if(beaconStruct.erpPresent) {
+        if (beaconStruct.erpIEInfo.barkerPreambleMode)
             pMac->lim.gLimShortPreamble = false;
         else
             pMac->lim.gLimShortPreamble = true;
@@ -554,11 +552,10 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType,tpPE
 
 
      //Update the BSS Entry, this entry was added during preassoc.
-    if( eSIR_SUCCESS == limStaSendAddBss( pMac, pAssocRsp,  beaconStruct,
+    if( eSIR_SUCCESS == limStaSendAddBss( pMac, pAssocRsp,  &beaconStruct,
                    &psessionEntry->pLimJoinReq->bssDescription, true, psessionEntry))  
     {
-        palFreeMemory(pMac->hHdd, pAssocRsp);
-		vos_mem_free(beaconStruct);   
+        palFreeMemory(pMac->hHdd, pAssocRsp);   
         return;
 	}
 	else
@@ -567,7 +564,6 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType,tpPE
         mlmAssocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
     }
 
-	vos_mem_free(beaconStruct); 
 #elif defined(ANI_AP_CLIENT_SDK)
     if( eSIR_SUCCESS == limStaSendAddBss( pMac, *pAssocRsp, 
                             &psessionEntry->pLimJoinReq->neighborBssList.bssList[0], true))

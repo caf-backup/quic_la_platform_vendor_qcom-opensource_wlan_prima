@@ -75,7 +75,7 @@ void vos_mem_init()
    return; 
 }
 
-void vos_mem_exit()
+void vos_mem_clean()
 {
     v_SIZE_t listSize;
     hdd_list_size(&vosMemList, &listSize);
@@ -92,19 +92,24 @@ void vos_mem_exit()
 
        do
        {
+	      spin_lock(&vosMemList.lock);
           vosStatus = hdd_list_remove_front(&vosMemList, &pNode);
+	      spin_unlock(&vosMemList.lock);
           if(VOS_STATUS_SUCCESS == vosStatus)
           {
-             v_U8_t* temp;
              memStruct = (struct s_vos_mem_struct*)pNode;
-             temp = (v_U8_t*)(memStruct + 1);
              VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                    "Memory Leak@ File %s, @Line %d, size %d", 
                    memStruct->fileName, (int)memStruct->lineNum, memStruct->size);
+             kfree((v_VOID_t*)memStruct);
           }
        }while(vosStatus == VOS_STATUS_SUCCESS);
     }
-    
+}
+
+void vos_mem_exit()
+{
+    vos_mem_clean();
     hdd_list_destroy(&vosMemList);
 }
 
@@ -142,7 +147,9 @@ v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
       vos_mem_copy(&memStruct->header[0], &WLAN_MEM_HEADER[0], sizeof(WLAN_MEM_HEADER));
       vos_mem_copy( (v_U8_t*)(memStruct + 1) + size, &WLAN_MEM_TAIL[0], sizeof(WLAN_MEM_TAIL));
 
+      spin_lock(&vosMemList.lock);
       vosStatus = hdd_list_insert_front(&vosMemList, &memStruct->pNode);
+      spin_unlock(&vosMemList.lock);
       if(VOS_STATUS_SUCCESS != vosStatus)
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
@@ -161,7 +168,9 @@ v_VOID_t vos_mem_free( v_VOID_t *ptr )
         VOS_STATUS vosStatus;
         struct s_vos_mem_struct* memStruct = ((struct s_vos_mem_struct*)ptr) - 1;
 
+        spin_lock(&vosMemList.lock);
         vosStatus = hdd_list_remove_node(&vosMemList, &memStruct->pNode);
+        spin_unlock(&vosMemList.lock);
 
         if(VOS_STATUS_SUCCESS == vosStatus)
         {
@@ -322,7 +331,9 @@ v_VOID_t * vos_mem_dma_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t line
       vos_mem_copy(&memStruct->header[0], &WLAN_MEM_HEADER[0], sizeof(WLAN_MEM_HEADER));
       vos_mem_copy( (v_U8_t*)(memStruct + 1) + size, &WLAN_MEM_TAIL[0], sizeof(WLAN_MEM_TAIL));
 
+      spin_lock(&vosMemList.lock);
       vosStatus = hdd_list_insert_front(&vosMemList, &memStruct->pNode);
+      spin_unlock(&vosMemList.lock);
       if(VOS_STATUS_SUCCESS != vosStatus)
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
@@ -342,7 +353,9 @@ v_VOID_t vos_mem_dma_free( v_VOID_t *ptr )
         VOS_STATUS vosStatus;
         struct s_vos_mem_struct* memStruct = ((struct s_vos_mem_struct*)ptr) - 1;
 
+        spin_lock(&vosMemList.lock);
         vosStatus = hdd_list_remove_node(&vosMemList, &memStruct->pNode);
+        spin_unlock(&vosMemList.lock);
 
         if(VOS_STATUS_SUCCESS == vosStatus)
         {

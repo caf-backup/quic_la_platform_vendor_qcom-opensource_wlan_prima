@@ -9,7 +9,6 @@
    Qualcomm Confidential and Proprietary.
   
   ========================================================================*/
-
 /* $Header$ */
 
 /*--------------------------------------------------------------------------
@@ -673,8 +672,6 @@ eHalStatus sme_QosClose(tpAniSirGlobal pMac)
 
    return eHAL_STATUS_SUCCESS;
 }
-
-
 
 /*--------------------------------------------------------------------------
   \brief sme_QosSetupReq() - The SME QoS API exposed to HDD to request for QoS 
@@ -6736,7 +6733,6 @@ static eHalStatus qosIssueCommand( tpAniSirGlobal pMac, v_U8_t sessionId,
 
     return( status );
 }
-
 
 tANI_BOOLEAN qosProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
 {

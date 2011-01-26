@@ -960,6 +960,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
             /* Check if Mcast/Bcast Filters are set, if yes clear the filters here */
             if(pAdapter->hdd_ps_state == eHDD_SUSPEND_MCAST_BCAST_FILTER) {
                   hdd_conf_mcastbcast_filter(pAdapter, FALSE);
+                  pAdapter->hdd_ps_state = eHDD_SUSPEND_NONE;		  
             }
 
             break;

@@ -123,7 +123,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
    return NOTIFY_DONE;
 }
 
-static struct notifier_block hdd_netdev_notifier = {
+struct notifier_block hdd_netdev_notifier = {
    .notifier_call = hdd_netdev_notifier_call,
 };
 
@@ -853,7 +853,7 @@ VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
 }
 
 // Routine to initialize the PMU
-static void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext)
+void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext)
 {
     tANI_U32 regValue = 0;
 
@@ -962,6 +962,8 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    //Initialize the adapter context to zeros.
    vos_mem_zero(pAdapter, sizeof( hdd_adapter_t ));
 
+   pAdapter->isLoadUnloadInProgress = TRUE;
+   
    /*Get vos context here bcoz vos_open requires it*/
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
@@ -1070,6 +1072,9 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
          goto err_config;   
       }
    }
+
+   pAdapter->isLogpInProgress = FALSE;
+   vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 
    status = WLANBAL_Open(pAdapter->pvosContext);
    if(!VOS_IS_STATUS_SUCCESS(status))
@@ -1268,6 +1273,8 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    //Trigger the initial scan
    hdd_wlan_initial_scan(pAdapter);
 
+   pAdapter->isLoadUnloadInProgress = FALSE;
+  
    goto success;
 
 err_nl_srv:
@@ -1526,13 +1533,29 @@ static void __exit hdd_module_exit(void)
 
    //Get the HDD context.
    pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
-
+   
    if(!pAdapter) 
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: module exit called before probe",__func__);
    }
    else
    {
+      if (pAdapter->isLogpInProgress) {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Block rmmod!!!",__func__);
+         VOS_ASSERT(0);
+         msleep(3000);
+      } 
+
+      //Get the HDD context.
+      pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
+      if(!pAdapter) 
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: module exit called before probe",__func__);
+         goto done;
+      }
+
+      pAdapter->isLoadUnloadInProgress = TRUE;
+      
       //Do all the cleanup before deregistering the driver
       hdd_wlan_exit(pAdapter);
    }      
@@ -1545,6 +1568,7 @@ static void __exit hdd_module_exit(void)
    vos_mem_exit(); 
 #endif
 
+done:
    hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Exiting module exit",__func__);
 }
 

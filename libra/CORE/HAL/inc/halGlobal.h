@@ -325,6 +325,7 @@ typedef struct sAniSirHal
     tANI_U8    ghalPhyAgcListenMode;
 #endif    
     tANI_U8         mcastBcastFilterSetting;
+    tANI_U8         dynamicPsPollValue;
 } tAniSirHal, *tpAniSirHal;
 
 /* Invalid operating channel. Used during startup */

@@ -110,14 +110,19 @@ eHalStatus halPhyClose(tHalHandle hHal)
 
 eHalStatus halPhyFwInitDone(tHalHandle hHal)
 {
-    //tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
+    tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
 
-    //if(pMac->gDriverType == eDRIVER_TYPE_MFG)
-    //{
-    //    //for FTM driver leave init_gain at 74 as suggested by James
-    //    SET_PHY_REG(pMac->hHdd, QWLAN_AGC_INIT_GAIN_REG, 74);
-    //}
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        //for FTM driver leave init_gain at 74 as suggested by James
+        //SET_PHY_REG(pMac->hHdd, QWLAN_AGC_INIT_GAIN_REG, 74);
+
+        //seeing some issues reading qFuse registers while switching dynamically from production mode to FTM mode
+        //so defer reading of qFuse registers after fw init done for FTM driver alone
+        if ((retVal = halQFuseRead(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
+        if ((retVal = ConfigureTpcFromNv(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
+    }
 
     return retVal;
 
@@ -158,8 +163,13 @@ eHalStatus halPhyStart(tHalHandle hHal)
     }
 #endif
 
-    if ((retVal = halQFuseRead(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
-    if ((retVal = ConfigureTpcFromNv(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
+    if(pMac->gDriverType != eDRIVER_TYPE_MFG)
+    {
+        //seeing some issues reading qFuse registers while switching dynamically from production mode to FTM mode
+        //so defer reading of qFuse registers after fw init done for FTM driver alone
+        if ((retVal = halQFuseRead(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
+        if ((retVal = ConfigureTpcFromNv(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
+    }
 
     asicSetupTestWaveform(pMac, pWave, sizeof(pWave)/sizeof(pWave[0]), eANI_BOOLEAN_OFF);
 
@@ -1014,12 +1024,12 @@ eHalStatus halPhyAGCEnableListenMode(tHalHandle hHal, tANI_U8 EDETThreshold)
     switch(val)
     {
         case 1:
-           rf_ant_en = RF_ANT_EN_MASK_FOR_1_RX; 
+           rf_ant_en = RF_ANT_EN_MASK_FOR_1_RX;
            break;
         case 2:
-           rf_ant_en = RF_ANT_EN_MASK_FOR_2_RX; 
-           break;  
-        
+           rf_ant_en = RF_ANT_EN_MASK_FOR_2_RX;
+           break;
+
         default:
            return eHAL_STATUS_FAILURE;
     }
@@ -1035,10 +1045,10 @@ eHalStatus halPhyAGCEnableListenMode(tHalHandle hHal, tANI_U8 EDETThreshold)
     // configure register AGC_CW_DETECT_REG
     retVal = rdModWrAsicField( pMac, QWLAN_AGC_CW_DETECT_REG, QWLAN_AGC_CW_DETECT_DIS_MASK,
                                QWLAN_AGC_CW_DETECT_DIS_OFFSET, cw_detect_dis);
-    
-    // configure register RFAPB_BBF_SAT5_REG   
+
+    // configure register RFAPB_BBF_SAT5_REG
     bbf_sat5_egy_thres_in = (tANI_U16) EDETThreshold;
-    val = ((bbf_sat5_egy_thres_man << QWLAN_RFAPB_BBF_SAT5_EGY_THRES_MAN_OFFSET) | 
+    val = ((bbf_sat5_egy_thres_man << QWLAN_RFAPB_BBF_SAT5_EGY_THRES_MAN_OFFSET) |
           (bbf_sat5_egy_thres_in  << QWLAN_RFAPB_BBF_SAT5_EGY_THRES_IN_OFFSET));
     SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_BBF_SAT5_REG, val);
 

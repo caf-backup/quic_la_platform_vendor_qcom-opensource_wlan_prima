@@ -897,6 +897,12 @@ typedef enum
 #define CFG_BTC_EXECUTION_MODE_MAX                          ( 5 )
 #define CFG_BTC_EXECUTION_MODE_DEFAULT                      ( 0 )
 
+#define CFG_BTC_DHCP_PROTECTION_NAME                         "BtcConsBtSlotToBlockDuringDhcp"
+#define CFG_BTC_DHCP_PROTECTION_MIN                          ( 0 )
+#define CFG_BTC_DHCP_PROTECTION_MAX                          ( 0xFF )
+#define CFG_BTC_DHCP_PROTECTION_DEFAULT                      ( 0 )
+
+
 #define CFG_ENABLE_WAPI_NAME                             "WAPIIsEnabled"
 #define CFG_ENABLE_WAPI_MIN                               (0)
 #define CFG_ENABLE_WAPI_MAX                               (1) // WAPI Enabled
@@ -911,6 +917,11 @@ typedef enum
 #define CFG_MCAST_BCAST_FILTER_SETTING_MIN           (0)
 #define CFG_MCAST_BCAST_FILTER_SETTING_MAX           (3)
 #define CFG_MCAST_BCAST_FILTER_SETTING_DEFAULT       (0)
+
+#define CFG_DYNAMIC_PSPOLL_VALUE_NAME          "gDynamicPSPollvalue"
+#define CFG_DYNAMIC_PSPOLL_VALUE_MIN           (0)
+#define CFG_DYNAMIC_PSPOLL_VALUE_MAX           (255)
+#define CFG_DYNAMIC_PSPOLL_VALUE_DEFAULT       (0)
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -949,6 +960,7 @@ typedef struct
    v_BOOL_t      fIsImpsEnabled;
    v_BOOL_t      fIsLogpEnabled;
    v_U8_t        btcExecutionMode;
+   v_U8_t        btcConsBtSlotsToBlockDuringDhcp;
    v_U32_t       nImpsModSleepTime;
    v_U32_t       nImpsMaxSleepTime;
    v_U32_t       nImpsMinSleepTime;
@@ -1132,6 +1144,8 @@ typedef struct
    v_BOOL_t                    bSingleTidRc;
 
    v_U8_t                      mcastBcastFilterSetting;
+   
+   v_U8_t                      dynamicPsPollValue;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

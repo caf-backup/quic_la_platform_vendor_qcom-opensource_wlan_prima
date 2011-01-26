@@ -280,6 +280,10 @@ tSirRetStatus macClose(tHalHandle hHal)
     halClose(hHal);
 
     logDeinit(pMac);
+
+    // Finally, de-allocate the global MAC datastructure:
+    palFreeMemory( pMac->hHdd, pMac );
+
     return eSIR_SUCCESS;
 }
 

@@ -260,6 +260,7 @@ typedef struct _VosContextType
 
    vos_event_t        ProbeEvent;
 
+   v_U8_t	  isLogpInProgress;
 
 } VosContextType, *pVosContextType;
 

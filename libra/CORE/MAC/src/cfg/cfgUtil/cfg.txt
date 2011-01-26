@@ -3509,3 +3509,28 @@ HAL
 V    RW    NP
 HAL
 0    3    0
+
+
+*
+*  BTC DHCP No of Bt slots to block 
+*
+WNI_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK    I    4    7
+V    RW    NP
+HAL
+0    0xFF     0
+V    RW    NP
+HAL
+0    0xFF     0
+
+*
+*  Config parameter to Enable/Disable Dynamic PS-Poll mechanism 
+*  0: Disable, x: FW will send x number of NULL frames before switching to PS-Poll mexhanism
+*
+
+WNI_CFG_DYNAMIC_PS_POLL_VALUE    I    4    7
+V    RW    NP
+HAL
+0    0xFF    0
+V    RW    NP
+HAL
+0    0xFF    0

@@ -17,6 +17,11 @@
 #include "halRFBringup.h"
 #include "halRegBckup.h"
 #include "btcApi.h"
+#include <vos_api.h>
+
+#ifdef WLAN_DBG_GPIO
+#include <mach/gpio.h>
+#endif
 
 /* ---------------------------------------------
  * FUNCTION:  halLog_printRxpBinarySearchTable()
@@ -3722,6 +3727,30 @@ dump_hal_set_sap_fw_routing( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, 
     }
     return p;
 }
+#ifdef WLAN_DBG_GPIO
+
+static char *
+dump_hal_toggle_gpio(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    HALLOGE( halLog( pMac, LOGE, FL("GPIO toggle %d\n"), arg1));
+
+    if (arg2) {
+        gpio_request( 181, "debug_wifi_gpio" );
+	    gpio_direction_output( 181, arg2 );
+    }
+
+    if (arg1) {
+         HALLOGE( halLog( pMac, LOGE, FL("setting gpio 181 HIGH\n")));
+         gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_2MA), GPIO_ENABLE);
+    } else {
+         HALLOGE( halLog( pMac, LOGE, FL("setting gpio 181 LOW\n")));
+         gpio_tlmm_config(GPIO_CFG(181, 0, GPIO_OUTPUT, GPIO_PULL_DOWN, GPIO_2MA), GPIO_ENABLE);
+    }
+   
+    return p;
+}
+#endif
+
 
 static char *
 dump_hal_set_sap_fw_timBasedDisassoc( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
@@ -3767,6 +3796,9 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {97,    "HAL.FW: toggle RfXo at FW",                                dump_hal_set_rf_xo},
     {98,    "HAL.FW: Insert ADU-reinit regEntry <index><Addr><value><hostfilled>",  dump_hal_insert_adu_reinit_reg_entry},
     {99,    "dump RSSI register values>",                               dump_hal_pmu_rssi_regs},
+#ifdef WLAN_DBG_GPIO
+    {100,   "Toggle GPIO <level> <init> <enable>",                      dump_hal_toggle_gpio},
+#endif
     {127,   "HAL: enable/disable BA activity check timer. arg1 = enable(1)/disable(0)",  (tpFunc)dump_set_ba_activity_check_timeout},
 
     {0,     "RateAdaptation (180-220)",                                                        NULL},

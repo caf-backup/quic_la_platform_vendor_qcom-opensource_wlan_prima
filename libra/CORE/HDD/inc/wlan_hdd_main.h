@@ -340,6 +340,14 @@ struct hdd_adapter_s
 
    v_BOOL_t isWlanSuspended;
 
+   v_BOOL_t isTxThreadSuspended;
+
+   v_BOOL_t isMcThreadSuspended;
+
+   v_BOOL_t isLogpInProgress;
+
+   v_BOOL_t isLoadUnloadInProgress;
+   
    /**Track whether driver has been suspended.*/
    hdd_ps_state_t hdd_ps_state;
    /** ptt Process ID*/
@@ -352,4 +360,5 @@ struct hdd_adapter_s
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
   -------------------------------------------------------------------------*/ 
+void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

@@ -115,7 +115,7 @@ VOS_STATUS vos_preOpen ( v_CONTEXT_t *pVosContext )
 
    /* Allocate the VOS Context */
    *pVosContext = NULL;
-   gpVosContext = (VosContextType*) vos_mem_malloc(sizeof(VosContextType));
+   gpVosContext = (VosContextType*) kmalloc(sizeof(VosContextType), GFP_KERNEL);
 
    if (NULL == gpVosContext)
    {
@@ -170,7 +170,8 @@ VOS_STATUS vos_preClose( v_CONTEXT_t *pVosContext )
    }
 
    /* Free the VOS Context */
-   vos_mem_free(gpVosContext);
+   if(gpVosContext != NULL)
+      kfree(gpVosContext);
 
    *pVosContext = gpVosContext = NULL;
 
@@ -256,7 +257,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    for (iter =0; iter < VOS_CORE_MAX_MESSAGES; iter++)
    {
       (gpVosContext->aMsgWrappers[iter]).pVosMsg = 
-         &(gpVosContext->aMsgBuffers[iter]); 
+         &(gpVosContext->aMsgBuffers[iter]);
       INIT_LIST_HEAD(&gpVosContext->aMsgWrappers[iter].msgNode);
       vos_mq_put(&gpVosContext->freeVosMq, &(gpVosContext->aMsgWrappers[iter]));
    }
@@ -308,7 +309,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
      // to proceed
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                 "%s: Failed to initialize the NV module", __func__);
-     goto err_sys_close; 
+     goto err_sys_close;
    }
 
    /* Probe the MC thread */
@@ -327,7 +328,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    /*Now probe the Tx thread */
    sysTxThreadProbe(gpVosContext, 
                     &vos_sys_probe_thread_cback,
-                    gpVosContext);   
+                    gpVosContext);
    
    if (vos_wait_single_event(&gpVosContext->ProbeEvent, 0)!= VOS_STATUS_SUCCESS)
    {
@@ -482,7 +483,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   if (gpVosContext != pVosContext)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "%s: mismatch in context",__FUNCTION__); 
+           "%s: mismatch in context",__FUNCTION__);
      return VOS_STATUS_E_FAILURE;
   }
 
@@ -896,6 +897,29 @@ v_CONTEXT_t vos_get_global_context( VOS_MODULE_ID moduleId,
 } /* vos_get_global_context() */
 
 
+v_U8_t vos_is_logp_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
+{
+  if (gpVosContext == NULL)
+  {
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+        "%s: global voss context is NULL", __FUNCTION__);
+  }
+
+   return gpVosContext->isLogpInProgress;
+}
+
+void vos_set_logp_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
+{
+  if (gpVosContext == NULL)
+  {
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+        "%s: global voss context is NULL", __FUNCTION__);
+  }
+
+   gpVosContext->isLogpInProgress = value;
+}
+
+
 /**---------------------------------------------------------------------------
   
   \brief vos_alloc_context() - allocate a context within the VOSS global Context
@@ -955,7 +979,7 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
   {
     case VOS_MODULE_ID_TL:  
     {
-      pGpModContext = &(gpVosContext->pTLContext); 
+      pGpModContext = &(gpVosContext->pTLContext);
       break;
     }
 
@@ -973,7 +997,7 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
 
     case VOS_MODULE_ID_SSC:
     {
-      pGpModContext = &(gpVosContext->pSSCContext); 
+      pGpModContext = &(gpVosContext->pSSCContext);
       break;
     }
 
@@ -1024,9 +1048,7 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
   /*
   ** Dynamically allocate the context for module
   */
-  
-  *ppModuleContext = vos_mem_malloc(size);
-
+  *ppModuleContext = kmalloc(size, GFP_KERNEL);
   
   if ( *ppModuleContext == NULL)
   {
@@ -1097,7 +1119,7 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
   {
     case VOS_MODULE_ID_TL:  
     {
-      pGpModContext = &(gpVosContext->pTLContext); 
+      pGpModContext = &(gpVosContext->pTLContext);
       break;
     }
 
@@ -1115,7 +1137,7 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
 
     case VOS_MODULE_ID_SSC:
     {
-      pGpModContext = &(gpVosContext->pSSCContext); 
+      pGpModContext = &(gpVosContext->pSSCContext);
       break;
     }
 
@@ -1130,7 +1152,7 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
 #ifdef WLAN_SOFTAP_FEATURE
     case VOS_MODULE_ID_SAP:
     {
-      pGpModContext = &(gpVosContext->pSAPContext); 
+      pGpModContext = &(gpVosContext->pSAPContext);
       break;
     }
 #endif
@@ -1167,8 +1189,9 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
         "%s: pGpModContext != pModuleContext", __FUNCTION__);
     return VOS_STATUS_E_FAILURE;
   } 
-  
-  vos_mem_free(pModuleContext);
+   
+  if(pModuleContext != NULL)
+      kfree(pModuleContext);
 
   *pGpModContext = NULL;
 
@@ -1277,7 +1300,7 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if (pTargetMq == NULL)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: pTargetMq == NULL",__FUNCTION__); 
+         "%s: pTargetMq == NULL",__FUNCTION__);
      return VOS_STATUS_E_FAILURE;
   } 
 
@@ -1303,7 +1326,7 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   vos_mq_put(pTargetMq, pMsgWrapper);
 
   set_bit(MC_POST_EVENT_MASK, &gpVosContext->vosSched.mcEventFlag);
-  wake_up_interruptible(&gpVosContext->vosSched.mcWaitQueue); 
+  wake_up_interruptible(&gpVosContext->vosSched.mcWaitQueue);
 
   return VOS_STATUS_SUCCESS;
 
@@ -1394,7 +1417,7 @@ VOS_STATUS vos_tx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if (pTargetMq == NULL)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: pTargetMq == NULL",__FUNCTION__); 
+         "%s: pTargetMq == NULL",__FUNCTION__);
      return VOS_STATUS_E_FAILURE;
   } 
     
@@ -1421,7 +1444,7 @@ VOS_STATUS vos_tx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   vos_mq_put(pTargetMq, pMsgWrapper);
 
   set_bit(TX_POST_EVENT_MASK, &gpVosContext->vosSched.txEventFlag);
-  wake_up_interruptible(&gpVosContext->vosSched.txWaitQueue); 
+  wake_up_interruptible(&gpVosContext->vosSched.txWaitQueue);
 
   return VOS_STATUS_SUCCESS;
 

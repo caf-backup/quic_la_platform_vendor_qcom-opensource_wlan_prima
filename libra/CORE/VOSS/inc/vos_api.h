@@ -50,6 +50,8 @@
 #include <vos_threads.h>
 #include <vos_timer.h>
 #include <vos_pack_align.h>
+ 
+//#define WLAN_DBG_GPIO  1
 
 /*------------------------------------------------------------------------- 
   Function declarations and documenation
@@ -133,6 +135,8 @@ v_VOID_t *vos_get_context( VOS_MODULE_ID moduleId,
 v_CONTEXT_t vos_get_global_context( VOS_MODULE_ID moduleId, 
                                     v_VOID_t *moduleContext );
 
+v_U8_t vos_is_logp_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext);
+void vos_set_logp_in_progress(VOS_MODULE_ID moduleId, v_U8_t value);
 
 /**---------------------------------------------------------------------------
   

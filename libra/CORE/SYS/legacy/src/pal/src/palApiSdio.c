@@ -31,7 +31,7 @@ eHalStatus palReadRegister( tHddHandle hHdd, tANI_U32 regAddress, tANI_U32 *pReg
         VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL, "Register %p Read FAILED!!", regAddress );
         VOS_ASSERT( VOS_IS_STATUS_SUCCESS(status) );
     }
-    return eHAL_STATUS_SUCCESS;
+    return status;
 }
 
 eHalStatus palWriteRegister( tHddHandle hHdd, tANI_U32 regAddress, tANI_U32 regValue )
@@ -45,7 +45,7 @@ eHalStatus palWriteRegister( tHddHandle hHdd, tANI_U32 regAddress, tANI_U32 regV
         VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL, "Register %p Write FAILED!!", regAddress );
         VOS_ASSERT( VOS_IS_STATUS_SUCCESS(status) );
     }
-    return eHAL_STATUS_SUCCESS;
+    return status;
 }
 
 eHalStatus palAsyncWriteRegister( tHddHandle hHdd, tANI_U32 regAddress, tANI_U32 regValue )
@@ -68,7 +68,7 @@ eHalStatus palWriteDeviceMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U8 *p
         VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL, "DeviceMemory %p Write %d bytes FAILED!!", memOffset, numBytes );
         VOS_ASSERT( VOS_IS_STATUS_SUCCESS(status) );
     }
-    return eHAL_STATUS_SUCCESS;
+    return status;
 }
 
 eHalStatus palReadDeviceMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U8 *pBuffer, tANI_U32 numBytes )
@@ -82,7 +82,7 @@ eHalStatus palReadDeviceMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U8 *pB
         VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL, "DeviceMemory %p Read %d bytes FAILED!!", memOffset, numBytes );
         VOS_ASSERT( VOS_IS_STATUS_SUCCESS(status) );
     }
-    return eHAL_STATUS_SUCCESS;
+    return status;
 }
 
 eHalStatus palFillDeviceMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U32 numBytes, tANI_BYTE fillValue )

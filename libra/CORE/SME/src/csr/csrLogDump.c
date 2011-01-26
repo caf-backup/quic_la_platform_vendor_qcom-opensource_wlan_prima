@@ -86,7 +86,6 @@ static char *dump_btcSetEvent( tpAniSirGlobal pMac, tANI_U32 arg1,
     {
         smsLog(pMac, LOGE, FL(" invalid event (%d)\n"), arg1);
     }
-
     return p;
 }
 

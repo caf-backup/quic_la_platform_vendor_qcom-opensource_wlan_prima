@@ -143,6 +143,9 @@ typedef enum
     eCSR_SCAN_SUCCESS,
     eCSR_SCAN_FAILURE,
     eCSR_SCAN_ABORT,
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+    eCSR_SCAN_ONGOING,
+#endif
 }eCsrScanStatus;
 
 #define CSR_SCAN_TIME_DEFAULT       0
@@ -223,6 +226,8 @@ typedef struct tagCsrScanResultInfo
 {
     //Carry the IEs for the current BSSDescription. A pointer to tDot11fBeaconIEs. Maybe NULL for start BSS.
     void *pvIes;
+    tAniSSID ssId;
+    v_TIME_t timer; // timer is variable which is used for hidden SSID's timer value
     //This member must be the last in the structure because the end of tSirBssDescription is an
     //    array with nonknown size at this time
     tSirBssDescription BssDescriptor;

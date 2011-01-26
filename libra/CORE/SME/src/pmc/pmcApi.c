@@ -23,6 +23,12 @@
 
 extern void pmcReleaseCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 
+void pmcCloseDeferredMsgList(tpAniSirGlobal pMac);
+void pmcCloseDeviceStateUpdateList(tpAniSirGlobal pMac);
+void pmcCloseRequestStartUapsdList(tpAniSirGlobal pMac);
+void pmcCloseRequestBmpsList(tpAniSirGlobal pMac);
+void pmcCloseRequestFullPowerList(tpAniSirGlobal pMac);
+void pmcClosePowerSaveCheckList(tpAniSirGlobal pMac);
 
 /******************************************************************************
 *
@@ -332,12 +338,17 @@ eHalStatus pmcClose (tHalHandle hHal)
     {
         smsLog(pMac, LOGE, FL("Cannot deallocate exit power save mode timer\n"));
     }
-    csrLLClose(&pMac->pmc.powerSaveCheckList);
-    csrLLClose(&pMac->pmc.requestFullPowerList);
-    csrLLClose(&pMac->pmc.requestBmpsList);
-    csrLLClose(&pMac->pmc.requestStartUapsdList);
-    csrLLClose(&pMac->pmc.deviceStateUpdateIndList);
-    csrLLClose(&pMac->pmc.deferredMsgList);
+
+    /*
+        The following list's entries are dynamically allocated so they need their own 
+        cleanup function
+    */
+    pmcClosePowerSaveCheckList(pMac);
+    pmcCloseRequestFullPowerList(pMac);
+    pmcCloseRequestBmpsList(pMac);
+    pmcCloseRequestStartUapsdList(pMac);
+    pmcCloseDeviceStateUpdateList(pMac);
+    pmcCloseDeferredMsgList(pMac);
 
     return eHAL_STATUS_SUCCESS;
 }
@@ -1177,13 +1188,16 @@ eHalStatus pmcDeregisterPowerSaveCheck (tHalHandle hHal, tANI_BOOLEAN (*checkRou
         pPowerSaveCheckEntry = GET_BASE_ADDR(pEntry, tPowerSaveCheckEntry, link);
         if (pPowerSaveCheckEntry->checkRoutine == checkRoutine)
         {
-            if (palFreeMemory(pMac->hHdd, pPowerSaveCheckEntry) != eHAL_STATUS_SUCCESS)
+            if (csrLLRemoveEntry(&pMac->pmc.powerSaveCheckList, pEntry, FALSE))
             {
-                smsLog(pMac, LOGE, FL("Cannot free memory for power save check routine list entry\n"));
-                PMC_ABORT;
-                return eHAL_STATUS_FAILURE;
+                if (palFreeMemory(pMac->hHdd, pPowerSaveCheckEntry) != eHAL_STATUS_SUCCESS)
+                {
+                    smsLog(pMac, LOGE, FL("Cannot free memory for power save check routine list entry\n"));
+                    PMC_ABORT;
+                    return eHAL_STATUS_FAILURE;
+                }
             }
-            if (!csrLLRemoveEntry(&pMac->pmc.powerSaveCheckList, pEntry, FALSE))
+            else
             {
                 smsLog(pMac, LOGE, FL("Cannot remove power save check routine list entry\n"));
                 return eHAL_STATUS_FAILURE;
@@ -2319,3 +2333,132 @@ eHalStatus pmcExitWowl (tHalHandle hHal)
 
    return eHAL_STATUS_SUCCESS;
 }
+
+
+
+void pmcClosePowerSaveCheckList(tpAniSirGlobal pMac)
+{
+    tListElem *pEntry;
+    tpPowerSaveCheckEntry pPowerSaveCheckEntry;
+
+    csrLLLock(&pMac->pmc.powerSaveCheckList);
+    while ( (pEntry = csrLLRemoveHead(&pMac->pmc.powerSaveCheckList, FALSE)) )
+    {
+        pPowerSaveCheckEntry = GET_BASE_ADDR(pEntry, tPowerSaveCheckEntry, link);
+        if (palFreeMemory(pMac->hHdd, pPowerSaveCheckEntry) != eHAL_STATUS_SUCCESS)
+        {
+            smsLog(pMac, LOGE, FL("Cannot free memory \n"));
+            PMC_ABORT;
+            break;
+        }
+    }
+    csrLLUnlock(&pMac->pmc.powerSaveCheckList);
+    csrLLClose(&pMac->pmc.powerSaveCheckList);
+}
+
+
+void pmcCloseRequestFullPowerList(tpAniSirGlobal pMac)
+{
+    tListElem *pEntry;
+    tpRequestFullPowerEntry pRequestFullPowerEntry;
+
+    csrLLLock(&pMac->pmc.requestFullPowerList);
+    while ( (pEntry = csrLLRemoveHead(&pMac->pmc.requestFullPowerList, FALSE)) )
+    {
+        pRequestFullPowerEntry = GET_BASE_ADDR(pEntry, tRequestFullPowerEntry, link);
+        if (palFreeMemory(pMac->hHdd, pRequestFullPowerEntry) != eHAL_STATUS_SUCCESS)
+        {
+            smsLog(pMac, LOGE, FL("Cannot free memory \n"));
+            PMC_ABORT;
+            break;
+        }
+    }
+    csrLLUnlock(&pMac->pmc.requestFullPowerList);
+    csrLLClose(&pMac->pmc.requestFullPowerList);
+}
+
+
+void pmcCloseRequestBmpsList(tpAniSirGlobal pMac)
+{
+    tListElem *pEntry;
+    tpRequestBmpsEntry pRequestBmpsEntry;
+
+    csrLLLock(&pMac->pmc.requestBmpsList);
+    while ( (pEntry = csrLLRemoveHead(&pMac->pmc.requestBmpsList, FALSE)) )
+    {
+        pRequestBmpsEntry = GET_BASE_ADDR(pEntry, tRequestBmpsEntry, link);
+        if (palFreeMemory(pMac->hHdd, pRequestBmpsEntry) != eHAL_STATUS_SUCCESS)
+        {
+            smsLog(pMac, LOGE, FL("Cannot free memory \n"));
+            PMC_ABORT;
+            break;
+        }
+    }
+    csrLLUnlock(&pMac->pmc.requestBmpsList);
+    csrLLClose(&pMac->pmc.requestBmpsList);
+}
+
+
+void pmcCloseRequestStartUapsdList(tpAniSirGlobal pMac)
+{
+    tListElem *pEntry;
+    tpStartUapsdEntry pStartUapsdEntry;
+
+    csrLLLock(&pMac->pmc.requestStartUapsdList);
+    while ( (pEntry = csrLLRemoveHead(&pMac->pmc.requestStartUapsdList, FALSE)) )
+    {
+        pStartUapsdEntry = GET_BASE_ADDR(pEntry, tStartUapsdEntry, link);
+        if (palFreeMemory(pMac->hHdd, pStartUapsdEntry) != eHAL_STATUS_SUCCESS)
+        {
+            smsLog(pMac, LOGE, FL("Cannot free memory \n"));
+            PMC_ABORT;
+            break;
+        }
+    }
+    csrLLUnlock(&pMac->pmc.requestStartUapsdList);
+    csrLLClose(&pMac->pmc.requestStartUapsdList);
+}
+
+
+void pmcCloseDeviceStateUpdateList(tpAniSirGlobal pMac)
+{
+    tListElem *pEntry;
+    tpDeviceStateUpdateIndEntry pDeviceStateUpdateIndEntry;
+
+    csrLLLock(&pMac->pmc.deviceStateUpdateIndList);
+    while ( (pEntry = csrLLRemoveHead(&pMac->pmc.deviceStateUpdateIndList, FALSE)) )
+    {
+        pDeviceStateUpdateIndEntry = GET_BASE_ADDR(pEntry, tDeviceStateUpdateIndEntry, link);
+        if (palFreeMemory(pMac->hHdd, pDeviceStateUpdateIndEntry) != eHAL_STATUS_SUCCESS)
+        {
+            smsLog(pMac, LOGE, FL("Cannot free memory \n"));
+            PMC_ABORT;
+            break;
+        }
+    }
+    csrLLUnlock(&pMac->pmc.deviceStateUpdateIndList);
+    csrLLClose(&pMac->pmc.deviceStateUpdateIndList);
+}
+
+
+void pmcCloseDeferredMsgList(tpAniSirGlobal pMac)
+{
+    tListElem *pEntry;
+    tPmcDeferredMsg *pDeferredMsg;
+
+    csrLLLock(&pMac->pmc.deferredMsgList);
+    while ( (pEntry = csrLLRemoveHead(&pMac->pmc.deferredMsgList, FALSE)) )
+    {
+        pDeferredMsg = GET_BASE_ADDR(pEntry, tPmcDeferredMsg, link);
+        if (palFreeMemory(pMac->hHdd, pDeferredMsg) != eHAL_STATUS_SUCCESS)
+        {
+            smsLog(pMac, LOGE, FL("Cannot free memory \n"));
+            PMC_ABORT;
+            break;
+        }
+    }
+    csrLLUnlock(&pMac->pmc.deferredMsgList);
+    csrLLClose(&pMac->pmc.deferredMsgList);
+}
+
+
