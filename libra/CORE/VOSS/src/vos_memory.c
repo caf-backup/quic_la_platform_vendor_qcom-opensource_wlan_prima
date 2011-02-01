@@ -87,7 +87,7 @@ void vos_mem_clean()
 
        struct s_vos_mem_struct* memStruct;
  
-       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
              "%s: List is not Empty. listSize %d ", __FUNCTION__, (int)listSize);
 
        do
@@ -186,15 +186,8 @@ v_VOID_t vos_mem_free( v_VOID_t *ptr )
                     "Memory Trailer is corrupted. MemInfo: Filename %s, LineNum %d", 
                                 memStruct->fileName, (int)memStruct->lineNum);
             }
+            kfree((v_VOID_t*)memStruct);
         }
-        else
-        {
-            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, 
-               "%s: Not able to remove node from the list. MemInfo: Filename %s, LineNum %d", 
-                    __FUNCTION__, memStruct->fileName, (int)memStruct->lineNum);
-        }
-
-        kfree((v_VOID_t*)memStruct);
     }
 }
 #else
@@ -371,14 +364,8 @@ v_VOID_t vos_mem_dma_free( v_VOID_t *ptr )
                     "Memory Trailer is corrupted. MemInfo: Filename %s, LineNum %d", 
                                 memStruct->fileName, (int)memStruct->lineNum);
             }
+            kfree((v_VOID_t*)memStruct);
         }
-        else
-        {
-            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, 
-               "%s: Not able to remove node from the list. MemInfo: Filename %s, LineNum %d", 
-                    __FUNCTION__, memStruct->fileName, (int)memStruct->lineNum);
-        }
-        kfree((v_VOID_t*)memStruct);
     }
 }
 #else

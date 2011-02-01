@@ -89,11 +89,11 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR, "%s: Enter",__func__);
 
    /*
-     Suspending MC Thread and Tx Thread as the SDIO driver is going to Suspend.     
+     Suspending MC Thread and Tx Thread as the SDIO driver is going to Suspend.
    */
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_INFO, "%s: Suspending Mc and Tx Threads",__func__);
 
-   init_completion(&pAdapter->mc_sus_event_var);
+     INIT_COMPLETION(pAdapter->mc_sus_event_var);
 
    /* Indicate Mc Thread to Suspend */
    set_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
@@ -115,7 +115,7 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
    /* Set the Mc Thread as Suspended */
    pAdapter->isMcThreadSuspended= TRUE;
 
-   init_completion(&pAdapter->tx_sus_event_var);
+     INIT_COMPLETION(pAdapter->tx_sus_event_var);
 
    /* Indicate Tx Thread to Suspend */
    set_bit(TX_SUSPEND_EVENT_MASK, &vosSchedContext->txEventFlag);
@@ -231,25 +231,25 @@ int wlan_sdio_suspend_hdlr(struct sdio_func* sdio_func_dev)
    }
 
    if(pAdapter->isLogpInProgress == TRUE) {
-   	  VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: Trying to Suspend While LogP is in progress",__func__);
-       return -1;
+      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: Trying to Suspend While LogP is in progress",__func__);
+      return -1;
    }
    
    /* Suspend the wlan driver */
    ret = wlan_suspend(pAdapter);
    if(ret != 0)
-   {
-          VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: Not able to suspend wlan",__func__);
-	  return ret;
+   {   
+      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: Not able to suspend wlan",__func__);
+      return ret;
    }
 
    if(pAdapter->isLogpInProgress == TRUE) {
-          wlan_resume(pAdapter);
-   	  VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: After Suspend LogP is in progress",__func__);
-       return -1;
+      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: After Suspend LogP is in progress",__func__);
+      wlan_resume(pAdapter);
+      return -1;
    }
 
-   return 0;   
+   return 0;
 }
 
 /*----------------------------------------------------------------------------
@@ -303,10 +303,15 @@ void salRxInterruptCB
 
    if (vos_is_logp_in_progress(VOS_MODULE_ID_SAL, NULL)) 
    {
-      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s LOGP in progress. Ignore", __func__);
+
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
+             "%s LOGP in progress. Ignore Interrupt", __func__);
+
+      /* Disable SDIO IRQ since we are in LOGP state */
+      libra_enable_sdio_irq(sdio_func_dev, 0);
       return;
    }
-
+   
    VOS_ASSERT(sdio_func_dev);
    VOS_ASSERT(gpsalHandle);
 
@@ -761,24 +766,22 @@ VOS_STATUS WLANSAL_Cmd53
    v_U8_t               regValue;
    v_U8_t               *temp_dataPtr;           // Data pointer
    v_U32_t              temp_address;           // Target address
+   struct sdio_func *sdio_func_dev = NULL;   
 
    VOS_ASSERT(gpsalHandle);
    VOS_ASSERT(cmd53Req);
    VOS_ASSERT(cmd53Req->dataSize);
 
-   SENTER();
+   SENTER();  
 
-   if (0 == cmd53Req->dataSize) 
+    if (0 == cmd53Req->dataSize) 
    {
       SMSGERROR("%s: CMD53 Data size 0, direction %d, Mode %d, address 0x%x", 
          cmd53Req->busDirection, cmd53Req->mode, cmd53Req->address);
       SEXIT();
       return VOS_STATUS_E_FAILURE;
    }
-
-   // The host driver internally takes care of chopping it into blocks.
-   transferUnits = (v_U16_t)cmd53Req->dataSize;
-
+	
    // Get the lock, going native
    sd_claim_host(gpsalHandle->sdio_func_dev);
 
@@ -786,8 +789,20 @@ VOS_STATUS WLANSAL_Cmd53
         VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: LOGP in progress. Ignore!!!",__func__);
         // Release lock
         sd_release_host(gpsalHandle->sdio_func_dev);
-        return eHAL_STATUS_SUCCESS;
+        return VOS_STATUS_E_FAILURE;
    }
+   
+   //Get the SDIO func device
+   sdio_func_dev = libra_getsdio_funcdev();
+
+   if(NULL == sdio_func_dev) {   	
+   	VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: sdio_func is null Doing WatchDog Chip Reset!!!",__func__);
+   	err_ret = VOS_STATUS_E_FAILURE;
+   	goto watchdog_chip_reset;
+   }
+
+   // The host driver internally takes care of chopping it into blocks.
+   transferUnits = (v_U16_t)cmd53Req->dataSize;
 
    if (WLANSAL_DIRECTION_READ == cmd53Req->busDirection)
    {
@@ -859,11 +874,13 @@ VOS_STATUS WLANSAL_Cmd53
       }
    }
 
+watchdog_chip_reset:
    if (err_ret)
    {
-      SMSGERROR("%s: Value of ERROR err_ret = %d\n", __func__, err_ret, 0);
+      SMSGFATAL("%s: Value of ERROR err_ret = %d\n", __func__, err_ret, 0);
+      SMSGFATAL("%s: CMD53 Data size 0, direction %d, Mode %d, address 0x%x", 
+         cmd53Req->busDirection, cmd53Req->mode, cmd53Req->address);
       SEXIT();
-      vos_chipReset(NULL, VOS_FALSE, NULL, NULL);
       // Release lock
       sd_release_host(gpsalHandle->sdio_func_dev);
       return err_ret;

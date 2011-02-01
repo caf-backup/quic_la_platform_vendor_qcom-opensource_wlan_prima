@@ -340,7 +340,14 @@ static v_VOID_t balGetTXResTimerExpierCB
          BEXIT();
          return;
       }
-      backoffCounter++;
+      if(WLANBAL_MAX_TX_BACKOFF_COUNTER >= backoffCounter)
+      {
+          backoffCounter++;
+      }
+      else
+      {
+        	 BMSGERROR("backoffCounter reached max value", 0, 0, 0);
+      }
    }
    else
    {
@@ -718,7 +725,6 @@ VOS_STATUS WLANBAL_Start
       return VOS_STATUS_E_FAILURE;
    }
 
-   /*NCMC issue- CR#262404 fix */
    /* Moving the setting of Consider_BT_Lo_Priority on TPE_SW_PM earlier than
       the firmware to take care of BT_A2DP audio gap during WLAN power-up*/
 
@@ -738,8 +744,6 @@ VOS_STATUS WLANBAL_Start
       BEXIT();
       return VOS_STATUS_E_FAILURE;
    }
-   /*NCMC Issues Fix ends*/
-
 
    BEXIT();
    return status;
@@ -1660,6 +1664,8 @@ VOS_STATUS WLANBAL_Suspend
 
    BENTER();
 
+  vos_timer_stop(&gbalHandle->timer);
+
    status = WLANSSC_Suspend(sscHandle, WLANSSC_ALL_FLOW);
 
    BEXIT();
@@ -1730,6 +1736,40 @@ VOS_STATUS WLANBAL_SuspendChip
    BEXIT();
 
    return status;
+}
+
+/*----------------------------------------------------------------------------
+
+  @brief Suspend Entire chip, Trigger SSC Suspend Chip
+
+  @param v_PVOID_t pAdapter
+        Global adapter handle
+
+  @return General status code
+        VOS_STATUS_SUCCESS       Suspend Chip success
+        VOS_STATUS_E_INVAL       Invalid Parameters
+
+----------------------------------------------------------------------------*/
+VOS_STATUS WLANBAL_SuspendChip_NoLock
+(
+   v_PVOID_t pAdapter
+)
+{
+   v_PVOID_t         sscHandle = (v_PVOID_t)VOS_GET_SSC_CTXT(pAdapter);
+   VOS_STATUS        status = VOS_STATUS_SUCCESS;
+
+   VOS_ASSERT(gbalHandle);
+   VOS_ASSERT(sscHandle);
+
+   BENTER();
+
+   status = WLANSSC_SuspendChip_NoLock(sscHandle);
+
+
+   BEXIT();
+
+   return status;
+
 }
 
 /*----------------------------------------------------------------------------

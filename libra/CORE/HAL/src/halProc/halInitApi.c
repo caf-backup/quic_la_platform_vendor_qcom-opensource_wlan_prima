@@ -580,15 +580,14 @@ eHalStatus halWriteRegister(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 regValue
 eHalStatus halWriteDeviceMemory( tHalHandle hHal, tANI_U32 dstOffset, void *pSrcBuffer, tANI_U32 numBytes )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
-    return( palWriteDeviceMemory( pMac->hHdd, dstOffset, (tANI_U8 *)pSrcBuffer, numBytes ) );
+    return pMac->hal.funcWriteMem(pMac->hHdd, dstOffset, (tANI_U8 *)pSrcBuffer, numBytes);
 }
 
 
 eHalStatus halReadDeviceMemory( tHalHandle hHal, tANI_U32 srcOffset, void *pBuffer, tANI_U32 numBytes )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
-
-    return( palReadDeviceMemory( pMac->hHdd, srcOffset, pBuffer, numBytes ) );
+    return pMac->hal.funcReadMem(pMac->hHdd, srcOffset, pBuffer, numBytes);
 }
 
 eHalStatus halFillDeviceMemory( tHalHandle hHal, tANI_U32 memOffset, tANI_U32 numBytes, tANI_BYTE fillValue )
@@ -616,6 +615,18 @@ eHalStatus halNormalReadRegister( tHalHandle hHal, tANI_U32 regAddr, tANI_U32 *p
     return( palReadRegister( pMac->hHdd, regAddr, pRegValue ) );
 }
 
+eHalStatus halNormalWriteMemory(tHalHandle hHal, tANI_U32 dstOffset, void *pSrcBuffer, tANI_U32 numBytes)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
+    return( palWriteDeviceMemory( pMac->hHdd, dstOffset, (tANI_U8 *)pSrcBuffer, numBytes ) );
+}
+
+eHalStatus halNormalReadMemory(tHalHandle hHal, tANI_U32 srcOffset, void *pBuffer, tANI_U32 numBytes)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
+    return( palReadDeviceMemory( pMac->hHdd, srcOffset, pBuffer, numBytes ) );
+}
+
 // Initialize the function pointers
 static void halOpenInit(tpAniSirGlobal pMac)
 {
@@ -624,6 +635,12 @@ static void halOpenInit(tpAniSirGlobal pMac)
 
     // Initialize the read register function pointer
     pMac->hal.funcReadReg = halNormalReadRegister;
+
+    // Initialize the write register function pointer
+    pMac->hal.funcWriteMem = halNormalWriteMemory;
+
+    // Initialize the read register function pointer
+    pMac->hal.funcReadMem = halNormalReadMemory;
 }
 
 static void halCloseExit(tpAniSirGlobal pMac)
@@ -631,6 +648,8 @@ static void halCloseExit(tpAniSirGlobal pMac)
     // Initialize the read/write register function pointer to NULL
     pMac->hal.funcWriteReg = NULL;
     pMac->hal.funcReadReg  = NULL;
+    pMac->hal.funcWriteMem = NULL;
+    pMac->hal.funcReadMem  = NULL;
 }
 
 /** -------------------------------------------------------------

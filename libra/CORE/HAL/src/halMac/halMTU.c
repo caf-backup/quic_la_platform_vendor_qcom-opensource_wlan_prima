@@ -401,6 +401,7 @@ void halMtu_setBackOffControl(tpAniSirGlobal pMac)
 void halMTU_stallBackoffs(tpAniSirGlobal pMac, tANI_U32 mask)
 {
     tANI_U32 regValue = 0, count = 0;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
 
     // Stall data backoffs
     halReadRegister(pMac, QWLAN_MTU_BKOF_CONTROL_REG, &regValue);
@@ -410,12 +411,11 @@ void halMTU_stallBackoffs(tpAniSirGlobal pMac, tANI_U32 mask)
     // Poll for TPE to be idle
     regValue = 0;
     do {
-        halReadRegister(pMac, QWLAN_MCU_MCU_WMAC_STATUS_REG, &regValue);
+        status = halReadRegister(pMac, QWLAN_MCU_MCU_WMAC_STATUS_REG, &regValue);
         count++;
-        if (count > MCU_REG_POLLING_WARNING) {
-             HALLOGE( halLog(pMac, LOGE, FL("Polled MCU_WMAC_STATUS_REG register for %d times !!!\n"), count));
-             vos_sleep(1); 
-             count = 0;
+        if (count > MCU_REG_POLLING_WARNING || eHAL_STATUS_SUCCESS != status) {
+             HALLOGP( halLog(pMac, LOGP, FL("Polled MCU_WMAC_STATUS_REG register for %d times !!!\n"), count));
+             break;			 
         }
     } while ((regValue & QWLAN_MCU_MCU_WMAC_STATUS_TPE_MCU_STATUS_MASK));
 }
@@ -444,6 +444,7 @@ void halMTU_startBackoffs(tpAniSirGlobal pMac, tANI_U32 mask)
 eHalStatus halMTU_Start(tHalHandle hHal, void *arg)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
+    tANI_U32 value = 0;
     (void) arg;
 
     /**
@@ -459,6 +460,11 @@ eHalStatus halMTU_Start(tHalHandle hHal, void *arg)
     /** Program the BackOff Controls */
     halMtu_setBackOffControl(pMac);
 
+    // SW response to consider vector = 0x7 to avoid a possible hang in TPE
+    // when trying to stall the MTU backoff engines during scan.
+    halReadRegister(pMac, QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_REG, &value);
+    value |= QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_SW_RSP_TO_CONSIDER_VECTOR_MASK;
+    halWriteRegister(pMac, QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_REG, value);
 
     /** Register interrupt for adaptive threshold timer.*/
 #if defined(ANI_PRODUCT_TYPE_CLIENT)

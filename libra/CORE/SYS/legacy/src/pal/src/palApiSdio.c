@@ -29,7 +29,6 @@ eHalStatus palReadRegister( tHddHandle hHdd, tANI_U32 regAddress, tANI_U32 *pReg
     status = WLANBAL_ReadRegister((v_PVOID_t) pVosContext, (v_U32_t)regAddress, (v_U32_t *) pRegValue);
     if (!VOS_IS_STATUS_SUCCESS(status)){
         VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL, "Register %p Read FAILED!!", regAddress );
-        VOS_ASSERT( VOS_IS_STATUS_SUCCESS(status) );
     }
     return status;
 }
@@ -43,7 +42,6 @@ eHalStatus palWriteRegister( tHddHandle hHdd, tANI_U32 regAddress, tANI_U32 regV
     status = WLANBAL_WriteRegister(pVosContext, (v_U32_t) regAddress, (v_U32_t) regValue);
     if (!VOS_IS_STATUS_SUCCESS(status)){
         VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL, "Register %p Write FAILED!!", regAddress );
-        VOS_ASSERT( VOS_IS_STATUS_SUCCESS(status) );
     }
     return status;
 }
@@ -66,7 +64,6 @@ eHalStatus palWriteDeviceMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U8 *p
     status = WLANBAL_WriteMemory(pVosContext, (v_U32_t) memOffset, (v_PVOID_t) pBuffer, (v_U32_t) numBytes);
     if (!VOS_IS_STATUS_SUCCESS(status)){
         VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL, "DeviceMemory %p Write %d bytes FAILED!!", memOffset, numBytes );
-        VOS_ASSERT( VOS_IS_STATUS_SUCCESS(status) );
     }
     return status;
 }
@@ -80,7 +77,6 @@ eHalStatus palReadDeviceMemory( tHddHandle hHdd, tANI_U32 memOffset, tANI_U8 *pB
     status = WLANBAL_ReadMemory(pVosContext, (v_U32_t) memOffset, (v_PVOID_t) pBuffer, (v_U32_t) numBytes);
     if (!VOS_IS_STATUS_SUCCESS(status)){
         VOS_TRACE( VOS_MODULE_ID_BAL, VOS_TRACE_LEVEL_FATAL, "DeviceMemory %p Read %d bytes FAILED!!", memOffset, numBytes );
-        VOS_ASSERT( VOS_IS_STATUS_SUCCESS(status) );
     }
     return status;
 }

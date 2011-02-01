@@ -1082,11 +1082,14 @@ eHalStatus asicPhyDbgStopFrameGen(tpAniSirGlobal pMac)
     //     return(retVal);
     // }
 
+    //make sure the phydbg clk is enabled always in ftm mode for rx pkt stats to work
+#if 0
     // Explicitely disable clcok to PHYDBG module
     if ((retVal = rdModWrAsicField(pMac, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_REG, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_MASK, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_OFFSET, 0)) != eHAL_STATUS_SUCCESS)
     {
         return(retVal);
     }
+#endif
 
     return(retVal);
 }

@@ -119,6 +119,9 @@ vos_sched_open
   init_completion(&pSchedContext->TxStartEvent);
   init_completion(&pSchedContext->McShutdown);
   init_completion(&pSchedContext->TxShutdown);
+  init_completion(&pSchedContext->ResumeMcEvent);
+  init_completion(&pSchedContext->ResumeTxEvent);
+
   init_waitqueue_head(&pSchedContext->mcWaitQueue);
   pSchedContext->mcEventFlag = 0;
   init_waitqueue_head(&pSchedContext->txWaitQueue);
@@ -463,7 +466,7 @@ VosMCThread
         /* Mc Thread Suspended */
         complete(&pAdapter->mc_sus_event_var);
 
-        init_completion(&pSchedContext->ResumeMcEvent);
+        INIT_COMPLETION(pSchedContext->ResumeMcEvent);
 
         /* Wait foe Resume Indication */
         wait_for_completion_interruptible(&pSchedContext->ResumeMcEvent);
@@ -752,7 +755,7 @@ static int VosTXThread ( void * Arg )
         /* Tx Thread Suspended */
         complete(&pAdapter->tx_sus_event_var);
 
-        init_completion(&pSchedContext->ResumeTxEvent);
+        INIT_COMPLETION(pSchedContext->ResumeTxEvent);
 
         /* Wait foe Resume Indication */
         wait_for_completion_interruptible(&pSchedContext->ResumeTxEvent);
@@ -796,14 +799,14 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     set_bit(MC_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->mcEventFlag);
     set_bit(MC_POST_EVENT_MASK, &gpVosSchedContext->mcEventFlag);
     wake_up_interruptible(&gpVosSchedContext->mcWaitQueue);
+    //Wait for MC to exit
+    wait_for_completion_interruptible(&gpVosSchedContext->McShutdown);
+	
 #ifndef ANI_MANF_DIAG
     set_bit(TX_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->txEventFlag);
     set_bit(TX_POST_EVENT_MASK, &gpVosSchedContext->txEventFlag);
     wake_up_interruptible(&gpVosSchedContext->txWaitQueue);
-#endif
-    //Wait for MC and TX to exit
-    wait_for_completion_interruptible(&gpVosSchedContext->McShutdown);
-#ifndef ANI_MANF_DIAG
+    //Wait for TX to exit	
     wait_for_completion_interruptible(&gpVosSchedContext->TxShutdown);
 #endif
     //Clean up message queues of TX and MC thread
@@ -864,14 +867,22 @@ VOS_STATUS vos_watchdog_chip_reset ( v_VOID_t )
     /* Set the flags so that all future CMD53 and Wext commands get blocked right away */
     vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
     pAdapter->isLogpInProgress = TRUE;
-    
+
     if (pAdapter->isLoadUnloadInProgress)
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
             "%s: Load/unload in Progress. Ignoring signaling Watchdog",__FUNCTION__);
         return VOS_STATUS_E_FAILURE;    
     }
-    
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    if(VOS_STATUS_SUCCESS != hdd_wlan_reset_initialization())
+    {
+       /* This can fail if card got removed by SDCC during resume */
+       VOS_ASSERT(0);
+    }
+#endif
+
     set_bit(WD_CHIP_RESET_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
     set_bit(WD_POST_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
     wake_up_interruptible(&gpVosWatchdogContext->wdWaitQueue);

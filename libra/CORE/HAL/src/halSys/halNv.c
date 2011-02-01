@@ -85,7 +85,6 @@ eHalStatus halNvOpen(tHalHandle hMac)
         }
     }
 
-#ifdef ANI_OS_TYPE_ANDROID
     if (vos_nv_getValidity(VNV_RSSI_CHANNEL_OFFSETS, &itemIsValid) == VOS_STATUS_SUCCESS)
     {
         if (itemIsValid == VOS_TRUE)
@@ -94,7 +93,6 @@ eHalStatus halNvOpen(tHalHandle hMac)
                  return (eHAL_STATUS_FAILURE);
         }
     }
-#endif
 }
 #endif
     pMac->hphy.nvTables[NV_FIELDS_IMAGE              ] = &pMac->hphy.nvCache.fields;
@@ -296,14 +294,12 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                 }
                 break;
 
-#ifdef ANI_OS_TYPE_ANDROID
             case NV_TABLE_RSSI_CHANNEL_OFFSETS:
                 if ((vosStatus = vos_nv_write(VNV_RSSI_CHANNEL_OFFSETS, (void *)&pMac->hphy.nvCache.tables.rssiChanOffsets[0], sizeof(sRssiChannelOffsets) * PHY_MAX_RX_CHAINS)) != VOS_STATUS_SUCCESS)
                 {
                     return (eHAL_STATUS_FAILURE);
                 }
                 break;
-#endif
 
             case NV_TABLE_TPC_CONFIG:       //stored through QFUSE
             case NV_TABLE_RF_CAL_VALUES:    //stored through QFUSE
@@ -635,7 +631,6 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 
             break;
 
-#ifdef ANI_OS_TYPE_ANDROID
         case NV_TABLE_RSSI_CHANNEL_OFFSETS:
             if ((vosStatus = vos_nv_setValidity(VNV_RSSI_CHANNEL_OFFSETS, VOS_FALSE)) == VOS_STATUS_SUCCESS)
             {
@@ -647,7 +642,6 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
             }
 
             break;
-#endif
 
         case NV_TABLE_TPC_CONFIG:
             memcpy(&pMac->hphy.nvCache.tables.tpcConfig[0], &nvDefaults.tables.tpcConfig[0], sizeof(tTpcConfig) * MAX_TPC_CHANNELS);

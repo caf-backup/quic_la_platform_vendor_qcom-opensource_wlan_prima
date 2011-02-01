@@ -4712,29 +4712,35 @@ void csrReleaseProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile)
         if(pProfile->BSSIDs.bssid)
         {
             palFreeMemory(pMac->hHdd, pProfile->BSSIDs.bssid);
+	     pProfile->BSSIDs.bssid = NULL;
         }
         if(pProfile->SSIDs.SSIDList)
         {
             palFreeMemory(pMac->hHdd, pProfile->SSIDs.SSIDList);
+	     pProfile->SSIDs.SSIDList = NULL;
         }
         if(pProfile->pWPAReqIE)
         {
             palFreeMemory(pMac->hHdd, pProfile->pWPAReqIE);
+	     pProfile->pWPAReqIE = NULL;
         }
         if(pProfile->pRSNReqIE)
         {
             palFreeMemory(pMac->hHdd, pProfile->pRSNReqIE);
+	     pProfile->pRSNReqIE = NULL;
         }
 #ifdef FEATURE_WLAN_WAPI
         if(pProfile->pWAPIReqIE)
         {
             palFreeMemory(pMac->hHdd, pProfile->pWAPIReqIE);
+	     pProfile->pWAPIReqIE = NULL;
         }
 #endif /* FEATURE_WLAN_WAPI */
     
         if(pProfile->ChannelInfo.ChannelList)
         {
             palFreeMemory(pMac->hHdd, pProfile->ChannelInfo.ChannelList);
+	     pProfile->ChannelInfo.ChannelList = NULL;
         }
 
     

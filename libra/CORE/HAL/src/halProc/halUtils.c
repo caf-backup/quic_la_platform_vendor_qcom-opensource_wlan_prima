@@ -612,12 +612,16 @@ tANI_U16 halUtil_GetGCD(tANI_U16 num1, tANI_U16 num2)
          tANI_U16 dtimPeriod, tANI_U16 dtimCount, tANI_U64 *pDtimTbbt
 \return  void
 \ -------------------------------------------------------- */
+#define HAL_DEFAULT_DTIM_TBTT   102400
 void halUtil_GetDtimTbtt(tpAniSirGlobal pMac, tANI_U64 tbtt, tANI_U8 bssIdx,
         tANI_U8 dtimPeriod, tANI_U8 dtimCount, tANI_U64 *pDtimTbtt)
 {
     tANI_U16 beaconInterval = 0;
 
     halTable_GetBeaconIntervalForBss(pMac, bssIdx, &beaconInterval);
+
+    if(beaconInterval == 0)
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s: %d: Beacon Interval is 0", __func__, __LINE__);
 
     // Initialize to the given TBTT value
     *pDtimTbtt = tbtt;
@@ -628,7 +632,18 @@ void halUtil_GetDtimTbtt(tpAniSirGlobal pMac, tANI_U64 tbtt, tANI_U8 bssIdx,
         // If DTIM count is non-zero then we have a non DTIM tbtt so convert it
         // to the last probable DTIM TBTT
         if ((dtimCount>0) && (dtimCount<dtimPeriod)) {
-            *pDtimTbtt = tbtt - ((beaconInterval * TIME_UNIT_IN_USEC) * (dtimPeriod - dtimCount));
+            if(tbtt > ((beaconInterval * TIME_UNIT_IN_USEC) * (dtimPeriod - dtimCount)))
+	    {
+               *pDtimTbtt = tbtt - ((beaconInterval * TIME_UNIT_IN_USEC) * (dtimPeriod - dtimCount));
+	    }
+	    else
+	    {
+               *pDtimTbtt = HAL_DEFAULT_DTIM_TBTT * dtimPeriod;
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: %d: ERROR TBTT Low: 0x%x TBTT High: 0x%x\n",
+                        __func__, __LINE__,(&(tbtt))[0], (&(tbtt))[1]);
+               VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: %d: beaconInterval: %d, dtimPeriod %d, dtimCount %d\n",
+                        __func__, __LINE__,beaconInterval, dtimPeriod, dtimCount);
+	    }
         }
     }
 }
@@ -639,15 +654,21 @@ void halUtil_GetLeastRefDtimTbtt(tpAniSirGlobal pMac, tANI_U8 bssIdx, tANI_U64 d
 
     halTable_GetBeaconIntervalForBss(pMac, bssIdx, &beaconInterval);
 
-    if(dtimPeriod > 0) {
-#ifndef ANI_OS_TYPE_ANDROID
-        *pRefDtimTbtt = dtimTbtt%(beaconInterval*dtimPeriod*TIME_UNIT_IN_USEC);
-#else
-        iter_div_u64_rem(dtimTbtt, beaconInterval*dtimPeriod*TIME_UNIT_IN_USEC, pRefDtimTbtt);
-#endif
-        if(dtimTbtt == 0) {
+    if(beaconInterval == 0)
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s: %d: Beacon Interval is 0", __func__, __LINE__);
+
+    if((dtimPeriod > 0) && ( beaconInterval > 0)) {	
+    	    if(dtimTbtt == 0) {
             *pRefDtimTbtt = (beaconInterval*dtimPeriod*TIME_UNIT_IN_USEC);
         }
+    	   else
+    	   {
+#ifndef ANI_OS_TYPE_ANDROID
+           *pRefDtimTbtt = dtimTbtt%(beaconInterval*dtimPeriod*TIME_UNIT_IN_USEC);
+#else
+           *pRefDtimTbtt = do_div(dtimTbtt, (beaconInterval*dtimPeriod*TIME_UNIT_IN_USEC)); 
+#endif
+    	   	}
     } else {
         *pRefDtimTbtt = dtimTbtt;
         HALLOGE(halLog(pMac, LOGE, "Error: Dtim period = %d !!!", dtimPeriod));

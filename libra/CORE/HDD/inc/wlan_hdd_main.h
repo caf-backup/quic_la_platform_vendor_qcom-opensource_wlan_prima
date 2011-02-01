@@ -130,7 +130,6 @@ typedef enum
    eHDD_SUSPEND_NONE = 0,
    eHDD_SUSPEND_DEEP_SLEEP,
    eHDD_SUSPEND_STANDBY,
-   eHDD_SUSPEND_MCAST_BCAST_FILTER,
 } hdd_ps_state_t;
 typedef struct roaming_info_s
 {
@@ -344,12 +343,16 @@ struct hdd_adapter_s
 
    v_BOOL_t isMcThreadSuspended;
 
-   v_BOOL_t isLogpInProgress;
+   volatile v_BOOL_t isLogpInProgress;
 
    v_BOOL_t isLoadUnloadInProgress;
    
    /**Track whether driver has been suspended.*/
    hdd_ps_state_t hdd_ps_state;
+   
+   /* Track whether Mcast/Bcast Filter is enabled.*/
+   v_BOOL_t hdd_mcastbcast_filter_set;
+   
    /** ptt Process ID*/
    v_SINT_t ptt_pid;
    tANI_U8 sessionId;

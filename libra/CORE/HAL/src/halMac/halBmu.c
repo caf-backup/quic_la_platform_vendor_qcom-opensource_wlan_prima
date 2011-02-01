@@ -26,6 +26,8 @@
 #define  BD_PDU_INTERCHANGEABLE        1
 #define  BD_PDU_NOT_INTERCHANGEABLE    0
 
+#define BTQM_STA_DISABLE_ENABLE_RETRY 2000
+
 #define ENABLE_TRACE   1
 #define DISABLE_TRACE  0
 
@@ -1455,7 +1457,8 @@ static eHalStatus halBmu_btqm_init_control1_register(tpAniSirGlobal pMac, tANI_U
 eHalStatus halBmu_sta_enable_disable_control(tpAniSirGlobal pMac, tANI_U32 staId, tANI_U32 staCfgCmd)
 {
     tANI_U32 value;
-
+    tANI_U32 count = 0;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
 
     /** Set the staId and configuration command */
     value = (staCfgCmd << QWLAN_BMU_BTQM_STA_ENABLE_DISABLE_CONTROL_STA_CONFIGURATION_COMMAND_OFFSET) |
@@ -1467,7 +1470,15 @@ eHalStatus halBmu_sta_enable_disable_control(tpAniSirGlobal pMac, tANI_U32 staId
     /** Poll on bit 31 is clear */
     do {
 
-        halReadRegister(pMac, QWLAN_BMU_BTQM_STA_ENABLE_DISABLE_CONTROL_REG, &value);
+        status = halReadRegister(pMac, QWLAN_BMU_BTQM_STA_ENABLE_DISABLE_CONTROL_REG, &value);
+	    count++;
+        if(count > BTQM_STA_DISABLE_ENABLE_RETRY || eHAL_STATUS_SUCCESS != status)
+        {
+             VOS_ASSERT(0);
+             VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, 
+			 	"%s Polled BTQM_STA_ENABLE_DISABLE_CONTROL_REG  register %d times", __func__, count);
+             break;
+        }
 
     } while ((value & QWLAN_BMU_BTQM_STA_ENABLE_DISABLE_CONTROL_STA_UPDATE_STATUS_MASK));
 

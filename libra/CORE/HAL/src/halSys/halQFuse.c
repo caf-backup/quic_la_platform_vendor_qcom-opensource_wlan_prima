@@ -99,6 +99,57 @@ void halQFusePackBits(tHalHandle hMac)
     pMac->hphy.nvCache.tables.qFuseData.dword3_rf_hdet_dcoc_ib_scal_en          = pMac->hphy.nvCache.tables.rfCalValues.hdet_dcoc_ib_scal_en;
 }
 
+/*
+    If the part has a clipped, PADC value for channel 9, we use information from other frequency channels to extrapolate a
+    corrected value for the clipped location.
+    i.e., normalize the slope between the calpoints 3 and 4 for channel 9 based on the channel 3's information.
+
+    Target = 127
+    slope_3 = (padc_channel3_13p5dBm- padc_channel3_10dBm) / (pout_channel3_13p5dBm -pout_channel3_10dBm)
+    slope_9 = (padc_channel9_13p5dBm- padc_channel9_10dBm) / (pout_channel9_13p5dBm -pout_channel9_10dBm)
+    slope_3_top = (padc_channel9_16dBm- padc_channel9_13p5dBm) / (pout_channel9_16dBm- pout_channel9_13p5dBm)
+    new_padc = (slope_3_top.*slope_9./slope_3).*( pout_channel9_16dBm - pout_channel9_13p5dBm)+ padc_channel9_13p5dBm;
+    new_slope_9 = (pout_channel9_16dm-pout_channel9_13p5dBm)./(new_padc_9 – padc_channel9_13p5dBm);
+    pout_channel9_16dBm = pout_channel9_16dBm - new_slope_9.*(new_padc_9-target_point); %replacing old pout value
+    padc_channel9_16dBm = Target; %replacing old padc value
+
+*/
+static void halQFuseCorrectPadcClippedValue(tHalHandle hMac)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
+
+    //check whether the part has a clipped padc value or not.
+    if(pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][3].pwrDetAdc == 127)
+    {
+        tANI_U8 target = 127;
+        tANI_U8 padc00, pout00, padc01, pout01, padc02, pout02, padc03, pout03, padc10, pout10, padc11, pout11, padc12, pout12, padc13, pout13;
+
+        padc00 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][0].pwrDetAdc      ;
+        pout00 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][0].adjustedPwrDet ;
+        padc01 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][1].pwrDetAdc      ;
+        pout01 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][1].adjustedPwrDet ;
+        padc02 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][2].pwrDetAdc      ;
+        pout02 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][2].adjustedPwrDet ;
+        padc03 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][3].pwrDetAdc      ;
+        pout03 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][3].adjustedPwrDet ;
+        padc10 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][0].pwrDetAdc      ;
+        pout10 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][0].adjustedPwrDet ;
+        padc11 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][1].pwrDetAdc      ;
+        pout11 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][1].adjustedPwrDet ;
+        padc12 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][2].pwrDetAdc      ;
+        pout12 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][2].adjustedPwrDet ;
+        padc13 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][3].pwrDetAdc      ;
+        pout13 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][3].adjustedPwrDet ;
+
+
+        pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][3].adjustedPwrDet =
+                        pout12 + ( ((target - padc12) * (padc02- padc01) * (pout12 -pout11) * (pout13- pout12)) /
+                        ((pout02 -pout01) * (padc12- padc11) * (padc13- padc12)) );
+
+        pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][3].pwrDetAdc = target; //%replacing old padc value
+    }
+}
+
 static void halQFuseParseBits(tHalHandle hMac)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
@@ -137,6 +188,14 @@ static void halQFuseParseBits(tHalHandle hMac)
         pMac->hphy.nvCache.tables.rfCalValues.hdet_dcoc_code                  = (tANI_U8)pMac->hphy.nvCache.tables.qFuseData.dword3_rf_hdet_dcoc_code      ;
         pMac->hphy.nvCache.tables.rfCalValues.hdet_dcoc_ib_rcal_en            = (tANI_U8)pMac->hphy.nvCache.tables.qFuseData.dword3_rf_hdet_dcoc_ib_rcal_en;
         pMac->hphy.nvCache.tables.rfCalValues.hdet_dcoc_ib_scal_en            = (tANI_U8)pMac->hphy.nvCache.tables.qFuseData.dword3_rf_hdet_dcoc_ib_scal_en;
+
+        /*
+          There was an issue with the calibration procedure on the ATE. Due to this problem,
+          parts can be released with clipped PADC values in Qfuse. If the part has a clipped
+          PADC value, we use information from other frequency channels to extrapolate a corrected
+          value for the clipped location.
+        */
+        halQFuseCorrectPadcClippedValue(hMac);
     }
     else
     {

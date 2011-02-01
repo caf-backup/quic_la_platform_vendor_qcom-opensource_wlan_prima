@@ -960,58 +960,53 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_deactivate(&pMac->lim.limTimers.gLimMaxChannelTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimMaxChannelTimer);
 
+   
+         // Deactivate and delete channel switch timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimChannelSwitchTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimChannelSwitchTimer);
 
-        if ((pMac->lim.gLimSystemRole == eLIM_STA_ROLE) ||
-            (pMac->lim.gLimSystemRole == eLIM_STA_IN_IBSS_ROLE))
-        {
-    
-            // Deactivate and delete channel switch timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimChannelSwitchTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimChannelSwitchTimer);
+         // Deactivate and delete addts response timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimAddtsRspTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimAddtsRspTimer);
 
-            // Deactivate and delete addts response timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimAddtsRspTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimAddtsRspTimer);
+         // Deactivate and delete Join failure timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimJoinFailureTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimJoinFailureTimer);
 
-            // Deactivate and delete Join failure timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimJoinFailureTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimJoinFailureTimer);
+         // Deactivate and delete Association failure timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimAssocFailureTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimAssocFailureTimer);
 
-            // Deactivate and delete Association failure timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimAssocFailureTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimAssocFailureTimer);
+         // Deactivate and delete Reassociation failure timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimReassocFailureTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimReassocFailureTimer);
 
-            // Deactivate and delete Reassociation failure timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimReassocFailureTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimReassocFailureTimer);
+         // Deactivate and delete Authentication failure timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimAuthFailureTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimAuthFailureTimer);
 
-            // Deactivate and delete Authentication failure timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimAuthFailureTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimAuthFailureTimer);
+         // Deactivate and delete Heartbeat timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimHeartBeatTimer);
 
-            // Deactivate and delete Heartbeat timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimHeartBeatTimer);
+         // Deactivate and delete wait-for-probe-after-Heartbeat timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
 
-            // Deactivate and delete wait-for-probe-after-Heartbeat timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
+         // Deactivate and delete Quiet timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimQuietTimer);
 
-            // Deactivate and delete Quiet timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimQuietTimer);
-
-            // Deactivate and delete Quiet BSS timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietBssTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimQuietBssTimer);
+         // Deactivate and delete Quiet BSS timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietBssTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimQuietBssTimer);
 
 #if defined(ANI_PRODUCT_TYPE_CLIENT) || defined(ANI_AP_CLIENT_SDK)
-            // Deactivate and delete LIM background scan timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimBackgroundScanTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimBackgroundScanTimer);
+         // Deactivate and delete LIM background scan timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimBackgroundScanTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimBackgroundScanTimer);
 #endif
 
-        }
 
         // Deactivate and delete cnf wait timer
         for (n = 0; n < pMac->lim.maxStation; n++)

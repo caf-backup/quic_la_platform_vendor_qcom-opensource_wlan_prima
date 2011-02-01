@@ -209,6 +209,10 @@ __DP_SRC_TX VOS_STATUS halTxComplete( v_PVOID_t pVosGCtx, vos_pkt_t *pData, VOS_
         pMac->hal.TLParam.txMgmtFrameStatus = HAL_TL_TX_SUCCESS;
         HALLOG1(halLog(pMac, LOG1, FL("NEW VOS Event SUCCESS = %d\n"), vosStatus));
     }
+    else
+    {
+        HALLOGE(halLog(pMac, LOGE, FL("%s failed status %d\n"), __func__ ,vosStatus));
+    }
 
     // Trigger the event to bring the HAL TL Tx complete function to come out of wait
     vosStatus = vos_event_set(&pMac->hal.TLParam.txMgmtFrameEvent);

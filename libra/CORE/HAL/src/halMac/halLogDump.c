@@ -3735,16 +3735,18 @@ dump_hal_toggle_gpio(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32
     HALLOGE( halLog( pMac, LOGE, FL("GPIO toggle %d\n"), arg1));
 
     if (arg2) {
-        gpio_request( 181, "debug_wifi_gpio" );
-	    gpio_direction_output( 181, arg2 );
+//        gpio_request( 181, "debug_wifi_gpio" );
+//	    gpio_direction_output( 181, arg2 );
     }
 
     if (arg1) {
          HALLOGE( halLog( pMac, LOGE, FL("setting gpio 181 HIGH\n")));
-         gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_2MA), GPIO_ENABLE);
+//         gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_2MA), GPIO_ENABLE);
+         gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
     } else {
          HALLOGE( halLog( pMac, LOGE, FL("setting gpio 181 LOW\n")));
-         gpio_tlmm_config(GPIO_CFG(181, 0, GPIO_OUTPUT, GPIO_PULL_DOWN, GPIO_2MA), GPIO_ENABLE);
+//         gpio_tlmm_config(GPIO_CFG(181, 0, GPIO_OUTPUT, GPIO_PULL_DOWN, GPIO_2MA), GPIO_ENABLE);
+         gpio_tlmm_config(GPIO_CFG(181, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
     }
    
     return p;

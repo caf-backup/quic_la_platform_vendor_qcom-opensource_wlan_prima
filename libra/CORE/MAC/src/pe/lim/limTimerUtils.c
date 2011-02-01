@@ -1000,7 +1000,6 @@ limDeactivateAndChangeTimer(tpAniSirGlobal pMac, tANI_U32 timerId)
                    FL("could not retrieve AssocFailureTimeout value\n"));
             }
             val = SYS_MS_TO_TICKS(val);
-			val = 5000;
 
             if (tx_timer_change(&pMac->lim.limTimers.gLimAssocFailureTimer,
                                 val, 0) != TX_SUCCESS)

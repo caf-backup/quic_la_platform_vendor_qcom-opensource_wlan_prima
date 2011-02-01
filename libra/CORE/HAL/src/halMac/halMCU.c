@@ -43,6 +43,22 @@ eHalStatus halMcu_Start(tHalHandle hHal, void *arg)
     //    return eHAL_STATUS_FAILURE;
 
     (void) arg;
+    halWriteRegister (pMac, QWLAN_MCU_MAC_CLK_GATING_ENABLE_REG,
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_ARM_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_BTC_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_ADU_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_TPE_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_RPE_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_MCPU_GAM_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_MIF_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_PHY_AHB_2_APB_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_DPU_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_BMU_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_MTU_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_RXP_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_TXP_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_DBR_CLK_GATING_ENABLE_MASK |
+            QWLAN_MCU_MAC_CLK_GATING_ENABLE_MLC_CLK_GATING_ENABLE_MASK );
 
     /* Reset all mailbox by setting the reset bit to 1.
      * This parameters, counters related to this Mailbox will be cleared.
@@ -50,16 +66,16 @@ eHalStatus halMcu_Start(tHalHandle hHal, void *arg)
     for (i = 0; i < MCU_MAX_NUM_OF_MAILBOX; i++)
     {
         halWriteRegister(pMac,
-                             MCU_MAILBOX_CONTROL_REG_ADDR(i),
-                             QWLAN_MCU_MB0_CONTROL_MB_RESET_MASK) ;
+                MCU_MAILBOX_CONTROL_REG_ADDR(i),
+                QWLAN_MCU_MB0_CONTROL_MB_RESET_MASK) ;
     }
 
     /* Reset all mutex */
     for (i = 0; i < MCU_MAX_NUM_OF_MUTEX; i++)
     {
         halWriteRegister(pMac,
-                         MCU_MUTEX_REG_ADDR(i),
-                         QWLAN_MCU_MUTEX0_RESET_MASK);
+                MCU_MUTEX_REG_ADDR(i),
+                QWLAN_MCU_MUTEX0_RESET_MASK);
     }
 
     // Temporary workaround for the PCI hang issue

@@ -133,6 +133,10 @@ extern "C" {
 /* If TX resource is not enough, wait till this timeout period and try get again */
 #define WLANBAL_TX_RESOURCE_TIMEOUT     10
 
+/* Maximum TX BACKOFF TIMER Counter.Max TX resource timer value =
+WLANBAL_MAX_TX_BACKOFF_COUNTER WLANBAL_TX_RESOURCE_TIMEOUT */
+#define WLANBAL_MAX_TX_BACKOFF_COUNTER   10
+
 /* Test arguments valid or not */
 #define IS_VALID_1_ARG(a)              (NULL != a) ? 1 : 0
 #define IS_VALID_2_ARG(a, b)           ((NULL != a) && (NULL != b)) ? 1 : 0

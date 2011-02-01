@@ -53,6 +53,8 @@ when       who     what, where, why
 #include <vos_power.h>
 #include <vos_api.h>
 
+#include <libra_sdioif.h>
+
 #ifndef LIBRA_LINUX_PC
 #include <mach/mpp.h>
 #include <mach/vreg.h>
@@ -86,6 +88,9 @@ when       who     what, where, why
 
 #define CHIP_POWER_ON         1
 #define CHIP_POWER_OFF        0
+
+// SDIO Config Cycle Clock Frequency
+#define WLAN_LOW_SD_CONFIG_CLOCK_FREQ 400000
 
 #ifdef MSM_PLATFORM_7x30
 
@@ -207,7 +212,7 @@ int vos_chip_power_qrf8600(int on)
       }
 
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Wait for 2.5v supply to settle",__func__);
-      msleep(500);
+      msleep(250);
 
       // Configure GPIO 23 for Deep Sleep
       rc = pm8058_gpio_config(wlan_gpios_power_on[2].gpio_num, &wlan_gpios_power_on[2].gpio_cfg);
@@ -264,7 +269,7 @@ int vos_chip_power_qrf8600(int on)
       }
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Enabled power supply for WLAN", __func__);
 		
-      msleep(500);
+      msleep(250);
    }
    else
    {
@@ -446,8 +451,8 @@ VOS_STATUS vos_chipPowerUp
 #endif
 
 #ifdef WLAN_DBG_GPIO
-     gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_2MA), GPIO_ENABLE);
-     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: GPIO 181 should be HIGH now", __func__);
+     gpio_tlmm_config(GPIO_CFG(181, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: GPIO 181 should be LOW now", __func__);
 #endif
  
    return VOS_STATUS_SUCCESS;
@@ -484,6 +489,24 @@ VOS_STATUS vos_chipPowerDown
   v_PVOID_t             user_data
 )
 {
+   struct sdio_func *sdio_func_dev = NULL;
+
+   // Get the SDIO func device
+   sdio_func_dev = libra_getsdio_funcdev();
+   if (sdio_func_dev == NULL)
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN sdio device is NULL \n"
+             "exiting", __func__);
+   }
+   else 
+   {
+      // Set sdio clock to lower config cycle frequency before chip power down.
+      // Setting this low freq, will also internally in msm_sdcc disable power save.
+      // Once the card is power down and powered up and detected
+      // after the config cycles the clock freq will be set back up
+      // to our capability of 50MHz
+      libra_sdio_set_clock(sdio_func_dev, WLAN_LOW_SD_CONFIG_CLOCK_FREQ);
+   }
 
 #ifdef MSM_PLATFORM_7x30
    if(vos_chip_power_qrf8600(CHIP_POWER_OFF))
@@ -542,8 +565,8 @@ VOS_STATUS vos_chipReset
    VOS_STATUS vstatus;
 
 #ifdef WLAN_DBG_GPIO
-     gpio_tlmm_config(GPIO_CFG(181, 0, GPIO_OUTPUT, GPIO_PULL_DOWN, GPIO_2MA), GPIO_ENABLE);
-     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: GPIO 181 should be LOW now", __func__);
+     gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: GPIO 181 should be HIGH now", __func__);
 #endif
 
    vstatus = vos_watchdog_chip_reset();

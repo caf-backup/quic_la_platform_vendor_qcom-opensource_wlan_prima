@@ -248,7 +248,7 @@ void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result)
    {
       VOS_STATUS vosStatus;
       pAdapter->conn_info.connState = eConnectionState_NotConnected;
-      init_completion(&pAdapter->disconnect_comp_var);
+      INIT_COMPLETION(pAdapter->disconnect_comp_var);
       vosStatus = sme_RoamDisconnect(halHandle, pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
 
       if(VOS_STATUS_SUCCESS == vosStatus)
@@ -343,7 +343,7 @@ static int iw_set_mode(struct net_device *dev,
         {
             VOS_STATUS vosStatus;
             // need to issue a disconnect to CSR.
-            init_completion(&pAdapter->disconnect_comp_var);
+              INIT_COMPLETION(pAdapter->disconnect_comp_var);
             vosStatus = sme_RoamDisconnect( pAdapter->hHal,pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED );
             if(VOS_STATUS_SUCCESS == vosStatus)
                  wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
@@ -1322,157 +1322,6 @@ void iw_priv_callback_fn (void *callbackContext, eHalStatus status)
     complete(completion_var);
 }
 
-static eHalStatus hdd_CscanRequestCallback(tHalHandle halHandle, void *pContext,
-                         tANI_U32 scanId, eCsrScanStatus status)
-{
-    struct net_device *dev = (struct net_device *) pContext;
-    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
-    hdd_wext_state_t *pwextBuf = pAdapter->pWextState;
-    union iwreq_data wrqu;
-    int we_event;
-    char *msg;
-    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
-    ENTER();
-
-   hddLog(LOG1,"%s called with halHandle = %p, pContext = %p, scanID = %d,"
-           " returned status = %d\n", __FUNCTION__, halHandle, pContext,
-            (int) scanId, (int) status);
-
-    /* Check the scanId */
-    if (pwextBuf->scanId != scanId)
-    {
-        hddLog(LOG1,"%s called with mismatched scanId pWextState->scanId = %d "
-               "scanId = %d \n", __FUNCTION__, (int) pwextBuf->scanId,
-                (int) scanId);
-    }
-
-    /* Scan is no longer pending */
-    pwextBuf->mScanPending = VOS_FALSE;
-   
-    // notify any applications that may be interested
-    memset(&wrqu, '\0', sizeof(wrqu));
-    we_event = SIOCGIWSCAN;
-    msg = NULL;
-    wireless_send_event(dev, we_event, &wrqu, msg);
-
-    vos_status = vos_event_set(&pwextBuf->vosevent);
-   
-    if (!VOS_IS_STATUS_SUCCESS(vos_status))
-    {    
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!\n"));
-       return VOS_STATUS_E_FAILURE;
-    }
-
-    EXIT();
-
-    return eHAL_STATUS_SUCCESS;
-}
-
-
-int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
-                 union iwreq_data *wrqu, char *extra)
-{
-   VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
-   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
-   hdd_wext_state_t *pwextBuf = pAdapter->pWextState;
-   tCsrScanRequest scanRequest;
-   v_U32_t scanId = 0;
-   eHalStatus status = eHAL_STATUS_SUCCESS;
-//   struct iw_scan_req *scanReq = (struct iw_scan_req *)extra;
-
-   ENTER();
-
-   if(pwextBuf->mScanPending == TRUE)
-   {
-       hddLog(LOG1,"%s: mScanPending is TRUE\n",__func__);
-       return -EBUSY;                  
-   }
-   
-   vos_mem_zero( &scanRequest, sizeof(scanRequest));
- 
-   if (NULL != wrqu->data.pointer)
-   {      
-       /* set scanType, active or passive */
-      
-       if (eSIR_ACTIVE_SCAN == pAdapter->pWextState->scan_mode)
-       {
-           scanRequest.scanType = eSIR_ACTIVE_SCAN;
-       }
-       else
-       {
-           scanRequest.scanType = eSIR_PASSIVE_SCAN;
-       }
-#if 0
-       /* set bssid using sockaddr from iw_scan_req */
-       vos_mem_copy(scanRequest.bssid,
-                       &scanReq->bssid.sa_data, sizeof(scanRequest.bssid) );
-      
-      if (wrqu->data.flags & IW_SCAN_THIS_ESSID)  {
-
-          if(scanReq->essid_len) {
-              scanRequest.SSIDs.numOfSSIDs = 1;
-              scanRequest.SSIDs.SSIDList =( tCsrSSIDInfo *)vos_mem_malloc(sizeof(tCsrSSIDInfo));
-              scanRequest.SSIDs.SSIDList->SSID.length = scanReq->essid_len;
-              vos_mem_copy(scanRequest.SSIDs.SSIDList->SSID.ssId,scanReq->essid,scanReq->essid_len);
-          }
-      }
- 
-       /* set min and max channel time */
-       scanRequest.minChnTime = scanReq->min_channel_time;
-       scanRequest.maxChnTime = scanReq->max_channel_time;
-#else
-
-       scanRequest.minChnTime = 0;//scanReq->min_channel_time;
-       scanRequest.maxChnTime = 0;//scanReq->max_channel_time;
-#endif
-   }
-   else
-   {
-       if(pAdapter->pWextState->scan_mode == eSIR_ACTIVE_SCAN) {
-           /* set the scan type to active */
-           scanRequest.scanType = eSIR_ACTIVE_SCAN;
-       } else {                      
-           scanRequest.scanType = eSIR_PASSIVE_SCAN;
-       }
- 
-       vos_mem_set( scanRequest.bssid, sizeof( tCsrBssid ), 0xff );
-       
-       /* set min and max channel time to zero */
-       scanRequest.minChnTime = 0;
-       scanRequest.maxChnTime = 0;
-   }
-   
-   /* set BSSType to default type */
-   scanRequest.BSSType = eCSR_BSS_TYPE_ANY;
- 
-   /*Scan all the channels */
-   scanRequest.ChannelInfo.numOfChannels = 0;
-
-   scanRequest.ChannelInfo.ChannelList = NULL;
- 
-   /* set requestType to full scan */
-   scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;
-   
-   pwextBuf->mScanPending = TRUE;
-   
-   status = sme_ScanRequest( pAdapter->hHal, pAdapter->sessionId,&scanRequest, &scanId, &hdd_CscanRequestCallback, dev ); 
-      
-   pwextBuf->scanId = scanId;
-
-   vos_status = vos_wait_single_event(&pwextBuf->vosevent,3000);
-   
-   if (!VOS_IS_STATUS_SUCCESS(vos_status))
-   {
-      pwextBuf->mScanPending = FALSE;
-      return VOS_STATUS_E_FAILURE;
-   }
-   if (wrqu->data.flags & IW_SCAN_THIS_ESSID)
-       vos_mem_free(scanRequest.SSIDs.SSIDList);
-
-   EXIT();
-   return status;
-}
-
 static int iw_set_priv(struct net_device *dev,
                          struct iw_request_info *info,
                          union iwreq_data *wrqu, char *extra)
@@ -1492,20 +1341,19 @@ static int iw_set_priv(struct net_device *dev,
        return status;
     } 
 
-    if(strncmp(cmd, "CSCAN",5) == 0 ){
-		int status= VOS_STATUS_SUCCESS;
-		
+	if(strncmp(cmd, "CSCAN",5) == 0 )
+	{
+        hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "CSCAN command\n");
 		status = iw_set_cscan(dev, info,wrqu, extra);
 		return status;
 
 	}
-    else if( strcasecmp(cmd, "start") == 0 ) {
+	else if( strcasecmp(cmd, "start") == 0 ) {
 
         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Start command\n");
         /*Exit from Deep sleep or standby if we get the driver START cmd from android GUI*/
-        if(pAdapter->hdd_ps_state == eHDD_SUSPEND_STANDBY) 
-        {
-           
+        if(pAdapter->cfg_ini->nEnableDriverStop == WLAN_MAP_DRIVER_STOP_TO_STANDBY) 
+        {           
            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: WLAN being exit from Stand by\n",__func__);
            status = hdd_exit_standby(pAdapter);
         } 
@@ -1515,7 +1363,7 @@ static int iw_set_priv(struct net_device *dev,
             status = hdd_exit_deep_sleep(pAdapter);
         }
         else {
-            hddLog(VOS_TRACE_LEVEL_INFO_LOW, "%s: Not in standby or deep sleep. "
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Not in standby or deep sleep. "
                "Ignore start cmd %d", __func__, pAdapter->hdd_ps_state);
             status = VOS_STATUS_SUCCESS;
         }
@@ -1528,6 +1376,10 @@ static int iw_set_priv(struct net_device *dev,
             memset(&wrqu, 0, sizeof(wrqu));
             wrqu.data.length = strlen(buf);
             wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, buf);
+        }
+        else
+        {
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: START CMD Status %d", __func__, status);        	   
         }
         goto done;
     }
@@ -1553,7 +1405,7 @@ static int iw_set_priv(struct net_device *dev,
             status = VOS_STATUS_E_FAILURE;
         }
 
-        if(status == VOS_STATUS_SUCCESS) {
+        {
             union iwreq_data wrqu;
             char buf[10];
 
@@ -1646,23 +1498,16 @@ static int iw_set_priv(struct net_device *dev,
                 memcpy( (void *)cmd, (void *)pAdapter->conn_info.SSID.SSID.ssId, len );
                 ret = len;
                 
-                status = WLANTL_GetRssi( pAdapter->pvosContext, pAdapter->conn_info.staId[ 0 ], &s7Rssi );
-                if ( !VOS_IS_STATUS_SUCCESS( status ) )
-                {
-                    hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed\n", __func__); 
-                    goto done; 
-                }
-                ret += sprintf(&cmd[ret], " rssi %d\n", s7Rssi);
-                
-                hddLog(VOS_TRACE_LEVEL_INFO_MED, "cmd %s\n", cmd); 
-            }
-             
+                WLANTL_GetRssi( pAdapter->pvosContext, pAdapter->conn_info.staId[ 0 ], &s7Rssi );
+                ret += sprintf(&cmd[ret], " rssi %d\n", s7Rssi);                
+            }             
         }
         else
         {
             hddLog( VOS_TRACE_LEVEL_INFO, "cmd %s\n", cmd); 
             ret = sprintf(cmd, " rssi %d\n", s7Rssi);
         }
+        hddLog( VOS_TRACE_LEVEL_INFO, "cmd %s\n", cmd); 
         
     }
     else if( strncasecmp(cmd, "powermode", 9) == 0 ) {
@@ -1673,7 +1518,7 @@ static int iw_set_priv(struct net_device *dev,
 
         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "mode=%d\n",mode);
         
-        init_completion(&pWextState->completion_var);
+        INIT_COMPLETION(pWextState->completion_var);
 
         if(mode == DRIVER_POWER_MODE_ACTIVE) 
         {
@@ -1855,7 +1700,7 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
       
        if(eConnectionState_Associated == pAdapter->conn_info.connState)
        {
-           init_completion(&pAdapter->disconnect_comp_var);
+             INIT_COMPLETION(pAdapter->disconnect_comp_var);
            status = sme_RoamDisconnect( pAdapter->hHal, pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED );
            if(VOS_STATUS_SUCCESS == status)
                  wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
@@ -2282,7 +2127,7 @@ static int iw_set_mlme(struct net_device *dev,
                 if( mlme->reason_code == HDD_REASON_MICHAEL_MIC_FAILURE )
                     reason = eCSR_DISCONNECT_REASON_MIC_ERROR;
                 
-                init_completion(&pAdapter->disconnect_comp_var);
+                  INIT_COMPLETION(pAdapter->disconnect_comp_var);
                 status = sme_RoamDisconnect( pAdapter->hHal, pAdapter->sessionId,reason);
                 
                 if(VOS_STATUS_SUCCESS == status)
@@ -2329,7 +2174,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 #ifdef CONFIG_HAS_EARLYSUSPEND
     v_U8_t nEnableSuspendOld;
 #endif
-    init_completion(&pAdapter->pWextState->completion_var);
+    INIT_COMPLETION(pAdapter->pWextState->completion_var);
     
     switch(sub_cmd)
     {
@@ -3545,6 +3390,9 @@ int hdd_register_wext(struct net_device *dev)
    
     // Set up the pointer to the Wireless Extensions state structure
     pAdapter->pWextState = pwextBuf;
+
+    init_completion(&pAdapter->pWextState->completion_var);
+
 
     status = hdd_set_wext(pAdapter);
 

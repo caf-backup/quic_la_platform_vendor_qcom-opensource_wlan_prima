@@ -1959,15 +1959,15 @@ eHalStatus pmcDeregisterDeviceStateUpdateInd (tHalHandle hHal,
         pDeviceStateUpdateIndEntry = GET_BASE_ADDR(pEntry, tDeviceStateUpdateIndEntry, link);
         if (pDeviceStateUpdateIndEntry->callbackRoutine == callbackRoutine)
         {
+            if (!csrLLRemoveEntry(&pMac->pmc.deviceStateUpdateIndList, pEntry, FALSE))
+            {
+                smsLog(pMac, LOGE, FL("Cannot remove device state update ind entry from list\n"));
+                return eHAL_STATUS_FAILURE;
+            }
             if (palFreeMemory(pMac->hHdd, pDeviceStateUpdateIndEntry) != eHAL_STATUS_SUCCESS)
             {
                 smsLog(pMac, LOGE, FL("Cannot free memory for device state update ind routine list entry\n"));
                 PMC_ABORT;
-                return eHAL_STATUS_FAILURE;
-            }
-            if (!csrLLRemoveEntry(&pMac->pmc.deviceStateUpdateIndList, pEntry, FALSE))
-            {
-                smsLog(pMac, LOGE, FL("Cannot remove device state update ind entry from list\n"));
                 return eHAL_STATUS_FAILURE;
             }
             return eHAL_STATUS_SUCCESS;
@@ -2019,8 +2019,8 @@ eHalStatus pmcReady(tHalHandle hHal)
     \param  hHal - The handle returned by macOpen.
     \param  pattern -  Pointer to the pattern to be added
     \return eHalStatus
-            eHAL_STATUS_FAILURE – Cannot add pattern
-            eHAL_STATUS_SUCCESS – Request accepted. 
+            eHAL_STATUS_FAILURE ?Cannot add pattern
+            eHAL_STATUS_SUCCESS ?Request accepted. 
   ---------------------------------------------------------------------------*/
 eHalStatus pmcWowlAddBcastPattern (
     tHalHandle hHal, 
@@ -2107,8 +2107,8 @@ eHalStatus pmcWowlAddBcastPattern (
     \param  hHal - The handle returned by macOpen.
     \param  pattern -  Pattern to be deleted
     \return eHalStatus
-            eHAL_STATUS_FAILURE – Cannot delete pattern
-            eHAL_STATUS_SUCCESS – Request accepted. 
+            eHAL_STATUS_FAILURE ?Cannot delete pattern
+            eHAL_STATUS_SUCCESS ?Request accepted. 
   ---------------------------------------------------------------------------*/
 eHalStatus pmcWowlDelBcastPattern (
     tHalHandle hHal, 
@@ -2302,8 +2302,8 @@ eHalStatus pmcEnterWowl (
             mode.
     \param  hHal - The handle returned by macOpen.
     \return eHalStatus
-            eHAL_STATUS_FAILURE – Device cannot exit WoWLAN mode.
-            eHAL_STATUS_SUCCESS – Request accepted to exit WoWLAN mode. 
+            eHAL_STATUS_FAILURE ?Device cannot exit WoWLAN mode.
+            eHAL_STATUS_SUCCESS ?Request accepted to exit WoWLAN mode. 
   ---------------------------------------------------------------------------*/
 eHalStatus pmcExitWowl (tHalHandle hHal)
 {

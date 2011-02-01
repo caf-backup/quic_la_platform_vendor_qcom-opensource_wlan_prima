@@ -109,8 +109,10 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         break;
 
    case NETDEV_CHANGE:
-        if(TRUE == pAdapter->isLinkUpSvcNeeded)
-           complete(&pAdapter->linkup_event_var);
+   	    if(VOS_STA_MODE == hdd_get_conparam()) {
+            if(TRUE == pAdapter->isLinkUpSvcNeeded)
+               complete(&pAdapter->linkup_event_var);
+   	    	}
         break;        
 
    case NETDEV_GOING_DOWN:
@@ -579,7 +581,8 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
 #ifdef ANI_MANF_DIAG
     wlan_hdd_ftm_close(pAdapter);
     return;
-#endif  
+#endif
+
    //Stop the Interface TX queue.
    netif_tx_disable(pWlanDev);
    netif_carrier_off(pWlanDev);
@@ -597,7 +600,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    sme_DisablePowerSave(pAdapter->hHal, ePMC_UAPSD_MODE_POWER_SAVE);
 
    //Ensure that device is in full power as we will touch H/W during vos_Stop
-   init_completion(&pAdapter->full_pwr_comp_var);
+   INIT_COMPLETION(pAdapter->full_pwr_comp_var);
    halStatus = sme_RequestFullPower(pAdapter->hHal, hdd_full_pwr_cbk, 
        pAdapter, eSME_FULL_PWR_NEEDED_BY_HDD);
 
@@ -620,7 +623,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    // Unregister the Net Device Notifier
    unregister_netdevice_notifier(&hdd_netdev_notifier);
 
-   init_completion(&pAdapter->disconnect_comp_var);
+   INIT_COMPLETION(pAdapter->disconnect_comp_var);
    halStatus = sme_RoamDisconnect(pAdapter->hHal, pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
 
    //success implies disconnect command got queued up successfully
@@ -813,7 +816,7 @@ VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
    vos_mem_copy(pWlanDev->dev_addr, 
                 &pAdapter->macAddressCurrent, 
                 sizeof(v_MACADDR_t));
-	  
+
 #ifdef WLAN_SOFTAP_FEATURE
     if(VOS_STA_SAP_MODE == hdd_get_conparam()){
         vos_mem_copy(pWlanHostapdDev->dev_addr,
@@ -916,7 +919,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 #ifdef CONFIG_CFG80211
    struct wireless_dev *wdev ;
 #endif
-
+   
    ENTER();
       
 #ifdef CONFIG_CFG80211
@@ -1017,6 +1020,10 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    init_completion(&pAdapter->full_pwr_comp_var);
    init_completion(&pAdapter->standby_comp_var);
    init_completion(&pAdapter->disconnect_comp_var);
+   init_completion(&pAdapter->linkup_event_var);
+   init_completion(&pAdapter->mc_sus_event_var);
+   init_completion(&pAdapter->tx_sus_event_var);
+
 
    // Register the net device. Device should be registered to invoke
    // request_firmware API for reading the qcom_cfg.ini file
@@ -1379,12 +1386,25 @@ static int __init hdd_module_init (void)
          break;
       }
 
-      if(attempts == 2)
+      if(attempts == 7)
         break;
       
-      msleep(1000);
+      msleep(250);
 
-   }while (attempts < 3);
+   }while (attempts < 7);
+
+   //Retry to detect the card again by Powering Down the chip and Power up the chip 
+   //again. This retry is done to recover from CRC Error
+   if (NULL == sdio_func_dev) {
+
+      attempts = 0;
+      
+      //Vote off any PMIC voltage supplies
+      vos_chipPowerDown(NULL, NULL, NULL);
+
+      msleep(1000);
+   }
+
 
    //Retry to detect the card again by Powering Down the chip and Power up the chip 
    //again. This retry is done to recover from CRC Error
@@ -1436,6 +1456,11 @@ static int __init hdd_module_init (void)
 #ifdef MEMORY_DEBUG
       vos_mem_init();
 #endif
+
+#ifdef TIMER_MANAGER
+      vos_timer_manager_init();
+#endif
+
       /* Preopen VOSS so that it is ready to start at least SAL */
       status = vos_preOpen(&pVosContext);
 
@@ -1493,6 +1518,10 @@ static int __init hdd_module_init (void)
 
       //Vote off any PMIC voltage supplies
       vos_chipPowerDown(NULL, NULL, NULL);
+
+#ifdef TIMER_MANAGER
+     vos_timer_exit();
+#endif
 #ifdef MEMORY_DEBUG
       vos_mem_exit();
 #endif
@@ -1558,12 +1587,16 @@ static void __exit hdd_module_exit(void)
       
       //Do all the cleanup before deregistering the driver
       hdd_wlan_exit(pAdapter);
-   }      
+   }
+      
 
    WLANSAL_Close(pVosContext);
 
    vos_preClose( &pVosContext );
 
+#ifdef TIMER_MANAGER
+     vos_timer_exit();
+#endif
 #ifdef MEMORY_DEBUG
    vos_mem_exit(); 
 #endif

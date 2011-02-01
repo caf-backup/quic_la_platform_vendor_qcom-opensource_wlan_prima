@@ -262,7 +262,7 @@ static int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 ( eCSR_BSS_TYPE_START_IBSS == LastBSSType ) )
         {
             /*need to issue a disconnect to CSR.*/
-            init_completion(&pAdapter->disconnect_comp_var);
+            INIT_COMPLETION(pAdapter->disconnect_comp_var);
             sme_RoamDisconnect( pAdapter->hHal, pAdapter->sessionId, 
                                      eCSR_DISCONNECT_REASON_UNSPECIFIED );
         }
@@ -1197,7 +1197,7 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
                 ( eMib_dot11DesiredBssType_independent == connectedBssType))
         {
             /* Issue disconnect to CSR */
-            init_completion(&pAdapter->disconnect_comp_var);
+            INIT_COMPLETION(pAdapter->disconnect_comp_var);
             sme_RoamDisconnect( pAdapter->hHal, pAdapter->sessionId, 
                                        eCSR_DISCONNECT_REASON_UNSPECIFIED );
         }
@@ -1864,7 +1864,7 @@ static int wlan_hdd_cfg80211_disconnect( struct wiphy *wiphy,
                     break;
             }
             pAdapter->conn_info.connState = eConnectionState_NotConnected;
-            init_completion(&pAdapter->disconnect_comp_var);
+            INIT_COMPLETION(pAdapter->disconnect_comp_var);
 
             /*issue disconnect*/
             status = sme_RoamDisconnect( pAdapter->hHal, pAdapter->sessionId, 
@@ -2100,7 +2100,7 @@ static int wlan_hdd_cfg80211_leave_ibss( struct wiphy *wiphy,
     }
 
     /* Issue Disconnect request */
-    init_completion(&pAdapter->disconnect_comp_var);
+    INIT_COMPLETION(pAdapter->disconnect_comp_var);
     sme_RoamDisconnect( pAdapter->hHal, pAdapter->sessionId, \
                                   eCSR_DISCONNECT_REASON_IBSS_LEAVE);
 

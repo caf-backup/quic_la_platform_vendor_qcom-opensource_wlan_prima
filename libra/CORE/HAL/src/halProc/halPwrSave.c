@@ -36,9 +36,14 @@
 #include "halRateAdaptation.h"
 
 #include "wlan_qct_bal.h"
+#include "rfApi.h"
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 #include "wlan_ps_wow_diag.h"
+#endif
+
+#ifdef WLAN_DBG_GPIO
+#include <mach/gpio.h>
 #endif
 
 /* Static Functions */
@@ -158,6 +163,7 @@ eHalStatus halPS_Exit(tHalHandle hHal, void *arg)
         return eHAL_STATUS_FAILURE;
     }
 
+    vos_timer_stop(&pHalPwrSave->fwRspTimer);
     // Destory the FW response timer
     vosStatus = vos_timer_destroy(&pHalPwrSave->fwRspTimer);
     if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
@@ -447,6 +453,7 @@ eHalStatus halPS_GetRssi(tpAniSirGlobal pMac, tANI_S8 *pRssi)
     tANI_U32 i, avgCount, startPtr;
     tANI_U32 reqd = WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE_STAMAX, max = WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE_STAMAX;
     tANI_S32 totRssi, rssiVal = 0, rssiAvgCount = 0;
+    eHalStatus halStatus;
 
     //make sure it is pwr save, before we start reading the PMU BMPS RSSI registers
     if (!halUtil_CurrentlyInPowerSave(pMac))
@@ -466,13 +473,18 @@ eHalStatus halPS_GetRssi(tpAniSirGlobal pMac, tANI_S8 *pRssi)
     // so that FW does not put the chip to sleep while host is accessing.
     halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC);
 
-    halReadRegister(pMac, QWLAN_PMU_RSSI_ANT_PTR_REG, &startPtr);
+    halStatus = halReadRegister(pMac, QWLAN_PMU_RSSI_ANT_PTR_REG, &startPtr) ;
+    if(eHAL_STATUS_SUCCESS != halStatus)
+    	    return halStatus;
+        
     startPtr = (startPtr & QWLAN_PMU_RSSI_ANT_PTR_PMU_RSSI_ANT1_STORE_REG19_MASK)
                         >> QWLAN_PMU_RSSI_ANT_PTR_PMU_RSSI_ANT1_STORE_REG19_OFFSET;
 
     for(i = 0; i < WNI_CFG_NUM_BEACON_PER_RSSI_AVERAGE_STAMAX; i++)
     {
-        halReadRegister(pMac, QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_REG + (4*i), &value[i]);
+        halStatus = halReadRegister(pMac, QWLAN_PMU_PMU_RSSI_ANT_STORE_REG0_REG + (4*i), &value[i]);
+        if(eHAL_STATUS_SUCCESS != halStatus)
+    	        return halStatus;
     }
 
     if((startPtr + 1) < reqd)
@@ -502,8 +514,17 @@ eHalStatus halPS_GetRssi(tpAniSirGlobal pMac, tANI_S8 *pRssi)
 
     if(rssiAvgCount)
     {
+        sRssiChannelOffsets  *pRssiOffset;
+        eRfChannels curChan = rfGetCurChannel(pMac);
+        tANI_S16 skuOffset = 0;
+
+        //apply the sku dependant offset on the base RSSI value.
+        if(halGetNvTableLoc(pMac, NV_TABLE_RSSI_CHANNEL_OFFSETS, (uNvTables **)&pRssiOffset) == eHAL_STATUS_SUCCESS)
+        {
+            skuOffset = pRssiOffset[PHY_RX_CHAIN_0].bRssiOffset[curChan] / 100;
+        }
         // The range of 7 bit RSSI is [-100dBm, +27dBm]
-        *pRssi = (tANI_S8)((rssiVal/rssiAvgCount) - 100);
+        *pRssi = (tANI_S8)((rssiVal/rssiAvgCount) - 100 + skuOffset);
     }
     else
     {
@@ -1351,9 +1372,17 @@ void halPS_GetRefTbtt(tpAniSirGlobal pMac, tANI_U64 tbtt, tANI_U8 bssIdx,
 
     // Apply the compensation for TBTT
     if (pMac->hal.currentRfBand == eRF_BAND_2_4_GHZ) {
-        tbtt -= TBTT_COMPENSATION_2_4_GHZ;
+        if(tbtt > TBTT_COMPENSATION_2_4_GHZ)
+            tbtt -= TBTT_COMPENSATION_2_4_GHZ;
+        else
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: %d: ERROR TBTT Low: %x TBTT High: %x\n",
+                        __func__, __LINE__,(&(tbtt))[0], (&(tbtt))[1]);
     } else if (pMac->hal.currentRfBand == eRF_BAND_5_GHZ) {
-        tbtt -= TBTT_COMPENSATION_5_GHZ;
+        if(tbtt > TBTT_COMPENSATION_5_GHZ)
+            tbtt -= TBTT_COMPENSATION_5_GHZ;
+        else
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: %d: ERROR TBTT Low: %x TBTT High: %x\n",
+                        __func__, __LINE__,(&(tbtt))[0], (&(tbtt))[1]);
     }
 
     HALLOG1(halLog(pMac, LOG1, FL("After compensation TBTT Low: %x TBTT High: %x\n"),
@@ -1394,9 +1423,9 @@ eHalStatus halPS_HandleEnterBmpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken, t
 
     // Do not enter BMPS if listen interval is set to 0. This shouldn't happen. 
     if (listenInterval == 0)
-   	{ 
+    { 
         HALLOGE( halLog(pMac, LOGE, FL("Inavlid Listen Interval %d  do not enter BMPS"), listenInterval));
-		goto error;
+        goto error;
     }
 
     // Load the ADU memory with the indirectly accessed register list
@@ -1405,6 +1434,16 @@ eHalStatus halPS_HandleEnterBmpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken, t
         HALLOGP( halLog(pMac, LOGP, FL("Load indirect register failed\n")));
         goto error;
     }
+
+#if 0
+    {
+        tANI_U32 regValue = 0;   
+        halReadRegister(pMac, QWLAN_PMU_PMU_SPARE1_REG_REG, &regValue);
+        regValue &= ~(QWLAN_PMU_PMU_SPARE1_REG_PMU_SPARE1_REG_4FREEZE_DLY_MASK);
+        regValue |= 0x800;
+        halWriteRegister(pMac, QWLAN_PMU_PMU_SPARE1_REG_REG, regValue);
+    }
+#endif
 
 #if 0 // Since FW is setting the ADU reinit address in PMU, host should not touch it.
       // Host provides this address in the sysConfig from where FW programs it in PMU
@@ -2655,26 +2694,57 @@ eHalStatus halPS_SendBeaconMissInd(tpAniSirGlobal pMac)
 eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 {
     tANI_U32 regValue = 0, curCnt = 0, retryCnt = 0;
+    tANI_U32 index;
 
     eHalStatus mutexAcq = eHAL_STATUS_FW_PS_BUSY;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+#ifdef WLAN_SDIO_DUMMY_CMD53_WORKAROUND
+    // Dummy write to the HW register
+    palWriteRegister(pMac->hHdd, QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_REG, QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT);
+#endif    
 
     while((eHAL_STATUS_FW_PS_BUSY == mutexAcq)&& (retryCnt < 3)) {
-        palReadRegister(pMac, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, &regValue);
+        status = palReadRegister(pMac, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, &regValue);
+
+        if(eHAL_STATUS_SUCCESS != status)
+	     break;
 
         curCnt = (regValue & QWLAN_MCU_MUTEX0_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX0_CURRENTCOUNT_OFFSET;
         if(curCnt <= 1) {
-            HALLOGW(halLog(pMac, LOGW, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
+            HALLOGE(halLog(pMac, LOGE, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
+
+#ifdef WLAN_DBG_GPIO
+//            printk(" ************* Mutex register value read 0, %d times *****************\n", (int)retryCnt);
+//            printk(" ************* Mutex register value read 0, asserting GPIO HIGH \n");
+//            gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+#endif
             ++retryCnt;
+			
+           if(retryCnt == 2) {
+            	 VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s Sleeping for 200ms", __func__);
+            	 vos_sleep(200);
+            }            	
         }
         else {
             mutexAcq = eHAL_STATUS_SUCCESS;
         }
     }
 
-    if(eHAL_STATUS_FW_PS_BUSY == mutexAcq)
-    {
-        HALLOGP(halLog(pMac, LOGP, "Host Busy Mutex is not Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
-        VOS_ASSERT(0);
+    if(eHAL_STATUS_FW_PS_BUSY == mutexAcq) {
+        HALLOGP(halLog(pMac, LOGP, "Host Busy Mutex is not Acquired = %d,%d, %x", 
+                    pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
+//        VOS_ASSERT(0);
+    } else {
+        if (retryCnt > 0) {
+            regValue = 0;
+            regValue =  (1 << QWLAN_MCU_MUTEX0_MAXCOUNT_OFFSET);
+
+            // Release the mutex, acquired as a result of retries
+            for (index=0; index<retryCnt; index++) {
+                palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, regValue);
+            }
+        }
     }
 
     if (ctx == HAL_PS_BUSY_GENERIC) {
@@ -2706,19 +2776,17 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
  */
 eHalStatus halPS_ReleaseHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 {
-    tANI_U32 regValue = 0;
-    tANI_U32 cntr = 0;
-    int i = 0;
+    tANI_U32 regValue = 0, cntr = 0, index = 0;
 
-    if (ctx == HAL_PS_BUSY_GENERIC)
+    if (ctx == HAL_PS_BUSY_GENERIC) {
         cntr = pMac->hal.PsParam.mutexCount;
-    else
+    } else {
         cntr = pMac->hal.PsParam.mutexIntrCount;
-
+    }
 
     regValue =  (1 << QWLAN_MCU_MUTEX0_MAXCOUNT_OFFSET);
 
-    for (i = 0; i <cntr; i++)
+    for (index=0;index <cntr; index++)
         palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, regValue);
 
     if (ctx == HAL_PS_BUSY_GENERIC) {
@@ -3451,25 +3519,27 @@ eHalStatus halPS_RegisterWrite(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 regVa
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
     Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
     tANI_U32 offset = (tANI_U32)&((Qwlanfw_SysCfgType *)0)->uRegWriteCount;
-
+    eHalStatus status;
+	
     if ((pMac->hal.PsParam.mutexCount == 0) && (pMac->hal.PsParam.mutexIntrCount == 0)) {
         HALLOGE(halLog(pMac, LOGE, "WMutex not acquired, %d, %d (Please report to HAL team, except for dump commands)", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount));
-//        VOS_ASSERT(0);
     }
 
     //Write into the HW register
-    palWriteRegister(pMac->hHdd, regAddr, regValue);
-
+    status = palWriteRegister(pMac->hHdd, regAddr, regValue);
+	
+    if(status != eHAL_STATUS_SUCCESS) {
+        HALLOGE(halLog( pMac, LOGE, FL("halPS_RegisterWrite failed\n")));
+        return eHAL_STATUS_FAILURE;
+    }
+    
     //Increment the register write count in the FW system config
     pFwConfig->uRegWriteCount++;
 
     // Update the sytem config
-    halFW_UpdateSystemConfig(pMac,
+    return halFW_UpdateSystemConfig(pMac,
             pMac->hal.FwParam.fwSysConfigAddr + offset,
             (tANI_U8*)&pFwConfig->uRegWriteCount, sizeof(tANI_U32));
-
-    return eHAL_STATUS_SUCCESS;
-
 }
 
 eHalStatus halPS_RegisterRead(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 *pRegValue)
@@ -3480,9 +3550,45 @@ eHalStatus halPS_RegisterRead(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 *pRegV
 //        VOS_ASSERT(0);
     }
 
-    palReadRegister(pMac->hHdd, regAddr, pRegValue);
+    return palReadRegister(pMac->hHdd, regAddr, pRegValue);
+}
 
-    return eHAL_STATUS_SUCCESS;
+/*
+ * halPS_MemoryWrite
+ *
+ * DESCRIPTION:
+ *
+ * PARAMETERS:
+ *      hHal:   Pointer to the global adapter context
+ *      regAddr: Address for the register
+ *      regValue: Value to be written into the register
+ *
+ * RETURN:
+ *      eHAL_STATUS_SUCCESS
+ *      eHAL_STATUS_FAILURE
+ */
+eHalStatus halPS_MemoryWrite(tHalHandle hHal, tANI_U32 dstOffset, void *pSrcBuffer, tANI_U32 numBytes)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
+
+#ifdef WLAN_SDIO_DUMMY_CMD53_WORKAROUND
+    // Dummy write to the HW register
+    palWriteRegister(pMac->hHdd, QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_REG, QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT);
+#endif    
+
+    return( palWriteDeviceMemory( pMac->hHdd, dstOffset, (tANI_U8 *)pSrcBuffer, numBytes ) );
+}
+
+eHalStatus halPS_MemoryRead(tHalHandle hHal, tANI_U32 srcOffset, void *pBuffer, tANI_U32 numBytes)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
+
+#ifdef WLAN_SDIO_DUMMY_CMD53_WORKAROUND
+    // Dummy write to the HW register
+    palWriteRegister(pMac->hHdd, QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_REG, QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT);
+#endif    
+
+    return( palReadDeviceMemory( pMac->hHdd, srcOffset, pBuffer, numBytes ) );
 }
 
 /*
@@ -3501,6 +3607,8 @@ void halPS_StartMonitoringRegAccess(tpAniSirGlobal pMac)
 {
     pMac->hal.funcWriteReg = halPS_RegisterWrite;
     pMac->hal.funcReadReg  = halPS_RegisterRead;
+    pMac->hal.funcWriteMem = halPS_MemoryWrite;
+    pMac->hal.funcReadMem  = halPS_MemoryRead;
 }
 
 /*
@@ -3519,6 +3627,8 @@ void halPS_StopMonitoringRegAccess(tpAniSirGlobal pMac)
 {
     pMac->hal.funcWriteReg = halNormalWriteRegister;
     pMac->hal.funcReadReg  = halNormalReadRegister;
+    pMac->hal.funcWriteMem = halNormalWriteMemory;
+    pMac->hal.funcReadMem  = halNormalReadMemory;
 }
 
 /*

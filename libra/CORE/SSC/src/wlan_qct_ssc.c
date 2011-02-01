@@ -2161,6 +2161,190 @@ VOS_STATUS WLANSSC_SuspendChip
 } /* WLANSSC_SuspendChip() */
 
 
+
+
+
+/**
+ @brief WLANSSC_SuspendChip_LockSafe is used to put the Libra chip in standby mode
+
+  After this API is invoked the chip cannot be accessed except after
+  ResumeChip
+
+ @param Handle: SSC handle to operate on (returned in WLANSSC_Open)
+ 
+ @see WLANSSC_SuspendChip_LockSafe
+
+ @return Result of the function call
+*/
+VOS_STATUS WLANSSC_SuspendChip_NoLock
+(
+  WLANSSC_HandleType       Handle
+)
+{
+  WLANSSC_ControlBlockType    *pControlBlock;
+  v_U8_t                       uRegValue = 0;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  WLANSSC_ASSERT( NULL != Handle );
+
+  pControlBlock = (WLANSSC_ControlBlockType *) Handle;
+
+  WLANSSC_ASSERT( VOS_TRUE == WLANSSC_ISCONTEXTVALID( pControlBlock ) );
+
+  /* Write to all the relevant registers here to complete suspend operation*/
+
+  /* Begin T/R change */
+  /* TRSW_SUPPLY_CTRL_0 - Read the current value just in case                 */
+  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
+                                                         QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,
+                                                         &uRegValue,
+                                                         WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+  }
+
+  uRegValue |= QWLAN_SIF_BAR4_WLAN_CONTROL_REG_DEFAULT;
+  uRegValue &= ~(QWLAN_SIF_BAR4_WLAN_CONTROL_REG_SDIOC_CMD_ACTIVE_CHECK_DISABLE_MASK);	
+
+  /* TRSW Bit 1 should be 0 before entering standby OR deepsleep*/
+  uRegValue &= ~(QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_TRSW_SUPPLY_CTRL_1_MASK);
+
+  if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
+                                                          QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,
+                                                          &uRegValue,
+                                                          WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+  }
+
+  /* TRSW_SUPPLY_CTRL_1 - Read the current value just in case                 */
+  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
+                                                         QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG,
+                                                         &uRegValue,
+                                                         WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+  }
+
+  /* Add 0xFF (per instructions) to the register status and write back        */
+  uRegValue |= QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_DEFAULT;
+
+  if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
+                                                          QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG,
+                                                          &uRegValue,
+                                                          WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+  }
+
+  /* End T/R change */
+
+  /* Read the current value just in case                                   */
+  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
+                                                         QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG,
+                                                         &uRegValue,
+                                                         WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+  }
+
+  /* Add the suspend bit to the register status and write back             */
+  uRegValue |= QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_SUSPEND_WLAN_MASK;
+
+  if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
+                                                          QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG,
+                                                          &uRegValue,
+                                                          WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+  }
+
+  /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
+  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
+
+
+  /* Read the current value just in case                                   */
+  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
+                                                         QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,
+                                                         &uRegValue,
+                                                         WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+  }
+
+  /* Turn off PMU GCU clk in the register status and write back            */
+  uRegValue &= ~QWLAN_SIF_BAR4_WLAN_CONTROL_REG_PMU_GCU_CLK_ROSC_G_EN_MASK;
+
+  if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
+                                                          QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,
+                                                          &uRegValue,
+                                                          WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+  }
+
+  /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
+  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
+
+  /* Read the current value just in case                                   */
+  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
+                                                         QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,
+                                                         &uRegValue,
+                                                         WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+  }
+
+  /* Turn off PMU ROSC pwr enable in the register status and write back    */
+  uRegValue &= ~QWLAN_SIF_BAR4_WLAN_CONTROL_REG_PMU_ROSC_PWR_EN_MASK;
+
+  if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
+                                                          QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,
+                                                          &uRegValue,
+                                                          WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+  }
+
+
+  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
+                                                         QWLAN_SIF_BAR4_WLAN_STATUS_REG_REG,
+                                                         &uRegValue,
+                                                         WLANSSC_TX_REGBUFFER) )
+  {
+    WLANSSC_ASSERT( 0 );
+
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Error suspending chip"));
+  }
+
+  pControlBlock->bChipSuspended = VOS_TRUE;
+  
+  SSCLOG2(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Suspend Chip status %x", uRegValue));
+
+  return VOS_STATUS_SUCCESS;
+
+} /* WLANSSC_SuspendChip_LockSafe() */
+
 /**
  @brief WLANSSC_ResumeChip is used to bring a previously suspended Libra
  chip out of the standby mode and ready for activity.
@@ -5164,6 +5348,18 @@ static VOS_STATUS WLANSSC_HandleInterrupt
   v_U32_t   uInterruptsEnabled = 0;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#ifdef WLAN_SDIO_DUMMY_CMD53_WORKAROUND
+  v_U32_t   uRegValue;
+  uRegValue = QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT;
+  if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegister( pControlBlock,
+                                                   QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_REG, 
+                                                   &(uRegValue),
+                                                   WLANSSC_INT_REGBUFFER ) )
+  {
+    return VOS_STATUS_E_FAILURE;
+  }
+#endif
+
   /* Use interrupt snapshot variable to read                               */
   if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegister(pControlBlock,
                                                  QWLAN_SIF_SIF_INT_STATUS_REG,
@@ -6514,6 +6710,8 @@ static VOS_STATUS WLANSSC_FatalInterruptHandler
 
   WLANSSC_ASSERT( NULL != pControlBlock );
 
+  SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "WLANSSC_FatalInterruptHandler: uInterruptSnapshot(0x%x), eState (%d)", pControlBlock->uInterruptSnapshot, pControlBlock->eState));
+
   if( VOS_STATUS_SUCCESS != WLANSSC_ExecuteEvent( pControlBlock, 
                                                   WLANSSC_FATALERROR_EVENT ) )
   {
@@ -6549,6 +6747,8 @@ static VOS_STATUS WLANSSC_UnexpectedInterruptHandler
 
   WLANSSC_ASSERT( NULL != pControlBlock );
 
+  SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "WLANSSC_UnexpectedInterruptHandler: uInterruptSnapshot(0x%x), eState (%d)", pControlBlock->uInterruptSnapshot, pControlBlock->eState));
+  
   /* This interrupt should never be generated                              */
   WLANSSC_ASSERT( 0 );
 
@@ -6588,6 +6788,8 @@ static VOS_STATUS WLANSSC_TxFrmCRCErrInterruptHandler
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   WLANSSC_ASSERT( NULL != pControlBlock );
+
+  SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "WLANSSC_TxFrmCRCErrInterruptHandler: uInterruptSnapshot(0x%x), eState (%d)", pControlBlock->uInterruptSnapshot, pControlBlock->eState));
 
   /* This interrupt should never be generated                              */
   WLANSSC_ASSERT( 0 );
@@ -6793,6 +6995,8 @@ static VOS_STATUS WLANSSC_RxPktXferUnderflowInterruptHandler
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   WLANSSC_ASSERT( NULL != pControlBlock );
+  
+  SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "WLANSSC_RxPktXferUnderflowInterruptHandler: uInterruptSnapshot(0x%x), eState (%d)", pControlBlock->uInterruptSnapshot, pControlBlock->eState));
 
   /* This interrupt should never be generated                              */
   WLANSSC_ASSERT( 0 );

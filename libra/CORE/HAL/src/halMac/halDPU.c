@@ -566,8 +566,6 @@ out:
             palFreeMemory(pMac->hHdd,pDpu->keyTable);
         if(pDpu->descTable)
             palFreeMemory(pMac->hHdd,pDpu->descTable);
-        if(pDpu->rcDescTable)
-            palFreeMemory(pMac->hHdd,pDpu->rcDescTable);
         palFreeMemory(pMac->hHdd,pMac->hal.halMac.dpuInfo);
 
     }    

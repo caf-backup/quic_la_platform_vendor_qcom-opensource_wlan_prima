@@ -3264,25 +3264,13 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
 
         if (MsgType == LIM_ASSOC)
         {
-
-            tSirMacAddr currentBssId;
-            tANI_U32 cfg = sizeof(tSirMacAddr);
-
-            if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) !=
-                                eSIR_SUCCESS)
-            {
-                /// Could not get BSSID from CFG. Log error.
-                limLog(pMac, LOGP, FL("could not retrieve BSSID\n"));
-                return;
-            }
-
             PELOGE(limLog(pMac, LOGE,  FL("Assoc Failure Timeout occurred.\n"));)
 
             psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
-	     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+            MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
             
             //Set the RXP mode to IDLE, so it starts filtering the frames.
-            if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE,psessionEntry->bssId) != eSIR_SUCCESS)
+            if(limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, psessionEntry->bssId) != eSIR_SUCCESS)
                 PELOGE(limLog(pMac, LOGE,  FL("Failed to set the LinkState\n"));)
          
             // 'Change' timer for future activations
@@ -3298,23 +3286,12 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
 
 #if defined(ANI_PRODUCT_TYPE_CLIENT)
             //To remove the preauth node in case of fail to associate
+            if(limSearchPreAuthList(pMac, psessionEntry->bssId))
             {
-
-               if (limSearchPreAuthList(pMac, currentBssId))
-                
-                #if 0    
-                if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, currentBssId, &cfg) !=
-                                    eSIR_SUCCESS)
-                {
-                #endif      //TO SUPPORT BT-AMP
-                sirCopyMacAddr(currentBssId,psessionEntry->bssId);
-                if(limSearchPreAuthList(pMac, currentBssId))
-                {
-                    PELOG1(limLog(pMac, LOG1, FL(" delete pre auth node for %02X-%02X-%02X-%02X-%02X-%02X\n"),
-                        currentBssId[0], currentBssId[1], currentBssId[2], currentBssId[3],
-                        currentBssId[4], currentBssId[5]);)
-                    limDeletePreAuthNode(pMac, currentBssId);
-                }
+                PELOG1(limLog(pMac, LOG1, FL(" delete pre auth node for %02X-%02X-%02X-%02X-%02X-%02X\n"),
+                    psessionEntry->bssId[0], psessionEntry->bssId[1], psessionEntry->bssId[2], 
+                    psessionEntry->bssId[3], psessionEntry->bssId[4], psessionEntry->bssId[5]);)
+                limDeletePreAuthNode(pMac, psessionEntry->bssId);
             }
 #endif
 
@@ -3336,7 +3313,7 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
              * Set BSSID to currently associated AP address.
              */
             psessionEntry->limMlmState = psessionEntry->limPrevMlmState;
-	     MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
+            MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
 
             limRestorePreReassocState(pMac, 
                 eSIR_SME_REASSOC_TIMEOUT_RESULT_CODE, eSIR_MAC_UNSPEC_FAILURE_STATUS,psessionEntry);

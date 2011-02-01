@@ -490,7 +490,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
         hdd_SendAssociationEvent(dev,pRoamInfo);
 
         // Initialize the Linkup event completion variable 
-        init_completion(&pAdapter->linkup_event_var);
+        INIT_COMPLETION(pAdapter->linkup_event_var);
 
         /*
           Sometimes Switching ON the Carrier is taking time to activate the device properly. Before allowing any
@@ -958,9 +958,9 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
             halStatus = hdd_DisConnectHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
 
             /* Check if Mcast/Bcast Filters are set, if yes clear the filters here */
-            if(pAdapter->hdd_ps_state == eHDD_SUSPEND_MCAST_BCAST_FILTER) {
+            if(pAdapter->hdd_mcastbcast_filter_set == TRUE) {
                   hdd_conf_mcastbcast_filter(pAdapter, FALSE);
-                  pAdapter->hdd_ps_state = eHDD_SUSPEND_NONE;		  
+                  pAdapter->hdd_mcastbcast_filter_set = FALSE;
             }
 
             break;
@@ -1394,7 +1394,7 @@ int iw_set_essid(struct net_device *dev,
         {
             VOS_STATUS vosStatus;
             // need to issue a disconnect to CSR.
-            init_completion(&pAdapter->disconnect_comp_var);
+            INIT_COMPLETION(pAdapter->disconnect_comp_var);
             vosStatus = sme_RoamDisconnect( pAdapter->hHal, pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED );
 
             if(VOS_STATUS_SUCCESS == vosStatus)

@@ -1320,7 +1320,7 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
 {
    int status, i=0;
    /** Pointer for firmware image data */
-   const struct firmware *fw;
+   const struct firmware *fw =NULL;
    char *buffer, *line,*pTemp;
    size_t size;
    char *name, *value;
@@ -1331,15 +1331,25 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
 
    status = request_firmware(&fw, "wlan/qcom_cfg.ini", &pAdapter->hsdio_func_dev->dev);
    
-   if(!fw || !fw->data) {
+   if(status)
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: request_firmware failed %d\n",__FUNCTION__, status);
+      return VOS_STATUS_E_FAILURE;   
+   }
+   
+   if(!fw || !fw->data || !fw->size) {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: qcom_cfg.ini download failed\n",__FUNCTION__);
-	    return VOS_STATUS_E_FAILURE;
-   } 
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: qcom_cfg.ini Size %d\n",__FUNCTION__, fw->size);
+
    buffer = (char*)vos_mem_malloc(fw->size);
+   
    if(NULL == buffer) {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: kmalloc failure",__FUNCTION__);
       release_firmware(fw);
-	    return VOS_STATUS_E_FAILURE;
+      return VOS_STATUS_E_FAILURE;
    } 
    pTemp = buffer;
 
