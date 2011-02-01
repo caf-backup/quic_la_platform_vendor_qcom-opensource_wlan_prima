@@ -474,7 +474,7 @@ CDEFINES += -DFEATURE_WLAN_DIAG_SUPPORT_CSR
 CDEFINES += -DFEATURE_WLAN_DIAG_SUPPORT_LIM
 endif
 
-ifneq (, $(filter msm8660_surf msm8660_csfb, $(TARGET_PRODUCT)))
+ifeq "$(findstring msm8660,$(TARGET_PRODUCT))" "msm8660"
 EXTRA_CFLAGS += -march=armv7-a
 CDEFINES += -DMSM_PLATFORM_8660
 endif
