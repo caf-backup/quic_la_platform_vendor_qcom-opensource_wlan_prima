@@ -77,6 +77,17 @@ const v_U8_t hddWmmUpToAcMap[] = {
    WLANTL_AC_VO,
    WLANTL_AC_VO
 };
+//Linux based UP -> AC Mapping
+static const v_U8_t hddLinuxUpToAcMap[8] = {
+   HDD_LINUX_AC_BE,
+   HDD_LINUX_AC_BK,
+   HDD_LINUX_AC_BK,
+   HDD_LINUX_AC_BE,
+   HDD_LINUX_AC_VI,
+   HDD_LINUX_AC_VI,
+   HDD_LINUX_AC_VO,
+   HDD_LINUX_AC_VO
+}; 
 
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
 /**
@@ -1334,10 +1345,9 @@ VOS_STATUS hdd_wmm_close ( hdd_adapter_t* pAdapter )
   @param skb      : [in]  pointer to OS packet (sk_buff) 
   @param pAcType  : [out] pointer to WMM AC type of OS packet
 
-  @return         : FALSE if any errors encountered
-                  : TRUE otherwise
+  @return         : None
   ===========================================================================*/
-v_BOOL_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
+v_VOID_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
                                 struct sk_buff *skb,
                                 WLANTL_ACEnumType* pAcType,
                                 sme_QosWmmUpType *pUserPri)
@@ -1511,7 +1521,39 @@ v_BOOL_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
    *pUserPri = userPri;
    *pAcType = acType;
 
-   return VOS_TRUE;
+   return;
+}
+
+
+/**============================================================================
+  @brief hdd_wmm_select_quueue() - Function which will classify the packet
+	 accoring to linux qdisc expectation.
+
+
+  @param dev      : [in]  pointer to net_device structure
+  @param skb      : [in]  pointer to os packet
+
+  @return         : Qdisc queue index
+  ===========================================================================*/
+v_U16_t hdd_wmm_select_queue(struct net_device * dev, struct sk_buff *skb)
+{
+   WLANTL_ACEnumType ac;
+   sme_QosWmmUpType up = 0;
+   v_USHORT_t queueIndex;
+
+   hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+
+   // if we don't want QoS or the AP doesn't support Qos
+   // All traffic will get equal opportuniy to transmit data frames.
+   if( hdd_wmm_is_active(pAdapter) ) {
+      /* Get the user priority from IP header & corresponding AC */
+      hdd_wmm_classify_pkt (pAdapter, skb, &ac, &up);
+   }
+
+   skb->priority = up;
+   queueIndex = hddLinuxUpToAcMap[skb->priority];
+
+   return queueIndex;
 }
 
 

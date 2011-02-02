@@ -771,7 +771,7 @@ static eHalStatus halMsg_addStaUpdateADU(tpAniSirGlobal pMac, tANI_U8 staIdx, tp
     HALLOG1( halLog( pMac, LOG1, FL("UMA programming allocated %d\n"), umaIdx));
     halTable_SetStaUMAIdx(pMac, staIdx, umaIdx);
     FillUmaDescriptor( pMac, umaIdx, macAddrLo, macAddrHi,
-        dpuPTKIdx, dpuPTKSig, staIdx, param->wmmEnabled);
+        dpuPTKIdx, dpuPTKSig, staIdx, (tANI_U8)(param->wmmEnabled | param->htCapable) );
 
     /* staMac would contain the peer's MAC address */
     staMacAddrHi = (((tANI_U32)param->staMac[0]) << 8) |

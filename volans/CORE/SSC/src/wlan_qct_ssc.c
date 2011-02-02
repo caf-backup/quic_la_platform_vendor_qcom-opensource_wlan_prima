@@ -419,7 +419,7 @@ interrupt and sizes for the subsequent CMD53s are derived from the already read 
 
   Number of AHB clock cycles SIF delays the freeze/unfreeze requrest 
 ---------------------------------------------------------------------------*/
-#define WLANSSC_SIF_PWR_SAVE_BPS_SIF_FREEZE_DELAY 0x200
+#define WLANSSC_SIF_PWR_SAVE_BPS_SIF_FREEZE_DELAY 0x800
 
 /*---------------------------------------------------------------------------
  * Type Declarations

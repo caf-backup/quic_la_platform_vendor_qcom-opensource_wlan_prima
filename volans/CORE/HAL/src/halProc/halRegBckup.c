@@ -63,6 +63,22 @@ tRegisterEntry aVolansRFSetup[] = {
 
     { (QWLAN_ADU_CONTROL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
 
+    /* FIXME: Baseband registers are not expected to be in the list. But the below 
+     * initializations should be done before the remaining ADU reinit. Proper 
+     * implementation should be like ADU control and the below baseband registers should 
+     * go to another register list which should be backed up before this RF register list */
+
+    /*AHB registers which require setting other than default */
+    { (QWLAN_CAHB_CAHB_RXP_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_CAHB_CAHB_DBR_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DAHB_DAHB_RXP_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DAHB_DAHB_TXP_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DAHB_DAHB_BMUW_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DAHB_DAHB_TPE_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DAHB_DAHB_RPE_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DAHB_DAHB_ADU_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DAHB_DAHB_SIF_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+
     /* PHY registers specific to Netlist#82 */
     { (QWLAN_RXCLKCTRL_ROOT_CLK_EN_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), 0X7F },
     { (QWLAN_RXACLKCTRL_ROOT_CLK_EN_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), 0X7 },
@@ -206,7 +222,6 @@ tRegisterEntry aVolansRFSetup[] = {
      * 200 micro sec is needed
      */
     { (HAL_REG_REINIT_WAIT_CMD | 0x190), (HAL_REG_REINIT_WAIT_CMD | 0x190) },
-    { (QWLAN_PMU_RF_PA_TRSW_CTRL_REG_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x6f },
     { (QWLAN_MCU_MCU_PMU_INFO_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), 0x1 },
 
 #ifndef VOLANS_PHY_TX_OPT_ENABLED
@@ -2483,7 +2498,6 @@ tRegisterEntry PostBmuStartRegList[] = {
     { (QWLAN_RPE_ROUTING_FLAG_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x00ff0003 },
     { (QWLAN_RPE_ERR_INT_ENABLE_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0000001f },
 
-    { (QWLAN_ADU_CONTROL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0b004003 },
     { (QWLAN_ADU_UMA_CONFIG_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0xa1f0600f },
     { (QWLAN_ADU_UMA_CTRL2_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
     { (QWLAN_ADU_UMA_DESP_TABLE_ADDR_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },

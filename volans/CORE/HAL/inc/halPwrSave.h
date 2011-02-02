@@ -194,6 +194,9 @@ typedef struct sHalPwrSave
     // If DTIM period needs to be ignored for determining LI
     tANI_U8         ignoreDtim;
 
+    //listen interval
+    tANI_U16        listenInterval;
+
     // Reinit-register list parameters
     tANI_U32        regListStartAddr;   // Start of reg bckup list
     tANI_U32        regListCurrAddr;    // Current write addr in bckup list

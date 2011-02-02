@@ -316,8 +316,8 @@ struct hdd_adapter_s
    v_BOOL_t isVosOutOfResource;
   
    /**Track whether OS TX queue has been disabled.*/
-   v_BOOL_t isTxSuspended;
-   v_U8_t   txSuspendedAc;
+   v_BOOL_t isTxSuspended[NUM_TX_QUEUES];
+
    /**Event Flags*/
    unsigned long event_flags;
    /**Device TX/RX statistics*/

@@ -456,6 +456,23 @@ static int hdd_set_mac_address(struct net_device *dev, void *addr)
 }
 
 /**---------------------------------------------------------------------------
+  
+  \brief hdd_select_queue() - 
+
+   This function is registered with the Linux OS for network
+   core to decide which queue to use first.
+   
+  \param  - dev - Pointer to the WLAN device.
+              - skb - Pointer to OS packet (sk_buff).
+  \return - ac, Queue Index/access category corresponding to UP in IP header 
+  
+  --------------------------------------------------------------------------*/
+v_U16_t hdd_select_queue(struct net_device *dev,
+    struct sk_buff *skb)
+{
+   return hdd_wmm_select_queue(dev, skb);
+}
+/**---------------------------------------------------------------------------
 
   \brief hdd_wlan_initial_scan() -
 
@@ -902,11 +919,12 @@ static struct net_device_ops sLibraNetDevOps = {
   static struct net_device_ops wlan_drv_ops = {
       .ndo_open = hdd_open,
       .ndo_stop = hdd_stop,
-      .ndo_start_xmit = NULL,
+      .ndo_start_xmit = hdd_hard_start_xmit,
       .ndo_tx_timeout = hdd_tx_timeout,
       .ndo_get_stats = hdd_stats,
       .ndo_do_ioctl = hdd_ioctl,
       .ndo_set_mac_address = hdd_set_mac_address,
+      .ndo_select_queue	= hdd_select_queue,
  };
  #endif
 
@@ -941,7 +959,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    pAdapter = wdev_priv(wdev) ;
    pAdapter->wdev = wdev ;
  
-   pWlanDev = alloc_netdev(0, "wlan%d", ether_setup);
+   pWlanDev = alloc_netdev_mq(0, "wlan%d", ether_setup, NUM_TX_QUEUES);
    
    if(pWlanDev == NULL) 
    {
@@ -951,7 +969,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 #else      
       
    //Allocate the net_device and HDD Adapter (private data)
-   pWlanDev = alloc_etherdev(sizeof( hdd_adapter_t ));
+   pWlanDev = alloc_etherdev_mq(sizeof( hdd_adapter_t), NUM_TX_QUEUES);
 
    if(pWlanDev == NULL)
    {
@@ -989,7 +1007,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 #else
    pWlanDev->open = hdd_open;
    pWlanDev->stop = hdd_stop;
-   pWlanDev->hard_start_xmit = NULL;
+   pWlanDev->hard_start_xmit = hdd_hard_start_xmit;
    pWlanDev->tx_timeout = hdd_tx_timeout;
    pWlanDev->get_stats = hdd_stats;
    pWlanDev->do_ioctl = hdd_ioctl;
@@ -1223,14 +1241,6 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    //Stop the Interface TX queue.
    netif_tx_stop_all_queues(pWlanDev);
    netif_carrier_off(pWlanDev);
-
-   //Safe to register the hard_start_xmit function again
-
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29))
-       wlan_drv_ops.ndo_start_xmit = hdd_hard_start_xmit;
-#else
-   pWlanDev->hard_start_xmit = hdd_hard_start_xmit;
-#endif
 
 #ifdef WLAN_SOFTAP_FEATURE
    if (VOS_STA_SAP_MODE == hdd_get_conparam())
