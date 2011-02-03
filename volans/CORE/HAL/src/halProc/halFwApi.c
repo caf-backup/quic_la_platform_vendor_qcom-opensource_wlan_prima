@@ -79,7 +79,7 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
     pFwConfig->ucOpenLoopTxGain = pMac->hphy.phy.openLoopTxGain;
 
     // configure the current regulatory domain
-    pFwConfig->ucRegDomain = (tANI_U8)( halPhyGetRegDomain(hHal) );
+    //pFwConfig->ucRegDomain = (tANI_U8)( halPhyGetRegDomain(hHal) );
 
     //pFwConfig->bClosedLoop = CLOSED_LOOP_CONTROL;
 

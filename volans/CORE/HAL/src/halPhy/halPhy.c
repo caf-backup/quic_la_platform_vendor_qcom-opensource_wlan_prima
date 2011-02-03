@@ -379,8 +379,7 @@ eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber,
 
     setChan.usChanNum = channelNumber;
     setChan.ucCbState = (tANI_U8)cbState;
-    //TODO: setChan.ucRegDomain = (tANI_U8)halPhyGetRegDomain(pMac);
-    setChan.ucRegDomain = 0;
+    setChan.ucRegDomain = (tANI_U8)halPhyGetRegDomain(pMac);
     setChan.ucCalRequired = (tANI_U32)NO_CALS;
 
 #ifdef ANI_PHY_DEBUG

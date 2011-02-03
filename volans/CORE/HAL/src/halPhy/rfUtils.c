@@ -157,6 +157,8 @@ eHalStatus halPhyGetSupportedChannels( tHalHandle hHal, tANI_U8 *p20MhzChannels,
 }
 
 #ifdef HALPHY_CAL_DEBUG
+//#if 1
+//#define phylog(x, ...)
 /** RxDco Calibration ******************************************************/
 
 #include "pttModuleApi.h"
@@ -165,7 +167,7 @@ tANI_BOOLEAN log_regaccess = eANI_BOOLEAN_FALSE;
 
 #define FEATURE_WLANFW_RF_ACCESS
 #define MIDAS_REG_STEP      4
-#define DELAY_MICROSECONDS(x)   sirBusyWait((x) * 1000)
+//#define DELAY_MICROSECONDS(x)   sirBusyWait((x) * 1000)
 #define EXTEND_SIGNED_VALUE_TO_S16(value, input_sign_bit) (((tANI_S16)((value) << (15 - (input_sign_bit)))) >> (15 - (input_sign_bit)))
 #define ABS(x)      (((tANI_S32)(x) < 0) ? -(x) : (x))
 #define CorexLog_Print(x, ...)
@@ -177,7 +179,9 @@ eHalStatus DEBUG_GET_PHY_REG(tpAniSirGlobal pMac, tANI_U32 addr, tANI_U32 *value
 
     GET_PHY_REG(pMac->hHdd, addr, value);
     if (log_regaccess)
-        phylog(LOGE, "0x%x: 0x%x\n", addr, value);
+    {
+        phylog(LOGE, "0x%x: 0x%x\n", addr, *value);
+    }
 
     return retVal;
 }
@@ -198,7 +202,9 @@ eHalStatus DEBUG_GET_RF_CHIP_REG(tpAniSirGlobal pMac, tANI_U32 addr, tANI_U32 *v
 
     GET_PHY_REG(pMac->hHdd, addr, value);
     if (log_regaccess)
-        phylog(LOGE, "0x%x: 0x%x\n", addr, value);
+    {
+        phylog(LOGE, "0x%x: 0x%x\n", addr, *value);
+    }
 
     return retVal;
 }
@@ -649,6 +655,21 @@ void phyRxDcoCal(tpAniSirGlobal pMac, tANI_U8 loadDcoOnly)
 #if 1
 /**************** IM2 Calibration *********************************/
 
+typedef struct
+{
+    tANI_BOOLEAN I;
+    tANI_BOOLEAN Q;
+} tBoolIQ;
+
+typedef struct
+{
+    tDcoErrorCorr errorCorrLo;
+    tDcoErrorCorr errorCorrHi;
+    tBoolIQ       on2sides_prv;
+    tBoolIQ       done;
+} tUpdateIQ;
+
+
 #ifdef FEATURE_WLANFW_RF_ACCESS
 static void asicWaitCalDone(tpAniSirGlobal pMac, ePhyCalState *status)
 {
@@ -796,6 +817,7 @@ void asicGetCalADCSamples(tpAniSirGlobal pMac, tIQAdc *dco)
 
 static void enableIm2ToneGen(tpAniSirGlobal pMac, tANI_BOOLEAN inBand)
 {
+    log_regaccess = eANI_BOOLEAN_TRUE;
     if (inBand)
     {
         DEBUG_SET_RF_CHIP_REG(pMac, QWLAN_RFAPB_RXFE_TONEGEN_0_REG, 126);
@@ -836,16 +858,22 @@ static void enableIm2ToneGen(tpAniSirGlobal pMac, tANI_BOOLEAN inBand)
     debug_rdModWriteAsicField(pMac, QWLAN_RFAPB_RXFE_LNA_BLANK_BIST_CTL_REG,
                                     QWLAN_RFAPB_RXFE_LNA_BLANK_BIST_CTL_RXFE_LNA_DUMMY_RFBIST_EN_OVRD_MASK,
                                     QWLAN_RFAPB_RXFE_LNA_BLANK_BIST_CTL_RXFE_LNA_DUMMY_RFBIST_EN_OVRD_OFFSET, 1);
+    //log_regaccess = eANI_BOOLEAN_FALSE;
 }
 
 static void disableIm2ToneGen(tpAniSirGlobal pMac, tANI_U8 inBand)
 {
+    log_regaccess = eANI_BOOLEAN_TRUE;
     debug_rdModWriteAsicField(pMac, QWLAN_RFAPB_RXFE_TONEGEN_1_REG,
                                     QWLAN_RFAPB_RXFE_TONEGEN_1_TG_EN_MASK,
                                     QWLAN_RFAPB_RXFE_TONEGEN_1_TG_EN_OFFSET, 0);
     debug_rdModWriteAsicField(pMac, QWLAN_RFAPB_RXFE_LNA_BLANK_BIST_CTL_REG,
                                     QWLAN_RFAPB_RXFE_LNA_BLANK_BIST_CTL_RXFE_LNA_BLANK_BIST_OVRRD_MASK,
+                                    QWLAN_RFAPB_RXFE_LNA_BLANK_BIST_CTL_RXFE_LNA_BLANK_BIST_OVRRD_OFFSET, 0);
+    debug_rdModWriteAsicField(pMac, QWLAN_RFAPB_RXFE_LNA_BLANK_BIST_CTL_REG,
+                                    QWLAN_RFAPB_RXFE_LNA_BLANK_BIST_CTL_RXFE_LNA_DUMMY_RFBIST_EN_OVRD_MASK,
                                     QWLAN_RFAPB_RXFE_LNA_BLANK_BIST_CTL_RXFE_LNA_DUMMY_RFBIST_EN_OVRD_OFFSET, 0);
+    //log_regaccess = eANI_BOOLEAN_FALSE;
 }
 
 //Modified
@@ -908,20 +936,26 @@ static void phyRxIm2Setup(tpAniSirGlobal pMac)
 
     //added by Oliver
     //config AGC and cal mode before hand
-    DEBUG_SET_PHY_REG(pMac, QWLAN_AGC_TH_SIGNAL_LOW_REG, 0);
-    asicSetDisabledRxPacketTypes(pMac, PHY_RX_DISABLE_ALL_TYPES);
+    //asicSetDisabledRxPacketTypes(pMac, PHY_RX_DISABLE_ALL_TYPES);
+    DEBUG_SET_PHY_REG(pMac, QWLAN_AGC_DIS_MODE_REG, 3);
     asicSetPhyCalMode(pMac, PHY_CAL_MODE_INITDCCAL);
     asicSetPhyCalLength(pMac, 1023);
-    //Config LNA settings beforehand
-    DEBUG_SET_PHY_REG(pMac, QWLAN_RFAPB_RXFE_LNA_HIGHGAIN_BIAS_CTL_REG, 0xFF);
-    debug_rdModWriteAsicField(pMac, QWLAN_RFAPB_RXFE_LNA_LOAD_CTL_REG_REG,
-                    QWLAN_RFAPB_RXFE_LNA_LOAD_CTL_REG_RXFE_LNA_LOAD_CTUNE_MASK,
-                    QWLAN_RFAPB_RXFE_LNA_LOAD_CTL_REG_RXFE_LNA_LOAD_CTUNE_OFFSET, 63);
 }
 
 //Modified
 static void phyRxIm2Restore(tpAniSirGlobal pMac)
 {
+    //t.csr.rfif.gc_cfg.rx_gain_en(1)
+    debug_rdModWriteAsicField(pMac, QWLAN_RFIF_GC_CFG_REG, QWLAN_RFIF_GC_CFG_RX_GAIN_EN_MASK,
+                    QWLAN_RFIF_GC_CFG_RX_GAIN_EN_OFFSET, 1);
+    //t.csr.agc.rx_override(override_en=0,enrx_val=1,stby_val=1)
+    DEBUG_SET_PHY_REG(pMac, QWLAN_AGC_RX_OVERRIDE_REG, (QWLAN_AGC_RX_OVERRIDE_ENRX_VAL_MASK |
+                                            QWLAN_AGC_RX_OVERRIDE_STBY_VAL_MASK));
+    DEBUG_SET_PHY_REG(pMac, QWLAN_RFAPB_RX_DCOC_RANGE0_REG, RX_DCOC_RANGE);
+    DEBUG_SET_PHY_REG(pMac, QWLAN_RFAPB_RX_DCOC_RANGE1_REG, RX_DCOC_RANGE);
+    DEBUG_SET_PHY_REG(pMac, QWLAN_RFAPB_RX_DCOC_RANGE2_REG, RX_DCOC_RANGE);
+    DEBUG_SET_PHY_REG(pMac, QWLAN_RFAPB_RX_DCOC_RANGE3_REG, RX_DCOC_RANGE);
+
     if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
     {
         asicSetPhyCalLength(pMac, 31);
@@ -932,31 +966,10 @@ static void phyRxIm2Restore(tpAniSirGlobal pMac)
     }
     asicSetPhyCalMode(pMac, PHY_CAL_MODE_NORMAL);
 
-    //t.csr.rfif.gc_cfg.rx_gain_en(1)
-    debug_rdModWriteAsicField(pMac, QWLAN_RFIF_GC_CFG_REG, QWLAN_RFIF_GC_CFG_RX_GAIN_EN_MASK,
-                    QWLAN_RFIF_GC_CFG_RX_GAIN_EN_OFFSET, 1);
-    //t.csr.agc.rx_override(override_en=0,enrx_val=1,stby_val=1)
-    DEBUG_SET_PHY_REG(pMac, QWLAN_AGC_RX_OVERRIDE_REG, (QWLAN_AGC_RX_OVERRIDE_ENRX_VAL_MASK |
-                                            QWLAN_AGC_RX_OVERRIDE_STBY_VAL_MASK));
+    DEBUG_SET_PHY_REG(pMac, QWLAN_CAL_OVERRIDE_REG, 0);
 
-    asicSetDisabledRxPacketTypes(pMac, PHY_RX_DISABLE_NONE);
-    //t.csr.rfif.gc_cfg.rx_gain_en(0)
-    debug_rdModWriteAsicField(pMac, QWLAN_RFIF_GC_CFG_REG, QWLAN_RFIF_GC_CFG_RX_GAIN_EN_MASK,
-                    QWLAN_RFIF_GC_CFG_RX_GAIN_EN_OFFSET, 0);
-
-    DEBUG_SET_PHY_REG(pMac, QWLAN_RFAPB_RX_DCOC_RANGE0_REG, RX_DCOC_RANGE);
-    DEBUG_SET_PHY_REG(pMac, QWLAN_RFAPB_RX_DCOC_RANGE1_REG, RX_DCOC_RANGE);
-    DEBUG_SET_PHY_REG(pMac, QWLAN_RFAPB_RX_DCOC_RANGE2_REG, RX_DCOC_RANGE);
-    DEBUG_SET_PHY_REG(pMac, QWLAN_RFAPB_RX_DCOC_RANGE3_REG, RX_DCOC_RANGE);
-
-    //added by Oliver
-    //Restore AGC and cal settings afterward
-    DEBUG_SET_PHY_REG(pMac, QWLAN_AGC_TH_SIGNAL_LOW_REG, 25);
-    //Config LNA settings beforehand
-    DEBUG_SET_PHY_REG(pMac, QWLAN_RFAPB_RXFE_LNA_HIGHGAIN_BIAS_CTL_REG, 72);
-    debug_rdModWriteAsicField(pMac, QWLAN_RFAPB_RXFE_LNA_LOAD_CTL_REG_REG,
-                    QWLAN_RFAPB_RXFE_LNA_LOAD_CTL_REG_RXFE_LNA_LOAD_CTUNE_MASK,
-                    QWLAN_RFAPB_RXFE_LNA_LOAD_CTL_REG_RXFE_LNA_LOAD_CTUNE_OFFSET, 30);
+    //asicSetDisabledRxPacketTypes(pMac, PHY_RX_DISABLE_NONE);
+    DEBUG_SET_PHY_REG(pMac, QWLAN_AGC_DIS_MODE_REG, 0);
 }
 
 static void measureDco(tpAniSirGlobal pMac, tANI_S16 *meas_i, tANI_S16 *meas_q)
@@ -987,8 +1000,10 @@ void rfSetIm2Correct(tpAniSirGlobal pMac, tRxIm2Correct im2Corr)
     //                QWLAN_RFAPB_RX_IM2_Q_CFG0_IM2_VCAL_IDAC_Q_MASK,
     //                QWLAN_RFAPB_RX_IM2_Q_CFG0_IM2_VCAL_IDAC_Q_OFFSET,
     //                im2Corr.QCorrect);
+    log_regaccess = eANI_BOOLEAN_TRUE;
     DEBUG_SET_RF_CHIP_REG(pMac, QWLAN_RFAPB_RX_IM2_SPARE0_REG, im2Corr.ICorrect);
     DEBUG_SET_RF_CHIP_REG(pMac, QWLAN_RFAPB_RX_IM2_SPARE1_REG, im2Corr.QCorrect);
+    //log_regaccess = eANI_BOOLEAN_FALSE;
 #endif
 }
 
@@ -1189,21 +1204,26 @@ void im2UpdateErrCorr(tpAniSirGlobal pMac, tANI_BOOLEAN update_i, tUpdateIQ *pEr
         pErrCorrIQ->done.Q = done_2update;
     }
 
-    phylog(LOGE, "im2_iter: corr_i_lo = %d, meas_i_lo = %d, corr_i_hi = %d, meas_i_hi = %d, on2sides_i_prv = %d, done_i = %d\n",
-        pErrCorrIQ->errorCorrLo.dcoOffset.IDcoCorrect,
-        pErrCorrIQ->errorCorrLo.error.I,
-        pErrCorrIQ->errorCorrHi.dcoOffset.IDcoCorrect,
-        pErrCorrIQ->errorCorrHi.error.I,
-        pErrCorrIQ->on2sides_prv.I,
-        pErrCorrIQ->done.I);
-
-    phylog(LOGE, "im2_iter: corr_q_lo = %d, meas_q_lo = %d, corr_q_hi = %d, meas_q_hi = %d, on2sides_q_prv = %d, done_q = %d\n",
-        pErrCorrIQ->errorCorrLo.dcoOffset.QDcoCorrect,
-        pErrCorrIQ->errorCorrLo.error.Q,
-        pErrCorrIQ->errorCorrHi.dcoOffset.QDcoCorrect,
-        pErrCorrIQ->errorCorrHi.error.Q,
-        pErrCorrIQ->on2sides_prv.Q,
-        pErrCorrIQ->done.Q);
+    if (update_i)
+    {
+        phylog(LOGE, "im2_iter: corr_i_lo = %d, meas_i_lo = %d, corr_i_hi = %d, meas_i_hi = %d, on2sides_i_prv = %d, done_i = %d\n",
+            pErrCorrIQ->errorCorrLo.dcoOffset.IDcoCorrect,
+            pErrCorrIQ->errorCorrLo.error.I,
+            pErrCorrIQ->errorCorrHi.dcoOffset.IDcoCorrect,
+            pErrCorrIQ->errorCorrHi.error.I,
+            pErrCorrIQ->on2sides_prv.I,
+            pErrCorrIQ->done.I);
+    }
+    else
+    {
+        phylog(LOGE, "im2_iter: corr_q_lo = %d, meas_q_lo = %d, corr_q_hi = %d, meas_q_hi = %d, on2sides_q_prv = %d, done_q = %d\n",
+            pErrCorrIQ->errorCorrLo.dcoOffset.QDcoCorrect,
+            pErrCorrIQ->errorCorrLo.error.Q,
+            pErrCorrIQ->errorCorrHi.dcoOffset.QDcoCorrect,
+            pErrCorrIQ->errorCorrHi.error.Q,
+            pErrCorrIQ->on2sides_prv.Q,
+            pErrCorrIQ->done.Q);
+    }
 }
 
 //Modified
@@ -1253,6 +1273,14 @@ void im2BinarySearch(tpAniSirGlobal pMac, tANI_S16 *meas_i, tANI_S16 *meas_q)
         curCorrErr.on2sides_prv.Q = eANI_BOOLEAN_FALSE;
     }
 
+    phylog(LOGE, "im2_init_meas: corr_i_lo = %d, meas_i_lo = %d, corr_i_hi = %d, meas_i_hi = %d, on2sides_i_prv = %d, done_i = %d\n",
+            curCorrErr.errorCorrLo.dcoOffset.IDcoCorrect,
+            curCorrErr.errorCorrLo.error.I,
+            curCorrErr.errorCorrHi.dcoOffset.IDcoCorrect,
+            curCorrErr.errorCorrHi.error.I,
+            curCorrErr.on2sides_prv.I,
+            curCorrErr.done.I);
+
     while (!done)
     {
         //cal i
@@ -1299,8 +1327,6 @@ void im2BinarySearch(tpAniSirGlobal pMac, tANI_S16 *meas_i, tANI_S16 *meas_q)
 
     writeIm2Corr(pMac, corr_i_final, corr_q_final);
 
-    hv_printLog("corr_i_final = %d, meas_i_final = %d, corr_q_final = %d, meas_q_final = %d\n",
-                    corr_i_final, *meas_i, corr_q_final, *meas_q);
     phylog(LOGE, "corr_i_final = %d, meas_i_final = %d, corr_q_final = %d, meas_q_final = %d\n",
                     corr_i_final, *meas_i, corr_q_final, *meas_q);
 }
@@ -1316,14 +1342,29 @@ void phyRxIm2Cal(tpAniSirGlobal pMac, tANI_U8 Im2CalOnly)
     tANI_S16 meas_i, meas_q;
     tANI_S16 corr_i, corr_q;
     tANI_U32 cnt = 0;
+    tANI_U32 highgain_bias_ctl, lna_load_ctune;
+    tANI_U32 th_signal_low;
 
     readDcoLut(pMac, DCO_LUT_IDX, &save_corr_i, &save_corr_q);
 
     log_regaccess = eANI_BOOLEAN_TRUE;
     phyRxIm2Setup(pMac);
-    log_regaccess = eANI_BOOLEAN_FALSE;
 
-    writeDcoLut(pMac, DCO_LUT_IDX, 127, 127);
+    DEBUG_GET_PHY_REG(pMac, QWLAN_AGC_TH_SIGNAL_LOW_REG, &th_signal_low);
+    DEBUG_SET_PHY_REG(pMac, QWLAN_AGC_TH_SIGNAL_LOW_REG, 0);
+
+    //Config LNA settings beforehand
+    DEBUG_GET_PHY_REG(pMac, QWLAN_RFAPB_RXFE_LNA_HIGHGAIN_BIAS_CTL_REG, &highgain_bias_ctl);
+    DEBUG_SET_PHY_REG(pMac, QWLAN_RFAPB_RXFE_LNA_HIGHGAIN_BIAS_CTL_REG, 0xFF);
+    DEBUG_GET_PHY_REG(pMac, QWLAN_RFAPB_RXFE_LNA_LOAD_CTL_REG_REG, &lna_load_ctune);
+    debug_rdModWriteAsicField(pMac, QWLAN_RFAPB_RXFE_LNA_LOAD_CTL_REG_REG,
+                    QWLAN_RFAPB_RXFE_LNA_LOAD_CTL_REG_RXFE_LNA_LOAD_CTUNE_MASK,
+                    QWLAN_RFAPB_RXFE_LNA_LOAD_CTL_REG_RXFE_LNA_LOAD_CTUNE_OFFSET, 63);
+
+
+    //log_regaccess = eANI_BOOLEAN_FALSE;
+
+    writeIm2Corr(pMac, 127, 127);
 
     while (cnt++ < IM2_MAX_ITER)
     {
@@ -1335,7 +1376,7 @@ void phyRxIm2Cal(tpAniSirGlobal pMac, tANI_U8 Im2CalOnly)
             searchBinary(pMac, DCO_LUT_IDX, &corr_i, &corr_q);
 
             measureDco(pMac, &meas_i, &meas_q);
-            phylog(LOGE, "meas_i = %d, meas_q = %d\n", meas_i, meas_q);
+            //phylog(LOGE, "meas_i = %d, meas_q = %d\n", meas_i, meas_q);
         }
 
         enableIm2ToneGen(pMac, eANI_BOOLEAN_FALSE);
@@ -1343,14 +1384,21 @@ void phyRxIm2Cal(tpAniSirGlobal pMac, tANI_U8 Im2CalOnly)
         im2BinarySearch(pMac, &meas_i, &meas_q);
 
         measureDco(pMac, &meas_i, &meas_q);
-        phylog(LOGE, "meas_i = %d, meas_q = %d\n", meas_i, meas_q);
+        //phylog(LOGE, "meas_i = %d, meas_q = %d\n", meas_i, meas_q);
     }
 
     disableIm2ToneGen(pMac, eANI_BOOLEAN_FALSE);
 
     log_regaccess = eANI_BOOLEAN_TRUE;
     phyRxIm2Restore(pMac);
-    log_regaccess = eANI_BOOLEAN_FALSE;
+
+    DEBUG_SET_PHY_REG(pMac, QWLAN_AGC_TH_SIGNAL_LOW_REG, th_signal_low);
+
+    //Config LNA settings beforehand
+    DEBUG_SET_PHY_REG(pMac, QWLAN_RFAPB_RXFE_LNA_HIGHGAIN_BIAS_CTL_REG, highgain_bias_ctl);
+    DEBUG_SET_PHY_REG(pMac, QWLAN_RFAPB_RXFE_LNA_LOAD_CTL_REG_REG, lna_load_ctune);
+
+    //log_regaccess = eANI_BOOLEAN_FALSE;
 
     writeDcoLut(pMac, DCO_LUT_IDX, (tANI_S16)save_corr_i, (tANI_S16)save_corr_q);
 #endif

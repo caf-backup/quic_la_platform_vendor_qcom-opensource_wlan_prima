@@ -190,17 +190,11 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       }
    }
    //Classify the packet
-   if ( (HDD_WMM_USER_MODE_NO_QOS != pStaAdapter->cfg_ini->WmmMode) &&
-         !hdd_wmm_classify_pkt (pStaAdapter, skb, &ac, &up) )
+   if (HDD_WMM_USER_MODE_NO_QOS != pStaAdapter->cfg_ini->WmmMode)
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Failed to classify packet..pkt dropped", __FUNCTION__);
-      ++pAdapter->stats.tx_dropped;
-      ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
-      kfree_skb(skb);
-      return NETDEV_TX_OK;
+     hdd_wmm_classify_pkt (pStaAdapter, skb, &ac, &up);
    }
-
+   
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,

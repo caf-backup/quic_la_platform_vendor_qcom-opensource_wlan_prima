@@ -117,6 +117,8 @@
 
 /*Enables debugging behavior in TL*/
 #define TL_DEBUG
+//#define WLAN_SOFTAP_FLOWCTRL_EN
+
 //#define BTAMP_TEST
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants

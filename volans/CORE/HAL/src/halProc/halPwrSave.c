@@ -375,7 +375,8 @@ eHalStatus halPS_Config(tpAniSirGlobal pMac, tpSirPowerSaveCfg pPowerSaveConfig)
     pFwConfig->ucNumConsBcnMiss = HAL_PWR_SAVE_MAX_CONS_BCN_MISS; 
 
     // Listen Interval
-    pFwConfig->ucListenInterval = (tANI_U8)pPowerSaveConfig->listenInterval;
+    // just save it in HAL cache. It will be written to FW sys config at Enter BMPS.
+    pHalPwrSave->listenInterval = pPowerSaveConfig->listenInterval;
 
     // Chip power down during BMPS enabled by default
     pFwConfig->bNoPwrDown = HAL_PWR_SAVE_FW_CHIP_PWR_DOWN_DISABLE;
@@ -711,7 +712,8 @@ eHalStatus halPS_SetBeaconInterval(tpAniSirGlobal pMac, tANI_U16 beaconInterval)
 
 /*
  * DESCRIPTION:
- *      Function to update the listen interval into the FW sys config
+ *      Function to update the listen interval into the HAL cache.
+ *      It will be written to FW sysCfg at enter BMPS
  *
  * PARAMETERS:
  *      pMac:   Pointer to the global adapter context
@@ -723,18 +725,13 @@ eHalStatus halPS_SetBeaconInterval(tpAniSirGlobal pMac, tANI_U16 beaconInterval)
  */
 eHalStatus halPS_SetListenIntervalParam(tpAniSirGlobal pMac, tANI_U16 listenInterval)
 {
-    tHalFwParams *pFw = &pMac->hal.FwParam;
-    Qwlanfw_SysCfgType *pFwConfig;
-
-    pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
-    pFwConfig->ucListenInterval = listenInterval;
-
-    // Write the configuration parameters in the memory mapped for
-    // system configuration parameters
-    return halFW_UpdateSystemConfig(pMac,
-            pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig,
-            sizeof(*pFwConfig));
+    tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;  
+    if(!pHalPwrSave)
+        return eHAL_STATUS_FAILURE;
+    pHalPwrSave->listenInterval = listenInterval;
+    return eHAL_STATUS_SUCCESS;
 }
+
 
 
 /*
@@ -1297,14 +1294,14 @@ eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod)
     tHalFwParams *pFw = &pMac->hal.FwParam;
     tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;
     Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
-    tANI_U16 listenInterval = (tANI_U16)pFwConfig->ucListenInterval;
+    tANI_U16 listenInterval = (tANI_U16)pHalPwrSave->listenInterval;
     tANI_U8 filterPeriod=0;
 
     // Compute the Listen interval based on DTIM period, to align
     // the LI with the DTIM period. Basically LI should be multiple of
     // DTIM. This would be done only if ignoreDtim is not set.
     if (!pHalPwrSave->ignoreDtim) {
-        halPS_ComputeListenInterval(dtimPeriod, (tANI_U16)pFwConfig->ucListenInterval, 0,
+        halPS_ComputeListenInterval(dtimPeriod, (tANI_U16)pHalPwrSave->listenInterval, 0,
                 &listenInterval);
     }
 
@@ -1408,9 +1405,7 @@ eHalStatus halPS_HandleEnterBmpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken, t
     tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;
     tHalPsBmps *pBmpsCtx = &pMac->hal.PsParam.BmpsCtx;
     Qwlanfw_EnterBmpsReqType msg;
-    tHalFwParams *pFw = &pMac->hal.FwParam;
-    Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
-    tANI_U16 listenInterval = (tANI_U16)pFwConfig->ucListenInterval;
+    tANI_U16 listenInterval = (tANI_U16)pHalPwrSave->listenInterval;
     tANI_U64 leastDtimTbtt = 0, lastDtimTbtt = 0;
 
     // Do not enter BMPS if listen interval is set to 0. This shouldn't happen. 

@@ -1358,19 +1358,8 @@ eHalStatus halPhySetRegDomain(tHalHandle hHal, eRegDomainId regDomain)
 
     if ( (tANI_U32)regDomain < NUM_REG_DOMAINS)
     {
-        {
-            Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
-
-            if(pFwConfig != NULL)
-            {
-                // Update the sytem config
-                pFwConfig->ucRegDomain = (tANI_U8)regDomain;
-
-                halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr, (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
-            }
-        }
-
         pMac->hphy.phy.curRegDomain = regDomain;
+
         return(eHAL_STATUS_SUCCESS);
     }
     else
