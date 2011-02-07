@@ -2,7 +2,7 @@
 # Android makefile for the WLAN Libra Module
 
 # Build/Package only in case of 7x30 and 7x27 target
-ifneq (, $(filter msm7627_surf msm7627_ffa msm7627_7x_ffa msm7627_7x_surf msm7630_surf msm7630_fusion, $(QCOM_TARGET_PRODUCT)))
+ifneq (, $(filter msm7627_surf msm7627_ffa msm7630_surf msm7630_fusion, $(QCOM_TARGET_PRODUCT)))
 
 WLAN     := $(shell echo $(my-dir) | sed -e "s/.*vendor/vendor/" \
 				         -e "s/\/CORE.*//")
