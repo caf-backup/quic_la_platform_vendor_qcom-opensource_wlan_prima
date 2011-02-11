@@ -532,9 +532,8 @@ limCreateTimers(tpAniSirGlobal pMac)
     limInitPreAuthTimerTable(pMac, &pMac->lim.gLimPreAuthTimerTable);
     PELOG1(limLog(pMac, LOG1, FL("alloc and init table for preAuth timers\n"));)
 
-#ifdef ANI_PRODUCT_TYPE_AP
 
-    if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
+#ifdef WLAN_SOFTAP_FEATURE
     {
         /**
          * Create OLBC cache aging timer
@@ -556,7 +555,7 @@ limCreateTimers(tpAniSirGlobal pMac)
                 &pMac->lim.limTimers.gLimUpdateOlbcCacheTimer,
                 "OLBC UPDATE CACHE TIMEOUT",
                 limUpdateOlbcCacheTimerHandler,
-                0,
+                SIR_LIM_UPDATE_OLBC_CACHEL_TIMEOUT,
                 cfgValue,
                 cfgValue,
                 TX_AUTO_ACTIVATE) != TX_SUCCESS)
@@ -773,8 +772,7 @@ limAssocFailureTimerHandler(void *pMacGlobal, tANI_U32 param)
  *
  * @return None
  */
-#ifdef ANI_PRODUCT_TYPE_AP
-
+#ifdef WLAN_SOFTAP_FEATURE
 void
 limUpdateOlbcCacheTimerHandler(void *pMacGlobal, tANI_U32 param)
 {
@@ -789,7 +787,6 @@ limUpdateOlbcCacheTimerHandler(void *pMacGlobal, tANI_U32 param)
 
     limPostMsgApi(pMac, &msg);
 } /****** end limUpdateOlbcCacheTimerHandler() ******/
-
 #endif
 
 /**

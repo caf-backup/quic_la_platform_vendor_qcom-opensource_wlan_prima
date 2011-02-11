@@ -45,7 +45,7 @@ static v_U8_t WLAN_MEM_TAIL[]   =  {0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x
 struct s_vos_mem_struct
 {
    hdd_list_node_t pNode;
-   v_U8_t* fileName;
+   char* fileName;
    unsigned int lineNum;
    unsigned int size;
    v_U8_t header[8];
@@ -75,7 +75,7 @@ void vos_mem_init()
    return; 
 }
 
-void vos_mem_exit()
+void vos_mem_clean()
 {
     v_SIZE_t listSize;
     hdd_list_size(&vosMemList, &listSize);
@@ -87,28 +87,33 @@ void vos_mem_exit()
 
        struct s_vos_mem_struct* memStruct;
  
-       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
              "%s: List is not Empty. listSize %d ", __FUNCTION__, (int)listSize);
 
        do
        {
+	      spin_lock(&vosMemList.lock);
           vosStatus = hdd_list_remove_front(&vosMemList, &pNode);
+	      spin_unlock(&vosMemList.lock);
           if(VOS_STATUS_SUCCESS == vosStatus)
           {
-             v_U8_t* temp;
              memStruct = (struct s_vos_mem_struct*)pNode;
-             temp = (v_U8_t*)(memStruct + 1);
              VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                    "Memory Leak@ File %s, @Line %d, size %d", 
                    memStruct->fileName, (int)memStruct->lineNum, memStruct->size);
+             kfree((v_VOID_t*)memStruct);
           }
        }while(vosStatus == VOS_STATUS_SUCCESS);
     }
-    
+}
+
+void vos_mem_exit()
+{
+    vos_mem_clean();
     hdd_list_destroy(&vosMemList);
 }
 
-v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, v_S7_t* fileName, v_U32_t lineNum)
+v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
 {
    struct s_vos_mem_struct* memStruct;
    v_VOID_t* memPtr = NULL;
@@ -135,14 +140,16 @@ v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, v_S7_t* fileName, v_U32_t lineNu
    {
       VOS_STATUS vosStatus;
 
-      memStruct->fileName = (v_U8_t*)fileName;
+      memStruct->fileName = fileName;
       memStruct->lineNum  = lineNum;
       memStruct->size     = size;
 
       vos_mem_copy(&memStruct->header[0], &WLAN_MEM_HEADER[0], sizeof(WLAN_MEM_HEADER));
       vos_mem_copy( (v_U8_t*)(memStruct + 1) + size, &WLAN_MEM_TAIL[0], sizeof(WLAN_MEM_TAIL));
 
+      spin_lock(&vosMemList.lock);
       vosStatus = hdd_list_insert_front(&vosMemList, &memStruct->pNode);
+      spin_unlock(&vosMemList.lock);
       if(VOS_STATUS_SUCCESS != vosStatus)
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
@@ -161,7 +168,9 @@ v_VOID_t vos_mem_free( v_VOID_t *ptr )
         VOS_STATUS vosStatus;
         struct s_vos_mem_struct* memStruct = ((struct s_vos_mem_struct*)ptr) - 1;
 
+        spin_lock(&vosMemList.lock);
         vosStatus = hdd_list_remove_node(&vosMemList, &memStruct->pNode);
+        spin_unlock(&vosMemList.lock);
 
         if(VOS_STATUS_SUCCESS == vosStatus)
         {
@@ -177,15 +186,8 @@ v_VOID_t vos_mem_free( v_VOID_t *ptr )
                     "Memory Trailer is corrupted. MemInfo: Filename %s, LineNum %d", 
                                 memStruct->fileName, (int)memStruct->lineNum);
             }
+            kfree((v_VOID_t*)memStruct);
         }
-        else
-        {
-            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, 
-               "%s: Not able to remove node from the list. MemInfo: Filename %s, LineNum %d", 
-                    __FUNCTION__, memStruct->fileName, (int)memStruct->lineNum);
-        }
-
-        kfree((v_VOID_t*)memStruct);
     }
 }
 #else
@@ -295,7 +297,7 @@ v_SINT_t vos_mem_compare2( v_VOID_t *pMemory1, v_VOID_t *pMemory2, v_U32_t numBy
   
   --------------------------------------------------------------------------*/
 #ifdef MEMORY_DEBUG
-v_VOID_t * vos_mem_dma_malloc_debug( v_SIZE_t size, v_U8_t* fileName, v_U32_t lineNum)
+v_VOID_t * vos_mem_dma_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
 {
    struct s_vos_mem_struct* memStruct;
    v_VOID_t* memPtr = NULL;
@@ -322,7 +324,9 @@ v_VOID_t * vos_mem_dma_malloc_debug( v_SIZE_t size, v_U8_t* fileName, v_U32_t li
       vos_mem_copy(&memStruct->header[0], &WLAN_MEM_HEADER[0], sizeof(WLAN_MEM_HEADER));
       vos_mem_copy( (v_U8_t*)(memStruct + 1) + size, &WLAN_MEM_TAIL[0], sizeof(WLAN_MEM_TAIL));
 
+      spin_lock(&vosMemList.lock);
       vosStatus = hdd_list_insert_front(&vosMemList, &memStruct->pNode);
+      spin_unlock(&vosMemList.lock);
       if(VOS_STATUS_SUCCESS != vosStatus)
       {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
@@ -342,7 +346,9 @@ v_VOID_t vos_mem_dma_free( v_VOID_t *ptr )
         VOS_STATUS vosStatus;
         struct s_vos_mem_struct* memStruct = ((struct s_vos_mem_struct*)ptr) - 1;
 
+        spin_lock(&vosMemList.lock);
         vosStatus = hdd_list_remove_node(&vosMemList, &memStruct->pNode);
+        spin_unlock(&vosMemList.lock);
 
         if(VOS_STATUS_SUCCESS == vosStatus)
         {
@@ -358,14 +364,8 @@ v_VOID_t vos_mem_dma_free( v_VOID_t *ptr )
                     "Memory Trailer is corrupted. MemInfo: Filename %s, LineNum %d", 
                                 memStruct->fileName, (int)memStruct->lineNum);
             }
+            kfree((v_VOID_t*)memStruct);
         }
-        else
-        {
-            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, 
-               "%s: Not able to remove node from the list. MemInfo: Filename %s, LineNum %d", 
-                    __FUNCTION__, memStruct->fileName, (int)memStruct->lineNum);
-        }
-        kfree((v_VOID_t*)memStruct);
     }
 }
 #else

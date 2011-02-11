@@ -14,12 +14,6 @@
 #include "sirMacProtDef.h" // tSirMacAddr
 #include "halMsgApi.h"
 
-#ifdef WLAN_SOFTAP_FEATURE
-  #define   BROADCAST_STAID    252
-#else
-  #define   BROADCAST_STAID    255
-#endif
-
 #define   RXP_DROP_ALL_FRAME_TYPES   0xffffffff
 #define   RXP_PASS_ALL_FRAME_TYPES   0x0
 
@@ -174,6 +168,6 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
 void setFrameFilterMaskForScan (tpAniSirGlobal pMac, tHalRxpModeFlag rxpMode);
 tANI_U32 halRxp_getFrameFilterMaskForMode (tpAniSirGlobal pMac, tANI_U32 rxpMode);
 void halRxp_setFrameFilterMaskForBcnProbeRsp(tpAniSirGlobal pMac, tANI_U32 maskValue);
-void halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN setFilter);
+eHalStatus halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN setFilter);
 #endif /* _HALRXP_H_ */
 

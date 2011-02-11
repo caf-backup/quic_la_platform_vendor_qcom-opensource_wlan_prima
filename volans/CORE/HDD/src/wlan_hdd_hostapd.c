@@ -70,9 +70,9 @@ int hdd_hostapd_open (struct net_device *dev)
    printk("%s", __func__);
    //Turn ON carrier state
    netif_carrier_on(dev);
-   //Enable Tx queue
-   netif_start_queue(dev);
-   //netif_stop_queue(dev);   
+   //Enable all Tx queues  
+   netif_tx_start_all_queues(dev);
+   
    EXIT();
    return 0;
 }
@@ -90,9 +90,9 @@ int hdd_hostapd_open (struct net_device *dev)
 int hdd_hostapd_stop (struct net_device *dev)
 {
    printk("%s", __func__);
-   //Stop the Interface TX queue. netif_stop_queue should not be used when
-   //transmission is being disabled anywhere other than hard_start_xmit
-   netif_tx_disable(dev);
+   //Stop all tx queues
+   netif_tx_stop_all_queues(dev);
+   
    //Turn OFF carrier state
    netif_carrier_off(dev);
    return 0;
@@ -121,6 +121,7 @@ int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
    return 0;
 }
+
 /**---------------------------------------------------------------------------
   
   \brief hdd_hostapd_set_mac_address() - 
@@ -1563,7 +1564,8 @@ static struct net_device_ops net_ops_struct  = {
     .ndo_get_stats = hdd_softap_stats,
     .ndo_set_mac_address = hdd_hostapd_set_mac_address,
     .ndo_do_ioctl = hdd_hostapd_ioctl,
-	.ndo_change_mtu = hdd_hostapd_change_mtu
+    .ndo_change_mtu = hdd_hostapd_change_mtu,
+    .ndo_select_queue = hdd_hostapd_select_queue,
  };
 #endif
 
@@ -1578,13 +1580,14 @@ int hdd_wlan_create_ap_dev(struct net_device * pWlanDev)
     hdd_hostapd_adapter_t *pHostapdAdapter = NULL;
     static char macAddr[6] =  {0x00, 0xde, 0xad, 0xbe, 0xef, 0x04};
     v_CONTEXT_t pVosContext= NULL; 
-	
-    pWlanHostapdDev = alloc_etherdev(sizeof(hdd_hostapd_adapter_t));
+		
+    pWlanHostapdDev = alloc_etherdev_mq(sizeof(hdd_hostapd_adapter_t),NUM_TX_QUEUES);
     if (NULL == pWlanHostapdDev)
     {
         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: alloc_netdev failed", __func__);
         return -1;
     }
+    
     //Init the net_device structure
     ether_setup(pWlanHostapdDev);
     pHostapdAdapter = netdev_priv(pWlanHostapdDev);

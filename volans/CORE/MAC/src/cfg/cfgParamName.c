@@ -242,6 +242,8 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"RRM_NON_OPERATING_CHAN_MAX",
 	(unsigned char *)"TX_PWR_CTRL_ENABLE",
 	(unsigned char *)"MCAST_BCAST_FILTER_SETTING",
+	(unsigned char *)"BTC_DHCP_BT_SLOTS_TO_BLOCK",
+	(unsigned char *)"DYNAMIC_PS_POLL_VALUE",
 };
 
 

@@ -56,8 +56,8 @@
 #define TX_SHUTDOWN_EVENT_MASK           0x010
 #define MC_SHUTDOWN_EVENT_MASK           0x010
 #define WD_POST_EVENT_MASK               0x001
-#define WD_SHUTDOWN_EVENT_MASK           0x010
-#define WD_CHIP_RESET_EVENT_MASK         0x100
+#define WD_SHUTDOWN_EVENT_MASK           0x002
+#define WD_CHIP_RESET_EVENT_MASK         0x004
 
  
  
@@ -260,6 +260,7 @@ typedef struct _VosContextType
 
    vos_event_t        ProbeEvent;
 
+   volatile v_U8_t	  isLogpInProgress;
 
 } VosContextType, *pVosContextType;
 

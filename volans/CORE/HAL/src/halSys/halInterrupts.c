@@ -732,11 +732,12 @@ halIntWriteRegister(tpAniSirGlobal pMac,
                     tANI_U32 regValue)
 {
 
+    eHalStatus status;
+	
     if(regAddress != QWLAN_SIF_SIF_INT_EN_REG){
-        halWriteRegister(pMac, regAddress, regValue);
+        status = halWriteRegister(pMac, regAddress, regValue);
     }else{
         v_CONTEXT_t pVosGCtx = vos_get_global_context(VOS_MODULE_ID_HAL, (v_VOID_t *)pMac);
-        VOS_STATUS status;
 #ifdef WLAN_PERF
         if(regValue)
             status = WLANBAL_EnableASICInterruptEx(pVosGCtx, QWLAN_SIF_INT_ASIC_INTERRUPT_MASK);
@@ -749,7 +750,7 @@ halIntWriteRegister(tpAniSirGlobal pMac,
             status = WLANBAL_DisableASICInterrupt(pVosGCtx);
 #endif
     }
-    return eHAL_STATUS_SUCCESS;
+    return status;
 
 };
 
@@ -1326,10 +1327,16 @@ halIntHandler(v_PVOID_t pVosGCtx)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)vos_get_context(VOS_MODULE_ID_HAL, pVosGCtx);
     tHalHandle hHalHandle = (tHalHandle) pMac;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
 
 
     if (IS_PWRSAVE_STATE_IN_BMPS) { 
-        halPS_SetHostBusy(pMac, HAL_PS_BUSY_INTR_CONTEXT); 
+        status = halPS_SetHostBusy(pMac, HAL_PS_BUSY_INTR_CONTEXT); 
+    }
+
+   if(eHAL_STATUS_SUCCESS != status) {
+   	VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s halPS_SetHostBusy  failed", __func__);
+       return VOS_STATUS_E_FAILURE;
     }
 
 #ifdef HAL_INT_DEBUG
@@ -1338,7 +1345,12 @@ halIntHandler(v_PVOID_t pVosGCtx)
     while(eHAL_STATUS_INTERRUPT_PRESENT == halIntCheck(hHalHandle))
     {
         //Clear the SIF ASIC interrupt.
-        halIntClearStatus(hHalHandle, eHAL_INT_SIF_ASIC);    
+        status = halIntClearStatus(hHalHandle, eHAL_INT_SIF_ASIC);    
+
+	    if(eHAL_STATUS_SUCCESS != status)
+	    {
+            break;
+	    }
 
         // the interrupt register cache should already be populated in halIntCheck
         // Now serve all pending ASIC interrupts.

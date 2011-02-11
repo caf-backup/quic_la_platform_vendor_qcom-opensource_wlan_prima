@@ -112,8 +112,10 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         break;
 
    case NETDEV_CHANGE:
-        if(TRUE == pAdapter->isLinkUpSvcNeeded)
-           complete(&pAdapter->linkup_event_var);
+   	    if(VOS_STA_MODE == hdd_get_conparam()) {
+            if(TRUE == pAdapter->isLinkUpSvcNeeded)
+               complete(&pAdapter->linkup_event_var);
+   	    	}
         break;
 
    case NETDEV_GOING_DOWN:
@@ -126,7 +128,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
    return NOTIFY_DONE;
 }
 
-static struct notifier_block hdd_netdev_notifier = {
+struct notifier_block hdd_netdev_notifier = {
    .notifier_call = hdd_netdev_notifier_call,
 };
 
@@ -600,7 +602,8 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
 #ifdef ANI_MANF_DIAG
     wlan_hdd_ftm_close(pAdapter);
     return;
-#endif  
+#endif
+
    //Stop the Interface TX queue.
    netif_tx_stop_all_queues(pWlanDev);
    netif_carrier_off(pWlanDev);
@@ -618,7 +621,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    sme_DisablePowerSave(pAdapter->hHal, ePMC_UAPSD_MODE_POWER_SAVE);
 
    //Ensure that device is in full power as we will touch H/W during vos_Stop
-   init_completion(&pAdapter->full_pwr_comp_var);
+   INIT_COMPLETION(pAdapter->full_pwr_comp_var);
    halStatus = sme_RequestFullPower(pAdapter->hHal, hdd_full_pwr_cbk,
        pAdapter, eSME_FULL_PWR_NEEDED_BY_HDD);
 
@@ -641,7 +644,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    // Unregister the Net Device Notifier
    unregister_netdevice_notifier(&hdd_netdev_notifier);
 
-   init_completion(&pAdapter->disconnect_comp_var);
+   INIT_COMPLETION(pAdapter->disconnect_comp_var);
    halStatus = sme_RoamDisconnect(pAdapter->hHal, pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
 
    //success implies disconnect command got queued up successfully
@@ -834,7 +837,7 @@ VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
    vos_mem_copy(pWlanDev->dev_addr, 
                 &pAdapter->macAddressCurrent, 
                 sizeof(v_MACADDR_t));
-	  
+
 #ifdef WLAN_SOFTAP_FEATURE
     if(VOS_STA_SAP_MODE == hdd_get_conparam()){
         vos_mem_copy(pWlanHostapdDev->dev_addr,
@@ -874,8 +877,7 @@ VOS_STATUS hdd_post_voss_start_config(hdd_adapter_t* pAdapter)
 }
 
 // Routine to initialize the PMU
-// enable pmu_ana_deep_sleep_en in ldo_ctrl_reg
-static void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext)
+void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext)
 {
 /*-------------- Need to fix this correctly while doing Deepsleep testing
     tANI_U32 regValue = 0;
@@ -940,8 +942,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 #ifdef CONFIG_CFG80211
    struct wireless_dev *wdev ;
 #endif
-
-
+   
    ENTER();
 #ifdef CONFIG_CFG80211
    /*
@@ -986,6 +987,8 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    //Initialize the adapter context to zeros.
    vos_mem_zero(pAdapter, sizeof( hdd_adapter_t ));
 
+   pAdapter->isLoadUnloadInProgress = TRUE;
+   
    /*Get vos context here bcoz vos_open requires it*/
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
@@ -1039,6 +1042,10 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    init_completion(&pAdapter->full_pwr_comp_var);
    init_completion(&pAdapter->standby_comp_var);
    init_completion(&pAdapter->disconnect_comp_var);
+   init_completion(&pAdapter->linkup_event_var);
+   init_completion(&pAdapter->mc_sus_event_var);
+   init_completion(&pAdapter->tx_sus_event_var);
+
 
    // Register the net device. Device should be registered to invoke
    // request_firmware API for reading the qcom_cfg.ini file
@@ -1094,6 +1101,9 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
          goto err_config;
       }
    }
+
+   pAdapter->isLogpInProgress = FALSE;
+   vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
 
    status = WLANBAL_Open(pAdapter->pvosContext);
    if(!VOS_IS_STATUS_SUCCESS(status))
@@ -1291,6 +1301,8 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    //Trigger the initial scan
    hdd_wlan_initial_scan(pAdapter);
 
+   pAdapter->isLoadUnloadInProgress = FALSE;
+  
    goto success;
 
 err_nl_srv:
@@ -1394,10 +1406,53 @@ static int __init hdd_module_init ( void)
          hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN detecton succeeded",__func__);
          break;
       }
+
+      if(attempts == 7)
+        break;
+      
+      msleep(250);
+
+   }while (attempts < 7);
+
+   //Retry to detect the card again by Powering Down the chip and Power up the chip 
+   //again. This retry is done to recover from CRC Error
+   if (NULL == sdio_func_dev) {
+
+      attempts = 0;
+      
+      //Vote off any PMIC voltage supplies
+      vos_chipPowerDown(NULL, NULL, NULL);
+
       msleep(1000);
 
-   }while (attempts < 3);
+      //Power Up Libra WLAN card first if not already powered up
+      status = vos_chipPowerUp(NULL,NULL,NULL);
+      if (!VOS_IS_STATUS_SUCCESS(status))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN not Powered Up."
+             "exiting", __func__);
+         return -1;
+      }
 
+      do {
+         sdio_func_dev = libra_getsdio_funcdev();
+         if (NULL == sdio_func_dev) {
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN not detected yet.",__func__);
+            attempts++;
+         }
+         else {
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN detecton succeeded",__func__);
+            break;
+         }
+
+         if(attempts == 2)
+           break;
+      
+         msleep(1000);
+
+      }while (attempts < 3);
+   }   
+   
    do {
       if (NULL == sdio_func_dev) {
          hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not found!!",__func__);
@@ -1408,6 +1463,11 @@ static int __init hdd_module_init ( void)
 #ifdef MEMORY_DEBUG
       vos_mem_init();
 #endif
+
+#ifdef TIMER_MANAGER
+      vos_timer_manager_init();
+#endif
+
       /* Preopen VOSS so that it is ready to start at least SAL */
       status = vos_preOpen(&pVosContext);
 
@@ -1465,6 +1525,10 @@ static int __init hdd_module_init ( void)
 
       //Vote off any PMIC voltage supplies
       vos_chipPowerDown(NULL, NULL, NULL);
+
+#ifdef TIMER_MANAGER
+     vos_timer_exit();
+#endif
 #ifdef MEMORY_DEBUG
       vos_mem_exit();
 #endif
@@ -1506,25 +1570,46 @@ static void __exit hdd_module_exit(void)
 
    //Get the HDD context.
    pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
-
+   
    if(!pAdapter)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: module exit called before probe",__func__);
    }
    else
    {
+      if (pAdapter->isLogpInProgress) {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Block rmmod!!!",__func__);
+         VOS_ASSERT(0);
+         msleep(3000);
+      } 
+
+      //Get the HDD context.
+      pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
+      if(!pAdapter) 
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: module exit called before probe",__func__);
+         goto done;
+      }
+
+      pAdapter->isLoadUnloadInProgress = TRUE;
+      
       //Do all the cleanup before deregistering the driver
       hdd_wlan_exit(pAdapter);
    }
+      
 
    WLANSAL_Close(pVosContext);
 
    vos_preClose( &pVosContext );
 
+#ifdef TIMER_MANAGER
+     vos_timer_exit();
+#endif
 #ifdef MEMORY_DEBUG
    vos_mem_exit(); 
 #endif
 
+done:
    hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Exiting module exit",__func__);
 }
 

@@ -568,8 +568,11 @@ ProcSetReqInternal(tpAniSirGlobal pMac, tANI_U16 length, tANI_U32 *pParam, tANI_
         pMac->cfg.gParamList[WNI_CFG_SET_CNF_RES] = WNI_CFG_NOT_READY;
         pMac->cfg.gParamList[WNI_CFG_SET_CNF_PID] = cfgId;
 #endif
-        cfgSendHostMsg(pMac, WNI_CFG_SET_CNF, WNI_CFG_SET_CNF_LEN,
-                       WNI_CFG_SET_CNF_NUM, pMac->cfg.gParamList, 0, 0);
+        if( fRsp )
+        {
+           cfgSendHostMsg(pMac, WNI_CFG_SET_CNF, WNI_CFG_SET_CNF_LEN,
+                          WNI_CFG_SET_CNF_NUM, pMac->cfg.gParamList, 0, 0);
+        }
     }
     else
     {

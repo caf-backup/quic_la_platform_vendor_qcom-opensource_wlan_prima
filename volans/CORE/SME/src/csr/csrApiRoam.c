@@ -524,6 +524,10 @@ eHalStatus csrStop(tpAniSirGlobal pMac)
 #endif
     csrScanFlushResult(pMac); //Do we want to do this?
 
+    // deregister from PMC since we register during csrStart()
+    // (ignore status since there is nothing we can do if it fails)
+    (void) pmcDeregisterPowerSaveCheck(pMac, csrCheckPSReady);
+
     //Reset the domain back to the deault
     pMac->scan.domainIdCurrent = pMac->scan.domainIdDefault;
     csrResetCountryInformation(pMac, eANI_BOOLEAN_TRUE);

@@ -46,6 +46,7 @@
 #include "halPwrSave.h"
 #include "halFwApi.h"
 #include "halRegBckup.h"
+#include "vos_api.h"
 
 /* --------------------------------------------------------------------------
  * local types and defs
@@ -488,10 +489,12 @@ eHalStatus halStop( tHalHandle hHal , tHalStopType stopType )
     if ( NULL == hHal ) return eHAL_STATUS_NOT_OPEN;
 
     // Disable interrupts from SIF
-    status = halIntChipDisable( hHal );
+    if (!vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) {
+        status = halIntChipDisable( hHal );
 
-    if ( ! HAL_STATUS_SUCCESS( status ) )
-        nReturn = status;
+        if ( ! HAL_STATUS_SUCCESS( status ) )
+            nReturn = status;
+    }
 
     /** Disable all default interrupt services.*/
     halIntDefaultRegServicesEnable(hHal, eANI_BOOLEAN_FALSE);
@@ -508,7 +511,9 @@ eHalStatus halStop( tHalHandle hHal , tHalStopType stopType )
     halCloseLed(pMac);
 #endif
     
-    halPS_ExecuteStandbyProcedure(pMac);
+    if (!vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) {
+        halPS_ExecuteStandbyProcedure(pMac);
+    }
 
     halCleanup( pMac );
     return nReturn;
@@ -579,22 +584,13 @@ eHalStatus halWriteRegister(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 regValue
 eHalStatus halWriteDeviceMemory( tHalHandle hHal, tANI_U32 dstOffset, void *pSrcBuffer, tANI_U32 numBytes )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
-    
-    if ((pMac->hal.PsParam.mutexCount == 0) && (pMac->hal.PsParam.mutexIntrCount == 0)) {
-        HALLOGW(halLog(pMac, LOGW, "WMutex not acquired for device memory write %d, %d, %d (Please report to HAL team, except for dump commands)", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxCount));
-    }
-    return (palWriteDeviceMemory( pMac->hHdd, dstOffset, (tANI_U8 *)pSrcBuffer, numBytes ));
+    return pMac->hal.funcWriteMem(pMac->hHdd, dstOffset, (tANI_U8 *)pSrcBuffer, numBytes);
 }
 
 eHalStatus halReadDeviceMemory( tHalHandle hHal, tANI_U32 srcOffset, void *pBuffer, tANI_U32 numBytes )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
-    
-    if ((pMac->hal.PsParam.mutexCount == 0) && (pMac->hal.PsParam.mutexIntrCount == 0)) {
-        HALLOGW(halLog(pMac, LOGW, "WMutex not acquired for device memory read %d, %d, %d (Please report to HAL team, except for dump commands)", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxCount));
-    }
-    
-    return (palReadDeviceMemory( pMac->hHdd, srcOffset, pBuffer, numBytes ));
+    return pMac->hal.funcReadMem(pMac->hHdd, srcOffset, pBuffer, numBytes);
 }
 
 eHalStatus halFillDeviceMemory( tHalHandle hHal, tANI_U32 memOffset, tANI_U32 numBytes, tANI_BYTE fillValue )
@@ -621,6 +617,18 @@ eHalStatus halNormalReadRegister( tHalHandle hHal, tANI_U32 regAddr, tANI_U32 *p
     return( palReadRegister( pMac->hHdd, regAddr, pRegValue ) );
 }
 
+eHalStatus halNormalWriteMemory(tHalHandle hHal, tANI_U32 dstOffset, void *pSrcBuffer, tANI_U32 numBytes)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
+    return( palWriteDeviceMemory( pMac->hHdd, dstOffset, (tANI_U8 *)pSrcBuffer, numBytes ) );
+}
+
+eHalStatus halNormalReadMemory(tHalHandle hHal, tANI_U32 srcOffset, void *pBuffer, tANI_U32 numBytes)
+{
+    tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
+    return( palReadDeviceMemory( pMac->hHdd, srcOffset, pBuffer, numBytes ) );
+}
+
 // Initialize the function pointers
 static void halOpenInit(tpAniSirGlobal pMac)
 {
@@ -629,6 +637,12 @@ static void halOpenInit(tpAniSirGlobal pMac)
     
     // Initialize the read register function pointer
     pMac->hal.funcReadReg = halNormalReadRegister;
+
+    // Initialize the write register function pointer
+    pMac->hal.funcWriteMem = halNormalWriteMemory;
+
+    // Initialize the read register function pointer
+    pMac->hal.funcReadMem = halNormalReadMemory;
 }
 
 static void halCloseExit(tpAniSirGlobal pMac)
@@ -636,6 +650,8 @@ static void halCloseExit(tpAniSirGlobal pMac)
     // Initialize the read/write register function pointer to NULL
     pMac->hal.funcWriteReg = NULL;
     pMac->hal.funcReadReg  = NULL;
+    pMac->hal.funcWriteMem = NULL;
+    pMac->hal.funcReadMem  = NULL;
 }
 
 /** -------------------------------------------------------------

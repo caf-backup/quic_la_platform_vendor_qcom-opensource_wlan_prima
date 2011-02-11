@@ -714,6 +714,12 @@ WLANTL_Close
   }
 
   /*------------------------------------------------------------------------
+    Deregister from PMC
+   ------------------------------------------------------------------------*/
+  pmcDeregisterDeviceStateUpdateInd( vos_get_context(VOS_MODULE_ID_SME, pvosGCtx),
+                                     WLANTL_PowerStateChangedCB );
+
+  /*------------------------------------------------------------------------
     Cleanup TL control block.
    ------------------------------------------------------------------------*/
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
@@ -1303,6 +1309,7 @@ WLANTL_STAPktPending
   WLANTL_ACEnumType    ucAc
 )
 {
+  VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
   WLANTL_CbType*  pTLCb = NULL;
 #ifdef WLAN_SOFTAP_FEATURE
   vos_msg_t      vosMsg;
@@ -1370,7 +1377,7 @@ WLANTL_STAPktPending
        {
            TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                "Issuing Xmit start request to BAL"));
-           WLANBAL_StartXmit(pvosGCtx);
+           vosStatus = WLANBAL_StartXmit(pvosGCtx);
        }
        else
        {
@@ -1390,10 +1397,10 @@ WLANTL_STAPktPending
         vosMsg.bodyval  = 0;
         vosMsg.bodyval = (ucAc | (ucSTAId << WLANTL_STAID_OFFSET));
         vosMsg.type     = WLANTL_TX_STAID_AC_IND;
-        vos_tx_mq_serialize( VOS_MQ_ID_TL, &vosMsg);
+        vosStatus = vos_tx_mq_serialize( VOS_MQ_ID_TL, &vosMsg);
     }
 #endif
-  return VOS_STATUS_SUCCESS;
+  return vosStatus;
 }/* WLANTL_STAPktPending */
 
 /*==========================================================================
@@ -2331,7 +2338,7 @@ WLANTL_TxMgmtFrm
 {
   WLANTL_CbType*  pTLCb = NULL;
   v_MACADDR_t     vDestMacAddr;
-  VOS_STATUS      vosStatus;
+  VOS_STATUS      vosStatus = VOS_STATUS_SUCCESS;
   v_U16_t         usPktLen;
   v_U32_t         usTimeStamp = 0;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -2352,7 +2359,7 @@ WLANTL_TxMgmtFrm
   pTLCb = VOS_GET_TL_CB(pvosGCtx);
   if ( NULL == pTLCb )
   {
-    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
               "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_TxMgmtFrm"));
     return VOS_STATUS_E_FAULT;
   }
@@ -2363,7 +2370,7 @@ WLANTL_TxMgmtFrm
   if ( 0 == pTLCb->tlMgmtFrmClient.ucExists )
   {
     pTLCb->tlMgmtFrmClient.ucExists++;
-    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+    TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
           "WLAN TL:Management Frame client not register on WLANTL_TxMgmtFrm"));
     return VOS_STATUS_E_EXISTS;
   }
@@ -2407,7 +2414,7 @@ WLANTL_TxMgmtFrm
         return VOS_STATUS_SUCCESS;
     }
 #endif
-    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
         "WLAN TL:Management Frame already pending tx in TL: failing old one"));
 
 
@@ -2491,7 +2498,7 @@ WLANTL_TxMgmtFrm
 
      if ( VOS_STATUS_SUCCESS != vosStatus )
      {
-       TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+       TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
                 "WLAN TL:Failed while attempting to get addr2 %d", vosStatus));
        return vosStatus;
      }
@@ -2506,7 +2513,7 @@ WLANTL_TxMgmtFrm
 
     if ( VOS_STATUS_SUCCESS != vosStatus )
     {
-      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
                 "WLAN TL:Failed while attempting to prepare BD %d", vosStatus));
       return vosStatus;
     }
@@ -2521,7 +2528,7 @@ WLANTL_TxMgmtFrm
 
     if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
     {
-      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+      TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
                 "WLAN TL:Failed while attempting to fill BD %d", vosStatus));
       return vosStatus;
     }
@@ -2555,7 +2562,14 @@ WLANTL_TxMgmtFrm
   {
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
               "WLAN TL:Issuing Xmit start request to BAL for MGMT"));
-    WLANBAL_StartXmit(pvosGCtx);
+    vosStatus = WLANBAL_StartXmit(pvosGCtx);
+    if(VOS_STATUS_SUCCESS != vosStatus)
+    {
+       TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
+              "WLAN TL:WLANBAL_StartXmit fails. vosStatus %d", vosStatus));
+       vos_atomic_set_U32( (v_U32_t*)&pTLCb->tlMgmtFrmClient.vosPendingDataBuff,0); 
+    }
+    return vosStatus;
   }
   else
   {
@@ -2563,7 +2577,7 @@ WLANTL_TxMgmtFrm
       No error code is sent because TL will resume tx autonomously if
       resources become available or tx gets resumed
      ---------------------------------------------------------------------*/
-    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+    TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
        "WLAN TL:Request to send for Mgmt Frm but condition not met. Res: %d",
                pTLCb->uResCount));
   }
@@ -2824,7 +2838,7 @@ WLANTL_ResumeDataTx
   {
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                "WLAN TL:Resuming transmission"));
-    WLANBAL_StartXmit(pvosGCtx);
+    return WLANBAL_StartXmit(pvosGCtx);
   }
 
   return VOS_STATUS_SUCCESS;
@@ -3189,12 +3203,7 @@ WLANTL_GetFrames
     Save the root as we will walk this chain as we fill it
    -----------------------------------------------------------------------*/
   vosRoot = vosDataBuff;
-  
-  for ( i = 0; i < WLAN_MAX_STA_COUNT; i++)
-  {
-        pTLCb->atlSTAClients[i].ucNoMoreData = 1;
-  }
-    
+ 
   /*-----------------------------------------------------------------------
     There is still data - until FSM function says otherwise
    -----------------------------------------------------------------------*/
@@ -4995,7 +5004,7 @@ WLANTL_ResourceCB
   {
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
          "WLAN TL:Issuing Xmit start request to BAL for avail res ASYNC"));
-    WLANBAL_StartXmit(pvosGCtx);
+    return WLANBAL_StartXmit(pvosGCtx);
   }
 
   return VOS_STATUS_SUCCESS;
@@ -5068,7 +5077,6 @@ WLANTL_STATxConn
    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STATxConn"));
    *pvosDataBuff = NULL;
-    pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
     return VOS_STATUS_E_FAULT;
   }
 
@@ -5355,7 +5363,10 @@ WLANTL_STATxAuth
             "WLAN TL:Invalid input params on WLANTL_STATxAuth TL %x DB %x",
              pTLCb, pvosDataBuff));
     *pvosDataBuff = NULL;
-    pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
+    if(NULL != pTLCb)
+    {
+        pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
+    }
     return VOS_STATUS_E_FAULT;
   }
 
@@ -5800,7 +5811,10 @@ WLANTL_STATxAuthUAPSD
             "WLAN TL:Invalid input params on WLANTL_STATxAuth TL %x DB %x",
              pTLCb, pvosDataBuff));
     *pvosDataBuff = NULL;
-    pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
+    if(NULL != pTLCb)
+    {
+        pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
+    }
     return VOS_STATUS_E_FAULT;
   }
 
@@ -5919,7 +5933,6 @@ WLANTL_STATxDisc
      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
             "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STATxAuth"));
     *pvosDataBuff = NULL;
-     pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
     return VOS_STATUS_E_FAULT;
   }
 
@@ -6133,9 +6146,7 @@ WLANTL_STARxConn
    pvosGCtx:       pointer to the global vos context; a handle to TL's
                    control block can be extracted from its context
    ucSTAId:        identifier of the station being processed
-   ucDesSTAId:      identifier of the station Packet is destined too.
    vosDataBuff:   pointer to the rx vos buffer
-   wRxMetaInfo:   MetaInfo which holds User Priority which is passed to upper Layer
 
   RETURN VALUE
     The result code associated with performing the operation
@@ -6154,9 +6165,7 @@ WLANTL_FwdPktToHDD
 (
   v_PVOID_t       pvosGCtx,
   vos_pkt_t*     pvosDataBuff,
-  v_U8_t          ucSTAId,
-  v_U8_t          ucDesSTAId,
-  WLANTL_RxMetaInfoType*    wRxMetaInfo
+  v_U8_t          ucSTAId
 )
 {
    v_MACADDR_t DestMacAddress;
@@ -6164,7 +6173,11 @@ WLANTL_FwdPktToHDD
    v_SIZE_t usMacAddSize = VOS_MAC_ADDR_SIZE;
    WLANTL_CbType*           pTLCb = NULL;
    vos_pkt_t*               vosDataBuff ;
-   VOS_STATUS               vosStatus;
+   VOS_STATUS               vosStatus = VOS_STATUS_SUCCESS;
+   v_U8_t                   STAMetaInfo;
+   vos_pkt_t*              vosNextDataBuff ;
+   v_U8_t                  ucDesSTAId;
+   WLANTL_RxMetaInfoType    wRxMetaInfo;
 
 
   /*------------------------------------------------------------------------
@@ -6187,51 +6200,67 @@ WLANTL_FwdPktToHDD
               "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_FwdPktToHdd"));
     return VOS_STATUS_E_FAULT;
   }
+   /* This the change required for SoftAp to handle Reordered Buffer. Since a STA
+      may have packets destined to multiple destinations we have to process each packet
+      at a time and determine its Destination. So the Voschain provided by Reorder code
+      is unchain and forwarded to Upper Layer after Determining the Destination */
 
-  vosStatus = vos_pkt_extract_data( vosDataBuff, 0, (v_VOID_t *)pDestMacAddress, &usMacAddSize);
-  if ( VOS_STATUS_SUCCESS != vosStatus )
-  {
-     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+   vosDataBuff = pvosDataBuff;
+   while (vosDataBuff != NULL)
+   {
+      vos_pkt_walk_packet_chain( vosDataBuff, &vosNextDataBuff, 1/*true*/ );
+      vos_pkt_get_user_data_ptr( vosDataBuff, VOS_PKT_USER_DATA_ID_TL,
+                                 (v_PVOID_t *)&STAMetaInfo );
+      wRxMetaInfo.ucUP = (v_U8_t)(STAMetaInfo & WLANTL_AC_MASK);
+      ucDesSTAId = ((v_U8_t)STAMetaInfo) >> WLANTL_STAID_OFFSET; 
+       
+      vosStatus = vos_pkt_extract_data( vosDataBuff, 0, (v_VOID_t *)pDestMacAddress, &usMacAddSize);
+      if ( VOS_STATUS_SUCCESS != vosStatus )
+      {
+         TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
                 "WLAN TL: recv corrupted data packet\n"));
-     vos_pkt_return_packet(vosDataBuff);
-     return vosStatus;
-   }
+         vos_pkt_return_packet(vosDataBuff);
+         return vosStatus;
+      }
 
-   TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"station mac 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x \n",
-              pDestMacAddress->bytes[0], pDestMacAddress->bytes[1], pDestMacAddress->bytes[2],
-              pDestMacAddress->bytes[3], pDestMacAddress->bytes[4], pDestMacAddress->bytes[5]));
+      TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"station mac 0x%x 0x%x 0x%x 0x%x 0x%x 0x%x \n",
+                       pDestMacAddress->bytes[0], pDestMacAddress->bytes[1], pDestMacAddress->bytes[2],
+                       pDestMacAddress->bytes[3], pDestMacAddress->bytes[4], pDestMacAddress->bytes[5]));
 
-   if (vos_is_macaddr_broadcast( pDestMacAddress ) || vos_is_macaddr_group(pDestMacAddress))
-   {
-       // destination is mc/bc station
-       ucDesSTAId = WLAN_RX_BCMC_STA_ID;
-       TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
-                  "%s: BC/MC packet, id %d\n", __FUNCTION__, WLAN_RX_BCMC_STA_ID));
-   }
-   else
-   {
-     if (vos_is_macaddr_equal(pDestMacAddress, &pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSelfMACAddress))
-     {
-       // destination is AP itself
-       ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
-       TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
-                 "%s: packet to AP itself, id %d\n", __FUNCTION__, WLAN_RX_SAP_SELF_STA_ID));
-     }
-     else if ( WLAN_MAX_STA_COUNT <= ucDesSTAId )
-     {
-       // destination station is something else
-       TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
+      if (vos_is_macaddr_broadcast( pDestMacAddress ) || vos_is_macaddr_group(pDestMacAddress))
+      {
+          // destination is mc/bc station
+          ucDesSTAId = WLAN_RX_BCMC_STA_ID;
+          TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
+                    "%s: BC/MC packet, id %d\n", __FUNCTION__, WLAN_RX_BCMC_STA_ID));
+      }
+      else
+      {
+         if (vos_is_macaddr_equal(pDestMacAddress, &pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSelfMACAddress))
+         {
+            // destination is AP itself
+            ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
+            TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
+                     "%s: packet to AP itself, id %d\n", __FUNCTION__, WLAN_RX_SAP_SELF_STA_ID));
+         }
+         else if ( WLAN_MAX_STA_COUNT <= ucDesSTAId )
+         {
+            // destination station is something else
+            TLLOG4(VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
                  "%s: get an station index larger than WLAN_MAX_STA_COUNT %d\n", __FUNCTION__, ucDesSTAId));
-       ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
-     }
+            ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
+         }
 
-     //loopback unicast station comes here
+         //loopback unicast station comes here
+      }
+      pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucDesSTAId,
+                                            &wRxMetaInfo );
+      vosDataBuff = vosNextDataBuff;
    }
-   pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucDesSTAId,
-                                            wRxMetaInfo );
    return VOS_STATUS_SUCCESS;
 }
 #endif /* WLANTL_SOFTAP_FEATURE */ 
+
 /*==========================================================================
   FUNCTION    WLANTL_STARxAuth
 
@@ -6285,7 +6314,9 @@ WLANTL_STARxAuth
    VOS_STATUS               vosStatus;
    WLANTL_RxMetaInfoType    wRxMetaInfo;
    static v_U8_t            ucPMPDUHLen = 0;
-    v_U8_t                  ucDesSTAId = 0xFF;
+#ifdef WLAN_SOFTAP_FEATURE
+   v_U8_t*                  STAMetaInfoPtr;
+#endif
 #ifdef ANI_CHIPSET_VOLANS
    v_U8_t                   ucEsf=0; /* first subframe of AMSDU flag */
    v_U64_t                  ullcurrentReplayCounter=0; /*current replay counter*/
@@ -6477,6 +6508,17 @@ WLANTL_STARxAuth
         return vosStatus;
       }
     }
+    /* Softap requires additional Info such as Destination STAID and Access
+       Category. Voschain or Buffer returned by BA would be unchain and this
+       Meta Data would help in routing the packets to appropriate Destination */
+#ifdef WLAN_SOFTAP_FEATURE
+    if( WLAN_STA_SOFTAP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType)
+    {
+       STAMetaInfoPtr = (v_U8_t *)(ucTid | (WLANHAL_RX_BD_GET_ADDR3_IDX(aucBDHeader) << WLANTL_STAID_OFFSET));
+       vos_pkt_set_user_data_ptr( vosDataBuff, VOS_PKT_USER_DATA_ID_TL,
+                                 (v_PVOID_t)STAMetaInfoPtr);
+    }
+#endif
 
   /*------------------------------------------------------------------------
     Check to see if re-ordering session is in place
@@ -6596,12 +6638,10 @@ if(0 == ucUnicastBroadcastType
   {
 
     wRxMetaInfo.ucUP = ucTid;
-    ucDesSTAId = WLANHAL_RX_BD_GET_ADDR3_IDX(aucBDHeader);
 #ifdef WLAN_SOFTAP_FEATURE
     if( WLAN_STA_SOFTAP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType)
     {
-       WLANTL_FwdPktToHDD( pvosGCtx, vosDataBuff, ucSTAId, ucDesSTAId,
-                                                &wRxMetaInfo );
+       WLANTL_FwdPktToHDD( pvosGCtx, vosDataBuff, ucSTAId );
     }
     else
 #endif
@@ -7104,7 +7144,7 @@ WLANTL_TxProcessMsg
                       pTLCb->atlSTAClients[ucSTAId].ucACMask| ( 1 << (ucAC)));
 
       vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucPktPending, 1);
-      WLANBAL_StartXmit(pvosGCtx);
+      vosStatus = WLANBAL_StartXmit(pvosGCtx);
       break;
 #endif 
   default:
@@ -7295,11 +7335,11 @@ WLANTL_TxFCFrame
 
   vos_pkt_set_user_data_ptr( pPacket, VOS_PKT_USER_DATA_ID_TL,
                                (v_PVOID_t)WLANTL_TxCompDefaultCb);
-  WLANBAL_StartXmit(pvosGCtx);
+  vosStatus = WLANBAL_StartXmit(pvosGCtx);
 
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                "WLAN TL: send FC frame leave %s", __FUNCTION__));
-  return VOS_STATUS_SUCCESS;
+  return vosStatus;
 }
 
 #endif
@@ -7341,7 +7381,7 @@ WLANTL_GetTxResourcesCB
 {
   WLANTL_CbType*  pTLCb      = NULL;
   v_U32_t         uResCount  = WLANTL_MIN_RES_DATA;
-  VOS_STATUS      vosStatus;
+  VOS_STATUS      vosStatus  = VOS_STATUS_SUCCESS;
   v_U8_t          ucMgmt     = 0;
   v_U8_t          ucBAP      = 0;
   v_U8_t          ucData     = 0;
@@ -7427,9 +7467,9 @@ WLANTL_GetTxResourcesCB
   {
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                  "Issuing Xmit start request to BAL for avail res SYNC"));
-    WLANBAL_StartXmit(pvosGCtx);
+    vosStatus = WLANBAL_StartXmit(pvosGCtx);
   }
-  return VOS_STATUS_SUCCESS;
+  return vosStatus;
 }/*WLANTL_GetTxResourcesCB*/
 
 /*==========================================================================
@@ -10933,6 +10973,12 @@ VOS_STATUS WLANTL_GetSoftAPStatistics(v_PVOID_t pAdapter, WLANTL_TRANSFER_STA_TY
     WLANTL_TRANSFER_STA_TYPE statBufferTemp;
     vos_mem_zero((v_VOID_t *)&statBufferTemp, sizeof(WLANTL_TRANSFER_STA_TYPE));
     vos_mem_zero((v_VOID_t *)statsSum, sizeof(WLANTL_TRANSFER_STA_TYPE));
+
+
+    if ( NULL == pTLCb )
+    {
+       return VOS_STATUS_E_FAULT;
+    } 
 
     // Sum up all the statistics for stations of Soft AP from TL
     for (i = 0; i < WLAN_MAX_STA_COUNT; i++)

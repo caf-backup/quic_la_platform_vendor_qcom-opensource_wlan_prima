@@ -4338,6 +4338,31 @@ dump_hal_get_pwr_save_counters( tpAniSirGlobal pMac,
     return p;
 }
 
+#ifdef WLAN_DBG_GPIO
+
+static char *
+dump_hal_toggle_gpio(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    HALLOGE( halLog( pMac, LOGE, FL("GPIO toggle %d\n"), arg1));
+
+    if (arg2) {
+//        gpio_request( 181, "debug_wifi_gpio" );
+//	    gpio_direction_output( 181, arg2 );
+    }
+
+    if (arg1) {
+         HALLOGE( halLog( pMac, LOGE, FL("setting gpio 181 HIGH\n")));
+//         gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_OUTPUT, GPIO_PULL_UP, GPIO_2MA), GPIO_ENABLE);
+         gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+    } else {
+         HALLOGE( halLog( pMac, LOGE, FL("setting gpio 181 LOW\n")));
+//         gpio_tlmm_config(GPIO_CFG(181, 0, GPIO_OUTPUT, GPIO_PULL_DOWN, GPIO_2MA), GPIO_ENABLE);
+         gpio_tlmm_config(GPIO_CFG(181, 0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+    }
+   
+    return p;
+}
+#endif
 static tDumpFuncEntry halMenuDumpTable[] = {
     {0,     "HAL Specific (50-299)",                                    NULL},
     //----------------------------
@@ -4391,7 +4416,9 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {102,   "ap unknown addr2 handling at FW <1/0>",                   dump_hal_set_ap_unknown_addr2_handling}, 
     {103,   "dump FW stat",                                            dump_hal_Fw_Stat},
 #endif    
-    
+#ifdef WLAN_DBG_GPIO
+    {104,   "Toggle GPIO <level> <init> <enable>",                      dump_hal_toggle_gpio},
+#endif    
     {127,   "HAL: enable/disable BA activity check timer. arg1 = enable(1)/disable(0)",  (tpFunc)dump_set_ba_activity_check_timeout},
 
     {0,     "RateAdaptation (180-220)",                                                        NULL},

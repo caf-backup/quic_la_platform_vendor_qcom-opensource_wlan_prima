@@ -34,7 +34,7 @@ eHalStatus halNvOpen(tHalHandle hMac)
 
     memcpy(&pMac->hphy.nvCache, &nvDefaults, sizeof(sHalNv));   //start with defaults
 /*Once tested for other platform android specific flag can be removed*/
-#ifdef ANI_OS_TYPE_ANDROID
+#if (defined(ANI_OS_TYPE_ANDROID) || defined(ANI_OS_TYPE_AMSS))
 {
     v_BOOL_t itemIsValid = VOS_FALSE;
 
@@ -74,6 +74,8 @@ eHalStatus halNvOpen(tHalHandle hMac)
                  return (eHAL_STATUS_FAILURE);
         }
     }
+
+#ifdef ANI_OS_TYPE_ANDROID
 
     if (vos_nv_getValidity(VNV_TPC_POWER_TABLE, &itemIsValid) == VOS_STATUS_SUCCESS)
     {
@@ -128,8 +130,11 @@ eHalStatus halNvOpen(tHalHandle hMac)
                  return (eHAL_STATUS_FAILURE);
         }
     }
+
+#endif //ANI_OS_TYPE_ANDROID
+
 }
-#endif
+#endif //(defined(ANI_OS_TYPE_ANDROID) || defined(ANI_OS_TYPE_AMSS))
     pMac->hphy.nvTables[NV_FIELDS_IMAGE             ] = &pMac->hphy.nvCache.fields;
     pMac->hphy.nvTables[NV_TABLE_RATE_POWER_SETTINGS] = &pMac->hphy.nvCache.tables.pwrOptimum[0];
     pMac->hphy.nvTables[NV_TABLE_REGULATORY_DOMAINS ] = &pMac->hphy.nvCache.tables.regDomains[0];

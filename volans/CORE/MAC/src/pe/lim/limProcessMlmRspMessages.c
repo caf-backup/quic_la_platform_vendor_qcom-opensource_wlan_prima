@@ -2930,7 +2930,7 @@ void limProcessBtAmpApMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
      * 3) BTAMP-AP sends Re/Association Response to BTAMP-STA
      */
     limSendMlmAssocInd(pMac, pStaDs, psessionEntry);
-    return;
+    // fall though to reclaim the original Add STA Response message
 
 end:
     if( 0 != limMsgQ->bodyptr )

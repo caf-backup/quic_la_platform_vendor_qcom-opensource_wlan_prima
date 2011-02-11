@@ -1163,6 +1163,14 @@ This is a Verizon required feature.
                  CFG_BTC_EXECUTION_MODE_MIN, 
                  CFG_BTC_EXECUTION_MODE_MAX ),
 
+   REG_VARIABLE( CFG_BTC_DHCP_PROTECTION_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, btcConsBtSlotsToBlockDuringDhcp,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_BTC_DHCP_PROTECTION_DEFAULT,
+                 CFG_BTC_DHCP_PROTECTION_MIN,
+                 CFG_BTC_DHCP_PROTECTION_MAX ),
+   
+
 #ifdef WLAN_SOFTAP_FEATURE
    REG_VARIABLE( CFG_AP_LISTEN_MODE_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, nEnableListenMode, 
@@ -1308,12 +1316,13 @@ This is a Verizon required feature.
                   CFG_SINGLE_TID_RC_DEFAULT,
                   CFG_SINGLE_TID_RC_MIN,
                   CFG_SINGLE_TID_RC_MAX),
-   REG_VARIABLE( CFG_RF_SETTLING_TIME_CLK_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, rfSettlingTimeUs,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_RF_SETTLING_TIME_CLK_DEFAULT,
-                 CFG_RF_SETTLING_TIME_CLK_MIN,
-                 CFG_RF_SETTLING_TIME_CLK_MAX ),
+
+    REG_VARIABLE( CFG_DYNAMIC_PSPOLL_VALUE_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, dynamicPsPollValue,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_DYNAMIC_PSPOLL_VALUE_DEFAULT,
+                  CFG_DYNAMIC_PSPOLL_VALUE_MIN,
+                  CFG_DYNAMIC_PSPOLL_VALUE_MAX ),
 };                                
 
 /*
@@ -1416,7 +1425,7 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
 {
    int status, i=0;
    /** Pointer for firmware image data */
-   const struct firmware *fw;
+   const struct firmware *fw =NULL;
    char *buffer, *line,*pTemp;
    size_t size;
    char *name, *value;
@@ -1427,15 +1436,25 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
 
    status = request_firmware(&fw, INI_FILE, &pAdapter->hsdio_func_dev->dev);
    
-   if(!fw || !fw->data) {
+   if(status)
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: request_firmware failed %d\n",__FUNCTION__, status);
+      return VOS_STATUS_E_FAILURE;   
+   }
+   
+   if(!fw || !fw->data || !fw->size) {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: %s download failed\n",__FUNCTION__, INI_FILE);
-	    return VOS_STATUS_E_FAILURE;
-   } 
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: qcom_cfg.ini Size %d\n",__FUNCTION__, fw->size);
+
    buffer = (char*)vos_mem_malloc(fw->size);
+   
    if(NULL == buffer) {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: kmalloc failure",__FUNCTION__);
       release_firmware(fw);
-	    return VOS_STATUS_E_FAILURE;
+      return VOS_STATUS_E_FAILURE;
    } 
    pTemp = buffer;
 
@@ -1600,6 +1619,7 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pAdapter->cfg_ini->rfSettlingTimeUs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [bSingleTidRc] Value = [%u] ",pAdapter->cfg_ini->bSingleTidRc);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pAdapter->cfg_ini->rfSettlingTimeUs);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [gDynamicPSPollvalue] Value = [%u] ",pAdapter->cfg_ini->dynamicPsPollValue);
 }
 
 
@@ -1931,6 +1951,8 @@ static void hdd_set_btc_config(hdd_adapter_t *pAdapter)
    sme_BtcGetConfig(pAdapter->hHal, &btcParams);
 
    btcParams.btcExecutionMode = pConfig->btcExecutionMode;
+
+   btcParams.btcConsBtSlotsToBlockDuringDhcp = pConfig->btcConsBtSlotsToBlockDuringDhcp;
 
    sme_BtcSetConfig(pAdapter->hHal, &btcParams);
 }
@@ -2356,6 +2378,13 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
         fStatus = FALSE;
         hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RF_SETTLING_TIME_CLK configuration info to CCM\n"  );
     }
+
+    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_DYNAMIC_PS_POLL_VALUE, pConfig->dynamicPsPollValue, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+    {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_DYNAMIC_PS_POLL_VALUE configuration info to CCM\n"  );
+	}
 
    return fStatus;
 }

@@ -253,8 +253,7 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
 #ifdef WLAN_SOFTAP_FEATURE  
    if( WLAN_STA_SOFTAP == pTLHandle->atlSTAClients[ucSTAID].wSTADesc.wSTAType)
    {
-      WLANTL_FwdPktToHDD( expireHandle->pAdapter, vosDataBuff, ucSTAID, 0xFF,
-                                            &wRxMetaInfo );
+      WLANTL_FwdPktToHDD( expireHandle->pAdapter, vosDataBuff, ucSTAID);
    }
    else
 #endif

@@ -25,6 +25,10 @@
 #include <vos_lock.h>
 #include <i_vos_timer.h>
 
+#ifdef TIMER_MANAGER
+#include "wlan_hdd_dp_utils.h"
+#endif
+
 /*-------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
@@ -58,8 +62,23 @@ typedef enum
    VOS_TIMER_STATE_RUNNING,
 } VOS_TIMER_STATE;
 
+#ifdef TIMER_MANAGER
+struct vos_timer_s;
+typedef struct timer_node_s
+{
+   hdd_list_node_t pNode;
+   char* fileName;
+   unsigned int lineNum;
+   struct vos_timer_s *vosTimer;
+}timer_node_t;
+#endif
+
 typedef struct vos_timer_s
 {
+#ifdef TIMER_MANAGER
+   timer_node_t *ptimerNode;
+#endif
+
    vos_timer_platform_t platformInfo;
    vos_timer_callback_t callback;
    v_PVOID_t            userData;
@@ -71,6 +90,11 @@ typedef struct vos_timer_s
 /*------------------------------------------------------------------------- 
   Function declarations and documenation
   ------------------------------------------------------------------------*/
+#ifdef TIMER_MANAGER
+void vos_timer_manager_init(void);
+void vos_timer_exit(void);
+#endif
+
 /*---------------------------------------------------------------------------
   
   \brief vos_timer_getCurrentState() - Get the current state of the timer
@@ -142,8 +166,17 @@ VOS_TIMER_STATE vos_timer_getCurrentState( vos_timer_t *pTimer );
   \sa
   
 ---------------------------------------------------------------------------*/
+#ifdef TIMER_MANAGER
+#define vos_timer_init(timer, timerType, callback, userdata) \
+      vos_timer_init_debug(timer, timerType, callback, userdata, __FILE__, __LINE__)
+      
+VOS_STATUS vos_timer_init_debug( vos_timer_t *timer, VOS_TIMER_TYPE timerType, 
+                           vos_timer_callback_t callback, v_PVOID_t userData, 
+                           char* fileName, v_U32_t lineNum );      
+#else
 VOS_STATUS vos_timer_init( vos_timer_t *timer, VOS_TIMER_TYPE timerType, 
                            vos_timer_callback_t callback, v_PVOID_t userData );
+#endif
 
 /*---------------------------------------------------------------------------
   

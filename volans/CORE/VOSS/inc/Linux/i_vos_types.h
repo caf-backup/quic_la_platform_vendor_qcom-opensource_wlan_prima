@@ -8,6 +8,7 @@
 #include <linux/string.h>
 #include <linux/slab.h>
 #include <linux/interrupt.h>
+#include <asm/div64.h>
 
 /**=========================================================================
   

@@ -243,6 +243,60 @@ void vos_timer_module_init( void )
    vos_lock_init( &persistentTimerCountLock );
 }
 
+#ifdef TIMER_MANAGER
+#include "wlan_hdd_dp_utils.h"
+
+hdd_list_t vosTimerList;
+
+static void vos_timer_clean(void);
+
+void vos_timer_manager_init()
+{
+   /* Initalizing the list with maximum size of 60000 */	
+   hdd_list_init(&vosTimerList, 1000);  
+   return;
+}
+
+static void vos_timer_clean()
+{
+    v_SIZE_t listSize;
+    unsigned long flags;
+        
+    hdd_list_size(&vosTimerList, &listSize);
+    
+    if(listSize)
+    {
+       hdd_list_node_t* pNode;
+       VOS_STATUS vosStatus;
+
+       timer_node_t *ptimerNode;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+             "%s: List is not Empty. listSize %d ", __FUNCTION__, (int)listSize);
+
+       do
+       {
+	      spin_lock_irqsave(&vosTimerList.lock, flags);
+        vosStatus = hdd_list_remove_front(&vosTimerList, &pNode);
+	      spin_unlock_irqrestore(&vosTimerList.lock, flags);
+        if(VOS_STATUS_SUCCESS == vosStatus)
+        {
+             ptimerNode = (timer_node_t*)pNode;
+             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                   "Timer Leak@ File %s, @Line %d", 
+                   ptimerNode->fileName, (int)ptimerNode->lineNum);
+
+                vos_mem_free(ptimerNode);
+            }
+       }while(vosStatus == VOS_STATUS_SUCCESS);
+    }
+}
+
+void vos_timer_exit()
+{
+    vos_timer_clean();
+    hdd_list_destroy(&vosTimerList);
+}
+#endif
   
 /*--------------------------------------------------------------------------
   
@@ -302,6 +356,63 @@ void vos_timer_module_init( void )
   \sa
   
 ---------------------------------------------------------------------------*/
+#ifdef TIMER_MANAGER
+VOS_STATUS vos_timer_init_debug( vos_timer_t *timer, VOS_TIMER_TYPE timerType, 
+                           vos_timer_callback_t callback, v_PVOID_t userData, 
+                           char* fileName, v_U32_t lineNum )
+{
+   VOS_STATUS vosStatus;
+    unsigned long flags;
+   // Check for invalid pointer
+   if ((timer == NULL) || (callback == NULL)) 
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+                "%s: Null params being passed",__FUNCTION__);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAULT;
+   }
+
+   timer->ptimerNode = vos_mem_malloc(sizeof(timer_node_t));
+
+   if(timer->ptimerNode == NULL)
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+                "%s: Not able to allocate memory for timeNode",__FUNCTION__);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAULT;
+   }
+
+   vos_mem_set(timer->ptimerNode, sizeof(timer_node_t), 0);
+
+    timer->ptimerNode->fileName = fileName;
+    timer->ptimerNode->lineNum   = lineNum;
+    timer->ptimerNode->vosTimer = timer;
+
+    spin_lock_irqsave(&vosTimerList.lock, flags);
+    vosStatus = hdd_list_insert_front(&vosTimerList, &timer->ptimerNode->pNode);
+    spin_unlock_irqrestore(&vosTimerList.lock, flags);
+    if(VOS_STATUS_SUCCESS != vosStatus)
+    {
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+             "%s: Unable to insert node into List vosStatus %d\n", __FUNCTION__, vosStatus);
+    }
+   
+   // set the various members of the timer structure 
+   // with arguments passed or with default values
+   spin_lock_init(&timer->platformInfo.spinlock);
+   init_timer(&(timer->platformInfo.Timer));
+   timer->platformInfo.Timer.function = vos_linux_timer_callback;
+   timer->platformInfo.Timer.data = (unsigned long)timer;
+   timer->callback = callback;
+   timer->userData = userData;
+   timer->type = timerType;
+   timer->platformInfo.cookie = LINUX_TIMER_COOKIE;
+   timer->platformInfo.threadID = 0;
+   timer->state = VOS_TIMER_STATE_STOPPED;
+   
+   return VOS_STATUS_SUCCESS;
+}
+#else
 VOS_STATUS vos_timer_init( vos_timer_t *timer, VOS_TIMER_TYPE timerType, 
                            vos_timer_callback_t callback, v_PVOID_t userData )
 {
@@ -329,6 +440,8 @@ VOS_STATUS vos_timer_init( vos_timer_t *timer, VOS_TIMER_TYPE timerType,
    
    return VOS_STATUS_SUCCESS;
 }
+#endif
+
 
 /*---------------------------------------------------------------------------
   
@@ -362,6 +475,7 @@ VOS_STATUS vos_timer_init( vos_timer_t *timer, VOS_TIMER_TYPE timerType,
   \sa
   
 ---------------------------------------------------------------------------*/
+#ifdef TIMER_MANAGER
 VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
 {
    VOS_STATUS vStatus=VOS_STATUS_SUCCESS;
@@ -384,14 +498,93 @@ VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
       VOS_ASSERT(0);
       return VOS_STATUS_E_INVAL;
    }
+   
+   spin_lock_irqsave(&vosTimerList.lock, flags);
+   vStatus = hdd_list_remove_node(&vosTimerList, &timer->ptimerNode->pNode);
+   spin_unlock_irqrestore(&vosTimerList.lock, flags);
+   if(vStatus != VOS_STATUS_SUCCESS)
+   {
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_INVAL;
+   }
+    vos_mem_free(timer->ptimerNode);
+   
 
    spin_lock_irqsave( &timer->platformInfo.spinlock,flags );
    
    switch ( timer->state )
    {
       case VOS_TIMER_STATE_STARTING:
-      case VOS_TIMER_STATE_RUNNING:
          vStatus = VOS_STATUS_E_BUSY;
+         break;
+      case VOS_TIMER_STATE_RUNNING:
+         /* Stop the timer first */
+         del_timer_sync(&(timer->platformInfo.Timer));
+         vStatus = VOS_STATUS_SUCCESS;
+         break;
+      case VOS_TIMER_STATE_STOPPED:
+         vStatus = VOS_STATUS_SUCCESS;
+         break;
+      case VOS_TIMER_STATE_UNUSED:
+         vStatus = VOS_STATUS_E_ALREADY;
+         break;
+      default:
+         vStatus = VOS_STATUS_E_FAULT;
+         break;
+   }
+
+   if ( VOS_STATUS_SUCCESS == vStatus )
+   {
+      timer->platformInfo.cookie = LINUX_INVALID_TIMER_COOKIE;
+      timer->state = VOS_TIMER_STATE_UNUSED;
+      spin_unlock_irqrestore( &timer->platformInfo.spinlock,flags );
+      return vStatus;
+   }
+
+   spin_unlock_irqrestore( &timer->platformInfo.spinlock,flags );
+
+
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+             "%s: Cannot destroy timer in state = %d",__func__, timer->state);
+   VOS_ASSERT(0);
+
+   return vStatus;   
+}
+
+#else
+VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
+{
+   VOS_STATUS vStatus=VOS_STATUS_SUCCESS;
+   unsigned long flags;
+   
+   // Check for invalid pointer
+   if ( NULL == timer )
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+                "%s: Null timer pointer being passed",__FUNCTION__);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_FAULT;
+   }
+       
+   // Check if timer refers to an uninitialized object
+   if ( LINUX_TIMER_COOKIE != timer->platformInfo.cookie )
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+                "%s: Cannot destroy uninitialized timer",__FUNCTION__);
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_INVAL;
+   }
+   spin_lock_irqsave( &timer->platformInfo.spinlock,flags );
+   
+   switch ( timer->state )
+   {
+      case VOS_TIMER_STATE_STARTING:
+         vStatus = VOS_STATUS_E_BUSY;
+         break;
+      case VOS_TIMER_STATE_RUNNING:
+         /* Stop the timer first */
+         del_timer_sync(&(timer->platformInfo.Timer));
+         vStatus = VOS_STATUS_SUCCESS;
          break;
       case VOS_TIMER_STATE_STOPPED:
          vStatus = VOS_STATUS_SUCCESS;
@@ -420,7 +613,7 @@ VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
 
    return vStatus;   
 }
-
+#endif
 
 /*--------------------------------------------------------------------------
   

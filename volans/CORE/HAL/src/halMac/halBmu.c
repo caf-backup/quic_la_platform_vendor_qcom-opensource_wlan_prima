@@ -30,6 +30,8 @@
 #define  BD_PDU_INTERCHANGEABLE        1
 #define  BD_PDU_NOT_INTERCHANGEABLE    0
 
+#define BTQM_STA_DISABLE_ENABLE_RETRY 2000
+
 #define ENABLE_TRACE   1
 #define DISABLE_TRACE  0
 
@@ -95,7 +97,7 @@ static tBdPduThr thrInfo[] = {
     {BMU_MASTERID_2,   QWLAN_BMU_BD_PDU_THRESHOLD2_REG,  BMU_DPURX_BD_THRESHOLD_INT,     BMU_DPURX_BD_THRESHOLD,    BMU_DPURX_PDU_THRESHOLD_INT,     BMU_DPURX_PDU_THRESHOLD},
     {BMU_MASTERID_3,   QWLAN_BMU_BD_PDU_THRESHOLD3_REG,  BMU_ADU_BD_THRESHOLD_INT,       BMU_ADU_BD_THRESHOLD,      BMU_ADU_PDU_THRESHOLD_INT,       BMU_ADU_PDU_THRESHOLD},
     {BMU_MASTERID_4,   QWLAN_BMU_BD_PDU_THRESHOLD4_REG,  BMU_RPE_BD_THRESHOLD_INT,       BMU_RPE_BD_THRESHOLD,      BMU_RPE_PDU_THRESHOLD_INT,       BMU_RPE_PDU_THRESHOLD},
-    {BMU_MASTERID_5,   QWLAN_BMU_BD_PDU_THRESHOLD5_REG,  BMU_DXE_TX_BD_THRESHOLD_INT,       BMU_DXE_TX_BD_THRESHOLD,   BMU_DXE_TX_PDU_THRESHOLD_INT,       BMU_DXE_TX_PDU_THRESHOLD},
+    {BMU_MASTERID_5,   QWLAN_BMU_BD_PDU_THRESHOLD5_REG,  BMU_DXE_TX_BD_THRESHOLD_INT,    BMU_DXE_TX_BD_THRESHOLD,   BMU_DXE_TX_PDU_THRESHOLD_INT,    BMU_DXE_TX_PDU_THRESHOLD},
     {BMU_MASTERID_6,   QWLAN_BMU_BD_PDU_THRESHOLD6_REG,  BMU_DXE_RX_BD_THRESHOLD_INT,    BMU_DXE_RX_BD_THRESHOLD,   BMU_DXE_RX_PDU_THRESHOLD_INT,    BMU_DXE_RX_PDU_THRESHOLD},
     {BMU_MASTERID_7,   QWLAN_BMU_BD_PDU_THRESHOLD7_REG,  BMU_DXE_FW_BD_THRESHOLD_INT,    BMU_DXE_FW_BD_THRESHOLD,   BMU_DXE_FW_PDU_THRESHOLD_INT,    BMU_DXE_FW_PDU_THRESHOLD}
 };
@@ -1541,8 +1543,9 @@ static eHalStatus halBmu_btqm_init_control1_register(tpAniSirGlobal pMac, tANI_U
  */
 eHalStatus halBmu_sta_enable_disable_control(tpAniSirGlobal pMac, tANI_U32 staId, tANI_U32 staCfgCmd)
 {
-    tANI_U32 value, count=0;
-
+    tANI_U32 value;
+    tANI_U32 count = 0;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
 
     /** Set the staId and configuration command */
     value = (staCfgCmd << QWLAN_BMU_BTQM_STA_ENABLE_DISABLE_CONTROL_STA_CONFIGURATION_COMMAND_OFFSET) |
@@ -1554,7 +1557,15 @@ eHalStatus halBmu_sta_enable_disable_control(tpAniSirGlobal pMac, tANI_U32 staId
     /** Poll on bit 31 is clear */
     do {
 
-        halReadRegister(pMac, QWLAN_BMU_BTQM_STA_ENABLE_DISABLE_CONTROL_REG, &value);
+        status = halReadRegister(pMac, QWLAN_BMU_BTQM_STA_ENABLE_DISABLE_CONTROL_REG, &value);
+	    count++;
+        if(count > BTQM_STA_DISABLE_ENABLE_RETRY || eHAL_STATUS_SUCCESS != status)
+        {
+             VOS_ASSERT(0);
+             VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, 
+			 	"%s Polled BTQM_STA_ENABLE_DISABLE_CONTROL_REG  register %d times", __func__, count);
+             break;
+        }
     	if(count > BMU_REG_POLLING_WARNING){
 	    	HALLOGE( halLog(pMac, LOGE, FL("!!!Polled BMU STA en/disable register for %d times %d!!!\n"), count));
 	    }

@@ -15,12 +15,12 @@
 void limIbssInit(tpAniSirGlobal);
 void limIbssDelete(tpAniSirGlobal,tpPESession psessionEntry);
 tSirRetStatus limIbssCoalesce(tpAniSirGlobal, tpSirMacMgmtHdr, tpSchBeaconStruct, tANI_U8*,tANI_U32, tANI_U16,tpPESession);
-tSirRetStatus limIbssStaAdd(tpAniSirGlobal, void *);
+tSirRetStatus limIbssStaAdd(tpAniSirGlobal, void *,tpPESession);
 tSirRetStatus limIbssAddStaRsp( tpAniSirGlobal, void *,tpPESession);
 void limIbssDelBssRsp( tpAniSirGlobal, void *,tpPESession);
-void limIbssDelBssRspWhenCoalescing(tpAniSirGlobal,  void *);
+void limIbssDelBssRspWhenCoalescing(tpAniSirGlobal,  void *,tpPESession);
 void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void * msg, tpPESession pSessionEntry);
 
-void limIbssDecideProtectionOnDelete(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpUpdateBeaconParams pBeaconParams);
+void limIbssDecideProtectionOnDelete(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpUpdateBeaconParams pBeaconParams,tpPESession pSessionEntry);
 void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry);
 

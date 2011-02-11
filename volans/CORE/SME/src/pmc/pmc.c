@@ -263,13 +263,21 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
     case IMPS:
         if ( pMac->pmc.rfSuppliesVotedOff )
         {
-           status = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
-           VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
 
-           status = vos_chipVoteOnXOBuffer(&callType, NULL, NULL);
-           VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+            status = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
+            if(VOS_STATUS_SUCCESS != status)
+            {
+                return eHAL_STATUS_FAILURE;
+            }
 
-           pMac->pmc.rfSuppliesVotedOff = FALSE;
+            status = vos_chipVoteOnXOBuffer(&callType, NULL, NULL);
+
+            if(VOS_STATUS_SUCCESS != status)
+            {
+                return eHAL_STATUS_FAILURE;
+            }
+
+            pMac->pmc.rfSuppliesVotedOff = FALSE;
         }
 
         if (pmcIssueCommand( pMac, eSmeCommandExitImps, NULL, 0, FALSE ) != eHAL_STATUS_SUCCESS)
@@ -299,13 +307,18 @@ eHalStatus pmcEnterRequestFullPowerState (tHalHandle hHal, tRequestFullPowerReas
     case STANDBY:
         if ( pMac->pmc.rfSuppliesVotedOff )
         {
-           status = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
-           VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
+            status = vos_chipVoteOnXOBuffer(&callType, NULL, NULL);
+            if(VOS_STATUS_SUCCESS != status)
+            {
+                return eHAL_STATUS_FAILURE;
+            }
+            status = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
+            if(VOS_STATUS_SUCCESS != status)
+            {
+                return eHAL_STATUS_FAILURE;
+            }
 
-           status = vos_chipVoteOnXOBuffer(&callType, NULL, NULL);
-           VOS_ASSERT( VOS_IS_STATUS_SUCCESS( status ) );
-
-           pMac->pmc.rfSuppliesVotedOff = FALSE;
+            pMac->pmc.rfSuppliesVotedOff = FALSE;
         }
 
         if (pmcIssueCommand(hHal, eSmeCommandExitImps, NULL, 0, FALSE) !=
@@ -988,6 +1001,30 @@ void pmcTrafficTimerExpired (tHalHandle hHal)
         smsLog(pMac, LOGE, FL("Got traffic timer expiration in state %d"), pMac->pmc.pmcState);
         return;
     }
+
+    /* Untill DHCP is not completed remain in power active */
+    if(pMac->pmc.remainInPowerActiveTillDHCP)
+    {
+        smsLog(pMac, LOGE, FL("BMPS Traffic Timer expired before DHCP completion ignore enter BMPS\n"));
+        pMac->pmc.remainInPowerActiveThreshold++;
+        if( pMac->pmc.remainInPowerActiveThreshold >= DHCP_REMAIN_POWER_ACTIVE_THRESHOLD)
+        {
+           smsLog(pMac, LOGE, FL("Remain in power active DHCP threshold reached FALLBACK to enable enter BMPS\n"));
+           /*FALLBACK: reset the flag to make BMPS entry possible*/
+           pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
+           pMac->pmc.remainInPowerActiveThreshold = 0;
+        }
+	//Activate the Traffic Timer again for entering into BMPS
+        vosStatus = vos_timer_start(&pMac->pmc.hTrafficTimer, pMac->pmc.bmpsConfig.trafficMeasurePeriod);
+        if ( !VOS_IS_STATUS_SUCCESS(vosStatus) && (VOS_STATUS_E_ALREADY != vosStatus) )
+        {
+            smsLog(pMac, LOGP, FL("Cannot re-start traffic timer\n"));
+        }
+        return;
+    }
+    
+    /* Clear remain in power active threshold */
+    pMac->pmc.remainInPowerActiveThreshold = 0;
 
     /* Check if the timer should be running */
     if (!pmcShouldBmpsTimerRun(pMac))

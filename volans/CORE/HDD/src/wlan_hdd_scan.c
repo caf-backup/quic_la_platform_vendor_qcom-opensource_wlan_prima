@@ -170,11 +170,11 @@ static eHalStatus hdd_GetWPARSNIEs( v_U8_t *ieFields, v_U16_t ie_length, char **
 
   --------------------------------------------------------------------------*/
 #define MAX_CUSTOM_LEN 64
-static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
-                                 tSirBssDescription *descriptor)
+static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,tCsrScanResultInfo *scan_result)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(scanInfo->dev) ;
    tHalHandle hHal = pAdapter->hHal;
+   tSirBssDescription *descriptor = &scan_result->BssDescriptor;
    struct iw_event event;
    char *current_event = scanInfo->start;
    char *end = scanInfo->end;
@@ -326,9 +326,9 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,
 
           event.cmd = SIOCGIWESSID;
           event.u.data.flags = 1;
-          event.u.data.length = pDot11SSID->num_ssid;
+          event.u.data.length = scan_result->ssId.length;
           current_event = iwe_stream_add_point (scanInfo->info,current_event, end,
-                  &event, (char *)pDot11SSID->ssid);
+				  &event, (char *)scan_result->ssId.ssId);
 
           if(last_event == current_event)
           { /* no space to add event */
@@ -557,7 +557,7 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
 int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
                  union iwreq_data *wrqu, char *extra)
 {
-   VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
    hdd_wext_state_t *pwextBuf = pAdapter->pWextState;
    tCsrScanRequest scanRequest;
@@ -569,10 +569,16 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
 
    if(pwextBuf->mScanPending == TRUE)
    {
-       hddLog(LOG1,"%s: mScanPending is TRUE\n",__func__);
-       return -EBUSY;
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:mScanPending is TRUE !!!",__func__);
+       return -EBUSY;                  
    }
-
+   
+   if (pAdapter->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+      return -EBUSY;
+   }
+   
+   
    vos_mem_zero( &scanRequest, sizeof(scanRequest));
 
    if (NULL != wrqu->data.pointer)
@@ -633,20 +639,18 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
 
    /* set requestType to full scan */
    scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;
+   
+   status = sme_ScanRequest( pAdapter->hHal, pAdapter->sessionId,&scanRequest, &scanId, &hdd_ScanRequestCallback, dev ); 
+   if (!VOS_IS_STATUS_SUCCESS(status))
+   {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:sme_ScanRequest  fail %d!!!",__func__, status);
+      goto error;
+   }
 
-   pwextBuf->mScanPending = TRUE;
-
-   status = sme_ScanRequest( pAdapter->hHal, pAdapter->sessionId,&scanRequest, &scanId, &hdd_ScanRequestCallback, dev );
-
+   pwextBuf->mScanPending = TRUE;   
    pwextBuf->scanId = scanId;
 
-   vos_status = vos_wait_single_event(&pwextBuf->vosevent,3000);
-
-   if (!VOS_IS_STATUS_SUCCESS(vos_status))
-   {
-      pwextBuf->mScanPending = FALSE;
-      return VOS_STATUS_E_FAILURE;
-   }
+error:
    if ((wrqu->data.flags & IW_SCAN_THIS_ESSID) && (scanReq->essid_len))
        vos_mem_free(scanRequest.SSIDs.SSIDList);
 
@@ -655,9 +659,9 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
 }
 
 /**---------------------------------------------------------------------------
-
-  \brief iw_set_scan() -
-
+  
+  \brief iw_get_scan() - 
+  
    This function returns the scan results to the wpa_supplicant
 
   \param  - dev - Pointer to the net device.
@@ -685,10 +689,14 @@ int iw_get_scan(struct net_device *dev,
 
    if (TRUE == pwextBuf->mScanPending)
    {
-       hddLog(LOG1,"iw_get_scan: mScanPending \n");
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:mScanPending is TRUE !!!",__func__);
        return -EAGAIN;
    }
 
+   if (pAdapter->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+      return -EAGAIN;
+   }
    scanInfo.dev = dev;
    scanInfo.start = extra;
    scanInfo.info = info;
@@ -715,7 +723,7 @@ int iw_get_scan(struct net_device *dev,
 
    while (pScanResult)
    {
-       status = hdd_IndicateScanResult(&scanInfo,&pScanResult->BssDescriptor);
+       status = hdd_IndicateScanResult(&scanInfo,pScanResult);
        if (0 != status)
        {
            break;

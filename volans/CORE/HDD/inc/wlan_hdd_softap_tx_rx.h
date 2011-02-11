@@ -21,10 +21,16 @@
 /*--------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/ 
-#define HDD_SOFTAP_TX_BK_QUEUE_MAX_LEN (64)
-#define HDD_SOFTAP_TX_BE_QUEUE_MAX_LEN (64+20)
-#define HDD_SOFTAP_TX_VI_QUEUE_MAX_LEN (64+40)
-#define HDD_SOFTAP_TX_VO_QUEUE_MAX_LEN (64+60)
+#define HDD_SOFTAP_TX_BK_QUEUE_MAX_LEN (82*2)
+#define HDD_SOFTAP_TX_BE_QUEUE_MAX_LEN (78*2)
+#define HDD_SOFTAP_TX_VI_QUEUE_MAX_LEN (74*2)
+#define HDD_SOFTAP_TX_VO_QUEUE_MAX_LEN (70*2)
+
+/* SoftAP specific AC Weights */
+#define HDD_SOFTAP_BK_WEIGHT_DEFAULT                        1
+#define HDD_SOFTAP_BE_WEIGHT_DEFAULT                        3
+#define HDD_SOFTAP_VI_WEIGHT_DEFAULT                        8
+#define HDD_SOFTAP_VO_WEIGHT_DEFAULT                        18
 
 /*--------------------------------------------------------------------------- 
   Type declarations

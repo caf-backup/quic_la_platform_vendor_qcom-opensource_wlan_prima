@@ -409,9 +409,9 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
     else
     {
 #endif
-        CFG_LIM_GET_INT_NO_STATUS( nSirStatus, pMac,
-                                   WNI_CFG_BEACON_INTERVAL, cfg );
-        frm.BeaconInterval.interval = ( tANI_U16 ) cfg;
+    CFG_LIM_GET_INT_NO_STATUS( nSirStatus, pMac,
+                               WNI_CFG_BEACON_INTERVAL, cfg );
+    frm.BeaconInterval.interval = ( tANI_U16 ) cfg;
 #ifdef WLAN_SOFTAP_FEATURE
     }
 #endif

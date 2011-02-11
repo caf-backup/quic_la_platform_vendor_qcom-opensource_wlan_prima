@@ -1095,7 +1095,7 @@ static int wlan_ftm_stop(hdd_adapter_t *pAdapter)
        return VOS_STATUS_E_FAILURE;
    }
 
-   if(pAdapter->ftm.cmd_iwpriv == TRUE)
+   //if(pAdapter->ftm.cmd_iwpriv == TRUE)
    {
        /*  STOP MAC only */
        v_VOID_t *hHal;
@@ -1115,6 +1115,8 @@ static int wlan_ftm_stop(hdd_adapter_t *pAdapter)
            VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
        }
     }
+
+    pAdapter->ftm.ftm_state = WLAN_FTM_STOPPED;
 
    printk(KERN_EMERG "*** FTM Stop Successful****\n");
    return WLAN_FTM_SUCCESS;
@@ -1183,6 +1185,8 @@ void wlan_hdd_process_ftm_cmd
         }
         if (wlan_hdd_ftm_start(pAdapter) != VOS_STATUS_SUCCESS) {
             hddLog(VOS_TRACE_LEVEL_ERROR,"%s: : Failed to start WLAN FTM\n",__func__);
+            pAdapter->ftm.pResponseBuf->ftm_err_code = WLAN_FTM_FAILURE;
+            wlan_ftm_send_response(pAdapter);
             return;
         }
         /* Ptt application running on the host PC expects the length to be one byte less that what we have received*/
@@ -1200,6 +1204,8 @@ void wlan_hdd_process_ftm_cmd
         if (pAdapter->ftm.ftm_state != WLAN_FTM_STARTED) {
 
             hddLog(VOS_TRACE_LEVEL_ERROR,"%s:: FTM has not started\n",__func__);
+            pAdapter->ftm.pResponseBuf->ftm_err_code = WLAN_FTM_SUCCESS;
+            wlan_ftm_send_response(pAdapter);
             return;
         }
 

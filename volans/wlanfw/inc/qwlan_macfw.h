@@ -380,6 +380,11 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_RA_ERROR_CODE                      (QWLANFW_LOG_CODE_RA_BASE + 0x8)
 #define QWLANFW_LOG_CODE_RA_WARN_CODE                       (QWLANFW_LOG_CODE_RA_BASE + 0x9)
 
+/* Noise signal floor for RSSI averaging in BMPS mode
+ */
+#define QWLANFW_PWRSAVE_RSSI_NOISE_FLOOR                    5
+
+
 /* Log code for All debug log to mimic UART
 */
 #define QWLANFW_LOG_CODE_FW_LOG                             0x700
@@ -730,11 +735,11 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32   ucBmpsFirstBeaconTimeoutMs      : 8;
    tANI_U32   ucBdPduEmptyMonitorMs           : 8;
-   tANI_U32   Reserved3                       : 8;
+   tANI_U32   ucNumNoDwnLinkThres             : 8;
    tANI_U32   ucRfSupplySettlingTimeClk19_2   : 8;
 #else
    tANI_U32   ucRfSupplySettlingTimeClk19_2   : 8;
-   tANI_U32   Reserved3                       : 8;
+   tANI_U32   ucNumNoDwnLinkThres             : 8;
    tANI_U32   ucBdPduEmptyMonitorMs           : 8;
    tANI_U32   ucBmpsFirstBeaconTimeoutMs      : 8;
 #endif
@@ -778,6 +783,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32 btcWlanIntervalMode1;
    tANI_U32 btcActionOnPmFailMode1;
    tANI_U32 btcExecutionMode;
+   tANI_U32 btcConsBtSlotsToBlockDuringDhcp;
 
    /* TPC */
    tANI_U32   uTpcGainLutAduReinitAddr;

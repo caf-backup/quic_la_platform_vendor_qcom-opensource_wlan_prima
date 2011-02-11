@@ -66,7 +66,7 @@ void limKeepaliveTmerHandler(void *, tANI_U32);
 void limDeactivateAndChangePerStaIdTimer(tpAniSirGlobal, tANI_U32, tANI_U16);
 void limActivateCnfTimer(tpAniSirGlobal, tANI_U16, tpPESession);
 void limActivateAuthRspTimer(tpAniSirGlobal, tLimPreAuthNode *);
-#ifdef ANI_PRODUCT_TYPE_AP
+#ifdef WLAN_SOFTAP_FEATURE
 void limUpdateOlbcCacheTimerHandler(void *, tANI_U32);
 #endif
 void limAddtsResponseTimerHandler(void *, tANI_U32);

@@ -32,6 +32,7 @@
 #include <wlan_qct_tl.h>
 #include "vos_sched.h"
 #include <wlan_hdd_power.h>
+
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * ------------------------------------------------------------------------*/
@@ -119,6 +120,9 @@ vos_sched_open
   init_completion(&pSchedContext->TxStartEvent);
   init_completion(&pSchedContext->McShutdown);
   init_completion(&pSchedContext->TxShutdown);
+  init_completion(&pSchedContext->ResumeMcEvent);
+  init_completion(&pSchedContext->ResumeTxEvent);
+
   init_waitqueue_head(&pSchedContext->mcWaitQueue);
   pSchedContext->mcEventFlag = 0;
   init_waitqueue_head(&pSchedContext->txWaitQueue);
@@ -210,7 +214,7 @@ VOS_STATUS vos_watchdog_open
   vos_mem_zero(pWdContext, sizeof(VosWatchdogContext));
   pWdContext->pVContext = pVosContext;
   gpVosWatchdogContext = pWdContext;
-	 
+
   //Initialize the helper events and event queues
   init_completion(&pWdContext->WdStartEvent);
   init_completion(&pWdContext->WdShutdown);
@@ -315,6 +319,15 @@ VosMCThread
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "%s: MC thread signaled to shutdown",__func__);
         shutdown = VOS_TRUE;
+        
+         /* Check for any Suspend Indication */
+         if(test_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag))
+         {
+           clear_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag);
+        
+            /* Unblock anyone waiting on suspend */
+           complete(&pAdapter->mc_sus_event_var);
+        }
         break;
       }
       // Check the SYS queue first
@@ -454,7 +467,7 @@ VosMCThread
         /* Mc Thread Suspended */
         complete(&pAdapter->mc_sus_event_var);
 
-        init_completion(&pSchedContext->ResumeMcEvent);
+        INIT_COMPLETION(pSchedContext->ResumeMcEvent);
 
         /* Wait foe Resume Indication */
         wait_for_completion_interruptible(&pSchedContext->ResumeMcEvent);
@@ -484,6 +497,8 @@ VosWDThread
   pVosWatchdogContext pWdContext = (pVosWatchdogContext)Arg;
   int retWaitStatus              = 0;
   v_BOOL_t shutdown              = VOS_FALSE;
+  VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+  
   set_user_nice(current, -3);
 
   if (Arg == NULL)
@@ -513,7 +528,7 @@ VosWDThread
       break;
     }
     clear_bit(WD_POST_EVENT_MASK, &pWdContext->wdEventFlag);
-	 
+
     while(1)
     {
       // Check if Watchdog needs to shutdown
@@ -521,8 +536,8 @@ VosWDThread
       {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "%s: Watchdog thread signaled to shutdown",__func__);
-		  
-		  clear_bit(WD_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag);
+
+        clear_bit(WD_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag);
         shutdown = VOS_TRUE;
         break;
       }
@@ -530,28 +545,40 @@ VosWDThread
       {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "%s: Watchdog thread signaled to perform WLAN chip reset",__func__);
-		  clear_bit(WD_CHIP_RESET_EVENT_MASK, &pWdContext->wdEventFlag);
-		  //Perform WLAN Reset
-		  if(!pWdContext->resetInProgress)
-		  	{
-		  	  pWdContext->resetInProgress = true;
+        clear_bit(WD_CHIP_RESET_EVENT_MASK, &pWdContext->wdEventFlag);
+
+
+        //Perform WLAN Reset
+        if(!pWdContext->resetInProgress)
+        {
+          pWdContext->resetInProgress = true;
 #ifdef CONFIG_HAS_EARLYSUSPEND
-           hdd_wlan_reset();
+          vosStatus = hdd_wlan_reset();
 #endif
-			  pWdContext->resetInProgress = false;
-		  	}
-		  else
-		  	{
-	        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+          if (! VOS_IS_STATUS_SUCCESS(vosStatus))
+          {
+             VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Failed to reset WLAN",__func__);
+             VOS_ASSERT(0);
+             shutdown = VOS_TRUE;
+             break;
+          }
+          else
+          {
+             //do not enable reset if reset itself failed. 
+             pWdContext->resetInProgress = false;
+          }
+        }
+        else
+        {
+          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Reset already in progress. Ignore recursive reset cmd",__func__);
-		  	}
-		  
+        }
         break;
       }
       //Unnecessary wakeup - Should never happen!!
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
         "%s: Watchdog thread woke up unnecessarily",__func__);
-		break;
+      break;
     } // while message loop processing
     
   } // while TRUE
@@ -635,6 +662,15 @@ static int VosTXThread ( void * Arg )
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                  "%s: TX thread signaled for shutdown",__func__);
         shutdown = VOS_TRUE;
+
+         /* Check for any Suspend Indication */
+         if(test_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag))
+         {
+           clear_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag);
+        
+            /* Unblock anyone waiting on suspend */
+           complete(&pAdapter->tx_sus_event_var);
+        }
         break;
       }
       // Check the SYS queue first
@@ -720,7 +756,7 @@ static int VosTXThread ( void * Arg )
         /* Tx Thread Suspended */
         complete(&pAdapter->tx_sus_event_var);
 
-        init_completion(&pSchedContext->ResumeTxEvent);
+        INIT_COMPLETION(pSchedContext->ResumeTxEvent);
 
         /* Wait foe Resume Indication */
         wait_for_completion_interruptible(&pSchedContext->ResumeTxEvent);
@@ -764,17 +800,18 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     set_bit(MC_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->mcEventFlag);
     set_bit(MC_POST_EVENT_MASK, &gpVosSchedContext->mcEventFlag);
     wake_up_interruptible(&gpVosSchedContext->mcWaitQueue);
+    //Wait for MC to exit
+    wait_for_completion_interruptible(&gpVosSchedContext->McShutdown);
+	
 #ifndef ANI_MANF_DIAG
     set_bit(TX_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->txEventFlag);
     set_bit(TX_POST_EVENT_MASK, &gpVosSchedContext->txEventFlag);
     wake_up_interruptible(&gpVosSchedContext->txWaitQueue);
-#endif
-    //Wait for MC and TX to exit
-    wait_for_completion_interruptible(&gpVosSchedContext->McShutdown);
-#ifndef ANI_MANF_DIAG
+    //Wait for TX to exit	
     wait_for_completion_interruptible(&gpVosSchedContext->TxShutdown);
 
 #endif
+
     //Clean up message queues of TX and MC thread
     vos_sched_flush_mc_mqs(gpVosSchedContext);
 #ifndef ANI_MANF_DIAG
@@ -806,6 +843,9 @@ VOS_STATUS vos_watchdog_close ( v_PVOID_t pVosContext )
 
 VOS_STATUS vos_watchdog_chip_reset ( v_VOID_t )
 {
+    v_CONTEXT_t pVosContext = NULL;
+    hdd_adapter_t *pAdapter = NULL;
+    
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
         "%s: vos_watchdog resetting WLAN", __FUNCTION__);
     if (gpVosWatchdogContext == NULL)
@@ -814,6 +854,38 @@ VOS_STATUS vos_watchdog_chip_reset ( v_VOID_t )
            "%s: Watchdog not enabled. LOGP ignored.",__FUNCTION__);
        return VOS_STATUS_E_FAILURE;
     }
+
+    if (gpVosWatchdogContext->resetInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+            "%s: Reset already in Progress. Ignoring signaling Watchdog",__FUNCTION__);
+        return VOS_STATUS_E_FAILURE;
+    }
+
+    VOS_ASSERT(0);
+    
+    pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
+    pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD,pVosContext);
+
+    /* Set the flags so that all future CMD53 and Wext commands get blocked right away */
+    vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+    pAdapter->isLogpInProgress = TRUE;
+
+    if (pAdapter->isLoadUnloadInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+            "%s: Load/unload in Progress. Ignoring signaling Watchdog",__FUNCTION__);
+        return VOS_STATUS_E_FAILURE;    
+    }
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
+    if(VOS_STATUS_SUCCESS != hdd_wlan_reset_initialization())
+    {
+       /* This can fail if card got removed by SDCC during resume */
+       VOS_ASSERT(0);
+    }
+#endif
+
     set_bit(WD_CHIP_RESET_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
     set_bit(WD_POST_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
     wake_up_interruptible(&gpVosWatchdogContext->wdWaitQueue);
