@@ -484,6 +484,26 @@ err_deep_sleep:
 
 }
 
+void hdd_conf_mcastbcast_filter(hdd_adapter_t* pAdapter, v_BOOL_t setfilter)
+{
+    eHalStatus halStatus = eHAL_STATUS_FAILURE;
+    tpAniSirGlobal pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_SME, pAdapter->pvosContext);
+    hddLog(VOS_TRACE_LEVEL_INFO,
+        "%s: Configuring Mcast/Bacst Filter Setting. setfilter %d", __func__, setfilter);
+    if ( pMac ) 
+    {
+      halStatus = halRxp_configureRxpFilterMcstBcst( pMac, setfilter);
+    }
+    else
+    {
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: pMac is initialised to NULL",__func__ );
+    }
+
+    if(setfilter && (eHAL_STATUS_SUCCESS == halStatus))
+       pAdapter->hdd_mcastbcast_filter_set = TRUE;
+}
+
+#ifdef CONFIG_HAS_EARLYSUSPEND
 static inline void hdd_prevent_suspend(void)
 {
     wake_lock(&wlan_wake_lock);
@@ -493,22 +513,6 @@ static inline void hdd_allow_suspend(void)
 {
     wake_unlock(&wlan_wake_lock);
 }
-
-
-void hdd_conf_mcastbcast_filter(hdd_adapter_t* pAdapter, v_BOOL_t setfilter)
-{
-    eHalStatus halStatus;
-    hddLog(VOS_TRACE_LEVEL_INFO,
-        "%s: Configuring Mcast/Bacst Filter Setting. setfilter %d", __func__, setfilter);
-
-    halStatus = halRxp_configureRxpFilterMcstBcst(
-       vos_get_context(VOS_MODULE_ID_SME, pAdapter->pvosContext), setfilter);
-
-    if(setfilter && (eHAL_STATUS_SUCCESS == halStatus))
-       pAdapter->hdd_mcastbcast_filter_set = TRUE;
-}
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
 //Suspend routine registered with Android OS
 void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
 {
@@ -641,10 +645,10 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
 #define LIBRA_CARD_REMOVE_DETECT_MAX_COUNT	5
 VOS_STATUS hdd_wlan_reset(void) 
 {
-   hdd_adapter_t *pAdapter = NULL;
-   v_CONTEXT_t pVosContext = NULL;
    VOS_STATUS vosStatus;
    union iwreq_data wrqu;
+   hdd_adapter_t *pAdapter = NULL;
+   v_CONTEXT_t pVosContext = NULL;
    v_BOOL_t sendDisconnect = 0;
    pVosSchedContext vosSchedContext = NULL;
    struct sdio_func *sdio_func_dev_new = NULL;
@@ -773,6 +777,7 @@ VOS_STATUS hdd_wlan_reset(void)
    vos_sched_deinit_mqs(vosSchedContext);
 
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing VOS Close",__func__);
+
    //Close VOSS
    vos_close(pVosContext);
    
@@ -818,7 +823,6 @@ VOS_STATUS hdd_wlan_reset(void)
 #ifdef MEMORY_DEBUG
    vos_mem_clean();
 #endif
-
    //Reinitialize the variable
    attempts = 0;
 
@@ -1069,7 +1073,6 @@ err_pwr_fail:
    free_netdev(pAdapter->dev);
 
    WLANSAL_Close(pVosContext);
-
    vos_preClose( &pVosContext );
 
 #ifdef MEMORY_DEBUG
@@ -1092,6 +1095,7 @@ success:
    return VOS_STATUS_SUCCESS;
 
 }
+
 
 VOS_STATUS hdd_wlan_reset_initialization(void) 
 {

@@ -425,8 +425,6 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry
     tANI_U8          ac; 
     tpDphHashNode    pStaDs = NULL;
     tANI_U8          rspReqd = 1;
-    tANI_U32   cfgLen;
-    tSirMacAddr  peerMacAddr;
 
 
     pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
@@ -565,7 +563,7 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry
     if(eSIR_SUCCESS != limTspecAdd(pMac, pSta->staAddr, pSta->assocId, &addts.tspec,  addts.schedule.svcInterval, &tspecInfo))
     {
         PELOGE(limLog(pMac, LOGE, FL("Adding entry in lim Tspec Table failed \n"));)
-        limSendDeltsReqActionFrame(pMac, peerMacAddr, rspReqd, &addts.tspec.tsinfo, &addts.tspec,
+        limSendDeltsReqActionFrame(pMac, psessionEntry->bssId, rspReqd, &addts.tspec.tsinfo, &addts.tspec,
                 psessionEntry);
         pMac->lim.gLimAddtsSent = false;
         return;   //Error handling. send the response with error status. need to send DelTS to tear down the TSPEC status.
@@ -577,10 +575,7 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry
         limAdmitControlDeleteTS(pMac, pSta->assocId, &addts.tspec.tsinfo, NULL, &tspecInfo->idx);
 
         // Send DELTS action frame to AP        
-        cfgLen = sizeof(tSirMacAddr);
-        if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, peerMacAddr, &cfgLen) != eSIR_SUCCESS)
-            limLog(pMac, LOGP, FL("Fail to retrieve BSSID \n"));
-        limSendDeltsReqActionFrame(pMac, peerMacAddr, rspReqd, &addts.tspec.tsinfo, &addts.tspec,
+        limSendDeltsReqActionFrame(pMac, psessionEntry->bssId, rspReqd, &addts.tspec.tsinfo, &addts.tspec,
                 psessionEntry);
         limSendSmeAddtsRsp(pMac, true, retval, addts.tspec,
                 psessionEntry->smeSessionId, psessionEntry->transactionId);
@@ -990,6 +985,10 @@ __limValidateAddBAParameterSet( tpAniSirGlobal pMac,
     tLimAddBaValidationReqType reqType ,
     tANI_U8* pDelBAFlag /*this parameter is NULL except for call from processAddBAReq*/)
 {
+  if(baParameterSet.tid >= STACFG_MAX_TC)
+  {
+      return eSIR_MAC_WME_INVALID_PARAMS_STATUS;
+  }
 
   //check if there is already a BA session setup with this STA/TID while processing AddBaReq
   if((true == pSta->tcCfg[baParameterSet.tid].fUseBARx) &&

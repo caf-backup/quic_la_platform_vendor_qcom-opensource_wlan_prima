@@ -38,7 +38,7 @@
 #define HAL_EXTRA_PRECISION_BITS   8
 
 
-//RSSI in dBm = rssi_stat ? max_gain_db ? 41
+//RSSI in dBm = rssi_stat - max_gain_db - 41
 #define HAL_CONVERT_HW_RSSI_UNIT_2_DB(rssi, maxgaindb) ((rssi) - maxgaindb - HAL_HW_RSSI_OFFSET)
 
 

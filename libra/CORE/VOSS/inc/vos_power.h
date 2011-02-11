@@ -62,6 +62,15 @@ when       who     what, where, why
 ===========================================================================*/
 typedef enum
 {
+  VOS_CHIP_RESET_CMD53_FAILURE,              /* Reset Chip due to CMD53 Failure */	
+  VOS_CHIP_RESET_FW_EXCEPTION,               /* Reset Chip due to FW Failure */
+  VOS_CHIP_RESET_MUTEX_READ_FAILURE,         /* Reset Chip due to  Mutex Read Failure */
+  VOS_CHIP_RESET_MIF_EXCEPTION,              /* Reset Chip due to  MAC exception e.g. BMU fatal, MIF error */
+  VOS_CHIP_RESET_UNKNOWN_EXCEPTION           /* Reset Chip due to  any other exception */
+}vos_chip_reset_reason_type;
+
+typedef enum
+{
   VOS_CALL_SYNC,    /* operation is synchronous */
   VOS_CALL_ASYNC    /* operation is asynchronous */    
 
@@ -184,7 +193,8 @@ VOS_STATUS vos_chipReset
   vos_call_status_type* status,
   v_BOOL_t              soft,
   vos_power_cb_type     callback,
-  v_PVOID_t             user_data
+  v_PVOID_t             user_data,
+  vos_chip_reset_reason_type    reason
 );
 
 /**

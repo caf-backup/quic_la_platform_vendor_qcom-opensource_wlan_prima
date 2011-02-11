@@ -1025,6 +1025,16 @@ tLimMlmSetKeysCnf  mlmSetKeysCnf;
 tSirRetStatus      retCode;
 tANI_U32 val = 0;
 
+  if(pMlmSetKeysReq->numKeys > SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS)
+  {
+      limLog( pMac, LOG1,
+          FL( "numKeys = %d is more than SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS\n" ), pMlmSetKeysReq->numKeys);
+      
+      // Respond to SME with error code
+      mlmSetKeysCnf.resultCode = eSIR_SME_INVALID_PARAMETERS;
+      goto end;
+  }
+
   // Package SIR_HAL_SET_BSSKEY_REQ message parameters
 
   if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,

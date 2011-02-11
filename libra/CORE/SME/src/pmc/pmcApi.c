@@ -712,6 +712,8 @@ eHalStatus pmcStartAutoBmpsTimer (tHalHandle hHal)
          return eHAL_STATUS_FAILURE;
    }
 
+
+
    return eHAL_STATUS_SUCCESS;
 }
 

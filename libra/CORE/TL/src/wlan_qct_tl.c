@@ -705,9 +705,16 @@ WLANTL_Close
 
   DESCRIPTION
 
-    This function is used by TL to ask serialization through TX thread of the   
-    cached frame forwarding.  
+    This function is used to ask serialization through TX thread of the   
+    cached frame forwarding (if statation has been registered in the mean while) 
+    or flushing (if station has not been registered by the time)
 
+    In case of forwarding, upper layer is only required to call WLANTL_RegisterSTAClient()
+    and doesn't need to call this function explicitly. TL will handle this inside 
+    WLANTL_RegisterSTAClient(). 
+    
+    In case of flushing, upper layer is required to call this function explicitly
+    
   DEPENDENCIES
 
     TL must have been initialized before this gets called.
@@ -723,8 +730,16 @@ WLANTL_Close
     Please check return values of vos_tx_mq_serialize.
 
   SIDE EFFECTS
+    If TL was asked to perform WLANTL_CacheSTAFrame() in WLANTL_RxFrames(), 
+    either WLANTL_RegisterSTAClient() or this function must be called 
+    within reasonable time. Otherwise, TL will keep cached vos buffer until
+    one of this function is called, and may end up with system buffer exhasution. 
+
+    It's an upper layer's responsibility to call this function in case of
+    flushing
 
 ============================================================================*/
+
 VOS_STATUS 
 WLANTL_StartForwarding
 (
@@ -751,6 +766,52 @@ WLANTL_StartForwarding
   return vos_tx_mq_serialize(VOS_MQ_ID_TL, &sMessage);
 
 } /* WLANTL_StartForwarding() */
+
+/*===========================================================================
+
+  FUNCTION    WLANTL_AssocFailed
+
+  DESCRIPTION
+
+    This function is used by PE to notify TL that cache needs to flushed' 
+    when association is not successfully completed 
+
+    Internally, TL post a message to TX_Thread to serialize the request to 
+    keep lock-free mechanism.
+
+   
+  DEPENDENCIES
+
+    TL must have been initialized before this gets called.
+
+   
+  PARAMETERS
+
+   ucSTAId:   station id 
+
+  RETURN VALUE
+
+   none
+   
+  SIDE EFFECTS
+   There may be race condition that PE call this API and send another association
+   request immediately with same staId before TX_thread can process the message.
+
+   To avoid this, we might need PE to wait for TX_thread process the message,
+   but this is not currently implemented. 
+   
+============================================================================*/
+void WLANTL_AssocFailed(v_U8_t staId)
+{
+  // flushing frames and forwarding frames uses the same message
+  // the only difference is what happens when the message is processed
+  // if the STA exist, the frames will be forwarded
+  // and if it doesn't exist, the frames will be flushed
+  // in this case we know it won't exist so the DPU index signature values don't matter
+  WLANTL_StartForwarding(staId,0,0);
+}
+  
+
 
 /*===========================================================================
 
@@ -3627,7 +3688,7 @@ WLANTL_TxComp
   SIDE EFFECTS
 
 ============================================================================*/
-VOS_STATUS
+static VOS_STATUS
 WLANTL_CacheSTAFrame
 (
   WLANTL_CbType*    pTLCb,
@@ -3727,11 +3788,61 @@ WLANTL_CacheSTAFrame
 
 /*==========================================================================
 
+  FUNCTION    WLANTL_FlushCachedFrames
+
+  DESCRIPTION
+    Internal utility function used by TL to flush the station cache
+
+  DEPENDENCIES
+    TL must be initiailized before this function gets called.
+    
+  PARAMETERS
+
+    IN
+
+    vosDataBuff:   it will contain a pointer to the first cached buffer
+                   received,
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_SUCCESS:   Everything is good :)
+
+  SIDE EFFECTS
+
+  NOTE
+    This function doesn't re-initialize vosDataBuff to NULL. It's caller's 
+    responsibility to do so, if required, after this function call.
+    Because of this restriction, we decide to make this function to static
+    so that upper layer doesn't need to be aware of this restriction. 
+    
+============================================================================*/
+static VOS_STATUS
+WLANTL_FlushCachedFrames
+(
+  vos_pkt_t*      vosDataBuff
+)
+{
+  /*----------------------------------------------------------------------
+    Return the entire chain to vos if there are indeed cache frames 
+  ----------------------------------------------------------------------*/
+  if ( NULL != vosDataBuff )
+  {
+    vos_pkt_return_packet(vosDataBuff);
+  }
+
+  return VOS_STATUS_SUCCESS;  
+}/*WLANTL_FlushCachedFrames*/
+
+/*==========================================================================
+
   FUNCTION    WLANTL_ForwardSTAFrames
 
   DESCRIPTION
-    Internal utility function for forwarding cached data to the station after
-    the station has been registered. 
+    Internal utility function for either forwarding cached data to the station after
+    the station has been registered, or flushing cached data if the station has not 
+    been registered. 
+     
 
   DEPENDENCIES
     TL must be initiailized before this function gets called.
@@ -3751,9 +3862,13 @@ WLANTL_CacheSTAFrame
     VOS_STATUS_SUCCESS:   Everything is good :)
 
   SIDE EFFECTS
+    This function doesn't re-initialize vosDataBuff to NULL. It's caller's 
+    responsibility to do so, if required, after this function call.
+    Because of this restriction, we decide to make this function to static
+    so that upper layer doesn't need to be aware of this restriction. 
 
 ============================================================================*/
-VOS_STATUS
+static VOS_STATUS
 WLANTL_ForwardSTAFrames
 (
   void*             pvosGCtx,
@@ -3784,15 +3899,18 @@ WLANTL_ForwardSTAFrames
     return VOS_STATUS_E_FAULT;
   }
 
+  //WLAN_TL_LOCK_STA_CACHE(pTLCb->atlSTAClients[ucSTAId]); 
+
   /*------------------------------------------------------------------------
-     Check if station has not been deleted in the mean while
+     Check if station has not been registered in the mean while
+     if not registered, flush cached frames.
    ------------------------------------------------------------------------*/ 
   if ( 0 == pTLCb->atlSTAClients[ucSTAId].ucExists )
   {
     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
        "WLAN TL:Station has been deleted for STA %d - flushing cache", ucSTAId));
     WLANTL_FlushCachedFrames(pTLCb->atlSTAClients[ucSTAId].vosBegCachedFrame);
-    return VOS_STATUS_SUCCESS; 
+    goto done; 
   }
 
   /*------------------------------------------------------------------------
@@ -3805,8 +3923,6 @@ WLANTL_ForwardSTAFrames
   ------------------------------------------------------------------------*/
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
        "WLAN TL:Preparing to fwd packets for STA %d", ucSTAId));
-
-  //WLAN_TL_LOCK_STA_CACHE(pTLCb->atlSTAClients[ucSTAId]); 
 
   /*-----------------------------------------------------------------------
     Save the new signature values
@@ -3836,6 +3952,7 @@ WLANTL_ForwardSTAFrames
                "WLAN TL: NO cached packets for station %d", ucSTAId ));
   }
 
+done:
   /*-------------------------------------------------------------------------  
    Clear the station cache 
    -------------------------------------------------------------------------*/
@@ -4443,9 +4560,7 @@ WLANTL_RxFrames
         This should be corrected when multipe sta support is added !!!
         for now bcast frames will be sent to the last registered STA
        ------------------------------------------------------------------*/
-      //if ( WLANTL_STA_ID_BCAST == ucSTAId )
-      //LYR: David's change for broadcast frames
-      if ( WLANTL_STA_ID_BCAST == WLANHAL_RX_BD_GET_ADDR1_IDX(pvBDHeader))
+      if (WLANHAL_RX_BD_GET_UB(pvBDHeader)) //Is broadcast/Multicast?
       {
         TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
         "WLAN TL:TL rx Bcast frame - sending to last registered station"));
@@ -4482,14 +4597,18 @@ WLANTL_RxFrames
         - also we need to make sure that the frames in the cache are fwd-ed to
           the station before the new incoming ones 
       -----------------------------------------------------------------------*/
-      if (( 0 == pTLCb->atlSTAClients[ucSTAId].ucExists ) ||
+      if ((( 0 == pTLCb->atlSTAClients[ucSTAId].ucExists ) ||
           ( (0 != pTLCb->atlSTAClients[ucSTAId].ucRxBlocked)
 #ifdef WLAN_SOFTAP_FEATURE
             ///@@@: xg: no checking in SOFTAP for now, will revisit later
             && (WLAN_STA_SOFTAP != pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType)
 #endif
           ) ||
-          ( WLANTL_STA_DISCONNECTED == pTLCb->atlSTAClients[ucSTAId].tlState))
+          ( WLANTL_STA_DISCONNECTED == pTLCb->atlSTAClients[ucSTAId].tlState)) &&
+            /*Dont buffer Broadcast/Multicast frames. If AP transmits bursts of Broadcast/Multicast data frames, 
+	     * libra buffers all Broadcast/Multicast packets after authentication with AP, 
+	     * So it will lead to low resource condition in Rx Data Path.*/
+          ((WLANHAL_RX_BD_GET_UB(pvBDHeader) == 0)))
       {
         uDPUSig = WLANHAL_RX_BD_GET_DPU_SIG( pvBDHeader );
         //Station has not yet been registered with TL - cache the frame
@@ -4586,47 +4705,6 @@ WLANTL_RxFrames
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_RxFrames */
 
-/*==========================================================================
-
-  FUNCTION    WLANTL_FlushCachedFrames
-
-  DESCRIPTION
-    Utility function used by TL to flush the station cache
-
-  DEPENDENCIES
-    TL must be initiailized before this function gets called.
-    
-  PARAMETERS
-
-    IN
-
-    vosDataBuff:   it will contain a pointer to the first cached buffer
-                   received,
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-    VOS_STATUS_SUCCESS:   Everything is good :)
-
-  SIDE EFFECTS
-
-============================================================================*/
-VOS_STATUS
-WLANTL_FlushCachedFrames
-(
-  vos_pkt_t*      vosDataBuff
-)
-{
-  /*----------------------------------------------------------------------
-    Return the entire chain to vos if there are indeed cache frames 
-  ----------------------------------------------------------------------*/
-  if ( NULL != vosDataBuff )
-  {
-    vos_pkt_return_packet(vosDataBuff);
-  }
-
-  return VOS_STATUS_SUCCESS;  
-}/*WLANTL_FlushCachedFrames*/
 
 /*==========================================================================
 
@@ -4747,7 +4825,7 @@ WLANTL_RxCachedFrames
       This should be corrected when multipe sta support is added !!!
       for now bcast frames will be sent to the last registered STA
      ------------------------------------------------------------------*/
-    if ( WLANTL_STA_ID_BCAST == WLANHAL_RX_BD_GET_ADDR1_IDX(pvBDHeader))
+    if (WLANHAL_RX_BD_GET_UB(pvBDHeader)) //Is broadcast/Multicast?
     {
           TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                  "WLAN TL:TL rx Bcast frame "));
@@ -6200,6 +6278,7 @@ WLANTL_FwdPktToHDD
    return VOS_STATUS_SUCCESS;
 }
 #endif /* WLANTL_SOFTAP_FEATURE */ 
+
 /*==========================================================================
   FUNCTION    WLANTL_STARxAuth
 

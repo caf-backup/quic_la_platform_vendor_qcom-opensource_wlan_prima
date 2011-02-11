@@ -135,7 +135,6 @@ void halBtc_SendBtEventToFW(tpAniSirGlobal pMac, void *pBuffer)
 
     status = halFW_SendMsg(pMac, HAL_MODULE_ID_BTC,
         QWLANFW_HOST2FW_BT_EVENT, dialogToken, size, &msg, TRUE, NULL);
-
 out:
 #endif //WLAN_MDM_CODE_REDUCTION_OPT
 

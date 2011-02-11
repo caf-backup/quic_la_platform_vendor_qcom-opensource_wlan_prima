@@ -303,5 +303,4 @@ void vos_trace_display(void)
    }
 }
 
-
 #endif

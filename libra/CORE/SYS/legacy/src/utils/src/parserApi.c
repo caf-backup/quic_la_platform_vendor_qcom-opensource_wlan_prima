@@ -299,6 +299,12 @@ PopulateDot11fCountry(tpAniSirGlobal    pMac,
 
         palCopyMemory( pMac->hHdd, pDot11f->country, code, codelen );
 
+        if(len > MAX_SIZE_OF_TRIPLETS_IN_COUNTRY_IE)
+        {
+            dot11fLog( pMac, LOGE, FL("len:%d is out of bounds, resetting.\n"), len);
+            len = MAX_SIZE_OF_TRIPLETS_IN_COUNTRY_IE;
+        }
+
         pDot11f->num_triplets = ( tANI_U8 ) ( len / 3 );
         palCopyMemory( pMac->hHdd, ( tANI_U8* )pDot11f->triplets, temp, len );
 
@@ -596,7 +602,6 @@ PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
     uHTCapabilityInfo.nCfgValue16 = nCfgValue & 0xFFFF;
 #else
     nCfgValue16 = ( tANI_U16 ) nCfgValue;
-
     pHTCapabilityInfo = ( tSirMacHTCapabilityInfo* ) &nCfgValue16;
 #endif
 
@@ -797,7 +802,6 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
 
 #ifdef WLAN_SOFTAP_FEATURE  // this is added for fixing CRs on MDM9K platform - 257951, 259577
     uHTInfoField.nCfgValue16 = nCfgValue & 0xFFFF;
-
 
     uHTInfoField.infoField3.basicSTBCMCS                  = pMac->lim.gHTSTBCBasicMCS;
     uHTInfoField.infoField3.dualCTSProtection             = pMac->lim.gHTDualCTSProtection;
@@ -1393,8 +1397,10 @@ PopulateDot11fSuppRates(tpAniSirGlobal      pMac,
               	                     nRates);
         }
 	else
-        	dot11fLog( pMac, LOGE, FL("no session context exists while populating Operational Rate Set\n"));
-        
+    {
+         dot11fLog( pMac, LOGE, FL("no session context exists while populating Operational Rate Set\n"));
+         nRates = 0;
+     }
     }
     else if ( 14 >= nChannelNum )
     {

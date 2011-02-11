@@ -1441,6 +1441,14 @@ VOS_STATUS hdd_softap_change_STA_state( hdd_hostapd_adapter_t *pAdapter, v_MACAD
     hHalHandle = (tHalHandle ) vos_get_context(VOS_MODULE_ID_HAL, pVosContext);
     hddLog(LOG1, FL("%s enter \n"));
 
+    if(!hHalHandle )
+    {
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_FATAL,
+                 "%s: The hHalHandle is  NULL ptr value");
+      VOS_ASSERT( 0 );
+      return VOS_STATUS_E_FAILURE;
+    }    
+
     if (eHAL_STATUS_SUCCESS != halTable_FindStaidByAddr(hHalHandle, (tANI_U8 *)pDestMacAddress, &ucSTAId))
     {
         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,

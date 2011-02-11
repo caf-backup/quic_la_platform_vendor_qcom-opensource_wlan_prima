@@ -652,7 +652,6 @@ static iw_softap_ap_stats(struct net_device *dev,
     WLANTL_TRANSFER_STA_TYPE  statBuffer;
     char *pstatbuf;
     int len = wrqu->data.length;
-
     pstatbuf = wrqu->data.pointer;
 
     WLANSAP_GetStatistics(pHostapdAdapter->pvosContext, &statBuffer, (v_BOOL_t)wrqu->data.flags);

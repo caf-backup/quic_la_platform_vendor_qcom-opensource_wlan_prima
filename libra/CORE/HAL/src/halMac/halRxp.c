@@ -3306,8 +3306,6 @@ void halRxp_setSystemRxpFilterMode(tpAniSirGlobal pMac,
         finalRegLo = finalRegLo & regLo;
         finalRegHi = finalRegHi & regHi;
    
-
-
      }
 
      setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
@@ -3420,6 +3418,7 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
             halRxp_GetRegValRxpMode(pMac, rxpMode, &finalRegLo, &finalRegHi);
 
             setRxFrameDisableRegs( pMac, finalRegLo, finalRegHi );
+
             // Accept only beacons & probe responses from address2 BSS to which 
             // are now associated, rest filter it out.
             maskValue = halRxp_getFrameFilterMaskForMode (pMac, rxpMode);

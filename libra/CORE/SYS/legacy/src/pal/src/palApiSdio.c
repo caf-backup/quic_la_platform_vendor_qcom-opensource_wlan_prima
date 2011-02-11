@@ -18,13 +18,11 @@
 #include "wlan_qct_bal.h"
 #include "palApi.h"
 
-
 eHalStatus palReadRegister( tHddHandle hHdd, tANI_U32 regAddress, tANI_U32 *pRegValue )
 {
     VOS_STATUS status = VOS_STATUS_SUCCESS;
 
     v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, hHdd);
-
 
     status = WLANBAL_ReadRegister((v_PVOID_t) pVosContext, (v_U32_t)regAddress, (v_U32_t *) pRegValue);
     if (!VOS_IS_STATUS_SUCCESS(status)){

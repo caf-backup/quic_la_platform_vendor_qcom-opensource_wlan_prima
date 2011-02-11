@@ -2352,7 +2352,7 @@ static tANI_BOOLEAN csrIsWapiOuiMatch( tpAniSirGlobal pMac, tANI_U8 AllCyphers[]
 
     if ( fYes && Oui )
     {
-        palCopyMemory( pMac->hHdd, Oui, AllCyphers[ idx ], sizeof( Oui ) );
+        palCopyMemory( pMac->hHdd, Oui, AllCyphers[ idx ], CSR_WAPI_OUI_SIZE );
     }
 
     return( fYes );
@@ -2383,7 +2383,7 @@ static tANI_BOOLEAN csrIsOuiMatch( tpAniSirGlobal pMac, tANI_U8 AllCyphers[][CSR
 
     if ( fYes && Oui )
     {
-        palCopyMemory( pMac->hHdd, Oui, AllCyphers[ idx ], sizeof( Oui ) );
+        palCopyMemory( pMac->hHdd, Oui, AllCyphers[ idx ], CSR_WPA_OUI_SIZE );
     }
 
     return( fYes );
@@ -4679,6 +4679,11 @@ tANI_U16 csrRatesFindBestRate( tSirMacRateSet *pSuppRates, tSirMacRateSet *pExtR
     tANI_U16 nBest;
 
     nBest = pSuppRates->rate[ 0 ] & ( ~CSR_DOT11_BASIC_RATE_MASK );
+
+    if(pSuppRates->numRates > SIR_MAC_RATESET_EID_MAX)
+    {
+        pSuppRates->numRates = SIR_MAC_RATESET_EID_MAX;
+    }
 
     for ( i = 1U; i < pSuppRates->numRates; ++i )
     {

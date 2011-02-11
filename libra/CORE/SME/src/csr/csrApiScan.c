@@ -2498,11 +2498,11 @@ static void csrMoveTempScanResultsToMainList( tpAniSirGlobal pMac )
             //Limit reach
             smsLog(pMac, LOGW, FL("  BSS limit reached\n"));
             //Free the resources
-            csrFreeScanResultEntry(pMac, pBssDescription);
             if( (pBssDescription->Result.pvIes == NULL) && pIesLocal )
             {
                 palFreeMemory(pMac->hHdd, pIesLocal);
             }
+            csrFreeScanResultEntry(pMac, pBssDescription);
 			//Continue because there may be duplicated BSS
             continue;
         }
@@ -3857,7 +3857,6 @@ tCsrScanResult *csrScanSaveBssDescriptionToInterimList( tpAniSirGlobal pMac,
         }
         csrLLInsertTail( &pMac->scan.tempScanResults, &pCsrBssDescription->Link, LL_ACCESS_LOCK );
     }
-
     return( pCsrBssDescription );
 }
 
@@ -4636,6 +4635,7 @@ eHalStatus csrScanChannels( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         {
             scanReq.hiddenSsid = SIR_SCAN_HIDDEN_SSID_PE_DECISION;
         }
+
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
         {
             vos_log_scan_pkt_type *pScanLog = NULL;
@@ -7502,7 +7502,6 @@ eHalStatus csrScanForSSID(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     tANI_U8 bAddr[6] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff}; 
     tANI_U8  index = 0;
 	tANI_U32 numSsid = pProfile->SSIDs.numOfSSIDs;
-
     smsLog(pMac, LOG2, FL("called\n"));
 	//For WDS, we use the index 0. There must be at least one in there
 	if( CSR_IS_WDS_STA( pProfile ) && numSsid )

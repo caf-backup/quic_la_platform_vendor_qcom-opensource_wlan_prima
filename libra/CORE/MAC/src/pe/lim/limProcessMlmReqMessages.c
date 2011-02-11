@@ -1942,11 +1942,11 @@ limProcessMlmAssocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 
 end:
-    /// Free up buffer allocated for assocReq
-    palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmAssocReq);
-
     /* Update PE session Id*/
     mlmAssocCnf.sessionId = pMlmAssocReq->sessionId;
+
+    /// Free up buffer allocated for assocReq
+    palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmAssocReq);
 
     limPostSmeMessage(pMac, LIM_MLM_ASSOC_CNF, (tANI_U32 *) &mlmAssocCnf);
 } /*** limProcessMlmAssocReq() ***/
@@ -2989,8 +2989,6 @@ static void
 limProcessJoinFailureTimeout(tpAniSirGlobal pMac)
 {
     tLimMlmJoinCnf  mlmJoinCnf;
-    tSirMacAddr bssid;
-    tANI_U32 len;
     
     //fetch the sessionEntry based on the sessionId
     tpPESession psessionEntry;
@@ -3003,16 +3001,6 @@ limProcessJoinFailureTimeout(tpAniSirGlobal pMac)
         
     if (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE)
     {
-        len = sizeof(tSirMacAddr);
-
-        if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, bssid, &len) !=
-                            eSIR_SUCCESS)
-        {
-            /// Could not get BSSID from CFG. Log error.
-            limLog(pMac, LOGP, FL("could not retrieve BSSID\n"));
-            return;
-        }
-
         // 'Change' timer for future activations
         limDeactivateAndChangeTimer(pMac, eLIM_JOIN_FAIL_TIMER);
 
@@ -3237,8 +3225,9 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
      * not received within Re/Association Failure Timeout.
      */
 
-
-
+    /* CR: vos packet memory is leaked when assoc rsp timeouted/failed. */
+    /* notify TL that association is failed so that TL can flush the cached frame  */
+    WLANTL_AssocFailed (psessionEntry->staId);
 
     // Log error
     PELOG1(limLog(pMac, LOG1,

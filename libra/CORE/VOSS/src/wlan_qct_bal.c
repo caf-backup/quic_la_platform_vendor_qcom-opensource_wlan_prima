@@ -727,7 +727,6 @@ VOS_STATUS WLANBAL_Start
 
    /* Moving the setting of Consider_BT_Lo_Priority on TPE_SW_PM earlier than
       the firmware to take care of BT_A2DP audio gap during WLAN power-up*/
-
    status = WLANBAL_ReadRegister(pAdapter, QWLAN_TPE_SW_PM_REG , (v_U32_t *)&uRegVal);
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
@@ -782,6 +781,13 @@ VOS_STATUS WLANBAL_Stop
       BMSGERROR("BAL timer stop failed.", 0, 0, 0);
    }
 
+   if (!sscHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s sscHandle is dereferencing NULL\n", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+
    status = WLANSSC_Stop(sscHandle);
 
    BEXIT();
@@ -813,20 +819,26 @@ VOS_STATUS WLANBAL_Close
 
    vos_mem_dma_free(gbalHandle->dmaBuffer);
 
+   if (!sscHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s sscHandle is dereferencing NULL \n", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+
    status = WLANSSC_Close(sscHandle);
-   if(!VOS_IS_STATUS_SUCCESS(status))
+   if (!VOS_IS_STATUS_SUCCESS(status))
    {
       BMSGERROR("SSC Close Fail", 0, 0, 0);
    }
 
    status = vos_timer_destroy(&gbalHandle->timer);
-   if(!VOS_IS_STATUS_SUCCESS(status))
+   if (!VOS_IS_STATUS_SUCCESS(status))
    {
       BMSGERROR("BAL Timer destroy fail", 0, 0, 0);
    }
 
    status = vos_free_context(pAdapter, VOS_MODULE_ID_BAL, (v_PVOID_t)gbalHandle);
-   if(!VOS_IS_STATUS_SUCCESS(status))
+   if (!VOS_IS_STATUS_SUCCESS(status))
    {
       BMSGERROR("BAL Context Free fail", 0, 0, 0);
    }
@@ -1543,6 +1555,13 @@ VOS_STATUS WLANBAL_EnableASICInterrupt
       return VOS_STATUS_E_FAILURE;
    }
 
+   if (!sscHandle)
+   {
+      VOS_ASSERT(0);
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s sscHandle is dereferencing NULL\n", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+
    status = WLANSSC_EnableASICInterrupt(sscHandle);
 
    BEXIT();
@@ -1591,6 +1610,13 @@ VOS_STATUS WLANBAL_DisableASICInterrupt
       return VOS_STATUS_E_FAILURE;
    }
 
+   if (!sscHandle)
+   {
+      VOS_ASSERT(0);
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s sscHandle is dereferencing NULL\n", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+
    status = WLANSSC_DisableASICInterrupt(sscHandle);
 
    BEXIT();
@@ -1629,8 +1655,19 @@ VOS_STATUS WLANBAL_DXEHeaderConfig
 {
    VOS_STATUS             status    = VOS_STATUS_SUCCESS;
 
-   VOS_ASSERT(gbalHandle);
+   if (!gbalHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s gbalHandle is dereferencing NULL\n", __func__);
+      VOS_ASSERT(gbalHandle);
+      return VOS_STATUS_E_FAILURE;
+   }
+
    VOS_ASSERT(ConfigInfo);
+   if (!ConfigInfo)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s ConfigInfo is dereferencing NULL\n", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
 
    BENTER();
 
@@ -1661,10 +1698,15 @@ VOS_STATUS WLANBAL_Suspend
 
    VOS_ASSERT(gbalHandle);
    VOS_ASSERT(sscHandle);
+   if (!sscHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s sscHandle is dereferencing NULL\n", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
 
    BENTER();
 
-  vos_timer_stop(&gbalHandle->timer);
+   vos_timer_stop(&gbalHandle->timer);
 
    status = WLANSSC_Suspend(sscHandle, WLANSSC_ALL_FLOW);
 
@@ -1694,6 +1736,11 @@ VOS_STATUS WLANBAL_Resume
 
    VOS_ASSERT(gbalHandle);
    VOS_ASSERT(sscHandle);
+   if (!sscHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s sscHandle is dereferencing NULL\n", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
 
    BENTER();
 
@@ -1727,6 +1774,11 @@ VOS_STATUS WLANBAL_SuspendChip
 
    VOS_ASSERT(gbalHandle);
    VOS_ASSERT(sscHandle);
+   if (!sscHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s sscHandle is dereferencing NULL\n", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
 
    BENTER();
 
@@ -1794,6 +1846,11 @@ VOS_STATUS WLANBAL_ResumeChip
 
    VOS_ASSERT(gbalHandle);
    VOS_ASSERT(sscHandle);
+   if (!sscHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s sscHandle is dereferencing NULL\n", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
 
    BENTER();
 
@@ -1843,7 +1900,19 @@ VOS_STATUS WLANBAL_RegTlCbFunctions
 {
 
    VOS_ASSERT(gbalHandle);
+   if (!gbalHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s gbalHandle is dereferencing NULL\n", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+
    VOS_ASSERT(tlReg);
+   if (!tlReg)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s tlReg is dereferencing NULL\n", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
+
 
    BENTER();
 

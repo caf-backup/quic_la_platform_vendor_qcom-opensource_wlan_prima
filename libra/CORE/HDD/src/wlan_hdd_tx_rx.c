@@ -27,6 +27,13 @@
 /*--------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/ 
+//Mapping Linux AC interpretation to TL AC.
+static const v_U8_t hdd_QdiscAcToTlAC[] = {
+   WLANTL_AC_VO,
+   WLANTL_AC_VI,
+   WLANTL_AC_BE,
+   WLANTL_AC_BK,
+};
 
 /*--------------------------------------------------------------------------- 
   Type declarations
@@ -137,10 +144,10 @@ static VOS_STATUS hdd_flush_tx_queues( hdd_adapter_t *pAdapter )
          break;
       }
       spin_unlock_bh(&pAdapter->wmm_tx_queue[i].lock);
+      // backpressure is no longer in effect
+      pAdapter->isTxSuspended[i] = VOS_FALSE;
    }
 
-   // backpressure is no longer in effect
-   pAdapter->isTxSuspended = VOS_FALSE;
 
    return status;
 }
@@ -168,19 +175,16 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    v_SIZE_t pktListSize = 0;
    hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
    v_BOOL_t granted;
+   u16 queue;
 
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
 
-   //Classify the packet
-   if ( !hdd_wmm_classify_pkt (pAdapter, skb, &ac, &up) )
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Failed to classify packet..pkt dropped", __FUNCTION__);
-      ++pAdapter->stats.tx_dropped;
-      ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
-      kfree_skb(skb);
-      return NETDEV_TX_OK;
-   }
+   queue = skb_get_queue_mapping(skb); 
+    //Get TL AC corresponding to Qdisc queue index/AC.
+   ac = hdd_QdiscAcToTlAC[queue];
+   //user priority from IP header, which is already extracted and set from 
+   //select_queue call back function
+   up = skb->priority;
 
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
 
@@ -200,10 +204,9 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, 
                  "%s: TX queue full for AC=%d Disable OS TX queue", 
                  __FUNCTION__, ac );
-
-      netif_stop_queue(dev);
-      pAdapter->isTxSuspended = VOS_TRUE;
-      pAdapter->txSuspendedAc = ac;
+      
+      netif_stop_subqueue(dev, skb_get_queue_mapping(skb));
+      pAdapter->isTxSuspended[ac] = VOS_TRUE;
       return NETDEV_TX_BUSY;
 #else //DROP_FULL_QUEUE
       kfree_skb(skb);
@@ -329,12 +332,14 @@ VOS_STATUS hdd_init_tx_rx( hdd_adapter_t *pAdapter )
    v_SINT_t i = -1;
 
    pAdapter->isVosOutOfResource = VOS_FALSE;
-   pAdapter->isTxSuspended = VOS_FALSE;
 
    vos_mem_zero(&pAdapter->stats, sizeof(struct net_device_stats));
 
-   while (++i != NUM_TX_QUEUES) 
+   while (++i != NUM_TX_QUEUES)
+   {
+      pAdapter->isTxSuspended[i] = VOS_FALSE; 
       hdd_list_init( &pAdapter->wmm_tx_queue[i], HDD_TX_QUEUE_MAX_LEN);
+   }
 
    return status;
 }
@@ -708,17 +713,15 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    pPktMetaInfo->ucMcast = vos_is_macaddr_group( pDestMacAddress ) ? 1 : 0;
 
    // if we are in a backpressure situation see if we can turn the hose back on
-   if ( (pAdapter->isTxSuspended) &&
-        (ac == pAdapter->txSuspendedAc) &&
+   if ( (pAdapter->isTxSuspended[ac]) &&
         (size <= HDD_TX_QUEUE_LOW_WATER_MARK) )
    {
       ++pAdapter->hdd_stats.hddTxRxStats.txFetchDePressured;
       ++pAdapter->hdd_stats.hddTxRxStats.txFetchDePressuredAC[ac];
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
-                 "%s: TX queue re-enabled", __FUNCTION__);
-      pAdapter->isTxSuspended = VOS_FALSE;
-      netif_start_queue(pAdapter->dev);
-      netif_wake_queue(pAdapter->dev);
+                 "%s: TX queue[%d] re-enabled", __FUNCTION__, ac);
+      pAdapter->isTxSuspended[ac] = VOS_FALSE;
+      netif_wake_subqueue(pAdapter->dev, skb_get_queue_mapping(skb));
    }    
 
    // We're giving the packet to TL so consider it transmitted from

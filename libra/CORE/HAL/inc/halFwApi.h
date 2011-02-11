@@ -62,7 +62,7 @@
 
 #define HAL_MODULE_ID_SOFT_AP                                5
 
-#define QWLANFW_AP_LINK_MONITOR_TIMEOUT_MSEC              3000    // Timer interval for link monitor of STA keepalive handlings
+#define QWLANFW_AP_LINK_MONITOR_TIMEOUT_MSEC              1500    // Timer interval for link monitor of STA keepalive handlings
 #define QWLANFW_UNKNOWN_ADDR2_NOTIFCATION_INTERVAL_MS    10000    // Timer interval for unknown addr2 notification
 #define QWLANFW_AP_LINK_MONITOR_ENABLE                       1    // Enable the link monitor of STA keepalive handlings
 #define QWLANFW_UNKNOWN_ADDR2_NOTIFCATION_ENABLE             1    // Enable the unknown addr2 notification

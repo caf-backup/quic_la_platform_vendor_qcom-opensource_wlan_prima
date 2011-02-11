@@ -72,6 +72,7 @@
 #include "vos_memory.h"
 #include "vos_threads.h"
 #include "sscDebug.h"
+#include "vos_api.h"
 
 /* SDIO services                                                           */
 #include "wlan_qct_sal.h"
@@ -1588,6 +1589,7 @@ VOS_STATUS WLANSSC_Stop
   /* Release Lock                                                          */
   WLANSSC_UNLOCKTXRX( pControlBlock );
 
+
   return VOS_STATUS_SUCCESS;
 
 } /* WLANSSC_Stop() */
@@ -1662,6 +1664,7 @@ VOS_STATUS WLANSSC_StartTransmit
 )
 {
   vos_msg_t                    sMessage;
+  VOS_STATUS                   vosStatus;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if(gWLANSSC_TxMsgCnt)
@@ -1682,7 +1685,14 @@ VOS_STATUS WLANSSC_StartTransmit
   sMessage.bodyptr = (v_PVOID_t)Handle;
   sMessage.type = WLANSSC_TXPENDING_MESSAGE;
 
-  return vos_tx_mq_serialize(VOS_MQ_ID_SSC, &sMessage);
+  vosStatus = vos_tx_mq_serialize(VOS_MQ_ID_SSC, &sMessage);
+  if(VOS_STATUS_SUCCESS != vosStatus)
+  {
+     gWLANSSC_TxMsgCnt--;
+     SSCLOGP(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Serializing SSC Start Xmit Failed. vosStatus %d", 
+               vosStatus));
+  }
+  return vosStatus;
 
 } /* WLANSSC_StartTransmit() */
 

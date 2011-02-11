@@ -478,6 +478,19 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType,tpPE
                                                         during processing DelSta nd DelBss to send AddBss again*/
         pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
 
+        if(!pStaDs)
+        {
+            PELOGE(limLog(pMac, LOG1, FL("could not get hash entry at DPH for \n"));)
+            limPrintMacAddr(pMac, pHdr->sa, LOGE);
+            mlmAssocCnf.resultCode = eSIR_SME_INVALID_ASSOC_RSP_RXED;
+            mlmAssocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
+            
+            // Send advisory Disassociation frame to AP
+            limSendDisassocMgmtFrame(pMac, eSIR_MAC_UNSPEC_FAILURE_REASON, pHdr->sa,psessionEntry);
+            
+            goto assocReject;
+        }
+
         /* If we're re-associating to the same BSS, we don't want to invoke delete
          * STA, delete BSS, as that would remove the already established TSPEC.  
          * Just go ahead and re-add the BSS, STA with new capability information. 
@@ -599,6 +612,11 @@ assocReject:
     }else
         limRestorePreReassocState( pMac, 
                       eSIR_SME_REASSOC_REFUSED, mlmAssocCnf.protStatusCode,psessionEntry); 
+
+    /* CR: vos packet memory is leaked when assoc rsp timeouted/failed. */
+    /* notify TL that association is failed so that TL can flush the cached frame  */
+    WLANTL_AssocFailed (psessionEntry->staId);
+
 
     palFreeMemory(pMac->hHdd, pAssocRsp);      
     return;

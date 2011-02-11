@@ -61,7 +61,7 @@
 #define WEXT_CSCAN_PASV_DWELL_TIME_DEF	250
 #define WEXT_CSCAN_PASV_DWELL_TIME_MAX	3000
 #define WEXT_CSCAN_HOME_DWELL_TIME	130
-
+#define MAX_RATES                       12
 typedef struct hdd_scan_info{
     struct net_device *dev;
     struct iw_request_info *info;
@@ -376,16 +376,24 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,tCsrScanResul
 
       if (pDot11ExtSuppRates->present ) 
       {   
-          int i;
-
+          int i,no_of_rates;
           maxNumRates = numBasicRates + pDot11ExtSuppRates->num_rates;    
           
           /* Check to make sure the total number of rates 
                doesn't exceed IW_MAX_BITRATES */
                
           maxNumRates = VOS_MIN(maxNumRates , IW_MAX_BITRATES); 
-              
-          for ( i=0; i< (maxNumRates - numBasicRates) ; i++ ) 
+          
+          if((maxNumRates - numBasicRates) > MAX_RATES)
+          {
+             no_of_rates = MAX_RATES;
+             hddLog( LOGE, "Accessing array out of bound that array is pDot11ExtSuppRates->rates ");
+          }    
+          else
+          {
+            no_of_rates = maxNumRates - numBasicRates;
+          }
+          for ( i=0; i< no_of_rates ; i++ ) 
           {
               if (0 != (pDot11ExtSuppRates->rates[i] & 0x7F))
               {
@@ -603,8 +611,16 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
           if(scanReq->essid_len) {
               scanRequest.SSIDs.numOfSSIDs = 1;
               scanRequest.SSIDs.SSIDList =( tCsrSSIDInfo *)vos_mem_malloc(sizeof(tCsrSSIDInfo));
-              scanRequest.SSIDs.SSIDList->SSID.length = scanReq->essid_len;
-              vos_mem_copy(scanRequest.SSIDs.SSIDList->SSID.ssId,scanReq->essid,scanReq->essid_len);
+              if(scanRequest.SSIDs.SSIDList) {
+                  scanRequest.SSIDs.SSIDList->SSID.length = scanReq->essid_len;
+                  vos_mem_copy(scanRequest.SSIDs.SSIDList->SSID.ssId,scanReq->essid,scanReq->essid_len);
+              }
+              else
+              {
+                scanRequest.SSIDs.numOfSSIDs = 0;
+                VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, "%s: Unable to allocate memory",__FUNCTION__);
+                VOS_ASSERT(0);
+              }
           }
       }
  
@@ -621,6 +637,7 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
        } else {                      
            scanRequest.scanType = eSIR_PASSIVE_SCAN;
        }
+
  
        vos_mem_set( scanRequest.bssid, sizeof( tCsrBssid ), 0xff );
        

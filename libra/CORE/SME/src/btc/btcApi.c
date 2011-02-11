@@ -1169,6 +1169,12 @@ static VOS_STATUS btcDeferDisconnectEventForACL( tpAniSirGlobal pMac, tpSmeBtEve
                                 pEvent->uEventParam.btDisconnect.connectionHandle );
     if(pAclEventHist)
     {
+        if( pAclEventHist->bNextEventIdx > BT_MAX_NUM_EVENT_ACL_DEFERRED)
+        {
+            smsLog(pMac, LOGE, FL(" ACL event history index:%d overflow, resetting to BT_MAX_NUM_EVENT_ACL_DEFERRED\n"), pAclEventHist->bNextEventIdx);
+            pAclEventHist->bNextEventIdx = BT_MAX_NUM_EVENT_ACL_DEFERRED;
+        }
+
         //Looking backwords
         for(i = pAclEventHist->bNextEventIdx - 1; i >= 0; i--)
         {
@@ -1251,6 +1257,12 @@ static VOS_STATUS btcDeferDisconnectEventForSync( tpAniSirGlobal pMac, tpSmeBtEv
                                 pEvent->uEventParam.btDisconnect.connectionHandle );
     if(pSyncEventHist)
     {
+        if( pSyncEventHist->bNextEventIdx > BT_MAX_NUM_EVENT_SCO_DEFERRED)
+        {
+            smsLog(pMac, LOGE, FL(" SYNC event history index:%d overflow, resetting to BT_MAX_NUM_EVENT_SCO_DEFERRED\n"), pSyncEventHist->bNextEventIdx);
+            pSyncEventHist->bNextEventIdx = BT_MAX_NUM_EVENT_SCO_DEFERRED;
+        }
+
         //Looking backwords
         for(i = pSyncEventHist->bNextEventIdx - 1; i >= 0; i--)
         {
@@ -1533,12 +1545,14 @@ static void btcReplayEvents( tpAniSirGlobal pMac )
             vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
             btEvent.btEventType = BT_EVENT_DEVICE_SWITCHED_OFF;
             btcSendBTEvent( pMac, &btEvent );
+            pReplay->fBTSwitchOff = VOS_FALSE;
         }
         else if( pReplay->fBTSwitchOn )
         {
             vos_mem_zero( &btEvent, sizeof(tSmeBtEvent) );
             btEvent.btEventType = BT_EVENT_DEVICE_SWITCHED_ON;
             btcSendBTEvent( pMac, &btEvent );
+            pReplay->fBTSwitchOn = VOS_FALSE;
         }
 
         //Do inquire first

@@ -57,6 +57,14 @@ limConvertSupportedChannels(tpAniSirGlobal pMac,
     tANI_U8    numberOfChannel;
     tANI_U8    nextChannelNumber;
 
+    if(assocReq->supportedChannels.length >= SIR_MAX_SUPPORTED_CHANNEL_LIST)
+    {
+        limLog(pMac, LOG1, FL("Number of supported channels:%d is more than MAX\n"),
+                              assocReq->supportedChannels.length);
+        pMlmAssocInd->supportedChannels.numChnl = 0;
+        return;
+    }
+
     for(i=0; i < (assocReq->supportedChannels.length); i++)
     {
         // Get First Channel Number
@@ -71,8 +79,8 @@ limConvertSupportedChannels(tpAniSirGlobal pMac,
         }
         // Get Number of Channels in a Subband
         numberOfChannel = assocReq->supportedChannels.supportedChannels[i];
-       PELOG2(limLog(pMac, LOG2, FL("Rcv AssocReq: chnl=%d, numOfChnl=%d \n"),
-                             firstChannelNumber, numberOfChannel);)
+        PELOG2(limLog(pMac, LOG2, FL("Rcv AssocReq: chnl=%d, numOfChnl=%d \n"),
+                              firstChannelNumber, numberOfChannel);)
 
         if (numberOfChannel > 1)
         {
@@ -1867,6 +1875,9 @@ limBtAmpProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tANI_U8 subType
     } // End if on HT caps turned on in lim.
 
 #ifdef WLAN_SOFTAP_FEATURE
+    /* Clear the buffers so that frame parser knows that there isn't a previously decoded IE in these buffers */
+    palZeroMemory( pMac->hHdd, ( tANI_U8* )&Dot11fIERSN, sizeof( Dot11fIERSN ) );
+    palZeroMemory( pMac->hHdd, ( tANI_U8* )&Dot11fIEWPA, sizeof( Dot11fIEWPA ) );
 
     if( ! pAssocReq->wscInfo.present )
     {
@@ -2605,6 +2616,11 @@ void limSendMlmAssocInd(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpPESession p
         if (pAssocReq->wpaPresent)
 #endif
         {
+            if((pMlmAssocInd->rsnIE.length + pAssocReq->wpa.length) >= SIR_MAC_MAX_IE_LENGTH)
+            {
+                PELOGE(limLog(pMac, LOGE, FL("rsnIEdata index out of bounds %d\n"), pMlmAssocInd->rsnIE.length);)
+                return;
+            }
             pMlmAssocInd->rsnIE.rsnIEdata[pMlmAssocInd->rsnIE.length] = SIR_MAC_WPA_EID;
             pMlmAssocInd->rsnIE.rsnIEdata[pMlmAssocInd->rsnIE.length + 1] = pAssocReq->wpa.length;
             palCopyMemory( pMac->hHdd,

@@ -1080,6 +1080,7 @@ static int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
 
     return VOS_STATUS_SUCCESS;
 
+
 err_bal_stop:
 WLANBAL_Stop(pVosContext);
 

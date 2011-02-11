@@ -48,6 +48,7 @@
 #include "i_vos_types.h"
 #include "i_vos_packet.h"
 #include <linux/wait.h>
+#include <vos_power.h>
 
 #define TX_POST_EVENT_MASK               0x001
 #define TX_SUSPEND_EVENT_MASK            0x002
@@ -419,7 +420,7 @@ VOS_STATUS vos_sched_init_mqs   (pVosSchedContext pSchedContext);
 void vos_sched_deinit_mqs (pVosSchedContext pSchedContext);
 void vos_sched_flush_mc_mqs  (pVosSchedContext pSchedContext);
 void vos_sched_flush_tx_mqs  (pVosSchedContext pSchedContext);
-VOS_STATUS vos_watchdog_chip_reset ( v_VOID_t );
+VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type reason );
 
 void vos_timer_module_init( void );
 

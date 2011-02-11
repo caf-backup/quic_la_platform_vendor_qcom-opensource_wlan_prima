@@ -101,7 +101,7 @@ static eHalStatus sendCfg(tpAniSirGlobal pMac, tHddHandle hHdd, tCfgReq *req, tA
 		if (status != eHAL_STATUS_SUCCESS)
 		{
 			smsLog( pMac, LOGW, FL("palSendMBMessage() failed\n"));
-			palFreeMemory(hHdd, msg);
+            // msg is freed in palSendMBMessage()
 			status = eHAL_STATUS_FAILURE ;
 		}
 	}
@@ -728,7 +728,7 @@ static eHalStatus cfgUpdate(tpAniSirGlobal pMac, tHddHandle hHdd, tCcmCfgSetCall
 	{
 		smsLog(pMac, LOGW, FL("palSendMBMessage() failed. status=%d\n"), status);
 		pMac->ccm.replay.started = 0 ;
-		palFreeMemory(hHdd, msg);
+        // msg is freed in palSendMBMessage()
 		goto end ;
 	}
 

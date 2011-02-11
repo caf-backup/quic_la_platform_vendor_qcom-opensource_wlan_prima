@@ -271,6 +271,7 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tpPESession psession
         else
         {
             limLog(pMac, LOGE, FL("Self entry missing in Hash Table \n"));
+            return;
         }
 	}
 

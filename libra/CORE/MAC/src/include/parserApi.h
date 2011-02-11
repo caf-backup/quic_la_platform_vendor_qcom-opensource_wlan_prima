@@ -19,6 +19,7 @@
 
 #define COUNTRY_STRING_LENGTH    (  3 )
 #define COUNTRY_INFO_MAX_CHANNEL ( 84 )
+#define MAX_SIZE_OF_TRIPLETS_IN_COUNTRY_IE (COUNTRY_STRING_LENGTH * COUNTRY_INFO_MAX_CHANNEL)
 
 typedef struct sSirCountryInformation
 {

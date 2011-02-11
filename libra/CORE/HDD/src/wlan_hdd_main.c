@@ -172,7 +172,7 @@ int hdd_open (struct net_device *dev)
    if(hdd_connIsConnected(pAdapter)) {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
                  "%s: Enabling Tx Queues" , __FUNCTION__);
-      netif_start_queue(dev);
+      netif_tx_start_all_queues(dev);
    }
 
    return 0;
@@ -453,6 +453,27 @@ static int hdd_set_mac_address(struct net_device *dev, void *addr)
    return halStatus;
 }
 
+
+/**---------------------------------------------------------------------------
+  
+  \brief hdd_select_queue() - 
+
+   This function is registered with the Linux OS for network
+   core to decide which queue to use first.
+   
+  \param  - dev - Pointer to the WLAN device.
+              - skb - Pointer to OS packet (sk_buff).
+  \return - ac, Queue Index/access category corresponding to UP in IP header 
+  
+  --------------------------------------------------------------------------*/
+
+static u16 hdd_select_queue(struct net_device *dev,
+					 struct sk_buff *skb)
+{
+   return hdd_wmm_select_queue(dev, skb);
+}
+
+
 /**---------------------------------------------------------------------------
   
   \brief hdd_wlan_initial_scan() - 
@@ -482,6 +503,7 @@ void hdd_wlan_initial_scan(hdd_adapter_t *pAdapter)
          if( !scanReq.ChannelInfo.ChannelList )
          {
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s kmalloc failed", __func__);
+            vos_mem_free(channelInfo.ChannelList);
             return;
          }
          vos_mem_copy(scanReq.ChannelInfo.ChannelList, channelInfo.ChannelList, 
@@ -904,6 +926,7 @@ static struct net_device_ops sLibraNetDevOps = {
       .ndo_get_stats = hdd_stats,
       .ndo_do_ioctl = hdd_ioctl,
       .ndo_set_mac_address = hdd_set_mac_address,
+      .ndo_select_queue	= hdd_select_queue,
  };
  #endif
 
@@ -937,8 +960,8 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 
    pAdapter = wdev_priv(wdev) ;
    pAdapter->wdev = wdev ;
- 
-   pWlanDev = alloc_netdev(0, "wlan%d", ether_setup);
+
+   pWlanDev = alloc_netdev_mq(0, "wlan%d", ether_setup, NUM_TX_QUEUES); 
    
    if(pWlanDev == NULL) 
    {
@@ -948,7 +971,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 #else      
       
    //Allocate the net_device and HDD Adapter (private data) 
-   pWlanDev = alloc_etherdev(sizeof( hdd_adapter_t ));
+   pWlanDev = alloc_etherdev_mq(sizeof( hdd_adapter_t), NUM_TX_QUEUES);
    
    if(pWlanDev == NULL) 
    {
@@ -1403,19 +1426,6 @@ static int __init hdd_module_init (void)
       vos_chipPowerDown(NULL, NULL, NULL);
 
       msleep(1000);
-   }
-
-
-   //Retry to detect the card again by Powering Down the chip and Power up the chip 
-   //again. This retry is done to recover from CRC Error
-   if (NULL == sdio_func_dev) {
-
-      attempts = 0;
-      
-      //Vote off any PMIC voltage supplies
-      vos_chipPowerDown(NULL, NULL, NULL);
-
-      msleep(1000);
 
       //Power Up Libra WLAN card first if not already powered up
       status = vos_chipPowerUp(NULL,NULL,NULL);
@@ -1443,7 +1453,6 @@ static int __init hdd_module_init (void)
          msleep(1000);
 
       }while (attempts < 3);
-      
    }   
    
    do {
@@ -1530,6 +1539,7 @@ static int __init hdd_module_init (void)
    EXIT();
 
    return ret_status;
+
 }
 
 

@@ -543,6 +543,7 @@ VOS_STATUS vos_timer_destroy ( vos_timer_t *timer )
 
    spin_unlock_irqrestore( &timer->platformInfo.spinlock,flags );
 
+
    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
              "%s: Cannot destroy timer in state = %d",__func__, timer->state);
    VOS_ASSERT(0);

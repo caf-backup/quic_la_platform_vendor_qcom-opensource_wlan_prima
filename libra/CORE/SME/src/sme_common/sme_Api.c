@@ -1102,7 +1102,6 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 smsLog( pMac, LOGE, "Empty rsp message for QoS, nothing to process\n");
              }
              break;
-
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )
@@ -1791,7 +1790,7 @@ eHalStatus sme_RoamDisconnectSta(tHalHandle hHal, tANI_U8 sessionId,
    
    if ( NULL == pMac )
    {
-     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     VOS_ASSERT(0);
      return status; 
    }
 
@@ -1828,7 +1827,7 @@ eHalStatus sme_RoamDeauthSta(tHalHandle hHal, tANI_U8 sessionId,
    
    if ( NULL == pMac )
    {
-     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     VOS_ASSERT(0);
      return status; 
    }
 
@@ -1864,7 +1863,7 @@ eHalStatus sme_RoamTKIPCounterMeasures(tHalHandle hHal, tANI_U8 sessionId,
 
    if ( NULL == pMac )
    {
-     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     VOS_ASSERT(0);
      return status; 
    }
 
@@ -1906,7 +1905,7 @@ eHalStatus sme_RoamGetAssociatedStas(tHalHandle hHal, tANI_U8 sessionId,
 
    if ( NULL == pMac )
    {
-     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     VOS_ASSERT(0);
      return status; 
    }
 
@@ -1944,7 +1943,7 @@ eHalStatus sme_RoamGetWpsSessionOverlap(tHalHandle hHal, tANI_U8 sessionId,
 
    if ( NULL == pMac )
    {
-     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     VOS_ASSERT(0);
      return status; 
    }
 
@@ -3401,7 +3400,6 @@ VOS_STATUS sme_BtcSetConfig (tHalHandle hHal, tpSmeBtcConfig pSmeBtcConfig)
     VOS_STATUS status = VOS_STATUS_E_FAILURE;
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
     if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
     {
         status = btcSetConfig (hHal, pSmeBtcConfig);

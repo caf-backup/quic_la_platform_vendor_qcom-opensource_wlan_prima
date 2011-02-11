@@ -32,6 +32,7 @@
 #include <wlan_qct_tl.h>
 #include "vos_sched.h"
 #include <wlan_hdd_power.h>
+
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * ------------------------------------------------------------------------*/
@@ -359,6 +360,15 @@ VosMCThread
       {
         /* Need some optimization*/
         pMacContext = vos_get_context(VOS_MODULE_ID_HAL, pSchedContext->pVContext);
+
+        if(pMacContext == NULL)
+        {
+           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+              "%s: pMacContext is NULL", __FUNCTION__);
+           VOS_ASSERT(0);
+           break;
+        }
+
         // Service the HAL message queue
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                  "%s: Servicing the VOS HAL MC Message queue",__func__);
@@ -370,6 +380,7 @@ VosMCThread
            VOS_ASSERT(0);
            break;
         }
+
         macStatus = halProcessMsg( pMacContext, (tSirMsgQ*)pMsgWrapper->pVosMsg);
         if (eSIR_SUCCESS != macStatus)
         {
@@ -809,6 +820,7 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     //Wait for TX to exit	
     wait_for_completion_interruptible(&gpVosSchedContext->TxShutdown);
 #endif
+
     //Clean up message queues of TX and MC thread
     vos_sched_flush_mc_mqs(gpVosSchedContext);
 #ifndef ANI_MANF_DIAG
@@ -838,10 +850,11 @@ VOS_STATUS vos_watchdog_close ( v_PVOID_t pVosContext )
     return VOS_STATUS_SUCCESS;
 } /* vos_watchdog_close() */
 
-VOS_STATUS vos_watchdog_chip_reset ( v_VOID_t )
+VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
 {
     v_CONTEXT_t pVosContext = NULL;
     hdd_adapter_t *pAdapter = NULL;
+    hdd_chip_reset_stats_t *pResetStats;
     
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
         "%s: vos_watchdog resetting WLAN", __FUNCTION__);
@@ -882,6 +895,29 @@ VOS_STATUS vos_watchdog_chip_reset ( v_VOID_t )
        VOS_ASSERT(0);
     }
 #endif
+
+    /* Update Reset Statistics */
+    pResetStats = &pAdapter->hdd_stats.hddChipResetStats;
+    pResetStats->totalLogpResets++;
+	
+    switch (reason)
+    {
+     case VOS_CHIP_RESET_CMD53_FAILURE:
+	 	pResetStats->totalCMD53Failures++;
+		break;
+     case VOS_CHIP_RESET_FW_EXCEPTION:
+	 	pResetStats->totalFWHearbeatFailures++;
+		break;
+     case VOS_CHIP_RESET_MUTEX_READ_FAILURE:
+	 	pResetStats->totalMutexReadFailures++;
+		break;
+     case VOS_CHIP_RESET_MIF_EXCEPTION:
+	 	pResetStats->totalMIFErrorFailures++;
+		break;
+     default:
+	 	pResetStats->totalUnknownExceptions++;
+		break;		
+    }
 
     set_bit(WD_CHIP_RESET_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
     set_bit(WD_POST_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);

@@ -559,7 +559,8 @@ VOS_STATUS vos_chipReset
   vos_call_status_type* status,
   v_BOOL_t              soft,
   vos_power_cb_type     callback,
-  v_PVOID_t             user_data
+  v_PVOID_t             user_data,
+  vos_chip_reset_reason_type   reason
 )
 {
    VOS_STATUS vstatus;
@@ -569,7 +570,7 @@ VOS_STATUS vos_chipReset
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: GPIO 181 should be HIGH now", __func__);
 #endif
 
-   vstatus = vos_watchdog_chip_reset();
+   vstatus = vos_watchdog_chip_reset(reason);
    return vstatus;
 }
 

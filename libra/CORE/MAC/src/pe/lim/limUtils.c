@@ -1231,6 +1231,7 @@ limPostMsgApiNoWait(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 } /*** end limPostMsgApiNoWait() ***/
 
 
+
 /**
  * limPrintMacAddr()
  *
@@ -1966,7 +1967,6 @@ limUpdateShortPreamble(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr,
     pStaDs = dphLookupHashEntry(pMac, peerMacAddr, &tmpAid, &psessionEntry->dph.dphHashTable);
     limGetPhyMode(pMac, &phyMode);
     if (pStaDs != NULL && phyMode == WNI_CFG_PHY_MODE_11G)
-
     {        
         if (pStaDs->shortPreambleEnabled == eHAL_CLEAR)
         {
@@ -4193,6 +4193,7 @@ limEnable11aProtection(tpAniSirGlobal pMac, tANI_U8 enable,
 
     return eSIR_SUCCESS;
 }
+
 /** -------------------------------------------------------------
 \fn limEnable11gProtection
 \brief based on config setting enables\disables 11g protection.
@@ -7570,4 +7571,5 @@ void limDiagEventReport(tpAniSirGlobal pMac, tANI_U16 eventType, tSirMacAddr bss
 #endif /* 0 */
     return;
 }
+
 #endif /* FEATURE_WLAN_DIAG_SUPPORT */

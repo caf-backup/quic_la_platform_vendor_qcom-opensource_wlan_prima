@@ -169,6 +169,7 @@ typedef enum eSirResultCodes
     eSIR_MTU_EXCEPTION,
     eSIR_MIF_EXCEPTION,
     eSIR_FW_EXCEPTION,
+    eSIR_PS_MUTEX_READ_EXCEPTION,
     eSIR_PHY_HANG_EXCEPTION,
     eSIR_MAILBOX_SANITY_CHK_FAILED,
     eSIR_RADIO_HW_SWITCH_STATUS_IS_OFF, // Only where this switch is present

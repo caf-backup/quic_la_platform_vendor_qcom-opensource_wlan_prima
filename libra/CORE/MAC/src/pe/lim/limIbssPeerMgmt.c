@@ -1223,9 +1223,6 @@ void limIbssAddBssRspWhenCoalescing(tpAniSirGlobal  pMac, void *msg, tpPESession
 
     end:
     ibss_coalesce_free(pMac);
-
-
-
 }
 
 
@@ -1477,6 +1474,10 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
     tANI_U16      aid;
     tpDphHashNode pStaDs;
     tANI_U32 threshold;
+    tANI_U16 staIndex;
+    tANI_U8 ucUcastSig;
+    tANI_U8 ucBcastSig;
+
 	
 	/** MLM BSS is started and if PE in scanmode then MLM state will be waiting for probe resp.
 	 *  If Heart beat timeout triggers during this corner case then we need to reactivate HeartBeat timer 
@@ -1514,13 +1515,21 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
             PELOGE(limLog(pMac, LOGE, FL("Heartbeat fail = %d  thres = %d"), pTempNode->heartbeatFailure, pMac->lim.gLimNumIbssPeers);)
             if(pTempNode->heartbeatFailure >= threshold )
             {
-                pTempNextNode = pTempNode->next;
                 //Remove this entry from the list.
                 pStaDs = dphLookupHashEntry(pMac, pTempNode->peerMacAddr, &aid, &psessionEntry->dph.dphHashTable);
                 if (pStaDs)
                 {
+                    staIndex = pStaDs->staIndex;
+                    ucUcastSig = pStaDs->ucUcastSig;
+                    ucBcastSig = pStaDs->ucBcastSig;
+
                     (void) limDelSta(pMac, pStaDs, false /*asynchronous*/,psessionEntry);
                     limDeleteDphHashEntry(pMac, pStaDs->staAddr, aid,psessionEntry);
+
+                    //Send indication.
+                    ibss_status_chg_notify( pMac, pTempNode->peerMacAddr, staIndex, 
+                                            ucUcastSig, ucBcastSig,
+                                            eWNI_SME_IBSS_PEER_DEPARTED_IND );
                 }
                 if(pTempNode == pMac->lim.gLimIbssPeerList)
                 {
@@ -1533,10 +1542,6 @@ void limIbssHeartBeatHandle(tpAniSirGlobal pMac,tpPESession psessionEntry)
                 palFreeMemory(pMac->hHdd,pTempNode);
                 pMac->lim.gLimNumIbssPeers--;
 
-                //Send indication.
-                ibss_status_chg_notify( pMac, pTempNode->peerMacAddr, pStaDs->staIndex, 
-                                        pStaDs->ucUcastSig, pStaDs->ucBcastSig,
-                                        eWNI_SME_IBSS_PEER_DEPARTED_IND );
                 pTempNode = pTempNextNode; //Since we deleted current node, prevNode remains same.
                 continue;
              }

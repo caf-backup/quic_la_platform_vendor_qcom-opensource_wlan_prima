@@ -1411,6 +1411,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             limProcessWPSOverlapTimeout(pMac);
             break;
 #endif
+
 #endif
 
         case SIR_HAL_ADD_BSS_RSP:

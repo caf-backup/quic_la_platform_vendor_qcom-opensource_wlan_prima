@@ -767,7 +767,6 @@ limUpdateOlbcCacheTimerHandler(void *pMacGlobal, tANI_U32 param)
 
     limPostMsgApi(pMac, &msg);
 } /****** end limUpdateOlbcCacheTimerHandler() ******/
-
 #endif
 
 /**

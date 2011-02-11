@@ -427,6 +427,7 @@ _getLowestRateByNwType( eRfBandMode band, tStaRateMode operMode, tANI_U32 pure11
             halRate = HALRATE_1;
             break;
     }
+
     return halRate;
 }
 

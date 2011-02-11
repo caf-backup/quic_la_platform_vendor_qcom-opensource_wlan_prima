@@ -1040,7 +1040,9 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
 
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
 
-   
+    limLog( pMac, LOGE, FL(" -------------Cannot use WNI_CFG_BSSID please use session specific info\n") );
+    VOS_ASSERT(0);
+
     cfgLen = SIR_MAC_ADDR_LENGTH;
     if ( eSIR_SUCCESS != wlan_cfgGetStr( pMac, WNI_CFG_BSSID,
                                     ( tANI_U8* )pMacHdr->bssId, &cfgLen ) )
@@ -2892,6 +2894,9 @@ limSendMeasReportFrame(tpAniSirGlobal             pMac,
 
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
 
+    limLog( pMac, LOGE, FL(" -------------Cannot use WNI_CFG_BSSID please use session specific info\n") );
+    VOS_ASSERT(0);
+
     nCfg = 6;
     nSirStatus = wlan_cfgGetStr( pMac, WNI_CFG_BSSID, pMacHdr->bssId, &nCfg );
     if ( eSIR_SUCCESS != nSirStatus )
@@ -3010,6 +3015,9 @@ limSendTpcRequestFrame(tpAniSirGlobal pMac,
     }
 
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
+
+    limLog( pMac, LOGE, FL(" -------------Cannot use WNI_CFG_BSSID please use session specific info\n") );
+    VOS_ASSERT(0);
 
     nCfg = 6;
     nSirStatus = wlan_cfgGetStr( pMac, WNI_CFG_BSSID, pMacHdr->bssId, &nCfg );
@@ -3137,6 +3145,9 @@ limSendTpcReportFrame(tpAniSirGlobal            pMac,
     }
 
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
+
+    limLog( pMac, LOGE, FL(" -------------Cannot use WNI_CFG_BSSID please use session specific info\n") );
+    VOS_ASSERT(0);
 
     nCfg = 6;
     nSirStatus = wlan_cfgGetStr( pMac, WNI_CFG_BSSID, pMacHdr->bssId, &nCfg );
@@ -3271,6 +3282,9 @@ limSendChannelSwitchMgmtFrame(tpAniSirGlobal pMac,
     }
 
     pMacHdr = ( tpSirMacMgmtHdr ) pFrame;
+
+    limLog( pMac, LOGE, FL(" -------------Cannot use WNI_CFG_BSSID please use session specific info\n") );
+    VOS_ASSERT(0);
 
     nCfg = 6;
     nSirStatus = wlan_cfgGetStr( pMac, WNI_CFG_BSSID, pMacHdr->bssId, &nCfg );
@@ -3991,6 +4005,9 @@ tSirRetStatus limSendSMPowerStateFrame( tpAniSirGlobal pMac, tSirMacAddr peer,
 
         pMacHdr = ( tpSirMacMgmtHdr ) pSMPowerBuffer;
         cfgLen = SIR_MAC_ADDR_LENGTH;
+
+        limLog( pMac, LOGE, FL(" -------------Cannot use WNI_CFG_BSSID please use session specific info\n") );
+        VOS_ASSERT(0);
 
         statusCode = wlan_cfgGetStr( pMac, WNI_CFG_BSSID, (tANI_U8 *) pMacHdr->bssId, &cfgLen );
 	

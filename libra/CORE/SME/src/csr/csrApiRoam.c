@@ -5243,7 +5243,15 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
             if(HAL_STATUS_SUCCESS(status))
             {
                 /*Save the WPS info*/
-                pScanFilter->bWPSAssociation = pProfile->bWPSAssociation;
+                if(NULL != pProfile)
+                {
+                    pScanFilter->bWPSAssociation = pProfile->bWPSAssociation;
+                }
+                else
+                {
+                    pScanFilter->bWPSAssociation = 0;
+                }
+
                 do
                 {
                     if( (pProfile && CSR_IS_WDS_AP( pProfile ) )
@@ -9052,9 +9060,15 @@ static void csrRoamGetBssStartParmsFromBssDesc( tpAniSirGlobal pMac, tSirBssDesc
         {
             if(pIes->SuppRates.present)
             {
-              pParam->operationalRateSet.numRates = pIes->SuppRates.num_rates;
-              palCopyMemory(pMac->hHdd, pParam->operationalRateSet.rate, pIes->SuppRates.rates, 
-                  sizeof(*pIes->SuppRates.rates) * pIes->SuppRates.num_rates);
+                pParam->operationalRateSet.numRates = pIes->SuppRates.num_rates;
+                if(pIes->SuppRates.num_rates > SIR_MAC_RATESET_EID_MAX)
+                {
+                    smsLog(pMac, LOGE, FL("num_rates :%d is more than SIR_MAC_RATESET_EID_MAX, resetting to SIR_MAC_RATESET_EID_MAX\n"),
+                      pIes->SuppRates.num_rates);
+                    pIes->SuppRates.num_rates = SIR_MAC_RATESET_EID_MAX;
+                }
+                palCopyMemory(pMac->hHdd, pParam->operationalRateSet.rate, pIes->SuppRates.rates, 
+                    sizeof(*pIes->SuppRates.rates) * pIes->SuppRates.num_rates);
             }
             if( pIes->SSID.present )
             {
@@ -9461,6 +9475,12 @@ eHalStatus csrRoamGetBKIDCache(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32
        }
        else if(*pNum >= pSession->NumBkidCache)
        {
+           if(pSession->NumBkidCache > CSR_MAX_PMKID_ALLOWED)
+           {
+               smsLog(pMac, LOGE, FL("NumPmkidCache :%d is more than CSR_MAX_PMKID_ALLOWED, resetting to CSR_MAX_PMKID_ALLOWED\n"),
+                 pSession->NumBkidCache);
+               pSession->NumBkidCache = CSR_MAX_PMKID_ALLOWED;
+           }
            palCopyMemory( pMac->hHdd, pBkidCache, pSession->BkidCacheInfo,
                            sizeof(tBkidCacheInfo) * pSession->NumBkidCache );
            *pNum = pSession->NumBkidCache;
@@ -9538,6 +9558,12 @@ eHalStatus csrRoamGetPMKIDCache(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U3
         }
         else if(*pNum >= pSession->NumPmkidCache)
         {
+            if(pSession->NumPmkidCache > CSR_MAX_PMKID_ALLOWED)
+            {
+                smsLog(pMac, LOGE, FL("NumPmkidCache :%d is more than CSR_MAX_PMKID_ALLOWED, resetting to CSR_MAX_PMKID_ALLOWED\n"),
+                  pSession->NumPmkidCache);
+                pSession->NumPmkidCache = CSR_MAX_PMKID_ALLOWED;
+            }
             palCopyMemory( pMac->hHdd, pPmkidCache, pSession->PmkidCacheInfo,
                             sizeof(tPmkidCacheInfo) * pSession->NumPmkidCache );
             *pNum = pSession->NumPmkidCache;
@@ -10064,6 +10090,12 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
         //remember the IE for future use
         if( ieLen )
         {
+           if(ieLen > DOT11F_IE_RSN_MAX_LEN)
+            {
+                smsLog(pMac, LOGE, FL(" WPA RSN IE length :%d is more than DOT11F_IE_RSN_MAX_LEN, resetting to %d\n"), ieLen, DOT11F_IE_RSN_MAX_LEN);
+                ieLen = DOT11F_IE_RSN_MAX_LEN;
+            }
+
 #ifdef FEATURE_WLAN_WAPI
            if( csrIsProfileWapi( pProfile ) )
            {
@@ -10172,6 +10204,13 @@ eHalStatus csrSendSmeReassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
     tSirMacRateSet ExRateSet;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     tANI_U8 wpaRsnIE[DOT11F_IE_RSN_MAX_LEN];    //RSN MAX is bigger than WPA MAX
+
+    /* To satisfy klockworks */
+    if (pBssDescription == NULL)
+    {
+        smsLog(pMac, LOGE, FL(" pBssDescription is NULL\n"));
+        return eHAL_STATUS_FAILURE;
+    }
 
     do {
         // There are a number of variable length fields to consider.  First, the tSirSmeJoinReq
@@ -10285,6 +10324,12 @@ eHalStatus csrSendSmeReassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
         //remember the IE for future use
         if( ieLen )
         {
+            if(ieLen > DOT11F_IE_RSN_MAX_LEN)
+             {
+                 smsLog(pMac, LOGE, FL(" WPA RSN IE length :%d is more than DOT11F_IE_RSN_MAX_LEN, resetting to %d\n"), ieLen, DOT11F_IE_RSN_MAX_LEN);
+                 ieLen = DOT11F_IE_RSN_MAX_LEN;
+             }
+
             //Check whether we need to allocate more memory
             if(ieLen > pSession->nWpaRsnReqIeLength)
             {
@@ -10744,7 +10789,7 @@ eHalStatus csrSendAssocCnfMsg( tpAniSirGlobal pMac, tpSirSmeAssocInd pAssocInd, 
         status = palSendMBMessage( pMac->hHdd, pMsg );
         if(!HAL_STATUS_SUCCESS(status))
         {
-            palFreeMemory(pMac->hHdd, pMsg);
+            //pMsg is freed by palSendMBMessage
             break;
         }
 

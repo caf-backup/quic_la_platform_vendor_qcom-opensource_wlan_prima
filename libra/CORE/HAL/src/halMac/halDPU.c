@@ -2235,7 +2235,6 @@ static eHalStatus halDpu_GetDpuMICErrorInfoFromBD(tpAniSirGlobal pMac, tpHalRxBd
             sa = pHdr->addr2;
         }
     }
-
     HALLOG1( halLog( pMac, LOG1, FL("DPU MIC ERROR Dpu feedback : %d\n"), pBD->dpuFeedback));
 
     pPayload = SIR_MAC_BD_TO_MPDUDATA(pBD);

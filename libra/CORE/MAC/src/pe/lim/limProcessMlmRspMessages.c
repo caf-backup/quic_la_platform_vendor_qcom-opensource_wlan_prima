@@ -1035,6 +1035,7 @@ limProcessMlmReassocInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         // Log error
         limLog(pMac, LOGP,
            FL("call to palAllocateMemory failed for eWNI_SME_REASSOC_IND\n"));
+        return;
     }
     sirStoreU16N((tANI_U8 *) &pSirSmeReassocInd->messageType,
                  eWNI_SME_REASSOC_IND);
@@ -1056,42 +1057,20 @@ limProcessMlmReassocInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     {
         limLog( pMac, LOGP, FL("MLM ReAssocInd: Station context no longer valid (aid %d)\n"),
                 ((tpLimMlmReassocInd) pMsgBuf)->aid);
-    }
-
-   if (limHalMmhPostMsgApi(pMac, &msgQ,  ePROT) != eSIR_SUCCESS)
-    {
-        limRejectAssociation(pMac,
-                             pStaDs->staAddr,
-                             pStaDs->mlmStaContext.subType,
-                             true,
-                             pStaDs->mlmStaContext.authType,
-                             ((tpLimMlmReassocInd) pMsgBuf)->aid,
-                             true,
-                             (tSirResultCodes) eSIR_MAC_UNSPEC_FAILURE_STATUS,
-                             psessionEntry);
+        palFreeMemory(pMac->hHdd, pSirSmeReassocInd);
         return;
     }
 
+
+    limHalMmhPostMsgApi(pMac, &msgQ,  ePROT);
     PELOG1(limLog(pMac, LOG1,
        FL("Create CNF_WAIT_TIMER after received LIM_MLM_REASSOC_IND\n"));)
 
     /*
      ** turn on a timer to detect the loss of REASSOC CNF
      **/
-
-    pStaDs = dphGetHashEntry(pMac,
-                             ((tpLimMlmReassocInd) pMsgBuf)->aid, &psessionEntry->dph.dphHashTable);
-
-    if (pStaDs)
-    {
-        limActivateCnfTimer(pMac,
-                            (tANI_U16) ((tpLimMlmReassocInd) pMsgBuf)->aid, psessionEntry);
-    }
-    else
-    {
-        limLog(pMac, LOGW,
-           FL("No STA context when try to create CNF_WAIT_TIMER to detect loss of REASSOC CNF\n"));
-    }
+    limActivateCnfTimer(pMac,
+                        (tANI_U16) ((tpLimMlmReassocInd) pMsgBuf)->aid, psessionEntry);
 } /*** end limProcessMlmReassocInd() ***/
 
 
@@ -1302,8 +1281,10 @@ limProcessMlmAssocInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     if (! pStaDs)
     {   // good time to panic...
-        limLog(pMac, LOGP, FL("MLM AssocInd: Station context no longer valid (aid %d)\n"),
+        limLog(pMac, LOGE, FL("MLM AssocInd: Station context no longer valid (aid %d)\n"),
                ((tpLimMlmAssocInd) pMsgBuf)->aid);
+        palFreeMemory(pMac->hHdd, pSirSmeAssocInd);
+        return;
     }
 
     pSirSmeAssocInd->staId = pStaDs->staIndex;
@@ -1316,19 +1297,7 @@ limProcessMlmAssocInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     limDiagEventReport(pMac, WLAN_PE_DIAG_ASSOC_IND_EVENT, NULL, 0, 0);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
 	
-    if (limHalMmhPostMsgApi(pMac, &msgQ,  ePROT) != eSIR_SUCCESS)
-    {
-        limRejectAssociation(pMac,
-                              pStaDs->staAddr,
-                             pStaDs->mlmStaContext.subType,
-                             true,
-                             pStaDs->mlmStaContext.authType,
-                             ((tpLimMlmAssocInd) pMsgBuf)->aid,
-                             true,
-                             (tSirResultCodes) eSIR_MAC_UNSPEC_FAILURE_STATUS,
-                             psessionEntry);
-        return;
-    }
+    limHalMmhPostMsgApi(pMac, &msgQ,  ePROT);
 
     PELOG1(limLog(pMac, LOG1,
        FL("Create CNF_WAIT_TIMER after received LIM_MLM_ASSOC_IND\n"));)
@@ -2350,6 +2319,12 @@ void limProcessBtAmpApMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
     tSirMacAddr             nullBssid = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 
+    if(psessionEntry == NULL)
+    {
+        limLog(pMac, LOGE,FL("Session entry passed is NULL\n"));
+        return;
+    }
+
     if (pDelBss == NULL)
     {
         PELOGE(limLog(pMac, LOGE, FL("BSS: DEL_BSS_RSP with no body!\n"));)
@@ -2395,16 +2370,11 @@ void limProcessBtAmpApMlmDelBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
     //Initialize number of associated stations during cleanup
     pMac->lim.gLimNumOfCurrentSTAs = 0;
 #endif
-    //Is it ok to put LIM into IDLE state.
-
-    if(psessionEntry != NULL)
-    {
-        peDeleteSession(pMac, psessionEntry);
-    }
-    //psessionEntry->limMlmState = eLIM_MLM_IDLE_STATE;
 
     end:
     limSendSmeRsp(pMac, eWNI_SME_STOP_BSS_RSP, rc,  psessionEntry->smeSessionId,  psessionEntry->transactionId);
+    peDeleteSession(pMac, psessionEntry);
+
     if(pDelBss != NULL)
         palFreeMemory( pMac->hHdd, (void *) pDelBss );
 
@@ -2557,32 +2527,38 @@ void limProcessApMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
 void limProcessBtAmpApMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession psessionEntry)
 {
     tpDeleteStaParams pDelStaParams = (tpDeleteStaParams) limMsgQ->bodyptr;
-    tpDphHashNode pStaDs = dphGetHashEntry(pMac, pDelStaParams->assocId, &psessionEntry->dph.dphHashTable);
+    tpDphHashNode pStaDs;
     tSirResultCodes statusCode = eSIR_SME_SUCCESS;
+
+    if(limMsgQ->bodyptr == NULL)
+    {
+      return;
+    }
+
+    pStaDs = dphGetHashEntry(pMac, pDelStaParams->assocId, &psessionEntry->dph.dphHashTable);
+    if(pStaDs == NULL)
+    {
+        limLog( pMac, LOGE,
+             FL( "DPH Entry for STA %X missing.\n"), pDelStaParams->assocId);
+        statusCode = eSIR_SME_REFUSED;
+        palFreeMemory( pMac->hHdd, (void *) pDelStaParams );
+        return;
+    }
 
     if( eHAL_STATUS_SUCCESS == pDelStaParams->status )
     {
-           limLog( pMac, LOGW,
-                      FL( "AP received the DEL_STA_RSP for assocID: %X.\n"), pDelStaParams->assocId);
+        limLog( pMac, LOGW,
+                   FL( "AP received the DEL_STA_RSP for assocID: %X.\n"), pDelStaParams->assocId);
 
-        if(pStaDs == NULL)
-        {
-             limLog( pMac, LOGE,
-                  FL( "DPH Entry for STA %X missing.\n"), pDelStaParams->assocId);
-             statusCode = eSIR_SME_REFUSED;
-             goto end;
-        }
-
-         if(( eLIM_MLM_WT_DEL_STA_RSP_STATE != pStaDs->mlmStaContext.mlmState) &&
-            ( eLIM_MLM_WT_ASSOC_DEL_STA_RSP_STATE != pStaDs->mlmStaContext.mlmState))
+        if(( eLIM_MLM_WT_DEL_STA_RSP_STATE != pStaDs->mlmStaContext.mlmState) &&
+           ( eLIM_MLM_WT_ASSOC_DEL_STA_RSP_STATE != pStaDs->mlmStaContext.mlmState))
         {
             limLog( pMac, LOGE,
               FL( "Received unexpected SIR_HAL_DEL_STA_RSP in state %s for staId %d assocId %d \n" ),
                limMlmStateStr(pStaDs->mlmStaContext.mlmState), pStaDs->staIndex, pStaDs->assocId);
             statusCode = eSIR_SME_REFUSED;
-           goto end;
+            goto end;
         }
-
 
         limLog( pMac, LOG1,
             FL("Deleted STA AssocID %d staId %d MAC "),
@@ -2591,10 +2567,7 @@ void limProcessBtAmpApMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
 
        if(eLIM_MLM_WT_ASSOC_DEL_STA_RSP_STATE == pStaDs->mlmStaContext.mlmState)
        {
-            if( 0 != limMsgQ->bodyptr )
-            {
-              palFreeMemory( pMac->hHdd, (void *) pDelStaParams );
-            }
+            palFreeMemory( pMac->hHdd, (void *) pDelStaParams );
 
             if (limAddSta(pMac, pStaDs,psessionEntry) != eSIR_SUCCESS)
             {
@@ -2635,10 +2608,7 @@ void limProcessBtAmpApMlmDelStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
     }
 
     end:
-    if( 0 != limMsgQ->bodyptr )
-    {
-      palFreeMemory( pMac->hHdd, (void *) pDelStaParams );
-    }
+    palFreeMemory( pMac->hHdd, (void *) pDelStaParams );
 
     if(eLIM_MLM_WT_ASSOC_DEL_STA_RSP_STATE != pStaDs->mlmStaContext.mlmState)
     {
@@ -2874,10 +2844,7 @@ void limProcessBtAmpApMlmAddStaRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPES
      */
     limSendMlmAssocInd(pMac, pStaDs, psessionEntry);
 
-
     // fall though to reclaim the original Add STA Response message
-
-
 
 end:
     if( 0 != limMsgQ->bodyptr )
@@ -3232,6 +3199,9 @@ limProcessStaMlmAddBssRspPreAssoc( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPES
 
             psessionEntry->limPrevSmeState = psessionEntry->limSmeState;
             psessionEntry->limSmeState     = eLIM_SME_WT_AUTH_STATE;
+            // remember staId in case of assoc timeout/failure handling
+            psessionEntry->staId = pAddBssParams->staContext.staIdx;
+
             MTRACE(macTrace(pMac, TRACE_CODE_SME_STATE, 0, psessionEntry->limSmeState));
 
             limPostMlmMessage(pMac,
@@ -3980,12 +3950,14 @@ static void limProcessSwitchChannelReAssocReq(tpAniSirGlobal pMac, tpPESession p
     return;
 
 end:
-    /// Free up buffer allocated for reassocReq
-    psessionEntry->pLimMlmReassocReq = NULL;
-    palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmReassocReq);
+    // Free up buffer allocated for reassocReq
+    if(pMlmReassocReq != NULL)
+    {
+        palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmReassocReq);
+    }
     mlmReassocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
     /* Update PE sessio Id*/
-    mlmReassocCnf.sessionId = pMlmReassocReq->sessionId;
+    mlmReassocCnf.sessionId = psessionEntry->peSessionId;
 
     limPostSmeMessage(pMac, LIM_MLM_REASSOC_CNF, (tANI_U32 *) &mlmReassocCnf);
 }
