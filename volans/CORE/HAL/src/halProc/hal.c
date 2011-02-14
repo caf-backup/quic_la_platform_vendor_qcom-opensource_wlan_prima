@@ -78,6 +78,7 @@ static eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfg
 #endif
 static 
 eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId);
+static eHalStatus halHandleDynamicPsPollValue(tpAniSirGlobal pMac, tANI_U32 cfgId);
 
 /* Constant Macros */
 /* Redefine OFF -> __OFF, ON-> __ON to avoid redefinition on AMSS */
@@ -712,7 +713,7 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             pttProcessMsg(pMac, pPttMsg);
             return(rc);
         }
-        return rc;
+        //return rc;
     }
 #endif
 
@@ -759,6 +760,21 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
     eHalStatus      status = eHAL_STATUS_SUCCESS;
     tANI_U32        val;
     tANI_U16        dialogToken = pMsg->reserved;
+
+#ifndef WLAN_FTM_STUB
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG)
+    {
+        switch (pMsg->type)
+        {
+           case SIR_HAL_TIMER_ADC_RSSI_STATS:
+                tx_timer_deactivate(&pMac->ptt.adcRssiStatsTimer);
+                halPhyAdcRssiStatsCollection(pMac);
+                tx_timer_activate(&pMac->ptt.adcRssiStatsTimer);
+                break;
+        }
+        return eSIR_SUCCESS;
+    }
+#endif
 
     switch (pMsg->type)
     {
@@ -994,6 +1010,11 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                 case WNI_CFG_MCAST_BCAST_FILTER_SETTING:
                      halHandleMcastBcastFilterSetting(pMac, pMsg->bodyval);
                    break;
+            
+                case WNI_CFG_DYNAMIC_PS_POLL_VALUE:
+                   halHandleDynamicPsPollValue(pMac, pMsg->bodyval);
+                   break;
+            
        
                 case WNI_CFG_RF_SETTLING_TIME_CLK:
                       halPSRfSettlingTimeClk(pMac, pMsg->bodyval);
@@ -1375,13 +1396,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
         case SIR_HAL_SET_HOST_OFFLOAD:
             halPS_SetHostOffloadInFw(pMac, (tpSirHostOffloadReq)pMsg->bodyptr);
             break;
-#ifndef WLAN_FTM_STUB        
-        case SIR_HAL_TIMER_ADC_RSSI_STATS:
-            tx_timer_deactivate(&pMac->ptt.adcRssiStatsTimer);
-            halPhyAdcRssiStatsCollection(pMac);
-            tx_timer_activate(&pMac->ptt.adcRssiStatsTimer);
-            break;
-#endif
+
         default:
             HALLOGW( halLog(pMac, LOGW, FL("Errored Type 0x%X\n"), pMsg->type));
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
@@ -2182,6 +2197,25 @@ halTlPostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 #ifdef VOSS_ENABLED
     return  vos_mq_post_message(VOS_MQ_ID_TL, (vos_msg_t *) pMsg);
 #endif
+}
+
+static 
+eHalStatus halHandleDynamicPsPollValue(tpAniSirGlobal pMac, tANI_U32 cfgId)
+{
+    tANI_U32 val;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgId, &val))
+    {
+        HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+        return eHAL_STATUS_FAILURE;
+    }
+    else
+    {    
+        pMac->hal.dynamicPsPollValue = (tANI_BOOLEAN)val;
+    }
+    
+    return status;
 }
 
 #ifdef WLAN_SOFTAP_FEATURE

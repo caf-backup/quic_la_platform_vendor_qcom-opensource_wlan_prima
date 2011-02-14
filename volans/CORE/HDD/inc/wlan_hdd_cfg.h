@@ -919,6 +919,11 @@ typedef enum
 #define CFG_BTC_EXECUTION_MODE_MAX                          ( 5 )
 #define CFG_BTC_EXECUTION_MODE_DEFAULT                      ( 0 )
 
+#define CFG_BTC_DHCP_PROTECTION_NAME                         "BtcConsBtSlotToBlockDuringDhcp"
+#define CFG_BTC_DHCP_PROTECTION_MIN                          ( 0 )
+#define CFG_BTC_DHCP_PROTECTION_MAX                          ( 0xFF )
+#define CFG_BTC_DHCP_PROTECTION_DEFAULT                      ( 0 )
+
 #if defined WLAN_FEATURE_VOWIFI_11R
 #define CFG_FT_ENABLE_NAME                              "gFtEnabled"
 #define CFG_FT_ENABLE_MIN                               (0)
@@ -965,6 +970,7 @@ typedef enum
 #define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_MAX            (4)
 #define CFG_11R_NEIGHBOR_REQ_MAX_TRIES_DEFAULT        (1)
 
+
 #define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_NAME         "gNeighborScanRefreshPeriod"
 #define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_MIN          (1000)
 #define CFG_NEIGHBOR_SCAN_RESULTS_REFRESH_PERIOD_MAX          (60000)
@@ -989,6 +995,11 @@ typedef enum
 #define CFG_MCAST_BCAST_FILTER_SETTING_MIN           (0)
 #define CFG_MCAST_BCAST_FILTER_SETTING_MAX           (3)
 #define CFG_MCAST_BCAST_FILTER_SETTING_DEFAULT       (0)
+
+#define CFG_DYNAMIC_PSPOLL_VALUE_NAME          "gDynamicPSPollvalue"
+#define CFG_DYNAMIC_PSPOLL_VALUE_MIN           (0)
+#define CFG_DYNAMIC_PSPOLL_VALUE_MAX           (255)
+#define CFG_DYNAMIC_PSPOLL_VALUE_DEFAULT       (0)
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1027,6 +1038,7 @@ typedef struct
    v_BOOL_t      fIsImpsEnabled;
    v_BOOL_t      fIsLogpEnabled;
    v_U8_t        btcExecutionMode;
+   v_U8_t        btcConsBtSlotsToBlockDuringDhcp;
    v_U32_t       nImpsModSleepTime;
    v_U32_t       nImpsMaxSleepTime;
    v_U32_t       nImpsMinSleepTime;
@@ -1233,6 +1245,8 @@ typedef struct
    /* RF Settling Time Clock */
    v_U32_t                     rfSettlingTimeUs;
 
+   
+   v_U8_t                      dynamicPsPollValue;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

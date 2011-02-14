@@ -936,58 +936,53 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_deactivate(&pMac->lim.limTimers.gLimMaxChannelTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimMaxChannelTimer);
 
+   
+         // Deactivate and delete channel switch timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimChannelSwitchTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimChannelSwitchTimer);
 
-        if ((pMac->lim.gLimSystemRole == eLIM_STA_ROLE) ||
-            (pMac->lim.gLimSystemRole == eLIM_STA_IN_IBSS_ROLE))
-        {
-    
-            // Deactivate and delete channel switch timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimChannelSwitchTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimChannelSwitchTimer);
+         // Deactivate and delete addts response timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimAddtsRspTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimAddtsRspTimer);
 
-            // Deactivate and delete addts response timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimAddtsRspTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimAddtsRspTimer);
+         // Deactivate and delete Join failure timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimJoinFailureTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimJoinFailureTimer);
 
-            // Deactivate and delete Join failure timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimJoinFailureTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimJoinFailureTimer);
+         // Deactivate and delete Association failure timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimAssocFailureTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimAssocFailureTimer);
 
-            // Deactivate and delete Association failure timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimAssocFailureTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimAssocFailureTimer);
+         // Deactivate and delete Reassociation failure timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimReassocFailureTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimReassocFailureTimer);
 
-            // Deactivate and delete Reassociation failure timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimReassocFailureTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimReassocFailureTimer);
+         // Deactivate and delete Authentication failure timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimAuthFailureTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimAuthFailureTimer);
 
-            // Deactivate and delete Authentication failure timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimAuthFailureTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimAuthFailureTimer);
+         // Deactivate and delete Heartbeat timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimHeartBeatTimer);
 
-            // Deactivate and delete Heartbeat timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimHeartBeatTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimHeartBeatTimer);
+         // Deactivate and delete wait-for-probe-after-Heartbeat timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
 
-            // Deactivate and delete wait-for-probe-after-Heartbeat timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
+         // Deactivate and delete Quiet timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimQuietTimer);
 
-            // Deactivate and delete Quiet timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimQuietTimer);
-
-            // Deactivate and delete Quiet BSS timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietBssTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimQuietBssTimer);
+         // Deactivate and delete Quiet BSS timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimQuietBssTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimQuietBssTimer);
 
 #if defined(ANI_PRODUCT_TYPE_CLIENT) || defined(ANI_AP_CLIENT_SDK)
-            // Deactivate and delete LIM background scan timer.
-            tx_timer_deactivate(&pMac->lim.limTimers.gLimBackgroundScanTimer);
-            tx_timer_delete(&pMac->lim.limTimers.gLimBackgroundScanTimer);
+         // Deactivate and delete LIM background scan timer.
+         tx_timer_deactivate(&pMac->lim.limTimers.gLimBackgroundScanTimer);
+         tx_timer_delete(&pMac->lim.limTimers.gLimBackgroundScanTimer);
 #endif
 
-        }
 
         // Deactivate and delete cnf wait timer
         for (n = 0; n < pMac->lim.maxStation; n++)
@@ -1037,6 +1032,9 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_delete(&pMac->lim.limTimers.gLimSendDisassocFrameThresholdTimer);
         
 #ifdef WLAN_SOFTAP_FEATURE
+        tx_timer_deactivate(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
+
 #if 0 // The WPS PBC clean up timer is disabled
         if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
         {
@@ -1535,18 +1533,19 @@ char *limFrameStr(tANI_U32 type, tANI_U32 subType)
 return "";
 }
 
-
-#ifdef ANI_PRODUCT_TYPE_AP
-
+#ifdef WLAN_SOFTAP_FEATURE
 void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
 {
     int i;
     static int enable;
     tUpdateBeaconParams beaconParams;
 
-     tpPESession       psessionEntry =  &pMac->lim.gpSession[0]; //TBD-RAJESH HOW TO GET sessionEntry?????
+    tpPESession       psessionEntry = limIsApSessionActive(pMac);
+
+    if (psessionEntry == NULL)
+        return;
+    
     beaconParams.paramChangeBitmap = 0;
-               
     /*
     ** This is doing a 2 pass check. The first pass is to invalidate
     ** all the cache entries. The second pass is to decide whether to
@@ -1554,7 +1553,17 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
     **/
     if (!enable)
     {
-        PELOG2(limLog(pMac, LOG2, FL("Resetting OLBC cache\n"));)
+
+        if (eLIM_AP_ROLE == psessionEntry->limSystemRole)// Clear Session Cache
+        {
+            PELOG2(limLog(pMac, LOG2, FL("Resetting OLBC cache\n"));)
+            psessionEntry->gLimOlbcParams.numSta = 0;
+            psessionEntry->gLimOverlap11gParams.numSta = 0;
+            psessionEntry->gLimOverlapHt20Params.numSta = 0;
+            psessionEntry->gLimNonGfParams.numSta = 0;
+            psessionEntry->gLimLsigTxopParams.numSta = 0;
+        }
+
         pMac->lim.gLimOlbcParams.numSta = 0;
         pMac->lim.gLimOverlap11gParams.numSta = 0;
         pMac->lim.gLimOverlapHt20Params.numSta = 0;
@@ -1568,23 +1577,24 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
     }
     else
     {
-        if (!pMac->lim.gLimOlbcParams.numSta)
-        {
-            if (pMac->lim.gLimOlbcParams.protectionEnabled)
+
+        if (!psessionEntry->gLimOverlap11gParams.numSta)
+        {  
+            if (psessionEntry->gLimOlbcParams.protectionEnabled)
             {
-                if (!pMac->lim.gLim11bParams.protectionEnabled)
+                if (!psessionEntry->gLim11bParams.protectionEnabled)
                 {
                     PELOG1(limLog(pMac, LOG1, FL("Overlap cache all clear and no 11B STA detected\n"));)
-                    limEnable11gProtection(pMac, false, true, &beaconParams,psessionEntry);
+                    limEnable11gProtection(pMac, false, true, &beaconParams, psessionEntry);
                 }
             }
         }
 
-        if (!pMac->lim.gLimOverlap11gParams.numSta)
-        {
-            if (pMac->lim.gLimOverlap11gParams.protectionEnabled)
+    if (!psessionEntry->gLimOverlap11gParams.numSta)
+        {   
+            if (psessionEntry->gLimOverlap11gParams.protectionEnabled)
             {
-                if (!pMac->lim.gLim11gParams.protectionEnabled)
+                if (!psessionEntry->gLim11gParams.protectionEnabled)
                 {
                     PELOG1(limLog(pMac, LOG1, FL("Overlap cache all clear and no 11G STA detected\n"));)
                     limEnableHtProtectionFrom11g(pMac, false, true, &beaconParams,psessionEntry);
@@ -1592,11 +1602,11 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
             }
         }
 
-        if (!pMac->lim.gLimOverlapHt20Params.numSta)
+        if (!psessionEntry->gLimOverlapHt20Params.numSta)
         {
-            if (pMac->lim.gLimOverlapHt20Params.protectionEnabled)
+            if (psessionEntry->gLimOverlapHt20Params.protectionEnabled)
             {
-                if (!pMac->lim.gLimHt20Params.protectionEnabled)
+                if (!psessionEntry->gLimHt20Params.protectionEnabled)
                 {
                     PELOG1(limLog(pMac, LOG1, FL("Overlap cache all clear and no HT20 STA detected\n"));)
                     limEnable11gProtection(pMac, false, true, &beaconParams,psessionEntry);
@@ -1611,6 +1621,12 @@ void limHandleUpdateOlbcCache(tpAniSirGlobal pMac)
     {
         schSetFixedBeaconFields(pMac,psessionEntry);
         limSendBeaconParams(pMac, &beaconParams, psessionEntry);
+    }
+
+    // Start OLBC timer
+    if (tx_timer_activate(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer) != TX_SUCCESS)
+    {
+        limLog(pMac, LOGE, FL("tx_timer_activate failed\n"));
     }
 }
 #endif
@@ -1834,8 +1850,7 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
         if (true == psessionEntry->htCapabality)
         {
             //check if we need protection from 11b station
-
-            if ((pStaDs->erpEnabled== eHAL_CLEAR) &&
+            if ((pStaDs->erpEnabled == eHAL_CLEAR) &&
                 (!pStaDs->mlmStaContext.htCapability))
             {
                 protStaCacheType = eLIM_PROT_STA_CACHE_TYPE_llB;
@@ -1848,9 +1863,7 @@ limDecideApProtection(tpAniSirGlobal pMac, tSirMacAddr peerMacAddr, tpUpdateBeac
             {
                 protStaCacheType = eLIM_PROT_STA_CACHE_TYPE_llG;
                 //enable protection
-                limEnableHtProtectionFrom11g(pMac, true, false, pBeaconParams,psessionEntry);
-        
-                
+                limEnableHtProtectionFrom11g(pMac, true, false, pBeaconParams,psessionEntry);       
             }
             //ERP mode is enabled for the latest station joined
             //latest station joined is HT capable
@@ -4214,23 +4227,23 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         else
         {
             //normal protection config check
-#ifdef WLAN_SOFTAP_FEATURE			
+#ifdef WLAN_SOFTAP_FEATURE
             if((psessionEntry->limSystemRole == eLIM_AP_ROLE ) &&
-			    !psessionEntry->cfgProtection.fromllb)
+                !psessionEntry->cfgProtection.fromllb)
             {
                 // protection disabled.
                 PELOG1(limLog(pMac, LOG1, FL("protection from 11b is disabled\n"));)
                 return eSIR_SUCCESS;
             }else if(psessionEntry->limSystemRole != eLIM_AP_ROLE)
-#endif		
-            {   
+#endif
+            {
                 if(!pMac->lim.cfgProtection.fromllb)
                 {
                     // protection disabled.
                     PELOG1(limLog(pMac, LOG1, FL("protection from 11b is disabled\n"));)
                     return eSIR_SUCCESS;
                  }
-			}
+            }
         }
 
     if (enable)
@@ -4249,10 +4262,13 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                     (eSIR_HT_OP_MODE_MIXED != psessionEntry->htOperMode))
                 {
                     psessionEntry->htOperMode = eSIR_HT_OP_MODE_OVERLAP_LEGACY;
-                    limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
-              //Not processing OBSS bit from other APs, as we are already taking care
-              //of Protection from overlapping BSS based on erp IE or useProtection bit
                 }
+                //CR-263021: OBSS bit is not switching back to 0 after disabling the overlapping legacy BSS
+                // This fixes issue of OBSS bit not set after 11b, 11g station leaves
+                limEnableHtRifsProtection(pMac, true, overlap, pBeaconParams,psessionEntry);
+                //Not processing OBSS bit from other APs, as we are already taking care
+                //of Protection from overlapping BSS based on erp IE or useProtection bit
+                limEnableHtOBSSProtection(pMac,  true, overlap, pBeaconParams, psessionEntry);
             }
             else
             {
@@ -4317,7 +4333,7 @@ limEnable11gProtection(tpAniSirGlobal pMac, tANI_U8 enable,
                 //Overlap Legacy protection disabled.
                 psessionEntry->gLimOlbcParams.protectionEnabled = false;
 
-                //We need to take care of HT OP mode iff we are HT AP.
+                //We need to take care of HT OP mode if we are HT AP.
                 if(psessionEntry->htCapabality)
                 {
                     // no HT op mode change if any of the overlap protection enabled.
@@ -4595,6 +4611,15 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->llgCoexist = psessionEntry->llgCoexist = true;
             pBeaconParams->paramChangeBitmap |= PARAM_llGCOEXIST_CHANGED;
         }
+#ifdef WLAN_SOFTAP_FEATURE
+        else if (true == psessionEntry->gLimOverlap11gParams.protectionEnabled)
+        {
+            // As operating mode changed after G station assoc some way to update beacon
+            // This addresses the issue of mode not changing to - 11 in beacon when OBSS overlap is enabled
+            //pMac->sch.schObject.fBeaconChanged = 1;
+            pBeaconParams->paramChangeBitmap |= PARAM_llGCOEXIST_CHANGED;
+        }
+#endif
     }
     else if (true == psessionEntry->llgCoexist)
     {
@@ -4607,7 +4632,8 @@ limEnableHtProtectionFrom11g(tpAniSirGlobal pMac, tANI_U8 enable,
             if(overlap)
             {
                 //Overlap Legacy protection disabled.
-                psessionEntry->gLimOverlap11gParams.protectionEnabled = false;
+                if (psessionEntry->gLim11gParams.numSta == 0)
+                    psessionEntry->gLimOverlap11gParams.protectionEnabled = false;
 
                 // no HT op mode change if any of the overlap protection enabled.
                 if(!(psessionEntry->gLimOlbcParams.protectionEnabled ||
@@ -4824,7 +4850,12 @@ limEnableHtOBSSProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->paramChangeBitmap |= PARAM_OBSS_MODE_CHANGED;
 
          }
-    } else
+//CR-263021: OBSS bit is not switching back to 0 after disabling the overlapping legacy BSS
+         if (!enable && !overlap)
+         {
+             psessionEntry->gLimOverlap11gParams.protectionEnabled = false;
+         }
+	} else
 #endif
     {
         if ((enable) && (false == pMac->lim.gHTObssMode) )

@@ -63,9 +63,10 @@ typedef struct {
    v_U16_t aTxQueueDepth[NUM_TX_QUEUES];
    
    /**Track whether OS TX queue has been disabled.*/
-   v_BOOL_t txSuspended;
-   v_U8_t   txSuspendedAc;   
+   v_BOOL_t txSuspended[NUM_TX_QUEUES];
 
+   /** Track QoS status of station */
+   v_BOOL_t isQosEnabled;
 } hdd_station_info_t;
 
 typedef struct hdd_hostapd_adapter_s
@@ -86,7 +87,9 @@ typedef struct hdd_hostapd_adapter_s
 
     /** Multiple station supports */
    /** Per-statioin structure */
+#ifdef WLAN_SOFTAP_FEATURE
    hdd_station_info_t aStaInfo[WLAN_MAX_STA_COUNT];
+#endif
    //v_U8_t uNumActiveStation;
 
    v_U16_t aTxQueueLimit[NUM_TX_QUEUES];
@@ -123,10 +126,6 @@ typedef struct hdd_hostapd_adapter_s
    /**Track whether VOS is in a low resource state*/
    v_BOOL_t isVosOutOfResource;
   
-   /**Track whether OS TX queue has been disabled.*/
-   v_BOOL_t isTxSuspended;
-   v_U8_t   txSuspendedAc;
-
    /**Event Flags*/
    unsigned long event_flags;
 
@@ -168,7 +167,9 @@ typedef struct hdd_hostapd_adapter_s
 
    v_U8_t uPrivacy;  // The privacy bits of configuration
 
+#ifdef WLAN_SOFTAP_FEATURE
    tSirWPSPBCProbeReq WPSPBCProbeReq;
+#endif
 
    struct semaphore semWpsPBCOverlapInd;
 

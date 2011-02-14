@@ -37,10 +37,10 @@
  #define WLAN_MAP_DRIVER_STOP_TO_DEEP_SLEEP  2
 
  //Maximum time (ms) to wait for standby to complete
- #define WLAN_WAIT_TIME_STANDBY          1000
+ #define WLAN_WAIT_TIME_STANDBY          3000
 
  //Maximum time (ms) to wait for full pwr to complete
- #define WLAN_WAIT_TIME_FULL_PWR         1000
+ #define WLAN_WAIT_TIME_FULL_PWR         3000
 
 
 /*---------------------------------------------------------------------------
@@ -56,8 +56,9 @@
  VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter);
 #ifdef CONFIG_HAS_EARLYSUSPEND
  VOS_STATUS hdd_wlan_reset(void) ;
+ VOS_STATUS hdd_wlan_reset_initialization(void) ;
 #endif
 
-
+void hdd_conf_mcastbcast_filter(hdd_adapter_t* pAdapter, v_BOOL_t setfilter);
 
 #endif // if !defined __WLAN_QCT_DRIVER_H

@@ -125,7 +125,7 @@ void limResetDeferredMsgQ(tpAniSirGlobal pMac);
 
 tSirRetStatus limHalMmhPostMsgApi(tpAniSirGlobal, tSirMsgQ*, tANI_U8);
 
-#if defined(ANI_PRODUCT_TYPE_AP)
+#ifdef WLAN_SOFTAP_FEATURE
 void limHandleUpdateOlbcCache(tpAniSirGlobal pMac);
 #endif
 

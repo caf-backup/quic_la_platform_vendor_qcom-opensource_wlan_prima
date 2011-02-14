@@ -1184,11 +1184,18 @@ static eHalStatus halRxp_setFrameFilterMask(tpAniSirGlobal pMac, tANI_U32 frameT
     return eHAL_STATUS_SUCCESS;
 }
 
-void halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN setFilter)
+eHalStatus halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN setFilter)
 {
     tANI_U32 reg_value;
     tANI_U32 mask = 0;
     eHalStatus halStatus;
+
+    if (setFilter && !(IS_PWRSAVE_STATE_IN_BMPS))
+    {
+        HALLOGE(halLog(pMac, LOGE, 
+           FL("%s: Cannot set McastBcast filter, as device is not in BMPS\n"), __FUNCTION__));
+        return eHAL_STATUS_FAILURE;
+    }
 
     switch(pMac->hal.mcastBcastFilterSetting)
     {
@@ -1205,19 +1212,21 @@ void halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN setFilt
         break;
     }
 
-    if (IS_PWRSAVE_STATE_IN_BMPS) 
-    {
-        halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
-    }
+    if (IS_PWRSAVE_STATE_IN_BMPS)
+        halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC);
 
     halStatus = halRxp_getFrameFilterMask(pMac, eDATA_DATA, &reg_value);
-    if(eHAL_STATUS_SUCCESS == halStatus)
-    {
-        if(setFilter)
-            halRxp_setFrameFilterMask(pMac, eDATA_DATA, reg_value | mask);
-        else
-            halRxp_setFrameFilterMask(pMac, eDATA_DATA, reg_value & ~mask);
-    }
+
+    if(eHAL_STATUS_SUCCESS != halStatus)
+        return halStatus;
+
+    if(setFilter)
+        halStatus = halRxp_setFrameFilterMask(pMac, eDATA_DATA, reg_value | mask);
+    else
+        halStatus = halRxp_setFrameFilterMask(pMac, eDATA_DATA, reg_value & ~mask);
+
+    if(eHAL_STATUS_SUCCESS != halStatus)
+        return halStatus;
 
     halStatus = halRxp_getFrameFilterMask(pMac, eDATA_QOSDATA, &reg_value);
     if(eHAL_STATUS_SUCCESS == halStatus)
@@ -1228,10 +1237,10 @@ void halRxp_configureRxpFilterMcstBcst(tpAniSirGlobal pMac, tANI_BOOLEAN setFilt
             halRxp_setFrameFilterMask(pMac, eDATA_QOSDATA, reg_value & ~mask);
     }
     
-    if (IS_PWRSAVE_STATE_IN_BMPS) 
-    {
-        halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC); 
-    }
+    if (IS_PWRSAVE_STATE_IN_BMPS)
+        halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC);
+
+    return halStatus;
 }
 
 /* --------------------------------
@@ -1276,12 +1285,14 @@ static eHalStatus halRxp_setFilterMask(tpAniSirGlobal pMac, tRxpFilterConfig *ta
 static eHalStatus setRegister(tpAniSirGlobal pMac, tANI_U32 address, tANI_U32 value)
 {
     tANI_U32  readValue;
+    eHalStatus halStatus;
 
-    halWriteRegister(pMac, address, value);
+    halStatus = halWriteRegister(pMac, address, value);
 
-    halReadRegister(pMac, address, &readValue);
+    if(halStatus == eHAL_STATUS_SUCCESS) 
+       halStatus = halReadRegister(pMac, address, &readValue);
 
-    return eHAL_STATUS_SUCCESS;
+    return halStatus;
 }
 
 /* ---------------------------------------------------

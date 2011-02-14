@@ -361,7 +361,14 @@ static v_VOID_t balGetTXResTimerExpierCB
          BEXIT();
          return;
       }
-      backoffCounter++;
+      if(WLANBAL_MAX_TX_BACKOFF_COUNTER >= backoffCounter)
+      {
+          backoffCounter++;
+      }
+      else
+      {
+        	 BMSGERROR("backoffCounter reached max value", 0, 0, 0);
+      }
    }
    else
    {
@@ -1875,6 +1882,8 @@ VOS_STATUS WLANBAL_Suspend
 
    BENTER();
 
+  vos_timer_stop(&gbalHandle->timer);
+
    status = WLANSSC_Suspend(sscHandle, WLANSSC_ALL_FLOW);
 
    BEXIT();
@@ -1945,6 +1954,40 @@ VOS_STATUS WLANBAL_SuspendChip
    BEXIT();
 
    return status;
+}
+
+/*----------------------------------------------------------------------------
+
+  @brief Suspend Entire chip, Trigger SSC Suspend Chip
+
+  @param v_PVOID_t pAdapter
+        Global adapter handle
+
+  @return General status code
+        VOS_STATUS_SUCCESS       Suspend Chip success
+        VOS_STATUS_E_INVAL       Invalid Parameters
+
+----------------------------------------------------------------------------*/
+VOS_STATUS WLANBAL_SuspendChip_NoLock
+(
+   v_PVOID_t pAdapter
+)
+{
+   v_PVOID_t         sscHandle = (v_PVOID_t)VOS_GET_SSC_CTXT(pAdapter);
+   VOS_STATUS        status = VOS_STATUS_SUCCESS;
+
+   VOS_ASSERT(gbalHandle);
+   VOS_ASSERT(sscHandle);
+
+   BENTER();
+
+   status = WLANSSC_SuspendChip_NoLock(sscHandle);
+
+
+   BEXIT();
+
+   return status;
+
 }
 
 /*----------------------------------------------------------------------------

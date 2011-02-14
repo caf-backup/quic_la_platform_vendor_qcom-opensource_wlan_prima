@@ -253,6 +253,12 @@ typedef eHalStatus (*fpWriteHwReg)(tHalHandle, tANI_U32, tANI_U32);
 // Function pointer to the register read function
 typedef eHalStatus (*fpReadHwReg)(tHalHandle, tANI_U32, tANI_U32*);
 
+// Function pointer to the memory write function
+typedef eHalStatus (*fpWriteHwMem)(tHalHandle, tANI_U32, void*, tANI_U32);
+
+// Function pointer to the memory read function
+typedef eHalStatus (*fpReadHwMem)(tHalHandle, tANI_U32, void*, tANI_U32);
+
 //callback function for TX complete
 //parameter 1 - global pMac pointer
 //parameter 2 - txComplete status : 1- success, 0 - failure.
@@ -326,9 +332,13 @@ typedef struct sAniSirHal
     /* Register re-init in ADU related parameters */
     tHalRegBckup    RegBckupParam;
 
-    /* Function pointer to the write HW register function */
+    /* Function pointer to the read/write HW register function */
     fpWriteHwReg    funcWriteReg;
     fpReadHwReg     funcReadReg;
+
+    /* Function pointer to the read/write HW memory function */
+    fpWriteHwMem    funcWriteMem;
+    fpReadHwMem     funcReadMem;
 
     /* Firmware parameters */
     tHalFwParams    FwParam;
@@ -356,6 +366,7 @@ typedef struct sAniSirHal
     tANI_U8    ghalPhyAgcListenMode;
 #endif    
     tANI_U8         mcastBcastFilterSetting;
+    tANI_U8         dynamicPsPollValue;
 
     // Device CardID. The cardID is used by the bus driver to identify the
     // device version. We are using it here to differentiate between different

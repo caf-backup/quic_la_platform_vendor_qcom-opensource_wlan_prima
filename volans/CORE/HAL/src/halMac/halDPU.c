@@ -171,6 +171,19 @@ dpu_hw_init(
 #endif
     }
 
+    /* The following two registers need to be set correctly. Otherwise it'll cause the MIC failure in 
+       WPA-TKIP mode with Ninento-PS2. CR 266792 */
+
+    /* Set Priority bit in dpu_mask_reg */
+    halReadRegister(pMac, QWLAN_DPU_DPU_TKIP_MASK_REG, &value);
+    value |= QWLAN_DPU_DPU_TKIP_MASK_PRIORITY_MASK_7_MASK;
+    halWriteRegister(pMac, QWLAN_DPU_DPU_TKIP_MASK_REG, value);
+
+    /* Set priority bit in dpu_bug_fix */
+    halReadRegister(pMac, QWLAN_DPU_DPU_BUG_FIX_REG, &value);
+    value |= QWLAN_DPU_DPU_BUG_FIX_TKIP_PRIORITY_SEL_MASK;
+    halWriteRegister(pMac, QWLAN_DPU_DPU_BUG_FIX_REG, value);
+
 }
 
 
@@ -608,8 +621,6 @@ out:
             palFreeMemory(pMac->hHdd,pDpu->keyTable);
         if(pDpu->descTable)
             palFreeMemory(pMac->hHdd,pDpu->descTable);
-        if(pDpu->rcDescTable)
-            palFreeMemory(pMac->hHdd,pDpu->rcDescTable);
         palFreeMemory(pMac->hHdd,pMac->hal.halMac.dpuInfo);
 
     }    

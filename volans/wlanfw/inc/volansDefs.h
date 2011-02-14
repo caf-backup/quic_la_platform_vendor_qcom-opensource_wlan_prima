@@ -539,6 +539,13 @@ typedef enum
 
 #define STACFG_MAX_TC   8
 
+#ifdef WLAN_SOFTAP_FEATURE
+#define   BROADCAST_STAID    252
+#else
+#define   BROADCAST_STAID    255
+#endif
+
+
 /*-------------------------------------------------------------------------*/
 /* Timers*/
 /*-------------------------------------------------------------------------*/

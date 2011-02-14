@@ -103,12 +103,11 @@ static VOS_STATUS hdd_softap_flush_tx_queues( hdd_hostapd_adapter_t *pAdapter )
             //current list is empty
             break;
          }
+         pAdapter->aStaInfo[STAId].txSuspended[i] = VOS_FALSE;
          spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[i].lock);
       }
    }
 
-   // backpressure is no longer in effect
-   pAdapter->isTxSuspended = VOS_FALSE;
 
    return status;
 }
@@ -134,18 +133,15 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    skb_list_node_t *pktNode = NULL;
    v_SIZE_t pktListSize = 0;
    hdd_hostapd_adapter_t *pAdapter = (hdd_hostapd_adapter_t *)netdev_priv(dev);
-   hdd_adapter_t *pStaAdapter = (hdd_adapter_t *)netdev_priv(pAdapter->pWlanDev);
 
    vos_list_node_t *anchor = NULL;
-   /* For MAC address hashing purpose */
-   tpAniSirGlobal  pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_HAL, pAdapter->pvosContext);
    v_U8_t STAId = WLAN_MAX_STA_COUNT;
    //Extract the destination address from ethernet frame
    v_MACADDR_t *pDestMacAddress = (v_MACADDR_t*)skb->data;
 
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
 
-   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
               "%s: enter\n", __FUNCTION__);
 
    if (vos_is_macaddr_broadcast( pDestMacAddress ) || vos_is_macaddr_group(pDestMacAddress))
@@ -158,20 +154,11 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    }
    else
    {
-      if (eHAL_STATUS_SUCCESS != halTable_FindStaidByAddr(pMac, (tANI_U8 *)pDestMacAddress, &STAId))
+      STAId = *(v_U8_t*)&skb->cb;
+      if (STAId == HDD_WLAN_INVALID_STA_ID)
       {
          VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
                     "%s: Failed to find right station", __FUNCTION__);
-         ++pAdapter->stats.tx_dropped;
-         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
-         kfree_skb(skb);
-         return NETDEV_TX_OK;
-      }
-
-      if (FALSE == vos_is_macaddr_equal(&pAdapter->aStaInfo[STAId].macAddrSTA, pDestMacAddress))
-      {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                    "%s: Station MAC address does not matching", __FUNCTION__);
          ++pAdapter->stats.tx_dropped;
          ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
          kfree_skb(skb);
@@ -189,18 +176,18 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          return NETDEV_TX_OK;
       }
    }
-   //Classify the packet
-   if (HDD_WMM_USER_MODE_NO_QOS != pStaAdapter->cfg_ini->WmmMode)
-   {
-     hdd_wmm_classify_pkt (pStaAdapter, skb, &ac, &up);
-   }
+
+       //Get TL AC corresponding to Qdisc queue index/AC.
+   ac = hdd_QdiscAcToTlAC[skb->queue_mapping];
+       //user priority from IP header, which is already extracted and set from 
+       //select_queue call back function
+   up = skb->priority;
    
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
               "%s: Classified as ac %d up %d", __FUNCTION__, ac, up);
 
-#ifdef WLAN_SOFTAP_FEATURE
    // If the memory differentiation mode is enabled, the memory limit of each queue will be 
    // checked. Over-limit packets will be dropped.
     hdd_list_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktListSize);
@@ -208,36 +195,10 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
     {
        VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
             "%s: station %d ac %d queue over limit %d \n", __FUNCTION__, STAId, ac, pktListSize); 
-       pAdapter->aStaInfo[STAId].txSuspended = VOS_TRUE;
-       pAdapter->aStaInfo[STAId].txSuspendedAc = ac; 
-       netif_stop_queue(dev);
+       pAdapter->aStaInfo[STAId].txSuspended[ac] = VOS_TRUE;
+       netif_stop_subqueue(dev, skb_get_queue_mapping(skb));
        return NETDEV_TX_BUSY;
     }
-#else
-   //If we have already reached the max queue size, disable the TX queue
-   if ( pAdapter->wmm_tx_queue[ac].count == pAdapter->wmm_tx_queue[ac].max_size)
-   {
-      ++pAdapter->hdd_stats.hddTxRxStats.txXmitBackPressured;
-      ++pAdapter->hdd_stats.hddTxRxStats.txXmitBackPressuredAC[ac];
-
-#define BACKPRESSURE_FULL_QUEUE
-#ifdef BACKPRESSURE_FULL_QUEUE
-      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, 
-                 "%s: TX queue full for AC=%d Disable OS TX queue", 
-                 __FUNCTION__, ac );
-
-      netif_stop_queue(dev);
-      netif_carrier_off(dev);
-      pAdapter->isTxSuspended = VOS_TRUE;
-      pAdapter->txSuspendedAc = ac;
-      return NETDEV_TX_BUSY;
-#else //DROP_FULL_QUEUE
-      kfree_skb(skb);
-      return NETDEV_TX_OK;
-#endif
-
-   }
-#endif //WLAN_SOFTAP_FEATURE
 
    //Use the skb->cb field to hold the list node information
    pktNode = (skb_list_node_t *)&skb->cb;
@@ -267,11 +228,9 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueued;
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueuedAC[ac];
 
-#ifdef WLAN_SOFTAP_FEATURE
    if (1 == pktListSize)
    {
       //Let TL know we have a packet to send for this AC
-      //VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s:Indicating Packet to TL", __FUNCTION__);
       status = WLANTL_STAPktPending( pAdapter->pvosContext, STAId, ac );      
 
       if ( !VOS_IS_STATUS_SUCCESS( status ) )
@@ -291,42 +250,6 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          return NETDEV_TX_OK;
       }
    }
-#else
-   //Make sure we have been admitted to this access category
-   if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessGranted))
-   {
-      granted = VOS_TRUE;
-   }
-   else
-   {
-      status = hdd_wmm_acquire_access( pAdapter, ac, &granted );
-   }
-
-   if ( granted && ( pktListSize == 1 ))
-   {
-      //Let TL know we have a packet to send for this AC
-      //VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s:Indicating Packet to TL", __FUNCTION__);
-      status = WLANTL_STAPktPending( pAdapter->pvosContext, pAdapter->conn_info.staId[0], ac );      
-
-      if ( !VOS_IS_STATUS_SUCCESS( status ) )
-      {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, "%s: Failed to signal TL for AC=%d", __FUNCTION__, ac );
-
-         //Remove the packet from queue. It must be at the back of the queue, as TX thread cannot preempt us in the middle
-         //as we are in a soft irq context. Also it must be the same packet that we just allocated.
-         spin_lock(&pAdapter->wmm_tx_queue[ac].lock);
-         status = hdd_list_remove_back( &pAdapter->wmm_tx_queue[ac], &anchor );
-         spin_unlock(&pAdapter->wmm_tx_queue[ac].lock);
-         netif_stop_queue(dev);
-         netif_carrier_off(dev);
-         ++pAdapter->stats.tx_dropped;
-         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
-         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
-         kfree_skb(skb);
-         return NETDEV_TX_OK;
-      }
-   }
-#endif //WLAN_SOFTAP_FEATURE
    dev->trans_start = jiffies;
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit \n", __FUNCTION__);
@@ -361,6 +284,11 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
               "%s: enter\n", __FUNCTION__);
+
+   /* If the QoS is not enabled on the receiving station, then send it with BE priority */
+   if ( !pAdapter->aStaInfo[STAId].isQosEnabled )
+       up = SME_QOS_WMM_UP_BE;
+
    ac = hddWmmUpToAcMap[up];
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitClassifiedAC[ac];
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
@@ -373,8 +301,7 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
     {
        VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
             "%s: station %d ac %d queue over limit %d \n", __FUNCTION__, STAId, ac, pktListSize); 
-       pAdapter->aStaInfo[STAId].txSuspended = VOS_TRUE;
-       pAdapter->aStaInfo[STAId].txSuspendedAc = ac; 
+       pAdapter->aStaInfo[STAId].txSuspended[ac] = VOS_TRUE;
        /* TODO:Rx Flowchart should be trigerred here to SUPEND SSC on RX side.
         * SUSPEND should be done based on Threshold. RESUME would be 
         * triggered in fetch cbk after recovery.
@@ -492,8 +419,13 @@ VOS_STATUS hdd_softap_init_tx_rx( hdd_hostapd_adapter_t *pAdapter )
 
    v_U8_t STAId = 0;
 
+   v_U8_t pACWeights[] = {
+                           HDD_SOFTAP_BK_WEIGHT_DEFAULT, 
+                           HDD_SOFTAP_BE_WEIGHT_DEFAULT, 
+                           HDD_SOFTAP_VI_WEIGHT_DEFAULT, 
+                           HDD_SOFTAP_VO_WEIGHT_DEFAULT
+                         };
    pAdapter->isVosOutOfResource = VOS_FALSE;
-   pAdapter->isTxSuspended = VOS_FALSE;
 
    vos_mem_zero(&pAdapter->stats, sizeof(struct net_device_stats));
 
@@ -516,6 +448,9 @@ VOS_STATUS hdd_softap_init_tx_rx( hdd_hostapd_adapter_t *pAdapter )
          hdd_list_init(&pAdapter->aStaInfo[STAId].wmm_tx_queue[i], HDD_TX_QUEUE_MAX_LEN);
       }
    }
+
+   /* Update the AC weights suitable for SoftAP mode of operation */
+   WLANTL_SetACWeights(pAdapter->pvosContext, pACWeights);
 
    return status;
 }
@@ -919,46 +854,15 @@ VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    pPktMetaInfo->ucBcast = vos_is_macaddr_broadcast( pDestMacAddress ) ? 1 : 0;
    pPktMetaInfo->ucMcast = vos_is_macaddr_group( pDestMacAddress ) ? 1 : 0;
 
-   if ( (pAdapter->aStaInfo[STAId].txSuspended) &&
-        (ac == pAdapter->aStaInfo[STAId].txSuspendedAc) &&
+   if ( (pAdapter->aStaInfo[STAId].txSuspended[ac]) &&
         (size <= ((pAdapter->aTxQueueLimit[ac]*3)/4) ))
    {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
                  "%s: TX queue re-enabled", __FUNCTION__);
-      pAdapter->aStaInfo[STAId].txSuspended = VOS_FALSE;
-      netif_wake_queue(pAdapter->pDev);
+      pAdapter->aStaInfo[STAId].txSuspended[ac] = VOS_FALSE;
+      netif_wake_subqueue(pAdapter->pDev, skb_get_queue_mapping(skb));
    }    
 
-#if 0
-   //BC/MC packets go to WLANTL_BC_STA_ID now. Error Checking.
-   if ( ((pPktMetaInfo->ucBcast || pPktMetaInfo->ucMcast) && (WLANTL_BC_STA_ID != STAId)) ||
-        ((0 == pPktMetaInfo->ucBcast) && (0 == pPktMetaInfo->ucMcast) && (WLANTL_BC_STA_ID == STAId)) )
-   {
-      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, "%s: Incorrect BC/MC handling", __FUNCTION__);
-      vos_pkt_return_packet(pVosPacket);
-      ++pAdapter->stats.tx_dropped;
-      ++pAdapter->hdd_stats.hddTxRxStats.txFetchDequeueError;
-      kfree_skb(skb);
-      return VOS_STATUS_E_FAILURE;
-   }
-#endif
-
-
-#ifndef WLAN_SOFTAP_FEATURE
-   // if we are in a backpressure situation see if we can turn the hose back on
-   if ( (pAdapter->isTxSuspended) &&
-        (ac == pAdapter->txSuspendedAc) &&
-        (size <= HDD_TX_QUEUE_LOW_WATER_MARK) )
-   {
-      ++pAdapter->hdd_stats.hddTxRxStats.txFetchDePressured;
-      ++pAdapter->hdd_stats.hddTxRxStats.txFetchDePressuredAC[ac];
-      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                 "%s: TX queue re-enabled", __FUNCTION__);
-      pAdapter->isTxSuspended = VOS_FALSE;
-      netif_carrier_on(pAdapter->pDev);
-      netif_start_queue(pAdapter->pDev);
-   }    
-#endif
    // We're giving the packet to TL so consider it transmitted from
    // a statistics perspective.  We account for it here instead of
    // when the packet is returned for two reasons.  First, TL will
@@ -1312,6 +1216,8 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_hostapd_adapter_t *pAdapter,
    
    //VOS_ASSERT( fConnected );
    pAdapter->aStaInfo[staId].ucSTAId = staId;
+   pAdapter->aStaInfo[staId].isQosEnabled = fWmmEnabled;
+
    if ( !fAuthRequired )
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,

@@ -230,6 +230,7 @@ eHalStatus halNormalWriteRegister( tHalHandle hHal, tANI_U32 regAddr, tANI_U32 r
    
     -------------------------------------------------------------------------- */
 eHalStatus halReadDeviceMemory( tHalHandle hHal, tANI_U32 srcOffset, void *pBuffer, tANI_U32 numBytes );
+eHalStatus halNormalReadMemory( tHalHandle hHal, tANI_U32 srcOffset, void *pBuffer, tANI_U32 numBytes );
 
 
 
@@ -264,6 +265,7 @@ eHalStatus halReadDeviceMemory( tHalHandle hHal, tANI_U32 srcOffset, void *pBuff
    
     -------------------------------------------------------------------------- */
 eHalStatus halWriteDeviceMemory( tHalHandle hHal, tANI_U32 dstOffset, void *pSrcBuffer, tANI_U32 numBytes );  
+eHalStatus halNormalWriteMemory( tHalHandle hHal, tANI_U32 dstOffset, void *pSrcBuffer, tANI_U32 numBytes );
 
 /** ------------------------------------------------------------------------- * 
     ------------------------------------------------------------------------- *  

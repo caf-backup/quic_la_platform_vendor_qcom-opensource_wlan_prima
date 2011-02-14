@@ -39,7 +39,14 @@ typedef void (*palTimerCallback)(void *);
 //pPalTimer is a pointer to a caller allocated tPalTimer object
 //pContext is a pointer to an object that will be passed in when callback is called
 //fRestart to set whether the timer is restart after callback returns
+#ifdef TIMER_MANAGER
+#define palTimerAlloc(hHdd, phPalTimer, pCallback, pContext) \
+              palTimerAlloc_debug(hHdd, phPalTimer, pCallback, pContext, __FILE__, __LINE__)
+eHalStatus palTimerAlloc_debug( tHddHandle hHdd, tPalTimerHandle *phPalTimer, 
+                          palTimerCallback pCallback, void *pContext, char* fileName, v_U32_t lineNum  );              
+#else
 eHalStatus palTimerAlloc(tHddHandle hHdd, tPalTimerHandle *phPalTimer, palTimerCallback pCallback, void *pContext);
+#endif
 
 //This function will free the timer
 //On Windows platform, it can only be called when device is unloading.

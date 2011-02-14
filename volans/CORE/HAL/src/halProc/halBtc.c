@@ -39,6 +39,7 @@ void halBtc_SetBtcCfg(tpAniSirGlobal pMac, void *pBuffer)
         pFwConfig->btcWlanIntervalMode1   = pBtcCfg->btcWlanIntervalMode1;
         pFwConfig->btcActionOnPmFailMode1 = pBtcCfg->btcActionOnPmFail;
         pFwConfig->btcExecutionMode       = pBtcCfg->btcExecutionMode;
+        pFwConfig->btcConsBtSlotsToBlockDuringDhcp = pBtcCfg->btcConsBtSlotsToBlockDuringDhcp;
 
         // Write the configuration parameters in the memory mapped for
         // system configuration parameters

@@ -52,11 +52,14 @@ when       who     what, where, why
 ===========================================================================*/
 #include <vos_power.h>
 
+#include <libra_sdioif.h>
+
 #ifdef MSM_PLATFORM
 #include <mach/mpp.h>
 #include <mach/vreg.h>
 #include <linux/err.h>
 #include <linux/delay.h>
+
 
 #ifdef MSM_PLATFORM_7x30
 #include <linux/mfd/pmic8058.h>
@@ -84,6 +87,8 @@ when       who     what, where, why
 #define CHIP_POWER_ON         1
 #define CHIP_POWER_OFF        0
 
+// SDIO Config Cycle Clock Frequency
+#define WLAN_LOW_SD_CONFIG_CLOCK_FREQ 400000
 #ifdef MSM_PLATFORM_8660
     int vos_chip_power_qrf8615(int on);
 #endif
@@ -216,7 +221,6 @@ VOS_PWR_SLEEP(100);
         msleep(1);
 
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, "1.2V AON Power Supply Enabled \n");
-
 
         rc = pm8058_gpio_config(wlan_gpios_reset_out[0].gpio_num, &wlan_gpios_reset_out[0].gpio_cfg);
         if (rc) {
@@ -562,6 +566,26 @@ VOS_STATUS vos_chipPowerDown
   v_PVOID_t             user_data
 )
 {
+#ifdef MSM_PLATFORM
+   struct sdio_func *sdio_func_dev = NULL;
+
+   // Get the SDIO func device
+   sdio_func_dev = libra_getsdio_funcdev();
+   if (sdio_func_dev == NULL)
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN sdio device is NULL \n"
+             "exiting", __func__);
+   }
+   else 
+   {
+      // Set sdio clock to lower config cycle frequency before chip power down.
+      // Setting this low freq, will also internally in msm_sdcc disable power save.
+      // Once the card is power down and powered up and detected
+      // after the config cycles the clock freq will be set back up
+      // to our capability of 50MHz
+      libra_sdio_set_clock(sdio_func_dev, WLAN_LOW_SD_CONFIG_CLOCK_FREQ);
+   }
+#endif
 
 #ifdef MSM_PLATFORM_8660
    if(vos_chip_power_qrf8615(CHIP_POWER_OFF))

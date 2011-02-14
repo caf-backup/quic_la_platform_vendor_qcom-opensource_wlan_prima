@@ -749,9 +749,8 @@ eHalStatus halFW_UpdateSystemConfig(tpAniSirGlobal pMac,
     }
 
     // Write it to the device memory
-    halWriteDeviceMemory(pMac, address, data, size);
+    return halWriteDeviceMemory(pMac, address, data, size);
 
-    return eHAL_STATUS_SUCCESS;
 }
 
 /*
@@ -947,10 +946,14 @@ void halFW_HeartBeatMonitor(tpAniSirGlobal pMac)
 
     if (pMac->hal.halMac.fwHeartBeatPrev == uFwHeartBeat)
     {
+        VOS_ASSERT(0);
+        VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, 
+			"%s Firmware Not Responding!!!uFwHeartBeat %d", __func__, uFwHeartBeat);
+        
         pMac->hal.halMac.fwMonitorthr++;
         if (pMac->hal.halMac.fwMonitorthr > HAL_FW_HEARTBEAT_MONITOR_TH)
         {
-            HALLOGE(halLog(pMac, LOGE, FL("Firmware Not Responding. Invoking macSysReset...!!!\n")));
+            HALLOGE(halLog(pMac, LOGE, FL("Firmware Not Responding. Trigger LOGP!\n")));
             macSysResetReq(pMac, eSIR_FW_EXCEPTION);
             return;
         }

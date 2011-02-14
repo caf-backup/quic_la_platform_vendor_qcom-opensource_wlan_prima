@@ -24,10 +24,11 @@ eHalStatus halTxp_Start(tHalHandle hHal, void *arg)
 	halWriteRegister(pMac, QWLAN_TXP_TXP_CMDF_CONTROL_REG, 
 					value);
 
-    // DEBUG - enable BTC abort in TXP
+#ifdef WLAN_ENABLE_BTC_ABORT_IN_TXP
 	palReadRegister(pMac->hHdd, QWLAN_TXP_TXP_BTC_ACTIVE_ABORT_ENABLE_REG, &value);
 	value |= QWLAN_TXP_TXP_BTC_ACTIVE_ABORT_ENABLE_BTC_ACTIVE_MASK;
 	palWriteRegister(pMac, QWLAN_TXP_TXP_BTC_ACTIVE_ABORT_ENABLE_REG, value);
+#endif
 
     return eHAL_STATUS_SUCCESS;
 }

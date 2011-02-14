@@ -404,7 +404,14 @@ eHalStatus halMbox_RecvMsg( tHalHandle hHal, tANI_BOOLEAN fProcessInContext )
     // Now, read "just" the message header
     // The entire message itself will be read and handled
     // by the corresponding handlers...
-    halReadDeviceMemory(pMac, pMbox[FW2H_MAILBOX].pMboxStartAddr, (tANI_U8 *) pMsgHdr, sizeof(tMBoxMsgHdr));
+    retStatus = halReadDeviceMemory(pMac, pMbox[FW2H_MAILBOX].pMboxStartAddr, (tANI_U8 *) pMsgHdr, sizeof(tMBoxMsgHdr));
+
+    if(retStatus != eHAL_STATUS_SUCCESS) {
+        HALLOGE(halLog( pMac, LOGE,
+                FL("halReadDeviceMemory failed\n")));
+        return eHAL_STATUS_FAILURE;
+    }
+	
     HALLOG3( halLog( pMac, LOG3, FL(" Type = %d, Len = %d\n"),
             pMsgHdr->MsgLen,
             pMsgHdr->MsgType ));
@@ -419,9 +426,15 @@ eHalStatus halMbox_RecvMsg( tHalHandle hHal, tANI_BOOLEAN fProcessInContext )
         }
 
     // Copy the entire message in to the buffer
-    halReadDeviceMemory(pMac, pMbox[FW2H_MAILBOX].pMboxStartAddr,
+    retStatus = halReadDeviceMemory(pMac, pMbox[FW2H_MAILBOX].pMboxStartAddr,
             pMsg, pMsgHdr->MsgLen);
 
+    if(retStatus != eHAL_STATUS_SUCCESS) {
+        HALLOGE(halLog( pMac, LOGE,  FL("halReadDeviceMemory failed\n")));
+        palFreeMemory(pMac->hHdd, pMsg);
+        return eHAL_STATUS_FAILURE;
+    }
+	
     HALLOG1( halLog( pMac, LOG1,
             FL("Mbox %d interrupt received.\n"),
             FW2H_MAILBOX));

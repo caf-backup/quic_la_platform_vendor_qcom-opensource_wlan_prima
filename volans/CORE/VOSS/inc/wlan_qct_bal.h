@@ -622,6 +622,23 @@ VOS_STATUS WLANBAL_SuspendChip
 
 /*----------------------------------------------------------------------------
 
+  @brief Suspend Entire chip, Trigger SSC Suspend Chip
+
+  @param v_PVOID_t pAdapter
+        Global adapter handle
+
+  @return General status code
+        VOS_STATUS_SUCCESS       Suspend Chip success
+        VOS_STATUS_E_INVAL       Invalid Parameters
+
+----------------------------------------------------------------------------*/
+VOS_STATUS WLANBAL_SuspendChip_NoLock
+(
+   v_PVOID_t pAdapter
+);
+
+/*----------------------------------------------------------------------------
+
   @brief Resume entire chip from Suspend, Trigger SSC Resume chip
 
   @param v_PVOID_t pAdapter

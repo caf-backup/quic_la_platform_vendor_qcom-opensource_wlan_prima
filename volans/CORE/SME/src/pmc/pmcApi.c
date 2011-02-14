@@ -183,6 +183,9 @@ eHalStatus pmcStart (tHalHandle hHal)
     pMac->pmc.uapsdSessionRequired = FALSE;
     pMac->pmc.wowlModeRequired = FALSE;
     pMac->pmc.bmpsRequestedByHdd = FALSE;
+    pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
+    pMac->pmc.remainInPowerActiveThreshold = 0;
+    
 
     /* WLAN Switch initial states. */
     pMac->pmc.hwWlanSwitchState = ePMC_SWITCH_ON;
@@ -2018,8 +2021,8 @@ eHalStatus pmcReady(tHalHandle hHal)
     \param  hHal - The handle returned by macOpen.
     \param  pattern -  Pointer to the pattern to be added
     \return eHalStatus
-            eHAL_STATUS_FAILURE – Cannot add pattern
-            eHAL_STATUS_SUCCESS – Request accepted. 
+            eHAL_STATUS_FAILURE ?Cannot add pattern
+            eHAL_STATUS_SUCCESS ?Request accepted. 
   ---------------------------------------------------------------------------*/
 eHalStatus pmcWowlAddBcastPattern (
     tHalHandle hHal, 
@@ -2106,8 +2109,8 @@ eHalStatus pmcWowlAddBcastPattern (
     \param  hHal - The handle returned by macOpen.
     \param  pattern -  Pattern to be deleted
     \return eHalStatus
-            eHAL_STATUS_FAILURE – Cannot delete pattern
-            eHAL_STATUS_SUCCESS – Request accepted. 
+            eHAL_STATUS_FAILURE ?Cannot delete pattern
+            eHAL_STATUS_SUCCESS ?Request accepted. 
   ---------------------------------------------------------------------------*/
 eHalStatus pmcWowlDelBcastPattern (
     tHalHandle hHal, 
@@ -2301,8 +2304,8 @@ eHalStatus pmcEnterWowl (
             mode.
     \param  hHal - The handle returned by macOpen.
     \return eHalStatus
-            eHAL_STATUS_FAILURE – Device cannot exit WoWLAN mode.
-            eHAL_STATUS_SUCCESS – Request accepted to exit WoWLAN mode. 
+            eHAL_STATUS_FAILURE ?Device cannot exit WoWLAN mode.
+            eHAL_STATUS_SUCCESS ?Request accepted to exit WoWLAN mode. 
   ---------------------------------------------------------------------------*/
 eHalStatus pmcExitWowl (tHalHandle hHal)
 {

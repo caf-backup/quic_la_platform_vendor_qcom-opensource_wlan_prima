@@ -1264,7 +1264,7 @@ eQWPttStatus pttEnableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcEnable enables)
     return (SUCCESS);
 }
 
-#define RSSI_TO_DBM_OFFSET     -105
+#define RSSI_TO_DBM_OFFSET     -100
 
 void pttCollectAdcRssiStats(tpAniSirGlobal pMac)
 {

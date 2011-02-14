@@ -621,6 +621,22 @@ VOS_STATUS WLANSSC_SuspendChip
   WLANSSC_HandleType       Handle
 );
 
+/**
+ @brief WLANSSC_SuspendChip_NoLock is used to put the Libra chip in standby mode
+ without acquring SSC lock.
+  After this API is invoked the chip cannot be accessed except after
+  ResumeChip
+
+ @param Handle: SSC handle to operate on (returned in WLANSSC_Open)
+ 
+ @see WLANSSC_ResumeChip
+
+ @return Result of the function call
+*/
+VOS_STATUS WLANSSC_SuspendChip_NoLock
+(
+  WLANSSC_HandleType       Handle
+);
 
 /**
  @brief WLANSSC_ResumeChip is used to bring a previously suspended Libra

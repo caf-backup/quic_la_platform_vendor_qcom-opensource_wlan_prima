@@ -37,6 +37,7 @@
 #include <linux/etherdevice.h>
 #include <linux/if_vlan.h>
 #include <linux/ip.h>
+#include <wlan_hdd_hostapd.h>
 
 // change logging behavior based upon debug flag
 #ifdef HDD_WMM_DEBUG
@@ -1524,6 +1525,58 @@ v_VOID_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
    return;
 }
 
+/**============================================================================
+  @brief hdd_hostapd_select_quueue() - Function which will classify the packet
+	 accoring to linux qdisc expectation.
+
+
+  @param dev      : [in]  pointer to net_device structure
+  @param skb      : [in]  pointer to os packet
+
+  @return         : Qdisc queue index
+  ===========================================================================*/
+v_U16_t hdd_hostapd_select_queue(struct net_device * dev, struct sk_buff *skb)
+{
+   WLANTL_ACEnumType ac;
+   sme_QosWmmUpType up = SME_QOS_WMM_UP_BE;
+   v_USHORT_t queueIndex;   
+   v_MACADDR_t *pDestMacAddress = (v_MACADDR_t*)skb->data;
+   hdd_hostapd_adapter_t *pAdapter = (hdd_hostapd_adapter_t *)netdev_priv(dev);
+   hdd_adapter_t *pStaAdapter = (hdd_adapter_t *)netdev_priv(pAdapter->pWlanDev);   
+   tpAniSirGlobal  pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_HAL, pAdapter->pvosContext);   
+   v_U8_t STAId = WLAN_MAX_STA_COUNT;
+   v_U8_t *pSTAId = (v_U8_t *)&skb->cb;
+    
+   /*Get the Station ID*/
+   if (eHAL_STATUS_SUCCESS != halTable_FindStaidByAddr(pMac, (tANI_U8 *)pDestMacAddress, &STAId))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+            "%s: Failed to find right station", __FUNCTION__);
+      *pSTAId = HDD_WLAN_INVALID_STA_ID; 
+      goto done; 
+   }
+   
+   if (FALSE == vos_is_macaddr_equal(&pAdapter->aStaInfo[STAId].macAddrSTA, pDestMacAddress))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Station MAC address does not matching", __FUNCTION__);	  
+      
+      *pSTAId = HDD_WLAN_INVALID_STA_ID; 
+      goto done;
+   }
+   if (pAdapter->aStaInfo[STAId].isUsed && pAdapter->aStaInfo[STAId].isQosEnabled && (HDD_WMM_USER_MODE_NO_QOS != pStaAdapter->cfg_ini->WmmMode))
+   {
+      /* Get the user priority from IP header & corresponding AC */	
+      hdd_wmm_classify_pkt (pStaAdapter, skb, &ac, &up);
+   }
+   *pSTAId = STAId;
+
+done:
+   skb->priority = up;
+   queueIndex = hddLinuxUpToAcMap[skb->priority];
+
+   return queueIndex;
+}
 
 /**============================================================================
   @brief hdd_wmm_select_quueue() - Function which will classify the packet
