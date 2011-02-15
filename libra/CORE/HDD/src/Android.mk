@@ -12,7 +12,8 @@ PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/qcom_fw.bin:system/etc/firmware/wlan/
 PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/qcom_wapi_fw.bin:system/etc/firmware/wlan/qcom_wapi_fw.bin
 PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/qcom_wlan_nv.bin:persist/qcom_wlan_nv.bin
 PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/cfg.dat:system/etc/firmware/wlan/cfg.dat
-PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/qcom_cfg.ini:system/etc/firmware/wlan/qcom_cfg.ini
+PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/qcom_cfg.ini:data/hostapd/qcom_cfg.ini
+PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/qcom_cfg.ini:persist/qcom/softap/qcom_cfg_default.ini
 
 ACP_BINARY_OUT 	      := $(HOST_OUT)/bin/acp
 MAKE_MODULES_FOLDER   := $(TARGET_OUT)/lib/modules
@@ -39,6 +40,12 @@ ALL_PREBUILT += $(file)
 file := $(WLAN_LIBRA_SDIOIF_OUT)
 ALL_PREBUILT += $(file)
 
+file := $(CREATE_SOFT_LINK)
+ALL_PREBUILT += $(file)
+
+$(CREATE_SOFT_LINK) :
+	ln -s -f /data/hostapd/qcom_cfg.ini $(TARGET_OUT)/etc/firmware/wlan/qcom_cfg.ini
+
 $(MAKE_MODULES_FOLDER) :
 	mkdir -p $(MAKE_MODULES_FOLDER)
 
@@ -63,6 +70,5 @@ $(WLAN_FTM_PRODUCT_OUT): $(ACP_BINARY_OUT) $(WLAN_PRODUCT_OUT) $(WLAN_RF_FTM_LIB
 $(WLAN_LIBRA_SDIOIF_OUT): $(ACP_BINARY_OUT) $(WLAN_RF_LIBRA_OUT) $(MAKE_MODULES_FOLDER) $(TARGET_PREBUILT_KERNEL)
 	$(ACP) -f $(KERNEL_OUT)/drivers/net/wireless/libra/librasdioif.ko $(WLAN_LIBRA_SDIOIF_OUT)
 
-all: $(WLAN_RF_LIBRA_OUT) $(WLAN_RF_FTM_LIBRA_OUT) $(WLAN_PRODUCT_OUT) $(WLAN_FTM_PRODUCT_OUT) $(WLAN_LIBRA_SDIOIF_OUT) $(MAKE_SYMBOLIC_LINK)
-
+all: $(WLAN_RF_LIBRA_OUT) $(WLAN_RF_FTM_LIBRA_OUT) $(WLAN_PRODUCT_OUT) $(WLAN_FTM_PRODUCT_OUT) $(WLAN_LIBRA_SDIOIF_OUT) $(MAKE_SYMBOLIC_LINK) $(CREATE_SOFT_LINK)
 endif
