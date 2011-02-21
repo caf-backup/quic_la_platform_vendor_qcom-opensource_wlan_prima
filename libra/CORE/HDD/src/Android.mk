@@ -24,6 +24,7 @@ WLAN_RF_LIBRA_OUT     := $(WLAN_OUT)/CORE/HDD/src/libra.ko
 WLAN_RF_LIBRA_MDIR    := ../$(WLAN)/CORE/HDD/src
 WLAN_RF_FTM_LIBRA_OUT := $(WLAN_OUT)/ftm/CORE/HDD/src/libra_ftm.ko
 WLAN_RF_FTM_LIBRA_MDIR:= ../$(WLAN)/ftm/CORE/HDD/src
+CREATE_SOFT_LINK      := $(TARGET_OUT)/etc/firmware/wlan/qcom_cfg.ini
 
 file := $(WLAN_RF_LIBRA_OUT)
 ALL_PREBUILT += $(file)
