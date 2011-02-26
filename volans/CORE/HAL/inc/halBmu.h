@@ -131,7 +131,7 @@ eHalStatus halBmu_btqmStaTxWqStatus(tpAniSirGlobal pMac ,tANI_U8 staIdx, tANI_U3
 eHalStatus halBmu_GetStaWqStatus(tpAniSirGlobal pMac, tpBmuStaQueueData pStaQueueData );
 void halBmu_StaCfgForPM(tpAniSirGlobal pMac, tANI_U16 staIdx, tANI_U32 mask, tANI_U16 delEnbQIdMask, tANI_U16 trigEnbQIdMask);
 void halBmu_UpdateStaBMUApMode(tpAniSirGlobal pMac, 
-                                 tANI_U16 staIdx, tANI_U8 uapsdACMask, 
+                                 tANI_U8 staIdx, tANI_U8 uapsdACMask, 
                                  tANI_U8 maxSPLen, tANI_U8 updateUapsdOnly);
 
 
@@ -159,13 +159,16 @@ typedef enum eBmuStaTxCfgCmd {
  */
  /* Enabling Queue Id 0 to 11 */
 #define TX_QID_ENABLE			          0x7FF
-
+#ifdef BMU_ERR_DEBUG
 eHalStatus halBmuTrace_printConfig(tpAniSirGlobal pMac);
+#endif
 eHalStatus halBmuTrace_setMaxIndex(tpAniSirGlobal pMac, tANI_U32 index);
 eHalStatus halIntBMUErrorHandler(tHalHandle hHalHandle, eHalIntSources intSource);
 
 tANI_U16 halBmu_getQidMask(tANI_U8 acApsdflag);
+#ifndef WLAN_SOFTAP_FW_BA_PROCESSING_FEATURE
 eHalStatus halBmu_ConfigureToSendBAR(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId);
+#endif
 eHalStatus halBmu_ReadBtqmQFrmInfo(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId, tANI_U32 *pNumFrames, 
                                 tANI_U32 *pHeadBdIndex, tANI_U32 *pTailBdIndex );
 void halBmu_btqmStaClearState(tpAniSirGlobal pMac, tANI_U8 staIdx);

@@ -1170,6 +1170,14 @@ void limProcessHalAddTsRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     // from the sessionId in the Rsp Msg from HAL
     psessionEntry = peFindSessionBySessionId(pMac, pAddTsRspMsg->sessionId);
 
+    if(psessionEntry == NULL)
+    {
+      PELOGE(limLog(pMac, LOGE,FL("Session does Not exist with given sessionId :%d \n"), pAddTsRspMsg->sessionId);)
+      limSendSmeAddtsRsp(pMac, rspReqd, eSIR_SME_ADDTS_RSP_FAILED, psessionEntry, pAddTsRspMsg->tspec, 
+              pMac->lim.gLimAddtsReq.sessionId, pMac->lim.gLimAddtsReq.transactionId);
+      goto end;
+    }
+
     if(pAddTsRspMsg->status == eHAL_STATUS_SUCCESS)
     {
         PELOG1(limLog(pMac, LOG1, FL("Received successful ADDTS response from HAL \n"));)

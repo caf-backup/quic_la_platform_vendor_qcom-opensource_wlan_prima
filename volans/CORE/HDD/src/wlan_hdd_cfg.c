@@ -1323,6 +1323,13 @@ This is a Verizon required feature.
                   CFG_DYNAMIC_PSPOLL_VALUE_DEFAULT,
                   CFG_DYNAMIC_PSPOLL_VALUE_MIN,
                   CFG_DYNAMIC_PSPOLL_VALUE_MAX ),
+
+    REG_VARIABLE( CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_NAME , WLAN_PARAM_Integer,
+                  hdd_config_t, AddTSWhenACMIsOff, 
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                  CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_DEFAULT, 
+                  CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MIN, 
+                  CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MAX ),
 };                                
 
 /*
@@ -1620,6 +1627,7 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [bSingleTidRc] Value = [%u] ",pAdapter->cfg_ini->bSingleTidRc);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pAdapter->cfg_ini->rfSettlingTimeUs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [gDynamicPSPollvalue] Value = [%u] ",pAdapter->cfg_ini->dynamicPsPollValue);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAddTSWhenACMIsOff] Value = [%u] ",pAdapter->cfg_ini->AddTSWhenACMIsOff);
 }
 
 
@@ -2523,6 +2531,8 @@ VOS_STATUS hdd_set_sme_config( hdd_adapter_t *pAdapter )
                                         WNI_CFG_VALID_CHANNEL_LIST_LEN );
 #endif
 
+   smeConfig.csrConfig.addTSWhenACMIsOff = pConfig->AddTSWhenACMIsOff;
+
    halStatus = sme_UpdateConfig( pAdapter->hHal, &smeConfig);    
    if ( !HAL_STATUS_SUCCESS( halStatus ) )
    {
@@ -2541,6 +2551,5 @@ VOS_STATUS hdd_set_sme_config( hdd_adapter_t *pAdapter )
       }
    } 
 #endif
-   
    return status;   
 }

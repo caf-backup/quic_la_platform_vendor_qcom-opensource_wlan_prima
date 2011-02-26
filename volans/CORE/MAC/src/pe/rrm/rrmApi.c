@@ -621,7 +621,7 @@ rrmFillBeaconIes( tpAniSirGlobal pMac,
    numEids = (eids == NULL) ? 0 : numEids;
 
    pBcnIes = (tANI_U8*) &pBssDesc->ieFields[0];
-   BcnNumIes = GET_IE_LEN_IN_BSS( pBssDesc->length );
+   BcnNumIes = (tANI_U8)GET_IE_LEN_IN_BSS( pBssDesc->length );
 
    *pNumIes = 0;
 
@@ -1075,16 +1075,25 @@ void rrmUpdateConfig ( tpAniSirGlobal pMac,
    tpRRMCaps pRRMCaps = &pMac->rrm.rrmPEContext.rrmEnabledCaps;
 
    if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_ENABLED, &val) != eSIR_SUCCESS)
-      limLog(pMac, LOGP, FL("cfg get rrm enabled failed\n"));
+   {
+       limLog(pMac, LOGP, FL("cfg get rrm enabled failed\n"));
+       return;
+   }
    pMac->rrm.rrmPEContext.rrmEnable = (val) ? 1 : 0;    
 
    if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_OPERATING_CHAN_MAX, &val) != eSIR_SUCCESS)
-      limLog(pMac, LOGP, FL("cfg get rrm enabled failed\n"));
-   pRRMCaps->operatingChanMax = val;
+   {
+       limLog(pMac, LOGP, FL("cfg get rrm operating channel max measurement duration failed\n"));
+       return;
+   }
+   pRRMCaps->operatingChanMax = (tANI_U8)val;
 
    if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_NON_OPERATING_CHAN_MAX, &val) != eSIR_SUCCESS)
-      limLog(pMac, LOGP, FL("cfg get rrm enabled failed\n"));
-   pRRMCaps->nonOperatingChanMax = val;
+   {
+       limLog(pMac, LOGP, FL("cfg get rrm non-operating channel max measurement duration failed\n"));
+       return;
+   }
+   pRRMCaps->nonOperatingChanMax =(tANI_U8) val;
 
 #if defined WLAN_VOWIFI_DEBUG
    PELOGE(limLog( pMac, LOGE, "RRM enabled = %d  OperatingChanMax = %d  NonOperatingMax = %d\n", pMac->rrm.rrmPEContext.rrmEnable,

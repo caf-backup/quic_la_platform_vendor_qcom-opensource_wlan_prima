@@ -5445,56 +5445,6 @@ limEnableShortPreamble(tpAniSirGlobal pMac, tANI_U8 enable, tpUpdateBeaconParams
     return eSIR_SUCCESS;
 }
 
-
-
-
-
-// ---------------------------------------------------------------------
-/**
- * dphCheckRxSeqNumber
- *
- * FUNCTION:
- *
- * LOGIC:
- *
- * ASSUMPTIONS:
- *
- * NOTE:
- *
- * @param pBd pointer to BD of received packet
- * @return eSIR_SUCCESS Success \n
- *         eSIR_FAILURE Failure
- */
-
-tSirRetStatus
-limCheckRxSeqNumber(tpAniSirGlobal pMac, tpHalBufDesc pBd)
-{
-// FIXME
-#if 0
-    tpDphHashNode pSta;
-    tpSirMacDataHdr3a pMh;
-    tANI_U16 seqNo;
-    // If sta id is 0, don't perform seq number check
-    if (pBd->staId == 0) return eSIR_SUCCESS;
-
-    pSta = dphGetHashEntry(pMac, (tANI_U16)(pBd->staId));
-
-    if (pSta == NULL)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("STA %d invalid\n"), pBd->staId);)
-        return eSIR_FAILURE;
-    }
-
-    pMh = (tpSirMacDataHdr3a) pBd->macHdr;
-    seqNo = pMh->seqControl.seqNumLo + (pMh->seqControl.seqNumHi << 4);
-    if (seqNo == pSta->rxSeqNumber)
-        return eSIR_FAILURE;
-
-    pSta->rxSeqNumber = seqNo;
-#endif /* if 0 */
-    return eSIR_SUCCESS;
-}
-
 /**
  * limTxComplete
  *
@@ -5931,16 +5881,6 @@ limValidateDeltsReq(tpAniSirGlobal pMac, tpSirDeltsReq pDeltsReq, tSirMacAddr pe
        }
 #endif
 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
-    if ((tsinfo->traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA) && 
-        ! pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
-        {
-           limLog(pMac, LOGW, FL("DelTs with acecssPolicy = %d and UP %d , AC = %d has no AC - ignoring request\n"),
-                  tsinfo->traffic.accessPolicy, tsinfo->traffic.userPrio, upToAc(tsinfo->traffic.userPrio));
-           return eSIR_FAILURE;
-       }
-#endif
-
     if (limAdmitControlDeleteTS(pMac, pSta->assocId, tsinfo, &tsStatus, &tspecIdx)
         != eSIR_SUCCESS)
     {
@@ -5955,21 +5895,17 @@ limValidateDeltsReq(tpAniSirGlobal pMac, tpSirDeltsReq pDeltsReq, tSirMacAddr pe
     }
     else
     {
-#ifndef REASSOC_WHEN_ACM_NOT_SET
-      if((tsinfo->traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA) && 
-         pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
-      {
-#endif
-        //send message to HAL to delete TS
-        if(eSIR_SUCCESS != limSendHalMsgDelTs(pMac, pSta->staIndex, tspecIdx, pDeltsReq->req))
+        if((tsinfo->traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA) && 
+           pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
         {
-          limLog(pMac, LOGW, FL("DelTs with UP %d failed in limSendHalMsgDelTs - ignoring request\n"),
-                           tsinfo->traffic.userPrio);
-           return eSIR_FAILURE;
+            //send message to HAL to delete TS
+            if(eSIR_SUCCESS != limSendHalMsgDelTs(pMac, pSta->staIndex, tspecIdx, pDeltsReq->req))
+            {
+                limLog(pMac, LOGW, FL("DelTs with UP %d failed in limSendHalMsgDelTs - ignoring request\n"),
+                                 tsinfo->traffic.userPrio);
+                 return eSIR_FAILURE;
+            }
         }
-#ifndef REASSOC_WHEN_ACM_NOT_SET
-      }
-#endif
     }
     return eSIR_SUCCESS;
 }
@@ -7002,7 +6938,7 @@ void limFrameTransmissionControl(tpAniSirGlobal pMac, tLimQuietTxMode type, tLim
 
     /** Allocate only required number of bytes for station bitmap
      * Make it to align to 4 byte boundary  */
-    nBytes = HALMSG_NUMBYTES_STATION_BITMAP(pMac->lim.maxStation);
+    nBytes = (tANI_U8)HALMSG_NUMBYTES_STATION_BITMAP(pMac->lim.maxStation);
 
     status = palAllocateMemory(pMac->hHdd, (void **) &pTxCtrlMsg,
                                     (sizeof(*pTxCtrlMsg) + nBytes));

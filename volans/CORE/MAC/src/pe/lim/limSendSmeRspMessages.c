@@ -709,7 +709,7 @@ void limSendSmeInNavMeasRsp(tpAniSirGlobal pMac, tANI_U32* pMsgBuf, tSirResultCo
     tSirMsgQ                      mmhMsg;
     tSirMeasInNavMeasurementRsp*  pSirSmeInNavMeasRsp=NULL;
     tLimMlmInNavMeasRsp*          pMlmInNavMeasRsp=NULL;
-    unsigned int                  msgLength=0;
+    tANI_U16                      msgLength;
 
     tANI_U32* pDest = NULL;
     tANI_U32* pSrc = NULL;

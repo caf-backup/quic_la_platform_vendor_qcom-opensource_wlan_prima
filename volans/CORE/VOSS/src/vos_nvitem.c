@@ -776,6 +776,30 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
                memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.rFCalValues,bufferSize);
            }
            break;
+       case VNV_ANTENNA_PATH_LOSS:
+           itemSize = sizeof(gnvEFSTable->halnv.tables.antennaPathLoss);
+           if(bufferSize != itemSize) {
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                 itemSize);
+               status = VOS_STATUS_E_INVAL;
+           }
+           else {
+               memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.antennaPathLoss[0],bufferSize);
+           }
+           break;
+       case VNV_PACKET_TYPE_POWER_LIMITS:
+           itemSize = sizeof(gnvEFSTable->halnv.tables.pktTypePwrLimits);
+           if(bufferSize != itemSize) {
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                 itemSize);
+               status = VOS_STATUS_E_INVAL;
+           }
+           else {
+               memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.pktTypePwrLimits[0][0],bufferSize);
+           }
+           break;
        default:
          break;
    }
@@ -924,6 +948,31 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
             }
             else {
                 memcpy(&gnvEFSTable->halnv.tables.rFCalValues,inputVoidBuffer,bufferSize);
+            }
+            break;
+        case VNV_ANTENNA_PATH_LOSS:
+            itemSize = sizeof(gnvEFSTable->halnv.tables.antennaPathLoss);
+            if(bufferSize != itemSize) {
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
+                status = VOS_STATUS_E_INVAL;
+            }
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.antennaPathLoss[0],inputVoidBuffer,bufferSize);
+            }
+            break;
+
+        case VNV_PACKET_TYPE_POWER_LIMITS:
+            itemSize = sizeof(gnvEFSTable->halnv.tables.pktTypePwrLimits);
+            if(bufferSize != itemSize) {
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
+                status = VOS_STATUS_E_INVAL;
+            }
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.pktTypePwrLimits[0][0],inputVoidBuffer,bufferSize);
             }
             break;
 

@@ -901,7 +901,6 @@ static char* limDumpDphTableSummary(tpAniSirGlobal pMac,char *p)
 		        }
             }   
         }   
-        return p;
     }
     return p;
 }     
@@ -1886,7 +1885,7 @@ dump_lim_send_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tAN
 {
 	tpPESession 		psessionEntry;
      tSirMacRadioMeasureReport pRRMReport[4];
-     tANI_U8 num = arg4 > 4 ? 4 : arg4;
+     tANI_U8 num = (tANI_U8)(arg4 > 4 ? 4 : arg4);
      tANI_U8 i;
 
 	if((psessionEntry = peFindSessionBySessionId(pMac,(tANI_U8)arg2) )== NULL)
@@ -2122,7 +2121,7 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
       case 4:
          {
             tDot11fNeighborReportResponse frm;
-            pBody[arg2][2] = arg3; //Dialog Token
+            pBody[arg2][2] = (tANI_U8)arg3; //Dialog Token
             if( (status = dot11fUnpackNeighborReportResponse( pMac, &pBody[arg2][0], size[arg2], &frm )) != 0 )
                p += log_sprintf( pMac, p, "failed to unpack.....status = %x\n", status);
             else
@@ -2134,8 +2133,8 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
          {
             tDot11fLinkMeasurementRequest frm;
             tHalBufDesc Bd = { .phyStats0 = 0x00000000, .phyStats1 = 0x00000000 };
-            pBody[arg2][3] = arg3; //TxPower used
-            pBody[arg2][4] = arg4; //Max Tx power
+            pBody[arg2][3] = (tANI_U8)arg3; //TxPower used
+            pBody[arg2][4] = (tANI_U8)arg4; //Max Tx power
 
             if( (status = dot11fUnpackLinkMeasurementRequest( pMac, &pBody[arg2][0], size[arg2], &frm )) != 0 )
                p += log_sprintf( pMac, p, "failed to unpack.....status = %x\n", status);
@@ -2190,9 +2189,6 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
     tpSirFTPreAuthReq pftPreAuthReq;
     tANI_U16 auth_req_len = 0;
     tCsrRoamConnectedProfile Profile;
-    extern eHalStatus csrRoamCopyConnectProfile(tpAniSirGlobal pMac, 
-        tANI_U32 sessionId, 
-        tCsrRoamConnectedProfile *pProfile);
 
     csrRoamCopyConnectProfile(pMac, arg2, &Profile);
 
@@ -2230,7 +2226,7 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
                        (void *)psessionEntry->bssId, 6);  
                    palCopyMemory(pMac->hHdd, (void *) &pftPreAuthReq->preAuthbssId, 
                        (void *)macAddr, 6);  
-                   pftPreAuthReq->ft_ies_length = pMac->ft.ftSmeContext.auth_ft_ies_length;
+                   pftPreAuthReq->ft_ies_length = (tANI_U16)pMac->ft.ftSmeContext.auth_ft_ies_length;
 
                    // Also setup the mac address in sme context.
                    palCopyMemory(pMac->hHdd, pMac->ft.ftSmeContext.preAuthbssId, macAddr, 6);
@@ -2257,7 +2253,7 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
                             pftPreAuthReq->currbssId[1], 
                             pftPreAuthReq->currbssId[2], pftPreAuthReq);
 
-                   Profile.pBssDesc->channelId = arg3;
+                   Profile.pBssDesc->channelId = (tANI_U8)arg3;
                    vos_mem_copy((void *)pftPreAuthReq->pbssDescription, (void *)Profile.pBssDesc, 
                        Profile.pBssDesc->length);  
 

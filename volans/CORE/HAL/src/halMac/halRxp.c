@@ -886,6 +886,10 @@ eHalStatus halRxp_Start(tHalHandle hHal, void *arg)
     halWriteRegister(pMac, QWLAN_RXP_CONFIG4_REG, value);
 #endif
 
+//Have this always enabled. 
+//It doesn't hurt even if BA session is not established
+halRxp_EnableDisableBmuBaUpdate(pMac, 1);
+
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -2695,7 +2699,7 @@ eHalStatus halRxp_EnableDisableBmuBaUpdate(tpAniSirGlobal pMac, tANI_U32 enable)
 \return status
 \ ------------------------------------------------------------ */
 
-eHalStatus halRxp_EnableBssBeaconParamFilter( tpAniSirGlobal pMac, tANI_U32 uBssIdx)
+eHalStatus halRxp_EnableBssBeaconParamFilter( tpAniSirGlobal pMac, tANI_U8 uBssIdx)
 {
     tpBssStruct pBss = (tpBssStruct) pMac->hal.halMac.bssTable;
 
@@ -2709,7 +2713,7 @@ eHalStatus halRxp_EnableBssBeaconParamFilter( tpAniSirGlobal pMac, tANI_U32 uBss
 #ifdef HAL_SELF_STA_PER_BSS
     tANI_U8 selfStaIdx;
 #endif
-    tBssSystemRole bssSystemRole = halGetBssSystemRole(pMac, (tANI_U8)uBssIdx);
+    tBssSystemRole bssSystemRole = halGetBssSystemRole(pMac, uBssIdx);
 
     pBss = &pBss[uBssIdx];
 

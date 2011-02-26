@@ -192,7 +192,7 @@ eHalStatus asicLoadTPCGainLUT(tpAniSirGlobal pMac, ePhyTxChains txChain, tTxGain
     {
         tANI_U32 addr = (gainLutOffset + (point * 4));
         tANI_U16 gain;
-        gain = ((tpcGainLut[point].coarsePwr << TPC_GAIN_RF_OFFSET) + tpcGainLut[point].finePwr);
+        gain = (tANI_U16)((tpcGainLut[point].coarsePwr << TPC_GAIN_RF_OFFSET) + tpcGainLut[point].finePwr);
 
         SET_PHY_REG(pMac->hHdd, addr, gain);
 

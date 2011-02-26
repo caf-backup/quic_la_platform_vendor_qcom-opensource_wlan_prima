@@ -117,7 +117,7 @@ eRfChannels rfGetClosest20MHzChannel(eRfChannels chIndex);
 //calibration support functions
 tTempADCVal rfTakeTemp(eRfTempSensor tempSensor);
 tRfADCVal rfReadAdc(tANI_U8 nSamples, eHdetAdcSetup setup);
-eTemperatureBins DetermineTemperatureBin(tTempADCVal temperature);
+eTemperatureBins DetermineTemperatureBin(tTempADCVal temperature, tTempADCVal roomTemp);
 eRfCalMode rfGetCalMode();
 void rfSetCalMode(eRfCalMode calMode, ePhyRxChains rxChain, ePhyTxChains txChain, eGainSteps gain);
 
@@ -133,6 +133,7 @@ void disableIm2ToneGen(tANI_BOOLEAN inBand);
 void enableIm2ToneGen(tANI_BOOLEAN inBand);
 
 tANI_U8 rfHdetDCOCal(void);
+tANI_U16 getHdetDCOffset(void);
 void rfRTuningCal(void);
 tANI_U16 rfCTuningCal(void);
 void rfInsituTuningCal(tANI_U16 rcMeas, tANI_U8 rTune);

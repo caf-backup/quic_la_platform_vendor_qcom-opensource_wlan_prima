@@ -343,14 +343,14 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             1/* C Tuner */,
             0/* In-Situ Tuner */,
             1/* Rtuner */,
-            0/* HDET DCO */,
+            1/* HDET DCO */,
             1/* Firmware Initialization */,
             0/* Use cal data prior to calibrations */
 
 #else
             0/* Use cal data prior to calibrations */,
             1/* Firmware Initialization */,
-            0/* HDET DCO */,
+            1/* HDET DCO */,
             1/* Rtuner */,
             0/* In-Situ Tuner */,
             1/* C Tuner */,
@@ -472,7 +472,7 @@ eHalStatus halFW_CheckInitComplete(tHalHandle hHal, void *arg)
     eHalStatus status = eHAL_STATUS_FAILURE;
     tANI_U32 value = 0, i;
     tANI_U32 readCount = 0, writeCount = 0;
-
+    
     for(i=0; i<HAL_MB_REG_READ_POLL_COUNT; i++) {
         // Poll for the read count of the Mbox register
         halReadRegister(pMac, QWLAN_MCU_MB1_CONTROL_COUNTERS_REG, &value);
@@ -645,7 +645,8 @@ eHalStatus halFW_SendMsg(tpAniSirGlobal pMac,
     tMBoxMsgHdr *pMbox = NULL;
 
     // Do a sanity check on the message length
-    if(pMsg == NULL && msgLen < sizeof(tMBoxMsgHdr)) {
+    if(pMsg == NULL || msgLen < sizeof(tMBoxMsgHdr))
+    {
         HALLOGE( halLog(pMac, LOGE, FL("Invalid FW message length\n") ));
         return eHAL_STATUS_FAILURE;
     }
@@ -1136,6 +1137,23 @@ eHalStatus halFW_UpdateBeaconReq(tpAniSirGlobal pMac, tANI_U8 bssIdx,
     return status;
 }
 
+#ifdef WLAN_SOFTAP_FW_BA_PROCESSING_FEATURE
+eHalStatus halFW_UpdateBAMsg(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId, tANI_U8 code)
+{
+    eHalStatus status = eHAL_STATUS_FAILURE;
+    Qwlanfw_UpdateBaMsgType msgBody;
+
+    msgBody.staIdx  = staIdx;
+    msgBody.queueId = queueId;
+    msgBody.code    = code;
+
+    status = halFW_MsgReq(pMac, QWLANFW_COMMON_UPDATE_BA, sizeof(Qwlanfw_UpdateBaMsgType), (tANI_U8 *)&msgBody);
+
+    HALLOGE( halLog(pMac, LOGE, FL("Update BA %d:%d:%d\n"), msgBody.staIdx, msgBody.queueId, msgBody.code ));
+    return status;
+}
+#endif
+
 tANI_U8 mapHostToFwBssSystemRole(tpAniSirGlobal pMac, tBssSystemRole hostBssSystemRole)
 {
     tANI_U8 fwRole = FW_SYSTEM_UNKNOWN_ROLE;
@@ -1282,7 +1300,7 @@ eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobal
             msgBody.staIdx = pSta->staId;
             staInfo.bssIdx = pSta->bssIdx;
             staInfo.staIdx = pSta->staId;
-            staInfo.aid = pSta->assocId;
+            staInfo.aid = (tANI_U8)pSta->assocId;
             staInfo.valid = 1;
             staInfo.delEnbQidMask = pSta->delEnbQidMask;
             staInfo.qosEnabled = pSta->qosEnabled;

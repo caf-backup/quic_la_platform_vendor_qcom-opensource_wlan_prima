@@ -423,6 +423,32 @@ eHalStatus halTpe_InitHwTemplates(tHalHandle hHal, void *arg)
 }
 
 /**
+ * \fn halTpe_SetConsiderSecondPacket
+ *
+ * \brief To set the consider second packet bit in TPE SW PM register. 
+ *        This setting will give correct duration/id in the fragmented frames.
+ *        The TPE will calculate the duration including the next fragement also. 
+ *        This is required when a fragmentation chain has to be transmitted with each fragment 
+ *        having Duration field considering the next fragment. This is applicable for all the 
+ *        fragments except the last one.
+ *
+ * \param pMac The global tpAniSirGlobal object 
+ *
+ * \return void
+ */
+static void halTpe_SetConsiderSecondPacket(tpAniSirGlobal pMac)
+{
+    tANI_U32 value;
+
+    /** Read the control register */
+    halReadRegister(pMac, QWLAN_TPE_SW_PM_REG, &value);
+
+    value |= QWLAN_TPE_SW_PM_SW_CONSIDER_SECOND_PKT_READ_MASK;
+
+    halWriteRegister(pMac, QWLAN_TPE_SW_PM_REG, value);
+}
+
+/**
  * \fn halTpe_Start
  *
  * \brief Initialize the TPE module
@@ -452,8 +478,8 @@ eHalStatus halTpe_Start(tHalHandle hHal, void *arg)
     __halTpe_InitBeaconTemplateBase(pMac);
 
     /** Set the Tx SIFS cycles */
-    value = (SW_TX_SIFS_A_MODE_CYCLES << QWLAN_TPE_SW_PM_SW_TX_SIFS_A_MODE_CYCLES_OFFSET) |
-            (SW_TX_SIFS_B_MODE_CYCLES << QWLAN_TPE_SW_PM_SW_TX_SIFS_B_MODE_CYCLES_OFFSET);
+    value = (tANI_U32)(SW_TX_SIFS_A_MODE_CYCLES << QWLAN_TPE_SW_PM_SW_TX_SIFS_A_MODE_CYCLES_OFFSET) | 
+           (tANI_U32)(SW_TX_SIFS_B_MODE_CYCLES << QWLAN_TPE_SW_PM_SW_TX_SIFS_B_MODE_CYCLES_OFFSET);
 
     mask = QWLAN_TPE_SW_PM_SW_TX_SIFS_A_MODE_CYCLES_MASK | QWLAN_TPE_SW_PM_SW_TX_SIFS_B_MODE_CYCLES_MASK;
 
@@ -463,6 +489,9 @@ eHalStatus halTpe_Start(tHalHandle hHal, void *arg)
     /** Set AC to Back-off lookup vector */
     if (halTpe_SetAcToBkofLookupVec(pMac) != eHAL_STATUS_SUCCESS)
         return eHAL_STATUS_FAILURE;
+
+    /** For getting correct duration/id in the frames, setting consider second packet bit **/
+    halTpe_SetConsiderSecondPacket(pMac);
 
     /** Enable TPE.statistic_counters_cntl.copy_vista_counter to fetch the stats */
     {
@@ -1372,26 +1401,20 @@ eHalStatus halTpe_UpdateEdcaTxOp(tpAniSirGlobal pMac, tANI_U16 *pTxOp)
 void halTpe_DumpEdcaTxOp(tpAniSirGlobal pMac)
 {
     tANI_U32 regVal = 0;
-    do
-    {
-        halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_0_1_REG, &regVal);
-        HALLOGW( halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_0_1_REG = %x\n"), regVal));
 
-        
-        halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_2_3_REG, &regVal);
-        HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_2_3_REG = %x\n"), regVal));        
+    halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_0_1_REG, &regVal);
+    HALLOGW( halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_0_1_REG = %x\n"), regVal));
 
+    halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_2_3_REG, &regVal);
+    HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_2_3_REG = %x\n"), regVal));        
 
-        halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_4_5_REG, &regVal);
-        HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_4_5_REG = %x\n"), regVal));        
+    halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_4_5_REG, &regVal);
+    HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_4_5_REG = %x\n"), regVal));        
 
+    halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_6_7_REG, &regVal);
+    HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_6_7_REG = %x\n"), regVal));        
 
-        halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_6_7_REG, &regVal);
-        HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_6_7_REG = %x\n"), regVal));        
-    
-    }while(0);
     return;
-    
 }
 
 /**

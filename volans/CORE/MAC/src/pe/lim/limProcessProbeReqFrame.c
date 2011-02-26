@@ -637,7 +637,7 @@ limSendSmeProbeReqInd(tpAniSirGlobal pMac,
     palCopyMemory( pMac->hHdd, pSirSmeProbeReqInd->WPSPBCProbeReq.peerMacAddr, peerMacAddr, sizeof(tSirMacAddr));
 
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
-    pSirSmeProbeReqInd->WPSPBCProbeReq.probeReqIELen = ProbeReqIELen;
+    pSirSmeProbeReqInd->WPSPBCProbeReq.probeReqIELen = (tANI_U16)ProbeReqIELen;
     palCopyMemory( pMac->hHdd, pSirSmeProbeReqInd->WPSPBCProbeReq.probeReqIE, pProbeReqIE, ProbeReqIELen);
     
     if (limHalMmhPostMsgApi(pMac, &msgQ,  ePROT) != eSIR_SUCCESS){

@@ -537,7 +537,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  psessionEntry->fwdWPSPBCProbeReq = pSmeStartBssReq->fwdWPSPBCProbeReq;
                  psessionEntry->authType = pSmeStartBssReq->authType;
                  /* Store the DTIM period */
-                 psessionEntry->dtimPeriod = pSmeStartBssReq->dtimPeriod;
+                 psessionEntry->dtimPeriod = (tANI_U8)pSmeStartBssReq->dtimPeriod;
                  /*Enable/disable UAPSD*/  
                  psessionEntry->apUapsdEnable = pSmeStartBssReq->apUapsdEnable;
                  psessionEntry->proxyProbeRspEn = 1;
@@ -1529,12 +1529,13 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 
 end:
-    if(pSmeJoinReq)
-        palFreeMemory( pMac->hHdd, pSmeJoinReq);
-    
-    
     limGetSessionInfo(pMac,(tANI_U8*)pMsgBuf,&smesessionId,&smetransactionId); 
     
+    if(pSmeJoinReq)
+    {
+        palFreeMemory( pMac->hHdd, pSmeJoinReq);
+    }
+
     if(retCode != eSIR_SME_SUCCESS)
     {
         if(NULL != psessionEntry)
@@ -1543,6 +1544,7 @@ end:
             psessionEntry = NULL;
         }
     } 
+
     limSendSmeJoinReassocRsp(pMac, eWNI_SME_JOIN_RSP, retCode, eSIR_MAC_UNSPEC_FAILURE_STATUS,psessionEntry,smesessionId,smetransactionId);
 } /*** end __limProcessSmeJoinReq() ***/
 
@@ -2532,6 +2534,12 @@ __limProcessSmeSetContextReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         (!limIsSmeSetContextReqValid(pMac, pSetContextReq)))
     {
         limLog(pMac, LOGW, FL("received invalid SME_SETCONTEXT_REQ message\n")); 
+        goto end;
+    }
+
+    if(pSetContextReq->keyMaterial.numKeys > SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS)
+    {
+        PELOGE(limLog(pMac, LOGE, FL("numKeys:%d is more than SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS\n"), pSetContextReq->keyMaterial.numKeys);)
         limSendSmeSetContextRsp(pMac,
                                 pSetContextReq->peerMacAddr,
 #ifdef ANI_PRODUCT_TYPE_AP
@@ -2726,7 +2734,7 @@ __limProcessSmeRemoveKeyReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         {
         
             limLog(pMac, LOGE,FL("session does not exist for given bssId\n"));
-            return;
+            goto end;
         }
 
         limSendSmeRemoveKeyRsp(pMac,
@@ -2741,7 +2749,7 @@ __limProcessSmeRemoveKeyReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     {
         limLog(pMac, LOGE,
                       FL("session does not exist for given bssId\n"));
-        return;
+        goto end;
     }
 
 
@@ -2974,6 +2982,13 @@ void limProcessSmeGetScanChannelInfo(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tpSmeGetScanChnRsp  pSirSmeRsp;
     tANI_U16 len = 0;
 
+    if(pMac->lim.scanChnInfo.numChnInfo > SIR_MAX_SUPPORTED_CHANNEL_LIST)
+    {
+         limLog(pMac, LOGW, FL("numChn is out of bounds %d\n"),
+                pMac->lim.scanChnInfo.numChnInfo);
+         pMac->lim.scanChnInfo.numChnInfo = SIR_MAX_SUPPORTED_CHANNEL_LIST;
+    }
+
    PELOG2(limLog(pMac, LOG2,
            FL("Sending message %s with number of channels %d\n"),
            limMsgStr(eWNI_SME_GET_SCANNED_CHANNEL_RSP), pMac->lim.scanChnInfo.numChnInfo);)
@@ -2996,6 +3011,7 @@ void limProcessSmeGetScanChannelInfo(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     pSirSmeRsp->mesgType = eWNI_SME_GET_SCANNED_CHANNEL_RSP;
     pSirSmeRsp->mesgLen = len;
 #endif
+
     if(pMac->lim.scanChnInfo.numChnInfo)
     {
         pSirSmeRsp->numChn = pMac->lim.scanChnInfo.numChnInfo;
@@ -3082,8 +3098,8 @@ void limProcessSmeGetAssocSTAsInfo(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             palCopyMemory(pMac->hHdd, (tANI_U8 *)&pAssocStasTemp->staMac,
                                         (tANI_U8 *)&pStaDs->staAddr,
                                         sizeof(v_MACADDR_t));  // Mac address
-            pAssocStasTemp->assocId = pStaDs->assocId;         // Association Id
-            pAssocStasTemp->staId   = pStaDs->staIndex;        // Station Id
+            pAssocStasTemp->assocId = (v_U8_t)pStaDs->assocId;         // Association Id
+            pAssocStasTemp->staId   = (v_U8_t)pStaDs->staIndex;        // Station Id
 
             limLog(pMac, LOG1, FL("dph Station Number = %d"), staCount+1);
             limLog(pMac, LOG1, FL("MAC = %02x:%02x:%02x:%02x:%02x:%02x"),
@@ -3908,19 +3924,6 @@ __limProcessSmeAddtsReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
-    // for edca, if no Access Control, ignore the request
-    if ((pSirAddts->req.tspec.tsinfo.traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA) &&
-        (! pMac->sch.schObject.gSchEdcaParams[upToAc(pSirAddts->req.tspec.tsinfo.traffic.userPrio)].aci.acm))
-    {
-        limLog(pMac, LOGW, FL("AddTs with UP %d AC %d has no ACM - ignoring request\n"),
-               pSirAddts->req.tspec.tsinfo.traffic.userPrio, upToAc(pSirAddts->req.tspec.tsinfo.traffic.userPrio));
-        limSendSmeAddtsRsp(pMac, pSirAddts->rspReqd, eSIR_SUCCESS, psessionEntry, pSirAddts->req.tspec,
-            smesessionId,smetransactionId);
-        return;
-    }
-#endif
-
     if ((psessionEntry->limSmeState != eLIM_SME_ASSOCIATED_STATE) &&
         (psessionEntry->limSmeState != eLIM_SME_LINK_EST_STATE))
     {
@@ -4603,7 +4606,7 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
 #if defined WLAN_FEATURE_VOWIFI_11R
        case eWNI_SME_FT_PRE_AUTH_REQ:
-            bufConsumed = limProcessFTPreAuthReq(pMac, pMsg);
+            bufConsumed = (tANI_BOOLEAN)limProcessFTPreAuthReq(pMac, pMsg);
             break;
 #endif
 

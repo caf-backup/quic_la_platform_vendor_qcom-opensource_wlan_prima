@@ -595,7 +595,7 @@ _updateStaValidRateBitmap(tpAniSirGlobal  pMac, tpStaStruct   pSta,  tANI_U32 se
     return;
 }
 
-static tSirRetStatus _fixedRateCfgGet( tpAniSirGlobal  pMac,  tANI_U32* fixedHalRate)
+static tSirRetStatus _fixedRateCfgGet( tpAniSirGlobal  pMac,  tHalMacRate* fixedHalRate)
 {
     tANI_U32 userCfgFixedRate;
     tTpeRateIdx tpeRate;
@@ -627,7 +627,7 @@ halMacRaInitStaRate(
     pRaInfo = HAL_RAINFO_PTR_GET(pSta);
 
     /* first get the fixed rate config */
-    if(_fixedRateCfgGet(pMac, (tANI_U32 *)&fixedRate) != eSIR_SUCCESS) {
+    if(_fixedRateCfgGet(pMac, &fixedRate) != eSIR_SUCCESS) {
         raLog(pMac, RALOG_ERROR, FL("Unable to get fixed rate cfg's\n"));
         fixedRate = HALRATE_INVALID;
     }
@@ -681,7 +681,7 @@ halSetFixedRateForAllStaByCfg(tpAniSirGlobal pMac)
     tHalMacRate fixedRate;
 
     /* From CFG, get all the fixed rates for different modes, this is the MAC encoded rate */
-    if(_fixedRateCfgGet(pMac, (tANI_U32 *)&fixedRate) != eSIR_SUCCESS)  {
+    if(_fixedRateCfgGet(pMac, &fixedRate) != eSIR_SUCCESS)  {
         raLog(pMac, RALOG_ERROR, FL("Could not get valid set of fixed rates"));
     }
 
@@ -1855,7 +1855,7 @@ halMacRaSetAllStaRetryRates(
     tHalMacRate     sRate,  /* secondary rate */
     tHalMacRate     tRate)  /* tertiary rate */
 {
-    tANI_U16 staid ; //startStaid;
+    tANI_U8 staid ; //startStaid;
     tANI_U8  staType;
     tpHalRaGlobalInfo   pGlob   = &pMac->hal.halRaInfo;
 

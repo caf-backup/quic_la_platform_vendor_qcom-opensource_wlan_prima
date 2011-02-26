@@ -1000,6 +1000,12 @@ typedef enum
 #define CFG_DYNAMIC_PSPOLL_VALUE_MIN           (0)
 #define CFG_DYNAMIC_PSPOLL_VALUE_MAX           (255)
 #define CFG_DYNAMIC_PSPOLL_VALUE_DEFAULT       (0)
+
+#define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_NAME                 "gAddTSWhenACMIsOff"
+#define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MIN                  (0)
+#define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MAX                  (1) //Send AddTs even when ACM is not set for the AC
+#define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_DEFAULT              (0)
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1247,6 +1253,7 @@ typedef struct
 
    
    v_U8_t                      dynamicPsPollValue;
+   v_BOOL_t                    AddTSWhenACMIsOff;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

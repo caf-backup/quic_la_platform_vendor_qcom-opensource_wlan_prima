@@ -6157,7 +6157,6 @@ static VOS_STATUS WLANSSC_StartEventHandler
   }
   
   uRegValue &= ~QWLAN_SIF_BAR4_WLAN_CONTROL_REG_TRSW_SUPPLY_CTRL_0_MASK;
-  uRegValue &= ~(QWLAN_SIF_BAR4_WLAN_CONTROL_REG_SDIOC_CMD_ACTIVE_CHECK_DISABLE_MASK);	
   
   if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
                                                           QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,
@@ -6216,6 +6215,32 @@ static VOS_STATUS WLANSSC_StartEventHandler
     SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error enabling interrupts"));
     return VOS_STATUS_E_FAILURE;
   }
+
+
+
+
+  /* Read the current value                                   */
+  if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
+                                                         QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,
+                                                         (v_U8_t*)&uRegValue,
+                                                         WLANSSC_TX_REGBUFFER) )
+  {
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error reading QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG"));
+    return VOS_STATUS_E_FAILURE;
+  }
+
+  uRegValue &= ~(QWLAN_SIF_BAR4_WLAN_CONTROL_REG_SDIOC_CMD_ACTIVE_CHECK_DISABLE_MASK);
+
+  if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegisterFuncZero(pControlBlock,
+                                                          QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG,
+                                                          (v_U8_t*)&uRegValue,
+                                                          WLANSSC_TX_REGBUFFER) )
+  {
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Error writing register QWLAN_SIF_BAR4_WLAN_CONTROL_REG_REG"));
+    return VOS_STATUS_E_FAILURE;
+  }
+
+
 
 
   /* Do we need to enable global interrupt or any other Libra interrupt?   */

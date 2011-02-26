@@ -147,5 +147,8 @@ eHalStatus halFW_AddStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 raGlobal
 eHalStatus halFW_DelStaReq(tpAniSirGlobal pMac, tANI_U8 staIdx);
 eHalStatus halFW_MsgReq(tpAniSirGlobal pMac, tFwMsgTypeEnum msgType, tANI_U16 msgLen, tANI_U8* msgBody);
 eHalStatus halFW_HandleFwDelStaMsg(tpAniSirGlobal pMac, void* pFwMsg);
+#ifdef WLAN_SOFTAP_FW_BA_PROCESSING_FEATURE
+eHalStatus halFW_UpdateBAMsg(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId, tANI_U8 code);
+#endif
 #endif
 #endif //_HALFWAPI_H_

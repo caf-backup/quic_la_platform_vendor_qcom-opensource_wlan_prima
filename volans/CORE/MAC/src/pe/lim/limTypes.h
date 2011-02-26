@@ -839,8 +839,6 @@ void limProcessMlmHalBADeleteInd( tpAniSirGlobal pMac,
 
 void limProcessMlmRemoveKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ );
 
-void limProcessSetMimoRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
-
 void limProcessLearnIntervalTimeout(tpAniSirGlobal pMac);
 
 // Inline functions

@@ -286,29 +286,6 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
     tLimScanResultNode   *pBssDescr;
     tANI_U32                  frameLen, ieLen = 0;
 
-    /**
-     * Compare SSID with the one sent in
-     * Probe Request frame, if any.
-     * If they don't match, ignore the
-     * Beacon frame.
-     * pMac->lim.gLimMlmScanReq->ssId.length == 0
-     * indicates Broadcast SSID.
-     */
-
-    if ((fScanning) && (pMac->lim.gpLimMlmScanReq->ssId.length) &&
-        ( !palEqualMemory( pMac->hHdd,(tANI_U8 *) &pBPR->ssId,
-                   (tANI_U8 *) &pMac->lim.gpLimMlmScanReq->ssId,
-                   (tANI_U8) (pMac->lim.gpLimMlmScanReq->ssId.length + 1)) ))
-    {
-        /**
-         * Received SSID does not match with
-         * the one we're scanning for.
-         * Ignore received Beacon frame
-         */
-
-        return;
-    }
-
     /* There is no point in caching & reporting the scan results for APs
      * which are in the process of switching the channel. So, we are not
      * caching the scan results for APs which are adverzing the channel-switch

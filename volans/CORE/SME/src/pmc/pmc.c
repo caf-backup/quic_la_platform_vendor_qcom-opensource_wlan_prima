@@ -50,15 +50,6 @@ eHalStatus pmcEnterLowPowerState (tHalHandle hHal)
     /* If already in Low Power State, just return. */
     if (pMac->pmc.pmcState == LOW_POWER)
         return eHAL_STATUS_SUCCESS;
-#ifndef GEN6_ONWARDS //PAL does not supprot this API GEN6 onwards.
-    /* Stop everything from MAC down. */
-    if (palStopHdd(pMac->hHdd) != eHAL_STATUS_SUCCESS)
-    {
-        smsLog(pMac, LOGE, FL("palStopHdd returns failure\n"));
-        PMC_ABORT;
-        return eHAL_STATUS_FAILURE;
-    }
-#endif    //GEN6_ONWARDS
 
     /* Cancel any running timers. */
     if (palTimerStop(pMac->hHdd, pMac->pmc.hImpsTimer) != eHAL_STATUS_SUCCESS)
@@ -117,15 +108,6 @@ eHalStatus pmcExitLowPowerState (tHalHandle hHal)
     if ((pMac->pmc.hwWlanSwitchState == ePMC_SWITCH_OFF) || (pMac->pmc.swWlanSwitchState == ePMC_SWITCH_OFF))
         return eHAL_STATUS_SUCCESS;
 
-#ifndef GEN6_ONWARDS //PAL does not support this API GEN6 onwards.
-    /* Start everything from MAC down. */
-    if (palStartHdd(pMac->hHdd) != eHAL_STATUS_SUCCESS)
-    {
-        smsLog(pMac, LOGE, FL("palStartHdd returns failure\n"));
-        PMC_ABORT;
-        return eHAL_STATUS_FAILURE;
-    }
-#endif //GEN6_ONWARDS
     /* Change state. */
     pMac->pmc.pmcState = FULL_POWER;
     if(pmcShouldBmpsTimerRun(pMac))

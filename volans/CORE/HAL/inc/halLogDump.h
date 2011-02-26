@@ -60,8 +60,6 @@ eHalStatus halLog_printHost2McpuMemory(tpAniSirGlobal pMac);
 void  halRate_changeStaRate(tpAniSirGlobal pMac, tANI_U32 staid, tANI_U32 chnl, tHalMacRate halPriRateIdx, tHalMacRate halSecRateIdx,  tHalMacRate halTerRateIdx );
 eHalStatus halRate_sendStaRateInfoMsg(tHalHandle hHal, tANI_U32 startStaIdx, tANI_U32 staCount, tANI_U32 nextReportPktCount, tANI_U32 nextReportMsec);
 void  halRate_updateProtInfo(tpAniSirGlobal pMac,tANI_U32 staid, tANI_U32 chnl, tANI_U32 rateSelect, tANI_U32 halDataRateIdx, tANI_U32 *forceProtPolicy, tANI_U32 *forceProtRate);
-
-void  halRateDbg_overrideStaRateProtPolicy(tpAniSirGlobal pMac,tANI_U32 chnl, tANI_U32 staid,  tANI_S32 priProtMode, tANI_S32 secProtMode,  tANI_S32 triProtMode, tANI_S32 priProtRate, tANI_S32 secProtRate, tANI_S32 terProtRate);
 void  halRateDbg_change11nRatePktType(tpAniSirGlobal pMac,tANI_U32 mixedMode, tANI_U32 startRate,  tANI_U32 endRateIdx);
 void  halMacRaDumpHalRateTable(tpAniSirGlobal pMac);
 void  halMacRaDumpStaRateInfo(tpAniSirGlobal pMac, tANI_U32 startStaIdx, tANI_U32 endStaIdx);

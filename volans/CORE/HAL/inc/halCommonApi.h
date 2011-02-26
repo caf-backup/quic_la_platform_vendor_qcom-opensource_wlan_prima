@@ -218,7 +218,7 @@ extern eHalStatus halMacCollectAndClearStaStats( tpAniSirGlobal pMac, tANI_U8 st
 
 tSirRetStatus halMntPostMsgApi(tpAniSirGlobal, tSirMsgQ*);
 tSirRetStatus halMntProcessMsgs(tpAniSirGlobal, tSirMsgQ*);
-tSirRetStatus halMntGetPerStaStats(tpAniSirGlobal, tANI_U16);
+tSirRetStatus halMmhForwardMBmsg(void*, tSirMbMsg*);
 
 // HAL APIS
 //----
@@ -229,9 +229,6 @@ tSirRetStatus halPostMsgApi(tpAniSirGlobal, tSirMsgQ*);
 
 tANI_U8 halStateGet(tpAniSirGlobal pMac);
 void halStateSet(tpAniSirGlobal pMac, tANI_U8 state);
-
-void halMntTempCheck(tpAniSirGlobal);
-void halMntOpenTpcTempCheck(tpAniSirGlobal);
 void halForceSetNwType(tpAniSirGlobal pMac, tSirNwType forceNwType);
 
 tANI_BOOLEAN halIsLinkBusy(tpAniSirGlobal pMac);

@@ -211,7 +211,7 @@ eHalStatus halInNav_StartInNavMeas(tpAniSirGlobal pMac)
                 break;
             }
             
-            currentChannel = reqParam->bssidChannelInfo[pMac->hal.innavMeasParam.currentBssidIndex].channel;
+            currentChannel = (tANI_U8)(reqParam->bssidChannelInfo[pMac->hal.innavMeasParam.currentBssidIndex].channel);
 
             pPerBssidChannelInfo->numInNavMeasurements = reqParam->numInNavMeasurements;
             pPerBssidChannelInfo->bssid[0] = reqParam->bssidChannelInfo[currentBssidIndex].bssid[0];
@@ -430,12 +430,12 @@ void halInNav_GetRttRssiResults(tpAniSirGlobal pMac, Qwlanfw_InNavMeasRspType* p
             
             innavRsp = (tpStartInNavMeasRsp)(pMac->hal.innavMeasParam.pRspParam);
             innavRsp->numBSSIDs = 1;
-            innavRsp->rspLen = newRspLen;
+            innavRsp->rspLen = (tANI_U16)newRspLen;
 
             pDest = (tANI_U32*)((tANI_U32)(pMac->hal.innavMeasParam.pRspParam) + sizeof(tStartInNavMeasRsp) - sizeof(tSirRttRssiResults) );
             pRsltsOut = (tpSirRttRssiResults)(pDest);
 
-            pRsltsOut->numSuccessfulMeasurements = pFWInNavMeasRsp->numSuccessfulMeas;
+            pRsltsOut->numSuccessfulMeasurements = (tANI_U8)pFWInNavMeasRsp->numSuccessfulMeas;
             pRsltsOut->bssid[0] = reqParam->bssidChannelInfo[currentBssidIndex].bssid[0];
             pRsltsOut->bssid[1] = reqParam->bssidChannelInfo[currentBssidIndex].bssid[1];
             pRsltsOut->bssid[2] = reqParam->bssidChannelInfo[currentBssidIndex].bssid[2];
@@ -445,9 +445,9 @@ void halInNav_GetRttRssiResults(tpAniSirGlobal pMac, Qwlanfw_InNavMeasRspType* p
 
             for(dataCnt=0;dataCnt<pRsltsOut->numSuccessfulMeasurements;dataCnt++)
             {
-                pRsltsOut->rttRssiTimeData[dataCnt].rssi = pRsltsIn->rssi;
-                pRsltsOut->rttRssiTimeData[dataCnt].rtt = pRsltsIn->rtt;
-                pRsltsOut->rttRssiTimeData[dataCnt].snr = pRsltsIn->snr;
+                pRsltsOut->rttRssiTimeData[dataCnt].rssi = (tANI_U8)pRsltsIn->rssi;
+                pRsltsOut->rttRssiTimeData[dataCnt].rtt = (tANI_U16)pRsltsIn->rtt;
+                pRsltsOut->rttRssiTimeData[dataCnt].snr = (tANI_U16)pRsltsIn->snr;
                 pRsltsOut->rttRssiTimeData[dataCnt].measurementTime = pRsltsIn->tsfLo;
                 pRsltsOut->rttRssiTimeData[dataCnt].measurementTimeHi = pRsltsIn->tsfHi;
                 
@@ -485,12 +485,12 @@ void halInNav_GetRttRssiResults(tpAniSirGlobal pMac, Qwlanfw_InNavMeasRspType* p
 
             innavRsp = (tpStartInNavMeasRsp)(pMac->hal.innavMeasParam.pRspParam);
             innavRsp->numBSSIDs++;
-            innavRsp->rspLen = newRspLen;
+            innavRsp->rspLen = (tANI_U16)newRspLen;
 
             pDest = (tANI_U32*)((tANI_U32)(innavRsp) + oldRspLen);
             pRsltsOut = (tpSirRttRssiResults)(pDest);
 
-            pRsltsOut->numSuccessfulMeasurements = pFWInNavMeasRsp->numSuccessfulMeas;
+            pRsltsOut->numSuccessfulMeasurements =(tANI_U8) pFWInNavMeasRsp->numSuccessfulMeas;
             pRsltsOut->bssid[0] = reqParam->bssidChannelInfo[currentBssidIndex].bssid[0];
             pRsltsOut->bssid[1] = reqParam->bssidChannelInfo[currentBssidIndex].bssid[1];
             pRsltsOut->bssid[2] = reqParam->bssidChannelInfo[currentBssidIndex].bssid[2];
@@ -500,9 +500,9 @@ void halInNav_GetRttRssiResults(tpAniSirGlobal pMac, Qwlanfw_InNavMeasRspType* p
 
             for(dataCnt=0;dataCnt<pRsltsOut->numSuccessfulMeasurements;dataCnt++)
             {
-                pRsltsOut->rttRssiTimeData[dataCnt].rssi = pRsltsIn->rssi;
-                pRsltsOut->rttRssiTimeData[dataCnt].rtt = pRsltsIn->rtt;
-                pRsltsOut->rttRssiTimeData[dataCnt].snr = pRsltsIn->snr;
+                pRsltsOut->rttRssiTimeData[dataCnt].rssi = (tANI_U8)pRsltsIn->rssi;
+                pRsltsOut->rttRssiTimeData[dataCnt].rtt =(tANI_U16) pRsltsIn->rtt;
+                pRsltsOut->rttRssiTimeData[dataCnt].snr =(tANI_U16) pRsltsIn->snr;
                 pRsltsOut->rttRssiTimeData[dataCnt].measurementTime = pRsltsIn->tsfLo;
                 pRsltsOut->rttRssiTimeData[dataCnt].measurementTimeHi = pRsltsIn->tsfHi;
 

@@ -200,9 +200,6 @@ extern void limSendAddtsReq (tpAniSirGlobal pMac, tANI_U16 staid, tANI_U8 tsid, 
 /// creates a delts request action frame and sends it out to staid
 extern void limSendDeltsReq (tpAniSirGlobal pMac, tANI_U16 staid, tANI_U8 tsid, tANI_U8 userPrio, tANI_U8 wme);
 /// creates a SM Power State Mode update request action frame and sends it out to staid
-extern  tSirRetStatus limSMPowerSaveStateInd(tpAniSirGlobal pMac, tSirMacHTMIMOPowerSaveState State);
-
-
 extern void limPostStartLearnModeMsgToSch(tpAniSirGlobal pMac);
 
 extern ePhyChanBondState limGetPhyCBState( tpAniSirGlobal pMac );
@@ -245,8 +242,7 @@ tMgmtFrmDropReason limIsPktCandidateForDrop(tpAniSirGlobal pMac, tpHalBufDesc pB
 extern void limSetBssid(tpAniSirGlobal pMac, tANI_U8 *bssId);
 extern void limGetBssid(tpAniSirGlobal pMac, tANI_U8 *bssId);
 extern void limGetMyMacAddr(tpAniSirGlobal pMac, tANI_U8 *mac);
-extern tSirRetStatus limCheckRxSeqNumber(tpAniSirGlobal pMac, tpHalBufDesc pBd);
-
+ 
 #define limGetQosMode(pMac, pVal) *(pVal) = (pMac)->lim.gLimQosEnabled
 #define limGetWmeMode(pMac, pVal) *(pVal) = (pMac)->lim.gLimWmeEnabled
 #define limGetWsmMode(pMac, pVal) *(pVal) = (pMac)->lim.gLimWsmEnabled

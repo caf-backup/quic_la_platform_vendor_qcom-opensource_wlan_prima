@@ -279,24 +279,11 @@ static inline tANI_U8 halComputeUtilization(tANI_U32 oldTsf, tANI_U32 newTsf, tA
 /**
  * Just for the successful compilation of the code
  */
-static inline tANI_U32 halExpAvg(tANI_U8 newVal, tANI_U32 oldAvg, tANI_U8 alpha)
-{
-    return 0;
-}
-
-/**
- * Just for the successful compilation of the code
- */
 static inline tANI_U8 halGetNoise(tpAniSirGlobal pMac)
 {
     return 0;
 }
 
 void halGetTxTSFtimer(tpAniSirGlobal pMac, tSirMacTimeStamp *pTime);
-
-static inline void halSendRR(tpAniSirGlobal pMac, tANI_U8 pri)
-{
-}
-
 
 #endif

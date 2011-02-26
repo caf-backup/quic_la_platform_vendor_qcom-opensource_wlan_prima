@@ -231,6 +231,7 @@ typedef struct
 
 #define CAL_STATUS_RXDCO_SUCCESS 0
 #define CAL_STATUS_RXDCO_NOT_EXECUTED 0xFF
+#define CAL_STATUS_RXDCO_MEAS_ERROR 1
 
 #define CAL_STATUS_TXLO_SUCCESS 0
 #define CAL_STATUS_TXLO_NOT_EXECUTED 0xFF
@@ -299,6 +300,7 @@ typedef struct
 
 typedef struct
 {
+#ifdef ANI_BIG_BYTE_ENDIAN
     tANI_U16    process_monitor;
     tANI_U8     hdet_cal_code;
     tANI_U8     rxfe_gm_2;
@@ -310,7 +312,8 @@ typedef struct
 
     tANI_U8     bb_bw1;
     tANI_U8     bb_bw2;
-    tANI_U8     reserved[2];
+    tANI_U8     pa_ctune_reg;
+    tANI_U8     reserved1;
 
     tANI_U8     bb_bw3;
     tANI_U8     bb_bw4;
@@ -336,10 +339,9 @@ typedef struct
     tANI_U8     rxfe_lna_load_ctune;
     tANI_U8     rxfe_lna_ngm_rtune;
 
-    tANI_U8     rx_im2_i_cfg0;
-    tANI_U8     rx_im2_i_cfg1;
-    tANI_U8     rx_im2_q_cfg0;
-    tANI_U8     rx_im2_q_cfg1;
+    tANI_U8     rx_im2_spare0;
+    tANI_U8     rx_im2_spare1;
+    tANI_U16    hdet_dco;
 
     tANI_U8     pll_vfc_reg3_b0;
     tANI_U8     pll_vfc_reg3_b1;
@@ -347,7 +349,58 @@ typedef struct
     tANI_U8     pll_vfc_reg3_b3;
 
     tANI_U16    tempStart;
-    tANI_U16    tempFinish;
+    tANI_U16    roomTemp;
+#else //ANI_LITTLE_BYTE_ENDIAN
+    tANI_U8     rxfe_gm_2;
+    tANI_U8     hdet_cal_code;
+    tANI_U16    process_monitor;
+
+    tANI_U8     bias_rtune;
+    tANI_U8     rt_code;
+    tANI_U8     pa_rtune_reg;
+    tANI_U8     tx_bbf_rtune;
+
+    tANI_U8     reserved1;
+    tANI_U8     pa_ctune_reg;
+    tANI_U8     bb_bw2;
+    tANI_U8     bb_bw1;
+
+    tANI_U8     bb_bw6;
+    tANI_U8     bb_bw5;
+    tANI_U8     bb_bw4;
+    tANI_U8     bb_bw3;
+
+    tANI_U8     tx_bbf_ctr;
+    tANI_U8     tx_bbf_ct;
+    tANI_U16    rcMeasured;
+
+    tANI_U8     csh_m6db_reg;
+    tANI_U8     csh_m3db_reg;
+    tANI_U8     csh_0db_reg;
+    tANI_U8     csh_maxgain_reg;
+
+    tANI_U8     rxfe_gpio_ctl_1;
+    tANI_U8     cff_m6db_reg;
+    tANI_U8     cff_m3db_reg;
+    tANI_U8     cff_0db_reg;
+
+    tANI_U8     rxfe_lna_ngm_rtune;
+    tANI_U8     rxfe_lna_load_ctune;
+    tANI_S8     rxfe_lna_highgain_bias_ctl_delta;
+    tANI_U8     mix_bal_cnt_2;
+
+    tANI_U16    hdet_dco;
+    tANI_U8     rx_im2_spare1;
+    tANI_U8     rx_im2_spare0;
+
+    tANI_U8     pll_vfc_reg3_b3;
+    tANI_U8     pll_vfc_reg3_b2;
+    tANI_U8     pll_vfc_reg3_b1;
+    tANI_U8     pll_vfc_reg3_b0;
+
+    tANI_U16    roomTemp;
+    tANI_U16    tempStart;
+#endif
 
     tTxLoCorrections    txLoValues;
     sTxIQChannel        txIqValues;
@@ -382,6 +435,7 @@ typedef enum
 
 typedef struct
 {
+#ifdef ANI_BIG_BYTE_ENDIAN
     tANI_U16    process_monitor;
     tANI_U8     hdet_cal_code;
     tANI_U8     rxfe_gm_2;
@@ -393,7 +447,7 @@ typedef struct
 
     tANI_U8     bb_bw1;
     tANI_U8     bb_bw2;
-    tANI_U8     reserved0;
+    tANI_U8     pa_ctune_reg;
     tANI_U8     reserved1;
 
     tANI_U8     bb_bw3;
@@ -422,8 +476,7 @@ typedef struct
 
     tANI_U8     rx_im2_spare0;
     tANI_U8     rx_im2_spare1;
-    tANI_U8     reserved2;
-    tANI_U8     reserved3;
+    tANI_U16    hdet_dco;
 
     tANI_U8     pll_vfc_reg3_b0;
     tANI_U8     pll_vfc_reg3_b1;
@@ -431,7 +484,58 @@ typedef struct
     tANI_U8     pll_vfc_reg3_b3;
 
     tANI_U16    tempStart;
-    tANI_U16    tempFinish;
+    tANI_U16    roomTemp;
+#else //ANI_LITTLE_BYTE_ENDIAN
+    tANI_U8     rxfe_gm_2;
+    tANI_U8     hdet_cal_code;
+    tANI_U16    process_monitor;
+
+    tANI_U8     bias_rtune;
+    tANI_U8     rt_code;
+    tANI_U8     pa_rtune_reg;
+    tANI_U8     tx_bbf_rtune;
+
+    tANI_U8     reserved1;
+    tANI_U8     pa_ctune_reg;
+    tANI_U8     bb_bw2;
+    tANI_U8     bb_bw1;
+
+    tANI_U8     bb_bw6;
+    tANI_U8     bb_bw5;
+    tANI_U8     bb_bw4;
+    tANI_U8     bb_bw3;
+
+    tANI_U8     tx_bbf_ctr;
+    tANI_U8     tx_bbf_ct;
+    tANI_U16    rcMeasured;
+
+    tANI_U8     csh_m6db_reg;
+    tANI_U8     csh_m3db_reg;
+    tANI_U8     csh_0db_reg;
+    tANI_U8     csh_maxgain_reg;
+
+    tANI_U8     rxfe_gpio_ctl_1;
+    tANI_U8     cff_m6db_reg;
+    tANI_U8     cff_m3db_reg;
+    tANI_U8     cff_0db_reg;
+
+    tANI_U8     rxfe_lna_ngm_rtune;
+    tANI_U8     rxfe_lna_load_ctune;
+    tANI_S8     rxfe_lna_highgain_bias_ctl_delta;
+    tANI_U8     mix_bal_cnt_2;
+
+    tANI_U16    hdet_dco;
+    tANI_U8     rx_im2_spare1;
+    tANI_U8     rx_im2_spare0;
+
+    tANI_U8     pll_vfc_reg3_b3;
+    tANI_U8     pll_vfc_reg3_b2;
+    tANI_U8     pll_vfc_reg3_b1;
+    tANI_U8     pll_vfc_reg3_b0;
+
+    tANI_U16    roomTemp;
+    tANI_U16    tempStart;
+#endif
 
 }sCalData;
 

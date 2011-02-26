@@ -285,7 +285,6 @@ HAL_PROC_OBJS :=$(HAL_SRC)/halProc/halInitApi.o \
         $(HAL_SRC)/halProc/halMsg.o \
         $(HAL_SRC)/halProc/hal.o \
         $(HAL_SRC)/halProc/halNimApi.o \
-        $(HAL_SRC)/halProc/halMnt.o \
         $(HAL_SRC)/halProc/halStaTable.o \
         $(HAL_SRC)/halProc/halTimer.o \
         $(HAL_SRC)/halProc/halTx.o \
@@ -444,6 +443,7 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DWLAN_FEATURE_VOWIFI_11R \
         -DWLAN_FEATURE_NEIGHBOR_ROAMING \
         -DWLAN_SDIO_DUMMY_CMD53_WORKAROUND \
+        -DWLAN_SOFTAP_FW_BA_PROCESSING_FEATURE \
         -D__linux__ \
         -DWLANSSC_TX_AGGREGATION_INTERNAL \
         -DFEATURE_INNAV_SUPPORT \
@@ -457,8 +457,8 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         #-DWLAN_FEATURE_VOWIFI_11R_DEBUG \
         #-DWLAN_VOWIFI_DEBUG
         #-Wframe-larger-than=4096#\
-        #-DVOLANS_PHY_TX_OPT_ENABLED #\
-
+        #-DVOLANS_PHY_TX_OPT_ENABLED \
+        #-DVOLANS_ENABLE_SW_REPLAY_CHECK
 
 
 ifeq ($(BUILD_DEBUG_VERSION),1)

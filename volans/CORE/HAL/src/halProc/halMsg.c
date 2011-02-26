@@ -828,7 +828,7 @@ static eHalStatus halMsg_delStaUpdateADU( tpAniSirGlobal pMac, tANI_U16 umaIdx, 
 }
 
 
-static eHalStatus halMsg_addStaUpdateBMU( tpAniSirGlobal pMac, tANI_U16 staIdx, tpAddStaParams  param )
+static eHalStatus halMsg_addStaUpdateBMU( tpAniSirGlobal pMac, tANI_U8 staIdx, tpAddStaParams  param )
 {
 #ifdef WLAN_SOFTAP_FEATURE
     tBssSystemRole systemRole = halGetBssSystemRoleFromStaIdx(pMac, staIdx);
@@ -2272,8 +2272,8 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
         {
             HALLOGP(halLog(pMac, LOGP, FL("Get power from rate2pwr table for rateindex %d failed with status %d\n"), phyRateIndex, status));
         }
-        pwrDbm /= 100;      //The halPhyGetPwrFromRate2PwrTable provides pwrDbm as 1900 for 19dBm. So, divide by 100
-        param->txMgmtPower = VOS_MIN(param->maxTxPower, pwrDbm);
+        pwrDbm /= (t2Decimal)100;      //The halPhyGetPwrFromRate2PwrTable provides pwrDbm as 1900 for 19dBm. So, divide by 100
+        param->txMgmtPower = (tPowerdBm)VOS_MIN(param->maxTxPower, pwrDbm);
         HALLOGE(halLog(pMac, LOGE, FL("Add Bss: Mgmt Rate Index = %d, Power = %d"),
                                             rateIndex, param->txMgmtPower));
 #endif /* WLAN_FEATURE_VOWIFI */
@@ -3358,8 +3358,8 @@ void halMsg_StartScanPostSetChan(tpAniSirGlobal pMac, void* pData,
     {
         HALLOGP(halLog(pMac, LOGP, FL("Get power from rate2pwr table for rateindex %d failed with status %d\n"), phyRateIndex, status));
     }
-    pwrDbm /= 100;      //The halPhyGetPwrFromRate2PwrTable provides pwrDbm as 1900 for 19dBm. So, divide by 100
-    param->txMgmtPower = VOS_MIN(regPowerLimit, pwrDbm);
+    pwrDbm /= (t2Decimal)100;      //The halPhyGetPwrFromRate2PwrTable provides pwrDbm as 1900 for 19dBm. So, divide by 100
+    param->txMgmtPower = (tPowerdBm)VOS_MIN(regPowerLimit, pwrDbm);
     
     /* The power returned to the PE is used to fill the TX power in WFA TPC report in 802.11k Link measurement frames 
             and probe request frames */

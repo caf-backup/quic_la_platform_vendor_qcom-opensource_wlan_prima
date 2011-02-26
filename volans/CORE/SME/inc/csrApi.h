@@ -941,6 +941,10 @@ typedef struct tagCsrConfigParam
     tCsrNeighborRoamConfigParams    neighborRoamConfig;
 #endif
 
+    /* Instead of Reassoc, send ADDTS/DELTS even when ACM is off for that AC 
+     * This is mandated by WMM-AC certification */
+    tANI_BOOLEAN addTSWhenACMIsOff;
+
 }tCsrConfigParam;   
 
 //Tush

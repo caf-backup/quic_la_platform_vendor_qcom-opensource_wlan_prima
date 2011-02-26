@@ -158,7 +158,7 @@ eHalStatus halRxp_EnableDisableBmuBaUpdate(tpAniSirGlobal pMac, tANI_U32 enable)
 eHalStatus halRxp_BckupRxpSearchTable(tpAniSirGlobal pMac, tANI_U32 *memAddr);
 
 eHalStatus halRxp_DisableBssBeaconParamFilter( tpAniSirGlobal pMac, tANI_U32 uBssIdx);
-eHalStatus halRxp_EnableBssBeaconParamFilter( tpAniSirGlobal pMac, tANI_U32 uBssIdx);
+eHalStatus halRxp_EnableBssBeaconParamFilter( tpAniSirGlobal pMac, tANI_U8 uBssIdx);
 eHalStatus halRxp_EnableSSIDBasedFilter( tpAniSirGlobal pMac, tSirMacSSid *pSirMacSSid);
 
 void halRxp_setSystemRxpFilterMode(tpAniSirGlobal pMac, 

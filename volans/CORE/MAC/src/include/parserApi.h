@@ -19,6 +19,7 @@
 
 #define COUNTRY_STRING_LENGTH    (  3 )
 #define COUNTRY_INFO_MAX_CHANNEL ( 84 )
+#define MAX_SIZE_OF_TRIPLETS_IN_COUNTRY_IE (COUNTRY_STRING_LENGTH * COUNTRY_INFO_MAX_CHANNEL)
 
 typedef struct sSirCountryInformation
 {
@@ -192,9 +193,6 @@ typedef struct sSirAssocRsp
     tANI_U8                   mdiePresent;
 #endif
 } tSirAssocRsp, *tpSirAssocRsp;
-
-tANI_U8
-sirIsPropCapabilityEnabled(struct sAniSirGlobal *pMac, tANI_U32 bitnum);
 
 tSirRetStatus
 sirGetCfgPropCaps(struct sAniSirGlobal *, tANI_U16 *);
@@ -442,11 +440,6 @@ PopulateDot11fExtSuppRates1(tpAniSirGlobal         pMac,
                             tDot11fIEExtSuppRates *pDot11f);
 
 tSirRetStatus
-PopulateDot11fHCF(tpAniSirGlobal  pMac,
-                  tANI_U32        capEnable,
-                  tDot11fIEHCF   *pDot11f);
-
-tSirRetStatus
 PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
                              tDot11fIEHTCaps *pDot11f);
 
@@ -494,26 +487,6 @@ PopulateDot11fPowerCaps(tpAniSirGlobal  pMac,
 tSirRetStatus
 PopulateDot11fPowerConstraints(tpAniSirGlobal             pMac,
                                tDot11fIEPowerConstraints *pDot11f);
-
-tSirRetStatus
-PopulateDot11fPropCapability(tpAniSirGlobal           pMac,
-                             tANI_U32                      capEnable,
-                             tDot11fIEPropCapability *pDot11f);
-
-void
-PopulateDot11fPropChannSwitchAnn(tpAniSirGlobal               pMac,
-                                 tANI_U32                          capEnable,
-                                 tDot11fIEPropChannSwitchAnn *pDot11f);
-
-void
-PopulateDot11fPropEDCAParams(tpAniSirGlobal           pMac,
-                             tANI_U16                      caps,
-                             tDot11fIEPropEDCAParams *pDot11f);
-
-tSirRetStatus
-PopulateDot11fPropSuppRates(tpAniSirGlobal          pMac,
-                            tANI_U32                     capEnable,
-                            tDot11fIEPropSuppRates *pDot11f);
 
 void
 PopulateDot11fQOSCapsAp(tpAniSirGlobal      pMac,

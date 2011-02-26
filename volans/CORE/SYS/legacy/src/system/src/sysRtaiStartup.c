@@ -28,9 +28,6 @@
 #include <aniParam.h>
 #include "sysDebug.h"
 
-#include "pal_skbPoolTracking.h"
-
-
 extern void rtaiCancelAllTimer(struct rtLibApp * rt);
 extern void (*rtaiMonitorInterrupts)(void);
 extern void sysMonitorInterrupts(void);
@@ -151,8 +148,6 @@ sysRecvPacket(tHalHandle hHal, void* pPacket)
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
     tSirMsgQ   mmhMsg;
 
-    aniSkbPoolTrackingMark(pPacket, ANI_MARK_sysRecvPacket_1);
-
     mmhMsg.type = SIR_BB_XPORT_MGMT_MSG;
     mmhMsg.bodyptr = pPacket;
     mmhMsg.bodyval = 0;
@@ -179,8 +174,6 @@ sysRecvPacket(tHalHandle hHal, void* pPacket)
                                  mHdr->fc.subType)
         != eSIR_SUCCESS)
     {
-
-        aniSkbPoolTrackingMark(pPacket, ANI_MARK_sysRecvPacket_2);
         palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, (void *) pBD, (void *) pPacket) ;
     }
 }

@@ -713,6 +713,9 @@ WLANTL_Close
     return VOS_STATUS_E_FAULT;
   }
 
+  pmcDeregisterDeviceStateUpdateInd( vos_get_context(VOS_MODULE_ID_SME, pvosGCtx),
+                                   WLANTL_PowerStateChangedCB);
+
   /*------------------------------------------------------------------------
     Deregister from PMC
    ------------------------------------------------------------------------*/
@@ -3736,14 +3739,14 @@ WLANTL_CacheSTAFrame
   -------------------------------------------------------------------------*/
   if ( bBcast )
   {
-    ucBcastSig = uDPUSig;
+    ucBcastSig = (v_U8_t)uDPUSig;
     bOldSTAPkt = (( WLAN_TL_INVALID_B_SIG != 
                   pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucBcastSig ) &&
       ( ucBcastSig == pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucBcastSig ));
   }
   else
   {
-    ucUcastSig = uDPUSig;
+    ucUcastSig = (v_U8_t)uDPUSig;
     bOldSTAPkt = (( WLAN_TL_INVALID_U_SIG != 
                     pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucUcastSig ) &&
         ( ucUcastSig == pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucUcastSig ));
@@ -3988,7 +3991,7 @@ WLANTL_ProcessBAPFrame
   }
 
   usMPDUDOffset = (v_U8_t)WLANHAL_RX_BD_GET_MPDU_D_OFFSET(pvBDHeader);
-  ucOffset      = usMPDUDOffset + WLANTL_LLC_OUI_OFFSET;
+  ucOffset      = (v_U8_t)usMPDUDOffset + WLANTL_LLC_OUI_OFFSET;
 
   vosStatus = vos_pkt_extract_data( vosTempBuff, ucOffset,
                                 (v_PVOID_t)ucOUI, &usOUISize);
@@ -4209,7 +4212,7 @@ WLANTL_ProcessFCFrame
   WLANHAL_SwapFcRxBd(&pvFcRxBd->fcSTATxQLen[0]);
 
   //logic to enable/disable LWM mode for each station
-  for( ucStaValid = pvFcRxBd->fcSTAValidMask; ucStaValid; ucStaValid >>= 1, ucBitCheck <<= 1, ucSTAId ++)
+  for( ucStaValid = (v_U8_t)pvFcRxBd->fcSTAValidMask; ucStaValid; ucStaValid >>= 1, ucBitCheck <<= 1, ucSTAId ++)
   {
     if ( (0 == (ucStaValid & 0x1)) || (0 == pTLCb->atlSTAClients[ucSTAId].ucExists) )
     {
@@ -4828,14 +4831,14 @@ WLANTL_RxCachedFrames
     -------------------------------------------------------------------------*/
     if ( broadcast )
     {
-      ucBcastSig = uDPUSig;
+      ucBcastSig = (v_U8_t)uDPUSig;
       bSigMatch = (( WLAN_TL_INVALID_B_SIG != 
                     pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucBcastSig ) &&
         ( ucBcastSig == pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucBcastSig ));
     }
     else
     {
-      ucUcastSig = uDPUSig;
+      ucUcastSig = (v_U8_t)uDPUSig;
       bSigMatch = (( WLAN_TL_INVALID_U_SIG != 
                       pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucUcastSig ) &&
           ( ucUcastSig == pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucUcastSig ));
@@ -6397,7 +6400,7 @@ WLANTL_STARxAuth
        ( usMPDULen     >= ucMPDUHLen ) && ( usPktLen >= usMPDULen ) &&
        ( !WLANTL_TID_INVALID(ucTid) ))
     {
-        ucMPDUHOffset = usMPDUDOffset - WLANTL_MPDU_HEADER_LEN; 
+        ucMPDUHOffset = (v_U8_t)(usMPDUDOffset - WLANTL_MPDU_HEADER_LEN); 
     }
     else
     {
@@ -6547,7 +6550,7 @@ if(0 == ucUnicastBroadcastType
              was not tested properly, it needs to be tested properly*/
           /* Frame is AMSDU frame. As per 802.11n only first
              subframe will have replay counter */
-          ucEsf =  WLANHAL_RX_BD_GET_ESF( aucBDHeader );
+          ucEsf = (v_U8_t) WLANHAL_RX_BD_GET_ESF( aucBDHeader );
           if( 0 != ucEsf )
           {
               v_BOOL_t status;
@@ -7124,7 +7127,7 @@ WLANTL_TxProcessMsg
     uData       = (v_U32_t)message->bodyptr; 
     ucSTAId     = ( uData & 0x000000FF); 
     ucUcastSig  = ( uData & 0x0000FF00)>>8; 
-    ucBcastSig  = ( uData & 0x00FF0000)>>16; 
+    ucBcastSig  = (v_U8_t)(( uData & 0x00FF0000)>>16); 
     vosStatus   = WLANTL_ForwardSTAFrames( pvosGCtx, ucSTAId, 
                                            ucUcastSig, ucBcastSig);
     break;
@@ -7139,7 +7142,7 @@ WLANTL_TxProcessMsg
       }
 
       ucAC = message->bodyval &  WLANTL_AC_MASK;
-      ucSTAId = message->bodyval >> WLANTL_STAID_OFFSET;  
+      ucSTAId = (v_U8_t)message->bodyval >> WLANTL_STAID_OFFSET;  
       vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucACMask,
                       pTLCb->atlSTAClients[ucSTAId].ucACMask| ( 1 << (ucAC)));
 
@@ -7303,7 +7306,7 @@ WLANTL_TxFCFrame
     {
       pTLCb->tlFCInfo.fcSTAThreshEnabledMask |= ucBitCheck;
 
-      pTLCb->tlFCInfo.fcSTAThresh[ucSTAId] = pTLCb->atlSTAClients[ucSTAId].uLwmThreshold;
+      pTLCb->tlFCInfo.fcSTAThresh[ucSTAId] = (tANI_U8)pTLCb->atlSTAClients[ucSTAId].uLwmThreshold;
 
       pTLCb->atlSTAClients[ucSTAId].ucLwmEventReported = FALSE;
     }
@@ -7423,7 +7426,7 @@ WLANTL_GetTxResourcesCB
   if (VOS_STATUS_E_RESOURCES == vosStatus)
   {
 #ifdef VOLANS_PERF
-     WLANHAL_EnableIdleBdPduInterrupt(pvosGCtx, bdPduInterruptGetThreshold);
+     WLANHAL_EnableIdleBdPduInterrupt(pvosGCtx, (tANI_U8)bdPduInterruptGetThreshold);
      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                "WLAN TL: Enabling Idle BD/PDU interrupt, Current resources = %d", uResCount);
 #else

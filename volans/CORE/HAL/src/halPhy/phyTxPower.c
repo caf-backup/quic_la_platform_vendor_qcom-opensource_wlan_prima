@@ -26,45 +26,45 @@ extern const tANI_U8 plutCharacterizedVolans2[MAX_TPC_CHANNELS][TPC_MEM_POWER_LU
 tTxGain tpcGainLut[PHY_MAX_TX_CHAINS][TPC_MEM_GAIN_LUT_DEPTH] =
 {
     {   //tx0 gain LUT
-        { 0x4, 0x7 },
-        { 0x4, 0x7 },
-        { 0x4, 0x7 },
-        { 0x4, 0x7 },
+        { 0x1, 0xf },
+        { 0x0, 0xf },
+        { 0x2, 0xf },
+        { 0x3, 0x9 },
 
-        { 0x5, 0x7 },
-        { 0x5, 0x7 },
-        { 0x5, 0x7 },
-        { 0x5, 0x7 },
+        { 0x3, 0xb },
+        { 0x3, 0xd },
+        { 0x3, 0xf },
+        { 0x4, 0x9 },
 
-        { 0x6, 0x7 },
-        { 0x6, 0x7 },
-        { 0x6, 0x7 },
-        { 0x6, 0x7 },
+        { 0x4, 0xb },
+        { 0x4, 0xd },
+        { 0x4, 0xf },
+        { 0x5, 0x9 },
 
-        { 0x7, 0x7 },
-        { 0x7, 0x7 },
-        { 0x7, 0x7 },
-        { 0x7, 0x7 },
+        { 0x5, 0xb },
+        { 0x5, 0xd },
+        { 0x5, 0xf },
+        { 0x6, 0x9 },
 
-        { 0x8, 0x7 },
-        { 0x8, 0x7 },
-        { 0x8, 0x7 },
-        { 0x8, 0x7 },
+        { 0x6, 0xb },
+        { 0x6, 0xd },
+        { 0x6, 0xf },
+        { 0x7, 0x9 },
 
-        { 0x9, 0x7 },
-        { 0x9, 0x7 },
-        { 0x9, 0x7 },
-        { 0x9, 0x7 },
+        { 0x7, 0xb }, //19.5 dBm
+        { 0x7, 0xd }, //20 dBm
+        { 0x7, 0xf },
+        { 0xe, 0xb },
 
-        { 0xA, 0x7 },
-        { 0xA, 0x7 },
-        { 0xA, 0x7 },
-        { 0xA, 0x7 },
+        { 0xe, 0xd },
+        { 0xe, 0xf },
+        { 0xf, 0x9 },
+        { 0xf, 0xb },
 
-        { 0xB, 0x7 },
-        { 0xB, 0x7 },
-        { 0xC, 0x7 },
-        { 0xC, 0x7 }
+        { 0xf, 0xd },
+        { 0xf, 0xf },
+        { 0xf, 0xf },
+        { 0xf, 0xf }
     },
 };
 
@@ -578,10 +578,12 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 
 #define TPC_INDEX_WIFI_DIRECT   0
 #ifdef VOLANS_1_0_CLPC_WORKAROUND
-#define TPC_INDEX_LOW_POWER     7
+#define TPC_INDEX_LOW_POWER     2
 #else
 #define TPC_INDEX_LOW_POWER     1
 #endif
+
+#define PACKET_TYPE_POWER_LIMIT(ptr, mode, chan)  (*(((t2Decimal *)(ptr)) + ((mode) * (NUM_2_4GHZ_CHANNELS)) + (chan)))
 
 eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode pwrMode, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex)
 {
@@ -590,6 +592,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
     t2Decimal absPwrLimit_2dec;
     t2Decimal bRateLimitAdjustment = 0;
     t2Decimal gnRateLimitAdjustment = 0;
+    t2Decimal pktTypePwrLimit = 0;
 
     ePhyChanBondState cbState;
 
@@ -738,6 +741,8 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
 
         //account for average array gain
         absPwrLimit_2dec -= pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].antennaGain[rfSubband].reported;
+        //account for antenna path loss per channel
+        absPwrLimit_2dec += pMac->hphy.phy.antennaPathLoss[curChan];
 
         /*
          * For the proximity set to ON for all rates the power is 0
@@ -754,6 +759,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
             if (pMac->hphy.phy.test.testTxGainIndexSource == FIXED_POWER_DBM)
             {
                 absPwr = pMac->hphy.phy.test.testForcedTxPower;   //override power per rate setting
+                //absPwr += pMac->hphy.phy.antennaPathLoss[curChan];
                 //for fixed power selection, we do not want regulatory limits to apply
                //they are mutually exclusive
             }
@@ -791,6 +797,16 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
 
                     if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
                     {
+                        if (pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
+                        {
+                            pktTypePwrLimit = PACKET_TYPE_POWER_LIMIT(pMac->hphy.phy.pktTypePwrLimits, MODE_802_11B, curChan);
+
+                            if (absPwr > pktTypePwrLimit)
+                            {
+                                absPwr = pktTypePwrLimit;
+                            }
+                        }
+
                         absPwr += B_RATE_CAL_ADJUSTMENT_VOLANS2;
                     }
                     else
@@ -808,6 +824,32 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                 case HAL_PHY_RATE_11A_36_MBPS:
                 case HAL_PHY_RATE_11A_48_MBPS:
                 case HAL_PHY_RATE_11A_54_MBPS:
+                    if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
+                    {
+                        if (pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
+                        {
+                            pktTypePwrLimit = PACKET_TYPE_POWER_LIMIT(pMac->hphy.phy.pktTypePwrLimits, MODE_802_11AG, curChan);
+
+                            if (absPwr > pktTypePwrLimit)
+                            {
+                                absPwr = pktTypePwrLimit;
+                            }
+                        }
+                    }
+
+                    absPwr += gnRateLimitAdjustment;
+                    if ((curChan == RF_CHAN_1) || (curChan == RF_CHAN_11))
+                    {
+                        if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
+                        {
+                            absPwr += GN_RATE_BANDEDGE_ADJUSTMENT_VOLANS2;
+                        }
+                        else
+                        {
+                            absPwr += GN_RATE_BANDEDGE_ADJUSTMENT;
+                        }
+                    }
+                    break;
 
                 //MCS Index #0-15 (20MHz)
                 case HAL_PHY_RATE_MCS_1NSS_6_5_MBPS:
@@ -826,6 +868,19 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                 case HAL_PHY_RATE_MCS_1NSS_MM_SG_57_8_MBPS:
                 case HAL_PHY_RATE_MCS_1NSS_MM_SG_65_MBPS:
                 case HAL_PHY_RATE_MCS_1NSS_MM_SG_72_2_MBPS:
+                    if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
+                    {
+                        if (pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
+                        {
+                            pktTypePwrLimit = PACKET_TYPE_POWER_LIMIT(pMac->hphy.phy.pktTypePwrLimits, MODE_802_11N, curChan);
+
+                            if (absPwr > pktTypePwrLimit)
+                            {
+                                absPwr = pktTypePwrLimit;
+                            }
+                        }
+                    }
+
                     absPwr += gnRateLimitAdjustment;
                     if ((curChan == RF_CHAN_1) || (curChan == RF_CHAN_11))
                     {
@@ -863,7 +918,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
             }
 
             //relPwr is y and absPwr is x
-            relPwr = ((slope * absPwr) + yIntercept)/100;
+            relPwr =(tPowerDetect)(((slope * absPwr) + yIntercept)/100);
             phyLog(pMac, LOG1, "relPwr = %d\n", relPwr);
 
 #ifdef ANI_PHY_DEBUG
@@ -1014,7 +1069,7 @@ eHalStatus halPhySetTxMilliWatts(tHalHandle hHal, t_mW mWatts, tPwrTemplateIndex
     //calc index into lookup_mW_Multiplier for array gain multiplier
     //we want the inverse of arrayGain.
     //i.e. if arrayGain is 3dB, then we want to pick an index 3dB less
-    m = GET_MW_MULT_INDEX(-arrayGain);
+    m = (tANI_U8)GET_MW_MULT_INDEX(-arrayGain);
     mWatts = (mWatts * lookup_mW_Multiplier[m]) / PRESERVED_BITS;
 
 #ifdef MULTIPLE_TRANSMIT_CHAINS
@@ -1089,7 +1144,7 @@ eHalStatus halPhyGetTxMilliWatts(tHalHandle hHal, tPwrTemplateIndex pwrTemplateI
 
     //calc total output power based on antennas in use
     //calc index into lookup_mW_Multiplier for array gain multiplier
-    m = GET_MW_MULT_INDEX(arrayGain);
+    m = (tANI_U8)GET_MW_MULT_INDEX(arrayGain);
     mW = (mW * lookup_mW_Multiplier[m]) / PRESERVED_BITS;
 
 #ifdef MULTIPLE_TRANSMIT_CHAINS
@@ -1317,38 +1372,6 @@ t2Decimal phyGetAbsTxPowerForLutValue(tpAniSirGlobal pMac, ePhyTxChains txChain,
            y1, y2, x1, x2, x, absPwr);
 
     return(absPwr);
-}
-
-tPwrTemplateRange phyGetTxPowerRangeForTempIndex(tpAniSirGlobal pMac, ePhyTxChains txChain, tPwrTemplateIndex pwrIndex)
-{
-    tPwrTemplateRange lutRangeIndexed = { 0, 0 };
-/*
-    tPowerDetect i;
-    tPowerDetect lutVal = 0;
-    //scan LUT values up and down to find range of values that match template index
-    for (i = 0; i < TPC_MEM_POWER_LUT_DEPTH; i++)
-    {
-        //look for minimum
-        lutVal = (tPowerDetect)pMac->hphy.phyTPC.curTpcPwrLUT[txChain][i];
-        if ( (lutVal >> 2) ==  pwrIndex)
-        {
-            lutRangeIndexed.min = lutVal;
-            break;
-        }
-    }
-
-    for (i = TPC_MEM_POWER_LUT_DEPTH - 1; i > 0; i--)
-    {
-        //look for maximum
-        lutVal = (tPowerDetect)pMac->hphy.phyTPC.curTpcPwrLUT[txChain][i];
-        if ( (lutVal >> 2) ==  pwrIndex)
-        {
-            lutRangeIndexed.max = lutVal;
-            break;
-        }
-    }
-*/
-    return(lutRangeIndexed);
 }
 #endif
 

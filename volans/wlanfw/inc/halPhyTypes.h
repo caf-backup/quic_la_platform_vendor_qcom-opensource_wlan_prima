@@ -159,9 +159,9 @@ typedef struct
 }sTxChainsIQCalValues;
 
 
-typedef tANI_S8 tPowerdBm;   //power in signed 8-bit integer, no decimal places
-typedef tANI_U16 t_mW;       //milliWatts
-typedef tANI_U8 tPwrTemplateIndex;   //5-bit number used as the index into the tx gain tables
+typedef tANI_S8     tPowerdBm;   //power in signed 8-bit integer, no decimal places
+typedef tANI_U16    t_mW;       //milliWatts
+typedef tANI_U8     tPwrTemplateIndex;   //5-bit number used as the index into the tx gain tables
 
 typedef struct
 {

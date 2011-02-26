@@ -812,6 +812,8 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
 
 #endif
 
+    gpVosSchedContext->McThread = 0;
+    gpVosSchedContext->TxThread = 0;
     //Clean up message queues of TX and MC thread
     vos_sched_flush_mc_mqs(gpVosSchedContext);
 #ifndef ANI_MANF_DIAG
@@ -820,6 +822,7 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
 
     //Deinit all the TX and MC queues
     vos_sched_deinit_mqs(gpVosSchedContext);
+
     return VOS_STATUS_SUCCESS;
 } /* vox_sched_close() */
 

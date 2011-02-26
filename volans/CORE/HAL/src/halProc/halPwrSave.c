@@ -772,7 +772,7 @@ eHalStatus halPS_ExitImpsSequence(tpAniSirGlobal pMac)
     eHalStatus  status = eHAL_STATUS_FAILURE;
     VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
     v_CONTEXT_t pVosGCtx = vos_get_global_context(VOS_MODULE_ID_HAL, (v_VOID_t *) pMac);
-    tANI_U16 staId;
+    tANI_U8 staId;
 
     // Enable BTQM queues
     for( staId = 0 ; staId < pMac->hal.memMap.maxStations ; staId++ ) {
@@ -837,7 +837,7 @@ eHalStatus halPS_HandleEnterImpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken)
     v_CONTEXT_t pVosGCtx = vos_get_global_context(VOS_MODULE_ID_HAL, (v_VOID_t *) pMac);
     tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;
     tHalPsImps *pImpsCtx = &pMac->hal.PsParam.ImpsCtx;
-    tANI_U16 staId;
+    tANI_U8 staId;
     Qwlanfw_EnterImpsReqType msg;
 
     // Stop the FW heartbeat monitoring till the IMPS request is been
@@ -2574,7 +2574,7 @@ eHalStatus halPS_HandleAddBeaconFilter(tpAniSirGlobal pMac,
         pBcnIeFilter->usFilterLength = filterLen;
     }
 
-    msgLen = (pBuf - pBuffer);
+    msgLen = (tANI_U16)(pBuf - pBuffer);
 
     for(i = sizeof(Qwlanfw_AddBcnFilterMsgType);
         i<(sizeof(*pFilterIe)*beaconFilter.ieNum) + sizeof(beaconFilter); i++) {

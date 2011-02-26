@@ -131,8 +131,24 @@ eHalStatus halNvOpen(tHalHandle hMac)
         }
     }
 
-#endif //ANI_OS_TYPE_ANDROID
+    if (vos_nv_getValidity(VNV_ANTENNA_PATH_LOSS, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE)
+        {
+            if(vos_nv_read( VNV_ANTENNA_PATH_LOSS, (v_VOID_t *)&pMac->hphy.nvCache.tables.antennaPathLoss[0], NULL, sizeof(t2Decimal) * NUM_2_4GHZ_CHANNELS ) != VOS_STATUS_SUCCESS)
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
 
+    if (vos_nv_getValidity(VNV_PACKET_TYPE_POWER_LIMITS, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE)
+        {
+            if(vos_nv_read( VNV_PACKET_TYPE_POWER_LIMITS, (v_VOID_t *)&pMac->hphy.nvCache.tables.pktTypePwrLimits[0][0], NULL, sizeof(t2Decimal) * NUM_802_11_MODES * NUM_2_4GHZ_CHANNELS ) != VOS_STATUS_SUCCESS)
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
+#endif //ANI_OS_TYPE_ANDROID
 }
 #endif //(defined(ANI_OS_TYPE_ANDROID) || defined(ANI_OS_TYPE_AMSS))
     pMac->hphy.nvTables[NV_FIELDS_IMAGE             ] = &pMac->hphy.nvCache.fields;
@@ -145,6 +161,8 @@ eHalStatus halNvOpen(tHalHandle hMac)
     //pMac->hphy.nvTables[NV_TABLE_CAL_STATUS         ] = &pMac->hphy.nvCache.tables.calStatus;
     pMac->hphy.nvTables[NV_TABLE_RSSI_CHANNEL_OFFSETS] = &pMac->hphy.nvCache.tables.rssiChanOffsets[0];
     pMac->hphy.nvTables[NV_TABLE_RF_CAL_VALUES] = &pMac->hphy.nvCache.tables.rFCalValues;
+    pMac->hphy.nvTables[NV_TABLE_ANTENNA_PATH_LOSS  ] = &pMac->hphy.nvCache.tables.antennaPathLoss[0];
+    pMac->hphy.nvTables[NV_TABLE_PACKET_TYPE_POWER_LIMITS  ] = &pMac->hphy.nvCache.tables.pktTypePwrLimits[0][0];
 
     return status;
 }
@@ -366,6 +384,20 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                 }
                 break;
 
+            case NV_TABLE_ANTENNA_PATH_LOSS:
+                if ((vosStatus = vos_nv_write(VNV_ANTENNA_PATH_LOSS, (void *)&pMac->hphy.nvCache.tables.antennaPathLoss[0], sizeof(t2Decimal) * NUM_2_4GHZ_CHANNELS)) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
+
+            case NV_TABLE_PACKET_TYPE_POWER_LIMITS:
+                if ((vosStatus = vos_nv_write(VNV_PACKET_TYPE_POWER_LIMITS, (void *)&pMac->hphy.nvCache.tables.pktTypePwrLimits[0][0], sizeof(t2Decimal) * NUM_802_11_MODES * NUM_2_4GHZ_CHANNELS)) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
+
             default:
                 return (eHAL_STATUS_FAILURE);
                 break;
@@ -513,6 +545,14 @@ eHalStatus halReadNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDat
             memcpy(tableData, &pMac->hphy.nvCache.tables.rFCalValues, sizeof(sRFCalValues));
             break;
 
+        case NV_TABLE_ANTENNA_PATH_LOSS:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.antennaPathLoss[0], sizeof(t2Decimal) * NUM_2_4GHZ_CHANNELS);
+            break;
+
+        case NV_TABLE_PACKET_TYPE_POWER_LIMITS:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.pktTypePwrLimits[0][0], sizeof(t2Decimal) * NUM_802_11_MODES * NUM_2_4GHZ_CHANNELS);
+            break;
+
         default:
             return (eHAL_STATUS_FAILURE);
             break;
@@ -580,6 +620,16 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
             case NV_TABLE_RF_CAL_VALUES:
                 numOfEntries = 1;
                 sizeOfEntry = sizeof(sRFCalValues);
+                break;
+
+            case NV_TABLE_ANTENNA_PATH_LOSS:
+                numOfEntries = NUM_2_4GHZ_CHANNELS;
+                sizeOfEntry = sizeof(t2Decimal);
+                break;
+
+            case NV_TABLE_PACKET_TYPE_POWER_LIMITS:
+                numOfEntries = NUM_802_11_MODES * NUM_2_4GHZ_CHANNELS;
+                sizeOfEntry = sizeof(t2Decimal);
                 break;
 
             default:
@@ -726,6 +776,30 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 
                 break;
 
+            case NV_TABLE_ANTENNA_PATH_LOSS:
+                if ((vosStatus = vos_nv_setValidity(VNV_ANTENNA_PATH_LOSS, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+                {
+                    memcpy(&pMac->hphy.nvCache.tables.antennaPathLoss[0], &nvDefaults.tables.antennaPathLoss[0], sizeof(t2Decimal) * NUM_2_4GHZ_CHANNELS);
+                }
+                else
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+
+                break;
+
+            case NV_TABLE_PACKET_TYPE_POWER_LIMITS:
+                if ((vosStatus = vos_nv_setValidity(VNV_PACKET_TYPE_POWER_LIMITS, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+                {
+                    memcpy(&pMac->hphy.nvCache.tables.pktTypePwrLimits[0][0], &nvDefaults.tables.pktTypePwrLimits[0][0], sizeof(t2Decimal) * NUM_802_11_MODES * NUM_2_4GHZ_CHANNELS);
+                }
+                else
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+
+                break;
+
         default:
             return (eHAL_STATUS_FAILURE);
             break;
@@ -753,6 +827,8 @@ eHalStatus halBlankNv(tHalHandle hMac)
     //halRemoveNvTable(hMac, NV_TABLE_CAL_STATUS            );
     halRemoveNvTable(hMac, NV_TABLE_RSSI_CHANNEL_OFFSETS  );
     halRemoveNvTable(hMac, NV_TABLE_RF_CAL_VALUES  );
+    halRemoveNvTable(hMac, NV_TABLE_ANTENNA_PATH_LOSS     );
+    halRemoveNvTable(hMac, NV_TABLE_PACKET_TYPE_POWER_LIMITS     );
 
     return (retVal);
 }

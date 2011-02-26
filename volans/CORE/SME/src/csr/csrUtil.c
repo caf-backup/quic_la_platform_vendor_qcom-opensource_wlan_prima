@@ -1330,8 +1330,7 @@ tANI_BOOLEAN csrIsConnStateConnectedWds( tpAniSirGlobal pMac, tANI_U32 sessionId
 tANI_BOOLEAN csrIsConnStateConnectedInfraAp( tpAniSirGlobal pMac, tANI_U32 sessionId )
 {
     return( (eCSR_ASSOC_STATE_TYPE_INFRA_CONNECTED == pMac->roam.roamSession[sessionId].connectState) ||
-        (eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState)  ||
-        (eCSR_ASSOC_STATE_TYPE_NOT_CONNECTED == pMac->roam.roamSession[sessionId].connectState) );
+        (eCSR_ASSOC_STATE_TYPE_INFRA_DISCONNECTED == pMac->roam.roamSession[sessionId].connectState) );
 }
 #endif
 
@@ -2356,7 +2355,7 @@ static tANI_BOOLEAN csrIsWapiOuiMatch( tpAniSirGlobal pMac, tANI_U8 AllCyphers[]
 
     if ( fYes && Oui )
     {
-        palCopyMemory( pMac->hHdd, Oui, AllCyphers[ idx ], sizeof( Oui ) );
+        palCopyMemory( pMac->hHdd, Oui, AllCyphers[ idx ], CSR_WAPI_OUI_SIZE );
     }
 
     return( fYes );
@@ -2387,7 +2386,7 @@ static tANI_BOOLEAN csrIsOuiMatch( tpAniSirGlobal pMac, tANI_U8 AllCyphers[][CSR
 
     if ( fYes && Oui )
     {
-        palCopyMemory( pMac->hHdd, Oui, AllCyphers[ idx ], sizeof( Oui ) );
+        palCopyMemory( pMac->hHdd, Oui, AllCyphers[ idx ], CSR_WPA_OUI_SIZE );
     }
 
     return( fYes );
@@ -2899,8 +2898,8 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile 
                                   sizeof( tCsrRSNCapabilities ));
         if(pPMK->cPMKIDs)
         {
-            pRSNIe->IeHeader.Length += sizeof( tANI_U16 ) +
-                                        (pPMK->cPMKIDs * CSR_RSN_PMKID_SIZE);
+            pRSNIe->IeHeader.Length += (tANI_U8)(sizeof( tANI_U16 ) +
+                                        (pPMK->cPMKIDs * CSR_RSN_PMKID_SIZE));
         }
         // return the size of the IE header (total) constructed...
         cbRSNIe = pRSNIe->IeHeader.Length + sizeof( pRSNIe->IeHeader );
@@ -4744,6 +4743,11 @@ tANI_U16 csrRatesFindBestRate( tSirMacRateSet *pSuppRates, tSirMacRateSet *pExtR
     tANI_U16 nBest;
 
     nBest = pSuppRates->rate[ 0 ] & ( ~CSR_DOT11_BASIC_RATE_MASK );
+
+    if(pSuppRates->numRates > SIR_MAC_RATESET_EID_MAX)
+    {
+        pSuppRates->numRates = SIR_MAC_RATESET_EID_MAX;
+    }
 
     for ( i = 1U; i < pSuppRates->numRates; ++i )
     {

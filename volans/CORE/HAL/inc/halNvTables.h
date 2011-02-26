@@ -22,17 +22,19 @@
 
 typedef enum
 {
-    NV_FIELDS_IMAGE                 = 0,    //contains all fields
+    NV_FIELDS_IMAGE                     = 0,    //contains all fields
 
-    NV_TABLE_RATE_POWER_SETTINGS    = 2,
-    NV_TABLE_REGULATORY_DOMAINS     = 3,
-    NV_TABLE_DEFAULT_COUNTRY        = 4,
-    NV_TABLE_TPC_POWER_TABLE        = 5,
-    NV_TABLE_TPC_PDADC_OFFSETS      = 6,
-    NV_TABLE_RF_CAL_VALUES          = 7,
-    NV_TABLE_RSSI_CHANNEL_OFFSETS   = 9,
-    NV_TABLE_CAL_MEMORY             = 10,    //cal memory structure from halPhyCalMemory.h preceded by status
-    NV_TABLE_CAL_STATUS             = 11,
+    NV_TABLE_RATE_POWER_SETTINGS        = 2,
+    NV_TABLE_REGULATORY_DOMAINS         = 3,
+    NV_TABLE_DEFAULT_COUNTRY            = 4,
+    NV_TABLE_TPC_POWER_TABLE            = 5,
+    NV_TABLE_TPC_PDADC_OFFSETS          = 6,
+    NV_TABLE_RF_CAL_VALUES              = 7,
+    NV_TABLE_RSSI_CHANNEL_OFFSETS       = 9,
+    NV_TABLE_CAL_MEMORY                 = 10,    //cal memory structure from halPhyCalMemory.h preceded by status
+    NV_TABLE_CAL_STATUS                 = 11,
+    NV_TABLE_ANTENNA_PATH_LOSS          = 12,
+    NV_TABLE_PACKET_TYPE_POWER_LIMITS   = 13,
 
     NUM_NV_TABLE_IDS,
     NV_ALL_TABLES                   = 0xFFF,
@@ -59,6 +61,8 @@ typedef union
     //sCalStatus              calStatus;                                // NV_TABLE_CAL_STATUS
     sRssiChannelOffsets     rssiChanOffsets[2];                       // NV_TABLE_RSSI_CHANNEL_OFFSETS
     sRFCalValues            rFCalValues;                              // NV_TABLE_RF_CAL_VALUES
+    t2Decimal               antennaPathLoss[NUM_2_4GHZ_CHANNELS];            // NV_TABLE_ANTENNA_PATH_LOSS
+    t2Decimal               pktTypePwrLimits[NUM_802_11_MODES][NUM_2_4GHZ_CHANNELS]; //NV_TABLE_PACKET_TYPE_POWER_LIMITS
 }uNvTables;
 
 typedef struct
@@ -72,10 +76,9 @@ typedef struct
     //sCalStatus              calStatus;                                // NV_TABLE_CAL_STATUS
     sRssiChannelOffsets     rssiChanOffsets[2];                       // NV_TABLE_RSSI_CHANNEL_OFFSETS
     sRFCalValues            rFCalValues;                              // NV_TABLE_RF_CAL_VALUES
+    t2Decimal               antennaPathLoss[NUM_2_4GHZ_CHANNELS];            // NV_TABLE_ANTENNA_PATH_LOSS
+    t2Decimal               pktTypePwrLimits[NUM_802_11_MODES][NUM_2_4GHZ_CHANNELS]; //NV_TABLE_PACKET_TYPE_POWER_LIMITS
 }sNvTables;
-
-
-
 
 
 #endif

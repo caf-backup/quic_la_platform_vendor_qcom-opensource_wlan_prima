@@ -43,7 +43,6 @@ when        who         what, where, why
 #include <sirApi.h>     // needed for SIR_... message types
 #include <wniApi.h>     // needed for WNI_... message types
 #include <halCommonApi.h>  // needed for halMmhPostMsgApi()
-#include "halMnt.h"
 #include "sme_Api.h"
 #include "macInitApi.h"
 
@@ -832,6 +831,8 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
                        "MC message type= %d [0x%08lX]", pMsg->type, pMsg->type );
 
             vosStatus = VOS_STATUS_E_BADMSG;
+            if (pMsg->bodyptr) 
+               vos_mem_free(pMsg->bodyptr); 
             break;
          }
       }   // end switch on pMsg->type
@@ -987,6 +988,7 @@ SysProcessMmhMsg
     }
 
 
+    case WNI_CFG_GET_RSP:
     case WNI_CFG_SET_CNF:
 /*   case eWNI_SME_DISASSOC_RSP:
     case eWNI_SME_STA_STAT_RSP:
@@ -1031,7 +1033,11 @@ SysProcessMmhMsg
   /*
   ** Post now the message to the appropriate module for handling
   */
-  vos_mq_post_message(targetMQ, (vos_msg_t*)pMsg);
+  if(VOS_STATUS_SUCCESS != vos_mq_post_message(targetMQ, (vos_msg_t*)pMsg))
+  {
+     /* free the mem and return */
+     palFreeMemory( pMac->hHdd, pMsg);
+  }
 
 } /* SysProcessMmhMsg() */
 

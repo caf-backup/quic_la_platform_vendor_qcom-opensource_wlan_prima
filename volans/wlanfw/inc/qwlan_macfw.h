@@ -399,6 +399,8 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_UPDATE_BEACON_TEMPLATE             (QWLANFW_LOG_CODE_BASE + 0x5)
 #define QWLANFW_LOG_CODE_PROBE_RSP_FRM_SENT                 (QWLANFW_LOG_CODE_BASE + 0x6)
 #define QWLANFW_LOG_CODE_QOS_REPORT_BD_SENT                 (QWLANFW_LOG_CODE_BASE + 0x7)
+#define QWLANFW_LOG_CODE_UPDATE_BA                          (QWLANFW_LOG_CODE_BASE + 0x8)
+
 
 /* Log codes for mgmt utils */
 #define QWLANFW_LOG_CODE_MGMT_UTILS_BASE                    0x900
@@ -2732,6 +2734,7 @@ typedef enum
   QWLANFW_COMMON_DEL_BSS = 3,
   QWLANFW_COMMON_UPDATE_BEACON = 4,
   QWLANFW_COMMON_DUMP_STAT = 5, //to dump the stat.
+  QWLANFW_COMMON_UPDATE_BA = 6, //update BA related settings.
   QWLANFW_COMMON_MSG_TYPE_MAX    //This and beyond are invalid values
 } tFwMsgTypeEnum;
 
@@ -2948,6 +2951,21 @@ typedef PACKED_PRE struct PACKED_POST Qwlanfw_UpdateBeaconMsgStruct
    // add more, but be careful about endian
 } Qwlanfw_UpdateBeaconMsgType;
 
+typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_UpdateBaMsgStruct
+{
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32 staIdx:4;       // Sta Index
+   tANI_U32 queueId:5;      // Queue Id
+   tANI_U32 code:1;         // AMPDU valid bit
+   tANI_U32 resvd:22;       // Reserved
+#else
+   tANI_U32 resvd:22;       // Reserved
+   tANI_U32 code:1;         // AMPDU valid bit
+   tANI_U32 queueId:5;      // Queue ID
+   tANI_U32 staIdx:4;       // Sta Index
+#endif
+} Qwlanfw_UpdateBaMsgType;
+
 typedef PACKED_PRE struct PACKED_POST _Qwlanfw_MsgStruct
 {
    Qwlanfw_CtrlMsgType  hdr;
@@ -2964,6 +2982,7 @@ typedef PACKED_PRE struct PACKED_POST _Qwlanfw_MsgStruct
     Qwlanfw_AddBssMsgType         addBssMsg;
     Qwlanfw_DelBssMsgType         delBssMsg;
     Qwlanfw_UpdateBeaconMsgType   updateBeaconMsg;
+    Qwlanfw_UpdateBaMsgType       updateBaMsg;
     } u;
 } Qwlanfw_CommonMsgType;
 

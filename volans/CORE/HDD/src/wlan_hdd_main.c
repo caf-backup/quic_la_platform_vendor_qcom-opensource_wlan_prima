@@ -732,6 +732,9 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
       clear_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
    }
 
+   //Close VOSS
+   vos_close(pVosContext);
+
    //Close the scheduler before closing other modules.
    vosStatus = vos_sched_close( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))	{
@@ -740,8 +743,6 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
 
-   //Close VOSS
-   vos_close(pVosContext);
 
    vosStatus = WLANBAL_Close(pVosContext);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))

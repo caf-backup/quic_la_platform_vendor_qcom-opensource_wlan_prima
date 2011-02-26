@@ -690,7 +690,7 @@ VOS_STATUS WLANTL_HSGetRSSI
                          (currentRSSI * (10 - currentHO->alpha))) / 10;
    }
 #ifdef RSSI_HACK
-   *currentAvgRSSI = dumpCmdRSSI;
+   *currentAvgRSSI = (v_S7_t)dumpCmdRSSI;
 #endif
 
 

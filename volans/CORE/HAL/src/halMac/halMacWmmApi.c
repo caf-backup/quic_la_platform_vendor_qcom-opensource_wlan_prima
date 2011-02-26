@@ -105,7 +105,7 @@ static eHalStatus halWmmEnableACBkOff(tpAniSirGlobal pMac, tANI_U32 bkOff, tAniB
         {
             regVal &= ~(1 << (QWLAN_TPE_SW_ADMISSION_CONTROL_CONTROL_REG_SW_AC_VALID_FOR_BKOF_VECTOR_OFFSET + bkOff));
             //TPE.sw_mtu_bckof_disable_valid_vector need to be cleared see ECR #241625 for detail
-            regVal |= ~(1 << (QWLAN_TPE_SW_ADMISSION_CONTROL_CONTROL_REG_SW_MTU_BCKOF_DISABLE_VALID_VECTOR_OFFSET + bkOff));
+            regVal &= ~(1 << (QWLAN_TPE_SW_ADMISSION_CONTROL_CONTROL_REG_SW_MTU_BCKOF_DISABLE_VALID_VECTOR_OFFSET + bkOff));
         }
 
         halWriteRegister(pMac, QWLAN_TPE_SW_ADMISSION_CONTROL_CONTROL_REG_REG, regVal);

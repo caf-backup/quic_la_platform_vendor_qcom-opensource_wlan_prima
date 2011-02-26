@@ -80,7 +80,7 @@ void
 limInitAIDpool(tpAniSirGlobal pMac,tpPESession sessionEntry)
 {
     tANI_U8 i;
-    tANI_U8 maxAssocSta = pMac->lim.maxStation;
+    tANI_U8 maxAssocSta = (tANI_U8)pMac->lim.maxStation;
 
 #if (WNI_POLARIS_FW_PRODUCT == AP)
     if (limGetSystemRole(sessionEntry) == eLIM_AP_ROLE)

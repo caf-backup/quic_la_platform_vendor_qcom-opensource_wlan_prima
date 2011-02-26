@@ -230,14 +230,14 @@ typedef struct
     // The return status of SIR_HAL_ADD_STA_REQ is reported here
     eHalStatus status;
     // Station index; valid only when 'status' field value is eHAL_STATUS_SUCCESS
-    tANI_U16 staIdx;
+    tANI_U8 staIdx;
 
     //BSSID of BSS to which the station is associated.
     //This should be filled back in by HAL, and sent back to LIM as part of
     //the response message, so LIM can cache it in the station entry of hash table.
     //When station is deleted, LIM will make use of this bssIdx to delete
     //BSS from hal tables and from softmac.
-    tANI_U16 bssIdx;
+    tANI_U8 bssIdx;
 
     /* this requires change in testDbg. I will change it later after coordinating with Diag team.
        tANI_U8 fFwdTrigerSOSPtoHost; //trigger to start service period
@@ -438,7 +438,7 @@ typedef struct
 
 typedef struct
 {
-    tANI_U16 bssIdx;
+    tANI_U8 bssIdx;
     // The return status of SIR_HAL_DELETE_BSS_REQ is reported here
     eHalStatus status;
     //HAL will send the response message to LIM only when this flag is set.
@@ -458,9 +458,9 @@ typedef struct
 
 typedef struct
 {
-    tANI_U16 staIdx;
+    tANI_U8 staIdx;
     tANI_U8 uapsdACMask; 
-    tANI_U32 maxSpLen;    
+    tANI_U8 maxSpLen;    
 } tUpdateUapsdParams, * tpUpdateUapsdParams;
 
 //

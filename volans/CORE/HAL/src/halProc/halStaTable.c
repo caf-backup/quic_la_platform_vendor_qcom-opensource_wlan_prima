@@ -883,7 +883,7 @@ eHalStatus halTable_GetTxPowerLimitIndex(tpAniSirGlobal pMac,
         {
             if (t[bssIdx].bssRaInfo.u.bit.maxPwrIndex > *maxTxPwrIndex)
             {
-                *maxTxPwrIndex = t[bssIdx].bssRaInfo.u.bit.maxPwrIndex;
+                *maxTxPwrIndex = (tPwrTemplateIndex)t[bssIdx].bssRaInfo.u.bit.maxPwrIndex;
                 status = eHAL_STATUS_SUCCESS;
             }
         }

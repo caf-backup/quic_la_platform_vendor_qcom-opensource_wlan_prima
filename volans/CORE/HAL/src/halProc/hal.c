@@ -23,7 +23,6 @@
 #include "halInternal.h"
 #include "halDebug.h"
 #include "halPhyApi.h"
-#include "halMnt.h"
 #include "halMTU.h"
 #include "halRxp.h"
 #include "halTpe.h"
@@ -232,158 +231,6 @@ tSirRetStatus halDoCfgInit(tpAniSirGlobal pMac)
             return rc;
         }
 
-// -------------------------------------------------------------
-/**
- * halProcessCfgDownloadComplete
- *
- * FUNCTION:
- *     Processing performed after configuration is done.
- *
- * LOGIC:
- *
- * ASSUMPTIONS:
- *
- *
- * NOTE:
- *
- * @param pMac MAC Global instance
- * @return tSirRetStatus SUCCESS or FAILURE
- */
-tSirRetStatus halProcessCfgDownloadComplete(tpAniSirGlobal pMac)
-        {
-//#ifdef WLAN_DEBUG
-//     tHalRaBssInfo bssRaInfo;
-//#endif
-    tSirRetStatus rc = eSIR_SUCCESS;
-    tANI_U32 val;
-
-    pMac->hal.halMac.macStats.periodicStats = false; //FALSE by default. Use Dump to enable.
-    if ((rc = wlan_cfgGetInt(pMac, WNI_CFG_STATS_PERIOD,
-                        &val)) != eSIR_SUCCESS)
-    {
-        HALLOGE( halLog(pMac, LOGE, FL("CFG Failed STATS collection period\n")));
-        macSysResetReq(pMac, rc);
-        goto end;
-    }
-
-    pMac->hal.halMac.macStats.statTmrVal = SYS_SEC_TO_TICKS(val);
-    pMac->hal.halMac.wrapStats.statTmrVal = SYS_SEC_TO_TICKS(val);
-    pMac->hal.halMac.tempMeasTmrVal = SYS_SEC_TO_TICKS(HAL_TEMPMEAS_TIMER_VAL_SEC);
-
-    if(pMac->gDriverType != eDRIVER_TYPE_MFG) // Enable periodic calibration only if it is not the Manufacturing Diagnostics
-    {
-                      // driver build.
-    rc = halConfigCalControl(pMac);
-    if (rc != eSIR_SUCCESS)
-    {
-        HALLOGE(halLog(pMac, LOGE, FL("halConfigCalControl: CFG Failed Calibration Control\n")));
-        macSysResetReq(pMac, rc);
-        goto end;
-    }
-    //pMac->hal.trigCalFlag = (tANI_U8) val;
-
-    }
-
-#ifdef FEATURE_ON_CHIP_REORDERING
-    if ((rc = wlan_cfgGetInt(pMac,WNI_CFG_RPE_POLLING_THRESHOLD, &val)) != eSIR_SUCCESS)
-    {
-      HALLOGP( halLog(pMac, LOGP, FL("Failed to get WNI_CFG_RPE_POLLING_THRESHOLD\n")));
-    }
-    else
-    {
-      halRPE_UpdateOnChipReorderThreshold(pMac, WNI_CFG_RPE_POLLING_THRESHOLD, val);
-    }
-
-    if ((rc = wlan_cfgGetInt(pMac,WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC0_REG , &val)) != eSIR_SUCCESS)
-    {
-      HALLOGP( halLog(pMac, LOGP, FL("Failed to get WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC0_REG\n")));
-    }
-    else
-    {
-      halRPE_UpdateOnChipReorderThreshold(pMac, WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC0_REG, val);
-    }
-
-    if ((rc = wlan_cfgGetInt(pMac,WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC1_REG , &val)) != eSIR_SUCCESS)
-    {
-      HALLOGP( halLog(pMac, LOGP, FL("Failed to get WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC1_REG\n")));
-    }
-    else
-    {
-      halRPE_UpdateOnChipReorderThreshold(pMac, WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC1_REG, val);
-    }
-
-    if ((rc = wlan_cfgGetInt(pMac,WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC2_REG , &val)) != eSIR_SUCCESS)
-    {
-      HALLOGP( halLog(pMac, LOGP, FL("Failed to get WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC2_REG\n")));
-    }
-    else
-    {
-      halRPE_UpdateOnChipReorderThreshold(pMac, WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC2_REG, val);
-    }
-
-    if ((rc = wlan_cfgGetInt(pMac,WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC3_REG , &val)) != eSIR_SUCCESS)
-    {
-      HALLOGP( halLog(pMac, LOGP, FL("Failed to get WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC3_REG\n")));
-    }
-    else
-    {
-      halRPE_UpdateOnChipReorderThreshold(pMac, WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC3_REG, val);
-    }
-
-    if ((rc = wlan_cfgGetInt(pMac,WNI_CFG_NO_OF_ONCHIP_REORDER_SESSIONS, &val)) != eSIR_SUCCESS)
-    {
-      HALLOGP( halLog(pMac, LOGP, FL("Failed to get WNI_CFG_NO_OF_ONCHIP_REORDER_SESSIONS\n")));
-    }
-    else
-    {
-      pMac->hal.halMac.maxNumOfOnChipReorderSessions = val;
-      if(pMac->hal.halMac.maxNumOfOnChipReorderSessions > MAX_NUM_OF_ONCHIP_REORDER_SESSIONS)
-        pMac->hal.halMac.maxNumOfOnChipReorderSessions = MAX_NUM_OF_ONCHIP_REORDER_SESSIONS;
-    }
-#endif /* FEATURE_ON_CHIP_REORDERING */
-
-    if ((rc = wlan_cfgGetInt(pMac, WNI_CFG_CAL_PERIOD, &val)) != eSIR_SUCCESS)
-    {
-        HALLOGE( halLog(pMac, LOGE, FL("Failed to get CFG CAL PERIOD\n")));
-        macSysResetReq(pMac, rc);
-        goto end;
-    }
-    else
-    {
-        if (val == 0)
-        {
-            pMac->hal.halMac.tempMeasTmrVal = SYS_SEC_TO_TICKS(HAL_TEMPMEAS_TIMER_VAL_SEC);
-        }
-        else
-        {
-            pMac->hal.halMac.tempMeasTmrVal = SYS_MIN_TO_TICKS(val)/HAL_PHY_PERIODIC_CAL_ITER_LIMIT;
-        }
-    }
-    halStateSet(pMac, eHAL_CFG);
-end:
-
-    /** Initialize the Firmware Heart Beat Monitor Values.*/
-    pMac->hal.halMac.fwMonitorthr = 0;
-    pMac->hal.halMac.fwHeartBeatPrev = 0;
-
-    /** Initialize the Phy MPI tx counter values to detect PHY hang.*/
-    pMac->hal.halMac.phyHangThr = 0;
-    pMac->hal.halMac.mpiTxSent = 0;
-    pMac->hal.halMac.mpiTxAbort = 0;
-
-//    HALLOGE(halLog(pMac, LOGE,FL("###### Sizeof bssRaInfo %d\n"), sizeof(bssRaInfo)));
-    // Post START event to HAL's event queue
-    rc = halProcessStartEvent(pMac);
-
-    return rc;
-}
-
-//dummy function for now to register to BAL as fatal error callback.
-VOS_STATUS halFatalErrorHandler(v_PVOID_t pVosGCtx, v_U32_t errorCode)
-{
-    return VOS_STATUS_SUCCESS;
-}
-
 /** -------------------------------------------------------------
 \fn halSetReadyToHandleInt
 \brief      Enables interrupt and also set hal state to normal. resets if fails to enable interrupt.
@@ -558,6 +405,159 @@ tSirRetStatus halProcessStartEvent(tpAniSirGlobal pMac)
     return rc;
 
 } // halProcessStartEvent
+
+
+// -------------------------------------------------------------
+/**
+ * halProcessCfgDownloadComplete
+ *
+ * FUNCTION:
+ *     Processing performed after configuration is done.
+ *
+ * LOGIC:
+ *
+ * ASSUMPTIONS:
+ *
+ *
+ * NOTE:
+ *
+ * @param pMac MAC Global instance
+ * @return tSirRetStatus SUCCESS or FAILURE
+ */
+tSirRetStatus halProcessCfgDownloadComplete(tpAniSirGlobal pMac)
+        {
+//#ifdef WLAN_DEBUG
+//     tHalRaBssInfo bssRaInfo;
+//#endif
+    tSirRetStatus rc = eSIR_SUCCESS;
+    tANI_U32 val;
+
+    pMac->hal.halMac.macStats.periodicStats = false; //FALSE by default. Use Dump to enable.
+    if ((rc = wlan_cfgGetInt(pMac, WNI_CFG_STATS_PERIOD,
+                        &val)) != eSIR_SUCCESS)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("CFG Failed STATS collection period\n")));
+        macSysResetReq(pMac, rc);
+        goto end;
+    }
+
+    pMac->hal.halMac.macStats.statTmrVal = SYS_SEC_TO_TICKS(val);
+    pMac->hal.halMac.wrapStats.statTmrVal = SYS_SEC_TO_TICKS(val);
+    pMac->hal.halMac.tempMeasTmrVal = SYS_SEC_TO_TICKS(HAL_TEMPMEAS_TIMER_VAL_SEC);
+
+    if(pMac->gDriverType != eDRIVER_TYPE_MFG) // Enable periodic calibration only if it is not the Manufacturing Diagnostics
+    {
+                      // driver build.
+    rc = halConfigCalControl(pMac);
+    if (rc != eSIR_SUCCESS)
+    {
+        HALLOGE(halLog(pMac, LOGE, FL("halConfigCalControl: CFG Failed Calibration Control\n")));
+        macSysResetReq(pMac, rc);
+        goto end;
+    }
+    //pMac->hal.trigCalFlag = (tANI_U8) val;
+
+    }
+
+#ifdef FEATURE_ON_CHIP_REORDERING
+    if ((rc = wlan_cfgGetInt(pMac,WNI_CFG_RPE_POLLING_THRESHOLD, &val)) != eSIR_SUCCESS)
+    {
+      HALLOGP( halLog(pMac, LOGP, FL("Failed to get WNI_CFG_RPE_POLLING_THRESHOLD\n")));
+    }
+    else
+    {
+      halRPE_UpdateOnChipReorderThreshold(pMac, WNI_CFG_RPE_POLLING_THRESHOLD, val);
+    }
+
+    if ((rc = wlan_cfgGetInt(pMac,WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC0_REG , &val)) != eSIR_SUCCESS)
+    {
+      HALLOGP( halLog(pMac, LOGP, FL("Failed to get WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC0_REG\n")));
+    }
+    else
+    {
+      halRPE_UpdateOnChipReorderThreshold(pMac, WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC0_REG, val);
+    }
+
+    if ((rc = wlan_cfgGetInt(pMac,WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC1_REG , &val)) != eSIR_SUCCESS)
+    {
+      HALLOGP( halLog(pMac, LOGP, FL("Failed to get WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC1_REG\n")));
+    }
+    else
+    {
+      halRPE_UpdateOnChipReorderThreshold(pMac, WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC1_REG, val);
+    }
+
+    if ((rc = wlan_cfgGetInt(pMac,WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC2_REG , &val)) != eSIR_SUCCESS)
+    {
+      HALLOGP( halLog(pMac, LOGP, FL("Failed to get WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC2_REG\n")));
+    }
+    else
+    {
+      halRPE_UpdateOnChipReorderThreshold(pMac, WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC2_REG, val);
+    }
+
+    if ((rc = wlan_cfgGetInt(pMac,WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC3_REG , &val)) != eSIR_SUCCESS)
+    {
+      HALLOGP( halLog(pMac, LOGP, FL("Failed to get WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC3_REG\n")));
+    }
+    else
+    {
+      halRPE_UpdateOnChipReorderThreshold(pMac, WNI_CFG_RPE_AGING_THRESHOLD_FOR_AC3_REG, val);
+    }
+
+    if ((rc = wlan_cfgGetInt(pMac,WNI_CFG_NO_OF_ONCHIP_REORDER_SESSIONS, &val)) != eSIR_SUCCESS)
+    {
+      HALLOGP( halLog(pMac, LOGP, FL("Failed to get WNI_CFG_NO_OF_ONCHIP_REORDER_SESSIONS\n")));
+    }
+    else
+    {
+      pMac->hal.halMac.maxNumOfOnChipReorderSessions = val;
+      if(pMac->hal.halMac.maxNumOfOnChipReorderSessions > MAX_NUM_OF_ONCHIP_REORDER_SESSIONS)
+        pMac->hal.halMac.maxNumOfOnChipReorderSessions = MAX_NUM_OF_ONCHIP_REORDER_SESSIONS;
+    }
+#endif /* FEATURE_ON_CHIP_REORDERING */
+
+    if ((rc = wlan_cfgGetInt(pMac, WNI_CFG_CAL_PERIOD, &val)) != eSIR_SUCCESS)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("Failed to get CFG CAL PERIOD\n")));
+        macSysResetReq(pMac, rc);
+        goto end;
+    }
+    else
+    {
+        if (val == 0)
+        {
+            pMac->hal.halMac.tempMeasTmrVal = SYS_SEC_TO_TICKS(HAL_TEMPMEAS_TIMER_VAL_SEC);
+        }
+        else
+        {
+            pMac->hal.halMac.tempMeasTmrVal = SYS_MIN_TO_TICKS(val)/HAL_PHY_PERIODIC_CAL_ITER_LIMIT;
+        }
+    }
+    halStateSet(pMac, eHAL_CFG);
+end:
+
+    /** Initialize the Firmware Heart Beat Monitor Values.*/
+    pMac->hal.halMac.fwMonitorthr = 0;
+    pMac->hal.halMac.fwHeartBeatPrev = 0;
+
+    /** Initialize the Phy MPI tx counter values to detect PHY hang.*/
+    pMac->hal.halMac.phyHangThr = 0;
+    pMac->hal.halMac.mpiTxSent = 0;
+    pMac->hal.halMac.mpiTxAbort = 0;
+
+//    HALLOGE(halLog(pMac, LOGE,FL("###### Sizeof bssRaInfo %d\n"), sizeof(bssRaInfo)));
+    // Post START event to HAL's event queue
+    rc = halProcessStartEvent(pMac);
+
+    return rc;
+}
+
+//dummy function for now to register to BAL as fatal error callback.
+VOS_STATUS halFatalErrorHandler(v_PVOID_t pVosGCtx, v_U32_t errorCode)
+{
+    return VOS_STATUS_SUCCESS;
+}
 
 /** -------------------------------------------------------------
 \fn halProcessSysReadyInd
@@ -1593,7 +1593,7 @@ eHalStatus halSetNewChannelParams(tpAniSirGlobal pMac)
     // Update MTU timing parameters when channel is changed and only
     // when MTU mode needs to be changed.
     mtuMode = halMTU_getMode(pMac);
-    if(pMac->hal.halMac.lastMtuMode != mtuMode) {
+    if((tMtuMode)pMac->hal.halMac.lastMtuMode != mtuMode) {
         halMTU_updateTimingParams(pMac, mtuMode);
     }
     return status;

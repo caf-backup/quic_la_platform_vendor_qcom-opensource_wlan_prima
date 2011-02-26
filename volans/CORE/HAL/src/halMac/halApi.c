@@ -246,59 +246,6 @@ tBssSystemRole halGetBssSystemRoleFromStaIdx(tpAniSirGlobal pMac,
     return (systemRole);
 }
 
-/**
- * \fn   halSetByteSwap
- *
- * \brief   Disable byte swapping (Set PCI BAR2 swap bit to 1)
- *            Enable byte swapping (Clear PCI Bar2 swap bit to 0)
- * 
- * \param  tpAniSirGlobal  pMac
- *
- * \param  eAniBoolean     swap01
- *
- * \param  eAniBoolean     swap2
- *
- * \param eAniBoolean     swapDma
- *
- * \return  eHalStatus
- */
-eHalStatus halSetByteSwap(
-    tpAniSirGlobal  pMac,
-    eAniBoolean     swap01,
-    eAniBoolean     swap2,
-    eAniBoolean     swapDma )
-{
-    eHalStatus eRc = eHAL_STATUS_SUCCESS;
-#if defined(ANI_BUS_TYPE_PCI)
-#error "Libra doesn't support PCI interface"
-#if 0 //FIXME_NO_VIRGO
-    tANI_U32    value;
-    // setup the T0/1 register properly first
-    if (swap01)
-        halWriteRegister(pMac, PIF_PCI_PIF_PCI_BYTE_SWAP_REG, 1);
-
-    pMac->hal.intSwapPci = swap01;
-
-    if ((eRc = halReadRegister(pMac, PIF_PCI_PIF_PCI_CONTROL_REG, &value)) != eHAL_STATUS_SUCCESS)
-        return eRc;
-
-    if (swap2)
-        value |= PIF_PCI_PIF_PCI_CONTROL_TARGET2_CHANGE_ENDIAN_MASK;
-    else
-        value &= (~PIF_PCI_PIF_PCI_CONTROL_TARGET2_CHANGE_ENDIAN_MASK);
-
-    if (swapDma)
-        value |= PIF_PCI_PIF_PCI_CONTROL_OUTBOUND_CHANGE_ENDIAN_MASK;
-    else
-        value &= (~PIF_PCI_PIF_PCI_CONTROL_OUTBOUND_CHANGE_ENDIAN_MASK);
-
-    eRc = halWriteRegister(pMac, PIF_PCI_PIF_PCI_CONTROL_REG, value);
-#endif
-#endif
-    return eRc;
-}
-
-
 static void
 getMaxBssSta(tpAniSirGlobal pMac, tANI_U32 *maxBSS, tANI_U32 *maxSTA)
 {

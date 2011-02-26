@@ -1442,7 +1442,7 @@ limMlmAddBss (
         palFreeMemory(pMac->hHdd,(void *)pAddBssParams);
         return eSIR_SME_HAL_SEND_MESSAGE_FAIL;
     }
-    pAddBssParams->shortSlotTimeSupported = val;
+    pAddBssParams->shortSlotTimeSupported = (tANI_U8)val;
 #endif
 
 
@@ -2285,7 +2285,7 @@ limProcessMlmAssocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     #endif //TO SUPPORT BT-AMP
     sirCopyMacAddr(currentBssId,psessionEntry->bssId);
     
-    if ( (psessionEntry->limSystemRole != eLIM_AP_ROLE || psessionEntry->limSystemRole != eLIM_BT_AMP_AP_ROLE) &&
+    if ( (psessionEntry->limSystemRole != eLIM_AP_ROLE && psessionEntry->limSystemRole != eLIM_BT_AMP_AP_ROLE) &&
          (psessionEntry->limMlmState == eLIM_MLM_AUTHENTICATED_STATE || psessionEntry->limMlmState == eLIM_MLM_JOINED_STATE) &&
          (palEqualMemory(pMac->hHdd,pMlmAssocReq->peerMacAddr, currentBssId, sizeof(tSirMacAddr))) )
     {
@@ -2354,11 +2354,11 @@ limProcessMlmAssocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     }
 
 end:
-    /// Free up buffer allocated for assocReq
-    palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmAssocReq);
-
     /* Update PE session Id*/
     mlmAssocCnf.sessionId = pMlmAssocReq->sessionId;
+
+    /// Free up buffer allocated for assocReq
+    palFreeMemory( pMac->hHdd, (tANI_U8 *) pMlmAssocReq);
 
     limPostSmeMessage(pMac, LIM_MLM_ASSOC_CNF, (tANI_U32 *) &mlmAssocCnf);
 } /*** limProcessMlmAssocReq() ***/
@@ -2406,7 +2406,7 @@ limProcessMlmReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         return;
     }
     
-    if (((psessionEntry->limSystemRole != eLIM_AP_ROLE) || (psessionEntry->limSystemRole != eLIM_BT_AMP_AP_ROLE)) &&
+    if (((psessionEntry->limSystemRole != eLIM_AP_ROLE) && (psessionEntry->limSystemRole != eLIM_BT_AMP_AP_ROLE)) &&
          (psessionEntry->limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE))
     {
         if (psessionEntry->pLimMlmReassocReq)
@@ -4023,110 +4023,6 @@ void limProcessMlmDelBAReq( tpAniSirGlobal pMac,
   // Free the buffer allocated for tLimMlmDelBAReq
   palFreeMemory( pMac->hHdd, (tANI_U8 *) pMsgBuf );
 
-}
-
-/**
- * @function :  limSMPowerSaveStateInd( )
- *
- * @brief  : This function is called upon receiving the PMC Indication to update the STA's MimoPs State.
- *
- *      LOGIC:
- *
- *      ASSUMPTIONS:
- *          NA
- *
- *      NOTE:
- *          NA
- *
- * @param  pMac - Pointer to Global MAC structure
- * @param  limMsg - Lim Message structure object with the MimoPSparam in body
- * @return None
- */
- 
-tSirRetStatus
-limSMPowerSaveStateInd(tpAniSirGlobal pMac, tSirMacHTMIMOPowerSaveState state)
-{
-#if 0
-    tSirRetStatus           retStatus = eSIR_SUCCESS;  
-#if 0
-    tANI_U32                  cfgVal1;          
-    tANI_U16                   cfgVal2;                 
-    tSirMacHTCapabilityInfo *pHTCapabilityInfo;         
-    tpDphHashNode pSta = NULL;
-
-    tpPESession psessionEntry  = &pMac->lim.gpSession[0]; //TBD-RAJESH HOW TO GET sessionEntry?????
-    /** Verify the Mode of operation */    
-    if (pMac->lim.gLimSystemRole != eSYSTEM_STA_ROLE) {  
-        PELOGE(limLog(pMac, LOGE, FL("Got PMC indication when System not in the STA Role\n"));)       
-        return eSIR_FAILURE;       
-    }      
-
-    if ((pMac->lim.gHTMIMOPSState == state) || (state == eSIR_HT_MIMO_PS_NA )) { 
-        PELOGE(limLog(pMac, LOGE, FL("Got Indication when already in the same mode or State passed is NA:%d \n"),  state);)      
-        return eSIR_FAILURE;      
-    }     
-
-    if (!pMac->lim.htCapability){        
-        PELOGW(limLog(pMac, LOGW, FL(" Not in 11n or HT capable mode\n"));)        
-        return eSIR_FAILURE;   
-    }        
-
-    /** Update the CFG about the default MimoPS State */
-    if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &cfgVal1) != eSIR_SUCCESS) {  
-            limLog(pMac, LOGP, FL("could not retrieve HT Cap CFG \n"));    
-            return eSIR_FAILURE;     
-    }          
-
-    cfgVal2 = (tANI_U16)cfgVal1;            
-    pHTCapabilityInfo = (tSirMacHTCapabilityInfo *) &cfgVal2;          
-    pHTCapabilityInfo->mimoPowerSave = state;
-
-    if(cfgSetInt(pMac, WNI_CFG_HT_CAP_INFO, *(tANI_U16*)pHTCapabilityInfo) != eSIR_SUCCESS) {   
-        limLog(pMac, LOGP, FL("could not update HT Cap Info CFG\n"));                  
-        return eSIR_FAILURE;
-    }
-
-    PELOG2(limLog(pMac, LOG2, FL(" The HT Capability for Mimo Pwr is updated to State: %u  \n"),state);)  
-    if (pMac->lim.gLimSmeState != eLIM_SME_LINK_EST_STATE) { 
-        PELOG2(limLog(pMac, LOG2,FL(" The STA is not in the Connected/Link Est Sme_State: %d  \n"), pMac->lim.gLimSmeState);)          
-        /** Update in the LIM the MIMO PS state of the SELF */   
-        pMac->lim.gHTMIMOPSState = state;          
-        return eSIR_SUCCESS;    
-    }              
-
-    pSta = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);    
-    if (!pSta->mlmStaContext.htCapability) {
-        limLog( pMac, LOGE,FL( "limSendSMPowerState: Peer is not HT Capable \n" ));
-        return eSIR_FAILURE;
-    }
-     
-    if (isEnteringMimoPS(pMac->lim.gHTMIMOPSState, state)) {    
-        tSirMacAddr             macAddr;      
-        /** Obtain the AP's Mac Address */    
-        palCopyMemory(pMac ->hHdd, (tANI_U8 *)macAddr, psessionEntry->bssId, sizeof(tSirMacAddr)); 
-        /** Send Action Frame with the corresponding mode */       
-        retStatus = limSendSMPowerStateFrame(pMac, macAddr, state);       
-        if (retStatus != eSIR_SUCCESS) {         
-            PELOGE(limLog(pMac, LOGE, "Update SM POWER: Sending Action Frame has failed\n");)        
-            return retStatus;         
-        }   
-    }    
-
-    /** Update MlmState about the SetMimoPS State */
-    pMac->lim.gLimPrevMlmState = pMac->lim.gLimMlmState;
-    pMac->lim.gLimMlmState = eLIM_MLM_WT_SET_MIMOPS_STATE;
-    MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
-
-    /** Update the HAL and s/w mac about the mode to be set */    
-    retStatus = limPostSMStateUpdate( pMac,psessionEntry->staId, state);     
-
-    PELOG2(limLog(pMac, LOG2, " Updated the New SMPS State");)
-    /** Update in the LIM the MIMO PS state of the SELF */   
-    pMac->lim.gHTMIMOPSState = state;          
-#endif
-    return retStatus;
-#endif
-return eSIR_SUCCESS;
 }
 
 void 

@@ -49,6 +49,8 @@ typedef struct
     //tRxGainShiftChannel *rxGainShiftTable;      //rxGainShiftTable[NUM_20MHZ_RF_CHANNELS]
     sRegulatoryDomains  *regDomainInfo;         // pointer to regulatory domain table
     tRateGroupPwr       *pwrOptimal;            // pwrOptimum[NUM_RF_SUBBANDS]
+    t2Decimal           *antennaPathLoss;       //Path Loss from chip o/p to antenna o/p
+    t2Decimal           *pktTypePwrLimits;      //Power Limit for each packet type.
 }tPhy;
 
 

@@ -194,6 +194,8 @@ eQWPttStatus pttSetNvTable(tpAniSirGlobal pMac, eNvTable nvTable, uNvTables *tab
             //case NV_TABLE_CAL_STATUS:
             case NV_TABLE_RSSI_CHANNEL_OFFSETS:
             case NV_TABLE_RF_CAL_VALUES:
+            case NV_TABLE_ANTENNA_PATH_LOSS:
+            case NV_TABLE_PACKET_TYPE_POWER_LIMITS:
                 if (eHAL_STATUS_FAILURE == halWriteNvTable(pMac, nvTable, tableData))
                 {
                     phyLog(pMac, LOGE, "Unable to write table %d\n", (tANI_U32)nvTable);
@@ -1329,7 +1331,7 @@ void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
         }
     }
 
-    rssi->rx[PHY_RX_CHAIN_0] = pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] + RSSI_TO_DBM_OFFSET + rssiOffset0;
+    rssi->rx[PHY_RX_CHAIN_0] = (tANI_S8)(pMac->ptt.rssi.rx[PHY_RX_CHAIN_0] + RSSI_TO_DBM_OFFSET + rssiOffset0);
 }
 
 
@@ -1452,9 +1454,6 @@ eQWPttStatus pttGrabRam(tpAniSirGlobal pMac, tANI_U32 startSample, tANI_U32 numS
         {
             return (FAILURE);
         }
-
-
-    return (SUCCESS);
 }
 
 
@@ -1587,11 +1586,24 @@ eQWPttStatus pttExecuteInitialCals(tpAniSirGlobal pMac)
 
 eQWPttStatus pttHdetCal(tpAniSirGlobal pMac, sRfHdetCalValues *hdetCalValues)
 {
+    tANI_U8 buff[128];
+    sCalMemory *pCalMemory = (sCalMemory *)buff;
+
+    /*Read the value updated by firmware */
+    halReadDeviceMemory(pMac, QWLANFW_MEM_PHY_CAL_STATUS_ADDR_OFFSET,
+                                    (tANI_U8 *)buff, sizeof(buff));
+
+    hdetCalValues->hdetDcocCode = pCalMemory->calFlash.hdet_cal_code;
+    hdetCalValues->hdetDcoOffset = pCalMemory->calFlash.hdet_dco;
+
+    pMac->hphy.hdetResidualDCO = pCalMemory->calFlash.hdet_dco;
+#if 0
     rfHdetDCOCal(pMac, &(hdetCalValues->hdetDcocCode));
     rfHdetDCOCal(pMac, &(hdetCalValues->hdetDcocCode));
     rfGetHdetDCOffset(pMac, &(hdetCalValues->hdetDcoOffset));
 
     pMac->hphy.hdetResidualDCO = hdetCalValues->hdetDcoOffset;
+#endif
 
     return SUCCESS;
 
@@ -1668,7 +1680,6 @@ eQWPttStatus pttSetTxIqCorrect(tpAniSirGlobal pMac, sTxChainsIQCalValues calValu
     {
         return (FAILURE);
     }
-    return (FAILURE);
 #endif
 }
 
@@ -1694,7 +1705,6 @@ eQWPttStatus pttGetTxIqCorrect(tpAniSirGlobal pMac, sTxChainsIQCalValues *calVal
         return (FAILURE);
     }
 #endif
-    return (SUCCESS);
 }
 
 
@@ -1761,7 +1771,7 @@ eQWPttStatus pttGetRxIqCorrect(tpAniSirGlobal pMac, sRxChainsIQCalValues *calVal
 #define MAX_DCO_LUT_INDEX   31
 eQWPttStatus pttSetRxDcoCorrect(tpAniSirGlobal pMac, tRxChainsDcoCorrections calValues, tANI_U8 gain)
 {
-    tANI_U32 lutIdx = 0;
+    tANI_U8 lutIdx = 0;
 
     if ((tANI_U32)gain > NUM_RF_RX_GAIN_STEPS)
     {
@@ -1850,8 +1860,6 @@ eQWPttStatus pttGetTempAdc(tpAniSirGlobal pMac, eRfTempSensor tempSensor, tTempA
     {
        return (FAILURE);
     }
-
-    return (SUCCESS);
 }
 
 eQWPttStatus pttStartToneGen(tpAniSirGlobal pMac, tANI_U8 lutIdx, tANI_U8 band)

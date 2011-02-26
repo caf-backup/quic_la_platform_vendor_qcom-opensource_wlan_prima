@@ -76,12 +76,11 @@ eHalStatus measInNavClose(tHalHandle hHal)
             break;
         }
 
-        //initialize all the variables to null
-        vos_mem_set(&(pMac->innavMeas), sizeof(tMeasInNavMeasurementStruct), 0);
-        
         //free the timer for the measurement 
         palTimerFree(pMac->hHdd, pMac->innavMeas.hTimerMeasurement);
-
+        
+        //initialize all the variables to null
+        vos_mem_set(&(pMac->innavMeas), sizeof(tMeasInNavMeasurementStruct), 0);
     } while(0);
 
     return eHAL_STATUS_SUCCESS;

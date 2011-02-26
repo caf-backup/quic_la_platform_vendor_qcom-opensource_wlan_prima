@@ -69,6 +69,14 @@ typedef enum
     INVALID_RF_CHANNEL = 0xBAD
 }eRfChannels;
 
+typedef enum
+{
+    MODE_802_11B    = 0,
+    MODE_802_11AG   = 1,
+    MODE_802_11N    = 2,
+    NUM_802_11_MODES
+} e80211Modes;
+
 typedef struct
 {
     tANI_BOOLEAN enabled;

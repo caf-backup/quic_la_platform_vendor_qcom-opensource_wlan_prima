@@ -1208,6 +1208,10 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
              {
                 smsLog( pMac, LOGW, "Unknown message type %d, nothing to process\n",
                         pMsg->type);
+                if (pMsg->bodyptr)
+                {
+                   vos_mem_free( pMsg->bodyptr );
+                }
              }
           }//switch
       } //SME_IS_START
@@ -1224,6 +1228,10 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
    else
    {
       smsLog( pMac, LOGW, "Locking failed, bailing out\n");
+      if (pMsg->bodyptr)
+      {
+          vos_mem_free( pMsg->bodyptr );
+      }
    }
 
    return status;
@@ -1898,7 +1906,7 @@ eHalStatus sme_RoamDisconnectSta(tHalHandle hHal, tANI_U8 sessionId,
    
    if ( NULL == pMac )
    {
-     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     VOS_ASSERT(0);
      return status; 
    }
 
@@ -1935,7 +1943,7 @@ eHalStatus sme_RoamDeauthSta(tHalHandle hHal, tANI_U8 sessionId,
    
    if ( NULL == pMac )
    {
-     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     VOS_ASSERT(0);
      return status; 
    }
 
@@ -1971,7 +1979,7 @@ eHalStatus sme_RoamTKIPCounterMeasures(tHalHandle hHal, tANI_U8 sessionId,
 
    if ( NULL == pMac )
    {
-     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     VOS_ASSERT(0);
      return status; 
    }
 
@@ -2013,7 +2021,7 @@ eHalStatus sme_RoamGetAssociatedStas(tHalHandle hHal, tANI_U8 sessionId,
 
    if ( NULL == pMac )
    {
-     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     VOS_ASSERT(0);
      return status; 
    }
 
@@ -2051,7 +2059,7 @@ eHalStatus sme_RoamGetWpsSessionOverlap(tHalHandle hHal, tANI_U8 sessionId,
 
    if ( NULL == pMac )
    {
-     smsLog(pMac, LOGE, FL("Error : pMac == NULL\n"));
+     VOS_ASSERT(0);
      return status; 
    }
 

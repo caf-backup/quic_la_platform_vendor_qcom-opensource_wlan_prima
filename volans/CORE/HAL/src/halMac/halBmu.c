@@ -1229,7 +1229,7 @@ eHalStatus halBmuTrace_setMaxIndex(tpAniSirGlobal pMac, tANI_U32 index)
     return eHAL_STATUS_FAILURE;
 }
 
-
+#ifdef BMU_ERR_DEBUG
 /* --------------------------------------
  * FUNCTION: halBmuTrace_printConfig()
  *
@@ -1267,7 +1267,7 @@ eHalStatus halBmuTrace_printConfig(tpAniSirGlobal pMac)
 #endif
     return eHAL_STATUS_FAILURE;
 }
-
+#endif
 
 /* ---------------------------------------
  * FUNCTION: bmu_set_wq_head_tail_nr()
@@ -1796,7 +1796,7 @@ eHalStatus halBmu_GetStaWqStatus(tpAniSirGlobal pMac, tpBmuStaQueueData pStaQueu
 //this routine should be called in AP mode only
 //disables station transmission, clears station state, sets power save related station configuration and enables station transmission.
 void halBmu_UpdateStaBMUApMode(tpAniSirGlobal pMac, 
-                                 tANI_U16 staIdx, tANI_U8 uapsdACMask, 
+                                 tANI_U8 staIdx, tANI_U8 uapsdACMask, 
                                  tANI_U8 maxSPLen, tANI_U8 updateUapsdOnly)
 {
     tpStaStruct pSta;     
@@ -2018,6 +2018,7 @@ tANI_U16 halBmu_getQidMask(tANI_U8 acAPSDflag)
     return mask;
 }
 
+#ifndef WLAN_SOFTAP_FW_BA_PROCESSING_FEATURE
 eHalStatus halBmu_ConfigureToSendBAR(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId)
 {
     tANI_U32 value, count = 0;
@@ -2056,6 +2057,7 @@ eHalStatus halBmu_ConfigureToSendBAR(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U
 
     return eHAL_STATUS_SUCCESS;
 }
+#endif
 
 eHalStatus halBmu_ReadBtqmQFrmInfo(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U8 queueId, tANI_U32 *pNumFrames, 
                                 tANI_U32 *pHeadBdIndex, tANI_U32 *pTailBdIndex )

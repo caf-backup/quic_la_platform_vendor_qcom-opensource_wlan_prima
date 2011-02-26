@@ -374,3 +374,34 @@ tSirRetStatus halMmhForwardMBmsg(void* pSirGlobal, tSirMbMsg* pMb)
 
 } // halMmhForwardMBmsg()
 
+// -------------------------------------------------------------
+/**
+ * halMntProcessMsgs
+ *
+ * FUNCTION:
+ *  Processes all the Maintenance messages.
+ *
+ * LOGIC
+ *
+ * ASSUMPTIONS:
+ *
+ *
+ * NOTE:
+ *
+ * @param tpAniSirGlobal MAC parameters structure
+ * @param pMsg A pointer to the message queue struct
+ * @return Success or failure
+ */
+tSirRetStatus halMntProcessMsgs(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
+{
+    tSirRetStatus rc = eSIR_SUCCESS;
+
+    HALLOG4( halLog(pMac, LOG4, FL("msgType (%X)\n"), pMsg->type));
+
+    cfgProcessMbMsg(pMac, (tSirMbMsg*)pMsg->bodyptr);
+
+    return rc;
+
+} // halMntProcessMsgs()
+
+

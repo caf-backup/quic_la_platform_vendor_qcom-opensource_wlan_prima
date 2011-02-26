@@ -1759,7 +1759,7 @@ void halRate_UpdateCtrlRspTxPower(tpAniSirGlobal pMac, tTpeRateIdx rateIdx,
     tHalRateTable *pHalRate = &halRateTable[0];
 
     for (index = MIN_LIBRA_RATE_NUM; index < MAX_LIBRA_TX_RATE_NUM; index++) {
-        if (rateIdx == pHalRate->tpeRateTableDynamic.rspRateIdx) {
+        if (rateIdx == (tTpeRateIdx)pHalRate->tpeRateTableDynamic.rspRateIdx) {
             // Check if the txpower is changed from the previous value, if not
             // avoid expensive HW write over the SDIO bus
             if(pHalRate->tpeRateTableDynamic.cntrlRspTxPwr != txPower) {
@@ -2290,7 +2290,6 @@ void  halRateDbg_overrideStaRateProtPolicy(tpAniSirGlobal pMac,
         pRateInfo->protectionPolicy = triProtMode;
 #endif
 }
-
 
 /*
  * DESCRIPTION:

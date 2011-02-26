@@ -887,8 +887,10 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
 
         }
 
+#ifndef WLAN_SOFTAP_FW_BA_PROCESSING_FEATURE
         // Set the QID as valid ampdu QID
         tpeStaDescCfg.ampdu_valid |= (1 << ampduValQid);
+#endif
         HALLOGW( halLog(pMac, LOGW, FL("tpeStaDescCfg.ampdu_valid is %d\n"), tpeStaDescCfg.ampdu_valid));
 
         // Save the station configuration
@@ -901,6 +903,8 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
             status = eHAL_STATUS_FAILURE;
             goto Fail;
         }
+
+#ifndef WLAN_SOFTAP_FW_BA_PROCESSING_FEATURE
         // Configure BMU to send BAR before sending first frame
         if ((status = halBmu_ConfigureToSendBAR(pMac, (tANI_U8)pAddBAParams->staIdx,
                                                 queueId)) != eHAL_STATUS_SUCCESS)
@@ -912,6 +916,7 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
             status = eHAL_STATUS_FAILURE;
                     goto Fail;
         }
+#endif
 
 #ifdef CONFIGURE_SW_TEMPLATE
 #ifdef BMU_FATAL_ERROR
@@ -952,6 +957,12 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
             goto Fail;
         }
 
+#ifdef WLAN_SOFTAP_FW_BA_PROCESSING_FEATURE
+        // Send the Update BA message to FW, as FW would take care of setting the AMPDU valid bit
+        // This is to take care of aggregation not happening when STA is in PS
+        halFW_UpdateBAMsg(pMac, pAddBAParams->staIdx, queueId, TRUE);
+#endif
+
 #ifdef CONFIGURE_SW_TEMPLATE
 #ifdef BMU_FATAL_ERROR
         // Configure BMU to enable transmit
@@ -971,17 +982,6 @@ eHalStatus baAddBASession(tpAniSirGlobal pMac,
 
 #endif //BMU_FATAL_ERROR
 #endif //CONFIGURE_SW_TEMPLATE
-
-        // Enable BMU BA update
-        if ((status = halRxp_EnableDisableBmuBaUpdate(pMac, 1)) != eHAL_STATUS_SUCCESS)
-        {
-            HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot enable BMU BA update, STA index %d\n"),
-                    pAddBAParams->staIdx ));
-                 status = eHAL_STATUS_FAILURE;
-                 goto Fail;
-        }
-
 
         halMsg_GenerateRsp( pMac, SIR_HAL_ADDBA_RSP, pAddBAParams->baDialogToken, (void *) pAddBAParams, 0);
     }
@@ -1206,7 +1206,9 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
 
         // Clear the QID bit in the ampdu valid address
         ampduValQid = queueId;
+#ifndef WLAN_SOFTAP_FW_BA_PROCESSING_FEATURE
         tpeStaDescCfg.ampdu_valid &= ~(1 << ampduValQid);
+#endif
 
         // Save the station configuration
         if ((status = halTpe_SaveStaConfig(pMac, &tpeStaDescCfg,
@@ -1218,30 +1220,14 @@ eHalStatus baDelBASession(tpAniSirGlobal pMac,
             return status;
         }
 
-        // Update the station descriptor
-        if ((status = halTpe_UpdateStaDesc(pMac, (tANI_U8)pDelBAParams->staIdx,
-                                           &tpeStaDescCfg)) != eHAL_STATUS_SUCCESS)
-        {
-            HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot update TPE station descriptor, STA index %d\n"),
-                    pDelBAParams->staIdx ));
-            return status;
-        }
+#ifdef WLAN_SOFTAP_FW_BA_PROCESSING_FEATURE
+        // Send the Update BA message to FW, as FW would take care of setting the AMPDU valid bit
+        // This is to take care of aggregation not happening when STA is in PS
+        halFW_UpdateBAMsg(pMac, pDelBAParams->staIdx, queueId, FALSE);
+#endif
     }
 
     pSta[pDelBAParams->staIdx].baInitiatorTidBitMap &= ~(1 << pDelBAParams->baTID);
-
-    if (tpeStaDescCfg.ampdu_valid == 0)
-    {
-        // Disable BMU BA update
-        if ((status = halRxp_EnableDisableBmuBaUpdate(pMac, 0)) != eHAL_STATUS_SUCCESS)
-        {
-            HALLOGW( halLog( pMac, LOGW,
-                    FL("Cannot disable BMU BA update, STA index %d\n"),
-                    pDelBAParams->staIdx ));
-            return status;
-        }
-    }
 
     return status;
 }
@@ -1661,14 +1647,6 @@ eHalStatus baProcessTLAddBARsp(
 
                     }
 
-                // Enable  RXP interface with BMU FOR BA update
-                if ((status = halRxp_EnableDisableBmuBaUpdate(pMac, 1)) != eHAL_STATUS_SUCCESS)
-                {
-                       HALLOGW( halLog( pMac, LOGW,
-                               FL("Cannot enable BMU BA update, STA index %d\n"),
-                               pAddBAParams->staIdx ));
-                       goto Fail;
-                }
                 pAddBAParams->baBufferSize = tcCfg.rxBufSize;
                 HALLOG1( halLog( pMac, LOG1, FL("Send eBA_RECIPIENT Response to LIM.......... \n")));
                 halMsg_GenerateRsp( pMac, SIR_HAL_ADDBA_RSP, pAddBAParams->baDialogToken, (void *) pAddBAParams, 0);

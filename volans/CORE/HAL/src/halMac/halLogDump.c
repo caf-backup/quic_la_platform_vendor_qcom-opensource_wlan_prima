@@ -2397,7 +2397,7 @@ dump_addStaWithUapsd(tpAniSirGlobal pMac, tANI_U32 staType, tANI_U32 staidNum, t
     palCopyMemory(pMac->hHdd, (void *) &pMsg->staMac, (void *)staid, 6);
 
     pMsg->staIdx = HAL_STA_INVALID_IDX; 
-    pMsg->assocId = staidNum + 1; // may not work in all the cases. 
+    pMsg->assocId = (tANI_U16)staidNum + 1; // may not work in all the cases. 
     pMsg->staType = (staType == 0) ? STA_ENTRY_SELF : STA_ENTRY_PEER;
     HALLOGW( halLog(pMac, LOGW, FL("Adding STA %d-%d-%d-%d-%d-%d %s. "),
            (*staid)[0], (*staid)[1], (*staid)[2],
@@ -2466,7 +2466,7 @@ halLog_testAddSta(tpAniSirGlobal pMac, tANI_U32 staType, tANI_U32 staidNum, tANI
     palCopyMemory(pMac->hHdd, (void *) &pMsg->staMac, (void *)staid, 6);
 
     pMsg->staIdx = HAL_STA_INVALID_IDX; 
-    pMsg->assocId = staidNum + 1; // may not work in all the cases. 
+    pMsg->assocId = (tANI_U16)staidNum + 1; // may not work in all the cases. 
     pMsg->staType = (staType == 0) ? STA_ENTRY_SELF : STA_ENTRY_PEER;
     HALLOGW( halLog(pMac, LOGW, FL("Adding STA %d-%d-%d-%d-%d-%d %s. "),
            (*staid)[0], (*staid)[1], (*staid)[2],
@@ -2633,7 +2633,7 @@ static char *
 dump_hal_test_update_beacon_template( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     (void) arg2; (void) arg3; (void) arg4;
-    halLog_SendBeaconReq(pMac, arg1);
+    halLog_SendBeaconReq(pMac, (tANI_U8)arg1);
     return p;
 }
 

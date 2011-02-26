@@ -487,6 +487,11 @@ typedef struct tagCsrConfig
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
     tCsrNeighborRoamConfig neighborRoamConfig;
 #endif
+
+    /* Instead of Reassoc, send ADDTS/DELTS even when ACM is off for that AC 
+     * This is mandated by WMM-AC certification */
+    tANI_BOOLEAN addTSWhenACMIsOff;
+
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo 
@@ -919,6 +924,8 @@ typedef struct tagCsrRoamStruct
 
 #define CSR_IS_SET_KEY_COMMAND( pCommand )    ( eSmeCommandSetKey == (pCommand)->command )
 
+#define CSR_IS_ADDTS_WHEN_ACMOFF_SUPPORTED(pMac) (pMac->roam.configParam.addTSWhenACMIsOff)
+
 //Stop CSR from asking for IMPS, This function doesn't disable IMPS from CSR
 void csrScanSuspendIMPS( tpAniSirGlobal pMac );
 //Start CSR from asking for IMPS. This function doesn't trigger CSR to request entering IMPS
@@ -1130,5 +1137,7 @@ eHalStatus csrRoamUpdateAPWPSIE( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirAP
 eHalStatus csrRoamUpdateWPARSNIEs( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirRSNie * pAPSirRSNie);
 #endif
 void csrSetCfgPrivacy( tpAniSirGlobal pMac, tCsrRoamProfile *pProfile, tANI_BOOLEAN fPrivacy );
+eHalStatus csrRoamCopyConnectProfile(tpAniSirGlobal pMac, tANI_U32 sessionId, 
+	                               tCsrRoamConnectedProfile *pProfile);
 #endif
 

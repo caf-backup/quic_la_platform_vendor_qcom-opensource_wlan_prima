@@ -258,7 +258,7 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
                    LOG1,
                    FL("Only RSN IE is present\n"));
             dot11fUnpackIeRSN(pMac,&pRSNie->rsnIEdata[2],
-                              pRSNie->length,&pSessionEntry->gStartBssRSNIe);
+                              (tANI_U8)pRSNie->length,&pSessionEntry->gStartBssRSNIe);
         }
         else if ((pRSNie->length == pRSNie->rsnIEdata[1] + 2) &&
                  (pRSNie->rsnIEdata[0] == SIR_MAC_WPA_EID))
@@ -267,7 +267,7 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
                    LOG1,
                    FL("Only WPA IE is present\n"));
 
-            dot11fUnpackIeWPA(pMac,&pRSNie->rsnIEdata[6],pRSNie->length-4,
+            dot11fUnpackIeWPA(pMac,&pRSNie->rsnIEdata[6],(tANI_U8)pRSNie->length-4,
                                 &pSessionEntry->gStartBssWPAIe);
         }
 
@@ -292,7 +292,7 @@ limSetRSNieWPAiefromSmeStartBSSReqMessage(tpAniSirGlobal pMac,
         {
             /* Both RSN and WPA IEs are present */
             dot11fUnpackIeRSN(pMac,&pRSNie->rsnIEdata[2],
-                  pRSNie->length,&pSessionEntry->gStartBssRSNIe);
+                  (tANI_U8)pRSNie->length,&pSessionEntry->gStartBssRSNIe);
 
             dot11fUnpackIeWPA(pMac,&pRSNie->rsnIEdata[wpaIndex + 6],
                               pRSNie->rsnIEdata[wpaIndex + 1]-4,
@@ -1086,7 +1086,7 @@ limIsSmeSetContextReqValid(tpAniSirGlobal pMac, tpSirSmeSetContextReq  pSetConte
             valid = false;
             goto end;
         }
-        pKey += sizeof(tSirKeys);
+        pKey++;
     }
 
 end:

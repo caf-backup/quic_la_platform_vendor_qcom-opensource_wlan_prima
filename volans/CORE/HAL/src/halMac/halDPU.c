@@ -436,7 +436,7 @@ dpu_init_tables(
 
         pDpu->rcDescTable[i].hwIndex    = i;
         // RC Base Index can range from 0..15
-        pDpu->rcDescTable[i].hwRCBaseIndex = i / MAX_STA_ENTRIES_PER_RC_SET;
+        pDpu->rcDescTable[i].hwRCBaseIndex = (tANI_U8)(i / MAX_STA_ENTRIES_PER_RC_SET);
         pDpu->rcDescTable[i].used       = 0;
     }
 }
@@ -461,7 +461,7 @@ static void dpu_init_error_wq(tpAniSirGlobal pMac)
     halWriteRegister(pMac, QWLAN_DPU_DPU_ERROR_WQ_REG,     value);
 
     /** Set the DPU Select reg to capture MIC error and send to WQ A -> BMUWQ_DPU_ERROR_WQ.*/
-    value = ~(1 << SWBD_DPUERR_BAD_TKIP_MIC); 
+    value =(tANI_U32) ~(1 << SWBD_DPUERR_BAD_TKIP_MIC); 
     halWriteRegister(pMac, QWLAN_DPU_DPU_ERROR_WQ_SELECT_REG, value);
 }
 
@@ -2440,7 +2440,7 @@ void halDpu_MICErrorIndication(tpAniSirGlobal pMac)
         pMicInd->length = sizeof(tSirSmeMicFailureInd);    // len in bytes
 #endif
 
-        BssSystemRole = halGetBssSystemRoleFromStaIdx(pMac, pDpuErrorBD->addr2Index);
+        BssSystemRole = halGetBssSystemRoleFromStaIdx(pMac, (tANI_U8)pDpuErrorBD->addr2Index);
 
         if(BssSystemRole == eSYSTEM_AP_ROLE)
         {

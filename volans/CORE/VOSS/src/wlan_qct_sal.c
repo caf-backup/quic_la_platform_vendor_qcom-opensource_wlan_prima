@@ -785,7 +785,7 @@ VOS_STATUS WLANSAL_Cmd53
 
    if (0 == cmd53Req->dataSize) 
    {
-      SMSGERROR("%s: CMD53 Data size 0, direction %d, Mode %d, address 0x%x",
+      SMSGERROR("CMD53 Data size 0, direction %d, Mode %d, address 0x%x",
          cmd53Req->busDirection, cmd53Req->mode, cmd53Req->address);
       SEXIT();
       return VOS_STATUS_E_FAILURE;
@@ -886,8 +886,8 @@ VOS_STATUS WLANSAL_Cmd53
 watchdog_chip_reset:
    if (err_ret)
    {
-      SMSGFATAL("%s: Value of ERROR err_ret = %d\n", __func__, err_ret, 0);
-      SMSGFATAL("%s: CMD53 Data size 0, direction %d, Mode %d, address 0x%x", 
+      SMSGFATAL("%s: Value of ERROR err_ret = %d, Data Size = %d\n", __func__, err_ret, cmd53Req->dataSize);
+      SMSGFATAL("CMD53 direction %d, Mode %d, address 0x%x", 
          cmd53Req->busDirection, cmd53Req->mode, cmd53Req->address);
       SEXIT();
       // Release lock

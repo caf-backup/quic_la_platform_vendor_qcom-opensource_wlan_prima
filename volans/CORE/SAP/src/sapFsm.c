@@ -217,7 +217,7 @@ sapGotoStarting
                             eSME_REASON_OTHER);
 
     /* Open SME Session for Softap */
-    halStatus = sme_OpenSession(VOS_GET_HAL_CB(sapContext->pvosGCtx),
+    halStatus = sme_OpenSession(hHal,
                         &WLANSAP_RoamCallback, 
                         sapContext,
                         sapContext->self_mac_addr,  
@@ -231,7 +231,7 @@ sapGotoStarting
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s calling sme_RoamConnect with eCSR_BSS_TYPE_INFRA_AP", __FUNCTION__);
 
 
-    halStatus = sme_RoamConnect(VOS_GET_HAL_CB(sapContext->pvosGCtx),
+    halStatus = sme_RoamConnect(hHal,
                     sapContext->sessionId,
                     &sapContext->csrRoamProfile,
                     &sapContext->csrRoamId);
@@ -274,6 +274,7 @@ sapGotoDisconnecting
 )
 {
     eHalStatus halStatus = eHAL_STATUS_FAILURE;
+
     halStatus = sme_RoamStopBss(VOS_GET_HAL_CB(sapContext->pvosGCtx), sapContext->sessionId);
 
     if(eHAL_STATUS_SUCCESS != halStatus )
@@ -380,7 +381,7 @@ sapSignalHDDevent
             }
             else
                 sapApAppEvent.sapevt.sapStartBssCompleteEvent.staId = 0;              
-            sapApAppEvent.sapevt.sapStartBssCompleteEvent.operatingChannel = sapContext->channel;
+            sapApAppEvent.sapevt.sapStartBssCompleteEvent.operatingChannel = (v_U8_t)sapContext->channel;
             break;
 
        case eSAP_STOP_BSS_EVENT:
@@ -579,7 +580,7 @@ sapFsm
                  // Specify the channel
                  sapContext->csrRoamProfile.ChannelInfo.numOfChannels = 1;
                  sapContext->csrRoamProfile.ChannelInfo.ChannelList = &sapContext->csrRoamProfile.operationChannel;
-                 sapContext->csrRoamProfile.operationChannel = sapContext->channel;
+                 sapContext->csrRoamProfile.operationChannel = (tANI_U8)sapContext->channel;
 
                  vosStatus = sapGotoStarting( sapContext, sapEvent, eCSR_BSS_TYPE_INFRA_AP);
                  /* Transition from eSAP_CH_SELECT to eSAP_STARTING (both without substates) */
@@ -760,7 +761,7 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     profile->phyMode = pconfig_params->SapHw_mode; /*eCSR_DOT11_MODE_BEST*/
 
     //Configure beaconInterval
-    profile->beaconInterval = pconfig_params->beacon_int;
+    profile->beaconInterval = (tANI_U16)pconfig_params->beacon_int;
 
     // set DTIM period
     profile->dtimPeriod = pconfig_params->dtim_period;

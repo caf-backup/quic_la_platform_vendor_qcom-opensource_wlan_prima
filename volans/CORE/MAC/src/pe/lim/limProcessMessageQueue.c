@@ -38,7 +38,6 @@
 #ifdef WMM_APSD
 #include "wmmApsd.h"
 #endif
-#include "pal_skbPoolTracking.h"
 
 #ifdef VOSS_ENABLED
 #include "vos_types.h"
@@ -1172,8 +1171,8 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             break;
 
         case eWNI_PMC_SMPS_STATE_IND :
-#ifdef SUPPORT_eWNI_PMC_SMPS_STATE_IND
         {
+#ifdef SUPPORT_eWNI_PMC_SMPS_STATE_IND
             tSirMbMsg *pMBMsg;
             tSirMacHTMIMOPowerSaveState mimoPSstate;
             /** Is System processing any SMPS Indication*/
@@ -1182,7 +1181,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 pMBMsg = (tSirMbMsg *)limMsg->bodyptr;
                 palCopyMemory(pMac->hHdd, &mimoPSstate, pMBMsg->data, sizeof(tSirMacHTMIMOPowerSaveState));
                 limSMPowerSaveStateInd(pMac, mimoPSstate);
-                palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
             }
             else
             {
@@ -1190,16 +1188,14 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 {
                     PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message %x\n"), limMsg->type);)
                     limPrintMsgName(pMac, LOGE, limMsg->type);
-                    palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
                 }
             }
-        }
-#else
-            // not currently handled
-            // return the message
-            palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
-            limMsg->bodyptr = NULL;
 #endif
+            if(limMsg->bodyptr){
+               palFreeMemory( pMac->hHdd, (tANI_U8 *) limMsg->bodyptr);
+               limMsg->bodyptr = NULL;
+            }
+        }
             break;
 
         //Power Save Related Messages From HAL

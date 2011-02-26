@@ -54,6 +54,7 @@ typedef struct
     ePhyChainSelect cfgChains;                  //chains configured in EEPROM
     eRegDomainId curRegDomain;                  //index to regulatory domain table
 
+    tANI_U32   hdetDco;
     tANI_U8    IDcoCorr[PHY_MAX_RX_CHAINS];
     tANI_U8    QDcoCorr[PHY_MAX_RX_CHAINS];
     tIQAdc     txLoCorr;

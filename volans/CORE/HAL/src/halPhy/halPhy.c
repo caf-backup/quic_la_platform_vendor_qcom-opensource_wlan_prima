@@ -63,6 +63,8 @@ eHalStatus halPhyOpen(tHalHandle hHal)
     //if ((retVal = ConfigureTpcFromNv(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
     pMac->hphy.phy.regDomainInfo = pMac->hphy.nvTables[NV_TABLE_REGULATORY_DOMAINS ];
     pMac->hphy.phy.pwrOptimal = pMac->hphy.nvTables[NV_TABLE_RATE_POWER_SETTINGS];
+    pMac->hphy.phy.antennaPathLoss = pMac->hphy.nvTables[NV_TABLE_ANTENNA_PATH_LOSS];
+    pMac->hphy.phy.pktTypePwrLimits = pMac->hphy.nvTables[NV_TABLE_PACKET_TYPE_POWER_LIMITS];
     if ((retVal = halPhySetRegDomain(pMac, curDomain)) != eHAL_STATUS_SUCCESS) { return (retVal); }
 
     //intialize the setChan event for wait blocking around halPhySetChannel

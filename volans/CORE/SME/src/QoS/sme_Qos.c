@@ -510,11 +510,9 @@ static sme_QosStatusType sme_QosReRequestAddTS(tpAniSirGlobal pMac,
                                                sme_QosEdcaAcType ac,
                                                v_U8_t tspecMask);
 static void sme_QosInitACs(tpAniSirGlobal pMac, v_U8_t sessionId);
-#ifdef REASSOC_WHEN_ACM_NOT_SET
 static eHalStatus sme_QosRequestReassoc(tpAniSirGlobal pMac, tANI_U8 sessionId,
                                         tCsrRoamModifyProfileFields *pModFields,
                                         v_BOOL_t fForce );
-#endif
 static v_U32_t sme_QosAssignFlowId(void);
 static v_U8_t sme_QosAssignDialogToken(void);
 static eHalStatus sme_QosUpdateTspecMask(v_U8_t sessionId,
@@ -775,7 +773,7 @@ sme_QosStatusType sme_QosSetupReq(tHalHandle hHal, tANI_U32 sessionId,
 
          //Call the internal function for QoS setup,
          // adding a layer of abstraction
-         status = sme_QosInternalSetupReq(pMac, sessionId, pQoSInfo,
+         status = sme_QosInternalSetupReq(pMac, (v_U8_t)sessionId, pQoSInfo,
                                           QoSCallback, HDDcontext, UPType,
                                           *pQosFlowID, VOS_FALSE, VOS_FALSE);
 
@@ -1591,11 +1589,10 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
       if((pACInfo->num_flows[SME_QOS_TSPEC_INDEX_0] > 0)||
          (pACInfo->num_flows[SME_QOS_TSPEC_INDEX_1] > 0))
       {
-#ifdef REASSOC_WHEN_ACM_NOT_SET
          //do we need to care about the case where APSD needed on ACM = 0 below?
-         if(sme_QosIsACM(pMac, pSession->assocInfo.pBssDesc, ac, NULL))
+         if(CSR_IS_ADDTS_WHEN_ACMOFF_SUPPORTED(pMac) ||
+            sme_QosIsACM(pMac, pSession->assocInfo.pBssDesc, ac, NULL))
          {
-#endif
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, 
                       "%s: %d: tspec_mask_status = %d for AC = %d",
                       __FUNCTION__, __LINE__,
@@ -1673,8 +1670,6 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
                 tmask = SME_QOS_TSPEC_MASK_BIT_1_SET;
               }
             }
-
-#ifdef REASSOC_WHEN_ACM_NOT_SET
          }
          else
          {
@@ -1683,7 +1678,6 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
             // to aggregate to calculate trigger frame parameters
             tmask = SME_QOS_TSPEC_MASK_BIT_1_SET;
          }
-#endif
 
          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
                    "%s: %d: tmask = %d, new_tmask = %d in state = %d",
@@ -2710,10 +2704,9 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
 
          status = SME_QOS_STATUS_RELEASE_SUCCESS_RSP;
          //check if delts needs to be sent
-#ifdef REASSOC_WHEN_ACM_NOT_SET
-         if(sme_QosIsACM(pMac, pSession->assocInfo.pBssDesc, ac, NULL))
+         if(CSR_IS_ADDTS_WHEN_ACMOFF_SUPPORTED(pMac) ||
+            sme_QosIsACM(pMac, pSession->assocInfo.pBssDesc, ac, NULL))
          {
-#endif
             //check if other TSPEC for this AC is also in use
             if(SME_QOS_TSPEC_MASK_BIT_1_2_SET != pACInfo->tspec_mask_status)
             {
@@ -2758,7 +2751,6 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
                   (~flow_info->tspec_mask);
                deltsIssued = VOS_TRUE;
             }
-#ifdef REASSOC_WHEN_ACM_NOT_SET
          }
          else if(pSession->apsdMask & (1 << (SME_QOS_EDCA_AC_VO - ac)))
          {
@@ -2813,7 +2805,6 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
             pSession->readyForPowerSave = VOS_TRUE;
 
          }
-#endif /* REASSOC_WHEN_ACM_NOT_SET */
 
          if(buffered_cmd)
          {
@@ -2977,9 +2968,7 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
    sme_QosACInfo *pACInfo;
    sme_QosStatusType status = SME_QOS_STATUS_SETUP_FAILURE_RSP;
    tDot11fBeaconIEs *pIes = NULL;
-#ifdef REASSOC_WHEN_ACM_NOT_SET
    tCsrRoamModifyProfileFields modifyProfileFields;
-#endif
    eHalStatus hstatus;
 
    if( !CSR_IS_SESSION_VALID( pMac, sessionId ) )
@@ -3054,11 +3043,10 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
    do
    {
       // is ACM enabled for this AC?
-#ifdef REASSOC_WHEN_ACM_NOT_SET
-      if(sme_QosIsACM(pMac, pSession->assocInfo.pBssDesc, ac, NULL))
+      if(CSR_IS_ADDTS_WHEN_ACMOFF_SUPPORTED(pMac) ||
+         sme_QosIsACM(pMac, pSession->assocInfo.pBssDesc, ac, NULL))
       {
          // ACM is enabled for this AC so we must send an AddTS
-#endif
 
          if(pTspec_Info->ts_info.psb && 
             (!pMac->pmc.uapsdEnabled ))
@@ -3074,7 +3062,7 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
          {
             //App didn't set TID, generate one
             pTspec_Info->ts_info.tid =
-               SME_QOS_WMM_UP_NC - pTspec_Info->ts_info.up;
+               (v_U8_t)(SME_QOS_WMM_UP_NC - pTspec_Info->ts_info.up);
          }
 
          //addts logic
@@ -3095,7 +3083,6 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
 
          status = SME_QOS_STATUS_SETUP_REQ_PENDING_RSP;
 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
          break;
       }
 
@@ -3229,7 +3216,6 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
          }
 
       }
-#endif /* REASSOC_WHEN_ACM_NOT_SET */
 
    }while(0);
 
@@ -5873,7 +5859,6 @@ static eHalStatus sme_QosDeleteBufferedRequests(tpAniSirGlobal pMac,
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
              "%s: %d: Invoked on session %d",
              __FUNCTION__, __LINE__, sessionId);
-   return eHAL_STATUS_FAILURE;
 
    pSession = &sme_QosCb.sessionInfo[sessionId];
 
@@ -6474,9 +6459,7 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
    sme_QosStatusType hdd_status = SME_QOS_STATUS_SETUP_FAILURE_RSP;
    sme_QosEdcaAcType ac;
    eHalStatus pmc_status = eHAL_STATUS_FAILURE;
-#ifndef REASSOC_WHEN_ACM_NOT_SET
    tCsrRoamModifyProfileFields modifyProfileFields;
-#endif
 
    if(!pEntry)
    {
@@ -6594,7 +6577,6 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
 
          }
       }
-#ifndef REASSOC_WHEN_ACM_NOT_SET
       else
       {
         if((pACInfo->num_flows[flow_info->tspec_mask - 1] == 1) && 
@@ -6620,7 +6602,6 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
           }
         }
       }
-#endif /* REASSOC_WHEN_ACM_NOT_SET */
       break;
    case SME_QOS_REASON_REQ_SUCCESS:
       hdd_status = SME_QOS_STATUS_SETUP_MODIFIED_IND;
@@ -7199,7 +7180,7 @@ tANI_BOOLEAN qosProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         switch ( pCommand->command )
         {
         case eSmeCommandAddTs:
-            status = sme_QosAddTsReq( pMac, pCommand->sessionId, &pCommand->u.qosCmd.tspecInfo, pCommand->u.qosCmd.ac);
+            status = sme_QosAddTsReq( pMac, (v_U8_t)pCommand->sessionId, &pCommand->u.qosCmd.tspecInfo, pCommand->u.qosCmd.ac);
             if( HAL_STATUS_SUCCESS( status ) )
             {
                 fRemoveCmd = eANI_BOOLEAN_FALSE;
@@ -7208,7 +7189,7 @@ tANI_BOOLEAN qosProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
             break;
 
         case eSmeCommandDelTs:
-            status = sme_QosDelTsReq( pMac, pCommand->sessionId, pCommand->u.qosCmd.ac, pCommand->u.qosCmd.tspec_mask );
+            status = sme_QosDelTsReq( pMac, (v_U8_t)pCommand->sessionId, pCommand->u.qosCmd.ac, pCommand->u.qosCmd.tspec_mask );
             if( HAL_STATUS_SUCCESS( status ) )
             {
                 fRemoveCmd = eANI_BOOLEAN_FALSE;
@@ -7238,13 +7219,12 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
    sme_QosSessionInfo *pSession;
    sme_QosACInfo *pACInfo;
    v_U8_t ac, tspec1 = 0, tspec2 = 0; 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
    v_U8_t uapsd_mask;
    tDot11fBeaconIEs *pIesLocal;
    v_U8_t acm_mask;
-#endif
    v_BOOL_t fIsUapsdNeeded;
    v_U8_t sessionId;
+   v_BOOL_t addtsWhenACMNotSet = CSR_IS_ADDTS_WHEN_ACMOFF_SUPPORTED(pMac);
 
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH,
              "%s: %d: Invoked",
@@ -7264,7 +7244,6 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
                 __FUNCTION__, __LINE__,
                 sessionId);
 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
       if( HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSession->assocInfo.pBssDesc, &pIesLocal)) )
       {
          // get the ACM mask
@@ -7276,7 +7255,7 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
 
          // unmask the bits with ACM on to avoid reassoc on them 
          uapsd_mask &= ~acm_mask;
-#endif
+
          // iterate through the ACs to determine if we need to re-add any TSPECs
          for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++)
          {
@@ -7292,16 +7271,14 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
                          __FUNCTION__, __LINE__,
                          sessionId, ac);
 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
                // Does this AC require ACM?
-               if( acm_mask & (1 << (SME_QOS_EDCA_AC_VO - ac)) )
+               if(( acm_mask & (1 << (SME_QOS_EDCA_AC_VO - ac)) ) || addtsWhenACMNotSet )
                {
                   // Yes, so we need to re-add any TSPECS
                   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH,
                             "%s: %d: On session %d AC %d has ACM enabled",
                             __FUNCTION__, __LINE__,
                             sessionId, ac);
-#endif
 
                   // Are any TSPECs active?
                   if( pACInfo->tspec_mask_status )
@@ -7362,7 +7339,6 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
                                sessionId, ac);
                      VOS_ASSERT(0);
                   }
-#ifdef REASSOC_WHEN_ACM_NOT_SET
                }
                else
                {
@@ -7380,11 +7356,9 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
                                sessionId, ac, uapsd_mask);
                   }
                }
-#endif
             }
          }
 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
          // do we need to reassociate?
          if(uapsd_mask)
          {
@@ -7420,7 +7394,6 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
                    __FUNCTION__, __LINE__,
                    sessionId);
       }
-#endif /* REASSOC_WHEN_ACM_NOT_SET */
    }
 
    // return status is ignored by BTC
@@ -7616,7 +7589,6 @@ static void sme_QosInitACs(tpAniSirGlobal pMac, v_U8_t sessionId)
    }
 }
 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
 static eHalStatus sme_QosRequestReassoc(tpAniSirGlobal pMac, tANI_U8 sessionId,
                                         tCsrRoamModifyProfileFields *pModFields,
                                         v_BOOL_t fForce )
@@ -7658,7 +7630,6 @@ static eHalStatus sme_QosRequestReassoc(tpAniSirGlobal pMac, tANI_U8 sessionId,
 
    return status;
 }
-#endif /* REASSOC_WHEN_ACM_NOT_SET */
 
 static v_U32_t sme_QosAssignFlowId(void)
 {
