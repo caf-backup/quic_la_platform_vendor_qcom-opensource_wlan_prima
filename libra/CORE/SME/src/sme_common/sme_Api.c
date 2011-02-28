@@ -396,12 +396,28 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
 
                         case eSmeCommandSetKey:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
-                            csrRoamProcessSetKeyCommand( pMac, pCommand );
+                            status = csrRoamProcessSetKeyCommand( pMac, pCommand );
+                            if(!HAL_STATUS_SUCCESS(status))
+                            {
+                                if( csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, 
+                                            &pCommand->Link, LL_ACCESS_LOCK ) )
+                                {
+                                    csrReleaseCommandSetKey( pMac, pCommand );
+                                }
+                            }
                             break;
 
                         case eSmeCommandRemoveKey:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
-                            csrRoamProcessRemoveKeyCommand( pMac, pCommand );
+                            status = csrRoamProcessRemoveKeyCommand( pMac, pCommand );
+                            if(!HAL_STATUS_SUCCESS(status))
+                            {
+                                if( csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, 
+                                            &pCommand->Link, LL_ACCESS_LOCK ) )
+                                {
+                                    csrReleaseCommandRemoveKey( pMac, pCommand );
+                                }
+                            }
                             break;
 
                         case eSmeCommandEnterImps:
@@ -1329,54 +1345,56 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
 
     do
     {
-    if(pMac->scan.fScanEnable)
-    {
-        status = sme_AcquireGlobalLock( &pMac->sme );
-        if ( HAL_STATUS_SUCCESS( status ) )
+        if(pMac->scan.fScanEnable)
         {
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-            //Since HO only happens for infra mode, we only check for the 
-            //connect status of infra link.
-            //This way is to save off channel time so AP has less chance of 
-            //deauth the Libra side when Libra doens't response to many TIM-ed beacons.
-            if( csrIsConnStateConnectedInfra( pMac, sessionId ) && 
-                (csrScanIsBgScanEnabled( pMac ) || csrScanGetChannelMask(pMac)) )
+            status = sme_AcquireGlobalLock( &pMac->sme );
+            if ( HAL_STATUS_SUCCESS( status ) )
             {
-                //background scan by HO is enable, no need to scan here
-                if( callback )
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+                //Since HO only happens for infra mode, we only check for the 
+                //connect status of infra link.
+                //This way is to save off channel time so AP has less chance of 
+                //deauth the Libra side when Libra doens't response to many TIM-ed beacons.
+                if( csrIsConnStateConnectedInfra( pMac, sessionId ) && 
+                        (csrScanIsBgScanEnabled( pMac ) || csrScanGetChannelMask(pMac)) )
                 {
-                    tANI_U32 lScanId = pMac->scan.nextScanID++; //let it wrap around
-                    //Assign a scanID in case caller uses it during the callback.
-                    if(pScanRequestID)
+                    //background scan by HO is enable, no need to scan here
+                    if( callback )
                     {
-                        *pScanRequestID = lScanId;
-                    }
-                    sme_ReleaseGlobalLock( &pMac->sme );
-                    callback( pMac, pContext, lScanId, eCSR_SCAN_ONGOING );
-                    status = sme_AcquireGlobalLock( &pMac->sme );
-                    if ( !HAL_STATUS_SUCCESS( status ) )
-                    {
-                        status = eHAL_STATUS_SUCCESS;
-                        break;
+                        tANI_U32 lScanId = pMac->scan.nextScanID++; //let it wrap around
+                        //Assign a scanID in case caller uses it during the callback.
+                        if(pScanRequestID)
+                        {
+                            *pScanRequestID = lScanId;
+                        }
+                        sme_ReleaseGlobalLock( &pMac->sme );
+                        callback( pMac, pContext, lScanId, eCSR_SCAN_ONGOING );
+                        status = sme_AcquireGlobalLock( &pMac->sme );
+                        if ( !HAL_STATUS_SUCCESS( status ) )
+                        {
+                            status = eHAL_STATUS_SUCCESS;
+                            break;
+                        }
+                    } else {
+                        smsLog( pMac, LOGW, "%s:%d - Callback NULL!!!\n", __FUNCTION__, __LINE__);
                     }
                 }
-	        }
-            else
+                else
 #endif
-            {
+                {
 #ifdef FEATURE_WLAN_GEN6_ROAMING
                     //create the channel mask if needed
                     if( csrIsConnStateConnectedInfra( pMac, sessionId ) && 
-                        (CSR_IS_ROAM_SUBSTATE_HO_NRT(pMac) || CSR_IS_ROAM_SUBSTATE_HO_RT(pMac)))
+                            (CSR_IS_ROAM_SUBSTATE_HO_NRT(pMac) || CSR_IS_ROAM_SUBSTATE_HO_RT(pMac)))
                     {
                         csrScanSetChannelMask(pMac, &pscanReq->ChannelInfo);
                     }
 #endif
                     status = csrScanRequest( hHal, pscanReq, pScanRequestID,
-                                     callback, pContext );
+                            callback, pContext );
+                }
+                sme_ReleaseGlobalLock( &pMac->sme );
             }
-            sme_ReleaseGlobalLock( &pMac->sme );
-        }
         }
     } while( 0 );
 

@@ -5043,6 +5043,8 @@ void csrScanCallCallback(tpAniSirGlobal pMac, tSmeCmd *pCommand, eCsrScanStatus 
     if(pCommand->u.scanCmd.callback)
     {
         pCommand->u.scanCmd.callback(pMac, pCommand->u.scanCmd.pContext, pCommand->u.scanCmd.scanID, scanStatus); 
+    } else {
+        smsLog( pMac, LOGW, "%s:%d - Callback NULL!!!\n", __FUNCTION__, __LINE__);
     }
 }
 
@@ -7330,9 +7332,18 @@ tANI_BOOLEAN csrScanRemoveFreshScanCommand(tpAniSirGlobal pMac)
             case eCsrScanGetScanChnInfo:
                 break;
             default:
+                smsLog (pMac, LOGW, "%s: -------- abort scan command reason = %d\n", __FUNCTION__, pCommand->u.scanCmd.reason);
                 //The rest are fresh scan requests
                 if( csrLLRemoveEntry(&pMac->sme.smeCmdPendingList, pEntry, LL_ACCESS_NOLOCK) )
 				{
+                    // We need to inform the requester before droping the scan command
+                    smsLog (pMac, LOGW, "%s Drop scan reason %d callback 0x%X\n", 
+                        __FUNCTION__, pCommand->u.scanCmd.reason, (unsigned int)pCommand->u.scanCmd.callback);
+                    if (NULL != pCommand->u.scanCmd.callback)
+                    {
+                        smsLog (pMac, LOGW, "%s callback scan requester\n", __FUNCTION__);
+                        csrScanCallCallback(pMac, pCommand, eCSR_SCAN_ABORT);
+                    }
 					csrReleaseCommandScan( pMac, pCommand );
 				}
                 fRet = eANI_BOOLEAN_TRUE;

@@ -73,6 +73,7 @@
 #include "vos_threads.h"
 #include "sscDebug.h"
 #include "vos_api.h"
+#include "vos_power.h"
 
 /* SDIO services                                                           */
 #include "wlan_qct_sal.h"
@@ -1437,13 +1438,7 @@ VOS_STATUS WLANSSC_Close
   if( VOS_STATUS_SUCCESS != WLANSSC_ExecuteEvent( pControlBlock, 
                                                   WLANSSC_CLOSE_EVENT ) )
   {
-    /* Should never happen!                                                */
-    WLANSSC_ASSERT( 0 );
-
     SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error executing Close event"));
-
-    WLANSSC_UNLOCKTXRX( pControlBlock );
-    return VOS_STATUS_E_FAILURE;
   }
 
   /* Release Lock                                                          */
@@ -5884,11 +5879,9 @@ static VOS_STATUS WLANSSC_FatalErrorEventHandler
                                                                pControlBlock->stClientCbacks.UserData);
   }
 
-  SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Fatal error interrupt received!"));
+  SSCLOGP(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Fatal error interrupt received!"));
 
-  /* Change back to CLOSED_STATE and wait for a reset                      */
-  WLANSSC_TransitionState( pControlBlock, 
-                           WLANSSC_CLOSED_STATE );
+  vos_chipReset(NULL, VOS_FALSE, NULL, NULL, VOS_CHIP_RESET_UNKNOWN_EXCEPTION);
 
   return VOS_STATUS_SUCCESS;
 

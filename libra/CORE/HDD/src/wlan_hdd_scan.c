@@ -512,7 +512,7 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
     ENTER();
 
-   hddLog(LOG1,"%s called with halHandle = %p, pContext = %p, scanID = %d,"
+   hddLog(LOGW,"%s called with halHandle = %p, pContext = %p, scanID = %d,"
            " returned status = %d\n", __FUNCTION__, halHandle, pContext,
             (int) scanId, (int) status);
 

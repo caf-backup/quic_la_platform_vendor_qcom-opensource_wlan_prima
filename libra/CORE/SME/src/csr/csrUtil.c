@@ -5409,3 +5409,34 @@ eHalStatus csrScanGetBaseChannels( tpAniSirGlobal pMac, tCsrChannelInfo * pChann
     return ( status );
 }
 
+
+tANI_BOOLEAN csrIsSetKeyAllowed(tpAniSirGlobal pMac, tANI_U32 sessionId)
+{
+    tANI_BOOLEAN fRet = eANI_BOOLEAN_TRUE;
+#ifdef WLAN_SOFTAP_FEATURE
+    tCsrRoamSession *pSession;
+
+    pSession =CSR_GET_SESSION(pMac, sessionId);
+
+    /*This condition is not working for infra state. When infra is in not-connected state
+    * the pSession->pCurRoamProfile is NULL. And this function returns TRUE, that is incorrect.
+    * Since SAP requires to set key without any BSS started, it needs this condition to be met.
+    * In other words, this function is useless.
+    * The current work-around is to process setcontext_rsp and removekey_rsp no matter what the 
+    * state is.
+    */
+    smsLog( pMac, LOGE, FL(" is not what it intends to. Must be revisit or removed\n") );
+    if( (NULL == pSession) || 
+        ( csrIsConnStateDisconnected( pMac, sessionId ) && 
+        (pSession->pCurRoamProfile != NULL) &&
+        (!(CSR_IS_INFRA_AP(pSession->pCurRoamProfile))) )
+        )
+    {
+        fRet = eANI_BOOLEAN_FALSE;
+    }
+#else
+    fRet = !( csrIsConnStateDisconnected( pMac, sessionId ) );
+#endif
+
+    return ( fRet );
+}

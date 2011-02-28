@@ -2953,14 +2953,14 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
     switch (pMsg->type)
     {
            case SIR_HAL_HANDLE_FW_MBOX_RSP:
-                HALLOGE( halLog(pMac, LOGE, FL("Fw Rsp Msg \n")));
+                HALLOGE( halLog(pMac, LOGE, FL("Recvd new Msg (or Rsp) from FW \n")));
                 halFW_HandleFwMessages(pMac, pMsg->bodyptr);
                 vos_mem_free((v_VOID_t*)pMsg->bodyptr);
                 pMsg->bodyptr = NULL;
                 break;
 
            case SIR_HAL_SEND_MSG_COMPLETE:
-                HALLOGE( halLog(pMac, LOGE, FL("Fw Rsp Msg \n")));
+                HALLOGE( halLog(pMac, LOGE, FL("Recv ACK from FW for the host Msg \n")));
                 halMbox_SendMsgComplete(pMac);
                 break;
 
@@ -3350,14 +3350,14 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 
 
        case SIR_HAL_HANDLE_FW_MBOX_RSP:
-            HALLOGE( halLog(pMac, LOGE, FL("Fw Rsp Msg \n")));
+            HALLOGE( halLog(pMac, LOGE, FL("Recvd Msg (or Rsp) from FW \n")));
             halFW_HandleFwMessages(pMac, pMsg->bodyptr);
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
             pMsg->bodyptr = NULL;
             break;
 
        case SIR_HAL_SEND_MSG_COMPLETE:
-            HALLOGE( halLog(pMac, LOGE, FL("Fw Rsp Msg \n")));
+            HALLOGE( halLog(pMac, LOGE, FL("Recv ACK from FW for the host Msg \n")));
             halMbox_SendMsgComplete(pMac);
             break;
 

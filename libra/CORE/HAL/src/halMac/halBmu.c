@@ -1543,9 +1543,8 @@ eHalStatus halIntBMUErrorHandler(tHalHandle hHalHandle, eHalIntSources intSource
 
     if(intRegStatus){
         /** Display Read Error Information.*/
-        HALLOGE( halLog(pMac, LOGE, FL("BMU FATAL Error Interrupt Status %x, enable %x, \
-                Address %x, WData %x, btqmErrStatus %x\n"), intRegStatus, intRegMask,
-                intBMUErrAddr, intBMUErrWData, btqmErrStatus));
+        VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "BMU FATAL Error Interrupt Status %x, enable %x, Address %x, WData %x, btqmErrStatus %x\n", 
+                intRegStatus, intRegMask, intBMUErrAddr, intBMUErrWData, btqmErrStatus);
 
 #ifdef BMU_ERR_DEBUG
         halReadRegister(pMac, QWLAN_BMU_BTQM_ERR_STATUS_REG, &value);

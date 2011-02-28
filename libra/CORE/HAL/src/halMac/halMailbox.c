@@ -233,10 +233,7 @@ eHalStatus halMbox_SendMsg(tpAniSirGlobal pMac, void *msg)
     tpMBoxMsgHdr pHdr = (tpMBoxMsgHdr)msg;
     tpMboxInfo pMbox = (tpMboxInfo)pMac->hal.halMac.mboxInfo;
 
-    HALLOG3( halLog(pMac, LOG3, FL("========================== \n")));
-    HALLOG3( halLog(pMac, LOG3, FL("    halMbox_SendMsg()     \n")));
-    HALLOG3( halLog(pMac, LOG3, FL("========================== \n")));
-    HALLOG3( halLog(pMac, LOG3, FL("msgType %d, msgLen %d \n"), pHdr->MsgType, pHdr->MsgLen));
+    HALLOGW( halLog(pMac, LOGW, FL("msgType %d, msgLen %d \n"), pHdr->MsgType, pHdr->MsgLen));
 
     // message must be 4byte aligned
     if((pHdr->MsgLen & 3) != 0)

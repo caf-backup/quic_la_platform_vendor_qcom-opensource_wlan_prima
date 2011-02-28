@@ -572,7 +572,8 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 goto free;
             }
 		}
-        
+
+        palZeroMemory(pMac->hHdd, psessionEntry->parsedAssocReq, (psessionEntry->dph.dphHashTable.size * sizeof(tpSirAssocReq)) );
         /* Channel Bonding is not addressd yet for BT-AMP Support.. sunit will address channel bonding   */
         if (pSmeStartBssReq->channelId)
         {

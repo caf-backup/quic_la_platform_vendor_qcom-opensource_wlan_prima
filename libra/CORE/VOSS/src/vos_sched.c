@@ -32,6 +32,7 @@
 #include <wlan_qct_tl.h>
 #include "vos_sched.h"
 #include <wlan_hdd_power.h>
+#include <linux/spinlock.h>
 
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -220,6 +221,10 @@ VOS_STATUS vos_watchdog_open
   init_completion(&pWdContext->WdShutdown);
   init_waitqueue_head(&pWdContext->wdWaitQueue);
   pWdContext->wdEventFlag = 0;
+
+  // Initialize the lock
+  spin_lock_init(&pWdContext->wdLock);
+
   //Create the Watchdog thread
   pWdContext->WdThread = kernel_thread(VosWDThread, pWdContext,
      CLONE_FS | CLONE_FILES | CLONE_SIGHAND | SIGCHLD);  
@@ -865,21 +870,37 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
        return VOS_STATUS_E_FAILURE;
     }
 
+    pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
+    pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD,pVosContext);
+
+    /* Take the lock here */
+    spin_lock(&gpVosWatchdogContext->wdLock);
+
     if (gpVosWatchdogContext->resetInProgress)
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
             "%s: Reset already in Progress. Ignoring signaling Watchdog",__FUNCTION__);
+        /* Release the lock here */
+        spin_unlock(&gpVosWatchdogContext->wdLock);
         return VOS_STATUS_E_FAILURE;
-    }
+    } 
+    else if (pAdapter->isLogpInProgress)
+    {
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+            "%s: LOGP already in Progress. Ignoring signaling Watchdog",__FUNCTION__);
+        /* Release the lock here */
+        spin_unlock(&gpVosWatchdogContext->wdLock);
+        return VOS_STATUS_E_FAILURE;
+    } 
 
     VOS_ASSERT(0);
     
-    pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
-    pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD,pVosContext);
-
     /* Set the flags so that all future CMD53 and Wext commands get blocked right away */
     vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
     pAdapter->isLogpInProgress = TRUE;
+
+    /* Release the lock here */
+    spin_unlock(&gpVosWatchdogContext->wdLock);
 
     if (pAdapter->isLoadUnloadInProgress)
     {

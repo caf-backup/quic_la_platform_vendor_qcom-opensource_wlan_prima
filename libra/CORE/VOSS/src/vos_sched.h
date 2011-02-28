@@ -170,8 +170,8 @@ typedef struct _VosSchedContext
 typedef struct _VosWatchdogContext
 {
 
-	/* Place holder to the VOSS Context */ 
-	 v_PVOID_t pVContext; 
+   /* Place holder to the VOSS Context */ 
+   v_PVOID_t pVContext; 
 
    /* Handle of Event for Watchdog thread to signal startup */
    struct completion WdStartEvent;
@@ -188,7 +188,10 @@ typedef struct _VosWatchdogContext
    /* Event flag for events handled by Watchdog */
    unsigned long wdEventFlag;	
 
-	v_BOOL_t resetInProgress;
+   v_BOOL_t resetInProgress;
+
+   /* Lock for preventing multiple reset being triggered simultaneously */
+   spinlock_t wdLock;
 
 } VosWatchdogContext, *pVosWatchdogContext;
 

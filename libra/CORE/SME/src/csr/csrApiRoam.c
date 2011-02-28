@@ -626,7 +626,9 @@ eHalStatus csrRoamStart(tpAniSirGlobal pMac)
 
 void csrRoamStop(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
-        csrRoamStopRoamingTimer(pMac, sessionId);
+   csrRoamStopRoamingTimer(pMac, sessionId);
+   /* deregister the clients requesting stats from PE/TL & also stop the corresponding timers*/
+   csrRoamDeregStatisticsReq(pMac);
 }
 
 #ifdef FEATURE_WLAN_GEN6_ROAMING
@@ -878,10 +880,18 @@ void csrAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStop
     if( eSmeCsrCommandMask & pCommand->command )
     {
         switch (pCommand->command)
-    {
+        {
         case eSmeCommandScan:
+            // We need to inform the requester before droping the scan command
+            smsLog( pMac, LOGW, "%s: Drop scan reason %d callback 0x%X\n", 
+                __FUNCTION__, pCommand->u.scanCmd.reason, (unsigned int)pCommand->u.scanCmd.callback);
+            if (NULL != pCommand->u.scanCmd.callback)
+            {
+                smsLog( pMac, LOGW, "%s callback scan requester\n", __FUNCTION__);
+                csrScanCallCallback(pMac, pCommand, eCSR_SCAN_ABORT);
+            }
             csrReleaseCommandScan( pMac, pCommand );
-                break;
+            break;
 
         case eSmeCommandRoam:
             csrReleaseCommandRoam( pMac, pCommand );
@@ -6516,7 +6526,7 @@ static void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSm
         }
         else
         {
-            smsLog( pMac, LOGW, "SmeDisassocReq failed with statusCode= 0x%08lX\n", statusCode );
+            smsLog( pMac, LOGE, "SmeDisassocReq failed with statusCode= 0x%08lX\n", statusCode );
         }
         //We are not done yet. Get the data and continue roaming
         csrRoamReissueRoamCommand(pMac);
@@ -6647,7 +6657,7 @@ void csrRoamingStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
 //HO
                  CSR_IS_ROAM_SUBSTATE_DISASSOC_HO( pMac )         )
             {
-                smsLog(pMac, LOGE, "eWNI_SME_DISASSOC_RSP\n");
+                smsLog(pMac, LOGE, "eWNI_SME_DISASSOC_RSP subState = %d\n", pMac->roam.curSubState);
                 csrRoamRoamingStateDisassocRspProcessor( pMac, (tSirSmeDisassocRsp *)pSmeRsp );
             }
             break;
@@ -6918,6 +6928,12 @@ eHalStatus csrRoamIssueRemoveKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessionId
 
     do
     {
+        if( !csrIsSetKeyAllowed(pMac, sessionId) ) 
+        {
+            smsLog( pMac, LOGW, FL(" wrong state not allowed to set key\n") );
+            status = eHAL_STATUS_CSR_WRONG_STATE;
+            break;
+        }
         pCommand = csrGetCommandBuffer(pMac);
         if(NULL == pCommand)
         {
@@ -7008,14 +7024,24 @@ eHalStatus csrRoamProcessSetKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     }
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
 
-    status = csrSendMBSetContextReqMsg( pMac, sessionId, 
-		( tANI_U8 *)&pCommand->u.setKeyCmd.peerMac, 
-                                        numKeys, edType, fUnicast, pCommand->u.setKeyCmd.keyDirection, 
-                                        pCommand->u.setKeyCmd.keyId, pCommand->u.setKeyCmd.keyLength, 
-                pCommand->u.setKeyCmd.Key, pCommand->u.setKeyCmd.paeRole, 
-                pCommand->u.setKeyCmd.keyRsc);
+    if( csrIsSetKeyAllowed(pMac, sessionId) )
+    {
+        status = csrSendMBSetContextReqMsg( pMac, sessionId, 
+		    ( tANI_U8 *)&pCommand->u.setKeyCmd.peerMac, 
+                                            numKeys, edType, fUnicast, pCommand->u.setKeyCmd.keyDirection, 
+                                            pCommand->u.setKeyCmd.keyId, pCommand->u.setKeyCmd.keyLength, 
+                    pCommand->u.setKeyCmd.Key, pCommand->u.setKeyCmd.paeRole, 
+                    pCommand->u.setKeyCmd.keyRsc);
+    }
+    else
+    {
+        smsLog( pMac, LOGW, FL(" cannot process not connected\n") );
+        //Set this status so the error handling take care of the case.
+        status = eHAL_STATUS_CSR_WRONG_STATE;
+    }
     if( !HAL_STATUS_SUCCESS(status) )
     {
+        smsLog( pMac, LOGE, FL("  error status %d\n"), status );
         csrRoamCallCallback( pMac, sessionId, NULL, pCommand->u.setKeyCmd.roamId, eCSR_ROAM_SET_KEY_COMPLETE, eCSR_ROAM_RESULT_FAILURE);
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
@@ -7034,7 +7060,6 @@ eHalStatus csrRoamProcessSetKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         }
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
 
-        csrReleaseCommandSetKey( pMac, pCommand );
     }
 
     return ( status );
@@ -7062,7 +7087,16 @@ eHalStatus csrRoamProcessRemoveKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pComman
     WLAN_VOS_DIAG_EVENT_REPORT(&removeKeyEvent, EVENT_WLAN_SECURITY);
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
 
-    status = palAllocateMemory( pMac->hHdd, (void **)&pMsg, wMsgLen );
+    if( csrIsSetKeyAllowed(pMac, sessionId) )
+    {
+        status = palAllocateMemory( pMac->hHdd, (void **)&pMsg, wMsgLen );
+    }
+    else
+    {
+        smsLog( pMac, LOGW, FL(" wrong state not allowed to set key\n") );
+        //Set the error status so error handling kicks in below
+        status = eHAL_STATUS_CSR_WRONG_STATE;
+    }
     if( HAL_STATUS_SUCCESS( status ) )
     {
         palZeroMemory(pMac->hHdd, pMsg, wMsgLen);
@@ -7103,6 +7137,7 @@ eHalStatus csrRoamProcessRemoveKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pComman
 
     if( !HAL_STATUS_SUCCESS( status ) )
     {
+        smsLog( pMac, LOGE, FL(" error status \n"), status );
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
         removeKeyEvent.eventId = WLAN_SECURITY_EVENT_REMOVE_KEY_RSP;
@@ -7111,7 +7146,6 @@ eHalStatus csrRoamProcessRemoveKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pComman
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
 
         csrRoamCallCallback( pMac, sessionId, NULL, pCommand->u.removeKeyCmd.roamId, eCSR_ROAM_REMOVE_KEY_COMPLETE, eCSR_ROAM_RESULT_FAILURE);
-        csrReleaseCommandRemoveKey( pMac, pCommand );
     }
 
     return ( status );
@@ -7122,17 +7156,8 @@ eHalStatus csrRoamProcessRemoveKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pComman
 eHalStatus csrRoamSetKey( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamSetKey *pSetKey, tANI_U32 roamId )
 {
     eHalStatus status;
-#ifdef WLAN_SOFTAP_FEATURE
-    tCsrRoamSession *pSession;
-
-    pSession =CSR_GET_SESSION(pMac, sessionId);
-
-    if( csrIsConnStateDisconnected( pMac, sessionId ) && 
-        ( pSession != NULL) && (pSession->pCurRoamProfile != NULL) &&
-        (!(CSR_IS_INFRA_AP(pSession->pCurRoamProfile))))
-#else
-    if( csrIsConnStateDisconnected( pMac, sessionId ))
-#endif
+ 
+    if( !csrIsSetKeyAllowed(pMac, sessionId) )
     {
         status = eHAL_STATUS_CSR_WRONG_STATE;
     }
@@ -7471,7 +7496,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
             break;
                 
         case eWNI_SME_DISASSOC_RSP:
-            smsLog( pMac, LOGW, FL("eWNI_SME_DISASSOC_RSP from SME\n"));
+            smsLog( pMac, LOGW, FL("eWNI_SME_DISASSOC_RSP from SME subState = %d\n"), pMac->roam.curSubState);
 #ifdef WLAN_SOFTAP_FEATURE
             {
                 tSirSmeDisassocRsp *pDisassocRsp = (tSirSmeDisassocRsp *)pSirMsg;
@@ -13974,18 +13999,12 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
    tANI_BOOLEAN insertInClientList = FALSE;
    VOS_STATUS vosStatus;
 
-   if( pMac->roam.curState != eCSR_ROAMING_STATE_JOINED 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-       &&
-      !( pMac->roam.handoffInfo.isBgScanRspPending && 
-         pMac->roam.curState == eCSR_ROAMING_STATE_SCANNING)
-#endif
-       )
+   if( csrIsAllSessionDisconnected(pMac) )
    {
 #ifdef FEATURE_WLAN_GEN6_ROAMING
-      smsLog(pMac, LOGW, "csrGetStatistics: wrong state %d\n", pMac->roam.handoffInfo.currState);
+      smsLog(pMac, LOGW, "csrGetStatistics: wrong state curState(%d) - not connected\n", pMac->roam.handoffInfo.currState);
 #else
-      smsLog(pMac, LOGW, "csrGetStatistics: wrong state %d\n", pMac->roam.curState);
+      smsLog(pMac, LOGW, "csrGetStatistics: wrong state curState(%d) not connected\n", pMac->roam.curState);
 #endif
       return eHAL_STATUS_FAILURE;
    }
