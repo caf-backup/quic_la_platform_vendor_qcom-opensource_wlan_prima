@@ -7455,7 +7455,7 @@ void limHandleHeartBeatFailureTimeout(tpAniSirGlobal pMac)
     tpPESession psessionEntry;
     if((psessionEntry = peFindSessionBySessionId(pMac, pMac->lim.limTimers.gLimProbeAfterHBTimer.sessionId))== NULL) 
     {
-        limLog(pMac, LOGP,FL("Session Does not exist for given sessionID\n"));
+        limLog(pMac, LOGE,FL("Session Does not exist for given sessionID\n"));
         return;
     }
     
@@ -7465,6 +7465,7 @@ void limHandleHeartBeatFailureTimeout(tpAniSirGlobal pMac)
     {
         if (!LIM_IS_CONNECTION_ACTIVE(psessionEntry))
         {
+            tx_timer_deactivate(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
             /* AP did not respond to Probe Request. Tear down link with it.*/
             limTearDownLinkWithAp(pMac);
             pMac->lim.gLimProbeFailureAfterHBfailedCnt++ ;

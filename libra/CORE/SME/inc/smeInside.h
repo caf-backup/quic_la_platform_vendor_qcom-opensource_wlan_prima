@@ -112,5 +112,7 @@ void csrAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStop
 eHalStatus sme_AcquireGlobalLock( tSmeStruct *psSme);
 eHalStatus sme_ReleaseGlobalLock( tSmeStruct *psSme);
 
+void csrReleaseCommandSetKey(tpAniSirGlobal pMac, tSmeCmd *pCommand);
+void csrReleaseCommandRemoveKey(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 
 #endif //#if !defined( __SMEINSIDE_H )

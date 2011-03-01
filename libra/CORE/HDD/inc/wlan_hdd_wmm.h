@@ -48,6 +48,8 @@
 
 #define HDD_WMM_HANDLE_IMPLICIT 0xFFFFFFFF
 
+#define HDD_WLAN_INVALID_STA_ID 0xFF
+
 /*----------------------------------------------------------------------------
  * Type Declarations
  * -------------------------------------------------------------------------*/
@@ -159,6 +161,9 @@ typedef struct
    v_BOOL_t                     wmmQap;
 } hdd_wmm_status_t;
 
+extern const v_U8_t hdd_QdiscAcToTlAC[];
+
+
 /**============================================================================
   @brief hdd_wmm_init() - Function which will initialize the WMM configuation
   and status to an initial state.  The configuration can later be overwritten
@@ -183,6 +188,21 @@ VOS_STATUS hdd_wmm_init ( hdd_adapter_t* pAdapter );
 
   ===========================================================================*/
 VOS_STATUS hdd_wmm_close ( hdd_adapter_t* pAdapter );
+
+/**============================================================================
+  @brief hdd_hostapd_select_queue() - Function which will classify the packet
+	 accoring to linux qdisc expectation.
+
+
+  @param dev      : [in]  pointer to net_device structure
+  @param skb      : [in]  pointer to os packet
+
+  @return         : Qdisc queue index
+  ===========================================================================*/
+
+v_U16_t hdd_hostapd_select_queue(struct net_device * dev, struct sk_buff *skb);
+
+
 
 /**============================================================================
   @brief hdd_wmm_classify_pkt() - Function which will classify an OS packet
@@ -317,4 +337,5 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
   ===========================================================================*/
 hdd_wlan_wmm_status_e hdd_wmm_checkts( hdd_adapter_t* pAdapter,
                                        v_U32_t handle );
+
 #endif /* #ifndef _WLAN_HDD_WMM_H */

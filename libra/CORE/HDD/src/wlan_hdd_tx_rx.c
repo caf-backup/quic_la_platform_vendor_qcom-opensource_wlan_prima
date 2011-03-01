@@ -28,7 +28,7 @@
   Preprocessor definitions and constants
   -------------------------------------------------------------------------*/ 
 //Mapping Linux AC interpretation to TL AC.
-static const v_U8_t hdd_QdiscAcToTlAC[] = {
+const v_U8_t hdd_QdiscAcToTlAC[] = {
    WLANTL_AC_VO,
    WLANTL_AC_VI,
    WLANTL_AC_BE,

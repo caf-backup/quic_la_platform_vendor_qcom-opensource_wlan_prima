@@ -652,6 +652,28 @@ eHalStatus sme_QosClose(tpAniSirGlobal pMac)
    {
       pSession = &sme_QosCb.sessionInfo[sessionId];
 
+      if (pSession == NULL)
+            continue;
+
+       sme_QosInitACs(pMac, sessionId);
+       // this session doesn't require UAPSD
+       pSession->apsdMask = 0;
+
+       pSession->uapsdAlreadyRequested = VOS_FALSE;
+       pSession->handoffRequested = VOS_FALSE;
+       pSession->readyForPowerSave = VOS_TRUE;
+       pSession->roamID = 0;
+       //need to clean up buffered req
+       sme_QosDeleteBufferedRequests(pMac, sessionId);
+       //need to clean up flows
+       sme_QosDeleteExistingFlows(pMac, sessionId);
+
+       // Clean up the assoc info if already allocated
+       if (pSession->assocInfo.pBssDesc) {
+          vos_mem_free(pSession->assocInfo.pBssDesc);
+          pSession->assocInfo.pBssDesc = NULL;
+       }
+      
       // close the session's buffered command list
       csrLLClose(&pSession->bufferedCommandList);
 
