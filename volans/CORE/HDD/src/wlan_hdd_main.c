@@ -1534,6 +1534,13 @@ static int __init hdd_module_init ( void)
       vos_mem_exit();
 #endif
    }
+   else
+   {
+      //Send WLAN UP indication to Nlink Service
+      send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
+   }
+   
+   
 
    EXIT();
 

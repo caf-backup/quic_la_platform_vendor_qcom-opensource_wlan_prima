@@ -97,7 +97,8 @@ __DP_SRC_TX  eHalStatus halTxFrame(tHalHandle hHal,
         // Since we donot want probe responses to be retried, send probe responses
         // through the NO_ACK queues
         if (pFc->subType == SIR_MAC_MGMT_PROBE_RSP) {
-            txFlag = HAL_USE_NO_ACK_REQUESTED_MASK;
+            //probe response is sent out using self station and no retries options.
+            txFlag = (HAL_USE_NO_ACK_REQUESTED_MASK | HAL_USE_SELF_STA_REQUESTED_MASK);
         }
     }
 

@@ -934,10 +934,18 @@ void csrAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStop
     if( eSmeCsrCommandMask & pCommand->command )
     {
         switch (pCommand->command)
-    {
+        {
         case eSmeCommandScan:
+            // We need to inform the requester before droping the scan command
+            smsLog( pMac, LOGW, "%s: Drop scan reason %d callback 0x%X\n", 
+                __FUNCTION__, pCommand->u.scanCmd.reason, (unsigned int)pCommand->u.scanCmd.callback);
+            if (NULL != pCommand->u.scanCmd.callback)
+            {
+                smsLog( pMac, LOGW, "%s callback scan requester\n", __FUNCTION__);
+                csrScanCallCallback(pMac, pCommand, eCSR_SCAN_ABORT);
+            }
             csrReleaseCommandScan( pMac, pCommand );
-                break;
+            break;
 
         case eSmeCommandRoam:
             csrReleaseCommandRoam( pMac, pCommand );
@@ -3355,12 +3363,12 @@ eCsrJoinState csrRoamJoin( tpAniSirGlobal pMac, tANI_U32 sessionId,
 
                     //The key changes
                     palZeroMemory(pMac->hHdd, &bssConfig, sizeof(bssConfig));
-                        status = csrRoamPrepareBssConfig(pMac, pProfile, pBssDesc, &bssConfig, pIesLocal);
+                    status = csrRoamPrepareBssConfig(pMac, pProfile, pBssDesc, &bssConfig, pIesLocal);
                     if(HAL_STATUS_SUCCESS(status))
                     {
                         pSession->bssParams.uCfgDot11Mode = bssConfig.uCfgDot11Mode;
                         //Reapply the config including Keys so reassoc is happening.
-                            status = csrRoamSetBssConfigCfg(pMac, sessionId, pProfile, pBssDesc, &bssConfig, pIesLocal);
+                        status = csrRoamSetBssConfigCfg(pMac, sessionId, pProfile, pBssDesc, &bssConfig, pIesLocal);
                         if(!HAL_STATUS_SUCCESS(status))
                         {
                             eRoamState = eCsrStopRoaming;
@@ -3370,7 +3378,7 @@ eCsrJoinState csrRoamJoin( tpAniSirGlobal pMac, tANI_U32 sessionId,
                     {
                         eRoamState = eCsrStopRoaming;
                     }
-                    }//same profile
+                }//same profile
             }
             else
             {
@@ -5206,6 +5214,7 @@ eHalStatus csrRoamIssueConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
     pCommand = csrGetCommandBuffer(pMac);
     if(NULL == pCommand)
     {
+        smsLog( pMac, LOGE, FL(" fail to get command buffer\n") );
         status = eHAL_STATUS_RESOURCES;
     }
     else
@@ -5265,6 +5274,7 @@ eHalStatus csrRoamIssueReassoc(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
     pCommand = csrGetCommandBuffer(pMac);
     if(NULL == pCommand)
     {
+        smsLog( pMac, LOGE, FL(" fail to get command buffer\n") );
         status = eHAL_STATUS_RESOURCES;
     }
     else
@@ -5795,6 +5805,7 @@ eHalStatus csrRoamIssueDisassociateCmd( tpAniSirGlobal pMac, tANI_U32 sessionId,
         pCommand = csrGetCommandBuffer( pMac );
         if ( !pCommand ) 
         {
+            smsLog( pMac, LOGE, FL(" fail to get command buffer\n") );
             status = eHAL_STATUS_RESOURCES;
             break;
         }
@@ -5871,6 +5882,7 @@ eHalStatus csrRoamIssueStopBssCmd( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI
     }
     else
     {
+        smsLog( pMac, LOGE, FL(" fail to get command buffer\n") );
         status = eHAL_STATUS_RESOURCES;
     }
 
@@ -6669,13 +6681,13 @@ static void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSm
 			smsLog( pMac, LOGW, "CSR: Roam Completion called but NO commands are ACTIVE ...\n" );
 		}
 
-      //notify HDD for handoff, providing the BSSID too
-      roamInfo.reasonCode = eCsrRoamReasonBetterAP;
-      palCopyMemory(pMac->hHdd, &roamInfo.bssid, 
+        //notify HDD for handoff, providing the BSSID too
+        roamInfo.reasonCode = eCsrRoamReasonBetterAP;
+        palCopyMemory(pMac->hHdd, &roamInfo.bssid, 
                     pMac->roam.handoffInfo.handoffProfile.BSSIDs.bssid, 
                     sizeof( tCsrBssid ));
 
-      csrRoamCallCallback(pMac,sessionId, &roamInfo, 0, eCSR_ROAM_ROAMING_START, eCSR_ROAM_RESULT_NONE);
+        csrRoamCallCallback(pMac,sessionId, &roamInfo, 0, eCSR_ROAM_ROAMING_START, eCSR_ROAM_RESULT_NONE);
 
 		status = palAllocateMemory(pMac->hHdd, (void **)&pScanFilter, sizeof(tCsrScanResultFilter));
 		if(HAL_STATUS_SUCCESS(status))
@@ -6685,41 +6697,41 @@ static void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSm
             if(!HAL_STATUS_SUCCESS(status))
             {
                 smsLog(pMac, LOGE, FL(" csrRoamPrepareFilterFromProfile fail to create scan filter\n"));
-		}
-       //use the scan filter to get the exact entry using the BSSID 
+		    }
+            //use the scan filter to get the exact entry using the BSSID 
 
-	   status = csrScanGetResult(pMac, pScanFilter, &hBSSList);
-       if(HAL_STATUS_SUCCESS(status))
-       {
-          //copy over the connected profile to apply the same for this connection as well
-          if(HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void **)&pCurRoamProfile, sizeof(tCsrRoamProfile))))
-          {
-              palZeroMemory(pMac->hHdd, pCurRoamProfile, sizeof(tCsrRoamProfile));
-              csrRoamCopyProfile(pMac, pCurRoamProfile, pSession->pCurRoamProfile);
-          }
-          //make sure to put it at the head of the cmd queue
-          status = csrRoamIssueConnect(pMac, sessionId, pCurRoamProfile, hBSSList, eCsrSmeIssuedAssocToSimilarAP, 
-                                       roamId, eANI_BOOLEAN_TRUE, eANI_BOOLEAN_FALSE);
-          if(!HAL_STATUS_SUCCESS(status))
-          {
-             //msg
-              fCallCallback = eANI_BOOLEAN_TRUE;
-          }
+	       status = csrScanGetResult(pMac, pScanFilter, &hBSSList);
+           if(HAL_STATUS_SUCCESS(status))
+           {
+              //copy over the connected profile to apply the same for this connection as well
+              if(HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void **)&pCurRoamProfile, sizeof(tCsrRoamProfile))))
+              {
+                  palZeroMemory(pMac->hHdd, pCurRoamProfile, sizeof(tCsrRoamProfile));
+                  csrRoamCopyProfile(pMac, pCurRoamProfile, pSession->pCurRoamProfile);
+              }
+              //make sure to put it at the head of the cmd queue
+              status = csrRoamIssueConnect(pMac, sessionId, pCurRoamProfile, hBSSList, eCsrSmeIssuedAssocToSimilarAP, 
+                                           roamId, eANI_BOOLEAN_TRUE, eANI_BOOLEAN_FALSE);
+              if(!HAL_STATUS_SUCCESS(status))
+              {
+                 //msg
+                  fCallCallback = eANI_BOOLEAN_TRUE;
+              }
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
-          /* Notify sub-modules like QoS etc. that handoff happening         */
-          sme_QosCsrEventInd(pMac, (v_U8_t)sessionId, SME_QOS_CSR_HANDOFF_ASSOC_REQ, NULL);
+              /* Notify sub-modules like QoS etc. that handoff happening         */
+              sme_QosCsrEventInd(pMac, (v_U8_t)sessionId, SME_QOS_CSR_HANDOFF_ASSOC_REQ, NULL);
 #endif
-          palFreeMemory(pMac->hHdd, pCurRoamProfile);
-       }
-       else
-       {
-          //msg
-	      smsLog( pMac, LOGE,"csrRoamRoamingStateDisassocRspProcessor: csrScanGetResult failed");
-         // should have asserted, sending up roam complete instead. Let upper layer
-         // decide what to do next
-         csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_ROAMING_COMPLETION, eCSR_ROAM_RESULT_FAILURE);
-       }
-    }
+              palFreeMemory(pMac->hHdd, pCurRoamProfile);
+           }
+           else
+           {
+              //msg
+	          smsLog( pMac, LOGE,"csrRoamRoamingStateDisassocRspProcessor: csrScanGetResult failed");
+             // should have asserted, sending up roam complete instead. Let upper layer
+             // decide what to do next
+             csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_ROAMING_COMPLETION, eCSR_ROAM_RESULT_FAILURE);
+           }
+        }
         else
         {
             smsLog(pMac, LOGE, FL(" fail to allocate memory for scan filter\n"));
@@ -6854,7 +6866,7 @@ static void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSm
         }
         else
         {
-            smsLog( pMac, LOGW, "SmeDisassocReq failed with statusCode= 0x%08lX\n", statusCode );
+            smsLog( pMac, LOGE, "SmeDisassocReq failed with statusCode= 0x%08lX\n", statusCode );
         }
         //We are not done yet. Get the data and continue roaming
         csrRoamReissueRoamCommand(pMac);
@@ -6985,7 +6997,7 @@ void csrRoamingStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
 //HO
                  CSR_IS_ROAM_SUBSTATE_DISASSOC_HO( pMac )         )
             {
-                smsLog(pMac, LOGE, "eWNI_SME_DISASSOC_RSP\n");
+                smsLog(pMac, LOGE, "eWNI_SME_DISASSOC_RSP subState = %d\n", pMac->roam.curSubState);
                 csrRoamRoamingStateDisassocRspProcessor( pMac, (tSirSmeDisassocRsp *)pSmeRsp );
             }
             break;
@@ -7149,6 +7161,7 @@ static eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessi
         pCommand = csrGetCommandBuffer(pMac);
         if(NULL == pCommand)
         {
+            smsLog( pMac, LOGE, FL(" fail to get command buffer\n") );
             status = eHAL_STATUS_RESOURCES;
             break;
         }
@@ -7256,9 +7269,16 @@ eHalStatus csrRoamIssueRemoveKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessionId
 
     do
     {
+        if( !csrIsSetKeyAllowed(pMac, sessionId) ) 
+        {
+            smsLog( pMac, LOGW, FL(" wrong state not allowed to set key\n") );
+            status = eHAL_STATUS_CSR_WRONG_STATE;
+            break;
+        }
         pCommand = csrGetCommandBuffer(pMac);
         if(NULL == pCommand)
         {
+            smsLog( pMac, LOGE, FL(" fail to get command buffer\n") );
             status = eHAL_STATUS_RESOURCES;
             break;
         }
@@ -7347,14 +7367,24 @@ eHalStatus csrRoamProcessSetKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
     }
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
 
-    status = csrSendMBSetContextReqMsg( pMac, sessionId, 
-		( tANI_U8 *)&pCommand->u.setKeyCmd.peerMac, 
-                                        numKeys, edType, fUnicast, pCommand->u.setKeyCmd.keyDirection, 
-                                        pCommand->u.setKeyCmd.keyId, pCommand->u.setKeyCmd.keyLength, 
-                pCommand->u.setKeyCmd.Key, pCommand->u.setKeyCmd.paeRole, 
-                pCommand->u.setKeyCmd.keyRsc);
+    if( csrIsSetKeyAllowed(pMac, sessionId) )
+    {
+        status = csrSendMBSetContextReqMsg( pMac, sessionId, 
+		    ( tANI_U8 *)&pCommand->u.setKeyCmd.peerMac, 
+                                            numKeys, edType, fUnicast, pCommand->u.setKeyCmd.keyDirection, 
+                                            pCommand->u.setKeyCmd.keyId, pCommand->u.setKeyCmd.keyLength, 
+                    pCommand->u.setKeyCmd.Key, pCommand->u.setKeyCmd.paeRole, 
+                    pCommand->u.setKeyCmd.keyRsc);
+    }
+    else
+    {
+        smsLog( pMac, LOGW, FL(" cannot process not connected\n") );
+        //Set this status so the error handling take care of the case.
+        status = eHAL_STATUS_CSR_WRONG_STATE;
+    }
     if( !HAL_STATUS_SUCCESS(status) )
     {
+        smsLog( pMac, LOGE, FL("  error status %d\n"), status );
         csrRoamCallCallback( pMac, sessionId, NULL, pCommand->u.setKeyCmd.roamId, eCSR_ROAM_SET_KEY_COMPLETE, eCSR_ROAM_RESULT_FAILURE);
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
@@ -7373,7 +7403,6 @@ eHalStatus csrRoamProcessSetKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         }
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
 
-        csrReleaseCommandSetKey( pMac, pCommand );
     }
 
     return ( status );
@@ -7402,7 +7431,16 @@ eHalStatus csrRoamProcessRemoveKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pComman
     WLAN_VOS_DIAG_EVENT_REPORT(&removeKeyEvent, EVENT_WLAN_SECURITY);
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
 
-    status = palAllocateMemory( pMac->hHdd, (void **)&pMsg, wMsgLen );
+    if( csrIsSetKeyAllowed(pMac, sessionId) )
+    {
+        status = palAllocateMemory( pMac->hHdd, (void **)&pMsg, wMsgLen );
+    }
+    else
+    {
+        smsLog( pMac, LOGW, FL(" wrong state not allowed to set key\n") );
+        //Set the error status so error handling kicks in below
+        status = eHAL_STATUS_CSR_WRONG_STATE;
+    }
     if( HAL_STATUS_SUCCESS( status ) )
     {
         palZeroMemory(pMac->hHdd, pMsg, wMsgLen);
@@ -7443,6 +7481,7 @@ eHalStatus csrRoamProcessRemoveKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pComman
 
     if( !HAL_STATUS_SUCCESS( status ) )
     {
+        smsLog( pMac, LOGE, FL(" error status \n"), status );
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR
         removeKeyEvent.eventId = WLAN_SECURITY_EVENT_REMOVE_KEY_RSP;
@@ -7451,7 +7490,6 @@ eHalStatus csrRoamProcessRemoveKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pComman
 #endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
 
         csrRoamCallCallback( pMac, sessionId, NULL, pCommand->u.removeKeyCmd.roamId, eCSR_ROAM_REMOVE_KEY_COMPLETE, eCSR_ROAM_RESULT_FAILURE);
-        csrReleaseCommandRemoveKey( pMac, pCommand );
     }
 
     return ( status );
@@ -7462,17 +7500,8 @@ eHalStatus csrRoamProcessRemoveKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pComman
 eHalStatus csrRoamSetKey( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamSetKey *pSetKey, tANI_U32 roamId )
 {
     eHalStatus status;
-#ifdef WLAN_SOFTAP_FEATURE
-    tCsrRoamSession *pSession;
-
-    pSession =CSR_GET_SESSION(pMac, sessionId);
-
-    if( csrIsConnStateDisconnected( pMac, sessionId ) && 
-        ( pSession != NULL) && (pSession->pCurRoamProfile != NULL) &&
-        (!(CSR_IS_INFRA_AP(pSession->pCurRoamProfile))))
-#else
-    if( csrIsConnStateDisconnected( pMac, sessionId ))
-#endif
+ 
+    if( !csrIsSetKeyAllowed(pMac, sessionId) )
     {
         status = eHAL_STATUS_CSR_WRONG_STATE;
     }
@@ -7633,7 +7662,11 @@ tANI_BOOLEAN csrRoamIssueWmStatusChange( tpAniSirGlobal pMac, tANI_U32 sessionId
         // Validate the type is ok...
         if ( ( eCsrDisassociated != Type ) && ( eCsrDeauthenticated != Type ) ) break;
         pCommand = csrGetCommandBuffer( pMac );
-        if ( !pCommand ) break;
+        if ( !pCommand )
+        {
+            smsLog( pMac, LOGE, FL(" fail to get command buffer\n") );
+            break;
+        }
         //Change the substate in case it is waiting for key
         if( CSR_IS_WAIT_FOR_KEY( pMac ) )
         {
@@ -7821,7 +7854,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
             break;
                 
         case eWNI_SME_DISASSOC_RSP:
-            smsLog( pMac, LOGW, FL("eWNI_SME_DISASSOC_RSP from SME\n"));
+            smsLog( pMac, LOGW, FL("eWNI_SME_DISASSOC_RSP from SME subState = %d\n"), pMac->roam.curSubState);
 #ifdef WLAN_SOFTAP_FEATURE
             {
                 tSirSmeDisassocRsp *pDisassocRsp = (tSirSmeDisassocRsp *)pSirMsg;
@@ -14350,18 +14383,12 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
    tANI_BOOLEAN insertInClientList = FALSE;
    VOS_STATUS vosStatus;
 
-   if( pMac->roam.curState != eCSR_ROAMING_STATE_JOINED 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-       &&
-      !( pMac->roam.handoffInfo.isBgScanRspPending && 
-         pMac->roam.curState == eCSR_ROAMING_STATE_SCANNING)
-#endif
-       )
+   if( csrIsAllSessionDisconnected(pMac) )
    {
 #ifdef FEATURE_WLAN_GEN6_ROAMING
-      smsLog(pMac, LOGW, "csrGetStatistics: wrong state %d\n", pMac->roam.handoffInfo.currState);
+      smsLog(pMac, LOGW, "csrGetStatistics: wrong state curState(%d) - not connected\n", pMac->roam.handoffInfo.currState);
 #else
-      smsLog(pMac, LOGW, "csrGetStatistics: wrong state %d\n", pMac->roam.curState);
+      smsLog(pMac, LOGW, "csrGetStatistics: wrong state curState(%d) not connected\n", pMac->roam.curState);
 #endif
       return eHAL_STATUS_FAILURE;
    }

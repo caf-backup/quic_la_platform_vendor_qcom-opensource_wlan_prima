@@ -4039,14 +4039,26 @@ static VOS_STATUS WLANSSC_SendData
    * causing DxE errors in high SD frequencies on 7x30 platform.
    */
   {
-      v_U32_t uRegValue, curCnt=0;
+      v_U32_t uRegValue, curCnt=0,retryCnt = 0;
+
+#ifdef WLAN_SDIO_DUMMY_CMD53_WORKAROUND
+      uRegValue = QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT;
+      if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegister( pControlBlock,
+                                                   QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_REG, 
+                                                   &(uRegValue),
+                                                   WLANSSC_INT_REGBUFFER ) )
+      {
+         return VOS_STATUS_E_FAILURE;
+      }
+      uRegValue = 0;
+#endif
 
       do {
 
         /* Acquire Mutex1 here */
         WLANBAL_ReadRegister(pVosGCtx, QWLAN_MCU_MUTEX1_REG, &uRegValue);
         curCnt = (uRegValue & QWLAN_MCU_MUTEX1_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX1_CURRENTCOUNT_OFFSET;
-      }while(curCnt < 1);
+      }while(curCnt < 1 && retryCnt++ < 3);
        
       /* Once mutex1 is acquired, touch BPS_REQ bit in PMU that would unfreeze SIF for Tx-FIFO acesses
        * It is necessary that host acquire the mutex here and not inside the DO-WHILE Loop. This addresses the
@@ -4210,7 +4222,7 @@ static VOS_STATUS WLANSSC_TransmitChainInternal
   }
   else
   {
-    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "TL has more data than can be chained in one shot by SSC - optimize buffer size!"));
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO_HIGH, "TL has more data than can be chained in one shot by SSC - optimize buffer size!"));
 
     /* Serialize another message to SSC to resume operations after cmd53   */
     if( VOS_STATUS_SUCCESS != WLANSSC_StartTransmit( (WLANSSC_HandleType) pControlBlock ) )

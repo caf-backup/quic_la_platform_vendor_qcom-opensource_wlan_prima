@@ -401,12 +401,28 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
 
                         case eSmeCommandSetKey:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
-                            csrRoamProcessSetKeyCommand( pMac, pCommand );
+                            status = csrRoamProcessSetKeyCommand( pMac, pCommand );
+                            if(!HAL_STATUS_SUCCESS(status))
+                            {
+                                if( csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, 
+                                            &pCommand->Link, LL_ACCESS_LOCK ) )
+                                {
+                                    csrReleaseCommandSetKey( pMac, pCommand );
+                                }
+                            }
                             break;
 
                         case eSmeCommandRemoveKey:
                             csrLLUnlock( &pMac->sme.smeCmdActiveList );
-                            csrRoamProcessRemoveKeyCommand( pMac, pCommand );
+                            status = csrRoamProcessRemoveKeyCommand( pMac, pCommand );
+                            if(!HAL_STATUS_SUCCESS(status))
+                            {
+                                if( csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, 
+                                            &pCommand->Link, LL_ACCESS_LOCK ) )
+                                {
+                                    csrReleaseCommandRemoveKey( pMac, pCommand );
+                                }
+                            }
                             break;
 
 #ifdef FEATURE_INNAV_SUPPORT
@@ -1443,6 +1459,7 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
+    smsLog(pMac, LOGE, FL("   enter \n"));
     do
     {
         if(pMac->scan.fScanEnable)
@@ -1455,18 +1472,18 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
                 //connect status of infra link.
                 //This way is to save off channel time so AP has less chance of 
                 //deauth the Libra side when Libra doens't response to many TIM-ed beacons.
-            if( csrIsConnStateConnectedInfra( pMac, sessionId ) && 
+                if( csrIsConnStateConnectedInfra( pMac, sessionId ) && 
                     (csrScanIsBgScanEnabled( pMac ) || csrScanGetChannelMask(pMac)) )
                 {
                     //background scan by HO is enable, no need to scan here
                     if( callback )
                     {
-                    tANI_U32 lScanId = pMac->scan.nextScanID++; //let it wrap around
-                    //Assign a scanID in case caller uses it during the callback.
-                    if(pScanRequestID)
-                    {
-                        *pScanRequestID = lScanId;
-                    }
+                        tANI_U32 lScanId = pMac->scan.nextScanID++; //let it wrap around
+                        //Assign a scanID in case caller uses it during the callback.
+                        if(pScanRequestID)
+                        {
+                            *pScanRequestID = lScanId;
+                        }
                         sme_ReleaseGlobalLock( &pMac->sme );
                         callback( pMac, pContext, lScanId, eCSR_SCAN_ONGOING );
                         status = sme_AcquireGlobalLock( &pMac->sme );
@@ -1476,7 +1493,7 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
                             break;
                         }
                     }
-                }
+                } 
                 else
 #endif
                 {
@@ -1514,12 +1531,14 @@ eHalStatus sme_ScanGetResult(tHalHandle hHal, tANI_U8 sessionId, tCsrScanResultF
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
+   smsLog(pMac, LOGE, FL("   enter \n"));
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
        status = csrScanGetResult( hHal, pFilter, phResult );
        sme_ReleaseGlobalLock( &pMac->sme );
    }
+   smsLog(pMac, LOGE, FL("   exit status %d \n"), status);
 
    return (status);
 }
@@ -1748,6 +1767,7 @@ eHalStatus sme_RoamConnect(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamProfile *
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
+    smsLog(pMac, LOGE, FL("   enter \n"));
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
@@ -1784,6 +1804,7 @@ eHalStatus sme_RoamReassoc(tHalHandle hHal, tANI_U8 sessionId, tCsrRoamProfile *
     eHalStatus status = eHAL_STATUS_FAILURE;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
+    smsLog(pMac, LOGE, FL("   enter \n"));
     status = sme_AcquireGlobalLock( &pMac->sme );
     if ( HAL_STATUS_SUCCESS( status ) )
     {
@@ -1843,6 +1864,7 @@ eHalStatus sme_RoamDisconnect(tHalHandle hHal, tANI_U8 sessionId, eCsrRoamDiscon
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
+   smsLog(pMac, LOGE, FL("   enter \n"));
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
@@ -1873,6 +1895,7 @@ eHalStatus sme_RoamStopBss(tHalHandle hHal, tANI_U8 sessionId)
    eHalStatus status = eHAL_STATUS_FAILURE;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
+   smsLog(pMac, LOGE, FL("   enter \n"));
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {

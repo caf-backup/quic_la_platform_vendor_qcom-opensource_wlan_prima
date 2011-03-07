@@ -41,7 +41,7 @@ tSirRetStatus limSendGetTxPowerReq(tpAniSirGlobal pMac, tpSirGetTxPowerReq pTxPo
 
 void limSetActiveEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *plocalEdcaParams);
 
-#define CAPABILITY_FILTER_MASK  0x73DF
+#define CAPABILITY_FILTER_MASK  0x73CF
 #define ERP_FILTER_MASK         0xF8
 #define EDCA_FILTER_MASK        0xF0
 #define QOS_FILTER_MASK         0xF0

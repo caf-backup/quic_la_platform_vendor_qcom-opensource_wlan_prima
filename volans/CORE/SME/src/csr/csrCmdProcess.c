@@ -68,7 +68,19 @@ eHalStatus csrMsgProcessor( tpAniSirGlobal pMac,  void *pMsgBuf )
         //For all other messages, we ignore it        
         default:
         {
-            smsLog(pMac, LOGW, "  Message 0x%04X is not handled by CSR. CSR state is %d \n", pSmeRsp->messageType, pMac->roam.curState);
+            /*To work-around an issue where checking for set/remove key base on connection state is no longer 
+            * workable due to failure or finding the condition meets both SAP and infra/IBSS requirement.
+            */
+            if( (eWNI_SME_SETCONTEXT_RSP == pSmeRsp->messageType) ||
+                (eWNI_SME_REMOVEKEY_RSP == pSmeRsp->messageType) )
+            {
+                smsLog(pMac, LOGW, FL(" handling msg 0x%X CSR state is %d\n"), pSmeRsp->messageType, pMac->roam.curState);
+                csrRoamCheckForLinkStatusChange(pMac, pSmeRsp);
+            }
+            else
+            {
+                smsLog(pMac, LOGW, "  Message 0x%04X is not handled by CSR. CSR state is %d \n", pSmeRsp->messageType, pMac->roam.curState);
+            }
             break;
         }
         
