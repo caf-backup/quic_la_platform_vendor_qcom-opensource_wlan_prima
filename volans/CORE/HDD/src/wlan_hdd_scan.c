@@ -187,7 +187,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,tCsrScanResul
    char custom[MAX_CUSTOM_LEN];
    char *p;
 
-   hddLog( LOG1, "hdd_IndicateScanResult %02x:%02x:%02x:%02x:%02x:%02x\n",
+   hddLog( LOG1, "hdd_IndicateScanResult %02x:%02x:%02x:%02x:%02x:%02x",
           descriptor->bssId[0],
           descriptor->bssId[1],
           descriptor->bssId[2],
@@ -211,7 +211,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,tCsrScanResul
    {
       /* no space to add event */
       /* Error code may be E2BIG */
-       hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWAP \n");
+       hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWAP ");
        return -E2BIG;
    }
 
@@ -236,7 +236,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,tCsrScanResul
        modestr = "n";
        break;
    default:
-       hddLog( LOG1, "%s: Unknown network type [%d]\n",
+       hddLog( LOG1, "%s: Unknown network type [%d]",
               __FUNCTION__, descriptor->nwType);
        modestr = "?";
        break;
@@ -247,7 +247,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,tCsrScanResul
 
    if (last_event == current_event)
    { /* no space to add event */
-       hddLog( LOG1, "hdd_IndicateScanResult: no space for SIOCGIWNAME\n");
+       hddLog( LOG1, "hdd_IndicateScanResult: no space for SIOCGIWNAME");
       /* Error code, may be E2BIG */
        return -E2BIG;
    }
@@ -296,7 +296,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,tCsrScanResul
 
    if (last_event == current_event)
    { /* no space to add event */
-       hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWMODE\n");
+       hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWMODE");
        return -E2BIG;
    }
    /* To extract SSID */
@@ -332,14 +332,14 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,tCsrScanResul
 
           if(last_event == current_event)
           { /* no space to add event */
-             hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWESSID\n");
+             hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWESSID");
              return -E2BIG;
           }
        }
 
       if( hdd_GetWPARSNIEs( ( tANI_U8 *) descriptor->ieFields, ie_length, &last_event, &current_event, scanInfo )  < 0    )
       {
-          hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWESSID\n");
+          hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWESSID");
           return -E2BIG;
       }
 
@@ -407,7 +407,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,tCsrScanResul
       {
           if (last_event == current_event)
           { /* no space to add event */
-              hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWRATE\n");
+              hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWRATE");
               return -E2BIG;
           }
       }
@@ -453,7 +453,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,tCsrScanResul
 
    if(last_event == current_event)
    { /* no space to add event */
-       hddLog( LOGE, "hdd_IndicateScanResult: no space for IWEVQUAL\n");
+       hddLog( LOGE, "hdd_IndicateScanResult: no space for IWEVQUAL");
        return -E2BIG;
    }
 
@@ -468,7 +468,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo,tCsrScanResul
                                          &event, custom);
    if(last_event == current_event)
    { /* no space to add event */
-      hddLog( LOGE, "hdd_IndicateScanResult: no space for IWEVCUSTOM (age)\n");
+      hddLog( LOGE, "hdd_IndicateScanResult: no space for IWEVCUSTOM (age)");
       return -E2BIG;
    }
 
@@ -505,14 +505,14 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     ENTER();
 
    hddLog(LOG1,"%s called with halHandle = %p, pContext = %p, scanID = %d,"
-           " returned status = %d\n", __FUNCTION__, halHandle, pContext,
+           " returned status = %d", __FUNCTION__, halHandle, pContext,
             (int) scanId, (int) status);
 
     /* Check the scanId */
     if (pwextBuf->scanId != scanId)
     {
-        hddLog(LOG1,"%s called with mismatched scanId pWextState->scanId = %d "
-               "scanId = %d \n", __FUNCTION__, (int) pwextBuf->scanId,
+        hddLog(LOGE, "%s called with mismatched scanId pWextState->scanId = %d "
+               "scanId = %d ", __FUNCTION__, (int) pwextBuf->scanId,
                 (int) scanId);
     }
 
@@ -529,11 +529,13 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
 
     if (!VOS_IS_STATUS_SUCCESS(vos_status))
     {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!\n"));
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!"));
        return VOS_STATUS_E_FAILURE;
     }
 
     EXIT();
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: exit !!!",__func__);
 
     return eHAL_STATUS_SUCCESS;
 }
@@ -566,6 +568,8 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
    struct iw_scan_req *scanReq = (struct iw_scan_req *)extra;
 
    ENTER();
+
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: enter !!!",__func__);
 
    if(pwextBuf->mScanPending == TRUE)
    {
@@ -655,6 +659,8 @@ error:
        vos_mem_free(scanRequest.SSIDs.SSIDList);
 
    EXIT();
+
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: exit !!!",__func__);
    return status;
 }
 
@@ -684,7 +690,10 @@ int iw_get_scan(struct net_device *dev,
    eHalStatus status = eHAL_STATUS_SUCCESS;
    hdd_scan_info_t scanInfo;
    tScanResultHandle pResult;
+   int i = 0;
 
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: enter buffer length %d!!!",
+       __func__, (wrqu->data.length)?wrqu->data.length:IW_SCAN_MAX_DATA);
    ENTER();
 
    if (TRUE == pwextBuf->mScanPending)
@@ -715,7 +724,7 @@ int iw_get_scan(struct net_device *dev,
    if (NULL == pResult)
    {
        // no scan results
-       hddLog(LOG1,"iw_get_scan: NULL Scan Result \n");
+       hddLog(LOG1,"iw_get_scan: NULL Scan Result ");
        return 0;
    }
 
@@ -728,12 +737,14 @@ int iw_get_scan(struct net_device *dev,
        {
            break;
        }
+       i++;
        pScanResult = sme_ScanResultGetNext(hHal, pResult);
    }
 
    sme_ScanResultPurge(hHal, pResult);
 
    EXIT();
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: exit total %d BSS reported !!!",__func__, i);
    return status;
 }
 
@@ -751,14 +762,14 @@ static eHalStatus hdd_CscanRequestCallback(tHalHandle halHandle, void *pContext,
     ENTER();
 
    hddLog(LOG1,"%s called with halHandle = %p, pContext = %p, scanID = %d,"
-           " returned status = %d\n", __FUNCTION__, halHandle, pContext,
+           " returned status = %d", __FUNCTION__, halHandle, pContext,
             (int) scanId, (int) status);
 
     /* Check the scanId */
     if (pwextBuf->scanId != scanId)
     {
-        hddLog(LOG1,"%s called with mismatched scanId pWextState->scanId = %d "
-               "scanId = %d \n", __FUNCTION__, (int) pwextBuf->scanId,
+        hddLog(LOGE, "%s called with mismatched scanId pWextState->scanId = %d "
+               "scanId = %d ", __FUNCTION__, (int) pwextBuf->scanId,
                 (int) scanId);
     }
 
@@ -775,11 +786,12 @@ static eHalStatus hdd_CscanRequestCallback(tHalHandle halHandle, void *pContext,
    
     if (!VOS_IS_STATUS_SUCCESS(vos_status))
     {    
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!\n"));
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!"));
        return VOS_STATUS_E_FAILURE;
     }
 
     EXIT();
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: exit !!!",__func__);
 
     return eHAL_STATUS_SUCCESS;
 }
@@ -795,11 +807,12 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
     v_U32_t scanId = 0;
     eHalStatus status = eHAL_STATUS_SUCCESS;
 
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: enter !!!",__func__);
     ENTER();
 
     if(pwextBuf->mScanPending == TRUE)
     {
-       hddLog(LOG1,"%s: mScanPending is TRUE\n",__func__);
+       hddLog(LOG1,"%s: mScanPending is TRUE",__func__);
        return -EBUSY;                  
     }
 
@@ -827,6 +840,7 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
           /* i should be saved and it will be pointing to 'C' */
        }
 
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: numSsid %d !!!",__func__, num_ssid);
        if( num_ssid ) {
            /* To be fixed in SME and PE: override the number of ssid with 1,
             * as SME and PE does not handle multiple SSID in scan request
@@ -836,7 +850,7 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
           /* Allocate num_ssid tCsrSSIDInfo structure */
           SsidInfo = scanRequest.SSIDs.SSIDList =( tCsrSSIDInfo *)vos_mem_malloc(num_ssid*sizeof(tCsrSSIDInfo));
           if(NULL == scanRequest.SSIDs.SSIDList) {
-             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "memory alloc failed SSIDInfo buffer\n");
+             hddLog(VOS_TRACE_LEVEL_ERROR, "memory alloc failed SSIDInfo buffer");
              return -ENOMEM;
           } 
 
@@ -849,7 +863,7 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
                 /* get the ssid length */
                 SsidInfo->SSID.length = str_ptr[ssid_start++];
                 vos_mem_copy(SsidInfo->SSID.ssId, &str_ptr[ssid_start], SsidInfo->SSID.length);
-                hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "SSID = %s\n", SsidInfo->SSID.ssId);
+                hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "SSID = %s", SsidInfo->SSID.ssId);
              }
                 /* skipping length */
              ssid_start += str_ptr[ssid_start - 1] + 1;
@@ -873,7 +887,7 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
                /* store temp channel list */
                scanRequest.ChannelInfo.ChannelList = vos_mem_malloc(scanRequest.ChannelInfo.numOfChannels * sizeof(v_U16_t));
                if(NULL == scanRequest.ChannelInfo.ChannelList) {
-                   hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "memory alloc failed for channel list creation\n");
+                   hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "memory alloc failed for channel list creation");
                    return ENOMEM;
                }
                vos_mem_copy(scanRequest.ChannelInfo.ChannelList, &str_ptr[i], scanRequest.ChannelInfo.numOfChannels * sizeof(v_U16_t));
@@ -933,30 +947,42 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
         pwextBuf->mScanPending = TRUE;
  
         status = sme_ScanRequest( pAdapter->hHal, pAdapter->sessionId,&scanRequest, &scanId, &hdd_CscanRequestCallback, dev ); 
+        if( !HAL_STATUS_SUCCESS(status) )
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s: SME scan fail status %d !!!",__func__, status);
+            pwextBuf->mScanPending = FALSE;
+            status = -EINVAL;
+            goto exit_point;
+        }
   
         pwextBuf->scanId = scanId;
 
-        vos_status = vos_wait_single_event(&pwextBuf->vosevent,3000);
+        vos_status = vos_wait_single_event(&pwextBuf->vosevent, 3000);
  
         if (!VOS_IS_STATUS_SUCCESS(vos_status))
         {
             pwextBuf->mScanPending = FALSE;
-            return VOS_STATUS_E_FAILURE;
+            status = -EINVAL;
+            goto exit_point;
         }
 
-        /* free ssidlist */
-        if (scanRequest.SSIDs.SSIDList) {
-            vos_mem_free(scanRequest.SSIDs.SSIDList);
-        }
-        /* free the channel list */
-        if(scanRequest.ChannelInfo.ChannelList){
-           vos_mem_free((void*)scanRequest.ChannelInfo.ChannelList);
-        }
      } //end of data->pointer
      else {
         status = -1;
      }
 
+exit_point:
+
+     /* free ssidlist */
+     if (scanRequest.SSIDs.SSIDList) {
+        vos_mem_free(scanRequest.SSIDs.SSIDList);
+     }
+     /* free the channel list */
+     if(scanRequest.ChannelInfo.ChannelList){
+        vos_mem_free((void*)scanRequest.ChannelInfo.ChannelList);
+     }
+
      EXIT();
+     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: exit !!!",__func__);
      return status;
 }

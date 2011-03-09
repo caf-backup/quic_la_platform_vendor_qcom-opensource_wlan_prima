@@ -159,6 +159,7 @@ static tANI_U8 btqmQosTid2QidMapping[] = {
     BTQM_QID0, BTQM_QID1, BTQM_QID2, BTQM_QID3, BTQM_QID4, BTQM_QID5, BTQM_QID6, BTQM_QID7 
 };
 
+
 /* --------------------------------------------------------------------------
  * Local functions
  */
@@ -1428,7 +1429,6 @@ eHalStatus halBmu_get_qid_for_qos_tid(tpAniSirGlobal pMac, tANI_U8 tid, tANI_U8 
     *qid = btqmQosTid2QidMapping[tid];
     return eHAL_STATUS_SUCCESS;
 }
-
 
 eHalStatus halBmu_InitStaMemory(tpAniSirGlobal pMac)
 {

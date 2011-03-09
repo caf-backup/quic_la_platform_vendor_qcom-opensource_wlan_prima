@@ -582,8 +582,12 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
     {
         pBd->dpuRF = BMUWQ_BTQM_TX_MGMT;
     }
-
-
+#ifndef VOLANS_HW_ISSUE_FIX_QID0_FOR_NON_QOS_ONLY
+    if(tid == 1)
+        tid = 2;
+    else if(tid == 0)
+        tid = 3;
+#endif
     pBd->tid   = tid; 
     // Clear the reserved field as this field is used for defining special 
     // flow control BD.

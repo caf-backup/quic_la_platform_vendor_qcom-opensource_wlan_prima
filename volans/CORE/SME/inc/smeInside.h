@@ -115,6 +115,8 @@ void csrReinitSetKeyCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 void csrReinitRemoveKeyCmd(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 eHalStatus csrRoamProcessSetKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 eHalStatus csrRoamProcessRemoveKeyCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand );
+void csrReleaseCommandSetKey(tpAniSirGlobal pMac, tSmeCmd *pCommand);
+void csrReleaseCommandRemoveKey(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 //eHalStatus csrRoamIssueSetKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamSetKey *pSetKey, tANI_U32 roamId );
 eHalStatus csrRoamIssueRemoveKeyCommand( tpAniSirGlobal pMac, tANI_U32 sessionId,
                                          tCsrRoamRemoveKey *pRemoveKey, tANI_U32 roamId );

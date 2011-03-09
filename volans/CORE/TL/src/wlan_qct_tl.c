@@ -6177,7 +6177,7 @@ WLANTL_FwdPktToHDD
    WLANTL_CbType*           pTLCb = NULL;
    vos_pkt_t*               vosDataBuff ;
    VOS_STATUS               vosStatus = VOS_STATUS_SUCCESS;
-   v_U8_t                   STAMetaInfo;
+   v_U16_t                  STAMetaInfo;
    vos_pkt_t*              vosNextDataBuff ;
    v_U8_t                  ucDesSTAId;
    WLANTL_RxMetaInfoType    wRxMetaInfo;

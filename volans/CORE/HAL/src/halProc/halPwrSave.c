@@ -2713,13 +2713,13 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 	   * causing DxE errors in high SD frequencies on 7x30 platform.
 	   */
 	  {
-		  tANI_U32 uRegValue, curCnt=0;
+		  tANI_U32 uRegValue;
 	
 		  do {
 			/* Acquire Mutex1 here */
 			palReadRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, &uRegValue);
 			curCnt = (uRegValue & QWLAN_MCU_MUTEX1_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX1_CURRENTCOUNT_OFFSET;
-		  }while(curCnt < 1);
+		  }while(curCnt < 1 && retryCnt++ < 3 );
           
           	  /* Tracking the protection for device writes */
           	  pMac->hal.PsParam.mutexTxCount++;
@@ -2736,7 +2736,7 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 	       palWriteRegister(pMac->hHdd, QWLAN_PMU_PMU_CLIENT_IF_BPS_REQ_CTRL_REG_REG, 0x0);
 	  }
 #endif
-	
+    retryCnt = 0;
     while((eHAL_STATUS_FW_PS_BUSY == mutexAcq)&& (retryCnt < 3)) {
         status = palReadRegister(pMac, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, &regValue);
 

@@ -3360,6 +3360,7 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
                 }
             }
         }
+        smsLog(pMac, LOGE, FL("  %d sets each one is %d\n"), pIesLocal->Country.num_triplets, sizeof(tSirMacChanInfo));
         // save the channel/power information from the Channel IE.
         //sizeof(tSirMacChanInfo) has to be 3
         csrSaveToChannelPower2G_5G( pMac, pIesLocal->Country.num_triplets * sizeof(tSirMacChanInfo), 
@@ -5020,6 +5021,8 @@ void csrScanCallCallback(tpAniSirGlobal pMac, tSmeCmd *pCommand, eCsrScanStatus 
     if(pCommand->u.scanCmd.callback)
     {
         pCommand->u.scanCmd.callback(pMac, pCommand->u.scanCmd.pContext, pCommand->u.scanCmd.scanID, scanStatus); 
+    } else {
+        smsLog( pMac, LOGW, "%s:%d - Callback NULL!!!\n", __FUNCTION__, __LINE__);
     }
 }
 
@@ -5364,12 +5367,12 @@ eHalStatus csrScanStartIdleScan(tpAniSirGlobal pMac)
     smsLog(pMac, LOGW, FL("called\n"));
     if(pMac->roam.configParam.IsIdleScanEnabled)
     {
-    //stop bg scan first
-    csrScanBGScanAbort(pMac);
-    //Stop get result timer because idle scan gets scan result out of PE
-    csrScanStopGetResultTimer(pMac);
-    //Enable aging timer since idle scan is going on
-    csrScanStartResultAgingTimer(pMac);
+        //stop bg scan first
+        csrScanBGScanAbort(pMac);
+        //Stop get result timer because idle scan gets scan result out of PE
+        csrScanStopGetResultTimer(pMac);
+        //Enable aging timer since idle scan is going on
+        csrScanStartResultAgingTimer(pMac);
     }
     pMac->scan.fCancelIdleScan = eANI_BOOLEAN_FALSE;
     status = csrScanTriggerIdleScan(pMac, &nTime);
@@ -7310,9 +7313,18 @@ tANI_BOOLEAN csrScanRemoveFreshScanCommand(tpAniSirGlobal pMac)
             case eCsrScanGetScanChnInfo:
                 break;
             default:
+                smsLog (pMac, LOGW, "%s: -------- abort scan command reason = %d\n", __FUNCTION__, pCommand->u.scanCmd.reason);
                 //The rest are fresh scan requests
                 if( csrLLRemoveEntry(&pMac->sme.smeCmdPendingList, pEntry, LL_ACCESS_NOLOCK) )
 				{
+                    // We need to inform the requester before droping the scan command
+                    smsLog (pMac, LOGW, "%s Drop scan reason %d callback 0x%X\n", 
+                        __FUNCTION__, pCommand->u.scanCmd.reason, (unsigned int)pCommand->u.scanCmd.callback);
+                    if (NULL != pCommand->u.scanCmd.callback)
+                    {
+                        smsLog (pMac, LOGW, "%s callback scan requester\n", __FUNCTION__);
+                        csrScanCallCallback(pMac, pCommand, eCSR_SCAN_ABORT);
+                    }
 					csrReleaseCommandScan( pMac, pCommand );
 				}
                 fRet = eANI_BOOLEAN_TRUE;

@@ -795,7 +795,8 @@ VOS_STATUS WLANSAL_Cmd53
    sd_claim_host(gpsalHandle->sdio_func_dev);
 
    if (vos_is_logp_in_progress(VOS_MODULE_ID_SAL, NULL)) {
-        VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: LOGP in progress. Ignore!!!",__func__);
+        VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: LOGP in progress. Ignore!!! direction %d, Mode %d, address 0x%x",
+                        __func__,cmd53Req->busDirection, cmd53Req->mode, cmd53Req->address);
         // Release lock
         sd_release_host(gpsalHandle->sdio_func_dev);
         return VOS_STATUS_E_FAILURE;
@@ -888,7 +889,8 @@ watchdog_chip_reset:
    {
       SMSGFATAL("%s: Value of ERROR err_ret = %d, Data Size = %d\n", __func__, err_ret, cmd53Req->dataSize);
       SMSGFATAL("CMD53 direction %d, Mode %d, address 0x%x", 
-         cmd53Req->busDirection, cmd53Req->mode, cmd53Req->address);
+         cmd53Req->busDirection, cmd53Req->mode, cmd53Req->address);  
+      vos_chipReset(NULL, VOS_FALSE, NULL, NULL);      
       SEXIT();
       // Release lock
       sd_release_host(gpsalHandle->sdio_func_dev);
