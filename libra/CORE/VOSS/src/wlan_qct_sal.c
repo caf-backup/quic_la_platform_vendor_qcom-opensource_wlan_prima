@@ -808,7 +808,6 @@ VOS_STATUS WLANSAL_Cmd53
    int                  err_ret=0;
    v_U32_t              numBlocks = 0;
    v_U32_t              numBytes = 0;
-   v_U8_t               regValue;
    v_U8_t               *temp_dataPtr;           // Data pointer
    v_U32_t              temp_address;           // Target address
    struct sdio_func *sdio_func_dev = NULL;   
@@ -883,13 +882,6 @@ VOS_STATUS WLANSAL_Cmd53
          {
             SMSGFATAL("%s: Value of ERROR err_ret #1 = %d\n", __func__, err_ret, 0);
          }
-         else
-         {
-            // Send Dummy CMD52 here, this is to scan for PROG_ENABLE
-            gpsalHandle->sdio_func_dev->num = 0;
-            libra_sdiocmd52( gpsalHandle->sdio_func_dev, 0x0, &regValue, 0, &err_ret);
-            gpsalHandle->sdio_func_dev->num = 1;
-         }
       }
 
       if (numBytes != 0) {
@@ -908,13 +900,6 @@ VOS_STATUS WLANSAL_Cmd53
          if (err_ret)
          {
             SMSGFATAL("%s: Value of ERROR err_ret #1 = %d\n", __func__, err_ret, 0);
-         }
-         else
-         {
-            // Send Dummy CMD52 here, this is to scan for PROG_ENABLE
-            gpsalHandle->sdio_func_dev->num = 0;
-            libra_sdiocmd52( gpsalHandle->sdio_func_dev, 0x0, &regValue, 0, &err_ret);
-            gpsalHandle->sdio_func_dev->num = 1;
          }
       }
    }
