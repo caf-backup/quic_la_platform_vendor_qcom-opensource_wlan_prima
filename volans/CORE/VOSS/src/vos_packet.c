@@ -1047,12 +1047,15 @@ v_VOID_t vos_pkt_get_user_data_ptr( vos_pkt_t *pPacket,
                                     v_VOID_t **ppUserData )
 {
    // Validate the input and output parameter pointers
-   if (unlikely((NULL == pPacket)||(NULL == ppUserData)))
+   if (unlikely(NULL == pPacket))
    {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                "VPKT [%d]: NULL pointer", __LINE__);
-      *ppUserData = NULL;
-      return;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+               "VPKT [%d]: NULL pointer", __LINE__);
+       if (ppUserData != NULL)
+       {
+           *ppUserData = NULL;
+       }
+       return;
    }
 
    // Validate that this really an initialized vos packet

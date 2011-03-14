@@ -466,6 +466,17 @@ eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber,
         pMac->hphy.rf.curChannel = rfChannel;
     }
 
+    //Write AGC RSSI offset for 11b packets.
+    {
+        tANI_U32 value;
+        sRssiChannelOffsets *rssiChanOffsets = (sRssiChannelOffsets *)(&pMac->hphy.nvCache.tables.rssiChanOffsets[0]);
+    
+        value = (AGC_RSSI_OFFSET_DEFAULT +
+                    ((rssiChanOffsets[PHY_RX_CHAIN_0].bRssiOffset[rfChannel]) / 100));
+
+        halWriteRegister(pMac, QWLAN_AGC_RSSI_OFFSET0_REG, value);
+    }
+
     return eHAL_STATUS_SUCCESS;
 }
 

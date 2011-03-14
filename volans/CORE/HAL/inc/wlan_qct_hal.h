@@ -187,8 +187,21 @@ typedef struct sUapsdInfo {
 #define WLANHAL_RX_BD_GET_STA_TXQ_STATUS( _pvBDHeader )          (((tpHalFcRxBd)_pvBDHeader)->fcSTATxQStatus)
 #define WLANHAL_RX_BD_GET_STA_TXQ_LEN( _pvBDHeader, staIdx )     (((tpHalFcRxBd)_pvBDHeader)->fcSTATxQLen[staIdx])
 #define WLANHAL_RX_BD_GET_STA_CUR_TX_RATE( _pvBDHeader, staIdx ) (((tpHalFcRxBd)_pvBDHeader)->fcSTACurTxRate[staIdx])
-#define tHalFcRxBd       halFcRxBd_type             
-#define tpHalFcRxBd      phalFcRxBd_type
+
+#define WLANHAL_TX_BD_GET_RMF(_pvBDHeader)          (((tpHalRxBd)_pvBDHeader)->rmf)
+
+#define WLANHAL_TX_BD_GET_UB(_pvBDHeader)           (((tpHalRxBd)_pvBDHeader)->ub)
+
+#define WLANHAL_RX_BD_GET_RMF(_pvBDHeader)          (((tpHalRxBd)_pvBDHeader)->rmf)
+
+#define WLANHAL_RX_BD_GET_UB(_pvBDHeader)           (((tpHalRxBd)_pvBDHeader)->ub)
+
+#define WLANHAL_RX_BD_GET_RATEINDEX(_pvBDHeader)    (((tpHalRxBd)_pvBDHeader)->rateIndex)
+
+#define WLANHAL_RX_BD_GET_TIMESTAMP(_pvBDHeader)    (((tpHalRxBd)_pvBDHeader)->mclkRxTimestamp)
+
+#define tHalFcRxBd	     halFcRxBd_type             
+#define tpHalFcRxBd	     phalFcRxBd_type
 #define tHalFcTxBd       halFcTxBd_type
 #define tpHalFcTxBd      pHalFcTxBd_type              
 #define tHalFcTxParams   tFcTxParams_type

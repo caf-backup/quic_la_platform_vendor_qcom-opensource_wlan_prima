@@ -3656,3 +3656,14 @@ V    RW    NP
 HAL
 0    0xFF    0
 
+*
+* PS Data InActivity Timeout (TU)
+*
+
+WNI_CFG_PS_NULLDATA_DELAY_TIMEOUT    I    4    7
+V    RW    NP
+HAL
+0    80    0
+NV    RW    NP
+NONE
+0    80    0

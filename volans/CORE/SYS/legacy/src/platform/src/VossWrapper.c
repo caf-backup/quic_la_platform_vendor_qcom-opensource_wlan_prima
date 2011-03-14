@@ -456,14 +456,14 @@ v_UINT_t tx_timer_deactivate(TX_TIMER *timer_ptr)
       return TX_TIMER_ERROR;      
    }
 
-	 // if the timer is not running then we do not need to do anything here
-      vStatus = vos_timer_stop( &timer_ptr->vosTimer );
-      if (VOS_STATUS_SUCCESS != vStatus)
-      {
-         VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR, 
-                "Unable to stop timer %s; status =%d\n", 
-                TIMER_NAME, vStatus);
-      }
+
+   vStatus = vos_timer_stop( &timer_ptr->vosTimer );
+   if (VOS_STATUS_SUCCESS != vStatus)
+   {
+       VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR, 
+             "Unable to stop timer %s; status =%d\n", 
+              TIMER_NAME, vStatus);
+   }
 
    return TX_SUCCESS;
 

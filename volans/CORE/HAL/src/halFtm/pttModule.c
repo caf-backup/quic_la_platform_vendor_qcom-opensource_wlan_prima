@@ -1279,12 +1279,12 @@ void pttCollectAdcRssiStats(tpAniSirGlobal pMac)
     for (counter = 0; counter < 10; counter++ )
     {
 
-        palReadRegister(pMac->hHdd, QWLAN_AGC_ADC_RSSI0_REG, &rssi0);
+        palReadRegister(pMac->hHdd, QWLAN_PMI_LAST_STATS0_REG, &rssi0);
 
         /*reading rssi0 value*/
-        if(rssi0 & QWLAN_AGC_ADC_RSSI0_INVALID_MASK)
+        if(rssi0)
         {
-            rssi0Stats += (tANI_U8)(rssi0 & QWLAN_AGC_ADC_RSSI0_RSSI_MASK);
+            rssi0Stats += (tANI_U16)(rssi0);
             validCounterRssi0++;
         }
         else
@@ -1323,11 +1323,12 @@ void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi)
 
         if(pktMode & QWLAN_AGC_DIS_MODE_DISABLE_11AG_MASK)
         {
-            rssiOffset0 = rssiChanOffsets[PHY_RX_CHAIN_0].bRssiOffset[curChan] / 100;
+            rssiOffset0 = 0;
         }
         else
         {
-            rssiOffset0 = rssiChanOffsets[PHY_RX_CHAIN_0].gnRssiOffset[curChan] / 100;
+            rssiOffset0 = (rssiChanOffsets[PHY_RX_CHAIN_0].gnRssiOffset[curChan] -
+                            rssiChanOffsets[PHY_RX_CHAIN_0].bRssiOffset[curChan]) / 100;
         }
     }
 
@@ -1385,19 +1386,28 @@ eQWPttStatus pttGetRxPktCounts(tpAniSirGlobal pMac, sRxFrameCounters *counters)
         return (FAILURE);
     }
 
+    if (eHAL_STATUS_SUCCESS != palReadRegister(pMac->hHdd, QWLAN_RXP_FCS_ERR_CNT_REG, &counters->totalMacFcsErrPackets))
+    {
+        return (FAILURE);
+    }
+
     {
         tANI_U32 dmaDrop, typeSubTypeFilter, addr1Drop;
-        palReadRegister(pMac->hHdd, QWLAN_RXP_DMA_DROP_CNT_REG, &dmaDrop);
+        //palReadRegister(pMac->hHdd, QWLAN_RXP_DMA_DROP_CNT_REG, &dmaDrop);
+        palReadRegister(pMac->hHdd, QWLAN_RXP_PHY_MPDU_CNT_REG, &dmaDrop);
         palReadRegister(pMac->hHdd, QWLAN_RXP_TYPE_SUBTYPE_FILTER_CNT_REG, &typeSubTypeFilter);
         palReadRegister(pMac->hHdd, QWLAN_RXP_ADDR1_DROP_CNT_REG, &addr1Drop);
 
         //QWLAN_RXP_DMA_DROP_CNT_REG - QWLAN_RXP_TYPE_SUBTYPE_FILTER_CNT_REG - QWLAN_RXP_ADDR1_DROP_CNT_REG
         counters->totalMacRxPackets = dmaDrop - typeSubTypeFilter - addr1Drop;
-    }
-
-    if (eHAL_STATUS_SUCCESS != palReadRegister(pMac->hHdd, QWLAN_RXP_FCS_ERR_CNT_REG, &counters->totalMacFcsErrPackets))
-    {
-        return (FAILURE);
+        if(counters->totalMacRxPackets < counters->totalMacFcsErrPackets)
+        {
+            counters->totalMacRxPackets = 0;
+        }
+        else
+        {
+            counters->totalMacRxPackets -= counters->totalMacFcsErrPackets;
+        }
     }
 
     return (SUCCESS);

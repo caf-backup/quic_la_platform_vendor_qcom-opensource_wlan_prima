@@ -167,6 +167,8 @@ static eHalStatus setRegister(tpAniSirGlobal pMac, tANI_U32 address, tANI_U32 va
 static tANI_U32 checkIfAddrExist(tpAniSirGlobal pMac, tSirMacAddr addr, tRxpAddrTable *table, tANI_U8 numOfEntry, tANI_U8* pEntryNum);
 static eHalStatus halRxp_config_control_reg(tpAniSirGlobal pMac);
 static eHalStatus halRxp_enableDpuParam(tpAniSirGlobal pMac);
+static void halRxp_GetRegValRxpMode(tpAniSirGlobal pMac, 
+        tRxpMode rxpMode, tANI_U32 *regLo, tANI_U32 *regHi);
 static void setRxFrameDisableRegs( tpAniSirGlobal pMac, tANI_U32 regLo, tANI_U32 regHi );
 static void halRxp_qid_mapping(tpAniSirGlobal pMac);
 static eHalStatus searchAndDeleteTableEntry(tpAniSirGlobal pMac, tSirMacAddr macAddr,
@@ -804,6 +806,7 @@ eHalStatus halRxp_Start(tHalHandle hHal, void *arg)
     tpAniSirGlobal  pMac = (tpAniSirGlobal)hHal;
     tANI_U32        value;
     tANI_U32 rxpStallTmoutCycles;
+    tANI_U32  regLo=0, regHi=0;
 
     (void) arg;
 
@@ -886,9 +889,13 @@ eHalStatus halRxp_Start(tHalHandle hHal, void *arg)
     halWriteRegister(pMac, QWLAN_RXP_CONFIG4_REG, value);
 #endif
 
-//Have this always enabled. 
-//It doesn't hurt even if BA session is not established
-halRxp_EnableDisableBmuBaUpdate(pMac, 1);
+    //Have this always enabled. 
+    //It doesn't hurt even if BA session is not established
+    halRxp_EnableDisableBmuBaUpdate(pMac, 1);
+
+    
+    halRxp_GetRegValRxpMode(pMac,eRXP_IDLE_MODE, &regLo, &regHi);
+    setRxFrameDisableRegs( pMac, regLo, regHi );
 
     return eHAL_STATUS_SUCCESS;
 }

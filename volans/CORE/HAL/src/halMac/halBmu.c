@@ -1638,9 +1638,8 @@ eHalStatus halIntBMUErrorHandler(tHalHandle hHalHandle, eHalIntSources intSource
 
     if(intRegStatus){
         /** Display Read Error Information.*/
-        HALLOGE( halLog(pMac, LOGE, FL("BMU FATAL Error Interrupt Status %x, enable %x, \
-                Address %x, WData %x, btqmErrStatus %x\n"), intRegStatus, intRegMask,
-                intBMUErrAddr, intBMUErrWData, btqmErrStatus));
+        VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "BMU FATAL Error Interrupt Status %x, enable %x, Address %x, WData %x, btqmErrStatus %x\n", 
+                intRegStatus, intRegMask, intBMUErrAddr, intBMUErrWData, btqmErrStatus);
 
 #ifdef BMU_ERR_DEBUG
         halReadRegister(pMac, QWLAN_BMU_BTQM_ERR_STATUS_REG, &value);
@@ -2461,6 +2460,17 @@ eHalStatus halBmu_getBtqmQueueStatus(tpAniSirGlobal pMac, tANI_U8 staIdx, tANI_U
 
 eHalStatus halBmu_EnableIdleBdPduInterrupt(tpAniSirGlobal pMac, tANI_U8 threshold)
 {
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    /* Acquire mutex before accessing the BMU registers if we are in power save */
+    if (IS_PWRSAVE_STATE_IN_BMPS)
+        halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC);
+
     /** Enable the IDLE BD PDU Interrupt */
-    return halIntEnable((tHalHandle)pMac, eHAL_INT_BMU_IDLE_BD_PDU_INT);
+    status = halIntEnable((tHalHandle)pMac, eHAL_INT_BMU_IDLE_BD_PDU_INT);
+
+    if (IS_PWRSAVE_STATE_IN_BMPS)
+        halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC);
+
+    return status;
 }

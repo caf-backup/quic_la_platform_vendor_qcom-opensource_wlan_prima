@@ -1006,6 +1006,15 @@ typedef enum
 #define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MAX                  (1) //Send AddTs even when ACM is not set for the AC
 #define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_DEFAULT              (0)
 
+#define CFG_VALIDATE_SCAN_LIST_NAME                 "gValidateScanList"
+#define CFG_VALIDATE_SCAN_LIST_MIN                  (0)
+#define CFG_VALIDATE_SCAN_LIST_MAX                  (1) 
+#define CFG_VALIDATE_SCAN_LIST_DEFAULT              (0)
+
+#define CFG_NULLDATA_AP_RESP_TIMEOUT_NAME       "gNullDataApRespTimeout"
+#define CFG_NULLDATA_AP_RESP_TIMEOUT_MIN        ( WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT_STAMIN )
+#define CFG_NULLDATA_AP_RESP_TIMEOUT_MAX        ( WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT_STAMAX )
+#define CFG_NULLDATA_AP_RESP_TIMEOUT_DEFAULT    ( WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT_STADEF )
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1254,6 +1263,9 @@ typedef struct
    
    v_U8_t                      dynamicPsPollValue;
    v_BOOL_t                    AddTSWhenACMIsOff;
+   v_BOOL_t                    fValidateScanList;
+
+   v_U8_t                      nNullDataApRespTimeout;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

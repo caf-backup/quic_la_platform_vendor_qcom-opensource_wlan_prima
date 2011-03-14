@@ -72,6 +72,8 @@
 #include "vos_memory.h"
 #include "vos_threads.h"
 #include "sscDebug.h"
+#include "vos_api.h"
+#include "vos_power.h"
 
 /* SDIO services                                                           */
 #include "wlan_qct_sal.h"
@@ -1424,13 +1426,7 @@ VOS_STATUS WLANSSC_Close
   if( VOS_STATUS_SUCCESS != WLANSSC_ExecuteEvent( pControlBlock, 
                                                   WLANSSC_CLOSE_EVENT ) )
   {
-    /* Should never happen!                                                */
-    WLANSSC_ASSERT( 0 );
-
     SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error executing Close event"));
-
-    WLANSSC_UNLOCKTXRX( pControlBlock );
-    return VOS_STATUS_E_FAILURE;
   }
 
   /* Release Lock                                                          */
@@ -1660,6 +1656,7 @@ VOS_STATUS WLANSSC_StartTransmit
 )
 {
   vos_msg_t                    sMessage;
+  VOS_STATUS                   vosStatus;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if(gWLANSSC_TxMsgCnt)
@@ -1680,7 +1677,14 @@ VOS_STATUS WLANSSC_StartTransmit
   sMessage.bodyptr = (v_PVOID_t)Handle;
   sMessage.type = WLANSSC_TXPENDING_MESSAGE;
 
-  return vos_tx_mq_serialize(VOS_MQ_ID_SSC, &sMessage);
+  vosStatus = vos_tx_mq_serialize(VOS_MQ_ID_SSC, &sMessage);
+  if(VOS_STATUS_SUCCESS != vosStatus)
+  {
+     gWLANSSC_TxMsgCnt--;
+     SSCLOGP(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Serializing SSC Start Xmit Failed. vosStatus %d", 
+               vosStatus));
+  }
+  return vosStatus;
 
 } /* WLANSSC_StartTransmit() */
 
@@ -4027,6 +4031,10 @@ static VOS_STATUS WLANSSC_SendData
 )
 {
   WLANSAL_Cmd53ReqType   sCmd53Request;
+#ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
+  v_S7_t mutexReadFailCnt = 0;
+#endif
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   WLANSSC_ASSERT( NULL != pControlBlock );
@@ -4034,31 +4042,64 @@ static VOS_STATUS WLANSSC_SendData
   WLANSSC_ASSERT( NULL != pBuffer );
 
 #ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
+#define WLAN_SSC_MUTEX1_READ_MAX_COUNT  300
   /* FIXME: This change is required to address SIF issues in Power-save case.
    * The SIF is using Rate-Matching FIFO even in the SIF-Freeze case which is
    * causing DxE errors in high SD frequencies on 7x30 platform.
    */
   {
-      v_U32_t uRegValue, curCnt=0,retryCnt = 0;
+     v_U32_t uRegValue, curCnt=0,retryCnt = 0;
 
 #ifdef WLAN_SDIO_DUMMY_CMD53_WORKAROUND
-      uRegValue = QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT;
-      if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegister( pControlBlock,
+     uRegValue = QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT;
+     if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegister( pControlBlock,
                                                    QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_REG, 
                                                    &(uRegValue),
                                                    WLANSSC_INT_REGBUFFER ) )
-      {
-         return VOS_STATUS_E_FAILURE;
-      }
-      uRegValue = 0;
+     {
+        return VOS_STATUS_E_FAILURE;
+     }
+     uRegValue = 0;
 #endif
-
-      do {
-
+     /* It was observed that whenever LOGP is in progress, the below infinite loop was
+      * not allowing the LOGP to complete resulting in stall. So, there is a logp check inside
+      * the loop. If the mutex is not acquired even after MAX retries, then this triggers LOGP
+      * to reset the whole chip. Also, whenever the mutex read fails mutexReadCnt is incremented
+      * and this should be released that many times to release all the acquired mutexes */
+     do {
         /* Acquire Mutex1 here */
-        WLANBAL_ReadRegister(pVosGCtx, QWLAN_MCU_MUTEX1_REG, &uRegValue);
+        if (!vos_is_logp_in_progress(VOS_MODULE_ID_SSC, NULL))
+        {
+           if (VOS_STATUS_SUCCESS != WLANBAL_ReadRegister(pVosGCtx, QWLAN_MCU_MUTEX1_REG, &uRegValue))
+           {
+              /* Register read itself failed. This means even if uRegValue is 0, mutexReadFailCnt 
+               * should not be incremented. So, decrement it here to compensate the below increment 
+               * operation */
+              mutexReadFailCnt--;
+           }
+        }
+        else
+        {
+           break;
+        }
+        if (uRegValue == 0)
+           mutexReadFailCnt++;
         curCnt = (uRegValue & QWLAN_MCU_MUTEX1_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX1_CURRENTCOUNT_OFFSET;
-      }while(curCnt < 1 && retryCnt++ < 3);
+        retryCnt++;
+
+        /* Reset the uRegValue to zero here for next read */
+        uRegValue = 0;
+      } while((curCnt < 1) && (WLAN_SSC_MUTEX1_READ_MAX_COUNT > retryCnt));
+
+      if (1 < retryCnt)
+      {
+         SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "WLANSSC_SendData: Mutex1 Retry Cnt = %d", retryCnt));
+         if (WLAN_SSC_MUTEX1_READ_MAX_COUNT < retryCnt)
+         {
+            SSCLOGP(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Mutex1 not acquired after %d retries, resetting...!\n", retryCnt));
+            vos_chipReset(NULL, VOS_FALSE, NULL, NULL, VOS_CHIP_RESET_MUTEX_READ_FAILURE);
+         }
+      }
        
       /* Once mutex1 is acquired, touch BPS_REQ bit in PMU that would unfreeze SIF for Tx-FIFO acesses
        * It is necessary that host acquire the mutex here and not inside the DO-WHILE Loop. This addresses the
@@ -4109,7 +4150,10 @@ static VOS_STATUS WLANSSC_SendData
       /* FIXME: Release the mutex after SIF-TxFIFO Access */
 
       v_U32_t uRegValue = (1 << 0x8);
-      WLANBAL_WriteRegister(pVosGCtx, QWLAN_MCU_MUTEX1_REG, uRegValue);
+      do
+      {
+        WLANBAL_WriteRegister(pVosGCtx, QWLAN_MCU_MUTEX1_REG, uRegValue);
+      } while (mutexReadFailCnt-- > 0);
 #endif
   }
 
@@ -5902,11 +5946,9 @@ static VOS_STATUS WLANSSC_FatalErrorEventHandler
                                                                pControlBlock->stClientCbacks.UserData);
   }
 
-  SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Fatal error interrupt received!"));
+  SSCLOGP(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Fatal error interrupt received!"));
 
-  /* Change back to CLOSED_STATE and wait for a reset                      */
-  WLANSSC_TransitionState( pControlBlock, 
-                           WLANSSC_CLOSED_STATE );
+  vos_chipReset(NULL, VOS_FALSE, NULL, NULL, VOS_CHIP_RESET_UNKNOWN_EXCEPTION);
 
   return VOS_STATUS_SUCCESS;
 

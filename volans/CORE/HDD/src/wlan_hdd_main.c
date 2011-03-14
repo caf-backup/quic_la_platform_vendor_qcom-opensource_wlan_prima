@@ -503,6 +503,7 @@ void hdd_wlan_initial_scan(hdd_adapter_t *pAdapter)
          if( !scanReq.ChannelInfo.ChannelList )
          {
             hddLog(VOS_TRACE_LEVEL_ERROR, "%s kmalloc failed", __func__);
+            vos_mem_free(channelInfo.ChannelList);
             return;
          }
          vos_mem_copy(scanReq.ChannelInfo.ChannelList, channelInfo.ChannelList,

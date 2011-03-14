@@ -90,7 +90,12 @@ ANI_INLINE_FUNCTION void csrListInsertHead(tListElem *pHead, tListElem *pEntry)
 void csrListInsertEntry(tListElem *pEntry, tListElem *pNewEntry)
 {
     tListElem *pLast;
-    
+    if( !pEntry) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pEntry is Null", __FUNCTION__);
+        return; 
+    }
+       
     pLast = pEntry->last;
     pLast->next = pNewEntry;
     pEntry->last = pNewEntry;
@@ -101,6 +106,12 @@ void csrListInsertEntry(tListElem *pEntry, tListElem *pNewEntry)
 tANI_U32 csrLLCount( tDblLinkList *pList ) 
 {
     tANI_U32 c = 0; 
+    
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return c; 
+    }
 
     if ( pList && ( LIST_FLAG_OPEN == pList->Flag ) ) 
     {
@@ -113,6 +124,12 @@ tANI_U32 csrLLCount( tDblLinkList *pList )
 
 void csrLLLock( tDblLinkList *pList ) 
 {
+    
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return ; 
+    }
 
     if ( LIST_FLAG_OPEN == pList->Flag )
     {
@@ -123,6 +140,13 @@ void csrLLLock( tDblLinkList *pList )
 
 void csrLLUnlock( tDblLinkList *pList )
 {
+    
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return ; 
+    }
+
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
         palSpinLockGive(pList->hHdd, pList->Lock );
@@ -133,6 +157,13 @@ void csrLLUnlock( tDblLinkList *pList )
 tANI_BOOLEAN csrLLIsListEmpty( tDblLinkList *pList, tANI_BOOLEAN fInterlocked )
 {
     tANI_BOOLEAN fEmpty = TRUE;
+
+    
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return fEmpty ; 
+    }
 
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
@@ -157,6 +188,13 @@ tANI_BOOLEAN csrLLFindEntry( tDblLinkList *pList, tListElem *pEntryToFind )
 {
     tANI_BOOLEAN fFound = FALSE;
     tListElem *pEntry;
+
+    
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return fFound ; 
+    }
 
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
@@ -183,6 +221,12 @@ tANI_BOOLEAN csrLLFindEntry( tDblLinkList *pList, tListElem *pEntryToFind )
 eHalStatus csrLLOpen( tHddHandle hHdd, tDblLinkList *pList )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return eHAL_STATUS_FAILURE ; 
+    }
     
     if ( LIST_FLAG_OPEN != pList->Flag ) 
     {
@@ -203,6 +247,12 @@ eHalStatus csrLLOpen( tHddHandle hHdd, tDblLinkList *pList )
 
 void csrLLClose( tDblLinkList *pList )
 {
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return ; 
+    }
+
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
         // Make sure the list is empty...
@@ -215,7 +265,13 @@ void csrLLClose( tDblLinkList *pList )
 
 
 void csrLLInsertTail( tDblLinkList *pList, tListElem *pEntry, tANI_BOOLEAN fInterlocked )
-{
+{    
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return; 
+    }
+
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
         if(fInterlocked)
@@ -235,6 +291,13 @@ void csrLLInsertTail( tDblLinkList *pList, tListElem *pEntry, tANI_BOOLEAN fInte
 
 void csrLLInsertHead( tDblLinkList *pList, tListElem *pEntry, tANI_BOOLEAN fInterlocked )
 {
+    
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return; 
+    }
+
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
         if(fInterlocked)
@@ -252,7 +315,13 @@ void csrLLInsertHead( tDblLinkList *pList, tListElem *pEntry, tANI_BOOLEAN fInte
 
 
 void csrLLInsertEntry( tDblLinkList *pList, tListElem *pEntry, tListElem *pNewEntry, tANI_BOOLEAN fInterlocked )
-{
+{    
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return ; 
+    }
+
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
         if(fInterlocked)
@@ -273,6 +342,12 @@ void csrLLInsertEntry( tDblLinkList *pList, tListElem *pEntry, tListElem *pNewEn
 tListElem *csrLLRemoveTail( tDblLinkList *pList, tANI_BOOLEAN fInterlocked )
 {
     tListElem *pEntry = NULL;
+
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return pEntry ; 
+    }
 
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
@@ -301,6 +376,13 @@ tListElem *csrLLPeekTail( tDblLinkList *pList, tANI_BOOLEAN fInterlocked )
 {
     tListElem *pEntry = NULL;
 
+    
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return pEntry ; 
+    }
+
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
         if ( fInterlocked ) 
@@ -326,6 +408,12 @@ tListElem *csrLLPeekTail( tDblLinkList *pList, tANI_BOOLEAN fInterlocked )
 tListElem *csrLLRemoveHead( tDblLinkList *pList, tANI_BOOLEAN fInterlocked )
 {
     tListElem *pEntry = NULL;
+    
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return pEntry ; 
+    }
 
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
@@ -354,6 +442,12 @@ tListElem *csrLLPeekHead( tDblLinkList *pList, tANI_BOOLEAN fInterlocked )
 {
     tListElem *pEntry = NULL;
 
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return pEntry ; 
+    }
+     
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
         if ( fInterlocked ) 
@@ -380,6 +474,12 @@ void csrLLPurge( tDblLinkList *pList, tANI_BOOLEAN fInterlocked )
 {
     tListElem *pEntry;
 
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return ; 
+    }
+
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
         if ( fInterlocked ) 
@@ -403,6 +503,12 @@ tANI_BOOLEAN csrLLRemoveEntry( tDblLinkList *pList, tListElem *pEntryToRemove, t
 {
     tANI_BOOLEAN fFound = FALSE;
     tListElem *pEntry;
+
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return fFound; 
+    }
 
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
@@ -443,6 +549,12 @@ tListElem *csrLLNext( tDblLinkList *pList, tListElem *pEntry, tANI_BOOLEAN fInte
 {
     tListElem *pNextEntry = NULL;
 
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return pNextEntry ; 
+    }
+
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
         if ( fInterlocked ) 
@@ -473,6 +585,12 @@ tListElem *csrLLNext( tDblLinkList *pList, tListElem *pEntry, tANI_BOOLEAN fInte
 tListElem *csrLLPrevious( tDblLinkList *pList, tListElem *pEntry, tANI_BOOLEAN fInterlocked )
 {
     tListElem *pNextEntry = NULL;
+
+    if( !pList) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! pList is Null", __FUNCTION__);
+        return pNextEntry ; 
+    }
 
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {

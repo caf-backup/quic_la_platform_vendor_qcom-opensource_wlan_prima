@@ -530,11 +530,27 @@ eHalStatus halStop( tHalHandle hHal , tHalStopType stopType )
 
 eHalStatus halReset(tHalHandle hHal, tANI_U32 rc)
 {
-    //All reason codes handled uniformly. Not much value in optimizing code for
-    //scenarios that would happen very rarely (if they happen at all).
-    VOS_ASSERT(0);	 
-    vos_chipReset(NULL, VOS_FALSE, NULL, NULL);
-    return eHAL_STATUS_SUCCESS;
+   tANI_U32 resetReason;
+    
+   switch(rc)
+   {
+      case eSIR_MIF_EXCEPTION: 
+         resetReason = VOS_CHIP_RESET_MIF_EXCEPTION; 
+         break;
+      case eSIR_FW_EXCEPTION:
+         resetReason = VOS_CHIP_RESET_FW_EXCEPTION;
+         break;
+      case eSIR_PS_MUTEX_READ_EXCEPTION:
+         resetReason = VOS_CHIP_RESET_MUTEX_READ_FAILURE;
+         break;
+      default:
+         resetReason =  VOS_CHIP_RESET_UNKNOWN_EXCEPTION;
+         break;
+   }
+	
+   vos_chipReset(NULL, VOS_FALSE, NULL, NULL, resetReason);
+	
+   return eHAL_STATUS_SUCCESS;
 }
 
 /*

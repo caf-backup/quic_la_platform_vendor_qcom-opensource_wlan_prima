@@ -85,15 +85,15 @@ static eHalStatus sendCfg(tpAniSirGlobal pMac, tHddHandle hHdd, tCfgReq *req, tA
 
 	status = palAllocateMemory(hHdd, (void **)&msg, msgLen);
 	if (status == eHAL_STATUS_SUCCESS)
-   {
-      if( fRsp )
-      {
-		   msg->type	= pal_cpu_to_be16(WNI_CFG_SET_REQ);
-      }
-      else
-      {
-         msg->type	= pal_cpu_to_be16(WNI_CFG_SET_REQ_NO_RSP);
-      }
+	{
+        if( fRsp )
+        {
+		    msg->type	= pal_cpu_to_be16(WNI_CFG_SET_REQ);
+        }
+        else
+        {
+            msg->type	= pal_cpu_to_be16(WNI_CFG_SET_REQ_NO_RSP);
+        }
 		msg->msgLen = pal_cpu_to_be16(msgLen);
 		(void)encodeCfgReq(hHdd, msg->data, req->cfgId, req->length, req->ccmPtr, req->ccmValue, req->type) ;
 
@@ -311,7 +311,7 @@ static eHalStatus cfgSetSub(tpAniSirGlobal pMac, tHddHandle hHdd, tANI_U32 cfgId
 static eHalStatus cfgSet(tHalHandle hHal, tANI_U32 cfgId, tANI_U32 type, tANI_S32 length, void * ccmPtr, tANI_U32 ccmValue, tCcmCfgSetCallback callback, eAniBoolean toBeSaved)
 {
 	tHddHandle hHdd = halHandle2HddHandle(hHal);
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 	eHalStatus status;
 	tCfgReq *req ;
 
@@ -334,19 +334,19 @@ static eHalStatus cfgSet(tHalHandle hHal, tANI_U32 cfgId, tANI_U32 type, tANI_S3
 		status = palMutexAllocLocked( hHdd, &sem ) ;
 		if (status != eHAL_STATUS_SUCCESS)
 		{
-         smsLog(pMac, LOGE, FL("mutex alloc failed\n"));
+			smsLog(pMac, LOGE, FL("mutex alloc failed\n"));
             sem = NULL;
 		}
-      else
-      {
-		   status = cfgSetSub(pMac, hHdd, cfgId, type, length, ccmPtr, ccmValue, callback, toBeSaved, sem, &req);
-		   if ((status != eHAL_STATUS_SUCCESS) || (req == NULL))
-		   {
-            //Either it fails to send or the req is finished already
-            palSemaphoreFree( hHdd, sem );
-            sem = NULL;
-		   }
-      }
+        else
+        {
+		    status = cfgSetSub(pMac, hHdd, cfgId, type, length, ccmPtr, ccmValue, callback, toBeSaved, sem, &req);
+		    if ((status != eHAL_STATUS_SUCCESS) || (req == NULL))
+		    {
+                //Either it fails to send or the req is finished already
+                palSemaphoreFree( hHdd, sem );
+                sem = NULL;
+		    }
+        }
 
 		pal_local_bh_enable() ;
 
@@ -587,7 +587,7 @@ eHalStatus ccmCfgSetStr(tHalHandle hHal, tANI_U32 cfgId, tANI_U8 *pStr, tANI_U32
     {
         //Simply push to CFG and not waiting for the response
         tCfgReq req;
-        tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+		tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
         req.callback = NULL;
         req.next = NULL;

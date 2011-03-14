@@ -3650,8 +3650,9 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
      * not received within Re/Association Failure Timeout.
      */
 
-
-
+    /* CR: vos packet memory is leaked when assoc rsp timeouted/failed. */
+    /* notify TL that association is failed so that TL can flush the cached frame  */
+    WLANTL_AssocFailed (psessionEntry->staId);
 
     // Log error
     PELOG1(limLog(pMac, LOG1,

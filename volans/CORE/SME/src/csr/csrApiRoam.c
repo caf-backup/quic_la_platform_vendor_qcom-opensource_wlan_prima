@@ -670,7 +670,9 @@ eHalStatus csrRoamStart(tpAniSirGlobal pMac)
 
 void csrRoamStop(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
-        csrRoamStopRoamingTimer(pMac, sessionId);
+   csrRoamStopRoamingTimer(pMac, sessionId);
+   /* deregister the clients requesting stats from PE/TL & also stop the corresponding timers*/
+   csrRoamDeregStatisticsReq(pMac);
 }
 
 #ifdef FEATURE_WLAN_GEN6_ROAMING
@@ -1283,6 +1285,7 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
 #endif
 
         pMac->roam.configParam.addTSWhenACMIsOff = pParam->addTSWhenACMIsOff;
+        pMac->scan.fValidateList = pParam->fValidateList;
 
     }
     
@@ -1341,6 +1344,7 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->statsReqPeriodicityInPS = pMac->roam.configParam.statsReqPeriodicityInPS;
 
         pParam->addTSWhenACMIsOff = pMac->roam.configParam.addTSWhenACMIsOff;
+        pParam->fValidateList = pMac->roam.configParam.fValidateList;
 
         status = eHAL_STATUS_SUCCESS;
     }
@@ -1912,18 +1916,18 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_CSR    
     palZeroMemory(pMac->hHdd, &connectionStatus, sizeof(vos_event_wlan_status_payload_type));
     if((eCSR_ROAM_ASSOCIATION_COMPLETION == u1) && (eCSR_ROAM_RESULT_ASSOCIATED == u2))
-       {
+    {
        connectionStatus.eventId = eCSR_WLAN_STATUS_CONNECT;
-          connectionStatus.bssType = pRoamInfo->u.pConnectedProfile->BSSType;
-          connectionStatus.rssi = pRoamInfo->pBssDesc->rssi * (-1);
-          connectionStatus.channel = pRoamInfo->pBssDesc->channelId;
-        connectionStatus.qosCapability = pRoamInfo->u.pConnectedProfile->qosConnection;
-          connectionStatus.authType = (v_U8_t)diagAuthTypeFromCSRType(pRoamInfo->u.pConnectedProfile->AuthType);
-          connectionStatus.encryptionType = (v_U8_t)diagEncTypeFromCSRType(pRoamInfo->u.pConnectedProfile->EncryptionType);
-          palCopyMemory(pMac->hHdd, connectionStatus.ssid, pRoamInfo->u.pConnectedProfile->SSID.ssId, 6);
+       connectionStatus.bssType = pRoamInfo->u.pConnectedProfile->BSSType;
+       connectionStatus.rssi = pRoamInfo->pBssDesc->rssi * (-1);
+       connectionStatus.channel = pRoamInfo->pBssDesc->channelId;
+       connectionStatus.qosCapability = pRoamInfo->u.pConnectedProfile->qosConnection;
+       connectionStatus.authType = (v_U8_t)diagAuthTypeFromCSRType(pRoamInfo->u.pConnectedProfile->AuthType);
+       connectionStatus.encryptionType = (v_U8_t)diagEncTypeFromCSRType(pRoamInfo->u.pConnectedProfile->EncryptionType);
+       palCopyMemory(pMac->hHdd, connectionStatus.ssid, pRoamInfo->u.pConnectedProfile->SSID.ssId, 6);
        connectionStatus.reason = eCSR_REASON_UNSPECIFIED;
        WLAN_VOS_DIAG_EVENT_REPORT(&connectionStatus, EVENT_WLAN_STATUS);
-       }
+    }
 
     if((eCSR_ROAM_MIC_ERROR_IND == u1) || (eCSR_ROAM_RESULT_MIC_FAILURE == u2))
     {

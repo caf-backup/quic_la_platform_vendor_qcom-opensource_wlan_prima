@@ -555,7 +555,7 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U32* pBD, tpPESession psessionEn
     {
         beaconParams.bssIdx = pAPSession->bssIdx;
 #ifdef WLAN_SOFTAP_FEATURE
-        if (pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
+        if (pAPSession->gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
 #else
         if (pMac->lim.gLimProtectionControl != WNI_CFG_FORCE_POLICY_PROTECTION_DISABLE)
 #endif

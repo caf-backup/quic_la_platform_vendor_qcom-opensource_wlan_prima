@@ -22,6 +22,13 @@
 #include "vos_diag_core_log.h"
 #include "vos_diag_core_event.h"
 
+#define CSR_VALIDATE_LIST  //This portion of code need to be removed once the issue is resolved.
+
+#ifdef CSR_VALIDATE_LIST
+tDblLinkList *g_pchannelPowerInfoList24 = NULL, * g_pchannelPowerInfoList5 = NULL;
+tpAniSirGlobal g_pMac = NULL;
+#endif
+
 /* Purpose of HIDDEN_TIMER 
 ** When we remove hidden ssid from the profile i.e., forget the SSID via GUI that SSID shouldn't see in the profile
 ** For above requirement we used timer limit, logic is explained below
@@ -162,6 +169,76 @@ static eHalStatus csrLLScanPurgeResult(tpAniSirGlobal pMac, tDblLinkList *pList)
     return (status);
 }
 
+
+int csrCheckValidateLists(void * dest, const void *src, v_SIZE_t num, int idx)
+{
+#ifdef CSR_VALIDATE_LIST
+
+    int ii = 1;
+
+    if( (NULL == g_pMac) || (!g_pMac->scan.fValidateList ) )
+    {
+        return ii;
+    }
+    if(g_pchannelPowerInfoList24)
+    {
+        //check 2.4 list
+        tListElem *pElem, *pHead;
+        int count;
+        
+        count = (int)(g_pchannelPowerInfoList24->Count);
+        pHead = &g_pchannelPowerInfoList24->ListHead;
+        pElem = pHead->next;
+        if((tANI_U32)(pHead->next) > 0x00010000) //Assuming kernel address is not that low.
+        {
+            //this loop crashes if the pointer is not right
+            while(pElem->next != pHead)
+            {
+                if((tANI_U32)(pElem->next) > 0x00010000)
+                {
+                    pElem = pElem->next;
+                    VOS_ASSERT(count > 0);
+                    count--;
+                }
+                else
+                {
+                    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, 
+                         " %d Detect 1 list(0x%X) error Head(0x%X) next(0x%X) Count %d, dest(0x%X) src(0x%X) numBytes(%d)",
+                         idx, (unsigned int)g_pchannelPowerInfoList24, (unsigned int)pHead, 
+                        (unsigned int)(pHead->next), (int)g_pchannelPowerInfoList24->Count, 
+                        (unsigned int)dest, (unsigned int)src, (int)num);
+                    VOS_ASSERT(0);
+                    ii = 0;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            //Bad list
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, " %d Detect list(0x%X) error Head(0x%X) next(0x%X) Count %d, dest(0x%X) src(0x%X) numBytes(%d)", 
+                idx, (unsigned int)g_pchannelPowerInfoList24, (unsigned int)pHead, 
+                (unsigned int)(pHead->next), (int)g_pchannelPowerInfoList24->Count, 
+                (unsigned int)dest, (unsigned int)src, (int)num);
+            VOS_ASSERT(0);
+            ii = 0;
+        }
+    }
+    else
+    {
+        //list ok
+        ii = 1;
+    }
+
+
+    return ii;
+
+#else
+    return 1;
+#endif //#ifdef CSR_VALIDATE_LIST
+}
+
+
 eHalStatus csrScanOpen( tpAniSirGlobal pMac )
 {
     eHalStatus status;
@@ -172,6 +249,11 @@ eHalStatus csrScanOpen( tpAniSirGlobal pMac )
         csrLLOpen(pMac->hHdd, &pMac->scan.tempScanResults);
         csrLLOpen(pMac->hHdd, &pMac->scan.channelPowerInfoList24);
         csrLLOpen(pMac->hHdd, &pMac->scan.channelPowerInfoList5G);
+#ifdef CSR_VALIDATE_LIST
+        g_pchannelPowerInfoList5 = &pMac->scan.channelPowerInfoList5G;
+        g_pMac = pMac;
+        g_pchannelPowerInfoList24 = &pMac->scan.channelPowerInfoList24;
+#endif
         pMac->scan.fFullScanIssued = eANI_BOOLEAN_FALSE;
         pMac->scan.nBssLimit = CSR_MAX_BSS_SUPPORT;
         status = palTimerAlloc(pMac->hHdd, &pMac->scan.hTimerGetResult, csrScanGetResultTimerHandler, pMac);
@@ -209,7 +291,11 @@ eHalStatus csrScanOpen( tpAniSirGlobal pMac )
 
 eHalStatus csrScanClose( tpAniSirGlobal pMac )
 {
-    
+#ifdef CSR_VALIDATE_LIST
+    g_pchannelPowerInfoList24 = NULL;
+    g_pchannelPowerInfoList5 = NULL;
+    g_pMac = NULL;
+#endif
     csrLLScanPurgeResult(pMac, &pMac->scan.tempScanResults);
     csrLLScanPurgeResult(pMac, &pMac->scan.scanResultList);
     csrLLClose(&pMac->scan.scanResultList);
@@ -1975,6 +2061,11 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                             else
                             {
                                 smsLog(pMac, LOGE, FL(" fail to allocate memory for IEs\n"));
+                                //Need to free memory allocated by csrMatchBSS
+                                if( !pBssDesc->Result.pvIes )
+                                {
+                                    palFreeMemory(pMac->hHdd, pIes);
+                                }
                                 break;
                             }
                         }
@@ -2008,7 +2099,7 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                 pResult->Result.ssId = pBssDesc->Result.ssId;
                 pResult->Result.timer = 0;
 				//save the pIes for later use
-                        pResult->Result.pvIes = pNewIes;
+                pResult->Result.pvIes = pNewIes;
 				//save bss description
                 status = palCopyMemory(pMac->hHdd, &pResult->Result.BssDescriptor, &pBssDesc->Result.BssDescriptor, bssLen);
                 if(!HAL_STATUS_SUCCESS(status))
@@ -2021,7 +2112,7 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                     }
                     break;
                 }
-                csrLLLock(&pRetList->List);
+                //No need to lock pRetList because it is locally allocated and no outside can access it at this time
                 if(csrLLIsListEmpty(&pRetList->List, LL_ACCESS_NOLOCK))
                 {
                     csrLLInsertTail(&pRetList->List, &pResult->Link, LL_ACCESS_NOLOCK);
@@ -2051,7 +2142,6 @@ eHalStatus csrScanGetResult(tpAniSirGlobal pMac, tCsrScanResultFilter *pFilter, 
                         csrLLInsertTail(&pRetList->List, &pResult->Link, LL_ACCESS_NOLOCK);
                     }
                 }
-                csrLLUnlock(&pRetList->List);
                 count++;
             }
             pEntry = csrLLNext( &pMac->scan.scanResultList, pEntry, LL_ACCESS_NOLOCK );
@@ -3285,32 +3375,34 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
                         tCsrScanResultFilter filter;
 
                         palZeroMemory(pMac->hHdd, &filter, sizeof(tCsrScanResultFilter));
-                                status = csrRoamPrepareFilterFromProfile(pMac, pSession->pCurRoamProfile, &filter);
+                        status = csrRoamPrepareFilterFromProfile(pMac, pSession->pCurRoamProfile, &filter);
                         if(HAL_STATUS_SUCCESS(status))
                         {
-                            if(csrMatchBSS(pMac, pSirBssDesc, &filter, NULL, NULL, NULL, NULL))
+                            tANI_BOOLEAN fMatch = csrMatchBSS(pMac, pSirBssDesc, &filter, NULL, NULL, NULL, NULL);
+                            //Free the resource first
+                            csrFreeScanFilter( pMac, &filter );
+                            if(fMatch)
                             {
                                 smsLog(pMac, LOGW, "   Matching roam profile BSSID %02X-%02X-%02X-%02X-%02X-%02X causing ambiguous doamin info\n",
                                     pSirBssDesc->bssId[0], pSirBssDesc->bssId[1], pSirBssDesc->bssId[2], 
                                     pSirBssDesc->bssId[3], pSirBssDesc->bssId[4], pSirBssDesc->bssId[5]);
                                 pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_TRUE;
-                                        break;
+                                break;
                             }
-                            csrFreeScanFilter( pMac, &filter );
                         }
                     }
                     else if( csrIsConnStateConnected(pMac, i))
                     {
                         //Reach here only when the currention is base on no profile. 
                         //User doesn't give profile and just connect to anything.
-                                if(csrMatchBSSToConnectProfile(pMac, &pSession->connectedProfile, pSirBssDesc, pIesLocal))
+                        if(csrMatchBSSToConnectProfile(pMac, &pSession->connectedProfile, pSirBssDesc, pIesLocal))
                         {
                             smsLog(pMac, LOGW, "   Matching connect profile BSSID %02X-%02X-%02X-%02X-%02X-%02X causing ambiguous doamin info\n",
                                     pSirBssDesc->bssId[0], pSirBssDesc->bssId[1], pSirBssDesc->bssId[2],
                                     pSirBssDesc->bssId[3], pSirBssDesc->bssId[4], pSirBssDesc->bssId[5]);
                             //Tush
                             pMac->scan.fAmbiguous11dInfoFound = eANI_BOOLEAN_TRUE;
-                                    if(csrIsBssidMatch(pMac, (tCsrBssid *)&pSirBssDesc->bssId, 
+                            if(csrIsBssidMatch(pMac, (tCsrBssid *)&pSirBssDesc->bssId, 
                                                         &pSession->connectedProfile.bssid))
                             {
                                 //AP changed the 11d info on the fly, modify cfg
@@ -8162,7 +8254,7 @@ void csrScanDiagHoLog(tpAniSirGlobal pMac)
    tListElem *pEntry = NULL;
    tCsrHandoffStaInfo *pTempStaEntry = NULL;
    tDblLinkList *pStaList = &pMac->roam.handoffInfo.candidateList;
-   tANI_U8 index = 1;
+   tANI_U8 index = 0;
 
    WLAN_VOS_DIAG_LOG_ALLOC(log_ptr, vos_log_ho_pkt_type, LOG_WLAN_HANDOFF_C);
    if(log_ptr)
@@ -8191,7 +8283,7 @@ void csrScanDiagHoLog(tpAniSirGlobal pMac)
       }
       else
       {
-         while( pEntry  && index <= VOS_LOG_MAX_NUM_HO_CANDIDATE_APS)
+         while( pEntry  && index < VOS_LOG_MAX_NUM_HO_CANDIDATE_APS)
          {
             pTempStaEntry = GET_BASE_ADDR( pEntry, tCsrHandoffStaInfo, link );
 

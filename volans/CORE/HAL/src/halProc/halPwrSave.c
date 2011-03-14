@@ -1396,14 +1396,14 @@ void halPS_GetRefTbtt(tpAniSirGlobal pMac, tANI_U64 tbtt, tANI_U8 bssIdx,
         if(tbtt > TBTT_COMPENSATION_2_4_GHZ)
             tbtt -= TBTT_COMPENSATION_2_4_GHZ;
         else
-            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: %d: ERROR TBTT Low: %x TBTT High: %x\n",
-                        __func__, __LINE__,(&(tbtt))[0], (&(tbtt))[1]);
+           VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: %d: ERROR TBTT Low: %x TBTT High: %x\n",
+                      __FUNCTION__, __LINE__,(&(tbtt))[0], (&(tbtt))[1]);
     } else if (pMac->hal.currentRfBand == eRF_BAND_5_GHZ) {
         if(tbtt > TBTT_COMPENSATION_5_GHZ)
             tbtt -= TBTT_COMPENSATION_5_GHZ;
-        else
+	else
             VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,"%s: %d: ERROR TBTT Low: %x TBTT High: %x\n",
-                        __func__, __LINE__,(&(tbtt))[0], (&(tbtt))[1]);
+                      __FUNCTION__, __LINE__,(&(tbtt))[0], (&(tbtt))[1]);
     }
 
     HALLOG1(halLog(pMac, LOG1, FL("After compensation TBTT Low: %x TBTT High: %x\n"),
@@ -2745,30 +2745,28 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 
         curCnt = (regValue & QWLAN_MCU_MUTEX0_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX0_CURRENTCOUNT_OFFSET;
         if(curCnt <= 1) {
-            HALLOGE(halLog(pMac, LOGE, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
-
+            VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "Not Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue);
 #ifdef WLAN_DBG_GPIO
-//            printk(" ************* Mutex register value read 0, %d times *****************\n", (int)retryCnt);
-//            printk(" ************* Mutex register value read 0, asserting GPIO HIGH \n");
-//            gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+        VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "Mutex register value read 0, asserting GPIO HIGH \n");
+        gpio_tlmm_config(GPIO_CFG(181, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
 #endif
             ++retryCnt;
+            VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s Mutex register value read 0, %d times", __func__, retryCnt);
 			
            if(retryCnt == 2) {
-            	 VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s Sleeping for 200ms", __func__);
+            	 VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s retryCnt = %d Sleeping for 200ms before next retry", __func__, retryCnt);
             	 vos_sleep(200);
             }            	
         }
         else {
             mutexAcq = eHAL_STATUS_SUCCESS;
-       }
+        }
     }
 
     if(eHAL_STATUS_FW_PS_BUSY == mutexAcq)
     {
-        HALLOGP(halLog(pMac, LOGP, "Host Busy Mutex is not Acquired = %d,%d, %x", 
-                    pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
-//        VOS_ASSERT(0);
+        VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "Host Busy Mutex is not Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue);
+        macSysResetReq(pMac, eSIR_PS_MUTEX_READ_EXCEPTION);
     } else {
         if (retryCnt > 0) {
             regValue = 0;
@@ -2782,9 +2780,9 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
     }
 
     if (ctx == HAL_PS_BUSY_GENERIC) {
-        pMac->hal.PsParam.mutexCount += retryCnt+1;
+        pMac->hal.PsParam.mutexCount++;
     } else {
-        pMac->hal.PsParam.mutexIntrCount += retryCnt+1;
+        pMac->hal.PsParam.mutexIntrCount++;
     }
 
     HALLOGW(halLog(pMac, LOGE, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
@@ -2811,23 +2809,15 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
  */
 eHalStatus halPS_ReleaseHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 {
-    tANI_U32 regValue = 0, cntr = 0, index = 0;
-
-    if (ctx == HAL_PS_BUSY_GENERIC) {
-        cntr = pMac->hal.PsParam.mutexCount;
-    } else {
-        cntr = pMac->hal.PsParam.mutexIntrCount;
-    }
+    tANI_U32 regValue = 0;
 
     regValue =  (1 << QWLAN_MCU_MUTEX0_MAXCOUNT_OFFSET);
-
-    for (index=0;index <cntr; index++)
-        palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, regValue);
+    palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_SYNC_ADDR, regValue);
 
     if (ctx == HAL_PS_BUSY_GENERIC) {
-        pMac->hal.PsParam.mutexCount -= cntr;
+        pMac->hal.PsParam.mutexCount--;
     } else {
-        pMac->hal.PsParam.mutexIntrCount -= cntr;
+        pMac->hal.PsParam.mutexIntrCount--;
     }
 
 #ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
@@ -3546,9 +3536,10 @@ eHalStatus halPS_RegisterWrite(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 regVa
     Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
     tANI_U32 offset = (tANI_U32)&((Qwlanfw_SysCfgType *)0)->uRegWriteCount;
     eHalStatus status;
-	
+
     if ((pMac->hal.PsParam.mutexCount == 0) && (pMac->hal.PsParam.mutexIntrCount == 0)) {
-        HALLOGE(halLog(pMac, LOGE, "WMutex not acquired, %d, %d (Please report to HAL team, except for dump commands)", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount));
+        HALLOGE(halLog(pMac, LOGE, "WMutex not acquired, %d, %d for Reg %08x, Value 0x%x (Please report to HAL team, except for dump commands)", 
+                    pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regAddr, regValue));
     }
 
     //Write into the HW register
@@ -3558,7 +3549,7 @@ eHalStatus halPS_RegisterWrite(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 regVa
         HALLOGE(halLog( pMac, LOGE, FL("halPS_RegisterWrite failed\n")));
         return eHAL_STATUS_FAILURE;
     }
-    
+
     //Increment the register write count in the FW system config
     pFwConfig->uRegWriteCount++;
 
@@ -3573,7 +3564,8 @@ eHalStatus halPS_RegisterRead(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 *pRegV
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
 
     if ((pMac->hal.PsParam.mutexCount == 0) && (pMac->hal.PsParam.mutexIntrCount == 0)) {
-        HALLOGE(halLog(pMac, LOGE, "RMutex not acquired, %d, %d, %d (Please report to HAL team, except for dump commands)", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxCount));
+        HALLOGE(halLog(pMac, LOGE, "RMutex not acquired, %d, %d, %d for Reg 0x%08x (Please report to HAL team, except for dump commands)", 
+                    pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxCount, regAddr));
     }
     
     return palReadRegister(pMac->hHdd, regAddr, pRegValue);
@@ -3689,6 +3681,39 @@ void halPSDataInActivityTimeout( tpAniSirGlobal pMac, tANI_U32 cfgId )
                      (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
      }
      return;
+}
+/*
+ * halPSNullDataAPProcessDelay
+ *
+ * DESCRIPTION:
+ *      AP delay processing of Null Data configuration.
+ *
+ * PARAMETERS:
+ *      pMac:   Pointer to the global adapter context
+ *      cfgId:  This will read from the CFG file set by HDD.
+ *
+ * RETURN:
+ *      void
+ */
+
+void halPSNullDataAPProcessDelay( tpAniSirGlobal pMac, tANI_U32 cfgId )
+{
+    tANI_U32 nullDataApRespTimeout;
+    Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
+
+    if (cfgId == WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT) {
+        if (eSIR_SUCCESS != wlan_cfgGetInt( pMac, (tANI_U16) cfgId, &nullDataApRespTimeout )) {
+             HALLOGW( halLog(pMac, LOGW, FL("Failed to read Configuration file for Null data delay Timeout with cfgId %d"), cfgId));
+             return;
+        }
+        /* Null Data Delay Timeout value as read from CFG */
+        pFwConfig->nullDataApRespTimeoutMsec = (tANI_U8)nullDataApRespTimeout;
+
+        /* Update FW SysConfig with NULL Data AP response delay timeout Value */
+        halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr,
+                     (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
+    }
+    return;
 }
 
 /*

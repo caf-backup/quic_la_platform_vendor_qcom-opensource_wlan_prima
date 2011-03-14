@@ -842,7 +842,8 @@ void pmcDoCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
         pMac->pmc.impsCallbackRoutine(pMac->pmc.impsCallbackContext, callbackStatus);
         pMac->pmc.impsCallbackRoutine = NULL;
     }
-
+    
+    csrLLLock(&pMac->pmc.requestFullPowerList);
     /* Call the routines in the request full power callback routine list. */
     pEntry = csrLLRemoveHead(&pMac->pmc.requestFullPowerList, FALSE);
     while (pEntry != NULL)
@@ -856,6 +857,8 @@ void pmcDoCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
         }
         pEntry = csrLLRemoveHead(&pMac->pmc.requestFullPowerList, FALSE);
     }
+
+    csrLLUnlock(&pMac->pmc.requestFullPowerList);
 }
 
 
@@ -1947,7 +1950,11 @@ eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType, void
     do
     {
         pCommand = smeGetCommandBuffer( pMac );
-        if ( !pCommand ) break;
+        if ( !pCommand )
+        {
+            smsLog( pMac, LOGE, FL(" fail to get command buffer for command %d\n"), cmdType );
+            break;
+        }
         pCommand->command = cmdType;
         pCommand->u.pmcCmd.size = size;
         //Initialize the reason code here. It may be overwritten later when

@@ -844,6 +844,13 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
     tANI_U32 uBssTableOffset;
     tANI_U32 uStaTableOffset;
 #endif
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32   nullDataApRespTimeoutMsec: 8;
+   tANI_U32   bReserved12      : 24;
+#else
+   tANI_U32   bReserved12      : 24;
+   tANI_U32   nullDataApRespTimeoutMsec: 8;
+#endif
 } Qwlanfw_SysCfgType;
 
 

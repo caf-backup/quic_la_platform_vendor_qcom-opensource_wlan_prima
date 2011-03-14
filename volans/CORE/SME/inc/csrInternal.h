@@ -492,6 +492,8 @@ typedef struct tagCsrConfig
      * This is mandated by WMM-AC certification */
     tANI_BOOLEAN addTSWhenACMIsOff;
 
+    tANI_BOOLEAN fValidateList;
+
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo 
@@ -569,6 +571,10 @@ typedef struct tagCsrScanStruct
     tANI_U32 nIdleScanTimeGap;  //the time since last trying to trigger idle scan
     tCsrOsChannelMask osScanChannelMask;//keep a track of channels to be scnned while in traffic condition
     tANI_U16 nBssLimit; //the maximum number of BSS in scan cache
+    /*channelPowerInfoList24 has been seen corrupted. Set this flag to true trying to 
+    * detect when it happens. Adding this into code because we can't reproduce it easily.
+    * We don't know when it happens. */
+    tANI_BOOLEAN fValidateList;
 }tCsrScanStruct;
 
 

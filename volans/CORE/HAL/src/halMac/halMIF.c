@@ -114,8 +114,7 @@ eHalStatus halIntMIFErrorHandler(tHalHandle hHalHandle, eHalIntSources intSource
     }
 
     /** Display Error Status Information.*/
-    HALLOGE( halLog( pMac, LOGE, FL("MIF Error Interrupt Status  : %x\n"),  intRegStatus ));
-    HALLOGE( halLog( pMac, LOGE, FL("MIF Error Interrupt Mask/Enable  : %x\n"),  intRegMask ));
+    VOS_TRACE (VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "MIF Error Interrupt Status  : %x\nMIF Error Interrupt Mask/Enable  : %x\n",  intRegStatus, intRegMask );
 
 #ifdef WLAN_HAL_VOLANS
     halReadRegister(hHalHandle, QWLAN_MIF_MIF_ACPU_INVALID_ADDR_REG, &acpuInvalidAddr);

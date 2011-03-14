@@ -645,11 +645,12 @@ VOS_STATUS vos_chipReset
   vos_call_status_type* status,
   v_BOOL_t              soft,
   vos_power_cb_type     callback,
-  v_PVOID_t             user_data
+  v_PVOID_t             user_data,
+  vos_chip_reset_reason_type   reason
 )
 {
    VOS_STATUS vstatus;
-   vstatus = vos_watchdog_chip_reset();
+   vstatus = vos_watchdog_chip_reset(reason);
    return vstatus;
 }
 

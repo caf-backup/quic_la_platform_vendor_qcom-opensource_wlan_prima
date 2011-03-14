@@ -107,6 +107,17 @@ typedef struct hdd_tx_rx_stats_s
    __u32    rxDelivered;
    __u32    rxRefused;
 } hdd_tx_rx_stats_t;
+
+typedef struct hdd_chip_reset_stats_s
+{
+   __u32    totalLogpResets;
+   __u32    totalCMD53Failures;
+   __u32    totalMutexReadFailures;
+   __u32    totalMIFErrorFailures;
+   __u32    totalFWHearbeatFailures;
+   __u32    totalUnknownExceptions;
+} hdd_chip_reset_stats_t;
+
 typedef struct hdd_stats_s
 {
    tCsrSummaryStatsInfo       summary_stat;
@@ -116,6 +127,7 @@ typedef struct hdd_stats_s
    tCsrGlobalClassDStatsInfo  ClassD_stat;
    tCsrPerStaStatsInfo        perStaStats;
    hdd_tx_rx_stats_t          hddTxRxStats;
+   hdd_chip_reset_stats_t     hddChipResetStats;
 } hdd_stats_t;
 
 typedef enum

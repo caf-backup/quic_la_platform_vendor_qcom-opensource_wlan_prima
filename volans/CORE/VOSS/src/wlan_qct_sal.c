@@ -274,6 +274,12 @@ void wlan_sdio_resume_hdlr(struct sdio_func* sdio_func_dev)
    hdd_adapter_t* pAdapter = NULL;
    pAdapter =  (hdd_adapter_t*)libra_sdio_getprivdata(sdio_func_dev);
 
+   if (!pAdapter)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s pAdapter is dereferencing to NULL pointer\n", __func__);
+      VOS_ASSERT(0);
+      return;
+   }
    VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_ERROR, "%s: Enter",__func__);
 
    VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_INFO, "%s: WLAN being resumed by Android OS",__func__);
@@ -322,11 +328,22 @@ void salRxInterruptCB
    VOS_ASSERT(sdio_func_dev);
    VOS_ASSERT(gpsalHandle);
 
-   VOS_ASSERT(gpsalHandle->sscCBs.interruptCB);
-   VOS_ASSERT(gpsalHandle->sscCBs.sscUsrData);
+
+   if (!gpsalHandle->sscCBs.interruptCB)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s gpsalHandle->sscCBs.interruptCB is dereferencing to NULL pointer\n", __func__);
+      VOS_ASSERT(gpsalHandle->sscCBs.interruptCB);
+      return;
+   }
+
+   if (!gpsalHandle->sscCBs.sscUsrData)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s gpsalHandle->sscCBs.sscUsrData is dereferencing to NULL pointer\n", __func__);
+      VOS_ASSERT(gpsalHandle->sscCBs.sscUsrData);
+      return;
+   }
 
    pAdapter =  libra_sdio_getprivdata(sdio_func_dev);
-
    ((hdd_adapter_t *)pAdapter)->pid_sdio_claimed = current->pid;
    atomic_inc(&((hdd_adapter_t *)pAdapter)->sdio_claim_count);
 
@@ -467,14 +484,24 @@ VOS_STATUS WLANSAL_Open
 {
    VOS_STATUS        status    = VOS_STATUS_SUCCESS;
 
-   VOS_ASSERT(NULL != pAdapter);
+   if (!pAdapter)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s pAdapter is dereferencing to NULL pointer\n", __func__);
+      VOS_ASSERT(NULL != pAdapter);
+      return VOS_STATUS_E_FAILURE;
+   }
 
    SENTER();
 
    status = vos_alloc_context(pAdapter, VOS_MODULE_ID_SAL, (void *)&gpsalHandle, sizeof(salHandleType));
 
    VOS_ASSERT(VOS_STATUS_SUCCESS == status);
-   VOS_ASSERT(gpsalHandle);
+   if (!gpsalHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s gpsalHandle is dereferencing to NULL pointer\n", __func__);
+      VOS_ASSERT(gpsalHandle);
+      return VOS_STATUS_E_FAILURE;
+   }
 
    // Initialize the mutex
    mutex_init(&gpsalHandle->lock);
@@ -507,8 +534,21 @@ VOS_STATUS WLANSAL_Start
 #define VOS_GET_BAL_CTXT(a)            vos_get_context(VOS_MODULE_ID_BAL, a)
    balHandleType              *balHandle = (balHandleType *)VOS_GET_BAL_CTXT(pAdapter);
 
-   VOS_ASSERT(NULL != gpsalHandle);
+   memset( &cardConfig, 0, sizeof(cardConfig));
+   if (!gpsalHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s gpsalHandle is dereferencing to NULL pointer\n", __func__);
+      VOS_ASSERT(NULL != gpsalHandle);
+      return VOS_STATUS_E_FAILURE;
+   }
 
+ 
+   if (!balHandle)
+   {
+      VOS_ASSERT(0);
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s balHandle is dereferencing to NULL pointer\n", __func__);
+      return VOS_STATUS_E_FAILURE;
+   }
    SENTER();
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -560,7 +600,13 @@ VOS_STATUS WLANSAL_Stop
    v_PVOID_t pAdapter
 )
 {
-   VOS_ASSERT(gpsalHandle);
+   if (!gpsalHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s gpsalHandle is dereferencing to NULL pointer\n", __func__);
+      VOS_ASSERT(gpsalHandle);
+      return VOS_STATUS_E_FAILURE;
+   }
+
 
    SENTER();
 
@@ -890,10 +936,10 @@ watchdog_chip_reset:
       SMSGFATAL("%s: Value of ERROR err_ret = %d, Data Size = %d\n", __func__, err_ret, cmd53Req->dataSize);
       SMSGFATAL("CMD53 direction %d, Mode %d, address 0x%x", 
          cmd53Req->busDirection, cmd53Req->mode, cmd53Req->address);  
-      vos_chipReset(NULL, VOS_FALSE, NULL, NULL);      
-      SEXIT();
+      vos_chipReset(NULL, VOS_FALSE, NULL, NULL, VOS_CHIP_RESET_CMD53_FAILURE);      
       // Release lock
       sd_release_host(gpsalHandle->sdio_func_dev);
+      SEXIT();
       return err_ret;
    }
 
@@ -941,9 +987,18 @@ VOS_STATUS WLANSAL_RegSscCBFunctions
 )
 {
 
-   VOS_ASSERT(sscReg);
-   VOS_ASSERT(gpsalHandle);
-
+   if (!sscReg)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s sscReg is dereferencing to NULL pointer\n", __func__);
+      VOS_ASSERT(sscReg);
+      return VOS_STATUS_E_FAILURE;
+   }
+   if (!gpsalHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s gpsalHandle is dereferencing to NULL pointer\n", __func__);
+      VOS_ASSERT(gpsalHandle);
+      return VOS_STATUS_E_FAILURE;
+   }
    SENTER();
 
    gpsalHandle->sscCBs.interruptCB   = sscReg->interruptCB;
@@ -974,7 +1029,13 @@ VOS_STATUS WLANSAL_DeregSscCBFunctions
 )
 {
 
-   VOS_ASSERT(gpsalHandle);
+   if (!gpsalHandle)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s gpsalHandle is dereferencing to NULL pointer\n", __func__);
+      VOS_ASSERT(gpsalHandle); 
+      return VOS_STATUS_E_FAILURE;
+   }
+
    SENTER();
 
    gpsalHandle->sscCBs.interruptCB   = NULL;
@@ -1014,7 +1075,13 @@ VOS_STATUS WLANSAL_CardInfoQuery
 {
 
    VOS_ASSERT(gpsalHandle);
-   VOS_ASSERT(cardInfo);
+
+   if (!cardInfo)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s cardInfo is dereferencing to NULL pointer\n", __func__);
+      VOS_ASSERT(cardInfo);
+      return VOS_STATUS_E_FAILURE;
+   }
    SENTER();
 
    memcpy(cardInfo, &gpsalHandle->cardInfo, sizeof(WLANSAL_CardInfoType));
@@ -1052,7 +1119,13 @@ VOS_STATUS WLANSAL_CardInfoUpdate
 )
 {
    VOS_ASSERT(gpsalHandle);
-   VOS_ASSERT(cardInfo);
+
+   if (!cardInfo)
+   {
+      VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s cardInfo is dereferencing to NULL pointer\n", __func__);
+      VOS_ASSERT(cardInfo);
+      return VOS_STATUS_E_FAILURE;
+   }
 
    SENTER();
 

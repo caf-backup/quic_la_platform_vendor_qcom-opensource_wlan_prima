@@ -7434,6 +7434,7 @@ void limHandleHeartBeatFailureTimeout(tpAniSirGlobal pMac)
     {
         if (!LIM_IS_CONNECTION_ACTIVE(psessionEntry))
         {
+            tx_timer_deactivate(&pMac->lim.limTimers.gLimProbeAfterHBTimer);
             /* AP did not respond to Probe Request. Tear down link with it.*/
             limTearDownLinkWithAp(pMac);
             pMac->lim.gLimProbeFailureAfterHBfailedCnt++ ;

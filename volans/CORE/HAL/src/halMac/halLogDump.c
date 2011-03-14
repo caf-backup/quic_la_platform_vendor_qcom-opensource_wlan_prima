@@ -4158,6 +4158,35 @@ dump_hal_phy_set_open_loop_gain( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 ar
 }
 
 static char *
+dump_hal_enable_wifi_direct_low_power_mode( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
+{
+    tpTpeStaDesc pTpeStaDesc;
+    (void) arg4;
+
+    halTpe_GetStaConfig(pMac, &pTpeStaDesc, arg2);
+
+    if (arg1) //enable
+    {
+        halReadRegister(pMac, QWLAN_TPE_SW_TPE_HW_CONTROL_REG_REG, &arg3);
+        halWriteRegister(pMac, QWLAN_TPE_SW_TPE_HW_CONTROL_REG_REG,
+                            (arg3 |= QWLAN_TPE_SW_TPE_HW_CONTROL_REG_DYNAMIC_AMP_SELECT_EN_MASK));
+
+        pTpeStaDesc->ampdu_valid |= (1 << 15);
+        halTpe_UpdateStaDesc(pMac, arg2, pTpeStaDesc);
+    }
+    else
+    {
+        halReadRegister(pMac, QWLAN_TPE_SW_TPE_HW_CONTROL_REG_REG, &arg3);
+        halWriteRegister(pMac, QWLAN_TPE_SW_TPE_HW_CONTROL_REG_REG,
+                            (arg3 &= ~QWLAN_TPE_SW_TPE_HW_CONTROL_REG_DYNAMIC_AMP_SELECT_EN_MASK));
+
+        pTpeStaDesc->ampdu_valid &= ~(1 << 15);
+        halTpe_UpdateStaDesc(pMac, arg2, pTpeStaDesc);
+    }
+    return p;
+}
+
+static char *
 dump_hal_rate_tx_power( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 arg3, tANI_U32 arg4, char *p)
 {
     (void) arg1; (void) arg2; (void) arg3; (void) arg4;
@@ -4460,6 +4489,7 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {244,   "getPwr <rateidx><pwrCap>",                                 dump_hal_phy_get_power_for_rate},
     {245,   "open TPC loop <1/0>",                                      dump_hal_phy_open_close_tpc_loop},
     {246,   "Set open loop gain<rfGgain><digGain>",                     dump_hal_phy_set_open_loop_gain},
+    {247,   "Enable/Disable Wifi direct Low power mode<1/0><StaId>",    dump_hal_enable_wifi_direct_low_power_mode},
 
     {0,     "BTC (250-259)",                                            NULL},
     {250,   "change BTC paramters (WLAN interval, BT interval, mode, action)", dump_hal_set_btc_config},

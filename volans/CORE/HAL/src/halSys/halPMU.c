@@ -31,6 +31,12 @@ halPMU_Start(
     // DXE clock gating has been disabled like Libra 
     halWriteRegister(pMac,QWLAN_SCU_SYS_DISABLE_CLK_GATING_REG, 
                      QWLAN_SCU_SYS_DISABLE_CLK_GATING_DXE_DISABLE_CLK_GATING_MASK);
+
+    /* Disable MCU Clock gating. This is needed to avoid CMD53 Mutex1 read issues in 
+     * power save mode */
+    halWriteRegister(pMac, QWLAN_PMU_WMAC_SYS_CLKGATE_DISABLE_REG_REG,
+                QWLAN_PMU_WMAC_SYS_CLKGATE_DISABLE_REG_PMU_MCU_GAS_CLKGATE_DISABLE_MASK | 
+                QWLAN_PMU_WMAC_SYS_CLKGATE_DISABLE_REG_PMU_MCU_CLKGATE_DISABLE_MASK);
     return eHAL_STATUS_SUCCESS;
 }
 

@@ -1186,7 +1186,11 @@ VOS_STATUS hdd_softap_RegisterSTA( hdd_hostapd_adapter_t *pAdapter,
    // translation for WinMob 6.1
    // @@@@@ xg: what value
    staDesc.ucSwFrameTXXlation = 0;
-   staDesc.ucSwFrameRXXlation = 0;
+
+   // Enable frame translation in software for AMSDU 
+   // reception ONLY. The remaining rx is still 
+   // translated in HW.
+   staDesc.ucSwFrameRXXlation = 1;
    staDesc.ucAddRmvLLC = 1;
 
    // Initialize signatures and state
@@ -1302,6 +1306,14 @@ VOS_STATUS hdd_softap_change_STA_state( hdd_hostapd_adapter_t *pAdapter, v_MACAD
 	v_CONTEXT_t pVosContext = pAdapter->pvosContext;
     hHalHandle = (tHalHandle ) vos_get_context(VOS_MODULE_ID_HAL, pVosContext);
     hddLog(LOG1, FL("%s enter \n"));
+
+    if(!hHalHandle )
+    {
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_FATAL,
+                 "%s: The hHalHandle is  NULL ptr value");
+      VOS_ASSERT( 0 );
+      return VOS_STATUS_E_FAILURE;
+    }    
 
     if (eHAL_STATUS_SUCCESS != halTable_FindStaidByAddr(hHalHandle, (tANI_U8 *)pDestMacAddress, &ucSTAId))
     {

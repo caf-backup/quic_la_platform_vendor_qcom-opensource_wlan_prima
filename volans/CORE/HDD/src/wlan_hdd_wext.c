@@ -246,16 +246,20 @@ void hdd_StatisticsCB( void *pStats, void *pContext )
       vos_mem_copy( &pStatsCache->ClassD_stat, pClassDStats, sizeof( pStatsCache->ClassD_stat ) );
       vos_mem_copy( &pStatsCache->perStaStats, pPerStaStats, sizeof( pStatsCache->perStaStats ) );
    }
-   pWextState = pAdapter->pWextState;
    
-   vos_status = vos_event_set(&pWextState->vosevent);
-   
-   if (!VOS_IS_STATUS_SUCCESS(vos_status))
-   {   
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!\n"));
-      return;
-   }
-   
+    if(pAdapter)
+    {
+        pWextState = pAdapter->pWextState;
+        if(pWextState) 
+        {
+           vos_status = vos_event_set(&pWextState->vosevent);
+           if (!VOS_IS_STATUS_SUCCESS(vos_status))
+           {   
+              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!\n"));
+              return;
+           }
+        }
+    }
 }
 
 void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result)
@@ -271,8 +275,16 @@ void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result)
 
    pAdapter = (hdd_adapter_t*) vos_get_context(VOS_MODULE_ID_HDD,pVosContext);
 
+   if( pAdapter ) {
    pWextState = pAdapter->pWextState;
-   
+   }
+   else
+   {
+     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, " %s: pAdapter is pointing NULL value",__FUNCTION__); 
+     VOS_ASSERT(0);
+     EXIT();
+     return;
+   }  
    if (WNI_CFG_NEED_RESTART == result || WNI_CFG_NEED_RELOAD == result)
    {
       VOS_STATUS vosStatus;
@@ -1535,8 +1547,8 @@ static int iw_set_priv(struct net_device *dev,
                 ret = len;
                 
                 WLANTL_GetRssi( pAdapter->pvosContext, pAdapter->conn_info.staId[ 0 ], &s7Rssi );
-                ret += sprintf(&cmd[ret], " rssi %d\n", s7Rssi);                
-            }             
+                ret += sprintf(&cmd[ret], " rssi %d\n", s7Rssi);
+            }
         }
         else
         {
@@ -2327,7 +2339,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                  break;
 #endif
               case  14://reset wlan (power down/power up)
-                 vos_chipReset(NULL, VOS_FALSE, NULL, NULL);
+                 vos_chipReset(NULL, VOS_FALSE, NULL, NULL, VOS_CHIP_RESET_UNKNOWN_EXCEPTION);
                  break;					  
               default:
                  hddLog(LOGE, "Invalid arg  %d in WE_SET_POWER IOCTL\n", set_value);
@@ -2540,6 +2552,7 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
         case WE_GET_STATS:
         {
             hdd_tx_rx_stats_t *pStats = &pAdapter->hdd_stats.hddTxRxStats;
+            hdd_chip_reset_stats_t *pResetStats = &pAdapter->hdd_stats.hddChipResetStats;
 
             snprintf(extra, WE_MAX_STR_LEN,
                      "\nTransmit"
@@ -2556,6 +2569,8 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                      "\n      flushed BK %u, BE %u, VI %u, VO %u"
                      "\n\nReceive"
                      "\nchains %u, packets %u, dropped %u, delivered %u, refused %u"
+                     "\n\nResetsStats"
+                     "\n TotalLogp %u Cmd53 %u MutexRead %u  MIF-Error %u FW-Heartbeat %u Others %u"
                      "\n",
                      pStats->txXmitCalled,
                      pStats->txXmitDropped,
@@ -2616,8 +2631,14 @@ static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *i
                      pStats->rxPackets,
                      pStats->rxDropped,
                      pStats->rxDelivered,
-                     pStats->rxRefused
+                     pStats->rxRefused,
 
+                     pResetStats->totalLogpResets, 
+                     pResetStats->totalCMD53Failures,
+                     pResetStats->totalMutexReadFailures,                     
+                     pResetStats->totalMIFErrorFailures,                     
+                     pResetStats->totalFWHearbeatFailures,
+                     pResetStats->totalUnknownExceptions
                      );
             wrqu->data.length = strlen(extra)+1;
             break;
