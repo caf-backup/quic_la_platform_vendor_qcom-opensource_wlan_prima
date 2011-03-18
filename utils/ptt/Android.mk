@@ -34,6 +34,7 @@ LOCAL_STATIC_LIBRARIES := \
 LOCAL_PRELINK_MODULE := false
 
 LOCAL_MODULE := ptt_socket_app
+LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_EXECUTABLE)
 
