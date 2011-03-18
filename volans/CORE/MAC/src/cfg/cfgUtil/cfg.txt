@@ -3660,7 +3660,7 @@ HAL
 * PS Data InActivity Timeout (TU)
 *
 
-WNI_CFG_PS_NULLDATA_DELAY_TIMEOUT    I    4    7
+WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT    I    4    7
 V    RW    NP
 HAL
 0    80    0
