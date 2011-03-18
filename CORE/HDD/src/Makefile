@@ -403,9 +403,11 @@ endif
 
 KBUILD_CPPFLAGS += $(CDEFINES)
 
-obj-m += libra.o
+MODNAME := libra
 
-libra-objs := 	$(VOSS_OBJS) \
+obj-m += $(MODNAME).o
+
+$(MODNAME)-objs := 	$(VOSS_OBJS) \
                 $(TL_OBJS)   \
                 $(SSC_OBJS)  \
                 $(SME_OBJS)  \
