@@ -180,16 +180,29 @@ static void halMsg_storeBssLinkState(tpAniSirGlobal pMac, tSirLinkState state,
 static void
 __halMsg_update11bCoexist(tpAniSirGlobal pMac, tANI_U32 llbCoexist)
 {
+    Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pMac->hal.FwParam.pFwConfig;
     if(pMac->hal.currentRfBand == eRF_BAND_2_4_GHZ){
         if(llbCoexist == 1){
             // Set the TPE reg to use the 11b rates for control frames
             halTpe_Set11gProtectionCntrlIndex(pMac, TRUE);
-
+            /* Add for b/g interop Wifi test */
+            pFwConfig->ucUcastDataRecepTimeoutMs = 80;
+            pFwConfig->nullDataApRespTimeoutMsec = 40;
         }else{
+            tANI_U32 dataInActivityTimeout;
             // Clear the TPE reg to use the 11b rates for control frames
             halTpe_Set11gProtectionCntrlIndex(pMac, FALSE);
+            
+            wlan_cfgGetInt( pMac, WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT, &dataInActivityTimeout );
+            /* Add for b/g interop Wifi test */
+            pFwConfig->ucUcastDataRecepTimeoutMs = (tANI_U8)dataInActivityTimeout;
+            pFwConfig->nullDataApRespTimeoutMsec = 0;
         }
+        /* Update FW SysConfig with NULL Data AP response delay timeout Value */
+        halFW_UpdateSystemConfig(pMac, pMac->hal.FwParam.fwSysConfigAddr,
+            (tANI_U8 *)pFwConfig, sizeof(Qwlanfw_SysCfgType));
     }
+
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
     {
         tANI_U32 cfgVal = 0;
