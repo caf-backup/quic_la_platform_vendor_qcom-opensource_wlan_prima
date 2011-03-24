@@ -16,18 +16,25 @@ PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/qcom_cfg.ini:data/hostapd/qcom_cfg.in
 PRODUCT_COPY_FILES += $(WLAN)/firmware_bin/qcom_cfg.ini:persist/qcom/softap/qcom_cfg_default.ini
 
 ACP_BINARY_OUT 	      := $(HOST_OUT)/bin/acp
-MAKE_MODULES_FOLDER   := $(TARGET_OUT)/lib/modules
-WLAN_PRODUCT_OUT      := $(TARGET_OUT)/lib/modules/libra.ko
-WLAN_FTM_PRODUCT_OUT  := $(TARGET_OUT)/lib/modules/libra_ftm.ko
+MAKE_MODULES_FOLDER   := $(TARGET_OUT)/lib/modules/libra
+WLAN_PRODUCT_OUT      := $(TARGET_OUT)/lib/modules/libra/libra.ko
+WLAN_FTM_PRODUCT_OUT  := $(TARGET_OUT)/lib/modules/libra/libra_ftm.ko
 WLAN_LIBRA_SDIOIF_OUT := $(TARGET_OUT)/lib/modules/librasdioif.ko
 WLAN_RF_LIBRA_OUT     := $(WLAN_OUT)/CORE/HDD/src/libra.ko
+WLAN_RF_LIBRA_TEMP_OUT     := $(WLAN_OUT)/CORE/HDD/src/wlan.ko
 WLAN_RF_LIBRA_MDIR    := ../$(WLAN)/CORE/HDD/src
 WLAN_RF_FTM_LIBRA_OUT := $(WLAN_OUT)/ftm/CORE/HDD/src/libra_ftm.ko
 WLAN_RF_FTM_LIBRA_MDIR:= ../$(WLAN)/ftm/CORE/HDD/src
+ifneq (, $(filter msm7627_surf msm7627_ffa, $(QCOM_TARGET_PRODUCT)))
+WLAN_WCN1312_SYMLINK := $(TARGET_OUT)/lib/modules/wlan.ko
+endif
 
 file := $(WLAN_RF_LIBRA_OUT)
 ALL_PREBUILT += $(file)
-
+ifneq (, $(filter msm7627_surf msm7627_ffa, $(QCOM_TARGET_PRODUCT)))
+file := $(WLAN_WCN1312_SYMLINK)
+ALL_PREBUILT += $(file)
+endif
 file := $(WLAN_RF_FTM_LIBRA_OUT)
 ALL_PREBUILT += $(file)
 
@@ -49,8 +56,17 @@ $(WLAN_RF_LIBRA_MDIR): $(KERNEL_OUT)
 $(WLAN_RF_FTM_LIBRA_MDIR): $(KERNEL_OUT)
 	mkdir -p $(KERNEL_OUT)/$(WLAN_RF_FTM_LIBRA_MDIR)
 
-$(WLAN_RF_LIBRA_OUT): $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL) $(WLAN_RF_LIBRA_MDIR)
-	$(MAKE) -C kernel M=$(WLAN_RF_LIBRA_MDIR) O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- WLAN=../$(WLAN)
+#POR for 7x27 is only libra
+ifneq (, $(filter msm7627_surf msm7627_ffa, $(QCOM_TARGET_PRODUCT)))
+$(WLAN_WCN1312_SYMLINK): $(WLAN_RF_LIBRA_OUT) $(WLAN_PRODUCT_OUT) $(MAKE_MODULES_FOLDER)
+	ln -s -f /system/lib/modules/libra/libra.ko $(WLAN_WCN1312_SYMLINK)
+endif
+
+$(WLAN_RF_LIBRA_TEMP_OUT): $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL) $(WLAN_RF_LIBRA_MDIR)
+	$(MAKE) -C kernel M=$(WLAN_RF_LIBRA_MDIR) O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- WLAN=../$(WLAN) MODNAME=wlan
+
+$(WLAN_RF_LIBRA_OUT): $(WLAN_RF_LIBRA_TEMP_OUT)
+	mv -f $(WLAN_RF_LIBRA_TEMP_OUT) $(WLAN_RF_LIBRA_OUT)
 
 $(WLAN_RF_FTM_LIBRA_OUT): $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL) $(WLAN_RF_LIBRA_OUT) $(WLAN_RF_FTM_LIBRA_MDIR)
 	$(MAKE) -C kernel M=$(WLAN_RF_FTM_LIBRA_MDIR) O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- BUILD_FTM_DRIVER=1 WLAN=../$(WLAN)
@@ -65,4 +81,7 @@ $(WLAN_LIBRA_SDIOIF_OUT): $(ACP_BINARY_OUT) $(WLAN_RF_LIBRA_OUT) $(MAKE_MODULES_
 	$(ACP) -f $(KERNEL_OUT)/drivers/net/wireless/libra/librasdioif.ko $(WLAN_LIBRA_SDIOIF_OUT)
 
 all: $(WLAN_RF_LIBRA_OUT) $(WLAN_RF_FTM_LIBRA_OUT) $(WLAN_PRODUCT_OUT) $(WLAN_FTM_PRODUCT_OUT) $(WLAN_LIBRA_SDIOIF_OUT) $(MAKE_SYMBOLIC_LINK)
+ifneq (, $(filter msm7627_surf msm7627_ffa, $(QCOM_TARGET_PRODUCT)))
+	$(WLAN_WCN1312_SYMLINK)
+endif
 endif

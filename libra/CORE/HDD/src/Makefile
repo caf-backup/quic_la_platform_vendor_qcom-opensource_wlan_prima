@@ -415,10 +415,11 @@ KBUILD_CPPFLAGS += $(CDEFINES)
 
 
 #                $(BAP_OBJS)
+MODNAME := libra
 ifeq ($(BUILD_FTM_DRIVER),1)
-obj-m += libra_ftm.o
+obj-m += $(MODNAME)_ftm.o
 
-libra_ftm-objs := 	$(VOSS_OBJS) \
+$(MODNAME)_ftm-objs := 	$(VOSS_OBJS) \
                 $(TL_OBJS)   \
                 $(SSC_OBJS)  \
                 $(SME_OBJS)  \
@@ -432,9 +433,9 @@ libra_ftm-objs := 	$(VOSS_OBJS) \
 		$(PTT_OBJS)
 else
 
-obj-m += libra.o
+obj-m += $(MODNAME).o
 
-libra-objs := 	$(VOSS_OBJS) \
+$(MODNAME)-objs := 	$(VOSS_OBJS) \
                 $(TL_OBJS)   \
                 $(SSC_OBJS)  \
                 $(SME_OBJS)  \
