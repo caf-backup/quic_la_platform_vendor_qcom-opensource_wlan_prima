@@ -65,7 +65,7 @@ $(WLAN_NV_FILE_SYMLINK): $(PERSIST_FOLDER) $(FW_FOLDER)
 #POR for 8660 is only volans
 ifeq "$(findstring msm8660,$(QCOM_TARGET_PRODUCT))" "msm8660"
 $(WLAN_WCN1314_SYMLINK): $(WLAN_RF_VOLANS_OUT) $(WLAN_RF_PRODUCT_OUT) $(MAKE_MODULES_FOLDER_VOLANS)
-	ln -s -f /system/lib/modules/volans/WCN1314_volans.ko $(WLAN_WCN1314_SYMLINK)
+	ln -s -f /system/lib/modules/volans/WCN1314_rf.ko $(WLAN_WCN1314_SYMLINK)
 endif
 
 $(MAKE_MODULES_FOLDER_VOLANS) :
