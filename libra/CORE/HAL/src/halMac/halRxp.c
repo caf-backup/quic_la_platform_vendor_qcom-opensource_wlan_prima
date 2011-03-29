@@ -2048,9 +2048,6 @@ eHalStatus halRxp_AddEntry(tpAniSirGlobal pMac, tANI_U8 staid, tSirMacAddr macAd
 
     }
 
-
-    halRxp_disable(pMac);
-
     /* ------------------------------
      *   Write Addr1 Table to memory
      * ------------------------------
@@ -2062,8 +2059,6 @@ eHalStatus halRxp_AddEntry(tpAniSirGlobal pMac, tANI_U8 staid, tSirMacAddr macAd
         if(writeAddrTable(pMac, pRxp->addr1_table, RXP_TABLE_ADDR1, RXP_TABLE_VALID,
                     pRxp->addr1.highPtr, pRxp->addr1.lowPtr, pRxp->addr1.numOfEntry) != eHAL_STATUS_SUCCESS) {
 
-            /* Enable Rxp back, this would un-block all frames as per the filter */
-            halRxp_enable(pMac);
             return eHAL_STATUS_FAILURE;
         }
     }
@@ -2080,8 +2075,6 @@ eHalStatus halRxp_AddEntry(tpAniSirGlobal pMac, tANI_U8 staid, tSirMacAddr macAd
             if(writeAddrTable(pMac, pRxp->addr2_table, RXP_TABLE_ADDR2, RXP_TABLE_VALID,
                         pRxp->addr2.highPtr, pRxp->addr2.lowPtr, pRxp->addr2.numOfEntry) != eHAL_STATUS_SUCCESS) 
             {
-                /* Enable Rxp back, this would un-block all frames as per the filter */
-                halRxp_enable(pMac);
                 return eHAL_STATUS_FAILURE;
             }
         }
@@ -2101,8 +2094,6 @@ eHalStatus halRxp_AddEntry(tpAniSirGlobal pMac, tANI_U8 staid, tSirMacAddr macAd
         }
     }
 
-    /* Enable Rxp back, this would un-block all frames as per the filter */
-    halRxp_enable(pMac);
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -2152,6 +2143,9 @@ eHalStatus writeAddrTable(tpAniSirGlobal pMac, tRxpAddrTable* pTable, tANI_U8 ad
         mask = 0;
     }
 
+    // disable Rxp during BST entry update
+    halRxp_disable(pMac);
+
     // Write the into the RXP search table registers
     for(i=0; i < numOfEntry; i++) {
         write_rxp_search_table_reg(pMac, &pTable[i], lowPtr + i);
@@ -2161,6 +2155,10 @@ eHalStatus writeAddrTable(tpAniSirGlobal pMac, tRxpAddrTable* pTable, tANI_U8 ad
     // Update the table pointers in the hw register
     value = mask | (highPtr << offset) | lowPtr;
     halWriteRegister(pMac, regAddr, value);
+ 
+    // * Enable Rxp back 
+    halRxp_enable(pMac);
+
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -3260,12 +3258,6 @@ void halRxp_setSystemRxpFilterMode(tpAniSirGlobal pMac,
     
     tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;
 
-	/* Disable Rxp, this would block all frames while toggling between modes */
-    if (halRxp_disable(pMac) == eHAL_STATUS_FAILURE) {
-        HALLOGE(halLog(pMac, LOGE, FL("RXP Disable Failed\n")));
-        return;
-    }
-
     switch (mode_flag) 
     {
         // Just the BSS settings are valid.
@@ -3314,9 +3306,6 @@ void halRxp_setSystemRxpFilterMode(tpAniSirGlobal pMac,
 
      halRxp_setFrameFilterMaskForBcnProbeRsp(pMac, maskValue);
 
-    if ( halRxp_enable(pMac) != eHAL_STATUS_SUCCESS )
-         HALLOGE( halLog( pMac, LOGE, "Failed to set ENABLE RXP \n"));
-
     return;
 }
 
@@ -3337,12 +3326,6 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
     tANI_U32 maskValue = 0;
     tRxpMode systemRxpMode = halRxp_getSystemRxpMode(pMac);
     tpBssStruct bssTable = (tpBssStruct) pMac->hal.halMac.bssTable;
-
-    /* Disable Rxp, this would block all frames while toggling between modes */
-    if (halRxp_disable(pMac) == eHAL_STATUS_FAILURE) {
-        HALLOGE(halLog(pMac, LOGE, FL("RXP Disable Failed\n")));
-        return;
-    }
 
     // Get the global system rxp mode register values.
     halRxp_GetRegValRxpMode(pMac, systemRxpMode, &regLo, &regHi);
@@ -3471,8 +3454,6 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
             break;
     }
 
-    if ( halRxp_enable(pMac) != eHAL_STATUS_SUCCESS )
-        HALLOGE( halLog( pMac, LOGE, "Failed to set ENABLE RXP \n"));
 
     HALLOGW( halLog( pMac, LOGW, 
                 FL("rxpMode = %x RegLo=%x RegHi=%x\n"), 

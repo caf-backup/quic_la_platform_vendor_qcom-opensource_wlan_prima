@@ -76,8 +76,8 @@ eHalStatus halPhyOpen(tHalHandle hHal)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
-    //right now hardcoding it to FCC. read this from NVI and invoke halPhySetRegDomain to set it.
     eRegDomainId curDomain = REG_DOMAIN_FCC;
+    sDefaultCountry  *pCountryCode;
 
     //hard coding the nTx and nRx. Need to fetch them from hal sys config structure
     tANI_U8 nTx = PHY_MAX_TX_CHAINS;
@@ -91,6 +91,13 @@ eHalStatus halPhyOpen(tHalHandle hHal)
     pMac->hphy.phy.test.testDisablePhyRegAccess = eANI_BOOLEAN_FALSE;
 
     //if ((retVal = ConfigureTpcFromNv(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
+
+    //read the regulatory domain idx from Nv and update the phy state
+    if(halGetNvTableLoc(pMac, NV_TABLE_DEFAULT_COUNTRY, (uNvTables **)&pCountryCode) == eHAL_STATUS_SUCCESS)
+    {
+        curDomain = (eRegDomainId)(pCountryCode->regDomain);
+    }
+
     if ((retVal = halPhySetRegDomain(pMac, curDomain)) != eHAL_STATUS_SUCCESS) { return (retVal); }
 
     //intialize the setChan event for wait blocking around halPhySetChannel

@@ -5312,6 +5312,12 @@ eHalStatus csrScanTriggerIdleScan(tpAniSirGlobal pMac, tANI_U32 *pTimeInterval)
     *pTimeInterval = 0;
 
     smsLog(pMac, LOGW, FL("called\n"));
+
+#ifdef WLAN_SOFTAP_FEATURE
+    if (VOS_STA_SAP_MODE == vos_get_conparam ())
+        return status;
+#endif
+
     if( smeCommandPending( pMac ) )
     {
         smsLog( pMac, LOGW, FL("  Cannot request IMPS because command pending\n") );
