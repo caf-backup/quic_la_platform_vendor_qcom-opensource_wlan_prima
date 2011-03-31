@@ -403,6 +403,12 @@ ifneq (,$(findstring arm-eabi-4.4, $(ANDROID_EABI_TOOLCHAIN)))
 EXTRA_CFLAGS += -Wframe-larger-than=4096
 endif
 
+# Added for HONEYCOMB Builds only
+ifneq (,$(findstring androideabi-4.4, $(ANDROID_EABI_TOOLCHAIN)))
+EXTRA_CFLAGS += -Wframe-larger-than=4096
+endif
+
+
 
 CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DANI_BUS_TYPE_SDIO=1 \
