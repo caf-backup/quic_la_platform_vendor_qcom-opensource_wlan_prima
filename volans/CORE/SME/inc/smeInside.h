@@ -49,8 +49,9 @@
 
 typedef struct sGenericPmcCmd
 {
-    tANI_U32 size;  //sizeof the data in te union, if any
+    tANI_U32 size;  //sizeof the data in the union, if any
     tRequestFullPowerReason fullPowerReason;
+    tANI_BOOLEAN fReleaseWhenDone; //if TRUE, the command shall not put back to the queue, free te memory instead.
     union
     {
         tExitBmpsInfo exitBmpsInfo;

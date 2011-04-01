@@ -379,6 +379,7 @@ struct hdd_adapter_s
    /** ptt Process ID*/
    v_SINT_t ptt_pid;
    tANI_U8 sessionId;
+   v_S7_t  rssi;
 #ifdef FEATURE_WLAN_WAPI
    hdd_wapi_info_t wapi_info;
 #endif

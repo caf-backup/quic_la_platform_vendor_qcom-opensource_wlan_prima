@@ -117,12 +117,22 @@
 // Macros for hardware mutex
 #define HAL_PS_BUSY_GENERIC             0
 #define HAL_PS_BUSY_INTR_CONTEXT        1
+
+/* Context that corresponds to TX/RX thread */
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+#define HAL_PS_BUSY_TXRX_CONTEXT        2
+#endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
+
 #define HAL_PS_MUTEX_ACQ_RETRY_COUNT    10
 #define HAL_PS_MUTEX_MAX_COUNT          1
 
 #define IS_PWRSAVE_STATE_IN_BMPS    (pMac->hal.PsParam.pwrSaveState.p.psState & (HAL_PWR_SAVE_BMPS_STATE | HAL_PWR_SAVE_BMPS_REQUESTED))
 #define IS_HOST_BUSY_INTR_CNTX      (pMac->hal.PsParam.mutexIntrCount)
 #define IS_HOST_BUSY_GENERIC_CNTX   (pMac->hal.PsParam.mutexCount)
+
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+#define IS_HOST_BUSY_TXRX_CNTX   (pMac->hal.PsParam.mutexTxRxCount)
+#endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
 
 #define ENABLE_HEART_BEAT_IN_PS        1
 #define DISABLE_HEART_BEAT_IN_PS       0
@@ -174,6 +184,9 @@ typedef struct sHalPwrSave
     tANI_U8         mutexCount;     // Count of mutex acquired.
     tANI_U8         mutexIntrCount; // Count of mutex acquired
     tANI_S8         mutexTxCount;   // Tx Mutex acquisition
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+    tANI_U8         mutexTxRxCount; // Count of mutex acquired in Tx/Rx context
+#endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
 
     vos_event_t     fwRspEvent;     // VOSS event required for FW responses
 
@@ -338,5 +351,10 @@ void halPSNullDataAPProcessDelay( tpAniSirGlobal pMac, tANI_U32 cfgId );
 
 /* Set host offload configuration in firmware */
 eHalStatus halPS_SetHostOffloadInFw(tpAniSirGlobal pMac, tpSirHostOffloadReq pRequest);
+
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+VOS_STATUS halPS_SetHostBusyTxRx(v_PVOID_t pContext);
+VOS_STATUS halPS_ReleaseHostBusyTxRx(v_PVOID_t pContext);
+#endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
 
 #endif //_HALPWRSAVE_H_

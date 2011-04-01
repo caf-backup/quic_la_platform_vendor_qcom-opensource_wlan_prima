@@ -509,7 +509,6 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     union iwreq_data wrqu;
     int we_event;
     char *msg;
-    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
     ENTER();
 
    hddLog(LOGW,"%s called with halHandle = %p, pContext = %p, scanID = %d,"
@@ -532,14 +531,6 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     we_event = SIOCGIWSCAN;
     msg = NULL;
     wireless_send_event(dev, we_event, &wrqu, msg);
-
-    vos_status = vos_event_set(&pwextBuf->vosevent);
-
-    if (!VOS_IS_STATUS_SUCCESS(vos_status))
-    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!"));
-       return VOS_STATUS_E_FAILURE;
-    }
 
     EXIT();
 
@@ -816,7 +807,6 @@ static eHalStatus hdd_CscanRequestCallback(tHalHandle halHandle, void *pContext,
 int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
                  union iwreq_data *wrqu, char *extra)
 {
-    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
     hdd_wext_state_t *pwextBuf = pAdapter->pWextState;
     tCsrScanRequest scanRequest;
@@ -972,15 +962,6 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
         }
 
         pwextBuf->scanId = scanId;
-
-        vos_status = vos_wait_single_event(&pwextBuf->vosevent, 3000);
-
-        if (!VOS_IS_STATUS_SUCCESS(vos_status))
-        {
-            pwextBuf->mScanPending = FALSE;
-            status = -EINVAL;
-            goto exit_point;
-        }
 
      } //end of data->pointer
      else {

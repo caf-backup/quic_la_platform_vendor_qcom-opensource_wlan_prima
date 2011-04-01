@@ -1036,7 +1036,7 @@ SysProcessMmhMsg
   if(VOS_STATUS_SUCCESS != vos_mq_post_message(targetMQ, (vos_msg_t*)pMsg))
   {
      /* free the mem and return */
-     palFreeMemory( pMac->hHdd, pMsg);
+     palFreeMemory( pMac->hHdd, pMsg->bodyptr);
   }
 
 } /* SysProcessMmhMsg() */

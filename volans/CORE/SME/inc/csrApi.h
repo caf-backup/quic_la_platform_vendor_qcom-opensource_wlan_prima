@@ -1289,6 +1289,18 @@ typedef void (* csrRoamLinkQualityIndCallback)
 ---------------------------------------------------------------------------*/
 typedef void ( *tCsrStatsCallback) (void * stats, void *pContext);
 
+/*---------------------------------------------------------------------------
+  This is the type for a rssi callback to be registered with SME
+  for getting rssi
+
+  \param rssi - rssi
+  \param pContext - any user data given at callback registration.  
+  \return None
+  
+---------------------------------------------------------------------------*/
+
+typedef void ( *tCsrRssiCallback) (v_S7_t rssi, tANI_U32 staId, void *pContext);
+
 #ifdef WLAN_FEATURE_VOWIFI_11R
 eHalStatus csrRoamIssueFTPreauthReq(tHalHandle hHal, tANI_U32 sessionId, tpSirBssDescription pBssDescription);
 #endif

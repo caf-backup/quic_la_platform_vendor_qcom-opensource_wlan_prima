@@ -7710,6 +7710,39 @@ tANI_BOOLEAN csrRoamIssueWmStatusChange( tpAniSirGlobal pMac, tANI_U32 sessionId
 }
 
 
+static void csrUpdateRssi(tpAniSirGlobal pMac, void* pMsg)
+{
+    v_S7_t  rssi = 0;
+    tAniGetRssiReq *pGetRssiReq = (tAniGetRssiReq*)pMsg;
+    if(pGetRssiReq)
+    {
+        if(NULL != pGetRssiReq->pVosContext)
+        {
+            WLANTL_GetRssi(pGetRssiReq->pVosContext, pGetRssiReq->staId, &rssi);
+        }
+        else
+        {
+            smsLog( pMac, LOGE, FL("pGetRssiReq->pVosContext is NULL\n"));                
+            return;
+        }
+            
+        if(NULL != pGetRssiReq->rssiCallback)
+        {
+            ((tCsrRssiCallback)(pGetRssiReq->rssiCallback))(rssi, pGetRssiReq->staId, pGetRssiReq->pDevContext);
+        }
+        else
+        {
+            smsLog( pMac, LOGE, FL("pGetRssiReq->rssiCallback is NULL\n"));                
+            return;
+        }
+    }
+    else
+    {
+        smsLog( pMac, LOGE, FL("pGetRssiReq is NULL\n"));    
+    }
+    return;
+}
+
 void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
 {
     tSirSmeAssocInd *pAssocInd;
@@ -8376,6 +8409,12 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
             smsLog( pMac, LOGW, FL("Stats rsp from PE\n"));
             csrRoamStatsRspProcessor( pMac, pSirMsg );
             break;
+
+        case eWNI_SME_GET_RSSI_REQ:
+            smsLog( pMac, LOGW, FL("GetRssiReq from self\n"));
+            csrUpdateRssi( pMac, pSirMsg );
+            break;
+
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
         case eWNI_SME_FT_PRE_AUTH_RSP:
@@ -12426,6 +12465,7 @@ static tANI_U32 csrRoamGetStatsTimerVal(tpAniSirGlobal pMac)
 }
 #endif
 
+
 eHalStatus csrSendMBStatsReqMsg( tpAniSirGlobal pMac, tANI_U32 statsMask, tANI_U8 staId)
 {
    tAniGetPEStatsReq *pMsg;
@@ -14371,6 +14411,43 @@ void  csrRoamHandoffRemoveAllFromList( tpAniSirGlobal pMac,
 
 }
 #endif
+
+eHalStatus csrGetRssi(tpAniSirGlobal pMac, 
+                            tCsrRssiCallback callback, 
+                            tANI_U8 staId, void *pContext, void* pVosContext)
+{  
+   eHalStatus status = eHAL_STATUS_SUCCESS;
+   vos_msg_t  msg;
+
+   tAniGetRssiReq *pMsg;
+    smsLog(pMac, LOGE, FL(" called\n"));      
+   status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, sizeof(tAniGetRssiReq));
+   if ( !HAL_STATUS_SUCCESS(status) ) 
+   {
+      smsLog(pMac, LOGE, " csrGetRssi: failed to allocate mem for req \n");
+      return status;
+   }
+
+   pMsg->msgType = pal_cpu_to_be16((tANI_U16)eWNI_SME_GET_RSSI_REQ);
+   pMsg->msgLen = (tANI_U16)sizeof(tAniGetRssiReq);
+   pMsg->staId = staId;
+   pMsg->rssiCallback = callback;
+   pMsg->pDevContext = pContext;
+   pMsg->pVosContext = pVosContext;
+
+   msg.type = eWNI_SME_GET_RSSI_REQ;
+   msg.bodyptr = pMsg;
+   msg.reserved = 0;
+
+   if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MQ_ID_SME, &msg))
+   {
+       smsLog(pMac, LOGE, " csrGetRssi failed to post msg to self \n");   
+       palFreeMemory(pMac->hHdd, (void *)pMsg);
+       status = eHAL_STATUS_FAILURE;
+   }
+    smsLog(pMac, LOGE, FL(" returned\n"));      
+   return status;
+}
 
 eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requesterId, 
                             tANI_U32 statsMask, 

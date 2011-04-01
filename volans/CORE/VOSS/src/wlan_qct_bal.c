@@ -334,9 +334,22 @@ static v_VOID_t balGetTXResTimerExpierCB
 
    BENTER();
 
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+   /* Acquire the resource to make sure firmware wont power down the chip when 
+    * next register access is in progress */
+   if (NULL != gbalHandle->halCBacks.acquireResourceCB)
+       gbalHandle->halCBacks.acquireResourceCB(gbalHandle->halCBacks.halUsrData);
+#endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
+
    status = WLANBAL_ReadRegister(pAdapter,
                                  QWLAN_SIF_BMU_BD_PDU_RSV_ALL_REG,
                                  &availableTxBuffer);
+
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+   /* Release the resource after completer hardware access */
+   if (NULL != gbalHandle->halCBacks.releaseResourceCB)
+       gbalHandle->halCBacks.releaseResourceCB(gbalHandle->halCBacks.halUsrData);
+#endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
 
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
@@ -892,6 +905,9 @@ VOS_STATUS WLANBAL_Start
 
     }
 
+   /* Zero out the halCBacks memory */
+   vos_mem_zero((v_PVOID_t)&gbalHandle->halCBacks, sizeof(WLANBAL_HalRegType));
+
    /* DXE Header CFG set as default */
    gbalHandle->sdioDXEConfig.TXChannel.shortDescriptor    = VOS_TRUE;
    gbalHandle->sdioDXEConfig.TXChannel.descriptorControl  = WLANBAL_DXE_TX_DESC_CTRL;
@@ -1153,6 +1169,13 @@ VOS_STATUS WLANBAL_RegHalCBFunctions
 
    gbalHandle->halCBacks.asicInterruptCB = halReg->asicInterruptCB;
    gbalHandle->halCBacks.fatalErrorCB    = halReg->fatalErrorCB;
+   gbalHandle->halCBacks.halUsrData = halReg->halUsrData;
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+   /* Callbacks provided by HAL to acquire/release resources for safe hardware
+    * access in power save mode */
+   gbalHandle->halCBacks.acquireResourceCB = halReg->acquireResourceCB;
+   gbalHandle->halCBacks.releaseResourceCB = halReg->releaseResourceCB;
+#endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
 
    BEXIT();
    return VOS_STATUS_SUCCESS;
@@ -2182,11 +2205,25 @@ VOS_STATUS WLANBAL_GetTxResources
 
    BENTER();
 
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+   /* Acquire the resource to make sure firmware wont power down the chip when 
+    * next register access is in progress */
+   if (NULL != gbalHandle->halCBacks.acquireResourceCB)
+       gbalHandle->halCBacks.acquireResourceCB(gbalHandle->halCBacks.halUsrData);
+#endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
+
    // CAUTION!!! here the code assumes that this is called with the
    // sd claim host lock in place.
    status = WLANBAL_ReadRegister(pAdapter,
                                  QWLAN_SIF_BMU_BD_PDU_RSV_ALL_REG,
                                  availableTxBuffer);
+
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+   /* Release resource after completing access to the chip */
+   if (NULL != gbalHandle->halCBacks.releaseResourceCB)
+       gbalHandle->halCBacks.releaseResourceCB(gbalHandle->halCBacks.halUsrData);
+#endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
+
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
       BMSGERROR("%s: Get Resource Fail\n", __func__, 0, 0);

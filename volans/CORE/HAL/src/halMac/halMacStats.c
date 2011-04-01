@@ -1423,14 +1423,6 @@ void halHandlePEStatisticsReq(tpAniSirGlobal pMac, tANI_U16 msgType, tpAniGetPES
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tANI_U8   psState = 0;
 
-     /** Don't get the stats if the device is in a Idle mode power save.*/
-    psState = halPS_GetState(pMac);
-    if((psState == HAL_PWR_SAVE_IMPS_STATE) || (psState == HAL_PWR_SAVE_IMPS_REQUESTED)) {
-        //Free the request message.
-        palFreeMemory( pMac, pMsg );
-        return;
-    }
-
     if( NULL == pMsg )
     {
         HALLOGE(halLog(pMac, LOGE, FL("Statistics request pointer is NULL!!")));
@@ -1485,6 +1477,14 @@ void halHandlePEStatisticsReq(tpAniSirGlobal pMac, tANI_U16 msgType, tpAniGetPES
     pRsp->msgLen = (tANI_U16)(statsSize + sizeof(tAniGetPEStatsRsp));
     pRsp->statsMask = statsMask;
     pRsp->staId = staId;
+    /** Don't get the stats if the device is in a Idle mode power save.*/
+    psState = halPS_GetState(pMac);
+    if((psState == HAL_PWR_SAVE_IMPS_STATE) || (psState == HAL_PWR_SAVE_IMPS_REQUESTED)) {
+        HALLOGE(halLog(pMac, LOGE, FL("Return error status if the device is in IMPS\n")));
+        pRsp->rc  = eHAL_STATUS_FAILURE;
+        goto done;
+    }
+
 
     //stat collection start
     pStatsBuff += sizeof(tAniGetPEStatsRsp);
@@ -1496,7 +1496,10 @@ void halHandlePEStatisticsReq(tpAniSirGlobal pMac, tANI_U16 msgType, tpAniGetPES
         address = pMac->hal.memMap.tpeStaDesc_offset + (staId * TPE_STA_DESC_AND_STATS_SIZE) + TPE_PER_STA_STATS_START_OFFSET;
         if (halReadDeviceMemory(pMac, address, (tANI_U8 *)pTpeStaStats,
                             sizeof(tTpeStaStats)) != eHAL_STATUS_SUCCESS) {
-            return;
+            
+            HALLOGE(halLog(pMac, LOGE, FL("halReadDeviceMemory Failed Return error status \n")));
+            pRsp->rc  = eHAL_STATUS_FAILURE;
+            goto done;
         }
     }
 
@@ -1526,7 +1529,7 @@ void halHandlePEStatisticsReq(tpAniSirGlobal pMac, tANI_U16 msgType, tpAniGetPES
     }
 
     pRsp->rc  = status;
-
+done:
     halMsg_GenerateRsp( pMac, SIR_HAL_GET_STATISTICS_RSP, (tANI_U16) 0, pRsp, 0);
 
 }

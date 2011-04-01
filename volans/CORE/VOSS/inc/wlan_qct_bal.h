@@ -96,6 +96,38 @@ typedef VOS_STATUS
 (*WLANBAL_FatalErrorCBType)(v_PVOID_t pAdapter,
                             v_U32_t   errorCode);
 
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+/*----------------------------------------------------------------------------
+
+  @brief Whenever BAL wants to make sure hardware should be awake during the 
+        register access, this callback should be called before accessing the 
+        register that is intended to read
+
+  @param pMacContext - Userdata passed during registration 
+      
+  @return General status code
+        VOS_STATUS_SUCCESS      Success
+        VOS_STATUS_E_FAILURE    if unable to acquire resource
+        
+----------------------------------------------------------------------------*/
+typedef VOS_STATUS
+    (*WLANBAL_AcquireResourceCBType)(v_PVOID_t pMacContext);
+
+/*----------------------------------------------------------------------------
+
+  @brief After completing the necessary operations with hardware, BAL should 
+        call this callback to release the previously acquired resource.
+
+  @param pMacContext - Userdata passed during registration 
+      
+  @return General status code
+        VOS_STATUS_SUCCESS      Success
+        VOS_STATUS_E_FAILURE    if unable to acquire resource
+----------------------------------------------------------------------------*/
+
+typedef VOS_STATUS
+    (*WLANBAL_ReleaseResourceCBType)(v_PVOID_t pMacContext);
+#endif
 /*
  * Elements HAL have to register to BAL
  */
@@ -105,6 +137,13 @@ typedef struct
    WLANBAL_ASICInterruptCBType   asicInterruptCB;
    /* Fatal error callback Function */
    WLANBAL_FatalErrorCBType      fatalErrorCB;
+
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+   /* Callback to acquire mutex */
+   WLANBAL_AcquireResourceCBType acquireResourceCB;
+   /* Callback to release mutex */
+   WLANBAL_ReleaseResourceCBType releaseResourceCB;
+#endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
    /* HAL internal handle */
    v_PVOID_t                     halUsrData;
 } WLANBAL_HalRegType;

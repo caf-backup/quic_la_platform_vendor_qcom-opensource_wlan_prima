@@ -212,6 +212,28 @@ hdd_IsAuthTypeRSN( tHalHandle halHandle, eCsrAuthType authType)
     return rsnType;
 }
 
+void hdd_GetRssiCB( v_S7_t rssi, tANI_U32 staId, void *pContext )
+{
+   hdd_adapter_t             *pAdapter      = (hdd_adapter_t *)pContext;
+   hdd_wext_state_t *pWextState;   
+   VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+   
+    if(pAdapter)
+    {
+        pAdapter->rssi = rssi;    
+        pWextState = pAdapter->pWextState;
+        if(pWextState) 
+        {
+           vos_status = vos_event_set(&pWextState->vosevent);
+           if (!VOS_IS_STATUS_SUCCESS(vos_status))
+           {   
+              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!\n"));
+              return;
+           }
+        }
+    }
+}
+
 void hdd_StatisticsCB( void *pStats, void *pContext )
 {
    hdd_adapter_t             *pAdapter      = (hdd_adapter_t *)pContext;
@@ -618,8 +640,8 @@ static int iw_get_tx_power(struct net_device *dev,
     
     if(eHAL_STATUS_SUCCESS != status)
     {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD sme_GetStatistics failed!!\n"));
-       return status;
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD sme_GetStatistics failed!!\n"));
+        return status;
     }
   
     pWextState = pAdapter->pWextState;
@@ -629,6 +651,17 @@ static int iw_get_tx_power(struct net_device *dev,
     if (!VOS_IS_STATUS_SUCCESS(vos_status))
     { 
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos wait for single_event failed!!\n"));
+       /*Remove the SME statistics list by passing NULL in callback argument*/
+       status = sme_GetStatistics( pAdapter->hHal, eCSR_HDD, 
+                       SME_SUMMARY_STATS      |
+                       SME_GLOBAL_CLASSA_STATS |
+                       SME_GLOBAL_CLASSB_STATS |
+                       SME_GLOBAL_CLASSC_STATS |
+                       SME_GLOBAL_CLASSD_STATS |
+                       SME_PER_STA_STATS,
+                       NULL, 0, FALSE, 
+                       pAdapter->conn_info.staId[0], pAdapter );
+
        return VOS_STATUS_E_FAILURE;
     }
   
@@ -1545,9 +1578,23 @@ static int iw_set_priv(struct net_device *dev,
             if( (len > 0) && (len <= 32) ) {
                 memcpy( (void *)cmd, (void *)pAdapter->conn_info.SSID.SSID.ssId, len );
                 ret = len;
-                
-                WLANTL_GetRssi( pAdapter->pvosContext, pAdapter->conn_info.staId[ 0 ], &s7Rssi );
-                ret += sprintf(&cmd[ret], " rssi %d\n", s7Rssi);
+
+                pAdapter->rssi = 0;
+                status = sme_GetRssi(pAdapter->hHal, hdd_GetRssiCB, pAdapter->conn_info.staId[ 0 ], pAdapter, pAdapter->pvosContext);
+                if(eHAL_STATUS_SUCCESS != status)
+                {
+                    hddLog(VOS_TRACE_LEVEL_ERROR, "HDD sme_GetRssi failed");
+                    return status;
+                }
+
+                vos_wait_single_event(&pWextState->vosevent, 1000);
+                if(!VOS_IS_STATUS_SUCCESS(status))
+                {
+                    hddLog(VOS_TRACE_LEVEL_ERROR, "HDD vos wait for single_event failed");
+                    return VOS_STATUS_E_FAILURE;
+                }
+                s7Rssi = pAdapter->rssi;
+                ret += sprintf(&cmd[ret], " rssi %d\n", s7Rssi);                
             }
         }
         else

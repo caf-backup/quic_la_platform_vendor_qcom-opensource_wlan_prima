@@ -149,7 +149,9 @@ eHalStatus halPS_Init(tHalHandle hHal, void *arg)
     halMcu_ResetMutexCount(pMac, QWLAN_MCU_MUTEX_HOSTFW_SYNC_INDEX, QWLAN_HOSTFW_SYNC_MUTEX_MAX_COUNT);
     pHalPwrSave->mutexCount     = 0;
     pHalPwrSave->mutexIntrCount = 0;
-
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+    pHalPwrSave->mutexTxRxCount = 0;
+#endif
 #ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
     /* FIXME: Volans 1.0 Power-save workaround. Needs to be removed 
      * as soon as fix is available in the hardware
@@ -2707,22 +2709,53 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
     palWriteRegister(pMac->hHdd, QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_REG, QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT);
 #endif    
 
+/***********************************************************************
+ * Please note that the below logic is executed by 3 different contexts.
+ * MC Thread, TX Thread and INTR Context. The contexts are differentiated
+ * by using 3 different global variables, 1 for each context. But still 
+ * the Mutex1 global variable is shared by all the 3 contexts. It is 
+ * assumed that each context will acquire only one MUTEX1 variable and 
+ * release it appropriately. Hence there is no spin lock used in this 
+ * function. If any other changes are done here which requires accessing
+ * any other global variable(s), this function should be made re-entrant
+ * by adding appropriate lock at the entry and exit for both SetHostBusy
+ * and ReleaseHostBusy functions.
+ * ********************************************************************/
+
 #ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
 	  /* FIXME: This change is required to address SIF issues in Power-save case.
 	   * The SIF is using Rate-Matching FIFO even in the SIF-Freeze case which is
 	   * causing DxE errors in high SD frequencies on 7x30 platform.
 	   */
 	  {
-		  tANI_U32 uRegValue;
+		  tANI_U32 uRegValue, mutexFailCnt = 0;
 	
 		  do {
 			/* Acquire Mutex1 here */
 			palReadRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, &uRegValue);
+            if (0 == uRegValue)
+                mutexFailCnt++;
 			curCnt = (uRegValue & QWLAN_MCU_MUTEX1_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX1_CURRENTCOUNT_OFFSET;
-		  }while(curCnt < 1 && retryCnt++ < 3 );
+		  } while(curCnt < 1 && retryCnt++ < 300 );
+         
+          if (0 == curCnt)
+          {
+              /* LOGP if mutex is not acquired */
+              VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s: MUTEX1 Not Acquired after 300 tries, regVal = %d", __func__, regValue);
+              macSysResetReq(pMac, eSIR_PS_MUTEX_READ_EXCEPTION);
+          }    
           
-          	  /* Tracking the protection for device writes */
-          	  pMac->hal.PsParam.mutexTxCount++;
+          /* Release the mutex for the counts whenever we read the value 0 from register */
+	      uRegValue = (1 << QWLAN_MCU_MUTEX1_MAXCOUNT_OFFSET);
+          while (mutexFailCnt)
+          {
+              palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, uRegValue);
+              mutexFailCnt--;
+          }
+          uRegValue = 0;
+
+          /* Tracking the protection for device writes */
+          pMac->hal.PsParam.mutexTxCount++;
 		   
 		  /* Once mutex1 is acquired, touch BPS_REQ bit in PMU that would unfreeze SIF for Register-FIFO acesses
 		   * It is necessary that host acquire the mutex here and not inside the DO-WHILE Loop. This addresses the
@@ -2765,7 +2798,13 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 
     if(eHAL_STATUS_FW_PS_BUSY == mutexAcq)
     {
-        VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "Host Busy Mutex is not Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue);
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+        VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "Context: %d - Host Busy Mutex is not Acquired = %d,%d, %x", ctx, 
+                            pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxRxCount, regValue);
+#else
+        VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "Context: %d - Host Busy Mutex is not Acquired = %d,%d, %x", ctx, 
+                            pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue);
+#endif
         macSysResetReq(pMac, eSIR_PS_MUTEX_READ_EXCEPTION);
     } else {
         if (retryCnt > 0) {
@@ -2781,12 +2820,24 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 
     if (ctx == HAL_PS_BUSY_GENERIC) {
         pMac->hal.PsParam.mutexCount++;
-    } else {
+    } 
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+    else if (ctx == HAL_PS_BUSY_TXRX_CONTEXT)
+    {
+        pMac->hal.PsParam.mutexTxRxCount++;
+    }
+#endif
+    else
+    {
         pMac->hal.PsParam.mutexIntrCount++;
     }
 
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+    HALLOGW(halLog(pMac, LOGE, "Released = %d,%d,%d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, 
+                                                    pMac->hal.PsParam.mutexTxRxCount, pMac->hal.PsParam.mutexTxCount, regValue));
+#else
     HALLOGW(halLog(pMac, LOGE, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
-
+#endif
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -2816,7 +2867,14 @@ eHalStatus halPS_ReleaseHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 
     if (ctx == HAL_PS_BUSY_GENERIC) {
         pMac->hal.PsParam.mutexCount--;
-    } else {
+    } 
+ #ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+    else if (ctx == HAL_PS_BUSY_TXRX_CONTEXT)
+    {
+        pMac->hal.PsParam.mutexTxRxCount--;
+    }
+#endif
+    else {
         pMac->hal.PsParam.mutexIntrCount--;
     }
 
@@ -2830,7 +2888,12 @@ eHalStatus halPS_ReleaseHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
     }
 #endif
 
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+    HALLOGW(halLog(pMac, LOGE, "Released = %d,%d,%d, %d", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, 
+                                                    pMac->hal.PsParam.mutexTxRxCount, pMac->hal.PsParam.mutexTxCount));
+#else
     HALLOGW(halLog(pMac, LOGE, "Released = %d,%d,%d", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxCount));
+#endif
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -3944,3 +4007,46 @@ eHalStatus halPS_SetHostOffloadInFw(tpAniSirGlobal pMac, tpSirHostOffloadReq pRe
    return;
 }
 
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+/* Call back invoked by TX/RX thread incase it needs to acquire resource before direct chip 
+ * access in power save mode */
+VOS_STATUS halPS_SetHostBusyTxRx(v_PVOID_t pMacContext)
+{
+    eHalStatus  status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(pMacContext);
+
+    /* Need to acquire mutex only if we are in BMPS */
+    if (IS_PWRSAVE_STATE_IN_BMPS)
+    {
+        status = halPS_SetHostBusy(pMac, HAL_PS_BUSY_TXRX_CONTEXT);
+        VOS_TRACE(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_INFO_HIGH, "Acquired Mutex in TxRx context, Cnt = %d\n", pMac->hal.PsParam.mutexTxRxCount);
+    }
+
+    if (status)
+        return VOS_STATUS_E_FAILURE;
+
+    return VOS_STATUS_SUCCESS;
+}
+
+/* Call back invoked by TX/RX thread to release the resource after chip 
+ * access in power save mode */
+VOS_STATUS halPS_ReleaseHostBusyTxRx(v_PVOID_t pMacContext)
+{
+    eHalStatus  status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(pMacContext);
+
+    /* Dont check for BMPS state here as it is possible that EXIT BMPS
+     * might have got called after acquiring mutex in TX context. In 
+     * that case, this condition check can result in loss of one mutex */
+
+    /* If we dont have any mutex count, we cant release it. Something wrong must have happened */
+    if (IS_HOST_BUSY_TXRX_CNTX)
+        status = halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_TXRX_CONTEXT);
+
+    if (status)
+        return VOS_STATUS_E_FAILURE;
+
+    return VOS_STATUS_SUCCESS;
+
+}
+#endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */

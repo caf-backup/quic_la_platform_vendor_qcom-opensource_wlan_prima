@@ -1513,6 +1513,13 @@ halIntChipEnable(tHalHandle hHalHandle)
     halRegType.halUsrData = pMac;
     halRegType.fatalErrorCB = halFatalErrorHandler;
 
+    /* Register acquire resource/release resource callbacks that BAL 
+     * can use before making any transactions to the chip to make sure 
+     * f/w wont power down the chip when transaction in progress */
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
+    halRegType.acquireResourceCB = halPS_SetHostBusyTxRx;
+    halRegType.releaseResourceCB = halPS_ReleaseHostBusyTxRx;
+#endif
     status = WLANBAL_RegHalCBFunctions(pVosGCtx, &halRegType);
     if(!VOS_IS_STATUS_SUCCESS(status))
     {

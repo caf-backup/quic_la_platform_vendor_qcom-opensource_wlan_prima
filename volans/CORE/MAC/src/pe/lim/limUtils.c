@@ -1275,6 +1275,9 @@ void limResetDeferredMsgQ(tpAniSirGlobal pMac)
 }
 
 
+#define LIM_DEFERRED_Q_CHECK_THRESHOLD  (MAX_DEFERRED_QUEUE_LEN/2)
+#define LIM_MAX_NUM_MGMT_FRAME_DEFERRED (MAX_DEFERRED_QUEUE_LEN/2)
+
 /*
  * limWriteDeferredMsgQ()
  *
@@ -1300,7 +1303,7 @@ void limResetDeferredMsgQ(tpAniSirGlobal pMac)
 
 tANI_U8 limWriteDeferredMsgQ(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 {
-PELOG1(limLog(pMac, LOG1,
+    PELOG1(limLog(pMac, LOG1,
            FL("**  Queue a deferred message (size %d, write %d) - type 0x%x  **\n"),
            pMac->lim.gLimDeferredMsgQ.size, pMac->lim.gLimDeferredMsgQ.write,
            limMsg->type);)
@@ -1314,14 +1317,12 @@ PELOG1(limLog(pMac, LOG1,
         return TX_QUEUE_FULL;
     }
 
-    ++pMac->lim.gLimDeferredMsgQ.size;
-
     /*
     ** In the application, there should not be more than 1 message get
     ** queued up. If happens, flags a warning. In the future, this can
     ** happen.
     **/
-    if (pMac->lim.gLimDeferredMsgQ.size > 1)
+    if (pMac->lim.gLimDeferredMsgQ.size > 0)
     {
         PELOGW(limLog(pMac, LOGW, FL("%d Deferred messages (type 0x%x, scan %d, sme %d, mlme %d, addts %d)\n"),
                pMac->lim.gLimDeferredMsgQ.size, limMsg->type,
@@ -1329,6 +1330,33 @@ PELOG1(limLog(pMac, LOG1,
                pMac->lim.gLimSmeState, pMac->lim.gLimMlmState,
                pMac->lim.gLimAddtsSent);)
     }
+
+    /*
+    ** To prevent the deferred Q is full of management frames, only give them certain space
+    **/
+    if( SIR_BB_XPORT_MGMT_MSG == limMsg->type )
+    {
+        if( LIM_DEFERRED_Q_CHECK_THRESHOLD < pMac->lim.gLimDeferredMsgQ.size )
+        {
+            tANI_U16 idx, count = 0;
+            for(idx = 0; idx < pMac->lim.gLimDeferredMsgQ.size; idx++)
+            {
+                if( SIR_BB_XPORT_MGMT_MSG == pMac->lim.gLimDeferredMsgQ.deferredQueue[idx].type )
+                {
+                    count++;
+                }
+            }
+            if( LIM_MAX_NUM_MGMT_FRAME_DEFERRED < count )
+            {
+                //We reach the quota for management frames, drop this one
+                PELOGE(limLog(pMac, LOGE, FL("Cannot deferred. Msg: %d Too many (count=%d) already\n"), limMsg->type, count);)
+               //Return error, caller knows what to do
+               return TX_QUEUE_FULL;
+            }
+        }
+    }
+
+    ++pMac->lim.gLimDeferredMsgQ.size;
 
     /*
     ** if the write pointer hits the end of the queue, rewind it

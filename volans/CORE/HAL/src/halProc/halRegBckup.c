@@ -78,6 +78,12 @@ tRegisterEntry aVolansRFSetup[] = {
     { (QWLAN_DAHB_DAHB_RPE_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
     { (QWLAN_DAHB_DAHB_ADU_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
     { (QWLAN_DAHB_DAHB_SIF_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    /* JTAG register is added only for debug purpose. It is observed that sometimes
+     * SIF holds the AHB and remains in hanged state without releasing the AHB. When 
+     * JTAG is connected for debugging, since its default priority is lower than the 
+     * SIF, none of the registers are readable from JTAG. Hence priority of JTAG is 
+     * set to highest in DAHB */
+    { (QWLAN_DAHB_DAHB_JTAG_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
 
     /* PHY registers specific to Netlist#82 */
     { (QWLAN_RXCLKCTRL_ROOT_CLK_EN_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), 0X7F },

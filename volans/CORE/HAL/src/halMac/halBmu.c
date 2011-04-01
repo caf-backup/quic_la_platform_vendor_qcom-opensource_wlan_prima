@@ -2463,14 +2463,17 @@ eHalStatus halBmu_EnableIdleBdPduInterrupt(tpAniSirGlobal pMac, tANI_U8 threshol
     eHalStatus status = eHAL_STATUS_SUCCESS;
 
     /* Acquire mutex before accessing the BMU registers if we are in power save */
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
     if (IS_PWRSAVE_STATE_IN_BMPS)
-        halPS_SetHostBusy(pMac, HAL_PS_BUSY_GENERIC);
+        halPS_SetHostBusy(pMac, HAL_PS_BUSY_TXRX_CONTEXT);
+#endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
 
     /** Enable the IDLE BD PDU Interrupt */
     status = halIntEnable((tHalHandle)pMac, eHAL_INT_BMU_IDLE_BD_PDU_INT);
 
+#ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
     if (IS_PWRSAVE_STATE_IN_BMPS)
-        halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_GENERIC);
-
+        halPS_ReleaseHostBusy(pMac, HAL_PS_BUSY_TXRX_CONTEXT);
+#endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
     return status;
 }

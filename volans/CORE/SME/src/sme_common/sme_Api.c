@@ -242,7 +242,7 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
         while(pEntry)
         {
             pTempCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
-            smsLog( pMac, LOGE, "Out of command buffer.... pending command #%d (0x%X)\n", 
+            smsLog( pMac, LOGE, "Out of command buffer.... SME pending command #%d (0x%X)\n", 
                     idx++, pTempCmd->command );
             if( eSmeCsrCommandMask & pTempCmd->command )
             {
@@ -252,6 +252,19 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
             pEntry = csrLLNext( &pMac->sme.smeCmdPendingList, pEntry, LL_ACCESS_NOLOCK );
         }
         csrLLUnlock(&pMac->sme.smeCmdPendingList);
+
+        //There may be some more command in CSR's own pending queue
+        csrLLLock(&pMac->roam.roamCmdPendingList);
+        pEntry = csrLLPeekHead( &pMac->roam.roamCmdPendingList, LL_ACCESS_NOLOCK );
+        while(pEntry)
+        {
+            pTempCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
+            smsLog( pMac, LOGE, "Out of command buffer.... CSR pending command #%d (0x%X)\n", 
+                    idx++, pTempCmd->command );
+            dumpCsrCommandInfo(pMac, pTempCmd);
+            pEntry = csrLLNext( &pMac->roam.roamCmdPendingList, pEntry, LL_ACCESS_NOLOCK );
+        }
+        csrLLUnlock(&pMac->roam.roamCmdPendingList);
     }
 
     return( pRetCmd );
@@ -427,7 +440,7 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                     else
                     {
                         csrLLUnlock( &pMac->sme.smeCmdActiveList );
-                        smsLog( pMac, LOGE, FL(  "Cannot issue command to wait up the chip. Status = %d\n"), status );
+                        smsLog( pMac, LOGE, FL(  "Cannot issue command(0x%X) to wake up the chip. Status = %d\n"), pmcCommand, status );
                         //Let it retry
                         fContinue = eANI_BOOLEAN_TRUE;
                     }
@@ -3261,6 +3274,33 @@ eHalStatus sme_RoamRemoveKey(tHalHandle hHal, tANI_U8 sessionId,
       sme_ReleaseGlobalLock( &pMac->sme );
    }
 
+   return (status);
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_GetRssi
+    \brief a wrapper function that client calls to register a callback to get RSSI
+
+    \param callback - SME sends back the requested stats using the callback
+    \param staId - The station ID for which the stats is requested for
+    \param pContext - user context to be passed back along with the callback
+    \param pVosContext - vos context
+    \return eHalStatus     
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_GetRssi(tHalHandle hHal, 
+                             tCsrRssiCallback callback, 
+                             tANI_U8 staId, void *pContext, void* pVosContext)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+      status = csrGetRssi( pMac, callback, 
+                                 staId, pContext, pVosContext);
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
    return (status);
 }
 

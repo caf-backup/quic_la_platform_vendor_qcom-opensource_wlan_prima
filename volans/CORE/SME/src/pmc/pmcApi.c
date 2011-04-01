@@ -1225,61 +1225,63 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
     {
         pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
 
-    /* Process each different type of message. */
-    switch (pMsg->messageType)
-    {
+        smsLog(pMac, LOGE, FL("process message = %d\n"), pMsg->messageType);
 
-    /* We got a response to our IMPS request.  */
-    case eWNI_PMC_ENTER_IMPS_RSP:
-        smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_ENTER_IMPS_RSP with status = %d\n"), pMsg->statusCode);
+        /* Process each different type of message. */
+        switch (pMsg->messageType)
+        {
+
+        /* We got a response to our IMPS request.  */
+        case eWNI_PMC_ENTER_IMPS_RSP:
+            smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_ENTER_IMPS_RSP with status = %d\n"), pMsg->statusCode);
             if( (eSmeCommandEnterImps != pCommand->command) && (eSmeCommandEnterStandby != pCommand->command) )
             {
                 smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_ENTER_IMPS_RSP without request\n"));
                 fRemoveCommand = eANI_BOOLEAN_FALSE;
                 break;
             }
-        if(pMac->pmc.pmcState == REQUEST_IMPS)
-        {
-            /* Enter IMPS State if response indicates success. */
-            if (pMsg->statusCode == eSIR_SME_SUCCESS)
+            if(pMac->pmc.pmcState == REQUEST_IMPS)
+            {
+                /* Enter IMPS State if response indicates success. */
+                if (pMsg->statusCode == eSIR_SME_SUCCESS)
                     pmcEnterImpsState(pMac);
 
-            /* If response is failure, then we stay in Full Power State and tell everyone that we aren't going into IMPS. */
-            else {
-                smsLog(pMac, LOGE, FL("Response message to request to enter IMPS indicates failure, status %x\n"),
-                       pMsg->statusCode);
+                /* If response is failure, then we stay in Full Power State and tell everyone that we aren't going into IMPS. */
+                else {
+                    smsLog(pMac, LOGE, FL("Response message to request to enter IMPS indicates failure, status %x\n"),
+                           pMsg->statusCode);
                     pmcEnterFullPowerState(pMac);
+                }
             }
-        }
-        else if (pMac->pmc.pmcState == REQUEST_STANDBY)
-        {
-            /* Enter STANDBY State if response indicates success. */
-            if (pMsg->statusCode == eSIR_SME_SUCCESS)
+            else if (pMac->pmc.pmcState == REQUEST_STANDBY)
             {
-                    pmcEnterStandbyState(pMac);
-                    pmcDoStandbyCallbacks(pMac, eHAL_STATUS_SUCCESS);
-            }
+                /* Enter STANDBY State if response indicates success. */
+                if (pMsg->statusCode == eSIR_SME_SUCCESS)
+                {
+                        pmcEnterStandbyState(pMac);
+                        pmcDoStandbyCallbacks(pMac, eHAL_STATUS_SUCCESS);
+                }
 
-            /* If response is failure, then we stay in Full Power State
-               and tell everyone that we aren't going into STANDBY. */
+                /* If response is failure, then we stay in Full Power State
+                   and tell everyone that we aren't going into STANDBY. */
+                else
+                {
+                    smsLog(pMac, LOGE, "PMC: response message to request to enter "
+                           "standby indicates failure, status %x\n", pMsg->statusCode);
+                        pmcEnterFullPowerState(pMac);
+                        pmcDoStandbyCallbacks(pMac, eHAL_STATUS_FAILURE);
+                }
+            }
             else
             {
-                smsLog(pMac, LOGE, "PMC: response message to request to enter "
-                       "standby indicates failure, status %x\n", pMsg->statusCode);
-                    pmcEnterFullPowerState(pMac);
-                    pmcDoStandbyCallbacks(pMac, eHAL_STATUS_FAILURE);
+                smsLog(pMac, LOGE, "PMC: Enter IMPS rsp rcvd when device is "
+                   "in %d state\n", pMac->pmc.pmcState);
             }
-        }
-        else
-        {
-            smsLog(pMac, LOGE, "PMC: Enter IMPS rsp rcvd when device is "
-               "in %d state\n", pMac->pmc.pmcState);
-        }
-        break;
+            break;
 
-    /* We got a response to our wake from IMPS request. */
-    case eWNI_PMC_EXIT_IMPS_RSP:
-		smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_IMPS_RSP with status = %d\n"), pMsg->statusCode);
+        /* We got a response to our wake from IMPS request. */
+        case eWNI_PMC_EXIT_IMPS_RSP:
+		    smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_IMPS_RSP with status = %d\n"), pMsg->statusCode);
             if( eSmeCommandExitImps != pCommand->command )
             {
                 smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_IMPS_RSP without request\n"));
@@ -1300,11 +1302,11 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
                        pMsg->statusCode);
             }
             pmcEnterFullPowerState(pMac);
-        break;
+            break;
 
-    /* We got a response to our BMPS request.  */
-    case eWNI_PMC_ENTER_BMPS_RSP:
-		smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_ENTER_BMPS_RSP with status = %d\n"), pMsg->statusCode);
+        /* We got a response to our BMPS request.  */
+        case eWNI_PMC_ENTER_BMPS_RSP:
+		    smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_ENTER_BMPS_RSP with status = %d\n"), pMsg->statusCode);
             if( eSmeCommandEnterBmps != pCommand->command )
             {
                 smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_ENTER_BMPS_RSP without request\n"));
@@ -1319,30 +1321,29 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
                 break;
             }
 
-        /* Enter BMPS State if response indicates success. */
-        if (pMsg->statusCode == eSIR_SME_SUCCESS)
-        {
+            /* Enter BMPS State if response indicates success. */
+            if (pMsg->statusCode == eSIR_SME_SUCCESS)
+            {
                 pmcEnterBmpsState(pMac);
-            /* Note: If BMPS was requested because of start UAPSD,
-               there will no entries for BMPS callback routines and
-               pmcDoBmpsCallbacks will be a No-Op*/
+                /* Note: If BMPS was requested because of start UAPSD,
+                   there will no entries for BMPS callback routines and
+                   pmcDoBmpsCallbacks will be a No-Op*/
                 pmcDoBmpsCallbacks(pMac, eHAL_STATUS_SUCCESS);
-         }
-
-        /* If response is failure, then we stay in Full Power State and tell everyone that we aren't going into BMPS. */
-        else
-        {
+            }
+            /* If response is failure, then we stay in Full Power State and tell everyone that we aren't going into BMPS. */
+            else
+            {
                 smsLog(pMac, LOGE, FL("Response message to request to enter BMPS indicates failure, status %x\n"),
                    pMsg->statusCode);
                 pmcEnterFullPowerState(pMac);
                 //Do not call UAPSD callback here since it may be re-entered
                 pmcDoBmpsCallbacks(pMac, eHAL_STATUS_FAILURE);
-        }
-        break;
+            }
+            break;
 
-    /* We got a response to our wake from BMPS request. */
-    case eWNI_PMC_EXIT_BMPS_RSP:
-		smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_BMPS_RSP with status = %d\n"), pMsg->statusCode);
+        /* We got a response to our wake from BMPS request. */
+        case eWNI_PMC_EXIT_BMPS_RSP:
+		    smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_BMPS_RSP with status = %d\n"), pMsg->statusCode);
             if( eSmeCommandExitBmps != pCommand->command )
             {
                 smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_BMPS_RSP without request\n"));
@@ -1363,13 +1364,13 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
                        pMsg->statusCode);
             }
             pmcEnterFullPowerState(pMac);
-        break;
+            break;
 
         /* We got a response to our Start UAPSD request.  */
         case eWNI_PMC_ENTER_UAPSD_RSP:
             smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_ENTER_UAPSD_RSP with status = %d\n"), pMsg->statusCode);
             if( eSmeCommandEnterUapsd != pCommand->command )
-        {
+            {
                 smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_ENTER_UAPSD_RSP without request\n"));
                 fRemoveCommand = eANI_BOOLEAN_FALSE;
                 break;
@@ -1381,14 +1382,13 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
                 break;
             }
 
-         /* Enter UAPSD State if response indicates success. */
+            /* Enter UAPSD State if response indicates success. */
             if (pMsg->statusCode == eSIR_SME_SUCCESS) 
             {
                 pmcEnterUapsdState(pMac);
                 pmcDoStartUapsdCallbacks(pMac, eHAL_STATUS_SUCCESS);
-         }
-
-         /* If response is failure, then we try to put the chip back in
+            }
+            /* If response is failure, then we try to put the chip back in
             BMPS mode*/
             else {
                 smsLog(pMac, LOGE, "PMC: response message to request to enter "
@@ -1398,35 +1398,35 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
                 pmcEnterBmpsState(pMac);
                 //UAPSD will not be retied in this case so tell requester we are done with failure
                 pmcDoStartUapsdCallbacks(pMac, eHAL_STATUS_FAILURE);
-         }
-         break;
-
-      /* We got a response to our Stop UAPSD request.  */
-      case eWNI_PMC_EXIT_UAPSD_RSP:
-         smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_UAPSD_RSP with status = %d\n"), pMsg->statusCode);
-            if( eSmeCommandExitUapsd != pCommand->command )
-            {
-                smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_UAPSD_RSP without request\n"));
-                fRemoveCommand = eANI_BOOLEAN_FALSE;
-                break;
             }
-            /* Check that we are in the correct state for this message. */
-            if (pMac->pmc.pmcState != REQUEST_STOP_UAPSD)
-            {
-                smsLog(pMac, LOGE, FL("Got Exit Uapsd rsp Message while in state %d\n"), pMac->pmc.pmcState);
-                break;
-            }
+            break;
 
-         /* Enter BMPS State */
-         if (pMsg->statusCode != eSIR_SME_SUCCESS) {
-            smsLog(pMac, LOGP, "PMC: response message to request to exit "
-               "UAPSD indicates failure, status %x\n", pMsg->statusCode);
-         }
-            pmcEnterBmpsState(pMac);
-         break;
+          /* We got a response to our Stop UAPSD request.  */
+          case eWNI_PMC_EXIT_UAPSD_RSP:
+              smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_UAPSD_RSP with status = %d\n"), pMsg->statusCode);
+              if( eSmeCommandExitUapsd != pCommand->command )
+              {
+                  smsLog(pMac, LOGW, FL("Rcvd eWNI_PMC_EXIT_UAPSD_RSP without request\n"));
+                  fRemoveCommand = eANI_BOOLEAN_FALSE;
+                  break;
+              }
+              /* Check that we are in the correct state for this message. */
+              if (pMac->pmc.pmcState != REQUEST_STOP_UAPSD)
+              {
+                  smsLog(pMac, LOGE, FL("Got Exit Uapsd rsp Message while in state %d\n"), pMac->pmc.pmcState);
+                  break;
+              }  
 
-      /* We got a response to our enter WOWL request.  */
-      case eWNI_PMC_ENTER_WOWL_RSP:
+              /* Enter BMPS State */
+              if (pMsg->statusCode != eSIR_SME_SUCCESS) {
+                  smsLog(pMac, LOGP, "PMC: response message to request to exit "
+                     "UAPSD indicates failure, status %x\n", pMsg->statusCode);
+              }
+              pmcEnterBmpsState(pMac);
+              break;
+
+        /* We got a response to our enter WOWL request.  */
+        case eWNI_PMC_ENTER_WOWL_RSP:
 
             if( eSmeCommandEnterWowl != pCommand->command )
             {
@@ -1442,24 +1442,24 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
                 break;
             }
 
-         /* Enter WOWL State if response indicates success. */
-         if (pMsg->statusCode == eSIR_SME_SUCCESS) {
+            /* Enter WOWL State if response indicates success. */
+            if (pMsg->statusCode == eSIR_SME_SUCCESS) {
                 pmcEnterWowlState(pMac);
                 pmcDoEnterWowlCallbacks(pMac, eHAL_STATUS_SUCCESS);
-         }
+            }
 
-         /* If response is failure, then we try to put the chip back in
-            BMPS mode*/
-         else {
-            smsLog(pMac, LOGE, "PMC: response message to request to enter "
-               "WOWL indicates failure, status %x\n", pMsg->statusCode);
+            /* If response is failure, then we try to put the chip back in
+                BMPS mode*/
+            else {
+                smsLog(pMac, LOGE, "PMC: response message to request to enter "
+                "WOWL indicates failure, status %x\n", pMsg->statusCode);
                 pmcEnterBmpsState(pMac);
                 pmcDoEnterWowlCallbacks(pMac, eHAL_STATUS_FAILURE);
-         }
+            }
          break;
 
-      /* We got a response to our exit WOWL request.  */
-      case eWNI_PMC_EXIT_WOWL_RSP:
+         /* We got a response to our exit WOWL request.  */
+         case eWNI_PMC_EXIT_WOWL_RSP:
 
             if( eSmeCommandExitWowl != pCommand->command )
             {
@@ -1482,10 +1482,10 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
             pmcEnterBmpsState(pMac);
          break;
 
-    default:
-        smsLog(pMac, LOGE, FL("Invalid message type %d received\n"), pMsg->messageType);
-        PMC_ABORT;
-        break;
+        default:
+            smsLog(pMac, LOGE, FL("Invalid message type %d received\n"), pMsg->messageType);
+            PMC_ABORT;
+            break;
         }//switch
 
         if( fRemoveCommand )

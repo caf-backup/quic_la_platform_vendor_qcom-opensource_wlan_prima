@@ -1867,8 +1867,17 @@ eHalStatus pmcDeferMsg( tpAniSirGlobal pMac, tANI_U16 messageType, void *pData, 
 
 void pmcReleaseCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
 {
-    pCommand->u.pmcCmd.size = 0;
-    smeReleaseCommand( pMac, pCommand );
+    if(!pCommand->u.pmcCmd.fReleaseWhenDone)
+    {
+        //This is a normal command, put it back to the free lsit
+        pCommand->u.pmcCmd.size = 0;
+        smeReleaseCommand( pMac, pCommand );
+    }
+    else
+    {
+        //this is a specially allocated comamnd due to out of command buffer. free it.
+        palFreeMemory(pMac->hHdd, pCommand);
+    }
 }
 
 
@@ -1940,6 +1949,16 @@ void pmcAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStop
 }
 
 
+
+//These commands are not supposed to fail due to out of command buffer,
+//otherwise other commands are not executed and no command is released. It will be deadlock. 
+#define PMC_IS_COMMAND_CANNOT_FAIL(cmdType)\
+    ( (eSmeCommandEnterStandby == (cmdType )) ||\
+      (eSmeCommandExitImps == (cmdType )) ||\
+      (eSmeCommandExitBmps == (cmdType )) ||\
+      (eSmeCommandExitUapsd == (cmdType )) ||\
+      (eSmeCommandExitWowl == (cmdType )) )
+
 eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType, void *pvParam, 
                             tANI_U32 size, tSmeCmd **ppCmd )
 {
@@ -1950,10 +1969,34 @@ eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType, void
     do
     {
         pCommand = smeGetCommandBuffer( pMac );
-        if ( !pCommand )
+        if ( pCommand )
         {
-            smsLog( pMac, LOGE, FL(" fail to get command buffer for command %d\n"), cmdType );
-            break;
+            //Make sure it will be put back to the list
+            pCommand->u.pmcCmd.fReleaseWhenDone = FALSE;
+        }
+        else
+        {
+            smsLog( pMac, LOGE, FL(" fail to get command buffer for command 0x%X curState = %d"), cmdType, pMac->pmc.pmcState );
+            //For certain PMC command, we cannot fail
+            if( PMC_IS_COMMAND_CANNOT_FAIL(cmdType) )
+            {
+                smsLog( pMac, LOGE, FL(" command 0x%X  cannot fail try allocating memory for it"), cmdType );
+                status = palAllocateMemory(pMac->hHdd, (void **)&pCommand, sizeof(tSmeCmd));
+                if(!HAL_STATUS_SUCCESS(status))
+                {
+                    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, "%s fail to allocate memory for command (0x%X)", 
+                        __FUNCTION__, cmdType);
+                    pCommand = NULL;
+                    break;
+                }
+                palZeroMemory(pMac->hHdd, pCommand, sizeof(tSmeCmd));
+                //Make sure it will be free when it is done
+                pCommand->u.pmcCmd.fReleaseWhenDone = TRUE;
+            }
+            else
+            {
+                break;
+            }
         }
         pCommand->command = cmdType;
         pCommand->u.pmcCmd.size = size;

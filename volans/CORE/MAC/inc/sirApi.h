@@ -1010,9 +1010,11 @@ typedef struct sSirSmeScanReq
      */
     tSirBackgroundScanMode   backgroundScanMode;
 
+    tANI_U8              hiddenSsid;
+
+    //channelList has to be the last member of this structure. Check tSirChannelList for the reason.
     tSirChannelList channelList;
     
-    tANI_U8              hiddenSsid;
 } tSirSmeScanReq, *tpSirSmeScanReq;
 
 #ifdef FEATURE_INNAV_SUPPORT
@@ -2469,6 +2471,18 @@ typedef struct sAniGetPEStatsRsp
     intentionally and the src code that uses this structure should take that into account. 
 **********************************************************************************************/                                        
 } tAniGetPEStatsRsp, *tpAniGetPEStatsRsp;
+
+typedef struct sAniGetRssiReq
+{
+    // Common for all types are requests
+    tANI_U16                msgType;    // message type is same as the request type
+    tANI_U16                msgLen;  // length of the entire request
+    tANI_U8                 staId;  
+    void                    *rssiCallback;
+    void                    *pDevContext; //device context
+    void                    *pVosContext; //voss context
+    
+} tAniGetRssiReq, *tpAniGetRssiReq;
 
 typedef struct sAniSummaryStatsInfo
 {

@@ -1495,6 +1495,8 @@ eHalStatus baProcessTLAddBARsp(
                         rpeStaQueueInfo.staId_queueId_BAbitmapHi = 0;
                         rpeStaQueueInfo.staId_queueId_ReorderbitmapLo = 0;
                         rpeStaQueueInfo.staId_queueId_ReorderbitmapHi = 0;
+#else
+                        rpeStaQueueInfo.staId_queueId_BAbitmap = 0;
 #endif
                         rpeStaQueueInfo.reserved2 = 0;
 			

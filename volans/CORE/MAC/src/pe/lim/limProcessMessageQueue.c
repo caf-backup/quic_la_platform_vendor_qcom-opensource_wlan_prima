@@ -45,6 +45,8 @@
 #include "vos_memory.h"
 #endif
 
+void limLogSessionStates(tpAniSirGlobal pMac);
+
 /** -------------------------------------------------------------
 \fn defMsgDecision
 \brief The function decides whether to defer a message or not in limProcessMessage function
@@ -66,8 +68,10 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
       // Defer processsing this message
       if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
       {
-          limLog(pMac, LOGE, FL("Unable to Defer message %s\n"),
-                 limMsgStr(limMsg->type));
+          PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message(0x%X) %s limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)\n"),
+                   limMsg->type, limMsgStr(limMsg->type), pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
+                   pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
+          limLogSessionStates(pMac);
           limHandleDeferMsgError(pMac, limMsg);
       }
       return true;
@@ -110,8 +114,10 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         // Defer processsing this message
         if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
         {
-            limLog(pMac, LOGE, FL("Unable to Defer message %s\n"),
-                   limMsgStr(limMsg->type));
+            PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message(0x%X) %s limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)\n"),
+                   limMsg->type, limMsgStr(limMsg->type), pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
+                   pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
+            limLogSessionStates(pMac);
             limHandleDeferMsgError(pMac, limMsg);
 
         }
@@ -329,8 +335,10 @@ limHandleFramesInScanState(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U32 *pBD,
         {
             if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
             {
-                limLog(pMac, LOGE, FL("Unable to Defer message %X\n"),
-                       limMsg->type);
+                PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message(0x%X) limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)\n"),
+                   limMsg->type, pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
+                   pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
+                limLogSessionStates(pMac);
                 limPrintMsgName(pMac, LOGE, limMsg->type);
                 limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pBD, limMsg->bodyptr);
             }
@@ -989,8 +997,10 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 // Defer processsing this message
                 if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
                 {
-                    limLog(pMac, LOGE, FL("Unable to Defer message %X\n"),
-                           limMsg->type);
+                    PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message(0x%X) limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)\n"),
+                        limMsg->type, pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
+                        pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
+                    limLogSessionStates(pMac);
                     limPrintMsgName(pMac, LOGE, limMsg->type);
                 }
             }
@@ -1069,7 +1079,10 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                     PELOG1(limLog(pMac, LOG1, FL("Defer message type=%X \n"), limMsg->type);)
                         if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
                         {
-                            limLog(pMac, LOGE, FL("Unable to Defer message %X\n"), limMsg->type);
+                            PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message(0x%X) limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)\n"),
+                                limMsg->type, pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
+                                pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
+                            limLogSessionStates(pMac);
                             limPrintMsgName(pMac, LOGE, limMsg->type);
                             vos_pkt_return_packet(pVosPkt);
                         }
@@ -1186,7 +1199,10 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             {
                 if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
                 {
-                    PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message %x\n"), limMsg->type);)
+                    PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message(0x%X) limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)\n"),
+                        limMsg->type, pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
+                        pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
+                    limLogSessionStates(pMac);
                     limPrintMsgName(pMac, LOGE, limMsg->type);
                 }
             }
@@ -1235,8 +1251,10 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
                 {
                     pMac->lim.numSme++;
-                    limLog(pMac, LOGE, FL("Unable to Defer message %X\n"),
-                           limMsg->type);
+                    PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message(0x%X) limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)\n"),
+                        limMsg->type, pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
+                        pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
+                    limLogSessionStates(pMac);
                     limPrintMsgName(pMac, LOGE, limMsg->type);
                     // Release body
                     palFreeMemory( pMac->hHdd, (tANI_U8 *) limMsg->bodyptr);
@@ -1408,8 +1426,12 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 // System is in DFS (Learn) mode
                 // Defer processsing this message
                 if (limDeferMsg(pMac, limMsg) != TX_SUCCESS)
-                    limLog(pMac, LOGE, FL("Unable to Defer message %X\n"),
-                           limMsg->type);
+                {
+                    PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message(0x%X) limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)\n"),
+                        limMsg->type, pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
+                        pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
+                    limLogSessionStates(pMac);
+                }
             }
             else
             {
@@ -1696,7 +1718,10 @@ void limProcessNormalHddMsg(tpAniSirGlobal pMac, tSirMsgQ *pLimMsg, tANI_U8 fRsp
 #ifdef WLAN_DEBUG            
             pMac->lim.numSme++;
 #endif
-            limLog(pMac, LOGE, FL("Unable to Defer message %X\n"), pLimMsg->type);
+            PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message(0x%X) limSmeState %d (prev sme state %d) sysRole %d mlm state %d (prev mlm state %d)\n"),
+                        pLimMsg->type, pMac->lim.gLimSmeState,  pMac->lim.gLimPrevSmeState,
+                        pMac->lim.gLimSystemRole,  pMac->lim.gLimMlmState,  pMac->lim.gLimPrevMlmState);)
+            limLogSessionStates(pMac);
             limPrintMsgName(pMac, LOGE, pLimMsg->type);
             // Release body
             palFreeMemory( pMac->hHdd, (tANI_U8 *) pLimMsg->bodyptr);
@@ -1804,4 +1829,22 @@ handleHTCapabilityandHTInfo(struct sAniSirGlobal *pMac)
     pMac->lim.gHTSecondaryBeacon = (tANI_U8)macHTInfoField3.secondaryBeacon;
     pMac->lim.gHTDualCTSProtection = (tANI_U8)macHTInfoField3.dualCTSProtection;
     pMac->lim.gHTSTBCBasicMCS = (tANI_U8)macHTInfoField3.basicSTBCMCS;
+}
+
+void limLogSessionStates(tpAniSirGlobal pMac)
+{
+#ifdef WLAN_DEBUG
+    int i;
+
+    for(i = 0; i < pMac->lim.maxBssId; i++)
+    {
+        if(pMac->lim.gpSession[i].valid)
+        {
+            PELOGE(limLog(pMac, LOGE, FL("Session[%d] sysRole(%d) limSmeState %d (prev sme state %d) mlm state %d (prev mlm state %d)\n"),
+                   i, pMac->lim.gpSession[i].limSystemRole,  pMac->lim.gpSession[i].limSmeState,  
+                   pMac->lim.gpSession[i].limPrevSmeState,   pMac->lim.gpSession[i].limMlmState,  
+                   pMac->lim.gpSession[i].limPrevMlmState);)
+        }
+    }
+#endif //ifdef WLAN_DEBUG
 }

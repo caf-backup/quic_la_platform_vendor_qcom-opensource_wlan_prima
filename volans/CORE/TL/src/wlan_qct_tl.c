@@ -149,6 +149,9 @@ int bdPduInterruptGetThreshold = WLANTL_BD_PDU_INTERRUPT_GET_THRESHOLD;
 #define WLANTL_IS_MGMT_FRAME(_type_sub)                                     \
                      ( WLANTL_MGMT_FRAME_TYPE == ( (_type_sub) & 0x30 ))
 
+#define WLANTL_IS_CTRL_FRAME(_type_sub)                                     \
+                     ( WLANTL_CTRL_FRAME_TYPE == ( (_type_sub) & 0x30 ))
+
 #define WLANTL_PROCESS_LEN( _vosBuff, _usPktLen, _uResLen, _uTotalPktLen)   \
    do                                                                       \
    {                                                                        \
@@ -3559,7 +3562,7 @@ WLANTL_GetFrames
            for ( i = 0; i < WLAN_MAX_STA_COUNT; i++)
            {
               if ((pTLCb->atlSTAClients[i].ucExists) && 
-                   (!(pTLCb->atlSTAClients[i].ucNoMoreData)))
+                  (pTLCb->atlSTAClients[i].ucPktPending))
               {
                   /* There is station to be Served */
                   break;
@@ -3757,7 +3760,8 @@ WLANTL_CacheSTAFrame
   v_U8_t            ucSTAId,
   vos_pkt_t*        vosTempBuff,
   v_U32_t           uDPUSig,
-  v_U8_t            bBcast
+  v_U8_t            bBcast,
+  v_U8_t            ucFrmType
 )
 {
   v_U8_t    ucUcastSig;
@@ -3788,6 +3792,14 @@ WLANTL_CacheSTAFrame
              ucSTAId, uDPUSig,
              pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucUcastSig,
              pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucBcastSig));
+
+  if(WLANTL_IS_CTRL_FRAME(ucFrmType))
+  {
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                 "WLAN TL: No need to cache CTRL frame. Dropping"));
+      vos_pkt_return_packet(vosTempBuff); 
+      return VOS_STATUS_SUCCESS;
+  }
 
   /*-------------------------------------------------------------------------
     Check if the packet that we are trying to cache belongs to the old
@@ -4674,7 +4686,7 @@ WLANTL_RxFrames
       {
         uDPUSig = WLANHAL_RX_BD_GET_DPU_SIG( pvBDHeader );
         //Station has not yet been registered with TL - cache the frame
-        WLANTL_CacheSTAFrame( pTLCb, ucSTAId, vosTempBuff, uDPUSig, broadcast);
+        WLANTL_CacheSTAFrame( pTLCb, ucSTAId, vosTempBuff, uDPUSig, broadcast, ucFrmType);
 
         vosTempBuff = vosDataBuff;
         continue;

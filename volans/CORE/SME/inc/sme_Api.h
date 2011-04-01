@@ -701,6 +701,10 @@ eHalStatus sme_GetStatistics(tHalHandle hHal, eCsrStatsRequesterType requesterId
                              tANI_U32 periodicity, tANI_BOOLEAN cache, 
                              tANI_U8 staId, void *pContext);
 
+eHalStatus sme_GetRssi(tHalHandle hHal, 
+                             tCsrRssiCallback callback, 
+                             tANI_U8 staId, void *pContext, void* pVosContext);
+
 /* ---------------------------------------------------------------------------
     \fn sme_CfgSetInt
     \brief a wrapper function that HDD calls to set parameters in CFG. 
