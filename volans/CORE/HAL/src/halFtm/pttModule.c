@@ -1392,22 +1392,8 @@ eQWPttStatus pttGetRxPktCounts(tpAniSirGlobal pMac, sRxFrameCounters *counters)
     }
 
     {
-        tANI_U32 dmaDrop, typeSubTypeFilter, addr1Drop;
-        //palReadRegister(pMac->hHdd, QWLAN_RXP_DMA_DROP_CNT_REG, &dmaDrop);
-        palReadRegister(pMac->hHdd, QWLAN_RXP_PHY_MPDU_CNT_REG, &dmaDrop);
-        palReadRegister(pMac->hHdd, QWLAN_RXP_TYPE_SUBTYPE_FILTER_CNT_REG, &typeSubTypeFilter);
-        palReadRegister(pMac->hHdd, QWLAN_RXP_ADDR1_DROP_CNT_REG, &addr1Drop);
+        palReadRegister(pMac->hHdd, QWLAN_RXP_DMA_GET_BMU_FAIL_CNT_REG, &counters->totalMacRxPackets);
 
-        //QWLAN_RXP_DMA_DROP_CNT_REG - QWLAN_RXP_TYPE_SUBTYPE_FILTER_CNT_REG - QWLAN_RXP_ADDR1_DROP_CNT_REG
-        counters->totalMacRxPackets = dmaDrop - typeSubTypeFilter - addr1Drop;
-        if(counters->totalMacRxPackets < counters->totalMacFcsErrPackets)
-        {
-            counters->totalMacRxPackets = 0;
-        }
-        else
-        {
-            counters->totalMacRxPackets -= counters->totalMacFcsErrPackets;
-        }
     }
 
     return (SUCCESS);

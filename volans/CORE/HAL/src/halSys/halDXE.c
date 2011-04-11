@@ -465,12 +465,75 @@ eHalStatus halDXE_Stop(tHalHandle hHalHandle,  void *arg)
 }
 
 /* 
+ * Ensure DXE IDLE state by stopping the Rx channel
+ */
+eHalStatus halDxe_EnsureDXEIdleState(tHalHandle hHalHandle) 
+{
+	tpAniSirGlobal pMac = PMAC_STRUCT(hHalHandle);
+	sDxeCCB    *pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX];
+	tANI_U32	dwCtrl = pDxeCCB->sdioDesc.cw.ctrl | DXE_DESC_CTRL_STOP;
+
+    halWriteDeviceMemory(pMac, pDxeCCB->sdio_ch_desc,
+                        (tANI_U8 *)&dwCtrl, 4);
+
+    /* Volans has two DxE RX channels, DXE_RX and DXE_RX_HI. 
+     * Both channels have to be stopped before entering into IMPS mode
+     */
+	pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX_HI];
+	dwCtrl  = pDxeCCB->sdioDesc.cw.ctrl | DXE_DESC_CTRL_STOP;
+
+    halWriteDeviceMemory(pMac, pDxeCCB->sdio_ch_desc,
+                        (tANI_U8 *)&dwCtrl, 4);
+
+	return eHAL_STATUS_SUCCESS;
+}
+
+/* 
  * Enable/Disable the DXE 
  */
+#define DXE_0_BMU_SB_QDAT_WQ_2_OFFSET 0x2
 eHalStatus halDxe_EnableDisableDXE(tHalHandle hHalHandle, tANI_U8 enable) 
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHalHandle);
-    tANI_U32 regValue = 0;
+    tANI_U32       regValue=0, 
+                   chStatus=0, 
+                   bmuSB=0;
+
+	// If DXE is being disabled ensure that it is either in the stopped or MASKED state
+	if (!enable) {
+
+        /* DXE_RX channel */
+		sDxeCCB    *pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX];
+
+		halReadRegister(pMac, pDxeCCB->chDXEStatusRegAddr, &chStatus);
+		halReadRegister(pMac, QWLAN_DXE_0_BMU_SB_QDAT_AVAIL_REG, &bmuSB);
+
+        /*
+         * BMU sideband register in DXE maintains important sideband signals for every WQ.
+         * However, it does not maintain these side band signals for WQ0 and WQ1.
+         * i.e: Bit-0 indicates "DataAvailable" status for WQ2
+         */
+        VOS_ASSERT((chStatus & QWLAN_DXE_0_CH_STATUS_STOPD_MASK) || \
+				   ((chStatus & QWLAN_DXE_0_CH_STATUS_MSKD_MASK) && 
+                    !(bmuSB & (1 << (BMUWQ_DXE_RX - DXE_0_BMU_SB_QDAT_WQ_2_OFFSET)))));
+
+		// Remove the STOP bit from the DXE descriptor CTRL DWORD
+		halWriteDeviceMemory(pMac, pDxeCCB->sdio_ch_desc,
+                             (tANI_U8 *)&pDxeCCB->sdioDesc.cw.ctrl, 4);
+
+        /* DXE_RX_HI Channel */
+		pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX_HI];
+		halReadRegister(pMac, pDxeCCB->chDXEStatusRegAddr, &chStatus);
+		halReadRegister(pMac, QWLAN_DXE_0_BMU_SB_QDAT_AVAIL_REG, &bmuSB);
+        
+        VOS_ASSERT((chStatus & QWLAN_DXE_0_CH_STATUS_STOPD_MASK) || \
+				   ((chStatus & QWLAN_DXE_0_CH_STATUS_MSKD_MASK) && 
+                    !(bmuSB & (1 << (BMUWQ_DXE_RX_HI - DXE_0_BMU_SB_QDAT_WQ_2_OFFSET)))));
+		
+        // Remove the STOP bit from the DXE descriptor CTRL DWORD
+		halWriteDeviceMemory(pMac, pDxeCCB->sdio_ch_desc,
+                             (tANI_U8 *)&pDxeCCB->sdioDesc.cw.ctrl, 4);
+	}
 
     // Enable DXE engine, reset the enable bit in the DXE CSR register
     halReadRegister(pMac, QWLAN_DXE_0_DMA_CSR_REG, &regValue); 

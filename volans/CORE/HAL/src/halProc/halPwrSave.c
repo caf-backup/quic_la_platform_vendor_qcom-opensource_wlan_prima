@@ -849,6 +849,19 @@ eHalStatus halPS_HandleEnterImpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken)
     // Set the state of power save, in IMPS requested
     pHalPwrSave->pwrSaveState.p.psState = HAL_PWR_SAVE_IMPS_REQUESTED;
 
+	// Disable RX
+    status = halRxp_disable(pMac);
+    if (eHAL_STATUS_SUCCESS != status) {
+        HALLOGP( halLog(pMac, LOGP, FL("Disable RX failed\n")));
+        goto error;
+    }
+
+	status = halDxe_EnsureDXEIdleState(pMac);
+	if (eHAL_STATUS_SUCCESS != status) {
+        HALLOGP( halLog(pMac, LOGP, FL("Ensure DXE IDLE state failed\n")));
+        goto error;
+    }
+
     // Suspend BAL routine
     vosStatus = WLANBAL_Suspend(pVosGCtx);
     if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
@@ -862,13 +875,6 @@ eHalStatus halPS_HandleEnterImpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken)
     status = halDxe_EnableDisableDXE(pMac, FALSE);
     if (eHAL_STATUS_SUCCESS != status) {
         HALLOGP( halLog(pMac, LOGP, FL("Disable DXE failed\n")));
-        goto error;
-    }
-
-    // Disable RX
-    status = halRxp_disable(pMac);
-    if (eHAL_STATUS_SUCCESS != status) {
-        HALLOGP( halLog(pMac, LOGP, FL("Disable RX failed\n")));
         goto error;
     }
 
@@ -2833,7 +2839,7 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
     }
 
 #ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
-    HALLOGW(halLog(pMac, LOGE, "Released = %d,%d,%d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, 
+    HALLOGW(halLog(pMac, LOGE, "Acquired = %d,%d,%d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, 
                                                     pMac->hal.PsParam.mutexTxRxCount, pMac->hal.PsParam.mutexTxCount, regValue));
 #else
     HALLOGW(halLog(pMac, LOGE, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));

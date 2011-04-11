@@ -5204,6 +5204,7 @@ WLANTL_STATxConn
                "WLAN TL:No more data at HDD status %d", vosStatus));
     *pvosDataBuff = NULL;
     pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
+    vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucPktPending, 0);
     return vosStatus;
   }
 
