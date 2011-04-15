@@ -1,101 +1,72 @@
-
 # Android makefile for the WLAN WCN1314 Module
 
-# Build/Package only in case of 7x30 and msm8660
+# Build/Package only in case of 7x30 and 8660
 
-PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/volans/firmware_bin/WCN1314_qcom_fw.bin:system/etc/firmware/wlan/volans/WCN1314_qcom_fw.bin
-PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/volans/firmware_bin/WCN1314_qcom_wlan_nv.bin:persist/WCN1314_qcom_wlan_nv.bin
-PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/volans/firmware_bin/WCN1314_cfg.dat:system/etc/firmware/wlan/volans/WCN1314_cfg.dat
-PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/volans/firmware_bin/WCN1314_qcom_cfg.ini:system/etc/firmware/wlan/volans/WCN1314_qcom_cfg.ini
+WLAN_BLD_DIR := vendor/qcom/proprietary/wlan
+VOLANS_FW_DIR := vendor/qcom/proprietary/wlan/volans/firmware_bin
 
-ACP_BINARY_OUT := $(HOST_OUT)/bin/acp
-MAKE_MODULES_FOLDER_VOLANS := $(TARGET_OUT)/lib/modules/volans
+PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_qcom_fw.bin:system/etc/firmware/wlan/volans/WCN1314_qcom_fw.bin
+PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_qcom_wlan_nv.bin:persist/WCN1314_qcom_wlan_nv.bin
+PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_cfg.dat:system/etc/firmware/wlan/volans/WCN1314_cfg.dat
+PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_qcom_cfg.ini:system/etc/firmware/wlan/volans/WCN1314_qcom_cfg.ini
 
-# Build it as libra.ko and then move it to WCN1314_rf.ko, thus rmmod will work.
+# Build WCN1314_rf.ko
+###########################################################
+LOCAL_PATH := $(call my-dir)
 
-WLAN_RF_VOLANS_TEMP_OUT := $(TARGET_OUT_INTERMEDIATES)/vendor/qcom/proprietary/wlan/volans/CORE/HDD/src/wlan.ko
-WLAN_RF_VOLANS_OUT := $(TARGET_OUT_INTERMEDIATES)/vendor/qcom/proprietary/wlan/volans/CORE/HDD/src/WCN1314_rf.ko
-WLAN_RF_VOLANS_MDIR := ../vendor/qcom/proprietary/wlan/volans/CORE/HDD/src
+# This is set once per LOCAL_PATH, not per (kernel) module
+KBUILD_OPTIONS := WLAN_VOLANS=../$(WLAN_BLD_DIR)/volans
+# We are actually building wlan.ko here, as per the
+# requirement we are specifying WCN1314_rf.ko as LOCAL_MODULE.
+# This means we need to rename the module to WCN1314_rf.ko
+# after wlan.ko is built.
+KBUILD_OPTIONS += MODNAME=wlan
 
-WLAN_RF_FTM_VOLANS_OUT := $(TARGET_OUT_INTERMEDIATES)/vendor/qcom/proprietary/wlan/volans/ftm/CORE/HDD/src/WCN1314_rf_ftm.ko
-WLAN_RF_FTM_VOLANS_MDIR := ../vendor/qcom/proprietary/wlan/volans/ftm/CORE/HDD/src
+include $(CLEAR_VARS)
+LOCAL_MODULE      := WCN1314_rf.ko
+LOCAL_MODULE_TAGS := eng
+LOCAL_MODULE_PATH := $(TARGET_OUT)/lib/modules/volans
+include $(WLAN_BLD_DIR)/AndroidKernelModule.mk
+###########################################################
 
-WLAN_RF_PRODUCT_OUT := $(TARGET_OUT)/lib/modules/volans/WCN1314_rf.ko
-WLAN_RF_FTM_PRODUCT_OUT := $(TARGET_OUT)/lib/modules/volans/WCN1314_rf_ftm.ko
-WLAN_RF_LIBRA_SDIOIF_OUT :=  $(TARGET_OUT)/lib/modules/librasdioif.ko
+# Rename Volans Module
+ifeq ($(LOCAL_MODULE), WCN1314_rf.ko)
+VOLANS_KBUILD_OUT_DIR := out/target/product/$(QCOM_TARGET_PRODUCT)/obj/vendor/qcom/proprietary/wlan/volans/CORE/HDD/src
+RENAME_WLAN_VOLANS := $(VOLANS_KBUILD_OUT_DIR)/WCN1314_rf.ko
+$(RENAME_WLAN_VOLANS): $(KBUILD_MODULE)
+	mv -f $(VOLANS_KBUILD_OUT_DIR)/wlan.ko $@
+endif
 
-WLAN_NV_FILE_SYMLINK := $(TARGET_OUT)/etc/firmware/wlan/volans/WCN1314_qcom_wlan_nv.bin
+# Build WCN1314_rf_ftm.ko
+###########################################################
+LOCAL_PATH := $(WLAN_BLD_DIR)/volans/ftm/CORE/HDD/src
 
-file := $(WLAN_NV_FILE_SYMLINK)
-ALL_PREBUILT += $(file)
+# This is set once per LOCAL_PATH, not per (kernel) module
+KBUILD_OPTIONS := BUILD_FTM_DRIVER=1
+KBUILD_OPTIONS += WLAN_VOLANS=../$(WLAN_BLD_DIR)/volans
 
-ifeq "$(findstring msm8660,$(QCOM_TARGET_PRODUCT))" "msm8660"
+include $(CLEAR_VARS)
+LOCAL_MODULE      := WCN1314_rf_ftm.ko
+LOCAL_MODULE_TAGS := eng
+LOCAL_MODULE_PATH := $(TARGET_OUT)/lib/modules/volans
+include $(WLAN_BLD_DIR)/AndroidKernelModule.mk
+###########################################################
+
+#Create symbolic link
+ifneq (, $(filter msm7627a msm8660_surf, $(QCOM_TARGET_PRODUCT)))
 WLAN_WCN1314_SYMLINK := $(TARGET_OUT)/lib/modules/wlan.ko
+$(WLAN_WCN1314_SYMLINK):
+	@mkdir -p $(dir $@)
+	ln -s -f /system/lib/modules/volans/WCN1314_rf.ko $@
 
 file := $(WLAN_WCN1314_SYMLINK)
 ALL_PREBUILT += $(file)
 endif
 
-file := $(WLAN_RF_VOLANS_OUT)
+WLAN_NV_FILE_SYMLINK := $(TARGET_OUT)/etc/firmware/wlan/volans/WCN1314_qcom_wlan_nv.bin
+$(WLAN_NV_FILE_SYMLINK):
+	@mkdir -p $(dir $@)
+	ln -s -f /persist/WCN1314_qcom_wlan_nv.bin $@
+
+file := $(WLAN_NV_FILE_SYMLINK)
 ALL_PREBUILT += $(file)
-
-file := $(WLAN_RF_FTM_VOLANS_OUT)
-ALL_PREBUILT += $(file)
-
-file := $(WLAN_RF_PRODUCT_OUT)
-ALL_PREBUILT += $(file)
-
-file := $(WLAN_RF_FTM_PRODUCT_OUT)
-ALL_PREBUILT += $(file)
-
-file := $(WLAN_RF_LIBRA_SDIOIF_OUT)
-ALL_PREBUILT += $(file)
-
-PERSIST_FOLDER := ./out/target/product/$(QCOM_TARGET_PRODUCT)/persist
-$(PERSIST_FOLDER):
-	mkdir -p $(PERSIST_FOLDER)
-
-FW_FOLDER := $(TARGET_OUT)/etc/firmware/wlan/volans
-$(FW_FOLDER):
-	mkdir -p $(TARGET_OUT)/etc/firmware/wlan/volans
-
-$(WLAN_NV_FILE_SYMLINK): $(PERSIST_FOLDER) $(FW_FOLDER)
-	cp -f  ./vendor/qcom/proprietary/wlan/volans/firmware_bin/WCN1314_qcom_wlan_nv.bin $(PERSIST_FOLDER)
-	ln -s -f /persist/WCN1314_qcom_wlan_nv.bin $(WLAN_NV_FILE_SYMLINK)
-#POR for 8660 is only volans
-ifeq "$(findstring msm8660,$(QCOM_TARGET_PRODUCT))" "msm8660"
-$(WLAN_WCN1314_SYMLINK): $(WLAN_RF_VOLANS_OUT) $(WLAN_RF_PRODUCT_OUT) $(MAKE_MODULES_FOLDER_VOLANS)
-	ln -s -f /system/lib/modules/volans/WCN1314_rf.ko $(WLAN_WCN1314_SYMLINK)
-endif
-
-$(MAKE_MODULES_FOLDER_VOLANS) :
-	mkdir -p $(MAKE_MODULES_FOLDER_VOLANS)
-
-$(WLAN_RF_VOLANS_MDIR): $(KERNEL_OUT)
-	mkdir -p $(KERNEL_OUT)/$(WLAN_RF_VOLANS_MDIR)
-
-$(WLAN_RF_FTM_VOLANS_MDIR): $(KERNEL_OUT)
-	mkdir -p $(KERNEL_OUT)/$(WLAN_RF_FTM_VOLANS_MDIR)
-
-$(WLAN_RF_VOLANS_TEMP_OUT): kernel $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL) $(WLAN_RF_VOLANS_MDIR) 
-	$(MAKE) -C kernel M=$(WLAN_RF_VOLANS_MDIR) O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- MODNAME=wlan
-
-$(WLAN_RF_VOLANS_OUT): $(WLAN_RF_VOLANS_TEMP_OUT)
-	mv -f $(WLAN_RF_VOLANS_TEMP_OUT) $(WLAN_RF_VOLANS_OUT)
-
-$(WLAN_RF_FTM_VOLANS_OUT): $(KERNEL_OUT) $(KERNEL_CONFIG) $(TARGET_PREBUILT_KERNEL) $(WLAN_RF_VOLANS_OUT) $(WLAN_RF_FTM_VOLANS_MDIR)
-	$(MAKE) -C kernel M=$(WLAN_RF_FTM_VOLANS_MDIR) O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- BUILD_FTM_DRIVER=1
-
-$(WLAN_RF_PRODUCT_OUT): $(ACP_BINARY_OUT) $(WLAN_RF_VOLANS_OUT) $(MAKE_MODULES_FOLDER_VOLANS)
-	$(ACP) -f $(WLAN_RF_VOLANS_OUT) $(WLAN_RF_PRODUCT_OUT)
-
-$(WLAN_RF_FTM_PRODUCT_OUT): $(ACP_BINARY_OUT) $(WLAN_RF_PRODUCT_OUT) $(WLAN_RF_FTM_VOLANS_OUT) $(MAKE_MODULES_FOLDER_VOLANS)
-	$(ACP) -f $(WLAN_RF_FTM_VOLANS_OUT) $(WLAN_RF_FTM_PRODUCT_OUT)
-	
-$(WLAN_RF_LIBRA_SDIOIF_OUT): $(ACP_BINARY_OUT) $(WLAN_OUT) $(MAKE_MODULES_FOLDER_VOLANS) $(TARGET_PREBUILT_KERNEL)
-	$(ACP) -f $(KERNEL_OUT)/drivers/net/wireless/libra/librasdioif.ko $(WLAN_RF_LIBRA_SDIOIF_OUT)
-
-all: $(WLAN_RF_VOLANS_OUT) $(WLAN_RF_FTM_VOLANS_OUT) $(WLAN_RF_PRODUCT_OUT) $(WLAN_RF_FTM_PRODUCT_OUT) $(WLAN_RF_LIBRA_SDIOIF_OUT) $(MAKE_SYMBOLIC_LINK) $(WLAN_NV_FILE_SYMLINK)
-ifeq "$(findstring msm8660,$(QCOM_TARGET_PRODUCT))" "msm8660"
-	$(WLAN_WCN1314_SYMLINK)
-endif

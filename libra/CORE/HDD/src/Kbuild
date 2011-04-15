@@ -1,10 +1,3 @@
-KERNEL_DIR ?= ../../../../../../../../kernel
-KERNEL_OUT ?= ../out/target/product/$(TARGET_PRODUCT)/obj/KERNEL_OBJ
-
-TOOLCHAIN_PREFIX ?= arm-eabi-
-
-MAKE_FLAGS := -C $(KERNEL_DIR) O=$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=$(TOOLCHAIN_PREFIX)
-
 #Whether to build debug version
 BUILD_DEBUG_VERSION := 1
 
@@ -16,13 +9,9 @@ BUILD_FTM_DRIVER := 0
 #KERNEL include dir
 KERNEL_INC ?= ./include/linux
 
-ifndef WLAN
-WLAN := ../vendor/qcom/proprietary/wlan/libra/
-endif
-
-WLAN_DIR 		:= $(WLAN)/CORE
-SAL_EXTERNAL_DIR 	:= $(WLAN)/external
-WLANFW_DIR 		:= $(WLAN)/wlanfw
+WLAN_DIR 		:= $(WLAN_LIBRA)/CORE
+SAL_EXTERNAL_DIR 	:= $(WLAN_LIBRA)/external
+WLANFW_DIR 		:= $(WLAN_LIBRA)/wlanfw
 
 ############## HDD ###################
 HDD_INC := $(WLAN_DIR)/HDD/inc/
@@ -448,11 +437,3 @@ $(MODNAME)-objs := 	$(VOSS_OBJS) \
 		$(BTC_OBJS) \
 		$(PTT_OBJS)
 endif
-all:
-	$(MAKE) $(MAKE_FLAGS) M=`pwd` modules
-
-clean:
-	$(MAKE) $(MAKE_FLAGS) M=`pwd` clean
-	rm -rf modules.order
-	find ../.. -name *.o.cmd  -exec rm {} \; -print
-	find ../.. -name *.o  -exec rm {} \; -print
