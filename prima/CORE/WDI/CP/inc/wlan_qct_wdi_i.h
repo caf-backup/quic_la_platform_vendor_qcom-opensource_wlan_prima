@@ -365,8 +365,8 @@ typedef enum
   /*WLAN DAL Update EDCA Params Request*/ 
   WDI_UPD_EDCA_PRMS_REQ = 18,
 
-  /*WLAN DAL Add BA Request*/
-  WDI_ADD_BA_REQ        = 19,
+  /*WLAN DAL Add BA Session Request*/
+  WDI_ADD_BA_SESSION_REQ = 19,
 
   /*WLAN DAL Delete BA Request*/ 
   WDI_DEL_BA_REQ        = 20,
@@ -386,6 +386,27 @@ typedef enum
 
  /*WLAN DAL Update Config Request*/ 
   WDI_UPDATE_CFG_REQ    = 25, 
+
+  /* WDI ADD BA Request */
+  WDI_ADD_BA_REQ        = 26,
+
+  /* WDI Trigger BA Request */
+  WDI_TRIGGER_BA_REQ    = 27,
+
+  /*WLAN DAL Update Beacon Params Request*/ 
+  WDI_UPD_BCON_PRMS_REQ = 28,
+
+  /*WLAN DAL Send Beacon template Request*/ 
+  WDI_SND_BCON_REQ      = 29,
+
+  /*WLAN DAL Send Probe Response Template Request*/ 
+  WDI_UPD_PROBE_RSP_TEMPLATE_REQ = 30,
+
+  /*WLAN DAL Set STA Bcast Key Request*/ 
+  WDI_SET_STA_BCAST_KEY_REQ      = 31,
+  
+  /*WLAN DAL Remove STA Bcast Key Request*/ 
+  WDI_RMV_STA_BCAST_KEY_REQ      = 32, 
 
   WDI_MAX_REQ
 }WDI_RequestEnumType; 
@@ -455,8 +476,8 @@ typedef enum
   /*WLAN DAL Update EDCA Params Response*/ 
   WDI_UPD_EDCA_PRMS_RESP = 18,
 
-  /*WLAN DAL Add BA Response*/
-  WDI_ADD_BA_RESP        = 19,
+  /*WLAN DAL Add BA Session Response*/
+  WDI_ADD_BA_SESSION_RESP = 19,
 
   /*WLAN DAL Delete BA Response*/ 
   WDI_DEL_BA_RESP        = 20,
@@ -473,8 +494,29 @@ typedef enum
   /*WLAN DAL Get Stats Response*/ 
   WDI_GET_STATS_RESP     = 24, 
 
- /*WLAN DAL Update Config Response*/ 
+  /*WLAN DAL Update Config Response*/ 
   WDI_UPDATE_CFG_RESP    = 25, 
+
+  /* WDI ADD BA Response */
+  WDI_ADD_BA_RESP        = 26,
+
+  /* WDI Trigger BA Response */
+  WDI_TRIGGER_BA_RESP    = 27,
+
+ /*WLAN DAL Update beacon params  Response*/
+  WDI_UPD_BCON_PRMS_RESP = 28,
+  
+ /*WLAN DAL Send beacon template Response*/
+  WDI_SND_BCON_RESP = 29,
+
+  /*WLAN DAL Update Probe Response Template Response*/
+  WDI_UPD_PROBE_RSP_TEMPLATE_RESP = 30,
+
+  /*WLAN DAL Set STA Key Response*/ 
+  WDI_SET_STA_BCAST_KEY_RESP      = 31,
+  
+  /*WLAN DAL Remove STA Key Response*/ 
+  WDI_RMV_STA_BCAST_KEY_RESP      = 32, 
 
   /*-------------------------------------------------------------------------
     Indications
@@ -482,21 +524,25 @@ typedef enum
     -------------------------------------------------------------------------*/
   /*When RSSI monitoring is enabled of the Lower MAC and a threshold has been
     passed. */
-  WDI_HAL_LOW_RSSI_IND                = 26, 
+  WDI_HAL_LOW_RSSI_IND                = 33, 
 
   /*Link loss in the low MAC */
-  WDI_HAL_MISSED_BEACON_IND           = 27,
+  WDI_HAL_MISSED_BEACON_IND           = 34,
 
   /*When hardware has signaled an unknown addr2 frames. The indication will
   contain info from frames to be passed to the UMAC, this may use this info to
   deauth the STA*/
-  WDI_HAL_UNKNOWN_ADDR2_FRAME_RX_IND  = 28,
+  WDI_HAL_UNKNOWN_ADDR2_FRAME_RX_IND  = 35,
 
   /*MIC Failure detected by HW*/
-  WDI_HAL_MIC_FAILURE_IND             = 29,
+  WDI_HAL_MIC_FAILURE_IND             = 36,
 
-  /*Fatal Erro Ind*/
-  WDI_HAL_FATAL_ERROR_IND             = 30, 
+  /*Fatal Error Ind*/
+  WDI_HAL_FATAL_ERROR_IND             = 37, 
+
+  /*Received when the RIVA SW decides to autonomously delete an associate
+    station (e.g. Soft AP TIM based dissassoc) */
+  WDI_HAL_DEL_STA_IND                 = 38,
 
   WDI_MAX_RESP
 }WDI_ResponseEnumType; 
@@ -738,7 +784,13 @@ typedef struct
 
   /*Index of the Self STA */
   wpt_uint8                   ucSelfStaId;
- 
+
+  /* Self STA DPU Index */
+  wpt_uint16    usSelfStaDpuId;
+
+  /*Self STA Mac*/
+  wpt_macAddr   macSelfSta;
+
   /*Is frame translation enabled */
   wpt_uint8                   bFrameTransEnabled;
 
@@ -1397,6 +1449,40 @@ WDI_ProcessRemoveStaKeyReq
 );
 
 /**
+ @brief Process Set STA KeyRequest function (called when Main FSM 
+        allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetStaBcastKeyReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Remove STA Key Request function (called when 
+        Main FSM allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessRemoveStaBcastKeyReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
  @brief Process Add TSpec Request function (called when Main FSM
         allows it)
  
@@ -1459,7 +1545,7 @@ WDI_ProcessUpdateEDCAParamsReq
  @return Result of the function call
 */
 WDI_Status
-WDI_ProcessAddBAReq
+WDI_ProcessAddBASessionReq
 ( 
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
@@ -1564,6 +1650,91 @@ WDI_ProcessGetStatsReq
 */
 WDI_Status
 WDI_ProcessUpdateCfgReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Add BA Request function (called when Main FSM 
+        allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessAddBAReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Trigger BA Request function (called when Main FSM 
+        allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessTriggerBAReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Update Beacon Params Request function (called when Main 
+        FSM allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessUpdateBeaconParamsReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Update Beacon template Request function (called when Main 
+        FSM allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSendBeaconParamsReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Update Beacon Params  Request function (called when Main FSM
+        allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessUpdateProbeRspTemplateReq
 ( 
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
@@ -1856,6 +2027,41 @@ WDI_ProcessRemoveStaKeyRsp
   WDI_EventInfoType*     pEventData
 );
 
+
+/**
+ @brief Process Set STA Bcast Key Rsp function (called when a 
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetStaBcastKeyRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Remove STA Bcast Key Rsp function (called when a
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessRemoveStaBcastKeyRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
 /**
  @brief Process Add TSpec Rsp function (called when a response
         is being received over the bus from HAL)
@@ -1920,7 +2126,7 @@ WDI_ProcessUpdateEDCAParamsRsp
  @return Result of the function call
 */
 WDI_Status
-WDI_ProcessAddBARsp
+WDI_ProcessAddBASessionRsp
 ( 
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
@@ -2033,6 +2239,90 @@ WDI_ProcessUpdateCfgRsp
   WDI_EventInfoType*     pEventData
 );
 
+/**
+ @brief Process Add BA Rsp function (called when a response
+        is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessAddBARsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Add BA Rsp function (called when a response
+        is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessTriggerBARsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Update Beacon Params Rsp function (called when a response is  
+        being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessUpdateBeaconParamsRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Send Beacon template Rsp function (called when a response is  
+        being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSendBeaconParamsRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Update Probe Resp Template Rsp function (called 
+        when a response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessUpdateProbeRspTemplateRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
 
 /*==========================================================================
                         Indications from HAL
@@ -2124,6 +2414,24 @@ WDI_ProcessMicFailureInd
 */
 WDI_Status
 WDI_ProcessFatalErrorInd
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Delete STA Indication function (called when 
+        an indication of this kind is being received over the
+        bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessDelSTAInd
 ( 
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData

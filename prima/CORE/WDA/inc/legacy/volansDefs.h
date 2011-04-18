@@ -15,7 +15,6 @@
 #ifndef __VOLANS_DEFS_H
 #define __VOLANS_DEFS_H
 
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
 #if defined (VOLANS_FPGA) || defined(FEATURE_WLANFW_ARCH_SIMULATION)
 #include "qwlanhw_volans_fpga.h"
 #elif defined (VOLANS_BB) || defined(VOLANS_RF) || defined(FEATURE_WLANFW_RF_ACCESS) || defined(FEATURE_WLANFW_BB_ACCESS) 
@@ -23,7 +22,6 @@
 #else
 #error "TARGET_TYPE(FPGA/BB/RF) is not defined"
 #endif /* VOLANS_FPGA */
-#endif
 
 #ifndef __ASSEMBLER__
 

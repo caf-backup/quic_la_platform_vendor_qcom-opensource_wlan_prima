@@ -23,7 +23,6 @@
 #include <vos_types.h>
 #include <vos_status.h>
 
-
 /*-------------------------------------------------------------------------- 
   Preprocessor definitions and constants
   ------------------------------------------------------------------------*/
@@ -79,8 +78,6 @@ typedef enum
    
 } VOS_PKT_USER_DATA_ID;
 
-
-
 /**------------------------------------------------------------------------
   
   \brief voss asynchronous get_packet callback function
@@ -101,6 +98,13 @@ typedef enum
   ------------------------------------------------------------------------*/
 typedef VOS_STATUS ( *vos_pkt_get_packet_callback )( vos_pkt_t *pPacket, 
                                                      v_VOID_t *userData );
+
+/*
+ * include the OS-specific packet abstraction
+ * we include it here since the abstraction probably needs to access the
+ * generic types defined above
+ */
+#include "i_vos_packet.h"
 
 /*------------------------------------------------------------------------- 
   Function declarations and documenation
@@ -778,6 +782,41 @@ VOS_STATUS vos_pkt_push_head( vos_pkt_t *pPacket, v_VOID_t *pData, v_SIZE_t data
 VOS_STATUS vos_pkt_reserve_head( vos_pkt_t *pPacket, v_VOID_t **ppData, 
                                  v_SIZE_t dataSize );
 
+/**--------------------------------------------------------------------------
+  
+  \brief vos_pkt_reserve_head_fast()- Reserve space at the front of a voss Pkt 
+
+  This API will reserve space at the front of a voss Packet.  The caller can 
+  then copy data into this reserved space using memcpy() like functions.  This 
+  allows the caller to reserve space and build headers directly in this
+  reserved space in the voss Packet.
+  
+  Upon successful return, the length of the voss Packet is increased by 
+  dataSize.
+ 
+  Same as above API but no memset to 0.
+ 
+  < put a before / after picture here> 
+  
+  \param pPacket - the voss Packet to modify.
+  
+  \param ppData - pointer to the location where the pointer to the reserved 
+                  space is returned.  Upon successful return, the caller has 
+                  write / read access to the data space at *ppData for length
+                  dataSize to build headers, etc.
+  
+  \param dataSize - the size of the data to reserve at the head of the voss 
+                    Packet.  Upon successful return, the length of the voss
+                    Packet is increased by dataSize. 
+  
+  \return
+    
+  \sa
+  
+  ----------------------------------------------------------------------------*/ 
+VOS_STATUS vos_pkt_reserve_head_fast( vos_pkt_t *pPacket,
+                                 v_VOID_t **ppData,
+                                 v_SIZE_t dataSize );
 
 /**--------------------------------------------------------------------------
   

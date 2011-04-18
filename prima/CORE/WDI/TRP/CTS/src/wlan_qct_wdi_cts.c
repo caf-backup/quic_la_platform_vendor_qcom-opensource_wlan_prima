@@ -60,7 +60,7 @@
 #ifdef CONFIG_ANDROID
 #include <mach/msm_smd.h>
 #else
-#include "smd.h"
+#include "msm_smd.h"
 #endif
 
 /*----------------------------------------------------------------------------
@@ -98,6 +98,9 @@ typedef struct
    smd_channel_t*         wctsChannel;
    wpt_list               wctsPendingQueue;
    wpt_uint32             wctsMagic;
+   wpt_msg                wctsOpenMsg;
+   wpt_msg                wctsDataMsg;
+   wpt_msg                wctsCloseMsg;
 } WCTS_ControlBlockType;
 
 /*---------------------------------------------------------------------------
@@ -152,9 +155,6 @@ WCTS_PALOpenCallback
    /* extract our context from the message */
    pWCTSCb = pMsg->pContext;
 
-   /* we are done with the message*/
-   wpalMemoryFree(pMsg);
-
    /*--------------------------------------------------------------------
      Sanity check
      --------------------------------------------------------------------*/
@@ -202,9 +202,6 @@ WCTS_PALCloseCallback
 
    /* extract our context from the message */
    pWCTSCb = pMsg->pContext;
-
-   /* we are done with the message*/
-   wpalMemoryFree(pMsg);
 
    /*--------------------------------------------------------------------
      Sanity check
@@ -428,9 +425,6 @@ WCTS_PALDataCallback
    /* extract our context from the message */
    pWCTSCb = pMsg->pContext;
 
-   /* we are done with the message */
-   wpalMemoryFree(pMsg);
-
    /* process any incoming messages */
    WCTS_PALReadCallback(pWCTSCb);
 
@@ -479,27 +473,17 @@ WCTS_NotifyCallback
 
    /* Serialize processing in the control thread */
 
-   /* Callback will free the PAL message memory as needed before returning */
-   palMsg = wpalMemoryAllocate(sizeof(wpt_msg));
-
-   if (NULL == palMsg) {
-      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                 "WCTS_NotifyCallback: Cannot allocate memory for palMsg.");
-      WDI_ASSERT(0);
-      return;
-   }
-
    switch (event) {
    case SMD_EVENT_OPEN:
-      palMsg->callback = WCTS_PALOpenCallback;
+      palMsg = &pWCTSCb->wctsOpenMsg;
       break;
 
    case SMD_EVENT_DATA:
-      palMsg->callback = WCTS_PALDataCallback;
+      palMsg = &pWCTSCb->wctsDataMsg;
       break;
 
    case SMD_EVENT_CLOSE:
-      palMsg->callback = WCTS_PALCloseCallback;
+      palMsg = &pWCTSCb->wctsCloseMsg;
       break;
 
    default:
@@ -507,15 +491,11 @@ WCTS_NotifyCallback
                  "WCTS_NotifyCallback: Unexpected event %u received from SMD",
                  event);
 
-      /* We don't need to serialize this event, so reclaim the memory
-         and exit*/
-      wpalMemoryFree(palMsg);
       WPAL_ASSERT(0);
       return;
    }
 
    /* serialize this event */
-   palMsg->pContext = pWCTSCb;
    wpalPostCtrlMsg(WDI_GET_PAL_CTX(), palMsg);
 
 } /*WCTS_NotifyCallback*/
@@ -575,6 +555,10 @@ WCTS_OpenTransport
       return NULL;
    }
 
+#ifdef FEATURE_R33D
+   smd_init(0);
+#endif /* FEATURE_R33D */
+
    /* save the user-supplied information */
    pWCTSCb->wctsNotifyCB       = wctsCBs->wctsNotifyCB;
    pWCTSCb->wctsNotifyCBData   = wctsCBs->wctsNotifyCBData;
@@ -587,12 +571,25 @@ WCTS_OpenTransport
    pWCTSCb->wctsState   = WCTS_STATE_OPEN_PENDING;
    pWCTSCb->wctsChannel = NULL;
 
+   /* since SMD will callback in interrupt context, we will used
+    * canned messages to serialize the SMD events into a thread
+    * context
+    */
+   pWCTSCb->wctsOpenMsg.callback = WCTS_PALOpenCallback;
+   pWCTSCb->wctsOpenMsg.pContext = pWCTSCb;
+
+   pWCTSCb->wctsDataMsg.callback = WCTS_PALDataCallback;
+   pWCTSCb->wctsDataMsg.pContext = pWCTSCb;
+
+   pWCTSCb->wctsCloseMsg.callback = WCTS_PALCloseCallback;
+   pWCTSCb->wctsCloseMsg.pContext = pWCTSCb;
+
    /*---------------------------------------------------------------------
      Open the SMD channel
      ---------------------------------------------------------------------*/
 
    if (smd_named_open_on_edge(szName,
-                              SMD_APPS_RIVA,
+                              SMD_APPS_WCNSS,
                               &pWCTSCb->wctsChannel,
                               pWCTSCb,
                               WCTS_NotifyCallback)) {

@@ -647,17 +647,14 @@ typedef struct {
 #endif
 } tSendbeaconParams, * tpSendbeaconParams;
 
-typedef struct {
+#ifdef WLAN_SOFTAP_FEATURE
+typedef struct sSendProbeRespParams {
     tSirMacAddr bssId;
-    tANI_U8 *probeRsp;     // probeRsp data.
-    tANI_U32 probeRspLength;
-} tUpdateProbeRspParams, * tpUpdateProbeRspParams;
-
-typedef struct {
-    tANI_U32 probeRspIeBitmap[8]; //bitmap for unhandled IEs by FW. 
-    tANI_U32 fwProcessingdisabled; //when set FW will always forward probeReq to host.
-} tUpdateProbeRspIeBitmap, * tpUpdateProbeRspIeBitmap;
-
+    tANI_U8      *pProbeRespTemplate; 
+    tANI_U32     probeRespTemplateLen;
+	tANI_U32     ucProxyProbeReqValidIEBmap[8];
+} tSendProbeRespParams, * tpSendProbeRespParams;
+#endif
 
 /*
  * This is used by PE to configure the key information on a given station.

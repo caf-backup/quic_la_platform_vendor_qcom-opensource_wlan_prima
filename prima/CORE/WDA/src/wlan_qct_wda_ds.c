@@ -13,7 +13,7 @@
   Are listed for each API below.
 
 
-  Copyright (c) 2008 QUALCOMM Incorporated.
+  Copyright (c) 2010-2011 QUALCOMM Incorporated.
   All Rights Reserved.
   Qualcomm Confidential and Proprietary
 ===========================================================================*/
@@ -663,6 +663,7 @@ WDA_DS_BuildTxPacketInfo
   pTxMetaInfo->qosEnabled = ucQosEnabled;
   pTxMetaInfo->fenableWDS = ucWDSEnabled;
   pTxMetaInfo->ac         = ucUP;
+  pTxMetaInfo->fUP        = uTid;
   pTxMetaInfo->isEapol    = ucIsEapol;
   pTxMetaInfo->fdisableFrmXlt = ucDisableFrmXtl;
   pTxMetaInfo->frmType     = ( ( typeSubtype & 0x30 ) >> 4 );
@@ -1290,11 +1291,12 @@ WDA_DS_TxFrames
                               WDA_DS_DXE_RES_COUNT, 
                               wdaContext->uTxFlowMask,
                               &bUrgent );
-  if ( NULL == pTxChain )
-  {
-    // No more TX frame
-    return VOS_STATUS_SUCCESS;
-  }
+
+  // We need to initialize vsoStatus in case we don't enter the "while"
+  // loop.  If we don't enter the loop, it means that there are no packets,
+  // available, and that is considered success.  If we enter the loop,
+  // vosStatus will be set appropriately inside the loop
+  vosStatus = VOS_STATUS_SUCCESS;
       
   while ( NULL != pTxChain )
   {
@@ -1318,7 +1320,7 @@ WDA_DS_TxFrames
     }
 
     wdiStatus = WDI_DS_TxPacket( wdaContext->pWdiContext, 
-                                 (wpt_packet *)pTxPacket, 
+                                 (wpt_packet*)pTxPacket, 
                                  0 /* more */ );
     if ( WDI_STATUS_SUCCESS != wdiStatus )
     {
@@ -1509,7 +1511,7 @@ WDA_DS_TxCompleteCB
   }
 
   // extract metadata from PAL packet
-  pTxMetadata = WDI_DS_ExtractTxMetaData( pFrameDataBuff );
+  pTxMetadata = WDI_DS_ExtractTxMetaData( (wpt_packet*)pFrameDataBuff );
   
   if ( eWLAN_PAL_STATUS_SUCCESS == pTxMetadata->txCompleteStatus )
     vosStatus = VOS_STATUS_SUCCESS;
