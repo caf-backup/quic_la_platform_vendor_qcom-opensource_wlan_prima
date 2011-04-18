@@ -234,6 +234,11 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"MCAST_BCAST_FILTER_SETTING",
 	(unsigned char *)"BTC_DHCP_BT_SLOTS_TO_BLOCK",
 	(unsigned char *)"DYNAMIC_PS_POLL_VALUE",
+	(unsigned char *)"TELE_BCN_WAKEUP_EN",
+	(unsigned char *)"TELE_BCN_TRANS_LI",
+	(unsigned char *)"TELE_BCN_TRANS_LI_IDLE_BCNS",
+	(unsigned char *)"TELE_BCN_MAX_LI",
+	(unsigned char *)"TELE_BCN_MAX_LI_IDLE_BCNS",
 };
 
 
