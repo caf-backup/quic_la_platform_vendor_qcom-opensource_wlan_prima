@@ -21,6 +21,7 @@
 #include "wlan_qct_bal.h"
 #include "halTpe.h"
 #include "halUtils.h"
+#include "halDXE.h"
 
 #ifdef ANI_OS_TYPE_ANDROID
 #include <linux/kernel.h>
@@ -1520,6 +1521,8 @@ halIntChipEnable(tHalHandle hHalHandle)
     halRegType.acquireResourceCB = halPS_SetHostBusyTxRx;
     halRegType.releaseResourceCB = halPS_ReleaseHostBusyTxRx;
 #endif
+    halRegType.dxeChannelStatusCB = halDxe_DxeChannelIdleStatus;
+    
     status = WLANBAL_RegHalCBFunctions(pVosGCtx, &halRegType);
     if(!VOS_IS_STATUS_SUCCESS(status))
     {

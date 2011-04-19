@@ -24,7 +24,7 @@ const sHalNv nvDefaults =
     {
         0,                                                              // tANI_U16  productId;
         0,                                                              // tANI_U8   productBands;
-        { 0 },                                                          // tANI_U8   unused1[0];
+        1,                                                              // tANI_U8   wlanNvRevId; //0: WCN1312, 1: WCN1314
         1,                                                              // tANI_U8   numOfTxChains;
         2,                                                              // tANI_U8   numOfRxChains;
         { 0x00, 0xDE, 0xAD, 0xBE, 0xEF, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
@@ -3635,55 +3635,59 @@ const sHalNv nvDefaults =
 
             0,               //calStatus
             {
-                0,           //process_monitor;
-                0,           //hdet_cal_code;
                 0,           //rxfe_gm_2;
+                0,           //hdet_cal_code;
+                0,           //process_monitor;
 
-                0,           //tx_bbf_rtune;
-                0,           //pa_rtune_reg;
-                0,           //rt_code;
                 0,           //bias_rtune;
+                0,           //rt_code;
+                0,           //pa_rtune_reg;
+                0,           //tx_bbf_rtune;
 
-                0,           //bb_bw1;
+                0,           //reserved1;
+                0,           //pa_ctune_reg;
                 0,           //bb_bw2;
-                0,           //reserved0;
-                0,           //reserved11;
+                0,           //bb_bw1;
 
-                0,           //bb_bw3;
-                0,           //bb_bw4;
-                0,           //bb_bw5;
                 0,           //bb_bw6;
+                0,           //bb_bw5;
+                0,           //bb_bw4;
+                0,           //bb_bw3;
 
-                0,           //rcMeasured;
-                0,           //tx_bbf_ct;
                 0,           //tx_bbf_ctr;
+                0,           //tx_bbf_ct;
+                0,           //rcMeasured;
 
-                0,           //csh_maxgain_reg;
-                0,           //csh_0db_reg;
-                0,           //csh_m3db_reg;
                 0,           //csh_m6db_reg;
+                0,           //csh_m3db_reg;
+                0,           //csh_0db_reg;
+                0,           //csh_maxgain_reg;
 
-                0,           //cff_0db_reg;
-                0,           //cff_m3db_reg;
-                0,           //cff_m6db_reg;
                 0,           //rxfe_gpio_ctl_1;
+                0,           //cff_m6db_reg;
+                0,           //cff_m3db_reg;
+                0,           //cff_0db_reg;
 
-                0,           //mix_bal_cnt_2;
-                0,           //rxfe_lna_highgain_bias_ctl_delta;
-                0,           //rxfe_lna_load_ctune;
                 0,           //rxfe_lna_ngm_rtune;
+                0,           //rxfe_lna_load_ctune;
+                0,           //rxfe_lna_highgain_bias_ctl_delta;
+                0,           //mix_bal_cnt_2;
 
-                0,           //rx_im2_spare0;
-                0,           //rx_im2_spare1;
                 0,           //hdet_dco
+                0,           //rx_im2_spare1;
+                0,           //rx_im2_spare0;
 
-                0,           //pll_vfc_reg3_b0;
-                0,           //pll_vfc_reg3_b1;
-                0,           //pll_vfc_reg3_b2;
                 0,           //pll_vfc_reg3_b3;
+                0,           //pll_vfc_reg3_b2;
+                0,           //pll_vfc_reg3_b1;
+                0,           //pll_vfc_reg3_b0;
 
+                0,           //roomTemp;
                 0,           //tempStart;
-                0            //roomTemp;
+
+                0,           //reserved2
+                0,           //Ambient Cal Temp Valid
+                2500         //Ambient Cal Temp
             }
         },
 
@@ -3757,6 +3761,16 @@ const sHalNv nvDefaults =
                 1750,  // RF_CHAN_13
                 1750   // RF_CHAN_14
             },//MODE_802_11AG
+        },
+
+        //NV_TABLE_OFDM_CMD_PWR_OFFSET
+        {
+            0, 0
+        },
+
+        //NV_TABLE_TX_BB_FILTER_MODE
+        {
+            0
         }
 
     } // tables

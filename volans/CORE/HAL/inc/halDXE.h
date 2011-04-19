@@ -314,6 +314,11 @@ eHalStatus halDxe_EnsureDXEIdleState(tHalHandle hHalHandle);
  */
 eHalStatus halDxe_EnableDisableDXE(tHalHandle hHalHandle, tANI_U8 enable);
 
+/*
+ * Get DxE channel status
+ */
+VOS_STATUS halDxe_DxeChannelIdleStatus(tANI_U32 *pStatus, v_PVOID_t pMacContext);
+
 #endif /* _HALDXE_H_ */
 
 

@@ -53,6 +53,7 @@ when           who        what, where, why
 #else
 #include <libra.h>
 #endif
+
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -599,6 +600,43 @@ v_VOID_t balASICInterruptCB
    BEXIT();
    return;
 }
+
+/*----------------------------------------------------------------------------
+
+  @brief  SSC invokes this function to get the DxE receive and receive-hi
+          channel status. The status is retrieved during Idle Mode Power Save
+
+  @param v_PVOID_t pAdapter  Global adapter handle
+
+  @return NONE
+
+----------------------------------------------------------------------------*/
+v_VOID_t balDMAEngineStatusCB
+(
+   v_U32_t               *pStatus,
+   v_PVOID_t              pAdapter
+)
+{
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
+    BENTER();
+
+    if(!IS_VALID_1_ARG(gbalHandle->halCBacks.dxeChannelStatusCB))
+    {
+        BMSGERROR("Invalid dxeChannelStatusCB 0x%p", gbalHandle->halCBacks.dxeChannelStatusCB, 0, 0);
+        BEXIT();
+        return;
+    }
+
+    status = gbalHandle->halCBacks.dxeChannelStatusCB(pStatus, gbalHandle->halCBacks.halUsrData);
+    if(!VOS_IS_STATUS_SUCCESS(status))
+    {
+        BMSGERROR("DxE Channel check status %n", status, 0, 0);
+    }
+
+    BEXIT();
+    return;
+}
+
 /*=========================================================================
  * Interactions with vOSS
  *=========================================================================*/
@@ -812,6 +850,7 @@ VOS_STATUS WLANBAL_Start
    sscReg.pfnRxPacketHandlerCback               = balRecieveFramesCB;
    sscReg.pfnASICInterruptIndicationCback       = balASICInterruptCB;
    sscReg.pfnFatalErrorIndicationCback          = balFatalErrorCB;
+   sscReg.pfnDmaEngineStatusCheckCback          = balDMAEngineStatusCB;
 
    /* Volans 1.0 specific changes */
    WLANBAL_GetSDIOCardIdentifier(pAdapter, &cardId);
@@ -1169,6 +1208,8 @@ VOS_STATUS WLANBAL_RegHalCBFunctions
 
    gbalHandle->halCBacks.asicInterruptCB = halReg->asicInterruptCB;
    gbalHandle->halCBacks.fatalErrorCB    = halReg->fatalErrorCB;
+   /* Call back provided by HAL for getting the DxE Rx/Rx-Hi channel status */
+   gbalHandle->halCBacks.dxeChannelStatusCB = halReg->dxeChannelStatusCB;
    gbalHandle->halCBacks.halUsrData = halReg->halUsrData;
 #ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
    /* Callbacks provided by HAL to acquire/release resources for safe hardware

@@ -35,6 +35,8 @@ typedef enum
     NV_TABLE_CAL_STATUS                 = 11,
     NV_TABLE_ANTENNA_PATH_LOSS          = 12,
     NV_TABLE_PACKET_TYPE_POWER_LIMITS   = 13,
+    NV_TABLE_OFDM_CMD_PWR_OFFSET        = 14,
+    NV_TABLE_TX_BB_FILTER_MODE          = 15,
 
     NUM_NV_TABLE_IDS,
     NV_ALL_TABLES                   = 0xFFF,
@@ -52,32 +54,36 @@ typedef struct
 
 typedef union
 {
-    tRateGroupPwr           pwrOptimum[NUM_RF_SUBBANDS];              // NV_TABLE_RATE_POWER_SETTINGS
-    sRegulatoryDomains      regDomains[NUM_REG_DOMAINS];              // NV_TABLE_REGULATORY_DOMAINS
-    sDefaultCountry         defaultCountryTable;                      // NV_TABLE_DEFAULT_COUNTRY
-    tTpcPowerTable          plutCharacterized[NUM_2_4GHZ_CHANNELS];   // NV_TABLE_TPC_POWER_TABLE
-    tANI_U16                plutPdadcOffset[NUM_2_4GHZ_CHANNELS];     // NV_TABLE_TPC_PDADC_OFFSETS
-    //sCalFlashMemory         calFlashMemory;                           // NV_TABLE_CAL_MEMORY
-    //sCalStatus              calStatus;                                // NV_TABLE_CAL_STATUS
-    sRssiChannelOffsets     rssiChanOffsets[2];                       // NV_TABLE_RSSI_CHANNEL_OFFSETS
-    sRFCalValues            rFCalValues;                              // NV_TABLE_RF_CAL_VALUES
-    t2Decimal               antennaPathLoss[NUM_2_4GHZ_CHANNELS];            // NV_TABLE_ANTENNA_PATH_LOSS
-    t2Decimal               pktTypePwrLimits[NUM_802_11_MODES][NUM_2_4GHZ_CHANNELS]; //NV_TABLE_PACKET_TYPE_POWER_LIMITS
+    tRateGroupPwr        pwrOptimum[NUM_RF_SUBBANDS];                             // NV_TABLE_RATE_POWER_SETTINGS
+    sRegulatoryDomains   regDomains[NUM_REG_DOMAINS];                             // NV_TABLE_REGULATORY_DOMAINS
+    sDefaultCountry      defaultCountryTable;                                     // NV_TABLE_DEFAULT_COUNTRY
+    tTpcPowerTable       plutCharacterized[NUM_2_4GHZ_CHANNELS];                  // NV_TABLE_TPC_POWER_TABLE
+    tANI_U16             plutPdadcOffset[NUM_2_4GHZ_CHANNELS];                    // NV_TABLE_TPC_PDADC_OFFSETS
+    //sCalFlashMemory      calFlashMemory;                                        // NV_TABLE_CAL_MEMORY
+    //sCalStatus           calStatus;                                             // NV_TABLE_CAL_STATUS
+    sRssiChannelOffsets  rssiChanOffsets[2];                                      // NV_TABLE_RSSI_CHANNEL_OFFSETS
+    sRFCalValues         rFCalValues;                                             // NV_TABLE_RF_CAL_VALUES
+    t2Decimal            antennaPathLoss[NUM_2_4GHZ_CHANNELS];                    // NV_TABLE_ANTENNA_PATH_LOSS
+    t2Decimal            pktTypePwrLimits[NUM_802_11_MODES][NUM_2_4GHZ_CHANNELS]; // NV_TABLE_PACKET_TYPE_POWER_LIMITS
+    sOfdmCmdPwrOffset    ofdmCmdPwrOffset;                                        // NV_TABLE_OFDM_CMD_PWR_OFFSET
+    sTxBbFilterMode      txbbFilterMode;                                          // NV_TABLE_TX_BB_FILTER_MODE
 }uNvTables;
 
 typedef struct
 {
-    tRateGroupPwr           pwrOptimum[NUM_RF_SUBBANDS];              // NV_TABLE_RATE_POWER_SETTINGS
-    sRegulatoryDomains      regDomains[NUM_REG_DOMAINS];              // NV_TABLE_REGULATORY_DOMAINS
-    sDefaultCountry         defaultCountryTable;                      // NV_TABLE_DEFAULT_COUNTRY
-    tTpcPowerTable          plutCharacterized[NUM_2_4GHZ_CHANNELS];   // NV_TABLE_TPC_POWER_TABLE
-    tANI_U16                plutPdadcOffset[NUM_2_4GHZ_CHANNELS];     // NV_TABLE_TPC_PDADC_OFFSETS
-    //sCalFlashMemory         calFlashMemory;                           // NV_TABLE_CAL_MEMORY
-    //sCalStatus              calStatus;                                // NV_TABLE_CAL_STATUS
-    sRssiChannelOffsets     rssiChanOffsets[2];                       // NV_TABLE_RSSI_CHANNEL_OFFSETS
-    sRFCalValues            rFCalValues;                              // NV_TABLE_RF_CAL_VALUES
-    t2Decimal               antennaPathLoss[NUM_2_4GHZ_CHANNELS];            // NV_TABLE_ANTENNA_PATH_LOSS
-    t2Decimal               pktTypePwrLimits[NUM_802_11_MODES][NUM_2_4GHZ_CHANNELS]; //NV_TABLE_PACKET_TYPE_POWER_LIMITS
+    tRateGroupPwr        pwrOptimum[NUM_RF_SUBBANDS];                             // NV_TABLE_RATE_POWER_SETTINGS
+    sRegulatoryDomains   regDomains[NUM_REG_DOMAINS];                             // NV_TABLE_REGULATORY_DOMAINS
+    sDefaultCountry      defaultCountryTable;                                     // NV_TABLE_DEFAULT_COUNTRY
+    tTpcPowerTable       plutCharacterized[NUM_2_4GHZ_CHANNELS];                  // NV_TABLE_TPC_POWER_TABLE
+    tANI_U16             plutPdadcOffset[NUM_2_4GHZ_CHANNELS];                    // NV_TABLE_TPC_PDADC_OFFSETS
+    //sCalFlashMemory      calFlashMemory;                                        // NV_TABLE_CAL_MEMORY
+    //sCalStatus           calStatus;                                             // NV_TABLE_CAL_STATUS
+    sRssiChannelOffsets  rssiChanOffsets[2];                                      // NV_TABLE_RSSI_CHANNEL_OFFSETS
+    sRFCalValues         rFCalValues;                                             // NV_TABLE_RF_CAL_VALUES
+    t2Decimal            antennaPathLoss[NUM_2_4GHZ_CHANNELS];                    // NV_TABLE_ANTENNA_PATH_LOSS
+    t2Decimal            pktTypePwrLimits[NUM_802_11_MODES][NUM_2_4GHZ_CHANNELS]; // NV_TABLE_PACKET_TYPE_POWER_LIMITS
+    sOfdmCmdPwrOffset    ofdmCmdPwrOffset;                                        // NV_TABLE_OFDM_CMD_PWR_OFFSET
+    sTxBbFilterMode      txbbFilterMode;                                          // NV_TABLE_TX_BB_FILTER_MODE
 }sNvTables;
 
 

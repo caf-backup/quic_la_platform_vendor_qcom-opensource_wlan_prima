@@ -250,6 +250,19 @@ typedef v_VOID_t (* WLANSSC_ASICInterruptIndicationCbackType)
   v_PVOID_t         UserData
 );
 
+/*---------------------------------------------------------------------------
+   WLANSSC_DMAEngineStatusCheckCbackType
+
+   This callback is invoked by SSC to provide an indication that an ASIC
+   interrupt was received at the SSC level and further processing is required
+   by the SSC client
+---------------------------------------------------------------------------*/
+typedef v_VOID_t (* WLANSSC_DMAEngineStatusCheckCbackType)
+(
+  v_U32_t           *pStatus,
+  /* user data passed with Start                                           */
+  v_PVOID_t         UserData
+);
 
 /*---------------------------------------------------------------------------
    WLANSSC_StartParamsType
@@ -266,6 +279,7 @@ typedef struct
   WLANSSC_RxPacketHandlerCbackType          pfnRxPacketHandlerCback;
   WLANSSC_ASICInterruptIndicationCbackType  pfnASICInterruptIndicationCback;
   WLANSSC_FatalErrorIndicationCbackType     pfnFatalErrorIndicationCback;
+  WLANSSC_DMAEngineStatusCheckCbackType     pfnDmaEngineStatusCheckCback;
 } WLANSSC_StartParamsType;
 
    

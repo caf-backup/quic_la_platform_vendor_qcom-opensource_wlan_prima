@@ -75,8 +75,6 @@ eHalStatus halNvOpen(tHalHandle hMac)
         }
     }
 
-#ifdef ANI_OS_TYPE_ANDROID
-
     if (vos_nv_getValidity(VNV_TPC_POWER_TABLE, &itemIsValid) == VOS_STATUS_SUCCESS)
     {
         if (itemIsValid == VOS_TRUE)
@@ -148,7 +146,25 @@ eHalStatus halNvOpen(tHalHandle hMac)
                  return (eHAL_STATUS_FAILURE);
         }
     }
-#endif //ANI_OS_TYPE_ANDROID
+
+    if (vos_nv_getValidity(VNV_OFDM_CMD_PWR_OFFSET, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE)
+        {
+            if(vos_nv_read( VNV_OFDM_CMD_PWR_OFFSET, (v_VOID_t *)&pMac->hphy.nvCache.tables.ofdmCmdPwrOffset, NULL, sizeof(sOfdmCmdPwrOffset) ) != VOS_STATUS_SUCCESS)
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
+
+    if (vos_nv_getValidity(VNV_TX_BB_FILTER_MODE, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE)
+        {
+            if(vos_nv_read( VNV_TX_BB_FILTER_MODE, (v_VOID_t *)&pMac->hphy.nvCache.tables.txbbFilterMode, NULL, sizeof(sTxBbFilterMode) ) != VOS_STATUS_SUCCESS)
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
+
 }
 #endif //(defined(ANI_OS_TYPE_ANDROID) || defined(ANI_OS_TYPE_AMSS))
     pMac->hphy.nvTables[NV_FIELDS_IMAGE             ] = &pMac->hphy.nvCache.fields;
@@ -163,6 +179,8 @@ eHalStatus halNvOpen(tHalHandle hMac)
     pMac->hphy.nvTables[NV_TABLE_RF_CAL_VALUES] = &pMac->hphy.nvCache.tables.rFCalValues;
     pMac->hphy.nvTables[NV_TABLE_ANTENNA_PATH_LOSS  ] = &pMac->hphy.nvCache.tables.antennaPathLoss[0];
     pMac->hphy.nvTables[NV_TABLE_PACKET_TYPE_POWER_LIMITS  ] = &pMac->hphy.nvCache.tables.pktTypePwrLimits[0][0];
+    pMac->hphy.nvTables[NV_TABLE_OFDM_CMD_PWR_OFFSET  ] = &pMac->hphy.nvCache.tables.ofdmCmdPwrOffset;
+    pMac->hphy.nvTables[NV_TABLE_TX_BB_FILTER_MODE  ] = &pMac->hphy.nvCache.tables.txbbFilterMode;
 
     return status;
 }
@@ -230,6 +248,11 @@ static eHalStatus GetFieldLoc(tpAniSirGlobal pMac, eNvField field, void **cacheD
         case NV_COMMON_MFG_SERIAL_NUMBER:
             *cacheData = &pMac->hphy.nvCache.fields.mfgSN[0];
             *dataSize = NV_FIELD_MFG_SN_SIZE;
+            break;
+
+        case NV_COMMON_WLAN_NV_REV_ID:
+            *cacheData = &pMac->hphy.nvCache.fields.wlanNvRevId;
+            *dataSize = sizeof(tANI_U8);
             break;
 
         default:
@@ -398,6 +421,20 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                 }
                 break;
 
+            case NV_TABLE_OFDM_CMD_PWR_OFFSET:
+                if ((vosStatus = vos_nv_write(VNV_OFDM_CMD_PWR_OFFSET, (void *)&pMac->hphy.nvCache.tables.ofdmCmdPwrOffset, sizeof(sOfdmCmdPwrOffset))) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
+
+            case NV_TABLE_TX_BB_FILTER_MODE:
+                if ((vosStatus = vos_nv_write(VNV_TX_BB_FILTER_MODE, (void *)&pMac->hphy.nvCache.tables.txbbFilterMode, sizeof(sTxBbFilterMode))) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
+
             default:
                 return (eHAL_STATUS_FAILURE);
                 break;
@@ -553,6 +590,14 @@ eHalStatus halReadNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDat
             memcpy(tableData, &pMac->hphy.nvCache.tables.pktTypePwrLimits[0][0], sizeof(t2Decimal) * NUM_802_11_MODES * NUM_2_4GHZ_CHANNELS);
             break;
 
+        case NV_TABLE_OFDM_CMD_PWR_OFFSET:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.ofdmCmdPwrOffset, sizeof(sOfdmCmdPwrOffset));
+            break;
+
+        case NV_TABLE_TX_BB_FILTER_MODE:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.txbbFilterMode, sizeof(sTxBbFilterMode));
+            break;
+
         default:
             return (eHAL_STATUS_FAILURE);
             break;
@@ -630,6 +675,16 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
             case NV_TABLE_PACKET_TYPE_POWER_LIMITS:
                 numOfEntries = NUM_802_11_MODES * NUM_2_4GHZ_CHANNELS;
                 sizeOfEntry = sizeof(t2Decimal);
+                break;
+
+            case NV_TABLE_OFDM_CMD_PWR_OFFSET:
+                numOfEntries = 1;
+                sizeOfEntry = sizeof(sOfdmCmdPwrOffset);
+                break;
+
+            case NV_TABLE_TX_BB_FILTER_MODE:
+                numOfEntries = 1;
+                sizeOfEntry = sizeof(sTxBbFilterMode);
                 break;
 
             default:
@@ -800,6 +855,29 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
 
                 break;
 
+            case NV_TABLE_OFDM_CMD_PWR_OFFSET:
+                if ((vosStatus = vos_nv_setValidity(VNV_OFDM_CMD_PWR_OFFSET, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+                {
+                    memcpy(&pMac->hphy.nvCache.tables.ofdmCmdPwrOffset, &nvDefaults.tables.ofdmCmdPwrOffset, sizeof(sOfdmCmdPwrOffset));
+                }
+                else
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+
+                break;
+
+            case NV_TABLE_TX_BB_FILTER_MODE:
+                if ((vosStatus = vos_nv_setValidity(VNV_TX_BB_FILTER_MODE, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+                {
+                    memcpy(&pMac->hphy.nvCache.tables.txbbFilterMode, &nvDefaults.tables.txbbFilterMode, sizeof(sTxBbFilterMode));
+                }
+                else
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+
+                break;
         default:
             return (eHAL_STATUS_FAILURE);
             break;
@@ -829,6 +907,8 @@ eHalStatus halBlankNv(tHalHandle hMac)
     halRemoveNvTable(hMac, NV_TABLE_RF_CAL_VALUES  );
     halRemoveNvTable(hMac, NV_TABLE_ANTENNA_PATH_LOSS     );
     halRemoveNvTable(hMac, NV_TABLE_PACKET_TYPE_POWER_LIMITS     );
+    halRemoveNvTable(hMac, NV_TABLE_OFDM_CMD_PWR_OFFSET   );
+    halRemoveNvTable(hMac, NV_TABLE_TX_BB_FILTER_MODE     );
 
     return (retVal);
 }

@@ -932,6 +932,7 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tANI_U32            len;
     tLimMlmScanReq      *pMlmScanReq;
     tpSirSmeScanReq     pScanReq;
+    tANI_U8             i = 0;
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT_LIM //FEATURE_WLAN_DIAG_SUPPORT 
     limDiagEventReport(pMac, WLAN_PE_DIAG_SCAN_REQ_EVENT, NULL, 0, 0);
@@ -1081,9 +1082,15 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                       pScanReq->bssId,
                       sizeof(tSirMacAddr));
 
-        palCopyMemory( pMac->hHdd, (tANI_U8 *) &pMlmScanReq->ssId,
-                      (tANI_U8 *) &pScanReq->ssId,
-                      pScanReq->ssId.length + 1);
+        pMlmScanReq->numSsid = pScanReq->numSsid;
+        do
+        {
+            palCopyMemory( pMac->hHdd, (tANI_U8 *) &pMlmScanReq->ssId[i],
+                      (tANI_U8 *) &pScanReq->ssId[i],
+                      pScanReq->ssId[i].length + 1);
+
+            i++;
+        } while (i < pMlmScanReq->numSsid);
 
         pMlmScanReq->scanType = pScanReq->scanType;
         pMlmScanReq->backgroundScanMode = pScanReq->backgroundScanMode;
@@ -4112,14 +4119,6 @@ limProcessSmeAddtsRspTimeout(tpAniSirGlobal pMac, tANI_U32 param)
     if (  (psessionEntry->limSystemRole != eLIM_STA_ROLE) && (psessionEntry->limSystemRole != eLIM_BT_AMP_STA_ROLE)   )
     {
         limLog(pMac, LOGW, "AddtsRspTimeout in non-Sta role (%d)\n", psessionEntry->limSystemRole);
-        pMac->lim.gLimAddtsSent = false;
-        return;
-    }
-
-    if ((psessionEntry->limSmeState != eLIM_SME_ASSOCIATED_STATE) &&
-        (psessionEntry->limSmeState != eLIM_SME_LINK_EST_STATE))
-    {
-        limLog(pMac, LOGW, "AddtsRspTimeout in invalid SmeState %d\n", psessionEntry->limSmeState);
         pMac->lim.gLimAddtsSent = false;
         return;
     }

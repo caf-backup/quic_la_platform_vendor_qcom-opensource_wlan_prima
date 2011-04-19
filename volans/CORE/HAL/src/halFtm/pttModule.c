@@ -71,6 +71,7 @@ void pttModuleInit(tpAniSirGlobal pMac)
     pMac->hphy.phy.test.testForcedTxPower = 0;
     pMac->hphy.phy.test.testLastPwrIndex = 0;
     pMac->hphy.phy.test.testForcedTxGainIndex = 0;
+    pMac->hphy.phy.test.identicalPayloadEnabled = eANI_BOOLEAN_FALSE;
 
     pMac->ptt.forcedTxGain[PHY_TX_CHAIN_0].coarsePwr = TPC_COARSE_TXPWR_6;
     pMac->ptt.forcedTxGain[PHY_TX_CHAIN_0].finePwr = TPC_FINE_TXPWR_7;
@@ -196,6 +197,8 @@ eQWPttStatus pttSetNvTable(tpAniSirGlobal pMac, eNvTable nvTable, uNvTables *tab
             case NV_TABLE_RF_CAL_VALUES:
             case NV_TABLE_ANTENNA_PATH_LOSS:
             case NV_TABLE_PACKET_TYPE_POWER_LIMITS:
+            case NV_TABLE_OFDM_CMD_PWR_OFFSET:
+            case NV_TABLE_TX_BB_FILTER_MODE:
                 if (eHAL_STATUS_FAILURE == halWriteNvTable(pMac, nvTable, tableData))
                 {
                     phyLog(pMac, LOGE, "Unable to write table %d\n", (tANI_U32)nvTable);
@@ -1582,17 +1585,14 @@ eQWPttStatus pttExecuteInitialCals(tpAniSirGlobal pMac)
 
 eQWPttStatus pttHdetCal(tpAniSirGlobal pMac, sRfHdetCalValues *hdetCalValues)
 {
-    tANI_U8 buff[128];
-    sCalMemory *pCalMemory = (sCalMemory *)buff;
+    sRFCalValues    *pRfCalValues;
 
-    /*Read the value updated by firmware */
-    halReadDeviceMemory(pMac, QWLANFW_MEM_PHY_CAL_STATUS_ADDR_OFFSET,
-                                    (tANI_U8 *)buff, sizeof(buff));
+    halGetNvTableLoc(pMac, NV_TABLE_RF_CAL_VALUES, (uNvTables **)&pRfCalValues);
 
-    hdetCalValues->hdetDcocCode = pCalMemory->calFlash.hdet_cal_code;
-    hdetCalValues->hdetDcoOffset = pCalMemory->calFlash.hdet_dco;
+    hdetCalValues->hdetDcocCode = pRfCalValues->calData.hdet_cal_code;
+    hdetCalValues->hdetDcoOffset = pRfCalValues->calData.hdet_dco;
 
-    pMac->hphy.hdetResidualDCO = pCalMemory->calFlash.hdet_dco;
+    pMac->hphy.hdetResidualDCO = pRfCalValues->calData.hdet_dco;
 #if 0
     rfHdetDCOCal(pMac, &(hdetCalValues->hdetDcocCode));
     rfHdetDCOCal(pMac, &(hdetCalValues->hdetDcocCode));
@@ -1602,7 +1602,6 @@ eQWPttStatus pttHdetCal(tpAniSirGlobal pMac, sRfHdetCalValues *hdetCalValues)
 #endif
 
     return SUCCESS;
-
 }
 
 //Phy Calibration Override Service

@@ -19,7 +19,7 @@ BRIEF DESCRIPTION:
 #define WLANFW_VERSION_MINOR            0
 #define WLANFW_VERSION_PATCH            0
 #define WLANFW_VERSION_EXTRA            ""
-#define WLANFW_VERSION_BUILD            71
+#define WLANFW_VERSION_BUILD            72
 
 
 #define WLANFW_VERSION \
@@ -28,7 +28,7 @@ BRIEF DESCRIPTION:
         WLANFW_VERSION_MINOR, \
         WLANFW_VERSION_PATCH)
 
-#define WLANFW_VERSIONSTR               "2.0.0.71"
+#define WLANFW_VERSIONSTR               "2.0.0.72"
 
 /*---------------------------------------------------------------------------
  * Encoding of version information

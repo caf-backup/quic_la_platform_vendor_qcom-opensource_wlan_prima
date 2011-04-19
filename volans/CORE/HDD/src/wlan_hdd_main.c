@@ -1656,6 +1656,7 @@ VOS_CON_MODE hdd_get_conparam ( void )
 void hdd_softap_sta_deauth(hdd_hostapd_adapter_t *pAdapter,v_U8_t *pDestMacAddress)
 {
     tHalHandle hHalHandle;
+    v_U8_t STAId;
     v_CONTEXT_t pVosContext = pAdapter->pvosContext;
     hHalHandle = (tHalHandle ) vos_get_context(VOS_MODULE_ID_HAL, pVosContext);
 
@@ -1664,6 +1665,12 @@ void hdd_softap_sta_deauth(hdd_hostapd_adapter_t *pAdapter,v_U8_t *pDestMacAddre
     hddLog( LOGE, "hdd_softap_sta_deauth:(0x%x, false)", pAdapter->pvosContext);
 
     WLANSAP_DeauthSta(pVosContext,pDestMacAddress);
+
+    /*Get the Station ID*/
+    if (eHAL_STATUS_SUCCESS == halTable_FindStaidByAddr(hHalHandle, (tANI_U8 *)pDestMacAddress, &STAId))
+    {
+      hdd_softap_DeregisterSTA(pAdapter, STAId);
+    }
 }
 
 /**---------------------------------------------------------------------------

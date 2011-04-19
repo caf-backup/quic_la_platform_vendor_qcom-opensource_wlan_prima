@@ -469,6 +469,13 @@ eHalStatus halMTU_Start(tHalHandle hHal, void *arg)
     value |= QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_SW_RSP_TO_CONSIDER_VECTOR_MASK;
     halWriteRegister(pMac, QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_REG, value);
 
+    //setting RF warm up pulse as provided by ASIC team.
+    value = 0;
+    halReadRegister(pMac, QWLAN_MTU_SW_MTU_MISC_LIMITS_REG, &value);
+    value &= ~QWLAN_MTU_SW_MTU_MISC_LIMITS_SW_MTU_TXP_DELAY_LIMIT_MASK;
+    value |= (16 << QWLAN_MTU_SW_MTU_MISC_LIMITS_SW_MTU_TXP_DELAY_LIMIT_OFFSET);
+    halWriteRegister(pMac, QWLAN_MTU_SW_MTU_MISC_LIMITS_REG, value);
+
     /** Register interrupt for adaptive threshold timer.*/
 #if defined(ANI_PRODUCT_TYPE_CLIENT)
 #ifdef FIXME_GEN5

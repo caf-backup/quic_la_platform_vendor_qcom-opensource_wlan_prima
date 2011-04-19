@@ -42,8 +42,8 @@ eHalStatus halPhyOpen(tHalHandle hHal)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
-    //right now hardcoding it to FCC. read this from NVI and invoke halPhySetRegDomain to set it.
     eRegDomainId curDomain = REG_DOMAIN_FCC;
+    sDefaultCountry  *pCountryCode;
 
     //hard coding the nTx and nRx. Need to fetch them from hal sys config structure
     tANI_U8 nTx = PHY_MAX_TX_CHAINS;
@@ -61,11 +61,18 @@ eHalStatus halPhyOpen(tHalHandle hHal)
 #endif
 
     //if ((retVal = ConfigureTpcFromNv(pMac)) != eHAL_STATUS_SUCCESS) { return (retVal); }
+
+    //read the regulatory domain idx from Nv and update the phy state
+    if(halGetNvTableLoc(pMac, NV_TABLE_DEFAULT_COUNTRY, (uNvTables **)&pCountryCode) == eHAL_STATUS_SUCCESS)
+    {
+        curDomain = (eRegDomainId)(pCountryCode->regDomain);
+    }
+    if ((retVal = halPhySetRegDomain(pMac, curDomain)) != eHAL_STATUS_SUCCESS) { return (retVal); }
+
     pMac->hphy.phy.regDomainInfo = pMac->hphy.nvTables[NV_TABLE_REGULATORY_DOMAINS ];
     pMac->hphy.phy.pwrOptimal = pMac->hphy.nvTables[NV_TABLE_RATE_POWER_SETTINGS];
     pMac->hphy.phy.antennaPathLoss = pMac->hphy.nvTables[NV_TABLE_ANTENNA_PATH_LOSS];
     pMac->hphy.phy.pktTypePwrLimits = pMac->hphy.nvTables[NV_TABLE_PACKET_TYPE_POWER_LIMITS];
-    if ((retVal = halPhySetRegDomain(pMac, curDomain)) != eHAL_STATUS_SUCCESS) { return (retVal); }
 
     //intialize the setChan event for wait blocking around halPhySetChannel
     return (halPhy_VosEventInit(hHal));
@@ -470,7 +477,7 @@ eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber,
     {
         tANI_U32 value;
         sRssiChannelOffsets *rssiChanOffsets = (sRssiChannelOffsets *)(&pMac->hphy.nvCache.tables.rssiChanOffsets[0]);
-    
+
         value = (AGC_RSSI_OFFSET_DEFAULT +
                     ((rssiChanOffsets[PHY_RX_CHAIN_0].bRssiOffset[rfChannel]) / 100));
 
@@ -555,9 +562,67 @@ eHalStatus halPhyFwInitDone(tHalHandle hHal)
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
 
+    /** Update NV Cache Table */
+    {
+        uNvTables   nvTable;
+        sCalStatus  fwCalStatus;
+
+        if (halReadDeviceMemory(pMac, QWLANFW_MEM_PHY_CAL_STATUS_ADDR_OFFSET,
+                    (void *)&fwCalStatus, sizeof(fwCalStatus)) != eHAL_STATUS_SUCCESS)
+        {
+            phyLog(pMac, LOGP, FL("Could not read CalStatus from device memory\n"));
+            return eHAL_STATUS_FAILURE;
+        }
+
+        nvTable.rFCalValues.calStatus = 0;
+
+        if (!fwCalStatus.process_monitor)
+            nvTable.rFCalValues.calStatus |= eNV_CALID_PROCESS_MONITOR;
+
+        if (!fwCalStatus.hdet_dco)
+            nvTable.rFCalValues.calStatus |= eNV_CALID_HDET_CAL_CODE;
+
+        if (!fwCalStatus.pllVcoLinearity)
+            nvTable.rFCalValues.calStatus |= eNV_CALID_PLL_VCO_LINEARITY;
+
+        if (!fwCalStatus.rtuner)
+            nvTable.rFCalValues.calStatus |= eNV_CALID_RTUNER;
+
+        if (!fwCalStatus.ctuner)
+            nvTable.rFCalValues.calStatus |= eNV_CALID_CTUNER;
+
+        if (!fwCalStatus.im2UsingToneGen || !fwCalStatus.im2UsingNoisePwr)
+            nvTable.rFCalValues.calStatus |= eNV_CALID_RX_IM2;
+
+        if (!fwCalStatus.temperature)
+            nvTable.rFCalValues.calStatus |= eNV_CALID_TEMPERATURE;
+
+        if (!fwCalStatus.lnaBias)
+            nvTable.rFCalValues.calStatus |= eNV_CALID_LNA_BANDSETTING;
+
+        if (!fwCalStatus.lnaBandTuning)
+            nvTable.rFCalValues.calStatus |= eNV_CALID_LNA_BANDTUNING;
+
+        if (!fwCalStatus.lnaGainAdjust)
+            nvTable.rFCalValues.calStatus |= eNV_CALID_LNA_GAINADJUST;
+
+        if (halReadDeviceMemory(pMac, QWLANFW_MEM_PHY_CAL_CORRECTIONS_ADDR_OFFSET,
+                    (void *)&(nvTable.rFCalValues.calData),
+                    sizeof(nvTable.rFCalValues.calData)) != eHAL_STATUS_SUCCESS)
+        {
+            phyLog(pMac, LOGP, FL("Could not read CalCorrections from device memory\n"));
+            return eHAL_STATUS_FAILURE;
+        }
+
+        halWriteNvTable(pMac, NV_TABLE_RF_CAL_VALUES, (uNvTables *)&nvTable);
+    }
+
+    retVal = phyTxPowerInit(pMac);
+
 #ifndef WLAN_FTM_STUB
     if (pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
+        halStoreTableToNv(pMac, NV_TABLE_RF_CAL_VALUES);
         //comment out the Noise Gain figure improvement changes as it is affecting max sensitivity results.
 #if 0
         //t.csr.rfapb.rxfe_lna_highgain_bias_ctl(rxfe_lna_highgain_bias_ctl=0xff) -- Greg's email (11/8/2010 12:29PM)
@@ -577,6 +642,12 @@ eHalStatus halPhyFwInitDone(tHalHandle hHal)
         SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_TX_DELAY6_REG,
                            ((29 << QWLAN_RFAPB_TX_DELAY6_PA_ST3_START_PRD_OFFSET) |
                             (0 << QWLAN_RFAPB_TX_DELAY6_PA_ST3_END_PRD_OFFSET)));
+
+        //run the loopback CLPC evm cal to record the ofdm pwr offsets in NV
+        if(pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset == 0)
+        {
+            phyClpcLpbkCal(pMac);
+        }
     }
     else
 #endif
@@ -593,8 +664,6 @@ eHalStatus halPhyFwInitDone(tHalHandle hHal)
                                 QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_APB_MASK,
                                 QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_PHYDBG_APB_OFFSET, 0);
     }
-
-    retVal = phyTxPowerInit(pMac);
 
 #ifdef HALPHY_CAL_DEBUG
     phyRxIm2Cal(pMac, eANI_BOOLEAN_FALSE);

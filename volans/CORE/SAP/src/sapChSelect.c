@@ -195,6 +195,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
 {
     v_S7_t rssi = 0;
     v_U8_t chn_num = 0;
+    v_U8_t channel_id = 0;
 
     tCsrScanResultInfo *pScanResult;
     tSapSpectChInfo *pSpectCh   = pSpectInfoParams->pSpectCh;
@@ -211,15 +212,27 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
         pSpectCh = pSpectInfoParams->pSpectCh;
         // Processing for each tCsrScanResultInfo in the tCsrScanResult DLink list
         for (chn_num = 0; chn_num < pSpectInfoParams->numSpectChans; chn_num++) {
-            if (pScanResult->BssDescriptor.channelIdSelf == pSpectCh->chNum) {        
+
+            /*
+             *  if the Beacon has channel ID, use it other wise we will 
+             *  rely on the channelIdSelf
+             */
+            if(pScanResult->BssDescriptor.channelId == 0)
+                channel_id = pScanResult->BssDescriptor.channelIdSelf;
+            else
+                channel_id = pScanResult->BssDescriptor.channelId;
+
+            if (channel_id == pSpectCh->chNum) {        
                 if (pSpectCh->rssiAgr < pScanResult->BssDescriptor.rssi)
                     pSpectCh->rssiAgr = pScanResult->BssDescriptor.rssi;
 
 	            ++pSpectCh->bssCount; // Increment the count of BSS
 
                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
-                        "In %s, bssdes.ch_self=%d, bssdes.rssi=%d, SpectCh.bssCount=%d, pScanReult=0x%x",
-                         __FUNCTION__, pScanResult->BssDescriptor.channelIdSelf, pScanResult->BssDescriptor.rssi, pSpectCh->bssCount, pScanResult);
+                   "In %s, bssdes.ch_self=%d, bssdes.ch_ID=%d, bssdes.rssi=%d, SpectCh.bssCount=%d, pScanReult=0x%x",
+                    __FUNCTION__, pScanResult->BssDescriptor.channelIdSelf, 
+					pScanResult->BssDescriptor.channelId, pScanResult->BssDescriptor.rssi, 
+					pSpectCh->bssCount, pScanResult);
                          
                  pSpectCh++;
 		        break;

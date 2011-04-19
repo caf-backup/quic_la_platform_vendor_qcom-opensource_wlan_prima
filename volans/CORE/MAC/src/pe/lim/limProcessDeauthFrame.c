@@ -58,6 +58,13 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tpPESession psessionEn
     pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
 
 
+    if ((eLIM_STA_ROLE == psessionEntry->limSystemRole) && (eLIM_SME_WT_DEAUTH_STATE == psessionEntry->limSmeState))
+    {
+       PELOGE(limLog(pMac, LOGE,
+        FL("received Deauth frame in DEAUTH_WT_STATE(already processing previously received DEAUTH frame).. Dropping this..\n "));)
+       return;
+    }
+
     if (limIsGroupAddr(pHdr->sa))
     {
         // Received Deauth frame from a BC/MC address
@@ -77,7 +84,6 @@ limProcessDeauthFrame(tpAniSirGlobal pMac, tANI_U32 *pBd, tpPESession psessionEn
 
         return;
     }
-
     // Get reasonCode from Deauthentication frame body
     reasonCode = sirReadU16(pBody);
 

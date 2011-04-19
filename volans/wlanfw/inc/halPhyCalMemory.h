@@ -272,30 +272,69 @@ typedef struct
 
 typedef struct
 {
+#ifdef ANI_BIG_BYTE_ENDIAN
     tANI_U8     overall;
     tANI_U8     fwInit;
     tANI_U8     hdet_dco;
     tANI_U8     rtuner;
+
     tANI_U8     ctuner;
     tANI_U8     insitu;
     tANI_U8     process_monitor;
     tANI_U8     pllVcoLinearity;
+
     tANI_U8     txIQ;
     tANI_U8     rxIQ;
     tANI_U8     rxDco;
     tANI_U8     txLo;
+
     tANI_U8     lnaBias;
     tANI_U8     lnaBandTuning;
     tANI_U8     lnaGainAdjust;
     tANI_U8     im2UsingNoisePwr;
+
     tANI_U8     temperature;
     tANI_U8     clpc;
     tANI_U8     clpc_temp_adjust;
     tANI_U8     txDpd;
+
     tANI_U8     channelTune;
     tANI_U8     rxGmStageLinearity;
     tANI_U8     im2UsingToneGen;
-    tANI_U8     unused[9];
+    tANI_U8     unused1;
+#else
+    tANI_U8     rtuner;
+    tANI_U8     hdet_dco;
+    tANI_U8     fwInit;
+    tANI_U8     overall;
+
+    tANI_U8     pllVcoLinearity;
+    tANI_U8     process_monitor;
+    tANI_U8     insitu;
+    tANI_U8     ctuner;
+
+    tANI_U8     txLo;
+    tANI_U8     rxDco;
+    tANI_U8     rxIQ;
+    tANI_U8     txIQ;
+
+    tANI_U8     im2UsingNoisePwr;
+    tANI_U8     lnaGainAdjust;
+    tANI_U8     lnaBandTuning;
+    tANI_U8     lnaBias;
+
+    tANI_U8     txDpd;
+    tANI_U8     clpc_temp_adjust;
+    tANI_U8     clpc;
+    tANI_U8     temperature;
+
+    tANI_U8     unused1;
+    tANI_U8     im2UsingToneGen;
+    tANI_U8     rxGmStageLinearity;
+    tANI_U8     channelTune;
+#endif
+
+    tANI_U8     unused2[8];
 }sCalStatus;
 
 typedef struct
@@ -350,7 +389,11 @@ typedef struct
 
     tANI_U16    tempStart;
     tANI_U16    roomTemp;
-#else //ANI_LITTLE_BYTE_ENDIAN
+
+    tANI_S16    ambientCalTemp;
+    tANI_U8     ambientCalTempValid;
+    tANI_U8     reserved2;
+#else //ANI_BIG_BYTE_ENDIAN
     tANI_U8     rxfe_gm_2;
     tANI_U8     hdet_cal_code;
     tANI_U16    process_monitor;
@@ -400,8 +443,17 @@ typedef struct
 
     tANI_U16    roomTemp;
     tANI_U16    tempStart;
+
+    tANI_U8     reserved2;
+    tANI_U8     ambientCalTempValid;
+    tANI_S16    ambientCalTemp;
 #endif
 
+}sCalData;
+
+typedef struct
+{
+    sCalData            nvCalData;
     tTxLoCorrections    txLoValues;
     sTxIQChannel        txIqValues;
     sRxIQChannel        rxIqValues;
@@ -433,111 +485,6 @@ typedef enum
     eNV_CALID_LNA_GAINADJUST    = 0x400
 }eNvCalID;
 
-typedef struct
-{
-#ifdef ANI_BIG_BYTE_ENDIAN
-    tANI_U16    process_monitor;
-    tANI_U8     hdet_cal_code;
-    tANI_U8     rxfe_gm_2;
-
-    tANI_U8     tx_bbf_rtune;
-    tANI_U8     pa_rtune_reg;
-    tANI_U8     rt_code;
-    tANI_U8     bias_rtune;
-
-    tANI_U8     bb_bw1;
-    tANI_U8     bb_bw2;
-    tANI_U8     pa_ctune_reg;
-    tANI_U8     reserved1;
-
-    tANI_U8     bb_bw3;
-    tANI_U8     bb_bw4;
-    tANI_U8     bb_bw5;
-    tANI_U8     bb_bw6;
-
-    tANI_U16    rcMeasured;
-    tANI_U8     tx_bbf_ct;
-    tANI_U8     tx_bbf_ctr;
-
-    tANI_U8     csh_maxgain_reg;
-    tANI_U8     csh_0db_reg;
-    tANI_U8     csh_m3db_reg;
-    tANI_U8     csh_m6db_reg;
-
-    tANI_U8     cff_0db_reg;
-    tANI_U8     cff_m3db_reg;
-    tANI_U8     cff_m6db_reg;
-    tANI_U8     rxfe_gpio_ctl_1;
-
-    tANI_U8     mix_bal_cnt_2;
-    tANI_S8     rxfe_lna_highgain_bias_ctl_delta;
-    tANI_U8     rxfe_lna_load_ctune;
-    tANI_U8     rxfe_lna_ngm_rtune;
-
-    tANI_U8     rx_im2_spare0;
-    tANI_U8     rx_im2_spare1;
-    tANI_U16    hdet_dco;
-
-    tANI_U8     pll_vfc_reg3_b0;
-    tANI_U8     pll_vfc_reg3_b1;
-    tANI_U8     pll_vfc_reg3_b2;
-    tANI_U8     pll_vfc_reg3_b3;
-
-    tANI_U16    tempStart;
-    tANI_U16    roomTemp;
-#else //ANI_LITTLE_BYTE_ENDIAN
-    tANI_U8     rxfe_gm_2;
-    tANI_U8     hdet_cal_code;
-    tANI_U16    process_monitor;
-
-    tANI_U8     bias_rtune;
-    tANI_U8     rt_code;
-    tANI_U8     pa_rtune_reg;
-    tANI_U8     tx_bbf_rtune;
-
-    tANI_U8     reserved1;
-    tANI_U8     pa_ctune_reg;
-    tANI_U8     bb_bw2;
-    tANI_U8     bb_bw1;
-
-    tANI_U8     bb_bw6;
-    tANI_U8     bb_bw5;
-    tANI_U8     bb_bw4;
-    tANI_U8     bb_bw3;
-
-    tANI_U8     tx_bbf_ctr;
-    tANI_U8     tx_bbf_ct;
-    tANI_U16    rcMeasured;
-
-    tANI_U8     csh_m6db_reg;
-    tANI_U8     csh_m3db_reg;
-    tANI_U8     csh_0db_reg;
-    tANI_U8     csh_maxgain_reg;
-
-    tANI_U8     rxfe_gpio_ctl_1;
-    tANI_U8     cff_m6db_reg;
-    tANI_U8     cff_m3db_reg;
-    tANI_U8     cff_0db_reg;
-
-    tANI_U8     rxfe_lna_ngm_rtune;
-    tANI_U8     rxfe_lna_load_ctune;
-    tANI_S8     rxfe_lna_highgain_bias_ctl_delta;
-    tANI_U8     mix_bal_cnt_2;
-
-    tANI_U16    hdet_dco;
-    tANI_U8     rx_im2_spare1;
-    tANI_U8     rx_im2_spare0;
-
-    tANI_U8     pll_vfc_reg3_b3;
-    tANI_U8     pll_vfc_reg3_b2;
-    tANI_U8     pll_vfc_reg3_b1;
-    tANI_U8     pll_vfc_reg3_b0;
-
-    tANI_U16    roomTemp;
-    tANI_U16    tempStart;
-#endif
-
-}sCalData;
 
 typedef struct
 {

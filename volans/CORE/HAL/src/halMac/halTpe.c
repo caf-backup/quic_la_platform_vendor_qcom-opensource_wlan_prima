@@ -504,7 +504,12 @@ eHalStatus halTpe_Start(tHalHandle hHal, void *arg)
                                         value) != eHAL_STATUS_SUCCESS)
             return eHAL_STATUS_FAILURE;
     }
-
+    //setting up RF warm up pulse as provided by ASIC team.
+    value = 0;
+    halReadRegister(pMac, QWLAN_TPE_SW_DELAY_WAIT_CMD_CNT_REG_REG, &value);
+    value &= ~QWLAN_TPE_SW_DELAY_WAIT_CMD_CNT_REG_SW_DELAY_WAIT_CMD_CNT_MASK;
+    value |= (8 << QWLAN_TPE_SW_DELAY_WAIT_CMD_CNT_REG_SW_DELAY_WAIT_CMD_CNT_OFFSET);
+    halWriteRegister(pMac, QWLAN_TPE_SW_DELAY_WAIT_CMD_CNT_REG_REG, value);
     return eHAL_STATUS_SUCCESS;
 }
 

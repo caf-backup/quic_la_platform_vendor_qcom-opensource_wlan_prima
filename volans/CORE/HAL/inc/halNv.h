@@ -29,6 +29,7 @@ typedef enum
     NV_COMMON_NUM_OF_RX_CHAINS,         // 3
     NV_COMMON_MAC_ADDR,                 // 4
     NV_COMMON_MFG_SERIAL_NUMBER,        // 5
+    NV_COMMON_WLAN_NV_REV_ID,           // 6
 
     NUM_NV_FIELDS,
     NV_MAX_FIELD = 0xFFFFFFFF  /* define as 4 bytes data */
@@ -53,6 +54,7 @@ typedef union
     //common NV fields
     tANI_U16  productId;
     tANI_U8   productBands;
+    tANI_U8   wlanNvRevId;
     tANI_U8   numOfTxChains;
     tANI_U8   numOfRxChains;
     tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
@@ -67,7 +69,7 @@ typedef struct
     //always ensure fields are aligned to 32-bit boundaries
     tANI_U16  productId;
     tANI_U8   productBands;
-    tANI_U8   unused1[1];
+    tANI_U8   wlanNvRevId; //0: WCN1312, 1: WCN1314
 
     tANI_U8   numOfTxChains;
     tANI_U8   numOfRxChains;

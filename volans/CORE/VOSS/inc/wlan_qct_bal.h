@@ -128,6 +128,21 @@ typedef VOS_STATUS
 typedef VOS_STATUS
     (*WLANBAL_ReleaseResourceCBType)(v_PVOID_t pMacContext);
 #endif
+
+/*----------------------------------------------------------------------------
+
+  @brief BAL calls this callback to get the DXE channel status when SSC
+         requires 
+
+  @param pMacContext - Userdata passed during registration 
+      
+  @return General status code
+        VOS_STATUS_SUCCESS      Success
+        VOS_STATUS_E_FAILURE    if unable to acquire resource
+----------------------------------------------------------------------------*/
+
+typedef VOS_STATUS
+    (*WLANBAL_DxEChannelStatusCBType)(v_U32_t *pStatus, v_PVOID_t pMacContext);
 /*
  * Elements HAL have to register to BAL
  */
@@ -144,6 +159,10 @@ typedef struct
    /* Callback to release mutex */
    WLANBAL_ReleaseResourceCBType releaseResourceCB;
 #endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
+
+   /* Callback to get dxe channel status */
+   WLANBAL_DxEChannelStatusCBType dxeChannelStatusCB;
+
    /* HAL internal handle */
    v_PVOID_t                     halUsrData;
 } WLANBAL_HalRegType;
@@ -152,6 +171,7 @@ typedef struct
  * SDIO DXE Header config information per channel
  */
 typedef struct
+
 {
    v_BOOL_t     shortDescriptor;
    v_U32_t      sourceAddress;

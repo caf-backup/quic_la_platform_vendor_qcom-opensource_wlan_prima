@@ -68,6 +68,10 @@ typedef struct
 // #endif //DUAL_BAND_BUILD
 
     CorexTimer_DescType sTempMeasurementTimer;
+    CorexTimer_DescType sR2PUpdationTimer;
+    tANI_BOOLEAN        tempMeasureTimerEnabled;
+    tANI_BOOLEAN        r2pUpdateTimerEnabled;
+    tANI_BOOLEAN        r2pUpdatedForHotTemp;
 
 }tPhy;
 

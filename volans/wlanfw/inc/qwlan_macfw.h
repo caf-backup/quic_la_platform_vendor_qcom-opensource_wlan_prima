@@ -225,6 +225,9 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_FAST_BPS                             (QWLANFW_LOG_CODE_MISC_BASE + 0x38)
 #define QWLANFW_LOG_CODE_ARP_REPLY                            (QWLANFW_LOG_CODE_MISC_BASE + 0x39)
 
+#define QWLANFW_LOG_CODE_PERIODIC_TEMP_ADJUSTMENT_MSG         (QWLANFW_LOG_CODE_MISC_BASE + 0x3a)
+#define QWLANFW_LOG_CODE_PERIODIC_R2P_UPDATION_MSG            (QWLANFW_LOG_CODE_MISC_BASE + 0x3b)
+
 /* log codes for message handling
    (QWLANFW_LOG_EVENT_TYPE_MSG_HANDLING)
 */
@@ -850,6 +853,13 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #else
    tANI_U32   bReserved12      : 24;
    tANI_U32   nullDataApRespTimeoutMsec: 8;
+#endif
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32   usOfdmCmdPwrOffset        : 16;
+   tANI_U32   usTxbbFilterMode          : 16;
+#else
+   tANI_U32   usTxbbFilterMode          : 16;
+   tANI_U32   usOfdmCmdPwrOffset        : 16;
 #endif
 } Qwlanfw_SysCfgType;
 
@@ -1917,6 +1927,7 @@ typedef struct _PhyCalCorrStruct {
 #define QWLANFW_HOST2FW_INNAV_END              QWLANFW_HOST2FW_WPI_END
 #endif
 
+
 #define QWLANFW_HOST2FW_MSG_TYPES_END          QWLANFW_HOST2FW_INNAV_END
 
 /* Note: We can't define HOST2FW_MSG_TYPES_XXX beyond 0x80 (127) */
@@ -2350,7 +2361,6 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SetChainSelectReqStruct
    Qwlanfw_CtrlMsgType  hdr;
    tANI_U32             uPhyChainSelections;
 } Qwlanfw_SetChainSelectReqType;
-
 
 typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_ConnectionSetupStartStruct
 {
@@ -3142,6 +3152,8 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_PerformPeriodicCalStruct
     * identified
     */
 } Qwlanfw_PerformPeriodicCalType;
+
+
 
 /**
    @brief

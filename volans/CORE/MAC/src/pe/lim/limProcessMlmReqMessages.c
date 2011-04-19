@@ -341,6 +341,8 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
 {
     tANI_U8 channelNum;
     tANI_U8 handleError = 0;
+    tANI_U8 i = 0;
+    tSirRetStatus status = eSIR_SUCCESS;
     
     if( pMac->lim.abortScan )
     {
@@ -355,19 +357,28 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
     {
         PELOG2(limLog(pMac, LOG2, FL("ACTIVE Scan chan %d, sending probe\n"), channelNum);)
 
-       
-        /// Prepare and send Probe Request frame
-        if (limSendProbeReqMgmtFrame( pMac, &pMac->lim.gpLimMlmScanReq->ssId,
-               pMac->lim.gpLimMlmScanReq->bssId, channelNum, pMac->lim.gSelfMacAddr, 
-               pMac->lim.gpLimMlmScanReq->dot11mode)
-            != eSIR_SUCCESS)
+        do
         {
-            PELOGE(limLog(pMac, LOGE, FL("send ProbeReq failed for channel: %d\n"), channelNum);)
-            limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
-            limSendHalEndScanReq(pMac, channelNum, eLIM_HAL_END_SCAN_WAIT_STATE);
-            return;
-        }
-        else
+            /* Prepare and send Probe Request frame for all the SSIDs present in the saved MLM 
+                    */
+       
+            PELOGE(limLog(pMac, LOGE, FL("sending ProbeReq number %d, for SSID %s on channel: %d\n"), 
+                                                i, pMac->lim.gpLimMlmScanReq->ssId[i].ssId, channelNum);)
+            status = limSendProbeReqMgmtFrame( pMac, &pMac->lim.gpLimMlmScanReq->ssId[i],
+               pMac->lim.gpLimMlmScanReq->bssId, channelNum, pMac->lim.gSelfMacAddr, 
+                   pMac->lim.gpLimMlmScanReq->dot11mode);
+            
+            if ( status != eSIR_SUCCESS)
+            {
+                PELOGE(limLog(pMac, LOGE, FL("send ProbeReq failed for SSID %s on channel: %d\n"), 
+                                                pMac->lim.gpLimMlmScanReq->ssId[i].ssId, channelNum);)
+                limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
+                limSendHalEndScanReq(pMac, channelNum, eLIM_HAL_END_SCAN_WAIT_STATE);
+                return;
+            }
+            i++;
+        } while (i < pMac->lim.gpLimMlmScanReq->numSsid);
+
         {
 #if defined WLAN_FEATURE_VOWIFI
            //If minChannelTime is set to zero, SME is requesting scan to not use min channel timer.

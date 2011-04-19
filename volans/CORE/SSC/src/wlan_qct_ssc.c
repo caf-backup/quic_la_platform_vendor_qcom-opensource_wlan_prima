@@ -374,11 +374,33 @@ interrupt and sizes for the subsequent CMD53s are derived from the already read 
  * standby mode testing in FPGA.
  */
 #if defined(LIBRA_FPGA) || defined(VOLANS_FPGA)
-//#define WLANSSC_SUSPENDWLANWAIT  10000
 #define WLANSSC_SUSPENDWLANWAIT  (100 * 6)
 #else
-#define WLANSSC_SUSPENDWLANWAIT  100
+#define WLANSSC_SUSPENDWLANWAIT  10
 #endif
+
+ /*---------------------------------------------------------------------------
+   WLANSSC_RESUMEWLANWAIT
+
+  Time to wait after clearing the SuspendWLAN bit in SIF_BAR4
+---------------------------------------------------------------------------*/
+/* This large wait time appears 
+ * to be required for 
+ * standby mode testing in FPGA.
+ */
+#if defined(LIBRA_FPGA) || defined(VOLANS_FPGA)
+//#define WLANSSC_SUSPENDWLANWAIT  10000
+#define WLANSSC_RESUMEWLANWAIT  (100 * 6)
+#else
+#define WLANSSC_RESUMEWLANWAIT  10
+#endif
+
+/*--------------------------------------------------------------------------
+ * WLANSSC_RESUMELOOPCOUNT
+ * Number of times to loop for PMU blocked bit to be cleared in SIF_BAR4.
+ * Each loop waits for a delay of WLANSSC_RESUMEWLANWAIT ms.
+ * ------------------------------------------------------------------------*/
+#define WLANSSC_RESUMELOOPCOUNT 20
 
 /*---------------------------------------------------------------------------
    WLANSSC_TXFIFOFULLDURATIONTIMEOUT
@@ -422,6 +444,18 @@ interrupt and sizes for the subsequent CMD53s are derived from the already read 
   Number of AHB clock cycles SIF delays the freeze/unfreeze requrest 
 ---------------------------------------------------------------------------*/
 #define WLANSSC_SIF_PWR_SAVE_BPS_SIF_FREEZE_DELAY 0x800
+#define WLANSSC_DATAACTIVE_TIMEOUT 10
+
+
+/*---------------------------------------------------------------------------
+
+  Number of times SSC will poll for the DXE RX channel status
+  Number of poll counts SSC will wait before switching to delayed polling 
+---------------------------------------------------------------------------*/
+#define WLANSSC_MAX_DXE_CHAN_POLL_CNT        100
+#define WLANSSC_DXE_DELAYED_POLL_START_CNT   25
+
+ int gLastRxTimeStamp = 0;
 
 /*---------------------------------------------------------------------------
  * Type Declarations
@@ -541,6 +575,7 @@ typedef struct
   WLANSSC_RxPacketHandlerCbackType          pfnRxPacketHandlerCback;
   WLANSSC_ASICInterruptIndicationCbackType  pfnASICInterruptIndicationCback;
   WLANSSC_FatalErrorIndicationCbackType     pfnFatalErrorIndicationCback;
+  WLANSSC_DMAEngineStatusCheckCbackType     pfnDmaEngineStatusCheckCback;
 } WLANSSC_ClientCallBacksType;
 
 
@@ -1504,6 +1539,9 @@ VOS_STATUS WLANSSC_Start
 
   pControlBlock->stClientCbacks.pfnTxCompleteCback = 
     pStartParams->pfnTxCompleteCback;
+
+  pControlBlock->stClientCbacks.pfnDmaEngineStatusCheckCback = 
+    pStartParams->pfnDmaEngineStatusCheckCback;
   
   gWLANSSC_TxMsgCnt = 0;
 
@@ -2016,9 +2054,6 @@ VOS_STATUS WLANSSC_SuspendChip
     return VOS_STATUS_E_FAILURE;
   }
 
-  /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
-  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
-
   /* TRSW_SUPPLY_CTRL_1 - Read the current value just in case                 */
   if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
                                                          QWLAN_SIF_BAR4_WLAN_PWR_SAVE_CONTROL_REG_REG,
@@ -2046,9 +2081,6 @@ VOS_STATUS WLANSSC_SuspendChip
     WLANSSC_UNLOCKTXRX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
   }
-
-  /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
-  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
 
   /* End T/R change */
 
@@ -2368,6 +2400,7 @@ VOS_STATUS WLANSSC_ResumeChip
 {
   WLANSSC_ControlBlockType    *pControlBlock;
   v_U8_t                       uRegValue = 0;
+  v_U8_t                       uResumeLoopCount = 0;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   WLANSSC_ASSERT( NULL != Handle );
@@ -2415,7 +2448,7 @@ VOS_STATUS WLANSSC_ResumeChip
   }
 
   /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
-  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
+  vos_sleep(WLANSSC_RESUMEWLANWAIT);
 
   /* Read the current value just in case                                   */
   if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
@@ -2446,7 +2479,7 @@ VOS_STATUS WLANSSC_ResumeChip
   }
 
   /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
-  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
+  vos_sleep(WLANSSC_RESUMEWLANWAIT);
 
   /* Read the current value just in case                                   */
   if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
@@ -2476,9 +2509,9 @@ VOS_STATUS WLANSSC_ResumeChip
     return VOS_STATUS_E_FAILURE;
   }
 
-  vos_sleep(WLANSSC_SUSPENDWLANWAIT);
-
-
+  do
+   {
+      vos_sleep(WLANSSC_RESUMEWLANWAIT);
     if( VOS_STATUS_SUCCESS != WLANSSC_ReadRegisterFuncZero(pControlBlock,
                                                            QWLAN_SIF_BAR4_WLAN_STATUS_REG_REG,
                                                            &uRegValue,
@@ -2490,7 +2523,12 @@ VOS_STATUS WLANSSC_ResumeChip
       WLANSSC_UNLOCKTXRX( pControlBlock );
       return VOS_STATUS_E_FAILURE;
     }
+   } while ( (uRegValue & QWLAN_SIF_BAR4_WLAN_STATUS_REG_PMU_BLOCKED_BIT_MASK) && 
+           (WLANSSC_RESUMELOOPCOUNT < ++uResumeLoopCount));
 
+   if ((WLANSSC_RESUMELOOPCOUNT == uResumeLoopCount) && (uRegValue & QWLAN_SIF_BAR4_WLAN_STATUS_REG_PMU_BLOCKED_BIT_MASK))
+      SSCLOGP(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Resume chip failed Status %x", uRegValue));
+   else
    SSCLOG2(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO_HIGH, "Resume chip Status %x", uRegValue));
 
    pControlBlock->bChipSuspended = VOS_FALSE;
@@ -4051,13 +4089,16 @@ static VOS_STATUS WLANSSC_SendData
      v_U32_t uRegValue, curCnt=0,retryCnt = 0;
 
 #ifdef WLAN_SDIO_DUMMY_CMD53_WORKAROUND
-     uRegValue = QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT;
-     if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegister( pControlBlock,
+     if((jiffies - gLastRxTimeStamp) > WLANSSC_DATAACTIVE_TIMEOUT)
+     {
+       uRegValue = QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT;
+       if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegister( pControlBlock,
                                                    QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_REG, 
                                                    &(uRegValue),
                                                    WLANSSC_INT_REGBUFFER ) )
-     {
-        return VOS_STATUS_E_FAILURE;
+       {
+          return VOS_STATUS_E_FAILURE;
+       }
      }
      uRegValue = 0;
 #endif
@@ -6429,7 +6470,9 @@ static VOS_STATUS WLANSSC_DrainRxFifo
     WLANSSC_ControlBlockType *pControlBlock
 )
 {
-  v_U32_t              count=0;
+  v_U32_t    count=0;
+  v_U32_t    delayCnt=1, delay=2; /* 2 ms delay */
+  v_U32_t    status=1;
 
   /* At this point the STOP bit in the DXE descriptor for the Rx DXE channel is set.
  	 So, DXE can push atmost 2 packets (1 corresponding to DXE descriptor previously 
@@ -6443,24 +6486,40 @@ static VOS_STATUS WLANSSC_DrainRxFifo
    * can be present at any given point of time, hence we need to make 4 attempts to 
    * read MAXPKTSIZE length to empty the SIF RxFIFO
    */
-
-  while(++count <= 4)
+  do
   {
-    /* Issue a CMD53 Read from the SIF Rx FIFO to read data equivalent 
-     * to a max sized packet to enable stopping of the DXE Rx channel
-     */
-    if( VOS_STATUS_SUCCESS != WLANSSC_ReceiveData( pControlBlock,
-                                                   &pControlBlock->aRxScratchBuffer[0],
-                                                   WLANSSC_MAXPKTSIZE,
-                                                   WLANSSC_SYNC_BUSACCESS ) )
-    {
+      if( VOS_STATUS_SUCCESS != WLANSSC_ReceiveData( pControlBlock,
+                                                     &pControlBlock->aRxScratchBuffer[0],
+                                                     WLANSSC_MAXPKTSIZE,
+                                                     WLANSSC_SYNC_BUSACCESS ) )
+      {
   	    return VOS_STATUS_E_FAILURE;
-    }
-  } 
+      }
+     
+      /* check DXE Channel status here */
+      if( NULL != pControlBlock->stClientCbacks.pfnDmaEngineStatusCheckCback )
+      {
+            pControlBlock->stClientCbacks.pfnDmaEngineStatusCheckCback(&status, pControlBlock->stClientCbacks.UserData);
+      }
+
+      /* delay the polling of DxE registers if observed to be failing for
+       * more than 25 iterations
+       */
+      if(count > WLANSSC_DXE_DELAYED_POLL_START_CNT)
+      {
+            delay = (delay * delayCnt);
+            delayCnt++;
+            vos_sleep(delay);
+      }
+  }while(count++ < WLANSSC_MAX_DXE_CHAN_POLL_CNT && (status));
+  
+  if(count >= WLANSSC_MAX_DXE_CHAN_POLL_CNT)
+  {
+      return VOS_STATUS_E_FAILURE;
+  }
   
   return VOS_STATUS_SUCCESS;
 }
-
 
 /**
  @brief WLANSSC_R_SuspendEventHandler is used to handle the Suspend event in
@@ -6680,6 +6739,7 @@ static VOS_STATUS WLANSSC_R_ReceiveEventHandler
   VOS_STATUS   eStatus;
   vos_msg_t    sMessage;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+  gLastRxTimeStamp = jiffies;
 
   /* Since we have no pending request, we honor the request right away     */
 

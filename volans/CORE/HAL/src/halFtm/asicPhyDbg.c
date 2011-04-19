@@ -416,7 +416,7 @@ const tPhyDbgFrame defaultFrame =
 
 #define RAMP_UP_11B_PACKETS     0x100
 #define RC_DELAY_11B_PACKETS    0x7ff
-
+#define STOP_ITER_LIMIT         10000
 
 extern eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode pwrMode, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex);
 void printFrameFields(tpAniSirGlobal pMac, tPhyDbgFrame *frame, eHalPhyRates rate);
@@ -520,39 +520,6 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
 
     }
 
-#if 0
-    SET_PHY_REG(pMac->hHdd, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG,
-                (QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TPC_MASK |
-                 QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXFIR_MASK |
-                 QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXB_MASK |
-                 QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXA_MASK |
-                 QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXCTL_MASK |
-                 QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_MPI_MASK
-                )
-               );
-
-    if ((retVal = rdModWrAsicField(pMac, QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_REG,
-                                   QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_TMUX_MASK,
-                                   QWLAN_RXCLKCTRL_APB_BLOCK_CLK_EN_TMUX_OFFSET,
-                                   1
-                                  )
-        ) != eHAL_STATUS_SUCCESS
-       )
-    {
-        return(retVal);
-    }
-
-    SET_PHY_REG(pMac->hHdd, QWLAN_TXCLKCTRL_APB_BLOCK_CLK_EN_REG,
-                (QWLAN_TXCLKCTRL_APB_BLOCK_CLK_EN_TPC_MASK |
-                 QWLAN_TXCLKCTRL_APB_BLOCK_CLK_EN_MPI_MASK |
-                 QWLAN_TXCLKCTRL_APB_BLOCK_CLK_EN_TXB_MASK |
-                 QWLAN_TXCLKCTRL_APB_BLOCK_CLK_EN_TXA_MASK |
-                 QWLAN_TXCLKCTRL_APB_BLOCK_CLK_EN_TXFIR_MASK |
-                 QWLAN_TXCLKCTRL_APB_BLOCK_CLK_EN_TXCTL_MASK |
-                 QWLAN_TXCLKCTRL_APB_BLOCK_CLK_EN_TATMUX_MASK
-                )
-               );
-#endif
 
     SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_RST1_REG, 0);
 
@@ -582,7 +549,8 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
                 case PHYDBG_PREAMBLE_OFDM:
                     frame.mpiHdr.packet_type = MPI_PKT_TYPE_11A;
                     frame.mpiHdr.psdu_rate = ((tANI_U8)rateSettings[rate].signalCode & MSK_7);
-                    frame.mpiHdr.ppdu_rate = ((tANI_U8)MPI_PLCP_PPDU_RATE_CODE_6MBPS & MSK_4);
+                    //frame.mpiHdr.ppdu_rate = ((tANI_U8)MPI_PLCP_PPDU_RATE_CODE_6MBPS & MSK_4);
+                    frame.mpiHdr.ppdu_rate = frame.mpiHdr.psdu_rate;
                     break;
                 case PHYDBG_PREAMBLE_SHORTB:
                     frame.mpiHdr.packet_type = MPI_PKT_TYPE_11B;
@@ -593,7 +561,8 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
                 case PHYDBG_PREAMBLE_GREENFIELD:
                     frame.mpiHdr.packet_type = MPI_PKT_TYPE_GREENFIELD;
                     frame.mpiHdr.psdu_rate = ((tANI_U8)rateSettings[rate].signalCode & MSK_7);
-                    frame.mpiHdr.ppdu_rate = ((tANI_U8)MPI_PLCP_PPDU_RATE_CODE_DONT_CARE & MSK_4);
+                    //frame.mpiHdr.ppdu_rate = ((tANI_U8)MPI_PLCP_PPDU_RATE_CODE_DONT_CARE & MSK_4);
+                    frame.mpiHdr.ppdu_rate = frame.mpiHdr.psdu_rate;
                     break;
                 case PHYDBG_PREAMBLE_MIXED:
                     frame.mpiHdr.packet_type = MPI_PKT_TYPE_MIXED_11A;
@@ -716,72 +685,6 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
                 break;
         }
 
-        //now replicate this frame in the device internal SRAM
-        //copy each byte of the frame into it's own 32-bit word in SRAM
-
-        // if ( /* (pktAutoSeqNum == eANI_BOOLEAN_TRUE) && */ (numTestPackets != 0))
-        // {
-        //     //changing the sequence number for each frame implies that these have to be handled individually
-        //     tANI_U32 frameSize = sizeof(tPhyDbgFrame) + (frame.phyDbgHdr.pyldf_len - sizeof(sMPDUHeader));
-        //     if (frame.phyDbgHdr.crc == 1)
-        //     {
-        //         //CRC adds 4 bytes to each frame
-        //         frameSize += 4;
-        //     }
-#ifdef ANI_PHY_DEBUG
-        //     printFrameFields(pMac, &frame, rate);
-#endif  //
-        //     sramLoc = QWLAN_PHYDBG_DBGMEM_MREG;    //initialize to first SRAM0 location
-        //
-        //     //now fill memory with frames up to the number requested or until memory is reached
-        //     for (numFrames = 0;
-        //         ( ((sramLoc / 2) + (frameSize * 4) < GRAB_RAM_DBLOCK_SIZE) &&
-        //           (numFrames < numTestPackets)
-        //         );
-        //         numFrames++
-        //         )
-        //     {
-        //         //frame.mpduHdr.seqNum++;
-        //         //write first three 32-bit words with phyDbgHdr
-        //         for (word = (tANI_U32 *)&frame.phyDbgHdr; word < (tANI_U32 *)&frame.mpiHdr; word++)
-        //         {
-        //             tANI_U32 intByte = *word;
-        //
-        //             phyLog(pMac, LOG3, "Writing 0x%08X to addr 0x%08X\n", intByte, sramLoc);
-        //
-        //             retVal = palWriteDeviceMemory(pMac->hHdd, sramLoc, (tANI_U8 *)&intByte, sizeof(tANI_U32));
-        //             if (retVal != eHAL_STATUS_SUCCESS)
-        //             {
-        //                 return(retVal);
-        //             }
-        //             sramLoc += sizeof(tANI_U32);   //write 4 bytes, every other 32-bit word - see mif_mem_cfg = 0
-        //         }
-        //
-        //         //byteswap the duration and seqNum
-        //         for (word = (tANI_U32 *)&frame.mpiHdr; word < (tANI_U32 *)&frame.mpduHdr; word++)
-        //         {
-        //             HTONL(*word);
-        //         }
-        //         HTONS(frame.mpduHdr.duration);
-        //         HTONS(frame.mpduHdr.seqNum);
-        //
-        //         //write remaining mpiHdr and mpduHdr one byte at a time to each 32-bit word
-        //         for (byte = (tANI_U8 *)&frame.mpiHdr; byte < ((tANI_U8 *)&frame + sizeof(tPhyDbgFrame) - 1); byte++)
-        //         {
-        //             tANI_U32 intByte = *byte;
-        //
-        //             phyLog(pMac, LOG3, "Writing 0x%08X to addr 0x%08X\n", intByte, sramLoc);
-        //
-        //             retVal = palWriteDeviceMemory(pMac->hHdd, sramLoc, (tANI_U8 *)&intByte, sizeof(tANI_U32));
-        //             if (retVal != eHAL_STATUS_SUCCESS)
-        //             {
-        //                 return(retVal);
-        //             }
-        //             sramLoc += sizeof(tANI_U32) * 2;   //write 4 bytes, every other 32-bit word - see mif_mem_cfg = 0
-        //         }
-        //     }
-        // }
-        // else
         {
             //everything about the frame is already setup and since not even the sequence number is changing,
             // just setup phydbg to loop back on the single frame
@@ -839,77 +742,8 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
             {
                 return(retVal);
             }
-#if 0
-            {
-                tANI_U32 wordCnt;
-                for(wordCnt = 0; wordCnt < (pktWords * 2); wordCnt++)
-            {
-                    SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_DBGMEM_MREG + (4 * wordCnt), frameBuf[wordCnt]);
-                }
-            }
-#endif
-/*
-
-                {
-                    eHalStatus halStatus = eHAL_STATUS_SUCCESS;
-                    tANI_U32 regAddr;
-                    tANI_U32 regVal;
-                    tANI_U32 i;
-
-                    for (i = 0; i < ((sizeof(sPhyDbgHdr) / 4) + sizeof(sMpiHdr) + sizeof(sMPDUHeader)) * 2; i++)
-                    {
-                        regAddr = QWLAN_PHYDBG_DBGMEM_MREG + (i * 4);
-                        regVal = (tANI_U32)frameBuf[i];
-
-                        halStatus = palWriteRegister(pMac->hHdd, regAddr, regVal);
-                        if (halStatus != eHAL_STATUS_SUCCESS)
-                        {
-                            return (halStatus);
-                        }
-                    }
-                }
-*/
-
-            //write payload portion one byte at a time
-/*
-                for (byte = payload; byte < payload + (frame.phyDbgHdr.pyldf_len - sizeof(sMPDUHeader)); byte++)
-                {
-                    tANI_U32 intByte = *byte;
-                    HTONL(intByte);
-                    retVal = palWriteDeviceMemory(pMac->hHdd, sramLoc, (tANI_U8 *)&intByte, sizeof(tANI_U32));
-                    if (retVal != eHAL_STATUS_SUCCESS)
-                    {
-                        return (retVal);
-                    }
-                    sramLoc += 4;
-                }
-*/
-
-            //for these frames that we don't want to increment the sequence number on, the scrambler seed will be fixed
-            //This satisfies a mfg requirement for Litepoint
-/*
-                if ((retVal = configPktScramblerSeed(pMac, pktScramblerSeed)) != eHAL_STATUS_SUCCESS)
-                {
-                    return (retVal);
-                }
-*/
         }
     }
-
-    //previous memory write must occur with mif_mem_cfg set to 0
-    //now change it to 9 for phyDbg packet generation
-    //
-    // if ((retVal = rdModWrAsicField(pMac, QWLAN_MIF_MIF_MEM_CFG_REG,
-    //                                QWLAN_MIF_MIF_MEM_CFG_MIF_MEM_CFG_MASK,
-    //                                QWLAN_MIF_MIF_MEM_CFG_MIF_MEM_CFG_OFFSET,
-    //                                0    //using phydbg memory
-    //                               )
-    //     ) != eHAL_STATUS_SUCCESS
-    //    )
-    // {
-    //     return(retVal);
-    // }
-
 
     if (numTestPackets > QWLAN_PHYDBG_TXPKT_CNT_CNT_MASK)
     {
@@ -919,18 +753,17 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
     {
         //continuous packets - TODO: how do we set this up and stop it?
         SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_TXPKT_CNT_REG, 0);
-        SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_CFGMODE_REG,
-                        (QWLAN_PHYDBG_CFGMODE_DBGMEM_SEL1_MASK | QWLAN_PHYDBG_CFGMODE_CONT1_MASK)
-                   );
     }
     else
     {
         SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_TXPKT_CNT_REG, numTestPackets);
     }
 
-    rdModWrAsicField(pMac, QWLAN_PHYDBG_CFGMODE_REG, QWLAN_PHYDBG_CFGMODE_AUTO_TX_TRIG_SEL1_MASK, QWLAN_PHYDBG_CFGMODE_AUTO_TX_TRIG_SEL1_OFFSET, 1);
-    rdModWrAsicField(pMac, QWLAN_PHYDBG_CFGMODE_REG, QWLAN_PHYDBG_CFGMODE_DBGMEM_SEL1_MASK, QWLAN_PHYDBG_CFGMODE_DBGMEM_SEL1_OFFSET, 1);
-    rdModWrAsicField(pMac, QWLAN_PHYDBG_CFGMODE_REG, QWLAN_PHYDBG_CFGMODE_CONT1_MASK, QWLAN_PHYDBG_CFGMODE_CONT1_OFFSET, 1);
+    SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_CFGMODE_REG,
+                    (QWLAN_PHYDBG_CFGMODE_AUTO_TX_TRIG_SEL1_MASK |
+                     QWLAN_PHYDBG_CFGMODE_DBGMEM_SEL1_MASK |
+                     QWLAN_PHYDBG_CFGMODE_CONT1_MASK)
+               );
 
     SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_PLYBCK_CFG_REG,
                     (QWLAN_PHYDBG_PLYBCK_CFG_MPI_TXTEST_MASK |
@@ -939,16 +772,20 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
                     )
                );
 
-/*
-        SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_PLYBCK_CFG_REG,
-                    (QWLAN_PHYDBG_PLYBCK_CFG_MPI_TXTEST_MASK | (QWLAN_PHYDBG_PLYBCK_CFG_TXPB_MODE_ETXPB32_DAC80_CH0 << QWLAN_PHYDBG_PLYBCK_CFG_TXPB_MODE_OFFSET))
-
-                   );    // nova: playback samples to DACs via txaif module 80M mode, ch1 bits [10:0]
-                         // virgo:{10'b0, dac1q[10:0], dac1i[10:0]} (ID-17) ==> channel 1 i and q sampels are 11 bits wide.
-*/
-
-    SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_PRBS_REG, 0xff);//(0x10);                               //seed value
+    if(pMac->hphy.phy.test.identicalPayloadEnabled)
+    {
+        SET_PHY_REG(pMac->hHdd, QWLAN_TACTL_SCR_CONFIG_REG, ((1 << QWLAN_TACTL_SCR_CONFIG_TASCR_LOAD_OFFSET) |
+                                                                (0x7f << QWLAN_TACTL_SCR_CONFIG_TASCR_SEED_OFFSET)));
+        SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_PRBS_REG, ((1 << QWLAN_PHYDBG_PRBS_AUTO_RELOAD_OFFSET) |
+                                                            (75 << QWLAN_PHYDBG_PRBS_SEED_LSB_OFFSET)));
+        SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_PRBS_MS_REG, 0x0);//(0x340c98);
+    }
+    else
+    {
+        SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_PRBS_REG, (0xff << QWLAN_PHYDBG_PRBS_SEED_LSB_OFFSET));//(0x10);                               //seed value
     SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_PRBS_MS_REG, 0x8a);//(0x5432);
+    }
+
     SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_PRBS_LOAD_REG, QWLAN_PHYDBG_PRBS_LOAD_LOAD_MASK);
 
 
@@ -956,6 +793,7 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
     {
 
         SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_START_ADDR1_REG, 0/*QWLAN_PHYDBG_DBGMEM_MREG*/);
+        //SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_PLYBCK_CFG2_REG, 0);
 
         //exclude sMpiHdr: byte 11 from word count when setting MAX_ADDR1
         SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_MAX_ADDR1_REG, (pktWords) - 1 - 1);
@@ -964,6 +802,27 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
     //start generating frames
     SET_PHY_REG(pMac->hHdd, QWLAN_MPI_MPI_ENABLE_REG, 1);
     SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_START1_REG, QWLAN_PHYDBG_START1_START_MASK);
+
+    if(numTestPackets != 0)
+    {
+        //this is not continuous. stop the framegen once the pkts are transmitted
+        tANI_U32 i = 0;
+        tANI_U32 reg;
+
+        do
+        {
+            GET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_STATUS_REG, &reg);
+        }
+        while ((i++ < STOP_ITER_LIMIT) && (reg & QWLAN_PHYDBG_STATUS_TXSTATE_MASK));
+
+        if (i >= STOP_ITER_LIMIT)
+        {
+            phyLog(pMac, LOGE, "ERROR: PhyDbg txstate=%d, Not Idle when stopped!\n",
+                   (reg & QWLAN_PHYDBG_STATUS_TXSTATE_MASK) >> QWLAN_PHYDBG_STATUS_TXSTATE_OFFSET
+                  );
+        }
+        asicPhyDbgStopFrameGen(pMac);
+    }
 
     return(retVal);
 }
@@ -1080,8 +939,6 @@ static eHalStatus CalcInterframeSpaceSetting(tpAniSirGlobal pMac, tANI_U32 numTe
     return(eHAL_STATUS_SUCCESS);
 
 }
-
-#define STOP_ITER_LIMIT 10000
 
 eHalStatus asicPhyDbgStopFrameGen(tpAniSirGlobal pMac)
 {

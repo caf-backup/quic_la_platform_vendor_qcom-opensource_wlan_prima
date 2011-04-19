@@ -378,6 +378,7 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
 eHalStatus asicPhyDbgStopFrameGen(tpAniSirGlobal pMac);
 eHalStatus asicPhyDbgQueryStatus(tpAniSirGlobal pMac, sTxFrameCounters *numFrames, ePhyDbgTxStatus *status);
 eHalStatus asicGrabAdcSamples(tpAniSirGlobal pMac, tANI_U32 startSample, tANI_U32 numSamples, eGrabRamSampleType sampleType, tGrabRamSample *sampleBuffer);
+eHalStatus phyClpcLpbkCal(tpAniSirGlobal pMac);
 
 
 

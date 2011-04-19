@@ -78,6 +78,9 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
     pFwConfig->ucNumRxAntennas = HAL_FW_NUM_RX_ANTENNAS;
     pFwConfig->ucOpenLoopTxGain = pMac->hphy.phy.openLoopTxGain;
 
+    pFwConfig->usOfdmCmdPwrOffset = pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset;
+    pFwConfig->usTxbbFilterMode = (tANI_U16)(pMac->hphy.nvCache.tables.txbbFilterMode.txFirFilterMode);
+
     // configure the current regulatory domain
     //pFwConfig->ucRegDomain = (tANI_U8)( halPhyGetRegDomain(hHal) );
 
@@ -302,7 +305,6 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
     halZeroDeviceMemory(pMac,pMac->hal.memMap.staTable_offset, pMac->hal.memMap.staTable_size);
 #endif
 
-
     // Write the required system config parameters into the
     // device memory
     status = halFW_UpdateSystemConfig(pMac, pFw->fwSysConfigAddr,
@@ -321,7 +323,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             1/* Uses 6 gain settings from process monitor table which are associated with Tx gain LUTs */,
 
             1/* Channel Tune after cal */,
-            0/* Temperature Measure Periodically */,
+            1/* Temperature Measure Periodically */,
             1/* Temperature Measure at Init */,
             0/* Tx DPD */,
             0/* CLPC Temp Adjustment */,
@@ -333,7 +335,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             1/* Tx Lo Leakage */,
             1/* Rx DCO */,
             0/* RxDCO + IM2 Cal w/ Noise */,
-            0/* RxDCO + IM2 Cal w/ Rx Tone Gen */,
+            1/* RxDCO + IM2 Cal w/ Rx Tone Gen */,
             0/* LNA Gain adjust */,
             0/* LNA Band tuning */,
             0/* LNA Bias Setting */,
@@ -360,7 +362,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             0/* LNA Bias Setting */,
             0/* LNA Band tuning */,
             0/* LNA Gain adjust */,
-            0/* RxDCO + IM2 Cal w/ Rx Tone Gen */,
+            1/* RxDCO + IM2 Cal w/ Rx Tone Gen */,
             0/* RxDCO + IM2 Cal w/ Noise */,
             1/* Rx DCO */,
             1/* Tx Lo Leakage */,
@@ -372,7 +374,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             0/* CLPC Temp Adjustment */,
             0/* Tx DPD */,
             1/* Temperature Measure at Init */,
-            0/* Temperature Measure Periodically */,
+            1/* Temperature Measure Periodically */,
             1/* Channel Tune after cal */,
 
             1/* Uses 6 gain settings from process monitor table which are associated with Tx gain LUTs */,
@@ -392,6 +394,19 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
         /* Configure calControl Bitmask */
         halWriteDeviceMemory(pMac, QWLANFW_MEM_PHY_CAL_CONTROL_BITMAP_ADDR_OFFSET,
                                 (tANI_U8 *)&calControl, sizeof(calControl));
+    }
+
+    /* Update the CalMemory with values from NV table */
+    {
+        uNvTables   nvTables;
+        tANI_U32    len, *tempPtr = (tANI_U32 *)&(nvTables.rFCalValues.calData);
+
+        halReadNvTable((tHalHandle)pMac, NV_TABLE_RF_CAL_VALUES, &nvTables);
+
+        len = sizeof(nvTables.rFCalValues.calData);
+
+        halWriteDeviceMemory(pMac, QWLANFW_MEM_PHY_CAL_CORRECTIONS_ADDR_OFFSET,
+                                (tANI_U8 *)tempPtr, len);
     }
 
     // Take the ARM out of reset after FW is downloaded
@@ -425,6 +440,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
  */
 static eHalStatus halFW_InitComplete(tpAniSirGlobal pMac, void* pMsgInfo, eHalStatus fwStatus)
 {
+    eHalStatus      status = eHAL_STATUS_SUCCESS;
 #ifdef FW_PRESENT
     tHalFwParams   *pFw = &pMac->hal.FwParam;
 
@@ -447,9 +463,13 @@ static eHalStatus halFW_InitComplete(tpAniSirGlobal pMac, void* pMsgInfo, eHalSt
 
            vos_mem_copy((v_VOID_t*)&pFw->fwVersion,(v_VOID_t*)pStatusMsg->aStatusInfo,sizeof(FwVersionInfo));
         }
+        if ((status = halPhyFwInitDone((tHalHandle)pMac)) != eHAL_STATUS_SUCCESS)
+        {
+            HALLOGP(halLog (pMac, LOGP, FL("Could not initialize the halPhy module post fwinit\n")));
+        }
     }
 #endif //FW_PRESENT
-    return eHAL_STATUS_SUCCESS;
+    return status;
 }
 
 /*
@@ -472,7 +492,7 @@ eHalStatus halFW_CheckInitComplete(tHalHandle hHal, void *arg)
     eHalStatus status = eHAL_STATUS_FAILURE;
     tANI_U32 value = 0, i;
     tANI_U32 readCount = 0, writeCount = 0;
-    
+
     for(i=0; i<HAL_MB_REG_READ_POLL_COUNT; i++) {
         // Poll for the read count of the Mbox register
         halReadRegister(pMac, QWLAN_MCU_MB1_CONTROL_COUNTERS_REG, &value);
@@ -508,11 +528,6 @@ eHalStatus halFW_CheckInitComplete(tHalHandle hHal, void *arg)
     }
     else
     {
-        if ((status = halPhyFwInitDone((tHalHandle)pMac)) != eHAL_STATUS_SUCCESS)
-        {
-            HALLOGP(halLog (pMac, LOGP, FL("Could not initialize the halPhy module post fwinit\n")));
-            return status;
-        }
         /*
            send Mbox msg to fw to inform halRateInfo table was updated.
            This is required, because firmware will look into halRateInfoTable in shared
@@ -948,9 +963,9 @@ void halFW_HeartBeatMonitor(tpAniSirGlobal pMac)
     if (pMac->hal.halMac.fwHeartBeatPrev == uFwHeartBeat)
     {
         VOS_ASSERT(0);
-        VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, 
+        VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL,
 			"%s Firmware Not Responding!!!uFwHeartBeat %d", __func__, uFwHeartBeat);
-        
+
         pMac->hal.halMac.fwMonitorthr++;
         if (pMac->hal.halMac.fwMonitorthr > HAL_FW_HEARTBEAT_MONITOR_TH)
         {

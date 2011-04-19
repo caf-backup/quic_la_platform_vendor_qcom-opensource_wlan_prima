@@ -162,6 +162,14 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
         return (retVal);
     }
 
+    {
+        sRFCalValues    *pRfCalValues;
+
+        halGetNvTableLoc(pMac, NV_TABLE_RF_CAL_VALUES, (uNvTables **)&pRfCalValues);
+
+        SET_PHY_REG(pMac->hHdd, QWLAN_TPC_PDADC_OFFSET_REG, (pRfCalValues->calData.hdet_dco + pMac->hphy.nvCache.tables.plutPdadcOffset[pMac->hphy.rf.curChannel]));
+    }
+
     //tx power configuration should have preceded this
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_PDADC_SCALE_REG, 0);
     retVal = asicTPCAutomatic(pMac);
@@ -590,8 +598,6 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     eRfSubBand rfSubband;
     t2Decimal absPwrLimit_2dec;
-    t2Decimal bRateLimitAdjustment = 0;
-    t2Decimal gnRateLimitAdjustment = 0;
     t2Decimal pktTypePwrLimit = 0;
 
     ePhyChanBondState cbState;
@@ -683,8 +689,6 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
         case RF_CHAN_13:
         case RF_CHAN_14:
             assert(cbState == PHY_SINGLE_CHANNEL_CENTERED);
-            bRateLimitAdjustment = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].bRatePowerOffset[curChan].reported;
-            gnRateLimitAdjustment = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].gnRatePowerOffset[curChan].reported;
             rfSubband = RF_SUBBAND_2_4_GHZ;
             break;
 
@@ -740,7 +744,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
         // }
 
         //account for average array gain
-        absPwrLimit_2dec -= pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].antennaGain[rfSubband].reported;
+        //absPwrLimit_2dec -= pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].antennaGain[rfSubband].reported;
         //account for antenna path loss per channel
         absPwrLimit_2dec += pMac->hphy.phy.antennaPathLoss[curChan];
 
@@ -753,6 +757,14 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
         //     absPwr = 0;
         // }
         // else
+
+        //now we have absolute powers comparable for a single tx chain
+        if (absPwr > absPwrLimit_2dec)
+        {
+            //limit power to regulatory domain
+            absPwr = absPwrLimit_2dec;
+        }
+
 #ifndef WLAN_FTM_STUB
         if (pMac->gDriverType == eDRIVER_TYPE_MFG)
         {
@@ -765,13 +777,6 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
             }
         }
 #endif
-
-        //now we have absolute powers comparable for a single tx chain
-        if (absPwr > absPwrLimit_2dec)
-        {
-            //limit power to regulatory domain
-            absPwr = absPwrLimit_2dec;
-        }
 
         if (rate > NUM_HAL_PHY_RATES)
         {
@@ -793,7 +798,6 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                 //  SLR
                 case HAL_PHY_RATE_SLR_0_25_MBPS:
                 case HAL_PHY_RATE_SLR_0_5_MBPS:
-                    absPwr += bRateLimitAdjustment;
 
                     if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
                     {
@@ -837,7 +841,6 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                         }
                     }
 
-                    absPwr += gnRateLimitAdjustment;
                     if ((curChan == RF_CHAN_1) || (curChan == RF_CHAN_11))
                     {
                         if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
@@ -848,6 +851,11 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                         {
                             absPwr += GN_RATE_BANDEDGE_ADJUSTMENT;
                         }
+                    }
+
+                    if (pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
+                    {
+                        absPwr -= pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset;
                     }
                     break;
 
@@ -881,7 +889,6 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                         }
                     }
 
-                    absPwr += gnRateLimitAdjustment;
                     if ((curChan == RF_CHAN_1) || (curChan == RF_CHAN_11))
                     {
                         if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
@@ -892,6 +899,11 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                         {
                             absPwr += GN_RATE_BANDEDGE_ADJUSTMENT;
                         }
+                    }
+
+                    if (pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
+                    {
+                        absPwr -= pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset;
                     }
                     break;
 

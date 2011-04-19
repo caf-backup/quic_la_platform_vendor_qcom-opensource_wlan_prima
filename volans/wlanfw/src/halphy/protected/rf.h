@@ -47,6 +47,7 @@ typedef enum
 typedef struct
 {
     eRfChannels curChannel;
+    tANI_U16    chanLockTemp;   /* Temperature at which channel is locked */
     tANI_S32 dcoStep[NUM_RF_DCO_VALUES];
     tRfChipVer version;
     tANI_U32 xoMode;

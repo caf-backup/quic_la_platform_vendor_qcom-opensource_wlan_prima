@@ -482,6 +482,8 @@ eHalStatus halDxe_EnsureDXEIdleState(tHalHandle hHalHandle)
 	pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX_HI];
 	dwCtrl  = pDxeCCB->sdioDesc.cw.ctrl | DXE_DESC_CTRL_STOP;
 
+    vos_sleep(2);
+
     halWriteDeviceMemory(pMac, pDxeCCB->sdio_ch_desc,
                         (tANI_U8 *)&dwCtrl, 4);
 
@@ -491,45 +493,21 @@ eHalStatus halDxe_EnsureDXEIdleState(tHalHandle hHalHandle)
 /* 
  * Enable/Disable the DXE 
  */
-#define DXE_0_BMU_SB_QDAT_WQ_2_OFFSET 0x2
 eHalStatus halDxe_EnableDisableDXE(tHalHandle hHalHandle, tANI_U8 enable) 
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHalHandle);
-    tANI_U32       regValue=0, 
-                   chStatus=0, 
-                   bmuSB=0;
+    tANI_U32       regValue=0; 
+	sDxeCCB        *pDxeCCB;
 
 	// If DXE is being disabled ensure that it is either in the stopped or MASKED state
 	if (!enable) {
 
-        /* DXE_RX channel */
-		sDxeCCB    *pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX];
-
-		halReadRegister(pMac, pDxeCCB->chDXEStatusRegAddr, &chStatus);
-		halReadRegister(pMac, QWLAN_DXE_0_BMU_SB_QDAT_AVAIL_REG, &bmuSB);
-
-        /*
-         * BMU sideband register in DXE maintains important sideband signals for every WQ.
-         * However, it does not maintain these side band signals for WQ0 and WQ1.
-         * i.e: Bit-0 indicates "DataAvailable" status for WQ2
-         */
-        VOS_ASSERT((chStatus & QWLAN_DXE_0_CH_STATUS_STOPD_MASK) || \
-				   ((chStatus & QWLAN_DXE_0_CH_STATUS_MSKD_MASK) && 
-                    !(bmuSB & (1 << (BMUWQ_DXE_RX - DXE_0_BMU_SB_QDAT_WQ_2_OFFSET)))));
-
 		// Remove the STOP bit from the DXE descriptor CTRL DWORD
+        pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX];
 		halWriteDeviceMemory(pMac, pDxeCCB->sdio_ch_desc,
                              (tANI_U8 *)&pDxeCCB->sdioDesc.cw.ctrl, 4);
 
-        /* DXE_RX_HI Channel */
-		pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX_HI];
-		halReadRegister(pMac, pDxeCCB->chDXEStatusRegAddr, &chStatus);
-		halReadRegister(pMac, QWLAN_DXE_0_BMU_SB_QDAT_AVAIL_REG, &bmuSB);
-        
-        VOS_ASSERT((chStatus & QWLAN_DXE_0_CH_STATUS_STOPD_MASK) || \
-				   ((chStatus & QWLAN_DXE_0_CH_STATUS_MSKD_MASK) && 
-                    !(bmuSB & (1 << (BMUWQ_DXE_RX_HI - DXE_0_BMU_SB_QDAT_WQ_2_OFFSET)))));
-		
+        pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX_HI];
         // Remove the STOP bit from the DXE descriptor CTRL DWORD
 		halWriteDeviceMemory(pMac, pDxeCCB->sdio_ch_desc,
                              (tANI_U8 *)&pDxeCCB->sdioDesc.cw.ctrl, 4);
@@ -547,5 +525,47 @@ eHalStatus halDxe_EnableDisableDXE(tHalHandle hHalHandle, tANI_U8 enable)
     halWriteRegister(pMac, QWLAN_DXE_0_DMA_CSR_REG, regValue);
 
     return eHAL_STATUS_SUCCESS;
+}
+
+/**
+ * Get DXE channel status
+ **/
+VOS_STATUS halDxe_DxeChannelIdleStatus(tANI_U32 *pStatus, v_PVOID_t pMacContext)
+{
+
+#define DXE_0_BMU_SB_QDAT_WQ_2_OFFSET 0x2
+    
+    VOS_STATUS     status;
+    tpAniSirGlobal pMac    = PMAC_STRUCT(pMacContext);
+    tANI_U32       bmuSB=0, dxeRxChStatus=0, dxeRxHiChStatus=0;
+	sDxeCCB        *pDxeCCB;
+
+    /*
+     * DxE Channel status for DXE_RX and DXE_RX_HI channels
+     */    
+    pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX];
+	halReadRegister(pMac, pDxeCCB->chDXEStatusRegAddr, &dxeRxChStatus);
+	
+    pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX_HI];
+	halReadRegister(pMac, pDxeCCB->chDXEStatusRegAddr, &dxeRxHiChStatus);
+    
+    /**
+     * DxE has side band register status from BMU
+     */
+    halReadRegister(pMac, QWLAN_DXE_0_BMU_SB_QDAT_AVAIL_REG, &bmuSB);
+
+    status = (((dxeRxChStatus & QWLAN_DXE_0_CH_STATUS_STOPD_MASK) || 
+              ((dxeRxChStatus & QWLAN_DXE_0_CH_STATUS_MSKD_MASK) && !(bmuSB & (1 << (BMUWQ_DXE_RX - DXE_0_BMU_SB_QDAT_WQ_2_OFFSET))))) && 
+             ((dxeRxHiChStatus & QWLAN_DXE_0_CH_STATUS_STOPD_MASK) || 
+              ((dxeRxHiChStatus & QWLAN_DXE_0_CH_STATUS_MSKD_MASK) && !(bmuSB & (1 << (BMUWQ_DXE_RX_HI - DXE_0_BMU_SB_QDAT_WQ_2_OFFSET)))))) 
+             ? VOS_STATUS_SUCCESS : VOS_STATUS_E_FAILURE;
+
+    if(VOS_STATUS_E_FAILURE == status)
+    {
+        HALLOGE( halLog(pMac, LOGE, FL("dxeRxChStatus=0x%x, dxeRxHiChStatus=0x%x, bmuSB=0x%x\n"), dxeRxChStatus, dxeRxHiChStatus, bmuSB));
+    }
+   
+    *pStatus = status; 
+    return (status);
 }
 

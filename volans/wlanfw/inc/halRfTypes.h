@@ -250,5 +250,16 @@ typedef struct
     tANI_U16 hdetDcoOffset;
 }sRfHdetCalValues;
 
+typedef struct
+{
+    tANI_U32 txFirFilterMode;
+}sTxBbFilterMode;
+
+typedef struct
+{
+    t2Decimal ofdmPwrOffset;
+    t2Decimal rsvd;
+}sOfdmCmdPwrOffset;
+
 #endif
 
