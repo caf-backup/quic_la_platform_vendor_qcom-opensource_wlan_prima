@@ -4052,9 +4052,11 @@ static void limProcessSwitchChannelJoinReq(tpAniSirGlobal pMac, tpPESession pses
                           psessionEntry->ssId.length);
     ssId.length = psessionEntry->ssId.length;
 
+     // include additional IE if there is
     limSendProbeReqMgmtFrame( pMac, &ssId,
            psessionEntry->pLimMlmJoinReq->bssDescription.bssId, psessionEntry->currentOperChannel/*chanNum*/,
-                                        psessionEntry->selfMacAddr, psessionEntry->dot11mode);
+                                        psessionEntry->selfMacAddr, psessionEntry->dot11mode, 
+                                         psessionEntry->pLimJoinReq->wscIE.length, psessionEntry->pLimJoinReq->wscIE.wscIEdata);
     return;
 
 error:

@@ -76,6 +76,7 @@ static eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfg
 static 
 eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId);
 static eHalStatus halHandleDynamicPsPollValue(tpAniSirGlobal pMac, tANI_U32 cfgId);
+static eHalStatus halHandleTelescopicBeaconWakeupSetting(tpAniSirGlobal pMac, tANI_U32 cfgId);
 
 /* Constant Macros */
 /* Redefine OFF -> __OFF, ON-> __ON to avoid redefinition on AMSS */
@@ -3202,6 +3203,9 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                 case WNI_CFG_DYNAMIC_PS_POLL_VALUE:
                    halHandleDynamicPsPollValue(pMac, pMsg->bodyval);
                    break;
+                case WNI_CFG_TELE_BCN_WAKEUP_EN:
+                   halHandleTelescopicBeaconWakeupSetting(pMac, pMsg->bodyval);
+                   break;
             
                 default:
                     HALLOGE( halLog(pMac, LOGE, FL("Cfg Id %d is not handled\n"), pMsg->bodyval));
@@ -3560,6 +3564,10 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             halRadar_Init(pMac);
             break;
 #endif
+        case SIR_HAL_SET_HOST_OFFLOAD:
+            halPS_SetHostOffloadInFw(pMac, (tpSirHostOffloadReq)pMsg->bodyptr);
+            break;
+
         default:
             HALLOGW( halLog(pMac, LOGW, FL("Errored Type 0x%X\n"), pMsg->type));
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
@@ -3864,11 +3872,6 @@ void halPhy_HandleSetChannelRsp(tHalHandle hHal,  void* pFwMsg)
         halPhyGetRxGainRange(pMac, &pMac->hal.halMac.maxGainIndex, &pMac->hal.halMac.topGainDb, &bottomGainDb);
     // Resume to the context of the caller
     pSetChanCtx->pFunc(pMac, pSetChanCtx->pData, status, pSetChanCtx->dialog_token);
-
-    /* Assign Memory Pointer and Function pointer to NULL in pSetChanCtx 
-     * after calling the corresponding Callback on response from FW */
-    pSetChanCtx->pData = NULL;
-    pSetChanCtx->pFunc = NULL;
 
     return;
 #endif //LIBRA_RF
@@ -4395,6 +4398,78 @@ eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId)
         pMac->hal.mcastBcastFilterSetting = (tANI_BOOLEAN)val;
     }
     
+    return status;
+}
+
+static 
+eHalStatus halHandleTelescopicBeaconWakeupSetting(tpAniSirGlobal pMac, tANI_U32 cfgId)
+{
+    tANI_U32 teleBcnEn, val, cfgIdx;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgId, &teleBcnEn))
+    {
+        HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+        return eHAL_STATUS_FAILURE;
+    }
+    else
+    {    
+        pMac->hal.teleBcnWakeupEnable = (tANI_BOOLEAN)teleBcnEn;
+    }
+
+    if (teleBcnEn) {
+
+        cfgIdx = WNI_CFG_TELE_BCN_TRANS_LI;
+        if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgIdx, &val))
+        {
+           HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+           return eHAL_STATUS_FAILURE;
+        }
+        else
+        {  
+           pMac->hal.transListenInterval = (tANI_U16)val;
+        }
+
+        cfgIdx = WNI_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS;
+        if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgIdx, &val))
+        {
+           HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+           return eHAL_STATUS_FAILURE;
+        }
+        else
+        {    
+           pMac->hal.uTransLiNumIdleBeacons = (tANI_U16)val;
+        }
+
+        cfgIdx = WNI_CFG_TELE_BCN_MAX_LI;
+        if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgIdx, &val))
+        {
+           HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+           return eHAL_STATUS_FAILURE;
+        }
+        else
+        {    
+           pMac->hal.maxListenInterval = (tANI_U16)val;
+        }
+
+
+        cfgIdx = WNI_CFG_TELE_BCN_MAX_LI_IDLE_BCNS;
+       if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgIdx, &val))
+       {
+          HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+          return eHAL_STATUS_FAILURE;
+       }
+       else
+       {    
+          pMac->hal.uMaxLiNumIdleBeacons = (tANI_U16)val;
+       }
+    
+    } else {
+       pMac->hal.maxListenInterval = 0;
+       pMac->hal.transListenInterval = 0;
+
+    }
+     
     return status;
 }
 

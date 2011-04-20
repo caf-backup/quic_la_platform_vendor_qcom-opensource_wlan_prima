@@ -107,7 +107,6 @@ static eHalStatus halSdioResetChip(tHalHandle hHal, void *arg);
 static eHalStatus halSaveDeviceInfo(tHalHandle hHal, void *arg);
 static void halOpenInit(tpAniSirGlobal pMac);
 static void halCloseExit(tpAniSirGlobal pMac);
-static void halCleanMemory(tpAniSirGlobal pMac);
 /* --------------------------------------------------------------------------
  * FIXME/TODO
  */
@@ -410,9 +409,6 @@ eHalStatus halClose( tHalHandle hHal )
     status = runModuleFunc( hHal, NULL, CLOSE_IDX );
     if ( ! HAL_STATUS_SUCCESS( status ) ) nReturn = status;
 
-    //To delete if any memory Leaks are present
-    halCleanMemory(pMac);
-
     // Final exit operation on HAL
     halCloseExit(pMac);
 
@@ -661,26 +657,6 @@ static void halOpenInit(tpAniSirGlobal pMac)
 
     // Initialize the read register function pointer
     pMac->hal.funcReadMem = halNormalReadMemory;
-}
-
-/* -------------------------------------------------------
- * FUNCTION:  halCleanMemory()
- *
- * NOTE:
- *  1) To Clean memory holding in HAL and waiting for FW
-       response at the time of Closing HAL module.
- * -------------------------------------------------------
- */
-static void halCleanMemory(tpAniSirGlobal pMac)
-{
-  tpPhySetChanCntx pSetChanCtx = &pMac->hphy.setChanCntx;
-  if ( pSetChanCtx->pData != NULL)
-  {
-    HALLOGE( halLog(pMac, LOG1, FL("Freeing the Memory: %p\n"),
-                   pSetChanCtx->pData));
-    palFreeMemory(pMac->hHdd, pSetChanCtx->pData);
-  }
-  return;
 }
 
 static void halCloseExit(tpAniSirGlobal pMac)

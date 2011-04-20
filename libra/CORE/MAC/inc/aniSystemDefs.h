@@ -121,6 +121,13 @@ typedef struct sSirRSNie
     tANI_U8        rsnIEdata[SIR_MAC_MAX_IE_LENGTH+2];
 } tSirRSNie, *tpSirRSNie;
 
+/// WSC IE information
+typedef struct sSirWSCie
+{
+    tANI_U16       length;
+    tANI_U8        wscIEdata[SIR_MAC_WSC_IE_MAX_LENGTH+2];  
+} tSirWSCie, *tpSirWSCie;
+
 /// Need to refine structure definitions for Keying material,
 /// QoS policy, etc
 

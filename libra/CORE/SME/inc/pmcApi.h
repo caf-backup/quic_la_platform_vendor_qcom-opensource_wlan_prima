@@ -390,5 +390,8 @@ extern eHalStatus pmcEnterWowl (
 extern eHalStatus pmcExitWowl (tHalHandle hHal);
 
 
+extern eHalStatus pmcSetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest);
+
+
 #endif
 
