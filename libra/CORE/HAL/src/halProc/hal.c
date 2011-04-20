@@ -73,7 +73,7 @@ extern eHalStatus halPrepareForBmpsExit(tpAniSirGlobal pMac);
 static eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId);
 #endif
 
-static 
+static
 eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId);
 static eHalStatus halHandleDynamicPsPollValue(tpAniSirGlobal pMac, tANI_U32 cfgId);
 static eHalStatus halHandleTelescopicBeaconWakeupSetting(tpAniSirGlobal pMac, tANI_U32 cfgId);
@@ -2871,15 +2871,15 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 
     // If hal state is IDLE, do not process any messages.
     // free the body pointer and return success
-    if(pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
-    {
+    //if(pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
+    //{
     if(eHAL_IDLE == halStateGet(pMac)) {
         if(pMsg->bodyptr) {
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
         }
         return eSIR_SUCCESS;
     }
-    }
+    //}
 
 #ifndef WLAN_FTM_STUB
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)
@@ -3189,24 +3189,24 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             break;
 #ifdef WLAN_SOFTAP_FEATURE
         case WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE:
-            halHandleEnableListenModeCfg(pMac, pMsg->bodyval);         
+            halHandleEnableListenModeCfg(pMac, pMsg->bodyval);
             break;
-#endif  
+#endif
                 case WNI_CFG_RF_SETTLING_TIME_CLK:
                    halPSRfSettlingTimeClk(pMac, pMsg->bodyval);
                    break;
-            
+
                 case WNI_CFG_MCAST_BCAST_FILTER_SETTING:
                    halHandleMcastBcastFilterSetting(pMac, pMsg->bodyval);
                    break;
-            
+
                 case WNI_CFG_DYNAMIC_PS_POLL_VALUE:
                    halHandleDynamicPsPollValue(pMac, pMsg->bodyval);
                    break;
                 case WNI_CFG_TELE_BCN_WAKEUP_EN:
                    halHandleTelescopicBeaconWakeupSetting(pMac, pMsg->bodyval);
                    break;
-            
+
                 default:
                     HALLOGE( halLog(pMac, LOGE, FL("Cfg Id %d is not handled\n"), pMsg->bodyval));
                     break;
@@ -3275,7 +3275,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 #if WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE
         case SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND :
             halMsg_UpdateProbeRespTemplate(pMac, (tpSendProbeRespParams) pMsg->bodyptr );
-#if WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE_HOST_PRINT_LOG 
+#if WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE_HOST_PRINT_LOG
 	    HALLOGE( halLog(pMac, LOGE, FL("[SoftApProbReq] SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND \n")));
 #endif
             break;
@@ -3473,7 +3473,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 #if WLAN_SOFTAP_FW_BEACON_TX_PRNT_LOG
 			uTxPreBknCnt++;
 			HALLOGE( halLog(pMac, LOGE, FL("[SoftApFwBcnTx] SIR_HAL_BEACON_PRE_IND : uTxPreBknCnt[%d] \n"), uTxPreBknCnt));
-#endif 
+#endif
             break;
 
         case SIR_HAL_STA_STAT_REQ:
@@ -4382,7 +4382,7 @@ halTlPostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 #endif
 }
 
-static 
+static
 eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId)
 {
     tANI_U32 val;
@@ -4394,14 +4394,14 @@ eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId)
         return eHAL_STATUS_FAILURE;
     }
     else
-    {    
+    {
         pMac->hal.mcastBcastFilterSetting = (tANI_BOOLEAN)val;
     }
-    
+
     return status;
 }
 
-static 
+static
 eHalStatus halHandleTelescopicBeaconWakeupSetting(tpAniSirGlobal pMac, tANI_U32 cfgId)
 {
     tANI_U32 teleBcnEn, val, cfgIdx;
@@ -4413,7 +4413,7 @@ eHalStatus halHandleTelescopicBeaconWakeupSetting(tpAniSirGlobal pMac, tANI_U32 
         return eHAL_STATUS_FAILURE;
     }
     else
-    {    
+    {
         pMac->hal.teleBcnWakeupEnable = (tANI_BOOLEAN)teleBcnEn;
     }
 
@@ -4426,7 +4426,7 @@ eHalStatus halHandleTelescopicBeaconWakeupSetting(tpAniSirGlobal pMac, tANI_U32 
            return eHAL_STATUS_FAILURE;
         }
         else
-        {  
+        {
            pMac->hal.transListenInterval = (tANI_U16)val;
         }
 
@@ -4437,7 +4437,7 @@ eHalStatus halHandleTelescopicBeaconWakeupSetting(tpAniSirGlobal pMac, tANI_U32 
            return eHAL_STATUS_FAILURE;
         }
         else
-        {    
+        {
            pMac->hal.uTransLiNumIdleBeacons = (tANI_U16)val;
         }
 
@@ -4448,7 +4448,7 @@ eHalStatus halHandleTelescopicBeaconWakeupSetting(tpAniSirGlobal pMac, tANI_U32 
            return eHAL_STATUS_FAILURE;
         }
         else
-        {    
+        {
            pMac->hal.maxListenInterval = (tANI_U16)val;
         }
 
@@ -4460,20 +4460,20 @@ eHalStatus halHandleTelescopicBeaconWakeupSetting(tpAniSirGlobal pMac, tANI_U32 
           return eHAL_STATUS_FAILURE;
        }
        else
-       {    
+       {
           pMac->hal.uMaxLiNumIdleBeacons = (tANI_U16)val;
        }
-    
+
     } else {
        pMac->hal.maxListenInterval = 0;
        pMac->hal.transListenInterval = 0;
 
     }
-     
+
     return status;
 }
 
-static 
+static
 eHalStatus halHandleDynamicPsPollValue(tpAniSirGlobal pMac, tANI_U32 cfgId)
 {
     tANI_U32 val;
@@ -4485,10 +4485,10 @@ eHalStatus halHandleDynamicPsPollValue(tpAniSirGlobal pMac, tANI_U32 cfgId)
         return eHAL_STATUS_FAILURE;
     }
     else
-    {    
+    {
         pMac->hal.dynamicPsPollValue = (tANI_BOOLEAN)val;
     }
-    
+
     return status;
 }
 
@@ -4512,16 +4512,16 @@ eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId)
         return eHAL_STATUS_FAILURE;
     }
     else
-    {    
-        pMac->hal.ghalPhyAgcListenMode = (tANI_U8)val;   
+    {
+        pMac->hal.ghalPhyAgcListenMode = (tANI_U8)val;
     }
-    
+
     return status;
 }
 
 /** ------------------------------------------------------------------------
 \fn     halEnableListenMode
-\brief  hal API to configure listen mode (disable or enable Listen mode 
+\brief  hal API to configure listen mode (disable or enable Listen mode
 \       with EDET threshold settings).
 \param  tpAniSirGlobal pMac
 \param  tANI_U8 listenModeEnableParams
@@ -4530,10 +4530,10 @@ eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId)
 eHalStatus halEnableListenMode(tpAniSirGlobal pMac, tANI_U8 listenModeEnableParams)
 {
     eHalStatus status;
- 
-    if (listenModeEnableParams <= QWLAN_RFAPB_BBF_SAT5_EGY_THRES_IN_MASK) 
+
+    if (listenModeEnableParams <= QWLAN_RFAPB_BBF_SAT5_EGY_THRES_IN_MASK)
     {
-        status = halPhyAGCEnableListenMode(pMac, listenModeEnableParams); 
+        status = halPhyAGCEnableListenMode(pMac, listenModeEnableParams);
     }
     else
     {
