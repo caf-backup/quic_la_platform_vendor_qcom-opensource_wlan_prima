@@ -5,7 +5,8 @@
     \file wlan_nv.h
 
     \brief Types for NV implementation
-            Anything that needs to be publicly available should be in halNv.h or halNvTables.h
+           Anything that needs to be publicly available should
+           be in this file
 
     $Id$
 
@@ -14,10 +15,68 @@
 
    ========================================================================== */
 
-#ifndef WLAN_NV_H
-#define WLAN_NV_H
+#if !defined( __WLAN_NV_H )
+#define __WLAN_NV_H
 
-//#include "halNv.h"
+#include "palTypes.h"
+
+//From HAL/inc/halNv.h
+typedef enum
+{
+    //Common Nv Fields
+    NV_COMMON_PRODUCT_ID,               // 0
+    NV_COMMON_PRODUCT_BANDS,            // 1
+    NV_COMMON_NUM_OF_TX_CHAINS,         // 2
+    NV_COMMON_NUM_OF_RX_CHAINS,         // 3
+    NV_COMMON_MAC_ADDR,                 // 4
+    NV_COMMON_MFG_SERIAL_NUMBER,        // 5
+
+    NUM_NV_FIELDS,
+    NV_MAX_FIELD = 0xFFFFFFFF  /* define as 4 bytes data */
+
+}eNvField;
+
+
+#define NV_FIELD_MAC_ADDR_SIZE      6
+#define NV_FIELD_MFG_SN_SIZE        40
+typedef enum
+{
+    PRODUCT_BAND_11_B_G     = 0,    //Gen6.0 is only this setting
+    PRODUCT_BAND_11_A_B_G   = 1,
+    PRODUCT_BAND_11_A       = 2,
+
+    NUM_PRODUCT_BANDS
+}eNvProductBands;           //NV_COMMON_PRODUCT_BANDS
+
+
+typedef union
+{
+    //common NV fields
+    tANI_U16  productId;
+    tANI_U8   productBands;
+    tANI_U8   numOfTxChains;
+    tANI_U8   numOfRxChains;
+    tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
+    tANI_U8   mfgSN[NV_FIELD_MFG_SN_SIZE];
+}uNvFields;
+
+
+
+//format of common part of nv
+typedef struct
+{
+    //always ensure fields are aligned to 32-bit boundaries
+    tANI_U16  productId;
+    tANI_U8   productBands;
+    tANI_U8   unused1[1];
+
+    tANI_U8   numOfTxChains;
+    tANI_U8   numOfRxChains;
+    tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
+
+    tANI_U8   mfgSN[NV_FIELD_MFG_SN_SIZE];
+}sNvFields;
+
 
 //From wlanfw/inc/halPhyTypes.h
 
@@ -131,6 +190,15 @@ typedef struct
     eRfSubBand band;               //band that this channel belongs to
 }tRfChannelProps;
 
+typedef enum
+{
+    MODE_802_11B    = 0,
+    MODE_802_11AG   = 1,
+    MODE_802_11N    = 2,
+    NUM_802_11_MODES
+} e80211Modes;
+
+
 //From wlanfw/inc/halPhyCalMemory.h
 typedef struct
 {
@@ -145,7 +213,7 @@ typedef struct
 
     tANI_U8     bb_bw1;
     tANI_U8     bb_bw2;
-    tANI_U8     reserved0;
+    tANI_U8     pa_ctune_reg;
     tANI_U8     reserved1;
 
     tANI_U8     bb_bw3;
@@ -174,8 +242,7 @@ typedef struct
 
     tANI_U8     rx_im2_spare0;
     tANI_U8     rx_im2_spare1;
-    tANI_U8     reserved2;
-    tANI_U8     reserved3;
+    tANI_U16    hdet_dco;
 
     tANI_U8     pll_vfc_reg3_b0;
     tANI_U8     pll_vfc_reg3_b1;
@@ -183,7 +250,7 @@ typedef struct
     tANI_U8     pll_vfc_reg3_b3;
 
     tANI_U16    tempStart;
-    tANI_U16    tempFinish;
+	tANI_U16    roomTemp;
 
 }sCalData;
 
@@ -295,6 +362,8 @@ typedef union
     //sCalStatus            calStatus;                               // NV_TABLE_CAL_STATUS
     sRssiChannelOffsets     rssiChanOffsets[2];                      // NV_TABLE_RSSI_CHANNEL_OFFSETS
     sRFCalValues            rFCalValues;                             // NV_TABLE_RF_CAL_VALUES
+    tANI_S16                antennaPathLoss[NUM_2_4GHZ_CHANNELS];    // NV_TABLE_ANTENNA_PATH_LOSS
+    tANI_S16                pktTypePwrLimits[NUM_802_11_MODES][NUM_2_4GHZ_CHANNELS]; //NV_TABLE_PACKET_TYPE_POWER_LIMITS
 }uNvTables;
 
 //From halPhy.h
@@ -305,6 +374,52 @@ typedef struct
     tANI_U8 chanId;
     tChannelPwrLimit pwr;
 }tChannelListWithPower;
+
+//From HAL/inc/halNvTables.h
+typedef enum
+{
+    NV_FIELDS_IMAGE                 = 0,    //contains all fields
+
+    NV_TABLE_RATE_POWER_SETTINGS    = 2,
+    NV_TABLE_REGULATORY_DOMAINS     = 3,
+    NV_TABLE_DEFAULT_COUNTRY        = 4,
+    NV_TABLE_TPC_POWER_TABLE        = 5,
+    NV_TABLE_TPC_PDADC_OFFSETS      = 6,
+    NV_TABLE_RF_CAL_VALUES          = 7,
+    NV_TABLE_RSSI_CHANNEL_OFFSETS   = 9,
+    NV_TABLE_CAL_MEMORY             = 10,    //cal memory structure from halPhyCalMemory.h preceded by status
+    NV_TABLE_CAL_STATUS             = 11,
+    NV_TABLE_ANTENNA_PATH_LOSS          = 12,
+    NV_TABLE_PACKET_TYPE_POWER_LIMITS   = 13,
+
+    NUM_NV_TABLE_IDS,
+    NV_ALL_TABLES                   = 0xFFF,
+    NV_BINARY_IMAGE                 = 0x1000,
+    NV_MAX_TABLE                    = 0xFFFFFFFF  /* define as 4 bytes data */
+}eNvTable;
+
+typedef struct
+{
+    tRateGroupPwr           pwrOptimum[NUM_RF_SUBBANDS];              // NV_TABLE_RATE_POWER_SETTINGS
+    sRegulatoryDomains      regDomains[NUM_REG_DOMAINS];              // NV_TABLE_REGULATORY_DOMAINS
+    sDefaultCountry         defaultCountryTable;                      // NV_TABLE_DEFAULT_COUNTRY
+    tTpcPowerTable          plutCharacterized[NUM_2_4GHZ_CHANNELS];   // NV_TABLE_TPC_POWER_TABLE
+    tANI_U16                plutPdadcOffset[NUM_2_4GHZ_CHANNELS];     // NV_TABLE_TPC_PDADC_OFFSETS
+    //sCalFlashMemory         calFlashMemory;                           // NV_TABLE_CAL_MEMORY
+    //sCalStatus              calStatus;                                // NV_TABLE_CAL_STATUS
+    sRssiChannelOffsets     rssiChanOffsets[2];                       // NV_TABLE_RSSI_CHANNEL_OFFSETS
+    sRFCalValues            rFCalValues;                              // NV_TABLE_RF_CAL_VALUES
+    tANI_S16                antennaPathLoss[NUM_2_4GHZ_CHANNELS];     // NV_TABLE_ANTENNA_PATH_LOSS
+    tANI_S16                pktTypePwrLimits[NUM_802_11_MODES][NUM_2_4GHZ_CHANNELS]; //NV_TABLE_PACKET_TYPE_POWER_LIMITS
+}sNvTables;
+
+typedef struct
+{
+    sNvFields fields;
+    sNvTables tables;
+}sHalNv;
+
+extern const sHalNv nvDefaults;
 
 #endif
 	

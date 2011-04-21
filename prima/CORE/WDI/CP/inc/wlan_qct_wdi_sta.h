@@ -217,6 +217,23 @@ WDI_STATableDelSta
 );
 
 /**
+ @brief WDI_STATableBSSDelSta - Function to Delete Stations in this BSS
+
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         bssIdx:        BSS index 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_STATableBSSDelSta
+(
+    WDI_ControlBlockType*  pWDICtx,
+    wpt_uint8              ucBssIdx
+);
+
+/**
  @brief WDI_STATableGetStaBSSIDAddr - Gets the BSSID associated 
         with this station
 

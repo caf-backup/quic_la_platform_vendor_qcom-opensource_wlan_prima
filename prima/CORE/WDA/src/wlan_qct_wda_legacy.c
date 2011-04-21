@@ -286,7 +286,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb)
  */
 tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac)
 {
-   WDALOG1( wdaLog(pMac, LOG1, FL(" already return hardcoded STA role\n")));
+   WDALOGE( wdaLog(pMac, LOGE, FL(" already return hardcoded STA role\n")));
    return  eSYSTEM_STA_ROLE;
 }
 

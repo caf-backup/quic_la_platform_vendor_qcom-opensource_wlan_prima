@@ -68,7 +68,8 @@ typedef enum
    WDA_START_STATE,
    WDA_READY_STATE,
    WDA_PRE_ASSOC_STATE,
-   WDA_POST_ASSOC_STATE,
+   WDA_BA_UPDATE_TL_STATE,
+   WDA_BA_UPDATE_LIM_STATE,
    WDA_STOP_STATE,
    WDA_CLOSE_STATE
 }WDA_state;
@@ -78,6 +79,18 @@ typedef enum
    WDA_PROCESS_SET_LINK_STATE,
    WDA_IGNORE_SET_LINK_STATE
 }WDA_processSetLinkStateStatus;
+
+typedef enum
+{
+   WDA_DISABLE_BA,
+   WDA_ENABLE_BA
+}WDA_BaEnableFlags;
+
+typedef enum
+{
+   WDA_INVALID_STA_INDEX,
+   WDA_VALID_STA_INDEX
+}WDA_ValidStaIndex;
 
 #if defined( FEATURE_WLAN_NON_INTEGRATED_SOC )
 #if !defined( VOS_MQ_ID_WDA )
@@ -270,6 +283,24 @@ typedef VOS_STATUS (*WDA_DS_RxCompleteCb)( v_PVOID_t pContext, wpt_packet *pFram
 typedef VOS_STATUS (*WDA_DS_TxFlowControlCb)( v_PVOID_t pContext, v_U8_t acMask );
 typedef void (*pWDATxRxCompFunc)( v_PVOID_t pContext, void *pData );
 
+typedef struct
+{
+   tANI_U16 ucValidStaIndex ;
+   /* 
+    * each bit in ucUseBaBitmap represent BA is enabled or not for this tid 
+    * tid0 ..bit0, tid1..bit1 and so on..
+    */
+   tANI_U8 ucUseBaBitmap ;
+}tWdaStaInfo, *tpWdaStaInfo ;
+
+/* group all the WDA timers into this structure */
+typedef struct
+{
+   /* BA activity check timer */
+   TX_TIMER baActivityChkTmr ;
+}tWdaTimers ;
+
+#define WDA_MAX_STA    (16)
 
 typedef struct
 {
@@ -280,20 +311,60 @@ typedef struct
    v_PVOID_t            wdaWdiApiMsgParam ;      /* WDI API paramter tracking */
    v_PVOID_t            wdaScanMsgParam ;        /* PE parameter tracking */
    v_PVOID_t            wdaWdiScanApiMsgParam ;  /* WDI API paramter tracking */
+   v_PVOID_t            wdaFinishScanMsgParam ;        /* PE parameter tracking */
+   v_PVOID_t            wdaWdiFinishScanApiMsgParam ;  /* WDI API paramter tracking */
    v_PVOID_t            wdaWdiCfgApiMsgParam ;   /* WDI API paramter tracking */
    v_PVOID_t            wdaLinkMsgParam ;        /* PE parameter tracking */
    v_PVOID_t            wdaWdiLinkApiMsgParam ;  /* WDI API paramter tracking */
    v_PVOID_t            wdaEdcaMsgParam ;        /* PE parameter tracking */
    v_PVOID_t            wdaWdiEdcaApiMsgParam ;  /* WDI API paramter tracking */
-   v_PVOID_t            wdaConfigParam ;         /* pointer to config params*/
-   vos_event_t          txFrameEvent;         /* Event to wait for tx completion */
-   pWDATxRxCompFunc     pTxCbFunc;            /* call back function for tx complete*/
+
+   /* Event to wait for tx completion */
+   vos_event_t          txFrameEvent;
+
+   /* PE parameter tracking */
+   v_PVOID_t            wdaUpdateBeaconMsgParam ;
+   /* WDI API paramter tracking */
+   v_PVOID_t            wdaWdiUpdateBeaconApiMsgParam ;
+   /* PE parameter tracking */
+   v_PVOID_t            wdaSendBeaconMsgParam ;
+   /* WDI API paramter tracking */
+   v_PVOID_t            wdaWdiSendBeaconApiMsgParam ;
+   /* PE parameter tracking */
+   v_PVOID_t            wdaSendProbeRspMsgParam ;
+   /* WDI API paramter tracking */
+   v_PVOID_t            wdaWdiSendProbeRspApiMsgParam ;
+   /* PE parameter tracking */
+   v_PVOID_t            wdaConfigBssMsgParam ;
+   /* WDI API paramter tracking */
+   v_PVOID_t            wdaWdiConfigBssApiMsgParam ;
+   /* PE parameter tracking */
+   v_PVOID_t            wdaAddStaMsgParam ;
+   /* WDI API paramter tracking */
+   v_PVOID_t            wdaWdiAddStaApiMsgParam ;
+   /* pointer to config params*/
+   v_PVOID_t            wdaConfigParam ;
+   /* pointer to BA params*/
+   v_PVOID_t            wdaWdiTriggerBaParam ;
+
+   /* call back function for tx complete*/
+   pWDATxRxCompFunc     pTxCbFunc;
    tANI_U32             frameTransRequired;   
    tSirMacAddr          macBSSID;             /*BSSID of the network */
 
-   v_U8_t               uTxFlowMask;              /* TX channel mask for flow control */
-   WDA_DS_ResourceCB    pfnTxResourceCB;         /* TL's TX resource callback        */
-   WDA_DS_TxCompleteCallback pfnTxCompleteCallback; /* TL's TX complete callback     */
+   /* TX channel mask for flow control */
+   v_U8_t               uTxFlowMask;
+   /* TL's TX resource callback        */
+   WDA_DS_ResourceCB    pfnTxResourceCB;
+   /* TL's TX complete callback     */
+   WDA_DS_TxCompleteCallback pfnTxCompleteCallback; 
+   
+   tWdaStaInfo          wdaStaInfo[WDA_MAX_STA];
+   tANI_U32             framesTxed[STACFG_MAX_TC];
+
+   tANI_U8              wdaMaxSta;
+   tWdaTimers           wdaTimers;
+   
 } tWDA_CbContext ; 
 
 
@@ -381,7 +452,7 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
 
 //#define WDA_TL_TX_FRAME_TIMEOUT  5000 /* in msec a very high upper limit of 5,000 msec */
 // FIXME Temporary value for R33D integaration
-#define WDA_TL_TX_FRAME_TIMEOUT  10000 /* in msec a very high upper limit */
+#define WDA_TL_TX_FRAME_TIMEOUT  20000 /* in msec a very high upper limit */
 
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
@@ -399,14 +470,6 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
       These MACRO are for RX frames that are on flat buffers
 
   ---------------------------------------------------------------------------*/
-
-#if defined( FEATURE_WLAN_INTEGRATED_SOC )
-#define WLANHAL_TX_BD_HEADER_SIZE 40
-#define WLANHAL_RX_BD_HEADER_SIZE 76
-#else
-#define WLANHAL_TX_BD_HEADER_SIZE        sizeof(tHalTxBd)
-#define WLANHAL_RX_BD_HEADER_SIZE        sizeof(tHalRxBd)
-#endif
 
 /* WDA_GET_RX_MAC_HEADER *****************************************************/
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
@@ -1061,11 +1124,11 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
  -------------------------------------------------------------------*/
 
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
-#  define WDA_IsHwFrameTxTranslationCapable(vosGCtx, staId) \
-      WLANHAL_InHwFrameTxTranslattionCapable(vosGCtx, staId)
+v_BOOL_t WDA_IsHwFrameTxTranslationCapable(v_PVOID_t pVosGCtx, 
+                                                      tANI_U8 staIdx);
 #else
-// FIXME WDA should provide it
-#  define WDA_IsHwFrameTxTranslationCapable(vosGCtx, staId) (VOS_FALSE)
+#  define WDA_IsHwFrameTxTranslationCapable(vosGCtx, staId) \
+      WLANHAL_IsHwFrameTxTranslationCapable(vosGCtx, staId)
 #endif
 
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )

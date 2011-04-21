@@ -20,13 +20,11 @@
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
 #include "wlan_qct_bal.h"
 
-
 #ifdef WLAN_HAL_VOLANS
 #include "volansDefs.h"
 #else
 #include "libraDefs.h"
 #endif
-
 #endif
 
 #endif /* WINXP_APPS_BUILD */

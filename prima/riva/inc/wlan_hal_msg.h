@@ -17,6 +17,7 @@
 #include "halLegacyPalTypes.h"
 #include "halCompiler.h"
 #include "wlan_qct_dev_defs.h"
+#include "wlan_nv.h"
 
 /*---------------------------------------------------------------------------
   Commom Type definitons
@@ -147,10 +148,61 @@ typedef enum
    WLAN_HAL_RADAR_DETECT_IND   ,
    WLAN_HAL_RADAR_DETECT_INTR_IND,
 #endif
-   
+
+   WLAN_HAL_SET_BCASTKEY_REQ,
+   WLAN_HAL_SET_BCASTKEY_RSP,
+   WLAN_HAL_DELETE_STA_CONTEXT_IND,
+   WLAN_HAL_UPDATE_PROBE_RSP_TEMPLATE_REQ,
+   WLAN_HAL_UPDATE_PROBE_RSP_TEMPLATE_RSP,   
+  // PTT interface support
+   WLAN_HAL_PROCESS_PTT_REQ,
+   WLAN_HAL_PROCESS_PTT_RSP,
+   // BTAMP related events
+   WLAN_HAL_SIGNAL_BTAMP_EVENT_REQ,
+   WLAN_HAL_SIGNAL_BTAMP_EVENT_RSP, 
+   WLAN_HAL_TL_HAL_FLUSH_AC_REQ,
+   WLAN_HAL_TL_HAL_FLUSH_AC_RSP,
+
+   WLAN_HAL_ENTER_IMPS_REQ,
+   WLAN_HAL_EXIT_IMPS_REQ,
+   WLAN_HAL_ENTER_BMPS_REQ,
+   WLAN_HAL_EXIT_BMPS_REQ,
+   WLAN_HAL_ENTER_UAPSD_REQ,
+   WLAN_HAL_EXIT_UAPSD_REQ,
+   WLAN_HAL_ADD_BCN_FILTER_REQ,
+   WLAN_HAL_REM_BCN_FILTER_REQ,
+   WLAN_HAL_ADD_WOWL_BCAST_PTRN,
+   WLAN_HAL_DEL_WOWL_BCAST_PTRN,
+   WLAN_HAL_ENTER_WOWL_REQ,
+   WLAN_HAL_EXIT_WOWL_REQ,
+   WLAN_HAL_HOST_OFFLOAD_REQ,
+   WLAN_HAL_SET_RSSI_THRESH_REQ,
+   WLAN_HAL_GET_RSSI_REQ,
+   WLAN_HAL_SET_UAPSD_AC_PARAMS_REQ,
+
+   WLAN_HAL_ENTER_IMPS_RSP,
+   WLAN_HAL_EXIT_IMPS_RSP,
+   WLAN_HAL_ENTER_BMPS_RSP,
+   WLAN_HAL_EXIT_BMPS_RSP,
+   WLAN_HAL_ENTER_UAPSD_RSP,
+   WLAN_HAL_EXIT_UAPSD_RSP,
+   WLAN_HAL_ENTER_WOWL_RSP,
+   WLAN_HAL_EXIT_WOWL_RSP,
+   WLAN_HAL_RSSI_NOTIFICATION_IND,
+   WLAN_HAL_GET_RSSI_RSP,
 
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
+
+/* Enumeration for Boolean - False/True, On/Off */
+typedef enum tagAniBoolean 
+{
+    eANI_BOOLEAN_FALSE = 0,
+    eANI_BOOLEAN_TRUE,
+    eANI_BOOLEAN_OFF = 0,
+    eANI_BOOLEAN_ON = 1,
+    eANI_BOOLEAN_MAX_FIELD = 0x7FFFFFFF  /* define as 4 bytes data */
+} eAniBoolean;
 
 typedef enum
 {
@@ -290,7 +342,7 @@ typedef enum eAniKeyDirection
     eSIR_TX_ONLY,
     eSIR_RX_ONLY,
     eSIR_TX_RX,
-#ifdef FEATURE_SAP
+#ifdef WLAN_SOFTAP_FEATURE
     eSIR_TX_DEFAULT,
 #endif
     eSIR_DONOT_USE_KEY_DIRECTION = WLAN_HAL_MAX_ENUM_SIZE
@@ -336,25 +388,14 @@ typedef enum
     HAL_PER_STA_STATS_INFO           = 0x00000020
 }eHalStatsMask;
 
-typedef enum
+/* BT-AMP events type */
+typedef enum 
 {
-    NV_FIELDS_IMAGE                 = 0,
-
-    NV_TABLE_RATE_POWER_SETTINGS    = 2,
-    NV_TABLE_REGULATORY_DOMAINS     = 3,
-    NV_TABLE_DEFAULT_COUNTRY        = 4,
-    NV_TABLE_TPC_POWER_TABLE        = 5,
-    NV_TABLE_TPC_PDADC_OFFSETS      = 6,
-    NV_TABLE_RF_CAL_VALUES          = 7,
-    NV_TABLE_RSSI_CHANNEL_OFFSETS   = 9,
-    NV_TABLE_CAL_MEMORY             = 10,
-    NV_TABLE_CAL_STATUS             = 11,
-
-    NUM_NV_TABLE_IDS,
-    NV_ALL_TABLES                   = 0xFFF,
-    NV_BINARY_IMAGE                 = 0x1000,
-    NV_MAX_TABLE                    = WLAN_HAL_MAX_ENUM_SIZE
-}eNvTable;
+    BTAMP_EVENT_CONNECTION_START,
+    BTAMP_EVENT_CONNECTION_STOP,
+    BTAMP_EVENT_CONNECTION_TERMINATED,
+    BTAMP_EVENT_TYPE_MAX = WLAN_HAL_MAX_ENUM_SIZE, //This and beyond are invalid values
+} tBtAmpEventType;
 
 /*---------------------------------------------------------------------------
   Message definitons - All the messages below need to be packed
@@ -1240,6 +1281,7 @@ typedef PACKED_PRE struct PACKED_POST
 
     /*MAC Address of STA(PEER/SELF) in staContext of configBSSReq*/
     tSirMacAddr staMac;
+    
 
 } tConfigBssRspParams, * tpConfigBssRspParams;
 
@@ -1456,7 +1498,7 @@ typedef PACKED_PRE struct PACKED_POST
     /*Default WEP key, valid only for static WEP, must between 0 and 3.*/
     tANI_U8         defWEPIdx;
 
-#ifdef FEATURE_SAP
+#ifdef WLAN_SOFTAP_FEATURE
     /* valid only for non-static WEP encyrptions */
     tSirKeys        key[SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS];            
 #else
@@ -2333,15 +2375,8 @@ typedef PACKED_PRE struct PACKED_POST
     /* Is this the last fragment? When set to 1 it indicates that no more fragments
      * will be sent by UMAC and HAL can concatenate all the NV blobs rcvd & proceed 
      * with the parsing. HAL would generate a WLAN_HAL_DOWNLOAD_NV_RSP to the
-     * WLAN_HAL_DOWNLOAD_NV_REQ only after it receives the last fragment */
+     * WLAN_HAL_DOWNLOAD_NV_REQ after it receives each fragment */
     tANI_U16 isLastFragment;
-
-    /* NV Validity BitMap. Bitmap indicates what NV fields in the NV blob
-     * are valid. Note this is the complete bitmap and hence would be the same
-     * in all fragments. E.g. bit[NV_TABLE_REGULATORY_DOMAINS] =1 in the 
-     * nvValidityBitmap(b31, b32,...b0) indicates if NV_TABLE_REGULATORY_DOMAINS is
-     * is valid in the NV Image */
-    tANI_U32  nvValidityBitmap;
 
     /* NV Image size (number of bytes) */
     tANI_U32 nvImgBufferSize;
@@ -2364,8 +2399,7 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST
 {
     /* Success or Failure. HAL would generate a WLAN_HAL_DOWNLOAD_NV_RSP
-     * only after it receives the last fragment i.e. WLAN_HAL_DOWNLOAD_NV_REQ 
-     * is rcvd with isLastFragment field set to 1 */
+     * after each fragment */
     tANI_U32   status;
 } tHalNvImgDownloadRspParams, *tpHalNvImgDownloadRspParams;
 
@@ -2374,23 +2408,6 @@ typedef PACKED_PRE struct PACKED_POST
     tHalMsgHeader header;
     tHalNvImgDownloadRspParams nvImageRspParams;
 }  tHalNvImgDownloadRspMsg, *tpHalNvImgDownloadRspMsg;
-
-/*---------------------------------------------------------------------------
- * WLAN_HAL_DEL_NV_IND
- *--------------------------------------------------------------------------*/
-typedef PACKED_PRE struct PACKED_POST
-{
-    /* NV BitMap. Bitmap indicates what NV fields are to be 
-     * deleted/invalidated. E.g. bit[NV_TABLE_REGULATORY_DOMAINS] in the 
-     * nvDeleteBitmap(b31, b32,...b0) corresponds to NV_TABLE_REGULATORY_DOMAINS */
-    tANI_U32  nvDeleteBitmap;
-} tHalNvDeleteParams, *tpHalNvDeleteParams;
-
-typedef PACKED_PRE struct PACKED_POST
-{
-    tHalMsgHeader header;
-    tHalNvDeleteParams nNvDeleteParams;
-} tHalNvDeleteInd, *tpHalNvDeleteInd;
 
 /*---------------------------------------------------------------------------
  * WLAN_HAL_STORE_NV_IND
@@ -2646,6 +2663,642 @@ typedef PACKED_PRE struct PACKED_POST
 }tSirGetTpcReportRspMsg, *tpSirGetTpcReportRspMsg;
 
 #endif
+
+#ifdef WLAN_SOFTAP_FEATURE
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_UPDATE_PROBE_RSP_TEMPLATE_REQ
+ *-------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8      pProbeRespTemplate[BEACON_TEMPLATE_SIZE];
+    tANI_U32     probeRespTemplateLen;
+    tANI_U32     ucProxyProbeReqValidIEBmap[8];
+    tSirMacAddr  bssId;
+
+}tSendProbeRespReqParams, *tpSendProbeRespReqParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tSendProbeRespReqParams sendProbeRespReqParams ;
+}tSendProbeRespReqMsg, *tpSendProbeRespReqMsg;
+
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_UPDATE_PROBE_RSP_TEMPLATE_RSP 
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+}tSendProbeRespRspParams, *tpSendProbeRespRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tSendProbeRespRspParams sendProbeRespRspParams;
+}tSendProbeRespRspMsg, *tpSendProbeRespRspMsg;
+
+
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_UNKNOWN_ADDR2_FRAME_RX_IND 
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+}tSendUnkownFrameRxIndParams, *tpSendUnkownFrameRxIndParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tSendUnkownFrameRxIndParams sendUnkownFrameRxIndParams;
+}tSendUnkownFrameRxIndMsg, *tpSendUnkownFrameRxIndMsg;
+
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_DELETE_STA_CONTEXT_IND
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U16    assocId;
+    tANI_U16    staId;
+    tSirMacAddr bssId; // TO SUPPORT BT-AMP
+                       // HAL copies bssid from the sta table.
+#ifdef WLAN_SOFTAP_FEATURE
+    tSirMacAddr addr2;        //
+    tANI_U16    reasonCode;   // To unify the keepalive / unknown A2 / tim-based disa                                                                        
+#endif
+
+}tDeleteStaContextParams, *tpDeleteStaContextParams;
+
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tDeleteStaContextParams deleteStaContextParams;
+}tDeleteStaContextIndMsg, *tpDeleteStaContextIndMsg;
+
+#endif
+
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_SIGNAL_BTAMP_EVENT_REQ
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tBtAmpEventType btAmpEventType;
+
+}tBtAmpEventParams, *tpBtAmpEventParams;
+
+
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tBtAmpEventParams btAmpEventParams;
+}tBtAmpEventMsg, *tpBtAmpEventMsg;
+
+/*---------------------------------------------------------------------------
+*WLAN_HAL_SIGNAL_BTAMP_EVENT_RSP
+*--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+}tBtAmpEventRspParams, *tpBtAmpEventRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tBtAmpEventRspParams btAmpEventRspParams;
+}tBtAmpEventRsp, *tpBtAmpEventRsp;
+
+
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_TL_HAL_FLUSH_AC_REQ
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   // Station Index. originates from HAL
+    tANI_U8  ucSTAId;
+
+    // TID for which the transmit queue is being flushed
+    tANI_U8   ucTid;
+
+}tTlHalFlushAcParams, *tpTlHalFlushAcParams;
+
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tTlHalFlushAcParams tlHalFlushAcParam;
+}tTlHalFlushAcReq, *tpTlHalFlushAcReq;
+
+/*---------------------------------------------------------------------------
+*WLAN_HAL_TL_HAL_FLUSH_AC_RSP
+*--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    // Station Index. originates from HAL
+    tANI_U8  ucSTAId;
+
+    // TID for which the transmit queue is being flushed
+    tANI_U8   ucTid;
+
+    /* success or failure */
+    tANI_U32   status;
+}tTlHalFlushAcRspParams, *tpTlHalFlushAcRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tTlHalFlushAcRspParams tlHalFlushAcRspParam;
+}tTlHalFlushAcRspMsg, *tpTlHalFlushAcRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_ENTER_IMPS_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+}  tHalEnterImpsReqMsg, *tpHalEnterImpsReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_EXIT_IMPS_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+}  tHalExitImpsReqMsg, *tpHalExitImpsReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_ENTER_BMPS_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tANI_U8         bssIdx;
+   //TBTT value derived from the last beacon
+   tANI_U64 tbtt;
+   tANI_U8 dtimCount;
+   //DTIM period given to HAL during association may not be valid,
+   //if association is based on ProbeRsp instead of beacon.
+   tANI_U8 dtimPeriod;
+
+   // when TX ring is empty, host will always start consuming desc at these 
+   // "START" locations in the rings. this info is supplied by host along with
+   // enter BPS request. please note this address is in aCPU DDR and we CANNOT
+   // access these address but we don't need, we simply need to load this into
+   // DXE after wakeup and DXD HW can access aCPU DDR
+   tANI_U32 txLoDescStartAddr;
+   tANI_U32 txHiDescStartAddr;
+
+} tHalEnterBmpsReqParams, *tpHalEnterBmpsReqParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalEnterBmpsReqParams enterBmpsReq;
+}  tHalEnterBmpsReqMsg, *tpHalEnterBmpsReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_EXIT_BMPS_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tANI_U8     sendDataNull;
+} tHalExitBmpsReqParams, *tpHalExitBmpsReqParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalExitBmpsReqParams exitBmpsReqParams;
+}  tHalExitBmpsReqMsg, *tpHalExitBmpsReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_ADD_BCN_FILTER_REQ
+ *--------------------------------------------------------------------------*/
+/* Beacon Filtering data structures */
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8     offset;
+    tANI_U8     value;
+    tANI_U8     bitMask;
+    tANI_U8     ref;
+} tEidByteInfo, *tpEidByteInfo;
+
+typedef PACKED_PRE struct PACKED_POST 
+{
+    tANI_U16    capabilityInfo;
+    tANI_U16    capabilityMask;
+    tANI_U16    beaconInterval;
+    tANI_U16    ieNum;
+} tBeaconFilterMsg, *tpBeaconFilterMsg;
+
+/* The above structure would be followed by multiple of below mentioned structure */
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8         elementId;
+    tANI_U8         checkIePresence;
+    tEidByteInfo    byte;
+} tBeaconFilterIe, *tpBeaconFilterIe;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tBeaconFilterMsg addBcnFilterParams;
+}  tHalAddBcnFilterReqMsg, *tpHalAddBcnFilterReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_REM_BCN_FILTER_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST 
+{
+    tANI_U8  ucIeCount;
+    tANI_U8  ucRemIeId[1];
+} tRemBeaconFilterMsg, *tpRemBeaconFilterMsg;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tRemBeaconFilterMsg remBcnFilterParams;
+}  tHalRemBcnFilterReqMsg, *tpHalRemBcnFilterReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_HOST_OFFLOAD_REQ
+ *--------------------------------------------------------------------------*/
+#define HAL_IPV4_ARP_REPLY_OFFLOAD           0
+#define HAL_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD  1
+#define HAL_OFFLOAD_DISABLE                  0
+#define HAL_OFFLOAD_ENABLE                   1
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8 offloadType;
+    tANI_U8 enableOrDisable;
+    PACKED_PRE union PACKED_POST
+    {
+        tANI_U8 hostIpv4Addr [4];
+        tANI_U8 hostIpv6Addr [16];
+    } params;
+} tHalHostOffloadReq, *tpHalHostOffloadReq;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalHostOffloadReq hostOffloadParams;
+}  tHalHostOffloadReqMsg, *tpHalHostOffloadReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_SET_RSSI_THRESH_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_S8   ucRssiThreshold1     : 8;
+    tANI_S8   ucRssiThreshold2     : 8;
+    tANI_S8   ucRssiThreshold3     : 8;
+    tANI_U8   bRssiThres1PosNotify : 1;
+    tANI_U8   bRssiThres1NegNotify : 1;
+    tANI_U8   bRssiThres2PosNotify : 1;
+    tANI_U8   bRssiThres2NegNotify : 1;
+    tANI_U8   bRssiThres3PosNotify : 1;
+    tANI_U8   bRssiThres3NegNotify : 1;
+    tANI_U8   bReserved10          : 2;
+} tHalRSSIThresholds, *tpHalRSSIThresholds;
+    
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalRSSIThresholds rssiThreshParams;
+}  tHalRSSIThresholdsReqMsg, *tpHalRSSIThresholdReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_ENTER_UAPSD_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8     bkDeliveryEnabled:1;
+    tANI_U8     beDeliveryEnabled:1;
+    tANI_U8     viDeliveryEnabled:1;
+    tANI_U8     voDeliveryEnabled:1;
+    tANI_U8     bkTriggerEnabled:1;
+    tANI_U8     beTriggerEnabled:1;
+    tANI_U8     viTriggerEnabled:1;
+    tANI_U8     voTriggerEnabled:1;
+} tUapsdReqParams, *tpUapsdReqParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tUapsdReqParams enterUapsdParams;
+}  tHalEnterUapsdReqMsg, *tpHalEnterUapsdReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_EXIT_UAPSD_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+}  tHalExitUapsdReqMsg, *tpHalExitUapsdReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_ADD_WOWL_BCAST_PTRN
+ *--------------------------------------------------------------------------*/
+#define HAL_WOWL_BCAST_PATTERN_MAX_SIZE 128
+#define HAL_WOWL_BCAST_MAX_NUM_PATTERNS 8
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8  ucPatternId;           // Pattern ID
+    // Pattern byte offset from beginning of the 802.11 packet to start of the
+    // wake-up pattern
+    tANI_U8  ucPatternByteOffset;   
+    tANI_U8  ucPatternSize;         // Non-Zero Pattern size
+    tANI_U8  ucPattern[HAL_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern
+    tANI_U8  ucPatternMaskSize;     // Non-zero pattern mask size
+    tANI_U8  ucPatternMask[HAL_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern mask
+} tHalWowlAddBcastPtrn, *tpHalWowlAddBcastPtrn;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalWowlAddBcastPtrn ptrnParams;
+}  tHalWowlAddBcastPtrnReqMsg, *tpHalWowlAddBcastPtrnReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_DEL_WOWL_BCAST_PTRN
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* Pattern ID of the wakeup pattern to be deleted */
+    tANI_U8  ucPatternId;
+} tHalWowlDelBcastPtrn, *tpHalWowlDelBcastPtrn;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalWowlDelBcastPtrn ptrnParams;
+}  tHalWowlDelBcastPtrnReqMsg, *tpHalWowlDelBcastPtrnReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_ENTER_WOWL_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* Enables/disables magic packet filtering */
+    tANI_U8   ucMagicPktEnable; 
+
+    /* Magic pattern */
+    tSirMacAddr magicPtrn;
+
+    /* Enables/disables packet pattern filtering in firmware. 
+       Enabling this flag enables broadcast pattern matching 
+       in Firmware. If unicast pattern matching is also desired,  
+       ucUcastPatternFilteringEnable flag must be set tot true 
+       as well 
+    */
+    tANI_U8   ucPatternFilteringEnable;
+
+    /* Enables/disables unicast packet pattern filtering. 
+       This flag specifies whether we want to do pattern match 
+       on unicast packets as well and not just broadcast packets. 
+       This flag has no effect if the ucPatternFilteringEnable 
+       (main controlling flag) is set to false
+    */
+    tANI_U8   ucUcastPatternFilteringEnable;                     
+
+    /* This configuration is valid only when magicPktEnable=1. 
+     * It requests hardware to wake up when it receives the 
+     * Channel Switch Action Frame.
+     */
+    tANI_U8   ucWowChnlSwitchRcv;
+
+    /* This configuration is valid only when magicPktEnable=1. 
+     * It requests hardware to wake up when it receives the 
+     * Deauthentication Frame. 
+     */
+    tANI_U8   ucWowDeauthRcv;
+
+    /* This configuration is valid only when magicPktEnable=1. 
+     * It requests hardware to wake up when it receives the 
+     * Disassociation Frame. 
+     */
+    tANI_U8   ucWowDisassocRcv;
+
+    /* This configuration is valid only when magicPktEnable=1. 
+     * It requests hardware to wake up when it has missed
+     * consecutive beacons. This is a hardware register
+     * configuration (NOT a firmware configuration). 
+     */
+    tANI_U8   ucWowMaxMissedBeacons;
+
+    /* This configuration is valid only when magicPktEnable=1. 
+     * This is a timeout value in units of microsec. It requests
+     * hardware to unconditionally wake up after it has stayed
+     * in WoWLAN mode for some time. Set 0 to disable this feature.      
+     */
+    tANI_U8   ucWowMaxSleepUsec;
+} tHalWowlEnterParams, *tpHalWowlEnterParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalWowlEnterParams enterWowlParams;
+}  tHalWowlEnterReqMsg, *tpHalWowlEnterReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_EXIT_WOWL_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+}  tHalWowlExitReqMsg, *tpHalWowlExitReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_GET_RSSI_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+}  tHalGetRssiReqMsg, *tpHalGetRssiReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_SET_UAPSD_AC_PARAMS_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST {
+    tANI_U8  staidx;        // STA index
+    tANI_U8  ac;            // Access Category
+    tANI_U8  up;            // User Priority
+    tANI_U32 srvInterval;   // Service Interval
+    tANI_U32 susInterval;   // Suspend Interval
+    tANI_U32 delayInterval; // Delay Interval
+} tUapsdInfo, tpUapsdInfo;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tUapsdInfo    enableUapsdAcParams;
+}  tHalSetUapsdAcParamsReqMsg, *tpHalSetUapsdAcParamsReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_ENTER_IMPS_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalEnterImpsRspParams, *tpHalEnterImpsRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalEnterImpsRspParams enterImpsRspParams;
+}  tHalEnterImpsRspMsg, *tpHalEnterImpsRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_EXIT_IMPS_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalExitImpsRspParams, *tpHalExitImpsRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalExitImpsRspParams exitImpsRspParams;
+}  tHalExitImpsRspMsg, *tpHalExitImpsRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_ENTER_BMPS_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalEnterBmpsRspParams, *tpHalEnterBmpsRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalEnterBmpsRspParams enterBmpsRspParams;
+}  tHalEnterBmpsRspMsg, *tpHalEnterBmpsRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_EXIT_BMPS_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalExitBmpsRspParams, *tpHalExitBmpsRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalExitBmpsRspParams exitBmpsRspParams;
+}  tHalExitBmpsRspMsg, *tpHalExitBmpsRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_ENTER_UAPSD_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32    status;
+}tUapsdRspParams, *tpUapsdRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tUapsdRspParams enterUapsdRspParams;
+}  tHalEnterUapsdRspMsg, *tpHalEnterUapsdRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_EXIT_UAPSD_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalExitUapsdRspParams, *tpHalExitUapsdRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalExitUapsdRspParams exitUapsdRspParams;
+}  tHalExitUapsdRspMsg, *tpHalExitUapsdRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_RSSI_NOTIFICATION_IND
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U32             bRssiThres1PosCross : 1;
+    tANI_U32             bRssiThres1NegCross : 1;
+    tANI_U32             bRssiThres2PosCross : 1;
+    tANI_U32             bRssiThres2NegCross : 1;
+    tANI_U32             bRssiThres3PosCross : 1;
+    tANI_U32             bRssiThres3NegCross : 1;
+    tANI_U32             bReserved           : 26;
+} tHalRSSINotification, *tpHalRSSINotification;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalRSSINotification rssiNotificationParams;
+}  tHalRSSINotificationIndMsg, *tpHalRSSINotificationIndMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_GET_RSSI_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+    tANI_S8    rssi;
+} tHalGetRssiParams, *tpHalGetRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalGetRssiParams rssiRspParams;
+}  tHalGetRssiRspMsg, *tpHalGetRssiRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_ENTER_WOWL_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalEnterWowlRspParams, *tpHalEnterWowlRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalEnterWowlRspParams enterWowlRspParams;
+}  tHalWowlEnterRspMsg, *tpHalWowlEnterRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_EXIT_WOWL_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalExitWowlRspParams, *tpHalExitWowlRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalExitWowlRspParams exitWowlRspParams;
+}  tHalWowlExitRspMsg, *tpHalWowlExitRspMsg;
+
 
 #if defined(__ANI_COMPILER_PRAGMA_PACK_STACK)
 #pragma pack(pop)

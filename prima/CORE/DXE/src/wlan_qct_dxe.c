@@ -5,7 +5,8 @@
   @brief 
                
    This file contains the external API exposed by the wlan data transfer abstraction layer module.
-   Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved.
+   Copyright (c) 2010-2011 QUALCOMM Incorporated.
+   All Rights Reserved.
    Qualcomm Confidential and Proprietary
 ========================================================================*/
 
@@ -44,7 +45,7 @@ when           who        what, where, why
 #endif /* FEATURE_R33D */
 
 /*----------------------------------------------------------------------------
- * Loca Definitions
+ * Local Definitions
  * -------------------------------------------------------------------------*/
 //#define WLANDXE_DEBUG_MEMORY_DUMP
 
@@ -1055,7 +1056,7 @@ static wpt_status dxeChannelCleanInt
                "dxeChannelCleanInt Read CH STAT register fail");
       return eWLAN_PAL_STATUS_E_FAULT;         
    }
-   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Channel INT Clean, Status 0x%x",
             channelType[channelEntry->channelType], *chStat);
 
@@ -1164,7 +1165,7 @@ static wpt_status dxeRXFrameSingleBufferAlloc
    if((NULL == dxeCtxt) || (NULL == channelEntry) || (NULL == currentCtrlBlock))
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "dxeChannelInitProgram Chaneel Entry is not valid");
+               "dxeChannelInitProgram Channel Entry is not valid");
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
@@ -1172,6 +1173,13 @@ static wpt_status dxeRXFrameSingleBufferAlloc
    /* Allocate platform Packet buffer and OS Frame Buffer at here */
    currentPalPacketBuffer = wpalPacketAlloc(eWLAN_PAL_PKT_TYPE_RX_RAW,
                                             WLANDXE_DEFAULT_RX_OS_BUFFER_SIZE);
+   if(NULL == currentPalPacketBuffer)
+   {
+      HDXE_ASSERT(NULL != currentPalPacketBuffer);
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "dxeRXFrameBufferAlloc palPacket Alloc fail");
+      return eWLAN_PAL_STATUS_E_FAILURE;
+   }
    currentCtrlBlock->xfrFrame       = currentPalPacketBuffer;
    currentPalPacketBuffer->pktType  = eWLAN_PAL_PKT_TYPE_RX_RAW;
    currentPalPacketBuffer->pBD      = NULL;
@@ -1181,6 +1189,8 @@ static wpt_status dxeRXFrameSingleBufferAlloc
    status = wpalAllocateShadowRxFrame(currentPalPacketBuffer,
                                            &physicalAddressPCIe,
                                            &virtualAddressPCIe);
+   HDXE_ASSERT(0 != physicalAddressPCIe);
+   HDXE_ASSERT(0 != virtualAddressPCIe);
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_WARN,
             "RX Shadow Memory Va 0x%x, Pa 0x%x",
             virtualAddressPCIe, physicalAddressPCIe);
@@ -1194,7 +1204,15 @@ static wpt_status dxeRXFrameSingleBufferAlloc
    currentPalPacketBuffer->pBDPhys  = (void *)physicalAddressPCIe;
    memset((wpt_uint8 *)currentCtrlBlock->shadowBufferVa, 0, WLANDXE_DEFAULT_RX_OS_BUFFER_SIZE);
 #else
-   /* Init iteratir to get physical os buffer address */
+   status = wpalLockPacketForTransfer(currentPalPacketBuffer);
+   if(eWLAN_PAL_STATUS_SUCCESS != status)
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "dxeRXFrameBufferAlloc unable to lock packet");
+      return status;
+   }
+
+   /* Init iterator to get physical os buffer address */
    status = wpalIteratorInit(&iterator, currentPalPacketBuffer);
    if(eWLAN_PAL_STATUS_SUCCESS != status)
    {
@@ -1230,9 +1248,9 @@ static wpt_status dxeRXFrameSingleBufferAlloc
       dxeRXFrameReady
 
   @  Description 
-      Pop frame from descriptor and route frame to uper tansport layer
+      Pop frame from descriptor and route frame to upper transport layer
       Assign new platform packet buffer into used descriptor
-      Actual fram pop and resource realloc
+      Actual frame pop and resource realloc
 
   @  Parameters
       WLANDXE_CtrlBlkType     *dxeCtrlBlk,
@@ -1299,6 +1317,14 @@ static wpt_status dxeRXFrameReady
          return status;
       }
 
+#else /* FEATURE_R33D */
+   status = wpalUnlockPacket(currentCtrlBlk->xfrFrame);
+   if (eWLAN_PAL_STATUS_SUCCESS != status)
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "dxeRXFrameReady unable to unlock packet");
+      return status;
+   }
 #endif /* FEATURE_R33D */
       if(NULL == dxeCtxt->rxReadyCB)
       {
@@ -1337,7 +1363,7 @@ static wpt_status dxeRXFrameReady
     * current control block's valid bit was 0
     * next trial first control block must be current control block */
    channelEntry->headCtrlBlk = currentCtrlBlk;
-   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_HIGH,
             "Head Desc CW 0x%x, Num all RX frames %d",
                    channelEntry->headCtrlBlk->linkedDesc->descCtrl.ctrl,
             channelEntry->numTotalFrame);
@@ -1549,8 +1575,6 @@ void dxeRXEventHandler
    wpalWriteRegister(dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI].channelRegister.chDXECtrlRegAddr,
                           dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI].extraConfig.chan_mask);
 
-   /* Free MSG buffer */
-   wpalMemoryFree(rxReadyMsg);
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);
    return;
@@ -1581,7 +1605,6 @@ static void dxeRXISR
 {
    WLANDXE_CtrlBlkType      *dxeCtxt    = (WLANDXE_CtrlBlkType *)hostCtxt;
    wpt_status                status     = eWLAN_PAL_STATUS_SUCCESS;
-   wpt_msg                  *rxReadyMsg = NULL;
    wpt_uint32                regValue;
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
@@ -1633,17 +1656,9 @@ static void dxeRXISR
                      dxeCtxt->dxeChannel[WDTS_CHANNEL_RX_LOW_PRI].extraConfig.chan_mask_read_disable);
 
    /* Serialize RX Ready interrupt upon RX thread */
-   rxReadyMsg          = (wpt_msg *)wpalMemoryAllocate(sizeof(wpt_msg));
-
-   /* Event type, where it must be defined???? */
-   /* THIS MUST BE FIGURED OUT ASAP
-   rxReadyMsg->type     = RX_READY; */
-   rxReadyMsg->callback = dxeRXEventHandler;
-   rxReadyMsg->pContext = hostCtxt;
-
-   /* What must be PAL context??? */
+   HDXE_ASSERT(NULL != dxeCtxt->rxIsrMsg);
    status = wpalPostRxMsg(WDI_GET_PAL_CTX(),
-                          rxReadyMsg);
+                          dxeCtxt->rxIsrMsg);
    if(eWLAN_PAL_STATUS_SUCCESS != status)
    {
       HDXE_ASSERT(eWLAN_PAL_STATUS_SUCCESS == status);
@@ -1707,6 +1722,14 @@ static wpt_status dxeTXPushFrame
                                     &frameVector,
                                     &Va);
 #else
+   status = wpalLockPacketForTransfer(palPacket);
+   if(eWLAN_PAL_STATUS_SUCCESS != status)
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "dxeTXPushFrame unable to lock packet");
+      return status;
+   }
+
    status = wpalIteratorInit(&iterator, palPacket);
 #endif /* FEATURE_R33D */
    if(eWLAN_PAL_STATUS_SUCCESS != status)
@@ -1804,7 +1827,7 @@ static wpt_status dxeTXPushFrame
       currentCtrlBlk = currentCtrlBlk->nextCtrlBlk;
    }
    channelEntry->numTotalFrame++;
-   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "NUM TX FRAG %d, Total Frame %d",
             channelEntry->numFragmentCurrentChain, channelEntry->numTotalFrame);
 
@@ -2070,6 +2093,14 @@ static wpt_status dxeTXCompFrame
       {
 #ifdef FEATURE_R33D
          wpalFreeTxFrame(currentCtrlBlk->shadowBufferVa);
+#else
+         status = wpalUnlockPacket(currentCtrlBlk->xfrFrame);
+         if (eWLAN_PAL_STATUS_SUCCESS != status)
+         {
+            HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                     "dxeRXFrameReady unable to unlock packet");
+            return status;
+         }
 #endif /* FEATURE_R33D */
          hostCtxt->txCompCB(hostCtxt->clientCtxt,
                             currentCtrlBlk->xfrFrame,
@@ -2299,8 +2330,6 @@ void dxeTXEventHandler
    }
 #endif /* WLANDXE_TEST_CHANNEL_ENABLE */
 
-   /* Free MSG buffer */
-   wpalMemoryFree(msgPtr);
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);
    return;
@@ -2328,8 +2357,8 @@ static void dxeTXISR
    void                    *hostCtxt
 )
 {
+   WLANDXE_CtrlBlkType      *dxeCtxt    = (WLANDXE_CtrlBlkType *)hostCtxt;
    wpt_status                status  = eWLAN_PAL_STATUS_SUCCESS;
-   wpt_msg                  *txCompMsg;
    wpt_uint32                regValue;
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
@@ -2362,15 +2391,9 @@ static void dxeTXISR
    }
 
    /* Serialize TX complete interrupt upon TX thread */
-   txCompMsg          = (wpt_msg *)wpalMemoryAllocate(sizeof(wpt_msg));
-
-   /* Event type, where it must be defined???? */
-   /* THIS MUST BE CLEARED ASAP
-   txCompMsg->type     = TX_COMPLETE; */
-   txCompMsg->callback = dxeTXEventHandler;
-   txCompMsg->pContext = hostCtxt;
+   HDXE_ASSERT(NULL != dxeCtxt->txIsrMsg);
    status = wpalPostTxMsg(WDI_GET_PAL_CTX(),
-                          txCompMsg);
+                          dxeCtxt->txIsrMsg);
    if(eWLAN_PAL_STATUS_SUCCESS != status)
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_HIGH,
@@ -2419,12 +2442,14 @@ void *WLANDXE_Open
                "WLANDXE_Open Control Block Alloc Fail");
       return NULL;  
    }
+   wpalMemoryZero(tempDxeCtrlBlk, sizeof(WLANDXE_CtrlBlkType));
 
    status = dxeCommonDefaultConfig(tempDxeCtrlBlk);
    if(eWLAN_PAL_STATUS_SUCCESS != status)
    {
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                "WLANDXE_Open Common Configuration Fail");
+      wpalMemoryFree(tempDxeCtrlBlk);
       return NULL;         
    }
 
@@ -2467,6 +2492,7 @@ void *WLANDXE_Open
       {
          HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                   "WLANDXE_Open Channel Basic Configuration Fail for channel %d", idx);
+         wpalMemoryFree(tempDxeCtrlBlk);
          return NULL;         
       }
 
@@ -2476,6 +2502,7 @@ void *WLANDXE_Open
       {
          HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
                   "WLANDXE_Open Alloc DXE Control Block Fail for channel %d", idx);
+         wpalMemoryFree(tempDxeCtrlBlk);
          return NULL;         
       }
       status = wpalMutexInit(&currentChannel->dxeChannelLock); 
@@ -2489,6 +2516,34 @@ void *WLANDXE_Open
       HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_WARN,
                "WLANDXE_Open Channel %s Open Success", channelType[idx]);
    }
+
+   /* Allocate and Init RX READY ISR Serialize Buffer */
+   tempDxeCtrlBlk->rxIsrMsg = (wpt_msg *)wpalMemoryAllocate(sizeof(wpt_msg));
+   if(NULL == tempDxeCtrlBlk->rxIsrMsg)
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WLANDXE_Open Alloc RX ISR Fail");
+      wpalMemoryFree(tempDxeCtrlBlk);
+      HDXE_ASSERT(NULL != tempDxeCtrlBlk->rxIsrMsg);
+      return NULL;
+   }
+   wpalMemoryZero(tempDxeCtrlBlk->rxIsrMsg, sizeof(wpt_msg));
+   tempDxeCtrlBlk->rxIsrMsg->callback = dxeRXEventHandler;
+   tempDxeCtrlBlk->rxIsrMsg->pContext = (void *)tempDxeCtrlBlk;
+
+   /* Allocate and Init TX COMP ISR Serialize Buffer */
+   tempDxeCtrlBlk->txIsrMsg = (wpt_msg *)wpalMemoryAllocate(sizeof(wpt_msg));
+   if(NULL == tempDxeCtrlBlk->rxIsrMsg)
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WLANDXE_Open Alloc TX ISR Fail");
+      wpalMemoryFree(tempDxeCtrlBlk);
+      HDXE_ASSERT(NULL != tempDxeCtrlBlk->txIsrMsg);
+      return NULL;
+   }
+   wpalMemoryZero(tempDxeCtrlBlk->txIsrMsg, sizeof(wpt_msg));
+   tempDxeCtrlBlk->txIsrMsg->callback = dxeTXEventHandler;
+   tempDxeCtrlBlk->txIsrMsg->pContext = (void *)tempDxeCtrlBlk;
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_WARN,
             "WLANDXE_Open Success");

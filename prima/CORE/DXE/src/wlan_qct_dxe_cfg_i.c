@@ -5,7 +5,8 @@
   @brief 
                
    This file contains the external API exposed by the wlan data transfer abstraction layer module.
-   Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved.
+   Copyright (c) 2011 QUALCOMM Incorporated.
+   All Rights Reserved.
    Qualcomm Confidential and Proprietary
 ========================================================================*/
 
@@ -154,14 +155,14 @@ WLANDXE_ChannelConfigType chanRXLowPriConfig =
    WLANDXE_CHANNEL_HANDLE_CIRCULA,
 
    /* Number of Descriptor, NOT CLEAR YET !!! */
-   60,
+   40,
 
    /* MAX num RX Buffer, NOT CLEAR YET !!! */
    1,
 
    /* Reference WQ, NOT CLEAR YET !!! */
    /* Temporary BMU Work Q 4 */
-   4,
+   11,
 
    /* USB Only, End point info */
    0,
@@ -200,7 +201,7 @@ WLANDXE_ChannelConfigType chanRXHighPriConfig =
    1,
 
    /* Reference WQ, RX11 */
-   11,
+   4,
 
    /* USB Only, End point info */
    0,

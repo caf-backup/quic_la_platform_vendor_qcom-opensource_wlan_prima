@@ -100,7 +100,6 @@ wpt_status WDTS_RxPacket (void *pContext, wpt_packet *pFrame, WDTS_ChannelType c
     Extract BD header and check if valid
     ------------------------------------------------------------------------*/
   pBDHeader = (wpt_uint8*)wpalPacketGetRawBuf(pFrame);
-  wpalPacketRawTrimHead(pFrame, WDI_RX_BD_HEADER_SIZE);
   WDI_SwapRxBd(pBDHeader);
 
   ucMPDUHOffset = (wpt_uint8)WDI_RX_BD_GET_MPDU_H_OFFSET(pBDHeader);
@@ -138,10 +137,10 @@ wpt_status WDTS_RxPacket (void *pContext, wpt_packet *pFrame, WDTS_ChannelType c
     return eWLAN_PAL_STATUS_SUCCESS;
   }
 
+  wpalPacketSetRxLength(pFrame, usMPDULen+ucMPDUHOffset);
+  wpalPacketRawTrimHead(pFrame, ucMPDUHOffset);
 
-  if ( ucMPDUHOffset > WDI_RX_BD_HEADER_SIZE ) 
-    wpalPacketRawTrimHead( pFrame, ucMPDUHOffset - WDI_RX_BD_HEADER_SIZE);
-
+ 
 
   pRxMetadata = WDI_DS_ExtractRxMetaData(pFrame);
 

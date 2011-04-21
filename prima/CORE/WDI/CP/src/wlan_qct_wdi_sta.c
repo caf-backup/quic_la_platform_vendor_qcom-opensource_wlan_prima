@@ -309,6 +309,39 @@ WDI_STATableDelSta
     return WDI_STATUS_SUCCESS;
 }/*WDI_STATableDelSta*/
 
+/**
+ @brief WDI_STATableBSSDelSta - Function to Delete Stations in this BSS
+
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         bssIdx:        BSS index 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_STATableBSSDelSta
+(
+    WDI_ControlBlockType*  pWDICtx,
+    wpt_uint8              ucBssIdx
+)
+{
+    WDI_StaStruct*   pSTATable = (WDI_StaStruct*) pWDICtx->staTable;
+    wpt_uint16       usStaIdx;
+    /*- - - -  - - - - - - - - - - - -  - - - - - - - - - - - -  - - - - - */
+
+    for (usStaIdx = 0; (usStaIdx < pWDICtx->ucMaxStations); usStaIdx++)
+    {
+        if( (pSTATable[usStaIdx].ucStaType == WDI_STA_ENTRY_PEER) && 
+                                 (pSTATable[usStaIdx].bssIdx == ucBssIdx))
+        {
+            WDI_STATableDelSta(pWDICtx, usStaIdx);
+        }
+    }
+
+    return WDI_STATUS_SUCCESS;
+}/*WDI_STATableBSSDelSta*/
+
 
 /**
  @brief WDI_STATableGetStaBSSIDAddr - Gets the BSSID associated 

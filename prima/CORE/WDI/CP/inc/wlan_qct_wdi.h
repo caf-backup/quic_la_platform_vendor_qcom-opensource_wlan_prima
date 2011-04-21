@@ -12,7 +12,8 @@ DESCRIPTION
   module.
   
       
-  Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved.
+  Copyright (c) 2010-2011 QUALCOMM Incorporated.
+  All Rights Reserved.
   Qualcomm Confidential and Proprietary
 ===========================================================================*/
 
@@ -75,6 +76,9 @@ when        who    what, where, why
 
 /*Max number of Access Categories for QoS - per spec */
 #define WDI_MAX_NO_AC                     4
+
+/*Max. size for reserving the Beacon Template */
+#define WDI_BEACON_TEMPLATE_SIZE  0x180
 
 /*============================================================================
  *     GENERIC STRUCTURES 
@@ -224,8 +228,11 @@ typedef enum
   /*MIC Failure detected by HW*/
   WDI_MIC_FAILURE_IND,
 
-  /*Fatal Erro Ind*/
+  /*Fatal Error Ind*/
   WDI_FATAL_ERROR_IND, 
+
+  /*Delete Station Ind*/
+  WDI_DEL_STA_IND, 
 
   WDI_MAX_IND
 }WDI_LowLevelIndEnumType;
@@ -268,6 +275,27 @@ typedef struct
   wpt_uint16  usBufLen; 
 }WDI_UnkAddr2FrmRxIndType;
 
+/*---------------------------------------------------------------------------
+  WDI_DeleteSTAIndType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+   /*ASSOC ID, as assigned by UMAC*/
+	 wpt_uint16    usAssocId;
+
+   /*STA Index returned during DAL_PostAssocReq or DAL_ConfigStaReq*/
+   wpt_uint16    usSTAIdx;
+
+   /*BSSID of STA*/
+   wpt_macAddr   macBSSID; 
+
+    /*MAC ADDR of STA*/
+    wpt_macAddr  macADDR2;          
+                                
+    /* To unify the keepalive / unknown A2 / tim-based disa*/
+    wpt_uint16   wptReasonCode;   
+
+}WDI_DeleteSTAIndType;
 
 /*---------------------------------------------------------------------------
   WDI_MicFailureIndType
@@ -320,6 +348,9 @@ typedef struct
 
     /*Error code for WDI_FATAL_ERROR_IND*/
     wpt_uint16                  usErrorCode;
+
+    /*Delete STA Indication*/
+    WDI_DeleteSTAIndType        wdiDeleteSTAIndType; 
   }  wdiIndicationData;
 }WDI_LowLevelIndType;
 
@@ -1219,8 +1250,8 @@ typedef struct
 ---------------------------------------------------------------------------*/
 typedef struct
 {
-  /*BSSID of the BSS*/
-  wpt_macAddr       macBSSID; 
+   /*BSS Index of the BSS*/
+   wpt_uint8      ucBssIdx;
 
   /*Request status callback offered by UMAC - it is called if the current
     req has returned PENDING as status; it delivers the status of sending
@@ -1365,7 +1396,7 @@ typedef enum
     WDI_TX_ONLY,
     WDI_RX_ONLY,
     WDI_TX_RX,
-#ifdef FEATURE_SAP
+#ifdef WLAN_SOFTAP_FEATURE
     WDI_TX_DEFAULT,
 #endif
     WDI_DONOT_USE_KEY_DIRECTION
@@ -1568,6 +1599,10 @@ typedef struct
 }WDI_RemoveSTAKeyReqParamsType;
 
 /*---------------------------------------------------------------------------
+                            QOS Parameters
+---------------------------------------------------------------------------*/
+
+/*---------------------------------------------------------------------------
   WDI_TSInfoTfc
 ---------------------------------------------------------------------------*/
 typedef struct 
@@ -1751,7 +1786,7 @@ typedef struct
 }WDI_UpdateEDCAParamsType;
 
 /*---------------------------------------------------------------------------
-  WDI_AddBAReqinfoType
+  WDI_AddBASessionReqinfoType
 ---------------------------------------------------------------------------*/
 typedef struct
 {
@@ -1780,6 +1815,76 @@ typedef struct
   /*Originator/Recipient*/
   wpt_uint8        ucBaDirection;
   
+}WDI_AddBASessionReqinfoType;
+
+
+/*---------------------------------------------------------------------------
+  WDI_AddBASessionReqParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*BA Session Info Type*/
+  WDI_AddBASessionReqinfoType  wdiBASessionInfoType; 
+
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb       wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*                 pUserData;
+}WDI_AddBASessionReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_AddBASessionRspParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Status of the response*/
+  WDI_Status   wdiStatus; 
+  
+  /* Dialog token */
+  wpt_uint8    ucBaDialogToken;
+  
+  /* TID for which the BA session has been setup */
+  wpt_uint8    ucBaTID;
+  
+  /* BA Buffer Size allocated for the current BA session */
+  wpt_uint8    ucBaBufferSize;
+
+  /* BA session ID */
+  wpt_uint16   usBaSessionID;
+  
+  /* Reordering Window buffer */
+  wpt_uint8    ucWinSize;
+  
+  /*Station Index to id the sta */
+  wpt_uint8    usSTAIdx;
+  
+  /* Starting Sequence Number */
+  wpt_uint16   usBaSSN;
+
+}WDI_AddBASessionRspParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_AddBAReqinfoType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Indicates the station for which BA is added..*/
+  wpt_uint16       usSTAIdx;
+
+  /* Session Id */
+  wpt_uint8        ucBaSessionID;
+  
+  /* Reorder Window Size */
+  wpt_uint8        ucWinSize;
+  
+#ifdef FEATURE_ON_CHIP_REORDERING
+  wpt_boolean      bIsReorderingDoneOnChip;
+#endif
+
 }WDI_AddBAReqinfoType;
 
 
@@ -1800,6 +1905,113 @@ typedef struct
     function pointer will be called */
   void*                 pUserData;
 }WDI_AddBAReqParamsType;
+
+
+/*---------------------------------------------------------------------------
+  WDI_AddBARspinfoType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Status of the response*/
+  WDI_Status   wdiStatus; 
+
+  /* Dialog token */
+  wpt_uint8    ucBaDialogToken;
+
+}WDI_AddBARspinfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_TriggerBAReqCandidateType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /* STA index */
+  wpt_uint16  usSTAIdx;
+
+  /* TID bit map for the STA's*/
+  wpt_uint8   ucTidBitmap;
+
+}WDI_TriggerBAReqCandidateType;
+
+
+/*---------------------------------------------------------------------------
+  WDI_TriggerBAReqinfoType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Indicates the station for which BA is added..*/
+  wpt_uint16       usSTAIdx;
+
+  /* Session Id */
+  wpt_uint8        ucBASessionID;
+
+  /* Trigger BA Request candidate count */
+  wpt_uint16       usBACandidateCnt;
+
+  /* WDI_TriggerBAReqCandidateType  followed by this*/
+
+}WDI_TriggerBAReqinfoType;
+
+
+/*---------------------------------------------------------------------------
+  WDI_TriggerBAReqParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*BA Trigger Info Type*/
+  WDI_TriggerBAReqinfoType  wdiTriggerBAInfoType; 
+
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb       wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*                 pUserData;
+}WDI_TriggerBAReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_AddBAInfoType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  wpt_uint16 fBaEnable : 1;
+  wpt_uint16 startingSeqNum: 12;
+  wpt_uint16 reserved : 3;
+}WDI_AddBAInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_TriggerBARspCandidateType
+---------------------------------------------------------------------------*/
+#define STA_MAX_TC 8
+
+typedef struct
+{
+  /* STA index */
+  wpt_macAddr       macSTA;
+
+  /* BA Info */
+  WDI_AddBAInfoType wdiBAInfo[STA_MAX_TC];
+}WDI_TriggerBARspCandidateType;
+
+/*---------------------------------------------------------------------------
+  WDI_TriggerBARspParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Status of the response*/
+  WDI_Status   wdiStatus; 
+
+  /*BSSID of the BSS*/
+  wpt_macAddr  macBSSID;
+
+  /* Trigger BA response candidate count */
+  wpt_uint16   usBaCandidateCnt;
+
+  /* WDI_TriggerBARspCandidateType  followed by this*/
+
+}WDI_TriggerBARspParamsType;
 
 /*---------------------------------------------------------------------------
   WDI_DelBAReqinfoType
@@ -1867,6 +2079,92 @@ typedef struct
   void*                      pUserData;
 }WDI_ConfigSTAReqParamsType;
 
+
+/*---------------------------------------------------------------------------
+  WDI_UpdateBeaconParamsInfoType
+---------------------------------------------------------------------------*/
+
+typedef struct
+{
+   /*BSS Index of the BSS*/
+   wpt_uint8      ucBssIdx;
+
+    /*shortPreamble mode. HAL should update all the STA rates when it
+    receives this message*/
+    wpt_uint8 ucfShortPreamble;
+    /* short Slot time.*/
+    wpt_uint8 ucfShortSlotTime;
+    /* Beacon Interval */
+    wpt_uint16 usBeaconInterval;
+    /*Protection related */
+    wpt_uint8 ucllaCoexist;
+    wpt_uint8 ucllbCoexist;
+    wpt_uint8 ucllgCoexist;
+    wpt_uint8 ucHt20MhzCoexist;
+    wpt_uint8 ucllnNonGFCoexist;
+    wpt_uint8 ucfLsigTXOPProtectionFullSupport;
+    wpt_uint8 ucfRIFSMode;
+
+    wpt_uint16 usChangeBitmap;
+}WDI_UpdateBeaconParamsInfoType;
+
+
+
+/*---------------------------------------------------------------------------
+  WDI_UpdateBeaconParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Update Beacon Params  Info*/
+  WDI_UpdateBeaconParamsInfoType  wdiUpdateBeaconParamsInfo;
+
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+}WDI_UpdateBeaconParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_SendBeaconParamsInfoType
+---------------------------------------------------------------------------*/
+
+typedef struct {
+
+   /*BSSID of the BSS*/
+   wpt_macAddr  macBSSID;
+
+   /* Beacon data */
+   wpt_uint8    beacon[WDI_BEACON_TEMPLATE_SIZE];     
+
+   /* length of the template */
+   wpt_uint32   beaconLength;
+
+   /* IM IE offset from the beginning of the template.*/
+   wpt_uint32   timIeOffset; 
+} WDI_SendBeaconParamsInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_SendBeaconParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Send Beacon Params  Info*/
+  WDI_SendBeaconParamsInfoType  wdiSendBeaconParamsInfo;
+
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+}WDI_SendBeaconParamsType;
+
 /*---------------------------------------------------------------------------
   WDI_LinkStateType
 ---------------------------------------------------------------------------*/
@@ -1889,7 +2187,8 @@ typedef enum
     WDI_LINK_SCAN_STATE              = 10,
     WDI_LINK_FINISH_SCAN_STATE       = 11,
     WDI_LINK_INIT_CAL_STATE          = 12,
-    WDI_LINK_FINISH_CAL_STATE        = 13
+    WDI_LINK_FINISH_CAL_STATE        = 13,
+    WDI_LINK_MAX                     = 0x7FFFFFFF
 } WDI_LinkStateType;
 
 /*---------------------------------------------------------------------------
@@ -2020,6 +2319,47 @@ typedef struct
   void*             pUserData;
 }WDI_UpdateCfgReqParamsType;
 
+/*---------------------------------------------------------------------------
+  WDI_UpdateProbeRspTemplateInfoType
+---------------------------------------------------------------------------*/
+//Default Beacon template size
+#define WDI_PROBE_RSP_TEMPLATE_SIZE 0x180
+
+#define WDI_PROBE_REQ_BITMAP_IE_LEN 8
+
+typedef struct
+{
+  /*BSSID for which the Probe Template is to be used*/
+  wpt_macAddr     macBSSID;
+
+  /*Probe response template*/
+  wpt_uint8      *pProbeRespTemplate[WDI_PROBE_RSP_TEMPLATE_SIZE];
+
+  /*Template Len*/
+  wpt_uint32      uProbeRespTemplateLen;
+
+  /*Bitmap for the IEs that are to be handled at SLM level*/
+  wpt_uint32      uaProxyProbeReqValidIEBmap[WDI_PROBE_REQ_BITMAP_IE_LEN];
+
+}WDI_UpdateProbeRspTemplateInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_UpdateProbeRspParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Link Info*/
+  WDI_UpdateProbeRspTemplateInfoType  wdiProbeRspTemplateInfo;
+
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+}WDI_UpdateProbeRspTemplateParamsType;
 
 /*----------------------------------------------------------------------------
  *   WDI callback types
@@ -2449,8 +2789,9 @@ typedef void  (*WDI_UpdateEDCAParamsRspCb)(WDI_Status   wdiStatus,
   RETURN VALUE 
     The result code associated with performing the operation
 ---------------------------------------------------------------------------*/
-typedef void  (*WDI_AddBARspCb)(WDI_Status   wdiStatus,
-                                void*        pUserData);
+typedef void  (*WDI_AddBASessionRspCb)(
+                            WDI_AddBASessionRspParamsType* wdiAddBASessionRsp,
+                            void*                         pUserData);
 
  
 /*---------------------------------------------------------------------------
@@ -2585,6 +2926,116 @@ typedef void  (*WDI_GetStatsRspCb)(WDI_GetStatsRspParamsType*  pwdiGetStatsRsp,
 ---------------------------------------------------------------------------*/
 typedef void  (*WDI_UpdateCfgRspCb)(WDI_Status   wdiStatus,
                                     void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_AddBARspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a ADD BA response
+   from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_AddBARspCb)(WDI_AddBARspinfoType*   wdiAddBARsp,
+                                    void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_TriggerBARspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a ADD BA response
+   from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_TriggerBARspCb)(WDI_TriggerBARspParamsType*   wdiTriggerBARsp,
+                                    void*        pUserData);
+
+
+/*---------------------------------------------------------------------------
+   WDI_UpdateBeaconParamsRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Update Beacon Params response from
+   the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_UpdateBeaconParamsRspCb)(WDI_Status   wdiStatus,
+                                void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_SendBeaconParamsRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Send Beacon Params response from
+   the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_SendBeaconParamsRspCb)(WDI_Status   wdiStatus,
+                                void*        pUserData);
+
+
+/*---------------------------------------------------------------------------
+   WDI_UpdateProbeRspTemplateRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Probe RSP Template
+   Update  response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+    
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_UpdateProbeRspTemplateRspCb)(WDI_Status   wdiStatus,
+                                               void*        pUserData);
 
 
 /*========================================================================
@@ -3159,6 +3610,74 @@ WDI_RemoveSTAKeyReq
   void*                          pUserData
 );
 
+/**
+ @brief WDI_SetSTABcastKeyReq will be called when the upper MAC 
+        wants to install a STA Bcast encryption key on the HW.
+        Upon the call of this API the WLAN DAL will pack and
+        send a HAL Start request message to the lower RIVA
+        sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param pwdiSetSTABcastKeyParams: the BSS Key set parameters as 
+                      specified by the Device Interface
+  
+        wdiSetSTABcastKeyRspCb: callback for passing back the
+        response of the set BSS Key operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_SetSTABcastKeyReq
+(
+  WDI_SetSTAKeyReqParamsType* pwdiSetSTABcastKeyParams,
+  WDI_SetSTAKeyRspCb          wdiSetSTABcastKeyRspCb,
+  void*                       pUserData
+);
+
+
+/**
+ @brief WDI_RemoveSTABcastKeyReq will be called when the upper 
+        MAC to uninstall a STA Bcast key from HW. Upon the call
+        of this API the WLAN DAL will pack and send a HAL Remove
+        STA Bcast Key request message to the lower RIVA
+        sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_SetSTABcastKeyReq must have been called.
+
+ @param pwdiRemoveSTABcastKeyParams: the remove BSS key 
+                      parameters as specified by the Device
+                      Interface
+  
+        wdiRemoveSTABcastKeyRspCb: callback for passing back the
+        response of the remove STA Bcast key operation received
+        from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_SetSTABcastKeyReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_RemoveSTABcastKeyReq
+(
+  WDI_RemoveSTAKeyReqParamsType* pwdiRemoveSTABcastKeyParams,
+  WDI_RemoveSTAKeyRspCb          wdiRemoveSTABcastKeyRspCb,
+  void*                          pUserData
+);
+
 /*======================================================================== 
  
                             QoS and BA APIs
@@ -3272,7 +3791,7 @@ WDI_UpdateEDCAParams
 
 
 /**
- @brief WDI_AddBAReq will be called when the upper MAC has setup
+ @brief WDI_AddBASessionReq will be called when the upper MAC has setup
         successfully a BA session and needs to notify the HW for
         the appropriate settings to take place. Upon the call of
         this API the WLAN DAL will pack and send a HAL Add BA
@@ -3297,11 +3816,11 @@ WDI_UpdateEDCAParams
  @return Result of the function call
 */
 WDI_Status 
-WDI_AddBAReq
+WDI_AddBASessionReq
 (
-  WDI_AddBAReqParamsType* pwdiAddBAReqParams,
-  WDI_AddBARspCb          wdiAddBARspCb,
-  void*                   pUserData
+  WDI_AddBASessionReqParamsType* pwdiAddBASessionReqParams,
+  WDI_AddBASessionRspCb          wdiAddBASessionRspCb,
+  void*                          pUserData
 );
 
 
@@ -3336,6 +3855,109 @@ WDI_DelBAReq
   WDI_DelBARspCb          wdiDelBARspCb,
   void*                   pUserData
 );
+
+/**
+ @brief WDI_UpdateBeaconParamsReq will be called when the upper MAC wants to 
+        inform HW that there is a change in the beacon parameters
+         Upon the call of this API the WLAN DAL will
+        pack and send a UpdateBeacon Params message to the lower
+        RIVA sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_UpdateBeaconParamsReq must have been called.
+
+ @param WDI_UpdateBeaconParamsType: the Update Beacon parameters as specified by
+                      the Device Interface
+  
+        WDI_UpdateBeaconParamsRspCb: callback for passing back the response of
+        the Update Beacon Params operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_AddBAReq
+ @return Result of the function call
+*/
+
+WDI_Status 
+WDI_UpdateBeaconParamsReq
+(
+  WDI_UpdateBeaconParamsType *   pwdiUpdateBeaconParams,
+  WDI_UpdateBeaconParamsRspCb    wdiUpdateBeaconParamsRspCb,
+  void*                          pUserData
+);
+
+
+/**
+ @brief WDI_SendBeaconParamsReq will be called when the upper MAC wants to 
+        update the beacon template to be transmitted as BT MAP STA/IBSS/Soft AP
+         Upon the call of this API the WLAN DAL will
+        pack and send the beacon Template  message to the lower
+        RIVA sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_SendBeaconParamsReq must have been called.
+
+ @param WDI_SendBeaconParamsType: the Update Beacon parameters as specified by
+                      the Device Interface
+  
+        WDI_SendBeaconParamsRspCb: callback for passing back the response of
+        the Send Beacon Params operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_AddBAReq
+ @return Result of the function call
+*/
+
+WDI_Status 
+WDI_SendBeaconParamsReq
+(
+  WDI_SendBeaconParamsType*    pwdiSendBeaconParams,
+  WDI_SendBeaconParamsRspCb    wdiSendBeaconParamsRspCb,
+  void*                        pUserData
+);
+
+
+/**
+ @brief WDI_UpdateProbeRspTemplateReq will be called when the 
+        upper MAC wants to update the probe response template to
+        be transmitted as Soft AP
+         Upon the call of this API the WLAN DAL will
+        pack and send the probe rsp template  message to the
+        lower RIVA sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+
+ @param pwdiUpdateProbeRspParams: the Update Beacon parameters as 
+                      specified by the Device Interface
+  
+        wdiSendBeaconParamsRspCb: callback for passing back the
+        response of the Send Beacon Params operation received
+        from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_AddBAReq
+ @return Result of the function call
+*/
+
+WDI_Status 
+WDI_UpdateProbeRspTemplateReq
+(
+  WDI_UpdateProbeRspTemplateParamsType*    pwdiUpdateProbeRspParams,
+  WDI_UpdateProbeRspTemplateRspCb          wdiSendBeaconParamsRspCb,
+  void*                                  pUserData
+);
+
 
 /*======================================================================== 
  
@@ -3509,6 +4131,88 @@ WDI_UpdateCfgReq
   void*                       pUserData
 );
 
+/**
+ @brief WDI_AddBAReq will be called when the upper MAC has setup
+        successfully a BA session and needs to notify the HW for
+        the appropriate settings to take place. Upon the call of
+        this API the WLAN DAL will pack and send a HAL Add BA
+        request message to the lower RIVA sub-system if DAL is
+        in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param wdiAddBAReqParams: the add BA parameters as specified by
+                      the Device Interface
+  
+        wdiAddBARspCb: callback for passing back the response of
+        the add BA operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_AddBAReq
+(
+  WDI_AddBAReqParamsType* pwdiAddBAReqParams,
+  WDI_AddBARspCb          wdiAddBARspCb,
+  void*                   pUserData
+);
+
+/**
+ @brief WDI_TriggerBAReq will be called when the upper MAC has setup
+        successfully a BA session and needs to notify the HW for
+        the appropriate settings to take place. Upon the call of
+        this API the WLAN DAL will pack and send a HAL Add BA
+        request message to the lower RIVA sub-system if DAL is
+        in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param wdiAddBAReqParams: the add BA parameters as specified by
+                      the Device Interface
+  
+        wdiAddBARspCb: callback for passing back the response of
+        the add BA operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_TriggerBAReq
+(
+  WDI_TriggerBAReqParamsType* pwdiTriggerBAReqParams,
+  WDI_TriggerBARspCb          wdiTriggerBARspCb,
+  void*                       pUserData
+);
+
+
+/**
+ @brief WDI_IsHwFrameTxTranslationCapable checks to see if HW 
+        frame xtl is enabled for a particular STA.
+
+ WDI_PostAssocReq must have been called.
+
+ @param uSTAIdx: STA index 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+wpt_boolean WDI_IsHwFrameTxTranslationCapable
+(
+  wpt_uint8 uSTAIdx
+);
 
 /**
  @brief WDI_STATableInit - Initializes the STA tables. 

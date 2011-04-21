@@ -89,28 +89,25 @@ wpt_status wpalDeviceClose
    void                 *deviceC
 );
 
-/* ====================================================================================================================
+/* ==========================================================================
                   CLIENT SERVICE EXPOSE FUNCTIONS GENERIC
- * ==================================================================================================================*/
-/* ====================================================================================================================
-  @  Function Name 
-      wpalRegisterInterrupt
+ * =========================================================================*/
+/**
+  @brief wpalRegisterInterrupt provides a mechansim for client
+         to register support for a given interrupt
 
-  @  Description 
-      Interrupt registration function
-      Client(DXE) register interrupt into platform with callback function pointer and
-      client context pointer
-      DXE expectes 2 HW interrupts, 
-      so DXE will call same registration functions 2 times with different call back function
+  The DXE interface supports two interrupts, TX Complete and RX
+  Available.  This interface provides the mechanism whereby a client
+  can register to support one of these.  It is expected that the core
+  DXE implementation will invoke this API twice, once for each interrupt.
+  
+  @param  intType:          Enumeration of the interrupt type (TX or RX)
+  @param  callbackFunction: ISR function pointer
+  @param  usrCtxt:          User context passed back whenever the
+                            callbackFunction is invoked
 
-  @  Parameters
-      WLANDXE_InterruptType    intType : interrupt type, TX or RX
-      WLANDXE_IsrType          callbackFunction : ISR function pointer
-      void                    *usrCtxt : DXE control block
-
-  @  Return
-      wpt_status
- * ==================================================================================================================*/
+  @return SUCCESS if the registration was successful
+*/
 wpt_status wpalRegisterInterrupt
 (
    wpt_uint32                           intType,
@@ -118,94 +115,87 @@ wpt_status wpalRegisterInterrupt
    void                                *usrCtxt
 );
 
-/* ====================================================================================================================
-  @  Function Name 
-      wpalEnableInterrupt
+/**
+  @brief wpalEnableInterrupt provides a mechansim for a client
+         to request that a given interrupt be enabled
 
-  @  Description 
-      Enable platform side interrupt interface
-      If platform side interrupt is not enabled, even RIVA sends interrupt
-      it will not be recognized
+  The DXE interface supports two interrupts, TX Complete and RX
+  Available.  This interface provides the mechanism whereby a client
+  can request that the platform-specific adaptation layer allows a
+  given interrupt to occur.  The expectation is that if a given
+  interrupt is not enabled, if the interrupt occurs then the APPS CPU
+  will not be interrupted.
+  
+  @param  intType:          Enumeration of the interrupt type (TX or RX)
 
-  @  Parameters
-      WLANDXE_InterruptType    intType : interrupt type, TX or RX
-
-  @  Return
-      wpt_status
- * ==================================================================================================================*/
+  @return SUCCESS if the interrupt was enabled
+*/
 wpt_status wpalEnableInterrupt
 (
    wpt_uint32                          intType
 );
 
-/* ====================================================================================================================
-  @  Function Name 
-      wpalDisableInterrupt
+/**
+  @brief wpalDisableInterrupt provides a mechansim for a client
+         to request that a given interrupt be disabled
 
-  @  Description 
-      Disable platform side interrupt interface
-      If platform side interrupt is not enabled, even RIVA sends interrupt
-      it will not be recognized
+  The DXE interface supports two interrupts, TX Complete and RX
+  Available.  This interface provides the mechanism whereby a client
+  can request that the platform-specific adaptation layer not allow a
+  given interrupt to occur.  The expectation is that if a given
+  interrupt is not enabled, if the interrupt occurs then the APPS CPU
+  will not be interrupted.
+  
+  @param  intType:          Enumeration of the interrupt type (TX or RX)
 
-  @  Parameters
-      WLANDXE_InterruptType    intType : interrupt type, TX or RX
-
-  @  Return
-      wpt_status
- * ==================================================================================================================*/
+  @return SUCCESS if the interrupt was disabled
+*/
 wpt_status wpalDisableInterrupt
 (
    wpt_uint32                           intType
 );
 
-/* ====================================================================================================================
-   @ Function Name
+/**
+  @brief wpalWriteRegister provides a mechansim for a client
+         to write data into a hardware data register
 
-   @ Description
+  @param  address:  Physical memory address of the register
+  @param  data:     Data value to be written
 
-   @ Arguments
-
-   @ Return value
-
-   @ Note
-
- * ==================================================================================================================*/
+  @return SUCCESS if the data was successfully written
+*/
 wpt_status wpalReadRegister
 (
    wpt_uint32                           address,
    wpt_uint32                          *data
 );
 
-/* ====================================================================================================================
-   @ Function Name
+/**
+  @brief wpalReadRegister provides a mechansim for a client
+         to read data from a hardware data register
 
-   @ Description
+  @param  address:  Physical memory address of the register
+  @param  data:     Return location for value that is read
 
-   @ Arguments
-
-   @ Return value
-
-   @ Note
-
- * ==================================================================================================================*/
+  @return SUCCESS if the data was successfully read
+*/
 wpt_status wpalWriteRegister
 (
    wpt_uint32                           address,
    wpt_uint32                           data
 );
 
-/* ====================================================================================================================
-   @ Function Name
+/**
+  @brief wpalReadDeviceMemory provides a mechansim for a client
+         to read data from the hardware address space
 
-   @ Description
+  @param  address:  Start address of physical memory to be read
+  @param  d_buffer: Virtual destination address to which the
+                    data will be written
+  @param  len:      Number of bytes of data to be read
 
-   @ Arguments
-
-   @ Return value
-
-   @ Note
-
- * ==================================================================================================================*/
+  @return SUCCESS if the data was successfully read
+*/
 wpt_status wpalReadDeviceMemory
 (
    wpt_uint32                            address,
@@ -213,18 +203,17 @@ wpt_status wpalReadDeviceMemory
    wpt_uint32                            len
 );
 
-/* ====================================================================================================================
-   @ Function Name
+/**
+  @brief wpalWriteDeviceMemory provides a mechansim for a client
+         to write data into the hardware address space
 
-   @ Description
+  @param  address:  Start address of physical memory to be written
+  @param  s_buffer: Virtual source address from which the data will
+                    be read
+  @param  len:      Number of bytes of data to be written
 
-   @ Arguments
-
-   @ Return value
-
-   @ Note
-
- * ==================================================================================================================*/
+  @return SUCCESS if the data was successfully written
+*/
 wpt_status wpalWriteDeviceMemory
 (
    wpt_uint32                            address,

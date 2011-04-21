@@ -8,7 +8,8 @@
   @brief 
                
    This file contains the external API exposed by the wlan data transfer abstraction layer module.
-   Copyright (c) 2008 QUALCOMM Incorporated. All Rights Reserved.
+   Copyright (c) 2011 QUALCOMM Incorporated.
+   All Rights Reserved.
    Qualcomm Confidential and Proprietary
 ========================================================================*/
 
@@ -556,6 +557,8 @@ typedef struct
    WLANDXE_TxCompIntConfigType     txCompInt;
    void                           *clientCtxt;
    wpt_uint32                      interruptPath;
+   wpt_msg                        *rxIsrMsg;
+   wpt_msg                        *txIsrMsg;
 } WLANDXE_CtrlBlkType;
 
 /*==========================================================================

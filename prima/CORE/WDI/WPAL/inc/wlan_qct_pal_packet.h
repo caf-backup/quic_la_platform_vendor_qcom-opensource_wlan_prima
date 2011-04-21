@@ -48,6 +48,9 @@ typedef struct swpt_packet
    wpt_packet_type pktType;
    //The number of bytes pBD uses. It MUST be set to 0 for RX packets
    wpt_uint16 BDLength;
+
+   //Internal data for PAL packet implementation usage only
+   void *pInternalData; 
 } wpt_packet;
 
 typedef struct swpt_iterator
@@ -203,5 +206,29 @@ wpt_status wpalIteratorInit(wpt_iterator *pIter, wpt_packet *pPacket);
 ---------------------------------------------------------------------------*/
 wpt_status wpalIteratorNext(wpt_iterator *pIter, wpt_packet *pPacket, void **ppAddr, wpt_uint32 *pLen);
 
+
+/*---------------------------------------------------------------------------
+    wpalLockPacketForTransfer – Packet must be locked before transfer can begin,
+    the lock will ensure that the DMA engine has access to the data packet
+    in a cache coherent manner
+ 
+    Param: 
+        pPacket – pointer to a wpt_packet
+ 
+    Return:
+        eWLAN_PAL_STATUS_SUCCESS - success
+---------------------------------------------------------------------------*/
+wpt_status wpalLockPacketForTransfer( wpt_packet *pPacket);
+
+/*---------------------------------------------------------------------------
+    wpalUnlockPacket – Once the transfer has been completed the packet should
+                       be unlocked so that normal operation may resume
+    Param: 
+        pPacket – pointer to a wpt_packet
+ 
+    Return:
+        eWLAN_PAL_STATUS_SUCCESS - success
+---------------------------------------------------------------------------*/
+wpt_status wpalUnlockPacket( wpt_packet *pPacket);
 
 #endif // __WLAN_QCT_PAL_PACKET_H

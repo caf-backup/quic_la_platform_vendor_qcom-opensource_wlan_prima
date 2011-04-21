@@ -18,7 +18,7 @@
   Are listed for each API below.
 
 
-  Copyright (c) 2008 QUALCOMM Incorporated.
+  Copyright (c) 2010 QUALCOMM Incorporated.
   All Rights Reserved.
   Qualcomm Confidential and Proprietary
 ===========================================================================*/
@@ -373,8 +373,9 @@ WDI_FillTxBd
     ucSubType = (ucTypeSubtype & WDI_FRAME_SUBTYPE_MASK);
 
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN, 
-               "Type: %d/%d, MAC: %08x., Tid=%d, frmXlat=%d, pTxBD=%08x ucTxFlag 0x%X\n", 
+               "Type: %d/%d, MAC S: %08x. MAC D: %08x., Tid=%d, frmXlat=%d, pTxBD=%08x ucTxFlag 0x%X\n", 
                 ucType, ucSubType, 
+                *((wpt_uint32 *) pAddr2), 
                *((wpt_uint32 *) pDestMacAddr), 
                 ucTid, 
                !ucDisableFrmXtl, pTxBd, ucTxFlag );
@@ -420,6 +421,11 @@ WDI_FillTxBd
 
     ucUnicastDst = !(((wpt_uint8 *)pDestMacAddr)[0] & 0x01);    
     *((wpt_uint32 *)pBd + WDI_DPU_FEEDBACK_OFFSET) = 0;
+
+    if(!ucUnicastDst)
+    {
+      pBd->ap    = WDI_ACKPOLICY_ACK_NOTREQUIRED; 
+    }
 
     if (ucType == WDI_MAC_DATA_FRAME)
     {
