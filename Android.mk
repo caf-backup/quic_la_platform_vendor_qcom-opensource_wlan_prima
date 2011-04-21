@@ -19,3 +19,8 @@ ifeq "$(findstring msm8660,$(QCOM_TARGET_PRODUCT))" "msm8660"
         include vendor/qcom/proprietary/wlan/libra/utils/ptt/Android.mk
         include vendor/qcom/proprietary/wlan/libra/utils/asf/src/Android.mk
 endif
+
+#Build/Package Prima Module only in case of 8960 target variants
+ifeq "$(findstring msm8960,$(QCOM_TARGET_PRODUCT))" "msm8960"
+        include vendor/qcom/proprietary/wlan/prima/CORE/HDD/src/Android.mk
+endif
