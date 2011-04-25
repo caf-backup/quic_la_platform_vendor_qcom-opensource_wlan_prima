@@ -415,6 +415,7 @@ eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber,
     {
         rfChannel = rfGetChannelIndex(channelNumber, cbState);
 
+		VOS_ASSERT(rfChannel != INVALID_RF_CHANNEL);
         /* Don't do copy in case of scanning, PLUTs are not used */
         if (calRequired)
         {

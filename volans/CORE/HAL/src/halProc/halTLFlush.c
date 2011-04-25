@@ -27,7 +27,7 @@ static tSirRetStatus halTLSendFlushResponse(tpAniSirGlobal pMac,
   tSirMsgQ msg;
 
   // Allocate message buffer
-  if (eHAL_STATUS_SUCCESS == palAllocateMemory(pMac->hHdd,
+  if (eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd,
         (void **) &pFlushACRspPtr,
         sizeof( tFlushACRsp )))
   {

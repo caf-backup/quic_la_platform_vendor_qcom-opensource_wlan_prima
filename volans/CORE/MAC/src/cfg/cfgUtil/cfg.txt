@@ -3667,3 +3667,70 @@ HAL
 NV    RW    NP
 NONE
 0    80    0
+
+*
+*  Config parameter to Enable/Disable Telescopic Bcn Wakeups 
+*  0: Disable, 1: Enable
+*
+
+WNI_CFG_TELE_BCN_WAKEUP_EN    I    4    7
+V    RW    NP
+HAL
+0    1    0
+V    RW    NP
+HAL
+0    1    0
+
+
+*
+*  Config parameter for Transient LI 
+*  0: Disable, x: Transient LI
+*
+
+WNI_CFG_TELE_BCN_TRANS_LI    I    4    7
+V    RW    NP
+HAL
+0    7    3
+V    RW    NP
+HAL
+0    7    3
+
+*
+*  Config parameter for Idle bcns for Transient LI 
+*  x: Num Idle bcns before switch to trans LI
+*
+
+WNI_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS    I    4    7
+V    RW    NP
+HAL
+5    255    10
+V    RW    NP
+HAL
+5    255    10
+
+*
+*  Config parameter for Max LI 
+*  0: Disable, x: Max LI
+*
+
+WNI_CFG_TELE_BCN_MAX_LI    I    4    7
+V    RW    NP
+HAL
+0    7    5
+V    RW    NP
+HAL
+0    7    5
+
+*
+*  Config parameter for Idle bcns for max LI 
+*  x: Num Idle bcns before switch to max LI
+*
+
+WNI_CFG_TELE_BCN_MAX_LI_IDLE_BCNS    I    4    7
+V    RW    NP
+HAL
+5    255    15
+V    RW    NP
+HAL
+5    255    15
+

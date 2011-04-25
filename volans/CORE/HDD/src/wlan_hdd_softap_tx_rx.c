@@ -35,7 +35,7 @@
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
- extern v_U8_t hddWmmUpToAcMap[]; 
+
 /*--------------------------------------------------------------------------- 
   Function definitions and documenation
   -------------------------------------------------------------------------*/ 
@@ -324,23 +324,7 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
               "%s: Classified as ac %d up %d", __FUNCTION__, ac, up);
 
-   // If the memory differentiation mode is enabled, the memory limit of each queue will be 
-   // checked. Over-limit packets will be dropped.
-    hdd_list_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktListSize);
-    if(pktListSize >= pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].max_size)
-    {
-       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-            "%s: station %d ac %d queue over limit %d \n", __FUNCTION__, STAId, ac, pktListSize); 
-       pAdapter->aStaInfo[STAId].txSuspended[ac] = VOS_TRUE;
-       /* TODO:Rx Flowchart should be trigerred here to SUPEND SSC on RX side.
-        * SUSPEND should be done based on Threshold. RESUME would be 
-        * triggered in fetch cbk after recovery.
-        */
-       kfree_skb(skb);
-       
-       return VOS_STATUS_E_FAILURE;
-    }
-
+   skb->queue_mapping = hddLinuxUpToAcMap[up];
 
    //Use the skb->cb field to hold the list node information
    pktNode = (skb_list_node_t *)&skb->cb;
@@ -354,6 +338,21 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
    INIT_LIST_HEAD(&pktNode->anchor);
 
    spin_lock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
+   // If the memory differentiation mode is enabled, the memory limit of each queue will be 
+   // checked. Over-limit packets will be dropped.
+    hdd_list_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktListSize);
+    if(pktListSize >= pAdapter->aTxQueueLimit[ac])
+    {
+       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+            "%s: station %d ac %d queue over limit %d \n", __FUNCTION__, STAId, ac, pktListSize); 
+       /* TODO:Rx Flowchart should be trigerred here to SUPEND SSC on RX side.
+        * SUSPEND should be done based on Threshold. RESUME would be 
+        * triggered in fetch cbk after recovery.
+        */
+       kfree_skb(skb);
+       spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
+       return VOS_STATUS_E_FAILURE;
+    }
    status = hdd_list_insert_back_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktNode->anchor, &pktListSize );
    spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
 

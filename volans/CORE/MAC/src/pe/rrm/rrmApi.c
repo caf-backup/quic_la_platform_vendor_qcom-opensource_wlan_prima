@@ -222,6 +222,7 @@ rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac,
    if( pBd == NULL || pLinkReq == NULL || pSessionEntry == NULL )
    {
       PELOGE(limLog( pMac, LOGE, "%s:%d: Invalid parameters - Ignoring the request\n");)
+      return eSIR_FAILURE;
    }
    pHdr = SIR_MAC_BD_TO_MPDUHEADER( pBd );
 #if defined WLAN_VOWIFI_DEBUG

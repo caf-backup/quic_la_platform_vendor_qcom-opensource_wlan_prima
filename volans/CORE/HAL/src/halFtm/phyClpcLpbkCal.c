@@ -140,9 +140,12 @@ static eHalStatus measureRxaEvm(tpAniSirGlobal pMac, tANI_S32 *lpbkEvm)
             cnt = cnt + 1;
 
             GET_PHY_REG(pMac->hHdd, QWLAN_RACTL_RACTL_SNRSTATS_SYMCNT_REG, &stats_symcnt);
-            printk("measureRxaEvm: stats_symcnt =%d\n", (unsigned int)stats_symcnt);
+            //printk("measureRxaEvm: stats_symcnt =%d\n", (unsigned int)stats_symcnt);
 
             done = (stats_symcnt == VALID_EVM_MIN_N_SYMS) ? 1 : 0;
+
+            //this will restore the ptt state machine for phyDbg frame gen
+            pttStartStopTxPacketGen(pMac, 0);
         }
         if (done)
         {
@@ -150,13 +153,13 @@ static eHalStatus measureRxaEvm(tpAniSirGlobal pMac, tANI_S32 *lpbkEvm)
 
             GET_PHY_REG(pMac->hHdd, QWLAN_RACTL_RACTL_SNRSTATS_REG, &stats);
             snrAccum += (tANI_S16)stats;
-            printk("cnt = %d\n", cnt);
-            printk("snr_stats = %d, symcnt = %d, snrAccum = %d\n",(tANI_S16)stats ,(unsigned int)stats_symcnt, (int)snrAccum);
+            //printk("cnt = %d\n", cnt);
+            //printk("snr_stats = %d, symcnt = %d, snrAccum = %d\n",(tANI_S16)stats ,(unsigned int)stats_symcnt, (int)snrAccum);
 
         }
         else
         {
-            printk("Error in measureRxaEvm. Did not detect correct number of symbols after %d packets\n", cntTh);
+            //printk("Error in measureRxaEvm. Did not detect correct number of symbols after %d packets\n", cntTh);
             *lpbkEvm = -20;
             return (eHAL_STATUS_SUCCESS);
         }
@@ -176,8 +179,8 @@ static eHalStatus measureRxaEvm(tpAniSirGlobal pMac, tANI_S32 *lpbkEvm)
     }
 
     *lpbkEvm = ((22*2*10) + (snrTmp));
-    printk( "nRepeat = %d, stats_symcnt = %d, snrTmp =%d\n", nRepeat, (unsigned int)stats_symcnt, (int)snrTmp);
-    printk( "returned lpbkEvm =%d\n", (int)(*lpbkEvm));
+    //printk( "nRepeat = %d, stats_symcnt = %d, snrTmp =%d\n", nRepeat, (unsigned int)stats_symcnt, (int)snrTmp);
+    //printk( "returned lpbkEvm =%d\n", (int)(*lpbkEvm));
 
     return (eHAL_STATUS_SUCCESS);
 }
@@ -209,6 +212,11 @@ eHalStatus phyClpcLpbkCal(tpAniSirGlobal pMac)
         pttConfigTxPacketGen(pMac, frameParams);
         pttSetTxPower(pMac, dbmPwr);
         pttStartStopTxPacketGen(pMac, start);
+
+        vos_sleep_us(50000);
+
+        //this will restore the ptt state machine for phyDbg frame gen
+        pttStartStopTxPacketGen(pMac, 0);
     }
 
     setup(pMac);
@@ -216,7 +224,7 @@ eHalStatus phyClpcLpbkCal(tpAniSirGlobal pMac)
     measureRxaEvm(pMac, &lpbkEvm);
     lpbkEvm = -lpbkEvm/2 + (3 * 10);
 
-    printk( "lpbkEvm =%d\n", (int)lpbkEvm);
+    //printk( "lpbkEvm =%d\n", (int)lpbkEvm);
 
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_GAIN_LUT0_MREG + (4 * tpcLutIdx), tpcLutTxPwr);
 
@@ -238,8 +246,8 @@ eHalStatus phyClpcLpbkCal(tpAniSirGlobal pMac)
             offset = offset * 10;
         }
 
-        printk("deltaEvm =%d\n", (int)deltaEvm);
-        printk("offset =%d\n", (int)offset);
+        //printk("deltaEvm =%d\n", (int)deltaEvm);
+        //printk("offset =%d\n", (int)offset);
         {
             halWriteNvTable(pMac, NV_TABLE_OFDM_CMD_PWR_OFFSET, (uNvTables *)(&offset));
             halStoreTableToNv(pMac, NV_TABLE_OFDM_CMD_PWR_OFFSET);

@@ -47,6 +47,8 @@
 #include <mach/gpio.h>
 #endif
 
+#define QWLAN_MAX_LISTEN_INTERVAL_TU 600
+
 /* Static Functions */
 static void halPS_FwRspTimeoutFunc(void* pData);
 //static void halPS_HandleFwRspTimeout(tpAniSirGlobal pMac, tANI_U16 rspType);
@@ -561,6 +563,7 @@ eHalStatus halPS_GetRssi(tpAniSirGlobal pMac, tANI_S8 *pRssi)
         eRfChannels curChan = rfGetCurChannel(pMac);
         tANI_S16 skuOffset = 0;
 
+		VOS_ASSERT(curChan != INVALID_RF_CHANNEL);
         //apply the sku dependant offset on the base RSSI value.
         if(halGetNvTableLoc(pMac, NV_TABLE_RSSI_CHANNEL_OFFSETS, (uNvTables **)&pRssiOffset) == eHAL_STATUS_SUCCESS)
         {
@@ -1318,22 +1321,25 @@ void halPS_ComputeListenInterval(tANI_U8 dtim, tANI_U16 listenIntv,
  *      eHAL_STATUS_SUCCESS
  *      eHAL_STATUS_FAILURE
  */
-eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod)
+eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod, tANI_U8 bssIdx)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tHalFwParams *pFw = &pMac->hal.FwParam;
-    tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;
     Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
+    tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;
+    tANI_U16 transListenInterval = (tANI_U16)pMac->hal.transListenInterval;
+    tANI_U16 maxListenInterval = (tANI_U16)pMac->hal.maxListenInterval;
+    tANI_U16 bcnIntervalTU;
     tANI_U16 listenInterval = (tANI_U16)pHalPwrSave->listenInterval;
     tANI_U8 filterPeriod=0;
+
+    halTable_GetBeaconIntervalForBss(pMac, (tANI_U8)bssIdx, &bcnIntervalTU);
 
     // Compute the Listen interval based on DTIM period, to align
     // the LI with the DTIM period. Basically LI should be multiple of
     // DTIM. This would be done only if ignoreDtim is not set.
-    if (!pHalPwrSave->ignoreDtim) {
         halPS_ComputeListenInterval(dtimPeriod, (tANI_U16)pHalPwrSave->listenInterval, 0,
                 &listenInterval);
-    }
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
     {
@@ -1347,6 +1353,48 @@ eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod)
 
     pFwConfig->ucListenInterval = listenInterval;
     pFwConfig->ucDtimPeriod     = dtimPeriod;
+    pFwConfig->bBcMcFilterSetting     = pMac->hal.mcastBcastFilterSetting;
+
+    /*Telescopic Beacon wakeup configuration*/
+    pFwConfig->bTelescopicBcnWakeupEn = pMac->hal.teleBcnWakeupEnable;
+    pFwConfig->ucTransListenInterval=0;
+    pFwConfig->ucMaxListenInterval=0;
+
+    if ((maxListenInterval <= transListenInterval) || (maxListenInterval <= listenInterval))
+        maxListenInterval = 0;
+
+    if (transListenInterval <= listenInterval) {
+        transListenInterval = maxListenInterval;
+        maxListenInterval = 0;   
+    }
+
+    /* From this point transLi will be less than
+     * maxLI due to above nullifying on top.
+     */
+    if((transListenInterval * bcnIntervalTU) > QWLAN_MAX_LISTEN_INTERVAL_TU) {
+        transListenInterval = 0;
+        maxListenInterval = 0;   
+    }
+
+    if((maxListenInterval * bcnIntervalTU) > QWLAN_MAX_LISTEN_INTERVAL_TU) {
+        maxListenInterval = 0;   
+    }
+
+    /*Transient Listen Interval and its Idle time configuration*/
+    if (pMac->hal.teleBcnWakeupEnable && transListenInterval) {
+        pFwConfig->ucTransListenInterval=transListenInterval;
+        pFwConfig->uTransLiNumIdleBeacons = pMac->hal.uTransLiNumIdleBeacons;
+    }
+
+    if (pMac->hal.teleBcnWakeupEnable && maxListenInterval) {
+        pFwConfig->ucMaxListenInterval=maxListenInterval;
+        pFwConfig->uMaxLiNumIdleBeacons = pMac->hal.uMaxLiNumIdleBeacons;
+    }
+
+    HALLOGE( halLog(pMac, LOGE, FL("Updating Telescopic params %x %x %x %x %x"), 
+                                   pFwConfig->bBcMcFilterSetting, pFwConfig->ucTransListenInterval,
+                                   pFwConfig->uTransLiNumIdleBeacons, pFwConfig->ucMaxListenInterval,
+                                   pFwConfig->uMaxLiNumIdleBeacons));
 
     if (pFwConfig->ucBeaconFilterPeriod) {
         filterPeriod = (tANI_U8)(((pFwConfig->ucBeaconFilterPeriod)/listenInterval)*listenInterval);
@@ -1486,8 +1534,11 @@ eHalStatus halPS_HandleEnterBmpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken, t
     }
 #endif
 
+    /*Configure Apps CPU to Wakeup State*/
+    halPSAppsCpuWakeupState(pMac, TRUE);
+
     // Update power save related parameters in the FW sys config
-    halPS_UpdateFwSysConfig(pMac, pPeMsg->dtimPeriod);
+    halPS_UpdateFwSysConfig(pMac, pPeMsg->dtimPeriod, pPeMsg->bssIdx);
 
     // Compute the TSF of the DTIM beacon based on the current TSF and
     // the DTIM count
@@ -3072,7 +3123,7 @@ eHalStatus halPS_AddWowlPatternToFw(tpAniSirGlobal pMac, tpSirWowlAddBcastPtrn p
     Qwlanfw_MatchPtrnType *pFwPtrn;
 
     // Validate input pointers
-    if ((NULL == pMac) || (NULL == pBcastPat))
+    if (NULL == pBcastPat)
     {
         HALLOGE(halLog(pMac, LOGE, FL("Error in parameters: NULL pointer passed in\n")));
         // Can't free pBcastPat without both pMac & pBcastPat
@@ -3188,7 +3239,7 @@ eHalStatus halPS_RemoveWowlPatternAtFw(tpAniSirGlobal pMac, tpSirWowlDelBcastPtr
     Qwlanfw_RemMatchPtrnMsgType *pFwMsg;
 
     // Validate input pointers
-    if ((NULL == pMac) || (NULL == pDelBcastPat))
+    if (NULL == pDelBcastPat)
     {
         HALLOGE(halLog(pMac, LOGE, FL("Error in parameters: NULL pointer passed in\n")));
         // Can't free pDelBcastPat without both pMac & pDelBcastPat
@@ -3403,7 +3454,7 @@ eHalStatus halPS_EnterWowlReq(tpAniSirGlobal pMac, tANI_U16 dialogToken, tpSirHa
 #endif  // QWLAN_HW_MAGIC_PCKT_FILTER
 
     // Validate input pointers
-    if ((NULL == pMac) || (NULL == pWowParams))
+    if (NULL == pWowParams)
     {
         HALLOGE(halLog(pMac, LOGE, FL("Error in parameters: NULL pointer passed in\n")));
         // Can't send a response without both pMac & pWowParams
@@ -3541,15 +3592,7 @@ eHalStatus halPS_ExitWowlReq(tpAniSirGlobal pMac, tANI_U16 dialogToken)
     tANI_U32 wowCfg;
     tANI_U32 aduCfg;
 #endif  // QWLAN_HW_MAGIC_PCKT_FILTER
-
-    // Validate input pointers
-    if (NULL == pMac)
-    {
-        HALLOGE(halLog(pMac, LOGE, FL("Error in parameters: NULL pointer passed in\n")));
-        // Can't send a response without pMac
-        return eHAL_STATUS_FAILURE;
-    }
-
+   
     // Disable wakeup feature in FW
     pFwConfig->bNetWakeupFilterEnable = FALSE;
     pFwConfig->bMagicPacketEnabled = FALSE;
@@ -4032,6 +4075,23 @@ VOS_STATUS halPS_SetHostBusyTxRx(v_PVOID_t pMacContext)
         return VOS_STATUS_E_FAILURE;
 
     return VOS_STATUS_SUCCESS;
+}
+
+void halPSAppsCpuWakeupState( tpAniSirGlobal pMac, tANI_U32 isAppsAwake )
+{
+    tANI_U32 offset = (tANI_U32)&((Qwlanfw_SysCfgType *)0)->isAppsCpuAwake;
+    tANI_U32 appsCpuWakeupState = isAppsAwake;
+    tHalFwParams *pFw = &pMac->hal.FwParam;
+    Qwlanfw_SysCfgType *pFwConfig;
+
+    pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
+    pFwConfig->isAppsCpuAwake = isAppsAwake;
+
+    // Update the sytem config
+    halFW_UpdateSystemConfig(pMac,
+                            pMac->hal.FwParam.fwSysConfigAddr + offset,
+                            (tANI_U8*)&appsCpuWakeupState, sizeof(tANI_U32));
+   return;
 }
 
 /* Call back invoked by TX/RX thread to release the resource after chip 

@@ -1001,10 +1001,16 @@ typedef enum
 #define CFG_DYNAMIC_PSPOLL_VALUE_MAX           (255)
 #define CFG_DYNAMIC_PSPOLL_VALUE_DEFAULT       (0)
 
+#define CFG_TELE_BCN_WAKEUP_EN_NAME            "gTelescopicBeaconWakeupEn"
+#define CFG_TELE_BCN_WAKEUP_EN_MIN             (0)
+#define CFG_TELE_BCN_WAKEUP_EN_MAX             (1)
+#define CFG_TELE_BCN_WAKEUP_EN_DEFAULT         (0)
+
 #define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_NAME                 "gAddTSWhenACMIsOff"
 #define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MIN                  (0)
 #define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MAX                  (1) //Send AddTs even when ACM is not set for the AC
 #define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_DEFAULT              (0)
+
 
 #define CFG_VALIDATE_SCAN_LIST_NAME                 "gValidateScanList"
 #define CFG_VALIDATE_SCAN_LIST_MIN                  (0)
@@ -1266,6 +1272,8 @@ typedef struct
    v_BOOL_t                    fValidateScanList;
 
    v_U8_t                      nNullDataApRespTimeout;
+
+   v_BOOL_t                    teleBcnWakeupEn;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

@@ -316,7 +316,11 @@ eHalStatus halTable_GetStaId(tpAniSirGlobal pMac, tANI_U8 type, tSirMacAddr bssI
         HALLOGE( halLog(pMac, LOGE, FL("Station table full")));
         return eHAL_STATUS_STA_TABLE_FULL;
     }
-
+	if (sta == NULL)
+	{
+    	HALLOGE( halLog(pMac, LOGE, FL("Station table full")));
+		return eHAL_STATUS_STA_TABLE_FULL;
+    }
     sta->valid = 1;
     palCopyMemory(pMac->hHdd, (void *) sta->bssId, (void *)bssId, 6);
     palCopyMemory(pMac->hHdd, (void *) sta->staAddr, (void *)staAddr, 6);
@@ -450,9 +454,12 @@ eHalStatus halTable_GetBssIndex(tpAniSirGlobal pMac, tSirMacAddr bssId, tANI_U8 
 
     if ((i == pMac->hal.halMac.maxBssId) && (bss == 0))
         return eHAL_STATUS_BSSID_TABLE_FULL;
-
-    //
-    bss->valid = 1;
+    if (bss == NULL)
+    {
+        HALLOGE(halLog(pMac, LOGE, FL("BSSID TABLE is full. \n")));   	
+		return eHAL_STATUS_BSSID_TABLE_FULL;
+	}
+	bss->valid = 1;
     *id = index;
     palCopyMemory(pMac->hHdd, (void *) bss->bssId, (void *)bssId, 6);
 

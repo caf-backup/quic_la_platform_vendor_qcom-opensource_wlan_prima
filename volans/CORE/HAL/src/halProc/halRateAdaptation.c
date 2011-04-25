@@ -631,6 +631,13 @@ halMacRaInitStaRate(
         raLog(pMac, RALOG_ERROR, FL("Unable to get fixed rate cfg's\n"));
         fixedRate = HALRATE_INVALID;
     }
+	else
+	{
+        if (fixedRate > HALRATE_INVALID)
+        {
+        	fixedRate = HALRATE_INVALID;
+		}
+	}
 
     // If fixed rate is 11B rate, check if short preamble is supported. 
     // If supported switch to its corresponding short preamble rate.
@@ -1920,7 +1927,7 @@ void  halMacRaDumpHalRateTable(tpAniSirGlobal pMac)
     tANI_U8 rateStr[9];
     tANI_U8 modulation[][8]= { "BPSK ", "QPSK ", "16QAM", "64QAM"};
     tANI_U8 codeRate[][8]= { "1/2", "2/3", "3/4", "5/6", "7/8", "?", "?", "?"};
-    tANI_U32 halRateTxPktCount[MAX_LIBRA_RATE_NUM] = {0, };
+    tANI_U32 halRateTxPktCount[HAL_MAC_MAX_TX_RATES] = {0, };
 
     raLog(pMac, RALOG_CLI, "A- 11a/g rate   B-11b rate  D-duplicate mode   G- HT SGI");
     raLog(pMac, RALOG_CLI, "H- HT rate      M-MIMO rate S-ShortPreamble    t- TitanRate ");
@@ -1928,7 +1935,7 @@ void  halMacRaDumpHalRateTable(tpAniSirGlobal pMac)
     raLog(pMac, RALOG_CLI, "HalRate  TpeRate  Thput  Flags          CurTxPpdu# ");
 
     halMacRaTxPktCountFromFW(pMac, halRateTxPktCount);
-    for( halRateIdx = HALRATE_MODE_START; halRateIdx < HALRATE_MODE_END; halRateIdx ++){
+    for( halRateIdx = HALRATE_MODE_START; halRateIdx < HALRATE_MODE_TX_END; halRateIdx ++){
         tANI_U32 index = (halRateIdx);
         tANI_U32 tpeRateIdx = HAL_RA_TPERATEIDX_GET(halRateIdx);
         tANI_U32 modulationType = (gHalRateInfo[index].rateProperty & RA_MODULATION_MASK)>>RA_MODULATION_SHIFT;

@@ -64,6 +64,7 @@ extern int sdio_reset_comm(struct mmc_card *card);
  * Global variables.
  *-------------------------------------------------------------------------*/
 static salHandleType *gpsalHandle;
+static v_U8_t gSDCmdFailed = 0;
 
 /*----------------------------------------------------------------------------
 
@@ -507,6 +508,9 @@ VOS_STATUS WLANSAL_Open
    mutex_init(&gpsalHandle->lock);
    spin_lock_init(&gpsalHandle->spinlock);
 
+   /* Reset the CMD Failed variable here */
+   gSDCmdFailed = 0;
+
    SEXIT();
    return VOS_STATUS_SUCCESS;
 }
@@ -542,7 +546,9 @@ VOS_STATUS WLANSAL_Start
       return VOS_STATUS_E_FAILURE;
    }
 
- 
+   /* Reset the CMD Failed variable here */
+   gSDCmdFailed = 0;
+
    if (!balHandle)
    {
       VOS_ASSERT(0);
@@ -754,10 +760,18 @@ VOS_STATUS WLANSAL_Cmd52
    	VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: sdio_func is null!!!",__func__);
    	return VOS_STATUS_E_FAILURE;
    }
-   
+  
+
    // Get the lock, going native
    sd_claim_host(gpsalHandle->sdio_func_dev);
 
+   /* Block any more SD commands after the 1st failure */
+   if (gSDCmdFailed)
+   {
+      sd_release_host(gpsalHandle->sdio_func_dev);
+      return VOS_STATUS_E_FAILURE;
+   } 
+   
    save_function_num = gpsalHandle->sdio_func_dev->num;
    gpsalHandle->sdio_func_dev->num = 0; // Assign to 0.
    libra_sdiocmd52( gpsalHandle->sdio_func_dev, cmd52Req->address, cmd52Req->dataPtr,
@@ -769,6 +783,7 @@ VOS_STATUS WLANSAL_Cmd52
    if(err_ret)
    {
      VOS_TRACE(VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: addr 0x%x err = %d",__func__, cmd52Req->address, err_ret);
+     gSDCmdFailed = 1;
    }
    
    // Release lock
@@ -827,7 +842,7 @@ VOS_STATUS WLANSAL_Cmd53
    VOS_ASSERT(cmd53Req->dataSize);
 
    SENTER();  
-
+   
    if (0 == cmd53Req->dataSize) 
    {
       SMSGERROR("CMD53 Data size 0, direction %d, Mode %d, address 0x%x",
@@ -839,6 +854,13 @@ VOS_STATUS WLANSAL_Cmd53
    // Get the lock, going native
    sd_claim_host(gpsalHandle->sdio_func_dev);
 
+   /* Block any more SD commands after the 1st failure */
+   if (gSDCmdFailed)
+   {
+      sd_release_host(gpsalHandle->sdio_func_dev);
+      return VOS_STATUS_E_FAILURE;
+   } 
+   
    if (vos_is_logp_in_progress(VOS_MODULE_ID_SAL, NULL)) {
         VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, "%s: LOGP in progress. Ignore!!! direction %d, Mode %d, address 0x%x",
                         __func__,cmd53Req->busDirection, cmd53Req->mode, cmd53Req->address);
@@ -922,7 +944,8 @@ watchdog_chip_reset:
    {
       SMSGFATAL("%s: Value of ERROR err_ret = %d, Data Size = %d\n", __func__, err_ret, cmd53Req->dataSize);
       SMSGFATAL("CMD53 direction %d, Mode %d, address 0x%x", 
-         cmd53Req->busDirection, cmd53Req->mode, cmd53Req->address);  
+         cmd53Req->busDirection, cmd53Req->mode, cmd53Req->address); 
+      gSDCmdFailed = 1;
       vos_chipReset(NULL, VOS_FALSE, NULL, NULL, VOS_CHIP_RESET_CMD53_FAILURE);      
       // Release lock
       sd_release_host(gpsalHandle->sdio_func_dev);

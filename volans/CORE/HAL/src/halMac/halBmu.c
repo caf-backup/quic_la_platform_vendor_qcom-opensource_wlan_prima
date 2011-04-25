@@ -1674,8 +1674,11 @@ eHalStatus halIntBMUErrorHandler(tHalHandle hHalHandle, eHalIntSources intSource
         pBd = BMU_CONV_BD_PDU_IDX_TO_ADDR(intBMUErrWData);
         tempBuff = (void*)vos_mem_malloc((v_SIZE_t)HAL_BD_SIZE);
         HALLOGE(halLog(pMac, LOGE, FL("pBd = %x"), pBd);)
-        halReadDeviceMemory(pMac, pBd, tempBuff, HAL_BD_SIZE);
-        sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOGE, tempBuff, HAL_BD_SIZE);
+        if(tempBuff)
+        {
+			halReadDeviceMemory(pMac, pBd, tempBuff, HAL_BD_SIZE);
+        	sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOGE, tempBuff, HAL_BD_SIZE);
+        }
 #endif
         macSysResetReq(pMac, eSIR_BMU_EXCEPTION);
         return status;
@@ -1828,7 +1831,8 @@ void halBmu_UpdateStaBMUApMode(tpAniSirGlobal pMac,
             //without this workaround Volans softap shows BMU BTQM arbiter error.
             //putting this workaround to unblock softAp testing while we are working on resolving the issue.
             //FIXME_VOLANS_SOFTAP_UPASD_ISSUE
-            QWLAN_BMU_STA_CONFIG_STATUS2_QOS_NULL_RESP_ENABLE_MASK |
+            // Removing the SoftAP workaround. Disable HW sending QoS NULL DATA on TID=0. No BMU errror.
+            //QWLAN_BMU_STA_CONFIG_STATUS2_QOS_NULL_RESP_ENABLE_MASK |
             QWLAN_BMU_STA_CONFIG_STATUS2_U_DATA_NULL_RESP_ENABLE_MASK;
 
         if (uapsdACMask)
@@ -1845,11 +1849,10 @@ void halBmu_UpdateStaBMUApMode(tpAniSirGlobal pMac,
                 /** Save the QID mask for delivery enabled ACs.  We need this for contructing
                             the TIM in beacons.  If all ACs are delivery enabled, then it is the same
                             case as if none of them are. */
-                
-                pSta->delEnbQidMask = 0;                
+                //Removing this: Pass the actual delivery enabled QidMask to FW. 
+                //pSta->delEnbQidMask = 0;                
             }                
-            else
-                pSta->delEnbQidMask = delEnbQidMask;
+            pSta->delEnbQidMask = delEnbQidMask;
 
             mask |= (maxSPLen == 0) ?
                 QWLAN_BMU_STA_CONFIG_STATUS2_INITIAL_REMAINING_TX_FRAME_CNT_MASK :

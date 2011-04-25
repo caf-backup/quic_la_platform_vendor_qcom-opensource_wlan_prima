@@ -2505,7 +2505,7 @@ eHalStatus halDpu_GetSequence(tpAniSirGlobal pMac, tANI_U8 dpuIdx, tANI_U8 tId, 
     if(status != eHAL_STATUS_SUCCESS)
         return status;
 
-    if (tId > MAX_NUM_OF_TIDS)
+    if (tId >= MAX_NUM_OF_TIDS) 
         return status;
     HALLOG1( halLog( pMac, LOG1, FL("DPU seqNum %08x %08x %08x %08x \n"),dpuDesc.sequenceField[0],
         dpuDesc.sequenceField[1],dpuDesc.sequenceField[2],dpuDesc.sequenceField[3]));

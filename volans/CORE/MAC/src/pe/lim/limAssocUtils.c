@@ -2551,10 +2551,9 @@ limDeleteDphHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_U16 staId,t
     beaconParams.paramChangeBitmap = 0;
 
     limDeactivateAndChangePerStaIdTimer(pMac, eLIM_CNF_WAIT_TIMER, staId);
-
-    if (psessionEntry != NULL)
-        beaconParams.bssIdx = psessionEntry->bssIdx;
-
+    if(psessionEntry==NULL)
+    	return;
+    beaconParams.bssIdx = psessionEntry->bssIdx;
     pStaDs = dphLookupHashEntry(pMac, staAddr, &aid, &psessionEntry->dph.dphHashTable);
     if (pStaDs != NULL)
     {

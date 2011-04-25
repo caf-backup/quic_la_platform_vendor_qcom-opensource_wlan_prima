@@ -720,7 +720,7 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     profile->mcEncryptionType.numEntries = 1;
     profile->mcEncryptionType.encryptionType[0] = pconfig_params->mcRSNEncryptType;
 
-    if (pconfig_params->privacy && eSAP_SHARED_KEY) 
+    if (pconfig_params->privacy & eSAP_SHARED_KEY)
     {
         profile->AuthType.authType[0] = eCSR_AUTH_TYPE_SHARED_KEY;
     }

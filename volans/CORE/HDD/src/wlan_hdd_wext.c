@@ -141,6 +141,37 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 /* Private ioctl for setting the host offload feature */
 #define WLAN_PRIV_SET_HOST_OFFLOAD (SIOCIWFIRSTPRIV + 18)
 
+/* Private ioctl to get the statistics */
+#define WLAN_GET_WLAN_STATISTICS (SIOCIWFIRSTPRIV + 21)
+
+#define WLAN_STATS_INVALID            0
+#define WLAN_STATS_RETRY_CNT          1
+#define WLAN_STATS_MUL_RETRY_CNT      2
+#define WLAN_STATS_TX_FRM_CNT         3
+#define WLAN_STATS_RX_FRM_CNT         4
+#define WLAN_STATS_FRM_DUP_CNT        5
+#define WLAN_STATS_FAIL_CNT           6
+#define WLAN_STATS_RTS_FAIL_CNT       7
+#define WLAN_STATS_ACK_FAIL_CNT       8
+#define WLAN_STATS_RTS_SUC_CNT        9
+#define WLAN_STATS_RX_DISCARD_CNT     10
+#define WLAN_STATS_RX_ERROR_CNT       11
+#define WLAN_STATS_TX_BYTE_CNT        12
+
+#define FILL_TLV(__p, __type, __size, __val, __tlen) \
+{\
+    if (tlen < WE_MAX_STR_LEN) \
+    {\
+        *__p++ = __type;\
+        *__p++ = __size;\
+        memcpy(__p, __val, __size);\
+        __p += __size;\
+        __tlen += __size + 2;\
+    }\
+    else \
+        return -1;\
+}while(0);
+
 /* To Validate Channel against the Frequency and Vice-Versa */
 static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2}, 
         {2422, 3}, {2427, 4}, {2432, 5}, {2437, 6}, {2442, 7}, {2447, 8}, 
@@ -250,6 +281,7 @@ void hdd_StatisticsCB( void *pStats, void *pContext )
 
    if (pAdapter!= NULL)
      pStatsCache = &pAdapter->hdd_stats;
+
       
    pSummaryStats = (tCsrSummaryStatsInfo *)pStats;
    pClassAStats  = (tCsrGlobalClassAStatsInfo *)( pSummaryStats + 1 );
@@ -650,7 +682,7 @@ static int iw_get_tx_power(struct net_device *dev,
   
     if (!VOS_IS_STATUS_SUCCESS(vos_status))
     { 
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos wait for single_event failed!!\n"));
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("%s: ERROR: HDD vos wait for single_event failed!!\n"),__func__);
        /*Remove the SME statistics list by passing NULL in callback argument*/
        status = sme_GetStatistics( pAdapter->hHal, eCSR_HDD, 
                        SME_SUMMARY_STATS      |
@@ -743,7 +775,7 @@ static int iw_get_bitrate(struct net_device *dev,
    
       if (!VOS_IS_STATUS_SUCCESS(vos_status))
       {   
-         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos wait for single_event failed!!\n"));
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("%s: ERROR: HDD vos wait for single_event failed!!\n"), __func__);
          return VOS_STATUS_E_FAILURE;
       }
    
@@ -1548,7 +1580,7 @@ static int iw_set_priv(struct net_device *dev,
         
            if (!VOS_IS_STATUS_SUCCESS(status))
            {   
-              hddLog( VOS_TRACE_LEVEL_ERROR, "HDD vos wait for single_event failed");
+              hddLog( VOS_TRACE_LEVEL_ERROR, "%s: HDD vos wait for single_event failed", __func__);
               return VOS_STATUS_E_FAILURE;
            }
         
@@ -1590,7 +1622,7 @@ static int iw_set_priv(struct net_device *dev,
                 vos_wait_single_event(&pWextState->vosevent, 1000);
                 if(!VOS_IS_STATUS_SUCCESS(status))
                 {
-                    hddLog(VOS_TRACE_LEVEL_ERROR, "HDD vos wait for single_event failed");
+                    hddLog(VOS_TRACE_LEVEL_ERROR, "%s: HDD vos wait for single_event failed", __func__);
                     return VOS_STATUS_E_FAILURE;
                 }
                 s7Rssi = pAdapter->rssi;
@@ -3316,6 +3348,127 @@ static int iw_set_host_offload(struct net_device *dev, struct iw_request_info *i
 }
 
 
+static int iw_get_statistics(struct net_device *dev,
+                           struct iw_request_info *info,
+                           union iwreq_data *wrqu, char *extra)
+{
+
+  VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+  eHalStatus status = eHAL_STATUS_SUCCESS;
+  hdd_wext_state_t *pWextState;
+  hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+  char *p = (char*)wrqu->data.pointer;
+  int tlen = 0;
+  tCsrSummaryStatsInfo *pStats = &(pAdapter->hdd_stats.summary_stat);
+
+  ENTER();
+
+  if (pAdapter->isLogpInProgress) {
+     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+     return -EINVAL;
+  }
+
+  if (eConnectionState_Associated != pAdapter->conn_info.connState) {
+
+     wrqu->txpower.value = 0;
+  }
+  else {
+    status = sme_GetStatistics( pAdapter->hHal, eCSR_HDD,
+                       SME_SUMMARY_STATS,
+                       hdd_StatisticsCB, 0, FALSE,
+                       pAdapter->conn_info.staId[0], pAdapter );
+
+    if (eHAL_STATUS_SUCCESS != status)
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD sme_GetStatistics failed!!\n"));
+        return -EINVAL;
+    }
+
+    pWextState = pAdapter->pWextState;
+
+    vos_status = vos_wait_single_event(&pWextState->vosevent, 1000);
+    if (!VOS_IS_STATUS_SUCCESS(vos_status))
+    {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("%s: ERROR: HDD vos wait for single_event failed!!\n"), __func__);
+       /*Remove the SME statistics list by passing NULL in callback argument*/
+       status = sme_GetStatistics( pAdapter->hHal, eCSR_HDD,
+                       SME_SUMMARY_STATS,
+                       NULL, 0, FALSE,
+                       pAdapter->conn_info.staId[0], pAdapter );
+
+       return -EINVAL;
+    }
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RETRY_CNT,  
+              (tANI_U8) sizeof (pStats->retry_cnt), 
+              (char*) &(pStats->retry_cnt[0]), 
+              tlen);
+
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_MUL_RETRY_CNT, 
+              (tANI_U8) sizeof (pStats->multiple_retry_cnt), 
+              (char*) &(pStats->multiple_retry_cnt[0]),
+              tlen);
+
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_FRM_CNT, 
+              (tANI_U8) sizeof (pStats->tx_frm_cnt), 
+              (char*) &(pStats->multiple_retry_cnt[0]), 
+              tlen);
+
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_FRM_CNT, 
+              (tANI_U8) sizeof (pStats->rx_frm_cnt),
+              (char*) &(pStats->rx_frm_cnt), 
+              tlen);
+
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_FRM_DUP_CNT, 
+              (tANI_U8) sizeof (pStats->frm_dup_cnt), 
+              (char*) &(pStats->frm_dup_cnt), 
+              tlen);
+
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_FAIL_CNT, 
+              (tANI_U8) sizeof (pStats->fail_cnt), 
+              (char*) &(pStats->fail_cnt[0]), 
+              tlen);
+
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RTS_FAIL_CNT, 
+              (tANI_U8) sizeof (pStats->rts_fail_cnt), 
+              (char*) &(pStats->rts_fail_cnt), 
+              tlen);
+
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_ACK_FAIL_CNT, 
+              (tANI_U8) sizeof (pStats->ack_fail_cnt), 
+              (char*) &(pStats->ack_fail_cnt), 
+              tlen);
+
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RTS_SUC_CNT, 
+              (tANI_U8) sizeof (pStats->rts_succ_cnt), 
+              (char*) &(pStats->rts_succ_cnt), 
+              tlen);
+
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_DISCARD_CNT, 
+              (tANI_U8) sizeof (pStats->rx_discard_cnt), 
+              (char*) &(pStats->rx_discard_cnt), 
+              tlen);
+
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_ERROR_CNT, 
+              (tANI_U8) sizeof (pStats->rx_error_cnt), 
+              (char*) &(pStats->rx_error_cnt), 
+              tlen);
+
+    FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_BYTE_CNT, 
+              (tANI_U8) sizeof (pStats->tx_byte_cnt), 
+              (char*) &(pStats->tx_byte_cnt), 
+              tlen);
+
+    wrqu->data.length = tlen;
+     
+  }
+
+  EXIT();
+
+  return 0;
+}
+
+
+
 // Define the Wireless Extensions to the Linux Network Device structure
 // A number of these routines are NULL (meaning they are not implemented.) 
 
@@ -3406,7 +3559,8 @@ static const iw_handler we_private[] = {
 #ifdef WLAN_FEATURE_VOWIFI_11R
    [WLAN_PRIV_SET_FTIES                 - SIOCIWFIRSTPRIV]   = iw_set_fties,
 #endif
-   [WLAN_PRIV_SET_HOST_OFFLOAD          - SIOCIWFIRSTPRIV]   = iw_set_host_offload
+   [WLAN_PRIV_SET_HOST_OFFLOAD          - SIOCIWFIRSTPRIV]   = iw_set_host_offload,
+   [WLAN_GET_WLAN_STATISTICS            - SIOCIWFIRSTPRIV]   = iw_get_statistics
 };
 
 /*Maximum command length can be only 15 */
@@ -3625,6 +3779,12 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_BYTE | sizeof(tHostOffloadRequest),
         0,
         "setHostOffload" },
+
+    {  
+	WLAN_GET_WLAN_STATISTICS,
+        0,
+        IW_PRIV_TYPE_BYTE | WE_MAX_STR_LEN,
+        "getWlanStats" },
 };
 
 

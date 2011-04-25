@@ -2431,17 +2431,12 @@ eHalStatus pmcEnterBmpsCheck( tpAniSirGlobal pMac )
    }
 
    /* Check that entry into a power save mode is allowed at this time. */
-   //If BTC is not ready and we have an UAPSD session, no power save.
-   if (!pmcPowerSaveCheck(pMac) || ( 
-#ifndef WLAN_MDM_CODE_REDUCTION_OPT
-           !btcIsReadyForUapsd(pMac) && 
-#endif /* WLAN_MDM_CODE_REDUCTION_OPT*/
-     pMac->pmc.uapsdSessionRequired ) )
+
+   if (!pmcPowerSaveCheck(pMac))
    {
-      smsLog(pMac, LOGE, "PMC: Power save check failed. BMPS cannot be entered now\n");
+      smsLog(pMac, LOGE, "PMC0: Power save check failed. BMPS cannot be entered now\n");
       return eHAL_STATUS_PMC_NOT_NOW;
    }
-   
    return ( eHAL_STATUS_SUCCESS );
 }
 

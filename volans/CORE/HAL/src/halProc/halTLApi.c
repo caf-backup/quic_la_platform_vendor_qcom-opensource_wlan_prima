@@ -582,7 +582,9 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
     {
         pBd->dpuRF = BMUWQ_BTQM_TX_MGMT;
     }
-#ifndef VOLANS_HW_ISSUE_FIX_QID0_FOR_NON_QOS_ONLY
+//Removed: Disable HW sending QoS NULL. No BMU error
+#if 0
+//#ifndef VOLANS_HW_ISSUE_FIX_QID0_FOR_NON_QOS_ONLY
     if(tid == 1)
         tid = 2;
     else if(tid == 0)

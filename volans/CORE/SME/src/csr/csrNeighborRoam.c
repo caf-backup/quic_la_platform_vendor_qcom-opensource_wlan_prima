@@ -671,13 +671,11 @@ void csrNeighborRoamPreauthRspHandler(tpAniSirGlobal pMac, VOS_STATUS vosStatus)
             if(pEntry)
             {
                 pNeighborBssNode = GET_BASE_ADDR(pEntry, tCsrNeighborRoamBSSInfo, List);
+                /* Add the BSSID to pre-auth fail list */
+				status = csrNeighborRoamAddBssIdToPreauthFailList(pMac, pNeighborBssNode->pBssDescription->bssId);
+            	/* Now we can free this node */
+            	csrNeighborRoamFreeNeighborRoamBSSNode(pMac, pNeighborBssNode);
             }
-
-            /* Add the BSSID to pre-auth fail list */
-            status = csrNeighborRoamAddBssIdToPreauthFailList(pMac, pNeighborBssNode->pBssDescription->bssId);
-            /* Now we can free this node */
-            csrNeighborRoamFreeNeighborRoamBSSNode(pMac, pNeighborBssNode);
-
         }
 
         /* Issue preauth request for the same/next entry */

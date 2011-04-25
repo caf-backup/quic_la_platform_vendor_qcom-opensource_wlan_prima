@@ -816,6 +816,12 @@ limSendHalStartScanReq(tpAniSirGlobal pMac, tANI_U8 channelNum, tLimLimHalScanSt
     tpStartScanParams   pStartScanParam;
     tSirRetStatus       rc = eSIR_SUCCESS;
 
+    /**
+     * The Start scan request to be sent only if Start Scan is not already requested
+     */
+    if(pMac->lim.gLimHalScanState != eLIM_HAL_START_SCAN_WAIT_STATE) 
+    { 
+    
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pStartScanParam,
                                            sizeof(*pStartScanParam)))
     {
@@ -867,6 +873,12 @@ error:
     }
     pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
 
+    }
+    else
+    {
+        PELOGW(limLog(pMac, LOGW, FL("Invalid state for START_SCAN_REQ message=%d\n"), pMac->lim.gLimHalScanState);)
+    }
+
     return;
 }
 
@@ -875,6 +887,14 @@ void limSendHalEndScanReq(tpAniSirGlobal pMac, tANI_U8 channelNum, tLimLimHalSca
     tSirMsgQ            msg;
     tpEndScanParams     pEndScanParam;
     tSirRetStatus       rc = eSIR_SUCCESS;
+
+    /**
+     * The End scan request to be sent only if End Scan is not already requested or
+     * Start scan is not already requestd
+     */
+    if((pMac->lim.gLimHalScanState != eLIM_HAL_END_SCAN_WAIT_STATE)  &&
+       (pMac->lim.gLimHalScanState != eLIM_HAL_START_SCAN_WAIT_STATE))
+    { 
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pEndScanParam,
                                            sizeof(*pEndScanParam)))
@@ -925,6 +945,11 @@ error:
     }
     pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
     PELOGW(limLog(pMac, LOGW, FL("halPostMsgApi failed, error code %d\n"), rc);)
+    }
+    else
+    {
+        PELOGW(limLog(pMac, LOGW, FL("Invalid state for END_SCAN_REQ message=%d\n"), pMac->lim.gLimHalScanState);)
+    }
 
     return;
 }

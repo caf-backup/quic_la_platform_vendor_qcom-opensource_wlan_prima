@@ -4343,6 +4343,17 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
 
                 roamInfo.staId = HAL_STA_INVALID_IDX;
 
+                csrRoamSaveConnectedInfomation(pMac, sessionId, pProfile, pSirBssDesc, pIes);
+                    //Save WPA/RSN IE
+                csrRoamSaveSecurityRspIE(pMac, sessionId, pProfile->negotiatedAuthType, pSirBssDesc, pIes);
+
+                
+                // csrRoamStateChange also affects sub-state. Hence, csrRoamStateChange happens first and then
+                // substate change.
+                // Moving even save profile above so that below mentioned conditon is also met.
+                // JEZ100225: Moved to after saving the profile. Fix needed in main/latest
+                csrRoamStateChange( pMac, eCSR_ROAMING_STATE_JOINED );
+
                 // Make sure the Set Context is issued before link indication to NDIS.  After link indication is 
                 // made to NDIS, frames could start flowing.  If we have not set context with LIM, the frames
                 // will be dropped for the security context may not be set properly. 
@@ -4405,13 +4416,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                         csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_NONE );
                     }
                 }
-                csrRoamSaveConnectedInfomation(pMac, sessionId, pProfile, pSirBssDesc, pIes);
-                    //Save WPA/RSN IE
-                csrRoamSaveSecurityRspIE(pMac, sessionId, pProfile->negotiatedAuthType, pSirBssDesc, pIes);
-
-                
-                // JEZ100225: Moved to after saving the profile. Fix needed in main/latest
-                csrRoamStateChange( pMac, eCSR_ROAMING_STATE_JOINED );
                 
                 assocInfo.pBssDesc = pSirBssDesc; //could be NULL
                 assocInfo.pProfile = pProfile;
@@ -4547,21 +4551,24 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                 palFreeMemory(pMac->hHdd, pMac->roam.handoffInfo.currSta.pBssDesc);
             }
 			palZeroMemory(pMac->hHdd, &pMac->roam.handoffInfo.currSta, sizeof(tCsrRoamHandoffStaEntry));
-			//Save bssid
-			csrGetBssIdBssDesc(pMac, pSirBssDesc, &pMac->roam.handoffInfo.currSta.bssid);
-            //save the bss Descriptor
-			bssLen = pSirBssDesc->length + sizeof(pSirBssDesc->length);
+            if (pSirBssDesc != NULL)
+            {
+                //Save bssid
+                csrGetBssIdBssDesc(pMac, pSirBssDesc, &pMac->roam.handoffInfo.currSta.bssid);
+                //save the bss Descriptor
+                bssLen = pSirBssDesc->length + sizeof(pSirBssDesc->length);
 
-            if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void **)&pTempBssDesc, bssLen)))
-			{
-			   smsLog(pMac, LOGE, "csrRoamProcessResults: couldn't allocate memory for the \
-					  bss Descriptor\n");
-			   return eANI_BOOLEAN_TRUE;
-			}
+                if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void **)&pTempBssDesc, bssLen)))
+                {
+                    smsLog(pMac, LOGE, "csrRoamProcessResults: couldn't allocate memory for the \
+                            bss Descriptor\n");
+                    return eANI_BOOLEAN_TRUE;
+                }
 
-			palZeroMemory(pMac->hHdd, pTempBssDesc, bssLen);
-			palCopyMemory(pMac->hHdd, pTempBssDesc, pSirBssDesc, bssLen);
-			pMac->roam.handoffInfo.currSta.pBssDesc = pTempBssDesc;
+                palZeroMemory(pMac->hHdd, pTempBssDesc, bssLen);
+                palCopyMemory(pMac->hHdd, pTempBssDesc, pSirBssDesc, bssLen);
+                pMac->roam.handoffInfo.currSta.pBssDesc = pTempBssDesc;
+            }
 #endif
             //Not to signal link up because keys are yet to be set.
             //The linkup function will overwrite the sub-state that we need to keep at this point.
@@ -6063,7 +6070,7 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
 #ifdef FEATURE_WLAN_GEN6_ROAMING
         //might need to add logic to make sure we get back to the old AP
         //update the scanlist & bssid
-        if( eCsrSmeIssuedAssocToSimilarAP == pCommand->u.roamCmd.roamReason)
+        if( pCommand && eCsrSmeIssuedAssocToSimilarAP == pCommand->u.roamCmd.roamReason)
         {
            //check if this is the retry for original AP case
            if(csrIsBssidMatch(pMac, (tCsrBssid *)&pMac->roam.handoffInfo.currSta.bssid, 
@@ -6401,6 +6408,13 @@ static void csrRoamingStateConfigCnfProcessor( tpAniSirGlobal pMac, tANI_U32 res
             }
             else
             {
+            	if (!pCommand->u.roamCmd.pRoamBssEntry)
+                {
+                    smsLog(pMac, LOGW, " pRoamBssEntry is NULL\n");
+                    //We need to complete the command
+                    csrRoamComplete(pMac, eCsrJoinFailure, NULL);
+                    return;
+                } 
                 // If we are roaming TO an Infrastructure BSS...
                 if ( csrIsInfraBssDesc( pBssDesc ) )
                 {
@@ -8190,7 +8204,10 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                     smsLog(pMac, LOGW, "  CSR eSIR_SME_IBSS_NEW_PEER connected BSS is empty\n");
                 }
                 //send up the sec type for the new peer
-                pRoamInfo->u.pConnectedProfile = &pSession->connectedProfile;
+                if (pRoamInfo)
+                {
+                	pRoamInfo->u.pConnectedProfile = &pSession->connectedProfile;
+                }	
                 csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, 
                             eCSR_ROAM_CONNECT_STATUS_UPDATE, eCSR_ROAM_RESULT_IBSS_NEW_PEER);
                 if(pRoamInfo)
@@ -8736,9 +8753,9 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
            roamInfo.staId = (tANI_U8)pDisassocIndMsg->staId;
        }else if( eWNI_SME_DEAUTH_IND == type ){
            //staMacAddr
-          palCopyMemory(pMac->hHdd, roamInfo.peerMac, pDeauthIndMsg->peerMacAddr, sizeof(tSirMacAddr));
-          roamInfo.staId = (tANI_U8)pDeauthIndMsg->staId;
-       }
+		    palCopyMemory(pMac->hHdd, roamInfo.peerMac, pDeauthIndMsg->peerMacAddr, sizeof(tSirMacAddr));
+            roamInfo.staId = (tANI_U8)pDeauthIndMsg->staId;
+        }
 #endif
         csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_LOSTLINK, result);
         csrScanStartIdleScan(pMac);

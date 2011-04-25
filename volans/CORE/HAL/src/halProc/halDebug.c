@@ -104,6 +104,7 @@ void halLog_DumpDeviceMemory(tpAniSirGlobal pMac,
 	    {
 	        HALLOGE( halLog(pMac, LOGE,
 	           FL("%s: Could not read device memory for dumping\n"), __FUNCTION__));
+            vos_mem_free(devBuffer);
 			return;
 	    }
 
@@ -116,10 +117,11 @@ void halLog_DumpDeviceMemory(tpAniSirGlobal pMac,
 	    {
 	        HALLOGE( halLog(pMac, LOGE, FL("0x%08x = 0x%08x\n"), (startAddr + (i * 4)), devBuffer[i]));
 	    }
+		vos_mem_free(devBuffer);
 	}
 	else
 	{
-	    HALLOGE( halLog(pMac, LOGE, FL("0x%08x = 0x%08x\n"), (startAddr + (i * 4)), devBuffer[i]));		
+	    HALLOGE( halLog(pMac, LOGE, FL(" Unable to allocate buffer, therefore unable to dump device memory \n")));
 	}
 	
     return;

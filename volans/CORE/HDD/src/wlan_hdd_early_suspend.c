@@ -574,6 +574,7 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
    if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) {
       if(eConnectionState_Associated == pAdapter->conn_info.connState) {
          hdd_conf_mcastbcast_filter(pAdapter, TRUE);
+         halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME, pAdapter->pvosContext), FALSE);
       }
    }
    
@@ -637,6 +638,7 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
    if(pAdapter->hdd_mcastbcast_filter_set == TRUE) {
          hdd_conf_mcastbcast_filter(pAdapter, FALSE);
          pAdapter->hdd_mcastbcast_filter_set = FALSE;
+         halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME, pAdapter->pvosContext), TRUE);
    }
 
    sd_release_host(sdio_func_dev);

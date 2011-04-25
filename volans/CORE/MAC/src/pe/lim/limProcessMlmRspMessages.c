@@ -3771,7 +3771,6 @@ void limProcessSwitchChannelRsp(tpAniSirGlobal pMac,  void *body)
     pChnlParams = (tpSwitchChannelParams) body;
     status = pChnlParams->status;
     peSessionId = pChnlParams->peSessionId;
-    palFreeMemory( pMac->hHdd, (tANI_U8 *)body);
     if((psessionEntry = peFindSessionBySessionId(pMac, peSessionId))== NULL)
     {
        limLog(pMac, LOGP, FL("session does not exist for given sessionId\n"));
@@ -3782,7 +3781,7 @@ void limProcessSwitchChannelRsp(tpAniSirGlobal pMac,  void *body)
     //Store this value to use in TPC report IE.
     rrmCacheMgmtTxPower( pMac, pChnlParams->txMgmtPower, psessionEntry );
 #endif
-
+    palFreeMemory( pMac->hHdd, (tANI_U8 *)body);
     channelChangeReasonCode = psessionEntry->channelChangeReasonCode;
     // initialize it back to invalid id
     psessionEntry->channelChangeReasonCode = 0xBAD;

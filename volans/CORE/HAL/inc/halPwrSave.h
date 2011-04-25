@@ -347,6 +347,7 @@ void halPSFWHeartBeatCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSBcnFilterCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSRssiMonitorCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSRfSettlingTimeClk(tpAniSirGlobal pMac, tANI_U32 cfgId);
+void halPSAppsCpuWakeupState( tpAniSirGlobal pMac, tANI_U32 isAppsAwake );
 void halPSNullDataAPProcessDelay( tpAniSirGlobal pMac, tANI_U32 cfgId );
 
 /* Set host offload configuration in firmware */

@@ -605,13 +605,13 @@ eHalStatus halWriteRegister(tHalHandle hHal, tANI_U32 regAddr, tANI_U32 regValue
 eHalStatus halWriteDeviceMemory( tHalHandle hHal, tANI_U32 dstOffset, void *pSrcBuffer, tANI_U32 numBytes )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
-    return pMac->hal.funcWriteMem(pMac->hHdd, dstOffset, (tANI_U8 *)pSrcBuffer, numBytes);
+    return pMac->hal.funcWriteMem(hHal, dstOffset, (tANI_U8 *)pSrcBuffer, numBytes);
 }
 
 eHalStatus halReadDeviceMemory( tHalHandle hHal, tANI_U32 srcOffset, void *pBuffer, tANI_U32 numBytes )
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
-    return pMac->hal.funcReadMem(pMac->hHdd, srcOffset, pBuffer, numBytes);
+    return pMac->hal.funcReadMem(hHal, srcOffset, pBuffer, numBytes);
 }
 
 eHalStatus halFillDeviceMemory( tHalHandle hHal, tANI_U32 memOffset, tANI_U32 numBytes, tANI_BYTE fillValue )

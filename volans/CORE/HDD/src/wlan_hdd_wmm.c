@@ -79,7 +79,7 @@ const v_U8_t hddWmmUpToAcMap[] = {
    WLANTL_AC_VO
 };
 //Linux based UP -> AC Mapping
-static const v_U8_t hddLinuxUpToAcMap[8] = {
+const v_U8_t hddLinuxUpToAcMap[8] = {
    HDD_LINUX_AC_BE,
    HDD_LINUX_AC_BK,
    HDD_LINUX_AC_BK,

@@ -1542,6 +1542,7 @@ end:
     if(pSmeJoinReq)
     {
         palFreeMemory( pMac->hHdd, pSmeJoinReq);
+		pSmeJoinReq=NULL;
     }
 
     if(retCode != eSIR_SME_SUCCESS)
@@ -3127,11 +3128,14 @@ void limProcessSmeGetAssocSTAsInfo(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
 limAssocStaEnd:
     // Call hdd callback with sap event to send the list of associated stations from PE
-    sapEvent.sapHddEventCode = eSAP_ASSOC_STA_CALLBACK_EVENT;
-    sapEvent.sapevt.sapAssocStaListEvent.module = VOS_MODULE_ID_PE;
-    sapEvent.sapevt.sapAssocStaListEvent.noOfAssocSta = staCount;
-    sapEvent.sapevt.sapAssocStaListEvent.pAssocStas = (tpSap_AssocMacAddr)getAssocSTAsReq.pAssocStasArray;
-    pSapEventCallback(&sapEvent, getAssocSTAsReq.pUsrContext);
+    if (pSapEventCallback != NULL)
+    {
+    	sapEvent.sapHddEventCode = eSAP_ASSOC_STA_CALLBACK_EVENT;
+    	sapEvent.sapevt.sapAssocStaListEvent.module = VOS_MODULE_ID_PE;
+    	sapEvent.sapevt.sapAssocStaListEvent.noOfAssocSta = staCount;
+    	sapEvent.sapevt.sapAssocStaListEvent.pAssocStas = (tpSap_AssocMacAddr)getAssocSTAsReq.pAssocStasArray;
+    	pSapEventCallback(&sapEvent, getAssocSTAsReq.pUsrContext);
+    }
 }
 /**
  * limProcessSmeGetWPSPBCSessions

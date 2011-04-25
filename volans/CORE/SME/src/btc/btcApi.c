@@ -1718,7 +1718,7 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
        }
         if( BT_MAX_SCO_SUPPORT == i )
         {
-            pMac->btc.btcUapsdOk = VOS_TRUE;
+            pMac->btc.fA2DPTrafStop = VOS_TRUE;
             smsLog( pMac, LOGE, "BT_EVENT_A2DP_STREAM_STOP: UAPSD-allowed flag is now %d\n",
                    		pMac->btc.btcUapsdOk );
         }
@@ -1739,12 +1739,15 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
             }
             if( BT_MAX_SCO_SUPPORT == i )
             {
-
-             pMac->btc.btcUapsdOk = VOS_TRUE;
+				if(VOS_TRUE == pMac->btc.fA2DPTrafStop)
+				{						
+					pMac->btc.btcUapsdOk = VOS_TRUE;
+					pMac->btc.fA2DPTrafStop = VOS_FALSE;
+				}
              smsLog( pMac, LOGE, "BT_EVENT_MODE_CHANGED with Mode:%d UAPSD-allowed flag is now %d\n",
                     pBtEvent->uEventParam.btAclModeChange.mode,pMac->btc.btcUapsdOk );
-         }
-	     }
+            }
+	  }
          break;
    case BT_EVENT_SYNC_CONNECTION_COMPLETE:
 	   smsLog( pMac, LOGE, "BT_EVENT_SYNC_CONNECTION_COMPLETE (%d) happens, UAPSD-allowed flag (%d) change to FALSE \n", 
@@ -1780,6 +1783,7 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
    case BT_EVENT_A2DP_STREAM_START:
        smsLog( pMac, LOGE, "BT_EVENT_A2DP_STREAM_START (%d) happens, UAPSD-allowed flag (%d) change to FALSE \n", 
                 pBtEvent->btEventType, pMac->btc.btcUapsdOk );
+	   pMac->btc.fA2DPTrafStop = VOS_FALSE;
        pMac->btc.btcUapsdOk = VOS_FALSE;
 	   pMac->btc.fA2DPUp = VOS_TRUE;
        break;

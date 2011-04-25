@@ -75,9 +75,10 @@ extern eHalStatus halPrepareForBmpsExit(tpAniSirGlobal pMac);
 #ifdef WLAN_SOFTAP_FEATURE
 static eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId);
 #endif
-static
+static 
 eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId);
 static eHalStatus halHandleDynamicPsPollValue(tpAniSirGlobal pMac, tANI_U32 cfgId);
+static eHalStatus halHandleTelescopicBeaconWakeupSetting(tpAniSirGlobal pMac, tANI_U32 cfgId);
 
 /* Constant Macros */
 /* Redefine OFF -> __OFF, ON-> __ON to avoid redefinition on AMSS */
@@ -140,7 +141,6 @@ tANI_BOOLEAN halIsSelfHtCapable(tpAniSirGlobal pMac)
     tpStaStruct pSta;
     if(NULL == pMac)
     {
-        HALLOGP( halLog(pMac, LOGP, FL("pMac is NULL\n")));
         return eANI_BOOLEAN_FALSE;
     }
     pSta = (tpStaStruct)pMac->hal.halMac.staTable;
@@ -1009,26 +1009,28 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 
 #ifdef WLAN_SOFTAP_FEATURE
         case WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE:
-            halHandleEnableListenModeCfg(pMac, pMsg->bodyval);
+            halHandleEnableListenModeCfg(pMac, pMsg->bodyval);         
             break;
-#endif
+#endif  
                 case WNI_CFG_PS_ENABLE_RSSI_MONITOR:
                      halPSRssiMonitorCfg(pMac, pMsg->bodyval);
                      break;
-
+           
                 case WNI_CFG_MCAST_BCAST_FILTER_SETTING:
                      halHandleMcastBcastFilterSetting(pMac, pMsg->bodyval);
                    break;
-
+            
                 case WNI_CFG_DYNAMIC_PS_POLL_VALUE:
                    halHandleDynamicPsPollValue(pMac, pMsg->bodyval);
                    break;
-
-
+                case WNI_CFG_TELE_BCN_WAKEUP_EN:
+                   halHandleTelescopicBeaconWakeupSetting(pMac, pMsg->bodyval);
+                   break;
+       
                 case WNI_CFG_RF_SETTLING_TIME_CLK:
                       halPSRfSettlingTimeClk(pMac, pMsg->bodyval);
                       break;
-
+                
                case WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT:
                      halPSNullDataAPProcessDelay(pMac, pMsg->bodyval);
                      break;
@@ -1113,11 +1115,11 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
         case SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND:
             halMsg_UpdateProbeRspTemplate(pMac, (tpSendProbeRespParams)(pMsg->bodyptr));
             break;
-#if 0 //separate setting for ie bitmap for probeRsp. Not in use right now.
+#if 0 //separate setting for ie bitmap for probeRsp. Not in use right now.           
         case SIR_HAL_UPDATE_PROBE_RSP_IE_BITMAP_IND:
             halFW_UpdateProbeRspIeBitmap(pMac, (tpUpdateProbeRspIeBitmap)(pMsg->bodyptr));
             break;
-#endif
+#endif            
 #endif
 
         case SIR_HAL_INIT_CFG_REQ:
@@ -1308,7 +1310,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
         case SIR_HAL_BEACON_PRE_IND:
             halMsg_BeaconPre(pMac);
             break;
-#endif
+#endif 
 
         case SIR_HAL_STA_STAT_REQ:
         case SIR_HAL_AGGR_STAT_REQ:
@@ -1592,7 +1594,7 @@ eHalStatus halSetNewChannelParams(tpAniSirGlobal pMac)
     halRxp_setChannel(pMac, pMac->hphy.setChanCntx.newChannel);
 
 #ifdef FIXME_VOLANS
-    //In Volans FPGA netlist 37, there is an issue related to CCA extension found. If this bit is set while BA session is to be setup,
+    //In Volans FPGA netlist 37, there is an issue related to CCA extension found. If this bit is set while BA session is to be setup, 
     //upstream traffic stopped and it seems TPE blocked. VI/HW team is working on this now. Disable CCA extension for now.
     // Configure Rxp when doing channel switch
     halRxp_setOperatingRfBand(pMac, pMac->hphy.setChanCntx.newRfBand);
@@ -1826,8 +1828,11 @@ eHalStatus hal_SendDummyFinishScan(tpAniSirGlobal pMac)
     // then will need fixes for multi-bss support
     assert (systemRole != eSYSTEM_MULTI_BSS_ROLE)
 
-    palAllocateMemory(pMac->hHdd, (void*)pFinishScanParam, sizeof(tFinishScanParams));
-
+    if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void*)pFinishScanParam, sizeof(tFinishScanParams))));
+    {
+		HALLOGE(halLog(pMac, LOGE, FL("Allocating pFinishScanParam Failed\n")));
+		return eHAL_STATUS_FAILURE;
+	}	
     palZeroMemory(pMac->hHdd, (void *)pFinishScanParam, sizeof(tFinishScanParams));
     palCopyMemory(pMac->hHdd, (void *)&pFinishScanParam->bssid, (void *)pSta[0].bssId, 6);
 
@@ -2212,7 +2217,84 @@ halTlPostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 #endif
 }
 
-static
+static 
+eHalStatus halHandleTelescopicBeaconWakeupSetting(tpAniSirGlobal pMac, tANI_U32 cfgId)
+{
+    tANI_U32 teleBcnEn, val, cfgIdx;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgId, &teleBcnEn))
+    {
+        HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+        return eHAL_STATUS_FAILURE;
+    }
+    else
+    {    
+        HALLOGE( halLog(pMac, LOGE, FL("**** teleBcnEn=%d ****\n"), teleBcnEn));
+        pMac->hal.teleBcnWakeupEnable = (tANI_BOOLEAN)teleBcnEn;
+    }
+
+    if (teleBcnEn) {
+
+        cfgIdx = WNI_CFG_TELE_BCN_TRANS_LI;
+        if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgIdx, &val))
+        {
+           HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+           return eHAL_STATUS_FAILURE;
+        }
+        else
+        {  
+           HALLOGE( halLog(pMac, LOGE, FL("**** TELEBCN_TRANS_LI=%d ****\n"), val));
+           pMac->hal.transListenInterval = (tANI_U16)val;
+        }
+
+        cfgIdx = WNI_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS;
+        if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgIdx, &val))
+        {
+           HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+           return eHAL_STATUS_FAILURE;
+        }
+        else
+        {    
+           HALLOGE( halLog(pMac, LOGE, FL("**** TELEBCN_TRANS_LI_IDLE_BCNS=%d ****\n"), val));
+           pMac->hal.uTransLiNumIdleBeacons = (tANI_U16)val;
+        }
+
+        cfgIdx = WNI_CFG_TELE_BCN_MAX_LI;
+        if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgIdx, &val))
+        {
+           HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+           return eHAL_STATUS_FAILURE;
+        }
+        else
+        {    
+           HALLOGE( halLog(pMac, LOGE, FL("**** TELEBCN_MAX_LI=%d ****\n"), val));
+           pMac->hal.maxListenInterval = (tANI_U16)val;
+        }
+
+
+        cfgIdx = WNI_CFG_TELE_BCN_MAX_LI_IDLE_BCNS;
+       if(eSIR_SUCCESS != wlan_cfgGetInt(pMac, (tANI_U16)cfgIdx, &val))
+       {
+          HALLOGP( halLog(pMac, LOGP, FL("Get cfg id (%d) failed \n"), cfgId));
+          return eHAL_STATUS_FAILURE;
+       }
+       else
+       {    
+          HALLOGE( halLog(pMac, LOGE, FL("**** WNI_CFG_TELE_BCN_MAX_LI_IDLE_BCNS=%d ****\n"), val));
+          pMac->hal.uMaxLiNumIdleBeacons = (tANI_U16)val;
+       }
+    
+    } else {
+       pMac->hal.maxListenInterval = 0;
+       pMac->hal.transListenInterval = 0;
+
+    }
+     
+    return status;
+}
+
+static 
 eHalStatus halHandleDynamicPsPollValue(tpAniSirGlobal pMac, tANI_U32 cfgId)
 {
     tANI_U32 val;
@@ -2224,10 +2306,10 @@ eHalStatus halHandleDynamicPsPollValue(tpAniSirGlobal pMac, tANI_U32 cfgId)
         return eHAL_STATUS_FAILURE;
     }
     else
-    {
+    {    
         pMac->hal.dynamicPsPollValue = (tANI_BOOLEAN)val;
     }
-
+    
     return status;
 }
 
@@ -2251,16 +2333,16 @@ eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId)
         return eHAL_STATUS_FAILURE;
     }
     else
-    {
-        pMac->hal.ghalPhyAgcListenMode = (tANI_U8)val;
+    {    
+        pMac->hal.ghalPhyAgcListenMode = (tANI_U8)val;   
     }
-
+    
     return status;
 }
 
 /** ------------------------------------------------------------------------
 \fn     halEnableListenMode
-\brief  hal API to configure listen mode (disable or enable Listen mode
+\brief  hal API to configure listen mode (disable or enable Listen mode 
 \       with EDET threshold settings).
 \param  tpAniSirGlobal pMac
 \param  tANI_U8 listenModeEnableParams
@@ -2269,10 +2351,10 @@ eHalStatus halHandleEnableListenModeCfg(tpAniSirGlobal pMac, tANI_U32 cfgId)
 eHalStatus halEnableListenMode(tpAniSirGlobal pMac, tANI_U8 listenModeEnableParams)
 {
     eHalStatus status;
-
-    if (listenModeEnableParams <= QWLAN_RFAPB_BBF_SAT5_EGY_THRES_IN_MASK)
+    
+    if (listenModeEnableParams <= QWLAN_RFAPB_BBF_SAT5_EGY_THRES_IN_MASK) 
     {
-        status = halPhyAGCEnableListenMode(pMac, listenModeEnableParams);
+        status = halPhyAGCEnableListenMode(pMac, listenModeEnableParams); 
     }
     else
     {
@@ -2282,7 +2364,7 @@ eHalStatus halEnableListenMode(tpAniSirGlobal pMac, tANI_U8 listenModeEnablePara
     return status;
 }
 #endif
-static
+static 
 eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId)
 {
     tANI_U32 val;
@@ -2294,9 +2376,9 @@ eHalStatus halHandleMcastBcastFilterSetting(tpAniSirGlobal pMac, tANI_U32 cfgId)
         return eHAL_STATUS_FAILURE;
     }
     else
-    {
+    {    
         pMac->hal.mcastBcastFilterSetting = (tANI_BOOLEAN)val;
     }
-
+    
     return status;
 }

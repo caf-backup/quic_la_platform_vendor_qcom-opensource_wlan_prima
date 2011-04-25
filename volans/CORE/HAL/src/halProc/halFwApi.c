@@ -291,6 +291,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
 #ifdef WLAN_SOFTAP_FEATURE
     pFwConfig->ucApLinkMonitorMsec = QWLANFW_AP_LINK_MONITOR_TIMEOUT_MSEC;
     pFwConfig->ucUnknownAddr2CreditIntvMsec = QWLANFW_UNKNOWN_ADDR2_NOTIFCATION_INTERVAL_MS;
+    pFwConfig->ucapUapsdSendQoSNullDataMsec = QWLANFW_AP_SEND_QOS_NULLDATA_TIMEOUT_MSEC;
 #endif
     pFwConfig->usBdPduOffset = QWLANFW_NUM_BDPDU_THRESHOLD;
 
@@ -323,7 +324,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             1/* Uses 6 gain settings from process monitor table which are associated with Tx gain LUTs */,
 
             1/* Channel Tune after cal */,
-            1/* Temperature Measure Periodically */,
+            0/* Temperature Measure Periodically */,
             1/* Temperature Measure at Init */,
             0/* Tx DPD */,
             0/* CLPC Temp Adjustment */,
@@ -374,7 +375,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             0/* CLPC Temp Adjustment */,
             0/* Tx DPD */,
             1/* Temperature Measure at Init */,
-            1/* Temperature Measure Periodically */,
+            0/* Temperature Measure Periodically */,
             1/* Channel Tune after cal */,
 
             1/* Uses 6 gain settings from process monitor table which are associated with Tx gain LUTs */,
@@ -382,6 +383,14 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             1/* Channel Number to tune to after cal */
 #endif
         };
+
+#ifndef WLAN_FTM_STUB
+        //Disable periodic temp measurement for FTM driver.
+        if (pMac->gDriverType == eDRIVER_TYPE_MFG)
+        {
+            calControl.tempMeasurePeriodic = 0;
+        }
+#endif
 
         if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS1))
         {

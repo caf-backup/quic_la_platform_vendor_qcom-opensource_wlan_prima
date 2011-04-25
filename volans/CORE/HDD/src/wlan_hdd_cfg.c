@@ -1324,6 +1324,13 @@ This is a Verizon required feature.
                   CFG_DYNAMIC_PSPOLL_VALUE_MIN,
                   CFG_DYNAMIC_PSPOLL_VALUE_MAX ),
 
+   REG_VARIABLE( CFG_TELE_BCN_WAKEUP_EN_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, teleBcnWakeupEn,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_TELE_BCN_WAKEUP_EN_DEFAULT,
+                  CFG_TELE_BCN_WAKEUP_EN_MIN,
+                  CFG_TELE_BCN_WAKEUP_EN_MAX ),
+
     REG_VARIABLE( CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_NAME , WLAN_PARAM_Integer,
                   hdd_config_t, AddTSWhenACMIsOff, 
                   VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
@@ -2394,6 +2401,13 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 		fStatus = FALSE;
         hddLog(LOGE,"Failure: Could not pass on WNI_CFG_SINGLE_TID_RC configuration info to CCM\n"  );
      }
+
+     if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_TELE_BCN_WAKEUP_EN, pConfig->teleBcnWakeupEn, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_TELE_BCN_WAKEUP_EN configuration info to CCM\n"  );
+	 }
 
     if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RF_SETTLING_TIME_CLK, pConfig->rfSettlingTimeUs,
         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)

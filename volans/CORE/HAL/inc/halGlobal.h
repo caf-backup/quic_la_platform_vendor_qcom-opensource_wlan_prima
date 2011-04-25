@@ -368,6 +368,12 @@ typedef struct sAniSirHal
     tANI_U8         mcastBcastFilterSetting;
     tANI_U8         dynamicPsPollValue;
 
+    tANI_U8         teleBcnWakeupEnable;
+    tANI_U16        transListenInterval;
+    tANI_U16        maxListenInterval;
+    tANI_U16        uTransLiNumIdleBeacons;
+    tANI_U16        uMaxLiNumIdleBeacons;
+
     // Device CardID. The cardID is used by the bus driver to identify the
     // device version. We are using it here to differentiate between different
     // chip versions within the same chip family (volans_1_0, volans_2_0 etc)

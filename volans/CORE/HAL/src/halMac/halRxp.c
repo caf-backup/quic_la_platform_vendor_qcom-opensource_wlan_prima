@@ -2478,13 +2478,16 @@ void halRxpDbg_PrintSearchTable(tpAniSirGlobal pMac)
     tpRxpInfo pRxp = GET_RXP_INFO(pMac);
 
     HALLOGW( halLog(pMac, LOGW, FL("\n===============\nAddress 1 Table\n===============\n")));
-    print_table(pMac, pRxp->addr1_table, pRxp->addr1.numOfEntry);
+    if (pRxp != NULL)
+	{
+    	print_table(pMac, pRxp->addr1_table, pRxp->addr1.numOfEntry);
 
-    HALLOGW(halLog(pMac, LOGW, FL("\n===============\nAddress 2 Table\n===============\n")));
-    print_table(pMac, pRxp->addr2_table, pRxp->addr2.numOfEntry);
+    	HALLOGW(halLog(pMac, LOGW, FL("\n===============\nAddress 2 Table\n===============\n")));
+    	print_table(pMac, pRxp->addr2_table, pRxp->addr2.numOfEntry);
 
-    HALLOGW( halLog(pMac, LOGW, FL("\n===============\nAddress 3 Table\n===============\n")));
-    print_table(pMac, pRxp->addr3_table, pRxp->addr3.numOfEntry);
+    	HALLOGW( halLog(pMac, LOGW, FL("\n===============\nAddress 3 Table\n===============\n")));
+    	print_table(pMac, pRxp->addr3_table, pRxp->addr3.numOfEntry);
+    }
 }
 
 /* -------------------------------------------------
@@ -3449,6 +3452,12 @@ void halRxp_setBssRxpFilterMode(tpAniSirGlobal pMac,
                 // update PM state for the associated station based on PM bit in the probeReq frame received.
                 value = (RXP_VERSION|RXP_NAV_SET|RXP_ADDR1_BLOCK_MULTICAST|RXP_ADDR1_FILTER|RXP_FCS|RXP_ROUTING_FLAG_SEL);
                 halRxp_setFrameFilterMask(pMac, eMGMT_PROBE_REQ, value);
+
+                halReadRegister(pMac,  QWLAN_RXP_CONFIG2_REG,  &value );
+                value &= ~(QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_MASK);
+                value |= QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_OVERWRITE_ENABLE_MASK |
+                         (BMUWQ_FW_RECV_EXCEPTION << QWLAN_RXP_CONFIG2_DEFAULT_PUSH_WQ_OFFSET);
+                halWriteRegister(pMac,  QWLAN_RXP_CONFIG2_REG,  value );
                 break;
             }
         case eRXP_PROMISCUOUS_MODE:

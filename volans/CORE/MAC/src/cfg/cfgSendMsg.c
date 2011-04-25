@@ -12,6 +12,7 @@
 #include "palTypes.h"
 #include "cfgPriv.h"
 #include "limTrace.h"
+#include "cfgDebug.h"
 
 
 /*--------------------------------------------------------------------*/
@@ -68,6 +69,14 @@ cfgSendHostMsg(tpAniSirGlobal pMac, tANI_U16 msgType, tANI_U32 msgLen, tANI_U32 
     ((tSirMbMsg*)pMsg)->type   = msgType;
     ((tSirMbMsg*)pMsg)->msgLen = (tANI_U16)msgLen;
 #endif
+
+   if ( paramNum > 0 && (pParamList == NULL))
+   {
+       PELOGE(cfgLog(pMac, LOGE, FL("pParamList cannot be NULL for paramNum gearter than 0!\n"));)
+       palFreeMemory( pMac->hHdd, pMsg);
+       return;    
+   }
+
     switch (msgType)
     {
         case WNI_CFG_GET_RSP:

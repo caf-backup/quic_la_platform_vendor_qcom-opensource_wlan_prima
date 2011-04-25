@@ -663,9 +663,15 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32  bBcnMissFastPath        : 1;
    tANI_U32  bBcnMissMLC             : 1;
    tANI_U32  bTimBasedDisAssocEna    : 1;
-   tANI_U32  bReserved5              : 17;
+   tANI_U32  bTelescopicBcnWakeupEn  : 1;
+   tANI_U32  bTeleBcnWakeupAppsAwake : 1;
+   tANI_U32  bBcMcFilterSetting      : 3;
+   tANI_U32  bReserved5              : 12;
 #else
-   tANI_U32  bReserved5              : 17;
+   tANI_U32  bReserved5              : 12;
+   tANI_U32  bBcMcFilterSetting      : 3;
+   tANI_U32  bTeleBcnWakeupAppsAwake : 1;
+   tANI_U32  bTelescopicBcnWakeupEn  : 1;
    tANI_U32  bTimBasedDisAssocEna    : 1;
    tANI_U32  bBcnMissMLC             : 1;
    tANI_U32  bBcnMissFastPath        : 1;
@@ -844,9 +850,11 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #endif
     tANI_U32 ucApLinkMonitorMsec; //link monitoring timer interval
     tANI_U32 ucUnknownAddr2CreditIntvMsec; //interval at which unkown addr2 credit will be reset to max.
+    tANI_U32 ucapUapsdSendQoSNullDataMsec;
     tANI_U32 uBssTableOffset;
     tANI_U32 uStaTableOffset;
 #endif
+
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32   nullDataApRespTimeoutMsec: 8;
    tANI_U32   bReserved12      : 24;
@@ -861,6 +869,24 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32   usTxbbFilterMode          : 16;
    tANI_U32   usOfdmCmdPwrOffset        : 16;
 #endif
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32   ucTransListenInterval  : 16; //Transient Listen Interval
+   tANI_U32   ucMaxListenInterval    : 16; //Max Listen Interval
+#else
+   tANI_U32   ucMaxListenInterval    : 16;
+   tANI_U32   ucTransListenInterval  : 16;
+#endif
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32   uTransLiNumIdleBeacons  : 16; //Num Idle Beacons to go to transLI
+   tANI_U32   uMaxLiNumIdleBeacons    : 16; //Num Idle Beacons to go to MaxLI
+#else
+   tANI_U32   uMaxLiNumIdleBeacons    : 16; 
+   tANI_U32   uTransLiNumIdleBeacons  : 16; 
+#endif
+
+   tANI_U32   isAppsCpuAwake;
 } Qwlanfw_SysCfgType;
 
 

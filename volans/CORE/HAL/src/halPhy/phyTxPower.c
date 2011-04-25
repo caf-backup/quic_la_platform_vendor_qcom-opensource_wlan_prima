@@ -853,7 +853,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                         }
                     }
 
-                    if (pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
+                    //if (pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
                     {
                         absPwr -= pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset;
                     }
@@ -901,7 +901,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                         }
                     }
 
-                    if (pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
+                    //if (pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
                     {
                         absPwr -= pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset;
                     }
