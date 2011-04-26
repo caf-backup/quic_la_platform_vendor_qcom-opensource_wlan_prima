@@ -57,6 +57,8 @@ extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
 #endif
 extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 
+static int iw_qcom_get_wlan_stats(struct net_device *dev, struct iw_request_info *info,
+        union iwreq_data *wrqu, char *extra);
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_NONE    (SIOCIWFIRSTPRIV + 0)
@@ -116,6 +118,38 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 #define WAPI_PSK_AKM_SUITE  0x02721400
 #define WAPI_CERT_AKM_SUITE 0x01721400
 #endif
+
+
+#define WLAN_PRIV_GET_WLAN_STATS         (SIOCIWFIRSTPRIV + 22)
+
+#define WLAN_STATS_INVALID            0
+#define WLAN_STATS_RETRY_CNT          1
+#define WLAN_STATS_MUL_RETRY_CNT      2
+#define WLAN_STATS_TX_FRM_CNT         3
+#define WLAN_STATS_RX_FRM_CNT         4
+#define WLAN_STATS_FRM_DUP_CNT        5
+#define WLAN_STATS_FAIL_CNT           6
+#define WLAN_STATS_RTS_FAIL_CNT       7
+#define WLAN_STATS_ACK_FAIL_CNT       8
+#define WLAN_STATS_RTS_SUC_CNT        9
+#define WLAN_STATS_RX_DISCARD_CNT     10
+#define WLAN_STATS_RX_ERROR_CNT       11
+#define WLAN_STATS_TX_BYTE_CNT        12
+
+#define FILL_TLV(__p, __type, __size, __val, __tlen) \
+{\
+    if (tlen < WE_MAX_STR_LEN) \
+    {\
+        *__p++ = __type;\
+        *__p++ = __size;\
+        memcpy(__p, __val, __size);\
+        __p += __size;\
+        __tlen += __size + 2;\
+    }\
+    else \
+        return -1;\
+}while(0);
+
 
 /* To Validate Channel against the Frequency and Vice-Versa */
 static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2}, 
@@ -3066,6 +3100,124 @@ static int iw_qcom_get_wapi_bkid(struct net_device *dev, struct iw_request_info 
 }
 #endif /* FEATURE_WLAN_WAPI */
 
+
+static int iw_qcom_get_wlan_stats(struct net_device *dev, struct iw_request_info *info,
+        union iwreq_data *wrqu, char *extra)
+{
+    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    hdd_wext_state_t *pWextState;
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    char *p = (char*)wrqu->data.pointer;
+    int tlen = 0;
+    tCsrSummaryStatsInfo *pStats = &(pAdapter->hdd_stats.summary_stat);
+    ENTER();
+
+    if (pAdapter->isLogpInProgress) {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+        return status;
+    }
+
+    if(eConnectionState_Associated != pAdapter->conn_info.connState) {
+        wrqu->data.length = 0;
+    }
+    else {
+        status = sme_GetStatistics( pAdapter->hHal, eCSR_HDD, 
+                SME_SUMMARY_STATS      |
+                SME_GLOBAL_CLASSA_STATS |
+                SME_GLOBAL_CLASSB_STATS |
+                SME_GLOBAL_CLASSC_STATS |
+                SME_GLOBAL_CLASSD_STATS |
+                SME_PER_STA_STATS,
+                hdd_StatisticsCB, 0, FALSE, 
+                pAdapter->conn_info.staId[0], pAdapter );
+
+        if(eHAL_STATUS_SUCCESS != status)
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD sme_GetStatistics failed!!\n"));
+            return status;
+        }
+
+        pWextState = pAdapter->pWextState;
+
+        vos_status = vos_wait_single_event(&pWextState->vosevent, 1000);
+
+        if (!VOS_IS_STATUS_SUCCESS(vos_status))
+        { 
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos wait for single_event failed!!\n"));
+            return VOS_STATUS_E_FAILURE;
+        }
+
+
+        FILL_TLV(p, (tANI_U8)WLAN_STATS_RETRY_CNT,  
+                (tANI_U8) sizeof (pStats->retry_cnt), 
+                (char*) &(pStats->retry_cnt[0]), 
+                tlen);
+
+        FILL_TLV(p, (tANI_U8)WLAN_STATS_MUL_RETRY_CNT, 
+                (tANI_U8) sizeof (pStats->multiple_retry_cnt), 
+                (char*) &(pStats->multiple_retry_cnt[0]),
+                tlen);
+
+        FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_FRM_CNT, 
+                (tANI_U8) sizeof (pStats->tx_frm_cnt), 
+                (char*) &(pStats->multiple_retry_cnt[0]), 
+                tlen);
+
+        FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_FRM_CNT, 
+                (tANI_U8) sizeof (pStats->rx_frm_cnt),
+                (char*) &(pStats->rx_frm_cnt), 
+                tlen);
+
+        FILL_TLV(p, (tANI_U8)WLAN_STATS_FRM_DUP_CNT, 
+                (tANI_U8) sizeof (pStats->frm_dup_cnt), 
+                (char*) &(pStats->frm_dup_cnt), 
+                tlen);
+
+        FILL_TLV(p, (tANI_U8)WLAN_STATS_FAIL_CNT, 
+                (tANI_U8) sizeof (pStats->fail_cnt), 
+                (char*) &(pStats->fail_cnt[0]), 
+                tlen);
+
+        FILL_TLV(p, (tANI_U8)WLAN_STATS_RTS_FAIL_CNT, 
+                (tANI_U8) sizeof (pStats->rts_fail_cnt), 
+                (char*) &(pStats->rts_fail_cnt), 
+                tlen);
+
+        FILL_TLV(p, (tANI_U8)WLAN_STATS_ACK_FAIL_CNT, 
+                (tANI_U8) sizeof (pStats->ack_fail_cnt), 
+                (char*) &(pStats->ack_fail_cnt), 
+                tlen);
+
+        FILL_TLV(p, (tANI_U8)WLAN_STATS_RTS_SUC_CNT, 
+                (tANI_U8) sizeof (pStats->rts_succ_cnt), 
+                (char*) &(pStats->rts_succ_cnt), 
+                tlen);
+
+        FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_DISCARD_CNT, 
+                (tANI_U8) sizeof (pStats->rx_discard_cnt), 
+                (char*) &(pStats->rx_discard_cnt), 
+                tlen);
+
+        FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_ERROR_CNT, 
+                (tANI_U8) sizeof (pStats->rx_error_cnt), 
+                (char*) &(pStats->rx_error_cnt), 
+                tlen);
+
+        FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_BYTE_CNT, 
+                (tANI_U8) sizeof (pStats->tx_byte_cnt), 
+                (char*) &(pStats->tx_byte_cnt), 
+                tlen);
+
+        wrqu->data.length = tlen;
+    }
+
+
+    EXIT();
+    return vos_status;
+}
+
+
 // Define the Wireless Extensions to the Linux Network Device structure
 // A number of these routines are NULL (meaning they are not implemented.) 
 
@@ -3148,6 +3300,8 @@ static const iw_handler we_private[] = {
    [WLAN_PRIV_SET_WAPI_BKID             - SIOCIWFIRSTPRIV]  = iw_qcom_set_wapi_bkid,
    [WLAN_PRIV_GET_WAPI_BKID             - SIOCIWFIRSTPRIV]  = iw_qcom_get_wapi_bkid,
 #endif /* FEATURE_WLAN_WAPI */
+  
+   [WLAN_PRIV_GET_WLAN_STATS            - SIOCIWFIRSTPRIV]  = iw_qcom_get_wlan_stats,
 };
 
 /*Maximum command length can be only 15 */
