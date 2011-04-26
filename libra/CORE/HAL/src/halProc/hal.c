@@ -3865,11 +3865,6 @@ void halPhy_HandleSetChannelRsp(tHalHandle hHal,  void* pFwMsg)
     // Resume to the context of the caller
     pSetChanCtx->pFunc(pMac, pSetChanCtx->pData, status, pSetChanCtx->dialog_token);
 
-    /* Assign Memory Pointer and Function pointer to NULL in pSetChanCtx 
-     * after calling the corresponding Callback on response from FW */
-    pSetChanCtx->pData = NULL;
-    pSetChanCtx->pFunc = NULL;
-
     return;
 #endif //LIBRA_RF
 }
