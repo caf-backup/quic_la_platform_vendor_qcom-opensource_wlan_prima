@@ -329,9 +329,5 @@ void halPSFWHeartBeatCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSBcnFilterCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSRssiMonitorCfg( tpAniSirGlobal pMac, tANI_U32 cfgId );
 void halPSRfSettlingTimeClk( tpAniSirGlobal pMac, tANI_U32 cfgId );
-void halPSAppsCpuWakeupState( tpAniSirGlobal pMac, tANI_U32 isAppsAwake );
-
-/* Set host offload configuration in firmware */
-eHalStatus halPS_SetHostOffloadInFw(tpAniSirGlobal pMac, tpSirHostOffloadReq pRequest);
 
 #endif //_HALPWRSAVE_H_

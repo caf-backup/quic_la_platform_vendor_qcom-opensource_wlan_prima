@@ -336,13 +336,6 @@ typedef struct sAniSirHal
 #endif    
     tANI_U8         mcastBcastFilterSetting;
     tANI_U8         dynamicPsPollValue;
-
-    tANI_U8         teleBcnWakeupEnable;
-    tANI_U16        transListenInterval;
-    tANI_U16        maxListenInterval;
-    tANI_U16        uTransLiNumIdleBeacons;
-    tANI_U16        uMaxLiNumIdleBeacons;
-
 } tAniSirHal, *tpAniSirHal;
 
 /* Invalid operating channel. Used during startup */

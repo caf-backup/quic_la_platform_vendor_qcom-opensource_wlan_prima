@@ -24,7 +24,7 @@
 #include <csrApi.h>
 
 //Number of items that can be configured
-#define MAX_CFG_INI_ITEMS   150
+#define MAX_CFG_INI_ITEMS   128
 
 // Defines for all of the things we read from the configuration (registry).
 
@@ -922,57 +922,6 @@ typedef enum
 #define CFG_DYNAMIC_PSPOLL_VALUE_MIN           (0)
 #define CFG_DYNAMIC_PSPOLL_VALUE_MAX           (255)
 #define CFG_DYNAMIC_PSPOLL_VALUE_DEFAULT       (0)
-
-#define CFG_TELE_BCN_WAKEUP_EN_NAME            "gTelescopicBeaconWakeupEn"
-#define CFG_TELE_BCN_WAKEUP_EN_MIN             (0)
-#define CFG_TELE_BCN_WAKEUP_EN_MAX             (1)
-#define CFG_TELE_BCN_WAKEUP_EN_DEFAULT         (0)
-
-// WSC 2.0 configuration items
-#define CFG_WPS_REQUEST_TYPE_NAME              "gWpsRequestType"
-#define CFG_WPS_REQUEST_TYPE_MIN               (0)
-#define CFG_WPS_REQUEST_TYPE_MAX               (4)
-#define CFG_WPS_REQUEST_TYPE_DEFAULT           (1)
-
-#define CFG_WPS_CONFIG_METHOD_NAME             "gWpsConfigMethod"
-#define CFG_WPS_CONFIG_METHOD_MIN              (0)
-#define CFG_WPS_CONFIG_METHOD_MAX              (0xffff)
-#define CFG_WPS_CONFIG_METHOD_DEFAULT          (0x228c)
-
-#define CFG_WPS_UUID_E_NAME                    "gWpsUUID_E"
-#define CFG_WPS_UUID_E_DEFAULT                 "123456789ABCDEF0"
-
-#define CFG_WPS_PRIMARY_DEVICE_CATEGORY_NAME   "gWpsPrimayDeviceCategory"
-#define CFG_WPS_PRIMARY_DEVICE_CATEGORY_MIN     (0)
-#define CFG_WPS_PRIMARY_DEVICE_CATEGORY_MAX     (11)
-#define CFG_WPS_PRIMARY_DEVICE_CATEGORY_DEFAULT (10)
-
-#define CFG_WPS_DEVICE_SUB_CATEGORY_NAME        "gWpsDeviceSubCategory"
-#define CFG_WPS_DEVICE_SUB_CATEGORY_MIN         (0)
-#define CFG_WPS_DEVICE_SUB_CATEGORY_MAX         (10)
-#define CFG_WPS_DEVICE_SUB_CATEGORY_DEFAULT     (4)
-
-#define CFG_WPS_DEVICE_PASSWORD_ID_NAME        "gWpsDevicePasswordId"
-#define CFG_WPS_DEVICE_PASSWORD_ID_MIN         (0)
-#define CFG_WPS_DEVICE_PASSWORD_ID_MAX         (5)
-#define CFG_WPS_DEVICE_PASSWORD_ID_DEFAULT     (0)
-
-#define CFG_WPS_MANUFACTURER_NAME              "gWpsManufacturer"
-#define CFG_WPS_MANUFACTURER_DEFAULT           "Qualcomm"
-
-#define CFG_WPS_MODEL_NAME_NAME                "gWpsModelName"
-#define CFG_WPS_MODEL_NAME_DEFAULT             "MSM7630"
-
-#define CFG_WPS_MODEL_NUMBER_NAME              "gWpsModelNumber"
-#define CFG_WPS_MODEL_NUMBER_DEFAULT           "v1.0"
-
-#define CFG_WPS_DEVICE_NAME_NAME               "gWpsDeviceName"
-#define CFG_WPS_DEVICE_NAME_DEFAULT            "FFA"
-
-#define CFG_WPS_SERIAL_NUMBER_NAME             "gWpsSerialNumber"
-#define CFG_WPS_SERIAL_NUMBER_DEFAULT          "123456"
-
-
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1197,24 +1146,6 @@ typedef struct
    v_U8_t                      mcastBcastFilterSetting;
    
    v_U8_t                      dynamicPsPollValue;
-
-   v_BOOL_t                    teleBcnWakeupEn;
-
-   /* WSC configuration field. Only used when this field is not given by supplicant */
-   v_U8_t                      WpsRequestType;
-   v_U16_t                     WpsConfigMethod;
-   v_U8_t                      WpsUUID_E[16];
-
-   v_U8_t                      WpsPrimayDeviceCategory;
-   v_U8_t                      WpsDeviceSubCategory;
-   v_U8_t                      WpsDevicePasswordId;
-   
-   v_U8_t                      WpsManufacturer[64+1];
-   v_U8_t                      WpsModelName[32+1];
-   v_U8_t                      WpsModelNumber[32+1];
-   v_U8_t                      WpsDeviceName[32+1];
-   v_U8_t                      WpsSerialNumber[32+1];
-
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

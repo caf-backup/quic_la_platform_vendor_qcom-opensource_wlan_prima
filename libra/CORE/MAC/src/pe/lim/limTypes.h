@@ -664,7 +664,7 @@ void limProcessActionFrame(tpAniSirGlobal, tANI_U32 *,tpPESession);
 
 
 tSirRetStatus limPopulateBD(tpAniSirGlobal, tANI_U8*, tANI_U8, tANI_U8, tSirMacAddr,tSirMacAddr);
-tSirRetStatus limSendProbeReqMgmtFrame(tpAniSirGlobal, tSirMacSSid *, tSirMacAddr, tANI_U8, tSirMacAddr, tANI_U32, tANI_U32, tANI_U8 *); 
+tSirRetStatus limSendProbeReqMgmtFrame(tpAniSirGlobal, tSirMacSSid *,tSirMacAddr, tANI_U8,tSirMacAddr, tANI_U32);
 void limSendProbeRspMgmtFrame(tpAniSirGlobal, tSirMacAddr, tpAniSSID, short, tANI_U8,tpPESession);
 void limSendAuthMgmtFrame(tpAniSirGlobal, tSirMacAuthFrameBody *, tSirMacAddr, tANI_U8,tpPESession);
 void limSendAssocReqMgmtFrame(tpAniSirGlobal, tLimMlmAssocReq *,tpPESession);
@@ -929,9 +929,7 @@ limPostMlmMessage(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsgBuf)
 static inline tANI_U8
 limGetCurrentScanChannel(tpAniSirGlobal pMac)
 {
-    tANI_U8 *pChanNum = (tANI_U8 *)pMac->lim.gpLimMlmScanReq;
-
-    pChanNum += pMac->lim.gpLimMlmScanReq->channelList.channelNumberOffset;
+    tANI_U8 *pChanNum = pMac->lim.gpLimMlmScanReq->channelList.channelNumber;
 
     return (*(pChanNum + pMac->lim.gLimCurrentScanChannelId));
 } /*** end limGetCurrentScanChannel() ***/

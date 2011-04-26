@@ -448,10 +448,9 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         limReceivedHBHandler(pMac, (tANI_U8)pBeacon->channelNumber, psessionEntry);
 
     if(sendProbeReq)
-        // don't need to include additional IE
         limSendProbeReqMgmtFrame(pMac, &psessionEntry->ssId,
             psessionEntry->bssId, psessionEntry->currentOperChannel,psessionEntry->selfMacAddr,
-            psessionEntry->dot11mode, 0, NULL);
+            psessionEntry->dot11mode);
 
    PELOG2(schLog(pMac, LOG2, "Received Beacon's SeqNum=%d\n",
            (pMh->seqControl.seqNumHi << 4) | (pMh->seqControl.seqNumLo));)

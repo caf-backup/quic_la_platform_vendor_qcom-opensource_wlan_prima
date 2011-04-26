@@ -1400,8 +1400,7 @@ limContinueChannelLearn(tpAniSirGlobal pMac)
     {
         /// Prepare and send Probe Request frame
         ssId.length = 0;
-        /* for learning channel, we don't include any additional IE */
-        limSendProbeReqMgmtFrame(pMac, &ssId, bssId, chanNum,pMac->lim.gSelfMacAddr, 0 , NULL);
+        limSendProbeReqMgmtFrame(pMac, &ssId, bssId, chanNum,pMac->lim.gSelfMacAddr);
     }
 
     // Activate Learn duration timer during which

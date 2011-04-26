@@ -1021,12 +1021,11 @@ limCleanupMlm(tpAniSirGlobal pMac)
 
         pAuthNode = pMac->lim.gLimPreAuthTimerTable.pTable;
 
-        //Deactivate any Authentication response timers
-        limDeletePreAuthList(pMac);
-
 	for (n = 0; n < pMac->lim.gLimPreAuthTimerTable.numEntry; n++,pAuthNode++)
 	{
-		// Delete any Authentication response timers, which might have been started.
+		// Deactivate and delete any Authentication response
+		// timers, which might have been started.
+		tx_timer_deactivate(&pAuthNode->timer);
 		tx_timer_delete(&pAuthNode->timer);
 	}
 
@@ -1078,6 +1077,9 @@ limCleanupMlm(tpAniSirGlobal pMac)
 
     /// Cleanup cached scan list
     limReInitScanResults(pMac);
+
+    /// Cleanup Preauth list
+    limDeletePreAuthList(pMac);
 } /*** end limCleanupMlm() ***/
 
 

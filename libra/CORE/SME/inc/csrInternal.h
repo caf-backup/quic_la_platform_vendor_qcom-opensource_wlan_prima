@@ -297,8 +297,6 @@ typedef struct tagCsrRoamStartBssParams
 #endif
     tANI_U16            nRSNIELength;  //The byte count in the pRSNIE, if 0, pRSNIE is ignored.
     tANI_U8             *pRSNIE;     //If not null, it has the IE byte stream for RSN
-    tANI_U16            nWSCIELength;  //The byte count in the pWSCIE, if 0, pWSCIE is ignored.
-    tANI_U8             *pWSCIE;     //If not null, it has the IE byte stream for WSC
 }tCsrRoamStartBssParams;
 
 
@@ -715,8 +713,6 @@ typedef struct tagCsrRoamSession
     tANI_U32 nWapiRspIeLength;    //the byte count for pWapiRspIE
     tANI_U8 *pWapiRspIE;  //this contain the WAPI IE in beacon/probe rsp
 #endif /* FEATURE_WLAN_WAPI */
-    tANI_U32 nWscReqIeLength;   //the byte count of pWSCIE;
-    tANI_U8 *pWscReqIE; //this contain the WSC IE in assoc request or probe request 
     tANI_TIMESTAMP roamingStartTime;    //in units of 10ms
     tCsrTimerInfo roamingTimerInfo;
     eCsrRoamingReason roamingReason;

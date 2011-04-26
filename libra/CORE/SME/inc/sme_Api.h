@@ -1455,31 +1455,4 @@ eHalStatus sme_RoamUpdateAPWPARSNIEs(tHalHandle hHal, tANI_U8 sessionId, tSirRSN
 
 #endif
 
-/* ---------------------------------------------------------------------------
-    \fn sme_SetHostOffload
-    \brief  API to set the host offload feature.
-    \param  hHal - The handle returned by macOpen.
-    \param  pRequest -  Pointer to the offload request.
-    \return eHalStatus
-   ---------------------------------------------------------------------------*/
-eHalStatus sme_SetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest);
-
-
-/* ---------------------------------------------------------------------------
-
-    \fn sme_combineWSCIE
-
-    \brief To combine WPS IEs. pWscIe1 is input as well as output. 
-    if same parameters are present, pWscIe2's contents will overwrite pWscIe1's.
-
-    \param pSirWscIe - pointer to a caller allocated object of tSirWSCie with WPS IEs
-    \param pSirIe2 - pointer to new ie (wanting to be combined on top of WscIe)
-    \param pSirIe2Len - length of pSirIe2
-
-    \return eHalStatus - SUCCESS 
-
-
-  -------------------------------------------------------------------------------*/
-eHalStatus sme_combineWSCIE(tHalHandle hHal, tSirWSCie *pSirWscIe, tANI_U8 *pSirIe2, tANI_U32 pSirIe2Len);
-
 #endif //#if !defined( __SME_API_H )

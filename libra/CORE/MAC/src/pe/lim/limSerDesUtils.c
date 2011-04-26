@@ -1736,29 +1736,6 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
             return eSIR_FAILURE;
     }
 
-    // Extract WSC IE
-    pJoinReq->wscIE.length = limGetU16(pBuf);
-    pBuf += sizeof(tANI_U16);
-    len -= sizeof(tANI_U16);
-    if (pJoinReq->wscIE.length)
-    {
-        // Check for WSC IE length (that includes length of type & length)
-        if ((pJoinReq->wscIE.length > SIR_MAC_WSC_IE_MAX_LENGTH) ||
-             (pJoinReq->wscIE.length != (2 + *(pBuf + 1))))
-        {
-            limLog(pMac, LOGW,
-                   FL("Invalid WSC IE length %d/%d in SME_JOIN_REQ\n"),
-                   pJoinReq->wscIE.length, 2 + *(pBuf + 1));
-            return eSIR_FAILURE;
-        }
-        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->wscIE.wscIEdata,
-                      pBuf, pJoinReq->wscIE.length);
-        pBuf += pJoinReq->wscIE.length;
-        len  -= pJoinReq->wscIE.length; // skip WSC IE
-        if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
-            return eSIR_FAILURE;
-    }
-
     pJoinReq->MCEncryptionType = limGetU32(pBuf);
     pBuf += sizeof(tANI_U32);
     len -= sizeof(tANI_U32);

@@ -681,10 +681,9 @@ limProcessLearnIntervalTimeout(tpAniSirGlobal pMac)
                               (tANI_U32)(sizeof(tLimMlmScanReq) + WNI_CFG_VALID_CHANNEL_LIST_LEN ));
 
         len = WNI_CFG_VALID_CHANNEL_LIST_LEN;
-        pMlmScanReq->channelList.channelNumberOffset = sizeof(tLimMlmScanReq);
         if (wlan_cfgGetStr(pMac, WNI_CFG_VALID_CHANNEL_LIST,
-                      (tANI_U8*)pMlmScanReq+pMlmScanReq->channelList.channelNumberOffset,
-                      &len) != eSIR_SUCCESS)
+                        pMlmScanReq->channelList.channelNumber,
+                        &len) != eSIR_SUCCESS)
         {
             limLog(pMac, LOGP,
                   FL("could not retrieve Valid channel list\n"));

@@ -2417,7 +2417,7 @@ void csrSetCfgPrivacy( tpAniSirGlobal pMac, tCsrRoamProfile *pProfile, tANI_BOOL
     tANI_U32 PrivacyEnabled = 0;
     tANI_U32 RsnEnabled = 0;
     tANI_U32 WepDefaultKeyId = 0;
-    tANI_U32 WepKeyLength = WNI_CFG_WEP_KEY_LENGTH_5;   /* default 40 bits */
+    tANI_U32 WepKeyLength = 0;
     tANI_U32 Key0Length = 0;
     tANI_U32 Key1Length = 0;
     tANI_U32 Key2Length = 0;
@@ -4887,16 +4887,6 @@ eHalStatus csrRoamCopyProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pDstProfile,
             }
             pDstProfile->nRSNReqIELength = pSrcProfile->nRSNReqIELength;
             palCopyMemory(pMac->hHdd, pDstProfile->pRSNReqIE, pSrcProfile->pRSNReqIE, pSrcProfile->nRSNReqIELength);
-        }
-        if(pSrcProfile->nWSCReqIELength)
-        {
-            status = palAllocateMemory(pMac->hHdd, (void **)&pDstProfile->pWSCReqIE, pSrcProfile->nWSCReqIELength);
-            if(!HAL_STATUS_SUCCESS(status))
-            {
-                break;
-            }
-            pDstProfile->nWSCReqIELength = pSrcProfile->nWSCReqIELength;
-            palCopyMemory(pMac->hHdd, pDstProfile->pWSCReqIE, pSrcProfile->pWSCReqIE, pSrcProfile->nWSCReqIELength);
         }
 #ifdef FEATURE_WLAN_WAPI
         if(pSrcProfile->nWAPIReqIELength)
@@ -9241,8 +9231,6 @@ eHalStatus csrRoamIssueStartBss( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRo
     pParam->nRSNIELength = (tANI_U16)pProfile->nRSNReqIELength;
     pParam->pRSNIE = pProfile->pRSNReqIE;
 
-    pParam->nWSCIELength = (tANI_U16)pProfile->nWSCReqIELength;
-    pParam->pWSCIE = pProfile->pWSCReqIE;
 
 #ifdef WLAN_SOFTAP_FEATURE
     pParam->privacy           = pProfile->privacy;
@@ -10005,7 +9993,7 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
     tSirMacRateSet ExRateSet;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
     tANI_U32 dwTmp;
-    tANI_U8 wpaRsnIE[SIR_MAC_WSC_IE_MAX_LENGTH+2]; // WSC MAX can be bigger than RSN_MAX
+    tANI_U8 wpaRsnIE[DOT11F_IE_RSN_MAX_LEN];    //RSN MAX is bigger than WPA MAX
 
 	do {
         pSession->joinFailStatusCode.statusCode = eSIR_SME_SUCCESS;
@@ -10199,52 +10187,6 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
             pBuf += 2;
         }
         
-        // wscIE
-        if( csrIsProfileWsc( pProfile ) )
-        {
-            // Insert the WSC IE into the join request
-            ieLen = csrRetrieveWscIe( pMac, sessionId, pProfile, (void *)( wpaRsnIE ) );
-        }
-        else
-        {
-            ieLen = 0;
-        }
-        //remember the IE for future use
-        if( ieLen )
-        {
-            //Check whether we need to allocate more memory
-            if(ieLen > pSession->nWscReqIeLength)
-            {
-                if(pSession->pWscReqIE && pSession->nWscReqIeLength)
-                {
-                    palFreeMemory(pMac->hHdd, pSession->pWscReqIE);
-                }
-                status = palAllocateMemory(pMac->hHdd, (void **)&pSession->pWscReqIE, ieLen);
-                if(!HAL_STATUS_SUCCESS(status)) break;
-            }
-            pSession->nWscReqIeLength = ieLen;
-            palCopyMemory(pMac->hHdd, pSession->pWscReqIE, wpaRsnIE, ieLen);
-            wTmp = pal_cpu_to_be16( ieLen );
-            palCopyMemory( pMac->hHdd, pBuf, &wTmp, sizeof(tANI_U16) );
-            pBuf += sizeof(tANI_U16);
-            palCopyMemory( pMac->hHdd, pBuf, wpaRsnIE, ieLen );
-            pBuf += ieLen;
-        }
-        else
-        {
-            //free whatever old info
-           pSession->nWscReqIeLength = 0;
-           if(pSession->pWscReqIE)
-           {
-               palFreeMemory(pMac->hHdd, pSession->pWscReqIE);
-               pSession->pWscReqIE = NULL;
-           }
-           //length is two bytes
-           *pBuf = 0;
-           *(pBuf + 1) = 0;
-           pBuf += 2;
-        }
-
         dwTmp = pal_cpu_to_be32( csrTranslateEncryptTypeToEdType( pProfile->negotiatedUCEncryptionType) );
         palCopyMemory( pMac->hHdd, pBuf, &dwTmp, sizeof(tANI_U32) );
         pBuf += sizeof(tANI_U32);        
@@ -10286,7 +10228,7 @@ eHalStatus csrSendSmeReassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
     tSirMacRateSet OpRateSet;
     tSirMacRateSet ExRateSet;
     tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
-    tANI_U8 wpaRsnIE[SIR_MAC_WSC_IE_MAX_LENGTH+2]; // WSC MAX can be bigger than RSN_MAX
+    tANI_U8 wpaRsnIE[DOT11F_IE_RSN_MAX_LEN];    //RSN MAX is bigger than WPA MAX
 
     /* To satisfy klockworks */
     if (pBssDescription == NULL)
@@ -10445,52 +10387,6 @@ eHalStatus csrSendSmeReassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
             *(pBuf + 1) = 0;
             pBuf += 2;
 		}
-
-        // wscIE
-        if( csrIsProfileWsc( pProfile ) )
-        {
-            // Insert the WSC IE into the join request
-            ieLen = csrRetrieveWscIe( pMac, sessionId, pProfile, (void *)( wpaRsnIE ) );
-        }
-        else
-        {
-            ieLen = 0;
-        }
-        //remember the IE for future use
-        if( ieLen )
-        {
-            //Check whether we need to allocate more memory
-            if(ieLen > pSession->nWscReqIeLength)
-            {
-                if(pSession->pWscReqIE && pSession->nWscReqIeLength)
-                {
-                    palFreeMemory(pMac->hHdd, pSession->pWscReqIE);
-                }
-                status = palAllocateMemory(pMac->hHdd, (void **)&pSession->pWscReqIE, ieLen);
-                if(!HAL_STATUS_SUCCESS(status)) break;
-            }
-            pSession->nWscReqIeLength = ieLen;
-            palCopyMemory(pMac->hHdd, pSession->pWscReqIE, wpaRsnIE, ieLen);
-            wTmp = pal_cpu_to_be16( ieLen );
-            palCopyMemory( pMac->hHdd, pBuf, &wTmp, sizeof(tANI_U16) );
-            pBuf += sizeof(tANI_U16);
-            palCopyMemory( pMac->hHdd, pBuf, wpaRsnIE, ieLen );
-            pBuf += ieLen;
-        }
-        else
-        {
-            //free whatever old info
-            pSession->nWscReqIeLength = 0;
-            if(pSession->pWscReqIE)
-            {
-                palFreeMemory(pMac->hHdd, pSession->pWscReqIE);
-                pSession->pWscReqIE = NULL;
-            }
-            //length is two bytes
-            *pBuf = 0;
-            *(pBuf + 1) = 0;
-            pBuf += 2;
-        }
 
         //Unmask any AC in reassoc that is ACM-set
         uapsd_mask = (v_U8_t)pProfile->uapsd_mask;

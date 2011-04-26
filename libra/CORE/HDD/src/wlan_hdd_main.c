@@ -132,12 +132,9 @@ struct notifier_block hdd_netdev_notifier = {
 /*--------------------------------------------------------------------------- 
  *   Function definitions
  *-------------------------------------------------------------------------*/
-extern int isWDresetInProgress(void);
 #ifdef CONFIG_HAS_EARLYSUSPEND
 extern void register_wlan_suspend(void);
 extern void unregister_wlan_suspend(void);
-void hdd_unregister_mcast_bcast_filter(hdd_adapter_t *pAdapter);
-void hdd_register_mcast_bcast_filter(hdd_adapter_t *pAdapter);
 #endif
 
 #ifdef WLAN_SOFTAP_FEATURE
@@ -744,9 +741,6 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-   hdd_unregister_mcast_bcast_filter(pAdapter);
-#endif
    //Close VOSS
    vos_close(pVosContext);
 
@@ -1306,9 +1300,6 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       goto err_nl_srv;
    }
 
-#ifdef CONFIG_HAS_EARLYSUSPEND
-   hdd_register_mcast_bcast_filter(pAdapter);
-#endif
    //Trigger the initial scan
    hdd_wlan_initial_scan(pAdapter);
 
@@ -1567,7 +1558,6 @@ static void __exit hdd_module_exit(void)
 {   
    hdd_adapter_t *pAdapter = NULL;
    v_CONTEXT_t pVosContext = NULL;
-   int attempts = 0;
 
    hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Entering module exit",__func__);
 
@@ -1589,14 +1579,11 @@ static void __exit hdd_module_exit(void)
    }
    else
    {
-      while(isWDresetInProgress()){
-         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:Reset in Progress by LOGP. Block rmmod for 500ms!!!",__func__);
+      if (pAdapter->isLogpInProgress) {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Block rmmod!!!",__func__);
          VOS_ASSERT(0);
-         msleep(500);
-         attempts++;
-         if(attempts==MAX_EXIT_ATTEMPTS_DURING_LOGP)
-           break;
-       }
+         msleep(3000);
+      } 
 
       //Get the HDD context.
       pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
