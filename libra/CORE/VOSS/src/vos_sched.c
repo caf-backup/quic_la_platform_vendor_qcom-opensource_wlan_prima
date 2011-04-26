@@ -496,6 +496,19 @@ VosMCThread
       "%s: MC Thread exiting!!!!", __FUNCTION__);
   complete_and_exit(&pSchedContext->McShutdown, 0);
 } /* VosMCThread() */
+
+/*---------------------------------------------------------------------------
+  \brief isWDresetInProgress - To send value of resetInProgress in WDcontext
+  \return the value of pWdContext->resetInProgress
+  -------------------------------------------------------------------------*/
+
+int isWDresetInProgress(void)
+{
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                "%s: Reset is in Progress...",__func__);
+   return gpVosWatchdogContext->resetInProgress;
+}
+
 /*---------------------------------------------------------------------------
   \brief VosWdThread() - The VOSS Watchdog thread
   The \a VosWdThread() is the Watchdog thread:

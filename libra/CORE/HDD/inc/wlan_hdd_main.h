@@ -71,6 +71,7 @@
 #else
 #define WLAN_HDD_GET_PRIV_PTR(__dev__) (hdd_adapter_t*)(netdev_priv((__dev__)))
 #endif
+#define MAX_EXIT_ATTEMPTS_DURING_LOGP 6
 typedef struct hdd_tx_rx_stats_s
 {
    // start_xmit stats
