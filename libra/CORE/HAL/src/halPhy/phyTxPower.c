@@ -803,23 +803,6 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm a
                 }
             }
 
-            //CLPC fix for RMA parts
-            {
-                tPowerDetect p127_3 = (tPowerDetect)(pMac->hphy.phyTPC.combinedBands.pwrInterp[0][PHY_TX_CHAIN_0][TPC_MEM_POWER_LUT_DEPTH - 1]);
-                tPowerDetect p127_9 = (tPowerDetect)(pMac->hphy.phyTPC.combinedBands.pwrInterp[1][PHY_TX_CHAIN_0][TPC_MEM_POWER_LUT_DEPTH - 1]);
-                if((p127_3 >= 112/*16dBm*/) && (p127_9 >= 112/*16dBm*/))
-                {
-                 //No change
-                }
-                else
-                {
-                    tPowerDetect pout_max = (p127_9 < p127_3) ? p127_9 : p127_3;//set maximum Pout for ALL channels to min(P127_9, P127_3)
-                    if(relPwr > pout_max)
-                    {
-                        relPwr = pout_max;
-                    }
-                }
-            }
 
             //need to shift the 7-bit absPower to a 5-bit number which is used in the power template
             relPwr = (tPwrTemplateIndex)(relPwr >> 2);
