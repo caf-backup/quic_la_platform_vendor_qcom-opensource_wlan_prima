@@ -2586,9 +2586,11 @@ tANI_U8 csrGetOUIIndexFromCipher( eCsrEncryptionType enType )
         switch ( enType )
         {
             case eCSR_ENCRYPT_TYPE_WEP40:
+            case eCSR_ENCRYPT_TYPE_WEP40_STATICKEY:
                 OUIIndex = CSR_OUI_WEP40_OR_1X_INDEX;
                 break;
             case eCSR_ENCRYPT_TYPE_WEP104:
+            case eCSR_ENCRYPT_TYPE_WEP104_STATICKEY:
                 OUIIndex = CSR_OUI_WEP104_INDEX;
                 break;
             case eCSR_ENCRYPT_TYPE_TKIP:
