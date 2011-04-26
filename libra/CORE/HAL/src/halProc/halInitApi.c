@@ -462,6 +462,10 @@ halStart(
         {
             HALLOGP( halLog(pMac, LOGP, FL("halIntChipEnable failed\n")));
         }
+        else
+        {
+            halStateSet(pMac, eHAL_SYS_READY);
+        }
 
     }
 #endif
@@ -486,10 +490,10 @@ eHalStatus halStop( tHalHandle hHal , tHalStopType stopType )
 
     // Disable interrupts from SIF
     if (!vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) {
-        status = halIntChipDisable( hHal );
+    status = halIntChipDisable( hHal );
 
-        if ( ! HAL_STATUS_SUCCESS( status ) )
-            nReturn = status;
+    if ( ! HAL_STATUS_SUCCESS( status ) )
+        nReturn = status;
     }
 
     /** Disable all default interrupt services.*/
@@ -508,7 +512,7 @@ eHalStatus halStop( tHalHandle hHal , tHalStopType stopType )
 #endif
 
     if (!vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) {
-        halPS_ExecuteStandbyProcedure(pMac);
+    halPS_ExecuteStandbyProcedure(pMac);
     }
 
     halCleanup( pMac );
@@ -546,7 +550,7 @@ eHalStatus halReset(tHalHandle hHal, tANI_U32 rc)
 	
    vos_chipReset(NULL, VOS_FALSE, NULL, NULL, resetReason);
 	
-   return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 /*

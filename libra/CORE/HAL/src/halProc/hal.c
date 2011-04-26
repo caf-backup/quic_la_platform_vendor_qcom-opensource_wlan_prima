@@ -2870,15 +2870,15 @@ tSirRetStatus halProcessMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 
     // If hal state is IDLE, do not process any messages.
     // free the body pointer and return success
-    if(pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
-    {
+    //if(pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
+    //{
     if(eHAL_IDLE == halStateGet(pMac)) {
         if(pMsg->bodyptr) {
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
         }
         return eSIR_SUCCESS;
     }
-    }
+    //}
 
 #ifndef WLAN_FTM_STUB
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)
