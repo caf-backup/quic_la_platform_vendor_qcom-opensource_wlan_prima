@@ -4444,8 +4444,7 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tCsrScanRequest *pScanReq, tSc
     tANI_U8 selfMacAddr[WNI_CFG_BSSID_LEN];
     tANI_U8 *pSelfMac;
 
-    msgLen = (tANI_U16)(sizeof( tSirSmeScanReq ) - sizeof( pMsg->channelList.channelNumber ) + 
-		               ( sizeof( pMsg->channelList.channelNumber ) * pScanReq->ChannelInfo.numOfChannels ));
+    msgLen = (tANI_U16)(sizeof( tSirSmeScanReq ) + pScanReq->ChannelInfo.numOfChannels + pScanReq->uIEFieldLen);
     status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, msgLen);
     if(HAL_STATUS_SUCCESS(status))
     {
@@ -4547,13 +4546,30 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tCsrScanRequest *pScanReq, tSc
         //Always ask for unique result
         pMsg->returnUniqueResults = pScanReqParam->fUniqueResult;
         pMsg->channelList.numChannels = (tANI_U8)pScanReq->ChannelInfo.numOfChannels;
-        if(pScanReq->ChannelInfo.numOfChannels)
+
+        // add varialbe length of msg
+        pMsg->channelList.channelNumberOffset = sizeof(tSirSmeScanReq);
+        
+        if(pScanReq->ChannelInfo.numOfChannels) 
         {
             //Assuming the channelNumber is tANI_U8 (1 byte)
-            status = palCopyMemory(pMac->hHdd, pMsg->channelList.channelNumber, pScanReq->ChannelInfo.ChannelList, 
-                                    pScanReq->ChannelInfo.numOfChannels);
+            status = palCopyMemory(pMac->hHdd, (tANI_U8 *)pMsg+pMsg->channelList.channelNumberOffset, \
+                pScanReq->ChannelInfo.ChannelList, \
+                pScanReq->ChannelInfo.numOfChannels);
+            if(HAL_STATUS_SUCCESS(status))
+                goto error;
         }
-
+            
+        pMsg->uIEFieldLen = (tANI_U16) pScanReq->uIEFieldLen;
+        pMsg->uIEFieldOffset = pMsg->channelList.channelNumberOffset + pScanReq->ChannelInfo.numOfChannels; 
+        if(pScanReq->uIEFieldLen != 0) 
+        {
+            status = palCopyMemory(pMac->hHdd, (tANI_U8 *)pMsg+pMsg->uIEFieldOffset, \
+                pScanReq->pIEField,  pScanReq->uIEFieldLen);
+            //if(!HAL_STATUS_SUCCESS(status))
+            //    goto error;
+        }
+error:
 	    if(HAL_STATUS_SUCCESS(status))
         {
             status = palSendMBMessage(pMac->hHdd, pMsg);

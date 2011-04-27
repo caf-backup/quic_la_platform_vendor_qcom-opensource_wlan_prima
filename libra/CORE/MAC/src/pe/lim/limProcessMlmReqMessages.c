@@ -210,9 +210,12 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
 
        
         /// Prepare and send Probe Request frame
+        // include additional IE if there is
         if (limSendProbeReqMgmtFrame( pMac, &pMac->lim.gpLimMlmScanReq->ssId,
                pMac->lim.gpLimMlmScanReq->bssId, channelNum, pMac->lim.gSelfMacAddr, 
-               pMac->lim.gpLimMlmScanReq->dot11mode)
+               pMac->lim.gpLimMlmScanReq->dot11mode, 
+               pMac->lim.gpLimMlmScanReq->uIEFieldLen, 
+               (tANI_U8 *)(pMac->lim.gpLimMlmScanReq)+pMac->lim.gpLimMlmScanReq->uIEFieldOffset)
             != eSIR_SUCCESS)
         {
             PELOGE(limLog(pMac, LOGE, FL("send ProbeReq failed for channel: %d\n"), channelNum);)
@@ -1572,9 +1575,12 @@ limProcessMlmJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
             limLog(pMac, LOGP, FL("could not retrive SSID\n"));
         ssId.length = (tANI_U8) cfgLen;
 
+        // include additional IE if there is
         limSendProbeReqMgmtFrame( pMac, &ssId,
                pMac->lim.gpLimMlmJoinReq->bssDescription.bssId, chanNum, pMac->lim.gSelfMacAddr, 
-               pMac->lim.gpLimMlmScanReq->dot11mode);
+               pMac->lim.gpLimMlmScanReq->dot11mode, 
+               pMac->lim.gpLimMlmScanReq->uIEFieldLen, 
+               (tANI_U8 *)(pMac->lim.gpLimMlmScanReq)+pMac->lim.gpLimMlmScanReq->uIEFieldOffset);
 #endif  
         limSetChannel(pMac, psessionEntry->pLimMlmJoinReq->bssDescription.titanHtCaps,
                                                                 chanNum, psessionEntry->peSessionId);                                                                

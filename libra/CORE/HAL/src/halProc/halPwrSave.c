@@ -46,6 +46,8 @@
 #include <mach/gpio.h>
 #endif
 
+#define QWLAN_MAX_LISTEN_INTERVAL_TU 600
+
 /* Static Functions */
 static void halPS_FwRspTimeoutFunc(void* pData);
 //static void halPS_HandleFwRspTimeout(tpAniSirGlobal pMac, tANI_U16 rspType);
@@ -1289,22 +1291,24 @@ void halPS_ComputeListenInterval(tANI_U8 dtim, tANI_U16 listenIntv,
  *      eHAL_STATUS_SUCCESS
  *      eHAL_STATUS_FAILURE
  */
-eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod)
+eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod, tANI_U8 bssIdx)
 {
     eHalStatus status = eHAL_STATUS_FAILURE;
     tHalFwParams *pFw = &pMac->hal.FwParam;
-    tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;
     Qwlanfw_SysCfgType *pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
     tANI_U16 listenInterval = (tANI_U16)pFwConfig->ucListenInterval;
+    tANI_U16 transListenInterval = (tANI_U16)pMac->hal.transListenInterval;
+    tANI_U16 maxListenInterval = (tANI_U16)pMac->hal.maxListenInterval;
+    tANI_U16 bcnIntervalTU;
     tANI_U8 filterPeriod=0;
+
+    halTable_GetBeaconIntervalForBss(pMac, (tANI_U8)bssIdx, &bcnIntervalTU);
 
     // Compute the Listen interval based on DTIM period, to align
     // the LI with the DTIM period. Basically LI should be multiple of
     // DTIM. This would be done only if ignoreDtim is not set.
-    if (!pHalPwrSave->ignoreDtim) {
         halPS_ComputeListenInterval(dtimPeriod, (tANI_U16)pFwConfig->ucListenInterval, 0,
                 &listenInterval);
-    }
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
     {
@@ -1318,6 +1322,48 @@ eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod)
 
     pFwConfig->ucListenInterval = listenInterval;
     pFwConfig->ucDtimPeriod     = dtimPeriod;
+    pFwConfig->bBcMcFilterSetting     = pMac->hal.mcastBcastFilterSetting;
+
+    /*Telescopic Beacon wakeup configuration*/
+    pFwConfig->bTelescopicBcnWakeupEn = pMac->hal.teleBcnWakeupEnable;
+    pFwConfig->ucTransListenInterval=0;
+    pFwConfig->ucMaxListenInterval=0;
+
+    if ((maxListenInterval <= transListenInterval) || (maxListenInterval <= listenInterval))
+        maxListenInterval = 0;
+
+    if (transListenInterval <= listenInterval) {
+        transListenInterval = maxListenInterval;
+        maxListenInterval = 0;   
+    }
+
+    /* From this point transLi will be less than
+     * maxLI due to above nullifying on top.
+     */
+    if((transListenInterval * bcnIntervalTU) > QWLAN_MAX_LISTEN_INTERVAL_TU) {
+        transListenInterval = 0;
+        maxListenInterval = 0;   
+    }
+
+    if((maxListenInterval * bcnIntervalTU) > QWLAN_MAX_LISTEN_INTERVAL_TU) {
+        maxListenInterval = 0;   
+    }
+
+    /*Transient Listen Interval and its Idle time configuration*/
+    if (pMac->hal.teleBcnWakeupEnable && transListenInterval) {
+        pFwConfig->ucTransListenInterval=transListenInterval;
+        pFwConfig->uTransLiNumIdleBeacons = pMac->hal.uTransLiNumIdleBeacons;
+    }
+
+    if (pMac->hal.teleBcnWakeupEnable && maxListenInterval) {
+        pFwConfig->ucMaxListenInterval=maxListenInterval;
+        pFwConfig->uMaxLiNumIdleBeacons = pMac->hal.uMaxLiNumIdleBeacons;
+    }
+
+    HALLOGE( halLog(pMac, LOGE, FL("Updating Telescopic params %x %x %x %x %x"), 
+                                   pFwConfig->bBcMcFilterSetting, pFwConfig->ucTransListenInterval,
+                                   pFwConfig->uTransLiNumIdleBeacons, pFwConfig->ucMaxListenInterval,
+                                   pFwConfig->uMaxLiNumIdleBeacons));
 
     if (pFwConfig->ucBeaconFilterPeriod) {
         filterPeriod = (tANI_U8)(((pFwConfig->ucBeaconFilterPeriod)/listenInterval)*listenInterval);
@@ -1333,6 +1379,15 @@ eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod)
         pFwConfig->uAirTimeComp = TBTT_COMPENSATION_2_4_GHZ;
     } else if (pMac->hal.currentRfBand == eRF_BAND_5_GHZ) {
         pFwConfig->uAirTimeComp = TBTT_COMPENSATION_5_GHZ;
+    }
+
+    // INFRA STA keep alive enable/disable.
+    if (pMac->hal.infraStaKeepAlivePeriod) {
+        pFwConfig->bStaKeepAliveEn = TRUE;
+        pFwConfig->ucStaKeepAlivePeriodSecs = pMac->hal.infraStaKeepAlivePeriod;
+    } else {
+        pFwConfig->bStaKeepAliveEn = FALSE;
+        pFwConfig->ucStaKeepAlivePeriodSecs = 0;
     }
 
     HALLOGE( halLog(pMac, LOGE, FL("Updating LI in FW to %d"), listenInterval));
@@ -1477,8 +1532,11 @@ eHalStatus halPS_HandleEnterBmpsReq(tpAniSirGlobal pMac, tANI_U16 dialogToken, t
     }
 #endif
 
+    /*Configure Apps CPU to Wakeup State*/
+    halPSAppsCpuWakeupState(pMac, TRUE);
+
     // Update power save related parameters in the FW sys config
-    halPS_UpdateFwSysConfig(pMac, pPeMsg->dtimPeriod);
+    halPS_UpdateFwSysConfig(pMac, pPeMsg->dtimPeriod, pPeMsg->bssIdx);
 
     // Compute the TSF of the DTIM beacon based on the current TSF and
     // the DTIM count
@@ -3762,6 +3820,97 @@ void halPSRssiMonitorCfg( tpAniSirGlobal pMac, tANI_U32 cfgId )
      return;
 }
 
+/*
+ * halPS_SetHostOffloadInFw
+ *
+ * DESCRIPTION:
+ *      Sets host offload configuration in firmware when set message
+ *      is received from PE
+ *
+ * PARAMETERS:
+ *      pMac:   Pointer to the global adapter context
+ *      pRequest: Pointer to offload request
+ *
+ * RETURN:
+ *      eHAL_STATUS_SUCCESS
+ *      eHAL_STATUS_FAILURE
+ *      return code from palAllocateMemory(), halFW_SendMsg()
+ */
+
+eHalStatus halPS_SetHostOffloadInFw(tpAniSirGlobal pMac, tpSirHostOffloadReq pRequest)
+{
+    Qwlanfw_HostOffloadReqType *pFwMsg;
+    eHalStatus status;
+
+    // Allocate memory for sending the message to FW
+    status = palAllocateMemory(pMac->hHdd, (void **)&pFwMsg, sizeof(Qwlanfw_HostOffloadReqType));
+    if (eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGE(halLog(pMac, LOGE, FL("palAllocateMemory() failed to return buffer (0x%x)\n"),
+                    status));
+        palFreeMemory(pMac->hHdd, pRequest);
+        return status;
+    }
+
+    pFwMsg->enableOrDisable = 0;
+
+    // Compose message
+    switch (pRequest->offloadType)
+    {
+        case SIR_IPV4_ARP_REPLY_OFFLOAD:
+            pFwMsg->offloadType = HOST_OFFLOAD_IPV4_ARP_REPLY;
+            switch (pRequest->enableOrDisable)
+            {
+                case SIR_OFFLOAD_DISABLE:
+                    pFwMsg->enableOrDisable = HOST_OFFLOAD_DISABLE;
+                    break;
+                case SIR_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE:
+                    pFwMsg->enableOrDisable |= HOST_OFFLOAD_BC_FILTER_ENABLE;
+                case SIR_OFFLOAD_ENABLE:
+                    pFwMsg->enableOrDisable |= HOST_OFFLOAD_ENABLE;
+                    palCopyMemory(pMac->hHdd, pFwMsg->params.hostIpv4Addr,
+                            pRequest->params.hostIpv4Addr, 4);
+                    sirSwapU32BufIfNeeded((tANI_U32 *)pFwMsg->params.hostIpv4Addr, 1);
+                    break;
+                default:
+                    HALLOGE(halLog(pMac, LOGE, 
+                                FL("Invalid option %d for ARP offload, disabling it by default!\n"),
+                                pRequest->enableOrDisable));
+                    pFwMsg->enableOrDisable = HOST_OFFLOAD_DISABLE;
+                    break;
+            }
+            break;
+        case SIR_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD:
+            pFwMsg->offloadType = HOST_OFFLOAD_IPV6_NEIGHBOR_DISCOVERY;
+            switch (pRequest->enableOrDisable)
+            {
+                case SIR_OFFLOAD_DISABLE:
+                    pFwMsg->enableOrDisable = HOST_OFFLOAD_DISABLE;
+                    break;
+                case SIR_OFFLOAD_ENABLE:
+                    pFwMsg->enableOrDisable = HOST_OFFLOAD_ENABLE;
+                    palCopyMemory(pMac->hHdd, pFwMsg->params.hostIpv6Addr,
+                            pRequest->params.hostIpv6Addr, 16);
+                    sirSwapU32BufIfNeeded((tANI_U32 *)pFwMsg->params.hostIpv6Addr, 4);
+            }
+    }
+
+    // Send message to FW
+    status = halFW_SendMsg(pMac, HAL_MODULE_ID_PWR_SAVE, QWLANFW_HOST2FW_SET_HOST_OFFLOAD, 0,
+            sizeof(Qwlanfw_HostOffloadReqType), pFwMsg, FALSE, NULL);
+    if (eHAL_STATUS_SUCCESS != status)
+    {
+        HALLOGE(halLog(pMac, LOGE, FL("Failed to send message to firmware (0x%x)\n"), status));
+    }
+
+    // Free FW data memory as it is copied to mailbox
+    palFreeMemory(pMac->hHdd, pFwMsg);
+
+    // There is no response required for this message
+    palFreeMemory(pMac->hHdd, pRequest);
+
+    return status;
+}
 
 
 
@@ -3807,3 +3956,19 @@ void halPSRfSettlingTimeClk( tpAniSirGlobal pMac, tANI_U32 cfgId )
      return;
 }
 
+void halPSAppsCpuWakeupState( tpAniSirGlobal pMac, tANI_U32 isAppsAwake )
+{
+    tANI_U32 offset = (tANI_U32)&((Qwlanfw_SysCfgType *)0)->isAppsCpuAwake;
+    tANI_U32 appsCpuWakeupState = isAppsAwake;
+    tHalFwParams *pFw = &pMac->hal.FwParam;
+    Qwlanfw_SysCfgType *pFwConfig;
+
+    pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
+    pFwConfig->isAppsCpuAwake = isAppsAwake;
+
+    // Update the sytem config
+    halFW_UpdateSystemConfig(pMac,
+                            pMac->hal.FwParam.fwSysConfigAddr + offset,
+                            (tANI_U8*)&appsCpuWakeupState, sizeof(tANI_U32));
+   return;
+}

@@ -499,25 +499,6 @@ VOS_STATUS WLANSAL_SetCardStatusNotfPath
    WLANSAL_NOTF_PATH_T   path
 );
 
-/*----------------------------------------------------------------------------
-
-   @brief Reinitialize LIBRA's SDIO core
-          Deep sleep status is same with turn off power
-          So, standard SDIO init procedure is needed
-
-   @param v_PVOID_t pAdapter
-        Global adapter handle
-
-   @return General status code
-        VOS_STATUS_SUCCESS       Update success
-        VOS_STATUS_E_RESOURCES   SAL resources are not ready
-        VOS_STATUS_E_INVAL       Invalid argument
-      
-----------------------------------------------------------------------------*/
-VOS_STATUS WLANSAL_SDIOReInit
-(
-   v_PVOID_t             pAdapter
-);
 
 /*----------------------------------------------------------------------------
 

@@ -707,6 +707,8 @@ typedef struct tagCsrRoamProfile
     tANI_U8 countryCode[WNI_CFG_COUNTRY_CODE_LEN];  //it is ignored if [0] is 0.
     /*WPS Association if true => auth and ecryption should be ignored*/
     tANI_BOOLEAN bWPSAssociation;
+    tANI_U32 nWSCReqIELength;   //The byte count in the pWSCReqIE
+    tANI_U8 *pWSCReqIE;   //If not null, it has the IE byte stream for WSC
 
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_U8 privacy;

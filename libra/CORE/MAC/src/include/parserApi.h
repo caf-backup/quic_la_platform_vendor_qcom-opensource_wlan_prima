@@ -742,11 +742,21 @@ tSirRetStatus DePopulateDot11fWscRegistrarInfoInProbeRes(tpAniSirGlobal pMac,
 tSirRetStatus PopulateDot11fWscInAssocRes(tpAniSirGlobal pMac,
                                           tDot11fIEWscAssocRes *pDot11f);
 
-tSirRetStatus PopulateDot11fWscAssocReq( tpAniSirGlobal        pMac,
-                                         tDot11fIEWscAssocReq *pDot11f );
+int IsDot11fWscIe(tpAniSirGlobal  pMac, tpSirWSCie  pWscIe);
 
-tSirRetStatus PopulateDot11fWscProbeReq( tpAniSirGlobal        pMac,
-                                         tDot11fIEWscProbeReq *pDot11f );
+tSirRetStatus CombineDot11fWscIe (tpAniSirGlobal pMac, tpSirWSCie pWscIe1, tpSirWSCie pWscIe2);
+
+tSirRetStatus PopulateDot11fWscProbeReq(tpAniSirGlobal  pMac,
+                                      tpSirWSCie      pWscIe,
+                                      tDot11fIEWscProbeReq *pDot11f);
+
+tSirRetStatus PopulateDot11fWscAssocReq(tpAniSirGlobal  pMac,
+                                      tpSirWSCie      pWscIe,
+                                      tDot11fIEWscAssocReq *pDot11f);
+
+tSirRetStatus PopulateDot11fWSCOpaque( tpAniSirGlobal      pMac,
+                                       tpSirWSCie          pWscIe,
+                                       tDot11fIEWPAOpaque *pDot11f );
 void PopulateDot11fAssocRspRates ( tpAniSirGlobal pMac, tDot11fIESuppRates *pSupp, 
       tDot11fIEExtSuppRates *pExt, tANI_U16 *_11bRates, tANI_U16 *_11aRates );
 #endif

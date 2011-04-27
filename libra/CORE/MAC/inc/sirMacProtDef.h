@@ -318,15 +318,18 @@
 /// Maximum length of each IE
 #define SIR_MAC_RSN_IE_MAX_LENGTH   255
 #define SIR_MAC_WPA_IE_MAX_LENGTH   255
+#define SIR_MAC_WSC_IE_MAX_LENGTH   255 /* see MAX_WSC_IE_LEN */
 /// Minimum length of each IE
 #define SIR_MAC_RSN_IE_MIN_LENGTH   2
 #define SIR_MAC_WPA_IE_MIN_LENGTH   6
+#define SIR_MAC_WSC_IE_MIN_LENGTH   4 
 
 #define SIR_MAC_OUI_VERSION_1         1
 
 // OUI and type definition for WPA IE in network byte order
 #define SIR_MAC_WPA_OUI             0x01F25000
 #define SIR_MAC_WME_OUI             0x02F25000
+#define SIR_MAC_WPS_OUI             0x04F25000
 #define SIR_MAC_WSM_OUI             SIR_MAC_WME_OUI
 
 // min size of wme oui header: oui(3) + type + subtype + version
