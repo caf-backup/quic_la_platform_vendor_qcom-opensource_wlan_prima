@@ -2021,8 +2021,8 @@ eHalStatus pmcReady(tHalHandle hHal)
     \param  hHal - The handle returned by macOpen.
     \param  pattern -  Pointer to the pattern to be added
     \return eHalStatus
-            eHAL_STATUS_FAILURE ?Cannot add pattern
-            eHAL_STATUS_SUCCESS ?Request accepted. 
+            eHAL_STATUS_FAILURE – Cannot add pattern
+            eHAL_STATUS_SUCCESS – Request accepted. 
   ---------------------------------------------------------------------------*/
 eHalStatus pmcWowlAddBcastPattern (
     tHalHandle hHal, 
@@ -2109,8 +2109,8 @@ eHalStatus pmcWowlAddBcastPattern (
     \param  hHal - The handle returned by macOpen.
     \param  pattern -  Pattern to be deleted
     \return eHalStatus
-            eHAL_STATUS_FAILURE ?Cannot delete pattern
-            eHAL_STATUS_SUCCESS ?Request accepted. 
+            eHAL_STATUS_FAILURE – Cannot delete pattern
+            eHAL_STATUS_SUCCESS – Request accepted. 
   ---------------------------------------------------------------------------*/
 eHalStatus pmcWowlDelBcastPattern (
     tHalHandle hHal, 
@@ -2304,8 +2304,8 @@ eHalStatus pmcEnterWowl (
             mode.
     \param  hHal - The handle returned by macOpen.
     \return eHalStatus
-            eHAL_STATUS_FAILURE ?Device cannot exit WoWLAN mode.
-            eHAL_STATUS_SUCCESS ?Request accepted to exit WoWLAN mode. 
+            eHAL_STATUS_FAILURE – Device cannot exit WoWLAN mode.
+            eHAL_STATUS_SUCCESS – Request accepted to exit WoWLAN mode. 
   ---------------------------------------------------------------------------*/
 eHalStatus pmcExitWowl (tHalHandle hHal)
 {
@@ -2334,6 +2334,43 @@ eHalStatus pmcExitWowl (tHalHandle hHal)
    pMac->pmc.enterWowlCallbackContext = NULL;
 
    return eHAL_STATUS_SUCCESS;
+}
+
+/* ---------------------------------------------------------------------------
+    \fn pmcSetHostOffload
+    \brief  Set the host offload feature.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRequest - Pointer to the offload request.
+    \return eHalStatus
+            eHAL_STATUS_FAILURE  Cannot set the offload.
+            eHAL_STATUS_SUCCESS  Request accepted. 
+  ---------------------------------------------------------------------------*/
+eHalStatus pmcSetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest)
+{
+    tpSirHostOffloadReq pRequestBuf;
+    vos_msg_t msg;
+
+    pRequestBuf = vos_mem_malloc(sizeof(tSirHostOffloadReq));
+    if (NULL == pRequestBuf)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to allocate "
+                  "memory for host offload request", __FUNCTION__);
+        return eHAL_STATUS_FAILED_ALLOC;
+    }
+    vos_mem_copy(pRequestBuf, pRequest, sizeof(tSirHostOffloadReq));
+
+    msg.type = SIR_HAL_SET_HOST_OFFLOAD;
+    msg.reserved = 0;
+    msg.bodyptr = pRequestBuf;
+    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_HAL, &msg))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post "
+                  "SIR_HAL_SET_HOST_OFFLOAD message to HAL", __FUNCTION__);
+        vos_mem_free(pRequestBuf);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
 }
 
 

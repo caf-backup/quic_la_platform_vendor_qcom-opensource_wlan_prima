@@ -3936,3 +3936,64 @@ eHalStatus sme_RoamUpdateAPWPARSNIEs(tHalHandle hHal, tANI_U8 sessionId, tSirRSN
 }
 #endif
 
+/* ---------------------------------------------------------------------------
+    \fn sme_SetHostOffload
+    \brief  API to set the host offload feature.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRequest -  Pointer to the offload request.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus status;
+
+    if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme ) ) )
+    {
+        status = pmcSetHostOffload (hHal, pRequest);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return (status);
+}
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_combineWSCIE
+
+    \brief To combine WPS IEs. pWscIe1 is input as well as output. 
+    if same parameters are present, pWscIe2's contents will overwrite pWscIe1's.
+
+    \param pSirWscIe - pointer to a caller allocated object of tSirWSCie with WPS IEs
+    \param pSirIe2 - pointer to new ie (wanting to be combined on top of WscIe)
+    \param pSirIe2Len - length of pSirIe2
+
+    \return eHalStatus - SUCCESS 
+
+
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_combineWSCIE(tHalHandle hHal, tSirWSCie *pSirWscIe, tANI_U8 *pSirIe2, tANI_U32 pSirIe2Len)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    tSirWSCie WscIe2;
+
+    if((pSirWscIe == (tSirWSCie *)NULL) || (pSirIe2 == (tANI_U8 *)NULL))
+        return eHAL_STATUS_FAILURE;
+
+    if(pSirWscIe->length == 0) {
+        palCopyMemory(hHal, pSirWscIe->wscIEdata, pSirIe2, pSirIe2Len);
+        return eHAL_STATUS_SUCCESS;
+    }
+    if(pSirIe2Len == 0) {
+        return eHAL_STATUS_SUCCESS;
+    }
+
+    /* construct SirIe2/Len to tSirWSCie form to pass CombineDot11fWscIe */
+    palCopyMemory(hHal, WscIe2.wscIEdata, pSirIe2, pSirIe2Len);
+    WscIe2.length = pSirIe2Len;
+        
+    CombineDot11fWscIe (pMac, pSirWscIe, &WscIe2);
+    return eHAL_STATUS_SUCCESS;
+}
+
+

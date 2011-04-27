@@ -330,12 +330,23 @@ typedef struct sAniSirHal
 
     TX_TIMER        txCompTimer; //Timer to wait for TX complete interrupt.
 
+    // Time Period in secs for the sending keep alive Null frames to the AP
+    // in INFRA STA mode. Value of 0 means disabled. Value in secs.
+    tANI_U32        infraStaKeepAlivePeriod;
+
 #ifdef WLAN_SOFTAP_FEATURE
     /* Listen mode configure parameters */
     tANI_U8    ghalPhyAgcListenMode;
 #endif    
     tANI_U8         mcastBcastFilterSetting;
     tANI_U8         dynamicPsPollValue;
+
+    tANI_U8         teleBcnWakeupEnable;
+    tANI_U16        transListenInterval;
+    tANI_U16        maxListenInterval;
+    tANI_U16        uTransLiNumIdleBeacons;
+    tANI_U16        uMaxLiNumIdleBeacons;
+
 } tAniSirHal, *tpAniSirHal;
 
 /* Invalid operating channel. Used during startup */

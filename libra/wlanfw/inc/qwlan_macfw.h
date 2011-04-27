@@ -282,6 +282,7 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_RF_SET_CUR_CHAN_SAVE_VCOBANK         (QWLANFW_LOG_CODE_MISC_BASE + 0x36)
 #define QWLANFW_LOG_CODE_RSSI_MONITORING                      (QWLANFW_LOG_CODE_MISC_BASE + 0x37)
 #define QWLANFW_LOG_CODE_FAST_BPS                             (QWLANFW_LOG_CODE_MISC_BASE + 0x38)
+#define QWLANFW_LOG_CODE_ARP_REPLY                            (QWLANFW_LOG_CODE_MISC_BASE + 0x39)
 
 /* log codes for message handling
    (QWLANFW_LOG_EVENT_TYPE_MSG_HANDLING)
@@ -322,6 +323,7 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_BT_SCO_CONN_UPDATE                 (QWLANFW_LOG_CODE_MSG_BASE + 0x44)
 #define QWLANFW_LOG_CODE_BT_DISCONNECT                      (QWLANFW_LOG_CODE_MSG_BASE + 0x45)
 #define QWLANFW_LOG_CODE_BT_ACL_CONN_UPDATE                 (QWLANFW_LOG_CODE_MSG_BASE + 0x46)
+#define QWLANFW_LOG_CODE_ENTER_SET_HOST_OFFLOAD_MSG_HANDLER (QWLANFW_LOG_CODE_MSG_BASE + 0x47)
 #ifdef LIBRA_WAPI_SUPPORT
 #define QWLANFW_LOG_CODE_WAPI_SET_KEY                       (QWLANFW_LOG_CODE_MSG_BASE + 0x50)
 #define QWLANFW_LOG_CODE_WAPI_REMOVE_KEY                    (QWLANFW_LOG_CODE_MSG_BASE + 0x51)
@@ -437,7 +439,7 @@ See binary.lds.in in firmware source build tree */
 #define QWLANFW_LOG_CODE_RA_WARN_CODE                       (QWLANFW_LOG_CODE_RA_BASE + 0x9)
 
 /* Noise signal floor for RSSI averaging in BMPS mode
- */
+*/
 #define QWLANFW_PWRSAVE_RSSI_NOISE_FLOOR                    5
 
 
@@ -679,9 +681,15 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32  bBcnMissFastPath        : 1;
    tANI_U32  bBcnMissMLC             : 1;
    tANI_U32  bTimBasedDisAssocEna    : 1;
-   tANI_U32  bReserved5              : 17;
+   tANI_U32  bTelescopicBcnWakeupEn  : 1;
+   tANI_U32  bTeleBcnWakeupAppsAwake : 1;
+   tANI_U32  bBcMcFilterSetting      : 3;
+   tANI_U32  bReserved5              : 12;
 #else
-   tANI_U32  bReserved5              : 17;
+   tANI_U32  bReserved5              : 12;
+   tANI_U32  bBcMcFilterSetting      : 3;
+   tANI_U32  bTeleBcnWakeupAppsAwake : 1;
+   tANI_U32  bTelescopicBcnWakeupEn  : 1;
    tANI_U32  bTimBasedDisAssocEna    : 1;
    tANI_U32  bBcnMissMLC             : 1;
    tANI_U32  bBcnMissFastPath        : 1;
@@ -843,9 +851,13 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32 fDisLinkMonitor:1;                 // when set link monitoring is disabled.
    tANI_U32 fEnableFwUnknownAddr2Handling:1;   // enables handling of unknown addr2 at FW.
-   tANI_U32 bReserved11:30;
+   tANI_U32 bStaKeepAliveEn:1;		           // Keep alive mechanism in Infra STA mode, keep alive frames to peer AP.
+   tANI_U32 ucStaKeepAlivePeriodSecs:16;	   // Periodicity of keep alive frames to the peer AP (in secs).
+   tANI_U32 bReserved11:13;
 #else
-   tANI_U32 bReserved11:30;
+   tANI_U32 bReserved11:13;
+   tANI_U32 ucStaKeepAlivePeriodSecs:16;	   // Periodicity of keep alive frames to the peer AP (in secs).
+   tANI_U32 bStaKeepAliveEn:1;		           // Keep alive mechanism in Infra STA mode, keep alive frames to peer AP.
    tANI_U32 fEnableFwUnknownAddr2Handling:1;  // enables handling of unknown addr2 at FW.
    tANI_U32 fDisLinkMonitor:1;                // when set link monitoring is disabled.
 #endif
@@ -866,6 +878,24 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #endif
 
    UapsdAcParamType acParam[QWLANFW_MAX_AC];
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32   ucTransListenInterval  : 16; //Transient Listen Interval
+   tANI_U32   ucMaxListenInterval    : 16; //Max Listen Interval
+#else
+   tANI_U32   ucMaxListenInterval    : 16;
+   tANI_U32   ucTransListenInterval  : 16;
+#endif
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32   uTransLiNumIdleBeacons  : 16; //Num Idle Beacons to go to transLI
+   tANI_U32   uMaxLiNumIdleBeacons    : 16; //Num Idle Beacons to go to MaxLI
+#else
+   tANI_U32   uMaxLiNumIdleBeacons    : 16; 
+   tANI_U32   uTransLiNumIdleBeacons  : 16; 
+#endif
+
+   tANI_U32   isAppsCpuAwake;
 
 } Qwlanfw_SysCfgType;
 
@@ -2001,14 +2031,16 @@ typedef struct _PhyCalCorrStruct {
 #define QWLANFW_HOST2FW_SAP_UTIL_CMD           QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1A
 #define QWLANFW_HOST2FW_UPDATE_PROBE_RESPONSE_TEMPLATE_REQ      QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1B
 #define QWLANFW_HOST2FW_UPDATE_BA              QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1C
+/* Host Offload */
+#define QWLANFW_HOST2FW_SET_HOST_OFFLOAD       QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1D
 
 #ifdef LIBRA_WAPI_SUPPORT
 /* WAPI */
-#define QWLANFW_HOST2FW_WPI_KEY_SET            QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1D
-#define QWLANFW_HOST2FW_WPI_KEY_REMOVED        QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1E
+#define QWLANFW_HOST2FW_WPI_KEY_SET            QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1E
+#define QWLANFW_HOST2FW_WPI_KEY_REMOVED        QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x1F
 #define QWLANFW_HOST2FW_MSG_TYPES_END          QWLANFW_HOST2FW_WPI_KEY_REMOVED
 #else
-#define QWLANFW_HOST2FW_MSG_TYPES_END          QWLANFW_HOST2FW_UPDATE_BA
+#define QWLANFW_HOST2FW_MSG_TYPES_END          QWLANFW_HOST2FW_SET_HOST_OFFLOAD
 #endif
 
 #else
@@ -2038,7 +2070,7 @@ typedef struct _PhyCalCorrStruct {
    Currently 10 bit is reserved for usMsgType (see Qwlanfw_CtrlMsgType)
 */   
 //#define QWLANFW_FW2HOST_MSG_TYPES_BEGIN        0x200  /* 512 */
-/* 512 is the half of the message pool for 10 bits, but in halFwApi.c, halFW_SendMsg(…, tANI_U8 msgType, …) has only one byte of msgType. 
+/* 512 is the half of the message pool for 10 bits, but in halFwApi.c, halFW_SendMsg(, tANI_U8 msgType, ) has only one byte of msgType. 
 I think this needs to be discussed in the team.
 Either argument of halFW_SendMsg() should be uint16 to have HOST2FW_MSG up to 512, or 
 we should redefine the Qwlanfw_CtrlMsgType->ubMsgType to uint8.
@@ -2800,7 +2832,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SendBeaconStruct
 typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_AddStaStruct
 {
    Qwlanfw_CtrlMsgType  hdr;
-   
+
    /* STA index */
    tANI_U32 staIdx;
 } Qwlanfw_AddStaType;
@@ -2808,7 +2840,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_AddStaStruct
 typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_DelStaStruct
 {
    Qwlanfw_CtrlMsgType  hdr;
-   
+
    /* STA index */
    tANI_U32 staIdx;
 } Qwlanfw_DelStaType;
@@ -2816,7 +2848,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_DelStaStruct
 typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_UpdateBaStruct
 {
    Qwlanfw_CtrlMsgType  hdr;
-   
+
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32 staIdx:4;       // Sta Index
    tANI_U32 queueId:5;      // Queue Id
@@ -2832,11 +2864,11 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_UpdateBaStruct
 
 
 #if WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE
-
+    
 typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_UpdateProbeRespTemplateStaStruct
 {
    Qwlanfw_CtrlMsgType  hdr;
-   
+
 #ifdef ANI_BIG_BYTE_ENDIAN
 	  tANI_U32	 bssIdx 			   : 8;
    tANI_U32  enableFlag   : 1;
@@ -2846,12 +2878,12 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_UpdateProbeRespTemplateStaStruct
    tANI_U32  enableFlag   : 1;
 	  tANI_U32	 bssIdx 			   : 8;	
 #endif
-
+        
 } Qwlanfw_UpdateProbeRespTemplateStaType;
 
 #endif
-
-
+    
+    
 #define SAP_UTIL_CMD_DEQUEUE_BD             0
 #define SAP_UTIL_CMD_CHK_BD_LINK_INTEGRITY  1
 #define SAP_UTIL_CMD_GET_QUEUE_INFO         2
@@ -2888,7 +2920,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SapUtilStruct
    tANI_U32 cmd:5;
    tANI_U32 queueId:4;
    tANI_U32 staIdx:3;
-#endif   
+#endif
 
 } Qwlanfw_SapUtilStruct;
 
@@ -2926,7 +2958,7 @@ enum {
 
 
 typedef struct fwProbeRespTemplateCtrlBlock_Type{
-#ifdef ANI_BIG_BYTE_ENDIAN
+#ifdef ANI_BIG_BYTE_ENDIAN    
       tANI_U32  bProbeRespBitMapAndTemplateEn     : 1;
       tANI_U32  BitMapLen       : 8;
       tANI_U32  TemplateLen     :16;
@@ -3153,5 +3185,37 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_AddRemoveKeyReqStruct
 #endif
 } Qwlanfw_AddRemoveKeyReqType;
 #endif
+
+
+/**
+   @brief
+    QWLANFW_HOST2FW_SET_HOST_OFFLOAD
+   
+*/
+
+#define HOST_OFFLOAD_IPV4_ARP_REPLY           0
+#define HOST_OFFLOAD_IPV6_NEIGHBOR_DISCOVERY  1
+#define HOST_OFFLOAD_DISABLE                  0
+#define HOST_OFFLOAD_ENABLE                   0x1
+#define HOST_OFFLOAD_BC_FILTER_ENABLE         0x2
+
+typedef PACKED_PRE union PACKED_POST _Qwlanfw_HostOffloadParamsUnion
+{
+   tANI_U8 hostIpv4Addr [4];
+   tANI_U8 hostIpv6Addr [16];
+} Qwlanfw_HostOffloadParamsType;
+
+typedef PACKED_PRE struct PACKED_POST _Qwlanfw_HostOffloadReqStruct
+{
+   Qwlanfw_CtrlMsgType  hdr;
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32 offloadType : 16;
+   tANI_U32 enableOrDisable : 16;
+#else
+   tANI_U32 enableOrDisable : 16;
+   tANI_U32 offloadType : 16;
+#endif
+   Qwlanfw_HostOffloadParamsType params;
+} Qwlanfw_HostOffloadReqType;
 
 #endif /*_QWLAN_MACFW_H*/
