@@ -452,10 +452,9 @@ void limHandleHeartBeatFailure(tpAniSirGlobal pMac,tpPESession psessionEntry)
          * timeout for Probe Response from AP.
          */
         PELOGW(limLog(pMac, LOGW, FL("Heart Beat missed from AP. Sending Probe Req\n"));)
-        /* for searching AP, we don't include any additional IE */
         limSendProbeReqMgmtFrame(pMac, &psessionEntry->ssId, psessionEntry->bssId,
                                   psessionEntry->currentOperChannel,psessionEntry->selfMacAddr,
-                                  psessionEntry->dot11mode, 0 , NULL);
+                                  psessionEntry->dot11mode);
 
         //assign the sessionId to the timer object
 

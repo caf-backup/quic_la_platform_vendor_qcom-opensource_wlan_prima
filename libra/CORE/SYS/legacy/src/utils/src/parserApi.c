@@ -4336,315 +4336,118 @@ tSirRetStatus PopulateDot11fWscInAssocRes(tpAniSirGlobal pMac,
     return eSIR_SUCCESS;
 }
 
-
-// return >=0 if WscIe (idx)
-// return -1 if not WscIe 
-
-int IsDot11fWscIe(tpAniSirGlobal  pMac, tpSirWSCie  pWscIe)
-{
-    int idx = -1;
-    if ( pWscIe->length )
-    {
-        if( 0 <= ( idx = FindIELocation( pMac, (tpSirRSNie)pWscIe, DOT11F_EID_WPA ) ) )
-        {
-            if (memcmp(pWscIe->wscIEdata + idx + 2, "\x00\x50\xf2\x04", 4) != 0) 
-            {
-                idx = -1;
-            }
-        }
-    }
-   
-    return idx;
-}
-
-tSirRetStatus CombineDot11fWscIe (tpAniSirGlobal pMac, tpSirWSCie pWscIe1, tpSirWSCie pWscIe2)
-{
-    tDot11fIEWSC dot11fWSCIe;
-    tANI_U32 consumed = 0;
-    tANI_U32 status;
-
-    if (0 > IsDot11fWscIe(pMac, pWscIe1)) {
-        limLog(pMac, LOGE, FL("pWscIe1 is not WSC IE\n"));
-        return eSIR_FAILURE;
-    }
-
-    if (0 > IsDot11fWscIe(pMac, pWscIe2)) {
-        limLog(pMac, LOGE, FL("pWscIe2 is not WSC IE\n"));
-        return eSIR_FAILURE;
-    }
-    
-    palZeroMemory( pMac->hHdd, ( tANI_U8* )&dot11fWSCIe, sizeof( dot11fWSCIe ) );
-
-    status = dot11fUnpackIeWSC( pMac,
-                                pWscIe1->wscIEdata + 2 + 4,  // EID, length, OUI
-                                pWscIe1->wscIEdata [ 1 ] - 4, // OUI
-                                &dot11fWSCIe );
-    if ( !DOT11F_SUCCEEDED( status ) )
-    {
-        dot11fLog( pMac, LOGW, FL("Parse failure in CombineDot11fWscIe in given wscIe1."
-                               "A (0x%08x). \n"), status );
-    }
-
-    /* overwrite dot11fWSCIe's content to WscIe2 */
-    status = dot11fUnpackIeWSC( pMac, 
-                                pWscIe2->wscIEdata + 2 + 4,  // EID, length, OUI
-                                pWscIe2->wscIEdata[ 1 ] - 4, // OUI
-                                &dot11fWSCIe );
-    if ( !DOT11F_SUCCEEDED( status ) )
-    {
-        dot11fLog( pMac, LOGW, FL("Parse failure in CombineDot11fWscIe in given wscIe2."
-                               "A (0x%08x). \n"), status );
-    }
-
-    status = dot11fPackIeWSC ( pMac, &dot11fWSCIe, pWscIe1->wscIEdata, \
-        sizeof(pWscIe1->wscIEdata), &consumed); 
-
-    pWscIe1->length = (tANI_U16)consumed; 
-    return eSIR_SUCCESS;
-}
-tSirRetStatus PopulateDot11fWscProbeReqFromCfg( tpAniSirGlobal        pMac,
-                                         tDot11fIEWscProbeReq *pDot11f )
-{
-    tANI_U32      cfg, ncfg;
-    tSirRetStatus nSirStatus;
-    tANI_U8       str[ 64 ]; 
-
-    if(pDot11f->Version.present == 0) {
-        cfg = 0x10; /* Deprecated. Always set to 0x10 for backward compatibility */
-                    /* See Vesrion2 for current version negotiation mechanism */
-
-        pDot11f->Version.major   = ( tANI_U8 ) 1;
-        pDot11f->Version.minor   = ( tANI_U8 ) 0;
-        pDot11f->Version.present = 1;
-    }
-
-    if(pDot11f->RequestType.present == 0) {
-        CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_REQUEST_TYPE, cfg );
-
-        pDot11f->RequestType.reqType = ( tANI_U8 ) cfg;
-        pDot11f->RequestType.present = 1;
-    }
-
-    if(pDot11f->ConfigMethods.present == 0) {
-        CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_CFG_METHOD, cfg );
-        pDot11f->ConfigMethods.methods = ( tANI_U16 ) cfg;
-        pDot11f->ConfigMethods.present = 1;
-    }
-
-    if(pDot11f->UUID_E.present == 0) {
-        CFG_GET_STR( nSirStatus, pMac, WNI_CFG_WPS_UUID, str, ncfg, 16 );
-        palCopyMemory( pMac->hHdd, pDot11f->UUID_E.uuid, str, 16 );
-        pDot11f->UUID_E.present = 1;
-    }
-
-    if(pDot11f->PrimaryDeviceType.primary_category == 0) {
-        CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_PRIMARY_DEVICE_CATEGORY, cfg );
-        pDot11f->PrimaryDeviceType.primary_category = ( tANI_U16 ) cfg;
-
-        CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_PIMARY_DEVICE_OUI, cfg );
-        pDot11f->PrimaryDeviceType.oui[ 0 ] =
-            ( tANI_U8 ) ( ( cfg & 0xff000000 ) >> 24 );
-        pDot11f->PrimaryDeviceType.oui[ 1 ] =
-            ( tANI_U8 ) ( ( cfg & 0x00ff0000 ) >> 16 );
-        pDot11f->PrimaryDeviceType.oui[ 2 ] =
-            ( tANI_U8 ) ( ( cfg & 0x0000ff00 ) >>  8 );
-        pDot11f->PrimaryDeviceType.oui[ 3 ] =
-            ( tANI_U8 ) ( cfg & 0x000000ff );
-
-        CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_DEVICE_SUB_CATEGORY, cfg );
-        pDot11f->PrimaryDeviceType.sub_category = ( tANI_U16 ) cfg;
-
-        pDot11f->PrimaryDeviceType.present = 1;
-    }
-        
-    if(pDot11f->RFBands.present == 0) {
-        pDot11f->RFBands.bands = 0x1;
-        pDot11f->RFBands.present = 1;
-    }
-
-    /* if supplicant doesn't provide this, we force to say 'not associated' */
-    if(pDot11f->AssociationState.present == 0) {
-        pDot11f->AssociationState.state   = ( tANI_U16 ) 0;
-        pDot11f->AssociationState.present = 1;
-    }
-        
-
-    /* if supplicant doesn't provide this, we force to say 'no error' */
-    if(pDot11f->ConfigurationError.present == 0) {
-        pDot11f->ConfigurationError.error   = ( tANI_U16 ) 0;
-        pDot11f->ConfigurationError.present = 1;
-    }
-
-    if(pDot11f->DevicePasswordID.present == 0) {
-        CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_DEVICE_PASSWORD_ID, cfg );
-        pDot11f->DevicePasswordID.id      = ( tANI_U16 ) cfg;
-        pDot11f->DevicePasswordID.present = 1;
-    }
-
-    /* check WSC 2.0 field */
-    /* if version2 */
-    if(pDot11f->VendorExtension.Version2.present &&
-       pDot11f->VendorExtension.Version2.major >= 0x2)
-    {
-        /* Manufacturer is mandatory in WSC 2.0 or higher */
-        if(pDot11f->Manufacturer.present == 0) {
-            CFG_GET_STR( nSirStatus, pMac, WNI_CFG_MANUFACTURER_NAME, str, ncfg, WNI_CFG_MANUFACTURER_NAME_LEN-1);
-            pDot11f->Manufacturer.num_name = ncfg;
-            palCopyMemory( pMac->hHdd, pDot11f->Manufacturer.name, str, ncfg );
-            pDot11f->Manufacturer.name[ncfg] = '\0';
-            pDot11f->Manufacturer.present = 1;
-        }
-
-        /* Model Name is mandatory in WSC 2.0 or higher */
-        if(pDot11f->ModelName.present == 0) {
-            CFG_GET_STR( nSirStatus, pMac, WNI_CFG_MODEL_NAME, str, ncfg, WNI_CFG_MODEL_NAME_LEN-1 );
-            pDot11f->ModelName.num_text = ncfg;
-            palCopyMemory( pMac->hHdd, pDot11f->ModelName.text, str, ncfg );
-            pDot11f->ModelName.text[ncfg] = '\0';
-            pDot11f->ModelName.present = 1;
-        }
-
-        /* Model Number is mandatory in WSC 2.0 or higher */
-        if(pDot11f->ModelNumber.present == 0) {
-            CFG_GET_STR( nSirStatus, pMac, WNI_CFG_MODEL_NUMBER, str, ncfg, WNI_CFG_MODEL_NUMBER_LEN-1);
-            pDot11f->ModelNumber.num_text = ncfg;
-            palCopyMemory( pMac->hHdd, pDot11f->ModelNumber.text, str, ncfg );
-            pDot11f->ModelNumber.text[ncfg] = '\0';
-            pDot11f->ModelNumber.present = 1;
-        }
-
-        /* Device Name is mandatory in WSC 2.0 or higher */
-        if(pDot11f->DeviceName.present == 0) {
-            CFG_GET_STR( nSirStatus, pMac, WNI_CFG_MANUFACTURER_PRODUCT_NAME, str, ncfg, WNI_CFG_MANUFACTURER_PRODUCT_NAME_LEN-1 );
-            pDot11f->DeviceName.num_text = ncfg;
-            palCopyMemory( pMac->hHdd, pDot11f->DeviceName.text, str, ncfg );
-            pDot11f->DeviceName.text[ncfg] = '\0';
-            pDot11f->DeviceName.present = 1;
-        }
-    }
-    
-    pDot11f->present = 1;
-    return eSIR_SUCCESS;
-
-} // End PopulateDot11fWscProbeReq.
-
-/* 
- * First, retreive tDot11fIEWscProbeReq from given pWscIe 
- * If mandatory fileds are missing, retreive from CFG
- *
- * pWscIe should contain at least one WSC IE.
- */
-tSirRetStatus PopulateDot11fWscProbeReq(tpAniSirGlobal  pMac,
-                                      tpSirWSCie      pWscIe,
-                                      tDot11fIEWscProbeReq *pDot11f)
-{
-    tANI_U32        status;
-    int idx;
-
-    idx = IsDot11fWscIe (pMac, pWscIe); 
-    if (idx < 0 ) 
-        return eSIR_FAILURE; 
-
-    // 1. retreive WSC from given pWscIe    
-    status = dot11fUnpackIeWscProbeReq( pMac,
-                                pWscIe->wscIEdata + idx + 2 + 4,  // EID, length, OUI
-                                pWscIe->wscIEdata[ idx + 1 ] - 4, // OUI
-                                pDot11f );
-    if ( !DOT11F_SUCCEEDED( status ) )
-    {
-        dot11fLog( pMac, LOGW, FL("Parse failure in PopulateDot11fWscProbeReq in given wscIe."
-                               "A (0x%08x). Trying to recover by driver.\n"), status );
-    }
-    // 2. populate missing 'mandatory' parameter from CFG
-    status = PopulateDot11fWscProbeReqFromCfg(pMac, pDot11f);
-    return status;
-} // End PopulateDot11fWPA.
-
-tSirRetStatus PopulateDot11fWscAssocReqFromCfg( tpAniSirGlobal        pMac,
+tSirRetStatus PopulateDot11fWscAssocReq( tpAniSirGlobal        pMac,
                                          tDot11fIEWscAssocReq *pDot11f )
 {
-    tANI_U32      cfg;
+    tANI_U32           cfg;
     tSirRetStatus nSirStatus;
 
-    if(pDot11f->Version.present == 0) {
-        cfg = 0x10; /* Deprecated. Always set to 0x10 for backward compatibility */
-                    /* See Vesrion2 for current version negotiation mechanism */
+    // Read the WPS protocol version from cfg.  This  one-byte field is
+    // broken into a four-bit major part using the top MSBs and four-bit
+    // minor part using the LSBs. As an example, version 3.2 would be
+    // 0x32.
+    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_VERSION, cfg );
 
-        pDot11f->Version.major   = ( tANI_U8 ) 1;
-        pDot11f->Version.minor   = ( tANI_U8 ) 0;
-        pDot11f->Version.present = 1;
-    }
+    pDot11f->Version.minor   = ( tANI_U8 ) ( cfg & 0x000f );
+    pDot11f->Version.major   = ( tANI_U8 ) ( ( cfg & 0x00f0 ) >> 4 );
+    pDot11f->Version.present = 1;
 
-    if(pDot11f->RequestType.present == 0) {
-        CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_REQUEST_TYPE, cfg );
+    // The Response Type component specifies the operational mode of the
+    // device for this setup exchange. The Response Type IE is carried
+    // throughout the 802.1X data channel setup process:
 
-        pDot11f->RequestType.reqType = ( tANI_U8 ) cfg;
-        pDot11f->RequestType.present = 1;
-    }
+    //    Response Type Value       Description
+    //    0x00                      Enrollee, Info only
+    //    0x01                      Enrollee, open 802.1X
+    //    0x02                      Registrar
+    //    0x03                      AP
 
-    /* check WSC 2.0 */
+    pDot11f->RequestType.reqType = 1;
+    pDot11f->RequestType.present = 1;
 
-    /* prune unnecessary field here */
-    /* currently I don't check minor version. we may need to check minor version in the future when 
-       new spec 2.1 is available.
-     */
-    if(pDot11f->VendorExtension.Version2.present &&
-       pDot11f->VendorExtension.Version2.major >= 0x2)
-    {
-        pDot11f->VendorExtension.RequestToEnroll.present = 0;
-    }
-    
     pDot11f->present = 1;
+
     return eSIR_SUCCESS;
 
 } // End PopulateDot11fWscAssocReq.
 
-tSirRetStatus PopulateDot11fWscAssocReq(tpAniSirGlobal  pMac,
-                                      tpSirWSCie      pWscIe,
-                                      tDot11fIEWscAssocReq *pDot11f)
+tSirRetStatus PopulateDot11fWscProbeReq( tpAniSirGlobal        pMac,
+                                         tDot11fIEWscProbeReq *pDot11f )
 {
-    tANI_U32        status;
-    int idx;
+    tANI_U32      cfg, ncfg;
+    tSirRetStatus nSirStatus;
+    tANI_U8       uuid[ 16 ];
 
-    idx = IsDot11fWscIe (pMac, pWscIe); 
-    if (idx < 0 ) 
-        return eSIR_FAILURE; 
+    // Read the WPS protocol version from cfg.  This  one-byte field is
+    // broken into a four-bit major part using the top MSBs and four-bit
+    // minor part using the LSBs. As an example, version 3.2 would be
+    // 0x32.
+    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_VERSION, cfg );
 
-    // 1. retreive WSC from given pWscIe    
-    status = dot11fUnpackIeWscAssocReq( pMac,
-                                pWscIe->wscIEdata + idx + 2 + 4,  // EID, length, OUI
-                                pWscIe->wscIEdata[ idx + 1 ] - 4, // OUI
-                                pDot11f );
-    if ( !DOT11F_SUCCEEDED( status ) )
-    {
-        dot11fLog( pMac, LOGW, FL("Parse failure in PopulateDot11fWscAssocReq in given wscIe."
-                               "A (0x%08x). Trying to recover by driver.\n"), status );
-    }
-    // 2. populate missing 'mandatory' parameter from CFG
-    status = PopulateDot11fWscAssocReqFromCfg(pMac, pDot11f);
-    return status;
-}
+    pDot11f->Version.minor   = ( tANI_U8 ) ( cfg & 0x000f );
+    pDot11f->Version.major   = ( tANI_U8 ) ( ( cfg & 0x00f0 ) >> 4 );
+    pDot11f->Version.present = 1;
 
+    // The Response Type component specifies the operational mode of the
+    // device for this setup exchange. The Response Type IE is carried
+    // throughout the 802.1X data channel setup process:
 
-tSirRetStatus PopulateDot11fWSCOpaque( tpAniSirGlobal      pMac,
-                                       tpSirWSCie          pWscIe,
-                                       tDot11fIEWPAOpaque *pDot11f )
-{
-    int idx;
+    //    Response Type Value       Description
+    //    0x00                      Enrollee, Info only
+    //    0x01                      Enrollee, open 802.1X
+    //    0x02                      Registrar
+    //    0x03                      AP
 
-    idx = IsDot11fWscIe (pMac, pWscIe); 
-    if (  idx >= 0 )
-    {
-        pDot11f->present  = 1;
-        pDot11f->num_data = pWscIe->wscIEdata[ idx + 1 ];
-        palCopyMemory( pMac->hHdd, pDot11f->data,
-                       pWscIe->wscIEdata + idx + 2,    // EID, len
-                       pWscIe->wscIEdata[ idx + 1 ] );
-        return eSIR_SUCCESS;
-    }
+    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_REQUEST_TYPE, cfg );
 
-    return eSIR_FAILURE;
-} // End PopulateDot11fRSNOpaque.
+    pDot11f->RequestType.reqType = ( tANI_U8 ) cfg;
+    pDot11f->RequestType.present = 1;
+
+    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_CFG_METHOD, cfg );
+    pDot11f->ConfigMethods.methods = ( tANI_U16 ) cfg;
+    pDot11f->ConfigMethods.present = 1;
+
+    CFG_GET_STR( nSirStatus, pMac, WNI_CFG_WPS_UUID, uuid, ncfg, 16 );
+    palCopyMemory( pMac->hHdd, pDot11f->UUID_E.uuid, uuid, 16 );
+    pDot11f->UUID_E.present = 1;
+
+    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_PRIMARY_DEVICE_CATEGORY, cfg );
+    pDot11f->PrimaryDeviceType.primary_category = ( tANI_U16 ) cfg;
+
+    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_PIMARY_DEVICE_OUI, cfg );
+    pDot11f->PrimaryDeviceType.oui[ 0 ] =
+        ( tANI_U8 ) ( ( cfg & 0xff000000 ) >> 24 );
+    pDot11f->PrimaryDeviceType.oui[ 1 ] =
+        ( tANI_U8 ) ( ( cfg & 0x00ff0000 ) >> 16 );
+    pDot11f->PrimaryDeviceType.oui[ 2 ] =
+        ( tANI_U8 ) ( ( cfg & 0x0000ff00 ) >>  8 );
+    pDot11f->PrimaryDeviceType.oui[ 3 ] =
+        ( tANI_U8 ) ( cfg & 0x000000ff );
+
+    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_DEVICE_SUB_CATEGORY, cfg );
+    pDot11f->PrimaryDeviceType.sub_category = ( tANI_U16 ) cfg;
+
+    pDot11f->PrimaryDeviceType.present = 1;
+
+    pDot11f->RFBands.present = 0;
+
+    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_ASSOCIATION_STATE, cfg );
+    pDot11f->AssociationState.state   = ( tANI_U16 ) cfg;
+    pDot11f->AssociationState.present = 1;
+
+    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_CONFIGURATION_ERROR, cfg );
+    pDot11f->ConfigurationError.error   = ( tANI_U16 ) cfg;
+    pDot11f->ConfigurationError.present = 1;
+
+    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_DEVICE_PASSWORD_ID, cfg );
+    pDot11f->DevicePasswordID.id      = ( tANI_U16 ) cfg;
+    pDot11f->DevicePasswordID.present = 1;
+
+    pDot11f->present = 1;
+
+    return eSIR_SUCCESS;
+
+} // End PopulateDot11fWscProbeReq.
 
 void PopulateDot11fAssocRspRates ( tpAniSirGlobal pMac, tDot11fIESuppRates *pSupp, 
       tDot11fIEExtSuppRates *pExt, tANI_U16 *_11bRates, tANI_U16 *_11aRates )

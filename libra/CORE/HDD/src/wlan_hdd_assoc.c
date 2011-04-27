@@ -311,9 +311,6 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     netif_carrier_off(dev);
     
     hdd_connSetConnectionState( pAdapter, eConnectionState_NotConnected );
-
-    hdd_clearRoamProfileIe( pAdapter );
-
     
     // indicate 'disconnect' status to wpa_supplicant...
     hdd_SendAssociationEvent(dev,pRoamInfo);
@@ -1230,32 +1227,11 @@ static tANI_S32 hdd_ProcessGENIE(hdd_adapter_t *pAdapter,
     if (gen_ie[0] == DOT11F_EID_WPA) 
     {         
         // Validity checks
-        int invalid = FALSE;
-        int wpaIe = FALSE;
-        int wpsIe = FALSE;
-        if (memcmp(&gen_ie[2], "\x00\x50\xf2\x04", 4) == 0) {
-            wpsIe = TRUE;
-            if(gen_ie_len < SIR_MAC_WSC_IE_MIN_LENGTH || gen_ie_len > SIR_MAC_WSC_IE_MAX_LENGTH) 
-                invalid = TRUE;
-        }
-        if (memcmp(&gen_ie[2], "\x00\x50\xf2\x01", 4) == 0) {
-            wpaIe = TRUE;
-            if ((gen_ie_len < DOT11F_IE_WPA_MIN_LEN ) ||  
-                    (gen_ie_len > DOT11F_IE_WPA_MAX_LEN))
-                invalid  = TRUE;
-        }
-        if (invalid)    
+        if ((gen_ie_len < DOT11F_IE_WPA_MIN_LEN ) ||  
+                (gen_ie_len > DOT11F_IE_WPA_MAX_LEN))
         {
             return -EINVAL;
         }
-    
-        if (wpsIe) {
-            /* error return code for caller to ignore
-            pAuthType, pEncryptType, and mcEncryptType. 
-            supplicant is supposed to call iw_set_auth() before wpsIe */
-            return -EINVAL;
-        }
-        if (wpaIe) {
         // Skip past the EID byte and length byte - and four byte WiFi OUI  
         pRsnIe = gen_ie + 2 + 4; 
         RSNIeLen = gen_ie_len - (2 + 4); 
@@ -1276,7 +1252,6 @@ static tANI_S32 hdd_ProcessGENIE(hdd_adapter_t *pAdapter,
         *pEncryptType = hdd_TranslateWPAToCsrEncryptionType(dot11WPAIE.unicast_ciphers[0]);                       
         //dot11WPAIE.unicast_cipher_count 
         *mcEncryptType = hdd_TranslateWPAToCsrEncryptionType(dot11WPAIE.multicast_cipher);                       
-        }
     } 
     else 
     { 
@@ -1496,6 +1471,17 @@ int iw_set_essid(struct net_device *dev,
     
     status = sme_RoamConnect( pAdapter->hHal,pAdapter->sessionId, &(pWextState->roamProfile),&roamId);
     
+    if(pWextState->wpsMode == eWEXT_WPS_ON)    
+    {
+       pWextState->wpsMode = eWEXT_WPS_OFF;
+       if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_WPS_PROBE_REQ_FLAG, 0,
+               NULL, eANI_BOOLEAN_FALSE) != eHAL_STATUS_SUCCESS)
+       {
+          hddLog(LOGE, FL("\n ccmCfgSetInt failed "));
+          return -EIO;
+       }
+       pWextState->roamProfile.bWPSAssociation = VOS_FALSE;
+    }
     pRoamProfile->ChannelInfo.ChannelList = NULL; 
     pRoamProfile->ChannelInfo.numOfChannels = 0;
     

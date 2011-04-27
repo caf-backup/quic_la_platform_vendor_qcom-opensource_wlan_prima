@@ -702,7 +702,6 @@ tANI_BOOLEAN csrIsSsidEqual( tHalHandle hHal, tSirBssDescription *pSirBssDesc1,
 tANI_BOOLEAN csrIsSsidInList( tHalHandle hHal, tSirMacSSid *pSsid, tCsrSSIDs *pSsidList );
 tANI_BOOLEAN csrIsProfileWpa( tCsrRoamProfile *pProfile );
 tANI_BOOLEAN csrIsProfileRSN( tCsrRoamProfile *pProfile );
-tANI_BOOLEAN csrIsProfileWsc( tCsrRoamProfile *pProfile );
 //This function returns the raw byte array of WPA and/or RSN IE
 tANI_BOOLEAN csrGetWpaRsnIe( tHalHandle hHal, tANI_U8 *pIes, tANI_U32 len,
                              tANI_U8 *pWpaIe, tANI_U8 *pcbWpaIe, tANI_U8 *pRSNIe, tANI_U8 *pcbRSNIe);
@@ -716,7 +715,6 @@ tANI_U8 csrRetrieveRsnIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile *
 tANI_U8 csrRetrieveWapiIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile *pProfile, tSirBssDescription *pSirBssDesc, 
                           tDot11fBeaconIEs *pIes, tCsrWapiIe *pWapiIe );
 #endif /* FEATURE_WLAN_WAPI */
-tANI_U8 csrRetrieveWscIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile *pProfile, void *pWscIe );
 tANI_BOOLEAN csrSearchChannelListForTxPower(tHalHandle hHal, tSirBssDescription *pBssDescription, tCsrChannelSet *returnChannelGroup);
 tANI_BOOLEAN csrRatesIsDot11Rate11bSupportedRate( tANI_U8 dot11Rate );
 tANI_BOOLEAN csrRatesIsDot11Rate11aSupportedRate( tANI_U8 dot11Rate );

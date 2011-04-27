@@ -136,10 +136,6 @@ tSirRetStatus limPopulateBD( tpAniSirGlobal pMac,
  *
  * \param nChannelNum Channel # on which the Probe Request is going out
  *
- * \param nAdditionalIELen if non-zero, include pAdditionalIE in the Probe Request frame
- *
- * \param pAdditionalIE if nAdditionalIELen is non zero, include this field in the Probe Request frame
- *
  * This function is called by various LIM modules to send Probe Request frame
  * during active scan/learn phase.
  * Probe request is sent out in the following scenarios:
@@ -151,15 +147,14 @@ tSirRetStatus limPopulateBD( tpAniSirGlobal pMac,
  *
  *
  */
+
 tSirRetStatus
 limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
                          tSirMacSSid   *pSsid,
                          tSirMacAddr    bssid,
                          tANI_U8        nChannelNum,
                          tSirMacAddr    SelfMacAddr,
-                         tANI_U32 dot11mode,
-                         tANI_U32 nAdditionalIELen, 
-                         tANI_U8 *pAdditionalIE)
+                         tANI_U32 dot11mode)
 {
     tDot11fProbeRequest pr;
     tANI_U32            nStatus, nBytes, nPayload;
@@ -167,6 +162,8 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
     tANI_U8            *pFrame;
     void               *pPacket;
     eHalStatus          halstatus;
+    tANI_U32            wps, addnIEPresent;
+    tANI_U32            addnIELen = 0;
     tpPESession         psessionEntry;
     tANI_U8             sessionId;
 
@@ -222,14 +219,12 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
            }
     }
 
-    if(nAdditionalIELen)
-    {
-        tSirWSCie           wscIE;
-        
-        wscIE.length = nAdditionalIELen;
-        palCopyMemory( pMac->hHdd, wscIE.wscIEdata, pAdditionalIE, nAdditionalIELen); 
+    // Are we including the WPS Information Element?
+    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_PROBE_REQ_FLAG, wps );
 
-        PopulateDot11fWscProbeReq( pMac, &wscIE , &pr.WscProbeReq );
+    if ( wps )
+    {
+        PopulateDot11fWscProbeReq( pMac, &pr.WscProbeReq );
     }
 
     // That's it-- now we pack it.  First, how much space are we going to
@@ -251,6 +246,27 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr ); // For the buffer descriptor
 
+    //TODO: If additional IE needs to be added. Add then alloc required buffer.
+    if(wlan_cfgGetInt(pMac, WNI_CFG_PROBE_REQ_ADDNIE_FLAG, &addnIEPresent) != eSIR_SUCCESS)
+    {
+        limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_REQ_ADDNIE_FLAG\n"));
+        return eSIR_FAILURE;
+    }
+    
+    if(addnIEPresent)
+    {
+        if(wlan_cfgGetStrLen(pMac, WNI_CFG_PROBE_REQ_ADDNIE_DATA, &addnIELen) != eSIR_SUCCESS)
+        {
+            limLog(pMac, LOGP, FL("Unable to get WNI_CFG_PROBE_REQ_ADDNIE_DATA length"));
+            return eSIR_FAILURE;
+        }
+
+        if((nBytes + addnIELen) <= SIR_MAX_PACKET_SIZE ) 
+            nBytes += addnIELen;
+       else 
+            addnIEPresent = false; //Dont include the IE.     
+    }
+       
 
     // Ok-- try to allocate some memory:
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
@@ -296,6 +312,18 @@ limSendProbeReqMgmtFrame(tpAniSirGlobal pMac,
                                "robe Request (0x%08x).\n") );
     }
 
+
+    //TODO: Append any AddnIE if present.
+    if( addnIEPresent && addnIELen && addnIELen <= WNI_CFG_PROBE_REQ_ADDNIE_DATA_LEN )
+    {
+            if(wlan_cfgGetStr(pMac, WNI_CFG_PROBE_REQ_ADDNIE_DATA, pFrame+sizeof(tSirMacMgmtHdr)+nPayload, &addnIELen) != eSIR_SUCCESS)
+            {
+                limLog(pMac, LOGP, FL("Additional IE request failed while Appending\n"));
+                palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
+                            ( void* ) pFrame, ( void* ) pPacket );
+                return eSIR_FAILURE;
+            }
+    }
  
     halstatus = halTxFrame( pMac, pPacket, ( tANI_U16 ) nBytes,
                             HAL_TXRX_FRM_802_11_MGMT,
@@ -1794,17 +1822,12 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     tANI_U8            *pFrame;
     tSirRetStatus       nSirStatus;
     tLimMlmAssocCnf     mlmAssocCnf;
-    tANI_U32            nBytes, nPayload, nStatus, nCfg;
+    tANI_U32            nBytes, nPayload, nStatus, nCfg, nWps;
     tANI_U8             fQosEnabled, fWmeEnabled, fWsmEnabled;
     void               *pPacket;
     eHalStatus          halstatus;
 
      if(NULL == psessionEntry)
-    {
-        return;
-    }
-
-     if(NULL == psessionEntry->pLimJoinReq)
     {
         return;
     }
@@ -1816,6 +1839,20 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         ((tSirMacCapabilityInfo *) &caps)->qos = 0;
     swapBitField16(caps, ( tANI_U16* )&frm.Capabilities );
 
+    CFG_LIM_GET_INT_NO_STATUS( nSirStatus, pMac, WNI_CFG_WPS_ASSOC_METHOD,
+                               nWps );
+    if ( nWps )
+    {
+        // Ok-- here's what's going on.  *If* 'nWps' is non-zero, then
+        // we're going to associate for purposes of WPS enrollment.
+        // However, we don't want to leave that flag on forever--
+        // otherwise we'll end up continuing as if we want to enroll
+        // when we just want to associate!
+
+        cfgSetInt( pMac, WNI_CFG_WPS_ASSOC_METHOD, 0 ); // Return value
+                                                        // intentionally
+                                                        // ignored...
+    }
 
     frm.ListenInterval.interval = pMlmAssocReq->listenInterval;
     PopulateDot11fSSID2( pMac, &frm.SSID );
@@ -1868,7 +1905,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     // *However*, if we're associating for the purpose of WPS
     // enrollment, and we've been configured to indicate that by
     // eliding the WPA or RSN IE, we just skip this:
-    if ( 0 > IsDot11fWscIe (pMac, &psessionEntry->pLimJoinReq->wscIE) )
+    if ( 0 == ( 0x0002 & nWps ) )
     {
         PopulateDot11fRSNOpaque( pMac, &( psessionEntry->pLimJoinReq->rsnIE ),
                                  &frm.RSNOpaque );
@@ -1922,9 +1959,9 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     // If we're associating for the purpose of WPS
     // enrollment, and we've been configured to indicate that by
     // including the WPS IE, populate it:
-    if ( 0 <= IsDot11fWscIe ( pMac, &psessionEntry->pLimJoinReq->wscIE ) )
+    if ( 0 != ( 0x0001 & nWps ) )
     {
-        PopulateDot11fWscAssocReq( pMac, &psessionEntry->pLimJoinReq->wscIE, &frm.WscAssocReq );
+        PopulateDot11fWscAssocReq( pMac, &frm.WscAssocReq );
     }
 
     nStatus = dot11fGetPackedAssocRequestSize( pMac, &frm, &nPayload );
@@ -2056,17 +2093,12 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     tANI_U16              caps;
     tANI_U8              *pFrame;
     tSirRetStatus         nSirStatus;
-    tANI_U32              nBytes, nPayload, nStatus;
+    tANI_U32              nBytes, nPayload, nStatus, nWps;
     tANI_U8               fQosEnabled, fWmeEnabled, fWsmEnabled;
     void                 *pPacket;
     eHalStatus            halstatus;
 
     if(NULL == psessionEntry)
-    {
-        return;
-    }
-    
-    if (psessionEntry->pLimReAssocReq)
     {
         return;
     }
@@ -2077,6 +2109,9 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     if (PROP_CAPABILITY_GET(11EQOS, psessionEntry->limReassocBssPropCap))
         ((tSirMacCapabilityInfo *) &caps)->qos = 0;
     swapBitField16(caps, ( tANI_U16* )&frm.Capabilities );
+
+    CFG_LIM_GET_INT_NO_STATUS( nSirStatus, pMac, WNI_CFG_WPS_ASSOC_METHOD,
+                               nWps );
 
     frm.ListenInterval.interval = pMlmReassocReq->listenInterval;
 
@@ -2132,7 +2167,7 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     // *However*, if we're associating for the purpose of WPS
     // enrollment, and we've been configured to indicate that by
     // eliding the WPA or RSN IE, we just skip this:
-    if(psessionEntry->pLimReAssocReq->wscIE.length == 0)
+    if ( 0 == ( 0x0002 & nWps ) )
     {
         PopulateDot11fRSNOpaque( pMac, &( psessionEntry->pLimReAssocReq->rsnIE ),
                                  &frm.RSNOpaque );
@@ -2168,9 +2203,9 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     // If we're associating for the purpose of WPS
     // enrollment, and we've been configured to indicate that by
     // including the WPS IE, populate it:
-    if ( psessionEntry->pLimReAssocReq->wscIE.length )
+    if ( 0 != ( 0x0001 & nWps ) )
     {
-        PopulateDot11fWscAssocReq( pMac, &psessionEntry->pLimReAssocReq->wscIE, &frm.WscAssocReq );
+        PopulateDot11fWscAssocReq( pMac, &frm.WscAssocReq );
     }
 
 
