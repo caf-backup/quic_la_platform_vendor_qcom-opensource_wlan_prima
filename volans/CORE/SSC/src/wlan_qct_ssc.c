@@ -452,10 +452,9 @@ interrupt and sizes for the subsequent CMD53s are derived from the already read 
   Number of times SSC will poll for the DXE RX channel status
   Number of poll counts SSC will wait before switching to delayed polling 
 ---------------------------------------------------------------------------*/
-#define WLANSSC_MAX_DXE_CHAN_POLL_CNT        100
+#define WLANSSC_MAX_DXE_CHAN_POLL_CNT        200
 #define WLANSSC_DXE_DELAYED_POLL_START_CNT   25
-
- int gLastRxTimeStamp = 0;
+#define WLANSSC_DXE_IDLE_POLL_DELAY           2  /* in milliseconds */
 
 /*---------------------------------------------------------------------------
  * Type Declarations
@@ -4087,18 +4086,14 @@ static VOS_STATUS WLANSSC_SendData
    */
   {
      v_U32_t uRegValue, curCnt=0,retryCnt = 0;
-
 #ifdef WLAN_SDIO_DUMMY_CMD53_WORKAROUND
-     if((jiffies - gLastRxTimeStamp) > WLANSSC_DATAACTIVE_TIMEOUT)
+     uRegValue = QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT;
+     if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegister( pControlBlock,
+                                                QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_REG, 
+                                                &(uRegValue),
+                                                WLANSSC_INT_REGBUFFER ) )
      {
-       uRegValue = QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_DEFAULT;
-       if( VOS_STATUS_SUCCESS != WLANSSC_WriteRegister( pControlBlock,
-                                                   QWLAN_SIF_SIF_CMD53_RD_DLY_START_CFG_REG_REG, 
-                                                   &(uRegValue),
-                                                   WLANSSC_INT_REGBUFFER ) )
-       {
-          return VOS_STATUS_E_FAILURE;
-       }
+       return VOS_STATUS_E_FAILURE;
      }
      uRegValue = 0;
 #endif
@@ -6471,7 +6466,6 @@ static VOS_STATUS WLANSSC_DrainRxFifo
 )
 {
   v_U32_t    count=0;
-  v_U32_t    delayCnt=1, delay=2; /* 2 ms delay */
   v_U32_t    status=1;
 
   /* At this point the STOP bit in the DXE descriptor for the Rx DXE channel is set.
@@ -6507,14 +6501,14 @@ static VOS_STATUS WLANSSC_DrainRxFifo
        */
       if(count > WLANSSC_DXE_DELAYED_POLL_START_CNT)
       {
-            delay = (delay * delayCnt);
-            delayCnt++;
-            vos_sleep(delay);
+            vos_sleep(WLANSSC_DXE_IDLE_POLL_DELAY);
       }
   }while(count++ < WLANSSC_MAX_DXE_CHAN_POLL_CNT && (status));
   
   if(count >= WLANSSC_MAX_DXE_CHAN_POLL_CNT)
   {
+      SSCLOGP(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "DXE still not idle after max poll count, Status %d", 
+               status));
       return VOS_STATUS_E_FAILURE;
   }
   
@@ -6562,8 +6556,8 @@ static VOS_STATUS WLANSSC_R_SuspendEventHandler
 	if( VOS_STATUS_SUCCESS != WLANSSC_DrainRxFifo( pControlBlock ) )
     {
       /* Should never happen!                                              */
+      /* Drain RX failed, but can ASSERT and continue */
       WLANSSC_ASSERT( 0 );      
-      return VOS_STATUS_E_FAILURE;
     }
 
     /* Change state                                                        */
@@ -6739,8 +6733,6 @@ static VOS_STATUS WLANSSC_R_ReceiveEventHandler
   VOS_STATUS   eStatus;
   vos_msg_t    sMessage;
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-  gLastRxTimeStamp = jiffies;
-
   /* Since we have no pending request, we honor the request right away     */
 
   /* Process rx data (if needed)                                           */

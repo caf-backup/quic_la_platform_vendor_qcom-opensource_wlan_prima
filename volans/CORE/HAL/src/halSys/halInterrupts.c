@@ -1145,14 +1145,6 @@ halIntServiceRegister(tHalHandle hHalHandle, eHalIntRegisters intReg)
             // we processed an interrupt
             count++;
         }
-        else if((~(intMask)) & intRegStatus){
-            /* Check if any interrupt not enabled with update to intEnableCache[] is triggered
-             * Clear those interrupt
-             */
-            HALLOGE( halLog(pMac, LOGE, FL("Unknown Interrupt=%d"), intSource));
-            halIntClearStatus(hHalHandle, intSource);
-        }
-
     }
     return (count);
 }

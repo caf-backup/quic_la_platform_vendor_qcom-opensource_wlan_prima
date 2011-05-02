@@ -45,6 +45,7 @@ VOS_STATUS btcOpen (tHalHandle hHal)
    /* Initialize BTC configuartion. */
    pMac->btc.btcConfig.btcExecutionMode = BTC_SMART_COEXISTENCE;
    pMac->btc.btcConfig.btcConsBtSlotsToBlockDuringDhcp = 0;
+   pMac->btc.btcConfig.btcA2DPBtSubIntervalsDuringDhcp = BTC_MAX_NUM_ACL_BT_SUB_INTS;
    pMac->btc.btcConfig.btcBtIntervalMode1 = BTC_BT_INTERVAL_MODE1_DEFAULT;
    pMac->btc.btcConfig.btcWlanIntervalMode1 = BTC_WLAN_INTERVAL_MODE1_DEFAULT;
    pMac->btc.btcConfig.btcActionOnPmFail = BTC_START_NEXT;
@@ -1749,9 +1750,14 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
             }
 	  }
          break;
-   case BT_EVENT_SYNC_CONNECTION_COMPLETE:
-	   smsLog( pMac, LOGE, "BT_EVENT_SYNC_CONNECTION_COMPLETE (%d) happens, UAPSD-allowed flag (%d) change to FALSE \n", 
+   case BT_EVENT_CREATE_SYNC_CONNECTION:
+	   {
+		   pMac->btc.btcUapsdOk = VOS_FALSE;
+		   smsLog( pMac, LOGE, "BT_EVENT_CREATE_SYNC_CONNECTION (%d) happens, UAPSD-allowed flag (%d) change to FALSE \n", 
                 pBtEvent->btEventType, pMac->btc.btcUapsdOk );
+	   }
+	   break;		 
+   case BT_EVENT_SYNC_CONNECTION_COMPLETE:	   
        //Make sure it is a success
        if( BT_CONN_STATUS_FAIL != pBtEvent->uEventParam.btSyncConnection.status )
        {
@@ -1766,17 +1772,27 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
 			       break;
                }
            }
-	       if( i < BT_MAX_SCO_SUPPORT )
-	       {
-		       pMac->btc.btcUapsdOk = VOS_FALSE;
-	       }
-	       else
+	       
+           if( i >= BT_MAX_SCO_SUPPORT )
 	       {
 		       smsLog(pMac, LOGE, FL("Too many SCO, ignore this one\n"));
 	       }
        }
        else
        {
+            //Check whether SCO is on
+           for(i=0; i < BT_MAX_SCO_SUPPORT; i++)
+           {
+               if(pMac->btc.btcScoHandles[i] != BT_INVALID_CONN_HANDLE)
+               {
+                   break;
+               }
+           }
+           /*If No Other Sco/A2DP is ON reenable UAPSD*/
+           if( (BT_MAX_SCO_SUPPORT == i)  && !pMac->btc.fA2DPUp)           
+	       {
+               pMac->btc.btcUapsdOk = VOS_TRUE;
+           }
            smsLog(pMac, LOGE, FL("TSYNC complete failed\n"));
        }
        break;

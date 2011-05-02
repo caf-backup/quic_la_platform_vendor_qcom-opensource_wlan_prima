@@ -47,7 +47,7 @@
 #ifdef LIBRA_LINUX_PC
 #define HDD_TX_TIMEOUT          (8000)       
 #else
-#define HDD_TX_TIMEOUT          (2*HZ)    
+#define HDD_TX_TIMEOUT          msecs_to_jiffies(5000)    
 #endif
 /** Hdd Default MTU */
 #define HDD_DEFAULT_MTU         (1500)

@@ -1223,9 +1223,11 @@ eHalStatus pmcEnterRequestStartUapsdState (tHalHandle hHal)
          else
          {
             //Not ready for UAPSD at this time, save it first and wake up the chip
-            smsLog(pMac, LOGE, FL("  need full power because of BTC\n"));
+            smsLog(pMac, LOGE, " PMC state = %d\n",pMac->pmc.pmcState);
             pMac->pmc.uapsdSessionRequired = TRUE;
-            fFullPower = VOS_TRUE;
+	    /* While BTC traffic is going on, STA can be in BMPS 
+	     * and need not go to Full Power */
+            //fFullPower = VOS_TRUE; 
          }
 #endif /* WLAN_MDM_CODE_REDUCTION_OPT*/
          break;

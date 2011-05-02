@@ -795,6 +795,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32 btcActionOnPmFailMode1;
    tANI_U32 btcExecutionMode;
    tANI_U32 btcConsBtSlotsToBlockDuringDhcp;
+   tANI_U32 btcA2DPBtSubIntervalsDuringDhcp;
 
    /* TPC */
    tANI_U32   uTpcGainLutAduReinitAddr;

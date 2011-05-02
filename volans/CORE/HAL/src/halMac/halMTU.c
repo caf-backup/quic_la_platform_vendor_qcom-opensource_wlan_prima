@@ -59,13 +59,13 @@
 #else
 #define LIBRA_MTU_TIMING_WORKAROUND
 #endif
-// In Libra and Virgo Hard MAC implementation, OFDM signal extension got extended 5 more usec, which 
+// In Libra and Virgo Hard MAC implementation, OFDM signal extension got extended 5 more usec, which
 // makes the pktdet_n signal delayed by 11usec. In order to compensate the delay, SIFS has to change so
-// ACK/BA preamble could go over the air exactly at SIFS boundary. 
-// For BA response, hard MAC has a separate control when to send the BA bitmap to TPE and the default was 14usec. 
-// But due to the (incorrect) signal extension, 11+14=25usec and that always triggers ACK timour in short slot 
+// ACK/BA preamble could go over the air exactly at SIFS boundary.
+// For BA response, hard MAC has a separate control when to send the BA bitmap to TPE and the default was 14usec.
+// But due to the (incorrect) signal extension, 11+14=25usec and that always triggers ACK timour in short slot
 // time case. Now reduce the value from 14->1usec.
-// - HW team doesn't plan to fix this in Libra chip. Add a new #define in case in Gen6.2 we could remove this 
+// - HW team doesn't plan to fix this in Libra chip. Add a new #define in case in Gen6.2 we could remove this
 // workaround
 
 #ifdef LIBRA_MTU_TIMING_WORKAROUND
@@ -74,7 +74,7 @@
 /*
   In our test, it shows that the turnaround time from ACK to Libra until Libra sends out
   the next frame, there is a small delays. The delay varies (~13us at 6mbps, ~4us at 36mbps).
-  At this moment HW team does not understand the exact reason for this. Guido suggested to 
+  At this moment HW team does not understand the exact reason for this. Guido suggested to
   reduce the DIFS by 13us as workaround. It fails some WIFI WMM test, hence reduce by 4us.
 */
 #define LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION (4)
@@ -101,7 +101,7 @@
  */
 
 /**
- * 
+ *
  */
 
 //Dinesh : need to change the backoff parametes of backoff 3 which is mapped for probeRsp.
@@ -319,7 +319,7 @@ static eHalStatus __halMTU_RegisterATHInterrupt( tHalHandle hHal , eHalIntSource
 {
     tANI_U32 regValOld = 0;
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
-    
+
     /** Enroll Adaptive Threshold INTR handlers. */
     if( eHAL_STATUS_SUCCESS !=
       halIntEnrollHandler( ADAPTIVE_THRESHOLD_TIMER_MCU_SYS_GROUPED, &__halMTU_HandleATHInterrupt))
@@ -350,12 +350,12 @@ static eHalStatus __halMTU_RegisterATHInterrupt( tHalHandle hHal , eHalIntSource
       ((regValOld & (~(MTU_TIMER_CONTROL_UNIT_MASK(MTUTIMER_ATH) |
       MTU_TIMER_CONTROL_UP_N(MTUTIMER_ATH)))) |
       MTU_TIMER_CONTROL_UNIT_USEC(MTUTIMER_ATH)));
-    
+
     /** Update the desired TIMER tick value for the next tick */
     halWriteRegister(pMac,
       ADAPTIVE_THRESHOLD_MTU_TIMER_REG,
       SYS_TICK_TO_MICRO_SECOND);
-    
+
     return eHAL_STATUS_SUCCESS;
 }
 #endif
@@ -380,7 +380,7 @@ eHalStatus halMTU_setAdaptThreshTimer( tpAniSirGlobal pMac )
 
     /** Update the desired TIMER tick value for the next tick */
     halWriteRegister(pMac, ADAPTIVE_THRESHOLD_MTU_TIMER_REG, nextTimerTick);
-#endif    
+#endif
     return eHAL_STATUS_SUCCESS;
 }
 #endif  // ANI_PRODUCT_TYPE_CLIENT
@@ -392,9 +392,9 @@ void halMtu_setBackOffControl(tpAniSirGlobal pMac)
     halReadRegister(pMac, QWLAN_MTU_BKOF_CONTROL_REG, &value);
 
     value |= QWLAN_MTU_BKOF_CONTROL_SW_MTU_SUPPRESS_COLLISION_INT_MASK;
-    
+
     /** Program backOff control register to suppress collission interrupts */
-    halWriteRegister(pMac, QWLAN_MTU_BKOF_CONTROL_REG, 
+    halWriteRegister(pMac, QWLAN_MTU_BKOF_CONTROL_REG,
                            value);
 
 }
@@ -418,7 +418,7 @@ void halMTU_stallBackoffs(tpAniSirGlobal pMac, tANI_U32 mask)
         count++;
         if (count > MCU_REG_POLLING_WARNING || eHAL_STATUS_SUCCESS != status) {
              HALLOGP( halLog(pMac, LOGP, FL("Polled MCU_WMAC_STATUS_REG register for %d times !!!\n"), count));
-             break;			 
+             break;
         }
     } while ((regValue & QWLAN_MCU_MCU_WMAC_STATUS_TPE_MCU_STATUS_MASK));
 }
@@ -459,7 +459,7 @@ eHalStatus halMTU_Start(tHalHandle hHal, void *arg)
         return eHAL_STATUS_FAILURE;
 
     halMTU_initTimingParams(pMac, MODE_11G_PURE);
-    
+
     /** Program the BackOff Controls */
     halMtu_setBackOffControl(pMac);
 
@@ -469,12 +469,14 @@ eHalStatus halMTU_Start(tHalHandle hHal, void *arg)
     value |= QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_SW_RSP_TO_CONSIDER_VECTOR_MASK;
     halWriteRegister(pMac, QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_REG, value);
 
+#ifdef ENABLE_RF_WARM_UP_PULSE
     //setting RF warm up pulse as provided by ASIC team.
     value = 0;
     halReadRegister(pMac, QWLAN_MTU_SW_MTU_MISC_LIMITS_REG, &value);
     value &= ~QWLAN_MTU_SW_MTU_MISC_LIMITS_SW_MTU_TXP_DELAY_LIMIT_MASK;
     value |= (16 << QWLAN_MTU_SW_MTU_MISC_LIMITS_SW_MTU_TXP_DELAY_LIMIT_OFFSET);
     halWriteRegister(pMac, QWLAN_MTU_SW_MTU_MISC_LIMITS_REG, value);
+#endif
 
     /** Register interrupt for adaptive threshold timer.*/
 #if defined(ANI_PRODUCT_TYPE_CLIENT)
@@ -482,7 +484,7 @@ eHalStatus halMTU_Start(tHalHandle hHal, void *arg)
     if(__halMTU_RegisterATHInterrupt(hHal, ADAPTIVE_THRESHOLD_TIMER_MCU_SYS_GROUPED) != eHAL_STATUS_SUCCESS)
         return eHAL_STATUS_FAILURE;
 #endif
-#endif    
+#endif
 
     return eHAL_STATUS_SUCCESS;
 }
@@ -507,25 +509,25 @@ void halMTU_setDifsRegisters(tpAniSirGlobal pMac, tMtuParams modeParams)
 
 
     /** Setting DIFS which is nothing but AIFS*/
-    value = (((modeParams.difs[0] - 
+    value = (((modeParams.difs[0] -
                 LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION ) << QWLAN_MTU_DIFS_LIMIT_0TO3_SW_MTU_DIFS_LIMIT_0_OFFSET) |
-             ((modeParams.difs[1] - 
+             ((modeParams.difs[1] -
                 LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION ) << QWLAN_MTU_DIFS_LIMIT_0TO3_SW_MTU_DIFS_LIMIT_1_OFFSET) |
-             ((modeParams.difs[2] - 
+             ((modeParams.difs[2] -
                 LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION ) << QWLAN_MTU_DIFS_LIMIT_0TO3_SW_MTU_DIFS_LIMIT_2_OFFSET) |
-             ((modeParams.difs[3] - 
+             ((modeParams.difs[3] -
                 LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION ) << QWLAN_MTU_DIFS_LIMIT_0TO3_SW_MTU_DIFS_LIMIT_3_OFFSET));
     halWriteRegister(pMac, QWLAN_MTU_DIFS_LIMIT_0TO3_REG, value);
 
     HALLOGW(halLog(pMac, LOGW, FL("QWLAN_MTU_DIFS_LIMIT_0TO3_REG reg has new value = %x\n"), value));
 
-    value = (((modeParams.difs[4] - 
+    value = (((modeParams.difs[4] -
                 LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION ) << QWLAN_MTU_DIFS_LIMIT_4TO7_SW_MTU_DIFS_LIMIT_4_OFFSET) |
-             ((modeParams.difs[5] - 
+             ((modeParams.difs[5] -
                 LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION ) << QWLAN_MTU_DIFS_LIMIT_4TO7_SW_MTU_DIFS_LIMIT_5_OFFSET) |
-             ((modeParams.difs[6] - 
+             ((modeParams.difs[6] -
                 LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION ) << QWLAN_MTU_DIFS_LIMIT_4TO7_SW_MTU_DIFS_LIMIT_6_OFFSET) |
-             ((modeParams.difs[7] - 
+             ((modeParams.difs[7] -
                 LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION ) << QWLAN_MTU_DIFS_LIMIT_4TO7_SW_MTU_DIFS_LIMIT_7_OFFSET));
     halWriteRegister(pMac, QWLAN_MTU_DIFS_LIMIT_4TO7_REG, value) ;
     HALLOGW( halLog(pMac, LOGW, FL("QWLAN_MTU_DIFS_LIMIT_4TO7_REG reg has new value = %x\n"), value));
@@ -566,9 +568,9 @@ void halMTU_updateTimingParams(tpAniSirGlobal pMac, tMtuMode mode)
         /** Setting DIFS */
         halMTU_setDifsRegisters(pMac, *modeParams);
         /** Setting EIFS, PIFS, SLOT */
-        value = ( ((modeParams->eifs - 
+        value = ( ((modeParams->eifs -
                     LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION ) << QWLAN_MTU_EIFS_PIFS_SLOT_LIMIT_SW_MTU_EIFS_LIMIT_OFFSET) |
-                  ((modeParams->pifs - 
+                  ((modeParams->pifs -
                     LIBRA_MTU_2_4G_WRKARND_TOTAL_DIFS_REDUCTION ) << QWLAN_MTU_EIFS_PIFS_SLOT_LIMIT_SW_PIFS_LIMIT_OFFSET) |
                   (modeParams->slot << QWLAN_MTU_EIFS_PIFS_SLOT_LIMIT_SW_MTU_SLOT_LIMIT_OFFSET) );
         halWriteRegister(pMac, QWLAN_MTU_EIFS_PIFS_SLOT_LIMIT_REG, value);
@@ -580,12 +582,12 @@ void halMTU_updateTimingParams(tpAniSirGlobal pMac, tMtuMode mode)
         }
         else
             sifs = modeParams->sifs;
-        
-#else    
+
+#else
         sifs = modeParams->sifs;
 #endif
-    
-    
+
+
         /** Setting CCA_MISS, SIFS, ONE_USEC, BCN_SLOT */
         value = ( (modeParams->cca_miss_limit << QWLAN_MTU_SW_MTU_BCN_SLOT_USEC_SIFS_LIMIT_SW_MTU_EARLY_PKT_DET_MISS_LIMIT_OFFSET) |
 #ifndef WLAN_HAL_VOLANS  //after Volans netlist 62, SIFS got moved to another register.
@@ -594,19 +596,19 @@ void halMTU_updateTimingParams(tpAniSirGlobal pMac, tMtuMode mode)
                   (modeParams->one_usec_limit << QWLAN_MTU_SW_MTU_BCN_SLOT_USEC_SIFS_LIMIT_SW_MTU_ONE_USEC_LIMIT_OFFSET) |
                    modeParams->bcn_slot_limit);
         halWriteRegister(pMac, QWLAN_MTU_SW_MTU_BCN_SLOT_USEC_SIFS_LIMIT_REG, value);
-    
+
         /** Setting CWMin, CWMax */
-    
+
         for(idx=0; idx < 8; idx++)
         {
             tANI_U16 cwMin, cwMax;
             cwMin = (1 << modeParams->cwMin[idx]) - 1;
             cwMax = (1 << modeParams->cwMax[idx]) - 1;
-    
+
             value = ((cwMax << QWLAN_MTU_SW_CW_MIN_CW_MAX_0_SW_CW_MAX_0_OFFSET) | cwMin);
             halWriteRegister(pMac, QWLAN_MTU_SW_CW_MIN_CW_MAX_0_REG + sizeof(tANI_U32)*idx, value);
         }
-    
+
         pMac->hal.halMac.lastMtuMode = mode;
         HALLOG1( halLog(pMac, LOG1, FL("MTU timing param switched from Mode %s to %s\n"), modeStr[pMac->hal.halMac.lastMtuMode], modeStr[mode]));
 }
@@ -639,7 +641,7 @@ void halMTU_update11gSlotTimingParams(tpAniSirGlobal pMac, tMtuMode mode)
     for (ac=0;  ac < MAX_NUM_AC; ac++)
     {
         tANI_U32 bkoffId = __halMTU_ac2BkoffIndex(pMac, ac);
-        
+
         /** Updating local host cwMin, cwMax.*/
         modeParams->cwMin[bkoffId] = pMac->hal.edcaParam[ac].cw.min;
         modeParams->cwMax[bkoffId] = pMac->hal.edcaParam[ac].cw.max;
@@ -669,7 +671,7 @@ void halMTU_initTimingParams(tpAniSirGlobal pMac, tMtuMode mode)
     value = (value & 0xFFFF) | (HAL_IBSS_CW_LIMIT << QWLAN_MTU_VALID_BSSID_BITMAP_IBSS_BCN_CW_LIMIT_OFFSET);
     halWriteRegister(pMac, QWLAN_MTU_VALID_BSSID_BITMAP_REG, value);
 
-    //set MTU early interrupt limit clk count    
+    //set MTU early interrupt limit clk count
     halReadRegister(pMac, QWLAN_MTU_EARLY_INTERRUPT_LIMITS_REG, &value);
     value &= ~QWLAN_MTU_EARLY_INTERRUPT_LIMITS_SW_MTU_EARLY_SW_INT_LIMIT_CLKS_MASK;
     value |= ((LIBRA_MTU_CLOCK_PER_USEC -1) << QWLAN_MTU_EARLY_INTERRUPT_LIMITS_SW_MTU_EARLY_SW_INT_LIMIT_CLKS_OFFSET );
@@ -678,7 +680,7 @@ void halMTU_initTimingParams(tpAniSirGlobal pMac, tMtuMode mode)
 #ifdef LIBRA_MTU_TIMING_WORKAROUND
     //For BA response, in 2.4G, pktdet_n got extended by RxP for 11usec (not 6usec), therefore
     //in order to meet SIFS timing, this value has to be changed. HW suggest the value be 1usec.
-    halWriteRegister(pMac, QWLAN_MTU_BKOF_CONTROL2_REG, 
+    halWriteRegister(pMac, QWLAN_MTU_BKOF_CONTROL2_REG,
         LIBRA_MTU_2_4G_PKTDET_TO_BABITMAP_UPDATE_USEC << QWLAN_MTU_BKOF_CONTROL2_SW_MTU_PKT_DET_TO_CNT_THR_OFFSET);
 #endif
 
@@ -738,9 +740,9 @@ void halMTU_updateIbssCW(tpAniSirGlobal pMac, tANI_U32 cwValue)
 {
     tANI_U32 value=0;
 
-    halReadRegister(pMac, QWLAN_MTU_VALID_BSSID_BITMAP_REG, 
+    halReadRegister(pMac, QWLAN_MTU_VALID_BSSID_BITMAP_REG,
         &value);
-    value = 
+    value =
         (value & QWLAN_MTU_VALID_BSSID_BITMAP_SW_MTU_VALID_BSSID_BITMAP_MASK) |
         (cwValue << QWLAN_MTU_VALID_BSSID_BITMAP_IBSS_BCN_CW_LIMIT_OFFSET);
     halWriteRegister(pMac, QWLAN_MTU_VALID_BSSID_BITMAP_REG, value);
@@ -881,7 +883,7 @@ tMtuMode halMTU_getMode(tpAniSirGlobal pMac)
  * \param :   tpAniSirGlobal pMac : Handle to Mac Structure.
  *
  * \param :   tANI_U8 shortRetry
- * 
+ *
  * \param :   tANI_U8 longRetry
  *
  * \return :   eHalStatus
@@ -998,7 +1000,7 @@ void halMTU_GetTsfTimer(tpAniSirGlobal pMac, tANI_U32 *tsfTimerLo, tANI_U32 *tsf
 /**
  * \fn     :   halMTU_SetTsfTimer
  *
- * \brief  :   Code to write to the TSF timer lo and high 
+ * \brief  :   Code to write to the TSF timer lo and high
  *
  * \param  :   tpAniSirGlobal pMac : Handle to Mac Structure.
  *
@@ -1135,7 +1137,7 @@ void halMTU_GetActiveBss(tpAniSirGlobal pMac, tANI_U8 *activeBssCnt)
  * In the BTAMP mode the regular TSF timer will be used.
  *
  */
-void halMTU_SetIbssValid_And_BTAMPMode(tpAniSirGlobal pMac, 
+void halMTU_SetIbssValid_And_BTAMPMode(tpAniSirGlobal pMac,
         tANI_U8 btamp_flag)
 {
     tANI_U32 value;
@@ -1146,7 +1148,7 @@ void halMTU_SetIbssValid_And_BTAMPMode(tpAniSirGlobal pMac,
 
     value |= QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_SW_MTU_IBSS_VALID_MASK;
 
-    if (btamp_flag) 
+    if (btamp_flag)
         value |= QWLAN_MTU_MTU_FOR_HMAC_CONTROLS_SW_MTU_BTAMP_MODE_MASK;
 
     /** Set the ibss valid bit */
@@ -1229,11 +1231,11 @@ void halMTU_UpdateBeaconInterval(tpAniSirGlobal pMac, tANI_U32 beaconInterval)
                                     &value) ;
 
     // Clear the  Beacon Interval  before write new value.
-    value =  value & (~(QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_BEACON_INTV_MASK)); 
+    value =  value & (~(QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_BEACON_INTV_MASK));
 
 
     /** Configure the beacon bssid register */
-    value |= (QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_BEACON_INTV_MASK & 
+    value |= (QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_BEACON_INTV_MASK &
                   (beaconInterval << QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_BEACON_INTV_OFFSET));
 
     halWriteRegister(pMac, QWLAN_MTU_BCN_BSSID_INTV_REG,
@@ -1244,7 +1246,7 @@ void halMTU_UpdateBeaconInterval(tpAniSirGlobal pMac, tANI_U32 beaconInterval)
 /**
  * \fn     :   halMTU_DisableBeaconTransmission
  *
- * \brief  :   Stop Beacon Transmission 
+ * \brief  :   Stop Beacon Transmission
  *
  * \param  :   tpAniSirGlobal pMac     : Handle to Mac Structure.
  *
@@ -1263,13 +1265,13 @@ void halMTU_DisableBeaconTransmission(tpAniSirGlobal pMac)
 
     HALLOG1(halLog(pMac, LOG1, FL("\nMTU Beacon Disable\n")));
 
-    return; 
+    return;
 }
 
 
 // Set the bit in MTU sw_mtu_tbtt_enable to start beacon transmission
 // This called when the beacon is ready from PE to be send out.
-void halMTU_EnableDisableBssidTBTTBeaconTransmission(tpAniSirGlobal pMac, 
+void halMTU_EnableDisableBssidTBTTBeaconTransmission(tpAniSirGlobal pMac,
         tANI_U32 beaconInterval, tANI_U8 enable_flag)
 {
     tANI_U32 value;
@@ -1283,7 +1285,7 @@ void halMTU_EnableDisableBssidTBTTBeaconTransmission(tpAniSirGlobal pMac,
         value |= (QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_TBTT_ENABLE_MASK |
                 (1<<QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_MAX_BSSIDS_OFFSET));
     }
-    else 
+    else
     {
         /** Configure the beacon bssid register */
         value &= (~(QWLAN_MTU_BCN_BSSID_INTV_SW_MTU_TBTT_ENABLE_MASK));
@@ -1362,22 +1364,22 @@ void halMTU_UpdateMbssInterval(tpAniSirGlobal pMac, tANI_U32 mbssInterval)
  *
  * \brief  :   Deactivates timer.
  *
- * \param  :   tpAniSirGlobal pMac 
+ * \param  :   tpAniSirGlobal pMac
  *
  * \return :   eHalStatus
  */
 eHalStatus halMTU_DeactivateTimer(tpAniSirGlobal pMac, tMtuTimer timer)
 {
     tANI_U32 regVal;
-    
+
     halReadRegister(pMac, QWLAN_MTU_TIMER_CONTROL_REG, &regVal );
     regVal &= ~(MTU_TIMER_CONTROL_UP_N(timer) | MTU_TIMER_CONTROL_UNIT_MASK(timer));
     halWriteRegister(pMac, QWLAN_MTU_TIMER_CONTROL_REG, regVal) ;
     // Causes a deadlock in Tx thread. This is cause the hal interrupt
     // cache is shared between interrupt context and main thread.
-    // We get into an infinite ASIC interrupt sometimes with 
+    // We get into an infinite ASIC interrupt sometimes with
     // the timer 5 never being serviced.
-    // The main thread disables the bit for timer 5 interrupt mask and the 
+    // The main thread disables the bit for timer 5 interrupt mask and the
     // inerrupt context in the handler reads the updated mask to find
     // that we no longer service timer_5. In this state we get into a dead lock.
     // Tx hangs. Only the main and interrupt contexts get to run.
@@ -1454,7 +1456,7 @@ halInitPreBeaconTmr( tpAniSirGlobal pMac )
     // Enable TIMER_5 interrupt
     halIntEnable((tHalHandle)pMac, eHAL_INT_MCU_HOST_INT_MTU_TIMER_5); // this always returns success.
     return eHAL_STATUS_SUCCESS;
-    
+
 }
 
 /**
@@ -1532,13 +1534,13 @@ eHalStatus halMTU_TimerInterrupt( tHalHandle hHalHandle, eHalIntSources intSourc
         return status;
     }
 
-    intRegStatus &= intRegMask;   
+    intRegStatus &= intRegMask;
 
     if(intRegStatus){
         /** Display Error Information.*/
         HALLOG1( halLog( pMac, LOG1, FL("MTU timer Interrupt Status %x, enable %x\n"),  intRegStatus, intRegMask ));
-    } 
-    return status;    
+    }
+    return status;
 }
 
 eHalStatus halMTU_DefInterruptHandler( tHalHandle hHalHandle, eHalIntSources intSource )
@@ -1554,14 +1556,14 @@ eHalStatus halMTU_DefInterruptHandler( tHalHandle hHalHandle, eHalIntSources int
         return status;
     }
 
-    intRegStatus &= intRegMask;   
+    intRegStatus &= intRegMask;
 
     if(intRegStatus){
         /** Display Error Information.*/
         HALLOGE( halLog( pMac, LOGE, FL("MTU Interrupt Status %x, enable %x\n"),  intRegStatus, intRegMask ));
-    } 
+    }
     return status;
-    
+
 }
 
 void halGetTxTSFtimer(tpAniSirGlobal pMac, tSirMacTimeStamp *pTime)

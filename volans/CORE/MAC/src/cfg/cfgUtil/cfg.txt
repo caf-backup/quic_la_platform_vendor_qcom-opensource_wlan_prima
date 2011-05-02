@@ -3734,3 +3734,15 @@ V    RW    NP
 HAL
 5    255    15
 
+*
+*  BTC DHCP No of Bt sub interval during DHCP 
+*
+WNI_CFG_BTC_A2DP_DHCP_BT_SUB_INTERVALS    I    4    7
+V    RW    NP
+HAL
+0    0xFF     7
+V    RW    NP
+HAL
+0    0xFF     7
+
+

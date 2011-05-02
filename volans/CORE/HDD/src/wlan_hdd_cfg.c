@@ -1169,6 +1169,13 @@ This is a Verizon required feature.
                  CFG_BTC_DHCP_PROTECTION_DEFAULT,
                  CFG_BTC_DHCP_PROTECTION_MIN,
                  CFG_BTC_DHCP_PROTECTION_MAX ),
+
+   REG_VARIABLE( CFG_BTC_A2DP_DHCP_PROTECTION_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, btcA2DPBtSubIntervalsDuringDhcp,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_BTC_A2DP_DHCP_PROTECTION_DEFAULT,
+                 CFG_BTC_A2DP_DHCP_PROTECTION_MIN,
+                 CFG_BTC_A2DP_DHCP_PROTECTION_MAX ),
    
 
 #ifdef WLAN_SOFTAP_FEATURE
@@ -1983,6 +1990,8 @@ static void hdd_set_btc_config(hdd_adapter_t *pAdapter)
    btcParams.btcExecutionMode = pConfig->btcExecutionMode;
 
    btcParams.btcConsBtSlotsToBlockDuringDhcp = pConfig->btcConsBtSlotsToBlockDuringDhcp;
+
+   btcParams.btcA2DPBtSubIntervalsDuringDhcp = pConfig->btcA2DPBtSubIntervalsDuringDhcp;
 
    sme_BtcSetConfig(pAdapter->hHal, &btcParams);
 }

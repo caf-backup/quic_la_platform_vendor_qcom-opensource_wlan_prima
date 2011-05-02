@@ -1715,60 +1715,6 @@ void halBaCheckActivity(tpAniSirGlobal pMac)
                 continue;
 
             vos_mem_copy((v_VOID_t*) pTemp->staAddr, (v_VOID_t*) pSta->staAddr, sizeof( tSirMacAddr ));  
-#ifndef VOLANS_HW_ISSUE_FIX_QID0_FOR_NON_QOS_ONLY
-            /*
-                        with this HW issue all the traffic on TID 0 is mapped to TID3, TID1 is mapped to TID2. TL is keeping stat on unmodified TID. So all the stat check and comparison will happen
-                        on original TID. but BA setup will happen on the modified TID.
-                    */
-            {
-                tANI_U8 modifiedTid = 0;
-                for(tid = 0; tid < STACFG_MAX_TC; tid++)
-                {
-                    tANI_U32    txPktCount = 0;
-
-                    modifiedTid = tid;
-
-                    if(tid == 0)
-                        modifiedTid = 3;
-                    else if(tid == 1)
-                        modifiedTid = 2;
-
-                    halTLGetTxPktCount(pMac, curSta, tid, &txPktCount);
-                    pSta->framesTxed[tid] = txPktCount;
-
-                    if(  (!pSta->staParam.tcCfg[modifiedTid].fUseBATx) && (!pTemp->baInfo[modifiedTid].fBaEnable) &&
-                          (pSta->framesTxed[tid] >= pSta->framesTxedLastPoll[tid] + HAL_BA_TX_FRM_THRESHOLD))
-                    {
-
-                        /* Knocked-off the code to read the sequence number from BTQM to address CR 190148,
-                         * where-in in PS, since we block/unblock BTQM, F/W was running out of BD/PDUs.
-                         */
-
-                        /* Retrieve the QueueId from the Tid */
-                        /* Get the sequence number from the DPU Descriptor */
-
-                        if (eHAL_STATUS_SUCCESS != halDpu_GetSequence(pMac, pSta->dpuIndex, modifiedTid, &sequenceNum)) {
-                            HALLOGE( halLog(pMac, LOGE, FL("Cannot get Sequence number from DPU Descriptor with DPU Indx %d \n"), pSta->dpuIndex));
-                            baCandidateCnt = 0;
-                            goto out;
-                        }
-
-                        HALLOG3( halLog(pMac, LOG3, FL("STA %d (DPU %d) TID %d seqNum is %d (0x%x)\n"), curSta, pSta->dpuIndex, modifiedTid,  sequenceNum, sequenceNum));
-
-                        /* We read the btqm queue or the DPU descriptor to retrieve the updated sequence number */
-                        /* pTemp->baInfo[tid].startingSeqNum = pSta->seqNum[tid] + 1; */
-                        pTemp->baInfo[modifiedTid].startingSeqNum = sequenceNum;
-                        newBaCandidate = 1; //got at least one new BA candidate for this station.
-                        pTemp->baInfo[modifiedTid].fBaEnable = 1;                    
-
-                    }
-
-                    pSta->framesTxedLastPoll[tid] = pSta->framesTxed[tid];
-
-                }
-            }
-
-#else
             
             for(tid = 0; tid < STACFG_MAX_TC; tid++)
             {
@@ -1777,7 +1723,7 @@ void halBaCheckActivity(tpAniSirGlobal pMac)
                 halTLGetTxPktCount(pMac, curSta, tid, &txPktCount);
                 pSta->framesTxed[tid] = txPktCount;
 
-                if(  (!pSta->staParam.tcCfg[tid].fUseBATx) &&
+                if( (!pSta->staParam.tcCfg[tid].fUseBATx) &&
                       (pSta->framesTxed[tid] >= pSta->framesTxedLastPoll[tid] + HAL_BA_TX_FRM_THRESHOLD))
                 {
 
@@ -1807,7 +1753,7 @@ void halBaCheckActivity(tpAniSirGlobal pMac)
                 pSta->framesTxedLastPoll[tid] = pSta->framesTxed[tid];
 
             }
-#endif            
+
             baCandidateCnt += newBaCandidate; //This is the no. if stations for BA candidate.
             if(newBaCandidate) {//This station has at least one BA candidate. Need to move the pointer to next station. 
                 pTemp++;

@@ -63,9 +63,9 @@ tRegisterEntry aVolansRFSetup[] = {
 
     { (QWLAN_ADU_CONTROL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
 
-    /* FIXME: Baseband registers are not expected to be in the list. But the below 
-     * initializations should be done before the remaining ADU reinit. Proper 
-     * implementation should be like ADU control and the below baseband registers should 
+    /* FIXME: Baseband registers are not expected to be in the list. But the below
+     * initializations should be done before the remaining ADU reinit. Proper
+     * implementation should be like ADU control and the below baseband registers should
      * go to another register list which should be backed up before this RF register list */
 
     /*AHB registers which require setting other than default */
@@ -79,9 +79,9 @@ tRegisterEntry aVolansRFSetup[] = {
     { (QWLAN_DAHB_DAHB_ADU_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
     { (QWLAN_DAHB_DAHB_SIF_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
     /* JTAG register is added only for debug purpose. It is observed that sometimes
-     * SIF holds the AHB and remains in hanged state without releasing the AHB. When 
-     * JTAG is connected for debugging, since its default priority is lower than the 
-     * SIF, none of the registers are readable from JTAG. Hence priority of JTAG is 
+     * SIF holds the AHB and remains in hanged state without releasing the AHB. When
+     * JTAG is connected for debugging, since its default priority is lower than the
+     * SIF, none of the registers are readable from JTAG. Hence priority of JTAG is
      * set to highest in DAHB */
     { (QWLAN_DAHB_DAHB_JTAG_PL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
 
@@ -99,7 +99,7 @@ tRegisterEntry aVolansRFSetup[] = {
     { (QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), 0X0 },
 #ifdef VOLANS_PHY_TX_OPT_ENABLED
     /* TXCLKCTRL root clocks can be disabled here and later can be enabled only when there is a
-    need for transmitting packets. MPI ENABLE in this case will be done when reinitializing the 
+    need for transmitting packets. MPI ENABLE in this case will be done when reinitializing the
     TX list when there is a request for transmission after enabling the TXCLKCTRL Root clock */
     { (QWLAN_TXCLKCTRL_ROOT_CLK_EN_REG  | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), 0x0 },
 #else /* VOLANS_PHY_TX_OPT_ENABLED */
@@ -2456,20 +2456,24 @@ tRegisterEntry PostBmuStartRegList[] = {
 #endif
     { (QWLAN_BMU_WQ_ENABLE_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), 0x781ffff },
 	{ (QWLAN_BMU_ERR_INTR_ENABLE_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), 0x1ffffffe },
-    
+
     { (QWLAN_BMU_DISABLE_WQ_DA_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
     { (QWLAN_MCU_MUTEX0_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), QWLAN_MCU_MUTEX0_RESET_MASK | (QWLAN_HOSTFW_SYNC_MUTEX_MAX_COUNT << QWLAN_MCU_MUTEX0_MAXCOUNT_OFFSET)},
 
     /* STOP!! DO NOT REMOVE
      * QWLAN_MCU_MUTEX1_REG register is backed up to address the power-save issues in Volans 1.0 chip.
-     * The register can be removed from the list as soon the fix is available in the HW 
+     * The register can be removed from the list as soon the fix is available in the HW
      */
     { (QWLAN_MCU_MUTEX1_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), QWLAN_MCU_MUTEX1_RESET_MASK | (QWLAN_HOSTFW_TX_SYNC_MUTEX_MAX_COUNT << QWLAN_MCU_MUTEX1_MAXCOUNT_OFFSET)},
     { (QWLAN_MTU_DIFS_LIMIT_0TO3_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x1c1c2525 },
     { (QWLAN_MTU_DIFS_LIMIT_4TO7_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x25491c1c },
     { (QWLAN_MTU_EIFS_PIFS_SLOT_LIMIT_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x005a1309 },
     { (QWLAN_MTU_SW_MTU_BCN_SLOT_USEC_SIFS_LIMIT_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x200a4a14 },
-    { (QWLAN_MTU_SW_MTU_MISC_LIMITS_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0c10091e },    
+
+#ifdef ENABLE_RF_WARM_UP_PULSE
+    { (QWLAN_MTU_SW_MTU_MISC_LIMITS_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0c10091e },
+#endif
+
     { (QWLAN_MTU_SW_CW_MIN_CW_MAX_0_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x03ff000f },
     { (QWLAN_MTU_SW_CW_MIN_CW_MAX_1_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x03ff000f },
     { (QWLAN_MTU_SW_CW_MIN_CW_MAX_2_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x00070003 },
@@ -2497,7 +2501,11 @@ tRegisterEntry PostBmuStartRegList[] = {
     { (QWLAN_TPE_SW_SOFTWARE_TX_ADDRESS_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x00012dac },
     { (QWLAN_TPE_SW_BEACON_BASE_ADDR_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x000135ac },
     { (QWLAN_TPE_SW_MAX_MPDUS_IN_AMPDU_AND_MISC_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x7f000010 },
+
+#ifdef ENABLE_RF_WARM_UP_PULSE
     { (QWLAN_TPE_SW_DELAY_WAIT_CMD_CNT_REG_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0xff1e8008 },
+#endif
+
 	//QWLAN_TPE_SW_PM_2_REG register is added in VOlans TPE for controlling power-save status per station
 	//We need to backup this register during power-save
     { (QWLAN_TPE_SW_PM_2_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
@@ -2544,15 +2552,15 @@ tRegisterEntry PostBmuStartRegList[] = {
     { (QWLAN_DPU_DPU_CONTROL_REG | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), 0x40000006 },
     { (QWLAN_DPU_DPU_SPARE_REG_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
     { (QWLAN_DPU_DPU_WAPIMICKEYBASE_ADDR_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
-    { (QWLAN_DPU_WAPI_STA0_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },        
-    { (QWLAN_DPU_WAPI_STA1_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },        
-    { (QWLAN_DPU_WAPI_STA2_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },        
-    { (QWLAN_DPU_WAPI_STA3_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },        
-    { (QWLAN_DPU_WAPI_STA4_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },        
-    { (QWLAN_DPU_WAPI_STA5_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },        
-    { (QWLAN_DPU_WAPI_STA6_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },        
-    { (QWLAN_DPU_WAPI_STA7_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },        
-    
+    { (QWLAN_DPU_WAPI_STA0_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DPU_WAPI_STA1_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DPU_WAPI_STA2_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DPU_WAPI_STA3_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DPU_WAPI_STA4_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DPU_WAPI_STA5_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DPU_WAPI_STA6_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+    { (QWLAN_DPU_WAPI_STA7_KEY_INDEXES_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
+
     /* This was mainly done for some hardware issues in DPU. Fixed in Volans, hence, not required
      * to be backed up anymore
      */
@@ -2573,8 +2581,8 @@ tRegisterEntry PostBmuStartRegList[] = {
     { (QWLAN_DPU_DPU_WOW_MAGIC_PACKET_HI_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
     { (QWLAN_DPU_DPU_WOW_MAGIC_PACKET_LO_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x0 },
     { (QWLAN_DPU_DPU_CONTROL_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x00000026 },
-    { (QWLAN_DPU_DPU_TKIP_MASK_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x00000080 },    
-    { (QWLAN_DPU_DPU_BUG_FIX_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x00000004 },    
+    { (QWLAN_DPU_DPU_TKIP_MASK_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x00000080 },
+    { (QWLAN_DPU_DPU_BUG_FIX_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x00000004 },
     { (QWLAN_DPU_DPU_INTERRUPT_MASK_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x800040},
     { (QWLAN_DPU_DPU_BIP_MMIE_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x000010c4},
 
@@ -2727,7 +2735,7 @@ tRegisterEntry PostBmuStartRegList[] = {
     { ((QWLAN_DXE_0_CH_CTRL_REG  + (DXE_CH_REG_SIZE * 3)) | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x00000000 },
     { ((QWLAN_DXE_0_CH_SZ_REG    + (DXE_CH_REG_SIZE * 3)) | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x00000000 },
 
-    { (QWLAN_DXE_0_DMA_CSR_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x00004000 }, 
+    { (QWLAN_DXE_0_DMA_CSR_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x00004000 },
     { (QWLAN_DXE_0_INT_MSK_REG | HAL_REG_RSVD_BIT | HAL_REG_FW_FILLED), 0x00000003 },
 
     /* These registers were moved from the PreBBRegList to here, as it MIF errors
@@ -3435,8 +3443,8 @@ eHalStatus halRegBckup_InsertRegEntry(tpAniSirGlobal pMac, tANI_U32 index,
 #ifdef ADU_MEM_OPT_ENABLED
 /*
  * DESCRIPTION:
- *      Routine to write the given register list to the ADU reinit address 
- *      in an optimized way. This routine optimizes the registers based on 
+ *      Routine to write the given register list to the ADU reinit address
+ *      in an optimized way. This routine optimizes the registers based on
  *      ADU batch commands wherever it finds contigous registers in the passed list.
  *
  * PARAMETERS:

@@ -38,6 +38,12 @@
 #define BT_ACL_PARK             (3)   /**< Park mode */
 #define BT_ACL_MODE_MAX         (4)   /**< This value and higher are invalid */
 
+/**
+ * A2DP BTC max no of BT sub intervals
+ *
+ * **/
+#define BTC_MAX_NUM_ACL_BT_SUB_INTS (7)
+
 /** BTC Executions Modes allowed to be set by user
 */
 #define BTC_SMART_COEXISTENCE   (0) /** BTC Mapping Layer decides whats best */
@@ -188,6 +194,7 @@ typedef struct sSmeBtcConfig
 {
    v_U8_t       btcExecutionMode;
    v_U8_t       btcConsBtSlotsToBlockDuringDhcp;
+   v_U8_t       btcA2DPBtSubIntervalsDuringDhcp;
    v_U8_t       btcActionOnPmFail;
    v_U8_t       btcBtIntervalMode1;
    v_U8_t       btcWlanIntervalMode1;

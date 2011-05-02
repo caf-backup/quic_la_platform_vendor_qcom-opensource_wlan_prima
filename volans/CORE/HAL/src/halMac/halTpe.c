@@ -49,13 +49,13 @@
  */
 static void __halTpe_WriteHwTemplate(tpAniSirGlobal pMac, tANI_U32 memOffset, tANI_U8 *pBuffer, tANI_U32 numBytes)
 {
-    tANI_U32 *pU32 = (tANI_U32 *)pBuffer;    
+    tANI_U32 *pU32 = (tANI_U32 *)pBuffer;
     tANI_U32 i, j;
 
     halZeroDeviceMemory(pMac, memOffset, numBytes);
 
     //When writing to HW template to device memory, the buffer prepared at
-    //Host side is already in LITTLE endian format, but BAL will have SIF swap 
+    //Host side is already in LITTLE endian format, but BAL will have SIF swap
     //each DWORD to BIG endian. To avoid the swapping to corrupt ACK/BA/... templates,
     //swap the buffer here.
     for (i= numBytes, j = 0; i; i-= sizeof(tANI_U32), j++)
@@ -189,7 +189,7 @@ static void __halTpe_SetACKTemplate(tpAniSirGlobal pMac, tANI_U32 type,
 
     // Zero out the structure to take care of some uninitialized fields that are supposed
     // to be filled in by SW.
-    
+
     palZeroMemory(pMac->hHdd, &ackTemplate, sizeof(ackTemplate));
 
     __halTpe_InitializeHwTemplate(pMac, type, sub_type, &ackTemplate, sizeof(ackTemplate));
@@ -223,7 +223,7 @@ static void __halTpe_SetRTSTemplate(tpAniSirGlobal pMac, tANI_U32 type,
 
     // Zero out the structure to take care of some uninitialized fields that are supposed
     // to be filled in by SW.
-    
+
     palZeroMemory(pMac->hHdd, &rtsTemplate, sizeof(rtsTemplate));
 
     __halTpe_InitializeHwTemplate(pMac, type, sub_type, &rtsTemplate, sizeof(rtsTemplate));
@@ -232,7 +232,7 @@ static void __halTpe_SetRTSTemplate(tpAniSirGlobal pMac, tANI_U32 type,
                         TEMPLATE_RTS_OFFSET, (tANI_U8 *)&rtsTemplate,
                         sizeof(rtsTemplate));
 
-    
+
 }
 
 /**
@@ -258,7 +258,7 @@ static void halTpe_SetCTSTemplate(tpAniSirGlobal pMac, tANI_U32 type,
 
     // Zero out the structure to take care of some uninitialized fields that are supposed
     // to be filled in by SW.
-    
+
     palZeroMemory(pMac->hHdd, &ctsTemplate, sizeof(ctsTemplate));
 
     __halTpe_InitializeHwTemplate(pMac, type, sub_type, &ctsTemplate, sizeof(ctsTemplate));
@@ -267,7 +267,7 @@ static void halTpe_SetCTSTemplate(tpAniSirGlobal pMac, tANI_U32 type,
                         TEMPLATE_CTS_OFFSET, (tANI_U8 *)&ctsTemplate,
                         sizeof(ctsTemplate));
 
-    
+
 }
 
 /**
@@ -293,7 +293,7 @@ static void __halTpe_SetBARTemplate(tpAniSirGlobal pMac, tANI_U32 type,
 
     // Zero out the structure to take care of some uninitialized fields that are supposed
     // to be filled in by SW.
-    
+
     palZeroMemory(pMac->hHdd, &barTemplate, sizeof(barTemplate));
 
     __halTpe_InitializeHwTemplate(pMac, type, sub_type, &barTemplate, sizeof(barTemplate));
@@ -302,7 +302,7 @@ static void __halTpe_SetBARTemplate(tpAniSirGlobal pMac, tANI_U32 type,
                         TEMPLATE_BAR_OFFSET, (tANI_U8 *)&barTemplate,
                         sizeof(barTemplate));
 
-    
+
 }
 
 /**
@@ -328,7 +328,7 @@ static void __halTpe_SetBATemplate(tpAniSirGlobal pMac, tANI_U32 type,
 
     // Zero out the structure to take care of some uninitialized fields that are supposed
     // to be filled in by SW.
-    
+
     palZeroMemory(pMac->hHdd, &baTemplate, sizeof(baTemplate));
 
     __halTpe_InitializeHwTemplate(pMac, type, sub_type, &baTemplate, sizeof(baTemplate));
@@ -359,11 +359,11 @@ static void __halTpe_SetCFEndTemplate(tpAniSirGlobal pMac, tANI_U32 type,
                                 tANI_U32 sub_type, tHwTemplateParams *hwTemplateParams)
 {
     tHwCFEndTemplate cfEndTemplate;
-    
+
 
     // Zero out the structure to take care of some uninitialized fields that are supposed
     // to be filled in by SW.
-    
+
     palZeroMemory(pMac->hHdd, &cfEndTemplate, sizeof(cfEndTemplate));
 
     __halTpe_InitializeHwTemplate(pMac, type, sub_type, &cfEndTemplate, sizeof(cfEndTemplate));
@@ -372,7 +372,7 @@ static void __halTpe_SetCFEndTemplate(tpAniSirGlobal pMac, tANI_U32 type,
                         TEMPLATE_CF_END_OFFSET, (tANI_U8 *)&cfEndTemplate,
                         sizeof(cfEndTemplate));
 
-    
+
 }
 
 /**
@@ -425,14 +425,14 @@ eHalStatus halTpe_InitHwTemplates(tHalHandle hHal, void *arg)
 /**
  * \fn halTpe_SetConsiderSecondPacket
  *
- * \brief To set the consider second packet bit in TPE SW PM register. 
+ * \brief To set the consider second packet bit in TPE SW PM register.
  *        This setting will give correct duration/id in the fragmented frames.
- *        The TPE will calculate the duration including the next fragement also. 
- *        This is required when a fragmentation chain has to be transmitted with each fragment 
- *        having Duration field considering the next fragment. This is applicable for all the 
+ *        The TPE will calculate the duration including the next fragement also.
+ *        This is required when a fragmentation chain has to be transmitted with each fragment
+ *        having Duration field considering the next fragment. This is applicable for all the
  *        fragments except the last one.
  *
- * \param pMac The global tpAniSirGlobal object 
+ * \param pMac The global tpAniSirGlobal object
  *
  * \return void
  */
@@ -478,7 +478,7 @@ eHalStatus halTpe_Start(tHalHandle hHal, void *arg)
     __halTpe_InitBeaconTemplateBase(pMac);
 
     /** Set the Tx SIFS cycles */
-    value = (tANI_U32)(SW_TX_SIFS_A_MODE_CYCLES << QWLAN_TPE_SW_PM_SW_TX_SIFS_A_MODE_CYCLES_OFFSET) | 
+    value = (tANI_U32)(SW_TX_SIFS_A_MODE_CYCLES << QWLAN_TPE_SW_PM_SW_TX_SIFS_A_MODE_CYCLES_OFFSET) |
            (tANI_U32)(SW_TX_SIFS_B_MODE_CYCLES << QWLAN_TPE_SW_PM_SW_TX_SIFS_B_MODE_CYCLES_OFFSET);
 
     mask = QWLAN_TPE_SW_PM_SW_TX_SIFS_A_MODE_CYCLES_MASK | QWLAN_TPE_SW_PM_SW_TX_SIFS_B_MODE_CYCLES_MASK;
@@ -495,21 +495,25 @@ eHalStatus halTpe_Start(tHalHandle hHal, void *arg)
 
     /** Enable TPE.statistic_counters_cntl.copy_vista_counter to fetch the stats */
     {
-        if(halReadRegister(pMac, QWLAN_TPE_STATISTIC_COUNTERS_CNTL_REG, 
+        if(halReadRegister(pMac, QWLAN_TPE_STATISTIC_COUNTERS_CNTL_REG,
                                        &value) != eHAL_STATUS_SUCCESS)
             return eHAL_STATUS_FAILURE;
         value |= QWLAN_TPE_STATISTIC_COUNTERS_CNTL_COPY_VISTA_COUNTERS_MASK;
-        
-        if(halWriteRegister(pMac, QWLAN_TPE_STATISTIC_COUNTERS_CNTL_REG, 
+
+        if(halWriteRegister(pMac, QWLAN_TPE_STATISTIC_COUNTERS_CNTL_REG,
                                         value) != eHAL_STATUS_SUCCESS)
             return eHAL_STATUS_FAILURE;
     }
+
+#ifdef ENABLE_RF_WARM_UP_PULSE
     //setting up RF warm up pulse as provided by ASIC team.
     value = 0;
     halReadRegister(pMac, QWLAN_TPE_SW_DELAY_WAIT_CMD_CNT_REG_REG, &value);
     value &= ~QWLAN_TPE_SW_DELAY_WAIT_CMD_CNT_REG_SW_DELAY_WAIT_CMD_CNT_MASK;
     value |= (8 << QWLAN_TPE_SW_DELAY_WAIT_CMD_CNT_REG_SW_DELAY_WAIT_CMD_CNT_OFFSET);
     halWriteRegister(pMac, QWLAN_TPE_SW_DELAY_WAIT_CMD_CNT_REG_REG, value);
+#endif
+
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -589,7 +593,7 @@ eHalStatus halTpe_RateTableRead(tpAniSirGlobal pMac, tANI_U32 tableAddr,
 #ifdef WLAN_HAL_VOLANS
         halReadRegister(pMac, QWLAN_TPE_RATE_TABLE_SRAM_CONTROL_REG,
                                     data) ;
-        *data = (*data & QWLAN_TPE_RATE_TABLE_SRAM_CONTROL_RATE_SRAM_XACT_DATA_MASK) >> 
+        *data = (*data & QWLAN_TPE_RATE_TABLE_SRAM_CONTROL_RATE_SRAM_XACT_DATA_MASK) >>
                 QWLAN_TPE_RATE_TABLE_SRAM_CONTROL_RATE_SRAM_XACT_DATA_OFFSET;
 #else
         halReadRegister(pMac, QWLAN_TPE_RATE_TABLE_SRAM_DATA1_REG,
@@ -731,7 +735,7 @@ eHalStatus halTpe_GetStaDesc(tpAniSirGlobal pMac, tANI_U8 staId,
 
     address = pMac->hal.memMap.tpeStaDesc_offset + (staId * TPE_STA_DESC_AND_STATS_SIZE);
 
-    halReadDeviceMemory(pMac, 
+    halReadDeviceMemory(pMac,
             address, (tANI_U8 *)pTpeStaDesc, TPE_STA_DESC_ENTRY_SIZE);
 
     return eHAL_STATUS_SUCCESS;
@@ -768,7 +772,7 @@ eHalStatus halTpe_GetStaStats(tpAniSirGlobal pMac, tANI_U8 staId,
 
 /* Function to retrieve the Rate adaptation related statistics/counters
  * for the given station ID in the TPE station descriptor */
-eHalStatus halTpe_GetStaRaStats(tpAniSirGlobal pMac, tANI_U8 staId, 
+eHalStatus halTpe_GetStaRaStats(tpAniSirGlobal pMac, tANI_U8 staId,
         tpTpeStaRaStats pTpeStaRaStats)
 {
     tANI_U32    address;
@@ -777,8 +781,8 @@ eHalStatus halTpe_GetStaRaStats(tpAniSirGlobal pMac, tANI_U8 staId,
 
     // Get the address of the stations RA stats in the TPE
     // descriptor
-    address = pMac->hal.memMap.tpeStaDesc_offset + 
-        (staId * TPE_STA_DESC_AND_STATS_SIZE) + 
+    address = pMac->hal.memMap.tpeStaDesc_offset +
+        (staId * TPE_STA_DESC_AND_STATS_SIZE) +
         TPE_PER_STA_STATS_START_OFFSET;
 
     halReadDeviceMemory(pMac, address, (tANI_U8 *)pTpeStaRaStats,
@@ -795,8 +799,8 @@ eHalStatus halTpe_ClearStaRaStats(tpAniSirGlobal pMac, tANI_U8 staId)
 
     // Get the address of the stations RA stats in the TPE
     // descriptor
-    address = pMac->hal.memMap.tpeStaDesc_offset + 
-        (staId * TPE_STA_DESC_AND_STATS_SIZE) + 
+    address = pMac->hal.memMap.tpeStaDesc_offset +
+        (staId * TPE_STA_DESC_AND_STATS_SIZE) +
         TPE_PER_STA_STATS_START_OFFSET;
 
     // Clear the stats by filling it with zero
@@ -910,7 +914,7 @@ void halTpe_SetQosNullTemplate(tpAniSirGlobal pMac, tANI_U32 type,
 
     // Zero out the structure to take care of some uninitialized fields that are supposed
     // to be filled in by SW.
-    
+
     palZeroMemory(pMac->hHdd, &qosNullTemplate, sizeof(qosNullTemplate));
 
     __halTpe_InitializeHwTemplate(pMac, type, sub_type, &qosNullTemplate, sizeof(qosNullTemplate));
@@ -919,7 +923,7 @@ void halTpe_SetQosNullTemplate(tpAniSirGlobal pMac, tANI_U32 type,
                         TEMPLATE_QOS_NULL_OFFSET, (tANI_U8 *)&qosNullTemplate,
                         sizeof(qosNullTemplate));
 
-    
+
 }
 
 /**
@@ -944,7 +948,7 @@ void halTpe_SetDataNullTemplate(tpAniSirGlobal pMac, tANI_U32 type,
 
     // Zero out the structure to take care of some uninitialized fields that are supposed
     // to be filled in by SW.
-    
+
     palZeroMemory(pMac->hHdd, &dataNullTemplate, sizeof(dataNullTemplate));
 
     __halTpe_InitializeHwTemplate(pMac, type, sub_type, &dataNullTemplate, sizeof(dataNullTemplate));
@@ -1049,13 +1053,13 @@ eHalStatus halTpe_SetBeaconTemplate(tpAniSirGlobal pMac, tANI_U16 beaconIndex, t
     return status;
 }
 
-eHalStatus halTpe_EnableBeacon(tpAniSirGlobal pMac, 
+eHalStatus halTpe_EnableBeacon(tpAniSirGlobal pMac,
     tSirMacBeaconInterval beaconInterval)
 {
     tANI_U32 mbssidInterval;
     tANI_U8 activeBssCnt = 0;
-    
-    
+
+
     /** For further reference */
     pMac->hal.halMac.beaconInterval = beaconInterval;
     /** For further reference */
@@ -1080,16 +1084,16 @@ eHalStatus halTpe_EnableBeacon(tpAniSirGlobal pMac,
 
     /* When starting an IBSS, we must first reset TSF, and then
      * TBTT. Reversing the order(i.e first reset TBTT and then TSF)
-     * will delay beacon transmission. As Ram explains the issue 
+     * will delay beacon transmission. As Ram explains the issue
      * with resetting TBTT before TSF is:
-     * "TBTT may get reset at a point when TSF is a very high 
+     * "TBTT may get reset at a point when TSF is a very high
      * value. Althought TBTT becomes zero for a short period, TBTT
-     * tracks the TSF timer. For ex. let TSF = 80sec. So TBTT will 
-     * be =80sec+100ms. Now despite the fact that TSF is reset, 
+     * tracks the TSF timer. For ex. let TSF = 80sec. So TBTT will
+     * be =80sec+100ms. Now despite the fact that TSF is reset,
      * the TBTT timer will still be tracking the (80sec + 100ms) value.
      */
 	/* This also applies in BT-AMP case */
-#ifndef WLAN_SOFTAP_FEATURE    
+#ifndef WLAN_SOFTAP_FEATURE
     if (activeBssCnt <= 1) {
         halMTU_SetTsfTimer(pMac, 0, 0);
         halMTU_SetTbttTimer(pMac, 0, 0);
@@ -1100,7 +1104,7 @@ eHalStatus halTpe_EnableBeacon(tpAniSirGlobal pMac,
      */
     if (activeBssCnt > 1)
     {
-#ifndef WLAN_SOFTAP_FEATURE    
+#ifndef WLAN_SOFTAP_FEATURE
         if (activeBssCnt == 2)
         {
             // When we start an IBSS set the TSF timer to be 0.
@@ -1198,7 +1202,7 @@ eHalStatus halTpe_RestoreStaConfig(tpAniSirGlobal pMac, tpTpeStaDesc pTpeStaDesc
 
     if (staIdx < pMac->hal.halMac.maxSta)
     {
-        status =  palCopyMemory(pMac->hHdd, (tANI_U8 *)pTpeStaDesc, 
+        status =  palCopyMemory(pMac->hHdd, (tANI_U8 *)pTpeStaDesc,
                 (tANI_U8 *) &t[staIdx].tpeStaDesc, TPE_STA_DESC_ENTRY_SIZE);
     }
 
@@ -1266,10 +1270,10 @@ eHalStatus halTpe_UpdateStaDescFields(tpAniSirGlobal pMac, tANI_U32 staIdx,
 
 
 /*
- * Function to return the pointer to the TPE sta descriptor's rate info 
+ * Function to return the pointer to the TPE sta descriptor's rate info
  */
-eHalStatus halTpe_GetStaDescRateInfo(tpAniSirGlobal pMac, 
-        tANI_U32 staIdx, tTpeRateType type, 
+eHalStatus halTpe_GetStaDescRateInfo(tpAniSirGlobal pMac,
+        tANI_U32 staIdx, tTpeRateType type,
         tpTpeStaDescRateInfo *pTpeStaDescRateInfo)
 {
     tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
@@ -1280,7 +1284,7 @@ eHalStatus halTpe_GetStaDescRateInfo(tpAniSirGlobal pMac,
     }
 
     // Calculate the start address of the TPE descriptor for this STA
-    address = pMac->hal.memMap.tpeStaDesc_offset + 
+    address = pMac->hal.memMap.tpeStaDesc_offset +
         (staIdx * TPE_STA_DESC_AND_STATS_SIZE);
 
     offset = offsetof(tTpeStaDesc, rate_params_20Mhz);
@@ -1334,7 +1338,7 @@ eHalStatus halTpe_UpdateStaDescRateInfo(tpAniSirGlobal pMac, tANI_U32 staIdx,
 
         case TPE_STA_20MHZ_RATE:
             /* Write to TPE STA Desc memory */
-            halWriteDeviceMemory(pMac, 
+            halWriteDeviceMemory(pMac,
                     address + offsetof(tTpeStaDesc, rate_params_20Mhz),
                                         (tANI_U8 *)ptpeStaDescRateInfo,
                     sizeof(tTpeStaDescRateInfo) * TPE_STA_MAX_RETRY_RATE); //Need to update PRI/SEC/TERTIARY rates. So multiply by 3
@@ -1342,7 +1346,7 @@ eHalStatus halTpe_UpdateStaDescRateInfo(tpAniSirGlobal pMac, tANI_U32 staIdx,
 
         case TPE_STA_40MHZ_RATE:
             /* Write to TPE STA Desc memory */
-            halWriteDeviceMemory(pMac, 
+            halWriteDeviceMemory(pMac,
                     address + offsetof(tTpeStaDesc, rate_params_40Mhz),
                                         (tANI_U8 *)ptpeStaDescRateInfo,
                     sizeof(tTpeStaDescRateInfo) * TPE_STA_MAX_RETRY_RATE); //Need to update PRI/SEC/TERTIARY rates. So multiply by 3
@@ -1350,7 +1354,7 @@ eHalStatus halTpe_UpdateStaDescRateInfo(tpAniSirGlobal pMac, tANI_U32 staIdx,
 
         case TPE_STA_BD_RATE:
             /* Write to TPE STA Desc memory */
-            halWriteDeviceMemory(pMac, 
+            halWriteDeviceMemory(pMac,
                     address + offsetof(tTpeStaDesc, bd_rate_params),
                                         (tANI_U8 *)ptpeStaDescRateInfo,
                     sizeof(tTpeStaDescRateInfo) * TPE_STA_MAX_RETRY_RATE); //Need to update PRI/SEC/TERTIARY rates. So multiply by 3
@@ -1411,13 +1415,13 @@ void halTpe_DumpEdcaTxOp(tpAniSirGlobal pMac)
     HALLOGW( halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_0_1_REG = %x\n"), regVal));
 
     halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_2_3_REG, &regVal);
-    HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_2_3_REG = %x\n"), regVal));        
+    HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_2_3_REG = %x\n"), regVal));
 
     halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_4_5_REG, &regVal);
-    HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_4_5_REG = %x\n"), regVal));        
+    HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_4_5_REG = %x\n"), regVal));
 
     halReadRegister(pMac, QWLAN_TPE_EDCF_TXOP_6_7_REG, &regVal);
-    HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_6_7_REG = %x\n"), regVal));        
+    HALLOGW(halLog(pMac, LOGW, FL("QWLAN_TPE_EDCF_TXOP_6_7_REG = %x\n"), regVal));
 
     return;
 }
@@ -1526,7 +1530,7 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
     beaconTemplate.template_header.tsf_offset = TPE_BEACON_1MBPS_LONG_TSF_OFFSET;
     beaconTemplate.template_header.reserved4 = 0;
     beaconTemplate.template_header.reserved5 = 0;
-    
+
     halGetBcnRateIdx(pMac, &rateIndex);
     beaconTemplate.template_header.primary_data_rate_index = rateIndex;
 
@@ -1571,7 +1575,7 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
                                     tANI_U16 beaconIndex, tANI_U32 length)
 {
     tBeaconTemplateHeader beaconTemplateHeader;
-    tPwrTemplateIndex txPower = 0;    
+    tPwrTemplateIndex txPower = 0;
     tTpeRateIdx rateIndex;
     tANI_U32 beaconOffset;
     tANI_U32 alignedLen;
@@ -1589,7 +1593,7 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
     beaconTemplateHeader.tsf_offset = TPE_BEACON_1MBPS_LONG_TSF_OFFSET;
     beaconTemplateHeader.reserved4 = 0;
     beaconTemplateHeader.reserved5 = 0;
-    
+
     halGetBcnRateIdx(pMac, &rateIndex);
     halRate_getPowerIndex(pMac, rateIndex, &txPower);
     beaconTemplateHeader.primary_data_rate_index = rateIndex;
@@ -1613,7 +1617,7 @@ void halTpe_UpdateBeaconMemory(tpAniSirGlobal pMac, tANI_U8 *beacon,
                             (tANI_U8 *)beacon, alignedLen );
 
     halLog(pMac, LOGW, FL("halTpe_UpdateBeaconMemory beacon template \n"));
-    sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOGW, (tANI_U8*)&beaconTemplateHeader, alignedLen);    
+    sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOGW, (tANI_U8*)&beaconTemplateHeader, alignedLen);
     sirDumpBuf(pMac, SIR_HAL_MODULE_ID, LOGW, beacon, alignedLen);
 }
 
@@ -1651,7 +1655,7 @@ eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac, tANI_U8 *beacon,
 
     /** Set the sw update beacon request */
     value |= QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_SW_UPDATE_BCN_REQ_MASK |
-         (BEACON_TEMPLATE_SIZE << QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_SW_BEACON_MAX_SIZE_OFFSET) | 
+         (BEACON_TEMPLATE_SIZE << QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_SW_BEACON_MAX_SIZE_OFFSET) |
          (bssIndex << QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_SW_UPDATE_BCN_INDEX_OFFSET);
 
     halWriteRegister(pMac,  QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_REG, value);
@@ -1683,7 +1687,7 @@ eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac, tANI_U8 *beacon,
         HALLOGE(halLog(pMac, LOGE, FL("halFW_UpdateBeaconReq failed")));
         return eHAL_STATUS_FAILURE;
     }
-    
+
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -1693,7 +1697,7 @@ eHalStatus halTpe_UpdateBeacon(tpAniSirGlobal pMac, tANI_U8 *beacon,
 {
     tANI_U32 value;
     tANI_U32 loop = 0;
-    
+
     /** Update beacon request */
     halReadRegister(pMac, QWLAN_TPE_SW_BEACON_MAX_SIZE_MISC_REG, &value);
 
@@ -1907,7 +1911,7 @@ eHalStatus halIntTpeMcuBdBasedTxInt1PHostHandler( tHalHandle hHalHandle, eHalInt
         return status;
     }
 
-    intRegStatus &= intRegMask;   
+    intRegStatus &= intRegMask;
 
     if(intRegStatus){
         tSirMsgQ        msg;
@@ -1926,7 +1930,7 @@ eHalStatus halIntTpeMcuBdBasedTxInt1PHostHandler( tHalHandle hHalHandle, eHalInt
             msg.bodyptr     = NULL;
             halPostMsgApi(pMac, &msg);
         }
-    } 
+    }
     return status;
 }
 
@@ -1969,7 +1973,7 @@ void halTpe_DumpMpiCmdTableEntry(tpAniSirGlobal pMac, tANI_U32 rateIndex)
     HALLOGW( halLog(pMac, LOGW, FL("STBC         = (0x%x)"), (word1 & (((1<<2)-1)<<30))>>30));//STBC(word1), STBC(word1)));
 
 }
-#endif 
+#endif
 
 void halTpe_DumpMpiCmdTableEntry(tpAniSirGlobal pMac, tANI_U32 rateIndex)
 {
@@ -2026,15 +2030,15 @@ void halTpe_PrintMpiCmdTable(tpAniSirGlobal pMac)
  *
  * \return eHalStatus SW Template Base configuration status
  */
-eHalStatus halTpe_InitSwTemplateBase(tpAniSirGlobal pMac, 
+eHalStatus halTpe_InitSwTemplateBase(tpAniSirGlobal pMac,
                 tANI_U32 swTemplate_offset)
 {
     /** Zero out the TPE SW Template address */
-    halZeroDeviceMemory(pMac,    pMac->hal.memMap.swTemplate_offset, 
+    halZeroDeviceMemory(pMac,    pMac->hal.memMap.swTemplate_offset,
         pMac->hal.memMap.swTemplate_size);
-        
-    
-    halWriteRegister(pMac, QWLAN_TPE_SW_SOFTWARE_TX_ADDRESS_REG, 
+
+
+    halWriteRegister(pMac, QWLAN_TPE_SW_SOFTWARE_TX_ADDRESS_REG,
         swTemplate_offset);
 
 
@@ -2066,7 +2070,7 @@ eHalStatus halTpe_Set11gProtectionCntrlIndex(tpAniSirGlobal pMac, tANI_U8 set)
 
 #ifdef WLAN_FEATURE_VOWIFI
 
-/* 
+/*
 * \brief Updates the TX power for rates in TPE station descriptor for the given staIdx
 *
 *
@@ -2081,7 +2085,7 @@ eHalStatus halTpe_Set11gProtectionCntrlIndex(tpAniSirGlobal pMac, tANI_U8 set)
 * \return eHalStatus SW Template Base configuration status
 */
 
-eHalStatus halTpe_UpdateDescPowerParams(tpAniSirGlobal pMac, tANI_U8 staIdx, 
+eHalStatus halTpe_UpdateDescPowerParams(tpAniSirGlobal pMac, tANI_U8 staIdx,
                             tTpeRateType type, tPwrTemplateIndex maxPwrIndex)
 {
     tpTpeStaDescRateInfo    tpeRateInfo;
@@ -2089,16 +2093,16 @@ eHalStatus halTpe_UpdateDescPowerParams(tpAniSirGlobal pMac, tANI_U8 staIdx,
     tANI_BOOLEAN            pwrChanged = FALSE;
     eHalStatus              status = eHAL_STATUS_FAILURE;
 
-    /* Get the current rate info in the TPE descriptor for the given staIdx. This would 
-           also give the current TX power index used for all the rates. This function returns the 
-           pointer to the rateDesc from the staTable. So, any update here will automatically 
+    /* Get the current rate info in the TPE descriptor for the given staIdx. This would
+           also give the current TX power index used for all the rates. This function returns the
+           pointer to the rateDesc from the staTable. So, any update here will automatically
            update the staTable */
     status = halTpe_GetStaDescRateInfo(pMac, staIdx, type, &tpeRateInfo);
     if (eHAL_STATUS_SUCCESS == status)
     {
         for (index = 0; index < TPE_STA_MAX_RETRY_RATE; index++)
         {
-            /* Check the current power in TPE sta desc is above the max pwr allowed 
+            /* Check the current power in TPE sta desc is above the max pwr allowed
                         and update it correspondingly for all the rates. (PRI/SEC/TER)*/
             if (maxPwrIndex < tpeRateInfo[index].tx_power)
             {

@@ -250,6 +250,7 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"TELE_BCN_TRANS_LI_IDLE_BCNS",
 	(unsigned char *)"TELE_BCN_MAX_LI",
 	(unsigned char *)"TELE_BCN_MAX_LI_IDLE_BCNS",
+	(unsigned char *)"BTC_A2DP_DHCP_BT_SUB_INTERVALS",
 };
 
 

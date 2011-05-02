@@ -695,13 +695,7 @@ VOS_STATUS hdd_wlan_reset(void)
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Power Down Chip",__func__);   
    //Vote off any PMIC voltage supplies
    vos_chipPowerDown(NULL, NULL, NULL);
-
-   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Disabling TX queues ",__func__);
    
-   //Stop the Interface TX queue.
-   netif_tx_stop_all_queues(pAdapter->dev);
-   netif_carrier_off(pAdapter->dev);
-
    //Record whether STA is associated
    sendDisconnect = hdd_connIsConnected(pAdapter) ? VOS_TRUE : VOS_FALSE;
    
@@ -995,10 +989,6 @@ VOS_STATUS hdd_wlan_reset(void)
    
    // Allow the phone to go to sleep
    hdd_allow_suspend();
-
-   //Stop the Interface TX queue.
-   netif_tx_disable(pAdapter->dev);
-   netif_carrier_off(pAdapter->dev);
 
    //Trigger the initial scan
    hdd_wlan_initial_scan(pAdapter);

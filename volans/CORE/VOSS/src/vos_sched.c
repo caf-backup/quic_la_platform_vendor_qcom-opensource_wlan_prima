@@ -877,6 +877,9 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
     pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD,pVosContext);
 
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,"%s: Stop the interface TX Queue", __FUNCTION__);
+    netif_tx_stop_all_queues(pAdapter->dev);
+    netif_carrier_off(pAdapter->dev);
     /* Take the lock here */
     spin_lock(&gpVosWatchdogContext->wdLock);
 

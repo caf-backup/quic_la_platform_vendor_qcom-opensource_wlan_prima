@@ -54,6 +54,10 @@
 #define WLAN_STA_ASSOC_DONE_IND     0x06  // WLAN -->  BTC
 #define WLAN_STA_DISASSOC_DONE_IND  0x07  // WLAN -->  BTC
 
+// Special Message Type used by AMP, intercepted by send_btc_nlink_msg() and
+// replaced by WLAN_STA_ASSOC_DONE_IND or WLAN_STA_DISASSOC_DONE_IND
+#define WLAN_AMP_ASSOC_DONE_IND     0x10
+
 // Event data for WLAN_BTC_QUERY_STATE_RSP & WLAN_STA_ASSOC_DONE_IND
 typedef struct
 {
