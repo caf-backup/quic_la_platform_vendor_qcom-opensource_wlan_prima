@@ -17,7 +17,6 @@
   
 	======================================================================== */
 
-
 #include <linux/version.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -289,7 +288,7 @@ void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result)
       hdd_reconnect_all_adapters( pHddCtx );
 #if 0
       pAdapter->conn_info.connState = eConnectionState_NotConnected;
-      init_completion(&pAdapter->disconnect_comp_var);
+      INIT_COMPLETION(pAdapter->disconnect_comp_var);
       vosStatus = sme_RoamDisconnect(halHandle, pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
 
       if(VOS_STATUS_SUCCESS == vosStatus)
@@ -338,6 +337,11 @@ static int iw_set_mode(struct net_device *dev,
        
     ENTER();
 
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return 0;
+    }
+
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter); 
     if (pWextState == NULL)
     {
@@ -380,7 +384,7 @@ static int iw_set_mode(struct net_device *dev,
         {
             VOS_STATUS vosStatus;
             // need to issue a disconnect to CSR.
-            init_completion(&pAdapter->disconnect_comp_var);
+            INIT_COMPLETION(pAdapter->disconnect_comp_var);
             vosStatus = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter),pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED );
             if(VOS_STATUS_SUCCESS == vosStatus)
                  wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
@@ -404,6 +408,11 @@ static int iw_get_mode(struct net_device *dev,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
     hddLog (LOG1, "In %s",__FUNCTION__);
+
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return 0;
+    }
       
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter); 
     if (pWextState == NULL)
@@ -448,6 +457,11 @@ static int iw_set_freq(struct net_device *dev, struct iw_request_info *info,
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     tCsrRoamProfile * pRoamProfile;
     ENTER();
+
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return status;
+    }
    
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter); 
    
@@ -537,6 +551,11 @@ static int iw_get_freq(struct net_device *dev, struct iw_request_info *info,
    hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
 
    ENTER();
+
+   if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+      return status;
+   }
    
    pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter); 
    hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
@@ -581,6 +600,11 @@ static int iw_get_tx_power(struct net_device *dev,
   
   ENTER();
   
+  if (pHddCtx->isLogpInProgress) {
+     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+     return status;
+  }
+
   if(eConnectionState_Associated != pHddStaCtx->conn_info.connState) {
    
      wrqu->txpower.value = 0;
@@ -630,6 +654,12 @@ static int iw_set_tx_power(struct net_device *dev,
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
 
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) 
+    {
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!", __func__);
+        return 0;
+    }
+
     ENTER();
       
     if ( ccmCfgSetInt(hHal, WNI_CFG_CURRENT_TX_POWER_LEVEL, wrqu->txpower.value, ccmCfgSetCallback, eANI_BOOLEAN_TRUE) != eHAL_STATUS_SUCCESS ) 
@@ -654,6 +684,11 @@ static int iw_get_bitrate(struct net_device *dev,
    
    ENTER();
    
+   if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+      return status;
+   }
+
    if(eConnectionState_Associated != pHddStaCtx->conn_info.connState) {
       
         wrqu->bitrate.value = 0;
@@ -709,6 +744,11 @@ static int iw_set_bitrate(struct net_device *dev,
     v_U32_t valid_rate = FALSE, active_phy_mode = 0;
 
     ENTER();
+
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return 0;
+    }
    
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter); 
 
@@ -780,6 +820,11 @@ static int iw_set_genie(struct net_device *dev,
       return 0;
 
    hddLog(LOG1,"iw_set_genie ioctl IE[0x%X], LEN[%d]\n", genie[0], genie[1]);
+
+   if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+      return 0;
+   }
 
    switch ( genie[0] ) 
    {
@@ -959,6 +1004,12 @@ static int iw_get_genie(struct net_device *dev,
 
     ENTER();
 
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return 0;
+    }
+
+
     hddLog(LOG1,"getGEN_IE ioctl\n");
    
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter); 
@@ -1003,6 +1054,11 @@ static int iw_get_encode(struct net_device *dev,
     int i;
 
     ENTER();
+
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return 0;
+    }
 
     keyId = pRoamProfile->Keys.defaultIndex;
 
@@ -1332,23 +1388,25 @@ static int iw_set_priv(struct net_device *dev,
 
     hddLog(VOS_TRACE_LEVEL_INFO_MED, "***Received %s cmd from Wi-Fi GUI***", cmd);
 
-  	if(strncmp(cmd, "CSCAN",5) == 0 )
-	  {
-		    int status= VOS_STATUS_SUCCESS;
-		
-		    status = iw_set_cscan(dev, info,wrqu, extra);
-		    return status;
-
+    if (pHddCtx->isLogpInProgress) {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+       return status;
     }
-	  else if( strcasecmp(cmd, "start") == 0 ) 
-    {
+
+	if(strncmp(cmd, "CSCAN",5) == 0 )
+	{
+		status = iw_set_cscan(dev, info, wrqu, extra);
+		return status;
+
+	}
+	else if( strcasecmp(cmd, "start") == 0 ) {
+
         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Start command\n");
         /*Exit from Deep sleep or standby if we get the driver START cmd from android GUI*/
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-        if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_STANDBY) 
+        if(pHddCtx->cfg_ini->nEnableDriverStop == WLAN_MAP_DRIVER_STOP_TO_STANDBY) 
         {
-           
            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: WLAN being exit from Stand by\n",__func__);
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
            status = hdd_exit_standby(pAdapter);
@@ -1364,7 +1422,7 @@ static int iw_set_priv(struct net_device *dev,
         else
 #endif
         {
-            hddLog(VOS_TRACE_LEVEL_INFO_LOW, "%s: Not in standby or deep sleep. "
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Not in standby or deep sleep. "
                "Ignore start cmd %d", __func__, pHddCtx->hdd_ps_state);
             status = VOS_STATUS_E_FAILURE;
         }
@@ -1377,6 +1435,10 @@ static int iw_set_priv(struct net_device *dev,
             memset(&wrqu, 0, sizeof(wrqu));
             wrqu.data.length = strlen(buf);
             wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, buf);
+        }
+        else
+        {
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: START CMD Status %d", __func__, status);        	   
         }
         goto done;
     }
@@ -1408,7 +1470,7 @@ static int iw_set_priv(struct net_device *dev,
         }
 #endif
 
-        if(status == VOS_STATUS_SUCCESS) {
+        {
             union iwreq_data wrqu;
             char buf[10];
 
@@ -1504,23 +1566,16 @@ static int iw_set_priv(struct net_device *dev,
                 memcpy( (void *)cmd, (void *)pHddStaCtx->conn_info.SSID.SSID.ssId, len );
                 ret = len;
                 
-                status = WLANTL_GetRssi( pHddCtx->pvosContext, pHddStaCtx->conn_info.staId[ 0 ], &s7Rssi );
-                if ( !VOS_IS_STATUS_SUCCESS( status ) )
-                {
-                    hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed\n", __func__); 
-                    goto done; 
-                }
-                ret += sprintf(&cmd[ret], " rssi %d\n", s7Rssi);
-                
-                hddLog(VOS_TRACE_LEVEL_INFO_MED, "cmd %s\n", cmd); 
-            }
-             
+                WLANTL_GetRssi( pHddCtx->pvosContext, pHddStaCtx->conn_info.staId[ 0 ], &s7Rssi );
+                ret += sprintf(&cmd[ret], " rssi %d\n", s7Rssi);                
+            }             
         }
         else
         {
             hddLog( VOS_TRACE_LEVEL_INFO, "cmd %s\n", cmd); 
             ret = sprintf(cmd, " rssi %d\n", s7Rssi);
         }
+        hddLog( VOS_TRACE_LEVEL_INFO, "cmd %s\n", cmd); 
         
     }
     else if( strncasecmp(cmd, "powermode", 9) == 0 ) {
@@ -1532,13 +1587,17 @@ static int iw_set_priv(struct net_device *dev,
 
         hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "mode=%d\n",mode);
         
-        init_completion(&pWextState->completion_var);
+        INIT_COMPLETION(pWextState->completion_var);
 
         if(mode == DRIVER_POWER_MODE_ACTIVE) 
         {
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Wlan driver Entering Full Power\n");
             status = sme_RequestFullPower(WLAN_HDD_GET_HAL_CTX(pAdapter), iw_priv_callback_fn,
                           &pWextState->completion_var, eSME_FULL_PWR_NEEDED_BY_HDD);
+
+            // Enter Full power command received from GUI this means we are disconnected 
+            // Set PMC remainInPowerActiveTillDHCP flag to disable auto BMPS entry by PMC
+            sme_SetDHCPTillPowerActiveFlag(pHddCtx->hHal, TRUE);
        
             if(status == eHAL_STATUS_PMC_PENDING)
                 wait_for_completion_interruptible(&pWextState->completion_var);
@@ -1549,6 +1608,10 @@ static int iw_set_priv(struct net_device *dev,
             if (pHddCtx->cfg_ini->fIsBmpsEnabled) {
                 
                 hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Wlan driver Entering Bmps\n");
+                // Enter BMPS command received from GUI this means DHCP is completed
+                // Clear PMC remainInPowerActiveTillDHCP flag to enable auto BMPS entry by PMC 
+                sme_SetDHCPTillPowerActiveFlag(WLAN_HDD_GET_HAL_CTX(pAdapter), FALSE);
+
                 status = sme_RequestBmps(WLAN_HDD_GET_HAL_CTX(pAdapter), iw_priv_callback_fn, &pWextState->completion_var);
     
                 if (status == eHAL_STATUS_PMC_PENDING)
@@ -1704,7 +1767,7 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
       
        if(eConnectionState_Associated == pHddStaCtx->conn_info.connState)
        {
-           init_completion(&pAdapter->disconnect_comp_var);
+           INIT_COMPLETION(pAdapter->disconnect_comp_var);
            status = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED );
            if(VOS_STATUS_SUCCESS == status)
                  wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
@@ -2005,6 +2068,16 @@ static int iw_set_encodeext(struct net_device *dev,
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
           ("%s:cipher_alg:%d key_len[%d] *pEncryptionType :%d \n"),__FUNCTION__,(int)ext->alg,(int)ext->key_len,setKey.encType);
    
+#ifdef WLAN_FEATURE_VOWIFI_11R
+/* The supplicant may attempt to set the PTK once pre-authentication is done.
+   Save the key in the UMAC and include it in the ADD BSS request */
+    halStatus = sme_FTUpdateKey( WLAN_HDD_GET_HAL_CTX(pAdapter), &setKey);
+    if( halStatus == eHAL_STATUS_SUCCESS )
+    {
+       return halStatus;
+    }
+#endif /* WLAN_FEATURE_VOWIFI_11R */
+   
     pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_SETTING_KEY;   
    
     
@@ -2133,7 +2206,7 @@ static int iw_set_mlme(struct net_device *dev,
                 if( mlme->reason_code == HDD_REASON_MICHAEL_MIC_FAILURE )
                     reason = eCSR_DISCONNECT_REASON_MIC_ERROR;
                 
-                init_completion(&pAdapter->disconnect_comp_var);
+                INIT_COMPLETION(pAdapter->disconnect_comp_var);
                 status = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId,reason);
                 
                 if(VOS_STATUS_SUCCESS == status)
@@ -2143,8 +2216,11 @@ static int iw_set_mlme(struct net_device *dev,
                     hddLog(LOGE,"%s %d Command Disassociate/Deauthenticate : csrRoamDisconnect failure returned %d \n",
                        __FUNCTION__, (int)mlme->cmd, (int)status );
 
-               netif_tx_stop_all_queues(dev);
-               netif_carrier_off(dev);
+                /* Resetting authKeyMgmt */		
+                (WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->authKeyMgmt = 0;
+
+                netif_tx_disable(dev);
+                netif_carrier_off(dev);
 
             }
             else
@@ -2178,7 +2254,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
 #ifdef CONFIG_HAS_EARLYSUSPEND
     v_U8_t nEnableSuspendOld;
 #endif
-    init_completion(&pWextState->completion_var);
+    INIT_COMPLETION(pWextState->completion_var);
     
     switch(sub_cmd)
     {
@@ -2345,8 +2421,10 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
 {
     int sub_cmd = wrqu->data.flags;
     int ret = 0; /* sucess */
-#ifdef WLAN_FEATURE_VOWIFI
+#if defined(WLAN_FEATURE_VOWIFI) || defined(WLAN_FEATURE_P2P)
     hdd_adapter_t *pAdapter = (netdev_priv(dev));   
+#endif
+#ifdef WLAN_FEATURE_VOWIFI
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     hdd_config_t  *pConfig = pHddCtx->cfg_ini;
 #endif /* WLAN_FEATURE_VOWIFI */
@@ -2393,12 +2471,14 @@ static int iw_setchar_getnone(struct net_device *dev, struct iw_request_info *in
           }
           break;
 #endif
+#ifdef WLAN_FEATURE_P2P
        case WE_SET_AP_WPS_IE:
           hddLog( LOGE, "Recieved WE_SET_AP_WPS_IE" );
 #ifdef WLAN_FEATURE_P2P
           sme_updateP2pIe( WLAN_HDD_GET_HAL_CTX(pAdapter), wrqu->data.pointer, wrqu->data.length );
 #endif // WLAN_FEATURE_P2P
           break;
+#endif
        default:  
        {
            hddLog(LOGE, "%s: Invalid sub command %d\n",__FUNCTION__, sub_cmd);
@@ -2671,21 +2751,26 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
             memset(&pAdapter->hdd_stats, 0, sizeof(pAdapter->hdd_stats));
             break;
         }
-#ifdef FEATURE_WLAN_SOFTAP
+#ifdef WLAN_SOFTAP_FEATURE
         case WE_INIT_AP:
         {
           printk(KERN_ERR"Init AP trigger\n");
-          hdd_open_adapter( WLAN_HDD_GET_CTX(pAdapter), WLAN_HDD_SOFTAP, "softap", 
-                (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->apMacAddr.bytes, TRUE );
+          hdd_open_adapter( WLAN_HDD_GET_CTX(pAdapter), WLAN_HDD_SOFTAP, "softap.%d", 
+                 wlan_hdd_get_intf_addr( WLAN_HDD_GET_CTX(pAdapter) ),TRUE);
           break;
         }
         case WE_STOP_AP:
         {
-           hdd_adapter_t *pAdapter_to_stop = hdd_get_adapter_by_macaddr( WLAN_HDD_GET_CTX(pAdapter), 
-                 (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini->apMacAddr.bytes ); 
+           hdd_adapter_t* pAdapter_to_stop = 
+                 hdd_get_adapter(WLAN_HDD_GET_CTX(pAdapter), WLAN_HDD_SOFTAP);
            printk(KERN_ERR"Stopping AP mode\n");
            if( pAdapter_to_stop )
-              hdd_close_adapter(WLAN_HDD_GET_CTX(pAdapter), pAdapter_to_stop, TRUE);
+           {
+              wlan_hdd_release_intf_addr(WLAN_HDD_GET_CTX(pAdapter), 
+                                 pAdapter_to_stop->macAddressCurrent.bytes);
+              hdd_close_adapter(WLAN_HDD_GET_CTX(pAdapter), pAdapter_to_stop, 
+                                 TRUE);
+           }
 
            break;
         }
@@ -3682,6 +3767,9 @@ int hdd_register_wext(struct net_device *dev)
     // Zero the memory.  This zeros the profile structure.
    memset(pwextBuf, 0,sizeof(hdd_wext_state_t));
    
+    init_completion(&(WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->completion_var);
+
+
     status = hdd_set_wext(pAdapter);
 
     if(!VOS_IS_STATUS_SUCCESS(status)) {

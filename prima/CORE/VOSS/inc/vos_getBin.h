@@ -113,5 +113,7 @@ VOS_STATUS vos_get_binary_blob( VOS_BINARY_ID binaryId,
 -----------------------------------------------------------------------------*/	
 VOS_CON_MODE vos_get_conparam( void );
 #endif
+VOS_CONCURRENCY_MODE vos_get_concurrency_mode( void );
+v_BOOL_t vos_concurrent_sessions_running(void);
 
 #endif // !defined __VOS_GETBIN_H

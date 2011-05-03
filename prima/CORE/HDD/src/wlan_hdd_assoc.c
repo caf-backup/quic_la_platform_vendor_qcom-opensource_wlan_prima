@@ -29,6 +29,7 @@
 #include "dot11f.h"
 #include "wlan_nlink_common.h"
 #include "wlan_btc_svc.h"
+#include "wlan_hdd_power.h"
 #ifdef CONFIG_CFG80211
 #include <linux/ieee80211.h>
 #include <linux/wireless.h>
@@ -529,7 +530,7 @@ static eHalStatus hdd_DisConnectHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     // notify apps that we can't pass traffic anymore
-    netif_tx_stop_all_queues(dev);
+    netif_tx_disable(dev);
     netif_carrier_off(dev);
     
     hdd_connSetConnectionState( pHddStaCtx, eConnectionState_NotConnected );
@@ -629,7 +630,7 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
       staDesc.ucProtectedFrame = 0;
 
    }
-#ifdef ANI_CHIPSET_VOLANS
+#ifdef VOLANS_ENABLE_SW_REPLAY_CHECK
    /* check whether replay check is valid for the station or not */
    if( (eCSR_ENCRYPT_TYPE_TKIP == connectedCipherAlgo) || (eCSR_ENCRYPT_TYPE_AES == connectedCipherAlgo))
    {
@@ -664,13 +665,20 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
                  "HDD register TL Sec_enabled= %d.\n", staDesc.ucProtectedFrame );
+
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    // UMA is Not ready yet, Xlation will be done by TL
    staDesc.ucSwFrameTXXlation = 1;
 #else
-   // UMA is ready we inform TL not to do frame 
-   // translation for WinMob 6.1
-   staDesc.ucSwFrameTXXlation = 0;
+   /* Enable UMA for TX translation only when there is no concurrent session active */
+   if (vos_concurrent_sessions_running())
+   {
+      staDesc.ucSwFrameTXXlation = 1;
+   }
+   else
+   {
+      staDesc.ucSwFrameTXXlation = 0;
+   }
 #endif
    staDesc.ucSwFrameRXXlation = 1;
    staDesc.ucAddRmvLLC = 1;
@@ -692,8 +700,8 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
                  "WLANTL_RegisterSTAClient() failed to register.  Status= %d [0x%08lX]",
                  vosStatus, vosStatus );
-      return vosStatus;      
-   }                                            
+      return vosStatus;
+   }
     
    // if ( WPA ), tell TL to go to 'connected' and after keys come to the driver, 
    // then go to 'authenticated'.  For all other authentication types (those that do 
@@ -753,20 +761,20 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
          pAdapter->wapi_info.fIsWapiSta = 0;
       }
 #endif  /* FEATURE_WLAN_WAPI */
-	
-        // indicate 'connect' status to userspace
-        hdd_SendAssociationEvent(dev,pRoamInfo);
 
-        // Initialize the Linkup event completion variable 
-        init_completion(&pAdapter->linkup_event_var);
+      // indicate 'connect' status to userspace
+      hdd_SendAssociationEvent(dev,pRoamInfo);
 
-		/*
-		   Sometimes Switching ON the Carrier is taking time to activate the device properly. Before allowing any
-		   packet to go up to the application, device activation has to be ensured for proper queue mapping by the
-		   kernel. we have registered net device notifier for device change notification. With this we will come to 
-		   know that the device is getting activated properly.
-		*/
-			
+      // Initialize the Linkup event completion variable 
+      INIT_COMPLETION(pAdapter->linkup_event_var);
+
+      /*
+         Sometimes Switching ON the Carrier is taking time to activate the device properly. Before allowing any
+         packet to go up to the application, device activation has to be ensured for proper queue mapping by the
+         kernel. we have registered net device notifier for device change notification. With this we will come to 
+         know that the device is getting activated properly.
+      */
+         
         // Enable Linkup Event Servicing which allows the net device notifier to set the linkup event variable       
         pAdapter->isLinkUpSvcNeeded = TRUE;
 
@@ -808,7 +816,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
             /* inform connect result to nl80211 */
             cfg80211_connect_result(dev, pRoamInfo->bssid, 
                     reqRsnIe, reqRsnLength, 
-		    rspRsnIe, rspRsnLength,
+                    rspRsnIe, rspRsnLength,
                     WLAN_STATUS_SUCCESS, 
                     GFP_KERNEL); 
 #endif
@@ -855,7 +863,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
     }  
     else 
     {
-        /*Handle all failure conditions*/	
+        /*Handle all failure conditions*/
 
         /*Handle all failure conditions*/
         
@@ -870,7 +878,7 @@ static eHalStatus hdd_AssociationCompletionHandler( hdd_adapter_t *pAdapter, tCs
                 GFP_KERNEL);
 #endif 
    
-        netif_tx_stop_all_queues(dev);
+        netif_tx_disable(dev);
         netif_carrier_off(dev);
     }
             
@@ -995,7 +1003,7 @@ static int roamRemoveIbssStation( hdd_station_ctx_t *pHddStaCtx, v_U8_t staId )
 
             pHddStaCtx->conn_info.staId[valid_idx] = 0; 
             vos_zero_macaddr( &pHddStaCtx->conn_info.peerMacAddress[ valid_idx ] );
-	 }
+         }
       }
    }
    return( fSuccess );   
@@ -1204,7 +1212,7 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
       case eCSR_ROAM_RESULT_IBSS_INACTIVE:
       {
          // Stop only when we are inactive
-         netif_tx_stop_all_queues(pAdapter->dev);
+         netif_tx_disable(pAdapter->dev);
          netif_carrier_off(pAdapter->dev);
          hdd_connSetConnectionState( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter), eConnectionState_NotConnected );
          
@@ -1263,6 +1271,15 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
         case eCSR_ROAM_IBSS_LEAVE:
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "****eCSR_ROAM_DISASSOCIATED****");
             halStatus = hdd_DisConnectHandler( pAdapter, pRoamInfo, roamId, roamStatus, roamResult );
+            /* Check if Mcast/Bcast Filters are set, if yes clear the filters here */
+            if ((WLAN_HDD_GET_CTX(pAdapter))->hdd_mcastbcast_filter_set == TRUE) {
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
+#ifdef MSM_PLATFORM
+                  hdd_conf_mcastbcast_filter((WLAN_HDD_GET_CTX(pAdapter)), FALSE);
+#endif
+#endif
+                  (WLAN_HDD_GET_CTX(pAdapter))->hdd_mcastbcast_filter_set = FALSE;
+            }
             break;
                     
         case eCSR_ROAM_ASSOCIATION_COMPLETION:
@@ -1279,6 +1296,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                         "****WEP open authentication failed, trying with shared authentication****");
                 (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.authType = eCSR_AUTH_TYPE_SHARED_KEY;
                 pWextState->roamProfile.AuthType.authType[0] = (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.authType;
+				pWextState->roamProfile.csrPersona = pAdapter->device_mode;
                 halStatus = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId, &(pWextState->roamProfile), &roamId);
             }
             else
@@ -1311,12 +1329,14 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
         case eCSR_ROAM_INDICATE_MGMT_FRAME:
            hdd_indicateMgmtFrame( pAdapter, pRoamInfo );
            break;
+#ifdef WLAN_FEATURE_P2P
         case eCSR_ROAM_REMAIN_CHAN_READY:
            hdd_remainChanReadyHandler( pAdapter, pRoamInfo );
            break;
         case eCSR_ROAM_SEND_ACTION_CNF:
            hdd_sendActionCnf( pAdapter, pRoamInfo );
            break;
+#endif
 #endif
         default:
             break;
@@ -1645,17 +1665,16 @@ int hdd_set_csr_auth_type ( hdd_adapter_t  *pAdapter, eCsrAuthType RSNAuthType)
             }    
         }
         if (pWextState->wpaVersion & IW_AUTH_WPA_VERSION_WPA2) {
-           
 #ifdef WLAN_FEATURE_VOWIFI_11R
             if ((RSNAuthType == eCSR_AUTH_TYPE_FT_RSN) && 
                 (pWextState->authKeyMgmt == IW_AUTH_KEY_MGMT_802_1X)) {
                pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_FT_RSN;   
-	    }
+            }
             if ((RSNAuthType == eCSR_AUTH_TYPE_FT_RSN_PSK) && 
                 (pWextState->authKeyMgmt == IW_AUTH_KEY_MGMT_PSK)) {
                pRoamProfile->AuthType.authType[0] = eCSR_AUTH_TYPE_FT_RSN_PSK;   
-	    }
-	    else
+            }
+            else
 #endif
 
             if(pWextState->authKeyMgmt == IW_AUTH_KEY_MGMT_802_1X) {
@@ -1733,7 +1752,7 @@ int iw_set_essid(struct net_device *dev,
         {
             VOS_STATUS vosStatus;
             // need to issue a disconnect to CSR. 
-            init_completion(&pAdapter->disconnect_comp_var);
+            INIT_COMPLETION(pAdapter->disconnect_comp_var);
             vosStatus = sme_RoamDisconnect( hHal, pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED );
 
             if(VOS_STATUS_SUCCESS == vosStatus)
@@ -1795,6 +1814,10 @@ int iw_set_essid(struct net_device *dev,
     }
 #endif /* FEATURE_WLAN_WAPI */
 
+    // Disable auto BMPS entry by PMC until DHCP is done
+    sme_SetDHCPTillPowerActiveFlag(WLAN_HDD_GET_HAL_CTX(pAdapter), TRUE);
+
+	pWextState->roamProfile.csrPersona = pAdapter->device_mode; 
     status = sme_RoamConnect( hHal,pAdapter->sessionId, &(pWextState->roamProfile),&roamId);
     if(pWextState->wpsMode == eWEXT_WPS_ON)    
     {

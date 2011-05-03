@@ -119,16 +119,35 @@ typedef enum
 
 } VOS_MODULE_ID;
 
-#ifdef WLAN_SOFTAP_FEATURE
+#if defined(WLAN_SOFTAP_FEATURE) || defined(ANI_MANF_DIAG)
 /// Cocurrency role.  These are generic IDs that identify the various roles
 /// in the software system.
 typedef enum
-{
-    VOS_STA_MODE, 
-    VOS_STA_SAP_MODE //to support softAp + sta mode 
-
+{ /*ON linux maintain 1-1 corespondence with device_mode*/
+    VOS_STA_MODE=0, 
+    VOS_STA_SAP_MODE=1, //to support softAp  mode 
+    VOS_P2P_CLIENT_MODE,
+    VOS_P2P_GO_MODE,
+    VOS_MONITOR_MODE
+#ifdef ANI_MANF_DIAG
+    ,VOS_FTM_MODE = 5,
+#endif
 } VOS_CON_MODE;
 #endif 
+//This is a bit pattern to be set for each mode
+//bit 0 - sta mode
+//bit 1 - ap mode
+//bit 2 - p2p client mode
+//bit 3 - p2p go mode
+typedef enum
+{
+    VOS_STA=1, 
+    VOS_SAP=2,
+    VOS_STA_SAP=3, //to support sta, softAp  mode 
+    VOS_P2P_CLIENT=4,
+    VOS_P2P_GO=8,
+    VOS_MAX_CONCURRENCY_PERSONA=4
+} VOS_CONCURRENCY_MODE;
  
 #if !defined( NULL )
 #ifdef __cplusplus

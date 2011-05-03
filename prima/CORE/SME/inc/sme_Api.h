@@ -924,6 +924,15 @@ extern eHalStatus sme_RequestBmps (
    void *callbackContext);
 
 /* ---------------------------------------------------------------------------
+    \fn  sme_SetDHCPTillPowerActiveFlag
+    \brief  Sets/Clears DHCP related flag in PMC to disable/enable auto BMPS 
+            entry by PMC
+    \param  hHal - The handle returned by macOpen.
+  ---------------------------------------------------------------------------*/
+void  sme_SetDHCPTillPowerActiveFlag(tHalHandle hHal, tANI_U8 flag);
+
+
+/* ---------------------------------------------------------------------------
     \fn sme_StartUapsd
     \brief  Request that the device be put in UAPSD state. If the device is in
             Full Power it will be put in BMPS mode first and then into UAPSD
@@ -1521,15 +1530,113 @@ eHalStatus sme_RoamUpdateAPWPARSNIEs(tHalHandle hHal, tANI_U8 sessionId, tSirRSN
    ---------------------------------------------------------------------------*/
 eHalStatus sme_SetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest);
 
+
+#ifdef WLAN_FEATURE_P2P
 /* ---------------------------------------------------------------------------
-  \fn sme_sendBTAmpEvent
-  \brief API to send the btAMPstate to FW
-  \param  hHal - The handle returned by macOpen.
-  \param  btAmpEvent -- btAMP event
-  \return eHalStatus
+
+    \fn sme_RegisterMgtFrame
+
+    \brief To register managment frame of specified type and subtype. 
+    \param frameType - type of the frame that needs to be passed to HDD.
+    \param matchData - data which needs to be matched before passing frame 
+                       to HDD. 
+    \param matchDataLen - Length of matched data.
+    \return eHalStatus 
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_RegisterMgmtFrame(tHalHandle hHal, tANI_U8 sessionId, 
+                     tANI_U16 frameType, tANI_U8* matchData, tANI_U16 matchLen);
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_DeregisterMgtFrame
+
+    \brief To De-register managment frame of specified type and subtype. 
+    \param frameType - type of the frame that needs to be passed to HDD.
+    \param matchData - data which needs to be matched before passing frame 
+                       to HDD. 
+    \param matchDataLen - Length of matched data.
+    \return eHalStatus 
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_DeregisterMgmtFrame(tHalHandle hHal, tANI_U8 sessionId, 
+                     tANI_U16 frameType, tANI_U8* matchData, tANI_U16 matchLen);
+#endif
+
+/* ---------------------------------------------------------------------------
+
+  \fn    sme_ConfigureRxpFilter
+
+  \brief 
+    SME will pass this request to lower mac to set/reset the filter on RXP for
+    multicast & broadcast traffic.
+
+  \param 
+
+    hHal - The handle returned by macOpen. 
+ 
+    filterMask- Currently the API takes a 1 or 0 (set or reset) as filter.
+    Basically to enable/disable the filter (to filter "all" mcbc traffic) based
+    on this param. In future we can use this as a mask to set various types of
+    filters as suggested below:
+    FILTER_ALL_MULTICAST:
+    FILTER_ALL_BROADCAST:
+    FILTER_ALL_MULTICAST_BROADCAST:
+
+   
+  \return eHalStatus    
+  
+  
 --------------------------------------------------------------------------- */
+eHalStatus sme_ConfigureRxpFilter( tHalHandle hHal, tANI_U32  filterMask);
 
-eHalStatus sme_sendBTAmpEvent(tHalHandle hHal, tSmeBtAmpEventType btAmpEvent);
+/* ---------------------------------------------------------------------------
 
+  \fn    sme_ConfigureAppsCpuWakeupState
+
+  \brief 
+    SME will pass this request to lower mac to dynamically adjusts the listen
+    interval based on the WLAN/MSM activity. This feature is named as
+    Telescopic Beacon wakeup feature.
+
+  \param 
+
+    hHal - The handle returned by macOpen. 
+ 
+    isAppsAwake- Depicts the state of the Apps CPU
+
+   
+  \return eHalStatus    
+  
+  
+--------------------------------------------------------------------------- */
+eHalStatus sme_ConfigureAppsCpuWakeupState( tHalHandle hHal, tANI_BOOLEAN  isAppsAwake);
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_GetInfraSessionId
+
+    \brief To get the session ID for infra session, if connected
+    This is a synchronous API.
+
+    \param hHal - The handle returned by macOpen.
+
+    \return sessionid, -1 if infra session is not connected
+
+  -------------------------------------------------------------------------------*/
+tANI_S8 sme_GetInfraSessionId(tHalHandle hHal);
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_GetInfraOperationChannel
+
+    \brief To get the operating channel for infra session, if connected
+    This is a synchronous API.
+
+    \param hHal - The handle returned by macOpen.
+    \param sessionId - the sessionId returned by sme_OpenSession.
+
+    \return operating channel, 0 if infra session is not connected
+
+  -------------------------------------------------------------------------------*/
+tANI_U8 sme_GetInfraOperationChannel( tHalHandle hHal, tANI_U8 sessionId);
 
 #endif //#if !defined( __SME_API_H )

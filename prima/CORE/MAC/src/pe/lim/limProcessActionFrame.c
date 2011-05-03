@@ -462,17 +462,6 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
         return;
     }
 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
-    // if no Admit Control, ignore the response
-    if ((addts.tspec.tsinfo.traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA) &&
-        (! pMac->sch.schObject.gSchEdcaParams[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm))
-    {
-        limLog(pMac, LOGW, FL("AddTsRsp UP %d has no AC - ignoring request\n"),
-               addts.tspec.tsinfo.traffic.userPrio);
-        return;
-    }
-#endif
-
     // don't have to check for qos/wme capabilities since we wouldn't have this
     // flag set otherwise
     if (! pMac->lim.gLimAddtsSent)
@@ -582,7 +571,9 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
     else
         limLog(pMac, LOGE, FL("Self entry missing in Hash Table \n"));
 
-        
+
+    sirCopyMacAddr(peerMacAddr, psessionEntry->bssId);
+
     //if schedule is not present then add TSPEC with svcInterval as 0.
     if(!addts.schedulePresent)
       addts.schedule.svcInterval = 0;
@@ -595,41 +586,35 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
         return;   //Error handling. send the response with error status. need to send DelTS to tear down the TSPEC status.
     }
 
-#ifndef REASSOC_WHEN_ACM_NOT_SET
     if((addts.tspec.tsinfo.traffic.accessPolicy != SIR_MAC_ACCESSPOLICY_EDCA) ||
        (pMac->sch.schObject.gSchEdcaParams[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm))
     {
-#endif
-    retval = limSendHalMsgAddTs(pMac, pSta->staIndex, tspecInfo->idx, addts.tspec);
-    if(eSIR_SUCCESS != retval)
-    {
-        limAdmitControlDeleteTS(pMac, pSta->assocId, &addts.tspec.tsinfo, NULL, &tspecInfo->idx);
+        retval = limSendHalMsgAddTs(pMac, pSta->staIndex, tspecInfo->idx, addts.tspec);
+        if(eSIR_SUCCESS != retval)
+        {
+            limAdmitControlDeleteTS(pMac, pSta->assocId, &addts.tspec.tsinfo, NULL, &tspecInfo->idx);
 
-        // Send DELTS action frame to AP        
-        cfgLen = sizeof(tSirMacAddr);
-        if (wlan_cfgGetStr(pMac, WNI_CFG_BSSID, peerMacAddr, &cfgLen) != eSIR_SUCCESS)
-            limLog(pMac, LOGP, FL("Fail to retrieve BSSID \n"));
-        limSendDeltsReqActionFrame(pMac, peerMacAddr, rspReqd, &addts.tspec.tsinfo, &addts.tspec,
-                psessionEntry);
-        limSendSmeAddtsRsp(pMac, true, retval, psessionEntry, addts.tspec,
-                psessionEntry->smeSessionId, psessionEntry->transactionId);
-        pMac->lim.gLimAddtsSent = false;
-        return;
-    }
-    PELOGW(limLog(pMac, LOGW, FL("AddTsRsp received successfully(UP %d, TSID %d)\n"),
-           addts.tspec.tsinfo.traffic.userPrio, addts.tspec.tsinfo.traffic.tsid);)
-#ifndef REASSOC_WHEN_ACM_NOT_SET
+            // Send DELTS action frame to AP        
+            cfgLen = sizeof(tSirMacAddr);
+            limSendDeltsReqActionFrame(pMac, peerMacAddr, rspReqd, &addts.tspec.tsinfo, &addts.tspec,
+                    psessionEntry);
+            limSendSmeAddtsRsp(pMac, true, retval, psessionEntry, addts.tspec,
+                    psessionEntry->smeSessionId, psessionEntry->transactionId);
+            pMac->lim.gLimAddtsSent = false;
+            return;
+        }
+        PELOGW(limLog(pMac, LOGW, FL("AddTsRsp received successfully(UP %d, TSID %d)\n"),
+               addts.tspec.tsinfo.traffic.userPrio, addts.tspec.tsinfo.traffic.tsid);)
     }
     else
     {
-      PELOGW(limLog(pMac, LOGW, FL("AddTsRsp received successfully(UP %d, TSID %d)\n"),
-             addts.tspec.tsinfo.traffic.userPrio, addts.tspec.tsinfo.traffic.tsid);)
-      PELOGW(limLog(pMac, LOGW, FL("no ACM: Bypass sending WDA_ADD_TS_REQ to HAL \n"));)
-      // Use the smesessionId and smetransactionId from the PE session context
-      limSendSmeAddtsRsp(pMac, true, eSIR_SME_SUCCESS, psessionEntry, addts.tspec,
-              psessionEntry->smeSessionId, psessionEntry->transactionId);
+        PELOGW(limLog(pMac, LOGW, FL("AddTsRsp received successfully(UP %d, TSID %d)\n"),
+               addts.tspec.tsinfo.traffic.userPrio, addts.tspec.tsinfo.traffic.tsid);)
+        PELOGW(limLog(pMac, LOGW, FL("no ACM: Bypass sending WDA_ADD_TS_REQ to HAL \n"));)
+        // Use the smesessionId and smetransactionId from the PE session context
+        limSendSmeAddtsRsp(pMac, true, eSIR_SME_SUCCESS, psessionEntry, addts.tspec,
+                psessionEntry->smeSessionId, psessionEntry->transactionId);
     }
-#endif
 
     // clear the addts flag
     pMac->lim.gLimAddtsSent = false;
@@ -791,7 +776,7 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
         limLog(pMac, LOGE, FL("Self entry missing in Hash Table \n"));
 
     PELOG1(limLog(pMac, LOG1, FL("DeleteTS succeeded\n"));)
-    if((psessionEntry->limSystemRole != eLIM_AP_ROLE)||(psessionEntry->limSystemRole != eLIM_BT_AMP_AP_ROLE))
+    if((psessionEntry->limSystemRole != eLIM_AP_ROLE) && (psessionEntry->limSystemRole != eLIM_BT_AMP_AP_ROLE))
       limSendSmeDeltsInd(pMac, &delts, aid,psessionEntry);
 }
 
@@ -1920,7 +1905,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
 void
 limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd)
 {
-   tANI_U8 *pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
+   tANI_U8 *pBody = WDA_GET_RX_MPDU_DATA(pBd);
    tpSirMacVendorSpecificPublicActionFrameHdr pActionHdr = (tpSirMacVendorSpecificPublicActionFrameHdr) pBody;
 
    limLog( pMac, LOGE, "Recieved a Action frame -- no session");
@@ -1935,8 +1920,8 @@ limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd)
                 tANI_U32            frameLen;
                 tANI_U8 P2POui[] = { 0x50, 0x6F, 0x9A, 0x09 };
 
-                pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
-                frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
+                pHdr = WDA_GET_RX_MAC_HEADER(pBd);
+                frameLen = WDA_GET_RX_PAYLOAD_LEN(pBd);
 
                 //Check if it is a P2P public action frame.
                 if( palEqualMemory( pMac->hHdd, pActionHdr->Oui, P2POui, 4 ) )

@@ -450,11 +450,12 @@ static char *sendSmeDisAssocReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1 ,tANI
 	tSirSmeDisassocReq	*pDisAssocReq;
 	tpPESession  psessionEntry;
 
-
+	//arg1 - assocId
+	//arg2 - sessionId	
 	if( arg1 < 1 )
 	{
 		p += log_sprintf( pMac,p,"Invalid session OR Assoc ID  \n");
-        return p;
+      return p;
 	}	
 
 	if((psessionEntry = peFindSessionBySessionId(pMac,(tANI_U8)arg2) )== NULL)
@@ -471,14 +472,7 @@ static char *sendSmeDisAssocReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1 ,tANI
             return p;
     }
 
-	//arg1 - assocId
-	//arg2 - sessionId	
-	if( arg1 < 1 )
-	{
-		p += log_sprintf( pMac,p,"Invalid session OR Assoc ID  \n");
-        return p;
-	}	
-	if (palAllocateMemory(pMac->hHdd, (void **)&pDisAssocReq, sizeof(tSirSmeDisassocReq)) != eHAL_STATUS_SUCCESS)
+    if (palAllocateMemory(pMac->hHdd, (void **)&pDisAssocReq, sizeof(tSirSmeDisassocReq)) != eHAL_STATUS_SUCCESS)
     {
         p += log_sprintf( pMac,p,"sendSmeDisAssocReq: palAllocateMemory() failed \n");
         return p;
@@ -549,32 +543,32 @@ static char *sendSmeStartBssReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1)
     	p += log_sprintf( pMac,p,"Invalid Argument1 \n");
 		return p;
     }
-	if(arg1 == 0) //BTAMP STATION 
-	{
-    	pStartBssReq->bssType = eSIR_BTAMP_STA_MODE;
+	 if(arg1 == 0) //BTAMP STATION 
+	 {
+        pStartBssReq->bssType = eSIR_BTAMP_STA_MODE;
 		
-		pStartBssReq->ssId.length = 5;
-		palCopyMemory(pMac->hHdd, (void *) &pStartBssReq->ssId.ssId, (void *)"BTSTA", 5);   
-	}
-	else if(arg1 == 1) //BTAMP AP 
-	{
-		pStartBssReq->bssType = eSIR_BTAMP_AP_MODE;
-		pStartBssReq->ssId.length = 4;
-		palCopyMemory(pMac->hHdd, (void *) &pStartBssReq->ssId.ssId, (void *)"BTAP", 4); 
-	}
-	else  //IBSS
-	{
-		pStartBssReq->bssType = eSIR_IBSS_MODE;
-		pStartBssReq->ssId.length = 4;
-    	palCopyMemory(pMac->hHdd, (void *) &pStartBssReq->ssId.ssId, (void *)"Ibss", 4);
-	}
+        pStartBssReq->ssId.length = 5;
+        palCopyMemory(pMac->hHdd, (void *) &pStartBssReq->ssId.ssId, (void *)"BTSTA", 5);   
+    }
+    else if(arg1 == 1) //BTAMP AP 
+    {
+        pStartBssReq->bssType = eSIR_BTAMP_AP_MODE;
+        pStartBssReq->ssId.length = 4;
+        palCopyMemory(pMac->hHdd, (void *) &pStartBssReq->ssId.ssId, (void *)"BTAP", 4); 
+    }
+    else  //IBSS
+    {
+        pStartBssReq->bssType = eSIR_IBSS_MODE;
+        pStartBssReq->ssId.length = 4;
+        palCopyMemory(pMac->hHdd, (void *) &pStartBssReq->ssId.ssId, (void *)"Ibss", 4);
+    }
 
-	// Filling in channel ID 6
+	 // Filling in channel ID 6
     pBuf = &(pStartBssReq->ssId.ssId[pStartBssReq->ssId.length]);
     *pBuf = 6;
     pBuf++;
 
-	// Filling in CB mode
+	 // Filling in CB mode
     cbMode = eANI_CB_SECONDARY_NONE;
     palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *)&cbMode, sizeof(tAniCBSecondaryMode) );
     pBuf += sizeof(tAniCBSecondaryMode);
@@ -584,7 +578,7 @@ static char *sendSmeStartBssReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1)
     pBuf += sizeof(tANI_U16);
 
     // Filling in NW Type
-	nwType = eSIR_11G_NW_TYPE;
+	 nwType = eSIR_11G_NW_TYPE;
     palCopyMemory( pMac->hHdd, pBuf, (tANI_U8 *)&nwType, sizeof(tSirNwType) );
     pBuf += sizeof(tSirNwType);
 
@@ -902,7 +896,6 @@ static char* limDumpDphTableSummary(tpAniSirGlobal pMac,char *p)
 		        }
             }   
         }   
-        return p;
     }
     return p;
 }     
@@ -1892,7 +1885,7 @@ dump_lim_send_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tAN
 {
 	tpPESession 		psessionEntry;
      tSirMacRadioMeasureReport pRRMReport[4];
-     tANI_U8 num = arg4 > 4 ? 4 : arg4;
+     tANI_U8 num = (tANI_U8)(arg4 > 4 ? 4 : arg4);
      tANI_U8 i;
 
 	if((psessionEntry = peFindSessionBySessionId(pMac,(tANI_U8)arg2) )== NULL)
@@ -2128,7 +2121,7 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
       case 4:
          {
             tDot11fNeighborReportResponse frm;
-            pBody[arg2][2] = arg3; //Dialog Token
+            pBody[arg2][2] = (tANI_U8)arg3; //Dialog Token
             if( (status = dot11fUnpackNeighborReportResponse( pMac, &pBody[arg2][0], size[arg2], &frm )) != 0 )
                p += log_sprintf( pMac, p, "failed to unpack.....status = %x\n", status);
             else
@@ -2141,10 +2134,12 @@ dump_lim_unpack_rrm_action( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, t
 // FIXME.
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
             tDot11fLinkMeasurementRequest frm;
-            tHalBufDesc Bd = { .phyStats0 = 0x00000000, .phyStats1 = 0x00000000 };
-            pBody[arg2][3] = arg3; //TxPower used
-            pBody[arg2][4] = arg4; //Max Tx power
+            tHalBufDesc Bd;
+            pBody[arg2][3] = (tANI_U8)arg3; //TxPower used
+            pBody[arg2][4] = (tANI_U8)arg4; //Max Tx power
 
+            Bd.phyStats0 = 0;
+            Bd.phyStats1 = 0;
             if( (status = dot11fUnpackLinkMeasurementRequest( pMac, &pBody[arg2][0], size[arg2], &frm )) != 0 )
                p += log_sprintf( pMac, p, "failed to unpack.....status = %x\n", status);
             else
@@ -2199,9 +2194,6 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
     tpSirFTPreAuthReq pftPreAuthReq;
     tANI_U16 auth_req_len = 0;
     tCsrRoamConnectedProfile Profile;
-    extern eHalStatus csrRoamCopyConnectProfile(tpAniSirGlobal pMac, 
-        tANI_U32 sessionId, 
-        tCsrRoamConnectedProfile *pProfile);
 
     csrRoamCopyConnectProfile(pMac, arg2, &Profile);
 
@@ -2239,7 +2231,7 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
                        (void *)psessionEntry->bssId, 6);  
                    palCopyMemory(pMac->hHdd, (void *) &pftPreAuthReq->preAuthbssId, 
                        (void *)macAddr, 6);  
-                   pftPreAuthReq->ft_ies_length = pMac->ft.ftSmeContext.auth_ft_ies_length;
+                   pftPreAuthReq->ft_ies_length = (tANI_U16)pMac->ft.ftSmeContext.auth_ft_ies_length;
 
                    // Also setup the mac address in sme context.
                    palCopyMemory(pMac->hHdd, pMac->ft.ftSmeContext.preAuthbssId, macAddr, 6);
@@ -2250,23 +2242,23 @@ dump_lim_ft_event( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32 a
                    vos_mem_copy(Profile.pBssDesc->bssId, macAddr, 6);
 
                    p += log_sprintf( pMac,p, "\n ----- LIM Debug Information ----- \n");
-                   p += log_sprintf( pMac, p, "%s: length = %d\n", __func__, 
+                   p += log_sprintf( pMac, p, "%s: length = %d\n", __FUNCTION__, 
                             (int)pMac->ft.ftSmeContext.auth_ft_ies_length);
-                   p += log_sprintf( pMac, p, "%s: length = %02x\n", __func__, 
+                   p += log_sprintf( pMac, p, "%s: length = %02x\n", __FUNCTION__, 
                             (int)pMac->ft.ftSmeContext.auth_ft_ies[0]);
                    p += log_sprintf( pMac, p, "%s: Auth Req %02x %02x %02x\n", 
-                            __func__, pftPreAuthReq->ft_ies[0],
+                            __FUNCTION__, pftPreAuthReq->ft_ies[0],
                             pftPreAuthReq->ft_ies[1], pftPreAuthReq->ft_ies[2]);
 
-                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x\n", __func__, 
+                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x\n", __FUNCTION__, 
                             psessionEntry->bssId[0],
                             psessionEntry->bssId[1], psessionEntry->bssId[2]);
-                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x %p\n", __func__, 
+                   p += log_sprintf( pMac, p, "%s: Session %02x %02x %02x %p\n", __FUNCTION__, 
                             pftPreAuthReq->currbssId[0],
                             pftPreAuthReq->currbssId[1], 
                             pftPreAuthReq->currbssId[2], pftPreAuthReq);
 
-                   Profile.pBssDesc->channelId = arg3;
+                   Profile.pBssDesc->channelId = (tANI_U8)arg3;
                    vos_mem_copy((void *)pftPreAuthReq->pbssDescription, (void *)Profile.pBssDesc, 
                        Profile.pBssDesc->length);  
 

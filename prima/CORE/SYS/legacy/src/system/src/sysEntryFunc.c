@@ -27,11 +27,9 @@
 #include "sysStartup.h"
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
 #include "halMacSecurityApi.h"
-#include "pal_skbPoolTracking.h"
 #endif
 #include "limTrace.h"
 #include "wlan_qct_wda.h"
-
 
 #ifndef WLAN_FTM_STUB
 tSirRetStatus
@@ -166,13 +164,9 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
     pMac->sys.gSysBbtReceived++;
 
 
-   PELOGW(sysLog(pMac, LOGW, FL("Rx Mgmt Frame Subtype: %d\n"), subType);
-   sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOGW, (tANI_U8 *)WDA_GET_RX_MAC_HEADER(pBd), WDA_GET_RX_MPDU_LEN(pBd));
-   sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOGW, WDA_GET_RX_MPDU_DATA(pBd), WDA_GET_RX_PAYLOAD_LEN(pBd));)
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-   aniSkbPoolTrackingMark((void *)pMsg->bodyptr,
-                           ANI_MARK_sysBbtProcessMessageCore_2);
-#endif
+    PELOGW(sysLog(pMac, LOGW, FL("Rx Mgmt Frame Subtype: %d\n"), subType);
+    sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOGW, (tANI_U8 *)WDA_GET_RX_MAC_HEADER(pBd), WDA_GET_RX_MPDU_LEN(pBd));
+    sirDumpBuf(pMac, SIR_SYS_MODULE_ID, LOGW, WDA_GET_RX_MPDU_DATA(pBd), WDA_GET_RX_PAYLOAD_LEN(pBd));)
 
     pMac->sys.gSysFrameCount[type][subType]++;
 

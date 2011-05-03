@@ -486,6 +486,19 @@ limProcessAssocRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tANI_U8 sub
                                                         during processing DelSta nd DelBss to send AddBss again*/
         pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
 
+        if(!pStaDs)
+        {
+            PELOGE(limLog(pMac, LOG1, FL("could not get hash entry at DPH for \n"));)
+            limPrintMacAddr(pMac, pHdr->sa, LOGE);
+            mlmAssocCnf.resultCode = eSIR_SME_INVALID_ASSOC_RSP_RXED;
+            mlmAssocCnf.protStatusCode = eSIR_MAC_UNSPEC_FAILURE_STATUS;
+            
+            // Send advisory Disassociation frame to AP
+            limSendDisassocMgmtFrame(pMac, eSIR_MAC_UNSPEC_FAILURE_REASON, pHdr->sa,psessionEntry);
+            
+            goto assocReject;
+        }
+
 #ifdef WLAN_FEATURE_VOWIFI_11R
         if (psessionEntry->limMlmState == eLIM_MLM_WT_FT_REASSOC_RSP_STATE)
         {

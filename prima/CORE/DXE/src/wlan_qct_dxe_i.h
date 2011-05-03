@@ -524,6 +524,7 @@ typedef struct
    WLANDXE_DescCtrlBlkType        *headCtrlBlk;
    WLANDXE_DescCtrlBlkType        *tailCtrlBlk;
    WLANDXE_DescType               *DescBottomLoc;
+   unsigned int                    descBottomLocPhyAddr;
    wpt_uint32                      numDesc;
    wpt_uint32                      numFreeDesc;
    wpt_uint32                      numRsvdDesc;
@@ -559,6 +560,10 @@ typedef struct
    wpt_uint32                      interruptPath;
    wpt_msg                        *rxIsrMsg;
    wpt_msg                        *txIsrMsg;
+   WLANDXE_PowerStateType          hostPowerState;
+   WLANDXE_SetPowerStateCbType     setPowerStateCb;
+   WLANDXE_RivaPowerStateType      rivaPowerState;
+   wpt_boolean                     ringNotEmpty; 
 } WLANDXE_CtrlBlkType;
 
 /*==========================================================================

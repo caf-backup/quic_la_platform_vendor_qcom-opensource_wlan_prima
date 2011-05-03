@@ -139,7 +139,6 @@ typedef enum
    eHDD_SUSPEND_NONE = 0,
    eHDD_SUSPEND_DEEP_SLEEP,
    eHDD_SUSPEND_STANDBY,
-   eHDD_SUSPEND_MCAST_BCAST_FILTER,
 } hdd_ps_state_t;
 
 typedef struct roaming_info_s
@@ -275,7 +274,7 @@ typedef struct hdd_wapi_info_s hdd_wapi_info_t;
 
 
 typedef enum device_mode
-{
+{  /* MAINTAIN 1 - 1 CORRESPONDENCE WITH VOS_CON_MODE*/
    WLAN_HDD_INFRA_STATION,
    WLAN_HDD_SOFTAP,
    WLAN_HDD_P2P_CLIENT,
@@ -356,8 +355,7 @@ typedef struct {
    v_U16_t aTxQueueDepth[NUM_TX_QUEUES];
    
    /**Track whether OS TX queue has been disabled.*/
-   v_BOOL_t txSuspended;
-   v_U8_t   txSuspendedAc;   
+   v_BOOL_t txSuspended[NUM_TX_QUEUES];
 
    /** Track QoS status of station */
    v_BOOL_t isQosEnabled;
@@ -453,8 +451,7 @@ struct hdd_adapter_s
    v_BOOL_t isVosOutOfResource;
   
    /**Track whether OS TX queue has been disabled.*/
-   v_BOOL_t isTxSuspended;
-   v_U8_t   txSuspendedAc;
+   v_BOOL_t isTxSuspended[NUM_TX_QUEUES];
 
    /** WMM Status */
    hdd_wmm_status_t hddWmmStatus;
@@ -554,8 +551,21 @@ struct hdd_context_s
 
 
    v_BOOL_t isWlanSuspended;
+
+   v_BOOL_t isTxThreadSuspended;
+
+   v_BOOL_t isMcThreadSuspended;
+
+   volatile v_BOOL_t isLogpInProgress;
+
+   v_BOOL_t isLoadUnloadInProgress;
+   
    /**Track whether driver has been suspended.*/
    hdd_ps_state_t hdd_ps_state;
+   
+   /* Track whether Mcast/Bcast Filter is enabled.*/
+   v_BOOL_t hdd_mcastbcast_filter_set;
+   
    /** ptt Process ID*/
    v_SINT_t ptt_pid;
 
@@ -578,10 +588,14 @@ hdd_adapter_t * hdd_get_adapter( hdd_context_t *pHddCtx, device_mode_t mode );
 void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter );
 VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter );
 void hdd_set_station_ops( struct net_device *pWlanDev );
+tANI_U8* wlan_hdd_get_intf_addr(hdd_context_t* pHddCtx);
+void wlan_hdd_release_intf_addr(hdd_context_t* pHddCtx, tANI_U8* releaseAddr);
 
 
-#ifdef WLAN_SOFTAP_FEATURE
-void hdd_set_conparam ( v_UINT_t newParam ); //Dont want to expose this API
+#if defined(WLAN_SOFTAP_FEATURE) || defined(ANI_MANF_DIAG)
+void hdd_set_conparam ( v_UINT_t newParam );
+VOS_CON_MODE hdd_get_conparam( void );
 #endif
 
+void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

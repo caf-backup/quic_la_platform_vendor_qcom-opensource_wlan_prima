@@ -673,7 +673,7 @@ limSendSmeProbeReqInd(tpAniSirGlobal pMac,
     palCopyMemory( pMac->hHdd, pSirSmeProbeReqInd->WPSPBCProbeReq.peerMacAddr, peerMacAddr, sizeof(tSirMacAddr));
 
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
-    pSirSmeProbeReqInd->WPSPBCProbeReq.probeReqIELen = ProbeReqIELen;
+    pSirSmeProbeReqInd->WPSPBCProbeReq.probeReqIELen = (tANI_U16)ProbeReqIELen;
     palCopyMemory( pMac->hHdd, pSirSmeProbeReqInd->WPSPBCProbeReq.probeReqIE, pProbeReqIE, ProbeReqIELen);
     
     if (limSysProcessMmhMsgApi(pMac, &msgQ,  ePROT) != eSIR_SUCCESS){
@@ -695,11 +695,12 @@ limProcessP2PProbeReq(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntr
 
   limLog( pMac, LOGE, "Recieved a probe request frame\n");
 
-  pHdr = SIR_MAC_BD_TO_MPDUHEADER(pBd);
+  pHdr = WDA_GET_RX_MAC_HEADER(pBd);
   // Get pointer to Probe Request frame body
-  pBody = SIR_MAC_BD_TO_MPDUDATA(pBd);
+  pBody = WDA_GET_RX_MPDU_DATA(pBd);
 
-  frameLen = SIR_MAC_BD_TO_PAYLOAD_LEN(pBd);
+  frameLen = WDA_GET_RX_PAYLOAD_LEN(pBd);
+
 
   if( pBody[0] == 0 && pBody[1] == ssId.length &&
       (palEqualMemory( pMac->hHdd, ssId.ssId, pBody + 2, 

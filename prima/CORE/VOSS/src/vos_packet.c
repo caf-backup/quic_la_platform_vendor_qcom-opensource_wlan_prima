@@ -22,7 +22,7 @@
 #include <vos_timer.h>
 #include <vos_trace.h>
 #ifdef WLAN_SOFTAP_FEATURE
-#include <wlan_hdd_misc.h>   
+#include <wlan_hdd_main.h>   
 #endif
 
 /*--------------------------------------------------------------------------

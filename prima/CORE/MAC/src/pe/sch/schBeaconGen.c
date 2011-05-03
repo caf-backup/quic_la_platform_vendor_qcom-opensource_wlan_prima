@@ -303,13 +303,14 @@ tSirRetStatus schSetFixedBeaconFields(tpAniSirGlobal pMac,tpPESession psessionEn
         * */
         if(psessionEntry->wps_state != SAP_WPS_DISABLED)
         {
-
             if(psessionEntry->APWPSIEs.SirWPSProbeRspIE.FieldPresent)
             {
-                WscProbeRes.present = psessionEntry->APWPSIEs.SirWPSProbeRspIE.FieldPresent;
                 PopulateDot11fProbeResWPSIEs(pMac, &WscProbeRes, psessionEntry);
             }
-
+            else
+            {
+                WscProbeRes.present = 0;
+            }
             if(WscProbeRes.present)
             {
                 SetProbeRspIeBitmap(&psessionEntry->DefProbeRspIeBitmap[0],SIR_MAC_WPA_EID);

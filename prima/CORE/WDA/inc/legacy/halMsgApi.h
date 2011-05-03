@@ -233,14 +233,14 @@ typedef struct
     // The return status of SIR_HAL_ADD_STA_REQ is reported here
     eHalStatus status;
     // Station index; valid only when 'status' field value is eHAL_STATUS_SUCCESS
-    tANI_U16 staIdx;
+    tANI_U8 staIdx;
 
     //BSSID of BSS to which the station is associated.
     //This should be filled back in by HAL, and sent back to LIM as part of
     //the response message, so LIM can cache it in the station entry of hash table.
     //When station is deleted, LIM will make use of this bssIdx to delete
     //BSS from hal tables and from softmac.
-    tANI_U16 bssIdx;
+    tANI_U8 bssIdx;
 
     /* this requires change in testDbg. I will change it later after coordinating with Diag team.
        tANI_U8 fFwdTrigerSOSPtoHost; //trigger to start service period
@@ -309,6 +309,35 @@ typedef struct
     // PE session id now added to all HAL<->PE transacations
     // HAL sends it back unmodified.
 } tDeleteStaParams, * tpDeleteStaParams;
+
+/*
+ * This is used by PE to configure the key information on a given station.
+ * When the secType is WEP40 or WEP104, the defWEPIdx is used to locate
+ * a preconfigured key from a BSS the station assoicated with; otherwise
+ * a new key descriptor is created based on the key field.
+ */
+typedef struct
+{
+    tANI_U16        staIdx;
+    tAniEdType      encType;        // Encryption/Decryption type
+    tAniWepType     wepType;        // valid only for WEP
+    tANI_U8         defWEPIdx;      // Default WEP key, valid only for static WEP, must between 0 and 3
+#ifdef WLAN_SOFTAP_FEATURE
+    tSirKeys        key[SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS];            // valid only for non-static WEP encyrptions
+#else
+    tSirKeys        key;
+#endif
+    tANI_U8         singleTidRc;    // 1=Single TID based Replay Count, 0=Per TID based RC
+    /*
+     * Following parameter is for returning status
+     * via response message. HAL does not read them.
+     */
+    eHalStatus  status;    // status of SIR_HAL_SET_STAKEY_REQ is reported here
+    tANI_U8     sessionId; // PE session id for PE<->HAL interface 
+
+    // PE session id now added to all HAL<->PE transacations
+    // HAL sends back response with no modification
+} tSetStaKeyParams, *tpSetStaKeyParams;
 
 //
 // Mesg header is used from tSirMsgQ
@@ -433,15 +462,21 @@ typedef struct
     tPowerdBm maxTxPower;  //max power to be used after applying the power constraint, if any
 #endif
 
+#if defined WLAN_FEATURE_VOWIFI_11R
+    tANI_U8 extSetStaKeyParamValid; //Ext Bss Config Msg if set
+    tSetStaKeyParams extSetStaKeyParam;  //SetStaKeyParams for ext bss msg
+#endif
+
     tANI_U8   ucMaxProbeRespRetryLimit;  //probe Response Max retries
     tANI_U8   bHiddenSSIDEn;             //To Enable Hidden ssid.      
     tANI_U8   bProxyProbeRespEn;         //To Enable Disable FW Proxy Probe Resp
+    tANI_U8   halPersona;         //Persona for the BSS can be STA,AP,GO,CLIENT value same as tVOS_CON_MODE
 
 } tAddBssParams, * tpAddBssParams;
 
 typedef struct
 {
-    tANI_U16 bssIdx;
+    tANI_U8 bssIdx;
     // The return status of SIR_HAL_DELETE_BSS_REQ is reported here
     eHalStatus status;
     //HAL will send the response message to LIM only when this flag is set.
@@ -461,9 +496,9 @@ typedef struct
 
 typedef struct
 {
-    tANI_U16 staIdx;
+    tANI_U8 staIdx;
     tANI_U8 uapsdACMask; 
-    tANI_U32 maxSpLen;    
+    tANI_U8 maxSpLen;    
 } tUpdateUapsdParams, * tpUpdateUapsdParams;
 
 //
@@ -477,6 +512,10 @@ typedef struct {
     tSirMacAddr bssid;
 
     tANI_U8 notifyBss;
+
+#ifdef WLAN_FEATURE_P2P
+    tANI_U8 useNoA;
+#endif
 
     // If this flag is set HAL notifies PE when SMAC returns status.
     tANI_U8 notifyHost;
@@ -492,6 +531,7 @@ typedef struct {
 
     // when this flag is set, HAL should check for link traffic prior to scan
     tSirLinkTrafficCheck    checkLinkTraffic;
+
     /*
     * Following parameters are for returning status and station index from HAL to PE
     * via response message. HAL does not read them.
@@ -644,6 +684,7 @@ typedef struct {
     tANI_U32 beaconLength; //length of the template.
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_U32 timIeOffset; //TIM IE offset from the beginning of the template.
+    tANI_U16 p2pIeOffset; //P2P IE offset from the begining of the template
 #endif
 } tSendbeaconParams, * tpSendbeaconParams;
 
@@ -655,35 +696,6 @@ typedef struct sSendProbeRespParams {
 	tANI_U32     ucProxyProbeReqValidIEBmap[8];
 } tSendProbeRespParams, * tpSendProbeRespParams;
 #endif
-
-/*
- * This is used by PE to configure the key information on a given station.
- * When the secType is WEP40 or WEP104, the defWEPIdx is used to locate
- * a preconfigured key from a BSS the station assoicated with; otherwise
- * a new key descriptor is created based on the key field.
- */
-typedef struct
-{
-    tANI_U16        staIdx;
-    tAniEdType      encType;        // Encryption/Decryption type
-    tAniWepType     wepType;        // valid only for WEP
-    tANI_U8         defWEPIdx;      // Default WEP key, valid only for static WEP, must between 0 and 3
-#ifdef WLAN_SOFTAP_FEATURE
-    tSirKeys        key[SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS];            // valid only for non-static WEP encyrptions
-#else
-    tSirKeys        key;
-#endif
-    tANI_U8         singleTidRc;    // 1=Single TID based Replay Count, 0=Per TID based RC
-    /*
-     * Following parameter is for returning status
-     * via response message. HAL does not read them.
-     */
-    eHalStatus  status;    // status of SIR_HAL_SET_STAKEY_REQ is reported here
-    tANI_U8     sessionId; // PE session id for PE<->HAL interface 
-
-    // PE session id now added to all HAL<->PE transacations
-    // HAL sends back response with no modification
-} tSetStaKeyParams, *tpSetStaKeyParams;
 
 /*
  * This is used by PE to create a set of WEP keys for a given BSS.
@@ -899,6 +911,23 @@ typedef struct
   tSirMacAddr bssId; //TO SUPPORT BT-AMP
   
 } tDelTsParams, *tpDelTsParams;
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+
+#define HAL_QOS_NUM_TSPEC_MAX 2
+#define HAL_QOS_NUM_AC_MAX 4
+
+typedef struct
+{
+  tANI_U16 staIdx;
+  tANI_U16 tspecIdx; //TSPEC handler uniquely identifying a TSPEC for a STA in a BSS
+  tSirMacTspecIE   tspec[HAL_QOS_NUM_AC_MAX];
+  eHalStatus       status[HAL_QOS_NUM_AC_MAX];
+  tANI_U8          sessionId;          //PE session id for PE<->HAL interface 
+}tAggrAddTsParams, *tpAggrAddTsParams;
+
+#endif /* WLAN_FEATURE_VOWIFI_11R */
+
 
 typedef tSirRetStatus (*tHalMsgCallback)(tpAniSirGlobal pMac, tANI_U32 mesgId, void *mesgParam );
 
@@ -1183,6 +1212,19 @@ typedef struct sDelStaSelfParams
    tANI_U32 status;
 }tDelStaSelfParams, *tpDelStaSelfParams;
 
+#ifdef WLAN_FEATURE_P2P
+typedef struct sP2pPsParams
+{
+   tANI_U8   opp_ps;
+   tANI_U32  ctWindow;
+   tANI_U8   count; 
+   tANI_U32  duration;
+   tANI_U32  interval;
+   tANI_U32  single_noa_duration;
+   tANI_U8   psSelection;
+}tP2pPsParams, *tpP2pPsParams;
+#endif
+	
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 static inline void halGetTxTSFtimer(tpAniSirGlobal pMac, 
                                                 tSirMacTimeStamp *pTime)
@@ -1217,6 +1259,13 @@ typedef struct sBeaconFilterIe
     tANI_U8         checkIePresence;
     tEidByteInfo    byte;
 } tBeaconFilterIe, *tpBeaconFilterIe;
+
+typedef struct sRemBeaconFilterMsg  
+{
+    tANI_U8  ucIeCount;
+    tANI_U8  ucRemIeId[1];
+} tRemBeaconFilterMsg, *tpRemBeaconFilterMsg;
+
 #endif
 #endif /* _HALMSGAPI_H_ */
 

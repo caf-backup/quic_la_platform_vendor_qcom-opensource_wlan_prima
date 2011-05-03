@@ -540,8 +540,6 @@ VOS_STATUS vos_nv_getChannelListWithPower(tChannelListWithPower *pChannels20MHz 
   \sa
 
   -------------------------------------------------------------------------*/
-
-
 VOS_STATUS vos_nv_open(void);
 
 /**------------------------------------------------------------------------
@@ -558,5 +556,15 @@ VOS_STATUS vos_nv_open(void);
   -------------------------------------------------------------------------*/
 
 VOS_STATUS vos_nv_close(void);
+
+/**------------------------------------------------------------------------
+  \brief vos_nv_getBuffer - 
+  \param pBuffer  - to return the buffer address
+            pNvBitmap - Nv Bit map
+            pSize     - buffer size.
+  \return status of the NV read operation
+  \sa
+  -------------------------------------------------------------------------*/
+VOS_STATUS vos_nv_getNVBuffer(v_VOID_t **pNvBuffer ,v_SIZE_t *pSize);
 
 #endif // __VOS_NVITEM_H

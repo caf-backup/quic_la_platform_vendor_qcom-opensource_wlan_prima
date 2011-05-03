@@ -9,7 +9,7 @@
  *
  *  @author:   Kumar Anand
  *
- *             Copyright (C) 2010, Qualcomm, Inc. 
+ *             Copyright (C) 2010, Qualcomm, Inc.
  *             All rights reserved.
  *
  *=========================================================================*/

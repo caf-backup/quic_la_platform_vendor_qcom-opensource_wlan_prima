@@ -927,6 +927,12 @@ void pmmExitBmpsIndicationHandler(tpAniSirGlobal pMac, tANI_U8 mode, eHalStatus 
 
     psessionEntry = peFindSessionBySessionId(pMac,powersavesessionId);
 
+    if(psessionEntry == NULL)
+    {
+      PELOGE(limLog(pMac, LOGE,FL("Session does Not exist with given sessionId :%d \n"),powersavesessionId);)
+      return;
+    }
+
 	/* Since, the hardware is already wokenup, PE also wakesup and informs
 	 * the upper layers that the system is waking up. Hence always Success is
 	 * sent in the reason code for the message sent to PMC

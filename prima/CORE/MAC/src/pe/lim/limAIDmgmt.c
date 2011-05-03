@@ -51,7 +51,7 @@ limInitAIDpool(tpAniSirGlobal pMac,tpPESession sessionEntry)
     pMac->lim.gpLimAIDpool[0]=0;
     pMac->lim.freeAidHead=LIM_START_AID;
 
-    for (i=pMac->lim.freeAidHead;i<maxAssocSta-1; i++)
+    for (i=pMac->lim.freeAidHead;i<maxAssocSta; i++)
     {
         pMac->lim.gpLimAIDpool[i]         = i+1;
     }

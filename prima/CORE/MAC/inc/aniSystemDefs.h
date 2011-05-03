@@ -127,6 +127,15 @@ typedef struct sSirRSNie
     tANI_U8        rsnIEdata[SIR_MAC_MAX_IE_LENGTH+2];
 } tSirRSNie, *tpSirRSNie;
 
+#ifdef WLAN_FEATURE_P2P
+typedef struct sSirP2Pie
+{
+    tANI_U16       length;
+    tANI_U8        P2PIEdata[SIR_MAC_MAX_IE_LENGTH+2];
+} tSirP2Pie, *tpSirP2Pie;
+
+#endif /* WLAN_FEATURE_P2P */
+
 /// Need to refine structure definitions for Keying material,
 /// QoS policy, etc
 

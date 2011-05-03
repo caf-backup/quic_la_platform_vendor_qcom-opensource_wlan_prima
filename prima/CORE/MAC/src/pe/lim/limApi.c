@@ -751,7 +751,11 @@ limInitialize(tpAniSirGlobal pMac)
 #if defined WLAN_FEATURE_VOWIFI_11R
     limFTOpen(pMac);
 #endif
-    
+
+#ifdef WLAN_FEATURE_P2P
+    vos_list_init(&pMac->lim.gLimMgmtFrameRegistratinQueue);
+#endif    
+
 	#if 0
 
 	
@@ -831,6 +835,10 @@ limCleanup(tpAniSirGlobal pMac)
 #ifdef VOSS_ENABLED
     v_PVOID_t pvosGCTx;
     VOS_STATUS retStatus;
+#endif
+
+#ifdef WLAN_FEATURE_P2P
+    vos_list_destroy(&pMac->lim.gLimMgmtFrameRegistratinQueue);
 #endif
 
     limCleanupMlm(pMac);

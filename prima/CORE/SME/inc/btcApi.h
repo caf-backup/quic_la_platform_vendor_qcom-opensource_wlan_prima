@@ -110,12 +110,16 @@ typedef enum eSmeBtEventType
   BT_EVENT_TYPE_MAX,    //This and beyond are invalid values
 } tSmeBtEventType;
 
+/** BT-AMP events type
+*/
 typedef enum eSmeBtAmpEventType
 {
   BTAMP_EVENT_CONNECTION_START,
   BTAMP_EVENT_CONNECTION_STOP,
-  BTAMP_EVENT_CONNECTION_TERMINATED
+  BTAMP_EVENT_CONNECTION_TERMINATED,
+  BTAMP_EVENT_TYPE_MAX, //This and beyond are invalid values
 } tSmeBtAmpEventType;
+
 
 /**Data structure that specifies the needed event parameters for
     BT_EVENT_CREATE_ACL_CONNECTION and BT_EVENT_ACL_CONNECTION_COMPLETE
@@ -190,11 +194,23 @@ typedef struct sSmeBtcBtEvent
    }uEventParam;
 } tSmeBtEvent, *tpSmeBtEvent;
 
+
+/**
+    BT-AMP Event Structure
+*/
+typedef struct sSmeBtAmpEvent
+{
+  tSmeBtAmpEventType btAmpEventType;
+
+} tSmeBtAmpEvent, *tpSmeBtAmpEvent;
+
+
 /** Data structure that specifies the BTC Configuration parameters
 */
 typedef struct sSmeBtcConfig
 {
    v_U8_t       btcExecutionMode;
+   v_U8_t       btcConsBtSlotsToBlockDuringDhcp;
    v_U8_t       btcActionOnPmFail;
    v_U8_t       btcBtIntervalMode1;
    v_U8_t       btcWlanIntervalMode1;

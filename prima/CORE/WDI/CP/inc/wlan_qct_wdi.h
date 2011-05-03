@@ -80,9 +80,23 @@ when        who    what, where, why
 /*Max. size for reserving the Beacon Template */
 #define WDI_BEACON_TEMPLATE_SIZE  0x180
 
+#define WDI_WOWL_BCAST_PATTERN_MAX_SIZE 128
+
+#define WDI_WOWL_BCAST_MAX_NUM_PATTERNS 8
+
+/* The shared memory between WDI and HAL is 4K so maximum data can be transferred
+from WDI to HAL is 4K.This 4K should also include the Message header so sending 4K
+of NV fragment is nt possbile.The next multiple of 1Kb is 3K */
+
+#define FRAGMENT_SIZE 3072
+
+/* Macro to find the total number fragments of the NV Image*/
+#define TOTALFRAGMENTS(x) ((x%FRAGMENT_SIZE)== 0) ? (x/FRAGMENT_SIZE):((x/FRAGMENT_SIZE)+1)
+
 /*============================================================================
  *     GENERIC STRUCTURES 
-  ============================================================================*/
+  
+============================================================================*/
 
 /*---------------------------------------------------------------------------
  WDI Device Capability
@@ -155,6 +169,23 @@ typedef struct
     WDI_MacSeqCtl       seqControl;
 } WDI_MacMgmtHdr;
 
+/*---------------------------------------------------------------------------
+  NV Blob management sturcture
+  ---------------------------------------------------------------------------*/
+
+typedef struct
+{
+  /* NV image  fragments count */
+  wpt_uint16 usTotalFragment;
+
+  /* NV fragment size */
+  wpt_uint16 usFragmentSize;
+
+  /* current fragment to be sent */
+  wpt_uint16 usCurrentFragment;
+
+} WDI_NvBlobInfoParams;
+
 /*============================================================================
  *     GENERIC STRUCTURES - END
  ============================================================================*/
@@ -215,7 +246,7 @@ typedef enum
 {
   /*When RSSI monitoring is enabled of the Lower MAC and a threshold has been
     passed. */
-  WDI_LOW_RSSI_IND,
+  WDI_HAL_RSSI_NOTIFICATION_IND,
 
   /*Link loss in the low MAC */
   WDI_MISSED_BEACON_IND,
@@ -244,22 +275,20 @@ typedef enum
 typedef struct
 {
   /*Positive crossing of Rssi Thresh1*/
-  wpt_boolean bRssiThres1PosCross;	
-  
+   wpt_uint32             bRssiThres1PosCross : 1;
   /*Negative crossing of Rssi Thresh1*/
-  wpt_boolean bRssiThres1NegCross;	
-  
+   wpt_uint32             bRssiThres1NegCross : 1;
   /*Positive crossing of Rssi Thresh2*/
-  wpt_boolean bRssiThres2PosCross;	
-  
+   wpt_uint32             bRssiThres2PosCross : 1;
   /*Negative crossing of Rssi Thresh2*/
-  wpt_boolean bRssiThres2NegCross;	
-  
+   wpt_uint32             bRssiThres2NegCross : 1;
   /*Positive crossing of Rssi Thresh3*/
-  wpt_boolean bRssiThres3PosCross;	
-  
+   wpt_uint32             bRssiThres3PosCross : 1;
   /*Negative crossing of Rssi Thresh3*/
-  wpt_boolean bRssiThres3NegCross;	
+   wpt_uint32             bRssiThres3NegCross : 1;
+
+   wpt_uint32             bReserved           : 26;
+
 }WDI_LowRSSIThIndType;
 
 
@@ -697,6 +726,14 @@ typedef struct
   /*Secondary channel offset */
   WDI_HTSecondaryChannelOffset  wdiSecondaryChannelOffset;
 
+#ifdef WLAN_FEATURE_VOWIFI
+  wpt_int8      cMaxTxPower;
+  wpt_macAddr   macSelfStaMacAddr;
+  /*BSSID is needed to identify which session issued this request. As the 
+  request has power constraints, this should be applied only to that session */
+  wpt_macAddr   macBSSId;
+#endif
+
 }WDI_SwitchChReqInfoType;
 
 /*---------------------------------------------------------------------------
@@ -969,8 +1006,7 @@ typedef struct
   wpt_uint8                 ucShortGI20Mhz;
 
   /*These rates are the intersection of peer and self capabilities.*/
-  //! Comented out in the new HAL header 
-  //! WDI_SupportedRates        wdiSupportedRates;
+  WDI_SupportedRates        wdiSupportedRates;
 
   /*Robust Management Frame (RMF) enabled/disabled*/
   wpt_uint8                 ucRMFEnabled;
@@ -1196,6 +1232,11 @@ typedef struct
 
    /*EDCA Parameters for VO*/  
   WDI_EdcaParamRecord       wdiVOEDCAParams; 
+
+#ifdef WLAN_FEATURE_VOWIFI
+   /*max power to be used after applying the power constraint, if any */
+  wpt_int8                  cMaxTxPower;
+#endif
 }WDI_ConfigBSSReqInfoType;
 
 
@@ -1242,7 +1283,12 @@ typedef struct
 
   /*BSS STA ID*/
   wpt_uint16   usSTAIdx;
-  
+
+#ifdef WLAN_FEATURE_VOWIFI
+  /*HAL fills in the tx power used for mgmt frames in this field */
+  wpt_int8    ucTxMgmtPower;
+#endif
+
 }WDI_ConfigBSSRspParamsType;
 
 /*---------------------------------------------------------------------------
@@ -2059,6 +2105,11 @@ typedef struct
   /*Indicates the channel that WLAN is on*/
   wpt_uint8     ucChannel;	
 
+#ifdef WLAN_FEATURE_VOWIFI
+  /*HAL fills in the tx power used for mgmt frames in this field.*/
+  wpt_int8     ucTxMgmtPower;
+#endif
+
 }WDI_SwitchCHRspParamsType;
 
 /*---------------------------------------------------------------------------
@@ -2143,8 +2194,15 @@ typedef struct {
    /* length of the template */
    wpt_uint32   beaconLength;
 
-   /* IM IE offset from the beginning of the template.*/
+#ifdef WLAN_SOFTAP_FEATURE
+   /* TIM IE offset from the beginning of the template.*/
    wpt_uint32   timIeOffset; 
+#endif
+
+#ifdef WLAN_FEATURE_P2P
+   /* P2P IE offset from the beginning of the template */
+   wpt_uint16   usP2PIeOffset;
+#endif
 } WDI_SendBeaconParamsInfoType;
 
 /*---------------------------------------------------------------------------
@@ -2221,14 +2279,25 @@ typedef struct
   void*             pUserData;
 }WDI_SetLinkReqParamsType;
 
+/*---------------------------------------------------------------------------
+  WDI_GetStatsParamsInfoType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Indicates the station for which Get Stats are requested..*/
+  wpt_uint16       usSTAIdx;
+
+  /* categories of stats requested */
+  wpt_uint32       uStatsMask;
+}WDI_GetStatsParamsInfoType;
 
 /*---------------------------------------------------------------------------
   WDI_GetStatsReqParamsType
 ---------------------------------------------------------------------------*/
 typedef struct
 {
-   /*BSSID of the BSS*/
-  wpt_macAddr       macBSSID;
+  /*Get Stats Params  Info*/
+  WDI_GetStatsParamsInfoType  wdiGetStatsParamsInfo;
 
   /*Request status callback offered by UMAC - it is called if the current
     req has returned PENDING as status; it delivers the status of sending
@@ -2241,23 +2310,27 @@ typedef struct
 }WDI_GetStatsReqParamsType;
 
 /*---------------------------------------------------------------------------
-  WDI_StatsCountersType - TBD
----------------------------------------------------------------------------*/
-typedef struct
-{
-  wpt_uint8   ucTxPkts; 
-
-}WDI_StatsCountersType;
-
-/*---------------------------------------------------------------------------
   WDI_GetStatsRspParamsType
 ---------------------------------------------------------------------------*/
 typedef struct
 {
+  /*message type is same as the request type*/
+  wpt_uint16       usMsgType;
+
+  /* length of the entire request, includes the pStatsBuf length too*/
+  wpt_uint16       usMsgLen;
+  
   /*Result of the operation*/
-  WDI_Status              wdiStatus;
-  /*Statistics provided by RIVA (the exact set is TBD)*/
-  WDI_StatsCountersType	  statsCounters;
+  WDI_Status       wdiStatus;
+
+  /*Indicates the station for which Get Stats are requested..*/
+  wpt_uint16       usSTAIdx;
+
+  /* categories of stats requested */
+  wpt_uint32       uStatsMask;
+
+  /* The Stats buffer starts here and can be an aggregate of more than one statistics 
+   * structure depending on statsMask.*/
 }WDI_GetStatsRspParamsType;
 
 /*---------------------------------------------------------------------------
@@ -2360,6 +2433,708 @@ typedef struct
     function pointer will be called */
   void*             pUserData;
 }WDI_UpdateProbeRspTemplateParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_NvDownloadReqBlobInfo
+---------------------------------------------------------------------------*/
+
+typedef struct
+{
+  /* Blob starting address*/
+  void *pBlobAddress;
+
+  /* Blob size */
+  wpt_uint32 uBlobSize;
+  
+}WDI_NvDownloadReqBlobInfo;
+
+/*---------------------------------------------------------------------------
+ WDI_NvDownloadReqParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*NV Blob Info*/
+  WDI_NvDownloadReqBlobInfo  wdiBlobInfo; 
+
+  /*Request status callback offered by UMAC - it is called if the current
+   req has returned PENDING as status; it delivers the status of sending
+   the message over the BUS */
+  WDI_ReqStatusCb       wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */
+  void*                 pUserData;
+  
+}WDI_NvDownloadReqParamsType;
+
+/*---------------------------------------------------------------------------
+	 WDI_NvDownloadRspInfoType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Status of the response*/
+  WDI_Status   wdiStatus; 
+
+}WDI_NvDownloadRspInfoType;
+
+#ifdef WLAN_FEATURE_VOWIFI
+/*---------------------------------------------------------------------------
+  WDI_SetMaxTxPowerInfoType
+---------------------------------------------------------------------------*/
+
+typedef struct
+{
+  /*BSSID is needed to identify which session issued this request. As the request has 
+    power constraints, this should be applied only to that session*/
+  wpt_macAddr macBSSId;
+
+
+  wpt_macAddr macSelfStaMacAddr;
+
+  /* In request  power == MaxTxpower to be used.*/
+  wpt_int8  ucPower;
+
+}WDI_SetMaxTxPowerInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_SetMaxTxPowerParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Link Info*/
+  WDI_SetMaxTxPowerInfoType  wdiMaxTxPowerInfo;
+
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+}WDI_SetMaxTxPowerParamsType;
+
+
+/*---------------------------------------------------------------------------
+  WDI_SetMaxTxPowerRspMsg
+---------------------------------------------------------------------------*/
+
+typedef struct
+{
+  /* In response, power==tx power used for management frames*/
+  wpt_int8  ucPower;
+  
+  /*Result of the operation*/
+  WDI_Status wdiStatus;
+ 
+}WDI_SetMaxTxPowerRspMsg;
+#endif
+
+#ifdef WLAN_FEATURE_P2P
+typedef struct
+{
+  wpt_uint8   ucOpp_ps;
+  wpt_uint32  uCtWindow;
+  wpt_uint8   ucCount; 
+  wpt_uint32  uDuration;
+  wpt_uint32  uInterval;
+  wpt_uint32  uSingle_noa_duration;
+  wpt_uint8   ucPsSelection;
+}WDI_SetP2PGONOAReqInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_UpdateProbeRspParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*P2P GO NOA Req*/
+  WDI_SetP2PGONOAReqInfoType  wdiP2PGONOAInfo;
+
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+}WDI_SetP2PGONOAReqParamsType;
+#endif
+/*---------------------------------------------------------------------------
+  WDI_UapsdInfoType
+  UAPSD parameters passed per AC to WDA from UMAC
+---------------------------------------------------------------------------*/
+typedef struct  
+{
+   wpt_uint8  ucStaIdx;        // STA index
+   wpt_uint8  ucAc;            // Access Category
+   wpt_uint8  ucUp;            // User Priority
+   wpt_uint32 uSrvInterval;   // Service Interval
+   wpt_uint32 uSusInterval;   // Suspend Interval
+   wpt_uint32 uDelayInterval; // Delay Interval
+} WDI_UapsdInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_SetUapsdAcParamsReqParamsType
+  UAPSD parameters passed per AC to WDI from WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*Enter BMPS Info Type, same as tEnterBmpsParams */ 
+   WDI_UapsdInfoType wdiUapsdInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb   wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*             pUserData; 
+}WDI_SetUapsdAcParamsReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_EnterBmpsReqinfoType
+  Enter BMPS parameters passed to WDA from UMAC
+---------------------------------------------------------------------------*/
+typedef struct
+{
+   //TBTT value derived from the last beacon
+   wpt_uint8         ucBssIdx;
+   wpt_uint64        uTbtt;
+   wpt_uint8         ucDtimCount;
+   //DTIM period given to HAL during association may not be valid,
+   //if association is based on ProbeRsp instead of beacon.
+   wpt_uint8         ucDtimPeriod;
+   /* DXE physical addr to be passed down to RIVA. RIVA HAL will use it to program
+   DXE when DXE wakes up from power save*/
+   unsigned int      dxePhyAddr;
+}WDI_EnterBmpsReqinfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_EnterBmpsReqParamsType
+  Enter BMPS parameters passed to WDI from WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*Enter BMPS Info Type, same as tEnterBmpsParams */ 
+   WDI_EnterBmpsReqinfoType wdiEnterBmpsInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb          wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                    pUserData; 
+}WDI_EnterBmpsReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_ExitBmpsReqinfoType
+  Exit BMPS parameters passed to WDA from UMAC
+---------------------------------------------------------------------------*/
+typedef struct
+{
+   wpt_uint8     ucSendDataNull;
+}WDI_ExitBmpsReqinfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_ExitBmpsReqParamsType
+  Exit BMPS parameters passed to WDI from WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*Exit BMPS Info Type, same as tExitBmpsParams */ 
+   WDI_ExitBmpsReqinfoType wdiExitBmpsInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb         wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                   pUserData; 
+}WDI_ExitBmpsReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_EnterUapsdReqinfoType
+  Enter UAPSD parameters passed to WDA from UMAC
+---------------------------------------------------------------------------*/
+typedef struct
+{
+   wpt_uint8     ucBkDeliveryEnabled:1;
+   wpt_uint8     ucBeDeliveryEnabled:1;
+   wpt_uint8     ucViDeliveryEnabled:1;
+   wpt_uint8     ucVoDeliveryEnabled:1;
+   wpt_uint8     ucBkTriggerEnabled:1;
+   wpt_uint8     ucBeTriggerEnabled:1;
+   wpt_uint8     ucViTriggerEnabled:1;
+   wpt_uint8     ucVoTriggerEnabled:1;
+}WDI_EnterUapsdReqinfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_EnterUapsdReqinfoType
+  Enter UAPSD parameters passed to WDI from WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*Enter UAPSD Info Type, same as tUapsdParams */ 
+   WDI_EnterUapsdReqinfoType wdiEnterUapsdInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb           wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                     pUserData; 
+}WDI_EnterUapsdReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_UpdateUapsdReqinfoType
+  Update UAPSD parameters passed to WDA from UMAC
+---------------------------------------------------------------------------*/
+typedef struct
+{
+   wpt_uint16 usStaIdx;
+   wpt_uint8  ucUapsdACMask; 
+   wpt_uint32 uMaxSpLen;    
+}WDI_UpdateUapsdReqinfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_UpdateUapsdReqParamsType
+  Update UAPSD parameters passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*Update UAPSD Info Type, same as tUpdateUapsdParams */ 
+   WDI_UpdateUapsdReqinfoType wdiUpdateUapsdInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+}WDI_UpdateUapsdReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_ConfigureRxpFilterReqParamsType
+  RXP filter parameters passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*RXP filter mask */ 
+   wpt_uint32                uFiltermask;
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+}WDI_ConfigureRxpFilterReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_BeaconFilterInfoType
+  Beacon Filtering data structures passed to WDA form UMAC
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   wpt_uint16    usCapabilityInfo;
+   wpt_uint16    usCapabilityMask;
+   wpt_uint16    usBeaconInterval;
+   wpt_uint16    usIeNum;
+}WDI_BeaconFilterInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_BeaconFilterReqParamsType
+  Beacon Filtering parameters passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*Beacon Filtering Info Type, same as tBeaconFilterMsg */ 
+   WDI_BeaconFilterInfoType wdiBeaconFilterInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+}WDI_BeaconFilterReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_RemBeaconFilterInfoType
+  Beacon Filtering data structures (to be reomoved) passed to WDA form UMAC
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   wpt_uint8  ucIeCount;
+   wpt_uint8  ucRemIeId[1];
+}WDI_RemBeaconFilterInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_RemBeaconFilterReqParamsType
+  Beacon Filtering parameters (to be reomoved)passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*Beacon Filtering Info Type, same as tBeaconFilterMsg */ 
+   WDI_RemBeaconFilterInfoType wdiBeaconFilterInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+}WDI_RemBeaconFilterReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_RSSIThresholdsType
+  RSSI thresholds data structures (to be reomoved) passed to WDA form UMAC
+---------------------------------------------------------------------------*/
+typedef struct
+{
+    wpt_int8    ucRssiThreshold1     : 8;
+    wpt_int8    ucRssiThreshold2     : 8;
+    wpt_int8    ucRssiThreshold3     : 8;
+    wpt_uint8   bRssiThres1PosNotify : 1;
+    wpt_uint8   bRssiThres1NegNotify : 1;
+    wpt_uint8   bRssiThres2PosNotify : 1;
+    wpt_uint8   bRssiThres2NegNotify : 1;
+    wpt_uint8   bRssiThres3PosNotify : 1;
+    wpt_uint8   bRssiThres3NegNotify : 1;
+    wpt_uint8   bReserved10          : 2;
+} WDI_RSSIThresholdsType;
+
+/*---------------------------------------------------------------------------
+  WDI_SetRSSIThresholdsReqParamsType
+  RSSI thresholds parameters (to be reomoved)passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*RSSI thresholds Info Type, same as tSirRSSIThresholds */ 
+   WDI_RSSIThresholdsType     wdiRSSIThresholdsInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+}WDI_SetRSSIThresholdsReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_HostOffloadReqType
+  host offload info passed to WDA form UMAC
+---------------------------------------------------------------------------*/
+typedef struct
+{
+   wpt_uint8 ucOffloadType;
+   wpt_uint8 ucEnableOrDisable;
+   union
+   {
+       wpt_uint8 aHostIpv4Addr [4];
+       wpt_uint8 aHostIpv6Addr [16];
+   } params;
+} WDI_HostOffloadReqType;
+
+/*---------------------------------------------------------------------------
+  WDI_HostOffloadReqParamsType
+  host offload info passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*Host offload Info Type, same as tHalHostOffloadReq */ 
+   WDI_HostOffloadReqType     wdiHostOffloadInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+}WDI_HostOffloadReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_WowlAddBcPtrnInfoType
+  Wowl add ptrn info passed to WDA form UMAC
+---------------------------------------------------------------------------*/
+typedef struct
+{
+   wpt_uint8  ucPatternId;           // Pattern ID
+   // Pattern byte offset from beginning of the 802.11 packet to start of the
+   // wake-up pattern
+   wpt_uint8  ucPatternByteOffset;   
+   wpt_uint8  ucPatternSize;         // Non-Zero Pattern size
+   wpt_uint8  ucPattern[WDI_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern
+   wpt_uint8  ucPatternMaskSize;     // Non-zero pattern mask size
+   wpt_uint8  ucPatternMask[WDI_WOWL_BCAST_PATTERN_MAX_SIZE]; // Pattern mask
+} WDI_WowlAddBcPtrnInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_WowlAddBcPtrnReqParamsType
+  Wowl add ptrn info passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*Wowl add ptrn Info Type, same as tpSirWowlAddBcastPtrn */ 
+   WDI_WowlAddBcPtrnInfoType     wdiWowlAddBcPtrnInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+}WDI_WowlAddBcPtrnReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_WowlDelBcPtrnInfoType
+  Wowl add ptrn info passed to WDA form UMAC
+---------------------------------------------------------------------------*/
+typedef struct
+{
+   /* Pattern ID of the wakeup pattern to be deleted */
+   wpt_uint8  ucPatternId;
+} WDI_WowlDelBcPtrnInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_WowlDelBcPtrnReqParamsType
+  Wowl add ptrn info passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*Wowl delete ptrn Info Type, same as tSirWowlDelBcastPtrn */ 
+   WDI_WowlDelBcPtrnInfoType     wdiWowlDelBcPtrnInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+}WDI_WowlDelBcPtrnReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_WowlEnterInfoType
+  Wowl enter info passed to WDA form UMAC
+---------------------------------------------------------------------------*/
+typedef struct
+{
+   /* Enables/disables magic packet filtering */
+   wpt_uint8   ucMagicPktEnable; 
+
+   /* Magic pattern */
+   wpt_macAddr magicPtrn;
+
+   /* Enables/disables packet pattern filtering in firmware. 
+      Enabling this flag enables broadcast pattern matching 
+      in Firmware. If unicast pattern matching is also desired,  
+      ucUcastPatternFilteringEnable flag must be set tot true 
+      as well 
+   */
+   wpt_uint8   ucPatternFilteringEnable;
+
+   /* Enables/disables unicast packet pattern filtering. 
+      This flag specifies whether we want to do pattern match 
+      on unicast packets as well and not just broadcast packets. 
+      This flag has no effect if the ucPatternFilteringEnable 
+      (main controlling flag) is set to false
+   */
+   wpt_uint8   ucUcastPatternFilteringEnable;                     
+
+   /* This configuration is valid only when magicPktEnable=1. 
+    * It requests hardware to wake up when it receives the 
+    * Channel Switch Action Frame.
+    */
+   wpt_uint8   ucWowChnlSwitchRcv;
+
+   /* This configuration is valid only when magicPktEnable=1. 
+    * It requests hardware to wake up when it receives the 
+    * Deauthentication Frame. 
+    */
+   wpt_uint8   ucWowDeauthRcv;
+
+   /* This configuration is valid only when magicPktEnable=1. 
+    * It requests hardware to wake up when it receives the 
+    * Disassociation Frame. 
+    */
+   wpt_uint8   ucWowDisassocRcv;
+
+   /* This configuration is valid only when magicPktEnable=1. 
+    * It requests hardware to wake up when it has missed
+    * consecutive beacons. This is a hardware register
+    * configuration (NOT a firmware configuration). 
+    */
+   wpt_uint8   ucWowMaxMissedBeacons;
+
+   /* This configuration is valid only when magicPktEnable=1. 
+    * This is a timeout value in units of microsec. It requests
+    * hardware to unconditionally wake up after it has stayed
+    * in WoWLAN mode for some time. Set 0 to disable this feature.      
+    */
+   wpt_uint8   ucWowMaxSleepUsec;
+} WDI_WowlEnterInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_WowlEnterReqParamsType
+  Wowl enter info passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*Wowl delete ptrn Info Type, same as tSirSmeWowlEnterParams */ 
+   WDI_WowlEnterInfoType     wdiWowlEnterInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+}WDI_WowlEnterReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_ConfigureAppsCpuWakeupStateReqParamsType
+  Apps Cpu Wakeup State parameters passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /*Depicts the state of the Apps CPU */ 
+   wpt_boolean                bIsAppsAwake;
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+}WDI_ConfigureAppsCpuWakeupStateReqParamsType;
+/*---------------------------------------------------------------------------
+  WDI_FlushAcReqinfoType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+   // Message Type
+   wpt_uint16 usMesgType;
+
+   // Message Length
+   wpt_uint16 usMesgLen;
+
+   // Station Index. originates from HAL
+   wpt_uint8  ucSTAId;
+
+   // TID for which the transmit queue is being flushed 
+   wpt_uint8  ucTid;
+  
+}WDI_FlushAcReqinfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_FlushAcReqParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*AC Info */
+  WDI_FlushAcReqinfoType  wdiFlushAcInfo; 
+
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+}WDI_FlushAcReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_BtAmpEventinfoType
+      BT-AMP Event Structure
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  wpt_uint8 ucBtAmpEventType;
+
+} WDI_BtAmpEventinfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_BtAmpEventParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*BT AMP event Info */
+  WDI_BtAmpEventinfoType  wdiBtAmpEventInfo; 
+
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+}WDI_BtAmpEventParamsType;
+
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+/*---------------------------------------------------------------------------
+  WDI_AggrAddTSReqInfoType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*STA Index*/
+  wpt_uint16        usSTAIdx; 
+
+  /*Identifier for TSpec*/
+  wpt_uint16        ucTspecIdx;
+
+  /*Tspec IE negotiated OTA*/
+  WDI_TspecIEType	  wdiTspecIE[WDI_MAX_NO_AC];
+
+  /*UAPSD delivery and trigger enabled flags */
+  wpt_uint8         ucUapsdFlags;
+
+  /*SI for each AC*/
+  wpt_uint8         ucServiceInterval[WDI_MAX_NO_AC];
+
+  /*Suspend Interval for each AC*/
+  wpt_uint8         ucSuspendInterval[WDI_MAX_NO_AC];
+
+  /*DI for each AC*/
+  wpt_uint8         ucDelayedInterval[WDI_MAX_NO_AC];
+
+}WDI_AggrAddTSReqInfoType;
+
+
+/*---------------------------------------------------------------------------
+  WDI_AggrAddTSReqParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*TSpec Info */
+  WDI_AggrAddTSReqInfoType  wdiAggrTsInfo; 
+
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+}WDI_AggrAddTSReqParamsType;
+
+#endif /* WLAN_FEATURE_VOWIFI_11R */
+
+#ifdef ANI_MANF_DIAG
+/*---------------------------------------------------------------------------
+  WDI_FTMCommandReqType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+   /* FTM Command Body length */
+   wpt_uint32   bodyLength;
+   /* Actual FTM Command body */
+   void        *FTMCommandBody;
+}WDI_FTMCommandReqType;
+#endif /* ANI_MANF_DIAG */
 
 /*----------------------------------------------------------------------------
  *   WDI callback types
@@ -3014,6 +3789,29 @@ typedef void  (*WDI_UpdateBeaconParamsRspCb)(WDI_Status   wdiStatus,
 typedef void  (*WDI_SendBeaconParamsRspCb)(WDI_Status   wdiStatus,
                                 void*        pUserData);
 
+#ifdef WLAN_FEATURE_VOWIFI
+/*---------------------------------------------------------------------------
+   WDA_SetMaxTxPowerRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a set max Tx Power response from
+   the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void (*WDA_SetMaxTxPowerRspCb)(WDI_SetMaxTxPowerRspMsg *wdiSetMaxTxPowerRsp,
+                                             void* pUserData);
+#endif
 
 /*---------------------------------------------------------------------------
    WDI_UpdateProbeRspTemplateRspCb
@@ -3037,6 +3835,555 @@ typedef void  (*WDI_SendBeaconParamsRspCb)(WDI_Status   wdiStatus,
 typedef void  (*WDI_UpdateProbeRspTemplateRspCb)(WDI_Status   wdiStatus,
                                                void*        pUserData);
 
+#ifdef WLAN_FEATURE_P2P
+/*---------------------------------------------------------------------------
+   WDI_SetP2PGONOAReqParamsRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a P2P GO NOA Params response from
+   the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_SetP2PGONOAReqParamsRspCb)(WDI_Status   wdiStatus,
+                                void*        pUserData);
+#endif
+
+/*---------------------------------------------------------------------------
+   WDI_SetPwrSaveCfgCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a set Power Save CFG
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_SetPwrSaveCfgCb)(WDI_Status   wdiStatus,
+                                     void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_SetUapsdAcParamsCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a set UAPSD params
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_SetUapsdAcParamsCb)(WDI_Status   wdiStatus,
+                                        void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_EnterImpsRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Enter IMPS response
+   from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_EnterImpsRspCb)(WDI_Status   wdiStatus,
+                                    void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_ExitImpsRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Exit IMPS response
+   from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_ExitImpsRspCb)(WDI_Status   wdiStatus,
+                                    void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_EnterBmpsRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a enter BMPS response
+   from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_EnterBmpsRspCb)(WDI_Status   wdiStatus,
+                                    void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_ExitBmpsRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a exit BMPS response
+   from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_ExitBmpsRspCb)(WDI_Status   wdiStatus,
+                                    void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_EnterUapsdRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a enter UAPSD response
+   from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_EnterUapsdRspCb)(WDI_Status   wdiStatus,
+                                    void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_ExitUapsdRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a exit UAPSD response
+   from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_ExitUapsdRspCb)(WDI_Status   wdiStatus,
+                                    void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_UpdateUapsdParamsCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a update UAPSD params
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_UpdateUapsdParamsCb)(WDI_Status   wdiStatus,
+                                        void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_ConfigureRxpFilterCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a config RXP filter
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_ConfigureRxpFilterCb)(WDI_Status   wdiStatus,
+                                          void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_SetBeaconFilterCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a set beacon filter
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_SetBeaconFilterCb)(WDI_Status   wdiStatus,
+                                       void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_RemBeaconFilterCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a remove beacon filter
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_RemBeaconFilterCb)(WDI_Status   wdiStatus,
+                                       void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_SetRSSIThresholdsCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a set RSSI thresholds
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_SetRSSIThresholdsCb)(WDI_Status   wdiStatus,
+                                         void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_HostOffloadCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a host offload
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_HostOffloadCb)(WDI_Status   wdiStatus,
+                                   void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_WowlAddBcPtrnCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Wowl add Bcast ptrn
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_WowlAddBcPtrnCb)(WDI_Status   wdiStatus,
+                                     void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_WowlDelBcPtrnCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Wowl delete Bcast ptrn
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_WowlDelBcPtrnCb)(WDI_Status   wdiStatus,
+                                     void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_WowlEnterReqCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Wowl enter
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_WowlEnterReqCb)(WDI_Status   wdiStatus,
+                                    void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_WowlExitReqCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Wowl exit
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_WowlExitReqCb)(WDI_Status   wdiStatus,
+                                   void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_ConfigureAppsCpuWakeupStateCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a config Apps Cpu Wakeup
+   State response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_ConfigureAppsCpuWakeupStateCb)(WDI_Status   wdiStatus,
+                                                   void*        pUserData);
+/*---------------------------------------------------------------------------
+   WDI_NvDownloadRspCb
+ 
+   DESCRIPTION	 
+ 
+   This callback is invoked by DAL when it has received a NV Download response
+   from the underlying device.
+ 
+   PARAMETERS 
+
+   IN
+   wdiStatus:response status received from HAL
+    pUserData:user data  
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_NvDownloadRspCb)(WDI_NvDownloadRspInfoType* wdiNvDownloadRsp,
+                                          void*  pUserData);
+/*---------------------------------------------------------------------------
+   WDI_FlushAcRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Flush AC response from
+   the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+    
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_FlushAcRspCb)(WDI_Status   wdiStatus,
+                                  void*        pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_BtAmpEventRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Bt AMP event response
+   from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_BtAmpEventRspCb)(WDI_Status   wdiStatus,
+                                     void*        pUserData);
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+/*---------------------------------------------------------------------------
+   WDI_AggrAddTsRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Aggregated Add TS
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_AggrAddTsRspCb)(WDI_Status   wdiStatus,
+                                    void*        pUserData);
+#endif /* WLAN_FEATURE_VOWIFI_11R */
+
+#ifdef ANI_MANF_DIAG
+/*---------------------------------------------------------------------------
+   WDI_FTMCommandRspCb
+ 
+   DESCRIPTION   
+ 
+   FTM Command response CB
+ 
+   PARAMETERS 
+
+    IN
+    ftmCMDRspdata:  FTM response data from HAL
+    pUserData:  user data  
+    
+  
+  RETURN VALUE 
+    NONE
+---------------------------------------------------------------------------*/
+typedef void (*WDI_FTMCommandRspCb)(void *ftmCMDRspdata,
+                                    void *pUserData);
+#endif /* ANI_MANF_DIAG */
 
 /*========================================================================
  *     Function Declarations and Documentation
@@ -3067,7 +4414,8 @@ WDI_Init
 ( 
   void*                      pOSContext,
   void**                     ppWDIGlobalCtx,
-  WDI_DeviceCapabilityType*  pWdiDevCapability
+  WDI_DeviceCapabilityType*  pWdiDevCapability,
+  unsigned int               driverType
 );
 
 /**
@@ -3678,6 +5026,42 @@ WDI_RemoveSTABcastKeyReq
   void*                          pUserData
 );
 
+#ifdef WLAN_FEATURE_VOWIFI
+/**
+ @brief WDI_SetMaxTxPowerReq will be called when the upper 
+        MAC wants to set Max Tx Power to HW. Upon the
+        call of this API the WLAN DAL will pack and send a HAL
+        Remove STA Bcast Key request message to the lower RIVA
+        sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_SetSTABcastKeyReq must have been called.
+
+ @param pwdiRemoveSTABcastKeyParams: the remove BSS key 
+                      parameters as specified by the Device
+                      Interface
+  
+        wdiRemoveSTABcastKeyRspCb: callback for passing back the
+        response of the remove STA Bcast key operation received
+        from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_SetMaxTxPowerReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_SetMaxTxPowerReq
+(
+  WDI_SetMaxTxPowerParamsType*   pwdiSetMaxTxPowerParams,
+  WDA_SetMaxTxPowerRspCb         wdiReqStatusCb,
+  void*                          pUserData
+);
+#endif
+
 /*======================================================================== 
  
                             QoS and BA APIs
@@ -3958,6 +5342,721 @@ WDI_UpdateProbeRspTemplateReq
   void*                                  pUserData
 );
 
+#ifdef WLAN_FEATURE_P2P
+/**
+ @brief WDI_SetP2PGONOAReq will be called when the 
+        upper MAC wants to send Notice of Absence
+         Upon the call of this API the WLAN DAL will
+        pack and send the probe rsp template  message to the
+        lower RIVA sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+
+ @param pwdiUpdateProbeRspParams: the Update Beacon parameters as 
+                      specified by the Device Interface
+  
+        wdiSendBeaconParamsRspCb: callback for passing back the
+        response of the Send Beacon Params operation received
+        from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_AddBAReq
+ @return Result of the function call
+*/
+WDI_Status
+WDI_SetP2PGONOAReq
+(
+  WDI_SetP2PGONOAReqParamsType*    pwdiP2PGONOAReqParams,
+  WDI_SetP2PGONOAReqParamsRspCb    wdiP2PGONOAReqParamsRspCb,
+  void*                            pUserData
+);
+#endif
+
+
+/*======================================================================== 
+ 
+                            Power Save APIs
+ 
+==========================================================================*/
+
+/**
+ @brief WDI_SetPwrSaveCfgReq will be called when the upper MAC 
+        wants to set the power save related configurations of
+        the WLAN Device. Upon the call of this API the WLAN DAL
+        will pack and send a HAL Update CFG request message to
+        the lower RIVA sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_Start must have been called.
+
+ @param pwdiPowerSaveCfg: the power save cfg parameters as 
+                      specified by the Device Interface
+  
+        wdiSetPwrSaveCfgCb: callback for passing back the
+        response of the set power save cfg operation received
+        from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_Start
+ @return Result of the function call  
+*/ 
+WDI_Status 
+WDI_SetPwrSaveCfgReq
+(
+  WDI_UpdateCfgReqParamsType*   pwdiPowerSaveCfg,
+  WDI_SetPwrSaveCfgCb     wdiSetPwrSaveCfgCb,
+  void*                   pUserData
+);
+
+/**
+ @brief WDI_EnterImpsReq will be called when the upper MAC to 
+        request the device to get into IMPS power state. Upon
+        the call of this API the WLAN DAL will send a HAL Enter
+        IMPS request message to the lower RIVA sub-system if DAL
+        is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+  
+ @param wdiEnterImpsRspCb: callback for passing back the 
+        response of the Enter IMPS operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_Start
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_EnterImpsReq
+(
+   WDI_EnterImpsRspCb  wdiEnterImpsRspCb,
+   void*                   pUserData
+);
+
+/**
+ @brief WDI_ExitImpsReq will be called when the upper MAC to 
+        request the device to get out of IMPS power state. Upon
+        the call of this API the WLAN DAL will send a HAL Exit
+        IMPS request message to the lower RIVA sub-system if DAL
+        is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ 
+
+ @param wdiExitImpsRspCb: callback for passing back the response 
+        of the Exit IMPS operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_Start
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_ExitImpsReq
+(
+   WDI_ExitImpsRspCb  wdiExitImpsRspCb,
+   void*                   pUserData
+);
+
+/**
+ @brief WDI_EnterBmpsReq will be called when the upper MAC to 
+        request the device to get into BMPS power state. Upon
+        the call of this API the WLAN DAL will pack and send a
+        HAL Enter BMPS request message to the lower RIVA
+        sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param pwdiEnterBmpsReqParams: the Enter BMPS parameters as 
+                      specified by the Device Interface
+  
+        wdiEnterBmpsRspCb: callback for passing back the
+        response of the Enter BMPS operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_EnterBmpsReq
+(
+   WDI_EnterBmpsReqParamsType *pwdiEnterBmpsReqParams,
+   WDI_EnterBmpsRspCb  wdiEnterBmpsRspCb,
+   void*                   pUserData
+);
+
+/**
+ @brief WDI_ExitBmpsReq will be called when the upper MAC to 
+        request the device to get out of BMPS power state. Upon
+        the call of this API the WLAN DAL will pack and send a
+        HAL Exit BMPS request message to the lower RIVA
+        sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param pwdiExitBmpsReqParams: the Exit BMPS parameters as 
+                      specified by the Device Interface
+  
+        wdiExitBmpsRspCb: callback for passing back the response
+        of the Exit BMPS operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_ExitBmpsReq
+(
+   WDI_ExitBmpsReqParamsType *pwdiExitBmpsReqParams,
+   WDI_ExitBmpsRspCb  wdiExitBmpsRspCb,
+   void*                   pUserData
+);
+
+/**
+ @brief WDI_EnterUapsdReq will be called when the upper MAC to 
+        request the device to get into UAPSD power state. Upon
+        the call of this API the WLAN DAL will pack and send a
+        HAL Enter UAPSD request message to the lower RIVA
+        sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+ WDI_SetUapsdAcParamsReq must have been called.
+  
+ @param pwdiEnterUapsdReqParams: the Enter UAPSD parameters as 
+                      specified by the Device Interface
+  
+        wdiEnterUapsdRspCb: callback for passing back the
+        response of the Enter UAPSD operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq, WDI_SetUapsdAcParamsReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_EnterUapsdReq
+(
+   WDI_EnterUapsdReqParamsType *pwdiEnterUapsdReqParams,
+   WDI_EnterUapsdRspCb  wdiEnterUapsdRspCb,
+   void*                   pUserData
+);
+
+/**
+ @brief WDI_ExitUapsdReq will be called when the upper MAC to 
+        request the device to get out of UAPSD power state. Upon
+        the call of this API the WLAN DAL will send a HAL Exit
+        UAPSD request message to the lower RIVA sub-system if
+        DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param wdiExitUapsdRspCb: callback for passing back the 
+        response of the Exit UAPSD operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_ExitUapsdReq
+(
+   WDI_ExitUapsdRspCb  wdiExitUapsdRspCb,
+   void*                   pUserData
+);
+
+/**
+ @brief WDI_UpdateUapsdParamsReq will be called when the upper 
+        MAC wants to set the UAPSD related configurations
+        of an associated STA (while acting as an AP) to the WLAN
+        Device. Upon the call of this API the WLAN DAL will pack
+        and send a HAL Update UAPSD params request message to
+        the lower RIVA sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_ConfigBSSReq must have been called.
+
+ @param pwdiUpdateUapsdReqParams: the UAPSD parameters 
+                      as specified by the Device Interface
+  
+        wdiUpdateUapsdParamsCb: callback for passing back the
+        response of the update UAPSD params operation received
+        from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_ConfigBSSReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_UpdateUapsdParamsReq
+(
+   WDI_UpdateUapsdReqParamsType *pwdiUpdateUapsdReqParams,
+   WDI_UpdateUapsdParamsCb  wdiUpdateUapsdParamsCb,
+   void*                   pUserData
+);
+
+/**
+ @brief WDI_SetUapsdAcParamsReq will be called when the upper 
+        MAC wants to set the UAPSD related configurations before
+        requesting for enter UAPSD power state to the WLAN
+        Device. Upon the call of this API the WLAN DAL will pack
+        and send a HAL Set UAPSD params request message to
+        the lower RIVA sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param pwdiUapsdInfo: the UAPSD parameters as specified by
+                      the Device Interface
+  
+        wdiSetUapsdAcParamsCb: callback for passing back the
+        response of the set UAPSD params operation received from
+        the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_SetUapsdAcParamsReq
+(
+  WDI_SetUapsdAcParamsReqParamsType*      pwdiPowerSaveCfg,
+  WDI_SetUapsdAcParamsCb  wdiSetUapsdAcParamsCb,
+  void*                   pUserData
+);
+
+/**
+ @brief WDI_ConfigureRxpFilterReq will be called when the upper 
+        MAC wants to set/reset the RXP filters for recieved pkts
+        (MC, BC etc.). Upon the call of this API the WLAN DAL will pack
+        and send a HAL configure RXP filter request message to
+        the lower RIVA sub-system.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+  
+ @param pwdiConfigureRxpFilterReqParams: the RXP 
+                      filter as specified by the Device
+                      Interface
+  
+        wdiConfigureRxpFilterCb: callback for passing back the
+        response of the configure RXP filter operation received
+        from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_ConfigureRxpFilterReq
+(
+   WDI_ConfigureRxpFilterReqParamsType *pwdiConfigureRxpFilterReqParams,
+   WDI_ConfigureRxpFilterCb             wdiConfigureRxpFilterCb,
+   void*                                pUserData
+);
+
+/**
+ @brief WDI_SetBeaconFilterReq will be called when the upper MAC
+        wants to set the beacon filters while in power save.
+        Upon the call of this API the WLAN DAL will pack and
+        send a Beacon filter request message to the
+        lower RIVA sub-system.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+  
+ @param pwdiBeaconFilterReqParams: the beacon 
+                      filter as specified by the Device
+                      Interface
+  
+        wdiBeaconFilterCb: callback for passing back the
+        response of the set beacon filter operation received
+        from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_SetBeaconFilterReq
+(
+   WDI_BeaconFilterReqParamsType   *pwdiBeaconFilterReqParams,
+   WDI_SetBeaconFilterCb            wdiBeaconFilterCb,
+   void*                            pUserData
+);
+
+/**
+ @brief WDI_RemBeaconFilterReq will be called when the upper MAC
+        wants to remove the beacon filter for perticular IE
+        while in power save. Upon the call of this API the WLAN
+        DAL will pack and send a remove Beacon filter request
+        message to the lower RIVA sub-system.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+  
+ @param pwdiBeaconFilterReqParams: the beacon 
+                      filter as specified by the Device
+                      Interface
+  
+        wdiBeaconFilterCb: callback for passing back the
+        response of the remove beacon filter operation received
+        from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_RemBeaconFilterReq
+(
+   WDI_RemBeaconFilterReqParamsType *pwdiBeaconFilterReqParams,
+   WDI_RemBeaconFilterCb             wdiBeaconFilterCb,
+   void*                             pUserData
+);
+
+/**
+ @brief WDI_SetRSSIThresholdsReq will be called when the upper 
+        MAC wants to set the RSSI thresholds related
+        configurations while in power save. Upon the call of
+        this API the WLAN DAL will pack and send a HAL Set RSSI
+        thresholds request message to the lower RIVA
+        sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param pwdiUapsdInfo: the UAPSD parameters as specified by
+                      the Device Interface
+  
+        wdiSetUapsdAcParamsCb: callback for passing back the
+        response of the set UAPSD params operation received from
+        the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_SetRSSIThresholdsReq
+(
+  WDI_SetRSSIThresholdsReqParamsType*      pwdiRSSIThresholdsParams,
+  WDI_SetRSSIThresholdsCb                  wdiSetRSSIThresholdsCb,
+  void*                                    pUserData
+);
+
+/**
+ @brief WDI_HostOffloadReq will be called when the upper MAC 
+        wants to set the filter to minimize unnecessary host
+        wakeup due to broadcast traffic while in power save.
+        Upon the call of this API the WLAN DAL will pack and
+        send a HAL host offload request message to the
+        lower RIVA sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param pwdiHostOffloadParams: the host offload as specified 
+                      by the Device Interface
+  
+        wdiHostOffloadCb: callback for passing back the response
+        of the host offload operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_HostOffloadReq
+(
+  WDI_HostOffloadReqParamsType*      pwdiHostOffloadParams,
+  WDI_HostOffloadCb                  wdiHostOffloadCb,
+  void*                              pUserData
+);
+
+/**
+ @brief WDI_WowlAddBcPtrnReq will be called when the upper MAC 
+        wants to set the Wowl Bcast ptrn to minimize unnecessary
+        host wakeup due to broadcast traffic while in power
+        save. Upon the call of this API the WLAN DAL will pack
+        and send a HAL Wowl Bcast ptrn request message to the
+        lower RIVA sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param pwdiWowlAddBcPtrnParams: the Wowl bcast ptrn as 
+                      specified by the Device Interface
+  
+        wdiWowlAddBcPtrnCb: callback for passing back the
+        response of the add Wowl bcast ptrn operation received
+        from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_WowlAddBcPtrnReq
+(
+  WDI_WowlAddBcPtrnReqParamsType*    pwdiWowlAddBcPtrnParams,
+  WDI_WowlAddBcPtrnCb                wdiWowlAddBcPtrnCb,
+  void*                              pUserData
+);
+
+/**
+ @brief WDI_WowlDelBcPtrnReq will be called when the upper MAC 
+        wants to clear the Wowl Bcast ptrn. Upon the call of
+        this API the WLAN DAL will pack and send a HAL delete
+        Wowl Bcast ptrn request message to the lower RIVA
+        sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_WowlAddBcPtrnReq must have been called.
+
+ @param pwdiWowlDelBcPtrnParams: the Wowl bcast ptrn as 
+                      specified by the Device Interface
+  
+        wdiWowlDelBcPtrnCb: callback for passing back the
+        response of the del Wowl bcast ptrn operation received
+        from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_WowlAddBcPtrnReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_WowlDelBcPtrnReq
+(
+  WDI_WowlDelBcPtrnReqParamsType*    pwdiWowlDelBcPtrnParams,
+  WDI_WowlDelBcPtrnCb                wdiWowlDelBcPtrnCb,
+  void*                              pUserData
+);
+
+/**
+ @brief WDI_WowlEnterReq will be called when the upper MAC 
+        wants to enter the Wowl state to minimize unnecessary
+        host wakeup while in power save. Upon the call of this
+        API the WLAN DAL will pack and send a HAL Wowl enter
+        request message to the lower RIVA sub-system if DAL is
+        in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param pwdiWowlEnterReqParams: the Wowl enter info as 
+                      specified by the Device Interface
+  
+        wdiWowlEnterReqCb: callback for passing back the
+        response of the enter Wowl operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_WowlEnterReq
+(
+  WDI_WowlEnterReqParamsType*    pwdiWowlEnterParams,
+  WDI_WowlEnterReqCb             wdiWowlEnterCb,
+  void*                          pUserData
+);
+
+/**
+ @brief WDI_WowlExitReq will be called when the upper MAC 
+        wants to exit the Wowl state. Upon the call of this API
+        the WLAN DAL will pack and send a HAL Wowl exit request
+        message to the lower RIVA sub-system if DAL is in state
+        STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_WowlEnterReq must have been called.
+
+ @param pwdiWowlExitReqParams: the Wowl exit info as 
+                      specified by the Device Interface
+  
+        wdiWowlExitReqCb: callback for passing back the response
+        of the exit Wowl operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_WowlEnterReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_WowlExitReq
+(
+  WDI_WowlExitReqCb              wdiWowlExitCb,
+  void*                          pUserData
+);
+
+/**
+ @brief WDI_ConfigureAppsCpuWakeupStateReq will be called when 
+        the upper MAC wants to dynamically adjusts the listen
+        interval based on the WLAN/MSM activity. Upon the call
+        of this API the WLAN DAL will pack and send a HAL
+        configure Apps Cpu Wakeup State request message to the
+        lower RIVA sub-system.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+  
+ @param pwdiConfigureAppsCpuWakeupStateReqParams: the 
+                      Apps Cpu Wakeup State as specified by the
+                      Device Interface
+  
+        wdiConfigureAppsCpuWakeupStateCb: callback for passing
+        back the response of the configure Apps Cpu Wakeup State
+        operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_ConfigureAppsCpuWakeupStateReq
+(
+   WDI_ConfigureAppsCpuWakeupStateReqParamsType *pwdiConfigureAppsCpuWakeupStateReqParams,
+   WDI_ConfigureAppsCpuWakeupStateCb             wdiConfigureAppsCpuWakeupStateCb,
+   void*                                         pUserData
+);
+/**
+ @brief WDI_FlushAcReq will be called when the upper MAC wants 
+        to to perform a flush operation on a given AC. Upon the
+        call of this API the WLAN DAL will pack and send a HAL
+        Flush AC request message to the lower RIVA sub-system if
+        DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+  
+ @param pwdiFlushAcReqParams: the Flush AC parameters as 
+                      specified by the Device Interface
+  
+        wdiFlushAcRspCb: callback for passing back the response
+        of the Flush AC operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+ 
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_FlushAcReq
+(
+  WDI_FlushAcReqParamsType* pwdiFlushAcReqParams,
+  WDI_FlushAcRspCb          wdiFlushAcRspCb,
+  void*                     pUserData
+);
+
+/**
+ @brief WDI_BtAmpEventReq will be called when the upper MAC 
+        wants to notify the lower mac on a BT AMP event. This is
+        to inform BTC-SLM that some BT AMP event occured. Upon
+        the call of this API the WLAN DAL will pack and send a
+        HAL BT AMP event request message to the lower RIVA
+        sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+  
+ @param wdiBtAmpEventReqParams: the BT AMP event parameters as 
+                      specified by the Device Interface
+  
+        wdiBtAmpEventRspCb: callback for passing back the
+        response of the BT AMP event operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+ 
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_BtAmpEventReq
+(
+  WDI_BtAmpEventParamsType* pwdiBtAmpEventReqParams,
+  WDI_BtAmpEventRspCb       wdiBtAmpEventRspCb,
+  void*                     pUserData
+);
 
 /*======================================================================== 
  
@@ -4132,6 +6231,29 @@ WDI_UpdateCfgReq
 );
 
 /**
+ @brief WDI_NvDownloadReq will be called by the UMAC to dowload the NV blob
+ to the NV memory.
+
+    @param wdiNvDownloadReqParams: the NV Download parameters as specified by
+    the Device Interface
+   
+      wdiNvDownloadRspCb: callback for passing back the response of
+      the NV Download operation received from the device
+ 
+       pUserData: user data will be passed back with the
+       callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_NvDownloadReq
+(
+  WDI_NvDownloadReqParamsType* pwdiNvDownloadReqParams,
+  WDI_NvDownloadRspCb      wdiNvDownloadRspCb,
+   void*      pUserData
+);
+/**
  @brief WDI_AddBAReq will be called when the upper MAC has setup
         successfully a BA session and needs to notify the HW for
         the appropriate settings to take place. Upon the call of
@@ -4214,6 +6336,41 @@ wpt_boolean WDI_IsHwFrameTxTranslationCapable
   wpt_uint8 uSTAIdx
 );
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+/**
+ @brief WDI_AggrAddTSReq will be called when the upper MAC to inform
+        the device of a successful add TSpec negotiation for 11r. HW
+        needs to receive the TSpec Info from the UMAC in order
+        to configure properly the QoS data traffic. Upon the
+        call of this API the WLAN DAL will pack and send a HAL
+        Aggregated Add TS request message to the lower RIVA sub-system if
+        DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param wdiAggrAddTsReqParams: the add TS parameters as specified by
+                               the Device Interface
+  
+        wdiAggrAddTsRspCb: callback for passing back the response of
+        the add TS operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_AggrAddTSReq
+(
+  WDI_AggrAddTSReqParamsType* pwdiAddTsReqParams,
+  WDI_AggrAddTsRspCb          wdiAggrAddTsRspCb,
+  void*                   pUserData
+);
+#endif /* WLAN_FEATURE_VOWIFI_11R */
 /**
  @brief WDI_STATableInit - Initializes the STA tables. 
         Allocates the necesary memory.
@@ -4228,9 +6385,26 @@ wpt_boolean WDI_IsHwFrameTxTranslationCapable
 WDI_Status WDI_StubRunTest
 (
    wpt_uint8   ucTestNo
-)
-;
+);
 
+#ifdef ANI_MANF_DIAG
+/**
+ @brief WDI_FTMCommandReq -  
+        Route FTMRequest Command to HAL
+ 
+ @param  ftmCommandReq:         FTM request command body 
+ @param  ftmCommandRspCb:       Response CB
+ @param  pUserData:             User data will be included with CB
+
+ @return Result of the function call
+*/
+WDI_Status WDI_FTMCommandReq
+(
+  WDI_FTMCommandReqType *ftmCommandReq,
+  WDI_FTMCommandRspCb    ftmCommandRspCb,
+  void                  *pUserData
+);
+#endif /* ANI_MANF_DIAG */
 #ifdef __cplusplus
  }
 #endif 

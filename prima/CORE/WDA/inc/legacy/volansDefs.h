@@ -588,6 +588,13 @@ typedef enum
 
 #define STACFG_MAX_TC   8
 
+#ifdef WLAN_SOFTAP_FEATURE
+#define   BROADCAST_STAID    252
+#else
+#define   BROADCAST_STAID    255
+#endif
+
+
 /*-------------------------------------------------------------------------*/
 /* Timers*/
 /*-------------------------------------------------------------------------*/
@@ -604,6 +611,8 @@ typedef enum
    (1 << ((index) + QWLAN_MTU_TIMER_CONTROL11TO8_SW_MTU_CONTINUOUS_VALID_OFFSET))
 
 enum {
+   /* timer for p2p client */
+   QWLAN_MTU_TIMER_FW_P2P_CLIENT = 4,
    /* timer for pre beacon interrupt */
    QWLAN_MTU_TIMER_FW_BEACON_PRE = 5,
    /* Free run clock for firmware */

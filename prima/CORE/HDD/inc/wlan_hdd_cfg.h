@@ -312,17 +312,27 @@ typedef enum
 #define CFG_IBSS_BSSID_MAX                     "ffffffffffff"
 #define CFG_IBSS_BSSID_DEFAULT                 "000AF5040506"
 
-#define CFG_STA_MAC_ADDR_NAME                  "NetworkAddress"
-#define CFG_STA_MAC_ADDR_MIN                   "000000000000"
-#define CFG_STA_MAC_ADDR_MAX                   "ffffffffffff"
-#define CFG_STA_MAC_ADDR_DEFAULT               "000AF5898989"
+#define CFG_INTF0_MAC_ADDR_NAME                  "Intf0MacAddress"
+#define CFG_INTF0_MAC_ADDR_MIN                   "000000000000"
+#define CFG_INTF0_MAC_ADDR_MAX                   "ffffffffffff"
+#define CFG_INTF0_MAC_ADDR_DEFAULT               "000AF5898980"
+
+#define CFG_INTF1_MAC_ADDR_NAME                  "Intf1MacAddress"
+#define CFG_INTF1_MAC_ADDR_MIN                   "000000000000"
+#define CFG_INTF1_MAC_ADDR_MAX                   "ffffffffffff"
+#define CFG_INTF1_MAC_ADDR_DEFAULT               "000AF5898981"
+
+#define CFG_INTF2_MAC_ADDR_NAME                  "Intf2MacAddress"
+#define CFG_INTF2_MAC_ADDR_MIN                   "000000000000"
+#define CFG_INTF2_MAC_ADDR_MAX                   "ffffffffffff"
+#define CFG_INTF2_MAC_ADDR_DEFAULT               "000AF5898982"
+
+#define CFG_INTF3_MAC_ADDR_NAME                  "Intf3MacAddress"
+#define CFG_INTF3_MAC_ADDR_MIN                   "000000000000"
+#define CFG_INTF3_MAC_ADDR_MAX                   "ffffffffffff"
+#define CFG_INTF3_MAC_ADDR_DEFAULT               "000AF5898983"
 
 #ifdef WLAN_SOFTAP_FEATURE
-#define CFG_AP_MAC_ADDR_NAME                   "gAPMacAddr"
-#define CFG_AP_MAC_ADDR_MIN                    "000000000000"
-#define CFG_AP_MAC_ADDR_MAX                    "ffffffffffff"
-#define CFG_AP_MAC_ADDR_DEFAULT                "00deadbeef04"
-
 #define CFG_AP_QOS_UAPSD_MODE_NAME             "gEnableApUapsd" // ACs to setup U-APSD for at assoc
 #define CFG_AP_QOS_UAPSD_MODE_MIN              ( 0 )
 #define CFG_AP_QOS_UAPSD_MODE_MAX              ( 1 ) 
@@ -919,6 +929,11 @@ typedef enum
 #define CFG_BTC_EXECUTION_MODE_MAX                          ( 5 )
 #define CFG_BTC_EXECUTION_MODE_DEFAULT                      ( 0 )
 
+#define CFG_BTC_DHCP_PROTECTION_NAME                         "BtcConsBtSlotToBlockDuringDhcp"
+#define CFG_BTC_DHCP_PROTECTION_MIN                          ( 0 )
+#define CFG_BTC_DHCP_PROTECTION_MAX                          ( 0xFF )
+#define CFG_BTC_DHCP_PROTECTION_DEFAULT                      ( 0 )
+
 #if defined WLAN_FEATURE_VOWIFI_11R
 #define CFG_FT_ENABLE_NAME                              "gFtEnabled"
 #define CFG_FT_ENABLE_MIN                               (0)
@@ -989,6 +1004,33 @@ typedef enum
 #define CFG_MCAST_BCAST_FILTER_SETTING_MIN           (0)
 #define CFG_MCAST_BCAST_FILTER_SETTING_MAX           (3)
 #define CFG_MCAST_BCAST_FILTER_SETTING_DEFAULT       (0)
+
+#define CFG_DYNAMIC_PSPOLL_VALUE_NAME          "gDynamicPSPollvalue"
+#define CFG_DYNAMIC_PSPOLL_VALUE_MIN           (0)
+#define CFG_DYNAMIC_PSPOLL_VALUE_MAX           (255)
+#define CFG_DYNAMIC_PSPOLL_VALUE_DEFAULT       (0)
+
+#define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_NAME                 "gAddTSWhenACMIsOff"
+#define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MIN                  (0)
+#define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MAX                  (1) //Send AddTs even when ACM is not set for the AC
+#define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_DEFAULT              (0)
+
+#define CFG_VALIDATE_SCAN_LIST_NAME                 "gValidateScanList"
+#define CFG_VALIDATE_SCAN_LIST_MIN                  (0)
+#define CFG_VALIDATE_SCAN_LIST_MAX                  (1) 
+#define CFG_VALIDATE_SCAN_LIST_DEFAULT              (0)
+
+#define CFG_NULLDATA_AP_RESP_TIMEOUT_NAME       "gNullDataApRespTimeout"
+#define CFG_NULLDATA_AP_RESP_TIMEOUT_MIN        ( WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT_STAMIN )
+#define CFG_NULLDATA_AP_RESP_TIMEOUT_MAX        ( WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT_STAMAX )
+#define CFG_NULLDATA_AP_RESP_TIMEOUT_DEFAULT    ( WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT_STADEF )
+
+#ifdef WLAN_BTAMP_FEATURE
+#define CFG_BT_AMP_PREFERRED_CHANNEL_NAME          "BtAmpPreferredChannel"
+#define CFG_BT_AMP_PREFERRED_CHANNEL_MIN           (1)
+#define CFG_BT_AMP_PREFERRED_CHANNEL_MAX           (11)
+#define CFG_BT_AMP_PREFERRED_CHANNEL_DEFAULT       (1)
+#endif //WLAN_BTAMP_FEATURE
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1027,6 +1069,7 @@ typedef struct
    v_BOOL_t      fIsImpsEnabled;
    v_BOOL_t      fIsLogpEnabled;
    v_U8_t        btcExecutionMode;
+   v_U8_t        btcConsBtSlotsToBlockDuringDhcp;
    v_U32_t       nImpsModSleepTime;
    v_U32_t       nImpsMaxSleepTime;
    v_U32_t       nImpsMinSleepTime;
@@ -1054,10 +1097,11 @@ typedef struct
    v_BOOL_t      fIsShortPreamble;
    v_BOOL_t      fIsAutoIbssBssid;
    v_MACADDR_t   IbssBssid;
-   v_MACADDR_t   staMacAddr;
-
+   
+   v_U8_t        intfAddrMask;
+   v_MACADDR_t   intfMacAddr[VOS_MAX_CONCURRENCY_PERSONA];
+   
 #ifdef WLAN_SOFTAP_FEATURE
-   v_MACADDR_t   apMacAddr;
    v_BOOL_t      apUapsdEnabled;
    v_BOOL_t      apProtEnabled;
    v_BOOL_t      apOBSSProtEnabled;
@@ -1232,7 +1276,15 @@ typedef struct
    
    /* RF Settling Time Clock */
    v_U32_t                     rfSettlingTimeUs;
+#ifdef WLAN_BTAMP_FEATURE
+   v_U8_t                      preferredChannel;
+#endif //WLAN_BTAMP_FEATURE
 
+   v_U8_t                      dynamicPsPollValue;
+   v_BOOL_t                    AddTSWhenACMIsOff;
+   v_BOOL_t                    fValidateScanList;
+
+   v_U8_t                      nNullDataApRespTimeout;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

@@ -75,9 +75,9 @@ int hdd_hostapd_open (struct net_device *dev)
    printk("%s", __func__);
    //Turn ON carrier state
    netif_carrier_on(dev);
-   //Enable Tx queue
-   netif_start_queue(dev);
-   //netif_stop_queue(dev);   
+   //Enable all Tx queues  
+   netif_tx_start_all_queues(dev);
+   
    EXIT();
    return 0;
 }
@@ -95,9 +95,9 @@ int hdd_hostapd_open (struct net_device *dev)
 int hdd_hostapd_stop (struct net_device *dev)
 {
    printk("%s", __func__);
-   //Stop the Interface TX queue. netif_stop_queue should not be used when
-   //transmission is being disabled anywhere other than hard_start_xmit
+   //Stop all tx queues
    netif_tx_disable(dev);
+   
    //Turn OFF carrier state
    netif_carrier_off(dev);
    return 0;
@@ -126,6 +126,7 @@ int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
    return 0;
 }
+
 /**---------------------------------------------------------------------------
   
   \brief hdd_hostapd_set_mac_address() - 
@@ -309,10 +310,11 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             {
                 struct ieee80211_mgmt mgmt;
                 v_U16_t iesLen =  pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.iesLen;
-                v_U16_t size =  (24 + sizeof(mgmt.u.assoc_req) + iesLen);
-                memcpy(mgmt.sa, &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac,6);
+                v_U16_t size =  (24 + sizeof(mgmt.u.assoc_resp) + iesLen);
+                memcpy(mgmt.da, &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac,6);
+                memcpy(mgmt.sa, &pHostapdAdapter->macAddressCurrent,6);
 
-                memcpy(mgmt.u.assoc_req.variable,pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies,iesLen);
+                memcpy(mgmt.u.assoc_resp.variable,pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies,iesLen);
                 cfg80211_send_rx_assoc(dev,(const u8 *)&mgmt,size);
              }
 #endif
@@ -774,7 +776,11 @@ static iw_softap_commit(struct net_device *dev,
             // The actual processing may eventually be more extensive than this.
             // Right now, just consume any PMKIDs that are  sent in by the app.
             status = hdd_softap_unpackIE( 
+#if defined(FEATURE_WLAN_NON_INTEGRATED_SOC)
                                   vos_get_context( VOS_MODULE_ID_HAL, pVosContext),
+#else
+                                  vos_get_context( VOS_MODULE_ID_PE, pVosContext),
+#endif
                                   &RSNEncryptType,
                                   &mcRSNEncryptType,
                                   &RSNAuthType,
@@ -792,6 +798,15 @@ static iw_softap_commit(struct net_device *dev,
              } 
         }
     }
+    else
+    {
+        /* If no RSNIE, set encrypt type to NONE*/
+        pConfig->RSNEncryptType = eCSR_ENCRYPT_TYPE_NONE;
+        pConfig->mcRSNEncryptType =  eCSR_ENCRYPT_TYPE_NONE;
+        hddLog( LOG1, FL("EncryptionType = %d mcEncryptionType = %d\n"), 
+                         pConfig->RSNEncryptType, pConfig->mcRSNEncryptType);
+    }
+
     pConfig->SSIDinfo.ssidHidden = pCommitConfig->SSIDinfo.ssidHidden; 
     pConfig->SSIDinfo.ssid.length = pCommitConfig->SSIDinfo.ssid.length;
     vos_mem_copy(pConfig->SSIDinfo.ssid.ssId, pCommitConfig->SSIDinfo.ssid.ssId, pConfig->SSIDinfo.ssid.length);
@@ -836,6 +851,7 @@ static iw_softap_commit(struct net_device *dev,
     hddLog(LOGW,FL("DisableIntraBssFwd = %d\n"),(WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->apDisableIntraBssFwd); 
             
     pSapEventCallback = hdd_hostapd_SAPEventCB;
+	pConfig->persona = pHostapdAdapter->device_mode;
     if(WLANSAP_StartBss(pVosContext, pSapEventCallback, pConfig,(v_PVOID_t)dev) != VOS_STATUS_SUCCESS)
     {
            hddLog(LOGE,FL("SAP Start Bss fail\n"));
@@ -1701,7 +1717,8 @@ struct net_device_ops net_ops_struct  = {
     .ndo_get_stats = hdd_softap_stats,
     .ndo_set_mac_address = hdd_hostapd_set_mac_address,
     .ndo_do_ioctl = hdd_hostapd_ioctl,
-    .ndo_change_mtu = hdd_hostapd_change_mtu
+    .ndo_change_mtu = hdd_hostapd_change_mtu,
+    .ndo_select_queue = hdd_hostapd_select_queue,
  };
 #endif
 
@@ -1751,14 +1768,15 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
          VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: Hostapd HDD vos event init failed!!\n"));
          return status;
     }
+    
  
     sema_init(&(WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->semWpsPBCOverlapInd, 1);
  
      // Register as a wireless device
     dev->wireless_handlers = (struct iw_handler_def *)& hostapd_handler_def;
     
-    netif_carrier_off(dev);
     netif_tx_disable(dev);
+    netif_carrier_off(dev);
  
     //Initialize the data path module
     status = hdd_softap_init_tx_rx(pAdapter);
@@ -1778,11 +1796,9 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
     v_CONTEXT_t pVosContext= NULL;
 
 #ifdef CONFIG_CFG80211
-
-   pWlanHostapdDev = alloc_netdev(sizeof(hdd_adapter_t), iface_name, ether_setup);
-
+   pWlanHostapdDev = alloc_netdev_mq(sizeof(hdd_adapter_t), iface_name, ether_setup, NUM_TX_QUEUES);
 #else   
-    pWlanHostapdDev = alloc_etherdev(sizeof(hdd_adapter_t));
+   pWlanHostapdDev = alloc_etherdev_mq(sizeof(hdd_adapter_t), NUM_TX_QUEUES);
 #endif
 
     if(pWlanHostapdDev!=NULL)

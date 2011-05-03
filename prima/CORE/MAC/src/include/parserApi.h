@@ -19,6 +19,7 @@
 
 #define COUNTRY_STRING_LENGTH    (  3 )
 #define COUNTRY_INFO_MAX_CHANNEL ( 84 )
+#define MAX_SIZE_OF_TRIPLETS_IN_COUNTRY_IE (COUNTRY_STRING_LENGTH * COUNTRY_INFO_MAX_CHANNEL)
 
 typedef struct sSirCountryInformation
 {
@@ -156,6 +157,11 @@ typedef struct sSirAssocReq
 /**************** QNE updated - BEGIN **********************/
     tSirMacWscInfo            wscInfo;
 /**************** QNE updated - END   **********************/
+#ifdef WLAN_FEATURE_P2P
+    tANI_U8              p2pPresent;
+    tSirP2Pie            p2pIE;      // p2pIE to be sent
+#endif
+
 } tSirAssocReq, *tpSirAssocReq;
 
 

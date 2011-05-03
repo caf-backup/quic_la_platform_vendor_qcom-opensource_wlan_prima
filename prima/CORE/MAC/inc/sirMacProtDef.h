@@ -328,6 +328,9 @@
 #define SIR_MAC_WPA_EID                221
 #define SIR_MAC_WPA_EID_MIN                0
 #define SIR_MAC_WPA_EID_MAX                255
+
+#define SIR_MAC_EID_VENDOR                221
+
 // reserved                            222-254
 #define SIR_MAC_HT_CAPABILITIES_EID    45
 #define SIR_MAC_HT_CAPABILITIES_EID_MIN    0

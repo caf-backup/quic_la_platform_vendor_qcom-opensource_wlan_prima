@@ -110,7 +110,7 @@ wdaPostCfgMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
    return rc;
 } // halMntPostMsg()
 
-
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
 #if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
 #include "pttModuleApi.h"
 // -------------------------------------------------------------
@@ -172,6 +172,7 @@ halNimPTTPostMsgApi(tpAniSirGlobal pMac, tSirMsgQ *pMsg)
 
 
 #endif  //ANI_MANF_DIAG
+#endif  //FEATURE_WLAN_INTEGRATED_SOC
 
 // -------------------------------------------------------------
 /**
@@ -254,7 +255,9 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb)
 
 #if defined(ANI_MANF_DIAG) || defined(ANI_PHY_DEBUG)
    case SIR_PTT_MSG_TYPES_BEGIN:
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
       halNimPTTPostMsgApi(pMac, &msg); // Posts a message to the NIM PTT MsgQ
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
       break;
 
 #endif
@@ -286,7 +289,12 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb)
  */
 tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac)
 {
-   WDALOGE( wdaLog(pMac, LOGE, FL(" already return hardcoded STA role\n")));
-   return  eSYSTEM_STA_ROLE;
+   v_VOID_t * pVosContext = vos_get_global_context(VOS_MODULE_ID_WDA, NULL);
+   tWDA_CbContext *wdaContext = 
+                       vos_get_context(VOS_MODULE_ID_WDA, pVosContext);
+
+   WDALOGE( wdaLog(pMac, LOGE, FL(" returning  %d role\n"),
+             wdaContext->wdaGlobalSystemRole));
+   return  wdaContext->wdaGlobalSystemRole;
 }
 

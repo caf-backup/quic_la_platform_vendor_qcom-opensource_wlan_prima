@@ -715,7 +715,7 @@ void csrNeighborRoamPreauthRspHandler(tpAniSirGlobal pMac, VOS_STATUS vosStatus)
 eHalStatus csrNeighborRoamPrepareScanProfileFilter(tpAniSirGlobal pMac, tCsrScanResultFilter *pScanFilter)
 {
     tpCsrNeighborRoamControlInfo    pNeighborRoamInfo = &pMac->roam.neighborRoamInfo;
-    tANI_U8 sessionId   = pNeighborRoamInfo->csrSessionId;
+    tANI_U8 sessionId   = (tANI_U8)pNeighborRoamInfo->csrSessionId;
     tCsrRoamConnectedProfile *pCurProfile = &pMac->roam.roamSession[sessionId].connectedProfile;
     tANI_U8 i = 0;
     
@@ -971,7 +971,7 @@ static eHalStatus csrNeighborRoamScanRequestCallback(tHalHandle halHandle, void 
     tANI_U8                         currentChanIndex;
     tCsrScanResultFilter    scanFilter;
     tScanResultHandle       scanResult;
-    tANI_U8                 tempVal = 0;
+    tANI_U32                tempVal = 0;
 
     pMac->roam.neighborRoamInfo.scanRspPending = eANI_BOOLEAN_FALSE;
     
@@ -1410,7 +1410,7 @@ VOS_STATUS csrNeighborRoamIssueNeighborRptRequest(tpAniSirGlobal pMac)
     callbackInfo.neighborRspCallbackContext = pMac;
     callbackInfo.timeout = pNeighborRoamInfo->FTRoamInfo.neighborReportTimeout;
 
-    return sme_NeighborReportRequest(pMac, pNeighborRoamInfo->csrSessionId, &neighborReq, &callbackInfo);
+    return sme_NeighborReportRequest(pMac,(tANI_U8) pNeighborRoamInfo->csrSessionId, &neighborReq, &callbackInfo);
 }
 
 /* ---------------------------------------------------------------------------
@@ -1447,7 +1447,7 @@ VOS_STATUS csrNeighborRoamCreateChanListFromNeighborReport(tpAniSirGlobal pMac)
         pNeighborRoamInfo->FTRoamInfo.neighboReportBssInfo[pNeighborRoamInfo->FTRoamInfo.numBssFromNeighborReport].channelNum = 
                                     pNeighborBssDesc->pNeighborBssDescription->channel;
         pNeighborRoamInfo->FTRoamInfo.neighboReportBssInfo[pNeighborRoamInfo->FTRoamInfo.numBssFromNeighborReport].neighborScore = 
-                                    pNeighborBssDesc->roamScore;
+                                    (tANI_U8)pNeighborBssDesc->roamScore;
         vos_mem_copy(pNeighborRoamInfo->FTRoamInfo.neighboReportBssInfo[pNeighborRoamInfo->FTRoamInfo.numBssFromNeighborReport].neighborBssId,
                                      pNeighborBssDesc->pNeighborBssDescription->bssId, sizeof(tSirMacAddr));
         pNeighborRoamInfo->FTRoamInfo.numBssFromNeighborReport++;
@@ -2281,6 +2281,7 @@ void csrNeighborRoamClose(tpAniSirGlobal pMac)
     pNeighborRoamInfo->neighborScanTimerInfo.pMac = NULL;
     pNeighborRoamInfo->neighborScanTimerInfo.sessionId = CSR_SESSION_ID_INVALID;
     palTimerFree(pMac->hHdd, pNeighborRoamInfo->neighborScanTimer);
+    palTimerFree(pMac->hHdd, pNeighborRoamInfo->neighborResultsRefreshTimer);
 
 
     /* Should free up the nodes in the list before closing the double Linked list */

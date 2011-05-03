@@ -240,14 +240,8 @@ typedef enum
   /* Transmit frame event */
   WLANTL_TX_EVENT = 0,
 
-  /* Transmit frame event when U-APSD is enabled for AC*/
-  WLANTL_TX_ON_UAPSD_EVENT = 1,
-
   /* Receive frame event */
-  WLANTL_RX_EVENT = 2,
-
-  /* Receive frame event when U-APSD is enabled for AC*/
-  WLANTL_RX_ON_UAPSD_EVENT = 3,
+  WLANTL_RX_EVENT = 1,
 
   WLANTL_MAX_EVENT
 }WLANTL_STAEventType;
@@ -297,20 +291,10 @@ VOS_STATUS WLANTL_STARxAuth( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
                              vos_pkt_t**   pvosDataBuff );
 
-/* Receive in authenticated state on UAPSD - all data allowed*/
-VOS_STATUS WLANTL_STARxAuthUAPSD( v_PVOID_t     pAdapter,
-                                  v_U8_t        ucSTAId,
-                                  vos_pkt_t**   pvosDataBuff );
-
 /* Transmit in authenticated state - all data allowed*/
 VOS_STATUS WLANTL_STATxAuth( v_PVOID_t     pAdapter,
                              v_U8_t        ucSTAId,
                              vos_pkt_t**   pvosDataBuff );
-
-/* Transmit in authenticated state - all data allowed*/
-VOS_STATUS WLANTL_STATxAuthUAPSD( v_PVOID_t     pAdapter,
-                                  v_U8_t        ucSTAId,
-                                  vos_pkt_t**   pvosDataBuff );
 
 /* Receive in disconnected state - no data allowed*/
 VOS_STATUS WLANTL_STARxDisc( v_PVOID_t     pAdapter,
@@ -328,38 +312,25 @@ STATIC const WLANTL_STAFsmEntryType tlSTAFsm[WLANTL_STA_MAX_STATE] =
   /* WLANTL_STA_INIT */
   { {
     NULL,      /* WLANTL_TX_EVENT - no packets should get transmitted*/
-    NULL,      /* WLANTL_TX_ON_UAPSD_EVENT - same as above*/
     NULL,      /* WLANTL_RX_EVENT - no packets should be received - drop*/
-    NULL,      /* WLANTL_RX_ON_UAPSD_EVENT - same as above*/
   } },
 
   /* WLANTL_STA_CONNECTED */
   { {
     WLANTL_STATxConn,      /* WLANTL_TX_EVENT - only EAPoL or WAI frames are allowed*/
-    WLANTL_STATxConn,      /* WLANTL_TX_ON_UAPSD_EVENT - same as above;
-                              no distinction will be made for UAPSD*/
     WLANTL_STARxConn,      /* WLANTL_RX_EVENT - only EAPoL or WAI frames can be rx*/
-    WLANTL_STARxConn,      /* WLANTL_RX_ON_UAPSD_EVENT - same as above;
-                              no distinction will be made for UAPSD*/
   } },
 
   /* WLANTL_STA_AUTHENTICATED */
   { {
     WLANTL_STATxAuth,      /* WLANTL_TX_EVENT - all data frames allowed*/
-    WLANTL_STATxAuthUAPSD, /* WLANTL_TX_ON_UAPSD_EVENT - all data frames can
-                        be tx in addition trigger frames can be tx-ed*/
     WLANTL_STARxAuth,      /* WLANTL_RX_EVENT - all data frames can be rx */
-    WLANTL_STARxAuthUAPSD, /* WLANTL_RX_ON_UAPSD_EVENT - all data frames can
-                        be rx in addition Serv Int timer will be restarted*/
   } },
 
   /* WLANTL_STA_DISCONNECTED */
   { {
     WLANTL_STATxDisc,      /* WLANTL_TX_EVENT - do nothing */
-    WLANTL_STATxDisc,      /* WLANTL_TX_ON_UAPSD_EVENT - do nothing */
     WLANTL_STARxDisc,      /* WLANTL_RX_EVENT - frames will still be fwd-ed*/
-    WLANTL_STARxDisc,      /* WLANTL_RX_ON_UAPSD_EVENT - frames will still be
-                              fwd-ed*/
   } }
 };
 
@@ -442,57 +413,6 @@ typedef struct
 ---------------------------------------------------------------------------*/
 typedef struct
 {
-  /*specifies if re-order session exists*/
-  v_U8_t             ucExists;
-
-  /*Service interval timer*/
-  vos_timer_t        vosServiceTimer;
-
-  /*Suspend interval timer*/
-  vos_timer_t        vosSuspendTimer;
-
-  /*Delayed interval timer*/
-  vos_timer_t        vosDelayedTimer;
-
-  /*Delayed mode flag*/
-  v_U8_t             ucDelayedMode;
-
-  /*Service interval*/
-  v_U32_t            uServiceInterval;
-
-  /*Suspend interval*/
-  v_U32_t            uSuspendInterval;
-
-  /*Delayed interval*/
-  v_U32_t            uDelayedInterval;
-
-  /* TSpec direction*/
-  WLANTL_TSDirType   wTSpecDir;
-
-  /* Station Id for which the UAPSD has been setup*/
-  v_U8_t             ucStaId;
-
-  /* Access Category for which the UAPSD has been setup*/
-  WLANTL_ACEnumType   ucAC;
-
-  /* TSpec Id for which the UAPSD has been setup*/
-  v_U8_t              ucTid;
-
-  /* UP to be used in trigger frame*/
-  v_U8_t              ucUP;
-
-  /* Pointer to the TL main control block - used in timers*/
-  v_PVOID_t           pTLCb; /*type is WLANTL_CBType*/
-
-  /* vos buffer used for trigger frames */
-  vos_pkt_t*          vosTriggBuf;
-
-  /* flag to signal if a trigger frames is pending */
-  v_U8_t              ucPendingTrigFrm;
-
-  /* flag to signal if a data frame was sent out instead of a trigger frame */
-  v_U8_t              ucDataSent;
-
   /* flag set when a UAPSD session with triggers generated in fw is being set*/
   v_U8_t              ucSet;
 }WLANTL_UAPSDInfoType;

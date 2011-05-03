@@ -1480,7 +1480,7 @@ VOS_STATUS WLANSAP_Set_WPARSNIes(v_PVOID_t pvosGCtx, v_U8_t *pWPARSNIEs, v_U32_t
             return VOS_STATUS_E_FAULT;
         }
         
-        pSapCtx->APWPARSNIEs.length = WPARSNIEsLen;
+        pSapCtx->APWPARSNIEs.length = (tANI_U16)WPARSNIEsLen;
         vos_mem_copy(pSapCtx->APWPARSNIEs.rsnIEdata, pWPARSNIEs, WPARSNIEsLen);
     
         halStatus = sme_RoamUpdateAPWPARSNIEs( hHal, pSapCtx->sessionId, &pSapCtx->APWPARSNIEs);

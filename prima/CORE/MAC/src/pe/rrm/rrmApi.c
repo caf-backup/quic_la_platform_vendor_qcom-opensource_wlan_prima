@@ -117,18 +117,18 @@ rrmSendSetMaxTxPowerReq ( tpAniSirGlobal pMac, tPowerdBm txPower, tpPESession pS
 
    if( pSessionEntry == NULL )
    {
-      PELOGE(limLog(pMac, LOGE, "%s:%d: Inavalid parameters\n", __func__, __LINE__ );)
+      PELOGE(limLog(pMac, LOGE, FL(" Inavalid parameters\n"));)
       return eSIR_FAILURE;
    }
    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
             (void **) &pMaxTxParams, sizeof(tMaxTxPowerParams) ) ) 
    {
-      limLog( pMac, LOGP, "%s:%d:Unable to allocate memory for pMaxTxParams \n", __func__, __LINE__);
+      limLog( pMac, LOGP, FL("Unable to allocate memory for pMaxTxParams \n") );
       return eSIR_MEM_ALLOC_FAILED;
 
    }
 #if defined WLAN_VOWIFI_DEBUG
-   PELOGE(limLog( pMac, LOGE, "%s:%d: Allocated memory for pMaxTxParams...will be freed in other module\n", __func__, __LINE__ );)
+   PELOGE(limLog( pMac, LOGE, FL(" Allocated memory for pMaxTxParams...will be freed in other module\n") );)
 #endif
    pMaxTxParams->power = txPower;
    palCopyMemory( pMac->hHdd, pMaxTxParams->bssId, pSessionEntry->bssId, sizeof(tSirMacAddr) );
@@ -180,7 +180,7 @@ rrmSetMaxTxPowerRsp ( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ )
 
    if((pSessionEntry = peFindSessionByBssid(pMac, pMaxTxParams->bssId, &sessionId))==NULL)
    {
-      PELOGE(limLog(pMac, LOGE,FL("%s:%d:Unable to find session:\n"),__func__,__LINE__ );)
+      PELOGE(limLog(pMac, LOGE, FL("Unable to find session:\n") );)
       retCode = eSIR_FAILURE;
    }
    else
@@ -229,7 +229,8 @@ rrmProcessLinkMeasurementRequest( tpAniSirGlobal pMac,
 #if defined WLAN_VOWIFI_DEBUG
    if( pSessionEntry->maxTxPower != (tPowerdBm) pLinkReq->MaxTxPower.maxTxPower )
    {
-      PELOGE(limLog( pMac, LOGE, "%s:%d: maxTx power in link request is not same as local...Local = %d LinkReq = %d\n", __func__, __LINE__,  pSessionEntry->maxTxPower, pLinkReq->MaxTxPower.maxTxPower );)
+      PELOGE(limLog( pMac, LOGE, FL(" maxTx power in link request is not same as local...Local = %d LinkReq = %d\n"), 
+           pSessionEntry->maxTxPower, pLinkReq->MaxTxPower.maxTxPower );)
    }
 #endif
 
@@ -290,12 +291,12 @@ rrmProcessNeighborReportResponse( tpAniSirGlobal pMac,
 
    if( pNeighborRep == NULL || pSessionEntry == NULL )
    {
-      PELOGE(limLog( pMac, LOGE, "%s: Invalid parameters\n", __func__);)
+      PELOGE(limLog( pMac, LOGE, FL(" Invalid parameters\n") );)
       return status;
    }
 
 #if defined WLAN_VOWIFI_DEBUG
-   PELOGE(limLog( pMac, LOGE, "%s:%d:Neighbor report response recieved \n",__func__, __LINE__);)
+   PELOGE(limLog( pMac, LOGE, FL("Neighbor report response recieved \n") );)
 #endif
 
    // Dialog token
@@ -316,13 +317,13 @@ rrmProcessNeighborReportResponse( tpAniSirGlobal pMac,
    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
             (void **) &pSmeNeighborRpt, length ) )
    {
-      PELOGE(limLog( pMac, LOGP, "%s:%d:Unable to allocate memory\n", __func__, __LINE__ );)
+      PELOGE(limLog( pMac, LOGP, FL("Unable to allocate memory\n") );)
       return eSIR_MEM_ALLOC_FAILED;
 
    }
    palZeroMemory( pMac->hHdd, pSmeNeighborRpt, length ); 
 #if defined WLAN_VOWIFI_DEBUG
-   PELOGE(limLog( pMac, LOGE, "%s:%d: Allocated memory for pSmeNeighborRpt...will be freed by other module\n", __func__, __LINE__ );)
+   PELOGE(limLog( pMac, LOGE, FL(" Allocated memory for pSmeNeighborRpt...will be freed by other module\n") );)
 #endif
 
    for( i = 0 ; i < pNeighborRep->num_NeighborReport ; i++ )
@@ -397,7 +398,7 @@ rrmProcessNeighborReportReq( tpAniSirGlobal pMac,
    }
 
 #if defined WLAN_VOWIFI_DEBUG
-   PELOGE(limLog( pMac, LOGE, "%s:%d:Neighbor Request recieved \n",__func__, __LINE__);)
+   PELOGE(limLog( pMac, LOGE, FL("Neighbor Request recieved \n") );)
    PELOGE(limLog( pMac, LOGE, "SSID present = %d \n", pNeighborReq->noSSID );)
 #endif
 
@@ -512,7 +513,7 @@ rrmProcessBeaconReportReq( tpAniSirGlobal pMac,
             return eRRM_FAILURE;
       }
 #if defined WLAN_VOWIFI_DEBUG
-      PELOGE(limLog( pMac, LOGE, "%s:%d: Allocated memory for pElementIds\n", __func__, __LINE__ );)
+      PELOGE(limLog( pMac, LOGE, FL(" Allocated memory for pElementIds\n") );)
 #endif
       pCurrentReq->request.Beacon.reqIes.num = pBeaconReq->measurement_request.Beacon.RequestedInfo.num_requested_eids;
       palCopyMemory ( pMac->hHdd, pCurrentReq->request.Beacon.reqIes.pElementIds, 
@@ -541,7 +542,7 @@ rrmProcessBeaconReportReq( tpAniSirGlobal pMac,
    palZeroMemory( pMac->hHdd, pSmeBcnReportReq, sizeof( tSirBeaconReportReqInd ) + num_channels );
 
 #if defined WLAN_VOWIFI_DEBUG
-   PELOGE(limLog( pMac, LOGE, "%s:%d: Allocated memory for pSmeBcnReportReq....will be freed by other module\n", __func__, __LINE__ );)
+   PELOGE(limLog( pMac, LOGE, FL(" Allocated memory for pSmeBcnReportReq....will be freed by other module\n") );)
 #endif
    palCopyMemory( pMac->hHdd, pSmeBcnReportReq->bssId, pSessionEntry->bssId, sizeof(tSirMacAddr) );
    pSmeBcnReportReq->messageType = eWNI_SME_BEACON_REPORT_REQ_IND;
@@ -615,7 +616,7 @@ rrmFillBeaconIes( tpAniSirGlobal pMac,
 
    if( (pIes == NULL) || (pNumIes == NULL) || (pBssDesc == NULL) )
    {
-      PELOGE(limLog( pMac, LOGE, "%s:%d: Invalid parameters\n", __func__, __LINE__ );)
+      PELOGE(limLog( pMac, LOGE, FL(" Invalid parameters\n") );)
       return;
    }
 
@@ -623,7 +624,7 @@ rrmFillBeaconIes( tpAniSirGlobal pMac,
    numEids = (eids == NULL) ? 0 : numEids;
 
    pBcnIes = (tANI_U8*) &pBssDesc->ieFields[0];
-   BcnNumIes = GET_IE_LEN_IN_BSS( pBssDesc->length );
+   BcnNumIes = (tANI_U8)GET_IE_LEN_IN_BSS( pBssDesc->length );
 
    *pNumIes = 0;
 
@@ -808,7 +809,7 @@ void rrmProcessBeaconRequestFailure(tpAniSirGlobal pMac, tpPESession pSessionEnt
             pReport->incapable = 1;
             break;
         default:
-            PELOGE(limLog( pMac, LOGE, "%s: Beacon request processing failed no report sent with status %d \n", __func__, status););
+            PELOGE(limLog( pMac, LOGE, FL(" Beacon request processing failed no report sent with status %d \n"), status););
             palFreeMemory( pMac->hHdd, pReport );
             return;
     }
@@ -818,7 +819,7 @@ void rrmProcessBeaconRequestFailure(tpAniSirGlobal pMac, tpPESession pSessionEnt
 
     palFreeMemory( pMac->hHdd, pReport );
 #if defined WLAN_VOWIFI_DEBUG
-    PELOGE(limLog( pMac, LOGE, "%s:%d: Free memory for pReport\n", __func__, __LINE__ );)
+    PELOGE(limLog( pMac, LOGE, FL(" Free memory for pReport\n") );)
 #endif
     return;
 }
@@ -877,7 +878,7 @@ rrmProcessRadioMeasurementRequest( tpAniSirGlobal pMac,
       }
       palZeroMemory( pMac->hHdd, pReport, sizeof(tSirMacRadioMeasureReport) );
 #if defined WLAN_VOWIFI_DEBUG
-      PELOGE(limLog( pMac, LOGE, "%s:%d: Allocated memory for pReport\n", __func__, __LINE__ );)
+      PELOGE(limLog( pMac, LOGE, FL(" Allocated memory for pReport\n") );)
 #endif
       pReport->incapable = 1;
       pReport->type = pRRMReq->MeasurementRequest[0].measurement_type;
@@ -906,7 +907,7 @@ rrmProcessRadioMeasurementRequest( tpAniSirGlobal pMac,
                   }
                   palZeroMemory( pMac->hHdd, pReport, sizeof( tSirMacRadioMeasureReport ) * (pRRMReq->num_MeasurementRequest - i) ); 
 #if defined WLAN_VOWIFI_DEBUG
-                  limLog( pMac, LOGE, "%s:%d: Allocated memory for pReport\n", __func__, __LINE__ );
+                  limLog( pMac, LOGE, FL(" Allocated memory for pReport\n") );
 #endif
 
                }
@@ -927,7 +928,7 @@ rrmProcessRadioMeasurementRequest( tpAniSirGlobal pMac,
                   return eSIR_MEM_ALLOC_FAILED;
                }
 #if defined WLAN_VOWIFI_DEBUG
-               PELOGE(limLog( pMac, LOGE, "%s:%d: Allocated memory for pCurrentReq\n", __func__, __LINE__ );)
+               PELOGE(limLog( pMac, LOGE, FL(" Allocated memory for pCurrentReq\n") );)
 #endif
                palZeroMemory( pMac->hHdd, pCurrentReq, sizeof( *pCurrentReq ) );
                pCurrentReq->dialog_token = pRRMReq->DialogToken.token;
@@ -955,7 +956,7 @@ rrmProcessRadioMeasurementRequest( tpAniSirGlobal pMac,
                }
                palZeroMemory( pMac->hHdd, pReport, sizeof( tSirMacRadioMeasureReport ) * (pRRMReq->num_MeasurementRequest - i) ); 
 #if defined WLAN_VOWIFI_DEBUG
-               PELOGE(limLog( pMac, LOGE, "%s:%d: Allocated memory for pReport\n", __func__, __LINE__ );)
+               PELOGE(limLog( pMac, LOGE, FL(" Allocated memory for pReport\n") );)
 #endif
 
             }
@@ -975,7 +976,7 @@ end:
 
       palFreeMemory( pMac->hHdd, pReport );
 #if defined WLAN_VOWIFI_DEBUG
-      PELOGE(limLog( pMac, LOGE, "%s:%d: Free memory for pReport\n", __func__, __LINE__ );)
+      PELOGE(limLog( pMac, LOGE, FL(" Free memory for pReport\n") );)
 #endif
    }
    return status;
@@ -1077,16 +1078,25 @@ void rrmUpdateConfig ( tpAniSirGlobal pMac,
    tpRRMCaps pRRMCaps = &pMac->rrm.rrmPEContext.rrmEnabledCaps;
 
    if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_ENABLED, &val) != eSIR_SUCCESS)
-      limLog(pMac, LOGP, FL("cfg get rrm enabled failed\n"));
+   {
+       limLog(pMac, LOGP, FL("cfg get rrm enabled failed\n"));
+       return;
+   }
    pMac->rrm.rrmPEContext.rrmEnable = (val) ? 1 : 0;    
 
    if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_OPERATING_CHAN_MAX, &val) != eSIR_SUCCESS)
-      limLog(pMac, LOGP, FL("cfg get rrm enabled failed\n"));
-   pRRMCaps->operatingChanMax = val;
+   {
+       limLog(pMac, LOGP, FL("cfg get rrm operating channel max measurement duration failed\n"));
+       return;
+   }
+   pRRMCaps->operatingChanMax = (tANI_U8)val;
 
    if (wlan_cfgGetInt(pMac, WNI_CFG_RRM_NON_OPERATING_CHAN_MAX, &val) != eSIR_SUCCESS)
-      limLog(pMac, LOGP, FL("cfg get rrm enabled failed\n"));
-   pRRMCaps->nonOperatingChanMax = val;
+   {
+       limLog(pMac, LOGP, FL("cfg get rrm non-operating channel max measurement duration failed\n"));
+       return;
+   }
+   pRRMCaps->nonOperatingChanMax =(tANI_U8) val;
 
 #if defined WLAN_VOWIFI_DEBUG
    PELOGE(limLog( pMac, LOGE, "RRM enabled = %d  OperatingChanMax = %d  NonOperatingMax = %d\n", pMac->rrm.rrmPEContext.rrmEnable,
@@ -1163,13 +1173,13 @@ rrmCleanup(tpAniSirGlobal pMac)
       {
          palFreeMemory( pMac->hHdd, pMac->rrm.rrmPEContext.pCurrentReq->request.Beacon.reqIes.pElementIds );
 #if defined WLAN_VOWIFI_DEBUG
-         PELOGE(limLog( pMac, LOGE, "%s:%d: Free memory for pElementIds\n", __func__, __LINE__ );)
+         PELOGE(limLog( pMac, LOGE, FL(" Free memory for pElementIds\n") );)
 #endif
       }
 
       palFreeMemory( pMac->hHdd, pMac->rrm.rrmPEContext.pCurrentReq ); 
 #if defined WLAN_VOWIFI_DEBUG
-      PELOGE(limLog( pMac, LOGE, "%s:%d: Free memory for pCurrentReq\n", __func__, __LINE__ );)
+      PELOGE(limLog( pMac, LOGE, FL(" Free memory for pCurrentReq\n") );)
 #endif
    }
 

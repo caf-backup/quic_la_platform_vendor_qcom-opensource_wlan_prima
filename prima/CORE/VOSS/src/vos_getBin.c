@@ -120,3 +120,23 @@ VOS_CON_MODE vos_get_conparam( void )
     return con_mode;
 }
 #endif
+VOS_CONCURRENCY_MODE vos_get_concurrency_mode( void )
+{
+    VOS_CONCURRENCY_MODE con_mode; 
+    con_mode = hdd_get_concurrency_mode ( );
+    return con_mode;
+}
+
+v_BOOL_t vos_concurrent_sessions_running(void)
+{
+    v_U8_t i=0;
+    v_U8_t j=0;
+    VOS_CONCURRENCY_MODE con_mode; 
+    con_mode = hdd_get_concurrency_mode ( );
+    for (i=0;i<VOS_MAX_CONCURRENCY_PERSONA; i++)
+    {
+      if (con_mode & (1<<i))
+        j++;
+    }
+    return (j>1);
+}

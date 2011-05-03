@@ -173,6 +173,7 @@ typedef enum eSirResultCodes
     eSIR_MTU_EXCEPTION,
     eSIR_MIF_EXCEPTION,
     eSIR_FW_EXCEPTION,
+    eSIR_PS_MUTEX_READ_EXCEPTION,
     eSIR_PHY_HANG_EXCEPTION,
     eSIR_MAILBOX_SANITY_CHK_FAILED,
     eSIR_RADIO_HW_SWITCH_STATUS_IS_OFF, // Only where this switch is present
@@ -394,6 +395,16 @@ typedef struct sSirRemainOnChnReq
     tANI_U32 duration;
     tANI_U8  probeRspIe[1];
 }tSirRemainOnChnReq, *tpSirRemainOnChnReq;
+
+typedef struct sSirRegisterMgmtFrame
+{
+    tANI_U16 messageType;
+    tANI_U16 length;
+    tANI_BOOLEAN registerFrame;
+    tANI_U16 frameType;
+    tANI_U16 matchLen;
+    tANI_U8  matchData[1];
+}tSirRegisterMgmtFrame, *tpSirRegisterMgmtFrame;
 #endif
 
 //
@@ -668,6 +679,7 @@ typedef struct sSirSmeStartBssReq
     tANI_U32                dtimPeriod;
     tANI_U8                 wps_state;
 #endif
+	VOS_CON_MODE            bssPersona;
 
     tSirRSNie               rsnIE;             // RSN IE to be sent in
                                                // Beacon and Probe
@@ -1190,6 +1202,8 @@ typedef struct sSirSmeJoinReq
     tSirMacAddr         selfMacAddr;            // self Mac address
     tSirBssType         bsstype;                // add new type for BT -AMP STA and AP Modules
     tANI_U8             dot11mode;              // to support BT-AMP     
+	VOS_CON_MODE		staPersona;        //Persona
+
     /*This contains the UAPSD Flag for all 4 AC
      * B0: AC_VO UAPSD FLAG
      * B1: AC_VI UAPSD FLAG
@@ -1197,6 +1211,7 @@ typedef struct sSirSmeJoinReq
      * B3: AC_BE UASPD FLAG
      */
     tANI_U8                 uapsdPerAcBitmask;
+
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
     tSirAssocType       assocType;              // Indicates whether STA is
                                                 // sending (Re) Association
@@ -1206,6 +1221,11 @@ typedef struct sSirSmeJoinReq
     tSirMacRateSet      extendedRateSet;    // Has 11g rates
     tSirRSNie           rsnIE;                  // RSN IE to be sent in
                                                 // (Re) Association Request
+
+#ifdef WLAN_FEATURE_P2P
+    tSirP2Pie            p2pIE;      // p2pIE to be sent
+#endif
+
     tAniEdType          UCEncryptionType;
     tAniEdType          MCEncryptionType;
     
@@ -1249,6 +1269,9 @@ typedef struct sSirSmeJoinRsp
     tANI_U32        beaconLength;
     tANI_U32        assocReqLength;
     tANI_U32        assocRspLength;
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    tANI_U32        parsedRicRspLen;
+#endif
     tANI_U32        staId;//Station ID for peer
 
     /*The DPU signatures will be sent eventually to TL to help it determine the 
@@ -1296,6 +1319,11 @@ typedef struct sSirSmeAssocInd
     tAniAuthType         authType;    
     tAniSSID             ssId; // SSID used by STA to associate
     tSirRSNie            rsnIE;// RSN IE received from peer
+
+#ifdef WLAN_FEATURE_P2P 
+    tSirP2Pie            p2pIE;      // p2pIE to be sent
+#endif
+
 #if defined (ANI_PRODUCT_TYPE_AP)
     tANI_U16                  seqNum;
     tAniBool             wniIndicator;
@@ -1362,6 +1390,10 @@ typedef struct sSirSmeReassocReq
      */
     tANI_U8             uapsdPerAcBitmask;
 
+#ifdef WLAN_FEATURE_P2P
+    tSirP2Pie          p2pIE;
+#endif
+
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
     tSirAssocType       assocType; // Indicates whether STA is
                                    // sending (Re) Association
@@ -1422,6 +1454,11 @@ typedef struct sSirSmeReassocInd
     tAniAuthType        authType;
     tAniSSID            ssId;   // SSID used by STA to reassociate
     tSirRSNie           rsnIE;  // RSN IE received from peer
+
+#ifdef WLAN_FEATURE_P2P
+    tSirP2Pie          p2pIE;
+#endif
+
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
     tANI_U16             seqNum;
     tAniBool             wniIndicator;
@@ -2773,6 +2810,40 @@ typedef struct sSirDeltsRsp
     tANI_U8                 macAddr[6]; // only on AP to specify the STA
     tSirDeltsReqInfo        rsp;
 } tSirDeltsRsp, *tpSirDeltsRsp;
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+
+#define SME_QOS_NUM_TSPEC_MAX 2
+#define SME_QOS_NUM_AC_MAX 4
+
+typedef struct sSirAggrQosReqInfo
+{
+    tANI_U16 tspecIdx;
+    tSirAddtsReqInfo aggrAddTsInfo[SME_QOS_NUM_AC_MAX];
+}tSirAggrQosReqInfo, *tpSirAggrQosReqInfo;
+
+typedef struct sSirAggrQosReq
+{
+    tANI_U16                messageType; // eWNI_SME_ADDTS_REQ
+    tANI_U16                length;
+    tANI_U8                 sessionId;  //Session ID
+    tANI_U16                transactionId;
+    tSirMacAddr             bssId;      //BSSID
+    tANI_U32                timeout; // in ms
+    tANI_U8                 rspReqd;
+    tSirAggrQosReqInfo      aggrInfo;
+}tSirAggrQosReq, *tpSirAggrQosReq;
+
+typedef struct sSirAggrQosRsp
+{
+    tANI_U16                messageType;
+    tANI_U16                length;
+    tANI_U8                 sessionId;
+    tANI_U16                tspecIdx;
+    tSirAddtsRspInfo        aggrRsp[SME_QOS_NUM_AC_MAX];
+} tSirAggrQosRsp, *tpSirAggrQosRsp;
+
+#endif/*WLAN_FEATURE_VOWIFI_11R*/
 
 typedef struct sSirSetTxPowerReq
 {

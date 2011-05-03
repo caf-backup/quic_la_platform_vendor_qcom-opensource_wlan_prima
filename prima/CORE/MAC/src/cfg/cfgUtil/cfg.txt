@@ -1057,6 +1057,17 @@ LIM
 0    120000    30000
 
 *
+* Release AID Timeout
+*
+
+WNI_CFG_RELEASE_AID_TIMEOUT    I    4    8
+NV    XX    NP
+NONE
+0    0    0
+V    RW    NP
+LIM
+0    100000    1000
+*
 * Heartbeat Threshold
 *
 
@@ -3620,6 +3631,42 @@ V    RW    NP
 HAL
 0    3    0
 
+*
+*  BTC DHCP No of Bt slots to block 
+*
+WNI_CFG_BTC_DHCP_BT_SLOTS_TO_BLOCK    I    4    7
+V    RW    NP
+HAL
+0    0xFF     0
+V    RW    NP
+HAL
+0    0xFF     0
+
+*
+*  Config parameter to Enable/Disable Dynamic PS-Poll mechanism 
+*  0: Disable, x: FW will send x number of NULL frames before switching to PS-Poll mexhanism
+*
+WNI_CFG_DYNAMIC_PS_POLL_VALUE    I    4    7
+V    RW    NP
+HAL
+0    0xFF    0
+V    RW    NP
+HAL
+0    0xFF    0
+
+*
+* PS Data InActivity Timeout (TU)
+*
+
+WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT    I    4    7
+V    RW    NP
+HAL
+0    80    0
+NV    RW    NP
+NONE
+0    80    0
+
+
 * Limit on number of associated stations
 * (applies to peer stations in IBSS, SoftAP, BT-AMP AP, & P2P-GO modes)
 *
@@ -3631,4 +3678,4 @@ LIM
 V    RW    NP
 LIM
 1    10    5
- 
+

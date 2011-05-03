@@ -29,6 +29,7 @@
 #ifdef MEMORY_DEBUG
 v_VOID_t vos_mem_init(v_VOID_t);
 v_VOID_t vos_mem_exit(v_VOID_t);
+void vos_mem_clean(void);
 #endif
 
 /*-------------------------------------------------------------------------- 

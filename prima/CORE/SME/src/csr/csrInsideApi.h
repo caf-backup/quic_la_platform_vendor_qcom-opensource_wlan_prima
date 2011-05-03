@@ -344,7 +344,9 @@ tANI_BOOLEAN csrMatchCountryCode( tpAniSirGlobal pMac, tANI_U8 *pCountry, tDot11
 eHalStatus csrRoamSetKey( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamSetKey *pSetKey, tANI_U32 roamId );
 eHalStatus csrRoamOpenSession( tpAniSirGlobal pMac, csrRoamCompleteCallback callback, void *pContext,
                           tANI_U8 *pSelfMacAddr, tANI_U8 *pbSessionId );
-eHalStatus csrRoamCloseSession( tpAniSirGlobal pMac, tANI_U32 sessionId );
+//fSync: TRUE means cleanupneeds to handle synchronously.
+eHalStatus csrRoamCloseSession( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_BOOLEAN fSync );
+void csrCleanupSession(tpAniSirGlobal pMac, tANI_U32 sessionId);
 eHalStatus csrRoamGetSessionIdFromBSSID( tpAniSirGlobal pMac, tCsrBssid *bssid, tANI_U32 *pSessionId );
 eCsrCfgDot11Mode csrFindBestPhyMode( tpAniSirGlobal pMac, tANI_U32 phyMode );
 
@@ -511,6 +513,7 @@ eHalStatus csrScanGetBaseChannels( tpAniSirGlobal pMac, tCsrChannelInfo * pChann
 //Return SUCCESS is the command is queued, failed
 eHalStatus csrQueueSmeCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fHighPriority );
 tSmeCmd *csrGetCommandBuffer( tpAniSirGlobal pMac );
+void csrReleaseCommand(tpAniSirGlobal pMac, tSmeCmd *pCommand);
 #ifdef FEATURE_WLAN_WAPI
 tANI_BOOLEAN csrIsProfileWapi( tCsrRoamProfile *pProfile );
 #endif /* FEATURE_WLAN_WAPI */

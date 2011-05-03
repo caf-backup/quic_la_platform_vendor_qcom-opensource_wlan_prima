@@ -299,6 +299,14 @@ WLANSAP_RoamCallback
             if(sapContext->nStaWPARSnReqIeLength)
                 vos_mem_copy( sapContext->pStaWpaRsnReqIE,
                               pCsrRoamInfo->prsnIE, sapContext->nStaWPARSnReqIeLength);
+
+#ifdef WLAN_FEATURE_P2P
+            sapContext->nStaP2PReqIeLength = pCsrRoamInfo->p2pIELen;
+             
+            if(sapContext->nStaP2PReqIeLength)
+                vos_mem_copy( sapContext->pStaP2PReqIE,
+                        pCsrRoamInfo->pP2PIE, sapContext->nStaP2PReqIeLength);
+#endif
             sapContext->SapQosCfg.WmmIsEnabled = pCsrRoamInfo->wmmEnabledSta;
             // MAC filtering
             vosStatus = sapIsPeerMacAllowed(sapContext, (v_U8_t *)pCsrRoamInfo->peerMac); 
@@ -312,6 +320,13 @@ WLANSAP_RoamCallback
             if (sapContext->nStaWPARSnReqIeLength)
                 vos_mem_copy( sapContext->pStaWpaRsnReqIE,
                               pCsrRoamInfo->prsnIE, sapContext->nStaWPARSnReqIeLength);
+#ifdef WLAN_FEATURE_P2P
+            sapContext->nStaP2PReqIeLength = pCsrRoamInfo->p2pIELen;
+             
+            if(sapContext->nStaP2PReqIeLength)
+                vos_mem_copy( sapContext->pStaP2PReqIE,
+                    pCsrRoamInfo->pP2PIE, sapContext->nStaP2PReqIeLength);
+#endif
             sapContext->SapQosCfg.WmmIsEnabled = pCsrRoamInfo->wmmEnabledSta;
             /* Fill in the event structure */
             vosStatus = sapSignalHDDevent( sapContext, pCsrRoamInfo, eSAP_STA_ASSOC_EVENT, (v_PVOID_t)eSAP_STATUS_SUCCESS);

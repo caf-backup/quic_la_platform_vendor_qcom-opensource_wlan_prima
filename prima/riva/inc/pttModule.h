@@ -19,12 +19,35 @@
 #ifndef PTTMODULE_H
 #define PTTMODULE_H
 
-#include "phyTest.h"
-#include <asicWfm.h>
-#include <wlan_hal_msg.h>       //this includes those types that are needed to store the associate NV tables
-#include "asicPhyDbg.h"
-#include "pttFrameGen.h"
+/* !!! FIX ME
+ * To resolve PRIMA build issue this is temp blocker
+ * this must have correct solution */
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifndef ISOC_HOST_DRIVER
+#define ISOC_HOST_DRIVER
+#endif /* ISOC_HOST_DRIVER */
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
+#ifndef ISOC_HOST_DRIVER
+#include "phyTest.h"
+#include <phyWfm.h>
+#include <wlan_hal_msg.h>       //this includes those types that are needed to store the associate NV tables
+#include "phyDbg.h"
+#include "pttFrameGen.h"
+#endif /* ISOC_HOST_DRIVER */
+
+#if defined(FEATURE_WLAN_INTEGRATED_SOC) && defined(ISOC_HOST_DRIVER)
+#include "halCompiler.h"
+
+/* Integrated SOC, Host driver build issue clear */
+#ifndef PACKED_PRE
+#define PACKED_PRE
+#endif
+
+#ifndef PACKED_POST
+#define PACKED_POST   __attribute__((packed))
+#endif
+#endif /*  FEATURE_WLAN_INTEGRATED_SOC && ISOC_HOST_DRIVER */
 
 typedef enum {
 
@@ -82,6 +105,8 @@ typedef enum eGramDumpTrigType {
    eGRAM_DUMP_TRIG_ON_11A_OR_11B
 } tGramDumpTrigType;
 
+#ifndef ISOC_HOST_DRIVER
+/* These are not needed within integrated host driver */
 typedef PACKED_PRE struct PACKED_POST {
    //common to both transmit chains
    eHalPhyRates rate;           //current rate
@@ -129,6 +154,6 @@ typedef PACKED_PRE struct PACKED_POST {
 
    sRxChainsRssi rssi;
 } tPttModuleVariables;
-
+#endif /* ISOC_HOST_DRIVER */
 
 #endif /* PTTMODULE_H */

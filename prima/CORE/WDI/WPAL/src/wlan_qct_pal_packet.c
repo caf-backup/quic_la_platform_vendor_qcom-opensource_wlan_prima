@@ -87,12 +87,13 @@ wpt_packet * wpalPacketAlloc(wpt_packet_type pktType, wpt_uint32 nPktSize)
                                        nPktSize, 1, VOS_FALSE, 
                                        NULL, NULL /*no callback*/);
 
+#ifndef FEATURE_R33D
       /* Reserve the entire raw rx buffer for DXE */
       if( vosStatus == VOS_STATUS_SUCCESS )
       {
         vosStatus =  vos_pkt_reserve_head_fast( pVosPkt, &pData, nPktSize ); 
       }
-
+#endif /* FEATURE_R33D */
       break;
 
    default:

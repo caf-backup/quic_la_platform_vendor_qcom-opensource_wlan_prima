@@ -101,8 +101,24 @@ tSirRetStatus ConvertWPAOpaque( tpAniSirGlobal      pMac,
     pOld->info[ 3 ] = 0x01;
     palCopyMemory( pMac->hHdd, pOld->info + 4, pNew->data, pOld->length );
 
-			return eSIR_SUCCESS;
-		}
+    return eSIR_SUCCESS;
+}
+
+#ifdef WLAN_FEATURE_P2P
+tSirRetStatus ConvertP2POpaque( tpAniSirGlobal      pMac,
+                                tSirP2Pie           *pOld,
+                                tDot11fIEP2PIEOpaque *pNew )
+{
+    pOld->length    = pNew->num_data + 4;
+    pOld->P2PIEdata[ 0 ] = 0x50;
+    pOld->P2PIEdata[ 1 ] = 0x6f;
+    pOld->P2PIEdata[ 2 ] = 0x9A;
+    pOld->P2PIEdata[ 3 ] = 0x09;
+    palCopyMemory( pMac->hHdd, pOld->P2PIEdata + 4, pNew->data, pOld->length );
+
+    return eSIR_SUCCESS;
+}
+#endif
 
 tSirRetStatus ConvertRSN(tpAniSirGlobal  pMac,
                                tSirMacRsnInfo *pOld,

@@ -59,7 +59,7 @@ int hdd_softap_unpackIE( tHalHandle halHandle,
                 u_int16_t gen_ie_len, 
                 u_int8_t *gen_ie );
 
-#ifdef FEATURE_WLAN_SOFTAP
+#ifdef WLAN_SOFTAP_FEATURE
 VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCallback);
 VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter );
 void hdd_set_ap_ops( struct net_device *pWlanHostapdDev );

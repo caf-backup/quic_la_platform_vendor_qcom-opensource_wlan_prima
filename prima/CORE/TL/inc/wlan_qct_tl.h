@@ -498,7 +498,6 @@ typedef VOS_STATUS (*WLANTL_TxCompCBType)( v_PVOID_t      pvosGCtx,
 /*----------------------------------------------------------------------------
     INTERACTION WITH HDD
  ---------------------------------------------------------------------------*/
-
 /*----------------------------------------------------------------------------
 
   DESCRIPTION   
@@ -879,6 +878,32 @@ WLANTL_Close
 /*----------------------------------------------------------------------------
     INTERACTION WITH HDD
  ---------------------------------------------------------------------------*/
+/*==========================================================================
+
+  FUNCTION    WLANTL_ConfigureSwFrameTXXlationForAll
+
+  DESCRIPTION
+     Function to disable/enable frame translation for all association stations.
+
+  DEPENDENCIES
+
+  PARAMETERS
+   IN
+    pvosGCtx:           VOS context 
+    EnableFrameXlation TRUE means enable SW translation for all stations.
+    .
+
+  RETURN VALUE
+
+   void.
+
+============================================================================*/
+void
+WLANTL_ConfigureSwFrameTXXlationForAll
+(
+  v_PVOID_t pvosGCtx, 
+  v_BOOL_t enableFrameXlation
+);
 
 /*===========================================================================
 
@@ -2271,6 +2296,43 @@ VOS_STATUS WLANTL_GetSoftAPStatistics(v_PVOID_t pAdapter, WLANTL_TRANSFER_STA_TY
 #ifdef __cplusplus
  }
 #endif 
+
+
+ /*===========================================================================
+
+  FUNCTION    WLANTL_AssocFailed
+
+  DESCRIPTION
+
+    This function is used by PE to notify TL that cache needs to flushed
+    when association is not successfully completed 
+
+    Internally, TL post a message to TX_Thread to serialize the request to 
+    keep lock-free mechanism.
+
+   
+  DEPENDENCIES
+
+    TL must have been initialized before this gets called.
+
+   
+  PARAMETERS
+
+   ucSTAId:   station id 
+
+  RETURN VALUE
+
+   none
+   
+  SIDE EFFECTS
+   There may be race condition that PE call this API and send another association
+   request immediately with same staId before TX_thread can process the message.
+
+   To avoid this, we might need PE to wait for TX_thread process the message,
+   but this is not currently implemented. 
+   
+============================================================================*/
+void WLANTL_AssocFailed(v_U8_t staId);
 
 
 /*===============================================================================

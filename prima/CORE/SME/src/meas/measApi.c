@@ -76,12 +76,11 @@ eHalStatus measInNavClose(tHalHandle hHal)
             break;
         }
 
-        //initialize all the variables to null
-        vos_mem_set(&(pMac->innavMeas), sizeof(tMeasInNavMeasurementStruct), 0);
-        
         //free the timer for the measurement 
         palTimerFree(pMac->hHdd, pMac->innavMeas.hTimerMeasurement);
-
+        
+        //initialize all the variables to null
+        vos_mem_set(&(pMac->innavMeas), sizeof(tMeasInNavMeasurementStruct), 0);
     } while(0);
 
     return eHAL_STATUS_SUCCESS;
@@ -575,7 +574,11 @@ eHalStatus measIsInNavAllowed(tHalHandle hHal)
     {
         if(CSR_IS_SESSION_VALID(pMac, sessionId))
         {
-            if(csrIsConnStateIbss(pMac, sessionId) || csrIsBTAMP(pMac, sessionId) || csrIsConnStateConnectedInfraAp(pMac, sessionId))
+            if(csrIsConnStateIbss(pMac, sessionId) || csrIsBTAMP(pMac, sessionId) 
+#ifdef WLAN_SOFTAP_FEATURE
+               || csrIsConnStateConnectedInfraAp(pMac, sessionId)
+#endif
+               )
             {
                 //co-exist with IBSS or BT-AMP or Soft-AP mode is not supported
                 smsLog(pMac, LOGW, "INNAV is not allowed due to IBSS|BTAMP|SAP exist in session %d\n", sessionId);

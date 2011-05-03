@@ -376,6 +376,12 @@ limCheckMCSSet(tpAniSirGlobal pMac, tANI_U8* supportedMCSSet)
 
 #ifdef WLAN_SOFTAP_FEATURE
 
+#define SECURITY_SUITE_TYPE_MASK 0xFF
+#define SECURITY_SUITE_TYPE_WEP40 0x1
+#define SECURITY_SUITE_TYPE_TKIP 0x2
+#define SECURITY_SUITE_TYPE_CCMP 0x4
+#define SECURITY_SUITE_TYPE_WEP104 0x4
+
 /**
  * limCheckRxRSNIeMatch()
  *
@@ -399,10 +405,11 @@ limCheckMCSSet(tpAniSirGlobal pMac, tANI_U8* supportedMCSSet)
  */
 
 tANI_U8
-limCheckRxRSNIeMatch(tpAniSirGlobal pMac, tDot11fIERSN rxRSNIe,tpPESession pSessionEntry)
+limCheckRxRSNIeMatch(tpAniSirGlobal pMac, tDot11fIERSN rxRSNIe,tpPESession pSessionEntry, tANI_U8 staIsHT)
 {
     tDot11fIERSN    *pRSNIe;
-    tANI_U8         i, j, match;
+    tANI_U8         i, j, match, onlyNonHtCipher = 1;
+
 
     //RSN IE should be received from PE
     pRSNIe = &pSessionEntry->gStartBssRSNIe;
@@ -433,9 +440,20 @@ limCheckRxRSNIeMatch(tpAniSirGlobal pMac, tDot11fIERSN rxRSNIe,tpPESession pSess
                 break;
             }
         }
+
+        if ((staIsHT) 
+#ifdef ANI_LITTLE_BYTE_ENDIAN
+            &&( (rxRSNIe.pwise_cipher_suites[i][3] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
+#else
+            &&( (rxRSNIe.pwise_cipher_suites[i][0] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
+#endif            
+        {
+             onlyNonHtCipher=0;
+        }
+
     }
 
-    if (!match)
+    if ((!match) || ((staIsHT) && onlyNonHtCipher))
     {
         return eSIR_MAC_INVALID_PAIRWISE_CIPHER_STATUS;
     }
@@ -471,10 +489,10 @@ limCheckRxRSNIeMatch(tpAniSirGlobal pMac, tDot11fIERSN rxRSNIe,tpPESession pSess
  */
 
 tANI_U8
-limCheckRxWPAIeMatch(tpAniSirGlobal pMac, tDot11fIEWPA rxWPAIe,tpPESession pSessionEntry)
+limCheckRxWPAIeMatch(tpAniSirGlobal pMac, tDot11fIEWPA rxWPAIe,tpPESession pSessionEntry, tANI_U8 staIsHT)
 {
     tDot11fIEWPA    *pWPAIe;
-    tANI_U8         i, j, match;
+    tANI_U8         i, j, match, onlyNonHtCipher = 1;
 
     // WPA IE should be received from PE
     pWPAIe = &pSessionEntry->gStartBssWPAIe;
@@ -505,9 +523,20 @@ limCheckRxWPAIeMatch(tpAniSirGlobal pMac, tDot11fIEWPA rxWPAIe,tpPESession pSess
                 break;
             }
         }
+
+        if ((staIsHT) 
+#ifdef ANI_LITTLE_BYTE_ENDIAN
+            &&( (rxWPAIe.unicast_ciphers[i][3] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
+#else
+            &&( (rxWPAIe.unicast_ciphers[i][0] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
+#endif            
+        {
+             onlyNonHtCipher=0;
+        }
+
     }
 
-    if (!match)
+    if ((!match) || ((staIsHT) && onlyNonHtCipher))
     {
         return eSIR_MAC_CIPHER_SUITE_REJECTED_STATUS;
     }
@@ -607,6 +636,8 @@ limCleanupRxPath(tpAniSirGlobal pMac, tpDphHashNode pStaDs,tpPESession psessionE
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, eLIM_MLM_WT_DEL_STA_RSP_STATE));
         psessionEntry->limMlmState = eLIM_MLM_WT_DEL_STA_RSP_STATE;
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, eLIM_MLM_WT_DEL_STA_RSP_STATE));
+        /* Deactivating probe after heart beat timer */
+        limDeactivateAndChangeTimer(pMac, eLIM_PROBE_AFTER_HB_TIMER);
         limHeartBeatDeactivateAndChangeTimer(pMac, psessionEntry);
         limDeactivateAndChangeTimer(pMac, eLIM_KEEPALIVE_TIMER);
         pMac->lim.gLastBeaconDtimCount = 0;
@@ -2258,7 +2289,7 @@ tSirRetStatus limAddFTStaSelf(tpAniSirGlobal pMac, tANI_U16 assocId, tpPESession
 
     psessionEntry->limPrevMlmState = psessionEntry->limMlmState;
     psessionEntry->limMlmState = eLIM_MLM_WT_ADD_STA_RSP_STATE;
-    if( eSIR_SUCCESS != (retCode = halPostMsgApi( pMac, &msgQ )))
+    if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
     {
         limLog( pMac, LOGE, FL("Posting ADD_STA_REQ to HAL failed, reason=%X\n"), retCode );
         palFreeMemory(pMac->hHdd, (void*)pAddStaParams);
@@ -2567,7 +2598,7 @@ limDeleteDphHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_U16 staId,t
 #endif         
 
             if(eLIM_STA_IN_IBSS_ROLE == systemRole)
-                limIbssDecideProtectionOnDelete(pMac, pStaDs, &beaconParams,psessionEntry);
+                limIbssDecideProtectionOnDelete(pMac, pStaDs, &beaconParams, psessionEntry);
 
 			limDecideShortPreamble(pMac, pStaDs, &beaconParams, psessionEntry);
             limDecideShortSlot(pMac, pStaDs, &beaconParams, psessionEntry);

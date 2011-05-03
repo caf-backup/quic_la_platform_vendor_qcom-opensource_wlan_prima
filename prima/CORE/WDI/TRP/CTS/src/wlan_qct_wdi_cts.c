@@ -126,7 +126,15 @@ typedef struct
 /*----------------------------------------------------------------------------
  * Static Variable Definitions
  * -------------------------------------------------------------------------*/
+#ifdef FEATURE_R33D
+/* R33D will not close SMD port
+ * If receive close request from WDI, just pretend as port closed,
+ * Store control block info static memory, and reuse next open */
+static WCTS_ControlBlockType  *ctsCB;
 
+/* If port open once, not try to actual open next time */
+static int                     port_open = 0;
+#endif /* FEATURE_R33D */
 /*----------------------------------------------------------------------------
  * Static Function Declarations and Definitions
  * -------------------------------------------------------------------------*/
@@ -547,6 +555,19 @@ WCTS_OpenTransport
       return NULL;
    }
 
+#ifdef FEATURE_R33D
+   if(port_open)
+   {
+      /* Port open before, not need to open again */
+      /* notified registered client that the channel is open */
+      ctsCB->wctsState = WCTS_STATE_OPEN;
+      ctsCB->wctsNotifyCB((WCTS_HandleType)ctsCB,
+                           WCTS_EVENT_OPEN,
+                           ctsCB->wctsNotifyCBData);
+      return (WCTS_HandleType)ctsCB;
+   }
+#endif /* FEATURE_R33D */
+
    /* allocate a ControlBlock to hold all context */
    pWCTSCb = wpalMemoryAllocate(sizeof(*pWCTSCb));
    if (NULL == pWCTSCb) {
@@ -557,6 +578,8 @@ WCTS_OpenTransport
 
 #ifdef FEATURE_R33D
    smd_init(0);
+   port_open = 1;
+   ctsCB = pWCTSCb;
 #endif /* FEATURE_R33D */
 
    /* save the user-supplied information */
@@ -638,6 +661,18 @@ WCTS_CloseTransport
                  "WCTS_CloseTransport: Invalid parameters received.");
       return eWLAN_PAL_STATUS_E_INVAL;
    }
+
+#ifdef FEATURE_R33D
+   /* Not actually close port, just pretend */
+   /* notified registered client that the channel is closed */
+   pWCTSCb->wctsState = WCTS_STATE_CLOSED;
+   pWCTSCb->wctsNotifyCB((WCTS_HandleType)pWCTSCb,
+                         WCTS_EVENT_CLOSE,
+                         pWCTSCb->wctsNotifyCBData);
+
+   printk(KERN_ERR "R33D Not need to close");
+   return eWLAN_PAL_STATUS_SUCCESS;
+#endif /* FEATURE_R33D */
 
    /*Free the buffers in the pending queue.*/
    while (eWLAN_PAL_STATUS_SUCCESS ==

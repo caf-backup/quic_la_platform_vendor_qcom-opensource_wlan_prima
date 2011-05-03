@@ -185,6 +185,8 @@ eHalStatus pmcStart (tHalHandle hHal)
     pMac->pmc.uapsdSessionRequired = FALSE;
     pMac->pmc.wowlModeRequired = FALSE;
     pMac->pmc.bmpsRequestedByHdd = FALSE;
+    pMac->pmc.remainInPowerActiveTillDHCP = FALSE;
+    pMac->pmc.remainInPowerActiveThreshold = 0;
 
     /* WLAN Switch initial states. */
     pMac->pmc.hwWlanSwitchState = ePMC_SWITCH_ON;
@@ -1028,7 +1030,7 @@ eHalStatus pmcRequestFullPower (tHalHandle hHal, void (*callbackRoutine) (void *
         pEntry->callbackContext = callbackContext;
 
         /* Add entry to list. */
-        csrLLInsertTail(&pMac->pmc.requestFullPowerList, &pEntry->link, FALSE);
+        csrLLInsertTail(&pMac->pmc.requestFullPowerList, &pEntry->link, TRUE);
     }
 
     return eHAL_STATUS_PMC_PENDING;

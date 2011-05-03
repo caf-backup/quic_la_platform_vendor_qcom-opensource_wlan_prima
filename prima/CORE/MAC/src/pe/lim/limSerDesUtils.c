@@ -1402,6 +1402,11 @@ limStartBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStartBssReq pStartBssReq, tANI
         return eSIR_FAILURE;
 
 #endif
+    // Extract bssPersona
+    pStartBssReq->bssPersona = *pBuf++;
+    len--;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
 
     // Extract rsnIe
     pStartBssReq->rsnIE.length = limGetU16(pBuf);
@@ -1706,6 +1711,12 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
+    // Extract bssPersona
+    pJoinReq->staPersona = *pBuf++;
+    len--;
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+
     // Extract uapsdPerAcBitmask
     pJoinReq->uapsdPerAcBitmask = *pBuf++;
     len--;
@@ -1769,6 +1780,33 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
         if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
             return eSIR_FAILURE;
     }
+
+#ifdef WLAN_FEATURE_P2P
+    pJoinReq->p2pIE.length = limGetU16(pBuf);
+    pBuf += sizeof(tANI_U16);
+    len -= sizeof(tANI_U16);
+
+    if (pJoinReq->p2pIE.length)
+    {
+        // Check for RSN IE length (that includes length of type & length)
+        if (pJoinReq->p2pIE.length &&
+            ((pJoinReq->p2pIE.length > SIR_MAC_MAX_IE_LENGTH + 2) ||
+             (pJoinReq->p2pIE.length != 2 + *(pBuf + 1))))
+        {
+            limLog(pMac, LOGE,
+                   FL("Invalid P2P IE length %d in SME_JOIN_REQ\n"),
+                   pJoinReq->p2pIE.length);
+            return eSIR_FAILURE;
+        }
+        // Check for P2P IE length (that includes length of type & length)
+        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->p2pIE.P2PIEdata,
+                      pBuf, pJoinReq->p2pIE.length);
+        pBuf += pJoinReq->p2pIE.length;
+        len  -= pJoinReq->p2pIE.length; // skip RSN IE
+        if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+            return eSIR_FAILURE;
+    }
+#endif
 
     pJoinReq->MCEncryptionType = limGetU32(pBuf);
     pBuf += sizeof(tANI_U32);
@@ -2512,6 +2550,16 @@ limReassocIndSerDes(tpAniSirGlobal pMac, tpLimMlmReassocInd pReassocInd, tANI_U8
     pBuf += pReassocInd->rsnIE.length;
     mLen += pReassocInd->rsnIE.length;
 
+#ifdef WLAN_FEATURE_P2P
+    limCopyU16(pBuf, pReassocInd->p2pIE.length);
+    pBuf += sizeof(tANI_U16);
+    mLen += sizeof(tANI_U16);
+    palCopyMemory( pMac->hHdd, pBuf, (tANI_U8*) &(pReassocInd->p2pIE.P2PIEdata),
+                   pReassocInd->p2pIE.length);
+    pBuf += pReassocInd->p2pIE.length;
+    mLen += pReassocInd->p2pIE.length;
+#endif
+
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
 
     limCopyU16(pBuf, pReassocInd->seqNum);
@@ -3018,6 +3066,12 @@ limDisassocReqSerDes(tpAniSirGlobal pMac, tSirSmeDisassocReq *pDisassocReq, tANI
     pDisassocReq->reasonCode = limGetU16(pBuf);
     pBuf += sizeof(tANI_U16);
     len  -= sizeof(tANI_U16);
+    if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+        return eSIR_FAILURE;
+
+    pDisassocReq->doNotSendOverTheAir = *pBuf;
+    pBuf += sizeof(tANI_U8);
+    len -= sizeof(tANI_U8);
 
 #if defined(ANI_PRODUCT_TYPE_AP)
     pDisassocReq->aid = limGetU16(pBuf);

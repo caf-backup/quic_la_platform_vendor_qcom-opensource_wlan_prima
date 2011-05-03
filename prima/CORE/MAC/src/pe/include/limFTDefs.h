@@ -57,6 +57,16 @@ typedef struct sSirFTPreAuthRsp
    tANI_U8     ric_ies[MAX_FTIE_SIZE];
 } tSirFTPreAuthRsp, *tpSirFTPreAuthRsp;
 
+/*-------------------------------------------------------------------------- 
+  FT Pre Auth Req SME<->PE 
+  ------------------------------------------------------------------------*/
+typedef struct sSirFTUpdateKeyInfo
+{
+   tANI_U16          messageType;
+   tANI_U16          length;
+   tSirKeyMaterial   keyMaterial;
+} tSirFTUpdateKeyInfo, *tpSirFTUpdateKeyInfo;
+
 /*-------------------------------------------------------------------------
   Global FT Information 
   ------------------------------------------------------------------------*/

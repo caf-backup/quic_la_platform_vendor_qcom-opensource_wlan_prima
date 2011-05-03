@@ -22,7 +22,7 @@
 #include "vos_api.h"
 #include "wlan_hdd_misc.h"
 #include "vos_sched.h"
-
+ 
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -319,6 +319,8 @@ typedef struct nvEFSTable_s
    sHalNv     halnv;
 } nvEFSTable_t;
 nvEFSTable_t *gnvEFSTable=NULL;
+/* EFS Table  to send the NV structure to HAL*/ 
+static nvEFSTable_t *pnvEFSTable =NULL;
 
 const tRfChannelProps rfChannels[NUM_RF_CHANNELS] =
 {
@@ -366,18 +368,148 @@ VOS_STATUS vos_nv_open(void)
     VOS_STATUS status = VOS_STATUS_SUCCESS;
     v_CONTEXT_t pVosContext= NULL;
     v_SIZE_t bufSize;
+    v_BOOL_t itemIsValid = VOS_FALSE;
+    
     /*Get the global context */
     pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
     bufSize = sizeof(nvEFSTable_t);
-    status = hdd_request_firmware(LIBRA_NV_FILE,((VosContextType*)(pVosContext))->pHDDContext,(v_VOID_t**)&gnvEFSTable,&bufSize);
+    status = hdd_request_firmware(LIBRA_NV_FILE,
+                                  ((VosContextType*)(pVosContext))->pHDDContext,
+                                  (v_VOID_t**)&gnvEFSTable, &bufSize);
 
     if ( (!VOS_IS_STATUS_SUCCESS( status )) || !gnvEFSTable)
     {
-        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                         "%s : vos_nv_open failed!!! make sure the qcom_wlan_nv.bin is present in persist directory\n",__func__);
-
-        return VOS_STATUS_E_FAILURE;
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
+         "%s : hdd_request_firmware failed to read the qct_wlan_nv.bin \n",__func__);
     }
+
+     /* Copying the read nv data to the globa NV EFS table */
+    {
+        /* Allocate memory to global NV table */
+        pnvEFSTable = (nvEFSTable_t *)vos_mem_malloc(sizeof(nvEFSTable_t));
+        /*Copying the NV defaults */
+        vos_mem_copy(&(pnvEFSTable->halnv),&nvDefaults,sizeof(sHalNv));
+        pnvEFSTable->nvValidityBitmap = gnvEFSTable->nvValidityBitmap;
+
+        /* Copy the valid fields to the NV Global structure */ 
+        if (vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid) == 
+           VOS_STATUS_SUCCESS)
+        {
+            if (itemIsValid == VOS_TRUE) {
+
+                if(vos_nv_read( VNV_FIELD_IMAGE, (v_VOID_t *)&pnvEFSTable->halnv.fields,
+                   NULL, sizeof(sNvFields) ) != VOS_STATUS_SUCCESS)
+                   return (eHAL_STATUS_FAILURE);
+            }
+        }
+
+        if (vos_nv_getValidity(VNV_RATE_TO_POWER_TABLE, &itemIsValid) == 
+             VOS_STATUS_SUCCESS)
+        {
+            if (itemIsValid == VOS_TRUE)
+            {
+                if(vos_nv_read( VNV_RATE_TO_POWER_TABLE, 
+                  (v_VOID_t *)&pnvEFSTable->halnv.tables.pwrOptimum[0],
+                  NULL, sizeof(tRateGroupPwr) * NUM_RF_SUBBANDS ) != VOS_STATUS_SUCCESS)
+               return (eHAL_STATUS_FAILURE);
+            }
+        }
+
+        if (vos_nv_getValidity(VNV_REGULARTORY_DOMAIN_TABLE, &itemIsValid) == 
+               VOS_STATUS_SUCCESS)
+        {
+    
+            if (itemIsValid == VOS_TRUE)
+            {
+                if(vos_nv_read( VNV_REGULARTORY_DOMAIN_TABLE,
+                (v_VOID_t *)&pnvEFSTable->halnv.tables.regDomains[0],
+                 NULL, sizeof(sRegulatoryDomains) * NUM_REG_DOMAINS ) != VOS_STATUS_SUCCESS)
+                    return (eHAL_STATUS_FAILURE);
+            }
+        }
+
+        if (vos_nv_getValidity(VNV_DEFAULT_LOCATION, &itemIsValid) == 
+            VOS_STATUS_SUCCESS)
+        {
+            if (itemIsValid == VOS_TRUE)
+            {
+                if(vos_nv_read( VNV_DEFAULT_LOCATION,
+                (v_VOID_t *)&pnvEFSTable->halnv.tables.defaultCountryTable,
+                NULL, sizeof(sDefaultCountry) ) !=  VOS_STATUS_SUCCESS)
+                     return (eHAL_STATUS_FAILURE);
+            }
+        }
+    
+        if (vos_nv_getValidity(VNV_TPC_POWER_TABLE, &itemIsValid) == 
+            VOS_STATUS_SUCCESS)
+        {
+            if (itemIsValid == VOS_TRUE)
+            {
+                if(vos_nv_read( VNV_TPC_POWER_TABLE, 
+                  (v_VOID_t *)&pnvEFSTable->halnv.tables.plutCharacterized[0],
+                  NULL, sizeof(tTpcPowerTable) * NUM_2_4GHZ_CHANNELS ) != VOS_STATUS_SUCCESS)
+                     return (eHAL_STATUS_FAILURE);
+            }
+        }
+    
+        if (vos_nv_getValidity(VNV_TPC_PDADC_OFFSETS, &itemIsValid) == 
+            VOS_STATUS_SUCCESS)
+        {
+            if (itemIsValid == VOS_TRUE)
+            {
+                if(vos_nv_read( VNV_TPC_PDADC_OFFSETS,
+                  (v_VOID_t *)&pnvEFSTable->halnv.tables.plutPdadcOffset[0],
+                  NULL, sizeof(tANI_U16) * NUM_2_4GHZ_CHANNELS ) != VOS_STATUS_SUCCESS)
+                     return (eHAL_STATUS_FAILURE);
+            }
+        }
+        if (vos_nv_getValidity(VNV_RSSI_CHANNEL_OFFSETS, &itemIsValid) == 
+           VOS_STATUS_SUCCESS)
+        {
+            if (itemIsValid == VOS_TRUE)
+            {
+                if(vos_nv_read( VNV_RSSI_CHANNEL_OFFSETS,
+                  (v_VOID_t *)&pnvEFSTable->halnv.tables.rssiChanOffsets[0],
+                  NULL, sizeof(sRssiChannelOffsets) * 2 ) != VOS_STATUS_SUCCESS)
+                     return (eHAL_STATUS_FAILURE);
+            }
+        }
+    
+        if (vos_nv_getValidity(VNV_RF_CAL_VALUES, &itemIsValid) == 
+         VOS_STATUS_SUCCESS)
+        {
+            if (itemIsValid == VOS_TRUE)
+            {
+                if(vos_nv_read( VNV_RF_CAL_VALUES, (v_VOID_t *)&pnvEFSTable->halnv
+    .tables.rFCalValues, NULL, sizeof(sRFCalValues) ) != VOS_STATUS_SUCCESS)
+                     return (eHAL_STATUS_FAILURE);
+            }
+        }
+
+        if (vos_nv_getValidity(VNV_ANTENNA_PATH_LOSS, &itemIsValid) == 
+         VOS_STATUS_SUCCESS)
+        {
+            if (itemIsValid == VOS_TRUE)
+            {
+                if(vos_nv_read( VNV_ANTENNA_PATH_LOSS,
+                  (v_VOID_t *)&pnvEFSTable->halnv.tables.antennaPathLoss[0], NULL, 
+                sizeof(tANI_S16)*NUM_2_4GHZ_CHANNELS ) != VOS_STATUS_SUCCESS)
+                     return (eHAL_STATUS_FAILURE);
+            }
+        }
+        if (vos_nv_getValidity(VNV_PACKET_TYPE_POWER_LIMITS, &itemIsValid) == 
+         VOS_STATUS_SUCCESS)
+        {
+            if (itemIsValid == VOS_TRUE)
+            {
+                if(vos_nv_read( VNV_PACKET_TYPE_POWER_LIMITS, 
+                  (v_VOID_t *)&pnvEFSTable->halnv.tables.pktTypePwrLimits[0], NULL, 
+                sizeof(tANI_S16)*NUM_802_11_MODES*NUM_2_4GHZ_CHANNELS ) != VOS_STATUS_SUCCESS)
+                     return (eHAL_STATUS_FAILURE);
+            }
+        }
+      }
+
     return VOS_STATUS_SUCCESS;
 }
 
@@ -1030,7 +1162,7 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_readRegulatoryDomainTable ( uNvTables *tableData )
 {
-   sNvTables nvTable;
+   static sNvTables nvTable;
    VOS_STATUS status;
 
    status = vos_nv_read( VNV_REGULARTORY_DOMAIN_TABLE, &nvTable, NULL, sizeof(nvTable) );
@@ -1140,7 +1272,7 @@ VOS_STATUS vos_nv_getSupportedChannels( v_U8_t *p20MhzChannels, int *pNum20MhzCh
 VOS_STATUS vos_nv_readDefaultCountryTable( uNvTables *tableData )
 {
    
-   sNvTables nvTable;
+   static sNvTables nvTable;
    VOS_STATUS status;
 
    status = vos_nv_read( VNV_DEFAULT_LOCATION, &nvTable, NULL, sizeof(nvTable) );
@@ -1152,5 +1284,20 @@ VOS_STATUS vos_nv_readDefaultCountryTable( uNvTables *tableData )
 
    return status;
 }
+/**------------------------------------------------------------------------
+  \brief vos_nv_getBuffer - 
+  \param pBuffer  - to return the buffer address
+              pSize     - buffer size.
+  \return status of the NV read operation
+  \sa
+  -------------------------------------------------------------------------*/
+VOS_STATUS vos_nv_getNVBuffer(v_VOID_t **pNvBuffer,v_SIZE_t *pSize)
+{
 
+   /* Send the NV structure and size */
+   *pNvBuffer = (v_VOID_t *)(&pnvEFSTable->halnv);
+   *pSize = sizeof(sHalNv);
+
+   return VOS_STATUS_SUCCESS;
+}
 

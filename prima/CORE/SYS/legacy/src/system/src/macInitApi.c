@@ -93,7 +93,7 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
 
    if (NULL == pMac)
    {
-      sysLog(pMac, LOGE, FL("pMac is NULL\n"));
+      VOS_ASSERT(0);
       status = eSIR_FAILURE;
       return status;
    }
@@ -142,7 +142,7 @@ tSirRetStatus macStart(tHalHandle hHal, void* pHalMacStartParams)
 
 	 if(NULL == pMac)
      {
-         sysLog(pMac, LOGE, FL("pMac is NULL\n"));
+         VOS_ASSERT(0);
          status = eSIR_FAILURE;
          return status;
      }

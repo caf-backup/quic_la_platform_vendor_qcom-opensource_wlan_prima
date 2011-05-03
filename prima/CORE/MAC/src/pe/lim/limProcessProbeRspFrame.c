@@ -111,7 +111,7 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
         (pMac->lim.gLimMlmState == eLIM_MLM_LEARN_STATE) ||            //mlm state check should be global - 18th oct 
         (psessionEntry->limMlmState == eLIM_MLM_WT_JOIN_BEACON_STATE) ||
         (psessionEntry->limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE) )||
-        ((psessionEntry->limMlmState == eLIM_STA_IN_IBSS_ROLE) &&
+        ((GET_LIM_SYSTEM_ROLE(psessionEntry) == eLIM_STA_IN_IBSS_ROLE) &&
          (psessionEntry->limMlmState == eLIM_MLM_BSS_STARTED_STATE)))
     {
         frameLen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);

@@ -36,10 +36,7 @@ VOS_STATUS hdd_read_cfg_file(v_VOID_t *pCtx, char *pFileName, v_VOID_t *pBuffer,
 
 #endif
 
-#ifdef WLAN_SOFTAP_FEATURE
-
-VOS_CON_MODE hdd_get_conparam ( void );
-#endif
+VOS_CONCURRENCY_MODE hdd_get_concurrency_mode ( void );
 
 #endif /* WLAN_HDD_MISC_H */
 

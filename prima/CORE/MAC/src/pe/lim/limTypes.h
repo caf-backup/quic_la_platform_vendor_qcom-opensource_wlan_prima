@@ -233,6 +233,10 @@ typedef struct sLimMlmAssocInd
     tSirSupChnl             supportedChannels;
 	tANI_U8					sessionId;
 
+#ifdef WLAN_FEATURE_P2P 
+    tSirP2Pie            p2pIE;      // p2pIE to be sent
+#endif
+
 #ifdef WLAN_SOFTAP_FEATURE
     tAniBool               WmmStaInfoPresent;
 #endif
@@ -283,6 +287,10 @@ typedef struct sLimMlmReassocInd
     tAniBool                spectrumMgtIndicator;
     tSirMacPowerCapInfo     powerCap;
     tSirSupChnl             supportedChannels;
+
+#ifdef WLAN_FEATURE_P2P 
+    tSirP2Pie            p2pIE;      // p2pIE to be sent
+#endif
 
 #ifdef WLAN_SOFTAP_FEATURE
     tAniBool               WmmStaInfoPresent;
@@ -848,8 +856,6 @@ void limProcessMlmHalBADeleteInd( tpAniSirGlobal pMac,
     tpSirMsgQ limMsgQ );
 
 void limProcessMlmRemoveKeyRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ );
-
-void limProcessSetMimoRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg);
 
 void limProcessLearnIntervalTimeout(tpAniSirGlobal pMac);
 

@@ -37,6 +37,7 @@
 #include <linux/etherdevice.h>
 #include <linux/if_vlan.h>
 #include <linux/ip.h>
+#include <wlan_hdd_hostapd.h>
 
 // change logging behavior based upon debug flag
 #ifdef HDD_WMM_DEBUG
@@ -77,6 +78,18 @@ const v_U8_t hddWmmUpToAcMap[] = {
    WLANTL_AC_VO,
    WLANTL_AC_VO
 };
+
+//Linux based UP -> AC Mapping
+static const v_U8_t hddLinuxUpToAcMap[8] = {
+   HDD_LINUX_AC_BE,
+   HDD_LINUX_AC_BK,
+   HDD_LINUX_AC_BK,
+   HDD_LINUX_AC_BE,
+   HDD_LINUX_AC_VI,
+   HDD_LINUX_AC_VI,
+   HDD_LINUX_AC_VO,
+   HDD_LINUX_AC_VO
+}; 
 
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
 /**
@@ -1351,10 +1364,9 @@ VOS_STATUS hdd_wmm_adapter_close ( hdd_adapter_t* pAdapter )
   @param skb      : [in]  pointer to OS packet (sk_buff) 
   @param pAcType  : [out] pointer to WMM AC type of OS packet
 
-  @return         : FALSE if any errors encountered
-                  : TRUE otherwise
+  @return         : None
   ===========================================================================*/
-v_BOOL_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
+v_VOID_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
                                 struct sk_buff *skb,
                                 WLANTL_ACEnumType* pAcType,
                                 sme_QosWmmUpType *pUserPri)
@@ -1528,7 +1540,98 @@ v_BOOL_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
    *pUserPri = userPri;
    *pAcType = acType;
 
-   return VOS_TRUE;
+   return;
+}
+
+/**============================================================================
+  @brief hdd_hostapd_select_quueue() - Function which will classify the packet
+	 accoring to linux qdisc expectation.
+
+
+  @param dev      : [in]  pointer to net_device structure
+  @param skb      : [in]  pointer to os packet
+
+  @return         : Qdisc queue index
+  ===========================================================================*/
+v_U16_t hdd_hostapd_select_queue(struct net_device * dev, struct sk_buff *skb)
+{
+   WLANTL_ACEnumType ac;
+   sme_QosWmmUpType up = SME_QOS_WMM_UP_BE;
+   v_USHORT_t queueIndex;   
+   v_MACADDR_t *pDestMacAddress = (v_MACADDR_t*)skb->data;
+   hdd_adapter_t *pAdapter = (hdd_adapter_t *)netdev_priv(dev);
+   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
+   tpAniSirGlobal  pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_HAL, pHddCtx->pvosContext);   
+#endif //FEATURE_WLAN_NON_INTEGRATED_SOC
+   v_U8_t STAId;
+   v_U8_t *pSTAId = (v_U8_t *)&skb->cb;
+    
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
+   //FIXME_PRIMA: need STA-table lookup
+   /*Get the Station ID*/
+   if (eHAL_STATUS_SUCCESS != halTable_FindStaidByAddr(pMac, (tANI_U8 *)pDestMacAddress, &STAId))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+            "%s: Failed to find right station", __FUNCTION__);
+      *pSTAId = HDD_WLAN_INVALID_STA_ID; 
+      goto done; 
+   }
+#else
+   STAId = 0; // suppress subscript out of range error
+#endif //FEATURE_WLAN_NON_INTEGRATED_SOC
+   
+   if (FALSE == vos_is_macaddr_equal(&pAdapter->aStaInfo[STAId].macAddrSTA, pDestMacAddress))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Station MAC address does not matching", __FUNCTION__);	  
+      
+      *pSTAId = HDD_WLAN_INVALID_STA_ID; 
+      goto done;
+   }
+   if (pAdapter->aStaInfo[STAId].isUsed && pAdapter->aStaInfo[STAId].isQosEnabled && (HDD_WMM_USER_MODE_NO_QOS != pHddCtx->cfg_ini->WmmMode))
+   {
+      /* Get the user priority from IP header & corresponding AC */	
+      hdd_wmm_classify_pkt (pAdapter, skb, &ac, &up);
+   }
+   *pSTAId = STAId;
+
+done:
+   skb->priority = up;
+   queueIndex = hddLinuxUpToAcMap[skb->priority];
+
+   return queueIndex;
+}
+
+/**============================================================================
+  @brief hdd_wmm_select_quueue() - Function which will classify the packet
+	 accoring to linux qdisc expectation.
+
+
+  @param dev      : [in]  pointer to net_device structure
+  @param skb      : [in]  pointer to os packet
+
+  @return         : Qdisc queue index
+  ===========================================================================*/
+v_U16_t hdd_wmm_select_queue(struct net_device * dev, struct sk_buff *skb)
+{
+   WLANTL_ACEnumType ac;
+   sme_QosWmmUpType up = 0;
+   v_USHORT_t queueIndex;
+
+   hdd_adapter_t *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+
+   // if we don't want QoS or the AP doesn't support Qos
+   // All traffic will get equal opportuniy to transmit data frames.
+   if( hdd_wmm_is_active(pAdapter) ) {
+      /* Get the user priority from IP header & corresponding AC */
+      hdd_wmm_classify_pkt (pAdapter, skb, &ac, &up);
+   }
+
+   skb->priority = up;
+   queueIndex = hddLinuxUpToAcMap[skb->priority];
+
+   return queueIndex;
 }
 
 /**============================================================================

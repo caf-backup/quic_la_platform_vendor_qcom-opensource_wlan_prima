@@ -89,8 +89,8 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
     reasonCode = sirReadU16(pBody);
 
     PELOGE(limLog(pMac, LOGE,
-        FL("Received Disassoc frame (mlm state %d), with reason code %d from \n"), 
-        pMac->lim.gLimMlmState, reasonCode);)
+        FL("Received Disassoc frame (mlm state %d sme state %d), with reason code %d from \n"), 
+        psessionEntry->limMlmState, psessionEntry->limSmeState, reasonCode);)
     limPrintMacAddr(pMac, pHdr->sa, LOGE);
 
     /**
@@ -160,8 +160,12 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
                 break;
         }
     }
-    else if (  (psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
-		       (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE) )
+    else if (  ((psessionEntry->limSystemRole == eLIM_STA_ROLE) ||
+		       (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE)) &&  
+                     ((psessionEntry->limSmeState != eLIM_SME_WT_JOIN_STATE) && 
+                      (psessionEntry->limSmeState != eLIM_SME_WT_AUTH_STATE)  &&
+                      (psessionEntry->limSmeState != eLIM_SME_WT_ASSOC_STATE)  &&
+                      (psessionEntry->limSmeState != eLIM_SME_WT_REASSOC_STATE) ))
     {
         switch (reasonCode)
         {
@@ -207,8 +211,8 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
         // Received Disassociation frame in either IBSS
         // or un-known role. Log error and ignore it
         limLog(pMac, LOGE,
-               FL("received Disassoc frame with invalid reasonCode %d in role %d from \n"),
-               reasonCode, psessionEntry->limSystemRole);
+               FL("received Disassoc frame with invalid reasonCode %d in role %d in sme state %d from \n"),
+               reasonCode, psessionEntry->limSystemRole, psessionEntry->limSmeState);
         limPrintMacAddr(pMac, pHdr->sa, LOGE);
 
         return;
@@ -269,6 +273,7 @@ limProcessDisassocFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession
         else
         {
             limLog(pMac, LOGE, FL("Self entry missing in Hash Table \n"));
+            return;
         }
 	}
 

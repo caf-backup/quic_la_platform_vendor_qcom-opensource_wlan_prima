@@ -366,6 +366,7 @@ tANI_U8* macTraceGetCfgMsgString( tANI_U16 cfgMsg )
 {
     switch( cfgMsg )
     {
+        CASE_RETURN_STRING(WNI_CFG_PARAM_UPDATE_IND);
         CASE_RETURN_STRING(WNI_CFG_DNLD_REQ);
         CASE_RETURN_STRING(WNI_CFG_DNLD_CNF);
         CASE_RETURN_STRING(WNI_CFG_GET_RSP);
@@ -594,9 +595,14 @@ void macTraceDumpAll(tpAniSirGlobal pMac, tANI_U8 code, tANI_U8 session, tANI_U3
                 count = gTraceData.num;
             if (count > MAX_TRACE_RECORDS)
                 count = MAX_TRACE_RECORDS;
-            i = tail - count +1;
-            if (i < 0)
-                i = MAX_TRACE_RECORDS + i;
+            if(tail >= (count + 1))
+            {
+                i = tail - count + 1;
+            }
+            else
+            {
+                i = MAX_TRACE_RECORDS - ((count + 1) - tail);
+            }
         }
 
         pRecord = &gTraceTbl[i];

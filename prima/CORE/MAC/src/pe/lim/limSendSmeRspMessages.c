@@ -712,7 +712,7 @@ void limSendSmeInNavMeasRsp(tpAniSirGlobal pMac, tANI_U32* pMsgBuf, tSirResultCo
     tSirMsgQ                      mmhMsg;
     tSirMeasInNavMeasurementRsp*  pSirSmeInNavMeasRsp=NULL;
     tLimMlmInNavMeasRsp*          pMlmInNavMeasRsp=NULL;
-    unsigned int                  msgLength=0;
+    tANI_U16                      msgLength;
 
     tANI_U32* pDest = NULL;
     tANI_U32* pSrc = NULL;
@@ -2220,6 +2220,32 @@ void limHandleDeleteBssRsp(tpAniSirGlobal pMac,tpSirMsgQ MsgQ)
     
 }
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+/** -----------------------------------------------------------------
+  \brief limSendSmeAggrQosRsp() - sends SME FT AGGR QOS RSP    
+  \      This function sends a eWNI_SME_FT_AGGR_QOS_RSP to SME.   
+  \      SME only looks at rc and tspec field. 
+  \param pMac - global mac structure
+  \param rspReqd - is SmeAddTsRsp required
+  \param status - status code of eWNI_SME_FT_AGGR_QOS_RSP
+  \return tspec
+  \sa
+  ----------------------------------------------------------------- */
+void
+limSendSmeAggrQosRsp(tpAniSirGlobal pMac, tpSirAggrQosRsp aggrQosRsp, 
+                     tANI_U8 smesessionId)
+{
+    tSirMsgQ         mmhMsg;
+
+    mmhMsg.type = eWNI_SME_FT_AGGR_QOS_RSP;
+    mmhMsg.bodyptr = aggrQosRsp;
+    mmhMsg.bodyval = 0;
+    MTRACE(macTraceMsgTx(pMac, 0, mmhMsg.type));
+    limSysProcessMmhMsgApi(pMac, &mmhMsg, ePROT);
+
+    return;
+}
+#endif
 
 
 

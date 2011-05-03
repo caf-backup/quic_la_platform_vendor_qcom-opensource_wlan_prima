@@ -41,7 +41,6 @@ logDump.c
 #if defined (ANI_OS_TYPE_LINUX)
 
 #include <sysDebug.h>
-#include "pal_skbPoolTracking.h"
 
 #elif defined(ANI_OS_TYPE_WINDOWS)
 
@@ -62,7 +61,6 @@ logDump.c
 #elif defined(ANI_OS_TYPE_OSX)
 
 #include "stdarg.h"
-#include "pal_skbPoolTracking.h"
 
 #elif defined(ANI_OS_TYPE_AMSS)
 

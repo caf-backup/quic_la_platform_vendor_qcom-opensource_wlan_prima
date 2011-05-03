@@ -179,6 +179,10 @@ typedef struct sSapContext {
     v_U8_t            pStaWpaRsnReqIE[MAX_ASSOC_IND_IE_LEN]; 
     tSirAPWPSIEs      APWPSIEs;
     tSirRSNie         APWPARSNIEs;
+#ifdef WLAN_FEATURE_P2P
+    v_U32_t           nStaP2PReqIeLength;
+    v_U8_t            pStaP2PReqIE[MAX_ASSOC_IND_IE_LEN]; 
+#endif
 } *ptSapContext;
 
 

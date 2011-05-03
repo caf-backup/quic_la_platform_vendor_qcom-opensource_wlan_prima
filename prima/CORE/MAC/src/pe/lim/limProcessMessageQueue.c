@@ -14,7 +14,6 @@
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
 #include "halDataStruct.h"
 #include "halCommonApi.h"
-#include "pal_skbPoolTracking.h"
 #elif defined FEATURE_WLAN_INTEGRATED_SOC
 #include "wlan_qct_wdi_ds.h"
 #include "wlan_qct_pal_packet.h"
@@ -42,6 +41,10 @@
 
 #if defined WLAN_FEATURE_VOWIFI
 #include "rrmApi.h"
+#endif
+
+#if defined WLAN_FEATURE_VOWIFI_11R
+#include "limFT.h"
 #endif
 
 #ifdef WMM_APSD
@@ -527,6 +530,93 @@ static void limHandleUnknownA2IndexFrames(tpAniSirGlobal pMac, void *pRxPacketIn
     return;
 }
 
+#ifdef WLAN_FEATURE_P2P
+/**
+ * limCheckMgmtRegisteredFrames()
+ *
+ *FUNCTION:
+ * This function is called to process to check if received frame match with 
+ * any of the registered frame from HDD. If yes pass this frame to SME.
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param  pMac               Pointer to Global MAC structure
+ * @param  *pRxPacketInfo     Pointer to the received packet info    
+ * @return None
+ */
+static tANI_BOOLEAN
+limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
+{
+    tSirMacFrameCtl  fc;
+    tpSirMacMgmtHdr  pHdr;
+    tANI_U8          *pBody;
+    tpLimMgmtFrameRegistration pLimMgmtRegistration = NULL, pNext = NULL;
+    tANI_U16 frameType;
+    tANI_U16 framelen;
+    tANI_BOOLEAN match = VOS_FALSE;
+    VOS_STATUS vosStatus;
+	
+    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+    fc = pHdr->fc;
+    frameType = (fc.type << 2 ) | (fc.subType << 4);
+    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
+    framelen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+
+    vos_list_peek_front(&pMac->lim.gLimMgmtFrameRegistratinQueue,
+   	                (vos_list_node_t**)&pLimMgmtRegistration);
+
+    while(pLimMgmtRegistration != NULL)
+    {
+        if (pLimMgmtRegistration->frameType == frameType)
+        { 
+            if (pLimMgmtRegistration->matchLen > 0)
+            {   
+                if (pLimMgmtRegistration->matchLen <= framelen)
+                {
+                    if (palEqualMemory(pMac, pLimMgmtRegistration->matchData,
+                                       pBody, pLimMgmtRegistration->matchLen))
+                    {
+                       /* found match! */   
+                       match = VOS_TRUE;
+                       break;
+                    }
+                } 
+            }
+            else
+            {
+                /* found match! */   
+                match = VOS_TRUE;
+                break;
+            }
+        }
+             
+        vosStatus = 
+          vos_list_peek_next (&pMac->lim.gLimMgmtFrameRegistratinQueue, 
+                              (vos_list_node_t*) pLimMgmtRegistration, 
+                              (vos_list_node_t**) &pNext );
+        pLimMgmtRegistration = pNext;
+        pNext = NULL;
+    }
+   
+    if (match)
+    {
+        limLog( pMac, LOG1, 
+                FL("rcvd frame match with registered frame params\n"));
+
+        /* Indicate this to SME */	 
+        limSendSmeMgmtFrameInd(pMac, eSIR_MGMT_FRM_ACTION, (tANI_U8*)pHdr, 
+                WDA_GET_RX_MPDU_LEN(pRxPacketInfo) + sizeof(tSirMacMgmtHdr) );
+    }
+
+    return match;
+} /*** end  limCheckMgmtRegisteredFrames() ***/
+#endif /* WLAN_FEATURE_P2P */
+
+
 /**
  * limHandle80211Frames()
  *
@@ -564,7 +654,17 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
     fc = pHdr->fc;
     limLog( pMac, LOG1, FL("ProtVersion %d, Type %d, Subtype %d rateIndex=%d\n"),
             fc.protVer, fc.type, fc.subType, WDA_GET_RX_MAC_RATE_IDX(pRxPacketInfo));
-    
+   
+#ifdef WLAN_FEATURE_P2P 
+    /* Check if frame is registered by HDD */
+    if(limCheckMgmtRegisteredFrames(pMac, pRxPacketInfo))
+    {        
+        limLog( pMac, LOG1, FL("Received frame is passed to SME\n"));
+        limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, limMsg->bodyptr);
+        return;
+    }
+#endif    
+
     /* Added For BT-AMP Support */
     if((psessionEntry = peFindSessionByBssid(pMac,pHdr->bssId,&sessionId))== NULL)
         {
@@ -573,7 +673,7 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
             {
 #ifdef WLAN_FEATURE_VOWIFI_11R_DEBUG
                 limLog( pMac, LOGE, FL("ProtVersion %d, Type %d, Subtype %d rateIndex=%d\n"),
-                    fc.protVer, fc.type, fc.subType, SIR_MAC_BD_TO_RATE_INDEX(pRxPacketInfo));
+                    fc.protVer, fc.type, fc.subType, WDA_GET_RX_MAC_RATE_IDX(pRxPacketInfo));
                 limPrintMacAddr(pMac, pHdr->bssId, LOGE);
 #endif
                 if (limProcessAuthFrameNoSession(pMac, pRxPacketInfo, limMsg->bodyptr) == eSIR_SUCCESS)
@@ -884,6 +984,7 @@ void limInNavHandleResumeLinkRsp(tpAniSirGlobal pMac, eHalStatus status, tANI_U3
     if(status != eHAL_STATUS_SUCCESS)
     {
         limLog(pMac, LOGE, FL("innav failed to get the response for resume link\n"));
+        return;
     }
 
     //Post the meessage to MLM
@@ -1190,11 +1291,16 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_NEIGHBOR_REPORT_REQ_IND:
         case eWNI_SME_BEACON_REPORT_RESP_XMIT_IND:
 #endif
-#if defined WLAN_FEATURE_VOWIFI_11R
-	case eWNI_SME_FT_PRE_AUTH_REQ:
+#ifdef WLAN_FEATURE_VOWIFI_11R
+        case eWNI_SME_FT_UPDATE_KEY:
+        case eWNI_SME_FT_PRE_AUTH_REQ:
+        case eWNI_SME_FT_AGGR_QOS_REQ:
 #endif
         case eWNI_SME_ADD_STA_SELF_REQ:
         case eWNI_SME_DEL_STA_SELF_REQ:
+#ifdef WLAN_FEATURE_P2P
+        case eWNI_SME_REGISTER_MGMT_FRAME_REQ:
+#endif	    
             // These messages are from HDD
             limProcessNormalHddMsg(pMac, limMsg, false);   //no need to response to hdd
             break;
@@ -1215,8 +1321,8 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             break;
 
         case eWNI_PMC_SMPS_STATE_IND :
-#ifdef SUPPORT_eWNI_PMC_SMPS_STATE_IND
         {
+#ifdef SUPPORT_eWNI_PMC_SMPS_STATE_IND
             tSirMbMsg *pMBMsg;
             tSirMacHTMIMOPowerSaveState mimoPSstate;
             /** Is System processing any SMPS Indication*/
@@ -1225,7 +1331,6 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 pMBMsg = (tSirMbMsg *)limMsg->bodyptr;
                 palCopyMemory(pMac->hHdd, &mimoPSstate, pMBMsg->data, sizeof(tSirMacHTMIMOPowerSaveState));
                 limSMPowerSaveStateInd(pMac, mimoPSstate);
-                palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
             }
             else
             {
@@ -1233,16 +1338,15 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
                 {
                     PELOGE(limLog(pMac, LOGE, FL("Unable to Defer message %x\n"), limMsg->type);)
                     limPrintMsgName(pMac, LOGE, limMsg->type);
-                    palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
                 }
             }
+#endif
         }
-#else
+
             // not currently handled
             // return the message
             palFreeMemory(pMac->hHdd, (tANI_U8 *)limMsg->bodyptr);
             limMsg->bodyptr = NULL;
-#endif
             break;
 #if defined WLAN_FEATURE_P2P
         case eWNI_SME_SEND_ACTION_FRAME_IND:
@@ -1622,6 +1726,11 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
        }
 #endif
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    case WDA_AGGR_QOS_RSP:
+       limProcessFTAggrQoSRsp( pMac, limMsg );
+       break;
+#endif
         default:
             vos_mem_free((v_VOID_t*)limMsg->bodyptr);
             limMsg->bodyptr = NULL;

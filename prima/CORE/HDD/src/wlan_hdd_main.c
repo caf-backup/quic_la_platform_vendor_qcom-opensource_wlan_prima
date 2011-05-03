@@ -87,6 +87,11 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 #include "cfgApi.h"
 #endif
+#include "wlan_hdd_dev_pwr.h"
+
+//internal function declaration
+v_U16_t hdd_select_queue(struct net_device *dev,
+    struct sk_buff *skb);
 
 static int hdd_netdev_notifier_call(struct notifier_block * nb,
                                          unsigned long state,
@@ -129,8 +134,11 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         break;
 
    case NETDEV_CHANGE:
-        if(TRUE == pAdapter->isLinkUpSvcNeeded)
-           complete(&pAdapter->linkup_event_var);
+        if(VOS_STA_MODE == hdd_get_conparam()) 
+        {
+            if(TRUE == pAdapter->isLinkUpSvcNeeded)
+               complete(&pAdapter->linkup_event_var);
+   	    }
         break;
 
    case NETDEV_GOING_DOWN:
@@ -143,7 +151,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
    return NOTIFY_DONE;
 }
 
-static struct notifier_block hdd_netdev_notifier = {
+struct notifier_block hdd_netdev_notifier = {
    .notifier_call = hdd_netdev_notifier_call,
 };
 
@@ -158,6 +166,7 @@ extern void unregister_wlan_suspend(void);
 //variable to hold the insmod parameters
 static int con_mode = 0;
 #endif
+static VOS_CONCURRENCY_MODE concurrency_mode = 0;
 
 int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
@@ -227,7 +236,7 @@ int hdd_stop (struct net_device *dev)
    //Stop the Interface TX queue. netif_stop_queue should not be used when
    //transmission is being disabled anywhere other than hard_start_xmit
    hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Disabling OS Tx queues",__func__);
-   netif_tx_stop_all_queues(dev);
+   netif_tx_disable(dev);
 
    return 0;
 }
@@ -488,15 +497,47 @@ static int hdd_set_mac_address(struct net_device *dev, void *addr)
    return halStatus;
 }
 
+tANI_U8* wlan_hdd_get_intf_addr(hdd_context_t* pHddCtx)
+{
+   int i;
+   for ( i = 0; i < VOS_MAX_CONCURRENCY_PERSONA; i++)
+   {
+      if( 0 == (pHddCtx->cfg_ini->intfAddrMask >> i))
+         break;
+   }
+
+   if( VOS_MAX_CONCURRENCY_PERSONA == i)
+      return NULL;
+
+   pHddCtx->cfg_ini->intfAddrMask |= (1 << i);
+   return &pHddCtx->cfg_ini->intfMacAddr[i].bytes[0];
+}
+
+void wlan_hdd_release_intf_addr(hdd_context_t* pHddCtx, tANI_U8* releaseAddr)
+{
+   int i;
+   for ( i = 0; i < VOS_MAX_CONCURRENCY_PERSONA; i++)
+   {
+      if ( !memcmp(releaseAddr, &pHddCtx->cfg_ini->intfMacAddr[i].bytes[i], 6) )
+      {
+         pHddCtx->cfg_ini->intfAddrMask &= ~(1 << i);
+         break;
+      } 
+   }
+   return;
+}
+
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29))
   static struct net_device_ops wlan_drv_ops = {
       .ndo_open = hdd_open,
       .ndo_stop = hdd_stop,
-      .ndo_start_xmit = NULL,
+      .ndo_start_xmit = hdd_hard_start_xmit,
       .ndo_tx_timeout = hdd_tx_timeout,
       .ndo_get_stats = hdd_stats,
       .ndo_do_ioctl = hdd_ioctl,
       .ndo_set_mac_address = hdd_set_mac_address,
+      .ndo_select_queue	= hdd_select_queue,
+
  };
 #ifdef CONFIG_CFG80211   
  static struct net_device_ops wlan_mon_drv_ops = {
@@ -539,11 +580,11 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
    /*
     * cfg80211 initialization and registration....
     */ 
-   pWlanDev = alloc_netdev(sizeof( hdd_adapter_t ), name, ether_setup);
+   pWlanDev = alloc_netdev_mq(sizeof( hdd_adapter_t ), name, ether_setup, NUM_TX_QUEUES);
    
 #else      
    //Allocate the net_device and private data (station ctx) 
-   pWlanDev = alloc_etherdev(sizeof( hdd_adapter_t ));
+   pWlanDev = alloc_etherdev_mq(sizeof( hdd_adapter_t ), NUM_TX_QUEUES);
 
 #endif
 
@@ -564,6 +605,10 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
       pAdapter->pHddCtx = pHddCtx; 
 
       init_completion(&pAdapter->disconnect_comp_var);
+      init_completion(&pAdapter->linkup_event_var);
+      init_completion(&pHddCtx->mc_sus_event_var);
+      init_completion(&pHddCtx->tx_sus_event_var);
+
       pAdapter->isLinkUpSvcNeeded = FALSE; 
       //Init the net_device structure
       strcpy(pWlanDev->name, name);
@@ -655,6 +700,7 @@ VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
 
    //Stop the Interface TX queue.
    netif_tx_disable(pWlanDev);
+   //netif_tx_disable(pWlanDev);
    netif_carrier_off(pWlanDev);
 
    //Safe to register the hard_start_xmit function again
@@ -715,7 +761,8 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
      }
      break;
      case WLAN_HDD_SOFTAP:
-#ifdef FEATURE_WLAN_SOFTAP
+     case WLAN_HDD_P2P_GO:
+#ifdef WLAN_SOFTAP_FEATURE
      {
        VOS_STATUS status = VOS_STATUS_E_FAILURE;
        //Any softap specific cleanup here...
@@ -769,6 +816,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type, c
    VOS_STATUS status = VOS_STATUS_E_FAILURE;
 
    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s iface =%s type = %d\n",__func__,iface_name,session_type);
+
    switch(session_type)
    {
        case WLAN_HDD_INFRA_STATION:
@@ -789,7 +837,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type, c
        case WLAN_HDD_P2P_GO:
        case WLAN_HDD_SOFTAP:
        {
-#ifdef FEATURE_WLAN_SOFTAP
+#ifdef WLAN_SOFTAP_FEATURE
            pAdapter = hdd_wlan_create_ap_dev( pHddCtx, macAddr, (tANI_U8 *)iface_name );
            if( NULL == pAdapter )
               return NULL;
@@ -845,6 +893,29 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type, c
        }
    }
 
+
+   switch(session_type)
+   {
+       case WLAN_HDD_INFRA_STATION:
+              concurrency_mode |= VOS_STA;
+              break;
+       case WLAN_HDD_P2P_CLIENT:       
+              concurrency_mode |= VOS_P2P_CLIENT;
+              break;
+       case WLAN_HDD_P2P_GO:
+              concurrency_mode |= VOS_P2P_GO;
+              break;
+       case WLAN_HDD_SOFTAP:
+              concurrency_mode |= VOS_SAP;
+              break;
+   }
+
+   /* If there are concurrent session enable SW frame translation 
+    * for all registered STA */ 
+   if (vos_concurrent_sessions_running())
+   {
+      WLANTL_ConfigureSwFrameTXXlationForAll(pHddCtx->pvosContext, TRUE);
+   }
    
    if( VOS_STATUS_SUCCESS == status )
    {
@@ -898,9 +969,34 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, t
    pAdapterNode = (hdd_adapter_list_node_t*) pCurrent;
    if( VOS_STATUS_SUCCESS == status )
    {
+      switch ( pAdapter->device_mode )
+      {
+            case WLAN_HDD_INFRA_STATION:
+                   concurrency_mode &= ~VOS_STA;
+                   break;
+            case WLAN_HDD_P2P_CLIENT:
+                   concurrency_mode &= ~VOS_P2P_CLIENT;
+                   break;
+            case WLAN_HDD_P2P_GO:
+                   concurrency_mode &= ~VOS_P2P_GO;
+                   break;
+            case WLAN_HDD_SOFTAP:
+                   concurrency_mode &= ~VOS_SAP;
+                   break;
+            default:
+                   break;
+      }
+                             
       hdd_cleanup_adapter( pHddCtx, pAdapterNode->pAdapter, rtnl_held );
       vos_list_remove_node( &pHddCtx->hddAdapters, &pAdapterNode->node );
       vos_mem_free( pAdapterNode );
+
+      /* If there is no concurrent session disable SW frame translation 
+       * for all registered STA */ 
+      if (!vos_concurrent_sessions_running())
+      {
+         WLANTL_ConfigureSwFrameTXXlationForAll(pHddCtx->pvosContext, FALSE);
+      }
       return VOS_STATUS_SUCCESS;
    }
 
@@ -976,7 +1072,7 @@ VOS_STATUS hdd_stop_all_adapters( hdd_context_t *pHddCtx )
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
       pAdapter = pAdapterNode->pAdapter;
-      netif_tx_stop_all_queues(pAdapter->dev);
+      netif_tx_disable(pAdapter->dev);
       netif_carrier_off(pAdapter->dev);
 
       hdd_stop_adapter( pHddCtx, pAdapter );
@@ -1048,6 +1144,8 @@ VOS_STATUS hdd_reconnect_all_adapters( hdd_context_t *pHddCtx )
 
          wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
          msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+
+		 pWextState->roamProfile.csrPersona = pAdapter->device_mode; 
 
          sme_RoamConnect(pHddCtx->hHal,
                pAdapter->sessionId, &(pWextState->roamProfile), 
@@ -1157,6 +1255,25 @@ hdd_adapter_t * hdd_get_mon_adapter( hdd_context_t *pHddCtx )
    return NULL;
 
 } 
+/**---------------------------------------------------------------------------
+  
+  \brief hdd_select_queue() - 
+
+   This function is registered with the Linux OS for network
+   core to decide which queue to use first.
+   
+  \param  - dev - Pointer to the WLAN device.
+              - skb - Pointer to OS packet (sk_buff).
+  \return - ac, Queue Index/access category corresponding to UP in IP header 
+  
+  --------------------------------------------------------------------------*/
+v_U16_t hdd_select_queue(struct net_device *dev,
+    struct sk_buff *skb)
+{
+   return hdd_wmm_select_queue(dev, skb);
+}
+
+
 /**---------------------------------------------------------------------------
 
   \brief hdd_wlan_initial_scan() -
@@ -1269,7 +1386,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
     goto free_hdd_ctx;
 #endif  
    //Stop the Interface TX queue.
-   //netif_tx_stop_all_queues(pWlanDev);
+   //netif_tx_disable(pWlanDev);
    //netif_carrier_off(pWlanDev);
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -1287,7 +1404,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    sme_DisablePowerSave(pHddCtx->hHal, ePMC_UAPSD_MODE_POWER_SAVE);
 
    //Ensure that device is in full power as we will touch H/W during vos_Stop
-   init_completion(&pHddCtx->full_pwr_comp_var);
+   INIT_COMPLETION(pHddCtx->full_pwr_comp_var);
    halStatus = sme_RequestFullPower(pHddCtx->hHal, hdd_full_pwr_cbk,
        pHddCtx, eSME_FULL_PWR_NEEDED_BY_HDD);
 
@@ -1312,8 +1429,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 
    hdd_stop_all_adapters( pHddCtx );
    hdd_close_all_adapters( pHddCtx );
-
-   hddLog(VOS_TRACE_LEVEL_ERROR,"WLAN STOP ALL\n");
 
    //Stop all the modules
    vosStatus = vos_stop( pVosContext );
@@ -1371,6 +1486,9 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
    nl_srv_exit();
 
+   //Close VOSS
+   vos_close(pVosContext);
+
    //Close the scheduler before closing other modules.
    vosStatus = vos_sched_close( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
@@ -1379,12 +1497,6 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
 
-   //Close VOSS
-   hddLog(VOS_TRACE_LEVEL_ERROR,"Calling WLAN VOS CLOSE\n\n\n\n");
-   vos_close(pVosContext);
-   hddLog(VOS_TRACE_LEVEL_ERROR,"Returned WLAN VOS CLOSE\n\n\n\n");
-
-   hddLog(VOS_TRACE_LEVEL_ERROR,"Calling WLAN BAL CLOSE\n\n\n\n");
 
 #ifdef ANI_BUS_TYPE_SDIO
    vosStatus = WLANBAL_Close(pVosContext);
@@ -1415,6 +1527,82 @@ free_hdd_ctx:
    vos_mem_free( pHddCtx );
 #endif
 }
+
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+/**---------------------------------------------------------------------------
+
+  \brief hdd_wlan_stop() - HDD WLAN stop function
+
+  This is the driver stop point
+
+  \param  - pHddCtx - Pointer to the HDD Context
+
+  \return - None
+
+  --------------------------------------------------------------------------*/
+void hdd_wlan_stop(hdd_context_t *pHddCtx)
+{
+   v_CONTEXT_t pVosContext = pHddCtx->pvosContext;
+   VOS_STATUS vosStatus;
+
+   hddLog(VOS_TRACE_LEVEL_ERROR,"In WLAN STOP");
+
+   // Unregister the Net Device Notifier
+   unregister_netdevice_notifier(&hdd_netdev_notifier);
+
+   hdd_stop_all_adapters( pHddCtx );
+   hdd_close_all_adapters( pHddCtx );
+
+   hddLog(VOS_TRACE_LEVEL_ERROR,"WLAN STOP ALL\n");
+
+   //Stop all the modules
+   vosStatus = vos_stop( pVosContext );
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+         "%s: Failed to stop VOSS",__func__);
+      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   }
+
+   //Assert Deep sleep signal now to put Libra HW in lowest power state
+   vosStatus = vos_chipAssertDeepSleep( NULL, NULL, NULL );
+   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+
+   //Vote off any PMIC voltage supplies
+   vos_chipPowerDown(NULL, NULL, NULL);
+
+   vos_chipVoteOffXOBuffer(NULL, NULL, NULL);
+
+   //Clean up HDD Nlink Service
+   send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
+   nl_srv_exit();
+
+   //Close the scheduler before closing other modules.
+   vosStatus = vos_sched_close( pVosContext );
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus)) {
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+         "%s: Failed to close VOSS Scheduler",__func__);
+      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   }
+
+   //Close VOSS
+   hddLog(VOS_TRACE_LEVEL_ERROR,"Calling WLAN VOS CLOSE\n\n\n\n");
+   vos_close(pVosContext);
+   hddLog(VOS_TRACE_LEVEL_ERROR,"Returned WLAN VOS CLOSE\n\n\n\n");
+
+   hddLog(VOS_TRACE_LEVEL_ERROR,"Calling WLAN BAL CLOSE\n\n\n\n");
+
+   //Close Watchdog
+   if(pHddCtx->cfg_ini->fIsLogpEnabled)
+      vos_watchdog_close(pVosContext);
+
+   //Free up dynamically allocated members inside HDD Adapter
+   kfree(pHddCtx->cfg_ini);
+   pHddCtx->cfg_ini= NULL;
+
+   vos_mem_free( pHddCtx );
+}
+#endif /*  FEATURE_WLAN_INTEGRATED_SOC */
 
 /**---------------------------------------------------------------------------
 
@@ -1476,8 +1664,8 @@ static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
    // Set the MAC Address
    // Currently this is used by HAL to add self sta. Remove this once self sta is added as part of session open.
    halStatus = ccmCfgSetStr( pHddCtx->hHal, WNI_CFG_STA_ID,
-                             (v_U8_t *)&pHddCtx->cfg_ini->staMacAddr,
-                             sizeof( pHddCtx->cfg_ini->staMacAddr ),
+                             (v_U8_t *)&pHddCtx->cfg_ini->intfMacAddr[0],
+                             sizeof( pHddCtx->cfg_ini->intfMacAddr[0]),
                              hdd_set_mac_addr_cb, VOS_FALSE );
 
    if (!HAL_STATUS_SUCCESS( halStatus ))
@@ -1543,8 +1731,7 @@ VOS_STATUS hdd_post_voss_start_config(hdd_context_t* pHddCtx)
 
 #ifndef ANI_MANF_DIAG
 // Routine to initialize the PMU
-// enable pmu_ana_deep_sleep_en in ldo_ctrl_reg
-static void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext)
+void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext)
 {
 /*-------------- Need to fix this correctly while doing Deepsleep testing
     tANI_U32 regValue = 0;
@@ -1618,6 +1805,8 @@ int hdd_wlan_startup(struct device *dev )
 #ifdef CONFIG_CFG80211
    pHddCtx->wiphy = wiphy ;
 #endif
+   pHddCtx->isLoadUnloadInProgress = TRUE;
+
    /*Get vos context here bcoz vos_open requires it*/
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
@@ -1659,6 +1848,8 @@ int hdd_wlan_startup(struct device *dev )
    }
 
 #ifdef ANI_MANF_DIAG 
+   if(VOS_FTM_MODE == hdd_get_conparam())
+   {
     if ( VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pHddCtx) )
     {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: wlan_hdd_ftm_open Failed",__func__);
@@ -1666,6 +1857,7 @@ int hdd_wlan_startup(struct device *dev )
     }
     hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
     return VOS_STATUS_SUCCESS;
+   }
 #endif
 
    //Open watchdog module
@@ -1681,9 +1873,12 @@ int hdd_wlan_startup(struct device *dev )
       }
    }
 
+   pHddCtx->isLogpInProgress = FALSE;
+   vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+
 #ifdef ANI_BUS_TYPE_SDIO
    status = WLANBAL_Open(pHddCtx->pvosContext);
-   if ( !VOS_IS_STATUS_SUCCESS( status ))
+   if(!VOS_IS_STATUS_SUCCESS(status))
    {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
         "%s: Failed to open BAL",__func__);
@@ -1798,9 +1993,8 @@ int hdd_wlan_startup(struct device *dev )
       // Set the MAC Address
       // Currently this is used by HAL to add self sta. Remove this once self sta is added as part of session open.
       halStatus = cfgSetStr( pHddCtx->hHal, WNI_CFG_STA_ID,
-   		   (v_U8_t *)&pHddCtx->cfg_ini->staMacAddr,
-   		   sizeof( pHddCtx->cfg_ini->staMacAddr )
-   		   );
+                             (v_U8_t *)&pHddCtx->cfg_ini->intfMacAddr[0],
+                             sizeof( pHddCtx->cfg_ini->intfMacAddr[0]) );
    
       if (!HAL_STATUS_SUCCESS( halStatus ))
       {
@@ -1832,12 +2026,13 @@ int hdd_wlan_startup(struct device *dev )
    if (VOS_STA_SAP_MODE == hdd_get_conparam())
    {
      pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_SOFTAP, "softap.%d", 
-         pHddCtx->cfg_ini->apMacAddr.bytes, FALSE );
+         wlan_hdd_get_intf_addr(pHddCtx), FALSE );
    }
    else
    {
 #endif
-     pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d", pHddCtx->cfg_ini->staMacAddr.bytes, FALSE );
+     pAdapter = hdd_open_adapter( pHddCtx, WLAN_HDD_INFRA_STATION, "wlan%d",
+         wlan_hdd_get_intf_addr(pHddCtx), FALSE );
 #ifdef WLAN_SOFTAP_FEATURE
    }
 #endif
@@ -1850,6 +2045,14 @@ int hdd_wlan_startup(struct device *dev )
 #else
      goto err_clkvote;
 #endif
+   }
+
+   /* Register with platform driver as client for Suspend/Resume */
+   status = hddRegisterPmOps(pAdapter);
+   if ( !VOS_IS_STATUS_SUCCESS( status ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddRegisterPmOps failed",__func__);
+      goto err_vosclose;
    }
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -1901,6 +2104,10 @@ int hdd_wlan_startup(struct device *dev )
       goto err_nl_srv;
    }
 
+#ifdef CONFIG_CFG80211
+   wlan_hdd_cfg80211_post_voss_start(pAdapter);
+#endif
+
    //Scanning only for station mode.
    //TODO if initial scan is required on AP mode, need to remove this condition.
    //Since AP session is not yet created and hence there is no self sta, active scan will fail.
@@ -1909,6 +2116,8 @@ int hdd_wlan_startup(struct device *dev )
      //Trigger the initial scan
      hdd_wlan_initial_scan(pAdapter);
    }
+
+   pHddCtx->isLoadUnloadInProgress = FALSE;
 
    goto success;
 
@@ -2034,9 +2243,54 @@ static int __init hdd_module_init (void)
          dev = &sdio_func_dev->dev;
          break;
       }
+
+      if(attempts == 7)
+         break;
+      
+      msleep(250);
+
+   }while (attempts < 7);
+
+   //Retry to detect the card again by Powering Down the chip and Power up the chip 
+   //again. This retry is done to recover from CRC Error
+   if (NULL == sdio_func_dev) {
+
+      attempts = 0;
+      
+      //Vote off any PMIC voltage supplies
+      vos_chipPowerDown(NULL, NULL, NULL);
+
       msleep(1000);
 
-   } while (attempts < 3);
+      //Power Up Libra WLAN card first if not already powered up
+      status = vos_chipPowerUp(NULL,NULL,NULL);
+      if (!VOS_IS_STATUS_SUCCESS(status))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN not Powered Up."
+             "exiting", __func__);
+         return -1;
+      }
+
+      do {
+         sdio_func_dev = libra_getsdio_funcdev();
+         if (NULL == sdio_func_dev) {
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN not detected yet.",__func__);
+            attempts++;
+         }
+         else {
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN detecton succeeded",__func__);
+            dev = &sdio_func_dev->dev;
+            break;
+         }
+
+         if(attempts == 2)
+           break;
+      
+         msleep(1000);
+
+      }while (attempts < 3);
+   }
+
 #endif // ANI_BUS_TYPE_SDIO
 
 #ifdef ANI_BUS_TYPE_PCI
@@ -2060,6 +2314,11 @@ static int __init hdd_module_init (void)
 #ifdef MEMORY_DEBUG
       vos_mem_init();
 #endif
+
+#ifdef TIMER_MANAGER
+      vos_timer_manager_init();
+#endif
+
       /* Preopen VOSS so that it is ready to start at least SAL */
       status = vos_preOpen(&pVosContext);
 
@@ -2085,6 +2344,13 @@ static int __init hdd_module_init (void)
       }
 #endif // ANI_BUS_TYPE_SDIO
 
+#if defined(FEATURE_WLAN_INTEGRATED_SOC) && defined(ANI_MANF_DIAG)
+      if(5 == con_mode)
+      {
+         hdd_set_conparam(VOS_FTM_MODE);
+      }
+#endif /* FEATURE_WLAN_INTEGRATED_SOC && ANI_MANF_DIAG */
+
       // Call our main init function
       if(hdd_wlan_startup(dev)) {
          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
@@ -2106,10 +2372,20 @@ static int __init hdd_module_init (void)
 
       //Vote off any PMIC voltage supplies
       vos_chipPowerDown(NULL, NULL, NULL);
+#ifdef TIMER_MANAGER
+     vos_timer_exit();
+#endif
 #ifdef MEMORY_DEBUG
       vos_mem_exit();
 #endif
    }
+   else
+   {
+      //Send WLAN UP indication to Nlink Service
+      send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
+   }
+   
+   
 
    EXIT();
 
@@ -2154,6 +2430,24 @@ static void __exit hdd_module_exit(void)
    }
    else
    {
+      if (pHddCtx->isLogpInProgress) {
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Block rmmod!!!",__func__);
+         VOS_ASSERT(0);
+         msleep(3000);
+      } 
+
+#if 0
+      //Get the HDD context.
+      pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
+      if(!pAdapter) 
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: module exit called before probe",__func__);
+         goto done;
+      }
+#endif
+
+      pHddCtx->isLoadUnloadInProgress = TRUE;
+
       //Do all the cleanup before deregistering the driver
       hdd_wlan_exit(pHddCtx);
    }
@@ -2164,14 +2458,20 @@ static void __exit hdd_module_exit(void)
 
    vos_preClose( &pVosContext );
 
+#ifdef TIMER_MANAGER
+   vos_timer_exit();
+#endif
 #ifdef MEMORY_DEBUG
    vos_mem_exit(); 
 #endif
 
+#if 0
+done:   
+#endif
    hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Exiting module exit",__func__);
 }
 
-#ifdef WLAN_SOFTAP_FEATURE
+#if defined(WLAN_SOFTAP_FEATURE) || defined(ANI_MANF_DIAG)
 /**---------------------------------------------------------------------------
 
   \brief hdd_get_conparam() -
@@ -2255,6 +2555,21 @@ void hdd_softap_tkip_mic_fail_counter_measure(hdd_adapter_t *pAdapter,v_BOOL_t e
 }
 
 #endif /* WLAN_SOFTAP_FEATURE */
+/**---------------------------------------------------------------------------
+ *
+ *   \brief hdd_get__concurrency_mode() -
+ *
+ *
+ *       \param  - None
+ *
+ *         \return - CONCURRENCY MODE
+ *
+ *           --------------------------------------------------------------------------*/
+VOS_CONCURRENCY_MODE hdd_get_concurrency_mode ( void )
+{
+      return (VOS_CONCURRENCY_MODE)concurrency_mode;
+
+}
 
 //Register the module init/exit functions
 module_init(hdd_module_init);
@@ -2264,6 +2579,6 @@ MODULE_LICENSE("Proprietary");
 MODULE_AUTHOR("QUALCOMM");
 MODULE_DESCRIPTION("WLAN HOST DEVICE DRIVER");
 
-#ifdef WLAN_SOFTAP_FEATURE
+#if defined(WLAN_SOFTAP_FEATURE) || defined(ANI_MANF_DIAG)
 module_param(con_mode, int, 0);
 #endif

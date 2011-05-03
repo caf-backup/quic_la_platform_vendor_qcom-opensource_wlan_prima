@@ -80,6 +80,7 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"BACKGROUND_SCAN_PERIOD",
 	(unsigned char *)"MAX_NUM_PRE_AUTH",
 	(unsigned char *)"PREAUTH_CLNUP_TIMEOUT",
+	(unsigned char *)"RELEASE_AID_TIMEOUT",
 	(unsigned char *)"HEART_BEAT_THRESHOLD",
 	(unsigned char *)"PROBE_AFTER_HB_FAIL_TIMEOUT",
 	(unsigned char *)"MANUFACTURER_OUI",
@@ -241,6 +242,9 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"RRM_NON_OPERATING_CHAN_MAX",
 	(unsigned char *)"TX_PWR_CTRL_ENABLE",
 	(unsigned char *)"MCAST_BCAST_FILTER_SETTING",
+	(unsigned char *)"BTC_DHCP_BT_SLOTS_TO_BLOCK",
+	(unsigned char *)"DYNAMIC_PS_POLL_VALUE",
+	(unsigned char *)"PS_NULLDATA_AP_RESP_TIMEOUT",
 	(unsigned char *)"ASSOC_STA_LIMIT",
 };
 

@@ -56,7 +56,6 @@ when        who          what, where, why
 #  include "wlan_qct_hal.h" 
 /* This header is for ADD and remove BA session */
 #  include "halCommonApi.h"
-#  include "halMnt.h"
 
 #endif
 
@@ -327,14 +326,6 @@ typedef struct
    /* WDI API paramter tracking */
    v_PVOID_t            wdaWdiUpdateBeaconApiMsgParam ;
    /* PE parameter tracking */
-   v_PVOID_t            wdaSendBeaconMsgParam ;
-   /* WDI API paramter tracking */
-   v_PVOID_t            wdaWdiSendBeaconApiMsgParam ;
-   /* PE parameter tracking */
-   v_PVOID_t            wdaSendProbeRspMsgParam ;
-   /* WDI API paramter tracking */
-   v_PVOID_t            wdaWdiSendProbeRspApiMsgParam ;
-   /* PE parameter tracking */
    v_PVOID_t            wdaConfigBssMsgParam ;
    /* WDI API paramter tracking */
    v_PVOID_t            wdaWdiConfigBssApiMsgParam ;
@@ -364,7 +355,17 @@ typedef struct
 
    tANI_U8              wdaMaxSta;
    tWdaTimers           wdaTimers;
-   
+
+   /* STA, AP, IBSS, MULTI-BSS etc.*/
+   tBssSystemRole       wdaGlobalSystemRole; 
+
+   /* driver mode, PRODUCTION or FTM */
+   tDriverType          driverMode;
+
+#ifdef ANI_MANF_DIAG
+   /* FTM Command Request tracking */
+   v_PVOID_t            wdaFTMCmdReq;
+#endif /* ANI_MANF_DIAG */
 } tWDA_CbContext ; 
 
 
@@ -381,6 +382,8 @@ VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
  * Trigger DAL-AL to start CFG download 
  */ 
 VOS_STATUS WDA_start(v_PVOID_t pVosContext) ;
+
+VOS_STATUS WDA_NVDownload_Start(v_PVOID_t pVosContext);
 
 /*
  * FUNCTION: WDA_preStart
@@ -847,6 +850,9 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
 /* --------------------------------------------------------------------*/
 
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
+VOS_STATUS WDA_SetUapsdAcParamsReq(v_PVOID_t , v_U8_t , tUapsdInfo *);
+VOS_STATUS WDA_ClearUapsdAcParamsReq(v_PVOID_t , v_U8_t , wpt_uint8 );
+VOS_STATUS WDA_SetRSSIThresholdsReq(tpAniSirGlobal , tSirRSSIThresholds *);
 // Just declare the function extern here and save some time.
 extern tSirRetStatus halMmhForwardMBmsg(void*, tSirMbMsg*);
 tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
@@ -883,6 +889,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_HDD_ADDBA_RSP  SIR_HAL_HDD_ADDBA_RSP
 #define WDA_DELETEBA_IND   SIR_HAL_DELETEBA_IND
 #define WDA_BA_FAIL_IND    SIR_HAL_BA_FAIL_IND
+#define WDA_TL_FLUSH_AC_REQ SIR_TL_HAL_FLUSH_AC_REQ
 #define WDA_TL_FLUSH_AC_RSP SIR_HAL_TL_FLUSH_AC_RSP
 
 #define WDA_MSG_TYPES_BEGIN            SIR_HAL_MSG_TYPES_BEGIN
@@ -959,6 +966,12 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_ENTER_BMPS_RSP             SIR_HAL_ENTER_BMPS_RSP
 #define WDA_BMPS_STATUS_IND            SIR_HAL_BMPS_STATUS_IND
 #define WDA_MISSED_BEACON_IND          SIR_HAL_MISSED_BEACON_IND
+
+#define WDA_CFG_RXP_FILTER_REQ         SIR_HAL_CFG_RXP_FILTER_REQ
+#define WDA_CFG_RXP_FILTER_RSP         SIR_HAL_CFG_RXP_FILTER_RSP
+
+#define WDA_CFG_APPS_CPU_WAKEUP_STATE_REQ  SIR_HAL_CFG_APPS_CPU_WAKEUP_STATE_REQ
+#define WDA_CFG_APPS_CPU_WAKEUP_STATE_RSP  SIR_HAL_CFG_APPS_CPU_WAKEUP_STATE_RSP
 
 #define WDA_SWITCH_CHANNEL_RSP         SIR_HAL_SWITCH_CHANNEL_RSP
 #define WDA_PWR_SAVE_CFG               SIR_HAL_PWR_SAVE_CFG
@@ -1059,6 +1072,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_SIGNAL_BT_EVENT            SIR_HAL_SIGNAL_BT_EVENT
 #define WDA_HANDLE_FW_MBOX_RSP         SIR_HAL_HANDLE_FW_MBOX_RSP
 #define WDA_UPDATE_PROBE_RSP_TEMPLATE_IND     SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND
+#define WDA_SIGNAL_BTAMP_EVENT         SIR_HAL_SIGNAL_BTAMP_EVENT
 
 #ifdef ANI_CHIPSET_VOLANS
 #ifdef FEATURE_INNAV_SUPPORT
@@ -1079,6 +1093,11 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 /// PE <-> HAL Host Offload message
 #define WDA_SET_HOST_OFFLOAD           SIR_HAL_SET_HOST_OFFLOAD
 
+#ifdef WLAN_FEATURE_P2P
+#define WDA_SET_P2P_GO_NOA_REQ         SIR_HAL_SET_P2P_GO_NOA_REQ
+#endif
+
+
 #define WDA_MSG_TYPES_END    SIR_HAL_MSG_TYPES_END
 
 #define WDA_SUSPEND_ACTIVITY_RSP SIR_HAL_SUSPEND_ACTIVITY_RSP
@@ -1089,11 +1108,20 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_MMH_MSGQ_NE_EVT    SIR_HAL_MMH_MSGQ_NE_EVT
 #endif
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#define WDA_AGGR_QOS_REQ               SIR_HAL_AGGR_QOS_REQ
+#define WDA_AGGR_QOS_RSP               SIR_HAL_AGGR_QOS_RSP
+#endif /* WLAN_FEATURE_VOWIFI_11R */
+
+#ifdef ANI_MANF_DIAG
+/* FTM CMD MSG */
+#define WDA_FTM_CMD_REQ        SIR_PTT_MSG_TYPES_BEGIN
+#define WDA_FTM_CMD_RSP        SIR_PTT_MSG_TYPES_END
+#endif /* ANI_MANF_DIAG */
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 #endif
-
 
 #if defined(FEATURE_WLAN_NON_INTEGRATED_SOC)
 #define VOS_MODULE_ID_WDA VOS_MODULE_ID_HAL
@@ -1132,17 +1160,27 @@ v_BOOL_t WDA_IsHwFrameTxTranslationCapable(v_PVOID_t pVosGCtx,
 #endif
 
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
-#  define WDA_EnableUapsdAcParams(vosGCtx, staId, uapsdInfo) (VOS_FALSE)
+#  define WDA_EnableUapsdAcParams(vosGCtx, staId, uapsdInfo) \
+         WDA_SetUapsdAcParamsReq(vosGCtx, staId, uapsdInfo)
 #else
 #  define WDA_EnableUapsdAcParams(vosGCtx, staId, uapsdInfo) \
          WLANHAL_EnableUapsdAcParams(vosGCtx, staId, uapsdInfo)
 #endif
 
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
-#  define WDA_DisableUapsdAcParams(vosGCtx, staId, ac) (VOS_FALSE)
+#  define WDA_DisableUapsdAcParams(vosGCtx, staId, ac) \
+          WDA_ClearUapsdAcParamsReq(vosGCtx, staId, ac)
 #else
 #  define WDA_DisableUapsdAcParams(vosGCtx, staId, ac) \
          WLANHAL_DisableUapsdAcParams(vosGCtx, staId, ac)
+#endif
+
+#if defined( FEATURE_WLAN_INTEGRATED_SOC )
+#  define WDA_SetRSSIThresholds(pMac, pThresholds) \
+         WDA_SetRSSIThresholdsReq(pMac, pThresholds)
+#else
+#  define WDA_SetRSSIThresholds(pMac, pThresholds) \
+         halPS_SetRSSIThresholds(pMac, pThresholds)
 #endif
 
 

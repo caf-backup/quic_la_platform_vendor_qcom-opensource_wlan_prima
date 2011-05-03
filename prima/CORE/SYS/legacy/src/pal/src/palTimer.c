@@ -53,6 +53,45 @@ v_VOID_t internalTimerCallback( v_PVOID_t userData )
     }
 }
 
+#ifdef TIMER_MANAGER
+eHalStatus palTimerAlloc_debug( tHddHandle hHdd, tPalTimerHandle *phPalTimer, 
+                          palTimerCallback pCallback, void *pContext, char* fileName, v_U32_t lineNum  )
+{
+   eHalStatus halStatus = eHAL_STATUS_FAILURE;
+   tPalTimer *pPalTimer = NULL;
+   VOS_STATUS vosStatus;
+    
+   do
+   {
+      // allocate the internal timer structure.
+      pPalTimer = vos_mem_malloc( sizeof( tPalTimer ) );
+      if ( NULL == pPalTimer ) break;
+       
+      // initialize the vos Timer that underlies the pal Timer.
+      vosStatus = vos_timer_init_debug( &pPalTimer->vosTimer, VOS_TIMER_TYPE_SW, 
+                                   internalTimerCallback, pPalTimer, fileName, lineNum );
+      if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
+      {
+         // if fail to init the vos timer, free the memory and bail out.
+         vos_mem_free( pPalTimer );
+         break;
+      }
+      
+      // initialize the info in the internal palTimer struct so we can 
+      pPalTimer->timerCallback = pCallback;
+      pPalTimer->pContext      = pContext;
+      pPalTimer->hHdd          = hHdd;
+      
+      // return a 'handle' to the caller.
+      *phPalTimer = pPalTimer;
+      
+      halStatus = eHAL_STATUS_SUCCESS;
+      
+   } while( 0 );   
+       
+    return( halStatus );
+}
+#else
 eHalStatus palTimerAlloc( tHddHandle hHdd, tPalTimerHandle *phPalTimer, 
                           palTimerCallback pCallback, void *pContext )
 {
@@ -90,6 +129,7 @@ eHalStatus palTimerAlloc( tHddHandle hHdd, tPalTimerHandle *phPalTimer,
        
     return( halStatus );
 }
+#endif
 
 
 eHalStatus palTimerFree( tHddHandle hHdd, tPalTimerHandle hPalTimer )

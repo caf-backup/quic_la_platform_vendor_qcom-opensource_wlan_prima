@@ -301,6 +301,7 @@ typedef struct tagCsrRoamStartBssParams
     tANI_U8             ssidHidden;
     tANI_U8             wps_state;
 #endif
+    VOS_CON_MODE       bssPersona;
     tANI_U16            nRSNIELength;  //The byte count in the pRSNIE, if 0, pRSNIE is ignored.
     tANI_U8             *pRSNIE;     //If not null, it has the IE byte stream for RSN
 }tCsrRoamStartBssParams;
@@ -499,6 +500,13 @@ typedef struct tagCsrConfig
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
     tCsrNeighborRoamConfig neighborRoamConfig;
 #endif
+
+    /* Instead of Reassoc, send ADDTS/DELTS even when ACM is off for that AC 
+     * This is mandated by WMM-AC certification */
+    tANI_BOOLEAN addTSWhenACMIsOff;
+
+    tANI_BOOLEAN fValidateList;
+
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo 
@@ -575,6 +583,10 @@ typedef struct tagCsrScanStruct
     tANI_U32 nIdleScanTimeGap;  //the time since last trying to trigger idle scan
     tCsrOsChannelMask osScanChannelMask;//keep a track of channels to be scnned while in traffic condition
     tANI_U16 nBssLimit; //the maximum number of BSS in scan cache
+    /*channelPowerInfoList24 has been seen corrupted. Set this flag to true trying to 
+    * detect when it happens. Adding this into code because we can't reproduce it easily.
+    * We don't know when it happens. */
+    tANI_BOOLEAN fValidateList;
 }tCsrScanStruct;
 
 
@@ -585,6 +597,9 @@ typedef struct tagRoamCsrConnectedInfo
     tANI_U32 nBeaconLength; //the length, in bytes, of the beacon frame, can be 0
     tANI_U32 nAssocReqLength;   //the length, in bytes, of the assoc req frame, can be 0
     tANI_U32 nAssocRspLength;   //The length, in bytes, of the assoc rsp frame, can be 0
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    tANI_U32 nRICRspLength; //Length of the parsed RIC response IEs received in reassoc response
+#endif
     tANI_U8 *pbFrames;  //Point to a buffer contain the beacon, assoc req, assoc rsp frame, in that order
                         //user needs to use nBeaconLength, nAssocReqLength, nAssocRspLength to desice where
                         //each frame starts and ends.
@@ -755,6 +770,13 @@ typedef struct tagCsrRoamSession
     tANI_U32 nWapiRspIeLength;    //the byte count for pWapiRspIE
     tANI_U8 *pWapiRspIE;  //this contain the WAPI IE in beacon/probe rsp
 #endif /* FEATURE_WLAN_WAPI */
+#ifdef WLAN_FEATURE_P2P
+    tANI_U32 nP2PReqIeLength;	 //the byte count of pP2PReqIE;
+    tANI_U8 *pP2PReqIE; //this contain the P2P IE in assoc request
+    tANI_U32 nP2PRspIeLength;	  //the byte count for pP2PRspIE
+    tANI_U8 *pP2PRspIE;  //this contain the P2P IE in beacon/probe rsp
+#endif /* WLAN_FEATURE_P2P */
+
     tANI_TIMESTAMP roamingStartTime;    //in units of 10ms
     tCsrTimerInfo roamingTimerInfo;
     eCsrRoamingReason roamingReason;
@@ -929,6 +951,8 @@ typedef struct tagCsrRoamStruct
 
 
 #define CSR_IS_SET_KEY_COMMAND( pCommand )    ( eSmeCommandSetKey == (pCommand)->command )
+
+#define CSR_IS_ADDTS_WHEN_ACMOFF_SUPPORTED(pMac) (pMac->roam.configParam.addTSWhenACMIsOff)
 
 //Stop CSR from asking for IMPS, This function doesn't disable IMPS from CSR
 void csrScanSuspendIMPS( tpAniSirGlobal pMac );
@@ -1141,5 +1165,10 @@ eHalStatus csrRoamUpdateAPWPSIE( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirAP
 eHalStatus csrRoamUpdateWPARSNIEs( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirRSNie * pAPSirRSNie);
 #endif
 void csrSetCfgPrivacy( tpAniSirGlobal pMac, tCsrRoamProfile *pProfile, tANI_BOOLEAN fPrivacy );
+tANI_S8 csrGetInfraSessionId( tpAniSirGlobal pMac );
+tANI_U8 csrGetInfraOperationChannel( tpAniSirGlobal pMac, tANI_U8 sessionId);
+eHalStatus csrRoamCopyConnectProfile(tpAniSirGlobal pMac, tANI_U32 sessionId, 
+	                               tCsrRoamConnectedProfile *pProfile);
+tANI_BOOLEAN csrIsSetKeyAllowed(tpAniSirGlobal pMac, tANI_U32 sessionId);
 #endif
 

@@ -137,8 +137,8 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle, tSapChSelSpectInfo *pSpectInfoPara
 ============================================================================*/
 v_U32_t sapweightRssiCount(v_S7_t rssi, v_U16_t count)
 {
-    v_U32_t     rssiWeight=0;
-    v_U32_t     countWeight=0;
+    v_S31_t     rssiWeight=0;
+    v_S31_t     countWeight=0;
     v_U32_t     rssicountWeight=0;
     
     // Weight from RSSI
@@ -243,7 +243,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
        	 bssCount : Number of BSS on that channel
         	*/
 
-        rssi = pSpectCh->rssiAgr;
+        rssi = (v_S7_t)pSpectCh->rssiAgr;
 
         pSpectCh->weight = SAPDFS_NORMALISE_1000 * sapweightRssiCount(rssi, pSpectCh->bssCount);
 
@@ -384,7 +384,7 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, tScanResultHandle pScanResult)
     sapSortChlWeight(pSpectInfoParams);
 
     // Get the first channel in sorted array as best 20M Channel
-    bestChNum = pSpectInfoParams->pSpectCh[0].chNum;
+    bestChNum = (v_U8_t)pSpectInfoParams->pSpectCh[0].chNum;
 
     // Free all the allocated memory
     sapChanSelExit(pSpectInfoParams);

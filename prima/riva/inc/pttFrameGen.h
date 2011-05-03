@@ -29,7 +29,7 @@ typedef enum {
    TEST_PAYLOAD_RANDOM,
    TEST_PAYLOAD_RAMP,
    TEST_PAYLOAD_TEMPLATE,
-   TEST_PAYLOAD_MAX = 0XFFFFFFFF,   //dummy value to set enum to 4 bytes
+   TEST_PAYLOAD_MAX = 0X3FFFFFFF,   //dummy value to set enum to 4 bytes
 } ePayloadContents;
 
 

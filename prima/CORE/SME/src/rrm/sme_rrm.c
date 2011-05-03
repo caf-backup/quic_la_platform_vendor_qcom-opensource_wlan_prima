@@ -17,8 +17,10 @@
 /*--------------------------------------------------------------------------
   Include Files
   ------------------------------------------------------------------------*/
-
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
 #include "halInternal.h"
+#endif
+#include "aniGlobal.h"
 #include "smeInside.h"
 #include "sme_Api.h"
 #include "smsDebug.h"
@@ -255,7 +257,7 @@ static eHalStatus sme_RrmSendScanResult( tpAniSirGlobal pMac, tANI_U8 num_chan, 
    filter.fMeasurement = TRUE; 
 
    csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid*)pSmeRrmContext->sessionBssId, &sessionId );
-   status = sme_ScanGetResult(pMac, sessionId, &filter, &pResult);
+   status = sme_ScanGetResult(pMac, (tANI_U8)sessionId, &filter, &pResult);
 
    if( filter.SSIDs.SSIDList )
    {
@@ -440,7 +442,7 @@ eHalStatus sme_RrmIssueScanReq( tpAniSirGlobal pMac )
    scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;
 
    csrRoamGetSessionIdFromBSSID( pMac, (tCsrBssid*)pSmeRrmContext->sessionBssId, &sessionId );
-   status = sme_ScanRequest( pMac, sessionId, &scanRequest, &scanId, &sme_RrmScanRequestCallback, NULL ); 
+   status = sme_ScanRequest( pMac, (tANI_U8)sessionId, &scanRequest, &scanId, &sme_RrmScanRequestCallback, NULL ); 
 
    if ( pSmeRrmContext->ssId.length )
    {
@@ -492,7 +494,7 @@ void sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
       smsLog( pMac, LOGE, FL("Allocated memory for ChannelList\n") );
 #endif
       csrGetCfgValidChannels( pMac, pSmeRrmContext->channelList.ChannelList, &len );
-      pSmeRrmContext->channelList.numOfChannels = len;
+      pSmeRrmContext->channelList.numOfChannels = (tANI_U8)len;
 #if defined WLAN_VOWIFI_DEBUG
       smsLog( pMac, LOGE, "channel == 0 perfoming on all channels \n");
 #endif

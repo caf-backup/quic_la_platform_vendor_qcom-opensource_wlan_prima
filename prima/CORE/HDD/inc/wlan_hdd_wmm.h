@@ -48,9 +48,22 @@
 
 #define HDD_WMM_HANDLE_IMPLICIT 0xFFFFFFFF
 
+#define HDD_WLAN_INVALID_STA_ID 0xFF
+
 /*----------------------------------------------------------------------------
  * Type Declarations
  * -------------------------------------------------------------------------*/
+/*! @brief AC/Queue Index values for Linux Qdisc to operate on different traffic.
+*/
+typedef enum
+{
+   HDD_LINUX_AC_VO = 0,
+   HDD_LINUX_AC_VI = 1,
+   HDD_LINUX_AC_BE = 2,
+   HDD_LINUX_AC_BK = 3
+
+} hdd_wmm_linuxac_t;
+
 /*! @brief types of classification supported
 */
 typedef enum
@@ -148,6 +161,9 @@ typedef struct
    v_BOOL_t                     wmmQap;
 } hdd_wmm_status_t;
 
+extern const v_U8_t hdd_QdiscAcToTlAC[];
+
+
 /**============================================================================
   @brief hdd_wmm_init() - Function which will initialize the WMM configuation
   and status to an initial state.  The configuration can later be overwritten
@@ -187,6 +203,32 @@ VOS_STATUS hdd_wmm_adapter_init( hdd_adapter_t *pAdapter );
 VOS_STATUS hdd_wmm_adapter_close ( hdd_adapter_t* pAdapter );
 
 /**============================================================================
+  @brief hdd_wmm_select_queue() - Function which will classify an OS packet
+  into linux Qdisc expectation
+
+  @param dev      : [in]  pointer to net_device structure
+  @param skb      : [in]  pointer to OS packet (sk_buff)
+
+  @return         : queue_index/linux AC value.
+  ===========================================================================*/
+v_U16_t hdd_wmm_select_queue(struct net_device * dev, struct sk_buff *skb);
+
+/**============================================================================
+  @brief hdd_hostapd_select_queue() - Function which will classify the packet
+	 accoring to linux qdisc expectation.
+
+
+  @param dev      : [in]  pointer to net_device structure
+  @param skb      : [in]  pointer to os packet
+
+  @return         : Qdisc queue index
+  ===========================================================================*/
+
+v_U16_t hdd_hostapd_select_queue(struct net_device * dev, struct sk_buff *skb);
+
+
+
+/**============================================================================
   @brief hdd_wmm_classify_pkt() - Function which will classify an OS packet
   into a WMM AC based on either 802.1Q or DSCP
 
@@ -194,10 +236,9 @@ VOS_STATUS hdd_wmm_adapter_close ( hdd_adapter_t* pAdapter );
   @param skb      : [in]  pointer to OS packet (sk_buff)
   @param pAcType  : [out] pointer to WMM AC type of OS packet
 
-  @return         : FALSE if any errors encountered
-                  : TRUE otherwise
+  @return         : None
   ===========================================================================*/
-v_BOOL_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
+v_VOID_t hdd_wmm_classify_pkt ( hdd_adapter_t* pAdapter,
                                 struct sk_buff *skb,
                                 WLANTL_ACEnumType* pAcType,
                                 sme_QosWmmUpType* pUserPri);
@@ -310,4 +351,5 @@ hdd_wlan_wmm_status_e hdd_wmm_delts( hdd_adapter_t* pAdapter,
   ===========================================================================*/
 hdd_wlan_wmm_status_e hdd_wmm_checkts( hdd_adapter_t* pAdapter,
                                        v_U32_t handle );
+
 #endif /* #ifndef _WLAN_HDD_WMM_H */

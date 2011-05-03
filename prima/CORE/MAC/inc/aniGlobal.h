@@ -52,6 +52,9 @@ typedef struct sAniSirGlobal *tpAniSirGlobal;
 #endif
 
 #include "csrApi.h"
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "sme_FTApi.h"
+#endif
 #include "csrSupport.h"
 #include "smeInternal.h"
 #include "ccmApi.h"
@@ -956,8 +959,19 @@ typedef struct sAniSirLim
 
 #ifdef WLAN_FEATURE_P2P
     tSirRemainOnChnReq  *gpLimRemainOnChanReq; //hold remain on chan request in this buf
+    vos_list_t  gLimMgmtFrameRegistratinQueue;
 #endif
 } tAniSirLim, *tpAniSirLim;
+
+#ifdef WLAN_FEATURE_P2P
+typedef struct sLimMgmtFrameRegistration
+{
+    vos_list_node_t node;     // MUST be first element
+    tANI_U16        frameType;
+    tANI_U16        matchLen;
+    tANI_U8         matchData[1];
+} tLimMgmtFrameRegistration, *tpLimMgmtFrameRegistration;
+#endif
 
 #if defined WLAN_FEATURE_VOWIFI
 typedef struct sRrmContext

@@ -1169,9 +1169,12 @@ void limProcessHalAddTsRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
     // 090803: Use peFindSessionBySessionId() to obtain the PE session context       
     // from the sessionId in the Rsp Msg from HAL
     psessionEntry = peFindSessionBySessionId(pMac, pAddTsRspMsg->sessionId);
-    if (psessionEntry == NULL) {
-	// Cant find session entry 
-        PELOG1(limLog(pMac, LOG1, FL("Cant find session entry for %s\n", __FUNCTION__));)
+
+    if(psessionEntry == NULL)
+    {
+        PELOGE(limLog(pMac, LOGE,FL("Session does Not exist with given sessionId :%d \n"), pAddTsRspMsg->sessionId);)
+        limSendSmeAddtsRsp(pMac, rspReqd, eSIR_SME_ADDTS_RSP_FAILED, psessionEntry, pAddTsRspMsg->tspec, 
+              pMac->lim.gLimAddtsReq.sessionId, pMac->lim.gLimAddtsReq.transactionId);
         goto end;
     }
 

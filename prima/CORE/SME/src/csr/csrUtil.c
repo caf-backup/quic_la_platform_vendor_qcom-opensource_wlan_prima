@@ -1371,6 +1371,38 @@ tANI_BOOLEAN csrIsAnySessionInConnectState( tpAniSirGlobal pMac )
     return ( fRc );
 }
 
+tANI_S8 csrGetInfraSessionId( tpAniSirGlobal pMac )
+{
+    tANI_U8 i;
+    tANI_S8 sessionid = -1;
+
+    for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
+    {
+        if( CSR_IS_SESSION_VALID( pMac, i ) && csrIsConnStateInfra( pMac, i )  )
+        {
+            sessionid = i;
+            break;
+        }
+    }
+
+    return ( sessionid );
+}
+
+tANI_U8 csrGetInfraOperationChannel( tpAniSirGlobal pMac, tANI_U8 sessionId)
+{
+    tANI_U8 channel;
+
+    if( CSR_IS_SESSION_VALID( pMac, sessionId ))
+    {
+        channel = pMac->roam.roamSession[sessionId].connectedProfile.operationChannel;
+    }
+    else
+    {
+        channel = 0;
+    }
+    return channel;
+}
+
 tANI_BOOLEAN csrIsAllSessionDisconnected( tpAniSirGlobal pMac )
 {
     tANI_U32 i;
@@ -2363,7 +2395,7 @@ static tANI_BOOLEAN csrIsWapiOuiMatch( tpAniSirGlobal pMac, tANI_U8 AllCyphers[]
 
     if ( fYes && Oui )
     {
-        palCopyMemory( pMac->hHdd, Oui, AllCyphers[ idx ], sizeof( Oui ) );
+        palCopyMemory( pMac->hHdd, Oui, AllCyphers[ idx ], CSR_WAPI_OUI_SIZE );
     }
 
     return( fYes );
@@ -2394,7 +2426,7 @@ static tANI_BOOLEAN csrIsOuiMatch( tpAniSirGlobal pMac, tANI_U8 AllCyphers[][CSR
 
     if ( fYes && Oui )
     {
-        palCopyMemory( pMac->hHdd, Oui, AllCyphers[ idx ], sizeof( Oui ) );
+        palCopyMemory( pMac->hHdd, Oui, AllCyphers[ idx ], CSR_WPA_OUI_SIZE );
     }
 
     return( fYes );
@@ -2626,9 +2658,11 @@ tANI_U8 csrGetOUIIndexFromCipher( eCsrEncryptionType enType )
         switch ( enType )
         {
             case eCSR_ENCRYPT_TYPE_WEP40:
+            case eCSR_ENCRYPT_TYPE_WEP40_STATICKEY:
                 OUIIndex = CSR_OUI_WEP40_OR_1X_INDEX;
                 break;
             case eCSR_ENCRYPT_TYPE_WEP104:
+            case eCSR_ENCRYPT_TYPE_WEP104_STATICKEY:
                 OUIIndex = CSR_OUI_WEP104_INDEX;
                 break;
             case eCSR_ENCRYPT_TYPE_TKIP:
@@ -2906,8 +2940,8 @@ tANI_U8 csrConstructRSNIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile 
                                   sizeof( tCsrRSNCapabilities ));
         if(pPMK->cPMKIDs)
         {
-            pRSNIe->IeHeader.Length += sizeof( tANI_U16 ) +
-                                        (pPMK->cPMKIDs * CSR_RSN_PMKID_SIZE);
+            pRSNIe->IeHeader.Length += (tANI_U8)(sizeof( tANI_U16 ) +
+                                        (pPMK->cPMKIDs * CSR_RSN_PMKID_SIZE));
         }
         // return the size of the IE header (total) constructed...
         cbRSNIe = pRSNIe->IeHeader.Length + sizeof( pRSNIe->IeHeader );
@@ -4007,38 +4041,12 @@ tANI_BOOLEAN csrIsSecurityMatch( tHalHandle hHal, tCsrAuthList *authType, tCsrEn
 }
 
 
-tANI_BOOLEAN csrIsBogusSsid( tANI_U8 *pSsid, tANI_U32 SsidLen )
-{
-    tANI_BOOLEAN fBogusSsid = FALSE;
-    tANI_U32 idx;
-
-    for( idx = 0; idx < SsidLen; idx++ )
-    {
-        // 0x20 <blank> is the smallest displayable ASCII hex value and 0x7E is the
-        // largest displayable ASCII value.  if the character is not within the
-        // displayable ASCII range of values, then the SSID is bogus (actually invalid
-        // by 802.11 standards). Also consider 0 a valid
-        if ( ( 0 != pSsid[ idx ] ) &&
-             ( ( pSsid[ idx ] < 0x20 ) || ( pSsid[ idx ] > 0x7E ) ) )
-        {
-            fBogusSsid = TRUE;
-            break;
-        }
-    }
-    return( fBogusSsid );
-}
-
-
 tANI_BOOLEAN csrIsSsidMatch( tpAniSirGlobal pMac, tANI_U8 *ssid1, tANI_U8 ssid1Len, tANI_U8 *bssSsid,
                             tANI_U8 bssSsidLen, tANI_BOOLEAN fSsidRequired )
 {
     tANI_BOOLEAN fMatch = FALSE;
 
     do {
-
-        // if the profile has the 'bogus' SSID, then we should not match anything to this
-        // profile....
-        if ( csrIsBogusSsid( ssid1, ssid1Len ) ) break;
 
         // There are a few special cases.  If the Bss description has a Broadcast SSID,
         // then our Profile must have a single SSID without Wildcards so we can program
@@ -4778,6 +4786,11 @@ tANI_U16 csrRatesFindBestRate( tSirMacRateSet *pSuppRates, tSirMacRateSet *pExtR
 
     nBest = pSuppRates->rate[ 0 ] & ( ~CSR_DOT11_BASIC_RATE_MASK );
 
+    if(pSuppRates->numRates > SIR_MAC_RATESET_EID_MAX)
+    {
+        pSuppRates->numRates = SIR_MAC_RATESET_EID_MAX;
+    }
+
     for ( i = 1U; i < pSuppRates->numRates; ++i )
     {
         nBest = (tANI_U16)CSR_MAX( nBest, pSuppRates->rate[ i ] & ( ~CSR_DOT11_BASIC_RATE_MASK ) );
@@ -4810,29 +4823,43 @@ void csrReleaseProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile)
         if(pProfile->BSSIDs.bssid)
         {
             palFreeMemory(pMac->hHdd, pProfile->BSSIDs.bssid);
+            pProfile->BSSIDs.bssid = NULL;
         }
         if(pProfile->SSIDs.SSIDList)
         {
             palFreeMemory(pMac->hHdd, pProfile->SSIDs.SSIDList);
+            pProfile->SSIDs.SSIDList = NULL;
         }
         if(pProfile->pWPAReqIE)
         {
             palFreeMemory(pMac->hHdd, pProfile->pWPAReqIE);
+            pProfile->pWPAReqIE = NULL;
         }
         if(pProfile->pRSNReqIE)
         {
             palFreeMemory(pMac->hHdd, pProfile->pRSNReqIE);
+            pProfile->pRSNReqIE = NULL;
         }
 #ifdef FEATURE_WLAN_WAPI
         if(pProfile->pWAPIReqIE)
         {
             palFreeMemory(pMac->hHdd, pProfile->pWAPIReqIE);
+            pProfile->pWAPIReqIE = NULL;
         }
 #endif /* FEATURE_WLAN_WAPI */
+#ifdef WLAN_FEATURE_P2P
+        if(pProfile->pP2PIE)
+        {
+            palFreeMemory(pMac->hHdd, pProfile->pP2PIE);
+            pProfile->pP2PIE = NULL;
+        }
+#endif /* WLAN_FEATURE_P2P */
+
     
         if(pProfile->ChannelInfo.ChannelList)
         {
             palFreeMemory(pMac->hHdd, pProfile->ChannelInfo.ChannelList);
+            pProfile->ChannelInfo.ChannelList = NULL;
         }
 
     
@@ -5496,3 +5523,34 @@ eHalStatus csrScanGetBaseChannels( tpAniSirGlobal pMac, tCsrChannelInfo * pChann
     return ( status );
 }
 
+
+tANI_BOOLEAN csrIsSetKeyAllowed(tpAniSirGlobal pMac, tANI_U32 sessionId)
+{
+    tANI_BOOLEAN fRet = eANI_BOOLEAN_TRUE;
+#ifdef WLAN_SOFTAP_FEATURE
+    tCsrRoamSession *pSession;
+
+    pSession =CSR_GET_SESSION(pMac, sessionId);
+
+    /*This condition is not working for infra state. When infra is in not-connected state
+    * the pSession->pCurRoamProfile is NULL. And this function returns TRUE, that is incorrect.
+    * Since SAP requires to set key without any BSS started, it needs this condition to be met.
+    * In other words, this function is useless.
+    * The current work-around is to process setcontext_rsp and removekey_rsp no matter what the 
+    * state is.
+    */
+    smsLog( pMac, LOGE, FL(" is not what it intends to. Must be revisit or removed\n") );
+    if( (NULL == pSession) || 
+        ( csrIsConnStateDisconnected( pMac, sessionId ) && 
+        (pSession->pCurRoamProfile != NULL) &&
+        (!(CSR_IS_INFRA_AP(pSession->pCurRoamProfile))) )
+        )
+    {
+        fRet = eANI_BOOLEAN_FALSE;
+    }
+#else
+    fRet = !( csrIsConnStateDisconnected( pMac, sessionId ) );
+#endif
+
+    return ( fRet );
+}

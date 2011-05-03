@@ -25,8 +25,13 @@ static WDTS_TransportDriverTrype gTransportDriver = {
   WLANDXE_Open, 
   WLANDXE_Start, 
   WLANDXE_ClientRegistration, 
-  WLANDXE_TxFrame
+  WLANDXE_TxFrame,
+  WLANDXE_SetPowerState,
+  WLANDXE_Stop,
+  WLANDXE_Close
 };
+
+static WDTS_SetPowerStateCbInfoType gSetPowerStateCbInfo;
 
 /* DTS Tx packet complete function. 
  * This function should be invoked by the transport device to indicate 
@@ -327,6 +332,83 @@ wpt_status WDTS_TxPacket(void *pContext, wpt_packet *pFrame)
   
   // Send packet to  Transport Driver. 
   status =  gTransportDriver.xmit(pDTDriverContext, pFrame, channel);
+  return status;
+}
+
+/* DXE Set power state ACK callback. 
+ * This callback function should be invoked by the DXE to notify WDI that set
+ * power state request is complete.
+ * Parameters:
+ * status: status of the set operation
+ * Return Value: None.
+ *
+ */
+void  WDTS_SetPowerStateCb(wpt_status   status, unsigned int dxePhyAddr)
+{
+   //print a msg
+   if(NULL != gSetPowerStateCbInfo.cback) 
+   {
+      gSetPowerStateCbInfo.cback(status, dxePhyAddr, gSetPowerStateCbInfo.pUserData);
+   }
+}
+
+
+/* DTS Set power state function. 
+ * This function should be invoked by the DAL to notify the WLAN device power state.
+ * Parameters:
+ * pContext:Cookie that should be passed back to the caller along with the callback.
+ * powerState:Power state of the WLAN device.
+ * Return Value: SUCCESS  Set successfully in DXE control blk.
+ *     FAILURE_XXX  Request was rejected due XXX Reason.
+ *
+ */
+wpt_status WDTS_SetPowerState(void *pContext, WDTS_PowerStateType  powerState,
+                              WDTS_SetPowerStateCbType cback)
+{
+   void *pDTDriverContext = WDT_GetTransportDriverContext(pContext);
+   wpt_status status = eWLAN_PAL_STATUS_SUCCESS;
+
+   //save the cback & cookie
+   gSetPowerStateCbInfo.pUserData = pContext;
+   gSetPowerStateCbInfo.cback = cback;
+   status =  gTransportDriver.setPowerState(pDTDriverContext, powerState,
+                                            WDTS_SetPowerStateCb);
+
+  return status;
+}
+
+/* DTS Stop function. 
+ * Stop Transport driver, ie DXE, SDIO
+ * Parameters:
+ * pContext:Cookie that should be passed back to the caller along with the callback.
+ * Return Value: SUCCESS  Completed successfully.
+ *     FAILURE_XXX  Request was rejected due XXX Reason.
+ *
+ */
+wpt_status WDTS_Stop(void *pContext)
+{
+  void *pDTDriverContext = WDT_GetTransportDriverContext(pContext);
+  wpt_status status = eWLAN_PAL_STATUS_SUCCESS;
+
+  status =  gTransportDriver.stop(pDTDriverContext);
+
+  return status;
+}
+
+/* DTS Stop function. 
+ * Stop Transport driver, ie DXE, SDIO
+ * Parameters:
+ * pContext:Cookie that should be passed back to the caller along with the callback.
+ * Return Value: SUCCESS  Completed successfully.
+ *     FAILURE_XXX  Request was rejected due XXX Reason.
+ *
+ */
+wpt_status WDTS_Close(void *pContext)
+{
+  void *pDTDriverContext = WDT_GetTransportDriverContext(pContext);
+  wpt_status status = eWLAN_PAL_STATUS_SUCCESS;
+
+  status =  gTransportDriver.close(pDTDriverContext);
 
   return status;
 }

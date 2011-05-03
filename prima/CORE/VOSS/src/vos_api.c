@@ -122,7 +122,7 @@ VOS_STATUS vos_preOpen ( v_CONTEXT_t *pVosContext )
 
    /* Allocate the VOS Context */
    *pVosContext = NULL;
-   gpVosContext = (VosContextType*) vos_mem_malloc(sizeof(VosContextType));
+   gpVosContext = (VosContextType*) kmalloc(sizeof(VosContextType), GFP_KERNEL);
 
    if (NULL == gpVosContext)
    {
@@ -178,7 +178,8 @@ VOS_STATUS vos_preClose( v_CONTEXT_t *pVosContext )
    }
 
    /* Free the VOS Context */
-   vos_mem_free(gpVosContext);
+   if(gpVosContext != NULL)
+      kfree(gpVosContext);
 
    *pVosContext = gpVosContext = NULL;
 
@@ -333,6 +334,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    ** frame translation 802.11 <-> 802.3
    */
    macOpenParms.frameTransRequired = 1;
+   macOpenParms.driverType         = eDRIVER_TYPE_PRODUCTION;
    vStatus = WDA_open( gpVosContext, gpVosContext->pHDDContext, &macOpenParms );
 
    if (!VOS_IS_STATUS_SUCCESS(vStatus))
@@ -402,7 +404,7 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
    /*Now probe the Tx thread */
    sysTxThreadProbe(gpVosContext, 
                     &vos_sys_probe_thread_cback,
-                    gpVosContext);   
+                    gpVosContext);
    
    if (vos_wait_single_event(&gpVosContext->ProbeEvent, 0)!= VOS_STATUS_SUCCESS)
    {
@@ -676,7 +678,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   if (gpVosContext != pVosContext)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "%s: mismatch in context",__FUNCTION__); 
+           "%s: mismatch in context",__FUNCTION__);
      return VOS_STATUS_E_FAILURE;
   }
 
@@ -712,6 +714,43 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
      
      return VOS_STATUS_E_FAILURE;
   }
+
+  /* WDA_Start will be called after NV image download because the 
+    NV image data has to be updated at HAL before HAL_Start gets executed*/
+
+  /* Start the NV Image Download */
+
+  vos_event_reset( &(gpVosContext->wdaCompleteEvent) );
+
+  vStatus = WDA_NVDownload_Start(pVosContext);
+
+  if ( vStatus != VOS_STATUS_SUCCESS )
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Failed to start NV Download",__func__);
+     return VOS_STATUS_E_FAILURE;
+  }
+
+  vStatus = vos_wait_single_event( &(gpVosContext->wdaCompleteEvent), 10000 );
+
+  if ( vStatus != VOS_STATUS_SUCCESS )
+  {
+     if ( vStatus == VOS_STATUS_E_TIMEOUT )
+     {
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Timeout occured before WDA_NVDownload_start complete\n",__func__);
+     }
+     else
+     {
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: WDA_NVDownload_start reporting  other error \n",__func__);
+     }
+     VOS_ASSERT(0);
+     goto err_wda_stop;   
+  }
+
+  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+            "%s: WDA_NVDownload_start correctly started",__func__);
 
   /* Start the WDA */
 
@@ -861,10 +900,12 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
   return VOS_STATUS_SUCCESS;
 
+#ifndef FEATURE_WLAN_INTEGRATED_SOC 
 #ifdef WLAN_BTAMP_FEATURE
 err_bap_stop:
   WLANBAP_Stop(pVosContext);
 #endif //WLAN_BTAMP_FEATURE
+#endif
 
 #ifdef WLAN_BTAMP_FEATURE
 err_tl_stop:
@@ -915,7 +956,11 @@ err_wda_stop:
 VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
 {
   VOS_STATUS vosStatus;
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+  pVosContextType pVosContext = (pVosContextType)vosContext;
+#endif/* FEATURE_WLAN_INTEGRATED_SOC */
 
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
   /* SYS STOP will stop SME and MAC */
   vosStatus = sysStop( vosContext);
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -924,6 +969,20 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
          "%s: Failed to stop SYS",__func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
+#else
+  if(sme_Stop(pVosContext->pMACContext, TRUE))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to stop SME",__func__);
+     VOS_ASSERT(0);
+  }
+  if(macStop(pVosContext->pMACContext, HAL_STOP_TYPE_SYS_RESET))
+  {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "%s: Failed to stop MAC",__func__);
+     VOS_ASSERT(0);
+  }
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
   vosStatus = WLANTL_Stop( vosContext );
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -1257,6 +1316,28 @@ v_CONTEXT_t vos_get_global_context( VOS_MODULE_ID moduleId,
 } /* vos_get_global_context() */
 
 
+v_U8_t vos_is_logp_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
+{
+  if (gpVosContext == NULL)
+  {
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+        "%s: global voss context is NULL", __FUNCTION__);
+  }
+
+   return gpVosContext->isLogpInProgress;
+}
+
+void vos_set_logp_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
+{
+  if (gpVosContext == NULL)
+  {
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+        "%s: global voss context is NULL", __FUNCTION__);
+  }
+
+   gpVosContext->isLogpInProgress = value;
+}
+
 /**---------------------------------------------------------------------------
   
   \brief vos_alloc_context() - allocate a context within the VOSS global Context
@@ -1396,7 +1477,7 @@ VOS_STATUS vos_alloc_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
   ** Dynamically allocate the context for module
   */
   
-  *ppModuleContext = vos_mem_malloc(size);
+  *ppModuleContext = kmalloc(size, GFP_KERNEL);
 
   
   if ( *ppModuleContext == NULL)
@@ -1549,7 +1630,8 @@ VOS_STATUS vos_free_context( v_VOID_t *pVosContext, VOS_MODULE_ID moduleID,
     return VOS_STATUS_E_FAILURE;
   } 
   
-  vos_mem_free(pModuleContext);
+  if(pModuleContext != NULL)
+      kfree(pModuleContext);
 
   *pGpModContext = NULL;
 
@@ -1674,7 +1756,7 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if (pTargetMq == NULL)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: pTargetMq == NULL",__FUNCTION__); 
+         "%s: pTargetMq == NULL",__FUNCTION__);
      return VOS_STATUS_E_FAILURE;
   } 
 
@@ -1700,7 +1782,7 @@ VOS_STATUS vos_mq_post_message( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   vos_mq_put(pTargetMq, pMsgWrapper);
 
   set_bit(MC_POST_EVENT_MASK, &gpVosContext->vosSched.mcEventFlag);
-  wake_up_interruptible(&gpVosContext->vosSched.mcWaitQueue); 
+  wake_up_interruptible(&gpVosContext->vosSched.mcWaitQueue);
 
   return VOS_STATUS_SUCCESS;
 
@@ -1800,7 +1882,7 @@ VOS_STATUS vos_tx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   if (pTargetMq == NULL)
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
-         "%s: pTargetMq == NULL",__FUNCTION__); 
+         "%s: pTargetMq == NULL",__FUNCTION__);
      return VOS_STATUS_E_FAILURE;
   } 
     
@@ -1812,7 +1894,7 @@ VOS_STATUS vos_tx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
 
   if (NULL == pMsgWrapper)
   {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
               "%s: VOS Core run out of message wrapper",__func__);
 
     return VOS_STATUS_E_RESOURCES;
@@ -1827,7 +1909,7 @@ VOS_STATUS vos_tx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   vos_mq_put(pTargetMq, pMsgWrapper);
 
   set_bit(TX_POST_EVENT_MASK, &gpVosContext->vosSched.txEventFlag);
-  wake_up_interruptible(&gpVosContext->vosSched.txWaitQueue); 
+  wake_up_interruptible(&gpVosContext->vosSched.txWaitQueue);
 
   return VOS_STATUS_SUCCESS;
 

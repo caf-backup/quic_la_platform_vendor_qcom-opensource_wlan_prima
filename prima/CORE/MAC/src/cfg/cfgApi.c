@@ -148,6 +148,17 @@ cfgSetInt(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U32 value)
     index    = control & CFG_BUF_INDX_MASK;
     retVal   = eSIR_SUCCESS;
 
+#if (WNI_POLARIS_FW_PRODUCT == AP)
+    if (index >= CFG_AP_IBUF_MAX_SIZE)
+#else
+    if (index >= CFG_STA_IBUF_MAX_SIZE)
+#endif
+    {
+        PELOGE(cfgLog(pMac, LOGE, FL("cfg index out of bounds %d\n"), index);)
+        retVal = eSIR_CFG_INVALID_ID;
+        return retVal;
+    }
+
     // Check if parameter is valid
     if ((control & CFG_CTL_VALID) == 0)
     {
@@ -271,6 +282,17 @@ wlan_cfgGetInt(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U32 *pValue)
     control = pMac->cfg.gCfgEntry[cfgId].control;
     index   = control & CFG_BUF_INDX_MASK;
     retVal  = eSIR_SUCCESS;
+
+#if (WNI_POLARIS_FW_PRODUCT == AP)
+    if (index >= CFG_AP_IBUF_MAX_SIZE)
+#else
+    if (index >= CFG_STA_IBUF_MAX_SIZE)
+#endif
+    {
+        PELOGE(cfgLog(pMac, LOGE, FL("cfg index out of bounds %d\n"), index);)
+        retVal = eSIR_CFG_INVALID_ID;
+        return retVal;
+    }
 
     // Check if parameter is valid
     if ((control & CFG_CTL_VALID) == 0)
@@ -525,6 +547,17 @@ wlan_cfgGetStr(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U8 *pBuf, tANI_U32 *pLe
     index    = control & CFG_BUF_INDX_MASK;
     retVal   = eSIR_SUCCESS;
 
+#if (WNI_POLARIS_FW_PRODUCT == AP)
+    if (index >= CFG_AP_SBUF_MAX_SIZE)
+#else
+    if (index >= CFG_STA_SBUF_MAX_SIZE)
+#endif
+    {
+        PELOGE(cfgLog(pMac, LOGE, FL("cfg index out of bounds %d\n"), index);)
+        retVal = eSIR_CFG_INVALID_ID;
+        return retVal;
+    }
+
     // Check if parameter is valid
     if ((control & CFG_CTL_VALID) == 0)
     {
@@ -594,6 +627,17 @@ wlan_cfgGetStrMaxLen(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U32 *pLength)
     index    = control & CFG_BUF_INDX_MASK;
     retVal   = eSIR_SUCCESS;
 
+#if (WNI_POLARIS_FW_PRODUCT == AP)
+    if (index >= CFG_AP_SBUF_MAX_SIZE)
+#else
+    if (index >= CFG_STA_SBUF_MAX_SIZE)
+#endif
+    {
+        PELOGE(cfgLog(pMac, LOGE, FL("cfg index out of bounds %d\n"), index);)
+        retVal = eSIR_CFG_INVALID_ID;
+        return retVal;
+    }
+
     // Check if parameter is valid
     if ((control & CFG_CTL_VALID) == 0)
     {
@@ -647,6 +691,17 @@ wlan_cfgGetStrLen(tpAniSirGlobal pMac, tANI_U16 cfgId, tANI_U32 *pLength)
     control  = pMac->cfg.gCfgEntry[cfgId].control;
     index    = control & CFG_BUF_INDX_MASK;
     retVal   = eSIR_SUCCESS;
+
+#if (WNI_POLARIS_FW_PRODUCT == AP)
+    if (index >= CFG_AP_SBUF_MAX_SIZE-1)
+#else
+    if (index >= CFG_STA_SBUF_MAX_SIZE-1)
+#endif
+    {
+        PELOGE(cfgLog(pMac, LOGE, FL("cfg index out of bounds %d\n"), index);)
+        retVal = eSIR_CFG_INVALID_ID;
+        return retVal;
+    }
 
     // Check if parameter is valid
     if ((control & CFG_CTL_VALID) == 0)

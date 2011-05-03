@@ -165,6 +165,14 @@ int bdPduInterruptGetThreshold = WLANTL_BD_PDU_INTERRUPT_GET_THRESHOLD;
 #define SWAP_ENDIAN_UINT32(a)          ((a) = ((a) >> 0x18 ) |(((a) & 0xFF0000) >> 0x08) | \
                                             (((a) & 0xFF00) << 0x08)  | (((a) & 0xFF) << 0x18))
 
+
+#ifdef VOLANS_HW_ISSUE_FIX_QID0_FOR_NON_QOS_ONLY
+#define UP_TO_TID_MAPPING(Up) Up
+#else
+v_U8_t txUpToTidMapping[STACFG_MAX_TC] = {3,2,2,3,4,5,6,7};
+#define UP_TO_TID_MAPPING(Up) txUpToTidMapping[Up]
+#endif
+
 /*--------------------------------------------------------------------------
    TID to AC mapping in TL
  --------------------------------------------------------------------------*/
@@ -698,6 +706,70 @@ WLANTL_Close
 /*----------------------------------------------------------------------------
     INTERACTION WITH HDD
  ---------------------------------------------------------------------------*/
+/*==========================================================================
+
+  FUNCTION    WLANTL_ConfigureSwFrameTXXlationForAll
+
+  DESCRIPTION
+     Function to disable/enable frame translation for all association stations.
+
+  DEPENDENCIES
+
+  PARAMETERS
+   IN
+    pvosGCtx: VOS context 
+    EnableFrameXlation TRUE means enable SW translation for all stations.
+    .
+
+  RETURN VALUE
+
+   void.
+
+============================================================================*/
+void
+WLANTL_ConfigureSwFrameTXXlationForAll
+(
+  v_PVOID_t pvosGCtx, 
+  v_BOOL_t enableFrameXlation
+)
+{
+  v_U8_t	ucIndex;
+  /*------------------------------------------------------------------------
+    Extract TL control block
+   ------------------------------------------------------------------------*/
+  WLANTL_CbType*	pTLCb = VOS_GET_TL_CB(pvosGCtx);
+
+  if ( NULL == pTLCb )
+  {
+    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+          "WLAN TL:Invalid TL pointer from pvosGCtx on \
+           WLANTL_ConfigureSwFrameTXXlationForAll"));
+    return;
+  }
+
+  TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO,
+     "WLANTL_ConfigureSwFrameTXXlationForAll: Configure SW frameXlation %d", 
+      enableFrameXlation));
+
+  for ( ucIndex = 0; ucIndex < WLAN_MAX_TID; ucIndex++) 
+  {
+    if ( 0 != pTLCb->atlSTAClients[ucIndex].ucExists )
+    {
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+      // if this station was not allocated resources to perform HW-based
+      // TX frame translation then force SW-based TX frame translation
+      // otherwise use the frame translation supplied by the client
+      if (!WDA_IsHwFrameTxTranslationCapable(pvosGCtx, ucIndex))
+      {
+        pTLCb->atlSTAClients[ucIndex].wSTADesc.ucSwFrameTXXlation = 1;
+      }
+      else
+#endif
+        pTLCb->atlSTAClients[ucIndex].wSTADesc.ucSwFrameTXXlation
+                                             = enableFrameXlation;
+    }
+  }
+}
 
 /*===========================================================================
 
@@ -1846,7 +1918,7 @@ WLANTL_GetRssi
    ------------------------------------------------------------------------*/
   if(pTLCb->isBMPS)
   {
-    WDA_DS_GetRssi(vos_get_context(VOS_MODULE_ID_SME, pvosGCtx), puRssi);
+    WDA_DS_GetRssi( pvosGCtx, puRssi);
   }
   else
   {
@@ -2039,7 +2111,7 @@ WLANTL_FlushStaTID
   FlushACReqPtr->ucSTAId = ucSTAId;
   FlushACReqPtr->ucTid = ucTid;
 
-  vosMessage.type            = SIR_TL_HAL_FLUSH_AC_REQ;
+  vosMessage.type            = WDA_TL_FLUSH_AC_REQ;
   vosMessage.bodyptr = (void *)FlushACReqPtr;
 
   vos_mq_post_message(VOS_MQ_ID_WDA, &vosMessage);
@@ -3142,6 +3214,7 @@ WLANTL_GetFrames
     return ucResult;
   }
 
+
   vosDataBuff = pTLCb->vosDummyBuf; /* Just to avoid checking for NULL at
                                          each iteration */
 
@@ -3355,8 +3428,7 @@ WLANTL_GetFrames
         {
           TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
                    "WLAN TL: %s sta id valid and not suspended ",__FUNCTION__));
-          wSTAEvent = pTLCb->atlSTAClients[ucSTAId].ucPendingTrigFrm?
-                         WLANTL_TX_ON_UAPSD_EVENT:WLANTL_TX_EVENT;
+          wSTAEvent = WLANTL_TX_EVENT;
 
           pfnSTAFsm = tlSTAFsm[pTLCb->atlSTAClients[ucSTAId].tlState].
                         pfnSTATbl[wSTAEvent];
@@ -3422,41 +3494,6 @@ WLANTL_GetFrames
             (pTLCb->atlSTAClients[ucSTAId].uBuffThresholdMax - uResLen) : 0;
 #endif
 
-          /* Check if UAPSD service timer must be restarted*/
-          if (( !WLANTL_STA_ID_INVALID( ucSTAId )) &&
-              ( 0 != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
-                            atlSTAClients[ucSTAId].ucServicedAC].ucExists ) 
-              && 
-              ( 0 != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
-                            atlSTAClients[ucSTAId].ucServicedAC].ucDataSent ))
-          {
-
-            pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
-                         atlSTAClients[ucSTAId].ucServicedAC].ucDataSent = 0;
-
-			TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "WLAN TL:Stopping Delayed Tim; Restarting Service Tim"));
-
-			if ( 0 != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
-                        atlSTAClients[ucSTAId].ucServicedAC].ucDelayedMode)
-			{
-              vos_timer_stop( &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
-                          atlSTAClients[ucSTAId].ucServicedAC].vosDelayedTimer);
-
-			        vos_atomic_set_U8(&pTLCb->atlSTAClients[ucSTAId].
-                  wUAPSDInfo[pTLCb->atlSTAClients[ucSTAId].ucServicedAC].
-                                ucDelayedMode, 0);
-			}
-
-            /* Restart service timer */
-            vos_timer_stop( &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
-                        atlSTAClients[ucSTAId].ucServicedAC].vosServiceTimer);
-
-            vos_timer_start( &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
-                        atlSTAClients[ucSTAId].ucServicedAC].vosServiceTimer,
-                             pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[pTLCb->
-                        atlSTAClients[ucSTAId].ucServicedAC].uServiceInterval);
-          }/*if UAPSD must be restarted*/
         }
         else
         {
@@ -4537,9 +4574,7 @@ WLANTL_RxFrames
       /*---------------------------------------------------------------------
         Data packet received, send to state machine
       ---------------------------------------------------------------------*/
-      wSTAEvent = pTLCb->atlSTAClients[ucSTAId].
-                    wUAPSDInfo[WLANTL_TID_2_AC[ucTid]].ucExists?
-                    WLANTL_RX_ON_UAPSD_EVENT:WLANTL_RX_EVENT;
+      wSTAEvent = WLANTL_RX_EVENT;
 
       pfnSTAFsm = tlSTAFsm[pTLCb->atlSTAClients[ucSTAId].tlState].
                       pfnSTATbl[wSTAEvent];
@@ -4844,9 +4879,7 @@ WLANTL_RxCachedFrames
       /*---------------------------------------------------------------------
         Data packet received, send to state machine
       ---------------------------------------------------------------------*/
-      wSTAEvent = pTLCb->atlSTAClients[ucSTAId].
-                    wUAPSDInfo[WLANTL_TID_2_AC[ucTid]].ucExists?
-                    WLANTL_RX_ON_UAPSD_EVENT:WLANTL_RX_EVENT;
+      wSTAEvent = WLANTL_RX_EVENT;
 
       pfnSTAFsm = tlSTAFsm[pTLCb->atlSTAClients[ucSTAId].tlState].
                       pfnSTATbl[wSTAEvent];
@@ -5564,10 +5597,8 @@ WLANTL_STATxAuth
     ucTypeSubtype |= (WLANTL_80211_DATA_QOS_SUBTYPE);
   }
 
-#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
   ucTxFlag  = (0 != pStaClient->wUAPSDInfo[ucAC].ucSet)?
               HAL_TRIGGER_ENABLED_AC_MASK:0;
-#endif
 
 #ifdef FEATURE_WLAN_WAPI
   if ( pStaClient->wSTADesc.ucIsWapiSta == 1 )
@@ -5676,133 +5707,6 @@ WLANTL_STATxAuth
 
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_STATxAuth */
-
-/*==========================================================================
-  FUNCTION    WLANTL_STATxAuthUAPSD
-
-  DESCRIPTION 
-    Transmit in authenticated state - all data allowed, when UAPSd is 
-    enabled => trigger frame will be tx-ed if pending 
-    
-  DEPENDENCIES 
-    The STA must be registered with TL before this function can be called. 
-     
-  PARAMETERS 
-
-   IN
-   pvosGCtx:       pointer to the global vos context; a handle to TL's 
-                   control block can be extracted from its context 
-   ucSTAId:        identifier of the station being processed 
-   vosDataBuff:   pointer to the tx vos buffer
-   
-  RETURN VALUE
-    The result code associated with performing the operation  
-
-    VOS_STATUS_E_FAULT:   pointer to TL cb is NULL ; access would cause a 
-                          page fault  
-    VOS_STATUS_SUCCESS:   Everything is good :)
-
-   Other return values are possible coming from the called functions. 
-   Please check API for additional info. 
-   
-  SIDE EFFECTS 
-  
-============================================================================*/
-VOS_STATUS 
-WLANTL_STATxAuthUAPSD
-( 
-  v_PVOID_t     pvosGCtx,
-  v_U8_t        ucSTAId,
-  vos_pkt_t**   pvosDataBuff 
-)
-{
-  v_U8_t          ucAC = 0;
-  VOS_STATUS      vosStatus = VOS_STATUS_SUCCESS; 
-  WLANTL_CbType*  pTLCb = NULL; 
-  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-
-  /*------------------------------------------------------------------------
-    Sanity check
-    Extract TL control block 
-   ------------------------------------------------------------------------*/
-  pTLCb = VOS_GET_TL_CB(pvosGCtx);
-  if (( NULL == pTLCb ) || ( NULL == pvosDataBuff ))
-  {
-     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-            "WLAN TL:Invalid input params on WLANTL_STATxAuth TL %x DB %x",
-             pTLCb, pvosDataBuff));
-    *pvosDataBuff = NULL;
-    pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;
-    return VOS_STATUS_E_FAULT;
-  }
-
-  vosStatus = WLANTL_STATxAuth(pvosGCtx, ucSTAId, pvosDataBuff);
-
-  if (( NULL != *pvosDataBuff ) && 
-      ( VOS_STATUS_SUCCESS == vosStatus ))
-  {
-    pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[
-                pTLCb->atlSTAClients[ucSTAId].ucServicedAC].ucDataSent = 1;
-    /*---------------------------------------------------------------------
-      If there is data to tx for this category do not send out trigger 
-      frame anymore 
-     ---------------------------------------------------------------------*/
-    if ( NULL != 
-         pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[
-                pTLCb->atlSTAClients[ucSTAId].ucServicedAC].vosTriggBuf )
-    {
-      vos_pkt_return_packet(
-             pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[
-                pTLCb->atlSTAClients[ucSTAId].ucServicedAC].vosTriggBuf );
-      pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[
-            pTLCb->atlSTAClients[ucSTAId].ucServicedAC].vosTriggBuf = NULL;
-      pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[
-           pTLCb->atlSTAClients[ucSTAId].ucServicedAC].ucPendingTrigFrm = 0;
-    }
-
-    return vosStatus; 
-  }
-
-  /*------------------------------------------------------------------------
-    Check for pending trigger frames if there is no data to send  
-   ------------------------------------------------------------------------*/
-  vos_atomic_set_U8(&pTLCb->atlSTAClients[ucSTAId].ucPendingTrigFrm,
-                     0);
-
-  for ( ucAC = 0; ucAC < WLANTL_MAX_AC; ucAC ++ ) 
-  {
-    if ( NULL != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosTriggBuf )
-    {
-       pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 0;
-      *pvosDataBuff       = pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].
-                            vosTriggBuf ;
-
-      //pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucDataSent = 1;
-
-      vos_atomic_set_U32( 
-        (v_U32_t*)&pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosTriggBuf,
-        (v_U32_t)NULL);
-
-      pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucPendingTrigFrm = 0;
-
-      vos_atomic_set_U8(&pTLCb->atlSTAClients[ucSTAId].ucPendingTrigFrm,
-                         1);
-
-      pTLCb->atlSTAClients[ucSTAId].ucServicedAC = (WLANTL_ACEnumType)ucAC;
-
-      vosStatus = VOS_STATUS_SUCCESS;
-
-      /*trigger frames cannot be delayed*/
-      pTLCb->bUrgent      = TRUE;
-
-      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                 "WLAN TL:Chaining trigger frame on GetFrame"));
-      break;
-     }
-   }
-
-   return vosStatus; 
-}/*WLANTL_STATxAuthUAPSD*/
 
 /*==========================================================================
   FUNCTION    WLANTL_STATxDisc
@@ -6175,8 +6079,15 @@ WLANTL_FwdPktToHDD
 
      //loopback unicast station comes here
    }
-   pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucDesSTAId,
+   vosStatus = pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucDesSTAId,
                                             &wRxMetaInfo );
+  if ( VOS_STATUS_SUCCESS != vosStatus )
+  {
+     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                "WLAN TL: failed to send pkt to HDD \n"));
+     vos_pkt_return_packet(vosDataBuff);
+     return vosStatus;
+   }
       vosDataBuff = vosNextDataBuff;
    }
    return VOS_STATUS_SUCCESS;
@@ -6564,93 +6475,6 @@ if(0 == ucUnicastBroadcastType
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_STARxAuth */
 
-
-/*==========================================================================
-  FUNCTION    WLANTL_STARxAuthUAPSD
-
-  DESCRIPTION
-    Receive in authenticated state when UAPSD is enabled for rx AC
-    - all data allowed
-
-  DEPENDENCIES
-    The STA must be registered with TL before this function can be called.
-
-  PARAMETERS
-
-   IN
-   pvosGCtx:       pointer to the global vos context; a handle to TL's
-                   control block can be extracted from its context
-   ucSTAId:        identifier of the station being processed
-   vosDataBuff:   pointer to the rx vos buffer
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-    VOS_STATUS_E_INVAL:   invalid input parameters
-    VOS_STATUS_E_FAULT:   pointer to TL cb is NULL ; access would cause a
-                          page fault
-    VOS_STATUS_SUCCESS:   Everything is good :)
-
-  SIDE EFFECTS
-
-============================================================================*/
-VOS_STATUS
-WLANTL_STARxAuthUAPSD
-(
-  v_PVOID_t     pvosGCtx,
-  v_U8_t        ucSTAId,
-  vos_pkt_t**   pvosDataBuff
-)
-{
-   WLANTL_CbType*   pTLCb = NULL;
-   VOS_STATUS       vosStatus;
-   v_U8_t           ucRxAC;
-   v_U8_t           ucTid;
-   v_PVOID_t        pvBDHeader;
-  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-
-  /*------------------------------------------------------------------------
-    Sanity check
-    Extract TL control block
-   ------------------------------------------------------------------------*/
-  pTLCb = VOS_GET_TL_CB(pvosGCtx);
-  if (( NULL == pTLCb ) || ( NULL == pvosDataBuff ))
-  {
-    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-              "WLAN TL:Invalid TL pointer from pvosGCtx on WLANTL_STARxAuth"));
-    return VOS_STATUS_E_FAULT;
-  }
-
-  /*------------------------------------------------------------------------
-    Extract BD header and check TID -> AC
-   ------------------------------------------------------------------------*/
-  vosStatus = WDA_DS_PeekRxPacketInfo( *pvosDataBuff, (v_PVOID_t)&pvBDHeader, 0 );
-  if ( NULL == pvBDHeader )
-  {
-    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-           "WLAN TL:Cannot extract BD header"));
-    return vosStatus;
-  }
-
-  /*!!! check this logic again */
-  ucTid         = (v_U8_t)WDA_GET_RX_TID(pvBDHeader);
-  ucRxAC        = WLANTL_TID_2_AC[ucTid];
-
-  /* Restart suspend timer */
-  if ( 0 != 
-       pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucRxAC].uSuspendInterval) 
-  {
-    vos_timer_stop(
-     &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucRxAC].vosSuspendTimer);
-
-    vos_timer_start(
-     &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucRxAC].vosSuspendTimer,
-      pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucRxAC].uSuspendInterval);
-  }
-
-  vosStatus = WLANTL_STARxAuth(pvosGCtx, ucSTAId, pvosDataBuff);
-  return vosStatus;
-}/* WLANTL_STARxAuthUAPSD */
 
 /*==========================================================================
   FUNCTION    WLANTL_STARxDisc
@@ -7594,10 +7418,19 @@ WLANTL_Translate8023To80211Header
   if(pTLCb->atlSTAClients[ucStaId].wSTADesc.ucQosEnabled)
   {
       pw80211Header->wFrmCtrl.subType  = WLANTL_80211_DATA_QOS_SUBTYPE;
+#ifdef VOLANS_HW_ISSUE_FIX_QID0_FOR_NON_QOS_ONLY    
 #ifdef WLAN_SOFTAP_FEATURE
       *((v_U16_t *)((v_U8_t *)ppvBDHeader + ucQoSOffset)) = ucUP;
 #else
       pw80211Header->usQosCtrl         = ucUP; //? is this the right byte order
+#endif
+
+#else      
+#ifdef WLAN_SOFTAP_FEATURE
+      *((v_U16_t *)((v_U8_t *)ppvBDHeader + ucQoSOffset)) = UP_TO_TID_MAPPING(ucUP);
+#else
+      pw80211Header->usQosCtrl         = UP_TO_TID_MAPPING(ucUP); //? is this the right byte order
+#endif
 #endif
   }
   else
@@ -8439,7 +8272,7 @@ WLAN_TLGetNextTxIds
 
   pMac = vos_get_context(VOS_MODULE_ID_PE, pvosGCtx);
   systemRole = wdaGetGlobalSystemRole(pMac);
-  if (eSYSTEM_AP_ROLE == systemRole)
+  if ((eSYSTEM_AP_ROLE == systemRole) || (vos_concurrent_sessions_running()))
   {
   	 return WLAN_TLAPGetNextTxIds(pvosGCtx,pucSTAId);
   }
@@ -8712,6 +8545,7 @@ WLAN_TLGetNextTxIds
   return VOS_STATUS_SUCCESS;
 }/* WLAN_TLGetNextTxIds */
 #endif //WLAN_SOFTAP_FEATURE
+
 
 /*==========================================================================
       DEFAULT HANDLERS: Registered at initialization with TL
@@ -9150,395 +8984,14 @@ WLANTL_CleanSTA
 }/* WLANTL_CleanSTA */
 
 
-#if 0
-/*==========================================================================
-            UAPSD timers
- ==========================================================================*/
-
-/*==========================================================================
-
-  FUNCTION    WLANTL_ServiceIntervalTimer
-
-  DESCRIPTION
-    Callback function registered with vos timer for the Service interval
-
-  DEPENDENCIES
-
-  PARAMETERS
-
-    IN
-    userData:      pointer to the UAPSD Info field from the TL Cb;
-                   TL Cb can be obtained from this structure
-
-  RETURN VALUE
-    None
-
-  SIDE EFFECTS
-
-============================================================================*/
-v_VOID_t
-WLANTL_ServiceIntervalTimer
-(
-  v_PVOID_t userData
-)
-{
-  WLANTL_UAPSDInfoType*   pUAPSDInfo  = (WLANTL_UAPSDInfoType*)userData;
-  WLANTL_CbType*          pTLCb       = NULL;
-  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-
-  /*-----------------------------------------------------------------------
-    Sanity check
-   -----------------------------------------------------------------------*/
-  if ( NULL == pUAPSDInfo )
-  {
-     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL: Fatal error: Service timer called with NULL data" ));
-     VOS_ASSERT(0);
-     return;
-  }
-
-  /*Session was disabled in the mean while*/
-  if ( 0 == pUAPSDInfo->ucExists ) 
-  {
-    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-    "WLAN TL: Service timer called after session was disabled - abandoning" ));
-    return; 
-  }
-
-  /*Instance is still valid*/
-  if ( NULL == ( pTLCb = (WLANTL_CbType*)pUAPSDInfo->pTLCb ))
-  {
-    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL: Fatal error: Service timer called with NULL data" ));
-    VOS_ASSERT(0);
-    return;
-  }
- /*---------------------------------------------------------------------
-    Pack up frame and enqueue it in TL's cache with tx comp set internally
-    to TL
-   ---------------------------------------------------------------------*/
-  WLANTL_PackUpTriggerFrame(pTLCb, WLANTL_TxCompTriggFrameSI,
-                            pUAPSDInfo->ucStaId, pUAPSDInfo->ucAC );
-
-}/*WLANTL_ServiceIntervalTimer*/
-
-
-/*==========================================================================
-
-  FUNCTION    WLANTL_DelayedIntervalTimer
-
-  DESCRIPTION
-    Callback function registered with vos timer for the delayed interval
-
-  DEPENDENCIES
-
-  PARAMETERS
-
-    IN
-    userData:      pointer to the UAPSD Info field from the TL Cb;
-                   TL Cb can be obtained from this structure
-
-  RETURN VALUE
-    None
-
-  SIDE EFFECTS
-
-============================================================================*/
-v_VOID_t
-WLANTL_DelayedIntervalTimer
-(
-  v_PVOID_t userData
-)
-{
-  WLANTL_UAPSDInfoType*   pUAPSDInfo  = (WLANTL_UAPSDInfoType*)userData;
-  WLANTL_CbType*          pTLCb       = NULL;
-  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-
-  /*-----------------------------------------------------------------------
-    Sanity check
-   -----------------------------------------------------------------------*/
-  if ( NULL == pUAPSDInfo )
-  {
-     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL: Fatal error: Service timer called with NULL data" ));
-     VOS_ASSERT(0);
-     return;
-  }
-
-  /*Session was disabled in the mean while*/
-  if ( 0 == pUAPSDInfo->ucExists ) 
-  {
-    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-    "WLAN TL: Service timer called after session was disabled - abandoning" ));
-    return; 
-  }
-
-  /*Instance is still valid*/
-  if ( NULL == ( pTLCb = (WLANTL_CbType*)pUAPSDInfo->pTLCb ))
-  {
-    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL: Fatal error: Service timer called with NULL data" ));
-    VOS_ASSERT(0);
-    return;
-  }
-  /*---------------------------------------------------------------------
-    Pack up frame and enqueue it in TL's cache with tx comp set internally
-    to TL and notify BAL
-   ---------------------------------------------------------------------*/
-  WLANTL_PackUpTriggerFrame(pTLCb, WLANTL_TxCompTriggFrameDI,
-                            pUAPSDInfo->ucStaId, pUAPSDInfo->ucAC);
-
-}/*WLANTL_DelayedIntervalTimer*/
-
-/*==========================================================================
-
-  FUNCTION    WLANTL_SuspendIntervalTimer
-
-  DESCRIPTION
-    Callback function registered with vos timer for the suspend interval
-
-  DEPENDENCIES
-
-  PARAMETERS
-
-    IN
-    userData:      pointer to the UAPSD Info field from the TL Cb;
-                   TL Cb can be obtained from this structure
-
-  RETURN VALUE
-    None
-
-  SIDE EFFECTS
-
-============================================================================*/
-v_VOID_t
-WLANTL_SuspendIntervalTimer
-(
-  v_PVOID_t userData
-)
-{
-  WLANTL_UAPSDInfoType*   pUAPSDInfo  = (WLANTL_UAPSDInfoType*)userData;
-  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-
-  /*-----------------------------------------------------------------------
-    Sanity check
-   -----------------------------------------------------------------------*/
-  if ( NULL == pUAPSDInfo ) 
-  {
-     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-                "WLAN TL: Fatal error: Service timer called with NULL data" ));
-     VOS_ASSERT(0);
-     return;
-  }
-
-  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                   "WLAN TL:Stopping Service Tim; Starting Delayed Tim"));
-
-  /* stop service interval timer*/
-  vos_timer_stop( &pUAPSDInfo->vosServiceTimer);
-
-  /* start delayed interval timer and set delayed mode*/
-  vos_atomic_set_U8(&pUAPSDInfo->ucDelayedMode, 1);
-  vos_timer_start( &pUAPSDInfo->vosDelayedTimer,
-                   pUAPSDInfo->uDelayedInterval);
-
-
-  /* suspend timer will be restarted when stopping the delayed timer !!!*/
-
-}/*WLANTL_SuspendIntervalTimer*/
-
-/*==========================================================================
-
-  FUNCTION    WLANTL_PackUpTriggerFrame
-
-  DESCRIPTION
-    Packs up a trigger frame and places it in TL's cache for tx and notifies
-    BAL
-
-  DEPENDENCIES
-
-  PARAMETERS
-
-    IN
-    pTLCb:         pointer to the TL control block
-    pfnSTATxComp:  Tx Complete Cb to be used when frame is received
-    ucSTAId:       station id
-    ucAC:          access category
-
-  RETURN VALUE
-    None
-
-  SIDE EFFECTS
-
-============================================================================*/
-VOS_STATUS
-WLANTL_PackUpTriggerFrame
-(
-  WLANTL_CbType*            pTLCb,
-  WLANTL_TxCompCBType       pfnSTATxComp,
-  v_U8_t                    ucSTAId,
-  WLANTL_ACEnumType         ucAC
-)
-{
-  vos_pkt_t*              vosDataBuff  = NULL;
-  v_PVOID_t               pVosGContext = NULL;
-
-  VOS_STATUS              vosStatus;
-  v_MACADDR_t             vDestMacAddr;
-  v_PVOID_t               pvBDHeader  = NULL;
-  v_U8_t                  ucTypeSubtype = 0;
-  WLANTL_80211HeaderType  w80211Header;
-  v_U16_t                 usPktLen;
-  v_U8_t                  extraHeadSpace = 0;
-  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-
-
-  /*-----------------------------------------------------------------------
-    Check if we do not already have a trigger frame waiting for TX
-    We need to make a check due to the following race condition
-    - in case we have data going out we shall stop the Trig Frm Timer and 
-    restart it (1); 
-    - however it is possible that the scheme above may happen right when 
-    the timer actually fired and the signal is already queded for execution
-    - when processing the queued timer a vos Trigger Frame will be allocated 
-    - once this is done a request for tx will be made
-    - if however in the mean while the first timer fires it will overwrite 
-    the trigger frame with a new one  and we will lose one management packet
-    - given this in case we already have a trigger frame stocked we will just 
-    attempt to resend it again, make sure it does not get lost
-   ------------------------------------------------------------------------*/
-  if ( NULL != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosTriggBuf ) 
-  {
-    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL: Trigger frame not NULL on WLANTL_PackUpTriggerFrame"));
-  
-    vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucPendingTrigFrm,
-                        1); 
-
-    WLANTL_STAPktPending(pVosGContext,ucSTAId,ucAC);
-    return VOS_STATUS_SUCCESS;
-  }
-
-  /*-----------------------------------------------------------------------
-    No trigger frame available => create new one 
-    Pack up NULL frame and cache for tx
-   ------------------------------------------------------------------------*/
-  vosStatus = vos_pkt_get_packet(&vosDataBuff, VOS_PKT_TYPE_TX_802_11_MGMT,
-                     sizeof(w80211Header), 1,
-                     1/*true*/,NULL, NULL);
-                 //!! size should be 0 but not sure if it works
-
-  if ( VOS_STATUS_SUCCESS != vosStatus ) 
-  {
-     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-             "WLAN TL: Failed to get vos packet on WLANTL_PackUpTriggerFrame"));
-     VOS_ASSERT(0);
-     return vosStatus;
-  }
-
-  vos_mem_set(&w80211Header, sizeof(w80211Header), 0);
-
-  vos_mem_copy( w80211Header.vA3,
-                &pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSTAMACAddress ,
-                VOS_MAC_ADDR_SIZE);
-
-  vos_mem_copy( w80211Header.vA2,
-                &pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSelfMACAddress,
-                VOS_MAC_ADDR_SIZE);
-
-  /*Fix me*/
-  vos_copy_macaddr( (v_MACADDR_t*)&w80211Header.vA1,
-              &pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSTAMACAddress);
-
-  w80211Header.usDurationId = 0;
-  w80211Header.usSeqCtrl    = 0;
-
-  w80211Header.wFrmCtrl.type     = WLANTL_80211_DATA_TYPE;
-  w80211Header.wFrmCtrl.subType  = WLANTL_80211_NULL_QOS_SUBTYPE;
-  w80211Header.usQosCtrl         =
-             pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucUP; 
-  //? is this the right byte order
-
-  w80211Header.wFrmCtrl.toDS          = 1;
-  w80211Header.wFrmCtrl.fromDS        = 0;
-
-  vosStatus = vos_pkt_push_head( vosDataBuff, &w80211Header,
-                                 sizeof(w80211Header) );
-
-  if ( VOS_STATUS_SUCCESS != vosStatus )
-  {
-     TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL: Packet push header fails on"
-               " WLANTL_PackUpTriggerFrame"));
-     return vosStatus;
-  }
-
-  /*------------------------------------------------------------------------
-    INLINE function
-    Just some common processing
-   ------------------------------------------------------------------------*/
-  WLANTL_PrepareBDHeader( vosDataBuff , &pvBDHeader, &vDestMacAddr,
-                          1, &vosStatus, &usPktLen, 1 , 0 /* WDS off */, extraHeadSpace);
-
-  if ( VOS_STATUS_SUCCESS != vosStatus )
-  {
-    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Failed while attempting to prepare BD %d", vosStatus));
-    vos_pkt_return_packet(vosDataBuff);
-    return vosStatus;
-  }
-
-  /*-------------------------------------------------------------------------
-    Call HAL to fill BD header
-   -------------------------------------------------------------------------*/
-  ucTypeSubtype |= (WLANTL_80211_DATA_TYPE << 4);
-
-  if ( pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucQosEnabled )
-  {
-    ucTypeSubtype |= (WLANTL_80211_NULL_QOS_SUBTYPE);
-  }
-
-  vos_pkt_set_user_data_ptr( vosDataBuff, VOS_PKT_USER_DATA_ID_TL,
-                             (void*)pfnSTATxComp);
-  /*---------------------------------------------------------------------
-    Issue xmit request to BAL to send out trigger frame
-   ---------------------------------------------------------------------*/
-  pVosGContext = vos_get_global_context( VOS_MODULE_ID_TL, (v_VOID_t*)pTLCb);
-
-  vosStatus = (VOS_STATUS)WLANHAL_FillTxBd( pVosGContext, ucTypeSubtype, 
-                                            &vDestMacAddr,  
-                      &pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSelfMACAddress,
-                      &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucUP, 
-                       1, pvBDHeader, 0 /* No ACK */, 0 );
-
-  if ( VOS_STATUS_SUCCESS != vosStatus )
-  {
-    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-               "WLAN TL:Failed while attempting to fill BD %d", vosStatus));
-    vos_pkt_return_packet(vosDataBuff);
-    return vosStatus;
-  }
-
-  vos_atomic_set_U32( 
-    (v_U32_t*)&pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosTriggBuf, 
-    (v_U32_t)vosDataBuff);
-
-  vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucPendingTrigFrm,
-                     1); 
-
-  //WLANBAL_StartXmit(pVosGContext);
-  WLANTL_STAPktPending(pVosGContext,ucSTAId,ucAC);
-
-  return VOS_STATUS_SUCCESS;
-}/* WLANTL_PackUpTriggerFrame */
-#endif
-
 /*==========================================================================
   FUNCTION    WLANTL_EnableUAPSDForAC
 
   DESCRIPTION
-   Called by HDD to enable UAPSD in TL. TL is in charge for sending trigger
-   frames.
+   Called by HDD to enable UAPSD. TL in turn calls WDA API to enable the
+   logic in FW/SLM to start sending trigger frames. Previously TL had the
+   trigger frame logic which later moved down to FW. Hence
+   HDD -> TL -> WDA -> FW call flow.
 
   DEPENDENCIES
     The TL must be initialized before this function can be called.
@@ -9581,9 +9034,7 @@ WLANTL_EnableUAPSDForAC
 
   WLANTL_CbType*      pTLCb      = NULL;
   VOS_STATUS          vosStatus   = VOS_STATUS_SUCCESS;
-#ifdef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
   tUapsdInfo          halUAPSDInfo; 
-#endif
  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -9600,118 +9051,6 @@ WLANTL_EnableUAPSDForAC
                pTLCb, ucSTAId, ucAC, uServiceInt ));
     return VOS_STATUS_E_FAULT;
   }
-
-#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
-
-  if ( 0 != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists )
-  {
-    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-     "WLAN TL:U-APSD already set for STA: %d AC: %d Restarting all timers", 
-               ucSTAId, ucAC));
-
-    vos_timer_stop(
-           &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosServiceTimer);
-    vos_timer_stop(
-           &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosDelayedTimer);
-    vos_timer_stop(
-           &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosSuspendTimer);
-  }
-
-  /*----------------------------------------------------------------------
-     Init U-APSD information
-   ----------------------------------------------------------------------*/
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].uServiceInterval
-                                                             = uServiceInt;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].uSuspendInterval
-                                                             = uSuspendInt;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].uDelayedInterval
-                                = pTLCb->tlConfigInfo.uDelayedTriggerFrmInt;
-
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].wTSpecDir = wTSDir;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucStaId   = ucSTAId;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucAC      = ucAC;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].pTLCb     = pTLCb;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucTid     = ucTid;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucUP      = ucUP;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosTriggBuf      = NULL;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucPendingTrigFrm = 0;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucDataSent       = 0;
-
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucDelayedMode    = 0;
-  /*----------------------------------------------------------------------
-    Service interval timer
-    ----------------------------------------------------------------------*/
-  if ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists )
-  {
-    vosStatus = vos_timer_init(
-              &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosServiceTimer,
-               VOS_TIMER_TYPE_WAKE_APPS, /*!! should I really use this type?*/
-               WLANTL_ServiceIntervalTimer,
-              &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC]);
-
-    if ( VOS_STATUS_SUCCESS != vosStatus )
-    {
-      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-         "WLAN TL:Unable to create SI timer on WLANTL_EnableUAPSDForAC %d",
-                 vosStatus));
-      return vosStatus;
-    }
-
-    /*----------------------------------------------------------------------
-      Suspend interval timer
-     ----------------------------------------------------------------------*/
-    vosStatus = vos_timer_init(
-              &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosSuspendTimer,
-               VOS_TIMER_TYPE_WAKE_APPS, /*!! should I really use this type?*/
-               WLANTL_SuspendIntervalTimer,
-              &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC]);
-
-    if ( VOS_STATUS_SUCCESS != vosStatus )
-    {
-      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-         "WLAN TL:Unable to create SPI timer on WLANTL_EnableUAPSDForAC %d",
-                 vosStatus));
-      return vosStatus;
-    }
-
-    /*----------------------------------------------------------------------
-      Delayed interval timer
-      ----------------------------------------------------------------------*/
-    vosStatus = vos_timer_init(
-              &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosDelayedTimer,
-               VOS_TIMER_TYPE_WAKE_APPS, /*!! should I really use this type?*/
-               WLANTL_DelayedIntervalTimer,
-              &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC]);
-
-    if ( VOS_STATUS_SUCCESS != vosStatus )
-    {
-      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-         "WLAN TL:Unable to create DI timer on WLANTL_EnableUAPSDForAC %d",
-                 vosStatus));
-      return vosStatus;
-    }
-  }/* If exists*/
-
-  vos_atomic_set_U8(
-    &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists, 1);
-
-  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:U-APSD set for STA: %d AC: %d SI: %d SPI: %d DI: %d",
-             ucSTAId, ucAC, uServiceInt, uSuspendInt,
-             pTLCb->tlConfigInfo.uDelayedTriggerFrmInt));
-
-  vos_timer_start(
-    &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosServiceTimer,
-    uServiceInt);
-
-  if ( 0 != 
-       pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].uSuspendInterval ) 
-  {
-    vos_timer_start(
-      &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosSuspendTimer, 
-      uSuspendInt);
-  }
-#else
 
   /*Set this flag in order to remember that this is a trigger enabled AC*/
   pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucSet = 1; 
@@ -9732,7 +9071,6 @@ WLANTL_EnableUAPSDForAC
 
   /*Notify HAL*/
   vosStatus = WDA_EnableUapsdAcParams(pvosGCtx, ucSTAId, &halUAPSDInfo);
-#endif /*FEATURE_WLAN_UAPSD_FW_TRG_FRAMES*/
 
   return vosStatus;
 
@@ -9743,8 +9081,10 @@ WLANTL_EnableUAPSDForAC
   FUNCTION    WLANTL_DisableUAPSDForAC
 
   DESCRIPTION
-   Called by HDD to disable UAPSD in TL. TL will stop sending trigger
-   frames.
+   Called by HDD to disable UAPSD. TL in turn calls WDA API to disable the
+   logic in FW/SLM to stop sending trigger frames. Previously TL had the
+   trigger frame logic which later moved down to FW. Hence
+   HDD -> TL -> WDA -> FW call flow.
 
   DEPENDENCIES
     The TL must be initialized before this function can be called.
@@ -9791,57 +9131,6 @@ WLANTL_DisableUAPSDForAC
     return VOS_STATUS_E_FAULT;
   }
 
-#ifndef FEATURE_WLAN_UAPSD_FW_TRG_FRAMES
-
-  if ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists )
-  {
-    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-     "WLAN TL:U-APSD not set for STA: %d AC: %d on WLANTL_DisableUAPSDForAC",
-      ucSTAId, ucAC));
-
-    return VOS_STATUS_E_EXISTS;
-  }
-
-  vos_timer_stop(
-    &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosServiceTimer);
-  vos_timer_stop(
-    &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosDelayedTimer);
-  vos_timer_stop(
-    &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosSuspendTimer);
-
-  vos_atomic_set_U8(
-    (v_U8_t*)&pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists,
-    (v_U8_t)0);
-
-  /*----------------------------------------------------------------------
-     Re-init U-APSD information
-   ----------------------------------------------------------------------*/
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].uServiceInterval = 0;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].uSuspendInterval = 0;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].uDelayedInterval = 0;
-
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].wTSpecDir = WLANTL_BI_DIR;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucStaId   = 0;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucAC      = WLANTL_AC_BK;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucTid     = 0;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].pTLCb     = NULL;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucDataSent= 0;
-  pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucDelayedMode = 0;
-
-  vos_timer_destroy(
-           &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosServiceTimer);
-
-  vos_timer_destroy(
-           &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosSuspendTimer);
-
-  vos_timer_destroy(
-           &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosDelayedTimer);
-
-  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-             "WLAN TL:U-APSD deleted for STA: %d AC: %d ", ucSTAId, ucAC ));
-
-#else
-
   /*Reset this flag as this is no longer a trigger enabled AC*/
   pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucSet = 1; 
 
@@ -9851,241 +9140,9 @@ WLANTL_DisableUAPSDForAC
 
   /*Notify HAL*/
   WDA_DisableUapsdAcParams(pvosGCtx, ucSTAId, ucAC);
-#endif/*FEATURE_WLAN_UAPSD_FW_TRG_FRAMES*/
-
 
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_DisableUAPSDForAC */
-
-#if 0
-/*==========================================================================
-
-  FUNCTION    WLANTL_TxCompTriggFrameSI
-
-  DESCRIPTION
-    Tx complete handler for the service interval trigger frame.
-    It will restart the SI timer.
-
-  PARAMETERS
-
-    IN
-    pvosGCtx:       pointer to the global vos context; a handle to
-                    TL/HAL/PE/BAP/HDD control block can be extracted from
-                    its context
-    vosDataBuff:   pointer to the VOSS data buffer that was transmitted
-    wTxSTAtus:      status of the transmission
-
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-============================================================================*/
-VOS_STATUS
-WLANTL_TxCompTriggFrameSI
-(
- v_PVOID_t      pvosGCtx,
- vos_pkt_t*     vosDataBuff,
- VOS_STATUS     wTxSTAtus
-)
-{
-  WLANTL_CbType*      pTLCb      = NULL;
-  v_U16_t*            pusQOSCtrl = NULL; 
-  v_U8_t              ucSTAId;
-  v_U8_t              ucTid;
-  v_U8_t              ucAC;
-  v_U16_t             usAlignQosCtrl;
-  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-
-  /*------------------------------------------------------------------------
-    Sanity check
-    Extract TL control block
-   ------------------------------------------------------------------------*/
-  pTLCb = VOS_GET_TL_CB(pvosGCtx);
-  if (( NULL == pTLCb ) || ( NULL == vosDataBuff ))
-  {
-    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-     "WLAN TL:Invalid input pointers on WLANTL_TxCompTriggFrameSI"));
-    return VOS_STATUS_E_FAULT;
-  }
-
-  /*------------------------------------------------------------------------
-    Extract BD header and check STA and TID
-   ------------------------------------------------------------------------*/
-  vos_pkt_get_packet_length(vosDataBuff, &usAlignQosCtrl);
-  usAlignQosCtrl -= sizeof(*pusQOSCtrl);
-
-  //!!!Fix this replace peek with extract 
-  if ( ( VOS_STATUS_SUCCESS != vos_pkt_peek_data( 
-	 vosDataBuff, usAlignQosCtrl, (v_PVOID_t)&pusQOSCtrl, sizeof(*pusQOSCtrl))) ||
-		( NULL == pusQOSCtrl ))
-  {
-     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:TXComp service trig frm received: cannot extract QOS Ctrl"));
-
-     /*Return the VOS packet*/
-     vos_pkt_return_packet(vosDataBuff);
-
-     return VOS_STATUS_E_FAULT;
-  }
-
-
-  ucSTAId       = pTLCb->ucRegisteredStaId;
-
-  ucTid         = (v_U8_t)*pusQOSCtrl;
-  ucAC          = WLANTL_TID_2_AC[ucTid];
-
-  /*Return the VOS packet*/
-  vos_pkt_return_packet(vosDataBuff);
-
-  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-     "WLAN TL: WLANTL_TxCompTriggFrameSI STA ID: %d AC: %d", ucSTAId, ucAC));
-
-  if (( WLANTL_STA_ID_INVALID( ucSTAId )) ||
-	  ( WLANTL_AC_INVALID(ucAC)) ||
-	  ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists))
-  {
-  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:TXComp service trig frm received: INVALID SESSION"));
-
-	  return VOS_STATUS_E_FAULT;
-  }
-
-  if ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucDelayedMode )
-  {
-
-  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-         "WLAN TL:TXComp service trig frm received: restarting Service Tim"));
-
-  /* Restart timer */
-  vos_timer_start(
-   &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosServiceTimer,
-    pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].uServiceInterval);
-  }
-  else
-  {
-     TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-         "WLAN TL:TXComp service trig frm received: but delayed mode active"));
-  }
-
-  return VOS_STATUS_SUCCESS;
-
-}/*WLANTL_TxCompTriggFrameSI*/
-
-/*==========================================================================
-
-  FUNCTION    WLANTL_TxCompTriggFrameDI
-
-  DESCRIPTION   
-    Tx complete handler for the delayed interval trigger frame. 
-    It will restart the SI timer. 
-
-  PARAMETERS
-
-    IN
-    pvosGCtx:       pointer to the global vos context; a handle to
-                    TL/HAL/PE/BAP/HDD control block can be extracted from
-                    its context
-    vosDataBuff:   pointer to the VOSS data buffer that was transmitted
-    wTxSTAtus:      status of the transmission
-
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-============================================================================*/
-VOS_STATUS
-WLANTL_TxCompTriggFrameDI
-(
- v_PVOID_t      pvosGCtx,
- vos_pkt_t*     vosDataBuff,
- VOS_STATUS     wTxSTAtus
-)
-{
-  WLANTL_CbType*      pTLCb      = NULL;
-  v_U16_t*            pusQOSCtrl = NULL; 
-  v_U8_t              ucSTAId;
-  v_U8_t              ucTid;
-  v_U8_t              ucAC;
-  v_U16_t             usAlignQosCtrl;
-  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
-
-  /*------------------------------------------------------------------------
-    Sanity check
-    Extract TL control block
-   ------------------------------------------------------------------------*/
-  pTLCb = VOS_GET_TL_CB(pvosGCtx);
-  if (( NULL == pTLCb ) || ( NULL == vosDataBuff ))
-  {
-    TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
-     "WLAN TL:Invalid input pointers on WLANTL_TxCompTriggFrameDI"));
-    return VOS_STATUS_E_FAULT;
-  }
-
-  /*------------------------------------------------------------------------
-    Extract BD header and check STA and TID
-   ------------------------------------------------------------------------*/
-  vos_pkt_get_packet_length(vosDataBuff, &usAlignQosCtrl);
-  usAlignQosCtrl -= sizeof(*pusQOSCtrl);
-
-  //!!!Fix this replace peek with extract 
-  if ( ( VOS_STATUS_SUCCESS != vos_pkt_peek_data( 
-	 vosDataBuff, usAlignQosCtrl, (v_PVOID_t)&pusQOSCtrl, sizeof(*pusQOSCtrl))) ||
-		( NULL == pusQOSCtrl ))
-  {
-    TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:TXComp service trig frm received: cannot extract QOS Ctrl"));
-
-    /*Return the VOS packet*/
-    vos_pkt_return_packet(vosDataBuff);
-    
-    return VOS_STATUS_E_FAULT;
-  }
-
-
-  ucSTAId       = pTLCb->ucRegisteredStaId;
-
-  ucTid         = (v_U8_t)*pusQOSCtrl;
-  ucAC          = WLANTL_TID_2_AC[ucTid];
-
-  /*Return the VOS packet*/
-  vos_pkt_return_packet(vosDataBuff);
-
-  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-     "WLAN TL: WLANTL_TxCompTriggFrameDI STA ID: %d AC: %d", ucSTAId, ucAC));
-
-  if (( WLANTL_STA_ID_INVALID( ucSTAId )) ||
-	  ( WLANTL_AC_INVALID(ucAC)) ||
-	  ( 0 == pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucExists))
-  {
-  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:TXComp dealyed trig frm received: INVALID SESSION"));
-
-	  return VOS_STATUS_E_FAULT;
-  }
-  
-  /* Check if still in delayed mode */
-  if (( !WLANTL_STA_ID_INVALID( ucSTAId )) &&
-	  ( !WLANTL_AC_INVALID(ucAC)) &&
-      ( 0 != pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].ucDelayedMode ))
-  {
-
-  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:TXComp for trigger frame received: restarting Delayed Tim"));
-
-  /* Restart timer */
-  vos_timer_start(
-    &pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].vosDelayedTimer,
-     pTLCb->atlSTAClients[ucSTAId].wUAPSDInfo[ucAC].uDelayedInterval);
-  }
-  else
-  {
-	  TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-       "WLAN TL:TXComp for trigger frame received but not in delayed mode"));
-  }
-
-  return VOS_STATUS_SUCCESS;
-}/* WLANTL_TxCompTriggFrameDI*/
-#endif
 
 #if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
 /*==========================================================================

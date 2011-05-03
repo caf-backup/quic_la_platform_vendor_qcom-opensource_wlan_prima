@@ -32,9 +32,14 @@
 #endif
 
 
+//This is not right here. Need to find a better place. 
+//_vsnprintf is a function in Windows
+//Temporary workaround.
+#ifndef ANI_OS_TYPE_WINDOWS
 #ifndef _vsnprintf
 #define _vsnprintf vsnprintf
 #endif
+#endif // not Windows
 
 #define dbgTraceInfo(_Mask, _InParams)                 \
   {                                                      \

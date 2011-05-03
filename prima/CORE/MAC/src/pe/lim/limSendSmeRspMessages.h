@@ -45,6 +45,12 @@ void limSendSmeMeasurementInd(tpAniSirGlobal);
 #endif
 void limHandleDeleteBssRsp(tpAniSirGlobal pMac,tpSirMsgQ MsgQ);
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+void
+limSendSmeAggrQosRsp(tpAniSirGlobal pMac, tpSirAggrQosRsp aggrQosRsp, 
+                     tANI_U8 smesessionId);
+#endif /*WLAN_FEATURE_VOWIFI_11R*/
+
 
 void limSendSmeAddtsRsp(tpAniSirGlobal pMac, tANI_U8 rspReqd, tANI_U32 status, tpPESession psessionEntry, tSirMacTspecIE tspec, tANI_U8 smesessionId, tANI_U16 smetransactionId);
 void limSendSmeAddtsInd(tpAniSirGlobal pMac, tpSirAddtsReqInfo addts);

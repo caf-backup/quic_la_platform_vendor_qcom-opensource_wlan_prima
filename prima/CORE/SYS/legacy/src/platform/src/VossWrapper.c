@@ -308,6 +308,66 @@ static v_VOID_t tx_main_timer_func( v_PVOID_t functionContext )
    }
 } /*** tx_timer_change() ***/
 
+#ifdef TIMER_MANAGER
+v_UINT_t tx_timer_create_intern_debug( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
+   char *name_ptr, 
+   v_VOID_t ( *expiration_function )( v_PVOID_t, tANI_U32 ),
+   tANI_U32 expiration_input, v_ULONG_t initScheduleTimeInTicks, 
+   v_ULONG_t rescheduleTimeInTicks, v_ULONG_t auto_activate, 
+   char* fileName, v_U32_t lineNum)
+{
+   VOS_STATUS status;
+
+	VOS_ASSERT((NULL != expiration_function) && (NULL != name_ptr));
+
+    if (!initScheduleTimeInTicks)
+        return TX_TICK_ERROR;
+
+    if (!timer_ptr)
+        return TX_TIMER_ERROR;
+
+    // Initialize timer structure
+    timer_ptr->pExpireFunc = expiration_function;
+    timer_ptr->expireInput = expiration_input;
+    timer_ptr->initScheduleTimeInMsecs =
+        TX_MSECS_IN_1_TICK * initScheduleTimeInTicks;
+    timer_ptr->rescheduleTimeInMsecs =
+        TX_MSECS_IN_1_TICK * rescheduleTimeInTicks;
+	timer_ptr->pMac = pMacGlobal;
+
+    // Set the flag indicating that the timer was created
+	timer_ptr->tmrSignature = TX_AIRGO_TMR_SIGNATURE;
+
+#ifdef WLAN_DEBUG
+	// Store the timer name
+    strcpy(timer_ptr->timerName, name_ptr);
+#endif // Store the timer name, for Debug build only
+
+    status = vos_timer_init_debug( &timer_ptr->vosTimer, VOS_TIMER_TYPE_SW, 
+          tx_main_timer_func, (v_PVOID_t)timer_ptr, fileName, lineNum);
+    if (VOS_STATUS_SUCCESS != status)
+    {
+       VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+             "Cannot create timer for %s\n", TIMER_NAME);
+       return TX_TIMER_ERROR;
+    }
+
+	if(0 != rescheduleTimeInTicks)
+	{
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
+                "Creating periodic timer for %s\n", TIMER_NAME);
+	}
+
+    // Activate this timer if required
+    if (auto_activate)
+    {
+        tx_timer_activate(timer_ptr);
+    }
+
+    return TX_SUCCESS;
+
+} //** tx_timer_create() ***/
+#else
 v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
    char *name_ptr, 
    v_VOID_t ( *expiration_function )( v_PVOID_t, tANI_U32 ),
@@ -365,6 +425,7 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
     return TX_SUCCESS;
 
 } //** tx_timer_create() ***/
+#endif
 
 
 /**---------------------------------------------------------------------
@@ -385,6 +446,7 @@ v_UINT_t tx_timer_create_intern( v_PVOID_t pMacGlobal, TX_TIMER *timer_ptr,
  */
 v_UINT_t tx_timer_deactivate(TX_TIMER *timer_ptr)
 {
+   VOS_STATUS vStatus;
    VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_INFO, 
              "tx_timer_deactivate() called for timer %s\n", TIMER_NAME);
 
@@ -394,20 +456,15 @@ v_UINT_t tx_timer_deactivate(TX_TIMER *timer_ptr)
       return TX_TIMER_ERROR;      
    }
 
-   if (VOS_TIMER_STATE_STOPPED != 
-       vos_timer_getCurrentState( &timer_ptr->vosTimer ))
+   // if the timer is not running then we do not need to do anything here
+   vStatus = vos_timer_stop( &timer_ptr->vosTimer );
+   if (VOS_STATUS_SUCCESS != vStatus)
    {
-      VOS_STATUS vStatus;
-
-      // if the timer is not running then we do not need to do anything here
-      vStatus = vos_timer_stop( &timer_ptr->vosTimer );
-      if (VOS_STATUS_SUCCESS != vStatus)
-      {
-         VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR, 
+      VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR, 
                 "Unable to stop timer %s; status =%d\n", 
                 TIMER_NAME, vStatus);
-      }
    }
+
    return TX_SUCCESS;
 
 } /*** tx_timer_deactivate() ***/
@@ -423,20 +480,7 @@ v_UINT_t tx_timer_delete( TX_TIMER *timer_ptr )
       return TX_TIMER_ERROR;      
    }
 
-   if (VOS_TIMER_STATE_STOPPED != 
-       vos_timer_getCurrentState( &timer_ptr->vosTimer ))
-   {
-      VOS_STATUS vStatus;
-
-      // if the timer is not running then we do not need to do anything here
-      vStatus = vos_timer_stop( &timer_ptr->vosTimer );
-      if (VOS_STATUS_SUCCESS != vStatus)
-      {
-         VOS_TRACE(VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR, 
-                "Unable to stop timer %s; status =%d\n", 
-                TIMER_NAME, vStatus);
-      }
-   }
+   vos_timer_destroy( &timer_ptr->vosTimer );
    return TX_SUCCESS;     
 } /*** tx_timer_delete() ***/
 

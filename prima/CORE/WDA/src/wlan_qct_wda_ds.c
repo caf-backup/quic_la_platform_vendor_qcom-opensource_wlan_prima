@@ -1187,53 +1187,6 @@ WDA_DS_GetReplayCounter
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
 }
 
-
-
-/*==========================================================================
-   FUNCTION    WDA_DS_GetReplayCounter
-
-  DESCRIPTION
-    HO support. Set RSSI threshold via HAL function for NON integrated SOC
-
-  TODO
-    Same function should be provided by WDA/WDI for Prima.
-
-  DEPENDENCIES
-
-  PARAMETERS
-
-   IN
-    pMac             MAC global pointer
-    pThresholds      pointer of threshold structure to set.
-
-   OUT
-
-  RETURN VALUE
-    VOS_STATUS_E_FAULT:  pointer is NULL and other errors 
-    VOS_STATUS_SUCCESS:  Everything is good :)
-
-  SIDE EFFECTS
-
-============================================================================*/
-VOS_STATUS
-WDA_DS_SetRSSIThresholds
-(
-  tpAniSirGlobal      pMac,
-  tpSirRSSIThresholds pThresholds
-)
-{
-#if defined( FEATURE_WLAN_INTEGRATED_SOC )
-  /* FIXME */
-  VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-         "WDA:halPS_SetRSSIThresholds no longer supported. Need replacement");
-  return VOS_STATUS_SUCCESS;
-#else  /* FEATURE_WLAN_INTEGRATED_SOC */
-  halPS_SetRSSIThresholds( pMac, pThresholds );
-
-  return VOS_STATUS_SUCCESS;
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
-}
-
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
 /*==========================================================================
    FUNCTION    WDA_DS_TxFrames

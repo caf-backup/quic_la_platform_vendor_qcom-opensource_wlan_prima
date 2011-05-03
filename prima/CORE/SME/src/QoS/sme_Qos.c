@@ -28,6 +28,11 @@
 #include "vos_diag_core_event.h"
 #include "vos_diag_core_log.h"
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+#include "smsDebug.h"
+#include "utilsParser.h"
+#endif
+
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
 
 /* TODO : 6Mbps as Cisco APs seem to like only this value; analysis req.   */
@@ -290,6 +295,12 @@ typedef struct sme_QosACInfo_s
                                     //handoff, will set to FALSE once done with
                                     //the process. Helps SME to decide if at all 
                                     //to notify HDD/LIS for flow renewal after HO
+#ifdef WLAN_FEATURE_VOWIFI_11R
+   v_U8_t                 ricIdentifier[SME_QOS_TSPEC_INDEX_MAX];
+   /* stores the ADD TS response for each AC. The ADD TS response is formed by
+   parsing the RIC received in the the reassoc response */
+   tSirAddtsRsp           addTsRsp[SME_QOS_TSPEC_INDEX_MAX];
+#endif
 
 } sme_QosACInfo;
 
@@ -331,6 +342,10 @@ typedef struct sme_QosSessionInfo_s
 
    // commands that are being buffered for this session
    tDblLinkList           bufferedCommandList;
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+   v_BOOL_t               ftHandoffInProgress;
+#endif
 
 } sme_QosSessionInfo;
 
@@ -436,7 +451,10 @@ eHalStatus sme_QosProcessJoinReqEv(tpAniSirGlobal pMac, v_U8_t sessionId, void *
 eHalStatus sme_QosProcessHandoffAssocReqEv(tpAniSirGlobal pMac, v_U8_t sessionId, void * pEvent_info);
 eHalStatus sme_QosProcessHandoffSuccessEv(tpAniSirGlobal pMac, v_U8_t sessionId, void * pEvent_info);
 eHalStatus sme_QosProcessHandoffFailureEv(tpAniSirGlobal pMac, v_U8_t sessionId, void * pEvent_info);
-
+#ifdef WLAN_FEATURE_VOWIFI_11R
+eHalStatus sme_QosProcessPreauthSuccessInd(tpAniSirGlobal pMac, v_U8_t sessionId, void * pEvent_info);
+eHalStatus sme_QosProcessAggrQosRsp(tpAniSirGlobal pMac, void *pMsgBuf);
+#endif
 eHalStatus sme_QosProcessAddTsSuccessRsp(tpAniSirGlobal pMac, 
                                          v_U8_t sessionId,
                                          tSirAddtsRspInfo * pRsp);
@@ -517,11 +535,9 @@ static sme_QosStatusType sme_QosReRequestAddTS(tpAniSirGlobal pMac,
                                                sme_QosEdcaAcType ac,
                                                v_U8_t tspecMask);
 static void sme_QosInitACs(tpAniSirGlobal pMac, v_U8_t sessionId);
-#ifdef REASSOC_WHEN_ACM_NOT_SET
 static eHalStatus sme_QosRequestReassoc(tpAniSirGlobal pMac, tANI_U8 sessionId,
                                         tCsrRoamModifyProfileFields *pModFields,
                                         v_BOOL_t fForce );
-#endif
 static v_U32_t sme_QosAssignFlowId(void);
 static v_U8_t sme_QosAssignDialogToken(void);
 static eHalStatus sme_QosUpdateTspecMask(v_U8_t sessionId,
@@ -782,7 +798,7 @@ sme_QosStatusType sme_QosSetupReq(tHalHandle hHal, tANI_U32 sessionId,
 
          //Call the internal function for QoS setup,
          // adding a layer of abstraction
-         status = sme_QosInternalSetupReq(pMac, sessionId, pQoSInfo,
+         status = sme_QosInternalSetupReq(pMac, (v_U8_t)sessionId, pQoSInfo,
                                           QoSCallback, HDDcontext, UPType,
                                           *pQosFlowID, VOS_FALSE, VOS_FALSE);
 
@@ -1023,6 +1039,11 @@ eHalStatus sme_QosMsgProcessor( tpAniSirGlobal pMac,  v_U16_t msg_type,
       case eWNI_SME_DELTS_IND:
          status = sme_QosProcessDelTsInd(pMac, pMsgBuf);
          break;
+#ifdef WLAN_FEATURE_VOWIFI_11R
+      case eWNI_SME_FT_AGGR_QOS_RSP:
+         status = sme_QosProcessAggrQosRsp(pMac, pMsgBuf);
+         break;
+#endif
 
       default:
          //err msg
@@ -1171,6 +1192,11 @@ eHalStatus sme_QosCsrEventInd(tpAniSirGlobal pMac,
          //nothing expected in pEvent_info
          status = sme_QosProcessHandoffFailureEv(pMac, sessionId, pEvent_info);
          break;
+#ifdef WLAN_FEATURE_VOWIFI_11R
+      case SME_QOS_CSR_PREAUTH_SUCCESS_IND:
+         status = sme_QosProcessPreauthSuccessInd(pMac, sessionId, pEvent_info);
+         break;
+#endif
       default:
          //Err msg
          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
@@ -1598,11 +1624,10 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
       if((pACInfo->num_flows[SME_QOS_TSPEC_INDEX_0] > 0)||
          (pACInfo->num_flows[SME_QOS_TSPEC_INDEX_1] > 0))
       {
-#ifdef REASSOC_WHEN_ACM_NOT_SET
          //do we need to care about the case where APSD needed on ACM = 0 below?
-         if(sme_QosIsACM(pMac, pSession->assocInfo.pBssDesc, ac, NULL))
+         if(CSR_IS_ADDTS_WHEN_ACMOFF_SUPPORTED(pMac) ||
+            sme_QosIsACM(pMac, pSession->assocInfo.pBssDesc, ac, NULL))
          {
-#endif
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED, 
                       "%s: %d: tspec_mask_status = %d for AC = %d",
                       __FUNCTION__, __LINE__,
@@ -1680,8 +1705,6 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
                 tmask = SME_QOS_TSPEC_MASK_BIT_1_SET;
               }
             }
-
-#ifdef REASSOC_WHEN_ACM_NOT_SET
          }
          else
          {
@@ -1690,7 +1713,6 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
             // to aggregate to calculate trigger frame parameters
             tmask = SME_QOS_TSPEC_MASK_BIT_1_SET;
          }
-#endif
 
          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_MED,
                    "%s: %d: tmask = %d, new_tmask = %d in state = %d",
@@ -2717,10 +2739,9 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
 
          status = SME_QOS_STATUS_RELEASE_SUCCESS_RSP;
          //check if delts needs to be sent
-#ifdef REASSOC_WHEN_ACM_NOT_SET
-         if(sme_QosIsACM(pMac, pSession->assocInfo.pBssDesc, ac, NULL))
+         if(CSR_IS_ADDTS_WHEN_ACMOFF_SUPPORTED(pMac) ||
+            sme_QosIsACM(pMac, pSession->assocInfo.pBssDesc, ac, NULL))
          {
-#endif
             //check if other TSPEC for this AC is also in use
             if(SME_QOS_TSPEC_MASK_BIT_1_2_SET != pACInfo->tspec_mask_status)
             {
@@ -2765,7 +2786,6 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
                   (~flow_info->tspec_mask);
                deltsIssued = VOS_TRUE;
             }
-#ifdef REASSOC_WHEN_ACM_NOT_SET
          }
          else if(pSession->apsdMask & (1 << (SME_QOS_EDCA_AC_VO - ac)))
          {
@@ -2820,7 +2840,6 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
             pSession->readyForPowerSave = VOS_TRUE;
 
          }
-#endif /* REASSOC_WHEN_ACM_NOT_SET */
 
          if(buffered_cmd)
          {
@@ -2984,9 +3003,7 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
    sme_QosACInfo *pACInfo;
    sme_QosStatusType status = SME_QOS_STATUS_SETUP_FAILURE_RSP;
    tDot11fBeaconIEs *pIes = NULL;
-#ifdef REASSOC_WHEN_ACM_NOT_SET
    tCsrRoamModifyProfileFields modifyProfileFields;
-#endif
    eHalStatus hstatus;
 
    if( !CSR_IS_SESSION_VALID( pMac, sessionId ) )
@@ -3061,11 +3078,10 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
    do
    {
       // is ACM enabled for this AC?
-#ifdef REASSOC_WHEN_ACM_NOT_SET
-      if(sme_QosIsACM(pMac, pSession->assocInfo.pBssDesc, ac, NULL))
+      if(CSR_IS_ADDTS_WHEN_ACMOFF_SUPPORTED(pMac) ||
+         sme_QosIsACM(pMac, pSession->assocInfo.pBssDesc, ac, NULL))
       {
          // ACM is enabled for this AC so we must send an AddTS
-#endif
 
          if(pTspec_Info->ts_info.psb && 
             (!pMac->pmc.uapsdEnabled ))
@@ -3081,7 +3097,7 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
          {
             //App didn't set TID, generate one
             pTspec_Info->ts_info.tid =
-               SME_QOS_WMM_UP_NC - pTspec_Info->ts_info.up;
+               (v_U8_t)(SME_QOS_WMM_UP_NC - pTspec_Info->ts_info.up);
          }
 
          //addts logic
@@ -3102,7 +3118,6 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
 
          status = SME_QOS_STATUS_SETUP_REQ_PENDING_RSP;
 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
          break;
       }
 
@@ -3236,7 +3251,6 @@ sme_QosStatusType sme_QosSetup(tpAniSirGlobal pMac,
          }
 
       }
-#endif /* REASSOC_WHEN_ACM_NOT_SET */
 
    }while(0);
 
@@ -3495,6 +3509,432 @@ eHalStatus sme_QosDelTsReq(tpAniSirGlobal pMac,
    return status;
 }
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+eHalStatus sme_QosCreateTspecRICIE(tpAniSirGlobal pMac, sme_QosWmmTspecInfo *pTspec_Info,
+                                               v_U8_t *pRICBuffer, v_U32_t *pRICLength, v_U8_t *pRICIdentifier)
+{
+    tDot11fIERICDataDesc    ricIE;
+    tANI_U32                nStatus;
+
+    VOS_ASSERT(NULL != pRICBuffer);
+    VOS_ASSERT(NULL != pRICLength);
+    VOS_ASSERT(NULL != pRICIdentifier);
+    
+    vos_mem_zero(&ricIE, sizeof(tDot11fIERICDataDesc));
+
+    ricIE.present = 1;
+    ricIE.RICData.present = 1;
+    ricIE.RICData.resourceDescCount = 1;
+    ricIE.RICData.statusCode = 0;
+    ricIE.RICData.Identifier = sme_QosAssignDialogToken();
+#ifdef USE_80211_TSPEC_FOR_RIC
+    ricIE.TSPEC.present = 1;
+    ricIE.TSPEC.delay_bound = pTspec_Info->delay_bound;
+    ricIE.TSPEC.inactivity_int = pTspec_Info->inactivity_interval;
+    ricIE.TSPEC.burst_size = pTspec_Info->max_burst_size;
+    ricIE.TSPEC.max_msdu_size = pTspec_Info->maximum_msdu_size;
+    ricIE.TSPEC.max_service_int = pTspec_Info->max_service_interval;
+    ricIE.TSPEC.mean_data_rate = pTspec_Info->mean_data_rate;
+    ricIE.TSPEC.medium_time = pTspec_Info->medium_time;
+    ricIE.TSPEC.min_data_rate = pTspec_Info->min_data_rate;
+    ricIE.TSPEC.min_phy_rate = pTspec_Info->min_phy_rate;
+    ricIE.TSPEC.min_service_int = pTspec_Info->min_service_interval;
+    ricIE.TSPEC.size = pTspec_Info->nominal_msdu_size;
+    ricIE.TSPEC.peak_data_rate = pTspec_Info->peak_data_rate;
+    ricIE.TSPEC.surplus_bw_allowance = pTspec_Info->surplus_bw_allowance;
+    ricIE.TSPEC.suspension_int = pTspec_Info->suspension_interval;
+    ricIE.TSPEC.service_start_time = pTspec_Info->svc_start_time;
+    ricIE.TSPEC.direction = pTspec_Info->ts_info.direction;
+    //Make sure UAPSD is allowed. BTC may want to disable UAPSD while keep QoS setup
+    if( pTspec_Info->ts_info.psb && btcIsReadyForUapsd(pMac) )
+    {
+       ricIE.TSPEC.psb = pTspec_Info->ts_info.psb;
+    }
+    else
+    {
+       ricIE.TSPEC.psb = 0;
+    }
+    ricIE.TSPEC.tsid = pTspec_Info->ts_info.tid;
+    ricIE.TSPEC.user_priority = pTspec_Info->ts_info.up;
+    ricIE.TSPEC.access_policy = SME_QOS_ACCESS_POLICY_EDCA;
+
+    *pRICIdentifier = ricIE.RICData.Identifier;
+    
+    nStatus = dot11fPackIeRICDataDesc(pMac, &ricIE, pRICBuffer, sizeof(ricIE), pRICLength);
+    if (DOT11F_FAILED(nStatus))
+    {
+        smsLog(pMac, LOGE, FL("Packing of RIC Data of length %d failed with status %d"), 
+                                        *pRICLength, nStatus);
+    }
+#else // WMM TSPEC
+    /*As per WMM_AC_testplan_v0.39 Minimum Service Interval, Maximum Service 
+      Interval, Service Start Time, Suspension Interval and Delay Bound are 
+      all intended for HCCA operation and therefore must be set to zero*/
+    ricIE.WMMTSPEC.present = 1;
+    ricIE.WMMTSPEC.version = 1;
+    ricIE.WMMTSPEC.delay_bound = pTspec_Info->delay_bound;
+    ricIE.WMMTSPEC.inactivity_int = pTspec_Info->inactivity_interval;
+    ricIE.WMMTSPEC.burst_size = pTspec_Info->max_burst_size;
+    ricIE.WMMTSPEC.max_msdu_size = pTspec_Info->maximum_msdu_size;
+    ricIE.WMMTSPEC.max_service_int = pTspec_Info->max_service_interval;
+    ricIE.WMMTSPEC.mean_data_rate = pTspec_Info->mean_data_rate;
+    ricIE.WMMTSPEC.medium_time = pTspec_Info->medium_time;
+    ricIE.WMMTSPEC.min_data_rate = pTspec_Info->min_data_rate;
+    ricIE.WMMTSPEC.min_phy_rate = pTspec_Info->min_phy_rate;
+    ricIE.WMMTSPEC.min_service_int = pTspec_Info->min_service_interval;
+    ricIE.WMMTSPEC.size = pTspec_Info->nominal_msdu_size;
+    ricIE.WMMTSPEC.peak_data_rate = pTspec_Info->peak_data_rate;
+    ricIE.WMMTSPEC.surplus_bw_allowance = pTspec_Info->surplus_bw_allowance;
+    ricIE.WMMTSPEC.suspension_int = pTspec_Info->suspension_interval;
+    ricIE.WMMTSPEC.service_start_time = pTspec_Info->svc_start_time;
+    ricIE.WMMTSPEC.direction = pTspec_Info->ts_info.direction;
+    //Make sure UAPSD is allowed. BTC may want to disable UAPSD while keep QoS setup
+    if( pTspec_Info->ts_info.psb && btcIsReadyForUapsd(pMac) )
+    {
+       ricIE.WMMTSPEC.psb = pTspec_Info->ts_info.psb;
+    }
+    else
+    {
+       ricIE.WMMTSPEC.psb = 0;
+    }
+    ricIE.WMMTSPEC.tsid = pTspec_Info->ts_info.tid;
+    ricIE.WMMTSPEC.user_priority = pTspec_Info->ts_info.up;
+    ricIE.WMMTSPEC.access_policy = SME_QOS_ACCESS_POLICY_EDCA;
+
+    
+    nStatus = dot11fPackIeRICDataDesc(pMac, &ricIE, pRICBuffer, sizeof(ricIE), pRICLength);
+    if (DOT11F_FAILED(nStatus))
+    {
+        smsLog(pMac, LOGE, FL("Packing of RIC Data of length %d failed with status %d"), 
+                                        *pRICLength, nStatus);
+    }
+#endif /* 80211_TSPEC */
+    *pRICIdentifier = ricIE.RICData.Identifier;
+    return nStatus;
+}
+
+eHalStatus sme_QosProcessFTReassocReqEv(tpAniSirGlobal pMac, v_U8_t sessionId, void * pEvent_info)
+{
+    sme_QosSessionInfo *pSession;
+    sme_QosACInfo *pACInfo;
+    v_U8_t ac;
+    v_U8_t tspec_flow_index;
+    sme_QosFlowInfoEntry *flow_info = NULL;
+    tListElem *pEntry= NULL;
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+              "%s: %d: invoked on session %d",
+              __FUNCTION__, __LINE__,
+              sessionId);
+
+    pSession = &sme_QosCb.sessionInfo[sessionId];
+    
+    for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++) 
+    {
+       pACInfo = &pSession->ac_info[ac];
+    
+       for (tspec_flow_index = 0; tspec_flow_index < SME_QOS_TSPEC_INDEX_MAX; tspec_flow_index++)
+       {
+           /* Only in the below case, copy the AC's curr QoS Info to requested QoS info */
+           if (pACInfo->ricIdentifier[tspec_flow_index] && !pACInfo->tspec_pending)
+           {
+              pACInfo->requested_QoSInfo[tspec_flow_index] = pACInfo->curr_QoSInfo[tspec_flow_index];
+              vos_mem_zero(&pACInfo->curr_QoSInfo[tspec_flow_index], sizeof(sme_QosWmmTspecInfo));
+           }
+           
+       }
+       
+       switch(pACInfo->curr_state)
+       {
+           case SME_QOS_HANDOFF:
+               sme_QosStateTransition(sessionId, ac, SME_QOS_REQUESTED);
+               break;
+           default:
+              smsLog(pMac, LOGE, FL("FT Reassoc req event in unexpected state %d"), pACInfo->curr_state);
+              VOS_ASSERT(0);
+       }
+    }
+
+    /* At this point of time, we are disconnected from the old AP, so it is safe 
+            to reset all these session variables */
+    pSession->apsdMask = 0;
+    pSession->uapsdAlreadyRequested = 0;
+    pSession->readyForPowerSave = 0;
+
+    /* Now change reason and HO renewal of all the flow in this session only */
+    pEntry = csrLLPeekHead( &sme_QosCb.flow_list, VOS_FALSE );
+    if(!pEntry)
+    {
+       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                 "%s: %d: Flow List empty, nothing to update",
+                 __FUNCTION__, __LINE__);
+       return eHAL_STATUS_FAILURE;
+    }
+
+    do
+    {
+       flow_info = GET_BASE_ADDR( pEntry, sme_QosFlowInfoEntry, link );
+       if(sessionId == flow_info->sessionId)
+       {
+          VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+                    "%s: %d: Changing FlowID %d reason to SETUP and HO renewal to FALSE",
+                    __FUNCTION__, __LINE__,
+                    flow_info->QosFlowID);
+          flow_info->reason = SME_QOS_REASON_SETUP;
+          flow_info->hoRenewal = eANI_BOOLEAN_TRUE;
+       }
+       pEntry = csrLLNext( &sme_QosCb.flow_list, pEntry, VOS_FALSE );
+    } while( pEntry );
+
+    return eHAL_STATUS_SUCCESS;
+}
+
+eHalStatus sme_QosFTAggrQosReq( tpAniSirGlobal pMac, v_U8_t sessionId )
+{
+   tSirAggrQosReq *pMsg = NULL;
+   sme_QosSessionInfo *pSession;
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   int i, j = 0;
+
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+             "%s: %d: invoked on session %d", __FUNCTION__, __LINE__, 
+             sessionId);
+
+   pSession = &sme_QosCb.sessionInfo[sessionId];
+
+   pMsg = (tSirAggrQosReq *)vos_mem_malloc(sizeof(tSirAggrQosReq));
+
+   if (!pMsg)
+   {
+      //err msg
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                "%s: %d: couldn't allocate memory for the msg buffer",
+                __FUNCTION__, __LINE__);
+
+      return eHAL_STATUS_FAILURE;
+   }
+
+   vos_mem_zero(pMsg, sizeof(tSirAggrQosReq));
+
+   pMsg->messageType = pal_cpu_to_be16((v_U16_t)eWNI_SME_FT_AGGR_QOS_REQ);
+   pMsg->length = sizeof(tSirAggrQosReq);
+   pMsg->sessionId = sessionId;
+   pMsg->timeout = 0;
+   pMsg->rspReqd = VOS_TRUE;
+   vos_mem_copy( &pMsg->bssId[ 0 ], 
+                 &pSession->assocInfo.pBssDesc->bssId[ 0 ], 
+                 sizeof(tCsrBssid) );
+
+   for( i = 0; i < SME_QOS_EDCA_AC_MAX; i++ )
+   {
+      for( j = 0; j < SME_QOS_TSPEC_INDEX_MAX; j++ )
+      {
+         if( pSession->ac_info[i].addTsRsp[j].rsp.tspec.tsinfo.traffic.
+             direction == SME_QOS_WMM_TS_DIR_UPLINK )
+         {
+            pMsg->aggrInfo.aggrAddTsInfo[i].dialogToken = 
+               sme_QosAssignDialogToken();
+            pMsg->aggrInfo.aggrAddTsInfo[i].lleTspecPresent =
+               pSession->ac_info[i].addTsRsp[j].rsp.lleTspecPresent;
+            pMsg->aggrInfo.aggrAddTsInfo[i].numTclas =
+               pSession->ac_info[i].addTsRsp[j].rsp.numTclas;
+            vos_mem_copy( pMsg->aggrInfo.aggrAddTsInfo[i].tclasInfo,
+                          pSession->ac_info[i].addTsRsp[j].rsp.tclasInfo,
+                          SIR_MAC_TCLASIE_MAXNUM );
+            pMsg->aggrInfo.aggrAddTsInfo[i].tclasProc =
+               pSession->ac_info[i].addTsRsp[j].rsp.tclasProc;
+            pMsg->aggrInfo.aggrAddTsInfo[i].tclasProcPresent =
+               pSession->ac_info[i].addTsRsp[j].rsp.tclasProcPresent;
+            pMsg->aggrInfo.aggrAddTsInfo[i].tspec = 
+               pSession->ac_info[i].addTsRsp[j].rsp.tspec;
+            pMsg->aggrInfo.aggrAddTsInfo[i].wmeTspecPresent = 
+               pSession->ac_info[i].addTsRsp[j].rsp.wmeTspecPresent;
+            pMsg->aggrInfo.aggrAddTsInfo[i].wsmTspecPresent = 
+               pSession->ac_info[i].addTsRsp[j].rsp.wsmTspecPresent;
+            pMsg->aggrInfo.tspecIdx |= ( 1 < i );
+         }
+      }
+   }
+
+
+   if(HAL_STATUS_SUCCESS(palSendMBMessage(pMac->hHdd, pMsg)))
+   {
+      status = eHAL_STATUS_SUCCESS;
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+                "%s: %d: sent down a AGGR QoS req to PE",
+                __FUNCTION__, __LINE__);
+   }
+
+   return status;
+}
+
+eHalStatus sme_QosProcessFTRICResponse(tpAniSirGlobal pMac, v_U8_t sessionId, tDot11fIERICDataDesc *pRicDataDesc, v_U8_t ac, v_U8_t tspecIndex) 
+{
+   tANI_U8        i = 0;
+   tSirAddtsRsp   addtsRsp 
+      = sme_QosCb.sessionInfo[sessionId].ac_info[ac].addTsRsp[tspecIndex];
+    
+    vos_mem_zero(&addtsRsp, sizeof(addtsRsp));
+
+    addtsRsp.messageType = eWNI_SME_ADDTS_RSP;
+    addtsRsp.length = sizeof(addtsRsp);
+    addtsRsp.rc = pRicDataDesc->RICData.statusCode;
+    addtsRsp.sessionId = sessionId;
+    addtsRsp.rsp.dialogToken = pRicDataDesc->RICData.Identifier;
+    addtsRsp.rsp.status = pRicDataDesc->RICData.statusCode;
+    addtsRsp.rsp.wmeTspecPresent = pRicDataDesc->TSPEC.present;
+    if (addtsRsp.rsp.wmeTspecPresent)
+    {
+        //Copy TSPEC params received in RIC response to addts response
+        ConvertTSPEC(pMac, &addtsRsp.rsp.tspec, &pRicDataDesc->TSPEC);
+    }
+
+    addtsRsp.rsp.numTclas = pRicDataDesc->num_TCLAS;
+    if (addtsRsp.rsp.numTclas)
+    {
+        for (i = 0; i < addtsRsp.rsp.numTclas; i++)
+        {
+            //Copy TCLAS info per index to the addts response
+            ConvertTCLAS(pMac, &addtsRsp.rsp.tclasInfo[i], &pRicDataDesc->TCLAS[i]);
+        }
+    }
+
+    addtsRsp.rsp.tclasProcPresent = pRicDataDesc->TCLASSPROC.present;
+    if (addtsRsp.rsp.tclasProcPresent)
+        addtsRsp.rsp.tclasProc = pRicDataDesc->TCLASSPROC.processing;
+
+
+    addtsRsp.rsp.schedulePresent = pRicDataDesc->Schedule.present;
+    if (addtsRsp.rsp.schedulePresent)
+    {
+        //Copy Schedule IE params to addts response
+        ConvertSchedule(pMac, &addtsRsp.rsp.schedule, &pRicDataDesc->Schedule);
+    }
+    
+    //Need to check the below portion is a part of WMM TSPEC
+    //Process Delay element
+    if (pRicDataDesc->TSDelay.present)
+        ConvertTSDelay(pMac, &addtsRsp.rsp.delay, &pRicDataDesc->TSDelay);
+    //return sme_QosProcessAddTsRsp(pMac, &addtsRsp);
+    return eHAL_STATUS_SUCCESS;
+}
+
+eHalStatus sme_QosProcessAggrQosRsp(tpAniSirGlobal pMac, void *pMsgBuf)
+{
+   tpSirAggrQosRsp pAggrRsp = (tpSirAggrQosRsp)pMsgBuf;
+   tSirAddtsRsp   addtsRsp;
+   eHalStatus status = eHAL_STATUS_SUCCESS;
+   int i, j = 0;
+   tANI_U8 sessionId = pAggrRsp->sessionId;
+
+    /* Copy over the updated response information for TSPEC of all the ACs */
+    for( i = 0; i < SME_QOS_NUM_AC_MAX; i++ )
+    {
+       if( ((1 < i) & pAggrRsp->tspecIdx) &&
+           ( sme_QosCb.sessionInfo[sessionId].ac_info[i].addTsRsp[j].rsp.tspec.
+             tsinfo.traffic.direction == SME_QOS_WMM_TS_DIR_UPLINK ) )
+       {
+          addtsRsp = sme_QosCb.sessionInfo[sessionId].ac_info[i].addTsRsp[j];
+          addtsRsp.rc = pAggrRsp->aggrRsp[i].status;
+          addtsRsp.rsp.status = pAggrRsp->aggrRsp[i].status;
+          addtsRsp.rsp.tspec = pAggrRsp->aggrRsp[i].tspec;
+
+          /* post ADD TS response for each */
+          if (sme_QosProcessAddTsRsp(pMac, &addtsRsp) != eHAL_STATUS_SUCCESS)
+          {
+             status = eHAL_STATUS_FAILURE;
+          }
+       }
+    }
+    return status;
+}
+
+eHalStatus sme_QosProcessFTReassocRspEv(tpAniSirGlobal pMac, v_U8_t sessionId, void * pEvent_info)
+{
+    sme_QosSessionInfo *pSession;
+    sme_QosACInfo *pACInfo;
+    v_U8_t ac;
+    v_U8_t tspec_flow_index;
+    tDot11fIERICDataDesc *pRicDataDesc = NULL;
+    eHalStatus            status = eHAL_STATUS_SUCCESS;
+    tCsrRoamSession *pCsrSession = CSR_GET_SESSION( pMac, sessionId );
+    tCsrRoamConnectedInfo *pCsrConnectedInfo = &pCsrSession->connectedInfo;
+    tANI_U32    ricRspLen = pCsrConnectedInfo->nRICRspLength;
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+              "%s: %d: invoked on session %d",
+              __FUNCTION__, __LINE__,
+              sessionId);
+
+    pSession = &sme_QosCb.sessionInfo[sessionId];
+
+    pRicDataDesc = (tDot11fIERICDataDesc *)pCsrConnectedInfo->pbFrames + pCsrConnectedInfo->nBeaconLength + 
+                    pCsrConnectedInfo->nAssocReqLength + pCsrConnectedInfo->nAssocRspLength;
+
+    for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++) 
+    {
+       pACInfo = &pSession->ac_info[ac];
+    
+       for (tspec_flow_index = 0; tspec_flow_index < SME_QOS_TSPEC_INDEX_MAX; tspec_flow_index++)
+       {
+           /* Only in the below case, copy the AC's curr QoS Info to requested QoS info */
+           if (pACInfo->ricIdentifier[tspec_flow_index])
+           {
+              
+              if (!ricRspLen)
+              {
+                 smsLog(pMac, LOGE, FL("RIC Response not received for AC %d on TSPEC Index %d, RIC Req Identifier = %d"), 
+                                            ac, tspec_flow_index, pACInfo->ricIdentifier[tspec_flow_index]);
+                 VOS_ASSERT(0);
+              }
+              else
+              {
+                 /* Now we got response for this identifier. Process it. */
+                 if (pRicDataDesc->present)
+                 {
+                    if (pRicDataDesc->RICData.present)
+                    {
+                        if (pRicDataDesc->RICData.Identifier != pACInfo->ricIdentifier[tspec_flow_index])
+                        {
+                            smsLog(pMac, LOGE, FL("RIC response order not same as request sent. Request ID = %d, Response ID = %d"),
+                                            pACInfo->ricIdentifier[tspec_flow_index], pRicDataDesc->RICData.Identifier);
+                            VOS_ASSERT(0);
+                        }
+                        else
+                        {
+                            smsLog(pMac, LOGE, FL("Processing RIC Response for AC %d, TSPEC Flow index %d with RIC ID %d \n"),
+                                                            ac, tspec_flow_index, pRicDataDesc->RICData.Identifier);
+                            status = sme_QosProcessFTRICResponse(pMac, sessionId, pRicDataDesc, ac, tspec_flow_index);
+                            if (eHAL_STATUS_SUCCESS != status)
+                            {
+                                smsLog(pMac, LOGE, FL("Failed with status %d for AC %d in TSPEC Flow index = %d\n"), 
+                                                        status, ac, tspec_flow_index);
+                            }
+                        }
+                        pRicDataDesc++;
+                        ricRspLen -= sizeof(tDot11fIERICDataDesc);
+                    }
+                 }
+              }
+           }
+           
+       }
+       
+    }
+
+    if (ricRspLen)
+    {
+        smsLog(pMac, LOGE, FL("RIC Response still follows despite traversing through all ACs. Remaining len = %d\n"), ricRspLen);
+        VOS_ASSERT(0);
+    }
+
+    /* Send the Aggregated QoS request to HAL */
+    status = sme_QosFTAggrQosReq(pMac,sessionId);
+
+    return status;
+}
+
+#endif /* WLAN_FEATURE_VOWIFI_11R */
 
 /*--------------------------------------------------------------------------
   \brief sme_QosProcessAddTsRsp() - Function to process the
@@ -3515,6 +3955,40 @@ eHalStatus sme_QosProcessAddTsRsp(tpAniSirGlobal pMac, void *pMsgBuf)
    sme_QosSessionInfo *pSession;
    v_U8_t sessionId = paddts_rsp->sessionId;
    eHalStatus status = eHAL_STATUS_FAILURE;
+#ifdef WLAN_FEATURE_VOWIFI_11R
+   sme_QosWmmUpType up = (sme_QosWmmUpType)paddts_rsp->rsp.tspec.tsinfo.traffic.userPrio;
+   sme_QosACInfo *pACInfo;
+   sme_QosEdcaAcType ac;
+#endif
+
+    pSession = &sme_QosCb.sessionInfo[sessionId];
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+             "%s: %d: invoked on session %d for UP %d",
+             __FUNCTION__, __LINE__,
+             sessionId, up);
+
+   ac = sme_QosUpToAc(up);
+   if(SME_QOS_EDCA_AC_MAX == ac)
+   {
+      //err msg
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                "%s: %d: invalid AC %d from UP %d",
+                __FUNCTION__, __LINE__, ac, up);
+
+      return eHAL_STATUS_FAILURE;
+   }
+   pACInfo = &pSession->ac_info[ac];   
+   if (SME_QOS_HANDOFF == pACInfo->curr_state)
+   {
+      smsLog(pMac, LOGE, FL("ADDTS Response received for AC %d in HANDOFF State.. Dropping"), ac);
+      pSession->readyForPowerSave = VOS_TRUE;
+      return eHAL_STATUS_SUCCESS;
+   }
+
+#endif
+
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
    WLAN_VOS_DIAG_EVENT_DEF(qos, vos_event_wlan_qos_payload_type);
@@ -3524,8 +3998,6 @@ eHalStatus sme_QosProcessAddTsRsp(tpAniSirGlobal pMac, void *pMsgBuf)
              "%s: %d: Invoked on session %d with return code %d",
              __FUNCTION__, __LINE__,
              sessionId, paddts_rsp->rc);
-
-   pSession = &sme_QosCb.sessionInfo[sessionId];
 
    // our outstanding request has been serviced
    // we can go into powersave
@@ -3817,8 +4289,10 @@ eHalStatus sme_QosProcessReassocReqEv(tpAniSirGlobal pMac, v_U8_t sessionId, voi
              sessionId);
 
    pSession = &sme_QosCb.sessionInfo[sessionId];
-
-   if(pSession->handoffRequested)
+//datre: what about in case of -non 11r, dont we need to buffer the existing
+//flows if hand-off is in progress?
+#ifdef WLAN_FEATURE_VOWIFI_11R
+   if(pSession->ftHandoffInProgress)
    {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
                 "%s: %d: no need for state transition, should "
@@ -3829,12 +4303,10 @@ eHalStatus sme_QosProcessReassocReqEv(tpAniSirGlobal pMac, v_U8_t sessionId, voi
       VOS_ASSERT(pSession->ac_info[2].curr_state == SME_QOS_HANDOFF);
       VOS_ASSERT(pSession->ac_info[3].curr_state == SME_QOS_HANDOFF);
 
-      //buffer the existing flows to be renewed after handoff is done
-      sme_QosBufferExistingFlows(pMac, sessionId);
-      //clean up the control block partially for handoff
-      sme_QosCleanupCtrlBlkForHandoff(pMac, sessionId);
+      sme_QosProcessFTReassocReqEv(pMac, sessionId, pEvent_info);
       return eHAL_STATUS_SUCCESS;
    }
+#endif
 
    for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++) 
    {
@@ -3931,6 +4403,7 @@ eHalStatus sme_QosProcessReassocSuccessEv(tpAniSirGlobal pMac, v_U8_t sessionId,
 
    }
    
+#if 0   
    if(pSession->handoffRequested)
    {
       pSession->handoffRequested = VOS_FALSE;
@@ -3938,6 +4411,17 @@ eHalStatus sme_QosProcessReassocSuccessEv(tpAniSirGlobal pMac, v_U8_t sessionId,
       (void)sme_QosProcessBufferedCmd(sessionId);
       return eHAL_STATUS_SUCCESS;
    }
+#endif
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+   if (pSession->ftHandoffInProgress)
+   {
+      status = sme_QosProcessFTReassocRspEv(pMac, sessionId, pEvent_info);
+      pSession->ftHandoffInProgress = VOS_FALSE;
+      pSession->handoffRequested = VOS_FALSE;
+      return status;
+   }
+#endif
 
    pSession->sessionActive = VOS_TRUE;
 
@@ -4451,6 +4935,111 @@ eHalStatus sme_QosProcessJoinReqEv(tpAniSirGlobal pMac, v_U8_t sessionId, void *
    }
    return eHAL_STATUS_SUCCESS;
 }
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+/*--------------------------------------------------------------------------
+  \brief sme_QosProcessPreauthSuccessInd() - Function to process the
+  SME_QOS_CSR_PREAUTH_SUCCESS_IND event indication from CSR
+
+  \param pEvent_info - Pointer to relevant info from CSR.   
+  
+  \return eHalStatus
+  
+  \sa
+  
+  --------------------------------------------------------------------------*/
+eHalStatus sme_QosProcessPreauthSuccessInd(tpAniSirGlobal pMac, v_U8_t sessionId, void * pEvent_info)
+{
+    sme_QosSessionInfo *pSession;
+    sme_QosACInfo *pACInfo;
+    v_U8_t ac;
+    v_U16_t ricOffset = 0;
+    v_U32_t  ricIELength = 0;
+    v_U8_t  *ricIE;
+    v_U8_t   tspec_mask_status = 0;
+    v_U8_t   tspec_pending_status = 0;
+    eHalStatus  status = eHAL_STATUS_SUCCESS;
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+              "%s: %d: invoked on session %d",
+              __FUNCTION__, __LINE__,
+              sessionId);
+
+    /* Any Block Ack info there, should have been already filled by PE and present in this buffer 
+            and the ric_ies_length should contain the length of the whole RIC IEs. Filling of TSPEC info 
+            should start from this length */
+    ricIE = pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies;
+    ricOffset = pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies_length;
+    
+    pSession = &sme_QosCb.sessionInfo[sessionId];
+    
+    for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++) 
+    {
+       pACInfo = &pSession->ac_info[ac];
+    
+       switch(pACInfo->curr_state)
+       {
+          case SME_QOS_LINK_UP:
+          case SME_QOS_REQUESTED:
+          case SME_QOS_QOS_ON:
+             sme_QosStateTransition(sessionId, ac, SME_QOS_HANDOFF);
+             break;
+          case SME_QOS_HANDOFF:
+             //print error msg
+          case SME_QOS_CLOSED:
+          case SME_QOS_INIT:
+          default:
+             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                       "%s: %d: On session %d AC %d is in wrong state %d",
+                       __FUNCTION__, __LINE__,
+                       sessionId, ac, pACInfo->curr_state);
+             //ASSERT
+             VOS_ASSERT(0);
+             break;
+       }
+    }
+    
+    pSession->ftHandoffInProgress = VOS_TRUE;
+
+    /* Now we have to process the currentTspeInfo inside this session and create the RIC IEs */
+    for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++) 
+    {
+       volatile v_U8_t   tspec_index = 0;
+       
+       pACInfo = &pSession->ac_info[ac];
+       tspec_pending_status = pACInfo->tspec_pending;
+       tspec_mask_status = pACInfo->tspec_mask_status;
+       vos_mem_zero(pACInfo->ricIdentifier, SME_QOS_TSPEC_INDEX_MAX);
+        smsLog(pMac, LOGE, "AC %d ==> TSPEC status = %d, tspec pending = %d", ac, tspec_mask_status, tspec_pending_status);
+
+       do 
+       {
+           if (tspec_mask_status & 0x1)
+           {
+               /* If a tspec status is pending, take requested_QoSInfo for RIC request, else use curr_QoSInfo
+                                for the RIC request */
+               if (tspec_pending_status & 0x1)
+               {
+                   status = sme_QosCreateTspecRICIE(pMac, &pACInfo->requested_QoSInfo[tspec_index],
+                                    ricIE + ricOffset, &ricIELength, &pACInfo->ricIdentifier[tspec_index]);
+               }
+               else
+               {
+                   status = sme_QosCreateTspecRICIE(pMac, &pACInfo->curr_QoSInfo[tspec_index],
+                                    ricIE + ricOffset, &ricIELength, &pACInfo->ricIdentifier[tspec_index]);
+               }
+           }
+           ricOffset += ricIELength;
+           pMac->ft.ftSmeContext.psavedFTPreAuthRsp->ric_ies_length += ricIELength;
+           
+           tspec_mask_status >>= 1;
+           tspec_pending_status >>= 1;
+           tspec_index++;
+       } while (tspec_mask_status);
+    }
+    return status;
+}
+#endif
 
 /*--------------------------------------------------------------------------
   \brief sme_QosProcessAddTsFailureRsp() - Function to process the
@@ -5880,7 +6469,6 @@ static eHalStatus sme_QosDeleteBufferedRequests(tpAniSirGlobal pMac,
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
              "%s: %d: Invoked on session %d",
              __FUNCTION__, __LINE__, sessionId);
-   return eHAL_STATUS_FAILURE;
 
    pSession = &sme_QosCb.sessionInfo[sessionId];
 
@@ -6481,9 +7069,7 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
    sme_QosStatusType hdd_status = SME_QOS_STATUS_SETUP_FAILURE_RSP;
    sme_QosEdcaAcType ac;
    eHalStatus pmc_status = eHAL_STATUS_FAILURE;
-#ifndef REASSOC_WHEN_ACM_NOT_SET
    tCsrRoamModifyProfileFields modifyProfileFields;
-#endif
 
    if(!pEntry)
    {
@@ -6601,7 +7187,6 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
 
          }
       }
-#ifndef REASSOC_WHEN_ACM_NOT_SET
       else
       {
         if((pACInfo->num_flows[flow_info->tspec_mask - 1] == 1) && 
@@ -6627,7 +7212,6 @@ eHalStatus sme_QosAddTsSuccessFnp(tpAniSirGlobal pMac, tListElem *pEntry)
           }
         }
       }
-#endif /* REASSOC_WHEN_ACM_NOT_SET */
       break;
    case SME_QOS_REASON_REQ_SUCCESS:
       hdd_status = SME_QOS_STATUS_SETUP_MODIFIED_IND;
@@ -7146,7 +7730,13 @@ static eHalStatus qosIssueCommand( tpAniSirGlobal pMac, v_U8_t sessionId,
     do
     {
         pCommand = smeGetCommandBuffer( pMac );
-        if ( !pCommand ) break;
+        if ( !pCommand )
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                         "%s: %d: fail to get command buffer for command %d",
+                         __FUNCTION__, __LINE__, cmdType);
+            break;
+        }
         pCommand->command = cmdType;
         pCommand->sessionId = sessionId;
 
@@ -7206,7 +7796,7 @@ tANI_BOOLEAN qosProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
         switch ( pCommand->command )
         {
         case eSmeCommandAddTs:
-            status = sme_QosAddTsReq( pMac, pCommand->sessionId, &pCommand->u.qosCmd.tspecInfo, pCommand->u.qosCmd.ac);
+            status = sme_QosAddTsReq( pMac, (v_U8_t)pCommand->sessionId, &pCommand->u.qosCmd.tspecInfo, pCommand->u.qosCmd.ac);
             if( HAL_STATUS_SUCCESS( status ) )
             {
                 fRemoveCmd = eANI_BOOLEAN_FALSE;
@@ -7215,7 +7805,7 @@ tANI_BOOLEAN qosProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
             break;
 
         case eSmeCommandDelTs:
-            status = sme_QosDelTsReq( pMac, pCommand->sessionId, pCommand->u.qosCmd.ac, pCommand->u.qosCmd.tspec_mask );
+            status = sme_QosDelTsReq( pMac, (v_U8_t)pCommand->sessionId, pCommand->u.qosCmd.ac, pCommand->u.qosCmd.tspec_mask );
             if( HAL_STATUS_SUCCESS( status ) )
             {
                 fRemoveCmd = eANI_BOOLEAN_FALSE;
@@ -7245,13 +7835,12 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
    sme_QosSessionInfo *pSession;
    sme_QosACInfo *pACInfo;
    v_U8_t ac, tspec1 = 0, tspec2 = 0; 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
    v_U8_t uapsd_mask;
    tDot11fBeaconIEs *pIesLocal;
    v_U8_t acm_mask;
-#endif
    v_BOOL_t fIsUapsdNeeded;
    v_U8_t sessionId;
+   v_BOOL_t addtsWhenACMNotSet = CSR_IS_ADDTS_WHEN_ACMOFF_SUPPORTED(pMac);
 
    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH,
              "%s: %d: Invoked",
@@ -7271,7 +7860,6 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
                 __FUNCTION__, __LINE__,
                 sessionId);
 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
       if( HAL_STATUS_SUCCESS(csrGetParsedBssDescriptionIEs(pMac, pSession->assocInfo.pBssDesc, &pIesLocal)) )
       {
          // get the ACM mask
@@ -7283,7 +7871,6 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
 
          // unmask the bits with ACM on to avoid reassoc on them 
          uapsd_mask &= ~acm_mask;
-#endif
          // iterate through the ACs to determine if we need to re-add any TSPECs
          for(ac = SME_QOS_EDCA_AC_BE; ac < SME_QOS_EDCA_AC_MAX; ac++)
          {
@@ -7299,16 +7886,14 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
                          __FUNCTION__, __LINE__,
                          sessionId, ac);
 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
                // Does this AC require ACM?
-               if( acm_mask & (1 << (SME_QOS_EDCA_AC_VO - ac)) )
+               if(( acm_mask & (1 << (SME_QOS_EDCA_AC_VO - ac)) ) || addtsWhenACMNotSet )
                {
                   // Yes, so we need to re-add any TSPECS
                   VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH,
                             "%s: %d: On session %d AC %d has ACM enabled",
                             __FUNCTION__, __LINE__,
                             sessionId, ac);
-#endif
 
                   // Are any TSPECs active?
                   if( pACInfo->tspec_mask_status )
@@ -7369,7 +7954,6 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
                                sessionId, ac);
                      VOS_ASSERT(0);
                   }
-#ifdef REASSOC_WHEN_ACM_NOT_SET
                }
                else
                {
@@ -7387,11 +7971,9 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
                                sessionId, ac, uapsd_mask);
                   }
                }
-#endif
             }
          }
 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
          // do we need to reassociate?
          if(uapsd_mask)
          {
@@ -7427,7 +8009,6 @@ sme_QosStatusType sme_QosTriggerUapsdChange( tpAniSirGlobal pMac )
                    __FUNCTION__, __LINE__,
                    sessionId);
       }
-#endif /* REASSOC_WHEN_ACM_NOT_SET */
    }
 
    // return status is ignored by BTC
@@ -7623,7 +8204,7 @@ static void sme_QosInitACs(tpAniSirGlobal pMac, v_U8_t sessionId)
    }
 }
 
-#ifdef REASSOC_WHEN_ACM_NOT_SET
+
 static eHalStatus sme_QosRequestReassoc(tpAniSirGlobal pMac, tANI_U8 sessionId,
                                         tCsrRoamModifyProfileFields *pModFields,
                                         v_BOOL_t fForce )
@@ -7665,7 +8246,7 @@ static eHalStatus sme_QosRequestReassoc(tpAniSirGlobal pMac, tANI_U8 sessionId,
 
    return status;
 }
-#endif /* REASSOC_WHEN_ACM_NOT_SET */
+
 
 static v_U32_t sme_QosAssignFlowId(void)
 {

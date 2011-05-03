@@ -47,9 +47,30 @@ typedef enum
    WDTS_CHANNEL_MAX
 }  WDTS_ChannelType;
 
+typedef enum
+{
+   WDTS_POWER_STATE_FULL,
+   WDTS_POWER_STATE_BMPS,
+   WDTS_POWER_STATE_MAX
+} WDTS_PowerStateType;
+
+
 typedef wpt_status (*WDTS_TxCompleteCbType)(void *pContext, wpt_packet *pFrame, wpt_status status);
 typedef wpt_status (*WDTS_RxFrameReadyCbType) (void *pContext, wpt_packet *pFrame, WDTS_ChannelType channel);
 typedef wpt_status (*WDTS_LowResourceCbType)(void *pContext, WDTS_ChannelType channel, wpt_boolean on);
+typedef void  (*WDTS_SetPSCbType)(wpt_status  status, unsigned int dxePhyAddr);
+/* DTS Set power state ACK callback. 
+ * This callback function should be invoked by the DTS to notify WDI that set
+ * power state request is complete.
+ * Parameters:
+ * status: status of the set operation
+ * pUserData:Cookie that should be passed back to the caller along with the callback.
+ * Return Value: None.
+ *
+ */
+typedef void  (*WDTS_SetPowerStateCbType)(wpt_status   status,
+                                          unsigned int dxePhyAddr,
+                                          void*        pUserData);
 
 typedef struct {
   void * (*open)(void);
@@ -57,8 +78,16 @@ typedef struct {
   wpt_status (*register_client)(void *pContext, WDTS_RxFrameReadyCbType, 
       WDTS_TxCompleteCbType, WDTS_LowResourceCbType, void *clientData);
   wpt_status (*xmit) (void *pContext, wpt_packet *packet, WDTS_ChannelType channel);
+  wpt_status (*setPowerState) (void *pContext, WDTS_PowerStateType   powerState, 
+                               WDTS_SetPSCbType cBack);
+  wpt_status (*stop) (void *pContext);
+  wpt_status (*close) (void *pContext);
 } WDTS_TransportDriverTrype;
 
+typedef struct {
+   WDTS_SetPowerStateCbType cback;
+   void*        pUserData;
+} WDTS_SetPowerStateCbInfoType;
 
 /* DTS open  function. 
  * On open the transport device should initialize itself.
@@ -101,4 +130,35 @@ wpt_status WDTS_startTransport( void *pContext);
  */
 wpt_status WDTS_TxPacket(void *pContext, wpt_packet *pFrame);
 
+/* DTS Set power state function. 
+ * This function should be invoked by the DAL to notify the WLAN device power state.
+ * Parameters:
+ * pContext:Cookie that should be passed back to the caller along with the callback.
+ * powerState:Power state of the WLAN device.
+ * Return Value: SUCCESS  Set successfully in DXE control blk.
+ *     FAILURE_XXX  Request was rejected due XXX Reason.
+ *
+ */
+wpt_status WDTS_SetPowerState(void *pContext, WDTS_PowerStateType powerState,
+                              WDTS_SetPowerStateCbType cback);
+
+/* DTS Stop function. 
+ * Stop Transport driver, ie DXE, SDIO
+ * Parameters:
+ * pContext:Cookie that should be passed back to the caller along with the callback.
+ * Return Value: SUCCESS  Completed successfully.
+ *     FAILURE_XXX  Request was rejected due XXX Reason.
+ *
+ */
+wpt_status WDTS_Stop(void *pContext);
+
+/* DTS Close function. 
+ * Close Transport driver, ie DXE, SDIO
+ * Parameters:
+ * pContext:Cookie that should be passed back to the caller along with the callback.
+ * Return Value: SUCCESS  Completed successfully.
+ *     FAILURE_XXX  Request was rejected due XXX Reason.
+ *
+ */
+wpt_status WDTS_Close(void *pContext);
 #endif

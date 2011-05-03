@@ -121,7 +121,6 @@ typedef enum
    WLAN_HAL_UPDATE_CFG_REQ,
    WLAN_HAL_UPDATE_CFG_RSP,
 
-   WLAN_HAL_LOW_RSSI_IND,
    WLAN_HAL_MISSED_BEACON_IND,
    WLAN_HAL_UNKNOWN_ADDR2_FRAME_RX_IND,
    WLAN_HAL_MIC_FAILURE_IND,
@@ -169,6 +168,8 @@ typedef enum
    WLAN_HAL_EXIT_BMPS_REQ,
    WLAN_HAL_ENTER_UAPSD_REQ,
    WLAN_HAL_EXIT_UAPSD_REQ,
+   WLAN_HAL_UPDATE_UAPSD_PARAM_REQ ,
+   WLAN_HAL_CONFIGURE_RXP_FILTER_REQ,
    WLAN_HAL_ADD_BCN_FILTER_REQ,
    WLAN_HAL_REM_BCN_FILTER_REQ,
    WLAN_HAL_ADD_WOWL_BCAST_PTRN,
@@ -179,6 +180,7 @@ typedef enum
    WLAN_HAL_SET_RSSI_THRESH_REQ,
    WLAN_HAL_GET_RSSI_REQ,
    WLAN_HAL_SET_UAPSD_AC_PARAMS_REQ,
+   WLAN_HAL_CONFIGURE_APPS_CPU_WAKEUP_STATE_REQ,
 
    WLAN_HAL_ENTER_IMPS_RSP,
    WLAN_HAL_EXIT_IMPS_RSP,
@@ -186,10 +188,32 @@ typedef enum
    WLAN_HAL_EXIT_BMPS_RSP,
    WLAN_HAL_ENTER_UAPSD_RSP,
    WLAN_HAL_EXIT_UAPSD_RSP,
+   WLAN_HAL_SET_UAPSD_AC_PARAMS_RSP ,
+   WLAN_HAL_UPDATE_UAPSD_PARAM_RSP ,
+   WLAN_HAL_CONFIGURE_RXP_FILTER_RSP,
+   WLAN_HAL_ADD_BCN_FILTER_RSP,
+   WLAN_HAL_REM_BCN_FILTER_RSP,
+   WLAN_HAL_SET_RSSI_THRESH_RSP,
+   WLAN_HAL_HOST_OFFLOAD_RSP,
+   WLAN_HAL_ADD_WOWL_BCAST_PTRN_RSP,
+   WLAN_HAL_DEL_WOWL_BCAST_PTRN_RSP,
    WLAN_HAL_ENTER_WOWL_RSP,
    WLAN_HAL_EXIT_WOWL_RSP,
    WLAN_HAL_RSSI_NOTIFICATION_IND,
    WLAN_HAL_GET_RSSI_RSP,
+   WLAN_HAL_CONFIGURE_APPS_CPU_WAKEUP_STATE_RSP,
+
+   //11k related events
+   WLAN_HAL_SET_MAX_TX_POWER_REQ,
+   WLAN_HAL_SET_MAX_TX_POWER_RSP, 
+
+   //11R related msgs
+   WLAN_HAL_AGGR_ADD_TS_REQ,
+   WLAN_HAL_AGGR_ADD_TS_RSP,
+
+   //P2P  WLAN_FEATURE_P2P
+   WLAN_HAL_SET_P2P_GONOA_REQ,
+   WLAN_HAL_SET_P2P_GONOA_RSP,
 
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
@@ -375,6 +399,9 @@ typedef enum eSriLinkState {
     eSIR_LINK_FINISH_SCAN_STATE = 11,
     eSIR_LINK_INIT_CAL_STATE    = 12,
     eSIR_LINK_FINISH_CAL_STATE  = 13,
+#ifdef WLAN_FEATURE_P2P
+    eSIR_LINK_LISTEN_STATE      = 14,
+#endif
     eSIR_LINK_MAX = WLAN_HAL_MAX_ENUM_SIZE
 } tSirLinkState;
 
@@ -397,6 +424,21 @@ typedef enum
     BTAMP_EVENT_TYPE_MAX = WLAN_HAL_MAX_ENUM_SIZE, //This and beyond are invalid values
 } tBtAmpEventType;
 
+//***************************************************************
+
+
+/*******************PE Statistics*************************/
+typedef enum
+{
+    PE_SUMMARY_STATS_INFO           = 0x00000001,
+    PE_GLOBAL_CLASS_A_STATS_INFO    = 0x00000002,
+    PE_GLOBAL_CLASS_B_STATS_INFO    = 0x00000004,
+    PE_GLOBAL_CLASS_C_STATS_INFO    = 0x00000008,
+    PE_GLOBAL_CLASS_D_STATS_INFO    = 0x00000010,
+    PE_PER_STA_STATS_INFO           = 0x00000020,
+    PE_STATS_TYPE_MAX = WLAN_HAL_MAX_ENUM_SIZE //This and beyond are invalid values
+}ePEStatsMask;
+
 /*---------------------------------------------------------------------------
   Message definitons - All the messages below need to be packed
  ---------------------------------------------------------------------------*/
@@ -407,6 +449,48 @@ typedef enum
 #pragma pack(1)
 #else
 #endif
+/// Definition for Encryption Keys
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8                  keyId;
+    tANI_U8                  unicast;  // 0 for multicast
+    tAniKeyDirection         keyDirection;
+    tANI_U8                  keyRsc[WLAN_MAX_KEY_RSC_LEN];  // Usage is unknown
+    tANI_U8                  paeRole;  // =1 for authenticator,=0 for supplicant
+    tANI_U16                 keyLength;
+    tANI_U8                  key[SIR_MAC_MAX_KEY_LENGTH];
+} tSirKeys, *tpSirKeys;
+
+
+//SetStaKeyParams Moving here since it is shared by configbss/setstakey msgs
+typedef PACKED_PRE struct PACKED_POST
+{
+    /*STA Index*/
+    tANI_U16        staIdx;
+
+    /*Encryption Type used with peer*/
+    tAniEdType      encType;
+
+    /*STATIC/DYNAMIC - valid only for WEP*/
+    tAniWepType     wepType; 
+
+    /*Default WEP key, valid only for static WEP, must between 0 and 3.*/
+    tANI_U8         defWEPIdx;
+
+#ifdef WLAN_SOFTAP_FEATURE
+    /* valid only for non-static WEP encyrptions */
+    tSirKeys        key[SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS];            
+#else
+    tSirKeys        key;
+#endif
+  
+    /*Control for Replay Count, 1= Single TID based replay count on Tx
+      0 = Per TID based replay count on TX */
+    tANI_U8         singleTidRc;
+
+} tSetStaKeyParams, *tpSetStaKeyParams;
+
+
 
 /* 4-byte control message header used by HAL*/
 typedef PACKED_PRE struct PACKED_POST
@@ -725,7 +809,7 @@ typedef PACKED_PRE struct PACKED_POST
 
 #if defined WLAN_FEATURE_VOWIFI
     tANI_U32 startTSF[2];
-    tANI_S8 txMgmtPower;
+    tPowerdBm txMgmtPower;
 #endif
 
 }tHalStartScanRspParams, *tpHalStartScanRspParams;
@@ -856,6 +940,7 @@ typedef PACKED_PRE struct PACKED_POST {
     tANI_U16             llbRates[SIR_NUM_11B_RATES];
     tANI_U16             llaRates[SIR_NUM_11A_RATES];
     tANI_U16             aniLegacyRates[SIR_NUM_POLARIS_RATES];
+    tANI_U16             reserved;
 
     //Taurus only supports 26 Titan Rates(no ESF/concat Rates will be supported)
     //First 26 bits are reserved for those Titan rates and
@@ -1175,6 +1260,9 @@ typedef PACKED_PRE struct PACKED_POST
     /*Extension channel for channel bonding*/
     tANI_U8 currentExtChannel;
 
+    /*Reserved to align next field on a dword boundary*/
+    tANI_U8 reserved;
+
     /*Context of the station being added in HW
       Add a STA entry for "itself" -
       On AP  - Add the AP itself in an "STA context"
@@ -1229,8 +1317,20 @@ typedef PACKED_PRE struct PACKED_POST
 
     /*EDCA Parameters for Voice Access Category*/
     tSirMacEdcaParamRecord acvo;
+
+#if defined WLAN_FEATURE_VOWIFI
+    /*HAL fills in the tx power used for mgmt frames in txMgmtPower*/
+    tANI_S8     txMgmtPower;
+    /*maxTxPower has max power to be used after applying the power constraint if any */
+    tANI_S8     maxTxPower;
+#endif    
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    tANI_U8 extSetStaKeyParamValid; //Ext Bss Config Msg if set
+    tSetStaKeyParams extSetStaKeyParam;  //SetStaKeyParams for ext bss msg
+#endif
+
     
-     
    
 } tConfigBssParams, * tpConfigBssParams;
 
@@ -1280,8 +1380,12 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8     bssBcastStaIdx;
 
     /*MAC Address of STA(PEER/SELF) in staContext of configBSSReq*/
-    tSirMacAddr staMac;
-    
+    tSirMacAddr   staMac;
+
+#ifdef WLAN_FEATURE_VOWIFI
+    /*HAL fills in the tx power used for mgmt frames in this field. */
+    tANI_S8     txMgmtPower;
+#endif
 
 } tConfigBssRspParams, * tpConfigBssRspParams;
 
@@ -1373,7 +1477,7 @@ typedef PACKED_PRE struct PACKED_POST
 
 #ifdef WLAN_FEATURE_VOWIFI
   /* HAL fills in the tx power used for mgmt frames in this field */
-  tANI_S8 txMgmtPower;
+  tPowerdBm txMgmtPower;
 #endif
 
 }tHalJoinRspParams, *tpHalJoinRspParams;
@@ -1419,17 +1523,7 @@ typedef PACKED_PRE struct PACKED_POST
 /*---------------------------------------------------------------------------
   WLAN_HAL_SET_BSSKEY_REQ
 ---------------------------------------------------------------------------*/
-/// Definition for Encryption Keys
-typedef PACKED_PRE struct PACKED_POST
-{
-    tANI_U8                  keyId;
-    tANI_U8                  unicast;  // 0 for multicast
-    tAniKeyDirection         keyDirection;
-    tANI_U8                  keyRsc[WLAN_MAX_KEY_RSC_LEN];  // Usage is unknown
-    tANI_U8                  paeRole;  // =1 for authenticator,=0 for supplicant
-    tANI_U16                 keyLength;
-    tANI_U8                  key[SIR_MAC_MAX_KEY_LENGTH];
-} tSirKeys, *tpSirKeys;
+
 /*
  * This is used by PE to create a set of WEP keys for a given BSS.
  */
@@ -1484,32 +1578,6 @@ typedef PACKED_PRE struct PACKED_POST
  * a preconfigured key from a BSS the station assoicated with; otherwise
  * a new key descriptor is created based on the key field.
  */
-typedef PACKED_PRE struct PACKED_POST
-{
-    /*STA Index*/
-    tANI_U16        staIdx;
-
-    /*Encryption Type used with peer*/
-    tAniEdType      encType;
-
-    /*STATIC/DYNAMIC - valid only for WEP*/
-    tAniWepType     wepType; 
-
-    /*Default WEP key, valid only for static WEP, must between 0 and 3.*/
-    tANI_U8         defWEPIdx;
-
-#ifdef WLAN_SOFTAP_FEATURE
-    /* valid only for non-static WEP encyrptions */
-    tSirKeys        key[SIR_MAC_MAX_NUM_OF_DEFAULT_KEYS];            
-#else
-    tSirKeys        key;
-#endif
-  
-    /*Control for Replay Count, 1= Single TID based replay count on Tx
-      0 = Per TID based replay count on TX */
-    tANI_U8         singleTidRc;
-
-} tSetStaKeyParams, *tpSetStaKeyParams;
 
 typedef PACKED_PRE struct PACKED_POST
 {
@@ -1640,8 +1708,12 @@ typedef PACKED_PRE struct PACKED_POST
     tSirMacHTSecondaryChannelOffset secondaryChannelOffset;
 
 #ifdef WLAN_FEATURE_VOWIFI
+
+    //HAL fills in the tx power used for mgmt frames in this field.
+    tPowerdBm txMgmtPower;
+
     /* Max TX power */
-    tANI_S8 maxTxPower;
+    tPowerdBm maxTxPower;
     
     /* Self STA MAC */
     tSirMacAddr selfStaMacAddr;
@@ -1649,6 +1721,7 @@ typedef PACKED_PRE struct PACKED_POST
     /*BSSID needed to identify session. As the request has power constraints,
       this should be applied only to that session*/
     tSirMacAddr bssId;
+   
 #endif
     
 }tSwitchChannelParams, *tpSwitchChannelParams;
@@ -1673,7 +1746,7 @@ typedef PACKED_PRE struct PACKED_POST
 
 #ifdef WLAN_FEATURE_VOWIFI
     /* HAL fills in the tx power used for mgmt frames in this field */
-    tANI_S8 txMgmtPower;
+    tPowerdBm txMgmtPower;
 
     /* BSSID needed to identify session - same as in request*/
     tSirMacAddr bssId;
@@ -1886,22 +1959,15 @@ typedef PACKED_PRE struct PACKED_POST
    /* Categories of STATS being returned as per eHalStatsMask*/
    tANI_U32 statsMask;
 
-   /* Summary Stats */
-   tAniSummaryStatsInfo summaryStats;
+   /* message type is same as the request type */
+   tANI_U16 msgType;
 
-   /* Global Class A Stats */
-   tAniGlobalClassAStatsInfo globalClassAStats;
-
-   /* Global Class B Stats */
-   tAniGlobalClassBStatsInfo globalClassBStats;
-
-   /* Global Class C Stats */
-   tAniGlobalClassCStatsInfo globalClassCStats;
-
-   /* Per STA Stats */
-   tAniPerStaStatsInfo perStaStats;
+   /* length of the entire request, includes the pStatsBuf length too */
+   tANI_U16 msgLen;  
 
 } tHalStatsRspParams, *tpHalStatsRspParams;
+
+
 
 typedef PACKED_PRE struct PACKED_POST
 {
@@ -2526,7 +2592,9 @@ typedef PACKED_PRE struct PACKED_POST
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_U32 timIeOffset; //TIM IE offset from the beginning of the template.
 #endif
-    
+#ifdef WLAN_FEATURE_P2P
+    tANI_U16 p2pIeOffset; //P2P IE offset from the begining of the template
+#endif
 }tSendBeaconParams, *tpSendBeaconParams;
 
 
@@ -3299,6 +3367,280 @@ typedef PACKED_PRE struct PACKED_POST
    tHalExitWowlRspParams exitWowlRspParams;
 }  tHalWowlExitRspMsg, *tpHalWowlExitRspMsg;
 
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_ADD_BCN_FILTER_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalAddBcnFilterRspParams, *tpHalAddBcnFilterRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalAddBcnFilterRspParams addBcnFilterRspParams;
+}  tHalAddBcnFilterRspMsg, *tpHalAddBcnFilterRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_REM_BCN_FILTER_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalRemBcnFilterRspParams, *tpHalRemBcnFilterRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalRemBcnFilterRspParams remBcnFilterRspParams;
+}  tHalRemBcnFilterRspMsg, *tpHalRemBcnFilterRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_ADD_WOWL_BCAST_PTRN_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalAddWowlBcastPtrnRspParams, *tpHalAddWowlBcastPtrnRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalAddWowlBcastPtrnRspParams addWowlBcastPtrnRspParams;
+}  tHalAddWowlBcastPtrnRspMsg, *tpHalAddWowlBcastPtrnRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_DEL_WOWL_BCAST_PTRN_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalDelWowlBcastPtrnRspParams, *tpHalDelWowlBcastPtrnRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalDelWowlBcastPtrnRspParams delWowlBcastRspParams;
+}  tHalDelWowlBcastPtrnRspMsg, *tpHalDelWowlBcastPtrnRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_HOST_OFFLOAD_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalHostOffloadRspParams, *tpHalHostOffloadRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalHostOffloadRspParams hostOffloadRspParams;
+}  tHalHostOffloadRspMsg, *tpHalHostOffloadRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_SET_RSSI_THRESH_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalSetRssiThreshRspParams, *tpHalSetRssiThreshRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalSetRssiThreshRspParams setRssiThreshRspParams;
+}  tHalSetRssiThreshRspMsg, *tpHalSetRssiThreshRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_SET_UAPSD_AC_PARAMS_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalSetUapsdAcParamsRspParams, *tpHalSetUapsdAcParamsRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalSetUapsdAcParamsRspParams setUapsdAcParamsRspParams;
+}  tHalSetUapsdAcParamsRspMsg, *tpHalSetUapsdAcParamsRspMsg;
+
+
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_SET_MAX_TX_POWER_REQ
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tSirMacAddr bssId;  // BSSID is needed to identify which session issued this request. As
+                        //the request has power constraints, this should be applied only to that session
+    tSirMacAddr selfStaMacAddr;
+    //In request,
+    //power == MaxTx power to be used.
+    tPowerdBm  power;
+
+}tSetMaxTxPwrParams, *tpSetMaxTxPwrParams;
+
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tSetMaxTxPwrParams setMaxTxPwrParams;
+}tSetMaxTxPwrReq, *tpSetMaxTxPwrReq;
+
+/*---------------------------------------------------------------------------
+*WLAN_HAL_SET_MAX_TX_POWER_RSP
+*--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    //power == tx power used for management frames.
+    tPowerdBm  power;
+
+    /* success or failure */
+    tANI_U32   status;
+}tSetMaxTxPwrRspParams, *tpSetMaxTxPwrRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tSetMaxTxPwrRspParams setMaxTxPwrRspParams;
+}tSetMaxTxPwrRspMsg, *tpSetMaxTxPwrRspMsg;
+
+#ifdef WLAN_FEATURE_P2P
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_SET_P2P_GONOA_REQ
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+  tANI_U8   opp_ps;
+  tANI_U32  ctWindow;
+  tANI_U8   count; 
+  tANI_U32  duration;
+  tANI_U32  interval;
+  tANI_U32  single_noa_duration;
+  tANI_U8   psSelection;
+}tSetP2PGONOAParams, *tpSetP2PGONOAParams;
+
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tSetP2PGONOAParams setP2PGONOAParams;
+}tSetP2PGONOAReq, *tpSetP2PGONOAReq;
+
+/*---------------------------------------------------------------------------
+*WLAN_HAL_SET_P2P_GONOA_RSP
+*--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+}tSetP2PGONOARspParams, *tpSetP2PGONOARspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tSetP2PGONOARspParams setP2PGONOARspParams;
+}tSetP2PGONOARspMsg, *tpSetP2PGONOARspMsg;
+#endif
+
+
+
+#ifdef WLAN_FEATURE_VOWIFI_11R
+
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_AGGR_ADD_TS_REQ
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* Station Index */
+    tANI_U16 staIdx;
+
+    /* TSPEC handler uniquely identifying a TSPEC for a STA in a BSS */
+    /* This will carry the bitmap with the bit positions representing different AC.s*/
+    tANI_U16 tspecIdx;
+
+    /*  Tspec info per AC To program TPE with required parameters */
+    tSirMacTspecIE   tspec[WLAN_HAL_MAX_AC];
+
+    /* U-APSD Flags: 1b per AC.  Encoded as follows:
+     b7 b6 b5 b4 b3 b2 b1 b0 =
+     X  X  X  X  BE BK VI VO */
+    tANI_U8 uAPSD;
+
+    /* These parameters are for all the access categories */
+    tANI_U32 srvInterval[WLAN_HAL_MAX_AC];   // Service Interval
+    tANI_U32 susInterval[WLAN_HAL_MAX_AC];   // Suspend Interval
+    tANI_U32 delayInterval[WLAN_HAL_MAX_AC]; // Delay Interval
+
+}tAggrAddTsParams, *tpAggrAddTsParams;
+
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tAggrAddTsParams aggrAddTsParam;
+}tAggrAddTsReq, *tpAggrAddTsReq;
+
+/*---------------------------------------------------------------------------
+*WLAN_HAL_AGGR_ADD_TS_RSP
+*--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status0;
+    /* FIXME PRIMA for future use for 11R */
+    tANI_U32   status1;
+}tAggrAddTsRspParams, *tpAggrAddTsRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tAggrAddTsRspParams aggrAddTsRspParam;
+}tAggrAddTsRspMsg, *tpAggrAddTsRspMsg;
+
+#endif
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_CONFIGURE_APPS_CPU_WAKEUP_STATE_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tANI_U8   isAppsCpuAwake;
+} tHalConfigureAppsCpuWakeupStateReqParams, *tpHalConfigureAppsCpuWakeupStatReqParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalConfigureAppsCpuWakeupStateReqParams appsStateReqParams;
+}  tHalConfigureAppsCpuWakeupStateReqMsg, *tpHalConfigureAppsCpuWakeupStateReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_CONFIGURE_APPS_CPU_WAKEUP_STATE_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalConfigureAppsCpuWakeupStateRspParams, *tpHalConfigureAppsCpuWakeupStateRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalConfigureAppsCpuWakeupStateRspParams appsStateRspParams;
+}  tHalConfigureAppsCpuWakeupStateRspMsg, *tpHalConfigureAppsCpuWakeupStateRspMsg;
 
 #if defined(__ANI_COMPILER_PRAGMA_PACK_STACK)
 #pragma pack(pop)

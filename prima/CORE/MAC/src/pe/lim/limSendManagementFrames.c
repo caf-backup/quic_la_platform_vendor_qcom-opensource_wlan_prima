@@ -571,6 +571,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
         nBytes += (pMac->lim.gpLimRemainOnChanReq->length - sizeof( tSirRemainOnChnReq ) );
     }
 #endif
+
     //TODO: If additional IE needs to be added. Add then alloc required buffer.
     if(wlan_cfgGetInt(pMac, WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, &addnIEPresent) != eSIR_SUCCESS)
     {
@@ -665,6 +666,7 @@ limSendProbeRspMgmtFrame(tpAniSirGlobal pMac,
           pMac->lim.gpLimRemainOnChanReq->probeRspIe, (pMac->lim.gpLimRemainOnChanReq->length - sizeof( tSirRemainOnChnReq )) );
     }
 #endif
+
     //TODO: Append any AddnIE if present.
     if( addnIEPresent && addnIELen && addnIELen <= WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA_LEN )
     {
@@ -1164,7 +1166,7 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
                          tANI_U8        subType,
                          tpDphHashNode  pSta,tpPESession psessionEntry)
 {
-    tDot11fAssocResponse frm;
+    static tDot11fAssocResponse frm;
     tANI_U8             *pFrame, *macAddr;
     tpSirMacMgmtHdr      pMacHdr;
     tSirRetStatus        nSirStatus;
@@ -1224,6 +1226,24 @@ limSendAssocRspMgmtFrame(tpAniSirGlobal pMac,
         PopulateDot11fWscInAssocRes(pMac, &frm.WscAssocRes);
     }
 #ifdef WLAN_SOFTAP_FEATURE    
+    }
+#endif
+
+#ifdef WLAN_FEATURE_P2P
+    if( pSta != NULL )
+    {
+        if( eSIR_SUCCESS == statusCode )
+        {
+            tpSirAssocReq  pAssocReq = 
+                (tpSirAssocReq) psessionEntry->parsedAssocReq[pSta->assocId];
+            if( pAssocReq->p2pPresent )
+            {
+                frm.P2PAssocRes.present = 1;
+                frm.P2PAssocRes.P2PStatus.present = 1;
+                frm.P2PAssocRes.P2PStatus.status = eSIR_SUCCESS;
+                frm.P2PAssocRes.ExtendedListenTiming.present = 0;
+            }
+        }
     }
 #endif
     
@@ -1877,7 +1897,7 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     tANI_U8             PowerCapsPopulated = FALSE;
 #endif
 
-     if(NULL == psessionEntry)
+    if(NULL == psessionEntry)
     {
         return;
     }
@@ -1937,9 +1957,10 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     {
 #if defined WLAN_FEATURE_VOWIFI
         PowerCapsPopulated = TRUE;
-#endif
-	PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_ASSOC,psessionEntry);
+
+	      PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_ASSOC,psessionEntry);
         PopulateDot11fSuppChannels( pMac, &frm.SuppChannels, LIM_ASSOC,psessionEntry);
+#endif
     }
 
 #if defined WLAN_FEATURE_VOWIFI
@@ -1947,10 +1968,10 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         SIR_MAC_GET_RRM( psessionEntry->limCurrentBssCaps ) )
     {
         if (PowerCapsPopulated == FALSE) 
-	{
+        {
             PowerCapsPopulated = TRUE;
             PopulateDot11fPowerCaps(pMac, &frm.PowerCaps, LIM_ASSOC, psessionEntry);
-	}
+        }
     }
 #endif
 
@@ -2081,6 +2102,12 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
     }
 
     nBytes = nPayload + sizeof( tSirMacMgmtHdr );
+#ifdef WLAN_FEATURE_P2P
+    if( psessionEntry->pLimJoinReq->p2pIE.length )
+    {
+        nBytes += psessionEntry->pLimJoinReq->p2pIE.length;
+    }
+#endif /* WLAN_FEATURE_P2P */
 
     halstatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT,
                              ( tANI_U16 )nBytes, ( void** ) &pFrame,
@@ -2155,6 +2182,17 @@ limSendAssocReqMgmtFrame(tpAniSirGlobal   pMac,
         palFreeMemory(pMac->hHdd, psessionEntry->assocReq);
         psessionEntry->assocReq = NULL;
     }
+
+#ifdef WLAN_FEATURE_P2P
+    if( psessionEntry->pLimJoinReq->p2pIE.length )
+    {
+        palCopyMemory( pMac->hHdd, pFrame + sizeof(tSirMacMgmtHdr) + nPayload, 
+	   	              &psessionEntry->pLimJoinReq->p2pIE.P2PIEdata[0], 
+	   	              psessionEntry->pLimJoinReq->p2pIE.length);
+        nPayload += psessionEntry->pLimJoinReq->p2pIE.length;
+    }
+#endif /* WLAN_FEATURE_P2P */
+		
     if( (palAllocateMemory(pMac->hHdd, (void**)&psessionEntry->assocReq, nPayload)) != eSIR_SUCCESS)
     {
         PELOGE(limLog(pMac, LOGE, FL("Unable to allocate memory to store assoc request"));)
@@ -2198,7 +2236,7 @@ void
 limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
                            tLimMlmReassocReq *pMlmReassocReq,tpPESession psessionEntry)
 {
-    tDot11fReAssocRequest frm;
+    static tDot11fReAssocRequest frm;
     tANI_U16              caps;
     tANI_U8              *pFrame;
     tSirRetStatus         nSirStatus;
@@ -2269,9 +2307,12 @@ limSendReassocReqWithFTIEsMgmtFrame(tpAniSirGlobal     pMac,
     if ( pMac->lim.gLim11hEnable  &&
          psessionEntry->pLimReAssocReq->spectrumMgtIndicator == eSIR_TRUE )
     {
+#if defined WLAN_FEATURE_VOWIFI
         PowerCapsPopulated = TRUE;
+
         PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_REASSOC,psessionEntry);
         PopulateDot11fSuppChannels( pMac, &frm.SuppChannels, LIM_REASSOC,psessionEntry);
+#endif
     }
 
 #if defined WLAN_FEATURE_VOWIFI
@@ -2443,7 +2484,7 @@ void
 limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
                            tLimMlmReassocReq *pMlmReassocReq,tpPESession psessionEntry)
 {
-    tDot11fReAssocRequest frm;
+    static tDot11fReAssocRequest frm;
     tANI_U16              caps;
     tANI_U8              *pFrame;
     tSirRetStatus         nSirStatus;
@@ -2504,9 +2545,10 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
     {
 #if defined WLAN_FEATURE_VOWIFI
         PowerCapsPopulated = TRUE;
-#endif
-	PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_REASSOC,psessionEntry);
+
+	      PopulateDot11fPowerCaps( pMac, &frm.PowerCaps, LIM_REASSOC,psessionEntry);
         PopulateDot11fSuppChannels( pMac, &frm.SuppChannels, LIM_REASSOC,psessionEntry);
+#endif
     }
 
 #if defined WLAN_FEATURE_VOWIFI
@@ -2514,10 +2556,10 @@ limSendReassocReqMgmtFrame(tpAniSirGlobal     pMac,
         SIR_MAC_GET_RRM( psessionEntry->limCurrentBssCaps ) )
     {
         if (PowerCapsPopulated == FALSE) 
-	{
+        {
             PowerCapsPopulated = TRUE;
             PopulateDot11fPowerCaps(pMac, &frm.PowerCaps, LIM_REASSOC, psessionEntry);
-	}
+        }
     }
 #endif
 
@@ -4308,167 +4350,6 @@ tSirRetStatus limSendDelBAInd( tpAniSirGlobal pMac,
             (void *) pPacket );
 
       return statusCode;
-}
-/**
- * \brief Send a SM Power Save state update Action Frame to AP
- *
- * \sa limSendSMPowerSaveStateFrame
- *
- * \param pMac The global tpAniSirGlobal object
- *
- * \param peer  The Mac address of the AP to which this action frame is addressed
-*
- * \param State
- *
- * \return eSIR_SUCCESS if setup completes successfully
- *         eSIR_FAILURE is some problem is encountered
- */
- 
-tSirRetStatus limSendSMPowerStateFrame( tpAniSirGlobal pMac, tSirMacAddr peer,
-                                                tSirMacHTMIMOPowerSaveState State )
-{
-
-        tSirRetStatus statusCode = eSIR_SUCCESS;
-             
-        #if 0
-        tDot11fSMPowerSave frmSMpowerstate;
-        tANI_U8 *pSMPowerBuffer = NULL;
-        tANI_U32 frameLen = 0, nStatus, nPayload, cfgLen;
-        tpSirMacMgmtHdr pMacHdr;
-        eHalStatus halStatus;
-        void *pPacket;
-        tpDphHashNode pSta = NULL;
-
-        limLog( pMac, LOG1,FL( "State is %d \n" ), State);
-
-        palZeroMemory(pMac->hHdd, (void *) &frmSMpowerstate, sizeof( frmSMpowerstate ));
-
-
-         pSta = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER);
-
-         if (pSta->mlmStaContext.htCapability == false) {
-             limLog( pMac, LOGE,FL( "Peer is not HT Capable \n" ));
-             return eSIR_FAILURE;
-        }
-         
-        /**Fill  Category - 7 (HT) */
-        frmSMpowerstate.Category.category = SIR_MAC_ACTION_HT;
-        /** Fill Action - 1 (SM Power) */
-        frmSMpowerstate.Action.action = SIR_MAC_SM_POWER_SAVE;
-
-        /**  Fill the SMPowerModeSet as provided by caller */
-        switch(State) {
-        case eSIR_HT_MIMO_PS_NO_LIMIT:
-                frmSMpowerstate.SMPowerModeSet.PowerSave_En = 0;
-                frmSMpowerstate.SMPowerModeSet.Mode = 0;
-                break;
-
-        case eSIR_HT_MIMO_PS_STATIC:
-                frmSMpowerstate.SMPowerModeSet.PowerSave_En = 1;
-                frmSMpowerstate.SMPowerModeSet.Mode = 0;
-                break;
-
-        case eSIR_HT_MIMO_PS_DYNAMIC:
-                frmSMpowerstate.SMPowerModeSet.PowerSave_En = 1;
-                frmSMpowerstate.SMPowerModeSet.Mode = 1;
-                break;
-
-        default:
-                limLog( pMac, LOGW,FL( "invalid state\n" ));
-                return eSIR_FAILURE;
-        }
-
-        limLog( pMac, LOGE,FL( "frmSMPowerstate is updated \n" ));
-
-        nStatus = dot11fGetPackedSMPowerSaveSize( pMac, &frmSMpowerstate, &nPayload );
-
-        if (DOT11F_FAILED( nStatus )) {
-
-                limLog( pMac, LOGW, FL( "Failed to calculate the packed size for "
-                            "an SMPowerState Indication (0x%08x).\n"),nStatus );
-                /** We'll fall back on the worst case scenario: */
-                nPayload = sizeof( tDot11fSMPowerSave);
-        } else if (DOT11F_WARNED( nStatus )) {
-                limLog( pMac, LOGW, FL( "There were warnings while calculating"
-                        "the packed size for an SMPowerState Ind (0x%08x).\n"), nStatus);
-        }
-
-        limLog( pMac, LOGE,FL( "dot11fGetPacked smpwr save is done \n" ));
-
-        /** Add the MGMT header to frame length */
-        frameLen = nPayload + sizeof( tSirMacMgmtHdr );
-
-        /** Allocate shared memory */
-        halStatus = palPktAlloc( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, (tANI_U16) frameLen,
-                                (void **) &pSMPowerBuffer, (void **) &pPacket );
-	
-        if (eHAL_STATUS_SUCCESS != halStatus) {
-                limLog( pMac, LOGP, FL("palPktAlloc FAILED! Length [%d], Status [%d]\n"),
-                                             frameLen, halStatus );
-                statusCode = eSIR_MEM_ALLOC_FAILED;
-                goto returnAfterError;
-        }
-
-        palZeroMemory( pMac->hHdd, (void *) pSMPowerBuffer, frameLen);
-
-        /** Copy necessary info to BD */
-        statusCode = limPopulateMacHeader( pMac, pSMPowerBuffer, SIR_MAC_MGMT_FRAME, 
-                                    SIR_MAC_MGMT_ACTION, peer,);
-
-        if( eSIR_SUCCESS != statusCode)
-                goto returnAfterError;
-
-        pMacHdr = ( tpSirMacMgmtHdr ) pSMPowerBuffer;
-        cfgLen = SIR_MAC_ADDR_LENGTH;
-
-        statusCode = wlan_cfgGetStr( pMac, WNI_CFG_BSSID, (tANI_U8 *) pMacHdr->bssId, &cfgLen );
-	
-        if( eSIR_SUCCESS != statusCode) {
-                limLog( pMac, LOGP, FL( "Failed to retrieve WNI_CFG_BSSID while"
-                                 "sending an ACTION Frame\n" ));
-                goto returnAfterError;
-        }
-
-        /** Now, we're ready to "pack" the frames */
-        nStatus = dot11fPackSMPowerSave(pMac, &frmSMpowerstate, 
-                                    pSMPowerBuffer + sizeof( tSirMacMgmtHdr ), nPayload, &nPayload );
-
-        if( DOT11F_FAILED( nStatus )) {
-                limLog( pMac, LOGE, FL( "Failed to pack an SM Power Save (0x%08x).\n" ),
-                                        nStatus );
-                statusCode = eSIR_FAILURE;
-                goto returnAfterError;
-        } else if( DOT11F_WARNED( nStatus )) {
-                limLog( pMac, LOGW, FL( "There were warnings while packing an SMPowerState Ind (0x%08x).\n" ));
-        }
-
-        limLog( pMac, LOGW, FL( "Sending a SM Power Save mode update to \n" ));
-        limPrintMacAddr( pMac, peer, LOGW );
-
-        halStatus = halTxFrame( pMac, pPacket, (tANI_U16) frameLen, HAL_TXRX_FRM_802_11_MGMT,
-                               ANI_TXDIR_TODS, 7,//SMAC_SWBD_TX_TID_MGMT_HIGH
-                               limTxComplete, pSMPowerBuffer );
-
-        if( eHAL_STATUS_SUCCESS != halStatus) {
-                limLog( pMac, LOGE, FL( "halTxFrame FAILED! Status [%d]\n" ),
-                        halStatus );
-                statusCode = eSIR_FAILURE;
-                //Pkt will be freed up by the callback
-                return statusCode;
-        } else {
-                return eSIR_SUCCESS;
-        }
-
-        returnAfterError:
-
-        // Release buffer, if allocated
-        if( NULL != pSMPowerBuffer) 
-            palPktFree( pMac->hHdd, HAL_TXRX_FRM_802_11_MGMT, (void *) pSMPowerBuffer, 
-
-        
-        #endif 
-   return statusCode;
-        
 }
 
 #if defined WLAN_FEATURE_VOWIFI

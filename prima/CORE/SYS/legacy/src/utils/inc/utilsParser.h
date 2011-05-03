@@ -42,5 +42,11 @@ void          ConvertTSDelay        (tpAniSirGlobal, tSirMacTsDelayIE*,         
 void          ConvertSchedule       (tpAniSirGlobal, tSirMacScheduleIE*,         tDot11fIESchedule*);
 void          ConvertWMMSchedule    (tpAniSirGlobal, tSirMacScheduleIE*,         tDot11fIEWMMSchedule*);
 
+#ifdef WLAN_FEATURE_P2P
+tSirRetStatus ConvertP2POpaque( tpAniSirGlobal      pMac,
+                                tSirP2Pie           *pOld,
+                                tDot11fIEP2PIEOpaque *pNew );
+#endif
+
 
 #endif

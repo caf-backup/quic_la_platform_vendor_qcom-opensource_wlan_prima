@@ -67,8 +67,16 @@ typedef enum
 {
    WLANDXE_POWER_STATE_FULL,
    WLANDXE_POWER_STATE_BMPS,
+   WLANDXE_POWER_STATE_BMPS_PENDING,
    WLANDXE_POWER_STATE_MAX
 } WLANDXE_PowerStateType;
+
+typedef enum
+{
+   WLANDXE_RIVA_POWER_STATE_ACTIVE,
+   WLANDXE_RIVA_POWER_STATE_BMPS_UNKNOWN,
+   WLANDXE_RIVA_POWER_STATE_MAX
+} WLANDXE_RivaPowerStateType;
 
 /*==========================================================================
   @  Type Name
@@ -120,6 +128,24 @@ typedef WDTS_TxCompleteCbType WLANDXE_TxCompleteCbType;
       wpt_status
 ===========================================================================*/
 typedef WDTS_LowResourceCbType WLANDXE_LowResourceCbType;
+
+/*==========================================================================
+  @  Type Name
+      WLANDXE_SetPowerStateCbType 
+
+  @  Description 
+       DXE Set power state ACK callback. This callback function should be
+       invoked by the DXE to notify WDI that set power state request is complete
+
+  @  Parameters
+      status    status of the set operation
+      pUserData Cookie that should be passed back to the caller along with the
+                callback.
+
+  @  Return
+      None
+===========================================================================*/
+typedef WDTS_SetPSCbType  WLANDXE_SetPowerStateCbType;
 
 /*-------------------------------------------------------------------------
  *Function declarations and documenation
@@ -270,7 +296,7 @@ wpt_status WLANDXE_TriggerTX
 
 /*==========================================================================
   @  Function Name 
-      WLANDXE_SetPowerStats
+      WLANDXE_SetPowerState
 
   @  Description 
       From Client let DXE knows what is the WLAN HW(RIVA) power state
@@ -282,10 +308,11 @@ wpt_status WLANDXE_TriggerTX
   @  Return
       wpt_status
 ===========================================================================*/
-wpt_status WLANDXE_SetPowerStats
+wpt_status WLANDXE_SetPowerState
 (
    void                    *pDXEContext,
-   WLANDXE_PowerStateType   powerState
+   WDTS_PowerStateType      powerState,
+   WDTS_SetPSCbType         cBack
 );
 
 #ifdef WLANDXE_TEST_CHANNEL_ENABLE

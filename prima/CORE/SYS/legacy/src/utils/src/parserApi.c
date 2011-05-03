@@ -303,6 +303,12 @@ PopulateDot11fCountry(tpAniSirGlobal    pMac,
 
         palCopyMemory( pMac->hHdd, pDot11f->country, code, codelen );
 
+        if(len > MAX_SIZE_OF_TRIPLETS_IN_COUNTRY_IE)
+        {
+            dot11fLog( pMac, LOGE, FL("len:%d is out of bounds, resetting.\n"), len);
+            len = MAX_SIZE_OF_TRIPLETS_IN_COUNTRY_IE;
+        }
+
         pDot11f->num_triplets = ( tANI_U8 ) ( len / 3 );
         palCopyMemory( pMac->hHdd, ( tANI_U8* )pDot11f->triplets, temp, len );
 
@@ -546,32 +552,6 @@ PopulateDot11fExtSuppRates1(tpAniSirGlobal         pMac,
 } // PopulateDot11fExtSuppRates1.
 
 tSirRetStatus
-PopulateDot11fHCF(tpAniSirGlobal  pMac,
-                  tANI_U32             capEnable,
-                  tDot11fIEHCF   *pDot11f)
-{
-#if 0
-    tANI_U32           cfg;
-    tSirRetStatus nSirStatus;
-
-    if ( PROP_CAPABILITY_GET( HCF, capEnable ) )
-    {
-        limLog( pMac, LOG2, FL("HCF not filled in PopulateDot11fHCF ("
-                               "cap 0x%08x).\n"), capEnable);
-        return eSIR_SUCCESS;
-    }
-
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_HCF_ENABLED, cfg );
-    if ( cfg )
-    {
-        pDot11f->enabled = 1;
-        pDot11f->present = 1;
-    }
-#endif
-    return eSIR_SUCCESS;
-} // End PopulateDot11fHCF.
-
-tSirRetStatus
 PopulateDot11fHTCaps(tpAniSirGlobal           pMac,
                              tDot11fIEHTCaps *pDot11f)
 {
@@ -740,7 +720,7 @@ PopulateDot11fHTInfo(tpAniSirGlobal   pMac,
     union {
         tANI_U16         nCfgValue16;
         tSirMacHTInfoField2 infoField2;
-    }uHTInfoField2;
+    }uHTInfoField2={0};
 #else
     tANI_U16            htInfoField3;
     tSirMacHTInfoField3 *pHTInfoField3;
@@ -971,185 +951,7 @@ PopulateDot11fPowerConstraints(tpAniSirGlobal             pMac,
     return eSIR_SUCCESS;
 } // End PopulateDot11fPowerConstraints.
 
-tSirRetStatus
-PopulateDot11fPropCapability(tpAniSirGlobal           pMac,
-                             tANI_U32                      capEnable,
-                             tDot11fIEPropCapability *pDot11f)
-{
-#if 0
-    tANI_U16           pcaps;
-    tSirRetStatus nSirStatus;
-    tANI_U32           cfg, phyMode, nRates;
-    tANI_U8            rates[WNI_CFG_PROPRIETARY_OPERATIONAL_RATE_SET_LEN];
 
-    pcaps = 0U;
-
-#   if ( WNI_POLARIS_FW_PACKAGE == ADVANCED )
-
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_HCF_ENABLED, cfg );
-    if ( cfg && PROP_CAPABILITY_GET( HCF, capEnable ))
-        PROP_CAPABILITY_SET( HCF, pcaps );
-
-#   endif
-
-    if ( pMac->lim.gLimQosEnabled  && PROP_CAPABILITY_GET( 11EQOS, capEnable ) )
-        PROP_CAPABILITY_SET( 11EQOS, pcaps );
-
-    // Populate extended rateset if needed
-    limGetPhyMode( pMac, &phyMode );
-    if ( ( phyMode == WNI_CFG_PHY_MODE_11G ) ||
-         ( phyMode == WNI_CFG_PHY_MODE_11A ) )
-    {
-        CFG_GET_STR( nSirStatus, pMac, WNI_CFG_PROPRIETARY_OPERATIONAL_RATE_SET,
-                     rates, nRates, WNI_CFG_PROPRIETARY_OPERATIONAL_RATE_SET_LEN );
-        if ( nRates && PROP_CAPABILITY_GET( EXTRATES, capEnable ) )
-            PROP_CAPABILITY_SET( EXTRATES, pcaps );
-    }
-
-
-    if ( pMac->lim.gLimWmeEnabled  && PROP_CAPABILITY_GET( WME, capEnable ) )
-        PROP_CAPABILITY_SET( WME, pcaps );
-
-    if ( ( pMac->lim.gLimWsmEnabled  ) && ( pMac->lim.gLimWmeEnabled  ) && PROP_CAPABILITY_GET( WSM, capEnable ) )
-        PROP_CAPABILITY_SET( WSM, pcaps );
-    if ( PROP_CAPABILITY_GET( EDCAPARAMS, capEnable ) )
-        PROP_CAPABILITY_SET( EDCAPARAMS, pcaps );
-    if ( PROP_CAPABILITY_GET( LOADINFO, capEnable ) )
-        PROP_CAPABILITY_SET( LOADINFO, pcaps );
-    if ( PROP_CAPABILITY_GET( VERSION, capEnable ) )
-        PROP_CAPABILITY_SET( VERSION, pcaps );
-
-    if ( PROP_CAPABILITY_GET( TITAN, capEnable ) )
-        PROP_CAPABILITY_SET( TITAN, pcaps );
-
-    if ( PROP_CAPABILITY_GET( TAURUS, capEnable ) )
-        PROP_CAPABILITY_SET( TAURUS, pcaps );
-
-    if ( 0 == pcaps)
-    {
-        dot11fLog( pMac, LOG1, FL("PopulateDot11fPropCapability: no cap's configured (0x%x)\n"),
-                capEnable );
-        return eSIR_SUCCESS;
-    }
-
-    pDot11f->capability = pcaps;
-    pDot11f->present = 1;
-#endif
-    return eSIR_SUCCESS;
-} // End PopulateDot11fPropCapability.
-
-void
-PopulateDot11fPropChannSwitchAnn(tpAniSirGlobal               pMac,
-                                 tANI_U32                          capEnable,
-                                 tDot11fIEPropChannSwitchAnn *pDot11f)
-{
-#if 0
-    // The AP shall populate the Proprietary Channel Switch IE in its
-    // Beacon/Probe Rsp if AP is going to change/disable its secondary
-    // subband.
-    if ( ( pMac->lim.gLimChannelSwitch.state == eLIM_CHANNEL_SWITCH_SECONDARY_ONLY ) ||
-         ( ( pMac->lim.gLimChannelSwitch.state != eLIM_CHANNEL_SWITCH_IDLE ) &&
-            !pMac->lim.gLim11hEnable ) )
-    {
-        pDot11f->mode                 = ( tANI_U8 ) pMac->lim.gLimChannelSwitch.switchMode;
-        pDot11f->primary_channel      = ( tANI_U8 ) pMac->lim.gLimChannelSwitch.primaryChannel;
-        pDot11f->sub_band             = ( tANI_U8 ) pMac->lim.gLimChannelSwitch.secondarySubBand;
-        pDot11f->channel_switch_count = ( tANI_U8 ) pMac->lim.gLimChannelSwitch.switchCount;
-        pDot11f->present              = 1;
-
-        limLog( pMac, LOG1, FL("mode %d, chnl %d, band %d, count %d\n"),
-                pDot11f->mode,
-                pMac->lim.gLimChannelSwitch.primaryChannel,
-                pMac->lim.gLimChannelSwitch.secondarySubBand,
-                pMac->lim.gLimChannelSwitch.switchCount );
-    }
-#endif
-
-} // End PopulateDot11fPropChannSwitchAnn.
-
-void
-PopulateDot11fPropEDCAParams(tpAniSirGlobal           pMac,
-                             tANI_U16                      caps,
-                             tDot11fIEPropEDCAParams *pDot11f)
-{
-
-#if 0
-    // We include the EDCA param IE only if needed, i.e. QOS or WME enabled
-    if ( PROP_CAPABILITY_GET( EDCAPARAMS, caps ) &&
-         ( ( PROP_CAPABILITY_GET( 11EQOS, caps ) && ( pMac->lim.gLimQosEnabled ) ) ||
-           ( PROP_CAPABILITY_GET( WME, caps )    && ( pMac->lim.gLimWmeEnabled ) ) ) )
-    {
-        pDot11f->qos = (tANI_U8)(0xf0 & (pMac->sch.schObject.gSchEdcaParamSetCount << 4) );
-
-        // Fill each EDCA parameter set in order: be, bk, vi, vo
-        pDot11f->acbe_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[0].aci.aifsn) );
-        pDot11f->acbe_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[0].aci.acm );
-        pDot11f->acbe_aci       = ( 0x3 & SIR_MAC_EDCAACI_BESTEFFORT );
-        pDot11f->acbe_min       = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[0].cw.min );
-        pDot11f->acbe_max       = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[0].cw.max);
-        pDot11f->acbe_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[0].txoplimit;
-
-        pDot11f->acbk_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[1].aci.aifsn) );
-        pDot11f->acbk_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[1].aci.acm );
-        pDot11f->acbk_aci       = ( 0x3 & SIR_MAC_EDCAACI_BACKGROUND );
-        pDot11f->acbk_min    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[1].cw.min );
-        pDot11f->acbk_max    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[1].cw.max );
-        pDot11f->acbk_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[1].txoplimit;
-
-        pDot11f->acvi_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[2].aci.aifsn) );
-        pDot11f->acvi_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[2].aci.acm );
-        pDot11f->acvi_aci       = ( 0x3 & SIR_MAC_EDCAACI_VIDEO );
-        pDot11f->acvi_min    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].cw.min );
-        pDot11f->acvi_max    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].cw.max );
-        pDot11f->acvi_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[2].txoplimit;
-
-        pDot11f->acvo_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[3].aci.aifsn) );
-        pDot11f->acvo_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[3].aci.acm );
-        pDot11f->acvo_aci       = ( 0x3 & SIR_MAC_EDCAACI_VOICE );
-        pDot11f->acvo_min    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[3].cw.min );
-        pDot11f->acvo_max    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[3].cw.max );
-        pDot11f->acvo_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[3].txoplimit;
-
-        pDot11f->present = 1;
-    }
-#endif
-} // End PopulateDot11fPropEDCAParams.
-
-tSirRetStatus
-PopulateDot11fPropSuppRates(tpAniSirGlobal          pMac,
-                            tANI_U32                     capEnable,
-                            tDot11fIEPropSuppRates *pDot11f)
-{
-#if 0
-    tANI_U32           phyMode, nRates;
-    tSirRetStatus nSirStatus;
-    tANI_U8            rates[WNI_CFG_PROPRIETARY_OPERATIONAL_RATE_SET_LEN];
-
-    limGetPhyMode( pMac, &phyMode );
-    if ( ( phyMode == WNI_CFG_PHY_MODE_11G )||
-         ( phyMode == WNI_CFG_PHY_MODE_11A ) )
-    {
-        if ( PROP_CAPABILITY_GET( EXTRATES, capEnable ) )
-        {
-            limLog( pMac, LOG2, FL("ExtRates not filled (cap 0x%x)\n"),
-                    capEnable);
-            return eSIR_SUCCESS;
-        }
-
-        CFG_GET_STR( nSirStatus, pMac, WNI_CFG_PROPRIETARY_OPERATIONAL_RATE_SET,
-                     rates, nRates, WNI_CFG_PROPRIETARY_OPERATIONAL_RATE_SET_LEN );
-
-        if ( 0 != nRates )
-        {
-            pDot11f->num_rates = ( tANI_U8 ) nRates;
-            palCopyMemory( pMac->hHdd, pDot11f->rates, rates, nRates );
-            pDot11f->present = 1;
-        }
-
-    }
-#endif 
-    return eSIR_SUCCESS;
-} // End PopulateDot11fPropSuppRates.
 
 void
 PopulateDot11fQOSCapsAp(tpAniSirGlobal      pMac,
@@ -1391,13 +1193,15 @@ PopulateDot11fSuppRates(tpAniSirGlobal      pMac,
         #endif //TO SUPPORT BT-AMP
         if(psessionEntry != NULL)
         {
-	 	nRates = psessionEntry->rateSet.numRates;
+	 	    nRates = psessionEntry->rateSet.numRates;
         	palCopyMemory(pMac->hHdd, rates, psessionEntry->rateSet.rate, 
               	                     nRates);
         }
-	else
+	    else
+        {
         	dot11fLog( pMac, LOGE, FL("no session context exists while populating Operational Rate Set\n"));
-        
+            nRates = 0;
+        }
     }
     else if ( 14 >= nChannelNum )
     {
@@ -1709,28 +1513,7 @@ sirGetCfgPropCaps(tpAniSirGlobal pMac, tANI_U16 *caps)
     return eSIR_SUCCESS;
 }
 
-tANI_U8
-sirIsPropCapabilityEnabled(tpAniSirGlobal pMac, tANI_U32 bitnum)
-{
-#if 0
-    tANI_U16 val;
 
-    if (bitnum > SIR_MAC_PROP_CAPABILITY_MAXBITOFFSET)
-    {
-        limLog(pMac, LOGE, FL("isPropCapEnabled: invalid offset %d\n"),
-                  bitnum);
-        return false;
-    }
-    if (sirGetCfgPropCaps(pMac, &val) != eSIR_SUCCESS)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("Can't get PropCaps\n"));)
-        return false;
-    }
-
-    return ((val & (1 << bitnum)) ? true : false);
-#endif
-   return false;
-}
 
 
 tSirRetStatus
@@ -2103,6 +1886,13 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
         ConvertRSNOpaque( pMac, &pAssocReq->rsn, &ar.RSNOpaque );
     }
 
+#ifdef WLAN_FEATURE_P2P
+    if(ar.P2PIEOpaque.present)
+    {
+        pAssocReq->p2pPresent = 1;
+        ConvertP2POpaque( pMac, &pAssocReq->p2pIE, &ar.P2PIEOpaque);
+    }
+#endif
 
     // Power Capabilities
     if ( ar.PowerCaps.present )
@@ -2178,7 +1968,7 @@ sirConvertAssocRespFrame2Struct(tpAniSirGlobal pMac,
                                 tANI_U32            nFrame,
                                 tpSirAssocRsp  pAssocRsp)
 {
-    tDot11fAssocResponse ar;
+    static tDot11fAssocResponse ar;
     tANI_U32                  status;
 
     // Zero-init our [out] parameter,
@@ -2300,7 +2090,7 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
                                  tANI_U32            nFrame,
                                  tpSirAssocReq  pAssocReq)
 {
-    tDot11fReAssocRequest ar;
+    static tDot11fReAssocRequest ar;
     tANI_U32                   status;
 
     // Zero-init our [out] parameter,
@@ -2452,6 +2242,14 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
             pAssocReq->wscInfo.wpsRequestType   = ar.WscAssocReq.RequestType.reqType;
         }
     }
+
+#ifdef WLAN_FEATURE_P2P
+    if(ar.P2PIEOpaque.present)
+    {
+        pAssocReq->p2pPresent = 1;
+        ConvertP2POpaque( pMac, &pAssocReq->p2pIE, &ar.P2PIEOpaque);
+    }
+#endif
 
     return eSIR_SUCCESS;
 
@@ -2867,7 +2665,7 @@ sirConvertAuthFrame2Struct(tpAniSirGlobal        pMac,
                            tANI_U32                   nFrame,
                            tpSirMacAuthFrameBody pAuth)
 {
-    tDot11fAuthentication auth;
+    static tDot11fAuthentication auth;
     tANI_U32                   status;
 
     // Zero-init our [out] parameter,
@@ -3007,7 +2805,7 @@ sirConvertAddtsReq2Struct(tpAniSirGlobal    pMac,
 
         if ( addts.num_WMMTCLAS )
         {
-            j = pAddTs->numTclas + addts.num_WMMTCLAS;
+            j = (tANI_U8)(pAddTs->numTclas + addts.num_WMMTCLAS);
             if ( SIR_MAC_TCLASIE_MAXNUM > j ) j = SIR_MAC_TCLASIE_MAXNUM;
 
             for ( i = pAddTs->numTclas; i < j; ++i )
@@ -3182,7 +2980,7 @@ sirConvertAddtsRsp2Struct(tpAniSirGlobal    pMac,
 
         if ( addts.num_WMMTCLAS )
         {
-            j = pAddTs->numTclas + addts.num_WMMTCLAS;
+            j = (tANI_U8)(pAddTs->numTclas + addts.num_WMMTCLAS);
             if ( SIR_MAC_TCLASIE_MAXNUM > j ) j = SIR_MAC_TCLASIE_MAXNUM;
 
             for ( i = pAddTs->numTclas; i < j; ++i )
@@ -3886,7 +3684,7 @@ tSirRetStatus PopulateDot11fProbeResWPSIEs(tpAniSirGlobal pMac, tDot11fIEWscProb
     {
         
         pDot11f->WPSState.present = 1;
-        pDot11f->WPSState.state = pSirWPSProbeRspIE->wpsState;
+        pDot11f->WPSState.state = (tANI_U8)pSirWPSProbeRspIE->wpsState;
     }
     else
         pDot11f->WPSState.present = 0;
@@ -3979,8 +3777,8 @@ tSirRetStatus PopulateDot11fProbeResWPSIEs(tpAniSirGlobal pMac, tDot11fIEWscProb
     {
         pDot11f->PrimaryDeviceType.present = 1;
         palCopyMemory(pMac->hHdd, pDot11f->PrimaryDeviceType.oui, pSirWPSProbeRspIE->PrimaryDeviceOUI, sizeof(pSirWPSProbeRspIE->PrimaryDeviceOUI)); 
-        pDot11f->PrimaryDeviceType.primary_category = pSirWPSProbeRspIE->PrimaryDeviceCategory;
-        pDot11f->PrimaryDeviceType.sub_category = pSirWPSProbeRspIE->DeviceSubCategory;
+        pDot11f->PrimaryDeviceType.primary_category = (tANI_U16)pSirWPSProbeRspIE->PrimaryDeviceCategory;
+        pDot11f->PrimaryDeviceType.sub_category = (tANI_U16)pSirWPSProbeRspIE->DeviceSubCategory;
     }
     else
         pDot11f->PrimaryDeviceType.present = 0;
@@ -4068,7 +3866,7 @@ tSirRetStatus PopulateDot11fBeaconWPSIEs(tpAniSirGlobal pMac, tDot11fIEWscBeacon
     {
         
         pDot11f->WPSState.present = 1;
-        pDot11f->WPSState.state = pSirWPSBeaconIE->wpsState;
+        pDot11f->WPSState.state = (tANI_U8)pSirWPSBeaconIE->wpsState;
     }
     else
         pDot11f->WPSState.present = 0;
@@ -4582,23 +4380,20 @@ void PopulateDot11fAssocRspRates ( tpAniSirGlobal pMac, tDot11fIESuppRates *pSup
       tDot11fIEExtSuppRates *pExt, tANI_U16 *_11bRates, tANI_U16 *_11aRates )
 {
   tANI_U8 num_supp = 0, num_ext = 0;
-
-  /* HAL_NUM_11B_RATES is defined in FW for Libra. Prima code can no longer
-  access it.  Do we need equavilent? */
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
   tANI_U8 i,j;
-  for( i = 0 ; (i < HAL_NUM_11B_RATES && _11bRates[i]) ; i++, num_supp++ )
+
+  for( i = 0 ; (i < SIR_NUM_11B_RATES && _11bRates[i]) ; i++, num_supp++ )
   {
-      pSupp->rates[num_supp] = _11bRates[i];
+      pSupp->rates[num_supp] = (tANI_U8)_11bRates[i];
   }  
-  for( j = 0 ; (j < HAL_NUM_11A_RATES && _11aRates[j]) ; j++ )
+  for( j = 0 ; (j < SIR_NUM_11A_RATES && _11aRates[j]) ; j++ )
   {
      if( num_supp < 8 )
-         pSupp->rates[num_supp++] = _11aRates[j];
+         pSupp->rates[num_supp++] = (tANI_U8)_11aRates[j];
      else
-         pExt->rates[num_ext++] =  _11aRates[j]; 
+         pExt->rates[num_ext++] =  (tANI_U8)_11aRates[j]; 
   }  
-#endif
+
   if( num_supp )
   {
       pSupp->num_rates = num_supp;

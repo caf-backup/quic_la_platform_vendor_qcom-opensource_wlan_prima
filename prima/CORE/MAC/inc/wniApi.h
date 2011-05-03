@@ -262,8 +262,15 @@ enum eWniMsgTypes
 #if defined WLAN_FEATURE_VOWIFI_11R
     eWNI_SME_FT_PRE_AUTH_REQ,
     eWNI_SME_FT_PRE_AUTH_RSP,
+    eWNI_SME_FT_UPDATE_KEY,
+    eWNI_SME_FT_AGGR_QOS_REQ,
+    eWNI_SME_FT_AGGR_QOS_RSP,
 #endif
-  
+
+#ifdef WLAN_FEATURE_P2P 
+    eWNI_SME_REGISTER_MGMT_FRAME_REQ,
+#endif    
+ 
     eWNI_SME_MSG_TYPES_END 
 };
 

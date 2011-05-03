@@ -21,10 +21,6 @@
 #endif
 #include "csrLinkList.h"
 
-#ifdef WLAN_FEATURE_VOWIFI_11R
-#include "sme_FTApi.h" // Required for SME FT Context in aniGlobal
-#endif /* WLAN_FEATURE_VOWIFI_11R */
-
 typedef enum 
 {
     eCSR_AUTH_TYPE_NONE,    //never used
@@ -150,6 +146,9 @@ typedef enum
     eCSR_SCAN_SUCCESS,
     eCSR_SCAN_FAILURE,
     eCSR_SCAN_ABORT,
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+    eCSR_SCAN_ONGOING,
+#endif
 }eCsrScanStatus;
 
 #define CSR_SCAN_TIME_DEFAULT       0
@@ -230,6 +229,8 @@ typedef struct tagCsrScanResultInfo
 {
     //Carry the IEs for the current BSSDescription. A pointer to tDot11fBeaconIEs. Maybe NULL for start BSS.
     void *pvIes;
+    tAniSSID ssId;
+    v_TIME_t timer; // timer is variable which is used for hidden SSID's timer value
     //This member must be the last in the structure because the end of tSirBssDescription is an
     //    array with nonknown size at this time
     tSirBssDescription BssDescriptor;
@@ -727,6 +728,11 @@ typedef struct tagCsrRoamProfile
     tANI_U32 nWAPIReqIELength;   //The byte count in the pWAPIReqIE
     tANI_U8 *pWAPIReqIE;   //If not null, it has the IE byte stream for WAPI
 #endif /* FEATURE_WLAN_WAPI */
+#ifdef WLAN_FEATURE_P2P
+    tANI_U32 nP2PIELength;	 //The byte count in the pWAPIReqIE
+    tANI_U8 *pP2PIE;   //If not null, it has the IE byte stream for WAPI
+#endif /* WLAN_FEATURE_P2P */
+
     tANI_U8 countryCode[WNI_CFG_COUNTRY_CODE_LEN];  //it is ignored if [0] is 0.
     /*WPS Association if true => auth and ecryption should be ignored*/
     tANI_BOOLEAN bWPSAssociation;
@@ -746,6 +752,7 @@ typedef struct tagCsrRoamProfile
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tCsrMobilityDomainInfo MDID;
 #endif
+    VOS_CON_MODE csrPersona;
 }tCsrRoamProfile;
 
 
@@ -941,6 +948,16 @@ typedef struct tagCsrConfigParam
     tCsrNeighborRoamConfigParams    neighborRoamConfig;
 #endif
 
+    /* Instead of Reassoc, send ADDTS/DELTS even when ACM is off for that AC 
+     * This is mandated by WMM-AC certification */
+    tANI_BOOLEAN addTSWhenACMIsOff;
+
+    
+    /*channelPowerInfoList24 has been seen corrupted. Set this flag to true trying to 
+    * detect when it happens. Adding this into code because we can't reproduce it easily.
+    * We don't know when it happens. */
+    tANI_BOOLEAN fValidateList;
+
 }tCsrConfigParam;   
 
 //Tush
@@ -999,6 +1016,8 @@ typedef struct tagCsrRoamInfo
 
 #ifdef WLAN_FEATURE_P2P
     void* pRemainCtx; 
+    tANI_U8 p2pIELen;
+    tANI_U8 *pP2PIE;
 #endif
 
 }tCsrRoamInfo;
@@ -1028,6 +1047,9 @@ typedef struct sSirSmeAssocIndToUpperLayerCnf
     tANI_U8              alternateChannelId;
     tANI_U8              wmmEnabledSta;   //set to true if WMM enabled STA
     tSirRSNie            rsnIE;           // RSN IE received from peer
+#ifdef WLAN_FEATURE_P2P
+    tSirP2Pie			 p2pIE; 		  // P2P IE received from peer
+#endif
     tANI_U8              reassocReq;      //set to true if reassoc
 } tSirSmeAssocIndToUpperLayerCnf, *tpSirSmeAssocIndToUpperLayerCnf;
 #endif
