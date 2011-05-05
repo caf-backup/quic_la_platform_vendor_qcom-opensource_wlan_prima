@@ -7504,7 +7504,33 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 }
             }
             break;
-                
+
+        case eWNI_SME_DEAUTH_RSP:
+            smsLog( pMac, LOGW, FL("eWNI_SME_DEAUTH_RSP from SME\n"));
+#ifdef WLAN_SOFTAP_FEATURE
+            {
+                tSirSmeDeauthRsp* pDeauthRsp = (tSirSmeDeauthRsp *)pSirMsg;
+                sessionId = pDeauthRsp->sessionId;
+                if( CSR_IS_SESSION_VALID(pMac, sessionId) )
+                {
+                    pSession = CSR_GET_SESSION(pMac, sessionId);
+                    if (!pSession)
+                        break;
+
+                    if ( CSR_IS_INFRA_AP(&pSession->connectedProfile) )
+                    {
+                        pRoamInfo = &roamInfo;
+                        pRoamInfo->u.pConnectedProfile = &pSession->connectedProfile;
+                        palCopyMemory(pMac->hHdd, pRoamInfo->peerMac, pDeauthRsp->peerMacAddr, sizeof(tSirMacAddr));
+                        pRoamInfo->reasonCode = eCSR_ROAM_RESULT_FORCED;
+                        pRoamInfo->statusCode = pDeauthRsp->statusCode;
+                        status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_LOSTLINK, eCSR_ROAM_RESULT_FORCED);
+                    }
+                }
+            }
+#endif
+            break;
+
         case eWNI_SME_DISASSOC_RSP:
             smsLog( pMac, LOGW, FL("eWNI_SME_DISASSOC_RSP from SME subState = %d\n"), pMac->roam.curSubState);
 #ifdef WLAN_SOFTAP_FEATURE
