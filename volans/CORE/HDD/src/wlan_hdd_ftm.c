@@ -1061,7 +1061,32 @@ static int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
             "%s: MAC correctly started",__func__);
 
 
-    printk(KERN_EMERG "*** FTM Start Successful****\n");
+
+   /**
+   EVM issue is observed with 1.6Mhz freq for 1.3V RF supply in wlan standalone case.
+   During concurrent operation (e.g. WLAN and WCDMA) this issue is not observed. 
+   To workaround, wlan will vote for 3.2Mhz during startup and will vote for 1.6Mhz
+   during exit.
+   Since using 3.2Mhz has a side effect on power (extra 200ua), this is left configurable.
+   If customers do their design right, they should not see the EVM issue and in that case they
+   can decide to keep 1.6Mhz by setting an NV.
+   If NV item is not present, use the default 3.2Mhz
+   vos_stop is also invoked if wlan startup seq fails (after vos_start, where 3.2Mhz is voted.)
+   */
+  {
+   sFreqFor1p3VSupply freq;
+   vStatus = vos_nv_read( NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY, &freq, NULL,
+         sizeof(freq) );
+   if (VOS_STATUS_SUCCESS != vStatus)
+    freq.freqFor1p3VSupply = VOS_NV_FREQUENCY_FOR_1_3V_SUPPLY_3P2MH;
+
+    if (vos_chipVoteFreqFor1p3VSupply(NULL, NULL, NULL, freq.freqFor1p3VSupply) != VOS_STATUS_SUCCESS)
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+               "%s: Failed to set the freq %d for 1.3V Supply",__func__,freq.freqFor1p3VSupply );
+  }
+
+
+    printk(KERN_EMERG "*** FTM Start is Successful****\n");
 
 
     /* START SYS. This will trigger the CFG download */
@@ -1114,11 +1139,23 @@ static int wlan_ftm_stop(hdd_adapter_t *pAdapter)
              "%s: Failed to stop BAL",__func__);
            VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
        }
+
+       /**
+       EVM issue is observed with 1.6Mhz freq for 1.3V supply in wlan standalone case.
+       During concurrent operation (e.g. WLAN and WCDMA) this issue is not observed. 
+       To workaround, wlan will vote for 3.2Mhz during startup and will vote for 1.6Mhz
+       during exit.
+       vos_stop is also invoked if wlan startup seq fails (after vos_start, where 3.2Mhz is voted.)
+       */
+       if (vos_chipVoteFreqFor1p3VSupply(NULL, NULL, NULL, VOS_NV_FREQUENCY_FOR_1_3V_SUPPLY_1P6MH) != VOS_STATUS_SUCCESS)
+            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Failed to set the freq to 1.6Mhz for 1.3V Supply",__func__ );
+
     }
 
     pAdapter->ftm.ftm_state = WLAN_FTM_STOPPED;
 
-   printk(KERN_EMERG "*** FTM Stop Successful****\n");
+   printk(KERN_EMERG "*** FTM Stop is Successful****\n");
    return WLAN_FTM_SUCCESS;
 }
 

@@ -12525,7 +12525,7 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
    if(pSmeStatsRsp->rc)
    {
       smsLog( pMac, LOGW, FL("csrRoamStatsRspProcessor:stats rsp from PE shows failure\n"));
-      return;
+      goto post_update;
    }
 
    tempMask = pSmeStatsRsp->statsMask;
@@ -12534,7 +12534,7 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
    if(!pStats)
    {
       smsLog( pMac, LOGW, FL("csrRoamStatsRspProcessor:empty stats buffer from PE\n"));
-      return;
+      goto post_update;
    }
 
    //new stats info from PE, fill up the stats strucutres in PMAC
@@ -12611,10 +12611,12 @@ void csrRoamStatsRspProcessor(tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg)
       tempMask >>=1;
       counter++;
    }
+
+post_update:   
    //make sure to update the pe stats req list 
    pEntry = csrRoamFindInPeStatsReqList(pMac, pSmeStatsRsp->statsMask);
    if(pEntry)
-      {
+   {
       pPeStaEntry = GET_BASE_ADDR( pEntry, tCsrPeStatsReqInfo, link );
       pPeStaEntry->rspPending = FALSE;
    
@@ -15138,6 +15140,10 @@ eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac)
    {
       if(pPrevEntry)
       {
+         pTempStaEntry = GET_BASE_ADDR( pPrevEntry, tCsrStatsClientReqInfo, link );
+         //send up the stats report
+         csrRoamReportStatistics(pMac, pTempStaEntry->statsMask, pTempStaEntry->callback, 
+                                 pTempStaEntry->staId, pTempStaEntry->pContext);
          csrRoamRemoveStatListEntry(pMac, pPrevEntry);
       }
 
@@ -15194,6 +15200,10 @@ eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac)
    //the last one
    if(pPrevEntry)
    {
+      pTempStaEntry = GET_BASE_ADDR( pPrevEntry, tCsrStatsClientReqInfo, link );
+      //send up the stats report
+      csrRoamReportStatistics(pMac, pTempStaEntry->statsMask, pTempStaEntry->callback, 
+                                 pTempStaEntry->staId, pTempStaEntry->pContext);
       csrRoamRemoveStatListEntry(pMac, pPrevEntry);
    }
 

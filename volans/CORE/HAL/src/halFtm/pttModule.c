@@ -199,6 +199,8 @@ eQWPttStatus pttSetNvTable(tpAniSirGlobal pMac, eNvTable nvTable, uNvTables *tab
             case NV_TABLE_PACKET_TYPE_POWER_LIMITS:
             case NV_TABLE_OFDM_CMD_PWR_OFFSET:
             case NV_TABLE_TX_BB_FILTER_MODE:
+            case NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY:
+           
                 if (eHAL_STATUS_FAILURE == halWriteNvTable(pMac, nvTable, tableData))
                 {
                     phyLog(pMac, LOGE, "Unable to write table %d\n", (tANI_U32)nvTable);

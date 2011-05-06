@@ -757,6 +757,19 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    if(pAdapter->cfg_ini->fIsLogpEnabled)
       vos_watchdog_close(pVosContext);
 
+   /* Cancel the vote for XO Core ON. 
+    * This is done here to ensure there is no race condition since MC, TX and WD threads have
+    * exited at this point
+    */
+   hddLog(VOS_TRACE_LEVEL_WARN, "In module exit: Cancel the vote for XO Core ON"
+                                    "when  WLAN is turned OFF\n");
+   if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_FALSE) != VOS_STATUS_SUCCESS)
+   {
+       hddLog(VOS_TRACE_LEVEL_ERROR, "Could not cancel the vote for XO Core ON." 
+                                        "Not returning failure."
+                                        "Power consumed will be high\n");
+   }  
+
    //Free up dynamically allocated members inside HDD Adapter
    kfree(pAdapter->cfg_ini);
    pAdapter->cfg_ini= NULL;
@@ -1517,6 +1530,19 @@ static int __init hdd_module_init ( void)
          ret_status = -1;
          break;
       }
+      
+      /* Cancel the vote for XO Core ON
+       * This is done here for safety purposes in case we re-initialize without turning 
+       * it OFF in any error scenario.
+       */
+      hddLog(VOS_TRACE_LEVEL_ERROR, "In module init: Ensure Force XO Core is OFF"
+                                       "when  WLAN is turned ON so Core toggles"
+                                       "unless we enter PS\n");
+      if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_FALSE) != VOS_STATUS_SUCCESS)
+      {
+          hddLog(VOS_TRACE_LEVEL_ERROR, "Could not cancel XO Core ON vote. Not returning failure."
+                                            "Power consumed will be high\n");
+      }  
    } while (0);
 
    if(!VOS_IS_STATUS_SUCCESS(ret_status))

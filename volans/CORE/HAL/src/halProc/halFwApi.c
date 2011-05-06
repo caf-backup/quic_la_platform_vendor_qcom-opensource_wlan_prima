@@ -88,6 +88,15 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
 
     pFwConfig->bRfXoOn = TRUE;
 
+    /* The change below of comparing STO macro to 1650 is temporary and only there for a week
+     * It will be removed as soon as the Force XO Core ON is implemented for 7x30 as well
+     */
+    if (HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US == 1650) {
+        pFwConfig->psXoCoreOn = 1;
+    } else {
+        pFwConfig->psXoCoreOn = 0;
+    }
+
     // Start the FW image download
     status = halFW_DownloadImage(pMac, arg);
 
@@ -324,7 +333,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             1/* Uses 6 gain settings from process monitor table which are associated with Tx gain LUTs */,
 
             1/* Channel Tune after cal */,
-            0/* Temperature Measure Periodically */,
+            1/* Temperature Measure Periodically */,
             1/* Temperature Measure at Init */,
             0/* Tx DPD */,
             0/* CLPC Temp Adjustment */,
@@ -375,7 +384,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
             0/* CLPC Temp Adjustment */,
             0/* Tx DPD */,
             1/* Temperature Measure at Init */,
-            0/* Temperature Measure Periodically */,
+            1/* Temperature Measure Periodically */,
             1/* Channel Tune after cal */,
 
             1/* Uses 6 gain settings from process monitor table which are associated with Tx gain LUTs */,

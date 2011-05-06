@@ -345,6 +345,7 @@ eHalStatus asicTPCGetADCReading(tpAniSirGlobal pMac, tANI_U16 *pADC)
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
     
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_ADC_CTRL_GET_ADC_REG, QWLAN_TPC_ADC_CTRL_GET_ADC_GET_ADC_MASK);
+#if 0
     {
         tANI_U32 i = 1000;  //number of iterations to wait for reading to complete
         tANI_U32 status = 0;
@@ -361,6 +362,8 @@ eHalStatus asicTPCGetADCReading(tpAniSirGlobal pMac, tANI_U16 *pADC)
             return (eHAL_STATUS_FAILURE);
         }
     }
+#endif
+    sirSleepWait(10); //10us
     
     {
         tANI_U32 adc;

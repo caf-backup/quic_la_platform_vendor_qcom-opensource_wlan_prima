@@ -253,7 +253,8 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueuedAC[ac];
 
    //Make sure we have access to this access category
-   if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed))
+   if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed) || 
+           ( pAdapter->conn_info.uIsAuthenticated == VOS_FALSE))
    {
       granted = VOS_TRUE;
    }
@@ -584,8 +585,10 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    // or we determine we have no more packets to send
    while (1)
    {
-      // has this AC been admitted?
-      if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed))
+      // has this AC been admitted? or 
+      // To allow EAPOL packets when not authenticated
+      if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed) || 
+           ( pAdapter->conn_info.uIsAuthenticated == VOS_FALSE))
       {
          // do we have any packets pending in this AC?
          hdd_list_size( &pAdapter->wmm_tx_queue[ac], &size ); 

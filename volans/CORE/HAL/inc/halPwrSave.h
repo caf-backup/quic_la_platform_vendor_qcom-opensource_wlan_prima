@@ -66,8 +66,17 @@
  */
 #if !defined(VOLANS_FPGA)
 //RF and BB values
+
+/* The platform specific STO change is temporary and only there for a week
+ * It will be removed as soon as the Force XO Core ON is implemented for 7x30 as well
+ */
+#ifdef MSM_PLATFORM_8660
+#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US                   1650
+#define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US                 1650
+#else
 #define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US                   7650
 #define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US                 7650
+#endif
 #define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US_19_2              7652 /* FIXME */  
 #define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_WITHOUT_RFXO_SETTLING_US  1735 /* FIXME */  
 #else
@@ -187,6 +196,7 @@ typedef struct sHalPwrSave
 #ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
     tANI_U8         mutexTxRxCount; // Count of mutex acquired in Tx/Rx context
 #endif /* WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS */
+    tANI_U8         enableMutexDebug;// Flag to enable mutex debug logs in runtime
 
     vos_event_t     fwRspEvent;     // VOSS event required for FW responses
 

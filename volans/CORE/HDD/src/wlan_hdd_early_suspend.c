@@ -695,6 +695,17 @@ VOS_STATUS hdd_wlan_reset(void)
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Power Down Chip",__func__);   
    //Vote off any PMIC voltage supplies
    vos_chipPowerDown(NULL, NULL, NULL);
+
+
+   /**
+   EVM issue is observed with 1.6Mhz freq for 1.3V supply in wlan standalone case.
+   During concurrent operation (e.g. WLAN and WCDMA) this issue is not observed. 
+   To workaround, wlan will vote for 3.2Mhz during startup and will vote for 1.6Mhz
+   during exit.
+   */
+   if (vos_chipVoteFreqFor1p3VSupply(NULL, NULL, NULL, VOS_NV_FREQUENCY_FOR_1_3V_SUPPLY_1P6MH) != VOS_STATUS_SUCCESS)
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+               "%s: Failed to set the freq to 1.6Mhz for 1.3V Supply",__func__ );
    
    //Record whether STA is associated
    sendDisconnect = hdd_connIsConnected(pAdapter) ? VOS_TRUE : VOS_FALSE;
@@ -738,6 +749,17 @@ VOS_STATUS hdd_wlan_reset(void)
    set_bit(TX_POST_EVENT_MASK, &vosSchedContext->txEventFlag);
    wake_up_interruptible(&vosSchedContext->txWaitQueue);
    wait_for_completion_interruptible(&vosSchedContext->TxShutdown);
+
+   /* Cancel the vote for XO Core ON in LOGP since we are reinitializing our driver
+    * This is done here to ensure there is no race condition since MC and TX thread have
+    * exited at this point
+    */
+   hddLog(VOS_TRACE_LEVEL_WARN, "In LOGP: Cancel XO Core ON vote\n");
+   if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_FALSE) != VOS_STATUS_SUCCESS)
+   {
+       hddLog(VOS_TRACE_LEVEL_ERROR, "Could not cancel XO Core ON vote. Not returning failure."
+                                         "Power consumed will be high\n");
+   }
 
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing SME STOP",__func__);
    //Stop SME - Cannot invoke vos_stop as vos_stop relies
@@ -1151,9 +1173,6 @@ VOS_STATUS hdd_wlan_reset_initialization(void)
       VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
 	  	"%s LOGP Cleared SIF_BAR4_INT_ENABLE_REG: Status:%d", __func__,err_ret);
 
-      /* Disable SDIO IRQ */
-      libra_enable_sdio_irq(sdio_func_dev, 0);
-	  
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing Suspend Chip",__func__);
 
       //Put the chip is standby before asserting deep sleep

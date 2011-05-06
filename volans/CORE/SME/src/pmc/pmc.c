@@ -180,6 +180,13 @@ eHalStatus pmcEnterFullPowerState (tHalHandle hHal)
         return eHAL_STATUS_FAILURE;
     }
 
+    smsLog(pMac, LOGW, "PMC: Enter full power done: Cancel XO Core ON vote\n");
+    if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_FALSE) != VOS_STATUS_SUCCESS)
+    {
+        smsLog(pMac, LOGE, "Could not cancel XO Core ON vote. Not returning failure."
+                                "Power consumed will be high\n");
+    }
+
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -505,7 +512,7 @@ eHalStatus pmcEnterRequestBmpsState (tHalHandle hHal)
     /* Tell MAC to have device enter BMPS mode. */
     if ( !pMac->pmc.bmpsRequestQueued )
     {
-        pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_TRUE;
+        pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_TRUE;       
         if(pmcIssueCommand(hHal, eSmeCommandEnterBmps, NULL, 0, FALSE) != eHAL_STATUS_SUCCESS)
         {
             smsLog(pMac, LOGE, "PMC: failure to send message eWNI_PMC_ENTER_BMPS_REQ\n");
@@ -2162,6 +2169,12 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                     if ( HAL_STATUS_SUCCESS( status ) )
                     {
                         fRemoveCmd = eANI_BOOLEAN_FALSE;
+                        smsLog(pMac, LOGW, "PMC: Enter BMPS req done: Force XO Core ON\n");
+                        if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_TRUE) != VOS_STATUS_SUCCESS)
+                        {
+                            smsLog(pMac, LOGE, "Could not turn XO Core ON. Can't go to BMPS\n");
+                            return eHAL_STATUS_FAILURE;
+                        }
                     }
                     else
                     {

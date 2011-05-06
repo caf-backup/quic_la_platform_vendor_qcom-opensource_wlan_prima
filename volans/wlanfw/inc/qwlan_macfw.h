@@ -858,9 +858,11 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32   nullDataApRespTimeoutMsec: 8;
-   tANI_U32   bReserved12      : 24;
+   tANI_U32   psXoCoreOn        : 1;
+   tANI_U32   bReserved12      : 23;
 #else
-   tANI_U32   bReserved12      : 24;
+   tANI_U32   bReserved12      : 23;
+   tANI_U32   psXoCoreOn        : 1;
    tANI_U32   nullDataApRespTimeoutMsec: 8;
 #endif
 #ifdef ANI_BIG_BYTE_ENDIAN
@@ -883,8 +885,8 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32   uTransLiNumIdleBeacons  : 16; //Num Idle Beacons to go to transLI
    tANI_U32   uMaxLiNumIdleBeacons    : 16; //Num Idle Beacons to go to MaxLI
 #else
-   tANI_U32   uMaxLiNumIdleBeacons    : 16; 
-   tANI_U32   uTransLiNumIdleBeacons  : 16; 
+   tANI_U32   uMaxLiNumIdleBeacons    : 16;
+   tANI_U32   uTransLiNumIdleBeacons  : 16;
 #endif
 
    tANI_U32   isAppsCpuAwake;
