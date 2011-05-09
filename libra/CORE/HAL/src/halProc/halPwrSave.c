@@ -1111,6 +1111,15 @@ void halPS_ExecuteStandbyProcedure(tpAniSirGlobal pMac)
     // enable en_rtx_bias under mode_sel2 reg
     halWriteRegister(pMac, QWLAN_RFAPB_MODE_SEL2_REG, QWLAN_RFAPB_MODE_SEL2_DEFAULT);
 
+    /* Set AON low current mode */
+    halWriteRegister(pMac, QWLAN_SPIM_CONFIG_REG,  0x0);
+    halWriteRegister(pMac, QWLAN_SPIM_WRITE_LSW_REG, (QWLAN_ATB_LDO_SW_CTRL0_REG << 9) | (0xA8));
+    halWriteRegister(pMac, QWLAN_SPIM_CONTROL_REG, 0x840e);
+    /* Set the switchable low current mode */
+    halWriteRegister(pMac, QWLAN_SPIM_CONFIG_REG,  0x0);
+    halWriteRegister(pMac, QWLAN_SPIM_WRITE_LSW_REG, (QWLAN_ATB_LDO_AON_CTRL0_REG << 9) | (0xA8));
+    halWriteRegister(pMac, QWLAN_SPIM_CONTROL_REG, 0x840e);
+
     return;
 }
 

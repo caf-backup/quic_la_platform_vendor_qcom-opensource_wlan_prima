@@ -13,8 +13,9 @@
 #include "aniGlobal.h"
 
 // Flag to enable the staircase increase in 1p2 AON and switchable.
-#define HAL_WLAN_1P2_AON_SW_STAIRCASE	1
-#define HAL_WLAN_1P2_SW_STAIRCASE       1
+//#define HAL_WLAN_1P2_AON_SW_STAIRCASE	    1
+//#define HAL_WLAN_1P2_SW_STAIRCASE         1
+#define HAL_WLAN_1P2_AON_IDEAL_FIX        1    
 
 eHalStatus halPMU_Start(tHalHandle hHal, void *arg);
 
