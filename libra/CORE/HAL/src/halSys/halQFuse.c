@@ -107,7 +107,8 @@ void halQFusePackBits(tHalHandle hMac)
     Target = 127
     slope_3 = (padc_channel3_13p5dBm- padc_channel3_10dBm) / (pout_channel3_13p5dBm -pout_channel3_10dBm)
     slope_9 = (padc_channel9_13p5dBm- padc_channel9_10dBm) / (pout_channel9_13p5dBm -pout_channel9_10dBm)
-    slope_3_top = (padc_channel9_16dBm- padc_channel9_13p5dBm) / (pout_channel9_16dBm- pout_channel9_13p5dBm)
+    slope_3_top = (padc_channel3_16dBm- padc_channel3_13p5dBm) / (pout_channel3_16dBm- pout_channel3_13p5dBm)
+    slope_9_top = (padc_channel9_16dBm- padc_channel9_13p5dBm) / (pout_channel9_16dBm- pout_channel9_13p5dBm)
     new_padc = (slope_3_top.*slope_9./slope_3).*( pout_channel9_16dBm - pout_channel9_13p5dBm)+ padc_channel9_13p5dBm;
     new_slope_9 = (pout_channel9_16dm-pout_channel9_13p5dBm)./(new_padc_9 – padc_channel9_13p5dBm);
     pout_channel9_16dBm = pout_channel9_16dBm - new_slope_9.*(new_padc_9-target_point); %replacing old pout value
@@ -118,33 +119,58 @@ static void halQFuseCorrectPadcClippedValue(tHalHandle hMac)
 {
     tpAniSirGlobal pMac = (tpAniSirGlobal)hMac;
 
+    tANI_U8 target = 127;
+    tANI_U8 padc00, pout00, padc01, pout01, padc02, pout02, padc03, pout03, padc10, pout10, padc11, pout11, padc12, pout12, padc13, pout13;
+
+    padc00 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][0].pwrDetAdc      ;
+    pout00 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][0].adjustedPwrDet ;
+    padc01 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][1].pwrDetAdc      ;
+    pout01 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][1].adjustedPwrDet ;
+    padc02 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][2].pwrDetAdc      ;
+    pout02 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][2].adjustedPwrDet ;
+    padc03 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][3].pwrDetAdc      ;
+    pout03 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][3].adjustedPwrDet ;
+    padc10 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][0].pwrDetAdc      ;
+    pout10 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][0].adjustedPwrDet ;
+    padc11 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][1].pwrDetAdc      ;
+    pout11 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][1].adjustedPwrDet ;
+    padc12 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][2].pwrDetAdc      ;
+    pout12 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][2].adjustedPwrDet ;
+    padc13 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][3].pwrDetAdc      ;
+    pout13 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][3].adjustedPwrDet ;
+
+    //slope_3 = (padc02- padc01) / (pout02 -pout01);
+    //slope_9 = (padc12- padc11) / (pout12 -pout11);
+    //slope_3_top = (padc03- padc02) / (pout03- pout02);
+    //slope_9_top = (padc13- padc12) / (pout13- pout12);
+
     //check whether the part has a clipped padc value or not.
-    if(pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][3].pwrDetAdc == 127)
-    {
-        tANI_U8 target = 127;
-        tANI_U8 padc00, pout00, padc01, pout01, padc02, pout02, padc03, pout03, padc10, pout10, padc11, pout11, padc12, pout12, padc13, pout13;
+	if (((padc03 == 127) && (padc13 == 127)) || ((padc03 <= padc02) && (padc13 <= padc12)))
+	{
+		//fail. Monotonicity breach. operate in open loop
+		pMac->hphy.phy.test.sysInOpenLoopMode = eANI_BOOLEAN_TRUE;
 
-        padc00 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][0].pwrDetAdc      ;
-        pout00 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][0].adjustedPwrDet ;
-        padc01 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][1].pwrDetAdc      ;
-        pout01 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][1].adjustedPwrDet ;
-        padc02 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][2].pwrDetAdc      ;
-        pout02 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][2].adjustedPwrDet ;
-        padc03 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][3].pwrDetAdc      ;
-        pout03 = pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][3].adjustedPwrDet ;
-        padc10 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][0].pwrDetAdc      ;
-        pout10 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][0].adjustedPwrDet ;
-        padc11 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][1].pwrDetAdc      ;
-        pout11 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][1].adjustedPwrDet ;
-        padc12 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][2].pwrDetAdc      ;
-        pout12 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][2].adjustedPwrDet ;
-        padc13 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][3].pwrDetAdc      ;
-        pout13 = pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][3].adjustedPwrDet ;
+        //Operate with open loop gain of 0xaf
+        palWriteRegister(pMac->hHdd, QWLAN_TPC_GAIN_LUT0_MREG, 0xaf);
+	}
+	else if ((padc03 == 127 ) || (padc03 <= padc02))
+	{
+		//use the top slope from channel 9 on channel 3
+		//newSlope = slope_9_top * slope_3/slope_9;
+		pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][3].adjustedPwrDet =
+						pout02 + (((target - padc02) * (pout13- pout12) * (pout02 -pout01) * (padc12- padc11))/
+							((padc13- padc12) * (padc02- padc01) * (pout12 -pout11)));
 
+		pMac->hphy.nvCache.tables.tpcConfig[0].empirical[0][3].pwrDetAdc = target; //%replacing old padc value
 
+	}
+	else if ((padc13 == 127 ) || ( padc13 <= padc12 ))
+	{
+		//use the top slope from channel 3 on channel 9
+		//newSlope = slope_3_top * slope_9/slope_3;
         pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][3].adjustedPwrDet =
-                        pout12 + ( ((target - padc12) * (padc02- padc01) * (pout12 -pout11) * (pout13- pout12)) /
-                        ((pout02 -pout01) * (padc12- padc11) * (padc13- padc12)) );
+						pout12 + (((target - padc12) * (pout03- pout02) * (pout12 -pout11) * (padc02- padc01)) /
+							((padc03- padc02) * (padc12- padc11) * (pout02 -pout01)));
 
         pMac->hphy.nvCache.tables.tpcConfig[1].empirical[0][3].pwrDetAdc = target; //%replacing old padc value
     }

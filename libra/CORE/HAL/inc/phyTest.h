@@ -50,7 +50,8 @@ typedef struct
     tANI_U8 testDcoCalGainIndex;
     eInitCals testCalMode;
     tANI_BOOLEAN testInternalHdetCal;
-    tANI_U8 reserved[3];
+    tANI_BOOLEAN sysInOpenLoopMode;
+    tANI_U8 reserved[2];
 }tPhyTest;
 
 #endif

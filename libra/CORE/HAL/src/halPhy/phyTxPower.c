@@ -572,6 +572,13 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, tPowerdBm a
 
     assert(curChan != INVALID_RF_CHANNEL);
 
+    if (pMac->hphy.phy.test.sysInOpenLoopMode == eANI_BOOLEAN_TRUE)
+    {
+		//operate in open loop
+        pMac->hphy.phy.test.testLastPwrIndex = 0;
+        *retTemplateIndex = pMac->hphy.phy.test.testLastPwrIndex;
+        return(eHAL_STATUS_SUCCESS);
+    }
 
     if (pMac->hphy.phyTPC.pwrCfgPresent == eANI_BOOLEAN_FALSE)
     {
