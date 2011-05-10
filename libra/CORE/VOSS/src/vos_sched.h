@@ -132,10 +132,12 @@ typedef struct _VosSchedContext
    struct completion   TxStartEvent;
 
    /* MC Thread handle */
-   int   McThread;
+ 
+   struct task_struct* McThread;
 
    /* TX Thread handle */
-   int   TxThread;
+   
+   struct task_struct*   TxThread;
 
    /* completion object for MC thread shutdown */
    struct completion   McShutdown; 
@@ -177,7 +179,8 @@ typedef struct _VosWatchdogContext
    struct completion WdStartEvent;
 
    /* Watchdog Thread handle */
-   int WdThread;
+  
+   struct task_struct* WdThread;
 
    /* completion object for Watchdog thread shutdown */
    struct completion WdShutdown; 
