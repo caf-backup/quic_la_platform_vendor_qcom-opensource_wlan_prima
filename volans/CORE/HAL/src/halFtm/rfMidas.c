@@ -118,7 +118,6 @@ eHalStatus rfTakeTemp(tpAniSirGlobal pMac, eRfTempSensor setup, tANI_U8 nSamples
     //assumes that we are not transmitting
 
     GET_PHY_REG(pMac->hHdd, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, &bkup0);
-    //GET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG, &bkup1);
     GET_PHY_REG(pMac->hHdd, QWLAN_TPC_RC_DELAY_REG, &bkup2);       //when sampling hdet directly, only sample for 80 clocks = 1 microsecond
     GET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, &bkup3);
 
@@ -127,17 +126,13 @@ eHalStatus rfTakeTemp(tpAniSirGlobal pMac, eRfTempSensor setup, tANI_U8 nSamples
                                 bkup0 |
                                 QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXCTL_MASK |
                                 QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXFIR_MASK |
+                                QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TXFIR_APB_MASK |
                                 QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_TPC_MASK
                );
 
-    //SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG,
-    //            QWLAN_TXCTL_DAC_CONTROL_TXEN_OVERRIDE_EN_MASK |
-    //            QWLAN_TXCTL_DAC_CONTROL_TXEN0_OVERRIDE_VAL_MASK |
-    //            QWLAN_TXCTL_DAC_CONTROL_CH3STDBY_OVERRIDE_VAL_MASK |
-    //            QWLAN_TXCTL_DAC_CONTROL_CH2STDBY_OVERRIDE_VAL_MASK |
-    //            QWLAN_TXCTL_DAC_CONTROL_CH1STDBY_OVERRIDE_VAL_MASK
-    //           );
-
+    SET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_1_EN_REG, 0xfc0f);
+    SET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_2_EN_REG, QWLAN_RFAPB_TX_RF_2_EN_RF_EN_2_OVERWRITE_MASK |
+                                                        QWLAN_RFAPB_TX_RF_2_EN_HDET_EN_OVRWRT_MASK);
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, 0);   //turn off TPC closed loop control
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_RC_DELAY_REG, 80);       //when sampling hdet directly, only sample for 80 clocks = 1 microsecond
 
@@ -172,20 +167,17 @@ eHalStatus rfTakeTemp(tpAniSirGlobal pMac, eRfTempSensor setup, tANI_U8 nSamples
     //select hdet_in
     SET_RF_FIELD(QWLAN_RFAPB_HDET_CTL_REG, QWLAN_RFAPB_HDET_CTL_HDET_OUT_SEL_MASK, QWLAN_RFAPB_HDET_CTL_HDET_OUT_SEL_OFFSET, 1);
 
-    //SET_PHY_REG(pMac->hHdd, QWLAN_TXCTL_DAC_CONTROL_REG, bkup1);
-    SET_PHY_REG(pMac->hHdd, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, bkup0);
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_RC_DELAY_REG, bkup2);
     SET_PHY_REG(pMac->hHdd, QWLAN_TPC_TXPWR_ENABLE_REG, bkup3);
+
+    SET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_1_EN_REG, 0);
+    SET_RF_CHIP_REG(QWLAN_RFAPB_TX_RF_2_EN_REG, 0);
+    
+    SET_PHY_REG(pMac->hHdd, QWLAN_TXCLKCTRL_APB_BLOCK_DYN_CLKG_DISABLE_REG, bkup0);
 
     *retTemp = (tTempADCVal)avg;
     return retVal;
 }
-
-
-
-
-
-
 
 
 eHalStatus rfSetDCOffset(tpAniSirGlobal pMac, ePhyRxChains rxChain, tANI_U8 dcoIndex, tRxDcoCorrect offset)

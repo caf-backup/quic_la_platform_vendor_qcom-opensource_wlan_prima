@@ -2237,9 +2237,7 @@ VOS_STATUS WLANSSC_SuspendChip_NoLock
                                                          &uRegValue,
                                                          WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ASSERT( 0 );
-
-    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Error suspending chip"));
   }
 
   uRegValue |= QWLAN_SIF_BAR4_WLAN_CONTROL_REG_DEFAULT;
@@ -2253,9 +2251,7 @@ VOS_STATUS WLANSSC_SuspendChip_NoLock
                                                           &uRegValue,
                                                           WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ASSERT( 0 );
-
-    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Error suspending chip"));
   }
 
   /* TRSW_SUPPLY_CTRL_1 - Read the current value just in case                 */
@@ -2264,9 +2260,7 @@ VOS_STATUS WLANSSC_SuspendChip_NoLock
                                                          &uRegValue,
                                                          WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ASSERT( 0 );
-
-    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Error suspending chip"));
   }
 
   /* Add 0xFF (per instructions) to the register status and write back        */
@@ -2277,9 +2271,7 @@ VOS_STATUS WLANSSC_SuspendChip_NoLock
                                                           &uRegValue,
                                                           WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ASSERT( 0 );
-
-    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Error suspending chip"));
   }
 
   /* End T/R change */
@@ -2290,9 +2282,7 @@ VOS_STATUS WLANSSC_SuspendChip_NoLock
                                                          &uRegValue,
                                                          WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ASSERT( 0 );
-
-    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Error suspending chip"));
   }
 
   /* Add the suspend bit to the register status and write back             */
@@ -2303,9 +2293,7 @@ VOS_STATUS WLANSSC_SuspendChip_NoLock
                                                           &uRegValue,
                                                           WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ASSERT( 0 );
-
-    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Error suspending chip"));
   }
 
   /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
@@ -2318,9 +2306,7 @@ VOS_STATUS WLANSSC_SuspendChip_NoLock
                                                          &uRegValue,
                                                          WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ASSERT( 0 );
-
-    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Error suspending chip"));
   }
 
   /* Turn off PMU GCU clk in the register status and write back            */
@@ -2331,9 +2317,7 @@ VOS_STATUS WLANSSC_SuspendChip_NoLock
                                                           &uRegValue,
                                                           WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ASSERT( 0 );
-
-    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Error suspending chip"));
   }
 
   /* Need to wait per programmer's guide (minimum allowed by VOS is 1 ms)  */
@@ -2345,9 +2329,7 @@ VOS_STATUS WLANSSC_SuspendChip_NoLock
                                                          &uRegValue,
                                                          WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ASSERT( 0 );
-
-    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Error suspending chip"));
   }
 
   /* Turn off PMU ROSC pwr enable in the register status and write back    */
@@ -2358,9 +2340,7 @@ VOS_STATUS WLANSSC_SuspendChip_NoLock
                                                           &uRegValue,
                                                           WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ASSERT( 0 );
-
-    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error suspending chip"));
+    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Error suspending chip"));
   }
 
 
@@ -2369,8 +2349,6 @@ VOS_STATUS WLANSSC_SuspendChip_NoLock
                                                          &uRegValue,
                                                          WLANSSC_TX_REGBUFFER) )
   {
-    WLANSSC_ASSERT( 0 );
-
     SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Error suspending chip"));
   }
 
@@ -6665,7 +6643,7 @@ static VOS_STATUS WLANSSC_R_TransmitEventHandler
 
   if( VOS_STATUS_E_EMPTY == eStatus )
   {
-    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Tx triggered without pending packets"));
+    SSCLOG2(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO_HIGH, "Tx triggered without pending packets"));
   }
   else if( VOS_STATUS_SUCCESS != eStatus )
   {
@@ -6935,7 +6913,7 @@ static VOS_STATUS WLANSSC_FatalInterruptHandler
 
   WLANSSC_ASSERT( NULL != pControlBlock );
 
-  SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "WLANSSC_FatalInterruptHandler: uInterruptSnapshot(0x%x), eState (%d)", pControlBlock->uInterruptSnapshot, pControlBlock->eState));
+  SSCLOGP(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "WLANSSC_FatalInterruptHandler: uInterruptSnapshot(0x%x), eState (%d)", pControlBlock->uInterruptSnapshot, pControlBlock->eState));
 
   if( VOS_STATUS_SUCCESS != WLANSSC_ExecuteEvent( pControlBlock, 
                                                   WLANSSC_FATALERROR_EVENT ) )

@@ -154,6 +154,8 @@ eHalStatus halPS_Init(tHalHandle hHal, void *arg)
 #ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
     pHalPwrSave->mutexTxRxCount = 0;
 #endif
+    pHalPwrSave->enableMutexDebug = 0;
+
 #ifdef FEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND
     /* FIXME: Volans 1.0 Power-save workaround. Needs to be removed 
      * as soon as fix is available in the hardware
@@ -238,6 +240,8 @@ static void halPS_FwRspTimeoutFunc(void* pData)
     // Should do a LOGP here, if the response timeout occured
     HALLOGP( halLog(pMac, LOGP, FL("CRITICAL: FW response timedout for msg rsp type %d!!!\n"),
             pHalPwrSave->rspType));
+
+    macSysResetReq(pMac, eSIR_FW_EXCEPTION);
 
     // If we decide not to LOGP the below function can be used to generate
     // failure response message to PE, commenting for now
@@ -2789,10 +2793,17 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
 	
 		  do {
 			/* Acquire Mutex1 here */
-			palReadRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, &uRegValue);
+			status = palReadRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, &uRegValue);
             if (0 == uRegValue)
                 mutexFailCnt++;
 			curCnt = (uRegValue & QWLAN_MCU_MUTEX1_CURRENTCOUNT_MASK) >> QWLAN_MCU_MUTEX1_CURRENTCOUNT_OFFSET;
+
+            if(!VOS_IS_STATUS_SUCCESS(status) && vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) 
+            {
+                VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s: LOGP in progress.", __func__);
+                return VOS_STATUS_E_FAILURE;
+            }
+
 		  } while(curCnt < 1 && retryCnt++ < 300 );
          
           if (0 == curCnt)
@@ -2800,14 +2811,21 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
               /* LOGP if mutex is not acquired */
               VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s: MUTEX1 Not Acquired after 300 tries, regVal = %d", __func__, regValue);
               macSysResetReq(pMac, eSIR_PS_MUTEX_READ_EXCEPTION);
+              return VOS_STATUS_E_FAILURE;
           }    
           
           /* Release the mutex for the counts whenever we read the value 0 from register */
 	      uRegValue = (1 << QWLAN_MCU_MUTEX1_MAXCOUNT_OFFSET);
           while (mutexFailCnt)
           {
-              palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, uRegValue);
+              status = palWriteRegister(pMac->hHdd, QWLAN_MCU_MUTEX_HOSTFW_TX_SYNC_ADDR, uRegValue);
               mutexFailCnt--;
+              
+              if(!VOS_IS_STATUS_SUCCESS(status) && vos_is_logp_in_progress(VOS_MODULE_ID_HAL, NULL)) 
+              {
+                  VOS_TRACE( VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_FATAL, "%s: LOGP in progress.", __func__);
+                  return VOS_STATUS_E_FAILURE;
+              }
           }
           uRegValue = 0;
 
@@ -2889,12 +2907,15 @@ eHalStatus halPS_SetHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
         pMac->hal.PsParam.mutexIntrCount++;
     }
 
+    if (pMac->hal.PsParam.enableMutexDebug)
+    {
 #ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
-    HALLOGW(halLog(pMac, LOGE, "Acquired = %d,%d,%d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, 
+        HALLOGW(halLog(pMac, LOGE, "Acquired = %d,%d,%d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, 
                                                     pMac->hal.PsParam.mutexTxRxCount, pMac->hal.PsParam.mutexTxCount, regValue));
 #else
-    HALLOGW(halLog(pMac, LOGE, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
+        HALLOGW(halLog(pMac, LOGE, "Acquired = %d,%d, %x", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, regValue));
 #endif
+    }
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -2945,12 +2966,15 @@ eHalStatus halPS_ReleaseHostBusy(tpAniSirGlobal pMac, tANI_U8 ctx)
     }
 #endif
 
+    if (pMac->hal.PsParam.enableMutexDebug)
+    {
 #ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS
-    HALLOGW(halLog(pMac, LOGE, "Released = %d,%d,%d, %d", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, 
+        HALLOGW(halLog(pMac, LOGE, "Released = %d,%d,%d, %d", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, 
                                                     pMac->hal.PsParam.mutexTxRxCount, pMac->hal.PsParam.mutexTxCount));
 #else
-    HALLOGW(halLog(pMac, LOGE, "Released = %d,%d,%d", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxCount));
+        HALLOGW(halLog(pMac, LOGE, "Released = %d,%d,%d", pMac->hal.PsParam.mutexCount, pMac->hal.PsParam.mutexIntrCount, pMac->hal.PsParam.mutexTxCount));
 #endif
+    }
     return eHAL_STATUS_SUCCESS;
 }
 

@@ -66,6 +66,10 @@ when       who     what, where, why
 #include <mach/rpc_pmapp.h>
 #endif
 
+#ifdef MSM_PLATFORM_8660
+#include <qcomwlan_pwrif.h>
+#endif
+
 #endif //MSM_PLATFORM
 
 #include <vos_sched.h>
@@ -89,9 +93,6 @@ when       who     what, where, why
 
 // SDIO Config Cycle Clock Frequency
 #define WLAN_LOW_SD_CONFIG_CLOCK_FREQ 400000
-#ifdef MSM_PLATFORM_8660
-    int vos_chip_power_qrf8615(int on);
-#endif
 
 #ifdef MSM_PLATFORM_7x30
 
@@ -1290,4 +1291,127 @@ VOS_STATUS vos_chipVoteOffXOBuffer
 )
 {
    return VOS_STATUS_SUCCESS;
+}
+
+/**
+  @brief vos_chipVoteXOCore - This API will vote PMIC XO Core.
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+  @param force_enable [in] : Force enable XO CORE or not
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
+                         because the voting algorithm decided not to power down PA  
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteXOCore
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data,
+  v_BOOL_t              force_enable
+)
+{
+    static v_BOOL_t is_vote_on;
+#ifdef MSM_PLATFORM_8660
+    int rc;
+#endif
+   /* The expectation is the is_vote_on should always have value 1 or 0.  This funcn should
+    * be called alternately with 1 and 0 passed to it.
+    */
+   if ((force_enable && is_vote_on) || (!force_enable && !is_vote_on)) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+         "Force XO Core %s called when already %s - directly return success %d", 
+         force_enable ? "enable" : "disable", is_vote_on ? "enable" : "disable", 
+         is_vote_on);
+      goto success;
+   }    
+
+#ifdef MSM_PLATFORM_8660
+   rc = qcomwlan_pmic_xo_core_force_enable(force_enable);
+   if (rc) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+         "%s: pmic_xo_core_force_enable %s failed (%d)",__func__, 
+         force_enable ? "enable" : "disable",rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+#endif
+    is_vote_on=force_enable;
+
+success:
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN, "XO CORE ON vote %s successfully!",
+                force_enable ? "enable" : "disable");
+   return VOS_STATUS_SUCCESS;
+}
+
+
+/**
+  @brief vos_chipVoteFreqFor1p3VSupply() - This API will vote for frequency for 1.3V RF supply.
+  
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  EVM issue is observed with 1.6Mhz freq for 1.3V supply in wlan standalone case.
+  During concurrent operation (e.g. WLAN and WCDMA) this issue is not observed. 
+  To workaround, wlan will vote for 3.2Mhz during startup and will vote for 1.6Mhz
+  during exit.
+   
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+  @param freq [in]     :  Frequency for 1.3V Supply for which WLAN driver needs to vote for.
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
+                         because the voting algorithm decided not to power down PA  
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteFreqFor1p3VSupply
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data,
+  v_U32_t               freq
+)
+{
+
+
+#ifdef MSM_PLATFORM_8660
+    if(freq == VOS_NV_FREQUENCY_FOR_1_3V_SUPPLY_3P2MH)
+        {
+            if(qcomwlan_freq_change_1p3v_supply(RPM_VREG_FREQ_3p20))
+                return VOS_STATUS_E_FAILURE;
+        }
+    else
+        {
+            if(qcomwlan_freq_change_1p3v_supply(RPM_VREG_FREQ_1p60))
+                return VOS_STATUS_E_FAILURE;
+        }
+#endif
+
+    return VOS_STATUS_SUCCESS;
 }

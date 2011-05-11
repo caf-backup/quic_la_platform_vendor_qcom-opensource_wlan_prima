@@ -33,6 +33,8 @@
 #include "vos_sched.h"
 #include <wlan_hdd_power.h>
 #include <linux/spinlock.h>
+#include <libra_sdioif.h>
+#include <wlan_sal_misc.h>
 
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -864,6 +866,7 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     v_CONTEXT_t pVosContext = NULL;
     hdd_adapter_t *pAdapter = NULL;
     hdd_chip_reset_stats_t *pResetStats;
+    struct sdio_func *sdio_func_dev = NULL;
     
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
         "%s: vos_watchdog resetting WLAN", __FUNCTION__);
@@ -880,6 +883,24 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,"%s: Stop the interface TX Queue", __FUNCTION__);
     netif_tx_stop_all_queues(pAdapter->dev);
     netif_carrier_off(pAdapter->dev);
+
+    sdio_func_dev = libra_getsdio_funcdev();
+
+    if(sdio_func_dev == NULL)
+    {
+         /* Our card got removed before LOGP. Continue with reset anyways */
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: sdio_func_dev is NULL!",__func__);
+         return VOS_STATUS_SUCCESS;
+    }
+
+    sd_claim_host(sdio_func_dev);
+    
+    /* Disable SDIO IRQ since we are in LOGP state */
+    libra_disable_sdio_irq_capability(sdio_func_dev, 1);
+    libra_enable_sdio_irq(sdio_func_dev, 0);
+
+    sd_release_host(sdio_func_dev);
+
     /* Take the lock here */
     spin_lock(&gpVosWatchdogContext->wdLock);
 

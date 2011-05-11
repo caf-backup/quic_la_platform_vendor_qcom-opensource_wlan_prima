@@ -102,7 +102,7 @@ void rfSetTxGainLut(ePhyTxChains txChain, tANI_U8 minIndex, tANI_U8 maxIndex, co
 //channel/band/freq functions
 eRfSubBand rfGetBand(eRfChannels chan);
 eRfSubBand rfGetAGBand();
-void rfSetCurChannel(eRfChannels chan);
+void rfSetCurChannel(eRfChannels chan, tANI_BOOLEAN tempChanged);
 eRfChannels rfGetCurChannel();
 void rfSetChanBondMode(tANI_BOOLEAN onOff);
 void rfRelockSynth();

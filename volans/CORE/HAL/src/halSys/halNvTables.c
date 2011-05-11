@@ -3771,7 +3771,13 @@ const sHalNv nvDefaults =
         //NV_TABLE_TX_BB_FILTER_MODE
         {
             0
+        },
+         //NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY
+        {
+            0  //3.2Mhz
         }
+
+            
 
     } // tables
 };

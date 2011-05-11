@@ -164,6 +164,16 @@ eHalStatus halNvOpen(tHalHandle hMac)
                  return (eHAL_STATUS_FAILURE);
         }
     }
+    
+    if (vos_nv_getValidity(VNV_FREQUENCY_FOR_1_3V_SUPPLY, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE)
+        {
+            if(vos_nv_read( VNV_FREQUENCY_FOR_1_3V_SUPPLY, (v_VOID_t *)&pMac->hphy.nvCache.tables.freqFor1p3VSupply, NULL, sizeof(sFreqFor1p3VSupply) ) != VOS_STATUS_SUCCESS)
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
+
 
 }
 #endif //(defined(ANI_OS_TYPE_ANDROID) || defined(ANI_OS_TYPE_AMSS))
@@ -181,6 +191,8 @@ eHalStatus halNvOpen(tHalHandle hMac)
     pMac->hphy.nvTables[NV_TABLE_PACKET_TYPE_POWER_LIMITS  ] = &pMac->hphy.nvCache.tables.pktTypePwrLimits[0][0];
     pMac->hphy.nvTables[NV_TABLE_OFDM_CMD_PWR_OFFSET  ] = &pMac->hphy.nvCache.tables.ofdmCmdPwrOffset;
     pMac->hphy.nvTables[NV_TABLE_TX_BB_FILTER_MODE  ] = &pMac->hphy.nvCache.tables.txbbFilterMode;
+    pMac->hphy.nvTables[NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY  ] = &pMac->hphy.nvCache.tables.freqFor1p3VSupply;
+    
 
     return status;
 }
@@ -435,6 +447,15 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                 }
                 break;
 
+            case NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY:
+                if ((vosStatus = vos_nv_write(VNV_FREQUENCY_FOR_1_3V_SUPPLY, (void *)&pMac->hphy.nvCache.tables.freqFor1p3VSupply, sizeof(sFreqFor1p3VSupply))) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
+
+
+
             default:
                 return (eHAL_STATUS_FAILURE);
                 break;
@@ -598,6 +619,11 @@ eHalStatus halReadNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDat
             memcpy(tableData, &pMac->hphy.nvCache.tables.txbbFilterMode, sizeof(sTxBbFilterMode));
             break;
 
+        case NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.freqFor1p3VSupply, sizeof(sFreqFor1p3VSupply));
+            break;
+
+
         default:
             return (eHAL_STATUS_FAILURE);
             break;
@@ -686,6 +712,11 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
                 numOfEntries = 1;
                 sizeOfEntry = sizeof(sTxBbFilterMode);
                 break;
+            case NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY:
+                numOfEntries = 1;
+                sizeOfEntry = sizeof(sFreqFor1p3VSupply);
+                break;
+
 
             default:
                 return (eHAL_STATUS_FAILURE);
@@ -878,6 +909,20 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
                 }
 
                 break;
+            case NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY:
+                if ((vosStatus = vos_nv_setValidity(VNV_FREQUENCY_FOR_1_3V_SUPPLY, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+                {
+                    memcpy(&pMac->hphy.nvCache.tables.freqFor1p3VSupply, &nvDefaults.tables.freqFor1p3VSupply, sizeof(sFreqFor1p3VSupply));
+                }
+                else
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+
+                break;
+
+
+                
         default:
             return (eHAL_STATUS_FAILURE);
             break;
@@ -909,6 +954,8 @@ eHalStatus halBlankNv(tHalHandle hMac)
     halRemoveNvTable(hMac, NV_TABLE_PACKET_TYPE_POWER_LIMITS     );
     halRemoveNvTable(hMac, NV_TABLE_OFDM_CMD_PWR_OFFSET   );
     halRemoveNvTable(hMac, NV_TABLE_TX_BB_FILTER_MODE     );
+    halRemoveNvTable(hMac, NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY     );
+
 
     return (retVal);
 }

@@ -4392,6 +4392,24 @@ dump_hal_toggle_gpio(tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, tANI_U32
     return p;
 }
 #endif
+
+/* The dump command enables/disable the Mutex logs */
+static char *
+dump_hal_enable_disable_mutex_logs ( tpAniSirGlobal pMac, 
+                                tANI_U32 arg1, 
+                                tANI_U32 arg2, 
+                                tANI_U32 arg3, 
+                                tANI_U32 arg4, 
+                                char *p)
+{
+    if (arg1)
+        pMac->hal.PsParam.enableMutexDebug = 1;
+    else
+        pMac->hal.PsParam.enableMutexDebug = 0;
+
+    return p;
+}
+
 static tDumpFuncEntry halMenuDumpTable[] = {
     {0,     "HAL Specific (50-299)",                                    NULL},
     //----------------------------
@@ -4449,6 +4467,7 @@ static tDumpFuncEntry halMenuDumpTable[] = {
     {104,   "Toggle GPIO <level> <init> <enable>",                      dump_hal_toggle_gpio},
 #endif    
     {127,   "HAL: enable/disable BA activity check timer. arg1 = enable(1)/disable(0)",  (tpFunc)dump_set_ba_activity_check_timeout},
+    {128,   "HAL: enable(1)/disable(0) Powersave Mutex debugging",      dump_hal_enable_disable_mutex_logs},
 
     {0,     "RateAdaptation (180-220)",                                                        NULL},
     {180,   "HAL.RATE: Set STA 20M Rate <staid> <PriRateIdx> <SecRateIdx> <TerRateIdx>", dump_hal_sta_rate_20_set},

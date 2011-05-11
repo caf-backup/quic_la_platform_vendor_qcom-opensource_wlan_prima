@@ -37,6 +37,7 @@ typedef enum
     NV_TABLE_PACKET_TYPE_POWER_LIMITS   = 13,
     NV_TABLE_OFDM_CMD_PWR_OFFSET        = 14,
     NV_TABLE_TX_BB_FILTER_MODE          = 15,
+    NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY  = 16,
 
     NUM_NV_TABLE_IDS,
     NV_ALL_TABLES                   = 0xFFF,
@@ -50,6 +51,12 @@ typedef struct
     tANI_U8 regDomain;                                      //from eRegDomainId
     tANI_U8 countryCode[NV_FIELD_COUNTRY_CODE_SIZE];    // string identifier
 }sDefaultCountry;
+
+
+typedef struct
+{
+    tANI_U32 freqFor1p3VSupply;
+}sFreqFor1p3VSupply;
 
 
 typedef union
@@ -67,6 +74,7 @@ typedef union
     t2Decimal            pktTypePwrLimits[NUM_802_11_MODES][NUM_2_4GHZ_CHANNELS]; // NV_TABLE_PACKET_TYPE_POWER_LIMITS
     sOfdmCmdPwrOffset    ofdmCmdPwrOffset;                                        // NV_TABLE_OFDM_CMD_PWR_OFFSET
     sTxBbFilterMode      txbbFilterMode;                                          // NV_TABLE_TX_BB_FILTER_MODE
+    sFreqFor1p3VSupply   freqFor1p3VSupply;                                       // NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY
 }uNvTables;
 
 typedef struct
@@ -84,6 +92,8 @@ typedef struct
     t2Decimal            pktTypePwrLimits[NUM_802_11_MODES][NUM_2_4GHZ_CHANNELS]; // NV_TABLE_PACKET_TYPE_POWER_LIMITS
     sOfdmCmdPwrOffset    ofdmCmdPwrOffset;                                        // NV_TABLE_OFDM_CMD_PWR_OFFSET
     sTxBbFilterMode      txbbFilterMode;                                          // NV_TABLE_TX_BB_FILTER_MODE
+    sFreqFor1p3VSupply   freqFor1p3VSupply;                                       // NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY
+
 }sNvTables;
 
 
