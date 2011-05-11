@@ -123,7 +123,8 @@ static int iw_qcom_get_wlan_stats(struct net_device *dev, struct iw_request_info
 /* Private ioctl for setting the host offload feature */
 #define WLAN_PRIV_SET_HOST_OFFLOAD (SIOCIWFIRSTPRIV + 18)
 
-#define WLAN_PRIV_GET_WLAN_STATS         (SIOCIWFIRSTPRIV + 22)
+/*Ioctl to get wlan stats in TLV format. Don't change this number*/
+#define WLAN_PRIV_GET_WLAN_STATS         (SIOCIWFIRSTPRIV + 21)
 
 #define WLAN_STATS_INVALID            0
 #define WLAN_STATS_RETRY_CNT          1
@@ -3074,7 +3075,7 @@ static int iw_qcom_get_wlan_stats(struct net_device *dev, struct iw_request_info
 
         FILL_TLV(p, (tANI_U8)WLAN_STATS_TX_FRM_CNT, 
                 (tANI_U8) sizeof (pStats->tx_frm_cnt), 
-                (char*) &(pStats->multiple_retry_cnt[0]), 
+                (char*) &(pStats->tx_frm_cnt[0]), 
                 tlen);
 
         FILL_TLV(p, (tANI_U8)WLAN_STATS_RX_FRM_CNT, 
