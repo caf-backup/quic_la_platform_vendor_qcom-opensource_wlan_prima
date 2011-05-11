@@ -647,16 +647,14 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
 #endif
             }
         }
-#if defined(WLAN_PERF) || defined(FEATURE_WLAN_WAPI) || defined(LIBRA_WAPI_SUPPORT)
+
         //For not-NULL data frames
         else{
-#if defined(FEATURE_WLAN_WAPI)
             //If caller doesn't want this frame to be encrypted, for example, WAI packets
             if( (txFlag & HAL_TX_NO_ENCRYPTION_MASK) )
             {
                 pBd->dpuNE = HAL_NO_ENCRYPTION_ENABLED;
             }
-#endif //defined(FEATURE_WLAN_WAPI)
 #ifdef LIBRA_WAPI_SUPPORT
             if (txFlag & HAL_WAPI_STA_MASK)
             {
@@ -667,7 +665,7 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
             txBdSignature = computeTxBdSignature(pMac, pDestMacAddr, tid, unicastDst);
 #endif
         }
-#endif        
+
     }
     else if (type == SIR_MAC_MGMT_FRAME)
     {

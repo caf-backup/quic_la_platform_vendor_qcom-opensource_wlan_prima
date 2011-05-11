@@ -5187,21 +5187,6 @@ WLANTL_STATxConn
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:Attaching BD header to pkt on WLANTL_STATxConn"));
 
-  #ifdef FEATURE_WLAN_WAPI
-  /*------------------------------------------------------------------------
-    Translate 802.3 frame to 802.11 if Frame translation is enabled or if 
-    frame is a WAI frame.
-   ------------------------------------------------------------------------*/
-  if ((( 1 == tlMetaInfo.ucIsWai ) ||
-       (( 0 == tlMetaInfo.ucDisableFrmXtl ) &&
-       ( 0 != pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucSwFrameTXXlation))))
-#else
-  /*------------------------------------------------------------------------
-    Translate 802.3 frame to 802.11 if Frame translation is enabled 
-   ------------------------------------------------------------------------*/
-  if (( 0 == tlMetaInfo.ucDisableFrmXtl ) &&
-      ( 0 != pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucSwFrameTXXlation))
-#endif
   {
     vosStatus =  WLANTL_Translate8023To80211Header( vosDataBuff, &vosStatus,
                                                     pTLCb, ucSTAId,
@@ -5245,7 +5230,6 @@ WLANTL_STATxConn
   }
 
 
-#ifdef FEATURE_WLAN_WAPI
   vosStatus = (VOS_STATUS)WLANHAL_FillTxBd( pvosGCtx, ucTypeSubtype, 
                                             &vDestMacAddr,  
                                 &pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSelfMACAddress,
@@ -5253,14 +5237,6 @@ WLANTL_STATxConn
                                             pvBDHeader, 
                                             HAL_TX_NO_ENCRYPTION_MASK,
                                             tlMetaInfo.usTimeStamp );
-#else
-  vosStatus = (VOS_STATUS)WLANHAL_FillTxBd( pvosGCtx, ucTypeSubtype, 
-                                            &vDestMacAddr,  
-                                            &pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSelfMACAddress,
-                                            &ucTid, tlMetaInfo.ucDisableFrmXtl,
-                                pvBDHeader, 0 /* No ACK */,
-                                tlMetaInfo.usTimeStamp );
-#endif /* FEATURE_WLAN_WAPI */
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
