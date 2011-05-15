@@ -140,6 +140,40 @@ tTxGain tpcGainLut[PHY_MAX_TX_CHAINS][TPC_MEM_GAIN_LUT_DEPTH] =
 //     return (retVal);
 // }
 
+eHalStatus phyTxPowerSplitLutUpdate(tpAniSirGlobal pMac, tANI_U8 tpcIdx)
+{
+    eHalStatus retVal = eHAL_STATUS_SUCCESS;
+    int i, temp;
+
+    //fill out ofdm rf_gain range with values [2:8]
+    for(i = 0; i <= tpcIdx; i++)
+    {
+        temp = 2 + (i >> 2);
+        tpcGainLut[0][i].coarsePwr = (temp <= 8) ? temp : 8;
+    }
+
+    //fill out 11b rf_gain range with values [9:15]
+    for(i = (tpcIdx+1); i <= (TPC_MEM_GAIN_LUT_DEPTH - 1); i++)
+    {
+        temp = 9 + ((i - (tpcIdx + 1)) >> 2);
+        tpcGainLut[0][i].coarsePwr = (temp <= 15) ? temp : 15;
+    }
+
+    //fill out dig_gain
+    for(i = 0; i <= (TPC_MEM_GAIN_LUT_DEPTH - 1); i++)
+    {
+        tpcGainLut[0][i].finePwr = 9 + ((i % 4)<<1);
+    }
+
+    if (
+        ((retVal = asicLoadTPCGainLUT(pMac, PHY_TX_CHAIN_0, &(tpcGainLut[PHY_TX_CHAIN_0][0]))) != eHAL_STATUS_SUCCESS)
+       )
+    {
+        return (retVal);
+    }
+
+    return (retVal);
+}
 
 eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 {
@@ -179,11 +213,21 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
     }
 
     //load gain LUTs
-    if (
-        ((retVal = asicLoadTPCGainLUT(pMac, PHY_TX_CHAIN_0, &(tpcGainLut[PHY_TX_CHAIN_0][0]))) != eHAL_STATUS_SUCCESS)
-       )
     {
-        return (retVal);
+        tANI_U8 tpcIdx = TPC_LUT_SPLIT_IDX; //default split lut Idx
+        tRateGroupPwr *pwrOptimum;
+        if(halGetNvTableLoc(pMac, NV_TABLE_RATE_POWER_SETTINGS, (uNvTables **)&pwrOptimum) == eHAL_STATUS_SUCCESS)
+        {
+            t2Decimal _6Mbps_pwr = pwrOptimum[0][HAL_PHY_RATE_11A_6_MBPS].reported;
+            tpcIdx = (tANI_U8)((2 * _6Mbps_pwr)/100 - 17); //8.5dBm:idx0, 24dBm:idx31
+
+            if(tpcIdx > (TPC_MEM_GAIN_LUT_DEPTH - 1))
+            {
+                tpcIdx = TPC_LUT_SPLIT_IDX;
+            }
+        }
+
+        phyTxPowerSplitLutUpdate(pMac, tpcIdx);
     }
 
     if (pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)

@@ -44,7 +44,7 @@
 #define MAX_TPC_GAIN_INDEX                      31
 #define TPC_GAIN_LUT_PWR_SLOPE                  2
 #define OPT_PWRLIMIT_DBM                        12
-
+#define TPC_LUT_SPLIT_IDX                       18
 
 #define TPC_ADC_CTRL_REG                        QWLAN_TPC_ADC_CTRL_GET_ADC_REG
 #define TPC_ADC_GET_MASK                        QWLAN_TPC_ADC_CTRL_GET_ADC_GET_ADC_MASK

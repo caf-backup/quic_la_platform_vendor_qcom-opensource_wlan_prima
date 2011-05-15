@@ -773,6 +773,18 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
             break;
         }
 
+        case PTT_MSG_UPDATE_TPC_SPLIT_LUT:
+        {
+            HTONL(msgBody->UpdateTpcSplitLut.pwrRange);
+            HTONL(msgBody->UpdateTpcSplitLut.splitIdx);
+
+            retVal = pttUpdateTpcSplitLut(pMac, msgBody->UpdateTpcSplitLut.pwrRange, msgBody->UpdateTpcSplitLut.splitIdx);
+            NTOHL(msgBody->UpdateTpcSplitLut.pwrRange);
+            NTOHL(msgBody->UpdateTpcSplitLut.splitIdx);
+
+            break;
+        }
+
         case PTT_MSG_SET_TX_POWER:
         {
             HTONS(msgBody->SetTxPower.dbmPwr);

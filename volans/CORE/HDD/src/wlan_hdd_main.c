@@ -67,6 +67,7 @@ int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter);
 #endif
 #ifdef WLAN_SOFTAP_FEATURE
 #include "sapApi.h"
+#include <linux/semaphore.h>
 #include <wlan_hdd_hostapd.h>
 #include <wlan_hdd_softap_tx_rx.h>
 #endif
@@ -138,6 +139,8 @@ struct notifier_block hdd_netdev_notifier = {
 #ifdef CONFIG_HAS_EARLYSUSPEND
 extern void register_wlan_suspend(void);
 extern void unregister_wlan_suspend(void);
+void hdd_unregister_mcast_bcast_filter(hdd_adapter_t *pAdapter);
+void hdd_register_mcast_bcast_filter(hdd_adapter_t *pAdapter);
 #endif
 #ifdef WLAN_SOFTAP_FEATURE
 //variable to hold the insmod parameters
@@ -733,7 +736,13 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
       clear_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
    }
 
+   //This requires pMac access, Call this before vos_close().
+#ifdef CONFIG_HAS_EARLYSUSPEND
+   hdd_unregister_mcast_bcast_filter(pAdapter);
+#endif
+
    //Close VOSS
+   //This frees pMac(HAL) context. There should not be any call that requires pMac access after this.
    vos_close(pVosContext);
 
    //Close the scheduler before closing other modules.
@@ -743,7 +752,6 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
          "%s: Failed to close VOSS Scheduler",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
-
 
    vosStatus = WLANBAL_Close(pVosContext);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -1313,6 +1321,9 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       goto err_nl_srv;
    }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+   hdd_register_mcast_bcast_filter(pAdapter);
+#endif
    //Trigger the initial scan
    hdd_wlan_initial_scan(pAdapter);
 

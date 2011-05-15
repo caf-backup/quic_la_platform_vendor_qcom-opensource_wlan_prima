@@ -208,6 +208,7 @@ typedef struct tagDxeCCB                // One per DXE channel
     tANI_U32        cw_ctrl_write_valid;
     tANI_U32        cw_ctrl_write_eop_int;
     tANI_U32        chan_mask;
+    tANI_U32        chDXECtrlRegValue;
 
     tANI_BOOLEAN	use_lower_4g;		/**< Added in Gen5 for Prefetch */
     tANI_BOOLEAN    use_short_desc_fmt;   

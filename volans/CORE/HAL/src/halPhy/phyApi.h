@@ -169,7 +169,7 @@ tPowerdBmRange InterpolateAbsPowerPerFreq(tpAniSirGlobal pMac, tANI_U16 freq);
 tPowerDetect phyGetTxPowerLutValForAbsPower(tpAniSirGlobal pMac, ePhyTxChains txChain, t2Decimal absPwr);
 t2Decimal phyGetAbsTxPowerForLutValue(tpAniSirGlobal pMac, ePhyTxChains txChain, tPowerDetect lutValue);
 eHalStatus LoadRecentCalValues(tpAniSirGlobal pMac, eCalSelection calId, eRfSubBand bandIndex);
-
+eHalStatus phyTxPowerSplitLutUpdate(tpAniSirGlobal pMac, tANI_U8 tpcIdx);
 
 eHalStatus phyLoadCharacterizedPowerLut(tpAniSirGlobal pMac, eRfChannels chan);
 

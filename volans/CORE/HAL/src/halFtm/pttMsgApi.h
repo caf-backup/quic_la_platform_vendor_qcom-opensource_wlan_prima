@@ -111,6 +111,7 @@ typedef enum
     PTT_MSG_GET_PACKET_TX_GAIN_TABLE             = 0x30AB,
     PTT_MSG_SAVE_TX_PWR_FREQ_TABLE_OBSOLETE      = 0x30AC,
     PTT_MSG_CLPC_TEMP_COMPENSATION_OBSOLETE      = 0x30AD,
+    PTT_MSG_UPDATE_TPC_SPLIT_LUT                 = 0x30AE,
 
 //Rx Gain Service
     PTT_MSG_DISABLE_AGC_TABLES                   = 0x30D0,
@@ -396,6 +397,12 @@ typedef struct
 {
     ePowerTempIndexSource indexSource;
 }tMsgPttSetPwrIndexSource;
+
+typedef struct
+{
+    ePhyTxPwrRange pwrRange;
+    tANI_U32 splitIdx;
+}tMsgPttUpdateTpcSplitLut;
 
 typedef struct
 {
@@ -719,6 +726,7 @@ typedef union pttMsgUnion
     tMsgPttSetPacketTxGainIndex                     SetPacketTxGainIndex;
     tMsgPttForcePacketTxGain                        ForcePacketTxGain;
     tMsgPttSetPwrIndexSource                        SetPwrIndexSource;
+    tMsgPttUpdateTpcSplitLut                        UpdateTpcSplitLut;
     tMsgPttSetTxPower                               SetTxPower;
     tMsgPttGetTxPowerReport                         GetTxPowerReport;
     tMsgPttSetPowerLut                              SetPowerLut;

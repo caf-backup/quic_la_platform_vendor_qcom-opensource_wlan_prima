@@ -164,7 +164,7 @@ eHalStatus halNvOpen(tHalHandle hMac)
                  return (eHAL_STATUS_FAILURE);
         }
     }
-    
+
     if (vos_nv_getValidity(VNV_FREQUENCY_FOR_1_3V_SUPPLY, &itemIsValid) == VOS_STATUS_SUCCESS)
     {
         if (itemIsValid == VOS_TRUE)
@@ -192,7 +192,7 @@ eHalStatus halNvOpen(tHalHandle hMac)
     pMac->hphy.nvTables[NV_TABLE_OFDM_CMD_PWR_OFFSET  ] = &pMac->hphy.nvCache.tables.ofdmCmdPwrOffset;
     pMac->hphy.nvTables[NV_TABLE_TX_BB_FILTER_MODE  ] = &pMac->hphy.nvCache.tables.txbbFilterMode;
     pMac->hphy.nvTables[NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY  ] = &pMac->hphy.nvCache.tables.freqFor1p3VSupply;
-    
+
 
     return status;
 }
@@ -922,7 +922,7 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
                 break;
 
 
-                
+
         default:
             return (eHAL_STATUS_FAILURE);
             break;

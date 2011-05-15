@@ -37,6 +37,7 @@
 #include <linux/etherdevice.h>
 #include <linux/if_vlan.h>
 #include <linux/ip.h>
+#include <linux/semaphore.h>
 #include <wlan_hdd_hostapd.h>
 
 // change logging behavior based upon debug flag

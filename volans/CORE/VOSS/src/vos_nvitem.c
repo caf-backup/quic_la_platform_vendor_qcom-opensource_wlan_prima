@@ -62,7 +62,7 @@ typedef struct
 // loaded on driver initialization if available
 static CountryInfoTable_t countryInfoTable =
 {
-    248,
+    249,
     {
         { REGDOMAIN_FCC, {'U', 'S'}},       // USA - must be the first country code
         { REGDOMAIN_WORLD, {'A', 'D'}},     //ANDORRA
@@ -311,7 +311,8 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_KOREA, {'K', '1'}},     //Korea alternate 1
         { REGDOMAIN_KOREA, {'K', '2'}},     //Korea alternate 2
         { REGDOMAIN_KOREA, {'K', '3'}},     //Korea alternate 3
-        { REGDOMAIN_KOREA, {'K', '4'}}      //Korea alternate 4
+        { REGDOMAIN_KOREA, {'K', '4'}},      //Korea alternate 4
+        { REGDOMAIN_ETSI, {'E', 'U'}}       //Europe (SSGFI)
     }
 };
 typedef struct nvEFSTable_s

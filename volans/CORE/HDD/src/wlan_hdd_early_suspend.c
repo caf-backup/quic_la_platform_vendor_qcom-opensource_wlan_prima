@@ -35,12 +35,15 @@
 #include <wlan_qct_sys.h>
 #include <wlan_btc_svc.h>
 #include <wlan_nlink_common.h>
+#include <wlan_hdd_main.h>
+#include <wlan_hdd_assoc.h>
 #include <wlan_sal_misc.h>
 #include <libra_sdioif.h>
 #include <wlan_nlink_srv.h>
 #include <wlan_hdd_misc.h>
 
 #ifdef WLAN_SOFTAP_FEATURE
+#include <linux/semaphore.h>
 #include <wlan_hdd_hostapd.h>
 #endif
 
@@ -577,10 +580,55 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
          halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME, pAdapter->pvosContext), FALSE);
       }
    }
+   pAdapter->hdd_wlan_suspended = TRUE;
    
    sd_release_host(sdio_func_dev);
    
    return;
+}
+
+static void hdd_PowerStateChangedCB
+(
+   v_PVOID_t callbackContext,
+   tPmcState newState
+)
+{
+   hdd_adapter_t *pAdapter = callbackContext;
+   spin_lock(&pAdapter->filter_lock);
+   if((newState == BMPS) &&  pAdapter->hdd_wlan_suspended
+          && (pAdapter->hdd_mcastbcast_filter_set != TRUE)) {
+      spin_unlock(&pAdapter->filter_lock);
+      hdd_conf_mcastbcast_filter(pAdapter, TRUE);
+      if(pAdapter->hdd_mcastbcast_filter_set != TRUE)
+         hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Not able to set mcast/bcast filter ", __func__);
+   }
+   else 
+      spin_unlock(&pAdapter->filter_lock);
+}
+
+
+
+void hdd_register_mcast_bcast_filter(hdd_adapter_t *pAdapter)
+{
+
+   v_CONTEXT_t pVosContext = NULL;
+   pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+   spin_lock_init(&pAdapter->filter_lock);
+   if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) {
+      pmcRegisterDeviceStateUpdateInd( vos_get_context(VOS_MODULE_ID_HAL,pVosContext),
+                                     hdd_PowerStateChangedCB,pAdapter  );
+   }
+}
+
+void hdd_unregister_mcast_bcast_filter(hdd_adapter_t *pAdapter)
+{
+
+   v_CONTEXT_t pVosContext = NULL;
+   pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+   if(pAdapter->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) {
+      pmcDeregisterDeviceStateUpdateInd( vos_get_context(VOS_MODULE_ID_HAL,pVosContext),
+                                     hdd_PowerStateChangedCB );
+   }
 }
 
 void hdd_resume_wlan(struct early_suspend *wlan_suspend)
@@ -635,6 +683,7 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
    }
 #endif
 	
+   pAdapter->hdd_wlan_suspended = FALSE;
    if(pAdapter->hdd_mcastbcast_filter_set == TRUE) {
          hdd_conf_mcastbcast_filter(pAdapter, FALSE);
          pAdapter->hdd_mcastbcast_filter_set = FALSE;
@@ -786,6 +835,9 @@ VOS_STATUS hdd_wlan_reset(void)
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+   hdd_unregister_mcast_bcast_filter(pAdapter);
+#endif
    //clean up HDD Data Path
    hdd_deinit_tx_rx(pAdapter);
    hdd_wmm_close(pAdapter);
@@ -1012,6 +1064,9 @@ VOS_STATUS hdd_wlan_reset(void)
    // Allow the phone to go to sleep
    hdd_allow_suspend();
 
+#ifdef CONFIG_HAS_EARLYSUSPEND
+   hdd_register_mcast_bcast_filter(pAdapter);
+#endif
    //Trigger the initial scan
    hdd_wlan_initial_scan(pAdapter);
 

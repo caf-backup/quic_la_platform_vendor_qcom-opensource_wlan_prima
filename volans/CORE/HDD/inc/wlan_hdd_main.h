@@ -25,6 +25,7 @@
 #include <wlan_hdd_dp_utils.h>
 #include <wlan_hdd_wmm.h>
 #include <wlan_hdd_cfg.h>
+#include <linux/spinlock.h>
 #ifdef ANI_MANF_DIAG
 #include <wlan_hdd_ftm.h>
 #endif
@@ -375,6 +376,10 @@ struct hdd_adapter_s
    
    /* Track whether Mcast/Bcast Filter is enabled.*/
    v_BOOL_t hdd_mcastbcast_filter_set;
+   
+   v_BOOL_t hdd_wlan_suspended;
+   
+   spinlock_t filter_lock;
    
    /** ptt Process ID*/
    v_SINT_t ptt_pid;

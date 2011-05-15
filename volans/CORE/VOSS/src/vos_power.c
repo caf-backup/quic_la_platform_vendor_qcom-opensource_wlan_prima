@@ -70,6 +70,10 @@ when       who     what, where, why
 #include <qcomwlan_pwrif.h>
 #endif
 
+#ifdef MSM_PLATFORM_7x27A
+#include <linux/qcomwlan7x27a_pwrif.h>
+#endif
+
 #endif //MSM_PLATFORM
 
 #include <vos_sched.h>
@@ -533,6 +537,11 @@ VOS_STATUS vos_chipPowerUp
       return VOS_STATUS_E_FAILURE;
 #endif
 
+#ifdef MSM_PLATFORM_7x27A
+   if(chip_power_qrf6285(CHIP_POWER_ON))
+      return VOS_STATUS_E_FAILURE;
+#endif
+
    return VOS_STATUS_SUCCESS;
 }
 
@@ -602,6 +611,11 @@ VOS_STATUS vos_chipPowerDown
 
 #ifdef MSM_PLATFORM_7x27_FFA
    if(vos_chip_power_7x27_keypad(CHIP_POWER_OFF))
+      return VOS_STATUS_E_FAILURE;
+#endif
+
+#ifdef MSM_PLATFORM_7x27A
+   if(chip_power_qrf6285(CHIP_POWER_OFF))
       return VOS_STATUS_E_FAILURE;
 #endif
 

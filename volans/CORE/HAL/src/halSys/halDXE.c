@@ -288,6 +288,9 @@ halDXE_ConfigChannel(tHalHandle hHalHandle, eDMAChannel channel, sDXEChannelCfg 
     pDxeCCB->chConfigured   = eANI_BOOLEAN_TRUE;
     pDxeCCB->chEnabled      = eANI_BOOLEAN_TRUE;     // Channel enabled
 
+    /* Save the DXE Control register value for this channel. This is needed for later use */
+    halReadRegister(pMac, pDxeCCB->chDXECtrlRegAddr, &pDxeCCB->chDXECtrlRegValue);
+    
     return (eHAL_STATUS_SUCCESS);
 }
 
@@ -482,10 +485,10 @@ eHalStatus halDxe_EnsureDXEIdleState(tHalHandle hHalHandle)
 	pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX_HI];
 	dwCtrl  = pDxeCCB->sdioDesc.cw.ctrl | DXE_DESC_CTRL_STOP;
 
-    vos_sleep(2);
-
     halWriteDeviceMemory(pMac, pDxeCCB->sdio_ch_desc,
                         (tANI_U8 *)&dwCtrl, 4);
+
+    vos_sleep(2);
 
 	return eHAL_STATUS_SUCCESS;
 }
@@ -502,15 +505,21 @@ eHalStatus halDxe_EnableDisableDXE(tHalHandle hHalHandle, tANI_U8 enable)
 	// If DXE is being disabled ensure that it is either in the stopped or MASKED state
 	if (!enable) {
 
-		// Remove the STOP bit from the DXE descriptor CTRL DWORD
+		// Remove the STOP bit from the DXE descriptor CTRL DWORD for CHANNEL 1 (RX Channel)
         pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX];
 		halWriteDeviceMemory(pMac, pDxeCCB->sdio_ch_desc,
                              (tANI_U8 *)&pDxeCCB->sdioDesc.cw.ctrl, 4);
+        /* Stopping the channel will disable the channel */
+        /* Update the DXE Channel Control register and explicitly enable the channel */
+        halWriteRegister(pMac, pDxeCCB->chDXECtrlRegAddr, pDxeCCB->chDXECtrlRegValue);
 
         pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX_HI];
-        // Remove the STOP bit from the DXE descriptor CTRL DWORD
+        // Remove the STOP bit from the DXE descriptor CTRL DWORD for CHANNEL 3 (RX HI Channel)
 		halWriteDeviceMemory(pMac, pDxeCCB->sdio_ch_desc,
                              (tANI_U8 *)&pDxeCCB->sdioDesc.cw.ctrl, 4);
+        /* Stopping the channel will disable the channel */
+        /* Update the DXE Channel Control register and explicitly enable the channel */
+        halWriteRegister(pMac, pDxeCCB->chDXECtrlRegAddr, pDxeCCB->chDXECtrlRegValue);
 	}
 
     // Enable DXE engine, reset the enable bit in the DXE CSR register

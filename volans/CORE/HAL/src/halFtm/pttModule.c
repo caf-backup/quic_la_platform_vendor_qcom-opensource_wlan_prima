@@ -200,7 +200,7 @@ eQWPttStatus pttSetNvTable(tpAniSirGlobal pMac, eNvTable nvTable, uNvTables *tab
             case NV_TABLE_OFDM_CMD_PWR_OFFSET:
             case NV_TABLE_TX_BB_FILTER_MODE:
             case NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY:
-           
+
                 if (eHAL_STATUS_FAILURE == halWriteNvTable(pMac, nvTable, tableData))
                 {
                     phyLog(pMac, LOGE, "Unable to write table %d\n", (tANI_U32)nvTable);
@@ -826,6 +826,56 @@ eQWPttStatus pttForcePacketTxGain(tpAniSirGlobal pMac, ePhyTxChains txChain, tAN
 }
 
 
+eQWPttStatus pttUpdateTpcSplitLut(tpAniSirGlobal pMac, ePhyTxPwrRange pwrRange, tANI_U32 splitIdx)
+{
+    tANI_U8 tpcIdx = TPC_LUT_SPLIT_IDX;
+
+    switch (pwrRange)
+    {
+        case PHY_TX_POWER_RANGE_R2P:
+            {
+                tRateGroupPwr *pwrOptimum;
+                if(halGetNvTableLoc(pMac, NV_TABLE_RATE_POWER_SETTINGS, (uNvTables **)&pwrOptimum) == eHAL_STATUS_SUCCESS)
+                {
+                    t2Decimal _6Mbps_pwr = pwrOptimum[0][HAL_PHY_RATE_11A_6_MBPS].reported;
+                    tpcIdx = (tANI_U8)((2 * _6Mbps_pwr)/100 - 17); //8.5dBm:idx0, 24dBm:idx31
+
+                    if(tpcIdx > (TPC_MEM_GAIN_LUT_DEPTH - 1))
+                    {
+                        tpcIdx = TPC_LUT_SPLIT_IDX;
+                    }
+                }
+            }
+            break;
+
+        case PHY_TX_POWER_RANGE_11B:
+            tpcIdx = 0;
+            break;
+
+        case PHY_TX_POWER_RANGE_OFDM:
+            tpcIdx = TPC_MEM_GAIN_LUT_DEPTH - 1;
+            break;
+
+        case PHY_TX_POWER_RANGE_FIXED_POINT:
+            if(splitIdx < TPC_MEM_GAIN_LUT_DEPTH)
+            {
+                tpcIdx = (tANI_U8)splitIdx;
+            }
+            else
+            {
+                return (FAILURE);
+            }
+            break;
+
+        default:
+            return (FAILURE);
+            break;
+    }
+
+    phyTxPowerSplitLutUpdate(pMac, tpcIdx);
+
+    return (SUCCESS);
+}
 
     //closed loop(CLPC) service
 eQWPttStatus pttSetPwrIndexSource(tpAniSirGlobal pMac, ePowerTempIndexSource indexSource)

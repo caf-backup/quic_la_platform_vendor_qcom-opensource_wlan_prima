@@ -86,6 +86,7 @@ eQWPttStatus pttSetTxPower(tpAniSirGlobal pMac, t2Decimal dbmPwr);
 eQWPttStatus pttGetTxPowerReport(tpAniSirGlobal pMac, tTxPowerReport *pwrTempIndex);
 eQWPttStatus pttSetPowerLut(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_U8 minIndex, tANI_U8 maxIndex, tANI_U8 *powerLut);
 eQWPttStatus pttGetPowerLut(tpAniSirGlobal pMac, ePhyTxChains txChain, tANI_U8 *powerLut);
+eQWPttStatus pttUpdateTpcSplitLut(tpAniSirGlobal pMac, ePhyTxPwrRange pwrRange, tANI_U32 splitIdx);
 
 
 //Rx Gain Service

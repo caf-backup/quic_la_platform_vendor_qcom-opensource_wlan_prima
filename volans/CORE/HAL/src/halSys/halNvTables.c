@@ -3777,7 +3777,7 @@ const sHalNv nvDefaults =
             0  //3.2Mhz
         }
 
-            
+
 
     } // tables
 };

@@ -30,6 +30,15 @@ typedef enum
     POWER_INDX_SRC_MAX_VAL      = 0xFFFFFFFF, //dummy val to set enum to 4 bytes
 }ePowerTempIndexSource;
 
+//supports testing of RF gain split Lut
+typedef enum
+{
+    PHY_TX_POWER_RANGE_R2P,
+    PHY_TX_POWER_RANGE_11B,
+    PHY_TX_POWER_RANGE_OFDM,
+    PHY_TX_POWER_RANGE_FIXED_POINT
+
+}ePhyTxPwrRange;
 
 typedef struct
 {

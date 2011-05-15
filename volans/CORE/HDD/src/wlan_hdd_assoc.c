@@ -549,7 +549,7 @@ static VOS_STATUS hdd_roamRegisterSTA( hdd_adapter_t *pAdapter,
                                        v_MACADDR_t *pPeerMacAddress )
 {
    VOS_STATUS vosStatus = VOS_STATUS_E_FAILURE;
-   WLAN_STADescType staDesc;
+   WLAN_STADescType staDesc = {0};
    eCsrEncryptionType connectedCipherAlgo;
    v_BOOL_t  fConnected;
    

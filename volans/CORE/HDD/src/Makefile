@@ -275,7 +275,8 @@ HAL_FTM_OBJS :=	$(HAL_SRC)/halFtm/pttMsgApi.o \
         $(HAL_SRC)/halFtm/pttFrameGen.o \
         $(HAL_SRC)/halFtm/asicPhyDbg.o \
 		$(HAL_SRC)/halFtm/halPhyRates.o \
-		$(HAL_SRC)/halFtm/halFtmRx.o
+		$(HAL_SRC)/halFtm/halFtmRx.o \
+		$(HAL_SRC)/halFtm/phyClpcLpbkCal.o
 
 
 
