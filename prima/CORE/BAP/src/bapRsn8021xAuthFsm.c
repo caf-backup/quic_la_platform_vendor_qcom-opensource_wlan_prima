@@ -141,6 +141,9 @@ authRsnFsmCreate(tBtampContext *ctx)
     int retVal = ANI_OK;
     tAuthRsnFsm *fsm = &ctx->uFsm.authFsm;
 
+    // First, clear everything out
+    vos_mem_zero( fsm, sizeof(tAuthRsnFsm));
+
     if( !VOS_IS_STATUS_SUCCESS( bapRsnRegisterTxRxCallbacks( authRsnTxCompleteHandler,
                                             authRsnRxFrameHandler ) ) )
     {
@@ -152,8 +155,7 @@ authRsnFsmCreate(tBtampContext *ctx)
         return ANI_ERROR;
     }
 
-    vos_mem_zero( fsm, sizeof(tAuthRsnFsm) );
-
+    // Allocate the station context
     fsm->staCtx = (tStaContext *)vos_mem_malloc( sizeof(tStaContext) );
     if (fsm->staCtx == NULL) 
     {
@@ -161,13 +163,13 @@ authRsnFsmCreate(tBtampContext *ctx)
         VOS_ASSERT( 0 );
         goto error;
     }
-
+    // Clear out the station context
     vos_mem_zero( fsm->staCtx, sizeof(tStaContext) );
     
     fsm->ctx = ctx;
     fsm->staCtx->authRsnFsm = fsm;
     //Only support CCMP
-    fsm->staCtx->pwCipherType = eANI_SSM_CT_CCMP;
+    fsm->staCtx->pwCipherType = eCSR_ENCRYPT_TYPE_AES;
 
     if( !VOS_IS_STATUS_SUCCESS( vos_timer_init( &fsm->msg2Timer, VOS_TIMER_TYPE_SW, msg2TimerCallback, fsm ) ) )
     {
@@ -464,7 +466,7 @@ gotoStatePtkStart(tAuthRsnFsm *fsm)
         vos_mem_zero( &txDesc, sizeof(txDesc) );
 
         // The Key Information bits...
-        if (fsm->staCtx->pwCipherType == eANI_SSM_CT_CCMP) 
+        if (fsm->staCtx->pwCipherType == eCSR_ENCRYPT_TYPE_AES) 
         {
             txDesc.info.keyDescVers = ANI_EAPOL_KEY_DESC_VERS_AES;
         } 
@@ -731,7 +733,7 @@ gotoStatePtkInitNegoTx(tAuthRsnFsm *fsm)
             vos_mem_zero( &txDesc, sizeof(txDesc) );
 
             // The Key Information bits...
-            if (fsm->staCtx->pwCipherType == eANI_SSM_CT_CCMP) 
+            if (fsm->staCtx->pwCipherType == eCSR_ENCRYPT_TYPE_AES) 
             {
                 txDesc.info.keyDescVers = ANI_EAPOL_KEY_DESC_VERS_AES;
             } 
@@ -770,7 +772,7 @@ gotoStatePtkInitNegoTx(tAuthRsnFsm *fsm)
             txDesc.info.secureFlag = eANI_BOOLEAN_TRUE;
             txDesc.info.encKeyDataFlag = eANI_BOOLEAN_TRUE;
 
-            if ( fsm->staCtx->pwCipherType == eANI_SSM_CT_CCMP ) 
+            if ( fsm->staCtx->pwCipherType == eCSR_ENCRYPT_TYPE_AES ) 
             {
                 /*
                  * Use the AES key wrap algorithm if either one of the pairwise
@@ -992,7 +994,7 @@ int derivePtk(tAuthRsnFsm *fsm, tAniEapolKeyAvailEventData *data)
 
     switch (fsm->staCtx->pwCipherType) 
     {
-    case eANI_SSM_CT_CCMP:
+    case eCSR_ENCRYPT_TYPE_AES:
         prfLen = AAG_RSN_PTK_PRF_LEN_CCMP;
         break;
     default:

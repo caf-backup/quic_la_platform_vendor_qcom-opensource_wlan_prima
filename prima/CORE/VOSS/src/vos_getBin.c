@@ -58,13 +58,13 @@ VOS_STATUS vos_get_binary_blob( VOS_BINARY_ID binaryId,
     switch (binaryId)
     {
         case VOS_BINARY_ID_CONFIG:
-           pFileName = LIBRA_CFG_FILE;
+           pFileName = WLAN_CFG_FILE;
            break;
         case VOS_BINARY_ID_COUNTRY_INFO:
-           pFileName = LIBRA_COUNTRY_INFO_FILE;
+           pFileName = WLAN_COUNTRY_INFO_FILE;
            break;
         case VOS_BINARY_ID_HO_CONFIG:
-           pFileName = LIBRA_HO_CFG_FILE;
+           pFileName = WLAN_HO_CFG_FILE;
            break;
         default:
            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, "Invalid binaryID");
@@ -106,7 +106,7 @@ VOS_STATUS vos_get_fwbinary( v_VOID_t **ppBinary, v_SIZE_t *pNumBytes )
 
    if(pVosContext) {
 
-         status = hdd_request_firmware(LIBRA_FW_FILE,((VosContextType*)(pVosContext))->pHDDContext,ppBinary,pNumBytes);
+         status = hdd_request_firmware(WLAN_FW_FILE,((VosContextType*)(pVosContext))->pHDDContext,ppBinary,pNumBytes);
 
    } 
    return status;      

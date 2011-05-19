@@ -88,6 +88,9 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #include "cfgApi.h"
 #endif
 #include "wlan_hdd_dev_pwr.h"
+#ifdef WLAN_BTAMP_FEATURE
+#include "bap_hdd_misc.h"
+#endif
 
 //internal function declaration
 v_U16_t hdd_select_queue(struct net_device *dev,
@@ -262,19 +265,19 @@ VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx)
    ENTER();
 
 
-   if( (!strcmp(LIBRA_FW_FILE,pFileName)) ) {
+   if (!strcmp(WLAN_FW_FILE, pFileName)) {
    
        hddLog(VOS_TRACE_LEVEL_INFO_HIGH,"%s: Loaded firmware file is %s",__func__,pFileName);
 
-       if(pHddCtx->fw) {
+       if (pHddCtx->fw) {
           release_firmware(pHddCtx->fw);
           pHddCtx->fw = NULL;
        }
        else
           status = VOS_STATUS_E_FAILURE;
    }
-   else if (!strcmp(LIBRA_NV_FILE,pFileName)) {
-       if(pHddCtx->nv) {
+   else if (!strcmp(WLAN_NV_FILE,pFileName)) {
+       if (pHddCtx->nv) {
           release_firmware(pHddCtx->nv);
           pHddCtx->nv = NULL;
        }
@@ -310,7 +313,7 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
    hdd_context_t *pHddCtx = (hdd_context_t*)pCtx;
    ENTER();
 
-   if( (!strcmp(LIBRA_FW_FILE,pfileName)) ) {
+   if( (!strcmp(WLAN_FW_FILE, pfileName)) ) {
 
        status = request_firmware(&pHddCtx->fw, pfileName, pHddCtx->parent_dev);
 
@@ -325,7 +328,7 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
           hddLog(VOS_TRACE_LEVEL_ERROR,"%s: Firmware size = %d",__func__, *pSize);
        }
    }
-   else if(!strcmp(LIBRA_NV_FILE,pfileName)) {
+   else if(!strcmp(WLAN_NV_FILE, pfileName)) {
 
        status = request_firmware(&pHddCtx->nv, pfileName, pHddCtx->parent_dev);
 
@@ -1766,6 +1769,11 @@ int hdd_wlan_startup(struct device *dev )
    hdd_adapter_t *pAdapter = NULL;
    hdd_context_t *pHddCtx = NULL;
    v_CONTEXT_t pVosContext= NULL;
+#ifdef WLAN_BTAMP_FEATURE
+   VOS_STATUS vStatus = VOS_STATUS_SUCCESS;
+   WLANBAP_ConfigType btAmpConfig;
+   hdd_config_t *pConfig;
+#endif
    int ret;
 #ifdef CONFIG_CFG80211
    struct wiphy *wiphy;
@@ -1843,7 +1851,8 @@ int hdd_wlan_startup(struct device *dev )
    status = hdd_parse_config_ini( pHddCtx );
    if ( VOS_STATUS_SUCCESS != status )
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: error parsing %s",__func__, INI_FILE);
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: error parsing %s",
+             __func__, WLAN_INI_FILE);
       goto err_config;
    }
 
@@ -1923,7 +1932,6 @@ int hdd_wlan_startup(struct device *dev )
     * 1.4v in vos_ChipPowerup() routine above
     */
 #endif
-
 
    status = vos_open( &pVosContext, 0);
    if ( !VOS_IS_STATUS_SUCCESS( status ))
@@ -2047,6 +2055,38 @@ int hdd_wlan_startup(struct device *dev )
 #endif
    }
 
+     
+#ifdef WLAN_BTAMP_FEATURE
+   vStatus = WLANBAP_Open(pVosContext);
+   if(!VOS_IS_STATUS_SUCCESS(vStatus))
+   {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        "%s: Failed to open BAP",__func__);
+      goto err_close_adapter;
+   }
+
+   vStatus = BSL_Init(pVosContext);
+   if(!VOS_IS_STATUS_SUCCESS(vStatus))
+   {
+     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+        "%s: Failed to Init BSL",__func__);
+     goto err_bap_close;
+   }
+   vStatus = WLANBAP_Start(pVosContext);
+   if (!VOS_IS_STATUS_SUCCESS(vStatus))
+   {
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+               "%s: Failed to start TL",__func__);
+       goto err_bap_close;
+   }
+
+   pConfig = pHddCtx->cfg_ini;
+   btAmpConfig.ucPreferredChannel = pConfig->preferredChannel;
+   status = WLANBAP_SetConfig(&btAmpConfig);
+
+#endif //WLAN_BTAMP_FEATURE
+ 
+
    /* Register with platform driver as client for Suspend/Resume */
    status = hddRegisterPmOps(pAdapter);
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
@@ -2071,7 +2111,11 @@ int hdd_wlan_startup(struct device *dev )
    if(ret < 0)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: register_netdevice_notifier failed",__func__);
+#ifdef WLAN_BTAMP_FEATURE
+      goto err_bap_stop;
+#else
       goto err_close_adapter;
+#endif
    }
 
    //Initialize the nlink service
@@ -2126,6 +2170,14 @@ err_nl_srv:
 
 err_reg_netdev:
    unregister_netdevice_notifier(&hdd_netdev_notifier);
+
+
+#ifdef WLAN_BTAMP_FEATURE
+err_bap_stop:
+  WLANBAP_Stop(pVosContext);
+err_bap_close:
+   WLANBAP_Close(pVosContext);
+#endif
 
 err_close_adapter:
    hdd_close_all_adapters( pHddCtx );

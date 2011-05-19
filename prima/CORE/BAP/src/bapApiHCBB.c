@@ -29,7 +29,7 @@
   Notice that changes are listed in reverse chronological order.
 
 
-   $Header: /home/labuser/btamp-linux/CORE/BAP/src/bapApiHCBB.c,v 1.2 2010/05/20 19:05:44 labuser Exp labuser $$DateTime$$Author: labuser $
+   $Header: /prj/qct/asw/engbuilds/scl/users02/jzmuda/Android/ampBlueZ_6/CORE/BAP/src/bapApiHCBB.c,v 1.7 2011/05/06 00:59:27 jzmuda Exp jzmuda $$DateTime$$Author: jzmuda $
 
 
   when        who     what, where, why
@@ -42,6 +42,9 @@
  * Include Files
  * -------------------------------------------------------------------------*/
 #include "vos_trace.h"
+
+// Pick up the sme callback registration API
+#include "sme_Api.h"
 
 /* BT-AMP PAL API header file */ 
 #include "bapApi.h" 
@@ -122,6 +125,16 @@ WLAN_BAPReset
     if (btampHandle == NULL) {
       return VOS_STATUS_E_FAULT;
     }
+
+    /* Perform a "reset" */ 
+
+    //csrRoamDisconnect();
+    sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx),
+                       btampContext->sessionId,
+                       // Danlin, where are the richer reason codes?
+                       // I want to be able to convey everything 802.11 supports...
+                       eCSR_DISCONNECT_REASON_UNSPECIFIED);
+
 
     /* Form and immediately return the command complete event... */ 
     bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
@@ -222,8 +235,36 @@ WLAN_BAPFlush
   tBtampTLVHCI_Flush_Cmd     *pBapHCIFlush
 )
 {
+    VOS_STATUS  vosStatus;
+    tBtampHCI_Event bapHCIEvent; /* This now encodes ALL event types */
+    ptBtampContext btampContext = (ptBtampContext) btampHandle;
+    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
-    return VOS_STATUS_SUCCESS;
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampHandle value: %x", __FUNCTION__,  btampHandle); 
+
+    /* Validate params */ 
+    if (btampHandle == NULL) {
+      return VOS_STATUS_E_FAULT;
+    }
+
+    /* Form and immediately return the command complete event... */ 
+    bapHCIEvent.bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
+    bapHCIEvent.u.btampCommandCompleteEvent.present = 1;
+    bapHCIEvent.u.btampCommandCompleteEvent.num_hci_command_packets = 1;
+    bapHCIEvent.u.btampCommandCompleteEvent.command_opcode 
+        = BTAMP_TLV_HCI_FLUSH_CMD;
+    bapHCIEvent.u.btampCommandCompleteEvent.cc_event.Flush.status
+        = WLANBAP_STATUS_SUCCESS;
+
+    vosStatus = (*btampContext->pBapHCIEventCB) 
+        (  
+         //btampContext->pHddHdl,   /* this refers to the BSL per connection context */
+         btampContext->pAppHdl,   /* this refers the BSL per application context */
+         &bapHCIEvent, /* This now encodes ALL event types */
+         VOS_FALSE /* Flag to indicate assoc-specific event */ 
+        );
+
+    return vosStatus;
 } /* WLAN_BAPFlush */
 
 /*----------------------------------------------------------------------------
@@ -1162,9 +1203,205 @@ WLAN_BAPSetShortRangeMode
                                 /* Including Command Complete and Command Status*/
 )
 {
+    ptBtampContext btampContext = (ptBtampContext) btampHandle;
+    BTAMPFSM_INSTANCEDATA_T *instanceVar = &(btampContext->bapPhysLinkMachine);
+    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: btampHandle value: %x", __FUNCTION__,  btampHandle);
+
+    /* Validate params */
+    if ((NULL == btampHandle) || (NULL == pBapHCIEvent))
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "Invalid input parameters in %s", __FUNCTION__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    /* Validate the BAP state to accept the Short Range Mode set request;
+       SRM set requests are allowed only in CONNECTED state */
+
+    /* Form and return the command status event... */
+    pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_STATUS_EVENT;
+    pBapHCIEvent->u.btampCommandStatusEvent.present = 1;
+    pBapHCIEvent->u.btampCommandStatusEvent.num_hci_command_packets = 1;
+    pBapHCIEvent->u.btampCommandStatusEvent.command_opcode
+        = BTAMP_TLV_HCI_SET_SHORT_RANGE_MODE_CMD;
+
+    if (CONNECTED != instanceVar->stateVar)
+    {
+        /* Short Range Mode request in invalid state */
+        pBapHCIEvent->u.btampCommandStatusEvent.status =
+            WLANBAP_ERROR_CMND_DISALLOWED;
+        return VOS_STATUS_SUCCESS;
+    }
+    else if (pBapHCIShortRangeMode->phy_link_handle != btampContext->phy_link_handle)
+    {
+       /* Invalid Physical link handle */
+        pBapHCIEvent->u.btampCommandStatusEvent.status =
+            WLANBAP_ERROR_NO_CNCT;
+        return VOS_STATUS_SUCCESS;
+    }
+    else if (pBapHCIShortRangeMode->short_range_mode > 0x01)
+    {
+        /* Invalid mode requested */
+        pBapHCIEvent->u.btampCommandStatusEvent.status =
+            WLANBAP_ERROR_INVALID_HCI_CMND_PARAM;
+        return VOS_STATUS_SUCCESS;
+    }
+
+    pBapHCIEvent->u.btampCommandStatusEvent.status = WLANBAP_STATUS_SUCCESS;
+
+    /* Send the Command Status event (success) here, since Change Complete is next */
+    (*btampContext->pBapHCIEventCB)
+        (
+         btampContext->pHddHdl,   /* this refers to the BSL per connection context */
+         pBapHCIEvent, /* This now encodes ALL event types */
+         VOS_FALSE /* Flag to indicate assoc-specific event */
+        );
+
+    /* Format the Short Range Mode Complete event to return... */ 
+    pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_SHORT_RANGE_MODE_CHANGE_COMPLETE_EVENT;
+    pBapHCIEvent->u.btampShortRangeModeChangeCompleteEvent.present = 1;
+
+    pBapHCIEvent->u.btampShortRangeModeChangeCompleteEvent.status =
+        WLANBAP_STATUS_SUCCESS; /* Assumption for now */
+
+    /* The input parameters will go out in the CC Event */
+    pBapHCIEvent->u.btampShortRangeModeChangeCompleteEvent.phy_link_handle =
+        pBapHCIShortRangeMode->phy_link_handle;
+
+    pBapHCIEvent->u.btampShortRangeModeChangeCompleteEvent.short_range_mode =
+        pBapHCIShortRangeMode->short_range_mode; /* Assumption for now */
+
+    /* If the requested setting is different from the current setting... */
+    if (pBapHCIShortRangeMode->short_range_mode != btampContext->phy_link_srm)
+    {
+        /* ... then change the SRM according to the requested value.
+         * If the attempt fails, the assumptions above need to be corrected.
+         */
+        #if 0
+        // Suggested API, needs to be created
+        if (VOS_STATUS_SUCCESS != HALSetShortRangeMode(pBapHCIShortRangeMode->short_range_mode))
+        #else
+        if (0)
+        #endif
+        {
+            pBapHCIEvent->u.btampShortRangeModeChangeCompleteEvent.status =
+                WLANBAP_ERROR_HARDWARE_FAILURE;
+            pBapHCIEvent->u.btampShortRangeModeChangeCompleteEvent.short_range_mode =
+                btampContext->phy_link_srm; /* Switch back to current value */
+        }
+        else
+        {
+            /* Update the SRM setting for this physical link, since it worked */
+            btampContext->phy_link_srm = pBapHCIShortRangeMode->short_range_mode;
+        }
+    }
 
     return VOS_STATUS_SUCCESS;
 } /* WLAN_BAPSetShortRangeMode */
+
+/*----------------------------------------------------------------------------
+
+  FUNCTION    WLAN_BAPVendorSpecificCmd0()
+
+  DESCRIPTION
+    Implements the actual HCI Vendor Specific Command 0 (OGF 0x3f, OCF 0x0000).
+    There is no need for a callback because when this call returns the action has
+    been completed.
+
+    The command is received when:
+    - The A2MP Create Phy Link Response has been rx'd by the Bluetooth stack (initiator)
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+    btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
+
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIEvent is NULL
+    VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+
+----------------------------------------------------------------------------*/
+VOS_STATUS
+WLAN_BAPVendorSpecificCmd0
+(
+  ptBtampHandle btampHandle,
+  tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
+                                /* Including Command Complete and Command Status*/
+)
+{
+    ptBtampContext btampContext = (ptBtampContext) btampHandle;
+    BTAMPFSM_INSTANCEDATA_T *instanceVar = &(btampContext->bapPhysLinkMachine);
+    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+               "%s: btampHandle value: %x", __FUNCTION__,  btampHandle);
+
+    /* Validate params */
+    if ((NULL == btampHandle) || (NULL == pBapHCIEvent))
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                   "Invalid input parameters in %s", __FUNCTION__);
+        return VOS_STATUS_E_FAULT;
+    }
+
+    /* Validate the BAP state to accept the Vendor Specific Cmd 0:
+       this is only allowed for the BT_INITIATOR in the CONNECTING state */
+
+    /* Form and return the command status event... */
+    pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_STATUS_EVENT;
+    pBapHCIEvent->u.btampCommandStatusEvent.present = 1;
+    pBapHCIEvent->u.btampCommandStatusEvent.num_hci_command_packets = 1;
+    pBapHCIEvent->u.btampCommandStatusEvent.command_opcode
+        = BTAMP_TLV_HCI_VENDOR_SPECIFIC_CMD_0;
+
+    if ( (BT_INITIATOR != btampContext->BAPDeviceRole) ||
+         (CONNECTING != instanceVar->stateVar) )
+    {
+        /* Vendor Specific Command 0 happened in invalid state */
+        pBapHCIEvent->u.btampCommandStatusEvent.status =
+            WLANBAP_ERROR_CMND_DISALLOWED;
+        return VOS_STATUS_SUCCESS;
+    }
+
+    /* Signal BT Coexistence code in firmware to prefer WLAN */
+    WLANBAP_NeedBTCoexPriority(btampContext, 1);
+
+    pBapHCIEvent->u.btampCommandStatusEvent.status = WLANBAP_STATUS_SUCCESS;
+
+    /* Send the Command Status event (success) here, since Command Complete is next */
+    (*btampContext->pBapHCIEventCB)
+        (
+         btampContext->pHddHdl,   /* this refers to the BSL per connection context */
+         pBapHCIEvent, /* This now encodes ALL event types */
+         VOS_FALSE /* Flag to indicate assoc-specific event */
+        );
+
+    /* Format the Vendor Specific Command 0 Complete event to return... */
+    pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_COMMAND_COMPLETE_EVENT;
+    pBapHCIEvent->u.btampCommandCompleteEvent.present = 1;
+    pBapHCIEvent->u.btampCommandCompleteEvent.num_hci_command_packets = 1;
+    pBapHCIEvent->u.btampCommandCompleteEvent.command_opcode
+        = BTAMP_TLV_HCI_VENDOR_SPECIFIC_CMD_0;
+    pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Vendor_Specific_Cmd_0.status
+        = WLANBAP_STATUS_SUCCESS;
+
+    return VOS_STATUS_SUCCESS;
+} /* WLAN_BAPVendorSpecificCmd0 */
 
 /*----------------------------------------------------------------------------
 

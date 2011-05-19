@@ -91,7 +91,7 @@ typedef struct tagAuthRsnFsm
  * SuppRsnFsm structure:
  *************************/
 
-typedef struct tSuppRsnFsm {
+typedef struct tagSuppRsnFsm {
 
     v_U8_t currentState;
     

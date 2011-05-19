@@ -62,12 +62,6 @@ typedef struct _smeConfigParams
 #endif
 } tSmeConfigParams, *tpSmeConfigParams;
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-typedef struct _smeHoConfigParams
-{
-   tCsrHandoffConfigParams  csrHoConfig;
-} tSmeHoConfigParams, *tpSmeHoConfigParams;
-#endif
 
 /*------------------------------------------------------------------------- 
   Function declarations and documenation
@@ -245,27 +239,7 @@ eHalStatus sme_set11dinfo(tHalHandle hHal,  tpSmeConfigParams pSmeConfigParams);
 eHalStatus sme_setRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode);
 
 #endif
-/*--------------------------------------------------------------------------
-  
-  \brief sme_HoConfig() - Change handoff configurations for CSR during SMEs 
-  close -> open sequence.
-   
-  Modules inside SME apply the new configuration at the next transaction.
 
-  
-  \param hHal - The handle returned by macOpen.
-  \Param pSmeHoConfigParams - a pointer to a caller allocated object of 
-  typedef struct _smeHoConfigParams.
-  
-  \return eHAL_STATUS_SUCCESS - SME update the config parameters successfully.
-  
-          Other status means SME is failed to update the config parameters.
-  \sa
-  
-  --------------------------------------------------------------------------*/
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-eHalStatus sme_HoConfig(tHalHandle hHal, tpSmeHoConfigParams pSmeHoConfigParams);
-#endif
 /* ---------------------------------------------------------------------------
     \fn sme_ChangeConfigParams
     \brief The SME API exposed for HDD to provide config params to SME during 
@@ -1519,6 +1493,20 @@ eHalStatus sme_RoamUpdateAPWPSIE(tHalHandle, tANI_U8 sessionId, tSirAPWPSIEs *pA
 eHalStatus sme_RoamUpdateAPWPARSNIEs(tHalHandle hHal, tANI_U8 sessionId, tSirRSNie * pAPSirRSNie);
 
 #endif
+
+/* ---------------------------------------------------------------------------
+  \fn sme_sendBTAmpEvent
+  \brief API to send the btAMPstate to FW
+  \param  hHal - The handle returned by macOpen.
+  \param  btAmpEvent -- btAMP event
+  \return eHalStatus  SUCCESS 
+
+                         FAILURE or RESOURCES  The API finished and failed.
+
+--------------------------------------------------------------------------- */
+
+eHalStatus sme_sendBTAmpEvent(tHalHandle hHal, tSmeBtAmpEvent btAmpEvent);
+
 
 
 /* ---------------------------------------------------------------------------

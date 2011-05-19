@@ -31,7 +31,7 @@
   Notice that changes are listed in reverse chronological order.
 
 
-   $Header: /cygdrive/c/Dropbox/M7201JSDCAAPAD52240B/WM/platform/msm7200/Src/Drivers/SD/ClientDrivers/WLAN/QCT_BTAMP_PAL/CORE/BAP/src/bapModule.c,v 1.8 2008/12/17 06:55:12 jzmuda Exp jzmuda $$DateTime$$Author: jzmuda $
+   $Header: /home/labuser/ampBlueZ_2/CORE/BAP/src/bapModule.c,v 1.1 2010/07/12 19:05:35 labuser Exp labuser $$DateTime$$Author: labuser $
 
 
   when        who     what, where, why
@@ -43,6 +43,10 @@
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/
+// Pull in some message types used by BTC
+#include "sirParams.h"
+//#include "halFwApi.h"
+ 
 #include "wlan_qct_tl.h"
 #include "vos_trace.h"
 // Pick up the sme callback registration API
@@ -375,6 +379,9 @@ WLANBAP_Close
    ------------------------------------------------------------------------*/
   VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "WLANBAP_Close");
   WLANBAP_CleanCB(pBtampCtx, 1 /* empty queues/lists/pkts if any*/);
+#if defined(ANI_OS_TYPE_LINUX) || defined(ANI_OS_TYPE_ANDROID)
+  BSL_Deinit(pvosGCtx);
+#endif
   /*------------------------------------------------------------------------
     Free BAP context from VOSS global 
    ------------------------------------------------------------------------*/
@@ -423,6 +430,11 @@ WLANBAP_GetNewHndl
    ptBtampHandle *hBtampHandle  /* Handle to return btampHandle value in  */ 
 )
 {
+#if 0
+  eHalStatus halStatus = eHAL_STATUS_SUCCESS;
+  ptBtampContext  btampContext = NULL; 
+#endif
+
   /*------------------------------------------------------------------------
     Sanity check params
    ------------------------------------------------------------------------*/
@@ -447,6 +459,23 @@ WLANBAP_GetNewHndl
   //*hBtampHandle = (ptBtampHandle) &btampCtx; 
   /* return a pointer to the tBtampContext structure - allocated by VOS for us */ 
   *hBtampHandle = (ptBtampHandle) gpBtampCtx; 
+#if 0
+  btampContext = gpBtampCtx; 
+
+    /* Update the MAC address and SSID if in case the Read Local AMP Assoc
+     * Request is made before Create Physical Link creation.
+     */
+    WLANBAP_ReadMacConfig (btampContext);
+
+  // Let's open the SME session - we can use the global context. 
+  // because we know we only have one. 
+  halStatus = sme_OpenSession(
+          VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          WLANBAP_RoamCallback, 
+          btampContext,
+          btampContext->self_mac_addr,  
+          &btampContext->sessionId);
+#endif
 
   return VOS_STATUS_SUCCESS;
 #else // defined(BTAMP_MULTIPLE_PHY_LINKS)
@@ -486,6 +515,9 @@ WLANBAP_ReleaseHndl
   ptBtampHandle btampHandle  /* btamp handle value to release  */ 
 )
 {
+  /* obtain btamp Context  */ 
+  ptBtampContext  btampContext = (ptBtampContext) btampHandle; 
+
   /*------------------------------------------------------------------------
     Sanity check params
    ------------------------------------------------------------------------*/
@@ -503,6 +535,9 @@ WLANBAP_ReleaseHndl
    *        btampHandle->sessionId, 
    *       eCSR_DISCONNECT_REASON_UNSPECIFIED); 
    * on all of them  */ 
+
+  sme_CloseSession(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          btampContext->sessionId);
 
   /* release the btampHandle  */ 
 
@@ -832,6 +867,11 @@ WLANBAP_CreateNewPhyLinkCtx
   pBtampCtx->ucSecEnabled = WLANBAP_SECURITY_ENABLED_STATE;
 
   /*------------------------------------------------------------------------
+    Initial Short Range Mode for this physical link is 'disabled'
+  ------------------------------------------------------------------------*/
+  pBtampCtx->phy_link_srm = 0;
+
+  /*------------------------------------------------------------------------
     Clear out the logical links.
   ------------------------------------------------------------------------*/
   pBtampCtx->current_log_link_index = 0;
@@ -1135,6 +1175,80 @@ WLANBAP_ReadMacConfig
           pBtampCtx->ownSsidLen); 
 }
 
+/*==========================================================================
+
+  FUNCTION    WLANBAP_NeedBTCoexPriority
+
+  DESCRIPTION 
+    This function will cause a message to be sent to BTC firmware
+    if a change in priority has occurred.  (From AMP's point-of-view.)
+
+  DEPENDENCIES 
+
+  PARAMETERS 
+
+    pvosGCtx:       pointer to the global vos context; a handle to HAL's 
+                    control block can be extracted from its context 
+   
+  RETURN VALUE
+    None
+
+  SIDE EFFECTS 
+  
+============================================================================*/
+// Global
+static int gBapCoexPriority = 0;
+
+void
+WLANBAP_NeedBTCoexPriority
+( 
+  ptBtampContext  pBtampCtx, 
+  v_U32_t         needCoexPriority
+)
+{
+  tHalHandle      pMac = NULL;
+  tSmeBtAmpEvent  btAmpEvent;
+
+
+  /*------------------------------------------------------------------------
+    Retrieve the pMac (HAL context)
+  ------------------------------------------------------------------------*/
+  pMac = (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, pBtampCtx->pvosGCtx);
+
+  // Is re-entrancy protection needed for this?
+  if (needCoexPriority != gBapCoexPriority) {
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, 
+            "Calling %s with needCoexPriority=%d.", __FUNCTION__, needCoexPriority);
+ 
+    gBapCoexPriority = needCoexPriority;
+    switch ( needCoexPriority)
+    {
+      case 0:  /* Idle */
+          btAmpEvent.btAmpEventType = BTAMP_EVENT_CONNECTION_TERMINATED;
+          sme_sendBTAmpEvent(pMac, btAmpEvent);
+
+          break;
+
+      case 1:  /* Associating */
+          btAmpEvent.btAmpEventType = BTAMP_EVENT_CONNECTION_START;
+          sme_sendBTAmpEvent(pMac, btAmpEvent);
+
+          break;
+
+      case 2:  /* Post-assoc */
+          btAmpEvent.btAmpEventType = BTAMP_EVENT_CONNECTION_STOP;
+          sme_sendBTAmpEvent(pMac, btAmpEvent);
+
+          break;
+
+      default:
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Invalid Coexistence priority request: %d",
+                   __FUNCTION__, needCoexPriority);
+    }
+
+  }
+}
 
 
 /*==========================================================================

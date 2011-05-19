@@ -29,7 +29,7 @@
   Notice that changes are listed in reverse chronological order.
 
 
-   $Header: /cygdrive/e/Builds/M7201JSDCAAPAD52240B/WM/platform/msm7200/Src/Drivers/SD/ClientDrivers/WLAN/QCT/CORE/BAP/src/bapApiTimer.c,v 1.1 2008/11/21 20:30:04 jzmuda Exp jzmuda $$DateTime$$Author: jzmuda $
+   $Header: /home/labuser/btamp-label9/CORE/BAP/src/bapApiTimer.c,v 1.5 2010/09/04 00:14:37 labuser Exp labuser $$DateTime$$Author: labuser $
 
 
   when        who     what, where, why
@@ -624,6 +624,9 @@ WLANBAP_LinkSupervisionTimerHandler
 
     if(pBtampCtx->dataPktPending == VOS_TRUE)
     {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Data seen. Do nothing", __FUNCTION__ );
+	
         pBtampCtx->dataPktPending = VOS_FALSE;
         pBtampCtx->lsReqPktPending = VOS_FALSE;
 	      pBtampCtx->retries = 0;
@@ -634,7 +637,8 @@ WLANBAP_LinkSupervisionTimerHandler
         //Data is seen. or our previous packet is not yet fetched by TL.Don't do any thing.Just return;
         return;
     }
-    else if((pBtampCtx->lsReqPktPending == VOS_TRUE ) && (pBtampCtx->retries == 5))
+    else if((pBtampCtx->lsReqPktPending == VOS_TRUE ) 
+            && (pBtampCtx->retries == WLANBAP_LINK_SUPERVISION_RETRIES))
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                     "#########WLAN BAP: LinkSupervision Timed OUT######## %s", __FUNCTION__ );
@@ -643,7 +647,9 @@ WLANBAP_LinkSupervisionTimerHandler
     Feed this timeout to the BTAMP FSM 
    ---------------------------------------------------------------------*/
         /* Fill in the event structure */ 
-        bapEvent.event =eWLAN_BAP_HCI_PHYSICAL_LINK_DISCONNECT;
+        /* JEZ110307: Which should this be? */ 
+        //bapEvent.event =eWLAN_BAP_HCI_PHYSICAL_LINK_DISCONNECT;
+        bapEvent.event =eWLAN_BAP_MAC_INDICATES_MEDIA_DISCONNECTION;
         bapEvent.params = NULL;
 
         /* Handle event */ 
@@ -651,6 +657,9 @@ WLANBAP_LinkSupervisionTimerHandler
     }
     else
     {    
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Resend the LS packet", __FUNCTION__ );
+	
         /* If we have transmit pkt pending and the time out occured,resend the ls packet */
         WLANBAP_StopLinkSupervisionTimer(pBtampCtx);
 	    pBtampCtx->pPacket = pBtampCtx->lsReqPacket;
@@ -720,7 +729,7 @@ WLANBAP_StartTxPacketMonitorTimer
   FUNCTION    WLANBAP_StopTxPacketMonitorTimer 
 
   DESCRIPTION 
-    Stop the Connection Accept Timer.
+    Stop the Tx Packet Monitor Timer.
     
   DEPENDENCIES 
     
@@ -772,8 +781,8 @@ WLANBAP_StopTxPacketMonitorTimer
   FUNCTION    WLANBAP_TxPacketMonitorHandler
 
   DESCRIPTION 
-    Callback function registered with vos timer for the Connection
-    Accept timer 
+    Callback function registered with vos timer for the Tx Packet Monitor 
+    Timer.
     
   DEPENDENCIES 
     
@@ -813,7 +822,7 @@ WLANBAP_TxPacketMonitorHandler
      return; 
   }
 
-#ifdef BAP_DEBUG
+#if 0 //BAP_DEBUG
   /* Trace the tBtampCtx being passed in. */
   VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
             "WLAN BAP Context Monitor: pBtampCtx value = %x in %s:%d", pBtampCtx, __FUNCTION__, __LINE__ );
@@ -835,6 +844,7 @@ WLANBAP_TxPacketMonitorHandler
        uTxCompleted = pLogLinkContext->uTxPktCompleted;
        bapHCIEvent.u.btampNumOfCompletedPktsEvent.conn_handles[j] =
            pLogLinkContext->log_link_handle;
+//           1;
        bapHCIEvent.u.btampNumOfCompletedPktsEvent.num_completed_pkts[j] =
            uTxCompleted;
 
@@ -843,10 +853,12 @@ WLANBAP_TxPacketMonitorHandler
        vos_atomic_decrement_U32_by_value((v_U32_t *) &pLogLinkContext->uTxPktCompleted,
                                          (v_U32_t) uTxCompleted);
 
+       if (uTxCompleted) { 
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                 "wlan bap: %s Log Link handle - %d No Of Pkts - %d", __FILE__, 
 	      pLogLinkContext->log_link_handle, uTxCompleted);  
      }
+  }
   }
 
   /* Indicate only if at least one logical link is present and number of

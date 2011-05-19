@@ -584,6 +584,7 @@ WLANBAP_XlateRxDataPkt
     hciACLHeader.phyLinkHandle = phy_link_handle;
 
     // Continue filling in the HCI header 
+    //JEZ100913: On Rx the Logical Link is ALWAYS 0. See Vol 2, Sec E, 5.4.2 of spec.
     hciACLHeader.logLinkHandle = 0;
     hciACLHeader.PBFlag = WLANBAP_HCI_PKT_AMP;
     hciACLHeader.BCFlag = 0;
@@ -650,7 +651,7 @@ WLANBAP_STAFetchPktCB
 ( 
   v_PVOID_t             pvosGCtx,
   v_U8_t*               pucSTAId,
-  v_U8_t*               pucAC,
+  v_U8_t                ucAC,
   vos_pkt_t**           vosDataBuff,
   WLANTL_MetaInfoType*  tlMetaInfo
 )
@@ -659,7 +660,9 @@ WLANBAP_STAFetchPktCB
     ptBtampHandle bapHdl;  /* holds ptBtampHandle value returned  */ 
     ptBtampContext bapContext; /* Holds the btampContext value returned */ 
     v_PVOID_t     pHddHdl; /* Handle to return BSL context in */
+    v_U8_t        bapAC;
 
+    bapAC = ucAC;
     /* Lookup the BSL and BAP contexts using the StaId */ 
 
     vosStatus = WLANBAP_GetCtxFromStaId ( 
@@ -677,7 +680,7 @@ WLANBAP_STAFetchPktCB
     /* Invoke the callback that BSL registered with me */ 
     vosStatus = (*bapContext->pfnBtampFetchPktCB)( 
             pHddHdl, 
-            (WLANTL_ACEnumType *)    pucAC, /* typecast it for now */ 
+            (WLANTL_ACEnumType *)    &bapAC, /* typecast it for now */ 
             vosDataBuff, 
             tlMetaInfo);    
     if ( VOS_STATUS_SUCCESS != vosStatus ) 
@@ -878,16 +881,24 @@ WLANBAP_TxCompCB
     hciACLHeader.logLinkHandle = value;
 
 #ifdef BAP_DEBUG
-  /* Trace the tBtampCtx being passed in. */
+    /* Trace the bapContext referenced. */
   VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
-            "WLAN BAP Context Monitor: bapContext value = %x in %s:%d", bapContext, __FUNCTION__, __LINE__ );
+              "WLAN BAP Context Monitor: bapContext value = %p in %s:%d. vosDataBuff=%p", bapContext, __FUNCTION__, __LINE__, vosDataBuff );
 #endif //BAP_DEBUG
 
     // Sanity check the log_link_handle value 
+// JEZ100722: Temporary changes.
     if (BTAMP_VALID_LOG_LINK( hciACLHeader.logLinkHandle))
     {
        vos_atomic_increment_U32(
            &bapContext->btampLogLinkCtx[hciACLHeader.logLinkHandle].uTxPktCompleted);
+//           &bapContext->btampLogLinkCtx[0].uTxPktCompleted);
+//       vos_atomic_increment_U32(
+//           &bapContext->btampLogLinkCtx[1].uTxPktCompleted);
+    } else 
+    {
+       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "In %s:%d: Invalid logical link handle: %d", __FUNCTION__, __LINE__, hciACLHeader.logLinkHandle);
     }
 
     /* Invoke the callback that BSL registered with me */ 
@@ -1018,13 +1029,19 @@ WLANBAP_STAPktPending
     v_PVOID_t      pHddHdl; /* Handle to return BSL context in */
 
   
+#ifdef BAP_DEBUG
+    /* Trace the tBtampCtx being passed in. */
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+              "WLAN BAP Context Monitor: pBtampCtx value = %p in %s:%d", pBtampCtx, __FUNCTION__, __LINE__ );
+#endif //BAP_DEBUG
+
     /*------------------------------------------------------------------------
       Sanity check params
      ------------------------------------------------------------------------*/
     if ( NULL == pBtampCtx) 
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                     "Invalid BAP handle value in WLANBAP_RegisterDataPlane");
+                "Invalid BAP handle value in WLANBAP_STAPktPending"); 
         return VOS_STATUS_E_FAULT;
     }
 

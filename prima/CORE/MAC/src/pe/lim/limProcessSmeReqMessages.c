@@ -2213,6 +2213,7 @@ __limProcessSmeDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     return;
 
 sendDisassoc:
+    if (psessionEntry) 
     limSendSmeDisassocNtf(pMac, smeDisassocReq.peerMacAddr,
                           retCode,
                           disassocTrigger,
@@ -2221,6 +2222,17 @@ sendDisassoc:
 #else
                           1,smesessionId,smetransactionId,psessionEntry);
 #endif
+    else 
+        limSendSmeDisassocNtf(pMac, smeDisassocReq.peerMacAddr, 
+                retCode, 
+                disassocTrigger,
+#ifdef ANI_PRODUCT_TYPE_AP
+                smeDisassocReq.aid);
+#else
+                1, 0, 0, NULL);
+#endif
+
+
 } /*** end __limProcessSmeDisassocReq() ***/
 
 

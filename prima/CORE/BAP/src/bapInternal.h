@@ -26,7 +26,7 @@ DESCRIPTION
   Notice that changes are listed in reverse chronological order.
 
 
-  $Header: /home/labuser/btamp-linux/CORE/BAP/src/bapInternal.h,v 1.2 2010/06/03 20:12:39 labuser Exp labuser $ $DateTime: $ $Author: labuser $
+  $Header: /home/labuser/ampBlueZ_2/CORE/BAP/src/bapInternal.h,v 1.3 2010/07/12 20:40:18 labuser Exp labuser $ $DateTime: $ $Author: labuser $
 
 
 when        who    what, where, why
@@ -96,7 +96,9 @@ when        who    what, where, why
 #define WLANBAP_CONNECTION_ACCEPT_TIMEOUT  WLANBAP_CON_ACCEPT_TIMEOUT_MAX_RANGE
 
 /* Link Supervision Timer interval (0x7D00 * 0.625 = 20 sec) */
-#define WLANBAP_LINK_SUPERVISION_TIMEOUT   0x7D00
+//#define WLANBAP_LINK_SUPERVISION_TIMEOUT   0x7D00
+#define WLANBAP_LINK_SUPERVISION_TIMEOUT   0x0960  // 1.5 seconds
+#define WLANBAP_LINK_SUPERVISION_RETRIES   2
 
 /* Logical Link Accept Timer interval (0x1FA0 * 0.625 = 5.06 sec)*/
 #define WLANBAP_LOGICAL_LINK_ACCEPT_TIMEOUT 0x1FA0
@@ -321,6 +323,8 @@ typedef struct sBtampContext {
     v_PVOID_t                 pHddHdl;
     /* 8 bits of phy_link_handle identifies this association */
     v_U8_t                    phy_link_handle;  
+    // Short Range Mode setting for this physical link
+    v_U8_t                    phy_link_srm;
 
     // Include the key material for this physical link
     v_U8_t                    key_type;
@@ -428,6 +432,8 @@ typedef struct sBtampContext {
     v_PVOID_t                 pHddHdl;
     /* 8 bits of phy_link_handle identifies this association */
     v_U8_t                    phy_link_handle;  
+    // Short Range Mode setting for this physical link
+    v_U8_t                    phy_link_srm;
 
     // Include the associations STA Id
     v_U8_t                    ucSTAId;
@@ -576,7 +582,7 @@ WLANBAP_STAFetchPktCB
 ( 
   v_PVOID_t             pvosGCtx,
   v_U8_t*               pucSTAId,
-  v_U8_t*               pucAC,
+  v_U8_t                ucAC,
   vos_pkt_t**           vosDataBuff,
   WLANTL_MetaInfoType*  tlMetaInfo
 );
@@ -1105,6 +1111,34 @@ void
 WLANBAP_ReadMacConfig
 ( 
   ptBtampContext  pBtampCtx 
+);
+
+/*==========================================================================
+
+  FUNCTION    WLANBAP_NeedBTCoexPriority
+
+  DESCRIPTION 
+    This function will cause a message to be sent to BTC firmware
+    if a change in priority has occurred.  (From AMP's point-of-view.)
+        
+  DEPENDENCIES 
+    
+  PARAMETERS 
+
+    pvosGCtx:       pointer to the global vos context; a handle to HAL's 
+                    control block can be extracted from its context 
+   
+  RETURN VALUE
+    None
+
+  SIDE EFFECTS 
+  
+============================================================================*/
+void
+WLANBAP_NeedBTCoexPriority
+( 
+  ptBtampContext  pBtampCtx, 
+  v_U32_t         needCoexPriority
 );
 
 

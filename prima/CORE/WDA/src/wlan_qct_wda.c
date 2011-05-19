@@ -3470,6 +3470,7 @@ WDA_processSetLinkStateStatus WDA_IsHandleSetLinkStateReq(
    switch(linkStateParams->state)
    {
       case eSIR_LINK_PREASSOC_STATE:
+      case eSIR_LINK_BTAMP_PREASSOC_STATE:
         /* 
          * set the WDA state to PRE ASSOC 
          * copy the BSSID into pWDA to use it in join request and return, 
@@ -6435,6 +6436,8 @@ VOS_STATUS WDA_ProcessBtAmpEventReq(tWDA_CbContext *pWDA,
    wdiBtAmpEventParam->wdiBtAmpEventInfo.ucBtAmpEventType = 
       pBtAmpEventParams->btAmpEventType;
 
+   wdiBtAmpEventParam->wdiReqStatusCB = NULL;
+
    WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
                   (NULL == pWDA->wdaWdiApiMsgParam));
 
@@ -7061,7 +7064,7 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
                                                          void* pUserData )
 {
    tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData;
-#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
    tSirRSSINotification rssiNotification;
 #endif
 
@@ -7069,7 +7072,7 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
    {
       case WDI_HAL_RSSI_NOTIFICATION_IND:
       {
-#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
          rssiNotification.bReserved = 
             wdiLowLevelInd->wdiIndicationData.wdiLowRSSIInfo.bReserved;
          rssiNotification.bRssiThres1NegCross = 

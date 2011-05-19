@@ -3,20 +3,29 @@
 #define WLAN_HDD_MISC_H
 
 #ifdef MSM_PLATFORM
-#define INI_FILE                    "wlan/volans/WCN1314_qcom_cfg.ini"
-#define LIBRA_CFG_FILE              "wlan/volans/WCN1314_cfg.dat"
-#define LIBRA_FW_FILE               "wlan/volans/WCN1314_qcom_fw.bin"
-#define LIBRA_NV_FILE               "wlan/volans/WCN1314_qcom_wlan_nv.bin"
-#define LIBRA_COUNTRY_INFO_FILE     "wlan/volans/WCN1314_wlan_country_info.dat"
-#define LIBRA_HO_CFG_FILE           "wlan/volans/WCN1314_wlan_ho_config"
+#ifdef QC_WLAN_CHIPSET_PRIMA
+#define WLAN_INI_FILE              "wlan/prima/WCNSS_qcom_cfg.ini"
+#define WLAN_CFG_FILE              "wlan/prima/WCNSS_cfg.dat"
+#define WLAN_FW_FILE               ""
+#define WLAN_NV_FILE               "wlan/prima/WCNSS_qcom_wlan_nv.bin"
+#define WLAN_COUNTRY_INFO_FILE     "wlan/prima/WCNSS_wlan_country_info.dat"
+#define WLAN_HO_CFG_FILE           "wlan/prima/WCNSS_wlan_ho_config"
 #else
-#define INI_FILE                    "wlan/qcom_cfg.ini"
-#define LIBRA_CFG_FILE              "wlan/cfg.dat"
-#define LIBRA_FW_FILE               "wlan/qcom_fw.bin"
-#define LIBRA_NV_FILE               "wlan/qcom_wlan_nv.bin"
-#define LIBRA_COUNTRY_INFO_FILE     "wlan/wlan_country_info.dat"
-#define LIBRA_HO_CFG_FILE           "wlan/wlan_ho_config"
-#endif
+#define WLAN_INI_FILE              "wlan/volans/WCN1314_qcom_cfg.ini"
+#define WLAN_CFG_FILE              "wlan/volans/WCN1314_cfg.dat"
+#define WLAN_FW_FILE               "wlan/volans/WCN1314_qcom_fw.bin"
+#define WLAN_NV_FILE               "wlan/volans/WCN1314_qcom_wlan_nv.bin"
+#define WLAN_COUNTRY_INFO_FILE     "wlan/volans/WCN1314_wlan_country_info.dat"
+#define WLAN_HO_CFG_FILE           "wlan/volans/WCN1314_wlan_ho_config"
+#endif // ANI_CHIPSET
+#else
+#define WLAN_INI_FILE              "wlan/qcom_cfg.ini"
+#define WLAN_CFG_FILE              "wlan/cfg.dat"
+#define WLAN_FW_FILE               "wlan/qcom_fw.bin"
+#define WLAN_NV_FILE               "wlan/qcom_wlan_nv.bin"
+#define WLAN_COUNTRY_INFO_FILE     "wlan/wlan_country_info.dat"
+#define WLAN_HO_CFG_FILE           "wlan/wlan_ho_config"
+#endif // MSM_PLATFORM
 
 
 VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_data, v_SIZE_t *pSize);

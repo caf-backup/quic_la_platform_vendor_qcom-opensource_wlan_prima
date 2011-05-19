@@ -1340,7 +1340,7 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
     /* Attempt to get the firmware binary through VOS.  We need to pass this
            to the MAC when starting. */
-    vStatus = hdd_request_firmware(LIBRA_FW_FILE,pHddCtx,
+    vStatus = hdd_request_firmware(WLAN_FW_FILE, pHddCtx,
                                (v_VOID_t **)&halStartParams.FW.pImage,
                                (v_SIZE_t *)&halStartParams.FW.cbImage);
 
@@ -1365,7 +1365,7 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
     /* Free uo the FW image no matter what */
     if( NULL != halStartParams.FW.pImage )
     {
-        hdd_release_firmware(LIBRA_FW_FILE,pVosContext->pHDDContext);
+        hdd_release_firmware(WLAN_FW_FILE, pVosContext->pHDDContext);
         halStartParams.FW.pImage = NULL;
         halStartParams.FW.cbImage = 0;
     }

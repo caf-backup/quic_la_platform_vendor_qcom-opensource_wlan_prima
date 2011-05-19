@@ -573,6 +573,10 @@ typedef struct sBtampTLVHCI_Command_Complete_Event {
         {
             v_U8_t status;
         } Write_Loopback_Mode; /* command_opcode = 6146 */
+        struct
+        {
+            v_U8_t status;
+        } Vendor_Specific_Cmd_0; /* command_opcode = fc00 */
     } cc_event;
 } tBtampTLVHCI_Command_Complete_Event;
 
@@ -1896,6 +1900,13 @@ v_U32_t btampGetPackedTlvHCI_Write_Remote_AMP_ASSOC_Cmd(void *, tBtampTLVHCI_Wri
 #ifdef __cplusplus
 }; /* End extern "C". */
 #endif /* C++ */
+// ID 64512 (0xfc00)
+typedef struct sBtampTLVHCI_Vendor_Specific_Cmd_0 {
+    v_U8_t       present;
+} tBtampTLVHCI_Vendor_Specific_0_Cmd;
+
+#define BTAMP_TLV_HCI_VENDOR_SPECIFIC_CMD_0 ( 64512 )
+
 /*********************************************************************
  * Information Elements                                              *
  ********************************************************************/
@@ -1934,6 +1945,7 @@ extern "C" {
 /* HCI Number of Completed Packets Event*/
 typedef struct sBtampTLVHCI_Num_Completed_Pkts_Event
 {
+    v_U8_t       present;
     /* 
       The number of Connection Handles and Num_Data_Packets
       parameters pairs contained in this event.Range: 0-255
@@ -1955,6 +1967,10 @@ typedef struct sBtampTLVHCI_Num_Completed_Pkts_Event
 } tBtampTLVHCI_Num_Completed_Pkts_Event;
 
 #define BTAMP_TLV_HCI_NUM_OF_COMPLETED_PKTS_EVENT ( 19 )
+
+v_U32_t btampPackTlvHCI_Num_Completed_Pkts_Event(void *, tBtampTLVHCI_Num_Completed_Pkts_Event*, v_U8_t*, v_U32_t, v_U32_t*);
+
+v_U32_t btampGetPackedTlvHCI_Num_Completed_Pkts_Event(void *, tBtampTLVHCI_Num_Completed_Pkts_Event*, v_U32_t*);
 
 /*Length of the value field expected in a TLV of type Flow SPec*/
 #define WLAN_BAP_PAL_FLOW_SPEC_TLV_LEN          16

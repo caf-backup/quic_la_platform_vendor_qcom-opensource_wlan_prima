@@ -122,6 +122,9 @@ suppRsnFsmCreate(tBtampContext *ctx)
     int retVal = ANI_OK;
     tSuppRsnFsm *fsm = &ctx->uFsm.suppFsm;
 
+    // First, clear everything out
+    vos_mem_zero( fsm, sizeof(tSuppRsnFsm));
+
     if( !VOS_IS_STATUS_SUCCESS( bapRsnRegisterTxRxCallbacks( suppRsnTxCompleteHandler,
                                             suppRsnRxFrameHandler ) ) )
     {
@@ -133,6 +136,7 @@ suppRsnFsmCreate(tBtampContext *ctx)
         return ANI_ERROR;
     }
 
+    // Allocate the supplicant context
     fsm->suppCtx = (tSuppContext *)vos_mem_malloc( sizeof(tSuppContext) );
     if (fsm->suppCtx == NULL) 
     {
@@ -140,10 +144,12 @@ suppRsnFsmCreate(tBtampContext *ctx)
         VOS_ASSERT( 0 );
         goto error;
     }
+    // Clear out the supplicant context
+    vos_mem_zero( fsm->suppCtx, sizeof(tSuppContext));
 
     fsm->ctx = ctx;
     //Only support CCMP
-    fsm->suppCtx->pwCipherType = eANI_SSM_CT_CCMP;
+    fsm->suppCtx->pwCipherType = eCSR_ENCRYPT_TYPE_AES;
 
     retVal = aniAsfPacketAllocateExplicit(&fsm->lastEapol,
                                           RSN_MAX_PACKET_SIZE,
@@ -221,6 +227,9 @@ suppRsnFsmFree(tBtampContext *ctx)
         }
         vos_mem_free( fsm->suppCtx );
     }
+
+    // Finally, clear everything out
+    vos_mem_zero( fsm, sizeof(tSuppRsnFsm));
 
     return ANI_OK;
 }
@@ -365,7 +374,7 @@ gotoStateStaKeyStart(tSuppRsnFsm *fsm,
         vos_mem_zero( &txDesc, sizeof(txDesc) );
 
         // The Key Information bits...
-        if (fsm->suppCtx->pwCipherType == eANI_SSM_CT_CCMP) 
+        if (fsm->suppCtx->pwCipherType == eCSR_ENCRYPT_TYPE_AES) 
         {
             txDesc.info.keyDescVers = ANI_EAPOL_KEY_DESC_VERS_AES;
         }
@@ -453,7 +462,7 @@ gotoStateStaKeySet(tSuppRsnFsm *fsm,
         vos_mem_zero( &txDesc, sizeof(txDesc) );
 
         // The Key Information bits...
-        if (fsm->suppCtx->pwCipherType == eANI_SSM_CT_CCMP) 
+        if (fsm->suppCtx->pwCipherType == eCSR_ENCRYPT_TYPE_AES) 
         {
             txDesc.info.keyDescVers = ANI_EAPOL_KEY_DESC_VERS_AES;
         }
@@ -578,7 +587,7 @@ gotoStateGroupKeySet(tSuppRsnFsm *fsm,
         vos_mem_zero( &txDesc, sizeof(txDesc) );
 
         // The Key Information bits...
-        if (fsm->suppCtx->grpCipherType == eANI_SSM_CT_CCMP) 
+        if (fsm->suppCtx->grpCipherType == eCSR_ENCRYPT_TYPE_AES) 
         {
             txDesc.info.keyDescVers = ANI_EAPOL_KEY_DESC_VERS_AES;
         }
@@ -669,7 +678,7 @@ int derivePtk(tSuppRsnFsm *fsm, tAniEapolKeyAvailEventData *data)
 
     switch (fsm->suppCtx->pwCipherType) 
     {
-    case eANI_SSM_CT_CCMP:
+    case eCSR_ENCRYPT_TYPE_AES:
         prfLen = AAG_RSN_PTK_PRF_LEN_CCMP;
         fsm->suppCtx->pwKeyLen = AAG_RSN_KEY_MATERIAL_LEN_CCMP;
         break;

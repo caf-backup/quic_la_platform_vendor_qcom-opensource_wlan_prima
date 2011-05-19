@@ -25,6 +25,8 @@
 #include <wlan_hdd_includes.h>
 #include <wlan_btc_svc.h>
 #include <wlan_nlink_common.h>
+#include <bap_hdd_main.h>
+#include <vos_api.h>
 #include <net/arp.h>
 #include "ccmApi.h"
 #include "sirParams.h"
@@ -2534,6 +2536,12 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
         {
             VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: sending WLAN_MODULE_DOWN_IND", __FUNCTION__);
             send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
+#ifdef WLAN_BTAMP_FEATURE 
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,"%s: Take down AMP PAL", __FUNCTION__);
+            BSL_Deinit(vos_get_global_context(VOS_MODULE_ID_HDD, NULL));
+#endif
+            //WLANBAP_Close(vos_get_global_context(VOS_MODULE_ID_HDD, NULL));
+
             *value = 0;
             break;
         }

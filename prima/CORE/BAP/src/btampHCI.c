@@ -152,6 +152,10 @@
 #define WLAN_BAP_PAL_COVERAGE_CLASS_VAL                     0
 
 
+/* LOGGING and VALIDITY_CHECKING control */
+//#define WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
+//#define WLAN_BAPHCI_ENABLE_LOGGING
+
 typedef unsigned char tFRAMES_BOOL;
 typedef void (*pfnGeneric_t)(void);
 
@@ -864,7 +868,7 @@ v_U32_t btampUnpackTlvHCI_Accept_Logical_Link_Cmd(void * pCtx, v_U8_t *pBuf, v_U
     /*-----------------------------------------------------------------------
        TLV Sanity check 
     -------------------------------------------------------------------------*/
-#if 0
+#ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
     if ( WLAN_BAP_PAL_ACC_LOG_LINK_TLV_LEN != tlvlen ) 
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING
@@ -872,7 +876,7 @@ v_U32_t btampUnpackTlvHCI_Accept_Logical_Link_Cmd(void * pCtx, v_U8_t *pBuf, v_U
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
 #endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+//      return BTAMP_INVALID_TLV_LENGTH; 
     }
 #endif
 
@@ -1323,7 +1327,7 @@ v_U32_t btampUnpackTlvHCI_Create_Logical_Link_Cmd(void * pCtx, v_U8_t *pBuf, v_U
     /*-----------------------------------------------------------------------
        TLV Sanity check 
     -------------------------------------------------------------------------*/
-#if 0
+#ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
     if ( WLAN_BAP_PAL_CREATE_LOG_LINK_TLV_LEN != tlvlen ) 
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
@@ -1331,7 +1335,7 @@ v_U32_t btampUnpackTlvHCI_Create_Logical_Link_Cmd(void * pCtx, v_U8_t *pBuf, v_U
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
 #endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+//      return BTAMP_INVALID_TLV_LENGTH; 
     }
 #endif 
     /*-----------------------------------------------------------------------
@@ -1486,6 +1490,7 @@ v_U32_t btampUnpackTlvHCI_Disconnect_Physical_Link_Cmd(void * pCtx, v_U8_t *pBuf
     /*-----------------------------------------------------------------------
        TLV Sanity check 
     -------------------------------------------------------------------------*/
+#ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
     if ( WLAN_BAP_PAL_DISC_PHY_LINK_TLV_LEN != tlvlen ) 
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
@@ -1493,8 +1498,9 @@ v_U32_t btampUnpackTlvHCI_Disconnect_Physical_Link_Cmd(void * pCtx, v_U8_t *pBuf
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
 #endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+//      return BTAMP_INVALID_TLV_LENGTH; 
     }
+#endif      
 
     /*-----------------------------------------------------------------------
       Parse TLV 
@@ -2043,6 +2049,10 @@ v_U32_t btampUnpackTlvHCI_Read_Local_AMP_Assoc_Cmd(void * pCtx, v_U8_t *pBuf, v_
     /*-----------------------------------------------------------------------
        TLV Sanity check 
     -------------------------------------------------------------------------*/
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
+            "Invalid TLV len on %s. tlvlen=%d.", __FUNCTION__, tlvlen); 
+
+#ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
     if ( WLAN_BAP_PAL_READ_LOCAL_AMP_ASSOC_TLV_LEN != tlvlen ) 
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
@@ -2050,8 +2060,9 @@ v_U32_t btampUnpackTlvHCI_Read_Local_AMP_Assoc_Cmd(void * pCtx, v_U8_t *pBuf, v_
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
 #endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+//      return BTAMP_INVALID_TLV_LENGTH; 
     }
+#endif      
 
     /*-----------------------------------------------------------------------
       Parse TLV 
@@ -2283,6 +2294,10 @@ v_U32_t btampUnpackTlvHCI_Set_Event_Mask_Page_2_Cmd(void * pCtx, v_U8_t *pBuf, v
     /*-----------------------------------------------------------------------
        TLV Sanity check 
     -------------------------------------------------------------------------*/
+
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
+            "Invalid TLV len on %s. tlvlen=%d.", __FUNCTION__, tlvlen); 
+#ifdef WLAN_BAPHCI_ENABLE_VALIDITY_CHECKING
     if ( WLAN_BAP_PAL_SET_EVENT_MASK2_TLV_LEN != tlvlen ) 
     {
 #ifdef WLAN_BAPHCI_ENABLE_LOGGING	 	    
@@ -2290,8 +2305,9 @@ v_U32_t btampUnpackTlvHCI_Set_Event_Mask_Page_2_Cmd(void * pCtx, v_U8_t *pBuf, v
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
             "Invalid TLV len on %s", __FUNCTION__); 
 #endif      
-      return BTAMP_INVALID_TLV_LENGTH; 
+//      return BTAMP_INVALID_TLV_LENGTH; 
     }
+#endif      
 
     /*-----------------------------------------------------------------------
       Parse TLV 
@@ -3681,6 +3697,33 @@ v_U32_t btampGetPackedTlvHCI_Flush_Occurred_Event(void * pCtx, tBtampTLVHCI_Flus
 typedef v_U32_t (*pfnPackSizeTlvHCI_Flush_Occurred_Event_t)(void *, tBtampTLVHCI_Flush_Occurred_Event*, v_U32_t*);
 #define SigPackSizeTlvHCI_Flush_Occurred_Event ( 0x0053 )
 
+v_U32_t btampGetPackedTlvHCI_Num_Completed_Pkts_Event(void * pCtx, tBtampTLVHCI_Num_Completed_Pkts_Event *pTlv, v_U32_t *pnNeeded)
+{
+    v_U32_t status = BTAMP_PARSE_SUCCESS;
+    (void)pCtx; (void)pTlv; (void)pnNeeded;
+//    while ( pTlv->present )
+    {
+        *pnNeeded += 1;
+        *pnNeeded += 2;
+        *pnNeeded += 2;
+#if 0
+// New 
+        *pnNeeded += 2;
+        *pnNeeded += 2;
+        *pnNeeded += 2;
+        *pnNeeded += 2;
+        *pnNeeded += 2;
+        *pnNeeded += 2;
+// End of New 
+#endif
+//        break;
+    }
+    return status;
+} /* End btampGetPackedTLVHCI_Num_Completed_Pkts_Event. */
+
+//typedef v_U32_t (*pfnPackSizeTlvHCI_Num_Completed_Pkts_Event_t)(void *, tBtampTLVHCI_Command_Status_Event*, v_U32_t*);
+//#define SigPackSizeTlvHCI_Num_Completed_Pkts_Event ( 0x0048 )
+
 v_U32_t btampGetPackedTlvHCI_Generic_AMP_Link_Key_Notification_Event(void * pCtx, tBtampTLVHCI_Generic_AMP_Link_Key_Notification_Event *pTlv, v_U32_t *pnNeeded)
 {
     v_U32_t status = BTAMP_PARSE_SUCCESS;
@@ -4928,7 +4971,8 @@ v_U32_t btampPackTlvHCI_Accept_Logical_Link_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 1081, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 1081, 0);
+		else ; //*pBuf = 1081;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -4977,7 +5021,8 @@ v_U32_t btampPackTlvHCI_Accept_Physical_Link_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 1078, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 1078, 0);
+		else ; //*pBuf = 1078;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5549,7 +5594,8 @@ v_U32_t btampPackTlvHCI_Create_Logical_Link_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 1080, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 1080, 0);
+		else ; //*pBuf = 1080;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5598,7 +5644,8 @@ v_U32_t btampPackTlvHCI_Create_Physical_Link_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 1077, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 1077, 0);
+		else ; //*pBuf = 1077;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5693,7 +5740,8 @@ v_U32_t btampPackTlvHCI_Disconnect_Logical_Link_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 1082, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 1082, 0);
+		else ; //*pBuf = 1082;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5784,7 +5832,8 @@ v_U32_t btampPackTlvHCI_Disconnect_Physical_Link_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 1079, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 1079, 0);
+		else ; //*pBuf = 1079;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5879,7 +5928,8 @@ v_U32_t btampPackTlvHCI_Flow_Spec_Modify_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 1084, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 1084, 0);
+		else ; //*pBuf = 1084;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -5978,7 +6028,8 @@ v_U32_t btampPackTlvHCI_Flush_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3080, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3080, 0);
+		else ; //*pBuf = 3080;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6040,6 +6091,84 @@ v_U32_t btampPackTlvHCI_Flush_Occurred_Event(void * pCtx,
 
 typedef v_U32_t (*pfnPackTlvHCI_Flush_Occurred_Event_t)(void *, tBtampTLVHCI_Flush_Occurred_Event *, v_U8_t*, v_U32_t, v_U32_t*);
 #define SigPackTlvHCI_Flush_Occurred_Event ( 0x0090 )
+
+v_U32_t btampPackTlvHCI_Num_Completed_Pkts_Event(void * pCtx,
+                                             tBtampTLVHCI_Num_Completed_Pkts_Event *pSrc,
+                                             v_U8_t *pBuf,
+                                             v_U32_t nBuf,
+                                             v_U32_t *pnConsumed)
+{
+    v_U8_t* pTlvLen = 0;
+    v_U32_t nConsumedOnEntry = *pnConsumed;
+    v_U32_t status = BTAMP_PARSE_SUCCESS;
+    v_U32_t nNeeded = 0U;
+    v_U32_t sType = 0U;
+    v_U32_t sLen = 0U;
+    sType = 1;
+    sLen = 1;
+    status = btampGetPackedTlvHCI_Num_Completed_Pkts_Event(pCtx, pSrc, &nNeeded);
+    if ( ! BTAMP_SUCCEEDED( status ) ) return status;
+    nNeeded += sType + sLen;
+    if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+//    while ( pSrc->present )
+    {
+        if( sType == 2) frameshtons( pCtx, pBuf, 19, 0);
+		else *pBuf = 19;
+        pBuf += sType; nBuf -= sType; *pnConsumed += sType;
+        pTlvLen = pBuf;
+        pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
+        *pBuf = pSrc->num_handles;
+        *pnConsumed += 1;
+        pBuf += 1;
+        nBuf -= 1;
+        frameshtons(pCtx, pBuf, pSrc->conn_handles[0], 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        frameshtons(pCtx, pBuf, pSrc->num_completed_pkts[0], 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+#if 0
+        // New
+        frameshtons(pCtx, pBuf, 0, 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        frameshtons(pCtx, pBuf, 0, 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        frameshtons(pCtx, pBuf, 0, 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        frameshtons(pCtx, pBuf, 0, 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        frameshtons(pCtx, pBuf, 0, 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+        frameshtons(pCtx, pBuf, 0, 0);
+        *pnConsumed += 2;
+        pBuf += 2;
+        nBuf -= 2;
+// End of new
+#endif
+//        break;
+    }
+    (void)pCtx;
+    if (pTlvLen && sLen == 2)
+    {
+        frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
+    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    return status;
+} /* End btampPackTlvHCI_Num_Completed_Pkts_Event. */
+
+//typedef v_U32_t (*pfnPackTlvHCI_Num_Completed_Pkts_Event_t)(void *, tBtampTLVHCI_Num_Completed_Pkts_Event *, v_U8_t*, v_U32_t, v_U32_t*);
+//#define SigPackTlvHCI_Num_Completed_Pkts_Event ( 0x0085 )
 
 v_U32_t btampPackTlvHCI_Generic_AMP_Link_Key_Notification_Event(void * pCtx,
                                                                 tBtampTLVHCI_Generic_AMP_Link_Key_Notification_Event *pSrc,
@@ -6153,7 +6282,8 @@ v_U32_t btampPackTlvHCI_Logical_Link_Cancel_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 1083, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 1083, 0);
+		else ; //*pBuf = 1083;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6470,7 +6600,8 @@ v_U32_t btampPackTlvHCI_Read_Best_Effort_Flush_Timeout_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3177, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3177, 0);
+		else ; //*pBuf = 3177;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6511,7 +6642,8 @@ v_U32_t btampPackTlvHCI_Read_Buffer_Size_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 4101, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 4101, 0);
+		else ; //*pBuf = 4101;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6548,7 +6680,8 @@ v_U32_t btampPackTlvHCI_Read_Connection_Accept_Timeout_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3093, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3093, 0);
+		else ; //*pBuf = 3093;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6585,7 +6718,8 @@ v_U32_t btampPackTlvHCI_Read_Data_Block_Size_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 4106, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 4106, 0);
+		else ; //*pBuf = 4106;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6622,7 +6756,8 @@ v_U32_t btampPackTlvHCI_Read_Failed_Contact_Counter_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 5121, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 5121, 0);
+		else ; //*pBuf = 5121;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6663,7 +6798,8 @@ v_U32_t btampPackTlvHCI_Read_Flow_Control_Mode_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3174, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3174, 0);
+		else ; //*pBuf = 3174;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6700,7 +6836,8 @@ v_U32_t btampPackTlvHCI_Read_Link_Quality_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 5123, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 5123, 0);
+		else ; //*pBuf = 5123;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6741,7 +6878,8 @@ v_U32_t btampPackTlvHCI_Read_Link_Supervision_Timeout_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3126, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3126, 0);
+		else ; //*pBuf = 3126;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6782,7 +6920,8 @@ v_U32_t btampPackTlvHCI_Read_Local_AMP_Assoc_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 5130, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 5130, 0);
+		else ; //*pBuf = 5130;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6831,7 +6970,8 @@ v_U32_t btampPackTlvHCI_Read_Local_AMP_Information_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 5129, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 5129, 0);
+		else ; //*pBuf = 5129;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6868,7 +7008,8 @@ v_U32_t btampPackTlvHCI_Read_Local_Supported_Cmds_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 4098, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 4098, 0);
+		else ; //*pBuf = 4098;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6905,7 +7046,8 @@ v_U32_t btampPackTlvHCI_Read_Local_Version_Info_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 4097, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 4097, 0);
+		else ; //*pBuf = 4097;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6942,7 +7084,8 @@ v_U32_t btampPackTlvHCI_Read_Location_Data_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3172, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3172, 0);
+		else ; //*pBuf = 3172;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -6979,7 +7122,8 @@ v_U32_t btampPackTlvHCI_Read_Logical_Link_Accept_Timeout_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3169, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3169, 0);
+		else ; //*pBuf = 3169;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7016,7 +7160,8 @@ v_U32_t btampPackTlvHCI_Read_Loopback_Mode_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 6145, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 6145, 0);
+		else ; //*pBuf = 6145;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7053,7 +7198,8 @@ v_U32_t btampPackTlvHCI_Read_RSSI_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 5125, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 5125, 0);
+		else ; //*pBuf = 5125;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7094,7 +7240,8 @@ v_U32_t btampPackTlvHCI_Reset_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3075, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3075, 0);
+		else ; //*pBuf = 3075;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7131,7 +7278,8 @@ v_U32_t btampPackTlvHCI_Reset_Failed_Contact_Counter_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 5122, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 5122, 0);
+		else ; //*pBuf = 5122;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7172,7 +7320,8 @@ v_U32_t btampPackTlvHCI_Set_Event_Mask_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3077, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3077, 0);
+		else ; //*pBuf = 3077;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7213,7 +7362,8 @@ v_U32_t btampPackTlvHCI_Set_Event_Mask_Page_2_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3171, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3171, 0);
+		else ; //*pBuf = 3171;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7254,7 +7404,8 @@ v_U32_t btampPackTlvHCI_Set_Short_Range_Mode_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3179, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3179, 0);
+		else ; //*pBuf = 3179;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7349,7 +7500,8 @@ v_U32_t btampPackTlvHCI_Write_Best_Effort_Flush_Timeout_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3178, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3178, 0);
+		else ; //*pBuf = 3178;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7394,7 +7546,8 @@ v_U32_t btampPackTlvHCI_Write_Connection_Accept_Timeout_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3094, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3094, 0);
+		else ; //*pBuf = 3094;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7435,7 +7588,8 @@ v_U32_t btampPackTlvHCI_Write_Flow_Control_Mode_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3175, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3175, 0);
+		else ; //*pBuf = 3175;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7476,7 +7630,8 @@ v_U32_t btampPackTlvHCI_Write_Link_Supervision_Timeout_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3127, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3127, 0);
+		else ; //*pBuf = 3127;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7521,7 +7676,8 @@ v_U32_t btampPackTlvHCI_Write_Location_Data_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3173, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3173, 0);
+		else ; //*pBuf = 3173;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7570,7 +7726,8 @@ v_U32_t btampPackTlvHCI_Write_Logical_Link_Accept_Timeout_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 3170, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 3170, 0);
+		else ; //*pBuf = 3170;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7611,7 +7768,8 @@ v_U32_t btampPackTlvHCI_Write_Loopback_Mode_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 6146, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 6146, 0);
+		else ; //*pBuf = 6146;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
@@ -7652,7 +7810,8 @@ v_U32_t btampPackTlvHCI_Write_Remote_AMP_ASSOC_Cmd(void * pCtx,
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
     while ( pSrc->present )
     {
-        frameshtons( pCtx, pBuf, 5131, 0);
+        if( sType == 2) frameshtons( pCtx, pBuf, 5131, 0);
+		else ; //*pBuf = 5131;
         pBuf += sType; nBuf -= sType; *pnConsumed += sType;
         pTlvLen = pBuf;
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;

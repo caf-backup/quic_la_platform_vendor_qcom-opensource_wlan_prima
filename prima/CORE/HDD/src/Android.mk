@@ -5,9 +5,9 @@
 WLAN_BLD_DIR := vendor/qcom/proprietary/wlan
 PRIMA_FW_DIR := vendor/qcom/proprietary/wlan/prima/firmware_bin
 
-PRODUCT_COPY_FILES += $(PRIMA_FW_DIR)/WCN1314_qcom_wlan_nv.bin:persist/WCN1314_qcom_wlan_nv.bin
-PRODUCT_COPY_FILES += $(PRIMA_FW_DIR)/WCN1314_cfg.dat:system/etc/firmware/wlan/volans/WCN1314_cfg.dat
-PRODUCT_COPY_FILES += $(PRIMA_FW_DIR)/WCN1314_qcom_cfg.ini:system/etc/firmware/wlan/volans/WCN1314_qcom_cfg.ini
+PRODUCT_COPY_FILES += $(PRIMA_FW_DIR)/WCNSS_qcom_wlan_nv.bin:persist/WCNSS_qcom_wlan_nv.bin
+PRODUCT_COPY_FILES += $(PRIMA_FW_DIR)/WCNSS_cfg.dat:system/etc/firmware/wlan/prima/WCNSS_cfg.dat
+PRODUCT_COPY_FILES += $(PRIMA_FW_DIR)/WCNSS_qcom_cfg.ini:system/etc/firmware/wlan/prima/WCNSS_qcom_cfg.ini
 
 # Build prima_wlan.ko
 ###########################################################
@@ -45,10 +45,10 @@ $(WLAN_PRIMA_SYMLINK):
 file := $(WLAN_PRIMA_SYMLINK)
 ALL_PREBUILT += $(file)
 
-WLAN_NV_FILE_SYMLINK := $(TARGET_OUT)/etc/firmware/wlan/volans/WCN1314_qcom_wlan_nv.bin
+WLAN_NV_FILE_SYMLINK := $(TARGET_OUT)/etc/firmware/wlan/prima/WCNSS_qcom_wlan_nv.bin
 $(WLAN_NV_FILE_SYMLINK):
 	@mkdir -p $(dir $@)
-	ln -s -f /persist/WCN1314_qcom_wlan_nv.bin $@
+	ln -s -f /persist/WCNSS_qcom_wlan_nv.bin $@
 
 file := $(WLAN_NV_FILE_SYMLINK)
 ALL_PREBUILT += $(file)

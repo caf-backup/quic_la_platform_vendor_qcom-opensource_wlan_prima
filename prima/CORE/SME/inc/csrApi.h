@@ -146,9 +146,6 @@ typedef enum
     eCSR_SCAN_SUCCESS,
     eCSR_SCAN_FAILURE,
     eCSR_SCAN_ABORT,
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-    eCSR_SCAN_ONGOING,
-#endif
 }eCsrScanStatus;
 
 #define CSR_SCAN_TIME_DEFAULT       0
@@ -787,76 +784,6 @@ typedef struct tagCsrRoamConnectedProfile
     
 }tCsrRoamConnectedProfile;
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-/*---------------------------------------------------------------------------
- All tunable handoff parmeters which will be part of handoff config file
----------------------------------------------------------------------------*/
-typedef struct tagCsrConfigNoWifiParams
-{
-   tANI_U32          rssiFilterConst;
-   tANI_U32          channelScanTime;
-   tANI_U32          rssiThresholdNeighborSet;
-   tANI_U32          rssiThresholdAssociationAdd;
-   tANI_U32          activeScanInterval;
-   tANI_U32          activeScanDuration;
-} tCsrConfigNoWifiParams;
-
-typedef struct tagCsrConfigIdleParams
-{
-  tANI_U32          rssiFilterConst;
-  tANI_U32          numCandtSetEntry;
-  tANI_U32          inactThreshold;
-  tANI_U32          inactPeriod;
-  tANI_U32          bestCandidateApRssiDelta;
-  tANI_U32          neighborApBgScanInterval;
-  tANI_U32          neighborApIncrBgScanInterval;
-  tANI_U32          rssiThresholdCandtSet;
-  tANI_U32          pmkCacheRssiDelta;
-  tANI_U32          rssiThresholdCurrentApGood;
-} tCsrConfigNtParams;
-
-typedef struct tagCsrConfigNrtParams
-{
-  tANI_U32          rssiFilterConst;
-  tANI_U32          numCandtSetEntry;
-  tANI_U32          rssiThresholdCurrentApGood;
-  tANI_U32          rssiThresholdCurrentApGoodEmptyCandtset;
-  tANI_U32          rssiThresholdHoFromCurrentAp;
-  tANI_U32          rssiThresholdCandtSet;
-  tANI_U32          bgScanInterval;
-  tANI_U32          bgScanIncrInterval;
-  tANI_U32          bgScanDelayInterval;
-  tANI_U32          perMsmtInterval;
-  tANI_U32          perThresholdHoFromCurrentAp;
-  tANI_U32          pmkCacheRssiDelta;
-  tANI_U32          bestCandidateApRssiDelta;
-} tCsrConfigNrtParams;
-
-typedef struct tagCsrConfigRtParams
-{
-  tANI_U32          rssiFilterConst;
-  tANI_U32          numCandtSetEntry;
-  tANI_U32          rssiThresholdCurrentApGood;
-  tANI_U32          rssiThresholdHoFromCurrentAp;
-  tANI_U32          rssiThresholdCandtSet;
-  tANI_U32          bgScanInterval;
-  tANI_U32          perMsmtInterval;
-  tANI_U32          perThresholdHoFromCurrentAp;
-  tANI_U32          pmkCacheRssiDelta;
-  tANI_U32          bestCandidateApRssiDelta;
-} tCsrConfigRtParams;
-
-/*---------------------------------------------------------------------------
-  Structure with all the handoff(WLAN) related configuration parameters
----------------------------------------------------------------------------*/
-typedef struct tagCsrHandoffConfigParams
-{
-  tCsrConfigNoWifiParams    noWifiParams;
-  tCsrConfigNtParams        ntParams;
-  tCsrConfigNrtParams       nrtParams;
-  tCsrConfigRtParams        rtParams;
-} tCsrHandoffConfigParams;
-#endif
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 typedef struct tagCsr11rConfigParams

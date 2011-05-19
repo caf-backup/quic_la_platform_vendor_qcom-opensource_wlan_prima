@@ -937,54 +937,6 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    return status;
 }
 
-
-/*--------------------------------------------------------------------------
-  
-  \brief sme_HoConfig() - Change handoff configurations for CSR during SMEs 
-  close -> open sequence.
-   
-  Modules inside SME apply the new configuration at the next transaction.
-
-  
-  \param hHal - The handle returned by macOpen.
-  \Param pSmeHoConfigParams - a pointer to a caller allocated object of 
-  typedef struct _smeHoConfigParams.
-  
-  \return eHAL_STATUS_SUCCESS - SME update the config parameters successfully.
-  
-          Other status means SME is failed to update the config parameters.
-  \sa
-  
-  --------------------------------------------------------------------------*/
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-eHalStatus sme_HoConfig(tHalHandle hHal, tpSmeHoConfigParams pSmeHoConfigParams)
-{
-   eHalStatus status = eHAL_STATUS_FAILURE;
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-   if (NULL == pSmeHoConfigParams ) {
-      smsLog( pMac, LOGE, "Empty config param structure for SME\n");
-   }
-
-   if(pSmeHoConfigParams)
-   {
-	   status = csrHoConfigParams(hHal, &pSmeHoConfigParams->csrHoConfig);
-   }
-   else
-   {
-	   status = csrHoConfigParams(hHal, NULL);
-   }
-   
-
-   if ( ! HAL_STATUS_SUCCESS( status ) ) {
-      smsLog( pMac, LOGE, "csrHoConfigParams failed with status=%d\n", 
-              status );
-   }
-
-   return status;
-
-}
-#endif
 /* ---------------------------------------------------------------------------
     \fn sme_ChangeConfigParams
     \brief The SME API exposed for HDD to provide config params to SME during
@@ -1643,44 +1595,7 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
             status = sme_AcquireGlobalLock( &pMac->sme );
             if ( HAL_STATUS_SUCCESS( status ) )
             {
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-                //Since HO only happens for infra mode, we only check for the 
-                //connect status of infra link.
-                //This way is to save off channel time so AP has less chance of 
-                //deauth the Libra side when Libra doens't response to many TIM-ed beacons.
-                if( csrIsConnStateConnectedInfra( pMac, sessionId ) && 
-                    (csrScanIsBgScanEnabled( pMac ) || csrScanGetChannelMask(pMac)) )
                 {
-                    //background scan by HO is enable, no need to scan here
-                    if( callback )
-                    {
-                        tANI_U32 lScanId = pMac->scan.nextScanID++; //let it wrap around
-                        //Assign a scanID in case caller uses it during the callback.
-                        if(pScanRequestID)
-                        {
-                            *pScanRequestID = lScanId;
-                        }
-                        sme_ReleaseGlobalLock( &pMac->sme );
-                        callback( pMac, pContext, lScanId, eCSR_SCAN_ONGOING );
-                        status = sme_AcquireGlobalLock( &pMac->sme );
-                        if ( !HAL_STATUS_SUCCESS( status ) )
-                        {
-                            status = eHAL_STATUS_SUCCESS;
-                            break;
-                        }
-                    }
-                }
-                else
-#endif //#ifdef FEATURE_WLAN_GEN6_ROAMING
-                {
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-                    //create the channel mask if needed
-                    if( csrIsConnStateConnectedInfra( pMac, sessionId ) && 
-                       (CSR_IS_ROAM_SUBSTATE_HO_NRT(pMac) || CSR_IS_ROAM_SUBSTATE_HO_RT(pMac)))
-                    {
-                        csrScanSetChannelMask(pMac, &pscanReq->ChannelInfo);
-                    }
-#endif //#ifdef FEATURE_WLAN_GEN6_ROAMING
                     status = csrScanRequest( hHal, pscanReq, pScanRequestID,
                                      callback, pContext );
                 }
@@ -4495,6 +4410,56 @@ eHalStatus sme_RoamUpdateAPWPARSNIEs(tHalHandle hHal, tANI_U8 sessionId, tSirRSN
    return (status);
 }
 #endif
+
+
+/*-------------------------------------------------------------------------------*
+
+  \fn sme_sendBTAmpEvent
+
+  \brief to receive the coex priorty request from BT-AMP PAL
+  and send the BT_AMP link state to HAL
+
+  \param btAmpEvent - btAmpEvent
+
+  \return eHalStatus: SUCESS : BTAmp event successfully sent to HAL
+
+                      FAILURE: API failed
+
+-------------------------------------------------------------------------------*/
+
+eHalStatus	sme_sendBTAmpEvent(tHalHandle hHal, tSmeBtAmpEvent btAmpEvent)
+{
+  vos_msg_t msg;
+  tpSmeBtAmpEvent ptrSmeBtAmpEvent = NULL;
+  eHalStatus status = eHAL_STATUS_FAILURE;
+
+  ptrSmeBtAmpEvent = vos_mem_malloc(sizeof(tpSmeBtAmpEvent));
+  if (NULL == ptrSmeBtAmpEvent)
+     {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
+           "Not able to allocate memory for BTAmp event", __FUNCTION__);
+        return status;
+   }
+
+  vos_mem_copy(ptrSmeBtAmpEvent, (void*)&btAmpEvent, sizeof(tSmeBtAmpEvent));
+  msg.type = WDA_SIGNAL_BTAMP_EVENT;
+  msg.reserved = 0;
+  msg.bodyptr = ptrSmeBtAmpEvent;
+
+  //status = halFW_SendBTAmpEventMesg(pMac, event);
+
+  if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+  {
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
+           "Not able to post SIR_HAL_SIGNAL_BTAMP_EVENT message to HAL", __FUNCTION__);
+    vos_mem_free(ptrSmeBtAmpEvent);
+    return status;
+  }
+
+  return eHAL_STATUS_SUCCESS;
+
+}
+
 
 /* ---------------------------------------------------------------------------
     \fn sme_SetHostOffload
