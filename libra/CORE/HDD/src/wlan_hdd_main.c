@@ -1065,7 +1065,11 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    set_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
 
 #ifdef ANI_MANF_DIAG
-    wlan_hdd_ftm_open(pAdapter);
+    if(VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pAdapter))
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to Load FTM driver",__func__);
+        goto err_netdev_unregister;
+    }
     hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
     return VOS_STATUS_SUCCESS;
 #endif
@@ -1074,7 +1078,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 
    if((VOS_STA_SAP_MODE == hdd_get_conparam()) && hdd_wlan_create_ap_dev(pWlanDev))
    {
-      goto err_free_netdev;
+      goto err_netdev_unregister;
    }
 #endif
 
@@ -1083,7 +1087,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    if(pAdapter->cfg_ini == NULL)
    {  
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed kmalloc hdd_config_t",__func__);
-      goto err_netdev_unregister;
+      goto err_free_hap_dev;
    }   
 
    vos_mem_zero(pAdapter->cfg_ini, sizeof( hdd_config_t ));   
@@ -1263,9 +1267,6 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 #ifdef WLAN_SOFTAP_FEATURE
    if (VOS_STA_SAP_MODE == hdd_get_conparam())
    {
-      hdd_register_hostapd(pAdapter->pHostapd_dev);
-      netif_carrier_off(pAdapter->pHostapd_dev);
-      netif_tx_disable(pAdapter->pHostapd_dev);	
       //Initialize the data path module
       status = hdd_softap_init_tx_rx(netdev_priv(pAdapter->pHostapd_dev));
       if ( !VOS_IS_STATUS_SUCCESS( status ))
@@ -1305,6 +1306,19 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_init_wowl failed",__func__);
       goto err_nl_srv;
    }
+
+#ifdef WLAN_SOFTAP_FEATURE
+   if (VOS_STA_SAP_MODE == hdd_get_conparam())
+   { 
+      if (register_netdev(pAdapter->pHostapd_dev))
+      {
+         hddLog(VOS_TRACE_LEVEL_ERROR,"%s:Failed:register_netdev",__func__); 
+         goto err_nl_srv;
+      }
+
+      hdd_register_hostapd(pAdapter->pHostapd_dev);
+   }
+#endif
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
    hdd_register_mcast_bcast_filter(pAdapter);
@@ -1349,6 +1363,14 @@ err_wdclose:
 err_config:
    kfree(pAdapter->cfg_ini);
    pAdapter->cfg_ini= NULL;
+
+err_free_hap_dev:
+#ifdef WLAN_SOFTAP_FEATURE
+   if (VOS_STA_SAP_MODE == hdd_get_conparam())
+   { 
+      free_netdev(pAdapter->pHostapd_dev);
+   }
+#endif
 
 err_netdev_unregister:
    if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) {

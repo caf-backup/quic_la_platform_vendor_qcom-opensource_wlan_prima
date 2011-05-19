@@ -446,6 +446,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
         memset(&wrqu, 0, sizeof(wrqu));
         wrqu.data.length = event_len;
 
+        hdd_hostapd_stop(dev);  //Stop the pkts from n/w stack as we are going free lists for all STAID's
+
         hddLog(LOGE, FL("BSS stop status = %s\n"),pSapEvent->sapevt.sapStopBssCompleteEvent.status ?
                          "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
         hdd_softap_stop_bss(pHostapdAdapter);
@@ -1899,13 +1901,6 @@ int hdd_wlan_create_ap_dev(struct net_device * pWlanDev)
 
     vos_mem_copy(pWlanHostapdDev->dev_addr, (void *)macAddr,sizeof(macAddr));
     vos_mem_copy(&pHostapdAdapter->macAddressCurrent, (void *)macAddr, sizeof(macAddr));
-
-    if (register_netdev(pWlanHostapdDev))
-    {
-        hddLog(VOS_TRACE_LEVEL_ERROR,"%s:Failed:register_netdev",__func__); 
-        free_netdev(pWlanHostapdDev);
-        return -1;
-    }
 
     return 0;
 
