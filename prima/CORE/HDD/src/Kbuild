@@ -28,6 +28,7 @@ HDD_OBJS := wlan_hdd_main.o  \
             wlan_hdd_ftm.o  \
             wlan_hdd_hostapd.o  \
             wlan_hdd_softap_tx_rx.o \
+            wlan_hdd_dev_pwr.o \
             bap_hdd_main.o
 
 ifeq ($(CONFIG_CFG80211), y)
@@ -364,7 +365,7 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DWLAN_STA=1 \
         -DAP=2 \
         -DWNI_POLARIS_FW_PRODUCT=1 \
-        -DANI_CHIPSET_VOLANS \
+        -DQC_WLAN_CHIPSET_PRIMA \
         -DINTEGRATION_READY \
         -DVOSS_ENABLED \
         -DDOT11F_LITTLE_ENDIAN_HOST \
@@ -380,23 +381,15 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DDEBUG \
         -DANI_LOGDUMP \
         -DWLAN_PERF \
-        -DWLAN_HAL_VOLANS\
         -DUSE_LOCKED_QUEUE \
         -DPTT_SOCK_SVC_ENABLE \
-        -DFW_PRESENT \
         -DFEATURE_WLAN_UAPSD_FW_TRG_FRAMES \
-        -DVOLANS_1_0_WORKAROUND \
-        -DADU_MEM_OPT_ENABLED \
         -DWLAN_SOFTAP_FEATURE \
         -Wall\
         -DWLAN_DEBUG \
         -D__linux__ \
-        -DWLANSSC_TX_AGGREGATION_INTERNAL \
-        -DFEATURE_TX_PWR_CONTROL \
         -DMSM_PLATFORM \
         -DWLAN_FTM_STUB \
-        -DVOLANS_1_0_CLPC_WORKAROUND \
-        -DFEATURE_WLAN_VOLANS_1_0_PWRSAVE_WORKAROUND \
         -DFEATURE_WLAN_INTEGRATED_SOC \
         -DBAP_DEBUG \
         -DWLAN_BTAMP_FEATURE \
@@ -404,15 +397,19 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         #-DFEATURE_WLAN_WAPI \
         #-DVOLANS_PERF \
         #-DFEATURE_INNAV_SUPPORT \
-        #-DFEATURE_TX_PWR_CONTROL
         #-DWLAN_FEATURE_VOWIFI \
         #-DRSSI_HACK \
         #-DWLAN_FEATURE_VOWIFI_11R \
         #-DWLAN_FEATURE_NEIGHBOR_ROAMING \
         #-DWLAN_FEATURE_VOWIFI_11R_DEBUG \
         #-DWLAN_VOWIFI_DEBUG \
-        #-DVOLANS_PHY_TX_OPT_ENABLED \
 
+
+# there are still pieces of code which are conditional upon these
+# need to investigate all of them to see which should also be
+# conditional upon QC_WLAN_CHIPSET_PRIMA
+CDEFINES += -DANI_CHIPSET_VOLANS \
+        -DWLAN_HAL_VOLANS
 
 ifeq ($(BUILD_DEBUG_VERSION),1)
 CDEFINES += -DWLAN_DEBUG \

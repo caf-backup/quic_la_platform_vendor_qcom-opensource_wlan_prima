@@ -57,7 +57,7 @@ int BSL_Init (void *pCtx);
               
   --------------------------------------------------------------------------*/
 
-int BSL_Deinit(void);
+int BSL_Deinit(void *pCtx);
 
 
 

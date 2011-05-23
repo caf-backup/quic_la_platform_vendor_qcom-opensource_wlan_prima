@@ -74,7 +74,7 @@ sysInitGlobals(tpAniSirGlobal pMac)
 #endif
 
     pMac->sys.gSysEnableScanMode        = 1;
-    pMac->sys.gSysEnableLinkMonitorMode = 1;
+    pMac->sys.gSysEnableLinkMonitorMode = 0;
     pMac->sys.fTestRadar                = false;
     pMac->sys.radarDetected             = false;
     pMac->sys.gSysdropLimPkts           = false;

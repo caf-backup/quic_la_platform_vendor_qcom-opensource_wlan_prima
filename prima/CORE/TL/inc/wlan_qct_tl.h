@@ -1959,7 +1959,7 @@ WLANTL_DisableUAPSDForAC
   WLANTL_ACEnumType  ucACId
 );
 
-#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
 /*==========================================================================
   FUNCTION     WLANTL_RegRSSIIndicationCB
 

@@ -1,4 +1,3 @@
-
 /**=========================================================================
   
   \file  vos_api.c
@@ -458,26 +457,6 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
      VOS_ASSERT(0);
      goto err_sme_close;
    }
-
-#ifdef WLAN_BTAMP_FEATURE
-   vStatus = WLANBAP_Open(gpVosContext);
-   if(!VOS_IS_STATUS_SUCCESS(vStatus))
-   {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: Failed to open BAP",__func__);
-     goto err_tl_close;
-   }
-   
-   vStatus = BSL_Init(gpVosContext);
-   if (!VOS_IS_STATUS_SUCCESS(vStatus))
-   {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: Failed to Initialise BSL ",__func__);
-     goto err_bap_close;
-   }
-
-#endif //WLAN_BTAMP_FEATURE
-
    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: VOSS successfully Opened",__func__);
 
@@ -485,13 +464,6 @@ VOS_STATUS vos_open( v_CONTEXT_t *pVosContext, v_SIZE_t hddContextSize )
 
    return VOS_STATUS_SUCCESS;
 
-#ifdef WLAN_BTAMP_FEATURE
-err_bap_close:
-   WLANBAP_Close(gpVosContext);
-
-err_tl_close:
-   WLANTL_Close(gpVosContext);
-#endif //WLAN_BTAMP_FEATURE
 
 err_sme_close:
    sme_Close(gpVosContext->pMACContext);
@@ -826,7 +798,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   sirStatus = macStart(pVosContext->pMACContext,(v_PVOID_t)&halStartParams);
 
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
-  hdd_release_firmware(LIBRA_FW_FILE, pVosContext->pHDDContext);
+  hdd_release_firmware(WLAN_FW_FILE, pVosContext->pHDDContext);
 
   halStartParams.FW.pImage = NULL;
   halStartParams.FW.cbImage = 0;
@@ -869,17 +841,6 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
             "TL correctly started");
-
-#ifdef WLAN_BTAMP_FEATURE
-  vStatus = WLANBAP_Start(pVosContext);
-  if (!VOS_IS_STATUS_SUCCESS(vStatus))
-  {
-    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-               "%s: Failed to start TL",__func__);
-    goto err_tl_stop;
-  }
-#endif //WLAN_BTAMP_FEATURE
-
 #ifndef FEATURE_WLAN_INTEGRATED_SOC  
   /* START SYS. This will trigger the CFG download */
   sysMcStart(pVosContext, vos_sys_start_complete_cback, pVosContext);
@@ -888,11 +849,7 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                "%s: Failed to start SYS module",__func__);
-#ifndef WLAN_BTAMP_FEATURE
      goto err_tl_stop;
-#else
-     goto err_bap_stop;
-#endif
   }
 #endif
   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -900,23 +857,9 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
 
   return VOS_STATUS_SUCCESS;
 
-#ifndef FEATURE_WLAN_INTEGRATED_SOC 
-#ifdef WLAN_BTAMP_FEATURE
-err_bap_stop:
-  WLANBAP_Stop(pVosContext);
-#endif //WLAN_BTAMP_FEATURE
-#endif
-
-#ifdef WLAN_BTAMP_FEATURE
-err_tl_stop:
-  WLANTL_Stop(pVosContext);
-#endif
-
-#ifndef WLAN_BTAMP_FEATURE
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
 err_tl_stop:
   WLANTL_Stop(pVosContext);
-#endif
 #endif
 
 err_sme_stop:
@@ -1032,14 +975,6 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
   VOS_STATUS vosStatus;
 
 #ifdef WLAN_BTAMP_FEATURE
-  vosStatus = BSL_Deinit();
-  if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-  {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to close BAP",__func__);
-     VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-  }
-
   vosStatus = WLANBAP_Close(vosContext);
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
@@ -1048,6 +983,7 @@ VOS_STATUS vos_close( v_CONTEXT_t vosContext )
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 #endif // WLAN_BTAMP_FEATURE
+
 
   vosStatus = WLANTL_Close(vosContext);
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))

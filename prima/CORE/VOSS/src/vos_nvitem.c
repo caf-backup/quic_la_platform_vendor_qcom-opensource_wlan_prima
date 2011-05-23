@@ -373,7 +373,7 @@ VOS_STATUS vos_nv_open(void)
     /*Get the global context */
     pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
     bufSize = sizeof(nvEFSTable_t);
-    status = hdd_request_firmware(LIBRA_NV_FILE,
+    status = hdd_request_firmware(WLAN_NV_FILE,
                                   ((VosContextType*)(pVosContext))->pHDDContext,
                                   (v_VOID_t**)&gnvEFSTable, &bufSize);
 
@@ -519,7 +519,7 @@ VOS_STATUS vos_nv_close(void)
     v_CONTEXT_t pVosContext= NULL;
          /*Get the global context */
     pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
-    status = hdd_release_firmware(LIBRA_NV_FILE,((VosContextType*)(pVosContext))->pHDDContext);
+    status = hdd_release_firmware(WLAN_NV_FILE, ((VosContextType*)(pVosContext))->pHDDContext);
     if ( !VOS_IS_STATUS_SUCCESS( status ))
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,

@@ -2043,6 +2043,46 @@ WLAN_BAPSetShortRangeMode
                                 /* Including Command Complete and Command Status*/
 );
 
+
+/*----------------------------------------------------------------------------
+
+  FUNCTION    WLAN_BAPVendorSpecificCmd0()
+
+  DESCRIPTION
+    Implements the actual HCI Vendor Specific Command 0 (OGF 0x3f, OCF 0x0000).
+    There is no need for a callback because when this call returns the action has
+    been completed.
+
+  DEPENDENCIES
+    NA.
+
+  PARAMETERS
+
+    IN
+    btampHandle: pointer to the BAP handle.  Returned from WLANBAP_GetNewHndl.
+
+    IN/OUT
+    pBapHCIEvent:  Return event value for the command complete event.
+                (The caller of this routine is responsible for sending
+                the Command Complete event up the HCI interface.)
+
+  RETURN VALUE
+    The result code associated with performing the operation
+
+    VOS_STATUS_E_FAULT:  pointer to pBapHCIEvent is NULL
+    VOS_STATUS_SUCCESS:  Success
+
+  SIDE EFFECTS
+
+----------------------------------------------------------------------------*/
+VOS_STATUS
+WLAN_BAPVendorSpecificCmd0
+(
+  ptBtampHandle btampHandle,
+  tpBtampHCI_Event pBapHCIEvent /* This now encodes ALL event types */
+                                /* Including Command Complete and Command Status*/
+);
+
 /* End of v3.0 Host Controller and Baseband Commands */
 
 

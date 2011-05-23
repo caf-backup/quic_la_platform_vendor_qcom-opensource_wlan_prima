@@ -466,9 +466,9 @@ Value    Parameter Description
         = 248;
         //= 40;
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Local_AMP_Info.HC_Max_Flush_Timeout
-        = 10;
+        = 10000;  //10;
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Local_AMP_Info.HC_BE_Flush_Timeout
-        = 8;
+        = 10000; //8;
 
     return VOS_STATUS_SUCCESS;
 } /* WLAN_BAPReadLocalAMPInfo */
@@ -669,10 +669,17 @@ AMP ASSOC Pal Capabilities: Size: 4 Octets
         = BTAMP_TLV_HCI_READ_LOCAL_AMP_ASSOC_CMD;
     /*Validate the Physical handle*/
     if(pBapHCIReadLocalAMPAssoc->phy_link_handle != 
-       btampContext->phy_link_handle)
+       btampContext->phy_link_handle) { 
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, 
+                "%s: Updating Physical Link handle in btampContext: before: %x, after: %x", __FUNCTION__,  
+                btampContext->phy_link_handle, 
+                pBapHCIReadLocalAMPAssoc->phy_link_handle);
+
+        btampContext->phy_link_handle = pBapHCIReadLocalAMPAssoc->phy_link_handle;
         pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.status
-            = WLANBAP_ERROR_NO_CNCT;
-    else
+            //= WLANBAP_ERROR_NO_CNCT;
+            = WLANBAP_STATUS_SUCCESS; 
+    } else
         pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.status 
             = WLANBAP_STATUS_SUCCESS;
     pBapHCIEvent->u.btampCommandCompleteEvent.cc_event.Read_Read_Local_AMP_Assoc.phy_link_handle 

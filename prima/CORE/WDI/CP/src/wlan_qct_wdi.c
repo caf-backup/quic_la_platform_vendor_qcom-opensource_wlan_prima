@@ -5741,7 +5741,9 @@ WDI_ProcessConfigBSSReq
     /* If the BSS type is IBSS create the session here as there is no Join 
      * Request in case of IBSS*/
     if((pwdiConfigBSSParams->wdiReqInfo.wdiBSSType == WDI_IBSS_MODE) ||
-       (pwdiConfigBSSParams->wdiReqInfo.wdiBSSType == WDI_INFRA_AP_MODE))
+       (pwdiConfigBSSParams->wdiReqInfo.wdiBSSType == WDI_INFRA_AP_MODE) ||
+       (pwdiConfigBSSParams->wdiReqInfo.wdiBSSType == WDI_BTAMP_AP_MODE) ||
+       (pwdiConfigBSSParams->wdiReqInfo.wdiBSSType == WDI_BTAMP_STA_MODE))
     {
       /*------------------------------------------------------------------------
         Fetch an empty session block 

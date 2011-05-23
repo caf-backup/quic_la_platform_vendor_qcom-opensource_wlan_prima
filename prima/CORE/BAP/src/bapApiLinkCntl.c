@@ -29,7 +29,7 @@
   Notice that changes are listed in reverse chronological order.
 
 
-   $Header: /cygdrive/c/Dropbox/M7201JSDCAAPAD52240B/WM/platform/msm7200/Src/Drivers/SD/ClientDrivers/WLAN/QCT_BTAMP_PAL/CORE/BAP/src/bapApiLinkCntl.c,v 1.7 2008/12/18 19:44:11 jzmuda Exp jzmuda $$DateTime$$Author: jzmuda $
+   $Header: /home/labuser/ampBlueZ_2/CORE/BAP/src/bapApiLinkCntl.c,v 1.1 2010/10/23 23:40:28 labuser Exp labuser $$DateTime$$Author: labuser $
 
 
   when        who     what, where, why
@@ -262,6 +262,7 @@ WLANBAP_RoamCallback
         //case eCSR_ROAM_RESULT_IBSS_START_FAILED:
             /* bapRoamCompleteCallback with eCSR_ROAM_RESULT_FAILURE or eCSR_ROAM_RESULT_NOT_ASSOCIATED */
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamResult = %s (%d)", __FUNCTION__, "eCSR_ROAM_RESULT_FAILURE", roamResult);   
+
         case eCSR_ROAM_RESULT_WDS_START_FAILED:
             /* bapRoamCompleteCallback with eCSR_ROAM_RESULT_WDS_START_FAILED */
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamResult = %s (%d)", __FUNCTION__, "eCSR_ROAM_RESULT_WDS_START_FAILED", roamResult);   
@@ -308,6 +309,7 @@ WLANBAP_RoamCallback
         case eCSR_ROAM_RESULT_NOT_ASSOCIATED:
             /* bapRoamCompleteCallback with eCSR_ROAM_RESULT_FAILURE or eCSR_ROAM_RESULT_NOT_ASSOCIATED */
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamResult = %s (%d)", __FUNCTION__, "eCSR_ROAM_RESULT_NOT_ASSOCIATED", roamResult);   
+
         case eCSR_ROAM_RESULT_WDS_NOT_ASSOCIATED:
             /* bapRoamCompleteCallback with eCSR_ROAM_RESULT_WDS_NOT_ASSOCIATED */
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamResult = %s (%d)", __FUNCTION__, "eCSR_ROAM_RESULT_WDS_NOT_ASSOCIATED", roamResult);   
@@ -1455,6 +1457,8 @@ WLAN_BAPLogicalLinkDisconnect
     pBapHCIEvent->bapHCIEventCode = BTAMP_TLV_HCI_DISCONNECT_LOGICAL_LINK_COMPLETE_EVENT;
     pBapHCIEvent->u.btampDisconnectLogicalLinkCompleteEvent.present = 1;
     /*  Return the logical link index here */
+    pBapHCIEvent->u.btampDisconnectLogicalLinkCompleteEvent.status 
+        = WLANBAP_STATUS_SUCCESS;
     pBapHCIEvent->u.btampDisconnectLogicalLinkCompleteEvent.log_link_handle 
         = pBapHCILogLinkDisconnect->log_link_handle;
     pBapHCIEvent->u.btampDisconnectLogicalLinkCompleteEvent.reason 
