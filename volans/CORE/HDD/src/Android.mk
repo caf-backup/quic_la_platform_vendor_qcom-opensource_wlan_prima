@@ -31,9 +31,9 @@ include $(WLAN_BLD_DIR)/AndroidKernelModule.mk
 
 # Rename Volans Module
 ifeq ($(LOCAL_MODULE), WCN1314_rf.ko)
-VOLANS_KBUILD_OUT_DIR := out/target/product/$(QCOM_TARGET_PRODUCT)/obj/vendor/qcom/proprietary/wlan/volans/CORE/HDD/src
+VOLANS_KBUILD_OUT_DIR := $(TARGET_OUT_INTERMEDIATES)/$(LOCAL_PATH)
 RENAME_WLAN_VOLANS := $(VOLANS_KBUILD_OUT_DIR)/WCN1314_rf.ko
-$(RENAME_WLAN_VOLANS): $(KBUILD_MODULE)
+$(RENAME_WLAN_VOLANS):
 	mv -f $(VOLANS_KBUILD_OUT_DIR)/wlan.ko $@
 endif
 

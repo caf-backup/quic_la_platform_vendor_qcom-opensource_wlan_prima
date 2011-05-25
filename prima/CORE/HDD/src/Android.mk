@@ -30,9 +30,9 @@ include $(WLAN_BLD_DIR)/AndroidKernelModule.mk
 
 # Rename Prima Module
 ifeq ($(LOCAL_MODULE), prima_wlan.ko)
-PRIMA_KBUILD_OUT_DIR := out/target/product/$(QCOM_TARGET_PRODUCT)/obj/vendor/qcom/proprietary/wlan/prima/CORE/HDD/src
+PRIMA_KBUILD_OUT_DIR := $(TARGET_OUT_INTERMEDIATES)/$(LOCAL_PATH)
 RENAME_WLAN_PRIMA := $(PRIMA_KBUILD_OUT_DIR)/prima_wlan.ko
-$(RENAME_WLAN_PRIMA): $(KBUILD_MODULE)
+$(RENAME_WLAN_PRIMA):
 	mv -f $(PRIMA_KBUILD_OUT_DIR)/wlan.ko $@
 endif
 

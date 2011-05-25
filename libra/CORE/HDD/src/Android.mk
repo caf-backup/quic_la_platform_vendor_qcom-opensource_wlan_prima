@@ -34,9 +34,9 @@ include $(WLAN_BLD_DIR)/AndroidKernelModule.mk
 
 # Rename Libra Module
 ifeq ($(LOCAL_MODULE), libra.ko)
-LIBRA_KBUILD_OUT_DIR := out/target/product/$(QCOM_TARGET_PRODUCT)/obj/vendor/qcom/proprietary/wlan/libra/CORE/HDD/src
+LIBRA_KBUILD_OUT_DIR := $(TARGET_OUT_INTERMEDIATES)/$(LOCAL_PATH)
 RENAME_WLAN_LIBRA := $(LIBRA_KBUILD_OUT_DIR)/libra.ko
-$(RENAME_WLAN_LIBRA): $(KBUILD_MODULE)
+$(RENAME_WLAN_LIBRA):
 	mv -f $(LIBRA_KBUILD_OUT_DIR)/wlan.ko $@
 endif
 
