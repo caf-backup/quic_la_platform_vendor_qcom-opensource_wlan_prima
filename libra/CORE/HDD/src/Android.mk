@@ -13,6 +13,15 @@ PRODUCT_COPY_FILES += $(LIBRA_FW_DIR)/cfg.dat:system/etc/firmware/wlan/cfg.dat
 PRODUCT_COPY_FILES += $(LIBRA_FW_DIR)/qcom_cfg.ini:data/hostapd/qcom_cfg.ini
 PRODUCT_COPY_FILES += $(LIBRA_FW_DIR)/qcom_cfg.ini:persist/qcom/softap/qcom_cfg_default.ini
 
+#Create sym link for ftm driver
+WLAN_LIBRA_FTM_SYM_LINK := $(WLAN_BLD_DIR)/libra/ftm/CORE
+$(WLAN_LIBRA_FTM_SYM_LINK):
+	@mkdir -p $(dir $@)
+	ln -sf ../CORE $@
+
+file := $(WLAN_LIBRA_FTM_SYM_LINK)
+ALL_PREBUILT += $(file)
+
 # Build libra.ko
 ###########################################################
 LOCAL_PATH := $(call my-dir)

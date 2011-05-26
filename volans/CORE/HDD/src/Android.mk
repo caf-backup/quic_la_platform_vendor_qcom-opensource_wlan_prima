@@ -10,6 +10,15 @@ PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_qcom_wlan_nv.bin:persist/WCN1314_
 PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_cfg.dat:system/etc/firmware/wlan/volans/WCN1314_cfg.dat
 PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_qcom_cfg.ini:system/etc/firmware/wlan/volans/WCN1314_qcom_cfg.ini
 
+#Create sym link for ftm driver
+WLAN_VOLANS_FTM_SYM_LINK := $(WLAN_BLD_DIR)/volans/ftm/CORE
+$(WLAN_VOLANS_FTM_SYM_LINK):
+	@mkdir -p $(dir $@)
+	ln -sf ../CORE $@
+
+file := $(WLAN_VOLANS_FTM_SYM_LINK)
+ALL_PREBUILT += $(file)
+
 # Build WCN1314_rf.ko
 ###########################################################
 LOCAL_PATH := $(call my-dir)
