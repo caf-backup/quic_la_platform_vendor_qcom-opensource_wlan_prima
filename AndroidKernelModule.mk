@@ -13,6 +13,9 @@ ifeq ($(KBUILD_FILE),)
   KBUILD_FILE := $(LOCAL_PATH)/Kbuild
 endif
 
+# Get rid of any whitespace
+LOCAL_MODULE_KBUILD_NAME := $(strip $(LOCAL_MODULE_KBUILD_NAME))
+
 include $(BUILD_SYSTEM)/base_rules.mk
 
 
@@ -48,7 +51,15 @@ KBUILD_MODULE := $(KBUILD_OUT_DIR)/$(LOCAL_MODULE)
 
 # Since we only invoke the kernel build system once per directory,
 # each kernel module must depend on the same target.
+$(KBUILD_MODULE): kbuild_out := $(KBUILD_OUT_DIR)/$(LOCAL_MODULE_KBUILD_NAME)
 $(KBUILD_MODULE): $(KBUILD_TARGET)
+ifneq "$(LOCAL_MODULE_KBUILD_NAME)" ""
+	mv -f $(kbuild_out) $@
+endif
+
+# This should really be cleared in build/core/clear-vars.mk, but for
+# the time being, we need to clear it ourselves
+LOCAL_MODULE_KBUILD_NAME :=
 
 # Simply copy the kernel module from where the kernel build system
 # created it to the location where the Android build system expects it.

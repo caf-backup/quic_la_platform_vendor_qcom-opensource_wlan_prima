@@ -22,19 +22,12 @@ KBUILD_OPTIONS := WLAN_PRIMA=../$(WLAN_BLD_DIR)/prima
 KBUILD_OPTIONS += MODNAME=wlan
 
 include $(CLEAR_VARS)
-LOCAL_MODULE      := prima_wlan.ko
-LOCAL_MODULE_TAGS := eng
-LOCAL_MODULE_PATH := $(TARGET_OUT)/lib/modules/prima
+LOCAL_MODULE             := prima_wlan.ko
+LOCAL_MODULE_KBUILD_NAME := wlan.ko
+LOCAL_MODULE_TAGS        := eng
+LOCAL_MODULE_PATH        := $(TARGET_OUT)/lib/modules/prima
 include $(WLAN_BLD_DIR)/AndroidKernelModule.mk
 ###########################################################
-
-# Rename Prima Module
-ifeq ($(LOCAL_MODULE), prima_wlan.ko)
-PRIMA_KBUILD_OUT_DIR := $(TARGET_OUT_INTERMEDIATES)/$(LOCAL_PATH)
-RENAME_WLAN_PRIMA := $(PRIMA_KBUILD_OUT_DIR)/prima_wlan.ko
-$(RENAME_WLAN_PRIMA):
-	mv -f $(PRIMA_KBUILD_OUT_DIR)/wlan.ko $@
-endif
 
 #Create symbolic link
 WLAN_PRIMA_SYMLINK := $(TARGET_OUT)/lib/modules/wlan.ko

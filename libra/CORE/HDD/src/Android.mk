@@ -35,19 +35,12 @@ KBUILD_OPTIONS := WLAN_LIBRA=../$(WLAN_BLD_DIR)/libra
 KBUILD_OPTIONS += MODNAME=wlan
 
 include $(CLEAR_VARS)
-LOCAL_MODULE      := libra.ko
-LOCAL_MODULE_TAGS := eng
-LOCAL_MODULE_PATH := $(TARGET_OUT)/lib/modules/libra
+LOCAL_MODULE             := libra.ko
+LOCAL_MODULE_KBUILD_NAME := wlan.ko
+LOCAL_MODULE_TAGS        := eng
+LOCAL_MODULE_PATH        := $(TARGET_OUT)/lib/modules/libra
 include $(WLAN_BLD_DIR)/AndroidKernelModule.mk
 ###########################################################
-
-# Rename Libra Module
-ifeq ($(LOCAL_MODULE), libra.ko)
-LIBRA_KBUILD_OUT_DIR := $(TARGET_OUT_INTERMEDIATES)/$(LOCAL_PATH)
-RENAME_WLAN_LIBRA := $(LIBRA_KBUILD_OUT_DIR)/libra.ko
-$(RENAME_WLAN_LIBRA):
-	mv -f $(LIBRA_KBUILD_OUT_DIR)/wlan.ko $@
-endif
 
 # Build libra_ftm.ko
 ###########################################################
