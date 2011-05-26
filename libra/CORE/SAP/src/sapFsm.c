@@ -74,7 +74,35 @@
 /*----------------------------------------------------------------------------
  * Function Declarations and Documentation
  * -------------------------------------------------------------------------*/
- 
+
+/*==========================================================================
+  FUNCTION    sapEventInit
+
+  DESCRIPTION 
+    Function for initializing sWLAN_SAPEvent structure
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS 
+
+    IN
+    sapEvent    : State machine event
+   
+  RETURN VALUE
+
+    None
+  
+  SIDE EFFECTS 
+============================================================================*/
+static inline void sapEventInit(ptWLAN_SAPEvent sapEvent)
+{
+   sapEvent->event = eSAP_MAC_SCAN_COMPLETE;
+   sapEvent->params = 0;
+   sapEvent->u1 = 0;
+   sapEvent->u2 = 0;
+}
+
 /*==========================================================================
   FUNCTION    sapGotoChannelSel
 
@@ -113,7 +141,6 @@ sapGotoChannelSel
 
     if (sapContext->channel == AUTO_CHANNEL_SELECT) 
     {
-    
         vos_mem_zero(&scanRequest, sizeof(scanRequest));
 
         /* Set scanType to Passive scan */
@@ -142,19 +169,30 @@ sapGotoChannelSel
                             &scanRequestID,//, when ID == 0 11D scan/active scan with callback, min-maxChntime set in csrScanRequest()?
                             &WLANSAP_ScanCallback,//csrScanCompleteCallback callback,
                             sapContext);//void * pContext scanRequestID filled up
-
-        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, return from sme_ScanRequest, scanRequestID=%d, Ch= %d",
+        if (!VOS_IS_STATUS_SUCCESS(sapStatus))
+        {
+            VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "%s:sme_ScanRequest  fail %d!!!", __FUNCTION__, sapStatus);
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "SoftAP Configuring for default channel, Ch= %d", sapContext->channel);
+            /* In case of error, switch to default channel */
+            sapContext->channel = SAP_DEFAULT_CHANNEL;
+            /* Fill in the event structure */
+            sapEventInit(sapEvent);
+            /* Handle event */
+            vosStatus = sapFsm(sapContext, sapEvent);
+        }
+        else
+        {
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, return from sme_ScanRequest, scanRequestID=%d, Ch= %d",
                    __FUNCTION__, scanRequestID, sapContext->channel);
+        }
+
     }
     else 
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, for configured channel, Ch= %d", __FUNCTION__, sapContext->channel);
         /* Fill in the event structure */
         // Eventhough scan was not done, means a user set channel was chosen
-        sapEvent->event = eSAP_MAC_SCAN_COMPLETE;
-        sapEvent->params = 0;
-        sapEvent->u1 = 0;
-        sapEvent->u2 = 0;
+        sapEventInit(sapEvent);
         /* Handle event */
         vosStatus = sapFsm(sapContext, sapEvent);
     }
