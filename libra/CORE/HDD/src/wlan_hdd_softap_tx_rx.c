@@ -149,6 +149,11 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       //The BC/MC station ID is assigned during BSS starting phase. SAP will return the station 
       //ID used for BC/MC traffic. The station id is registered to TL as well.
       STAId = pAdapter->uBCStaId;
+      
+      /* Setting priority for broadcast packets which doesn't go to select_queue function */
+      skb->priority = SME_QOS_WMM_UP_BE;
+      skb->queue_mapping = HDD_LINUX_AC_BE;
+
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
               "%s: BC/MC packet\n", __FUNCTION__);
    }
