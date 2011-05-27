@@ -399,12 +399,43 @@ eHalStatus halDXE_Stop(tHalHandle hHalHandle,  void *arg)
 }
 
 /* 
+ * Ensure DXE IDLE state by stopping the Rx channel
+ */
+eHalStatus halDxe_EnsureDXEIdleState(tHalHandle hHalHandle) 
+{
+	tpAniSirGlobal pMac = PMAC_STRUCT(hHalHandle);
+	sDxeCCB    *pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX];
+	tANI_U32	dwCtrl = pDxeCCB->sdioDesc.cw.ctrl | DXE_DESC_CTRL_STOP;
+
+    halWriteDeviceMemory(pMac, pDxeCCB->sdio_ch_desc,
+                        (tANI_U8 *)&dwCtrl, 4);
+
+	return eHAL_STATUS_SUCCESS;
+}
+
+/* 
  * Enable/Disable the DXE 
  */
 eHalStatus halDxe_EnableDisableDXE(tHalHandle hHalHandle, tANI_U8 enable) 
 {
     tpAniSirGlobal pMac = PMAC_STRUCT(hHalHandle);
-    tANI_U32 regValue = 0;
+    tANI_U32 regValue = 0, chStatus, bmuSB;
+
+	// If DXE is being disabled ensure that it is either in the stopped or MASKED state
+	if (!enable) {
+		sDxeCCB    *pDxeCCB = &pMac->hal.pHalDxe->DxeCCB[DMA_CHANNEL_RX];
+
+		halReadRegister(pMac, pDxeCCB->chDXEStatusRegAddr, &chStatus);
+		halReadRegister(pMac, QWLAN_DXE_0_BMU_SB_REG, &bmuSB);
+
+        VOS_ASSERT((chStatus & QWLAN_DXE_0_CH_STATUS_STOPD_MASK) || \
+				   ((chStatus & QWLAN_DXE_0_CH_STATUS_MSKD_MASK) && !(bmuSB & (1 << (BMUWQ_DXE_RX - 2)))));
+
+		// Remove the STOP bit from the DXE descriptor CTRL DWORD
+		halWriteDeviceMemory(pMac, pDxeCCB->sdio_ch_desc,
+                        (tANI_U8 *)&pDxeCCB->sdioDesc.cw.ctrl, 4);
+        halWriteRegister(pMac, QWLAN_DXE_0_DMA_ENCH_REG, (1 << DMA_CHANNEL_RX));
+	}
 
     // Enable DXE engine, reset the enable bit in the DXE CSR register
     halReadRegister(pMac, QWLAN_DXE_0_DMA_CSR_REG, &regValue); 

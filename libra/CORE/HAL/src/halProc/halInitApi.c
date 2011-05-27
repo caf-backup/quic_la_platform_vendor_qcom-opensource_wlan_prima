@@ -712,7 +712,7 @@ eHalStatus halSetPromiscuousMode( tHalHandle hHal, tANI_BOOLEAN fMinimalCfg)
         if (status != eHAL_STATUS_SUCCESS)
             return status;
 
-        halRxp_disable(pMac);
+        halRxp_disable(pMac, FALSE);
 
         // Configure the Rxp sequence FIFO to work in promiscuous mode.
         halReadRegister(pMac, RXP_CFG_FLT_NAV_CONTROL_RESPONSE_REQ_REG, &value);
