@@ -340,8 +340,10 @@ eHalStatus halPS_Config(tpAniSirGlobal pMac, tpSirPowerSaveCfg pPowerSaveConfig)
     //Beacon Miss Handling
     pFwConfig->bBcnMissMLC = TRUE;
     pFwConfig->ucMaxBcnWaitTU = HAL_PWR_SAVE_BCN_MISS_WAIT_TU;
+    pFwConfig->ucMinBcnWaitTU = HAL_PWR_SAVE_MIN_BCN_WAIT_TU;
     pFwConfig->uBcnMissGracePeriodUs = HAL_PWR_SAVE_BCN_MISS_GRACE_PERIOD_US;
     pFwConfig->ucNumConsBcnMiss = HAL_PWR_SAVE_MAX_CONS_BCN_MISS; 
+    pFwConfig->uMaxAllowBcnDriftUs = HAL_PWR_SAVE_MAX_ALLOWED_BCN_DRIFT_US;
 
     // Listen Interval
     pFwConfig->ucListenInterval = (tANI_U8)pPowerSaveConfig->listenInterval;

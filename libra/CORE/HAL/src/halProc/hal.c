@@ -2952,21 +2952,21 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 #ifndef WLAN_FTM_STUB
     if(pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
-    switch (pMsg->type)
-    {
-           case SIR_HAL_HANDLE_FW_MBOX_RSP:
+        switch (pMsg->type)
+        {
+            case SIR_HAL_HANDLE_FW_MBOX_RSP:
                 HALLOGE( halLog(pMac, LOGE, FL("Recvd new Msg (or Rsp) from FW \n")));
                 halFW_HandleFwMessages(pMac, pMsg->bodyptr);
                 vos_mem_free((v_VOID_t*)pMsg->bodyptr);
                 pMsg->bodyptr = NULL;
                 break;
 
-           case SIR_HAL_SEND_MSG_COMPLETE:
+            case SIR_HAL_SEND_MSG_COMPLETE:
                 HALLOGE( halLog(pMac, LOGE, FL("Recv ACK from FW for the host Msg \n")));
                 halMbox_SendMsgComplete(pMac);
                 break;
 
-           case SIR_HAL_TIMER_ADC_RSSI_STATS:
+            case SIR_HAL_TIMER_ADC_RSSI_STATS:
                 tx_timer_deactivate(&pMac->ptt.adcRssiStatsTimer);
                 halPhyAdcRssiStatsCollection(pMac);
                 tx_timer_activate(&pMac->ptt.adcRssiStatsTimer);
@@ -3086,7 +3086,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 
                 case WNI_CFG_LOW_GAIN_OVERRIDE:
                     if ( (status = halPhyUpdateTxGainOverride(pMac, (val == 0) ? OPEN_LOOP_TX_HIGH_GAIN_OVERRIDE :
-                                                                OPEN_LOOP_TX_LOW_GAIN_OVERRIDE)) != eHAL_STATUS_SUCCESS){
+                                    OPEN_LOOP_TX_LOW_GAIN_OVERRIDE)) != eHAL_STATUS_SUCCESS){
                         HALLOGE( halLog(pMac, LOGE, FL("halPhyUpdateTxGainOverride() failed \n")));
                     }
                     break;
@@ -3095,30 +3095,30 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                     halSetChainPowerState(pMac);
                     break;
 
-               case WNI_CFG_CAL_PERIOD:
-                       rc = halConfigCalPeriod(pMac);
+                case WNI_CFG_CAL_PERIOD:
+                    rc = halConfigCalPeriod(pMac);
                     break;
 
                 case WNI_CFG_CAL_CONTROL:
-                       rc = halConfigCalControl(pMac);
+                    rc = halConfigCalControl(pMac);
                     break;
 
                 case WNI_CFG_STATS_PERIOD:
                     tx_timer_deactivate(&pMac->hal.halMac.wrapStats.statTimer);
                     pMac->hal.halMac.wrapStats.statTmrVal = SYS_SEC_TO_TICKS(val);
                     tx_timer_change(&pMac->hal.halMac.wrapStats.statTimer,
-                                    pMac->hal.halMac.wrapStats.statTmrVal,
-                                    pMac->hal.halMac.wrapStats.statTmrVal);
+                            pMac->hal.halMac.wrapStats.statTmrVal,
+                            pMac->hal.halMac.wrapStats.statTmrVal);
                     tx_timer_activate(&pMac->hal.halMac.wrapStats.statTimer);
 
 #ifdef FIXME_GEN5
                     tx_timer_deactivate(&pMac->hal.halMac.macStats.statTimer);
                     pMac->hal.halMac.macStats.statTmrVal = SYS_SEC_TO_TICKS(val);
                     HALLOGW( halLog(pMac, LOGW, FL("WNI_CFG_STATS_PERIOD %d seconds\n"),
-                           val));
+                                val));
                     tx_timer_change(&pMac->hal.halMac.macStats.statTimer,
-                                    pMac->hal.halMac.macStats.statTmrVal,
-                                    pMac->hal.halMac.macStats.statTmrVal);
+                            pMac->hal.halMac.macStats.statTmrVal,
+                            pMac->hal.halMac.macStats.statTmrVal);
                     tx_timer_activate(&pMac->hal.halMac.macStats.statTimer);
 #endif
                     break;
@@ -3126,9 +3126,9 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                 case WNI_CFG_CFP_MAX_DURATION:
                     break;
 
-                // ----------------------------
-                // Rate Adaptation related CFG
-                // ----------------------------
+                    // ----------------------------
+                    // Rate Adaptation related CFG
+                    // ----------------------------
                 case WNI_CFG_DYNAMIC_THRESHOLD_ZERO:
                     HALLOG4( halLog(pMac, LOG4, FL("setDynamicThresh0: %d\n"),  val ));
                     break;
@@ -3168,48 +3168,49 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
                 case WNI_CFG_FIXED_RATE_MULTICAST_5GHZ:
                     halProcessMulticastRateChange(pMac, pMsg->bodyval);
                     break;
-/* In firmware RA, this is not supported.
-        case WNI_CFG_RA_PERIODICITY_TIMEOUT_IN_PS:
-                     halRAHandleCfg( pMac, pMsg->bodyval);
-                     break;
-*/
+                    /* In firmware RA, this is not supported.
+                       case WNI_CFG_RA_PERIODICITY_TIMEOUT_IN_PS:
+                       halRAHandleCfg( pMac, pMsg->bodyval);
+                       break;
+                       */
                 case WNI_CFG_PS_DATA_INACTIVITY_TIMEOUT:
-            halPSDataInActivityTimeout(pMac, pMsg->bodyval);
-            break;
+                    halPSDataInActivityTimeout(pMac, pMsg->bodyval);
+                    break;
 
-        case WNI_CFG_PS_ENABLE_HEART_BEAT:
-            halPSFWHeartBeatCfg(pMac, pMsg->bodyval);
-            break;
+                case WNI_CFG_PS_ENABLE_HEART_BEAT:
+                    halPSFWHeartBeatCfg(pMac, pMsg->bodyval);
+                    break;
 
-        case WNI_CFG_PS_ENABLE_BCN_FILTER:
-            halPSBcnFilterCfg(pMac, pMsg->bodyval);
-            break;
+                case WNI_CFG_PS_ENABLE_BCN_FILTER:
+                    halPSBcnFilterCfg(pMac, pMsg->bodyval);
+                    break;
 
-        case WNI_CFG_PS_ENABLE_RSSI_MONITOR:
-            halPSRssiMonitorCfg(pMac, pMsg->bodyval);
-            break;
+                case WNI_CFG_PS_ENABLE_RSSI_MONITOR:
+                    halPSRssiMonitorCfg(pMac, pMsg->bodyval);
+                    break;
 #ifdef WLAN_SOFTAP_FEATURE
-        case WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE:
-            halHandleEnableListenModeCfg(pMac, pMsg->bodyval);
-            break;
+                case WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE:
+                    halHandleEnableListenModeCfg(pMac, pMsg->bodyval);
+                    break;
 #endif
                 case WNI_CFG_RF_SETTLING_TIME_CLK:
-                   halPSRfSettlingTimeClk(pMac, pMsg->bodyval);
-                   break;
+                    halPSRfSettlingTimeClk(pMac, pMsg->bodyval);
+                    break;
 
                 case WNI_CFG_MCAST_BCAST_FILTER_SETTING:
-                   halHandleMcastBcastFilterSetting(pMac, pMsg->bodyval);
-                   break;
+                    halHandleMcastBcastFilterSetting(pMac, pMsg->bodyval);
+                    break;
 
                 case WNI_CFG_DYNAMIC_PS_POLL_VALUE:
-                   halHandleDynamicPsPollValue(pMac, pMsg->bodyval);
-                   break;
+                    halHandleDynamicPsPollValue(pMac, pMsg->bodyval);
+                    break;
                 case WNI_CFG_TELE_BCN_WAKEUP_EN:
-                   halHandleTelescopicBeaconWakeupSetting(pMac, pMsg->bodyval);
-                   break;
+                    halHandleTelescopicBeaconWakeupSetting(pMac, pMsg->bodyval);
+                    break;
 
                 case WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD:
                     halHandleInfraStaKeepAliveConfig(pMac, pMsg->bodyval);
+                    break;
 
                 default:
                     HALLOGE( halLog(pMac, LOGE, FL("Cfg Id %d is not handled\n"), pMsg->bodyval));
@@ -3224,9 +3225,9 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             }
             break;
 
-        /*
-         * Taurus related messages
-         */
+            /*
+             * Taurus related messages
+             */
         case SIR_HAL_ADD_STA_REQ:
             halMsg_AddSta(pMac, pMsg->reserved, (tpAddStaParams) (pMsg->bodyptr), eANI_BOOLEAN_TRUE);
             break;
@@ -3270,8 +3271,8 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
         case SIR_HAL_SEND_BEACON_REQ:
             halMsg_SendBeacon(pMac, (tpSendbeaconParams)(pMsg->bodyptr));
 #if WLAN_SOFTAP_FW_BEACON_TX_PRNT_LOG
-	    uTxBknCnt++;
-	    HALLOGE( halLog(pMac, LOGE, FL("[SoftApFwBcnTx] SIR_HAL_SEND_BEACON_REQ-uTxBknCnt %d \n"), uTxBknCnt));
+            uTxBknCnt++;
+            HALLOGE( halLog(pMac, LOGE, FL("[SoftApFwBcnTx] SIR_HAL_SEND_BEACON_REQ-uTxBknCnt %d \n"), uTxBknCnt));
 #endif
             break;
 
@@ -3280,7 +3281,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
         case SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND :
             halMsg_UpdateProbeRespTemplate(pMac, (tpSendProbeRespParams) pMsg->bodyptr );
 #if WLAN_SOFTAP_FW_PROCESS_PROBE_REQ_FEATURE_HOST_PRINT_LOG
-	    HALLOGE( halLog(pMac, LOGE, FL("[SoftApProbReq] SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND \n")));
+            HALLOGE( halLog(pMac, LOGE, FL("[SoftApProbReq] SIR_HAL_UPDATE_PROBE_RSP_TEMPLATE_IND \n")));
 #endif
             break;
 #endif
@@ -3295,16 +3296,16 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             break;
 
         case SIR_HAL_SET_BSSKEY_REQ:
-             halMsg_SetBssKey(pMac, pMsg->reserved, (tpSetBssKeyParams) (pMsg->bodyptr));
+            halMsg_SetBssKey(pMac, pMsg->reserved, (tpSetBssKeyParams) (pMsg->bodyptr));
             break;
 
         case SIR_HAL_SET_STAKEY_REQ:
             halMsg_SetStaKey(pMac, pMsg->reserved, (tpSetStaKeyParams) (pMsg->bodyptr));
             break;
 
-       case SIR_HAL_SET_STA_BCASTKEY_REQ:
-                halMsg_SetStaBcastKey(pMac, pMsg->reserved, (tpSetStaKeyParams) (pMsg->bodyptr));
-                break;
+        case SIR_HAL_SET_STA_BCASTKEY_REQ:
+            halMsg_SetStaBcastKey(pMac, pMsg->reserved, (tpSetStaKeyParams) (pMsg->bodyptr));
+            break;
 
         case SIR_HAL_REMOVE_BSSKEY_REQ:
             halMsg_RemoveBssKey(pMac, pMsg->reserved, (tpRemoveBssKeyParams) (pMsg->bodyptr));
@@ -3357,24 +3358,24 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             break;
 
 
-       case SIR_HAL_HANDLE_FW_MBOX_RSP:
+        case SIR_HAL_HANDLE_FW_MBOX_RSP:
             HALLOGE( halLog(pMac, LOGE, FL("Recvd Msg (or Rsp) from FW \n")));
             halFW_HandleFwMessages(pMac, pMsg->bodyptr);
             vos_mem_free((v_VOID_t*)pMsg->bodyptr);
             pMsg->bodyptr = NULL;
             break;
 
-       case SIR_HAL_SEND_MSG_COMPLETE:
+        case SIR_HAL_SEND_MSG_COMPLETE:
             HALLOGE( halLog(pMac, LOGE, FL("Recv ACK from FW for the host Msg \n")));
             halMbox_SendMsgComplete(pMac);
             break;
 
-       case SIR_HAL_GET_NOISE_REQ:
+        case SIR_HAL_GET_NOISE_REQ:
             HALLOGW( halLog(pMac, LOGW, FL("Got Get Noise Request \n")));
             halMsg_sendGetNoiseRsp(pMac);
             break;
 
-// Start of Power Save related messages
+            // Start of Power Save related messages
         case SIR_HAL_PWR_SAVE_CFG:
             status = halPS_Config(pMac, (tpSirPowerSaveCfg)pMsg->bodyptr);
             break;
@@ -3393,7 +3394,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
 
         case SIR_HAL_ENTER_BMPS_REQ:
             status = halPS_HandleEnterBmpsReq(pMac, dialogToken, (tpEnterBmpsParams)pMsg->bodyptr);
-        break;
+            break;
 
         case SIR_HAL_EXIT_BMPS_REQ:
             status = halPS_HandleExitBmpsReq(pMac, dialogToken, (tpExitBmpsParams)pMsg->bodyptr);
@@ -3437,7 +3438,7 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             status = halPS_ExitWowlReq(pMac, dialogToken);
             break;
 
-// End of Power Save releated messages
+            // End of Power Save releated messages
 
         case SIR_HAL_ADD_TS_REQ:
             halMsg_AddTs(pMac, pMsg->reserved, (tpAddTsParams) (pMsg->bodyptr));
@@ -3475,8 +3476,8 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
         case SIR_HAL_BEACON_PRE_IND:
             halMsg_BeaconPre(pMac);
 #if WLAN_SOFTAP_FW_BEACON_TX_PRNT_LOG
-			uTxPreBknCnt++;
-			HALLOGE( halLog(pMac, LOGE, FL("[SoftApFwBcnTx] SIR_HAL_BEACON_PRE_IND : uTxPreBknCnt[%d] \n"), uTxPreBknCnt));
+            uTxPreBknCnt++;
+            HALLOGE( halLog(pMac, LOGE, FL("[SoftApFwBcnTx] SIR_HAL_BEACON_PRE_IND : uTxPreBknCnt[%d] \n"), uTxPreBknCnt));
 #endif
             break;
 
@@ -3491,12 +3492,12 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
             halHandlePEStatisticsReq(pMac, pMsg->type, (tpAniGetPEStatsReq) (pMsg->bodyptr));
             break;
 
-        /** ---- This timer messages posted by MTU Timer. ---- */
+            /** ---- This timer messages posted by MTU Timer. ---- */
         case SIR_HAL_TIMER_ADJUST_ADAPTIVE_THRESHOLD_IND:
             halATH_adjustAdaptiveThreshold(pMac);
             break;
 
-        /** ---- These are timer messages posted by HAL Timer. ---- */
+            /** ---- These are timer messages posted by HAL Timer. ---- */
         case SIR_HAL_TIMER_TEMP_MEAS_REQ:
             if ((pMac->hphy.phy.phyPeriodicCalEnable)
                     && (! pMac->hphy.phy.test.testDisableSpiAccess))
@@ -3516,10 +3517,10 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
         case SIR_HAL_TIMER_WRAP_AROUND_STATS_COLLECT_REQ:
             //halMacWrapAroundStatCollection(pMac);
             /**
-                    * Periodic stat Timer does not work.
-                    * So deactivating it and acitvating again
-                    */
-                    tx_timer_deactivate(&pMac->hal.halMac.wrapStats.statTimer);
+             * Periodic stat Timer does not work.
+             * So deactivating it and acitvating again
+             */
+            tx_timer_deactivate(&pMac->hal.halMac.wrapStats.statTimer);
             //pMac->hal.halMac.wrapStats.statTmrVal = SYS_SEC_TO_TICKS(val);
             //halLog(pMac, LOGW, FL("WNI_CFG_STATS_PERIOD %d seconds\n"),
             //       val);
@@ -3532,16 +3533,16 @@ tSirRetStatus halHandleMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg )
         case SIR_HAL_TIMER_CHIP_MONITOR_TIMEOUT:
             halMsg_ChipMonitorTimeout(pMac);
             /**
-            * Periodic chip monitor does not work.
-            * So deactivating it and acitvating again
-            */
+             * Periodic chip monitor does not work.
+             * So deactivating it and acitvating again
+             */
             tx_timer_deactivate(&pMac->hal.halMac.chipMonitorTimer);
             tx_timer_activate(&pMac->hal.halMac.chipMonitorTimer);
             break;
         case SIR_HAL_TIMER_TRAFFIC_ACTIVITY_REQ:
             halMsg_HandleTrafficActivity(pMac);
             break;
-        /**  ---------  End of HAL Timer Messages.  ---------- */
+            /**  ---------  End of HAL Timer Messages.  ---------- */
 
         case SIR_HAL_DPU_MIC_ERROR:
             halDpu_MICErrorIndication(pMac);

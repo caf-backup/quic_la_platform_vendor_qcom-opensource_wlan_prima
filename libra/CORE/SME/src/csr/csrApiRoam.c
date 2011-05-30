@@ -5206,14 +5206,6 @@ eHalStatus csrRoamConnect(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfi
     csrScanCancelIdleScan(pMac);
     //Only abort the scan if it is not used for other roam/connect purpose
     csrScanAbortMacScan(pMac);
-
-#ifdef WLAN_SOFTAP_FEATURE
-    if (CSR_IS_INFRA_AP(pProfile))//In case of AP mode we do not want idle mode scan
-    {
-        csrScanDisable(pMac);
-    }
-#endif
-
     csrRoamRemoveDuplicateCommand(pMac, sessionId, NULL, eCsrHddIssued);
     //Check whether ssid changes
     if(csrIsConnStateConnected(pMac, sessionId))

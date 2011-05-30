@@ -97,7 +97,9 @@
 #define HAL_PWR_SAVE_FW_UAPSD_DATA_RECEPTION_TIMEOUT_MS         3
 #define HAL_PWR_SAVE_MAX_CONS_BCN_MISS                          5
 #define HAL_PWR_SAVE_BCN_MISS_GRACE_PERIOD_US                 200
+#define HAL_PWR_SAVE_MAX_ALLOWED_BCN_DRIFT_US                 200
 #define HAL_PWR_SAVE_BCN_MISS_WAIT_TU                          10
+#define HAL_PWR_SAVE_MIN_BCN_WAIT_TU                            4
 
 // Frames to be passed to host while in WOWL mode
 #define HAL_PWR_SAVE_FW_WOWL_FRAMES_PASSED_TO_HOST        ((1<<SIR_MAC_MGMT_DISASSOC) |(1 << SIR_MAC_MGMT_DEAUTH))

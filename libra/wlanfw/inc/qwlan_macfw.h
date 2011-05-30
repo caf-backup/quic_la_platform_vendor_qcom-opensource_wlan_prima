@@ -709,14 +709,14 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #endif
 
 #ifdef ANI_BIG_BYTE_ENDIAN
-   /* The following flags are used for
-    * debugging purposes. All the debug
-    * related flags are in this bitmap
-    */
    tANI_U32  bNoPwrDown              : 1;
-   tANI_U32  bReserved6              : 31;
+   tANI_U32  ucMinBcnWaitTU          : 8;
+   tANI_U32  uMaxAllowBcnDriftUs     : 16;
+   tANI_U32  bReserved6              : 7;
 #else
-   tANI_U32  bReserved6              : 31;
+   tANI_U32  bReserved6              : 7;
+   tANI_U32  uMaxAllowBcnDriftUs     : 16;
+   tANI_U32  ucMinBcnWaitTU          : 8;
    tANI_U32  bNoPwrDown              : 1;
 #endif
 
