@@ -5,6 +5,7 @@ ifneq (, $(filter msm7627_surf msm7627_ffa msm7630_surf msm7630_fusion, $(QCOM_T
 
 WLAN_BLD_DIR := vendor/qcom/proprietary/wlan
 LIBRA_FW_DIR := vendor/qcom/proprietary/wlan/libra/firmware_bin
+DLKM_DIR     := build/dlkm
 
 PRODUCT_COPY_FILES += $(LIBRA_FW_DIR)/qcom_fw.bin:system/etc/firmware/wlan/qcom_fw.bin
 PRODUCT_COPY_FILES += $(LIBRA_FW_DIR)/qcom_wapi_fw.bin:system/etc/firmware/wlan/qcom_wapi_fw.bin
@@ -39,7 +40,7 @@ LOCAL_MODULE             := libra.ko
 LOCAL_MODULE_KBUILD_NAME := wlan.ko
 LOCAL_MODULE_TAGS        := eng
 LOCAL_MODULE_PATH        := $(TARGET_OUT)/lib/modules/libra
-include $(WLAN_BLD_DIR)/AndroidKernelModule.mk
+include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
 # Build libra_ftm.ko
@@ -54,7 +55,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE      := libra_ftm.ko
 LOCAL_MODULE_TAGS := eng
 LOCAL_MODULE_PATH := $(TARGET_OUT)/lib/modules/libra
-include $(WLAN_BLD_DIR)/AndroidKernelModule.mk
+include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
 #Create symbolic link

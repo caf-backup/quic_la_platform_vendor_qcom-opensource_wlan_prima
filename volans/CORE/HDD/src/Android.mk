@@ -2,8 +2,9 @@
 
 # Build/Package only in case of 7x30 and 8660
 
-WLAN_BLD_DIR := vendor/qcom/proprietary/wlan
+WLAN_BLD_DIR  := vendor/qcom/proprietary/wlan
 VOLANS_FW_DIR := vendor/qcom/proprietary/wlan/volans/firmware_bin
+DLKM_DIR      := build/dlkm
 
 PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_qcom_fw.bin:system/etc/firmware/wlan/volans/WCN1314_qcom_fw.bin
 PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_qcom_wlan_nv.bin:persist/WCN1314_qcom_wlan_nv.bin
@@ -36,7 +37,7 @@ LOCAL_MODULE             := WCN1314_rf.ko
 LOCAL_MODULE_KBUILD_NAME := wlan.ko
 LOCAL_MODULE_TAGS        := eng
 LOCAL_MODULE_PATH        := $(TARGET_OUT)/lib/modules/volans
-include $(WLAN_BLD_DIR)/AndroidKernelModule.mk
+include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
 # Build WCN1314_rf_ftm.ko
@@ -51,7 +52,7 @@ include $(CLEAR_VARS)
 LOCAL_MODULE      := WCN1314_rf_ftm.ko
 LOCAL_MODULE_TAGS := eng
 LOCAL_MODULE_PATH := $(TARGET_OUT)/lib/modules/volans
-include $(WLAN_BLD_DIR)/AndroidKernelModule.mk
+include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
 #Create symbolic link
