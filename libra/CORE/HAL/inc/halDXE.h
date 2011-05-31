@@ -300,6 +300,11 @@ eHalStatus halDXE_Start(tHalHandle hHalHandle,  void *arg);
 eHalStatus halDXE_Stop(tHalHandle hHalHandle, void *arg);
 
 /* 
+ * Ensure DXE IDLE state by stopping the Rx channel
+ */
+eHalStatus halDxe_EnsureDXEIdleState(tHalHandle hHalHandle);
+
+/* 
  * Enable/Disable the DXE 
  */
 eHalStatus halDxe_EnableDisableDXE(tHalHandle hHalHandle, tANI_U8 enable);

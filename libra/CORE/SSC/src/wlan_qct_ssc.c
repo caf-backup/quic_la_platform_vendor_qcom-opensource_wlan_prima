@@ -1438,7 +1438,7 @@ VOS_STATUS WLANSSC_Close
   if( VOS_STATUS_SUCCESS != WLANSSC_ExecuteEvent( pControlBlock, 
                                                   WLANSSC_CLOSE_EVENT ) )
   {
-    SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error executing Close event"));
+	SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR, "Error executing Close event"));
   }
 
   /* Release Lock                                                          */
@@ -6298,6 +6298,43 @@ static VOS_STATUS WLANSSC_R_CloseEventHandler
 
 } /* WLANSSC_R_CloseEventHandler() */
 
+/**
+ @brief WLANSSC_DrainRxFifo is used to issue a Dummy Read from the SIF Rx FIFO to 
+ ensure that the DXE Rx Channel is put in the IDLE state
+
+ @param Handle: SSC control block to operate on
+
+ @see
+
+ @return Result of the function call
+*/
+static VOS_STATUS WLANSSC_DrainRxFifo
+(
+  WLANSSC_ControlBlockType *pControlBlock
+)
+{
+  v_U32_t              count=0;
+
+  /* At this point the STOP bit in the DXE descriptor for the Rx DXE channel is set.
+ 	 So, DXE can push atmost 2 packets (1 corresponding to DXE descriptor previously read
+ 	 and another corresponding to next DXE descriptor read with STOP bit). So, read data coresponding
+ 	 to 2 max-sized packets.
+	*/
+  while(++count <= 2)
+  {
+    /* Issue a CMD53 Read from the SIF Rx FIFO to read data equivalent to a max sized packet to enable stopping of the DXE Rx channel */
+    if( VOS_STATUS_SUCCESS != WLANSSC_ReceiveData( pControlBlock,
+                                                   &pControlBlock->aRxScratchBuffer[0],
+                                                   WLANSSC_MAXPKTSIZE,
+                                                   WLANSSC_SYNC_BUSACCESS ) )
+    {
+  	 return VOS_STATUS_E_FAILURE;
+    }
+  } 
+  
+  return VOS_STATUS_SUCCESS;
+}
+
 
 /**
  @brief WLANSSC_R_SuspendEventHandler is used to handle the Suspend event in
@@ -6337,9 +6374,17 @@ static VOS_STATUS WLANSSC_R_SuspendEventHandler
       return VOS_STATUS_E_FAILURE;
     }
 
+	if( VOS_STATUS_SUCCESS != WLANSSC_DrainRxFifo( pControlBlock ) )
+    {
+      /* Should never happen!                                              */
+      WLANSSC_ASSERT( 0 );      
+      return VOS_STATUS_E_FAILURE;
+    }
+
     /* Change state                                                        */
     WLANSSC_TransitionState( pControlBlock,
-                             WLANSSC_SUSPENDED_STATE );
+                             WLANSSC_SUSPENDED_STATE );	  
+	  
   } 
   else if( WLANSSC_RXSUSPENDEDMASK & pControlBlock->uSuspendedFlowMask )
   {

@@ -131,7 +131,7 @@ eHalStatus halRxp_DelEntry(tpAniSirGlobal pMac, tSirMacAddr macAddr);
 eHalStatus halRxp_UpdateEntry(tpAniSirGlobal pMac, tANI_U8 staid, tRxpRole role, tANI_BOOLEAN keyExtract);
 eHalStatus halRxp_DelAllEntries(tpAniSirGlobal pMAc);
 eHalStatus halRxp_enable(tpAniSirGlobal pMac);
-eHalStatus halRxp_disable(tpAniSirGlobal pMac);
+eHalStatus halRxp_disable(tpAniSirGlobal pMac, tANI_U8 bWaitRxpIdle);
 eHalStatus halRxp_addBroadcastEntry(tpAniSirGlobal pMac);
 void       halRxp_storeRxpMode(tpAniSirGlobal pMac, tRxpMode mode);
 tRxpMode   halRxp_getSystemRxpMode(tpAniSirGlobal pMac);
