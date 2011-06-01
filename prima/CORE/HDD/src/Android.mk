@@ -4,6 +4,7 @@
 
 WLAN_BLD_DIR := vendor/qcom/proprietary/wlan
 PRIMA_FW_DIR := vendor/qcom/proprietary/wlan/prima/firmware_bin
+DLKM_DIR     := build/dlkm
 
 PRODUCT_COPY_FILES += $(PRIMA_FW_DIR)/WCNSS_qcom_wlan_nv.bin:persist/WCNSS_qcom_wlan_nv.bin
 PRODUCT_COPY_FILES += $(PRIMA_FW_DIR)/WCNSS_cfg.dat:system/etc/firmware/wlan/prima/WCNSS_cfg.dat
@@ -26,7 +27,7 @@ LOCAL_MODULE             := prima_wlan.ko
 LOCAL_MODULE_KBUILD_NAME := wlan.ko
 LOCAL_MODULE_TAGS        := eng
 LOCAL_MODULE_PATH        := $(TARGET_OUT)/lib/modules/prima
-include $(WLAN_BLD_DIR)/AndroidKernelModule.mk
+include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
 #Create symbolic link
