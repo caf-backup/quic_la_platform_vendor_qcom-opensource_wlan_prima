@@ -214,7 +214,46 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     return;
 } /*** end limCollectBssDescription() ***/
 
+/**
+ * limIsScanRequestedSSID()
+ *
+ *FUNCTION:
+ * This function is called during scan upon receiving
+ * Beacon/Probe Response frame to check if the received
+ * SSID is present in the list of requested SSIDs in scan
+ *
+ *LOGIC:
+ *
+ *ASSUMPTIONS:
+ * NA
+ *
+ *NOTE:
+ * NA
+ *
+ * @param  pMac - Pointer to Global MAC structure
+ * @param  ssId - SSID Received in beacons/Probe responses that is compared against the 
+                            requeusted SSID in scan list
+ * ---------------------------------------------
+ *
+ * @return boolean - TRUE if SSID is present in requested list, FALSE otherwise
+ */
 
+tANI_BOOLEAN limIsScanRequestedSSID(tpAniSirGlobal pMac, tSirMacSSid *ssId)
+{
+    tANI_U8 i = 0;
+    tANI_BOOLEAN requestedSsid = eANI_BOOLEAN_FALSE;
+
+    for (i = 0; i < pMac->lim.gpLimMlmScanReq->numSsid; i++)
+    {
+        if ((requestedSsid = palEqualMemory( pMac->hHdd,(tANI_U8 *) ssId,
+                   (tANI_U8 *) &pMac->lim.gpLimMlmScanReq->ssId[i],
+                   (tANI_U8) (pMac->lim.gpLimMlmScanReq->ssId[i].length))) == eANI_BOOLEAN_TRUE)
+        {
+            break;
+        }
+    }
+    return requestedSsid;
+}
 
 /**
  * limCheckAndAddBssDescription()
@@ -259,10 +298,9 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
      * indicates Broadcast SSID.
      */
 
-    if ((fScanning) && (pMac->lim.gpLimMlmScanReq->ssId.length) &&
-        ( !palEqualMemory( pMac->hHdd,(tANI_U8 *) &pBPR->ssId,
-                   (tANI_U8 *) &pMac->lim.gpLimMlmScanReq->ssId,
-                   (tANI_U8) (pMac->lim.gpLimMlmScanReq->ssId.length + 1)) ))
+    if ((fScanning) && ( pMac->lim.gLimReturnAfterFirstMatch & 0x01 ) 
+        && (pMac->lim.gpLimMlmScanReq->numSsid) &&
+                   !limIsScanRequestedSSID(pMac, &pBPR->ssId))
     {
         /**
          * Received SSID does not match with

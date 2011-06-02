@@ -309,12 +309,14 @@ typedef struct sLimMlmScanReq
 {
     tSirBssType        bssType;
     tSirMacAddr        bssId;
-    tSirMacSSid        ssId;
+    tSirMacSSid        ssId[SIR_SCAN_MAX_NUM_SSID];
     tSirScanType       scanType;
     tANI_U32           minChannelTime;
     tANI_U32           maxChannelTime;
     tSirBackgroundScanMode  backgroundScanMode;
     tANI_U32 dot11mode;
+    /* Number of SSIDs to scan(send Probe request) */
+    tANI_U8            numSsid;
     //channelList MUST be the last field of this structure
     tSirChannelList    channelList;
 

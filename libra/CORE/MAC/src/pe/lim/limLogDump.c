@@ -420,8 +420,9 @@ static char *sendSmeScanReq(tpAniSirGlobal pMac, char *p)
     pScanReq->maxChannelTime = 130;
     pScanReq->bssType = eSIR_INFRASTRUCTURE_MODE;
     limGetMyMacAddr(pMac, pScanReq->bssId);
-    palCopyMemory(pMac->hHdd, (void *) &pScanReq->ssId.ssId, (void *)"Ivan", 4);
-    pScanReq->ssId.length = 4;
+    pScanReq->numSsid = 1;
+    palCopyMemory(pMac->hHdd, (void *) &pScanReq->ssId[0].ssId, (void *)"Ivan", 4);
+    pScanReq->ssId[0].length = 4;
     pScanReq->scanType = eSIR_ACTIVE_SCAN;
     pScanReq->returnAfterFirstMatch = 0;
     pScanReq->returnUniqueResults = 0;

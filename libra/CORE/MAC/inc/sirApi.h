@@ -920,6 +920,7 @@ typedef enum eSirLinkTrafficCheck
 #define SIR_BG_SCAN_RETURN_CACHED_RESULTS              0x0
 #define SIR_BG_SCAN_PURGE_RESUTLS                      0x80
 #define SIR_BG_SCAN_RETURN_FRESH_RESULTS               0x01
+#define SIR_SCAN_MAX_NUM_SSID                          0x05 
 
 /// Definition for scan request
 typedef struct sSirSmeScanReq
@@ -929,7 +930,7 @@ typedef struct sSirSmeScanReq
     tANI_U8         sessionId;         // Session ID
     tANI_U16        transactionId;     // Transaction ID for cmd
     tSirMacAddr     bssId;
-    tSirMacSSid     ssId;
+    tSirMacSSid     ssId[SIR_SCAN_MAX_NUM_SSID];
     tSirMacAddr     selfMacAddr; //Added For BT-AMP Support
     tSirBssType     bssType;
     tANI_U8 	    dot11mode;
@@ -981,6 +982,9 @@ typedef struct sSirSmeScanReq
     tSirChannelList channelList;
     
     tANI_U8              hiddenSsid;
+
+    /* Number of SSIDs to scan */
+    tANI_U8             numSsid;
 
     tANI_U16        uIEFieldLen;
     tANI_U16        uIEFieldOffset;

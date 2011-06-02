@@ -4512,15 +4512,22 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tCsrScanRequest *pScanReq, tSc
         }
         pMsg->scanType = pal_cpu_to_be32(scanType);
 
-
+        pMsg->numSsid = (pScanReq->SSIDs.numOfSSIDs < SIR_SCAN_MAX_NUM_SSID) ? pScanReq->SSIDs.numOfSSIDs :
+                                                        SIR_SCAN_MAX_NUM_SSID;
         if((pScanReq->SSIDs.numOfSSIDs != 0) && ( eSIR_PASSIVE_SCAN != scanType ))
         {
-            palCopyMemory(pMac->hHdd, &pMsg->ssId, &pScanReq->SSIDs.SSIDList[0].SSID, sizeof(tSirMacSSid));
+            for (i = 0; i < pMsg->numSsid; i++)
+            {
+                palCopyMemory(pMac->hHdd, &pMsg->ssId[i], &pScanReq->SSIDs.SSIDList[i].SSID, sizeof(tSirMacSSid));
+            }
         }
         else
         {
             //Otherwise we scan all SSID and let the result filter later
-            pMsg->ssId.length = 0;
+            for (i = 0; i < SIR_SCAN_MAX_NUM_SSID; i++)
+            {
+                pMsg->ssId[i].length = 0;
+            }
         }
 
 //TODO: This preprocessor macro should be removed from CSR for production driver

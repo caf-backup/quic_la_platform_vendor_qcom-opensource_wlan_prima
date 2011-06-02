@@ -194,6 +194,8 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
 {
     tANI_U8 channelNum;
     tANI_U8 handleError = 0;
+    tANI_U8 i = 0;
+    tSirRetStatus status = eSIR_SUCCESS;
     
     if( pMac->lim.abortScan )
     {
@@ -208,22 +210,29 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
     {
         PELOG2(limLog(pMac, LOG2, FL("ACTIVE Scan chan %d, sending probe\n"), channelNum);)
 
-       
-        /// Prepare and send Probe Request frame
-        // include additional IE if there is
-        if (limSendProbeReqMgmtFrame( pMac, &pMac->lim.gpLimMlmScanReq->ssId,
-               pMac->lim.gpLimMlmScanReq->bssId, channelNum, pMac->lim.gSelfMacAddr, 
-               pMac->lim.gpLimMlmScanReq->dot11mode, 
-               pMac->lim.gpLimMlmScanReq->uIEFieldLen, 
-               (tANI_U8 *)(pMac->lim.gpLimMlmScanReq)+pMac->lim.gpLimMlmScanReq->uIEFieldOffset)
-            != eSIR_SUCCESS)
+        do
         {
-            PELOGE(limLog(pMac, LOGE, FL("send ProbeReq failed for channel: %d\n"), channelNum);)
-            limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
-            limSendHalEndScanReq(pMac, channelNum, eLIM_HAL_END_SCAN_WAIT_STATE);
-            return;
-        }
-        else
+            /* Prepare and send Probe Request frame for all the SSIDs present in the saved MLM */
+
+            PELOGE(limLog(pMac, LOGE, FL("sending ProbeReq number %d, for SSID %s on channel: %d\n"), 
+                        i, pMac->lim.gpLimMlmScanReq->ssId[i].ssId, channelNum);)
+            status = limSendProbeReqMgmtFrame( pMac, &pMac->lim.gpLimMlmScanReq->ssId[i],
+                    pMac->lim.gpLimMlmScanReq->bssId, channelNum, pMac->lim.gSelfMacAddr, 
+                    pMac->lim.gpLimMlmScanReq->dot11mode,
+                    pMac->lim.gpLimMlmScanReq->uIEFieldLen, 
+                    (tANI_U8 *)(pMac->lim.gpLimMlmScanReq)+pMac->lim.gpLimMlmScanReq->uIEFieldOffset);
+
+            if ( status != eSIR_SUCCESS)
+            {
+                PELOGE(limLog(pMac, LOGE, FL("send ProbeReq failed for SSID %s on channel: %d\n"), 
+                            pMac->lim.gpLimMlmScanReq->ssId[i].ssId, channelNum);)
+                limDeactivateAndChangeTimer(pMac, eLIM_MIN_CHANNEL_TIMER);
+                limSendHalEndScanReq(pMac, channelNum, eLIM_HAL_END_SCAN_WAIT_STATE);
+                return;
+            }
+            i++;
+        } while (i < pMac->lim.gpLimMlmScanReq->numSsid);
+
         {
             /// TXP has sent Probe Request
             /// Activate minChannelTimer
@@ -329,7 +338,7 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
         // eSIR_SME_HAL_SCAN_INIT_FAILED
         // eSIR_SME_RESOURCES_UNAVAILABLE
         //
-        limSendHalFinishScanReq( pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE);
+        limSendHalFinishScanReq( pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE );
         //limCompleteMlmScan(pMac, eSIR_SME_HAL_SCAN_INIT_FAILED);
     }
     else
@@ -376,16 +385,16 @@ static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *mac
                     /* Send NULL data only for Infra STA */
                     sendDataNull = TRUE;
                     palCopyMemory(pMac->hHdd, (void *)bssid, (void *)pMac->lim.gpSession[i].bssId, sizeof(tSirMacAddr));
-                    *notifyBss =  TRUE;
+                *notifyBss =  TRUE;
+            }
             }
         }
-    }
 
     //This will be the scenario, when we have multiple sessions Infra+IBSS or Infra+BT
     if(sendDataNull)
-    {
-         CreateScanDataNullFrame(pMac, macMgmtHdr, pwrMgmt, bssid);
-    }
+    	{
+	CreateScanDataNullFrame(pMac, macMgmtHdr, pwrMgmt, bssid);
+    	}
 
 }
 
@@ -1603,7 +1612,7 @@ limProcessMlmJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                pMac->lim.gLimSystemRole, pMac->lim.gLimMlmState);
     }
 
-    error:
+error: 
 
         
         mlmJoinCnf.resultCode = eSIR_SME_RESOURCES_UNAVAILABLE;
@@ -2737,12 +2746,12 @@ end:
 static void
 limProcessMlmRemoveKeyReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
-    tANI_U16           aid;
-    tANI_U16           staIdx = 0;
-    tSirMacAddr        currentBssId;
-    tpDphHashNode      pStaDs;
-    tLimMlmRemoveKeyReq  *pMlmRemoveKeyReq;
-    tLimMlmRemoveKeyCnf  mlmRemoveKeyCnf;
+tANI_U16           aid;
+tANI_U16           staIdx = 0;
+tSirMacAddr        currentBssId;
+tpDphHashNode      pStaDs;
+tLimMlmRemoveKeyReq  *pMlmRemoveKeyReq;
+tLimMlmRemoveKeyCnf  mlmRemoveKeyCnf;
     tpPESession         psessionEntry;
 
     if(pMsgBuf == NULL)
@@ -3374,9 +3383,9 @@ limCompleteMlmScan(tpAniSirGlobal pMac, tSirResultCodes retCode)
 void limProcessMlmAddBAReq( tpAniSirGlobal pMac,
     tANI_U32 *pMsgBuf )
 {
-  tSirRetStatus status = eSIR_SUCCESS;
-  tpLimMlmAddBAReq pMlmAddBAReq;
-  tpLimMlmAddBACnf pMlmAddBACnf;
+tSirRetStatus status = eSIR_SUCCESS;
+tpLimMlmAddBAReq pMlmAddBAReq;
+tpLimMlmAddBACnf pMlmAddBACnf;
   tpPESession     psessionEntry;
     
   if(pMsgBuf == NULL)
@@ -3464,7 +3473,7 @@ void limProcessMlmAddBAReq( tpAniSirGlobal pMac,
 void limProcessMlmAddBARsp( tpAniSirGlobal pMac,
     tANI_U32 *pMsgBuf )
 {
-   tpLimMlmAddBARsp pMlmAddBARsp;
+tpLimMlmAddBARsp pMlmAddBARsp;
    tANI_U16 aid;
    tpDphHashNode pSta;
    tpPESession  psessionEntry;
