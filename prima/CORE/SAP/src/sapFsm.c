@@ -697,7 +697,7 @@ sapconvertToCsrProfile(tsap_Config_t *pconfig_params, eCsrRoamBssType bssType, t
     //Create Roam profile for SoftAP to connect
     profile->BSSType = eCSR_BSS_TYPE_INFRA_AP;
     profile->SSIDs.numOfSSIDs = 1;
-	profile->csrPersona = pconfig_params->persona;
+    profile->csrPersona = pconfig_params->persona;
 
     vos_mem_zero(profile->SSIDs.SSIDList[0].SSID.ssId, 
                  sizeof(profile->SSIDs.SSIDList[0].SSID.ssId));

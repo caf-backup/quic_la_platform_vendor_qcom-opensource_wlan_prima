@@ -146,6 +146,9 @@ typedef enum
     eCSR_SCAN_SUCCESS,
     eCSR_SCAN_FAILURE,
     eCSR_SCAN_ABORT,
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+    eCSR_SCAN_ONGOING,
+#endif
 }eCsrScanStatus;
 
 #define CSR_SCAN_TIME_DEFAULT       0
@@ -390,7 +393,7 @@ typedef enum
     //the peer's MAC address in peerMacOrBssid and a beacon frame of the IBSS in pbFrames
     eCSR_ROAM_RESULT_IBSS_NEW_PEER, 
     //Peer departed from IBSS, Callback may get a pointer tSmeIbssPeerInd in pIbssPeerInd
-	eCSR_ROAM_RESULT_IBSS_PEER_DEPARTED, 
+    eCSR_ROAM_RESULT_IBSS_PEER_DEPARTED, 
     //Coalescing in the IBSS network (joined an IBSS network)
     //Callback pass a BSSID in peerMacOrBssid
     eCSR_ROAM_RESULT_IBSS_COALESCED,    
@@ -458,7 +461,7 @@ typedef enum
     eCSR_DISCONNECT_REASON_MIC_ERROR,
     eCSR_DISCONNECT_REASON_DISASSOC,
     eCSR_DISCONNECT_REASON_DEAUTH,
-	eCSR_DISCONNECT_REASON_HANDOFF,
+    eCSR_DISCONNECT_REASON_HANDOFF,
     eCSR_DISCONNECT_REASON_IBSS_JOIN_FAILURE,
     eCSR_DISCONNECT_REASON_IBSS_LEAVE,
 }eCsrRoamDisconnectReason;
@@ -726,7 +729,7 @@ typedef struct tagCsrRoamProfile
     tANI_U8 *pWAPIReqIE;   //If not null, it has the IE byte stream for WAPI
 #endif /* FEATURE_WLAN_WAPI */
 #ifdef WLAN_FEATURE_P2P
-    tANI_U32 nP2PIELength;	 //The byte count in the pWAPIReqIE
+    tANI_U32 nP2PIELength;     //The byte count in the pWAPIReqIE
     tANI_U8 *pP2PIE;   //If not null, it has the IE byte stream for WAPI
 #endif /* WLAN_FEATURE_P2P */
 
@@ -749,7 +752,7 @@ typedef struct tagCsrRoamProfile
 #ifdef WLAN_FEATURE_VOWIFI_11R
     tCsrMobilityDomainInfo MDID;
 #endif
-    VOS_CON_MODE csrPersona;
+    tVOS_CON_MODE csrPersona;
 }tCsrRoamProfile;
 
 
@@ -761,11 +764,11 @@ typedef struct tagCsrRoamConnectedProfile
     tCsrBssid bssid;
     eCsrRoamBssType BSSType;
     eCsrAuthType AuthType;
-	tCsrAuthList AuthInfo;
+    tCsrAuthList AuthInfo;
     eCsrEncryptionType EncryptionType;
-	tCsrEncryptionList EncryptionInfo;
+    tCsrEncryptionList EncryptionInfo;
     eCsrEncryptionType mcEncryptionType;
-	tCsrEncryptionList mcEncryptionInfo;
+    tCsrEncryptionList mcEncryptionInfo;
     eCsrCBChoice CBMode; //up, down or auto
     tANI_U8 operationChannel;
     tCsrKeys Keys;
@@ -784,6 +787,76 @@ typedef struct tagCsrRoamConnectedProfile
     
 }tCsrRoamConnectedProfile;
 
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+/*---------------------------------------------------------------------------
+ All tunable handoff parmeters which will be part of handoff config file
+---------------------------------------------------------------------------*/
+typedef struct tagCsrConfigNoWifiParams
+{
+   tANI_U32          rssiFilterConst;
+   tANI_U32          channelScanTime;
+   tANI_U32          rssiThresholdNeighborSet;
+   tANI_U32          rssiThresholdAssociationAdd;
+   tANI_U32          activeScanInterval;
+   tANI_U32          activeScanDuration;
+} tCsrConfigNoWifiParams;
+
+typedef struct tagCsrConfigIdleParams
+{
+  tANI_U32          rssiFilterConst;
+  tANI_U32          numCandtSetEntry;
+  tANI_U32          inactThreshold;
+  tANI_U32          inactPeriod;
+  tANI_U32          bestCandidateApRssiDelta;
+  tANI_U32          neighborApBgScanInterval;
+  tANI_U32          neighborApIncrBgScanInterval;
+  tANI_U32          rssiThresholdCandtSet;
+  tANI_U32          pmkCacheRssiDelta;
+  tANI_U32          rssiThresholdCurrentApGood;
+} tCsrConfigNtParams;
+
+typedef struct tagCsrConfigNrtParams
+{
+  tANI_U32          rssiFilterConst;
+  tANI_U32          numCandtSetEntry;
+  tANI_U32          rssiThresholdCurrentApGood;
+  tANI_U32          rssiThresholdCurrentApGoodEmptyCandtset;
+  tANI_U32          rssiThresholdHoFromCurrentAp;
+  tANI_U32          rssiThresholdCandtSet;
+  tANI_U32          bgScanInterval;
+  tANI_U32          bgScanIncrInterval;
+  tANI_U32          bgScanDelayInterval;
+  tANI_U32          perMsmtInterval;
+  tANI_U32          perThresholdHoFromCurrentAp;
+  tANI_U32          pmkCacheRssiDelta;
+  tANI_U32          bestCandidateApRssiDelta;
+} tCsrConfigNrtParams;
+
+typedef struct tagCsrConfigRtParams
+{
+  tANI_U32          rssiFilterConst;
+  tANI_U32          numCandtSetEntry;
+  tANI_U32          rssiThresholdCurrentApGood;
+  tANI_U32          rssiThresholdHoFromCurrentAp;
+  tANI_U32          rssiThresholdCandtSet;
+  tANI_U32          bgScanInterval;
+  tANI_U32          perMsmtInterval;
+  tANI_U32          perThresholdHoFromCurrentAp;
+  tANI_U32          pmkCacheRssiDelta;
+  tANI_U32          bestCandidateApRssiDelta;
+} tCsrConfigRtParams;
+
+/*---------------------------------------------------------------------------
+  Structure with all the handoff(WLAN) related configuration parameters
+---------------------------------------------------------------------------*/
+typedef struct tagCsrHandoffConfigParams
+{
+  tCsrConfigNoWifiParams    noWifiParams;
+  tCsrConfigNtParams        ntParams;
+  tCsrConfigNrtParams       nrtParams;
+  tCsrConfigRtParams        rtParams;
+} tCsrHandoffConfigParams;
+#endif
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 typedef struct tagCsr11rConfigParams
@@ -975,7 +1048,7 @@ typedef struct sSirSmeAssocIndToUpperLayerCnf
     tANI_U8              wmmEnabledSta;   //set to true if WMM enabled STA
     tSirRSNie            rsnIE;           // RSN IE received from peer
 #ifdef WLAN_FEATURE_P2P
-    tSirP2Pie			 p2pIE; 		  // P2P IE received from peer
+    tSirP2Pie             p2pIE;           // P2P IE received from peer
 #endif
     tANI_U8              reassocReq;      //set to true if reassoc
 } tSirSmeAssocIndToUpperLayerCnf, *tpSirSmeAssocIndToUpperLayerCnf;

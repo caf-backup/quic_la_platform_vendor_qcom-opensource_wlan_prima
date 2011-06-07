@@ -82,14 +82,14 @@ typedef enum etCsrRoamCommands
 
 typedef enum  
 {
-	eCsrScanOther = 1,
-	eCsrScanLostLink1,
-	eCsrScanLostLink2,
-	eCsrScanLostLink3,
-	eCsrScanLostLink4,
+    eCsrScanOther = 1,
+    eCsrScanLostLink1,
+    eCsrScanLostLink2,
+    eCsrScanLostLink3,
+    eCsrScanLostLink4,
     eCsrScan11d1,  //First 11d scan
-	eCsrScan11d2,  //First 11d scan has failed
-	eCsrScan11dDone,  //11d scan succeeded, try the rest of the channel
+    eCsrScan11d2,  //First 11d scan has failed
+    eCsrScan11dDone,  //11d scan succeeded, try the rest of the channel
     eCsrScanUserRequest,
     eCsrScanGetResult,
     eCsrScanSetBGScanParam, //used for HO too - bg scan request in NT Handoff sub-state
@@ -109,13 +109,13 @@ typedef enum
 typedef enum 
 {
     eCsrNoConnection,          // Roaming because we have not established the initial connection.
-	eCsrCapsChange,            // roaming because LIM reported a Capability change in the associated AP.
+    eCsrCapsChange,            // roaming because LIM reported a Capability change in the associated AP.
     eCsrForcedDisassoc,        // roaming becuase someone asked us to Disassoc and stay disassociated.
-	eCsrHddIssued,             // roaming because an 802.11 request was issued to the driver.
-	eCsrLostLink1,             // roaming because we lost link to an associated AP
-	eCsrLostLink2, 
-	eCsrLostLink3,
-	eCsrForcedDisassocMICFailure, // roaming because we need to force a Disassoc due to MIC failure
+    eCsrHddIssued,             // roaming because an 802.11 request was issued to the driver.
+    eCsrLostLink1,             // roaming because we lost link to an associated AP
+    eCsrLostLink2, 
+    eCsrLostLink3,
+    eCsrForcedDisassocMICFailure, // roaming because we need to force a Disassoc due to MIC failure
     eCsrHddIssuedReassocToSameAP,
     eCsrSmeIssuedReassocToSameAP,
     eCsrSmeIssuedReassocToDiffAP,
@@ -288,7 +288,7 @@ typedef struct tagCsrRoamStartBssParams
     tSirMacRateSet      extendedRateSet;
     tANI_U8             operationChn;
     eCsrCfgDot11Mode    uCfgDot11Mode;
-#ifdef WLAN_SOFTAP_FEATURE	
+#ifdef WLAN_SOFTAP_FEATURE
     tANI_U8             privacy;
     tANI_BOOLEAN        fwdWPSPBCProbeReq;
     tANI_BOOLEAN        protEnabled;
@@ -301,7 +301,7 @@ typedef struct tagCsrRoamStartBssParams
     tANI_U8             ssidHidden;
     tANI_U8             wps_state;
 #endif
-    VOS_CON_MODE       bssPersona;
+    tVOS_CON_MODE       bssPersona;
     tANI_U16            nRSNIELength;  //The byte count in the pRSNIE, if 0, pRSNIE is ignored.
     tANI_U8             *pRSNIE;     //If not null, it has the IE byte stream for RSN
 }tCsrRoamStartBssParams;
@@ -604,9 +604,93 @@ typedef struct tagRoamCsrConnectedInfo
                         //user needs to use nBeaconLength, nAssocReqLength, nAssocRspLength to desice where
                         //each frame starts and ends.
     tANI_U8 staId;
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+    tCsrChannel sHOScanChannelList; //this is used by Handoff scan
+#endif
 }tCsrRoamConnectedInfo;
 
 
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+typedef struct tagCsrRoamHandoffStaEntry
+{
+   tCsrBssid                 bssid;
+   int                       qosScore;
+   int                       secScore;
+   int                       rssiScore;
+   int                       overallScore;
+   tANI_U32                  txPer;     /* represented as a %      */
+   tANI_U32                  rxPer;     /* represented as a %      */
+
+   tSirBssDescription       *pBssDesc;
+}tCsrRoamHandoffStaEntry;
+
+
+
+typedef struct tagCsrHandoffStaInfo
+{
+   tListElem             link;  /* list links */
+   tCsrRoamHandoffStaEntry sta; /* STA entry to place on a list (neighbor list, candidate list) */
+}tCsrHandoffStaInfo;
+
+typedef struct tagCsrCurrStatsInfo
+{
+   tANI_U32 tx_frm_cnt;
+   tANI_U32 num_rx_frm_crc_err;
+   tANI_U32 num_rx_frm_crc_ok;
+   tANI_U32 tx_fail_cnt;
+}tCsrCurrStatsInfo;
+
+
+typedef struct tagCsrHandoffActivityInfo
+{
+   tANI_BOOLEAN        isHandoffPermitted;
+   tANI_BOOLEAN        isBgScanPermitted;
+   tANI_BOOLEAN        isNrtBgScanEmptyCandSetPermitted;
+   tANI_BOOLEAN        isRtNrtRssiExitCriteriaSet;
+   tSirScanType        scan_type;
+   tANI_U32            currRssiFilterConstant;
+   tANI_U32            currPermittedNumCandtSetEntry;
+   tANI_U32            currRssiThresholdCandtSet;
+   tANI_U32            currPmkCacheRssiDelta;
+   tANI_U32            currRssiHandoffDelta;
+   tCsrBssid           probedBssid;
+   tANI_BOOLEAN        bgScanTimerExpiredAlready;
+   /* Following fields help us choose bg scan channels per FDD            */
+   tCsrChannelInfo     candChanList;
+   tANI_U8             candChanListIndex;
+   tCsrChannelInfo     otherChanList;
+   tANI_U8             otherChanListIndex;
+   tCsrChannelInfo     currBgScanChannelList;
+   tANI_U32            minChnTime;    //in units of milliseconds
+   tANI_U32            maxChnTime;    //in units of milliseconds
+   tANI_U32            currNtRssiThreshold;
+   tANI_U32            channelScanHistory;
+} tCsrHandoffActivityInfo;
+
+
+
+typedef struct tagCsrHandoffStruct
+{
+   tANI_BOOLEAN            handoffAction; /* Is HO action taken   */
+   eCsrRoamState           currState;  /* Current state                */
+   eCsrRoamSubState        currSubState; /* Current sub-state                */
+   tANI_BOOLEAN            isBgScanRspPending; /* Is a bg scan response awaited from PE?  */
+   tANI_BOOLEAN            isProbeRspPending; /* Is a probe rsp awaited from PE ?*/
+   tANI_BOOLEAN            ignoreScanFrmOthrState; /* Ignore the pending scan            */
+   tANI_BOOLEAN            isRtTrafficOn; /* Keep track of whether an RT session is in progress  */
+   tANI_BOOLEAN            isNrtTrafficOn; /* Keep track of whether NRT traffic is in progress  */
+   tCsrHandoffConfigParams handoffParams;
+   tANI_U32                idleScanInterval;
+   tANI_U32                lostLinkRoamInterval;
+   tDblLinkList            neighborList;
+   tDblLinkList            candidateList;
+   tCsrRoamHandoffStaEntry currSta; /* info about current AP     */
+   tCsrHandoffActivityInfo handoffActivityInfo;
+   tCsrCurrStatsInfo       currStatsInfo;
+   tCsrRoamProfile         handoffProfile; /* the BSSID & SSID info to which we are handing off*/
+   eCsrRoamSubState        subStateBeforeHandoff; /* sub-state just before ho was initiated      */
+}tCsrHandoffStruct;
+#endif
 typedef struct tagCsrLinkQualityIndInfo
 {   
    csrRoamLinkQualityIndCallback  callback;
@@ -687,9 +771,9 @@ typedef struct tagCsrRoamSession
     tANI_U8 *pWapiRspIE;  //this contain the WAPI IE in beacon/probe rsp
 #endif /* FEATURE_WLAN_WAPI */
 #ifdef WLAN_FEATURE_P2P
-    tANI_U32 nP2PReqIeLength;	 //the byte count of pP2PReqIE;
+    tANI_U32 nP2PReqIeLength;     //the byte count of pP2PReqIE;
     tANI_U8 *pP2PReqIE; //this contain the P2P IE in assoc request
-    tANI_U32 nP2PRspIeLength;	  //the byte count for pP2PRspIE
+    tANI_U32 nP2PRspIeLength;      //the byte count for pP2PRspIE
     tANI_U8 *pP2PRspIE;  //this contain the P2P IE in beacon/probe rsp
 #endif /* WLAN_FEATURE_P2P */
 
@@ -734,6 +818,10 @@ typedef struct tagCsrRoamStruct
     tChannelListWithPower   *powerTableFromEeprom;
     tChannelListWithPower   *powerTableFromEeprom40MHz;
     tPalTimerHandle hTimerWaitForKey;  //To support timeout for WaitForKey state
+#ifdef FEATURE_WLAN_GEN6_ROAMING    
+     /* TODO : Per session members .?*/
+    tCsrHandoffStruct handoffInfo;
+#endif
     tCsrSummaryStatsInfo       summaryStatsInfo;
     tCsrGlobalClassAStatsInfo  classAStatsInfo;
     tCsrGlobalClassBStatsInfo  classBStatsInfo;
@@ -743,6 +831,12 @@ typedef struct tagCsrRoamStruct
     tDblLinkList  statsClientReqList;
     tDblLinkList  peStatsReqList;
     tCsrTlStatsReqInfo  tlStatsReqInfo;
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+    tPalTimerHandle hTimerStatistics;  //for summary stats, only started internally by CSR
+#endif    
+#if (defined(FEATURE_WLAN_DIAG_SUPPORT_CSR) && defined(FEATURE_WLAN_GEN6_ROAMING)) 
+    tPalTimerHandle hTimerDiagLogStats;
+#endif
     eCsrRoamLinkQualityInd vccLinkQuality;
     tCsrLinkQualityIndInfo linkQualityIndInfo;
     v_CONTEXT_t gVosContext; //used for interaction with TL
@@ -885,6 +979,32 @@ eHalStatus csrGetModifyProfileFields(tpAniSirGlobal pMac, tANI_U32 sessionId,
 void csrSetGlobalCfgs( tpAniSirGlobal pMac );
 void csrSetDefaultDot11Mode( tpAniSirGlobal pMac );
 void csrScanSetChannelMask(tpAniSirGlobal pMac, tCsrChannelInfo *pChannelInfo);
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+tANI_BOOLEAN csrScanGetChannelMask(tpAniSirGlobal pMac);
+tCsrBssid * csrRoamGetStatHoCandidate(tpAniSirGlobal pMac);
+eHalStatus csrScanCreateOtherChanList(tpAniSirGlobal pMac);
+void csrRoamCreateHandoffProfile(tpAniSirGlobal pMac, tCsrBssid bssid);
+void csrRoamHandoffRequested(tpAniSirGlobal pMac);
+eHalStatus csrScanStopBgScanTimer(tpAniSirGlobal pMac);
+//Return 0 when BSS is found. Negative number when it is not found
+int csrScanFindBssEntryFromList( tpAniSirGlobal pMac,
+                                 tDblLinkList *pStaList,
+                                 tCsrBssid    bssid,
+                                 tCsrHandoffStaInfo **ppStaEntry);
+void  csrScanRemoveEntryFromList( tpAniSirGlobal pMac,
+                                  tDblLinkList *pStaList,
+                                  tCsrBssid    bssid);
+void csrScanSendBgProbeReq(tpAniSirGlobal pMac, tCsrBssid *pBssid);
+tCsrBssid * csrScanGetHoCandidate(tpAniSirGlobal pMac);
+tANI_BOOLEAN csrScanIsBgScanEnabled(tpAniSirGlobal pMac);
+tANI_U32 csrScanGetBgScanTimerVal(tpAniSirGlobal pMac);
+eHalStatus csrScanStartBgScanTimer(tpAniSirGlobal pMac, tANI_U32 interval);
+tANI_U8 csrScanListSize( tpAniSirGlobal pMac,
+                         tDblLinkList *pStaList );
+void csrScanRemoveBgScanReq(tpAniSirGlobal pMac);
+eHalStatus csrHoConfigParams(tpAniSirGlobal pMac, tCsrHandoffConfigParams * pCsrHoConfig);
+
+#endif
 tANI_BOOLEAN csrIsConnStateDisconnected(tpAniSirGlobal pMac, tANI_U32 sessionId);
 tANI_BOOLEAN csrIsConnStateConnectedIbss( tpAniSirGlobal pMac, tANI_U32 sessionId );
 tANI_BOOLEAN csrIsConnStateDisconnectedIbss( tpAniSirGlobal pMac, tANI_U32 sessionId );
@@ -1048,7 +1168,7 @@ void csrSetCfgPrivacy( tpAniSirGlobal pMac, tCsrRoamProfile *pProfile, tANI_BOOL
 tANI_S8 csrGetInfraSessionId( tpAniSirGlobal pMac );
 tANI_U8 csrGetInfraOperationChannel( tpAniSirGlobal pMac, tANI_U8 sessionId);
 eHalStatus csrRoamCopyConnectProfile(tpAniSirGlobal pMac, tANI_U32 sessionId, 
-	                               tCsrRoamConnectedProfile *pProfile);
+                                   tCsrRoamConnectedProfile *pProfile);
 tANI_BOOLEAN csrIsSetKeyAllowed(tpAniSirGlobal pMac, tANI_U32 sessionId);
 #endif
 

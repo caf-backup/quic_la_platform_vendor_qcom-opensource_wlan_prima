@@ -280,7 +280,7 @@ typedef struct hdd_wapi_info_s hdd_wapi_info_t;
 
 
 typedef enum device_mode
-{  /* MAINTAIN 1 - 1 CORRESPONDENCE WITH VOS_CON_MODE*/
+{  /* MAINTAIN 1 - 1 CORRESPONDENCE WITH tVOS_CON_MODE*/
    WLAN_HDD_INFRA_STATION,
    WLAN_HDD_SOFTAP,
    WLAN_HDD_P2P_CLIENT,
@@ -312,7 +312,7 @@ typedef struct hdd_cfg80211_state_s
 struct hdd_station_ctx
 {
   /** Handle to the Wireless Extension State */
-   hdd_wext_state_t WextState;	
+   hdd_wext_state_t WextState;
 
    /**Connection information*/
    connection_info_t conn_info;
@@ -415,7 +415,7 @@ struct hdd_adapter_s
 
    /** Handle to the network device */
    struct net_device *dev;
-	
+    
    //TODO Move this to sta Ctx
 #ifdef CONFIG_CFG80211
    struct wireless_dev wdev ;
@@ -423,7 +423,7 @@ struct hdd_adapter_s
 #endif
 
    /** Current MAC Address for the adapter  */       
-   v_MACADDR_t macAddressCurrent;	
+   v_MACADDR_t macAddressCurrent;    
       
    /**Event Flags*/
    unsigned long event_flags;
@@ -600,7 +600,7 @@ void wlan_hdd_release_intf_addr(hdd_context_t* pHddCtx, tANI_U8* releaseAddr);
 
 #if defined(WLAN_SOFTAP_FEATURE) || defined(ANI_MANF_DIAG)
 void hdd_set_conparam ( v_UINT_t newParam );
-VOS_CON_MODE hdd_get_conparam( void );
+tVOS_CON_MODE hdd_get_conparam( void );
 #endif
 
 void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext);

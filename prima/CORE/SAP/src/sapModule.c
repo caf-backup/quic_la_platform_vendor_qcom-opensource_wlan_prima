@@ -27,7 +27,7 @@
 
 
 
-  when        	   who                 what, where, why
+  when               who                 what, where, why
 ----------       ---                --------------------------------------------------------
 03/15/10     SOFTAP team            Created module
 06/03/10     js                     Added support to hostapd driven 
@@ -153,7 +153,7 @@ WLANSAP_Open
    
     /*------------------------------------------------------------------------
         Allocate internal resources
-   	------------------------------------------------------------------------*/
+       ------------------------------------------------------------------------*/
 
     return VOS_STATUS_SUCCESS;
 }// WLANSAP_Open
@@ -882,7 +882,7 @@ WLANSAP_DisassocSta
     /*------------------------------------------------------------------------
       Sanity check
       Extract SAP control block 
-      ------------------------------------------------------------------------*/	
+      ------------------------------------------------------------------------*/    
     if (NULL == pSapCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -931,7 +931,7 @@ WLANSAP_DeauthSta
     /*------------------------------------------------------------------------
       Sanity check
       Extract SAP control block 
-      ------------------------------------------------------------------------*/	
+      ------------------------------------------------------------------------*/    
     if (NULL == pSapCtx)
     {
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
@@ -1244,7 +1244,7 @@ WLANSAP_Set_WpsIe
         {
             if (pSap_WPSIe->sapWPSIECode == eSAP_WPS_BEACON_IE)
             {
-                vos_mem_copy(&pSapCtx->APWPSIEs.SirWPSBeaconIE, &pSap_WPSIe->sapwpsie.sapWPSBeaconIE, sizeof(tSap_WPSBeaconIE));	
+                vos_mem_copy(&pSapCtx->APWPSIEs.SirWPSBeaconIE, &pSap_WPSIe->sapwpsie.sapWPSBeaconIE, sizeof(tSap_WPSBeaconIE));    
             }
             else if (pSap_WPSIe->sapWPSIECode == eSAP_WPS_PROBE_RSP_IE) 
             {

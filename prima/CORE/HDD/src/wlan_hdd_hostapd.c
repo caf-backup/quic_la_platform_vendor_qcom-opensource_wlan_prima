@@ -48,10 +48,10 @@
 #include <linux/mmc/sdio_func.h>
 
 
-#define	IS_UP(_dev) \
-	(((_dev)->flags & (IFF_RUNNING|IFF_UP)) == (IFF_RUNNING|IFF_UP))
-#define	IS_UP_AUTO(_ic) \
-	(IS_UP((_ic)->ic_dev) && (_ic)->ic_roaming == IEEE80211_ROAMING_AUTO)
+#define    IS_UP(_dev) \
+    (((_dev)->flags & (IFF_RUNNING|IFF_UP)) == (IFF_RUNNING|IFF_UP))
+#define    IS_UP_AUTO(_ic) \
+    (IS_UP((_ic)->ic_dev) && (_ic)->ic_roaming == IEEE80211_ROAMING_AUTO)
 #define WE_WLAN_VERSION     1
 extern int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra);
@@ -115,11 +115,11 @@ int hdd_hostapd_stop (struct net_device *dev)
   ===========================================================================*/
 int hdd_hostapd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
-    return 0;	
+    return 0;    
 }
 int hdd_hostapd_change_mtu(struct net_device *dev, int new_mtu)
 {
-	return 0;
+    return 0;
 }
 
 int hdd_hostapd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
@@ -245,10 +245,10 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                             "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
             return VOS_STATUS_SUCCESS;
         case eSAP_STA_DEL_KEY_EVENT:
-	       //TODO: forward the message to hostapd once implementtation is done for now just print
-	       hddLog(LOGE, FL("Event received %s\n"),"eSAP_STA_DEL_KEY_EVENT");
+           //TODO: forward the message to hostapd once implementtation is done for now just print
+           hddLog(LOGE, FL("Event received %s\n"),"eSAP_STA_DEL_KEY_EVENT");
            return VOS_STATUS_SUCCESS;
-    	case eSAP_STA_MIC_FAILURE_EVENT:
+        case eSAP_STA_MIC_FAILURE_EVENT:
         {
             struct iw_michaelmicfailure msg;
             memset(&msg, '\0', sizeof(msg));
@@ -362,7 +362,29 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 }
             }
 #ifdef CONFIG_CFG80211
-            cfg80211_disconnected(dev, WLAN_REASON_UNSPECIFIED, NULL, 0, GFP_KERNEL); 
+            {
+                struct ieee80211_mgmt mgmt;
+                v_U16_t size =  (24 + sizeof(mgmt.u.disassoc));
+
+                mgmt.u.disassoc.reason_code = 
+                   pSapEvent->sapevt.sapStationDisassocCompleteEvent.reason;
+                memcpy(mgmt.da, &pHostapdAdapter->macAddressCurrent, 6);
+                memcpy(
+                 mgmt.sa, 
+                 &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac,
+                 6);
+
+                 /* This is a hack, because wpa_supplicant expects bssid to 
+                  * be the address with which disassoc happens, as this event
+                  * is not supposed to be used for AP mode 
+                  */
+                 memcpy(
+                 mgmt.bssid, 
+                 &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac,
+                 6);
+
+                cfg80211_send_disassoc(dev, (const u8 *)&mgmt, size);
+            }
 #endif
             break;
         case eSAP_WPS_PBC_PROBE_REQ_EVENT:
@@ -440,14 +462,14 @@ int hdd_softap_unpackIE(
  
     tANI_U8 *pRsnIe; 
     tANI_U16 RSNIeLen;
-	
+    
     if (NULL == halHandle)
     {
         hddLog(LOGE, FL("Error haHandle returned NULL\n"));
         return -EINVAL;
     }
-	
-	// Validity checks
+    
+    // Validity checks
     if ((gen_ie_len < VOS_MIN(DOT11F_IE_RSN_MIN_LEN, DOT11F_IE_WPA_MIN_LEN)) ||  
         (gen_ie_len > VOS_MAX(DOT11F_IE_RSN_MAX_LEN, DOT11F_IE_WPA_MAX_LEN)) ) 
         return -EINVAL;
@@ -520,7 +542,7 @@ int hdd_softap_unpackIE(
         hddLog(LOGE, FL("%s: gen_ie[0]: %d\n"), __FUNCTION__, gen_ie[0]);
         return VOS_STATUS_E_FAILURE; 
     }
-	return VOS_STATUS_SUCCESS;
+    return VOS_STATUS_SUCCESS;
 }
 int
 static iw_softap_setparam(struct net_device *dev, 
@@ -609,20 +631,20 @@ static iw_softap_getchannel(struct net_device *dev,
                         union iwreq_data *wrqu, char *extra)
 {
 #ifdef HDD_SESSIONIZE
-	hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-	ptSapContext  pSapCtx;
-	v_CONTEXT_t pvos = pHostapdAdapter->pvosContext;
+    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    ptSapContext  pSapCtx;
+    v_CONTEXT_t pvos = pHostapdAdapter->pvosContext;
  
    //TODO - Use an API. OR get it from profile. Dont use SAP data structure here.
-	pSapCtx = VOS_GET_SAP_CB(pvos);
+    pSapCtx = VOS_GET_SAP_CB(pvos);
 
-	/** Operating channel */
+    /** Operating channel */
     *(v_U32_t *)(wrqu->data.pointer) = pSapCtx->channel;
 
-	wrqu->data.length = sizeof(pSapCtx->channel);
+    wrqu->data.length = sizeof(pSapCtx->channel);
 #endif
 
-	return 0;
+    return 0;
 }
 
 #define IS_BROADCAST_MAC(x) (((x[0] & x[1] & x[2] & x[3] & x[4] & x[5]) == 0xff) ? 1 : 0)
@@ -632,34 +654,34 @@ static iw_softap_getassoc_stamacaddr(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-	hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-	unsigned char *pmaclist;
+    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    unsigned char *pmaclist;
    hdd_station_info_t *pStaInfo = pHostapdAdapter->aStaInfo;
-	int cnt = 0, len;
+    int cnt = 0, len;
 
 
-	pmaclist = wrqu->data.pointer + sizeof(unsigned long int);
-	len = wrqu->data.length;
+    pmaclist = wrqu->data.pointer + sizeof(unsigned long int);
+    len = wrqu->data.length;
 
-	while((cnt < WLAN_MAX_STA_COUNT) && (len > (sizeof(v_MACADDR_t)+1))) {
-		if (TRUE == pStaInfo[cnt].isUsed) {
-			
-			if(!IS_BROADCAST_MAC(pStaInfo[cnt].macAddrSTA.bytes)) {
-				memcpy((void *)pmaclist, (void *)&(pStaInfo[cnt].macAddrSTA), sizeof(v_MACADDR_t));
-				pmaclist += sizeof(v_MACADDR_t);
-				len -= sizeof(v_MACADDR_t);
-			}
-		}
-		cnt++;
-	}
+    while((cnt < WLAN_MAX_STA_COUNT) && (len > (sizeof(v_MACADDR_t)+1))) {
+        if (TRUE == pStaInfo[cnt].isUsed) {
+            
+            if(!IS_BROADCAST_MAC(pStaInfo[cnt].macAddrSTA.bytes)) {
+                memcpy((void *)pmaclist, (void *)&(pStaInfo[cnt].macAddrSTA), sizeof(v_MACADDR_t));
+                pmaclist += sizeof(v_MACADDR_t);
+                len -= sizeof(v_MACADDR_t);
+            }
+        }
+        cnt++;
+    }
 
-	*pmaclist = '\0';
+    *pmaclist = '\0';
 
     wrqu->data.length -= len;
 
-	*(unsigned long int *)(wrqu->data.pointer) = wrqu->data.length;
+    *(unsigned long int *)(wrqu->data.pointer) = wrqu->data.length;
 
-	return 0;
+    return 0;
 }
 
 int
@@ -667,12 +689,12 @@ static iw_softap_disassoc_sta(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-	hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-	
+    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    
 
-	hdd_softap_sta_disassoc(pHostapdAdapter, (v_U8_t *)(wrqu->data.pointer));
+    hdd_softap_sta_disassoc(pHostapdAdapter, (v_U8_t *)(wrqu->data.pointer));
 
-	return 0;
+    return 0;
 }
 
 int
@@ -851,7 +873,7 @@ static iw_softap_commit(struct net_device *dev,
     hddLog(LOGW,FL("DisableIntraBssFwd = %d\n"),(WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->apDisableIntraBssFwd); 
             
     pSapEventCallback = hdd_hostapd_SAPEventCB;
-	pConfig->persona = pHostapdAdapter->device_mode;
+    pConfig->persona = pHostapdAdapter->device_mode;
     if(WLANSAP_StartBss(pVosContext, pSapEventCallback, pConfig,(v_PVOID_t)dev) != VOS_STATUS_SUCCESS)
     {
            hddLog(LOGE,FL("SAP Start Bss fail\n"));
@@ -1154,7 +1176,7 @@ static int iw_set_mlme(struct net_device *dev,
     switch (mlme->cmd) {
         case IW_MLME_DISASSOC:
         case IW_MLME_DEAUTH:
-	    printk("Station disassociate");	
+        printk("Station disassociate");    
             if( pAdapter->conn_info.connState == eConnectionState_Associated ) 
             {
                 eCsrRoamDisconnectReason reason = eCSR_DISCONNECT_REASON_UNSPECIFIED;
@@ -1565,7 +1587,7 @@ static int iw_set_ap_genie(struct net_device *dev,
 static const iw_handler      hostapd_handler[] =
 {
    (iw_handler) NULL,           /* SIOCSIWCOMMIT */
-   (iw_handler) NULL,    	/* SIOCGIWNAME */
+   (iw_handler) NULL,        /* SIOCGIWNAME */
    (iw_handler) NULL,           /* SIOCSIWNWID */
    (iw_handler) NULL,           /* SIOCGIWNWID */
    (iw_handler) NULL,           /* SIOCSIWFREQ */
@@ -1575,7 +1597,7 @@ static const iw_handler      hostapd_handler[] =
    (iw_handler) NULL,           /* SIOCSIWSENS */
    (iw_handler) NULL,           /* SIOCGIWSENS */
    (iw_handler) NULL,           /* SIOCSIWRANGE */
-   (iw_handler) NULL,   	/* SIOCGIWRANGE */
+   (iw_handler) NULL,       /* SIOCGIWRANGE */
    (iw_handler) NULL,           /* SIOCSIWPRIV */
    (iw_handler) NULL,           /* SIOCGIWPRIV */
    (iw_handler) NULL,           /* SIOCSIWSTATS */
@@ -1585,13 +1607,13 @@ static const iw_handler      hostapd_handler[] =
    (iw_handler) NULL,           /* SIOCSIWTHRSPY */
    (iw_handler) NULL,           /* SIOCGIWTHRSPY */
    (iw_handler) NULL,           /* SIOCSIWAP */
-   (iw_handler) NULL,   	/* SIOCGIWAP */
+   (iw_handler) NULL,       /* SIOCGIWAP */
    (iw_handler) iw_set_mlme,    /* SIOCSIWMLME */
    (iw_handler) NULL,           /* SIOCGIWAPLIST */
    (iw_handler) NULL,           /* SIOCSIWSCAN */
    (iw_handler) NULL,           /* SIOCGIWSCAN */
-   (iw_handler) NULL,      	/* SIOCSIWESSID */
-   (iw_handler) NULL,      	/* SIOCGIWESSID */
+   (iw_handler) NULL,          /* SIOCSIWESSID */
+   (iw_handler) NULL,          /* SIOCGIWESSID */
    (iw_handler) NULL,           /* SIOCSIWNICKN */
    (iw_handler) NULL,           /* SIOCGIWNICKN */
    (iw_handler) NULL,           /* -- hole -- */
@@ -1621,9 +1643,9 @@ static const iw_handler      hostapd_handler[] =
    (iw_handler) NULL,           /* SIOCSIWPMKSA */
 };
 
-#define	IW_PRIV_TYPE_OPTIE	IW_PRIV_TYPE_BYTE | QCSAP_MAX_OPT_IE
-#define	IW_PRIV_TYPE_MLME \
-	IW_PRIV_TYPE_BYTE | sizeof(struct ieee80211req_mlme)
+#define    IW_PRIV_TYPE_OPTIE    IW_PRIV_TYPE_BYTE | QCSAP_MAX_OPT_IE
+#define    IW_PRIV_TYPE_MLME \
+    IW_PRIV_TYPE_BYTE | sizeof(struct ieee80211req_mlme)
 
 static const struct iw_priv_args hostapd_private_args[] = {
   { QCSAP_IOCTL_SETPARAM,
@@ -1697,7 +1719,7 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_DISASSOC_STA - SIOCIWFIRSTPRIV] = iw_softap_disassoc_sta,
    [QCSAP_IOCTL_AP_STATS - SIOCIWFIRSTPRIV] = iw_softap_ap_stats,
    [QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE - SIOCIWFIRSTPRIV]  = iw_set_three_ints_getnone,   
-   [QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE	- SIOCIWFIRSTPRIV]	 = iw_set_var_ints_getnone,
+   [QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE    - SIOCIWFIRSTPRIV]     = iw_set_var_ints_getnone,
 };
 const struct iw_handler_def hostapd_handler_def = {
    .num_standard     = sizeof(hostapd_handler) / sizeof(hostapd_handler[0]),

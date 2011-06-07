@@ -60,6 +60,9 @@
 #define CSR_ROAM_MIN(X, Y)  ((X) < (Y) ? (X) : (Y))
 #define CSR_ROAM_MAX(X, Y)  ((X) > (Y) ? (X) : (Y))
 
+#define CSR_JOIN_MAX_RETRY_COUNT             10
+#define CSR_JOIN_RETRY_TIMEOUT_PERIOD        ( 1 *  PAL_TIMER_TO_SEC_UNIT )  // 1 second
+
 
 typedef enum 
 {
@@ -844,6 +847,8 @@ eHalStatus csrSendMBGetWPSPBCSessions( tpAniSirGlobal pMac, tANI_U32 sessionId,
                             tSirMacAddr bssId, void *pUsrContext, void *pfnSapEventCallback,v_MACADDR_t pRemoveMac);
                             
 #endif
+eHalStatus csrRoamStartJoinRetryTimer(tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 interval);
+eHalStatus csrRoamStopJoinRetryTimer(tpAniSirGlobal pMac, tANI_U32 sessionId);
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 /* ---------------------------------------------------------------------------

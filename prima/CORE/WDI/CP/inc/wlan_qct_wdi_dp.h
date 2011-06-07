@@ -293,6 +293,10 @@ when        who    what, where, why
 
 #define WDI_RX_BD_GET_RXP_FLAGS(_pvBDHeader)        (((WDI_RxBdType*)_pvBDHeader)->rxpFlags)
 
+#define WDI_RX_BD_GET_PMICMD_20TO23(_pvBDHeader)        (((WDI_RxBdType*)_pvBDHeader)->pmiCmd4to23[4])
+
+#define WDI_RX_BD_GET_PMICMD_24TO25(_pvBDHeader)        (((WDI_RxBdType*)_pvBDHeader)->pmiCmd24to25)
+
 #define WDI_RX_BD_ASF_SET               1 /*The value of the field when set and pkt is AMSDU*/
 
 #define WDI_RX_BD_FSF_SET               1

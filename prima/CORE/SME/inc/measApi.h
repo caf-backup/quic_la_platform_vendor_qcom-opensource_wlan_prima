@@ -15,10 +15,8 @@
 
 #ifndef __MEAS_API_H__
 #define __MEAS_API_H__
-
 #include "sirApi.h"
 #include "sirMacProtDef.h"
-#include "halRfTypes.h"
 #include "csrLinkList.h"
 
 typedef tANI_U8 tMeasurementBSSID[WNI_CFG_BSSID_LEN];

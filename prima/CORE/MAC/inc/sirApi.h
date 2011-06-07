@@ -383,7 +383,7 @@ typedef enum eBeaconForwarding
 typedef enum eSirSmeMgmtFrameType
 {
     eSIR_MGMT_FRM_PROBE_REQ,
-	eSIR_MGMT_FRM_ACTION
+    eSIR_MGMT_FRM_ACTION
 } tSirSmeMgmtFrameType;
 
 typedef struct sSirRemainOnChnReq
@@ -679,7 +679,7 @@ typedef struct sSirSmeStartBssReq
     tANI_U32                dtimPeriod;
     tANI_U8                 wps_state;
 #endif
-	VOS_CON_MODE            bssPersona;
+    tVOS_CON_MODE           bssPersona;
 
     tSirRSNie               rsnIE;             // RSN IE to be sent in
                                                // Beacon and Probe
@@ -971,6 +971,7 @@ typedef enum eSirLinkTrafficCheck
 #define SIR_BG_SCAN_RETURN_CACHED_RESULTS              0x0
 #define SIR_BG_SCAN_PURGE_RESUTLS                      0x80
 #define SIR_BG_SCAN_RETURN_FRESH_RESULTS               0x01
+#define SIR_SCAN_MAX_NUM_SSID                          0x05 
 
 /// Definition for scan request
 typedef struct sSirSmeScanReq
@@ -980,7 +981,7 @@ typedef struct sSirSmeScanReq
     tANI_U8         sessionId;         // Session ID
     tANI_U16        transactionId;     // Transaction ID for cmd
     tSirMacAddr     bssId;
-    tSirMacSSid     ssId;
+    tSirMacSSid     ssId[SIR_SCAN_MAX_NUM_SSID];
     tSirMacAddr     selfMacAddr; //Added For BT-AMP Support
     tSirBssType     bssType;
     tANI_U8         dot11mode;
@@ -1042,11 +1043,18 @@ typedef struct sSirSmeScanReq
     tSirBackgroundScanMode   backgroundScanMode;
 
     tANI_U8              hiddenSsid;
+    
+    
+    /* Number of SSIDs to scan */
+    tANI_U8             numSsid;
+    
+
     tANI_U16             ie_len;
     tANI_U8              ies[200]; 
 
-    tSirChannelList channelList; //Channel list is variable field. So is ies
-    
+    //channelList has to be the last member of this structure. Check tSirChannelList for the reason.
+    /* This MUST be the last field of the structure */
+    tSirChannelList channelList;
 } tSirSmeScanReq, *tpSirSmeScanReq;
 
 #ifdef FEATURE_INNAV_SUPPORT
@@ -1202,7 +1210,7 @@ typedef struct sSirSmeJoinReq
     tSirMacAddr         selfMacAddr;            // self Mac address
     tSirBssType         bsstype;                // add new type for BT -AMP STA and AP Modules
     tANI_U8             dot11mode;              // to support BT-AMP     
-	VOS_CON_MODE		staPersona;        //Persona
+    tVOS_CON_MODE       staPersona;        //Persona
 
     /*This contains the UAPSD Flag for all 4 AC
      * B0: AC_VO UAPSD FLAG
@@ -3552,8 +3560,8 @@ typedef struct sSirSmeMgmtFrameInd
 {
     tANI_U16        mesgType;
     tANI_U16        mesgLen;
-	tSirSmeMgmtFrameType frameType;
-	tANI_U8  frameBuf[1]; //variable
+    tSirSmeMgmtFrameType frameType;
+    tANI_U8  frameBuf[1]; //variable
 }tSirSmeMgmtFrameInd, *tpSirSmeMgmtFrameInd;
 #endif
 

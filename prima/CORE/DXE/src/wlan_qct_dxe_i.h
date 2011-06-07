@@ -523,6 +523,9 @@ typedef struct
    WDTS_ChannelType                channelType;
    WLANDXE_DescCtrlBlkType        *headCtrlBlk;
    WLANDXE_DescCtrlBlkType        *tailCtrlBlk;
+#if !(defined(FEATURE_R33D) || defined(WLANDXE_TEST_CHANNEL_ENABLE))
+   WLANDXE_DescType               *descriptorAllocation;
+#endif
    WLANDXE_DescType               *DescBottomLoc;
    unsigned int                    descBottomLocPhyAddr;
    wpt_uint32                      numDesc;
@@ -564,6 +567,7 @@ typedef struct
    WLANDXE_SetPowerStateCbType     setPowerStateCb;
    WLANDXE_RivaPowerStateType      rivaPowerState;
    wpt_boolean                     ringNotEmpty; 
+   wpt_boolean                     txIntEnable;
 } WLANDXE_CtrlBlkType;
 
 /*==========================================================================

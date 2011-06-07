@@ -49,6 +49,9 @@ when        who          what, where, why
 #define VOS_TO_WPAL_PKT(_vos_pkt) ((wpt_packet*)_vos_pkt)
 
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
+#define WDA_HI_FLOW_MASK 0xF0
+#define WDA_LO_FLOW_MASK 0x0F
+
 static v_VOID_t 
 WDA_DS_TxCompleteCB
 (
@@ -1224,12 +1227,15 @@ WDA_DS_TxFrames
 )
 {
   VOS_STATUS vosStatus;
-  vos_pkt_t  *pTxChain = NULL;
+  vos_pkt_t  *pTxMgmtChain = NULL;
+  vos_pkt_t  *pTxDataChain = NULL;
   vos_pkt_t  *pTxPacket = NULL;
   v_BOOL_t   bUrgent;
   v_BOOL_t   bResult;
   WDI_Status wdiStatus;
   tWDA_CbContext *wdaContext = NULL;
+  v_U32_t     uMgmtAvailRes;
+  v_U32_t     uDataAvailRes;
 
   wdaContext = (tWDA_CbContext *)vos_get_context(VOS_MODULE_ID_WDA, pvosGCtx);
   if ( NULL == wdaContext )
@@ -1239,10 +1245,18 @@ WDA_DS_TxFrames
     return VOS_STATUS_E_FAULT;
   }
 
+  /*-------------------------------------------------------------------------
+     Need to fetch separatelly for Mgmt and Data frames because TL is not
+     aware of separate resource management at the lower levels 
+  -------------------------------------------------------------------------*/
+  /*Mgmt tx*/
+  uMgmtAvailRes = WDI_GetAvailableResCount(wdaContext->pWdiContext, 
+                                           WDI_MGMT_POOL_ID);
+  
   bResult = WLANTL_GetFrames( pvosGCtx, 
-                              &pTxChain, 
-                              WDA_DS_DXE_RES_COUNT, 
-                              wdaContext->uTxFlowMask,
+                              &pTxMgmtChain, 
+                               uMgmtAvailRes, 
+                              (wdaContext->uTxFlowMask & WDA_HI_FLOW_MASK),
                               &bUrgent );
 
   // We need to initialize vsoStatus in case we don't enter the "while"
@@ -1251,11 +1265,64 @@ WDA_DS_TxFrames
   // vosStatus will be set appropriately inside the loop
   vosStatus = VOS_STATUS_SUCCESS;
       
-  while ( NULL != pTxChain )
+  while ( NULL != pTxMgmtChain )
   {
     /* Walk the chain and unchain the packet */
-    pTxPacket = pTxChain;
-    vosStatus = vos_pkt_walk_packet_chain( pTxChain, &pTxChain, VOS_TRUE );
+    pTxPacket = pTxMgmtChain;
+    vosStatus = vos_pkt_walk_packet_chain( pTxMgmtChain, &pTxMgmtChain, VOS_TRUE );
+
+    if( (VOS_STATUS_SUCCESS != vosStatus) &&
+        (VOS_STATUS_E_EMPTY != vosStatus) )
+    {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "WDA Walking packet chain returned status : %d", vosStatus );
+      VOS_ASSERT( 0 );
+      vosStatus = VOS_STATUS_E_FAILURE;
+      break;
+    }
+
+    if ( VOS_STATUS_E_EMPTY == vosStatus )
+    {
+       vosStatus = VOS_STATUS_SUCCESS;
+    }
+
+    wdiStatus = WDI_DS_TxPacket( wdaContext->pWdiContext, 
+                                 (wpt_packet*)pTxPacket, 
+                                 0 /* more */ );
+    if ( WDI_STATUS_SUCCESS != wdiStatus )
+    {
+      VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                   "WDA : Pushing a packet to WDI failed.");
+      /* TODO Wd should return this packet to VOSS. Otherwise
+         UMAC is going in low resource condition.
+         Who needs to do it? DXE, WDI? 
+         */
+      VOS_ASSERT( 0 );
+    }
+
+  };
+
+  /*Data tx*/
+  uDataAvailRes = WDI_GetAvailableResCount(wdaContext->pWdiContext, 
+                                           WDI_DATA_POOL_ID);
+
+  bResult = WLANTL_GetFrames( pvosGCtx, 
+                              &pTxDataChain, 
+                              /*WDA_DS_DXE_RES_COUNT*/ uDataAvailRes, 
+                              (wdaContext->uTxFlowMask & WDA_LO_FLOW_MASK),
+                              &bUrgent );
+
+  // We need to initialize vsoStatus in case we don't enter the "while"
+  // loop.  If we don't enter the loop, it means that there are no packets,
+  // available, and that is considered success.  If we enter the loop,
+  // vosStatus will be set appropriately inside the loop
+  vosStatus = VOS_STATUS_SUCCESS;
+
+  while ( NULL != pTxDataChain )
+  {
+    /* Walk the chain and unchain the packet */
+    pTxPacket = pTxDataChain;
+    vosStatus = vos_pkt_walk_packet_chain( pTxDataChain, &pTxDataChain, VOS_TRUE );
 
     if( (VOS_STATUS_SUCCESS != vosStatus) &&
         (VOS_STATUS_E_EMPTY != vosStatus) )
@@ -1319,11 +1386,11 @@ v_VOID_t
 WDA_DS_TxFlowControlCallback
 (
    v_PVOID_t pvosGCtx,
-   v_U8_t    uFlowMask
+   v_U8_t    ucFlowMask
 )
 {
    tWDA_CbContext* wdaContext = NULL;
-   v_U8_t          uAcChanged;
+    v_U8_t          ucOldFlowMask;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
    /*------------------------------------------------------------------------
@@ -1349,23 +1416,33 @@ WDA_DS_TxFlowControlCallback
       2) management packets for high priority channel(5th bit)
    */
 
-   /* Update flow control mask */
-   uAcChanged = WDA_TXFLOWMASK & (~uFlowMask);
-   uAcChanged &= ~(wdaContext->uTxFlowMask);
 
-   // Inverse and save
-   wdaContext->uTxFlowMask = ~uFlowMask;
+   /*Save and reset */
+   ucOldFlowMask           = wdaContext->uTxFlowMask; 
+   wdaContext->uTxFlowMask = ucFlowMask;
 
-   /* Does low or high priority channel mask get changed from 1(block) to 0(unblock)? 
-      Then, calls TL's resource callback to resume transmit 
+   /*If the AC is being enabled - resume data xfer 
+    
+    Assume previous value of wdaContext->uTxFlowMask: 
+    
+    DATA\MGM |  ON  | OFF
+    ----------------------
+        ON   | 1F   | 0F *
+    ----------------------
+        OFF  |  10 *| 00 *
+    
+        * - states in which a channel can be enabled
+    
+      ucFlowMask will tell which channel must be enabled
+      to enable a channel a new bit must be turned on =>
+      ucFlowMask > wdaContext->uTxFlowMask when enable happens
    */
-   /* We should not call TL's RRC for Integrated SOC
-    * Flow is controlled by WLANTL_GetFrames 
-   if (  0 < uAcChanged )
+
+   if ( ucFlowMask > ucOldFlowMask  )
    {
-      wdaContext->pfnTxResourceCB( pvosGCtx, WDA_TLI_MIN_RES_DATA );
+     WDA_DS_StartXmit(pvosGCtx);
    }
-   */
+
 }
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
 

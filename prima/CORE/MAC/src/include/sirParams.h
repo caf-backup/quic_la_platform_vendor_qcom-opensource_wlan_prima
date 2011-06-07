@@ -416,6 +416,11 @@ typedef struct sSirMbMsg
 #define SIR_HAL_SET_P2P_GO_NOA_REQ          SIR_HAL_ITC_MSG_TYPES_BEGIN + 161
 #endif
 
+#ifdef WLAN_FEATURE_LOG_DUMP
+#define  SIR_HAL_DUMP_CMD_REQ               SIR_HAL_ITC_MSG_TYPES_BEGIN + 162
+#define  SIR_HAL_DUMP_CMD_RSP               SIR_HAL_ITC_MSG_TYPES_BEGIN + 163
+#endif
+
 #define SIR_HAL_MSG_TYPES_END    SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF
 
 

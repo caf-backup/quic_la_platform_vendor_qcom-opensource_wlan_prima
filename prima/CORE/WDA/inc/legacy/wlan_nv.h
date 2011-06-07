@@ -732,13 +732,13 @@ typedef PACKED_PRE struct PACKED_POST
     sRegulatoryChannel channels[NUM_RF_CHANNELS];
     uAbsPwrPrecision antennaGain[NUM_RF_SUBBANDS];
     uAbsPwrPrecision bRatePowerOffset[NUM_2_4GHZ_CHANNELS];
-    uAbsPwrPrecision gnRatePowerOffset[NUM_2_4GHZ_CHANNELS];
+    uAbsPwrPrecision gnRatePowerOffset[NUM_RF_CHANNELS];
 }ALIGN_4 sRegulatoryDomains;
 
 typedef PACKED_PRE struct PACKED_POST
 {
-    tANI_S16 bRssiOffset[NUM_2_4GHZ_CHANNELS];
-    tANI_S16 gnRssiOffset[NUM_2_4GHZ_CHANNELS];
+    tANI_S16 bRssiOffset[NUM_RF_CHANNELS];
+    tANI_S16 gnRssiOffset[NUM_RF_CHANNELS];
 }ALIGN_4 sRssiChannelOffsets;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -843,7 +843,7 @@ typedef PACKED_PRE struct PACKED_POST
 
 //From wlanfw/inc/phyTxPower.h
 #ifndef TPC_MEM_POWER_LUT_DEPTH
-#define TPC_MEM_POWER_LUT_DEPTH 128
+#define TPC_MEM_POWER_LUT_DEPTH 256
 #endif
 
 typedef tTpcLutValue tTpcPowerTable[PHY_MAX_TX_CHAINS][TPC_MEM_POWER_LUT_DEPTH];  
@@ -875,7 +875,17 @@ typedef enum
     HAL_PHY_RATE_11A_48_MBPS,
     HAL_PHY_RATE_11A_54_MBPS,
 
-    //MCS Index #0-15 (20MHz)
+    // 11A 20MHz Rates
+    HAL_PHY_RATE_11A_DUP_6_MBPS,
+    HAL_PHY_RATE_11A_DUP_9_MBPS,
+    HAL_PHY_RATE_11A_DUP_12_MBPS,
+    HAL_PHY_RATE_11A_DUP_18_MBPS,
+    HAL_PHY_RATE_11A_DUP_24_MBPS,
+    HAL_PHY_RATE_11A_DUP_36_MBPS,
+    HAL_PHY_RATE_11A_DUP_48_MBPS,
+    HAL_PHY_RATE_11A_DUP_54_MBPS,
+
+    //MCS Index #0-7 (20/40MHz)
     HAL_PHY_RATE_MCS_1NSS_6_5_MBPS,
     HAL_PHY_RATE_MCS_1NSS_13_MBPS,
     HAL_PHY_RATE_MCS_1NSS_19_5_MBPS,
@@ -893,12 +903,31 @@ typedef enum
     HAL_PHY_RATE_MCS_1NSS_MM_SG_65_MBPS,
     HAL_PHY_RATE_MCS_1NSS_MM_SG_72_2_MBPS,
 
+    //MCS Index #8-15 (20/40MHz)
+    HAL_PHY_RATE_MCS_1NSS_CB_13_5_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_CB_27_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_CB_40_5_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_CB_54_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_CB_81_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_CB_108_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_CB_121_5_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_CB_135_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_MM_SG_CB_15_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_MM_SG_CB_30_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_MM_SG_CB_45_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_MM_SG_CB_60_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_MM_SG_CB_90_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_MM_SG_CB_120_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_MM_SG_CB_135_MBPS,
+    HAL_PHY_RATE_MCS_1NSS_MM_SG_CB_150_MBPS,
+
     NUM_HAL_PHY_RATES,
     HAL_PHY_RATE_INVALID,
     MIN_RATE_INDEX                                    = 0,
-    MAX_RATE_INDEX = HAL_PHY_RATE_MCS_1NSS_MM_SG_72_2_MBPS,
+    MAX_RATE_INDEX = HAL_PHY_RATE_MCS_1NSS_MM_SG_CB_150_MBPS,
     HAL_PHY_RATE_INVALID_MAX_FIELD = 0x7FFFFFFF  /* define as 4 bytes data */
 }eHalPhyRates;
+
 
 #define NUM_RATE_POWER_GROUPS           NUM_HAL_PHY_RATES  //total number of rate power groups including the CB_RATE_POWER_OFFSET
 typedef uAbsPwrPrecision tRateGroupPwr[NUM_RATE_POWER_GROUPS];
@@ -953,14 +982,14 @@ typedef PACKED_PRE union PACKED_POST
     tRateGroupPwr           pwrOptimum[NUM_RF_SUBBANDS];             // NV_TABLE_RATE_POWER_SETTINGS
     sRegulatoryDomains      regDomains[NUM_REG_DOMAINS];             // NV_TABLE_REGULATORY_DOMAINS
     sDefaultCountry         defaultCountryTable;                     // NV_TABLE_DEFAULT_COUNTRY
-    tTpcPowerTable          plutCharacterized[NUM_2_4GHZ_CHANNELS];  // NV_TABLE_TPC_POWER_TABLE
-    tANI_U16                plutPdadcOffset[NUM_2_4GHZ_CHANNELS];    // NV_TABLE_TPC_PDADC_OFFSETS
+    tTpcPowerTable          plutCharacterized[NUM_RF_CHANNELS];  // NV_TABLE_TPC_POWER_TABLE
+    tANI_U16                plutPdadcOffset[NUM_RF_CHANNELS];    // NV_TABLE_TPC_PDADC_OFFSETS
     //sCalFlashMemory       calFlashMemory;                          // NV_TABLE_CAL_MEMORY
     sCalStatus              calStatus;                               // NV_TABLE_CAL_STATUS
     sRssiChannelOffsets     rssiChanOffsets[2];                      // NV_TABLE_RSSI_CHANNEL_OFFSETS
     sRFCalValues            rFCalValues;                             // NV_TABLE_RF_CAL_VALUES
-    tANI_S16                antennaPathLoss[NUM_2_4GHZ_CHANNELS];    // NV_TABLE_ANTENNA_PATH_LOSS
-    tANI_S16                pktTypePwrLimits[NUM_802_11_MODES][NUM_2_4GHZ_CHANNELS]; //NV_TABLE_PACKET_TYPE_POWER_LIMITS
+    tANI_S16                antennaPathLoss[NUM_RF_CHANNELS];    // NV_TABLE_ANTENNA_PATH_LOSS
+    tANI_S16                pktTypePwrLimits[NUM_802_11_MODES][NUM_RF_CHANNELS]; //NV_TABLE_PACKET_TYPE_POWER_LIMITS
 }ALIGN_4 uNvTables;
 
 //From halPhy.h
@@ -1000,14 +1029,14 @@ typedef PACKED_PRE struct PACKED_POST
     tRateGroupPwr           pwrOptimum[NUM_RF_SUBBANDS];              // NV_TABLE_RATE_POWER_SETTINGS
     sRegulatoryDomains      regDomains[NUM_REG_DOMAINS];              // NV_TABLE_REGULATORY_DOMAINS
     sDefaultCountry         defaultCountryTable;                      // NV_TABLE_DEFAULT_COUNTRY
-    tTpcPowerTable          plutCharacterized[NUM_2_4GHZ_CHANNELS];   // NV_TABLE_TPC_POWER_TABLE
-    tANI_U16                plutPdadcOffset[NUM_2_4GHZ_CHANNELS];     // NV_TABLE_TPC_PDADC_OFFSETS
+    tTpcPowerTable          plutCharacterized[NUM_RF_CHANNELS];   // NV_TABLE_TPC_POWER_TABLE
+    tANI_U16                plutPdadcOffset[NUM_RF_CHANNELS];     // NV_TABLE_TPC_PDADC_OFFSETS
     //sCalFlashMemory       calFlashMemory;                           // NV_TABLE_CAL_MEMORY
     sCalStatus              calStatus;                                // NV_TABLE_CAL_STATUS
     sRssiChannelOffsets     rssiChanOffsets[2];                       // NV_TABLE_RSSI_CHANNEL_OFFSETS
     sRFCalValues            rFCalValues;                              // NV_TABLE_RF_CAL_VALUES
-    tANI_S16                antennaPathLoss[NUM_2_4GHZ_CHANNELS];     // NV_TABLE_ANTENNA_PATH_LOSS
-    tANI_S16                pktTypePwrLimits[NUM_802_11_MODES][NUM_2_4GHZ_CHANNELS]; //NV_TABLE_PACKET_TYPE_POWER_LIMITS
+    tANI_S16                antennaPathLoss[NUM_RF_CHANNELS];     // NV_TABLE_ANTENNA_PATH_LOSS
+    tANI_S16                pktTypePwrLimits[NUM_802_11_MODES][NUM_RF_CHANNELS]; //NV_TABLE_PACKET_TYPE_POWER_LIMITS
 }ALIGN_4 sNvTables;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -1017,6 +1046,7 @@ typedef PACKED_PRE struct PACKED_POST
 }ALIGN_4 sHalNv;
 
 extern const sHalNv nvDefaults;
+
 
 
 #endif

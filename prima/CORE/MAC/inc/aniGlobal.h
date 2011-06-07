@@ -1121,6 +1121,9 @@ typedef struct sAniSirGlobal
     /* Instead of static allocation I will dyanamically allocate memory for dumpTableEntry
         Thinking of using linkedlist  */ 
     tDumpModuleEntry *dumpTableEntry[MAX_DUMP_TABLE_ENTRY];
+#ifdef WLAN_FEATURE_LOG_DUMP
+    tANI_U32 dumpCommand;
+#endif
     
 } tAniSirGlobal;
 

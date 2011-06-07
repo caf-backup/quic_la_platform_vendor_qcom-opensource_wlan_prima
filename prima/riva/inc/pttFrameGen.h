@@ -33,6 +33,8 @@ typedef enum {
 } ePayloadContents;
 
 
+#define MAC_ADDR_SIZE ( 6 )
+
 typedef PACKED_PRE struct PACKED_POST {
    tANI_U32 numTestPackets;
    tANI_U32 interFrameSpace;
@@ -42,9 +44,9 @@ typedef PACKED_PRE struct PACKED_POST {
    tANI_U8 payloadFillByte;
    tANI_BOOLEAN pktAutoSeqNum;  //seq num setting (hw or not) for packet gen
 
-   tANI_U8 addr1[ANI_MAC_ADDR_SIZE];
-   tANI_U8 addr2[ANI_MAC_ADDR_SIZE];
-   tANI_U8 addr3[ANI_MAC_ADDR_SIZE];
+   tANI_U8 addr1[MAC_ADDR_SIZE];
+   tANI_U8 addr2[MAC_ADDR_SIZE];
+   tANI_U8 addr3[MAC_ADDR_SIZE];
    tANI_U8 pktScramblerSeed;    //for tx scrambler
    tANI_BOOLEAN crc;            //0 = no FCS calculated = power detector works = receive won't work?,
    //1 = crc calculated = receive works, but power detector workaround doesn't

@@ -11,11 +11,11 @@
   
  
    ========================================================================== */
-#include "halInternal.h"
+#include "aniGlobal.h"
+#include "measApi.h"
 #include "palApi.h"
 #include "smeInside.h"
 #include "smsDebug.h"
-
 #include "csrSupport.h"
 #include "wlan_qct_tl.h"
 

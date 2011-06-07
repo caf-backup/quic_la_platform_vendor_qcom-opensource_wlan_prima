@@ -40,7 +40,7 @@
 #include <wlan_hdd_wowl.h>
 #include <wlan_hdd_cfg.h>
 #include <wlan_hdd_wmm.h>
-
+#include "utilsApi.h"
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
@@ -2797,8 +2797,6 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
 int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info,
         union iwreq_data *wrqu, char *extra)
 {   
-//FIXME_PRIMA:  need solution for ioctl-based dump command
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     int sub_cmd = wrqu->data.flags;
@@ -2833,7 +2831,6 @@ int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info
             }
     }
 
-#endif //FEATURE_WLAN_NON_INTEGRATED_SOC
     return 0;
 }
 

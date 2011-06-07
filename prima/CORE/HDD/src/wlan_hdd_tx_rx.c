@@ -196,18 +196,18 @@ int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
   if(pPgBkAdapter == NULL)
   {
-    //There is no AP interface. Try getting station interface.
-    pPgBkAdapter = hdd_get_adapter(pAdapter->pHddCtx,WLAN_HDD_INFRA_STATION);
+#ifdef WLAN_FEATURE_P2P  
+    //There is no AP interface. Try getting P2P GO interface.
+    pPgBkAdapter = hdd_get_adapter(pAdapter->pHddCtx,WLAN_HDD_P2P_GO);
 
     if( pPgBkAdapter == NULL )
+#endif		
     {
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
           "%s: No Adapter to piggy back. Dropping the packet on montior interface", __func__);
       kfree_skb(skb);
       return NETDEV_TX_OK;
     }
-    hdd_wmm_select_queue(pPgBkAdapter->dev, skb);
-    return hdd_hard_start_xmit( skb, pPgBkAdapter->dev );
   }
   hdd_hostapd_select_queue(pPgBkAdapter->dev, skb);
   return hdd_softap_hard_start_xmit( skb, pPgBkAdapter->dev );

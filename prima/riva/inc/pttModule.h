@@ -18,23 +18,8 @@
 
 #ifndef PTTMODULE_H
 #define PTTMODULE_H
-
-/* !!! FIX ME
- * To resolve PRIMA build issue this is temp blocker
- * this must have correct solution */
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-#ifndef ISOC_HOST_DRIVER
-#define ISOC_HOST_DRIVER
-#endif /* ISOC_HOST_DRIVER */
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
-
-#ifndef ISOC_HOST_DRIVER
-#include "phyTest.h"
-#include <phyWfm.h>
-#include <wlan_hal_msg.h>       //this includes those types that are needed to store the associate NV tables
-#include "phyDbg.h"
-#include "pttFrameGen.h"
-#endif /* ISOC_HOST_DRIVER */
+#include <wlan_phy.h>
+#include <pttFrameGen.h>
 
 #if defined(FEATURE_WLAN_INTEGRATED_SOC) && defined(ISOC_HOST_DRIVER)
 #include "halCompiler.h"
@@ -53,7 +38,7 @@ typedef enum {
 
    PTT_STATUS_SUCCESS = 0,
    PTT_STATUS_FAILURE = 1,
-   PTT_MAX_VAL = 0XFFFFFFFF,    //dummy added to change enum to 4 bytes
+   PTT_MAX_VAL = 0XFFFF,
 
 } eQWPttStatus;
 
@@ -89,7 +74,7 @@ typedef enum {
    GRAB_RAM_RXFIR,
    GRAB_RAM_ADC,
    GRAB_RAM_ADC_80,
-   GRAB_RAM_MAX_VAL = 0XFFFFFFFF,   //dummy added to change enum to 4 bytes
+   GRAB_RAM_MAX_VAL = 0XFFFF,
 } eGrabRamType;
 
 #define GRAB_RAM_SIZE 6000

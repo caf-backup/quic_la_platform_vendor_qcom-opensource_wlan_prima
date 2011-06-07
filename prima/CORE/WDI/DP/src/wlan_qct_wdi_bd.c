@@ -126,16 +126,22 @@ WDI_DS_BdMemPoolType:     Memory pool pointer
 /*
  * Create a memory pool which is DMA capabale
  */
-WDI_Status WDI_DS_MemPoolCreate(WDI_DS_BdMemPoolType *memPool, wpt_uint8 chunkSize)
+WDI_Status WDI_DS_MemPoolCreate(WDI_DS_BdMemPoolType *memPool, wpt_uint8 chunkSize,
+                                                                  wpt_uint8 numChunks)
 {
   //Allocate all the max size and align them to a double word boundary. The first 8 bytes are control bytes.
   memPool->numChunks = 0;
   memPool->chunkSize = chunkSize + 16 - (chunkSize%8);
-  memPool->pVirtBaseAddress = wpalDmaMemoryAllocate((MAX_NUM_CHUNKS * memPool->chunkSize),
+  memPool->pVirtBaseAddress = wpalDmaMemoryAllocate((numChunks * memPool->chunkSize),
           &(memPool->pPhysBaseAddress));
-  wpalMemoryZero(memPool->AllocationBitmap, MAX_NUM_CHUNKS/32);
+
   if( memPool->pVirtBaseAddress == 0)
     return WDI_STATUS_E_FAILURE;
+
+  memPool->AllocationBitmap = (wpt_uint32*)wpalMemoryAllocate( (numChunks/32 + 1) * sizeof(wpt_uint32));
+  if( NULL == memPool->AllocationBitmap) 
+     return WDI_STATUS_E_FAILURE;
+  wpalMemoryZero(memPool->AllocationBitmap, (numChunks/32+1)*sizeof(wpt_uint32));
   
   return WDI_STATUS_SUCCESS;
 }
@@ -152,11 +158,11 @@ void WDI_DS_MemPoolDestroy(WDI_DS_BdMemPoolType *memPool)
 /*
  * Allocate chunk memory
  */
-WPT_STATIC WPT_INLINE int find_leading_zero_and_setbit(wpt_uint32 *bitmap)
+WPT_STATIC WPT_INLINE int find_leading_zero_and_setbit(wpt_uint32 *bitmap, wpt_uint32 maxNumPool)
 {
   wpt_uint32 i,j, word;
 
-  for(i=0; i<MAX_NUM_CHUNKS/32; i++){
+  for(i=0; i < (maxNumPool/32 + 1); i++){
     j = 0;
     word = bitmap[i]; 
     for(j=0; j< 32; j++){
@@ -170,14 +176,31 @@ WPT_STATIC WPT_INLINE int find_leading_zero_and_setbit(wpt_uint32 *bitmap)
   return -1;
 }
   
-void *WDI_DS_MemPoolAlloc(WDI_DS_BdMemPoolType *memPool, void **pPhysAddress)
+void *WDI_DS_MemPoolAlloc(WDI_DS_BdMemPoolType *memPool, void **pPhysAddress, 
+                               WDI_ResPoolType wdiResPool)
 {
   wpt_uint32 index;
   void *pVirtAddress;
+  wpt_uint32 maxNumPool;
+  switch(wdiResPool) 
+  {
+    case WDI_MGMT_POOL_ID:
+      maxNumPool = WDI_DS_HI_PRI_RES_NUM;
+      break;
+    case WDI_DATA_POOL_ID:
+       maxNumPool = WDI_DS_LO_PRI_RES_NUM;
+      break;
+    default:
+      return NULL; 
+  }
 
-  if(MAX_NUM_CHUNKS == memPool->numChunks) return NULL; 
+  if(maxNumPool == memPool->numChunks) 
+  { 
+     return NULL; 
+  }
   //Find the leading 0 in the allocation bitmap
-  if((index = find_leading_zero_and_setbit(memPool->AllocationBitmap)) == -1) 
+
+  if((index = find_leading_zero_and_setbit(memPool->AllocationBitmap, maxNumPool)) == -1) 
   {
      //DbgBreakPoint();
      DTI_TRACE(  DTI_TRACE_LEVEL_INFO, "WDI_DS_MemPoolAlloc: index:%d(NULL), numChunks:%d",
@@ -210,3 +233,17 @@ void  WDI_DS_MemPoolFree(WDI_DS_BdMemPoolType *memPool, void *pVirtAddress, void
   //DbgPrint( "WDI_DS_MemPoolFree: index:%d, numChunks:%d", index, memPool->numChunks );
 }
 
+
+/**
+ @brief Returns the available number of resources (BD headers) 
+        available for TX
+ 
+ @param  pMemPool:         pointer to the BD memory pool 
+  
+ @see
+ @return Result of the function call
+*/
+wpt_uint32 WDI_DS_GetAvailableResCount(WDI_DS_BdMemPoolType *pMemPool)
+{
+  return pMemPool->numChunks;
+}

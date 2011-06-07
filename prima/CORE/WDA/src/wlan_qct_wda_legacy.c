@@ -293,7 +293,7 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac)
    tWDA_CbContext *wdaContext = 
                        vos_get_context(VOS_MODULE_ID_WDA, pVosContext);
 
-   WDALOGE( wdaLog(pMac, LOGE, FL(" returning  %d role\n"),
+   WDALOG1( wdaLog(pMac, LOG1, FL(" returning  %d role\n"),
              wdaContext->wdaGlobalSystemRole));
    return  wdaContext->wdaGlobalSystemRole;
 }

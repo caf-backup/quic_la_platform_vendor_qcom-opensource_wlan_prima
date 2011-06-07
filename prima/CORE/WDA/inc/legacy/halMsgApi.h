@@ -653,6 +653,32 @@ typedef struct {
 
 } tFinishScanParams, * tpFinishScanParams;
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef FEATURE_INNAV_SUPPORT 
+typedef struct {
+    eHalStatus                 status;
+
+    //Number of BSSIDs
+    tANI_U8                    numBSSIDs;
+    //Number of Measurements required
+    tANI_U8                    numInNavMeasurements;
+    //Type of measurements (RTS-CTS or FRAME-BASED)
+    eSirInNavMeasurementMode   measurementMode;
+    //bssid channel info for doing the measurements
+    tSirBSSIDChannelInfo       bssidChannelInfo[1];
+
+}tStartInNavMeasReq,*tpStartInNavMeasReq;
+
+typedef struct 
+{
+    tANI_U8             numBSSIDs;
+    tANI_U16            rspLen;
+    eHalStatus          status;
+    tSirRttRssiResults  rttRssiResults[1];
+} tStartInNavMeasRsp, *tpStartInNavMeasRsp;
+#endif
+#endif
+
 typedef struct sBeaconGenStaInfo {
     tANI_U16    assocId;
     tANI_U32    staTxAckCnt;
@@ -693,7 +719,7 @@ typedef struct sSendProbeRespParams {
     tSirMacAddr bssId;
     tANI_U8      *pProbeRespTemplate; 
     tANI_U32     probeRespTemplateLen;
-	tANI_U32     ucProxyProbeReqValidIEBmap[8];
+    tANI_U32     ucProxyProbeReqValidIEBmap[8];
 } tSendProbeRespParams, * tpSendProbeRespParams;
 #endif
 

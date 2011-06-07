@@ -55,6 +55,12 @@ typedef tANI_U8 tSirMacAddr[6];
 #define PARAM_BEACON_UPDATE_MASK                (PARAM_BCN_INTERVAL_CHANGED|PARAM_SHORT_PREAMBLE_CHANGED|PARAM_SHORT_SLOT_TIME_CHANGED|PARAM_llACOEXIST_CHANGED |PARAM_llBCOEXIST_CHANGED|\
     PARAM_llGCOEXIST_CHANGED|PARAM_HT20MHZCOEXIST_CHANGED|PARAM_NON_GF_DEVICES_PRESENT_CHANGED|PARAM_RIFS_MODE_CHANGED|PARAM_LSIG_TXOP_FULL_SUPPORT_CHANGED| PARAM_OBSS_MODE_CHANGED)
 
+/*Dump command responce Buffer size*/
+#define DUMPCMD_RSP_BUFFER 100
+
+/*Max Num Of BSSIDS in INNAV_MEAS_REQ*/
+#define MAX_BSSIDS_IN_INNAV_MEAS_REQ 1
+
 /* Message types for messages exchanged between WDI and HAL */
 typedef enum 
 {
@@ -214,6 +220,15 @@ typedef enum
    //P2P  WLAN_FEATURE_P2P
    WLAN_HAL_SET_P2P_GONOA_REQ,
    WLAN_HAL_SET_P2P_GONOA_RSP,
+   
+   //WLAN Dump commands
+   WLAN_HAL_DUMP_COMMAND_REQ,
+   WLAN_HAL_DUMP_COMMAND_RSP,
+
+   //INNAV FEATURE SUPPORT
+   WLAN_HAL_START_INNAV_MEAS_REQ,
+   WLAN_HAL_START_INNAV_MEAS_RSP,
+
 
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
@@ -1689,6 +1704,84 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader header;
    tRemoveStaKeyRspParams removeStaKeyRspParams;
 }  tRemoveStaKeyRspMsg, *tpRemoveStaKeyRspMsg;
+
+
+#ifdef FEATURE_INNAV_SUPPORT
+/*-------------------------------------------------------------------------
+WLAN_HAL_START_INNAV_MEAS_REQ
+--------------------------------------------------------------------------*/
+typedef enum
+{
+  eRTS_CTS_BASED = 1,
+  eFRAME_BASED,
+}tInNavMeasurementMode;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tSirMacAddr       bssid;
+   tANI_U16      channel;
+}tBSSIDChannelInfo;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* The return status of SIR_HAL_INIT_INNAV_MEAS_REQ is reported here */
+    tANI_U32                 status;
+
+    /* Request Parameters */
+
+    /* Number of BSSIDs */
+    tANI_U8                    numBSSIDs;
+    /* Number of Measurements required */
+    tANI_U8                    numInNavMeasurements;
+    /*.Type of measurements (RTS-CTS or FRAME-BASED) */
+    tInNavMeasurementMode   measurementMode;
+    /* bssid channel info for doing the measurements */
+    tBSSIDChannelInfo       bssidChannelInfo[1];
+
+}tStartInNavMeasReqParams, *tpStartInNavMeasReqParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader                header;
+    tStartInNavMeasReqParams     StartInNavMeasParams;
+} tStartInNavReqMsg, *tpStartInNavReqMsg;
+
+/*-------------------------------------------------------------------------
+WLAN_HAL_START_INNAV_MEAS_RSP
+--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8      rssi;
+    tANI_U16     rtt;
+    tANI_U16     snr;
+    tANI_U32     measurementTime;
+    tANI_U32     measurementTimeHi;
+}tRttRssiTimeData;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tSirMacAddr             bssid;
+    tANI_U8             numSuccessfulMeasurements;
+    tRttRssiTimeData    rttRssiTimeData[1];
+}tRttRssiResults;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8             numBSSIDs;
+    tANI_U16            rspLen;
+    tANI_U32            status;
+    tRttRssiResults  rttRssiResults[1];
+}tStartInNavMeasRspParams, *tpStartInNavRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader             header;
+   tStartInNavMeasRspParams  StartInNavMeasRspParams;
+}  tStartInNavMeasRspMsg, *tpStartInNavMeasRspMsg;
+
+#endif
+
+
 
 /*---------------------------------------------------------------------------
 WLAN_HAL_CH_SWITCH_REQ
@@ -3641,6 +3734,46 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader header;
    tHalConfigureAppsCpuWakeupStateRspParams appsStateRspParams;
 }  tHalConfigureAppsCpuWakeupStateRspMsg, *tpHalConfigureAppsCpuWakeupStateRspMsg;
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_DUMP_COMMAND_REQ
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tANI_U32    argument1;
+   tANI_U32    argument2;
+   tANI_U32    argument3;
+   tANI_U32    argument4;
+   tANI_U32    argument5;
+
+}tHalDumpCmdReqParams,*tpHalDumpCmdReqParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader          header;
+   tHalDumpCmdReqParams   dumpCmdReqParams;
+} tHalDumpCmdReqMsg, *tpHalDumpCmdReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_DUMP_COMMAND_RSP
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+    /*Length of the responce message*/
+    tANI_U32   rspLength;
+    /*FiXME: Currently considering the  the responce will be less than 100bytes */
+    tANI_U8    rspBuffer[DUMPCMD_RSP_BUFFER];
+    
+} tHalDumpCmdRspParams, *tpHalDumpCmdRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalDumpCmdRspParams dumpCmdRspParams;
+}  tHalDumpCmdRspMsg, *tpHalDumpCmdRspMsg;
 
 #if defined(__ANI_COMPILER_PRAGMA_PACK_STACK)
 #pragma pack(pop)

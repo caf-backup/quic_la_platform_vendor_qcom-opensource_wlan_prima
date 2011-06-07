@@ -386,6 +386,207 @@ typedef enum
 #define CFG_ENABLE_HANDOFF_MAX                 ( 1 )
 #define CFG_ENABLE_HANDOFF_DEFAULT             ( 1 )
 
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+//Handoff : No Wifi Params
+#define CFG_RSSI_FILTER_CONST_NO_WIFI_NAME     "gRssiFilterConstNoWifi"
+#define CFG_RSSI_FILTER_CONST_NO_WIFI_MIN      ( 0 )
+#define CFG_RSSI_FILTER_CONST_NO_WIFI_MAX      ( 100 )
+#define CFG_RSSI_FILTER_CONST_NO_WIFI_DEFAULT  ( 90 )
+
+#define CFG_CHANNEL_SCAN_TIME_NAME             "gChannelScanTime"
+#define CFG_CHANNEL_SCAN_TIME_MIN              ( 0 )
+#define CFG_CHANNEL_SCAN_TIME_MAX              ( 4294967295UL )
+#define CFG_CHANNEL_SCAN_TIME_DEFAULT          ( 120 )
+
+#define CFG_RSSI_THRESH_NEIGH_NAME             "gRssiThreshNeigh"
+#define CFG_RSSI_THRESH_NEIGH_MIN              ( 0 )
+#define CFG_RSSI_THRESH_NEIGH_MAX              ( 100 )
+#define CFG_RSSI_THRESH_NEIGH_DEFAULT          ( 95 )
+
+#define CFG_RSSI_THRESH_ASSOC_NAME             "gRssiThreshAssoc"
+#define CFG_RSSI_THRESH_ASSOC_MIN              ( 0 )
+#define CFG_RSSI_THRESH_ASSOC_MAX              ( 100 )
+#define CFG_RSSI_THRESH_ASSOC_DEFAULT          ( 80 )
+
+#define CFG_ACTIVE_SCAN_INTERVAL_NAME          "gActiveScanInterval"
+#define CFG_ACTIVE_SCAN_INTERVAL_MIN           ( 0 )
+#define CFG_ACTIVE_SCAN_INTERVAL_MAX           ( 4294967295UL )
+#define CFG_ACTIVE_SCAN_INTERVAL_DEFAULT       ( 30000 )
+
+#define CFG_ACTIVE_SCAN_DURATION_NAME          "gActiveDuration"
+#define CFG_ACTIVE_SCAN_DURATION_MIN           ( 0 )
+#define CFG_ACTIVE_SCAN_DURATION_MAX           ( 4294967295UL )
+#define CFG_ACTIVE_SCAN_DURATION_DEFAULT       ( 120000 )
+
+//Handoff : No Traffic Params
+#define CFG_RSSI_FILTER_CONST_NT_NAME          "gRssiFilterConstNt"
+#define CFG_RSSI_FILTER_CONST_NT_MIN           ( 0 )
+#define CFG_RSSI_FILTER_CONST_NT_MAX           ( 100 )
+#define CFG_RSSI_FILTER_CONST_NT_DEFAULT       ( 90 )
+
+#define CFG_NUM_CANDIDATE_SET_NT_NAME          "gNumCandidateSetNt"
+#define CFG_NUM_CANDIDATE_SET_NT_MIN           ( 1 )
+#define CFG_NUM_CANDIDATE_SET_NT_MAX           ( 20 )
+#define CFG_NUM_CANDIDATE_SET_NT_DEFAULT       ( 5 )
+
+#define CFG_INACT_THRESH_NT_NAME               "gInactThreshNt"
+#define CFG_INACT_THRESH_NT_MIN                ( 1 )
+#define CFG_INACT_THRESH_NT_MAX                ( 1000 )
+#define CFG_INACT_THRESH_NT_DEFAULT            ( 25 )
+
+#define CFG_INACT_PERIOD_NT_NAME                "gInactPeriodNt"
+#define CFG_INACT_PERIOD_NT_MIN                 ( 0 )
+#define CFG_INACT_PERIOD_NT_MAX                 ( 4294967295UL )
+#define CFG_INACT_PERIOD_NT_DEFAULT             ( 2000 )
+
+#define CFG_BEST_CANDT_AP_RSSI_DELTA_NAME       "gBestCandidateApRssiDeltaNt"
+#define CFG_BEST_CANDT_AP_RSSI_DELTA_MIN        ( 0 )
+#define CFG_BEST_CANDT_AP_RSSI_DELTA_MAX        ( 100 )
+#define CFG_BEST_CANDT_AP_RSSI_DELTA_DEFAULT    ( 10 )
+
+#define CFG_NEIGH_AP_BG_SCAN_INTERVAL_NAME     "gNeighApBgScanIntervalNt"
+#define CFG_NEIGH_AP_BG_SCAN_INTERVAL_MIN      ( 0 )
+#define CFG_NEIGH_AP_BG_SCAN_INTERVAL_MAX      ( 4294967295UL )
+#define CFG_NEIGH_AP_BG_SCAN_INTERVAL_DEFAULT  ( 120000 )
+
+#define CFG_NEIGH_AP_INCR_NT_NAME              "gNeighApIncrNt"
+#define CFG_NEIGH_AP_INCR_NT_MIN               ( 0 )
+#define CFG_NEIGH_AP_INCR_NT_MAX               ( 4294967295UL )
+#define CFG_NEIGH_AP_INCR_NT_DEFAULT           ( 240000 )
+  
+#define CFG_RSSI_THRESH_CANDT_NT_NAME          "gRssiThreshCdtNt"
+#define CFG_RSSI_THRESH_CANDT_NT_MIN           ( 0 )
+#define CFG_RSSI_THRESH_CANDT_NT_MAX           ( 100 )
+#define CFG_RSSI_THRESH_CANDT_NT_DEFAULT       ( 75 )
+
+#define CFG_PMK_THRESH_RSSI_NT_NAME            "gPmkThreshRssiNt"
+#define CFG_PMK_THRESH_RSSI_NT_MIN             ( 0 )
+#define CFG_PMK_THRESH_RSSI_NT_MAX             ( 100 )
+#define CFG_PMK_THRESH_RSSI_NT_DEFAULT         ( 3 )
+
+#define CFG_RSSI_THRESH_CURR_AP_NT_NAME        "gRssiThreshCurrApNt"
+#define CFG_RSSI_THRESH_CURR_AP_NT_MIN         ( 0 )
+#define CFG_RSSI_THRESH_CURR_AP_NT_MAX         ( 100 )
+#define CFG_RSSI_THRESH_CURR_AP_NT_DEFAULT     ( 50 )
+
+// Handoff : Non Real Time Params
+#define CFG_RSSI_FILTER_CONST_NRT_NAME         "gRssiFilterConstNrt"
+#define CFG_RSSI_FILTER_CONST_NRT_MIN          ( 0 )
+#define CFG_RSSI_FILTER_CONST_NRT_MAX          ( 100 )
+#define CFG_RSSI_FILTER_CONST_NRT_DEFAULT      ( 90 )
+
+#define CFG_NUM_CANDIDATE_SET_NRT_NAME         "gNumCandidateSetNrt"
+#define CFG_NUM_CANDIDATE_SET_NRT_MIN          ( 1 )
+#define CFG_NUM_CANDIDATE_SET_NRT_MAX          ( 20 )
+#define CFG_NUM_CANDIDATE_SET_NRT_DEFAULT      ( 5 )
+
+#define CFG_RSSI_THRESH_CURR_AP_NRT_NAME       "gRssiThreshCurrApNrt"
+#define CFG_RSSI_THRESH_CURR_AP_NRT_MIN        ( 0 )
+#define CFG_RSSI_THRESH_CURR_AP_NRT_MAX        ( 100 )
+#define CFG_RSSI_THRESH_CURR_AP_NRT_DEFAULT    ( 50 )
+
+#define CFG_RSSI_THRESH_EMPTY_NRT_NAME         "gRssiThreshEmptyNrt"
+#define CFG_RSSI_THRESH_EMPTY_NRT_MIN          ( 0 )
+#define CFG_RSSI_THRESH_EMPTY_NRT_MAX          ( 100 )
+#define CFG_RSSI_THRESH_EMPTY_NRT_DEFAULT      ( 75 )
+
+#define CFG_RSSI_THRESH_HO_NRT_NAME            "gRssiThreshHoNrt"
+#define CFG_RSSI_THRESH_HO_NRT_MIN             ( 0 )
+#define CFG_RSSI_THRESH_HO_NRT_MAX             ( 100 )
+#define CFG_RSSI_THRESH_HO_NRT_DEFAULT         ( 80 )
+
+#define CFG_RSSI_THRESH_CDT_SET_NRT_NAME       "gRssiThreshCdtSetNrt"
+#define CFG_RSSI_THRESH_CDT_SET_NRT_MIN        ( 0 )
+#define CFG_RSSI_THRESH_CDT_SET_NRT_MAX        ( 100 )
+#define CFG_RSSI_THRESH_CDT_SET_NRT_DEFAULT    ( 75 )
+  
+#define CFG_BG_SCAN_INTERVAL_NRT_NAME          "gBgScanIntervalNrt"
+#define CFG_BG_SCAN_INTERVAL_NRT_MIN           ( 0 )
+#define CFG_BG_SCAN_INTERVAL_NRT_MAX           ( 4294967295UL )
+#define CFG_BG_SCAN_INTERVAL_NRT_DEFAULT       ( 600 )
+
+#define CFG_BG_SCAN_INCR_INTERVAL_NRT_NAME     "gBgScanIncrIntervalNrt"
+#define CFG_BG_SCAN_INCR_INTERVAL_NRT_MIN      ( 0 )
+#define CFG_BG_SCAN_INCR_INTERVAL_NRT_MAX      ( 4294967295UL )
+#define CFG_BG_SCAN_INCR_INTERVAL_NRT_DEFAULT  ( 1200 )
+
+#define CFG_BG_SCAN_DELAY_INTERVAL_NRT_NAME    "gBgScanDelayIntervalNrt"
+#define CFG_BG_SCAN_DELAY_INTERVAL_NRT_MIN     ( 0 )
+#define CFG_BG_SCAN_DELAY_INTERVAL_NRT_MAX     ( 4294967295UL )
+#define CFG_BG_SCAN_DELAY_INTERVAL_NRT_DEFAULT ( 120000 )
+
+#define CFG_PER_MSMT_INTERVAL_NRT_NAME         "gPerMsmtIntervalNrt"
+#define CFG_PER_MSMT_INTERVAL_NRT_MIN          ( 0 )
+#define CFG_PER_MSMT_INTERVAL_NRT_MAX          ( 4294967295UL )
+#define CFG_PER_MSMT_INTERVAL_NRT_DEFAULT      ( 2000 )
+
+#define CFG_HO_FROM_CURR_AP_NRT_NAME           "gPerThresholdHoNrt"
+#define CFG_HO_FROM_CURR_AP_NRT_MIN            ( 0 )
+#define CFG_HO_FROM_CURR_AP_NRT_MAX            ( 100 )
+#define CFG_HO_FROM_CURR_AP_NRT_DEFAULT        ( 5 )
+  
+#define CFG_PMK_CACHE_RSSI_DELTA_NRT_NAME      "gPmkCacheRssiDeltaNrt"
+#define CFG_PMK_CACHE_RSSI_DELTA_NRT_MIN       ( 0 )
+#define CFG_PMK_CACHE_RSSI_DELTA_NRT_MAX       ( 100 )
+#define CFG_PMK_CACHE_RSSI_DELTA_NRT_DEFAULT   ( 3 )
+  
+#define CFG_BEST_CDT_AP_RSSI_DELTA_NRT_NAME    "gBestCdtApRssiDeltaNrt"
+#define CFG_BEST_CDT_AP_RSSI_DELTA_NRT_MIN     ( 0 )
+#define CFG_BEST_CDT_AP_RSSI_DELTA_NRT_MAX     ( 100 )
+#define CFG_BEST_CDT_AP_RSSI_DELTA_NRT_DEFAULT ( 10 )
+
+//Handoff : Real Time Params
+#define CFG_RSSI_FILTER_CONST_RT_NAME          "gRssiFilterConstRt" 
+#define CFG_RSSI_FILTER_CONST_RT_MIN           ( 0 )
+#define CFG_RSSI_FILTER_CONST_RT_MAX           ( 100 )
+#define CFG_RSSI_FILTER_CONST_RT_DEFAULT       ( 90 )
+
+#define CFG_NUM_CANDIDATE_SET_RT_NAME          "gNumCandidateSetRt"
+#define CFG_NUM_CANDIDATE_SET_RT_MIN           ( 1 )
+#define CFG_NUM_CANDIDATE_SET_RT_MAX           ( 20 )
+#define CFG_NUM_CANDIDATE_SET_RT_DEFAULT       ( 5 )
+
+#define CFG_RSSI_THRESH_CURR_AP_RT_NAME       "gRssiThreshCurrApRt"
+#define CFG_RSSI_THRESH_CURR_AP_RT_MIN        ( 0 )
+#define CFG_RSSI_THRESH_CURR_AP_RT_MAX        ( 100 )
+#define CFG_RSSI_THRESH_CURR_AP_RT_DEFAULT    ( 50 )
+
+#define CFG_RSSI_THRESH_HO_RT_NAME            "gRssiThreshHoRt"
+#define CFG_RSSI_THRESH_HO_RT_MIN             ( 0 )
+#define CFG_RSSI_THRESH_HO_RT_MAX             ( 100 )
+#define CFG_RSSI_THRESH_HO_RT_DEFAULT         ( 80 )
+
+#define CFG_RSSI_THRESH_CDT_SET_RT_NAME       "gRssiThreshCdtSetRt"
+#define CFG_RSSI_THRESH_CDT_SET_RT_MIN        ( 0 )
+#define CFG_RSSI_THRESH_CDT_SET_RT_MAX        ( 100 )
+#define CFG_RSSI_THRESH_CDT_SET_RT_DEFAULT    ( 75 )
+ 
+#define CFG_BG_SCAN_INTERVAL_RT_NAME           "gBgScanIntervalRt"
+#define CFG_BG_SCAN_INTERVAL_RT_MIN            ( 0 )
+#define CFG_BG_SCAN_INTERVAL_RT_MAX            ( 4294967295UL )
+#define CFG_BG_SCAN_INTERVAL_RT_DEFAULT        ( 300 )
+
+#define CFG_PER_MSMT_INTERVAL_RT_NAME          "gPerMsmtIntervalRt"
+#define CFG_PER_MSMT_INTERVAL_RT_MIN           ( 0 )
+#define CFG_PER_MSMT_INTERVAL_RT_MAX           ( 4294967295UL )
+#define CFG_PER_MSMT_INTERVAL_RT_DEFAULT       ( 2000 )
+
+#define CFG_HO_FROM_CURR_AP_RT_NAME            "gPerThresholdHoRt"
+#define CFG_HO_FROM_CURR_AP_RT_MIN             ( 0 )
+#define CFG_HO_FROM_CURR_AP_RT_MAX             ( 100 )
+#define CFG_HO_FROM_CURR_AP_RT_DEFAULT         ( 10 )
+  
+#define CFG_PMK_CACHE_RSSI_DELTA_RT_NAME       "gPmkCacheRssiDeltaRt"
+#define CFG_PMK_CACHE_RSSI_DELTA_RT_MIN        ( 0 )
+#define CFG_PMK_CACHE_RSSI_DELTA_RT_MAX        ( 100 )
+#define CFG_PMK_CACHE_RSSI_DELTA_RT_DEFAULT    ( 3 )
+  
+#define CFG_BEST_CDT_AP_RSSI_DELTA_RT_NAME    "gBestCdtApRssiDeltaRt"
+#define CFG_BEST_CDT_AP_RSSI_DELTA_RT_MIN     ( 0 )
+#define CFG_BEST_CDT_AP_RSSI_DELTA_RT_MAX     ( 100 )
+#define CFG_BEST_CDT_AP_RSSI_DELTA_RT_DEFAULT ( 10 )
+
+#endif //#ifdef FEATURE_WLAN_GEN6_ROAMING
 
 //Additional Handoff related Parameters  
 #define CFG_ENABLE_IDLE_SCAN_NAME             "gEnableIdleScan"      
@@ -830,6 +1031,12 @@ typedef enum
 #define CFG_BT_AMP_PREFERRED_CHANNEL_MAX           (11)
 #define CFG_BT_AMP_PREFERRED_CHANNEL_DEFAULT       (1)
 #endif //WLAN_BTAMP_FEATURE
+
+#define CFG_BAND_CAPABILITY_NAME          "BandCapability"
+#define CFG_BAND_CAPABILITY_MIN           (0)
+#define CFG_BAND_CAPABILITY_MAX           (2)
+#define CFG_BAND_CAPABILITY_DEFAULT       (1)
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -941,6 +1148,51 @@ typedef struct
 
    //Handoff Parameters
    v_BOOL_t      fIsHandoffEnabled;
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+   //Handoff : No Wifi Params
+   v_U32_t       nRssiFilterConstNoWifi;
+   v_U32_t       nChannelScanTime;
+   v_U32_t       nRssiThreshNeigh;
+   v_U32_t       nRssiThreshAssoc;
+   v_U32_t       nActiveScanInterval;
+   v_U32_t       nActiveScanDuration;
+   //Handoff : No Traffic Params
+   v_U32_t       nRssiFilterConstNt;
+   v_U32_t       nNumCandidateSetNt;
+   v_U32_t       nInactThreshNt;
+   v_U32_t       nInactPeriodNt;
+   v_U32_t       nBestCandidateApRssiDeltaNt;
+   v_U32_t       nNeighApBgScanIntervalNt;
+   v_U32_t       nNeighApIncrNt;
+   v_U32_t       nRssiThreshCandidateNt;
+   v_U32_t       nPmkCacheRssiNt;
+   v_U32_t       nRssiThresholdCurrentApGoodNt;
+   //Handoff : Non Real Time Params
+   v_U32_t        nRssiFilterConstNrt;
+   v_U32_t        nNumCandtSetEntryNrt;
+   v_U32_t        nRssiThresholdCurrentApGoodNrt;
+   v_U32_t        nRssiThresholdCurrentApGoodEmptyCandtsetNrt;
+   v_U32_t        nRssiThresholdHoFromCurrentApNrt;
+   v_U32_t        nRssiThresholdCandtSetNrt;
+   v_U32_t        nBgScanIntervalNrt;
+   v_U32_t        nBgScanIncrIntervalNrt;
+   v_U32_t        nBgScanDelayIntervalNrt;
+   v_U32_t        nPerMsmtIntervalNrt;
+   v_U32_t        nPerThresholdHoFromCurrentApNrt;
+   v_U32_t        nPmkCacheRssiDeltaNrt;
+   v_U32_t        nBestCandidateApRssiDeltaNrt;
+   //Handoff : Real Time Params
+   v_U32_t        nRssiFilterConstRt;
+   v_U32_t        nNumCandtSetEntryRt;
+   v_U32_t        nRssiThresholdCurrentApGoodRt;
+   v_U32_t        nRssiThresholdHoFromCurrentApRt;
+   v_U32_t        nRssiThresholdCandtSetRt;
+   v_U32_t        nBgScanIntervalRt;
+   v_U32_t        nPerMsmtIntervalRt;
+   v_U32_t        nPerThresholdHoFromCurrentApRt;
+   v_U32_t        nPmkCacheRssiDeltaRt;
+   v_U32_t        nBestCandidateApRssiDeltaRt;
+#endif
 
    //Additional Handoff params
    v_BOOL_t       nEnableIdleScan;
@@ -1039,6 +1291,7 @@ typedef struct
    v_BOOL_t                    fValidateScanList;
 
    v_U8_t                      nNullDataApRespTimeout;
+   v_U8_t                      nBandCapability;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

@@ -379,7 +379,7 @@ WLANBAP_Close
    ------------------------------------------------------------------------*/
   VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "WLANBAP_Close");
   WLANBAP_CleanCB(pBtampCtx, 1 /* empty queues/lists/pkts if any*/);
-#if defined(ANI_OS_TYPE_LINUX) || defined(ANI_OS_TYPE_ANDROID)
+#if (defined(ANI_OS_TYPE_LINUX) || defined(ANI_OS_TYPE_ANDROID))&& defined(WLAN_BTAMP_FEATURE)
   BSL_Deinit(pvosGCtx);
 #endif
   /*------------------------------------------------------------------------

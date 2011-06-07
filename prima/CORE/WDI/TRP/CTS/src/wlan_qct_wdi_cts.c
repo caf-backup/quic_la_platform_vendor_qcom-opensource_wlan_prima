@@ -499,7 +499,6 @@ WCTS_NotifyCallback
                  "WCTS_NotifyCallback: Unexpected event %u received from SMD",
                  event);
 
-      WPAL_ASSERT(0);
       return;
    }
 

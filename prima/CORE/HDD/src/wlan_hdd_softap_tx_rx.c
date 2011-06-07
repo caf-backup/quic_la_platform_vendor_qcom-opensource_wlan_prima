@@ -626,7 +626,6 @@ VOS_STATUS hdd_softap_tx_complete_cbk( v_VOID_t *vosContext,
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    hdd_adapter_t *pAdapter = NULL;   
-   hdd_context_t *pHddCtx = NULL;
    void* pOsPkt = NULL;
    
    if( ( NULL == vosContext ) || ( NULL == pVosPacket )  )
@@ -645,11 +644,8 @@ VOS_STATUS hdd_softap_tx_complete_cbk( v_VOID_t *vosContext,
       return VOS_STATUS_E_FAILURE;
    }
 
-   //Get the HDD context.
-   pHddCtx = (hdd_context_t *)vos_get_context( VOS_MODULE_ID_HDD, vosContext );
-   
    //Get the Adapter context.
-   pAdapter = hdd_get_adapter(pHddCtx,WLAN_HDD_SOFTAP);
+   pAdapter = (hdd_adapter_t *)netdev_priv(((struct sk_buff *)pOsPkt)->dev);
    if(pAdapter == NULL)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: HDD adapter context is Null", __FUNCTION__);

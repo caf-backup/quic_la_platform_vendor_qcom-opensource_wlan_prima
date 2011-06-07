@@ -273,9 +273,9 @@ typedef struct sSmeBtcEventReplay
 {
    tSmeBtcEventHist btcEventHist;
    v_BOOL_t fBTSwitchOn;
-   v_BOOL_t fBTSwitchOff;   
+   v_BOOL_t fBTSwitchOff;
    //This is not directly tied to BT event so leave it alone when processing BT events
-   v_BOOL_t fRestoreHBMonitor;  
+   v_BOOL_t fRestoreHBMonitor;
 } tSmeBtcEventReplay, *tpSmeBtcEventReplay;
 
 typedef struct sSmeBtcInfo

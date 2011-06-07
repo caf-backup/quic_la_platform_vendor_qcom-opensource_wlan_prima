@@ -660,9 +660,7 @@ WLANBAP_STAFetchPktCB
     ptBtampHandle bapHdl;  /* holds ptBtampHandle value returned  */ 
     ptBtampContext bapContext; /* Holds the btampContext value returned */ 
     v_PVOID_t     pHddHdl; /* Handle to return BSL context in */
-    v_U8_t        bapAC;
 
-    bapAC = ucAC;
     /* Lookup the BSL and BAP contexts using the StaId */ 
 
     vosStatus = WLANBAP_GetCtxFromStaId ( 
@@ -680,7 +678,7 @@ WLANBAP_STAFetchPktCB
     /* Invoke the callback that BSL registered with me */ 
     vosStatus = (*bapContext->pfnBtampFetchPktCB)( 
             pHddHdl, 
-            (WLANTL_ACEnumType *)    &bapAC, /* typecast it for now */ 
+            (WLANTL_ACEnumType)   ucAC, /* typecast it for now */ 
             vosDataBuff, 
             tlMetaInfo);    
     if ( VOS_STATUS_SUCCESS != vosStatus ) 
@@ -882,7 +880,7 @@ WLANBAP_TxCompCB
 
 #ifdef BAP_DEBUG
     /* Trace the bapContext referenced. */
-  VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH,
               "WLAN BAP Context Monitor: bapContext value = %p in %s:%d. vosDataBuff=%p", bapContext, __FUNCTION__, __LINE__, vosDataBuff );
 #endif //BAP_DEBUG
 

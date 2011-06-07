@@ -79,6 +79,7 @@ static char                   *channelType[WDTS_CHANNEL_MAX] =
 #endif /* WLANDXE_TEST_CHANNEL_ENABLE */
    };
 
+
 /*-------------------------------------------------------------------------
   *  External Function Proto Type
   *-------------------------------------------------------------------------*/
@@ -437,17 +438,28 @@ static wpt_status dxeDescAllocAndLink
    }
 
    currentCtrlBlk = channelEntry->headCtrlBlk;
+
+#if !(defined(FEATURE_R33D) || defined(WLANDXE_TEST_CHANNEL_ENABLE))
+   /* allocate all DXE descriptors for this channel in one chunk */
+   channelEntry->descriptorAllocation = (WLANDXE_DescType *)
+      wpalDmaMemoryAllocate(sizeof(WLANDXE_DescType)*channelEntry->numDesc,
+                            &physAddress);
+   currentDesc = channelEntry->descriptorAllocation;
+#endif
+
    /* Allocate pre asigned number of descriptor */
    for(idx = 0; idx < channelEntry->numDesc; idx++)
    {
 #ifndef FEATURE_R33D
 #ifndef WLANDXE_TEST_CHANNEL_ENABLE
-      currentDesc = (WLANDXE_DescType *)wpalDmaMemoryAllocate(sizeof(WLANDXE_DescType),
-                                                              &physAddress);
+      // descriptors were allocated in a chunk -- use the current one
       memset((wpt_uint8 *)currentDesc, 0, sizeof(WLANDXE_DescType));
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
+               "Allocated Descriptor VA 0x%x, PA 0x%x", currentDesc, physAddress);
 #else
       if(WDTS_CHANNEL_H2H_TEST_RX != channelEntry->channelType)
       {
+         // allocate a descriptor
          currentDesc = (WLANDXE_DescType *)wpalDmaMemoryAllocate(sizeof(WLANDXE_DescType),
                                                                  &physAddress);
          memset((wpt_uint8 *)currentDesc, 0, sizeof(WLANDXE_DescType));
@@ -562,6 +574,14 @@ static wpt_status dxeDescAllocAndLink
 
       currentCtrlBlk = currentCtrlBlk->nextCtrlBlk;
       prevDesc       = currentDesc;
+
+#ifndef FEATURE_R33D
+#ifndef WLANDXE_TEST_CHANNEL_ENABLE
+      // advance to the next pre-allocated descriptor in the chunk
+      currentDesc++;
+      physAddress += sizeof(WLANDXE_DescType);
+#endif
+#endif
    }
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
@@ -1006,12 +1026,20 @@ static wpt_status dxeChannelClose
       {
          wpalPacketFree(currentCtrlBlk->xfrFrame);
       }
+#if (defined(FEATURE_R33D) || defined(WLANDXE_TEST_CHANNEL_ENABLE))
+      // descriptors allocated individually so free them individually
       wpalDmaMemoryFree(currentDescriptor);
+#endif
       wpalMemoryFree(currentCtrlBlk);
 
       currentCtrlBlk    = nextCtrlBlk;
       currentDescriptor = nextDescriptor;
    }
+
+#if !(defined(FEATURE_R33D) || defined(WLANDXE_TEST_CHANNEL_ENABLE))
+   // descriptors were allocated as a single chunk so free the chunk
+   wpalDmaMemoryFree(channelEntry->descriptorAllocation);
+#endif
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);
@@ -2148,7 +2176,7 @@ static wpt_status dxeTXCompFrame
    {
       hostCtxt->lowResourceCB(hostCtxt->clientCtxt,
                               channelEntry->channelType,
-                              eWLAN_PAL_FALSE);
+                              eWLAN_PAL_TRUE);
       channelEntry->hitLowResource = eWLAN_PAL_FALSE;
    }
 
@@ -2449,6 +2477,7 @@ static void dxeTXISR
                "dxeTXCompISR Disable TX complete interrupt fail");
       return;         
    }
+   dxeCtxt->txIntEnable = eWLAN_PAL_FALSE;
 
    /* Serialize TX complete interrupt upon TX thread */
    HDXE_ASSERT(NULL != dxeCtxt->txIsrMsg);
@@ -2847,7 +2876,6 @@ wpt_status WLANDXE_TxFrame
 {
    wpt_status                 status         = eWLAN_PAL_STATUS_SUCCESS;
    WLANDXE_ChannelCBType     *currentChannel = NULL;
-   wpt_boolean                intEnale       = eWLAN_PAL_FALSE;
    WLANDXE_CtrlBlkType       *dxeCtxt        = NULL;
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
@@ -2878,7 +2906,7 @@ wpt_status WLANDXE_TxFrame
    dxeCtxt = (WLANDXE_CtrlBlkType *)pDXEContext;
 
    currentChannel = &dxeCtxt->dxeChannel[channel];
-   currentChannel->numFrameBeforeInt++;
+   
 
    wpalMutexAcquire(&currentChannel->dxeChannelLock);
 
@@ -2889,42 +2917,54 @@ wpt_status WLANDXE_TxFrame
       case WLANDXE_TX_COMP_INT_LR_THRESHOLD:
          if((currentChannel->numFreeDesc <= 
              dxeCtxt->txCompInt.txLowResourceThreshold) &&
-            (eWLAN_PAL_FALSE == intEnale))
+            (eWLAN_PAL_FALSE == dxeCtxt->txIntEnable))
          {
-            intEnale = eWLAN_PAL_TRUE;
+            dxeCtxt->txIntEnable = eWLAN_PAL_TRUE;
             dxeCtxt->lowResourceCB(dxeCtxt->clientCtxt,
                                    channel,
-                                   eWLAN_PAL_TRUE);
+                                   eWLAN_PAL_FALSE);
          }
          break;
 
       /* TX complete interrupt will be activated n number of frames transfered */
       case WLANDXE_TX_COMP_INT_PER_K_FRAMES:
-         if((currentChannel->numFrameBeforeInt >=
-             dxeCtxt->txCompInt.txInterruptEnableFrameCount) &&
-            (eWLAN_PAL_FALSE == intEnale))
+         if(channel == WDTS_CHANNEL_TX_LOW_PRI)
          {
-            intEnale = eWLAN_PAL_TRUE;
+            currentChannel->numFrameBeforeInt++;
+            if( (currentChannel->numFrameBeforeInt >=
+                 dxeCtxt->txCompInt.txInterruptEnableFrameCount) &&
+                (eWLAN_PAL_FALSE == dxeCtxt->txIntEnable))
+            {
+               dxeCtxt->txIntEnable = eWLAN_PAL_TRUE;
+               currentChannel->numFrameBeforeInt = 0;
+               /* Enable System level interrupt */
+               status = wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
+               if(eWLAN_PAL_STATUS_SUCCESS != status)
+               {
+                  HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                           "WLANDXE_TxFrame Interrupt Enable Fail");
+                  return status;
+               }
+            }
+         }
+         else if(channel == WDTS_CHANNEL_TX_HIGH_PRI)
+         {
+            /*Mgmt frame expects imediate Tx Complete*/
+            dxeCtxt->txIntEnable = eWLAN_PAL_TRUE;
+              /* Enable System level interrupt */
+            status = wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
+            if(eWLAN_PAL_STATUS_SUCCESS != status)
+            {
+               HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                        "WLANDXE_TxFrame Interrupt Enable Fail");
+               return status;
+            }
          }
          break;
 
       /* TX complete interrupt will be activated periodically */
       case WLANDXE_TX_COMP_INT_TIMER:
          break;
-   }
-
-   /* If enable the TX compelete event, enable at here */
-   if(eWLAN_PAL_TRUE == intEnale)
-   {
-      /* Enable System level interrupt */
-      status = wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
-      if(eWLAN_PAL_STATUS_SUCCESS != status)
-      {
-         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                  "WLANDXE_TxFrame Interrupt Enable Fail");
-         return status;
-      }
-      currentChannel->numFrameBeforeInt = 0;
    }
 
    /* Update DXE descriptor, this is frame based
@@ -2942,7 +2982,7 @@ wpt_status WLANDXE_TxFrame
    {
       dxeCtxt->lowResourceCB(dxeCtxt->clientCtxt,
                              channel,
-                             eWLAN_PAL_TRUE);
+                             eWLAN_PAL_FALSE);
       currentChannel->hitLowResource = eWLAN_PAL_TRUE;
    }
    wpalMutexRelease(&currentChannel->dxeChannelLock);

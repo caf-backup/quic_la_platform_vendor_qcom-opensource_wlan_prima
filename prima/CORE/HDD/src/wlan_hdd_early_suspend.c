@@ -75,7 +75,7 @@ void unregister_wlan_suspend(void);
 
 extern struct notifier_block hdd_netdev_notifier;
 #ifdef WLAN_SOFTAP_FEATURE
-extern VOS_CON_MODE hdd_get_conparam ( void );
+extern tVOS_CON_MODE hdd_get_conparam ( void );
 #endif
 //Callback invoked by PMC to report status of standby request
 void hdd_suspend_standby_cbk (void *callbackContext, eHalStatus status)
@@ -1078,7 +1078,9 @@ err_vosclose:
    vos_close(pVosContext ); 
 
 err_balstop:
+#ifndef ANI_MANF_DIAG 
    wlan_hdd_enable_deepsleep(pVosContext);
+#endif
    WLANBAL_Stop(pVosContext);
    WLANBAL_SuspendChip(pVosContext);
 

@@ -93,6 +93,11 @@ wpt_packet * wpalPacketAlloc(wpt_packet_type pktType, wpt_uint32 nPktSize)
       {
         vosStatus =  vos_pkt_reserve_head_fast( pVosPkt, &pData, nPktSize ); 
       }
+      else
+      {
+        WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                    "Failed to allocate packet : %d ", (int)vosStatus);
+      }
 #endif /* FEATURE_R33D */
       break;
 

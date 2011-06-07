@@ -317,6 +317,9 @@ typedef struct
    v_PVOID_t            wdaWdiLinkApiMsgParam ;  /* WDI API paramter tracking */
    v_PVOID_t            wdaEdcaMsgParam ;        /* PE parameter tracking */
    v_PVOID_t            wdaWdiEdcaApiMsgParam ;  /* WDI API paramter tracking */
+   v_PVOID_t            wdaDelBAMsgParam ;        /* PE parameter tracking */
+   v_PVOID_t            wdaWdiDelBAApiMsgParam ;  /* WDI API paramter tracking */
+
 
    /* Event to wait for tx completion */
    vos_event_t          txFrameEvent;
@@ -453,9 +456,9 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
  * for now giving the value 1000 ms */
 #define WDA_WDI_COMPLETION_TIME_OUT 30000 /* in ms */
 
-//#define WDA_TL_TX_FRAME_TIMEOUT  5000 /* in msec a very high upper limit of 5,000 msec */
+#define WDA_TL_TX_FRAME_TIMEOUT  5000 /* in msec a very high upper limit of 5,000 msec */
 // FIXME Temporary value for R33D integaration
-#define WDA_TL_TX_FRAME_TIMEOUT  20000 /* in msec a very high upper limit */
+//#define WDA_TL_TX_FRAME_TIMEOUT  20000 /* in msec a very high upper limit */
 
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
 

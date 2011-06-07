@@ -844,7 +844,6 @@ WLANBAP_TxPacketMonitorHandler
        uTxCompleted = pLogLinkContext->uTxPktCompleted;
        bapHCIEvent.u.btampNumOfCompletedPktsEvent.conn_handles[j] =
            pLogLinkContext->log_link_handle;
-//           1;
        bapHCIEvent.u.btampNumOfCompletedPktsEvent.num_completed_pkts[j] =
            uTxCompleted;
 
@@ -854,11 +853,11 @@ WLANBAP_TxPacketMonitorHandler
                                          (v_U32_t) uTxCompleted);
 
        if (uTxCompleted) { 
-      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                "wlan bap: %s Log Link handle - %d No Of Pkts - %d", __FILE__, 
-	      pLogLinkContext->log_link_handle, uTxCompleted);  
+          VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
+                  "wlan bap: %s Log Link handle - %d No Of Pkts - %d", __FILE__, 
+                  pLogLinkContext->log_link_handle, uTxCompleted);  
+       }
      }
-  }
   }
 
   /* Indicate only if at least one logical link is present and number of

@@ -689,7 +689,7 @@ WLANBAP_ReleaseHndl
 
 typedef VOS_STATUS (*WLANBAP_STAFetchPktCBType)( 
                                             v_PVOID_t             pHddHdl,
-                                            WLANTL_ACEnumType*    pucAC,
+                                            WLANTL_ACEnumType     ucAC,
                                             vos_pkt_t**           vosDataBuff,
                                             WLANTL_MetaInfoType*  tlMetaInfo);
 

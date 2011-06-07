@@ -162,13 +162,14 @@ void limTriggerBackgroundScan(tpAniSirGlobal pMac)
                   (tANI_U8 *) &bcAddr, sizeof(tSirMacAddr));
  
     if (wlan_cfgGetStr(pMac, WNI_CFG_SSID,
-                    (tANI_U8 *) (smeScanReq.ssId.ssId),
+                    (tANI_U8 *) (smeScanReq.ssId[0].ssId),
                     (tANI_U32 *) &ssidLen) != eSIR_SUCCESS)
     {
         /// Could not get SSID from CFG. Log error.
         limLog(pMac, LOGP, FL("could not retrieve SSID\n"));
     }
-    smeScanReq.ssId.length = (tANI_U8) ssidLen;
+    smeScanReq.ssId[0].length = (tANI_U8) ssidLen;
+    smeScanReq.numSsid = 1;
 
     smeScanReq.scanType    = eSIR_ACTIVE_SCAN;
 

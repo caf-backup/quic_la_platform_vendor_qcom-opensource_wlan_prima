@@ -102,7 +102,7 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
         return eSIR_FAILURE;
 
     // Extract timeStamp
-	palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->timeStamp,
+    palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->timeStamp,
                   pBuf, sizeof(tSirMacTimeStamp));
     pBuf += sizeof(tSirMacTimeStamp);
     len  -= sizeof(tSirMacTimeStamp);
@@ -206,11 +206,11 @@ limGetBssDescription( tpAniSirGlobal pMac, tSirBssDescription *pBssDescription,
 #endif
 
     if (len)
-	{
+    {
         palCopyMemory( pMac->hHdd, (tANI_U8 *) pBssDescription->ieFields,
                        pBuf,
                        len);
-	}
+    }
 
     return eSIR_SUCCESS;
 } /*** end limGetBssDescription() ***/
@@ -1595,7 +1595,7 @@ limStopBssReqSerDes(tpAniSirGlobal pMac, tpSirSmeStopBssReq pStopBssReq, tANI_U8
     palCopyMemory( pMac->hHdd, (tANI_U8 *) pStopBssReq->bssId, pBuf, sizeof(tSirMacAddr));
     len  -= sizeof(tSirMacAddr);
   
-	if (len)
+    if (len)
         return eSIR_FAILURE;
     else
         return eSIR_SUCCESS;
@@ -2016,7 +2016,7 @@ limAssocIndSerDes(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd, tANI_U8 *pBuf
         mLen += (tANI_U16) len;
     }
 
-	// place holder to capability and nwType
+    // place holder to capability and nwType
 
     limCopyU16(pBuf, *(tANI_U16 *)&pAssocInd->capabilityInfo);
     pBuf += sizeof(tANI_U16); // capabilityInfo
@@ -2788,9 +2788,9 @@ limSetContextReqSerDes(tpAniSirGlobal pMac, tpSirSmeSetContextReq pSetContextReq
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
-	// Extract sessionId
+    // Extract sessionId
     pSetContextReq->sessionId = *pBuf++;
-	len--;
+    len--;
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
@@ -2895,7 +2895,7 @@ limRemoveKeyReqSerDes(tpAniSirGlobal pMac, tpSirSmeRemoveKeyReq pRemoveKeyReq, t
 {
     tANI_S16 len = 0;
 
-#ifdef	PE_DEBUG_LOG1
+#ifdef    PE_DEBUG_LOG1
     tANI_U8  *pTemp = pBuf;
 #endif
     if (!pRemoveKeyReq || !pBuf)
@@ -3144,7 +3144,7 @@ limDeauthReqSerDes(tpAniSirGlobal pMac, tSirSmeDeauthReq *pDeauthReq, tANI_U8 *p
 
     // Extract sessionId
     pDeauthReq->sessionId = *pBuf++;
-	len--;
+    len--;
     if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
         return eSIR_FAILURE;
 
@@ -3179,7 +3179,7 @@ limDeauthReqSerDes(tpAniSirGlobal pMac, tSirSmeDeauthReq *pDeauthReq, tANI_U8 *p
         return eSIR_FAILURE;
     pDeauthReq->aid = limGetU16(pBuf);
 #endif
-	
+    
     return eSIR_SUCCESS;
 } /*** end limDisassocReqSerDes() ***/
 
@@ -3951,15 +3951,9 @@ limGetSessionInfo(tpAniSirGlobal pMac, tANI_U8 *pBuf, tANI_U8 *sessionId, tANI_U
     pBuf += sizeof(tANI_U16);   // skip message type 
     pBuf += sizeof(tANI_U16);   // skip message length
 
-	*sessionId = *pBuf;			// get sessionId
+    *sessionId = *pBuf;            // get sessionId
     pBuf++;    
     *transactionId = limGetU16(pBuf);  // get transactionId
-
-#if 0
-    // BTAMP: for now, just return 0
-    *sessionId = 0;
-    *transactionId = 0;
-#endif
 
     return;
 }

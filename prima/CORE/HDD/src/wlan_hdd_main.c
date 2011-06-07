@@ -141,7 +141,7 @@ static int hdd_netdev_notifier_call(struct notifier_block * nb,
         {
             if(TRUE == pAdapter->isLinkUpSvcNeeded)
                complete(&pAdapter->linkup_event_var);
-   	    }
+        }
         break;
 
    case NETDEV_GOING_DOWN:
@@ -169,7 +169,7 @@ extern void unregister_wlan_suspend(void);
 //variable to hold the insmod parameters
 static int con_mode = 0;
 #endif
-static VOS_CONCURRENCY_MODE concurrency_mode = 0;
+static tVOS_CONCURRENCY_MODE concurrency_mode = 0;
 
 int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
@@ -539,7 +539,7 @@ void wlan_hdd_release_intf_addr(hdd_context_t* pHddCtx, tANI_U8* releaseAddr)
       .ndo_get_stats = hdd_stats,
       .ndo_do_ioctl = hdd_ioctl,
       .ndo_set_mac_address = hdd_set_mac_address,
-      .ndo_select_queue	= hdd_select_queue,
+      .ndo_select_queue    = hdd_select_queue,
 
  };
 #ifdef CONFIG_CFG80211   
@@ -1148,7 +1148,7 @@ VOS_STATUS hdd_reconnect_all_adapters( hdd_context_t *pHddCtx )
          wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
          msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
 
-		 pWextState->roamProfile.csrPersona = pAdapter->device_mode; 
+         pWextState->roamProfile.csrPersona = pAdapter->device_mode; 
 
          sme_RoamConnect(pHddCtx->hHal,
                pAdapter->sessionId, &(pWextState->roamProfile), 
@@ -1385,8 +1385,11 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    hddLog(VOS_TRACE_LEVEL_ERROR,"In WLAN EXIT");
    
 #ifdef ANI_MANF_DIAG
-    wlan_hdd_ftm_close(pHddCtx);
-    goto free_hdd_ctx;
+    if (VOS_FTM_MODE == hdd_get_conparam())
+    {
+        wlan_hdd_ftm_close(pHddCtx);
+        goto free_hdd_ctx;
+    }
 #endif  
    //Stop the Interface TX queue.
    //netif_tx_disable(pWlanDev);
@@ -2086,7 +2089,7 @@ int hdd_wlan_startup(struct device *dev )
 
 #endif //WLAN_BTAMP_FEATURE
  
-
+#ifndef FEATURE_WLAN_NON_INTEGRATED_SOC
    /* Register with platform driver as client for Suspend/Resume */
    status = hddRegisterPmOps(pAdapter);
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
@@ -2094,6 +2097,7 @@ int hdd_wlan_startup(struct device *dev )
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddRegisterPmOps failed",__func__);
       goto err_vosclose;
    }
+#endif
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
    // Register suspend/resume callbacks
@@ -2185,7 +2189,7 @@ err_close_adapter:
 err_vosstop:
    vos_stop(pVosContext);
 
-err_vosclose:
+err_vosclose:	
    vos_close(pVosContext ); 
 
 err_balstop:
@@ -2532,12 +2536,12 @@ done:
 
   \param  - None
 
-  \return - VOS_CON_MODE
+  \return - tVOS_CON_MODE
 
   --------------------------------------------------------------------------*/
-VOS_CON_MODE hdd_get_conparam ( void )
+tVOS_CON_MODE hdd_get_conparam ( void )
 {
-    return (VOS_CON_MODE)con_mode;
+    return (tVOS_CON_MODE)con_mode;
 
 }
 void hdd_set_conparam ( v_UINT_t newParam )
@@ -2617,9 +2621,9 @@ void hdd_softap_tkip_mic_fail_counter_measure(hdd_adapter_t *pAdapter,v_BOOL_t e
  *         \return - CONCURRENCY MODE
  *
  *           --------------------------------------------------------------------------*/
-VOS_CONCURRENCY_MODE hdd_get_concurrency_mode ( void )
+tVOS_CONCURRENCY_MODE hdd_get_concurrency_mode ( void )
 {
-      return (VOS_CONCURRENCY_MODE)concurrency_mode;
+      return (tVOS_CONCURRENCY_MODE)concurrency_mode;
 
 }
 

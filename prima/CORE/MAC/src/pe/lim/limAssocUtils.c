@@ -3076,6 +3076,8 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     pAddBssParams->status = eHAL_STATUS_SUCCESS;
     pAddBssParams->respReqd = true;
 
+	pAddBssParams->halPersona = (tANI_U8)psessionEntry->pePersona; //update persona
+
     // Set a new state for MLME
     if( eLIM_MLM_WT_ASSOC_RSP_STATE == psessionEntry->limMlmState )
         psessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_ASSOC_STATE;
@@ -3301,6 +3303,8 @@ tSirRetStatus limStaSendAddBssPreAssoc( tpAniSirGlobal pMac, tANI_U8 updateEntry
     pAddBssParams->staContext.sessionId = psessionEntry->peSessionId;
     pAddBssParams->sessionId = psessionEntry->peSessionId;
     
+	pAddBssParams->halPersona = (tANI_U8)psessionEntry->pePersona; //update persona
+
     // Set a new state for MLME
 
     //pMac->lim.gLimMlmState = eLIM_MLM_WT_ADD_BSS_RSP_PREASSOC_STATE;
@@ -3508,6 +3512,8 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     // FIXME_GEN4 - Any other value that can be used for initialization?
     pAddBssParams->status = eHAL_STATUS_SUCCESS;
     pAddBssParams->respReqd = true;
+
+	pAddBssParams->halPersona = (tANI_U8)psessionEntry->pePersona; //update persona
 
     // Set a new state for MLME
     if( eLIM_MLM_WT_ASSOC_RSP_STATE == psessionEntry->limMlmState )

@@ -465,6 +465,283 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_HANDOFF_MIN, 
                  CFG_ENABLE_HANDOFF_MAX ),
 
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+   REG_VARIABLE( CFG_RSSI_FILTER_CONST_NO_WIFI_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nRssiFilterConstNoWifi, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_FILTER_CONST_NO_WIFI_DEFAULT, 
+                 CFG_RSSI_FILTER_CONST_NO_WIFI_MIN, 
+                 CFG_RSSI_FILTER_CONST_NO_WIFI_MAX ),
+
+   REG_VARIABLE( CFG_CHANNEL_SCAN_TIME_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nChannelScanTime, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_CHANNEL_SCAN_TIME_DEFAULT, 
+                 CFG_CHANNEL_SCAN_TIME_MIN, 
+                 CFG_CHANNEL_SCAN_TIME_MAX ),
+
+   REG_VARIABLE( CFG_RSSI_THRESH_NEIGH_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nRssiThreshNeigh, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_THRESH_NEIGH_DEFAULT, 
+                 CFG_RSSI_THRESH_NEIGH_MIN, 
+                 CFG_RSSI_THRESH_NEIGH_MAX ),
+
+   REG_VARIABLE( CFG_RSSI_THRESH_ASSOC_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nRssiThreshAssoc, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_THRESH_ASSOC_DEFAULT, 
+                 CFG_RSSI_THRESH_ASSOC_MIN, 
+                 CFG_RSSI_THRESH_ASSOC_MAX ),
+
+   REG_VARIABLE( CFG_ACTIVE_SCAN_INTERVAL_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nActiveScanInterval, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_ACTIVE_SCAN_INTERVAL_DEFAULT, 
+                 CFG_ACTIVE_SCAN_INTERVAL_MIN, 
+                 CFG_ACTIVE_SCAN_INTERVAL_MAX ),
+
+   REG_VARIABLE( CFG_ACTIVE_SCAN_DURATION_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nActiveScanDuration, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_ACTIVE_SCAN_DURATION_DEFAULT, 
+                 CFG_ACTIVE_SCAN_DURATION_MIN, 
+                 CFG_ACTIVE_SCAN_DURATION_MAX ),
+
+   REG_VARIABLE( CFG_RSSI_FILTER_CONST_NT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nRssiFilterConstNt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_FILTER_CONST_NT_DEFAULT, 
+                 CFG_RSSI_FILTER_CONST_NT_MIN, 
+                 CFG_RSSI_FILTER_CONST_NT_MAX ),
+
+   REG_VARIABLE( CFG_NUM_CANDIDATE_SET_NT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nNumCandidateSetNt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_NUM_CANDIDATE_SET_NT_DEFAULT, 
+                 CFG_NUM_CANDIDATE_SET_NT_MIN, 
+                 CFG_NUM_CANDIDATE_SET_NT_MAX ),
+
+   REG_VARIABLE( CFG_INACT_THRESH_NT_NAME , WLAN_PARAM_Integer, 
+                 hdd_config_t, nInactThreshNt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_INACT_THRESH_NT_DEFAULT, 
+                 CFG_INACT_THRESH_NT_MIN, 
+                 CFG_INACT_THRESH_NT_MAX ),
+
+   REG_VARIABLE( CFG_INACT_PERIOD_NT_NAME , WLAN_PARAM_Integer, 
+                 hdd_config_t, nInactPeriodNt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_INACT_PERIOD_NT_DEFAULT, 
+                 CFG_INACT_PERIOD_NT_MIN, 
+                 CFG_INACT_PERIOD_NT_MAX ),
+
+   REG_VARIABLE( CFG_BEST_CANDT_AP_RSSI_DELTA_NAME , WLAN_PARAM_Integer, 
+                 hdd_config_t, nBestCandidateApRssiDeltaNt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_BEST_CANDT_AP_RSSI_DELTA_DEFAULT, 
+                 CFG_BEST_CANDT_AP_RSSI_DELTA_MIN, 
+                 CFG_BEST_CANDT_AP_RSSI_DELTA_MAX ),
+   
+   REG_VARIABLE( CFG_NEIGH_AP_BG_SCAN_INTERVAL_NAME , WLAN_PARAM_Integer, 
+                 hdd_config_t, nNeighApBgScanIntervalNt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_NEIGH_AP_BG_SCAN_INTERVAL_DEFAULT, 
+                 CFG_NEIGH_AP_BG_SCAN_INTERVAL_MIN, 
+                 CFG_NEIGH_AP_BG_SCAN_INTERVAL_MAX ),
+
+   REG_VARIABLE( CFG_NEIGH_AP_INCR_NT_NAME , WLAN_PARAM_Integer, 
+                 hdd_config_t, nNeighApIncrNt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_NEIGH_AP_INCR_NT_DEFAULT, 
+                 CFG_NEIGH_AP_INCR_NT_MIN, 
+                 CFG_NEIGH_AP_INCR_NT_MAX ),
+   
+   REG_VARIABLE( CFG_RSSI_THRESH_CANDT_NT_NAME , WLAN_PARAM_Integer, 
+                 hdd_config_t, nRssiThreshCandidateNt, The device shall be able to block WLAN traffic between connected Wi-Fi clients when this setting is enabled. When disabled, traffic between connected Wi-Fi clients should be allowed ( this is default configuration).
+This is a Verizon required feature.
+
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_THRESH_CANDT_NT_DEFAULT, 
+                 CFG_RSSI_THRESH_CANDT_NT_MIN, 
+                 CFG_RSSI_THRESH_CANDT_NT_MAX ),
+
+   REG_VARIABLE( CFG_PMK_THRESH_RSSI_NT_NAME , WLAN_PARAM_Integer, 
+                 hdd_config_t, nPmkCacheRssiNt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_PMK_THRESH_RSSI_NT_DEFAULT, 
+                 CFG_PMK_THRESH_RSSI_NT_MIN, 
+                 CFG_PMK_THRESH_RSSI_NT_MAX ),
+
+  REG_VARIABLE( CFG_RSSI_THRESH_CURR_AP_NT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nRssiThresholdCurrentApGoodNt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_THRESH_CURR_AP_NT_DEFAULT, 
+                 CFG_RSSI_THRESH_CURR_AP_NT_MIN, 
+                 CFG_RSSI_THRESH_CURR_AP_NT_MAX ),
+   
+   REG_VARIABLE( CFG_RSSI_FILTER_CONST_NRT_NAME , WLAN_PARAM_Integer, 
+                 hdd_config_t, nRssiFilterConstNrt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_FILTER_CONST_NRT_DEFAULT, 
+                 CFG_RSSI_FILTER_CONST_NRT_MIN, 
+                 CFG_RSSI_FILTER_CONST_NRT_MAX ),
+
+   REG_VARIABLE( CFG_NUM_CANDIDATE_SET_NRT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nNumCandtSetEntryNrt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_NUM_CANDIDATE_SET_NRT_DEFAULT, 
+                 CFG_NUM_CANDIDATE_SET_NRT_MIN, 
+                 CFG_NUM_CANDIDATE_SET_NRT_MAX ),
+
+   REG_VARIABLE( CFG_RSSI_THRESH_CURR_AP_NRT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nRssiThresholdCurrentApGoodNrt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_THRESH_CURR_AP_NRT_DEFAULT, 
+                 CFG_RSSI_THRESH_CURR_AP_NRT_MIN, 
+                 CFG_RSSI_THRESH_CURR_AP_NRT_MAX ),
+
+   REG_VARIABLE( CFG_RSSI_THRESH_EMPTY_NRT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nRssiThresholdCurrentApGoodEmptyCandtsetNrt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_THRESH_EMPTY_NRT_DEFAULT, 
+                 CFG_RSSI_THRESH_EMPTY_NRT_MIN, 
+                 CFG_RSSI_THRESH_EMPTY_NRT_MAX ),
+
+   REG_VARIABLE( CFG_RSSI_THRESH_HO_NRT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nRssiThresholdHoFromCurrentApNrt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_THRESH_HO_NRT_DEFAULT, 
+                 CFG_RSSI_THRESH_HO_NRT_MIN, 
+                 CFG_RSSI_THRESH_HO_NRT_MAX ),
+
+   REG_VARIABLE( CFG_RSSI_THRESH_CDT_SET_NRT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nRssiThresholdCandtSetNrt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_THRESH_CDT_SET_NRT_DEFAULT, 
+                 CFG_RSSI_THRESH_CDT_SET_NRT_MIN, 
+                 CFG_RSSI_THRESH_CDT_SET_NRT_MAX ),
+
+   REG_VARIABLE( CFG_BG_SCAN_INTERVAL_NRT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nBgScanIntervalNrt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_BG_SCAN_INTERVAL_NRT_DEFAULT, 
+                 CFG_BG_SCAN_INTERVAL_NRT_MIN, 
+                 CFG_BG_SCAN_INTERVAL_NRT_MAX ),
+
+   REG_VARIABLE( CFG_BG_SCAN_INCR_INTERVAL_NRT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nBgScanIncrIntervalNrt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_BG_SCAN_INCR_INTERVAL_NRT_DEFAULT, 
+                 CFG_BG_SCAN_INCR_INTERVAL_NRT_MIN, 
+                 CFG_BG_SCAN_INCR_INTERVAL_NRT_MAX ),
+
+   REG_VARIABLE( CFG_BG_SCAN_DELAY_INTERVAL_NRT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nBgScanDelayIntervalNrt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_BG_SCAN_DELAY_INTERVAL_NRT_DEFAULT, 
+                 CFG_BG_SCAN_DELAY_INTERVAL_NRT_MIN, 
+                 CFG_BG_SCAN_DELAY_INTERVAL_NRT_MAX ),
+
+   REG_VARIABLE( CFG_PER_MSMT_INTERVAL_NRT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nPerMsmtIntervalNrt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_PER_MSMT_INTERVAL_NRT_DEFAULT, 
+                 CFG_PER_MSMT_INTERVAL_NRT_MIN, 
+                 CFG_PER_MSMT_INTERVAL_NRT_MAX ),
+
+   REG_VARIABLE( CFG_HO_FROM_CURR_AP_NRT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nPerThresholdHoFromCurrentApNrt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_HO_FROM_CURR_AP_NRT_DEFAULT, 
+                 CFG_HO_FROM_CURR_AP_NRT_MIN, 
+                 CFG_HO_FROM_CURR_AP_NRT_MAX ),
+
+   REG_VARIABLE( CFG_PMK_CACHE_RSSI_DELTA_NRT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nPmkCacheRssiDeltaNrt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_PMK_CACHE_RSSI_DELTA_NRT_DEFAULT, 
+                 CFG_PMK_CACHE_RSSI_DELTA_NRT_MIN, 
+                 CFG_PMK_CACHE_RSSI_DELTA_NRT_MAX ),
+
+   REG_VARIABLE( CFG_BEST_CDT_AP_RSSI_DELTA_NRT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nBestCandidateApRssiDeltaNrt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_BEST_CDT_AP_RSSI_DELTA_NRT_DEFAULT, 
+                 CFG_BEST_CDT_AP_RSSI_DELTA_NRT_MIN, 
+                 CFG_BEST_CDT_AP_RSSI_DELTA_NRT_MAX ),
+
+   REG_VARIABLE( CFG_RSSI_FILTER_CONST_RT_NAME , WLAN_PARAM_Integer, 
+                 hdd_config_t, nRssiFilterConstRt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_FILTER_CONST_RT_DEFAULT, 
+                 CFG_RSSI_FILTER_CONST_RT_MIN, 
+                 CFG_RSSI_FILTER_CONST_RT_MAX ),
+
+   REG_VARIABLE( CFG_NUM_CANDIDATE_SET_RT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nNumCandtSetEntryRt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_NUM_CANDIDATE_SET_RT_DEFAULT, 
+                 CFG_NUM_CANDIDATE_SET_RT_MIN, 
+                 CFG_NUM_CANDIDATE_SET_RT_MAX ),
+
+   REG_VARIABLE( CFG_RSSI_THRESH_CURR_AP_RT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nRssiThresholdCurrentApGoodRt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_THRESH_CURR_AP_RT_DEFAULT, 
+                 CFG_RSSI_THRESH_CURR_AP_RT_MIN, 
+                 CFG_RSSI_THRESH_CURR_AP_RT_MAX ),
+
+   REG_VARIABLE( CFG_RSSI_THRESH_HO_RT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nRssiThresholdHoFromCurrentApRt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_THRESH_HO_RT_DEFAULT, 
+                 CFG_RSSI_THRESH_HO_RT_MIN, 
+                 CFG_RSSI_THRESH_HO_RT_MAX ),
+
+   REG_VARIABLE( CFG_RSSI_THRESH_CDT_SET_RT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nRssiThresholdCandtSetRt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_RSSI_THRESH_CDT_SET_RT_DEFAULT, 
+                 CFG_RSSI_THRESH_CDT_SET_RT_MIN, 
+                 CFG_RSSI_THRESH_CDT_SET_RT_MAX ),
+
+   REG_VARIABLE( CFG_BG_SCAN_INTERVAL_RT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nBgScanIntervalRt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_BG_SCAN_INTERVAL_RT_DEFAULT, 
+                 CFG_BG_SCAN_INTERVAL_RT_MIN, 
+                 CFG_BG_SCAN_INTERVAL_RT_MAX ),
+
+   REG_VARIABLE( CFG_PER_MSMT_INTERVAL_RT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nPerMsmtIntervalRt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_PER_MSMT_INTERVAL_RT_DEFAULT, 
+                 CFG_PER_MSMT_INTERVAL_RT_MIN, 
+                 CFG_PER_MSMT_INTERVAL_RT_MAX ),
+
+   REG_VARIABLE( CFG_HO_FROM_CURR_AP_RT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nPerThresholdHoFromCurrentApRt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_HO_FROM_CURR_AP_RT_DEFAULT, 
+                 CFG_HO_FROM_CURR_AP_RT_MIN, 
+                 CFG_HO_FROM_CURR_AP_RT_MAX ),
+
+   REG_VARIABLE( CFG_PMK_CACHE_RSSI_DELTA_RT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nPmkCacheRssiDeltaRt, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_PMK_CACHE_RSSI_DELTA_RT_DEFAULT, 
+                 CFG_PMK_CACHE_RSSI_DELTA_RT_MIN, 
+                 CFG_PMK_CACHE_RSSI_DELTA_RT_MAX ),
+
+   REG_VARIABLE( CFG_BEST_CDT_AP_RSSI_DELTA_RT_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, nBestCandidateApRssiDeltaRt,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_BEST_CDT_AP_RSSI_DELTA_RT_DEFAULT, 
+                 CFG_BEST_CDT_AP_RSSI_DELTA_RT_MIN, 
+                 CFG_BEST_CDT_AP_RSSI_DELTA_RT_MAX ),
+
+#endif //#ifdef FEATURE_WLAN_GEN6_ROAMING
 
    REG_VARIABLE( CFG_ENABLE_IDLE_SCAN_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, nEnableIdleScan, 
@@ -1080,6 +1357,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_BT_AMP_PREFERRED_CHANNEL_MIN,
                  CFG_BT_AMP_PREFERRED_CHANNEL_MAX ),
 #endif //WLAN_BTAMP_FEATURE
+   REG_VARIABLE( CFG_BAND_CAPABILITY_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, nBandCapability, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_BAND_CAPABILITY_DEFAULT, 
+                 CFG_BAND_CAPABILITY_MIN, 
+                 CFG_BAND_CAPABILITY_MAX ), 
+
 };                                
 
 /*
@@ -1408,6 +1692,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
 #ifdef WLAN_BTAMP_FEATURE
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [BtAmpPreferredChannel] Value = [%u] ",pHddCtx->cfg_ini->preferredChannel);
 #endif //WLAN_BTAMP_FEATURE
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [BandCapability] Value = [%u] ",pHddCtx->cfg_ini->nBandCapability);
 }
 
 
@@ -1848,6 +2133,62 @@ static VOS_STATUS hdd_string_to_u8_array( char *str, tANI_U8 *intArray, tANI_U8 
 }
 #endif
 
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+
+static VOS_STATUS hdd_get_ho_config ( hdd_config_t *pConfig, tSmeHoConfigParams *smeHoCfg )
+{
+
+   //No Wifi Params
+   smeHoCfg->csrHoConfig.noWifiParams.rssiFilterConst = pConfig->nRssiFilterConstNoWifi;
+   smeHoCfg->csrHoConfig.noWifiParams.channelScanTime = pConfig->nChannelScanTime;
+   smeHoCfg->csrHoConfig.noWifiParams.rssiThresholdNeighborSet = pConfig->nRssiThreshNeigh;
+   smeHoCfg->csrHoConfig.noWifiParams.rssiThresholdAssociationAdd = pConfig->nRssiThreshAssoc;
+   smeHoCfg->csrHoConfig.noWifiParams.activeScanInterval = pConfig->nActiveScanInterval;
+   smeHoCfg->csrHoConfig.noWifiParams.activeScanDuration = pConfig->nActiveScanDuration;
+
+   //No Traffic Params
+   smeHoCfg->csrHoConfig.ntParams.rssiFilterConst = pConfig->nRssiFilterConstNt;
+   smeHoCfg->csrHoConfig.ntParams.numCandtSetEntry = pConfig->nNumCandidateSetNt;
+   smeHoCfg->csrHoConfig.ntParams.inactThreshold = pConfig->nInactThreshNt;
+   smeHoCfg->csrHoConfig.ntParams.inactPeriod = pConfig->nInactPeriodNt;
+   smeHoCfg->csrHoConfig.ntParams.bestCandidateApRssiDelta = pConfig->nBestCandidateApRssiDeltaNt;
+   smeHoCfg->csrHoConfig.ntParams.neighborApBgScanInterval = pConfig->nNeighApBgScanIntervalNt;
+   smeHoCfg->csrHoConfig.ntParams.neighborApIncrBgScanInterval = pConfig->nNeighApIncrNt;
+   smeHoCfg->csrHoConfig.ntParams.rssiThresholdCandtSet = pConfig->nRssiThreshCandidateNt;
+   smeHoCfg->csrHoConfig.ntParams.pmkCacheRssiDelta = pConfig->nPmkCacheRssiNt;
+   smeHoCfg->csrHoConfig.ntParams.rssiThresholdCurrentApGood = pConfig->nRssiThresholdCurrentApGoodNt;
+
+   //Non Real Time Params
+   smeHoCfg->csrHoConfig.nrtParams.rssiFilterConst = pConfig->nRssiFilterConstNrt;
+   smeHoCfg->csrHoConfig.nrtParams.numCandtSetEntry= pConfig->nNumCandtSetEntryNrt; 
+   smeHoCfg->csrHoConfig.nrtParams.rssiThresholdCurrentApGood = pConfig->nRssiThresholdCurrentApGoodNrt;
+   smeHoCfg->csrHoConfig.nrtParams.rssiThresholdCurrentApGoodEmptyCandtset = 
+     pConfig->nRssiThresholdCurrentApGoodEmptyCandtsetNrt;
+   smeHoCfg->csrHoConfig.nrtParams.rssiThresholdHoFromCurrentAp = pConfig->nRssiThresholdHoFromCurrentApNrt;
+   smeHoCfg->csrHoConfig.nrtParams.rssiThresholdCandtSet = pConfig->nRssiThresholdCandtSetNrt;
+   smeHoCfg->csrHoConfig.nrtParams.bgScanInterval = pConfig->nBgScanIntervalNrt;
+   smeHoCfg->csrHoConfig.nrtParams.bgScanIncrInterval = pConfig->nBgScanIncrIntervalNrt;
+   smeHoCfg->csrHoConfig.nrtParams.bgScanDelayInterval = pConfig->nBgScanDelayIntervalNrt;
+   smeHoCfg->csrHoConfig.nrtParams.perMsmtInterval = pConfig->nPerMsmtIntervalNrt;
+   smeHoCfg->csrHoConfig.nrtParams.perThresholdHoFromCurrentAp = pConfig->nPerThresholdHoFromCurrentApNrt;
+   smeHoCfg->csrHoConfig.nrtParams.pmkCacheRssiDelta = pConfig->nPmkCacheRssiDeltaNrt;
+   smeHoCfg->csrHoConfig.nrtParams.bestCandidateApRssiDelta = pConfig->nBestCandidateApRssiDeltaNrt;
+
+   // Real time params
+   smeHoCfg->csrHoConfig.rtParams.rssiFilterConst = pConfig->nRssiFilterConstRt;
+   smeHoCfg->csrHoConfig.rtParams.numCandtSetEntry = pConfig->nNumCandtSetEntryRt;
+   smeHoCfg->csrHoConfig.rtParams.rssiThresholdCurrentApGood = pConfig->nRssiThresholdCurrentApGoodRt;
+   smeHoCfg->csrHoConfig.rtParams.rssiThresholdHoFromCurrentAp = pConfig->nRssiThresholdHoFromCurrentApRt;
+   smeHoCfg->csrHoConfig.rtParams.rssiThresholdCandtSet = pConfig->nRssiThresholdCandtSetRt;
+   smeHoCfg->csrHoConfig.rtParams.bgScanInterval = pConfig->nBgScanIntervalRt;
+   smeHoCfg->csrHoConfig.rtParams.perMsmtInterval = pConfig->nPerMsmtIntervalRt;
+   smeHoCfg->csrHoConfig.rtParams.perThresholdHoFromCurrentAp = pConfig->nPerThresholdHoFromCurrentApRt;
+   smeHoCfg->csrHoConfig.rtParams.pmkCacheRssiDelta = pConfig->nPmkCacheRssiDeltaRt;
+   smeHoCfg->csrHoConfig.rtParams.bestCandidateApRssiDelta = pConfig->nBestCandidateApRssiDeltaRt;
+
+   return VOS_STATUS_SUCCESS;
+}
+#endif //FEATURE_WLAN_GEN6_ROAMING
 
 v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
 {
@@ -2146,6 +2487,9 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    eHalStatus halStatus;
    tSmeConfigParams smeConfig;
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+   tSmeHoConfigParams smeHoCfg;
+#endif
 
    hdd_config_t *pConfig = pHddCtx->cfg_ini;
 
@@ -2198,10 +2542,10 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
    smeConfig.csrConfig.ProprietaryRatesEnabled   = 0;  
    smeConfig.csrConfig.HeartbeatThresh50         = 40; 
    smeConfig.csrConfig.Is11hSupportEnabled       = 0; 
-   smeConfig.csrConfig.bandCapability            = eCSR_BAND_24; 
+   smeConfig.csrConfig.bandCapability            = pConfig->nBandCapability; 
    smeConfig.csrConfig.cbChoice                  = 0;   
    smeConfig.csrConfig.bgScanInterval            = 0; 
-   smeConfig.csrConfig.eBand                     = eCSR_BAND_24; 
+   smeConfig.csrConfig.eBand                     = pConfig->nBandCapability; 
    smeConfig.csrConfig.nTxPowerCap = pConfig->nTxPowerCap;
    
    //FIXME 11d config is hardcoded
@@ -2269,6 +2613,18 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
       status = VOS_STATUS_E_FAILURE;
    }
 
+#ifdef FEATURE_WLAN_GEN6_ROAMING   
+   if (VOS_IS_STATUS_SUCCESS(hdd_get_ho_config ( pConfig, &smeHoCfg )))
+   {
+      halStatus = sme_HoConfig(pHddCtx->hHal, &smeHoCfg);
+      if ( !HAL_STATUS_SUCCESS( halStatus ) )
+      {
+		     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+		   		   "Passing HO config info from registry to SME failed");
+         status = VOS_STATUS_E_FAILURE;
+      }
+   } 
+#endif
    
    return status;   
 }
