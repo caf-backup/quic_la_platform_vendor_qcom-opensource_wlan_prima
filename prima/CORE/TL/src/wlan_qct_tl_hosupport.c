@@ -35,7 +35,7 @@
 ===========================================================================*/
 #include "wlan_qct_tl.h" 
 #include "wlan_qct_wda.h"
-#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/

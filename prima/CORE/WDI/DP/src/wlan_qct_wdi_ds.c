@@ -61,8 +61,15 @@ WDI_Status WDI_DS_Register( void *pContext,
     return WDI_STATUS_E_FAILURE;
   }
   
-  // Create a memory pool for BDheaders.
-  sWdiStatus = WDI_DS_MemPoolCreate(&pClientData->memPool, WDI_DS_MAX_CHUNK_SIZE);
+  // Create a memory pool for Mgmt BDheaders.
+  sWdiStatus = WDI_DS_MemPoolCreate(&pClientData->mgmtMemPool, WDI_DS_MAX_CHUNK_SIZE, 
+                                                     WDI_DS_HI_PRI_RES_NUM);
+  if(WDI_STATUS_SUCCESS != sWdiStatus)
+    return sWdiStatus;
+
+  // Create a memory pool for Data BDheaders.
+  sWdiStatus = WDI_DS_MemPoolCreate(&pClientData->dataMemPool, WDI_DS_MAX_CHUNK_SIZE, 
+                                                      WDI_DS_LO_PRI_RES_NUM);
   if(WDI_STATUS_SUCCESS != sWdiStatus)
     return sWdiStatus;
 
@@ -101,22 +108,18 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
   wpt_uint8      ucTypeSubtype;
   wpt_uint8      alignment;
   wpt_uint8      ucTxFlag;
-  wpt_uint8* pSTAMACAddress;
-  wpt_uint8* pAddr2MACAddress;
+  wpt_uint8*     pSTAMACAddress;
+  wpt_uint8*     pAddr2MACAddress;
   WDI_DS_TxMetaInfoType     *pTxMetadata;
   void *physBDHeader, *pvBDHeader;
+  wpt_uint8      ucType;
+  WDI_DS_BdMemPoolType *pMemPool;
+  wpt_uint8      ucBdPoolType;
 
   // Do Sanity checks
   if(NULL == pContext || pClientData->suspend){
     return WDI_STATUS_E_FAILURE;
   }
-
-  // Allocate BD header from pool
-  pvBDHeader = WDI_DS_MemPoolAlloc(&(pClientData->memPool), &physBDHeader);
-  if(NULL == pvBDHeader)
-    return WDI_STATUS_E_FAILURE;
-    
-  WDI_SetBDPointers(pFrame, pvBDHeader, physBDHeader);
 
   // extract metadata from PAL packet
   pTxMetadata = WDI_DS_ExtractTxMetaData(pFrame);
@@ -127,18 +130,43 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
   pSTAMACAddress = &(pTxMetadata->fSTAMACAddress[0]);
   pAddr2MACAddress = &(pTxMetadata->addr2MACAddress[0]);
 
+  /*------------------------------------------------------------------------
+     Get type and subtype of the frame first 
+  ------------------------------------------------------------------------*/
+  ucType = (ucTypeSubtype & WDI_FRAME_TYPE_MASK) >> WDI_FRAME_TYPE_OFFSET;
+  switch(ucType)
+  {
+    case WDI_MAC_DATA_FRAME:
+       pMemPool = &(pClientData->dataMemPool);
+       ucBdPoolType = WDI_DATA_POOL_ID;
+    break;
+    case WDI_MAC_MGMT_FRAME:
+       pMemPool = &(pClientData->mgmtMemPool);
+       ucBdPoolType = WDI_MGMT_POOL_ID;
+    break;
+    default:
+      return WDI_STATUS_E_FAILURE;;
+  }
+
+  // Allocate BD header from pool
+  pvBDHeader = WDI_DS_MemPoolAlloc(pMemPool, &physBDHeader, ucBdPoolType);
+  if(NULL == pvBDHeader)
+    return WDI_STATUS_E_FAILURE;
+      
+  WDI_SetBDPointers(pFrame, pvBDHeader, physBDHeader);
+
   alignment = 0;
   WDI_DS_PrepareBDHeader(pFrame, ucSwFrameTXXlation, alignment);
 
   if(WDI_STATUS_SUCCESS != 
       WDI_FillTxBd( pContext, ucTypeSubtype, pSTAMACAddress, pAddr2MACAddress, 
         &ucUP, 1, pvBDHeader, ucTxFlag /* No ACK */, 0 )){
-    WDI_DS_MemPoolFree(&(pClientData->memPool), pvBDHeader, physBDHeader);
+    WDI_DS_MemPoolFree(pMemPool, pvBDHeader, physBDHeader);
     return WDI_STATUS_E_FAILURE;
   }
   // Send packet to transport layer.
   if(eWLAN_PAL_STATUS_SUCCESS !=WDTS_TxPacket(pContext, pFrame)){
-    WDI_DS_MemPoolFree(&(pClientData->memPool), pvBDHeader, physBDHeader);
+    WDI_DS_MemPoolFree(pMemPool, pvBDHeader, physBDHeader);
     return WDI_STATUS_E_FAILURE;
   }  
 
@@ -183,4 +211,27 @@ WDI_Status WDI_DS_TxResume(void *pContext)
   pClientData->suspend = 0;
 
   return WDI_STATUS_SUCCESS;  
+}
+
+/* DAL Get Available Resource Count. 
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ *  wdiResPool: - identifier of resource pool
+ * Return Value: number of resources available
+ *
+ */
+
+wpt_uint32 WDI_GetAvailableResCount(void *pContext,WDI_ResPoolType wdiResPool)
+{
+  WDI_DS_ClientDataType *pClientData =  
+    (WDI_DS_ClientDataType *) WDI_DS_GetDatapathContext(pContext);
+  switch(wdiResPool)
+  {
+    case WDI_MGMT_POOL_ID:
+      return (WDI_DS_HI_PRI_RES_NUM - WDI_DS_GetAvailableResCount(&pClientData->mgmtMemPool));
+    case WDI_DATA_POOL_ID:
+      return (WDI_DS_LO_PRI_RES_NUM - WDI_DS_GetAvailableResCount(&pClientData->dataMemPool));
+    default:
+      return 0;
+  }
 }

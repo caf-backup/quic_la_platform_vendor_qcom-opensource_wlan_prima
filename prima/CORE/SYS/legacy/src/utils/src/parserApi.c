@@ -1668,11 +1668,6 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
         ConvertExtSuppRates( pMac, &pProbeResp->extendedRates, &pr.ExtSuppRates );
     }
 
-    if ( pr.DSParams.present )
-    {
-        pProbeResp->dsParamsPresent = 1;
-        pProbeResp->channelNumber = pr.DSParams.curr_channel;
-    }
 
     if ( pr.CFParams.present )
     {
@@ -1732,6 +1727,16 @@ tSirRetStatus sirConvertProbeFrame2Struct(tpAniSirGlobal       pMac,
     if ( pr.HTInfo.present )
     {
         palCopyMemory( pMac, &pProbeResp->HTInfo, &pr.HTInfo, sizeof( tDot11fIEHTInfo ) );
+    }
+
+    if ( pr.DSParams.present )
+    {
+        pProbeResp->dsParamsPresent = 1;
+        pProbeResp->channelNumber = pr.DSParams.curr_channel;
+    }
+    else if(pr.HTInfo.present)
+    {
+        pProbeResp->channelNumber = pr.HTInfo.primaryChannel;
     }
 
     if ( pr.RSN.present )
@@ -2310,12 +2315,6 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
         ConvertExtSuppRates( pMac, &pBeaconStruct->extendedRates, &bies.ExtSuppRates );
     }
 
-    if ( bies.DSParams.present )
-    {
-        pBeaconStruct->dsParamsPresent = 1;
-        pBeaconStruct->channelNumber = bies.DSParams.curr_channel;
-    }
-
     if ( bies.CFParams.present )
     {
         pBeaconStruct->cfPresent = 1;
@@ -2398,6 +2397,16 @@ sirParseBeaconIE(tpAniSirGlobal        pMac,
         palCopyMemory( pMac, &pBeaconStruct->HTInfo, &bies.HTInfo, sizeof( tDot11fIEHTInfo ) );
     }
 
+    if ( bies.DSParams.present )
+    {
+        pBeaconStruct->dsParamsPresent = 1;
+        pBeaconStruct->channelNumber = bies.DSParams.curr_channel;
+    }
+    else if(bies.HTInfo.present)
+    {
+        pBeaconStruct->channelNumber = bies.HTInfo.primaryChannel;
+    }
+    
     if ( bies.RSN.present )
     {
         pBeaconStruct->rsnPresent = 1;
@@ -2525,11 +2534,6 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
         ConvertExtSuppRates( pMac, &pBeaconStruct->extendedRates, &beacon.ExtSuppRates );
     }
 
-    if ( beacon.DSParams.present )
-    {
-        pBeaconStruct->dsParamsPresent = 1;
-        pBeaconStruct->channelNumber = beacon.DSParams.curr_channel;
-    }
 
     if ( beacon.CFParams.present )
     {
@@ -2605,6 +2609,16 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     {
         palCopyMemory( pMac, &pBeaconStruct->HTInfo, &beacon.HTInfo, sizeof( tDot11fIEHTInfo) );
 
+    }
+
+    if ( beacon.DSParams.present )
+    {
+        pBeaconStruct->dsParamsPresent = 1;
+        pBeaconStruct->channelNumber = beacon.DSParams.curr_channel;
+    }
+    else if(beacon.HTInfo.present)
+    {
+        pBeaconStruct->channelNumber = beacon.HTInfo.primaryChannel;
     }
 
     if ( beacon.RSN.present )

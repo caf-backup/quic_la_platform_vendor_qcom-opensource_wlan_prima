@@ -20,12 +20,27 @@
 #include "wlan_qct_pal_status.h"
 #include "wlan_qct_pal_packet.h"
 #include "wlan_qct_wdi_ds.h"
+#include "wlan_qct_dxe.h" 
 
 
 #define WDI_DS_MAX_CHUNK_SIZE 128
 #define WDI_802_11_MAX_HEADER_LEN 40
-#define MAX_NUM_CHUNKS 32
 
+
+/*The number of resources (BD headers) available for the HI priority DXE 
+  channel
+  DXE will use 1 descriptor for the BD header and 1 for the data =>
+  the number of resources available = half the DXE descriptors*/
+#define WDI_DS_HI_PRI_RES_NUM  (WLANDXE_HI_PRI_RES_NUM/2)
+
+/*The number of resources (BD headers) available for the Low priority DXE 
+  channel - see above
+*/
+#define WDI_DS_LO_PRI_RES_NUM  (WLANDXE_LO_PRI_RES_NUM/2)
+
+/*The number of BD headers available in the system for Tx must match the number 
+  of DXE descriptors available for actual transmission, otherwise we have to
+  manage two diffrent level of resource pools*/
 
 #define WDI_MAC_ADDR_SIZE ( 6 )
 /*802.3 header definitions*/
@@ -64,12 +79,12 @@ typedef struct {
   wpt_uint32 poolSize;
   wpt_uint32 numChunks;
   wpt_uint32 chunkSize;
-  wpt_uint32 AllocationBitmap[MAX_NUM_CHUNKS/32];
-  
+  wpt_uint32* AllocationBitmap; 
+
 } WDI_DS_BdMemPoolType;
 
-WDI_Status WDI_DS_MemPoolCreate(WDI_DS_BdMemPoolType *memPool, wpt_uint8 chunk_size);
-void *WDI_DS_MemPoolAlloc(WDI_DS_BdMemPoolType *memPool, void **pPhysAddress);
+WDI_Status WDI_DS_MemPoolCreate(WDI_DS_BdMemPoolType *memPool, wpt_uint8 chunkSize, wpt_uint8 numChunks);
+void *WDI_DS_MemPoolAlloc(WDI_DS_BdMemPoolType *memPool, void **pPhysAddress, WDI_ResPoolType wdiResPool);
 void  WDI_DS_MemPoolFree(WDI_DS_BdMemPoolType *memPool, void *pVirtAddress, void *pPhysAddress);
 
 
@@ -78,7 +93,8 @@ typedef struct
   void                            *pcontext;
   void                            *pCallbackContext;
   wpt_uint8			   suspend;	
-  WDI_DS_BdMemPoolType		   memPool;       
+  WDI_DS_BdMemPoolType		   mgmtMemPool;       
+  WDI_DS_BdMemPoolType		   dataMemPool;       
   WDI_DS_RxPacketCallback          receiveFrameCB;
   WDI_DS_TxCompleteCallback        txCompleteCB;
   WDI_DS_TxFlowControlCallback     txResourceCB;
@@ -105,5 +121,15 @@ WDI_DS_PrepareBDHeader (
   wpt_uint8       alignment
 );
 
+/**
+ @brief Returns the available number of resources (BD headers) 
+        available for TX
+ 
+ @param  pMemPool:         pointer to the BD memory pool 
+  
+ @see
+ @return Result of the function call
+*/
+wpt_uint32 WDI_DS_GetAvailableResCount(WDI_DS_BdMemPoolType *pMemPool);
 
 #endif

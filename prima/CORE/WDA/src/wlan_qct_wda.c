@@ -349,7 +349,7 @@ VOS_STATUS WDA_start(v_PVOID_t pVosContext)
       /* call WDI start */
       wdiStatus = WDI_Start(wdiStartParam, 
                 (WDI_StartRspCb)WDA_wdiStartCallback,(v_VOID_t *)pVosContext);
-      if ( WDI_STATUS_SUCCESS != wdiStatus )
+      if ( IS_WDI_STATUS_FAILURE(wdiStatus) )
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                                      "WDI Start failed" );
@@ -3989,7 +3989,7 @@ void WDA_DelBAReqCallback(WDI_Status status, void* pUserData)
 {
    tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
    tDelBAParams *pDelBAReqParams = 
-                           (tDelBAParams *)pWDA->wdaMsgParam ;
+                           (tDelBAParams *)pWDA->wdaDelBAMsgParam ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
@@ -4005,9 +4005,9 @@ void WDA_DelBAReqCallback(WDI_Status status, void* pUserData)
     * No respone required for WDA_DELBA_IND so just free the request 
     * param here
     */
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   vos_mem_free(pWDA->wdaWdiDelBAApiMsgParam) ;
+   pWDA->wdaWdiDelBAApiMsgParam = NULL;
+   pWDA->wdaDelBAMsgParam = NULL;
 
    return ;
 }
@@ -4035,14 +4035,14 @@ VOS_STATUS WDA_ProcessDelBAReq(tWDA_CbContext *pWDA,
    wdiDelBAReqParam->wdiBAInfo.ucBaDirection = pDelBAReqParams->baDirection;
    wdiDelBAReqParam->wdiReqStatusCB = NULL ;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                                       (NULL == pWDA->wdaWdiApiMsgParam));
+   WDA_VOS_ASSERT((NULL == pWDA->wdaDelBAMsgParam) && 
+                                       (NULL == pWDA->wdaWdiDelBAApiMsgParam));
 
    /* Store DEL BA pointer, as this will be used for response */
-   pWDA->wdaMsgParam = (void *)pDelBAReqParams ;
+   pWDA->wdaDelBAMsgParam = (void *)pDelBAReqParams ;
 
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiDelBAReqParam ;
+   pWDA->wdaWdiDelBAApiMsgParam = (void *)wdiDelBAReqParam ;
 
    status = WDI_DelBAReq(wdiDelBAReqParam, 
                                   (WDI_DelBARspCb)WDA_DelBAReqCallback, pWDA);
@@ -4051,10 +4051,10 @@ VOS_STATUS WDA_ProcessDelBAReq(tWDA_CbContext *pWDA,
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
               "Failure in DEL BA REQ Params WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      vos_mem_free(pWDA->wdaMsgParam);
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWDA->wdaWdiDelBAApiMsgParam) ;
+      vos_mem_free(pWDA->wdaDelBAMsgParam);
+      pWDA->wdaWdiDelBAApiMsgParam = NULL;
+      pWDA->wdaDelBAMsgParam = NULL;
    }
 
    return CONVERT_WDI2VOS_STATUS(status) ;
@@ -7064,7 +7064,7 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
                                                          void* pUserData )
 {
    tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData;
-#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
    tSirRSSINotification rssiNotification;
 #endif
 
@@ -7072,7 +7072,7 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
    {
       case WDI_HAL_RSSI_NOTIFICATION_IND:
       {
-#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
          rssiNotification.bReserved = 
             wdiLowLevelInd->wdiIndicationData.wdiLowRSSIInfo.bReserved;
          rssiNotification.bRssiThres1NegCross = 

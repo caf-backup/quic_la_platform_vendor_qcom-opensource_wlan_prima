@@ -88,7 +88,7 @@ when        who    what, where, why
 // How do I get halHandle from voss context? 
 #define VOS_GET_HAL_CB(ctx) vos_get_context( VOS_MODULE_ID_SME, ctx) 
 
-// Default timeout values (in BR/EDR baseband slots) 
+// Default timeout values (in BR/EDR baseband slots)
 // Physical Link Connection Accept Timer interval (0x1FA0 * 0.625 = 5.06 sec)
 /* chose to double it to 3FFF as we saw conn timeout in lab*/
 //#define WLANBAP_CONNECTION_ACCEPT_TIMEOUT  0xFFFF

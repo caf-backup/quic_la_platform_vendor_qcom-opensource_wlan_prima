@@ -260,27 +260,27 @@ void wlan_hdd_cfg80211_post_voss_start(hdd_adapter_t* pAdapter)
       frame register ops, we will move this code as a part of that */
     /* GAS Initial Request */
     sme_RegisterMgmtFrame(hHal, pAdapter->sessionId, type, 
-                         (v_U8_t*)GAS_INITIAL_REQ, 2 );
+                         (v_U8_t*)GAS_INITIAL_REQ, GAS_INITIAL_REQ_SIZE );
 
     /* GAS Initial Response */
     sme_RegisterMgmtFrame(hHal, pAdapter->sessionId, type,
-                         (v_U8_t*)GAS_INITIAL_RSP, 2 );
+                         (v_U8_t*)GAS_INITIAL_RSP, GAS_INITIAL_RSP_SIZE );
     
     /* GAS Comeback Request */
     sme_RegisterMgmtFrame(hHal, pAdapter->sessionId, type,
-                         (v_U8_t*)GAS_COMEBACK_REQ, 2 );
+                         (v_U8_t*)GAS_COMEBACK_REQ, GAS_COMEBACK_REQ_SIZE );
 
     /* GAS Comeback Response */
     sme_RegisterMgmtFrame(hHal, pAdapter->sessionId, type,
-                         (v_U8_t*)GAS_COMEBACK_RSP, 2 );
+                         (v_U8_t*)GAS_COMEBACK_RSP, GAS_COMEBACK_RSP_SIZE );
 
     /* P2P Public Action */
     sme_RegisterMgmtFrame(hHal, pAdapter->sessionId, type,
-                         (v_U8_t*)P2P_PUBLIC_ACTION_FRAME, 6 );
+                         (v_U8_t*)P2P_PUBLIC_ACTION_FRAME, P2P_PUBLIC_ACTION_FRAME_SIZE );
 
     /* P2P Action */
     sme_RegisterMgmtFrame(hHal, pAdapter->sessionId, type,
-                         (v_U8_t*)P2P_ACTION_FRAME, 5 );
+                         (v_U8_t*)P2P_ACTION_FRAME, P2P_PUBLIC_ACTION_FRAME_SIZE );
 #endif /* WLAN_FEATURE_P2P */
 }
 
@@ -436,7 +436,7 @@ v_U8_t* wlan_hdd_cfg80211_get_p2p_ie_ptr(v_U8_t *pIes, int length)
         }
         if (elem_id == eid) 
         {
-            if(memcmp( &ptr[2],"\x50\x6f\x9a\x09", 4)==0)
+            if(memcmp( &ptr[2],P2P_OUI_TYPE, P2P_OUI_TYPE_SIZE)==0)
                 return ptr;
         }
  
@@ -649,8 +649,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
       EXIT();
       return 0;
     }
-	
-	pConfig->persona = pHostapdAdapter->device_mode;
+    
+    pConfig->persona = pHostapdAdapter->device_mode;
 
     pSapEventCallback = hdd_hostapd_SAPEventCB;
     if(WLANSAP_StartBss(pVosContext, pSapEventCallback, pConfig,(v_PVOID_t)pHostapdAdapter->dev) != VOS_STATUS_SUCCESS)
@@ -858,6 +858,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
         switch (type) 
         {
             case NL80211_IFTYPE_STATION:
+            case NL80211_IFTYPE_P2P_CLIENT:
                 hddLog(VOS_TRACE_LEVEL_INFO, 
                         "%s: setting interface Type to INFRASTRUCTURE", __func__);
                 pRoamProfile->BSSType = eCSR_BSS_TYPE_INFRASTRUCTURE;
@@ -874,13 +875,17 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 break;
            
             case NL80211_IFTYPE_AP:
-               hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: setting interface Type to SoftAP",
-                     __func__);
+            case NL80211_IFTYPE_P2P_GO:                
+               hddLog(VOS_TRACE_LEVEL_INFO_HIGH, 
+                      "%s: setting interface Type to %s", __func__, 
+                      (type == NL80211_IFTYPE_AP) ? "SoftAP" : "P2pGo");
+
                //De-init the adapter.
                hdd_stop_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
                hdd_deinit_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
 #ifdef WLAN_SOFTAP_FEATURE
-               pAdapter->device_mode = WLAN_HDD_SOFTAP;
+               pAdapter->device_mode = (type == NL80211_IFTYPE_AP) ? 
+                                   WLAN_HDD_SOFTAP : WLAN_HDD_P2P_GO;
                hdd_set_ap_ops( pAdapter->dev );
                
                status = hdd_init_ap_mode(pAdapter);
@@ -917,6 +922,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
        switch(type)
        {       
            case NL80211_IFTYPE_STATION:
+           case NL80211_IFTYPE_P2P_CLIENT:               
            case NL80211_IFTYPE_ADHOC:
                wdev->iftype = type;
                pAdapter->device_mode = WLAN_HDD_INFRA_STATION;
@@ -928,6 +934,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                hdd_init_station_mode( pAdapter );
                goto done;
             case NL80211_IFTYPE_AP:
+            case NL80211_IFTYPE_P2P_GO:
               
                wdev->iftype = type;
                goto done;
@@ -993,7 +1000,7 @@ static int wlan_hdd_change_station(struct wiphy *wiphy,
         }
       }
     }
-	
+    
     return status;
 }
 
@@ -1716,7 +1723,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     memcpy(mgmt->u.probe_resp.variable, ie, ie_length);
 
     mgmt->frame_control |=
-        (u16)( (SIR_MAC_MGMT_FRAME << 2) | (SIR_MAC_MGMT_PROBE_RSP << 4));
+        (u16)(IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_PROBE_RESP);
 
     bss_status = cfg80211_inform_bss_frame(wiphy, chan, mgmt,
             frame_len, 0, GFP_KERNEL);
@@ -1808,7 +1815,7 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
         bss_status = wlan_hdd_cfg80211_inform_bss_frame(pAdapter,
                 &pScanResult->BssDescriptor);
 #endif
-	
+    
 
         if (NULL == bss_status)
         {
@@ -1946,18 +1953,18 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
         {
             /* TODO:
              * Populate: SSID for all ssids
-	     * Right now we are supporting only one SSID.
-	     */            
+         * Right now we are supporting only one SSID.
+         */            
 
             scanRequest.SSIDs.numOfSSIDs = request->n_ssids;
             scanRequest.SSIDs.SSIDList =(tCsrSSIDInfo *)vos_mem_malloc(sizeof(tCsrSSIDInfo));
             scanRequest.SSIDs.SSIDList->SSID.length = request->ssids->ssid_len;
             vos_mem_copy(scanRequest.SSIDs.SSIDList->SSID.ssId,
                     request->ssids->ssid,request->ssids->ssid_len);
-	}
+    }
         
-	/*Set the scan type to default type, in this case it is ACTIVE*/
-	scanRequest.scanType = (WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->scan_mode;
+    /*Set the scan type to default type, in this case it is ACTIVE*/
+    scanRequest.scanType = (WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->scan_mode;
         scanRequest.minChnTime = cfg_param->nActiveMinChnTime; 
         scanRequest.maxChnTime = cfg_param->nActiveMaxChnTime;
     }
@@ -2112,8 +2119,8 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
             /*set auth*/
             hdd_set_csr_auth_type(pAdapter, RSNAuthType);
         }
-		
-		pRoamProfile->csrPersona = pAdapter->device_mode;
+        
+        pRoamProfile->csrPersona = pAdapter->device_mode;
 
         status = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId,
                                          pRoamProfile, &roamId);
@@ -2320,15 +2327,15 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
     {
         v_U16_t eLen = 0;
         u_int8_t *pos;
-    	v_U8_t elementId;
+        v_U8_t elementId;
         v_U16_t len;
-    	elementId = *genie++;
-    	eLen  = *genie++;
-    	remLen -= 2;
+        elementId = *genie++;
+        eLen  = *genie++;
+        remLen -= 2;
     
         hddLog(VOS_TRACE_LEVEL_INFO, "%s: IE[0x%X], LEN[%d]\n", 
             __func__, elementId, eLen);
-    	 
+         
         switch ( elementId ) 
         {
             case DOT11F_EID_WPA: 
@@ -2535,7 +2542,7 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                     pWextState->roamProfile.nWPAReqIELength = eLen + 2;//ie_len;
                 }
 #ifdef WLAN_FEATURE_P2P
-                else if (0 == memcmp(&genie[0], "\x50\x6f\x9a\x09", 4)) 
+                else if (0 == memcmp(&genie[0], P2P_OUI_TYPE, P2P_OUI_TYPE_SIZE)) 
                 {  
                     hddLog (VOS_TRACE_LEVEL_FATAL, "%s Set P2P IE. Length %d",__func__, eLen);
                     pWextState->roamProfile.nP2PIELength = eLen + 2;

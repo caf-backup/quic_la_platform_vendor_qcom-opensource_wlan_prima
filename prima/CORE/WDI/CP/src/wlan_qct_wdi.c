@@ -4887,7 +4887,7 @@ WDI_ProcessStartReq
       ( NULL == (pwdiStartParams = (WDI_StartReqParamsType*)pEventData->pEventData)) ||
       ( NULL == (wdiStartRspCb   = (WDI_StartRspCb)pEventData->pCBfnc)))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_FATAL,
               "Invalid parameters in start req %x %x %x",
                 pEventData, pwdiStartParams, wdiStartRspCb);
      WDI_ASSERT(0);
@@ -4905,7 +4905,7 @@ WDI_ProcessStartReq
                         &pSendBuffer, &usDataOffset, &usSendSize))||
       ( usSendSize < (usDataOffset + usLen )))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_FATAL,
               "Unable to get send buffer in start req %x %x %x",
                 pEventData, pwdiStartParams, wdiStartRspCb);
      WDI_ASSERT(0);
@@ -8235,27 +8235,25 @@ WDI_ProcessSetLinkStateReq
 
   if ( NULL == pBSSSes ) 
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS does not yet exist");
-
-    wpalMutexRelease(&pWDICtx->wptMutex);
-    return WDI_STATUS_E_NOT_ALLOWED; 
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+              "Set link request received outside association session");
   }
-
-  /*------------------------------------------------------------------------
-    Check if this BSS is being currently processed or queued,
-    if queued - queue the new request as well 
-  ------------------------------------------------------------------------*/
-  if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
+  else
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Association sequence for this BSS exists but currently queued");
-
-    wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
-    wpalMutexRelease(&pWDICtx->wptMutex);
-    return wdiStatus; 
+    /*------------------------------------------------------------------------
+      Check if this BSS is being currently processed or queued,
+      if queued - queue the new request as well 
+    ------------------------------------------------------------------------*/
+    if ( eWLAN_PAL_TRUE == pBSSSes->bAssocReqQueued )
+    {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                "Association sequence for this BSS exists but currently queued");
+  
+      wdiStatus = WDI_QueueAssocRequest( pWDICtx, pBSSSes, pEventData); 
+      wpalMutexRelease(&pWDICtx->wptMutex);
+      return wdiStatus; 
+    }
   }
-
   /* If the link is set to enter IDLE - the Session allocated for this BSS
      will be deleted on the Set Link State response comming from HAL
    - cache the request for response processing */
@@ -12913,31 +12911,27 @@ WDI_ProcessSetLinkStateRsp
       -----------------------------------------------------------------------*/
     if ( NULL == pBSSSes )
     {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                "Association sequence for this BSS does not yet exist or "
-                "association no longer in progress - misterious HAL response");
-  
-      WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
-      
-      wpalMutexRelease(&pWDICtx->wptMutex);
-      return WDI_STATUS_E_NOT_ALLOWED; 
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                "Set link response received outside association session");
     }
-  
-    /*-----------------------------------------------------------------------
-      The current session will be deleted 
-    -----------------------------------------------------------------------*/
-    wpalMemoryZero(pBSSSes,  sizeof(*pBSSSes));
-    pBSSSes->wdiAssocState = WDI_ASSOC_INIT_ST; 
-    pBSSSes->bInUse        = eWLAN_PAL_FALSE; 
-  
-    /*-----------------------------------------------------------------------
-      Check to see if this association is in progress - if so disable the
-      flag as this has ended
-    -----------------------------------------------------------------------*/
-    if ( ucCurrentBSSSesIdx != pWDICtx->ucCurrentBSSSesIdx )
-    {  
-     /*Association no longer in progress  */
-      pWDICtx->bAssociationInProgress = eWLAN_PAL_FALSE;
+    else
+    {
+      /*-----------------------------------------------------------------------
+        The current session will be deleted 
+      -----------------------------------------------------------------------*/
+      wpalMemoryZero(pBSSSes,  sizeof(*pBSSSes));
+      pBSSSes->wdiAssocState = WDI_ASSOC_INIT_ST; 
+      pBSSSes->bInUse        = eWLAN_PAL_FALSE; 
+    
+      /*-----------------------------------------------------------------------
+        Check to see if this association is in progress - if so disable the
+        flag as this has ended
+      -----------------------------------------------------------------------*/
+      if ( ucCurrentBSSSesIdx != pWDICtx->ucCurrentBSSSesIdx )
+      {  
+       /*Association no longer in progress  */
+        pWDICtx->bAssociationInProgress = eWLAN_PAL_FALSE;
+      }
     }
   }
 

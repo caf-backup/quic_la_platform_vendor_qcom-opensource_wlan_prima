@@ -894,10 +894,18 @@ tANI_U8
 limIsSmeScanReqValid(tpAniSirGlobal pMac, tpSirSmeScanReq pScanReq)
 {
     tANI_U8 valid = true;
+    tANI_U8 i = 0;
 
+    for (i = 0; i < pScanReq->numSsid; i++)
+    {
+        if (pScanReq->ssId[i].length > SIR_MAC_MAX_SSID_LENGTH)
+        {
+            valid = false;
+            goto end;    
+        }
+    }
     if ((pScanReq->bssType > eSIR_AUTO_MODE) ||
         (limIsGroupAddr(pScanReq->bssId) && !limIsAddrBC(pScanReq->bssId)) ||
-        (pScanReq->ssId.length > SIR_MAC_MAX_SSID_LENGTH) ||
         (!(pScanReq->scanType == eSIR_PASSIVE_SCAN || pScanReq->scanType == eSIR_ACTIVE_SCAN)) || 
         (pScanReq->channelList.numChannels > SIR_MAX_NUM_CHANNELS))
     {

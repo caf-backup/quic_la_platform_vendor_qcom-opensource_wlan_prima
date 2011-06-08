@@ -61,7 +61,15 @@ wpt_status WDTS_TxPacketComplete(void *pContext, wpt_packet *pFrame, wpt_status 
 
   // Free BD header from pool
   WDI_GetBDPointers(pFrame, &pvBDHeader,  &physBDHeader);
-  WDI_DS_MemPoolFree(&(pClientData->memPool), pvBDHeader, physBDHeader);
+  switch(pTxMetadata->frmType) 
+  {
+    case WDI_MAC_DATA_FRAME:
+      WDI_DS_MemPoolFree(&(pClientData->dataMemPool), pvBDHeader, physBDHeader);
+      break;
+    case WDI_MAC_MGMT_FRAME:
+      WDI_DS_MemPoolFree(&(pClientData->mgmtMemPool), pvBDHeader, physBDHeader);
+      break;
+  }
   WDI_SetBDPointers(pFrame, 0, 0);
 
   // Invoke Tx complete callback
@@ -71,6 +79,53 @@ wpt_status WDTS_TxPacketComplete(void *pContext, wpt_packet *pFrame, wpt_status 
 }
 
 
+/*===============================================================================
+  FUNCTION      WLANTL_GetReplayCounterFromRxBD
+     
+  DESCRIPTION   This function extracts 48-bit replay packet number from RX BD 
+ 
+  DEPENDENCIES  Validity of replay check must be done before the function 
+                is called
+                          
+  PARAMETERS    pucRxHeader pointer to RX BD header
+                                       
+  RETRUN        v_U64_t    Packet number extarcted from RX BD
+
+  SIDE EFFECTS   none
+ ===============================================================================*/
+v_U64_t
+WDTS_GetReplayCounterFromRxBD
+(
+   v_U8_t *pucRxBDHeader
+)
+{
+  v_U64_t ullcurrentReplayCounter = 0;
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+/* 48-bit replay counter is created as follows
+   from RX BD 6 byte PMI command:
+   Addr : AES/TKIP
+   0x38 : pn3/tsc3
+   0x39 : pn2/tsc2
+   0x3a : pn1/tsc1
+   0x3b : pn0/tsc0
+
+   0x3c : pn5/tsc5
+   0x3d : pn4/tsc4 */
+  
+#ifdef ANI_BIG_BYTE_ENDIAN
+    /* Getting 48-bit replay counter from the RX BD */
+    ullcurrentReplayCounter = WDI_RX_BD_GET_PMICMD_20TO23(pucRxBDHeader); 
+    ullcurrentReplayCounter <<= 16;
+    ullcurrentReplayCounter |= (( WDI_RX_BD_GET_PMICMD_24TO25(pucRxBDHeader) & 0xFFFF0000) >> 16);
+    return ullcurrentReplayCounter;
+#else
+    /* Getting 48-bit replay counter from the RX BD */
+    ullcurrentReplayCounter = (WDI_RX_BD_GET_PMICMD_24TO25(pucRxBDHeader) & 0x0000FFFF); 
+    ullcurrentReplayCounter <<= 32; 
+    ullcurrentReplayCounter |= WDI_RX_BD_GET_PMICMD_20TO23(pucRxBDHeader); 
+    return ullcurrentReplayCounter;
+#endif
+}
 
 
 /* DTS Rx packet function. 
@@ -117,9 +172,9 @@ wpt_status WDTS_RxPacket (void *pContext, wpt_packet *pFrame, WDTS_ChannelType c
     Gather AMSDU information 
     ------------------------------------------------------------------------*/
   bASF = WDI_RX_BD_GET_ASF(pBDHeader);
-    bAEF = WDI_RX_BD_GET_AEF(pBDHeader);
-    bFSF = WDI_RX_BD_GET_ESF(pBDHeader);
-    bLSF = WDI_RX_BD_GET_LSF(pBDHeader);
+  bAEF = WDI_RX_BD_GET_AEF(pBDHeader);
+  bFSF = WDI_RX_BD_GET_ESF(pBDHeader);
+  bLSF = WDI_RX_BD_GET_LSF(pBDHeader);
 
   DTI_TRACE( DTI_TRACE_LEVEL_INFO,
       "WLAN TL:BD header processing data: HO %d DO %d Len %d HLen %d"
@@ -191,23 +246,38 @@ wpt_status WDTS_RxPacket (void *pContext, wpt_packet *pFrame, WDTS_ChannelType c
   /*------------------------------------------------------------------------
     Gather AMPDU information 
     ------------------------------------------------------------------------*/
-    pRxMetadata->ampdu_reorderOpcode  = (wpt_uint8)WDI_RX_BD_GET_BA_OPCODE(pBDHeader);
-    pRxMetadata->ampdu_reorderSlotIdx = (wpt_uint8)WDI_RX_BD_GET_BA_SI(pBDHeader);
-    pRxMetadata->ampdu_reorderFwdIdx  = (wpt_uint8)WDI_RX_BD_GET_BA_FI(pBDHeader);
-    pRxMetadata->currentPktSeqNo       = (wpt_uint8)WDI_RX_BD_GET_BA_CSN(pBDHeader);
+  pRxMetadata->ampdu_reorderOpcode  = (wpt_uint8)WDI_RX_BD_GET_BA_OPCODE(pBDHeader);
+  pRxMetadata->ampdu_reorderSlotIdx = (wpt_uint8)WDI_RX_BD_GET_BA_SI(pBDHeader);
+  pRxMetadata->ampdu_reorderFwdIdx  = (wpt_uint8)WDI_RX_BD_GET_BA_FI(pBDHeader);
+  pRxMetadata->currentPktSeqNo       = (wpt_uint8)WDI_RX_BD_GET_BA_CSN(pBDHeader);
 
 
   /*------------------------------------------------------------------------
     Gather AMSDU information 
     ------------------------------------------------------------------------*/
-    pRxMetadata->amsdu_asf =  bASF;
-    pRxMetadata->amsdu_aef =  bAEF;
-    pRxMetadata->amsdu_esf =  bFSF;
-    pRxMetadata->amsdu_lsf =  bLSF;
-    pRxMetadata->amsdu_size =  WDI_RX_BD_GET_AMSDU_SIZE(pBDHeader);
+  pRxMetadata->amsdu_asf  =  bASF;
+  pRxMetadata->amsdu_aef  =  bAEF;
+  pRxMetadata->amsdu_esf  =  bFSF;
+  pRxMetadata->amsdu_lsf  =  bLSF;
+  pRxMetadata->amsdu_size =  WDI_RX_BD_GET_AMSDU_SIZE(pBDHeader);
 
-    pRxMetadata->rssi0 = WDI_RX_BD_GET_RSSI0(pBDHeader);
-    pRxMetadata->rssi1 = WDI_RX_BD_GET_RSSI1(pBDHeader);
+  pRxMetadata->rssi0 = WDI_RX_BD_GET_RSSI0(pBDHeader);
+  pRxMetadata->rssi1 = WDI_RX_BD_GET_RSSI1(pBDHeader);
+
+
+    /* Missing: 
+  wpt_uint32 fcSTATxQStatus:8;
+  wpt_uint32 fcSTAThreshIndMask:8;
+  wpt_uint32 fcSTAPwrSaveStateMask:8;
+  wpt_uint32 fcSTAValidMask:8;
+
+  wpt_uint8 fcSTATxQLen[8]; // one byte per STA. 
+  wpt_uint8 fcSTACurTxRate[8]; // current Tx rate for each sta.   
+  unknownUcastPkt 
+  */
+
+  pRxMetadata->replayCount = WDTS_GetReplayCounterFromRxBD(pBDHeader);
+  pRxMetadata->snr = WDI_RX_BD_GET_SNR(pBDHeader); 
 
   /* 
    * PAL BD pointer information needs to be populated 
@@ -236,7 +306,7 @@ wpt_status WDTS_OOResourceNotification(void *pContext, WDTS_ChannelType channel,
 {
   WDI_DS_ClientDataType *pClientData =
     (WDI_DS_ClientDataType *) pContext;
-  static wpt_uint8 ac_mask = 0;
+  static wpt_uint8 ac_mask = 0x1f;
 
   // Do Sanity checks
   if(NULL == pContext){

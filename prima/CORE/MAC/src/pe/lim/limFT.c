@@ -491,6 +491,8 @@ tSirRetStatus limFTPrepareAddBssReq( tpAniSirGlobal pMac,
     // Set a new state for MLME
 
     pftSessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_FT_REASSOC_STATE;
+	
+	pAddBssParams->halPersona=(tANI_U8)pftSessionEntry->pePersona; //pass on the session persona to hal
     
     pMac->ft.ftPEContext.pAddBssReq = pAddBssParams;
 

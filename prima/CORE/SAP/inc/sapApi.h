@@ -30,7 +30,7 @@ DESCRIPTION
 
 
 when           who                what, where, why
---------    ---    		     ----------------------------------------------------------
+--------    ---                 ----------------------------------------------------------
 07/01/08     SAP team       Created module.
 
 ===========================================================================*/
@@ -238,9 +238,9 @@ typedef struct sap_StationMICFailureEvent_s {
 } tSap_StationMICFailureEvent;
 /*Structure to return MAC address of associated stations */
 typedef struct sap_AssocMacAddr_s {
-    v_MACADDR_t staMac; 	/*MAC address of Station that is associated*/
-    v_U8_t      assocId;		/*Association ID for the station that is associated*/
-    v_U8_t      staId;			/*Station Id that is allocated to the station*/
+    v_MACADDR_t staMac;     /*MAC address of Station that is associated*/
+    v_U8_t      assocId;        /*Association ID for the station that is associated*/
+    v_U8_t      staId;            /*Station Id that is allocated to the station*/
 } tSap_AssocMacAddr, *tpSap_AssocMacAddr;
 
 /*struct corresponding to SAP_ASSOC_STA_CALLBACK_EVENT */
@@ -248,7 +248,7 @@ typedef struct sap_AssocStaListEvent_s {
     VOS_MODULE_ID      module; /* module id that was passed in WLANSAP_GetAssocStations API*/
     v_U8_t             noOfAssocSta;  /* Number of associated stations*/
     tpSap_AssocMacAddr pAssocStas; /*Pointer to pre allocated memory to obtain list of associated 
-								    stations passed in WLANSAP_GetAssocStations API*/
+                                    stations passed in WLANSAP_GetAssocStations API*/
 } tSap_AssocStaListEvent;
  
 typedef struct sap_GetWPSPBCSessionEvent_s {
@@ -309,31 +309,31 @@ typedef struct sap_Config {
     v_MACADDR_t     deny_mac[MAX_MAC_ADDRESS_DENIED]; /* MAC filtering */
     v_MACADDR_t     self_macaddr; //self macaddress or BSSID
    
-    v_U8_t       channel;         /* Operation channel */
-    v_U8_t       max_num_sta;     /* maximum number of STAs in station table */
-    v_U8_t       dtim_period;     /* dtim interval */
-    v_U8_t       num_accept_mac;
-    v_U8_t       num_deny_mac;
-    v_U8_t       *pRSNWPAReqIE;   //If not null, it has the IE byte stream for RSN /WPA
+    v_U8_t          channel;         /* Operation channel */
+    v_U8_t          max_num_sta;     /* maximum number of STAs in station table */
+    v_U8_t          dtim_period;     /* dtim interval */
+    v_U8_t          num_accept_mac;
+    v_U8_t          num_deny_mac;
+    v_U8_t          *pRSNWPAReqIE;   //If not null, it has the IE byte stream for RSN /WPA
 
-    v_U8_t       countryCode[WNI_CFG_COUNTRY_CODE_LEN];  //it is ignored if [0] is 0.
-    v_U8_t       RSNAuthType;
-    v_U8_t       RSNEncryptType;
-    v_U8_t       mcRSNEncryptType;
-    eSapAuthType authType;
-    v_BOOL_t     privacy;
-    v_BOOL_t     UapsdEnable;
-    v_BOOL_t     fwdWPSPBCProbeReq;
-    v_U8_t       wps_state; // 0 - disabled, 1 - not configured , 2 - configured
+    v_U8_t          countryCode[WNI_CFG_COUNTRY_CODE_LEN];  //it is ignored if [0] is 0.
+    v_U8_t          RSNAuthType;
+    v_U8_t          RSNEncryptType;
+    v_U8_t          mcRSNEncryptType;
+    eSapAuthType    authType;
+    v_BOOL_t        privacy;
+    v_BOOL_t        UapsdEnable;
+    v_BOOL_t        fwdWPSPBCProbeReq;
+    v_U8_t          wps_state; // 0 - disabled, 1 - not configured , 2 - configured
 
-    v_U16_t      ht_capab;
-    v_U16_t      RSNWPAReqIELength;   //The byte count in the pWPAReqIE
+    v_U16_t         ht_capab;
+    v_U16_t         RSNWPAReqIELength;   //The byte count in the pWPAReqIE
 
-    v_U32_t      beacon_int;     /* Beacon Interval */
-    v_U32_t      ap_table_max_size;
-    v_U32_t      ap_table_expiration_time;
-    v_U32_t      ht_op_mode_fixed;
-	VOS_CON_MODE persona; /*Tells us which persona it is GO or AP for now*/
+    v_U32_t         beacon_int;     /* Beacon Interval */
+    v_U32_t         ap_table_max_size;
+    v_U32_t         ap_table_expiration_time;
+    v_U32_t         ht_op_mode_fixed;
+    tVOS_CON_MODE   persona; /*Tells us which persona it is GO or AP for now*/
 
 } tsap_Config_t;
 
@@ -387,9 +387,9 @@ typedef struct sap_WPSProbeRspIE_s {
     v_U32_t     PrimaryDeviceCategory ; // Device Category ID: 1Computer, 2Input Device, ...
     v_U8_t      PrimaryDeviceOUI[4] ; // Vendor specific OUI for Device Sub Category
     v_U32_t     DeviceSubCategory ; // Device Sub Category ID: 1-PC, 2-Server if Device Category ID is computer
-    tSapText	DeviceName;
-    v_U16_t	ConfigMethod;     // Configuaration method
-    v_U8_t	RFBand;           // RF bands available on the AP
+    tSapText    DeviceName;
+    v_U16_t    ConfigMethod;     // Configuaration method
+    v_U8_t    RFBand;           // RF bands available on the AP
 } tSap_WPSProbeRspIE;
 
 #define WPS_BEACON_VER_PRESENT                         0x00000001
@@ -709,7 +709,7 @@ WLANSAP_Close
 
     IN
     pSapEvent:  pointer to the union of "Sap Event" structures. This now encodes ALL event types.
-		Including Command Complete and Command Status
+        Including Command Complete and Command Status
     pUsrContext   : pUsrContext parameter that was passed to sapStartBss
   RETURN VALUE
     The result code associated with performing the operation  
@@ -1017,13 +1017,13 @@ WLANSAP_getWpsSessionOverlap
 
   DESCRIPTION 
     This api function is used to disassociate all the stations and prevent 
-	association for any other station.Whenever Authenticator receives 2 mic failures 
-	within 60 seconds, Authenticator will enable counter measure at SAP Layer. 
-	Authenticator will start the 60 seconds timer. Core stack will not allow any 
-	STA to associate till HDD disables counter meassure. Core stack shall kick out all the 
-	STA which are currently associated and DIASSOC Event will be propogated to HDD for 
-	each STA to clean up the HDD STA table.Once the 60 seconds timer expires, Authenticator 
-	will disable the counter meassure at core stack. Now core stack can allow STAs to associate.
+    association for any other station.Whenever Authenticator receives 2 mic failures 
+    within 60 seconds, Authenticator will enable counter measure at SAP Layer. 
+    Authenticator will start the 60 seconds timer. Core stack will not allow any 
+    STA to associate till HDD disables counter meassure. Core stack shall kick out all the 
+    STA which are currently associated and DIASSOC Event will be propogated to HDD for 
+    each STA to clean up the HDD STA table.Once the 60 seconds timer expires, Authenticator 
+    will disable the counter meassure at core stack. Now core stack can allow STAs to associate.
 
   DEPENDENCIES 
     NA. 

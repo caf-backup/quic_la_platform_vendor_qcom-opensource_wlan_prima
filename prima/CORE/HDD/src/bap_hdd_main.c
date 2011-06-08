@@ -31,7 +31,7 @@
 /*--------------------------------------------------------------------------
   Include Files
   ------------------------------------------------------------------------*/
-
+#ifdef WLAN_BTAMP_FEATURE
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/miscdevice.h>
@@ -355,7 +355,7 @@ static void BSL_Destruct(struct hci_dev *hdev);
 static VOS_STATUS WLANBAP_STAFetchPktCB
 (
     v_PVOID_t             pHddHdl,
-    WLANTL_ACEnumType*    pucAC,
+    WLANTL_ACEnumType     ucAC,
     vos_pkt_t**           vosDataBuff,
     WLANTL_MetaInfoType*  tlMetaInfo
 )
@@ -371,8 +371,8 @@ static VOS_STATUS WLANBAP_STAFetchPktCB
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_LOW, "WLANBAP_STAFetchPktCB\n" );
 
     // sanity checking
-    if( pHddHdl == NULL || pucAC == NULL || vosDataBuff == NULL ||
-            tlMetaInfo == NULL || *pucAC >= WLANTL_MAX_AC || *pucAC < 0 )
+    if( pHddHdl == NULL || vosDataBuff == NULL ||
+            tlMetaInfo == NULL || ucAC >= WLANTL_MAX_AC || ucAC < 0 )
     {
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "WLANBAP_STAFetchPktCB bad input\n" );
         return VOS_STATUS_E_FAILURE;
@@ -382,7 +382,7 @@ static VOS_STATUS WLANBAP_STAFetchPktCB
     *vosDataBuff = NULL;
 
     pctx = (BslPhyLinkCtxType *)pHddHdl;
-    AcIdx = AcIdxStart = *pucAC;
+    AcIdx = AcIdxStart = ucAC;
 
     //VosStatus = vos_list_remove_front( &pctx->ACLTxQueue[AcIdx], &pLink );
     spin_lock_bh(&pctx->ACLTxQueue[AcIdx].lock);
@@ -403,16 +403,12 @@ static VOS_STATUS WLANBAP_STAFetchPktCB
         }
         while ( VosStatus == VOS_STATUS_E_EMPTY && AcIdx != AcIdxStart );
 
-        if ( VOS_IS_STATUS_SUCCESS( VosStatus ) )
-        {
-            *pucAC = AcIdx;
-        }
-        else if ( VosStatus == VOS_STATUS_E_EMPTY )
+        if ( VosStatus == VOS_STATUS_E_EMPTY )
         {
             // Queue is empty.  This can happen.  Just return NULL back to TL...
             return(VOS_STATUS_E_EMPTY);
         }
-        else
+        else if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
         {
             VOS_ASSERT( 0 );
         }
@@ -626,33 +622,35 @@ static VOS_STATUS BslFlushTxQueues
     BslTxListNodeType *pNode;
     vos_pkt_t *pVosPkt;
 
-    while (++i != WLANTL_MAX_AC)
+    if(TRUE == pPhyCtx->used)
     {
-        //Free up any packets in the Tx queue
-        spin_lock_bh(&pPhyCtx->ACLTxQueue[i].lock);
-        while (true)
+        while (++i != WLANTL_MAX_AC)
         {
-            VosStatus = hdd_list_remove_front(&pPhyCtx->ACLTxQueue[i], &pLink );
-            if(VOS_STATUS_E_EMPTY != VosStatus)
+            //Free up any packets in the Tx queue
+            spin_lock_bh(&pPhyCtx->ACLTxQueue[i].lock);
+            while (true)
             {
-                pNode = (BslTxListNodeType *)pLink;
-                pVosPkt = pNode->pVosPkt;
-                if (pVosPkt != NULL)
-                {
-                    //Return the VOS packet resources.
-                    VosStatus = vos_pkt_return_packet( pVosPkt );
-                    if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
-                    {
-                        VOS_ASSERT(0);
-                    }
-                }
-                continue;
-            }
-            break;
+               VosStatus = hdd_list_remove_front(&pPhyCtx->ACLTxQueue[i], &pLink );
+               if(VOS_STATUS_E_EMPTY != VosStatus)
+               {
+                   pNode = (BslTxListNodeType *)pLink;
+                   pVosPkt = pNode->pVosPkt;
+                   if (pVosPkt != NULL)
+                   {
+                       //Return the VOS packet resources.
+                       VosStatus = vos_pkt_return_packet( pVosPkt );
+                       if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+                       {
+                           VOS_ASSERT(0);
+                       }
+                   }
+                   continue;
+               }
+               break;
+           }
+           spin_unlock_bh(&pPhyCtx->ACLTxQueue[i].lock);
         }
-        spin_unlock_bh(&pPhyCtx->ACLTxQueue[i].lock);
     }
-
     return(VOS_STATUS_SUCCESS);
 } // BslFlushTxQueues
 
@@ -3529,8 +3527,12 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
     /* Save away the HCI device pointer in the BSL driver context */
     pctx->hdev = hdev;
 
+#if defined HCI_80211 || defined HCI_AMP
 #define BUILD_FOR_BLUETOOTH_NEXT_2_6
-//#undef BUILD_FOR_BLUETOOTH_NEXT_2_6
+#else
+#undef BUILD_FOR_BLUETOOTH_NEXT_2_6
+#endif
+
 #ifdef BUILD_FOR_BLUETOOTH_NEXT_2_6
     /* HCI "bus type" of HCI_VIRTUAL should apply */
     hdev->bus = HCI_VIRTUAL;
@@ -3724,6 +3726,8 @@ static int BSL_Close ( struct hci_dev *hdev )
 {
     VOS_STATUS VosStatus = VOS_STATUS_SUCCESS;
     BslClientCtxType* pctx;
+    vos_list_node_t* pLink;
+    v_U16_t i;
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BSL_Close");
 
@@ -3748,9 +3752,14 @@ static int BSL_Close ( struct hci_dev *hdev )
 
     // need to cleanup any per PHY state and the common RX state
     BslReleaseClientCtx( pctx );
-
-
+    for ( i=0; i<BslPhyLinksDescPool.count; i++ )
+    {
+        VosStatus = vos_list_remove_front( &BslPhyLinksDescPool, &pLink );
+        //nothing to free as the nodes came from BslPhyLinksDesc, which is a static
+        //this is needed to allow vos_list_destroy() to go through
+    }
     VosStatus = vos_list_destroy( &BslPhyLinksDescPool );
+
     VOS_ASSERT(VOS_IS_STATUS_SUCCESS( VosStatus ) );
 
 
@@ -4104,3 +4113,4 @@ VOS_STATUS WLANBAP_SetConfig
 
     return(VOS_STATUS_SUCCESS);
 }
+#endif // WLAN_BTAMP_FEATURE

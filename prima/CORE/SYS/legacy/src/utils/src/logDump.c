@@ -658,6 +658,10 @@ int logRtaiDump( tpAniSirGlobal pMac, tANI_U32 cmd, tANI_U32 arg1, tANI_U32 arg2
 
     pMac->gCurrentLogSize = 0;
 
+   /* Dump command will be sent to the HAL from WDI*/   
+#ifdef WLAN_FEATURE_LOG_DUMP
+    pMac->dumpCommand = cmd;
+#endif
 
     if (debug) {
         p += log_sprintf( pMac,p, "Cmd = %d Args (0x%x,0x%x,0x%x,0x%x)\n\n",

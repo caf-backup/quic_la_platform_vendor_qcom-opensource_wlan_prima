@@ -63,6 +63,14 @@ when           who        what, where, why
  * Size must be same with Vos Packet Size */
 #define WLANDXE_DEFAULT_RX_OS_BUFFER_SIZE  1792
 
+/*The maximum number of packets that can be chained in dxe for the Low 
+  priority channel */
+#define WLANDXE_LO_PRI_RES_NUM 60
+
+/*The maximum number of packets that can be chained in dxe for the HI 
+  priority channel */
+#define WLANDXE_HI_PRI_RES_NUM 10
+
 typedef enum
 {
    WLANDXE_POWER_STATE_FULL,

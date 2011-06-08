@@ -193,6 +193,22 @@ const v_U8_t  WLANTL_TID_2_AC[WLAN_MAX_TID] = {   WLANTL_AC_BE,
 typedef struct
 {
 
+#ifndef TL_LITTLE_BIT_ENDIAN
+
+   v_U8_t subType :4;
+   v_U8_t type :2;
+   v_U8_t protVer :2;
+
+   v_U8_t order :1;
+   v_U8_t wep :1;
+   v_U8_t moreData :1;
+   v_U8_t powerMgmt :1;
+   v_U8_t retry :1;
+   v_U8_t moreFrag :1;
+   v_U8_t fromDS :1;
+   v_U8_t toDS :1;
+
+#else
 
    v_U8_t protVer :2;
    v_U8_t type :2;
@@ -207,6 +223,7 @@ typedef struct
    v_U8_t wep :1;
    v_U8_t order :1;
 
+#endif
 
 } WLANTL_MACFCType;
 
@@ -333,7 +350,7 @@ WLANTL_Open
 {
   WLANTL_CbType*  pTLCb = NULL; 
   v_U8_t          ucIndex; 
-#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
   VOS_STATUS      status = VOS_STATUS_SUCCESS;
 #endif
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -420,7 +437,7 @@ WLANTL_Open
                      1/*true*/,NULL, NULL);
 
   WLANTL_InitBAReorderBuffer(pvosGCtx);
-#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
    /* Initialize Handoff support modue
     * RSSI measure and Traffic state monitoring */
   status = WLANTL_HSInit(pvosGCtx);
@@ -596,7 +613,7 @@ WLANTL_Stop
     pTLCb->tlBAPClient.vosPendingDataBuff = NULL;
   }
 
-#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
   if(VOS_STATUS_SUCCESS != WLANTL_HSStop(pvosGCtx))
   {
     TLLOGW(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_WARN,
@@ -3583,7 +3600,9 @@ WLANTL_TxComp
   WLANTL_CbType*       pTLCb     = NULL;
   WLANTL_TxCompCBType  pfnTxComp = NULL;
   VOS_STATUS           vosStatus = VOS_STATUS_SUCCESS;
+#if !defined( FEATURE_WLAN_INTEGRATED_SOC )
   vos_msg_t            vosMsg;
+#endif
   vos_pkt_t*           vosTempTx = NULL;
 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -3637,6 +3656,8 @@ WLANTL_TxComp
 
     pTLCb->usPendingTxCompleteCount--;
   }
+
+#if !defined( FEATURE_WLAN_INTEGRATED_SOC ) 
   if (( 0 == pTLCb->usPendingTxCompleteCount ) &&
       ( pTLCb->uResCount <= WDA_TLI_BD_PDU_RESERVE_THRESHOLD ))
   {
@@ -3644,7 +3665,9 @@ WLANTL_TxComp
     vosMsg.bodyptr  = NULL;
     vosMsg.type     = WLANTL_TX_RES_NEEDED;
     vos_tx_mq_serialize( VOS_MQ_ID_TL, &vosMsg);
-  }
+  }  
+#endif
+ 
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
             "WLAN TL: current TL values are: resources = %d "
             "pTLCb->usPendingTxCompleteCount = %d",
@@ -4437,7 +4460,7 @@ WLANTL_RxFrames
       /* Read RSSI and update */
       if(!WLANTL_STA_ID_INVALID(ucSTAId))
       {
-#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
         /* Read RSSI and update */
         vosStatus = WLANTL_HSHandleRXFrame(pvosGCtx,
                                            WLANTL_MGMT_FRAME_TYPE,
@@ -4565,7 +4588,7 @@ WLANTL_RxFrames
 
       if ( NULL != pfnSTAFsm )
       {
-#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
         /* Read RSSI and update */
         vosStatus = WLANTL_HSHandleRXFrame(pvosGCtx,
                                            WLANTL_DATA_FRAME_TYPE,
@@ -4870,7 +4893,7 @@ WLANTL_RxCachedFrames
 
       if ( NULL != pfnSTAFsm )
       {
-#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
         /* Read RSSI and update */
         vosStatus = WLANTL_HSHandleRXFrame(vos_get_global_context(
                                          VOS_MODULE_ID_TL,pTLCb),
@@ -5218,6 +5241,19 @@ WLANTL_STATxConn
     Save data to input pointer for TL core
   ------------------------------------------------------------------------*/
   *pvosDataBuff = vosDataBuff;
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+  /* Count TX frame to handle traffic status */
+  vosStatus = WLANTL_HSHandleTXFrame(pvosGCtx,
+                          pTLCb->atlSTAClients[ucSTAId].ucCurrentAC,
+                          ucSTAId, vosDataBuff,
+                          NULL);
+  if(!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+    TLLOG2(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+              "Handle TX Frame fail within Handoff support module"));
+    return VOS_STATUS_SUCCESS;
+  }
+#endif
   /*security frames cannot be delayed*/
   pTLCb->bUrgent      = TRUE;
 
@@ -5600,6 +5636,23 @@ WLANTL_STATxAuth
 
     return vosStatus;
   }
+#ifdef FEATURE_WLAN_GEN6_ROAMING
+  else
+  {
+    /* Count TX frame to handle traffic status */
+    vosStatus = WLANTL_HSHandleTXFrame(pvosGCtx,
+                                       pStaClient->ucCurrentAC,
+                                       ucSTAId,
+                                       vosDataBuff,
+                                       NULL);
+    if(!VOS_IS_STATUS_SUCCESS(vosStatus))
+    {
+      TLLOG2(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                "Handle TX Frame fail within Handoff support module"));
+      return VOS_STATUS_SUCCESS;
+    }
+  }
+#endif
 
 #ifdef WLAN_SOFTAP_FEATURE
   /* TX Statistics */
@@ -9098,7 +9151,7 @@ WLANTL_DisableUAPSDForAC
   return VOS_STATUS_SUCCESS;
 }/* WLANTL_DisableUAPSDForAC */
 
-#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
 /*==========================================================================
   FUNCTION     WLANTL_RegRSSIIndicationCB
 
@@ -9801,7 +9854,7 @@ void WLANTL_PowerStateChangedCB
          break;
 
       case BMPS:
-#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
          WLANTL_SetFWRSSIThresholds(pAdapter);
 #endif
 

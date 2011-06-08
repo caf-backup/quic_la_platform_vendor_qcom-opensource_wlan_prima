@@ -132,7 +132,7 @@ typedef enum
 #ifdef ANI_MANF_DIAG
     ,VOS_FTM_MODE = 5,
 #endif
-} VOS_CON_MODE;
+} tVOS_CON_MODE;
 #endif 
 //This is a bit pattern to be set for each mode
 //bit 0 - sta mode
@@ -147,13 +147,13 @@ typedef enum
     VOS_P2P_CLIENT=4,
     VOS_P2P_GO=8,
     VOS_MAX_CONCURRENCY_PERSONA=4
-} VOS_CONCURRENCY_MODE;
+} tVOS_CONCURRENCY_MODE;
  
 #if !defined( NULL )
 #ifdef __cplusplus
-#define NULL	0
+#define NULL    0
 #else
-#define NULL	((void *)0)
+#define NULL    ((void *)0)
 #endif
 #endif
 

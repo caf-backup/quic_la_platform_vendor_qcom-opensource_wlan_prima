@@ -854,7 +854,6 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
             /* To be fixed in SME and PE: override the number of ssid with 1,
             * as SME and PE does not handle multiple SSID in scan request
             * */
-            num_ssid = 1;
             scanRequest.SSIDs.numOfSSIDs = num_ssid;
             /* Allocate num_ssid tCsrSSIDInfo structure */
             SsidInfo = scanRequest.SSIDs.SSIDList =( tCsrSSIDInfo *)vos_mem_malloc(num_ssid*sizeof(tCsrSSIDInfo));
@@ -875,7 +874,7 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
                     /* get the ssid length */
                     SsidInfo->SSID.length = str_ptr[ssid_start++];
                     vos_mem_copy(SsidInfo->SSID.ssId, &str_ptr[ssid_start], SsidInfo->SSID.length);
-                    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "SSID = %s", SsidInfo->SSID.ssId);
+                    hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "SSID number %d:  %s\n", j, SsidInfo->SSID.ssId);
                 }
 
             }

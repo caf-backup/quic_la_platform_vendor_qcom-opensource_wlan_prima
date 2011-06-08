@@ -272,7 +272,11 @@ static v_U32_t wlan_ftm_postmsg(v_U8_t *cmd_ptr, v_U16_t cmd_len)
 
     ftmReqMsg = (vos_msg_t *) cmd_ptr;
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+    ftmMsg.type = WDA_FTM_CMD_REQ;
+#else
     ftmMsg.type = ftmReqMsg->type;
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
     ftmMsg.reserved = 0;
     ftmMsg.bodyptr = (v_U8_t*)cmd_ptr;
     ftmMsg.bodyval = 0;
@@ -511,9 +515,9 @@ err_nv_close:
 err_wda_close:
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    WDA_close(gpVosContext);
-#endif
 
 err_sys_close:
+#endif
    sysClose(gpVosContext);
 
 err_sched_close:
@@ -521,8 +525,8 @@ err_sched_close:
 err_msg_queue:
    vos_mq_deinit(&gpVosContext->freeVosMq);
 
-err_wda_complete_event:
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
+err_wda_complete_event:
    vos_event_destroy(&gpVosContext->wdaCompleteEvent);
 #endif
 
@@ -597,6 +601,7 @@ static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
   vosStatus = WDA_close( vosContext );
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
   {
@@ -604,6 +609,7 @@ static VOS_STATUS wlan_ftm_vos_close( v_CONTEXT_t vosContext )
          "%s: Failed to close WDA",__func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
   vos_mq_deinit(&((pVosContextType)vosContext)->freeVosMq);
 
@@ -1059,7 +1065,7 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
     }
 
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
-!!! FIX ME temp Block
+    // !!! FIX ME temp Block
     if( wlan_ftm_register_wext(pAdapter)!= 0 )
     {
        hddLog(VOS_TRACE_LEVEL_ERROR,"%S: hdd_register_wext failed",__func__);
@@ -1095,7 +1101,7 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
 #endif
 
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
-!!! FIX ME temp Block
+    // !!! FIX ME temp Block
     //wtan: initialize ftm_status structure
     _ftm_status_init();
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
@@ -1267,7 +1273,7 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                "%s: BAL NULL context",__FUNCTION__);
-        goto err_status_failure
+        goto err_status_failure;
     }
 #endif
    
@@ -1301,6 +1307,34 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
     {
        hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_preStart failed",__func__);
        goto err_status_failure;
+    }
+
+
+    vStatus = WDA_NVDownload_Start(pVosContext);
+
+    if ( vStatus != VOS_STATUS_SUCCESS )
+    {
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Failed to start NV Download",__func__);
+       return VOS_STATUS_E_FAILURE;
+    }
+
+    vStatus = vos_wait_single_event(&(pVosContext->wdaCompleteEvent), 1000);
+
+    if ( vStatus != VOS_STATUS_SUCCESS )
+    {
+       if ( vStatus == VOS_STATUS_E_TIMEOUT )
+       {
+          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Timeout occured before WDA_NVDownload_Start complete\n",__func__);
+       }
+       else
+       {
+         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                    "%s: WDA_NVDownload_Start reporting  other error \n",__func__);
+       }
+       VOS_ASSERT(0);
+       goto err_wda_stop;   
     }
 
     vos_event_reset(&(pVosContext->wdaCompleteEvent));
@@ -1888,14 +1922,14 @@ int wlan_hdd_process_ftm_host_cmd
 )
 {
    tPttMsgbuffer *pFTMCmd = (tPttMsgbuffer *)ftmCmd;
-   int            needToRouteHal = -1;
+   int            needToRouteHal = 1;
    tFTMRegister  *regCommand = (tFTMRegister *)pFTMCmd->msgBody;
    tFTMMemory    *memCommand = (tFTMMemory *)pFTMCmd->msgBody;
 
    switch(pFTMCmd->msgId)
    {
       case PTT_MSG_GET_NV_TABLE:
-         needToRouteHal = 1;
+         needToRouteHal = 0;
          break;
       case PTT_MSG_SET_NV_TABLE:
          needToRouteHal = 1;
@@ -1907,13 +1941,13 @@ int wlan_hdd_process_ftm_host_cmd
          needToRouteHal = 1;
          break;
       case PTT_MSG_GET_NV_FIELD:
-         needToRouteHal = 1;
+         needToRouteHal = 0;
          break;
       case PTT_MSG_SET_NV_FIELD:
          needToRouteHal = 1;
          break;
       case PTT_MSG_STORE_NV_TABLE:
-         needToRouteHal = 1;
+         needToRouteHal = 0;
          break;
       case PTT_MSG_SET_REG_DOMAIN:
          needToRouteHal = 1;
@@ -1938,6 +1972,9 @@ int wlan_hdd_process_ftm_host_cmd
          wpalWriteDeviceMemory(memCommand->memAddr,
                                memCommand->memBuffer,
                                memCommand->numBytes);
+         needToRouteHal = 0;
+         break;
+      case PTT_MSG_GET_BUILD_RELEASE_NUMBER:
          needToRouteHal = 0;
          break;
       default:
@@ -2097,12 +2134,10 @@ void wlan_hdd_process_ftm_cmd
         pftm_data = pRequestBuf->ftmpkt.pFtmCmd;
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
-        if (0 != wlan_hdd_process_ftm_host_cmd(pftm_data))
+        if (0 == wlan_hdd_process_ftm_host_cmd(pftm_data))
         {
-          /*
-           No need to send the message to HAL
-           Returning since response has already been sent frm process_ftm_host_cmd()
-          */
+           pHddCtx->ftm.pResponseBuf->ftm_err_code = WLAN_FTM_SUCCESS;
+           wlan_ftm_send_response(pHddCtx);
            return;
         }
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */

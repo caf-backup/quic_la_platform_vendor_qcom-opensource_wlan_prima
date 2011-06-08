@@ -19,8 +19,16 @@
 #ifndef PTT_MSG_API_H
 #define PTT_MSG_API_H
 
+#include "halCompiler.h"
 #include "wlan_nv.h"
+#include "wlan_phy.h"
+#include "pttFrameGen.h"
 #include "pttModule.h"
+
+#ifndef WLAN_HOST_DRIVER
+#include "halLegacyPalTypes.h"
+#include "wlan_hal_msg.h"
+#endif /* WLAN_HOST_DRIVER */
 
 typedef tANI_U8 tQWPTT_U8;
 typedef tANI_S8 tQWPTT_S8;
@@ -97,12 +105,12 @@ typedef enum {
 //Tx Frame Power Service
    PTT_MSG_CLOSE_TPC_LOOP = 0x30A0,
 
-   //open loop service
+//open loop service
    PTT_MSG_SET_PACKET_TX_GAIN_TABLE = 0x30A1,
    PTT_MSG_SET_PACKET_TX_GAIN_INDEX = 0x30A2,
    PTT_MSG_FORCE_PACKET_TX_GAIN = 0x30A3,
 
-   //closed loop(CLPC) service
+//closed loop(CLPC) service
    PTT_MSG_SET_PWR_INDEX_SOURCE = 0x30A4,
    PTT_MSG_SET_TX_POWER = 0x30A5,
    PTT_MSG_GET_TX_POWER_REPORT = 0x30A7,
@@ -192,8 +200,12 @@ typedef enum {
    PTT_MSG_SET_HKADC_TX_IQ_CORRECT = 0x32B4,
    PTT_MSG_GET_HKADC_TX_IQ_CORRECT = 0x32B5,
    PTT_MSG_SET_DPD_CORRECT = 0x32B6,
-   PTT_MSG_GET_DPDCORRECT = 0x32B7,
+   PTT_MSG_GET_DPD_CORRECT = 0x32B7,
    PTT_MSG_SET_WAVEFORM_RF = 0x32B8,
+   PTT_MSG_LNA_BAND_CAL = 0x32B9,
+   PTT_MSG_GET_LNA_BAND_CORRECT = 0x32BA,
+   PTT_MSG_SET_LNA_BAND_CORRECT = 0x32BB,
+   PTT_MSG_DPD_CAL = 0x32BC,
 
    PTT_MSG_EXIT = 0x32ff,
    PTT_MAX_MSG_ID = PTT_MSG_EXIT
@@ -268,7 +280,7 @@ typedef PACKED_PRE struct PACKED_POST {
    tANI_U32 regValue;
 } tMsgPttDbgWriteRegister;
 
-#define PTT_READ_MEM_MAX 1024
+#define PTT_READ_MEM_MAX 512
 typedef PACKED_PRE struct PACKED_POST {
    tANI_U32 memAddr;
    tANI_U32 nBytes;
@@ -497,7 +509,7 @@ typedef PACKED_PRE struct PACKED_POST {
 } tMsgPttTxIqCal;
 
 typedef PACKED_PRE struct PACKED_POST {
-   sTxChainsIQCalValues calValues;
+   sTxChainsHKIQCalValues calValues;
    eGainSteps gain;
 } tMsgPttHKdacTxIqCal;
 
@@ -531,12 +543,12 @@ typedef PACKED_PRE struct PACKED_POST {
 } tMsgPttGetTxIqCorrect;
 
 typedef PACKED_PRE struct PACKED_POST {
-   sTxChainsIQCalValues calValues;
+   sTxChainsHKIQCalValues calValues;
    eGainSteps gain;
 } tMsgPttHKdacSetTxIqCorrect;
 
 typedef PACKED_PRE struct PACKED_POST {
-   sTxChainsIQCalValues calValues;
+   sTxChainsHKIQCalValues calValues;
    eGainSteps gain;
 } tMsgPttHKdacGetTxIqCorrect;
 
@@ -634,7 +646,7 @@ typedef PACKED_PRE struct PACKED_POST {
    tANI_U32 option;             //dummy variable
 } tMsgPttCalControlBitmap;
 
-#ifdef VERIFY_HALPHY_SIMV_MODEL
+//#ifdef VERIFY_HALPHY_SIMV_MODEL
 
 
 typedef PACKED_PRE struct PACKED_POST {
@@ -646,8 +658,9 @@ typedef PACKED_PRE struct PACKED_POST {
 } tMsgPttRxIQTest;
 
 typedef PACKED_PRE struct PACKED_POST {
-   tANI_U8 txGain;
-} tMsgPttDpdTest;
+   sTxChainsDPDCalValues calValues;
+   tANI_U8 gain;
+} tMsgPttDpdCal;
 
 typedef PACKED_PRE struct PACKED_POST {
    tANI_U8 lutIdx;
@@ -658,7 +671,32 @@ typedef PACKED_PRE struct PACKED_POST {
    tANI_U32 option;             //dummy variable
 } tMsgPttStopToneGen;
 
-#endif
+typedef PACKED_PRE struct PACKED_POST {
+   sTxChainsLnaBandCalValues calValues;
+   eGainSteps gain;
+} tMsgPttLnaBandCal;
+
+typedef PACKED_PRE struct PACKED_POST {
+   sTxChainsLnaBandCalValues calValues;
+   eGainSteps gain;
+} tMsgPttGetLnaBandCalCorrect;
+
+typedef PACKED_PRE struct PACKED_POST {
+   sTxChainsLnaBandCalValues calValues;
+   eGainSteps gain;
+} tMsgPttSetLnaBandCalCorrect;
+
+typedef PACKED_PRE struct PACKED_POST {
+    sTxChainsDPDCalValues calValues;
+    eGainSteps gain;
+}tMsgPttSetDPDCorrect;
+
+typedef PACKED_PRE struct PACKED_POST {
+    sTxChainsDPDCalValues calValues;
+    eGainSteps gain;
+}tMsgPttGetDPDCorrect;
+
+//#endif
 
 /******************************************************************************************************************
     END OF PTT MESSAGES
@@ -735,14 +773,14 @@ typedef PACKED_PRE union PACKED_POST pttMsgUnion{
    tMsgPttWriteRfField WriteRfField;
    tMsgPttCalControlBitmap SetCalControlBitmap;
 
-#ifdef VERIFY_HALPHY_SIMV_MODEL
+//#ifdef VERIFY_HALPHY_SIMV_MODEL
 
    tMsgPttHalPhyInit InitOption;
    tMsgPttRxIQTest RxIQTest;
-   tMsgPttDpdTest DpdTest;
+   tMsgPttDpdCal DpdCal;
    tMsgPttStartToneGen StartToneGen;
    tMsgPttStopToneGen StopToneGen;
-#endif
+//#endif
    tMsgPttDeepSleep DeepSleep;
    tMsgPttReadSifBar4Register ReadSifBar4Register;
    tMsgPttWriteSifBar4Register WriteSifBar4Register;
@@ -755,6 +793,12 @@ typedef PACKED_PRE union PACKED_POST pttMsgUnion{
    tMsgPttSetWaveformRF SetWaveformRF;
    tMsgPttStopWaveformRF StopWaveformRF;
    tMsgPttStartWaveformRF StartWaveformRF;
+   tMsgPttLnaBandCal LnaBandCal;
+   tMsgPttGetLnaBandCalCorrect GetLnaBandCalCorrect;
+   tMsgPttSetLnaBandCalCorrect SetLnaBandCalCorrect;
+   tMsgPttGetDPDCorrect GetDPDCorrect;
+   tMsgPttSetDPDCorrect SetDPDCorrect;
+
 } uPttMsgs;
 
 

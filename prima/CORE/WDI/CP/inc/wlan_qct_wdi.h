@@ -186,6 +186,19 @@ typedef struct
 
 } WDI_NvBlobInfoParams;
 
+
+/*---------------------------------------------------------------------------
+  Data path enums memory pool resource
+  ---------------------------------------------------------------------------*/
+
+typedef enum
+{
+  /* managment resource pool ID */
+  WDI_MGMT_POOL_ID = 0,
+  /* Data resource pool ID */
+  WDI_DATA_POOL_ID = 1
+}WDI_ResPoolType;
+
 /*============================================================================
  *     GENERIC STRUCTURES - END
  ============================================================================*/
@@ -6405,6 +6418,23 @@ WDI_Status WDI_FTMCommandReq
   void                  *pUserData
 );
 #endif /* ANI_MANF_DIAG */
+
+/**
+ @brief WDI_GetAvailableResCount - Function to get the available resource
+        for data and managemnt frames. 
+        
+ @param  pContext:         pointer to the WDI context 
+ @param  wdiResPool:       type of resource pool requesting
+ @see
+ @return Result of the function call
+*/
+
+wpt_uint32 WDI_GetAvailableResCount
+(
+  void            *pContext,
+  WDI_ResPoolType wdiResPool
+);
+
 #ifdef __cplusplus
  }
 #endif 

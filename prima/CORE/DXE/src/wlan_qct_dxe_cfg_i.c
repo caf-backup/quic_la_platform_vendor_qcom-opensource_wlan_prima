@@ -77,7 +77,7 @@ WLANDXE_ChannelConfigType chanTXLowPriConfig =
    WLANDXE_CHANNEL_HANDLE_CIRCULA,
 
    /* Number of Descriptor, NOT CLEAR YET !!! */
-   60,
+   WLANDXE_LO_PRI_RES_NUM ,
 
    /* MAX num RX Buffer */
    0,
@@ -116,7 +116,7 @@ WLANDXE_ChannelConfigType chanTXHighPriConfig =
    WLANDXE_CHANNEL_HANDLE_CIRCULA,
 
    /* Number of Descriptor, NOT CLEAR YET !!! */
-   10,
+   WLANDXE_HI_PRI_RES_NUM ,
 
    /* MAX num RX Buffer */
    0,
@@ -295,7 +295,7 @@ WLANDXE_TxCompIntConfigType txCompInt =
    5,
 
    /* Per K frame enable Interrupt */
-   1,
+   /*WLANDXE_HI_PRI_RES_NUM*/ 5,
 
    /* Periodic timer msec */
    10
