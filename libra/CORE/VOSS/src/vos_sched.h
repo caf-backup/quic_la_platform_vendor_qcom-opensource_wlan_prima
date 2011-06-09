@@ -160,6 +160,11 @@ typedef struct _VosSchedContext
 
    /* Completion object to resume Tx thread */
    struct completion ResumeTxEvent;
+
+   /* lock to make sure that McThread and TxThread Suspend/resume mechanism is in sync*/
+   spinlock_t McThreadLock;
+   spinlock_t TxThreadLock;
+   
 } VosSchedContext, *pVosSchedContext;
 
 /*

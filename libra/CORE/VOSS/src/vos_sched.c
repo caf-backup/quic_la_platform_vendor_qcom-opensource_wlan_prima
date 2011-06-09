@@ -125,6 +125,8 @@ vos_sched_open
   init_completion(&pSchedContext->TxShutdown);
   init_completion(&pSchedContext->ResumeMcEvent);
   init_completion(&pSchedContext->ResumeTxEvent);
+  spin_lock_init(&pSchedContext->McThreadLock);
+  spin_lock_init(&pSchedContext->TxThreadLock);
 
   init_waitqueue_head(&pSchedContext->mcWaitQueue);
   pSchedContext->mcEventFlag = 0;
@@ -490,11 +492,13 @@ VosMCThread
       if(test_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag))
       {
         clear_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag);
+        spin_lock(&pSchedContext->McThreadLock);
 
         /* Mc Thread Suspended */
         complete(&pAdapter->mc_sus_event_var);
 
         INIT_COMPLETION(pSchedContext->ResumeMcEvent);
+        spin_unlock(&pSchedContext->McThreadLock);
 
         /* Wait foe Resume Indication */
         wait_for_completion_interruptible(&pSchedContext->ResumeMcEvent);
@@ -792,11 +796,13 @@ static int VosTXThread ( void * Arg )
       if(test_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag))
       {
         clear_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag);
+        spin_lock(&pSchedContext->TxThreadLock);
 
         /* Tx Thread Suspended */
         complete(&pAdapter->tx_sus_event_var);
 
         INIT_COMPLETION(pSchedContext->ResumeTxEvent);
+        spin_unlock(&pSchedContext->TxThreadLock);
 
         /* Wait foe Resume Indication */
         wait_for_completion_interruptible(&pSchedContext->ResumeTxEvent);
