@@ -520,6 +520,11 @@ VosMCThread
 
 int isWDresetInProgress(void)
 {
+   if(NULL == gpVosWatchdogContext)
+   {
+      return false;
+   }
+
    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                 "%s: Reset is in Progress...",__func__);			
    return gpVosWatchdogContext->resetInProgress;
