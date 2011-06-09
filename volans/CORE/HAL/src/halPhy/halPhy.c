@@ -645,10 +645,13 @@ eHalStatus halPhyFwInitDone(tHalHandle hHal)
                             (0 << QWLAN_RFAPB_TX_DELAY6_PA_ST3_END_PRD_OFFSET)));
 
         //run the loopback CLPC evm cal to record the ofdm pwr offsets in NV
-        if(pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset == 0)
-        {
-            phyClpcLpbkCal(pMac);
-        }
+        //if(pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset == 0)
+        //{
+        //    phyClpcLpbkCal(pMac);
+        //}
+
+        //force the ofdm offset to 0 till the CLPC characterization issues are resolved
+        pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset = 0;
     }
     else
 #endif

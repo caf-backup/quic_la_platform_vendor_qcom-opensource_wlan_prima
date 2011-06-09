@@ -691,14 +691,14 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #endif
 
 #ifdef ANI_BIG_BYTE_ENDIAN
-   /* The following flags are used for
-    * debugging purposes. All the debug
-    * related flags are in this bitmap
-    */
    tANI_U32  bNoPwrDown              : 1;
-   tANI_U32  bReserved6              : 31;
+   tANI_U32  ucMinBcnWaitTU          : 8;
+   tANI_U32  uMaxAllowBcnDriftUs     : 16;
+   tANI_U32  bReserved6              : 7;
 #else
-   tANI_U32  bReserved6              : 31;
+   tANI_U32  bReserved6              : 7;
+   tANI_U32  uMaxAllowBcnDriftUs     : 16;
+   tANI_U32  ucMinBcnWaitTU          : 8;
    tANI_U32  bNoPwrDown              : 1;
 #endif
 
@@ -859,9 +859,13 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #ifdef ANI_BIG_BYTE_ENDIAN
    tANI_U32   nullDataApRespTimeoutMsec: 8;
    tANI_U32   psXoCoreOn        : 1;
-   tANI_U32   bReserved12      : 23;
+   tANI_U32   bStaKeepAliveEn:1;		           // Keep alive mechanism in Infra STA mode, keep alive frames to peer AP.
+   tANI_U32   ucStaKeepAlivePeriodSecs:16;
+   tANI_U32   bReserved12      : 6;
 #else
-   tANI_U32   bReserved12      : 23;
+   tANI_U32   bReserved12      : 6;
+   tANI_U32   ucStaKeepAlivePeriodSecs:16;
+   tANI_U32   bStaKeepAliveEn:1;		           // Keep alive mechanism in Infra STA mode, keep alive frames to peer AP.
    tANI_U32   psXoCoreOn        : 1;
    tANI_U32   nullDataApRespTimeoutMsec: 8;
 #endif
@@ -890,6 +894,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
 #endif
 
    tANI_U32   isAppsCpuAwake;
+
 } Qwlanfw_SysCfgType;
 
 
@@ -3446,7 +3451,8 @@ enum {
 #define HOST_OFFLOAD_IPV4_ARP_REPLY           0
 #define HOST_OFFLOAD_IPV6_NEIGHBOR_DISCOVERY  1
 #define HOST_OFFLOAD_DISABLE                  0
-#define HOST_OFFLOAD_ENABLE                   1
+#define HOST_OFFLOAD_ENABLE                   0x1
+#define HOST_OFFLOAD_BC_FILTER_ENABLE         0x2
 
 typedef PACKED_PRE union PACKED_POST _Qwlanfw_HostOffloadParamsUnion
 {

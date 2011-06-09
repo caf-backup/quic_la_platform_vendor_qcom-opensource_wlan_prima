@@ -6,8 +6,10 @@
 #define WLAN_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD  1
 
 /* Enable or disable offload. */
-#define WLAN_OFFLOAD_DISABLE                  0
-#define WLAN_OFFLOAD_ENABLE                   1
+#define WLAN_OFFLOAD_DISABLE                     0
+#define WLAN_OFFLOAD_ENABLE                      0x1
+#define WLAN_OFFLOAD_BC_FILTER_ENABLE            0x2
+#define WLAN_OFFLOAD_ARP_AND_BC_FILTER_ENABLE    (WLAN_OFFLOAD_ENABLE | WLAN_OFFLOAD_BC_FILTER_ENABLE)
 
 /* Offload request. */
 typedef struct

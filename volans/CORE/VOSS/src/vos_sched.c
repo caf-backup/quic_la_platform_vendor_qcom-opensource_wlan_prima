@@ -33,6 +33,7 @@
 #include "vos_sched.h"
 #include <wlan_hdd_power.h>
 #include <linux/spinlock.h>
+#include <linux/kthread.h>
 #include <libra_sdioif.h>
 #include <wlan_sal_misc.h>
 
@@ -139,9 +140,9 @@ vos_sched_open
   */
   gpVosSchedContext = pSchedContext;
   //Create the VOSS Main Controller thread
-  pSchedContext->McThread = kernel_thread(VosMCThread, pSchedContext,
-     CLONE_FS | CLONE_FILES | CLONE_SIGHAND | SIGCHLD);
-  if (pSchedContext->McThread < 0)
+
+  pSchedContext->McThread = kthread_create(VosMCThread, pSchedContext,"VosMCThread");
+  if (IS_ERR(pSchedContext->McThread)) 
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Could not Create VOSS Main Thread Controller",__func__);
@@ -149,12 +150,15 @@ vos_sched_open
      vos_sched_deinit_mqs(pSchedContext);
      return VOS_STATUS_E_RESOURCES;
   }
+  else
+  {
+     wake_up_process(pSchedContext->McThread);
+  }
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: VOSS Main Controller thread Created",__func__);
 #ifndef ANI_MANF_DIAG
-  pSchedContext->TxThread = kernel_thread(VosTXThread, pSchedContext,
-     CLONE_FS | CLONE_FILES | CLONE_SIGHAND | SIGCHLD);
-  if (pSchedContext->TxThread < 0)
+  pSchedContext->TxThread = kthread_create(VosTXThread, pSchedContext,"VosTXThread");
+  if (IS_ERR(pSchedContext->TxThread)) 
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Could not Create VOSS TX Thread",__func__);
@@ -168,6 +172,10 @@ vos_sched_open
     wait_for_completion_interruptible(&pSchedContext->McShutdown);
     vos_sched_deinit_mqs(pSchedContext);
     return VOS_STATUS_E_RESOURCES;
+  }
+  else
+  {
+     wake_up_process(pSchedContext->TxThread);
   }
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
              ("VOSS TX thread Created\n"));
@@ -228,15 +236,18 @@ VOS_STATUS vos_watchdog_open
   spin_lock_init(&pWdContext->wdLock);
 
   //Create the Watchdog thread
-  pWdContext->WdThread = kernel_thread(VosWDThread, pWdContext,
-     CLONE_FS | CLONE_FILES | CLONE_SIGHAND | SIGCHLD);  
+  pWdContext->WdThread = kthread_create(VosWDThread, pWdContext,"VosWDThread");
   
-  if (pWdContext->WdThread < 0)
+  if (IS_ERR(pWdContext->WdThread)) 
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Could not Create Watchdog thread",__func__);
      return VOS_STATUS_E_RESOURCES;
   }  
+  else
+  {
+     wake_up_process(pWdContext->WdThread);
+  }
  /*
   ** Now make sure thread has started before we exit.
   ** Each thread should normally ACK back when it starts.
@@ -498,6 +509,12 @@ VosMCThread
       "%s: MC Thread exiting!!!!", __FUNCTION__);
   complete_and_exit(&pSchedContext->McShutdown, 0);
 } /* VosMCThread() */
+int isWDresetInProgress(void)
+{
+   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                "%s: Reset is in Progress...",__func__);			
+   return gpVosWatchdogContext->resetInProgress;
+}
 /*---------------------------------------------------------------------------
   \brief VosWdThread() - The VOSS Watchdog thread
   The \a VosWdThread() is the Watchdog thread:
@@ -896,7 +913,6 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     sd_claim_host(sdio_func_dev);
     
     /* Disable SDIO IRQ since we are in LOGP state */
-    libra_disable_sdio_irq_capability(sdio_func_dev, 1);
     libra_enable_sdio_irq(sdio_func_dev, 0);
 
     sd_release_host(sdio_func_dev);
@@ -1261,7 +1277,7 @@ int vos_sched_is_tx_thread(int threadID)
           "%s: gpVosSchedContext == NULL",__FUNCTION__);
       return 0;
    }
-   return (threadID == gpVosSchedContext->TxThread);
+   return ((gpVosSchedContext->TxThread) && (threadID == gpVosSchedContext->TxThread->pid));
 }
 /*-------------------------------------------------------------------------
  Helper function to get the scheduler context

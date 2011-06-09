@@ -761,7 +761,7 @@ typedef struct sSirMeasDuration
 typedef struct sSirChannelList
 {
     tANI_U8          numChannels;
-    tANI_U8          channelNumber[1];
+    tANI_U16         channelNumberOffset;
 } tSirChannelList, *tpSirChannelList;
 
 
@@ -1017,9 +1017,13 @@ typedef struct sSirSmeScanReq
     /* Number of SSIDs to scan */
     tANI_U8             numSsid;
     
-    //channelList has to be the last member of this structure. Check tSirChannelList for the reason.
-    /* This MUST be the last field of the structure */
     tSirChannelList channelList;
+
+    tANI_U16        uIEFieldLen;
+    tANI_U16        uIEFieldOffset;
+    /* note that actual size of tSirSmeScanReq = 
+    sizeof(tSirSmeScanReq) + channList.numChannels + uIEFiledLen. */
+
 } tSirSmeScanReq, *tpSirSmeScanReq;
 
 #ifdef FEATURE_INNAV_SUPPORT
@@ -1180,6 +1184,8 @@ typedef struct sSirSmeJoinReq
     tSirMacRateSet      extendedRateSet;    // Has 11g rates
     tSirRSNie           rsnIE;                  // RSN IE to be sent in
                                                 // (Re) Association Request
+    tSirWSCie           wscIE;              // WSC IE to be included in Probe/Assoc/Beacon if length != 0.
+
     tAniEdType          UCEncryptionType;
     tAniEdType          MCEncryptionType;
     
@@ -1347,6 +1353,9 @@ typedef struct sSirSmeReassocReq
 
     tSirRSNie           rsnIE;     // RSN IE to be sent in
                                    // (Re) Association Request
+
+    tSirWSCie           wscIE;     // WSC IE to be included in ReAssoc if length != 0.
+
     tAniEdType          UCEncryptionType;
     tAniEdType          MCEncryptionType;
 
@@ -3417,10 +3426,13 @@ typedef struct sSirUpdateAPWPARSNIEsReq
 #endif
 
 // SME -> HAL - This is the host offload request. 
-#define SIR_IPV4_ARP_REPLY_OFFLOAD           0
-#define SIR_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD  1
-#define SIR_OFFLOAD_DISABLE                  0
-#define SIR_OFFLOAD_ENABLE                   1
+#define SIR_IPV4_ARP_REPLY_OFFLOAD                  0
+#define SIR_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD         1
+#define SIR_OFFLOAD_DISABLE                         0
+#define SIR_OFFLOAD_ENABLE                          1
+#define SIR_OFFLOAD_BCAST_FILTER_ENABLE             0x2
+#define SIR_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE     (SIR_OFFLOAD_ENABLE|SIR_OFFLOAD_BCAST_FILTER_ENABLE)
+
 typedef struct sSirHostOffloadReq
 {
     tANI_U8 offloadType;

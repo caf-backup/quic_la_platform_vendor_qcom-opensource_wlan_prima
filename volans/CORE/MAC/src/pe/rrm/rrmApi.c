@@ -564,9 +564,10 @@ rrmProcessBeaconReportReq( tpAniSirGlobal pMac,
    pCurrentReq->token = pBeaconReq->measurement_token;
 
    pSmeBcnReportReq->channelList.numChannels = num_channels;
+   pSmeBcnReportReq->channelList.channelNumberOffset = sizeof( tSirBeaconReportReqInd );
    if( pBeaconReq->measurement_request.Beacon.num_APChannelReport )
    {
-      tANI_U8 *pChanList = pSmeBcnReportReq->channelList.channelNumber;
+      tANI_U8 *pChanList = ((tANI_U8 *)pSmeBcnReportReq) + pSmeBcnReportReq->channelList.channelNumberOffset;
       for( num_APChanReport = 0 ; num_APChanReport < pBeaconReq->measurement_request.Beacon.num_APChannelReport ; num_APChanReport++ )
       {
          palCopyMemory( pMac->hHdd, pChanList, 

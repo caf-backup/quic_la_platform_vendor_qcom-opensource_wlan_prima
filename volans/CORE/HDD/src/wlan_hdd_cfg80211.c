@@ -944,8 +944,12 @@ static int wlan_hdd_cfg80211_update_bss( struct wiphy *wiphy,
     eHalStatus status = 0;
     tScanResultHandle pResult;
     struct cfg80211_bss *bss_status = NULL;
-
     ENTER();
+
+    if (pAdapter->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+      return -EAGAIN;
+    }
 
     /*
      * start getting scan results and populate cgf80211 BSS database
@@ -1030,14 +1034,6 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     /* Scan is no longer pending */
     pwextBuf->mScanPending = VOS_FALSE;
 
-    vos_status = vos_event_set(&pwextBuf->vosevent);
-    if (!VOS_IS_STATUS_SUCCESS(vos_status))
-    {    
-        hddLog(VOS_TRACE_LEVEL_ERROR, 
-                "%s: ERROR: HDD vos_event_set failed!!", __func__);
-        return -EIO;
-    }
-
     ret = wlan_hdd_cfg80211_update_bss(wdev->wiphy, pAdapter);
 
     if (0 > ret)
@@ -1075,7 +1071,6 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
 int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
         struct cfg80211_scan_request *request)
 {  
-    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
     hdd_adapter_t *pAdapter = ((hdd_adapter_t*) wiphy_priv(wiphy));
     hdd_wext_state_t *pwextBuf = pAdapter->pWextState;
     hdd_config_t *cfg_param = pAdapter->cfg_ini;
@@ -1092,6 +1087,11 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
     {
         hddLog(VOS_TRACE_LEVEL_INFO, "%s: mScanPending is TRUE\n", __func__);
         return -EBUSY;                  
+    }
+
+    if (pAdapter->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
+      return -EAGAIN;
     }
 
     vos_mem_zero( &scanRequest, sizeof(scanRequest));
@@ -1141,25 +1141,25 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
     /* set requestType to full scan */
     scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;
 
+    if(pAdapter->pWextState->roamProfile.nWSCReqIELength != 0)
+    {
+       scanRequest.uIEFieldLen = pAdapter->pWextState->roamProfile.nWSCReqIELength;
+       scanRequest.pIEField = pAdapter->pWextState->roamProfile.pWSCReqIE;
+    }
+
     pwextBuf->mScanPending = TRUE;
     pAdapter->request = request;
     status = sme_ScanRequest( pAdapter->hHal, pAdapter->sessionId, &scanRequest, 
                        &scanId, &hdd_cfg80211_scan_done_callback, dev ); 
-    pwextBuf->scanId = scanId;
 
-    /*
-     * setting very high timer for cfg80211 scanning.
-     * it seems 3000 is not working for cfg80211 scan request
-     * TODO: we need to see optimized value
-     */
-    vos_status = vos_wait_single_event(&pwextBuf->vosevent,30000);
-
-    if (!VOS_IS_STATUS_SUCCESS(vos_status))
+    if( !HAL_STATUS_SUCCESS(status) )
     {
-        printk("vos_wait_single_event returned error\n");
+        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s: SME scan fail status %d !!!",__func__, status);
         pwextBuf->mScanPending = FALSE;
-        return -EIO;
+        return -EINVAL;
     }
+
+    pwextBuf->scanId = scanId;
 
     EXIT();
 
@@ -1238,19 +1238,6 @@ int wlan_hdd_cfg80211_connect_start( hdd_adapter_t  *pAdapter,
 
         status = sme_RoamConnect( pAdapter->hHal, pAdapter->sessionId,
                                          pRoamProfile, &roamId);
-
-        if (eWEXT_WPS_ON == pWextState->wpsMode)    
-        {
-            pWextState->wpsMode = eWEXT_WPS_OFF;
-            if (0 != ccmCfgSetInt(pAdapter->hHal, WNI_CFG_WPS_PROBE_REQ_FLAG, 0,
-                        NULL, eANI_BOOLEAN_FALSE))
-            {
-                hddLog(VOS_TRACE_LEVEL_ERROR, "%s: ccmCfgSetInt failed.", 
-                        __func__);
-                return -EIO;
-            }
-            pRoamProfile->bWPSAssociation = VOS_FALSE;
-        }
 
         pRoamProfile->ChannelInfo.ChannelList = NULL; 
         pRoamProfile->ChannelInfo.numOfChannels = 0;
@@ -1432,8 +1419,7 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
 {
     hdd_wext_state_t *pWextState = pAdapter->pWextState;
     u8 *genie = ie;
-    u_int8_t *pos;
- 
+
     ENTER();
 
     hddLog(VOS_TRACE_LEVEL_INFO, "%s: iw_set_genie ioctl IE[0x%X], LEN[%d]\n", 
@@ -1442,9 +1428,11 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
     switch ( genie[0] ) 
     {
         case DOT11F_EID_WPA: 
-            if ((2+4) > genie[1])
+            if ((2+4) > genie[1]) /* should have at least OUI */
             {
                 hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid WPA IE", __func__);
+                /* should I clear WPA/WPSIE here ? or should I keep old value ? */
+                /* for now, it just ignore this invalid ie, and keep old IE */
                 return -EINVAL;
             }
             else if (0 == memcmp(&genie[2], "\x00\x50\xf2\x04", 4)) 
@@ -1452,181 +1440,24 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                 hddLog (VOS_TRACE_LEVEL_INFO, "%s Set WPS IE(len %d)", 
                         __func__, genie[1]+2);
 
-                pWextState->wpsMode = eWEXT_WPS_ON;
-                pWextState->roamProfile.bWPSAssociation = VOS_TRUE;
-
-                if (0 != ccmCfgSetInt(pAdapter->hHal, \
-                            WNI_CFG_WPS_ASSOC_METHOD, 2,\
-                            ccmCfgSetCallback, eANI_BOOLEAN_FALSE)) 
-                {
-                    hddLog(VOS_TRACE_LEVEL_ERROR, "%s: ccmCfgSetInt failed.",
-                            __func__);
-                    return -EIO;
+                if(ie_len > sizeof(pWextState->WPSWSCIE.wscIEdata)) {
+                   hddLog(LOGE, "%s Invalid WPS IE len %d\n", __FUNCTION__, ie_len);
+                   return -EINVAL;
                 }
+                if(pWextState->roamProfile.bWPSAssociation == FALSE) {
+                    memset( &pWextState->WPSWSCIE, 0, sizeof(pWextState->WPSWSCIE) );
+                    memcpy( pWextState->WPSWSCIE.wscIEdata, ie, ie_len);
+                    pWextState->WPSWSCIE.length = ie_len;
 
-                pos = &genie[6];
-
-                while (((size_t)pos - (size_t)&genie[6])  < (genie[1] - 4))
-                {
-                    switch(*pos<<8 | *(pos+1))
-                    {
-                        case HDD_WPS_ELEM_VERSION:
-                            pos += 4;
-                            hddLog(VOS_TRACE_LEVEL_INFO, "%s: ver: %d", 
-                                    __func__, *pos);
-                            if (0 != ccmCfgSetInt(pAdapter->hHal, \
-                                        WNI_CFG_WPS_VERSION, *pos++,\
-                                        ccmCfgSetCallback, eANI_BOOLEAN_FALSE)) 
-                            {
-                                hddLog(VOS_TRACE_LEVEL_ERROR, 
-                                        "%s: ccmCfgSetInt failed.", __func__);
-                                return -EIO;
-                            }
-                            break;
-
-                        case HDD_WPS_ELEM_REQUEST_TYPE:
-                            pos += 4;
-                            hddLog(VOS_TRACE_LEVEL_INFO, "%s: type: %d.",
-                                    __func__, *pos);
-                            if (0 != ccmCfgSetInt(pAdapter->hHal, \
-                                        WNI_CFG_WPS_REQUEST_TYPE, *pos++,\
-                                        ccmCfgSetCallback, eANI_BOOLEAN_FALSE))
-                            {
-                                hddLog(VOS_TRACE_LEVEL_ERROR, 
-                                        "%s: ccmCfgSetInt failed.", __func__);
-                                return -EIO;
-                            }
-                            break;
-                        case HDD_WPS_ELEM_CONFIG_METHODS:
-                            pos += 4;
-                            hddLog(VOS_TRACE_LEVEL_INFO, "%s: type: %d\n", 
-                                    __func__, (*pos<<8 | *(pos+1)));
-                            if (0 != ccmCfgSetInt(pAdapter->hHal, \
-                                        WNI_CFG_WPS_CFG_METHOD, (*pos<<8 | *(pos+1)), \
-                                        ccmCfgSetCallback, eANI_BOOLEAN_FALSE)) 
-                            {
-                                hddLog(VOS_TRACE_LEVEL_ERROR, 
-                                        "%s: ccmCfgSetInt failed.", __func__);
-                                return -EIO;
-                            }
-                            pos += 2;
-                            break;
-                        case HDD_WPS_ELEM_UUID_E:
-                            pos += 4;
-                            if (0 != ccmCfgSetStr( pAdapter->hHal, \
-                                        WNI_CFG_WPS_UUID, pos, HDD_WPS_UUID_LEN, \
-                                        ccmCfgSetCallback, eANI_BOOLEAN_FALSE)) 
-                            {
-                                hddLog(VOS_TRACE_LEVEL_ERROR, 
-                                        "%s: ccmCfgSetInt failed.", __func__);
-                                return -EIO;
-                            }
-                            pos += HDD_WPS_UUID_LEN;
-                            break;
-                        case HDD_WPS_ELEM_PRIMARY_DEVICE_TYPE:
-                            pos += 4;
-                            hddLog(VOS_TRACE_LEVEL_INFO, 
-                                    "%s: primary dev category: %d",
-                                    __func__, (*pos<<8 | *(pos+1)));  
-                            if (0 != ccmCfgSetInt( pAdapter->hHal, \
-                                        WNI_CFG_WPS_PRIMARY_DEVICE_CATEGORY, (*pos<<8 | *(pos+1)), \
-                                        ccmCfgSetCallback, eANI_BOOLEAN_FALSE)) 
-                            {
-                                hddLog(VOS_TRACE_LEVEL_ERROR, 
-                                        "%s: ccmCfgSetInt failed.", __func__);
-                                return -EIO;
-                            }
-                            pos += 2;
-                            hddLog(VOS_TRACE_LEVEL_INFO, 
-                                    "%s: primary dev oui: %d",
-                                    __func__, (*pos<<8 | *(pos+1)));
-                            if (0 != ccmCfgSetStr(pAdapter->hHal, \
-                                        WNI_CFG_WPS_PIMARY_DEVICE_OUI, pos, 4, \
-                                        ccmCfgSetCallback, eANI_BOOLEAN_FALSE)) 
-                            {
-                                hddLog(VOS_TRACE_LEVEL_ERROR, 
-                                        "%s: ccmCfgSetInt failed ", __func__);
-                                return -EIO;
-                            }
-                            pos += 4;
-                            hddLog(VOS_TRACE_LEVEL_INFO,
-                                    "%s: primary dev sub category: %d.", 
-                                    __func__, (*pos<<8 | *(pos+1)));  
-                            if (0 != ccmCfgSetInt( pAdapter->hHal, \
-                                        WNI_CFG_WPS_DEVICE_SUB_CATEGORY, (*pos<<8 | *(pos+1)), \
-                                        ccmCfgSetCallback, eANI_BOOLEAN_FALSE)) 
-                            {
-                                hddLog(VOS_TRACE_LEVEL_ERROR, 
-                                        "%s: ccmCfgSetInt failed.", __func__);
-                                return -EIO;
-                            }
-                            pos += 2;
-                            break;
-                        case HDD_WPS_ELEM_RF_BANDS:
-                            pos += 4;
-                            //skip RF Band
-                            pos++; 
-                            break;
-                        case HDD_WPS_ELEM_ASSOCIATION_STATE:
-                            pos += 4;
-                            hddLog(VOS_TRACE_LEVEL_INFO, 
-                                    "%s: association state: %d.",
-                                    __func__, (*pos<<8 | *(pos+1)));
-                            if (0 != ccmCfgSetInt(pAdapter->hHal, \
-                                        WNI_CFG_WPS_ASSOCIATION_STATE, (*pos<<8 | *(pos+1)), \
-                                        ccmCfgSetCallback, eANI_BOOLEAN_FALSE)) 
-                            {
-                                hddLog(VOS_TRACE_LEVEL_ERROR, 
-                                        "%s: ccmCfgSetInt failed.", __func__);
-                                return -EIO;
-                            }
-                            pos += 2;
-                            break;
-                        case HDD_WPS_ELEM_CONFIGURATION_ERROR:
-                            pos += 4;
-                            hddLog(VOS_TRACE_LEVEL_INFO, 
-                                    "%s: config error: %d", __func__, 
-                                    (*pos<<8 | *(pos+1)));
-                            if (0 != ccmCfgSetInt(pAdapter->hHal, \
-                                        WNI_CFG_WPS_CONFIGURATION_ERROR, (*pos<<8 | *(pos+1)), \
-                                        ccmCfgSetCallback, eANI_BOOLEAN_FALSE)) 
-                            {
-                                hddLog( VOS_TRACE_LEVEL_ERROR, 
-                                        "%s: ccmCfgSetInt failed.", __func__);
-                                return -EIO;
-                            }
-                            pos += 2;
-                            break;
-                        case HDD_WPS_ELEM_DEVICE_PASSWORD_ID:
-                            pos += 4;
-                            hddLog(VOS_TRACE_LEVEL_INFO, 
-                                    "%s: password id: %d", __func__,
-                                    (*pos<<8 | *(pos+1)));
-                            if (0 != ccmCfgSetInt( pAdapter->hHal, 
-                                        WNI_CFG_WPS_DEVICE_PASSWORD_ID, (*pos<<8 | *(pos+1)), \
-                                        ccmCfgSetCallback, eANI_BOOLEAN_FALSE)) 
-                            {
-                                hddLog(VOS_TRACE_LEVEL_ERROR, 
-                                        "%s:ccmCfgSetInt failed ", __func__);
-                                return -EIO;
-                            }
-                            pos += 2;
-                            if (0 != ccmCfgSetInt( pAdapter->hHal, \
-                                        WNI_CFG_WPS_PROBE_REQ_FLAG, 1,\
-                                        ccmCfgSetCallback, eANI_BOOLEAN_FALSE)) 
-                            {
-                                hddLog(VOS_TRACE_LEVEL_ERROR, 
-                                        "%s: ccmCfgSetInt failed", __func__);
-                                return -EIO;
-                            }
-                            break;
-                        default:
-                            hddLog(VOS_TRACE_LEVEL_ERROR, 
-                                    "%s: UNKNOWN TLV in WPS IE(%x)\n", 
-                                    __func__, (*pos<<8 | *(pos+1)));
-                            return -EINVAL; 
-                    }
-                }  
+                    pWextState->roamProfile.pWSCReqIE = pWextState->WPSWSCIE.wscIEdata;
+                    pWextState->roamProfile.nWSCReqIELength = ie_len;
+                    pWextState->roamProfile.bWPSAssociation = VOS_TRUE;
+                }
+                else {
+                    hddLog (VOS_TRACE_LEVEL_INFO, "WPSAssociation Pending: Previous len=%d, Combining WSC IE (new ie_len=%d)\n", 
+                            __func__, pWextState->WPSWSCIE.length, ie_len);
+                    sme_combineWSCIE(pAdapter->hHal, &pWextState->WPSWSCIE, ie, ie_len);
+                }
             }
             else 
             {  

@@ -58,6 +58,11 @@
 // replaced by WLAN_STA_ASSOC_DONE_IND or WLAN_STA_DISASSOC_DONE_IND
 #define WLAN_AMP_ASSOC_DONE_IND     0x10
 
+// Special Message Type used by SoftAP, intercepted by send_btc_nlink_msg() and
+// replaced by WLAN_STA_ASSOC_DONE_IND
+#define WLAN_BTC_SOFTAP_BSS_START      0x11
+
+
 // Event data for WLAN_BTC_QUERY_STATE_RSP & WLAN_STA_ASSOC_DONE_IND
 typedef struct
 {
