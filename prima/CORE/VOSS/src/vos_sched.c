@@ -1178,11 +1178,13 @@ VOS_STATUS vos_watchdog_chip_reset ( v_VOID_t )
     }
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
     if(VOS_STATUS_SUCCESS != hdd_wlan_reset_initialization())
     {
        /* This can fail if card got removed by SDCC during resume */
        VOS_ASSERT(0);
     }
+#endif
 #endif
 
     set_bit(WD_CHIP_RESET_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
