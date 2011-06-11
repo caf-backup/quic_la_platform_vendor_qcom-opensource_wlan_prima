@@ -361,6 +361,10 @@ typedef struct sAniSirHal
 
     TX_TIMER        txCompTimer; //Timer to wait for TX complete interrupt.
 
+    // Time Period in secs for the sending keep alive Null frames to the AP
+    // in INFRA STA mode. Value of 0 means disabled. Value in secs.
+    tANI_U32        infraStaKeepAlivePeriod;
+
 #ifdef WLAN_SOFTAP_FEATURE
     /* Listen mode configure parameters */
     tANI_U8    ghalPhyAgcListenMode;

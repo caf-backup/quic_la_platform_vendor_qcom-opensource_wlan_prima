@@ -265,6 +265,8 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
    eHalStatus halStatus;
    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
    vos_call_status_type callType;
+   struct sdio_func *sdio_func_dev_current = NULL;
+   int attempts = 0;
 
    //Stop the Interface TX queue.
    netif_tx_stop_all_queues(pAdapter->dev);
@@ -327,11 +329,31 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
    vosStatus = vos_chipAssertDeepSleep( &callType, NULL, NULL );
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
 
-   vosStatus = vos_chipVoteOffBBAnalogSupply(&callType, NULL, NULL);
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   //Vote off any PMIC voltage supplies
+   vosStatus = vos_chipPowerDown(NULL, NULL, NULL);
+    //Get the Current SDIO Func
+   sdio_func_dev_current = libra_getsdio_funcdev();
+   if(NULL != sdio_func_dev_current) {
+      libra_detect_card_change();
+      do {
+         msleep(100);
+         //Get the SDIO func device
+         sdio_func_dev_current = libra_getsdio_funcdev();
+         if(NULL == sdio_func_dev_current) {
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Card Removed Successfully",__func__);
+            break;
+         }
+         else {
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to Remove the Card: Trying Again",__func__);
+            attempts++;
+         }
+      } while (attempts < LIBRA_CARD_REMOVE_DETECT_MAX_COUNT);
 
-   vosStatus = vos_chipVoteOffRFSupply(&callType, NULL, NULL);
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+      if(LIBRA_CARD_REMOVE_DETECT_MAX_COUNT == attempts) {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to Remove the Card: Fatal",__func__);
+         goto err_fail;
+      }
+   }
 
    pAdapter->hdd_ps_state = eHDD_SUSPEND_DEEP_SLEEP;
 
@@ -343,59 +365,96 @@ VOS_STATUS hdd_enter_deep_sleep(hdd_adapter_t* pAdapter)
    if(pAdapter->cfg_ini->fIsBmpsEnabled)
       sme_EnablePowerSave(pAdapter->hHal, ePMC_BEACON_MODE_POWER_SAVE);
 
+err_fail:
+
    return vosStatus;
 }
 
 VOS_STATUS hdd_exit_deep_sleep(hdd_adapter_t* pAdapter)
 {
-   vos_call_status_type callType;
    VOS_STATUS vosStatus;
    eHalStatus halStatus;
+   int attempts = 0;
+   struct sdio_func *sdio_func_dev = NULL;
 
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-      "%s: calling vos_chipVoteOnRFSupply",__func__);
-   vosStatus = vos_chipVoteOnRFSupply(&callType, NULL, NULL);
-
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+   //Power Up Libra WLAN card first if not already powered up
+   vosStatus = vos_chipPowerUp(NULL,NULL,NULL);
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
    {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: Failed in vos_chipVoteOnRFSupply",__func__);
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not Powered Up."
+          "exiting", __func__);
       goto err_deep_sleep;
    }
 
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-      "%s: calling vos_chipDeAssertDeepSleep",__func__);
-   vosStatus = vos_chipDeAssertDeepSleep( &callType, NULL, NULL );
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: Failed in vos_chipDeAssertDeepSleep",__func__);
-      goto err_deep_sleep;
+   libra_detect_card_change();
+
+   do {
+      sdio_func_dev = libra_getsdio_funcdev();
+      if (NULL == sdio_func_dev) {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not detected yet.",__func__);
+         attempts++;
+      }
+      else {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN detecton succeeded",__func__);
+         break;
+      }
+
+      if(LIBRA_CARD_INSERT_DETECT_MAX_COUNT == attempts)
+        break;
+
+      msleep(250);
+
+   }while (attempts < LIBRA_CARD_INSERT_DETECT_MAX_COUNT);
+
+   //Retry to detect the card again by Powering Down the chip and Power up the chip
+   //again. This retry is done to recover from CRC Error
+   if (NULL == sdio_func_dev) {
+
+      attempts = 0;
+
+      //Vote off any PMIC voltage supplies
+      vos_chipPowerDown(NULL, NULL, NULL);
+
+      msleep(1000);
+
+      //Power Up Libra WLAN card first if not already powered up
+      vosStatus = vos_chipPowerUp(NULL,NULL,NULL);
+      if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+      {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN not Powered Up."
+             "exiting", __func__);
+         goto err_deep_sleep;
+      }
+
+      do {
+         sdio_func_dev = libra_getsdio_funcdev();
+         if (NULL == sdio_func_dev) {
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN not detected yet.",__func__);
+            attempts++;
+         }
+         else {
+            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Retry Libra WLAN detecton succeeded",__func__);
+            break;
+         }
+
+         if(attempts == 2)
+           break;
+
+         msleep(1000);
+
+      }while (attempts < 3);
+
    }
 
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-      "%s: calling vos_chipExitDeepSleepVREGHandler",__func__);
-   vosStatus = vos_chipExitDeepSleepVREGHandler( &callType, NULL, NULL );
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-         "%s: Failed in vos_chipExitDeepSleepVREGHandler",__func__);
-      goto err_deep_sleep;
+   if (NULL == sdio_func_dev) {
+         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN not found!!",__func__);
+         goto err_deep_sleep;
    }
 
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
-      "%s: calling WLANSAL_SDIOReInit",__func__);
-   vosStatus = WLANSAL_SDIOReInit( pAdapter->pvosContext );
-   VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
-   {
-      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed in WLANSAL_SDIOReInit",__func__);
-      goto err_deep_sleep;
-   }
+   SET_NETDEV_DEV(pAdapter->dev, &sdio_func_dev->dev);
+   libra_sdio_setprivdata (sdio_func_dev, pAdapter);
+   atomic_set(&pAdapter->sdio_claim_count, 0);
+   pAdapter->hsdio_func_dev = sdio_func_dev;
 
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
       "%s: calling WLANSAL_Start",__func__);
@@ -695,8 +754,6 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
    return;
 }
 
-#define LIBRA_CARD_INSERT_DETECT_MAX_COUNT	5
-#define LIBRA_CARD_REMOVE_DETECT_MAX_COUNT	5
 VOS_STATUS hdd_wlan_reset(void) 
 {
    VOS_STATUS vosStatus;

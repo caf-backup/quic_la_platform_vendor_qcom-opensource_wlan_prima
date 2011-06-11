@@ -132,9 +132,15 @@ eHalStatus asicTxFirSetTxPhaseCorrection(tpAniSirGlobal pMac, eGainSteps gain, e
     iqWord = ((0x1FF & correct.offCenter) | ((0x1FF & correct.center) << 9) | ((0x1FF & correct.imbalance) << 18));
     
     assert((tANI_U32)txChain < PHY_MAX_TX_CHAINS);
+
+    /* Commenting out these asserts as it fails whenever any of the correction values are negative.
+     * Since iqWord is taken with the right masks applied to the correction values, these asserts are not 
+     * really needed */
+#if 0
     assert(((tANI_U32)correct.center & 0xFE00) == 0);
     assert(((tANI_U32)correct.offCenter & 0xFE00) == 0);
     assert(((tANI_U32)correct.imbalance & 0xFE00) == 0);
+#endif
     assert((tANI_U32)gain < NUM_TX_GAIN_STEPS);
 
     //GET_PHY_MEMORY(startWord, (tANI_U32 *)txIqLoCache, 3);

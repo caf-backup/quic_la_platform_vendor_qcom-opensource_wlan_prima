@@ -107,6 +107,10 @@ typedef enum
 /** Maximum Length of WPA/RSN IE */
 #define MAX_WPA_RSN_IE_LEN 40
 
+/** Maximum Length of WSC IE */
+/** Element ID (1) + Length (1) + OUI (4) + Data (251) = 257 */
+#define MAX_WSC_IE_LEN     260  /* padding for 4 byte align */
+
 /** Maximum Number of WEP KEYS */
 #define MAX_WEP_KEYS 4
 
@@ -205,8 +209,10 @@ typedef struct hdd_wext_state_s
     /**vos event */
    vos_event_t  vosevent;
 
-    /* WPS turned on/off*/
-   hdd_wps_mode_e wpsMode; 
+   vos_event_t scanevent;
+
+    /**WSC IE*/
+   tSirWSCie WPSWSCIE; 
 
    /**Counter measure state, Started/Stopped*/
    v_BOOL_t mTKIPCounterMeasures;  
@@ -270,5 +276,8 @@ extern int iw_get_auth(struct net_device *dev,struct iw_request_info *info,
                          union iwreq_data *wrqu,char *extra);
 
 void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result);
+
+void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter);
+
 #endif // __WEXT_IW_H__
 

@@ -4548,9 +4548,17 @@ halMsg_SetStaKey(
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tANI_U8 bssidx;
     tANI_U8 winChkSize[MAX_NUM_OF_TIDS];
+    tANI_U32 regValue;
 #ifdef FIXME_GEN5
     tANI_U16 rce = 0, wce = 0;
 #endif
+
+    /* Diable DPU RX WQ3 to avoid any encrypted packet rx before setKey done*/
+    /* avoid race condition in TKIP where GTK recievied before setKey done */
+    halReadRegister(pMac, QWLAN_BMU_DISABLE_WQ_DA_REG, &regValue);
+    regValue |=(1<<BMUWQ_DPU_RX);
+    halWriteRegister(pMac, QWLAN_BMU_DISABLE_WQ_DA_REG, regValue);
+
 
     // Now since the STA context is being added, the STA must be already ULAP authenticated
     // So, set the STA signature bit that indicates that the STA is ULAP authenticated
@@ -4774,6 +4782,11 @@ key_set_done:
     }
 
 generate_response:
+    /* Enable the DPU RX WQ3 */
+    halReadRegister(pMac, QWLAN_BMU_DISABLE_WQ_DA_REG, &regValue);
+    regValue &=~(1<<BMUWQ_DPU_RX);
+    halWriteRegister(pMac, QWLAN_BMU_DISABLE_WQ_DA_REG, regValue);
+
     param->status = status;
     halMsg_GenerateRsp(pMac, SIR_HAL_SET_STAKEY_RSP, dialog_token, (void *) param, 0);
     return;

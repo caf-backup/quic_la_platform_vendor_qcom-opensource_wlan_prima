@@ -386,8 +386,10 @@ eHalStatus halPS_Config(tpAniSirGlobal pMac, tpSirPowerSaveCfg pPowerSaveConfig)
     //Beacon Miss Handling
     pFwConfig->bBcnMissMLC = TRUE;
     pFwConfig->ucMaxBcnWaitTU = HAL_PWR_SAVE_BCN_MISS_WAIT_TU;
+    pFwConfig->ucMinBcnWaitTU = HAL_PWR_SAVE_MIN_BCN_WAIT_TU;
     pFwConfig->uBcnMissGracePeriodUs = HAL_PWR_SAVE_BCN_MISS_GRACE_PERIOD_US;
     pFwConfig->ucNumConsBcnMiss = HAL_PWR_SAVE_MAX_CONS_BCN_MISS; 
+    pFwConfig->uMaxAllowBcnDriftUs = HAL_PWR_SAVE_MAX_ALLOWED_BCN_DRIFT_US;
 
     // Listen Interval
     // just save it in HAL cache. It will be written to FW sys config at Enter BMPS.
@@ -1414,6 +1416,15 @@ eHalStatus halPS_UpdateFwSysConfig(tpAniSirGlobal pMac, tANI_U8 dtimPeriod, tANI
         pFwConfig->uAirTimeComp = TBTT_COMPENSATION_2_4_GHZ;
     } else if (pMac->hal.currentRfBand == eRF_BAND_5_GHZ) {
         pFwConfig->uAirTimeComp = TBTT_COMPENSATION_5_GHZ;
+    }
+
+    // INFRA STA keep alive enable/disable.
+    if (pMac->hal.infraStaKeepAlivePeriod) {
+        pFwConfig->bStaKeepAliveEn = TRUE;
+        pFwConfig->ucStaKeepAlivePeriodSecs = pMac->hal.infraStaKeepAlivePeriod;
+    } else {
+        pFwConfig->bStaKeepAliveEn = FALSE;
+        pFwConfig->ucStaKeepAlivePeriodSecs = 0;
     }
 
     HALLOGE( halLog(pMac, LOGE, FL("Updating LI in FW to %d"), listenInterval));
@@ -3985,46 +3996,57 @@ eHalStatus halPS_SetHostOffloadInFw(tpAniSirGlobal pMac, tpSirHostOffloadReq pRe
     if (eHAL_STATUS_SUCCESS != status)
     {
         HALLOGE(halLog(pMac, LOGE, FL("palAllocateMemory() failed to return buffer (0x%x)\n"),
-                       status));
+                    status));
         palFreeMemory(pMac->hHdd, pRequest);
         return status;
     }
 
+    pFwMsg->enableOrDisable = 0;
+
     // Compose message
     switch (pRequest->offloadType)
     {
-    case SIR_IPV4_ARP_REPLY_OFFLOAD:
-        pFwMsg->offloadType = HOST_OFFLOAD_IPV4_ARP_REPLY;
-        switch (pRequest->enableOrDisable)
-        {
-        case SIR_OFFLOAD_DISABLE:
-            pFwMsg->enableOrDisable = HOST_OFFLOAD_DISABLE;
+        case SIR_IPV4_ARP_REPLY_OFFLOAD:
+            pFwMsg->offloadType = HOST_OFFLOAD_IPV4_ARP_REPLY;
+            switch (pRequest->enableOrDisable)
+            {
+                case SIR_OFFLOAD_DISABLE:
+                    pFwMsg->enableOrDisable = HOST_OFFLOAD_DISABLE;
+                    break;
+                case SIR_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE:
+                    pFwMsg->enableOrDisable |= HOST_OFFLOAD_BC_FILTER_ENABLE;
+                case SIR_OFFLOAD_ENABLE:
+                    pFwMsg->enableOrDisable |= HOST_OFFLOAD_ENABLE;
+                    palCopyMemory(pMac->hHdd, pFwMsg->params.hostIpv4Addr,
+                            pRequest->params.hostIpv4Addr, 4);
+                    sirSwapU32BufIfNeeded((tANI_U32 *)pFwMsg->params.hostIpv4Addr, 1);
+                    break;
+                default:
+                    HALLOGE(halLog(pMac, LOGE, 
+                                FL("Invalid option %d for ARP offload, disabling it by default!\n"),
+                                pRequest->enableOrDisable));
+                    pFwMsg->enableOrDisable = HOST_OFFLOAD_DISABLE;
+                    break;
+            }
             break;
-        case SIR_OFFLOAD_ENABLE:
-            pFwMsg->enableOrDisable = HOST_OFFLOAD_ENABLE;
-            palCopyMemory(pMac->hHdd, pFwMsg->params.hostIpv4Addr,
-                          pRequest->params.hostIpv4Addr, 4);
-            sirSwapU32BufIfNeeded((tANI_U32 *)pFwMsg->params.hostIpv4Addr, 1);
-        }
-        break;
-    case SIR_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD:
-        pFwMsg->offloadType = HOST_OFFLOAD_IPV6_NEIGHBOR_DISCOVERY;
-        switch (pRequest->enableOrDisable)
-        {
-        case SIR_OFFLOAD_DISABLE:
-            pFwMsg->enableOrDisable = HOST_OFFLOAD_DISABLE;
-            break;
-        case SIR_OFFLOAD_ENABLE:
-            pFwMsg->enableOrDisable = HOST_OFFLOAD_ENABLE;
-            palCopyMemory(pMac->hHdd, pFwMsg->params.hostIpv6Addr,
-                          pRequest->params.hostIpv6Addr, 16);
-            sirSwapU32BufIfNeeded((tANI_U32 *)pFwMsg->params.hostIpv6Addr, 4);
-        }
+        case SIR_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD:
+            pFwMsg->offloadType = HOST_OFFLOAD_IPV6_NEIGHBOR_DISCOVERY;
+            switch (pRequest->enableOrDisable)
+            {
+                case SIR_OFFLOAD_DISABLE:
+                    pFwMsg->enableOrDisable = HOST_OFFLOAD_DISABLE;
+                    break;
+                case SIR_OFFLOAD_ENABLE:
+                    pFwMsg->enableOrDisable = HOST_OFFLOAD_ENABLE;
+                    palCopyMemory(pMac->hHdd, pFwMsg->params.hostIpv6Addr,
+                            pRequest->params.hostIpv6Addr, 16);
+                    sirSwapU32BufIfNeeded((tANI_U32 *)pFwMsg->params.hostIpv6Addr, 4);
+            }
     }
 
     // Send message to FW
     status = halFW_SendMsg(pMac, HAL_MODULE_ID_PWR_SAVE, QWLANFW_HOST2FW_SET_HOST_OFFLOAD, 0,
-                           sizeof(Qwlanfw_HostOffloadReqType), pFwMsg, FALSE, NULL);
+            sizeof(Qwlanfw_HostOffloadReqType), pFwMsg, FALSE, NULL);
     if (eHAL_STATUS_SUCCESS != status)
     {
         HALLOGE(halLog(pMac, LOGE, FL("Failed to send message to firmware (0x%x)\n"), status));

@@ -157,6 +157,78 @@ limIsRSNieValidInSmeReqMessage(tpAniSirGlobal pMac, tpSirRSNie pRSNie)
     return true;
 } /*** end limIsRSNieValidInSmeReqMessage() ***/
 
+/**
+ * limIsWSCieValidInSmeReqMessage()
+ *
+ *FUNCTION:
+ * This function is called to verify if the WSN IE
+ * received in various SME_REQ messages is valid or not
+ *
+ *LOGIC:
+ * WSC IE validity checks are performed in this function
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param  pMac   Pointer to Global MAC structure
+ * @param  pWSCie Pointer to received WSC IE
+ * @return true when WSC IE is valid, false otherwise
+ */
+
+static tANI_U8
+limIsWSCieValidInSmeReqMessage(tpAniSirGlobal pMac, tpSirWSCie pWSCie)
+{
+    tANI_U8  startPos = 0, valid = false;
+    tANI_U32 val;
+    int len;
+
+    // Do we need to check anything here from CFG, such as WPS_ENABLED ?
+
+    if (pWSCie->length == 0)
+        return true;
+
+    if ((pWSCie->wscIEdata[0] != DOT11F_EID_WPA))
+    {
+        limLog(pMac, LOGE, FL("WPA EID %d not [%d]\n"), 
+               pWSCie->wscIEdata[0], DOT11F_EID_WPA);
+        return false;
+    }
+
+    len = pWSCie->length;
+    startPos = 0;
+    while(len > 0)
+    {
+    // Check validity of WSC IE
+        if(pWSCie->wscIEdata[startPos] == DOT11F_EID_WPA)
+        {
+            // Check validity of WPA IE
+            val = sirReadU32((tANI_U8 *) &pWSCie->wscIEdata[startPos + 2]);
+            if((SIR_MAC_WPS_OUI == val)) {
+                if((pWSCie->wscIEdata[startPos + 1] >= SIR_MAC_WSC_IE_MIN_LENGTH) &&
+                (pWSCie->wscIEdata[startPos + 1] <= SIR_MAC_WSC_IE_MAX_LENGTH)) 
+                    valid = TRUE;
+            }
+            // else not needed, valid = FALSE;
+
+            if( valid == false) 
+            {
+                limLog(pMac, LOGE,
+                       FL("WSC IE len %d not [%d,%d] OR data 0x%x not 0x%x\n"),
+                       pWSCie->wscIEdata[startPos+1], 6, 
+                       257, val, SIR_MAC_WPS_OUI);
+            }
+        }
+        // else
+        // { // not needed, valid = false;
+        // }
+        startPos += 2 + pWSCie->wscIEdata[startPos+1];  //EID + length field + length
+        len -= startPos;
+    }//while
+
+    return valid;
+} /*** end limIsWSCieValidInSmeReqMessage() ***/
+
 #ifdef WLAN_SOFTAP_FEATURE
 /**
  * limSetRSNieWPAiefromSmeStartBSSReqMessage()
@@ -722,6 +794,16 @@ limIsSmeJoinReqValid(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq)
 
     if (!limIsRSNieValidInSmeReqMessage(pMac, &pJoinReq->rsnIE))
     {
+        limLog(pMac, LOGE,
+               FL("received SME_JOIN_REQ with invalid RSNIE\n"));
+        valid = false;
+        goto end;
+    }
+
+    if (!limIsWSCieValidInSmeReqMessage(pMac, &pJoinReq->wscIE))
+    {
+        limLog(pMac, LOGE,
+               FL("received SME_JOIN_REQ with invalid WSCIE\n"));
         valid = false;
         goto end;
     }
@@ -737,7 +819,7 @@ limIsSmeJoinReqValid(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq)
     {
         /// Received eWNI_SME_JOIN_REQ with invalid BSS Info
         // Log the event
-        limLog(pMac, LOGW,
+        limLog(pMac, LOGE,
                FL("received SME_JOIN_REQ with invalid bssInfo\n"));
 
         valid = false;

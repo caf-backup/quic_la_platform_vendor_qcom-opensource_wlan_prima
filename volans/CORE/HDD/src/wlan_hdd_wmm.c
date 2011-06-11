@@ -1546,7 +1546,7 @@ v_U16_t hdd_hostapd_select_queue(struct net_device * dev, struct sk_buff *skb)
    hdd_adapter_t *pStaAdapter = (hdd_adapter_t *)netdev_priv(pAdapter->pWlanDev);   
    tpAniSirGlobal  pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_HAL, pAdapter->pvosContext);   
    v_U8_t STAId = WLAN_MAX_STA_COUNT;
-   v_U8_t *pSTAId = (v_U8_t *)&skb->cb;
+   v_U8_t *pSTAId = (v_U8_t *)(((v_U8_t *)(skb->data)) - 1);
     
    /*Get the Station ID*/
    if (eHAL_STATUS_SUCCESS != halTable_FindStaidByAddr(pMac, (tANI_U8 *)pDestMacAddress, &STAId))

@@ -31,7 +31,10 @@
 #endif
 /*--------------------------------------------------------------------------- 
   Preprocessor definitions and constants
-  -------------------------------------------------------------------------*/ 
+  -------------------------------------------------------------------------*/
+/** Number of attempts to detect/remove card */
+#define LIBRA_CARD_INSERT_DETECT_MAX_COUNT	5
+#define LIBRA_CARD_REMOVE_DETECT_MAX_COUNT	5
 /** Number of Tx Queues */  
 #define NUM_TX_QUEUES 4
 /** Queue length specified to OS in the net_device */
@@ -74,6 +77,7 @@
 #else
 #define WLAN_HDD_GET_PRIV_PTR(__dev__) (hdd_adapter_t*)(netdev_priv((__dev__)))
 #endif
+#define MAX_EXIT_ATTEMPTS_DURING_LOGP 6
 
 typedef struct hdd_tx_rx_stats_s
 {

@@ -498,7 +498,8 @@ void sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
 #endif
    }
    else
-   { 
+   {
+      tANI_U8 channelNumber;
       len = 0;
       pSmeRrmContext->channelList.numOfChannels = 0;
 
@@ -538,9 +539,10 @@ void sme_RrmProcessBeaconReportReqInd(tpAniSirGlobal pMac, void *pMsgBuf)
 
       for ( i = 0 ; i < pBeaconReq->channelList.numChannels; i++ )
       {
-         if(csrRoamIsChannelValid( pMac, pBeaconReq->channelList.channelNumber[i] ))
+         channelNumber = *((tANI_U8 *)pBeaconReq + pBeaconReq->channelList.channelNumberOffset + i);
+         if(csrRoamIsChannelValid( pMac, channelNumber))
          {
-            pSmeRrmContext->channelList.ChannelList[pSmeRrmContext->channelList.numOfChannels] = pBeaconReq->channelList.channelNumber[i];
+            pSmeRrmContext->channelList.ChannelList[pSmeRrmContext->channelList.numOfChannels] = channelNumber;
             pSmeRrmContext->channelList.numOfChannels++;
          }
       }

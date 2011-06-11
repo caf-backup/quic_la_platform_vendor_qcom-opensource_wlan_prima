@@ -330,8 +330,11 @@ typedef struct sLimMlmScanReq
     tANI_U32 dot11mode;
     /* Number of SSIDs to scan(send Probe request) */
     tANI_U8            numSsid;
-    //channelList MUST be the last field of this structure
+
     tSirChannelList    channelList;
+
+    tANI_U16           uIEFieldLen;
+    tANI_U16           uIEFieldOffset;
 } tLimMlmScanReq, *tpLimMlmScanReq;
 
 typedef struct tLimScanResultNode tLimScanResultNode;

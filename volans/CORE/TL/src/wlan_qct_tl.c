@@ -1425,48 +1425,15 @@ WLANTL_STAPktPending
   /*-----------------------------------------------------------------------
     Enable this AC in the AC mask in order for TL to start servicing it
     Set packet pending flag 
+    To avoid race condition, serialize the updation of AC and AC mask 
+    through WLANTL_TX_STAID_AC_IND message.
   -----------------------------------------------------------------------*/
-#ifdef WLAN_SOFTAP_FEATURE
-    if (WLAN_STA_SOFTAP != pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType)
-    {
-#endif
-       vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucACMask,
-                      pTLCb->atlSTAClients[ucSTAId].ucACMask| ( 1 << ucAc));
-
-       vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucPktPending, 1);
-
-       /*------------------------------------------------------------------------
-       Check if there are enough resources for transmission and tx is not
-       suspended.
-       ------------------------------------------------------------------------*/
-       if (( pTLCb->uResCount >=  WLANTL_MIN_RES_DATA ) &&
-          ( 0 == pTLCb->ucTxSuspended ))
-       {
-           TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-               "Issuing Xmit start request to BAL"));
-           vosStatus = WLANBAL_StartXmit(pvosGCtx);
-       }
-       else
-       {
-           /*---------------------------------------------------------------------
-           No error code is sent because TL will resume tx autonomously if
-           resources become available or tx gets resumed
-           ---------------------------------------------------------------------*/
-           TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-                 "WLAN TL:Request to send but condition not met. Res: %d,Suspend: %d",
-                  pTLCb->uResCount, pTLCb->ucTxSuspended ));
-       }
-#ifdef WLAN_SOFTAP_FEATURE
-    }
-    else
-    {
-        vosMsg.reserved = 0;
-        vosMsg.bodyval  = 0;
-        vosMsg.bodyval = (ucAc | (ucSTAId << WLANTL_STAID_OFFSET));
-        vosMsg.type     = WLANTL_TX_STAID_AC_IND;
-        vosStatus = vos_tx_mq_serialize( VOS_MQ_ID_TL, &vosMsg);
-    }
-#endif
+  vosMsg.reserved = 0;
+  vosMsg.bodyval  = 0;
+  vosMsg.bodyval = (ucAc | (ucSTAId << WLANTL_STAID_OFFSET));
+  vosMsg.type     = WLANTL_TX_STAID_AC_IND;
+  vosStatus = vos_tx_mq_serialize( VOS_MQ_ID_TL, &vosMsg);
+    
   return vosStatus;
 }/* WLANTL_STAPktPending */
 
@@ -5262,21 +5229,6 @@ WLANTL_STATxConn
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL:Attaching BD header to pkt on WLANTL_STATxConn"));
 
-  #ifdef FEATURE_WLAN_WAPI
-  /*------------------------------------------------------------------------
-    Translate 802.3 frame to 802.11 if Frame translation is enabled or if 
-    frame is a WAI frame.
-   ------------------------------------------------------------------------*/
-  if ((( 1 == tlMetaInfo.ucIsWai ) ||
-       (( 0 == tlMetaInfo.ucDisableFrmXtl ) &&
-       ( 0 != pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucSwFrameTXXlation))))
-#else
-  /*------------------------------------------------------------------------
-    Translate 802.3 frame to 802.11 if Frame translation is enabled 
-   ------------------------------------------------------------------------*/
-  if (( 0 == tlMetaInfo.ucDisableFrmXtl ) &&
-      ( 0 != pTLCb->atlSTAClients[ucSTAId].wSTADesc.ucSwFrameTXXlation))
-#endif
   {
     vosStatus =  WLANTL_Translate8023To80211Header( vosDataBuff, &vosStatus,
                                                     pTLCb, ucSTAId,
@@ -5320,7 +5272,6 @@ WLANTL_STATxConn
   }
 
 
-#ifdef FEATURE_WLAN_WAPI
   vosStatus = (VOS_STATUS)WLANHAL_FillTxBd( pvosGCtx, ucTypeSubtype, 
                                             &vDestMacAddr,  
                                             &pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSelfMACAddress,
@@ -5328,14 +5279,6 @@ WLANTL_STATxConn
                                             pvBDHeader, 
                                             HAL_TX_NO_ENCRYPTION_MASK,
                                             tlMetaInfo.usTimeStamp );
-#else
-  vosStatus = (VOS_STATUS)WLANHAL_FillTxBd( pvosGCtx, ucTypeSubtype, 
-                                            &vDestMacAddr,  
-                                            &pTLCb->atlSTAClients[ucSTAId].wSTADesc.vSelfMACAddress,
-                                            &ucTid, tlMetaInfo.ucDisableFrmXtl,
-                                pvBDHeader, 0 /* No ACK */,
-                                tlMetaInfo.usTimeStamp );
-#endif /* FEATURE_WLAN_WAPI */
 
   if ( VOS_STATUS_SUCCESS != vosStatus )
   {
@@ -7225,7 +7168,6 @@ WLANTL_TxProcessMsg
     vosStatus   = WLANTL_ForwardSTAFrames( pvosGCtx, ucSTAId, 
                                            ucUcastSig, ucBcastSig);
     break;
-#ifdef WLAN_SOFTAP_FEATURE
   case WLANTL_TX_STAID_AC_IND:
       pTLCb = VOS_GET_TL_CB(pvosGCtx);
       if ( NULL == pTLCb )
@@ -7243,7 +7185,6 @@ WLANTL_TxProcessMsg
       vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucPktPending, 1);
       vosStatus = WLANBAL_StartXmit(pvosGCtx);
       break;
-#endif 
   default:
     /*no processing for now*/
     break;
@@ -8891,9 +8832,21 @@ WLANTL_MgmtFrmRxDefaultCb
   v_PVOID_t  vosBuff
 )
 {
-  TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
-             "WLAN TL:Fatal failure: No registered Mgmt Frm client on pkt RX"));
-  VOS_ASSERT(0);
+  /* Drop packet */
+  vos_pkt_return_packet(vosBuff);
+
+  if(!vos_is_load_unload_in_progress(VOS_MODULE_ID_TL, NULL))
+  {
+      TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
+                 "WLAN TL:Fatal failure: No registered Mgmt Frm client on pkt RX"));
+      VOS_ASSERT(0);
+  }
+  else
+  {
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+                 "WLAN TL: No registered Mgmt Frm client on pkt RX. Load/Unload in progress, Ignore"));
+  }
+
   return VOS_STATUS_E_FAILURE;
 }/*WLANTL_MgmtFrmRxDefaultCb*/
 

@@ -2297,6 +2297,14 @@ tANI_BOOLEAN csrIsProfileRSN( tCsrRoamProfile *pProfile )
     return( fRSNProfile );
 }
 
+tANI_BOOLEAN csrIsProfileWsc( tCsrRoamProfile *pProfile )
+{
+    if(pProfile->nWSCReqIELength)
+        return TRUE;
+    else
+        return FALSE;
+}
+
 
 #ifdef FEATURE_WLAN_WAPI
 tANI_BOOLEAN csrIsProfileWapi( tCsrRoamProfile *pProfile )
@@ -2618,9 +2626,11 @@ tANI_U8 csrGetOUIIndexFromCipher( eCsrEncryptionType enType )
         switch ( enType )
         {
             case eCSR_ENCRYPT_TYPE_WEP40:
+            case eCSR_ENCRYPT_TYPE_WEP40_STATICKEY:
                 OUIIndex = CSR_OUI_WEP40_OR_1X_INDEX;
                 break;
             case eCSR_ENCRYPT_TYPE_WEP104:
+            case eCSR_ENCRYPT_TYPE_WEP104_STATICKEY:
                 OUIIndex = CSR_OUI_WEP104_INDEX;
                 break;
             case eCSR_ENCRYPT_TYPE_TKIP:
@@ -3577,6 +3587,36 @@ tANI_U8 csrRetrieveWapiIe( tHalHandle hHal, tANI_U32 sessionId,
     return (cbWapiIe);
 }
 #endif /* FEATURE_WLAN_WAPI */
+
+//If a WSCIE exists in the profile, just use it. Otherwise this function does nothing
+//Caller allocated memory for pWscIe and guarrantee it can contain a max length WSC IE
+//Return how many bytes for WSC IE is used up
+tANI_U8 csrRetrieveWscIe( tHalHandle hHal, tANI_U32 sessionId, tCsrRoamProfile *pProfile, void *pWscIe )
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    tANI_U8 cbWscIe = 0;
+
+    do
+    {
+        if ( !csrIsProfileWsc( pProfile ) )  {
+            break;
+        }
+        if(pProfile->nWSCReqIELength && pProfile->pWSCReqIE)
+        {
+            if(SIR_MAC_WSC_IE_MAX_LENGTH+2 >= pProfile->nWSCReqIELength)
+            {
+                cbWscIe = (tANI_U8)pProfile->nWSCReqIELength;
+                palCopyMemory(pMac->hHdd, pWscIe, pProfile->pWSCReqIE, cbWscIe);
+            }
+            else
+            {
+                smsLog(pMac, LOGW, "  csrRetrieveRsnIe detect invalid WSC IE length (%d) \n", pProfile->pWSCReqIE);
+            }
+        }
+    }while(0);
+
+    return (cbWscIe);
+}
 
 tANI_BOOLEAN csrSearchChannelListForTxPower(tHalHandle hHal, tSirBssDescription *pBssDescription, tCsrChannelSet *returnChannelGroup)
 {

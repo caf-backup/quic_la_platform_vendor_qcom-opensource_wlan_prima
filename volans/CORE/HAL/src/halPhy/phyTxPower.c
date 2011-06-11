@@ -143,6 +143,8 @@ tTxGain tpcGainLut[PHY_MAX_TX_CHAINS][TPC_MEM_GAIN_LUT_DEPTH] =
 eHalStatus phyTxPowerSplitLutUpdate(tpAniSirGlobal pMac, tANI_U8 tpcIdx)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
+
+#ifdef CLPC_LOW_POWER_RANGE
     int i, temp;
 
     //fill out ofdm rf_gain range with values [2:8]
@@ -164,6 +166,7 @@ eHalStatus phyTxPowerSplitLutUpdate(tpAniSirGlobal pMac, tANI_U8 tpcIdx)
     {
         tpcGainLut[0][i].finePwr = 9 + ((i % 4)<<1);
     }
+#endif
 
     if (
         ((retVal = asicLoadTPCGainLUT(pMac, PHY_TX_CHAIN_0, &(tpcGainLut[PHY_TX_CHAIN_0][0]))) != eHAL_STATUS_SUCCESS)

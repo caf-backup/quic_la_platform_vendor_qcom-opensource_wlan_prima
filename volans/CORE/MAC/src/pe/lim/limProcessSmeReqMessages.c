@@ -939,10 +939,11 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #endif //FEATURE_WLAN_DIAG_SUPPORT
     
     pScanReq = (tpSirSmeScanReq) pMsgBuf;   
-    PELOG1(limLog(pMac, LOG1, FL("SME SCAN REQ numChan %d min %d max %d first %d fresh %d unique %d type %d rsp %d\n"),
+    PELOG1(limLog(pMac, LOG1, FL("SME SCAN REQ numChan %d min %d max %d IELen %d first %d fresh %d unique %d type %d rsp %d\n"),
            pScanReq->channelList.numChannels,
            pScanReq->minChannelTime,
            pScanReq->maxChannelTime,
+           pScanReq->uIEFieldLen, 
            pScanReq->returnAfterFirstMatch,
            pScanReq->returnFreshResults,
            pScanReq->returnUniqueResults,
@@ -1025,24 +1026,25 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         if (pScanReq->channelList.numChannels == 0)
         {
             // Scan all channels
-            if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmScanReq,
-                                                          (sizeof(tLimMlmScanReq) + WNI_CFG_VALID_CHANNEL_LIST_LEN)))
+            len = sizeof(tLimMlmScanReq) + WNI_CFG_VALID_CHANNEL_LIST_LEN + pScanReq->uIEFieldLen;
+            if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmScanReq, len) )
             {
                 // Log error
                 limLog(pMac, LOGP,
-                       FL("call to palAllocateMemory failed for mlmScanReq\n"));
+                       FL("call to palAllocateMemory failed for mlmScanReq (%d)\n"), len);
 
                 return;
             }
 
             // Initialize this buffer
-            palZeroMemory( pMac->hHdd, (tANI_U8 *) pMlmScanReq,
-              (tANI_U32)(sizeof(tLimMlmScanReq) + WNI_CFG_VALID_CHANNEL_LIST_LEN ));
+            palZeroMemory( pMac->hHdd, (tANI_U8 *) pMlmScanReq, len);
 
+            pMlmScanReq->channelList.channelNumberOffset = sizeof(tLimMlmScanReq);
             len = WNI_CFG_VALID_CHANNEL_LIST_LEN;
             if (wlan_cfgGetStr(pMac, WNI_CFG_VALID_CHANNEL_LIST,
-                          pMlmScanReq->channelList.channelNumber,
+                          (tANI_U8*)pMlmScanReq+pMlmScanReq->channelList.channelNumberOffset,
                           &len) != eSIR_SUCCESS)
+            
             {
                 /**
                  * Could not get Valid channel list from CFG.
@@ -1055,26 +1057,34 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         }
         else
         {
-            if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmScanReq,
-                                                          (sizeof(tLimMlmScanReq) + pScanReq->channelList.numChannels)))
+            len = sizeof(tLimMlmScanReq) + pScanReq->channelList.numChannels + pScanReq->uIEFieldLen;
+            if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmScanReq, len) )
             {
                 // Log error
                 limLog(pMac, LOGP,
-                       FL("call to palAllocateMemory failed for mlmScanReq\n"));
+                       FL("call to palAllocateMemory failed for mlmScanReq(%d)\n"), len);
 
                 return;
             }
 
             // Initialize this buffer
-            palZeroMemory( pMac->hHdd, (tANI_U8 *) pMlmScanReq,
-              (tANI_U32)(sizeof(tLimMlmScanReq) + pScanReq->channelList.numChannels ));
-
+            palZeroMemory( pMac->hHdd, (tANI_U8 *) pMlmScanReq, len);
             pMlmScanReq->channelList.numChannels =
                             pScanReq->channelList.numChannels;
 
-            palCopyMemory( pMac->hHdd, pMlmScanReq->channelList.channelNumber,
-                          pScanReq->channelList.channelNumber,
+            pMlmScanReq->channelList.channelNumberOffset = sizeof(tLimMlmScanReq);
+            palCopyMemory( pMac->hHdd, (tANI_U8 *)pMlmScanReq+(pMlmScanReq->channelList.channelNumberOffset),
+                          (tANI_U8 *)pScanReq+(pScanReq->channelList.channelNumberOffset),
                           pScanReq->channelList.numChannels);
+        }
+
+        pMlmScanReq->uIEFieldLen = pScanReq->uIEFieldLen;
+        pMlmScanReq->uIEFieldOffset = pMlmScanReq->channelList.channelNumberOffset + pMlmScanReq->channelList.numChannels;
+        if(pScanReq->uIEFieldLen)
+        {
+            palCopyMemory( pMac->hHdd, (tANI_U8 *)pMlmScanReq+ pMlmScanReq->uIEFieldOffset,
+                          (tANI_U8 *)pScanReq+(pScanReq->uIEFieldOffset),
+                          pScanReq->uIEFieldLen);
         }
 
         pMlmScanReq->bssType = pScanReq->bssType;

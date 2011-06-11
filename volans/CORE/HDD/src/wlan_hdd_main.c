@@ -136,6 +136,7 @@ struct notifier_block hdd_netdev_notifier = {
 /*---------------------------------------------------------------------------
  *   Function definitions
  *-------------------------------------------------------------------------*/
+extern int isWDresetInProgress(void);
 #ifdef CONFIG_HAS_EARLYSUSPEND
 extern void register_wlan_suspend(void);
 extern void unregister_wlan_suspend(void);
@@ -598,7 +599,7 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
    struct net_device *pWlanHostapdDev = pAdapter->pHostapd_dev;
 #endif
    VOS_STATUS vosStatus;
-  
+   struct sdio_func *sdio_func_dev = NULL;
 #ifdef CONFIG_CFG80211
     struct wireless_dev *wdev = pWlanDev->ieee80211_ptr ;
 #endif 
@@ -657,7 +658,23 @@ void hdd_wlan_exit(hdd_adapter_t *pAdapter)
        wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
        msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
    }
- 
+
+   sdio_func_dev = libra_getsdio_funcdev();
+
+   if(sdio_func_dev == NULL)
+   {
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: sdio_func_dev is NULL!",__func__);
+        VOS_ASSERT(0);
+        return;
+   }
+
+   sd_claim_host(sdio_func_dev);
+
+   /* Disable SDIO IRQ since we are exiting */
+   libra_enable_sdio_irq(sdio_func_dev, 0);
+
+   sd_release_host(sdio_func_dev);
+
    //Stop all the modules
    vosStatus = vos_stop( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -1011,6 +1028,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    vos_mem_zero(pAdapter, sizeof( hdd_adapter_t ));
 
    pAdapter->isLoadUnloadInProgress = TRUE;
+   vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
    
    /*Get vos context here bcoz vos_open requires it*/
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
@@ -1081,7 +1099,11 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    set_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
 
 #ifdef ANI_MANF_DIAG
-    wlan_hdd_ftm_open(pAdapter);
+    if(VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pAdapter))
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to Load FTM driver",__func__);
+        goto err_netdev_unregister;
+    }
     hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
     return VOS_STATUS_SUCCESS;
 #endif
@@ -1090,7 +1112,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 
    if((VOS_STA_SAP_MODE == hdd_get_conparam()) && hdd_wlan_create_ap_dev(pWlanDev))
    {
-      goto err_free_netdev;
+      goto err_netdev_unregister;
    }
 #endif
 
@@ -1099,7 +1121,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    if(pAdapter->cfg_ini == NULL)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed kmalloc hdd_config_t",__func__);
-      goto err_netdev_unregister;
+      goto err_free_hap_dev;
    }
 
    vos_mem_zero(pAdapter->cfg_ini, sizeof( hdd_config_t ));
@@ -1278,9 +1300,6 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 #ifdef WLAN_SOFTAP_FEATURE
    if (VOS_STA_SAP_MODE == hdd_get_conparam())
    {
-      hdd_register_hostapd(pAdapter->pHostapd_dev);
-      netif_carrier_off(pAdapter->pHostapd_dev);
-      netif_tx_disable(pAdapter->pHostapd_dev);
       //Initialize the data path module
       status = hdd_softap_init_tx_rx(netdev_priv(pAdapter->pHostapd_dev));
       if ( !VOS_IS_STATUS_SUCCESS( status ))
@@ -1321,6 +1340,19 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       goto err_nl_srv;
    }
 
+#ifdef WLAN_SOFTAP_FEATURE
+   if (VOS_STA_SAP_MODE == hdd_get_conparam())
+   { 
+      if (register_netdev(pAdapter->pHostapd_dev))
+      {
+         hddLog(VOS_TRACE_LEVEL_ERROR,"%s:Failed:register_netdev",__func__); 
+         goto err_nl_srv;
+      }
+
+      hdd_register_hostapd(pAdapter->pHostapd_dev);
+   }
+#endif
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
    hdd_register_mcast_bcast_filter(pAdapter);
 #endif
@@ -1328,6 +1360,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    hdd_wlan_initial_scan(pAdapter);
 
    pAdapter->isLoadUnloadInProgress = FALSE;
+   vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
   
    goto success;
 
@@ -1364,6 +1397,14 @@ err_wdclose:
 err_config:
    kfree(pAdapter->cfg_ini);
    pAdapter->cfg_ini= NULL;
+
+err_free_hap_dev:
+#ifdef WLAN_SOFTAP_FEATURE
+   if (VOS_STA_SAP_MODE == hdd_get_conparam())
+   { 
+      free_netdev(pAdapter->pHostapd_dev);
+   }
+#endif
 
 err_netdev_unregister:
    if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) {
@@ -1602,6 +1643,7 @@ static void __exit hdd_module_exit(void)
 {
    hdd_adapter_t *pAdapter = NULL;
    v_CONTEXT_t pVosContext = NULL;
+   int attempts = 0;
 
    hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Entering module exit",__func__);
 
@@ -1623,11 +1665,14 @@ static void __exit hdd_module_exit(void)
    }
    else
    {
-      if (pAdapter->isLogpInProgress) {
-         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Block rmmod!!!",__func__);
+      while(isWDresetInProgress()){
+         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:Reset in Progress by LOGP. Block rmmod for 500ms!!!",__func__);
          VOS_ASSERT(0);
-         msleep(3000);
-      } 
+         msleep(500);
+         attempts++;
+         if(attempts==MAX_EXIT_ATTEMPTS_DURING_LOGP)
+           break;
+       }
 
       //Get the HDD context.
       pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
@@ -1638,6 +1683,7 @@ static void __exit hdd_module_exit(void)
       }
 
       pAdapter->isLoadUnloadInProgress = TRUE;
+      vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
       
       //Do all the cleanup before deregistering the driver
       hdd_wlan_exit(pAdapter);

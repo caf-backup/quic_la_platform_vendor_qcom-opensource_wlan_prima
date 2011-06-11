@@ -1331,6 +1331,72 @@ This is a Verizon required feature.
                   CFG_DYNAMIC_PSPOLL_VALUE_MIN,
                   CFG_DYNAMIC_PSPOLL_VALUE_MAX ),
 
+    REG_VARIABLE( CFG_WPS_REQUEST_TYPE_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, WpsRequestType,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_WPS_REQUEST_TYPE_DEFAULT,
+                  CFG_WPS_REQUEST_TYPE_MIN,
+                  CFG_WPS_REQUEST_TYPE_MAX ),
+
+    REG_VARIABLE( CFG_WPS_CONFIG_METHOD_NAME, WLAN_PARAM_HexInteger,
+                  hdd_config_t, WpsConfigMethod,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_WPS_CONFIG_METHOD_DEFAULT,
+                  CFG_WPS_CONFIG_METHOD_MIN,
+                  CFG_WPS_CONFIG_METHOD_MAX ),
+
+    REG_VARIABLE_STRING( CFG_WPS_UUID_E_NAME, WLAN_PARAM_String,
+                         hdd_config_t, WpsUUID_E, 
+                         VAR_FLAGS_OPTIONAL,
+                         (void *)CFG_WPS_UUID_E_DEFAULT ),
+
+
+    REG_VARIABLE( CFG_WPS_PRIMARY_DEVICE_CATEGORY_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, WpsPrimayDeviceCategory,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_WPS_PRIMARY_DEVICE_CATEGORY_DEFAULT,
+                  CFG_WPS_PRIMARY_DEVICE_CATEGORY_MIN,
+                  CFG_WPS_PRIMARY_DEVICE_CATEGORY_MAX ),
+
+    REG_VARIABLE( CFG_WPS_DEVICE_SUB_CATEGORY_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, WpsDeviceSubCategory,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_WPS_DEVICE_SUB_CATEGORY_DEFAULT,
+                  CFG_WPS_DEVICE_SUB_CATEGORY_MIN,
+                  CFG_WPS_DEVICE_SUB_CATEGORY_MAX ),
+
+    REG_VARIABLE( CFG_WPS_DEVICE_PASSWORD_ID_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, WpsDevicePasswordId,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_WPS_DEVICE_PASSWORD_ID_DEFAULT,
+                  CFG_WPS_DEVICE_PASSWORD_ID_MIN,
+                  CFG_WPS_DEVICE_PASSWORD_ID_MAX ),
+
+    REG_VARIABLE_STRING( CFG_WPS_MANUFACTURER_NAME, WLAN_PARAM_String,
+                         hdd_config_t, WpsManufacturer, 
+                         VAR_FLAGS_OPTIONAL,
+                         (void *)CFG_WPS_MANUFACTURER_DEFAULT ),
+
+    REG_VARIABLE_STRING( CFG_WPS_MODEL_NAME_NAME, WLAN_PARAM_String,
+                         hdd_config_t, WpsModelName, 
+                         VAR_FLAGS_OPTIONAL,
+                         (void *)CFG_WPS_MODEL_NAME_DEFAULT ),
+
+    REG_VARIABLE_STRING( CFG_WPS_MODEL_NUMBER_NAME, WLAN_PARAM_String,
+                         hdd_config_t, WpsModelNumber, 
+                         VAR_FLAGS_OPTIONAL,
+                         (void *)CFG_WPS_MODEL_NUMBER_DEFAULT ),
+
+    REG_VARIABLE_STRING( CFG_WPS_DEVICE_NAME_NAME, WLAN_PARAM_String,
+                         hdd_config_t, WpsDeviceName, 
+                         VAR_FLAGS_OPTIONAL,
+                         (void *)CFG_WPS_DEVICE_NAME_DEFAULT ),
+
+    REG_VARIABLE_STRING( CFG_WPS_SERIAL_NUMBER_NAME, WLAN_PARAM_String,
+                         hdd_config_t, WpsSerialNumber, 
+                         VAR_FLAGS_OPTIONAL,
+                         (void *)CFG_WPS_SERIAL_NUMBER_DEFAULT ),
+
    REG_VARIABLE( CFG_TELE_BCN_WAKEUP_EN_NAME, WLAN_PARAM_Integer,
                   hdd_config_t, teleBcnWakeupEn,
                   VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -1338,12 +1404,20 @@ This is a Verizon required feature.
                   CFG_TELE_BCN_WAKEUP_EN_MIN,
                   CFG_TELE_BCN_WAKEUP_EN_MAX ),
 
+    REG_VARIABLE( CFG_INFRA_STA_KEEP_ALIVE_PERIOD_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, infraStaKeepAlivePeriod,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_INFRA_STA_KEEP_ALIVE_PERIOD_DEFAULT,
+                  CFG_INFRA_STA_KEEP_ALIVE_PERIOD_MIN,
+                  CFG_INFRA_STA_KEEP_ALIVE_PERIOD_MAX),
+
     REG_VARIABLE( CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_NAME , WLAN_PARAM_Integer,
                   hdd_config_t, AddTSWhenACMIsOff, 
                   VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
                   CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_DEFAULT, 
                   CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MIN, 
                   CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MAX ),
+
 
     REG_VARIABLE( CFG_VALIDATE_SCAN_LIST_NAME , WLAN_PARAM_Integer,
                   hdd_config_t, fValidateScanList, 
@@ -1655,8 +1729,22 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [bSingleTidRc] Value = [%u] ",pAdapter->cfg_ini->bSingleTidRc);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pAdapter->cfg_ini->rfSettlingTimeUs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [gDynamicPSPollvalue] Value = [%u] ",pAdapter->cfg_ini->dynamicPsPollValue);
+
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsRequestType] Value = [0x%x] ",pAdapter->cfg_ini->WpsRequestType);  
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsConfigMethod] Value = [0x%x] ",pAdapter->cfg_ini->WpsConfigMethod);  
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsUUID_E] Value = [%s] ",pAdapter->cfg_ini->WpsUUID_E);  
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsPrimayDeviceCategory] Value = [0x%u] ",pAdapter->cfg_ini->WpsPrimayDeviceCategory);  
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsDeviceSubCategory] Value = [0x%u] ",pAdapter->cfg_ini->WpsDeviceSubCategory);  
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsDevicePasswordId] Value = [0x%u] ",pAdapter->cfg_ini->WpsDevicePasswordId);  
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsManufacturer] Value = [%s] ",pAdapter->cfg_ini->WpsManufacturer);  
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsModelName] Value = [%s] ",pAdapter->cfg_ini->WpsModelName);  
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsModelNumber] Value = [%s] ",pAdapter->cfg_ini->WpsModelNumber);  
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsDeviceName] Value = [%s] ",pAdapter->cfg_ini->WpsDeviceName);  
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [WpsSerialNumber] Value = [%s] ",pAdapter->cfg_ini->WpsSerialNumber);  
+
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAddTSWhenACMIsOff] Value = [%u] ",pAdapter->cfg_ini->AddTSWhenACMIsOff);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gValidateScanList] Value = [%u] ",pAdapter->cfg_ini->fValidateScanList);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [gStaKeepAlivePeriod] Value = [%u] ",pAdapter->cfg_ini->infraStaKeepAlivePeriod);
 }
 
 
@@ -2418,12 +2506,21 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_TELE_BCN_WAKEUP_EN configuration info to CCM\n"  );
 	 }
 
-    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RF_SETTLING_TIME_CLK, pConfig->rfSettlingTimeUs,
+     if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_RF_SETTLING_TIME_CLK, pConfig->rfSettlingTimeUs,
         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
     {
         fStatus = FALSE;
         hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RF_SETTLING_TIME_CLK configuration info to CCM\n"  );
     }
+
+    if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD, pConfig->infraStaKeepAlivePeriod, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD configuration info to CCM\n"  );
+	 }
+
+
 
     if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_DYNAMIC_PS_POLL_VALUE, pConfig->dynamicPsPollValue, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
@@ -2438,6 +2535,83 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 	      fStatus = FALSE;
 	      hddLog(LOGE,"Failure: Could not pass on WNI_CFG_PS_NULLDATA_DELAY_TIMEOUT configuration info to CCM\n"  );
    } 
+
+	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_WPS_REQUEST_TYPE, pConfig->WpsRequestType, 
+		NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_WPS_REQUEST_TYPE configuration info to CCM\n"  );
+	 }
+
+	 if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_WPS_CFG_METHOD, pConfig->WpsConfigMethod, 
+		NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_WPS_CFG_METHOD configuration info to CCM\n"  );
+	 }
+
+	if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_WPS_UUID, (v_U8_t *)pConfig->WpsUUID_E, 
+		sizeof(pConfig->WpsUUID_E), NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	{
+		fStatus = FALSE;
+		hddLog(LOGE,"Could not pass on WNI_CFG_WPS_UUID to CCM\n");
+	}
+
+   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_WPS_PRIMARY_DEVICE_CATEGORY, pConfig->WpsPrimayDeviceCategory, 
+	  NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   {
+	  fStatus = FALSE;
+	  hddLog(LOGE,"Failure: Could not pass on WNI_CFG_WPS_PRIMARY_DEVICE_CATEGORY configuration info to CCM\n"  );
+   }
+
+   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_WPS_DEVICE_SUB_CATEGORY, pConfig->WpsDeviceSubCategory, 
+	  NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   {
+	  fStatus = FALSE;
+	  hddLog(LOGE,"Failure: Could not pass on WNI_CFG_WPS_DEVICE_SUB_CATEGORY configuration info to CCM\n"  );
+   }
+
+   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_WPS_DEVICE_PASSWORD_ID, pConfig->WpsDevicePasswordId, 
+	  NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   {
+	  fStatus = FALSE;
+	  hddLog(LOGE,"Failure: Could not pass on WNI_CFG_WPS_DEVICE_PASSWORD_ID configuration info to CCM\n"  );
+   }
+
+   if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_MANUFACTURER_NAME, (v_U8_t *)pConfig->WpsManufacturer, 
+	   strlen((const char *)pConfig->WpsManufacturer), NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   {
+	   fStatus = FALSE;
+	   hddLog(LOGE,"Could not pass on WNI_CFG_MANUFACTURER_NAME to CCM\n");
+   }
+
+   if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_MODEL_NAME, (v_U8_t *)pConfig->WpsModelName, 
+	   strlen((const char *)pConfig->WpsModelName), NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   {
+	   fStatus = FALSE;
+	   hddLog(LOGE,"Could not pass on WNI_CFG_MODEL_NAME to CCM\n");
+   }
+
+   if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_MODEL_NUMBER, (v_U8_t *)pConfig->WpsModelNumber, 
+	   strlen((const char *)pConfig->WpsModelNumber), NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   {
+	   fStatus = FALSE;
+	   hddLog(LOGE,"Could not pass on WNI_CFG_MODEL_NUMBER to CCM\n");
+   }
+
+   if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_MANUFACTURER_PRODUCT_NAME, (v_U8_t *)pConfig->WpsDeviceName, 
+	   strlen((const char *)pConfig->WpsDeviceName), NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   {
+	   fStatus = FALSE;
+	   hddLog(LOGE,"Could not pass on WNI_CFG_MANUFACTURER_PRODUCT_NAME to CCM\n");
+   }
+
+   if (ccmCfgSetStr(pAdapter->hHal, WNI_CFG_MANUFACTURER_PRODUCT_VERSION, (v_U8_t *)pConfig->WpsSerialNumber, 
+	   strlen((const char *)pConfig->WpsSerialNumber), NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   {
+	   fStatus = FALSE;
+	   hddLog(LOGE,"Could not pass on WNI_CFG_MANUFACTURER_PRODUCT_VERSION to CCM\n");
+   }
 
    return fStatus;
 }
