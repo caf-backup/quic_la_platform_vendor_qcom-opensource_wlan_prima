@@ -189,6 +189,17 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
   wpt_packet *pFrame,
   wpt_boolean more);
   
+  
+/* DAL Transmit Complete function. 
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ * Return Value: SUCCESS  Completed successfully.
+ *     FAILURE_XXX  Request was rejected due XXX Reason.
+ *
+ */
+
+
+WDI_Status WDI_DS_TxComplete(void *pContext);
 
 /* DAL Suspend Transmit function. 
  * Parameters:

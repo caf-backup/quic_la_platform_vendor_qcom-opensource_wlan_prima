@@ -2134,6 +2134,7 @@ static wpt_status dxeTXCompFrame
       /* Send Frame TX Complete notification with frame start fragment location */
       if(WLANDXE_U32_SWAP_ENDIAN(descCtrlValue) & WLANDXE_DESC_CTRL_EOP)
       {
+         hostCtxt->txCompletedFrames--;
 #ifdef FEATURE_R33D
          wpalFreeTxFrame(currentCtrlBlk->shadowBufferVa);
 #else
@@ -2217,6 +2218,8 @@ void dxeTXEventHandler
    wpt_uint32                wqCount    = 0;
    WLANDXE_ChannelCBType    *channelCb  = NULL;
    WLANDXE_PowerStateType    oldHostPowerState;
+
+   wpt_uint8                 bEnableISR = 0; 
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
@@ -2302,7 +2305,7 @@ void dxeTXEventHandler
       }
       else if(WLANDXE_CH_STAT_INT_DONE_MASK & chStat)
       {
-         /* Handle TX complete for high priority channel */
+         /* Handle TX complete for low priority channel */
          status = dxeTXCompFrame(dxeCtxt,
                                  channelCb);
       }
@@ -2311,15 +2314,15 @@ void dxeTXEventHandler
          if(WLANDXE_CH_STAT_MASKED_MASK & chStat)
          {
             wpalReadRegister(0x03080090, &wqCount);
-            HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+            HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO,
                     "Disable BD PDU Avail 0x%x", wqCount);
             wqCount = 0;
             wpalReadRegister(0x0380171c, &wqCount);
-            HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+            HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO,
                      "TX LOW WQ23_COUNT 0x%x", wqCount);
-            HDXE_ASSERT(0);
+            bEnableISR = 1;             
          }
-         /* Handle TX complete for high priority channel */
+         /* Handle TX complete for low priority channel */
          status = dxeTXCompFrame(dxeCtxt,
                                  channelCb);
          /* Channel MASKED Why?????
@@ -2418,11 +2421,73 @@ void dxeTXEventHandler
    }
 #endif /* WLANDXE_TEST_CHANNEL_ENABLE */
 
+   if((bEnableISR)&&( eWLAN_PAL_FALSE == dxeCtxt->txIntEnable ))
+   {
+      dxeCtxt->txIntEnable =  eWLAN_PAL_TRUE; 
+      wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
+   }
+
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);
    return;
 }
 
+
+/*==========================================================================
+  @  Function Name 
+      dxeTXEventHandler
+
+  @  Description 
+      If DXE HW sends TX related interrupt, this event handler will be called
+      Handle higher priority channel first
+      Figureout why interrupt happen and call appropriate final even handler
+      TX complete or error happen
+
+  @  Parameters
+         void               *msgPtr
+                             Even MSG
+
+  @  Return
+      PAL_STATUS_T
+===========================================================================*/
+void dxeTXCompleteProcessing
+(
+   WLANDXE_CtrlBlkType      *dxeCtxt
+)
+{
+   wpt_status                status     = eWLAN_PAL_STATUS_SUCCESS;
+   WLANDXE_ChannelCBType    *channelCb  = NULL;
+
+   //wpt_uint8                 bEnableISR = 0; 
+
+   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
+            "%s Enter", __FUNCTION__);
+
+  
+   /* Test High Priority Channel is the INT source or not */
+   channelCb = &dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_HIGH_PRI];
+
+   /* Handle TX complete for high priority channel */
+   status = dxeTXCompFrame(dxeCtxt, channelCb);
+
+   /* Test Low Priority Channel interrupt is enabled or not */
+   channelCb = &dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_LOW_PRI];
+
+   /* Handle TX complete for low priority channel */
+   status = dxeTXCompFrame(dxeCtxt, channelCb);
+   
+   if(( dxeCtxt->txCompletedFrames > 0 ) && 
+      (  eWLAN_PAL_FALSE == dxeCtxt->txIntEnable))
+   {
+      dxeCtxt->txIntEnable =  eWLAN_PAL_TRUE; 
+      wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
+   }
+   
+
+   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
+            "%s Exit", __FUNCTION__);
+   return;
+}
 /*==========================================================================
   @  Function Name 
       dxeTXISR
@@ -2931,34 +2996,6 @@ wpt_status WLANDXE_TxFrame
          if(channel == WDTS_CHANNEL_TX_LOW_PRI)
          {
             currentChannel->numFrameBeforeInt++;
-            if( (currentChannel->numFrameBeforeInt >=
-                 dxeCtxt->txCompInt.txInterruptEnableFrameCount) &&
-                (eWLAN_PAL_FALSE == dxeCtxt->txIntEnable))
-            {
-               dxeCtxt->txIntEnable = eWLAN_PAL_TRUE;
-               currentChannel->numFrameBeforeInt = 0;
-               /* Enable System level interrupt */
-               status = wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
-               if(eWLAN_PAL_STATUS_SUCCESS != status)
-               {
-                  HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                           "WLANDXE_TxFrame Interrupt Enable Fail");
-                  return status;
-               }
-            }
-         }
-         else if(channel == WDTS_CHANNEL_TX_HIGH_PRI)
-         {
-            /*Mgmt frame expects imediate Tx Complete*/
-            dxeCtxt->txIntEnable = eWLAN_PAL_TRUE;
-              /* Enable System level interrupt */
-            status = wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
-            if(eWLAN_PAL_STATUS_SUCCESS != status)
-            {
-               HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                        "WLANDXE_TxFrame Interrupt Enable Fail");
-               return status;
-            }
          }
          break;
 
@@ -2977,6 +3014,7 @@ wpt_status WLANDXE_TxFrame
       return status;
    }
 
+   dxeCtxt->txCompletedFrames++;
    /* If specific channel hit low resource condition send notification to upper layer */
    if(currentChannel->numFreeDesc <= dxeCtxt->txCompInt.txLowResourceThreshold)
    {
@@ -2991,6 +3029,43 @@ wpt_status WLANDXE_TxFrame
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);
    return status;
+}
+
+/*==========================================================================
+  @  Function Name 
+      WLANDXE_CompleteTX
+
+  @  Description 
+      Informs DXE that the current series of Tx packets is complete
+
+  @  Parameters
+      pContext            pDXEContext : DXE Control Block
+
+  @  Return
+      wpt_status
+===========================================================================*/
+wpt_status
+WLANDXE_CompleteTX
+(
+  void* pContext
+)
+{
+  wpt_status                status  = eWLAN_PAL_STATUS_SUCCESS;
+  WLANDXE_CtrlBlkType      *dxeCtxt = (WLANDXE_CtrlBlkType *)(pContext);
+
+  /* Sanity Check */
+  if( NULL == pContext )
+  {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WLANDXE_CompleteTX invalid param");
+      return eWLAN_PAL_STATUS_E_INVAL;
+  }
+
+  /*Try to reclaim resources*/
+  dxeTXCompleteProcessing(dxeCtxt);
+
+
+  return status; 
 }
 
 /*==========================================================================

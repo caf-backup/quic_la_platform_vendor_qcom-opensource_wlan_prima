@@ -78,6 +78,7 @@ typedef struct {
   wpt_status (*register_client)(void *pContext, WDTS_RxFrameReadyCbType, 
       WDTS_TxCompleteCbType, WDTS_LowResourceCbType, void *clientData);
   wpt_status (*xmit) (void *pContext, wpt_packet *packet, WDTS_ChannelType channel);
+  wpt_status (*txComplete) (void *pContext);
   wpt_status (*setPowerState) (void *pContext, WDTS_PowerStateType   powerState, 
                                WDTS_SetPSCbType cBack);
   wpt_status (*stop) (void *pContext);
@@ -129,6 +130,16 @@ wpt_status WDTS_startTransport( void *pContext);
  *
  */
 wpt_status WDTS_TxPacket(void *pContext, wpt_packet *pFrame);
+
+/* DTS Tx Complete function. 
+ * This function should be invoked by the DAL Dataservice to notify tx completion to DXE/SDIO.
+ * Parameters:
+ * pContext:Cookie that should be passed back to the caller along with the callback.
+ * Return Value: SUCCESS  Completed successfully.
+ *     FAILURE_XXX  Request was rejected due XXX Reason.
+ *
+ */
+wpt_status WDTS_CompleteTx(void *pContext);
 
 /* DTS Set power state function. 
  * This function should be invoked by the DAL to notify the WLAN device power state.

@@ -1355,6 +1355,8 @@ WDA_DS_TxFrames
 
   };
 
+  WDI_DS_TxComplete(wdaContext->pWdiContext);
+
   return vosStatus;
 }
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */

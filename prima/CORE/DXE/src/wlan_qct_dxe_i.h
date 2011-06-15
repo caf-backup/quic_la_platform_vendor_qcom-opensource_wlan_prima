@@ -568,6 +568,7 @@ typedef struct
    WLANDXE_RivaPowerStateType      rivaPowerState;
    wpt_boolean                     ringNotEmpty; 
    wpt_boolean                     txIntEnable;
+   wpt_uint32                      txCompletedFrames; 
 } WLANDXE_CtrlBlkType;
 
 /*==========================================================================

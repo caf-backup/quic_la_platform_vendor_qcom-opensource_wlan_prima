@@ -244,6 +244,26 @@ wpt_status WLANDXE_TxFrame
    WDTS_ChannelType      channel
 );
 
+
+/*==========================================================================
+  @  Function Name 
+      WLANDXE_CompleteTX
+
+  @  Description 
+      Informs DXE that the current series of Tx packets is complete
+
+  @  Parameters
+      pDXEContext : DXE Control Block
+
+  @  Return
+      wpt_status
+===========================================================================*/
+wpt_status
+WLANDXE_CompleteTX
+(
+  void* pDXEContext
+);
+
 /*==========================================================================
   @  Function Name 
       WLANDXE_Stop

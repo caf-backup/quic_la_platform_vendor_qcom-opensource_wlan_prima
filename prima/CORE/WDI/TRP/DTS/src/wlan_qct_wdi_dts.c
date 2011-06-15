@@ -26,6 +26,7 @@ static WDTS_TransportDriverTrype gTransportDriver = {
   WLANDXE_Start, 
   WLANDXE_ClientRegistration, 
   WLANDXE_TxFrame,
+  WLANDXE_CompleteTX,
   WLANDXE_SetPowerState,
   WLANDXE_Stop,
   WLANDXE_Close
@@ -403,6 +404,22 @@ wpt_status WDTS_TxPacket(void *pContext, wpt_packet *pFrame)
   // Send packet to  Transport Driver. 
   status =  gTransportDriver.xmit(pDTDriverContext, pFrame, channel);
   return status;
+}
+
+/* DTS Tx Complete function. 
+ * This function should be invoked by the DAL Dataservice to notify tx completion to DXE/SDIO.
+ * Parameters:
+ * pContext:Cookie that should be passed back to the caller along with the callback.
+ * Return Value: SUCCESS  Completed successfully.
+ *     FAILURE_XXX  Request was rejected due XXX Reason.
+ *
+ */
+wpt_status WDTS_CompleteTx(void *pContext)
+{
+  void *pDTDriverContext = WDT_GetTransportDriverContext(pContext);
+  
+  // Notify completion to  Transport Driver. 
+  return gTransportDriver.txComplete(pDTDriverContext);
 }
 
 /* DXE Set power state ACK callback. 

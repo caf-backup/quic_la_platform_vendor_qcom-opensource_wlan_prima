@@ -172,7 +172,31 @@ WDI_Status WDI_DS_TxPacket(void *pContext,
 
   return WDI_STATUS_SUCCESS;  
 }
+ 
+ 
+/* DAL Transmit Complete function. 
+ * Parameters:
+ *  pContext:Cookie that should be passed back to the caller along with the callback.
+ * Return Value: SUCCESS  Completed successfully.
+ *     FAILURE_XXX  Request was rejected due XXX Reason.
+ *
+ */
+
+
+WDI_Status WDI_DS_TxComplete(void *pContext)
+{
+  // Do Sanity checks
+  if(NULL == pContext)
+    return WDI_STATUS_E_FAILURE;
   
+  // Send notification to transport layer.
+  if(eWLAN_PAL_STATUS_SUCCESS !=WDTS_CompleteTx(pContext))
+  {
+    return WDI_STATUS_E_FAILURE;
+  }  
+
+  return WDI_STATUS_SUCCESS;  
+} 
 
 /* DAL Suspend Transmit function. 
  * Parameters:
