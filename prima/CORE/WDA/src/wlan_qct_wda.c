@@ -7065,7 +7065,7 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
                                                          void* pUserData )
 {
    tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData;
-#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined WLAN_FEATURE_NEIGHBOR_ROAMING
    tSirRSSINotification rssiNotification;
 #endif
 
@@ -7073,7 +7073,7 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
    {
       case WDI_HAL_RSSI_NOTIFICATION_IND:
       {
-#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined WLAN_FEATURE_NEIGHBOR_ROAMING
          rssiNotification.bReserved = 
             wdiLowLevelInd->wdiIndicationData.wdiLowRSSIInfo.bReserved;
          rssiNotification.bRssiThres1NegCross = 

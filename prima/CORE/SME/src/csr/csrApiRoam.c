@@ -242,49 +242,6 @@ static eCsrCfgDot11Mode csrRoamGetPhyModeBandForBss( tpAniSirGlobal pMac, eCsrPh
 #endif
 static eHalStatus csrRoamGetQosInfoFromBss(tpAniSirGlobal pMac, tSirBssDescription *pBssDesc);
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-static void csrRoamProcessNrtTrafficOnInd(tpAniSirGlobal pMac);
-static void csrRoamProcessRtTrafficOnInd(tpAniSirGlobal pMac);
-static void csrRoamProcessNrtTrafficOffInd(tpAniSirGlobal pMac);
-static void csrRoamProcessRtTrafficOffInd(tpAniSirGlobal pMac);
-tANI_BOOLEAN csrRoamShouldExitAp(tpAniSirGlobal pMac);
-static void csrRoamUpdatePER(tpAniSirGlobal pMac);
-static void csrRoamNtPreTransHandler(tpAniSirGlobal pMac);
-VOS_STATUS csrRoamNtRssiIndCallback(tHalHandle hHal, 
-                                    v_U8_t  rssiNotification, 
-                                    void * context);
-static void csrRoamNtPostTransHandler(tpAniSirGlobal pMac);
-VOS_STATUS csrRoamNtBgScanRssiIndCallback(tHalHandle hHal, 
-                                          v_U8_t  rssiNotification, 
-                                          void * context);
-static void csrRoamNrtPreTransHandler(tpAniSirGlobal pMac);
-VOS_STATUS csrRoamNrtExitCriteriaRssiIndCallback(tHalHandle hHal, 
-                                                 v_U8_t  rssiNotification, 
-                                                 void * context);
-VOS_STATUS csrRoamNrtBgScanRssiIndCallback(tHalHandle hHal, 
-                                           v_U8_t  rssiNotification, 
-                                           void * context);
-VOS_STATUS csrRoamNrtBgScanEmptyCandSetRssiIndCallback(tHalHandle hHal, 
-                                                       v_U8_t  rssiNotification, 
-                                                       void * context);
-static void csrRoamNrtPostTransHandler(tpAniSirGlobal pMac);
-static void csrRoamRtPreTransHandler(tpAniSirGlobal pMac);
-VOS_STATUS csrRoamRtExitCriteriaRssiIndCallback(tHalHandle hHal, 
-                                                v_U8_t  rssiNotification, 
-                                                void * context);
-VOS_STATUS csrRoamRtBgScanRssiIndCallback(tHalHandle hHal, 
-                                          v_U8_t  rssiNotification, 
-                                          void * context);
-static void csrRoamRtPostTransHandler(tpAniSirGlobal pMac);
-void csrRoamCreateHandoffProfile(tpAniSirGlobal pMac, tCsrBssid bssid);
-eHalStatus csrHandoffInit(tpAniSirGlobal pMac);
-void csrHoConfigDefaultParams(tpAniSirGlobal pMac);
-eHalStatus csrRoamStopStatisticsTimer(tpAniSirGlobal pMac);
-void csrRoamHandoffStatsProcessor(tpAniSirGlobal pMac);
-void  csrRoamHandoffRemoveAllFromList( tpAniSirGlobal pMac,
-                                       tDblLinkList *pStaList);
-eHalStatus csrRoamLostLinkAfterhandoffFailure( tpAniSirGlobal pMac,tANI_U32 sessionId);
-#endif //FEATURE_WLAN_HANDOFF
 
 tCsrStatsClientReqInfo * csrRoamInsertEntryIntoList( tpAniSirGlobal pMac,
                                                      tDblLinkList *pStaList,
@@ -301,12 +258,6 @@ tListElem * csrRoamCheckClientReqList(tpAniSirGlobal pMac, tANI_U32 statsMask);
 void csrRoamRemoveEntryFromPeStatsReqList(tpAniSirGlobal pMac, tCsrPeStatsReqInfo *pPeStaEntry);
 tListElem * csrRoamFindInPeStatsReqList(tpAniSirGlobal pMac, tANI_U32  statsMask);
 eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac);
-#if defined (FEATURE_WLAN_DIAG_SUPPORT_CSR) && defined (FEATURE_WLAN_GEN6_ROAMING)    
-eHalStatus csrRoamStartDiagLogStatsTimer(tpAniSirGlobal pMac, tANI_U32 interval);
-eHalStatus csrRoamStopDiagLogStatsTimer(tpAniSirGlobal pMac);
-void csrRoamDiagLogStatsTimerHandler(void *pv);
-void csrRoamDiagStatsLog(tpAniSirGlobal pMac);
-#endif
 static tANI_U32 csrFindIbssSession( tpAniSirGlobal pMac );
 static eHalStatus csrRoamStartWds( tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoamProfile *pProfile, tSirBssDescription *pBssDesc );
 static void csrInitSession( tpAniSirGlobal pMac, tANI_U32 sessionId );
@@ -476,10 +427,6 @@ eHalStatus csrClose(tpAniSirGlobal pMac)
     csrStop(pMac);
     csrRoamClose(pMac);
     csrScanClose(pMac);
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-    csrLLClose(&pMac->roam.handoffInfo.candidateList);
-    csrLLClose(&pMac->roam.handoffInfo.neighborList);
-#endif
     csrLLClose(&pMac->roam.statsClientReqList);
     csrLLClose(&pMac->roam.peStatsReqList);
     csrLLClose(&pMac->roam.roamCmdPendingList);
@@ -506,9 +453,7 @@ eHalStatus csrStart(tpAniSirGlobal pMac)
         if(!HAL_STATUS_SUCCESS(status)) break;
         pMac->roam.sPendingCommands = 0;
         csrScanEnable(pMac);
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-        status = csrHandoffInit(pMac);
-#elif defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
         status = csrNeighborRoamInit(pMac);
 #endif /* WLAN_FEATURE_NEIGHBOR_ROAMING */
         pMac->roam.tlStatsReqInfo.numClient = 0;
@@ -546,10 +491,7 @@ eHalStatus csrStop(tpAniSirGlobal pMac)
 
     //No need to lock here. SME global should be held.
     csrLLPurge( &pMac->roam.roamCmdPendingList, eANI_BOOLEAN_FALSE );
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-    csrRoamHandoffRemoveAllFromList(pMac, &pMac->roam.handoffInfo.candidateList);
-    csrRoamHandoffRemoveAllFromList(pMac, &pMac->roam.handoffInfo.neighborList);
-#elif defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
     csrNeighborRoamClose(pMac);
 #endif
     csrScanFlushResult(pMac); //Do we want to do this?
@@ -643,29 +585,12 @@ eHalStatus csrRoamOpen(tpAniSirGlobal pMac)
         break;
       }
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-      /* Define the Stats timers                                                */
-      status = palTimerAlloc(pMac->hHdd, &pMac->roam.hTimerStatistics, csrRoamStatisticsTimerHandler, pMac);
-      if(!HAL_STATUS_SUCCESS(status))
-      {
-         smsLog(pMac, LOGE, FL("cannot allocate memory for summary Statistics timer\n"));
-         return eHAL_STATUS_FAILURE;
-      }
-#endif
       status = palTimerAlloc(pMac->hHdd, &pMac->roam.tlStatsReqInfo.hTlStatsTimer, csrRoamTlStatsTimerHandler, pMac);
       if(!HAL_STATUS_SUCCESS(status))
       {
          smsLog(pMac, LOGE, FL("cannot allocate memory for summary Statistics timer\n"));
          return eHAL_STATUS_FAILURE;
       }
-#if (defined(FEATURE_WLAN_DIAG_SUPPORT_CSR) && defined(FEATURE_WLAN_GEN6_ROAMING)) 
-      status = palTimerAlloc(pMac->hHdd, &pMac->roam.hTimerDiagLogStats, csrRoamDiagLogStatsTimerHandler, pMac);
-      if(!HAL_STATUS_SUCCESS(status))
-      {
-         smsLog(pMac, LOGE, FL("cannot allocate memory for Diag log Statistics timer\n"));
-         return eHAL_STATUS_FAILURE;
-      }
-#endif
     }while (0);
 
     return (status);
@@ -683,13 +608,7 @@ eHalStatus csrRoamClose(tpAniSirGlobal pMac)
 
     palTimerStop(pMac->hHdd, pMac->roam.hTimerWaitForKey);
     palTimerFree(pMac->hHdd, pMac->roam.hTimerWaitForKey);
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-    palTimerFree(pMac->hHdd, pMac->roam.hTimerStatistics);
-#endif
 
-#if (defined(FEATURE_WLAN_DIAG_SUPPORT_CSR) && defined(FEATURE_WLAN_GEN6_ROAMING)) 
-    palTimerFree(pMac->hHdd, pMac->roam.hTimerDiagLogStats);
-#endif
     palTimerStop(pMac->hHdd, pMac->roam.tlStatsReqInfo.hTlStatsTimer);
     palTimerFree(pMac->hHdd, pMac->roam.tlStatsReqInfo.hTlStatsTimer);
 
@@ -712,84 +631,6 @@ void csrRoamStop(tpAniSirGlobal pMac, tANI_U32 sessionId)
     csrRoamDeregStatisticsReq(pMac);
 }
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-//HO
-eHalStatus csrHandoffInit(tpAniSirGlobal pMac)
-{
-   eHalStatus status;
-   tSirMacAddr BroadcastMac = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-   /*  Reset all the parameters of the state machine                        */
-
-   palZeroMemory(pMac->hHdd, &pMac->roam.summaryStatsInfo, sizeof(tCsrSummaryStatsInfo));
-
-   pMac->roam.handoffInfo.currState = pMac->roam.curState;
-   pMac->roam.handoffInfo.currSubState = pMac->roam.curSubState;
-
-   palCopyMemory(pMac->hHdd, &pMac->roam.handoffInfo.handoffActivityInfo.probedBssid, 
-                 BroadcastMac, WNI_CFG_BSSID_LEN);
-
-   /* create the bg scan channel list*/
-       
-   status = palAllocateMemory(pMac->hHdd, 
-                              (void **)&pMac->roam.handoffInfo.handoffActivityInfo.currBgScanChannelList.ChannelList,
-                              WNI_CFG_VALID_CHANNEL_LIST_LEN);
-
-   if(!HAL_STATUS_SUCCESS(status))
-   {
-       smsLog(pMac, LOGW, " csrHandoffInit: cannot allocate memory for currBgScanChannelList\n");
-
-       return eHAL_STATUS_FAILURE;
-
-   }
-   palZeroMemory(pMac->hHdd, pMac->roam.handoffInfo.handoffActivityInfo.currBgScanChannelList.ChannelList, 
-                 WNI_CFG_VALID_CHANNEL_LIST_LEN);
-   pMac->roam.handoffInfo.handoffActivityInfo.currBgScanChannelList.numOfChannels = 0;
-
-   /* Initialize neighbor & candidate lists (only once)                     */
-   if (csrLLOpen(pMac->hHdd, &pMac->roam.handoffInfo.candidateList) != eHAL_STATUS_SUCCESS)
-   {
-      smsLog(pMac, LOGW, " csrHandoffInit: cannot initialize candidateList\n");
-
-      return eHAL_STATUS_FAILURE;
-   }
-
-   if (csrLLOpen(pMac->hHdd, &pMac->roam.handoffInfo.neighborList) != eHAL_STATUS_SUCCESS)
-   {
-      smsLog(pMac, LOGW, " csrHandoffInit: cannot initialize neighborList\n");
-
-      return eHAL_STATUS_FAILURE;
-   }
-
-   return eHAL_STATUS_SUCCESS;
-}
-
-eHalStatus csrUpdateHandoffParams(tpAniSirGlobal pMac)
-{
-   smsLog(pMac, LOG1, " csrUpdateHandoffParams: update handoffPermitted flag & some bg scan related info\n");
-   pMac->roam.handoffInfo.handoffActivityInfo.maxChnTime = pMac->roam.configParam.nActiveMaxChnTime;
-   pMac->roam.handoffInfo.handoffActivityInfo.minChnTime = pMac->roam.configParam.nActiveMinChnTime;
-   //since we are associated setting it to active always
-   pMac->roam.handoffInfo.handoffActivityInfo.scan_type = eSIR_ACTIVE_SCAN;
-
-   if(!HAL_STATUS_SUCCESS(csrScanCreateOtherChanList(pMac)))
-   {
-      return eHAL_STATUS_FAILURE;
-   }
-#if 0
-   /* TODO : connectedProfile is a per session information */
-   pMac->roam.handoffInfo.handoffActivityInfo.isHandoffPermitted = 
-   pMac->roam.connectedProfile.handoffPermitted;
-
-
-   //incase we linkup in NRT or RT sub-state, we want to init the index to 0 
-   //(to avoid them containing any junk value)
-   pMac->roam.handoffInfo.handoffActivityInfo.candChanListIndex = 0;
-   pMac->roam.handoffInfo.handoffActivityInfo.otherChanListIndex = 0;
-
-#endif
-   return eHAL_STATUS_SUCCESS;
-}
-#endif
 eHalStatus csrRoamGetConnectState(tpAniSirGlobal pMac, tANI_U32 sessionId, eCsrConnectState *pState)
 {
     eHalStatus status = eHAL_STATUS_INVALID_PARAMETER;
@@ -903,9 +744,6 @@ static eHalStatus csrRoamFreeConnectedInfo( tpAniSirGlobal pMac, tCsrRoamConnect
     pConnectedInfo->nAssocRspLength = 0;
     pConnectedInfo->staId = 0;
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-    pConnectedInfo->sHOScanChannelList.numChannels = 0;
-#endif
 
     return ( status );
 }
@@ -1011,43 +849,7 @@ void csrRoamSubstateChange( tpAniSirGlobal pMac, eCsrRoamSubState NewSubstate )
     {
        return;
                 }
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-    switch(pMac->roam.curSubState)
-                        {
-    case eCSR_ROAM_SUBSTATE_JOINED_NO_TRAFFIC:
-       csrRoamNtPreTransHandler(pMac);
-       break;
-    case eCSR_ROAM_SUBSTATE_JOINED_NON_REALTIME_TRAFFIC:
-       csrRoamNrtPreTransHandler(pMac);
-                                break;
-    case eCSR_ROAM_SUBSTATE_JOINED_REALTIME_TRAFFIC:
-       csrRoamRtPreTransHandler(pMac);
-       break;
-    default:
-        break;
-
-    }
-#endif
     pMac->roam.curSubState = NewSubstate;
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-    pMac->roam.handoffInfo.currSubState = pMac->roam.curSubState;
-
-    switch(pMac->roam.curSubState)
-    {
-    case eCSR_ROAM_SUBSTATE_JOINED_NO_TRAFFIC:
-       csrRoamNtPostTransHandler(pMac);
-                                break;
-    case eCSR_ROAM_SUBSTATE_JOINED_NON_REALTIME_TRAFFIC:
-       csrRoamNrtPostTransHandler(pMac);
-                                break;
-    case eCSR_ROAM_SUBSTATE_JOINED_REALTIME_TRAFFIC:
-       csrRoamRtPostTransHandler(pMac);
-       break;
-    default:
-        break;
-       
-    }
-#endif
 }
 
 
@@ -1069,9 +871,6 @@ eCsrRoamState csrRoamStateChange( tpAniSirGlobal pMac, eCsrRoamState NewRoamStat
     
         pMac->roam.curState = NewRoamState;    
     }
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-    pMac->roam.handoffInfo.currState = pMac->roam.curState;
-#endif    
     return( PreviousState );
 }
 
@@ -1672,118 +1471,6 @@ eHalStatus csrInitChannelList( tHalHandle hHal )
     return (status);
 }
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-eHalStatus csrHoConfigParams(tpAniSirGlobal pMac, tCsrHandoffConfigParams * pCsrHoConfig)
-{
-   /* get the handoff configurations                                       */
-
-   if(pCsrHoConfig)
-   {
-      smsLog(pMac, LOG1, " csrHoConfigParams: setting the passed down HO params \n");
-      pMac->roam.handoffInfo.handoffParams = *pCsrHoConfig;
-      pMac->roam.handoffInfo.idleScanInterval = pMac->roam.configParam.impsSleepTime;
-      pMac->roam.handoffInfo.lostLinkRoamInterval = pMac->roam.configParam.nRoamingTime;      
-   }
-   else
-   {
-      smsLog(pMac, LOGW, " csrHoConfigParams: nothing passed down, faling back to default \n");
-      csrHoConfigDefaultParams(pMac);
-   }
-   return eHAL_STATUS_SUCCESS;
-}
-
-
-void csrHoConfigDefaultParams(tpAniSirGlobal pMac)
-{
-   /* get the default handoff configurations                               */
-   /* NO_WIFI                                                              */
-   pMac->roam.handoffInfo.handoffParams.noWifiParams.activeScanDuration = 120; // seconds
-
-   pMac->roam.handoffInfo.handoffParams.noWifiParams.activeScanInterval =  30; // seconds
-
-   pMac->roam.handoffInfo.handoffParams.noWifiParams.channelScanTime =    120; // msec
-
-   pMac->roam.handoffInfo.handoffParams.noWifiParams.rssiFilterConst =     90; // %
-
-   pMac->roam.handoffInfo.handoffParams.noWifiParams.rssiThresholdAssociationAdd =  80; //dBm
-
-   pMac->roam.handoffInfo.handoffParams.noWifiParams.rssiThresholdNeighborSet =  95; //dBm
-
-   pMac->roam.handoffInfo.idleScanInterval = pMac->roam.configParam.impsSleepTime;
-
-   pMac->roam.handoffInfo.lostLinkRoamInterval = pMac->roam.configParam.nRoamingTime;
-
-   /* No Traffic                                                            */
-   pMac->roam.handoffInfo.handoffParams.ntParams.bestCandidateApRssiDelta = 10; //dBm
-
-   pMac->roam.handoffInfo.handoffParams.ntParams.inactPeriod =    2000; //msec
-
-   pMac->roam.handoffInfo.handoffParams.ntParams.inactThreshold = 25; // 25 packets
-
-   pMac->roam.handoffInfo.handoffParams.ntParams.neighborApBgScanInterval = 2000; // msec
-
-   pMac->roam.handoffInfo.handoffParams.ntParams.neighborApIncrBgScanInterval = 4000; //msec
-
-   pMac->roam.handoffInfo.handoffParams.ntParams.numCandtSetEntry = 5;
-
-   pMac->roam.handoffInfo.handoffParams.ntParams.pmkCacheRssiDelta =  3; //dB
-
-   pMac->roam.handoffInfo.handoffParams.ntParams.rssiFilterConst =   90; // %
-
-   pMac->roam.handoffInfo.handoffParams.ntParams.rssiThresholdCandtSet =   75; //dBm
-
-   pMac->roam.handoffInfo.handoffParams.ntParams.rssiThresholdCurrentApGood =  50; // dBm
-
-   /* Non Real Time                                                           */
-   pMac->roam.handoffInfo.handoffParams.nrtParams.bestCandidateApRssiDelta = 10; //dBm
-
-   pMac->roam.handoffInfo.handoffParams.nrtParams.bgScanDelayInterval = 1000; // msec
-
-   pMac->roam.handoffInfo.handoffParams.nrtParams.bgScanIncrInterval = 1000; // msec
-
-   pMac->roam.handoffInfo.handoffParams.nrtParams.bgScanInterval = 600; // msec
-
-   pMac->roam.handoffInfo.handoffParams.nrtParams.numCandtSetEntry =   5;
-
-   pMac->roam.handoffInfo.handoffParams.nrtParams.perMsmtInterval =  2000; //msec
-
-   pMac->roam.handoffInfo.handoffParams.nrtParams.perThresholdHoFromCurrentAp =  5; // %
-
-   pMac->roam.handoffInfo.handoffParams.nrtParams.pmkCacheRssiDelta =   3; // dBm
-
-   pMac->roam.handoffInfo.handoffParams.nrtParams.rssiFilterConst =   90;  // %
-
-   pMac->roam.handoffInfo.handoffParams.nrtParams.rssiThresholdCandtSet =  75; // dBm
-
-   pMac->roam.handoffInfo.handoffParams.nrtParams.rssiThresholdCurrentApGood =  50; // dBm
-
-   pMac->roam.handoffInfo.handoffParams.nrtParams.rssiThresholdCurrentApGoodEmptyCandtset =  75; // dBm
-
-   pMac->roam.handoffInfo.handoffParams.nrtParams.rssiThresholdHoFromCurrentAp =  80; // dBm
-
-   /* Real Time                                                               */
-   pMac->roam.handoffInfo.handoffParams.rtParams.bestCandidateApRssiDelta = 10; //dBm
-
-   pMac->roam.handoffInfo.handoffParams.rtParams.bgScanInterval = 300; // msec
-
-   pMac->roam.handoffInfo.handoffParams.rtParams.numCandtSetEntry =  5;
-
-   pMac->roam.handoffInfo.handoffParams.rtParams.perMsmtInterval =  2000; //msec
-
-   pMac->roam.handoffInfo.handoffParams.rtParams.perThresholdHoFromCurrentAp =  10; // %
-
-   pMac->roam.handoffInfo.handoffParams.rtParams.pmkCacheRssiDelta =  3; // dBm
-
-   pMac->roam.handoffInfo.handoffParams.rtParams.rssiFilterConst =   90;  // %
-
-   pMac->roam.handoffInfo.handoffParams.rtParams.rssiThresholdCandtSet =  75; // dBm
-
-   pMac->roam.handoffInfo.handoffParams.rtParams.rssiThresholdCurrentApGood = 50; //dBm
-
-   pMac->roam.handoffInfo.handoffParams.rtParams.rssiThresholdHoFromCurrentAp = 80; // dBm
-
-}
-#endif
 
 eHalStatus csrChangeConfigParams(tpAniSirGlobal pMac, 
                                  tCsrUpdateConfigParam *pUpdateConfigParam)
@@ -2039,12 +1726,6 @@ eHalStatus csrRoamIssueDisassociate( tpAniSirGlobal pMac, tANI_U32 sessionId,
     
     if(HAL_STATUS_SUCCESS(status)) 
     {
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-        if(eCSR_ROAM_SUBSTATE_DISASSOC_HANDOFF == NewSubstate)
-        {
-            pMac->roam.handoffInfo.handoffAction = TRUE;
-        }
-#endif
     csrRoamLinkDown(pMac, sessionId);
 
 #ifndef WLAN_MDM_CODE_REDUCTION_OPT
@@ -4271,10 +3952,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
 {
     tANI_BOOLEAN fReleaseCommand = eANI_BOOLEAN_TRUE;
     tSirBssDescription *pSirBssDesc = NULL;   
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-    tSirBssDescription *pTempBssDesc = NULL;
-    tANI_U16 bssLen;
-#endif
     tSirMacAddr BroadcastMac = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
     tCsrScanResult *pScanResult = NULL;
     tCsrRoamInfo roamInfo;
@@ -4509,31 +4186,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                    }
                 }
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-                //Save the channel list for handoff scanning
-                if(pProfile->ChannelInfo.numOfChannels && pProfile->ChannelInfo.ChannelList)
-                {
-                    VOS_ASSERT(WNI_CFG_VALID_CHANNEL_LIST_LEN >= pProfile->ChannelInfo.numOfChannels);
-                    pSession->connectedInfo.sHOScanChannelList.numChannels = 
-                            CSR_MIN( WNI_CFG_VALID_CHANNEL_LIST_LEN, pProfile->ChannelInfo.numOfChannels );
-                    palCopyMemory(pMac->hHdd, pSession->connectedInfo.sHOScanChannelList.channelList, 
-                        pProfile->ChannelInfo.ChannelList, pSession->connectedInfo.sHOScanChannelList.numChannels);
-                }
-                else 
-                {
-                    //Get all the valid channels
-                    tANI_U32 len = WNI_CFG_VALID_CHANNEL_LIST_LEN;
-                    if (HAL_STATUS_SUCCESS(csrGetCfgValidChannels(pMac, pSession->connectedInfo.sHOScanChannelList.channelList, &len)))
-                    {
-                       pSession->connectedInfo.sHOScanChannelList.numChannels = (tANI_U8)len;
-                    }
-                    else
-                    {
-                        pSession->connectedInfo.sHOScanChannelList.numChannels = 0;
-                    }
-
-                }
-#endif
 
                 roamInfo.pBssDesc = pSirBssDesc;
                 roamInfo.statusCode = pSession->joinFailStatusCode.statusCode;
@@ -4581,28 +4233,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
             }
 
             csrScanCancelIdleScan(pMac);
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-            if(pMac->roam.handoffInfo.currSta.pBssDesc)
-            {
-                palFreeMemory(pMac->hHdd, pMac->roam.handoffInfo.currSta.pBssDesc);
-            }
-            palZeroMemory(pMac->hHdd, &pMac->roam.handoffInfo.currSta, sizeof(tCsrRoamHandoffStaEntry));
-            //Save bssid
-            csrGetBssIdBssDesc(pMac, pSirBssDesc, &pMac->roam.handoffInfo.currSta.bssid);
-            //save the bss Descriptor
-            bssLen = pSirBssDesc->length + sizeof(pSirBssDesc->length);
-
-            if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void **)&pTempBssDesc, bssLen)))
-            {
-               smsLog(pMac, LOGE, "csrRoamProcessResults: couldn't allocate memory for the \
-                      bss Descriptor\n");
-               return eANI_BOOLEAN_TRUE;
-            }
-
-            palZeroMemory(pMac->hHdd, pTempBssDesc, bssLen);
-            palCopyMemory(pMac->hHdd, pTempBssDesc, pSirBssDesc, bssLen);
-            pMac->roam.handoffInfo.currSta.pBssDesc = pTempBssDesc;
-#endif
             //Not to signal link up because keys are yet to be set.
             //The linkup function will overwrite the sub-state that we need to keep at this point.
             if( !CSR_IS_WAIT_FOR_KEY(pMac) )
@@ -4882,9 +4512,6 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
             
             //to aviod resetting the substate to NONE
             pMac->roam.curState = eCSR_ROAMING_STATE_JOINED;
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-            pMac->roam.handoffInfo.currState = pMac->roam.curState;
-#endif
             //No need to change substate to wai_for_key because there is no state change
             roamInfo.pBssDesc = pSession->pConnectBssDesc;
             if( roamInfo.pBssDesc )
@@ -6077,12 +5704,6 @@ eHalStatus csrRoamSaveConnectedInfomation(tpAniSirGlobal pMac, tANI_U32 sessionI
 
 static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJoinRsp )
 {
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-   tCsrScanResultFilter *pScanFilter = NULL;
-   tScanResultHandle hBSSList;
-   tCsrRoamInfo roamInfo;
-   eHalStatus status;
-#endif
    tListElem *pEntry = NULL;
    tSmeCmd *pCommand = NULL;
 
@@ -6107,9 +5728,6 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
    {
         tANI_U32 roamId = 0;
         tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, pSmeJoinRsp->sessionId );
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-        tANI_U32 sessionId = pSmeJoinRsp->sessionId;
-#endif       
         
         //The head of the active list is the request we sent
         //Try to get back the same profile and roam again
@@ -6121,61 +5739,7 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
         pSession->joinFailStatusCode.statusCode = pSmeJoinRsp->statusCode;
         pSession->joinFailStatusCode.reasonCode = pSmeJoinRsp->protStatusCode;
         smsLog( pMac, LOGW, "SmeJoinReq failed with statusCode= 0x%08lX [%d]\n", pSmeJoinRsp->statusCode, pSmeJoinRsp->statusCode );
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-        //might need to add logic to make sure we get back to the old AP
-        //update the scanlist & bssid
-        if( eCsrSmeIssuedAssocToSimilarAP == pCommand->u.roamCmd.roamReason)
-        {
-           //check if this is the retry for original AP case
-           if(csrIsBssidMatch(pMac, (tCsrBssid *)&pMac->roam.handoffInfo.currSta.bssid, 
-                              (tCsrBssid *) pCommand->u.roamCmd.roamProfile.BSSIDs.bssid))
-           {
-              pCommand = NULL;
-#ifndef WLAN_MDM_CODE_REDUCTION_OPT
-              sme_QosCsrEventInd(pMac, (v_U8_t)sessionId, SME_QOS_CSR_HANDOFF_FAILURE, NULL);
-#endif
-           }
-           else
-           {
-              //Complete the last association attemp because a new one is about to be tried
-              //We need to indicate to HDD that we are done with this one.
-              palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
-              roamInfo.pBssDesc = pCommand->u.roamCmd.pLastRoamBss;     //this shall not be NULL
-              roamInfo.statusCode = pSession->joinFailStatusCode.statusCode;
-              roamInfo.reasonCode = pSession->joinFailStatusCode.reasonCode;
-                csrRoamCallCallback(pMac, pSmeJoinRsp->sessionId, &roamInfo, pCommand->u.roamCmd.roamId, 
-                                  eCSR_ROAM_ASSOCIATION_COMPLETION, 
-                                  eCSR_ROAM_RESULT_NOT_ASSOCIATED);
-              //try original AP
-              csrRoamCreateHandoffProfile(pMac, pMac->roam.handoffInfo.currSta.bssid);
-              status = palAllocateMemory(pMac->hHdd, (void **)&pScanFilter, sizeof(tCsrScanResultFilter));
-              if(HAL_STATUS_SUCCESS(status))
-              {
-                palZeroMemory(pMac->hHdd, pScanFilter, sizeof(tCsrScanResultFilter));
-              status = csrRoamPrepareFilterFromProfile(pMac, &pMac->roam.handoffInfo.handoffProfile, pScanFilter);
-                    if(HAL_STATUS_SUCCESS(status))
-                    {
-              //use the scan filter to get the exact entry using the BSSID 
-              status = csrScanGetResult(pMac, pScanFilter, &hBSSList);
-              pCommand->u.roamCmd.hBSSList = hBSSList;
-              pCommand->u.roamCmd.pRoamBssEntry = NULL;
-              palCopyMemory(pMac->hHdd, pCommand->u.roamCmd.roamProfile.BSSIDs.bssid, 
-                            pMac->roam.handoffInfo.currSta.bssid,
-                            sizeof( tCsrBssid ));
-           }
-                    else {
-                        smsLog( pMac, LOGE, FL(" csrScanGetResult failed\n"));
-                    }
-                    csrFreeScanFilter(pMac, pScanFilter);
-                    palFreeMemory( pMac->hHdd, pScanFilter );
-                }
-                else
-                {
-                    smsLog(pMac, LOGE, FL(" fail to allocate memory for scan filter\n"));
-        }
-            }
-        }
-#elif defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
         /* If Join fails while Handoff is in progress, indicate disassociated event to supplicant to reconnect */
         if (csrRoamIsHandoffInProgress(pMac))
         {
@@ -6203,16 +5767,7 @@ static void csrRoamJoinRspProcessor( tpAniSirGlobal pMac, tSirSmeJoinRsp *pSmeJo
         }    
         else
         {
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-           status = csrRoamLostLinkAfterhandoffFailure(pMac, pSmeJoinRsp->sessionId);
-           if(!HAL_STATUS_SUCCESS(status))
-           {
-               smsLog( pMac, LOGW, "Lost Link roaming failed after handoff failure, indicating upper layer\n");
-               csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
-           }
-#else
            csrRoamComplete( pMac, eCsrNothingToJoin, NULL );
-#endif
         }
     } /*else: ( eSIR_SME_SUCCESS == pSmeJoinRsp->statusCode ) */
 }
@@ -6675,7 +6230,7 @@ static void csrRoamRoamingStateStopBssRspProcessor(tpAniSirGlobal pMac, tSirSmeR
 static void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSmeDisassocRsp *pSmeDisassocRsp )
 {
     tSirResultCodes statusCode;
-#if defined FEATURE_WLAN_GEN6_ROAMING || defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if defined WLAN_FEATURE_NEIGHBOR_ROAMING
     tScanResultHandle hBSSList;
     tANI_BOOLEAN fCallCallback, fRemoveCmd;
     eHalStatus status;
@@ -6713,107 +6268,7 @@ static void csrRoamRoamingStateDisassocRspProcessor( tpAniSirGlobal pMac, tSirSm
 
     else if ( CSR_IS_ROAM_SUBSTATE_DISASSOC_HO( pMac ) )
     {
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-        pEntry = csrLLPeekHead( &pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK );
-        if ( pEntry )
-        {
-            pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
-
-            // If the head of the queue is Active and it is a ROAM command, remove
-            // and put this on the Free queue.
-            if ( eSmeCommandRoam == pCommand->command )
-            {
-                //we need to process the result first before removing it from active list because state changes 
-                //still happening insides roamQProcessRoamResults so no other roam command should be issued
-                fRemoveCmd = csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, pEntry, LL_ACCESS_LOCK );
-                if(pCommand->u.roamCmd.fReleaseProfile)
-                {
-                    csrReleaseProfile(pMac, &pCommand->u.roamCmd.roamProfile);
-                    pCommand->u.roamCmd.fReleaseProfile = eANI_BOOLEAN_FALSE;
-                }
-
-                if( fRemoveCmd )
-                {
-                    csrReleaseCommandRoam( pMac, pCommand );
-                }
-                else
-                {
-                    smsLog( pMac, LOGE, "  ********csrRoamRoamingStateDisassocRspProcessor fail to remove cmd reason %d\n",
-                        pCommand->u.roamCmd.roamReason );
-                }
-            }
-            else
-            {
-                smsLog( pMac, LOGW, "CSR: Roam Completion called but ROAM command is not ACTIVE ...\n" );
-            }
-        }
-        else
-        {
-            smsLog( pMac, LOGW, "CSR: Roam Completion called but NO commands are ACTIVE ...\n" );
-        }
-
-        //notify HDD for handoff, providing the BSSID too
-        roamInfo.reasonCode = eCsrRoamReasonBetterAP;
-        palCopyMemory(pMac->hHdd, &roamInfo.bssid, 
-                    pMac->roam.handoffInfo.handoffProfile.BSSIDs.bssid, 
-                    sizeof( tCsrBssid ));
-
-        csrRoamCallCallback(pMac,sessionId, &roamInfo, 0, eCSR_ROAM_ROAMING_START, eCSR_ROAM_RESULT_NONE);
-
-        status = palAllocateMemory(pMac->hHdd, (void **)&pScanFilter, sizeof(tCsrScanResultFilter));
-        if(HAL_STATUS_SUCCESS(status))
-        {
-            palZeroMemory(pMac->hHdd, pScanFilter, sizeof(tCsrScanResultFilter));
-            status = csrRoamPrepareFilterFromProfile(pMac, &pMac->roam.handoffInfo.handoffProfile, pScanFilter);
-            if(!HAL_STATUS_SUCCESS(status))
-            {
-                smsLog(pMac, LOGE, FL(" csrRoamPrepareFilterFromProfile fail to create scan filter\n"));
-            }
-            //use the scan filter to get the exact entry using the BSSID 
-
-            status = csrScanGetResult(pMac, pScanFilter, &hBSSList);
-            if(HAL_STATUS_SUCCESS(status))
-            {
-                //copy over the connected profile to apply the same for this connection as well
-                if(HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void **)&pCurRoamProfile, sizeof(tCsrRoamProfile))))
-                {
-                    palZeroMemory(pMac->hHdd, pCurRoamProfile, sizeof(tCsrRoamProfile));
-                    csrRoamCopyProfile(pMac, pCurRoamProfile, pSession->pCurRoamProfile);
-                }
-                //make sure to put it at the head of the cmd queue
-                status = csrRoamIssueConnect(pMac, sessionId, pCurRoamProfile, hBSSList, eCsrSmeIssuedAssocToSimilarAP, 
-                                       roamId, eANI_BOOLEAN_TRUE, eANI_BOOLEAN_FALSE);
-                if(!HAL_STATUS_SUCCESS(status))
-                {
-                    //msg
-                    fCallCallback = eANI_BOOLEAN_TRUE;
-                }
-#ifndef WLAN_MDM_CODE_REDUCTION_OPT
-                /* Notify sub-modules like QoS etc. that handoff happening         */
-                sme_QosCsrEventInd(pMac, sessionId, SME_QOS_CSR_HANDOFF_ASSOC_REQ, NULL);
-#endif
-                palFreeMemory(pMac->hHdd, pCurRoamProfile);
-            }
-            else
-            {
-                //msg
-                smsLog( pMac, LOGE,"csrRoamRoamingStateDisassocRspProcessor: csrScanGetResult failed");
-                // should have asserted, sending up roam complete instead. Let upper layer
-                // decide what to do next
-                csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_ROAMING_COMPLETION, eCSR_ROAM_RESULT_FAILURE);
-            }
-        }
-        else
-        {
-            smsLog(pMac, LOGE, FL(" fail to allocate memory for scan filter\n"));
-            csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_ROAMING_COMPLETION, eCSR_ROAM_RESULT_FAILURE);
-        }
-        if( pScanFilter )
-        {
-            csrFreeScanFilter(pMac, pScanFilter);
-            palFreeMemory( pMac->hHdd, pScanFilter );
-        }
-#elif defined (WLAN_FEATURE_NEIGHBOR_ROAMING)
+#if   defined (WLAN_FEATURE_NEIGHBOR_ROAMING)
     pEntry = csrLLPeekHead( &pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK );
     if ( pEntry )
     {
@@ -10560,11 +10015,6 @@ eHalStatus csrSendJoinReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSirBssDe
 
     
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)    
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-        dwTmp = pal_cpu_to_be32(eSIR_NORMAL);
-        palCopyMemory( pMac->hHdd, pBuf, &dwTmp, sizeof(tSirAssocType) );
-        pBuf += sizeof(tSirAssocType);
-#endif
 #endif /*(WNI_POLARIS_FW_PACKAGE == ADVANCED)*/
 
         status = csrGetRateSet(pMac, pProfile, pProfile->phyMode, pBssDescription, pIes, &OpRateSet, &ExRateSet);
@@ -10826,12 +10276,6 @@ eHalStatus csrSendSmeReassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
         *pBuf = pProfile->uapsd_mask;
         pBuf++;
 
-#if defined(FEATURE_WLAN_GEN6_ROAMING) && (WNI_POLARIS_FW_PACKAGE == ADVANCED)
-        // assocType
-        dwTmp = pal_cpu_to_be32(eSIR_NORMAL);
-        palCopyMemory( pMac->hHdd, pBuf, &dwTmp, sizeof(tSirAssocType) );
-        pBuf += sizeof(tSirAssocType);
-#endif
 
 
         status = csrGetRateSet(pMac, pProfile, pProfile->phyMode, pBssDescription, pIes, &OpRateSet, &ExRateSet);
@@ -12302,221 +11746,9 @@ static tANI_U32 csrFindIbssSession( tpAniSirGlobal pMac )
 
     return (nRet);
 }
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-VOS_STATUS csrRoamTrafficIndCallback(tHalHandle hHal, 
-                               WLANTL_HO_TRAFFIC_STATUS_TYPE trafficStatus, 
-                               void * context)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( context );
-
-   /* if RT traffic is on ignore the NRT traffic on indication for now, as soon
-      as RT traffic goes off we can decide if we need to move to NRT or NT*/
-   if((pMac->roam.handoffInfo.isNrtTrafficOn != trafficStatus.nrtTrafficStatus) &&
-      pMac->roam.handoffInfo.isRtTrafficOn)
-   {
-       if(WLANTL_HO_NRT_TRAFFIC_STATUS_ON == trafficStatus.nrtTrafficStatus)
-       {
-          pMac->roam.handoffInfo.isNrtTrafficOn = TRUE;
-       }
-       else
-       {
-          pMac->roam.handoffInfo.isNrtTrafficOn = FALSE;
-       }
-       return VOS_STATUS_SUCCESS;
-   }
-
-   if(pMac->roam.handoffInfo.isNrtTrafficOn != trafficStatus.nrtTrafficStatus)
-   {
-      smsLog(pMac, LOGW, "csrRoamTrafficIndCallback: NRT traffic status %d\n", trafficStatus.nrtTrafficStatus);
-      if(WLANTL_HO_NRT_TRAFFIC_STATUS_ON == trafficStatus.nrtTrafficStatus)
-      {
-         csrRoamProcessNrtTrafficOnInd(pMac);
-      }
-      else
-      {
-         csrRoamProcessNrtTrafficOffInd(pMac);
-      }
-   }
-
-   if(pMac->roam.handoffInfo.isRtTrafficOn != trafficStatus.rtTrafficStatus)
-   {
-      smsLog(pMac, LOGW, "csrRoamTrafficIndCallback: RT traffic status %d\n", trafficStatus.rtTrafficStatus);
-      if(WLANTL_HO_RT_TRAFFIC_STATUS_ON == trafficStatus.rtTrafficStatus)
-      {
-         csrRoamProcessRtTrafficOnInd(pMac);
-      }
-      else
-      {
-         csrRoamProcessRtTrafficOffInd(pMac);
-      }
-   }
-
-   return VOS_STATUS_SUCCESS;
-}
-
-static void csrRoamProcessNrtTrafficOnInd(tpAniSirGlobal pMac)
-{
-    // TODO : Session info unavailable
-   tANI_U32 sessionId = 0;
-   /* cleanup, and move to desired state                                    */
-   csrRoamStopStatisticsTimer(pMac);
-   csrScanStopBgScanTimer(pMac);
-   //clean up command q in case scan is pending
-   csrScanRemoveBgScanReq(pMac);
-
-
-   if( (pMac->roam.handoffInfo.currState != eCSR_ROAMING_STATE_JOINED )&&
-      ( pMac->roam.curState != eCSR_ROAMING_STATE_SCANNING))
-   {
-      smsLog(pMac, LOGW, "csrRoamProcessNrtTrafficOnInd: wrong state %d\n", pMac->roam.handoffInfo.currState);
-      //We might come here if control path & data path are out of sync. Typical
-      //scenario is, user wanted to disassoc with the cuurent AP while we are in
-      //the middle of data traffic. csr gets into disconnected state much before
-      //TL gets the notifcation 
-      //VOS_ASSERT( 0 );
-      return;
-   }
-
-  if(!csrIsConnStateConnectedInfra(pMac, sessionId))
-  {
-     smsLog(pMac, LOGW, "csrRoamProcessNrtTrafficOnInd: ignoring the indication as we are not connected\n");
-     return;
-  }
-   /* Before moving to NRT sub-state, do consider any previous indication from 
-      TL for real time traffic                              */
-
-   pMac->roam.handoffInfo.isNrtTrafficOn = TRUE;
-
-   if(pMac->roam.handoffInfo.isRtTrafficOn)
-   {
-      return;
-   }
-
-   csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_JOINED_NON_REALTIME_TRAFFIC );
-}
-
-
-static void csrRoamProcessRtTrafficOnInd(tpAniSirGlobal pMac)
-{
-    // TODO : Session info unavailable
-    tANI_U32 sessionId = 0;
-
-    csrRoamStopStatisticsTimer(pMac);
-    csrScanStopBgScanTimer(pMac);
-    //clean up command q in case scan is pending
-    csrScanRemoveBgScanReq(pMac);
-
-   if( (pMac->roam.handoffInfo.currState != eCSR_ROAMING_STATE_JOINED )&&
-       ( pMac->roam.curState != eCSR_ROAMING_STATE_SCANNING))
-   {
-      smsLog(pMac, LOGW, "csrRoamProcessRtTrafficOnInd: wrong state %d\n", pMac->roam.handoffInfo.currState);
-      //We might come here if control path & data path are out of sync. Typical
-      //scenario is, user wanted to disassoc with the cuurent AP while we are in
-      //the middle of data traffic. csr gets into disconnected state much before
-      //TL gets the notifcation 
-      //VOS_ASSERT( 0 );
-      return;
-   }
-
-   if(!csrIsConnStateConnectedInfra(pMac, sessionId))
-   {
-      smsLog(pMac, LOGW, "csrRoamProcessRtTrafficOnInd: ignoring the indication as we are not connected\n");
-      return;
-   }
-
-   /* cleanup, and move to RT sub-state                                    */
-   pMac->roam.handoffInfo.isRtTrafficOn = TRUE;
-
-   csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_JOINED_REALTIME_TRAFFIC );
-  
-}
-
-
-static void csrRoamProcessNrtTrafficOffInd(tpAniSirGlobal pMac)
-{
-    // TODO : Session info unavailable
-    tANI_U32 sessionId = 0;
-
-   if( (pMac->roam.handoffInfo.currState != eCSR_ROAMING_STATE_JOINED )&&
-       ( pMac->roam.curState != eCSR_ROAMING_STATE_SCANNING))
-   {
-      smsLog(pMac, LOGW, "csrRoamProcessNrtTrafficOffInd: wrong state %d\n", pMac->roam.handoffInfo.currState);
-      //We might come here if control path & data path are out of sync. Typical
-      //scenario is, user wanted to disassoc with the cuurent AP while we are in
-      //the middle of data traffic. csr gets into disconnected state much before
-      //TL gets the notifcation 
-      //VOS_ASSERT( 0 );
-      return;
-   }
-   if(!csrIsConnStateConnectedInfra(pMac, sessionId))
-   {
-      smsLog(pMac, LOGW, "csrRoamProcessNrtTrafficOffInd: ignoring the indication as we are not connected\n");
-      return;
-   }
-
-   pMac->roam.handoffInfo.isNrtTrafficOn = FALSE;
-
-   if(pMac->roam.handoffInfo.isRtTrafficOn)
-   {
-      return;
-   }
-
-   /* cleanup, and move to NT sub-state                                    */
-   csrRoamStopStatisticsTimer(pMac);
-   csrScanStopBgScanTimer(pMac);
-
-   csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_JOINED_NO_TRAFFIC );
-
-}
-
-
-static void csrRoamProcessRtTrafficOffInd(tpAniSirGlobal pMac)
-{
-    // TODO : Session info unavailable
-    tANI_U32 sessionId = 0;
-
-   if( (pMac->roam.handoffInfo.currState != eCSR_ROAMING_STATE_JOINED )&&
-       ( pMac->roam.curState != eCSR_ROAMING_STATE_SCANNING))
-   {
-      smsLog(pMac, LOGW, "csrRoamProcessRtTrafficOffInd: wrong state %d\n", pMac->roam.handoffInfo.currState);
-      //We might come here if control path & data path are out of sync. Typical
-      //scenario is, user wanted to disassoc with the cuurent AP while we are in
-      //the middle of data traffic. csr gets into disconnected state much before
-      //TL gets the notifcation 
-      //VOS_ASSERT( 0 );
-      return;
-   }
-   if(!csrIsConnStateConnectedInfra(pMac, sessionId))
-   {
-      smsLog(pMac, LOGW, "csrRoamProcessRtTrafficOffInd: ignoring the indication as we are not connected\n");
-      return;
-   }
-
-   pMac->roam.handoffInfo.isRtTrafficOn = FALSE;
-
-   /* cleanup, and move to appropriate sub-state                             */
-   csrRoamStopStatisticsTimer(pMac);
-   csrScanStopBgScanTimer(pMac);
-
-   if(pMac->roam.handoffInfo.isNrtTrafficOn)
-   {
-      csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_JOINED_NON_REALTIME_TRAFFIC );
-   }
-   else
-   {
-      csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_JOINED_NO_TRAFFIC );
-   }
-  
-}
-#endif
 
 static void csrRoamLinkUp(tpAniSirGlobal pMac, tCsrBssid bssid)
 {
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-   tCsrHandoffStaInfo *pStaEntry = NULL;
-   VOS_STATUS status;
-   tANI_BOOLEAN found = FALSE;
-#endif
    /* Update the current BSS info in ho control block based on connected 
       profile info from pmac global structure                              */
    
@@ -12525,46 +11757,6 @@ static void csrRoamLinkUp(tpAniSirGlobal pMac, tCsrBssid bssid)
           bssid[ 0 ], bssid[ 1 ], bssid[ 2 ],
           bssid[ 3 ], bssid[ 4 ], bssid[ 5 ] );
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-   if( 0 == csrScanFindBssEntryFromList( pMac,
-                                         &pMac->roam.handoffInfo.neighborList,
-                                         bssid,
-                                         &pStaEntry))
-   {
-      /* Need to remove new curr_sta from neighbor list                      */
-      csrScanRemoveEntryFromList( pMac,
-                                 &pMac->roam.handoffInfo.neighborList, 
-                                 pStaEntry->sta.bssid);
-      found = TRUE;
-
-   }
-   if( 0 == csrScanFindBssEntryFromList( pMac,
-                                              &pMac->roam.handoffInfo.candidateList,
-                                              bssid,
-                                              &pStaEntry))
-   {
-      /* Need to remove new curr_sta from candidate list                      */
-      csrScanRemoveEntryFromList( pMac,
-                                  &pMac->roam.handoffInfo.candidateList, 
-                                  pStaEntry->sta.bssid);
-      found = TRUE;
-   }
-   if(FALSE == found)
-   {
-      smsLog(pMac, LOGW, " csrRoamLinkUp: Acquired an AP not in neighbor/candidate list!\n");
-
-      //commenting out the assert, in case of reassoc it will be a valid scenario
-      //it's work around, but need to fix it properly - TBH 
-      //VOS_ASSERT( 0 );
-
-   }
-
-   /* Update the handoff config information if needed                        */
-   if(!HAL_STATUS_SUCCESS(csrUpdateHandoffParams(pMac)))
-   {
-      smsLog(pMac, LOGW, " csrRoamLinkUp: couldn't update params\n");
-   }
-#endif
    /* Check for user misconfig of RSSI trigger threshold                  */
    pMac->roam.configParam.vccRssiThreshold =
       ( 0 == pMac->roam.configParam.vccRssiThreshold ) ? 
@@ -12576,48 +11768,7 @@ static void csrRoamLinkUp(tpAniSirGlobal pMac, tCsrBssid bssid)
       ( 0 == pMac->roam.configParam.vccUlMacLossThreshold ) ? 
       CSR_VCC_UL_MAC_LOSS_THRESHOLD : pMac->roam.configParam.vccUlMacLossThreshold;
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-   //regirster the vcc rssi trigger with TL
-   status = 
-      WLANTL_RegRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.configParam.vccRssiThreshold * (-1),
-                                 WLANTL_HO_THRESHOLD_CROSS, 
-                                 csrRoamVccTriggerRssiIndCallback, 
-               VOS_MODULE_ID_SME, pMac);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      //err msg
-      smsLog(pMac, LOGW, " csrRoamLinkUp: couldn't register csrRoamVccTriggerRssiIndCallback with TL\n");
-   }
-
-   if(pMac->roam.handoffInfo.handoffAction)
-   {
-      pMac->roam.handoffInfo.handoffAction = FALSE;
-      /* This is an extra transition to reset all timers, values etc for new AP   */
-
-      csrRoamSubstateChange( pMac, pMac->roam.handoffInfo.subStateBeforeHandoff);
-   }
-   else
-   {
-      //register traffic ind callback with TL
-      status = 
-         WLANTL_RegGetTrafficStatus(pMac->roam.gVosContext,  
-                                    pMac->roam.handoffInfo.handoffParams.ntParams.inactThreshold,
-                                    pMac->roam.handoffInfo.handoffParams.ntParams.inactPeriod, 
-                                    csrRoamTrafficIndCallback,
-                                    pMac);
-
-      if(!VOS_IS_STATUS_SUCCESS( status))
-      {
-         //err msg
-         smsLog(pMac, LOGW, " csrRoamLinkUp: couldn't register traffic ind callback with TL\n");
-         return;
-      }
-
-      csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_JOINED_NO_TRAFFIC );
-      
-   }
-#elif defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
     {
         tANI_U32 sessionId = 0;
 
@@ -12626,18 +11777,12 @@ static void csrRoamLinkUp(tpAniSirGlobal pMac, tCsrBssid bssid)
         csrNeighborRoamIndicateConnect(pMac, sessionId, VOS_STATUS_SUCCESS);
     }
 #endif
-#if defined (FEATURE_WLAN_DIAG_SUPPORT_CSR) && defined (FEATURE_WLAN_GEN6_ROAMING)    
-   csrRoamStartDiagLogStatsTimer(pMac, CSR_DIAG_LOG_STAT_PERIOD);
-#endif
 
 }
 
 
 static void csrRoamLinkDown(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-   VOS_STATUS status;
-#endif
    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
 
    //Only to handle the case for Handover on infra link
@@ -12646,43 +11791,11 @@ static void csrRoamLinkDown(tpAniSirGlobal pMac, tANI_U32 sessionId)
       return;
    }
 
-#if defined (FEATURE_WLAN_DIAG_SUPPORT_CSR) && defined (FEATURE_WLAN_GEN6_ROAMING)    
-   csrRoamStopDiagLogStatsTimer(pMac);
-#endif
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-   /* Clean up, stop timers (bg scan, stats),                              */
-   csrRoamStopStatisticsTimer(pMac);
-   csrScanStopBgScanTimer(pMac);
-   //clear up pending scan req
-   csrScanRemoveBgScanReq(pMac);
-#endif
    /* deregister the clients requesting stats from PE/TL & also stop the corresponding timers*/
    csrRoamDeregStatisticsReq(pMac);
    pMac->roam.vccLinkQuality = eCSR_ROAM_LINK_QUAL_POOR_IND;
-#ifdef FEATURE_WLAN_GEN6_ROAMING   
-   if(!pMac->roam.handoffInfo.handoffAction)
-   {
-
-      pMac->roam.handoffInfo.subStateBeforeHandoff = pMac->roam.handoffInfo.currSubState;
-      //cleanup the neighbor & candidate list when connection is lost, to avaid 
-      //having stale entries
-      csrRoamHandoffRemoveAllFromList(pMac, &pMac->roam.handoffInfo.candidateList);
-      csrRoamHandoffRemoveAllFromList(pMac, &pMac->roam.handoffInfo.neighborList);
-   }
-   
-   //deregirster the vcc rssi trigger with TL
-   status = 
-         WLANTL_DeregRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.configParam.vccRssiThreshold * (-1), 
-                                      WLANTL_HO_THRESHOLD_CROSS, csrRoamVccTriggerRssiIndCallback, 
-                                      VOS_MODULE_ID_SME);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamLinkUp: couldn't deregister csrRoamVccTriggerRssiIndCallback with TL\n");
-      return;
-   }
-#elif defined WLAN_FEATURE_NEIGHBOR_ROAMING
+#if   defined WLAN_FEATURE_NEIGHBOR_ROAMING
    /* Indicate the neighbor roal algorithm about the disconnect indication */
    csrNeighborRoamIndicateDisconnect(pMac, sessionId);
 #endif
@@ -12808,102 +11921,6 @@ void csrRoamStatsClientTimerHandler(void *pv)
                            pStaEntry->staId, pStaEntry->pContext);
 #endif
 }
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-eHalStatus csrRoamStartStatisticsTimer(tpAniSirGlobal pMac, tANI_U32 interval)
-{
-   eHalStatus status;
-   tANI_BOOLEAN found = FALSE;
-   tCsrPeStatsReqInfo *pPeStaEntry = NULL; 
-   smsLog(pMac, LOG1, " csrRoamStartStatisticsTimer \n ");
-   do
-   {
-   
-      if(( pMac->roam.handoffInfo.currState == eCSR_ROAMING_STATE_JOINED ||
-           pMac->roam.handoffInfo.currState == eCSR_ROAMING_STATE_SCANNING) && interval)
-      {
-         status = palTimerStart(pMac->hHdd, pMac->roam.hTimerStatistics, interval * PAL_TIMER_TO_MS_UNIT, eANI_BOOLEAN_FALSE);
-      }
-      else
-      {
-         smsLog(pMac, LOG1, " csrRoamStartStatisticsTimer: failed to start \n ");
-         status = eHAL_STATUS_FAILURE;
-         break;
-      }
-#if 0
-      // TODO Stats change for per session
-      pPeStaEntry = csrRoamCheckPeStatsReqList(pMac, 1 << eCsrSummaryStats, 
-                                               interval, &found, pMac->roam.connectedInfo.staId);
-      if(!pPeStaEntry)
-      {
-         //bail out
-         status = eHAL_STATUS_FAILURE;
-         break;
-      }
-#endif
-
-   }while(0);
-
-   return (status);
-}
-
-
-eHalStatus csrRoamStopStatisticsTimer(tpAniSirGlobal pMac)
-{
-    return (palTimerStop(pMac->hHdd, pMac->roam.hTimerStatistics));
-}
-
-void csrRoamStatisticsTimerHandler(void *pv)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( pv );
-   /* Extra check on states to see if this is really needed                 */
-   if( (pMac->roam.handoffInfo.currState != eCSR_ROAMING_STATE_JOINED )&&
-       ( pMac->roam.curState != eCSR_ROAMING_STATE_SCANNING))
-   {
-      smsLog(pMac, LOGW, "csrRoamStatisticsTimerHandler: wrong state %d\n", pMac->roam.handoffInfo.currState);
-
-      return;
-   }
-   //use stats for handoff/Vcc
-   csrRoamHandoffStatsProcessor(pMac);
-
-}
-
-static tANI_U32 csrRoamGetStatsTimerVal(tpAniSirGlobal pMac)
-{
-   tANI_U32 statsTime = 0;
-   /* This function returns the timer value to be used for a given state
-      (NRT and RT)                                                       */
-   if( (pMac->roam.handoffInfo.currState != eCSR_ROAMING_STATE_JOINED )&&
-       ( pMac->roam.curState != eCSR_ROAMING_STATE_SCANNING))
-   {
-      smsLog(pMac, LOGW, "csrRoamGetStatsTimerVal: wrong state %d\n", pMac->roam.handoffInfo.currState);
-      return 0;
-   }
-
-
-   switch( pMac->roam.handoffInfo.currSubState )
-   {
-     case eCSR_ROAM_SUBSTATE_JOINED_NO_TRAFFIC:
-        statsTime = 0;
-        break;
-     case eCSR_ROAM_SUBSTATE_JOINED_NON_REALTIME_TRAFFIC:
-        statsTime = pMac->roam.handoffInfo.handoffParams.nrtParams.perMsmtInterval;
-        break;
-     case eCSR_ROAM_SUBSTATE_JOINED_REALTIME_TRAFFIC:
-        statsTime = pMac->roam.handoffInfo.handoffParams.rtParams.perMsmtInterval;
-        break;
-
-     default:
-        smsLog(pMac, LOGW, " csrRoamGetStatsTimerVal : Invalid current sub-state %d\n", pMac->roam.handoffInfo.currSubState);
-        statsTime = 0;
-
-   } /* end switch */
-
-
-   return statsTime;
-
-}
-#endif
 
 eHalStatus csrSendMBStatsReqMsg( tpAniSirGlobal pMac, tANI_U32 statsMask, tANI_U8 staId)
 {
@@ -13164,735 +12181,6 @@ tListElem * csrRoamCheckClientReqList(tpAniSirGlobal pMac, tANI_U32 statsMask)
    return pEntry;
 }
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-void csrRoamHandoffStatsProcessor(tpAniSirGlobal pMac)
-{
-   tCsrBssid      *pBssid;
-   tANI_U32        stats_time;
-   /* Extra check on states to see if this is really needed                 */
-   if( (pMac->roam.handoffInfo.currState != eCSR_ROAMING_STATE_JOINED )&&
-       ( pMac->roam.curState != eCSR_ROAMING_STATE_SCANNING))
-   {
-      smsLog(pMac, LOGW, "csrRoamHandoffStatsProcessor: wrong state %d\n", pMac->roam.handoffInfo.currState);
-      return;
-   }
-
-   csrRoamVccTrigger(pMac);
-   /* FDD suggests no filter on PER: overwrite existing values              */
-   csrRoamUpdatePER(pMac);
-   
-   /* Check exit and entry criteria to see if we need a handoff...          */
-   pBssid = csrRoamGetStatHoCandidate(pMac);
-
-   if( pBssid)   
-   {
-      /* set to the probed BSSID                                              */
-      palCopyMemory(pMac->hHdd, &pMac->roam.handoffInfo.handoffActivityInfo.probedBssid, 
-                    pBssid, WNI_CFG_BSSID_LEN);
-      csrScanSendBgProbeReq(pMac, pBssid);
-      smsLog(pMac, LOGW, " csrRoamHandoffStatsProcessor : Exit criteria met: probing top candidate\n");
-   }
-   else
-   {
-      smsLog(pMac, LOGW, " csrRoamHandoffStatsProcessor : Exit criteria met but no candidates for stats based handoff\n");
-   }
-
-   /* Find out what new time to use next                                    */
-   stats_time = csrRoamGetStatsTimerVal(pMac);
-
-   csrRoamStartStatisticsTimer(pMac, stats_time);
-}
-
-
-tCsrBssid * csrRoamGetStatHoCandidate(tpAniSirGlobal pMac)
-{
-   tCsrBssid *         pBssid = NULL;
-
-   /* If a probe is already in progress then no need to do anything further */
-   if( pMac->roam.handoffInfo.isProbeRspPending )
-   {
-     return NULL;
-   }
-
-   /* Check exit and entry criteria to see if we need a handoff...          */
-
-   if( TRUE == csrRoamShouldExitAp(pMac) )
-   {
-      smsLog(pMac, LOGW, " csrRoamGetStatHoCandidate : Exit criteria met for handoff\n");
-      smsLog(pMac, LOGW, " csrRoamGetStatHoCandidate : Current STA info:\n");
-      smsLog(pMac, LOGW, " csrRoamGetStatHoCandidate: BSSID= %02x-%02x-%02x-%02x-%02x-%02x\n", 
-             pMac->roam.handoffInfo.currSta.bssid[ 0 ], 
-             pMac->roam.handoffInfo.currSta.bssid[ 1 ], 
-             pMac->roam.handoffInfo.currSta.bssid[ 2 ],
-             pMac->roam.handoffInfo.currSta.bssid[ 3 ], 
-             pMac->roam.handoffInfo.currSta.bssid[ 4 ], 
-             pMac->roam.handoffInfo.currSta.bssid[ 5 ] );
-
-      smsLog(pMac, LOGW, " csrRoamGetStatHoCandidate : channel = %d\n", pMac->roam.handoffInfo.currSta.pBssDesc->channelId);
-      smsLog(pMac, LOGW, " Tx PER = %d, Rx PER = %d\n", 
-             pMac->roam.handoffInfo.currSta.txPer,
-             pMac->roam.handoffInfo.currSta.rxPer);
-
-
-     pBssid = csrScanGetHoCandidate(pMac);
-
-     if(pBssid)
-     {
-        smsLog(pMac, LOGW, " csrRoamGetStatHoCandidate: Entry criteria met for handoff. BSSID= %02x-%02x-%02x-%02x-%02x-%02x\n", 
-               pBssid[ 0 ], pBssid[ 1 ], pBssid[ 2 ], pBssid[ 3 ], pBssid[ 4 ], pBssid[ 5 ] );
-     }
-   }
-
-   return pBssid;
-
-
-}
-
-tANI_BOOLEAN csrRoamShouldExitAp(tpAniSirGlobal pMac)
-{
-   tANI_BOOLEAN shouldExitAp = FALSE;
-
-   if( (pMac->roam.handoffInfo.currState != eCSR_ROAMING_STATE_JOINED )&&
-       ( pMac->roam.curState != eCSR_ROAMING_STATE_SCANNING))
-   {
-      smsLog(pMac, LOGW, "csrRoamShouldExitAp: wrong state %d\n", pMac->roam.handoffInfo.currState);
-      return FALSE;
-   }
-
-   //The rssi exit criteria is handled by TL
-   switch( pMac->roam.handoffInfo.currSubState )
-   {
-     case eCSR_ROAM_SUBSTATE_JOINED_NO_TRAFFIC:
-
-        smsLog(pMac, LOGW, "Exit criteria are always met for NT\n");
-        shouldExitAp = TRUE;
-        break;
-
-     case eCSR_ROAM_SUBSTATE_JOINED_NON_REALTIME_TRAFFIC:
-        if(pMac->roam.handoffInfo.handoffActivityInfo.isRtNrtRssiExitCriteriaSet ||
-           (pMac->roam.handoffInfo.currSta.txPer >
-            pMac->roam.handoffInfo.handoffParams.nrtParams.perThresholdHoFromCurrentAp) )
-       {
-         shouldExitAp = TRUE;
-       }
-       break;
-
-     case eCSR_ROAM_SUBSTATE_JOINED_REALTIME_TRAFFIC:
-        if( pMac->roam.handoffInfo.handoffActivityInfo.isRtNrtRssiExitCriteriaSet ||
-            (pMac->roam.handoffInfo.currSta.txPer >
-             pMac->roam.handoffInfo.handoffParams.rtParams.perThresholdHoFromCurrentAp) ||
-            (pMac->roam.handoffInfo.currSta.rxPer >
-             pMac->roam.handoffInfo.handoffParams.rtParams.perThresholdHoFromCurrentAp) )
-       {
-         shouldExitAp = TRUE;
-       }
-       break;
-
-     default:
-        smsLog(pMac, LOGW, "Invalid current sub-state: %d", pMac->roam.handoffInfo.currSubState );
-
-   } /* end switch */
-
-   return shouldExitAp;
-
-}
-
-
-static void csrRoamUpdatePER(tpAniSirGlobal pMac)
-{
-   //update the TX/RX PER
-   tANI_U32                           tx_per, rx_per;
-   tANI_U32                           tx_fail_cnt_delta, tx_frm_cnt_delta;
-   tANI_U32                           rx_crc_err_delta, rx_crc_ok_delta;
-   tANI_U32                           sum_tx_frm_cnt = 0;
-   tANI_U32                           sum_tx_fail_cnt = 0;
-   tANI_U8                            index;
- /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-   //sum up the per AC counter
-   for(index = 0; index < 4; index++)
-   {
-      sum_tx_frm_cnt +=pMac->roam.summaryStatsInfo.tx_frm_cnt[index];
-   }
-   for(index = 0; index < 4; index++)
-   {
-      sum_tx_fail_cnt +=pMac->roam.summaryStatsInfo.fail_cnt[index];
-   }
-
-   /* preserve previous values to do a delta                                */
-   if( pMac->roam.handoffInfo.currStatsInfo.tx_fail_cnt > 
-       sum_tx_fail_cnt )
-   {
-      tx_fail_cnt_delta = (tANI_U32)~0 - pMac->roam.handoffInfo.currStatsInfo.tx_fail_cnt + 
-         sum_tx_fail_cnt;
-   }
-   else
-   {
-      tx_fail_cnt_delta = sum_tx_fail_cnt - 
-         pMac->roam.handoffInfo.currStatsInfo.tx_fail_cnt;
-   }
-
-   if( pMac->roam.handoffInfo.currStatsInfo.tx_frm_cnt > 
-       sum_tx_frm_cnt )
-   {
-      tx_frm_cnt_delta = (tANI_U32)~0 - pMac->roam.handoffInfo.currStatsInfo.tx_frm_cnt + 
-         sum_tx_frm_cnt;
-   }
-   else
-   {
-      tx_frm_cnt_delta = sum_tx_frm_cnt - 
-         pMac->roam.handoffInfo.currStatsInfo.tx_frm_cnt;
-   }
-
-   /* check for zero denominator                                            */
-   if( tx_frm_cnt_delta + tx_fail_cnt_delta )
-   {
-      /* UL MAC Loss is represented in %                                     */
-      tx_per = 100 * tx_fail_cnt_delta/(tx_frm_cnt_delta+tx_fail_cnt_delta);
-   }
-   else
-   {
-      tx_per = 0;
-   }    
-
-   smsLog(pMac, LOGW, "Updating Tx PER in sub-state: %d from %d to %d",
-          pMac->roam.handoffInfo.currSubState,
-          pMac->roam.handoffInfo.currSta.txPer,
-          tx_per);
-   
-   /* preserve previous values to do a delta                                */
-   if( pMac->roam.handoffInfo.currStatsInfo.num_rx_frm_crc_err > 
-       pMac->roam.summaryStatsInfo.rx_error_cnt )
-   {
-      rx_crc_err_delta = (tANI_U32)~0 - pMac->roam.handoffInfo.currStatsInfo.num_rx_frm_crc_err + 
-         pMac->roam.summaryStatsInfo.rx_error_cnt;
-   }
-   else
-   {
-      rx_crc_err_delta = pMac->roam.summaryStatsInfo.rx_error_cnt - 
-         pMac->roam.handoffInfo.currStatsInfo.num_rx_frm_crc_err;
-   }
-   
-   if( pMac->roam.handoffInfo.currStatsInfo.num_rx_frm_crc_ok > 
-       pMac->roam.summaryStatsInfo.rx_frm_cnt )
-   {
-      rx_crc_ok_delta = (tANI_U32)~0 - pMac->roam.handoffInfo.currStatsInfo.num_rx_frm_crc_ok + 
-         pMac->roam.summaryStatsInfo.rx_frm_cnt;
-   }
-   else
-   {
-      rx_crc_ok_delta = pMac->roam.summaryStatsInfo.rx_frm_cnt - 
-         pMac->roam.handoffInfo.currStatsInfo.num_rx_frm_crc_ok;
-   }
-
-   /* check for zero denominator                                            */
-   if( rx_crc_ok_delta + rx_crc_err_delta )
-   {
-      /* UL MAC Loss is represented in %                                     */
-      rx_per = 100 * rx_crc_err_delta/(rx_crc_ok_delta+rx_crc_err_delta);
-   }
-   else
-   {
-      rx_per = 0;
-   }    
-
-   smsLog(pMac, LOGW, "Updating Rx PER in sub-state: %d from %d to %d",
-          pMac->roam.handoffInfo.currSubState,
-          pMac->roam.handoffInfo.currSta.rxPer,
-          rx_per);
-
-   /* Update stats for future use                                           */
-   //disabling stats based handoff for now
-   pMac->roam.handoffInfo.currSta.txPer = tx_per;
-   pMac->roam.handoffInfo.currSta.rxPer = 0;
-   /* collect the new statistics for the current AP                   */
-   pMac->roam.handoffInfo.currStatsInfo.tx_frm_cnt = sum_tx_frm_cnt;
-   pMac->roam.handoffInfo.currStatsInfo.tx_fail_cnt = sum_tx_fail_cnt;
-   pMac->roam.handoffInfo.currStatsInfo.num_rx_frm_crc_ok = pMac->roam.summaryStatsInfo.rx_frm_cnt;
-   pMac->roam.handoffInfo.currStatsInfo.num_rx_frm_crc_err = pMac->roam.summaryStatsInfo.rx_error_cnt;
-}
-
-static void csrRoamNtPreTransHandler(tpAniSirGlobal pMac)
-{
-   VOS_STATUS status;
-   /* This function handles common processing required when moving out of NT */
-   /* Clear all timers                                                      */
-   csrRoamStopStatisticsTimer(pMac);
-   csrScanStopBgScanTimer(pMac);
-   pMac->roam.handoffInfo.handoffActivityInfo.isBgScanPermitted = FALSE;
-   //deregister rssi ind callback
-   status = 
-      WLANTL_DeregRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.handoffInfo.handoffActivityInfo.currNtRssiThreshold * (-1), 
-                                   WLANTL_HO_THRESHOLD_DOWN,
-                                   csrRoamNtRssiIndCallback, 
-                                   VOS_MODULE_ID_SME);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      //err msg
-      smsLog(pMac, LOGW, " csrRoamNtPreTransHandler: couldn't deregister csrRoamNtRssiIndCallback with TL\n");
-   }
-
-   status = 
-      WLANTL_DeregRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.handoffInfo.handoffParams.ntParams.rssiThresholdCurrentApGood * (-1), 
-                                   WLANTL_HO_THRESHOLD_CROSS,
-                                   csrRoamNtBgScanRssiIndCallback, 
-                                   VOS_MODULE_ID_SME);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamNtPreTransHandler: couldn't deregister csrRoamNtBgScanRssiIndCallback with TL\n");
-   }
-
-   /* Check if scan rsp is still awaited and set flag accordingly           */
-   if( TRUE == pMac->roam.handoffInfo.isBgScanRspPending )
-   {
-      /* additional flag to show that further scans cannot be initiated      */
-      pMac->roam.handoffInfo.ignoreScanFrmOthrState = TRUE;
-   }
-
-     /* Set handoff parameters for this state                                 */
-   pMac->roam.handoffInfo.handoffActivityInfo.candChanListIndex = 0;
-   pMac->roam.handoffInfo.handoffActivityInfo.otherChanListIndex = 0;
-   pMac->roam.handoffInfo.handoffActivityInfo.channelScanHistory = 0;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currPermittedNumCandtSetEntry = 0;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currPmkCacheRssiDelta = 0;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currRssiFilterConstant = 0;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currRssiThresholdCandtSet = 0;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currRssiHandoffDelta = 0;
-
-}
-
-static void csrRoamNtPostTransHandler(tpAniSirGlobal pMac)
-{
-   tANI_U32 scan_time;
-   VOS_STATUS status;
-   //reset the channel mask for HDD
-   if(csrScanGetChannelMask(pMac))
-   {
-       csrScanAbortMacScan(pMac);
-       palZeroMemory(pMac->hHdd, &pMac->scan.osScanChannelMask, sizeof(tCsrOsChannelMask));
-   }
-
-   /* This function handles common processing required when moving into NT  */
-   /* Set handoff parameters for this state                                 */
-   pMac->roam.handoffInfo.handoffActivityInfo.candChanListIndex = 0;
-   pMac->roam.handoffInfo.handoffActivityInfo.otherChanListIndex = 0;
-   pMac->roam.handoffInfo.handoffActivityInfo.channelScanHistory = 0;
-
-   palZeroMemory(pMac->hHdd, &pMac->roam.handoffInfo.currStatsInfo, sizeof(tCsrCurrStatsInfo));
-
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currPermittedNumCandtSetEntry = 
-      pMac->roam.handoffInfo.handoffParams.ntParams.numCandtSetEntry;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currPmkCacheRssiDelta = 
-      pMac->roam.handoffInfo.handoffParams.ntParams.pmkCacheRssiDelta;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currRssiFilterConstant = 
-      pMac->roam.handoffInfo.handoffParams.ntParams.rssiFilterConst;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currRssiThresholdCandtSet = 
-      pMac->roam.handoffInfo.handoffParams.ntParams.rssiThresholdCandtSet;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currRssiHandoffDelta = 
-      pMac->roam.handoffInfo.handoffParams.ntParams.bestCandidateApRssiDelta;
-
-   status = WLANTL_SetAlpha(pMac->roam.gVosContext, 
-                            (tANI_U8)pMac->roam.handoffInfo.handoffActivityInfo.currRssiFilterConstant/10);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamNtPostTransHandler: couldn't register csrRoamNrtExitCriteriaRssiIndCallback with TL\n");
-   }
-   //register the rssi indications callback with TL
-   status = 
-      WLANTL_RegRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.handoffInfo.handoffParams.ntParams.rssiThresholdCurrentApGood * (-1),
-                                 WLANTL_HO_THRESHOLD_CROSS, 
-                                 csrRoamNtBgScanRssiIndCallback, 
-                                 VOS_MODULE_ID_SME, pMac);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamNtPostTransHandler: couldn't register csrRoamNtBgScanRssiIndCallback with TL\n");
-      return;
-   }
-
-
-   if( FALSE == pMac->roam.handoffInfo.isBgScanRspPending )
-   {
-     /*-----------------------------------------------------------------------
-       Check if bg scan needs to be started for this state
-     -----------------------------------------------------------------------*/
-     if( FALSE == csrScanIsBgScanEnabled(pMac) )
-     {
-       return;
-     }
-
-     /*-----------------------------------------------------------------------
-       If bg scan required, then start the scan timer
-       Call scan timer generator
-     -----------------------------------------------------------------------*/
-     scan_time = csrScanGetBgScanTimerVal(pMac);
-
-     if(scan_time )
-     {
-        //start the bg scan timer
-        csrScanStartBgScanTimer(pMac, scan_time);
-
-        pMac->roam.handoffInfo.handoffActivityInfo.bgScanTimerExpiredAlready = FALSE;
-     }
-   }
-   
-}
-
-static void csrRoamNrtPreTransHandler(tpAniSirGlobal pMac)
-{
-   VOS_STATUS status;
-
-   /* This function handles common processing required when moving out of NRT */
-   /* Clear all timers                                                      */
-   csrRoamStopStatisticsTimer(pMac);
-   csrScanStopBgScanTimer(pMac);
-   pMac->roam.handoffInfo.handoffActivityInfo.isBgScanPermitted = FALSE;
-   pMac->roam.handoffInfo.handoffActivityInfo.isNrtBgScanEmptyCandSetPermitted = FALSE;
-   pMac->roam.handoffInfo.handoffActivityInfo.isRtNrtRssiExitCriteriaSet = FALSE;
-
-   /* Check if scan rsp is still awaited and set flag accordingly           */
-   if( TRUE == pMac->roam.handoffInfo.isBgScanRspPending )
-   {
-      /* additional flag to show that further scans cannot be initiated      */
-      pMac->roam.handoffInfo.ignoreScanFrmOthrState = TRUE;
-   }
-   //deregister the rssi indications callback with TL
-   status = 
-      WLANTL_DeregRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.handoffInfo.handoffParams.nrtParams.rssiThresholdHoFromCurrentAp * (-1), 
-                                   WLANTL_HO_THRESHOLD_CROSS,
-                                   csrRoamNrtExitCriteriaRssiIndCallback, 
-                                   VOS_MODULE_ID_SME);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamNrtPreTransHandler: couldn't deregister csrRoamNrtExitCriteriaRssiIndCallback with TL\n");
-      return;
-   }
-
-   status = 
-      WLANTL_DeregRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.handoffInfo.handoffParams.nrtParams.rssiThresholdCurrentApGood * (-1), 
-                                   WLANTL_HO_THRESHOLD_CROSS,
-                                   csrRoamNrtBgScanRssiIndCallback, 
-                                   VOS_MODULE_ID_SME);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamNrtPreTransHandler: couldn't deregister csrRoamNrtBgScanRssiIndCallback with TL\n");
-      return;
-   }
-
-
-   status = 
-      WLANTL_DeregRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.handoffInfo.handoffParams.nrtParams.rssiThresholdCurrentApGoodEmptyCandtset * (-1), 
-                                   WLANTL_HO_THRESHOLD_CROSS,
-                                   csrRoamNrtBgScanEmptyCandSetRssiIndCallback, 
-                                   VOS_MODULE_ID_SME);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamNrtPreTransHandler: couldn't deregister csrRoamNrtBgScanEmptyCandSetRssiIndCallback with TL\n");
-      return;
-   }
-
-}
-
-static void csrRoamNrtPostTransHandler(tpAniSirGlobal pMac)
-{
-
-   tANI_U32 stats_time;
-   VOS_STATUS status;
-
-   /* This function handles common processing required when moving into NRT  */
-   /* Set handoff parameters for this state                                 */
-   pMac->roam.handoffInfo.handoffActivityInfo.channelScanHistory = 0;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currPermittedNumCandtSetEntry = 
-      pMac->roam.handoffInfo.handoffParams.nrtParams.numCandtSetEntry;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currPmkCacheRssiDelta = 
-      pMac->roam.handoffInfo.handoffParams.nrtParams.pmkCacheRssiDelta;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currRssiFilterConstant = 
-      pMac->roam.handoffInfo.handoffParams.nrtParams.rssiFilterConst;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currRssiThresholdCandtSet = 
-      pMac->roam.handoffInfo.handoffParams.nrtParams.rssiThresholdCandtSet;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currRssiHandoffDelta = 
-      pMac->roam.handoffInfo.handoffParams.nrtParams.bestCandidateApRssiDelta;
-
-   status = WLANTL_SetAlpha(pMac->roam.gVosContext, 
-                            (tANI_U8)pMac->roam.handoffInfo.handoffActivityInfo.currRssiFilterConstant/10);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamNrtPostTransHandler: couldn't register csrRoamNrtExitCriteriaRssiIndCallback with TL\n");
-   }
-
-   //register the rssi indications callback with TL
-   status = 
-      WLANTL_RegRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.handoffInfo.handoffParams.nrtParams.rssiThresholdHoFromCurrentAp * (-1),
-                                 WLANTL_HO_THRESHOLD_CROSS, 
-                                 csrRoamNrtExitCriteriaRssiIndCallback, 
-                                 VOS_MODULE_ID_SME, pMac);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamNrtPostTransHandler: couldn't register csrRoamNrtExitCriteriaRssiIndCallback with TL\n");
-      return;
-   }
-
-   status = 
-      WLANTL_RegRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.handoffInfo.handoffParams.nrtParams.rssiThresholdCurrentApGood * (-1),
-                                 WLANTL_HO_THRESHOLD_CROSS, 
-                                 csrRoamNrtBgScanRssiIndCallback, 
-                                 VOS_MODULE_ID_SME, pMac);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamNrtPostTransHandler: couldn't register csrRoamNrtBgScanRssiIndCallback with TL\n");
-      return;
-   }
-
-
-   status = 
-      WLANTL_RegRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.handoffInfo.handoffParams.nrtParams.rssiThresholdCurrentApGoodEmptyCandtset * (-1),
-                                 WLANTL_HO_THRESHOLD_CROSS, 
-                                 csrRoamNrtBgScanEmptyCandSetRssiIndCallback, 
-                                 VOS_MODULE_ID_SME, pMac);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamNrtPostTransHandler: couldn't register csrRoamNrtBgScanEmptyCandSetRssiIndCallback with TL\n");
-      return;
-   }
-
-   /* Find out what new time to use next                                    */
-   stats_time = csrRoamGetStatsTimerVal(pMac);
-
-   csrRoamStartStatisticsTimer(pMac, stats_time);
-}
-
-static void csrRoamRtPreTransHandler(tpAniSirGlobal pMac)
-{
-   VOS_STATUS status;
-
-   /* This function handles common processing required when moving out of RT */
-   /* Clear all timers                                                      */
-   csrRoamStopStatisticsTimer(pMac);
-   csrScanStopBgScanTimer(pMac);
-   pMac->roam.handoffInfo.handoffActivityInfo.isBgScanPermitted = FALSE;
-   pMac->roam.handoffInfo.handoffActivityInfo.isRtNrtRssiExitCriteriaSet = FALSE;
-
-   /* Check if scan rsp is still awaited and set flag accordingly           */
-   if( TRUE == pMac->roam.handoffInfo.isBgScanRspPending )
-   {
-      /* additional flag to show that further scans cannot be initiated      */
-      pMac->roam.handoffInfo.ignoreScanFrmOthrState = TRUE;
-   }
-   //deregister the rssi indications callback with TL
-   status = 
-      WLANTL_DeregRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.handoffInfo.handoffParams.rtParams.rssiThresholdHoFromCurrentAp * (-1), 
-                                   WLANTL_HO_THRESHOLD_CROSS,
-                                   csrRoamRtExitCriteriaRssiIndCallback, 
-                                   VOS_MODULE_ID_SME);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamRtPreTransHandler: couldn't deregister csrRoamRtExitCriteriaRssiIndCallback with TL\n");
-      return;
-   }
-
-   status = 
-      WLANTL_DeregRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.handoffInfo.handoffParams.rtParams.rssiThresholdCurrentApGood * (-1), 
-                                   WLANTL_HO_THRESHOLD_CROSS,
-                                   csrRoamRtBgScanRssiIndCallback, 
-                                   VOS_MODULE_ID_SME);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamRtPreTransHandler: couldn't deregister csrRoamRtBgScanRssiIndCallback with TL\n");
-      return;
-   }
-
-}
-
-static void csrRoamRtPostTransHandler(tpAniSirGlobal pMac)
-{
-   tANI_U32 stats_time;
-   VOS_STATUS status;
-
-   /* This function handles common processing required when moving into RT  */
-   /* Set handoff parameters for this state                                 */
-   pMac->roam.handoffInfo.handoffActivityInfo.channelScanHistory = 0;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currPermittedNumCandtSetEntry = 
-      pMac->roam.handoffInfo.handoffParams.rtParams.numCandtSetEntry;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currPmkCacheRssiDelta = 
-      pMac->roam.handoffInfo.handoffParams.rtParams.pmkCacheRssiDelta;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currRssiFilterConstant = 
-      pMac->roam.handoffInfo.handoffParams.rtParams.rssiFilterConst;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currRssiThresholdCandtSet = 
-      pMac->roam.handoffInfo.handoffParams.rtParams.rssiThresholdCandtSet;
-
-   pMac->roam.handoffInfo.handoffActivityInfo.currRssiHandoffDelta = 
-      pMac->roam.handoffInfo.handoffParams.rtParams.bestCandidateApRssiDelta;
-
-
-   status = WLANTL_SetAlpha(pMac->roam.gVosContext, 
-                            (tANI_U8)pMac->roam.handoffInfo.handoffActivityInfo.currRssiFilterConstant/10);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamRtPostTransHandler: couldn't register csrRoamNrtExitCriteriaRssiIndCallback with TL\n");
-   }
-
-
-   //register the rssi indications callback with TL
-   status = 
-      WLANTL_RegRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.handoffInfo.handoffParams.rtParams.rssiThresholdHoFromCurrentAp * (-1), 
-                                 WLANTL_HO_THRESHOLD_CROSS,
-                                 csrRoamRtExitCriteriaRssiIndCallback, 
-                                 VOS_MODULE_ID_SME, pMac);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamRtPostTransHandler: couldn't register csrRoamRtExitCriteriaRssiIndCallback with TL\n");
-      return;
-   }
-
-
-   status = 
-      WLANTL_RegRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)pMac->roam.handoffInfo.handoffParams.rtParams.rssiThresholdCurrentApGood * (-1), 
-                                 WLANTL_HO_THRESHOLD_CROSS,
-                                 csrRoamRtBgScanRssiIndCallback, 
-                                 VOS_MODULE_ID_SME, pMac);
-
-   if(!VOS_IS_STATUS_SUCCESS( status))
-   {
-      smsLog(pMac, LOGW, " csrRoamRtPostTransHandler: couldn't register csrRoamRtBgScanRssiIndCallback with TL\n");
-      return;
-   }
-   
-   /* Find out what new time to use next                                    */
-   stats_time = csrRoamGetStatsTimerVal(pMac);
-
-   csrRoamStartStatisticsTimer(pMac, stats_time);
-}
-
-void csrRoamCreateHandoffProfile(tpAniSirGlobal pMac, tCsrBssid bssid)
-{
-   eHalStatus status;
-   //get the ho profile
-   if(pMac->roam.handoffInfo.handoffProfile.BSSIDs.bssid)
-   {
-      palFreeMemory(pMac->hHdd, pMac->roam.handoffInfo.handoffProfile.BSSIDs.bssid);
-   }
-   if(pMac->roam.handoffInfo.handoffProfile.SSIDs.SSIDList)
-   {
-      palFreeMemory(pMac->hHdd, pMac->roam.handoffInfo.handoffProfile.SSIDs.SSIDList);
-   }
-
-   palZeroMemory(pMac->hHdd, &pMac->roam.handoffInfo.handoffProfile, sizeof(tCsrRoamProfile));
-
-   //BSSID
-   status = palAllocateMemory( pMac->hHdd, 
-                               (void **) &pMac->roam.handoffInfo.handoffProfile.BSSIDs.bssid, 
-                               sizeof( tCsrBssid ) );
-   if(!HAL_STATUS_SUCCESS(status))
-   {
-      //msg
-      smsLog(pMac, LOGW, " csrRoamCreateHandoffProfile: couldn't allocate memory for bssid\n");
-      return;
-   }
-
-   pMac->roam.handoffInfo.handoffProfile.BSSIDs.numOfBSSIDs = 1;
-
-   palCopyMemory(pMac->hHdd, pMac->roam.handoffInfo.handoffProfile.BSSIDs.bssid, 
-                 bssid,
-                 sizeof( tCsrBssid ));
-
-   //SSID
-   status = palAllocateMemory( pMac->hHdd, (void **) &pMac->roam.handoffInfo.handoffProfile.SSIDs.SSIDList, sizeof( tCsrSSIDInfo ) );
-   if(!HAL_STATUS_SUCCESS(status))
-   {
-      //msg
-      smsLog(pMac, LOGW, " csrRoamCreateHandoffProfile: couldn't allocate memory for ssid\n");
-      return;
-   }
-
-   pMac->roam.handoffInfo.handoffProfile.SSIDs.numOfSSIDs = 1;
-#if 0
-   // TODO Stats for per session
-   palCopyMemory(pMac->hHdd, &pMac->roam.handoffInfo.handoffProfile.SSIDs.SSIDList[0].SSID, 
-                 &pMac->roam.connectedProfile.SSID,
-                 sizeof( tSirMacSSid ));
-
-   //security
-   pMac->roam.handoffInfo.handoffProfile.AuthType = pMac->roam.connectedProfile.AuthInfo;
-   pMac->roam.handoffInfo.handoffProfile.EncryptionType = pMac->roam.connectedProfile.EncryptionInfo;
-   pMac->roam.handoffInfo.handoffProfile.mcEncryptionType = pMac->roam.connectedProfile.mcEncryptionInfo;
-#endif
-
-}
-
-
-
-void csrRoamHandoffRequested(tpAniSirGlobal pMac)
-{
-   tCsrRoamInfo roamInfo;
-    // TODO : Session info unavailable
-    tANI_U32 sessionId = 0;
-
-   /* cleanup timers, as we are handing off                                 */
-   csrRoamStopStatisticsTimer(pMac);
-   csrScanStopBgScanTimer(pMac);
-   pMac->roam.handoffInfo.isBgScanRspPending = FALSE;
-   pMac->roam.handoffInfo.isProbeRspPending = FALSE;
-   //save the sub-state
-   pMac->roam.handoffInfo.currSubState = pMac->roam.curSubState;
-   pMac->roam.handoffInfo.subStateBeforeHandoff = pMac->roam.handoffInfo.currSubState;
-   /* disassoc with the current AP, once the disassoc rsp comes back issue
-      join req with the new AP                                              */
-   smsLog(pMac, LOGW, " csrRoamHandoffRequested: disassociating with current AP\n");
-   //?? do I need to free the roam profile
-   if(!HAL_STATUS_SUCCESS(csrRoamIssueDisassociateCmd(pMac, sessionId, eCSR_DISCONNECT_REASON_HANDOFF)))
-   {
-       smsLog(pMac, LOGW, "csrRoamHandoffRequested:  fail to issue disassociate\n");
-       return;
-   }                       
-
-   //notify HDD for handoff, providing the BSSID too
-   roamInfo.reasonCode = eCsrRoamReasonBetterAP;
-   palCopyMemory(pMac->hHdd, &roamInfo.bssid, 
-                 pMac->roam.handoffInfo.handoffProfile.BSSIDs.bssid, 
-                 sizeof( tCsrBssid ));
-
-   csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_ROAMING_START, eCSR_ROAM_RESULT_NONE);
-#if 0
-   // TODO : Per session Info
-   pMac->roam.roamingReason = eCsrDynamicRoaming;
-#endif
-
-   pMac->roam.handoffInfo.handoffAction = TRUE;
-}
-#endif
 
 eHalStatus csrRoamRegisterLinkQualityIndCallback(tpAniSirGlobal pMac,
                                                  csrRoamLinkQualityIndCallback   callback,  
@@ -13916,70 +12204,10 @@ eHalStatus csrRoamRegisterLinkQualityIndCallback(tpAniSirGlobal pMac,
 void csrRoamVccTrigger(tpAniSirGlobal pMac)
 {
    eCsrRoamLinkQualityInd newVccLinkQuality;
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-   tANI_U32 fail_cnt_delta, tx_frm_cnt_delta;
-   tANI_U8                            index;
-   tANI_U32                           sum_tx_frm_cnt = 0;
-   tANI_U32                           sum_tx_fail_cnt = 0;
-#endif
    tANI_U32 ul_mac_loss = 0;
    tANI_U32 ul_mac_loss_trigger_threshold;
 
-#if defined (FEATURE_WLAN_DIAG_SUPPORT_CSR) && defined (FEATURE_WLAN_GEN6_ROAMING)    
-   v_S7_t          currApRssi;
-   VOS_STATUS      status;
-   WLAN_VOS_DIAG_EVENT_DEF(vcc, vos_event_wlan_vcc_payload_type);
-#endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
  /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-   //sum up the per AC counter
-   for(index = 0; index < 4; index++)
-   {
-      sum_tx_frm_cnt +=pMac->roam.summaryStatsInfo.tx_frm_cnt[index];
-   }
-   for(index = 0; index < 4; index++)
-   {
-      sum_tx_fail_cnt +=pMac->roam.summaryStatsInfo.fail_cnt[index];
-   }
-
-   /*-------------------------------------------------------------------------
-     Compute link quality based on new operational info; statistics are
-     cumulative; need to compare against previous values
-   -------------------------------------------------------------------------*/
-   /* preserve previous values to do a delta                                */
-   if( pMac->roam.handoffInfo.currStatsInfo.tx_fail_cnt > sum_tx_fail_cnt )
-   {
-     fail_cnt_delta = (tANI_U32)~0 - pMac->roam.handoffInfo.currStatsInfo.tx_fail_cnt + 
-        sum_tx_fail_cnt;
-   }
-   else
-   {
-     fail_cnt_delta = sum_tx_fail_cnt - 
-        pMac->roam.handoffInfo.currStatsInfo.tx_fail_cnt;
-   }
-
-   if(pMac->roam.handoffInfo.currStatsInfo.tx_frm_cnt > sum_tx_frm_cnt)
-   {
-     tx_frm_cnt_delta = (tANI_U32)~0 - pMac->roam.handoffInfo.currStatsInfo.tx_frm_cnt + 
-       sum_tx_frm_cnt;
-   }
-   else
-   {
-     tx_frm_cnt_delta = sum_tx_frm_cnt - 
-        pMac->roam.handoffInfo.currStatsInfo.tx_frm_cnt;
-   }
-
-   /* check for zero denominator                                            */
-   if( tx_frm_cnt_delta + fail_cnt_delta )
-   {
-     /* UL MAC Loss is represented in %                                     */
-      ul_mac_loss = 100 * fail_cnt_delta/(tx_frm_cnt_delta+fail_cnt_delta);
-   }
-   else
-   {
-      ul_mac_loss = 0;
-   }    
-#endif
    /*-------------------------------------------------------------------------
      Link quality is currently binary based on OBIWAN recommended triggers
 
@@ -14019,24 +12247,6 @@ void csrRoamVccTrigger(tpAniSirGlobal pMac)
          pMac->roam.linkQualityIndInfo.callback( newVccLinkQuality, 
                                                  pMac->roam.linkQualityIndInfo.context );
          //event: EVENT_WLAN_VCC
-#if defined (FEATURE_WLAN_DIAG_SUPPORT_CSR) && defined (FEATURE_WLAN_GEN6_ROAMING)    
-         vcc.eventId = eCSR_WLAN_VCC_EVENT;
-         status = WLANTL_GetRssi(pMac->roam.gVosContext, pMac->roam.connectedInfo.staId,
-                                 &currApRssi);
-
-         if(status)
-         {
-            //err msg
-            smsLog(pMac, LOGW, " csrRoamVccTrigger: couldn't get the current APs RSSi from TL\n");
-            currApRssi = 0;
-         }
-
-         vcc.rssi = currApRssi * (-1);
-         vcc.txPer = (tANI_U8)pMac->roam.handoffInfo.currSta.txPer;
-         vcc.rxPer = (tANI_U8)pMac->roam.handoffInfo.currSta.rxPer;
-         vcc.linkQuality = newVccLinkQuality;
-         WLAN_VOS_DIAG_EVENT_REPORT(&vcc, EVENT_WLAN_VCC);
-#endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
       }
    }
 
@@ -14054,11 +12264,6 @@ VOS_STATUS csrRoamVccTriggerRssiIndCallback(tHalHandle hHal,
     // TODO : Session info unavailable
     tANI_U32 sessionId = 0;
    VOS_STATUS status = VOS_STATUS_SUCCESS;
-#if defined (FEATURE_WLAN_DIAG_SUPPORT_CSR) && defined (FEATURE_WLAN_GEN6_ROAMING)    
-   v_S7_t          currApRssi;
-   VOS_STATUS      statusTl;
-   WLAN_VOS_DIAG_EVENT_DEF(vcc, vos_event_wlan_vcc_payload_type);
-#endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
    /*-------------------------------------------------------------------------
      Link quality is currently binary based on OBIWAN recommended triggers
 
@@ -14104,24 +12309,6 @@ VOS_STATUS csrRoamVccTriggerRssiIndCallback(tHalHandle hHal,
         pMac->roam.linkQualityIndInfo.callback( newVccLinkQuality, 
                                                 pMac->roam.linkQualityIndInfo.context );
          //event: EVENT_WLAN_VCC
-#if defined (FEATURE_WLAN_DIAG_SUPPORT_CSR) && defined (FEATURE_WLAN_GEN6_ROAMING)    
-         vcc.eventId = eCSR_WLAN_VCC_EVENT;
-         statusTl = WLANTL_GetRssi(pMac->roam.gVosContext, pMac->roam.connectedInfo.staId,
-                                 &currApRssi);
-
-         if(statusTl)
-         {
-            //err msg
-            smsLog(pMac, LOGW, " csrRoamVccTrigger: couldn't get the current APs RSSi from TL\n");
-            currApRssi = 0;
-         }
-
-         vcc.rssi = currApRssi * (-1);
-         vcc.txPer = (tANI_U8)pMac->roam.handoffInfo.currSta.txPer;
-         vcc.rxPer = (tANI_U8)pMac->roam.handoffInfo.currSta.rxPer;
-         vcc.linkQuality = newVccLinkQuality;
-         WLAN_VOS_DIAG_EVENT_REPORT(&vcc, EVENT_WLAN_VCC);
-#endif //FEATURE_WLAN_DIAG_SUPPORT_CSR
       }
    }
 
@@ -14130,623 +12317,6 @@ VOS_STATUS csrRoamVccTriggerRssiIndCallback(tHalHandle hHal,
    return status;
 }
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-VOS_STATUS csrRoamNtRssiIndCallback(tHalHandle hHal, 
-                                    v_U8_t  rssiNotification, 
-                                    void * context)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( context );
-   tCsrBssid *         pBssid = NULL;
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-   tANI_U32            oldRssiValue;
-    // TODO : Session info unavailable
-    tANI_U32 sessionId = 0;
-
-   smsLog(pMac, LOGW, "csrRoamNtRssiIndCallback: rssi notification for %d\n", rssiNotification);
-   if(!csrIsConnStateConnectedInfra(pMac, sessionId))
-   {
-      smsLog(pMac, LOGW, "csrRoamNtRssiIndCallback: ignoring the indication as we are not connected\n");
-      return VOS_STATUS_SUCCESS;
-   }
-
-   VOS_ASSERT(WLANTL_HO_THRESHOLD_DOWN == rssiNotification );
-
-   //To avoid getting multiple notification from TL
-   oldRssiValue = pMac->roam.handoffInfo.handoffActivityInfo.currNtRssiThreshold;
-   // do I need to deregister first??
-   status = 
-    WLANTL_DeregRSSIIndicationCB(pMac->roam.gVosContext, (v_S7_t)oldRssiValue * (-1), WLANTL_HO_THRESHOLD_DOWN,
-                   csrRoamNtRssiIndCallback, VOS_MODULE_ID_SME);
-
-   if( 0 == csrScanListSize( pMac, &pMac->roam.handoffInfo.candidateList ))
-   {
-      smsLog(pMac, LOGW, "csrRoamNtRssiIndCallback: candidateList empty!\n");
-
-      //removing the assert, as it could happen that at some point of time SME
-      //registered the RSSI threshold with TL, but the candidate fall off the
-      //list some time later 
-      //VOS_ASSERT(0);
-      return VOS_STATUS_SUCCESS;
-   }
-   /* Get the top candidate to see if that suits our requirements           */
-   pBssid = csrScanGetHoCandidate(pMac);
-
-   if(!pBssid)
-   {
-      smsLog(pMac, LOGW, "csrRoamNtRssiIndCallback: candidate is NULL!\n");
-
-   }
-   else
-   {
-   /* set to the probed BSSID                                              */
-   palCopyMemory(pMac->hHdd, &pMac->roam.handoffInfo.handoffActivityInfo.probedBssid, 
-                 pBssid, WNI_CFG_BSSID_LEN);
-
-   smsLog( pMac, LOGW, "csrRoamNtRssiIndCallback: CSR Attempting to probe Bssid= %02x-%02x-%02x-%02x-%02x-%02x\n", 
-           pMac->roam.handoffInfo.handoffActivityInfo.probedBssid[ 0 ], 
-           pMac->roam.handoffInfo.handoffActivityInfo.probedBssid[ 1 ], 
-           pMac->roam.handoffInfo.handoffActivityInfo.probedBssid[ 2 ],
-           pMac->roam.handoffInfo.handoffActivityInfo.probedBssid[ 3 ], 
-           pMac->roam.handoffInfo.handoffActivityInfo.probedBssid[ 4 ], 
-           pMac->roam.handoffInfo.handoffActivityInfo.probedBssid[ 5 ] );    
-
-   csrScanSendBgProbeReq(pMac, &pMac->roam.handoffInfo.handoffActivityInfo.probedBssid);
-   }
-   return status;
-}
-
-
-#if 0
-VOS_STATUS csrRoamNtBgScanRssiIndCallback(tHalHandle hHal, 
-                                          v_U8_t  rssiNotification, 
-                                          void * context)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( context );
-   tANI_U32 scan_time;
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-
-   smsLog(pMac, LOGW, "csrRoamNtBgScanRssiIndCallback: rssi notification for %d\n", rssiNotification);
-   if(!csrIsConnStateConnectedInfra(pMac))
-   {
-      smsLog(pMac, LOGW, "csrRoamNtBgScanRssiIndCallback: ignoring the indication as we are not connected\n");
-      return VOS_STATUS_SUCCESS;
-   }
-
-   if(WLANTL_HO_THRESHOLD_DOWN == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isBgScanPermitted = TRUE;
-   }
-   else if(WLANTL_HO_THRESHOLD_UP == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isBgScanPermitted = FALSE;
-   }
-   else
-   {
-      smsLog(pMac, LOGW, "csrRoamNrtBgScanRssiIndCallback: unknown rssi notification %d\n", rssiNotification);
-
-      VOS_ASSERT(0);
-
-      return VOS_STATUS_E_FAILURE;
-   }
-
-
-   if( FALSE == pMac->roam.handoffInfo.isBgScanRspPending )
-   {
-      /*-----------------------------------------------------------------------
-       Check if bg scan needs to be started for this state
-      -----------------------------------------------------------------------*/
-      if( FALSE == csrScanIsBgScanEnabled(pMac) )
-      {
-         return VOS_STATUS_E_FAILURE;
-      }
-
-      /*-----------------------------------------------------------------------
-       If bg scan required, then start the scan timer
-       Call scan timer generator
-      -----------------------------------------------------------------------*/
-      scan_time = csrScanGetBgScanTimerVal(pMac);
-
-      if(scan_time )
-      {
-         //start the bg scan timer
-         csrScanStartBgScanTimer(pMac, scan_time);
-
-         pMac->roam.handoffInfo.handoffActivityInfo.bgScanTimerExpiredAlready = FALSE;
-      }
-   }
-   return status;
-}
-#endif
-
-VOS_STATUS csrRoamNtBgScanRssiIndCallback(tHalHandle hHal, 
-                                          v_U8_t  rssiNotification, 
-                                          void * context)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( context );
-   tANI_U32 scan_time;
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-   tANI_U32 sessionId = 0;
-
-   smsLog(pMac, LOGW, "csrRoamNtBgScanRssiIndCallback: rssi notification for %d\n", rssiNotification);
-   if(!csrIsConnStateConnectedInfra(pMac,sessionId))
-   {
-      smsLog(pMac, LOGW, "csrRoamNtBgScanRssiIndCallback: ignoring the indication as we are not connected\n");
-      return VOS_STATUS_SUCCESS;
-   }
-
-   if(WLANTL_HO_THRESHOLD_DOWN == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isBgScanPermitted = TRUE;
-   }
-   else if(WLANTL_HO_THRESHOLD_UP == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isBgScanPermitted = FALSE;
-   }
-   else
-   {
-      smsLog(pMac, LOGW, "csrRoamNrtBgScanRssiIndCallback: unknown rssi notification %d\n", rssiNotification);
-
-      VOS_ASSERT(0);
-
-      return VOS_STATUS_E_FAILURE;
-   }
-
-
-   if( FALSE == pMac->roam.handoffInfo.isBgScanRspPending )
-   {
-      /*-----------------------------------------------------------------------
-       Check if bg scan needs to be started for this state
-      -----------------------------------------------------------------------*/
-      if( FALSE == csrScanIsBgScanEnabled(pMac) )
-      {
-         return VOS_STATUS_E_FAILURE;
-      }
-
-      /*-----------------------------------------------------------------------
-       If bg scan required, then start the scan timer
-       Call scan timer generator
-      -----------------------------------------------------------------------*/
-      scan_time = csrScanGetBgScanTimerVal(pMac);
-
-      if(scan_time )
-      {
-         //start the bg scan timer
-         csrScanStartBgScanTimer(pMac, scan_time);
-
-         pMac->roam.handoffInfo.handoffActivityInfo.bgScanTimerExpiredAlready = FALSE;
-      }
-   }
-   return status;
-}
-
-
-#if 0
-VOS_STATUS csrRoamNrtBgScanRssiIndCallback(tHalHandle hHal, 
-                                     v_U8_t  rssiNotification, 
-                                     void * context)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( context );
-   tANI_U32 scan_time;
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-    // TODO : Session info unavailable
-    tANI_U32 sessionId = 0;
-
-   smsLog(pMac, LOGW, "csrRoamNrtBgScanRssiIndCallback: rssi notification for %d\n", rssiNotification);
-   if(!csrIsConnStateConnectedInfra(pMac, sessionId))
-   {
-      smsLog(pMac, LOGW, "csrRoamNrtBgScanRssiIndCallback: ignoring the indication as we are not connected\n");
-      return VOS_STATUS_SUCCESS;
-   }
-
-   if(WLANTL_HO_THRESHOLD_DOWN == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isRtNrtBgScanPermitted = TRUE;
-   }
-   else if(WLANTL_HO_THRESHOLD_UP == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isRtNrtBgScanPermitted = FALSE;
-   }
-   else
-   {
-      smsLog(pMac, LOGW, "csrRoamNrtBgScanRssiIndCallback: unknown rssi notification %d\n", rssiNotification);
-
-      VOS_ASSERT(0);
-
-      return VOS_STATUS_E_FAILURE;
-   }
-
-
-   if( FALSE == pMac->roam.handoffInfo.isBgScanRspPending )
-   {
-      /*-----------------------------------------------------------------------
-       Check if bg scan needs to be started for this state
-      -----------------------------------------------------------------------*/
-      if( FALSE == csrScanIsBgScanEnabled(pMac) )
-      {
-         return VOS_STATUS_E_FAILURE;
-      }
-
-      /*-----------------------------------------------------------------------
-       If bg scan required, then start the scan timer
-       Call scan timer generator
-      -----------------------------------------------------------------------*/
-      scan_time = csrScanGetBgScanTimerVal(pMac);
-
-      if(scan_time )
-      {
-         //start the bg scan timer
-         csrScanStartBgScanTimer(pMac, scan_time);
-
-         pMac->roam.handoffInfo.handoffActivityInfo.bgScanTimerExpiredAlready = FALSE;
-      }
-   }
-   return status;
-}
-#endif
-
-VOS_STATUS csrRoamNrtBgScanRssiIndCallback(tHalHandle hHal, 
-                                     v_U8_t  rssiNotification, 
-                                     void * context)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( context );
-   tANI_U32 scan_time;
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-   tANI_U32 sessionId = 0;
-
-   smsLog(pMac, LOGW, "csrRoamNrtBgScanRssiIndCallback: rssi notification for %d\n", rssiNotification);
-   if(!csrIsConnStateConnectedInfra(pMac,sessionId))
-   {
-      smsLog(pMac, LOGW, "csrRoamNrtBgScanRssiIndCallback: ignoring the indication as we are not connected\n");
-      return VOS_STATUS_SUCCESS;
-   }
-
-   if(WLANTL_HO_THRESHOLD_DOWN == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isBgScanPermitted = TRUE;
-   }
-   else if(WLANTL_HO_THRESHOLD_UP == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isBgScanPermitted = FALSE;
-   }
-   else
-   {
-      smsLog(pMac, LOGW, "csrRoamNrtBgScanRssiIndCallback: unknown rssi notification %d\n", rssiNotification);
-
-      VOS_ASSERT(0);
-
-      return VOS_STATUS_E_FAILURE;
-   }
-
-
-   if( FALSE == pMac->roam.handoffInfo.isBgScanRspPending )
-   {
-      /*-----------------------------------------------------------------------
-       Check if bg scan needs to be started for this state
-      -----------------------------------------------------------------------*/
-      if( FALSE == csrScanIsBgScanEnabled(pMac) )
-      {
-         return VOS_STATUS_E_FAILURE;
-      }
-
-      /*-----------------------------------------------------------------------
-       If bg scan required, then start the scan timer
-       Call scan timer generator
-      -----------------------------------------------------------------------*/
-      scan_time = csrScanGetBgScanTimerVal(pMac);
-
-      if(scan_time )
-      {
-         //start the bg scan timer
-         csrScanStartBgScanTimer(pMac, scan_time);
-
-         pMac->roam.handoffInfo.handoffActivityInfo.bgScanTimerExpiredAlready = FALSE;
-      }
-   }
-   return status;
-}
-
-
-
-VOS_STATUS csrRoamNrtBgScanEmptyCandSetRssiIndCallback(tHalHandle hHal, 
-                                                       v_U8_t  rssiNotification, 
-                                                       void * context)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( context );
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-    // TODO : Session info unavailable
-    tANI_U32 sessionId = 0;
-
-   smsLog(pMac, LOGW, "csrRoamNrtBgScanEmptyCandSetRssiIndCallback: rssi notification for %d\n", rssiNotification);
-   if(!csrIsConnStateConnectedInfra(pMac, sessionId))
-   {
-      smsLog(pMac, LOGW, "csrRoamNrtBgScanEmptyCandSetRssiIndCallback: ignoring the indication as we are not connected\n");
-      return VOS_STATUS_SUCCESS;
-   }
-
-   if(WLANTL_HO_THRESHOLD_DOWN == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isNrtBgScanEmptyCandSetPermitted = TRUE;
-   }
-   else if(WLANTL_HO_THRESHOLD_UP == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isNrtBgScanEmptyCandSetPermitted = FALSE;
-   }
-   else
-   {
-      smsLog(pMac, LOGW, "csrRoamNrtBgScanEmptyCandSetRssiIndCallback: unknown rssi notification %d\n", rssiNotification);
-
-      VOS_ASSERT(0);
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   return status;
-}
-
-
-VOS_STATUS csrRoamNrtExitCriteriaRssiIndCallback(tHalHandle hHal, 
-                                           v_U8_t  rssiNotification, 
-                                           void * context)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( context );
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-   tCsrBssid * pBssid;
-    // TODO : Session info unavailable
-    tANI_U32 sessionId = 0;
-
-   smsLog(pMac, LOGW, "csrRoamNrtExitCriteriaRssiIndCallback: rssi notification for %d\n", rssiNotification);
-   if(!csrIsConnStateConnectedInfra(pMac, sessionId))
-   {
-      smsLog(pMac, LOGW, "csrRoamNrtExitCriteriaRssiIndCallback: ignoring the indication as we are not connected\n");
-      return VOS_STATUS_SUCCESS;
-   }
-
-   if(WLANTL_HO_THRESHOLD_DOWN == rssiNotification )
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isRtNrtRssiExitCriteriaSet = TRUE;
-   }
-   else if(WLANTL_HO_THRESHOLD_UP == rssiNotification )
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isRtNrtRssiExitCriteriaSet = FALSE;
-   }
-   else
-   {
-      smsLog(pMac, LOGW, "csrRoamNrtExitCriteriaRssiIndCallback: unknown rssi notification %d\n", rssiNotification);
-
-      VOS_ASSERT(0);
-
-      return VOS_STATUS_E_FAILURE;
-   }
-
-   if( TRUE == csrRoamShouldExitAp(pMac) )
-   {
-      smsLog(pMac, LOGW, " csrRoamNrtExitCriteriaRssiIndCallback : Exit criteria met for handoff\n");
-      smsLog(pMac, LOGW, " csrRoamNrtExitCriteriaRssiIndCallback : Current STA info:\n");
-      smsLog(pMac, LOGW, " csrRoamNrtExitCriteriaRssiIndCallback: BSSID= %02x-%02x-%02x-%02x-%02x-%02x\n", 
-             pMac->roam.handoffInfo.currSta.bssid[ 0 ], 
-             pMac->roam.handoffInfo.currSta.bssid[ 1 ], 
-             pMac->roam.handoffInfo.currSta.bssid[ 2 ],
-             pMac->roam.handoffInfo.currSta.bssid[ 3 ], 
-             pMac->roam.handoffInfo.currSta.bssid[ 4 ], 
-             pMac->roam.handoffInfo.currSta.bssid[ 5 ] );
-
-      smsLog(pMac, LOGW, " csrRoamNrtExitCriteriaRssiIndCallback : channel = %d\n", pMac->roam.handoffInfo.currSta.pBssDesc->channelId);
-      smsLog(pMac, LOGW, " Tx PER = %d, Rx PER = %d\n", 
-             pMac->roam.handoffInfo.currSta.txPer,
-             pMac->roam.handoffInfo.currSta.rxPer);
-      
-      /* Get the top candidate to see if that suits our requirements           */
-      pBssid = csrScanGetHoCandidate(pMac);
-      
-      if(NULL == pBssid)
-      {
-         //msg
-         smsLog(pMac, LOGW, "csrRoamNrtExitCriteriaRssiIndCallback: Candidate is NULL\n");
-      }
-      else
-      {
-         /* set to the probed BSSID                                              */
-         palCopyMemory(pMac->hHdd, &pMac->roam.handoffInfo.handoffActivityInfo.probedBssid, 
-                       pBssid, WNI_CFG_BSSID_LEN);
-         
-         csrScanSendBgProbeReq(pMac, &pMac->roam.handoffInfo.handoffActivityInfo.probedBssid);
-      }
-   }
-   return status;
-}
-
-#if 0
-VOS_STATUS csrRoamRtBgScanRssiIndCallback(tHalHandle hHal, 
-                                          v_U8_t  rssiNotification, 
-                                          void * context)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( context );
-   tANI_U32 scan_time;
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-    // TODO : Session info unavailable
-    tANI_U32 sessionId = 0;
-
-   smsLog(pMac, LOGW, "csrRoamRtBgScanRssiIndCallback: rssi notification for %d\n", rssiNotification);
-   if(!csrIsConnStateConnectedInfra(pMac, sessionId))
-   {
-      smsLog(pMac, LOGW, "csrRoamRtBgScanRssiIndCallback: ignoring the indication as we are not connected\n");
-      return VOS_STATUS_SUCCESS;
-   }
-
-   if(WLANTL_HO_THRESHOLD_DOWN == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isRtNrtBgScanPermitted = TRUE;
-   }
-   else if(WLANTL_HO_THRESHOLD_UP == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isRtNrtBgScanPermitted = FALSE;
-   }
-   else
-   {
-      smsLog(pMac, LOGW, "csrRoamRtBgScanRssiIndCallback: unknown rssi notification %d\n", rssiNotification);
-
-      VOS_ASSERT(0);
-   }
-
-
-   if( FALSE == pMac->roam.handoffInfo.isBgScanRspPending )
-   {
-      /*-----------------------------------------------------------------------
-       Check if bg scan needs to be started for this state
-      -----------------------------------------------------------------------*/
-      if( FALSE == csrScanIsBgScanEnabled(pMac) )
-      {
-         return status;
-      }
-
-      /*-----------------------------------------------------------------------
-       If bg scan required, then start the scan timer
-       Call scan timer generator
-      -----------------------------------------------------------------------*/
-      scan_time = csrScanGetBgScanTimerVal(pMac);
-
-      if(scan_time )
-      {
-         //start the bg scan timer
-         csrScanStartBgScanTimer(pMac, scan_time);
-
-         pMac->roam.handoffInfo.handoffActivityInfo.bgScanTimerExpiredAlready = FALSE;
-      }
-   }
-
-   return status;
-}
-#endif
-
-VOS_STATUS csrRoamRtBgScanRssiIndCallback(tHalHandle hHal, 
-                                          v_U8_t  rssiNotification, 
-                                          void * context)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( context );
-   tANI_U32 scan_time;
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-   tANI_U32 sessionId = 0;
-
-   smsLog(pMac, LOGW, "csrRoamRtBgScanRssiIndCallback: rssi notification for %d\n", rssiNotification);
-   if(!csrIsConnStateConnectedInfra(pMac,sessionId))
-   {
-      smsLog(pMac, LOGW, "csrRoamRtBgScanRssiIndCallback: ignoring the indication as we are not connected\n");
-      return VOS_STATUS_SUCCESS;
-   }
-
-   if(WLANTL_HO_THRESHOLD_DOWN == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isBgScanPermitted = TRUE;
-   }
-   else if(WLANTL_HO_THRESHOLD_UP == rssiNotification)
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isBgScanPermitted = FALSE;
-   }
-   else
-   {
-      smsLog(pMac, LOGW, "csrRoamRtBgScanRssiIndCallback: unknown rssi notification %d\n", rssiNotification);
-
-      VOS_ASSERT(0);
-   }
-
-
-   if( FALSE == pMac->roam.handoffInfo.isBgScanRspPending )
-   {
-      /*-----------------------------------------------------------------------
-       Check if bg scan needs to be started for this state
-      -----------------------------------------------------------------------*/
-      if( FALSE == csrScanIsBgScanEnabled(pMac) )
-      {
-         return status;
-      }
-
-      /*-----------------------------------------------------------------------
-       If bg scan required, then start the scan timer
-       Call scan timer generator
-      -----------------------------------------------------------------------*/
-      scan_time = csrScanGetBgScanTimerVal(pMac);
-
-      if(scan_time )
-      {
-         //start the bg scan timer
-         csrScanStartBgScanTimer(pMac, scan_time);
-
-         pMac->roam.handoffInfo.handoffActivityInfo.bgScanTimerExpiredAlready = FALSE;
-      }
-   }
-
-   return status;
-}
-
-
-VOS_STATUS csrRoamRtExitCriteriaRssiIndCallback(tHalHandle hHal, 
-                                                v_U8_t  rssiNotification, 
-                                                void * context)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( context );
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-   tCsrBssid * pBssid;
-    // TODO : Session info unavailable
-    tANI_U32 sessionId = 0;
-
-   smsLog(pMac, LOGW, "csrRoamRtExitCriteriaRssiIndCallback: rssi notification for %d\n", rssiNotification);
-   if(!csrIsConnStateConnectedInfra(pMac, sessionId))
-   {
-      smsLog(pMac, LOGW, "csrRoamRtExitCriteriaRssiIndCallback: ignoring the indication as we are not connected\n");
-      return VOS_STATUS_SUCCESS;
-   }
-
-   if(WLANTL_HO_THRESHOLD_DOWN == rssiNotification )
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isRtNrtRssiExitCriteriaSet = TRUE;
-   }
-   else if(WLANTL_HO_THRESHOLD_UP == rssiNotification )
-   {
-      pMac->roam.handoffInfo.handoffActivityInfo.isRtNrtRssiExitCriteriaSet = FALSE;
-   }
-   else
-   {
-      smsLog(pMac, LOGW, "csrRoamRtExitCriteriaRssiIndCallback: unknown rssi notification %d\n", rssiNotification);
-
-      VOS_ASSERT(0);
-   }
-
-   if( TRUE == csrRoamShouldExitAp(pMac) )
-   {
-      smsLog(pMac, LOGW, " csrRoamRtExitCriteriaRssiIndCallback : Exit criteria met for handoff\n");
-      smsLog(pMac, LOGW, " csrRoamRtExitCriteriaRssiIndCallback : Current STA info:\n");
-      smsLog(pMac, LOGW, " csrRoamRtExitCriteriaRssiIndCallback: BSSID= %02x-%02x-%02x-%02x-%02x-%02x\n", 
-             pMac->roam.handoffInfo.currSta.bssid[ 0 ], 
-             pMac->roam.handoffInfo.currSta.bssid[ 1 ], 
-             pMac->roam.handoffInfo.currSta.bssid[ 2 ],
-             pMac->roam.handoffInfo.currSta.bssid[ 3 ], 
-             pMac->roam.handoffInfo.currSta.bssid[ 4 ], 
-             pMac->roam.handoffInfo.currSta.bssid[ 5 ] );
-
-      smsLog(pMac, LOGW, " csrRoamRtExitCriteriaRssiIndCallback : channel = %d\n", pMac->roam.handoffInfo.currSta.pBssDesc->channelId);
-      smsLog(pMac, LOGW, " Tx PER = %d, Rx PER = %d\n", 
-             pMac->roam.handoffInfo.currSta.txPer,
-             pMac->roam.handoffInfo.currSta.rxPer);
-
-      /* Get the top candidate to see if that suits our requirements           */
-      pBssid = csrScanGetHoCandidate(pMac);
-
-      if(NULL == pBssid)
-      {
-         //msg
-         smsLog(pMac, LOGW, "csrRoamRtExitCriteriaRssiIndCallback: Candidate is NULL\n");
-      }
-      else
-      {
-         /* set to the probed BSSID                                              */
-         palCopyMemory(pMac->hHdd, &pMac->roam.handoffInfo.handoffActivityInfo.probedBssid, 
-                       pBssid, WNI_CFG_BSSID_LEN);
-
-         csrScanSendBgProbeReq(pMac, &pMac->roam.handoffInfo.handoffActivityInfo.probedBssid);
-      }
-   }
-   return status;
-}
-#endif
 
 tCsrStatsClientReqInfo * csrRoamInsertEntryIntoList( tpAniSirGlobal pMac,
                                                      tDblLinkList *pStaList,
@@ -14817,39 +12387,6 @@ tCsrPeStatsReqInfo * csrRoamInsertEntryIntoPeStatsReqList( tpAniSirGlobal pMac,
    return pNewStaEntry;
 }
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-void  csrRoamHandoffRemoveAllFromList( tpAniSirGlobal pMac,
-                                       tDblLinkList *pStaList)
-
-{
-   tListElem *pEntry, *pTmpEntry;
-   tCsrHandoffStaInfo *pTempStaEntry;
-
-   pEntry = csrLLPeekHead( pStaList, LL_ACCESS_LOCK );
-
-   if(!pEntry)
-   {
-      //list empty
-      smsLog(pMac, LOGW, "csrRoamHandoffRemoveAllFromList: List empty\n");
-      return;
-   }
-
-   while( pEntry )
-   {
-      pTempStaEntry = GET_BASE_ADDR( pEntry, tCsrHandoffStaInfo, link );
-      smsLog(pMac, LOGW, "csrRoamHandoffRemoveAllFromList: removing entry\n");
-      if(pTempStaEntry->sta.pBssDesc)
-      {
-         palFreeMemory(pMac->hHdd, pTempStaEntry->sta.pBssDesc);
-      }
-      pTmpEntry = csrLLNext( pStaList, pEntry, LL_ACCESS_NOLOCK );
-      csrLLRemoveEntry( pStaList, pEntry, LL_ACCESS_LOCK );
-      palFreeMemory(pMac->hHdd, pTempStaEntry);
-      pEntry = pTmpEntry;
-   }
-
-}
-#endif
 
 eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requesterId, 
                             tANI_U32 statsMask, 
@@ -14868,11 +12405,7 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
 
    if( csrIsAllSessionDisconnected(pMac) )
    {
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-      smsLog(pMac, LOGW, "csrGetStatistics: wrong state %d\n", pMac->roam.handoffInfo.currState);
-#else
       smsLog(pMac, LOGW, "csrGetStatistics: wrong state %d\n", pMac->roam.curState);
-#endif
       return eHAL_STATUS_FAILURE;
    }
 
@@ -15428,78 +12961,6 @@ void csrRoamReportStatistics(tpAniSirGlobal pMac, tANI_U32 statsMask,
 
 }
 
-#if defined (FEATURE_WLAN_DIAG_SUPPORT_CSR) && defined (FEATURE_WLAN_GEN6_ROAMING)    
-
-eHalStatus csrRoamStartDiagLogStatsTimer(tpAniSirGlobal pMac, tANI_U32 interval)
-{
-   eHalStatus status;
-   tANI_U8   index = CSR_MAX_STATISTICS_REQ;
-   tANI_BOOLEAN found = FALSE;
-   tCsrPeStatsReqInfo *pPeStaEntry = NULL; 
-   smsLog(pMac, LOG1, " csrRoamStartStatisticsTimer \n ");
-   
-   if(( pMac->roam.handoffInfo.currState == eCSR_ROAMING_STATE_JOINED ||
-    pMac->roam.handoffInfo.currState == eCSR_ROAMING_STATE_SCANNING) && interval)
-   {
-      status = palTimerStart(pMac->hHdd, pMac->roam.hTimerDiagLogStats, interval * PAL_TIMER_TO_MS_UNIT, eANI_BOOLEAN_FALSE);
-   }
-   else
-   {
-      smsLog(pMac, LOG1, " csrRoamStartDiagLogStatsTimer: failed to start \n ");
-      status = eHAL_STATUS_FAILURE;
-   }
-
-   return (status);
-}
-
-eHalStatus csrRoamStopDiagLogStatsTimer(tpAniSirGlobal pMac)
-{
-    return (palTimerStop(pMac->hHdd, pMac->roam.hTimerDiagLogStats));
-}
-
-void csrRoamDiagLogStatsTimerHandler(void *pv)
-{
-   tpAniSirGlobal pMac = PMAC_STRUCT( pv );
-   /* Extra check on states to see if this is really needed                 */
-   if( (pMac->roam.handoffInfo.currState != eCSR_ROAMING_STATE_JOINED )&&
-       ( pMac->roam.curState != eCSR_ROAMING_STATE_SCANNING))
-   {
-      smsLog(pMac, LOGW, "csrRoamDiagLogStatsTimerHandler: wrong state %d\n", pMac->roam.handoffInfo.currState);
-
-      return;
-   }
-   //log stats on Diag
-   csrRoamDiagStatsLog(pMac);
-
-   csrRoamStartDiagLogStatsTimer(pMac, CSR_DIAG_LOG_STAT_PERIOD);
-}
-
-void csrRoamDiagStatsLog(tpAniSirGlobal pMac)
-{
-   vos_log_statistics_pkt_type *log_ptr = NULL;
-
-   WLAN_VOS_DIAG_LOG_ALLOC(log_ptr, vos_log_statistics_pkt_type, LOG_WLAN_LINKLAYER_STAT_C);
-   if(log_ptr)
-   {
-      log_ptr->version = 1;
-      log_ptr->stat_mask = 63;//ALL
-      palCopyMemory(pMac->hHdd, &log_ptr->summaryStats, 
-                    &pMac->roam.summaryStatsInfo, sizeof(log_ptr->summaryStats));
-      palCopyMemory(pMac->hHdd, &log_ptr->globalClassAStats, 
-                    &pMac->roam.classAStatsInfo, sizeof(log_ptr->globalClassAStats));
-      palCopyMemory(pMac->hHdd, &log_ptr->globalClassBStats, 
-                    &pMac->roam.classBStatsInfo, sizeof(log_ptr->globalClassBStats));
-      palCopyMemory(pMac->hHdd, &log_ptr->globalClassCStats, 
-                    &pMac->roam.classCStatsInfo, sizeof(log_ptr->globalClassCStats));
-      palCopyMemory(pMac->hHdd, &log_ptr->globalClassDStats, 
-                    &pMac->roam.classDStatsInfo, sizeof(log_ptr->globalClassDStats));
-      palCopyMemory(pMac->hHdd, &log_ptr->perStaStats, 
-                    &pMac->roam.perStaStatsInfo, sizeof(log_ptr->perStaStats));
-
-   }
-   WLAN_VOS_DIAG_LOG_REPORT(log_ptr);
-}
-#endif /* FEATURE_WLAN_DIAG_SUPPORT_CSR */
 
 
 eHalStatus csrRoamDeregStatisticsReq(tpAniSirGlobal pMac)

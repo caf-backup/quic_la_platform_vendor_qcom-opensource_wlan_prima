@@ -937,53 +937,6 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
    return status;
 }
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-/*--------------------------------------------------------------------------
-  
-  \brief sme_HoConfig() - Change handoff configurations for CSR during SMEs 
-  close -> open sequence.
-   
-  Modules inside SME apply the new configuration at the next transaction.
-
-  
-  \param hHal - The handle returned by macOpen.
-  \Param pSmeHoConfigParams - a pointer to a caller allocated object of 
-  typedef struct _smeHoConfigParams.
-  
-  \return eHAL_STATUS_SUCCESS - SME update the config parameters successfully.
-  
-          Other status means SME is failed to update the config parameters.
-  \sa
-  
-  --------------------------------------------------------------------------*/
-eHalStatus sme_HoConfig(tHalHandle hHal, tpSmeHoConfigParams pSmeHoConfigParams)
-{
-   eHalStatus status = eHAL_STATUS_FAILURE;
-   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-
-   if (NULL == pSmeHoConfigParams ) {
-      smsLog( pMac, LOGE, "Empty config param structure for SME\n");
-   }
-
-   if(pSmeHoConfigParams)
-   {
-	   status = csrHoConfigParams(hHal, &pSmeHoConfigParams->csrHoConfig);
-   }
-   else
-   {
-	   status = csrHoConfigParams(hHal, NULL);
-   }
-   
-
-   if ( ! HAL_STATUS_SUCCESS( status ) ) {
-      smsLog( pMac, LOGE, "csrHoConfigParams failed with status=%d\n", 
-              status );
-   }
-
-   return status;
-
-}
-#endif
 /* ---------------------------------------------------------------------------
     \fn sme_ChangeConfigParams
     \brief The SME API exposed for HDD to provide config params to SME during
@@ -1635,44 +1588,7 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
             status = sme_AcquireGlobalLock( &pMac->sme );
             if ( HAL_STATUS_SUCCESS( status ) )
             {
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-                //Since HO only happens for infra mode, we only check for the 
-                //connect status of infra link.
-                //This way is to save off channel time so AP has less chance of 
-                //deauth the Libra side when Libra doens't response to many TIM-ed beacons.
-                if( csrIsConnStateConnectedInfra( pMac, sessionId ) && 
-                    (csrScanIsBgScanEnabled( pMac ) || csrScanGetChannelMask(pMac)) )
                 {
-                    //background scan by HO is enable, no need to scan here
-                    if( callback )
-                    {
-                        tANI_U32 lScanId = pMac->scan.nextScanID++; //let it wrap around
-                        //Assign a scanID in case caller uses it during the callback.
-                        if(pScanRequestID)
-                        {
-                            *pScanRequestID = lScanId;
-                        }
-                        sme_ReleaseGlobalLock( &pMac->sme );
-                        callback( pMac, pContext, lScanId, eCSR_SCAN_ONGOING );
-                        status = sme_AcquireGlobalLock( &pMac->sme );
-                        if ( !HAL_STATUS_SUCCESS( status ) )
-                        {
-                            status = eHAL_STATUS_SUCCESS;
-                            break;
-                        }
-                    }
-                }
-                else
-#endif //#ifdef FEATURE_WLAN_GEN6_ROAMING
-                {
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-                    //create the channel mask if needed
-                    if( csrIsConnStateConnectedInfra( pMac, sessionId ) && 
-                       (CSR_IS_ROAM_SUBSTATE_HO_NRT(pMac) || CSR_IS_ROAM_SUBSTATE_HO_RT(pMac)))
-                    {
-                        csrScanSetChannelMask(pMac, &pscanReq->ChannelInfo);
-                    }
-#endif //#ifdef FEATURE_WLAN_GEN6_ROAMING
                     status = csrScanRequest( hHal, pscanReq, pScanRequestID,
                                      callback, pContext );
                 }
