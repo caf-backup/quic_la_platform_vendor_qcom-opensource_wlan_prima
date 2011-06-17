@@ -397,13 +397,59 @@ void pttSendEndianIndication (void *arg)
 #endif
 }
 
+char* retrieve_nv_file_name(tANI_U8 *pData)
+{
+    char *filename = "/persist/WCN1314_qcom_wlan_nv.bin";
+
+    //typedef struct nvEFSTable_s
+    //{
+    //   v_U32_t    nvValidityBitmap;
+    //   sHalNv     halnv;
+    //} nvEFSTable_t;
+
+    //typedef struct
+    //{
+    //    //always ensure fields are aligned to 32-bit boundaries
+    //    tANI_U16  productId;
+    //    tANI_U8   productBands;
+    //    tANI_U8   wlanNvRevId; //0: WCN1312, 1: WCN1314
+    //
+    //    tANI_U8   numOfTxChains;
+    //    tANI_U8   numOfRxChains;
+    //    tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
+    //
+    //    tANI_U8   mfgSN[NV_FIELD_MFG_SN_SIZE];
+    //}sNvFields;
+    //
+    //
+    //typedef struct
+    //{
+    //    sNvFields fields;
+    //    sNvTables tables;
+    //}sHalNv;
+
+    //0: WCN1312, 1: WCN1314, 2: PRIMA
+
+    if(pData[7] == 0)
+    {
+        filename = "/etc/firmware/wlan/qcom_wlan_nv.bin";
+    }    else if(pData[7] == 2)
+    {
+         aniAsfLogMsg(LOG_ERR, ANI_WHERE, "PRIMA NV File\n");
+         filename = "/persist/WCNSS_qcom_wlan_nv.bin";
+    }
+
+
+    return filename;
+}
+
 int write_nv_items_to_efs(tANI_U8 *pData, tANI_U16 data_length)
 {
-    
+
     FILE *fp;
     size_t count;
- 
-    fp = fopen("/etc/firmware/wlan/qcom_wlan_nv.bin", "wb");
+
+    fp = fopen(retrieve_nv_file_name(pData), "wb");
     if(fp == NULL) {
         perror("failed to open sample.txt");
         return -1;
@@ -414,7 +460,6 @@ int write_nv_items_to_efs(tANI_U8 *pData, tANI_U16 data_length)
     printf("Wrote %zu bytes.\n", count);
     return 0;
 }
-
 
 /*
  * Process all the messages from coming from the Radio Driver
@@ -467,24 +512,24 @@ void pttSocketAppProcNetlinkMsg (void *arg)
 
         aniAsfLogMsg(LOG_DEBUG, ANI_WHERE, "%s: Sending msg of length %d (msgType=0x%x) to client", __FUNCTION__, ntohl(msg->msgLen), wnl->wmsg.type);
 
-        if(ntohs(wnl->wmsg.type) == PTT_DIAG_CMDS_TYPE) 
-        { 
+        if(ntohs(wnl->wmsg.type) == PTT_DIAG_CMDS_TYPE)
+        {
            /*Skip the netlink header 12 bytes*/
             tANI_U8 *pData = ((char*)msg + 12);
             tANI_U32 diag_type;
- 
+
             wnl->wmsg.type = ntohs(wnl->wmsg.type);
             wnl->wmsg.length = ntohs(wnl->wmsg.length);
 
             diag_type = *(tANI_U32*) pData;
 
             pData += sizeof(tANI_U32);
-          
-            if(diag_type == PTT_DIAG_TYPE_LOGS) 
+
+            if(diag_type == PTT_DIAG_TYPE_LOGS)
             {
                 log_header_type *pHdr = (log_header_type*)pData;
 
-                if( log_status(pHdr->code)) 
+                if( log_status(pHdr->code))
                 {
                     printf("Calling Log Submit\n");
                     log_set_timestamp(pHdr);
@@ -497,7 +542,7 @@ void pttSocketAppProcNetlinkMsg (void *arg)
                 tANI_U16 length;
 
                 event_id = *(tANI_U16*)pData;
-                pData += sizeof(tANI_U16); 
+                pData += sizeof(tANI_U16);
 
                 length = *(tANI_U16*)pData;
                 pData += sizeof(tANI_U16);
@@ -507,7 +552,7 @@ void pttSocketAppProcNetlinkMsg (void *arg)
                 printf("Error:Invalid Diag Type!!!");
             }
         }
-        if(pserver->diag_msg.diag_msg_received == TRUE || ntohs(wnl->wmsg.type) == PTT_FTM_CMDS_TYPE) 
+        if(pserver->diag_msg.diag_msg_received == TRUE || ntohs(wnl->wmsg.type) == PTT_FTM_CMDS_TYPE)
         {
             /*Skip the netlink header 12 bytes*/
             tANI_U8 *pData = ((char*)msg + 12);
@@ -519,25 +564,25 @@ void pttSocketAppProcNetlinkMsg (void *arg)
             msg->msgLen = ntohl(msg->msgLen);
 
             pserver->diag_msg.msg_len = wnl->wmsg.length-sizeof(tAniHdr);
-             
+
             printf("wnl->wmsg.length = %d\n",pserver->diag_msg.msg_len);
-            
+
            /*Check whether the command code is commit to EFS*/
             printf(" Command Code=0x%x\n", *pData);
-            if( *pData == 0xEF) 
+            if( *pData == 0xEF)
             {
                 pData += sizeof(tANI_U32);
                 printf("********Writing Data to EFS*****\n");
-                write_nv_items_to_efs(pData, (pserver->diag_msg.msg_len - sizeof(tANI_U32))); 
+                write_nv_items_to_efs(pData, (pserver->diag_msg.msg_len - sizeof(tANI_U32)));
             }
-            else 
+            else
             {
                 pserver->diag_msg.pRespData = (char*)malloc(pserver->diag_msg.msg_len);
-               
+
                 memcpy(pserver->diag_msg.pRespData,pData,pserver->diag_msg.msg_len);
             }
             break;
-        } 
+        }
         if (pserver->clIpc)
         {
             if (endianness == 0) //little-endian

@@ -25,6 +25,8 @@ endif
 #Build/Package Prima Module only in case of 8960 target variants
 ifeq "$(findstring msm8960,$(QCOM_TARGET_PRODUCT))" "msm8960"
         include $(WLAN_BLD_DIR)/prima/CORE/HDD/src/Android.mk
+        include $(WLAN_BLD_DIR)/utils/ptt/Android.mk
+        include $(WLAN_BLD_DIR)/utils/asf/src/Android.mk
 endif
 
 #Build/Package Volans Module only in case of 7627a target

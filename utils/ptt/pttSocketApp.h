@@ -27,7 +27,8 @@
 #ifndef _ANI_RTT_H_
 #define _ANI_RTT_H_
 
-#define RTT_MAX_MSG_SIZE	12350
+#define RTT_MAX_MSG_SIZE	30000
+
 #define RTT_SERVER_PORT 1528
 #define eANI_NIM_CRDT_SYSDBG_LOG_DUMP_RSP 0x2108
 
