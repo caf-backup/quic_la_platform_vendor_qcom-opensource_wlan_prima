@@ -1,8 +1,7 @@
 # Android makefile for the WLAN Libra Module
 
 # Build/Package only in case of 7x30 and 7x27 target
-ifeq ($(call is-board-platform-in-list,msm7627_surf msm7627_ffa msm7630_surf msm7630_fusion),true)
-
+ifeq ($(call is-board-platform-in-list,msm7627_surf msm7627_ffa msm7630_surf msm7630_fusion msm7627_6x),true)
 
 WLAN_BLD_DIR := vendor/qcom/proprietary/wlan
 LIBRA_FW_DIR := vendor/qcom/proprietary/wlan/libra/firmware_bin
