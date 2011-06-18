@@ -62,12 +62,6 @@ typedef struct _smeConfigParams
 #endif
 } tSmeConfigParams, *tpSmeConfigParams;
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-typedef struct _smeHoConfigParams
-{
-   tCsrHandoffConfigParams  csrHoConfig;
-} tSmeHoConfigParams, *tpSmeHoConfigParams;
-#endif
 
 /*------------------------------------------------------------------------- 
   Function declarations and documenation
@@ -246,27 +240,6 @@ eHalStatus sme_setRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode);
 
 #endif
 
-#ifdef FEATURE_WLAN_GEN6_ROAMING
-/*--------------------------------------------------------------------------
-  
-  \brief sme_HoConfig() - Change handoff configurations for CSR during SMEs 
-  close -> open sequence.
-   
-  Modules inside SME apply the new configuration at the next transaction.
-
-  
-  \param hHal - The handle returned by macOpen.
-  \Param pSmeHoConfigParams - a pointer to a caller allocated object of 
-  typedef struct _smeHoConfigParams.
-  
-  \return eHAL_STATUS_SUCCESS - SME update the config parameters successfully.
-  
-          Other status means SME is failed to update the config parameters.
-  \sa
-  
-  --------------------------------------------------------------------------*/
-eHalStatus sme_HoConfig(tHalHandle hHal, tpSmeHoConfigParams pSmeHoConfigParams);
-#endif
 /* ---------------------------------------------------------------------------
     \fn sme_ChangeConfigParams
     \brief The SME API exposed for HDD to provide config params to SME during 
