@@ -897,6 +897,8 @@ WDI_Close
   wdiEventData.pCBfnc          = NULL; 
   wdiEventData.pUserData       = NULL;
 
+  gWDIInitialized = eWLAN_PAL_FALSE;
+
   return WDI_PostMainEvent(&gWDICb, WDI_CLOSE_EVENT, &wdiEventData);
 
 }/*WDI_Close*/

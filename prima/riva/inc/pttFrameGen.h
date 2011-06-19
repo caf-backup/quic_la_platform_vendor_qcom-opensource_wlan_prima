@@ -21,7 +21,7 @@
 
 
 
-#define MAX_PAYLOAD_SIZE 4096
+#define MAX_PAYLOAD_SIZE 2400
 
 typedef enum {
    TEST_PAYLOAD_NONE,

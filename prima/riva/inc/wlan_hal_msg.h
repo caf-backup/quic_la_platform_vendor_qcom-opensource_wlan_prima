@@ -3000,11 +3000,14 @@ typedef PACKED_PRE struct PACKED_POST
 /*---------------------------------------------------------------------------
  * WLAN_HAL_ENTER_BMPS_REQ
  *--------------------------------------------------------------------------*/
+
 typedef PACKED_PRE struct PACKED_POST
 {
    tANI_U8         bssIdx;
    //TBTT value derived from the last beacon
+#ifndef BUILD_QWPTTSTATIC
    tANI_U64 tbtt;
+#endif
    tANI_U8 dtimCount;
    //DTIM period given to HAL during association may not be valid,
    //if association is based on ProbeRsp instead of beacon.
@@ -3019,6 +3022,7 @@ typedef PACKED_PRE struct PACKED_POST
    tANI_U32 txHiDescStartAddr;
 
 } tHalEnterBmpsReqParams, *tpHalEnterBmpsReqParams;
+
 
 typedef PACKED_PRE struct PACKED_POST
 {

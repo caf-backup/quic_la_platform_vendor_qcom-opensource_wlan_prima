@@ -389,13 +389,11 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DWLAN_DEBUG \
         -D__linux__ \
         -DMSM_PLATFORM \
-        -DWLAN_FTM_STUB \
         -DFEATURE_WLAN_INTEGRATED_SOC \
         -DBAP_DEBUG \
         -DWLAN_BTAMP_FEATURE \
         -DHAL_SELF_STA_PER_BSS=1 \
-        -DWLAN_HOST_DRIVER\
-        -DISOC_HOST_DRIVER\
+        -DANI_MANF_DIAG
         #-DWLAN_FEATURE_P2P \
         #-DFEATURE_WLAN_WAPI \
         #-DVOLANS_PERF \

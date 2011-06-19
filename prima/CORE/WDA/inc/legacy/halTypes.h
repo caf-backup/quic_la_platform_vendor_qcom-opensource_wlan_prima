@@ -316,9 +316,6 @@ typedef enum
 #endif
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
-typedef tANI_U16 t_mW;       //milliWatts
-typedef tANI_U8 tPwrTemplateIndex;   //5-bit number used as the index into the tx gain tables
-
 #define HAL_MAX_TXPOWER_INVALID       127
 
 #define MIN_STA_PWR_CAP_DBM         13
@@ -346,7 +343,6 @@ typedef tANI_U8 tPwrTemplateIndex;   //5-bit number used as the index into the t
  *   10 Soft AP Stations (4 hard/6 virtual)
  */
 
-#define HAL_NUM_BSSID               3
 #define HAL_INVALID_BSSIDX          HAL_NUM_BSSID+1
 #define HAL_NUM_UMA_DESC_ENTRIES    8
 #define MAX_NUM_OF_BACKOFFS         8

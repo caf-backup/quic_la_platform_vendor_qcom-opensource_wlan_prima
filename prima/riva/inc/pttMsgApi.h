@@ -25,10 +25,7 @@
 #include "pttFrameGen.h"
 #include "pttModule.h"
 
-#ifndef WLAN_HOST_DRIVER
 #include "halLegacyPalTypes.h"
-#include "wlan_hal_msg.h"
-#endif /* WLAN_HOST_DRIVER */
 
 typedef tANI_U8 tQWPTT_U8;
 typedef tANI_S8 tQWPTT_S8;
@@ -40,11 +37,7 @@ typedef tANI_U32 tQWPTT_U32;
 typedef tANI_S32 tQWPTT_S32;
 
 typedef tANI_U8 tQWPTT_BYTE;
-#ifndef ISOC_HOST_DRIVER
-/* This make host build error
- * Not needed in host side */
 typedef tANI_S9 tQWPTT_S9;
-#endif /* ISOC_HOST_DRIVER */
 
 typedef tANI_U8 tQWPTT_BOOLEAN;
 
@@ -93,6 +86,7 @@ typedef enum {
    PTT_MSG_START_WAVEFORM = 0x3074,
    PTT_MSG_STOP_WAVEFORM = 0x3075,
    PTT_MSG_SET_RX_WAVEFORM_GAIN = 0x3076,
+   PTT_MSG_SET_TX_WAVEFORM_GAIN_PRIMA_V1 = 0x3077,
 
 //Tx Frame Gen Service
    PTT_MSG_CONFIG_TX_PACKET_GEN = 0x3081,
@@ -190,7 +184,7 @@ typedef enum {
    PTT_MSG_RX_IM2_CAL = 0x32AC,
    PTT_MSG_SET_RX_IM2_CORRECT = 0x31AD,
    PTT_MSG_GET_RX_IM2_CORRECT = 0x31AE,
-   PTT_MSG_TEST_DPD_CAL = 0x32AF,
+   PTT_MSG_TEST_DPD_CAL = 0x32AF,  // not handle
    PTT_MSG_SET_CALCONTROL_BITMAP = 0x32B0,
 
 //[RY] specific new messages for PRIMA
@@ -206,6 +200,19 @@ typedef enum {
    PTT_MSG_GET_LNA_BAND_CORRECT = 0x32BA,
    PTT_MSG_SET_LNA_BAND_CORRECT = 0x32BB,
    PTT_MSG_DPD_CAL = 0x32BC,
+
+// Suffix'ed Message ID to differential from existing Message name.
+// ===============================================================
+    PTT_MSG_GET_NV_TABLE_PRIMA_V1 = 0x32BD,
+    PTT_MSG_SET_NV_TABLE_PRIMA_V1 = 0x32BE,
+    PTT_MSG_RX_IQ_CAL_PRIMA_V1 = 0x32BF,
+    PTT_MSG_TX_IQ_CAL_PRIMA_V1 = 0x32C0,
+    PTT_MSG_SET_TX_IQ_CORRECT_PRIMA_V1 = 0x32C1,
+    PTT_MSG_GET_TX_IQ_CORRECT_PRIMA_V1 = 0x32C2,
+    PTT_MSG_SET_RX_IQ_CORRECT_PRIMA_V1 = 0x32C3,
+    PTT_MSG_GET_RX_IQ_CORRECT_PRIMA_V1 = 0x32C4,
+    PTT_MSG_START_WAVEFORM_PRIMA_V1 = 0x32C5,
+    PTT_MSG_FORCE_PACKET_TX_GAIN_PRIMA_V1 = 0x32C6,
 
    PTT_MSG_EXIT = 0x32ff,
    PTT_MAX_MSG_ID = PTT_MSG_EXIT
@@ -226,21 +233,17 @@ typedef enum {
 /******************************************************************************************************************
     PTT MESSAGES
 ******************************************************************************************************************/
-#ifndef ISOC_HOST_DRIVER
 //Init
 typedef PACKED_PRE struct PACKED_POST {
    tPttModuleVariables ptt;
 } tMsgPttMsgInit;
-#endif /* ISOC_HOST_DRIVER */
 
 typedef PACKED_PRE struct PACKED_POST {
    eNvTable nvTable;
-   uNvTables tableData;
 } tMsgPttGetNvTable;
 
 typedef PACKED_PRE struct PACKED_POST {
    eNvTable nvTable;
-   uNvTables tableData;
 } tMsgPttSetNvTable;
 
 typedef PACKED_PRE struct PACKED_POST {
@@ -293,7 +296,6 @@ typedef PACKED_PRE struct PACKED_POST {
    tANI_U32 pMemBuf[PTT_READ_MEM_MAX];
 } tMsgPttDbgWriteMemory;
 
-#ifndef ISOC_HOST_DRIVER
 //Device MAC Test Setup
 typedef PACKED_PRE struct PACKED_POST {
    tANI_U32 chId;
@@ -320,6 +322,11 @@ typedef PACKED_PRE struct PACKED_POST {
 } tMsgPttSetTxWaveformGain;
 
 typedef PACKED_PRE struct PACKED_POST {
+   ePhyTxChains txChain;
+   tANI_U32 gain;
+} tMsgPttSetTxWaveformGain_PRIMA_V1;
+
+typedef PACKED_PRE struct PACKED_POST {
    ePhyRxChains rxChain;
    tANI_U8 gain;
 } tMsgPttSetRxWaveformGain;
@@ -337,7 +344,12 @@ typedef PACKED_PRE struct PACKED_POST {
    tANI_U32 numSamples;
 } tMsgPttStartWaveform;
 
-//[RY] added for PRIMA
+typedef PACKED_PRE struct PACKED_POST {
+   tANI_U32 startIndex;
+   tANI_U32 numSamples;
+} tMsgPttStartWaveform_PRIMA_V1;
+
+// Added for PRIMA
 typedef PACKED_PRE struct PACKED_POST {
    tWaveformSample waveform[MAX_TEST_WAVEFORM_SAMPLES];
    tANI_U16 numSamples;
@@ -353,10 +365,6 @@ typedef PACKED_PRE struct PACKED_POST {
 typedef PACKED_PRE struct PACKED_POST {
    tANI_U32 notUsed;
 } tMsgPttStopWaveformRF;
-
-
-
-
 
 //Tx Frame Gen Service
 typedef PACKED_PRE struct PACKED_POST {
@@ -407,6 +415,11 @@ typedef PACKED_PRE struct PACKED_POST {
    tANI_U8 reserved[3];
 } tMsgPttForcePacketTxGain;
 
+typedef PACKED_PRE struct PACKED_POST {
+   ePhyTxChains txChain;
+   tANI_U32 gain;
+} tMsgPttForcePacketTxGain_PRIMA_V1;
+
 
 typedef PACKED_PRE struct PACKED_POST {
    ePowerTempIndexSource indexSource;
@@ -434,8 +447,6 @@ typedef PACKED_PRE struct PACKED_POST {
 
    tANI_U8 powerLut[TPC_MEM_POWER_LUT_DEPTH];
 } tMsgPttGetPowerLut;
-
-
 
 
 //Rx Gain Service
@@ -495,6 +506,7 @@ typedef PACKED_PRE struct PACKED_POST {
 
 typedef PACKED_PRE struct PACKED_POST {
    tRxChainsIm2Corrections calValues;
+   eGainSteps gain;
    tANI_U8 im2CalOnly;
 } tMsgPttRxIm2Cal;
 
@@ -659,7 +671,7 @@ typedef PACKED_PRE struct PACKED_POST {
 
 typedef PACKED_PRE struct PACKED_POST {
    sTxChainsDPDCalValues calValues;
-   tANI_U8 gain;
+   eGainSteps gain;
 } tMsgPttDpdCal;
 
 typedef PACKED_PRE struct PACKED_POST {
@@ -721,8 +733,10 @@ typedef PACKED_PRE union PACKED_POST pttMsgUnion{
    tMsgPttSetChannel SetChannel;
    tMsgPttSetWaveform SetWaveform;
    tMsgPttSetTxWaveformGain SetTxWaveformGain;
+   tMsgPttSetTxWaveformGain_PRIMA_V1 SetTxWaveformGain_PRIMA_V1;
    tMsgPttGetWaveformPowerAdc GetWaveformPowerAdc;
    tMsgPttStartWaveform StartWaveform;
+   tMsgPttStartWaveform_PRIMA_V1 StartWaveform_PRIMA_V1;
    tMsgPttStopWaveform StopWaveform;
    tMsgPttSetRxWaveformGain SetRxWaveformGain;
    tMsgPttConfigTxPacketGen ConfigTxPacketGen;
@@ -733,6 +747,7 @@ typedef PACKED_PRE union PACKED_POST pttMsgUnion{
    tMsgPttGetPacketTxGainTable GetPacketTxGainTable;
    tMsgPttSetPacketTxGainIndex SetPacketTxGainIndex;
    tMsgPttForcePacketTxGain ForcePacketTxGain;
+   tMsgPttForcePacketTxGain_PRIMA_V1 ForcePacketTxGain_PRIMA_V1;
    tMsgPttSetPwrIndexSource SetPwrIndexSource;
    tMsgPttSetTxPower SetTxPower;
    tMsgPttGetTxPowerReport GetTxPowerReport;
@@ -789,6 +804,7 @@ typedef PACKED_PRE union PACKED_POST pttMsgUnion{
    tMsgPttLogDump LogDump;
    tMsgPttGetBuildReleaseNumber GetBuildReleaseNumber;
    tMsgPttGetRFVersion GetRFVersion;
+
 //[RY] added for PRIMA
    tMsgPttSetWaveformRF SetWaveformRF;
    tMsgPttStopWaveformRF StopWaveformRF;
@@ -798,9 +814,8 @@ typedef PACKED_PRE union PACKED_POST pttMsgUnion{
    tMsgPttSetLnaBandCalCorrect SetLnaBandCalCorrect;
    tMsgPttGetDPDCorrect GetDPDCorrect;
    tMsgPttSetDPDCorrect SetDPDCorrect;
-
+   tMsgPttDpdCal DPDCal;
 } uPttMsgs;
-
 
 typedef PACKED_PRE struct PACKED_POST {
    tANI_U16 msgId;
@@ -808,33 +823,7 @@ typedef PACKED_PRE struct PACKED_POST {
    eQWPttStatus msgResponse;
    uPttMsgs msgBody;
 } tPttMsgbuffer, *tpPttMsgbuffer;
-#else
-/* Integrated SOC Host driver cannot include uPttMsgs struct type
- * It makes build error
- * Just passing MSG body without any cast must be OK */
-typedef PACKED_PRE struct PACKED_POST {
-   tANI_U16 msgId;
-   tANI_U16 msgBodyLength;      //actually, the length of all the fields in this structure
-   eQWPttStatus msgResponse;
-   tANI_U8  msgBody[0];
-} tPttMsgbuffer, *tpPttMsgbuffer;
-#endif /* ISOC_HOST_DRIVER */
 
-/*---------------------------------------------------------------------------
- ** WLAN_HAL_PROCESS_PTT_REQ 
- **--------------------------------------------------------------------------*/
-#ifndef ISOC_HOST_DRIVER
-/* Integrated SOC Host driver cannot include
- * tHalMsgHeader */
-typedef PACKED_PRE struct PACKED_POST {
-   tHalMsgHeader header;
-   tPttMsgbuffer pttMsgBuffer;
-} tProcessPttReqMsg, *tpProcessPttReqMsg;
-#endif /* ISOC_HOST_DRIVER */
-
-/*---------------------------------------------------------------------------
- ** WLAN_HAL_PROCESS_PTT_RSP
- **--------------------------------------------------------------------------*/
 
 typedef PACKED_PRE struct PACKED_POST {
    /*
@@ -844,13 +833,6 @@ typedef PACKED_PRE struct PACKED_POST {
    tPttMsgbuffer pttMsgBuffer;
 } tProcessPttRspParams, *tpProcessPttRspParams;
 
-#ifndef ISOC_HOST_DRIVER
-typedef PACKED_PRE struct PACKED_POST {
-   tHalMsgHeader header;
-   tProcessPttRspParams processPttRspParams;
-} tProcessPttRspMsg, *tpProcessPttRspMsg;
-#endif /* ISOC_HOST_DRIVER */
 /* End of Ptt Parameters */
-
 
 #endif

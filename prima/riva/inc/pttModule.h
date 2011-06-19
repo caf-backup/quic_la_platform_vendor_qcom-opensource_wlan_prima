@@ -21,26 +21,18 @@
 #include <wlan_phy.h>
 #include <pttFrameGen.h>
 
-#if defined(FEATURE_WLAN_INTEGRATED_SOC) && defined(ISOC_HOST_DRIVER)
-#include "halCompiler.h"
-
-/* Integrated SOC, Host driver build issue clear */
-#ifndef PACKED_PRE
-#define PACKED_PRE
+#ifdef BUILD_QWPTTSTATIC
+#include "wlan_hal_msg.h"       // it is needed to build qwptt static lib
 #endif
 
-#ifndef PACKED_POST
-#define PACKED_POST   __attribute__((packed))
-#endif
-#endif /*  FEATURE_WLAN_INTEGRATED_SOC && ISOC_HOST_DRIVER */
-
-typedef enum {
-
+enum
+{
    PTT_STATUS_SUCCESS = 0,
    PTT_STATUS_FAILURE = 1,
    PTT_MAX_VAL = 0XFFFF,
+};
+typedef tANI_U32 eQWPttStatus;
 
-} eQWPttStatus;
 
 typedef PACKED_PRE struct PACKED_POST {
    tANI_U16 drvMjr;
@@ -55,7 +47,9 @@ typedef PACKED_PRE struct PACKED_POST {
 typedef PACKED_PRE struct PACKED_POST {
    tANI_BOOLEAN agPktsDisabled; //802.11ag
    tANI_BOOLEAN bPktsDisabled;  //802.11b
-   tANI_BOOLEAN slrPktsDisabled; //SLR rates
+   tANI_BOOLEAN slrPktsDisabled;  //deprecated in Riva
+   tANI_BOOLEAN n40PktsDisabled; //11N 40 
+   tANI_BOOLEAN ac80PktsDisabled; //11AC 80 
    tANI_BOOLEAN rsvd;
 } sRxTypesDisabled;
 
@@ -90,8 +84,6 @@ typedef enum eGramDumpTrigType {
    eGRAM_DUMP_TRIG_ON_11A_OR_11B
 } tGramDumpTrigType;
 
-#ifndef ISOC_HOST_DRIVER
-/* These are not needed within integrated host driver */
 typedef PACKED_PRE struct PACKED_POST {
    //common to both transmit chains
    eHalPhyRates rate;           //current rate
@@ -139,6 +131,5 @@ typedef PACKED_PRE struct PACKED_POST {
 
    sRxChainsRssi rssi;
 } tPttModuleVariables;
-#endif /* ISOC_HOST_DRIVER */
 
 #endif /* PTTMODULE_H */

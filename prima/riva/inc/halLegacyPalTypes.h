@@ -23,7 +23,11 @@ typedef uint16    tANI_U16;
 typedef int16     tANI_S16;
 typedef uint32    tANI_U32;
 typedef int32     tANI_S32;
+
+#ifndef BUILD_QWPTTSTATIC
 typedef uint64    tANI_U64;
+#endif
+
 typedef byte      tANI_BYTE;
 typedef boolean   tANI_BOOLEAN;
 typedef uint32    tANI_TIMESTAMP;

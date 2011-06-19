@@ -3763,6 +3763,7 @@ const sHalNv nvDefaults =
 
 #else 
 
+#include "palTypes.h"
 #include "wlan_nv.h"
 //#include "wlan_hal_msg.h"
 
@@ -3771,7 +3772,7 @@ const sHalNv nvDefaults =
     {
         0,                                                              // tANI_U16  productId;
         0,                                                              // tANI_U8   productBands;
-        { 0 },                                                          // tANI_U8   unused1[0];
+        2,                                                          // tANI_U8   unused1[0];
         1,                                                              // tANI_U8   numOfTxChains;
         2,                                                              // tANI_U8   numOfRxChains;
         { 0x00, 0xDE, 0xAD, 0xBE, 0xEF, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];

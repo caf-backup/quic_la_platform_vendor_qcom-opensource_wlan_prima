@@ -515,7 +515,7 @@ VOS_STATUS vos_nv_open(void)
             {
                 if(vos_nv_read( VNV_TPC_POWER_TABLE, 
                   (v_VOID_t *)&pnvEFSTable->halnv.tables.plutCharacterized[0],
-                  NULL, sizeof(tTpcPowerTable) * NUM_2_4GHZ_CHANNELS ) != VOS_STATUS_SUCCESS)
+                  NULL, sizeof(tTpcPowerTable) * NUM_RF_CHANNELS ) != VOS_STATUS_SUCCESS)
                      return (eHAL_STATUS_FAILURE);
             }
         }
@@ -527,7 +527,7 @@ VOS_STATUS vos_nv_open(void)
             {
                 if(vos_nv_read( VNV_TPC_PDADC_OFFSETS,
                   (v_VOID_t *)&pnvEFSTable->halnv.tables.plutPdadcOffset[0],
-                  NULL, sizeof(tANI_U16) * NUM_2_4GHZ_CHANNELS ) != VOS_STATUS_SUCCESS)
+                  NULL, sizeof(tANI_U16) * NUM_RF_CHANNELS ) != VOS_STATUS_SUCCESS)
                      return (eHAL_STATUS_FAILURE);
             }
         }
@@ -561,7 +561,7 @@ VOS_STATUS vos_nv_open(void)
             {
                 if(vos_nv_read( VNV_ANTENNA_PATH_LOSS,
                   (v_VOID_t *)&pnvEFSTable->halnv.tables.antennaPathLoss[0], NULL, 
-                sizeof(tANI_S16)*NUM_2_4GHZ_CHANNELS ) != VOS_STATUS_SUCCESS)
+                sizeof(tANI_S16)*NUM_RF_CHANNELS ) != VOS_STATUS_SUCCESS)
                      return (eHAL_STATUS_FAILURE);
             }
         }
@@ -572,7 +572,7 @@ VOS_STATUS vos_nv_open(void)
             {
                 if(vos_nv_read( VNV_PACKET_TYPE_POWER_LIMITS, 
                   (v_VOID_t *)&pnvEFSTable->halnv.tables.pktTypePwrLimits[0], NULL, 
-                sizeof(tANI_S16)*NUM_802_11_MODES*NUM_2_4GHZ_CHANNELS ) != VOS_STATUS_SUCCESS)
+                sizeof(tANI_S16)*NUM_802_11_MODES*NUM_RF_CHANNELS ) != VOS_STATUS_SUCCESS)
                      return (eHAL_STATUS_FAILURE);
             }
         }

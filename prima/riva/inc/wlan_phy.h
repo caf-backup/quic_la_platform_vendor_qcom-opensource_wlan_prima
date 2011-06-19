@@ -1,12 +1,14 @@
-/**
- * wlan_phy.h: Types needed only for phy config through PTT interface
- * Author:  Kalyan Dharanipragada, Raymond Wong
- * Date:    4/4/11
- */
-
 #ifndef WLAN_PHY_H
 #define WLAN_PHY_H
+/*============================================================================ 
+@file wlan_phy.h 
 
+Contains definitions of all PHY related structures that aree needed by FTM/PTT
+
+Copyright (c) 2007 QUALCOMM Incorporated. 
+All Rights Reserved. 
+Qualcomm Confidential and Proprietary 
+============================================================================*/
 #include <wlan_nv.h>
  
 /* Currently this structure holds the information about the current calibration mode.
@@ -69,11 +71,11 @@ typedef enum {
 #ifdef VERIFY_HALPHY_SIMV_MODEL
 #define GRAB_RAM_DBLOCK_SIZE  (256) //number of samples in full capture
 #else
-#define GRAB_RAM_DBLOCK_SIZE  (8 * 1024)  //number of samples in full capture
+#define GRAB_RAM_DBLOCK_SIZE         (1024)  //number of samples in full capture
 #endif
 
 #define MAX_REQUESTED_GRAB_RAM_SAMPLES 512   //only allow 512 samples at a time to fit within 4K buffer
-#define GRAB_RAM_BUFFER_DEPTH   (8 * 1024)   //maximum grab ram size
+#define GRAB_RAM_BUFFER_DEPTH       (1024)   //maximum grab ram size
 #define LAST_GRAB_RAM_SAMPLE_INDEX (GRAB_RAM_BUFFER_DEPTH - 1)
 
 
@@ -149,6 +151,14 @@ typedef enum
     TX_GAIN_STEP_21,
     TX_GAIN_STEP_22,
     TX_GAIN_STEP_23,
+    TX_GAIN_STEP_24,
+    TX_GAIN_STEP_25,
+    TX_GAIN_STEP_26,
+    TX_GAIN_STEP_27,
+    TX_GAIN_STEP_28,
+    TX_GAIN_STEP_29,
+    TX_GAIN_STEP_30,
+    TX_GAIN_STEP_31,
 
     RX_GAIN_STEP_0   = 0,
     RX_GAIN_STEP_1,
@@ -167,8 +177,8 @@ typedef enum
     RX_GAIN_STEP_14,
     RX_GAIN_STEP_15,
 
-    NUM_TX_GAIN_STEPS = 24,
-    MAX_TX_GAIN_STEP = TX_GAIN_STEP_23,
+    NUM_TX_GAIN_STEPS = 32,
+    MAX_TX_GAIN_STEP = TX_GAIN_STEP_31,
 
     NUM_RX_GAIN_STEPS = 16,
     MAX_RX_GAIN_STEP = RX_GAIN_STEP_15,
@@ -236,10 +246,8 @@ typedef PACKED_PRE struct PACKED_POST {
     sLnaBandCalValues lnaCode[PHY_MAX_RX_CHAINS];
 }sTxChainsLnaBandCalValues;
 
-#ifndef WLAN_HOST_DRIVER
 typedef tANI_U16 t_mW;       //milliWatts
 typedef tANI_U8 tPwrTemplateIndex;   //5-bit number used as the index into the tx gain tables
-#endif /* WLAN_HOST_DRIVER */
 
 typedef PACKED_PRE struct PACKED_POST {
     tANI_U8 txPowerAdc[PHY_MAX_TX_CHAINS];

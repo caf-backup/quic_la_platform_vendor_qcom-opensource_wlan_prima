@@ -76,6 +76,10 @@ when        who    what, where, why
 
 /*Invalid BSS index ! TO DO: Must come from the HAL header file*/
 #define WDI_BSS_INVALID_IDX 0xFF
+
+#ifdef ANI_MANF_DIAG
+#define WDI_FTM_MAX_RECEIVE_BUFFER   6500
+#endif /* ANI_MANF_DIAG */
 /*---------------------------------------------------------------------------
   HAL Status
 ---------------------------------------------------------------------------*/
@@ -970,9 +974,8 @@ typedef struct
   tDriverType                 driverMode;  
 
 #ifdef ANI_MANF_DIAG
-  /* Statically allocated FTM Response Buffer
-   * Buffer Size TBD */
-  wpt_uint8                   ucFTMCommandRspBuffer[2048];
+  /* Statically allocated FTM Response Buffer */
+  wpt_uint8                   ucFTMCommandRspBuffer[WDI_FTM_MAX_RECEIVE_BUFFER];
 #endif /* ANI_MANF_DIAG */
 }WDI_ControlBlockType; 
 

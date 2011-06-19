@@ -22,6 +22,10 @@
 #include "vos_types.h"
 #endif /* WINXP_APPS_BUILD */
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#include "halLegacyPalTypes.h"
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+
 #ifndef MK_IMAGE_HDR
 // values to check against for code that is Client/AP specific.  
 // the build will define one of the following: 
@@ -138,6 +142,7 @@
 
 // Common type definitions...
 
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
 typedef unsigned char  tANI_U8;
 typedef   signed char  tANI_S8;
 
@@ -154,6 +159,7 @@ typedef unsigned long long tANI_U64;
 #endif
 
 typedef tANI_U8 tANI_BYTE;
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
 #if defined( ANI_OS_TYPE_WINDOWS )
 #if defined(_WIN64)
@@ -168,7 +174,9 @@ typedef tANI_U32     tANI_U32_OR_PTR;
 // Buffer address; could be virt or phys; could be 32- or 64-bit depending on compile option
 typedef tANI_U32_OR_PTR    tANI_BUFFER_ADDR;
 // which boolean is the most usefule...or both ?
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
 typedef tANI_U8 tANI_BOOLEAN;
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
 typedef enum tagAniBoolean 
 {
@@ -246,6 +254,7 @@ typedef void * tPalSemaphoreHandle;
 
 #define PAL_TICKS_PER_SECOND        100
 
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
 typedef tANI_U32 tANI_TIMESTAMP;
-
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
 #endif

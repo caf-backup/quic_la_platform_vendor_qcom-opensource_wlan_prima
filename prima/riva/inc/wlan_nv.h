@@ -18,9 +18,7 @@
 #if !defined( __WLAN_NV_H )
 #define __WLAN_NV_H
 
-#ifndef WLAN_HOST_DRIVER
 #include "halLegacyPalTypes.h"
-#endif /* WLAN_HOST_DRIVER */
 #include "halCompiler.h"
 
 //From HAL/inc/halNv.h
@@ -72,7 +70,7 @@ typedef PACKED_PRE struct PACKED_POST
     //always ensure fields are aligned to 32-bit boundaries
     tANI_U16  productId;
     tANI_U8   productBands;
-    tANI_U8   unused1[1];
+    tANI_U8   wlanNvRevId;
 
     tANI_U8   numOfTxChains;
     tANI_U8   numOfRxChains;
