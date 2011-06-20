@@ -785,7 +785,7 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
       // This routuine is invoked twice. 1)set PTK 2)set GTK. The folloing if statement will be
       // TRUE when setting GTK. At this time we don't handle the state in detail.
       // Related CR: 174048 - TL not in authenticated state
-      if( !pRoamInfo->fAuthRequired && ( eCSR_ROAM_RESULT_AUTHENTICATED == roamResult ) )
+      if(( eCSR_ROAM_RESULT_AUTHENTICATED == roamResult ) && (pRoamInfo != NULL) && !pRoamInfo->fAuthRequired)
       {
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_MED,
                     "Key set for StaId= %d.  Changing TL state to AUTHENTICATED", pAdapter->conn_info.staId[ 0 ] );
