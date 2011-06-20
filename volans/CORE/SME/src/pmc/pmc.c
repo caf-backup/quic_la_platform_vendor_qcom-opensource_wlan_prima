@@ -2163,23 +2163,34 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 {
                     /* Change PMC state */
                     pMac->pmc.pmcState = REQUEST_BMPS;
-
-                    /* Tell MAC to have device enter BMPS mode. */
-                    status = pmcSendMessage(pMac, eWNI_PMC_ENTER_BMPS_REQ, NULL, 0);
-                    if ( HAL_STATUS_SUCCESS( status ) )
+                    smsLog(pMac, LOGW, "PMC: Enter BMPS req done: Force XO Core ON\n");
+                    status = vos_chipVoteXOCore(NULL, NULL, NULL, VOS_TRUE); 
+                    if ( !VOS_IS_STATUS_SUCCESS(status) )
                     {
-                        fRemoveCmd = eANI_BOOLEAN_FALSE;
-                        smsLog(pMac, LOGW, "PMC: Enter BMPS req done: Force XO Core ON\n");
-                        if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_TRUE) != VOS_STATUS_SUCCESS)
-                        {
-                            smsLog(pMac, LOGE, "Could not turn XO Core ON. Can't go to BMPS\n");
-                            return eHAL_STATUS_FAILURE;
-                        }
+                        smsLog(pMac, LOGE, "Could not turn XO Core ON. Can't go to BMPS\n");
                     }
-                    else
+                    else /* XO Core turn ON was successful */
                     {
-                        smsLog(pMac, LOGE, "Fail to send enter BMPS msg to PE\n");
-                        pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_FALSE;
+                        /* Tell MAC to have device enter BMPS mode. */
+                        status = pmcSendMessage(pMac, eWNI_PMC_ENTER_BMPS_REQ, NULL, 0);
+                        if ( HAL_STATUS_SUCCESS( status ) )
+                        {
+                            fRemoveCmd = eANI_BOOLEAN_FALSE;
+                        }
+                        else
+                        {
+                            smsLog(pMac, LOGE, "Fail to send enter BMPS msg to PE\n");
+                            /* Cancel the vote for XO Core */
+                            smsLog(pMac, LOGW, "In module init: Cancel the vote for XO CORE ON"
+                                                             "since send enter bmps failed\n");
+                            if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_FALSE) != VOS_STATUS_SUCCESS)
+                            {
+                                smsLog(pMac, LOGE, "Could not cancel XO Core ON vote."
+                                                   "Not returning failure."
+                                                   "Power consumed will be high\n");
+                            }  
+                            
+                        }
                     }
                 }
                 if( !HAL_STATUS_SUCCESS( status ) )

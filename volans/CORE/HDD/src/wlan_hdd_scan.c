@@ -580,12 +580,12 @@ int iw_set_scan(struct net_device *dev, struct iw_request_info *info,
    if(pwextBuf->mScanPending == TRUE)
    {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:mScanPending is TRUE !!!",__func__);
-       return -EBUSY;
+       return eHAL_STATUS_SUCCESS;
    }
 
    if (pAdapter->isLogpInProgress) {
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
-      return -EBUSY;
+      return eHAL_STATUS_SUCCESS;
    }
 
 
@@ -848,12 +848,13 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
     if(pwextBuf->mScanPending == TRUE)
     {
        hddLog(LOG1,"%s: mScanPending is TRUE",__func__);
+       return eHAL_STATUS_SUCCESS;
     }
 
 
     if (pAdapter->isLogpInProgress) {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
-       return -EBUSY;
+       return eHAL_STATUS_SUCCESS;
     }
 
     vos_mem_zero( &scanRequest, sizeof(scanRequest));
@@ -1023,3 +1024,10 @@ exit_point:
      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: exit !!!",__func__);
      return status;
 }
+
+/* Abort any MAC scan if in progress */
+void hdd_abort_mac_scan(hdd_adapter_t* pAdapter)
+{
+    sme_AbortMacScan(pAdapter->hHal);
+}
+

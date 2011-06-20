@@ -247,7 +247,8 @@ HAL_PHY_OBJS := $(HAL_SRC)/halPhy/asicAGC.o \
 	$(HAL_SRC)/halPhy/phyTxPower.o \
 	$(HAL_SRC)/halPhy/phyTxPowerPLUT.o \
         $(HAL_SRC)/halPhy/phyDebug.o \
-        $(HAL_SRC)/halPhy/rfUtils.o
+        $(HAL_SRC)/halPhy/rfUtils.o \
+	$(HAL_SRC)/halPhy/phyClpcLpbkCal.o
 
 HAL_FTM_OBJS :=	$(HAL_SRC)/halFtm/pttMsgApi.o \
 		$(HAL_SRC)/halFtm/pttModule.o \
@@ -259,7 +260,6 @@ HAL_FTM_OBJS :=	$(HAL_SRC)/halFtm/pttMsgApi.o \
         $(HAL_SRC)/halFtm/asicPhyDbg.o \
 		$(HAL_SRC)/halFtm/halPhyRates.o \
 		$(HAL_SRC)/halFtm/halFtmRx.o \
-		$(HAL_SRC)/halFtm/phyClpcLpbkCal.o
 
 
 

@@ -782,8 +782,9 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
     }
     else
     {
+        SET_PHY_REG(pMac->hHdd, QWLAN_TACTL_SCR_CONFIG_REG, QWLAN_TACTL_SCR_CONFIG_DEFAULT);
         SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_PRBS_REG, (0xff << QWLAN_PHYDBG_PRBS_SEED_LSB_OFFSET));//(0x10);                               //seed value
-    SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_PRBS_MS_REG, 0x8a);//(0x5432);
+        SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_PRBS_MS_REG, 0x8a);//(0x5432);
     }
 
     SET_PHY_REG(pMac->hHdd, QWLAN_PHYDBG_PRBS_LOAD_REG, QWLAN_PHYDBG_PRBS_LOAD_LOAD_MASK);

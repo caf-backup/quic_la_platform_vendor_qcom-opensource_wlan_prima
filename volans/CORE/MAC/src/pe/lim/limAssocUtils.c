@@ -377,6 +377,12 @@ limCheckMCSSet(tpAniSirGlobal pMac, tANI_U8* supportedMCSSet)
 
 #ifdef WLAN_SOFTAP_FEATURE
 
+#define SECURITY_SUITE_TYPE_MASK 0xFF
+#define SECURITY_SUITE_TYPE_WEP40 0x1
+#define SECURITY_SUITE_TYPE_TKIP 0x2
+#define SECURITY_SUITE_TYPE_CCMP 0x4
+#define SECURITY_SUITE_TYPE_WEP104 0x4
+
 /**
  * limCheckRxRSNIeMatch()
  *
@@ -400,10 +406,11 @@ limCheckMCSSet(tpAniSirGlobal pMac, tANI_U8* supportedMCSSet)
  */
 
 tANI_U8
-limCheckRxRSNIeMatch(tpAniSirGlobal pMac, tDot11fIERSN rxRSNIe,tpPESession pSessionEntry)
+limCheckRxRSNIeMatch(tpAniSirGlobal pMac, tDot11fIERSN rxRSNIe,tpPESession pSessionEntry, tANI_U8 staIsHT)
 {
     tDot11fIERSN    *pRSNIe;
-    tANI_U8         i, j, match;
+    tANI_U8         i, j, match, onlyNonHtCipher=1;
+
 
     //RSN IE should be received from PE
     pRSNIe = &pSessionEntry->gStartBssRSNIe;
@@ -434,9 +441,20 @@ limCheckRxRSNIeMatch(tpAniSirGlobal pMac, tDot11fIERSN rxRSNIe,tpPESession pSess
                 break;
             }
         }
+
+        if ((staIsHT) 
+#ifdef ANI_LITTLE_BYTE_ENDIAN
+			&&( (rxRSNIe.pwise_cipher_suites[i][3] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
+#else
+            &&( (rxRSNIe.pwise_cipher_suites[i][0] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
+#endif            
+        {
+             onlyNonHtCipher=0;
+        }
+
     }
 
-    if (!match)
+    if ((!match) || ((staIsHT)&&onlyNonHtCipher))
     {
         return eSIR_MAC_INVALID_PAIRWISE_CIPHER_STATUS;
     }
@@ -472,10 +490,10 @@ limCheckRxRSNIeMatch(tpAniSirGlobal pMac, tDot11fIERSN rxRSNIe,tpPESession pSess
  */
 
 tANI_U8
-limCheckRxWPAIeMatch(tpAniSirGlobal pMac, tDot11fIEWPA rxWPAIe,tpPESession pSessionEntry)
+limCheckRxWPAIeMatch(tpAniSirGlobal pMac, tDot11fIEWPA rxWPAIe,tpPESession pSessionEntry, tANI_U8 staIsHT)
 {
     tDot11fIEWPA    *pWPAIe;
-    tANI_U8         i, j, match;
+    tANI_U8         i, j, match, onlyNonHtCipher=1;
 
     // WPA IE should be received from PE
     pWPAIe = &pSessionEntry->gStartBssWPAIe;
@@ -506,9 +524,20 @@ limCheckRxWPAIeMatch(tpAniSirGlobal pMac, tDot11fIEWPA rxWPAIe,tpPESession pSess
                 break;
             }
         }
+
+        if ((staIsHT) 
+#ifdef ANI_LITTLE_BYTE_ENDIAN
+			&&( (rxWPAIe.unicast_ciphers[i][3] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
+#else
+            &&( (rxWPAIe.unicast_ciphers[i][0] & SECURITY_SUITE_TYPE_MASK) == SECURITY_SUITE_TYPE_CCMP))
+#endif            
+        {
+             onlyNonHtCipher=0;
+        }
+
     }
 
-    if (!match)
+    if ((!match) || ((staIsHT)&&onlyNonHtCipher))
     {
         return eSIR_MAC_CIPHER_SUITE_REJECTED_STATUS;
     }

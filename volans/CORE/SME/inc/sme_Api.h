@@ -1545,5 +1545,14 @@ eHalStatus sme_combineWSCIE(tHalHandle hHal, tSirWSCie *pSirWscIe, tANI_U8 *pSir
    ---------------------------------------------------------------------------*/
 eHalStatus sme_SetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest);
 
+/* ---------------------------------------------------------------------------
+    \fn sme_AbortMacScan
+    \brief  API to cancel MAC scan.
+    \param  hHal - The handle returned by macOpen.
+    \return VOS_STATUS
+            VOS_STATUS_E_FAILURE - failure
+            VOS_STATUS_SUCCESS  success
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_AbortMacScan(tHalHandle hHal);
 
 #endif //#if !defined( __SME_API_H )

@@ -870,11 +870,13 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32   nullDataApRespTimeoutMsec: 8;
 #endif
 #ifdef ANI_BIG_BYTE_ENDIAN
-   tANI_U32   usOfdmCmdPwrOffset        : 16;
+   tANI_U32   usOfdmCmdPwrOffset        : 11;
+   tANI_U32   usTpcSplitPoint           : 5;
    tANI_U32   usTxbbFilterMode          : 16;
 #else
    tANI_U32   usTxbbFilterMode          : 16;
-   tANI_U32   usOfdmCmdPwrOffset        : 16;
+   tANI_U32   usTpcSplitPoint           : 5;
+   tANI_U32   usOfdmCmdPwrOffset        : 11;
 #endif
 
 #ifdef ANI_BIG_BYTE_ENDIAN
@@ -2379,7 +2381,15 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SetChannelReqStruct
 {
    Qwlanfw_CtrlMsgType  hdr;
    tANI_U32             usChanNum;          //channel number 1 to 14 for 2.4GHz
-   tANI_U32             ucCbState;          // always 0 for 20MHz
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32             ucCbState             : 8;      // always 0 for 20MHz
+   tANI_U32             ucNominalTempTxPwrCap : 8;
+   tANI_U32             bReserved             : 16;
+#else
+   tANI_U32             bReserved             : 16;
+   tANI_U32             ucNominalTempTxPwrCap : 8;
+   tANI_U32             ucCbState             : 8;
+#endif
    tANI_U32             ucRegDomain;        // enum according to eRegDomainId
    tANI_U32             ucCalRequired;      // flag to decide whether cal is needed or not.
    tANI_U32             pdAdcOffset;

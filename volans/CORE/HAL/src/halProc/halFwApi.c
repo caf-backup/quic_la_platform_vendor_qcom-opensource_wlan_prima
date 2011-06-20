@@ -80,6 +80,7 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
 
     pFwConfig->usOfdmCmdPwrOffset = pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset;
     pFwConfig->usTxbbFilterMode = (tANI_U16)(pMac->hphy.nvCache.tables.txbbFilterMode.txFirFilterMode);
+    pFwConfig->usTpcSplitPoint = pMac->hphy.phy.tpcSplitPoint;
 
     // configure the current regulatory domain
     //pFwConfig->ucRegDomain = (tANI_U8)( halPhyGetRegDomain(hHal) );
@@ -88,10 +89,10 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
 
     pFwConfig->bRfXoOn = TRUE;
 
-    /* The change below of comparing STO macro to 1650 is temporary and only there for a week
-     * It will be removed as soon as the Force XO Core ON is implemented for 7x30 as well
+    /* The change below of comparing STO macro to 1370 is required for all platforms
+     * where the Force XO CORE ON functionality is not present
      */
-    if (HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US == 1650) {
+    if (HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US == 1370) {
         pFwConfig->psXoCoreOn = 1;
     } else {
         pFwConfig->psXoCoreOn = 0;

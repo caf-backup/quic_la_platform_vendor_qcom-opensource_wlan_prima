@@ -1036,6 +1036,8 @@ limCleanupMlm(tpAniSirGlobal pMac)
 #ifdef WLAN_SOFTAP_FEATURE
         tx_timer_deactivate(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
+		tx_timer_deactivate(&pMac->lim.limTimers.gLimPreAuthClnupTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimPreAuthClnupTimer);
 
 #if 0 // The WPS PBC clean up timer is disabled
         if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)

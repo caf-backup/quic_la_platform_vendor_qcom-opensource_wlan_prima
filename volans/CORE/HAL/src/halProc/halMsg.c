@@ -2292,6 +2292,16 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
 #endif /* WLAN_FEATURE_VOWIFI */
     }
     curMtuMode = halMTU_getMode(pMac);
+	if(eSIR_11B_NW_TYPE  == param->nwType)	  
+	{
+	   newMtuMode = MODE_11B;
+	}
+	else if(eSIR_11A_NW_TYPE  == param->nwType)    
+	{
+	   newMtuMode = MODE_11A;
+	}
+	else
+	{
     newMtuMode = curMtuMode;
     switch(curMtuMode)
     {
@@ -2309,6 +2319,7 @@ void halMsg_AddBssPostSetChan(tpAniSirGlobal pMac, void* pData,
         default:
             break;
     }
+	}
 
     if(curMtuMode != newMtuMode)
     {

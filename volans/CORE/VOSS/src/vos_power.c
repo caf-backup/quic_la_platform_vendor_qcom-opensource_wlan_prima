@@ -64,6 +64,7 @@ when       who     what, where, why
 #ifdef MSM_PLATFORM_7x30
 #include <linux/mfd/pmic8058.h>
 #include <mach/rpc_pmapp.h>
+#include <mach/pmic.h>
 #endif
 
 #ifdef MSM_PLATFORM_8660
@@ -1342,9 +1343,10 @@ VOS_STATUS vos_chipVoteXOCore
 )
 {
     static v_BOOL_t is_vote_on;
-#ifdef MSM_PLATFORM_8660
+#if defined(MSM_PLATFORM_8660) || defined(MSM_PLATFORM_7x30)
     int rc;
 #endif
+
    /* The expectation is the is_vote_on should always have value 1 or 0.  This funcn should
     * be called alternately with 1 and 0 passed to it.
     */
@@ -1355,6 +1357,16 @@ VOS_STATUS vos_chipVoteXOCore
          is_vote_on);
       goto success;
    }    
+
+#ifdef MSM_PLATFORM_7x30
+   rc = pmic_xo_core_force_enable(force_enable);
+   if (rc) {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+         "%s: pmic_xo_core_force_enable %s failed (%d)",__func__, 
+         force_enable ? "enable" : "disable",rc);
+      return VOS_STATUS_E_FAILURE;
+   }
+#endif
 
 #ifdef MSM_PLATFORM_8660
    rc = qcomwlan_pmic_xo_core_force_enable(force_enable);

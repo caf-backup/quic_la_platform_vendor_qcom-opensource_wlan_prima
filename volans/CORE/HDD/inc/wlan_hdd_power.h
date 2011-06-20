@@ -60,5 +60,6 @@
 #endif
 
 void hdd_conf_mcastbcast_filter(hdd_adapter_t* pAdapter, v_BOOL_t setfilter);
+v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_adapter_t* pAdapter);
 
 #endif // if !defined __WLAN_QCT_DRIVER_H

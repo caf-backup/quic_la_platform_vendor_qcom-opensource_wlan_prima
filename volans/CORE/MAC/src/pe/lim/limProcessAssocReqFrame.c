@@ -628,7 +628,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,
                     if(SIR_MAC_OUI_VERSION_1 == Dot11fIERSN.version)
                     {
                         /* check the groupwise and pairwise cipher suites */
-                        if(eSIR_SUCCESS != (status = limCheckRxRSNIeMatch(pMac,Dot11fIERSN,psessionEntry) ) )
+                        if(eSIR_SUCCESS != (status = limCheckRxRSNIeMatch(pMac,Dot11fIERSN,psessionEntry,pAssocReq->HTCaps.present) ) )
                         {
                             /* some IE is not properly sent */
                             /* received Association req frame with RSN IE but length is 0 */
@@ -687,7 +687,7 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U32 *pBd,
                                         pAssocReq->wpa.length, 
                                         &Dot11fIEWPA);
                     /* check the groupwise and pairwise cipher suites */
-                    if(eSIR_SUCCESS != (status = limCheckRxWPAIeMatch(pMac,Dot11fIEWPA,psessionEntry)))
+                    if(eSIR_SUCCESS != (status = limCheckRxWPAIeMatch(pMac,Dot11fIEWPA,psessionEntry, pAssocReq->HTCaps.present)))
                     {
                         /* received Association req frame with WPA IE but mismatch */
                         limSendAssocRspMgmtFrame(

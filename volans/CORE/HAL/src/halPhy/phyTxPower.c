@@ -144,7 +144,6 @@ eHalStatus phyTxPowerSplitLutUpdate(tpAniSirGlobal pMac, tANI_U8 tpcIdx)
 {
     eHalStatus retVal = eHAL_STATUS_SUCCESS;
 
-#ifdef CLPC_LOW_POWER_RANGE
     int i, temp;
 
     //fill out ofdm rf_gain range with values [2:8]
@@ -166,7 +165,6 @@ eHalStatus phyTxPowerSplitLutUpdate(tpAniSirGlobal pMac, tANI_U8 tpcIdx)
     {
         tpcGainLut[0][i].finePwr = 9 + ((i % 4)<<1);
     }
-#endif
 
     if (
         ((retVal = asicLoadTPCGainLUT(pMac, PHY_TX_CHAIN_0, &(tpcGainLut[PHY_TX_CHAIN_0][0]))) != eHAL_STATUS_SUCCESS)
@@ -216,22 +214,8 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
     }
 
     //load gain LUTs
-    {
-        tANI_U8 tpcIdx = TPC_LUT_SPLIT_IDX; //default split lut Idx
-        tRateGroupPwr *pwrOptimum;
-        if(halGetNvTableLoc(pMac, NV_TABLE_RATE_POWER_SETTINGS, (uNvTables **)&pwrOptimum) == eHAL_STATUS_SUCCESS)
-        {
-            t2Decimal _6Mbps_pwr = pwrOptimum[0][HAL_PHY_RATE_11A_6_MBPS].reported;
-            tpcIdx = (tANI_U8)((2 * _6Mbps_pwr)/100 - 17); //8.5dBm:idx0, 24dBm:idx31
 
-            if(tpcIdx > (TPC_MEM_GAIN_LUT_DEPTH - 1))
-            {
-                tpcIdx = TPC_LUT_SPLIT_IDX;
-            }
-        }
-
-        phyTxPowerSplitLutUpdate(pMac, tpcIdx);
-    }
+    phyTxPowerSplitLutUpdate(pMac, pMac->hphy.phy.tpcSplitPoint);
 
     if (pMac->gDriverType == eDRIVER_TYPE_PRODUCTION)
     {
@@ -627,7 +611,7 @@ eHalStatus phyTxPowerInit(tpAniSirGlobal pMac)
 
 //-0.25dBm adjustment to be made to compensate b rates, because we cal with OFDM rates
 #define B_RATE_CAL_ADJUSTMENT               -150
-#define B_RATE_CAL_ADJUSTMENT_VOLANS2       -100
+#define B_RATE_CAL_ADJUSTMENT_VOLANS2       0
 #define GN_RATE_BANDEDGE_ADJUSTMENT         -100
 #define GN_RATE_BANDEDGE_ADJUSTMENT_VOLANS2 0
 
@@ -793,7 +777,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
         //account for average array gain
         //absPwrLimit_2dec -= pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].antennaGain[rfSubband].reported;
         //account for antenna path loss per channel
-        absPwrLimit_2dec += pMac->hphy.phy.antennaPathLoss[curChan];
+        //absPwrLimit_2dec += pMac->hphy.phy.antennaPathLoss[curChan];
 
         /*
          * For the proximity set to ON for all rates the power is 0
