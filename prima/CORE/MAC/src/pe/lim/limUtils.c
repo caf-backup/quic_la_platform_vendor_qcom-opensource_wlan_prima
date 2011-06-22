@@ -33,6 +33,9 @@
  * this information. */
 static tAniBool glimTriggerBackgroundScanDuringQuietBss_Status = eSIR_TRUE;
 
+/* 11A Channel list to decode RX BD channel information */
+static const tANI_U8 abChannel[]= {36,40,44,48,52,56,60,64,100,104,108,112,116,
+            120,124,128,132,136,140,149,153,157,161,165};
 
 //#define LIM_MAX_ACTIVE_SESSIONS 3  //defined temporarily for BT-AMP SUPPORT 
 #define SUCCESS 1                   //defined temporarily for BT-AMP
@@ -7286,6 +7289,8 @@ tANI_U8 limGetChannelFromBeacon(tpAniSirGlobal pMac, tpSchBeaconStruct pBeacon)
         channelNum = pBeacon->channelNumber;
     else if(pBeacon->HTInfo.present)
         channelNum = pBeacon->HTInfo.primaryChannel;
+    else
+        channelNum = pBeacon->channelNumber;
 
     return channelNum;
 }
@@ -7644,3 +7649,16 @@ void limProcessDelStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
 
 }
 
+/***************************************************************
+* tANI_U8 limUnmapChannel(tANI_U8 mapChannel)
+* To unmap the channel to reverse the effect of mapping 
+* a band channel in hal .Mapping was done hal to overcome the
+* limitation of the rxbd which use only 4 bit for channel number.  
+*****************************************************************/
+tANI_U8 limUnmapChannel(tANI_U8 mapChannel)
+{
+   if( mapChannel > 0 && mapChannel < 25 )
+     return abChannel[mapChannel -1];
+   else
+     return 0;
+}

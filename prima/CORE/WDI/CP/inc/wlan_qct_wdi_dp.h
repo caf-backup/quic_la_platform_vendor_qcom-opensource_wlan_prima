@@ -199,7 +199,8 @@ when        who    what, where, why
 
 #define WDI_RX_BD_GET_DPU_FEEDBACK( _pvBDHeader )         (((WDI_RxBdType*)_pvBDHeader)->dpuFeedback)
 
-#define WDI_RX_BD_GET_RX_CHANNEL( _pvBDHeader )         (((WDI_RxBdType*)_pvBDHeader)->rxChannel)
+#define WDI_RX_BD_GET_RX_CHANNEL( _pvBDHeader )         \
+        (( (((WDI_RxBdType*)_pvBDHeader)->reserved0) << 4) | (((WDI_RxBdType*)_pvBDHeader)->rxChannel))
 
 #define WDI_FRAME_TYPE_MASK     0x30
 #define WDI_FRAME_TYPE_OFFSET   0x4

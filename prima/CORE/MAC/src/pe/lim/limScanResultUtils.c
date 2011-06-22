@@ -160,8 +160,17 @@ limCollectBssDescription(tpAniSirGlobal pMac,
     */
     pBssDescr->channelId = limGetChannelFromBeacon(pMac, pBPR);
 
-	if (pBssDescr->channelId == 0)
-       pBssDescr->channelId = rxChannel;
+    if (pBssDescr->channelId == 0)
+   {
+      /* If the channel Id is not retrieved from Beacon, extract the channel from BD */
+      /* Unmapped the channel.This We have to do since we have done mapping in the hal to
+         overcome  the limitation of RXBD of not able to accomodate the bigger channel number.*/
+      if (!( rxChannel = limUnmapChannel(rxChannel)))
+      {
+         rxChannel = pMac->lim.gLimCurrentScanChannelId;
+      }
+      pBssDescr->channelId = rxChannel;
+   }
 
     pBssDescr->channelIdSelf = rxChannel;
     pBssDescr->titanHtCaps = 0;

@@ -347,6 +347,8 @@ void limHandleHeartBeatFailureTimeout(tpAniSirGlobal pMac);
 
 void limProcessDelStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ);
 void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ);
+tANI_U8 limUnmapChannel(tANI_U8 mapChannel);
+
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 
 typedef enum
