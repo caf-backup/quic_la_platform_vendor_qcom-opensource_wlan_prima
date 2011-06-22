@@ -15,12 +15,9 @@ LOCAL_CFLAGS += \
 #LOCAL_CFLAGS += \
 	-DANI_DEBUG
 
-LOCAL_C_INCLUDES:= \
-	$(LOCAL_PATH)/../asf/inc \
-	$(LOCAL_PATH)/../../../diag/include \
-	$(LOCAL_PATH)/../../../diag/src
-
-LOCAL_C_INCLUDES += vendor/qcom/proprietary/common/inc
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/../asf/inc
+LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)/diag/include
+LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)/common/inc
 
 
 LOCAL_SHARED_LIBRARIES := \
