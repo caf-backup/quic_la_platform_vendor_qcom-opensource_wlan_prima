@@ -126,6 +126,8 @@ vos_sched_open
   init_completion(&pSchedContext->TxShutdown);
   init_completion(&pSchedContext->ResumeMcEvent);
   init_completion(&pSchedContext->ResumeTxEvent);
+  spin_lock_init(&pSchedContext->McThreadLock);
+  spin_lock_init(&pSchedContext->TxThreadLock);
 
   init_waitqueue_head(&pSchedContext->mcWaitQueue);
   pSchedContext->mcEventFlag = 0;
@@ -142,7 +144,7 @@ vos_sched_open
   //Create the VOSS Main Controller thread
 
   pSchedContext->McThread = kthread_create(VosMCThread, pSchedContext,"VosMCThread");
-  if (IS_ERR(pSchedContext->McThread)) 
+  if (IS_ERR(pSchedContext->McThread))
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Could not Create VOSS Main Thread Controller",__func__);
@@ -158,7 +160,7 @@ vos_sched_open
             "%s: VOSS Main Controller thread Created",__func__);
 #ifndef ANI_MANF_DIAG
   pSchedContext->TxThread = kthread_create(VosTXThread, pSchedContext,"VosTXThread");
-  if (IS_ERR(pSchedContext->TxThread)) 
+  if (IS_ERR(pSchedContext->TxThread))
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Could not Create VOSS TX Thread",__func__);
@@ -237,13 +239,13 @@ VOS_STATUS vos_watchdog_open
 
   //Create the Watchdog thread
   pWdContext->WdThread = kthread_create(VosWDThread, pWdContext,"VosWDThread");
-  
-  if (IS_ERR(pWdContext->WdThread)) 
+
+  if (IS_ERR(pWdContext->WdThread))
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                "%s: Could not Create Watchdog thread",__func__);
      return VOS_STATUS_E_RESOURCES;
-  }  
+  }
   else
   {
      wake_up_process(pWdContext->WdThread);
@@ -318,7 +320,7 @@ VosMCThread
   {
     // This implements the execution model algorithm
     retWaitStatus = wait_event_interruptible(pSchedContext->mcWaitQueue,
-       test_bit(MC_POST_EVENT_MASK, &pSchedContext->mcEventFlag) || 
+       test_bit(MC_POST_EVENT_MASK, &pSchedContext->mcEventFlag) ||
        test_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag));
 
     if(retWaitStatus == -ERESTARTSYS)
@@ -337,12 +339,12 @@ VosMCThread
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                 "%s: MC thread signaled to shutdown",__func__);
         shutdown = VOS_TRUE;
-        
+
          /* Check for any Suspend Indication */
          if(test_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag))
          {
            clear_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag);
-        
+
             /* Unblock anyone waiting on suspend */
            complete(&pAdapter->mc_sus_event_var);
         }
@@ -491,11 +493,13 @@ VosMCThread
       if(test_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag))
       {
         clear_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag);
+        spin_lock(&pSchedContext->McThreadLock);
 
         /* Mc Thread Suspended */
         complete(&pAdapter->mc_sus_event_var);
 
         INIT_COMPLETION(pSchedContext->ResumeMcEvent);
+        spin_unlock(&pSchedContext->McThreadLock);
 
         /* Wait foe Resume Indication */
         wait_for_completion_interruptible(&pSchedContext->ResumeMcEvent);
@@ -512,8 +516,12 @@ VosMCThread
 int isWDresetInProgress(void)
 {
    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                "%s: Reset is in Progress...",__func__);			
+                "%s: Reset is in Progress...",__func__);
+#ifndef ANI_MANF_DIAG
    return gpVosWatchdogContext->resetInProgress;
+#else
+   return 0;
+#endif
 }
 /*---------------------------------------------------------------------------
   \brief VosWdThread() - The VOSS Watchdog thread
@@ -532,7 +540,7 @@ VosWDThread
   int retWaitStatus              = 0;
   v_BOOL_t shutdown              = VOS_FALSE;
   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-  
+
   set_user_nice(current, -3);
 
   if (Arg == NULL)
@@ -598,7 +606,7 @@ VosWDThread
           }
           else
           {
-             //do not enable reset if reset itself failed. 
+             //do not enable reset if reset itself failed.
              pWdContext->resetInProgress = false;
           }
         }
@@ -614,7 +622,7 @@ VosWDThread
         "%s: Watchdog thread woke up unnecessarily",__func__);
       break;
     } // while message loop processing
-    
+
   } // while TRUE
   // If we get here the Watchdog thread must exit
   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
@@ -677,7 +685,7 @@ static int VosTXThread ( void * Arg )
   {
     // This implements the execution model algorithm
     retWaitStatus = wait_event_interruptible(pSchedContext->txWaitQueue,
-        test_bit(TX_POST_EVENT_MASK, &pSchedContext->txEventFlag) || 
+        test_bit(TX_POST_EVENT_MASK, &pSchedContext->txEventFlag) ||
         test_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag));
 
 
@@ -701,7 +709,7 @@ static int VosTXThread ( void * Arg )
          if(test_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag))
          {
            clear_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag);
-        
+
             /* Unblock anyone waiting on suspend */
            complete(&pAdapter->tx_sus_event_var);
         }
@@ -786,11 +794,13 @@ static int VosTXThread ( void * Arg )
       if(test_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag))
       {
         clear_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag);
+        spin_lock(&pSchedContext->TxThreadLock);
 
         /* Tx Thread Suspended */
         complete(&pAdapter->tx_sus_event_var);
 
         INIT_COMPLETION(pSchedContext->ResumeTxEvent);
+        spin_unlock(&pSchedContext->TxThreadLock);
 
         /* Wait foe Resume Indication */
         wait_for_completion_interruptible(&pSchedContext->ResumeTxEvent);
@@ -836,12 +846,12 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     wake_up_interruptible(&gpVosSchedContext->mcWaitQueue);
     //Wait for MC to exit
     wait_for_completion_interruptible(&gpVosSchedContext->McShutdown);
-	
+
 #ifndef ANI_MANF_DIAG
     set_bit(TX_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->txEventFlag);
     set_bit(TX_POST_EVENT_MASK, &gpVosSchedContext->txEventFlag);
     wake_up_interruptible(&gpVosSchedContext->txWaitQueue);
-    //Wait for TX to exit	
+    //Wait for TX to exit
     wait_for_completion_interruptible(&gpVosSchedContext->TxShutdown);
 
 #endif
@@ -884,7 +894,7 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     hdd_adapter_t *pAdapter = NULL;
     hdd_chip_reset_stats_t *pResetStats;
     struct sdio_func *sdio_func_dev = NULL;
-    
+
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
         "%s: vos_watchdog resetting WLAN", __FUNCTION__);
     if (gpVosWatchdogContext == NULL)
@@ -911,8 +921,9 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     }
 
     sd_claim_host(sdio_func_dev);
-    
+
     /* Disable SDIO IRQ since we are in LOGP state */
+    libra_disable_sdio_irq_capability(sdio_func_dev, 1);
     libra_enable_sdio_irq(sdio_func_dev, 0);
 
     sd_release_host(sdio_func_dev);
@@ -927,7 +938,7 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
         /* Release the lock here */
         spin_unlock(&gpVosWatchdogContext->wdLock);
         return VOS_STATUS_E_FAILURE;
-    } 
+    }
     else if (pAdapter->isLogpInProgress)
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
@@ -935,10 +946,10 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
         /* Release the lock here */
         spin_unlock(&gpVosWatchdogContext->wdLock);
         return VOS_STATUS_E_FAILURE;
-    } 
+    }
 
     VOS_ASSERT(0);
-    
+
     /* Set the flags so that all future CMD53 and Wext commands get blocked right away */
     vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
     pAdapter->isLogpInProgress = TRUE;
@@ -950,7 +961,7 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
             "%s: Load/unload in Progress. Ignoring signaling Watchdog",__FUNCTION__);
-        return VOS_STATUS_E_FAILURE;    
+        return VOS_STATUS_E_FAILURE;
     }
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
@@ -964,7 +975,7 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     /* Update Reset Statistics */
     pResetStats = &pAdapter->hdd_stats.hddChipResetStats;
     pResetStats->totalLogpResets++;
-	
+
     switch (reason)
     {
      case VOS_CHIP_RESET_CMD53_FAILURE:
@@ -981,7 +992,7 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
 		break;
      default:
 	 	pResetStats->totalUnknownExceptions++;
-		break;		
+		break;
     }
 
     set_bit(WD_CHIP_RESET_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);

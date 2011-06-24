@@ -74,6 +74,23 @@ eHalStatus halPhyOpen(tHalHandle hHal)
     pMac->hphy.phy.antennaPathLoss = pMac->hphy.nvTables[NV_TABLE_ANTENNA_PATH_LOSS];
     pMac->hphy.phy.pktTypePwrLimits = pMac->hphy.nvTables[NV_TABLE_PACKET_TYPE_POWER_LIMITS];
 
+    //determine the tpc Split LUT point
+    {
+        tANI_U8 tpcIdx = TPC_LUT_SPLIT_IDX; //default split lut Idx
+        tRateGroupPwr *pwrOptimum;
+        if(halGetNvTableLoc(pMac, NV_TABLE_RATE_POWER_SETTINGS, (uNvTables **)&pwrOptimum) == eHAL_STATUS_SUCCESS)
+        {
+            t2Decimal _6Mbps_pwr = pwrOptimum[0][HAL_PHY_RATE_11A_6_MBPS].reported;
+            tpcIdx = (tANI_U8)((2 * _6Mbps_pwr)/100 - 17); //8.5dBm:idx0, 24dBm:idx31
+
+            if(tpcIdx > (TPC_MEM_GAIN_LUT_DEPTH - 1))
+            {
+                tpcIdx = TPC_LUT_SPLIT_IDX;
+            }
+        }
+        pMac->hphy.phy.tpcSplitPoint = tpcIdx;
+    }
+
     //intialize the setChan event for wait blocking around halPhySetChannel
     return (halPhy_VosEventInit(hHal));
 }
@@ -415,6 +432,10 @@ eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber,
     {
         rfChannel = rfGetChannelIndex(channelNumber, cbState);
 
+        //fw needs to account for boardLoss while determining the OFDM pwr cap at hot temp
+        setChan.ucNominalTempTxPwrCap = (2 * (OFDM_MAX_CHIP_OUTPUT_PWR - pMac->hphy.phy.antennaPathLoss[rfChannel] -
+                                                pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset)/100) - 17;
+
 		VOS_ASSERT(rfChannel != INVALID_RF_CHANNEL);
         /* Don't do copy in case of scanning, PLUTs are not used */
         if (calRequired)
@@ -620,6 +641,9 @@ eHalStatus halPhyFwInitDone(tHalHandle hHal)
 
     retVal = phyTxPowerInit(pMac);
 
+    //run the loopback CLPC evm cal to record the ofdm pwr offsets in NV
+    phyClpcLpbkCal(pMac);
+
 #ifndef WLAN_FTM_STUB
     if (pMac->gDriverType == eDRIVER_TYPE_MFG)
     {
@@ -643,15 +667,6 @@ eHalStatus halPhyFwInitDone(tHalHandle hHal)
         SET_PHY_REG(pMac->hHdd, QWLAN_RFAPB_TX_DELAY6_REG,
                            ((29 << QWLAN_RFAPB_TX_DELAY6_PA_ST3_START_PRD_OFFSET) |
                             (0 << QWLAN_RFAPB_TX_DELAY6_PA_ST3_END_PRD_OFFSET)));
-
-        //run the loopback CLPC evm cal to record the ofdm pwr offsets in NV
-        //if(pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset == 0)
-        //{
-        //    phyClpcLpbkCal(pMac);
-        //}
-
-        //force the ofdm offset to 0 till the CLPC characterization issues are resolved
-        pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset = 0;
     }
     else
 #endif

@@ -246,6 +246,7 @@ limDeletePreAuthList(tpAniSirGlobal pMac)
 
         PELOG1(limLog(pMac, LOG1, FL("=====> limDeletePreAuthList \n"));)
         limReleasePreAuthNode(pMac, pCurrNode);
+		tx_timer_delete(&pCurrNode ->timer);
 
         pCurrNode = pTempNode;
     }

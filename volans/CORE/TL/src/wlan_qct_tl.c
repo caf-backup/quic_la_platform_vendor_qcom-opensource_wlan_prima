@@ -186,6 +186,14 @@ int bdPduInterruptGetThreshold = WLANTL_BD_PDU_INTERRUPT_GET_THRESHOLD;
 #define SWAP_ENDIAN_UINT32(a)          ((a) = ((a) >> 0x18 ) |(((a) & 0xFF0000) >> 0x08) | \
                                             (((a) & 0xFF00) << 0x08)  | (((a) & 0xFF) << 0x18))
 
+
+#ifdef VOLANS_HW_ISSUE_FIX_QID0_FOR_NON_QOS_ONLY
+#define UP_TO_TID_MAPPING(Up) Up
+#else
+v_U8_t txUpToTidMapping[STACFG_MAX_TC] = {3,2,2,3,4,5,6,7};
+#define UP_TO_TID_MAPPING(Up) txUpToTidMapping[Up]
+#endif
+
 /*--------------------------------------------------------------------------
    TID to AC mapping in TL
  --------------------------------------------------------------------------*/
@@ -7705,10 +7713,19 @@ WLANTL_Translate8023To80211Header
   if(pTLCb->atlSTAClients[ucStaId].wSTADesc.ucQosEnabled)
   {
       pw80211Header->wFrmCtrl.subType  = WLANTL_80211_DATA_QOS_SUBTYPE;
+#ifdef VOLANS_HW_ISSUE_FIX_QID0_FOR_NON_QOS_ONLY    
 #ifdef WLAN_SOFTAP_FEATURE
       *((v_U16_t *)((v_U8_t *)ppvBDHeader + ucQoSOffset)) = ucUP;
 #else
       pw80211Header->usQosCtrl         = ucUP; //? is this the right byte order
+#endif
+
+#else      
+#ifdef WLAN_SOFTAP_FEATURE
+      *((v_U16_t *)((v_U8_t *)ppvBDHeader + ucQoSOffset)) = UP_TO_TID_MAPPING(ucUP);
+#else
+      pw80211Header->usQosCtrl         = UP_TO_TID_MAPPING(ucUP); //? is this the right byte order
+#endif
 #endif
   }
   else

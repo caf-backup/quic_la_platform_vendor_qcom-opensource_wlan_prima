@@ -3627,11 +3627,14 @@ __limProcessSmeAssocCnfNew(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsg
     else
     {
         // SME_ASSOC_CNF status is non-success, so STA is not allowed to be associated
+        /*Since the HAL sta entry is created for denied STA we need to remove this HAL entry.So to do that set updateContext to 1*/
+		if(!pStaDs->mlmStaContext.updateContext)
+			pStaDs->mlmStaContext.updateContext = 1;
         limRejectAssociation(pMac, pStaDs->staAddr,
                              pStaDs->mlmStaContext.subType,
                              true, pStaDs->mlmStaContext.authType,
                              pStaDs->assocId, true,
-                             assocCnf.statusCode, psessionEntry);
+                             eSIR_MAC_UNSPEC_FAILURE_STATUS, psessionEntry);
         return;
     }
 

@@ -5,13 +5,13 @@
    This program is the confidential and proprietary product of Airgo Networks Inc.
    Any Unauthorized use, reproduction or transfer of this program is strictly prohibited.
 
-  
+
    phy.h: Types needed only for internal phy interfaces.
             Nothing in here is needed for configuration or by halPhy interface clients.
    Author:  Mark Nelson
    Date:    3/4/05
 
-   History - 
+   History -
    Date        Modified by              Modification Information
   --------------------------------------------------------------------------
 
@@ -36,15 +36,15 @@ typedef struct
     eRegDomainId curRegDomain;                  //index to regulatory domain table
 
     tANI_BOOLEAN phyPeriodicCalEnable;          //ON when periodic cals are allowed
-    
+
     tPhyTest test;
-    
+
 #ifdef ANI_PHY_DEBUG
     tANI_U32 phyDebugLogLevel;                  //Used to check whether debug logs in Calibrations to be printed or not
 #endif
     tANI_U8 openLoopTxGain;
-    tANI_U8 reserved;
-    
+    tANI_U8 tpcSplitPoint;
+
     //global pointers to NV tables for use by the physical layer
     //tRxGainShiftChannel *rxGainShiftTable;      //rxGainShiftTable[NUM_20MHZ_RF_CHANNELS]
     sRegulatoryDomains  *regDomainInfo;         // pointer to regulatory domain table
