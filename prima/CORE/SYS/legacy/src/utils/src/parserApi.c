@@ -2455,10 +2455,12 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     tANI_U32        status, nPayload;
     tANI_U8        *pPayload;
     tpSirMacMgmtHdr pHdr;
+    tANI_U8         mappedRXCh;
 
     pPayload = WDA_GET_RX_MPDU_DATA( pFrame );
     nPayload = WDA_GET_RX_PAYLOAD_LEN( pFrame );
     pHdr     = WDA_GET_RX_MAC_HEADER( pFrame );
+    mappedRXCh = WDA_GET_RX_CH( pFrame );
     
     // Zero-init our [out] parameter,
     palZeroMemory( pMac->hHdd, ( tANI_U8* )pBeaconStruct, sizeof(tSirProbeRespBeacon) );
@@ -2619,6 +2621,10 @@ sirConvertBeaconFrame2Struct(tpAniSirGlobal       pMac,
     else if(beacon.HTInfo.present)
     {
         pBeaconStruct->channelNumber = beacon.HTInfo.primaryChannel;
+    }
+    else
+    {
+        pBeaconStruct->channelNumber = limUnmapChannel(mappedRXCh);
     }
 
     if ( beacon.RSN.present )

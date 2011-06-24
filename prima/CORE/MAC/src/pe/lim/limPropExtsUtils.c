@@ -493,8 +493,17 @@ limCollectMeasurementData(tpAniSirGlobal pMac,
         ieLen = pBeacon->wpa.length + pBeacon->propIEinfo.wdsLength;
     }
 
-	if (chanId == 0)
-		chanId = WDA_GET_RX_CH(pRxPacketInfo);
+    if (chanId == 0)
+    {
+      /* If the channel Id is not retrieved from Beacon, extract the channel from BD */
+      /* Unmapped the channel.This We have to do since we have done mapping in the hal to
+         overcome  the limitation of RXBD of not able to accomodate the bigger channel number.*/
+      chanId = WDA_GET_RX_CH(pRxPacketInfo);
+      if(!( chanId = limUnmapChannel(chanId))) 
+      {
+           chanId = pMac->lim.gLimCurrentScanChannelId;
+      }
+    }
 	
     /*
      * Now always returns nwType as 11G for data packets - FIXIT
