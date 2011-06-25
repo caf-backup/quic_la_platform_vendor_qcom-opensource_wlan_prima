@@ -371,6 +371,12 @@ typedef struct
 #endif /* ANI_MANF_DIAG */
 } tWDA_CbContext ; 
 
+typedef struct
+{
+   v_PVOID_t            pWdaContext;             /* pointer to WDA context*/
+   v_PVOID_t            wdaMsgParam;            /* PE parameter tracking */
+   v_PVOID_t            wdaWdiApiMsgParam;      /* WDI API paramter tracking */
+} tWDA_ReqParams; 
 
 /*
  * FUNCTION: WDA_open

@@ -1353,11 +1353,15 @@ VOS_STATUS WDA_ResumeDataTx(tWDA_CbContext *pWDA)
  */ 
 void WDA_InitScanReqCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tInitScanParams *pWDA_ScanParam = (tInitScanParams *)pWDA->wdaScanMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tInitScanParams *pWDA_ScanParam ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   pWDA_ScanParam = (tInitScanParams *)pWdaParams->wdaMsgParam;
 
    WDA_VOS_ASSERT(NULL != pWDA_ScanParam);
 
@@ -1374,11 +1378,9 @@ void WDA_InitScanReqCallback(WDI_Status status, void* pUserData)
 
    }
    /* free WDI command buffer */
-   vos_mem_free(pWDA->wdaWdiScanApiMsgParam) ;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
 
-   /* set stored memory pointers to NULL */
-   pWDA->wdaWdiScanApiMsgParam = NULL;
-   pWDA->wdaScanMsgParam = NULL;
+   vos_mem_free(pWdaParams) ;
 
    
    /* assign status to scan params */
@@ -1401,11 +1403,14 @@ VOS_STATUS  WDA_ProcessInitScanReq(tWDA_CbContext *pWDA,
    WDI_InitScanReqParamsType *wdiInitScanParam = 
                   (WDI_InitScanReqParamsType *)vos_mem_malloc(
                                    sizeof(WDI_InitScanReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiInitScanParam) ; 
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    /* Copy init Scan params to WDI structure */
    wdiInitScanParam->wdiReqInfo.wdiScanMode = initScanParams->scanMode ;
@@ -1415,7 +1420,7 @@ VOS_STATUS  WDA_ProcessInitScanReq(tWDA_CbContext *pWDA,
    wdiInitScanParam->wdiReqInfo.ucFrameType = initScanParams->frameType ;
    wdiInitScanParam->wdiReqInfo.ucFrameLength = initScanParams->frameLength ;
  
-   /* if Frame length, copy macMgmtHdr ro WDI structure */ 
+   /* if Frame length, copy macMgmtHdr or WDI structure */ 
    if(0 != wdiInitScanParam->wdiReqInfo.ucFrameLength)
    {
       vos_mem_copy(&wdiInitScanParam->wdiReqInfo.wdiMACMgmtHdr, 
@@ -1423,13 +1428,11 @@ VOS_STATUS  WDA_ProcessInitScanReq(tWDA_CbContext *pWDA,
    } 
    wdiInitScanParam->wdiReqStatusCB = NULL ;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaWdiScanApiMsgParam) && 
-                                            (NULL == pWDA->wdaScanMsgParam));
 
    /* Store Init Req pointer, as this will be used for response */
-   pWDA->wdaWdiScanApiMsgParam = 
-                           (WDI_InitScanReqParamsType *)wdiInitScanParam ;
-   pWDA->wdaScanMsgParam = initScanParams;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = initScanParams;
+   pWdaParams->wdaWdiApiMsgParam = wdiInitScanParam;
 
    /* first try to suspend TX */
    status = WDA_SuspendDataTx(pWDA) ;
@@ -1441,7 +1444,7 @@ VOS_STATUS  WDA_ProcessInitScanReq(tWDA_CbContext *pWDA,
 
    /* call DAL API to pass init scan request to DAL */
    status = WDI_InitScanReq(wdiInitScanParam, 
-                        WDA_InitScanReqCallback, pWDA) ;
+                        WDA_InitScanReqCallback, pWdaParams) ;
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
@@ -1460,9 +1463,8 @@ handleWdiFailure:
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                       "Failure in WDI Api, free all the memory " );
    /* free WDI command buffer */
-   vos_mem_free(pWDA->wdaWdiScanApiMsgParam) ;
-   pWDA->wdaWdiScanApiMsgParam = NULL;
-   pWDA->wdaScanMsgParam = NULL;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
 
    /* send Failure to PE */
    initScanParams->status = eSIR_FAILURE ;
@@ -1479,20 +1481,23 @@ handleWdiFailure:
 void WDA_StartScanReqCallback(WDI_StartScanRspParamsType *pScanRsp, 
                                                     void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tStartScanParams *pWDA_ScanParam = 
-                           (tStartScanParams *)pWDA->wdaScanMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tStartScanParams *pWDA_ScanParam;
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   pWDA_ScanParam = (tStartScanParams *)pWdaParams->wdaMsgParam;
+
    WDA_VOS_ASSERT(NULL != pWDA_ScanParam);
 
-   WDA_VOS_ASSERT(NULL != pWDA->wdaWdiScanApiMsgParam) ;
+   WDA_VOS_ASSERT(NULL != pWdaParams->wdaWdiApiMsgParam) ;
 
-   vos_mem_free(pWDA->wdaWdiScanApiMsgParam) ;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
 
-   pWDA->wdaWdiScanApiMsgParam = NULL;
-   pWDA->wdaScanMsgParam = NULL;
    
    /* assign status to scan params */
    pWDA_ScanParam->status = CONVERT_WDI2SIR_STATUS(pScanRsp->wdiStatus) ;
@@ -1516,27 +1521,29 @@ VOS_STATUS  WDA_ProcessStartScanReq(tWDA_CbContext *pWDA,
    WDI_StartScanReqParamsType *wdiStartScanParams = 
                             (WDI_StartScanReqParamsType *)vos_mem_malloc(
                                           sizeof(WDI_StartScanReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiStartScanParams) ;
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    /* Copy init Scan params to WDI structure */
    wdiStartScanParams->ucChannel = startScanParams->scanChannel ;
    wdiStartScanParams->wdiReqStatusCB = NULL ;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaWdiScanApiMsgParam) && 
-                                           (NULL == pWDA->wdaScanMsgParam));
 
    /* Store Init Req pointer, as this will be used for response */
-   pWDA->wdaScanMsgParam = (void *)startScanParams ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiScanApiMsgParam = (void *)wdiStartScanParams ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = startScanParams;
+   pWdaParams->wdaWdiApiMsgParam = wdiStartScanParams;
 
    /* call DAL API to pass init scan request to DAL */
    status = WDI_StartScanReq(wdiStartScanParams, 
-                              WDA_StartScanReqCallback, pWDA) ;
+                              WDA_StartScanReqCallback, pWdaParams) ;
 
    /* failure returned by WDI API */
    if(IS_WDI_STATUS_FAILURE(status))
@@ -1544,9 +1551,8 @@ VOS_STATUS  WDA_ProcessStartScanReq(tWDA_CbContext *pWDA,
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                      "Failure in Start Scan WDI API, free all the memory "
                      "It should be due to previous abort scan." );
-      vos_mem_free(pWDA->wdaWdiScanApiMsgParam) ;
-      pWDA->wdaWdiScanApiMsgParam = NULL;
-      pWDA->wdaScanMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
       startScanParams->status = eSIR_FAILURE ;
       WDA_SendMsg(pWDA, WDA_START_SCAN_RSP, (void *)startScanParams, 0) ;
    }
@@ -1560,17 +1566,21 @@ VOS_STATUS  WDA_ProcessStartScanReq(tWDA_CbContext *pWDA,
  */ 
 void WDA_EndScanReqCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tEndScanParams *endScanParam = (tEndScanParams *)pWDA->wdaScanMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tEndScanParams *endScanParam;
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                              "<------ %s " ,__FUNCTION__);
+
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   endScanParam = (tEndScanParams *)pWdaParams->wdaMsgParam;
 
    WDA_VOS_ASSERT(NULL != endScanParam);
 
    /* Free WDI command buffer */
-   vos_mem_free(pWDA->wdaWdiScanApiMsgParam) ;
-   pWDA->wdaWdiScanApiMsgParam = NULL;
-   pWDA->wdaScanMsgParam = NULL;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
 
    /* assign status to scan params */
    endScanParam->status = CONVERT_WDI2SIR_STATUS(status) ;
@@ -1592,36 +1602,36 @@ VOS_STATUS  WDA_ProcessEndScanReq(tWDA_CbContext *pWDA,
    WDI_EndScanReqParamsType *wdiEndScanParams =
                             (WDI_EndScanReqParamsType *)vos_mem_malloc(
                                           sizeof(WDI_EndScanReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                              "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiEndScanParams) ;
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    /* Copy init Scan params to WDI structure */
    wdiEndScanParams->ucChannel = endScanParams->scanChannel ;
    wdiEndScanParams->wdiReqStatusCB = NULL ;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaWdiScanApiMsgParam) && 
-                                             (NULL == pWDA->wdaScanMsgParam));
-
    /* Store Init Req pointer, as this will be used for response */
-   pWDA->wdaScanMsgParam = (void *)endScanParams ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiScanApiMsgParam = (void *)wdiEndScanParams ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = endScanParams;
+   pWdaParams->wdaWdiApiMsgParam = wdiEndScanParams;
 
    /* call DAL API to pass init scan request to DAL */
    status = WDI_EndScanReq(wdiEndScanParams, 
-                              WDA_EndScanReqCallback, pWDA) ;
+                              WDA_EndScanReqCallback, pWdaParams) ;
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                      "Failure in End Scan WDI API, free all the memory "
                      "It should be due to previous abort scan." );
-      vos_mem_free(pWDA->wdaWdiScanApiMsgParam) ;
-      pWDA->wdaWdiScanApiMsgParam = NULL;
-      pWDA->wdaScanMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
       endScanParams->status = eSIR_FAILURE ;
       WDA_SendMsg(pWDA, WDA_END_SCAN_RSP, (void *)endScanParams, 0) ;
    }
@@ -1635,18 +1645,22 @@ VOS_STATUS  WDA_ProcessEndScanReq(tWDA_CbContext *pWDA,
  */ 
 void WDA_FinishScanReqCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
    tFinishScanParams *finishScanParam = 
-                         (tFinishScanParams *)pWDA->wdaFinishScanMsgParam ;
+                         (tFinishScanParams *)pWdaParams->wdaMsgParam ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   finishScanParam = (tFinishScanParams *)pWdaParams->wdaMsgParam;
+
    WDA_VOS_ASSERT(NULL != finishScanParam);
 
-   vos_mem_free(pWDA->wdaWdiFinishScanApiMsgParam) ; 
-   pWDA->wdaWdiFinishScanApiMsgParam = NULL;
-   pWDA->wdaFinishScanMsgParam = NULL;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
 
    /* 
     * Now Resume TX, if we reached here means, TX is already suspended, we 
@@ -1676,10 +1690,14 @@ VOS_STATUS  WDA_ProcessFinishScanReq(tWDA_CbContext *pWDA,
    WDI_FinishScanReqParamsType *wdiFinishScanParams =
                             (WDI_FinishScanReqParamsType *)vos_mem_malloc(
                                         sizeof(WDI_FinishScanReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                              "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiFinishScanParams) ;
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    /* Copy init Scan params to WDI structure */
    wdiFinishScanParams->wdiReqInfo.wdiScanMode = finishScanParams->scanMode ;
@@ -1703,18 +1721,15 @@ VOS_STATUS  WDA_ProcessFinishScanReq(tWDA_CbContext *pWDA,
    } 
    wdiFinishScanParams->wdiReqStatusCB = NULL ;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaWdiFinishScanApiMsgParam) && 
-                               (NULL == pWDA->wdaFinishScanMsgParam));
-
    /* Store Init Req pointer, as this will be used for response */
-   pWDA->wdaFinishScanMsgParam = (void *)finishScanParams ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiFinishScanApiMsgParam = (void *)wdiFinishScanParams ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = finishScanParams;
+   pWdaParams->wdaWdiApiMsgParam = wdiFinishScanParams;
 
    /* call DAL API to pass init scan request to DAL */
    status = WDI_FinishScanReq(wdiFinishScanParams, 
-                              WDA_FinishScanReqCallback, pWDA) ;
+                              WDA_FinishScanReqCallback, pWdaParams) ;
 
    
    /* 
@@ -1724,10 +1739,8 @@ VOS_STATUS  WDA_ProcessFinishScanReq(tWDA_CbContext *pWDA,
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                      "Failure in Finish Scan WDI API, free all the memory " );
-      vos_mem_free(((WDI_FinishScanReqParamsType *)
-                                      pWDA->wdaWdiScanApiMsgParam)) ;
-      pWDA->wdaWdiFinishScanApiMsgParam = NULL;
-      pWDA->wdaFinishScanMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
 
       finishScanParams->status = eSIR_FAILURE ;
       WDA_SendMsg(pWDA, WDA_FINISH_SCAN_RSP, (void *)finishScanParams, 0) ;
@@ -1747,16 +1760,19 @@ VOS_STATUS  WDA_ProcessFinishScanReq(tWDA_CbContext *pWDA,
  */ 
 void WDA_JoinReqCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tSwitchChannelParams *joinReqParam = 
-                           (tSwitchChannelParams *)pWDA->wdaMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tSwitchChannelParams *joinReqParam;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   joinReqParam = (tSwitchChannelParams *)pWdaParams->wdaMsgParam;
+
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+   vos_mem_free(pWdaParams) ;
 
    /* reset macBSSID */
    vos_mem_set(pWDA->macBSSID, sizeof(pWDA->macBSSID),0 );
@@ -1781,11 +1797,14 @@ VOS_STATUS WDA_ProcessJoinReq(tWDA_CbContext *pWDA,
    WDI_JoinReqParamsType *wdiJoinReqParam = 
                              (WDI_JoinReqParamsType *)vos_mem_malloc(
                                    sizeof(WDI_JoinReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams));
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiJoinReqParam) ;
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    /* copy the BSSID for pWDA */
    vos_mem_copy(wdiJoinReqParam->wdiReqInfo.macBSSID, pWDA->macBSSID, 
@@ -1800,25 +1819,21 @@ VOS_STATUS WDA_ProcessJoinReq(tWDA_CbContext *pWDA,
                                         joinReqParam->secondaryChannelOffset ;
    wdiJoinReqParam->wdiReqStatusCB = NULL ;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                                       (NULL == pWDA->wdaWdiApiMsgParam));
-   
    /* Store Init Req pointer, as this will be used for response */
-   pWDA->wdaMsgParam = (void *)joinReqParam ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiJoinReqParam ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = joinReqParam;
+   pWdaParams->wdaWdiApiMsgParam = wdiJoinReqParam;
 
    status = WDI_JoinReq(wdiJoinReqParam, 
-                               (WDI_JoinRspCb )WDA_JoinReqCallback, pWDA) ;
+                               (WDI_JoinRspCb )WDA_JoinReqCallback, pWdaParams) ;
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                    "Failure in Join WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
       joinReqParam->status = eSIR_FAILURE ;
       WDA_SendMsg(pWDA, WDA_SWITCH_CHANNEL_RSP, (void *)joinReqParam, 0) ;
    }
@@ -1833,20 +1848,22 @@ VOS_STATUS WDA_ProcessJoinReq(tWDA_CbContext *pWDA,
 void WDA_SwitchChannelReqCallback(
                WDI_SwitchCHRspParamsType   *wdiSwitchChanRsp, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tSwitchChannelParams *pSwitchChanParams = 
-                                    (tSwitchChannelParams *)pWDA->wdaMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData ; 
+   tWDA_CbContext *pWDA; 
+   tSwitchChannelParams *pSwitchChanParams;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   pSwitchChanParams = (tSwitchChannelParams *)pWdaParams->wdaMsgParam;
    
 #ifdef WLAN_FEATURE_VOWIFI
    pSwitchChanParams->txMgmtPower  =  wdiSwitchChanRsp->ucTxMgmtPower;
 #endif
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
 
    pSwitchChanParams->status = 
                           CONVERT_WDI2SIR_STATUS(wdiSwitchChanRsp->wdiStatus) ;
@@ -1867,11 +1884,14 @@ VOS_STATUS WDA_ProcessChannelSwitchReq(tWDA_CbContext *pWDA,
    WDI_SwitchChReqParamsType *wdiSwitchChanParam = 
                          (WDI_SwitchChReqParamsType *)vos_mem_malloc(
                                          sizeof(WDI_SwitchChReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiSwitchChanParam);
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    wdiSwitchChanParam->wdiChInfo.ucChannel = pSwitchChanParams->channelNumber;
 #ifndef WLAN_FEATURE_VOWIFI
@@ -1883,10 +1903,10 @@ VOS_STATUS WDA_ProcessChannelSwitchReq(tWDA_CbContext *pWDA,
    wdiSwitchChanParam->wdiReqStatusCB = NULL ;
 
    /* Store req pointer, as this will be used for response */
-   pWDA->wdaMsgParam = (void *)pSwitchChanParams ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiSwitchChanParam ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = pSwitchChanParams;
+   pWdaParams->wdaWdiApiMsgParam = wdiSwitchChanParam;
 
 #ifdef WLAN_FEATURE_VOWIFI
    wdiSwitchChanParam->wdiChInfo.cMaxTxPower 
@@ -1899,15 +1919,14 @@ VOS_STATUS WDA_ProcessChannelSwitchReq(tWDA_CbContext *pWDA,
                      sizeof(tSirMacAddr));
 #endif
    status = WDI_SwitchChReq(wdiSwitchChanParam, 
-                     (WDI_SwitchChRspCb)WDA_SwitchChannelReqCallback, pWDA);
+                     (WDI_SwitchChRspCb)WDA_SwitchChannelReqCallback, pWdaParams);
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
        "Failure in process channel switch Req WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
       pSwitchChanParams->status = eSIR_FAILURE ;
       WDA_SendMsg(pWDA, WDA_SWITCH_CHANNEL_RSP, (void *)pSwitchChanParams, 0) ;
    }
@@ -1922,13 +1941,17 @@ VOS_STATUS WDA_ProcessChannelSwitchReq(tWDA_CbContext *pWDA,
 void WDA_ConfigBssReqCallback(WDI_ConfigBSSRspParamsType *wdiConfigBssRsp  
                                                           ,void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tAddBssParams *configBssReqParam = 
-                             (tAddBssParams *)pWDA->wdaConfigBssMsgParam ;
-   tAddStaParams *staConfigBssParam = &configBssReqParam->staContext ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tAddBssParams *configBssReqParam;
+   tAddStaParams *staConfigBssParam;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   configBssReqParam = (tAddBssParams *)pWdaParams->wdaMsgParam;
+   staConfigBssParam = &configBssReqParam->staContext ;
 
    configBssReqParam->status = 
                      CONVERT_WDI2SIR_STATUS(wdiConfigBssRsp->wdiStatus);
@@ -2010,9 +2033,8 @@ void WDA_ConfigBssReqCallback(WDI_ConfigBSSRspParamsType *wdiConfigBssRsp
 #endif
    }
 
-   vos_mem_free(pWDA->wdaWdiConfigBssApiMsgParam) ;
-   pWDA->wdaWdiConfigBssApiMsgParam = NULL;
-   pWDA->wdaConfigBssMsgParam = NULL;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
 
    WDA_SendMsg(pWDA, WDA_ADD_BSS_RSP, (void *)configBssReqParam , 0) ;
 
@@ -2047,36 +2069,35 @@ VOS_STATUS WDA_ProcessConfigBssReq(tWDA_CbContext *pWDA,
    WDI_ConfigBSSReqParamsType *wdiConfigBssReqParam =
                              (WDI_ConfigBSSReqParamsType *)vos_mem_malloc(
                                    sizeof(WDI_ConfigBSSReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiConfigBssReqParam) ;
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    vos_mem_set(wdiConfigBssReqParam, sizeof(WDI_ConfigBSSReqParamsType), 0);
 
    WDA_UpdateBSSParams(pWDA, &wdiConfigBssReqParam->wdiReqInfo, 
                        configBssReqParam) ;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaConfigBssMsgParam) && 
-                           (NULL == pWDA->wdaWdiConfigBssApiMsgParam));
-
    /* Store Init Req pointer, as this will be used for response */
-   pWDA->wdaConfigBssMsgParam = (void *)configBssReqParam ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiConfigBssApiMsgParam = (void *)wdiConfigBssReqParam ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = configBssReqParam;
+   pWdaParams->wdaWdiApiMsgParam = wdiConfigBssReqParam;
 
    status = WDI_ConfigBSSReq(wdiConfigBssReqParam, 
-                        (WDI_ConfigBSSRspCb )WDA_ConfigBssReqCallback, pWDA) ;
+                        (WDI_ConfigBSSRspCb )WDA_ConfigBssReqCallback, pWdaParams) ;
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                    "Failure in Config BSS WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiConfigBssApiMsgParam) ;
-      pWDA->wdaWdiConfigBssApiMsgParam = NULL;
-      pWDA->wdaConfigBssMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
 
       configBssReqParam->status = eSIR_FAILURE ;
 
@@ -2207,15 +2228,19 @@ VOS_STATUS WDA_ProcessPostAssocReq(tWDA_CbContext *pWDA,
 void WDA_AddStaReqCallback(WDI_ConfigSTARspParamsType *wdiConfigStaRsp,  
                                                           void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tAddStaParams *addStaReqParam = 
-                             (tAddStaParams *)pWDA->wdaAddStaMsgParam ;
-
-   addStaReqParam->status = 
-                   CONVERT_WDI2SIR_STATUS(wdiConfigStaRsp->wdiStatus) ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tAddStaParams *addStaReqParam;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
+
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   addStaReqParam = (tAddStaParams *)pWdaParams->wdaMsgParam;
+
+   addStaReqParam->status = 
+                   CONVERT_WDI2SIR_STATUS(wdiConfigStaRsp->wdiStatus) ;
 
    if(WDI_STATUS_SUCCESS == wdiConfigStaRsp->wdiStatus)
    {
@@ -2234,9 +2259,8 @@ void WDA_AddStaReqCallback(WDI_ConfigSTARspParamsType *wdiConfigStaRsp,
       }
    }
 
-   vos_mem_free(pWDA->wdaWdiAddStaApiMsgParam) ;
-   pWDA->wdaWdiAddStaApiMsgParam = NULL;
-   pWDA->wdaAddStaMsgParam = NULL;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+   vos_mem_free(pWdaParams) ;
 
    WDA_SendMsg(pWDA, WDA_ADD_STA_RSP, (void *)addStaReqParam, 0) ;
 
@@ -2256,11 +2280,14 @@ VOS_STATUS WDA_ProcessAddStaReq(tWDA_CbContext *pWDA,
    WDI_ConfigSTAReqParamsType *wdiConfigStaReqParam =
                            (WDI_ConfigSTAReqParamsType *)vos_mem_malloc(
                                    sizeof(WDI_ConfigSTAReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiConfigStaReqParam) ;
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    vos_mem_set(wdiConfigStaReqParam, sizeof(WDI_ConfigSTAReqParamsType), 0);
 
@@ -2268,25 +2295,21 @@ VOS_STATUS WDA_ProcessAddStaReq(tWDA_CbContext *pWDA,
    WDA_UpdateSTAParams(pWDA, &wdiConfigStaReqParam->wdiReqInfo, 
                        addStaReqParam) ;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaAddStaMsgParam) && 
-                                       (NULL == pWDA->wdaWdiAddStaApiMsgParam));
-
    /* Store Init Req pointer, as this will be used for response */
-   pWDA->wdaAddStaMsgParam = (void *)addStaReqParam ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiAddStaApiMsgParam = (void *)wdiConfigStaReqParam ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = addStaReqParam;
+   pWdaParams->wdaWdiApiMsgParam = wdiConfigStaReqParam;
 
    status = WDI_ConfigSTAReq(wdiConfigStaReqParam, 
-                        (WDI_ConfigSTARspCb )WDA_AddStaReqCallback, pWDA) ;
+                        (WDI_ConfigSTARspCb )WDA_AddStaReqCallback, pWdaParams) ;
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                    "Failure in Config STA WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiAddStaApiMsgParam) ;
-      pWDA->wdaWdiAddStaApiMsgParam = NULL;
-      pWDA->wdaAddStaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
 
       addStaReqParam->status = eSIR_FAILURE ;
 
@@ -2303,12 +2326,17 @@ VOS_STATUS WDA_ProcessAddStaReq(tWDA_CbContext *pWDA,
 void WDA_DelBSSReqCallback(WDI_DelBSSRspParamsType *wdiDelBssRsp, 
                                                          void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tDeleteBssParams *delBssReqParam = (tDeleteBssParams *)pWDA->wdaMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tDeleteBssParams *delBssReqParam;
    tANI_U8  staIdx,tid;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
+
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   delBssReqParam = (tDeleteBssParams *)pWdaParams->wdaMsgParam;
 
    delBssReqParam->status = CONVERT_WDI2SIR_STATUS(wdiDelBssRsp->wdiStatus) ;
 
@@ -2317,9 +2345,8 @@ void WDA_DelBSSReqCallback(WDI_DelBSSRspParamsType *wdiDelBssRsp,
       vos_mem_copy(delBssReqParam->bssid, wdiDelBssRsp->macBSSID, 
                                              sizeof(tSirMacAddr)) ;
    }
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
 
    /* reset the the system role*/
    pWDA->wdaGlobalSystemRole = eSYSTEM_UNKNOWN_ROLE;
@@ -2354,34 +2381,33 @@ VOS_STATUS WDA_ProcessDelBssReq(tWDA_CbContext *pWDA,
    WDI_DelBSSReqParamsType *wdiDelBssReqParam = 
                              (WDI_DelBSSReqParamsType *)vos_mem_malloc(
                                    sizeof(WDI_DelBSSReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiDelBssReqParam) ;
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    wdiDelBssReqParam->ucBssIdx = delBssParam->bssIdx;
    wdiDelBssReqParam->wdiReqStatusCB = NULL ;
    
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                                       (NULL == pWDA->wdaWdiApiMsgParam));
-
    /* Store Init Req pointer, as this will be used for response */
-   pWDA->wdaMsgParam = (void *)delBssParam ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiDelBssReqParam ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = delBssParam;
+   pWdaParams->wdaWdiApiMsgParam = wdiDelBssReqParam;
 
    status = WDI_DelBSSReq(wdiDelBssReqParam, 
-                        (WDI_DelBSSRspCb )WDA_DelBSSReqCallback, pWDA) ;
+                        (WDI_DelBSSRspCb )WDA_DelBSSReqCallback, pWdaParams) ;
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                    "Failure in Del BSS WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
       delBssParam->status = eSIR_FAILURE ;
       WDA_SendMsg(pWDA, WDA_DELETE_BSS_RSP, (void *)delBssParam, 0) ;
    }
@@ -2396,11 +2422,16 @@ VOS_STATUS WDA_ProcessDelBssReq(tWDA_CbContext *pWDA,
 void WDA_DelSTAReqCallback(WDI_DelSTARspParamsType *wdiDelStaRsp, 
                                                          void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tDeleteStaParams *delStaReqParam = (tDeleteStaParams *)pWDA->wdaMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tDeleteStaParams *delStaReqParam;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
+
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   delStaReqParam = (tDeleteStaParams *)pWdaParams->wdaMsgParam;
 
    delStaReqParam->status = CONVERT_WDI2SIR_STATUS(wdiDelStaRsp->wdiStatus) ;
 
@@ -2408,9 +2439,8 @@ void WDA_DelSTAReqCallback(WDI_DelSTARspParamsType *wdiDelStaRsp,
    {
       delStaReqParam->staIdx = wdiDelStaRsp->usSTAIdx ;
    }
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
 
    /*Reset the BA information corresponding to this STAIdx */
    pWDA->wdaStaInfo[wdiDelStaRsp->usSTAIdx].ucValidStaIndex = 
@@ -2434,35 +2464,34 @@ VOS_STATUS WDA_ProcessDelStaReq(tWDA_CbContext *pWDA,
    WDI_DelSTAReqParamsType *wdiDelStaReqParam = 
                              (WDI_DelSTAReqParamsType *)vos_mem_malloc(
                                    sizeof(WDI_DelSTAReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiDelStaReqParam) ;
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    wdiDelStaReqParam->usSTAIdx = delStaParam->staIdx ;
    wdiDelStaReqParam->wdiReqStatusCB = NULL ;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                                       (NULL == pWDA->wdaWdiApiMsgParam));
-
    /* Store Init Req pointer, as this will be used for response */
-   pWDA->wdaMsgParam = (void *)delStaParam ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiDelStaReqParam ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = delStaParam;
+   pWdaParams->wdaWdiApiMsgParam = wdiDelStaReqParam;
 
    status = WDI_DelSTAReq(wdiDelStaReqParam, 
-                        (WDI_DelSTARspCb )WDA_DelSTAReqCallback, pWDA) ;
+                        (WDI_DelSTARspCb )WDA_DelSTAReqCallback, pWdaParams) ;
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                "Failure in Del STA WDI API, free all the memory status = %d", 
                                                                 status );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
       delStaParam->status = eSIR_FAILURE ;
       WDA_SendMsg(pWDA, WDA_DELETE_STA_RSP, (void *)delStaParam, 0) ;
    }
@@ -2916,15 +2945,18 @@ VOS_STATUS WDA_GetWepKeysFromCfg( tWDA_CbContext *pWDA,
  */ 
 void WDA_SetBssKeyReqCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tSetBssKeyParams *setBssKeyParams = (tSetBssKeyParams *)pWDA->wdaMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tSetBssKeyParams *setBssKeyParams;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   setBssKeyParams = (tSetBssKeyParams *)pWdaParams->wdaMsgParam;
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
    setBssKeyParams->status = CONVERT_WDI2SIR_STATUS(status) ;
 
    WDA_SendMsg(pWDA, WDA_SET_BSSKEY_RSP, (void *)setBssKeyParams , 0) ;
@@ -2944,12 +2976,16 @@ VOS_STATUS WDA_ProcessSetBssKeyReq(tWDA_CbContext *pWDA,
    WDI_SetBSSKeyReqParamsType *wdiSetBssKeyParam = 
                   (WDI_SetBSSKeyReqParamsType *)vos_mem_malloc(
                                    sizeof(WDI_SetBSSKeyReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+
    v_U8_t keyIndex;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiSetBssKeyParam) ; 
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
 #if 0
    if(setBssKeyParams->encType == eSIR_ED_NONE)
@@ -3008,25 +3044,21 @@ VOS_STATUS WDA_ProcessSetBssKeyReq(tWDA_CbContext *pWDA,
                                       setBssKeyParams->singleTidRc;
    wdiSetBssKeyParam->wdiReqStatusCB = NULL ;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                                       (NULL == pWDA->wdaWdiApiMsgParam));
-
    /* Store set key pointer, as this will be used for response */
-   pWDA->wdaMsgParam = (void *)setBssKeyParams ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiSetBssKeyParam ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = setBssKeyParams;
+   pWdaParams->wdaWdiApiMsgParam = wdiSetBssKeyParam;
 
    status = WDI_SetBSSKeyReq(wdiSetBssKeyParam, 
-                           (WDI_SetBSSKeyRspCb)WDA_SetBssKeyReqCallback ,pWDA);
+                           (WDI_SetBSSKeyRspCb)WDA_SetBssKeyReqCallback ,pWdaParams);
    
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                    "Failure in Set BSS Key Req WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
       setBssKeyParams->status = eSIR_FAILURE ;
       WDA_SendMsg(pWDA, WDA_SET_BSSKEY_RSP, (void *)setBssKeyParams, 0) ;
    }
@@ -3035,21 +3067,24 @@ VOS_STATUS WDA_ProcessSetBssKeyReq(tWDA_CbContext *pWDA,
 }
 
 /*
- * FUNCTION: WDA_SetBssKeyReqCallback
+ * FUNCTION: WDA_RemoveBssKeyReqCallback
  * send SET BSS key RSP back to PE
  */ 
 void WDA_RemoveBssKeyReqCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tRemoveBssKeyParams *removeBssKeyParams = 
-                              (tRemoveBssKeyParams *)pWDA->wdaMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tRemoveBssKeyParams *removeBssKeyParams;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   removeBssKeyParams = (tRemoveBssKeyParams *)pWdaParams->wdaMsgParam;
+
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
    
    removeBssKeyParams->status = CONVERT_WDI2SIR_STATUS(status) ;
 
@@ -3070,11 +3105,14 @@ VOS_STATUS WDA_ProcessRemoveBssKeyReq(tWDA_CbContext *pWDA,
    WDI_RemoveBSSKeyReqParamsType *wdiRemoveBssKeyParam = 
                   (WDI_RemoveBSSKeyReqParamsType *)vos_mem_malloc(
                                    sizeof(WDI_RemoveBSSKeyReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiRemoveBssKeyParam) ; 
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    /* copy Remove BSS key params to WDI structure*/
    wdiRemoveBssKeyParam->wdiKeyInfo.ucBssIdx = removeBssKeyParams->bssIdx;
@@ -3083,25 +3121,21 @@ VOS_STATUS WDA_ProcessRemoveBssKeyReq(tWDA_CbContext *pWDA,
    wdiRemoveBssKeyParam->wdiKeyInfo.wdiWEPType = removeBssKeyParams->wepType;
    wdiRemoveBssKeyParam->wdiReqStatusCB = NULL ;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                                       (NULL == pWDA->wdaWdiApiMsgParam));
-
    /* Store remove key pointer, as this will be used for response */
-   pWDA->wdaMsgParam = (void *)removeBssKeyParams ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiRemoveBssKeyParam ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = removeBssKeyParams;
+   pWdaParams->wdaWdiApiMsgParam = wdiRemoveBssKeyParam;
 
    status = WDI_RemoveBSSKeyReq(wdiRemoveBssKeyParam, 
-                     (WDI_RemoveBSSKeyRspCb)WDA_RemoveBssKeyReqCallback, pWDA);
+                     (WDI_RemoveBSSKeyRspCb)WDA_RemoveBssKeyReqCallback, pWdaParams);
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
               "Failure in Remove BSS Key Req WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
       removeBssKeyParams->status = eSIR_FAILURE ;
       WDA_SendMsg(pWDA, WDA_REMOVE_BSSKEY_RSP, (void *)removeBssKeyParams, 0) ;
    }
@@ -3115,15 +3149,18 @@ VOS_STATUS WDA_ProcessRemoveBssKeyReq(tWDA_CbContext *pWDA,
  */ 
 void WDA_SetStaKeyReqCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tSetStaKeyParams *setStaKeyParams = (tSetStaKeyParams *)pWDA->wdaMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tSetStaKeyParams *setStaKeyParams;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   setStaKeyParams = (tSetStaKeyParams *)pWdaParams->wdaMsgParam;
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
 
    setStaKeyParams->status = CONVERT_WDI2SIR_STATUS(status) ;
 
@@ -3144,12 +3181,16 @@ VOS_STATUS WDA_ProcessSetStaKeyReq(tWDA_CbContext *pWDA,
    WDI_SetSTAKeyReqParamsType *wdiSetStaKeyParam = 
                   (WDI_SetSTAKeyReqParamsType *)vos_mem_malloc(
                                    sizeof(WDI_SetSTAKeyReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+
    v_U8_t keyIndex;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiSetStaKeyParam) ; 
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    vos_mem_set(wdiSetStaKeyParam, sizeof(WDI_SetSTAKeyReqParamsType), 0);
 
@@ -3231,25 +3272,21 @@ VOS_STATUS WDA_ProcessSetStaKeyReq(tWDA_CbContext *pWDA,
    wdiSetStaKeyParam->wdiKeyInfo.ucSingleTidRc = setStaKeyParams->singleTidRc;
    wdiSetStaKeyParam->wdiReqStatusCB = NULL ;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                                       (NULL == pWDA->wdaWdiApiMsgParam));
-
    /* Store set key pointer, as this will be used for response */
-   pWDA->wdaMsgParam = (void *)setStaKeyParams ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiSetStaKeyParam ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = setStaKeyParams;
+   pWdaParams->wdaWdiApiMsgParam = wdiSetStaKeyParam;
 
    status = WDI_SetSTAKeyReq(wdiSetStaKeyParam, 
-                          (WDI_SetSTAKeyRspCb)WDA_SetStaKeyReqCallback, pWDA);
+                          (WDI_SetSTAKeyRspCb)WDA_SetStaKeyReqCallback, pWdaParams);
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                    "Failure in set STA Key Req WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
       setStaKeyParams->status = eSIR_FAILURE ;
       WDA_SendMsg(pWDA, WDA_SET_STAKEY_RSP, (void *)setStaKeyParams, 0) ;
    }
@@ -3263,15 +3300,19 @@ VOS_STATUS WDA_ProcessSetStaKeyReq(tWDA_CbContext *pWDA,
  */ 
 void WDA_SetBcastStaKeyReqCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tSetStaKeyParams *setStaKeyParams = (tSetStaKeyParams *)pWDA->wdaMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tSetStaKeyParams *setStaKeyParams;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   setStaKeyParams = (tSetStaKeyParams *)pWdaParams->wdaMsgParam;
+
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
 
    setStaKeyParams->status = CONVERT_WDI2SIR_STATUS(status) ;
 
@@ -3293,12 +3334,16 @@ VOS_STATUS WDA_ProcessSetBcastStaKeyReq(tWDA_CbContext *pWDA,
    WDI_SetSTAKeyReqParamsType *wdiSetStaKeyParam = 
                   (WDI_SetSTAKeyReqParamsType *)vos_mem_malloc(
                                    sizeof(WDI_SetSTAKeyReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+
    v_U8_t keyIndex;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiSetStaKeyParam) ; 
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    vos_mem_set(wdiSetStaKeyParam, sizeof(WDI_SetSTAKeyReqParamsType), 0);
 
@@ -3356,25 +3401,21 @@ VOS_STATUS WDA_ProcessSetBcastStaKeyReq(tWDA_CbContext *pWDA,
    }
    wdiSetStaKeyParam->wdiKeyInfo.ucSingleTidRc = setStaKeyParams->singleTidRc;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                                       (NULL == pWDA->wdaWdiApiMsgParam));
-
    /* Store set key pointer, as this will be used for response */
-   pWDA->wdaMsgParam = (void *)setStaKeyParams ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiSetStaKeyParam ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = setStaKeyParams;
+   pWdaParams->wdaWdiApiMsgParam = wdiSetStaKeyParam;
 
    status = WDI_SetSTABcastKeyReq(wdiSetStaKeyParam, 
-                          (WDI_SetSTAKeyRspCb)WDA_SetBcastStaKeyReqCallback, pWDA);
+                          (WDI_SetSTAKeyRspCb)WDA_SetBcastStaKeyReqCallback, pWdaParams);
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
           "Failure in set BCAST STA Key Req WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
       setStaKeyParams->status = eSIR_FAILURE ;
       WDA_SendMsg(pWDA, WDA_SET_STA_BCASTKEY_RSP, (void *)setStaKeyParams, 0) ;
    }
@@ -3383,21 +3424,24 @@ VOS_STATUS WDA_ProcessSetBcastStaKeyReq(tWDA_CbContext *pWDA,
 }
 
 /*
- * FUNCTION: WDA_SetBssKeyReqCallback
+ * FUNCTION: WDA_RemoveStaKeyReqCallback
  * send SET BSS key RSP back to PE
  */ 
 void WDA_RemoveStaKeyReqCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tRemoveStaKeyParams *removeStaKeyParams = 
-                           (tRemoveStaKeyParams *)pWDA->wdaMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tRemoveStaKeyParams *removeStaKeyParams;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   removeStaKeyParams = (tRemoveStaKeyParams *)pWdaParams->wdaMsgParam;
+
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
 
    removeStaKeyParams->status = CONVERT_WDI2SIR_STATUS(status) ;
 
@@ -3418,11 +3462,14 @@ VOS_STATUS WDA_ProcessRemoveStaKeyReq(tWDA_CbContext *pWDA,
    WDI_RemoveSTAKeyReqParamsType *wdiRemoveStaKeyParam = 
                   (WDI_RemoveSTAKeyReqParamsType *)vos_mem_malloc(
                                    sizeof(WDI_RemoveSTAKeyReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiRemoveStaKeyParam) ; 
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    /* copy remove STA key params to WDI structure*/
    wdiRemoveStaKeyParam->wdiKeyInfo.usSTAIdx = removeStaKeyParams->staIdx;
@@ -3431,25 +3478,21 @@ VOS_STATUS WDA_ProcessRemoveStaKeyReq(tWDA_CbContext *pWDA,
    wdiRemoveStaKeyParam->wdiKeyInfo.ucUnicast = removeStaKeyParams->unicast;
    wdiRemoveStaKeyParam->wdiReqStatusCB = NULL ;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                                       (NULL == pWDA->wdaWdiApiMsgParam));
-
    /* Store remove key pointer, as this will be used for response */
-   pWDA->wdaMsgParam = (void *)removeStaKeyParams ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiRemoveStaKeyParam ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = removeStaKeyParams;
+   pWdaParams->wdaWdiApiMsgParam = wdiRemoveStaKeyParam;
 
    status = WDI_RemoveSTAKeyReq(wdiRemoveStaKeyParam, 
-                     (WDI_RemoveSTAKeyRspCb)WDA_RemoveStaKeyReqCallback, pWDA);
+                     (WDI_RemoveSTAKeyRspCb)WDA_RemoveStaKeyReqCallback, pWdaParams);
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                "Failure in remove STA Key Req WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
       removeStaKeyParams->status = eSIR_FAILURE ;
       WDA_SendMsg(pWDA, WDA_REMOVE_STAKEY_RSP, (void *)removeStaKeyParams, 0) ;
    }
@@ -6328,15 +6371,14 @@ VOS_STATUS WDA_NVDownload_Start(v_PVOID_t pVosContext)
 void WDA_FlushAcReqCallback(WDI_Status status, void* pUserData)
 {
    vos_msg_t wdaMsg = {0} ;
-
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-   tFlushACReq *pFlushACReqParams = (tFlushACReq *)pWDA->wdaMsgParam ;
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tFlushACReq *pFlushACReqParams;
    tFlushACRsp *pFlushACRspParams = vos_mem_malloc(sizeof(tFlushACRsp)) ;
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   vos_mem_free(pWDA->wdaMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "<------ %s " ,__FUNCTION__);
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pFlushACReqParams = (tFlushACReq *)pWdaParams->wdaMsgParam;
 
    vos_mem_zero(pFlushACRspParams,sizeof(tFlushACRsp));   
    pFlushACRspParams->mesgLen = sizeof(tFlushACRsp);
@@ -6345,10 +6387,15 @@ void WDA_FlushAcReqCallback(WDI_Status status, void* pUserData)
    pFlushACRspParams->ucTid = pFlushACReqParams->ucTid;
    pFlushACRspParams->status = CONVERT_WDI2SIR_STATUS(status) ;
 
+   vos_mem_free(pWdaParams->wdaMsgParam) ;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
+
    wdaMsg.type = WDA_TL_FLUSH_AC_RSP ; 
    wdaMsg.bodyptr = (void *)pFlushACRspParams;
    // POST message to TL
    vos_mq_post_message(VOS_MQ_ID_TL, (vos_msg_t *) &wdaMsg);
+
 
    return ;
 }
@@ -6364,34 +6411,36 @@ VOS_STATUS WDA_ProcessFlushAcReq(tWDA_CbContext *pWDA,
    WDI_FlushAcReqParamsType *wdiFlushAcReqParam = 
       (WDI_FlushAcReqParamsType *)vos_mem_malloc(
          sizeof(WDI_FlushAcReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
 
    WDA_VOS_ALLOC_FAIL(wdiFlushAcReqParam);
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "------> %s " ,__FUNCTION__);
 
    wdiFlushAcReqParam->wdiFlushAcInfo.ucSTAId = pFlushAcReqParams->ucSTAId;
    wdiFlushAcReqParam->wdiFlushAcInfo.ucTid = pFlushAcReqParams->ucTid;
    wdiFlushAcReqParam->wdiFlushAcInfo.usMesgLen = pFlushAcReqParams->mesgLen;
    wdiFlushAcReqParam->wdiFlushAcInfo.usMesgType = pFlushAcReqParams->mesgType;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                  (NULL == pWDA->wdaWdiApiMsgParam));
-
    /* Store Flush AC pointer, as this will be used for response */
-   pWDA->wdaMsgParam = (void *)pFlushAcReqParams ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiFlushAcReqParam ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = pFlushAcReqParams;
+   pWdaParams->wdaWdiApiMsgParam = wdiFlushAcReqParam;
 
    status = WDI_FlushAcReq(wdiFlushAcReqParam, 
-                           (WDI_FlushAcRspCb)WDA_FlushAcReqCallback, pWDA);
+                           (WDI_FlushAcRspCb)WDA_FlushAcReqCallback, pWdaParams);
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
               "Failure in Flush AC REQ Params WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      vos_mem_free(pWDA->wdaMsgParam);
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaMsgParam) ;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
+      //TODO: respond to TL with failure
    }
 
    return CONVERT_WDI2VOS_STATUS(status) ;
@@ -6404,13 +6453,16 @@ VOS_STATUS WDA_ProcessFlushAcReq(tWDA_CbContext *pWDA,
  */ 
 void WDA_BtAmpEventReqCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   vos_mem_free(pWDA->wdaMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "<------ %s " ,__FUNCTION__);
 
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+
+   vos_mem_free(pWdaParams->wdaMsgParam) ;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
    /* 
     * No respone required for WDA_SIGNAL_BTAMP_EVENT so just free the request 
     * param here
@@ -6431,34 +6483,37 @@ VOS_STATUS WDA_ProcessBtAmpEventReq(tWDA_CbContext *pWDA,
    WDI_BtAmpEventParamsType *wdiBtAmpEventParam = 
       (WDI_BtAmpEventParamsType *)vos_mem_malloc(
          sizeof(WDI_BtAmpEventParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiBtAmpEventParam);
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
+
 
    wdiBtAmpEventParam->wdiBtAmpEventInfo.ucBtAmpEventType = 
       pBtAmpEventParams->btAmpEventType;
 
    wdiBtAmpEventParam->wdiReqStatusCB = NULL;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                  (NULL == pWDA->wdaWdiApiMsgParam));
-
    /* Store BT AMP event pointer, as this will be used for response */
-   pWDA->wdaMsgParam = (void *)pBtAmpEventParams ;
-
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiBtAmpEventParam ;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = pBtAmpEventParams;
+   pWdaParams->wdaWdiApiMsgParam = wdiBtAmpEventParam;
 
    status = WDI_BtAmpEventReq(wdiBtAmpEventParam, 
-                              (WDI_BtAmpEventRspCb)WDA_BtAmpEventReqCallback, pWDA);
+                              (WDI_BtAmpEventRspCb)WDA_BtAmpEventReqCallback, pWdaParams);
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
               "Failure in BT AMP event REQ Params WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      vos_mem_free(pWDA->wdaMsgParam);
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaMsgParam) ;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
    }
 
    return CONVERT_WDI2VOS_STATUS(status) ;
