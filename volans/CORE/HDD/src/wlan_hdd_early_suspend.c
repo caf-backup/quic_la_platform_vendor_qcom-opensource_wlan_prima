@@ -1319,23 +1319,3 @@ void unregister_wlan_suspend(void)
 }
 
 #endif
-
-/* Decide whether to allow/not the apps power collapse. 
- * Allow apps power collapse if we are in connected state.
- * if not, allow only if we are in IMPS  */
-v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_adapter_t* pAdapter)
-{
-    tPmcState pmcState = pmcGetPmcState(pAdapter->hHal);
-    hdd_config_t *pConfig = pAdapter->cfg_ini;
-
-    if(!hdd_connIsConnected(pAdapter) && 
-        (pConfig->fIsImpsEnabled) &&
-        ((pmcState != IMPS) && 
-          !(pmcState == STOPPED || pmcState == STANDBY))
-       )
-      {
-        return FALSE;
-      }
-    return TRUE;
-}
-

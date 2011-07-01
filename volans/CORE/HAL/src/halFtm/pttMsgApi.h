@@ -124,6 +124,7 @@ typedef enum
     PTT_MSG_SET_RX_DISABLE_MODE                  = 0x30D4,
     PTT_MSG_GET_RX_PKT_COUNTS                    = 0x30E0,
     PTT_MSG_RESET_RX_PACKET_STATISTICS           = 0x30E2,
+    PTT_MSG_GET_UNI_CAST_MAC_PKT_RX_RSSI         = 0x30E3,
 
 //Rx Symbol Service
     PTT_MSG_GRAB_RAM                             = 0x30F0,
@@ -451,6 +452,10 @@ typedef struct
 }tMsgPttGetRxRssi;
 
 
+typedef struct
+{
+    sRxChainsRssi rssi;
+}tMsgPttGetUnicastMacPktRxRssi;
 
 
 //Rx Frame Catcher Service
@@ -734,6 +739,7 @@ typedef union pttMsgUnion
     tMsgPttDisableAgcTables                         DisableAgcTables;
     tMsgPttEnableAgcTables                          EnableAgcTables;
     tMsgPttGetRxRssi                                GetRxRssi;
+    tMsgPttGetUnicastMacPktRxRssi                   GetUnicastMacPktRxRssi;
     tMsgPttSetRxDisableMode                         SetRxDisableMode;
     tMsgPttGetRxPktCounts                           GetRxPktCounts;
     tMsgPttResetRxPacketStatistics                  ResetRxPacketStatistics;

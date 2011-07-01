@@ -587,6 +587,7 @@
 /* PER threshold of primary rate before checking retry rates' PER & throughput  */
 #define RA_PER_BADLINK_RETRYRATE_SAMPLE_THRESHOLD    80
 
+#define RA_BADLINK_RAMP_DOWN_THRESHOLD      3
 /*
  * Number of rate adaptation periods between exhaustive sampling
  * Since exhaustive sampling is now limited to a small set of rates
