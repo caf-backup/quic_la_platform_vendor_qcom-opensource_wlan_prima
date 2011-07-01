@@ -1745,9 +1745,9 @@ typedef PACKED_PRE struct PACKED_POST sHalRaGlobalInfo
    tANI_U8   min11nRateIdx;            /* Minimum 11N rate for RA to adapt to (in MBps) */
    tANI_U8   min11gRateIdx;            /* Minimum 11G rate for RA to adapt to (in MBps) */
    tANI_U8   min11bRateIdx;            /* Minimum 11B rate for RA to adapt to (in MBps) */
-   tANI_U8   rsvd1;
+   tANI_U8   badLinkJumpThreshold;
 #else
-   tANI_U8   rsvd1;
+   tANI_U8   badLinkJumpThreshold;
    tANI_U8   min11bRateIdx;            /* Minimum 11B rate for RA to adapt to (in MBps) */
    tANI_U8   min11gRateIdx;
    tANI_U8   min11nRateIdx;

@@ -1624,3 +1624,49 @@ vos_fetch_tl_cfg_parms
 #endif
 
 }
+
+v_BOOL_t vos_is_apps_power_collapse_allowed(void)
+{
+    hdd_adapter_t *pAdapter        = NULL;
+    v_CONTEXT_t pVosContext        = NULL;
+
+    /* Get the Global VOSS Context */
+    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+    if(!pVosContext) {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Global VOS context is Null", __func__);
+       return TRUE;
+    }
+    
+    /* Get the HDD context */
+    pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
+    if(!pAdapter) {
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: HDD context is Null", __func__);
+       return TRUE;
+    }
+
+  return hdd_is_apps_power_collapse_allowed(pAdapter);
+}
+
+void vos_abort_mac_scan(void)
+{
+    hdd_adapter_t *pAdapter        = NULL;
+    v_CONTEXT_t pVosContext        = NULL;
+
+    /* Get the Global VOSS Context */
+    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+    if(!pVosContext) {
+       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Global VOS context is Null", __func__);
+       return;
+    }
+    
+    /* Get the HDD context */
+    pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
+    if(!pAdapter) {
+       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
+       return;
+    }
+
+    hdd_abort_mac_scan(pAdapter);
+    return;
+}
+

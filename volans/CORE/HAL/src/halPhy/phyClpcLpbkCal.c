@@ -295,6 +295,7 @@ eHalStatus phyClpcLpbkCal(tpAniSirGlobal pMac)
     t2Decimal lpBktxPwr = OFDM_MAX_CHIP_OUTPUT_PWR;
     t2Decimal deltaOffsetdBm = 0;
     t2Decimal cmdDbmPwr = lpBktxPwr - boardLoss;
+    tANI_U32 offset = 0;
 
     pMac->hphy.phy.test.identicalPayloadEnabled = eANI_BOOLEAN_TRUE;
 
@@ -374,11 +375,12 @@ eHalStatus phyClpcLpbkCal(tpAniSirGlobal pMac)
     lpbkEvm = -lpbkEvm/2 + (3 * 10);
 
     //printk( "lpbkEvm =%d\n", (int)lpbkEvm);
+    //printk("deltaOffsetdBm =%d\n", (int)deltaOffsetdBm);
 
     if (lpbkEvm > evmThr)
     {
         tANI_S32 deltaEvm = ((lpbkEvm - evmThr)/10) * 10;
-        tANI_S32 offset = ((1 * 10) + deltaEvm) >> 1;
+        offset = ((1 * 10) + deltaEvm) >> 1;
 
         if (offset > 15)
         {
@@ -392,23 +394,34 @@ eHalStatus phyClpcLpbkCal(tpAniSirGlobal pMac)
         //printk("deltaEvm =%d\n", (int)deltaEvm);
         //printk("offset =%d\n", (int)offset);
         //printk("deltaOffsetdBm =%d\n", (int)deltaOffsetdBm);
-        offset += deltaOffsetdBm;
         if(offset > OFDM_MAX_CMD_PWR_OFFSET)
         {
             offset = OFDM_MAX_CMD_PWR_OFFSET;
         }
-        {
-            halWriteNvTable(pMac, NV_TABLE_OFDM_CMD_PWR_OFFSET, (uNvTables *)(&offset));
-#ifndef WLAN_FTM_STUB
-            if (pMac->gDriverType == eDRIVER_TYPE_MFG)
-            {
-                halStoreTableToNv(pMac, NV_TABLE_OFDM_CMD_PWR_OFFSET);
-            }
-#endif
-        }
-
         //t.board.rf_eval.ofdm_cmd_pwr_offset = offset
     }
+
+    //include ofdm/11b crossover as well
+    offset += deltaOffsetdBm;
+
+    //printk("offset =%d\n", (int)offset);
+
+    //if offset is greater than 0 then write it to Nv
+    if(offset > 0)
+    {
+        sOfdmCmdPwrOffset cmdoffset;
+        cmdoffset.ofdmPwrOffset = (t2Decimal)offset;
+
+        halWriteNvTable(pMac, NV_TABLE_OFDM_CMD_PWR_OFFSET, (uNvTables *)(&cmdoffset));
+
+#ifndef WLAN_FTM_STUB
+        if (pMac->gDriverType == eDRIVER_TYPE_MFG)
+        {
+            halStoreTableToNv(pMac, NV_TABLE_OFDM_CMD_PWR_OFFSET);
+        }
+#endif
+    }
+
     return (eHAL_STATUS_SUCCESS);
 }
 

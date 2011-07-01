@@ -1799,6 +1799,30 @@ void hdd_softap_tkip_mic_fail_counter_measure(hdd_hostapd_adapter_t *pAdapter,v_
 
 #endif /* WLAN_SOFTAP_FEATURE */
 
+/* Decide whether to allow/not the apps power collapse. 
+ * Allow apps power collapse if we are in connected state.
+ * if not, allow only if we are in IMPS  */
+v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_adapter_t* pAdapter)
+{
+    tPmcState pmcState = pmcGetPmcState(pAdapter->hHal);
+    hdd_config_t *pConfig = pAdapter->cfg_ini;
+
+#ifdef WLAN_SOFTAP_FEATURE
+    if (VOS_STA_SAP_MODE == hdd_get_conparam())
+        return TRUE;
+#endif
+
+    if(!hdd_connIsConnected(pAdapter) && 
+        (pConfig->fIsImpsEnabled) &&
+        ((pmcState != IMPS) && 
+          !(pmcState == STOPPED || pmcState == STANDBY))
+       )
+      {
+        return FALSE;
+      }
+    return TRUE;
+}
+
 //Register the module init/exit functions
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);

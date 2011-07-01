@@ -976,6 +976,12 @@ static int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
     pVosContextType pVosContext = (pVosContextType)pAdapter->pvosContext;
     tHalMacStartParameters halStartParams;
 
+    if (WLAN_FTM_STARTED == pAdapter->ftm.ftm_state)
+    {
+       printk(KERN_EMERG "*** FTM Driver Already Started ***\n");
+       return VOS_STATUS_SUCCESS;
+    }
+    
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "%s: Starting Libra SW", __func__);
 

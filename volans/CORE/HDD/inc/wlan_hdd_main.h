@@ -397,5 +397,6 @@ struct hdd_adapter_s
   Function declarations and documenation
   -------------------------------------------------------------------------*/ 
 void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext);
+v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_adapter_t* pAdapter);
 void hdd_abort_mac_scan(hdd_adapter_t* pAdapter);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

@@ -118,11 +118,11 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
 
    /* If not associated, make sure that STA is in IMPS before suspend happens. 
     * Otherwise power consumption will be high in suspend mode */
-   if(!hdd_is_apps_power_collapse_allowed(pAdapter))
+   if(!vos_is_apps_power_collapse_allowed())
    {
        /* Indicate MC Thread to Resume */
        complete(&vosSchedContext->ResumeMcEvent);
-       hdd_abort_mac_scan(pAdapter);
+       vos_abort_mac_scan();
        /* Fail this suspend */
        return -1;
    }
