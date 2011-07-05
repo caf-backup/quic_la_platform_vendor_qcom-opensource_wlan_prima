@@ -41,6 +41,10 @@
 #include <wlan_hdd_cfg.h>
 #include <wlan_hdd_wmm.h>
 #include "utilsApi.h"
+#ifdef WLAN_FEATURE_P2P
+#include "wlan_hdd_p2p.h"
+#endif
+
 #ifdef CONFIG_HAS_EARLYSUSPEND
 #include <linux/earlysuspend.h>
 #endif
@@ -115,7 +119,12 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_VAR_INT_GET_NONE   (SIOCIWFIRSTPRIV + 7)
 #define WE_LOG_DUMP_CMD      1
-#define MAX_VAR_ARGS         5			
+
+#ifdef WLAN_FEATURE_P2P
+#define WE_P2P_NOA_CMD       2
+#endif
+
+#define MAX_VAR_ARGS         7			
 
 /* Private ioctls (with no sub-ioctls) */
 /* note that they must be odd so that they have "get" semantics */
@@ -2801,7 +2810,7 @@ int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info
     tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
     int sub_cmd = wrqu->data.flags;
     int *value = (int*)wrqu->data.pointer;
-    int log_dump_args[MAX_VAR_ARGS] = {0};
+    int apps_args[MAX_VAR_ARGS] = {0};
 
     hddLog(LOGW, "The function iw_set_var_ints_getnone called \n");
     hddLog(LOGW, "%s: Received length %d\n", __FUNCTION__, wrqu->data.length);
@@ -2811,18 +2820,44 @@ int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info
     {
         case WE_LOG_DUMP_CMD:
             {
-                vos_mem_copy(log_dump_args, value, (sizeof(int))*wrqu->data.length);
+                vos_mem_copy(apps_args, value, (sizeof(int))*wrqu->data.length);
 
 
                 hddLog(LOGE, "%s: PTT_MSG_LOG_DUMP %d arg1 %d arg2 %d arg3 %d arg4 %d\n",
-                        __FUNCTION__, log_dump_args[0], log_dump_args[1], log_dump_args[2], 
-                        log_dump_args[3], log_dump_args[4]);
+                        __FUNCTION__, apps_args[0], apps_args[1], apps_args[2], 
+                        apps_args[3], apps_args[4]);
 
-                logPrintf(hHal, log_dump_args[0], log_dump_args[1], log_dump_args[2], 
-                        log_dump_args[3], log_dump_args[4]);
+                logPrintf(hHal, apps_args[0], apps_args[1], apps_args[2], 
+                        apps_args[3], apps_args[4]);
 
             }
             break;
+
+#ifdef WLAN_FEATURE_P2P
+        case WE_P2P_NOA_CMD:
+            {
+                p2p_app_setP2pPs_t p2pNoA;  
+
+                vos_mem_copy(apps_args, value, (sizeof(int))*wrqu->data.length);
+
+                p2pNoA.opp_ps = apps_args[0];
+                p2pNoA.ctWindow = apps_args[1];
+                p2pNoA.duration = apps_args[2];
+                p2pNoA.interval  = apps_args[3];
+                p2pNoA.count = apps_args[4];
+                p2pNoA.single_noa_duration = apps_args[5];
+                p2pNoA.psSelection = apps_args[6];
+
+                hddLog(LOGE, "%s: P2P_NOA_ATTR:oppPS %d ctWindow %d duration %d \
+                       interval %d count %d single noa duration %d PsSelection %x\n",\
+                       __FUNCTION__, apps_args[0], apps_args[1], apps_args[2], \
+                       apps_args[3], apps_args[4], apps_args[5], apps_args[6]);
+
+                hdd_setP2pPs(dev, &p2pNoA);
+
+          }
+          break;
+#endif
 
         default:  
             {

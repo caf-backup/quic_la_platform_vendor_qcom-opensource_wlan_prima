@@ -65,6 +65,8 @@ typedef struct sGenericQosCmd
     sme_QosEdcaAcType ac;
     v_U8_t tspec_mask;
 } tGenericQosCmd;
+
+#ifdef WLAN_FEATURE_P2P
 typedef struct sRemainChlCmd
 {
     tANI_U8 chn;
@@ -72,6 +74,12 @@ typedef struct sRemainChlCmd
     void* callback;
     void* callbackCtx;
 }tRemainChlCmd;
+
+typedef struct sNoACmd
+{
+    tP2pPsConfig NoA;
+} tNoACmd;
+#endif
 
 typedef struct tagSmeCmd
 {
@@ -91,7 +99,8 @@ typedef struct tagSmeCmd
 		tMeasCmd measCmd;
 #endif
 #ifdef WLAN_FEATURE_P2P
-		tRemainChlCmd remainChlCmd;
+        tRemainChlCmd remainChlCmd;
+        tNoACmd NoACmd;
 #endif
         tAddStaForSessionCmd addStaSessionCmd;
         tDelStaForSessionCmd delStaSessionCmd;

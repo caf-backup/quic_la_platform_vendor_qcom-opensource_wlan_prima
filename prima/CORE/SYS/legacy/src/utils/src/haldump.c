@@ -40,9 +40,14 @@
  * -------------------------------------------------------------------------*/
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
+
 #include "aniGlobal.h"
 #include "logDump.h"
 #include "wlan_qct_wda.h"
+
+/*WDA Hal Dump Command implmentationin is featurised with WLAN_FEATURE_LOG_DUMP.
+so to maintain consistency with WDA/WDI the below flag is added */
+#ifdef WLAN_FEATURE_LOG_DUMP
 
 static tDumpFuncEntry halMenuDumpTable[] = {
    {0,     "HAL Specific (50-299)",                                    NULL},
@@ -161,4 +166,5 @@ void halDumpInit(tpAniSirGlobal pMac)
    logDumpRegisterTable( pMac, &halMenuDumpTable[0],
                     sizeof(halMenuDumpTable)/sizeof(halMenuDumpTable[0]) );
 }
+#endif /* WLAN_FEATURE_LOG_DUMP */
 #endif

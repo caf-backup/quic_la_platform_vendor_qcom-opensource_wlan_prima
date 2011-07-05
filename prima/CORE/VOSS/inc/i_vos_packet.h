@@ -52,7 +52,7 @@
 // the number of Transmit Data vos packets, used exclusively for
 // vos packet allocations of type VOS_PKT_TYPE_TX_802_3_DATA or
 // VOS_PKT_TYPE_TX_802_11_DATA
-#define VPKT_NUM_TX_DATA_PACKETS ( 40 )
+#define VPKT_NUM_TX_DATA_PACKETS ( 128 )
 
 // The size of the data buffer in the VOS_PKT_TYPE_RX_RAW vos packets
 // Explanation:

@@ -96,8 +96,11 @@ when        who    what, where, why
 #define WLANBAP_CONNECTION_ACCEPT_TIMEOUT  WLANBAP_CON_ACCEPT_TIMEOUT_MAX_RANGE
 
 /* Link Supervision Timer interval (0x7D00 * 0.625 = 20 sec) */
-//#define WLANBAP_LINK_SUPERVISION_TIMEOUT   0x7D00
+#ifdef FEATURE_WLAN_BTAMP_UT
+#define WLANBAP_LINK_SUPERVISION_TIMEOUT   0x7D00
+#else
 #define WLANBAP_LINK_SUPERVISION_TIMEOUT   0x0960  // 1.5 seconds
+#endif
 #define WLANBAP_LINK_SUPERVISION_RETRIES   2
 
 /* Logical Link Accept Timer interval (0x1FA0 * 0.625 = 5.06 sec)*/

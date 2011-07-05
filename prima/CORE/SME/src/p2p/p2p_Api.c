@@ -25,31 +25,32 @@
 
 eHalStatus p2pProcessRemainOnChannelCmd(tpAniSirGlobal pMac, tSmeCmd *p2pRemainonChn)
 {
-	eHalStatus status = eHAL_STATUS_SUCCESS;
-	tSirRemainOnChnReq* pMsg;
-  tANI_U16 len;
-  tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, p2pRemainonChn->sessionId );
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tSirRemainOnChnReq* pMsg;
+    tANI_U16 len;
+    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, p2pRemainonChn->sessionId );
 
-  if( !pSession->sessionActive ) VOS_ASSERT(0);
+    if( !pSession->sessionActive ) VOS_ASSERT(0);
 
-  len = sizeof(tSirRemainOnChnReq) + pMac->p2pContext.probeRspIeLength;
-	
-	status = palAllocateMemory(pMac->hHdd, (void**)&pMsg, len );
-	if(HAL_STATUS_SUCCESS(status))
-	{
-		 palZeroMemory(pMac->hHdd, pMsg, sizeof(tSirRemainOnChnReq));
-		 pMsg->messageType = eWNI_SME_REMAIN_ON_CHANNEL_REQ;
-		 pMsg->length = len;
-     palCopyMemory( pMac, pMsg->selfMacAddr, pSession->selfMacAddr, sizeof(tSirMacAddr) ); 
-		 pMsg->chnNum = p2pRemainonChn->u.remainChlCmd.chn;
-		 pMsg->duration = p2pRemainonChn->u.remainChlCmd.duration;
-     if( pMac->p2pContext.probeRspIeLength )
-  		 palCopyMemory(pMac->hHdd, (void *)pMsg->probeRspIe, (void *)pMac->p2pContext.probeRspIe, pMac->p2pContext.probeRspIeLength);
-	
-		 status = palSendMBMessage(pMac->hHdd, pMsg);
-	}
-	
-	return status;
+    len = sizeof(tSirRemainOnChnReq) + pMac->p2pContext.probeRspIeLength;
+    
+    status = palAllocateMemory(pMac->hHdd, (void**)&pMsg, len );
+    if(HAL_STATUS_SUCCESS(status))
+    {
+        palZeroMemory(pMac->hHdd, pMsg, sizeof(tSirRemainOnChnReq));
+        pMsg->messageType = eWNI_SME_REMAIN_ON_CHANNEL_REQ;
+        pMsg->length = len;
+        palCopyMemory( pMac, pMsg->selfMacAddr, pSession->selfMacAddr, sizeof(tSirMacAddr) ); 
+        pMsg->chnNum = p2pRemainonChn->u.remainChlCmd.chn;
+        pMsg->duration = p2pRemainonChn->u.remainChlCmd.duration;
+        pMsg->sessionId = p2pRemainonChn->sessionId;
+        if( pMac->p2pContext.probeRspIeLength )
+            palCopyMemory(pMac->hHdd, (void *)pMsg->probeRspIe, (void *)pMac->p2pContext.probeRspIe, pMac->p2pContext.probeRspIeLength);
+    
+        status = palSendMBMessage(pMac->hHdd, pMsg);
+    }
+    
+    return status;
 }
 
 /*------------------------------------------------------------------
@@ -60,30 +61,30 @@ eHalStatus p2pProcessRemainOnChannelCmd(tpAniSirGlobal pMac, tSmeCmd *p2pRemaino
 
 eHalStatus sme_remainOnChnRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg)
 {
-   eHalStatus                         status = eHAL_STATUS_SUCCESS;
-   tListElem                          *pEntry = NULL;
-   tSmeCmd                            *pCommand = NULL;
+    eHalStatus                         status = eHAL_STATUS_SUCCESS;
+    tListElem                          *pEntry = NULL;
+    tSmeCmd                            *pCommand = NULL;
 
-   pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
-   if( pEntry )
-   {
-       pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
-       if( eSmeCommandRemainOnChannel == pCommand->command )
-       {
-         remainOnChanCallback callback = pCommand->u.remainChlCmd.callback;
-          /* process the msg */
-          if( callback )
-            callback(pMac, pCommand->u.remainChlCmd.callbackCtx, 0);
-			 
-          if( csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, pEntry, LL_ACCESS_LOCK ) )
-          {
-            //Now put this command back on the avilable command list
-            smeReleaseCommand(pMac, pCommand);
-          }
-          smeProcessPendingQueue( pMac );
-       }
-   }
-	return status;
+    pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
+    if( pEntry )
+    {
+        pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
+        if( eSmeCommandRemainOnChannel == pCommand->command )
+        {
+            remainOnChanCallback callback = pCommand->u.remainChlCmd.callback;
+            /* process the msg */
+            if( callback )
+                callback(pMac, pCommand->u.remainChlCmd.callbackCtx, 0);
+             
+            if( csrLLRemoveEntry( &pMac->sme.smeCmdActiveList, pEntry, LL_ACCESS_LOCK ) )
+            {
+                //Now put this command back on the avilable command list
+                smeReleaseCommand(pMac, pCommand);
+            }
+            smeProcessPendingQueue( pMac );
+        }
+    }
+    return status;
 }
 
 /*------------------------------------------------------------------
@@ -94,37 +95,25 @@ eHalStatus sme_remainOnChnRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg)
 
 eHalStatus sme_mgmtFrmInd( tHalHandle hHal, tpSirSmeMgmtFrameInd pSmeMgmtFrm)
 {
-  tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-  eHalStatus  status = eHAL_STATUS_SUCCESS;
-  tCsrRoamInfo pRoamInfo;
-  tANI_U32 pSessionId = 0;
-//  tANI_U8 *pbuff;
-  tANI_U8 i;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus  status = eHAL_STATUS_SUCCESS;
+    tCsrRoamInfo pRoamInfo = {0};
+    tANI_U32 pSessionId = pSmeMgmtFrm->sessionId;
 
-  /* TBD fixed */
-  for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
-  {
-    if( CSR_IS_SESSION_VALID( pMac, i ) )
+    if(pSmeMgmtFrm->frameType == eSIR_MGMT_FRM_PROBE_REQ)
     {
-      status = eHAL_STATUS_SUCCESS;
-      pSessionId = i;
-      break;
-
+        pRoamInfo.nProbeReqLength = pSmeMgmtFrm->mesgLen - sizeof(tSirSmeMgmtFrameInd);
     }
-  } 
+    else if(pSmeMgmtFrm->frameType == eSIR_MGMT_FRM_ACTION)
+    {
+        pRoamInfo.nActionLength = pSmeMgmtFrm->mesgLen - sizeof(tSirSmeMgmtFrameInd);
+    }
+    pRoamInfo.pbFrames = pSmeMgmtFrm->frameBuf;
 
-  if(pSmeMgmtFrm->frameType == eSIR_MGMT_FRM_PROBE_REQ){
-    pRoamInfo.nProbeReqLength = pSmeMgmtFrm->mesgLen - sizeof(tSirSmeMgmtFrameInd);
-  }
-  else if(pSmeMgmtFrm->frameType == eSIR_MGMT_FRM_ACTION){
-    pRoamInfo.nActionLength = pSmeMgmtFrm->mesgLen - sizeof(tSirSmeMgmtFrameInd);
-  }
-  pRoamInfo.pbFrames = pSmeMgmtFrm->frameBuf;
+    /* forward the mgmt frame to HDD */
+    csrRoamCallCallback(pMac, pSessionId, &pRoamInfo, 0, eCSR_ROAM_INDICATE_MGMT_FRAME, 0);
 
-  /* forward the mgmt frame to HDD */
-  csrRoamCallCallback(pMac, pSessionId, &pRoamInfo, 0, eCSR_ROAM_INDICATE_MGMT_FRAME, 0);
-
-  return status;
+    return status;
 }
 
 /*------------------------------------------------------------------
@@ -135,118 +124,107 @@ eHalStatus sme_mgmtFrmInd( tHalHandle hHal, tpSirSmeMgmtFrameInd pSmeMgmtFrm)
 
 eHalStatus sme_remainOnChnReady( tHalHandle hHal, tANI_U8* pMsg)
 {
-  tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-  eHalStatus  status = eHAL_STATUS_SUCCESS;
-  tCsrRoamInfo RoamInfo; 
-  tANI_U32 pSessionId = 0;
-  tListElem                          *pEntry = NULL;
-  tSmeCmd                            *pCommand = NULL;
-
-  pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
-  if( pEntry )
-  {
-    pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
-    if( eSmeCommandRemainOnChannel == pCommand->command )
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus  status = eHAL_STATUS_SUCCESS;
+    tCsrRoamInfo RoamInfo; 
+    tListElem                          *pEntry = NULL;
+    tSmeCmd                            *pCommand = NULL;
+  
+    pEntry = csrLLPeekHead(&pMac->sme.smeCmdActiveList, LL_ACCESS_LOCK);
+    if( pEntry )
     {
-      /* forward the indication to HDD */
-      RoamInfo.pRemainCtx = pCommand->u.remainChlCmd.callbackCtx;
-      csrRoamCallCallback(pMac, pSessionId, &RoamInfo, 0, eCSR_ROAM_REMAIN_CHAN_READY, 0);
+        pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
+        if( eSmeCommandRemainOnChannel == pCommand->command )
+        {
+            /* forward the indication to HDD */
+            RoamInfo.pRemainCtx = pCommand->u.remainChlCmd.callbackCtx;
+            csrRoamCallCallback(pMac, ((tSirSmeRsp*)pMsg)->sessionId, &RoamInfo, 
+                                0, eCSR_ROAM_REMAIN_CHAN_READY, 0);
+        }
     }
-  }
-
-  return status;
+  
+    return status;
 }
 
 eHalStatus sme_sendActionCnf( tHalHandle hHal, tANI_U8* pMsg)
 {
-  tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-  eHalStatus  status = eHAL_STATUS_SUCCESS;
-  tCsrRoamInfo RoamInfo; 
-  tANI_U32 pSessionId = 0;
-//  tANI_U8 *pbuff;
-  tANI_U8 i;
-
-  /* TBD fixed */
-  for( i = 0; i < CSR_ROAM_SESSION_MAX; i++ )
-  {
-    if( CSR_IS_SESSION_VALID( pMac, i ) )
-    {
-      status = eHAL_STATUS_SUCCESS;
-      pSessionId = i;
-      break;
-
-    }
-  } 
-
-  /* forward the indication to HDD */
-  //RoamInfo can be passed as NULL....todo
-  csrRoamCallCallback(pMac, pSessionId, &RoamInfo, 0, eCSR_ROAM_SEND_ACTION_CNF, 0);
-
-  return status;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus  status = eHAL_STATUS_SUCCESS;
+    tCsrRoamInfo RoamInfo = {0};
+    tSirSmeRsp* pSmeRsp = (tSirSmeRsp*)pMsg;
+  
+    /* forward the indication to HDD */
+    //RoamInfo can be passed as NULL....todo
+    csrRoamCallCallback(pMac, pSmeRsp->sessionId, &RoamInfo, 0, 
+                        eCSR_ROAM_SEND_ACTION_CNF, 
+                       (pSmeRsp->statusCode == eSIR_SME_SUCCESS) ? 0:
+                        eCSR_ROAM_RESULT_SEND_ACTION_FAIL);
+    
+    return status;
 }
 eHalStatus sme_p2pOpen( tHalHandle hHal )
 {
-  tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-
-  //If static structure is too big, Need to change this function to allocate memory dynamically
-  vos_mem_zero( &pMac->p2pContext, sizeof( tp2pContext ) );
-  return eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+  
+    //If static structure is too big, Need to change this function to allocate memory dynamically
+    vos_mem_zero( &pMac->p2pContext, sizeof( tp2pContext ) );
+    return eHAL_STATUS_SUCCESS;
 }
 
 eHalStatus p2pStop( tHalHandle hHal )
 {
-  return eHAL_STATUS_SUCCESS;
+    return eHAL_STATUS_SUCCESS;
 }
 
 eHalStatus sme_p2pClose( tHalHandle hHal )
 {
-  tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-
-  if( pMac->p2pContext.probeRspIe )
-    vos_mem_free( pMac->p2pContext.probeRspIe );
-
-  pMac->p2pContext.probeRspIeLength = 0;
-
-  return eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+  
+    if( pMac->p2pContext.probeRspIe )
+        vos_mem_free( pMac->p2pContext.probeRspIe );
+  
+    pMac->p2pContext.probeRspIeLength = 0;
+  
+    return eHAL_STATUS_SUCCESS;
 }
 
 eHalStatus p2pRemainOnChannel(tHalHandle hHal, tANI_U8 sessionId,
-	     tANI_U8 channel, tANI_U32 duration,
+         tANI_U8 channel, tANI_U32 duration,
         remainOnChanCallback callback, 
         void *pContext)
 {
-  eHalStatus status = eHAL_STATUS_SUCCESS;
-  tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-  tSmeCmd *pRemainChlCmd = NULL;
-
-  pRemainChlCmd = smeGetCommandBuffer(pMac);
-  if(pRemainChlCmd == NULL)
-    return eHAL_STATUS_FAILURE;
-
-  do
-  {
-    /* call set in context */
-    pRemainChlCmd->command = eSmeCommandRemainOnChannel;
-    pRemainChlCmd->sessionId = sessionId;
-    pRemainChlCmd->u.remainChlCmd.chn = channel;
-    pRemainChlCmd->u.remainChlCmd.duration = duration;
-    pRemainChlCmd->u.remainChlCmd.callback = callback;
-    pRemainChlCmd->u.remainChlCmd.callbackCtx = pContext;
-
-    smePushCommand(pMac, pRemainChlCmd, eANI_BOOLEAN_FALSE);
-  } while(0);
-
-  smsLog(pMac, LOGW, "exiting function %s\n", __FUNCTION__);
-
-  return(status);
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tSmeCmd *pRemainChlCmd = NULL;
+  
+    pRemainChlCmd = smeGetCommandBuffer(pMac);
+    if(pRemainChlCmd == NULL)
+        return eHAL_STATUS_FAILURE;
+  
+    do
+    {
+        /* call set in context */
+        pRemainChlCmd->command = eSmeCommandRemainOnChannel;
+        pRemainChlCmd->sessionId = sessionId;
+        pRemainChlCmd->u.remainChlCmd.chn = channel;
+        pRemainChlCmd->u.remainChlCmd.duration = duration;
+        pRemainChlCmd->u.remainChlCmd.callback = callback;
+        pRemainChlCmd->u.remainChlCmd.callbackCtx = pContext;
+    
+        smePushCommand(pMac, pRemainChlCmd, eANI_BOOLEAN_FALSE);
+    } while(0);
+  
+    smsLog(pMac, LOGW, "exiting function %s\n", __FUNCTION__);
+  
+    return(status);
 }
 
-eHalStatus p2pSendAction(tHalHandle hHal,
-	     const tANI_U8 *pBuf, tANI_U32 len)
+eHalStatus p2pSendAction(tHalHandle hHal, tANI_U8 sessionId,
+         const tANI_U8 *pBuf, tANI_U32 len)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
-    tSirMbMsg *pMsg;
+    tSirMbMsgP2p *pMsg;
     tANI_U16 msgLen;
 
     msgLen = (tANI_U16)((sizeof( tSirMbMsg )) + len);
@@ -256,11 +234,12 @@ eHalStatus p2pSendAction(tHalHandle hHal,
         palZeroMemory(pMac->hHdd, (void *)pMsg, msgLen);
         pMsg->type = pal_cpu_to_be16((tANI_U16)eWNI_SME_SEND_ACTION_FRAME_IND);
         pMsg->msgLen = pal_cpu_to_be16(msgLen);
+        pMsg->sessionId = sessionId;
         palCopyMemory( pMac->hHdd, pMsg->data, pBuf, len ); 
         status = palSendMBMessage(pMac->hHdd, pMsg);
     }                             
 
-	return( status );
+    return( status );
 }
 
 eHalStatus p2pCancelRemainOnChannel(tHalHandle hHal, tANI_U8 sessionId)
@@ -280,6 +259,61 @@ eHalStatus p2pCancelRemainOnChannel(tHalHandle hHal, tANI_U8 sessionId)
         status = palSendMBMessage(pMac->hHdd, pMsg);
     }                             
 
-	return( status );
+    return( status );
 }
+
+eHalStatus p2pSetPs(tHalHandle hHal, tP2pPsConfig *pNoA)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    tSmeCmd *pNoACmd = NULL;
+    pNoACmd = smeGetCommandBuffer(pMac);
+    if(pNoACmd)
+    {
+        pNoACmd->command = eSmeCommandNoAUpdate;
+        pNoACmd->u.NoACmd.NoA.opp_ps = pNoA->opp_ps;
+        pNoACmd->u.NoACmd.NoA.ctWindow = pNoA->ctWindow;
+        pNoACmd->u.NoACmd.NoA.duration = pNoA->duration;
+        pNoACmd->u.NoACmd.NoA.interval = pNoA->interval;
+        pNoACmd->u.NoACmd.NoA.count = pNoA->count;
+        pNoACmd->u.NoACmd.NoA.single_noa_duration = pNoA->single_noa_duration;
+        pNoACmd->u.NoACmd.NoA.psSelection = pNoA->psSelection;
+        pNoACmd->sessionId = pNoA->sessionid;
+
+        smePushCommand(pMac, pNoACmd, eANI_BOOLEAN_FALSE);
+    }
+    else
+    {
+        status = eHAL_STATUS_FAILURE;
+    }    
+
+    return status; 
+}
+
+eHalStatus p2pProcessNoAReq(tpAniSirGlobal pMac, tSmeCmd *pNoACmd)
+{
+    tpP2pPsConfig pNoA;
+    tSirMsgQ msg;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+
+    status = palAllocateMemory(pMac->hHdd, (void**)&pNoA, sizeof(tP2pPsConfig));
+    if(HAL_STATUS_SUCCESS(status))
+    {
+        palZeroMemory(pMac->hHdd, pNoA, sizeof(tP2pPsConfig));
+        pNoA->opp_ps = pNoACmd->u.NoACmd.NoA.opp_ps;
+        pNoA->ctWindow = pNoACmd->u.NoACmd.NoA.ctWindow;
+        pNoA->duration = pNoACmd->u.NoACmd.NoA.duration;
+        pNoA->interval = pNoACmd->u.NoACmd.NoA.interval;
+        pNoA->count = pNoACmd->u.NoACmd.NoA.count;
+        pNoA->single_noa_duration = pNoACmd->u.NoACmd.NoA.single_noa_duration;
+        pNoA->psSelection = pNoACmd->u.NoACmd.NoA.psSelection;
+        pNoA->sessionid = pNoACmd->u.NoACmd.NoA.sessionid;
+        msg.type = eWNI_SME_UPDATE_NOA;
+        msg.bodyval = 0;
+        msg.bodyptr = pNoA;
+        limPostMsgApi(pMac, &msg);
+    }   
+    return status;
+}
+
 #endif

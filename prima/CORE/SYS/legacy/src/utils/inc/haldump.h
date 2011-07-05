@@ -46,13 +46,18 @@ when        who      what, where, why
 #ifndef _HALDUMP_H_
 #define _HALDUMP_H_
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
 
 #include "aniGlobal.h"
 #include "logDump.h"
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
+/*WDA Hal Dump Command implmentationin is featurised with WLAN_FEATURE_LOG_DUMP.
+so to maintain consistency with WDA/WDI the below flag is added */
+#ifdef WLAN_FEATURE_LOG_DUMP
 
 void halDumpInit(tpAniSirGlobal pMac);
+
+#endif /*WLAN_FEATURE_LOG_DUMP*/
 
 #endif /* FEATURE_WLAN_INTEGRATED_SOC*/
 

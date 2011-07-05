@@ -7662,3 +7662,65 @@ tANI_U8 limUnmapChannel(tANI_U8 mapChannel)
    else
      return 0;
 }
+
+
+v_U8_t* limGetIEPtr(tpAniSirGlobal pMac, v_U8_t *pIes, int length, v_U8_t eid)
+{
+    int left = length;
+    v_U8_t *ptr = pIes;
+    v_U8_t elem_id,elem_len;
+   
+    while(left >= 2)
+    {   
+        elem_id  =  ptr[0];
+        elem_len =  ptr[1];
+        left -= 2;
+        if(elem_len > left)
+        {
+            limLog(pMac, LOGE,
+                    "****Invalid IEs eid = %d elem_len=%d left=%d*****\n",
+                                                    eid,elem_len,left);
+            return NULL;
+        }
+        if (elem_id == eid) 
+        {
+            return ptr;
+        }
+   
+        left -= elem_len;
+        ptr += (elem_len + 2);
+    }
+    return NULL;
+}
+
+#ifdef WLAN_FEATURE_P2P
+tANI_BOOLEAN limIsP2pIEPresent(tpAniSirGlobal pMac, tANI_U8 *pIes, tANI_U16 ie_len)
+{   
+    int left = ie_len;
+    v_U8_t *ptr = pIes;
+    v_U8_t elem_id, elem_len;
+
+    while(left >= 2)
+    {
+        elem_id  = ptr[0];
+        elem_len = ptr[1];
+        left -= 2;
+        if(elem_len > left)
+        {
+            limLog( pMac, LOGE, 
+               FL("****Invalid IEs eid = %d elem_len=%d left=%d*****\n"), 
+                                               elem_id,elem_len,left);
+            return 0;
+        }
+        if (SIR_MAC_EID_VENDOR == elem_id) 
+        {
+            if(memcmp( &ptr[2],SIR_MAC_P2P_OUI, SIR_MAC_P2P_OUI_SIZE)==0)
+                return 1;
+        }
+ 
+        left -= elem_len;
+        ptr += (elem_len + 2);
+    }
+    return 0;
+}
+#endif

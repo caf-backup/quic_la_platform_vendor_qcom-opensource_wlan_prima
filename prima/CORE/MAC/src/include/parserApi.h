@@ -20,6 +20,7 @@
 #define COUNTRY_STRING_LENGTH    (  3 )
 #define COUNTRY_INFO_MAX_CHANNEL ( 84 )
 #define MAX_SIZE_OF_TRIPLETS_IN_COUNTRY_IE (COUNTRY_STRING_LENGTH * COUNTRY_INFO_MAX_CHANNEL)
+#define HIGHEST_24GHZ_CHANNEL_NUM  ( 14 )
 
 typedef struct sSirCountryInformation
 {
@@ -416,8 +417,9 @@ PopulateDot11fERPInfo(tpAniSirGlobal    pMac,
 #endif
 
 tSirRetStatus
-PopulateDot11fExtSuppRates(tpAniSirGlobal         pMac,
-                           tDot11fIEExtSuppRates *pDot11f);
+PopulateDot11fExtSuppRates(tpAniSirGlobal      pMac,
+                           tANI_U8  nChannelNum, tDot11fIEExtSuppRates *pDot11f,
+                           tpPESession psessionEntry);
 
 #if defined WLAN_FEATURE_VOWIFI
 tSirRetStatus 

@@ -30,6 +30,16 @@
 #define HDD_ETHERTYPE_WAI                  ( 0x88b4 )
 #endif
 
+#define HDD_80211_HEADER_LEN      24
+#define HDD_80211_HEADER_QOS_CTL  2
+#define HDD_LLC_HDR_LEN           6
+#define HDD_FRAME_TYPE_MASK       0x0c 
+#define HDD_FRAME_SUBTYPE_MASK    0xf0 
+#define HDD_FRAME_TYPE_DATA       0x08
+#define HDD_FRAME_SUBTYPE_QOSDATA 0x80
+#define HDD_DEST_ADDR_OFFSET      6
+
+#define HDD_MAC_HDR_SIZE          6
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 

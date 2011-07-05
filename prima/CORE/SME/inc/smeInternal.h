@@ -64,6 +64,7 @@ typedef enum eSmeCommandType
 #endif
 #ifdef WLAN_FEATURE_P2P
     eSmeCommandRemainOnChannel,
+    eSmeCommandNoAUpdate,
 #endif
 } eSmeCommandType;
 

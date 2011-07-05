@@ -442,7 +442,8 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
                                     eFrameTxDir txDir,
                                     tANI_U8 tid,
                                     pWDATxRxCompFunc pCompFunc,
-                                    void *pData);
+                                    void *pData,
+                                    tANI_U8 txFlag);
 
 /*
  * FUNCTION: WDA_PostMsgApi
@@ -1143,8 +1144,10 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 #define wdaPostCtrlMsg halPostMsgApi
 #endif //FEATURE_WLAN_NON_INTEGRATED_SOC
 
+#define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames
+
 #if defined( FEATURE_WLAN_INTEGRATED_SOC )
-#define halTxFrame(hHal, pFrmBuf, frmLen, frmType, txDir, tid, pCompFunc, pData) \
+#define halTxFrame(hHal, pFrmBuf, frmLen, frmType, txDir, tid, pCompFunc, pData, txFlag) \
    (eHalStatus)( WDA_TxPacket(\
          vos_get_context(VOS_MODULE_ID_WDA, vos_get_global_context(VOS_MODULE_ID_WDA, (hHal))),\
          (pFrmBuf),\
@@ -1153,7 +1156,20 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
          (txDir),\
          (tid),\
          (pCompFunc),\
-         (pData)) )
+         (pData),\
+         (txFlag)) )
+
+#define halTxFrameWithTxComplete(hHal, pFrmBuf, frmLen, frmType, txDir, tid, pCompFunc, pData, pCBackFnTxComp, txFlag) \
+   (eHalStatus)( WDA_TxPacket(\
+         vos_get_context(VOS_MODULE_ID_WDA, vos_get_global_context(VOS_MODULE_ID_WDA, (hHal))),\
+         (pFrmBuf),\
+         (frmLen),\
+         (frmType),\
+         (txDir),\
+         (tid),\
+         (pCBackFnTxComp),\
+         (pData),\
+         (txFlag)) )
 #endif
 
 /* -----------------------------------------------------------------

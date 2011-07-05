@@ -340,6 +340,10 @@ typedef struct sLimMlmScanReq
     tANI_U8            numSsid;
     tANI_U16 ie_len;
     tANI_U8  ies[200];
+	
+#ifdef WLAN_FEATURE_P2P
+    tANI_BOOLEAN   p2pSearch;
+#endif
     //channelList MUST be the last field of this structure
     tSirChannelList    channelList;
 } tLimMlmScanReq, *tpLimMlmScanReq;

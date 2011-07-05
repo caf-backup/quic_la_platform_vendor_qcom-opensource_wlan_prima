@@ -212,6 +212,8 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"IBSS_AUTO_BSSID",
 	(unsigned char *)"PROBE_REQ_ADDNIE_FLAG",
 	(unsigned char *)"PROBE_REQ_ADDNIE_DATA",
+	(unsigned char *)"PROBE_REQ_ADDNP2PIE_FLAG",
+	(unsigned char *)"PROBE_REQ_ADDNP2PIE_DATA",
 	(unsigned char *)"PROBE_RSP_BCN_ADDNIE_FLAG",
 	(unsigned char *)"PROBE_RSP_BCN_ADDNIE_DATA",
 	(unsigned char *)"WPS_ENABLE",

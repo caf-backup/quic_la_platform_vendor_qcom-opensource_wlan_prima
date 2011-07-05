@@ -2368,6 +2368,7 @@ void wlan_hdd_process_ftm_cmd
     }
     /*Save the received request*/
     pHddCtx->ftm.pRequestBuf = pRequestBuf;
+
     pHddCtx->ftm.pResponseBuf = (wlan_hdd_ftm_response_t*)pRequestBuf;
      /*Save the received request netlink header used for sending the response*/
     pHddCtx->ftm.wnl = wnl;
@@ -4107,7 +4108,7 @@ static int iw_ftm_get_char_setnone(struct net_device *dev, struct iw_request_inf
 
 VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len)
 {
-#ifdef ANI_MANF_DIAG
+#if defined(ANI_MANF_DIAG) && defined(MSM_PLATFORM)
     tAniHdr *wmsg = NULL;
     v_U8_t *pBuf;
     hdd_context_t *pHddCtx = NULL;
@@ -4151,7 +4152,7 @@ VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len)
    }
 
     vos_mem_free((v_VOID_t*)wmsg);
-#endif
+#endif //FTM and ANDROID
 
     return VOS_STATUS_SUCCESS;
 }

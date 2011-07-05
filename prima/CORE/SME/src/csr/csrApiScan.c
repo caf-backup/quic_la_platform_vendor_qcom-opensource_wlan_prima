@@ -79,6 +79,9 @@ extern tSirRetStatus wlan_cfgGetStr(tpAniSirGlobal, tANI_U16, tANI_U8*, tANI_U32
 void csrScanGetResultTimerHandler(void *);
 void csrScanResultAgingTimerHandler(void *pv);
 void csrScanIdleScanTimerHandler(void *);
+#ifdef WLAN_AP_STA_CONCURRENCY
+static void csrStaApConcTimerHandler(void *);
+#endif
 eHalStatus csrScanChannels( tpAniSirGlobal pMac, tSmeCmd *pCommand );
 void csrSetCfgValidChannelList( tpAniSirGlobal pMac, tANI_U8 *pChannelList, tANI_U8 NumChannels );
 void csrSaveTxPowerToCfg( tpAniSirGlobal pMac, tDblLinkList *pList, tANI_U32 cfgId );
@@ -205,6 +208,9 @@ eHalStatus csrScanOpen( tpAniSirGlobal pMac )
         csrLLOpen(pMac->hHdd, &pMac->scan.tempScanResults);
         csrLLOpen(pMac->hHdd, &pMac->scan.channelPowerInfoList24);
         csrLLOpen(pMac->hHdd, &pMac->scan.channelPowerInfoList5G);
+#ifdef WLAN_AP_STA_CONCURRENCY
+        csrLLOpen(pMac->hHdd, &pMac->scan.scanCmdPendingList);
+#endif
 #ifdef CSR_VALIDATE_LIST
         g_pchannelPowerInfoList5 = &pMac->scan.channelPowerInfoList5G;
         g_pMac = pMac;
@@ -218,6 +224,14 @@ eHalStatus csrScanOpen( tpAniSirGlobal pMac )
             smsLog(pMac, LOGE, FL("cannot allocate memory for getResult timer\n"));
             break;
         }
+#ifdef WLAN_AP_STA_CONCURRENCY
+        status = palTimerAlloc(pMac->hHdd, &pMac->scan.hTimerStaApConcTimer, csrStaApConcTimerHandler, pMac);
+        if(!HAL_STATUS_SUCCESS(status))
+        {
+            smsLog(pMac, LOGE, FL("cannot allocate memory for hTimerStaApConcTimer timer\n"));
+            break;
+        }
+#endif        
         status = palTimerAlloc(pMac->hHdd, &pMac->scan.hTimerIdleScan, csrScanIdleScanTimerHandler, pMac);
         if(!HAL_STATUS_SUCCESS(status))
         {
@@ -245,8 +259,14 @@ eHalStatus csrScanClose( tpAniSirGlobal pMac )
 #endif
     csrLLScanPurgeResult(pMac, &pMac->scan.tempScanResults);
     csrLLScanPurgeResult(pMac, &pMac->scan.scanResultList);
+#ifdef WLAN_AP_STA_CONCURRENCY
+    csrLLScanPurgeResult(pMac, &pMac->scan.scanCmdPendingList);
+#endif
     csrLLClose(&pMac->scan.scanResultList);
     csrLLClose(&pMac->scan.tempScanResults);
+#ifdef WLAN_AP_STA_CONCURRENCY
+    csrLLClose(&pMac->scan.scanCmdPendingList);
+#endif
     csrPurgeChannelPower(pMac, &pMac->scan.channelPowerInfoList24);
     csrPurgeChannelPower(pMac, &pMac->scan.channelPowerInfoList5G);
     csrLLClose(&pMac->scan.channelPowerInfoList24);
@@ -254,6 +274,9 @@ eHalStatus csrScanClose( tpAniSirGlobal pMac )
     csrScanDisable(pMac);
     palTimerFree(pMac->hHdd, pMac->scan.hTimerResultAging);
     palTimerFree(pMac->hHdd, pMac->scan.hTimerGetResult);
+#ifdef WLAN_AP_STA_CONCURRENCY
+    palTimerFree(pMac->hHdd, pMac->scan.hTimerStaApConcTimer);
+#endif
     palTimerFree(pMac->hHdd, pMac->scan.hTimerIdleScan);
     return eHAL_STATUS_SUCCESS;
 }
@@ -278,6 +301,175 @@ eHalStatus csrScanDisable( tpAniSirGlobal pMac )
     return eHAL_STATUS_SUCCESS;
 }
 
+
+#ifdef WLAN_AP_STA_CONCURRENCY
+//Return SUCCESS is the command is queued, else returns eHAL_STATUS_FAILURE 
+eHalStatus csrQueueScanRequest( tpAniSirGlobal pMac, tSmeCmd *pScanCmd )
+{
+    eHalStatus status;
+
+    tANI_BOOLEAN fNoCmdPending;
+    tSmeCmd *pQueueScanCmd=NULL;
+    tSmeCmd *pSendScanCmd=NULL;
+
+    if (vos_get_concurrency_mode() == VOS_STA_SAP) //TODO:- Also make sure AP BSS has started
+    {
+
+        tCsrScanRequest scanReq;
+        tANI_U8 numChn = pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels;
+        tCsrChannelInfo *pChnInfo = &scanReq.ChannelInfo;
+        tANI_U8    channelToScan[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+        tANI_U8    i = 0;
+        tANI_BOOLEAN bMemAlloc = eANI_BOOLEAN_FALSE;
+
+        if (numChn == 0)
+        {
+
+            numChn = pMac->scan.baseChannels.numChannels;
+             
+             status = palAllocateMemory( pMac->hHdd, (void **)&pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList, numChn );
+             if( !HAL_STATUS_SUCCESS( status ) )
+             {
+                 smsLog( pMac, LOGE, FL(" Failed to get memory for channel list \n") );
+                 return eHAL_STATUS_FAILURE;
+             }
+             bMemAlloc = eANI_BOOLEAN_TRUE;
+             status = palCopyMemory( pMac->hHdd, pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList, 
+                         pMac->scan.baseChannels.channelList, numChn );
+             if( !HAL_STATUS_SUCCESS( status ) )
+             {
+                 palFreeMemory( pMac->hHdd, pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList );
+                 pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList = NULL;
+                 smsLog( pMac, LOGE, FL(" Failed to copy memory tochannel list \n") );
+                 return eHAL_STATUS_FAILURE;
+             }
+             pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels = numChn;
+         }
+
+         //Whenever we get a scan request with multiple channels we break it up into 2 requests
+         //First request  for first channel to scan and second request to scan remaining channels
+         for  (i=0; i < 2; i++)
+         {   //go through max 2 iterations. 
+             //Once for using the existing command when number of channels is 1 
+             //Second to go over the remaining channels after creating a new command
+            
+            if (1 == numChn)
+            {
+                pSendScanCmd = pScanCmd;
+                pSendScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels = 1;
+                pSendScanCmd->u.scanCmd.u.scanRequest.scanType = eSIR_ACTIVE_SCAN;
+                pSendScanCmd->u.scanCmd.u.scanRequest.maxChnTime = 
+                    CSR_MIN(pSendScanCmd->u.scanCmd.u.scanRequest.maxChnTime,CSR_ACTIVE_MAX_CHANNEL_TIME_CONC);
+                pSendScanCmd->u.scanCmd.u.scanRequest.minChnTime = 
+                    CSR_MIN(pSendScanCmd->u.scanCmd.u.scanRequest.minChnTime, CSR_ACTIVE_MIN_CHANNEL_TIME_CONC);
+                if (i != 0)
+                { //Callback should be NULL for all except last channel So hdd_callback will be called only after last command
+                  //i!=0 then we came here in second iteration 
+                   pSendScanCmd->u.scanCmd.callback = NULL;
+                }
+                break; //break out of this loop in case there is only 1 channel then no need for 2nd iteration
+            
+            } else { //if number of channels > 1 then
+            
+                palZeroMemory(pMac->hHdd, &scanReq, sizeof(tCsrScanRequest));
+
+                pQueueScanCmd = csrGetCommandBuffer(pMac); //optimize this to use 2 command buffer only
+                if (!pQueueScanCmd)
+                {
+                    if (bMemAlloc)
+                    {
+                        palFreeMemory( pMac->hHdd, pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList );
+                        pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList = NULL;
+                 
+                    }
+                    smsLog( pMac, LOGE, FL(" Failed to get Queue command buffer\n") );
+                    return eHAL_STATUS_FAILURE;
+                }
+                pQueueScanCmd->command = pScanCmd->command; 
+                pQueueScanCmd->sessionId = pScanCmd->sessionId;
+                pQueueScanCmd->u.scanCmd.callback = pScanCmd->u.scanCmd.callback;
+                pQueueScanCmd->u.scanCmd.pContext = pScanCmd->u.scanCmd.pContext;
+                pQueueScanCmd->u.scanCmd.reason = pScanCmd->u.scanCmd.reason;
+                pQueueScanCmd->u.scanCmd.scanID = pMac->scan.nextScanID++; //let it wrap around
+
+                pChnInfo->numOfChannels = pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels - 1;
+
+                VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_WARN, 
+                   FL(" &channelToScan %0x pScanCmd(0x%X) pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList(0x%X)numChn(%d)"),
+                   &channelToScan[0], (unsigned int)pScanCmd, 
+                   (unsigned int)pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList, numChn);
+              
+                palCopyMemory(pMac->hHdd, &channelToScan[0], &pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList[1], 
+                              pChnInfo->numOfChannels * sizeof(tANI_U8));
+
+                pChnInfo->ChannelList = &channelToScan[0];
+              
+
+                scanReq.BSSType = eCSR_BSS_TYPE_ANY;
+                //Modify callers parameters in case of concurrency
+                scanReq.scanType = eSIR_ACTIVE_SCAN;
+                scanReq.maxChnTime = CSR_ACTIVE_MAX_CHANNEL_TIME_CONC;
+                scanReq.minChnTime = CSR_ACTIVE_MIN_CHANNEL_TIME_CONC;
+
+                status = csrScanCopyRequest(pMac, &pQueueScanCmd->u.scanCmd.u.scanRequest, &scanReq);
+                if(!HAL_STATUS_SUCCESS(status))
+                {
+                    if (bMemAlloc)
+                    {
+                        palFreeMemory( pMac->hHdd, pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList );
+                        pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList = NULL;
+                 
+                    }
+                    smsLog( pMac, LOGE, FL(" Failed to get copy csrScanRequest = %d\n"), status );
+                    return eHAL_STATUS_FAILURE;
+                }       
+                numChn = 1; //make numChn to be 1 for second iteration to create a send command
+            }  
+
+         }
+
+         fNoCmdPending = csrLLIsListEmpty( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK );
+
+         //Logic Below is as follows
+         // If the scanCmdPendingList is empty then we directly send that command
+         // to smeCommandQueue else we buffer it in our scanCmdPendingList Queue
+         if( fNoCmdPending )
+         {
+            
+            if (pQueueScanCmd != NULL)
+            {            
+              csrLLInsertTail( &pMac->scan.scanCmdPendingList, &pQueueScanCmd->Link, LL_ACCESS_LOCK );
+            }
+
+            if (pSendScanCmd != NULL)
+            {            
+                return csrQueueSmeCommand(pMac, pSendScanCmd, eANI_BOOLEAN_FALSE);
+            }
+         }
+         else
+         {           
+            if (pSendScanCmd != NULL)
+            {
+                csrLLInsertTail( &pMac->scan.scanCmdPendingList, &pSendScanCmd->Link, LL_ACCESS_LOCK );
+            }
+            if (pQueueScanCmd != NULL)
+            {
+                csrLLInsertTail( &pMac->scan.scanCmdPendingList, &pQueueScanCmd->Link, LL_ACCESS_LOCK );
+            }
+         }
+
+    }
+    else
+    {  //No concurrency case
+        return csrQueueSmeCommand(pMac, pScanCmd, eANI_BOOLEAN_FALSE);
+    }
+    
+
+
+    return ( status );
+
+}
+#endif
 
 eHalStatus csrScanRequest(tpAniSirGlobal pMac, tCsrScanRequest *pScanRequest, tANI_U32 *pScanRequestID, 
                             csrScanCompleteCallback callback, void *pContext)
@@ -331,7 +523,7 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tCsrScanRequest *pScanRequest, tA
                     }
                 }
                 //Need to make the following atomic
-				    pScanCmd->u.scanCmd.scanID = pMac->scan.nextScanID++; //let it wrap around
+                pScanCmd->u.scanCmd.scanID = pMac->scan.nextScanID++; //let it wrap around
                 
                 if(pScanRequestID)
                 {
@@ -387,7 +579,11 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tCsrScanRequest *pScanRequest, tA
                         if(HAL_STATUS_SUCCESS(status))
                         {
                             //Start process the command
+#ifdef WLAN_AP_STA_CONCURRENCY
+                            status = csrQueueScanRequest(pMac, p11dScanCmd);
+#else
                             status = csrQueueSmeCommand(pMac, p11dScanCmd, eANI_BOOLEAN_FALSE);
+#endif                   
                             if( !HAL_STATUS_SUCCESS( status ) )
                             {
                                 smsLog( pMac, LOGE, FL(" fail to send message status = %d\n"), status );
@@ -409,7 +605,11 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tCsrScanRequest *pScanRequest, tA
                 if(HAL_STATUS_SUCCESS(status))
                 {
                     //Start process the command
-                    status = csrQueueSmeCommand(pMac, pScanCmd, eANI_BOOLEAN_FALSE);
+#ifdef WLAN_AP_STA_CONCURRENCY
+                    status = csrQueueScanRequest(pMac,pScanCmd); 
+#else
+                    status = csrQueueSmeCommand(pMac, pScanCmd, eANI_BOOLEAN_FALSE);                   
+#endif
                     if( !HAL_STATUS_SUCCESS( status ) )
                     {
                         smsLog( pMac, LOGE, FL(" fail to send message status = %d\n"), status );
@@ -3555,6 +3755,13 @@ static tANI_BOOLEAN csrScanProcessScanResults( tpAniSirGlobal pMac, tSmeCmd *pCo
         *pfRemoveCommand = fRemoveCommand;
     }
 
+#ifdef WLAN_AP_STA_CONCURRENCY
+    if (!csrLLIsListEmpty( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK ))
+    {
+         palTimerStart(pMac->hHdd, pMac->scan.hTimerStaApConcTimer, 
+                 CSR_SCAN_STAAP_CONC_INTERVAL, eANI_BOOLEAN_FALSE);
+    }
+#endif
     return (fRet);
 }
 
@@ -3960,6 +4167,10 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tCsrScanRequest *pScanReq, tSc
                                     pScanReq->pIEField, pScanReq->uIEFieldLen );
                 }
             }
+#ifdef WLAN_FEATURE_P2P
+            pMsg->p2pSearch = pScanReq->p2pSearch;
+#endif
+
         }while(0);
         if(HAL_STATUS_SUCCESS(status))
         {
@@ -4350,6 +4561,10 @@ eHalStatus csrScanCopyRequest(tpAniSirGlobal pMac, tCsrScanRequest *pDstReq, tCs
                     break;
                 }
             }//Allocate memory for SSID List
+#ifdef WLAN_FEATURE_P2P
+            pDstReq->p2pSearch = pSrcReq->p2pSearch;
+#endif
+
         }
     }while(0);
     
@@ -4439,6 +4654,92 @@ void csrScanGetResultTimerHandler(void *pv)
     csrScanRequestResult(pMac);
 }
 
+#ifdef WLAN_AP_STA_CONCURRENCY
+static void csrStaApConcTimerHandler(void *pv)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( pv );
+    tListElem *pEntry;
+    tSmeCmd *pScanCmd;
+
+    if ( NULL != ( pEntry = csrLLPeekHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK) ) )
+    {    
+        tCsrScanRequest scanReq;
+        tSmeCmd *pSendScanCmd = NULL;
+        tANI_U8 numChn = 0;
+        tANI_U8 i;
+        tCsrChannelInfo *pChnInfo = &scanReq.ChannelInfo;
+        tANI_U8    channelToScan[WNI_CFG_VALID_CHANNEL_LIST_LEN];
+        eHalStatus status;
+       
+
+        pScanCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
+        numChn = pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels;
+        if (numChn > 1)
+        {
+             palZeroMemory(pMac->hHdd, &scanReq, sizeof(tCsrScanRequest));
+
+             pSendScanCmd = csrGetCommandBuffer(pMac); //optimize this to use 2 command buffer only
+             if (!pSendScanCmd)
+             {
+                 smsLog( pMac, LOGE, FL(" Failed to get Queue command buffer\n") );
+                 return;
+             }
+             pSendScanCmd->command = pScanCmd->command; 
+             pSendScanCmd->sessionId = pScanCmd->sessionId;
+             pSendScanCmd->u.scanCmd.callback = NULL;
+             pSendScanCmd->u.scanCmd.pContext = pScanCmd->u.scanCmd.pContext;
+             pSendScanCmd->u.scanCmd.reason = pScanCmd->u.scanCmd.reason;
+             pSendScanCmd->u.scanCmd.scanID = pMac->scan.nextScanID++; //let it wrap around
+
+             pChnInfo->numOfChannels = 1;
+             palCopyMemory(pMac->hHdd, &channelToScan[0], &pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList[0], 
+                          1 * sizeof(tANI_U8)); //just send one channel
+             pChnInfo->ChannelList = &channelToScan[0];
+
+             for (i = 0; i < (numChn-2); i++)
+             {
+                 pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList[i] = 
+                 pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.ChannelList[i+1]; //Move all the channels one step
+             }
+          
+             pScanCmd->u.scanCmd.u.scanRequest.ChannelInfo.numOfChannels = numChn -1; //reduce outstanding # of channels to be scanned
+
+             scanReq.BSSType = eCSR_BSS_TYPE_ANY;
+             //Modify callers parameters in case of concurrency
+             scanReq.scanType = eSIR_ACTIVE_SCAN;
+             scanReq.maxChnTime = CSR_MIN(pScanCmd->u.scanCmd.u.scanRequest.maxChnTime,CSR_ACTIVE_MAX_CHANNEL_TIME_CONC);
+             scanReq.minChnTime =  CSR_MIN(pScanCmd->u.scanCmd.u.scanRequest.minChnTime,CSR_ACTIVE_MIN_CHANNEL_TIME_CONC);
+
+             status = csrScanCopyRequest(pMac, &pSendScanCmd->u.scanCmd.u.scanRequest, &scanReq);
+             if(!HAL_STATUS_SUCCESS(status))
+             {
+                 smsLog( pMac, LOGE, FL(" Failed to get copy csrScanRequest = %d\n"), status );
+                 return;
+             }       
+        }
+        else
+        {    //numChn ==1 This is the last channel to be scanned
+             //last channel remaining to scan
+             pSendScanCmd = pScanCmd;
+             //remove this command from pending list 
+             if (csrLLRemoveHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK) == NULL)
+             { //In case between PeekHead and here, the entry got removed by another thread.
+                 continue;
+             }
+            
+        }               
+        csrQueueSmeCommand(pMac, pSendScanCmd, eANI_BOOLEAN_FALSE);
+
+    }
+
+    if (!csrLLIsListEmpty( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK ))
+    {
+         palTimerStart(pMac->hHdd, pMac->scan.hTimerStaApConcTimer, 
+                 CSR_SCAN_STAAP_CONC_INTERVAL, eANI_BOOLEAN_FALSE);
+    }
+    
+}
+#endif
 
 eHalStatus csrScanStartResultAgingTimer(tpAniSirGlobal pMac)
 {
@@ -5553,6 +5854,17 @@ eHalStatus csrScanAbortMacScan(tpAniSirGlobal pMac)
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSirMbMsg *pMsg;
     tANI_U16 msgLen;
+#ifdef WLAN_AP_STA_CONCURRENCY
+    tListElem *pEntry;
+    tSmeCmd *pCommand;
+
+    while( NULL != ( pEntry = csrLLRemoveHead( &pMac->scan.scanCmdPendingList, LL_ACCESS_LOCK) ) )
+    {
+
+        pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
+        csrAbortCommand( pMac, pCommand, eANI_BOOLEAN_FALSE);
+    }
+#endif
 
     msgLen = (tANI_U16)(sizeof( tSirMbMsg ));
     status = palAllocateMemory(pMac->hHdd, (void **)&pMsg, msgLen);

@@ -16,6 +16,7 @@
   
 /* $HEADER$ */
 
+#ifdef CONFIG_CFG80211
 
 //value for initial part of frames and number of bytes to be compared
 #define GAS_INITIAL_REQ "\x04\x0a"  
@@ -49,5 +50,7 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
                                          int priv_size
                                          );
 void wlan_hdd_cfg80211_post_voss_start(hdd_adapter_t* pAdapter);
+
+#endif // CONFIG_CFG80211
 
 #endif

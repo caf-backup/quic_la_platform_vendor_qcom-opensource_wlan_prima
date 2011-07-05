@@ -1860,7 +1860,7 @@ limProcessActionFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession ps
                  /* Forward to the SME to HDD to wpa_supplicant */
                  // type is ACTION
                  limSendSmeMgmtFrameInd(pMac, eSIR_MGMT_FRM_ACTION, 
-                    (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr) );
+                    (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0 );
               }
               else
               {
@@ -1929,7 +1929,7 @@ limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pBd)
                   /* Forward to the SME to HDD to wpa_supplicant */
                   // type is ACTION
                   limSendSmeMgmtFrameInd(pMac, eSIR_MGMT_FRM_ACTION, 
-                      (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr) );
+                      (tANI_U8*)pHdr, frameLen + sizeof(tSirMacMgmtHdr), 0 );
                 }
                 else
                 {

@@ -220,6 +220,9 @@ typedef struct sPESession           // Added to Support BT-AMP
 #if defined WLAN_FEATURE_VOWIFI
     tPowerdBm          txMgmtPower;
 #endif
+#ifdef WLAN_FEATURE_P2P
+    tSirNoAParam p2pNoA;
+#endif
 }tPESession, *tpPESession;
 
 #define LIM_MAX_ACTIVE_SESSIONS 4

@@ -495,6 +495,40 @@ sapSignalHDDevent
                           sizeof(tSirWPSPBCProbeReq));  
             break;
 
+#ifdef WLAN_FEATURE_P2P
+       case eSAP_INDICATE_MGMT_FRAME:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                                 "In %s, SAP event callback event = %s",
+                                __FUNCTION__, "eSAP_INDICATE_MGMT_FRAME");
+            sapApAppEvent.sapHddEventCode = eSAP_INDICATE_MGMT_FRAME;
+            sapApAppEvent.sapevt.sapManagementFrameInfo.nBeaconLength
+                                           = pCsrRoamInfo->nBeaconLength;
+            sapApAppEvent.sapevt.sapManagementFrameInfo.nAssocReqLength
+                                           = pCsrRoamInfo->nAssocReqLength;
+            sapApAppEvent.sapevt.sapManagementFrameInfo.nAssocRspLength
+                                           = pCsrRoamInfo->nAssocRspLength;
+            sapApAppEvent.sapevt.sapManagementFrameInfo.nProbeReqLength
+                                           = pCsrRoamInfo->nProbeReqLength;
+            sapApAppEvent.sapevt.sapManagementFrameInfo.nActionLength
+                                           = pCsrRoamInfo->nActionLength;
+            sapApAppEvent.sapevt.sapManagementFrameInfo.pbFrames
+                                           = pCsrRoamInfo->pbFrames;
+            break;
+       case eSAP_REMAIN_CHAN_READY:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                                 "In %s, SAP event callback event = %s",
+                                __FUNCTION__, "eSAP_REMAIN_CHAN_READY");
+           sapApAppEvent.sapHddEventCode = eSAP_REMAIN_CHAN_READY;
+            break;
+       case eSAP_SEND_ACTION_CNF:
+            VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
+                                 "In %s, SAP event callback event = %s",
+                                __FUNCTION__, "eSAP_SEND_ACTION_CNF");
+            sapApAppEvent.sapHddEventCode = eSAP_SEND_ACTION_CNF;
+            sapApAppEvent.sapevt.sapActionCnf.actionSendSuccess = (eSapStatus)context; 
+            break;
+#endif
+
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, SAP Unknown callback event = %d",
                        __FUNCTION__,sapHddevent);

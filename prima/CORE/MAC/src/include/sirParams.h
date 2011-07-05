@@ -101,6 +101,30 @@ typedef struct sSirMbMsg
     tANI_U32 data[1];
 } tSirMbMsg, *tpSirMbMsg;
 
+#ifdef WLAN_FEATURE_P2P
+/// Mailbox Message Structure for P2P 
+typedef struct sSirMbMsgP2p
+{
+    tANI_U16 type;
+
+    /**
+     * This length includes 4 bytes of header, that is,
+     * 2 bytes type + 2 bytes msgLen + n*4 bytes of data.
+     * This field is byte length.
+     */
+    tANI_U16 msgLen;
+
+    tANI_U32 sessionId;
+    /**
+     * This is the first data word in the mailbox message.
+     * It is followed by n words of data.
+     * NOTE: data[1] is not a place holder to store data
+     * instead to dereference the message body.
+     */
+    tANI_U32 data[1];
+} tSirMbMsgP2p, *tpSirMbMsgP2p;
+#endif
+
 /// Message queue definitions
 //  msgtype(2bytes) reserved(2bytes) bodyptr(4bytes) bodyval(4bytes)
 //  NOTE tSirMsgQ should be always multiples of WORD(4Bytes)
@@ -412,10 +436,9 @@ typedef struct sSirMbMsg
 #endif /* WLAN_FEATURE_VOWIFI_11R */
 
 #ifdef WLAN_FEATURE_P2P
-/* PE <-> HAL P2P msg */
-#define SIR_HAL_SET_P2P_GO_NOA_REQ          SIR_HAL_ITC_MSG_TYPES_BEGIN + 161
+/* P2P <-> HAL P2P msg */
+#define SIR_HAL_SET_P2P_GO_NOA_REQ         SIR_HAL_ITC_MSG_TYPES_BEGIN + 161
 #endif
-
 #ifdef WLAN_FEATURE_LOG_DUMP
 #define  SIR_HAL_DUMP_CMD_REQ               SIR_HAL_ITC_MSG_TYPES_BEGIN + 162
 #define  SIR_HAL_DUMP_CMD_RSP               SIR_HAL_ITC_MSG_TYPES_BEGIN + 163

@@ -3542,8 +3542,10 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
 #else
     hdev->dev_type = HCI_AMP;
 #endif
+#ifdef FEATURE_WLAN_BTAMP_UT
     /* For the "real" BlueZ build, DON'T Set the device "quirks" to indicate RAW */
-    //set_bit(HCI_QUIRK_RAW_DEVICE, &hdev->quirks);
+    set_bit(HCI_QUIRK_RAW_DEVICE, &hdev->quirks);
+#endif
 #else //BUILD_FOR_BLUETOOTH_NEXT_2_6
     /* HCI "bus type" of HCI_VIRTUAL should apply */
     hdev->type = HCI_VIRTUAL;

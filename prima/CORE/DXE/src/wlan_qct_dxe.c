@@ -2313,13 +2313,8 @@ void dxeTXEventHandler
       {
          if(WLANDXE_CH_STAT_MASKED_MASK & chStat)
          {
-            wpalReadRegister(0x03080090, &wqCount);
-            HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO,
-                    "Disable BD PDU Avail 0x%x", wqCount);
-            wqCount = 0;
-            wpalReadRegister(0x0380171c, &wqCount);
-            HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO,
-                     "TX LOW WQ23_COUNT 0x%x", wqCount);
+            HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_WARN,
+                     "TX LOW Channel Masked");
             bEnableISR = 1;             
          }
          /* Handle TX complete for low priority channel */
@@ -2421,7 +2416,8 @@ void dxeTXEventHandler
    }
 #endif /* WLANDXE_TEST_CHANNEL_ENABLE */
 
-   if((bEnableISR)&&( eWLAN_PAL_FALSE == dxeCtxt->txIntEnable ))
+   if((bEnableISR || (dxeCtxt->txCompletedFrames)) &&
+      (eWLAN_PAL_FALSE == dxeCtxt->txIntEnable))
    {
       dxeCtxt->txIntEnable =  eWLAN_PAL_TRUE; 
       wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);

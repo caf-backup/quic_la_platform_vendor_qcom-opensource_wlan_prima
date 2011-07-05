@@ -498,26 +498,48 @@ PopulateDot11fERPInfo(tpAniSirGlobal    pMac,
 } // End PopulateDot11fERPInfo.
 
 tSirRetStatus
-PopulateDot11fExtSuppRates(tpAniSirGlobal         pMac,
-                           tDot11fIEExtSuppRates *pDot11f)
+PopulateDot11fExtSuppRates(tpAniSirGlobal pMac, tANI_U8 nChannelNum,
+                           tDot11fIEExtSuppRates *pDot11f, 
+                           tpPESession psessionEntry)
 {
-    tANI_U32           nRates;
     tSirRetStatus nSirStatus;
+    tANI_U32           nRates;
     tANI_U8            rates[WNI_CFG_EXTENDED_OPERATIONAL_RATE_SET_LEN];
 
-    if ( WNI_CFG_PHY_MODE_11G == pMac->lim.gLimPhyMode )
+   /* Use the ext rates present in session entry whenever nChannelNum is set to OPERATIONAL
+       else use the ext supported rate set from CFG, which is fixed and does not change dynamically and is used for
+       sending mgmt frames (lile probe req) which need to go out before any session is present.
+   */
+    if(POPULATE_DOT11F_RATES_OPERATIONAL == nChannelNum )
+    {
+        if(psessionEntry != NULL)
+        {
+            nRates = psessionEntry->extRateSet.numRates;
+            palCopyMemory(pMac->hHdd, rates, psessionEntry->extRateSet.rate, 
+                          nRates);
+        }
+        else
+        {
+            dot11fLog( pMac, LOGE, FL("no session context exists while"
+                        " populating Operational Rate Set\n"));
+            nRates = 0;
+        }
+    }
+    else if ( HIGHEST_24GHZ_CHANNEL_NUM >= nChannelNum )
     {
         CFG_GET_STR( nSirStatus, pMac, WNI_CFG_EXTENDED_OPERATIONAL_RATE_SET,
                      rates, nRates, WNI_CFG_EXTENDED_OPERATIONAL_RATE_SET_LEN );
-        if ( 0 != nRates )
-        {
-            palCopyMemory( pMac->hHdd, pDot11f->rates, rates, nRates );
-            pDot11f->num_rates = ( tANI_U8 ) nRates;
-            pDot11f->present = 1;
-        }
+    }
+
+    if ( 0 != nRates )
+    {
+        pDot11f->num_rates = ( tANI_U8 )nRates;
+        palCopyMemory( pMac->hHdd, pDot11f->rates, rates, nRates );
+        pDot11f->present   = 1;
     }
 
     return eSIR_SUCCESS;
+
 } // End PopulateDot11fExtSuppRates.
 
 tSirRetStatus

@@ -278,6 +278,9 @@ typedef enum eSirResultCodes
 #if defined WLAN_FEATURE_VOWIFI_11R
     eSIR_SME_FT_REASSOC_FAILURE,
 #endif
+#ifdef WLAN_FEATURE_P2P
+    eSIR_SME_SEND_ACTION_FAIL,
+#endif
     eSIR_DONOT_USE_RESULT_CODE = SIR_MAX_ENUM_SIZE
     
 } tSirResultCodes;
@@ -390,6 +393,7 @@ typedef struct sSirRemainOnChnReq
 {
     tANI_U16 messageType;
     tANI_U16 length;
+    tANI_U16 sessionId;
     tSirMacAddr selfMacAddr;
     tANI_U8  chnNum;
     tANI_U32 duration;
@@ -400,6 +404,7 @@ typedef struct sSirRegisterMgmtFrame
 {
     tANI_U16 messageType;
     tANI_U16 length;
+    tANI_U16 sessionId;
     tANI_BOOLEAN registerFrame;
     tANI_U16 frameType;
     tANI_U16 matchLen;
@@ -1052,9 +1057,11 @@ typedef struct sSirSmeScanReq
     tANI_U16             ie_len;
     tANI_U8              ies[200]; 
 
+#ifdef WLAN_FEATURE_P2P
+    tANI_BOOLEAN   p2pSearch;
+#endif
+    tSirChannelList channelList; //Channel list is variable field. So is ies
     //channelList has to be the last member of this structure. Check tSirChannelList for the reason.
-    /* This MUST be the last field of the structure */
-    tSirChannelList channelList;
 } tSirSmeScanReq, *tpSirSmeScanReq;
 
 #ifdef FEATURE_INNAV_SUPPORT
@@ -3560,6 +3567,7 @@ typedef struct sSirSmeMgmtFrameInd
 {
     tANI_U16        mesgType;
     tANI_U16        mesgLen;
+    tANI_U16        sessionId;
     tSirSmeMgmtFrameType frameType;
     tANI_U8  frameBuf[1]; //variable
 }tSirSmeMgmtFrameInd, *tpSirSmeMgmtFrameInd;
@@ -3569,6 +3577,20 @@ typedef struct sSirSmeMgmtFrameInd
     ( ( eSME_LINK_DISCONNECTED_BY_HDD == (eReason) ) || ( eSME_LINK_DISCONNECTED_BY_OTHER == (eReason) ) )
 #define SIR_IS_FULL_POWER_NEEDED_BY_HDD(eReason) \
     ( ( eSME_LINK_DISCONNECTED_BY_HDD == (eReason) ) || ( eSME_FULL_PWR_NEEDED_BY_HDD == (eReason) ) )
+
+/* P2P Power Save Related */
+#ifdef WLAN_FEATURE_P2P
+typedef struct sSirNoAParam
+{
+    tANI_U8 ctWindow:7;
+    tANI_U8 OppPS:1;
+    tANI_U8 count;
+    tANI_U32 duration;
+    tANI_U32 interval;
+    tANI_U32 singleNoADuration;
+    tANI_U8   psSelection;
+}tSirNoAParam, *tpSirNoAParam;
+#endif
 
 #endif /* __SIR_API_H */
 

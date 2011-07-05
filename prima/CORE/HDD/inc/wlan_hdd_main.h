@@ -245,16 +245,6 @@ struct WLAN_WAPI_KEY
 typedef struct WLAN_WAPI_KEY WLAN_WAPI_KEY;
 typedef struct WLAN_WAPI_KEY *pWLAN_WAPI_KEY;
 
-#ifdef CONFIG_CFG80211
-
-typedef struct beacon_data_s {
-    u8 *head, *tail;
-    int head_len, tail_len;
-    int dtim_period;
-} beacon_data_t;
-#endif
-
-
 /** WAPI BKID List stucture definition */
 struct _WLAN_BKID_LIST
 {
@@ -278,6 +268,13 @@ struct hdd_wapi_info_s
 typedef struct hdd_wapi_info_s hdd_wapi_info_t;
 #endif /* FEATURE_WLAN_WAPI */
 
+#ifdef CONFIG_CFG80211
+typedef struct beacon_data_s {
+    u8 *head, *tail;
+    int head_len, tail_len;
+    int dtim_period;
+} beacon_data_t;
+#endif
 
 typedef enum device_mode
 {  /* MAINTAIN 1 - 1 CORRESPONDENCE WITH tVOS_CON_MODE*/
@@ -298,6 +295,7 @@ typedef struct hdd_remain_on_chan_ctx
   struct ieee80211_channel chan;
   enum nl80211_channel_type chan_type;
   unsigned int duration;
+  u64 cookie;
 }hdd_remain_on_chan_ctx_t;
 
 typedef struct hdd_cfg80211_state_s 
@@ -306,6 +304,8 @@ typedef struct hdd_cfg80211_state_s
   u64 action_cookie;
   tANI_U8 *buf;
   size_t len;
+  struct sk_buff *skb;
+  hdd_remain_on_chan_ctx_t* remain_on_chan_ctx;
 }hdd_cfg80211_state_t;
 
 #endif
@@ -398,11 +398,11 @@ struct hdd_ap_ctx_s
       
    vos_timer_t hdd_ap_inactivity_timer;
 
-   
+    v_U8_t   operatingChannel;
    
    v_BOOL_t uIsAuthenticated;
    
-#ifdef CONFIG_CFG80211   
+#ifdef CONFIG_CFG80211
    beacon_data_t *beacon;
 #endif
 };
@@ -477,6 +477,11 @@ struct hdd_adapter_s
 
 #ifdef FEATURE_WLAN_WAPI
    hdd_wapi_info_t wapi_info;
+#endif
+
+#ifdef CONFIG_CFG80211
+   struct work_struct  monTxWorkQueue;
+   struct sk_buff *skb_to_tx;
 #endif
 
    union {
@@ -596,6 +601,7 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter );
 void hdd_set_station_ops( struct net_device *pWlanDev );
 tANI_U8* wlan_hdd_get_intf_addr(hdd_context_t* pHddCtx);
 void wlan_hdd_release_intf_addr(hdd_context_t* pHddCtx, tANI_U8* releaseAddr);
+v_U8_t hdd_get_operating_channel( hdd_context_t *pHddCtx, device_mode_t mode );
 
 
 #if defined(WLAN_SOFTAP_FEATURE) || defined(ANI_MANF_DIAG)

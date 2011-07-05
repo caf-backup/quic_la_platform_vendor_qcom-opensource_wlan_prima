@@ -65,7 +65,7 @@ when           who        what, where, why
 
 /*The maximum number of packets that can be chained in dxe for the Low 
   priority channel */
-#define WLANDXE_LO_PRI_RES_NUM 60
+#define WLANDXE_LO_PRI_RES_NUM 128
 
 /*The maximum number of packets that can be chained in dxe for the HI 
   priority channel */

@@ -1623,6 +1623,12 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
         smsLog(pMac, LOGW, " Assoc complete result = %d statusCode = %d reasonCode = %d\n", u2, pRoamInfo->statusCode, pRoamInfo->reasonCode);
     }
 
+   if (pSession == NULL)
+   {
+      smsLog(pMac, LOGP, "Session ID is NULL\n");
+      return eHAL_STATUS_FAILURE;
+   }
+
     if(NULL != pSession->callback)
     {
         if( pRoamInfo )
@@ -8847,7 +8853,7 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
     
     if(pProfile->ChannelInfo.numOfChannels && pProfile->ChannelInfo.ChannelList)
     {
-       operationChannel = pProfile->ChannelInfo.ChannelList[0];
+        operationChannel = pProfile->ChannelInfo.ChannelList[0];
     }
     
 #ifdef WLAN_SOFTAP_FEATURE
@@ -8855,7 +8861,21 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
 #else
     cfgDot11Mode = csrRoamGetPhyModeBandForBss( pMac, (eCsrPhyMode)pProfile->phyMode, operationChannel, &eBand );
 #endif
-    
+
+#ifdef WLAN_FEATURE_P2P
+    if( ( (pProfile->csrPersona == VOS_P2P_CLIENT_MODE) ||
+          (pProfile->csrPersona == VOS_P2P_GO_MODE) )
+     && ( cfgDot11Mode == eCSR_CFG_DOT11_MODE_11B)
+      )
+    {
+        /* This should never happen */
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, 
+              FL("For P2PClient/P2P-GO (persona %d) cfgDot11Mode is 11B\n"), 
+              pProfile->csrPersona);
+        VOS_ASSERT(0);
+    }
+#endif
+
     switch( cfgDot11Mode )
     {
         case eCSR_CFG_DOT11_MODE_11G:
@@ -8946,24 +8966,44 @@ static void csrRoamGetBssStartParms( tpAniSirGlobal pMac, tCsrRoamProfile *pProf
             break;     
 
         case eSIR_11G_NW_TYPE:
-            
-            pParam->operationalRateSet.numRates = 4;
+#ifdef WLAN_FEATURE_P2P
+            /* For P2P Client and P2P GO, disable 11b rates */ 
+            if( (pProfile->csrPersona == VOS_P2P_CLIENT_MODE) ||
+                (pProfile->csrPersona == VOS_P2P_GO_MODE)
+              )
+            {
+                pParam->operationalRateSet.numRates = 8;
 
-            pParam->operationalRateSet.rate[0] = SIR_MAC_RATE_1 | CSR_DOT11_BASIC_RATE_MASK;
-            pParam->operationalRateSet.rate[1] = SIR_MAC_RATE_2 | CSR_DOT11_BASIC_RATE_MASK;
-            pParam->operationalRateSet.rate[2] = SIR_MAC_RATE_5_5 | CSR_DOT11_BASIC_RATE_MASK;
-            pParam->operationalRateSet.rate[3] = SIR_MAC_RATE_11 | CSR_DOT11_BASIC_RATE_MASK;
-           
-            pParam->extendedRateSet.numRates = 8;
-
-            pParam->extendedRateSet.rate[0] = SIR_MAC_RATE_6;
-            pParam->extendedRateSet.rate[1] = SIR_MAC_RATE_9;
-            pParam->extendedRateSet.rate[2] = SIR_MAC_RATE_12;
-            pParam->extendedRateSet.rate[3] = SIR_MAC_RATE_18;
-            pParam->extendedRateSet.rate[4] = SIR_MAC_RATE_24;
-            pParam->extendedRateSet.rate[5] = SIR_MAC_RATE_36;
-            pParam->extendedRateSet.rate[6] = SIR_MAC_RATE_48;
-            pParam->extendedRateSet.rate[7] = SIR_MAC_RATE_54;
+                pParam->operationalRateSet.rate[0] = SIR_MAC_RATE_6 | CSR_DOT11_BASIC_RATE_MASK;
+                pParam->operationalRateSet.rate[1] = SIR_MAC_RATE_9;
+                pParam->operationalRateSet.rate[2] = SIR_MAC_RATE_12 | CSR_DOT11_BASIC_RATE_MASK;
+                pParam->operationalRateSet.rate[3] = SIR_MAC_RATE_18;
+                pParam->operationalRateSet.rate[4] = SIR_MAC_RATE_24 | CSR_DOT11_BASIC_RATE_MASK;
+                pParam->operationalRateSet.rate[5] = SIR_MAC_RATE_36;
+                pParam->operationalRateSet.rate[6] = SIR_MAC_RATE_48;
+                pParam->operationalRateSet.rate[7] = SIR_MAC_RATE_54;
+            }
+            else
+#endif            
+            {
+                pParam->operationalRateSet.numRates = 4;
+    
+                pParam->operationalRateSet.rate[0] = SIR_MAC_RATE_1 | CSR_DOT11_BASIC_RATE_MASK;
+                pParam->operationalRateSet.rate[1] = SIR_MAC_RATE_2 | CSR_DOT11_BASIC_RATE_MASK;
+                pParam->operationalRateSet.rate[2] = SIR_MAC_RATE_5_5 | CSR_DOT11_BASIC_RATE_MASK;
+                pParam->operationalRateSet.rate[3] = SIR_MAC_RATE_11 | CSR_DOT11_BASIC_RATE_MASK;
+               
+                pParam->extendedRateSet.numRates = 8;
+    
+                pParam->extendedRateSet.rate[0] = SIR_MAC_RATE_6;
+                pParam->extendedRateSet.rate[1] = SIR_MAC_RATE_9;
+                pParam->extendedRateSet.rate[2] = SIR_MAC_RATE_12;
+                pParam->extendedRateSet.rate[3] = SIR_MAC_RATE_18;
+                pParam->extendedRateSet.rate[4] = SIR_MAC_RATE_24;
+                pParam->extendedRateSet.rate[5] = SIR_MAC_RATE_36;
+                pParam->extendedRateSet.rate[6] = SIR_MAC_RATE_48;
+                pParam->extendedRateSet.rate[7] = SIR_MAC_RATE_54;
+            }
             
             if ( eCSR_OPERATING_CHANNEL_ANY == operationChannel ) 
             {

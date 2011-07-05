@@ -206,6 +206,7 @@ enum eWniMsgTypes
     eWNI_SME_SEND_ACTION_FRAME_IND,
     eWNI_SME_ACTION_FRAME_SEND_CNF,
     eWNI_SME_ABORT_REMAIN_ON_CHAN_IND,
+    eWNI_SME_UPDATE_NOA,
 #endif
     //General Power Save Messages
     eWNI_PMC_MSG_TYPES_BEGIN,

@@ -279,6 +279,25 @@ WLANSAP_RoamCallback
                        __FUNCTION__, "eCSR_ROAM_WPS_PBC_PROBE_REQ_IND", roamStatus);
             break;        
 
+#ifdef WLAN_FEATURE_P2P
+        case eCSR_ROAM_INDICATE_MGMT_FRAME:
+            sapSignalHDDevent(sapContext, pCsrRoamInfo, 
+                              eSAP_INDICATE_MGMT_FRAME, 
+                              (v_PVOID_t) eSAP_STATUS_SUCCESS);
+            break;
+        case eCSR_ROAM_REMAIN_CHAN_READY:
+            sapSignalHDDevent(sapContext, pCsrRoamInfo, 
+                              eSAP_REMAIN_CHAN_READY, 
+                              (v_PVOID_t) eSAP_STATUS_SUCCESS);
+            break;
+        case eCSR_ROAM_SEND_ACTION_CNF:
+            sapSignalHDDevent(sapContext, pCsrRoamInfo, 
+                            eSAP_SEND_ACTION_CNF, 
+                            (v_PVOID_t)(( roamResult == eCSR_ROAM_RESULT_NONE) ?
+                            eSAP_STATUS_SUCCESS : eSAP_STATUS_FAILURE));
+            break;
+#endif
+
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR, "In %s, CSR roamStatus not handled roamStatus = %s (%d)\n",
                        __FUNCTION__, get_eRoamCmdStatus_str(roamStatus), roamStatus);
@@ -359,7 +378,7 @@ WLANSAP_RoamCallback
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR roamResult = %s (%d)\n",
                        __FUNCTION__, "eCSR_ROAM_RESULT_MIC_ERROR_UNICAST", roamResult);
             /* Fill in the event structure */
-            //TODO: support for unicast key MIC failure event to be handled	
+            //TODO: support for unicast key MIC failure event to be handled
             vosStatus = sapSignalHDDevent( sapContext, pCsrRoamInfo, eSAP_STA_MIC_FAILURE_EVENT,(v_PVOID_t) NULL);
             break;
 

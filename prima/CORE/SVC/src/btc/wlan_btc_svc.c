@@ -10,12 +10,7 @@
 #include <wlan_hdd_includes.h>
 #include <vos_trace.h>
 // Global variables
-// TODO: Plan to remove this from here. This is used only for following
-//  - To get the connection info. 
-//       - Introduce an API in HDD to get this information.
-//  - Get HAL for calling SME function.
-//       - Can use vos_get_global_context function.
-static struct hdd_context_s *pAdapterHandle = NULL;
+static struct hdd_context_s *pHddCtx = NULL;
 
 static int gWiFiChannel = 0;  /* WiFi associated channel 1-13, or 0 (none) */
 static int gAmpChannel = 0;   /* AMP associated channel 1-13, or 0 (none) */
@@ -74,18 +69,14 @@ void send_btc_nlink_msg (int type, int dest_pid)
          nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr)));
          skb_put(skb, NLMSG_SPACE(sizeof(tAniMsgHdr)));
          break;
+      case WLAN_BTC_SOFTAP_BSS_START:
       case WLAN_BTC_QUERY_STATE_RSP:
       case WLAN_STA_ASSOC_DONE_IND:
          aniHdr->length = sizeof(tWlanAssocData);
          nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr) + sizeof(tWlanAssocData)));
          assocData = ( tWlanAssocData *)((char*)aniHdr + sizeof(tAniMsgHdr));
-         //TODO Introduce an API in HDD to get this info.
-#ifdef HDD_SESSIONIZE
-         if(hdd_connIsConnected(WLAN_HDD_GET_STATION_CTX_PTR(pAdapterHandle)))
-            assocData->channel = (WLAN_HDD_GET_STATION_CTX_PTR(pAdapterHandle))->conn_info.operationChannel;
-         else
-#endif
-            assocData->channel = 0;
+         
+         assocData->channel = hdd_get_operating_channel( pHddCtx, WLAN_HDD_INFRA_STATION );
 
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_LOW,
                     "New WiFi channel %d gAmpChannel %d gWiFiChannel %d",
@@ -107,7 +98,11 @@ void send_btc_nlink_msg (int type, int dest_pid)
              return;
            }
          }
-
+         if(type == WLAN_BTC_SOFTAP_BSS_START)
+         {
+             /*Replace WLAN_BTC_SOFTAP_BSS_START by WLAN_STA_ASSOC_DONE_IND*/
+             aniHdr->type = WLAN_STA_ASSOC_DONE_IND;
+         }
          gWiFiChannel = assocData->channel;
          skb_put(skb, NLMSG_SPACE((sizeof(tAniMsgHdr)+ sizeof(tWlanAssocData))));
          break;
@@ -170,7 +165,7 @@ void send_btc_nlink_msg (int type, int dest_pid)
  */
 int btc_activate_service(void *pAdapter)
 {
-   pAdapterHandle = (struct hdd_context_s*)pAdapter;  
+   pHddCtx = (struct hdd_context_s*)pAdapter;  
 
    //Register the msg handler for msgs addressed to ANI_NL_MSG_BTC
    nl_srv_register(WLAN_NL_MSG_BTC, btc_msg_callback);
@@ -205,7 +200,7 @@ int btc_msg_callback (struct sk_buff * skb)
             break;
          }
          btEvent = (tSmeBtEvent*)((char*)msg_hdr + sizeof(tAniMsgHdr));
-         (void)sme_BtcSignalBtEvent(pAdapterHandle->hHal, btEvent);
+         (void)sme_BtcSignalBtEvent(pHddCtx->hHal, btEvent);
          break;
       default:
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,

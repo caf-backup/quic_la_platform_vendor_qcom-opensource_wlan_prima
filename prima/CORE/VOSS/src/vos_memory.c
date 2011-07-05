@@ -127,9 +127,10 @@ v_VOID_t * vos_mem_malloc_debug( v_SIZE_t size, char* fileName, v_U32_t lineNum)
    }
    if (in_interrupt())
    {
-      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "%s cannot be called from interrupt context!!!", __FUNCTION__);
-      return NULL;
+       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+               "%s is being called in interrupt context, using GPF_ATOMIC.", __FUNCTION__);
+       return kmalloc(size, GFP_ATOMIC);
+      
    }
 
    new_size = size + sizeof(struct s_vos_mem_struct) + 8; 

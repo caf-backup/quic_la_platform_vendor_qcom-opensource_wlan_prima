@@ -67,7 +67,6 @@ void limPrintMsgInfo(tpAniSirGlobal pMac, tANI_U16 logLevel, tSirMsgQ *msg);
 char* limBssTypeStr(tSirBssType bssType);
 
 
-
 tANI_U32            limPostMsgApiNoWait(tpAniSirGlobal, tSirMsgQ *);
 tANI_U8           limIsAddrBC(tSirMacAddr);
 tANI_U8           limIsGroupAddr(tSirMacAddr);
@@ -348,7 +347,11 @@ void limHandleHeartBeatFailureTimeout(tpAniSirGlobal pMac);
 void limProcessDelStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ);
 void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ);
 tANI_U8 limUnmapChannel(tANI_U8 mapChannel);
+v_U8_t* limGetIEPtr(tpAniSirGlobal pMac, v_U8_t *pIes, int length, v_U8_t eid);
 
+#ifdef WLAN_FEATURE_P2P
+tANI_BOOLEAN limIsP2pIEPresent(tpAniSirGlobal pMac, tANI_U8 *pIes, tANI_U16 ie_len);
+#endif
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 
 typedef enum

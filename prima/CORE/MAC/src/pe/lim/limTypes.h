@@ -1052,12 +1052,13 @@ limChangeChannelWithCallback(tpAniSirGlobal pMac, tANI_U8 newChannel,
    CHANGE_CHANNEL_CALLBACK callback, tANI_U32 *cbdata, tpPESession psessionEntry);
 
 #ifdef WLAN_FEATURE_P2P
-void
-limSendSmeMgmtFrameInd(tpAniSirGlobal pMac, tSirSmeMgmtFrameType frameType,
-                    tANI_U8  *frame, tANI_U32 frameLen);
+void limSendSmeMgmtFrameInd(
+                    tpAniSirGlobal pMac, tSirSmeMgmtFrameType frameType,
+                    tANI_U8  *frame, tANI_U32 frameLen, tANI_U16 sessionId);
 void limProcessRemainOnChnTimeout(tpAniSirGlobal pMac);
 void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg);
 void limAbortRemainOnChan(tpAniSirGlobal pMac);
+tSirRetStatus __limProcessSmeNoAUpdate(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf);
 #endif
 #endif /* __LIM_TYPES_H */
 

@@ -1296,7 +1296,7 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
                         "****WEP open authentication failed, trying with shared authentication****");
                 (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.authType = eCSR_AUTH_TYPE_SHARED_KEY;
                 pWextState->roamProfile.AuthType.authType[0] = (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.authType;
-				pWextState->roamProfile.csrPersona = pAdapter->device_mode;
+                pWextState->roamProfile.csrPersona = pAdapter->device_mode;
                 halStatus = sme_RoamConnect( WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId, &(pWextState->roamProfile), &roamId);
             }
             else
@@ -1325,18 +1325,21 @@ eHalStatus hdd_smeRoamCallback( void *pContext, tCsrRoamInfo *pRoamInfo, tANI_U3
            hdd_SendFTEvent(pAdapter);
            break;
 #endif
-#if defined CONFIG_CFG80211
-        case eCSR_ROAM_INDICATE_MGMT_FRAME:
-           hdd_indicateMgmtFrame( pAdapter, pRoamInfo );
-           break;
+
 #ifdef WLAN_FEATURE_P2P
+        case eCSR_ROAM_INDICATE_MGMT_FRAME:
+           hdd_indicateMgmtFrame( pAdapter, 
+                                  pRoamInfo->nProbeReqLength, 
+                                  pRoamInfo->nActionLength,
+                                  pRoamInfo->pbFrames );
+           break;
         case eCSR_ROAM_REMAIN_CHAN_READY:
-           hdd_remainChanReadyHandler( pAdapter, pRoamInfo );
+           hdd_remainChanReadyHandler( pAdapter );
            break;
         case eCSR_ROAM_SEND_ACTION_CNF:
-           hdd_sendActionCnf( pAdapter, pRoamInfo );
+           hdd_sendActionCnf( pAdapter,
+               (roamResult == eCSR_ROAM_RESULT_NONE) ? TRUE : FALSE );
            break;
-#endif
 #endif
         default:
             break;
@@ -1760,6 +1763,16 @@ int iw_set_essid(struct net_device *dev,
                      msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
         }
     }
+#ifdef CONFIG_CFG80211
+    /** when cfg80211 defined, wpa_supplicant wext driver uses 
+      zero-length, null-string ssid for force disconnection. 
+      after disconnection (if previously connected) and cleaning ssid, 
+      driver MUST return success */
+    if ( 0 == wrqu->essid.length ) {
+        return 0;
+    }
+#endif
+
     status = hdd_wmm_get_uapsd_mask(pAdapter,
                                     &pWextState->roamProfile.uapsd_mask);
     if (VOS_STATUS_SUCCESS != status)
@@ -1817,7 +1830,7 @@ int iw_set_essid(struct net_device *dev,
     // Disable auto BMPS entry by PMC until DHCP is done
     sme_SetDHCPTillPowerActiveFlag(WLAN_HDD_GET_HAL_CTX(pAdapter), TRUE);
 
-	pWextState->roamProfile.csrPersona = pAdapter->device_mode; 
+    pWextState->roamProfile.csrPersona = pAdapter->device_mode; 
     status = sme_RoamConnect( hHal,pAdapter->sessionId, &(pWextState->roamProfile),&roamId);
     if(pWextState->wpsMode == eWEXT_WPS_ON)    
     {

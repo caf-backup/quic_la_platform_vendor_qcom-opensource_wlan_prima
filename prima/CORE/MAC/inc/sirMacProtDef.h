@@ -363,6 +363,11 @@
 #define SIR_MAC_WME_OUI             0x02F25000
 #define SIR_MAC_WSM_OUI             SIR_MAC_WME_OUI
 
+#ifdef WLAN_FEATURE_P2P
+#define SIR_MAC_P2P_OUI           "\x50\x6f\x9a\x09"
+#define SIR_MAC_P2P_OUI_SIZE      4
+#endif
+
 // min size of wme oui header: oui(3) + type + subtype + version
 #define SIR_MAC_OUI_WME_HDR_MIN       6
 

@@ -50,6 +50,10 @@ when           who                what, where, why
 #include "vos_packet.h" 
 #include "vos_types.h"
 
+#ifdef WLAN_FEATURE_P2P
+#include "p2p_Api.h"
+#endif
+
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -144,6 +148,11 @@ typedef enum {
     eSAP_ASSOC_STA_CALLBACK_EVENT,  /*Event sent when user called WLANSAP_GetAssocStations */
     eSAP_GET_WPSPBC_SESSION_EVENT,  /* Event send when user call  WLANSAP_getWpsSessionOverlap */  
     eSAP_WPS_PBC_PROBE_REQ_EVENT, /* Event send on WPS PBC probe request is received */
+#ifdef WLAN_FEATURE_P2P
+    eSAP_INDICATE_MGMT_FRAME,
+    eSAP_REMAIN_CHAN_READY,
+    eSAP_SEND_ACTION_CNF,
+#endif
 } eSapHddEvent;
 
 typedef enum {
@@ -265,6 +274,22 @@ typedef struct sap_WPSPBCProbeReqEvent_s {
     tSirWPSPBCProbeReq WPSPBCProbeReq;
 } tSap_WPSPBCProbeReqEvent; 
 
+#ifdef WLAN_FEATURE_P2P
+typedef struct sap_ManagementFrameInfo_s {
+    tANI_U32 nBeaconLength; //the length, in bytes, of the beacon frame, can be 0
+    tANI_U32 nAssocReqLength;   //the length, in bytes, of the assoc req frame, can be 0
+    tANI_U32 nAssocRspLength;   //The length, in bytes, of the assoc rsp frame, can be 0
+    tANI_U32 nProbeReqLength;   //The length, in bytes, of the probe req frame, can be 0
+    tANI_U32 nActionLength;     //The length, in bytes, of the action frame, can be 0
+    tANI_U8 *pbFrames;         //Point to a buffer contain the beacon, assoc req, assoc rsp frame, in that order
+                             //user needs to use nBeaconLength, nAssocReqLength, nAssocRspLength to desice where
+                            //each frame starts and ends.
+} tSap_ManagementFrameInfo;
+
+typedef struct sap_SendActionCnf_s {
+    eSapStatus actionSendSuccess; 
+} tSap_SendActionCnf;
+#endif
 
 /* 
    This struct will be filled in and passed to tpWLAN_SAPEventCB that is provided during WLANSAP_StartBss call   
@@ -284,6 +309,10 @@ typedef struct sap_Event_s {
         tSap_AssocStaListEvent                    sapAssocStaListEvent; /*SAP_ASSOC_STA_CALLBACK_EVENT */
         tSap_GetWPSPBCSessionEvent                sapGetWPSPBCSessionEvent; /*SAP_GET_WPSPBC_SESSION_EVENT */
         tSap_WPSPBCProbeReqEvent                  sapPBCProbeReqEvent; /*eSAP_WPS_PBC_PROBE_REQ_EVENT */
+#ifdef WLAN_FEATURE_P2P
+        tSap_ManagementFrameInfo                  sapManagementFrameInfo; /*eSAP_INDICATE_MGMT_FRAME*/
+        tSap_SendActionCnf                        sapActionCnf;  /* eSAP_SEND_ACTION_CNF */ 
+#endif
     } sapevt;
 } tSap_Event, *tpSap_Event;
 
@@ -1133,6 +1162,150 @@ VOS_STATUS WLANSAP_Set_WPARSNIes(v_PVOID_t pvosGCtx, v_U8_t *pWPARSNIEs, v_U32_t
   SIDE EFFECTS   
 ============================================================================*/
 VOS_STATUS WLANSAP_GetStatistics(v_PVOID_t pvosGCtx, tSap_SoftapStats *statBuf, v_BOOL_t bReset);
+
+#ifdef WLAN_FEATURE_P2P
+/*==========================================================================
+
+  FUNCTION    WLANSAP_SendAction
+
+  DESCRIPTION 
+    This api function provides to send action frame sent by upper layer.
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+  IN
+    pvosGCtx: Pointer to vos global context structure
+    pBuf: Pointer of the action frame to be transmitted
+    len: Length of the action frame
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS WLANSAP_SendAction( v_PVOID_t pvosGCtx, const tANI_U8 *pBuf, 
+                               tANI_U32 len );
+
+/*==========================================================================
+
+  FUNCTION    WLANSAP_RemainOnChannel
+
+  DESCRIPTION 
+    This api function provides to set Remain On channel on specified channel
+    for specified duration.
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+  IN
+    pvosGCtx: Pointer to vos global context structure
+    channel: Channel on which driver has to listen 
+    duration: Duration for which driver has to listen on specified channel
+    callback: Callback function to be called once Listen is done.
+    pContext: Context needs to be called in callback function. 
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS WLANSAP_RemainOnChannel( v_PVOID_t pvosGCtx,
+                                    tANI_U8 channel, tANI_U32 duration,
+                                    remainOnChanCallback callback, 
+                                    void *pContext );
+
+/*==========================================================================
+
+  FUNCTION    WLANSAP_CancelRemainOnChannel
+
+  DESCRIPTION 
+    This api cancel previous remain on channel request.
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+  IN
+    pvosGCtx: Pointer to vos global context structure
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS WLANSAP_CancelRemainOnChannel( v_PVOID_t pvosGCtx );
+
+
+/*==========================================================================
+
+  FUNCTION    WLANSAP_RegisterMgmtFrame
+
+  DESCRIPTION 
+    HDD use this API to register specified type of frame with CORE stack.
+    On receiving such kind of frame CORE stack should pass this frame to HDD
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+  IN
+    pvosGCtx: Pointer to vos global context structure
+    frameType: frameType that needs to be registered with PE.
+    matchData: Data pointer which should be matched after frame type is matched.
+    matchLen: Length of the matchData
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS WLANSAP_RegisterMgmtFrame( v_PVOID_t pvosGCtx, tANI_U16 frameType, 
+                                      tANI_U8* matchData, tANI_U16 matchLen );
+
+/*==========================================================================
+
+  FUNCTION    WLANSAP_DeRegisterMgmtFrame
+
+  DESCRIPTION 
+   This API is used to deregister previously registered frame. 
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+  IN
+    pvosGCtx: Pointer to vos global context structure
+    frameType: frameType that needs to be De-registered with PE.
+    matchData: Data pointer which should be matched after frame type is matched.
+    matchLen: Length of the matchData
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS WLANSAP_DeRegisterMgmtFrame( v_PVOID_t pvosGCtx, tANI_U16 frameType, 
+                                      tANI_U8* matchData, tANI_U16 matchLen );
+#endif // WLAN_FEATURE_P2P
+
 
 #ifdef __cplusplus
  }

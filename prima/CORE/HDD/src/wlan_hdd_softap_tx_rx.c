@@ -982,7 +982,7 @@ VOS_STATUS hdd_softap_tx_low_resource_cbk( vos_pkt_t *pVosPacket,
 
   @param vosContext      : [in] pointer to VOS context  
   @param pVosPacketChain : [in] pointer to VOS packet chain
-  @param staId           : [in] Destinatioin Station Id. 
+  @param staId           : [in] Station Id (Adress 1 Index)
   @param pRxMetaInfo     : [in] pointer to meta info for the received pkt(s).
 
   @return                : VOS_STATUS_E_FAILURE if any errors encountered, 
@@ -1065,7 +1065,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
       ++pAdapter->stats.rx_packets;
       pAdapter->stats.rx_bytes += skb->len;
 
-      if (WLAN_RX_BCMC_STA_ID == staId)
+      if (WLAN_RX_BCMC_STA_ID == pRxMetaInfo->ucDesSTAId)
       {
         //MC/BC packets. Duplicate a copy of packet
         struct sk_buff *pSkbCopy;
@@ -1084,7 +1084,8 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
 
       } //(WLAN_RX_BCMC_STA_ID == staId)
 
-      if ((WLAN_RX_BCMC_STA_ID == staId) || (WLAN_RX_SAP_SELF_STA_ID == staId))
+      if ((WLAN_RX_BCMC_STA_ID == pRxMetaInfo->ucDesSTAId) ||
+          (WLAN_RX_SAP_SELF_STA_ID == pRxMetaInfo->ucDesSTAId))
       {
          VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
                           "%s: send one packet to kernel \n", __FUNCTION__);
@@ -1108,7 +1109,8 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
       else
       {
          //loopback traffic
-        status = hdd_softap_sta_2_sta_xmit(skb, skb->dev,staId,(pRxMetaInfo->ucUP)); 
+        status = hdd_softap_sta_2_sta_xmit(skb, skb->dev,
+                 pRxMetaInfo->ucDesSTAId, (pRxMetaInfo->ucUP));
       }
 
       // now process the next packet in the chain

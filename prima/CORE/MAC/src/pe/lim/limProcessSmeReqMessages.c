@@ -74,7 +74,7 @@ extern void peRegisterTLHandle(tpAniSirGlobal pMac);
 #endif
 
 #ifdef WLAN_FEATURE_P2P
-extern int limProcessReaminOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg);
+extern int limProcessRemainOnChnlReq(tpAniSirGlobal pMac, tANI_U32 *pMsg);
 #endif
 
 #ifdef ANI_PRODUCT_TYPE_CLIENT
@@ -132,7 +132,14 @@ __limFreshScanReqd(tpAniSirGlobal pMac, tANI_U8 returnFreshResults)
                   (    ( (pMac->lim.gpSession[i].bssType == eSIR_IBSS_MODE)||
                            (pMac->lim.gpSession[i].limSystemRole == eLIM_BT_AMP_AP_ROLE)||
                            (pMac->lim.gpSession[i].limSystemRole == eLIM_BT_AMP_STA_ROLE) )&&
-                       (pMac->lim.gpSession[i].limSmeState == eLIM_SME_NORMAL_STATE) )))
+                       (pMac->lim.gpSession[i].limSmeState == eLIM_SME_NORMAL_STATE) )
+#ifdef WLAN_FEATURE_P2P
+               ||  ( ( ( (pMac->lim.gpSession[i].bssType == eSIR_INFRA_AP_MODE) 
+                      && ( pMac->lim.gpSession[i].pePersona == VOS_P2P_GO_MODE) )
+                    || (pMac->lim.gpSession[i].limSystemRole == eLIM_AP_ROLE) )
+                  && (pMac->lim.gpSession[i].limSmeState == eLIM_SME_NORMAL_STATE) )
+#endif
+             ))
                 {
                 validState = FALSE;
                 break;
@@ -552,7 +559,14 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  psessionEntry->dtimPeriod = (tANI_U8)pSmeStartBssReq->dtimPeriod;
                  /*Enable/disable UAPSD*/  
                  psessionEntry->apUapsdEnable = pSmeStartBssReq->apUapsdEnable;
-                 psessionEntry->proxyProbeRspEn = 1;
+                 if (psessionEntry->pePersona == VOS_P2P_GO_MODE)
+                 {
+                      psessionEntry->proxyProbeRspEn = 0;
+                 }
+                 else
+                 {
+                      psessionEntry->proxyProbeRspEn = 1;
+                 }
                  psessionEntry->ssidHidden = pSmeStartBssReq->ssidHidden;
                  psessionEntry->wps_state = pSmeStartBssReq->wps_state;
                  break;
@@ -1114,6 +1128,10 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
           palCopyMemory( pMac->hHdd, pMlmScanReq->ies, pScanReq->ies, pScanReq->ie_len );
           pMlmScanReq->ie_len = pScanReq->ie_len;
         }
+#ifdef WLAN_FEATURE_P2P
+        pMlmScanReq->p2pSearch = pScanReq->p2pSearch;
+#endif
+
         //Store the smeSessionID and transaction ID for later use.
         pMac->lim.gSmeSessionId = pScanReq->sessionId;
         pMac->lim.gTransactionId = pScanReq->transactionId;
@@ -4615,6 +4633,7 @@ __limProcessSmeRegisterMgmtFrameReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
               sizeof(tLimMgmtFrameRegistration) + pSmeReq->matchLen );
             pLimMgmtRegistration->frameType = pSmeReq->frameType;
             pLimMgmtRegistration->matchLen  = pSmeReq->matchLen;
+            pLimMgmtRegistration->sessionId = pSmeReq->sessionId;
             if(pSmeReq->matchLen)
             {
                 palCopyMemory(pMac,pLimMgmtRegistration->matchData, 
@@ -4739,8 +4758,12 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 #endif
 #ifdef WLAN_FEATURE_P2P
         case eWNI_SME_REMAIN_ON_CHANNEL_REQ:
-            bufConsumed = limProcessReaminOnChnlReq(pMac, pMsgBuf);
-        break;
+            bufConsumed = limProcessRemainOnChnlReq(pMac, pMsgBuf);
+            break;
+
+        case eWNI_SME_UPDATE_NOA:
+            __limProcessSmeNoAUpdate(pMac, pMsgBuf);
+            break;
 #endif
         case eWNI_SME_JOIN_REQ:
             __limProcessSmeJoinReq(pMac, pMsgBuf);

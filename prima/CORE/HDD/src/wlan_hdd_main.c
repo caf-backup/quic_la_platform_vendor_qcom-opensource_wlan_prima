@@ -302,7 +302,7 @@ VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx)
               - ppfw_data - Pointer to the pointer of the firmware data.
               - pSize - Pointer to the file size.
 
-  \return - 0 for success, non zero for failure
+  \return - VOS_STATUS_SUCCESS for success, VOS_STATUS_E_FAILURE for failure
 
   --------------------------------------------------------------------------*/
 
@@ -310,6 +310,7 @@ VOS_STATUS hdd_release_firmware(char *pFileName,v_VOID_t *pCtx)
 VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_data, v_SIZE_t *pSize)
 {
    int status;
+   VOS_STATUS retval = VOS_STATUS_SUCCESS;
    hdd_context_t *pHddCtx = (hdd_context_t*)pCtx;
    ENTER();
 
@@ -318,8 +319,9 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
        status = request_firmware(&pHddCtx->fw, pfileName, pHddCtx->parent_dev);
 
        if(status || !pHddCtx->fw || !pHddCtx->fw->data) {
-           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Firmware download failed",__func__);
-           status = VOS_STATUS_E_FAILURE;
+           hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Firmware %s download failed",
+                  __func__, pfileName);
+           retval = VOS_STATUS_E_FAILURE;
        }
 
        else {
@@ -333,8 +335,9 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
        status = request_firmware(&pHddCtx->nv, pfileName, pHddCtx->parent_dev);
 
        if(status || !pHddCtx->nv || !pHddCtx->nv->data) {
-           hddLog(VOS_TRACE_LEVEL_FATAL,"%s: nv download failed",__func__);
-           status = VOS_STATUS_E_FAILURE;
+           hddLog(VOS_TRACE_LEVEL_FATAL, "%s: nv %s download failed",
+                  __func__, pfileName);
+           retval = VOS_STATUS_E_FAILURE;
        }
 
        else {
@@ -345,7 +348,7 @@ VOS_STATUS hdd_request_firmware(char *pfileName,v_VOID_t *pCtx,v_VOID_t **ppfw_d
    }
 
    EXIT();
-   return VOS_STATUS_SUCCESS;
+   return retval;
 }
 
 /**---------------------------------------------------------------------------
@@ -521,7 +524,7 @@ void wlan_hdd_release_intf_addr(hdd_context_t* pHddCtx, tANI_U8* releaseAddr)
    int i;
    for ( i = 0; i < VOS_MAX_CONCURRENCY_PERSONA; i++)
    {
-      if ( !memcmp(releaseAddr, &pHddCtx->cfg_ini->intfMacAddr[i].bytes[i], 6) )
+      if ( !memcmp(releaseAddr, &pHddCtx->cfg_ini->intfMacAddr[i].bytes[0], 6) )
       {
          pHddCtx->cfg_ini->intfAddrMask &= ~(1 << i);
          break;
@@ -812,7 +815,9 @@ void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_
 
 }
 
-hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type, char *iface_name, tSirMacAddr macAddr, tANI_U8 rtnl_held )
+hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
+                                 char *iface_name, tSirMacAddr macAddr, 
+                                 tANI_U8 rtnl_held )
 {
    hdd_adapter_t *pAdapter = NULL;
    hdd_adapter_list_node_t *pHddAdapterNode = NULL;
@@ -823,7 +828,9 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type, c
    switch(session_type)
    {
        case WLAN_HDD_INFRA_STATION:
-       case WLAN_HDD_P2P_CLIENT:       
+#ifdef WLAN_FEATURE_P2P
+       case WLAN_HDD_P2P_CLIENT:
+#endif
        {
            pAdapter = hdd_alloc_station_adapter( pHddCtx, macAddr, iface_name );
 
@@ -833,23 +840,30 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type, c
            pAdapter->device_mode = session_type;
            status = hdd_register_interface( pAdapter, rtnl_held );
            if( VOS_STATUS_SUCCESS != status )
-             break;
+               goto err_free_netdev;
            status = hdd_init_station_mode( pAdapter );
+           if( VOS_STATUS_SUCCESS != status )
+               goto err_netdev_unregister;
            break;
        }
+#ifdef WLAN_FEATURE_P2P
        case WLAN_HDD_P2P_GO:
+#endif
        case WLAN_HDD_SOFTAP:
        {
 #ifdef WLAN_SOFTAP_FEATURE
            pAdapter = hdd_wlan_create_ap_dev( pHddCtx, macAddr, (tANI_U8 *)iface_name );
            if( NULL == pAdapter )
-              return NULL;
+               return NULL;
 
            pAdapter->device_mode = session_type;
+           
            status = hdd_register_hostapd( pAdapter, rtnl_held );
            if( VOS_STATUS_SUCCESS != status )
-             break;
+               goto err_free_netdev;
            status = hdd_init_ap_mode(pAdapter);
+           if( VOS_STATUS_SUCCESS != status )
+               goto err_netdev_unregister;
            hdd_set_conparam( 1 );
 #endif
 
@@ -862,9 +876,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type, c
          if( NULL == pAdapter )
            return NULL;
 
-#ifdef CONFIG_CFG80211
          pAdapter->wdev.iftype = NL80211_IFTYPE_MONITOR; 
-#endif
          pAdapter->device_mode = session_type;
          status = hdd_register_interface( pAdapter, rtnl_held );
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29)
@@ -875,7 +887,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type, c
 #endif
 #endif
        }
-         break;
+       break;
 #ifdef ANI_MANF_DIAG
        case WLAN_HDD_FTM:
        {
@@ -896,18 +908,19 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type, c
        }
    }
 
-
    switch(session_type)
    {
        case WLAN_HDD_INFRA_STATION:
               concurrency_mode |= VOS_STA;
               break;
+#ifdef WLAN_FEATURE_P2P
        case WLAN_HDD_P2P_CLIENT:       
               concurrency_mode |= VOS_P2P_CLIENT;
               break;
        case WLAN_HDD_P2P_GO:
               concurrency_mode |= VOS_P2P_GO;
               break;
+#endif
        case WLAN_HDD_SOFTAP:
               concurrency_mode |= VOS_SAP;
               break;
@@ -931,7 +944,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type, c
       else
       {
          pHddAdapterNode->pAdapter = pAdapter;
-         status = vos_list_insert_front( &pHddCtx->hddAdapters, &pHddAdapterNode->node );
+         status = vos_list_insert_back( &pHddCtx->hddAdapters, &pHddAdapterNode->node );
       }
    }
 
@@ -949,6 +962,16 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type, c
    }
 
    return pAdapter;
+
+err_netdev_unregister:
+   if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) 
+   {
+       unregister_netdev(pAdapter->dev);
+       clear_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
+   } 
+err_free_netdev:
+   free_netdev(pAdapter->dev);
+   return NULL;
 }
 
 VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_U8 rtnl_held )
@@ -1258,6 +1281,60 @@ hdd_adapter_t * hdd_get_mon_adapter( hdd_context_t *pHddCtx )
    return NULL;
 
 } 
+
+/**---------------------------------------------------------------------------
+  
+  \brief hdd_select_queue() - 
+
+   This API returns the operating channel of the requested device mode 
+   
+  \param  - pHddCtx - Pointer to the HDD context.
+              - mode - Device mode for which operating channel is required
+                suported modes - WLAN_HDD_INFRA_STATION, WLAN_HDD_P2P_CLIENT
+                                 WLAN_HDD_SOFTAP, WLAN_HDD_P2P_GO.
+  \return - channel number. "0" id the requested device is not found OR it is not connected. 
+  --------------------------------------------------------------------------*/
+v_U8_t hdd_get_operating_channel( hdd_context_t *pHddCtx, device_mode_t mode )
+{
+   hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+   VOS_STATUS status;
+   hdd_adapter_t      *pAdapter;
+   v_U8_t operatingChannel = 0;
+
+   status =  vos_list_peek_front ( &pHddCtx->hddAdapters, (vos_list_node_t**) &pAdapterNode );
+
+   while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
+   {
+      pAdapter = pAdapterNode->pAdapter;
+
+      if( mode == pAdapter->device_mode )
+      {
+        switch(pAdapter->device_mode)
+        {
+          case WLAN_HDD_INFRA_STATION:
+          case WLAN_HDD_P2P_CLIENT: 
+            if( hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR( pAdapter )) )
+              operatingChannel = (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.operationChannel;
+            break;
+          case WLAN_HDD_SOFTAP:
+          case WLAN_HDD_P2P_GO:
+            /*softap connection info */
+            if(test_bit(SOFTAP_BSS_STARTED, &pAdapter->event_flags)) 
+              operatingChannel = (WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->operatingChannel;
+            break;
+          default:
+            break;
+        }
+
+        break; //Found the device of interest. break the loop
+      }
+
+      status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
+      pAdapterNode = pNext;
+   }
+   return operatingChannel;
+}
+
 /**---------------------------------------------------------------------------
   
   \brief hdd_select_queue() - 
@@ -2153,7 +2230,12 @@ int hdd_wlan_startup(struct device *dev )
    }
 
 #ifdef CONFIG_CFG80211
-   wlan_hdd_cfg80211_post_voss_start(pAdapter);
+#ifdef WLAN_SOFTAP_FEATURE
+   if (VOS_STA_SAP_MODE != hdd_get_conparam())
+#endif
+   {
+      wlan_hdd_cfg80211_post_voss_start(pAdapter);
+   }
 #endif
 
    //Scanning only for station mode.

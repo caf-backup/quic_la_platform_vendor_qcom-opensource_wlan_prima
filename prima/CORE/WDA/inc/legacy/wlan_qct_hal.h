@@ -320,6 +320,8 @@ tANI_U8 WLANHAL_RxBD_GetFrameTypeSubType(v_PVOID_t _pvBDHeader, tANI_U16 usFrmCt
 #endif
 #define HAL_USE_NO_ACK_REQUESTED_MASK       0x20
 
+#define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames
+
 /*==========================================================================
 
   FUNCTION    WLANHAL_FillTxBd

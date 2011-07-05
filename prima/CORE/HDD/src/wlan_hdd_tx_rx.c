@@ -21,9 +21,11 @@
 #include <linux/etherdevice.h>
 
 #ifdef CONFIG_CFG80211
+#include <wlan_hdd_p2p.h>
 #include <linux/wireless.h>
 #include <net/cfg80211.h>
 #include <net/ieee80211_radiotap.h>
+#include "sapApi.h"
 #endif
 
 /*--------------------------------------------------------------------------- 
@@ -162,55 +164,191 @@ static VOS_STATUS hdd_flush_tx_queues( hdd_adapter_t *pAdapter )
 }
 
 #ifdef CONFIG_CFG80211   
+static void hdd_mon_tx_work_queue(struct work_struct *work)
+{
+   hdd_adapter_t* pAdapter = container_of(work, hdd_adapter_t, monTxWorkQueue);
+   hdd_cfg80211_state_t *cfgState;
+   struct sk_buff* skb;
+   hdd_adapter_t* pMonAdapter = NULL;
+
+   if (pAdapter == NULL )
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+       "%s: pAdapter is NULL", __func__);
+      return;
+   }
+   
+   pMonAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_MONITOR );   
+   
+   skb = pAdapter->skb_to_tx;
+
+   cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
+
+   if( NULL != cfgState->buf )
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+          "%s: Already one MGMT packet Tx going on", __func__);
+      goto fail;
+   }
+
+   cfgState->buf = vos_mem_malloc( skb->len ); //buf;
+   if( cfgState->buf == NULL )
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+          "%s: Failed to Allocate memory", __func__);
+      goto fail;
+   }
+
+   cfgState->len = skb->len;
+
+   vos_mem_copy( cfgState->buf, skb->data, skb->len);
+
+   cfgState->skb = skb; //buf;
+   cfgState->action_cookie = (tANI_U32)cfgState->buf;
+
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+      "%s: Sending action frame to SAP to TX, Len %d", __func__, skb->len);
+
+   if (eHAL_STATUS_SUCCESS != 
+      WLANSAP_SendAction( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
+                           skb->data, skb->len) )
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+          "%s: WLANSAP_SendAction returned fail", __func__);
+      hdd_sendActionCnf( pAdapter, FALSE );
+   }
+   return;
+fail:
+   kfree_skb(pAdapter->skb_to_tx);
+   pAdapter->skb_to_tx = NULL;
+
+   /* Enable Queues which we have disabled earlier */
+   netif_tx_start_all_queues( pMonAdapter->dev ); 
+   return;
+}
+ 
 int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
-  v_U8_t da[6];
-  v_U8_t sa[6];
-  v_U16_t rt_hdr_len;
-  struct ieee80211_hdr *hdr;
-  hdd_adapter_t *pPgBkAdapter, *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+   v_U16_t rt_hdr_len;
+   struct ieee80211_hdr *hdr;
+   hdd_adapter_t *pPgBkAdapter, *pAdapter =  WLAN_HDD_GET_PRIV_PTR(dev);
+   struct ieee80211_radiotap_header *rtap_hdr =
+                        (struct ieee80211_radiotap_header *)skb->data;
 
-  ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
+   /*Supplicant sends the EAPOL packet on monitor interface*/
+   pPgBkAdapter = hdd_get_adapter(pAdapter->pHddCtx, WLAN_HDD_SOFTAP);
+    
+   if(pPgBkAdapter == NULL)
+   {
+#ifdef WLAN_FEATURE_P2P
+      //There is no AP interface. Try getting P2P GO interface.
+      pPgBkAdapter = hdd_get_adapter(pAdapter->pHddCtx,WLAN_HDD_P2P_GO);
+    
+      if( pPgBkAdapter == NULL )
+#endif
+      {
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+              "%s: No Adapter to piggy back. Dropping the pkt on montior inf",
+                                                                    __func__);
+         goto fail; /* too short to be possibly valid */
+      }
+   }
+ 
+   /* check if toal skb length is greater then radio tab header length of not */
+   if (unlikely(skb->len < sizeof(struct ieee80211_radiotap_header)))
+      goto fail; /* too short to be possibly valid */
+   
+   /* check if radio tap header version is correct or not */
+   if (unlikely(rtap_hdr->it_version))
+      goto fail; /* only version 0 is supported */
+ 
+   /*Strip off the radio tap header*/
+   rt_hdr_len = ieee80211_get_radiotap_len(skb->data);
+ 
+   /* check if skb length if greator then total radio tap header length ot not*/
+   if (unlikely(skb->len < rt_hdr_len))
+      goto fail;
+ 
+   /*
+    * fix up the pointers accounting for the radiotap
+    * header still being in there.
+    */
+   skb_set_mac_header(skb, rt_hdr_len);
+   skb_set_network_header(skb, rt_hdr_len);
+   skb_set_transport_header(skb, rt_hdr_len); 
 
-    /*Strip off the radio tap header*/
-    rt_hdr_len = ieee80211_get_radiotap_len(skb->data);
-    /*Supplicant adds: radiotap Hdr + 80211 Header + radiotap data*/
-    hdr = (struct ieee80211_hdr *) (skb->data + rt_hdr_len);
-    memcpy (da,hdr->addr1,6);
-    memcpy (sa,hdr->addr2,6);
-    skb_pull(skb,32);
-    memcpy(&skb->data[0],da,6);
-    memcpy(&skb->data[6],sa,6);
+   /* Pull rtap header out of the skb */
+   skb_pull(skb, rt_hdr_len);
+  
+   /*Supplicant adds: radiotap Hdr + radiotap data + 80211 Header. So after 
+    * radio tap header and 802.11 header starts 
+    */
+   hdr = (struct ieee80211_hdr *)skb->data;
+ 
+   /* Send data frames through the normal Data path. In this path we will 
+    * conver rcvd 802.11 packet to 802.3 packet */
+   if ( (hdr->frame_control & HDD_FRAME_TYPE_MASK)  == HDD_FRAME_TYPE_DATA)
+   { 
+      v_U8_t da[6];
+      v_U8_t sa[6];
 
-  if (vos_be16_to_cpu((*(unsigned short*)&skb->data[HDD_ETHERTYPE_802_1_X_FRAME_OFFSET]) ) != HDD_ETHERTYPE_802_1_X)
-  {
-    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-        "%s: Not a Eapol packet. Drop this frame", __func__);
-      //If not EAPOL frames, drop them.
-      kfree_skb(skb);
-    return NETDEV_TX_OK;
-  }
+      memcpy (da, hdr->addr1, VOS_MAC_ADDR_SIZE);
+      memcpy (sa, hdr->addr2, VOS_MAC_ADDR_SIZE);
+ 
+      /* Pull 802.11 MAC header */ 
+      skb_pull(skb, HDD_80211_HEADER_LEN);
+ 
+      if ( HDD_FRAME_SUBTYPE_QOSDATA == 
+          (hdr->frame_control & HDD_FRAME_SUBTYPE_MASK))
+      {
+         skb_pull(skb, HDD_80211_HEADER_QOS_CTL);
+      }
 
-  /*Supplicant sends the EAPOL packet on monitor interface*/
-  pPgBkAdapter = hdd_get_adapter(pAdapter->pHddCtx, WLAN_HDD_SOFTAP);
+      /* Pull LLC header */ 
+      skb_pull(skb, HDD_LLC_HDR_LEN);
 
-  if(pPgBkAdapter == NULL)
-  {
-#ifdef WLAN_FEATURE_P2P  
-    //There is no AP interface. Try getting P2P GO interface.
-    pPgBkAdapter = hdd_get_adapter(pAdapter->pHddCtx,WLAN_HDD_P2P_GO);
+      /* Create space for Ethernet header */ 
+      skb_push(skb, HDD_MAC_HDR_SIZE*2);
+      memcpy(&skb->data[0], da, HDD_MAC_HDR_SIZE);
+      memcpy(&skb->data[HDD_DEST_ADDR_OFFSET], sa, HDD_MAC_HDR_SIZE);
 
-    if( pPgBkAdapter == NULL )
-#endif		
-    {
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-          "%s: No Adapter to piggy back. Dropping the packet on montior interface", __func__);
-      kfree_skb(skb);
+      /* Only EAPOL Data packets are allowed through monitor interface */ 
+      if (vos_be16_to_cpu(
+         (*(unsigned short*)&skb->data[HDD_ETHERTYPE_802_1_X_FRAME_OFFSET]) ) 
+                                                     != HDD_ETHERTYPE_802_1_X)
+      {
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+           "%s: Not a Eapol packet. Drop this frame", __func__);
+         //If not EAPOL frames, drop them.
+         kfree_skb(skb);
+         return NETDEV_TX_OK;
+      }
+ 
+      hdd_hostapd_select_queue(pPgBkAdapter->dev, skb);
+      return hdd_softap_hard_start_xmit( skb, pPgBkAdapter->dev );
+   }
+   else
+   {
+      /* We want to process one packet at a time, so lets disable all TX queues
+       * and re-enable the queues once we get TX feedback for this packet */
+      netif_tx_stop_all_queues(pAdapter->dev);
+
+      /* We received a management packet over monitor interface to transmit */
+      INIT_WORK(&pPgBkAdapter->monTxWorkQueue, hdd_mon_tx_work_queue);
+      pPgBkAdapter->skb_to_tx = skb;
+      /* In this context we cannot acquire any mutex etc. And to transmit 
+       * this packet we need to call SME API. So to take care of this we will
+       * schedule a workqueue 
+       */
+      schedule_work(&pPgBkAdapter->monTxWorkQueue);
       return NETDEV_TX_OK;
-    }
-  }
-  hdd_hostapd_select_queue(pPgBkAdapter->dev, skb);
-  return hdd_softap_hard_start_xmit( skb, pPgBkAdapter->dev );
+   }
+ 
+fail:
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+           "%s: Failed to do TX of the packet at Monitor interface", __func__);
+   kfree_skb(skb);
+   return NETDEV_TX_OK;
 }
 #endif
 /**============================================================================
@@ -464,7 +602,6 @@ v_BOOL_t hdd_IsEAPOLPacket( vos_pkt_t *pVosPacket )
     
     vosStatus = vos_pkt_peek_data( pVosPacket, (v_SIZE_t)HDD_ETHERTYPE_802_1_X_FRAME_OFFSET,
                           &pBuffer, HDD_ETHERTYPE_802_1_X_SIZE );
-	
     if (VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
        if ( vos_be16_to_cpu( *(unsigned short*)pBuffer ) == HDD_ETHERTYPE_802_1_X )
@@ -753,12 +890,11 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       pPktMetaInfo->ucIsEapol = 0;       
    else 
       pPktMetaInfo->ucIsEapol = hdd_IsEAPOLPacket( pVosPacket ) ? 1 : 0;
-		
-      	
+
 #ifdef FEATURE_WLAN_WAPI
    // Override usIsEapol value when its zero for WAPI case
       pPktMetaInfo->ucIsWai = hdd_IsWAIPacket( pVosPacket ) ? 1 : 0;
-#endif /* FEATURE_WLAN_WAPI */      	
+#endif /* FEATURE_WLAN_WAPI */
 
    if ((HDD_WMM_USER_MODE_NO_QOS == pHddCtx->cfg_ini->WmmMode) ||
        (!pAdapter->hddWmmStatus.wmmQap))

@@ -46,6 +46,12 @@
 #include <wlan_hdd_main.h>
 #include <linux/netdevice.h>
 #include <linux/mmc/sdio_func.h>
+#include "wlan_nlink_common.h"
+#include "wlan_btc_svc.h"
+#if defined CONFIG_CFG80211
+#include "wlan_hdd_p2p.h"
+#endif
+
 
 
 #define    IS_UP(_dev) \
@@ -232,12 +238,18 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                    hddLog(LOGE, FL("Failed to init AP inactivity timer\n"));
 
             }
+            pHddApCtx->operatingChannel = pSapEvent->sapevt.sapStartBssCompleteEvent.operatingChannel;
             pHostapdState->bssState = BSS_START;
+
+            // Send current operating channel of SoftAP to BTC-ES
+            send_btc_nlink_msg(WLAN_BTC_SOFTAP_BSS_START, 0);
+            
 
             return VOS_STATUS_SUCCESS;
         case eSAP_STOP_BSS_EVENT:
             hddLog(LOGE, FL("BSS stop status = %s\n"),pSapEvent->sapevt.sapStopBssCompleteEvent.status ? 
                              "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
+            pHddApCtx->operatingChannel = 0; //Invalidate the channel info.
             goto stopbss;
         case eSAP_STA_SET_KEY_EVENT:
             //TODO: forward the message to hostapd once implementtation is done for now just print
@@ -422,6 +434,20 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             }
             vos_mem_free(pSapEvent->sapevt.sapAssocStaListEvent.pAssocStas);// Release caller allocated memory here
             return VOS_STATUS_SUCCESS;
+#ifdef WLAN_FEATURE_P2P
+        case eSAP_INDICATE_MGMT_FRAME:
+           hdd_indicateMgmtFrame( pHostapdAdapter, 
+                                 pSapEvent->sapevt.sapManagementFrameInfo.nProbeReqLength, 
+                                 pSapEvent->sapevt.sapManagementFrameInfo.nActionLength, 
+                                 pSapEvent->sapevt.sapManagementFrameInfo.pbFrames);
+           return VOS_STATUS_SUCCESS;
+        case eSAP_REMAIN_CHAN_READY:
+           hdd_remainChanReadyHandler( pHostapdAdapter );
+           return VOS_STATUS_SUCCESS;
+        case eSAP_SEND_ACTION_CNF:
+           hdd_sendActionCnf( pHostapdAdapter, pSapEvent->sapevt.sapActionCnf.actionSendSuccess);
+           return VOS_STATUS_SUCCESS;
+#endif
         default:
             hddLog(LOG1,"SAP message is not handled\n");
             goto stopbss;
@@ -630,19 +656,11 @@ static iw_softap_getchannel(struct net_device *dev,
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
-#ifdef HDD_SESSIONIZE
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-    ptSapContext  pSapCtx;
-    v_CONTEXT_t pvos = pHostapdAdapter->pvosContext;
- 
-   //TODO - Use an API. OR get it from profile. Dont use SAP data structure here.
-    pSapCtx = VOS_GET_SAP_CB(pvos);
 
-    /** Operating channel */
-    *(v_U32_t *)(wrqu->data.pointer) = pSapCtx->channel;
+    *(v_U32_t *)(wrqu->data.pointer) = (WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->operatingChannel;
 
-    wrqu->data.length = sizeof(pSapCtx->channel);
-#endif
+    wrqu->data.length = sizeof((WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter))->operatingChannel);
 
     return 0;
 }
@@ -656,7 +674,7 @@ static iw_softap_getassoc_stamacaddr(struct net_device *dev,
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
     unsigned char *pmaclist;
-   hdd_station_info_t *pStaInfo = pHostapdAdapter->aStaInfo;
+    hdd_station_info_t *pStaInfo = pHostapdAdapter->aStaInfo;
     int cnt = 0, len;
 
 
@@ -1703,6 +1721,12 @@ static const struct iw_priv_args hostapd_private_args[] = {
        IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
        0, 
        "dump" },
+#ifdef WLAN_FEATURE_P2P
+   {   WE_P2P_NOA_CMD,
+       IW_PRIV_TYPE_INT | MAX_VAR_ARGS,
+       0, 
+       "SetP2pPs" },
+#endif
 };
 static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_SETPARAM - SIOCIWFIRSTPRIV] = iw_softap_setparam,  //set priv ioctl

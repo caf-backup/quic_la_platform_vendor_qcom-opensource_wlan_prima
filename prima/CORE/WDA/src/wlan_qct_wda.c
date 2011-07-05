@@ -158,9 +158,9 @@ void WDA_BaCheckActivity(tWDA_CbContext *pWDA) ;
 VOS_STATUS WDA_ProcessAggrAddTSReq(tWDA_CbContext *pWDA, tAggrAddTsParams *pAggrAddTsReqParams);
 #endif /* WLAN_FEATURE_VOWIFI_11R */
 
-#if 0
+
 void WDA_TimerHandler(v_VOID_t *pWDA, tANI_U32 timerInfo) ;
-#endif
+
  
 /*
  * FUNCTION: WDA_open
@@ -6625,12 +6625,13 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
                            eFrameTxDir txDir,
                            tANI_U8 tid,
                            pWDATxRxCompFunc pCompFunc,
-                           void *pData)
+                           void *pData,
+                           tANI_U8 txFlag)
 {
    tANI_U32 status = VOS_STATUS_SUCCESS ;
    tpSirMacFrameCtl pFc = (tpSirMacFrameCtl ) pData;
    tANI_U8 ucTypeSubType = pFc->type <<4 | pFc->subType;
-   tANI_U8 eventIdx = 0, txFlag = 0;
+   tANI_U8 eventIdx = 0;
    tBssSystemRole systemRole = eSYSTEM_UNKNOWN_ROLE;
    tpAniSirGlobal pMac = (tpAniSirGlobal )VOS_GET_MAC_CTXT(pWDA->pVosContext) ;
 
@@ -7420,7 +7421,7 @@ void WDA_BaCheckActivity(tWDA_CbContext *pWDA)
 static VOS_STATUS wdaCreateTimers(tWDA_CbContext *pWDA)
 {
 
-   //VOS_STATUS status = VOS_STATUS_SUCCESS ;
+   VOS_STATUS status = VOS_STATUS_SUCCESS ;
    tANI_U32 val = 0 ;
    tpAniSirGlobal pMac = (tpAniSirGlobal )VOS_GET_MAC_CTXT(pWDA->pVosContext);
 
@@ -7433,7 +7434,6 @@ static VOS_STATUS wdaCreateTimers(tWDA_CbContext *pWDA)
    }
    val = SYS_MS_TO_TICKS(val) ;
  
-#if 0
    /* BA activity check timer */
    status = WDA_CREATE_TIMER(&pWDA->wdaTimers.baActivityChkTmr, 
                          "BA Activity Check timer", WDA_TimerHandler, 
@@ -7444,7 +7444,6 @@ static VOS_STATUS wdaCreateTimers(tWDA_CbContext *pWDA)
                                "Unable to create BA activity timer");
       return eSIR_FAILURE ;
    }
-#endif
                            
    return eSIR_SUCCESS ;
 }
@@ -7467,7 +7466,6 @@ static VOS_STATUS wdaDestroyTimers(tWDA_CbContext *pWDA)
    return eSIR_SUCCESS ;
 }
 
-#if 0
 /*
  * WDA timer handler.
  */
@@ -7491,7 +7489,6 @@ void WDA_TimerHandler(v_VOID_t* pContext, tANI_U32 timerInfo)
    }
 
 }
-#endif
 
 #endif  /* FEATURE_WLAN_INTEGRATED_SOC */
 

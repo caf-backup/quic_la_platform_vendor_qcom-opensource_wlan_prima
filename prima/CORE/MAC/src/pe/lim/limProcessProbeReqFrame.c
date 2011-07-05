@@ -585,34 +585,47 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
 
 
 void
-limProcessProbeReqFrame_multiple_BSS(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,  tpPESession psessionEntry)
+limProcessProbeReqFrame_multiple_BSS(tpAniSirGlobal pMac, tANI_U8 *pBd,  tpPESession psessionEntry)
 {
     tANI_U8 i;
 
     if(psessionEntry != NULL)
     {
-         limProcessProbeReqFrame(pMac,pRxPacketInfo,psessionEntry);
+#ifdef WLAN_FEATURE_P2P
+        if( (psessionEntry->limSystemRole == eLIM_AP_ROLE) 
+         && (psessionEntry->pePersona == VOS_P2P_GO_MODE)
+          )
+        {
+            limProcessP2PProbeReq(pMac, pBd, psessionEntry);
+        }
+        else 
+#endif        
+            limProcessProbeReqFrame(pMac,pBd,psessionEntry);
          return;
     }
+
     for(i =0; i < pMac->lim.maxBssId;i++)
     {
         psessionEntry = peFindSessionBySessionId(pMac,i);
         if( (psessionEntry != NULL) )
         {
-          if( (psessionEntry->limSystemRole == eLIM_AP_ROLE) || 
-              (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) || 
-              (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) ||
-              (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE) /*(||
-              psessionEntry->limSystemRole == eLIM_P2P_DEVICE_ROLE)*/ )
-          {
-            limProcessProbeReqFrame(pMac,pRxPacketInfo,psessionEntry);
-          }
 #ifdef WLAN_FEATURE_P2P
-          else if( psessionEntry->limSystemRole == eLIM_P2P_DEVICE_ROLE )
-          {
-            limProcessP2PProbeReq(pMac, pRxPacketInfo, psessionEntry);
-          }
-#endif
+            if( (psessionEntry->limSystemRole == eLIM_AP_ROLE) 
+             && (psessionEntry->pePersona == VOS_P2P_GO_MODE)
+              )
+            {
+                limProcessP2PProbeReq(pMac, pBd, psessionEntry);
+            }
+            else 
+#endif        
+            if( (psessionEntry->limSystemRole == eLIM_AP_ROLE) || 
+                (psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE) || 
+                (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE) ||
+                (psessionEntry->limSystemRole == eLIM_BT_AMP_STA_ROLE) 
+              )
+            {
+                limProcessProbeReqFrame(pMac,pBd,psessionEntry);
+            }
         }
     }
 
@@ -685,55 +698,20 @@ limSendSmeProbeReqInd(tpAniSirGlobal pMac,
 
 #if defined WLAN_FEATURE_P2P
 void
-limProcessP2PProbeReq(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry)
+limProcessP2PProbeReq(tpAniSirGlobal pMac, tANI_U8 *pBd, 
+                      tpPESession psessionEntry)
 {
-  tAniSSID            ssId = { P2P_WILDCARD_SSID_LEN, P2P_WILDCARD_SSID };
-  tANI_U8 *probeReqBuff;
-  tANI_U8             *pBody;
-  tpSirMacMgmtHdr     pHdr;
-  tANI_U32            frameLen;
-
-  limLog( pMac, LOGE, "Recieved a probe request frame\n");
-
-  pHdr = WDA_GET_RX_MAC_HEADER(pBd);
-  // Get pointer to Probe Request frame body
-  pBody = WDA_GET_RX_MPDU_DATA(pBd);
-
-  frameLen = WDA_GET_RX_PAYLOAD_LEN(pBd);
-
-
-  if( pBody[0] == 0 && pBody[1] == ssId.length &&
-      (palEqualMemory( pMac->hHdd, ssId.ssId, pBody + 2, 
-                       ssId.length)))
-  {
-    limLog( pMac, LOGE, "For a DIRECT- SSID\n");
-
-    palAllocateMemory(pMac->hHdd, (void **)&probeReqBuff, (frameLen + sizeof(tSirMacMgmtHdr)));
-    palZeroMemory(pMac->hHdd, probeReqBuff, (frameLen + sizeof(tSirMacMgmtHdr)));
-    palCopyMemory(pMac->hHdd, probeReqBuff, pHdr, (frameLen + sizeof(tSirMacMgmtHdr)));
-
-
+    tpSirMacMgmtHdr     pHdr;
+    tANI_U32            frameLen;
+  
+    limLog( pMac, LOG1, "Recieved a probe request frame\n");
+  
+    pHdr = WDA_GET_RX_MAC_HEADER(pBd);
+    frameLen = WDA_GET_RX_PAYLOAD_LEN(pBd);
+  
     //send the probe req to SME. 
-    limSendSmeMgmtFrameInd(pMac, eSIR_MGMT_FRM_PROBE_REQ,
-        probeReqBuff, (frameLen + sizeof(tSirMacMgmtHdr)));
-
-     /* free up the memory allocated by the caller *
-          *  as we making a copy of it *
-          */
-	  palFreeMemory(pMac->hHdd, probeReqBuff);
-
-    //TODO -
-    // - Dont send probe rsp if only 11b rate are supported in probe req.
-    // - Check for device Id and respond only if it matches ours.
-    // - Check for device type and subtype. Respond if it matches ours.
-    //Send Probe response
-    limSendProbeRspMgmtFrame(pMac, pHdr->sa, &ssId,
-        DPH_USE_MGMT_STAID, DPH_NON_KEEPALIVE_FRAME, psessionEntry);
-  }
+    limSendSmeMgmtFrameInd( pMac, eSIR_MGMT_FRM_PROBE_REQ,
+               (tANI_U8*)pHdr, (frameLen + sizeof(tSirMacMgmtHdr)), 
+               psessionEntry->smeSessionId );
 }
 #endif
-
-
-
-
-    

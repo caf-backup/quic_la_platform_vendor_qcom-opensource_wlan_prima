@@ -541,6 +541,9 @@ typedef struct tagCsrScanStruct
     tANI_BOOLEAN fScanEnable;
     tANI_BOOLEAN fFullScanIssued;
     tPalTimerHandle hTimerGetResult;
+#ifdef WLAN_AP_STA_CONCURRENCY
+    tPalTimerHandle hTimerStaApConcTimer;
+#endif
     tPalTimerHandle hTimerIdleScan;
     tPalTimerHandle hTimerResultAging;
     tPalTimerHandle hTimerBgScan;
@@ -587,6 +590,9 @@ typedef struct tagCsrScanStruct
     * detect when it happens. Adding this into code because we can't reproduce it easily.
     * We don't know when it happens. */
     tANI_BOOLEAN fValidateList;
+#ifdef WLAN_AP_STA_CONCURRENCY
+    tDblLinkList scanCmdPendingList;
+#endif    
 }tCsrScanStruct;
 
 

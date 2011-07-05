@@ -123,9 +123,10 @@ typedef enum
 /// Cocurrency role.  These are generic IDs that identify the various roles
 /// in the software system.
 typedef enum
-{ /*ON linux maintain 1-1 corespondence with device_mode*/
+{ /*ON linux maintain 1-1 corespondence with device_mode_t in hdd*/
     VOS_STA_MODE=0, 
-    VOS_STA_SAP_MODE=1, //to support softAp  mode 
+    VOS_STA_SAP_MODE=1, //to support softAp  mode . This is misleading. It means AP MODE only. 
+                        //The constant name has historical reason
     VOS_P2P_CLIENT_MODE,
     VOS_P2P_GO_MODE,
     VOS_MONITOR_MODE
@@ -143,7 +144,7 @@ typedef enum
 {
     VOS_STA=1, 
     VOS_SAP=2,
-    VOS_STA_SAP=3, //to support sta, softAp  mode 
+    VOS_STA_SAP=3, //to support sta, softAp  mode . This means STA+AP mode
     VOS_P2P_CLIENT=4,
     VOS_P2P_GO=8,
     VOS_MAX_CONCURRENCY_PERSONA=4

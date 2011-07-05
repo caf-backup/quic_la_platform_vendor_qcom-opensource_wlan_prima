@@ -250,7 +250,6 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
       return;
    }
 
-   wRxMetaInfo.ucUP = ucTID;
 #ifdef WLAN_SOFTAP_FEATURE  
    if( WLAN_STA_SOFTAP == pTLHandle->atlSTAClients[ucSTAID].wSTADesc.wSTAType)
    {
@@ -259,7 +258,7 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
    else
 #endif
    {
-
+      wRxMetaInfo.ucUP = ucTID;
       pTLHandle->atlSTAClients[ucSTAID].pfnSTARx(expireHandle->pAdapter,
                                            vosDataBuff, ucSTAID, &wRxMetaInfo);
    }
@@ -633,9 +632,18 @@ WLANTL_BaSessionDel
              "WLAN TL: Chaining was successful sending all pkts to HDD : %x",
               vosDataBuff ));
 
-    wRxMetaInfo.ucUP = ucTid;
-    pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, 
-                                           (v_U8_t)ucSTAId, &wRxMetaInfo);
+#ifdef WLAN_SOFTAP_FEATURE
+    if ( WLAN_STA_SOFTAP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType )
+    {
+		WLANTL_FwdPktToHDD( pTLCb, vosDataBuff, ucSTAId);
+    }
+    else
+#endif
+    {
+      wRxMetaInfo.ucUP = ucTid;
+      pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
+                                            &wRxMetaInfo );
+    }
   }
 
   /*------------------------------------------------------------------------

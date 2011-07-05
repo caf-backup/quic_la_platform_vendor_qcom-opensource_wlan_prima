@@ -166,12 +166,6 @@ int bdPduInterruptGetThreshold = WLANTL_BD_PDU_INTERRUPT_GET_THRESHOLD;
                                             (((a) & 0xFF00) << 0x08)  | (((a) & 0xFF) << 0x18))
 
 
-#ifdef VOLANS_HW_ISSUE_FIX_QID0_FOR_NON_QOS_ONLY
-#define UP_TO_TID_MAPPING(Up) Up
-#else
-v_U8_t txUpToTidMapping[STACFG_MAX_TC] = {3,2,2,3,4,5,6,7};
-#define UP_TO_TID_MAPPING(Up) txUpToTidMapping[Up]
-#endif
 
 /*--------------------------------------------------------------------------
    TID to AC mapping in TL
@@ -5920,13 +5914,14 @@ WLANTL_STARxConn
     TLLOG4(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
                "WLAN TL %s:Sending data chain to station \n", __FUNCTION__));
     if ( WLAN_STA_SOFTAP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType )
-    { 
-    pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, WLAN_RX_SAP_SELF_STA_ID,
+    {
+      wRxMetaInfo.ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
+      pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
                                             &wRxMetaInfo );
     }
     else
 #endif
-    pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
+      pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
                                             &wRxMetaInfo );
     }/*EAPOL frame or WAI frame*/
   }/*vos status success*/
@@ -6014,7 +6009,6 @@ WLANTL_FwdPktToHDD
       vos_pkt_walk_packet_chain( vosDataBuff, &vosNextDataBuff, 1/*true*/ );
       vos_pkt_get_user_data_ptr( vosDataBuff, VOS_PKT_USER_DATA_ID_TL,
                                  (v_PVOID_t *)&STAMetaInfo );
-      wRxMetaInfo.ucUP = (v_U8_t)(STAMetaInfo & WLANTL_AC_MASK);
       ucDesSTAId = ((v_U8_t)STAMetaInfo) >> WLANTL_STAID_OFFSET; 
 
   vosStatus = vos_pkt_extract_data( vosDataBuff, 0, (v_VOID_t *)pDestMacAddress, &usMacAddSize);
@@ -6054,8 +6048,12 @@ WLANTL_FwdPktToHDD
        ucDesSTAId = WLAN_RX_SAP_SELF_STA_ID;
      }
 
-     //loopback unicast station comes here
-   }
+         
+         //loopback unicast station comes here
+      }
+      wRxMetaInfo.ucUP = (v_U8_t)(STAMetaInfo & WLANTL_AC_MASK);
+      wRxMetaInfo.ucDesSTAId = ucDesSTAId;
+     
    vosStatus = pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucDesSTAId,
                                             &wRxMetaInfo );
   if ( VOS_STATUS_SUCCESS != vosStatus )
@@ -6434,17 +6432,16 @@ if(0 == ucUnicastBroadcastType
 
   if ( NULL != vosDataBuff )
   {
-
-    wRxMetaInfo.ucUP = ucTid;
 #ifdef WLAN_SOFTAP_FEATURE
     if( WLAN_STA_SOFTAP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType)
     {
-       WLANTL_FwdPktToHDD( pvosGCtx, vosDataBuff, ucSTAId );
+      WLANTL_FwdPktToHDD( pvosGCtx, vosDataBuff, ucSTAId );
     }
     else
 #endif
     {
-       pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
+      wRxMetaInfo.ucUP = ucTid;
+      pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
                                             &wRxMetaInfo );
     }
   }/* if not NULL */
@@ -7395,20 +7392,13 @@ WLANTL_Translate8023To80211Header
   if(pTLCb->atlSTAClients[ucStaId].wSTADesc.ucQosEnabled)
   {
       pw80211Header->wFrmCtrl.subType  = WLANTL_80211_DATA_QOS_SUBTYPE;
-#ifdef VOLANS_HW_ISSUE_FIX_QID0_FOR_NON_QOS_ONLY    
+  
 #ifdef WLAN_SOFTAP_FEATURE
       *((v_U16_t *)((v_U8_t *)ppvBDHeader + ucQoSOffset)) = ucUP;
 #else
       pw80211Header->usQosCtrl         = ucUP; //? is this the right byte order
 #endif
 
-#else      
-#ifdef WLAN_SOFTAP_FEATURE
-      *((v_U16_t *)((v_U8_t *)ppvBDHeader + ucQoSOffset)) = UP_TO_TID_MAPPING(ucUP);
-#else
-      pw80211Header->usQosCtrl         = UP_TO_TID_MAPPING(ucUP); //? is this the right byte order
-#endif
-#endif
   }
   else
   {

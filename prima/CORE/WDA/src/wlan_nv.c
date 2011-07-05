@@ -23,7 +23,7 @@ const sHalNv nvDefaults =
     {
         0,                                                              // tANI_U16  productId;
         0,                                                              // tANI_U8   productBands;
-        { 0 },                                                          // tANI_U8   unused1[0];
+        1,                                                              // tANI_U8   wlanNvRevId; //0: WCN1312, 1: WCN1314, 2: WCN3660
         1,                                                              // tANI_U8   numOfTxChains;
         2,                                                              // tANI_U8   numOfRxChains;
         { 0x00, 0xDE, 0xAD, 0xBE, 0xEF, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
@@ -3682,7 +3682,11 @@ const sHalNv nvDefaults =
                 0,           //pll_vfc_reg3_b3;
 
                 0,           //tempStart;
-                0            //roomTemp;
+                0,           //roomTemp;
+
+                0,           //ambientCalTemp;
+                0,           //ambientCalTempValid;
+                0            //reserved2;
             }
         },
 
@@ -3756,6 +3760,16 @@ const sHalNv nvDefaults =
                 1750,  // RF_CHAN_13
                 1750   // RF_CHAN_14
             },//MODE_802_11AG
+        },
+
+        //NV_TABLE_OFDM_CMD_PWR_OFFSET
+        {
+            0, 0
+        },
+
+        //NV_TABLE_TX_BB_FILTER_MODE
+        {
+            0
         }
 
     } // tables
@@ -3772,7 +3786,7 @@ const sHalNv nvDefaults =
     {
         0,                                                              // tANI_U16  productId;
         0,                                                              // tANI_U8   productBands;
-        2,                                                          // tANI_U8   unused1[0];
+        2,                                                              // tANI_U8   wlanNvRevId; //0: WCN1312, 1: WCN1314, 2: WCN3660
         1,                                                              // tANI_U8   numOfTxChains;
         2,                                                              // tANI_U8   numOfRxChains;
         { 0x00, 0xDE, 0xAD, 0xBE, 0xEF, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
@@ -8377,7 +8391,12 @@ const sHalNv nvDefaults =
                 0,           //pll_vfc_reg3_b3;
 
                 0,           //tempStart;
-                0            //roomTemp;
+                0,           //roomTemp;
+
+                0,           //ambientCalTemp;
+                0,           //ambientCalTempValid;
+                0            //reserved2;
+
             }
         },
 
@@ -8471,6 +8490,16 @@ const sHalNv nvDefaults =
             { 2150 }, // applied to all channels, MODE_802_11B
             { 1850 }, // applied to all channels,MODE_802_11AG
             { 1750 }  // applied to all channels,MODE_802_11N 
+        },
+
+        //NV_TABLE_OFDM_CMD_PWR_OFFSET
+        {
+            0, 0
+        },
+
+        //NV_TABLE_TX_BB_FILTER_MODE
+        {
+            0
         }
 
     } // tables

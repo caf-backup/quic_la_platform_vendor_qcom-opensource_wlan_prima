@@ -3073,6 +3073,29 @@ NONE
 0 0
 
 *
+* Include Additional P2P IEs in probe request.
+*
+WNI_CFG_PROBE_REQ_ADDNP2PIE_FLAG    I    4    0
+V    RW    NP
+NONE
+0 1 0
+V    RW    NP
+NONE
+0 1 0
+
+*
+* Include Additional P2P IE in probe request.
+*
+WNI_CFG_PROBE_REQ_ADDNP2PIE_DATA    S     255    0
+V    RW    NP
+NONE
+0 0
+V    RW    NP
+NONE
+0 0
+
+
+*
 * Include Additional IEs in probe response/beacon.
 *
 WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG    I    4    0

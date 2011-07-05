@@ -380,6 +380,8 @@ typedef struct
 {
   /* UP of the packet being sent */
   v_U8_t    ucUP;
+  /* Address 3 Index of the received packet */
+  v_U16_t 	   ucDesSTAId;
 }WLANTL_RxMetaInfoType;
 
 

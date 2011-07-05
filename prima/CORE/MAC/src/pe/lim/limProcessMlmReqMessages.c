@@ -143,9 +143,8 @@ limProcessMlmReqMessages(tpAniSirGlobal pMac, tpSirMsgQ Msg)
         case SIR_LIM_FT_PREAUTH_RSP_TIMEOUT:limProcessFTPreauthRspTimeout(pMac); break;
 #endif
 #ifdef WLAN_FEATURE_P2P
-		case SIR_LIM_REMAIN_CHN_TIMEOUT:    limProcessRemainOnChnTimeout(pMac); break;
+        case SIR_LIM_REMAIN_CHN_TIMEOUT:    limProcessRemainOnChnTimeout(pMac); break;
 #endif
-
         case LIM_MLM_ADDBA_REQ:             limProcessMlmAddBAReq( pMac, Msg->bodyptr ); break;
         case LIM_MLM_ADDBA_RSP:             limProcessMlmAddBARsp( pMac, Msg->bodyptr ); break;
         case LIM_MLM_DELBA_REQ:             limProcessMlmDelBAReq( pMac, Msg->bodyptr ); break;
@@ -536,12 +535,23 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
 * for concurrent scenario: Infra+BT  or Infra+IBSS, always send CTS2Self, no need to send Data Null
 *
 */
-static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *macMgmtHdr, tANI_U8 pwrMgmt, tANI_U8* notifyBss)
+#ifndef WLAN_FEATURE_P2P
+static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac, 
+          tSirMacMgmtHdr *macMgmtHdr, tANI_U8 pwrMgmt, tANI_U8* notifyBss)
+#else
+static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac, 
+         tSirMacMgmtHdr *macMgmtHdr, tANI_U8 pwrMgmt, tANI_U8* notifyBss, 
+         tANI_U8* useNoA)
+#endif
 {
     tANI_U8   i;
     tANI_U8 sendDataNull = FALSE;
     tSirMacAddr bssid;
+    tSirMacAddr selfMacAddr;
     *notifyBss = FALSE;
+#ifdef WLAN_FEATURE_P2P
+    *useNoA    = FALSE;
+#endif
     
 
 /* Don't send CTS to self as we have issue with BTQM queues where BTQM can not handle transmition of CTS2self frames
@@ -555,29 +565,40 @@ static void __limCreateInitScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *mac
         if(pMac->lim.gpSession[i].valid == TRUE)
         {
             if(pMac->lim.gpSession[i].limMlmState == eLIM_MLM_LINK_ESTABLISHED_STATE)
-           {
-              if(pMac->lim.gpSession[i].limSystemRole != eLIM_BT_AMP_STA_ROLE)
-              {
-                /* Fr BT_AMP STA case, we don't nned to notify BSS with a NULL data */
-                /* Send NULL data only for Infra STA */
-                sendDataNull = TRUE;
-                palCopyMemory(pMac->hHdd, (void *)bssid, (void *)pMac->lim.gpSession[i].bssId, sizeof(tSirMacAddr));
-                *notifyBss =  TRUE;
-                break;
-              }
+            {
+                if(pMac->lim.gpSession[i].limSystemRole != eLIM_BT_AMP_STA_ROLE)
+                {
+                    /* Fr BT_AMP STA case, we don't nned to notify BSS with a NULL data */
+                    /* Send NULL data only for Infra STA */
+                    sendDataNull = TRUE;
+                    palCopyMemory(pMac->hHdd, (void *)bssid, (void *)pMac->lim.gpSession[i].bssId, sizeof(tSirMacAddr));
+                    palCopyMemory(pMac->hHdd, (void *)selfMacAddr, 
+                                  (void *)pMac->lim.gpSession[i].selfMacAddr,
+                                  sizeof(tSirMacAddr));
+                    *notifyBss =  TRUE;
+#ifndef WLAN_FEATURE_P2P
+                    break;
+#endif
+                }
             }
+#ifdef WLAN_FEATURE_P2P
+            else if( (eLIM_AP_ROLE == pMac->lim.gpSession[i].limSystemRole ) 
+                  && ( VOS_P2P_GO_MODE == pMac->lim.gpSession[i].pePersona )
+                   )
+            {
+                *useNoA = TRUE;
             }
+#endif
         }
+    }
 
     //This will be the scenario, when we have multiple sessions Infra+IBSS or Infra+BT
     if(sendDataNull)
-    	{
-	CreateScanDataNullFrame(pMac, macMgmtHdr, pwrMgmt, bssid);
-    	}
+    {
+        CreateScanDataNullFrame(pMac, macMgmtHdr, pwrMgmt, bssid, selfMacAddr);
+    }
 
 }
-
-
 
 /*
 * Creates a Raw frame to be sent during finish scan, if required.
@@ -593,9 +614,9 @@ static void __limCreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *m
     tANI_U8   i;
     tANI_U8 sendDataNull = FALSE;
     tSirMacAddr bssid;
+    tSirMacAddr selfMacAddr;
     *notifyBss = FALSE;
     
-
     for(i =0; i < pMac->lim.maxBssId; i++)
     {
         if(pMac->lim.gpSession[i].valid == TRUE)
@@ -608,21 +629,23 @@ static void __limCreateFinishScanRawFrame(tpAniSirGlobal pMac, tSirMacMgmtHdr *m
                 {
                   sendDataNull = TRUE;
                   *notifyBss =  TRUE;
-                  palCopyMemory(pMac->hHdd, (void *)bssid, (void *)pMac->lim.gpSession[i].bssId, sizeof(tSirMacAddr));
+                  palCopyMemory(pMac->hHdd, (void *)bssid,
+                                (void *)pMac->lim.gpSession[i].bssId,
+                                sizeof(tSirMacAddr));
+                  palCopyMemory(pMac->hHdd, (void *)selfMacAddr, 
+                                (void *)pMac->lim.gpSession[i].selfMacAddr, 
+                                sizeof(tSirMacAddr));
                   break;
                 }
             }
         }
     }
     if(sendDataNull)
-	CreateScanDataNullFrame(pMac, macMgmtHdr, FALSE, bssid);
+    {
+        CreateScanDataNullFrame(pMac, macMgmtHdr, FALSE, bssid, selfMacAddr);
+    }
 
 }
-
-
-
-
-
 
 void
 limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLinkTrafficCheck trafficCheck)
@@ -673,7 +696,12 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
 #endif
        {
            pInitScanParam->frameType = SIR_MAC_CTRL_CTS;
+#ifndef WLAN_FEATURE_P2P
            __limCreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr,  TRUE,  &pInitScanParam->notifyBss);
+#else
+           __limCreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr, TRUE, 
+                 &pInitScanParam->notifyBss, &pInitScanParam->useNoA);
+#endif       
            //CreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr, eSYSTEM_AP_ROLE);
            pInitScanParam->checkLinkTraffic = trafficCheck;
            //pInitScanParam->checkLinkTraffic = eSIR_DONT_CHECK_LINK_TRAFFIC_BEFORE_SCAN;
@@ -710,11 +738,19 @@ limSendHalInitScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState, tSirLi
        pInitScanParam->notifyBss = FALSE;
        pInitScanParam->notifyHost = FALSE;
        pInitScanParam->scanDuration = 0;
-       __limCreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr,  TRUE,  &pInitScanParam->notifyBss);
+#ifndef WLAN_FEATURE_P2P
+       __limCreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr, 
+                                   TRUE,  &pInitScanParam->notifyBss);
+#else
+       __limCreateInitScanRawFrame(pMac, &pInitScanParam->macMgmtHdr, TRUE, 
+                 &pInitScanParam->notifyBss, &pInitScanParam->useNoA);
+       if (pInitScanParam->useNoA)
+       {
+          pInitScanParam->scanDuration = pMac->lim.gTotalScanDuration;
+       }
+#endif       
        pInitScanParam->frameType = pInitScanParam->macMgmtHdr.fc.type;
 
-      
-    
        /* Inform HAL whether it should check for traffic on the link
         * prior to performing a background scan
         */
@@ -997,7 +1033,7 @@ void limSendHalFinishScanReq(tpAniSirGlobal pMac, tLimLimHalScanState nextState)
         pFinishScanParam->scanMode = eHAL_SYS_MODE_SCAN;
         pFinishScanParam->notifyHost = FALSE;
         __limCreateFinishScanRawFrame(pMac, &pFinishScanParam->macMgmtHdr, &pFinishScanParam->notifyBss);
-	    pFinishScanParam->frameType = pFinishScanParam->macMgmtHdr.fc.type;
+        pFinishScanParam->frameType = pFinishScanParam->macMgmtHdr.fc.type;
         pFinishScanParam->frameLength = sizeof(tSirMacMgmtHdr);
         pFinishScanParam->currentOperChannel = peGetCurrentChannel(pMac);
         pFinishScanParam->cbState = limGetPhyCBState(pMac);
@@ -1225,7 +1261,7 @@ error:
     if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)(&pMlmInNavMeasRsp), sizeof(tLimMlmInNavMeasRsp)))
     {
         limLog(pMac->hHdd, LOGP, FL("INNAV: memory allocation for pMlmInNavMeasRsp failed under suspend link failure\n"));
-		return;
+        return;
     }
 
     if(NULL != pMac->lim.gpLimMlmInNavMeasReq)
@@ -1275,7 +1311,7 @@ void limSetInNavMeasMode(tpAniSirGlobal pMac, eHalStatus status, tANI_U32* data)
         pMac->lim.gLimCurrentInNavMeasBssidIndex = 0;
         PELOGE(limLog(pMac, LOGE, FL("INNAV: Calling limSendHalInitInNavMeasReq\n"));)
         limSendHalInNavMeasReq(pMac);
-		return;
+        return;
     }
 
 error:
@@ -1342,7 +1378,7 @@ mlm_add_sta(
     if(IS_DOT11_MODE_HT(psessionEntry->dot11mode)) 
     {
         pSta->htCapable         = htCapable;
-#ifdef WLAN_SOFTAP_FEATURE		
+#ifdef WLAN_SOFTAP_FEATURE
         pSta->greenFieldCapable = limGetHTCapability( pMac, eHT_GREENFIELD, psessionEntry);
         pSta->txChannelWidthSet = limGetHTCapability( pMac, eHT_SUPPORTED_CHANNEL_WIDTH_SET, psessionEntry );
         pSta->mimoPS            = (tSirMacHTMIMOPowerSaveState)limGetHTCapability( pMac, eHT_MIMO_POWER_SAVE, psessionEntry );
@@ -1711,7 +1747,14 @@ static tANI_U8 __limMlmScanAllowed(tpAniSirGlobal pMac)
                   (    ( (pMac->lim.gpSession[i].bssType == eSIR_IBSS_MODE)||
                            (pMac->lim.gpSession[i].limSystemRole == eLIM_BT_AMP_AP_ROLE)||
                            (pMac->lim.gpSession[i].limSystemRole == eLIM_BT_AMP_STA_ROLE) )&&
-                       (pMac->lim.gpSession[i].limMlmState == eLIM_MLM_BSS_STARTED_STATE) )))
+                       (pMac->lim.gpSession[i].limMlmState == eLIM_MLM_BSS_STARTED_STATE) )
+#ifdef WLAN_FEATURE_P2P
+               ||  ( ( ( (pMac->lim.gpSession[i].bssType == eSIR_INFRA_AP_MODE) 
+                      && ( pMac->lim.gpSession[i].pePersona == VOS_P2P_GO_MODE) )
+                    || (pMac->lim.gpSession[i].limSystemRole == eLIM_AP_ROLE) )
+                  && (pMac->lim.gpSession[i].limMlmState == eLIM_MLM_BSS_STARTED_STATE) )
+#endif
+                ))
             	{
 			return FALSE;
 
@@ -1773,6 +1816,12 @@ limProcessMlmScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 	MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, pMac->lim.gLimMlmState));
 
         pMac->lim.gLimSystemInScanLearnMode = 1;
+
+#ifdef WLAN_FEATURE_P2P
+        pMac->lim.gTotalScanDuration = 
+                    pMac->lim.gpLimMlmScanReq->maxChannelTime*
+                    pMac->lim.gpLimMlmScanReq->channelList.numChannels;
+#endif
         limSetScanMode(pMac);
     }
     else

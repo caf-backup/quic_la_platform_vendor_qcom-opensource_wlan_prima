@@ -26,6 +26,8 @@
 #define HAL_STA_INVALID_IDX 0xFF
 #define HAL_BSS_INVALID_IDX 0xFF
 
+#define HAL_BSSPERSONA_INVALID_IDX 0xFF
+
 #define WLAN_BSS_PROTECTION_ON  1
 #define WLAN_BSS_PROTECTION_OFF 0
 
@@ -710,7 +712,9 @@ typedef struct {
     tANI_U32 beaconLength; //length of the template.
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_U32 timIeOffset; //TIM IE offset from the beginning of the template.
+#ifdef WLAN_FEATURE_P2P    
     tANI_U16 p2pIeOffset; //P2P IE offset from the begining of the template
+#endif    
 #endif
 } tSendbeaconParams, * tpSendbeaconParams;
 

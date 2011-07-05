@@ -65,6 +65,7 @@ extern eHalStatus sme_remainOnChnRsp( tpAniSirGlobal pMac, tANI_U8 *pMsg);
 extern eHalStatus sme_mgmtFrmInd( tHalHandle hHal, tpSirSmeMgmtFrameInd pSmeMgmtFrm);
 extern eHalStatus sme_remainOnChnReady( tHalHandle hHal, tANI_U8* pMsg);
 extern eHalStatus sme_sendActionCnf( tHalHandle hHal, tANI_U8* pMsg);
+extern eHalStatus p2pProcessNoAReq(tpAniSirGlobal pMac, tSmeCmd *pNoACmd);
 #endif
 
 static eHalStatus initSmeCmdList(tpAniSirGlobal pMac);
@@ -525,6 +526,10 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                             csrLLUnlock(&pMac->sme.smeCmdActiveList);
                             p2pProcessRemainOnChannelCmd(pMac, pCommand);
                             break;
+
+                        case eSmeCommandNoAUpdate:
+                            csrLLUnlock( &pMac->sme.smeCmdActiveList );
+                            p2pProcessNoAReq(pMac,pCommand);
 #endif
                         case eSmeCommandEnterImps:
                         case eSmeCommandExitImps:
@@ -4509,7 +4514,8 @@ eHalStatus sme_RegisterMgmtFrame(tHalHandle hHal, tANI_U8 sessionId,
         {
             palZeroMemory(pMac->hHdd, pMsg, len);
             pMsg->messageType     = eWNI_SME_REGISTER_MGMT_FRAME_REQ;
-            pMsg->length          = len; 
+            pMsg->length          = len;
+            pMsg->sessionId       = sessionId;
             pMsg->registerFrame	  = VOS_TRUE;
             pMsg->frameType       = frameType;
             pMsg->matchLen	  = matchLen;
@@ -4651,12 +4657,12 @@ eHalStatus sme_updateP2pIe(tHalHandle hHal,
 	     pMac->p2pContext.probeRspIe = vos_mem_malloc(p2pIeLength);
 	     pMac->p2pContext.probeRspIeLength = p2pIeLength;
 
-       sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOGE, pMac->p2pContext.probeRspIe, pMac->p2pContext.probeRspIeLength ); 
-		  vos_mem_copy((tANI_U8 *)pMac->p2pContext.probeRspIe , p2pIe,
+         sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOGE, pMac->p2pContext.probeRspIe, pMac->p2pContext.probeRspIeLength ); 
+		 vos_mem_copy((tANI_U8 *)pMac->p2pContext.probeRspIe , p2pIe,
                 p2pIeLength);
 
-			//release the lock for the sme object
-	      sme_ReleaseGlobalLock( &pMac->sme );
+		 //release the lock for the sme object
+	     sme_ReleaseGlobalLock( &pMac->sme );
 	  }
    
     smsLog(pMac, LOGW, "exiting function %s\n", __FUNCTION__);
@@ -4671,7 +4677,7 @@ eHalStatus sme_updateP2pIe(tHalHandle hHal,
     \return eHalStatus
   ---------------------------------------------------------------------------*/
 
-eHalStatus sme_sendAction(tHalHandle hHal,
+eHalStatus sme_sendAction(tHalHandle hHal, tANI_U8 sessionId,
 	     const tANI_U8 *pBuf, tANI_U32 len)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
@@ -4681,7 +4687,7 @@ eHalStatus sme_sendAction(tHalHandle hHal,
 	  status = sme_AcquireGlobalLock(&pMac->sme);
 	  if(HAL_STATUS_SUCCESS(status))
 	  {
-        p2pSendAction(hHal, pBuf, len);
+          p2pSendAction(hHal, sessionId, pBuf, len);
 			  //release the lock for the sme object
 	      sme_ReleaseGlobalLock( &pMac->sme );
 	  }
@@ -4703,6 +4709,21 @@ eHalStatus sme_CancelRemainOnChannel(tHalHandle hHal, tANI_U8 sessionId )
   }
   return(status);
 }
+
+//Power Save Related
+eHalStatus sme_p2pSetPs(tHalHandle hHal, tP2pPsConfig * data)
+{
+  eHalStatus status = eHAL_STATUS_SUCCESS;
+  tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+
+  if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme ) ) )
+  {
+    status = p2pSetPs (hHal, data);
+    sme_ReleaseGlobalLock( &pMac->sme );
+  }
+  return(status);
+}
+
 #endif
 
 /* ---------------------------------------------------------------------------

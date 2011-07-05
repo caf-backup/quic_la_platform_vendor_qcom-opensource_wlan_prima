@@ -595,7 +595,7 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
         }
              
         vosStatus = 
-          vos_list_peek_next (&pMac->lim.gLimMgmtFrameRegistratinQueue, 
+          vos_list_peek_next ( &pMac->lim.gLimMgmtFrameRegistratinQueue, 
                               (vos_list_node_t*) pLimMgmtRegistration, 
                               (vos_list_node_t**) &pNext );
         pLimMgmtRegistration = pNext;
@@ -608,8 +608,9 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
                 FL("rcvd frame match with registered frame params\n"));
 
         /* Indicate this to SME */	 
-        limSendSmeMgmtFrameInd(pMac, eSIR_MGMT_FRM_ACTION, (tANI_U8*)pHdr, 
-                WDA_GET_RX_MPDU_LEN(pRxPacketInfo) + sizeof(tSirMacMgmtHdr) );
+        limSendSmeMgmtFrameInd( pMac, eSIR_MGMT_FRM_ACTION, (tANI_U8*)pHdr, 
+                     WDA_GET_RX_MPDU_LEN(pRxPacketInfo) + sizeof(tSirMacMgmtHdr), 
+                     pLimMgmtRegistration->sessionId );
     }
 
     return match;
@@ -1230,7 +1231,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 
         case eWNI_SME_SCAN_REQ:
 #ifdef WLAN_FEATURE_P2P		  	
-		case eWNI_SME_REMAIN_ON_CHANNEL_REQ:
+        case eWNI_SME_REMAIN_ON_CHANNEL_REQ:
 #endif
         case eWNI_SME_DISASSOC_REQ:
         case eWNI_SME_DEAUTH_REQ:
@@ -1300,6 +1301,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         case eWNI_SME_DEL_STA_SELF_REQ:
 #ifdef WLAN_FEATURE_P2P
         case eWNI_SME_REGISTER_MGMT_FRAME_REQ:
+        case eWNI_SME_UPDATE_NOA:
 #endif	    
             // These messages are from HDD
             limProcessNormalHddMsg(pMac, limMsg, false);   //no need to response to hdd

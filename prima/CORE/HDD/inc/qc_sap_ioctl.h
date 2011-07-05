@@ -193,7 +193,12 @@ typedef struct sQcSapreq_WPSPBCProbeReqIES {
 #define WE_SET_WLAN_DBG 1
 #define QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE (SIOCIWFIRSTPRIV+16)
 #define WE_LOG_DUMP_CMD 1
-#define MAX_VAR_ARGS         5			
+
+#ifdef WLAN_FEATURE_P2P
+#define WE_P2P_NOA_CMD  2
+#endif
+
+#define MAX_VAR_ARGS         7			
 
 enum { 
     QCSAP_PARAM_MAX_ASSOC = 1,

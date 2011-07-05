@@ -143,6 +143,7 @@ bapSetKey( v_PVOID_t pvosGCtx, tCsrRoamSetKey *pSetKeyInfo )
     v_U8_t status;    /* return the BT-AMP status here */
     eHalStatus  halStatus;
     v_U32_t roamId = 0xFF;
+    v_U8_t groupMac[ANI_MAC_ADDR_SIZE] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};  
  
     /* Validate params */ 
     if ((pvosGCtx == NULL) || (pSetKeyInfo == NULL))
@@ -177,7 +178,20 @@ bapSetKey( v_PVOID_t pvosGCtx, tCsrRoamSetKey *pSetKeyInfo )
     {
       VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
               "[%4d] sme_RoamSetKey returned ERROR status= %d", __LINE__, halStatus );
+        return VOS_STATUS_E_FAULT;
+    }
                          
+    /* Set the Group Key */ 
+    vos_mem_copy( pSetKeyInfo->peerMac, groupMac, sizeof( tAniMacAddr ) );;
+    halStatus = sme_RoamSetKey( 
+            VOS_GET_HAL_CB(pvosGCtx), 
+            btampContext->sessionId, 
+            pSetKeyInfo, 
+            &roamId );
+    if ( halStatus != eHAL_STATUS_SUCCESS )
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, 
+                "[%4d] sme_RoamSetKey returned ERROR status= %d", __LINE__, halStatus );
       return VOS_STATUS_E_FAULT;
     }
   
@@ -943,7 +957,19 @@ regStaWithTl
     // UMA is ready we inform TL not to do frame 
     // translation for WinMob 6.1
     //*** Not to enabled UMA.
+    /* Enable UMA for TX translation only when there is no concurrent session active */
+#if defined (FEATURE_WLAN_INTEGRATED_SOC)
     staDesc.ucSwFrameTXXlation = 1;
+#else
+    if (vos_concurrent_sessions_running())
+    {
+       staDesc.ucSwFrameTXXlation = 1;
+    }
+    else
+    {
+       staDesc.ucSwFrameTXXlation = 0;
+    }
+#endif
     staDesc.ucSwFrameRXXlation = 1; 
     staDesc.ucAddRmvLLC = 0;
 

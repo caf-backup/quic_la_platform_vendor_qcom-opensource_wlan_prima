@@ -316,6 +316,11 @@ typedef struct sAniSirLim
     tLimScanDurationConvert gLimScanDurationConvert; /* Used to store converted scan duration values in TU and TICKS */
 #endif /* ANI_AP_SDK */
 
+#ifdef WLAN_FEATURE_P2P
+    // This variable store the total duration to do scan
+    tANI_U32 gTotalScanDuration;
+#endif    
+
     // abort scan is used to abort an on-going scan
     tANI_U8 abortScan;
     tLimScanChnInfo scanChnInfo;
@@ -960,6 +965,7 @@ typedef struct sAniSirLim
 #ifdef WLAN_FEATURE_P2P
     tSirRemainOnChnReq  *gpLimRemainOnChanReq; //hold remain on chan request in this buf
     vos_list_t  gLimMgmtFrameRegistratinQueue;
+    tANI_U32    actionFrameSessionId;
 #endif
 } tAniSirLim, *tpAniSirLim;
 
@@ -969,6 +975,7 @@ typedef struct sLimMgmtFrameRegistration
     vos_list_node_t node;     // MUST be first element
     tANI_U16        frameType;
     tANI_U16        matchLen;
+    tANI_U16        sessionId;
     tANI_U8         matchData[1];
 } tLimMgmtFrameRegistration, *tpLimMgmtFrameRegistration;
 #endif

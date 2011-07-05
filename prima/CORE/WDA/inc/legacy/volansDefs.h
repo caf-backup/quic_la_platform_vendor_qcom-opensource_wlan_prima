@@ -613,6 +613,8 @@ typedef enum
 enum {
    /* timer for p2p client */
    QWLAN_MTU_TIMER_FW_P2P_CLIENT = 2,
+   /* timer for p2p Go */
+   QWLAN_MTU_TIMER_FW_P2P_GO = 3,
    /* timer for BTC */
    QWLAN_MTU_TIMER_FW_BTC = 4,
    /* timer for pre beacon interrupt */

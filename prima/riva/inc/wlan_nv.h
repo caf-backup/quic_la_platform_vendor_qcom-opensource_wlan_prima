@@ -31,6 +31,7 @@ typedef enum
     NV_COMMON_NUM_OF_RX_CHAINS,         // 3
     NV_COMMON_MAC_ADDR,                 // 4
     NV_COMMON_MFG_SERIAL_NUMBER,        // 5
+    NV_COMMON_WLAN_NV_REV_ID,           // 6
 
     NUM_NV_FIELDS,
     NV_MAX_FIELD = 0x7FFFFFFF  /* define as 4 bytes data */
@@ -56,6 +57,7 @@ typedef PACKED_PRE union PACKED_POST
     //common NV fields
     tANI_U16  productId;
     tANI_U8   productBands;
+    tANI_U8   wlanNvRevId;
     tANI_U8   numOfTxChains;
     tANI_U8   numOfRxChains;
     tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
@@ -70,7 +72,7 @@ typedef PACKED_PRE struct PACKED_POST
     //always ensure fields are aligned to 32-bit boundaries
     tANI_U16  productId;
     tANI_U8   productBands;
-    tANI_U8   wlanNvRevId;
+    tANI_U8   wlanNvRevId; //0: WCN1312, 1: WCN1314, 2: WCN3660
 
     tANI_U8   numOfTxChains;
     tANI_U8   numOfRxChains;
@@ -353,7 +355,11 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U8     pll_vfc_reg3_b3;
 
     tANI_U16    tempStart;
-	tANI_U16    roomTemp;
+    tANI_U16    roomTemp;
+
+    tANI_S16    ambientCalTemp;
+    tANI_U8     ambientCalTempValid;
+    tANI_U8     reserved2;
 
 }sCalData;
 
@@ -362,6 +368,17 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U32 calStatus;  //use eNvCalID
     sCalData calData;
 }sRFCalValues;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U32 txFirFilterMode;
+}sTxBbFilterMode;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_S16 ofdmPwrOffset;
+    tANI_S16 rsvd;
+}sOfdmCmdPwrOffset;
 
 //From wlanfw/inc/halPhyCfg.h
 typedef tANI_U8 tTpcLutValue;
@@ -523,17 +540,19 @@ typedef PACKED_PRE struct PACKED_POST
 
 typedef PACKED_PRE union PACKED_POST
 {
-    tRateGroupPwr           pwrOptimum[NUM_RF_SUBBANDS];             // NV_TABLE_RATE_POWER_SETTINGS
-    sRegulatoryDomains      regDomains[NUM_REG_DOMAINS];             // NV_TABLE_REGULATORY_DOMAINS
-    sDefaultCountry         defaultCountryTable;                     // NV_TABLE_DEFAULT_COUNTRY
-    tTpcPowerTable          plutCharacterized[NUM_RF_CHANNELS];  // NV_TABLE_TPC_POWER_TABLE
-    tANI_U16                plutPdadcOffset[NUM_RF_CHANNELS];    // NV_TABLE_TPC_PDADC_OFFSETS
-    //sCalFlashMemory       calFlashMemory;                          // NV_TABLE_CAL_MEMORY
-    sCalStatus              calStatus;                               // NV_TABLE_CAL_STATUS
-    sRssiChannelOffsets     rssiChanOffsets[2];                      // NV_TABLE_RSSI_CHANNEL_OFFSETS
-    sRFCalValues            rFCalValues;                             // NV_TABLE_RF_CAL_VALUES
-    tANI_S16                antennaPathLoss[NUM_RF_CHANNELS];    // NV_TABLE_ANTENNA_PATH_LOSS
-    tANI_S16                pktTypePwrLimits[NUM_802_11_MODES][NUM_RF_CHANNELS]; //NV_TABLE_PACKET_TYPE_POWER_LIMITS
+    tRateGroupPwr        pwrOptimum[NUM_RF_SUBBANDS];                         // NV_TABLE_RATE_POWER_SETTINGS
+    sRegulatoryDomains   regDomains[NUM_REG_DOMAINS];                         // NV_TABLE_REGULATORY_DOMAINS
+    sDefaultCountry      defaultCountryTable;                                 // NV_TABLE_DEFAULT_COUNTRY
+    tTpcPowerTable       plutCharacterized[NUM_RF_CHANNELS];                  // NV_TABLE_TPC_POWER_TABLE
+    tANI_U16             plutPdadcOffset[NUM_RF_CHANNELS];                    // NV_TABLE_TPC_PDADC_OFFSETS
+    //sCalFlashMemory    calFlashMemory;                                      // NV_TABLE_CAL_MEMORY
+    sCalStatus           calStatus;                                           // NV_TABLE_CAL_STATUS
+    sRssiChannelOffsets  rssiChanOffsets[2];                                  // NV_TABLE_RSSI_CHANNEL_OFFSETS
+    sRFCalValues         rFCalValues;                                         // NV_TABLE_RF_CAL_VALUES
+    tANI_S16             antennaPathLoss[NUM_RF_CHANNELS];                    // NV_TABLE_ANTENNA_PATH_LOSS
+    tANI_S16             pktTypePwrLimits[NUM_802_11_MODES][NUM_RF_CHANNELS]; // NV_TABLE_PACKET_TYPE_POWER_LIMITS
+    sOfdmCmdPwrOffset    ofdmCmdPwrOffset;                                    // NV_TABLE_OFDM_CMD_PWR_OFFSET
+    sTxBbFilterMode      txbbFilterMode;                                      // NV_TABLE_TX_BB_FILTER_MODE
 }ALIGN_4 uNvTables;
 
 //From halPhy.h
@@ -561,6 +580,8 @@ typedef enum
     NV_TABLE_CAL_STATUS             = 11,
     NV_TABLE_ANTENNA_PATH_LOSS          = 12,
     NV_TABLE_PACKET_TYPE_POWER_LIMITS   = 13,
+    NV_TABLE_OFDM_CMD_PWR_OFFSET        = 14,
+    NV_TABLE_TX_BB_FILTER_MODE          = 15,
 
     NUM_NV_TABLE_IDS,
     NV_ALL_TABLES                   = 0xFFF,
@@ -570,17 +591,19 @@ typedef enum
 
 typedef PACKED_PRE struct PACKED_POST
 {
-    tRateGroupPwr           pwrOptimum[NUM_RF_SUBBANDS];              // NV_TABLE_RATE_POWER_SETTINGS
-    sRegulatoryDomains      regDomains[NUM_REG_DOMAINS];              // NV_TABLE_REGULATORY_DOMAINS
-    sDefaultCountry         defaultCountryTable;                      // NV_TABLE_DEFAULT_COUNTRY
-    tTpcPowerTable          plutCharacterized[NUM_RF_CHANNELS];   // NV_TABLE_TPC_POWER_TABLE
-    tANI_U16                plutPdadcOffset[NUM_RF_CHANNELS];     // NV_TABLE_TPC_PDADC_OFFSETS
-    //sCalFlashMemory       calFlashMemory;                           // NV_TABLE_CAL_MEMORY
-    sCalStatus              calStatus;                                // NV_TABLE_CAL_STATUS
-    sRssiChannelOffsets     rssiChanOffsets[2];                       // NV_TABLE_RSSI_CHANNEL_OFFSETS
-    sRFCalValues            rFCalValues;                              // NV_TABLE_RF_CAL_VALUES
-    tANI_S16                antennaPathLoss[NUM_RF_CHANNELS];     // NV_TABLE_ANTENNA_PATH_LOSS
-    tANI_S16                pktTypePwrLimits[NUM_802_11_MODES][NUM_RF_CHANNELS]; //NV_TABLE_PACKET_TYPE_POWER_LIMITS
+    tRateGroupPwr        pwrOptimum[NUM_RF_SUBBANDS];                         // NV_TABLE_RATE_POWER_SETTINGS
+    sRegulatoryDomains   regDomains[NUM_REG_DOMAINS];                         // NV_TABLE_REGULATORY_DOMAINS
+    sDefaultCountry      defaultCountryTable;                                 // NV_TABLE_DEFAULT_COUNTRY
+    tTpcPowerTable       plutCharacterized[NUM_RF_CHANNELS];                  // NV_TABLE_TPC_POWER_TABLE
+    tANI_U16             plutPdadcOffset[NUM_RF_CHANNELS];                    // NV_TABLE_TPC_PDADC_OFFSETS
+    //sCalFlashMemory    calFlashMemory;                                      // NV_TABLE_CAL_MEMORY
+    sCalStatus           calStatus;                                           // NV_TABLE_CAL_STATUS
+    sRssiChannelOffsets  rssiChanOffsets[2];                                  // NV_TABLE_RSSI_CHANNEL_OFFSETS
+    sRFCalValues         rFCalValues;                                         // NV_TABLE_RF_CAL_VALUES
+    tANI_S16             antennaPathLoss[NUM_RF_CHANNELS];                    // NV_TABLE_ANTENNA_PATH_LOSS
+    tANI_S16             pktTypePwrLimits[NUM_802_11_MODES][NUM_RF_CHANNELS]; // NV_TABLE_PACKET_TYPE_POWER_LIMITS
+    sOfdmCmdPwrOffset    ofdmCmdPwrOffset;                                    // NV_TABLE_OFDM_CMD_PWR_OFFSET
+    sTxBbFilterMode      txbbFilterMode;                                      // NV_TABLE_TX_BB_FILTER_MODE
 }ALIGN_4 sNvTables;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -592,4 +615,4 @@ typedef PACKED_PRE struct PACKED_POST
 extern const sHalNv nvDefaults;
 
 #endif
-	
+

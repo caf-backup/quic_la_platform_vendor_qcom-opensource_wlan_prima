@@ -90,7 +90,9 @@ static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPack
 	btampContext = VOS_GET_BAP_CB(pvosGCtx); 
 	fsm = &btampContext->uFsm.suppFsm;
 
-    VOS_ASSERT( bapRsnFsmTxCmpHandler );
+    //If we get a disconect from upper layer before getting the pkt from TL the
+    //bapRsnFsmTxCmpHandler could be NULL 
+    //VOS_ASSERT( bapRsnFsmTxCmpHandler );
 
     vos_pkt_return_packet( pPacket );
     if( bapRsnFsmTxCmpHandler )
@@ -98,6 +100,10 @@ static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPack
         //Change the state
         //Call auth or supp FSM's handler
         bapRsnFsmTxCmpHandler( pvosGCtx, pPacket, retStatus );
+    }
+    else
+    {
+        return (VOS_STATUS_SUCCESS );
     }
 
     //fsm->suppCtx->ptk contains the 3 16-bytes keys. We need the last one.
