@@ -604,9 +604,13 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
    tANI_U32   bClosedLoop : 1;
    tANI_U32   ucOpenLoopTxGain : 8;
    tANI_U32   ucRegDomain : 4;
-   tANI_U32   bReserved1        : 2;
+   /* mode of operation: production or FTM */
+   tANI_U32   bMfgDriver       : 1;
+   tANI_U32   bReserved1        : 1;
 #else
-   tANI_U32   bReserved1        : 2;
+   tANI_U32   bReserved1        : 1;
+   /* mode of operation: production or FTM */
+   tANI_U32   bMfgDriver       : 1;
    tANI_U32   ucRegDomain : 4;
    tANI_U32   ucOpenLoopTxGain : 8;
    tANI_U32   bClosedLoop : 1;
@@ -1790,6 +1794,15 @@ typedef struct _Qwlanfw_HwCountersStruct {
   tANI_U32 uSif_Rx_Frm_Rd_Count;
 } Qwlanfw_HwCntrType;
 
+
+/*
+ * Info collected by FW in FTM mode
+ */
+typedef struct _Qwlanfw_PhyFtmInfoStruct {
+    tANI_U32 uRxDataFrameCount; // Count of unicast Rx frames
+    tANI_U32 uRxLastRssiVal;    // Last received frames RSSI value
+} Qwlanfw_PhyFtmInfoType;
+
 /*===========================================================================
   Phy calibration values
 ===========================================================================*/
@@ -1926,22 +1939,23 @@ typedef struct _PhyCalCorrStruct {
 #define QWLANFW_HOST2FW_CAL_UPDATE_REQ         QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0xB
 #define QWLANFW_HOST2FW_SET_CHANNEL_REQ        QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0xC
 #define QWLANFW_HOST2FW_SET_CHAIN_SELECT_REQ   QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0xD
+#define QWLANFW_HOST2FW_FTM_UPDATE             QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0xE
 /* BTC */
-#define QWLANFW_HOST2FW_BT_EVENT               QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0xE
+#define QWLANFW_HOST2FW_BT_EVENT               QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0xF
 /* SCAN */
-#define QWLANFW_HOST2FW_SCAN_START             QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0xF
-#define QWLANFW_HOST2FW_SCAN_END               QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x10
+#define QWLANFW_HOST2FW_SCAN_START             QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x10
+#define QWLANFW_HOST2FW_SCAN_END               QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x11
 /* CONNECTION SETUP */
-#define QWLANFW_HOST2FW_CONNECTION_SETUP_START QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x11
-#define QWLANFW_HOST2FW_CONNECTION_SETUP_END   QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x12
+#define QWLANFW_HOST2FW_CONNECTION_SETUP_START QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x12
+#define QWLANFW_HOST2FW_CONNECTION_SETUP_END   QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x13
 /* CONNECTION TERMINATED */
-#define QWLANFW_HOST2FW_CONNECTION_NONE        QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x13
+#define QWLANFW_HOST2FW_CONNECTION_NONE        QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x14
 /* RA */
-#define QWLANFW_HOST2FW_RA_UPDATE              QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x14
+#define QWLANFW_HOST2FW_RA_UPDATE              QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x15
 /*common*/
-#define QWLANFW_HOST2FW_COMMON_MSG             QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x15
+#define QWLANFW_HOST2FW_COMMON_MSG             QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x16
 /* Host Offload */
-#define QWLANFW_HOST2FW_SET_HOST_OFFLOAD       QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x16
+#define QWLANFW_HOST2FW_SET_HOST_OFFLOAD       QWLANFW_HOST2FW_MSG_TYPES_BEGIN + 0x17
 
 #ifdef LIBRA_WAPI_SUPPORT
 
@@ -2372,6 +2386,19 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_CalUpdateReqStruct
    tANI_U32             usPeriodic;
 } Qwlanfw_CalUpdateReqType;
 
+
+// Various Codes for FTM initialization
+#define HALPHY_FTM_INIT     0   // Initialize the FW in FTM mode to receive frames and monitor RSSI
+
+/**
+   @brief
+    QWLANFW_HOST2FW_FTM_UPDATE
+ */
+typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_FtmUpdateStruct
+{
+   Qwlanfw_CtrlMsgType  hdr;
+   tANI_U32             usReqCode;
+} Qwlanfw_FtmUpdateType;
 
 /**
    @brief
@@ -3365,6 +3392,7 @@ typedef PACKED_PRE struct PACKED_POST _QWlanfw_MemMapInfo
     tANI_U32 hwCountersAddr;        /* gEntry_HwCountersAddr */
     tANI_U32 sysCfgAddr;            /* gEntry_SysCfgAddr */
     tANI_U32 fwPSCountersAddr;      /* gEntry_FwPSCountersAddr */
+    tANI_U32 phyFtmInfoAddr;        /* gEntry_PhyFtmInfoAddr  */
     tANI_U32 raTableAddr;           /* gEntry_RATableAddr */
     tANI_U32 fwHPhyPMTable2Start;   /* gEntry_HPhyPMTable2Start */
     tANI_U32 fwHPhyPMTable2End;     /* gEntry_HPhyPMTable2End */
@@ -3378,7 +3406,6 @@ typedef PACKED_PRE struct PACKED_POST _QWlanfw_MemMapInfo
     tANI_U32 reserved8;
     tANI_U32 reserved9;
     tANI_U32 reserved10;
-    tANI_U32 reserved11;
 } QWlanfw_MemMapInfo;
 
 //#ifdef FEATURE_INNAV_SUPPORT

@@ -166,6 +166,7 @@ static tFuncEntry funcTable[] = {
 static tFuncEntry funcFtmTable[] = {
     // func pointer(open)  start                        stop                    close                    name (<20chars)
     { {halResetChip,      halResetChip,                  halResetChip,           halResetChip},           "ResetChip"},
+    { {halMemoryMap_Open, halMemoryMap_Start,            NULL,                   NULL},                   "MemMap"           },
     { {NULL,              halSaveDeviceInfo,             NULL,                   NULL},                   "FillChipInfo"},
     { {NULL,              halPMU_Start,                  NULL,                   NULL},                   "PMU"              },
     { {nvOpen,            NULL,                          NULL,                   nvClose},                "halNv"           },
@@ -176,6 +177,8 @@ static tFuncEntry funcFtmTable[] = {
     { {halMbox_Open,      halMbox_Start,                 halMbox_Stop,           halMbox_Close},          "Mailbox"             },
     { {NULL,              NULL,                          NULL,                   nvClose},                "halNv"           },
     { {NULL,              halFW_Init,                    halFW_Exit,             NULL},                   "Firmware"            },
+    { {NULL,              halAhb_Start,                  NULL,                   NULL},                   "AHB"              },
+    { {NULL,              halBmu_Start,                  NULL,                   NULL},                   "BMU"              },
     { {halRxp_Open,       halRxp_Start,                  halRxp_Stop,            halRxp_Close},           "RXP"             },
     { {NULL,              halFtmRx_Start,                NULL,                   NULL},                   "Add1_filter"     },
     { {NULL,              halFW_CheckInitComplete,       NULL,                   NULL},                   "Check FW Init"   },

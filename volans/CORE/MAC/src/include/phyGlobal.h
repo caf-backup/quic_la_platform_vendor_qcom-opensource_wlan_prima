@@ -38,6 +38,9 @@
 #endif
 #define OPEN_LOOP_TX_LOW_GAIN_OVERRIDE      3   //used for throughput tests in open loop mode
 
+// Start address of grab ram memory in FTM mode
+#define HAL_PHY_GRAB_RAM_CAPTURE_START_ADDR    (160 * 1024) 
+
 // Function pointer for to the CB function after set channel response from FW
 typedef void (*funcHalSetChanCB)(tpAniSirGlobal, void*, tANI_U32, tANI_U16);
 

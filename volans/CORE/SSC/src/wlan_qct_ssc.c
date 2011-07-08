@@ -460,22 +460,6 @@ interrupt and sizes for the subsequent CMD53s are derived from the already read 
  * Type Declarations
  * ------------------------------------------------------------------------*/
 
-/*---------------------------------------------------------------------------
-   WLANSSC_MessageType
-
-   This lists the messages that the SSC can post to itself
----------------------------------------------------------------------------*/
-typedef enum
-{
-  WLANSSC_INTPENDING_MESSAGE     = 0,
-  WLANSSC_TXPENDING_MESSAGE      = 1,
-  WLANSSC_RXPENDING_MESSAGE      = 2,
-  WLANSSC_MEMAVAIL_MESSAGE       = 3,
-
-  WLANSSC_MAX_MESSAGE
-
-} WLANSSC_MessageType;
-
 
 /*---------------------------------------------------------------------------
    WLANSSC_RegBufferType
@@ -2783,6 +2767,16 @@ VOS_STATUS WLANSSC_ProcessMsg
 
   WLANSSC_ASSERT( NULL != pMsg );
 
+  if( pMsg->type == WLANSSC_FINISH_ULA)
+  {
+    void *callbackContext = (void *)pMsg->bodyval;
+    void (*callbackRoutine) (void *callbackContext);
+
+    callbackRoutine = pMsg->bodyptr;
+    callbackRoutine(callbackContext);
+    return VOS_STATUS_SUCCESS;
+  }
+
   pControlBlock = (WLANSSC_ControlBlockType *) pMsg->bodyptr;
 
   WLANSSC_ASSERT( VOS_TRUE == WLANSSC_ISCONTEXTVALID( pControlBlock ) );
@@ -2871,7 +2865,7 @@ VOS_STATUS WLANSSC_ProcessMsg
       }
 
       break;
-
+      
     default:
       WLANSSC_ASSERT( 0 );
       WLANSSC_UNLOCKTX( pControlBlock );

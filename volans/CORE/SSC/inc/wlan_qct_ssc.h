@@ -98,6 +98,24 @@ typedef enum
 
 } WLANSSC_ReasonCodeType;
 
+/*---------------------------------------------------------------------------
+   WLANSSC_MessageType
+
+   This lists the messages that the SSC can post to itself
+---------------------------------------------------------------------------*/
+typedef enum
+{
+  WLANSSC_INTPENDING_MESSAGE     = 0,
+  WLANSSC_TXPENDING_MESSAGE      = 1,
+  WLANSSC_RXPENDING_MESSAGE      = 2,
+  WLANSSC_MEMAVAIL_MESSAGE       = 3,
+  /* This message type is for finishing Upper layer authentication incase last 
+     EAPOL packet is pending*/
+  WLANSSC_FINISH_ULA = 4,
+
+  WLANSSC_MAX_MESSAGE
+
+} WLANSSC_MessageType;
 
 /*---------------------------------------------------------------------------
    WLANSSC_FlowType

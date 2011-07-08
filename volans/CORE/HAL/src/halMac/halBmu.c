@@ -194,6 +194,10 @@ static eHalStatus halBmu_btqm_init_control1_register(tpAniSirGlobal pMac, tANI_U
 static void halBmu_btqm_init_control2_register(tpAniSirGlobal pMac, tANI_U32 txQueueIdsMask);
 static eHalStatus halBmu_InitIntHanlder(tpAniSirGlobal pMac);
 
+#ifndef WLAN_FTM_STUB
+static int ftmBmuInitiliazed = 0;
+#endif
+
 /* -------------------------------------------------------------
  * FUNCTION:  halBmu_Start()
  *
@@ -218,8 +222,18 @@ halBmu_Start(
     tANI_U32 value, status;
     (void) arg;
 
-
     HALLOGW( halLog( pMac, LOGW, FL("%s: ***** BMU INITIALIZATION ***** \n"),  __FUNCTION__ ));
+
+#ifndef WLAN_FTM_STUB
+    // In FTM mode, initialize the BMU only for the first halStart. For the subsequent 
+    // halStop and halStart do not call the BMUStart, since there is no chip powerdown/up 
+    // sequence in Stop/Start
+    if (pMac->gDriverType == eDRIVER_TYPE_MFG) {
+        if (ftmBmuInitiliazed++) {
+            return eHAL_STATUS_SUCCESS;
+        }
+    }
+#endif
 
     // Initialize the BD/PDU base address
     if (halBmu_InitBdPduBaseAddress(pMac) != eHAL_STATUS_SUCCESS) {
@@ -227,9 +241,14 @@ halBmu_Start(
         return eHAL_STATUS_FAILURE;
     }
 
+    // In FTM mode, no descriptor memory is allocated, so skip programming 
+    // the BTQM queue desc base address
+    if (pMac->gDriverType != eDRIVER_TYPE_MFG) {
     /** Set the Start Address of TxWQ */
-    if (halBmu_btqm_tx_wq_base_addr(pMac, pMac->hal.memMap.btqmTxQueue_offset) != eHAL_STATUS_SUCCESS)
+        if (halBmu_btqm_tx_wq_base_addr(pMac, pMac->hal.memMap.btqmTxQueue_offset) != eHAL_STATUS_SUCCESS) {
         return eHAL_STATUS_FAILURE;
+        }
+    }
 
     bmu_init_bd_pdu_pointer(pMac, &bdStart, &bdEnd, &pduStart, &pduEnd, &bdPduExchangeable);
     pMac->hal.halMac.bdPduExchangeable = bdPduExchangeable;
@@ -767,7 +786,9 @@ bmu_init_bd_pdu_threshold(
     }
     
     FRAME_ADU_BATCH_COMMAND ( (tANI_U32 *)values, (thrInfo[0].thrRegAddr | HAL_REG_RSVD_BIT | HAL_REG_HOST_FILLED), regCount ); 
+    if (pMac->gDriverType != eDRIVER_TYPE_MFG) {
     halRegBckup_Memory(pMac, values, (regCount * sizeof(tANI_U32)) + sizeof(tAduBatchCommandType)); 
+    }
     palFreeMemory(pMac->hHdd, values);
 }
 #endif /* ADU_MEM_OPT_ENABLED */

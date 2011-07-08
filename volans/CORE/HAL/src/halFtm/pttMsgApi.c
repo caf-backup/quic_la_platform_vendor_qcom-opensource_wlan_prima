@@ -848,6 +848,12 @@ void pttProcessMsg(tpAniSirGlobal pMac, tPttMsgbuffer *pttMsg)
             break;
         }
 
+        case PTT_MSG_GET_UNI_CAST_MAC_PKT_RX_RSSI:
+        {
+            pttGetUnicastMacPktRxRssi(pMac, &(msgBody->GetUnicastMacPktRxRssi.rssi));
+            break;
+        }
+
         case PTT_MSG_SET_RX_DISABLE_MODE:
         {
             retVal = pttSetRxDisableMode(pMac, msgBody->SetRxDisableMode.disabled);

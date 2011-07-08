@@ -311,6 +311,7 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
     u8 groupmacaddr[WNI_CFG_BSSID_LEN] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
     int status = 0;
     v_U32_t roamId= 0xFF;
+    VOS_STATUS vos_status;
 
     ENTER();
 
@@ -491,6 +492,20 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
             setKey.peerMac[4], setKey.peerMac[5], 
             setKey.keyDirection);
 
+    vos_status = wlan_hdd_check_ula_done(pAdapter);
+
+    if ( vos_status != VOS_STATUS_SUCCESS )
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+           "[%4d] wlan_hdd_check_ula_done returned ERROR status= %d",
+           __LINE__, vos_status );
+
+        pHddStaCtx->roam_info.roamingState = HDD_ROAM_STATE_NONE;
+            
+        return -EINVAL;
+            
+    }
+
     /* issue set key request to SME*/
     status = sme_RoamSetKey( pAdapter->hHal, pAdapter->sessionId, &setKey, 
                              &roamId );
@@ -526,10 +541,8 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
                 setKey.peerMac[2], setKey.peerMac[3], 
                 setKey.peerMac[4], setKey.peerMac[5], 
                 setKey.keyDirection);
-
         status = sme_RoamSetKey( pAdapter->hHal, pAdapter->sessionId, 
                                                     &setKey, &roamId );
-
         if ( 0 != status )
         {
             hddLog(VOS_TRACE_LEVEL_ERROR, 

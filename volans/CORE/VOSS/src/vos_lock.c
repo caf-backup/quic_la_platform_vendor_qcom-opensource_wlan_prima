@@ -327,3 +327,74 @@ VOS_STATUS vos_lock_destroy( vos_lock_t *lock )
          
       return VOS_STATUS_SUCCESS;
 }
+
+
+/*--------------------------------------------------------------------------
+  
+  \brief vos_spin_lock_init() - initializes a vOSS spin lock
+  
+  The vos_spin_lock_init() function initializes the specified spin lock. Upon 
+  successful initialization, the state of the lock becomes initialized 
+  and unlocked.
+
+  A lock must be initialized by calling vos_spin_lock_init() before it 
+  may be used in any other lock functions. 
+  
+  Attempting to initialize an already initialized lock results in 
+  a failure.
+ 
+  \param pLock - pointer to the opaque lock object to initialize
+  
+  \return VOS_STATUS_SUCCESS - spin lock was successfully initialized and 
+          is ready to be used.
+  --------------------------------------------------------------------------*/
+
+VOS_STATUS vos_spin_lock_init(spinlock_t *pLock)
+{
+   spin_lock_init(pLock);
+   
+   return VOS_STATUS_SUCCESS;
+}
+
+/*--------------------------------------------------------------------------
+  
+  \brief vos_spin_lock_acquire() - acquires a spin lock
+
+  A lock object is acquired by calling \a vos_spin_lock_acquire().  If the lock 
+  is already locked, the calling thread shall spin until the lock becomes 
+  available. This operation shall return with the lock object referenced by 
+  lock in the locked state with the calling thread as its owner. 
+  
+  \param pLock - the lock object to acquire
+  
+  \return VOS_STATUS_SUCCESS - the lock was successfully acquired by 
+          the calling thread.
+      
+  \sa
+  ------------------------------------------------------------------------*/
+VOS_STATUS vos_spin_lock_acquire(spinlock_t *pLock)
+{
+   spin_lock(pLock);
+   return VOS_STATUS_SUCCESS;
+}
+/*--------------------------------------------------------------------------
+  
+  \brief vos_spin_lock_release() - releases a lock
+
+  The \a vos_lock_release() function shall release the spin lock object 
+  referenced by 'lock'.  
+
+  If a thread attempts to release a lock that it unlocked or is not
+  initialized, an error is returned. 
+
+  \param pLock - the lock to release
+  
+  \return VOS_STATUS_SUCCESS - the lock was successfully released
+  
+  \sa
+  ------------------------------------------------------------------------*/
+VOS_STATUS vos_spin_lock_release(spinlock_t *pLock)
+{
+   spin_unlock(pLock);
+   return VOS_STATUS_SUCCESS;
+}

@@ -133,7 +133,7 @@ void csrLLLock( tDblLinkList *pList )
 
     if ( LIST_FLAG_OPEN == pList->Flag )
     {
-        palSpinLockTake(pList->hHdd, pList->Lock);
+        vos_spin_lock_acquire(pList->Lock);
     }
 }
 
@@ -149,7 +149,7 @@ void csrLLUnlock( tDblLinkList *pList )
 
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
-        palSpinLockGive(pList->hHdd, pList->Lock );
+        vos_spin_lock_release(pList->Lock);
     }
 }
 
@@ -231,7 +231,15 @@ eHalStatus csrLLOpen( tHddHandle hHdd, tDblLinkList *pList )
     if ( LIST_FLAG_OPEN != pList->Flag ) 
     {
         pList->Count = 0;
-        status = palSpinLockAlloc(hHdd, &pList->Lock);
+        pList->Lock = vos_mem_malloc(sizeof(pList->Lock));
+        if (pList->Lock == NULL)
+        {
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! Memory allocation for pList->Lock failed", __FUNCTION__);
+            return eHAL_STATUS_RESOURCES;
+        }
+
+        status = vos_spin_lock_init(pList->Lock);
+
         if(HAL_STATUS_SUCCESS(status))
         {
             csrListInit( &pList->ListHead );

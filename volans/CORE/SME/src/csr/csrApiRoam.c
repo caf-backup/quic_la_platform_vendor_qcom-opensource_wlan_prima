@@ -514,8 +514,8 @@ eHalStatus csrStop(tpAniSirGlobal pMac)
     pMac->scan.fCancelIdleScan = eANI_BOOLEAN_FALSE;
     pMac->scan.fRestartIdleScan = eANI_BOOLEAN_FALSE;
 
-    //No need to lock here. SME global should be held.
-    csrLLPurge( &pMac->roam.roamCmdPendingList, eANI_BOOLEAN_FALSE );
+    csrLLPurge( &pMac->roam.roamCmdPendingList, eANI_BOOLEAN_TRUE );
+    
 #ifdef FEATURE_WLAN_GEN6_ROAMING
     csrRoamHandoffRemoveAllFromList(pMac, &pMac->roam.handoffInfo.candidateList);
     csrRoamHandoffRemoveAllFromList(pMac, &pMac->roam.handoffInfo.neighborList);

@@ -108,6 +108,7 @@
 #include "wlan_qct_bal.h" 
 #include "wlan_qct_hal.h" 
 #include "wlan_qct_tl_hosupport.h"
+#include "wlan_qct_ssc.h"
 
 #include "tlDebug.h"
 
@@ -866,6 +867,47 @@ void WLANTL_AssocFailed(v_U8_t staId)
   WLANTL_StartForwarding(staId,0,0);
 }
   
+  /*===========================================================================
+
+  FUNCTION	  WLANTL_Finish_ULA
+
+  DESCRIPTION
+     This function is used by HDD to notify TL to finish Upper layer authentication
+     incase the last EAPOL packet is pending in the TL queue. 
+     To avoid the race condition between sme set key and the last EAPOL packet 
+     the HDD module calls this function just before calling the sme_RoamSetKey.
+		  
+   
+  DEPENDENCIES
+
+	TL must have been initialized before this gets called.
+  
+  PARAMETERS
+
+   callbackRoutine:   HDD Callback function.
+   callbackContext : HDD userdata context.
+	  
+  RETURN VALUE
+
+   VOS_STATUS_SUCCESS/VOS_STATUS_FAILURE
+   
+  SIDE EFFECTS
+   
+============================================================================*/
+
+VOS_STATUS WLANTL_Finish_ULA( void (*callbackRoutine) (void *callbackContext),
+                              void *callbackContext)
+{
+   vos_msg_t  vosMsg;   
+   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+
+   vosMsg.reserved = 0;
+   vosMsg.bodyval  = (v_U32_t)callbackContext;
+   vosMsg.bodyptr = callbackRoutine;
+   vosMsg.type    = WLANSSC_FINISH_ULA;
+   vosStatus = vos_tx_mq_serialize( VOS_MQ_ID_SSC, &vosMsg);
+   return vosStatus;
+}
 
 
 /*===========================================================================
@@ -7193,6 +7235,7 @@ WLANTL_TxProcessMsg
       vos_atomic_set_U8( &pTLCb->atlSTAClients[ucSTAId].ucPktPending, 1);
       vosStatus = WLANBAL_StartXmit(pvosGCtx);
       break;
+
   default:
     /*no processing for now*/
     break;

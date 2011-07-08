@@ -86,6 +86,13 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
     //pFwConfig->ucRegDomain = (tANI_U8)( halPhyGetRegDomain(hHal) );
 
     //pFwConfig->bClosedLoop = CLOSED_LOOP_CONTROL;
+ 
+    //mode of operation: production or FTM
+    if(pMac->gDriverType == eDRIVER_TYPE_MFG) {
+        pFwConfig->bMfgDriver = TRUE;
+    } else {
+        pFwConfig->bMfgDriver = FALSE;
+    }
 
     pFwConfig->bRfXoOn = TRUE;
 

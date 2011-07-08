@@ -279,5 +279,7 @@ void ccmCfgSetCallback(tHalHandle halHandle, tANI_S32 result);
 
 void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter);
 
+VOS_STATUS wlan_hdd_check_ula_done(hdd_adapter_t *pAdapter);
+
 #endif // __WEXT_IW_H__
 

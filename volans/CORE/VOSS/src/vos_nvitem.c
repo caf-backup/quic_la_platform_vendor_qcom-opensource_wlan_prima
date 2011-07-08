@@ -487,7 +487,7 @@ VOS_STATUS vos_nv_readTxAntennaCount( v_U8_t *pTxAntennaCount )
 {
    sNvFields fieldImage;
    VOS_STATUS status;
-   status = vos_nv_read( NV_FIELDS_IMAGE, &fieldImage, NULL,
+   status = vos_nv_read( VNV_FIELD_IMAGE, &fieldImage, NULL,
          sizeof(fieldImage) );
    if (VOS_STATUS_SUCCESS == status)
    {
@@ -505,7 +505,7 @@ VOS_STATUS vos_nv_readRxAntennaCount( v_U8_t *pRxAntennaCount )
 {
    sNvFields fieldImage;
    VOS_STATUS status;
-   status = vos_nv_read( NV_FIELDS_IMAGE, &fieldImage, NULL,
+   status = vos_nv_read( VNV_FIELD_IMAGE, &fieldImage, NULL,
          sizeof(fieldImage) );
    if (VOS_STATUS_SUCCESS == status)
    {
@@ -524,7 +524,7 @@ VOS_STATUS vos_nv_readMacAddress( v_MAC_ADDRESS_t pMacAddress )
 {
    sNvFields fieldImage;
    VOS_STATUS status;
-   status = vos_nv_read( NV_FIELDS_IMAGE, &fieldImage, NULL,
+   status = vos_nv_read( VNV_FIELD_IMAGE, &fieldImage, NULL,
          sizeof(fieldImage) );
    if (VOS_STATUS_SUCCESS == status)
    {

@@ -63,6 +63,8 @@ extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
 #define MAX_INNAV_RESPONSE_LEN 1024
 #endif
 
+#define HDD_FINISH_ULA_TIME_OUT    1000
+
 extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 
 
@@ -373,6 +375,43 @@ void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter)
    pWextState->roamProfile.pWSCReqIE = (tANI_U8 *)NULL;
    pWextState->roamProfile.nWSCReqIELength = 0;
    
+}
+
+void wlan_hdd_ula_done_cb(v_VOID_t *callbackContext) 
+{
+    hdd_adapter_t *pAdapter = (hdd_adapter_t*)callbackContext;
+    hdd_wext_state_t *pWextState= pAdapter->pWextState; 
+
+    complete(&pWextState->completion_var);  
+}
+
+VOS_STATUS wlan_hdd_check_ula_done(hdd_adapter_t *pAdapter)
+{
+    hdd_wext_state_t  *pWextState =  pAdapter->pWextState;
+    VOS_STATUS vos_status;
+
+    if (VOS_FALSE == pAdapter->conn_info.uIsAuthenticated)
+    {
+        INIT_COMPLETION(pWextState->completion_var);
+
+        /*To avoid race condition between the set key and the last EAPOL
+          packet, notify TL to finish upper layer authentication incase if the
+          last EAPOL packet pending in the TL queue.*/
+        vos_status = WLANTL_Finish_ULA(wlan_hdd_ula_done_cb,pAdapter);
+
+        if ( vos_status != VOS_STATUS_SUCCESS )
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "[%4d] WLANTL_Finish_ULA returned ERROR status= %d",
+                   __LINE__, vos_status );
+            return vos_status; 
+
+        }
+
+        wait_for_completion_timeout(&pWextState->completion_var,
+                                    msecs_to_jiffies(HDD_FINISH_ULA_TIME_OUT));
+    }
+    return VOS_STATUS_SUCCESS;
 }
 
 static int iw_set_commit(struct net_device *dev, struct iw_request_info *info,
@@ -1917,6 +1956,7 @@ static int iw_set_encodeext(struct net_device *dev,
     struct iw_point *encoding = &wrqu->encoding;
     tCsrRoamSetKey  setKey;   
     v_U32_t  roamId= 0xFF;
+    VOS_STATUS vos_status;
    
     ENTER();    
    
@@ -2038,17 +2078,28 @@ static int iw_set_encodeext(struct net_device *dev,
           ("%s:cipher_alg:%d key_len[%d] *pEncryptionType :%d \n"),__FUNCTION__,(int)ext->alg,(int)ext->key_len,setKey.encType);
    
     pAdapter->roam_info.roamingState = HDD_ROAM_STATE_SETTING_KEY;   
-   
-    
+
+    vos_status = wlan_hdd_check_ula_done(pAdapter);
+
+    if ( vos_status != VOS_STATUS_SUCCESS )
+    {
+       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                   "[%4d] wlan_hdd_check_ula_done returned ERROR status= %d",
+                   __LINE__, vos_status );
+
+       pAdapter->roam_info.roamingState = HDD_ROAM_STATE_NONE;
+    }    
+
     halStatus = sme_RoamSetKey( pAdapter->hHal,pAdapter->sessionId, &setKey, &roamId );
     
     if ( halStatus != eHAL_STATUS_SUCCESS )
     {
        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
-                   "[%4d] sme_RoamSetKey returned ERROR status= %d", __LINE__, halStatus );
+                   "[%4d] sme_RoamSetKey returned ERROR status= %d",
+                   __LINE__, halStatus );
 
        pAdapter->roam_info.roamingState = HDD_ROAM_STATE_NONE;
-    }   
+    }
    
    return halStatus;
 }

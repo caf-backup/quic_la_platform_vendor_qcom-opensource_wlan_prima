@@ -300,15 +300,8 @@ eHalStatus csrScanClose( tpAniSirGlobal pMac )
     csrLLScanPurgeResult(pMac, &pMac->scan.scanResultList);
     csrLLClose(&pMac->scan.scanResultList);
     csrLLClose(&pMac->scan.tempScanResults);
-    
-    csrLLLock(&pMac->scan.channelPowerInfoList24);
     csrPurgeChannelPower(pMac, &pMac->scan.channelPowerInfoList24);
-    csrLLUnlock(&pMac->scan.channelPowerInfoList24);
-
-    csrLLLock(&pMac->scan.channelPowerInfoList5G);
     csrPurgeChannelPower(pMac, &pMac->scan.channelPowerInfoList5G);
-    csrLLUnlock(&pMac->scan.channelPowerInfoList5G);
-    
     csrLLClose(&pMac->scan.channelPowerInfoList24);
     csrLLClose(&pMac->scan.channelPowerInfoList5G);
     csrScanDisable(pMac);
@@ -2752,6 +2745,7 @@ void csrPurgeChannelPower( tpAniSirGlobal pMac, tDblLinkList *pChannelList )
     tCsrChannelPowerInfo *pChannelSet;
     tListElem *pEntry;
 
+    csrLLLock(pChannelList); 
     // Remove the channel sets from the learned list and put them in the free list
     while( ( pEntry = csrLLRemoveHead( pChannelList, LL_ACCESS_NOLOCK ) ) != NULL)
     {
@@ -2761,7 +2755,7 @@ void csrPurgeChannelPower( tpAniSirGlobal pMac, tDblLinkList *pChannelList )
             palFreeMemory( pMac->hHdd, pChannelSet );
         }
     }
-
+    csrLLUnlock(pChannelList);
     return;
 }
 
@@ -2807,19 +2801,15 @@ void csrSaveToChannelPower2G_5G( tpAniSirGlobal pMac, tANI_U32 tableSize, tSirMa
             {
                 if( !f2GListPurged )
                 {
-                    csrLLLock(&pMac->scan.channelPowerInfoList24);
                     // purge previous results if found new
                     csrPurgeChannelPower( pMac, &pMac->scan.channelPowerInfoList24 );
                     f2GListPurged = TRUE;
-                    csrLLUnlock(&pMac->scan.channelPowerInfoList24);
                 }
 
                 if(CSR_IS_OPERATING_BG_BAND(pMac))
                 {
-                    csrLLLock(&pMac->scan.channelPowerInfoList24);
                     // add to the list of 2.4 GHz channel sets
-                    csrLLInsertTail( &pMac->scan.channelPowerInfoList24, &pChannelSet->link, LL_ACCESS_NOLOCK );
-                    csrLLUnlock(&pMac->scan.channelPowerInfoList24);
+                    csrLLInsertTail( &pMac->scan.channelPowerInfoList24, &pChannelSet->link, LL_ACCESS_LOCK );
                 }
                 else {
                     smsLog( pMac, LOGW, FL("Adding 11B/G channels in 11A mode -- First Channel is %d"), 
@@ -2832,19 +2822,15 @@ void csrSaveToChannelPower2G_5G( tpAniSirGlobal pMac, tANI_U32 tableSize, tSirMa
                 // 5GHz info found
                 if( !f5GListPurged )
                 {
-                    csrLLLock(&pMac->scan.channelPowerInfoList5G);
                     // purge previous results if found new
                     csrPurgeChannelPower( pMac, &pMac->scan.channelPowerInfoList5G );
                     f5GListPurged = TRUE;
-                    csrLLUnlock(&pMac->scan.channelPowerInfoList5G);
                 }
 
                 if(CSR_IS_OPERATING_A_BAND(pMac))
                 {
-                    csrLLLock(&pMac->scan.channelPowerInfoList5G);
                     // add to the list of 5GHz channel sets
-                    csrLLInsertTail( &pMac->scan.channelPowerInfoList5G, &pChannelSet->link, LL_ACCESS_NOLOCK );
-                    csrLLUnlock(&pMac->scan.channelPowerInfoList5G);
+                    csrLLInsertTail( &pMac->scan.channelPowerInfoList5G, &pChannelSet->link, LL_ACCESS_LOCK );
                 }
                 else {
                     smsLog( pMac, LOGW, FL("Adding 11A channels in B/G mode -- First Channel is %d"), 
@@ -2865,14 +2851,8 @@ void csrSaveToChannelPower2G_5G( tpAniSirGlobal pMac, tANI_U32 tableSize, tSirMa
 void csrApplyPower2Current( tpAniSirGlobal pMac )
 {
     smsLog( pMac, LOG3, FL(" Updating Cfg with power settings\n"));
-    
-    csrLLLock(&pMac->scan.channelPowerInfoList24);
     csrSaveTxPowerToCfg( pMac, &pMac->scan.channelPowerInfoList24, WNI_CFG_MAX_TX_POWER_2_4 );
-    csrLLUnlock(&pMac->scan.channelPowerInfoList24);
-   
-    csrLLLock(&pMac->scan.channelPowerInfoList5G);
     csrSaveTxPowerToCfg( pMac, &pMac->scan.channelPowerInfoList5G, WNI_CFG_MAX_TX_POWER_5 );
-    csrLLUnlock(&pMac->scan.channelPowerInfoList5G);
 }
 
 
@@ -3017,7 +2997,7 @@ void csrGetChannelPowerInfo( tpAniSirGlobal pMac, tDblLinkList *pList,
 	tCsrChannelPowerInfo *pChannelSet;
 
     //Get 2.4Ghz first
-    pEntry = csrLLPeekHead( pList, LL_ACCESS_NOLOCK );
+    pEntry = csrLLPeekHead( pList, LL_ACCESS_LOCK );
     while( pEntry && (chnIdx < *pNumChn) )
     {
         pChannelSet = GET_BASE_ADDR( pEntry, tCsrChannelPowerInfo, link );
@@ -3038,7 +3018,7 @@ void csrGetChannelPowerInfo( tpAniSirGlobal pMac, tDblLinkList *pList,
             }
         }
 
-        pEntry = csrLLNext( pList, pEntry, LL_ACCESS_NOLOCK );
+        pEntry = csrLLNext( pList, pEntry, LL_ACCESS_LOCK );
     }
     *pNumChn = chnIdx;
 
@@ -3094,19 +3074,12 @@ void csrApplyCountryInformation( tpAniSirGlobal pMac, tANI_BOOLEAN fForce )
                         {
                             palCopyMemory(pMac->hHdd, p11dLog->Channels, pMac->scan.channels11d.channelList,
                                             p11dLog->numChannel);
-                            csrLLLock(&pMac->scan.channelPowerInfoList24);
                             csrGetChannelPowerInfo(pMac, &pMac->scan.channelPowerInfoList24,
                                                     &nChnInfo, chnPwrInfo);
-                            csrLLUnlock(&pMac->scan.channelPowerInfoList24);
-                            
                             nTmp = nChnInfo;
                             nChnInfo = WNI_CFG_VALID_CHANNEL_LIST_LEN - nTmp;
-
-                            csrLLLock(&pMac->scan.channelPowerInfoList5G);
                             csrGetChannelPowerInfo(pMac, &pMac->scan.channelPowerInfoList5G,
                                                     &nChnInfo, &chnPwrInfo[nTmp]);
-                            csrLLUnlock(&pMac->scan.channelPowerInfoList5G);
-                            
                             for(nTmp = 0; nTmp < p11dLog->numChannel; nTmp++)
                             {
                                 for(nChnInfo = 0; nChnInfo < WNI_CFG_VALID_CHANNEL_LIST_LEN; nChnInfo++)
@@ -3256,21 +3229,16 @@ void csrSetOppositeBandChannelInfo( tpAniSirGlobal pMac )
         // if we found channel info on the 5.0 band and...
         if ( CSR_IS_CHANNEL_5GHZ( pMac->scan.channelOf11dInfo ) )
         {
-		    csrLLLock(&pMac->scan.channelPowerInfoList24);
             // and the 2.4 band is empty, then populate the 2.4 channel info
             if ( !csrLLIsListEmpty( &pMac->scan.channelPowerInfoList24, LL_ACCESS_LOCK ) ) break;
             fPopulate5GBand = FALSE;
-			csrLLUnlock(&pMac->scan.channelPowerInfoList24);
-			
         }
         else
         {
             // else, we found channel info in the 2.4 GHz band.  If the 5.0 band is empty
             // set the 5.0 band info from the 2.4 country code.
-			csrLLLock(&pMac->scan.channelPowerInfoList5G);
             if ( !csrLLIsListEmpty( &pMac->scan.channelPowerInfoList5G, LL_ACCESS_LOCK ) ) break;
             fPopulate5GBand = TRUE;
-			csrLLUnlock(&pMac->scan.channelPowerInfoList5G);
         }
         csrSaveChannelPowerForBand( pMac, fPopulate5GBand );
 
@@ -3496,19 +3464,14 @@ tANI_BOOLEAN csrLearnCountryInformation( tpAniSirGlobal pMac, tSirBssDescription
         csrSetOppositeBandChannelInfo( pMac );
         bMaxNumChn = WNI_CFG_VALID_CHANNEL_LIST_LEN;
         // construct 2GHz channel list first
-		
-		csrLLLock(&pMac->scan.channelPowerInfoList24);
         csrConstructCurrentValidChannelList( pMac, &pMac->scan.channelPowerInfoList24, pMac->scan.channels11d.channelList, 
                                                 bMaxNumChn, &Num2GChannels );
-		csrLLUnlock(&pMac->scan.channelPowerInfoList24);
         // construct 5GHz channel list now
         if(bMaxNumChn > Num2GChannels)
         {
-		    csrLLLock(&pMac->scan.channelPowerInfoList5G);
             csrConstructCurrentValidChannelList( pMac, &pMac->scan.channelPowerInfoList5G, pMac->scan.channels11d.channelList + Num2GChannels,
                                                  bMaxNumChn - Num2GChannels,
                                                  &pMac->scan.channels11d.numChannels );
-			csrLLUnlock(&pMac->scan.channelPowerInfoList5G);
         }
 
         pMac->scan.channels11d.numChannels += Num2GChannels;
@@ -7927,7 +7890,7 @@ void csrSaveTxPowerToCfg( tpAniSirGlobal pMac, tDblLinkList *pList, tANI_U32 cfg
         palZeroMemory(pMac->hHdd, pBuf, dataLen);
         pChannelPowerSet = (tSirMacChanInfo *)(pBuf);
 
-        pEntry = csrLLPeekHead( pList, LL_ACCESS_NOLOCK );
+        pEntry = csrLLPeekHead( pList, LL_ACCESS_LOCK );
         // write the tuples (startChan, numChan, txPower) for each channel found in the channel power list.
         while( pEntry )
         {
@@ -7969,7 +7932,7 @@ void csrSaveTxPowerToCfg( tpAniSirGlobal pMac, tDblLinkList *pList, tANI_U32 cfg
                 pChannelPowerSet++;
             }
 
-            pEntry = csrLLNext( pList, pEntry, LL_ACCESS_NOLOCK );
+            pEntry = csrLLNext( pList, pEntry, LL_ACCESS_LOCK );
         }
 
         if(cbLen)

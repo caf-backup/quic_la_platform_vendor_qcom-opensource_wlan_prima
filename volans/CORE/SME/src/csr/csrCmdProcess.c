@@ -111,12 +111,14 @@ void csrFullPowerCallback(void *pv, eHalStatus status)
     tSmeCmd *pCommand;
 
     (void)status;
-    //No need to lock the list because sme->lock is held.
+    
+    csrLLLock(&pMac->roam.roamCmdPendingList);
     while( NULL != ( pEntry = csrLLRemoveHead( &pMac->roam.roamCmdPendingList, eANI_BOOLEAN_FALSE ) ) )
     {
         pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
         smePushCommand( pMac, pCommand, eANI_BOOLEAN_FALSE );
     }
+    csrLLUnlock(&pMac->roam.roamCmdPendingList);
 }
 
 

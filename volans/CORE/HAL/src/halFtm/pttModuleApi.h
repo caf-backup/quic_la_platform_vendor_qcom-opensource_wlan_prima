@@ -93,6 +93,7 @@ eQWPttStatus pttUpdateTpcSplitLut(tpAniSirGlobal pMac, ePhyTxPwrRange pwrRange, 
 eQWPttStatus pttDisableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcDisable gains);
 eQWPttStatus pttEnableAgcTables(tpAniSirGlobal pMac, sRxChainsAgcEnable enables);
 void pttGetRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi);
+void pttGetUnicastMacPktRxRssi(tpAniSirGlobal pMac, sRxChainsRssi *rssi);
 void pttCollectAdcRssiStats(tpAniSirGlobal pMac);
 
 

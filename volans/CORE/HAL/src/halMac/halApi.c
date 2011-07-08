@@ -445,6 +445,7 @@ static inline void halMemoryMap_ShowInfo(tpAniSirGlobal pMac, QWlanfw_MemMapInfo
     HALLOGW( halLog(pMac, LOGW, FL("hwCountersAddr = 0x%x\n"), sirSwapU32(pMemMapInfo->hwCountersAddr)));
     HALLOGW( halLog(pMac, LOGW, FL("sysCfgAddr = 0x%x\n"), sirSwapU32(pMemMapInfo->sysCfgAddr)));
     HALLOGW( halLog(pMac, LOGW, FL("fwPSCountersAddr = 0x%x\n"), sirSwapU32(pMemMapInfo->fwPSCountersAddr)));
+    HALLOGW( halLog(pMac, LOGW, FL("phyFtmInfoAddr = 0x%x\n"), sirSwapU32(pMemMapInfo->phyFtmInfoAddr)));
     HALLOGW( halLog(pMac, LOGW, FL("raTableAddr = 0x%x\n"), sirSwapU32(pMemMapInfo->raTableAddr)));
     HALLOGW( halLog(pMac, LOGW, FL("reserved1 = 0x%x\n"), sirSwapU32(pMemMapInfo->reserved1)));
     HALLOGW( halLog(pMac, LOGW, FL("reserved2 = 0x%x\n"), sirSwapU32(pMemMapInfo->reserved2)));
@@ -483,6 +484,27 @@ eHalStatus halMemoryMap_Start(tHalHandle hHal, void *arg)
     pMemMapInfo = halMemoryMap_ExtractFromFw((tANI_U8 *)pStartParams->FW.pImage);
 
     halMemoryMap_ShowInfo(pMac, pMemMapInfo);
+
+    // In FTM mode, no HW desrciptors are required. Only packet memory needs 
+    // to be mapped
+    if (pMac->gDriverType == eDRIVER_TYPE_MFG) {
+        if (fwSize > HAL_PHY_GRAB_RAM_CAPTURE_START_ADDR) {
+            HALLOGE(halLog (pMac, LOGE, 
+                        FL("ERROR: FW image size 0x%0x exceeds available memory 0x%x in FTM mode !!!"),
+                        fwSize, HAL_PHY_GRAB_RAM_CAPTURE_START_ADDR));
+            return eHAL_STATUS_FAILURE;
+        }
+
+        pMac->hal.memMap.packetMemory_offset = ((fwSize)/HAL_BD_SIZE + 1) * HAL_BD_SIZE; //((currentOffset)/HAL_BD_SIZE + 1) * HAL_BD_SIZE;
+        pMac->hal.memMap.packetMemory_endAddr = HAL_PHY_GRAB_RAM_CAPTURE_START_ADDR; //BMU_INTERNAL_MEMORY_SIZE_208K; //
+
+        HALLOGE(halLog (pMac, LOGE, 
+                FL("FTM mode: FWsize = 0x%0x, PacketMem-StarAddr = 0x%x, PacketMem-EndAddr = 0x%x, FTMInfoAddr = 0x%x\n"),
+                (unsigned int)fwSize, (unsigned int)pMac->hal.memMap.packetMemory_offset, 
+                (unsigned int)pMac->hal.memMap.packetMemory_endAddr, (unsigned int)QWLANFW_MEM_PHY_FTM_INFO_ADDR_OFFSET));
+
+        return eHAL_STATUS_SUCCESS;
+    }
 
 #if defined(DAFCA_TRACE_DEBUG_ENABLE) && defined(WLAN_HAL_VOLANS)
     pMac->hal.memMap.descStartAddr = BMU_INTERNAL_MEMORY_SIZE_208K - MIN_DAFCA_MEMORY;
