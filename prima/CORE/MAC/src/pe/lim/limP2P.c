@@ -32,6 +32,7 @@
 
 #ifdef WLAN_FEATURE_P2P
 #include "limUtils.h"
+#include "limSessionUtils.h"
 #include "wlan_qct_wda.h"
 
 void limRemainOnChnlSuspendLinkHdlr(tpAniSirGlobal pMac, eHalStatus status,
@@ -268,9 +269,8 @@ error1:
 void limProcessRemainOnChnTimeout(tpAniSirGlobal pMac)
 {
     tpPESession psessionEntry;
-    tANI_U8 prevChannel = 6;
+    tANI_U8 prevChannel = peGetCurrentChannel(pMac);
     tSirMacAddr             nullBssid = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    /* get the session */
 
     limDeactivateAndChangeTimer(pMac, eLIM_REMAIN_CHN_TIMER);
 
@@ -288,6 +288,7 @@ void limProcessRemainOnChnTimeout(tpAniSirGlobal pMac)
     }
     else
     {
+        /* get the session */
         if((psessionEntry = peFindSessionBySessionId(pMac,
             pMac->lim.limTimers.gLimRemainOnChannelTimer.sessionId))== NULL)
         {
@@ -296,10 +297,20 @@ void limProcessRemainOnChnTimeout(tpAniSirGlobal pMac)
             goto error;
         }
 
-        /* Switch back to the operating channel */
+        /* Switch back to the operating channel. In case there is no valid 
+         * channel, then remian in the same channel*/
         // prevChannel = <get the previous channel number 
-        limChangeChannelWithCallback(pMac, prevChannel, limExitRemainOnChannel,
-                                     NULL, psessionEntry);
+        if(prevChannel != HAL_INVALID_CHANNEL_ID)
+        {
+            limChangeChannelWithCallback(pMac, prevChannel, 
+                                          limExitRemainOnChannel,
+                                          NULL, psessionEntry);
+        }
+        else
+        {
+            limExitRemainOnChannel(pMac, eHAL_STATUS_SUCCESS, NULL,
+                                   psessionEntry);
+        }
         return;
 error:
         limRemainOnChnRsp(pMac,eHAL_STATUS_FAILURE, NULL);
@@ -418,8 +429,8 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 {
     tSirMbMsgP2p *pMbMsg = (tSirMbMsgP2p *)pMsg->bodyptr;
     tANI_U32            nBytes;
-    tANI_U8            *pFrame;
-    void               *pPacket;
+    tANI_U8             *pFrame;
+    void                *pPacket;
     eHalStatus          halstatus;
     tpSirMacMgmtHdr     pHdr;
     tANI_U8             txFlag = 0;
@@ -577,7 +588,7 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     }
 
     pMac->lim.actionFrameSessionId = pMbMsg->sessionId;
-
+    
     return ;
 }
 

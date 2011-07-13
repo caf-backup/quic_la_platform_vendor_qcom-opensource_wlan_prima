@@ -633,8 +633,14 @@ wpt_status wpalDeviceClose
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
-   free_irq(gpEnv->rx_irq, gpEnv);
-   free_irq(gpEnv->tx_irq, gpEnv);
+   if (gpEnv->rx_registered)
+   {
+      free_irq(gpEnv->rx_irq, gpEnv);
+   }
+   if (gpEnv->tx_registered)
+   {
+      free_irq(gpEnv->tx_irq, gpEnv);
+   }
    iounmap(gpEnv->mmio);
    wpalMemoryFree(gpEnv);
    gpEnv = NULL;

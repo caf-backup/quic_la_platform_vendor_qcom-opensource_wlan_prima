@@ -54,6 +54,9 @@
 #include <net/bluetooth/bluetooth.h>
 #include <net/bluetooth/hci_core.h>
 
+#ifdef WLAN_SOFTAP_FEATURE
+#include <wlan_hdd_misc.h>
+#endif
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -630,25 +633,25 @@ static VOS_STATUS BslFlushTxQueues
             spin_lock_bh(&pPhyCtx->ACLTxQueue[i].lock);
             while (true)
             {
-               VosStatus = hdd_list_remove_front(&pPhyCtx->ACLTxQueue[i], &pLink );
-               if(VOS_STATUS_E_EMPTY != VosStatus)
-               {
-                   pNode = (BslTxListNodeType *)pLink;
-                   pVosPkt = pNode->pVosPkt;
-                   if (pVosPkt != NULL)
-                   {
-                       //Return the VOS packet resources.
-                       VosStatus = vos_pkt_return_packet( pVosPkt );
-                       if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
-                       {
-                           VOS_ASSERT(0);
-                       }
-                   }
-                   continue;
-               }
-               break;
-           }
-           spin_unlock_bh(&pPhyCtx->ACLTxQueue[i].lock);
+                VosStatus = hdd_list_remove_front(&pPhyCtx->ACLTxQueue[i], &pLink );
+                if(VOS_STATUS_E_EMPTY != VosStatus)
+                {
+                    pNode = (BslTxListNodeType *)pLink;
+                    pVosPkt = pNode->pVosPkt;
+                    if (pVosPkt != NULL)
+                    {
+                        //Return the VOS packet resources.
+                        VosStatus = vos_pkt_return_packet( pVosPkt );
+                        if ( !VOS_IS_STATUS_SUCCESS( VosStatus ) )
+                        {
+                            VOS_ASSERT(0);
+                        }
+                    }
+                    continue;
+                }
+                break;
+            }
+            spin_unlock_bh(&pPhyCtx->ACLTxQueue[i].lock);
         }
     }
     return(VOS_STATUS_SUCCESS);
@@ -3499,9 +3502,13 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
 
     //Get the HDD context.
     pHddCtx = (hdd_context_t *)vos_get_context( VOS_MODULE_ID_HDD, pvosGCtx );
+#ifdef WLAN_SOFTAP_FEATURE
+    if (VOS_STA_SAP_MODE == hdd_get_conparam())
+        pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
+    else
+#endif
+        pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
 
-    //Get the Adapter context.
-    pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_INFRA_STATION);
 
     if ( NULL == pAdapter )
     {

@@ -1167,7 +1167,7 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
          (frmType),\
          (txDir),\
          (tid),\
-         (pCBackFnTxComp),\
+         ((pWDATxRxCompFunc) (pCBackFnTxComp)),\
          (pData),\
          (txFlag)) )
 #endif

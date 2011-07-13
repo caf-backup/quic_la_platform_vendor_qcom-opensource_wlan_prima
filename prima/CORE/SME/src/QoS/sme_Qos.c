@@ -1856,6 +1856,7 @@ sme_QosStatusType sme_QosInternalSetupReq(tpAniSirGlobal pMac,
                // this AC that the aggregate TSPEC may have changed
                if(!pentry->hoRenewal)
                {
+                  vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
                   search_key.key.ac_type = ac;
                   search_key.index = SME_QOS_SEARCH_KEY_INDEX_2;
                   search_key.sessionId = sessionId;
@@ -2002,6 +2003,7 @@ sme_QosStatusType sme_QosInternalModifyReq(tpAniSirGlobal pMac,
              __FUNCTION__, __LINE__,
              QosFlowID);
 
+   vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
    //set the key type & the key to be searched in the Flow List
    search_key.key.QosFlowID = QosFlowID;
    search_key.index = SME_QOS_SEARCH_KEY_INDEX_1;
@@ -2202,6 +2204,7 @@ sme_QosStatusType sme_QosInternalModifyReq(tpAniSirGlobal pMac,
          {
             new_state = SME_QOS_QOS_ON;
 
+            vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
             //delete the original entry in FLOW list which got modified
             search_key.key.ac_type = ac;
             search_key.index = SME_QOS_SEARCH_KEY_INDEX_2;
@@ -2220,6 +2223,7 @@ sme_QosStatusType sme_QosInternalModifyReq(tpAniSirGlobal pMac,
                if(SME_QOS_STATUS_SETUP_SUCCESS_APSD_SET_ALREADY == status)
                {
                   status = SME_QOS_STATUS_MODIFY_SETUP_SUCCESS_APSD_SET_ALREADY;
+                  vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
                   search_key.key.ac_type = ac;
                   search_key.index = SME_QOS_SEARCH_KEY_INDEX_2;
                   search_key.sessionId = sessionId;
@@ -2393,6 +2397,7 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
              __FUNCTION__, __LINE__,
              QosFlowID);
 
+   vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
    //set the key type & the key to be searched in the Flow List
    search_key.key.QosFlowID = QosFlowID;
    search_key.index = SME_QOS_SEARCH_KEY_INDEX_1;
@@ -2521,6 +2526,7 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
           * to AP. */
          if(flow_info->QoSInfo.ts_info.direction == SME_QOS_WMM_TS_DIR_BOTH)
          {
+           vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
            //set the key type & the key to be searched in the Flow List
            search_key.key.ac_type = ac;
            search_key.index = SME_QOS_SEARCH_KEY_INDEX_4;
@@ -2551,6 +2557,7 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
              {
                // Need to split the uni-directional flows into SME_QOS_TSPEC_INDEX_0 and SME_QOS_TSPEC_INDEX_1
 
+               vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
                // Mark all downstream flows as using tspec index 1
                search_key.key.ac_type = ac;
                search_key.index = SME_QOS_SEARCH_KEY_INDEX_4;
@@ -2651,6 +2658,7 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
 
                if(SME_QOS_STATUS_SETUP_SUCCESS_APSD_SET_ALREADY == status)
                {
+                  vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
                   search_key.key.ac_type = ac;
                   search_key.index = SME_QOS_SEARCH_KEY_INDEX_2;
                   search_key.sessionId = sessionId;
@@ -4104,6 +4112,7 @@ eHalStatus sme_QosProcessDelTsInd(tpAniSirGlobal pMac, void *pMsgBuf)
    pSession = &sme_QosCb.sessionInfo[sessionId];
    pACInfo = &pSession->ac_info[ac];
 
+   vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
    //set the key type & the key to be searched in the Flow List
    search_key.key.ac_type = ac;
    search_key.index = SME_QOS_SEARCH_KEY_INDEX_2;
@@ -4456,6 +4465,7 @@ eHalStatus sme_QosProcessReassocSuccessEv(tpAniSirGlobal pMac, v_U8_t sessionId,
                // notify HDD with new Service Interval
                pACInfo->curr_QoSInfo[SME_QOS_TSPEC_INDEX_0] = 
                   pACInfo->requested_QoSInfo[SME_QOS_TSPEC_INDEX_0];
+               vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
                //set the key type & the key to be searched in the Flow List
                search_key.key.ac_type = ac;
                search_key.index = SME_QOS_SEARCH_KEY_INDEX_2;
@@ -4463,6 +4473,7 @@ eHalStatus sme_QosProcessReassocSuccessEv(tpAniSirGlobal pMac, v_U8_t sessionId,
 
                //notify PMC that reassoc is done for APSD on certain AC??
 
+               vos_mem_zero(&search_key1, sizeof(sme_QosSearchInfo));
                //set the hoRenewal field in control block if needed
                search_key1.index = SME_QOS_SEARCH_KEY_INDEX_3;
                search_key1.key.reason = SME_QOS_REASON_SETUP;
@@ -5100,6 +5111,7 @@ eHalStatus sme_QosProcessAddTsFailureRsp(tpAniSirGlobal pMac,
       return eHAL_STATUS_FAILURE;
    }
 
+   vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
    //set the key type & the key to be searched in the Flow List
    search_key.key.ac_type = ac;
    search_key.index = SME_QOS_SEARCH_KEY_INDEX_2;
@@ -5321,6 +5333,7 @@ eHalStatus sme_QosProcessAddTsSuccessRsp(tpAniSirGlobal pMac,
    if((pACInfo->curr_QoSInfo[pACInfo->tspec_pending - 1].ts_info.direction == SME_QOS_WMM_TS_DIR_BOTH) &&
       (pACInfo->num_flows[SME_QOS_TSPEC_INDEX_1] > 0))
    {
+     vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
      /* update tspec_mask for all the flows having SME_QOS_TSPEC_MASK_BIT_2_SET to SME_QOS_TSPEC_MASK_BIT_1_SET */
      search_key.key.ac_type = ac;
      search_key.index = SME_QOS_SEARCH_KEY_INDEX_5;
@@ -5329,6 +5342,7 @@ eHalStatus sme_QosProcessAddTsSuccessRsp(tpAniSirGlobal pMac,
      sme_QosUpdateTspecMask(sessionId, search_key, SME_QOS_TSPEC_MASK_BIT_1_SET);
    }
 
+   vos_mem_zero(&search_key1, sizeof(sme_QosSearchInfo));
    //set the horenewal field in control block if needed
    search_key1.index = SME_QOS_SEARCH_KEY_INDEX_3;
    search_key1.key.reason = SME_QOS_REASON_SETUP;
@@ -5346,7 +5360,7 @@ eHalStatus sme_QosProcessAddTsSuccessRsp(tpAniSirGlobal pMac,
          }
       }
    }
-   
+   vos_mem_zero(&search_key, sizeof(sme_QosSearchInfo));
    //set the key type & the key to be searched in the Flow List
    search_key.key.ac_type = ac;
    search_key.index = SME_QOS_SEARCH_KEY_INDEX_2;

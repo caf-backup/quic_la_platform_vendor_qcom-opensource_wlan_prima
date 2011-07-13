@@ -389,6 +389,13 @@ sapSignalHDDevent
                        __FUNCTION__, "eSAP_STOP_BSS_EVENT");
             sapApAppEvent.sapHddEventCode = eSAP_STOP_BSS_EVENT;
             sapApAppEvent.sapevt.sapStopBssCompleteEvent.status = (eSapStatus )context;
+            /* Close the SME session*/
+            if (eSAP_TRUE == sapContext->isSapSessionOpen) 
+            {
+                sme_CloseSession(VOS_GET_HAL_CB(sapContext->pvosGCtx),
+                                 sapContext->sessionId);
+                sapContext->isSapSessionOpen = eSAP_FALSE;
+            }
             break;
 
        case eSAP_STA_ASSOC_EVENT:
@@ -679,6 +686,13 @@ sapFsm
                   sapContext->sapsMachine = eSAP_DISCONNECTED;
                   vosStatus = sapSignalHDDevent( sapContext, NULL, eSAP_START_BSS_EVENT, (v_PVOID_t)eSAP_STATUS_FAILURE);
                   vosStatus = sapGotoDisconnected(sapContext);
+                  /* Close the SME session*/
+                  if (eSAP_TRUE == sapContext->isSapSessionOpen) 
+                  {
+                      sme_CloseSession(VOS_GET_HAL_CB(sapContext->pvosGCtx),
+                                       sapContext->sessionId);
+                      sapContext->isSapSessionOpen = eSAP_FALSE;
+                  }
                }
                else 
                {

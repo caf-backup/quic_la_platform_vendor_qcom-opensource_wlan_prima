@@ -161,7 +161,6 @@ static void smeReleaseCmdList(tpAniSirGlobal pMac, tDblLinkList *pList)
     }
 }
 
-
 static void purgeSmeCmdList(tpAniSirGlobal pMac)
 {
     //release any out standing commands back to free command list
@@ -169,6 +168,22 @@ static void purgeSmeCmdList(tpAniSirGlobal pMac)
     smeReleaseCmdList(pMac, &pMac->sme.smeCmdActiveList);
 }
 
+void purgeSmeSessionCmdList(tpAniSirGlobal pMac, tANI_U32 sessionId)
+{
+    //release any out standing commands back to free command list
+    tListElem *pEntry;
+    tSmeCmd *pCommand;
+    tDblLinkList *pList = &pMac->sme.smeCmdPendingList;
+
+    while((pEntry = csrLLRemoveHead(pList, LL_ACCESS_LOCK)) != NULL)
+    {
+        pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
+        if(pCommand->sessionId == sessionId)
+        {
+            smeAbortCommand(pMac, pCommand, eANI_BOOLEAN_TRUE);
+        }
+    }
+}
 
 static eHalStatus freeSmeCmdList(tpAniSirGlobal pMac)
 {

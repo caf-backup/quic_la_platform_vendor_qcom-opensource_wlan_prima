@@ -248,6 +248,7 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"DYNAMIC_PS_POLL_VALUE",
 	(unsigned char *)"PS_NULLDATA_AP_RESP_TIMEOUT",
 	(unsigned char *)"ASSOC_STA_LIMIT",
+	(unsigned char *)"BTC_A2DP_DHCP_BT_SUB_INTERVALS",
 };
 
 

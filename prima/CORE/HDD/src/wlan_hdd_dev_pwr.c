@@ -1,3 +1,21 @@
+/**========================================================================= 
+
+                       EDIT HISTORY FOR FILE 
+   
+   
+  This section contains comments describing changes made to the module. 
+  Notice that changes are listed in reverse chronological order. 
+   
+   
+  $Header:$   $DateTime: $ $Author: $ 
+   
+   
+  when        who    what, where, why 
+  --------    ---    --------------------------------------------------------
+  03/29/11    tbh    Created module. 
+
+  ==========================================================================*/
+
 /*----------------------------------------------------------------------------
  * Include Files
  * -------------------------------------------------------------------------*/
@@ -50,9 +68,9 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
    pHddCtx->isWlanSuspended = TRUE;
 
    /*
-     Suspending MC Thread and Tx Thread as the SDIO driver is going to Suspend.     
+     Suspending MC Thread, Rx Thread and Tx Thread as the platform driver is going to Suspend.     
    */
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Suspending Mc and Tx Threads",__func__);
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Suspending Mc, Rx and Tx Threads",__func__);
 
    init_completion(&pHddCtx->tx_sus_event_var);
 
@@ -66,30 +84,55 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
 
    if(!rc)
    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s: Not able to suspend MC thread timeout happened", __func__);
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s: Not able to suspend TX thread timeout happened", __func__);
+      clear_bit(TX_SUSPEND_EVENT_MASK, &vosSchedContext->txEventFlag);
 
-       clear_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
+      return -1;
+   }
+
+   init_completion(&pHddCtx->rx_sus_event_var);
+
+   /* Indicate Rx Thread to Suspend */
+   set_bit(RX_SUSPEND_EVENT_MASK, &vosSchedContext->rxEventFlag);
+
+   wake_up_interruptible(&vosSchedContext->rxWaitQueue);
+
+   /* Wait for Suspend Confirmation from Rx Thread */
+   rc = wait_for_completion_interruptible_timeout(&pHddCtx->rx_sus_event_var, msecs_to_jiffies(200));
+
+   if(!rc)
+   {
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s: Not able to suspend Rx thread timeout happened", __func__);
+
+       clear_bit(RX_SUSPEND_EVENT_MASK, &vosSchedContext->rxEventFlag);
+
+       /* Indicate Tx Thread to Resume */
+       complete(&vosSchedContext->ResumeTxEvent);
 
        return -1;
    }
 
    init_completion(&pHddCtx->mc_sus_event_var);
 
-   /* Indicate Tx Thread to Suspend */
+   /* Indicate MC Thread to Suspend */
    set_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
 
    wake_up_interruptible(&vosSchedContext->mcWaitQueue);
 
-   /* Wait for Suspend Confirmation from Tx Thread */
-   rc = wait_for_completion_interruptible_timeout(&pHddCtx->tx_sus_event_var, msecs_to_jiffies(200));
+   /* Wait for Suspend Confirmation from MC Thread */
+   rc = wait_for_completion_interruptible_timeout(&pHddCtx->mc_sus_event_var, msecs_to_jiffies(200));
 
    if(!rc)
    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s: Not able to suspend TX thread timeout happened", __func__);
-       clear_bit(TX_SUSPEND_EVENT_MASK, &vosSchedContext->txEventFlag);
+       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s: Not able to suspend MC thread timeout happened", __func__);
 
-       /* Indicate Mc Thread to Resume */
-       complete(&vosSchedContext->ResumeMcEvent);
+       clear_bit(MC_SUSPEND_EVENT_MASK, &vosSchedContext->mcEventFlag);
+
+       /* Indicate Rx Thread to Resume */
+       complete(&vosSchedContext->ResumeRxEvent);
+
+       /* Indicate Tx Thread to Resume */
+       complete(&vosSchedContext->ResumeTxEvent);
 
        return -1;
    }
@@ -123,12 +166,15 @@ static void wlan_resume(hdd_adapter_t* pAdapter)
    }
 
    /*
-     Resuming Mc and Tx Thread as SDIO Driver is resuming.
+     Resuming Mc, Rx and Tx Thread as platform Driver is resuming.
    */
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Resuming Mc and Tx Thread",__func__);
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Resuming Mc, Rx and Tx Thread",__func__);
 
    /* Indicate MC Thread to Resume */
    complete(&vosSchedContext->ResumeMcEvent);
+
+   /* Indicate Rx Thread to Resume */
+   complete(&vosSchedContext->ResumeRxEvent);
 
    /* Indicate Tx Thread to Resume */
    complete(&vosSchedContext->ResumeTxEvent);
@@ -157,7 +203,7 @@ int hddDevSuspendHdlr(struct device *dev)
    pAdapter =  (hdd_adapter_t*)wcnss_wlan_get_drvdata(dev);
    pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: WLAN suspended by SDIO",__func__);
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: WLAN suspended by platform driver",__func__);
 
    /* Get the HDD context */
    if(!pAdapter) {

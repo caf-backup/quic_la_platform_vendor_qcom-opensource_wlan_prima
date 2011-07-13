@@ -553,6 +553,7 @@ WDI_Init
   unsigned int               driverType
 )
 {
+  wpt_uint8               i;
   wpt_status              wptStatus; 
   WCTS_TransportCBsType   wctsCBs; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -624,7 +625,11 @@ WDI_Init
 
   /* Initialize the  WDI Pending Request Queue*/
   wpal_list_init(&(gWDICb.wptPendingQueue), pNode);
-
+  /*Initialize the BSS seesions pending Queue */
+  for ( i = 0; i < WDI_MAX_BSS_SESSIONS; i++ )
+  {
+    wpal_list_init(&(gWDICb.aBSSSessions[i].wptPendingQueue), pNode);
+  }
   /*------------------------------------------------------------------------
     Initialize the Data Path Utility Module
    ------------------------------------------------------------------------*/
@@ -834,6 +839,7 @@ WDI_Close
   void
 )
 {
+  wpt_uint8              i;
   WDI_EventInfoType      wdiEventData;
   wpt_status              wptStatus; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -849,22 +855,18 @@ WDI_Close
     return WDI_STATUS_E_NOT_ALLOWED; 
   }
 
-  /*invalidate the main synchro mutex */
-  wptStatus =  wpalMutexDelete(&gWDICb.wptMutex);
-  if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
-  {
-    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Failed to delete mutext %d", wptStatus);
-    WDI_ASSERT(0);
-    return WDI_STATUS_E_FAILURE; 
-  }
 
   /*destroy the response timer */
   wptStatus = wpalTimerDelete( &gWDICb.wptResponseTimer);
 
   /* destroy the  WDI Pending Request Queue*/
-  wpal_list_init(&(gWDICb.wptPendingQueue), pNode);
+  wpal_list_destroy(&(gWDICb.wptPendingQueue), pNode);
 
+  /*destroy the BSS seesions pending Queue */
+  for ( i = 0; i < WDI_MAX_BSS_SESSIONS; i++ )
+  {
+    wpal_list_destroy(&(gWDICb.aBSSSessions[i].wptPendingQueue), pNode);
+  }
   /*------------------------------------------------------------------------
     Closes the Data Path Utility Module
    ------------------------------------------------------------------------*/
@@ -874,7 +876,6 @@ WDI_Close
               "WDI Init failed to close the DP Util Module");
 
     WDI_ASSERT(0); 
-    return WDI_STATUS_E_FAILURE; 
   }
 
    /* Destroy the event */
@@ -885,7 +886,6 @@ WDI_Close
                 "WDI Close failed to destroy an event");
 
       WDI_ASSERT(0); 
-      return WDI_STATUS_E_FAILURE; 
    }
 
   /*------------------------------------------------------------------------
@@ -5051,6 +5051,7 @@ WDI_ProcessCloseReq
   WDI_EventInfoType*     pEventData
 )
 {
+   wpt_status              wptStatus; 
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*Lock control block for cleanup*/
@@ -5062,13 +5063,34 @@ WDI_ProcessCloseReq
    /* Close Control transport*/
    WCTS_CloseTransport(pWDICtx->wctsHandle); 
 
+   /* Close Data transport*/
+   WDTS_Close(pWDICtx);
+
    /*Close the STA Table !UT- check this logic again*/
    WDI_STATableClose(pWDICtx);
+
+   /*close the PAL */
+   wptStatus = wpalClose(pWDICtx->pPALContext);
+   if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
+   {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "Failed to wpal Close %d", wptStatus);
+     WDI_ASSERT(0);
+   }
 
    /*Transition back to init state*/
    WDI_STATE_TRANSITION( pWDICtx, WDI_INIT_ST);
 
    wpalMutexRelease(&pWDICtx->wptMutex);
+
+   /*invalidate the main synchro mutex */
+   wptStatus = wpalMutexDelete(&pWDICtx->wptMutex);
+   if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
+   {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "Failed to delete mutex %d", wptStatus);
+     WDI_ASSERT(0);
+   }
 
    /*Clear control block */
    WDI_CleanCB(pWDICtx);
@@ -11349,9 +11371,7 @@ WDI_ProcessJoinRsp
   if ( WDI_STATUS_SUCCESS != wdiStatus )
   {
     /*Association was failed by HAL - remove session*/
-    wpalMemoryZero(pBSSSes, sizeof(*pBSSSes));
-    pBSSSes->wdiAssocState = WDI_ASSOC_INIT_ST; 
-    pBSSSes->bInUse        = eWLAN_PAL_FALSE; 
+    WDI_DeleteSession(pWDICtx, pBSSSes);
 
     /*Association no longer in progress  */
     pWDICtx->bAssociationInProgress = eWLAN_PAL_FALSE;
@@ -11658,9 +11678,8 @@ WDI_ProcessDelBSSRsp
   /*-----------------------------------------------------------------------
     The current session will be deleted 
   -----------------------------------------------------------------------*/
-  wpalMemoryZero(pBSSSes,  sizeof(*pBSSSes));
-  pBSSSes->wdiAssocState = WDI_ASSOC_INIT_ST; 
-  pBSSSes->bInUse        = eWLAN_PAL_FALSE; 
+  WDI_DeleteSession(pWDICtx, pBSSSes);
+
 
   /*-----------------------------------------------------------------------
     Check to see if this association is in progress - if so disable the
@@ -11821,10 +11840,7 @@ WDI_ProcessPostAssocRsp
   if ( WDI_STATUS_SUCCESS != wdiPostAssocParams.wdiStatus )
   {
     /*Association was failed by HAL - remove session*/
-    wpalMemoryZero(pBSSSes, sizeof(*pBSSSes));
-    pBSSSes->wdiAssocState = WDI_ASSOC_INIT_ST; 
-    pBSSSes->bInUse        = eWLAN_PAL_FALSE; 
-    
+    WDI_DeleteSession(pWDICtx, pBSSSes);
   }
   else
   {
@@ -12921,10 +12937,8 @@ WDI_ProcessSetLinkStateRsp
       /*-----------------------------------------------------------------------
         The current session will be deleted 
       -----------------------------------------------------------------------*/
-      wpalMemoryZero(pBSSSes,  sizeof(*pBSSSes));
-      pBSSSes->wdiAssocState = WDI_ASSOC_INIT_ST; 
-      pBSSSes->bInUse        = eWLAN_PAL_FALSE; 
-    
+      WDI_DeleteSession(pWDICtx, pBSSSes);
+
       /*-----------------------------------------------------------------------
         Check to see if this association is in progress - if so disable the
         flag as this has ended
@@ -16088,6 +16102,46 @@ WDI_FindEmptySession
   }
 
   return i; 
+}/*WDI_FindEmptySession*/
+
+
+/**
+ @brief Helper routine used to delete session in the WDI 
+        CB
+  
+ 
+ @param  pWDICtx:       pointer to the WLAN DAL context 
+         pSession:      pointer to the session (if found) 
+  
+ @see
+ @return Index of the session in the array 
+*/
+void 
+WDI_DeleteSession
+( 
+  WDI_ControlBlockType*   pWDICtx,
+  WDI_BSSSessionType*     ppSession
+)
+{
+   /*-------------------------------------------------------------------------
+    Sanity check 
+  -------------------------------------------------------------------------*/
+  if ( NULL == ppSession )
+  {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "Invalid parameters on WDI_FindAssocSession"); 
+     return ; 
+  }
+
+  /*------------------------------------------------------------------------ 
+      Reset the entries int session 
+    ------------------------------------------------------------------------*/
+  wpal_list_destroy(&ppSession->wptPendingQueue, pNode);
+  wpalMemoryZero(ppSession,  sizeof(*ppSession));
+  ppSession->wdiAssocState = WDI_ASSOC_INIT_ST; 
+  ppSession->bInUse        = eWLAN_PAL_FALSE; 
+  wpal_list_init(&ppSession->wptPendingQueue, pNode);
+
 }/*WDI_FindEmptySession*/
 
 /**

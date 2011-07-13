@@ -3802,6 +3802,24 @@ WDI_FindEmptySession
 );
 
 /**
+ @brief Helper routine used to delete session in the WDI 
+        CB
+  
+ 
+ @param  pWDICtx:       pointer to the WLAN DAL context 
+         pSession:      pointer to the session (if found) 
+  
+ @see
+ @return Index of the session in the array 
+*/
+void 
+WDI_DeleteSession
+( 
+  WDI_ControlBlockType*   pWDICtx,
+  WDI_BSSSessionType*     ppSession
+);
+
+/**
  @brief Helper routine used to find a session based on the BSSID 
   
  
