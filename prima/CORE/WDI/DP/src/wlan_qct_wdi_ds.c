@@ -61,17 +61,6 @@ WDI_Status WDI_DS_Register( void *pContext,
     return WDI_STATUS_E_FAILURE;
   }
   
-  // Create a memory pool for Mgmt BDheaders.
-  sWdiStatus = WDI_DS_MemPoolCreate(&pClientData->mgmtMemPool, WDI_DS_MAX_CHUNK_SIZE, 
-                                                     WDI_DS_HI_PRI_RES_NUM);
-  if(WDI_STATUS_SUCCESS != sWdiStatus)
-    return sWdiStatus;
-
-  // Create a memory pool for Data BDheaders.
-  sWdiStatus = WDI_DS_MemPoolCreate(&pClientData->dataMemPool, WDI_DS_MAX_CHUNK_SIZE, 
-                                                      WDI_DS_LO_PRI_RES_NUM);
-  if(WDI_STATUS_SUCCESS != sWdiStatus)
-    return sWdiStatus;
 
   // Store callbacks in client structure
   pClientData->pcontext = pContext;

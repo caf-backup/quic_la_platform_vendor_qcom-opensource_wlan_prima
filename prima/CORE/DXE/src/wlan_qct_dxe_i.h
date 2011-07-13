@@ -569,6 +569,7 @@ typedef struct
    wpt_boolean                     ringNotEmpty; 
    wpt_boolean                     txIntEnable;
    wpt_uint32                      txCompletedFrames; 
+   wpt_uint8                       ucTxMsgCnt; 
 } WLANDXE_CtrlBlkType;
 
 /*==========================================================================

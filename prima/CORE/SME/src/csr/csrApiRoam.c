@@ -37,7 +37,7 @@
 
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
 #include "halPhyApi.h"
-#include "halInternal.h" 
+#include "halInternal.h"
 #endif
 
 #include "palApi.h"
@@ -295,10 +295,10 @@ static void csrRoamDeInitGlobals(tpAniSirGlobal pMac)
 
 eHalStatus csrOpen(tpAniSirGlobal pMac)
 {
-   eHalStatus status = eHAL_STATUS_SUCCESS;
+    eHalStatus status = eHAL_STATUS_SUCCESS;
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-   uNvTables  nvTables;
-   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    uNvTables nvTables;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
 #endif
     v_REGDOMAIN_t regId;
     
@@ -324,22 +324,22 @@ eHalStatus csrOpen(tpAniSirGlobal pMac)
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
         vosStatus = vos_nv_readDefaultCountryTable( &nvTables );
 		if ( VOS_STATUS_SUCCESS == vosStatus )
-		{
+        {
             palCopyMemory( pMac->hHdd, pMac->scan.countryCodeDefault, 
-				nvTables.defaultCountryTable.countryCode, WNI_CFG_COUNTRY_CODE_LEN );
+                    nvTables.defaultCountryTable.countryCode, WNI_CFG_COUNTRY_CODE_LEN );
             status = eHAL_STATUS_SUCCESS;
-		}
-		else
+        }
+        else
 #endif
-		{
-			smsLog( pMac, LOGE, FL("  fail to get NV_FIELD_IMAGE\n") );
-			//hardcoded for now
-			pMac->scan.countryCodeDefault[0] = 'U';
-			pMac->scan.countryCodeDefault[1] = 'S';
+        {
+            smsLog( pMac, LOGE, FL("  fail to get NV_FIELD_IMAGE\n") );
+            //hardcoded for now
+            pMac->scan.countryCodeDefault[0] = 'U';
+            pMac->scan.countryCodeDefault[1] = 'S';
             pMac->scan.countryCodeDefault[2] = 'I';
             //status = eHAL_STATUS_SUCCESS;
-		}
-		smsLog( pMac, LOGE, FL(" country Code from nvRam %s\n"), pMac->scan.countryCodeDefault );
+        }
+        smsLog( pMac, LOGE, FL(" country Code from nvRam %s\n"), pMac->scan.countryCodeDefault );
 
         csrGetRegulatoryDomainForCountry(pMac, pMac->scan.countryCodeDefault, &regId);
         //TODO: Needs to be implemented on Prima. 
@@ -1021,7 +1021,7 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         }
         else
         {
-           pMac->roam.configParam.impsSleepTime = 0;
+            pMac->roam.configParam.impsSleepTime = 0;
         }
         pMac->roam.configParam.eBand = pParam->eBand;
 #ifdef WLAN_SOFTAP_FEATURE
@@ -1405,9 +1405,9 @@ eHalStatus csrIsValidChannel(tpAniSirGlobal pMac, tANI_U8 chnNum)
 eHalStatus csrInitGetChannels(tpAniSirGlobal pMac)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    tANI_U8 num20MHzChannelsFound = 0;    
+    tANI_U8 num20MHzChannelsFound = 0;
     VOS_STATUS vosStatus;
-    tANI_U8 Index = 0, count = 0;
+    tANI_U8 Index = 0;
     tANI_U8 num40MHzChannelsFound = 0;
 
     
@@ -1433,7 +1433,7 @@ eHalStatus csrInitGetChannels(tpAniSirGlobal pMac)
         for ( Index = 0; Index < num20MHzChannelsFound; Index++)
         {
 #ifdef FEATURE_WLAN_INTEGRATED_SOC /* Need to fix this while dealing with NV item */
-           pMac->scan.base20MHzChannels.channelList[ Index ] = pMac->scan.defaultPowerTable[ Index ].chanId;
+            pMac->scan.base20MHzChannels.channelList[ Index ] = pMac->scan.defaultPowerTable[ Index ].chanId;
 #else
            pMac->scan.base20MHzChannels.channelList[ Index ] = Index + 1;
            pMac->scan.defaultPowerTable[Index].chanId = Index + 1;
@@ -1441,8 +1441,6 @@ eHalStatus csrInitGetChannels(tpAniSirGlobal pMac)
 #endif
         }
         pMac->scan.base20MHzChannels.numChannels = num20MHzChannelsFound;
-        count = num20MHzChannelsFound;
-        //TBH: looks like base20MHzChannels is used all over, updating this with 5 GhZ info
         if(num40MHzChannelsFound > WNI_CFG_VALID_CHANNEL_LIST_LEN)
         {
             num40MHzChannelsFound = WNI_CFG_VALID_CHANNEL_LIST_LEN;
@@ -1623,9 +1621,10 @@ eHalStatus csrRoamCallCallback(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrRoam
         smsLog(pMac, LOGW, " Assoc complete result = %d statusCode = %d reasonCode = %d\n", u2, pRoamInfo->statusCode, pRoamInfo->reasonCode);
     }
 
-   if (pSession == NULL)
+   if ( (pSession == NULL) ||
+        (eANI_BOOLEAN_FALSE == pSession->sessionActive) )
    {
-      smsLog(pMac, LOGP, "Session ID is NULL\n");
+      smsLog(pMac, LOGE, "Session ID is not valid\n");
       return eHAL_STATUS_FAILURE;
    }
 
@@ -10931,7 +10930,7 @@ eHalStatus csrSendAssocIndToUpperLayerCnfMsg(   tpAniSirGlobal pMac,
         msgQ.bodyval = 0;
 
         SysProcessMmhMsg(pMac, &msgQ);
-        
+
     } while( 0 );
 
     return( status );
@@ -11632,6 +11631,23 @@ eHalStatus csrProcessDelStaSessionCommand( tpAniSirGlobal pMac, tSmeCmd *pComman
          pCommand->u.delStaSessionCmd.selfMacAddr );
 }
 
+#if 0
+static void purgeCsrSessionCmdList(tpAniSirGlobal pMac, tANI_U32 sessionId)
+{
+    tDblLinkList *pList = &pMac->roam.roamCmdPendingList;
+    tListElem *pEntry;
+    tSmeCmd *pCommand;
+
+    while((pEntry = csrLLRemoveHead(pList, LL_ACCESS_LOCK)) != NULL)
+    {
+        pCommand = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
+        if(pCommand->sessionId == sessionId)
+        {
+            csrAbortCommand(pMac, pCommand, eANI_BOOLEAN_TRUE);
+        }
+    }
+}
+#endif
 
 void csrCleanupSession(tpAniSirGlobal pMac, tANI_U32 sessionId)
 {
@@ -11645,6 +11661,10 @@ void csrCleanupSession(tpAniSirGlobal pMac, tANI_U32 sessionId)
         csrRoamFreeConnectedInfo ( pMac, &pSession->connectedInfo);
         palTimerFree(pMac->hHdd, pSession->hTimerRoaming);
         palTimerFree(pMac->hHdd, pSession->hTimerIbssJoining);
+#if 0
+        purgeSmeSessionCmdList(pMac, sessionId);
+        purgeCsrSessionCmdList(pMac, sessionId);
+#endif	
         csrInitSession(pMac, sessionId);
     }
 }
@@ -11666,7 +11686,11 @@ eHalStatus csrRoamCloseSession( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_BO
 /*Temp fix: commenting this for PRIMA as there is no support in PRIMA */
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
         else
-        {
+        { 
+#if 0
+            purgeSmeSessionCmdList(pMac, sessionId);
+            purgeCsrSessionCmdList(pMac, sessionId);
+#endif
             status = csrIssueDelStaForSessionReq( pMac, sessionId, pSession->selfMacAddr );
         }
 #endif
@@ -11695,6 +11719,7 @@ static void csrInitSession( tpAniSirGlobal pMac, tANI_U32 sessionId )
     csrRoamFreeConnectProfile(pMac, &pSession->connectedProfile);
     csrRoamFreeConnectedInfo( pMac, &pSession->connectedInfo );
     csrFreeConnectBssDesc(pMac, sessionId);
+    csrScanEnable(pMac);
     palZeroMemory( pMac->hHdd, &pSession->selfMacAddr, sizeof(tCsrBssid) );
     if(pSession->pWpaRsnReqIE)
     {
@@ -11736,7 +11761,6 @@ static void csrInitSession( tpAniSirGlobal pMac, tANI_U32 sessionId )
     }
     pSession->nP2PRspIeLength = 0;
 #endif /* WLAN_FEATURE_P2P */
-
 }
 
 

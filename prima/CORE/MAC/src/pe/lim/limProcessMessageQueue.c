@@ -544,12 +544,14 @@ static void limHandleUnknownA2IndexFrames(tpAniSirGlobal pMac, void *pRxPacketIn
  *
  *NOTE:
  *
- * @param  pMac               Pointer to Global MAC structure
- * @param  *pRxPacketInfo     Pointer to the received packet info    
+ * @param  pMac      Pointer to Global MAC structure
+ * @param  *pBd     Pointer to the received Buffer Descriptor+payload
+ * @param  *psessionEntry Pointer to session on which packet is received
  * @return None
  */
 static tANI_BOOLEAN
-limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
+limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pBd,
+                                        tpPESession psessionEntry)
 {
     tSirMacFrameCtl  fc;
     tpSirMacMgmtHdr  pHdr;
@@ -560,11 +562,11 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
     tANI_BOOLEAN match = VOS_FALSE;
     VOS_STATUS vosStatus;
 	
-    pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
+    pHdr = WDA_GET_RX_MAC_HEADER(pBd);
     fc = pHdr->fc;
     frameType = (fc.type << 2 ) | (fc.subType << 4);
-    pBody = WDA_GET_RX_MPDU_DATA(pRxPacketInfo);
-    framelen = WDA_GET_RX_PAYLOAD_LEN(pRxPacketInfo);
+    pBody = WDA_GET_RX_MPDU_DATA(pBd);
+    framelen = WDA_GET_RX_PAYLOAD_LEN(pBd);
 
     vos_list_peek_front(&pMac->lim.gLimMgmtFrameRegistratinQueue,
    	                (vos_list_node_t**)&pLimMgmtRegistration);
@@ -609,7 +611,7 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo)
 
         /* Indicate this to SME */	 
         limSendSmeMgmtFrameInd( pMac, eSIR_MGMT_FRM_ACTION, (tANI_U8*)pHdr, 
-                     WDA_GET_RX_MPDU_LEN(pRxPacketInfo) + sizeof(tSirMacMgmtHdr), 
+                     WDA_GET_RX_MPDU_LEN(pBd) + sizeof(tSirMacMgmtHdr), 
                      pLimMgmtRegistration->sessionId );
     }
 
@@ -656,15 +658,6 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
     limLog( pMac, LOG1, FL("ProtVersion %d, Type %d, Subtype %d rateIndex=%d\n"),
             fc.protVer, fc.type, fc.subType, WDA_GET_RX_MAC_RATE_IDX(pRxPacketInfo));
    
-#ifdef WLAN_FEATURE_P2P 
-    /* Check if frame is registered by HDD */
-    if(limCheckMgmtRegisteredFrames(pMac, pRxPacketInfo))
-    {        
-        limLog( pMac, LOG1, FL("Received frame is passed to SME\n"));
-        limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, limMsg->bodyptr);
-        return;
-    }
-#endif    
 
     /* Added For BT-AMP Support */
     if((psessionEntry = peFindSessionByBssid(pMac,pHdr->bssId,&sessionId))== NULL)
@@ -701,6 +694,17 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
                }
             } 
         }
+
+#ifdef WLAN_FEATURE_P2P 
+    /* Check if frame is registered by HDD */
+    if(limCheckMgmtRegisteredFrames(pMac, pRxPacketInfo, psessionEntry))
+    {        
+        limLog( pMac, LOG1, FL("Received frame is passed to SME\n"));
+        limPktFree(pMac, HAL_TXRX_FRM_802_11_MGMT, pRxPacketInfo, limMsg->bodyptr);
+        return;
+    }
+#endif 
+
 
 #ifdef ANI_PRODUCT_TYPE_AP
     if ((psessionEntry->limSystemRole == eLIM_AP_ROLE) && (LIM_IS_RADAR_DETECTED(pMac)))
@@ -842,15 +846,15 @@ limHandle80211Frames(tpAniSirGlobal pMac, tpSirMsgQ limMsg, tANI_U8 *pDeferMsg)
 #endif
                       if (WDA_GET_RX_UNKNOWN_UCAST(pRxPacketInfo))
                          limHandleUnknownA2IndexFrames(pMac, pRxPacketInfo,psessionEntry);
-                      else
+                     else
                          limProcessActionFrame(pMac, pRxPacketInfo,psessionEntry);
 #if defined WLAN_FEATURE_P2P
                    }
 #endif
                    break;
                 default:
-                   // Received Management frame of 'reserved' subtype
-                   break;
+                    // Received Management frame of 'reserved' subtype
+                    break;
             } // switch (fc.subType)
 
         }
@@ -1294,7 +1298,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 #endif
 #ifdef WLAN_FEATURE_VOWIFI_11R
         case eWNI_SME_FT_UPDATE_KEY:
-        case eWNI_SME_FT_PRE_AUTH_REQ:
+	    case eWNI_SME_FT_PRE_AUTH_REQ:
         case eWNI_SME_FT_AGGR_QOS_REQ:
 #endif
         case eWNI_SME_ADD_STA_SELF_REQ:
@@ -1664,7 +1668,7 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
             break; 
         case WDA_DEL_STA_SELF_RSP:
             limProcessDelStaSelfRsp(pMac, limMsg);
-            break; 
+            break;
 
         case WDA_DELETE_BSS_RSP:
             limHandleDeleteBssRsp(pMac,limMsg); //wrapper routine to handle delete bss response 

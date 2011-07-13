@@ -647,6 +647,8 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
 
     if(pIe) 
     { 
+        /* Setting device mode as P2P GO */
+        pHostapdAdapter->device_mode = WLAN_HDD_P2P_GO;
         ielen = pIe[1] + 2;
         if(total_ielen + ielen <= MAX_GENIE_LEN) {
             vos_mem_copy(&genie[total_ielen],pIe,(pIe[1] + 2));
@@ -2270,6 +2272,15 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
     status = sme_ScanRequest( WLAN_HDD_GET_HAL_CTX(pAdapter),
                               pAdapter->sessionId, &scanRequest, &scanId,
                               &hdd_cfg80211_scan_done_callback, dev );
+
+    if (eHAL_STATUS_SUCCESS != status)
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: sme_ScanRequest returned error %d", __func__, status);
+        status = -EIO;
+        goto free_mem;
+    }
+
     pwextBuf->scanId = scanId;
 
     /*
@@ -2978,6 +2989,84 @@ int wlan_hdd_cfg80211_set_privacy( hdd_adapter_t *pAdapter,
     return status;
 }
 
+#if 0
+#ifdef WLAN_FEATURE_P2P
+/* 
+ * Look for BSS from SME with specified SSID and after that check if for 
+ * that BSS we have P2P IE in beacon frame.
+ */
+static int wlan_hdd_cfg80211_check_bss_for_p2pIe( 
+            hdd_adapter_t *pAdapter, u8* ssid, size_t ssid_len, u8* bssid )
+{
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    tCsrScanResultFilter scanResFilter = { {0} };
+    tCsrSSIDInfo* pssidInfo;
+    tScanResultHandle pResult;
+    eHalStatus status = 0;
+    int p2pIeFound = 0;
+    tCsrScanResultInfo *pScanResult;
+    tCsrBssid Scan_Bssid;
+    scanResFilter.BSSIDs.bssid = &Scan_Bssid;
+
+    if (NULL == ssid)
+    {
+        return p2pIeFound;
+    }
+
+    if( NULL == (pssidInfo = (tCsrSSIDInfo *)vos_mem_malloc(sizeof(tCsrSSIDInfo)) ) )
+    {
+        return p2pIeFound;
+    }
+
+    scanResFilter.SSIDs.numOfSSIDs = 1;    
+    scanResFilter.SSIDs.SSIDList = pssidInfo;
+    pssidInfo->SSID.length = ssid_len;
+    vos_mem_copy(&pssidInfo->SSID.ssId[0], ssid, ssid_len);
+
+    if (bssid)
+    {
+        scanResFilter.BSSIDs.numOfBSSIDs = 1;
+        vos_mem_copy((void *)(scanResFilter.BSSIDs.bssid), bssid,
+                     WNI_CFG_BSSID_LEN);
+    }
+    scanResFilter.bWPSAssociation = 1; 
+
+    /*
+     * Get scan result with specified SSID and after that look for 
+     */
+    status = sme_ScanGetResult(hHal, pAdapter->sessionId, &scanResFilter, &pResult);
+
+    /* no scan results */
+    if (NULL == pResult)
+    {
+        hddLog(VOS_TRACE_LEVEL_INFO,
+              "%s: No BSS found with given SSID\n", __func__);
+        goto done;
+    }
+
+    pScanResult = sme_ScanResultGetFirst(hHal, pResult);
+
+    while (pScanResult)
+    {
+        tSirBssDescription *bss_desc = &pScanResult->BssDescriptor;
+        int ie_length = GET_IE_LEN_IN_BSS_DESC( bss_desc->length );
+        u8 *ie = ((ie_length != 0) ? (u8 *)&bss_desc->ieFields: NULL);
+        if (NULL != wlan_hdd_cfg80211_get_p2p_ie_ptr(ie, ie_length) )
+        {
+            p2pIeFound = 1;
+            break;
+        }
+
+        pScanResult = sme_ScanResultGetNext(hHal, pResult);
+    }
+    sme_ScanResultPurge(hHal, pResult);
+done:
+    vos_mem_free(pssidInfo);
+    return p2pIeFound;
+}
+#endif
+#endif
+
 /*
  * FUNCTION: wlan_hdd_cfg80211_set_privacy
  * This function is used to initialize the security 
@@ -2995,6 +3084,35 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
 
     hddLog(VOS_TRACE_LEVEL_INFO, 
              "%s: device_mode = %d\n",__func__,pAdapter->device_mode);
+
+#ifdef WLAN_FEATURE_P2P
+    /*
+     * Putting real dirty fix. For setting P2P Client device mode, as 
+     * supplicant doesn't change the interface type in case concurrency is
+     * disabled. At the same time it sends P2P IE in connect even on STA 
+     * interface. So in addition to checking P2P IE, we will check SSID, 
+     * if SSID length is 9 and first 7 bytes are DIRECT- then probably it is
+     * P2P Client interface. And after that we will check the BSS descriptor 
+     * and see if it have P2P IE or not.
+     */
+    if ( (NULL != wlan_hdd_cfg80211_get_p2p_ie_ptr(req->ie, req->ie_len) )
+        && ( (req->ssid_len == HDD_P2P_WILDCARD_SSID_LEN + 2) &&
+         !memcmp(req->ssid, HDD_P2P_WILDCARD_SSID, HDD_P2P_WILDCARD_SSID_LEN) )
+#if 0	
+       /* In case normal BSS SSID is also DIRECT-xy, then check if there is 
+	* p2pIE present in BSS descriptor for given SSID */ 
+       && wlan_hdd_cfg80211_check_bss_for_p2pIe(pAdapter, req->ssid,
+                                                req->ssid_len, req->bssid)
+#endif
+       )
+    {
+        pAdapter->device_mode = WLAN_HDD_P2P_CLIENT;
+    }
+    else
+    {
+        pAdapter->device_mode = WLAN_HDD_INFRA_STATION;
+    }
+#endif    
 
     /*initialise security parameters*/
     status = wlan_hdd_cfg80211_set_privacy(pAdapter, req); 

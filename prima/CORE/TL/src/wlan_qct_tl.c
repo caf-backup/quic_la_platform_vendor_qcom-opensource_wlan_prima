@@ -5366,6 +5366,18 @@ WLANTL_STATxAuth
   }
 #endif
 
+#ifdef WLAN_SOFTAP_FEATURE
+    /*You make an initial assumption that HDD has no more data and if the 
+      assumption was wrong you reset the flags to their original state
+     This will prevent from exposing a race condition between checking with HDD 
+     for packets and setting the flags to false*/
+  if (0 == pStaClient->ucACMask)
+  {
+    vos_atomic_set_U8( &pStaClient->ucPktPending, 0);
+    pStaClient->ucNoMoreData = 1;
+  }
+#endif
+
   vosStatus = pStaClient->pfnSTAFetchPkt( pvosGCtx, 
                                &ucSTAId,
                                ucAC,
@@ -5395,18 +5407,16 @@ WLANTL_STATxAuth
     --------------------------------------------------------------------*/
     pStaClient->ucCurrentAC     = WLANTL_AC_VO;
     pStaClient->ucCurrentWeight = 0;
-#ifdef WLAN_SOFTAP_FEATURE
-    // HDD doesn't change ucAC. This code should be the same for sta and softap
-    // make sure the client doesn't have data on another AC
-    if (0 == pStaClient->ucACMask)
-    {
-      vos_atomic_set_U8( &pStaClient->ucPktPending, 0);
-      pStaClient->ucNoMoreData = 1;
-    }
-#endif
 
     return vosStatus;
   }
+
+#ifdef WLAN_SOFTAP_FEATURE
+  /*There are still packets in HDD - set back the pending packets and 
+   the no more data assumption*/
+  vos_atomic_set_U8( &pStaClient->ucPktPending, 1);
+  pStaClient->ucNoMoreData = 0;
+#endif
 
 #ifdef WLAN_SOFTAP_FEATURE
   if (WLAN_STA_SOFTAP != pStaClient->wSTADesc.wSTAType)
@@ -8281,7 +8291,6 @@ WLAN_TLGetNextTxIds
         ( pTLCb->atlSTAClients[ucNextSTA].ucPktPending ))
     {
       TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
-      "WLAN TL:No station registered with TL at this point or Mask 0"
       "STA ID: %d on WLAN_TLGetNextTxIds", *pucSTAId));
       pTLCb->ucCurrentSTA = ucNextSTA; 
       break;

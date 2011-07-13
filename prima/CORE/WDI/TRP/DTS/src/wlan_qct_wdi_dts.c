@@ -341,10 +341,12 @@ wpt_status WDTS_openTransport( void *pContext)
 {
   void *pDTDriverContext; 
   WDI_DS_ClientDataType *pClientData;
+  WDI_Status sWdiStatus = WDI_STATUS_SUCCESS;
 
   pClientData = (WDI_DS_ClientDataType*) wpalMemoryAllocate(sizeof(WDI_DS_ClientDataType));
-  if(!pClientData)
+  if (!pClientData){
     return eWLAN_PAL_STATUS_E_NOMEM;
+  }
 
   pClientData->suspend = 0;
   WDI_DS_AssignDatapathContext(pContext, (void*)pClientData);
@@ -353,6 +355,21 @@ wpt_status WDTS_openTransport( void *pContext)
   WDT_AssignTransportDriverContext(pContext, pDTDriverContext);
   gTransportDriver.register_client(pDTDriverContext, WDTS_RxPacket, WDTS_TxPacketComplete, 
     WDTS_OOResourceNotification, (void*)pClientData);
+
+  /* Create a memory pool for Mgmt BDheaders.*/
+  sWdiStatus = WDI_DS_MemPoolCreate(&pClientData->mgmtMemPool, WDI_DS_MAX_CHUNK_SIZE, 
+                                                     WDI_DS_HI_PRI_RES_NUM);
+  if (WDI_STATUS_SUCCESS != sWdiStatus){
+    return eWLAN_PAL_STATUS_E_NOMEM;
+  }
+
+  /* Create a memory pool for Data BDheaders.*/
+  sWdiStatus = WDI_DS_MemPoolCreate(&pClientData->dataMemPool, WDI_DS_MAX_CHUNK_SIZE, 
+                                                      WDI_DS_LO_PRI_RES_NUM);
+  if (WDI_STATUS_SUCCESS != sWdiStatus){
+    return eWLAN_PAL_STATUS_E_NOMEM;
+  }
+
   return eWLAN_PAL_STATUS_SUCCESS;
 
 }
@@ -493,9 +510,18 @@ wpt_status WDTS_Stop(void *pContext)
 wpt_status WDTS_Close(void *pContext)
 {
   void *pDTDriverContext = WDT_GetTransportDriverContext(pContext);
+  WDI_DS_ClientDataType *pClientData = WDI_DS_GetDatapathContext(pContext);
   wpt_status status = eWLAN_PAL_STATUS_SUCCESS;
 
+  /*Destroy the mem pool for mgmt BD headers*/
+  WDI_DS_MemPoolDestroy(&pClientData->mgmtMemPool);
+  
+  /*Destroy the mem pool for mgmt BD headers*/
+  WDI_DS_MemPoolDestroy(&pClientData->dataMemPool);
+  
   status =  gTransportDriver.close(pDTDriverContext);
+
+  wpalMemoryFree(pClientData);
 
   return status;
 }

@@ -898,6 +898,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_BTC_DHCP_PROTECTION_MIN,
                  CFG_BTC_DHCP_PROTECTION_MAX ),
 
+   REG_VARIABLE( CFG_BTC_A2DP_DHCP_PROTECTION_NAME , WLAN_PARAM_Integer,
+                 hdd_config_t, btcA2DPBtSubIntervalsDuringDhcp,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_BTC_A2DP_DHCP_PROTECTION_DEFAULT,
+                 CFG_BTC_A2DP_DHCP_PROTECTION_MIN,
+                 CFG_BTC_A2DP_DHCP_PROTECTION_MAX ),
+
 #ifdef WLAN_SOFTAP_FEATURE
    REG_VARIABLE( CFG_AP_LISTEN_MODE_NAME , WLAN_PARAM_Integer,
                  hdd_config_t, nEnableListenMode, 
@@ -1749,6 +1756,7 @@ static void hdd_set_btc_config(hdd_context_t *pHddCtx)
    btcParams.btcExecutionMode = pConfig->btcExecutionMode;
 
    btcParams.btcConsBtSlotsToBlockDuringDhcp = pConfig->btcConsBtSlotsToBlockDuringDhcp;
+   btcParams.btcA2DPBtSubIntervalsDuringDhcp = pConfig->btcA2DPBtSubIntervalsDuringDhcp;
 
    sme_BtcSetConfig(pHddCtx->hHal, &btcParams);
 }
@@ -2216,23 +2224,11 @@ VOS_STATUS hdd_set_sme_config( hdd_context_t *pHddCtx )
 #ifdef WLAN_SOFTAP_FEATURE
    if ( VOS_STA_SAP_MODE != hdd_get_conparam()){
 #endif
-   smeConfig.csrConfig.Csr11dinfo.Channels.numChannels = 11;
-   smeConfig.csrConfig.Csr11dinfo.Channels.channelList[0] =  1;
-   smeConfig.csrConfig.Csr11dinfo.Channels.channelList[1] =  2;
-   smeConfig.csrConfig.Csr11dinfo.Channels.channelList[2] =  3;    
-   smeConfig.csrConfig.Csr11dinfo.Channels.channelList[3] =  4;    
-   smeConfig.csrConfig.Csr11dinfo.Channels.channelList[4] =  5;    
-   smeConfig.csrConfig.Csr11dinfo.Channels.channelList[5] =  6;    
-   smeConfig.csrConfig.Csr11dinfo.Channels.channelList[6] =  7;    
-   smeConfig.csrConfig.Csr11dinfo.Channels.channelList[7] =  8;    
-   smeConfig.csrConfig.Csr11dinfo.Channels.channelList[8] =  9;    
-   smeConfig.csrConfig.Csr11dinfo.Channels.channelList[9] = 10;    
-   smeConfig.csrConfig.Csr11dinfo.Channels.channelList[10]= 11;
+   smeConfig.csrConfig.Csr11dinfo.Channels.numChannels = 0;
 
-   strcpy( (char*)smeConfig.csrConfig.Csr11dinfo.countryCode, "US " );
-   smeConfig.csrConfig.Csr11dinfo.ChnPower[0].firstChannel = 1;
-   smeConfig.csrConfig.Csr11dinfo.ChnPower[0].numChannels  = 11;
-   smeConfig.csrConfig.Csr11dinfo.ChnPower[0].maxtxPower   = 30;
+   //if there is a requirement that HDD will control the default channel list & 
+   //country code (say from .ini file) we need to add some logic here. Otherwise 
+   //the default 11d info should come from NV as per our current implementation
    
 #ifdef WLAN_SOFTAP_FEATURE
    }

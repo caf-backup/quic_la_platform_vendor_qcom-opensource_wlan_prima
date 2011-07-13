@@ -2226,6 +2226,8 @@ void dxeTXEventHandler
 
    dxeCtxt = (WLANDXE_CtrlBlkType *)(msgContent->pContext);
 
+   dxeCtxt->ucTxMsgCnt = 0;   
+   
    /* Disable device interrupt */
    /* Read whole interrupt mask register and exclusive only this channel int */
    status = wpalReadRegister(WLANDXE_INT_SRC_RAW_ADDRESS,
@@ -2539,6 +2541,16 @@ static void dxeTXISR
       return;         
    }
    dxeCtxt->txIntEnable = eWLAN_PAL_FALSE;
+
+
+   if( dxeCtxt->ucTxMsgCnt )
+   {
+    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO,
+                 "Avoiding serializing TX Complete event");
+    return;
+   }
+   
+   dxeCtxt->ucTxMsgCnt = 1;
 
    /* Serialize TX complete interrupt upon TX thread */
    HDXE_ASSERT(NULL != dxeCtxt->txIsrMsg);

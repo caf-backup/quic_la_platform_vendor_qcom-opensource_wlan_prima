@@ -733,6 +733,11 @@ typedef enum
 #define CFG_BTC_DHCP_PROTECTION_MAX                          ( 0xFF )
 #define CFG_BTC_DHCP_PROTECTION_DEFAULT                      ( 0 )
 
+#define CFG_BTC_A2DP_DHCP_PROTECTION_NAME                    "BtcA2DPDhcpProtectLevel"
+#define CFG_BTC_A2DP_DHCP_PROTECTION_MIN                     ( 0 )
+#define CFG_BTC_A2DP_DHCP_PROTECTION_MAX                     ( 0xFF )
+#define CFG_BTC_A2DP_DHCP_PROTECTION_DEFAULT                 ( 7 )
+
 #if defined WLAN_FEATURE_VOWIFI_11R
 #define CFG_FT_ENABLE_NAME                              "gFtEnabled"
 #define CFG_FT_ENABLE_MIN                               (0)
@@ -875,6 +880,7 @@ typedef struct
    v_BOOL_t      fIsLogpEnabled;
    v_U8_t        btcExecutionMode;
    v_U8_t        btcConsBtSlotsToBlockDuringDhcp;
+   v_U8_t        btcA2DPBtSubIntervalsDuringDhcp;
    v_U32_t       nImpsModSleepTime;
    v_U32_t       nImpsMaxSleepTime;
    v_U32_t       nImpsMinSleepTime;

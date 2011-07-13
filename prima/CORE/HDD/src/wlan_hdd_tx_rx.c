@@ -269,6 +269,8 @@ int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    if (unlikely(skb->len < rt_hdr_len))
       goto fail;
  
+   /* Update the trans_start for this netdev */  
+   dev->trans_start = jiffies;
    /*
     * fix up the pointers accounting for the radiotap
     * header still being in there.
@@ -802,10 +804,10 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    hdd_list_size( &pAdapter->wmm_tx_queue[ac], &size ); 
    if( size >  0 )
    {
-      // yes, so process it
+       // yes, so process it
 #ifdef HDD_WMM_DEBUG
-      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                 "%s: AC %d has packets pending", __FUNCTION__, ac);
+       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                       "%s: AC %d has packets pending", __FUNCTION__, ac);
 #endif // HDD_WMM_DEBUG
    }
    else
@@ -813,7 +815,7 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       ++pAdapter->hdd_stats.hddTxRxStats.txFetchEmpty;
 #ifdef HDD_WMM_DEBUG
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                 "%s: no packets pending", __FUNCTION__);
+                   "%s: no packets pending", __FUNCTION__);
 #endif // HDD_WMM_DEBUG
       return VOS_STATUS_E_FAILURE;
    }

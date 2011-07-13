@@ -101,6 +101,7 @@ typedef struct
    wpt_msg                wctsOpenMsg;
    wpt_msg                wctsDataMsg;
    wpt_msg                wctsCloseMsg;
+   wpt_event              wctsEvent;
 } WCTS_ControlBlockType;
 
 /*---------------------------------------------------------------------------
@@ -480,7 +481,6 @@ WCTS_NotifyCallback
    }
 
    /* Serialize processing in the control thread */
-
    switch (event) {
    case SMD_EVENT_OPEN:
       palMsg = &pWCTSCb->wctsOpenMsg;
@@ -491,8 +491,15 @@ WCTS_NotifyCallback
       break;
 
    case SMD_EVENT_CLOSE:
+      /* signal event for smd_close to proceed */
+      wpalEventSet(&pWCTSCb->wctsEvent);
       palMsg = &pWCTSCb->wctsCloseMsg;
       break;
+
+   case SMD_EVENT_STATUS:
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                 "WCTS_NotifyCallback: received SMD_EVENT_STATUS from SMD");
+      return;
 
    default:
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
@@ -581,6 +588,9 @@ WCTS_OpenTransport
    ctsCB = pWCTSCb;
 #endif /* FEATURE_R33D */
 
+   /*Initialise the event*/
+   wpalEventInit(&pWCTSCb->wctsEvent);
+
    /* save the user-supplied information */
    pWCTSCb->wctsNotifyCB       = wctsCBs->wctsNotifyCB;
    pWCTSCb->wctsNotifyCBData   = wctsCBs->wctsNotifyCBData;
@@ -652,6 +662,7 @@ WCTS_CloseTransport
    wpt_list_node*      pNode = NULL;
    WCTS_BufferType*    pBufferQueue = NULL;
    void*               pBuffer = NULL;
+   wpt_status          status = eWLAN_PAL_STATUS_SUCCESS;
 
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -685,6 +696,8 @@ WCTS_CloseTransport
    /* Reset the state */
    pWCTSCb->wctsState = WCTS_STATE_CLOSED;
 
+   wpalEventReset(&pWCTSCb->wctsEvent);
+
    if (0 != smd_close(pWCTSCb->wctsChannel)) {
 
       /* SMD did not successfully close the channel, therefore we
@@ -698,7 +711,11 @@ WCTS_CloseTransport
       wpalMemoryFree(pWCTSCb);
    }
 
-   return eWLAN_PAL_STATUS_SUCCESS;
+   /*wait for the event from SMD. otherwise 
+    * by the time SMD responds, modules gets unloaded and result in
+    * crash */
+   status = wpalEventWait(&pWCTSCb->wctsEvent, 1000);
+   return status;
 
 }/*WCTS_CloseTransport*/
 

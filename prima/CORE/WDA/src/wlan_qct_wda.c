@@ -1150,13 +1150,15 @@ VOS_STATUS WDA_stop(v_PVOID_t pVosContext, tANI_U8 reason)
 
    WDA_VOS_ASSERT(NULL == pWDA->wdaWdiApiMsgParam);
 
+   wdaDestroyTimers(pWDA);
+
    pWDA->wdaWdiApiMsgParam = (v_PVOID_t *)wdiStopReq ;
 
    /* call WDI stop */
    status = WDI_Stop(wdiStopReq, 
                            (WDI_StopRspCb)WDA_stopCallback, pVosContext);
 
-   if (WDI_STATUS_SUCCESS != status )
+   if (IS_WDI_STATUS_FAILURE(status) )
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                                   "error in WDA Stop" );
@@ -1164,8 +1166,6 @@ VOS_STATUS WDA_stop(v_PVOID_t pVosContext, tANI_U8 reason)
       pWDA->wdaWdiApiMsgParam = NULL;
       status = VOS_STATUS_E_FAILURE;
    }
-
-   status = wdaDestroyTimers(pWDA);
 
    return status;
 }
@@ -6660,7 +6660,23 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
    if (( eSYSTEM_UNKNOWN_ROLE == systemRole ) || 
        ( eSYSTEM_STA_ROLE == systemRole )) 
    {
-       txFlag = HAL_USE_SELF_STA_REQUESTED_MASK;
+       txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;
+   }
+
+   // Divert Disassoc/Deauth frames thru self station, as by the time unicast 
+   // disassoc frame reaches the HW, HAL has already deleted the peer station
+   if ((pFc->type == SIR_MAC_MGMT_FRAME)) {
+       if ((pFc->subType == SIR_MAC_MGMT_DISASSOC) || 
+               (pFc->subType == SIR_MAC_MGMT_DEAUTH) || 
+               (pFc->subType == SIR_MAC_MGMT_REASSOC_RSP)) {
+           txFlag |= HAL_USE_SELF_STA_REQUESTED_MASK;
+       } 
+       // Since we donot want probe responses to be retried, send probe responses
+       // through the NO_ACK queues
+       if (pFc->subType == SIR_MAC_MGMT_PROBE_RSP) {
+           //probe response is sent out using self station and no retries options.
+           txFlag |= (HAL_USE_NO_ACK_REQUESTED_MASK | HAL_USE_SELF_STA_REQUESTED_MASK);
+       }
    }
 
    if((status = WLANTL_TxMgmtFrm(pWDA->pVosContext, (vos_pkt_t *)pFrmBuf, 
