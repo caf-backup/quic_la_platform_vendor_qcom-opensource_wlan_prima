@@ -63,6 +63,17 @@ extern v_VOID_t vos_core_return_msg(v_PVOID_t pVContext, pVosMsgWrapper pMsgWrap
  * ------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------
+  \brief clearWlanResetReason - To clear the wlan reset reason from WDcontext
+  \return None
+  -------------------------------------------------------------------------*/
+void clearWlanResetReason(void)
+{
+   /* clear the reason state */
+   gpVosWatchdogContext->reason = -1;
+   return;
+}
+
+/*---------------------------------------------------------------------------
   \brief vos_sched_open() - initialize the vOSS Scheduler
   The \a vos_sched_open() function initializes the vOSS Scheduler
   Upon successful initialization:
@@ -226,6 +237,7 @@ VOS_STATUS vos_watchdog_open
   vos_mem_zero(pWdContext, sizeof(VosWatchdogContext));
   pWdContext->pVContext = pVosContext;
   gpVosWatchdogContext = pWdContext;
+  clearWlanResetReason();
 
   //Initialize the helper events and event queues
   init_completion(&pWdContext->WdStartEvent);
@@ -602,7 +614,7 @@ VosWDThread
         {
           pWdContext->resetInProgress = true;
 #ifdef CONFIG_HAS_EARLYSUSPEND
-          vosStatus = hdd_wlan_reset();
+          vosStatus = hdd_wlan_reset(gpVosWatchdogContext->reason);
 #endif
           if (! VOS_IS_STATUS_SUCCESS(vosStatus))
           {
@@ -931,6 +943,8 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
 
     VOS_ASSERT(0);
     
+    /* Store the reason for wlan_reset */
+    gpVosWatchdogContext->reason = reason;
     /* Set the flags so that all future CMD53 and Wext commands get blocked right away */
     vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
     pAdapter->isLogpInProgress = TRUE;
