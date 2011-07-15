@@ -815,7 +815,15 @@ static eHalStatus hdd_RoamSetKeyCompleteHandler( hdd_adapter_t *pAdapter, tCsrRo
   ===========================================================================*/
 static eHalStatus hdd_RoamMicErrorIndicationHandler( hdd_adapter_t *pAdapter, tCsrRoamInfo *pRoamInfo, 
                                                  tANI_U32 roamId, eRoamCmdStatus roamStatus,                                                                              eCsrRoamResult roamResult )
-{   
+{
+
+   if(pRoamInfo == NULL)
+   {
+      VOS_ASSERT( pRoamInfo );
+      return(eHAL_STATUS_FAILURE  );
+   }
+
+   
    if( eConnectionState_Associated == pAdapter->conn_info.connState &&
       TKIP_COUNTER_MEASURE_STOPED == pAdapter->pWextState->mTKIPCounterMeasures )
    {
@@ -867,6 +875,13 @@ static eHalStatus roamRoamConnectStatusUpdateHandler( hdd_adapter_t *pAdapter, t
    eCsrRoamResult roamResult )
 {
    VOS_STATUS vosStatus;
+
+   if(pRoamInfo == NULL)
+   {
+      VOS_ASSERT( pRoamInfo );
+      return(eHAL_STATUS_FAILURE  );
+   }
+
 
    switch( roamResult )
    {
