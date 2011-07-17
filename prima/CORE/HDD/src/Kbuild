@@ -32,8 +32,8 @@ HDD_OBJS := wlan_hdd_main.o  \
             bap_hdd_main.o
 
 ifeq ($(CONFIG_CFG80211), y)
-#HDD_OBJS += wlan_hdd_cfg80211.o \
-#            wlan_hdd_p2p.o
+HDD_OBJS += wlan_hdd_cfg80211.o \
+            wlan_hdd_p2p.o
 endif
 
 ############ BAP #####################
@@ -177,7 +177,7 @@ MAC_LIM_OBJS := $(MAC_SRC_DIR)/pe/lim/limAIDmgmt.o               \
             $(MAC_SRC_DIR)/pe/lim/limSession.o \
             $(MAC_SRC_DIR)/pe/lim/limSessionUtils.o \
             $(MAC_SRC_DIR)/pe/lim/limFT.o \
-#            $(MAC_SRC_DIR)/pe/lim/limP2P.o
+            $(MAC_SRC_DIR)/pe/lim/limP2P.o
 
 MAC_PMM_OBJS = $(MAC_SRC_DIR)/pe/pmm/pmmApi.o    \
             $(MAC_SRC_DIR)/pe/pmm/pmmDebug.o     \
@@ -225,7 +225,7 @@ SME_CMN_OBJS := $(SME_SRC_DIR)/sme_common/sme_Api.o $(SME_SRC_DIR)/sme_common/sm
 SME_BTC_OBJS := $(SME_SRC_DIR)/btc/btcApi.o
 
 SME_MEAS_OBJS := $(SME_SRC_DIR)/meas/measApi.o
-#SME_P2P_OBJS = $(SME_SRC_DIR)/p2p/p2p_Api.o
+SME_P2P_OBJS = $(SME_SRC_DIR)/p2p/p2p_Api.o
 SME_RRM_OBJS := $(SME_SRC_DIR)/rrm/sme_rrm.o
 
 SME_OBJS :=  $(SME_CCM_OBJS) \
@@ -394,8 +394,7 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DWLAN_BTAMP_FEATURE \
         -DHAL_SELF_STA_PER_BSS=1 \
         -DANI_MANF_DIAG \
-        -DFEATURE_WLAN_BTAMP_UT\
-        #-DWLAN_FEATURE_P2P \
+        -DFEATURE_WLAN_BTAMP_UT
         #-DFEATURE_WLAN_WAPI \
         #-DVOLANS_PERF \
         #-DFEATURE_INNAV_SUPPORT \
@@ -419,6 +418,10 @@ CDEFINES += -DWLAN_DEBUG \
 		-DPE_DEBUG_LOGW \
 		-DPE_DEBUG_LOGE \
 		-DDEBUG 
+endif
+
+ifeq ($(CONFIG_CFG80211), y)
+CDEFINES += -DWLAN_FEATURE_P2P
 endif
 
 ifeq ($(BUILD_DIAG_VERSION),1)

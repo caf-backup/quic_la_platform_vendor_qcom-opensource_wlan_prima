@@ -1264,37 +1264,37 @@ static inline void halGetTxTSFtimer(tpAniSirGlobal pMac,
 extern void SysProcessMmhMsg(tpAniSirGlobal pMac, tSirMsgQ* pMsg);
 
 /* Beacon Filtering data structures */
-typedef struct sBeaconFilterMsg
+typedef __ani_attr_pre_packed struct sBeaconFilterMsg
 {
     tANI_U16    capabilityInfo;
     tANI_U16    capabilityMask;
     tANI_U16    beaconInterval;
     tANI_U16    ieNum;
-} tBeaconFilterMsg, *tpBeaconFilterMsg;
+} __ani_attr_packed tBeaconFilterMsg, *tpBeaconFilterMsg;
 
-typedef struct sEidByteInfo
+typedef __ani_attr_pre_packed struct sEidByteInfo
 {
     tANI_U8     offset;
     tANI_U8     value;
     tANI_U8     bitMask;
     tANI_U8     ref;
-} tEidByteInfo, *tpEidByteInfo;
+} __ani_attr_packed tEidByteInfo, *tpEidByteInfo;
 
 
 /* The above structure would be followed by multiple of below mentioned 
 structure */
-typedef struct sBeaconFilterIe
+typedef __ani_attr_pre_packed struct sBeaconFilterIe
 {
     tANI_U8         elementId;
     tANI_U8         checkIePresence;
     tEidByteInfo    byte;
-} tBeaconFilterIe, *tpBeaconFilterIe;
+} __ani_attr_packed tBeaconFilterIe, *tpBeaconFilterIe;
 
-typedef struct sRemBeaconFilterMsg  
+typedef __ani_attr_pre_packed struct sRemBeaconFilterMsg  
 {
     tANI_U8  ucIeCount;
     tANI_U8  ucRemIeId[1];
-} tRemBeaconFilterMsg, *tpRemBeaconFilterMsg;
+}  __ani_attr_packed tRemBeaconFilterMsg, *tpRemBeaconFilterMsg;
 
 #endif
 #endif /* _HALMSGAPI_H_ */

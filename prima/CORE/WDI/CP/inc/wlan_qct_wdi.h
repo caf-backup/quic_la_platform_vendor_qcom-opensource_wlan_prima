@@ -93,6 +93,9 @@ of NV fragment is nt possbile.The next multiple of 1Kb is 3K */
 /* Macro to find the total number fragments of the NV Image*/
 #define TOTALFRAGMENTS(x) ((x%FRAGMENT_SIZE)== 0) ? (x/FRAGMENT_SIZE):((x/FRAGMENT_SIZE)+1)
 
+/* Beacon Filter Length*/
+#define WDI_BEACON_FILTER_LEN 70
+
 /*============================================================================
  *     GENERIC STRUCTURES 
   
@@ -2259,6 +2262,9 @@ typedef enum
     WDI_LINK_FINISH_SCAN_STATE       = 11,
     WDI_LINK_INIT_CAL_STATE          = 12,
     WDI_LINK_FINISH_CAL_STATE        = 13,
+#ifdef WLAN_FEATURE_P2P
+    WDI_LINK_LISTEN_STATE            = 14,
+#endif
     WDI_LINK_MAX                     = 0x7FFFFFFF
 } WDI_LinkStateType;
 
@@ -2763,6 +2769,9 @@ typedef struct
 { 
    /*Beacon Filtering Info Type, same as tBeaconFilterMsg */ 
    WDI_BeaconFilterInfoType wdiBeaconFilterInfo; 
+   /*Beacon Filter(s) follow the "usIeNum" field, hence the array to ease the
+   copy of params from WDA to WDI */ 
+   wpt_uint8 aFilters[WDI_BEACON_FILTER_LEN];
    /*Request status callback offered by UMAC - it is called if the current req
    has returned PENDING as status; it delivers the status of sending the message
    over the BUS */ 

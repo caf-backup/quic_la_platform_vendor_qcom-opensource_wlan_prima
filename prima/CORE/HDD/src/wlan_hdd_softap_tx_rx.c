@@ -1401,7 +1401,12 @@ VOS_STATUS hdd_softap_change_STA_state( hdd_adapter_t *pAdapter, v_MACADDR_t *pD
         return VOS_STATUS_E_FAILURE;
     }
 #else
-    ucSTAId = 0; // suppress subscript out of range error
+    if (eHAL_STATUS_SUCCESS != hdd_softap_GetStaId(pAdapter, pDestMacAddress, (v_U16_t *)&ucSTAId))
+    {
+        VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Failed to find right station", __FUNCTION__);
+        return VOS_STATUS_E_FAILURE;
+    }
 #endif //FEATURE_WLAN_NON_INTEGRATED_SOC
 
     if (FALSE == vos_is_macaddr_equal(&pAdapter->aStaInfo[ucSTAId].macAddrSTA, pDestMacAddress))

@@ -40,6 +40,8 @@
 #define P2P_OUI_TYPE   "\x50\x6f\x9a\x09"
 #define P2P_OUI_TYPE_SIZE  4
 
+#define HDD_P2P_WILDCARD_SSID "DIRECT-" //TODO Put it in proper place;
+#define HDD_P2P_WILDCARD_SSID_LEN 7
 
 void wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter, 
                                       tCsrRoamInfo *pRoamInfo
