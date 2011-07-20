@@ -157,6 +157,27 @@ static inline void sd_release_host(struct sdio_func *sdio_func_dev)
    libra_release_host(sdio_func_dev, &(pAdapter->pid_sdio_claimed), current->pid, &(pAdapter->sdio_claim_count));
 }
 
+/*----------------------------------------------------------------------------
+
+   @brief Check if pAdapter is available in SDIO device 
+
+   @param SDIO function device. 
+
+   @return void
+      
+----------------------------------------------------------------------------*/
+static inline v_BOOL_t sd_is_drvdata_available(struct sdio_func *sdio_func_dev)
+{
+   hdd_adapter_t *pAdapter;
+
+   pAdapter =  sdio_get_drvdata(sdio_func_dev);
+
+   if(pAdapter)
+     return TRUE;
+
+   return FALSE;
+}
+
 #ifdef __cplusplus
 }
 #endif

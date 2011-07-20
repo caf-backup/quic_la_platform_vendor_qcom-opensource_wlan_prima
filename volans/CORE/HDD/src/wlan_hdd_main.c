@@ -980,35 +980,35 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    static char macAddr[6] =  {0x00, 0x0a, 0xf5, 0x89, 0x89, 0x89};
    int ret;
 #ifdef CONFIG_CFG80211
-   struct wireless_dev *wdev ;
+   struct wireless_dev *wdev;
 #endif
-   
+
    ENTER();
 #ifdef CONFIG_CFG80211
    /*
     * cfg80211 initialization and registration....
     */
-      
-   wdev = wlan_hdd_cfg80211_init(&sdio_func_dev->dev, sizeof(hdd_adapter_t)) ;
+
+   wdev = wlan_hdd_cfg80211_init(&sdio_func_dev->dev, sizeof(hdd_adapter_t));
 
    if(wdev == NULL)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: cfg80211 init failed", __func__);
-      goto register_cfg80211_err ;
+      goto register_cfg80211_err;
    }
 
-   pAdapter = wdev_priv(wdev) ;
-   pAdapter->wdev = wdev ;
- 
+   pAdapter = wdev_priv(wdev);
+   pAdapter->wdev = wdev;
+
    pWlanDev = alloc_netdev_mq(0, "wlan%d", ether_setup, NUM_TX_QUEUES);
-   
-   if(pWlanDev == NULL) 
+
+   if(pWlanDev == NULL)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: alloc_netdev failed", __func__);
-      goto register_cfg80211_err ;
+      goto register_cfg80211_err;
    }
-#else      
-      
+#else
+
    //Allocate the net_device and HDD Adapter (private data)
    pWlanDev = alloc_etherdev_mq(sizeof( hdd_adapter_t), NUM_TX_QUEUES);
 
@@ -1022,14 +1022,14 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    ether_setup(pWlanDev);
 
    pAdapter = netdev_priv(pWlanDev);
-#endif   
-   
+#endif
+
    //Initialize the adapter context to zeros.
    vos_mem_zero(pAdapter, sizeof( hdd_adapter_t ));
 
    pAdapter->isLoadUnloadInProgress = TRUE;
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
-   
+
    /*Get vos context here bcoz vos_open requires it*/
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
@@ -1064,17 +1064,17 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    pWlanDev->hard_header_len += LIBRA_HW_NEEDED_HEADROOM;
 
 #ifdef CONFIG_CFG80211
-   wdev->iftype = NL80211_IFTYPE_STATION; 
+   wdev->iftype = NL80211_IFTYPE_STATION;
    pWlanDev->ieee80211_ptr = wdev ;
-#endif  
+#endif
 
    /* set pWlanDev's parent to sdio device */
    SET_NETDEV_DEV(pWlanDev, &sdio_func_dev->dev);
 
 #ifdef CONFIG_CFG80211
    wdev->netdev =  pWlanDev;
-#endif 
-   
+#endif
+
    // Set the private data for the device to our adapter.
    libra_sdio_setprivdata (sdio_func_dev, pAdapter);
    atomic_set(&pAdapter->sdio_claim_count, 0);
@@ -1087,22 +1087,14 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    init_completion(&pAdapter->mc_sus_event_var);
    init_completion(&pAdapter->tx_sus_event_var);
 
-
    // Register the net device. Device should be registered to invoke
    // request_firmware API for reading the qcom_cfg.ini file
-   if(register_netdev(pWlanDev))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed:register_netdev",__func__); 
-      goto err_free_netdev;
-   }
-
-   set_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
 
 #ifdef ANI_MANF_DIAG
     if(VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pAdapter))
     {
         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to Load FTM driver",__func__);
-        goto err_netdev_unregister;
+        goto err_free_netdev;
     }
     hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
     return VOS_STATUS_SUCCESS;
@@ -1112,7 +1104,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 
    if((VOS_STA_SAP_MODE == hdd_get_conparam()) && hdd_wlan_create_ap_dev(pWlanDev))
    {
-      goto err_netdev_unregister;
+      goto err_free_netdev;
    }
 #endif
 
@@ -1131,8 +1123,8 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    if ( VOS_STATUS_SUCCESS != status )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: error parsing %s",__func__, INI_FILE);
-      goto err_config;   
-   }   
+      goto err_config;
+   }
 
 	//Open watchdog module
    if(pAdapter->cfg_ini->fIsLogpEnabled)
@@ -1175,7 +1167,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 
   /* Start BAL */
   status = WLANBAL_Start(pAdapter->pvosContext);
-  
+
   if (!VOS_IS_STATUS_SUCCESS(status))
   {
      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -1195,7 +1187,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    if ( !VOS_IS_STATUS_SUCCESS( status ))
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_open failed",__func__);
-      goto err_balstop;   
+      goto err_balstop;
    }
 
    /* Save the hal context in Adapter */
@@ -1203,7 +1195,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 
    if ( NULL == pAdapter->hHal )
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HAL context is null",__func__);	  
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HAL context is null",__func__);
       goto err_vosclose;
    }
 
@@ -1220,8 +1212,8 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    status = hdd_set_sme_config( pAdapter );
 
    if ( VOS_STATUS_SUCCESS != status )
-   {  
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed hdd_set_sme_config",__func__); 
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed hdd_set_sme_config",__func__);
       goto err_vosclose;
    }
 
@@ -1253,24 +1245,21 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    status = hdd_post_voss_start_config( pAdapter );
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_post_voss_start_config failed", 
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hdd_post_voss_start_config failed",
          __func__);
       goto err_vosstop;
    }
 
    //Open a SME session for future operation
-          halStatus = sme_OpenSession( pAdapter->hHal, hdd_smeRoamCallback, pAdapter,
-                                       (tANI_U8 *)&pAdapter->macAddressCurrent, &pAdapter->sessionId );
-         if ( !HAL_STATUS_SUCCESS( halStatus ) )
-         {
-            hddLog(VOS_TRACE_LEVEL_FATAL,"sme_OpenSession() failed with status code %08d [x%08lx]",
-                          halStatus, halStatus );
-              goto err_vosstop;
+   halStatus = sme_OpenSession( pAdapter->hHal, hdd_smeRoamCallback, pAdapter,
+                              (tANI_U8 *)&pAdapter->macAddressCurrent, &pAdapter->sessionId );
+   if ( !HAL_STATUS_SUCCESS( halStatus ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"sme_OpenSession() failed with status code %08d [x%08lx]",
+                      halStatus, halStatus );
+      goto err_vosstop;
 
-         }
-
-
-
+   }
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
    // Register suspend/resume callbacks
@@ -1279,23 +1268,6 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 #endif
 
    pAdapter->isLinkUpSvcNeeded = FALSE;
-
-   // register net device notifier for device change notification
-   ret = register_netdevice_notifier(&hdd_netdev_notifier);
-
-   if(ret < 0)
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: register_netdevice_notifier failed",__func__);
-      goto err_vosstop;;
-   }
-
-
-   // Register wireless extensions
-   hdd_register_wext(pWlanDev);
-
-   //Stop the Interface TX queue.
-   netif_tx_stop_all_queues(pWlanDev);
-   netif_carrier_off(pWlanDev);
 
 #ifdef WLAN_SOFTAP_FEATURE
    if (VOS_STA_SAP_MODE == hdd_get_conparam())
@@ -1314,7 +1286,7 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    if(nl_srv_init() != 0)
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%S: nl_srv_init failed",__func__);
-      goto err_reg_netdev;
+      goto err_vosstop;
    }
 
    //Initialize the BTC service
@@ -1340,13 +1312,37 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       goto err_nl_srv;
    }
 
+   if(register_netdev(pWlanDev))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed:register_netdev",__func__);
+      goto err_nl_srv;
+   }
+
+   set_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
+
+   // register net device notifier for device change notification
+   ret = register_netdevice_notifier(&hdd_netdev_notifier);
+
+   if(ret < 0)
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: register_netdevice_notifier failed",__func__);
+      goto err_netdev_unregister;
+   }
+
+   //Stop the Interface TX queue.
+   netif_tx_stop_all_queues(pWlanDev);
+   netif_carrier_off(pWlanDev);
+
+   // Register wireless extensions
+   hdd_register_wext(pWlanDev);
+
 #ifdef WLAN_SOFTAP_FEATURE
    if (VOS_STA_SAP_MODE == hdd_get_conparam())
-   { 
+   {
       if (register_netdev(pAdapter->pHostapd_dev))
       {
-         hddLog(VOS_TRACE_LEVEL_ERROR,"%s:Failed:register_netdev",__func__); 
-         goto err_nl_srv;
+         hddLog(VOS_TRACE_LEVEL_ERROR,"%s:Failed:register_netdev",__func__);
+         goto err_reg_netdev;
       }
 
       hdd_register_hostapd(pAdapter->pHostapd_dev);
@@ -1361,20 +1357,27 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
 
    pAdapter->isLoadUnloadInProgress = FALSE;
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
-  
+
    goto success;
+
+err_reg_netdev:
+   unregister_netdevice_notifier(&hdd_netdev_notifier);
+
+err_netdev_unregister:
+   if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags))
+   {
+      unregister_netdev(pWlanDev);
+      clear_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
+   }
 
 err_nl_srv:
    nl_srv_exit();
- 
-err_reg_netdev:
-   unregister_netdevice_notifier(&hdd_netdev_notifier);
 
 err_vosstop:
    vos_stop(pVosContext);
 
-err_vosclose:	
-   vos_close(pVosContext ); 
+err_vosclose:
+   vos_close(pVosContext );
 
 err_balstop:
    wlan_hdd_enable_deepsleep(pAdapter->pvosContext);
@@ -1401,22 +1404,16 @@ err_config:
 err_free_hap_dev:
 #ifdef WLAN_SOFTAP_FEATURE
    if (VOS_STA_SAP_MODE == hdd_get_conparam())
-   { 
+   {
       free_netdev(pAdapter->pHostapd_dev);
    }
 #endif
-
-err_netdev_unregister:
-   if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) {
-      unregister_netdev(pWlanDev);
-      clear_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
-   }
 
 err_free_netdev:
    free_netdev(pWlanDev);
 #ifdef CONFIG_CFG80211
 register_cfg80211_err:
-   wiphy_unregister(wdev->wiphy) ; 
+   wiphy_unregister(wdev->wiphy) ;
    wiphy_free(wdev->wiphy) ;
    kfree(wdev) ;
 #endif
@@ -1575,7 +1572,7 @@ static int __init hdd_module_init ( void)
          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: WLAN Driver Initialization failed",
              __func__);
 #ifdef WLAN_BTAMP_FEATURE
-         BSL_Deinit();	
+         BSL_Deinit();
 #endif
          WLANSAL_Close(pVosContext);
          vos_preClose( &pVosContext );

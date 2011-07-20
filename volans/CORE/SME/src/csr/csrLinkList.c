@@ -250,9 +250,6 @@ eHalStatus csrLLOpen( tHddHandle hHdd, tDblLinkList *pList )
     return (status);
 }
 
-
-
-
 void csrLLClose( tDblLinkList *pList )
 {
     if( !pList) 
@@ -265,12 +262,10 @@ void csrLLClose( tDblLinkList *pList )
     {
         // Make sure the list is empty...
         csrLLPurge( pList, LL_ACCESS_LOCK );
-        palSpinLockFree(pList->hHdd, pList->Lock);
+        vos_mem_free( pList->Lock );
         pList->Flag = LIST_FLAG_CLOSE;
     }
 }
-
-
 
 void csrLLInsertTail( tDblLinkList *pList, tListElem *pEntry, tANI_BOOLEAN fInterlocked )
 {    

@@ -518,7 +518,10 @@ int isWDresetInProgress(void)
    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
                 "%s: Reset is in Progress...",__func__);
 #ifndef ANI_MANF_DIAG
-   return gpVosWatchdogContext->resetInProgress;
+   if(NULL != gpVosWatchdogContext)
+      return gpVosWatchdogContext->resetInProgress;
+   else
+      return 0;
 #else
    return 0;
 #endif
@@ -938,7 +941,7 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
         /* Release the lock here */
         spin_unlock(&gpVosWatchdogContext->wdLock);
         return VOS_STATUS_E_FAILURE;
-    }
+    } 
     else if (pAdapter->isLogpInProgress)
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,

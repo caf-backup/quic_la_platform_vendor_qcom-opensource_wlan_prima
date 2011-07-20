@@ -8785,8 +8785,14 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
             roamInfo.staId = (tANI_U8)pDeauthIndMsg->staId;
         }
 #endif
-        csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_LOSTLINK, result);
-        csrScanStartIdleScan(pMac);
+       
+       csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_LOSTLINK, result);
+       
+       /*No need to start idle scan in case of IBSS/SAP*/
+       if(CSR_IS_INFRASTRUCTURE(&pSession->connectedProfile))
+       {
+          csrScanStartIdleScan(pMac);
+       }
     }
     
     return (status);

@@ -601,6 +601,11 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
       return;
    }
 
+   if (pAdapter->isLogpInProgress) {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Ignore suspend wlan, LOGP in progress!", __func__);
+      return;
+   }
+
    sdio_func_dev = libra_getsdio_funcdev();
 
    if(sdio_func_dev == NULL)
@@ -610,10 +615,17 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
         return;
    }
 
+   if(!sd_is_drvdata_available(sdio_func_dev))
+   {
+        /* Our card got removed */
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: pAdapter is not available \
+                                       in sdio_func_dev!",__func__);
+        return;
+   }
+
    sd_claim_host(sdio_func_dev);
    
-   // Prevent touching the pMac while LOGP reset in progress, we should never get here
-   // as the wake lock is already acquired and it would prevent from entering suspend 
+   // Prevent touching the pMac while LOGP reset in progress
    if (pAdapter->isLogpInProgress) {
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Ignore suspend wlan, LOGP in progress!", __func__);
       sd_release_host(sdio_func_dev);
@@ -712,6 +724,12 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
       return;
    }
    
+   // Prevent touching the pMac while LOGP reset in progress, 
+   if (pAdapter->isLogpInProgress) {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Ignore resume wlan, LOGP in progress!", __func__);
+      return;
+   }
+
    sdio_func_dev = libra_getsdio_funcdev();
 
    if(sdio_func_dev == NULL)
@@ -721,9 +739,17 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
       return;
    }
 
+   if(!sd_is_drvdata_available(sdio_func_dev))
+   {
+        /* Our card got removed */
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: pAdapter is not available \
+                                       in sdio_func_dev!",__func__);
+        return;
+   }
+
    sd_claim_host(sdio_func_dev);
    
-   // Prevent touching the pMac while LOGP reset in progress, 
+   // Prevent touching the pMac while LOGP reset in progress
    if (pAdapter->isLogpInProgress) {
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Ignore resume wlan, LOGP in progress!", __func__);
       sd_release_host(sdio_func_dev);
