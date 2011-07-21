@@ -710,6 +710,8 @@ eHalStatus pmcSendPowerSaveConfigMessage (tHalHandle hHal)
     }
     powerSaveConfig.fEnablePwrSaveImmediately = pMac->pmc.bmpsConfig.setPmOnLastFrame;
     powerSaveConfig.fPSPoll = pMac->pmc.bmpsConfig.usePsPoll;
+    powerSaveConfig.fEnableBeaconEarlyTermination = 
+        pMac->pmc.bmpsConfig.enableBeaconEarlyTermination;
 
     /* setcfg for listenInterval. Make sure CFG is updated because PE reads this 
        from CFG at the time of assoc or reassoc */

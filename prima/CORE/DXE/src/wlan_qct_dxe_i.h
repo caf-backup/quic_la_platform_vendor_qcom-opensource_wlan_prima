@@ -570,6 +570,7 @@ typedef struct
    wpt_boolean                     txIntEnable;
    wpt_uint32                      txCompletedFrames; 
    wpt_uint8                       ucTxMsgCnt; 
+   wpt_uint16                      lastKickOffDxe; 
 } WLANDXE_CtrlBlkType;
 
 /*==========================================================================

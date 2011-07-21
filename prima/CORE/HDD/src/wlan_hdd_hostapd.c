@@ -325,7 +325,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                 v_U16_t size =  (24 + sizeof(mgmt.u.assoc_resp) + iesLen);
                 memcpy(mgmt.da, &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac,6);
                 memcpy(mgmt.sa, &pHostapdAdapter->macAddressCurrent,6);
-
+                mgmt.u.assoc_resp.status_code = pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.statusCode;
                 memcpy(mgmt.u.assoc_resp.variable,pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies,iesLen);
                 cfg80211_send_rx_assoc(dev,(const u8 *)&mgmt,size);
              }

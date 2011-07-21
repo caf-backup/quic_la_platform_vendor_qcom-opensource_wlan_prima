@@ -8463,13 +8463,12 @@ WDI_ProcessUpdateCfgReq
   WDI_EventInfoType*     pEventData
 )
 {
-  WDI_UpdateCfgReqParamsType*  pwdiUpdateCfgParams;
-  WDI_UpdateCfgRspCb           wdiUpdateCfgRspCb;
-  /*wpt_uint8                    ucCurrentBSSSesIdx  = 0; 
-  WDI_BSSSessionType*          pBSSSes             = NULL;
+  WDI_UpdateCfgReqParamsType*  pwdiUpdateCfgParams = NULL;
+  WDI_UpdateCfgRspCb           wdiUpdateCfgRspCb = NULL;
+
   wpt_uint8*                   pSendBuffer         = NULL; 
   wpt_uint16                   usDataOffset         = 0;
-  wpt_uint16                   usSendSize          = 0;*/
+  wpt_uint16                   usSendSize          = 0;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -8479,8 +8478,7 @@ WDI_ProcessUpdateCfgReq
       ( NULL == pEventData->pCBfnc))
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in switch req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+              "Invalid parameters in switch req");
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -8488,17 +8486,13 @@ WDI_ProcessUpdateCfgReq
   pwdiUpdateCfgParams = (WDI_UpdateCfgReqParamsType*)pEventData->pEventData;
   wdiUpdateCfgRspCb   = (WDI_UpdateCfgRspCb)pEventData->pCBfnc;
 
-  /* ! TO DO : This is currently not supported in HAL, so send the response
-     right away */
-  wdiUpdateCfgRspCb( WDI_STATUS_E_NOT_IMPLEMENT, pEventData->pUserData);
- 
   /*-----------------------------------------------------------------------
     Get message buffer
     ! TO DO : proper conversion into the HAL Message Request Format 
   -----------------------------------------------------------------------*/
-/*
+
   if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_UPDATE_CFG_REQ, 
-                        sizeof(pwdiUpdateCfgParams->pConfigBuffer),
+                        pwdiUpdateCfgParams->uConfigBufferLen + sizeof(wpt_uint32),
                         &pSendBuffer, &usDataOffset, &usSendSize))||
       ( usSendSize < (usDataOffset +  pwdiUpdateCfgParams->uConfigBufferLen)))
   {
@@ -8510,21 +8504,22 @@ WDI_ProcessUpdateCfgReq
   }
 
   wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                  &pwdiUpdateCfgParams->pConfigBuffer, 
+                  &pwdiUpdateCfgParams->uConfigBufferLen, 
+                  sizeof(wpt_uint32)); 
+  wpalMemoryCopy( pSendBuffer+usDataOffset+sizeof(wpt_uint32), 
+                  pwdiUpdateCfgParams->pConfigBuffer, 
                   pwdiUpdateCfgParams->uConfigBufferLen); 
 
   pWDICtx->wdiReqStatusCB     = pwdiUpdateCfgParams->wdiReqStatusCB;
   pWDICtx->pReqStatusUserData = pwdiUpdateCfgParams->pUserData; 
-*/
+
   /*-------------------------------------------------------------------------
     Send Update Cfg Request to HAL 
   -------------------------------------------------------------------------*/
-/*
+
   return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
                        wdiUpdateCfgRspCb, pEventData->pUserData, WDI_UPDATE_CFG_RESP); 
-*/
 
-  return WDI_STATUS_SUCCESS; 
 }/*WDI_ProcessUpdateCfgReq*/
 
 
@@ -9509,6 +9504,7 @@ WDI_ProcessEnterBmpsReq
    wpt_uint8*               pSendBuffer         = NULL; 
    wpt_uint16               usDataOffset        = 0;
    wpt_uint16               usSendSize          = 0;
+   tHalEnterBmpsReqParams   enterBmpsReq;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -9529,9 +9525,9 @@ WDI_ProcessEnterBmpsReq
      ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_ENTER_BMPS_REQ, 
-                         sizeof(pwdiEnterBmpsReqParams->wdiEnterBmpsInfo),
+                         sizeof(enterBmpsReq),
                          &pSendBuffer, &usDataOffset, &usSendSize))||
-       ( usSendSize < (usDataOffset + sizeof(pwdiEnterBmpsReqParams->wdiEnterBmpsInfo) )))
+       ( usSendSize < (usDataOffset + sizeof(enterBmpsReq) )))
    {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
                "Unable to get send buffer in Enter BMPS req %x %x %x",
@@ -9565,12 +9561,15 @@ WDI_ProcessEnterBmpsReq
       WDI_ASSERT(0); 
       return VOS_STATUS_E_FAILURE;
    }
-   //passed by DXE, to be passed down to RIVA
-   pwdiEnterBmpsReqParams->wdiEnterBmpsInfo.dxePhyAddr = pWDICtx->dxePhyAddr;
+
+   enterBmpsReq.bssIdx = pwdiEnterBmpsReqParams->wdiEnterBmpsInfo.ucBssIdx;
+   enterBmpsReq.tbtt = pwdiEnterBmpsReqParams->wdiEnterBmpsInfo.uTbtt;
+   enterBmpsReq.dtimCount = pwdiEnterBmpsReqParams->wdiEnterBmpsInfo.ucDtimCount;
+   enterBmpsReq.dtimPeriod = pwdiEnterBmpsReqParams->wdiEnterBmpsInfo.ucDtimPeriod;
 
    wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                   &pwdiEnterBmpsReqParams->wdiEnterBmpsInfo, 
-                   sizeof(pwdiEnterBmpsReqParams->wdiEnterBmpsInfo)); 
+                   &enterBmpsReq, 
+                   sizeof(enterBmpsReq)); 
 
    pWDICtx->wdiReqStatusCB     = pwdiEnterBmpsReqParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiEnterBmpsReqParams->pUserData; 
@@ -9604,6 +9603,7 @@ WDI_ProcessExitBmpsReq
    wpt_uint8*               pSendBuffer         = NULL; 
    wpt_uint16               usDataOffset        = 0;
    wpt_uint16               usSendSize          = 0;
+   tHalExitBmpsReqParams    exitBmpsReq;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*-------------------------------------------------------------------------
@@ -9624,9 +9624,9 @@ WDI_ProcessExitBmpsReq
      ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_EXIT_BMPS_REQ, 
-                         sizeof(pwdiExitBmpsReqParams->wdiExitBmpsInfo),
+                         sizeof(exitBmpsReq),
                          &pSendBuffer, &usDataOffset, &usSendSize))||
-       ( usSendSize < (usDataOffset + sizeof(pwdiExitBmpsReqParams->wdiExitBmpsInfo) )))
+       ( usSendSize < (usDataOffset + sizeof(exitBmpsReq) )))
    {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
                "Unable to get send buffer in Exit BMPS req %x %x %x",
@@ -9634,10 +9634,11 @@ WDI_ProcessExitBmpsReq
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+   exitBmpsReq.sendDataNull = pwdiExitBmpsReqParams->wdiExitBmpsInfo.ucSendDataNull;
 
    wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                   &pwdiExitBmpsReqParams->wdiExitBmpsInfo, 
-                   sizeof(pwdiExitBmpsReqParams->wdiExitBmpsInfo)); 
+                   &exitBmpsReq, 
+                   sizeof(exitBmpsReq)); 
 
    pWDICtx->wdiReqStatusCB     = pwdiExitBmpsReqParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiExitBmpsReqParams->pUserData; 
@@ -9671,6 +9672,7 @@ WDI_ProcessEnterUapsdReq
    wpt_uint8*               pSendBuffer         = NULL; 
    wpt_uint16               usDataOffset        = 0;
    wpt_uint16               usSendSize          = 0;
+   tUapsdReqParams          enterUapsdReq;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*-------------------------------------------------------------------------
@@ -9691,9 +9693,9 @@ WDI_ProcessEnterUapsdReq
      ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_ENTER_UAPSD_REQ, 
-                         sizeof(pwdiEnterUapsdReqParams->wdiEnterUapsdInfo),
+                         sizeof(enterUapsdReq),
                          &pSendBuffer, &usDataOffset, &usSendSize))||
-       ( usSendSize < (usDataOffset + sizeof(pwdiEnterUapsdReqParams->wdiEnterUapsdInfo) )))
+       ( usSendSize < (usDataOffset + sizeof(enterUapsdReq) )))
    {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
                "Unable to get send buffer in Enter UAPSD req %x %x %x",
@@ -9702,9 +9704,18 @@ WDI_ProcessEnterUapsdReq
       return WDI_STATUS_E_FAILURE; 
    }
 
+   enterUapsdReq.beDeliveryEnabled  = pwdiEnterUapsdReqParams->wdiEnterUapsdInfo.ucBeDeliveryEnabled;
+   enterUapsdReq.beTriggerEnabled   = pwdiEnterUapsdReqParams->wdiEnterUapsdInfo.ucBeTriggerEnabled;
+   enterUapsdReq.bkDeliveryEnabled  = pwdiEnterUapsdReqParams->wdiEnterUapsdInfo.ucBkDeliveryEnabled;
+   enterUapsdReq.bkTriggerEnabled   = pwdiEnterUapsdReqParams->wdiEnterUapsdInfo.ucBkTriggerEnabled;
+   enterUapsdReq.viDeliveryEnabled  = pwdiEnterUapsdReqParams->wdiEnterUapsdInfo.ucViDeliveryEnabled;
+   enterUapsdReq.viTriggerEnabled   = pwdiEnterUapsdReqParams->wdiEnterUapsdInfo.ucViTriggerEnabled;
+   enterUapsdReq.voDeliveryEnabled  = pwdiEnterUapsdReqParams->wdiEnterUapsdInfo.ucVoDeliveryEnabled;
+   enterUapsdReq.voTriggerEnabled   = pwdiEnterUapsdReqParams->wdiEnterUapsdInfo.ucVoTriggerEnabled;
+
    wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                   &pwdiEnterUapsdReqParams->wdiEnterUapsdInfo, 
-                   sizeof(pwdiEnterUapsdReqParams->wdiEnterUapsdInfo)); 
+                   &enterUapsdReq, 
+                   sizeof(enterUapsdReq)); 
 
    pWDICtx->wdiReqStatusCB     = pwdiEnterUapsdReqParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiEnterUapsdReqParams->pUserData; 
@@ -9796,6 +9807,7 @@ WDI_ProcessSetUapsdAcParamsReq
   wpt_uint8*               pSendBuffer         = NULL; 
   wpt_uint16               usDataOffset        = 0;
   wpt_uint16               usSendSize          = 0;
+  tUapsdInfo               uapsdAcParamsReq;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -9816,9 +9828,9 @@ WDI_ProcessSetUapsdAcParamsReq
     ! TO DO : proper conversion into the HAL Message Request Format 
   -----------------------------------------------------------------------*/
   if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_SET_UAPSD_PARAM_REQ, 
-                        sizeof(pwdiSetUapsdAcParams->wdiUapsdInfo),
+                        sizeof(uapsdAcParamsReq),
                         &pSendBuffer, &usDataOffset, &usSendSize))||
-      ( usSendSize < (usDataOffset + sizeof(pwdiSetUapsdAcParams->wdiUapsdInfo) )))
+      ( usSendSize < (usDataOffset + sizeof(uapsdAcParamsReq) )))
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
               "Unable to get send buffer in Set UAPSD params req %x %x %x",
@@ -9827,9 +9839,16 @@ WDI_ProcessSetUapsdAcParamsReq
      return WDI_STATUS_E_FAILURE; 
   }
 
+  uapsdAcParamsReq.ac = pwdiSetUapsdAcParams->wdiUapsdInfo.ucAc;
+  uapsdAcParamsReq.staidx = pwdiSetUapsdAcParams->wdiUapsdInfo.ucStaIdx;
+  uapsdAcParamsReq.up = pwdiSetUapsdAcParams->wdiUapsdInfo.ucUp;
+  uapsdAcParamsReq.delayInterval = pwdiSetUapsdAcParams->wdiUapsdInfo.uDelayInterval;
+  uapsdAcParamsReq.srvInterval = pwdiSetUapsdAcParams->wdiUapsdInfo.uSrvInterval;
+  uapsdAcParamsReq.susInterval = pwdiSetUapsdAcParams->wdiUapsdInfo.uSusInterval;
+
   wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                  &pwdiSetUapsdAcParams->wdiUapsdInfo, 
-                  sizeof(pwdiSetUapsdAcParams->wdiUapsdInfo)); 
+                  &uapsdAcParamsReq, 
+                  sizeof(uapsdAcParamsReq)); 
 
   pWDICtx->wdiReqStatusCB     = pwdiSetUapsdAcParams->wdiReqStatusCB;
   pWDICtx->pReqStatusUserData = pwdiSetUapsdAcParams->pUserData; 
@@ -10017,7 +10036,7 @@ WDI_ProcessSetBeaconFilterReq
      ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_SET_BEACON_FILTER_REQ, 
-                         sizeof(pwdiBeaconFilterParams->wdiBeaconFilterInfo),
+                         sizeof(pwdiBeaconFilterParams->wdiBeaconFilterInfo) + pwdiBeaconFilterParams->wdiBeaconFilterInfo.usIeNum * sizeof(tBeaconFilterIe),
                          &pSendBuffer, &usDataOffset, &usSendSize))||
        ( usSendSize < (usDataOffset + sizeof(pwdiBeaconFilterParams->wdiBeaconFilterInfo) )))
    {
@@ -10031,6 +10050,9 @@ WDI_ProcessSetBeaconFilterReq
    wpalMemoryCopy( pSendBuffer+usDataOffset, 
                    &pwdiBeaconFilterParams->wdiBeaconFilterInfo, 
                    sizeof(pwdiBeaconFilterParams->wdiBeaconFilterInfo)); 
+   wpalMemoryCopy( pSendBuffer+usDataOffset+sizeof(pwdiBeaconFilterParams->wdiBeaconFilterInfo), 
+                   &pwdiBeaconFilterParams->aFilters[0], 
+                   pwdiBeaconFilterParams->wdiBeaconFilterInfo.usIeNum * sizeof(tBeaconFilterIe)); 
 
    pWDICtx->wdiReqStatusCB     = pwdiBeaconFilterParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiBeaconFilterParams->pUserData; 
@@ -10131,6 +10153,7 @@ WDI_ProcessSetRSSIThresholdsReq
    wpt_uint8*               pSendBuffer         = NULL; 
    wpt_uint16               usDataOffset        = 0;
    wpt_uint16               usSendSize          = 0;
+   tHalRSSIThresholds       rssiThresholdsReq;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*-------------------------------------------------------------------------
@@ -10151,9 +10174,9 @@ WDI_ProcessSetRSSIThresholdsReq
      ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_SET_RSSI_THRESHOLDS_REQ, 
-                         sizeof(pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo),
+                         sizeof(rssiThresholdsReq),
                          &pSendBuffer, &usDataOffset, &usSendSize))||
-       ( usSendSize < (usDataOffset + sizeof(pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo) )))
+       ( usSendSize < (usDataOffset + sizeof(rssiThresholdsReq) )))
    {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
                   "Unable to get send buffer in remove beacon filter req %x %x %x",
@@ -10162,9 +10185,30 @@ WDI_ProcessSetRSSIThresholdsReq
       return WDI_STATUS_E_FAILURE; 
    }
 
+   rssiThresholdsReq.bReserved10 = 
+      pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo.bReserved10;
+   rssiThresholdsReq.bRssiThres1NegNotify = 
+      pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo.bRssiThres1NegNotify;
+   rssiThresholdsReq.bRssiThres1PosNotify = 
+      pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo.bRssiThres1PosNotify;
+   rssiThresholdsReq.bRssiThres2NegNotify = 
+      pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo.bRssiThres2NegNotify;
+   rssiThresholdsReq.bRssiThres2PosNotify = 
+      pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo.bRssiThres2PosNotify;
+   rssiThresholdsReq.bRssiThres3NegNotify = 
+      pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo.bRssiThres3NegNotify;
+   rssiThresholdsReq.bRssiThres3PosNotify = 
+      pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo.bRssiThres3PosNotify;
+   rssiThresholdsReq.ucRssiThreshold1 = 
+      pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo.ucRssiThreshold1;
+   rssiThresholdsReq.ucRssiThreshold2 = 
+      pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo.ucRssiThreshold2;
+   rssiThresholdsReq.ucRssiThreshold3 = 
+      pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo.ucRssiThreshold3;
+
    wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                   &pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo, 
-                   sizeof(pwdiRSSIThresholdsParams->wdiRSSIThresholdsInfo)); 
+                   &rssiThresholdsReq, 
+                   sizeof(rssiThresholdsReq)); 
 
    pWDICtx->wdiReqStatusCB     = pwdiRSSIThresholdsParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiRSSIThresholdsParams->pUserData; 
@@ -10198,6 +10242,7 @@ WDI_ProcessHostOffloadReq
    wpt_uint8*               pSendBuffer         = NULL; 
    wpt_uint16               usDataOffset        = 0;
    wpt_uint16               usSendSize          = 0;
+   tHalHostOffloadReq       hostOffloadReq;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*-------------------------------------------------------------------------
@@ -10218,9 +10263,9 @@ WDI_ProcessHostOffloadReq
      ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_HOST_OFFLOAD_REQ, 
-                         sizeof(pwdiHostOffloadParams->wdiHostOffloadInfo),
+                         sizeof(hostOffloadReq),
                          &pSendBuffer, &usDataOffset, &usSendSize))||
-       ( usSendSize < (usDataOffset + sizeof(pwdiHostOffloadParams->wdiHostOffloadInfo) )))
+       ( usSendSize < (usDataOffset + sizeof(hostOffloadReq) )))
    {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
                   "Unable to get send buffer in host offload req %x %x %x",
@@ -10229,9 +10274,23 @@ WDI_ProcessHostOffloadReq
       return WDI_STATUS_E_FAILURE; 
    }
 
+   hostOffloadReq.offloadType = pwdiHostOffloadParams->wdiHostOffloadInfo.ucOffloadType;
+   hostOffloadReq.enableOrDisable = pwdiHostOffloadParams->wdiHostOffloadInfo.ucEnableOrDisable;
+   if( 0 == hostOffloadReq.offloadType )
+   {
+      wpalMemoryCopy(hostOffloadReq.params.hostIpv4Addr,
+                     pwdiHostOffloadParams->wdiHostOffloadInfo.params.aHostIpv4Addr,
+                     4);
+   }
+   else
+   {
+      wpalMemoryCopy(hostOffloadReq.params.hostIpv6Addr,
+                     pwdiHostOffloadParams->wdiHostOffloadInfo.params.aHostIpv6Addr,
+                     16);
+   }
    wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                   &pwdiHostOffloadParams->wdiHostOffloadInfo, 
-                   sizeof(pwdiHostOffloadParams->wdiHostOffloadInfo)); 
+                   &hostOffloadReq, 
+                   sizeof(hostOffloadReq)); 
 
    pWDICtx->wdiReqStatusCB     = pwdiHostOffloadParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiHostOffloadParams->pUserData; 
@@ -10265,6 +10324,7 @@ WDI_ProcessWowlAddBcPtrnReq
    wpt_uint8*               pSendBuffer         = NULL; 
    wpt_uint16               usDataOffset        = 0;
    wpt_uint16               usSendSize          = 0;
+   tHalWowlAddBcastPtrn     wowlAddBcPtrnReq;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*-------------------------------------------------------------------------
@@ -10285,9 +10345,9 @@ WDI_ProcessWowlAddBcPtrnReq
      ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_WOWL_ADD_BC_PTRN_REQ, 
-                         sizeof(pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo),
+                         sizeof(wowlAddBcPtrnReq),
                          &pSendBuffer, &usDataOffset, &usSendSize))||
-       ( usSendSize < (usDataOffset + sizeof(pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo) )))
+       ( usSendSize < (usDataOffset + sizeof(wowlAddBcPtrnReq) )))
    {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
                   "Unable to get send buffer in Wowl add bc ptrn req %x %x %x",
@@ -10296,9 +10356,24 @@ WDI_ProcessWowlAddBcPtrnReq
       return WDI_STATUS_E_FAILURE; 
    }
 
+   wowlAddBcPtrnReq.ucPatternId = 
+      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternId;
+   wowlAddBcPtrnReq.ucPatternByteOffset = 
+      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternByteOffset;
+   wowlAddBcPtrnReq.ucPatternMaskSize = 
+      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternMaskSize;
+   wowlAddBcPtrnReq.ucPatternSize = 
+      pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternSize;
+   wpalMemoryCopy(wowlAddBcPtrnReq.ucPattern,
+                  pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPattern,
+                  pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternSize);
+   wpalMemoryCopy(wowlAddBcPtrnReq.ucPatternMask,
+                  pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternMask,
+                  pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo.ucPatternMaskSize);
+
    wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                   &pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo, 
-                   sizeof(pwdiWowlAddBcPtrnParams->wdiWowlAddBcPtrnInfo)); 
+                   &wowlAddBcPtrnReq, 
+                   sizeof(wowlAddBcPtrnReq)); 
 
    pWDICtx->wdiReqStatusCB     = pwdiWowlAddBcPtrnParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiWowlAddBcPtrnParams->pUserData; 
@@ -10332,6 +10407,7 @@ WDI_ProcessWowlDelBcPtrnReq
    wpt_uint8*               pSendBuffer         = NULL; 
    wpt_uint16               usDataOffset        = 0;
    wpt_uint16               usSendSize          = 0;
+   tHalWowlDelBcastPtrn     wowlDelBcPtrnReq;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*-------------------------------------------------------------------------
@@ -10352,9 +10428,9 @@ WDI_ProcessWowlDelBcPtrnReq
      ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_WOWL_DEL_BC_PTRN_REQ, 
-                         sizeof(pwdiWowlDelBcPtrnParams->wdiWowlDelBcPtrnInfo),
+                         sizeof(wowlDelBcPtrnReq),
                          &pSendBuffer, &usDataOffset, &usSendSize))||
-       ( usSendSize < (usDataOffset + sizeof(pwdiWowlDelBcPtrnParams->wdiWowlDelBcPtrnInfo) )))
+       ( usSendSize < (usDataOffset + sizeof(wowlDelBcPtrnReq) )))
    {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
                   "Unable to get send buffer in Wowl del bc ptrn req %x %x %x",
@@ -10363,9 +10439,11 @@ WDI_ProcessWowlDelBcPtrnReq
       return WDI_STATUS_E_FAILURE; 
    }
 
+   wowlDelBcPtrnReq.ucPatternId = 
+      pwdiWowlDelBcPtrnParams->wdiWowlDelBcPtrnInfo.ucPatternId;
    wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                   &pwdiWowlDelBcPtrnParams->wdiWowlDelBcPtrnInfo, 
-                   sizeof(pwdiWowlDelBcPtrnParams->wdiWowlDelBcPtrnInfo)); 
+                   &wowlDelBcPtrnReq, 
+                   sizeof(wowlDelBcPtrnReq)); 
 
    pWDICtx->wdiReqStatusCB     = pwdiWowlDelBcPtrnParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiWowlDelBcPtrnParams->pUserData; 
@@ -10399,6 +10477,7 @@ WDI_ProcessWowlEnterReq
    wpt_uint8*               pSendBuffer         = NULL; 
    wpt_uint16               usDataOffset        = 0;
    wpt_uint16               usSendSize          = 0;
+   tHalWowlEnterParams      wowlEnterReq;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*-------------------------------------------------------------------------
@@ -10419,9 +10498,9 @@ WDI_ProcessWowlEnterReq
      ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_WOWL_ENTER_REQ, 
-                         sizeof(pwdiWowlEnterParams->wdiWowlEnterInfo),
+                         sizeof(wowlEnterReq),
                          &pSendBuffer, &usDataOffset, &usSendSize))||
-       ( usSendSize < (usDataOffset + sizeof(pwdiWowlEnterParams->wdiWowlEnterInfo) )))
+       ( usSendSize < (usDataOffset + sizeof(wowlEnterReq) )))
    {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
                   "Unable to get send buffer in Wowl enter req %x %x %x",
@@ -10430,9 +10509,29 @@ WDI_ProcessWowlEnterReq
       return WDI_STATUS_E_FAILURE; 
    }
 
+   wowlEnterReq.ucMagicPktEnable = 
+      pwdiWowlEnterParams->wdiWowlEnterInfo.ucMagicPktEnable;
+   wowlEnterReq.ucPatternFilteringEnable = 
+      pwdiWowlEnterParams->wdiWowlEnterInfo.ucPatternFilteringEnable;
+   wowlEnterReq.ucUcastPatternFilteringEnable = 
+      pwdiWowlEnterParams->wdiWowlEnterInfo.ucUcastPatternFilteringEnable;
+   wowlEnterReq.ucWowChnlSwitchRcv = 
+      pwdiWowlEnterParams->wdiWowlEnterInfo.ucWowChnlSwitchRcv;
+   wowlEnterReq.ucWowDeauthRcv = 
+      pwdiWowlEnterParams->wdiWowlEnterInfo.ucWowDeauthRcv;
+   wowlEnterReq.ucWowDisassocRcv = 
+      pwdiWowlEnterParams->wdiWowlEnterInfo.ucWowDisassocRcv;
+   wowlEnterReq.ucWowMaxMissedBeacons = 
+      pwdiWowlEnterParams->wdiWowlEnterInfo.ucWowMaxMissedBeacons;
+   wowlEnterReq.ucWowMaxSleepUsec = 
+      pwdiWowlEnterParams->wdiWowlEnterInfo.ucWowMaxSleepUsec;
+   wpalMemoryCopy(wowlEnterReq.magicPtrn,
+                  pwdiWowlEnterParams->wdiWowlEnterInfo.magicPtrn,
+                  sizeof(tSirMacAddr));
+
    wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                   &pwdiWowlEnterParams->wdiWowlEnterInfo, 
-                   sizeof(pwdiWowlEnterParams->wdiWowlEnterInfo)); 
+                   &wowlEnterReq, 
+                   sizeof(wowlEnterReq)); 
 
    pWDICtx->wdiReqStatusCB     = pwdiWowlEnterParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiWowlEnterParams->pUserData; 
@@ -17016,6 +17115,11 @@ WDI_2_HAL_LINK_STATE
 
   case WDI_LINK_FINISH_CAL_STATE:
     return eSIR_LINK_FINISH_CAL_STATE;
+
+#ifdef WLAN_FEATURE_P2P
+  case WDI_LINK_LISTEN_STATE:
+    return eSIR_LINK_LISTEN_STATE;
+#endif
 
   default:
     return eSIR_LINK_MAX;

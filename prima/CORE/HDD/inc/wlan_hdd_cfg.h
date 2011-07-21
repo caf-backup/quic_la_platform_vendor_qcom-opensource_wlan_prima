@@ -841,6 +841,11 @@ typedef enum
 #define CFG_BAND_CAPABILITY_MAX           (2)
 #define CFG_BAND_CAPABILITY_DEFAULT       (1)
 
+#define CFG_ENABLE_BEACON_EARLY_TERMINATION_NAME          "enableBeaconEarlyTermination"
+#define CFG_ENABLE_BEACON_EARLY_TERMINATION_MIN           ( 0 )
+#define CFG_ENABLE_BEACON_EARLY_TERMINATION_MAX           ( 1 )
+#define CFG_ENABLE_BEACON_EARLY_TERMINATION_DEFAULT       ( 0 )
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -1052,6 +1057,8 @@ typedef struct
 
    v_U8_t                      nNullDataApRespTimeout;
    v_U8_t                      nBandCapability;
+
+   v_BOOL_t                    fEnableBeaconEarlyTermination;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

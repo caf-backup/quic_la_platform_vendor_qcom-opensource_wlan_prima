@@ -238,10 +238,17 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
 
     /*Initialise the band details*/
     wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_2GHZ;
-
+    wiphy->flags |= WIPHY_FLAG_SUPPORTS_SEPARATE_DEFAULT_KEYS;
     /*Initialise the supported cipher suite details*/
     wiphy->cipher_suites = hdd_cipher_suites;
     wiphy->n_cipher_suites = ARRAY_SIZE(hdd_cipher_suites);
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+#ifdef WLAN_FEATURE_P2P
+    wiphy->max_remain_on_channel_duration = 5000;//This value is different sap-vsta
+                                                 //to make success in remain on channel
+#endif
+#endif
 
     /* Register our wiphy dev with cfg80211 */
     if (0 > wiphy_register(wiphy))
@@ -3650,6 +3657,27 @@ static int wlan_hdd_cfg80211_get_txpower(struct wiphy *wiphy, int *dbm)
     return 0;
 }
 
+int set_default_mgmt_key(struct wiphy *wiphy,
+                         struct net_device *netdev,
+                         u8 key_index)
+{
+    return 0;
+}
+int mgmt_tx_cancel_wait(struct wiphy *wiphy,
+                        struct net_device *dev,
+                        u64 cookie)
+{
+
+    return 0 ;
+
+}
+
+int set_txq_params(struct wiphy *wiphy,
+                   struct ieee80211_txq_params *params)
+{
+    return 0;
+}
+
 /* cfg80211_ops */
 static struct cfg80211_ops wlan_hdd_cfg80211_ops = 
 {
@@ -3678,6 +3706,9 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
     .remain_on_channel = wlan_hdd_remain_on_channel,
     .cancel_remain_on_channel =  wlan_hdd_cancel_remain_on_channel,
     .mgmt_tx =  wlan_hdd_action,
+    .mgmt_tx_cancel_wait = mgmt_tx_cancel_wait,
+    .set_default_mgmt_key = set_default_mgmt_key,
+    .set_txq_params = set_txq_params,
 #endif
 };
 

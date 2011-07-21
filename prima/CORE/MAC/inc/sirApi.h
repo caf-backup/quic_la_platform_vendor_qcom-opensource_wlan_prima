@@ -2956,6 +2956,9 @@ typedef struct sSirPowerSaveCfg
     tANI_U8 fEnablePwrSaveImmediately;
     tANI_U8 fPSPoll;
 
+    // Enabling/disabling Beacon Early Termination feature
+    tANI_U8     fEnableBeaconEarlyTermination;    
+
 }tSirPowerSaveCfg, *tpSirPowerSaveCfg;
 
 /* Reason code for requesting Full Power. This reason code is used by 

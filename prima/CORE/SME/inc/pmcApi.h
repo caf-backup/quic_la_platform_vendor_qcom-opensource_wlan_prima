@@ -245,6 +245,12 @@ typedef struct sPmcBmpsConfigParams
 
                                          frame has been processed */
 
+    tANI_BOOLEAN enableBeaconEarlyTermination; /* if TRUE, BET feature in RIVA 
+                                      will be enabled, FALSE otherwise, TRUE means:
+                                      RXP will read the beacon header for the 
+                                      TIM bit & discard the rest if set to 0, 
+                                      while in BMPS              */
+
 } tPmcBmpsConfigParams, *tpPmcBmpsConfigParams;
 
 

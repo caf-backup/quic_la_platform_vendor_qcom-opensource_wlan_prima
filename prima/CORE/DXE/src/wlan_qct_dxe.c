@@ -43,6 +43,7 @@ when           who        what, where, why
 #ifdef FEATURE_R33D
 #include "wlan_qct_pal_bus.h"
 #endif /* FEATURE_R33D */
+#include <mach/msm_smsm.h>
 
 /*----------------------------------------------------------------------------
  * Local Definitions
@@ -1405,6 +1406,129 @@ static wpt_status dxeRXFrameReady
 
 /*==========================================================================
   @  Function Name 
+      dxeNotifySmsm
+
+  @  Description: Notify SMSM to start DXE engine and/or condition of Tx ring
+  buffer 
+
+  @  Parameters
+
+  @  Return
+      wpt_status
+
+===========================================================================*/
+static wpt_status dxeNotifySmsm
+(
+  wpt_boolean kickDxe,
+  wpt_boolean ringEmpty
+)
+{
+   wpt_uint32 clrSt = 0;
+   wpt_uint32 setSt = 0;
+
+   if(kickDxe)
+   {
+     HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW, "Kick off DXE");
+
+     if(tempDxeCtrlBlk->lastKickOffDxe == 0)
+     {
+       setSt |= SMSM_WLAN_TX_ENABLE; 
+       tempDxeCtrlBlk->lastKickOffDxe = 1;
+     }
+     else if(tempDxeCtrlBlk->lastKickOffDxe == 1)
+     {
+       clrSt |= SMSM_WLAN_TX_ENABLE;
+       tempDxeCtrlBlk->lastKickOffDxe = 0;
+     }
+     else
+     {
+       HDXE_ASSERT(0);
+     }
+   }
+   else
+   {
+     HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW, "no need to kick off DXE");
+   }
+
+   if(ringEmpty)
+   {
+     HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW, "SMSM Tx Ring Empty");
+     clrSt |= SMSM_WLAN_TX_RINGS_EMPTY; 
+   }
+   else
+   {
+     HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW, "SMSM Tx Ring Not Empty");
+     setSt |= SMSM_WLAN_TX_RINGS_EMPTY; 
+   }
+
+   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR, "C%x S%x", clrSt, setSt);
+
+   smsm_change_state(SMSM_APPS_STATE, clrSt, setSt);
+
+   return eWLAN_PAL_STATUS_SUCCESS;
+}
+
+/*==========================================================================
+  @  Function Name 
+      dxePsComplete
+
+  @  Description: Utility function to check the resv desc to deside if we can
+  get into Power Save mode now 
+
+  @  Parameters
+
+  @  Return
+      None
+
+===========================================================================*/
+static void dxePsComplete(WLANDXE_CtrlBlkType *dxeCtxt, wpt_boolean intr_based)
+{
+   if( dxeCtxt->hostPowerState == WLANDXE_POWER_STATE_FULL )
+   {
+     return;
+   }
+
+   //if both HIGH & LOW Tx channels don't have anything on resv desc,all Tx pkts
+   //must have been consumed by RIVA, OK to get into BMPS
+   if((0 == dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_LOW_PRI].numRsvdDesc) &&
+      (0 == dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_HIGH_PRI].numRsvdDesc))
+   {
+      tempDxeCtrlBlk->ringNotEmpty = eWLAN_PAL_FALSE;
+      if(WLANDXE_POWER_STATE_BMPS_PENDING == dxeCtxt->hostPowerState)
+      {
+         dxeCtxt->hostPowerState = WLANDXE_POWER_STATE_BMPS;
+         dxeCtxt->setPowerStateCb(eWLAN_PAL_STATUS_SUCCESS,
+                                  dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_LOW_PRI].descBottomLocPhyAddr);
+      }
+      //if host is in BMPS & no pkt to Tx, RIVA can go to power save
+      if(WLANDXE_POWER_STATE_BMPS == dxeCtxt->hostPowerState)
+      {
+         dxeCtxt->rivaPowerState = WLANDXE_RIVA_POWER_STATE_BMPS_UNKNOWN;
+         dxeNotifySmsm(eWLAN_PAL_FALSE, eWLAN_PAL_TRUE);
+      }
+   }
+   else //still more pkts to be served by RIVA
+   {
+      tempDxeCtrlBlk->ringNotEmpty = eWLAN_PAL_TRUE;
+
+      switch(dxeCtxt->rivaPowerState)
+      {
+         case WLANDXE_RIVA_POWER_STATE_ACTIVE:
+            //NOP
+            break;
+         case WLANDXE_RIVA_POWER_STATE_BMPS_UNKNOWN:
+            dxeCtxt->rivaPowerState = WLANDXE_RIVA_POWER_STATE_ACTIVE;
+            dxeNotifySmsm(eWLAN_PAL_TRUE, eWLAN_PAL_FALSE);
+            break;
+         default:
+            //assert
+            break;
+      }
+   }
+}
+
+/*==========================================================================
+  @  Function Name 
       dxeRXEventHandler
 
   @  Description 
@@ -1737,9 +1861,16 @@ static wpt_status dxeTXPushFrame
 #else
    wpt_iterator                iterator;
 #endif /* FEATURE_R33D */
+   wpt_uint32                  isEmpty = 0;
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Enter", __FUNCTION__);
+
+   if((0 == tempDxeCtrlBlk->dxeChannel[WDTS_CHANNEL_TX_LOW_PRI].numRsvdDesc) &&
+      (0 == tempDxeCtrlBlk->dxeChannel[WDTS_CHANNEL_TX_HIGH_PRI].numRsvdDesc))
+   {
+     isEmpty = 1;
+   }
 
    channelEntry->numFragmentCurrentChain = 0;
    currentCtrlBlk = channelEntry->headCtrlBlk;
@@ -1875,12 +2006,15 @@ static wpt_status dxeTXPushFrame
    {
       /* Update channel head as next avaliable linked slot */
       channelEntry->headCtrlBlk = currentCtrlBlk;
-      if((0 == tempDxeCtrlBlk->dxeChannel[WDTS_CHANNEL_TX_LOW_PRI].numRsvdDesc) &&
-         (0 == tempDxeCtrlBlk->dxeChannel[WDTS_CHANNEL_TX_HIGH_PRI].numRsvdDesc))
+
+      if( isEmpty )
       {
          tempDxeCtrlBlk->ringNotEmpty = eWLAN_PAL_TRUE;
-         //call smsm_state_set() abs. API
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW, "SMSM_ret LO=%d HI=%d", tempDxeCtrlBlk->dxeChannel[WDTS_CHANNEL_TX_LOW_PRI].numRsvdDesc,
+                  tempDxeCtrlBlk->dxeChannel[WDTS_CHANNEL_TX_HIGH_PRI].numRsvdDesc );
+         dxeNotifySmsm(eWLAN_PAL_TRUE, eWLAN_PAL_FALSE);
       }
+
       return status;
    }
 
@@ -2217,7 +2351,6 @@ void dxeTXEventHandler
    wpt_uint32                chStat     = 0;
    wpt_uint32                wqCount    = 0;
    WLANDXE_ChannelCBType    *channelCb  = NULL;
-   WLANDXE_PowerStateType    oldHostPowerState;
 
    wpt_uint8                 bEnableISR = 0; 
 
@@ -2255,6 +2388,8 @@ void dxeTXEventHandler
 
       if(WLANDXE_CH_STAT_INT_ERR_MASK & chStat)
       {
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "dxeTXEventHandler TX HI status=%x", chStat);
          HDXE_ASSERT(0);
       }
       else if(WLANDXE_CH_STAT_INT_DONE_MASK & chStat)
@@ -2284,7 +2419,8 @@ void dxeTXEventHandler
       }
       else
       {
-         /* ??? */
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "dxeTXEventHandler TX HI status=%x", chStat);
       }
       dxeChannelMonitor(channelCb);
    }
@@ -2303,6 +2439,8 @@ void dxeTXEventHandler
 
       if(WLANDXE_CH_STAT_INT_ERR_MASK & chStat)
       {
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "dxeTXEventHandler TX LO status=%x", chStat);
          HDXE_ASSERT(0);
       }
       else if(WLANDXE_CH_STAT_INT_DONE_MASK & chStat)
@@ -2331,55 +2469,14 @@ void dxeTXEventHandler
       }
       else
       {
-         /* ??? */
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "dxeTXEventHandler TX LO status=%x", chStat);
       }
       dxeChannelMonitor(channelCb);
    }
 
-   //if both HIGH & LOW Tx channels don't have anything on resv desc,all Tx pkts
-   //must have been consumed by RIVA, OK to get into BMPS
-   if((0 == dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_LOW_PRI].numRsvdDesc) &&
-      (0 == dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_HIGH_PRI].numRsvdDesc))
-   {
-      oldHostPowerState = dxeCtxt->hostPowerState;
-      tempDxeCtrlBlk->ringNotEmpty = eWLAN_PAL_FALSE;
-      if(WLANDXE_POWER_STATE_BMPS_PENDING == dxeCtxt->hostPowerState)
-      {
-         dxeCtxt->hostPowerState = WLANDXE_POWER_STATE_BMPS;
-      }
-      //if host is in BMPS & no pkt to Tx, RIVA can go to power save
-      if(WLANDXE_POWER_STATE_BMPS == dxeCtxt->hostPowerState)
-      {
-         dxeCtxt->rivaPowerState = WLANDXE_RIVA_POWER_STATE_BMPS_UNKNOWN;
-      }
-      //if the req was pending need to send the callback to WDI
-      if(WLANDXE_POWER_STATE_BMPS_PENDING == oldHostPowerState)
-      {
-         dxeCtxt->setPowerStateCb(eWLAN_PAL_STATUS_SUCCESS,
-                                  dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_LOW_PRI].descBottomLocPhyAddr);
-      }
-      if(WLANDXE_RIVA_POWER_STATE_BMPS_UNKNOWN == dxeCtxt->rivaPowerState)
-      {
-         //call smsm_state_set() abs. API
-      }
-   }
-   else //still more pkts to be served by RIVA
-   {
-      tempDxeCtrlBlk->ringNotEmpty = eWLAN_PAL_TRUE;
-      switch(dxeCtxt->rivaPowerState)
-      {
-         case WLANDXE_RIVA_POWER_STATE_ACTIVE:
-            //NOP
-            break;
-         case WLANDXE_RIVA_POWER_STATE_BMPS_UNKNOWN:
-            dxeCtxt->rivaPowerState = WLANDXE_RIVA_POWER_STATE_ACTIVE;
-            //call smsm_state_set() abs. API
-            break;
-         default:
-            //assert
-            break;
-      }
-   }
+   dxePsComplete(dxeCtxt, eWLAN_PAL_TRUE);
+
 #ifdef WLANDXE_TEST_CHANNEL_ENABLE
    /* Test H2H TX Channel interrupt is enabled or not */
    channelCb = &dxeCtxt->dxeChannel[WDTS_CHANNEL_H2H_TEST_TX];
@@ -2396,7 +2493,9 @@ void dxeTXEventHandler
 
       if(WLANDXE_CH_STAT_INT_ERR_MASK & chStat)
       {
-         /* Error Happen during transaction, Handle it */
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "WLANDXE_CH_STAT_INT_ERR_MASK occured");
+         HDXE_ASSERT(0);
       }
       else if(WLANDXE_CH_STAT_INT_DONE_MASK & chStat)
       {
@@ -2412,7 +2511,8 @@ void dxeTXEventHandler
       }
       else
       {
-         /* ??? */
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "unexpected channel state %d", chStat);
       }
       dxeChannelMonitor(channelCb);
    }
@@ -2474,6 +2574,8 @@ void dxeTXCompleteProcessing
    /* Handle TX complete for low priority channel */
    status = dxeTXCompFrame(dxeCtxt, channelCb);
    
+   dxePsComplete(dxeCtxt, eWLAN_PAL_FALSE);
+   
    if(( dxeCtxt->txCompletedFrames > 0 ) && 
       (  eWLAN_PAL_FALSE == dxeCtxt->txIntEnable))
    {
@@ -2481,7 +2583,6 @@ void dxeTXCompleteProcessing
       wpalEnableInterrupt(DXE_INTERRUPT_TX_COMPLE);
    }
    
-
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
             "%s Exit", __FUNCTION__);
    return;
@@ -3293,6 +3394,7 @@ void dxeSetPowerStateEventHandler
             dxeCtxt->rivaPowerState = WLANDXE_RIVA_POWER_STATE_ACTIVE;
          }
          dxeCtxt->hostPowerState = reqPowerState;
+         dxeNotifySmsm(eWLAN_PAL_FALSE, eWLAN_PAL_TRUE);
          break;
       default:
          //assert

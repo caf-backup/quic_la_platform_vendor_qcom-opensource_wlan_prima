@@ -1051,6 +1051,90 @@ VOS_STATUS WDA_prepareConfigTLV(v_PVOID_t pVosContext,
    tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length) ; 
 
+   /* QWLAN_HAL_CFG_TELE_BCN_WAKEUP_EN */
+   tlvStruct->type = QWLAN_HAL_CFG_TELE_BCN_WAKEUP_EN  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = 0;
+/*
+   if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_WAKEUP_EN, configDataValue) 
+      != eSIR_SUCCESS)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                    "Failed to get value for WNI_CFG_TELE_BCN_WAKEUP_EN");
+      goto handle_failure;
+   }
+*/
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* QWLAN_HAL_CFG_TELE_BCN_TRANS_LI */
+   tlvStruct->type = QWLAN_HAL_CFG_TELE_BCN_TRANS_LI  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = 1;
+/*
+   if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_TRANS_LI, configDataValue) 
+      != eSIR_SUCCESS)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                    "Failed to get value for WNI_CFG_TELE_BCN_TRANS_LI");
+      goto handle_failure;
+   }
+*/
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* QWLAN_HAL_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS */
+   tlvStruct->type = QWLAN_HAL_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = 1;
+/*
+   if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS, configDataValue) 
+      != eSIR_SUCCESS)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                    "Failed to get value for WNI_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS");
+      goto handle_failure;
+   }
+*/
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* QWLAN_HAL_CFG_TELE_BCN_MAX_LI */
+   tlvStruct->type = QWLAN_HAL_CFG_TELE_BCN_MAX_LI  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = 1;
+/*
+   if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_MAX_LI, configDataValue) 
+      != eSIR_SUCCESS)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                    "Failed to get value for WNI_CFG_TELE_BCN_MAX_LI");
+      goto handle_failure;
+   }
+*/
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
+   /* QWLAN_HAL_CFG_TELE_BCN_MAX_LI_IDLE_BCNS */
+   tlvStruct->type = QWLAN_HAL_CFG_TELE_BCN_MAX_LI_IDLE_BCNS  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = 1;
+/*
+   if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_MAX_LI_IDLE_BCNS, configDataValue) 
+      != eSIR_SUCCESS)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                    "Failed to get value for WNI_CFG_TELE_BCN_MAX_LI_IDLE_BCNS");
+      goto handle_failure;
+   }
+*/
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
 
    wdiStartParams->usConfigBufferLen = (tANI_U8 *)tlvStruct - tlvStructStart ;
 
@@ -2755,6 +2839,18 @@ static inline v_U8_t WDA_ConvertWniCfgIdToHALCfgId(v_U8_t wniCfgId)
          return QWLAN_HAL_CFG_EDCA_WMM_ACVI;
       case WNI_CFG_EDCA_WME_ACVO:
          return QWLAN_HAL_CFG_EDCA_WMM_ACVO;
+#if 0
+      case WNI_CFG_TELE_BCN_WAKEUP_EN:
+         return QWLAN_HAL_CFG_TELE_BCN_WAKEUP_EN;
+      case WNI_CFG_TELE_BCN_TRANS_LI:
+         return QWLAN_HAL_CFG_TELE_BCN_TRANS_LI;
+      case WNI_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS:
+         return QWLAN_HAL_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS;
+      case WNI_CFG_TELE_BCN_MAX_LI:
+         return QWLAN_HAL_CFG_TELE_BCN_MAX_LI;
+      case WNI_CFG_TELE_BCN_MAX_LI_IDLE_BCNS:
+         return QWLAN_HAL_CFG_TELE_BCN_MAX_LI_IDLE_BCNS;
+#endif
       default:
       {
          VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
@@ -4964,6 +5060,8 @@ VOS_STATUS WDA_ProcessEnterBmpsReq(tWDA_CbContext *pWDA,
    wdiEnterBmpsReqParams->wdiEnterBmpsInfo.ucDtimPeriod = pEnterBmpsReqParams->dtimPeriod;
    wdiEnterBmpsReqParams->wdiEnterBmpsInfo.uTbtt = pEnterBmpsReqParams->tbtt;
       
+   wdiEnterBmpsReqParams->wdiReqStatusCB = NULL;
+      
    WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
                   (NULL == pWDA->wdaWdiApiMsgParam));
 
@@ -5031,6 +5129,8 @@ VOS_STATUS WDA_ProcessExitBmpsReq(tWDA_CbContext *pWDA,
    WDA_VOS_ALLOC_FAIL(wdiExitBmpsReqParams);
 
    wdiExitBmpsReqParams->wdiExitBmpsInfo.ucSendDataNull = pExitBmpsReqParams->sendDataNull;
+      
+   wdiExitBmpsReqParams->wdiReqStatusCB = NULL;
       
    WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
                   (NULL == pWDA->wdaWdiApiMsgParam));
@@ -5314,9 +5414,7 @@ VOS_STATUS WDA_ProcessSetPwrSaveCfgReq(tWDA_CbContext *pWDA,
    tlvStruct->type = QWLAN_HAL_CFG_PS_ENABLE_BCN_EARLY_TERM;
    tlvStruct->length = sizeof(tANI_U32);
    configDataValue = (tANI_U32 *)(tlvStruct + 1);
-   /* FIX : not sure where the value will come from */
-   *configDataValue = (tANI_U32)pPowerSaveCfg->nthBeaconFwd;
-
+   *configDataValue = (tANI_U32)pPowerSaveCfg->fEnableBeaconEarlyTermination;
    tlvStruct = (tHalCfg *)(( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length)) ; 
 
@@ -5339,6 +5437,8 @@ VOS_STATUS WDA_ProcessSetPwrSaveCfgReq(tWDA_CbContext *pWDA,
                             + sizeof(tHalCfg) + tlvStruct->length)) ; 
 
    wdiPowerSaveCfg->uConfigBufferLen = (tANI_U8 *)tlvStruct - tlvStructStart ;
+
+   wdiPowerSaveCfg->wdiReqStatusCB = NULL;
 
    WDA_VOS_ASSERT(NULL == pWDA->wdaWdiCfgApiMsgParam);
 
@@ -5605,19 +5705,21 @@ VOS_STATUS WDA_ProcessConfigureRxpFilterReq(tWDA_CbContext *pWDA, tSirMsgQ *cfgP
  */ 
 void WDA_SetBeaconFilterReqCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   WDA_VOS_ASSERT(NULL != pWdaParams);
    
+   vos_mem_free(pWdaParams->wdaMsgParam) ;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
+   /* 
+    * No respone required for SetBeaconFilter req so just free the request 
+    * param here
+    */
 
-   //print a msg, nothing else to do
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-              "WDA_SetBeaconFilterReqCallback invoked " );
 
    return ;
 }
@@ -5631,15 +5733,18 @@ VOS_STATUS WDA_SetBeaconFilterReq(tWDA_CbContext *pWDA,
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    tANI_U8            *dstPtr, *srcPtr;
+   tANI_U8             filterLength;
    WDI_BeaconFilterReqParamsType *wdiBeaconFilterInfo = 
       (WDI_BeaconFilterReqParamsType *)vos_mem_malloc(
-         sizeof(WDI_BeaconFilterReqParamsType) + 
-         (pBeaconFilterInfo->ieNum * sizeof(tBeaconFilterIe))) ;
+         sizeof(WDI_BeaconFilterReqParamsType) ) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
 
    WDA_VOS_ALLOC_FAIL(wdiBeaconFilterInfo);
+   WDA_VOS_ALLOC_FAIL(pWdaParams);
 
    wdiBeaconFilterInfo->wdiBeaconFilterInfo.usBeaconInterval = 
       pBeaconFilterInfo->beaconInterval;
@@ -5652,28 +5757,31 @@ VOS_STATUS WDA_SetBeaconFilterReq(tWDA_CbContext *pWDA,
    //Fill structure with info contained in the beaconFilterTable
    dstPtr = (tANI_U8 *)wdiBeaconFilterInfo + sizeof(WDI_BeaconFilterInfoType);
    srcPtr = (tANI_U8 *)pBeaconFilterInfo + sizeof(tBeaconFilterMsg);
-   vos_mem_copy(dstPtr, srcPtr, 
-                wdiBeaconFilterInfo->wdiBeaconFilterInfo.usIeNum * sizeof(tBeaconFilterIe));
+   filterLength = wdiBeaconFilterInfo->wdiBeaconFilterInfo.usIeNum * sizeof(tBeaconFilterIe);
+   if(WDI_BEACON_FILTER_LEN < filterLength)
+   {
+      filterLength = WDI_BEACON_FILTER_LEN;
+   }
+   vos_mem_copy(dstPtr, srcPtr, filterLength);
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                  (NULL == pWDA->wdaWdiApiMsgParam));
-
+   wdiBeaconFilterInfo->wdiReqStatusCB = NULL;
    /* Store param pointer as passed in by caller */
-   pWDA->wdaMsgParam = pBeaconFilterInfo;
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiBeaconFilterInfo;
+   pWdaParams->wdaWdiApiMsgParam = wdiBeaconFilterInfo;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = pBeaconFilterInfo;
+
 
    status = WDI_SetBeaconFilterReq(wdiBeaconFilterInfo, 
-                                   (WDI_SetBeaconFilterCb)WDA_SetBeaconFilterReqCallback, pWDA);
+                                   (WDI_SetBeaconFilterCb)WDA_SetBeaconFilterReqCallback, pWdaParams);
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
               "Failure in Set Beacon Filter REQ WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      vos_mem_free(pWDA->wdaMsgParam);
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaMsgParam) ;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
    }
 
    return CONVERT_WDI2VOS_STATUS(status) ;
@@ -6597,7 +6705,7 @@ VOS_STATUS WDA_TxComplete( v_PVOID_t pVosContext, vos_pkt_t *pData,
 {
    tANI_U32 vosStatus = VOS_STATUS_SUCCESS ;
    tWDA_CbContext *wdaContext= (tWDA_CbContext *)VOS_GET_WDA_CTXT(pVosContext);
-
+   tpAniSirGlobal pMac = VOS_GET_MAC_CTXT((void *)pVosContext) ;
    /* 
     * Trigger the event to bring the HAL TL Tx complete function to come 
     * out of wait 
@@ -6609,7 +6717,7 @@ VOS_STATUS WDA_TxComplete( v_PVOID_t pVosContext, vos_pkt_t *pData,
                       "NEW VOS Event Set failed - status = %d \n", vosStatus);
    }
 
-   wdaContext->pTxCbFunc(pVosContext, pData);
+   wdaContext->pTxCbFunc(pMac, pData);
 
    return status;
 }
@@ -6882,7 +6990,7 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
       {
          if(pWDA->wdaState == WDA_READY_STATE)
          {
-            //WDA_ProcessSetPwrSaveCfgReq(pWDA, (tSirPowerSaveCfg *)pMsg->bodyptr);
+            WDA_ProcessSetPwrSaveCfgReq(pWDA, (tSirPowerSaveCfg *)pMsg->bodyptr);
          }
          else
          {
@@ -6999,7 +7107,7 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
       }
       case WDA_BEACON_FILTER_IND  :
       {
-         //WDA_SetBeaconFilterReq(pWDA, (tBeaconFilterMsg *)pMsg->bodyptr);
+         WDA_SetBeaconFilterReq(pWDA, (tBeaconFilterMsg *)pMsg->bodyptr);
          break;
       }
       case WDA_BTC_SET_CFG:

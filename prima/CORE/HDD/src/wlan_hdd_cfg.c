@@ -1094,6 +1094,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_BAND_CAPABILITY_MIN, 
                  CFG_BAND_CAPABILITY_MAX ), 
 
+   REG_VARIABLE( CFG_ENABLE_BEACON_EARLY_TERMINATION_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, fEnableBeaconEarlyTermination, 
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                CFG_ENABLE_BEACON_EARLY_TERMINATION_DEFAULT, 
+                CFG_ENABLE_BEACON_EARLY_TERMINATION_MIN, 
+                CFG_ENABLE_BEACON_EARLY_TERMINATION_MAX ), 
+
 };                                
 
 /*
@@ -1415,7 +1422,6 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [tsInfoAckPolicy] Value = [0x%x] ",pHddCtx->cfg_ini->tsInfoAckPolicy);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pHddCtx->cfg_ini->rfSettlingTimeUs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [bSingleTidRc] Value = [%u] ",pHddCtx->cfg_ini->bSingleTidRc);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [rfSettlingTimeUs] Value = [%u] ",pHddCtx->cfg_ini->rfSettlingTimeUs);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [gDynamicPSPollvalue] Value = [%u] ",pHddCtx->cfg_ini->dynamicPsPollValue);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAddTSWhenACMIsOff] Value = [%u] ",pHddCtx->cfg_ini->AddTSWhenACMIsOff);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gValidateScanList] Value = [%u] ",pHddCtx->cfg_ini->fValidateScanList);
@@ -1773,16 +1779,19 @@ static void hdd_set_power_save_config(hdd_context_t *pHddCtx, tSmeConfigParams *
    {
       smeConfig->csrConfig.impsSleepTime   = pConfig->nImpsMinSleepTime;
       bmpsParams.bmpsPeriod                = pConfig->nBmpsMinListenInterval;
+      bmpsParams.enableBeaconEarlyTermination = pConfig->fEnableBeaconEarlyTermination;
    }
    if (strcmp(pConfig->PowerUsageControl, "Max") == 0)
    {
       smeConfig->csrConfig.impsSleepTime   = pConfig->nImpsMaxSleepTime;
       bmpsParams.bmpsPeriod                = pConfig->nBmpsMaxListenInterval;
+      bmpsParams.enableBeaconEarlyTermination = pConfig->fEnableBeaconEarlyTermination;
    }
    if (strcmp(pConfig->PowerUsageControl, "Mod") == 0)
    {
       smeConfig->csrConfig.impsSleepTime   = pConfig->nImpsModSleepTime;
       bmpsParams.bmpsPeriod                = pConfig->nBmpsModListenInterval;
+      bmpsParams.enableBeaconEarlyTermination = pConfig->fEnableBeaconEarlyTermination;
    }
 
    if (pConfig->fIsImpsEnabled)
