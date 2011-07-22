@@ -369,6 +369,13 @@ typedef struct
    /* FTM Command Request tracking */
    v_PVOID_t            wdaFTMCmdReq;
 #endif /* ANI_MANF_DIAG */
+
+   /* Event to wait for suspend data tx*/
+   vos_event_t          suspendDataTxEvent;
+   /* Status frm TL after suspend/resume Tx */
+   tANI_U8    txStatus;
+   /* Flag set to true when TL suspend timesout.*/
+   tANI_U8    txSuspendTimedOut;   
 } tWDA_CbContext ; 
 
 typedef struct
@@ -464,6 +471,11 @@ tBssSystemRole wdaGetGlobalSystemRole(tpAniSirGlobal pMac);
 #define WDA_WDI_COMPLETION_TIME_OUT 30000 /* in ms */
 
 #define WDA_TL_TX_FRAME_TIMEOUT  5000 /* in msec a very high upper limit of 5,000 msec */
+#define WDA_TL_SUSPEND_TIMEOUT  2000 /* in ms unit */
+
+#define WDA_TL_TX_SUSPEND_SUCCESS   0
+#define WDA_TL_TX_SUSPEND_FAILURE   1
+
 // FIXME Temporary value for R33D integaration
 //#define WDA_TL_TX_FRAME_TIMEOUT  20000 /* in msec a very high upper limit */
 

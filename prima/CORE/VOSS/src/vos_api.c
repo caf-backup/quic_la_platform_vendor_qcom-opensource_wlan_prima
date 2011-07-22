@@ -1274,6 +1274,28 @@ void vos_set_logp_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
    gpVosContext->isLogpInProgress = value;
 }
 
+v_U8_t vos_is_load_unload_in_progress(VOS_MODULE_ID moduleId, v_VOID_t *moduleContext)
+{
+  if (gpVosContext == NULL)
+  {
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+        "%s: global voss context is NULL", __FUNCTION__);
+  }
+
+   return gpVosContext->isLoadUnloadInProgress;
+}
+
+void vos_set_load_unload_in_progress(VOS_MODULE_ID moduleId, v_U8_t value)
+{
+  if (gpVosContext == NULL)
+  {
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+        "%s: global voss context is NULL", __FUNCTION__);
+  }
+
+   gpVosContext->isLoadUnloadInProgress = value;
+}
+
 /**---------------------------------------------------------------------------
   
   \brief vos_alloc_context() - allocate a context within the VOSS global Context

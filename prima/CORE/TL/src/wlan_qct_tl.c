@@ -8552,9 +8552,21 @@ WLANTL_MgmtFrmRxDefaultCb
   v_PVOID_t  vosBuff
 )
 {
-  TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
-             "WLAN TL:Fatal failure: No registered Mgmt Frm client on pkt RX"));
-  VOS_ASSERT(0);
+  /* Drop packet */
+  vos_pkt_return_packet(vosBuff);
+
+  if(!vos_is_load_unload_in_progress(VOS_MODULE_ID_TL, NULL))
+  {
+      TLLOGP(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
+                 "WLAN TL:Fatal failure: No registered Mgmt Frm client on pkt RX"));
+      VOS_ASSERT(0);
+  }
+  else
+  {
+      TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
+                 "WLAN TL: No registered Mgmt Frm client on pkt RX. Load/Unload in progress, Ignore"));
+  }
+
   return VOS_STATUS_E_FAILURE;
 }/*WLANTL_MgmtFrmRxDefaultCb*/
 

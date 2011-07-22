@@ -322,6 +322,7 @@ typedef struct _VosContextType
    v_VOID_t            *pWDAContext;
 #endif
 
+   volatile v_U8_t    isLoadUnloadInProgress;
 } VosContextType, *pVosContextType;
 
 

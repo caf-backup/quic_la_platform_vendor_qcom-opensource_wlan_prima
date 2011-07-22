@@ -160,6 +160,7 @@ VOS_STATUS WDA_ProcessAggrAddTSReq(tWDA_CbContext *pWDA, tAggrAddTsParams *pAggr
 
 
 void WDA_TimerHandler(v_VOID_t *pWDA, tANI_U32 timerInfo) ;
+VOS_STATUS WDA_ResumeDataTx(tWDA_CbContext *pWDA);
 
  
 /*
@@ -198,6 +199,15 @@ VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
                    "VOS Mgmt Frame Event init failed - tatus = %d\n", status);
       status = VOS_STATUS_E_FAILURE;
    }
+
+   status = vos_event_init(&wdaContext->suspendDataTxEvent);
+   if(!VOS_IS_STATUS_SUCCESS(status)) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                   "VOS suspend data tx Event init failed - tatus = %d\n", status);
+      status = VOS_STATUS_E_FAILURE;
+   }
+
 
    vos_trace_setLevel(VOS_MODULE_ID_WDA,VOS_TRACE_LEVEL_ERROR);
 
@@ -1215,7 +1225,8 @@ void WDA_stopCallback(WDI_Status status, v_PVOID_t *pVosContext)
 
 VOS_STATUS WDA_stop(v_PVOID_t pVosContext, tANI_U8 reason)
 {
-   WDI_Status status = WDI_STATUS_SUCCESS;
+   WDI_Status wdiStatus = WDI_STATUS_SUCCESS;
+   VOS_STATUS status = VOS_STATUS_SUCCESS;
 
    WDI_StopReqParamsType *wdiStopReq = (WDI_StopReqParamsType *)
                             vos_mem_malloc(sizeof(WDI_StopReqParamsType)) ;
@@ -1239,10 +1250,10 @@ VOS_STATUS WDA_stop(v_PVOID_t pVosContext, tANI_U8 reason)
    pWDA->wdaWdiApiMsgParam = (v_PVOID_t *)wdiStopReq ;
 
    /* call WDI stop */
-   status = WDI_Stop(wdiStopReq, 
+   wdiStatus = WDI_Stop(wdiStopReq, 
                            (WDI_StopRspCb)WDA_stopCallback, pVosContext);
 
-   if (IS_WDI_STATUS_FAILURE(status) )
+   if (IS_WDI_STATUS_FAILURE(wdiStatus) )
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                                   "error in WDA Stop" );
@@ -1283,7 +1294,14 @@ VOS_STATUS WDA_close(v_PVOID_t pVosContext)
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                  "VOS Event init failed - status = %d\n", status);
+                  "VOS Event destroy failed - status = %d\n", status);
+      status = VOS_STATUS_E_FAILURE;
+   }
+   status = vos_event_destroy(&wdaContext->suspendDataTxEvent);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                  "VOS Event destroy failed - status = %d\n", status);
       status = VOS_STATUS_E_FAILURE;
    }
 
@@ -1392,10 +1410,38 @@ VOS_STATUS WDA_SuspendDataTxCallback( v_PVOID_t      pvosGCtx,
                                             v_U8_t*        ucSTAId,
                                             VOS_STATUS     vosStatus)
 {
+   tWDA_CbContext *pWDA= (tWDA_CbContext *)VOS_GET_WDA_CTXT(pvosGCtx);
+
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                       "%s: Entered " ,__FUNCTION__);
+   if(VOS_IS_STATUS_SUCCESS(vosStatus)) 
+   {
+      pWDA->txStatus = WDA_TL_TX_SUSPEND_SUCCESS;
+   }
+   else
+   {
+      pWDA->txStatus = WDA_TL_TX_SUSPEND_FAILURE;        
+   }
 
-   /* TODO: Do we really need this */
+   /* Trigger the event to bring the WDA TL suspend function to come 
+    * out of wait*/
+   vosStatus = vos_event_set(&pWDA->suspendDataTxEvent);
+   if(!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
+                      "NEW VOS Event Set failed - status = %d \n", vosStatus);
+   }
+
+   /* If TL suspended had timedout before this callback was called, resume back 
+   * TL.*/
+   if (pWDA->txSuspendTimedOut) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                  "Late TLSuspendCallback, resmuing TL back again\n");
+      WDA_ResumeDataTx(pWDA);
+      pWDA->txSuspendTimedOut = FALSE;
+   }
+
    return VOS_STATUS_SUCCESS;
 }
 
@@ -1405,14 +1451,62 @@ VOS_STATUS WDA_SuspendDataTxCallback( v_PVOID_t      pvosGCtx,
  */ 
 VOS_STATUS WDA_SuspendDataTx(tWDA_CbContext *pWDA)
 {
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
+   VOS_STATUS status = VOS_STATUS_E_FAILURE;
+   tANI_U8 eventIdx = 0;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                       "%s: Entered " ,__FUNCTION__);
 
-   /* TODO: Do we really need the serialization mechanism in PRIMA*/
+   pWDA->txStatus = WDA_TL_TX_SUSPEND_FAILURE;
+
+   if (pWDA->txSuspendTimedOut) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+         "TL suspend timedout previously, CB not called yet\n");
+        return status;
+   }
+
+   /* Reset the event to be not signalled */
+   status = vos_event_reset(&pWDA->suspendDataTxEvent);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
+                            "VOS Event reset failed - status = %d\n",status);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   /*Indicate TL to suspend transmission */
    status = WLANTL_SuspendDataTx(pWDA->pVosContext, NULL,
                                                 WDA_SuspendDataTxCallback);
+   if(status != VOS_STATUS_SUCCESS)
+   {
+      return status;
+   }
+
+   /* Wait for the event to be set by the TL, to get the response of suspending the 
+    * TX queues, this event should be set by the Callback function called 
+    * by TL*/
+   status = vos_wait_events(&pWDA->suspendDataTxEvent, 1, 
+                                   WDA_TL_SUSPEND_TIMEOUT, &eventIdx);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
+                            "VOS Event wait failed - status = %d\n",status);
+      /* Set this flag to true when TL suspend times out, so that when TL suspend 
+       * eventually happens and calls the callback, TL can be resumed right 
+       * away by looking at this flag when true.*/
+        pWDA->txSuspendTimedOut = TRUE;
+   } 
+   else 
+   {
+      pWDA->txSuspendTimedOut = FALSE;
+   }
+
+   if(pWDA->txStatus == WDA_TL_TX_SUSPEND_SUCCESS) 
+   {
+      status = eHAL_STATUS_SUCCESS;
+   }
+
    return status;
 }
 

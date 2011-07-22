@@ -1895,6 +1895,8 @@ int hdd_wlan_startup(struct device *dev )
 #endif
    pHddCtx->isLoadUnloadInProgress = TRUE;
 
+   vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
+
    /*Get vos context here bcoz vos_open requires it*/
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
@@ -2249,6 +2251,8 @@ int hdd_wlan_startup(struct device *dev )
 
    pHddCtx->isLoadUnloadInProgress = FALSE;
 
+   vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, FALSE);
+  
    goto success;
 
 err_nl_srv:
@@ -2585,6 +2589,7 @@ static void __exit hdd_module_exit(void)
 #endif
 
       pHddCtx->isLoadUnloadInProgress = TRUE;
+      vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
 
       //Do all the cleanup before deregistering the driver
       hdd_wlan_exit(pHddCtx);
