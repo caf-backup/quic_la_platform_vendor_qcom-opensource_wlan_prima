@@ -74,8 +74,8 @@ typedef enum {
 #define GRAB_RAM_DBLOCK_SIZE         (1024)  //number of samples in full capture
 #endif
 
-#define MAX_REQUESTED_GRAB_RAM_SAMPLES 512   //only allow 512 samples at a time to fit within 4K buffer
-#define GRAB_RAM_BUFFER_DEPTH       (1024)   //maximum grab ram size
+#define MAX_REQUESTED_GRAB_RAM_SAMPLES 256    //only allow 256 samples at a time
+#define GRAB_RAM_BUFFER_DEPTH       (4*1024)   //maximum grab ram size in full capture
 #define LAST_GRAB_RAM_SAMPLE_INDEX (GRAB_RAM_BUFFER_DEPTH - 1)
 
 
@@ -84,10 +84,11 @@ typedef PACKED_PRE struct PACKED_POST {
 } tGrabRamSample;
 
 
-typedef enum {
+enum {
    GRABRAM_RAWADC = 0,
    GRABRAM_POSTIQ
-} eGrabRamSampleType;
+}; 
+typedef tANI_U32 eGrabRamSampleType;
 
 typedef tANI_S8  tANI_S6;
 typedef tANI_S16 tANI_S9;

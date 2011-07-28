@@ -308,38 +308,10 @@ typedef struct
    WDA_state            wdaState ;               /* WDA state tracking */ 
    v_PVOID_t            wdaMsgParam ;            /* PE parameter tracking */
    v_PVOID_t            wdaWdiApiMsgParam ;      /* WDI API paramter tracking */
-   v_PVOID_t            wdaScanMsgParam ;        /* PE parameter tracking */
-   v_PVOID_t            wdaWdiScanApiMsgParam ;  /* WDI API paramter tracking */
-   v_PVOID_t            wdaFinishScanMsgParam ;        /* PE parameter tracking */
-   v_PVOID_t            wdaWdiFinishScanApiMsgParam ;  /* WDI API paramter tracking */
    v_PVOID_t            wdaWdiCfgApiMsgParam ;   /* WDI API paramter tracking */
-   v_PVOID_t            wdaLinkMsgParam ;        /* PE parameter tracking */
-   v_PVOID_t            wdaWdiLinkApiMsgParam ;  /* WDI API paramter tracking */
-   v_PVOID_t            wdaEdcaMsgParam ;        /* PE parameter tracking */
-   v_PVOID_t            wdaWdiEdcaApiMsgParam ;  /* WDI API paramter tracking */
-   v_PVOID_t            wdaDelBAMsgParam ;        /* PE parameter tracking */
-   v_PVOID_t            wdaWdiDelBAApiMsgParam ;  /* WDI API paramter tracking */
-
 
    /* Event to wait for tx completion */
    vos_event_t          txFrameEvent;
-
-   /* PE parameter tracking */
-   v_PVOID_t            wdaUpdateBeaconMsgParam ;
-   /* WDI API paramter tracking */
-   v_PVOID_t            wdaWdiUpdateBeaconApiMsgParam ;
-   /* PE parameter tracking */
-   v_PVOID_t            wdaConfigBssMsgParam ;
-   /* WDI API paramter tracking */
-   v_PVOID_t            wdaWdiConfigBssApiMsgParam ;
-   /* PE parameter tracking */
-   v_PVOID_t            wdaAddStaMsgParam ;
-   /* WDI API paramter tracking */
-   v_PVOID_t            wdaWdiAddStaApiMsgParam ;
-   /* pointer to config params*/
-   v_PVOID_t            wdaConfigParam ;
-   /* pointer to BA params*/
-   v_PVOID_t            wdaWdiTriggerBaParam ;
 
    /* call back function for tx complete*/
    pWDATxRxCompFunc     pTxCbFunc;

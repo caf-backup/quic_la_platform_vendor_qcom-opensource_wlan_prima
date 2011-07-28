@@ -1027,6 +1027,9 @@ typedef struct
   /*Robust Management Frame (RMF) enabled/disabled*/
   wpt_uint8                 ucRMFEnabled;
 
+  /* The unicast encryption type in the association */
+  wpt_uint32                ucEncryptType;
+
   /*HAL should update the existing STA entry, if this flag is set. UMAC 
    will set this flag in case of RE-ASSOC, where we want to reuse the old
    STA ID.*/

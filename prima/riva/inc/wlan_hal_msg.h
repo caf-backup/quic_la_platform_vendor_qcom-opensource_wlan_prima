@@ -1037,6 +1037,9 @@ typedef PACKED_PRE struct PACKED_POST
     /*Robust Management Frame (RMF) enabled/disabled*/
     tANI_U8 rmfEnabled;
 
+    /* The unicast encryption type in the association */
+    tANI_U32 encryptType;
+    
     /*HAL should update the existing STA entry, if this flag is set. UMAC 
       will set this flag in case of RE-ASSOC, where we want to reuse the old
       STA ID. 0 = Add, 1 = Update*/
@@ -1734,7 +1737,7 @@ typedef PACKED_PRE struct PACKED_POST
     /* Number of Measurements required */
     tANI_U8                    numInNavMeasurements;
     /*.Type of measurements (RTS-CTS or FRAME-BASED) */
-    tInNavMeasurementMode   measurementMode;
+    tANI_U16                 measurementMode;
     /* bssid channel info for doing the measurements */
     tBSSIDChannelInfo       bssidChannelInfo[1];
 
@@ -3012,14 +3015,6 @@ typedef PACKED_PRE struct PACKED_POST
    //DTIM period given to HAL during association may not be valid,
    //if association is based on ProbeRsp instead of beacon.
    tANI_U8 dtimPeriod;
-
-   // when TX ring is empty, host will always start consuming desc at these 
-   // "START" locations in the rings. this info is supplied by host along with
-   // enter BPS request. please note this address is in aCPU DDR and we CANNOT
-   // access these address but we don't need, we simply need to load this into
-   // DXE after wakeup and DXD HW can access aCPU DDR
-   tANI_U32 txLoDescStartAddr;
-   tANI_U32 txHiDescStartAddr;
 
 } tHalEnterBmpsReqParams, *tpHalEnterBmpsReqParams;
 

@@ -17167,6 +17167,7 @@ WDI_CopyWDIStaCtxToHALStaCtx
   phalConfigSta->delayedBASupport        = pwdiConfigSta->ucDelayedBASupport;
   phalConfigSta->us32MaxAmpduDuration    = pwdiConfigSta->us32MaxAmpduDuratio;
   phalConfigSta->fDsssCckMode40Mhz       = pwdiConfigSta->ucDsssCckMode40Mhz;
+  phalConfigSta->encryptType             = pwdiConfigSta->ucEncryptType;
   
   phalConfigSta->mimoPS = WDI_2_HAL_MIMO_PS(pwdiConfigSta->wdiMIMOPS);
 

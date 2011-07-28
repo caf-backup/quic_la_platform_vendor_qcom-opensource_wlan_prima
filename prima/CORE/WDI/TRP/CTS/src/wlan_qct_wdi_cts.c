@@ -186,6 +186,9 @@ WCTS_PALOpenCallback
                         WCTS_EVENT_OPEN,
                         pWCTSCb->wctsNotifyCBData);
 
+   /* signal event for WCTS_OpenTransport to proceed */
+   wpalEventSet(&pWCTSCb->wctsEvent);
+
 }/*WCTS_PALOpenCallback*/
 
 
@@ -548,6 +551,9 @@ WCTS_OpenTransport
 )
 {
    WCTS_ControlBlockType*    pWCTSCb;
+   wpt_status                status;
+   int                       smdstatus;
+
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
    /*---------------------------------------------------------------------
@@ -616,24 +622,49 @@ WCTS_OpenTransport
    pWCTSCb->wctsCloseMsg.callback = WCTS_PALCloseCallback;
    pWCTSCb->wctsCloseMsg.pContext = pWCTSCb;
 
+   /* There are some scenarios where a channel is closed and then
+      quickly reopened.  Since SMD uses a work queue to handle the
+      close, there is a lag between when the channel is closed, and
+      when it is available to be reopened.  Since we don't know if we
+      are in a quick close/open scenario, wait for all scheduled work
+      to complete so that we have the best chance of finding the
+      channel available to be opened */
+   flush_scheduled_work();
+
    /*---------------------------------------------------------------------
      Open the SMD channel
      ---------------------------------------------------------------------*/
 
-   if (smd_named_open_on_edge(szName,
-                              SMD_APPS_WCNSS,
-                              &pWCTSCb->wctsChannel,
-                              pWCTSCb,
-                              WCTS_NotifyCallback)) {
+   wpalEventReset(&pWCTSCb->wctsEvent);
+   smdstatus = smd_named_open_on_edge(szName,
+                                      SMD_APPS_WCNSS,
+                                      &pWCTSCb->wctsChannel,
+                                      pWCTSCb,
+                                      WCTS_NotifyCallback);
+   if (0 != smdstatus) {
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                 "WCTS_OpenTransport: smd_named_open_on_edge failed.");
-      pWCTSCb->wctsMagic = 0;
-      wpalMemoryFree(pWCTSCb);
-      return NULL;
+                 "%s: smd_named_open_on_edge failed with status %d",
+                 __FUNCTION__, smdstatus);
+      goto fail;
    }
 
-   /* we have opened the SMD channel */
+   /* wait for the channel to be opened before we proceed */
+   status = wpalEventWait(&pWCTSCb->wctsEvent, 1000);
+   if (eWLAN_PAL_STATUS_SUCCESS != status) {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "%s: failed to receive SMD_EVENT_OPEN",
+                 __FUNCTION__);
+      goto fail;
+   }
+
+   /* we have successfully opened the SMD channel */
    return (WCTS_HandleType)pWCTSCb;
+
+ fail:
+   /* we were unable to open the SMD channel */
+   pWCTSCb->wctsMagic = 0;
+   wpalMemoryFree(pWCTSCb);
+   return NULL;
 
 }/*WCTS_OpenTransport*/
 
@@ -663,6 +694,7 @@ WCTS_CloseTransport
    WCTS_BufferType*    pBufferQueue = NULL;
    void*               pBuffer = NULL;
    wpt_status          status = eWLAN_PAL_STATUS_SUCCESS;
+   int                 smdstatus;
 
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -698,7 +730,12 @@ WCTS_CloseTransport
 
    wpalEventReset(&pWCTSCb->wctsEvent);
 
-   if (0 != smd_close(pWCTSCb->wctsChannel)) {
+   smdstatus = smd_close(pWCTSCb->wctsChannel);
+   if (0 != smdstatus) {
+
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "%s: smd_close failed with status %d",
+                 __FUNCTION__, smdstatus);
 
       /* SMD did not successfully close the channel, therefore we
          won't receive an asynchronous close notification.  Since
@@ -709,12 +746,20 @@ WCTS_CloseTransport
                             pWCTSCb->wctsNotifyCBData);
       pWCTSCb->wctsMagic = 0;
       wpalMemoryFree(pWCTSCb);
+
+      /* nothing else we can do as we no longer have a context */
+      return status;
    }
 
-   /*wait for the event from SMD. otherwise 
-    * by the time SMD responds, modules gets unloaded and result in
-    * crash */
+   /* SMD is presumably in the process of closing the channel.  Wait
+      for the close event from SMD, otherwise by the time SMD responds
+      this module may be unloaded and may result in crash */
    status = wpalEventWait(&pWCTSCb->wctsEvent, 1000);
+   if (eWLAN_PAL_STATUS_SUCCESS != status) {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "%s: failed to receive SMD_EVENT_CLOSE",
+                 __FUNCTION__);
+   }
    return status;
 
 }/*WCTS_CloseTransport*/
