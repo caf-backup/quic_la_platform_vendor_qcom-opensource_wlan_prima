@@ -912,7 +912,9 @@ int iw_set_cscan(struct net_device *dev, struct iw_request_info *info,
               }
          }
 #endif
-        if(pAdapter->pWextState->scan_mode == eSIR_ACTIVE_SCAN) {
+        /* if any ssid is configured in Add Wi-Fi network of GUI,
+           then do active scan even if we are in Home Screen*/
+        if(num_ssid || pAdapter->pWextState->scan_mode == eSIR_ACTIVE_SCAN) {
            /* set the scan type to active */
            scanRequest.scanType = eSIR_ACTIVE_SCAN;
         } else {
