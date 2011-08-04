@@ -37,7 +37,11 @@
 #include <linux/etherdevice.h>
 #include <linux/if_vlan.h>
 #include <linux/ip.h>
+#include <linux/semaphore.h>
 #include <wlan_hdd_hostapd.h>
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#include <wlan_hdd_softap_tx_rx.h>
+#endif
 
 // change logging behavior based upon debug flag
 #ifdef HDD_WMM_DEBUG
@@ -80,7 +84,7 @@ const v_U8_t hddWmmUpToAcMap[] = {
 };
 
 //Linux based UP -> AC Mapping
-static const v_U8_t hddLinuxUpToAcMap[8] = {
+const v_U8_t hddLinuxUpToAcMap[8] = {
    HDD_LINUX_AC_BE,
    HDD_LINUX_AC_BK,
    HDD_LINUX_AC_BK,
@@ -1342,9 +1346,6 @@ VOS_STATUS hdd_wmm_adapter_close ( hdd_adapter_t* pAdapter )
    VOS_TRACE(VOS_MODULE_ID_HDD, WMM_TRACE_LEVEL_INFO_LOW,
              "%s: Entered", __FUNCTION__);
 
-   // need to make sure all of our scheduled work has completed
-   flush_scheduled_work();
-
    // free any context records that we still have linked
    while (!list_empty(&pAdapter->hddWmmStatus.wmmContextList))
    {
@@ -1565,11 +1566,10 @@ v_U16_t hdd_hostapd_select_queue(struct net_device * dev, struct sk_buff *skb)
    tpAniSirGlobal  pMac = (tpAniSirGlobal) vos_get_context(VOS_MODULE_ID_HAL, pHddCtx->pvosContext);   
 #endif //FEATURE_WLAN_NON_INTEGRATED_SOC
    v_U8_t STAId;
-   v_U8_t *pSTAId = (v_U8_t *)&skb->cb;
+   v_U8_t *pSTAId = (v_U8_t *)(((v_U8_t *)(skb->data)) - 1);
     
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-   //FIXME_PRIMA: need STA-table lookup
    /*Get the Station ID*/
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
    if (eHAL_STATUS_SUCCESS != halTable_FindStaidByAddr(pMac, (tANI_U8 *)pDestMacAddress, &STAId))
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
@@ -1578,7 +1578,13 @@ v_U16_t hdd_hostapd_select_queue(struct net_device * dev, struct sk_buff *skb)
       goto done; 
    }
 #else
-   STAId = 0; // suppress subscript out of range error
+   if (VOS_STATUS_SUCCESS != hdd_softap_GetStaId(pAdapter, pDestMacAddress, (v_U16_t *)&STAId))
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+            "%s: Failed to find right station", __FUNCTION__);
+      *pSTAId = HDD_WLAN_INVALID_STA_ID; 
+      goto done; 
+   }
 #endif //FEATURE_WLAN_NON_INTEGRATED_SOC
    
    if (FALSE == vos_is_macaddr_equal(&pAdapter->aStaInfo[STAId].macAddrSTA, pDestMacAddress))

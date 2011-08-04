@@ -345,12 +345,13 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
     tANI_U8 i = 0;
     tSirRetStatus status = eSIR_SUCCESS;
     
-    if( pMac->lim.abortScan )
+    if( pMac->lim.abortScan || (NULL == pMac->lim.gpLimMlmScanReq ) )
     {
         pMac->lim.abortScan = 0;
         limSendHalFinishScanReq(pMac, eLIM_HAL_FINISH_SCAN_WAIT_STATE);
         return;
     }
+
 
     channelNum = limGetCurrentScanChannel(pMac);
     if ((pMac->lim.gpLimMlmScanReq->scanType == eSIR_ACTIVE_SCAN) &&
@@ -367,7 +368,9 @@ void limContinuePostChannelScan(tpAniSirGlobal pMac)
                                                 i, pMac->lim.gpLimMlmScanReq->ssId[i].ssId, channelNum);)
             status = limSendProbeReqMgmtFrame( pMac, &pMac->lim.gpLimMlmScanReq->ssId[i],
                pMac->lim.gpLimMlmScanReq->bssId, channelNum, pMac->lim.gSelfMacAddr, 
-                   pMac->lim.gpLimMlmScanReq->dot11mode);
+               pMac->lim.gpLimMlmScanReq->dot11mode,
+               pMac->lim.gpLimMlmScanReq->uIEFieldLen,
+               (tANI_U8 *)(pMac->lim.gpLimMlmScanReq)+pMac->lim.gpLimMlmScanReq->uIEFieldOffset);
             
             if ( status != eSIR_SUCCESS)
             {
@@ -846,6 +849,12 @@ limSendHalStartScanReq(tpAniSirGlobal pMac, tANI_U8 channelNum, tLimLimHalScanSt
     tpStartScanParams   pStartScanParam;
     tSirRetStatus       rc = eSIR_SUCCESS;
 
+    /**
+     * The Start scan request to be sent only if Start Scan is not already requested
+     */
+    if(pMac->lim.gLimHalScanState != eLIM_HAL_START_SCAN_WAIT_STATE) 
+    { 
+    
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pStartScanParam,
                                            sizeof(*pStartScanParam)))
     {
@@ -897,6 +906,12 @@ error:
     }
     pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
 
+    }
+    else
+    {
+        PELOGW(limLog(pMac, LOGW, FL("Invalid state for START_SCAN_REQ message=%d\n"), pMac->lim.gLimHalScanState);)
+    }
+
     return;
 }
 
@@ -905,6 +920,14 @@ void limSendHalEndScanReq(tpAniSirGlobal pMac, tANI_U8 channelNum, tLimLimHalSca
     tSirMsgQ            msg;
     tpEndScanParams     pEndScanParam;
     tSirRetStatus       rc = eSIR_SUCCESS;
+
+    /**
+     * The End scan request to be sent only if End Scan is not already requested or
+     * Start scan is not already requestd
+     */
+    if((pMac->lim.gLimHalScanState != eLIM_HAL_END_SCAN_WAIT_STATE)  &&
+       (pMac->lim.gLimHalScanState != eLIM_HAL_START_SCAN_WAIT_STATE))
+    { 
 
     if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pEndScanParam,
                                            sizeof(*pEndScanParam)))
@@ -954,7 +977,13 @@ error:
             break;
     }
     pMac->lim.gLimHalScanState = eLIM_HAL_IDLE_SCAN_STATE;
-    PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg failed, error code %d\n"), rc);)
+    PELOGW(limLog(pMac, LOGW, FL("wdaPostCtrlMsg failed, error code %d\n"), rc);)    
+    }
+    else
+    {
+        PELOGW(limLog(pMac, LOGW, FL("Invalid state for END_SCAN_REQ message=%d\n"), pMac->lim.gLimHalScanState);)
+    }
+    
 
     return;
 }
@@ -1227,6 +1256,8 @@ void limSendHalInNavMeasReq(tpAniSirGlobal pMac)
     palZeroMemory(pMac->hHdd, (tANI_U8*)(pStartInNavMeasReq), reqLen);
 
     //Now copy over the information to the measurement req to HAL
+    palCopyMemory(pMac->hHdd, pStartInNavMeasReq->selfMacAddr, pMac->lim.gpLimMlmInNavMeasReq->selfMacAddr,
+                        sizeof(tSirMacAddr));
     pStartInNavMeasReq->numBSSIDs = pMac->lim.gpLimMlmInNavMeasReq->numBSSIDs;
     pStartInNavMeasReq->numInNavMeasurements = pMac->lim.gpLimMlmInNavMeasReq->numInNavMeasurements;
     pStartInNavMeasReq->measurementMode = pMac->lim.gpLimMlmInNavMeasReq->measurementMode;
@@ -1413,6 +1444,12 @@ mlm_add_sta(
                                           pSta->greenFieldCapable, pSta->txChannelWidthSet, pSta->mimoPS, pSta->lsigTxopProtection, 
                                           pSta->fDsssCckMode40Mhz,pSta->fShortGI20Mhz, pSta->fShortGI40Mhz);
 
+#ifdef WLAN_FEATURE_P2P
+     if (VOS_P2P_GO_MODE == psessionEntry->pePersona)
+     {
+         pSta->p2pCapableSta = 1;
+     }
+#endif
 
     //Disable BA. It will be set as part of ADDBA negotiation.
     for( i = 0; i < STACFG_MAX_TC; i++ )
@@ -2010,39 +2047,6 @@ limProcessMlmJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         //store the channel switch sessionEntry in the lim global var
         psessionEntry->channelChangeReasonCode = LIM_SWITCH_CHANNEL_JOIN;
 
-        
-#if 0
-        
-        // Update BSSID at CFG database
-        if (cfgSetStr(pMac, WNI_CFG_BSSID, pMac->lim.gpLimMlmJoinReq->bssDescription.bssId,
-                      sizeof(tSirMacAddr))
-            != eSIR_SUCCESS)
-            limLog(pMac, LOGP, FL("could not update BSSID at CFG\n"));
-
-        // By default STA is in Independent BSS mode
-        if (SIR_MAC_GET_ESS( pMac->lim.gpLimMlmJoinReq->bssDescription.capabilityInfo))
-            psessionEntry->limSystemRole = eLIM_STA_ROLE;
-        else
-            psessionEntry->limSystemRole = eLIM_STA_IN_IBSS_ROLE;
-
-        /* Update the lim global gLimTriggerBackgroundScanDuringQuietBss */
-        if(wlan_cfgGetInt(pMac, WNI_CFG_TRIG_STA_BK_SCAN, &val) != eSIR_SUCCESS)
-            limLog(pMac, LOGP, FL("failed to get WNI_CFG_TRIG_STA_BK_SCAN cfg value!\n"));
-        pMac->lim.gLimTriggerBackgroundScanDuringQuietBss = (val) ? 1 : 0;
-
-        // Apply previously set configuration at HW
-        limApplyConfiguration(pMac, psessionEntry);
-
-        /// Wait for Beacon to announce join success
-        cfgLen = SIR_MAC_MAX_SSID_LENGTH;
-        if (wlan_cfgGetStr(pMac, WNI_CFG_SSID, ssId.ssId, &cfgLen) != eSIR_SUCCESS)
-            limLog(pMac, LOGP, FL("could not retrive SSID\n"));
-        ssId.length = (tANI_U8) cfgLen;
-
-        limSendProbeReqMgmtFrame( pMac, &ssId,
-               pMac->lim.gpLimMlmJoinReq->bssDescription.bssId, chanNum, pMac->lim.gSelfMacAddr, 
-               pMac->lim.gpLimMlmScanReq->dot11mode);
-#endif  
         limSetChannel(pMac, psessionEntry->pLimMlmJoinReq->bssDescription.titanHtCaps,
                             chanNum, psessionEntry->maxTxPower, psessionEntry->peSessionId); 
         return;
@@ -2696,9 +2700,9 @@ limProcessMlmDisassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     /// Send Disassociate frame to peer entity
     if (sendDisassocFrame)
     {
-       limSendDisassocMgmtFrame(pMac,
-                                pMlmDisassocReq->reasonCode,
-                                pMlmDisassocReq->peerMacAddr,psessionEntry);
+    limSendDisassocMgmtFrame(pMac,
+                             pMlmDisassocReq->reasonCode,
+                             pMlmDisassocReq->peerMacAddr,psessionEntry);
     }
     else
     {
@@ -3722,6 +3726,13 @@ limProcessAssocFailureTimeout(tpAniSirGlobal pMac, tANI_U32 MsgType)
      * Expected Re/Association Response frame
      * not received within Re/Association Failure Timeout.
      */
+
+
+
+
+    /* CR: vos packet memory is leaked when assoc rsp timeouted/failed. */
+    /* notify TL that association is failed so that TL can flush the cached frame  */
+    WLANTL_AssocFailed (psessionEntry->staId);
 
     // Log error
     PELOG1(limLog(pMac, LOG1,

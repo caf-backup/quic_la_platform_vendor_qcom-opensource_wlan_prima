@@ -46,6 +46,7 @@ typedef struct tagMeasurementBSSIDChannelInfo
    for the current measurement set */
 typedef struct tagInNavMeasurementConfig
 {
+  tANI_U8   sessionId; //session Id for which measurement is active
 	tANI_U8		numBSSIDs; //Number of BSSIDs for measurements
 	tANI_U8		numInNavMeasurements; //Number of RTT and RSSI measurements per BSSID
 	tANI_U16	numSetRepetitions; //Number of times to measure a given BSSID set
@@ -63,6 +64,7 @@ typedef struct tagInNavMeasurementConfig
 /* Structure for defining each measurement sent to the PE */
 typedef struct tagInNavMeasurementRequest
 {
+  tANI_U8   sessionId;
 	tANI_U8		numBSSIDs; //Number of BSSIDs in the current measurement request
 	tANI_U8		numInNavMeasurements; //Number of RTT and RSSI measurements needed per BSSID
 	eInNavMeasurementMode	measurementMode; //Mode of measurement
@@ -114,12 +116,13 @@ typedef eHalStatus (*measMeasurementCompleteCallback)(
 /* ---------------------------------------------------------------------------
     \fn measInNavMeasurementRequest
     \brief Request an innav measurement for given set of BSSIDs
+    \param sessionId - Id of session to be used for measurement
     \param pMeasurementRequestID - pointer to an object to get back the request ID
     \param callback - a callback function that measurement calls upon finish
     \param pContext - a pointer passed in for the callback
     \return eHalStatus     
   -------------------------------------------------------------------------------*/
-eHalStatus measInNavMeasurementRequest(tHalHandle, tInNavMeasurementConfig *, tANI_U32 *pMeasurementRequestID, 
+eHalStatus measInNavMeasurementRequest(tHalHandle, tANI_U8, tInNavMeasurementConfig *, tANI_U32 *pMeasurementRequestID, 
                             measMeasurementCompleteCallback callback, void *pContext);
 
 /* ---------------------------------------------------------------------------

@@ -1236,7 +1236,7 @@ WLAN_BAPLogicalLinkAccept
     tBtampHCI_Event bapHCIEvent; /* This now encodes ALL event types */
     VOS_STATUS  vosStatus;
     ptBtampContext btampContext = (ptBtampContext) btampHandle;
-    v_U16_t log_link_index;
+    v_U16_t log_link_index = 0;
     BTAMPFSM_INSTANCEDATA_T *instanceVar = &(btampContext->bapPhysLinkMachine);
     VOS_STATUS  retval;
     v_U16_t index_for_logLinkCtx;

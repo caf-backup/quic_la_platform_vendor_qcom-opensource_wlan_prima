@@ -50,7 +50,7 @@
 #if (WNI_POLARIS_FW_PRODUCT == AP)
 #define SCH_MAX_BEACON_SIZE    2048
 #else
-#define SCH_MAX_BEACON_SIZE    256
+#define SCH_MAX_BEACON_SIZE    512
 #endif
 
 #define SCH_MAX_PROBE_RESP_SIZE 512

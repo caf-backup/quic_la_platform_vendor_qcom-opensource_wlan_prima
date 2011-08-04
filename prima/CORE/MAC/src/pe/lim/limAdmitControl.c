@@ -1156,11 +1156,7 @@ void limProcessHalAddTsRsp(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 
     if (NULL == limMsg->bodyptr)
     {
-        PELOGE(limLog(pMac, LOGE, FL("Received WDA_ADD_TS_RSP with NULL "));)
-        // 090731: Bug. pAddTsRspMsg->tspec will crash with NULL de-reference at this point 
-        // 090803: Sunit says we can't hit this. So, get rid of faulty check.
-        limSendSmeAddtsRsp(pMac, rspReqd, eSIR_SME_ADDTS_RSP_FAILED, psessionEntry, pAddTsRspMsg->tspec, 
-                pMac->lim.gLimAddtsReq.sessionId, pMac->lim.gLimAddtsReq.transactionId);
+        limLog(pMac, LOGP, FL("Received WDA_ADD_TS_RSP with NULL "));
         goto end;
     }
 

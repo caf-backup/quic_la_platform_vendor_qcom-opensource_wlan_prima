@@ -604,7 +604,7 @@ WCTS_OpenTransport
    pWCTSCb->wctsRxMsgCBData    = wctsCBs->wctsRxMsgCBData;
 
    /* initialize the remaining fields */
-   wpal_list_init(&pWCTSCb->wctsPendingQueue, NULL);
+   wpal_list_init(&pWCTSCb->wctsPendingQueue);
    pWCTSCb->wctsMagic   = WCTS_CB_MAGIC;
    pWCTSCb->wctsState   = WCTS_STATE_OPEN_PENDING;
    pWCTSCb->wctsChannel = NULL;

@@ -4847,15 +4847,23 @@ void csrReleaseProfile(tpAniSirGlobal pMac, tCsrRoamProfile *pProfile)
             pProfile->pWAPIReqIE = NULL;
         }
 #endif /* FEATURE_WLAN_WAPI */
-#ifdef WLAN_FEATURE_P2P
-        if(pProfile->pP2PIE)
-        {
-            palFreeMemory(pMac->hHdd, pProfile->pP2PIE);
-            pProfile->pP2PIE = NULL;
-        }
-#endif /* WLAN_FEATURE_P2P */
 
-    
+        if(pProfile->pAddIEScan)
+        {
+            palFreeMemory(pMac->hHdd, pProfile->pAddIEScan);
+            pProfile->pAddIEScan = NULL;
+        }
+
+        if(pProfile->pAddIEAssoc)
+        {
+            palFreeMemory(pMac->hHdd, pProfile->pAddIEAssoc);
+            pProfile->pAddIEAssoc = NULL;
+        }
+        {
+            palFreeMemory(pMac->hHdd, pProfile->pAddIEAssoc);
+            pProfile->pAddIEAssoc = NULL;
+        }
+
         if(pProfile->ChannelInfo.ChannelList)
         {
             palFreeMemory(pMac->hHdd, pProfile->ChannelInfo.ChannelList);

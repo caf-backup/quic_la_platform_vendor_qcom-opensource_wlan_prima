@@ -621,7 +621,6 @@ gotoStarting
     tBtampTLVHCI_Write_Remote_AMP_ASSOC_Cmd *pBapHCIWriteRemoteAMPAssoc 
         = (tBtampTLVHCI_Write_Remote_AMP_ASSOC_Cmd *) bapEvent->params;
     tBtampAMP_ASSOC btamp_ASSOC; 
-    static v_U32_t  isBapSessionOpen = FALSE;
 
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
@@ -761,11 +760,9 @@ gotoStarting
     btampContext->gDiscReason = WLANBAP_STATUS_SUCCESS;
     /* Initiate the link as either START or JOIN */
     //halStatus = csrRoamOpenSession(&newSession);
-//#if 0
     /*Added by Luiza:*/
-    btampContext->isBapSessionOpen = FALSE;
 
-    if (isBapSessionOpen == FALSE)
+    if (btampContext->isBapSessionOpen == FALSE)
     {
 
     halStatus = sme_OpenSession(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
@@ -778,11 +775,8 @@ gotoStarting
     if(eHAL_STATUS_SUCCESS == halStatus)
     {
         btampContext->isBapSessionOpen = TRUE;
-            isBapSessionOpen = TRUE;
         }
     }	
-	    
-//#endif //0
     /* Update the SME Session info for this Phys Link (i.e., for this Phys State Machine instance) */
     //bapUpdateSMESessionForThisPhysLink(newSession, PhysLinkHandle);
     // Taken care of, above

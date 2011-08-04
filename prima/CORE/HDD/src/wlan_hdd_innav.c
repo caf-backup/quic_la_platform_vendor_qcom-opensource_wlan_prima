@@ -311,6 +311,7 @@ int iw_set_innav_measurements(
         }
     
         status = sme_InNavMeasurementRequest(WLAN_HDD_GET_HAL_CTX(pAdapter), 
+                                                pAdapter->sessionId,
                                                 &measConfig, 
                                                 &measurementSetID, 
                                                 &hdd_InNavMeasurementRequestCallback, 

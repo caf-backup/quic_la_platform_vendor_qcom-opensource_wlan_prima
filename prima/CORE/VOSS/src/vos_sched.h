@@ -48,6 +48,7 @@
 #include "i_vos_types.h"
 #include "i_vos_packet.h"
 #include <linux/wait.h>
+#include <vos_power.h>
 
 #define TX_POST_EVENT_MASK               0x001
 #define TX_SUSPEND_EVENT_MASK            0x002
@@ -159,15 +160,15 @@ typedef struct _VosSchedContext
    struct completion   RxStartEvent;
 #endif
 
-   /* MC Thread handle */
-   int   McThread;
+   struct task_struct* McThread;
 
    /* TX Thread handle */
-   int   TxThread;
+   
+   struct task_struct*   TxThread;
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    /* RX Thread handle */
-   int   RxThread;
+   struct task_struct*   RxThread;
 #endif
 
 
@@ -209,6 +210,11 @@ typedef struct _VosSchedContext
    /* Completion object to resume Rx thread */
    struct completion ResumeRxEvent;
 #endif
+
+   /* lock to make sure that McThread and TxThread Suspend/resume mechanism is in sync*/
+   spinlock_t McThreadLock;
+   spinlock_t TxThreadLock;
+
 } VosSchedContext, *pVosSchedContext;
 
 /*
@@ -228,7 +234,8 @@ typedef struct _VosWatchdogContext
    struct completion WdStartEvent;
 
    /* Watchdog Thread handle */
-   int WdThread;
+  
+   struct task_struct* WdThread;
 
    /* completion object for Watchdog thread shutdown */
    struct completion WdShutdown; 
@@ -240,6 +247,9 @@ typedef struct _VosWatchdogContext
    unsigned long wdEventFlag;	
 
 	v_BOOL_t resetInProgress;
+
+   /* Lock for preventing multiple reset being triggered simultaneously */
+   spinlock_t wdLock;
 
 } VosWatchdogContext, *pVosWatchdogContext;
 
@@ -323,6 +333,7 @@ typedef struct _VosContextType
 #endif
 
    volatile v_U8_t    isLoadUnloadInProgress;
+
 } VosContextType, *pVosContextType;
 
 
@@ -483,7 +494,7 @@ void vos_sched_flush_tx_mqs  (pVosSchedContext pSchedContext);
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
 void vos_sched_flush_rx_mqs  (pVosSchedContext pSchedContext);
 #endif
-VOS_STATUS vos_watchdog_chip_reset ( v_VOID_t );
+VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type reason );
 
 void vos_timer_module_init( void );
 

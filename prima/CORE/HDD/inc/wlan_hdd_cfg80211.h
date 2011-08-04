@@ -37,9 +37,6 @@
 #define P2P_ACTION_FRAME "\x7f\x50\x6f\x9a\x09"
 #define P2P_ACTION_FRAME_SIZE 5
 
-#define P2P_OUI_TYPE   "\x50\x6f\x9a\x09"
-#define P2P_OUI_TYPE_SIZE  4
-
 #define HDD_P2P_WILDCARD_SSID "DIRECT-" //TODO Put it in proper place;
 #define HDD_P2P_WILDCARD_SSID_LEN 7
 
@@ -52,6 +49,9 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
                                          int priv_size
                                          );
 void wlan_hdd_cfg80211_post_voss_start(hdd_adapter_t* pAdapter);
+
+void wlan_hdd_cfg80211_pre_voss_stop(hdd_adapter_t* pAdapter);
+
 
 #endif // CONFIG_CFG80211
 

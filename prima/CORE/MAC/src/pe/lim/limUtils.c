@@ -1000,12 +1000,14 @@ limCleanupMlm(tpAniSirGlobal pMac)
         tx_timer_delete(&pMac->lim.limTimers.gLimKeepaliveTimer);
 
         pAuthNode = pMac->lim.gLimPreAuthTimerTable.pTable;
+        
+        //Deactivate any Authentication response timers
+        limDeletePreAuthList(pMac);
 
 	for (n = 0; n < pMac->lim.gLimPreAuthTimerTable.numEntry; n++,pAuthNode++)
 	{
-		// Deactivate and delete any Authentication response
+		// Delete any Authentication response
 		// timers, which might have been started.
-		tx_timer_deactivate(&pAuthNode->timer);
 		tx_timer_delete(&pAuthNode->timer);
 	}
 
@@ -1034,6 +1036,8 @@ limCleanupMlm(tpAniSirGlobal pMac)
 #ifdef WLAN_SOFTAP_FEATURE
         tx_timer_deactivate(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
         tx_timer_delete(&pMac->lim.limTimers.gLimUpdateOlbcCacheTimer);
+		tx_timer_deactivate(&pMac->lim.limTimers.gLimPreAuthClnupTimer);
+        tx_timer_delete(&pMac->lim.limTimers.gLimPreAuthClnupTimer);
 
 #if 0 // The WPS PBC clean up timer is disabled
         if (pMac->lim.gLimSystemRole == eLIM_AP_ROLE)
@@ -1058,8 +1062,6 @@ limCleanupMlm(tpAniSirGlobal pMac)
     /// Cleanup cached scan list
     limReInitScanResults(pMac);
 
-    /// Cleanup Preauth list
-    limDeletePreAuthList(pMac);
 } /*** end limCleanupMlm() ***/
 
 
@@ -1275,6 +1277,9 @@ void limResetDeferredMsgQ(tpAniSirGlobal pMac)
 }
 
 
+#define LIM_DEFERRED_Q_CHECK_THRESHOLD  (MAX_DEFERRED_QUEUE_LEN/2)
+#define LIM_MAX_NUM_MGMT_FRAME_DEFERRED (MAX_DEFERRED_QUEUE_LEN/2)
+
 /*
  * limWriteDeferredMsgQ()
  *
@@ -1300,7 +1305,7 @@ void limResetDeferredMsgQ(tpAniSirGlobal pMac)
 
 tANI_U8 limWriteDeferredMsgQ(tpAniSirGlobal pMac, tpSirMsgQ limMsg)
 {
-PELOG1(limLog(pMac, LOG1,
+    PELOG1(limLog(pMac, LOG1,
            FL("**  Queue a deferred message (size %d, write %d) - type 0x%x  **\n"),
            pMac->lim.gLimDeferredMsgQ.size, pMac->lim.gLimDeferredMsgQ.write,
            limMsg->type);)
@@ -1314,14 +1319,12 @@ PELOG1(limLog(pMac, LOG1,
         return TX_QUEUE_FULL;
     }
 
-    ++pMac->lim.gLimDeferredMsgQ.size;
-
     /*
     ** In the application, there should not be more than 1 message get
     ** queued up. If happens, flags a warning. In the future, this can
     ** happen.
     **/
-    if (pMac->lim.gLimDeferredMsgQ.size > 1)
+    if (pMac->lim.gLimDeferredMsgQ.size > 0)
     {
         PELOGW(limLog(pMac, LOGW, FL("%d Deferred messages (type 0x%x, scan %d, sme %d, mlme %d, addts %d)\n"),
                pMac->lim.gLimDeferredMsgQ.size, limMsg->type,
@@ -1329,6 +1332,33 @@ PELOG1(limLog(pMac, LOG1,
                pMac->lim.gLimSmeState, pMac->lim.gLimMlmState,
                pMac->lim.gLimAddtsSent);)
     }
+
+    /*
+    ** To prevent the deferred Q is full of management frames, only give them certain space
+    **/
+    if( SIR_BB_XPORT_MGMT_MSG == limMsg->type )
+    {
+        if( LIM_DEFERRED_Q_CHECK_THRESHOLD < pMac->lim.gLimDeferredMsgQ.size )
+        {
+            tANI_U16 idx, count = 0;
+            for(idx = 0; idx < pMac->lim.gLimDeferredMsgQ.size; idx++)
+            {
+                if( SIR_BB_XPORT_MGMT_MSG == pMac->lim.gLimDeferredMsgQ.deferredQueue[idx].type )
+                {
+                    count++;
+                }
+            }
+            if( LIM_MAX_NUM_MGMT_FRAME_DEFERRED < count )
+            {
+                //We reach the quota for management frames, drop this one
+                PELOGE(limLog(pMac, LOGE, FL("Cannot deferred. Msg: %d Too many (count=%d) already\n"), limMsg->type, count);)
+               //Return error, caller knows what to do
+               return TX_QUEUE_FULL;
+            }
+        }
+    }
+
+    ++pMac->lim.gLimDeferredMsgQ.size;
 
     /*
     ** if the write pointer hits the end of the queue, rewind it
@@ -7606,6 +7636,7 @@ void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
 
    palCopyMemory( pMac->hHdd, pRsp->selfMacAddr, pAddStaSelfParams->selfMacAddr, sizeof(tSirMacAddr) );
 
+   palFreeMemory( pMac->hHdd, (tANI_U8 *)pAddStaSelfParams);
 
    mmhMsg.type = eWNI_SME_ADD_STA_SELF_RSP;
    mmhMsg.bodyptr = pRsp;
@@ -7640,6 +7671,7 @@ void limProcessDelStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ)
 
    palCopyMemory( pMac->hHdd, pRsp->selfMacAddr, pDelStaSelfParams->selfMacAddr, sizeof(tSirMacAddr) );
 
+   palFreeMemory( pMac->hHdd, (tANI_U8 *)pDelStaSelfParams);
 
    mmhMsg.type = eWNI_SME_DEL_STA_SELF_RSP;
    mmhMsg.bodyptr = pRsp;
@@ -7664,17 +7696,27 @@ tANI_U8 limUnmapChannel(tANI_U8 mapChannel)
 }
 
 
-v_U8_t* limGetIEPtr(tpAniSirGlobal pMac, v_U8_t *pIes, int length, v_U8_t eid)
+v_U8_t* limGetIEPtr(tpAniSirGlobal pMac, v_U8_t *pIes, int length, v_U8_t eid,eSizeOfLenField size_of_len_field)
 {
     int left = length;
     v_U8_t *ptr = pIes;
-    v_U8_t elem_id,elem_len;
+    v_U8_t elem_id;
+    v_U16_t elem_len;
    
-    while(left >= 2)
+    while(left >= (size_of_len_field+1))
     {   
         elem_id  =  ptr[0];
-        elem_len =  ptr[1];
-        left -= 2;
+        if (size_of_len_field == TWO_BYTE)
+        {
+            elem_len = ((v_U16_t) ptr[1]) | (ptr[2]<<8);
+        }
+        else
+        {
+            elem_len =  ptr[1];
+        }
+    
+            
+        left -= (size_of_len_field+1);
         if(elem_len > left)
         {
             limLog(pMac, LOGE,
@@ -7688,16 +7730,18 @@ v_U8_t* limGetIEPtr(tpAniSirGlobal pMac, v_U8_t *pIes, int length, v_U8_t eid)
         }
    
         left -= elem_len;
-        ptr += (elem_len + 2);
+        ptr += (elem_len + (size_of_len_field+1));
     }
     return NULL;
 }
 
-#ifdef WLAN_FEATURE_P2P
-tANI_BOOLEAN limIsP2pIEPresent(tpAniSirGlobal pMac, tANI_U8 *pIes, tANI_U16 ie_len)
+/* return NULL if oui is not found in ie
+   return !NULL pointer to vendor IE (starting from 0xDD) if oui is found 
+ */
+v_U8_t* limGetVendorIEOuiPtr(tpAniSirGlobal pMac, tANI_U8 *oui, tANI_U8 oui_size, tANI_U8 *ie, tANI_U16 ie_len)
 {   
     int left = ie_len;
-    v_U8_t *ptr = pIes;
+    v_U8_t *ptr = ie;
     v_U8_t elem_id, elem_len;
 
     while(left >= 2)
@@ -7710,17 +7754,109 @@ tANI_BOOLEAN limIsP2pIEPresent(tpAniSirGlobal pMac, tANI_U8 *pIes, tANI_U16 ie_l
             limLog( pMac, LOGE, 
                FL("****Invalid IEs eid = %d elem_len=%d left=%d*****\n"), 
                                                elem_id,elem_len,left);
-            return 0;
+            return NULL;
         }
         if (SIR_MAC_EID_VENDOR == elem_id) 
         {
-            if(memcmp( &ptr[2],SIR_MAC_P2P_OUI, SIR_MAC_P2P_OUI_SIZE)==0)
-                return 1;
+            if(memcmp(&ptr[2], oui, oui_size)==0)
+                return ptr;
         }
  
         left -= elem_len;
         ptr += (elem_len + 2);
     }
+    return NULL;
+}
+
+#ifdef WLAN_FEATURE_P2P
+//Returns length of NoA stream and Pointer pNoaStream passed to this function is filled with noa stream
+
+v_U8_t limGetNoaAttrStreamInMultP2pIes(tpAniSirGlobal pMac,v_U8_t* noaStream,v_U8_t noaLen,v_U8_t overFlowLen)
+{
+   v_U8_t overFlowP2pStream[SIR_MAX_NOA_ATTR_LEN];
+   palCopyMemory( pMac->hHdd, overFlowP2pStream, noaStream + noaLen - overFlowLen, overFlowLen); 
+   noaStream[noaLen - overFlowLen] = SIR_MAC_EID_VENDOR;
+   noaStream[noaLen - overFlowLen+1] = overFlowLen + SIR_MAC_P2P_OUI_SIZE;
+   palCopyMemory( pMac->hHdd, noaStream+ noaLen - overFlowLen+2,SIR_MAC_P2P_OUI,SIR_MAC_P2P_OUI_SIZE);
+   
+   palCopyMemory( pMac->hHdd, noaStream+ noaLen - overFlowLen+2+SIR_MAC_P2P_OUI_SIZE,overFlowP2pStream,overFlowLen);
+   return (noaLen + SIR_P2P_IE_HEADER_LEN);
+
+}
+
+//Returns length of NoA stream and Pointer pNoaStream passed to this function is filled with noa stream
+v_U8_t limGetNoaAttrStream(tpAniSirGlobal pMac, v_U8_t*pNoaStream,tpPESession psessionEntry)
+{
+    v_U8_t len=0;
+
+    v_U8_t   *pBody = pNoaStream; 
+    
+   
+    if   ( (psessionEntry != NULL) && (psessionEntry->valid) && 
+           (psessionEntry->pePersona == VOS_P2P_GO_MODE))
+    { 
+       if ((!(psessionEntry->p2pGoPsUpdate.uNoa1Duration)) && (!(psessionEntry->p2pGoPsUpdate.uNoa2Duration))
+            && (!psessionEntry->p2pGoPsUpdate.oppPsFlag)
+          )
+         return 0; //No NoA Descriptor then return 0
+
+
+        pBody[0] = SIR_P2P_NOA_ATTR;
+        
+        pBody[3] = psessionEntry->p2pGoPsUpdate.index;
+        pBody[4] = psessionEntry->p2pGoPsUpdate.ctWin | (psessionEntry->p2pGoPsUpdate.oppPsFlag<<7);
+        len = 5;
+        pBody += len;
+        
+        
+        if (psessionEntry->p2pGoPsUpdate.uNoa1Duration)
+        {
+            *pBody = psessionEntry->p2pGoPsUpdate.uNoa1IntervalCnt; 
+            pBody += 1;
+            len +=1;
+             
+            *((tANI_U32 *)(pBody)) = sirSwapU32ifNeeded(psessionEntry->p2pGoPsUpdate.uNoa1Duration);
+            pBody   += sizeof(tANI_U32);               
+            len +=4;
+            
+            *((tANI_U32 *)(pBody)) = sirSwapU32ifNeeded(psessionEntry->p2pGoPsUpdate.uNoa1Interval);
+            pBody   += sizeof(tANI_U32);               
+            len +=4;
+            
+            *((tANI_U32 *)(pBody)) = sirSwapU32ifNeeded(psessionEntry->p2pGoPsUpdate.uNoa1StartTime);
+            pBody   += sizeof(tANI_U32);               
+            len +=4;
+            
+        }
+        
+        if (psessionEntry->p2pGoPsUpdate.uNoa2Duration)
+        {
+            *pBody = psessionEntry->p2pGoPsUpdate.uNoa2IntervalCnt; 
+            pBody += 1;
+            len +=1;
+             
+            *((tANI_U32 *)(pBody)) = sirSwapU32ifNeeded(psessionEntry->p2pGoPsUpdate.uNoa2Duration);
+            pBody   += sizeof(tANI_U32);               
+            len +=4;
+            
+            *((tANI_U32 *)(pBody)) = sirSwapU32ifNeeded(psessionEntry->p2pGoPsUpdate.uNoa2Interval);
+            pBody   += sizeof(tANI_U32);               
+            len +=4;
+            
+            *((tANI_U32 *)(pBody)) = sirSwapU32ifNeeded(psessionEntry->p2pGoPsUpdate.uNoa2StartTime);
+            pBody   += sizeof(tANI_U32);               
+            len +=4;
+
+        }
+    
+
+        pBody = pNoaStream + 1;            
+        *((tANI_U16 *)(pBody)) = sirSwapU16ifNeeded(len-3);/*one byte for Attr and 2 bytes for length*/
+
+        return (len);
+
+    }    
     return 0;
+        
 }
 #endif

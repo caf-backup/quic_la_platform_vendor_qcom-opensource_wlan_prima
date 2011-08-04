@@ -229,6 +229,9 @@ typedef enum
   /* Serialzie TX transmit request */
   WLANTL_TX_START_XMIT = 4,
 
+  /* Serialzie Finish UL Authentication request */
+  WLANTL_FINISH_ULA   = 5,
+
   WLANTL_TX_MAX
 }WLANTL_TxSignalsType;
 
@@ -891,37 +894,6 @@ WLANTL_RxFrames
 
 /*==========================================================================
 
-  FUNCTION    WLANTL_FlushCachedFrames
-
-  DESCRIPTION
-    Utility function used by TL to flush the station cache
-
-  DEPENDENCIES
-    TL must be initiailized before this function gets called.
-
-  PARAMETERS
-
-    IN
-
-    vosDataBuff:   it will contain a pointer to the first cached buffer
-                   received,
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-    VOS_STATUS_SUCCESS:   Everything is good :)
-
-  SIDE EFFECTS
-
-============================================================================*/
-VOS_STATUS
-WLANTL_FlushCachedFrames
-(
-  vos_pkt_t*      vosDataBuff
-);
-
-/*==========================================================================
-
   FUNCTION    WLANTL_RxCachedFrames
 
   DESCRIPTION
@@ -961,87 +933,6 @@ WLANTL_RxCachedFrames
   WLANTL_CbType*  pTLCb,
   v_U8_t          ucSTAId,
   vos_pkt_t*      vosDataBuff
-);
-
-/*==========================================================================
-
-  FUNCTION    WLANTL_CacheSTAFrame
-
-  DESCRIPTION
-    Internal utility function for for caching incoming data frames that do
-    not have a registered station yet.
-
-  DEPENDENCIES
-    TL must be initiailized before this function gets called.
-    In order to benefit from thsi caching, the components must ensure that
-    they will only register with TL at the moment when they are fully setup
-    and ready to receive incoming data
-
-  PARAMETERS
-
-    IN
-
-    pTLCb:                  TL control block
-    ucSTAId:                station id
-    vosTempBuff:            the data packet
-    uDPUSig:                DPU signature of the incoming packet
-    bBcast:                 true if packet had the MC/BC bit set
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-    VOS_STATUS_E_FAULT:   pointer to TL cb is NULL or STA Id invalid ; access
-                          would cause a page fault
-    VOS_STATUS_SUCCESS:   Everything is good :)
-
-  SIDE EFFECTS
-
-============================================================================*/
-VOS_STATUS
-WLANTL_CacheSTAFrame
-(
-  WLANTL_CbType*    pTLCb,
-  v_U8_t            ucSTAId,
-  vos_pkt_t*        vosTempBuff,
-  v_U32_t           uDPUSig,
-  v_U8_t            bBcast
-);
-
-/*==========================================================================
-
-  FUNCTION    WLANTL_ForwardSTAFrames
-
-  DESCRIPTION
-    Internal utility function for forwarding cached data to the station after
-    the station has been registered.
-
-  DEPENDENCIES
-    TL must be initiailized before this function gets called.
-
-  PARAMETERS
-
-    IN
-
-    pTLCb:                  TL control block
-    ucSTAId:                station id
-
-  RETURN VALUE
-    The result code associated with performing the operation
-
-    VOS_STATUS_E_FAULT:   pointer to TL cb is NULL ; access would cause a
-                          page fault
-    VOS_STATUS_SUCCESS:   Everything is good :)
-
-  SIDE EFFECTS
-
-============================================================================*/
-VOS_STATUS
-WLANTL_ForwardSTAFrames
-(
-  void*             pvosGCtx,
-  v_U8_t            ucSTAId,
-  v_U8_t            ucUcastSig,
-  v_U8_t            ucBcastSig
 );
 
 /*==========================================================================

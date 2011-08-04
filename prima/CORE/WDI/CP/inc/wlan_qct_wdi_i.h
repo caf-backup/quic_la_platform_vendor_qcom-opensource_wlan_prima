@@ -45,6 +45,7 @@ when        who    what, where, why
 #include "wlan_qct_wdi_bd.h" 
 
 #include "wlan_hal_msg.h"
+#include "wlan_status_code.h"
 #include "wlan_qct_dev_defs.h"
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -80,155 +81,6 @@ when        who    what, where, why
 #ifdef ANI_MANF_DIAG
 #define WDI_FTM_MAX_RECEIVE_BUFFER   6500
 #endif /* ANI_MANF_DIAG */
-/*---------------------------------------------------------------------------
-  HAL Status
----------------------------------------------------------------------------*/
-/*! TO DO: !!! TEMP - Definition must come from a common HAL header file*/
-typedef enum
-{
-    eHAL_STATUS_SUCCESS,
-
-    // general failure.  This status applies to all failure that are not covered
-    // by more specific return codes.
-    eHAL_STATUS_FAILURE,
-    eHAL_STATUS_FAILED_ALLOC,
-    eHAL_STATUS_RESOURCES,
-
-    // the HAL has not been opened and a HAL function is being attempted.
-    eHAL_STATUS_NOT_OPEN,
-
-    // function failed due to the card being removed...
-    eHAL_STATUS_CARD_NOT_PRESENT,
-
-    //halInterrupt status
-    eHAL_STATUS_INTERRUPT_ENABLED,
-    eHAL_STATUS_INTERRUPT_DISABLED,
-    eHAL_STATUS_NO_INTERRUPTS,
-    eHAL_STATUS_INTERRUPT_PRESENT,
-    eHAL_STATUS_ALL_INTERRUPTS_PROCESSED,
-    eHAL_STATUS_INTERRUPT_NOT_PROCESSED,        //interrupt cleared but no Isr to process
-
-    // a parameter on the PAL function call is not valid.
-    eHAL_STATUS_INVALID_PARAMETER,
-
-    // the PAL has not been initialized...
-    eHAL_STATUS_NOT_INITIALIZED,
-
-    // Error codes for PE-HAL message API
-    eHAL_STATUS_INVALID_STAIDX,
-    eHAL_STATUS_INVALID_BSSIDX,
-    eHAL_STATUS_STA_TABLE_FULL,             // No space to add more STA, sta table full.
-    eHAL_STATUS_BSSID_TABLE_FULL,
-    eHAL_STATUS_DUPLICATE_BSSID,
-    eHAL_STATUS_DUPLICATE_STA,
-    eHAL_STATUS_BSSID_INVALID,
-    eHAL_STATUS_STA_INVALID,
-    eHAL_STATUS_INVALID_KEYID,
-    eHAL_STATUS_INVALID_SIGNATURE,
-
-    //DXE
-    eHAL_STATUS_DXE_FAILED_NO_DESCS,
-    eHAL_STATUS_DXE_CHANNEL_NOT_CONFIG,         // Channel not configured
-    eHAL_STATUS_DXE_CHANNEL_MISUSE,             // Specified operation inconsistent w/ configuration
-    eHAL_STATUS_DXE_VIRTUAL_MEM_ALLOC_ERROR,    //
-    eHAL_STATUS_DXE_SHARED_MEM_ALLOC_ERROR,     //
-    eHAL_STATUS_DXE_INVALID_CHANNEL,
-    eHAL_STATUS_DXE_INVALID_CALLBACK,
-    eHAL_STATUS_DXE_INCONSISTENT_DESC_COUNT,
-    eHAL_STATUS_DXE_XFR_QUEUE_ERROR,
-    eHAL_STATUS_DXE_INVALID_BUFFER,
-    eHAL_STATUS_DXE_INCOMPLETE_PACKET,
-    eHAL_STATUS_DXE_INVALID_PARAMETER,
-    eHAL_STATUS_DXE_CH_ALREADY_CONFIGURED,
-    eHAL_STATUS_DXE_USB_INVALID_EP,
-    eHAL_STATUS_DXE_GEN_ERROR,
-
-
-    // status codes added for the ImageValidate library
-    eHAL_STATUS_E_NULL_VALUE,
-    eHAL_STATUS_E_FILE_NOT_FOUND,
-    eHAL_STATUS_E_FILE_INVALID_CONTENT,
-    eHAL_STATUS_E_MALLOC_FAILED,
-    eHAL_STATUS_E_FILE_READ_FAILED,
-    eHAL_STATUS_E_IMAGE_INVALID,
-    eHAL_STATUS_E_IMAGE_UNSUPPORTED,
-
-    // status code returned by device memory calls when memory is
-    // not aligned correctly.
-    eHAL_STATUS_DEVICE_MEMORY_MISALIGNED,          // memory access is not aligned on a 4 byte boundary
-    eHAL_STATUS_DEVICE_MEMORY_LENGTH_ERROR,        // memory access is not a multiple of 4 bytes
-
-    // Generic status code to indicate network congestion.
-    eHAL_STATUS_NET_CONGESTION,
-
-    // various status codes for Rx packet dropped conditions...  Note the Min and Max
-    // enums that bracked the Rx Packet Dropped status codes.   There is code that
-    // looks at the various packet dropped conditions so make sure these min / max
-    // enums remain accurate.
-    eHAL_STATUS_RX_PACKET_DROPPED,
-    eHAL_STATUS_RX_PACKET_DROPPED_MIN = eHAL_STATUS_RX_PACKET_DROPPED,
-    eHAL_STATUS_RX_PACKET_DROPPED_NULL_DATA,
-    eHAL_STATUS_RX_PACKET_DROPPED_WDS_FRAME,
-    eHAL_STATUS_RX_PACKET_DROPPED_FILTERED,
-    eHAL_STATUS_RX_PACKET_DROPPED_GROUP_FROM_SELF,
-    eHAL_STATUS_RX_PACKET_DROPPED_MAX = eHAL_STATUS_RX_PACKET_DROPPED_GROUP_FROM_SELF,
-
-    // Status indicating that PMU did not power up and hence indicative of the fact that the clocks are not on
-    eHAL_STATUS_PMU_NOT_POWERED_UP,
-
-    // Queuing code for BA message API
-    eHAL_STATUS_BA_ENQUEUED,        // packets have been buffered in Host
-    eHAL_STATUS_BA_INVALID,
-
-    // A-MPDU/BA related Error codes
-    eHAL_STATUS_BA_RX_BUFFERS_FULL,
-    eHAL_STATUS_BA_RX_MAX_SESSIONS_REACHED,
-    eHAL_STATUS_BA_RX_INVALID_SESSION_ID,
-
-    // !!LAC - can we rework the code so these are not needed?
-    eHAL_STATUS_BA_RX_DROP_FRAME,
-    eHAL_STATUS_BA_RX_INDICATE_FRAME,
-    eHAL_STATUS_BA_RX_ENQUEUE_FRAME,
-
-    // PMC return codes.
-    eHAL_STATUS_PMC_PENDING,
-    eHAL_STATUS_PMC_DISABLED,
-    eHAL_STATUS_PMC_NOT_NOW,
-    eHAL_STATUS_PMC_AC_POWER,
-    eHAL_STATUS_PMC_SYS_ERROR,
-    eHAL_STATUS_PMC_CANNOT_ENTER_IMPS,
-    eHAL_STATUS_PMC_ALREADY_IN_IMPS,
-
-    eHAL_STATUS_HEARTBEAT_TMOUT,
-    eHAL_STATUS_NTH_BEACON_DELIVERY,
-
-    //CSR
-    eHAL_STATUS_CSR_WRONG_STATE,
-
-    // DPU
-    eHAL_STATUS_DPU_DESCRIPTOR_TABLE_FULL,
-    eHAL_STATUS_DPU_MICKEY_TABLE_FULL,
-
-    // HAL-FW messages
-    eHAL_STATUS_FW_MSG_FAILURE,                // Error in Hal-FW message interface
-    eHAL_STATUS_FW_MSG_TIMEDOUT,
-    eHAL_STATUS_FW_MSG_INVALID,
-    eHAL_STATUS_FW_SEND_MSG_FAILED,
-    eHAL_STATUS_FW_PS_BUSY,
-
-    eHAL_STATUS_TIMER_START_FAILED,
-    eHAL_STATUS_TIMER_STOP_FAILED,
-
-    eHAL_STATUS_TL_SUSPEND_TIMEOUT,
-
-    eHAL_STATUS_UMA_DESCRIPTOR_TABLE_FULL,
-
-    eHAL_STATUS_SET_CHAN_ALREADY_ON_REQUESTED_CHAN,
-
-    // not a real status.  Just a way to mark the maximum in the enum.
-    eHAL_STATUS_MAX
-
-} eHalStatus;
 
 /*---------------------------------------------------------------------------
   DAL Control Path Main States
@@ -482,8 +334,12 @@ typedef enum
   /*WLAN DAL Aggregated Add TSpec Request*/
   WDI_AGGR_ADD_TS_REQ   = 56,
 
+  WDI_ADD_STA_SELF_REQ       = 57,
+
+  WDI_DEL_STA_SELF_REQ       = 58,
+
   /* WLAN FTM Command request */
-  WDI_FTM_CMD_REQ       = 57,
+  WDI_FTM_CMD_REQ       = 59,
 
   WDI_MAX_REQ
 }WDI_RequestEnumType; 
@@ -663,11 +519,15 @@ typedef enum
   /*WLAN DAL Add Aggregated TSpec Response*/
   WDI_AGGR_ADD_TS_RESP  = 55,
 
+  WDI_ADD_STA_SELF_RESP = 56,
+  
+  WDI_DEL_STA_SELF_RESP = 57,
+
   /*-------------------------------------------------------------------------
     Indications
      !! Keep these last in the enum if possible
     -------------------------------------------------------------------------*/
-  WDI_HAL_IND_MIN                     = 56, 
+  WDI_HAL_IND_MIN                     = 58, 
   /*When RSSI monitoring is enabled of the Lower MAC and a threshold has been
     passed. */
   WDI_HAL_LOW_RSSI_IND                = WDI_HAL_IND_MIN, 
@@ -696,6 +556,7 @@ typedef enum
 
   /* FTM Response from HAL */
   WDI_FTM_CMD_RESP                    = WDI_HAL_IND_MIN + 7,
+
   WDI_MAX_RESP
 }WDI_ResponseEnumType; 
 
@@ -818,6 +679,20 @@ typedef struct
 }WDI_EventInfoType; 
 
 /*--------------------------------------------------------------------------- 
+   WLAN DAL Session Index Type
+ ---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Events can be linked in a list - put a node in front for that, it will be
+   used by wpt to link them*/
+  wpt_list_node          wptListNode; 
+
+  /*Session id for the new association to be processed*/
+  wpt_uint8              ucIndex; 
+
+}WDI_NextSessionIdType; 
+
+/*--------------------------------------------------------------------------- 
    WLAN DAL Control Block Type 
  ---------------------------------------------------------------------------*/
 typedef struct
@@ -868,6 +743,10 @@ typedef struct
   /*Array of simultaneous BSS Sessions*/
   WDI_BSSSessionType          aBSSSessions[WDI_MAX_BSS_SESSIONS];
 
+  /*WDI Pending Association Session Id Queue - it keeps track of the
+    order in which queued assoc requests came in*/
+  wpt_list                    wptPendingAssocSessionIdQueue;
+  ;
   /*! TO DO : - group these in a union, only one cached req can exist at a
       time  */
 
@@ -2304,6 +2183,40 @@ WDI_ProcessBtAmpEventReq
   WDI_EventInfoType*     pEventData
 );
 
+/**
+ @brief Process Add STA self Request function (called when Main FSM
+        allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessAddSTASelfReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Del Sta Self Request function (called when Main 
+        FSM allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessDelSTASelfReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
 /*========================================================================
           Main DAL Control Path Response Processing API 
 ========================================================================*/
@@ -3282,6 +3195,40 @@ WDI_ProcessBtAmpEventRsp
   WDI_EventInfoType*     pEventData
 );
 
+/**
+ @brief Process ADD SELF STA Rsp function (called 
+        when a response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessAddSTASelfRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+ /**
+ @brief WDI_ProcessDelSTASelfRsp function (called when a 
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessDelSTASelfRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
 
 /*==========================================================================
                         Indications from HAL
@@ -3770,6 +3717,25 @@ WDI_QueueAssocRequest
 );
 
 /**
+ @brief    Utility function used by the DAL Core to help dequeue
+           an association request that was pending
+           The request will be queued up in front of the main
+           pending queue for immediate processing
+ @param 
+    
+    pWDICtx: - pointer to the WDI control block
+  
+    
+ @see 
+ @return Result of the operation  
+*/
+WDI_Status
+WDI_DequeueAssocRequest
+(
+  WDI_ControlBlockType*  pWDICtx
+);
+
+/**
  @brief Helper routine used to init the BSS Sessions in the WDI control block 
   
  
@@ -3938,6 +3904,7 @@ WDT_GetTransportDriverContext
 (
   void *pContext
 );
+
 
 #endif /*WLAN_QCT_WDI_I_H*/
 

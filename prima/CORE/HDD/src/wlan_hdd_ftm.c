@@ -1267,6 +1267,12 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
     pVosContextType pVosContext = (pVosContextType)(pHddCtx->pvosContext);
     tHalMacStartParameters halStartParams;
 
+    if (WLAN_FTM_STARTED == pHddCtx->ftm.ftm_state)
+    {
+       printk(KERN_EMERG "*** FTM Driver Already Started ***\n");
+       return VOS_STATUS_SUCCESS;
+    }
+
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "%s: Starting Libra SW", __func__);
 
@@ -1430,6 +1436,31 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
             "%s: MAC correctly started",__func__);
 
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
+
+   /**
+   EVM issue is observed with 1.6Mhz freq for 1.3V RF supply in wlan standalone case.
+   During concurrent operation (e.g. WLAN and WCDMA) this issue is not observed. 
+   To workaround, wlan will vote for 3.2Mhz during startup and will vote for 1.6Mhz
+   during exit.
+   Since using 3.2Mhz has a side effect on power (extra 200ua), this is left configurable.
+   If customers do their design right, they should not see the EVM issue and in that case they
+   can decide to keep 1.6Mhz by setting an NV.
+   If NV item is not present, use the default 3.2Mhz
+   vos_stop is also invoked if wlan startup seq fails (after vos_start, where 3.2Mhz is voted.)
+   */
+  {
+   sFreqFor1p3VSupply freq;
+   vStatus = vos_nv_read( NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY, &freq, NULL,
+         sizeof(freq) );
+   if (VOS_STATUS_SUCCESS != vStatus)
+    freq.freqFor1p3VSupply = VOS_NV_FREQUENCY_FOR_1_3V_SUPPLY_3P2MH;
+
+    if (vos_chipVoteFreqFor1p3VSupply(NULL, NULL, NULL, freq.freqFor1p3VSupply) != VOS_STATUS_SUCCESS)
+        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+               "%s: Failed to set the freq %d for 1.3V Supply",__func__,freq.freqFor1p3VSupply );
+  }
+
+
     /* START SYS. This will trigger the CFG download */
     sysMcStart(pVosContext, ftm_vos_sys_probe_thread_cback, pVosContext);
 #endif
@@ -1509,6 +1540,18 @@ static int wlan_ftm_stop(hdd_context_t *pHddCtx)
              "%s: Failed to stop BAL",__func__);
            VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
        }
+
+       /**
+       EVM issue is observed with 1.6Mhz freq for 1.3V supply in wlan standalone case.
+       During concurrent operation (e.g. WLAN and WCDMA) this issue is not observed. 
+       To workaround, wlan will vote for 3.2Mhz during startup and will vote for 1.6Mhz
+       during exit.
+       vos_stop is also invoked if wlan startup seq fails (after vos_start, where 3.2Mhz is voted.)
+       */
+       if (vos_chipVoteFreqFor1p3VSupply(NULL, NULL, NULL, VOS_NV_FREQUENCY_FOR_1_3V_SUPPLY_1P6MH) != VOS_STATUS_SUCCESS)
+            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                   "%s: Failed to set the freq to 1.6Mhz for 1.3V Supply",__func__ );
+
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
@@ -4140,14 +4183,16 @@ VOS_STATUS wlan_write_to_efs (v_U8_t *pData, v_U16_t data_len)
        if( ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, pHddCtx->ptt_pid) < 0) {
 
            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("Ptt Socket error sending message to the app!!\n"));
-           return VOS_STATUS_E_FAILURE;
+           vos_mem_free((v_VOID_t*)wmsg);
+		   return VOS_STATUS_E_FAILURE;
        }
    }
    else {
     if( ptt_sock_send_msg_to_app(wmsg, 0, ANI_NL_MSG_PUMAC, pHddCtx->ftm.wnl->nlh.nlmsg_pid) < 0) {
 
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("Ptt Socket error sending message to the app!!\n"));
-        return VOS_STATUS_E_FAILURE;
+        vos_mem_free((v_VOID_t*)wmsg);
+		return VOS_STATUS_E_FAILURE;
     }
    }
 

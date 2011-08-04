@@ -131,7 +131,8 @@ typedef struct sSirAssocReq
 
     tSirMacWpaInfo            wpa;
     tSirMacRsnInfo            rsn;
-
+    tSirAddie                 addIE;
+    
     tSirPropIEStruct          propIEinfo;
     tSirMacPowerCapabilityIE  powerCapability;
     tSirMacSupportedChannelIE supportedChannels;
@@ -152,17 +153,10 @@ typedef struct sSirAssocReq
 
     tANI_U8                   wpaPresent;
     tANI_U8                   rsnPresent;
+    tANI_U8                   addIEPresent;
 
     tANI_U8                   powerCapabilityPresent;
     tANI_U8                   supportedChannelsPresent;
-/**************** QNE updated - BEGIN **********************/
-    tSirMacWscInfo            wscInfo;
-/**************** QNE updated - END   **********************/
-#ifdef WLAN_FEATURE_P2P
-    tANI_U8              p2pPresent;
-    tSirP2Pie            p2pIE;      // p2pIE to be sent
-#endif
-
 } tSirAssocReq, *tpSirAssocReq;
 
 
@@ -756,14 +750,19 @@ tSirRetStatus DePopulateDot11fWscRegistrarInfoInProbeRes(tpAniSirGlobal pMac,
                                                          tDot11fIEWscProbeRes *pDot11f);
 
 
+tSirRetStatus PopulateDot11fAssocResWscIE(tpAniSirGlobal pMac, 
+                                          tDot11fIEWscAssocRes *pDot11f, 
+                                          tpSirAssocReq pRcvdAssocReq);
+
+#ifdef WLAN_FEATURE_P2P
+tSirRetStatus PopulateDot11AssocResP2PIE(tpAniSirGlobal pMac, 
+                                       tDot11fIEP2PAssocRes *pDot11f, 
+                                       tpSirAssocReq pRcvdAssocReq);
+#endif
+
 tSirRetStatus PopulateDot11fWscInAssocRes(tpAniSirGlobal pMac,
                                           tDot11fIEWscAssocRes *pDot11f);
 
-tSirRetStatus PopulateDot11fWscAssocReq( tpAniSirGlobal        pMac,
-                                         tDot11fIEWscAssocReq *pDot11f );
-
-tSirRetStatus PopulateDot11fWscProbeReq( tpAniSirGlobal        pMac,
-                                         tDot11fIEWscProbeReq *pDot11f );
 
 #if defined WLAN_FEATURE_VOWIFI
 tSirRetStatus PopulateDot11fWFATPC( tpAniSirGlobal        pMac,

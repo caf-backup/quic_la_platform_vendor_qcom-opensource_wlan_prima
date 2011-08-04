@@ -87,7 +87,7 @@ typedef PACKED_PRE struct PACKED_POST {
 enum {
    GRABRAM_RAWADC = 0,
    GRABRAM_POSTIQ
-}; 
+};
 typedef tANI_U32 eGrabRamSampleType;
 
 typedef tANI_S8  tANI_S6;

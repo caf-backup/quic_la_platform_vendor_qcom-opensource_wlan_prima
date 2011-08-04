@@ -119,8 +119,8 @@ typedef enum
 
 } VOS_MODULE_ID;
 
-#if defined(WLAN_SOFTAP_FEATURE) || defined(ANI_MANF_DIAG)
-/// Cocurrency role.  These are generic IDs that identify the various roles
+
+/// Concurrency role.  These are generic IDs that identify the various roles
 /// in the software system.
 typedef enum
 { /*ON linux maintain 1-1 corespondence with device_mode_t in hdd*/
@@ -134,7 +134,7 @@ typedef enum
     ,VOS_FTM_MODE = 5,
 #endif
 } tVOS_CON_MODE;
-#endif 
+
 //This is a bit pattern to be set for each mode
 //bit 0 - sta mode
 //bit 1 - ap mode

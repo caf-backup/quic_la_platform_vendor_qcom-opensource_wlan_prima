@@ -127,14 +127,15 @@ typedef struct sSirRSNie
     tANI_U8        rsnIEdata[SIR_MAC_MAX_IE_LENGTH+2];
 } tSirRSNie, *tpSirRSNie;
 
-#ifdef WLAN_FEATURE_P2P
-typedef struct sSirP2Pie
+/// Additional IE information : 
+/// This can include WSC IE, P2P IE, and/or FTIE from upper layer.
+/// MAC layer transparently convey these IE info between peer STA and upper layer,
+/// but never requires to parse it.
+typedef struct sSirAddie
 {
     tANI_U16       length;
-    tANI_U8        P2PIEdata[SIR_MAC_MAX_IE_LENGTH+2];
-} tSirP2Pie, *tpSirP2Pie;
-
-#endif /* WLAN_FEATURE_P2P */
+    tANI_U8        addIEdata[SIR_MAC_MAX_IE_LENGTH+2];
+} tSirAddie, *tpSirAddie;
 
 /// Need to refine structure definitions for Keying material,
 /// QoS policy, etc

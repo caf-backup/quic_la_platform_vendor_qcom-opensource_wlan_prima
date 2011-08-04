@@ -61,7 +61,7 @@ typedef struct
 // loaded on driver initialization if available
 static CountryInfoTable_t countryInfoTable =
 {
-    248,
+    254,
     {
         { REGDOMAIN_FCC, {'U', 'S'}},       // USA - must be the first country code
         { REGDOMAIN_WORLD, {'A', 'D'}},     //ANDORRA
@@ -310,7 +310,13 @@ static CountryInfoTable_t countryInfoTable =
         { REGDOMAIN_KOREA, {'K', '1'}},     //Korea alternate 1
         { REGDOMAIN_KOREA, {'K', '2'}},     //Korea alternate 2
         { REGDOMAIN_KOREA, {'K', '3'}},     //Korea alternate 3
-        { REGDOMAIN_KOREA, {'K', '4'}}      //Korea alternate 4
+        { REGDOMAIN_KOREA, {'K', '4'}},      //Korea alternate 4
+        { REGDOMAIN_ETSI, {'E', 'U'}},       //Europe (SSGFI)
+        { REGDOMAIN_JAPAN, {'J', '1'}},     //Japan alternate 1
+        { REGDOMAIN_JAPAN, {'J', '2'}},     //Japan alternate 2
+        { REGDOMAIN_JAPAN, {'J', '3'}},     //Japan alternate 3
+        { REGDOMAIN_JAPAN, {'J', '4'}},     //Japan alternate 4
+        { REGDOMAIN_JAPAN, {'J', '5'}}      //Japan alternate 5
     }
 };
 typedef struct nvEFSTable_s
@@ -576,7 +582,31 @@ VOS_STATUS vos_nv_open(void)
                      return (eHAL_STATUS_FAILURE);
             }
         }
-      }
+
+        if (vos_nv_getValidity(VNV_OFDM_CMD_PWR_OFFSET, &itemIsValid) == 
+         VOS_STATUS_SUCCESS)
+        {
+            if (itemIsValid == VOS_TRUE)
+            {
+                if(vos_nv_read( VNV_OFDM_CMD_PWR_OFFSET, 
+                  (v_VOID_t *)&pnvEFSTable->halnv.tables.ofdmCmdPwrOffset, NULL, 
+                                sizeof(sOfdmCmdPwrOffset)) != VOS_STATUS_SUCCESS)
+                     return (eHAL_STATUS_FAILURE);
+            }
+        }
+
+        if (vos_nv_getValidity(VNV_TX_BB_FILTER_MODE, &itemIsValid) == 
+         VOS_STATUS_SUCCESS)
+        {
+            if (itemIsValid == VOS_TRUE)
+            {
+               if(vos_nv_read(VNV_TX_BB_FILTER_MODE, 
+                  (v_VOID_t *)&pnvEFSTable->halnv.tables.txbbFilterMode, NULL, 
+                sizeof(sTxBbFilterMode)) != VOS_STATUS_SUCCESS)
+                     return (eHAL_STATUS_FAILURE);
+            }
+        }
+    }
 
     return VOS_STATUS_SUCCESS;
 }
@@ -705,7 +735,7 @@ VOS_STATUS vos_nv_readTxAntennaCount( v_U8_t *pTxAntennaCount )
 {
    sNvFields fieldImage;
    VOS_STATUS status;
-   status = vos_nv_read( NV_FIELDS_IMAGE, &fieldImage, NULL,
+   status = vos_nv_read( VNV_FIELD_IMAGE, &fieldImage, NULL,
          sizeof(fieldImage) );
    if (VOS_STATUS_SUCCESS == status)
    {
@@ -723,7 +753,7 @@ VOS_STATUS vos_nv_readRxAntennaCount( v_U8_t *pRxAntennaCount )
 {
    sNvFields fieldImage;
    VOS_STATUS status;
-   status = vos_nv_read( NV_FIELDS_IMAGE, &fieldImage, NULL,
+   status = vos_nv_read( VNV_FIELD_IMAGE, &fieldImage, NULL,
          sizeof(fieldImage) );
    if (VOS_STATUS_SUCCESS == status)
    {
@@ -742,7 +772,7 @@ VOS_STATUS vos_nv_readMacAddress( v_MAC_ADDRESS_t pMacAddress )
 {
    sNvFields fieldImage;
    VOS_STATUS status;
-   status = vos_nv_read( NV_FIELDS_IMAGE, &fieldImage, NULL,
+   status = vos_nv_read( VNV_FIELD_IMAGE, &fieldImage, NULL,
          sizeof(fieldImage) );
    if (VOS_STATUS_SUCCESS == status)
    {
@@ -1048,6 +1078,22 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
                memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.txbbFilterMode,bufferSize);
            }
            break;
+
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
+       case VNV_FREQUENCY_FOR_1_3V_SUPPLY:
+           itemSize = sizeof(gnvEFSTable->halnv.tables.freqFor1p3VSupply);
+           if(bufferSize != itemSize) {
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                 itemSize);
+               status = VOS_STATUS_E_INVAL;
+           }
+           else {
+               memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.freqFor1p3VSupply,bufferSize);
+           }
+           break;
+#endif /* FEATURE_WLAN_NON_INTEGRATED_SOC */
+
        default:
          break;
    }
@@ -1248,6 +1294,21 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
                 memcpy(&gnvEFSTable->halnv.tables.txbbFilterMode,inputVoidBuffer,bufferSize);
             }
             break;
+            
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
+        case VNV_FREQUENCY_FOR_1_3V_SUPPLY:
+            itemSize = sizeof(gnvEFSTable->halnv.tables.freqFor1p3VSupply);
+            if(bufferSize != itemSize) {
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
+                status = VOS_STATUS_E_INVAL;
+            }
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.freqFor1p3VSupply,inputVoidBuffer,bufferSize);
+            }
+            break;
+#endif /* FEATURE_WLAN_NON_INTEGRATED_SOC */
 
         default:
           break;

@@ -229,7 +229,13 @@ typedef enum
    WLAN_HAL_START_INNAV_MEAS_REQ,
    WLAN_HAL_START_INNAV_MEAS_RSP,
 
+   //ADD SELF STA REQ and RSP
+   WLAN_HAL_ADD_STA_SELF_REQ,
+   WLAN_HAL_ADD_STA_SELF_RSP,
 
+   //DEL SELF STA SUPPORT
+   WLAN_HAL_DEL_STA_SELF_REQ,
+   WLAN_HAL_DEL_STA_SELF_RSP,
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
@@ -933,6 +939,8 @@ typedef PACKED_PRE struct PACKED_POST
    tHalFinishScanRspParams finishScanRspParams;
 }  tHalFinishScanRspMsg, *tpHalFinishScanRspMsg;
 
+
+
 /*---------------------------------------------------------------------------
   WLAN_HAL_CONFIG_STA_REQ
 ---------------------------------------------------------------------------*/
@@ -1079,6 +1087,8 @@ typedef PACKED_PRE struct PACKED_POST
        Retained for backward compalibity with existing HAL code*/
     tANI_U16 bssIdx;
 
+    tANI_U8  p2pCapableSta;
+
 } tConfigStaParams, *tpConfigStaParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -1119,6 +1129,8 @@ typedef PACKED_PRE struct PACKED_POST
 
   /* IGTK DPU signature*/
   tANI_U8 ucMgmtSig;
+
+  tANI_U8  p2pCapableSta;
 
 }tConfigStaRspParams, *tpConfigStaRspParams;
 
@@ -1733,13 +1745,13 @@ typedef PACKED_PRE struct PACKED_POST
     /* Request Parameters */
 
     /* Number of BSSIDs */
-    tANI_U8                    numBSSIDs;
+    tANI_U8                  numBSSIDs;
     /* Number of Measurements required */
-    tANI_U8                    numInNavMeasurements;
+    tANI_U8                  numInNavMeasurements;
     /*.Type of measurements (RTS-CTS or FRAME-BASED) */
     tANI_U16                 measurementMode;
     /* bssid channel info for doing the measurements */
-    tBSSIDChannelInfo       bssidChannelInfo[1];
+    tBSSIDChannelInfo        bssidChannelInfo[1];
 
 }tStartInNavMeasReqParams, *tpStartInNavMeasReqParams;
 
@@ -2688,9 +2700,7 @@ typedef PACKED_PRE struct PACKED_POST
 #ifdef WLAN_SOFTAP_FEATURE
     tANI_U32 timIeOffset; //TIM IE offset from the beginning of the template.
 #endif
-#ifdef WLAN_FEATURE_P2P
     tANI_U16 p2pIeOffset; //P2P IE offset from the begining of the template
-#endif
 }tSendBeaconParams, *tpSendBeaconParams;
 
 
@@ -3646,6 +3656,73 @@ typedef PACKED_PRE struct PACKED_POST
 }tSetP2PGONOARspMsg, *tpSetP2PGONOARspMsg;
 #endif
 
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_SET_SELF_STA_REQ
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+  tSirMacAddr selfMacAddr;
+  tANI_U32    status;
+}tAddStaSelfParams, *tpAddStaSelfParams;
+
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tAddStaSelfParams addStaSelfParams;
+}tAddStaSelfReq, *tpAddStaSelfReq;
+
+/*---------------------------------------------------------------------------
+*WLAN_HAL_SET_SELF_STA_RSP
+*--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+}tAddStaSelfRspParams, *tpAddStaSelfRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tAddStaSelfRspParams addStaSelfRspParams;
+}tAddStaSelfRspMsg, *tpAddStaSelfRspMsg;
+
+
+/*---------------------------------------------------------------------------
+  WLAN_HAL_DEL_STA_SELF_REQ
+---------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tSirMacAddr selfMacAddr;
+
+}tDelStaSelfParams, *tpDelStaSelfParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tDelStaSelfParams delStaSelfParams;
+}  tDelStaSelfReqMsg, *tpDelStaSelfReqMsg;
+
+
+/*---------------------------------------------------------------------------
+  WLAN_HAL_DEL_STA_SELF_RSP
+---------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+  /*success or failure */
+  tANI_U32   status;
+
+}tDelStaSelfRspParams, *tpDelStaSelfRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tDelStaSelfRspParams delStaSelfRspParams;
+}  tDelStaSelfRspMsg, *tpDelStaSelfRspMsg;
 
 
 #ifdef WLAN_FEATURE_VOWIFI_11R

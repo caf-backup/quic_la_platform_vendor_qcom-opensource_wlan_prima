@@ -250,7 +250,7 @@ limDeletePreAuthList(tpAniSirGlobal pMac)
 
         PELOG1(limLog(pMac, LOG1, FL("=====> limDeletePreAuthList \n"));)
         limReleasePreAuthNode(pMac, pCurrNode);
-
+		
         pCurrNode = pTempNode;
     }
     pMac->lim.pLimPreAuthList = NULL;

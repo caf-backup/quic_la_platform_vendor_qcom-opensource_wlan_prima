@@ -14,6 +14,7 @@
 /*--------------------------------------------------------------------------- 
   Include files
   -------------------------------------------------------------------------*/ 
+#include <linux/semaphore.h>
 #include <wlan_hdd_tx_rx.h>
 #include <wlan_hdd_softap_tx_rx.h>
 #include <wlan_hdd_dp_utils.h>
@@ -38,7 +39,7 @@
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
- extern v_U8_t hddWmmUpToAcMap[]; 
+
 /*--------------------------------------------------------------------------- 
   Function definitions and documenation
   -------------------------------------------------------------------------*/ 
@@ -134,6 +135,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    sme_QosWmmUpType up = SME_QOS_WMM_UP_BE;
    skb_list_node_t *pktNode = NULL;
    v_SIZE_t pktListSize = 0;
+   v_BOOL_t txSuspended = VOS_FALSE;
    hdd_adapter_t *pAdapter = (hdd_adapter_t *)netdev_priv(dev);
    hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);   
    vos_list_node_t *anchor = NULL;
@@ -153,13 +155,17 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       //The BC/MC station ID is assigned during BSS starting phase. SAP will return the station 
       //ID used for BC/MC traffic. The station id is registered to TL as well.
       STAId = pHddApCtx->uBCStaId;
+      
+      /* Setting priority for broadcast packets which doesn't go to select_queue function */
+      skb->priority = SME_QOS_WMM_UP_BE;
+      skb->queue_mapping = HDD_LINUX_AC_BE;
+
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
               "%s: BC/MC packet\n", __FUNCTION__);
    }
    else
    {
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-      STAId = *(v_U8_t*)&skb->cb;
+      STAId = *(v_U8_t *)(((v_U8_t *)(skb->data)) - 1);
       if (STAId == HDD_WLAN_INVALID_STA_ID)
       {
          VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
@@ -169,19 +175,14 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          kfree_skb(skb);
          return NETDEV_TX_OK;
       }
-#else
-       if (eHAL_STATUS_SUCCESS != hdd_softap_GetStaId(pAdapter, pDestMacAddress, (v_U16_t *)&STAId))
+      else if (FALSE == pAdapter->aStaInfo[STAId].isUsed )
       {
-         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                    "%s: Failed to find right station", __FUNCTION__);
+         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: STA is unregistered", __FUNCTION__, STAId);
          ++pAdapter->stats.tx_dropped;
          ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
          kfree_skb(skb);
          return NETDEV_TX_OK;
       }
-    
-#endif //FEATURE_WLAN_NON_INTEGRATED_SOC
-
 
       if ( (WLANTL_STA_CONNECTED != pAdapter->aStaInfo[STAId].tlSTAState) && 
            (WLANTL_STA_AUTHENTICATED != pAdapter->aStaInfo[STAId].tlSTAState) )
@@ -192,6 +193,18 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
          kfree_skb(skb);
          return NETDEV_TX_OK;
+      }
+      else if(WLANTL_STA_CONNECTED == pAdapter->aStaInfo[STAId].tlSTAState)
+      {
+        if(ntohs(skb->protocol) != HDD_ETHERTYPE_802_1_X)
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+                       "%s: NON-EAPOL packet in non-Authenticated state", __FUNCTION__);
+            ++pAdapter->stats.tx_dropped;
+            ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
+            kfree_skb(skb);
+            return NETDEV_TX_OK;
+        }
       }
    }
 
@@ -207,6 +220,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
    // If the memory differentiation mode is enabled, the memory limit of each queue will be 
    // checked. Over-limit packets will be dropped.
+    spin_lock(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
     hdd_list_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktListSize);
     if(pktListSize >= pAdapter->aTxQueueLimit[ac])
     {
@@ -214,9 +228,17 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
             "%s: station %d ac %d queue over limit %d \n", __FUNCTION__, STAId, ac, pktListSize); 
        pAdapter->aStaInfo[STAId].txSuspended[ac] = VOS_TRUE;
        netif_stop_subqueue(dev, skb_get_queue_mapping(skb));
-
-       return NETDEV_TX_BUSY;
+       txSuspended = VOS_TRUE;
     }
+   spin_unlock(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
+
+   if (VOS_TRUE == txSuspended)
+   {
+       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, 
+                  "%s: TX queue full for AC=%d Disable OS TX queue", 
+                  __FUNCTION__, ac );
+      return NETDEV_TX_BUSY;   
+   }
 
    //Use the skb->cb field to hold the list node information
    pktNode = (skb_list_node_t *)&skb->cb;
@@ -312,23 +334,7 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
               "%s: Classified as ac %d up %d", __FUNCTION__, ac, up);
 
-   // If the memory differentiation mode is enabled, the memory limit of each queue will be 
-   // checked. Over-limit packets will be dropped.
-    hdd_list_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktListSize);
-    if(pktListSize >= pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].max_size)
-    {
-       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-            "%s: station %d ac %d queue over limit %d \n", __FUNCTION__, STAId, ac, pktListSize); 
-       pAdapter->aStaInfo[STAId].txSuspended[ac] = VOS_TRUE;; 
-       /* TODO:Rx Flowchart should be trigerred here to SUPEND SSC on RX side.
-        * SUSPEND should be done based on Threshold. RESUME would be 
-        * triggered in fetch cbk after recovery.
-        */
-       kfree_skb(skb);
-       
-       return VOS_STATUS_E_FAILURE;
-    }
-
+   skb->queue_mapping = hddLinuxUpToAcMap[up];
 
    //Use the skb->cb field to hold the list node information
    pktNode = (skb_list_node_t *)&skb->cb;
@@ -342,6 +348,18 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
    INIT_LIST_HEAD(&pktNode->anchor);
 
    spin_lock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
+    if(pktListSize >= pAdapter->aTxQueueLimit[ac])
+    {
+       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+            "%s: station %d ac %d queue over limit %d \n", __FUNCTION__, STAId, ac, pktListSize); 
+       /* TODO:Rx Flowchart should be trigerred here to SUPEND SSC on RX side.
+        * SUSPEND should be done based on Threshold. RESUME would be 
+        * triggered in fetch cbk after recovery.
+        */
+       kfree_skb(skb);
+       spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
+       return VOS_STATUS_E_FAILURE;
+    }
    status = hdd_list_insert_back_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktNode->anchor, &pktListSize );
    spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
 
@@ -583,6 +601,11 @@ VOS_STATUS hdd_softap_init_tx_rx_sta( hdd_adapter_t *pAdapter, v_U8_t STAId, v_M
 VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_adapter_t *pAdapter, v_U8_t STAId )
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
+   v_U8_t ac;
+   /**Track whether OS TX queue has been disabled.*/
+   v_BOOL_t txSuspended[NUM_TX_QUEUES];
+   v_U8_t tlAC;
+
    if (FALSE == pAdapter->aStaInfo[STAId].isUsed)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, "%s: Deinit station not inited %d", __FUNCTION__, STAId );
@@ -590,7 +613,25 @@ VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_adapter_t *pAdapter, v_U8_t STAId )
    }
 
    status = hdd_softap_flush_tx_queues_sta(pAdapter, STAId);
+
+   pAdapter->aStaInfo[STAId].isUsed = FALSE;
+   for(ac = HDD_LINUX_AC_VO; ac <= HDD_LINUX_AC_BK; ac++)
+   {
+     tlAC = hdd_QdiscAcToTlAC[ac];
+     txSuspended[ac] = pAdapter->aStaInfo[STAId].txSuspended[tlAC];
+   }
+
    vos_mem_zero(&pAdapter->aStaInfo[STAId], sizeof(hdd_station_info_t));
+
+   for(ac = HDD_LINUX_AC_VO; ac <= HDD_LINUX_AC_BK; ac++)
+   {
+     if(txSuspended[ac])
+     {
+          VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
+                     "%s: TX queue re-enabled", __FUNCTION__);
+          netif_wake_subqueue(pAdapter->dev, ac);
+       }
+   }
 
    return status;
 }
@@ -753,18 +794,6 @@ VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,"%s: AC %d passed by TL", __FUNCTION__, ac);
 
-   /* Only fetch this station and this AC. Return VOS_STATUS_E_EMPTY if nothing there. Do not get next AC
-      as the other branch does.
-   */
-   hdd_list_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &size);
-   if (0 == size)
-   {
-      return VOS_STATUS_E_EMPTY;
-   }
-
-   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                       "%s: AC %d has packets pending", __FUNCTION__, ac);
-   
    //Get the vos packet. I don't want to dequeue and enqueue again if we are out of VOS resources 
    //This simplifies the locking and unlocking of Tx queue
    status = vos_pkt_wrap_data_packet( &pVosPacket, 
@@ -783,9 +812,24 @@ VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
       return VOS_STATUS_E_FAILURE;
    }
 
+   /* Only fetch this station and this AC. Return VOS_STATUS_E_EMPTY if nothing there. Do not get next AC
+      as the other branch does.
+   */
    spin_lock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
+   hdd_list_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &size);
+
+   if (0 == size)
+   {
+      vos_pkt_return_packet(pVosPacket);
+      spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
+      return VOS_STATUS_E_EMPTY;
+   }
+
    status = hdd_list_remove_front( &pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &anchor );
    spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
+
+   VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+                       "%s: AC %d has packets pending", __FUNCTION__, ac);
 
    if(VOS_STATUS_SUCCESS == status)
    {
@@ -1393,7 +1437,14 @@ VOS_STATUS hdd_softap_change_STA_state( hdd_adapter_t *pAdapter, v_MACADDR_t *pD
     hddLog(LOG1, FL("%s enter \n"));
 
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-    // FIXME_PRIMA need a solution for this
+    if(!hHalHandle )
+    {
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_FATAL,
+                 "%s: The hHalHandle is  NULL ptr value");
+      VOS_ASSERT( 0 );
+      return VOS_STATUS_E_FAILURE;
+    }    
+
     if (eHAL_STATUS_SUCCESS != halTable_FindStaidByAddr(hHalHandle, (tANI_U8 *)pDestMacAddress, &ucSTAId))
     {
         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,

@@ -14,6 +14,8 @@ static struct hdd_context_s *pHddCtx = NULL;
 
 static int gWiFiChannel = 0;  /* WiFi associated channel 1-13, or 0 (none) */
 static int gAmpChannel = 0;   /* AMP associated channel 1-13, or 0 (none) */
+static int gBtcDriverMode = WLAN_HDD_INFRA_STATION;  /* Driver mode in BTC */
+
 
 // Forward declrarion
 static int btc_msg_callback (struct sk_buff * skb);
@@ -40,7 +42,19 @@ void send_btc_nlink_msg (int type, int dest_pid)
    nlh->nlmsg_type = WLAN_NL_MSG_BTC;
    aniHdr = NLMSG_DATA(nlh);
    aniHdr->type = type;
-   
+
+  /* Set BTC driver mode correctly based on received events type */
+  if(type == WLAN_BTC_SOFTAP_BSS_START)
+  {
+     /* Event is SoftAP BSS Start set BTC driver mode to SoftAP */
+     gBtcDriverMode = WLAN_HDD_SOFTAP;
+  }
+  if(type == WLAN_STA_ASSOC_DONE_IND)
+  {
+     /* Event is STA Assoc done set BTC driver mode to INFRA STA*/
+     gBtcDriverMode = WLAN_HDD_INFRA_STATION;
+  }
+
    switch( type )
    {
       case WLAN_STA_DISASSOC_DONE_IND:
@@ -76,7 +90,7 @@ void send_btc_nlink_msg (int type, int dest_pid)
          nlh->nlmsg_len = NLMSG_LENGTH((sizeof(tAniMsgHdr) + sizeof(tWlanAssocData)));
          assocData = ( tWlanAssocData *)((char*)aniHdr + sizeof(tAniMsgHdr));
          
-         assocData->channel = hdd_get_operating_channel( pHddCtx, WLAN_HDD_INFRA_STATION );
+         assocData->channel = hdd_get_operating_channel( pHddCtx, gBtcDriverMode );
 
          VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_LOW,
                     "New WiFi channel %d gAmpChannel %d gWiFiChannel %d",

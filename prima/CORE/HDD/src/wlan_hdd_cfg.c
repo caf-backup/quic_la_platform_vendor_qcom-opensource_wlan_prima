@@ -1058,12 +1058,27 @@ REG_TABLE_ENTRY g_registry_table[] =
                   CFG_DYNAMIC_PSPOLL_VALUE_MIN,
                   CFG_DYNAMIC_PSPOLL_VALUE_MAX ),
 
+   REG_VARIABLE( CFG_TELE_BCN_WAKEUP_EN_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, teleBcnWakeupEn,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_TELE_BCN_WAKEUP_EN_DEFAULT,
+                  CFG_TELE_BCN_WAKEUP_EN_MIN,
+                  CFG_TELE_BCN_WAKEUP_EN_MAX ),
+
+    REG_VARIABLE( CFG_INFRA_STA_KEEP_ALIVE_PERIOD_NAME, WLAN_PARAM_Integer,
+                  hdd_config_t, infraStaKeepAlivePeriod,
+                  VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                  CFG_INFRA_STA_KEEP_ALIVE_PERIOD_DEFAULT,
+                  CFG_INFRA_STA_KEEP_ALIVE_PERIOD_MIN,
+                  CFG_INFRA_STA_KEEP_ALIVE_PERIOD_MAX),
+
     REG_VARIABLE( CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_NAME , WLAN_PARAM_Integer,
                   hdd_config_t, AddTSWhenACMIsOff, 
                   VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
                   CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_DEFAULT, 
                   CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MIN, 
                   CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MAX ),
+
 
     REG_VARIABLE( CFG_VALIDATE_SCAN_LIST_NAME , WLAN_PARAM_Integer,
                   hdd_config_t, fValidateScanList, 
@@ -1762,6 +1777,7 @@ static void hdd_set_btc_config(hdd_context_t *pHddCtx)
    btcParams.btcExecutionMode = pConfig->btcExecutionMode;
 
    btcParams.btcConsBtSlotsToBlockDuringDhcp = pConfig->btcConsBtSlotsToBlockDuringDhcp;
+
    btcParams.btcA2DPBtSubIntervalsDuringDhcp = pConfig->btcA2DPBtSubIntervalsDuringDhcp;
 
    sme_BtcSetConfig(pHddCtx->hHal, &btcParams);
@@ -2129,13 +2145,26 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
         hddLog(LOGE,"Failure: Could not pass on WNI_CFG_SINGLE_TID_RC configuration info to CCM\n"  );
      }
 
-    if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RF_SETTLING_TIME_CLK, pConfig->rfSettlingTimeUs,
+     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_TELE_BCN_WAKEUP_EN, pConfig->teleBcnWakeupEn, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_TELE_BCN_WAKEUP_EN configuration info to CCM\n"  );
+	 }
+
+     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RF_SETTLING_TIME_CLK, pConfig->rfSettlingTimeUs,
         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
     {
         fStatus = FALSE;
         hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RF_SETTLING_TIME_CLK configuration info to CCM\n"  );
     }
 
+     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD, pConfig->infraStaKeepAlivePeriod, 
+	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+	 {
+		fStatus = FALSE;
+		hddLog(LOGE,"Failure: Could not pass on WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD configuration info to CCM\n"  );
+	 }
     if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_DYNAMIC_PS_POLL_VALUE, pConfig->dynamicPsPollValue, 
 	 	NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
     {

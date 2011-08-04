@@ -433,6 +433,8 @@ static char *sendSmeScanReq(tpAniSirGlobal pMac, char *p)
     pScanReq->returnFreshResults = SIR_BG_SCAN_PURGE_RESUTLS|SIR_BG_SCAN_RETURN_FRESH_RESULTS;
     pScanReq->channelList.numChannels = 1;
     pScanReq->channelList.channelNumber[0] = 6;
+    pScanReq->uIEFieldLen = 0;
+    pScanReq->uIEFieldOffset = sizeof(tSirSmeScanReq);
 
     msg.type = eWNI_SME_SCAN_REQ;
     msg.bodyptr = pScanReq;

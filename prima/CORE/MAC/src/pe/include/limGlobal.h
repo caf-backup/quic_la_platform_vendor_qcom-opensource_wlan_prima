@@ -338,14 +338,32 @@ typedef struct sLimMlmScanReq
     tANI_U32 dot11mode;
     /* Number of SSIDs to scan(send Probe request) */
     tANI_U8            numSsid;
-    tANI_U16 ie_len;
-    tANI_U8  ies[200];
-	
+
 #ifdef WLAN_FEATURE_P2P
     tANI_BOOLEAN   p2pSearch;
 #endif
+    tANI_U16           uIEFieldLen;
+    tANI_U16           uIEFieldOffset;
+
     //channelList MUST be the last field of this structure
     tSirChannelList    channelList;
+    /*-----------------------------
+      tLimMlmScanReq....
+      -----------------------------
+      uIEFiledLen 
+      -----------------------------
+      uIEFiledOffset               ----+
+      -----------------------------    |
+      channelList.numChannels          |
+      -----------------------------    |
+      ... variable size up to          |
+      channelNumber[numChannels-1]     |
+      This can be zero, if             |
+      numChannel is zero.              |
+      ----------------------------- <--+
+      ... variable size uIEFiled 
+      up to uIEFieldLen (can be 0)
+      -----------------------------*/
 } tLimMlmScanReq, *tpLimMlmScanReq;
 
 typedef struct tLimScanResultNode tLimScanResultNode;
@@ -361,6 +379,7 @@ typedef struct sLimMlmInNavMeasReq
 {
     tANI_U8               numBSSIDs;
     tANI_U8               numInNavMeasurements;
+    tSirMacAddr           selfMacAddr;
     eSirInNavMeasurementMode measurementMode;
     tSirBSSIDChannelInfo  bssidChannelInfo[1];
 } tLimMlmInNavMeasReq, *tpLimMlmInNavMeasReq;

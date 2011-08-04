@@ -51,11 +51,6 @@ when           who        what, where, why
  *  Type Declarations
  * -------------------------------------------------------------------------*/
 /* DXE Descriptor contents SWAP option flag */
-#ifdef WINDOWS_DT
-#ifndef FEATURE_R33D
-#define FEATURE_R33D
-#endif /* FEATURE_R33D */
-#endif /* WINDOWS_DT */
 
 //#define WLANDXE_ENDIAN_SWAP_ENABLE
 

@@ -189,7 +189,8 @@ eHalStatus sme_OpenSession(tHalHandle hHal, csrRoamCompleteCallback callback, vo
   \sa
   
   --------------------------------------------------------------------------*/
-eHalStatus sme_CloseSession(tHalHandle hHal, tANI_U8 sessionId);
+eHalStatus sme_CloseSession(tHalHandle hHal, tANI_U8 sessionId,
+                         csrRoamSessionCloseCallback callback, void *pContext);
 
 
 
@@ -678,6 +679,10 @@ eHalStatus sme_GetStatistics(tHalHandle hHal, eCsrStatsRequesterType requesterId
                              tCsrStatsCallback callback, 
                              tANI_U32 periodicity, tANI_BOOLEAN cache, 
                              tANI_U8 staId, void *pContext);
+
+eHalStatus sme_GetRssi(tHalHandle hHal, 
+                             tCsrRssiCallback callback, 
+                             tANI_U8 staId, void *pContext, void* pVosContext);
 
 /* ---------------------------------------------------------------------------
     \fn sme_CfgSetInt
@@ -1433,6 +1438,7 @@ eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, tANI_U32 sessionId,
 /* ---------------------------------------------------------------------------
     \fn sme_InNavMeasurementRequest
     \brief a wrapper function to Request RSSI/RTT measurements
+    \param sessionId - session id of session to be used for measurement.
     \param pMeasurementRequestID - pointer to an object to get back the request ID
     \param callback - a callback function that meas calls upon finish, will not 
                       be called if measMeasurementRequest returns error
@@ -1440,6 +1446,7 @@ eHalStatus sme_ScanGetBKIDCandidateList(tHalHandle hHal, tANI_U32 sessionId,
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
 eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal, 
+    tANI_U8 sessionId,
 		tInNavMeasurementConfig *, 
 		tANI_U32 *pMeasurementRequestID, 
 		measMeasurementCompleteCallback callback, 
@@ -1518,6 +1525,15 @@ eHalStatus sme_sendBTAmpEvent(tHalHandle hHal, tSmeBtAmpEvent btAmpEvent);
    ---------------------------------------------------------------------------*/
 eHalStatus sme_SetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest);
 
+/* ---------------------------------------------------------------------------
+    \fn sme_AbortMacScan
+    \brief  API to cancel MAC scan.
+    \param  hHal - The handle returned by macOpen.
+    \return VOS_STATUS
+            VOS_STATUS_E_FAILURE - failure
+            VOS_STATUS_SUCCESS  success
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_AbortMacScan(tHalHandle hHal);
 
 #ifdef WLAN_FEATURE_P2P
 /* ---------------------------------------------------------------------------

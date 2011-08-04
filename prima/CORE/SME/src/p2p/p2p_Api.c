@@ -264,30 +264,22 @@ eHalStatus p2pCancelRemainOnChannel(tHalHandle hHal, tANI_U8 sessionId)
 
 eHalStatus p2pSetPs(tHalHandle hHal, tP2pPsConfig *pNoA)
 {
+    tpP2pPsConfig pNoAParam;
+    tSirMsgQ msg;
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
-    tSmeCmd *pNoACmd = NULL;
-    pNoACmd = smeGetCommandBuffer(pMac);
-    if(pNoACmd)
-    {
-        pNoACmd->command = eSmeCommandNoAUpdate;
-        pNoACmd->u.NoACmd.NoA.opp_ps = pNoA->opp_ps;
-        pNoACmd->u.NoACmd.NoA.ctWindow = pNoA->ctWindow;
-        pNoACmd->u.NoACmd.NoA.duration = pNoA->duration;
-        pNoACmd->u.NoACmd.NoA.interval = pNoA->interval;
-        pNoACmd->u.NoACmd.NoA.count = pNoA->count;
-        pNoACmd->u.NoACmd.NoA.single_noa_duration = pNoA->single_noa_duration;
-        pNoACmd->u.NoACmd.NoA.psSelection = pNoA->psSelection;
-        pNoACmd->sessionId = pNoA->sessionid;
 
-        smePushCommand(pMac, pNoACmd, eANI_BOOLEAN_FALSE);
-    }
-    else
+    status = palAllocateMemory(pMac->hHdd, (void**)&pNoAParam, sizeof(tP2pPsConfig));
+    if(HAL_STATUS_SUCCESS(status))
     {
-        status = eHAL_STATUS_FAILURE;
-    }    
-
-    return status; 
+        palZeroMemory(pMac->hHdd, pNoAParam, sizeof(tP2pPsConfig));
+        palCopyMemory(pMac->hHdd, pNoAParam, pNoA, sizeof(tP2pPsConfig));	        
+        msg.type = eWNI_SME_UPDATE_NOA;
+        msg.bodyval = 0;
+        msg.bodyptr = pNoAParam;
+        limPostMsgApi(pMac, &msg);
+    }   
+    return status;
 }
 
 eHalStatus p2pProcessNoAReq(tpAniSirGlobal pMac, tSmeCmd *pNoACmd)

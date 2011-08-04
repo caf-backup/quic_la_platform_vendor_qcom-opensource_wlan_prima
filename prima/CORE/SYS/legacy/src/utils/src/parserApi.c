@@ -1913,11 +1913,18 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
         ConvertRSNOpaque( pMac, &pAssocReq->rsn, &ar.RSNOpaque );
     }
 
+    // WSC IE
+    if (ar.WscIEOpaque.present) 
+    {
+        pAssocReq->addIEPresent = 1;
+        ConvertWscOpaque(pMac, &pAssocReq->addIE, &ar.WscIEOpaque);
+    }
+    
 #ifdef WLAN_FEATURE_P2P
     if(ar.P2PIEOpaque.present)
     {
-        pAssocReq->p2pPresent = 1;
-        ConvertP2POpaque( pMac, &pAssocReq->p2pIE, &ar.P2PIEOpaque);
+        pAssocReq->addIEPresent = 1;
+        ConvertP2POpaque( pMac, &pAssocReq->addIE, &ar.P2PIEOpaque);
     }
 #endif
 
@@ -1963,27 +1970,6 @@ sirConvertAssocReqFrame2Struct(tpAniSirGlobal pMac,
         PELOG2(limLog(pMac, LOG2, FL("Received Assoc without supp rate IE.\n"));)
         return eSIR_FAILURE;
     }
-
-    /* Initialize wscInfo. */
-    memset(&pAssocReq->wscInfo, 0, sizeof(tSirMacWscInfo));
-
-    if ( ar.WscAssocReq.present )
-    {
-        pAssocReq->wscInfo.present = 1;
-
-        /* Copy the element info from tDot11fAssocRequest(ar) to
-					 tSirAssocReq(pAssocReq) structure, if present */
-
-        if (ar.WscAssocReq.Version.present){
-                /* Get the version from Minor and Major; Also consider endianness. */
-					pAssocReq->wscInfo.wpsVersion   = ( (ar.WscAssocReq.Version.major << 4)
-																							| ar.WscAssocReq.Version.minor );
-        }
-
-        if (ar.WscAssocReq.RequestType.present){
-            pAssocReq->wscInfo.wpsRequestType   = ar.WscAssocReq.RequestType.reqType;
-    }
-	}
 
     return eSIR_SUCCESS;
 
@@ -2254,27 +2240,18 @@ sirConvertReassocReqFrame2Struct(tpAniSirGlobal pMac,
     // Why no call to 'updateAssocReqFromPropCapability' here, like
     // there is in 'sirConvertAssocReqFrame2Struct'?
 
-		memset(&pAssocReq->wscInfo, 0, sizeof(tSirMacWscInfo));
-
-    if ( ar.WscAssocReq.present )
+    // WSC IE
+    if (ar.WscIEOpaque.present) 
     {
-        /* Copy the element info from tDot11fAssocRequest(ar) to tSirAssocReq(pAssocReq)
-           structure, if present */
-        if (ar.WscAssocReq.Version.present){
-                /* Get the version from Minor and Major; Also consider endianness. */
-                pAssocReq->wscInfo.wpsVersion   = (ar.WscAssocReq.Version.major << 4) | ar.WscAssocReq.Version.minor;
-        }
-
-        if (ar.WscAssocReq.RequestType.present){
-            pAssocReq->wscInfo.wpsRequestType   = ar.WscAssocReq.RequestType.reqType;
-        }
+        pAssocReq->addIEPresent = 1;
+        ConvertWscOpaque(pMac, &pAssocReq->addIE, &ar.WscIEOpaque);
     }
-
+    
 #ifdef WLAN_FEATURE_P2P
     if(ar.P2PIEOpaque.present)
     {
-        pAssocReq->p2pPresent = 1;
-        ConvertP2POpaque( pMac, &pAssocReq->p2pIE, &ar.P2PIEOpaque);
+        pAssocReq->addIEPresent = 1;
+        ConvertP2POpaque( pMac, &pAssocReq->addIE, &ar.P2PIEOpaque);
     }
 #endif
 
@@ -4179,143 +4156,75 @@ tSirRetStatus DePopulateDot11fWscRegistrarInfoInProbeRes(tpAniSirGlobal pMac,
     return eSIR_SUCCESS;
 }
 
-tSirRetStatus PopulateDot11fWscInAssocRes(tpAniSirGlobal pMac,
-                                          tDot11fIEWscAssocRes *pDot11f)
+tSirRetStatus PopulateDot11fAssocResWscIE(tpAniSirGlobal pMac, 
+                                          tDot11fIEWscAssocRes *pDot11f, 
+                                          tpSirAssocReq pRcvdAssocReq)
 {
-    tANI_U32  wpsVersion=0;
-
-    if (wlan_cfgGetInt(pMac, (tANI_U16) WNI_CFG_WPS_VERSION, &wpsVersion) != eSIR_SUCCESS)
-       limLog(pMac, LOGP,"Failed to cfg get id %d\n", WNI_CFG_WPS_VERSION );
-
-    pDot11f->Version.present = 1;
-    pDot11f->Version.major = (tANI_U8) ((wpsVersion & 0xF0)>>4);
-    pDot11f->Version.minor = (tANI_U8) (wpsVersion & 0x0F);
-
-    pDot11f->ResponseType.present = 1;
-    if ((pMac->lim.wscIeInfo.reqType == REQ_TYPE_REGISTRAR) ||
-        (pMac->lim.wscIeInfo.reqType == REQ_TYPE_WLAN_MANAGER_REGISTRAR))
+    tDot11fIEWscAssocReq parsedWscAssocReq = { 0, };
+    tANI_U8         *wscIe;
+    
+    wscIe = limGetWscIEPtr(pMac, pRcvdAssocReq->addIE.addIEdata, pRcvdAssocReq->addIE.length);
+    if(wscIe != NULL)
     {
-        pDot11f->ResponseType.resType = RESP_TYPE_ENROLLEE_OPEN_8021X;
-    }
-    else
-    {
-         pDot11f->ResponseType.resType = RESP_TYPE_AP;
+        // retreive WSC IE from given AssocReq 
+        dot11fUnpackIeWscAssocReq( pMac,
+                                    wscIe + 2 + 4,  // EID, length, OUI
+                                    wscIe[ 1 ] - 4, // length without OUI
+                                    &parsedWscAssocReq );
+        pDot11f->present = 1;
+        // version has to be 0x10
+        pDot11f->Version.present = 1;
+        pDot11f->Version.major = 0x1;
+        pDot11f->Version.minor = 0x0;
+
+        pDot11f->ResponseType.present = 1;
+        
+        if ((parsedWscAssocReq.RequestType.reqType == REQ_TYPE_REGISTRAR) ||
+            (parsedWscAssocReq.RequestType.reqType == REQ_TYPE_WLAN_MANAGER_REGISTRAR))
+        {
+            pDot11f->ResponseType.resType = RESP_TYPE_ENROLLEE_OPEN_8021X;
+        }
+        else
+        {
+             pDot11f->ResponseType.resType = RESP_TYPE_AP;
+        }
+
+        // Version infomration should be taken from our capability as well as peers
+        // TODO: currently it takes from peers only
+        if(parsedWscAssocReq.VendorExtension.present &&
+           parsedWscAssocReq.VendorExtension.Version2.present)
+        {   
+            pDot11f->VendorExtension.present = 1;
+            pDot11f->VendorExtension.vendorId[0] = 0x00;
+            pDot11f->VendorExtension.vendorId[1] = 0x37;
+            pDot11f->VendorExtension.vendorId[2] = 0x2A;
+            pDot11f->VendorExtension.Version2.present = 1;
+            pDot11f->VendorExtension.Version2.major = parsedWscAssocReq.VendorExtension.Version2.major;
+            pDot11f->VendorExtension.Version2.minor = parsedWscAssocReq.VendorExtension.Version2.minor;
+        }
     }
     return eSIR_SUCCESS;
 }
 
-tSirRetStatus PopulateDot11fWscAssocReq( tpAniSirGlobal        pMac,
-                                         tDot11fIEWscAssocReq *pDot11f )
+#ifdef WLAN_FEATURE_P2P
+tSirRetStatus PopulateDot11AssocResP2PIE(tpAniSirGlobal pMac, 
+                                       tDot11fIEP2PAssocRes *pDot11f, 
+                                       tpSirAssocReq pRcvdAssocReq)
 {
-    tANI_U32           cfg;
-    tSirRetStatus nSirStatus;
+    tANI_U8         *p2pIe;
 
-    // Read the WPS protocol version from cfg.  This  one-byte field is
-    // broken into a four-bit major part using the top MSBs and four-bit
-    // minor part using the LSBs. As an example, version 3.2 would be
-    // 0x32.
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_VERSION, cfg );
-
-    pDot11f->Version.minor   = ( tANI_U8 ) ( cfg & 0x000f );
-    pDot11f->Version.major   = ( tANI_U8 ) ( ( cfg & 0x00f0 ) >> 4 );
-    pDot11f->Version.present = 1;
-
-    // The Response Type component specifies the operational mode of the
-    // device for this setup exchange. The Response Type IE is carried
-    // throughout the 802.1X data channel setup process:
-
-    //    Response Type Value       Description
-    //    0x00                      Enrollee, Info only
-    //    0x01                      Enrollee, open 802.1X
-    //    0x02                      Registrar
-    //    0x03                      AP
-
-    pDot11f->RequestType.reqType = 1;
-    pDot11f->RequestType.present = 1;
-
-    pDot11f->present = 1;
-
+    p2pIe = limGetP2pIEPtr(pMac, pRcvdAssocReq->addIE.addIEdata, pRcvdAssocReq->addIE.length);
+    if(p2pIe != NULL)
+    {
+        pDot11f->present = 1;
+        pDot11f->P2PStatus.present = 1;
+        pDot11f->P2PStatus.status = eSIR_SUCCESS;
+        pDot11f->ExtendedListenTiming.present = 0;
+    }
     return eSIR_SUCCESS;
+}
 
-} // End PopulateDot11fWscAssocReq.
-
-tSirRetStatus PopulateDot11fWscProbeReq( tpAniSirGlobal        pMac,
-                                         tDot11fIEWscProbeReq *pDot11f )
-{
-    tANI_U32      cfg, ncfg;
-    tSirRetStatus nSirStatus;
-    tANI_U8       uuid[ 16 ];
-
-    // Read the WPS protocol version from cfg.  This  one-byte field is
-    // broken into a four-bit major part using the top MSBs and four-bit
-    // minor part using the LSBs. As an example, version 3.2 would be
-    // 0x32.
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_VERSION, cfg );
-
-    pDot11f->Version.minor   = ( tANI_U8 ) ( cfg & 0x000f );
-    pDot11f->Version.major   = ( tANI_U8 ) ( ( cfg & 0x00f0 ) >> 4 );
-    pDot11f->Version.present = 1;
-
-    // The Response Type component specifies the operational mode of the
-    // device for this setup exchange. The Response Type IE is carried
-    // throughout the 802.1X data channel setup process:
-
-    //    Response Type Value       Description
-    //    0x00                      Enrollee, Info only
-    //    0x01                      Enrollee, open 802.1X
-    //    0x02                      Registrar
-    //    0x03                      AP
-
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_REQUEST_TYPE, cfg );
-
-    pDot11f->RequestType.reqType = ( tANI_U8 ) cfg;
-    pDot11f->RequestType.present = 1;
-
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_CFG_METHOD, cfg );
-    pDot11f->ConfigMethods.methods = ( tANI_U16 ) cfg;
-    pDot11f->ConfigMethods.present = 1;
-
-    CFG_GET_STR( nSirStatus, pMac, WNI_CFG_WPS_UUID, uuid, ncfg, 16 );
-    palCopyMemory( pMac->hHdd, pDot11f->UUID_E.uuid, uuid, 16 );
-    pDot11f->UUID_E.present = 1;
-
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_PRIMARY_DEVICE_CATEGORY, cfg );
-    pDot11f->PrimaryDeviceType.primary_category = ( tANI_U16 ) cfg;
-
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_PIMARY_DEVICE_OUI, cfg );
-    pDot11f->PrimaryDeviceType.oui[ 0 ] =
-        ( tANI_U8 ) ( ( cfg & 0xff000000 ) >> 24 );
-    pDot11f->PrimaryDeviceType.oui[ 1 ] =
-        ( tANI_U8 ) ( ( cfg & 0x00ff0000 ) >> 16 );
-    pDot11f->PrimaryDeviceType.oui[ 2 ] =
-        ( tANI_U8 ) ( ( cfg & 0x0000ff00 ) >>  8 );
-    pDot11f->PrimaryDeviceType.oui[ 3 ] =
-        ( tANI_U8 ) ( cfg & 0x000000ff );
-
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_DEVICE_SUB_CATEGORY, cfg );
-    pDot11f->PrimaryDeviceType.sub_category = ( tANI_U16 ) cfg;
-
-    pDot11f->PrimaryDeviceType.present = 1;
-
-    pDot11f->RFBands.present = 0;
-
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_ASSOCIATION_STATE, cfg );
-    pDot11f->AssociationState.state   = ( tANI_U16 ) cfg;
-    pDot11f->AssociationState.present = 1;
-
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_CONFIGURATION_ERROR, cfg );
-    pDot11f->ConfigurationError.error   = ( tANI_U16 ) cfg;
-    pDot11f->ConfigurationError.present = 1;
-
-    CFG_GET_INT( nSirStatus, pMac, WNI_CFG_WPS_DEVICE_PASSWORD_ID, cfg );
-    pDot11f->DevicePasswordID.id      = ( tANI_U16 ) cfg;
-    pDot11f->DevicePasswordID.present = 1;
-
-    pDot11f->present = 1;
-
-    return eSIR_SUCCESS;
-
-} // End PopulateDot11fWscProbeReq.
+#endif
 
 #if defined WLAN_FEATURE_VOWIFI
 

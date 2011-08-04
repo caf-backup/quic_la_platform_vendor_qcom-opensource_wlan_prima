@@ -2006,7 +2006,10 @@ limAddSta(
     tSirRetStatus     retCode = eSIR_SUCCESS;
     tSirMacAddr     staMac, *pStaAddr;
     tANI_U8 i;
-
+#ifdef WLAN_FEATURE_P2P
+    tpSirAssocReq   pAssocReq;
+    tANI_U8  *p2pIe = NULL;
+#endif
     #if 0
     retCode = wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, staMac, &cfg);
     if (retCode != eSIR_SUCCESS)
@@ -2082,6 +2085,15 @@ limAddSta(
     pAddStaParams->mimoPS = pStaDs->htMIMOPSState;
     /* Update PE session ID*/
     pAddStaParams->sessionId = psessionEntry->peSessionId;
+
+#ifdef WLAN_FEATURE_P2P
+    // Get a copy of the already parsed Assoc Request
+    pAssocReq = (tpSirAssocReq) psessionEntry->parsedAssocReq[pStaDs->assocId];
+    if ( pAssocReq && pAssocReq->addIEPresent && pAssocReq->addIE.length ) {
+        p2pIe = limGetP2pIEPtr(pMac, pAssocReq->addIE.addIEdata, pAssocReq->addIE.length);
+    }
+    pAddStaParams->p2pCapableSta = (p2pIe != NULL);
+#endif
 
     //Disable BA. It will be set as part of ADDBA negotiation.
     for( i = 0; i < STACFG_MAX_TC; i++ )
@@ -2424,6 +2436,13 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
 		limLog(pMac, LOGP, FL("Couldn't get LISTEN_INTERVAL\n"));
 	pAddStaParams->listenInterval = (tANI_U16)listenInterval;
 
+#ifdef WLAN_FEATURE_P2P
+    if (VOS_P2P_CLIENT_MODE == psessionEntry->pePersona)
+    {
+        pAddStaParams->p2pCapableSta = 1;       
+    }
+#endif
+
     limFillSupportedRatesInfo(pMac, NULL, &pAddStaParams->supportedRates,psessionEntry);
 
     msgQ.type = WDA_ADD_STA_REQ;
@@ -2574,10 +2593,9 @@ limDeleteDphHashEntry(tpAniSirGlobal pMac, tSirMacAddr staAddr, tANI_U16 staId,t
 
     beaconParams.paramChangeBitmap = 0;
     limDeactivateAndChangePerStaIdTimer(pMac, eLIM_CNF_WAIT_TIMER, staId);
-
-    if (psessionEntry != NULL)
-        beaconParams.bssIdx = psessionEntry->bssIdx;
-
+    if(psessionEntry==NULL)
+    	return;
+    beaconParams.bssIdx = psessionEntry->bssIdx;
     pStaDs = dphLookupHashEntry(pMac, staAddr, &aid, &psessionEntry->dph.dphHashTable);
     if (pStaDs != NULL)
     {
@@ -3078,6 +3096,13 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
 
 	pAddBssParams->halPersona = (tANI_U8)psessionEntry->pePersona; //update persona
 
+#ifdef WLAN_FEATURE_P2P
+    if (VOS_P2P_CLIENT_MODE == psessionEntry->pePersona)
+    {
+        pAddBssParams->staContext.p2pCapableSta = 1;       
+    }
+#endif
+
     // Set a new state for MLME
     if( eLIM_MLM_WT_ASSOC_RSP_STATE == psessionEntry->limMlmState )
         psessionEntry->limMlmState = eLIM_MLM_WT_ADD_BSS_RSP_ASSOC_STATE;
@@ -3513,7 +3538,7 @@ tSirRetStatus limStaSendAddBss( tpAniSirGlobal pMac, tpSirAssocRsp pAssocRsp,
     pAddBssParams->status = eHAL_STATUS_SUCCESS;
     pAddBssParams->respReqd = true;
 
-	pAddBssParams->halPersona = (tANI_U8)psessionEntry->pePersona; //update persona
+    pAddBssParams->halPersona = (tANI_U8)psessionEntry->pePersona; //update persona
 
     // Set a new state for MLME
     if( eLIM_MLM_WT_ASSOC_RSP_STATE == psessionEntry->limMlmState )

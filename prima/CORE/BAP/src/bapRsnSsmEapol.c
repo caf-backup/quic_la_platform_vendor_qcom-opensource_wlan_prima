@@ -887,7 +887,7 @@ checkRsnKeyMic(v_U32_t cryptHandle,
                v_U8_t *micKey,
                v_U32_t micKeyLen) 
 {
-    int retVal;
+    int retVal = ANI_ERROR;
     int len;
 
     v_U8_t *ptr = NULL;
@@ -920,10 +920,6 @@ checkRsnKeyMic(v_U32_t cryptHandle,
             if( VOS_IS_STATUS_SUCCESS( vos_sha1_hmac_str(cryptHandle, ptr, len, micKey, micKeyLen, result) ) )
             {
                 retVal = ANI_OK;
-            }
-            else
-            {
-                retVal = ANI_ERROR;
             }
         } 
         else {

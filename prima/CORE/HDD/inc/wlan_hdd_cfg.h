@@ -24,7 +24,7 @@
 #include <csrApi.h>
 
 //Number of items that can be configured
-#define MAX_CFG_INI_ITEMS   128
+#define MAX_CFG_INI_ITEMS   150
 
 // Defines for all of the things we read from the configuration (registry).
 
@@ -490,6 +490,11 @@ typedef enum
 #define CFG_RF_SETTLING_TIME_CLK_MAX           ( 60000 )
 #define CFG_RF_SETTLING_TIME_CLK_DEFAULT       ( 1500 )
 
+#define CFG_INFRA_STA_KEEP_ALIVE_PERIOD_NAME          "gStaKeepAlivePeriod"
+#define CFG_INFRA_STA_KEEP_ALIVE_PERIOD_MIN           ( 0 )
+#define CFG_INFRA_STA_KEEP_ALIVE_PERIOD_MAX           ( 65535)
+#define CFG_INFRA_STA_KEEP_ALIVE_PERIOD_DEFAULT       ( 0 )
+
 //WMM configuration
 #define CFG_QOS_WMM_MODE_NAME                             "WmmIsEnabled"
 #define CFG_QOS_WMM_MODE_MIN                               (0)
@@ -814,10 +819,16 @@ typedef enum
 #define CFG_DYNAMIC_PSPOLL_VALUE_MAX           (255)
 #define CFG_DYNAMIC_PSPOLL_VALUE_DEFAULT       (0)
 
+#define CFG_TELE_BCN_WAKEUP_EN_NAME            "gTelescopicBeaconWakeupEn"
+#define CFG_TELE_BCN_WAKEUP_EN_MIN             (0)
+#define CFG_TELE_BCN_WAKEUP_EN_MAX             (1)
+#define CFG_TELE_BCN_WAKEUP_EN_DEFAULT         (0)
+
 #define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_NAME                 "gAddTSWhenACMIsOff"
 #define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MIN                  (0)
 #define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_MAX                  (1) //Send AddTs even when ACM is not set for the AC
 #define CFG_QOS_ADDTS_WHEN_ACM_IS_OFF_DEFAULT              (0)
+
 
 #define CFG_VALIDATE_SCAN_LIST_NAME                 "gValidateScanList"
 #define CFG_VALIDATE_SCAN_LIST_MIN                  (0)
@@ -1055,10 +1066,12 @@ typedef struct
    v_BOOL_t                    AddTSWhenACMIsOff;
    v_BOOL_t                    fValidateScanList;
 
+   v_U32_t                     infraStaKeepAlivePeriod;
    v_U8_t                      nNullDataApRespTimeout;
    v_U8_t                      nBandCapability;
 
    v_BOOL_t                    fEnableBeaconEarlyTermination;
+   v_BOOL_t                    teleBcnWakeupEn;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

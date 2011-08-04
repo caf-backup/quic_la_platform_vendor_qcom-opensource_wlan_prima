@@ -50,6 +50,8 @@
                                                   && ( (pMac)->roam.roamSession[(sessionId)].sessionActive ) )
 #define CSR_GET_SESSION( pMac, sessionId ) (&(pMac)->roam.roamSession[(sessionId)])
 
+
+
 typedef enum
 {
     //eCSR_CFG_DOT11_MODE_BEST = 0,
@@ -386,6 +388,8 @@ typedef struct tagDelStaForSessionCmd
 {
    //Session self mac addr
    tSirMacAddr selfMacAddr;
+   csrRoamSessionCloseCallback callback;
+   void *pContext;
 }tDelStaForSessionCmd;
 
 //This structure represents one scan request
@@ -531,6 +535,7 @@ typedef struct tagCsrOsChannelMask
     tANI_BOOLEAN scanEnabled[WNI_CFG_VALID_CHANNEL_LIST_LEN];
     tANI_U8 channelList[WNI_CFG_VALID_CHANNEL_LIST_LEN];
 }tCsrOsChannelMask;
+
 
 typedef struct tagCsrScanStruct
 {
@@ -692,12 +697,10 @@ typedef struct tagCsrRoamSession
     tANI_U32 nWapiRspIeLength;    //the byte count for pWapiRspIE
     tANI_U8 *pWapiRspIE;  //this contain the WAPI IE in beacon/probe rsp
 #endif /* FEATURE_WLAN_WAPI */
-#ifdef WLAN_FEATURE_P2P
-    tANI_U32 nP2PReqIeLength;     //the byte count of pP2PReqIE;
-    tANI_U8 *pP2PReqIE; //this contain the P2P IE in assoc request
-    tANI_U32 nP2PRspIeLength;      //the byte count for pP2PRspIE
-    tANI_U8 *pP2PRspIE;  //this contain the P2P IE in beacon/probe rsp
-#endif /* WLAN_FEATURE_P2P */
+    tANI_U32 nAddIEScanLength;  //the byte count of pAddIeScanIE;
+    tANI_U8 *pAddIEScan; //this contains the additional IE in (unicast) probe request at the time of join
+    tANI_U32 nAddIEAssocLength;      //the byte count for pAddIeAssocIE
+    tANI_U8 *pAddIEAssoc; //this contains the additional IE in (re) assoc request
 
     tANI_TIMESTAMP roamingStartTime;    //in units of 10ms
     tCsrTimerInfo roamingTimerInfo;
@@ -954,6 +957,9 @@ eHalStatus csrGetStatistics(tpAniSirGlobal pMac, eCsrStatsRequesterType requeste
                             tCsrStatsCallback callback, 
                             tANI_U32 periodicity, tANI_BOOLEAN cache, 
                             tANI_U8 staId, void *pContext);
+
+
+eHalStatus csrGetRssi(tpAniSirGlobal pMac,tCsrRssiCallback callback,tANI_U8 staId,void * pContext,void * pVosContext);
 eHalStatus csrRoamRegisterCallback(tpAniSirGlobal pMac, csrRoamCompleteCallback callback, void *pContext);
 /* ---------------------------------------------------------------------------
     \fn csrGetConfigParam

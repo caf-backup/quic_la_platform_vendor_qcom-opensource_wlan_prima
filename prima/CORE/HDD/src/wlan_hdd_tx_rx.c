@@ -46,6 +46,11 @@ const v_U8_t hdd_QdiscAcToTlAC[] = {
    WLANTL_AC_BE,
    WLANTL_AC_BK,
 };
+
+#ifdef CONFIG_CFG80211
+static struct sk_buff* hdd_mon_tx_fetch_pkt(hdd_adapter_t* pAdapter);
+#endif
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -163,13 +168,71 @@ static VOS_STATUS hdd_flush_tx_queues( hdd_adapter_t *pAdapter )
    return status;
 }
 
-#ifdef CONFIG_CFG80211   
-static void hdd_mon_tx_work_queue(struct work_struct *work)
+#ifdef CONFIG_CFG80211
+static struct sk_buff* hdd_mon_tx_fetch_pkt(hdd_adapter_t* pAdapter)
 {
-   hdd_adapter_t* pAdapter = container_of(work, hdd_adapter_t, monTxWorkQueue);
+   skb_list_node_t *pktNode = NULL;
+   struct sk_buff *skb = NULL;
+   v_SIZE_t size = 0;
+   WLANTL_ACEnumType ac = 0;
+   VOS_STATUS status = VOS_STATUS_E_FAILURE;
+   hdd_list_node_t *anchor = NULL;
+
+   if( NULL == pAdapter )
+   {
+      VOS_ASSERT(0);
+      return NULL;
+   }
+
+   // do we have any packets pending in this AC?
+   hdd_list_size( &pAdapter->wmm_tx_queue[ac], &size ); 
+   if( size == 0 )
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: NO Packet Pending", __FUNCTION__);
+      return NULL;
+   }
+
+   //Remove the packet from the queue
+   spin_lock_bh(&pAdapter->wmm_tx_queue[ac].lock);
+   status = hdd_list_remove_front( &pAdapter->wmm_tx_queue[ac], &anchor );
+   spin_unlock_bh(&pAdapter->wmm_tx_queue[ac].lock);
+
+   if(VOS_STATUS_SUCCESS == status)
+   {
+      //If success then we got a valid packet from some AC
+      pktNode = list_entry(anchor, skb_list_node_t, anchor);
+      skb = pktNode->skb;
+   }
+   else
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s: Not able to remove Packet from the list",
+                  __FUNCTION__);
+
+      return NULL;
+   }
+
+   // if we are in a backpressure situation see if we can turn the hose back on
+   if ( (pAdapter->isTxSuspended[ac]) &&
+        (size <= HDD_TX_QUEUE_LOW_WATER_MARK) )
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+                 "%s: TX queue[%d] re-enabled", __FUNCTION__, ac);
+      pAdapter->isTxSuspended[ac] = VOS_FALSE;      
+      /* Enable Queues which we have disabled earlier */
+      netif_tx_start_all_queues( pAdapter->dev ); 
+   }
+
+   return skb;
+}
+
+void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter)
+{
    hdd_cfg80211_state_t *cfgState;
    struct sk_buff* skb;
    hdd_adapter_t* pMonAdapter = NULL;
+   struct ieee80211_hdr *hdr;
 
    if (pAdapter == NULL )
    {
@@ -177,10 +240,17 @@ static void hdd_mon_tx_work_queue(struct work_struct *work)
        "%s: pAdapter is NULL", __func__);
       return;
    }
-   
-   pMonAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_MONITOR );   
-   
-   skb = pAdapter->skb_to_tx;
+
+   pMonAdapter = hdd_get_adapter( pAdapter->pHddCtx, WLAN_HDD_MONITOR );
+
+   skb = hdd_mon_tx_fetch_pkt(pMonAdapter);
+
+   if (NULL == skb)
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+       "%s: No Packet Pending", __func__);
+      return;
+   }
 
    cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
 
@@ -206,6 +276,23 @@ static void hdd_mon_tx_work_queue(struct work_struct *work)
    cfgState->skb = skb; //buf;
    cfgState->action_cookie = (tANI_U32)cfgState->buf;
 
+   hdr = (struct ieee80211_hdr *)skb->data;
+   if( (hdr->frame_control & HDD_FRAME_TYPE_MASK)
+                                       == HDD_FRAME_TYPE_MGMT )
+   {
+       if( (hdr->frame_control & HDD_FRAME_SUBTYPE_MASK)
+                                       == HDD_FRAME_SUBTYPE_DEAUTH )
+       {
+          hdd_softap_sta_deauth( pAdapter, hdr->addr1 ); 
+          goto mgmt_handled;
+       }
+       else if( (hdr->frame_control & HDD_FRAME_SUBTYPE_MASK) 
+                                      == HDD_FRAME_SUBTYPE_DISASSOC )
+       {
+          hdd_softap_sta_disassoc( pAdapter, hdr->addr1 ); 
+          goto mgmt_handled;
+       }
+   }
    VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
       "%s: Sending action frame to SAP to TX, Len %d", __func__, skb->len);
 
@@ -218,15 +305,22 @@ static void hdd_mon_tx_work_queue(struct work_struct *work)
       hdd_sendActionCnf( pAdapter, FALSE );
    }
    return;
+
+mgmt_handled:
+   hdd_sendActionCnf( pAdapter, TRUE );
+   return;
 fail:
    kfree_skb(pAdapter->skb_to_tx);
    pAdapter->skb_to_tx = NULL;
-
-   /* Enable Queues which we have disabled earlier */
-   netif_tx_start_all_queues( pMonAdapter->dev ); 
    return;
 }
- 
+
+static void hdd_mon_tx_work_queue(struct work_struct *work)
+{
+   hdd_adapter_t* pAdapter = container_of(work, hdd_adapter_t, monTxWorkQueue);
+   hdd_mon_tx_mgmt_pkt(pAdapter);
+}
+
 int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 {
    v_U16_t rt_hdr_len;
@@ -236,22 +330,13 @@ int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
                         (struct ieee80211_radiotap_header *)skb->data;
 
    /*Supplicant sends the EAPOL packet on monitor interface*/
-   pPgBkAdapter = hdd_get_adapter(pAdapter->pHddCtx, WLAN_HDD_SOFTAP);
-    
+   pPgBkAdapter = pAdapter->sessionCtx.monitor.pAdapterForTx;    
    if(pPgBkAdapter == NULL)
    {
-#ifdef WLAN_FEATURE_P2P
-      //There is no AP interface. Try getting P2P GO interface.
-      pPgBkAdapter = hdd_get_adapter(pAdapter->pHddCtx,WLAN_HDD_P2P_GO);
-    
-      if( pPgBkAdapter == NULL )
-#endif
-      {
-         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-              "%s: No Adapter to piggy back. Dropping the pkt on montior inf",
-                                                                    __func__);
-         goto fail; /* too short to be possibly valid */
-      }
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+           "%s: No Adapter to piggy back. Dropping the pkt on montior inf",
+                                                                 __func__);
+      goto fail; /* too short to be possibly valid */
    }
  
    /* check if toal skb length is greater then radio tab header length of not */
@@ -325,30 +410,73 @@ int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          kfree_skb(skb);
          return NETDEV_TX_OK;
       }
+
+      skb->protocol = htons(HDD_ETHERTYPE_802_1_X);
  
       hdd_hostapd_select_queue(pPgBkAdapter->dev, skb);
       return hdd_softap_hard_start_xmit( skb, pPgBkAdapter->dev );
    }
    else
    {
-      /* We want to process one packet at a time, so lets disable all TX queues
-       * and re-enable the queues once we get TX feedback for this packet */
-      netif_tx_stop_all_queues(pAdapter->dev);
+      VOS_STATUS status;
+      WLANTL_ACEnumType ac = 0;
+      skb_list_node_t *pktNode = NULL;
+      v_SIZE_t pktListSize = 0;
 
-      /* We received a management packet over monitor interface to transmit */
-      INIT_WORK(&pPgBkAdapter->monTxWorkQueue, hdd_mon_tx_work_queue);
-      pPgBkAdapter->skb_to_tx = skb;
-      /* In this context we cannot acquire any mutex etc. And to transmit 
-       * this packet we need to call SME API. So to take care of this we will
-       * schedule a workqueue 
-       */
-      schedule_work(&pPgBkAdapter->monTxWorkQueue);
+      spin_lock(&pAdapter->wmm_tx_queue[ac].lock);
+      //If we have already reached the max queue size, disable the TX queue
+      if ( pAdapter->wmm_tx_queue[ac].count == pAdapter->wmm_tx_queue[ac].max_size)
+      {
+         /* We want to process one packet at a time, so lets disable all TX queues
+           * and re-enable the queues once we get TX feedback for this packet */
+         netif_tx_stop_all_queues(pAdapter->dev);
+         pAdapter->isTxSuspended[ac] = VOS_TRUE;
+         spin_unlock(&pAdapter->wmm_tx_queue[ac].lock);      
+         return NETDEV_TX_BUSY;   
+      }
+      spin_unlock(&pAdapter->wmm_tx_queue[ac].lock);      
+
+      //Use the skb->cb field to hold the list node information
+      pktNode = (skb_list_node_t *)&skb->cb;
+
+      //Stick the OS packet inside this node.
+      pktNode->skb = skb;
+
+      INIT_LIST_HEAD(&pktNode->anchor);
+
+      //Insert the OS packet into the appropriate AC queue
+      spin_lock(&pAdapter->wmm_tx_queue[ac].lock);
+      status = hdd_list_insert_back_size( &pAdapter->wmm_tx_queue[ac],
+                                          &pktNode->anchor, &pktListSize );
+      spin_unlock(&pAdapter->wmm_tx_queue[ac].lock);
+
+      if ( !VOS_IS_STATUS_SUCCESS( status ) )
+      {
+         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "%s:Insert Tx queue failed. Pkt dropped", __FUNCTION__);
+         kfree_skb(skb);
+         return NETDEV_TX_OK;
+      }
+
+      if ( pktListSize == 1 )
+      {
+         /* We received a management packet over monitor interface to transmit */
+         INIT_WORK(&pPgBkAdapter->monTxWorkQueue, hdd_mon_tx_work_queue);
+
+         /* In this context we cannot acquire any mutex etc. And to transmit 
+          * this packet we need to call SME API. So to take care of this we will
+          * schedule a workqueue 
+          */
+         schedule_work(&pPgBkAdapter->monTxWorkQueue);
+      }
       return NETDEV_TX_OK;
    }
  
 fail:
-   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-           "%s: Failed to do TX of the packet at Monitor interface", __func__);
+   VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN,
+           "%s: Packet Rcvd at Monitor interface is not proper,"
+           " Dropping the packet",
+            __func__);
    kfree_skb(skb);
    return NETDEV_TX_OK;
 }
@@ -449,7 +577,8 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueuedAC[ac];
 
    //Make sure we have access to this access category
-   if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed))
+   if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed) || 
+           ( pHddStaCtx->conn_info.uIsAuthenticated == VOS_FALSE))
    {
       granted = VOS_TRUE;
    }
@@ -789,8 +918,10 @@ VOS_STATUS hdd_tx_fetch_packet_cbk( v_VOID_t *vosContext,
    // or we determine we have no more packets to send
    // HDD is not allowed to change AC.
 
-   // has this AC been admitted?
-   if (unlikely(0==pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed))
+   // has this AC been admitted? or 
+   // To allow EAPOL packets when not authenticated
+   if (unlikely((0==pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed) &&
+                (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.uIsAuthenticated))
    {
       ++pAdapter->hdd_stats.hddTxRxStats.txFetchEmpty;
 #ifdef HDD_WMM_DEBUG

@@ -561,11 +561,11 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                  psessionEntry->apUapsdEnable = pSmeStartBssReq->apUapsdEnable;
                  if (psessionEntry->pePersona == VOS_P2P_GO_MODE)
                  {
-                      psessionEntry->proxyProbeRspEn = 0;
+                     psessionEntry->proxyProbeRspEn = 0;
                  }
                  else
                  {
-                      psessionEntry->proxyProbeRspEn = 1;
+                     psessionEntry->proxyProbeRspEn = 1;
                  }
                  psessionEntry->ssidHidden = pSmeStartBssReq->ssidHidden;
                  psessionEntry->wps_state = pSmeStartBssReq->wps_state;
@@ -608,7 +608,7 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 goto free;
             }
         }
-        
+
         palZeroMemory(pMac->hHdd, psessionEntry->parsedAssocReq, (psessionEntry->dph.dphHashTable.size * sizeof(tpSirAssocReq)) );
         /* Channel Bonding is not addressd yet for BT-AMP Support.. sunit will address channel bonding   */
         if (pSmeStartBssReq->channelId)
@@ -965,10 +965,11 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 #endif //FEATURE_WLAN_DIAG_SUPPORT
     
     pScanReq = (tpSirSmeScanReq) pMsgBuf;   
-    PELOG1(limLog(pMac, LOG1, FL("SME SCAN REQ numChan %d min %d max %d first %d fresh %d unique %d type %d rsp %d\n"),
+    PELOG1(limLog(pMac, LOG1, FL("SME SCAN REQ numChan %d min %d max %d IELen %d first %d fresh %d unique %d type %d rsp %d\n"),
            pScanReq->channelList.numChannels,
            pScanReq->minChannelTime,
            pScanReq->maxChannelTime,
+           pScanReq->uIEFieldLen, 
            pScanReq->returnAfterFirstMatch,
            pScanReq->returnFreshResults,
            pScanReq->returnUniqueResults,
@@ -1050,25 +1051,27 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
         if (pScanReq->channelList.numChannels == 0)
         {
+            tANI_U32            cfg_len;
             // Scan all channels
-            if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmScanReq,
-                                                          (sizeof(tLimMlmScanReq) + WNI_CFG_VALID_CHANNEL_LIST_LEN)))
+            len = sizeof(tLimMlmScanReq) + 
+                  (sizeof( pScanReq->channelList.channelNumber ) * (WNI_CFG_VALID_CHANNEL_LIST_LEN - 1)) +
+                  pScanReq->uIEFieldLen;
+            if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmScanReq, len) )
             {
                 // Log error
                 limLog(pMac, LOGP,
-                       FL("call to palAllocateMemory failed for mlmScanReq\n"));
+                       FL("call to palAllocateMemory failed for mlmScanReq (%d)\n"), len);
 
                 return;
             }
 
             // Initialize this buffer
-            palZeroMemory( pMac->hHdd, (tANI_U8 *) pMlmScanReq,
-              (tANI_U32)(sizeof(tLimMlmScanReq) + WNI_CFG_VALID_CHANNEL_LIST_LEN ));
+            palZeroMemory( pMac->hHdd, (tANI_U8 *) pMlmScanReq, len );
 
-            len = WNI_CFG_VALID_CHANNEL_LIST_LEN;
+            cfg_len = WNI_CFG_VALID_CHANNEL_LIST_LEN;
             if (wlan_cfgGetStr(pMac, WNI_CFG_VALID_CHANNEL_LIST,
                           pMlmScanReq->channelList.channelNumber,
-                          &len) != eSIR_SUCCESS)
+                          &cfg_len) != eSIR_SUCCESS)
             {
                 /**
                  * Could not get Valid channel list from CFG.
@@ -1077,23 +1080,25 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 limLog(pMac, LOGP,
                        FL("could not retrieve Valid channel list\n"));
             }
-            pMlmScanReq->channelList.numChannels = (tANI_U8) len;
+            pMlmScanReq->channelList.numChannels = (tANI_U8) cfg_len;
         }
         else
         {
-            if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmScanReq,
-                                                          (sizeof(tLimMlmScanReq) + pScanReq->channelList.numChannels)))
+            len = sizeof( tLimMlmScanReq ) - sizeof( pScanReq->channelList.channelNumber ) + 
+                   (sizeof( pScanReq->channelList.channelNumber ) * pScanReq->channelList.numChannels ) +
+                   pScanReq->uIEFieldLen;
+
+            if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd, (void **)&pMlmScanReq, len) )
             {
                 // Log error
                 limLog(pMac, LOGP,
-                       FL("call to palAllocateMemory failed for mlmScanReq\n"));
+                    FL("call to palAllocateMemory failed for mlmScanReq(%d)\n"), len);
 
                 return;
             }
 
             // Initialize this buffer
-            palZeroMemory( pMac->hHdd, (tANI_U8 *) pMlmScanReq,
-              (tANI_U32)(sizeof(tLimMlmScanReq) + pScanReq->channelList.numChannels ));
+            palZeroMemory( pMac->hHdd, (tANI_U8 *) pMlmScanReq, len);
 
             pMlmScanReq->channelList.numChannels =
                             pScanReq->channelList.numChannels;
@@ -1103,12 +1108,22 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                           pScanReq->channelList.numChannels);
         }
 
+        pMlmScanReq->uIEFieldLen = pScanReq->uIEFieldLen;
+        pMlmScanReq->uIEFieldOffset = len - pScanReq->uIEFieldLen;
+        
+        if(pScanReq->uIEFieldLen)
+        {
+            palCopyMemory( pMac->hHdd, (tANI_U8 *)pMlmScanReq+ pMlmScanReq->uIEFieldOffset,
+                          (tANI_U8 *)pScanReq+(pScanReq->uIEFieldOffset),
+                          pScanReq->uIEFieldLen);
+        }
+
         pMlmScanReq->bssType = pScanReq->bssType;
         palCopyMemory( pMac->hHdd, pMlmScanReq->bssId,
                       pScanReq->bssId,
                       sizeof(tSirMacAddr));
-
         pMlmScanReq->numSsid = pScanReq->numSsid;
+                   
         while (i < pMlmScanReq->numSsid)
         {
             palCopyMemory( pMac->hHdd, (tANI_U8 *) &pMlmScanReq->ssId[i],
@@ -1116,18 +1131,14 @@ __limProcessSmeScanReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                       pScanReq->ssId[i].length + 1);
 
             i++;
-        }
+        } 
+       
 
         pMlmScanReq->scanType = pScanReq->scanType;
         pMlmScanReq->backgroundScanMode = pScanReq->backgroundScanMode;
         pMlmScanReq->minChannelTime = pScanReq->minChannelTime;
         pMlmScanReq->maxChannelTime = pScanReq->maxChannelTime;
         pMlmScanReq->dot11mode = pScanReq->dot11mode;
-        if( pScanReq->ie_len )
-        {
-          palCopyMemory( pMac->hHdd, pMlmScanReq->ies, pScanReq->ies, pScanReq->ie_len );
-          pMlmScanReq->ie_len = pScanReq->ie_len;
-        }
 #ifdef WLAN_FEATURE_P2P
         pMlmScanReq->p2pSearch = pScanReq->p2pSearch;
 #endif
@@ -1205,6 +1216,7 @@ static void __limProcessSmeInNavMeasReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
     pMlmInNavMeasReq->numBSSIDs = pInNavMeasReq->numBSSIDs;
     pMlmInNavMeasReq->numInNavMeasurements = pInNavMeasReq->numInNavMeasurements;
+    palCopyMemory(pMac->hHdd, pMlmInNavMeasReq->selfMacAddr, pInNavMeasReq->selfMacAddr, sizeof(tSirMacAddr)); 
     pMlmInNavMeasReq->measurementMode = pInNavMeasReq->measurementMode;
     palCopyMemory(pMac->hHdd, pMlmInNavMeasReq->bssidChannelInfo, pInNavMeasReq->bssidChannelInfo, 
                         sizeof(tSirBSSIDChannelInfo)*pInNavMeasReq->numBSSIDs);
@@ -1409,13 +1421,17 @@ __limProcessSmeJoinReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 goto end;
             }    
 
-#ifdef WLAN_FEATURE_P2P
-            if(pSmeJoinReq->p2pIE.length)
+            if(pSmeJoinReq->addIEScan.length)
             {
-                palCopyMemory(pMac->hHdd, &psessionEntry->pLimJoinReq->p2pIE,
-                              &pSmeJoinReq->p2pIE, sizeof(tSirP2Pie));
+                palCopyMemory(pMac->hHdd, &psessionEntry->pLimJoinReq->addIEScan,
+                              &pSmeJoinReq->addIEScan, sizeof(tSirAddie));
             }
-#endif /* WLAN_FEATURE_P2P */
+
+            if(pSmeJoinReq->addIEAssoc.length)
+            {
+                palCopyMemory(pMac->hHdd, &psessionEntry->pLimJoinReq->addIEAssoc,
+                              &pSmeJoinReq->addIEAssoc, sizeof(tSirAddie));
+            }
                      
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && defined(ANI_PRODUCT_TYPE_AP)
 
@@ -1588,6 +1604,7 @@ end:
     if(pSmeJoinReq)
     {
         palFreeMemory( pMac->hHdd, pSmeJoinReq);
+		pSmeJoinReq=NULL;
     }
     
     if(retCode != eSIR_SME_SUCCESS)
@@ -3190,11 +3207,14 @@ void limProcessSmeGetAssocSTAsInfo(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 
 limAssocStaEnd:
     // Call hdd callback with sap event to send the list of associated stations from PE
-    sapEvent.sapHddEventCode = eSAP_ASSOC_STA_CALLBACK_EVENT;
-    sapEvent.sapevt.sapAssocStaListEvent.module = VOS_MODULE_ID_PE;
-    sapEvent.sapevt.sapAssocStaListEvent.noOfAssocSta = staCount;
-    sapEvent.sapevt.sapAssocStaListEvent.pAssocStas = (tpSap_AssocMacAddr)getAssocSTAsReq.pAssocStasArray;
-    pSapEventCallback(&sapEvent, getAssocSTAsReq.pUsrContext);
+    if (pSapEventCallback != NULL)
+    {
+    	sapEvent.sapHddEventCode = eSAP_ASSOC_STA_CALLBACK_EVENT;
+    	sapEvent.sapevt.sapAssocStaListEvent.module = VOS_MODULE_ID_PE;
+    	sapEvent.sapevt.sapAssocStaListEvent.noOfAssocSta = staCount;
+    	sapEvent.sapevt.sapAssocStaListEvent.pAssocStas = (tpSap_AssocMacAddr)getAssocSTAsReq.pAssocStasArray;
+    	pSapEventCallback(&sapEvent, getAssocSTAsReq.pUsrContext);
+    }
 }
 /**
  * limProcessSmeGetWPSPBCSessions
@@ -3687,11 +3707,14 @@ __limProcessSmeAssocCnfNew(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsg
     else
     {
         // SME_ASSOC_CNF status is non-success, so STA is not allowed to be associated
+        /*Since the HAL sta entry is created for denied STA we need to remove this HAL entry.So to do that set updateContext to 1*/
+		if(!pStaDs->mlmStaContext.updateContext)
+			pStaDs->mlmStaContext.updateContext = 1;
         limRejectAssociation(pMac, pStaDs->staAddr,
                              pStaDs->mlmStaContext.subType,
                              true, pStaDs->mlmStaContext.authType,
                              pStaDs->assocId, true,
-                             assocCnf.statusCode, psessionEntry);
+                             eSIR_MAC_UNSPEC_FAILURE_STATUS, psessionEntry);
         return;
     }
 
@@ -4193,14 +4216,6 @@ limProcessSmeAddtsRspTimeout(tpAniSirGlobal pMac, tANI_U32 param)
     if (  (psessionEntry->limSystemRole != eLIM_STA_ROLE) && (psessionEntry->limSystemRole != eLIM_BT_AMP_STA_ROLE)   )
     {
         limLog(pMac, LOGW, "AddtsRspTimeout in non-Sta role (%d)\n", psessionEntry->limSystemRole);
-        pMac->lim.gLimAddtsSent = false;
-        return;
-    }
-
-    if ((psessionEntry->limSmeState != eLIM_SME_ASSOCIATED_STATE) &&
-        (psessionEntry->limSmeState != eLIM_SME_LINK_EST_STATE))
-    {
-        limLog(pMac, LOGW, "AddtsRspTimeout in invalid SmeState %d\n", psessionEntry->limSmeState);
         pMac->lim.gLimAddtsSent = false;
         return;
     }

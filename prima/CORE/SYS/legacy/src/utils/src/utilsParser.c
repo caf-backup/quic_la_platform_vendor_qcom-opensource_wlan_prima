@@ -99,22 +99,48 @@ tSirRetStatus ConvertWPAOpaque( tpAniSirGlobal      pMac,
     pOld->info[ 1 ] = 0x50;
     pOld->info[ 2 ] = 0xf2;
     pOld->info[ 3 ] = 0x01;
-    palCopyMemory( pMac->hHdd, pOld->info + 4, pNew->data, pOld->length );
+    palCopyMemory( pMac->hHdd, pOld->info + 4, pNew->data, pNew->num_data );
+
+    return eSIR_SUCCESS;
+}
+
+tSirRetStatus ConvertWscOpaque( tpAniSirGlobal      pMac,
+                                tSirAddie           *pOld,
+                                tDot11fIEWscIEOpaque *pNew )
+{
+    // This is awful, I know, but the old code just rammed the IE into
+    // an opaque array.  Note that we need to explicitly add the vendorIE and OUI !
+    tANI_U8 curAddIELen = pOld->length; 
+
+    pOld->length    = curAddIELen + pNew->num_data + 6;
+    pOld->addIEdata[ curAddIELen++ ] = 0xdd;
+    pOld->addIEdata[ curAddIELen++ ] = pNew->num_data + 4;
+    pOld->addIEdata[ curAddIELen++ ] = 0x00;
+    pOld->addIEdata[ curAddIELen++ ] = 0x50;
+    pOld->addIEdata[ curAddIELen++ ] = 0xf2;
+    pOld->addIEdata[ curAddIELen++ ] = 0x04;
+    palCopyMemory( pMac->hHdd, pOld->addIEdata + curAddIELen, pNew->data, pNew->num_data );
 
     return eSIR_SUCCESS;
 }
 
 #ifdef WLAN_FEATURE_P2P
 tSirRetStatus ConvertP2POpaque( tpAniSirGlobal      pMac,
-                                tSirP2Pie           *pOld,
+                                tSirAddie           *pOld,
                                 tDot11fIEP2PIEOpaque *pNew )
 {
-    pOld->length    = pNew->num_data + 4;
-    pOld->P2PIEdata[ 0 ] = 0x50;
-    pOld->P2PIEdata[ 1 ] = 0x6f;
-    pOld->P2PIEdata[ 2 ] = 0x9A;
-    pOld->P2PIEdata[ 3 ] = 0x09;
-    palCopyMemory( pMac->hHdd, pOld->P2PIEdata + 4, pNew->data, pOld->length );
+    // This is awful, I know, but the old code just rammed the IE into
+    // an opaque array.  Note that we need to explicitly add the vendorIE and OUI !
+    tANI_U8 curAddIELen = pOld->length; 
+
+    pOld->length    = curAddIELen + pNew->num_data + 6;
+    pOld->addIEdata[ curAddIELen++ ] = 0xdd;
+    pOld->addIEdata[ curAddIELen++ ] = pNew->num_data + 4;
+    pOld->addIEdata[ curAddIELen++ ] = 0x50;
+    pOld->addIEdata[ curAddIELen++ ] = 0x6f;
+    pOld->addIEdata[ curAddIELen++ ] = 0x9A;
+    pOld->addIEdata[ curAddIELen++ ] = 0x09;
+    palCopyMemory( pMac->hHdd, pOld->addIEdata + curAddIELen, pNew->data, pNew->num_data );
 
     return eSIR_SUCCESS;
 }

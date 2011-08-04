@@ -36,7 +36,10 @@
 #define HDD_FRAME_TYPE_MASK       0x0c 
 #define HDD_FRAME_SUBTYPE_MASK    0xf0 
 #define HDD_FRAME_TYPE_DATA       0x08
+#define HDD_FRAME_TYPE_MGMT       0x00
 #define HDD_FRAME_SUBTYPE_QOSDATA 0x80
+#define HDD_FRAME_SUBTYPE_DEAUTH  0xC0
+#define HDD_FRAME_SUBTYPE_DISASSOC 0xA0
 #define HDD_DEST_ADDR_OFFSET      6
 
 #define HDD_MAC_HDR_SIZE          6
@@ -192,6 +195,16 @@ extern VOS_STATUS hdd_rx_packet_cbk( v_VOID_t *vosContext,
                   : VOS_FALSE otherwise
   ===========================================================================*/
 extern v_BOOL_t hdd_IsEAPOLPacket( vos_pkt_t *pVosPacket );
+#endif
+
+#ifdef CONFIG_CFG80211
+/**============================================================================
+  @brief hdd_mon_tx_mgmt_pkt() - Transmit MGMT packet received on monitor 
+                                 interface.
+
+  @param pAdapter: [in] SAP/P2P GO adaptor. 
+  ===========================================================================*/
+void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter);
 #endif
 
 #endif    // end #if !defined( WLAN_HDD_TX_RX_H )

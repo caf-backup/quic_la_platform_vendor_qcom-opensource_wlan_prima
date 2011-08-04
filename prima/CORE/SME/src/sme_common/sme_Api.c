@@ -277,7 +277,7 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
         while(pEntry)
         {
             pTempCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
-            smsLog( pMac, LOGE, "Out of command buffer.... pending command #%d (0x%X)\n", 
+            smsLog( pMac, LOGE, "Out of command buffer.... SME pending command #%d (0x%X)\n",
                     idx++, pTempCmd->command );
             if( eSmeCsrCommandMask & pTempCmd->command )
             {
@@ -287,6 +287,19 @@ tSmeCmd *smeGetCommandBuffer( tpAniSirGlobal pMac )
             pEntry = csrLLNext( &pMac->sme.smeCmdPendingList, pEntry, LL_ACCESS_NOLOCK );
         }
         csrLLUnlock(&pMac->sme.smeCmdPendingList);
+
+        //There may be some more command in CSR's own pending queue
+        csrLLLock(&pMac->roam.roamCmdPendingList);
+        pEntry = csrLLPeekHead( &pMac->roam.roamCmdPendingList, LL_ACCESS_NOLOCK );
+        while(pEntry)
+        {
+            pTempCmd = GET_BASE_ADDR( pEntry, tSmeCmd, Link );
+            smsLog( pMac, LOGE, "Out of command buffer.... CSR pending command #%d (0x%X)\n",
+                    idx++, pTempCmd->command );
+            dumpCsrCommandInfo(pMac, pTempCmd);
+            pEntry = csrLLNext( &pMac->roam.roamCmdPendingList, pEntry, LL_ACCESS_NOLOCK );
+        }
+        csrLLUnlock(&pMac->roam.roamCmdPendingList);
     }
 
     return( pRetCmd );
@@ -462,7 +475,7 @@ tANI_BOOLEAN smeProcessCommand( tpAniSirGlobal pMac )
                     else
                     {
                         csrLLUnlock( &pMac->sme.smeCmdActiveList );
-                        smsLog( pMac, LOGE, FL(  "Cannot issue command to wait up the chip. Status = %d\n"), status );
+                        smsLog( pMac, LOGE, FL(  "Cannot issue command(0x%X) to wake up the chip. Status = %d\n"), pmcCommand, status );
                         //Let it retry
                         fContinue = eANI_BOOLEAN_TRUE;
                     }
@@ -1428,6 +1441,15 @@ eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag)
    eHalStatus fail_status = eHAL_STATUS_SUCCESS;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
 
+#ifdef WLAN_SOFTAP_FEATURE
+   status = WLANSAP_Stop(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
+   if ( ! HAL_STATUS_SUCCESS( status ) ) {
+      smsLog( pMac, LOGE, "WLANSAP_Stop failed during smeStop with status=%d\n",
+                          status );
+      fail_status = status;
+   }
+#endif
+
    if(pmcFlag)
    {
       status = pmcStop(hHal);
@@ -1447,14 +1469,6 @@ eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag)
 
    ccmStop(hHal);
 
-#ifdef WLAN_SOFTAP_FEATURE
-   status = WLANSAP_Stop(vos_get_global_context(VOS_MODULE_ID_SAP, NULL));
-   if ( ! HAL_STATUS_SUCCESS( status ) ) {
-      smsLog( pMac, LOGE, "WLANSAP_Stop failed during smeStop with status=%d\n",
-              status );
-      fail_status = status;
-   }
-#endif
    purgeSmeCmdList(pMac);
 
    if (!HAL_STATUS_SUCCESS( fail_status )) {
@@ -1605,6 +1619,7 @@ eHalStatus sme_ScanRequest(tHalHandle hHal, tANI_U8 sessionId, tCsrScanRequest *
                     status = csrScanRequest( hHal, pscanReq, pScanRequestID,
                                      callback, pContext );
                 }
+                  
                 sme_ReleaseGlobalLock( &pMac->sme );
             } //sme_AcquireGlobalLock success
         } //if(pMac->scan.fScanEnable)
@@ -3304,6 +3319,33 @@ eHalStatus sme_RoamRemoveKey(tHalHandle hHal, tANI_U8 sessionId,
 }
 
 /* ---------------------------------------------------------------------------
+    \fn sme_GetRssi
+    \brief a wrapper function that client calls to register a callback to get RSSI
+
+    \param callback - SME sends back the requested stats using the callback
+    \param staId - The station ID for which the stats is requested for
+    \param pContext - user context to be passed back along with the callback
+    \param pVosContext - vos context
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_GetRssi(tHalHandle hHal,
+                             tCsrRssiCallback callback,
+                             tANI_U8 staId, void *pContext, void* pVosContext)
+{
+   eHalStatus status = eHAL_STATUS_FAILURE;
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+   status = sme_AcquireGlobalLock( &pMac->sme );
+   if ( HAL_STATUS_SUCCESS( status ) )
+   {
+      status = csrGetRssi( pMac, callback,
+                                 staId, pContext, pVosContext);
+      sme_ReleaseGlobalLock( &pMac->sme );
+   }
+   return (status);
+}
+
+/* ---------------------------------------------------------------------------
     \fn sme_GetStatistics
     \brief a wrapper function that client calls to register a callback to get 
     different PHY level statistics from CSR. 
@@ -4225,6 +4267,7 @@ eHalStatus sme_getInNavMeasurementResult(tHalHandle hHal,
 /* ---------------------------------------------------------------------------
     \fn sme_InNavMeasurementRequest
     \brief a wrapper function to Request RSSI/RTT measurements
+    \param sessionId - session id to be used for measurement.
     \param pMeasurementRequestID - pointer to an object to get back the request ID
     \param callback - a callback function that meas calls upon finish, will not 
                       be called if measMeasurementRequest returns error
@@ -4232,6 +4275,7 @@ eHalStatus sme_getInNavMeasurementResult(tHalHandle hHal,
     \return eHalStatus     
   ---------------------------------------------------------------------------*/
 eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal, 
+        tANI_U8 sessionId,
         tInNavMeasurementConfig *pInNavMeasConfig, 
         tANI_U32 *pMeasurementRequestID, 
         measMeasurementCompleteCallback callback, 
@@ -4241,6 +4285,7 @@ eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal,
     tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
 
     smsLog(pMac, LOG1, "%s new innav measurement request\n", __FUNCTION__);
+    smsLog(pMac, LOG1, "%s sessionId               = %d\n", __FUNCTION__, sessionId);
     smsLog(pMac, LOG1, "%s #bssids                 = %u\n", __FUNCTION__, pInNavMeasConfig->numBSSIDs);
     smsLog(pMac, LOG1, "%s #measurements           = %u\n", __FUNCTION__, pInNavMeasConfig->numInNavMeasurements);
     smsLog(pMac, LOG1, "%s #repetetions            = %u\n", __FUNCTION__, pInNavMeasConfig->numSetRepetitions);
@@ -4259,7 +4304,7 @@ eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal,
                 *pMeasurementRequestID = lMeasId;
             }
 
-            status = measInNavMeasurementRequest(hHal, pInNavMeasConfig, pMeasurementRequestID, callback, pContext);
+            status = measInNavMeasurementRequest(hHal, sessionId, pInNavMeasConfig, pMeasurementRequestID, callback, pContext);
 
             //release the lock for the sme object
             sme_ReleaseGlobalLock( &pMac->sme );
@@ -4336,7 +4381,8 @@ eHalStatus sme_OpenSession(tHalHandle hHal, csrRoamCompleteCallback callback, vo
   \sa
   
   --------------------------------------------------------------------------*/
-eHalStatus sme_CloseSession(tHalHandle hHal, tANI_U8 sessionId)
+eHalStatus sme_CloseSession(tHalHandle hHal, tANI_U8 sessionId,
+                          csrRoamSessionCloseCallback callback, void *pContext)
 {
    eHalStatus status;
    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
@@ -4344,7 +4390,8 @@ eHalStatus sme_CloseSession(tHalHandle hHal, tANI_U8 sessionId)
    status = sme_AcquireGlobalLock( &pMac->sme );
    if ( HAL_STATUS_SUCCESS( status ) )
    {
-      status = csrRoamCloseSession( pMac, sessionId, FALSE );
+      status = csrRoamCloseSession( pMac, sessionId, FALSE, 
+                                    callback, pContext );
 
       sme_ReleaseGlobalLock( &pMac->sme );
    }
@@ -4486,6 +4533,30 @@ eHalStatus sme_SetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest)
     }
 
     return (status);
+}
+
+/* ---------------------------------------------------------------------------
+    \fn sme_AbortMacScan
+    \brief  API to cancel MAC scan.
+    \param  hHal - The handle returned by macOpen.
+    \return VOS_STATUS
+            VOS_STATUS_E_FAILURE - failure
+            VOS_STATUS_SUCCESS  success
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_AbortMacScan(tHalHandle hHal)
+{
+    eHalStatus status;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+
+    status = sme_AcquireGlobalLock( &pMac->sme );
+    if ( HAL_STATUS_SUCCESS( status ) )
+    {
+       status = csrScanAbortMacScan(pMac);
+    
+       sme_ReleaseGlobalLock( &pMac->sme );
+    }
+    
+    return ( status );
 }
 
 #ifdef WLAN_FEATURE_P2P

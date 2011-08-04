@@ -180,6 +180,13 @@ eHalStatus pmcEnterFullPowerState (tHalHandle hHal)
         return eHAL_STATUS_FAILURE;
     }
 
+    smsLog(pMac, LOGW, "PMC: Enter full power done: Cancel XO Core ON vote\n");
+    if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_FALSE) != VOS_STATUS_SUCCESS)
+    {
+        smsLog(pMac, LOGE, "Could not cancel XO Core ON vote. Not returning failure."
+                                "Power consumed will be high\n");
+    }
+
     return eHAL_STATUS_SUCCESS;
 }
 
@@ -851,6 +858,7 @@ void pmcDoCallbacks (tHalHandle hHal, eHalStatus callbackStatus)
         }
         pEntry = csrLLRemoveHead(&pMac->pmc.requestFullPowerList, FALSE);
     }
+
     csrLLUnlock(&pMac->pmc.requestFullPowerList);
 }
 
@@ -1216,9 +1224,11 @@ eHalStatus pmcEnterRequestStartUapsdState (tHalHandle hHal)
          else
          {
             //Not ready for UAPSD at this time, save it first and wake up the chip
-            smsLog(pMac, LOGE, FL("  need full power because of BTC\n"));
+            smsLog(pMac, LOGE, " PMC state = %d\n",pMac->pmc.pmcState);
             pMac->pmc.uapsdSessionRequired = TRUE;
-            fFullPower = VOS_TRUE;
+	    /* While BTC traffic is going on, STA can be in BMPS 
+	     * and need not go to Full Power */
+            //fFullPower = VOS_TRUE; 
          }
 #endif /* WLAN_MDM_CODE_REDUCTION_OPT*/
          break;
@@ -1860,8 +1870,17 @@ eHalStatus pmcDeferMsg( tpAniSirGlobal pMac, tANI_U16 messageType, void *pData, 
 
 void pmcReleaseCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
 {
-    pCommand->u.pmcCmd.size = 0;
-    smeReleaseCommand( pMac, pCommand );
+    if(!pCommand->u.pmcCmd.fReleaseWhenDone)
+    {
+        //This is a normal command, put it back to the free lsit
+        pCommand->u.pmcCmd.size = 0;
+        smeReleaseCommand( pMac, pCommand );
+    }
+    else
+    {
+        //this is a specially allocated comamnd due to out of command buffer. free it.
+        palFreeMemory(pMac->hHdd, pCommand);
+    }
 }
 
 
@@ -1933,6 +1952,16 @@ void pmcAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStop
 }
 
 
+
+//These commands are not supposed to fail due to out of command buffer,
+//otherwise other commands are not executed and no command is released. It will be deadlock. 
+#define PMC_IS_COMMAND_CANNOT_FAIL(cmdType)\
+    ( (eSmeCommandEnterStandby == (cmdType )) ||\
+      (eSmeCommandExitImps == (cmdType )) ||\
+      (eSmeCommandExitBmps == (cmdType )) ||\
+      (eSmeCommandExitUapsd == (cmdType )) ||\
+      (eSmeCommandExitWowl == (cmdType )) )
+
 eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType, void *pvParam, 
                             tANI_U32 size, tSmeCmd **ppCmd )
 {
@@ -1943,10 +1972,34 @@ eHalStatus pmcPrepareCommand( tpAniSirGlobal pMac, eSmeCommandType cmdType, void
     do
     {
         pCommand = smeGetCommandBuffer( pMac );
-        if ( !pCommand )
+        if ( pCommand )
         {
-            smsLog( pMac, LOGE, FL(" fail to get command buffer for command %d\n"), cmdType );
+            //Make sure it will be put back to the list
+            pCommand->u.pmcCmd.fReleaseWhenDone = FALSE;
+        }
+        else
+        {
+            smsLog( pMac, LOGE, FL(" fail to get command buffer for command 0x%X curState = %d"), cmdType, pMac->pmc.pmcState );
+            //For certain PMC command, we cannot fail
+            if( PMC_IS_COMMAND_CANNOT_FAIL(cmdType) )
+            {
+                smsLog( pMac, LOGE, FL(" command 0x%X  cannot fail try allocating memory for it"), cmdType );
+                status = palAllocateMemory(pMac->hHdd, (void **)&pCommand, sizeof(tSmeCmd));
+                if(!HAL_STATUS_SUCCESS(status))
+                {
+                    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL, "%s fail to allocate memory for command (0x%X)", 
+                        __FUNCTION__, cmdType);
+                    pCommand = NULL;
+                    break;
+                }
+                palZeroMemory(pMac->hHdd, pCommand, sizeof(tSmeCmd));
+                //Make sure it will be free when it is done
+                pCommand->u.pmcCmd.fReleaseWhenDone = TRUE;
+            }
+            else
+        {
             break;
+        }
         }
         pCommand->command = cmdType;
         pCommand->u.pmcCmd.size = size;
@@ -2104,7 +2157,14 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                 {
                     /* Change PMC state */
                     pMac->pmc.pmcState = REQUEST_BMPS;
-
+                    smsLog(pMac, LOGW, "PMC: Enter BMPS req done: Force XO Core ON\n");
+                    status = vos_chipVoteXOCore(NULL, NULL, NULL, VOS_TRUE); 
+                    if ( !VOS_IS_STATUS_SUCCESS(status) )
+                    {
+                        smsLog(pMac, LOGE, "Could not turn XO Core ON. Can't go to BMPS\n");
+                    }
+                    else /* XO Core turn ON was successful */
+                    {
                     /* Tell MAC to have device enter BMPS mode. */
                     status = pmcSendMessage(pMac, eWNI_PMC_ENTER_BMPS_REQ, NULL, 0);
                     if ( HAL_STATUS_SUCCESS( status ) )
@@ -2114,7 +2174,17 @@ tANI_BOOLEAN pmcProcessCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand )
                     else
                     {
                         smsLog(pMac, LOGE, "Fail to send enter BMPS msg to PE\n");
-                        pMac->pmc.bmpsRequestQueued = eANI_BOOLEAN_FALSE;
+                            /* Cancel the vote for XO Core */
+                            smsLog(pMac, LOGW, "In module init: Cancel the vote for XO CORE ON"
+                                                             "since send enter bmps failed\n");
+                            if (vos_chipVoteXOCore(NULL, NULL, NULL, VOS_FALSE) != VOS_STATUS_SUCCESS)
+                            {
+                                smsLog(pMac, LOGE, "Could not cancel XO Core ON vote."
+                                                   "Not returning failure."
+                                                   "Power consumed will be high\n");
+                            }  
+                            
+                        }
                     }
                 }
                 if( !HAL_STATUS_SUCCESS( status ) )
@@ -2381,17 +2451,12 @@ eHalStatus pmcEnterBmpsCheck( tpAniSirGlobal pMac )
    }
 
    /* Check that entry into a power save mode is allowed at this time. */
-   //If BTC is not ready and we have an UAPSD session, no power save.
-   if (!pmcPowerSaveCheck(pMac) || ( 
-#ifndef WLAN_MDM_CODE_REDUCTION_OPT
-           !btcIsReadyForUapsd(pMac) && 
-#endif /* WLAN_MDM_CODE_REDUCTION_OPT*/
-     pMac->pmc.uapsdSessionRequired ) )
+
+   if (!pmcPowerSaveCheck(pMac))
    {
-      smsLog(pMac, LOGE, "PMC: Power save check failed. BMPS cannot be entered now\n");
+      smsLog(pMac, LOGE, "PMC0: Power save check failed. BMPS cannot be entered now\n");
       return eHAL_STATUS_PMC_NOT_NOW;
    }
-   
    return ( eHAL_STATUS_SUCCESS );
 }
 

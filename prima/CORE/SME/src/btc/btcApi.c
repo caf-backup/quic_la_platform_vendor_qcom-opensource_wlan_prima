@@ -1717,7 +1717,7 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
        }
        if( BT_MAX_SCO_SUPPORT == i )
        {
-           pMac->btc.btcUapsdOk = VOS_TRUE;
+            pMac->btc.fA2DPTrafStop = VOS_TRUE;
            smsLog( pMac, LOGE, "BT_EVENT_A2DP_STREAM_STOP: UAPSD-allowed flag is now %d\n",
                    		pMac->btc.btcUapsdOk );
        }
@@ -1738,16 +1738,24 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
             }
             if( BT_MAX_SCO_SUPPORT == i )
             {
-
-                pMac->btc.btcUapsdOk = VOS_TRUE;
+		if(VOS_TRUE == pMac->btc.fA2DPTrafStop)
+		{						
+                    pMac->btc.btcUapsdOk = VOS_TRUE;
+		    pMac->btc.fA2DPTrafStop = VOS_FALSE;
+		}
                 smsLog( pMac, LOGE, "BT_EVENT_MODE_CHANGED with Mode:%d UAPSD-allowed flag is now %d\n",
                     pBtEvent->uEventParam.btAclModeChange.mode,pMac->btc.btcUapsdOk );
             }
 	     }
          break;
-   case BT_EVENT_SYNC_CONNECTION_COMPLETE:
-	   smsLog( pMac, LOGE, "BT_EVENT_SYNC_CONNECTION_COMPLETE (%d) happens, UAPSD-allowed flag (%d) change to FALSE \n", 
+   case BT_EVENT_CREATE_SYNC_CONNECTION:
+	   {
+		   pMac->btc.btcUapsdOk = VOS_FALSE;
+		   smsLog( pMac, LOGE, "BT_EVENT_CREATE_SYNC_CONNECTION (%d) happens, UAPSD-allowed flag (%d) change to FALSE \n", 
                 pBtEvent->btEventType, pMac->btc.btcUapsdOk );
+	   }
+	   break;		 
+   case BT_EVENT_SYNC_CONNECTION_COMPLETE:	   
        //Make sure it is a success
        if( BT_CONN_STATUS_FAIL != pBtEvent->uEventParam.btSyncConnection.status )
        {
@@ -1762,23 +1770,34 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
 			       break;
                }
            }
-	       if( i < BT_MAX_SCO_SUPPORT )
-	       {
-		       pMac->btc.btcUapsdOk = VOS_FALSE;
-	       }
-	       else
-	       {
-		       smsLog(pMac, LOGE, FL("Too many SCO, ignore this one\n"));
-	       }
+	       
+           if( i >= BT_MAX_SCO_SUPPORT )
+	   {
+	       smsLog(pMac, LOGE, FL("Too many SCO, ignore this one\n"));
+           }
        }
        else
        {
+            //Check whether SCO is on
+           for(i=0; i < BT_MAX_SCO_SUPPORT; i++)
+           {
+               if(pMac->btc.btcScoHandles[i] != BT_INVALID_CONN_HANDLE)
+               {
+                   break;
+	       }
+       }
+           /*If No Other Sco/A2DP is ON reenable UAPSD*/
+           if( (BT_MAX_SCO_SUPPORT == i)  && !pMac->btc.fA2DPUp)           
+           {
+               pMac->btc.btcUapsdOk = VOS_TRUE;
+           }
            smsLog(pMac, LOGE, FL("TSYNC complete failed\n"));
        }
        break;
    case BT_EVENT_A2DP_STREAM_START:
        smsLog( pMac, LOGE, "BT_EVENT_A2DP_STREAM_START (%d) happens, UAPSD-allowed flag (%d) change to FALSE \n", 
                 pBtEvent->btEventType, pMac->btc.btcUapsdOk );
+       pMac->btc.fA2DPTrafStop = VOS_FALSE;
        pMac->btc.btcUapsdOk = VOS_FALSE;
 	   pMac->btc.fA2DPUp = VOS_TRUE;
        break;

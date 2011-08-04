@@ -2565,7 +2565,7 @@ typedef struct
 }WDI_SetP2PGONOAReqInfoType;
 
 /*---------------------------------------------------------------------------
-  WDI_UpdateProbeRspParamsType
+  WDI_SetP2PGONOAReqParamsType
 ---------------------------------------------------------------------------*/
 typedef struct
 {
@@ -2582,6 +2582,70 @@ typedef struct
   void*             pUserData;
 }WDI_SetP2PGONOAReqParamsType;
 #endif
+
+typedef struct
+{
+  wpt_macAddr selfMacAddr;
+  wpt_uint32  uStatus;
+}WDI_AddSTASelfInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_SetAddSTASelfParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /* Add Sta Self Req */
+  WDI_AddSTASelfInfoType  wdiAddSTASelfInfo;
+
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+}WDI_AddSTASelfParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_DelSTASelfReqParamsType
+  Del Sta Self info passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct
+{
+   wpt_macAddr       selfMacAddr;
+
+}WDI_DelSTASelfInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_DelSTASelfReqParamsType
+  Del Sta Self info passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Del Sta Self Info Type */
+   WDI_DelSTASelfInfoType     wdiDelStaSelfInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+}WDI_DelSTASelfReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_DelSTASelfRspParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+ /*Status of the response*/
+  WDI_Status   wdiStatus; 
+
+  /*STA Index returned during DAL_PostAssocReq or DAL_ConfigStaReq*/
+//  wpt_uint16   usSTAIdx;
+}WDI_DelSTASelfRspParamsType;
+
 /*---------------------------------------------------------------------------
   WDI_UapsdInfoType
   UAPSD parameters passed per AC to WDA from UMAC
@@ -3884,6 +3948,7 @@ typedef void  (*WDI_SetP2PGONOAReqParamsRspCb)(WDI_Status   wdiStatus,
                                 void*        pUserData);
 #endif
 
+
 /*---------------------------------------------------------------------------
    WDI_SetPwrSaveCfgCb
  
@@ -4409,6 +4474,54 @@ typedef void  (*WDI_AggrAddTsRspCb)(WDI_Status   wdiStatus,
 typedef void (*WDI_FTMCommandRspCb)(void *ftmCMDRspdata,
                                     void *pUserData);
 #endif /* ANI_MANF_DIAG */
+
+/*---------------------------------------------------------------------------
+   WDI_AddSTASelfParamsRspCb 
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Add Sta Self Params response from
+   the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_AddSTASelfParamsRspCb)(WDI_Status   wdiStatus,
+                                void*        pUserData);
+
+
+/*---------------------------------------------------------------------------
+   WDI_DelSTASelfRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a host offload
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_DelSTASelfRspCb)
+(
+WDI_DelSTASelfRspParamsType*     wdiDelStaSelfRspParams,
+void*        pUserData
+);
 
 /*========================================================================
  *     Function Declarations and Documentation
@@ -6445,6 +6558,54 @@ wpt_uint32 WDI_GetAvailableResCount
 (
   void            *pContext,
   WDI_ResPoolType wdiResPool
+);
+
+/**
+ @brief WDI_SetAddSTASelfReq will be called when the
+        UMAC wanted to add self STA while opening any new session
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state.
+
+
+ @param pwdiAddSTASelfParams: the add self sta parameters as
+                      specified by the Device Interface
+
+        pUserData: user data will be passed back with the
+        callback
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_AddSTASelfReq
+(
+  WDI_AddSTASelfParamsType*    pwdiAddSTASelfReqParams,
+  WDI_AddSTASelfParamsRspCb    wdiAddSTASelfReqParamsRspCb,
+  void*                            pUserData
+);
+
+
+/**
+ @brief WDI_DelSTASelfReq will be called .
+
+ @param WDI_DelSTASelfReqParamsType
+  
+        WDI_DelSTASelfRspCb: callback for passing back the
+        response of the del sta self  operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_DelSTASelfReq
+(
+  WDI_DelSTASelfReqParamsType*    pwdiDelStaSelfParams,
+  WDI_DelSTASelfRspCb             wdiDelStaSelfRspCb,
+  void*                           pUserData
 );
 
 #ifdef __cplusplus

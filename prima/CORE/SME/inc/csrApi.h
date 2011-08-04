@@ -359,6 +359,8 @@ typedef enum
     eCSR_ROAM_INDICATE_MGMT_FRAME,
     eCSR_ROAM_REMAIN_CHAN_READY,
     eCSR_ROAM_SEND_ACTION_CNF,
+    //this mean error happens before association_start or roaming_start is called.
+    eCSR_ROAM_SESSION_OPENED,
 }eRoamCmdStatus;
 
 
@@ -731,10 +733,11 @@ typedef struct tagCsrRoamProfile
     tANI_U32 nWAPIReqIELength;   //The byte count in the pWAPIReqIE
     tANI_U8 *pWAPIReqIE;   //If not null, it has the IE byte stream for WAPI
 #endif /* FEATURE_WLAN_WAPI */
-#ifdef WLAN_FEATURE_P2P
-    tANI_U32 nP2PIELength;     //The byte count in the pWAPIReqIE
-    tANI_U8 *pP2PIE;   //If not null, it has the IE byte stream for WAPI
-#endif /* WLAN_FEATURE_P2P */
+
+    tANI_U32 nAddIEScanLength;   //The byte count in the pAddIE for scan (at the time of join)
+    tANI_U8 *pAddIEScan;       //If not null, it has the IE byte stream for additional IE, which can be WSC IE and/or P2P IE
+    tANI_U32 nAddIEAssocLength;   //The byte count in the pAddIE for assoc 
+    tANI_U8 *pAddIEAssoc;       //If not null, it has the IE byte stream for additional IE, which can be WSC IE and/or P2P IE
 
     tANI_U8 countryCode[WNI_CFG_COUNTRY_CODE_LEN];  //it is ignored if [0] is 0.
     /*WPS Association if true => auth and ecryption should be ignored*/
@@ -933,6 +936,9 @@ typedef struct tagCsrRoamInfo
     tANI_U8 rsnIELen;
     tANI_U8 *prsnIE;
 
+    tANI_U8 addIELen;
+    tANI_U8 *paddIE;
+    
     union
     {
         tSirMicFailureInfo *pMICFailureInfo;
@@ -949,8 +955,6 @@ typedef struct tagCsrRoamInfo
 
 #ifdef WLAN_FEATURE_P2P
     void* pRemainCtx; 
-    tANI_U8 p2pIELen;
-    tANI_U8 *pP2PIE;
 #endif
 
 }tCsrRoamInfo;
@@ -980,9 +984,7 @@ typedef struct sSirSmeAssocIndToUpperLayerCnf
     tANI_U8              alternateChannelId;
     tANI_U8              wmmEnabledSta;   //set to true if WMM enabled STA
     tSirRSNie            rsnIE;           // RSN IE received from peer
-#ifdef WLAN_FEATURE_P2P
-    tSirP2Pie             p2pIE;           // P2P IE received from peer
-#endif
+    tSirAddie            addIE;           // Addtional IE received from peer, which can be WSC and/or P2P IE
     tANI_U8              reassocReq;      //set to true if reassoc
 } tSirSmeAssocIndToUpperLayerCnf, *tpSirSmeAssocIndToUpperLayerCnf;
 #endif
@@ -1127,6 +1129,8 @@ typedef eHalStatus (*csrScanCompleteCallback)(tHalHandle, void *p2, tANI_U32 sca
 typedef eHalStatus (*csrRoamCompleteCallback)(void *pContext, tCsrRoamInfo *pParam, tANI_U32 roamId, 
                                               eRoamCmdStatus roamStatus, eCsrRoamResult roamResult);
 
+typedef eHalStatus (*csrRoamSessionCloseCallback)(void *pContext);   
+
 /* ---------------------------------------------------------------------------
     \fn csrRoamGetNumPMKIDCache
     \brief return number of PMKID cache entries
@@ -1240,6 +1244,18 @@ typedef void (* csrRoamLinkQualityIndCallback)
   
 ---------------------------------------------------------------------------*/
 typedef void ( *tCsrStatsCallback) (void * stats, void *pContext);
+
+/*---------------------------------------------------------------------------
+  This is the type for a rssi callback to be registered with SME
+  for getting rssi
+
+  \param rssi - rssi
+  \param pContext - any user data given at callback registration.  
+  \return None
+  
+---------------------------------------------------------------------------*/
+
+typedef void ( *tCsrRssiCallback) (v_S7_t rssi, tANI_U32 staId, void *pContext);
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 eHalStatus csrRoamIssueFTPreauthReq(tHalHandle hHal, tANI_U32 sessionId, tpSirBssDescription pBssDescription);

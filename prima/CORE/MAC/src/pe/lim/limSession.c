@@ -170,6 +170,8 @@ tpPESession peFindSessionByBssid(tpAniSirGlobal pMac,  tANI_U8*  bssid,    tANI_
   --------------------------------------------------------------------------*/
 void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 {
+    tANI_U16 i = 0;
+
     limLog(pMac, LOGW, FL("Trying to delete a session %d.\n "), psessionEntry->peSessionId);
 
     if(psessionEntry->pLimStartBssReq != NULL)
@@ -229,9 +231,7 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
 	if(psessionEntry->parsedAssocReq != NULL)
 	{
-        /* Memory is allocated to psessionEntry->parsedAssocReq as single chunk
-           in limProcessSmeReqMessage.c
-           So it can not be freed member by member.
+       // Cleanup the individual allocation first
 	    for (i=0; i < psessionEntry->dph.dphHashTable.size; i++)
 	    {
 	        if ( psessionEntry->parsedAssocReq[i] != NULL )
@@ -240,7 +240,7 @@ void peDeleteSession(tpAniSirGlobal pMac, tpPESession psessionEntry)
 	            psessionEntry->parsedAssocReq[i] = NULL;
 	        }
 	    }
-        */
+        // Cleanup the whole block
         palFreeMemory(pMac->hHdd, (void *)psessionEntry->parsedAssocReq);
         psessionEntry->parsedAssocReq = NULL;
     }

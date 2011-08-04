@@ -62,6 +62,15 @@ when       who     what, where, why
 ===========================================================================*/
 typedef enum
 {
+  VOS_CHIP_RESET_CMD53_FAILURE,              /* Reset Chip due to CMD53 Failure */	
+  VOS_CHIP_RESET_FW_EXCEPTION,               /* Reset Chip due to FW Failure */
+  VOS_CHIP_RESET_MUTEX_READ_FAILURE,         /* Reset Chip due to  Mutex Read Failure */
+  VOS_CHIP_RESET_MIF_EXCEPTION,              /* Reset Chip due to  MAC exception e.g. BMU fatal, MIF error */
+  VOS_CHIP_RESET_UNKNOWN_EXCEPTION           /* Reset Chip due to  any other exception */
+}vos_chip_reset_reason_type;
+
+typedef enum
+{
   VOS_CALL_SYNC,    /* operation is synchronous */
   VOS_CALL_ASYNC    /* operation is asynchronous */    
 
@@ -184,7 +193,8 @@ VOS_STATUS vos_chipReset
   vos_call_status_type* status,
   v_BOOL_t              soft,
   vos_power_cb_type     callback,
-  v_PVOID_t             user_data
+  v_PVOID_t             user_data,
+  vos_chip_reset_reason_type    reason
 );
 
 /**
@@ -506,4 +516,79 @@ VOS_STATUS vos_chipVoteOffXOBuffer
   vos_power_cb_type     callback,
   v_PVOID_t             user_data
 );
+
+/**
+  @brief vos_chipVoteXOCore() - This API will FORCE vote ON PMIC XO CORE.
+
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+  @param force_enable[in] : user supplied input for turning ON/OFF Xo Core
+
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
+                         because the voting algorithm decided not to power down PA  
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteXOCore
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data,
+  v_BOOL_t              force_enable
+);
+
+
+/**
+  @brief vos_chipVoteFreqFor1p3VSupply() - This API will vote for frequency for 1.3V RF supply.
+  
+  This operation may be asynchronous. If so, the supplied callback will
+  be invoked when operation is complete with the result. The callback will 
+  be called with the user supplied data. If the operation is known to be 
+  sync, there is no need to supply a callback and user data.
+
+  EVM issue is observed with 1.6Mhz freq for 1.3V supply in wlan standalone case.
+  During concurrent operation (e.g. WLAN and WCDMA) this issue is not observed. 
+  To workaround, wlan will vote for 3.2Mhz during startup and will vote for 1.6Mhz
+  during exit.
+   
+  @param status [out] : whether this operation will complete sync or async
+  @param callback [in] : user supplied callback invoked when operation completes
+  @param user_data [in] : user supplied context callback is called with
+  @param freq [in]     :  Frequency for 1.3V Supply for which WLAN driver needs to vote for.
+  @return 
+  VOS_STATUS_E_INVAL - status is NULL 
+  VOS_STATUS_E_FAULT - the operation needs to complete async and a callback 
+                       and user_data has not been specified (status will be
+                       set to VOS_CALL_ASYNC) 
+  VOS_STATUS_E_ALREADY - operation needs to complete async but another request
+                         is already in progress (status will be set to VOS_CALL_ASYNC)  
+  VOS_STATUS_E_FAILURE - operation failed (status will be set appropriately) could be 
+                         because the voting algorithm decided not to power down PA  
+  VOS_STATUS_SUCCESS - operation completed successfully if status is SYNC (will be set)
+                       OR operation started successfully if status is ASYNC (will be set)
+
+*/
+VOS_STATUS vos_chipVoteFreqFor1p3VSupply
+(
+  vos_call_status_type* status,
+  vos_power_cb_type     callback,
+  v_PVOID_t             user_data,
+  v_U32_t               freq
+);
+
+
 #endif /* _VOS_POWER_H_ */

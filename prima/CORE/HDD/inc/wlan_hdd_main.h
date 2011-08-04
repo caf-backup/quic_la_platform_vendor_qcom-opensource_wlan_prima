@@ -28,12 +28,16 @@
 #include <wlan_hdd_dp_utils.h>
 #include <wlan_hdd_wmm.h>
 #include <wlan_hdd_cfg.h>
+#include <linux/spinlock.h>
 #ifdef ANI_MANF_DIAG
 #include <wlan_hdd_ftm.h>
 #endif
 /*--------------------------------------------------------------------------- 
   Preprocessor definitions and constants
-  -------------------------------------------------------------------------*/ 
+  -------------------------------------------------------------------------*/
+/** Number of attempts to detect/remove card */
+#define LIBRA_CARD_INSERT_DETECT_MAX_COUNT	5
+#define LIBRA_CARD_REMOVE_DETECT_MAX_COUNT	5
 /** Number of Tx Queues */  
 #define NUM_TX_QUEUES 4
 /** Queue length specified to OS in the net_device */
@@ -50,7 +54,7 @@
 #ifdef LIBRA_LINUX_PC
 #define HDD_TX_TIMEOUT          (8000)       
 #else
-#define HDD_TX_TIMEOUT          (2*HZ)    
+#define HDD_TX_TIMEOUT          msecs_to_jiffies(5000)    
 #endif
 /** Hdd Default MTU */
 #define HDD_DEFAULT_MTU         (1500)
@@ -62,7 +66,8 @@
 #define SOFTAP_BSS_STARTED     1<<4
 
 /** Maximum time(ms)to wait for disconnect to complete **/
-#define WLAN_WAIT_TIME_DISCONNECT  100
+#define WLAN_WAIT_TIME_DISCONNECT  1000
+#define WLAN_WAIT_TIME_SESSIONOPENCLOSE  2000
 #define MAC_ADDR_ARRAY(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
 /** Mac Address string **/
 #define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
@@ -83,6 +88,9 @@
 #define EXIT()  VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "Exit:%s\n", __FUNCTION__)
 
 #define WLAN_HDD_GET_PRIV_PTR(__dev__) (hdd_adapter_t*)(netdev_priv((__dev__)))
+
+#define MAX_EXIT_ATTEMPTS_DURING_LOGP 6
+
 typedef struct hdd_tx_rx_stats_s
 {
    // start_xmit stats
@@ -116,6 +124,17 @@ typedef struct hdd_tx_rx_stats_s
    __u32    rxDelivered;
    __u32    rxRefused;
 } hdd_tx_rx_stats_t;
+
+typedef struct hdd_chip_reset_stats_s
+{
+   __u32    totalLogpResets;
+   __u32    totalCMD53Failures;
+   __u32    totalMutexReadFailures;
+   __u32    totalMIFErrorFailures;
+   __u32    totalFWHearbeatFailures;
+   __u32    totalUnknownExceptions;
+} hdd_chip_reset_stats_t;
+
 typedef struct hdd_stats_s
 {
    tCsrSummaryStatsInfo       summary_stat;
@@ -125,6 +144,7 @@ typedef struct hdd_stats_s
    tCsrGlobalClassDStatsInfo  ClassD_stat;
    tCsrPerStaStatsInfo        perStaStats;
    hdd_tx_rx_stats_t          hddTxRxStats;
+   hdd_chip_reset_stats_t     hddChipResetStats;
 } hdd_stats_t;
 
 typedef enum
@@ -288,6 +308,12 @@ typedef enum device_mode
 #endif
 }device_mode_t;
 
+typedef enum rem_on_channel_request_type
+{
+   REMAIN_ON_CHANNEL_REQUEST,
+   OFF_CHANNEL_ACTION_TX,
+}rem_on_channel_request_type_t;
+
 #if defined CONFIG_CFG80211
 typedef struct hdd_remain_on_chan_ctx
 {
@@ -296,6 +322,7 @@ typedef struct hdd_remain_on_chan_ctx
   enum nl80211_channel_type chan_type;
   unsigned int duration;
   u64 cookie;
+  rem_on_channel_request_type_t rem_on_chan_request;
 }hdd_remain_on_chan_ctx_t;
 
 typedef struct hdd_cfg80211_state_s 
@@ -402,10 +429,19 @@ struct hdd_ap_ctx_s
    
    v_BOOL_t uIsAuthenticated;
    
-#ifdef CONFIG_CFG80211
+#ifdef CONFIG_CFG80211   
+   //This will point to group key data, if it is received before start bss. 
+   tCsrRoamSetKey groupKey; 
    beacon_data_t *beacon;
 #endif
 };
+
+#ifdef CONFIG_CFG80211   
+struct hdd_mon_ctx_s
+{
+   hdd_adapter_t *pAdapterForTx;
+};
+#endif
 
 struct hdd_adapter_s
 {
@@ -438,12 +474,26 @@ struct hdd_adapter_s
            
    tANI_U8 sessionId;
 
+   /* Completion variable for session close */
+   struct completion session_close_comp_var;
+
+   /* Completion variable for session open */
+   struct completion session_open_comp_var;
+
    //TODO: move these to sta ctx. These may not be used in AP 
    /** completion variable for disconnect callback */
    struct completion disconnect_comp_var;
 
    /* completion variable for Linkup Event */
    struct completion linkup_event_var;
+
+   /* completion variable for cancel remain on channel Event */
+   struct completion cancel_rem_on_chan_var;
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+   /* completion variable for off channel  remain on channel Event */
+   struct completion offchannel_tx_event;
+#endif
 
    /* Track whether the linkup handling is needed  */
    v_BOOL_t isLinkUpSvcNeeded;
@@ -478,7 +528,8 @@ struct hdd_adapter_s
 #ifdef FEATURE_WLAN_WAPI
    hdd_wapi_info_t wapi_info;
 #endif
-
+   
+   v_S7_t rssi;
 #ifdef CONFIG_CFG80211
    struct work_struct  monTxWorkQueue;
    struct sk_buff *skb_to_tx;
@@ -487,6 +538,9 @@ struct hdd_adapter_s
    union {
       hdd_station_ctx_t station;
       hdd_ap_ctx_t  ap;
+#ifdef CONFIG_CFG80211   
+      hdd_mon_ctx_t monitor;
+#endif
    }sessionCtx;
 
 };
@@ -577,6 +631,10 @@ struct hdd_context_s
    /* Track whether Mcast/Bcast Filter is enabled.*/
    v_BOOL_t hdd_mcastbcast_filter_set;
    
+   v_BOOL_t hdd_wlan_suspended;
+   
+   spinlock_t filter_lock;
+   
    /** ptt Process ID*/
    v_SINT_t ptt_pid;
 
@@ -610,4 +668,9 @@ tVOS_CON_MODE hdd_get_conparam( void );
 #endif
 
 void wlan_hdd_enable_deepsleep(v_VOID_t * pVosContext);
+v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_context_t* pHddCtx);
+void hdd_abort_mac_scan(hdd_context_t *pHddCtx);
+#ifdef CONFIG_CFG80211
+void wlan_hdd_set_monitor_tx_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter );
+#endif
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

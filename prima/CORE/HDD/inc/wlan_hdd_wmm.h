@@ -162,7 +162,8 @@ typedef struct
 } hdd_wmm_status_t;
 
 extern const v_U8_t hdd_QdiscAcToTlAC[];
-
+extern const v_U8_t hddWmmUpToAcMap[]; 
+extern const v_U8_t hddLinuxUpToAcMap[];
 
 /**============================================================================
   @brief hdd_wmm_init() - Function which will initialize the WMM configuation

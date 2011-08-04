@@ -205,12 +205,14 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_REQ] =
 #else
   NULL,
 #endif /* WLAN_FEATURE_VOWIFI_11R */
-
+  WDI_ProcessAddSTASelfReq,         /* WDI_ADD_STA_SELF_REQ */
+  WDI_ProcessDelSTASelfReq,          /* WDI DEL STA SELF REQ */
 #ifdef ANI_MANF_DIAG
   WDI_ProcessFTMCommandReq,            /* WDI_FTM_CMD_REQ */
 #else
   NULL,
 #endif /* ANI_MANF_DIAG */
+  
 };
 
 
@@ -307,6 +309,8 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 #else
   NULL,
 #endif /* WLAN_FEATURE_VOWIFI_11R */
+  WDI_ProcessAddSTASelfRsp,          /* WDI_ADD_STA_SELF_RESP */
+  WDI_ProcessDelSTASelfRsp,          /* WDI_DEL_SELF_STA_RESP */
   /*Indications*/
   WDI_ProcessLowRSSIInd,            /* WDI_HAL_RSSI_NOTIFICATION_IND  */
   WDI_ProcessMissedBeaconInd,       /* WDI_HAL_MISSED_BEACON_IND  */
@@ -326,6 +330,7 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 #else
   NULL,
 #endif /* ANI_MANF_DIAG */
+  
 };
 
 
@@ -624,11 +629,15 @@ WDI_Init
                              &gWDICb);
 
   /* Initialize the  WDI Pending Request Queue*/
-  wpal_list_init(&(gWDICb.wptPendingQueue), pNode);
+  wpal_list_init(&(gWDICb.wptPendingQueue));
+
+  /*Init WDI Pending Assoc Id Queue */
+  wpal_list_init(&(gWDICb.wptPendingAssocSessionIdQueue));
+
   /*Initialize the BSS seesions pending Queue */
   for ( i = 0; i < WDI_MAX_BSS_SESSIONS; i++ )
   {
-    wpal_list_init(&(gWDICb.aBSSSessions[i].wptPendingQueue), pNode);
+    wpal_list_init(&(gWDICb.aBSSSessions[i].wptPendingQueue));
   }
   /*------------------------------------------------------------------------
     Initialize the Data Path Utility Module
@@ -859,13 +868,16 @@ WDI_Close
   /*destroy the response timer */
   wptStatus = wpalTimerDelete( &gWDICb.wptResponseTimer);
 
-  /* destroy the  WDI Pending Request Queue*/
-  wpal_list_destroy(&(gWDICb.wptPendingQueue), pNode);
+  /* destroy the  WDI Pending Assoc Id Request Queue*/
+  wpal_list_destroy(&(gWDICb.wptPendingAssocSessionIdQueue));
 
+  /* destroy the  WDI Pending Request Queue*/
+  wpal_list_destroy(&(gWDICb.wptPendingQueue));
+  
   /*destroy the BSS seesions pending Queue */
   for ( i = 0; i < WDI_MAX_BSS_SESSIONS; i++ )
   {
-    wpal_list_destroy(&(gWDICb.aBSSSessions[i].wptPendingQueue), pNode);
+    wpal_list_destroy(&(gWDICb.aBSSSessions[i].wptPendingQueue));
   }
   /*------------------------------------------------------------------------
     Closes the Data Path Utility Module
@@ -4159,6 +4171,58 @@ WDI_SetP2PGONOAReq
 }/*WDI_SetP2PGONOAReq*/
 #endif
 
+/**
+ @brief WDI_AddSTASelfReq will be called when the 
+        UMAC wanted to add STA self while opening any new session
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+
+ @param pwdiAddSTASelfParams: the add sta self parameters as 
+                      specified by the Device Interface
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see 
+ @return Result of the function call
+*/
+WDI_Status
+WDI_AddSTASelfReq
+(
+  WDI_AddSTASelfParamsType*    pwdiAddSTASelfReqParams,
+  WDI_AddSTASelfParamsRspCb    wdiAddSTASelfReqParamsRspCb,
+  void*                            pUserData
+)
+{
+  WDI_EventInfoType      wdiEventData;
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  /*------------------------------------------------------------------------
+    Sanity Check 
+  ------------------------------------------------------------------------*/
+  if ( eWLAN_PAL_FALSE == gWDIInitialized )
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+              "WDI API call before module is initialized - Fail request");
+
+    return WDI_STATUS_E_NOT_ALLOWED; 
+  }
+
+  /*------------------------------------------------------------------------
+    Fill in Event data and post to the Main FSM
+  ------------------------------------------------------------------------*/
+  wdiEventData.wdiRequest      = WDI_ADD_STA_SELF_REQ;
+  wdiEventData.pEventData      = pwdiAddSTASelfReqParams; 
+  wdiEventData.uEventDataSize  = sizeof(*pwdiAddSTASelfReqParams); 
+  wdiEventData.pCBfnc          = wdiAddSTASelfReqParamsRspCb; 
+  wdiEventData.pUserData       = pUserData;
+
+  return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
+
+}/*WDI_AddSTASelfReq*/
+
+
 #ifdef WLAN_FEATURE_VOWIFI_11R 
 /**
  @brief WDI_AggrAddTSReq will be called when the upper MAC to inform
@@ -4269,6 +4333,60 @@ WDI_FTMCommandReq
   return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
 }
 #endif /* ANI_MANF_DIAG */ 
+/**
+ @brief WDI_DelSTASelfReq will be called 
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+
+ @param pwdiDelStaSelfReqParams:  as specified by
+                      the Device Interface
+  
+        wdiDelStaSelfRspCb: callback for passing back the response of
+        the add TS operation received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_DelSTASelfReq
+(
+  WDI_DelSTASelfReqParamsType*      pwdiDelStaSelfReqParams,
+  WDI_DelSTASelfRspCb               wdiDelStaSelfRspCb,
+  void*                             pUserData
+)
+{
+  WDI_EventInfoType      wdiEventData;
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  /*------------------------------------------------------------------------
+    Sanity Check 
+  ------------------------------------------------------------------------*/
+  if ( eWLAN_PAL_FALSE == gWDIInitialized )
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+              "WDI API call before module is initialized - Fail request");
+
+    return WDI_STATUS_E_NOT_ALLOWED; 
+  }
+
+  /*------------------------------------------------------------------------
+    Fill in Event data and post to the Main FSM
+  ------------------------------------------------------------------------*/
+  wdiEventData.wdiRequest      = WDI_DEL_STA_SELF_REQ;
+  wdiEventData.pEventData      = pwdiDelStaSelfReqParams; 
+  wdiEventData.uEventDataSize  = sizeof(*pwdiDelStaSelfReqParams); 
+  wdiEventData.pCBfnc          = wdiDelStaSelfRspCb; 
+  wdiEventData.pUserData       = pUserData;
+
+  return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
+
+}/*WDI_AggrAddTSReq*/
+
 
 /*============================================================================ 
  
@@ -5963,6 +6081,10 @@ WDI_ProcessDelBSSReq
       it will only be processed when DAL transitions out of BUSY state which
       happens when the Del BSS request comes */
      pWDICtx->bAssociationInProgress = eWLAN_PAL_FALSE;
+
+     /*Former association is complete - prepare next pending assoc for
+       processing */
+     WDI_DequeueAssocRequest(pWDICtx);
   }
 
   wpalMutexRelease(&pWDICtx->wptMutex);
@@ -7966,6 +8088,171 @@ WDI_ProcessBtAmpEventReq
                         wdiBtAmpEventRspCb, pEventData->pUserData, WDI_BTAMP_EVENT_RESP); 
 }/*WDI_ProcessBtAmpEventReq*/
 
+/**
+ @brief Process Add STA self Request function (called when Main FSM
+        allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessAddSTASelfReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  WDI_AddSTASelfParamsType*          pwdiAddSTASelfReqParams;
+  WDI_AddSTASelfParamsRspCb          wdiAddSTASelfReqRspCb;
+  wpt_uint8*                            pSendBuffer         = NULL; 
+  wpt_uint16                            usDataOffset        = 0;
+  wpt_uint16                            usSendSize          = 0;
+  tAddStaSelfParams                     halAddSTASelfParams; 
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  /*-------------------------------------------------------------------------
+    Sanity check 
+  -------------------------------------------------------------------------*/
+  if (( NULL == pEventData ) ||
+      ( NULL == pEventData->pEventData) ||
+      ( NULL == pEventData->pCBfnc))
+  {
+     if( pEventData )
+     {
+        WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "Invalid parameters in ADD STA SELF REQ %x %x ",
+                   pEventData->pCBfnc, pEventData->pEventData );
+     }
+     else
+     {
+        WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "Invalid parameter in ADD STA SELF REQ %x ",
+                   pEventData );
+     }
+  
+     WDI_ASSERT(0);
+     return WDI_STATUS_E_FAILURE; 
+  }
+
+  pwdiAddSTASelfReqParams = 
+    (WDI_AddSTASelfParamsType*)pEventData->pEventData;
+  wdiAddSTASelfReqRspCb = 
+    (WDI_AddSTASelfParamsRspCb)pEventData->pCBfnc;
+  /*-----------------------------------------------------------------------
+    Get message buffer
+  -----------------------------------------------------------------------*/
+  if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, 
+                        WDI_ADD_STA_SELF_REQ, 
+                        sizeof(tAddStaSelfParams),
+                        &pSendBuffer, &usDataOffset, &usSendSize))||
+      ( usSendSize < (usDataOffset + sizeof(tAddStaSelfParams) )))
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+              "Unable to get send buffer in set P2P GO NOA REQ %x %x %x",
+     pEventData, pwdiAddSTASelfReqParams, wdiAddSTASelfReqRspCb);
+     WDI_ASSERT(0);
+     return WDI_STATUS_E_FAILURE; 
+  }
+
+  wpalMemoryCopy(halAddSTASelfParams.selfMacAddr, 
+                   pwdiAddSTASelfReqParams->wdiAddSTASelfInfo.selfMacAddr, 6) ;
+
+  wpalMemoryCopy( pSendBuffer+usDataOffset, &halAddSTASelfParams, 
+                                         sizeof(tAddStaSelfParams)); 
+
+  pWDICtx->wdiReqStatusCB     = pwdiAddSTASelfReqParams->wdiReqStatusCB;
+  pWDICtx->pReqStatusUserData = pwdiAddSTASelfReqParams->pUserData; 
+
+  /*-------------------------------------------------------------------------
+    Send Update Probe Resp Template Request to HAL 
+  -------------------------------------------------------------------------*/
+  return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
+                       wdiAddSTASelfReqRspCb, pEventData->pUserData, 
+                       WDI_ADD_STA_SELF_RESP); 
+}/*WDI_ProcessAddSTASelfReq*/
+
+
+
+/**
+ @brief Process Del Sta Self Request function (called when Main 
+        FSM allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessDelSTASelfReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  WDI_DelSTASelfReqParamsType*      pwdiDelStaSelfReqParams;
+  WDI_DelSTASelfRspCb               wdiDelStaSelfRspCb;
+  wpt_uint8*                   pSendBuffer         = NULL; 
+  wpt_uint16                   usDataOffset        = 0;
+  wpt_uint16                   usSendSize          = 0;
+  tDelStaSelfParams            halSetDelSelfSTAParams;
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  /*-------------------------------------------------------------------------
+    Sanity check 
+  -------------------------------------------------------------------------*/
+  if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
+      ( NULL == pEventData->pCBfnc ))
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+              "Invalid parameters in del Sta Self req %x %x %x",
+                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WDI_ASSERT(0);
+     return WDI_STATUS_E_FAILURE; 
+  }
+
+  pwdiDelStaSelfReqParams = 
+                 (WDI_DelSTASelfReqParamsType*)pEventData->pEventData;
+  wdiDelStaSelfRspCb      = (WDI_DelSTASelfRspCb)pEventData->pCBfnc;
+
+   /*-----------------------------------------------------------------------
+     Get message buffer
+     ! TO DO : proper conversion into the HAL Message Request Format 
+   -----------------------------------------------------------------------*/
+  if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_DEL_STA_SELF_REQ, 
+                         sizeof(pwdiDelStaSelfReqParams->wdiDelStaSelfInfo),
+                         &pSendBuffer, &usDataOffset, &usSendSize))||
+    ( usSendSize < 
+         (usDataOffset + sizeof(pwdiDelStaSelfReqParams->wdiDelStaSelfInfo) )))
+   {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+               "Unable to get send buffer in Del Sta Self req %x %x %x",
+                 pEventData, pwdiDelStaSelfReqParams, wdiDelStaSelfRspCb);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+  }
+
+  wpalMemoryCopy(halSetDelSelfSTAParams.selfMacAddr, 
+                   pwdiDelStaSelfReqParams->wdiDelStaSelfInfo.selfMacAddr, 6) ;
+
+  wpalMemoryCopy( pSendBuffer+usDataOffset, &halSetDelSelfSTAParams, 
+                                         sizeof(tDelStaSelfParams)); 
+
+  pWDICtx->wdiReqStatusCB     = pwdiDelStaSelfReqParams->wdiReqStatusCB;
+  pWDICtx->pReqStatusUserData = pwdiDelStaSelfReqParams->pUserData; 
+
+  /*-------------------------------------------------------------------------
+     Send Start Request to HAL 
+   -------------------------------------------------------------------------*/
+  return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
+                        wdiDelStaSelfRspCb, pEventData->pUserData, 
+                                                     WDI_DEL_STA_SELF_RESP);
+
+}
+
 /*==========================================================================
                   MISC CONTROL PROCESSING REQUEST API 
 ==========================================================================*/
@@ -9317,6 +9604,7 @@ WDI_ProcessP2PGONOAReq
 }/*WDI_ProcessP2PGONOAReq*/
 
 #endif
+
 
 /**
  @brief Process Enter IMPS Request function (called when 
@@ -11366,7 +11654,12 @@ WDI_ProcessFinishScanRsp
 
   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halFinishScanRspMsg.finishScanRspParams.status); 
 
-  if ( eHAL_STATUS_SUCCESS != halFinishScanRspMsg.finishScanRspParams.status )
+  WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO_LOW,
+              "Finish scan response reported status: %d", 
+              halFinishScanRspMsg.finishScanRspParams.status);
+
+  if (( eHAL_STATUS_SUCCESS != halFinishScanRspMsg.finishScanRspParams.status )&&
+      ( eHAL_STATUS_NOTIFY_BSS_FAIL  != halFinishScanRspMsg.finishScanRspParams.status ))
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
               "Error status returned in Finish Scan - considered catastrophic");
@@ -11474,6 +11767,9 @@ WDI_ProcessJoinRsp
 
     /*Association no longer in progress  */
     pWDICtx->bAssociationInProgress = eWLAN_PAL_FALSE;
+
+    /*Association no longer in progress - prepare pending assoc for processing*/
+    WDI_DequeueAssocRequest(pWDICtx);
   
   }
   else
@@ -11778,18 +12074,7 @@ WDI_ProcessDelBSSRsp
     The current session will be deleted 
   -----------------------------------------------------------------------*/
   WDI_DeleteSession(pWDICtx, pBSSSes);
-
-
-  /*-----------------------------------------------------------------------
-    Check to see if this association is in progress - if so disable the
-    flag as this has ended
-  -----------------------------------------------------------------------*/
-  if ( ucCurrentBSSSesIdx != pWDICtx->ucCurrentBSSSesIdx )
-  {  
-   /*Association no longer in progress  */
-    pWDICtx->bAssociationInProgress = eWLAN_PAL_FALSE;
-  }
-
+ 
   /* Delete the BCAST STA entry from the STA table */
   (void)WDI_STATableDelSta( pWDICtx, pBSSSes->bcastStaIdx );
 
@@ -11962,6 +12247,10 @@ WDI_ProcessPostAssocRsp
 
   /*Association no longer in progress  */
   pWDICtx->bAssociationInProgress = eWLAN_PAL_FALSE;
+
+  /*Association no longer in progress - prepare pending assoc for processing*/
+  WDI_DequeueAssocRequest(pWDICtx);
+
   wpalMutexRelease(&pWDICtx->wptMutex);
 
   /*Notify UMAC*/
@@ -12777,6 +13066,125 @@ WDI_ProcessBtAmpEventRsp
    return WDI_STATUS_SUCCESS; 
 }/*WDI_ProcessBtAmpEventRsp*/
 
+
+/**
+ @brief Process ADD STA SELF Rsp function (called 
+        when a response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessAddSTASelfRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  WDI_Status       wdiStatus;
+  eHalStatus       halStatus;
+  WDI_AddSTASelfParamsRspCb  wdiAddSTASelfReqParamsRspCb   = NULL;
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  wdiAddSTASelfReqParamsRspCb = 
+                         (WDI_AddSTASelfParamsRspCb)pWDICtx->pfncRspCB; 
+  /*-------------------------------------------------------------------------
+    Sanity check 
+  -------------------------------------------------------------------------*/
+  if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+      ( NULL == pEventData->pEventData))
+  {
+     if ( pEventData )
+     {
+        WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+              "Invalid parameter in WDI_ProcessAddSelfSTARsp Response %x",
+               pEventData->pEventData);
+     }
+     else
+     {
+        WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+              "Invalid parameters in WDI_ProcessAddSelfSTARsp Response %x %x",
+               pWDICtx, pEventData);
+     }
+
+     WDI_ASSERT(0);
+     return WDI_STATUS_E_FAILURE; 
+  }
+
+  /*-------------------------------------------------------------------------
+    Extract response and send it to UMAC
+  -------------------------------------------------------------------------*/
+  wpalMemoryCopy( &halStatus, 
+                  pEventData->pEventData, 
+                  sizeof(halStatus));
+
+  wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
+
+  /*Notify UMAC*/
+  wdiAddSTASelfReqParamsRspCb( wdiStatus, pWDICtx->pRspCBUserData);
+
+  return WDI_STATUS_SUCCESS; 
+}/*WDI_ProcessAddSTASelfRsp*/
+
+
+
+/**
+ @brief WDI_ProcessDelSTASelfRsp function (called when a 
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessDelSTASelfRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  WDI_DelSTASelfRspParamsType     wdiDelStaSelfRspParams;
+  WDI_DelSTASelfRspCb             wdiDelStaSelfRspCb   = NULL;
+  tDelStaSelfRspParams            delStaSelfRspParams;
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  wdiDelStaSelfRspCb = (WDI_DelSTASelfRspCb)pWDICtx->pfncRspCB; 
+
+  /*-------------------------------------------------------------------------
+    Sanity check 
+    -------------------------------------------------------------------------*/
+  if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+      ( NULL == pEventData->pEventData))
+  {
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+        "Invalid parameters in Del sta Self Response %x %x %x ",
+        pWDICtx, pEventData, pEventData->pEventData);
+    WDI_ASSERT(0);
+    return WDI_STATUS_E_FAILURE; 
+  }
+
+  /*-------------------------------------------------------------------------
+    Extract response and send it to UMAC
+    -------------------------------------------------------------------------*/
+
+  wpalMemoryCopy( &delStaSelfRspParams, 
+      (wpt_uint8*)pEventData->pEventData,
+      sizeof(tDelStaSelfRspParams));
+
+  wdiDelStaSelfRspParams.wdiStatus   =   
+    WDI_HAL_2_WDI_STATUS(delStaSelfRspParams.status); 
+
+  /*Notify UMAC*/
+  wdiDelStaSelfRspCb(&wdiDelStaSelfRspParams, (void*) pWDICtx->pRspCBUserData);
+
+  return WDI_STATUS_SUCCESS;
+}
+
 /*===========================================================================
            Miscellaneous Control Response Processing API 
 ===========================================================================*/
@@ -13042,10 +13450,12 @@ WDI_ProcessSetLinkStateRsp
         Check to see if this association is in progress - if so disable the
         flag as this has ended
       -----------------------------------------------------------------------*/
-      if ( ucCurrentBSSSesIdx != pWDICtx->ucCurrentBSSSesIdx )
+      if ( ucCurrentBSSSesIdx == pWDICtx->ucCurrentBSSSesIdx )
       {  
        /*Association no longer in progress  */
         pWDICtx->bAssociationInProgress = eWLAN_PAL_FALSE;
+        /*Association no longer in progress - prepare pending assoc for processing*/
+        WDI_DequeueAssocRequest(pWDICtx);
       }
     }
   }
@@ -15709,8 +16119,8 @@ WDI_DequeuePendingReq
   WDI_ControlBlockType*  pWDICtx
 )
 {
-  wpt_list_node*      pNode           = NULL; 
-  WDI_EventInfoType*  pEventDataQueue = NULL;
+  wpt_list_node*      pNode      = NULL; 
+  WDI_EventInfoType*  pEventData;
   wpt_msg*            palMsg; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -15725,7 +16135,7 @@ WDI_DequeuePendingReq
 
   /*The node actually points to the 1st element inside the Event Data struct -
     just cast it back to the struct*/
-  pEventDataQueue = (WDI_EventInfoType*)pNode; 
+  pEventData = (WDI_EventInfoType*)pNode; 
 
   /*Serialize processing in the control thread
      !TO DO: - check to see if these are all the messages params that need
@@ -15741,7 +16151,7 @@ WDI_DequeuePendingReq
   }
   palMsg->pContext = pWDICtx; 
   palMsg->callback = WDI_PALCtrlMsgCB;
-  palMsg->ptr      = pEventDataQueue;
+  palMsg->ptr      = pEventData;
 
   /*Save the global state as we need it on the other side*/
   palMsg->val      = pWDICtx->uGlobalState; 
@@ -15751,8 +16161,6 @@ WDI_DequeuePendingReq
   
   wpalPostCtrlMsg(pWDICtx->pPALContext, palMsg);
 
-  /*!TO DO L: - need to also try to dequeue assoc messages - but I duno in what
-    order  !!! - design problem */
   return WDI_STATUS_PENDING;
 }/*WDI_DequeuePendingReq*/
 
@@ -15779,10 +16187,11 @@ WDI_QueueNewAssocRequest
 )
 {
   wpt_uint8 i; 
-  WDI_BSSSessionType* pSession = NULL; 
-  wpt_list_node*      pNode; 
-  WDI_EventInfoType*  pEventDataQueue;
-  void*               pEventInfo; 
+  WDI_BSSSessionType*     pSession = NULL; 
+  wpt_list_node*          pNode; 
+  WDI_EventInfoType*      pEventDataQueue;
+  void*                   pEventInfo; 
+  WDI_NextSessionIdType*  pSessionIdElement; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
   
 
@@ -15815,7 +16224,9 @@ WDI_QueueNewAssocRequest
     Allocate memory for this and place it in the queue 
   ------------------------------------------------------------------------*/
   pEventDataQueue = (WDI_EventInfoType*)wpalMemoryAllocate(sizeof(WDI_EventInfoType));
-  if ( NULL ==  pEventDataQueue )
+  pSessionIdElement = (WDI_NextSessionIdType*)wpalMemoryAllocate(sizeof(WDI_NextSessionIdType));
+  if (( NULL ==  pEventDataQueue ) ||
+      ( NULL ==  pSessionIdElement ))
   {
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
               "Cannot allocate memory for queueing"); 
@@ -15849,6 +16260,16 @@ WDI_QueueNewAssocRequest
   pSession->bAssocReqQueued = eWLAN_PAL_TRUE; 
 
   wpal_list_insert_back(&(pSession->wptPendingQueue), pNode); 
+
+  /*We need to maintain a separate list that keeps track of the order in which
+  the new assoc requests are being queued such that we can start processing
+  them in the order that they had arrived*/
+  pSessionIdElement->ucIndex = i; 
+  pNode = (wpt_list_node*)pSessionIdElement; 
+
+  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+       "Queueing up new assoc session : %d ", pSessionIdElement->ucIndex);
+  wpal_list_insert_back(&pWDICtx->wptPendingAssocSessionIdQueue, pNode); 
 
   /*Return pending as this is what the status of the request is since it has
     been queued*/
@@ -15937,6 +16358,93 @@ WDI_QueueAssocRequest
   return WDI_STATUS_PENDING;
 }/*WDI_QueueAssocRequest*/
 
+/**
+ @brief    Utility function used by the DAL Core to help dequeue
+           an association request that was pending
+           The request will be queued up in front of the main
+           pending queue for imediate processing
+ @param 
+    
+    pWDICtx: - pointer to the WDI control block
+  
+    
+ @see 
+ @return Result of the operation  
+*/
+WDI_Status
+WDI_DequeueAssocRequest
+(
+  WDI_ControlBlockType*  pWDICtx
+)
+{
+  wpt_list_node*          pNode = NULL; 
+  WDI_NextSessionIdType*  pSessionIdElement; 
+  WDI_BSSSessionType*     pSession;
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+  
+  /*------------------------------------------------------------------------ 
+      Sanity check
+    ------------------------------------------------------------------------*/
+  if ( NULL == pWDICtx )
+  {
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+              "Invalid parameters on WDI_DequeueAssocRequest");
+
+    return WDI_STATUS_E_FAILURE; 
+  }
+
+  /*------------------------------------------------------------------------
+    An association has been completed => a new association can occur
+    Check to see if there are any pending associations ->
+    If so , transfer all the pending requests into the busy queue for
+    processing
+    These requests have arrived prior to the requests in the busy queue
+    (bc they needed to be processed in order to be placed in this queue)
+    => they will be placed at the front of the busy queue
+  ------------------------------------------------------------------------*/
+  wpal_list_remove_front(&(pWDICtx->wptPendingAssocSessionIdQueue), &pNode); 
+
+  if ( NULL ==  pNode )
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+              "List is empty - return"); 
+    return WDI_STATUS_SUCCESS;
+  }
+
+  /*The node actually points to the 1st element inside the Session Id struct -
+    just cast it back to the struct*/
+  pSessionIdElement = (WDI_NextSessionIdType*)pNode; 
+
+  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+       "Dequeueing new assoc session : %d ", pSessionIdElement->ucIndex);
+
+  if ( pSessionIdElement->ucIndex < WDI_MAX_BSS_SESSIONS )
+  {
+      pSession = &pWDICtx->aBSSSessions[pSessionIdElement->ucIndex];
+      
+      /*Transfer all the pending requests in this assoc queue to
+      the front of the main waiting queue for subsequent execution*/      
+      wpal_list_remove_back(&(pSession->wptPendingQueue), &pNode); 
+      while ( NULL !=  pNode )
+      {
+        /*Place it in front of the main pending list*/
+        wpal_list_insert_front( &(pWDICtx->wptPendingQueue), &pNode); 
+        wpal_list_remove_back(&(pSession->wptPendingQueue), &pNode); 
+      }
+  }
+  else
+  {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+              "Invalid session id queued up for assoc"); 
+     WPAL_ASSERT(0);
+     wpalMemoryFree(pSessionIdElement);
+     return WDI_STATUS_E_FAILURE; 
+  }
+  
+  /*Clean this up as it is no longer needed in order to prevent memory leak*/
+  wpalMemoryFree(pSessionIdElement);
+  return WDI_STATUS_SUCCESS;
+}/*WDI_DequeueAssocRequest*/
 
 /**
  @brief    Utility function used by the DAL Core to clear any 
@@ -16235,11 +16743,11 @@ WDI_DeleteSession
   /*------------------------------------------------------------------------ 
       Reset the entries int session 
     ------------------------------------------------------------------------*/
-  wpal_list_destroy(&ppSession->wptPendingQueue, pNode);
+  wpal_list_destroy(&ppSession->wptPendingQueue);
   wpalMemoryZero(ppSession,  sizeof(*ppSession));
   ppSession->wdiAssocState = WDI_ASSOC_INIT_ST; 
   ppSession->bInUse        = eWLAN_PAL_FALSE; 
-  wpal_list_init(&ppSession->wptPendingQueue, pNode);
+  wpal_list_init(&ppSession->wptPendingQueue);
 
 }/*WDI_FindEmptySession*/
 
@@ -16486,11 +16994,7 @@ WDI_HAL_2_WDI_STATUS
   case eHAL_STATUS_FAILURE:
     return WDI_STATUS_E_FAILURE;
   case eHAL_STATUS_FAILED_ALLOC:
-    return WDI_STATUS_MEM_FAILURE; 
-  case eHAL_STATUS_RESOURCES:
-    return WDI_STATUS_RES_FAILURE;
-  case eHAL_STATUS_NOT_OPEN:
-   return WDI_STATUS_E_NOT_ALLOWED;       
+    return WDI_STATUS_MEM_FAILURE;    
    /*The rest of the HAL error codes must be kept hidden from the UMAC as 
      they refer to specific internal modules of our device*/
   default: 
@@ -16634,6 +17138,10 @@ WDI_2_HAL_REQ_TYPE
   case WDI_FTM_CMD_REQ:
     return WLAN_HAL_PROCESS_PTT_REQ;
 #endif /* ANI_MANF_DIAG */
+  case WDI_ADD_STA_SELF_REQ:
+    return WLAN_HAL_ADD_STA_SELF_REQ;
+  case WDI_DEL_STA_SELF_REQ:
+    return WLAN_HAL_DEL_STA_SELF_REQ;
   default:
     return WLAN_HAL_MSG_MAX; 
   }
@@ -16782,6 +17290,10 @@ HAL_2_WDI_RSP_TYPE
   case WLAN_HAL_PROCESS_PTT_RSP:
     return  WDI_FTM_CMD_RESP;
 #endif /* ANI_MANF_DIAG */
+  case WLAN_HAL_ADD_STA_SELF_RSP:
+    return WDI_ADD_STA_SELF_RESP;
+case WLAN_HAL_DEL_STA_SELF_RSP:
+    return WDI_DEL_STA_SELF_RESP;
   default:
     return eDRIVER_TYPE_MAX; 
   }

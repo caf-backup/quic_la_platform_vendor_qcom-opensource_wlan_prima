@@ -12,6 +12,8 @@
 ==========================================================================*/
 #ifdef CONFIG_CFG80211
 #define ACTION_FRAME_TX_TIMEOUT 500
+#define WAIT_CANCEL_REM_CHAN    100
+#define WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX 3000
 
 enum hdd_rx_flags {
     HDD_RX_FLAG_DECRYPTED        = 1 << 0,
@@ -21,14 +23,6 @@ enum hdd_rx_flags {
 
 
 #ifdef WLAN_FEATURE_P2P
-int wlan_hdd_remain_on_channel( struct wiphy *wiphy, struct net_device *dev,
-                                struct ieee80211_channel *chan,
-                                enum nl80211_channel_type channel_type,
-                                unsigned int duration, u64 *cookie );
-
-int wlan_hdd_cancel_remain_on_channel( struct wiphy *wiphy,
-                                       struct net_device *dev,
-                                       u64 cookie );
 typedef struct p2p_app_setP2pPs{
    tANI_U8     opp_ps;
    tANI_U32     ctWindow;
@@ -38,6 +32,22 @@ typedef struct p2p_app_setP2pPs{
    tANI_U32    single_noa_duration;
    tANI_U8      psSelection;
 }p2p_app_setP2pPs_t;
+
+int wlan_hdd_cfg80211_remain_on_channel( struct wiphy *wiphy,
+                                struct net_device *dev,
+                                struct ieee80211_channel *chan,
+                                enum nl80211_channel_type channel_type,
+                                unsigned int duration, u64 *cookie );
+
+int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
+                                       struct net_device *dev,
+                                       u64 cookie );
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+int wlan_hdd_cfg80211_mgmt_tx_cancel_wait(struct wiphy *wiphy, 
+                                          struct net_device *dev,
+                                          u64 cookie);
+#endif
 
 int hdd_setP2pPs( struct net_device *dev, void *msgData );
 

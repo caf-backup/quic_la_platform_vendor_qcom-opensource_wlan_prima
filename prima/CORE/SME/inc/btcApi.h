@@ -296,6 +296,7 @@ typedef struct sSmeBtcInfo
    tSmeBtcEventReplay btcEventReplay;
    v_BOOL_t      fReplayBTEvents;
    v_BOOL_t      btcUapsdOk;  /* Indicate whether BTC is ok with UAPSD */
+   v_BOOL_t      fA2DPTrafStop;/*flag to check A2DP_STOP event has come before MODE_CHANGED*/
    v_U16_t       btcScoHandles[BT_MAX_SCO_SUPPORT];  /* Handles for SCO, if any*/
    v_BOOL_t		 fA2DPUp;	/*remember whether A2DP is in session*/
 } tSmeBtcInfo, *tpSmeBtcInfo;

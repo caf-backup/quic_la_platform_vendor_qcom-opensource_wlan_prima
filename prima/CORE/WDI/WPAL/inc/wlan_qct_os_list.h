@@ -66,8 +66,7 @@ typedef vos_list_node_t wpt_list_node;
   \sa 
   
   --------------------------------------------------------------------------*/
-//wpt_status wpal_list_init( wpt_list *pList );
-#define wpal_list_init(pList, pNode) \
+#define wpal_list_init(pList) \
          WPAL_LIST_STATUS_BASIC_CHECK( vos_list_init( (vos_list_t *)(pList) ) )
 
 
@@ -101,8 +100,7 @@ typedef vos_list_node_t wpt_list_node;
   \sa
   
   ----------------------------------------------------------------------------*/
-//wpt_status wpal_list_destroy( wpt_list_t *pList );
-#define wpal_list_destroy(pList, pNode) \
+#define wpal_list_destroy(pList) \
     WPAL_LIST_STATUS_BUSY_CHECK( vos_list_destroy( (vos_list_t *)(pList) ) )
 
 /**---------------------------------------------------------------------------

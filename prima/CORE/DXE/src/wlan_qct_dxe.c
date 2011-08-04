@@ -580,7 +580,7 @@ static wpt_status dxeDescAllocAndLink
 #ifndef WLANDXE_TEST_CHANNEL_ENABLE
       // advance to the next pre-allocated descriptor in the chunk
       currentDesc++;
-      physAddress += sizeof(WLANDXE_DescType);
+      physAddress = ((wpt_int8 *)physAddress) + sizeof(WLANDXE_DescType);
 #endif
 #endif
    }

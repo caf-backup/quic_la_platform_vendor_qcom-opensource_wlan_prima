@@ -2262,8 +2262,9 @@ void csrPurgeChannelPower( tpAniSirGlobal pMac, tDblLinkList *pChannelList )
     tCsrChannelPowerInfo *pChannelSet;
     tListElem *pEntry;
 
+    csrLLLock(pChannelList); 
     // Remove the channel sets from the learned list and put them in the free list
-    while( ( pEntry = csrLLRemoveHead( pChannelList, LL_ACCESS_LOCK ) ) != NULL)
+    while( ( pEntry = csrLLRemoveHead( pChannelList, LL_ACCESS_NOLOCK ) ) != NULL)
     {
         pChannelSet = GET_BASE_ADDR( pEntry, tCsrChannelPowerInfo, link );
         if( pChannelSet )
@@ -2271,7 +2272,7 @@ void csrPurgeChannelPower( tpAniSirGlobal pMac, tDblLinkList *pChannelList )
             palFreeMemory( pMac->hHdd, pChannelSet );
         }
     }
-
+    csrLLUnlock(pChannelList);
     return;
 }
 
@@ -4157,15 +4158,13 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tCsrScanRequest *pScanReq, tSc
                                         pScanReq->ChannelInfo.numOfChannels);
             }
 
-            if( pScanReq->uIEFieldLen < 200 )
+            pMsg->uIEFieldLen = (tANI_U16) pScanReq->uIEFieldLen;
+            pMsg->uIEFieldOffset = (tANI_U16)(sizeof( tSirSmeScanReq ) - sizeof( pMsg->channelList.channelNumber ) + 
+                  ( sizeof( pMsg->channelList.channelNumber ) * pScanReq->ChannelInfo.numOfChannels )) ;
+            if(pScanReq->uIEFieldLen != 0) 
             {
-                pMsg->ie_len = pScanReq->uIEFieldLen;
-
-                if( pMsg->ie_len )
-                {
-                    status = palCopyMemory( pMac->hHdd, pMsg->ies,
+                palCopyMemory(pMac->hHdd, (tANI_U8 *)pMsg+pMsg->uIEFieldOffset, \
                                     pScanReq->pIEField, pScanReq->uIEFieldLen );
-                }
             }
 #ifdef WLAN_FEATURE_P2P
             pMsg->p2pSearch = pScanReq->p2pSearch;
@@ -4918,7 +4917,6 @@ void csrScanIMPSCallback(void *callbackContext, eHalStatus status)
 
     if(eANI_BOOLEAN_FALSE == pMac->scan.fCancelIdleScan)
     {
-    
         if(pMac->roam.configParam.IsIdleScanEnabled) 
         {
             if(HAL_STATUS_SUCCESS(status))
@@ -4936,21 +4934,21 @@ void csrScanIMPSCallback(void *callbackContext, eHalStatus status)
                     csrScanStopIdleScanTimer(pMac);
                 }
             }
+            else
+            {
+                smsLog(pMac, LOGE, FL("sees not success status (%d)\n"), status);
+            }
         }
         else
-        {
-            smsLog(pMac, LOGE, FL("sees not success status (%d)\n"), status);
-        }
-    }
-    else
-    {//we might need another flag to check if CSR needs to request imps at all
+        {//we might need another flag to check if CSR needs to request imps at all
        
-        tANI_U32 nTime = 0;
+            tANI_U32 nTime = 0;
 
-        pMac->scan.fRestartIdleScan = eANI_BOOLEAN_FALSE;
-        if(!HAL_STATUS_SUCCESS(csrScanTriggerIdleScan(pMac, &nTime)))
-        {
-            csrScanStartIdleScanTimer(pMac, nTime);
+            pMac->scan.fRestartIdleScan = eANI_BOOLEAN_FALSE;
+            if(!HAL_STATUS_SUCCESS(csrScanTriggerIdleScan(pMac, &nTime)))
+            {
+                csrScanStartIdleScanTimer(pMac, nTime);
+            }
         }
     }
 }

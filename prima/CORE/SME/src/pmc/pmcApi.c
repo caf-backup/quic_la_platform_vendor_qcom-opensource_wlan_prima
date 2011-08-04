@@ -1228,6 +1228,8 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
     {
         pCommand = GET_BASE_ADDR(pEntry, tSmeCmd, Link);
 
+        smsLog(pMac, LOGE, FL("process message = %d\n"), pMsg->messageType);
+
     /* Process each different type of message. */
     switch (pMsg->messageType)
     {
@@ -1331,7 +1333,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
                pmcDoBmpsCallbacks will be a No-Op*/
                 pmcDoBmpsCallbacks(pMac, eHAL_STATUS_SUCCESS);
          }
-
         /* If response is failure, then we stay in Full Power State and tell everyone that we aren't going into BMPS. */
         else
         {
@@ -1390,7 +1391,6 @@ static void pmcProcessResponse( tpAniSirGlobal pMac, tSirSmeRsp *pMsg )
                 pmcEnterUapsdState(pMac);
                 pmcDoStartUapsdCallbacks(pMac, eHAL_STATUS_SUCCESS);
          }
-
          /* If response is failure, then we try to put the chip back in
             BMPS mode*/
             else {

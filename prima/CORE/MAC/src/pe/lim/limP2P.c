@@ -35,6 +35,12 @@
 #include "limSessionUtils.h"
 #include "wlan_qct_wda.h"
 
+#define   PROBE_RSP_IE_OFFSET    36
+#define   BSSID_OFFSET           16
+#define   ACTION_OFFSET          24
+
+
+
 void limRemainOnChnlSuspendLinkHdlr(tpAniSirGlobal pMac, eHalStatus status,
                                        tANI_U32 *data);
 void limRemainOnChnlSetLinkStat(tpAniSirGlobal pMac, eHalStatus status,
@@ -269,10 +275,15 @@ error1:
 void limProcessRemainOnChnTimeout(tpAniSirGlobal pMac)
 {
     tpPESession psessionEntry;
-    tANI_U8 prevChannel = peGetCurrentChannel(pMac);
     tSirMacAddr             nullBssid = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
     limDeactivateAndChangeTimer(pMac, eLIM_REMAIN_CHN_TIMER);
+
+    if (NULL == pMac->lim.gpLimRemainOnChanReq)
+    {
+        limLog( pMac, LOGE, "No Remain on channel pending");
+        return;
+    }
 
     /* get the previous valid LINK state */
     if (limSetLinkState(pMac, eSIR_LINK_IDLE_STATE, nullBssid,
@@ -297,20 +308,7 @@ void limProcessRemainOnChnTimeout(tpAniSirGlobal pMac)
             goto error;
         }
 
-        /* Switch back to the operating channel. In case there is no valid 
-         * channel, then remian in the same channel*/
-        // prevChannel = <get the previous channel number 
-        if(prevChannel != HAL_INVALID_CHANNEL_ID)
-        {
-            limChangeChannelWithCallback(pMac, prevChannel, 
-                                          limExitRemainOnChannel,
-                                          NULL, psessionEntry);
-        }
-        else
-        {
-            limExitRemainOnChannel(pMac, eHAL_STATUS_SUCCESS, NULL,
-                                   psessionEntry);
-        }
+        limExitRemainOnChannel(pMac, eHAL_STATUS_SUCCESS, NULL, psessionEntry);
         return;
 error:
         limRemainOnChnRsp(pMac,eHAL_STATUS_FAILURE, NULL);
@@ -431,6 +429,72 @@ eHalStatus limP2PActionCnf(tpAniSirGlobal pMac, tANI_U32 txCompleteSuccess)
     return eHAL_STATUS_SUCCESS;
 }
 
+void limSetHtCaps(tpAniSirGlobal pMac,tANI_U8 *pIeStartPtr,tANI_U32 nBytes)
+{
+    v_U8_t              *pIe=NULL;       
+    tDot11fIEHTCaps     dot11HtCap;
+
+    PopulateDot11fHTCaps(pMac,&dot11HtCap);        
+    pIe = limGetIEPtr(pMac,pIeStartPtr, nBytes, 
+                                       DOT11F_EID_HTCAPS,ONE_BYTE);
+   limLog( pMac, LOGE, FL("pIe 0x%x dot11HtCap.supportedMCSSet[0]=0x%x"),
+        (tANI_U32)pIe,dot11HtCap.supportedMCSSet[0]);
+    if(pIe) 
+    {
+        tHtCaps *pHtcap = (tHtCaps *)&pIe[2]; //convert from unpacked to packed structure
+        pHtcap->advCodingCap = dot11HtCap.advCodingCap;
+        pHtcap->supportedChannelWidthSet = dot11HtCap.supportedChannelWidthSet;
+        pHtcap->mimoPowerSave = dot11HtCap.mimoPowerSave;
+        pHtcap->greenField = dot11HtCap.greenField;
+        pHtcap->shortGI20MHz = dot11HtCap.shortGI20MHz;
+        pHtcap->shortGI40MHz = dot11HtCap.shortGI40MHz;
+        pHtcap->txSTBC = dot11HtCap.txSTBC;
+        pHtcap->rxSTBC = dot11HtCap.rxSTBC;
+        pHtcap->delayedBA = dot11HtCap.delayedBA  ;
+        pHtcap->maximalAMSDUsize = dot11HtCap.maximalAMSDUsize;
+        pHtcap->dsssCckMode40MHz = dot11HtCap.dsssCckMode40MHz;
+        pHtcap->psmp = dot11HtCap.psmp;
+        pHtcap->stbcControlFrame = dot11HtCap.stbcControlFrame;
+        pHtcap->lsigTXOPProtection = dot11HtCap.lsigTXOPProtection;
+        pHtcap->maxRxAMPDUFactor = dot11HtCap.maxRxAMPDUFactor;
+        pHtcap->mpduDensity = dot11HtCap.mpduDensity;
+        palCopyMemory( pMac->hHdd, (void *)pHtcap->supportedMCSSet,
+                       (void *)(dot11HtCap.supportedMCSSet), 
+                        sizeof(pHtcap->supportedMCSSet));            
+        pHtcap->pco = dot11HtCap.pco;
+        pHtcap->transitionTime = dot11HtCap.transitionTime;
+        pHtcap->mcsFeedback = dot11HtCap.mcsFeedback;
+        pHtcap->txBF = dot11HtCap.txBF;
+        pHtcap->rxStaggeredSounding = dot11HtCap.rxStaggeredSounding;
+        pHtcap->txStaggeredSounding = dot11HtCap.txStaggeredSounding;
+        pHtcap->rxZLF = dot11HtCap.rxZLF;
+        pHtcap->txZLF = dot11HtCap.txZLF;
+        pHtcap->implicitTxBF = dot11HtCap.implicitTxBF;
+        pHtcap->calibration = dot11HtCap.calibration;
+        pHtcap->explicitCSITxBF = dot11HtCap.explicitCSITxBF;
+        pHtcap->explicitUncompressedSteeringMatrix = 
+            dot11HtCap.explicitUncompressedSteeringMatrix;
+        pHtcap->explicitBFCSIFeedback = dot11HtCap.explicitBFCSIFeedback;
+        pHtcap->explicitUncompressedSteeringMatrixFeedback = 
+            dot11HtCap.explicitUncompressedSteeringMatrixFeedback;
+        pHtcap->explicitCompressedSteeringMatrixFeedback = 
+            dot11HtCap.explicitCompressedSteeringMatrixFeedback;
+        pHtcap->csiNumBFAntennae = dot11HtCap.csiNumBFAntennae;
+        pHtcap->uncompressedSteeringMatrixBFAntennae = 
+            dot11HtCap.uncompressedSteeringMatrixBFAntennae;
+        pHtcap->compressedSteeringMatrixBFAntennae = 
+            dot11HtCap.compressedSteeringMatrixBFAntennae;
+        pHtcap->antennaSelection = dot11HtCap.antennaSelection;
+        pHtcap->explicitCSIFeedbackTx = dot11HtCap.explicitCSIFeedbackTx;
+        pHtcap->antennaIndicesFeedbackTx = dot11HtCap.antennaIndicesFeedbackTx;
+        pHtcap->explicitCSIFeedback = dot11HtCap.explicitCSIFeedback;
+        pHtcap->antennaIndicesFeedback = dot11HtCap.antennaIndicesFeedback;
+        pHtcap->rxAS = dot11HtCap.rxAS;
+        pHtcap->txSoundingPPDUs = dot11HtCap.txSoundingPPDUs;
+    }
+}
+
+
 void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 {
     tSirMbMsgP2p *pMbMsg = (tSirMbMsgP2p *)pMsg->bodyptr;
@@ -441,122 +505,131 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     tpSirMacMgmtHdr     pHdr;
     tANI_U8             txFlag = 0;
     tpSirMacFrameCtl    pFc = (tpSirMacFrameCtl ) pMbMsg->data;
-    v_U8_t              *pIe=NULL;
-    
-    typedef VOS_PACK_PRE struct sHtCaps {
-        tANI_U16     advCodingCap: 1;
-        tANI_U16 supportedChannelWidthSet: 1;
-        tANI_U16    mimoPowerSave: 2;
-        tANI_U16       greenField: 1;
-        tANI_U16     shortGI20MHz: 1;
-        tANI_U16     shortGI40MHz: 1;
-        tANI_U16           txSTBC: 1;
-        tANI_U16           rxSTBC: 2;
-        tANI_U16        delayedBA: 1;
-        tANI_U16 maximalAMSDUsize: 1;
-        tANI_U16 dsssCckMode40MHz: 1;
-        tANI_U16             psmp: 1;
-        tANI_U16 stbcControlFrame: 1;
-        tANI_U16 lsigTXOPProtection: 1;
-        tANI_U8 maxRxAMPDUFactor: 2;
-        tANI_U8      mpduDensity: 3;
-        tANI_U8        reserved1: 3;
-        tANI_U8      supportedMCSSet[16];
-        tANI_U16              pco: 1;
-        tANI_U16   transitionTime: 2;
-        tANI_U16        reserved2: 5;
-        tANI_U16      mcsFeedback: 2;
-        tANI_U16        reserved3: 6;
-        tANI_U32             txBF: 1;
-        tANI_U32 rxStaggeredSounding: 1;
-        tANI_U32 txStaggeredSounding: 1;
-        tANI_U32            rxZLF: 1;
-        tANI_U32            txZLF: 1;
-        tANI_U32     implicitTxBF: 1;
-        tANI_U32      calibration: 2;
-        tANI_U32  explicitCSITxBF: 1;
-        tANI_U32 explicitUncompressedSteeringMatrix: 1;
-        tANI_U32 explicitBFCSIFeedback: 3;
-        tANI_U32 explicitUncompressedSteeringMatrixFeedback: 3;
-        tANI_U32 explicitCompressedSteeringMatrixFeedback: 3;
-        tANI_U32 csiNumBFAntennae: 2;
-        tANI_U32 uncompressedSteeringMatrixBFAntennae: 2;
-        tANI_U32 compressedSteeringMatrixBFAntennae: 2;
-        tANI_U32        reserved4: 7;
-        tANI_U8 antennaSelection: 1;
-        tANI_U8 explicitCSIFeedbackTx: 1;
-        tANI_U8 antennaIndicesFeedbackTx: 1;
-        tANI_U8 explicitCSIFeedback: 1;
-        tANI_U8 antennaIndicesFeedback: 1;
-        tANI_U8             rxAS: 1;
-        tANI_U8  txSoundingPPDUs: 1;
-        tANI_U8        reserved5: 1;
-
-    } VOS_PACK_POST tHtCaps;
-    
-    tDot11fIEHTCaps dot11HtCap;
-    
-    PopulateDot11fHTCaps(pMac,&dot11HtCap);
-
-
+    tANI_U8             noaLen = 0;
+    tANI_U8             noaStream[SIR_MAX_NOA_ATTR_LEN + SIR_P2P_IE_HEADER_LEN];
+    tANI_U8             origLen = 0;
+    tANI_U8             sessionId = 0;
+    v_U8_t              *pP2PIe = NULL;
+    tpPESession         psessionEntry;
+    v_U8_t              *pPresenceRspNoaAttr = NULL;
+    v_U8_t              *pNewP2PIe = NULL;
+    v_U16_t             remainLen = 0;
 
     nBytes = pMbMsg->msgLen - sizeof(tSirMbMsg);
 
-    limLog( pMac, LOG1, FL("sending pFc->type=%d pFc->subType=%d"),pFc->type,pFc->subType);
-    if ((pFc->type == SIR_MAC_MGMT_FRAME)&&(pFc->subType == SIR_MAC_MGMT_PROBE_RSP))
+    limLog( pMac, LOG1, FL("sending pFc->type=%d pFc->subType=%d"),pFc->type,
+        pFc->subType);
+    if ((SIR_MAC_MGMT_FRAME == pFc->type)&&
+        ((SIR_MAC_MGMT_PROBE_RSP == pFc->subType)||
+        (SIR_MAC_MGMT_ACTION == pFc->subType)))
     {   //if this is a probe RSP being sent from wpa_supplicant
-        
-        pIe = limGetIEPtr(pMac,(tANI_U8*)pMbMsg->data+36, nBytes, 
-                                           DOT11F_EID_HTCAPS);
-        
-        limLog( pMac, LOGE, FL("pIe 0x%x dot11HtCap.supportedMCSSet[0]=0x%x"),(tANI_U32)pIe,dot11HtCap.supportedMCSSet[0]);
-        if(pIe) 
+    
+        if (SIR_MAC_MGMT_PROBE_RSP == pFc->subType)
+        {  //get proper offset for Probe RSP
+           pP2PIe = limGetP2pIEPtr(pMac,
+                         (tANI_U8*)pMbMsg->data+PROBE_RSP_IE_OFFSET,
+                         nBytes-PROBE_RSP_IE_OFFSET);
+           while ((NULL != pP2PIe) && (SIR_MAC_MAX_IE_LENGTH == pP2PIe[1]))
+           { 
+               remainLen = nBytes - (pP2PIe - (tANI_U8*)pMbMsg->data);
+               if (remainLen > 2)
+                    pNewP2PIe = limGetP2pIEPtr(pMac,
+                               pP2PIe+SIR_MAC_MAX_IE_LENGTH+2,remainLen);
+
+               if (pNewP2PIe)
+               {
+                  pP2PIe = pNewP2PIe;
+                  pNewP2PIe = NULL;
+               }
+               else
+               {
+                   break;
+               }
+           } //end of while
+        }
+        else 
         {
-            tHtCaps *pHtcap = (tHtCaps *)&pIe[2]; //convert from unpacked to packed structure
-            pHtcap->advCodingCap = dot11HtCap.advCodingCap;
-            pHtcap->supportedChannelWidthSet = dot11HtCap.supportedChannelWidthSet;
-            pHtcap->mimoPowerSave = dot11HtCap.mimoPowerSave;
-            pHtcap->greenField = dot11HtCap.greenField;
-            pHtcap->shortGI20MHz = dot11HtCap.shortGI20MHz;
-            pHtcap->shortGI40MHz = dot11HtCap.shortGI40MHz;
-            pHtcap->txSTBC = dot11HtCap.txSTBC;
-            pHtcap->rxSTBC = dot11HtCap.rxSTBC;
-            pHtcap->delayedBA = dot11HtCap.delayedBA  ;
-            pHtcap->maximalAMSDUsize = dot11HtCap.maximalAMSDUsize;
-            pHtcap->dsssCckMode40MHz = dot11HtCap.dsssCckMode40MHz;
-            pHtcap->psmp = dot11HtCap.psmp;
-            pHtcap->stbcControlFrame = dot11HtCap.stbcControlFrame;
-            pHtcap->lsigTXOPProtection = dot11HtCap.lsigTXOPProtection  ;
-            pHtcap->maxRxAMPDUFactor = dot11HtCap.maxRxAMPDUFactor  ;
-            pHtcap->mpduDensity = dot11HtCap.mpduDensity  ;
-            palCopyMemory( pMac->hHdd, (void *)pHtcap->supportedMCSSet, (void *)(dot11HtCap.supportedMCSSet), sizeof(pHtcap->supportedMCSSet));            
-            pHtcap->pco = dot11HtCap.pco  ;
-            pHtcap->transitionTime = dot11HtCap.transitionTime  ;
-            pHtcap->mcsFeedback = dot11HtCap.mcsFeedback  ;
-            pHtcap->txBF = dot11HtCap.txBF  ;
-            pHtcap->rxStaggeredSounding = dot11HtCap.rxStaggeredSounding  ;
-            pHtcap->txStaggeredSounding = dot11HtCap.txStaggeredSounding  ;
-            pHtcap->rxZLF = dot11HtCap.rxZLF  ;
-            pHtcap->txZLF = dot11HtCap.txZLF  ;
-            pHtcap->implicitTxBF = dot11HtCap.implicitTxBF  ;
-            pHtcap->calibration = dot11HtCap.calibration  ;
-            pHtcap->explicitCSITxBF = dot11HtCap.explicitCSITxBF  ;
-            pHtcap->explicitUncompressedSteeringMatrix = dot11HtCap.explicitUncompressedSteeringMatrix  ;
-            pHtcap->explicitBFCSIFeedback = dot11HtCap.explicitBFCSIFeedback  ;
-            pHtcap->explicitUncompressedSteeringMatrixFeedback = dot11HtCap.explicitUncompressedSteeringMatrixFeedback  ;
-            pHtcap->explicitCompressedSteeringMatrixFeedback = dot11HtCap.explicitCompressedSteeringMatrixFeedback  ;
-            pHtcap->csiNumBFAntennae = dot11HtCap.csiNumBFAntennae  ;
-            pHtcap->uncompressedSteeringMatrixBFAntennae = dot11HtCap.uncompressedSteeringMatrixBFAntennae  ;
-            pHtcap->compressedSteeringMatrixBFAntennae = dot11HtCap.compressedSteeringMatrixBFAntennae  ;
-            pHtcap->antennaSelection = dot11HtCap.antennaSelection  ;
-            pHtcap->explicitCSIFeedbackTx = dot11HtCap.explicitCSIFeedbackTx  ;
-            pHtcap->antennaIndicesFeedbackTx = dot11HtCap.antennaIndicesFeedbackTx  ;
-            pHtcap->explicitCSIFeedback = dot11HtCap.explicitCSIFeedback  ;
-            pHtcap->antennaIndicesFeedback = dot11HtCap.antennaIndicesFeedback  ;
-            pHtcap->rxAS = dot11HtCap.rxAS  ;
-            pHtcap->txSoundingPPDUs = dot11HtCap.txSoundingPPDUs  ;            
+            if (SIR_MAC_ACTION_VENDOR_SPECIFIC_CATEGORY == 
+                *((v_U8_t *)pMbMsg->data+ACTION_OFFSET))
+            {
+                 tpSirMacP2PActionFrameHdr pActionHdr = 
+                    (tpSirMacP2PActionFrameHdr)((v_U8_t *)pMbMsg->data+ACTION_OFFSET);
+                
+                if ( palEqualMemory( pMac->hHdd, pActionHdr->Oui, 
+                     SIR_MAC_P2P_OUI, SIR_MAC_P2P_OUI_SIZE ) && 
+                    (SIR_MAC_ACTION_P2P_SUBTYPE_PRESENCE_RSP == 
+                    pActionHdr->OuiSubType))
+                { //In case of Presence RSP response
+                     
+                     pP2PIe = limGetP2pIEPtr(pMac,
+                                 (v_U8_t *)pMbMsg->data + ACTION_OFFSET +
+                                 sizeof(tSirMacP2PActionFrameHdr), 
+                                 (nBytes - ACTION_OFFSET - 
+                                 sizeof(tSirMacP2PActionFrameHdr)));
+
+                     if( NULL != pP2PIe ) 
+                     pPresenceRspNoaAttr = 
+                        limGetIEPtr(pMac,pP2PIe+SIR_P2P_IE_HEADER_LEN,pP2PIe[1],
+                        SIR_P2P_NOA_ATTR,TWO_BYTE); 
+                         //extract the presence of NoA attribute inside P2P IE
+                }
+                    
+            }
+        }
+
+
+        if (pP2PIe != NULL)
+        {
+           
+           psessionEntry = peFindSessionByBssid(pMac,
+                  (tANI_U8*)pMbMsg->data+BSSID_OFFSET,&sessionId);
+
+           //get NoA attribute stream P2P IE
+           noaLen = limGetNoaAttrStream(pMac, noaStream,psessionEntry);
+           
+           if (noaLen > 0)
+           { //need to append NoA attribute in P2P IE                       
+
+             origLen = pP2PIe[1];
+
+             if (pPresenceRspNoaAttr)
+             { //if Presence Rsp has NoAttr
+                 v_U16_t noaAttrLen = pPresenceRspNoaAttr[1] | 
+                    (pPresenceRspNoaAttr[2]<<8);
+                 /*One byte for attribute, 2bytes for length*/
+                 origLen -= (noaAttrLen+1+2); 
+                 //remove those bytes to copy
+                 nBytes  -= (noaAttrLen+1+2); 
+                 //remove NoA from original Len
+                 pP2PIe[1] = origLen;              }
+             
+             if ((pP2PIe[1] + (tANI_U16)noaLen)> SIR_MAC_MAX_IE_LENGTH)            
+             {                
+                          
+               //Form the new NoA Byte array in multiple P2P IEs
+               noaLen = limGetNoaAttrStreamInMultP2pIes(pMac, noaStream,
+                              noaLen,((pP2PIe[1] + (tANI_U16)noaLen)- 
+                              SIR_MAC_MAX_IE_LENGTH));
+               pP2PIe[1] = SIR_MAC_MAX_IE_LENGTH;
+             }
+             else
+             {
+               pP2PIe[1] += noaLen; //increment the length of P2P IE              
+             }
+                                
+             nBytes += noaLen;                      
+                      
+             limLog( pMac, LOGE, FL("noaLen=%d origLen=%d pP2PIe=0x%x nBytes=%d nBytesToCopy=%d \n"),
+                noaLen,origLen,pP2PIe,nBytes,
+                ((pP2PIe + origLen + 2)  - (v_U8_t *)pMbMsg->data));
+           }
         }
         
+        if (SIR_MAC_MGMT_PROBE_RSP == pFc->subType)
+        {
+               limSetHtCaps( pMac,(tANI_U8*)pMbMsg->data+PROBE_RSP_IE_OFFSET,
+               nBytes);
+        }
         
     }
 
@@ -573,14 +646,31 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     // Paranoia:
     palZeroMemory( pMac->hHdd, pFrame, nBytes );
 
-    palCopyMemory( pMac->hHdd, pFrame, pMbMsg->data, nBytes ); 
+    if (noaLen > 0)
+    {
+           // Add 2 bytes for length and Arribute field 
+        v_U32_t nBytesToCopy = ((pP2PIe + origLen + 2 ) - 
+            (v_U8_t *)pMbMsg->data) ; 
+        palCopyMemory( pMac->hHdd, pFrame, pMbMsg->data, nBytesToCopy); 
+        palCopyMemory( pMac->hHdd, (pFrame + nBytesToCopy), noaStream, noaLen);
+        palCopyMemory( pMac->hHdd, (pFrame + nBytesToCopy + noaLen), 
+            pMbMsg->data+nBytesToCopy, nBytes-nBytesToCopy-noaLen); 
+        
+    }
+    else
+    {
+         palCopyMemory(pMac->hHdd, pFrame, pMbMsg->data, nBytes);
+    }
+
 
     pHdr = (tpSirMacMgmtHdr)pFrame;
 
     /* Use BD rate 2 for all P2P related frames. As these frames need to go
-     * at OFDM rates. And BD rate2 we configured at 6Mbps.
-     */
+         * at OFDM rates. And BD rate2 we configured at 6Mbps.
+         */
     txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
+    
+    pMac->lim.actionFrameSessionId = pMbMsg->sessionId;
     
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                    HAL_TXRX_FRM_802_11_MGMT, ANI_TXDIR_TODS,
@@ -590,19 +680,24 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     if ( ! HAL_STATUS_SUCCESS ( halstatus ) )
     {
         limLog( pMac, LOGE, FL("could not send Probe Request frame!\n" ));
-        limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, halstatus, pMbMsg->sessionId, 0);
+        limSendSmeRsp(pMac, eWNI_SME_ACTION_FRAME_SEND_CNF, halstatus, 
+            pMbMsg->sessionId, 0);
     }
 
-    pMac->lim.actionFrameSessionId = pMbMsg->sessionId;
     
     return ;
 }
 
+
 void limAbortRemainOnChan(tpAniSirGlobal pMac)
 {
+    if(VOS_TRUE == tx_timer_running(
+                &pMac->lim.limTimers.gLimRemainOnChannelTimer))
+    {
     //TODO check for state and take appropriate actions
     limDeactivateAndChangeTimer(pMac, eLIM_REMAIN_CHN_TIMER);
     limProcessRemainOnChnTimeout(pMac);
+    }
     return;
 }
 
@@ -611,34 +706,18 @@ tSirRetStatus __limProcessSmeNoAUpdate(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
 {
     tpP2pPsConfig pNoA;
     tpP2pPsParams pMsgNoA;
-    tpPESession psessionEntry;
-    tSirRetStatus nSirStatus = eSIR_FAILURE;
     tSirMsgQ msg;
-    
+
     pNoA = (tpP2pPsConfig) pMsgBuf;
-  
-    if((psessionEntry = peFindSessionBySessionId(pMac,pNoA->sessionid)) == NULL)
-    {
-        limLog(pMac, LOGP, "No Valid session\n");
-        return nSirStatus;
-    }
-  
-    psessionEntry->p2pNoA.OppPS = pNoA->opp_ps;
-    psessionEntry->p2pNoA.ctWindow = pNoA->ctWindow;
-    psessionEntry->p2pNoA.duration = pNoA->duration;
-    psessionEntry->p2pNoA.interval = pNoA->interval;
-    psessionEntry->p2pNoA.count = pNoA->count;
-    psessionEntry->p2pNoA.singleNoADuration = pNoA->single_noa_duration;
-    psessionEntry->p2pNoA.psSelection = pNoA->psSelection;
-     
-    if( eHAL_STATUS_SUCCESS != palAllocateMemory( 
+
+    if( eHAL_STATUS_SUCCESS != palAllocateMemory(
                   pMac->hHdd, (void **) &pMsgNoA, sizeof( tP2pPsConfig )))
     {
-        limLog( pMac, LOGP, 
+        limLog( pMac, LOGE,
                      FL( "Unable to allocate memory during NoA Update\n" ));
         return eSIR_MEM_ALLOC_FAILED;
     }
-     
+
     palZeroMemory( pMac->hHdd, (tANI_U8 *)pMsgNoA, sizeof(tP2pPsConfig));
     pMsgNoA->opp_ps = pNoA->opp_ps;
     pMsgNoA->ctWindow = pNoA->ctWindow;
@@ -647,18 +726,18 @@ tSirRetStatus __limProcessSmeNoAUpdate(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     pMsgNoA->count = pNoA->count;
     pMsgNoA->single_noa_duration = pNoA->single_noa_duration;
     pMsgNoA->psSelection = pNoA->psSelection;
-     
+
     msg.type = SIR_HAL_SET_P2P_GO_NOA_REQ;
     msg.reserved = 0;
     msg.bodyptr = pMsgNoA;
     msg.bodyval = 0;
-  
+
     if(eSIR_SUCCESS != wdaPostCtrlMsg(pMac, &msg))
     {
-        limLog(pMac, LOGP, FL("halPostMsgApi failed\n"));
+        limLog(pMac, LOGE, FL("halPostMsgApi failed\n"));
         return eSIR_FAILURE;
     }
-   
+
     return eSIR_SUCCESS;
 } /*** end __limProcessSmeGoNegReq() ***/
 

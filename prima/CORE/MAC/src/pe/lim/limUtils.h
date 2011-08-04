@@ -19,6 +19,11 @@
 #include "limScanResultUtils.h"
 #include "limTimerUtils.h"
 #include "limTrace.h"
+typedef enum
+{
+    ONE_BYTE   = 1,
+    TWO_BYTE   = 2
+} eSizeOfLenField;
 
 
 #define LIM_STA_ID_MASK                        0x00FF
@@ -346,12 +351,21 @@ void limHandleHeartBeatFailureTimeout(tpAniSirGlobal pMac);
 
 void limProcessDelStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ);
 void limProcessAddStaSelfRsp(tpAniSirGlobal pMac,tpSirMsgQ limMsgQ);
+v_U8_t* limGetIEPtr(tpAniSirGlobal pMac, v_U8_t *pIes, int length, v_U8_t eid,eSizeOfLenField size_of_len_field);
 tANI_U8 limUnmapChannel(tANI_U8 mapChannel);
-v_U8_t* limGetIEPtr(tpAniSirGlobal pMac, v_U8_t *pIes, int length, v_U8_t eid);
+
+#define limGetWscIEPtr(pMac, ie, ie_len) \
+    limGetVendorIEOuiPtr(pMac, SIR_MAC_WSC_OUI, SIR_MAC_WSC_OUI_SIZE, ie, ie_len)
 
 #ifdef WLAN_FEATURE_P2P
-tANI_BOOLEAN limIsP2pIEPresent(tpAniSirGlobal pMac, tANI_U8 *pIes, tANI_U16 ie_len);
+#define limGetP2pIEPtr(pMac, ie, ie_len) \
+    limGetVendorIEOuiPtr(pMac, SIR_MAC_P2P_OUI, SIR_MAC_P2P_OUI_SIZE, ie, ie_len)
+
+v_U8_t limGetNoaAttrStreamInMultP2pIes(tpAniSirGlobal pMac,v_U8_t* noaStream,v_U8_t noaLen,v_U8_t overFlowLen);
+v_U8_t limGetNoaAttrStream(tpAniSirGlobal pMac, v_U8_t*pNoaStream,tpPESession psessionEntry);
 #endif
+v_U8_t* limGetVendorIEOuiPtr(tpAniSirGlobal pMac, tANI_U8 *oui, tANI_U8 oui_size, tANI_U8 *ie, tANI_U16 ie_len);
+
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 
 typedef enum

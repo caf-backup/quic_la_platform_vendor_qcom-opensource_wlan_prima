@@ -257,6 +257,7 @@ typedef enum
    The message is processed in TL.
 */
 #define WDA_DS_TX_START_XMIT  WLANTL_TX_START_XMIT
+#define WDA_DS_FINISH_ULA     WLANTL_FINISH_ULA
 
 /*--------------------------------------------------------------------------
   Functions
@@ -1086,6 +1087,8 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 /// PE <-> HAL Host Offload message
 #define WDA_SET_HOST_OFFLOAD           SIR_HAL_SET_HOST_OFFLOAD
+#define WDA_ADD_STA_SELF_REQ           SIR_HAL_ADD_STA_SELF_REQ
+#define WDA_DEL_STA_SELF_REQ           SIR_HAL_DEL_STA_SELF_REQ
 
 #ifdef WLAN_FEATURE_P2P
 #define WDA_SET_P2P_GO_NOA_REQ         SIR_HAL_SET_P2P_GO_NOA_REQ
@@ -1322,6 +1325,33 @@ VOS_STATUS
 WDA_DS_StartXmit
 (
   v_PVOID_t pvosGCtx
+);
+
+/*==========================================================================
+  FUNCTION    WDA_DS_FinishULA
+
+  DESCRIPTION 
+    Serialize Finish Upper Level Authentication reques to TX thread. 
+
+  DEPENDENCIES 
+     
+  PARAMETERS 
+
+   IN
+        callbackRoutine    routine to be called in TX thread
+        callbackContext    user data for the above routine 
+   
+  RETURN VALUE
+    please see vos_tx_mq_serialize
+
+  SIDE EFFECTS 
+  
+============================================================================*/
+VOS_STATUS
+WDA_DS_FinishULA
+(
+ void (*callbackRoutine) (void *callbackContext),
+ void  *callbackContext
 );
 
 /*==========================================================================

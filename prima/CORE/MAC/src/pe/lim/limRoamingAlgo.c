@@ -236,6 +236,9 @@ void limTriggerBackgroundScan(tpAniSirGlobal pMac)
     smeScanReq.channelList.channelNumber[0] =
               bgScanChannelList[pMac->lim.gLimBackgroundScanChannelId++];
 
+    smeScanReq.uIEFieldLen = 0;
+    smeScanReq.uIEFieldOffset = sizeof(tSirSmeScanReq);
+    
     backgroundScan = limSelectsBackgroundScanMode(pMac);
     PELOG1(limLog(pMac, LOG1, FL("Performing (mode %d) Background Scan \n"), backgroundScan);)
     smeScanReq.backgroundScanMode = backgroundScan;

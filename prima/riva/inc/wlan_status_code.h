@@ -113,6 +113,9 @@ typedef enum
    eHAL_STATUS_TIMER_START_FAILED,
    eHAL_STATUS_TIMER_STOP_FAILED,
    eHAL_STATUS_FAILED_ALLOC,
+   
+   /* Scan failure codes */
+   eHAL_STATUS_NOTIFY_BSS_FAIL,
 
    /* Max status value */
    eHAL_STATUS_MAX_VALUE = WLAN_STATUS_MAX_ENUM_SIZE

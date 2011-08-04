@@ -61,5 +61,4 @@
 
 void hdd_conf_mcastbcast_filter(hdd_context_t* pHddCtx, v_BOOL_t setfilter);
 
-
 #endif // if !defined __WLAN_QCT_DRIVER_H

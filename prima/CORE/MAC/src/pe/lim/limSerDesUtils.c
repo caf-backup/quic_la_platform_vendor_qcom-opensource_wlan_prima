@@ -1764,9 +1764,8 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
     if (pJoinReq->rsnIE.length)
     {
         // Check for RSN IE length (that includes length of type & length)
-        if (pJoinReq->rsnIE.length &&
-            ((pJoinReq->rsnIE.length > SIR_MAC_MAX_IE_LENGTH + 2) ||
-             (pJoinReq->rsnIE.length != 2 + *(pBuf + 1))))
+        if ((pJoinReq->rsnIE.length > SIR_MAC_MAX_IE_LENGTH + 2) ||
+             (pJoinReq->rsnIE.length != 2 + *(pBuf + 1)))
         {
             limLog(pMac, LOGW,
                    FL("Invalid RSN IE length %d in SME_JOIN_REQ\n"),
@@ -1781,32 +1780,53 @@ limJoinReqSerDes(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq, tANI_U8 *pBuf)
             return eSIR_FAILURE;
     }
 
-#ifdef WLAN_FEATURE_P2P
-    pJoinReq->p2pIE.length = limGetU16(pBuf);
+    // Extract Add IE for scan
+    pJoinReq->addIEScan.length = limGetU16(pBuf);
     pBuf += sizeof(tANI_U16);
     len -= sizeof(tANI_U16);
 
-    if (pJoinReq->p2pIE.length)
+    if (pJoinReq->addIEScan.length)
     {
-        // Check for RSN IE length (that includes length of type & length)
-        if (pJoinReq->p2pIE.length &&
-            ((pJoinReq->p2pIE.length > SIR_MAC_MAX_IE_LENGTH + 2) ||
-             (pJoinReq->p2pIE.length != 2 + *(pBuf + 1))))
+        // Check for IE length (that includes length of type & length)
+        if (pJoinReq->addIEScan.length > SIR_MAC_MAX_IE_LENGTH + 2)
         {
             limLog(pMac, LOGE,
-                   FL("Invalid P2P IE length %d in SME_JOIN_REQ\n"),
-                   pJoinReq->p2pIE.length);
+                   FL("Invalid addIE Scan length %d in SME_JOIN_REQ\n"),
+                   pJoinReq->addIEScan.length);
             return eSIR_FAILURE;
         }
         // Check for P2P IE length (that includes length of type & length)
-        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->p2pIE.P2PIEdata,
-                      pBuf, pJoinReq->p2pIE.length);
-        pBuf += pJoinReq->p2pIE.length;
-        len  -= pJoinReq->p2pIE.length; // skip RSN IE
+        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->addIEScan.addIEdata,
+                      pBuf, pJoinReq->addIEScan.length);
+        pBuf += pJoinReq->addIEScan.length;
+        len  -= pJoinReq->addIEScan.length; // skip add IE
         if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
             return eSIR_FAILURE;
     }
-#endif
+
+    pJoinReq->addIEAssoc.length = limGetU16(pBuf);
+    pBuf += sizeof(tANI_U16);
+    len -= sizeof(tANI_U16);
+
+    // Extract Add IE for assoc
+    if (pJoinReq->addIEAssoc.length)
+    {
+        // Check for IE length (that includes length of type & length)
+        if (pJoinReq->addIEAssoc.length > SIR_MAC_MAX_IE_LENGTH + 2)
+        {
+            limLog(pMac, LOGE,
+                   FL("Invalid addIE Assoc length %d in SME_JOIN_REQ\n"),
+                   pJoinReq->addIEAssoc.length);
+            return eSIR_FAILURE;
+        }
+        // Check for P2P IE length (that includes length of type & length)
+        palCopyMemory( pMac->hHdd, (tANI_U8 *) pJoinReq->addIEAssoc.addIEdata,
+                      pBuf, pJoinReq->addIEAssoc.length);
+        pBuf += pJoinReq->addIEAssoc.length;
+        len  -= pJoinReq->addIEAssoc.length; // skip add IE
+        if (limCheckRemainingLength(pMac, len) == eSIR_FAILURE)
+            return eSIR_FAILURE;
+    }
 
     pJoinReq->MCEncryptionType = limGetU32(pBuf);
     pBuf += sizeof(tANI_U32);
@@ -2057,15 +2077,6 @@ limAssocIndSerDes(tpAniSirGlobal pMac, tpLimMlmAssocInd pAssocInd, tANI_U8 *pBuf
         pBuf += pAssocInd->supportedChannels.numChnl;
         mLen += pAssocInd->supportedChannels.numChnl;
     }
-
-    // Fill in wscInfo 
-    *pBuf = pAssocInd->wscInfo.present;
-    pBuf++;
-    *pBuf = pAssocInd->wscInfo.wpsVersion;
-    pBuf++;
-    *pBuf = pAssocInd->wscInfo.wpsRequestType;
-    pBuf++;
-    mLen += sizeof(tSirMacWscInfo);
 #ifdef WLAN_SOFTAP_FEATURE
     limCopyU32(pBuf, pAssocInd->WmmStaInfoPresent);
     pBuf += sizeof(tANI_U32);
@@ -2550,15 +2561,14 @@ limReassocIndSerDes(tpAniSirGlobal pMac, tpLimMlmReassocInd pReassocInd, tANI_U8
     pBuf += pReassocInd->rsnIE.length;
     mLen += pReassocInd->rsnIE.length;
 
-#ifdef WLAN_FEATURE_P2P
-    limCopyU16(pBuf, pReassocInd->p2pIE.length);
+    // Fill in addIE
+    limCopyU16(pBuf, pReassocInd->addIE.length);
     pBuf += sizeof(tANI_U16);
     mLen += sizeof(tANI_U16);
-    palCopyMemory( pMac->hHdd, pBuf, (tANI_U8*) &(pReassocInd->p2pIE.P2PIEdata),
-                   pReassocInd->p2pIE.length);
-    pBuf += pReassocInd->p2pIE.length;
-    mLen += pReassocInd->p2pIE.length;
-#endif
+    palCopyMemory( pMac->hHdd, pBuf, (tANI_U8*) &(pReassocInd->addIE.addIEdata),
+                   pReassocInd->addIE.length);
+    pBuf += pReassocInd->addIE.length;
+    mLen += pReassocInd->addIE.length;
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
 
@@ -2637,16 +2647,6 @@ limReassocIndSerDes(tpAniSirGlobal pMac, tpLimMlmReassocInd pReassocInd, tANI_U8
         pBuf += pReassocInd->supportedChannels.numChnl;
         mLen += pReassocInd->supportedChannels.numChnl;
     }
-
-    //Copy the wscInfo 
-    *pBuf = pReassocInd->wscInfo.present;
-    pBuf++;
-    *pBuf = pReassocInd->wscInfo.wpsVersion;
-    pBuf++;
-    *pBuf = pReassocInd->wscInfo.wpsRequestType;
-    pBuf++;
-    mLen += sizeof(tSirMacWscInfo);
-
 #ifdef WLAN_SOFTAP_FEATURE
     limCopyU32(pBuf, pReassocInd->WmmStaInfoPresent);
     pBuf += sizeof(tANI_U32);

@@ -48,6 +48,7 @@
 #include <linux/mmc/sdio_func.h>
 #include "wlan_nlink_common.h"
 #include "wlan_btc_svc.h"
+#include <bap_hdd_main.h>
 #if defined CONFIG_CFG80211
 #include "wlan_hdd_p2p.h"
 #endif
@@ -243,13 +244,33 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
             // Send current operating channel of SoftAP to BTC-ES
             send_btc_nlink_msg(WLAN_BTC_SOFTAP_BSS_START, 0);
-            
+
+#ifdef CONFIG_CFG80211            
+            //Check if there is any group key pending to set.
+            if( pHddApCtx->groupKey.keyLength )
+            {
+                 if( eHAL_STATUS_SUCCESS !=  WLANSAP_SetKeySta( 
+                               (WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext,
+                               &pHddApCtx->groupKey ) )
+                 {
+                      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+                             "%s: WLANSAP_SetKeySta failed", __func__);
+                 }
+                 pHddApCtx->groupKey.keyLength = 0;
+            }
+#endif
 
             return VOS_STATUS_SUCCESS;
         case eSAP_STOP_BSS_EVENT:
             hddLog(LOGE, FL("BSS stop status = %s\n"),pSapEvent->sapevt.sapStopBssCompleteEvent.status ? 
                              "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
             pHddApCtx->operatingChannel = 0; //Invalidate the channel info.
+            vos_event_set(&pHostapdState->vosEvent);
+
+            /* need to make sure all of our scheduled work has completed.
+             * Right now we are in MC thread context, so it is safe to call this function from here.
+             */
+            flush_scheduled_work();
             goto stopbss;
         case eSAP_STA_SET_KEY_EVENT:
             //TODO: forward the message to hostapd once implementtation is done for now just print
@@ -385,15 +406,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                  mgmt.sa, 
                  &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac,
                  6);
-
-                 /* This is a hack, because wpa_supplicant expects bssid to 
-                  * be the address with which disassoc happens, as this event
-                  * is not supposed to be used for AP mode 
-                  */
-                 memcpy(
-                 mgmt.bssid, 
-                 &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac,
-                 6);
+                memcpy( mgmt.bssid, &pHostapdAdapter->macAddressCurrent, 6);
 
                 cfg80211_send_disassoc(dev, (const u8 *)&mgmt, size);
             }
@@ -464,6 +477,8 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
         memcpy(&we_custom_event, stopBssEvent, event_len);
         memset(&wrqu, 0, sizeof(wrqu));
         wrqu.data.length = event_len;
+        hdd_hostapd_stop(dev);  //Stop the pkts from n/w stack as we are going free lists for all STAID's
+
         hddLog(LOGE, FL("BSS stop status = %s\n"),pSapEvent->sapevt.sapStopBssCompleteEvent.status ?
                          "eSAP_STATUS_FAILURE" : "eSAP_STATUS_SUCCESS");
         hdd_softap_stop_bss(pHostapdAdapter);
@@ -640,6 +655,20 @@ static iw_softap_getparam(struct net_device *dev,
         }
         break;
 
+    case QCSAP_PARAM_MODULE_DOWN_IND:
+        {
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                "%s: sending WLAN_MODULE_DOWN_IND", __FUNCTION__);
+            send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
+#ifdef WLAN_BTAMP_FEATURE 
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                "%s: Take down AMP PAL", __FUNCTION__);
+            BSL_Deinit(vos_get_global_context(VOS_MODULE_ID_HDD, NULL));
+#endif            
+            *value = 0;
+            break;
+         }
+    
     default:
         hddLog(LOGE, FL("Invalid getparam command %d"), sub_cmd);
         ret = -EINVAL;
@@ -1533,15 +1562,29 @@ static int iw_softap_stopbss(struct net_device *dev,
         char *extra)
 {
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-    eHalStatus halStatus= eHAL_STATUS_SUCCESS;
+    VOS_STATUS status = VOS_STATUS_SUCCESS;
     ENTER();
-    if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags)) {
-    halStatus = WLANSAP_StopBss((WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext);
+    if(test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags)) 
+    {
+        if ( VOS_STATUS_SUCCESS == (status = WLANSAP_StopBss((WLAN_HDD_GET_CTX(pHostapdAdapter))->pvosContext) ) )
+        {
+            hdd_hostapd_state_t *pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter);
+
+            status = vos_wait_single_event(&pHostapdState->vosEvent, 10000);
+   
+            if (!VOS_IS_STATUS_SUCCESS(status))
+            {  
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+                         ("ERROR: HDD vos wait for single_event failed!!\n"));
+                VOS_ASSERT(0);
+            }
+        }
          clear_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags);
     }
     EXIT();
-    return halStatus;
+    return (status == VOS_STATUS_SUCCESS) ? 0 : -EBUSY;
 }
+
 static int iw_softap_version(struct net_device *dev,
         struct iw_request_info *info,
         union iwreq_data *wrqu, 
@@ -1602,6 +1645,7 @@ static int iw_set_ap_genie(struct net_device *dev,
     EXIT();
     return halStatus; 
 }
+
 static const iw_handler      hostapd_handler[] =
 {
    (iw_handler) NULL,           /* SIOCSIWCOMMIT */
@@ -1679,6 +1723,8 @@ static const struct iw_priv_args hostapd_private_args[] = {
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "" },
   { QCSAP_PARAM_MAX_ASSOC, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "getMaxAssoc" },
+  { QCSAP_PARAM_MODULE_DOWN_IND, 0,
+      IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,    "moduleDownInd" },
   { QCSAP_IOCTL_COMMIT,
       IW_PRIV_TYPE_BYTE | sizeof(struct s_CommitConfig) | IW_PRIV_SIZE_FIXED, 0, "commit" },
   { QCSAP_IOCTL_SETMLME,
@@ -1743,7 +1789,7 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_DISASSOC_STA - SIOCIWFIRSTPRIV] = iw_softap_disassoc_sta,
    [QCSAP_IOCTL_AP_STATS - SIOCIWFIRSTPRIV] = iw_softap_ap_stats,
    [QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE - SIOCIWFIRSTPRIV]  = iw_set_three_ints_getnone,   
-   [QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE    - SIOCIWFIRSTPRIV]     = iw_set_var_ints_getnone,
+   [QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE - SIOCIWFIRSTPRIV]     = iw_set_var_ints_getnone,
 };
 const struct iw_handler_def hostapd_handler_def = {
    .num_standard     = sizeof(hostapd_handler) / sizeof(hostapd_handler[0]),
@@ -1815,6 +1861,8 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
          return status;
     }
     
+    init_completion(&pAdapter->session_close_comp_var);
+    init_completion(&pAdapter->session_open_comp_var);
  
     sema_init(&(WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->semWpsPBCOverlapInd, 1);
  
@@ -1831,6 +1879,9 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_softap_init_tx_rx failed", __FUNCTION__);
     }
     
+#ifdef CONFIG_CFG80211
+    wlan_hdd_set_monitor_tx_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
+#endif
     EXIT();
     return status;
 }
@@ -1883,6 +1934,11 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
         pHostapdAdapter->wdev.wiphy = pHddCtx->wiphy;  
         pHostapdAdapter->wdev.netdev =  pWlanHostapdDev;
 #endif 
+        init_completion(&pHostapdAdapter->cancel_rem_on_chan_var);
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+        init_completion(&pHostapdAdapter->offchannel_tx_event);
+#endif
+
         SET_NETDEV_DEV(pWlanHostapdDev, pHddCtx->parent_dev);
     }
     return pHostapdAdapter;

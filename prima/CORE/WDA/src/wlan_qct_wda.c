@@ -2808,6 +2808,183 @@ VOS_STATUS WDA_ProcessDelStaReq(tWDA_CbContext *pWDA,
    return CONVERT_WDI2VOS_STATUS(status) ;
 }
 
+void WDA_ProcessAddStaSelfRsp(WDI_Status status, void* pUserData)
+{
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext *pWDA; 
+   tAddStaSelfParams *pAddStaSelfRsp = NULL; 
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "<------ %s " ,__FUNCTION__);
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   pAddStaSelfRsp = (tAddStaSelfParams*)pWdaParams->wdaMsgParam;
+
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams);
+   pAddStaSelfRsp->status = CONVERT_WDI2SIR_STATUS(status) ;
+
+   WDA_SendMsg( pWDA, WDA_ADD_STA_SELF_RSP, (void *)pAddStaSelfRsp, 0) ;
+
+   return ;
+}
+
+/*
+ * FUNCTION: WDA_ProcessAddStaSelfReq
+ * 
+ */ 
+VOS_STATUS WDA_ProcessAddStaSelfReq( tWDA_CbContext *pWDA, tpAddStaSelfParams pAddStaSelfReq)
+{
+   VOS_STATUS status = VOS_STATUS_SUCCESS;
+   WDI_AddSTASelfParamsType *wdiAddStaSelfReq = 
+      (WDI_AddSTASelfParamsType *)vos_mem_malloc(
+         sizeof(WDI_AddSTASelfParamsType)) ;
+   tWDA_ReqParams *pWdaParams; 
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "------> %s " ,__FUNCTION__);
+   if( NULL == wdiAddStaSelfReq )
+   {
+      WDA_VOS_ASSERT( 0 );
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                          "%s: Unable to allocate memory " ,__FUNCTION__);
+      return( VOS_STATUS_E_NOMEM );
+   }
+
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+
+   if( NULL == pWdaParams )
+   {
+      WDA_VOS_ASSERT( 0 );
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                          "%s: Unable to allocate memory " ,__FUNCTION__);
+      vos_mem_free(wdiAddStaSelfReq) ;
+      return( VOS_STATUS_E_NOMEM );
+   }
+
+   wdiAddStaSelfReq->wdiReqStatusCB = NULL;
+
+   vos_mem_copy( wdiAddStaSelfReq->wdiAddSTASelfInfo.selfMacAddr, pAddStaSelfReq->selfMacAddr, 6);
+   /* Store Init Req pointer, as this will be used for response */
+   /* store Params pass it to WDI */
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = pAddStaSelfReq;
+   pWdaParams->wdaWdiApiMsgParam = wdiAddStaSelfReq; 
+
+   status = WDI_AddSTASelfReq( wdiAddStaSelfReq, WDA_ProcessAddStaSelfRsp, pWdaParams);
+
+   if(IS_WDI_STATUS_FAILURE(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+               "Failure in Add Self Sta Request API, free all the memory status = %d", 
+                                                                status );
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
+      pAddStaSelfReq->status = eSIR_FAILURE ;
+      WDA_SendMsg( pWDA, WDA_ADD_STA_SELF_RSP, (void *)pAddStaSelfReq, 0) ;
+   }
+
+   return CONVERT_WDI2VOS_STATUS(status) ;
+}
+
+/*
+ * FUNCTION: WDA_DelSTASelfReqReqCallback
+ * 
+ */ 
+void WDA_DelSTASelfReqCallback(WDI_DelSTASelfRspParamsType *
+                                      wdiDelStaSelfRspParams , void* pUserData)
+{
+   tWDA_ReqParams        *pWdaParams = (tWDA_ReqParams *)pUserData; 
+   tWDA_CbContext        *pWDA; 
+   tDelStaSelfParams     *delStaSelfParams;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "<------ %s " ,__FUNCTION__);
+
+   if (NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "InvalId pWdaParams pointer in WDA_DelSTASelfReqCallback");
+      VOS_ASSERT(0);
+      return;
+
+   }
+
+   pWDA = (tWDA_CbContext *)pWdaParams->pWdaContext;
+   delStaSelfParams = (tDelStaSelfParams *)pWdaParams->wdaMsgParam;
+
+   delStaSelfParams->status = 
+               CONVERT_WDI2SIR_STATUS(wdiDelStaSelfRspParams->wdiStatus) ;
+   
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+   vos_mem_free(pWdaParams) ;
+   
+   WDA_SendMsg(pWDA, WDA_DEL_STA_SELF_RSP, (void *)delStaSelfParams , 0) ;
+
+   return ;
+}
+
+/*
+ * FUNCTION: WDA_DelSTASelfReq
+ * Trigger Config STA processing in WDI
+ */ 
+VOS_STATUS WDA_ProcessDelSTASelfReq(tWDA_CbContext *pWDA, 
+                                    tDelStaSelfParams* pDelStaSelfReqParam)
+{
+   VOS_STATUS status = VOS_STATUS_SUCCESS;
+   
+   WDI_DelSTASelfReqParamsType *wdiDelStaSelfReq = 
+                (WDI_DelSTASelfReqParamsType *)vos_mem_malloc(
+                              sizeof(WDI_DelSTASelfReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams = 
+      (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "------> %s " ,__FUNCTION__);
+   if( NULL == wdiDelStaSelfReq )
+   {
+      WDA_VOS_ASSERT( 0 );
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                          "%s: Unable to allocate memory " ,__FUNCTION__);
+      return( VOS_STATUS_E_NOMEM );
+   }
+
+   if( NULL == pWdaParams )
+   {
+      WDA_VOS_ASSERT( 0 );
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                          "%s: Unable to allocate memory " ,__FUNCTION__);
+      vos_mem_free(wdiDelStaSelfReq) ;
+      return( VOS_STATUS_E_NOMEM );
+   }
+
+   wdiDelStaSelfReq->wdiReqStatusCB = NULL;
+   pWdaParams->pWdaContext = pWDA;
+   /* Store param pointer as passed in by caller */
+   pWdaParams->wdaMsgParam = pDelStaSelfReqParam;
+   /* store Params pass it to WDI */
+   pWdaParams->wdaWdiApiMsgParam = (void *)wdiDelStaSelfReq;
+
+   vos_mem_copy( wdiDelStaSelfReq->wdiDelStaSelfInfo.selfMacAddr, 
+   	                 pDelStaSelfReqParam->selfMacAddr, sizeof(tSirMacAddr));
+   
+   status = WDI_DelSTASelfReq(wdiDelStaSelfReq, 
+                      (WDI_DelSTASelfRspCb)WDA_DelSTASelfReqCallback, pWdaParams);
+
+   if(IS_WDI_STATUS_FAILURE(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_FATAL,
+              "Failure in Del Sta Self REQ WDI API, free all the memory " );
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      vos_mem_free(pWdaParams) ;
+      pDelStaSelfReqParam->status = eSIR_FAILURE ;
+      WDA_SendMsg(pWDA, WDA_DEL_STA_SELF_RSP, (void *)pDelStaSelfReqParam, 0) ;
+   }
+
+   return CONVERT_WDI2VOS_STATUS(status) ;
+}
+
+
+
 /*
  * FUNCTION: WDA_SendMsg
  * Send Message back to PE
@@ -5906,14 +6083,14 @@ VOS_STATUS WDA_ProcessSetPwrSaveCfgReq(tWDA_CbContext *pWDA,
  */ 
 void WDA_SetUapsdAcParamsReqCallback(WDI_Status status, void* pUserData)
 {
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData ; 
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-   pWDA->wdaWdiApiMsgParam = NULL;
-   pWDA->wdaMsgParam = NULL;
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+   vos_mem_free(pWdaParams->wdaMsgParam);
+   vos_mem_free(pWdaParams);
 
 
    //print a msg, nothing else to do
@@ -5927,13 +6104,15 @@ void WDA_SetUapsdAcParamsReqCallback(WDI_Status status, void* pUserData)
  * FUNCTION: WDA_SetUapsdAcParamsReq
  * Request to WDI to set the UAPSD params for an ac (sta mode).
  */ 
-VOS_STATUS WDA_SetUapsdAcParamsReq(v_PVOID_t pVosContext, v_U8_t staIdx, tUapsdInfo *pUapsdInfo)
+VOS_STATUS WDA_SetUapsdAcParamsReq(v_PVOID_t pVosContext, v_U8_t staIdx,
+                                                 tUapsdInfo *pUapsdInfo)
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    tWDA_CbContext *pWDA = NULL ; 
    WDI_SetUapsdAcParamsReqParamsType *wdiUapsdParams = 
       (WDI_SetUapsdAcParamsReqParamsType *)vos_mem_malloc(
          sizeof(WDI_SetUapsdAcParamsReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
@@ -5943,6 +6122,15 @@ VOS_STATUS WDA_SetUapsdAcParamsReq(v_PVOID_t pVosContext, v_U8_t staIdx, tUapsdI
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                            "%s: VOS MEM Alloc Failure", __FUNCTION__); 
       VOS_ASSERT(0);
+      return VOS_STATUS_E_NOMEM;
+   }
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      vos_mem_free(wdiUapsdParams);
       return VOS_STATUS_E_NOMEM;
    }
 
@@ -5956,25 +6144,23 @@ VOS_STATUS WDA_SetUapsdAcParamsReq(v_PVOID_t pVosContext, v_U8_t staIdx, tUapsdI
 
    pWDA = vos_get_context( VOS_MODULE_ID_WDA, pVosContext );
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                  (NULL == pWDA->wdaWdiApiMsgParam));
-
+   pWdaParams->pWdaContext = pWDA;
    /* Store param pointer as passed in by caller */
-   pWDA->wdaMsgParam = pUapsdInfo;
+   pWdaParams->wdaMsgParam = pUapsdInfo;
    /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiUapsdParams;
+   pWdaParams->wdaWdiApiMsgParam = (void *)wdiUapsdParams;
 
    status = WDI_SetUapsdAcParamsReq(wdiUapsdParams, 
-                                    (WDI_SetUapsdAcParamsCb)WDA_SetUapsdAcParamsReqCallback, pWDA);
+              (WDI_SetUapsdAcParamsCb)WDA_SetUapsdAcParamsReqCallback,
+              pWdaParams);
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
               "Failure in Set UAPSD params REQ WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      vos_mem_free(pWDA->wdaMsgParam);
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+      vos_mem_free(pWdaParams->wdaMsgParam);
+      vos_mem_free(pWdaParams);
    }
 
    return CONVERT_WDI2VOS_STATUS(status) ;
@@ -7664,6 +7850,17 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
       case WDA_SET_HOST_OFFLOAD:
       {
          WDA_ProcessHostOffloadReq(pWDA, (tSirHostOffloadReq *)pMsg->bodyptr);
+         break;
+      }
+      case WDA_ADD_STA_SELF_REQ:
+      {
+         WDA_ProcessAddStaSelfReq(pWDA, (tAddStaSelfParams *)pMsg->bodyptr);
+         break;
+      }
+
+      case WDA_DEL_STA_SELF_REQ:
+      {
+         WDA_ProcessDelSTASelfReq(pWDA, (tDelStaSelfParams *)pMsg->bodyptr);
          break;
       }
       case WDA_WOWL_ADD_BCAST_PTRN:

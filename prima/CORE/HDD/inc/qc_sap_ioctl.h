@@ -202,7 +202,7 @@ typedef struct sQcSapreq_WPSPBCProbeReqIES {
 
 enum { 
     QCSAP_PARAM_MAX_ASSOC = 1,
-    QCSAP_PARAM_2 = 2,
+    QCSAP_PARAM_MODULE_DOWN_IND = 5,
 };
 
 

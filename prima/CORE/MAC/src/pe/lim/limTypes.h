@@ -225,6 +225,7 @@ typedef struct sLimMlmAssocInd
     tAniAuthType         authType;
     tAniSSID             ssId;
     tSirRSNie            rsnIE;
+    tSirAddie            addIE; // additional IE recevied from the peer, which possibly includes WSC IE and/or P2P IE.
     tSirMacCapabilityInfo capabilityInfo;
     tAniTitanHtCapabilityInfo titanHtCaps;
 
@@ -233,9 +234,6 @@ typedef struct sLimMlmAssocInd
     tSirSupChnl             supportedChannels;
 	tANI_U8					sessionId;
 
-#ifdef WLAN_FEATURE_P2P 
-    tSirP2Pie            p2pIE;      // p2pIE to be sent
-#endif
 
 #ifdef WLAN_SOFTAP_FEATURE
     tAniBool               WmmStaInfoPresent;
@@ -252,9 +250,6 @@ typedef struct sLimMlmAssocInd
     tANI_U32                  numBss; // List received from STA
     tSirNeighborBssInfo  neighborList[1]; // List received from STA
 #endif
-    /**************** QNE updated - BEGIN **********************/
-    tSirMacWscInfo       wscInfo;
-    /**************** QNE updated - END   **********************/
 } tLimMlmAssocInd, *tpLimMlmAssocInd;
 
 typedef struct sLimMlmReassocReq
@@ -281,16 +276,13 @@ typedef struct sLimMlmReassocInd
     tAniAuthType         authType;
     tAniSSID             ssId;
     tSirRSNie            rsnIE;
+    tSirAddie            addIE; // additional IE recevied from the peer, which can be WSC IE and/or P2P IE.
     tSirMacCapabilityInfo capabilityInfo;
     tAniTitanHtCapabilityInfo titanHtCaps;
 
     tAniBool                spectrumMgtIndicator;
     tSirMacPowerCapInfo     powerCap;
     tSirSupChnl             supportedChannels;
-
-#ifdef WLAN_FEATURE_P2P 
-    tSirP2Pie            p2pIE;      // p2pIE to be sent
-#endif
 
 #ifdef WLAN_SOFTAP_FEATURE
     tAniBool               WmmStaInfoPresent;
@@ -307,9 +299,6 @@ typedef struct sLimMlmReassocInd
     tANI_U32                  numBss; // List received from STA
     tSirNeighborBssInfo  neighborList[1]; // List received from STA
 #endif
-    /**************** QNE updated - BEGIN **********************/
-    tSirMacWscInfo       wscInfo;
-    /**************** QNE updated - END   **********************/
 } tLimMlmReassocInd, *tpLimMlmReassocInd;
 
 typedef struct sLimMlmAuthCnf
@@ -688,7 +677,7 @@ void limProcessActionFrameNoSession(tpAniSirGlobal pMac, tANI_U8 *pRxMetaInfo);
 
 
 tSirRetStatus limPopulateMacHeader(tpAniSirGlobal, tANI_U8*, tANI_U8, tANI_U8, tSirMacAddr,tSirMacAddr);
-tSirRetStatus limSendProbeReqMgmtFrame(tpAniSirGlobal, tSirMacSSid *,tSirMacAddr, tANI_U8,tSirMacAddr, tANI_U32);
+tSirRetStatus limSendProbeReqMgmtFrame(tpAniSirGlobal, tSirMacSSid *, tSirMacAddr, tANI_U8, tSirMacAddr, tANI_U32, tANI_U32, tANI_U8 *); 
 void limSendProbeRspMgmtFrame(tpAniSirGlobal, tSirMacAddr, tpAniSSID, short, tANI_U8,tpPESession);
 void limSendAuthMgmtFrame(tpAniSirGlobal, tSirMacAuthFrameBody *, tSirMacAddr, tANI_U8,tpPESession);
 void limSendAssocReqMgmtFrame(tpAniSirGlobal, tLimMlmAssocReq *,tpPESession);

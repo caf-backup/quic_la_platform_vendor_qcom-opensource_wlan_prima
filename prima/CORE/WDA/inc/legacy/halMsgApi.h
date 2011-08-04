@@ -273,6 +273,11 @@ typedef struct
     tANI_U8     sessionId; //PE session id for PE<->HAL interface 
     // HAL just sends back what it receives.
 
+#ifdef WLAN_FEATURE_P2P
+    /*if this is a P2P Capable Sta*/
+    tANI_U8     p2pCapableSta;
+#endif
+
 } tAddStaParams, *tpAddStaParams;
 
 

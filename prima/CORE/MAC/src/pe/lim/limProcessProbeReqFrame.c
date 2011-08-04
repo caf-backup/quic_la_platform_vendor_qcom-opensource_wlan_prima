@@ -517,9 +517,12 @@ limProcessProbeReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
 	                // Broadcast SSID in the Probe Request.
 	                // Reply with SSID we're configured with.
 #ifdef WLAN_SOFTAP_FEATURE
-	                //Turn off the SSID length to 0 if hidden SSID feature is present
-	                if(psessionEntry->ssidHidden)
-	                    ssId.length = 0;
+                //Turn off the SSID length to 0 if hidden SSID feature is present
+                if(psessionEntry->ssidHidden)
+  		  /*We are returning from here as probe request contains the broadcast SSID.
+		    So no need to send the probe resp*/					
+                    //ssId.length = 0;
+                       return;
 #endif
 	                limSendProbeRspMgmtFrame(pMac, pHdr->sa, &ssId,
 	                                         DPH_USE_MGMT_STAID, DPH_NON_KEEPALIVE_FRAME,psessionEntry);

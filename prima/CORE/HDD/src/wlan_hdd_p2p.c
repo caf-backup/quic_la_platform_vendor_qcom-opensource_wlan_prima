@@ -25,7 +25,7 @@
 
 extern struct net_device_ops net_ops_struct;
 
-static int hdd_wlan_add_rx_radiotap_hdr( vos_pkt_t* pVosPkt,
+static int hdd_wlan_add_rx_radiotap_hdr( struct sk_buff *skb,
                                          int rtap_len, int flag );
 
 static void hdd_wlan_tx_complete( hdd_adapter_t* pAdapter,
@@ -48,10 +48,14 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
     }
 
     hddLog( LOGE, "Recieved remain on channel rsp");
-    cfg80211_remain_on_channel_expired( pRemainChanCtx->dev,
+
+    if( REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request )
+    {
+        cfg80211_remain_on_channel_expired( pRemainChanCtx->dev,
                               cfgState->remain_on_chan_ctx->cookie,
                               &pRemainChanCtx->chan,
                               pRemainChanCtx->chan_type, GFP_KERNEL );
+    }
 
     vos_mem_free( pRemainChanCtx );
     cfgState->remain_on_chan_ctx = NULL;
@@ -75,13 +79,16 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
                 NULL, 0 );
     }
 
+    complete(&pAdapter->cancel_rem_on_chan_var);
     return eHAL_STATUS_SUCCESS;
 }
 
-int wlan_hdd_remain_on_channel( struct wiphy *wiphy, struct net_device *dev,
-                                struct ieee80211_channel *chan,
-                                enum nl80211_channel_type channel_type,
-                                unsigned int duration, u64 *cookie )
+static int wlan_hdd_request_remain_on_channel( struct wiphy *wiphy,
+                                   struct net_device *dev,
+                                   struct ieee80211_channel *chan,
+                                   enum nl80211_channel_type channel_type,
+                                   unsigned int duration, u64 *cookie,
+                                   rem_on_channel_request_type_t request_type )
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     hdd_remain_on_chan_ctx_t *pRemainChanCtx;
@@ -113,11 +120,11 @@ int wlan_hdd_remain_on_channel( struct wiphy *wiphy, struct net_device *dev,
     pRemainChanCtx->dev = dev;
     *cookie = (tANI_U32) pRemainChanCtx;
     pRemainChanCtx->cookie = *cookie;
+    pRemainChanCtx->rem_on_chan_request = request_type;
     cfgState->remain_on_chan_ctx = pRemainChanCtx;
     cfgState->current_freq = chan->center_freq;
 
     //call sme API to start remain on channel.
-
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
          ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode )
        )
@@ -149,6 +156,18 @@ int wlan_hdd_remain_on_channel( struct wiphy *wiphy, struct net_device *dev,
                     NULL, 0 );
     }
     return 0;
+
+}
+
+int wlan_hdd_cfg80211_remain_on_channel( struct wiphy *wiphy,
+                                struct net_device *dev,
+                                struct ieee80211_channel *chan,
+                                enum nl80211_channel_type channel_type,
+                                unsigned int duration, u64 *cookie )
+{
+    return wlan_hdd_request_remain_on_channel(wiphy, dev,
+                                        chan, channel_type, duration, cookie,
+                                        REMAIN_ON_CHANNEL_REQUEST);
 }
 
 void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
@@ -160,9 +179,18 @@ void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
 
     if( pRemainChanCtx != NULL )
     {
-        cfg80211_ready_on_channel( pAdapter->dev, (tANI_U32)pRemainChanCtx,
+        if( REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request )
+        {
+            cfg80211_ready_on_channel( pAdapter->dev, (tANI_U32)pRemainChanCtx,
                                &pRemainChanCtx->chan, pRemainChanCtx->chan_type,
                                pRemainChanCtx->duration, GFP_KERNEL );
+        }
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+        else if( OFF_CHANNEL_ACTION_TX == pRemainChanCtx->rem_on_chan_request )
+        {
+            complete(&pAdapter->offchannel_tx_event);
+        }
+#endif
     }
     else
     {
@@ -171,7 +199,7 @@ void hdd_remainChanReadyHandler( hdd_adapter_t *pAdapter )
     return;
 }
 
-int wlan_hdd_cancel_remain_on_channel( struct wiphy *wiphy,
+int wlan_hdd_cfg80211_cancel_remain_on_channel( struct wiphy *wiphy,
                                       struct net_device *dev, u64 cookie )
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
@@ -192,6 +220,7 @@ int wlan_hdd_cancel_remain_on_channel( struct wiphy *wiphy,
         return -EINVAL;
     }
 
+    INIT_COMPLETION(pAdapter->cancel_rem_on_chan_var);
     /* Issue abort remain on chan request to sme.
      * The remain on channel callback will make sure the remain_on_chan
      * expired event is sent.
@@ -202,11 +231,6 @@ int wlan_hdd_cancel_remain_on_channel( struct wiphy *wiphy,
     {
         sme_CancelRemainOnChannel( WLAN_HDD_GET_HAL_CTX( pAdapter ),
                                             pAdapter->sessionId );
-
-        sme_DeregisterMgmtFrame(
-                WLAN_HDD_GET_HAL_CTX(pAdapter), pAdapter->sessionId,
-                (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
-                NULL, 0 );
     }
     else if ( (WLAN_HDD_SOFTAP== pAdapter->device_mode) ||
               (WLAN_HDD_P2P_GO == pAdapter->device_mode)
@@ -214,14 +238,15 @@ int wlan_hdd_cancel_remain_on_channel( struct wiphy *wiphy,
     {
         WLANSAP_CancelRemainOnChannel(
                                 (WLAN_HDD_GET_CTX(pAdapter))->pvosContext);
-
-        WLANSAP_DeRegisterMgmtFrame( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext,
-                   (SIR_MAC_MGMT_FRAME << 2) | ( SIR_MAC_MGMT_PROBE_REQ << 4),
-                    NULL, 0 );
     }
-    vos_mem_free( cfgState->remain_on_chan_ctx);
-    cfgState->remain_on_chan_ctx = NULL;
-
+    else 
+    {
+       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid device_mode = %d\n",
+                            __func__, pAdapter->device_mode);
+       return -EIO;
+    }
+    wait_for_completion_interruptible_timeout(&pAdapter->cancel_rem_on_chan_var,
+            msecs_to_jiffies(WAIT_CANCEL_REM_CHAN));
     return 0;
 }
 
@@ -253,6 +278,32 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
         return -EBUSY;
 
     hddLog( LOGE, "Action frame tx request\n");
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+    if( offchan )
+    {
+        int status;
+
+        status = wlan_hdd_request_remain_on_channel(wiphy, dev,
+                                        chan, channel_type, wait, cookie,
+                                        OFF_CHANNEL_ACTION_TX);
+
+        if(status != 0)
+        {
+            goto err;
+        }
+
+        /* Wait for driver to be ready on the requested channel */
+        INIT_COMPLETION(pAdapter->offchannel_tx_event);
+        status = wait_for_completion_interruptible_timeout(
+                     &pAdapter->cancel_rem_on_chan_var,
+                     msecs_to_jiffies(WAIT_CHANGE_CHANNEL_FOR_OFFCHANNEL_TX));
+        if(!status)
+        {
+            goto err;
+        }
+    }
+#endif
 
     cfgState->buf = vos_mem_malloc( len ); //buf;
     if( cfgState->buf == NULL )
@@ -298,6 +349,15 @@ err:
     return 0;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+int wlan_hdd_cfg80211_mgmt_tx_cancel_wait(struct wiphy *wiphy, 
+                                          struct net_device *dev,
+                                          u64 cookie)
+{
+    return wlan_hdd_cfg80211_cancel_remain_on_channel( wiphy, dev, cookie );
+}
+#endif
+
 void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess )
 {
     hdd_cfg80211_state_t *cfgState = WLAN_HDD_GET_CFG_STATE_PTR( pAdapter );
@@ -321,6 +381,8 @@ void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess 
          * */
          cfg80211_mgmt_tx_status( pAdapter->dev, cfgState->action_cookie,
                 cfgState->buf, cfgState->len, actionSendSuccess, GFP_KERNEL );
+         vos_mem_free( cfgState->buf );
+         cfgState->buf = NULL;
     }
     else
     {
@@ -337,9 +399,11 @@ void hdd_sendActionCnf( hdd_adapter_t *pAdapter, tANI_BOOLEAN actionSendSuccess 
         /* Send TX completion feedback over monitor interface. */
         hdd_wlan_tx_complete( pMonAdapter, cfgState, actionSendSuccess );
         cfgState->skb = NULL;
+        vos_mem_free( cfgState->buf );
+        cfgState->buf = NULL;
+        /* Look for the next Mgmt packet to TX */
+        hdd_mon_tx_mgmt_pkt(pAdapter);
     }
-    vos_mem_free( cfgState->buf );
-    cfgState->buf = NULL;
 }
 
 int hdd_setP2pPs( struct net_device *dev, void *msgData )
@@ -458,14 +522,12 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
         //Indicate an action frame.
         cfg80211_rx_mgmt( pAdapter->dev, cfgState->current_freq,
                           pbFrames,
-                          nActionLength, GFP_KERNEL );
+                          nActionLength, GFP_ATOMIC );
     }
     else if( nProbeReqLength )
     {
         //Indicate an probe request frame.
         struct sk_buff *skb = NULL;
-        VOS_STATUS status;
-        vos_pkt_t *pVosPkt;
         hdd_adapter_t *pMonAdapter =
                    hdd_get_mon_adapter( WLAN_HDD_GET_CTX(pAdapter) );
         int needed_headroom = 0;
@@ -484,48 +546,46 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
          * */
         needed_headroom = sizeof(struct ieee80211_radiotap_header) + 4;
 
-        status = vos_pkt_get_packet( &pVosPkt, VOS_PKT_TYPE_RX_RAW,
-                                   nProbeReqLength + needed_headroom,
-                                   1, 0, NULL, NULL );
-
-        if( VOS_STATUS_SUCCESS == status )
+        //alloc skb  here
+        skb = alloc_skb(VPKT_SIZE_BUFFER, GFP_ATOMIC);
+        if (unlikely(NULL == skb))
         {
-            if( VOS_STATUS_SUCCESS == vos_pkt_push_head( pVosPkt,
-                 pbFrames, nProbeReqLength ) )
-            {
-                /* prepend radiotap information */
-                if( 0 != hdd_wlan_add_rx_radiotap_hdr( pVosPkt,
-                                        needed_headroom, flag ) )
-                {
-                    hddLog( LOGE, FL("Not Able Add Radio Tap"));
-                    vos_pkt_return_packet( pVosPkt );
-                    return;
-                }
-
-                status = vos_pkt_get_os_packet( pVosPkt,
-                                        (v_VOID_t **)&skb, VOS_TRUE );
-                if(!VOS_IS_STATUS_SUCCESS( status ))
-                {
-                    //This is bad but still try to free the VOSS resources if we can
-                    hddLog( LOGE, FL("Not Able to extract skb from VOS PKT"));
-                    vos_pkt_return_packet( pVosPkt );
-                    return;
-                }
-
-                skb_reset_mac_header( skb );
-                skb->dev = pMonAdapter->dev;
-                skb->protocol = eth_type_trans( skb, skb->dev );
-                skb->ip_summed = CHECKSUM_UNNECESSARY;
-                rxstat = netif_rx_ni(skb);
-                if( NET_RX_SUCCESS == rxstat )
-                {
-                    hddLog( LOGE, FL("Success"));
-                }
-                else
-                    hddLog( LOGE, FL("Failed %d"), rxstat);
-            }
-            status = vos_pkt_return_packet( pVosPkt );
+            hddLog( LOGW, FL("Unable to allocate skb"));
+            return;
         }
+        skb_reserve(skb, VPKT_SIZE_BUFFER);
+        if (unlikely(skb_headroom(skb) < nProbeReqLength))
+        {
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
+                     "HDD [%d]: Insufficient headroom, "
+                     "head[%p], data[%p], req[%d]",
+                     __LINE__, skb->head, skb->data, nProbeReqLength);
+           kfree_skb(skb);
+           return ;
+        }
+        // actually push the data
+        memcpy(skb_push(skb, nProbeReqLength), pbFrames, nProbeReqLength);
+        /* prepend radiotap information */
+        if( 0 != hdd_wlan_add_rx_radiotap_hdr( skb,
+                                needed_headroom, flag ) )
+        {
+            hddLog( LOGE, FL("Not Able Add Radio Tap"));
+            //free skb
+            kfree_skb(skb);
+            return;
+        }
+
+        skb_reset_mac_header( skb );
+        skb->dev = pMonAdapter->dev;
+        skb->protocol = eth_type_trans( skb, skb->dev );
+        skb->ip_summed = CHECKSUM_UNNECESSARY;
+        rxstat = netif_rx_ni(skb);
+        if( NET_RX_SUCCESS == rxstat )
+        {
+            hddLog( LOGE, FL("Success"));
+        }
+        else
+            hddLog( LOGE, FL("Failed %d"), rxstat);                   
     }
     return;
 }
@@ -534,7 +594,7 @@ void hdd_indicateMgmtFrame( hdd_adapter_t *pAdapter,
  * ieee80211_add_rx_radiotap_header - add radiotap header
  */
 static int hdd_wlan_add_rx_radiotap_hdr (
-             vos_pkt_t* pVosPkt, int rtap_len, int flag )
+             struct sk_buff *skb, int rtap_len, int flag )
 {
     u8 rtap_temp[20] = {0};
     struct ieee80211_radiotap_header *rthdr;
@@ -562,14 +622,10 @@ static int hdd_wlan_add_rx_radiotap_hdr (
         pos++;
     put_unaligned_le16(rx_flags, pos);
     pos += 2;
+    
+    // actually push the data
+    memcpy(skb_push(skb, rtap_len), &rtap_temp[0], rtap_len);
 
-    if( VOS_STATUS_SUCCESS != vos_pkt_push_head( pVosPkt, &rtap_temp[0],
-                                                             rtap_len) )
-    {
-        hddLog( LOGE,
-                FL("Not Able to Push Radio-Tap header in front of Rx packet"));
-        return -1;
-    }
     return 0;
 }
 

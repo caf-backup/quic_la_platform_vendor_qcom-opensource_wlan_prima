@@ -568,6 +568,48 @@ WDA_DS_StartXmit
 }
 
 
+/*==========================================================================
+  FUNCTION    WDA_DS_FinishULA
+
+  DESCRIPTION 
+    Serialize Finish Upper Level Authentication reques to TX thread. 
+
+  DEPENDENCIES 
+     
+  PARAMETERS 
+
+   IN
+        callbackRoutine    routine to be called in TX thread
+        callbackContext    user data for the above routine 
+   
+  RETURN VALUE
+    please see vos_tx_mq_serialize
+
+  SIDE EFFECTS 
+  
+============================================================================*/
+VOS_STATUS
+WDA_DS_FinishULA
+(
+ void (*callbackRoutine) (void *callbackContext),
+ void  *callbackContext
+)
+{
+  vos_msg_t                    sMessage;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  /* Serialize our event  */
+  VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
+             "Serializing WDA_DS_FinishULA event" );
+
+  vos_mem_zero( &sMessage, sizeof(vos_msg_t) );
+
+  sMessage.bodyval  = (v_U32_t)callbackContext;
+  sMessage.bodyptr  = callbackRoutine;
+  sMessage.type     = WDA_DS_FINISH_ULA;
+
+  return vos_tx_mq_serialize(VOS_MQ_ID_TL, &sMessage);
+}/*WDA_DS_FinishULA*/
 
 /*==========================================================================
    FUNCTION    WDA_DS_BuildTxPacketInfo

@@ -222,6 +222,7 @@ typedef struct sPESession           // Added to Support BT-AMP
 #endif
 #ifdef WLAN_FEATURE_P2P
     tSirNoAParam p2pNoA;
+    tSirP2PNoaAttr p2pGoPsUpdate;
 #endif
 }tPESession, *tpPESession;
 

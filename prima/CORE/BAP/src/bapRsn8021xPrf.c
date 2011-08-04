@@ -170,7 +170,7 @@ aagGtkPrf(v_U32_t cryptHandle,
 
     return aagPrf(cryptHandle,
                   result,
-                  gmk, sizeof(gmk),
+                  gmk, AAG_RSN_GMK_SIZE,
                   (v_U8_t *)AAG_GTK_PRF_CONST, AAG_GTK_PRF_CONST_LEN,
                   text, sizeof(text),
                   prfLen);

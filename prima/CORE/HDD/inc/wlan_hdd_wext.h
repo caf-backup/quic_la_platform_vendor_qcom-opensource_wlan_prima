@@ -105,6 +105,12 @@ typedef enum
    HDD_WLAN_WMM_TS_INFO_ACK_POLICY_HT_IMMEDIATE_BLOCK_ACK    = 1,
 } hdd_wlan_wmm_ts_info_ack_policy_e;
 
+/** vendor element ID */
+#define IE_EID_VENDOR        ( 221 ) /* 0xDD */
+#define IE_LEN_SIZE          1
+#define IE_EID_SIZE          1
+#define IE_VENDOR_OUI_SIZE   4
+
 /** Maximum Length of WPA/RSN IE */
 #define MAX_WPA_RSN_IE_LEN 40
 
@@ -164,8 +170,14 @@ typedef enum
 #define HDD_WPS_ELEM_REGISTRA_CONF_METHODS  0x1053
 #endif
 
- 
 
+#define WPS_OUI_TYPE   "\x00\x50\xf2\x04"
+#define WPS_OUI_TYPE_SIZE  4
+ 
+#ifdef WLAN_FEATURE_P2P
+#define P2P_OUI_TYPE   "\x50\x6f\x9a\x09"
+#define P2P_OUI_TYPE_SIZE  4
+#endif
 
 typedef enum
 {
@@ -194,7 +206,12 @@ typedef struct hdd_wext_state_s
    v_U32_t scanId; 
 
    /** The scan pending  */
-   v_U32_t mScanPending; 
+   v_U32_t mScanPending;
+
+#ifdef WLAN_FEATURE_P2P
+   v_BOOL_t p2pSearch;
+#endif
+
       	
    /** wpa version WPA/WPA2/None*/
    v_S31_t wpaVersion; 
@@ -202,14 +219,22 @@ typedef struct hdd_wext_state_s
    /**WPA or RSN IE*/
    u_int8_t WPARSNIE[MAX_WPA_RSN_IE_LEN]; 
 
+   /**gen IE */
+   tSirAddie genIE;
+   
+   /**Addtional IE for scan */
+   tSirAddie scanAddIE; 
+   
+   /**Addtional IE for assoc */
+   tSirAddie assocAddIE; 
+   
    /**auth key mgmt */
    v_S31_t authKeyMgmt; 
 
     /**vos event */
    vos_event_t  vosevent;
 
-    /* WPS turned on/off*/
-   hdd_wps_mode_e wpsMode; 
+   vos_event_t  scanevent;
 
    /**Counter measure state, Started/Stopped*/
    v_BOOL_t mTKIPCounterMeasures;  
@@ -235,6 +260,13 @@ typedef struct ccp_freq_chan_map_s{
     v_U32_t chan;
 }hdd_freq_chan_map_t;
 
+#define wlan_hdd_get_wps_ie_ptr(ie, ie_len) \
+    wlan_hdd_get_vendor_oui_ie_ptr(WPS_OUI_TYPE, WPS_OUI_TYPE_SIZE, ie, ie_len)
+
+#ifdef WLAN_FEATURE_P2P
+#define wlan_hdd_get_p2p_ie_ptr(ie, ie_len) \
+    wlan_hdd_get_vendor_oui_ie_ptr(P2P_OUI_TYPE, P2P_OUI_TYPE_SIZE, ie, ie_len)
+#endif
 
 extern int hdd_UnregisterWext(struct net_device *dev);
 extern int hdd_register_wext(struct net_device *dev);
@@ -279,5 +311,13 @@ extern int iw_set_var_ints_getnone(struct net_device *dev, struct iw_request_inf
 
 extern int iw_set_three_ints_getnone(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra);
+
+void hdd_clearRoamProfileIe( hdd_adapter_t *pAdapter);
+
+VOS_STATUS wlan_hdd_check_ula_done(hdd_adapter_t *pAdapter);
+
+v_U8_t* wlan_hdd_get_vendor_oui_ie_ptr(v_U8_t *oui, v_U8_t oui_size, 
+                       v_U8_t *ie, int ie_len);
+
 #endif // __WEXT_IW_H__
 

@@ -157,6 +157,57 @@ limIsRSNieValidInSmeReqMessage(tpAniSirGlobal pMac, tpSirRSNie pRSNie)
     return true;
 } /*** end limIsRSNieValidInSmeReqMessage() ***/
 
+/**
+ * limIsAddieValidInSmeReqMessage()
+ *
+ *FUNCTION:
+ * This function is called to verify if the Add IE
+ * received in various SME_REQ messages is valid or not
+ *
+ *LOGIC:
+ * Add IE validity checks are performed on only length
+ *
+ *ASSUMPTIONS:
+ *
+ *NOTE:
+ *
+ * @param  pMac   Pointer to Global MAC structure
+ * @param  pWSCie Pointer to received WSC IE
+ * @return true when WSC IE is valid, false otherwise
+ */
+
+static tANI_U8
+limIsAddieValidInSmeReqMessage(tpAniSirGlobal pMac, tpSirAddie pAddie)
+{
+    int left = pAddie->length;
+    tANI_U8 *ptr = pAddie->addIEdata;
+    tANI_U8 elem_id, elem_len;
+
+    if (left == 0)
+        return true;
+
+    while(left >= 2)
+    {
+        elem_id  = ptr[0];
+        elem_len = ptr[1];
+        left -= 2;
+        if(elem_len > left)
+        {
+            limLog( pMac, LOGE, 
+               FL("****Invalid Add IEs eid = %d elem_len=%d left=%d*****\n"), 
+                                               elem_id,elem_len,left);
+            return false;
+        }
+ 
+        left -= elem_len;
+        ptr += (elem_len + 2);
+    }
+    // there shouldn't be any left byte
+ 
+    
+    return true;
+} /*** end limIsAddieValidInSmeReqMessage() ***/
+
 #ifdef WLAN_SOFTAP_FEATURE
 /**
  * limSetRSNieWPAiefromSmeStartBSSReqMessage()
@@ -722,9 +773,28 @@ limIsSmeJoinReqValid(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq)
 
     if (!limIsRSNieValidInSmeReqMessage(pMac, &pJoinReq->rsnIE))
     {
+        limLog(pMac, LOGE,
+               FL("received SME_JOIN_REQ with invalid RSNIE\n"));
         valid = false;
         goto end;
     }
+
+    if (!limIsAddieValidInSmeReqMessage(pMac, &pJoinReq->addIEScan))
+    {
+        limLog(pMac, LOGE,
+               FL("received SME_JOIN_REQ with invalid addtional IE for scan\n"));
+        valid = false;
+        goto end;
+    }
+
+    if (!limIsAddieValidInSmeReqMessage(pMac, &pJoinReq->addIEAssoc))
+    {
+        limLog(pMac, LOGE,
+               FL("received SME_JOIN_REQ with invalid addtional IE for assoc\n"));
+        valid = false;
+        goto end;
+    }
+
 
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
     if (!limIsBssInfoValidInSmeReqMessage(
@@ -737,7 +807,7 @@ limIsSmeJoinReqValid(tpAniSirGlobal pMac, tpSirSmeJoinReq pJoinReq)
     {
         /// Received eWNI_SME_JOIN_REQ with invalid BSS Info
         // Log the event
-        limLog(pMac, LOGW,
+        limLog(pMac, LOGE,
                FL("received SME_JOIN_REQ with invalid bssInfo\n"));
 
         valid = false;

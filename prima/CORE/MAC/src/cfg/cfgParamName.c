@@ -212,8 +212,6 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"IBSS_AUTO_BSSID",
 	(unsigned char *)"PROBE_REQ_ADDNIE_FLAG",
 	(unsigned char *)"PROBE_REQ_ADDNIE_DATA",
-	(unsigned char *)"PROBE_REQ_ADDNP2PIE_FLAG",
-	(unsigned char *)"PROBE_REQ_ADDNP2PIE_DATA",
 	(unsigned char *)"PROBE_RSP_BCN_ADDNIE_FLAG",
 	(unsigned char *)"PROBE_RSP_BCN_ADDNIE_DATA",
 	(unsigned char *)"WPS_ENABLE",
@@ -247,8 +245,13 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"BTC_DHCP_BT_SLOTS_TO_BLOCK",
 	(unsigned char *)"DYNAMIC_PS_POLL_VALUE",
 	(unsigned char *)"PS_NULLDATA_AP_RESP_TIMEOUT",
-	(unsigned char *)"ASSOC_STA_LIMIT",
+	(unsigned char *)"TELE_BCN_WAKEUP_EN",
+	(unsigned char *)"TELE_BCN_TRANS_LI",
+	(unsigned char *)"TELE_BCN_TRANS_LI_IDLE_BCNS",
+	(unsigned char *)"TELE_BCN_MAX_LI",
+	(unsigned char *)"TELE_BCN_MAX_LI_IDLE_BCNS",
 	(unsigned char *)"BTC_A2DP_DHCP_BT_SUB_INTERVALS",
+	(unsigned char *)"INFRA_STA_KEEP_ALIVE_PERIOD",
 };
 
 

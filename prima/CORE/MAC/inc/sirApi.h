@@ -1048,20 +1048,40 @@ typedef struct sSirSmeScanReq
     tSirBackgroundScanMode   backgroundScanMode;
 
     tANI_U8              hiddenSsid;
-    
+
     
     /* Number of SSIDs to scan */
     tANI_U8             numSsid;
     
-
-    tANI_U16             ie_len;
-    tANI_U8              ies[200]; 
-
-#ifdef WLAN_FEATURE_P2P
-    tANI_BOOLEAN   p2pSearch;
-#endif
-    tSirChannelList channelList; //Channel list is variable field. So is ies
     //channelList has to be the last member of this structure. Check tSirChannelList for the reason.
+    /* This MUST be the last field of the structure */
+    
+ 
+#ifdef WLAN_FEATURE_P2P
+    tANI_BOOLEAN         p2pSearch;
+#endif
+    tANI_U16             uIEFieldLen;
+    tANI_U16             uIEFieldOffset;
+
+    //channelList MUST be the last field of this structure
+    tSirChannelList channelList;
+    /*-----------------------------
+      tSirSmeScanReq....
+      -----------------------------
+      uIEFiledLen 
+      -----------------------------
+      uIEFiledOffset               ----+
+      -----------------------------    |
+      channelList.numChannels          |
+      -----------------------------    |
+      ... variable size up to          |
+      channelNumber[numChannels-1]     |
+      This can be zero, if             |
+      numChannel is zero.              |
+      ----------------------------- <--+
+      ... variable size uIEFiled 
+      up to uIEFieldLen (can be 0)
+      -----------------------------*/
 } tSirSmeScanReq, *tpSirSmeScanReq;
 
 #ifdef FEATURE_INNAV_SUPPORT
@@ -1082,6 +1102,7 @@ typedef struct sSirMeasInNavMeasurementReq
 {
     tANI_U16              messageType; // eWNI_SME_INNAV_MEAS_REQ
     tANI_U16              length;
+    tSirMacAddr           selfMacAddr;
     tANI_U8               numBSSIDs;
     tANI_U8               numInNavMeasurements;
     eSirInNavMeasurementMode measurementMode;
@@ -1237,11 +1258,14 @@ typedef struct sSirSmeJoinReq
     tSirRSNie           rsnIE;                  // RSN IE to be sent in
                                                 // (Re) Association Request
 
-#ifdef WLAN_FEATURE_P2P
-    tSirP2Pie            p2pIE;      // p2pIE to be sent
-#endif
+    tSirAddie           addIEScan;              // Addtional IE to be sent in
+                                                // (unicast) Probe Request at the time of join
+
+    tSirAddie           addIEAssoc;             // Addtional IE to be sent in 
+                                                // (Re) Association Request
 
     tAniEdType          UCEncryptionType;
+
     tAniEdType          MCEncryptionType;
     
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED) && (WNI_POLARIS_FW_PRODUCT == AP)
@@ -1334,10 +1358,7 @@ typedef struct sSirSmeAssocInd
     tAniAuthType         authType;    
     tAniSSID             ssId; // SSID used by STA to associate
     tSirRSNie            rsnIE;// RSN IE received from peer
-
-#ifdef WLAN_FEATURE_P2P 
-    tSirP2Pie            p2pIE;      // p2pIE to be sent
-#endif
+    tSirAddie            addIE;// Additional IE received from peer, which possibly include WSC IE and/or P2P IE
 
 #if defined (ANI_PRODUCT_TYPE_AP)
     tANI_U16                  seqNum;
@@ -1356,9 +1377,6 @@ typedef struct sSirSmeAssocInd
     tAniBool                spectrumMgtIndicator;
     tSirMacPowerCapInfo     powerCap;
     tSirSupChnl             supportedChannels;
-    /**************** QNE updated - BEGIN **********************/
-    tSirMacWscInfo       wscInfo;
-    /**************** QNE updated - END   **********************/
 #ifdef WLAN_SOFTAP_FEATURE
     tAniBool             wmmEnabledSta; /* if present - STA is WMM enabled */
     tAniBool             reassocReq;
@@ -1405,10 +1423,6 @@ typedef struct sSirSmeReassocReq
      */
     tANI_U8             uapsdPerAcBitmask;
 
-#ifdef WLAN_FEATURE_P2P
-    tSirP2Pie          p2pIE;
-#endif
-
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
     tSirAssocType       assocType; // Indicates whether STA is
                                    // sending (Re) Association
@@ -1420,6 +1434,13 @@ typedef struct sSirSmeReassocReq
 
     tSirRSNie           rsnIE;     // RSN IE to be sent in
                                    // (Re) Association Request
+
+    tSirAddie           addIEScan; // Addtional IE to be sent in
+                                   // (unicast) Probe Request at the time of join
+
+    tSirAddie           addIEAssoc; // Addtional IE to be sent in 
+                                    // (Re) Association Request
+                                   
     tAniEdType          UCEncryptionType;
     tAniEdType          MCEncryptionType;
 
@@ -1470,10 +1491,8 @@ typedef struct sSirSmeReassocInd
     tAniSSID            ssId;   // SSID used by STA to reassociate
     tSirRSNie           rsnIE;  // RSN IE received from peer
 
-#ifdef WLAN_FEATURE_P2P
-    tSirP2Pie          p2pIE;
-#endif
-
+    tSirAddie           addIE;  // Additional IE received from peer
+    
 #if (WNI_POLARIS_FW_PACKAGE == ADVANCED)
     tANI_U16             seqNum;
     tAniBool             wniIndicator;
@@ -1491,9 +1510,6 @@ typedef struct sSirSmeReassocInd
     tAniBool                spectrumMgtIndicator;
     tSirMacPowerCapInfo     powerCap;
     tSirSupChnl             supportedChannels;
-    /**************** QNE updated - BEGIN **********************/
-    tSirMacWscInfo       wscInfo;
-    /**************** QNE updated - END   **********************/
 } tSirSmeReassocInd, *tpSirSmeReassocInd;
 
 /// Definition for Reassociation confirm
@@ -2555,6 +2571,18 @@ typedef struct sAniGetPEStatsRsp
 **********************************************************************************************/                                        
 } tAniGetPEStatsRsp, *tpAniGetPEStatsRsp;
 
+typedef struct sAniGetRssiReq
+{
+    // Common for all types are requests
+    tANI_U16                msgType;    // message type is same as the request type
+    tANI_U16                msgLen;  // length of the entire request
+    tANI_U8                 staId;  
+    void                    *rssiCallback;
+    void                    *pDevContext; //device context
+    void                    *pVosContext; //voss context
+    
+} tAniGetRssiReq, *tpAniGetRssiReq;
+
 typedef struct sAniSummaryStatsInfo
 {
     tANI_U32 retry_cnt[4];         //Total number of packets(per AC) that were successfully transmitted with retries
@@ -2722,6 +2750,45 @@ typedef struct sSirRSSINotification
 #endif
     
 }tSirRSSINotification, *tpSirRSSINotification;
+
+#ifdef WLAN_FEATURE_P2P
+typedef struct sSirP2PNoaAttr
+{
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32      index :8;
+   tANI_U32      oppPsFlag :1;
+   tANI_U32      ctWin     :7;
+   tANI_U32      rsvd1: 16;
+#else
+   tANI_U32      rsvd1: 16;
+   tANI_U32      ctWin     :7;
+   tANI_U32      oppPsFlag :1;
+   tANI_U32      index :8;
+#endif
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32       uNoa1IntervalCnt:8;
+   tANI_U32	    rsvd2:24;
+#else
+   tANI_U32       rsvd2:24;
+   tANI_U32       uNoa1IntervalCnt:8;
+#endif
+   tANI_U32       uNoa1Duration;
+   tANI_U32       uNoa1Interval;
+   tANI_U32       uNoa1StartTime;
+
+#ifdef ANI_BIG_BYTE_ENDIAN
+   tANI_U32       uNoa2IntervalCnt:8;
+   tANI_U32	    rsvd3:24;
+#else
+   tANI_U32       rsvd3:24;
+   tANI_U32       uNoa2IntervalCnt:8;
+#endif
+   tANI_U32       uNoa2Duration;
+   tANI_U32       uNoa2Interval;
+   tANI_U32       uNoa2StartTime;
+} tSirP2PNoaAttr, *tpSirP2PNoaAttr;
+#endif
 
 typedef __ani_attr_pre_packed struct sSirTclasInfo
 {
@@ -3521,10 +3588,13 @@ typedef struct sSirUpdateAPWPARSNIEsReq
 #endif
 
 // SME -> HAL - This is the host offload request. 
-#define SIR_IPV4_ARP_REPLY_OFFLOAD           0
-#define SIR_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD  1
-#define SIR_OFFLOAD_DISABLE                  0
-#define SIR_OFFLOAD_ENABLE                   1
+#define SIR_IPV4_ARP_REPLY_OFFLOAD                  0
+#define SIR_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD         1
+#define SIR_OFFLOAD_DISABLE                         0
+#define SIR_OFFLOAD_ENABLE                          1
+#define SIR_OFFLOAD_BCAST_FILTER_ENABLE             0x2
+#define SIR_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE     (SIR_OFFLOAD_ENABLE|SIR_OFFLOAD_BCAST_FILTER_ENABLE)
+
 typedef struct sSirHostOffloadReq
 {
     tANI_U8 offloadType;
