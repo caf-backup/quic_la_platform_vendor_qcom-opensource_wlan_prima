@@ -1,5 +1,5 @@
-KERNEL_DIR ?= ../../../../../../../kernel
-KERNEL_OUT ?= ../out/target/product/$(TARGET_PRODUCT)/obj/KERNEL_OBJ
+KERNEL_DIR ?= $(TOP)/kernel
+KERNEL_OUT ?= $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ
 
 TOOLCHAIN_PREFIX ?= arm-eabi-
 
@@ -390,13 +390,13 @@ ifeq ($(BUILD_DIAG_VERSION),1)
 CDEFINES += -DFEATURE_WLAN_DIAG_SUPPORT
 endif
 
-ifneq (, $(filter msm7630_surf msm7630_fusion, $(TARGET_PRODUCT)))
+ifeq ($(call is-board-platform-in-list,msm7630_surf msm7630_fusion),true)
 EXTRA_CFLAGS += -march=armv7-a
 CDEFINES += -DMSM_PLATFORM_7x30
 endif
 
 
-ifneq (, $(filter msm7627_surf msm7627_ffa, $(TARGET_PRODUCT)))
+ifeq ($(call is-board-platform-in-list,msm7627_surf msm7627_ffa),true)
 EXTRA_CFLAGS += -march=armv6
 CDEFINES += -DMSM_PLATFORM_7x27_FFA
 endif
