@@ -881,10 +881,10 @@ eHalStatus halRxp_Start(tHalHandle hHal, void *arg)
 #ifdef WLAN_HAL_VOLANS
     // configure Rxp to set Mgmt frame Hi Priority
     halReadRegister(pMac, QWLAN_RXP_CONFIG4_REG, &value);
-    value |= (((BTQM_QUEUE_TX_TID_4 |
-				BTQM_QUEUE_TX_TID_5 |
-				BTQM_QUEUE_TX_TID_6 |
-				BTQM_QUEUE_TX_TID_7) << QWLAN_RXP_CONFIG4_TID_PRIORITY_OFFSET) |
+    value |= (((( 1 << BTQM_QUEUE_TX_TID_4 ) | 
+                ( 1 << BTQM_QUEUE_TX_TID_5 ) | 
+                ( 1 << BTQM_QUEUE_TX_TID_6 ) | 
+                ( 1 << BTQM_QUEUE_TX_TID_7 )) << QWLAN_RXP_CONFIG4_TID_PRIORITY_OFFSET) |
               (1 << QWLAN_RXP_CONFIG4_MANAGEMENT_PRIORITY_OFFSET));
     halWriteRegister(pMac, QWLAN_RXP_CONFIG4_REG, value);
 #endif

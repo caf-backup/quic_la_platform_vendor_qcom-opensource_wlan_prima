@@ -36,6 +36,7 @@
 #include <linux/kthread.h>
 #include <libra_sdioif.h>
 #include <wlan_sal_misc.h>
+#include <wlan_hdd_misc.h>
 
 /*---------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
@@ -914,6 +915,14 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     netif_tx_stop_all_queues(pAdapter->dev);
     netif_carrier_off(pAdapter->dev);
 
+#ifdef WLAN_SOFTAP_FEATURE
+    if (VOS_STA_SAP_MODE == hdd_get_conparam())
+    {
+       netif_tx_stop_all_queues(pAdapter->pHostapd_dev);
+       netif_carrier_off(pAdapter->pHostapd_dev);
+    }
+#endif
+    
     sdio_func_dev = libra_getsdio_funcdev();
 
     if(sdio_func_dev == NULL)

@@ -2824,9 +2824,6 @@ halMsg_DelBss(
         halTable_SetStaBcastMgmtDpuIdx(pMac, (tANI_U8)selfIdx, (tANI_U8)pMac->hal.halMac.selfStaDpuId);
     }
 
-    // free the bss locally
-    status = halTable_ClearBss(pMac, (tANI_U8) pDelBssReq->bssIdx);
-
     __halMsg_update11bCoexist(pMac, 0 );
 
     if(halMsg_allBssShortSlotEnabled(pMac))
@@ -2880,6 +2877,9 @@ halMsg_DelBss(
       // This will update the Global HAL System Role. 
       // Since we dont know all the Bss that are active, we pass the unknown state 
     halSetGlobalSystemRole(pMac, eSYSTEM_UNKNOWN_ROLE);
+      
+   // free the bss locally
+   status = halTable_ClearBss(pMac, (tANI_U8) pDelBssReq->bssIdx);
 
 generate_response:
 #ifndef WLAN_SOFTAP_FEATURE
