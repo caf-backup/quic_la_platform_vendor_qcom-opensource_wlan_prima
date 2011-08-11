@@ -86,7 +86,7 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
     //pFwConfig->ucRegDomain = (tANI_U8)( halPhyGetRegDomain(hHal) );
 
     //pFwConfig->bClosedLoop = CLOSED_LOOP_CONTROL;
- 
+
     //mode of operation: production or FTM
     if(pMac->gDriverType == eDRIVER_TYPE_MFG) {
         pFwConfig->bMfgDriver = TRUE;
@@ -409,7 +409,11 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
         }
 #endif
 
-        if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS1))
+        if (RF_CHIP_VERSION(RF_CHIP_ID_VOLANS2))
+        {
+            //do nothing
+        }
+        else
         {
             calControl.rTuner = 0;
             calControl.cTuner = 0;

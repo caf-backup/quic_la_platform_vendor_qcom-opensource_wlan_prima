@@ -123,6 +123,7 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
        /* Indicate MC Thread to Resume */
        complete(&vosSchedContext->ResumeMcEvent);
        vos_abort_mac_scan();
+       VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_INFO,"%s: WLAN is not connected and not in IMPS",__func__);
        /* Fail this suspend */
        return -1;
    }
@@ -257,7 +258,7 @@ int wlan_sdio_suspend_hdlr(struct sdio_func* sdio_func_dev)
    ret = wlan_suspend(pAdapter);
    if(ret != 0)
    {   
-      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_FATAL,"%s: Not able to suspend wlan",__func__);
+      VOS_TRACE(VOS_MODULE_ID_SAL,VOS_TRACE_LEVEL_INFO,"%s: Not able to suspend wlan",__func__);
       return ret;
    }
 
