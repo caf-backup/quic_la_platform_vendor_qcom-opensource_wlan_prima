@@ -360,7 +360,7 @@ WDI_FillTxBd
     wpt_uint8              ucSubType    = 0;
     wpt_uint8              ucIsRMF      = 0;
     WDI_BSSSessionType*    pBSSSes;
-
+    wpt_uint8              ucSTAType   = 0;
 #ifdef WLAN_PERF
     wpt_uint32      uTxBdSignature = pBd->txBdSignature;
 #endif
@@ -708,13 +708,22 @@ WDI_FillTxBd
             /* TID->QID is one-to-one mapping, the same way as followed in H/W */
             wpt_uint8 queueId = 0;
 
-            if(ucUnicastDst && (ucStaId == pWDICtx->ucSelfStaId))
+   
+            WDI_STATableGetStaType(pWDICtx, ucStaId, &ucSTAType);
+            if(!ucUnicastDst)
+                pBd->queueId = BTQM_QID0;
+#ifndef HAL_SELF_STA_PER_BSS
+            else if( ucUnicastDst && (ucStaId == pWDICtx->ucSelfStaId))
                 pBd->queueId = BTQM_QUEUE_SELF_STA_UCAST_DATA;
+#else
+            else if( ucUnicastDst && (ucSTAType == WDI_STA_ENTRY_SELF))
+                pBd->queueId = BTQM_QUEUE_SELF_STA_UCAST_DATA;
+#endif
             else if (pSta->qosEnabled) 
             {
-	            WDI_BmuGetQidForQOSTid( ucTid, &queueId); 
+                WDI_BmuGetQidForQOSTid( ucTid, &queueId); 
                 pBd->queueId = (wpt_uint32) queueId;
-	         }
+            }
             else
                 pBd->queueId = BTQM_QUEUE_TX_nQOS;
 

@@ -4136,10 +4136,10 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_40,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_44,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_48,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_52,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_56,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_60,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_64,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_52,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_56,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_60,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_64,
 
                     //5GHz Mid Band - ETSI, none CB
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_100,
@@ -4155,11 +4155,11 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,
@@ -4285,10 +4285,10 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_40,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_44,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_48,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_52,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_56,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_60,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_64,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_52,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_56,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_60,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_64,
 
                     //5GHz Mid Band - ETSI, none CB
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_100,
@@ -4304,11 +4304,11 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,
@@ -4434,10 +4434,10 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_40,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_44,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_48,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_52,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_56,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_60,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_64,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_52,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_56,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_60,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_64,
 
                     //5GHz Mid Band - ETSI, none CB
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_100,
@@ -4453,11 +4453,11 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,
@@ -4648,10 +4648,10 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_40,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_44,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_48,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_52,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_56,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_60,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_64,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_52,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_56,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_60,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_64,
 
                     //5GHz Mid Band - ETSI, none CB
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_100,
@@ -4667,11 +4667,11 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,
@@ -4797,10 +4797,10 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_40,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_44,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_48,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_52,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_56,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_60,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_64,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_52,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_56,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_60,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_64,
 
                     //5GHz Mid Band - ETSI, none CB
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_100,
@@ -4816,11 +4816,11 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,
@@ -4946,10 +4946,10 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_40,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_44,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_48,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_52,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_56,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_60,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_64,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_52,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_56,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_60,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_64,
 
                     //5GHz Mid Band - ETSI, none CB
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_100,
@@ -4965,11 +4965,11 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,
@@ -5095,10 +5095,10 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_40,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_44,
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_48,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_52,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_56,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_60,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_64,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_52,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_56,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_60,
+                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_64,
 
                     //5GHz Mid Band - ETSI, none CB
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_100,
@@ -5114,11 +5114,11 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,

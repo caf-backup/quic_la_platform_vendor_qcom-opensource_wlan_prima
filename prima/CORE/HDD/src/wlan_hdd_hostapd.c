@@ -189,7 +189,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     v_BYTE_t *we_custom_event_generic = NULL;
     int we_event = 0;
     int i = 0;
-    u_int16_t staId;
+    v_U8_t staId;
     VOS_STATUS vos_status; 
     v_BOOL_t bWPSState;
     v_BOOL_t bApActive = FALSE;
@@ -341,14 +341,25 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
             }
 #ifdef CONFIG_CFG80211
             {
-                struct ieee80211_mgmt mgmt;
+                struct ieee80211_mgmt *mgmt;
                 v_U16_t iesLen =  pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.iesLen;
-                v_U16_t size =  (24 + sizeof(mgmt.u.assoc_resp) + iesLen);
-                memcpy(mgmt.da, &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac,6);
-                memcpy(mgmt.sa, &pHostapdAdapter->macAddressCurrent,6);
-                mgmt.u.assoc_resp.status_code = pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.statusCode;
-                memcpy(mgmt.u.assoc_resp.variable,pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies,iesLen);
-                cfg80211_send_rx_assoc(dev,(const u8 *)&mgmt,size);
+                v_U16_t size =  (24 + sizeof(mgmt->u.assoc_resp) + iesLen);
+                mgmt = vos_mem_malloc(size);
+                if (mgmt != NULL)
+                {
+                    memcpy(mgmt->da, &pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.staMac, 6);
+                    memcpy(mgmt->sa, &pHostapdAdapter->macAddressCurrent, 6);
+                    mgmt->u.assoc_resp.status_code = 
+                       pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.statusCode;
+                    memcpy(mgmt->u.assoc_resp.variable,
+                       pSapEvent->sapevt.sapStationAssocReassocCompleteEvent.ies,iesLen);
+                    cfg80211_send_rx_assoc(dev,(const u8 *)mgmt,size);
+                    vos_mem_free(mgmt);
+                }
+                else
+                {
+                    hddLog(LOGE, FL("HDD: Failed to allocate memory for assoc req\n"));
+                }
              }
 #endif
 

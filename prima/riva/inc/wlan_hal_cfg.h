@@ -101,13 +101,17 @@
 #endif
 
 #ifdef FEATURE_5GHZ_BAND
-#define QWLAN_HAL_CFG_MAX_PARAMS                         70
+#define QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING         70 
+#define QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL     71
+#define QWLAN_HAL_CFG_MAX_PARAMS                         72
 #else
-#define QWLAN_HAL_CFG_MAX_PARAMS                         65
+#define QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING         65
+#define QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL     66 
+#define QWLAN_HAL_CFG_MAX_PARAMS                         67
 #endif
 
 /* Total number of Integer CFGs. This is used while allocating the memory for TLV */
-#define QWLAN_HAL_CFG_INTEGER_PARAM                      68
+#define QWLAN_HAL_CFG_INTEGER_PARAM                      70
 
 /*-------------------------------------------------------------------------
   Configuration Parameter min, max, defaults
@@ -474,6 +478,7 @@
 #define QWLAN_CFG_TX_PWR_CTRL_ENABLE_STAMIN    0
 #define QWLAN_CFG_TX_PWR_CTRL_ENABLE_STAMAX    1
 #define QWLAN_CFG_TX_PWR_CTRL_ENABLE_STADEF    1
+
 #define QWLAN_HAL_CFG_TELE_BCN_WAKEUP_EN_STAMIN    0
 #define QWLAN_HAL_CFG_TELE_BCN_WAKEUP_EN_STAMAX    1
 #define QWLAN_HAL_CFG_TELE_BCN_WAKEUP_EN_STADEF    0
@@ -488,11 +493,19 @@
 
 #define QWLAN_HAL_CFG_TELE_BCN_MAX_LI_STAMIN    0
 #define QWLAN_HAL_CFG_TELE_BCN_MAX_LI_STAMAX    7
-#define QWLAN_HAL_CFG_TELE_BCN_MAX_LI_STADEF    0
+#define QWLAN_HAL_CFG_TELE_BCN_MAX_LI_STADEF    5
 
 #define QWLAN_HAL_CFG_TELE_BCN_MAX_LI_IDLE_BCNS_STAMIN    5
 #define QWLAN_HAL_CFG_TELE_BCN_MAX_LI_IDLE_BCNS_STAMAX    255
 #define QWLAN_HAL_CFG_TELE_BCN_MAX_LI_IDLE_BCNS_STADEF    15
+
+#define QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING_STAMIN    0
+#define QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING_STAMAX    3
+#define QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING_STADEF    0
+
+#define QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL_STAMIN    1
+#define QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL_STAMAX    255
+#define QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL_STADEF    5
 
 #ifdef FEATURE_5GHZ_BAND
 
@@ -589,6 +602,8 @@ typedef struct
    uint32   cfgTeleBcnTransLiIdleBcns;     //QWLAN_HAL_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS
    uint32   cfgTeleBcnMaxLi;               //QWLAN_HAL_CFG_TELE_BCN_MAX_LI
    uint32   cfgTeleBcnMaxLiIdleBcns;       //QWLAN_HAL_CFG_TELE_BCN_MAX_LI_IDLE_BCNS
+   uint32   cfgMcastBcastFilterSetting;    //QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING
+   uint32   cfgBcnEarlyTermWakeupInterval; //QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL
 #ifdef FEATURE_5GHZ_BAND
    uint8    cfgValidRadarChannelList[QWLAN_HAL_CFG_RADAR_CHANNEL_LIST_LEN]; //QWLAN_HAL_CFG_VALID_RADAR_LIST
    uint32   cfgTxPower2420;//QWLAN_HAL_CFG_TX_POWER_24_20

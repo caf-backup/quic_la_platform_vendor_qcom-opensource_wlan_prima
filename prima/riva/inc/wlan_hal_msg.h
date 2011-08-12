@@ -3314,6 +3314,19 @@ typedef PACKED_PRE struct PACKED_POST
 }  tHalSetUapsdAcParamsReqMsg, *tpHalSetUapsdAcParamsReqMsg;
 
 /*---------------------------------------------------------------------------
+ * WLAN_HAL_CONFIGURE_RXP_FILTER_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST {
+    tANI_U32 filterMask;   // for now, this is not a mask but true/false
+} tHalConfigureRxpFilterReqParams, tpHalConfigureRxpFilterReqParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalConfigureRxpFilterReqParams    configureRxpFilterReqParams;
+}  tHalConfigureRxpFilterReqMsg, *tpHalConfigureRxpFilterReqMsg;
+
+/*---------------------------------------------------------------------------
  * WLAN_HAL_ENTER_IMPS_RSP
  *--------------------------------------------------------------------------*/
 typedef PACKED_PRE struct PACKED_POST
@@ -3574,6 +3587,20 @@ typedef PACKED_PRE struct PACKED_POST
    tHalSetUapsdAcParamsRspParams setUapsdAcParamsRspParams;
 }  tHalSetUapsdAcParamsRspMsg, *tpHalSetUapsdAcParamsRspMsg;
 
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_CONFIGURE_RXP_FILTER_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalConfigureRxpFilterRspParams, *tpHalConfigureRxpFilterRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalConfigureRxpFilterRspParams configureRxpFilterRspParams;
+}  tHalConfigureRxpFilterRspMsg, *tpHalConfigureRxpFilterRspMsg;
 
 /*---------------------------------------------------------------------------
  *WLAN_HAL_SET_MAX_TX_POWER_REQ

@@ -2817,17 +2817,7 @@ static void __exit hdd_module_exit(void)
          attempts++;
          if(attempts==MAX_EXIT_ATTEMPTS_DURING_LOGP)
            break;
-       }
-
-#if 0
-      //Get the HDD context.
-      pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
-      if(!pAdapter) 
-      {
-         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: module exit called before probe",__func__);
-         goto done;
       }
-#endif
 
       pHddCtx->isLoadUnloadInProgress = TRUE;
       vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
@@ -2920,7 +2910,7 @@ void hdd_softap_sta_deauth(hdd_adapter_t *pAdapter, v_U8_t *pDestMacAddress)
 #else
     if (VOS_STATUS_SUCCESS ==
         hdd_softap_GetStaId(pAdapter, (v_MACADDR_t *)pDestMacAddress,
-                            (v_U16_t *)&STAId))
+                            &STAId))
     {
        hdd_softap_DeregisterSTA(pAdapter, STAId);
     }

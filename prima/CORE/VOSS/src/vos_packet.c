@@ -1211,6 +1211,7 @@ VOS_STATUS vos_pkt_return_packet( vos_pkt_t *pPacket )
    vos_pkt_low_resource_info *pLowResourceInfo;
    vos_pkt_get_packet_callback callback;
    v_SIZE_t *pCount;
+   VOS_PKT_TYPE packetType = VOS_PKT_TYPE_TX_802_3_DATA;
 
    // Validate the input parameter pointer
    if (unlikely(NULL == pPacket))
@@ -1261,6 +1262,7 @@ VOS_STATUS vos_pkt_return_packet( vos_pkt_t *pPacket )
             pLowResourceInfo = NULL;
             pCount = &gpVosPacketContext->rxReplenishListCount;
          }
+         packetType = VOS_PKT_TYPE_RX_RAW;
          break;
 
       case VOS_PKT_TYPE_TX_802_11_MGMT:
@@ -1327,9 +1329,12 @@ VOS_STATUS vos_pkt_return_packet( vos_pkt_t *pPacket )
    } // while (pPacket)
 
    // see if we need to replenish the Rx Raw pool
-   spin_lock(&gpVosPacketContext->lock);
-   vos_pkti_replenish_raw_pool();   
-   spin_unlock(&gpVosPacketContext->lock);
+   if (VOS_PKT_TYPE_RX_RAW == packetType)
+   {
+      spin_lock(&gpVosPacketContext->lock);
+      vos_pkti_replenish_raw_pool();   
+      spin_unlock(&gpVosPacketContext->lock);
+   }
    return VOS_STATUS_SUCCESS;
 }
 
