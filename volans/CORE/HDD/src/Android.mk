@@ -78,7 +78,7 @@ include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
 #Create symbolic link
-ifneq (, $(filter msm7627a msm8660_surf, $(QCOM_TARGET_PRODUCT)))
+ifeq ($(call is-board-platform-in-list,msm7627a msm8660),true)
 WLAN_WCN1314_SYMLINK := $(TARGET_OUT)/lib/modules/wlan.ko
 $(WLAN_WCN1314_SYMLINK):
 	@mkdir -p $(dir $@)

@@ -1,7 +1,8 @@
 # Android makefile for the WLAN Libra Module
 
 # Build/Package only in case of 7x30 and 7x27 target
-ifneq (, $(filter msm7627_surf msm7627_ffa msm7630_surf msm7630_fusion, $(QCOM_TARGET_PRODUCT)))
+ifeq ($(call is-board-platform-in-list,msm7627_surf msm7627_ffa msm7630_surf msm7630_fusion),true)
+
 
 WLAN_BLD_DIR := vendor/qcom/proprietary/wlan
 LIBRA_FW_DIR := vendor/qcom/proprietary/wlan/libra/firmware_bin
@@ -59,7 +60,7 @@ include $(DLKM_DIR)/AndroidKernelModule.mk
 ###########################################################
 
 #Create symbolic link
-ifneq (, $(filter msm7627_surf msm7627_ffa, $(QCOM_TARGET_PRODUCT)))
+ifeq ($(call is-chipset-in-board-platform,msm7627),true)
 WLAN_WCN1312_SYMLINK := $(TARGET_OUT)/lib/modules/wlan.ko
 $(WLAN_WCN1312_SYMLINK):
 	@mkdir -p $(dir $@)

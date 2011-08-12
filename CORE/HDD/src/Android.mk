@@ -2,7 +2,7 @@
 # Android makefile for the WLAN Libra Module
 
 # Build/Package only in case of 7x30 and 7x27 target
-ifneq (, $(filter msm7627_surf msm7627_ffa msm7630_surf msm7630_fusion, $(QCOM_TARGET_PRODUCT)))
+ifeq ($(call is-board-platform-in-list,msm7627_surf msm7627_ffa msm7630_surf msm7630_fusion),true)
 
 PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/firmware_bin/qcom_fw.bin:system/etc/firmware/wlan/qcom_fw.bin
 PRODUCT_COPY_FILES += vendor/qcom/proprietary/wlan/firmware_bin/qcom_wapi_fw.bin:system/etc/firmware/wlan/qcom_wapi_fw.bin
@@ -17,14 +17,14 @@ WLAN_TEMP_OUT := $(TARGET_OUT_INTERMEDIATES)/vendor/qcom/proprietary/wlan/CORE/H
 WLAN_MDIR := ../vendor/qcom/proprietary/wlan/CORE/HDD/src
 WLAN_PRODUCT_OUT := $(TARGET_OUT)/lib/modules/libra/libra.ko
 WLAN_LIBRA_SDIOIF_OUT :=  $(TARGET_OUT)/lib/modules/librasdioif.ko
-ifneq (, $(filter msm7627_surf msm7627_ffa, $(QCOM_TARGET_PRODUCT)))
+ifeq ($(call is-chipset-in-board-platform,msm7627),true)
 WLAN_WCN1312_SYMLINK := $(TARGET_OUT)/lib/modules/wlan.ko
 endif
 
 
 file := $(WLAN_OUT)
 ALL_PREBUILT += $(file)
-ifneq (, $(filter msm7627_surf msm7627_ffa, $(QCOM_TARGET_PRODUCT)))
+ifeq ($(call is-chipset-in-board-platform,msm7627),true)
 file := $(WLAN_WCN1312_SYMLINK)
 ALL_PREBUILT += $(file)
 endif
@@ -41,7 +41,7 @@ $(WLAN_MDIR): $(KERNEL_OUT)
 	mkdir -p $(KERNEL_OUT)/$(WLAN_MDIR)
 
 #POR for 7x27 is only libra
-ifneq (, $(filter msm7627_surf msm7627_ffa, $(QCOM_TARGET_PRODUCT)))
+ifeq ($(call is-chipset-in-board-platform,msm7627),true)
 $(WLAN_WCN1312_SYMLINK): $(WLAN_RF_LIBRA_OUT) $(WLAN_PRODUCT_OUT) $(MAKE_MODULES_FOLDER)
 	ln -s -f /system/lib/modules/libra/libra.ko $(WLAN_WCN1312_SYMLINK)
 endif
@@ -59,7 +59,7 @@ $(WLAN_LIBRA_SDIOIF_OUT): $(ACP_BINARY_OUT) $(WLAN_OUT) $(MAKE_MODULES_FOLDER) $
 	$(ACP) -f $(KERNEL_OUT)/drivers/net/wireless/libra/librasdioif.ko $(WLAN_LIBRA_SDIOIF_OUT)
 
 all: $(WLAN_OUT) $(WLAN_PRODUCT_OUT) $(WLAN_LIBRA_SDIOIF_OUT) $(MAKE_SYMBOLIC_LINK)
-ifneq (, $(filter msm7627_surf msm7627_ffa, $(QCOM_TARGET_PRODUCT)))
+ifeq ($(call is-chipset-in-board-platform,msm7627),true)
 	$(WLAN_WCN1312_SYMLINK)
 endif
 
