@@ -1053,15 +1053,21 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
    init_completion(&pAdapter->mc_sus_event_var);
    init_completion(&pAdapter->tx_sus_event_var);
 
-
-   // Register the net device. Device should be registered to invoke
-   // request_firmware API for reading the qcom_cfg.ini file
-
 #ifdef ANI_MANF_DIAG
+    // Register the net device. Device should be registered to invoke
+    // request_firmware API for reading the qcom_cfg.ini file
+    if(register_netdev(pWlanDev))
+    {
+       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed:register_netdev",__func__); 
+       goto err_free_netdev;
+    }
+
+    set_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
+
     if(VOS_STATUS_SUCCESS != wlan_hdd_ftm_open(pAdapter))
     {
         hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed to Load FTM driver",__func__);
-        goto err_free_netdev;
+        goto err_netdev_unregister;
     }
     hddLog(VOS_TRACE_LEVEL_FATAL,"%s: FTM driver loaded success fully",__func__);
     return VOS_STATUS_SUCCESS;
@@ -1284,6 +1290,8 @@ int hdd_wlan_sdio_probe(struct sdio_func *sdio_func_dev )
       goto err_nl_srv;
    }
 
+   // Register the net device. Device should be registered to invoke
+   // request_firmware API for reading the qcom_cfg.ini file
    if(register_netdev(pWlanDev))
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed:register_netdev",__func__);
