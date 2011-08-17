@@ -1030,6 +1030,23 @@ VOS_STATUS hdd_wlan_reset(void)
       goto err_fail;
    }
    
+   //Get the SDIO func device
+   sdio_func_dev_new = libra_getsdio_funcdev();
+   if(sdio_func_dev_new != NULL)
+   {
+       sd_claim_host(sdio_func_dev_new);
+       /* Enable IRQ capabilities in host controller */
+       libra_disable_sdio_irq_capability(sdio_func_dev_new, 0);
+       libra_enable_sdio_irq(sdio_func_dev_new, 1);
+       sd_release_host(sdio_func_dev_new);
+   }
+   else
+   {
+        /* Our card got removed before LOGP. */
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: sdio_func_dev is NULL!",__func__);
+        goto err_fail;
+   }
+
    vosStatus = WLANBAL_Open(pAdapter->pvosContext);
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    if(!VOS_IS_STATUS_SUCCESS(vosStatus))
