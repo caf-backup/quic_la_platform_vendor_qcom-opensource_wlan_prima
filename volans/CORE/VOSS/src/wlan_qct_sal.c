@@ -1241,3 +1241,70 @@ void WLANSAL_GetSDIOCardId
   VOS_ASSERT(NULL != gpsalHandle);
   libra_sdio_get_card_id(gpsalHandle->sdio_func_dev, sdioCardId);
 }
+
+/*----------------------------------------------------------------------------
+
+   @brief Reinitialize LIBRA's SDIO core
+          Deep sleep status is same with turn off power
+          So, standard SDIO init procedure is needed
+
+   @param v_PVOID_t pAdapter
+        Global adapter handle
+
+   @return General status code
+        VOS_STATUS_SUCCESS       Update success
+        VOS_STATUS_E_RESOURCES   SAL resources are not ready
+        VOS_STATUS_E_INVAL       Invalid argument
+      
+----------------------------------------------------------------------------*/
+VOS_STATUS WLANSAL_SDIOReInit
+(
+   v_PVOID_t             pAdapter
+)
+{
+   hdd_adapter_t *pHddAdapter = NULL;
+   v_CONTEXT_t pVosContext = NULL;
+   struct sdio_func *func;
+#ifndef LIBRA_LINUX_PC
+   int err = 0;
+#endif
+
+   //Get the global vos context
+   pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
+
+   if(!pVosContext) 
+   {
+      SMSGERROR("Global VOS context is Null", 0, 0, 0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   //Get the HDD context.
+   pHddAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
+   if(!pHddAdapter) 
+   {
+      SMSGERROR("Hdd Adapter context is Null", 0, 0, 0);
+      return VOS_STATUS_E_FAILURE;;
+   }
+
+   func = libra_getsdio_funcdev();
+   if (func && func->card) {
+#ifndef LIBRA_LINUX_PC
+      err = sdio_reset_comm(func->card);
+#endif
+#ifndef LIBRA_LINUX_PC
+      if(err) {
+         SMSGERROR("%s: sdio_reset_comm failed %d", __func__, err, 0);
+         return VOS_STATUS_E_FAILURE;
+      }
+#endif
+   }
+   else
+   {
+      SMSGERROR("%s: sdio_func or mmc_card handle is null", __func__, 0, 0);
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   atomic_set(&pHddAdapter->sdio_claim_count, 0);
+
+   return VOS_STATUS_SUCCESS;
+}

@@ -65,6 +65,17 @@ extern v_VOID_t vos_core_return_msg(v_PVOID_t pVContext, pVosMsgWrapper pMsgWrap
  * ------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------
+  \brief clearWlanResetReason - To clear the wlan reset reason from WDcontext
+  \return None
+  -------------------------------------------------------------------------*/
+void clearWlanResetReason(void)
+{
+   /* clear the reason state */
+   gpVosWatchdogContext->reason = -1;
+   return;
+}
+
+/*---------------------------------------------------------------------------
   \brief vos_sched_open() - initialize the vOSS Scheduler
   The \a vos_sched_open() function initializes the vOSS Scheduler
   Upon successful initialization:
@@ -228,6 +239,7 @@ VOS_STATUS vos_watchdog_open
   vos_mem_zero(pWdContext, sizeof(VosWatchdogContext));
   pWdContext->pVContext = pVosContext;
   gpVosWatchdogContext = pWdContext;
+  clearWlanResetReason();
 
   //Initialize the helper events and event queues
   init_completion(&pWdContext->WdStartEvent);
@@ -599,7 +611,7 @@ VosWDThread
         {
           pWdContext->resetInProgress = true;
 #ifdef CONFIG_HAS_EARLYSUSPEND
-          vosStatus = hdd_wlan_reset();
+          vosStatus = hdd_wlan_reset(gpVosWatchdogContext->reason);
 #endif
           if (! VOS_IS_STATUS_SUCCESS(vosStatus))
           {
@@ -925,20 +937,19 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     
     sdio_func_dev = libra_getsdio_funcdev();
 
-    if(sdio_func_dev == NULL)
+    if(sdio_func_dev != NULL)
+    {
+        sd_claim_host(sdio_func_dev);
+        /* Disable SDIO IRQ since we are in LOGP state */
+        libra_disable_sdio_irq_capability(sdio_func_dev, 1);
+        libra_enable_sdio_irq(sdio_func_dev, 0);
+        sd_release_host(sdio_func_dev);
+    }
+    else
     {
          /* Our card got removed before LOGP. Continue with reset anyways */
          hddLog(VOS_TRACE_LEVEL_FATAL, "%s: sdio_func_dev is NULL!",__func__);
-         return VOS_STATUS_SUCCESS;
     }
-
-    sd_claim_host(sdio_func_dev);
-
-    /* Disable SDIO IRQ since we are in LOGP state */
-    libra_disable_sdio_irq_capability(sdio_func_dev, 1);
-    libra_enable_sdio_irq(sdio_func_dev, 0);
-
-    sd_release_host(sdio_func_dev);
 
     /* Take the lock here */
     spin_lock(&gpVosWatchdogContext->wdLock);
@@ -961,7 +972,9 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     }
 
     VOS_ASSERT(0);
-
+    
+    /* Store the reason for wlan_reset */
+    gpVosWatchdogContext->reason = reason;
     /* Set the flags so that all future CMD53 and Wext commands get blocked right away */
     vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
     pAdapter->isLogpInProgress = TRUE;

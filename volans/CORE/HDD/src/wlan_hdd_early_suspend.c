@@ -780,7 +780,7 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
    return;
 }
 
-VOS_STATUS hdd_wlan_reset(void) 
+VOS_STATUS hdd_wlan_reset(vos_chip_reset_reason_type reset_reason) 
 {
    VOS_STATUS vosStatus;
    union iwreq_data wrqu;
@@ -946,32 +946,6 @@ VOS_STATUS hdd_wlan_reset(void)
           "%s: Failed to close BAL",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    }
-   
-   //Get the Current SDIO Func
-   sdio_func_dev_current = libra_getsdio_funcdev();   
-
-   if(NULL != sdio_func_dev_current) {
-      libra_detect_card_change();
-      attempts = 0;
-      do {
-         msleep(100);
-         //Get the SDIO func device
-         sdio_func_dev_current = libra_getsdio_funcdev();
-         if(NULL == sdio_func_dev_current) {
-            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Card Removed Successfully",__func__);
-            break;
-         }
-         else {
-            hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to Remove the Card: Trying Again",__func__);
-            attempts++;
-         }
-      } while (attempts < LIBRA_CARD_REMOVE_DETECT_MAX_COUNT);
-
-      if(LIBRA_CARD_REMOVE_DETECT_MAX_COUNT == attempts) {
-         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Failed to Remove the Card: Fatal",__func__);
-         goto err_fail;
-      }
-   }
 
 #ifdef TIMER_MANAGER
    vos_timer_exit();
@@ -980,6 +954,10 @@ VOS_STATUS hdd_wlan_reset(void)
 #ifdef MEMORY_DEBUG
    vos_mem_clean();
 #endif
+
+   //Get the Current SDIO Func
+   sdio_func_dev_current = libra_getsdio_funcdev();   
+
    //Reinitialize the variable
    attempts = 0;
 
@@ -993,41 +971,55 @@ VOS_STATUS hdd_wlan_reset(void)
       goto err_pwr_fail;
    }
 
-   // Trigger card detect
-   libra_detect_card_change();
+   if (reset_reason == VOS_CHIP_RESET_CMD53_FAILURE &&
+       sdio_func_dev_current == NULL)
+   {
+       // Trigger card detect
+       libra_detect_card_change();
 
-   //Reinitialize the variable
-   attempts = 0;
+       //Reinitialize the variable
+       attempts = 0;
 
-   do {
-      msleep(500);
-   
-      //Get the SDIO func device
-      sdio_func_dev_new = libra_getsdio_funcdev();
-      if(sdio_func_dev_new != NULL)
-      {
-         SET_NETDEV_DEV(pAdapter->dev, &sdio_func_dev_new->dev);
-         libra_sdio_setprivdata (sdio_func_dev_new, pAdapter);
-         atomic_set(&pAdapter->sdio_claim_count, 0);
-         pAdapter->hsdio_func_dev = sdio_func_dev_new;
-         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-          "%s: Card Detected Successfully %p",__func__, 
-          sdio_func_dev_new);
-         break;
-      }
-      else
-      {
-         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-          "%s: Failed to detect card change %p",__func__, 
-          sdio_func_dev_new);     
-	  attempts++;
-      }	
-   }while (attempts < LIBRA_CARD_INSERT_DETECT_MAX_COUNT);
-   
-   if(LIBRA_CARD_INSERT_DETECT_MAX_COUNT == attempts){
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN fail to detect in reset"
-             "exiting", __func__);
-      goto err_fail;
+       do {
+          msleep(500);
+          //Get the SDIO func device
+          sdio_func_dev_new = libra_getsdio_funcdev();
+          if(sdio_func_dev_new != NULL)
+          {
+             SET_NETDEV_DEV(pAdapter->dev, &sdio_func_dev_new->dev);
+             libra_sdio_setprivdata (sdio_func_dev_new, pAdapter);
+             atomic_set(&pAdapter->sdio_claim_count, 0);
+             pAdapter->hsdio_func_dev = sdio_func_dev_new;
+             VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+              "%s: Card Detected Successfully %p",__func__, 
+              sdio_func_dev_new);
+             break;
+          }
+          else
+          {
+             VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+              "%s: Failed to detect card change %p",__func__, 
+              sdio_func_dev_new);     
+              attempts++;
+          }	
+       }while (attempts < LIBRA_CARD_INSERT_DETECT_MAX_COUNT);
+
+       if(LIBRA_CARD_INSERT_DETECT_MAX_COUNT == attempts){
+          hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN fail to detect in reset"
+                 "exiting", __func__);
+          goto err_fail;
+       }
+   }
+   else
+   {
+       vosStatus = WLANSAL_SDIOReInit( pAdapter->pvosContext );
+       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
+       if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+       {
+           VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+             "%s: Failed in WLANSAL_SDIOReInit",__func__);
+           goto err_fail;
+       }
    }
    
    //Get the SDIO func device
