@@ -290,6 +290,11 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 
         if(status != 0)
         {
+            if( (-EBUSY == status) && 
+                (cfgState->current_freq == chan->center_freq) )
+            {
+                goto send_frame;
+            }
             goto err;
         }
 
@@ -303,6 +308,7 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
             goto err;
         }
     }
+    send_frame:
 #endif
 
     cfgState->buf = vos_mem_malloc( len ); //buf;

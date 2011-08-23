@@ -329,7 +329,7 @@ typedef struct
 	 wpt_uint16    usAssocId;
 
    /*STA Index returned during DAL_PostAssocReq or DAL_ConfigStaReq*/
-   wpt_uint16    usSTAIdx;
+   wpt_uint8     ucSTAIdx;
 
    /*BSSID of STA*/
    wpt_macAddr   macBSSID; 
@@ -519,15 +519,6 @@ typedef struct
 
   /*Max number of BSS supported by the device*/
   wpt_uint8     ucMaxBssids;
-
-  /*Self STA Index */
-  wpt_uint16    usSelfStaIdx;
-
-  /*Self STA Mac*/
-  wpt_macAddr   macSelfSta;
-
-  /* Self STA DPU Index */
-  wpt_uint16    usSelfStaDpuId;
 
 }WDI_StartRspParamsType;
 
@@ -744,10 +735,12 @@ typedef struct
 
 #ifdef WLAN_FEATURE_VOWIFI
   wpt_int8      cMaxTxPower;
-  wpt_macAddr   macSelfStaMacAddr;
   /*BSSID is needed to identify which session issued this request. As the 
   request has power constraints, this should be applied only to that session */
   wpt_macAddr   macBSSId;
+
+  /*Self STA Mac address*/
+  wpt_macAddr   macSelfStaMacAddr;
 #endif
 
 }WDI_SwitchChReqInfoType;
@@ -795,6 +788,9 @@ typedef struct
 {
   /*Indicates the BSSID to which STA is going to associate*/
   wpt_macAddr     	macBSSID; 
+
+  /*Indicates the MAC Address of the current Self STA*/
+  wpt_macAddr     	macSTASelf; 
 
   /*Indicates the channel to switch to.*/
   WDI_SwitchChReqInfoType  wdiChannelInfo; 
@@ -1123,7 +1119,7 @@ typedef struct
 typedef struct
 {
   /*BSS Index*/
-  wpt_uint16     usBSSIdx;
+  wpt_uint8      ucBSSIdx;
   
   /*?*/
   wpt_boolean    bHighPerformance;
@@ -1256,6 +1252,9 @@ typedef struct
    /*max power to be used after applying the power constraint, if any */
   wpt_int8                  cMaxTxPower;
 #endif
+
+  /* Persona for the BSS can be STA,AP,GO,CLIENT, same as Connection Mode */  
+  wpt_uint8                 ucPersona;
 }WDI_ConfigBSSReqInfoType;
 
 
@@ -1289,7 +1288,7 @@ typedef struct
   wpt_macAddr  macBSSID; 
 
   /*BSS Index*/
-  wpt_uint16   usBSSIdx;
+  wpt_uint8    ucBSSIdx;
 
   /*Unicast DPU signature*/
   wpt_uint8    ucUcastSig;
@@ -1301,7 +1300,7 @@ typedef struct
   wpt_macAddr  macSTA;
 
   /*BSS STA ID*/
-  wpt_uint16   usSTAIdx;
+  wpt_uint8    ucSTAIdx;
 
 #ifdef WLAN_FEATURE_VOWIFI
   /*HAL fills in the tx power used for mgmt frames in this field */
@@ -1371,7 +1370,7 @@ typedef struct
   WDI_Status      wdiStatus;
 
   /*STA Idx allocated by HAL*/
-  wpt_uint16      usSTAId;
+  wpt_uint8       ucSTAIdx;
 
   /*MAC Address of STA*/
   wpt_macAddr     macSTA;
@@ -1415,7 +1414,7 @@ typedef struct
 typedef struct
 {
   /*STA Index returned during DAL_PostAssocReq or DAL_ConfigStaReq*/
-  wpt_uint16        usSTAIdx;
+  wpt_uint8         ucSTAIdx;
 
   /*Request status callback offered by UMAC - it is called if the current
     req has returned PENDING as status; it delivers the status of sending
@@ -1436,7 +1435,7 @@ typedef struct
   WDI_Status   wdiStatus; 
 
   /*STA Index returned during DAL_PostAssocReq or DAL_ConfigStaReq*/
-  wpt_uint16   usSTAIdx;
+  wpt_uint8    ucSTAIdx;
 }WDI_DelSTARspParamsType;
 
 /*---------------------------------------------------------------------------
@@ -1586,7 +1585,7 @@ typedef struct
 typedef struct
 {
    /*STA Index*/
-  wpt_uint16       usSTAIdx; 
+  wpt_uint8        ucSTAIdx; 
 
   /*Encryption Type used with peer*/
   WDI_EncryptType  wdiEncType;		
@@ -1632,7 +1631,7 @@ typedef struct
 typedef struct
 {
   /*STA Index*/
-  wpt_uint16       usSTAIdx; 
+  wpt_uint8        ucSTAIdx; 
 
   /*Encryption Type used with peer*/
   WDI_EncryptType  wdiEncType;		
@@ -1731,13 +1730,13 @@ typedef struct
 typedef struct
 {
   /*STA Index*/
-  wpt_uint16        usSTAIdx; 
+  wpt_uint8         ucSTAIdx; 
 
   /*Identifier for TSpec*/
   wpt_uint16        ucTspecIdx;
 
   /*Tspec IE negotiated OTA*/
-	WDI_TspecIEType	  wdiTspecIE;
+  WDI_TspecIEType	  wdiTspecIE;
 
   /*UAPSD delivery and trigger enabled flags */
   wpt_uint8         ucUapsdFlags;
@@ -1778,7 +1777,7 @@ typedef struct
 typedef struct
 {
   /*STA Index*/
-  wpt_uint16        usSTAIdx; 
+  wpt_uint8         ucSTAIdx; 
 
   /*Identifier for TSpec*/
   wpt_uint16        ucTspecIdx;
@@ -1856,7 +1855,7 @@ typedef struct
 typedef struct
 {
   /*Indicates the station for which BA is added..*/
-  wpt_uint16       usSTAIdx;	
+  wpt_uint8        ucSTAIdx;	
 
   /*The peer mac address*/
   wpt_macAddr      macPeerAddr;
@@ -1925,7 +1924,7 @@ typedef struct
   wpt_uint8    ucWinSize;
   
   /*Station Index to id the sta */
-  wpt_uint8    usSTAIdx;
+  wpt_uint8    ucSTAIdx;
   
   /* Starting Sequence Number */
   wpt_uint16   usBaSSN;
@@ -1938,7 +1937,7 @@ typedef struct
 typedef struct
 {
   /*Indicates the station for which BA is added..*/
-  wpt_uint16       usSTAIdx;
+  wpt_uint8        ucSTAIdx;
 
   /* Session Id */
   wpt_uint8        ucBaSessionID;
@@ -1991,7 +1990,7 @@ typedef struct
 typedef struct
 {
   /* STA index */
-  wpt_uint16  usSTAIdx;
+  wpt_uint8   ucSTAIdx;
 
   /* TID bit map for the STA's*/
   wpt_uint8   ucTidBitmap;
@@ -2005,7 +2004,7 @@ typedef struct
 typedef struct
 {
   /*Indicates the station for which BA is added..*/
-  wpt_uint16       usSTAIdx;
+  wpt_uint8        ucSTAIdx;
 
   /* Session Id */
   wpt_uint8        ucBASessionID;
@@ -2084,7 +2083,7 @@ typedef struct
 typedef struct
 {
   /*Indicates the station for which BA is added..*/
-  wpt_uint16       usSTAIdx;	
+  wpt_uint8        ucSTAIdx;	
 
   /*TID for which BA was negotiated*/
   wpt_uint8        ucBaTID;
@@ -2281,6 +2280,9 @@ typedef struct
 
   /*Link state*/
   WDI_LinkStateType     wdiLinkState;
+
+  /*BSSID of the BSS*/
+  wpt_macAddr           macSelfStaMacAddr;
 }WDI_SetLinkReqInfoType;
 
 /*---------------------------------------------------------------------------
@@ -2307,7 +2309,7 @@ typedef struct
 typedef struct
 {
   /*Indicates the station for which Get Stats are requested..*/
-  wpt_uint16       usSTAIdx;
+  wpt_uint8        ucSTAIdx;
 
   /* categories of stats requested */
   wpt_uint32       uStatsMask;
@@ -2346,7 +2348,7 @@ typedef struct
   WDI_Status       wdiStatus;
 
   /*Indicates the station for which Get Stats are requested..*/
-  wpt_uint16       usSTAIdx;
+  wpt_uint8        ucSTAIdx;
 
   /* categories of stats requested */
   wpt_uint32       uStatsMask;
@@ -2583,9 +2585,16 @@ typedef struct
 }WDI_SetP2PGONOAReqParamsType;
 #endif
 
+
+/*---------------------------------------------------------------------------
+  WDI_SetAddSTASelfParamsType
+---------------------------------------------------------------------------*/
 typedef struct
 {
+  /*Self Station MAC address*/
   wpt_macAddr selfMacAddr;
+
+  /*Status of the operation*/
   wpt_uint32  uStatus;
 }WDI_AddSTASelfInfoType;
 
@@ -2600,12 +2609,32 @@ typedef struct
   /*Request status callback offered by UMAC - it is called if the current
     req has returned PENDING as status; it delivers the status of sending
     the message over the BUS */
-  WDI_ReqStatusCb   wdiReqStatusCB; 
+  WDI_ReqStatusCb         wdiReqStatusCB; 
 
   /*The user data passed in by UMAC, it will be sent back when the above
     function pointer will be called */
-  void*             pUserData;
-}WDI_AddSTASelfParamsType;
+  void*                   pUserData;
+}WDI_AddSTASelfReqParamsType;
+
+
+/*---------------------------------------------------------------------------
+  WDI_AddSTASelfRspParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+ /*Status of the response*/
+  WDI_Status   wdiStatus; 
+
+  /*STA Idx allocated by HAL*/
+  wpt_uint8    ucSTASelfIdx;
+
+  /* DPU Index*/
+  wpt_uint8    ucDpuSelfIndex;
+
+  /*Self STA Mac*/
+  wpt_macAddr  macSelfSta;
+
+}WDI_AddSTASelfRspParamsType;
 
 /*---------------------------------------------------------------------------
   WDI_DelSTASelfReqParamsType
@@ -2643,7 +2672,7 @@ typedef struct
   WDI_Status   wdiStatus; 
 
   /*STA Index returned during DAL_PostAssocReq or DAL_ConfigStaReq*/
-//  wpt_uint16   usSTAIdx;
+//  wpt_uint8   ucSTAIdx;
 }WDI_DelSTASelfRspParamsType;
 
 /*---------------------------------------------------------------------------
@@ -2652,7 +2681,7 @@ typedef struct
 ---------------------------------------------------------------------------*/
 typedef struct  
 {
-   wpt_uint8  ucStaIdx;        // STA index
+   wpt_uint8  ucSTAIdx;        // STA index
    wpt_uint8  ucAc;            // Access Category
    wpt_uint8  ucUp;            // User Priority
    wpt_uint32 uSrvInterval;   // Service Interval
@@ -2777,7 +2806,7 @@ typedef struct
 ---------------------------------------------------------------------------*/
 typedef struct
 {
-   wpt_uint16 usStaIdx;
+   wpt_uint8  ucSTAIdx;
    wpt_uint8  ucUapsdACMask; 
    wpt_uint32 uMaxSpLen;    
 }WDI_UpdateUapsdReqinfoType;
@@ -3161,6 +3190,86 @@ typedef struct
   void*             pUserData;
 }WDI_BtAmpEventParamsType;
 
+#ifdef FEATURE_INNAV_SUPPORT
+/*----------------------------------------------------------------------------
+  WDI_InNavMeasurementMode,
+----------------------------------------------------------------------------*/
+typedef enum
+{
+  WDI_RTS_CTS_BASED = 1,
+  WDI_FRAME_BASED,
+}WDI_InNavMeasurementMode;
+
+/*----------------------------------------------------------------------------
+  WDI_BSSIDChannelInfo
+----------------------------------------------------------------------------*/
+typedef struct 
+{
+  wpt_macAddr     ucBssid;
+  wpt_uint16      usChannel;
+} WDI_BSSIDChannelInfo;
+
+/*----------------------------------------------------------------------------
+  WDI_InNavMeasReqInfoType
+----------------------------------------------------------------------------*/
+typedef struct
+{
+//  wpt_uint16                 usMessageType;
+//  wpt_uint16                 usLength;
+  wpt_uint8                  ucNumBSSIDs;
+  wpt_uint8                  ucNumInNavMeasurements;
+  WDI_InNavMeasurementMode   measurementMode;
+  wpt_macAddr                selfMacAddr;
+  WDI_BSSIDChannelInfo       bssidChannelInfo[1];
+
+}WDI_InNavMeasReqInfoType;
+
+/*----------------------------------------------------------------------------
+  WDI_InNavMeasReqParamsType
+----------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb                wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*                          pUserData;
+
+  /*In Nav Meas Info */
+  WDI_InNavMeasReqInfoType       wdiInNavMeasInfo;
+
+}WDI_InNavMeasReqParamsType;
+/*----------------------------------------------------------------------------
+  WDI_InNavMeasRspParamsType
+----------------------------------------------------------------------------*/
+typedef struct
+{
+    wpt_uint8      ucRssi;
+    wpt_uint16     usRtt;
+    wpt_uint16     usSnr;
+    wpt_uint32     uslMeasurementTime;
+    wpt_uint32     uslMeasurementTimeHi;
+}WDI_RttRssiTimeData;
+
+typedef struct
+{
+    wpt_macAddr            ucBssid;
+    wpt_uint8              ucNumSuccessfulMeasurements;
+    WDI_RttRssiTimeData    rttRssiTimeData[1];
+}WDI_RttRssiResults;
+
+typedef struct
+{
+  wpt_uint8           ucNumBSSIDs;
+  wpt_uint16          usRspLen;
+  WDI_Status          wdiStatus;
+  WDI_RttRssiResults  rttRssiResults[1];
+}WDI_InNavMeasRspParamsType;
+
+#endif /* FEATURE_INNAV_SUPPORT */
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 /*---------------------------------------------------------------------------
@@ -3169,10 +3278,10 @@ typedef struct
 typedef struct
 {
   /*STA Index*/
-  wpt_uint16        usSTAIdx; 
+  wpt_uint8         ucSTAIdx; 
 
   /*Identifier for TSpec*/
-  wpt_uint16        ucTspecIdx;
+  wpt_uint8         ucTspecIdx;
 
   /*Tspec IE negotiated OTA*/
   WDI_TspecIEType	  wdiTspecIE[WDI_MAX_NO_AC];
@@ -4429,6 +4538,35 @@ typedef void  (*WDI_FlushAcRspCb)(WDI_Status   wdiStatus,
 typedef void  (*WDI_BtAmpEventRspCb)(WDI_Status   wdiStatus,
                                      void*        pUserData);
 
+#ifdef FEATURE_INNAV_SUPPORT
+/*---------------------------------------------------------------------------
+   WDI_StartInNavMeasRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Start In Nav Meas response from
+   the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+    
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_InNavMeasRspCb)
+(
+WDI_InNavMeasRspParamsType* wdiInNavMeasRspParams,
+void* pUserData
+);
+
+#endif
+
+
 #ifdef WLAN_FEATURE_VOWIFI_11R
 /*---------------------------------------------------------------------------
    WDI_AggrAddTsRspCb
@@ -4480,13 +4618,13 @@ typedef void (*WDI_FTMCommandRspCb)(void *ftmCMDRspdata,
  
    DESCRIPTION   
  
-   This callback is invoked by DAL when it has received a Add Sta Self Params response from
-   the underlying device.
+   This callback is invoked by DAL when it has received a Add Sta Self Params
+   response from the underlying device.
  
    PARAMETERS 
 
     IN
-    wdiStatus:  response status received from HAL
+    wdiAddSelfSTARsp:  response status received from HAL
     pUserData:  user data  
 
     
@@ -4494,8 +4632,9 @@ typedef void (*WDI_FTMCommandRspCb)(void *ftmCMDRspdata,
   RETURN VALUE 
     The result code associated with performing the operation
 ---------------------------------------------------------------------------*/
-typedef void  (*WDI_AddSTASelfParamsRspCb)(WDI_Status   wdiStatus,
-                                void*        pUserData);
+typedef void  (*WDI_AddSTASelfParamsRspCb)(
+                    WDI_AddSTASelfRspParamsType* pwdiAddSelfSTARsp,
+                    void*                        pUserData);
 
 
 /*---------------------------------------------------------------------------
@@ -6196,6 +6335,39 @@ WDI_BtAmpEventReq
   void*                     pUserData
 );
 
+#ifdef FEATURE_INNAV_SUPPORT
+/**
+ @brief WDI_Start In Nav Meas Req will be called when the upper MAC 
+        wants to notify the lower mac on a In Nav Meas Req event.Upon
+        the call of this API the WLAN DAL will pack and send a
+        HAL In Nav Meas event request message to the lower RIVA
+        sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+  
+ @param pwdiInNavMeasReqParams: the IN NAV MEAS Req parameters as 
+                      specified by the Device Interface
+  
+        wdiStartInNavMeasRspCb: callback for passing back the
+        response of the In Nav Meas Req received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+ 
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_StartInNavMeasReq
+(
+  WDI_InNavMeasReqParamsType*       pwdiInNavMeasReqParams,
+  WDI_InNavMeasRspCb                wdiInNavMeasRspCb,
+  void*                             pUserData
+);
+#endif
+
 /*======================================================================== 
  
                              CONTROL APIs
@@ -6579,9 +6751,9 @@ wpt_uint32 WDI_GetAvailableResCount
 WDI_Status
 WDI_AddSTASelfReq
 (
-  WDI_AddSTASelfParamsType*    pwdiAddSTASelfReqParams,
-  WDI_AddSTASelfParamsRspCb    wdiAddSTASelfReqParamsRspCb,
-  void*                            pUserData
+  WDI_AddSTASelfReqParamsType*    pwdiAddSTASelfReqParams,
+  WDI_AddSTASelfParamsRspCb       wdiAddSTASelfReqParamsRspCb,
+  void*                           pUserData
 );
 
 

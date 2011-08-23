@@ -6,7 +6,7 @@
   
   \brief Implementation trace/logging APIs PAL exports. wpt = (Wlan Pal Type) wpal = (Wlan PAL)
                
-   Definitions for platform Windows.
+   Definitions for Linux/Android platform
   
    Copyright 2010-2011 (c) Qualcomm, Incorporated.  All Rights Reserved.
    
@@ -26,7 +26,7 @@
 
 #define WPAL_TRACE_BUFFER_SIZE ( 512 )
 
-// macro to map vos trace levels into the bitmask
+// macro to map wpal trace levels into the bitmask
 #define WPAL_TRACE_LEVEL_TO_MODULE_BITMASK( _level ) ( ( 1 << (_level) ) )
 
 typedef struct
@@ -59,26 +59,92 @@ moduleTraceInfo gTraceInfo[ eWLAN_MODULE_COUNT ] =
 };
 
 
+// the trace level strings in an array.  these are ordered in the same order
+// as the trace levels are defined in the enum (see wpt_tracelevel) so we
+// can index into this array with the level and get the right string.  The
+// trace levels are...
+// none, Fatal, Error, Warning, Info, InfoHigh, InfoMed, InfoLow
+static const char * TRACE_LEVEL_STR[] = {
+   "  ", "F ", "E ", "W ", "I ", "IH", "IM", "IL" };
+
+
 /*-------------------------------------------------------------------------
   Functions
   ------------------------------------------------------------------------*/
-void wpalTraceSetLevel( wpt_moduleid module, wpt_tracelevel level )
+static void wpalOutput(wpt_tracelevel level, char *strBuffer)
+{
+   switch(level)
+   {
+   default:
+      printk(KERN_CRIT "%s: Unknown trace level passed in!\n", __FUNCTION__); 
+      // fall thru and use FATAL
+
+   case eWLAN_PAL_TRACE_LEVEL_FATAL:
+      printk(KERN_CRIT "%s\n", strBuffer);
+      break;
+
+   case eWLAN_PAL_TRACE_LEVEL_ERROR:
+      printk(KERN_ERR "%s\n", strBuffer);
+      break;
+
+   case eWLAN_PAL_TRACE_LEVEL_WARN:
+      printk(KERN_WARNING "%s\n", strBuffer);
+      break;
+
+   case eWLAN_PAL_TRACE_LEVEL_INFO:
+      printk(KERN_INFO "%s\n", strBuffer);
+      break;
+
+   case eWLAN_PAL_TRACE_LEVEL_INFO_HIGH:
+      printk(KERN_NOTICE "%s\n", strBuffer);
+      break;
+
+   case eWLAN_PAL_TRACE_LEVEL_INFO_MED:
+      printk(KERN_NOTICE "%s\n", strBuffer);
+      break;
+
+   case eWLAN_PAL_TRACE_LEVEL_INFO_LOW:
+      printk(KERN_INFO "%s\n", strBuffer);
+      break;
+   }
+}
+
+void wpalTraceSetLevel( wpt_moduleid module, wpt_tracelevel level,
+                        wpt_boolean on )
 {
    // Make sure the caller is passing in a valid LEVEL and MODULE.
-   if( (eWLAN_PAL_TRACE_LEVEL_COUNT >= level) && (eWLAN_MODULE_COUNT >= module) )
+   if ( (eWLAN_PAL_TRACE_LEVEL_COUNT <= level) ||
+        (eWLAN_MODULE_COUNT <= module) )
    {
+      return;
+   }
 
-      // Treat 'none' differently.  NONE means we have to run off all
-      // the bits in the bit mask so none of the traces appear.  Anything other
-      // than 'none' means we need to turn ON a bit in the bitmask.
-      if ( eWLAN_PAL_TRACE_LEVEL_NONE == level )
+   if ( eWLAN_PAL_TRACE_LEVEL_NONE == level )
+   {
+      // Treat 'none' differently.  NONE means we have to turn off all
+      // the bits in the bit mask so none of the traces appear.
+      gTraceInfo[ module ].moduleTraceLevel = 0;
+   }
+   else if ( eWLAN_PAL_TRACE_LEVEL_ALL == level )
+   {
+      // Treat 'all' differently.  ALL means we have to turn on all
+      // the bits in the bit mask so all of the traces appear.
+      gTraceInfo[ module ].moduleTraceLevel = 0xFFFF;
+   }
+   else
+   {
+      // We are turning a particular trace level on or off
+      if (on)
       {
-	      gTraceInfo[ module ].moduleTraceLevel = eWLAN_PAL_TRACE_LEVEL_NONE;
+         // Set the desired bit in the bit mask for the module trace level.
+         gTraceInfo[ module ].moduleTraceLevel |=
+            WPAL_TRACE_LEVEL_TO_MODULE_BITMASK( level );
       }
       else
       {
-         // Set the desired bit in the bit mask for the module trace level.
-	      gTraceInfo[ module ].moduleTraceLevel |= WPAL_TRACE_LEVEL_TO_MODULE_BITMASK( level );
+         // Clear the desired bit in the bit mask for the module trace level.
+         gTraceInfo[ module ].moduleTraceLevel &=
+            ~(WPAL_TRACE_LEVEL_TO_MODULE_BITMASK( level ));
       }
    }
 }
@@ -92,10 +158,6 @@ wpt_boolean wpalTraceCheckLevel( wpt_moduleid module, wpt_tracelevel level )
    {
       traceOn = eWLAN_PAL_FALSE;
    }
-   else if( eWLAN_PAL_TRACE_LEVEL_ALL == level )
-   {
-      traceOn = eWLAN_PAL_TRUE;
-   }
    else
    {
       traceOn = ( level & gTraceInfo[ module ].moduleTraceLevel ) ? eWLAN_PAL_TRUE : eWLAN_PAL_FALSE;
@@ -104,7 +166,38 @@ wpt_boolean wpalTraceCheckLevel( wpt_moduleid module, wpt_tracelevel level )
    return( traceOn );
 }
 
+void wpalTraceDisplay(void)
+{
+   wpt_moduleid moduleId;
 
+   printk(KERN_CRIT
+          "     1)FATAL  2)ERROR  3)WARN  4)INFO  "
+          "5)INFO_H  6)INFO_M  7)INFO_L\n"); 
+   for (moduleId = 0; moduleId < eWLAN_MODULE_COUNT; ++moduleId)
+   {
+      printk(KERN_CRIT
+             "%2d)%s    %s        %s       %s       "
+             "%s        %s         %s         %s\n",
+             (int)moduleId,
+             gTraceInfo[moduleId].moduleNameStr,
+             (gTraceInfo[moduleId].moduleTraceLevel &
+              (1 << eWLAN_PAL_TRACE_LEVEL_FATAL)) ? "X":" ",
+             (gTraceInfo[moduleId].moduleTraceLevel &
+              (1 << eWLAN_PAL_TRACE_LEVEL_ERROR)) ? "X":" ",
+             (gTraceInfo[moduleId].moduleTraceLevel &
+              (1 << eWLAN_PAL_TRACE_LEVEL_WARN)) ? "X":" ",
+             (gTraceInfo[moduleId].moduleTraceLevel &
+              (1 << eWLAN_PAL_TRACE_LEVEL_INFO)) ? "X":" ",
+             (gTraceInfo[moduleId].moduleTraceLevel &
+              (1 << eWLAN_PAL_TRACE_LEVEL_INFO_HIGH)) ? "X":" ",
+             (gTraceInfo[moduleId].moduleTraceLevel &
+              (1 << eWLAN_PAL_TRACE_LEVEL_INFO_MED)) ? "X":" ",
+             (gTraceInfo[moduleId].moduleTraceLevel &
+              (1 << eWLAN_PAL_TRACE_LEVEL_INFO_LOW)) ? "X":" "
+         );
+   }
+
+}
 
 /*----------------------------------------------------------------------------
 
@@ -138,12 +231,6 @@ void wpalTrace( wpt_moduleid module, wpt_tracelevel level, char *strFormat, ... 
    // tracel level mask.
    if ( gTraceInfo[ module ].moduleTraceLevel & WPAL_TRACE_LEVEL_TO_MODULE_BITMASK( level ) )
    {
-   // the trace level strings in an array.  these are ordered in the same order
-      // as the trace levels are defined in the enum (see VOS_TRACE_LEVEL) so we
-      // can index into this array with the level and get the right string.  The
-      // vos trace levels are...
-      // none, Fata, Error, Warning, Info, InfoHigh, InfoMed, InfoLow
-      static const char * TRACE_LEVEL_STR[] = { "   ", "F ", "E ", "W ", "I ", "IH", "IM", "IL" };
       va_list val;
       va_start(val, strFormat);
 
@@ -156,54 +243,75 @@ void wpalTrace( wpt_moduleid module, wpt_tracelevel level, char *strFormat, ... 
 
 
       // print the formatted log message after the prefix string.
-      // note we reserve space for the terminating newline & NUL
-      vsnprintf(strBuffer + n, WPAL_TRACE_BUFFER_SIZE - n - 2, strFormat, val);
-      strcat(strBuffer, "\n");
-
-      switch(level)
-      {
-         default:
-            printk(KERN_CRIT "%s: Unknown trace level passed in!\n", __FUNCTION__); 
-            // fall thru and use FATAL
-
-         case eWLAN_PAL_TRACE_LEVEL_FATAL:
-            printk(KERN_CRIT "%s", strBuffer);
-            break;
-
-         case eWLAN_PAL_TRACE_LEVEL_ERROR:
-            printk(KERN_ERR "%s", strBuffer);
-            break;
-
-         case eWLAN_PAL_TRACE_LEVEL_WARN:
-            printk(KERN_WARNING "%s", strBuffer);
-            break;
-
-         case eWLAN_PAL_TRACE_LEVEL_INFO:
-            printk(KERN_INFO "%s", strBuffer);
-            break;
-
-         case eWLAN_PAL_TRACE_LEVEL_INFO_HIGH:
-            printk(KERN_NOTICE "%s", strBuffer);
-            break;
-
-         case eWLAN_PAL_TRACE_LEVEL_INFO_MED:
-            printk(KERN_NOTICE "%s", strBuffer);
-            break;
-
-         case eWLAN_PAL_TRACE_LEVEL_INFO_LOW:
-            printk(KERN_INFO "%s", strBuffer);
-            break;
-      }
-      va_end( val);
+      // note we reserve space for the terminating NUL
+      vsnprintf(strBuffer + n, WPAL_TRACE_BUFFER_SIZE - n - 1, strFormat, val);
+      wpalOutput(level, strBuffer);
+      va_end(val);
    }
 }
 
+/**----------------------------------------------------------------------------
+  
+ \brief WPAL_DUMP() / wpalDump() - Trace / logging API
+   
+ Users wishing to add tracing memory dumps to their code should use 
+ WPAL_DUMP.  WPAL_DUMP() will compile into a call to wpalDump() when
+ tracing is enabled.
+  
+ \param module - module identifier.   A member of the wpt_moduleid
+                 enumeration that identifies the module performing the dump
+         
+ \param level - trace level.   A member of the wpt_tracelevel 
+                enumeration indicating the severity of the condition causing the
+                memory to be dumped.   More severe conditions are more 
+                likely to be logged.
+         
+ \param pMemory - memory.  A pointer to the memory to be dumped
 
+ \param length - length.  How many bytes of memory to be dumped
+  
+   \return  nothing
+    
+  --------------------------------------------------------------------------*/
+// how many bytes do we output per line
+#define BYTES_PER_LINE 16
+
+// each byte takes 2 characters plus a space, plus need room for NUL
+#define CHARS_PER_LINE ((BYTES_PER_LINE * 3) + 1)
+
+void wpalDump( wpt_moduleid module, wpt_tracelevel level,
+               wpt_uint8 *pMemory, wpt_uint32 length)
+{
+   char strBuffer[CHARS_PER_LINE];
+   int n, num, offset;
+
+   // Dump the memory when the desired level bit is set in the module
+   // tracel level mask.
+   if ( gTraceInfo[ module ].moduleTraceLevel & WPAL_TRACE_LEVEL_TO_MODULE_BITMASK( level ) )
+   {
+      num = 0;
+      offset = 0;
+      while (length > 0)
+      {
+         n = snprintf(strBuffer + offset, CHARS_PER_LINE - offset - 1,
+                      "%02X ", *pMemory);
+         offset += n;
+         num++;
+         length--;
+         pMemory++;
+         if (BYTES_PER_LINE == num)
+         {
+            wpalOutput(level, strBuffer);
+            num = 0;
+            offset = 0;
+         }
+      }
+
+      if (offset > 0)
+      {
+         // partial line remains
+         wpalOutput(level, strBuffer);
+      }
+   }
+}
 #endif //WLAN_DEBUG
-
-
-
-
-
-
-

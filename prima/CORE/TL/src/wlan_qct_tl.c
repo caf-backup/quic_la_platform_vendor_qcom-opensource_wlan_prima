@@ -111,7 +111,10 @@
 #include "wlan_qct_ssc.h" 
 #endif
 #include "tlDebug.h"
-
+#ifdef FEATURE_WLAN_WAPI
+/*Included to access WDI_RxBdType */
+#include "wlan_qct_wdi_bd.h"
+#endif
 /*Enables debugging behavior in TL*/
 #define TL_DEBUG
 //#define WLAN_SOFTAP_FLOWCTRL_EN

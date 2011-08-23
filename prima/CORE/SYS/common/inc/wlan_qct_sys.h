@@ -59,6 +59,8 @@ typedef enum
    SYS_MSG_ID_TX_THR_PROBE,
    SYS_MSG_ID_TX_TIMER,
 
+   SYS_MSG_ID_RX_TIMER,
+
    SYS_MSG_ID_MC_STOP,
 
 } SYS_MSG_ID;
@@ -310,6 +312,40 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t* pMsg );
 
   --------------------------------------------------------------------------*/
 VOS_STATUS sysTxProcessMsg( v_CONTEXT_t pVContext, vos_msg_t* pMsg );
+
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+/*----------------------------------------------------------------------------
+
+  \brief sysTxProcessMsg() - process SYS messages on the Rx thread
+
+  This function processes SYS Messages on the Rx thread.
+  SYS messages consist of all 'legacy' messages (messages bound for legacy
+  modules like LIM, HAL, PE, etc.) as well as newly defined SYS message
+  types.
+
+  SYS messages are identified by their type (in the SYS_MESSAGES enum) as
+  well as a 'cookie' that is in the reserved field of the message structure.
+  This 'cookie' is introduced to prevent any message type/ID conflicts with
+  the 'legacy' message types.
+
+  Any module attempting to post a message to the SYS module must set the
+  message type to one of the types in the SYS_MESSAGE enum *and* must also
+  set the Reserved field in the message body to SYS_MSG_COOKIE.
+
+  \param pVosContext - pointer to the VOS Context
+
+  \param pMsg - pointer to the message to be processed.
+
+  \return - VOS_STATUS_SUCCESS - the message was processed successfully.
+
+            VOS_STATUS_E_BADMSG - a bad (unknown type) message was received
+            and subsequently not processed.
+
+  \sa
+
+  --------------------------------------------------------------------------*/
+VOS_STATUS sysRxProcessMsg( v_CONTEXT_t pVContext, vos_msg_t* pMsg );
+#endif
 
 /*----------------------------------------------------------------------------
 

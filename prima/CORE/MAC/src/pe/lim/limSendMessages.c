@@ -527,6 +527,54 @@ tSirRetStatus limSetLinkState(tpAniSirGlobal pMac, tSirLinkState state,tSirMacAd
     return retCode;
 }
 
+#ifdef WLAN_FEATURE_VOWIFI_11R
+extern tSirRetStatus limSetLinkStateFT(tpAniSirGlobal pMac, tSirLinkState 
+state,tSirMacAddr bssId, tSirMacAddr selfMacAddr, int ft, tpPESession psessionEntry)
+{
+    tSirMsgQ msgQ;
+    tSirRetStatus retCode;
+    tpLinkStateParams pLinkStateParams = NULL;
+
+    // Allocate memory.
+    if( eHAL_STATUS_SUCCESS != palAllocateMemory( pMac->hHdd,
+          (void **) &pLinkStateParams,
+          sizeof(tLinkStateParams)))
+    {
+        limLog( pMac, LOGP,
+        FL( "Unable to PAL allocate memory while sending Set Link State\n" ));
+
+        retCode = eSIR_SME_RESOURCES_UNAVAILABLE;
+        return retCode;
+    }
+
+    palZeroMemory( pMac->hHdd, (tANI_U8 *) pLinkStateParams, sizeof(tLinkStateParams));
+
+    pLinkStateParams->state = state;
+
+    /* Copy Mac address */
+    sirCopyMacAddr(pLinkStateParams->bssid,bssId);
+    sirCopyMacAddr(pLinkStateParams->selfMacAddr, selfMacAddr);
+    pLinkStateParams->ft = 1;
+    pLinkStateParams->session = psessionEntry;
+
+
+    msgQ.type = WDA_SET_LINK_STATE;
+    msgQ.reserved = 0;
+    msgQ.bodyptr = pLinkStateParams;
+    msgQ.bodyval = 0;
+    
+    MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
+
+    retCode = (tANI_U32)wdaPostCtrlMsg(pMac, &msgQ);
+    if (retCode != eSIR_SUCCESS)
+    {
+        palFreeMemory(pMac, (void*)pLinkStateParams);
+        limLog(pMac, LOGP, FL("Posting link state %d failed, reason = %x \n"), retCode);
+    }
+
+    return retCode;
+}
+#endif
 
 
 

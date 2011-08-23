@@ -5562,3 +5562,4 @@ tANI_BOOLEAN csrIsSetKeyAllowed(tpAniSirGlobal pMac, tANI_U32 sessionId)
 
     return ( fRet );
 }
+

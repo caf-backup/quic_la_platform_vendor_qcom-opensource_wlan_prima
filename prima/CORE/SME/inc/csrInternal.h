@@ -436,7 +436,8 @@ typedef struct tagCsrConfig
 {
     tANI_U32 agingCount;
     tANI_U32 FragmentationThreshold;
-    tANI_U32 ChannelBondingMode;
+    tANI_U32 channelBondingMode24GHz;
+    tANI_U32 channelBondingMode5GHz;
     tANI_U32 RTSThreshold;
     eCsrPhyMode phyMode;
     eCsrCfgDot11Mode uCfgDot11Mode;

@@ -633,8 +633,6 @@ gotoStarting
         vos_sleep( 200 );
         /* Signal BT Coexistence code in firmware to prefer WLAN */
         WLANBAP_NeedBTCoexPriority ( btampContext, 1);
-        /* Sleep for 300(200) milliseconds - to insure we allow WLAN through */
-        vos_sleep( 200 );
     }
 
 
@@ -1135,13 +1133,8 @@ gotoConnected
     ///*De-initialize the timer */
     //vosStatus = WLANBAP_DeinitConnectionAcceptTimer(btampContext);
 
-#if 1
     /* Signal BT Coex in firmware to now honor only priority BT requests */
     WLANBAP_NeedBTCoexPriority ( btampContext, 2);
-#else
-    /* Signal BT Coexistence code in firmware to no longer prefer WLAN */
-    WLANBAP_NeedBTCoexPriority ( btampContext, 0);
-#endif
 
     // If required after successful Upper layer auth, transition TL 
     // to 'Authenticated' state.      

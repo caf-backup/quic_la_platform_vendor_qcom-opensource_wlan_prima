@@ -126,7 +126,7 @@ typedef enum
 
 //[RY] extend total gain steps to 24
 
-typedef enum
+enum
 {
     TX_GAIN_STEP_0,
     TX_GAIN_STEP_1,
@@ -183,7 +183,8 @@ typedef enum
 
     NUM_RX_GAIN_STEPS = 16,
     MAX_RX_GAIN_STEP = RX_GAIN_STEP_15,
-}eGainSteps;
+};
+typedef tANI_U32 eGainSteps;
 
 
 //[RY] new for PRIMA

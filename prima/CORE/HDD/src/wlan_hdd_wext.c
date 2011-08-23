@@ -57,6 +57,9 @@
 #include <linux/wireless.h>
 #include <net/cfg80211.h>
 #endif
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#include "wlan_qct_pal_trace.h"
+#endif // FEATURE_WLAN_INTEGRATED_SOC
 
 #define WE_MAX_STR_LEN 1024
 
@@ -89,6 +92,7 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 #define WE_GET_WLAN_DBG      4
 #define WE_MODULE_DOWN_IND   5
 #define WE_GET_MAX_ASSOC     6
+#define WE_GET_WDI_DBG       7
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_INT     (SIOCIWFIRSTPRIV + 2)
@@ -105,6 +109,7 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_THREE_INT_GET_NONE   (SIOCIWFIRSTPRIV + 4)
 #define WE_SET_WLAN_DBG      1
+#define WE_SET_WDI_DBG       2
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_GET_CHAR_SET_NONE   (SIOCIWFIRSTPRIV + 5)
@@ -2410,7 +2415,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                  enable_pbm = (set_value & 0x02) ? 1 : 0;
                  hddLog(LOGE, "magic packet ? = %s pattern byte matching ? = %s\n", 
                      (enable_mp ? "YES":"NO"), (enable_pbm ? "YES":"NO"));
-                 hdd_enter_wowl(enable_mp, enable_pbm);
+                 hdd_enter_wowl(pAdapter, enable_mp, enable_pbm);
                  break;
               default:
                  hddLog(LOGE, "Invalid arg  %d in WE_WOWL IOCTL\n", set_value);
@@ -2672,6 +2677,15 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
             break;
         }
            
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+        case WE_GET_WDI_DBG:
+        {
+           wpalTraceDisplay();
+           *value = 0;
+           break;            
+        }         
+#endif // FEATURE_WLAN_INTEGRATED_SOC
+
         default:
         {
             hddLog(LOGE, "Invalid IOCTL get_value command %d ",value[0]);
@@ -2698,6 +2712,14 @@ int iw_set_three_ints_getnone(struct net_device *dev, struct iw_request_info *in
             break;
         }
            
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+        case WE_SET_WDI_DBG:
+        {
+            wpalTraceSetLevel( value[1], value[2], value[3]);
+            break;
+        }
+#endif // FEATURE_WLAN_INTEGRATED_SOC
+
         default:  
         {
             hddLog(LOGE, "Invalid IOCTL command %d  \n",  sub_cmd );
@@ -3810,6 +3832,13 @@ static const struct iw_priv_args we_private_args[] = {
         IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
         "getMaxAssoc" },
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+    {   WE_GET_WDI_DBG,
+        0,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1,
+        "getwdidbg" },    
+#endif // FEATURE_WLAN_INTEGRATED_SOC
+
     /* handlers for main ioctl */
     {   WLAN_PRIV_SET_CHAR_GET_NONE,
         IW_PRIV_TYPE_CHAR| 512,
@@ -3851,13 +3880,20 @@ static const struct iw_priv_args we_private_args[] = {
         0, 
         "setwlandbg" },
 
-            /* handlers for main ioctl */
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+    {   WE_SET_WDI_DBG,
+        IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 3,
+        0, 
+        "setwdidbg" },
+#endif // FEATURE_WLAN_INTEGRATED_SOC
+
+    /* handlers for main ioctl */
     {   WLAN_PRIV_GET_CHAR_SET_NONE,
         0,
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,
         "" },
 
-            /* handlers for sub-ioctl */
+    /* handlers for sub-ioctl */
     {   WE_WLAN_VERSION,
         0,
         IW_PRIV_TYPE_CHAR| WE_MAX_STR_LEN,

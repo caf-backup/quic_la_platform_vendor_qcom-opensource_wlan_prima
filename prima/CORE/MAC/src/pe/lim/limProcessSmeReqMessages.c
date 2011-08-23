@@ -4918,9 +4918,11 @@ limProcessSmeReqMessages(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             break;
        case eWNI_SME_FT_UPDATE_KEY:
             limProcessFTUpdateKey(pMac, pMsgBuf);
+            break;
 
        case eWNI_SME_FT_AGGR_QOS_REQ:
             limProcessFTAggrQosReq(pMac, pMsgBuf);
+            break;
 #endif
 
        case eWNI_SME_ADD_STA_SELF_REQ:

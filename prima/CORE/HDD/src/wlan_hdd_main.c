@@ -92,6 +92,9 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 #ifdef WLAN_BTAMP_FEATURE
 #include "bap_hdd_misc.h"
 #endif
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#include "wlan_qct_pal_trace.h"
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
 //internal function declaration
 v_U16_t hdd_select_queue(struct net_device *dev,
@@ -176,6 +179,50 @@ void hdd_register_mcast_bcast_filter(hdd_context_t *pHddCtx);
 static int con_mode = 0;
 #endif
 static tVOS_CONCURRENCY_MODE concurrency_mode = 0;
+
+
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+/**---------------------------------------------------------------------------
+
+  \brief hdd_wdi_trace_enable() - Configure initial WDI Trace enable
+
+  Called immediately after the cfg.ini is read in order to configure
+  the desired trace levels in the WDI.
+
+  \param  - moduleId - module whose trace level is being configured
+  \param  - bitmask - bitmask of log levels to be enabled
+
+  \return - void
+
+  --------------------------------------------------------------------------*/
+static void hdd_wdi_trace_enable(wpt_moduleid moduleId, v_U32_t bitmask)
+{
+   wpt_tracelevel level;
+
+   /* if the bitmask is the default value, then a bitmask was not
+      specified in cfg.ini, so leave the logging level alone (it
+      will remain at the "compiled in" default value) */
+   if (CFG_WDI_TRACE_ENABLE_DEFAULT == bitmask)
+   {
+      return;
+   }
+
+   /* a mask was specified.  start by disabling all logging */
+   wpalTraceSetLevel(moduleId, eWLAN_PAL_TRACE_LEVEL_NONE, 0);
+
+   /* now cycle through the bitmask until all "set" bits are serviced */
+   level = eWLAN_PAL_TRACE_LEVEL_FATAL;
+   while (0 != bitmask)
+   {
+      if (bitmask & 1)
+      {
+         wpalTraceSetLevel(moduleId, level, 1);
+      }
+      level++;
+      bitmask >>= 1;
+   }
+}
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
 int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 {
@@ -2157,6 +2204,18 @@ int hdd_wlan_startup(struct device *dev )
       goto err_config;
    }
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+   // Update WDI trace levels based upon the cfg.ini
+   hdd_wdi_trace_enable(eWLAN_MODULE_DAL,
+                        pHddCtx->cfg_ini->wdiTraceEnableDAL);
+   hdd_wdi_trace_enable(eWLAN_MODULE_DAL_CTRL,
+                        pHddCtx->cfg_ini->wdiTraceEnableCTL);
+   hdd_wdi_trace_enable(eWLAN_MODULE_DAL_DATA,
+                        pHddCtx->cfg_ini->wdiTraceEnableDAT);
+   hdd_wdi_trace_enable(eWLAN_MODULE_PAL,
+                        pHddCtx->cfg_ini->wdiTraceEnablePAL);
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+
 #ifdef ANI_MANF_DIAG 
    if(VOS_FTM_MODE == hdd_get_conparam())
    {
@@ -2757,11 +2816,15 @@ static int __init hdd_module_init ( void)
 #ifdef MEMORY_DEBUG
       vos_mem_exit();
 #endif
+
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Wi-Fi driver load failure", __func__);
    }
    else
    {
       //Send WLAN UP indication to Nlink Service
       send_btc_nlink_msg(WLAN_MODULE_UP_IND, 0);
+
+      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Wi-Fi driver loaded", __func__);
    }
    
    

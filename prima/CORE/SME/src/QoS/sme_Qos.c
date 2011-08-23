@@ -3138,7 +3138,7 @@ eHalStatus sme_QosCreateTspecRICIE(tpAniSirGlobal pMac, sme_QosWmmTspecInfo *pTs
     ricIE.RICData.resourceDescCount = 1;
     ricIE.RICData.statusCode = 0;
     ricIE.RICData.Identifier = sme_QosAssignDialogToken();
-#ifdef USE_80211_TSPEC_FOR_RIC
+
     ricIE.TSPEC.present = 1;
     ricIE.TSPEC.delay_bound = pTspec_Info->delay_bound;
     ricIE.TSPEC.inactivity_int = pTspec_Info->inactivity_interval;
@@ -3177,49 +3177,6 @@ eHalStatus sme_QosCreateTspecRICIE(tpAniSirGlobal pMac, sme_QosWmmTspecInfo *pTs
         smsLog(pMac, LOGE, FL("Packing of RIC Data of length %d failed with status %d"), 
                                         *pRICLength, nStatus);
     }
-#else // WMM TSPEC
-    /*As per WMM_AC_testplan_v0.39 Minimum Service Interval, Maximum Service 
-      Interval, Service Start Time, Suspension Interval and Delay Bound are 
-      all intended for HCCA operation and therefore must be set to zero*/
-    ricIE.WMMTSPEC.present = 1;
-    ricIE.WMMTSPEC.version = 1;
-    ricIE.WMMTSPEC.delay_bound = pTspec_Info->delay_bound;
-    ricIE.WMMTSPEC.inactivity_int = pTspec_Info->inactivity_interval;
-    ricIE.WMMTSPEC.burst_size = pTspec_Info->max_burst_size;
-    ricIE.WMMTSPEC.max_msdu_size = pTspec_Info->maximum_msdu_size;
-    ricIE.WMMTSPEC.max_service_int = pTspec_Info->max_service_interval;
-    ricIE.WMMTSPEC.mean_data_rate = pTspec_Info->mean_data_rate;
-    ricIE.WMMTSPEC.medium_time = pTspec_Info->medium_time;
-    ricIE.WMMTSPEC.min_data_rate = pTspec_Info->min_data_rate;
-    ricIE.WMMTSPEC.min_phy_rate = pTspec_Info->min_phy_rate;
-    ricIE.WMMTSPEC.min_service_int = pTspec_Info->min_service_interval;
-    ricIE.WMMTSPEC.size = pTspec_Info->nominal_msdu_size;
-    ricIE.WMMTSPEC.peak_data_rate = pTspec_Info->peak_data_rate;
-    ricIE.WMMTSPEC.surplus_bw_allowance = pTspec_Info->surplus_bw_allowance;
-    ricIE.WMMTSPEC.suspension_int = pTspec_Info->suspension_interval;
-    ricIE.WMMTSPEC.service_start_time = pTspec_Info->svc_start_time;
-    ricIE.WMMTSPEC.direction = pTspec_Info->ts_info.direction;
-    //Make sure UAPSD is allowed. BTC may want to disable UAPSD while keep QoS setup
-    if( pTspec_Info->ts_info.psb && btcIsReadyForUapsd(pMac) )
-    {
-       ricIE.WMMTSPEC.psb = pTspec_Info->ts_info.psb;
-    }
-    else
-    {
-       ricIE.WMMTSPEC.psb = 0;
-    }
-    ricIE.WMMTSPEC.tsid = pTspec_Info->ts_info.tid;
-    ricIE.WMMTSPEC.user_priority = pTspec_Info->ts_info.up;
-    ricIE.WMMTSPEC.access_policy = SME_QOS_ACCESS_POLICY_EDCA;
-
-    
-    nStatus = dot11fPackIeRICDataDesc(pMac, &ricIE, pRICBuffer, sizeof(ricIE), pRICLength);
-    if (DOT11F_FAILED(nStatus))
-    {
-        smsLog(pMac, LOGE, FL("Packing of RIC Data of length %d failed with status %d"), 
-                                        *pRICLength, nStatus);
-    }
-#endif /* 80211_TSPEC */
     *pRICIdentifier = ricIE.RICData.Identifier;
     return nStatus;
 }
@@ -3424,8 +3381,8 @@ eHalStatus sme_QosProcessFTRICResponse(tpAniSirGlobal pMac, v_U8_t sessionId, tD
     
     //Need to check the below portion is a part of WMM TSPEC
     //Process Delay element
-    if (pRicDataDesc->TSDelay.present)
-        ConvertTSDelay(pMac, &addtsRsp.rsp.delay, &pRicDataDesc->TSDelay);
+    //if (pRicDataDesc->TSDelay.present)
+      //  ConvertTSDelay(pMac, &addtsRsp.rsp.delay, &pRicDataDesc->TSDelay);
     //return sme_QosProcessAddTsRsp(pMac, &addtsRsp);
     return eHAL_STATUS_SUCCESS;
 }
@@ -3471,6 +3428,7 @@ eHalStatus sme_QosProcessFTReassocRspEv(tpAniSirGlobal pMac, v_U8_t sessionId, v
     tCsrRoamSession *pCsrSession = CSR_GET_SESSION( pMac, sessionId );
     tCsrRoamConnectedInfo *pCsrConnectedInfo = &pCsrSession->connectedInfo;
     tANI_U32    ricRspLen = pCsrConnectedInfo->nRICRspLength;
+    v_BOOL_t    sendAggrQosReq = FALSE;
 
     VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
               "%s: %d: invoked on session %d",
@@ -3516,10 +3474,12 @@ eHalStatus sme_QosProcessFTReassocRspEv(tpAniSirGlobal pMac, v_U8_t sessionId, v
                             smsLog(pMac, LOGE, FL("Processing RIC Response for AC %d, TSPEC Flow index %d with RIC ID %d \n"),
                                                             ac, tspec_flow_index, pRicDataDesc->RICData.Identifier);
                             status = sme_QosProcessFTRICResponse(pMac, sessionId, pRicDataDesc, ac, tspec_flow_index);
+                            sendAggrQosReq = TRUE;
                             if (eHAL_STATUS_SUCCESS != status)
                             {
                                 smsLog(pMac, LOGE, FL("Failed with status %d for AC %d in TSPEC Flow index = %d\n"), 
                                                         status, ac, tspec_flow_index);
+                                VOS_ASSERT(0);
                             }
                         }
                         pRicDataDesc++;
@@ -3533,14 +3493,17 @@ eHalStatus sme_QosProcessFTReassocRspEv(tpAniSirGlobal pMac, v_U8_t sessionId, v
        
     }
 
-    if (ricRspLen)
-    {
-        smsLog(pMac, LOGE, FL("RIC Response still follows despite traversing through all ACs. Remaining len = %d\n"), ricRspLen);
-        VOS_ASSERT(0);
-    }
+    if(sendAggrQosReq)
+    {   
+       if (ricRspLen)
+       {
+          smsLog(pMac, LOGE, FL("RIC Response still follows despite traversing through all ACs. Remaining len = %d\n"), ricRspLen);
+          VOS_ASSERT(0);
+       }
 
-    /* Send the Aggregated QoS request to HAL */
-    status = sme_QosFTAggrQosReq(pMac,sessionId);
+       /* Send the Aggregated QoS request to HAL */
+       status = sme_QosFTAggrQosReq(pMac,sessionId);
+    }
 
     return status;
 }
@@ -4193,6 +4156,16 @@ eHalStatus sme_QosProcessHandoffAssocReqEv(tpAniSirGlobal pMac, v_U8_t sessionId
             break;
          case SME_QOS_HANDOFF:
             //print error msg
+#ifdef WLAN_FEATURE_VOWIFI_11R
+            if(pSession->ftHandoffInProgress)
+            {
+               VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+                         "%s: %d: SME_QOS_CSR_HANDOFF_ASSOC_REQ received in "
+                         "SME_QOS_HANDOFF state with FT in progress"
+                         , __FUNCTION__, __LINE__); 
+               break; 
+            }
+#endif            
          case SME_QOS_CLOSED:
          case SME_QOS_INIT:
          default:
@@ -4260,6 +4233,12 @@ eHalStatus sme_QosProcessHandoffSuccessEv(tpAniSirGlobal pMac, v_U8_t sessionId,
          case SME_QOS_REQUESTED:
          case SME_QOS_QOS_ON:
          default:
+#ifdef WLAN_FEATURE_VOWIFI_11R
+/* In case of 11r - RIC, we request QoS and Hand-off at the same time hence the
+   state may be SME_QOS_REQUESTED */
+            if( pSession->ftHandoffInProgress )
+               break;
+#endif
             VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
                       "%s: %d: On session %d AC %d is in wrong state %d",
                       __FUNCTION__, __LINE__,
@@ -4356,7 +4335,13 @@ eHalStatus sme_QosProcessDisconnectEv(tpAniSirGlobal pMac, v_U8_t sessionId, voi
              __FUNCTION__, __LINE__,
              sessionId);
    pSession = &sme_QosCb.sessionInfo[sessionId];
-   if(pSession->handoffRequested)
+   if((pSession->handoffRequested)
+#ifdef WLAN_FEATURE_VOWIFI_11R
+/* In case of 11r - RIC, we request QoS and Hand-off at the same time hence the
+   state may be SME_QOS_REQUESTED */
+      && !pSession->ftHandoffInProgress
+#endif
+      )
    {
       VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
                 "%s: %d: no need for state transition, should "

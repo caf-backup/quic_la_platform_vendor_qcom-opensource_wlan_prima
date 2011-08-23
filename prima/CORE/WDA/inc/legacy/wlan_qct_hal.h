@@ -283,6 +283,7 @@ typedef struct sUapsdInfo {
 
 #define WLANHAL_RX_BD_FT_DONE                  1 /* The value of the field when frame xtl was done*/
 
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC 
 //Check whether a RX frame is unprotected over the air
 #if defined(LIBRA_WAPI_SUPPORT)
 #define WLANHAL_RX_IS_UNPROTECTED_WPI_FRAME(_pvBDHeader)  \
@@ -292,7 +293,13 @@ typedef struct sUapsdInfo {
 #define WLANHAL_RX_IS_UNPROTECTED_WPI_FRAME(_pvBDHeader)  \
         (DPU_FEEDBACK_WPI_UNPROTECTED == ((tpHalRxBd)_pvBDHeader)->dpuFeedback)
 #endif
-
+#else
+/*DPU_FEEDBACK_WPI_UNPROTECTED macro defined in volansdefs.h which is not available
+  for UMAC in prima so declared it here */
+#define DPU_FEEDBACK_WPI_UNPROTECTED 0x20   
+#define WLANHAL_RX_IS_UNPROTECTED_WPI_FRAME(_pvBDHeader)  \
+        (DPU_FEEDBACK_WPI_UNPROTECTED == ((WDI_RxBdType *)_pvBDHeader)->dpuFeedback)
+#endif
 
 /*==========================================================================
 

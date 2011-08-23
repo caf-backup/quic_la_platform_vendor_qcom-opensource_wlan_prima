@@ -318,6 +318,7 @@ typedef struct
    pWDATxRxCompFunc     pTxCbFunc;
    tANI_U32             frameTransRequired;   
    tSirMacAddr          macBSSID;             /*BSSID of the network */
+   tSirMacAddr          macSTASelf;     /*Self STA MAC*/
 
    /* TX channel mask for flow control */
    v_U8_t               uTxFlowMask;
@@ -990,6 +991,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_IBSS_STA_ADD               SIR_HAL_IBSS_STA_ADD
 #define WDA_TIMER_ADJUST_ADAPTIVE_THRESHOLD_IND   SIR_HAL_TIMER_ADJUST_ADAPTIVE_THRESHOLD_IND
 #define WDA_SET_LINK_STATE             SIR_HAL_SET_LINK_STATE
+#define WDA_SET_LINK_STATE_RSP         SIR_HAL_SET_LINK_STATE_RSP
 #define WDA_ENTER_IMPS_REQ             SIR_HAL_ENTER_IMPS_REQ
 #define WDA_ENTER_IMPS_RSP             SIR_HAL_ENTER_IMPS_RSP
 #define WDA_EXIT_IMPS_RSP              SIR_HAL_EXIT_IMPS_RSP

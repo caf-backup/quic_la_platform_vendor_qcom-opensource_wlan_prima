@@ -29,7 +29,34 @@
   --------------------------------------------------------------------------*/
 void wpalTrace( wpt_moduleid module, wpt_tracelevel level, char *strFormat, ... );
 
+/**----------------------------------------------------------------------------
+  
+ \brief WPAL_DUMP() / wpalDump() - Trace / logging API
+   
+ Users wishing to add tracing memory dumps to their code should use 
+ WPAL_DUMP.  WPAL_DUMP() will compile into a call to wpalDump() when
+ tracing is enabled.
+  
+ \param module - module identifier.   A member of the wpt_moduleid
+                 enumeration that identifies the module performing the dump
+         
+ \param level - trace level.   A member of the wpt_tracelevel 
+                enumeration indicating the severity of the condition causing the
+                memory to be dumped.   More severe conditions are more 
+                likely to be logged.
+         
+ \param pMemory - memory.  A pointer to the memory to be dumped
+
+ \param length - length.  How many bytes of memory to be dumped
+  
+   \return  nothing
+    
+  --------------------------------------------------------------------------*/
+void wpalDump( wpt_moduleid module, wpt_tracelevel level,
+               wpt_uint8 *memory, wpt_uint32 length);
+
 #define WPAL_TRACE wpalTrace
+#define WPAL_DUMP wpalDump
 
 #define WPAL_ASSERT( _condition )                          \
 if ( ! ( _condition ) )                                   \
@@ -41,6 +68,7 @@ if ( ! ( _condition ) )                                   \
 #else //WLAN_DEBUG
 
 #define WPAL_TRACE
+#define WPAL_DUMP
 #define WPAL_ASSERT
 
 #endif //WLAN_DEBUG

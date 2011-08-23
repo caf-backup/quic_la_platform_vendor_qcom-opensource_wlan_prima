@@ -672,6 +672,7 @@ typedef struct {
     //Type of measurements (RTS-CTS or FRAME-BASED)
     eSirInNavMeasurementMode   measurementMode;
     //bssid channel info for doing the measurements
+    tSirMacAddr                selfMacAddr;
     tSirBSSIDChannelInfo       bssidChannelInfo[1];
 
 }tStartInNavMeasReq,*tpStartInNavMeasReq;
@@ -926,7 +927,10 @@ typedef struct sLinkStateParams
     tSirMacAddr bssid;
     tSirMacAddr selfMacAddr;
     tSirLinkState state;
-
+#ifdef WLAN_FEATURE_VOWIFI_11R
+    int ft;
+    void * session;
+#endif
 } tLinkStateParams, * tpLinkStateParams;
 
 

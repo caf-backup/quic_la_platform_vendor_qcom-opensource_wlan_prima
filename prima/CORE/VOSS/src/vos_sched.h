@@ -149,6 +149,10 @@ typedef struct _VosSchedContext
    /* SYS Message queue on the Tx thread */
    VosMqType           sysTxMq;
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+   VosMqType           sysRxMq;
+#endif
+
    /* Handle of Event for MC thread to signal startup */
    struct completion   McStartEvent;
 
@@ -214,6 +218,7 @@ typedef struct _VosSchedContext
    /* lock to make sure that McThread and TxThread Suspend/resume mechanism is in sync*/
    spinlock_t McThreadLock;
    spinlock_t TxThreadLock;
+   spinlock_t RxThreadLock;
 
 } VosSchedContext, *pVosSchedContext;
 
@@ -343,8 +348,9 @@ typedef struct _VosContextType
 ---------------------------------------------------------------------------*/
  
 int vos_sched_is_tx_thread(int threadID);
-
-
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+int vos_sched_is_rx_thread(int threadID);
+#endif
 /*---------------------------------------------------------------------------
   
   \brief vos_sched_open() - initialize the vOSS Scheduler  
@@ -491,7 +497,7 @@ VOS_STATUS vos_sched_init_mqs   (pVosSchedContext pSchedContext);
 void vos_sched_deinit_mqs (pVosSchedContext pSchedContext);
 void vos_sched_flush_mc_mqs  (pVosSchedContext pSchedContext);
 void vos_sched_flush_tx_mqs  (pVosSchedContext pSchedContext);
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
 void vos_sched_flush_rx_mqs  (pVosSchedContext pSchedContext);
 #endif
 VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type reason );

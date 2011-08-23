@@ -820,7 +820,8 @@ typedef struct tagCsrNeighborRoamConfigParams
 typedef struct tagCsrConfigParam
 {
     tANI_U32 FragmentationThreshold;
-    tANI_U32 ChannelBondingMode;
+    tANI_U32 channelBondingMode24GHz;
+    tANI_U32 channelBondingMode5GHz;
     eCsrPhyMode phyMode;
     eCsrBand eBand;
     tANI_U32 RTSThreshold;

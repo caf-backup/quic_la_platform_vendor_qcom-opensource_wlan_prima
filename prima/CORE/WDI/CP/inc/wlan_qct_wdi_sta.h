@@ -50,7 +50,7 @@ when        who    what, where, why
   -------------------------------------------------------------------------*/
 typedef struct 
 {
-  wpt_uint16   usStaIdx; 
+  wpt_uint8    ucSTAIdx; 
   wpt_uint8    ucWmmEnabled;
   wpt_uint8    ucHTCapable; 
 
@@ -80,7 +80,7 @@ typedef struct
   wpt_uint8   ucRmfEnabled;
 
   /* Index into the BSS Session table */
-  wpt_uint8   ucbssIndex;
+  wpt_uint8   ucBSSIdx;
 
 }WDI_AddStaParams; 
 
@@ -204,7 +204,7 @@ WDI_STATableAddSta
 
  
  @param  pWDICtx:         pointer to the WLAN DAL context 
-         ucStaIdx:        station to be deleted
+         ucSTAIdx:        station to be deleted
   
  @see
  @return Result of the function call
@@ -213,7 +213,7 @@ WDI_Status
 WDI_STATableDelSta
 (
     WDI_ControlBlockType*  pWDICtx,
-    wpt_uint16             usStaIdx
+    wpt_uint8              ucSTAIdx
 );
 
 /**
@@ -239,7 +239,7 @@ WDI_STATableBSSDelSta
 
  
  @param  pWDICtx:         pointer to the WLAN DAL context 
-         ucStaIdx:        station index
+         ucSTAIdx:        station index
          pmacBSSID:      out BSSID for this STA
   
  @see
@@ -249,7 +249,7 @@ WDI_Status
 WDI_STATableGetStaBSSIDAddr
 (
     WDI_ControlBlockType*  pWDICtx,  
-    wpt_uint16             staIdx, 
+    wpt_uint8              ucSTAIdx, 
     wpt_macAddr*           pmacBSSID
 );
 /**
@@ -258,7 +258,7 @@ WDI_STATableGetStaBSSIDAddr
 
  
  @param  pWDICtx:         pointer to the WLAN DAL context 
-         ucStaIdx:        station index
+         ucSTAIdx:        station index
          qosEnabled:      out qos enabled
   
  @see
@@ -268,7 +268,7 @@ WDI_Status
 WDI_STATableGetStaQosEnabled
 (
     WDI_ControlBlockType*  pWDICtx,  
-    wpt_uint16             staIdx, 
+    wpt_uint8              ucSTAIdx, 
     wpt_uint8*             qosEnabled
 );
 
@@ -277,7 +277,7 @@ WDI_STATableGetStaQosEnabled
 
  
  @param  pWDICtx:    pointer to the WLAN DAL context 
-         ucStaIdx:   station index
+         ucSTAIdx:   station index
          qosEnabled: qos enabled
   
  @see
@@ -287,7 +287,7 @@ WDI_Status
 WDI_STATableSetStaQosEnabled
 (
     WDI_ControlBlockType*  pWDICtx,  
-    wpt_uint16             staIdx, 
+    wpt_uint8              ucSTAIdx, 
     wpt_uint8              qosEnabled
 );
 
@@ -296,7 +296,7 @@ WDI_STATableSetStaQosEnabled
 
  
  @param  pWDICtx:   pointer to the WLAN DAL context 
-         ucStaIdx:  station index
+         ucSTAIdx:  station index
          pStaType:  qos enabled
   
  @see
@@ -306,7 +306,7 @@ WDI_Status
 WDI_STATableGetStaType
 (
     WDI_ControlBlockType*  pWDICtx,  
-    wpt_uint16             staIdx, 
+    wpt_uint8              ucSTAIdx, 
     wpt_uint8*             pStaType
 );
 
@@ -315,7 +315,7 @@ WDI_STATableGetStaType
 
  
  @param  pWDICtx:   pointer to the WLAN DAL context 
-         ucStaIdx:  station index
+         ucSTAIdx:  station index
          staType:   sta type
   
  @see
@@ -325,7 +325,7 @@ WDI_Status
 WDI_STATableSetStaType
 (
     WDI_ControlBlockType*  pWDICtx,  
-    wpt_uint16             staIdx, 
+    wpt_uint8              ucSTAIdx, 
     wpt_uint8              staType
 );
 
@@ -353,7 +353,7 @@ WDI_STATableFindStaidByAddr
  @brief WDI_STATableGetStaAddr - get station address
  
  @param  pWDICtx:  WDI Context pointer
-         staIdx:  station index
+         ucSTAIdx:  station index
          pStaAddr: output station address 
   
  @see
@@ -363,7 +363,7 @@ WDI_Status
 WDI_STATableGetStaAddr
 (
     WDI_ControlBlockType*  pWDICtx,  
-    wpt_uint16             staIdx, 
+    wpt_uint8              ucSTAIdx, 
     wpt_uint8**            pStaAddr
 );
 
@@ -371,7 +371,7 @@ WDI_STATableGetStaAddr
  @brief WDI_STATableSetStaAddr - set station address
  
  @param  pWDICtx:  WDI Context pointer
-         staIdx:   station index
+         ucSTAIdx:   station index
          pStaAddr: output station address 
   
  @see
@@ -381,7 +381,7 @@ WDI_Status
 WDI_STATableSetStaAddr
 (
     WDI_ControlBlockType*  pWDICtx,  
-    wpt_uint16             staIdx, 
+    wpt_uint8              ucSTAIdx, 
     wpt_macAddr            staAddr
 );
 
@@ -389,7 +389,7 @@ WDI_STATableSetStaAddr
  @brief WDI_STATableSetBSSID - set station corresponding BSSID
  
  @param  pWDICtx:  WDI Context pointer
-         staIdx:   station index
+         ucSTAIdx:   station index
          pStaAddr: output station address 
   
  @see
@@ -399,7 +399,7 @@ WDI_Status
 WDI_STATableSetBSSID
 (
     WDI_ControlBlockType*  pWDICtx,  
-    wpt_uint16             staIdx, 
+    wpt_uint8              ucSTAIdx, 
     wpt_macAddr            macBSSID
 );
 
@@ -407,7 +407,7 @@ WDI_STATableSetBSSID
  @brief WDI_STATableSetBSSIdx - set station corresponding BSS index
  
  @param  pWDICtx:  WDI Context pointer
-         staIdx:   station index
+         ucSTAIdx:   station index
          bssIdx:   BSS index 
   
  @see
@@ -417,8 +417,8 @@ WDI_Status
 WDI_STATableSetBSSIdx
 (
     WDI_ControlBlockType*  pWDICtx,  
-    wpt_uint16             staIdx, 
-    wpt_uint8              bssIdx
+    wpt_uint8              ucSTAIdx, 
+    wpt_uint8              ucBSSIdx
 );
 
 #endif /*WLAN_QCT_WDI_STA_H*/

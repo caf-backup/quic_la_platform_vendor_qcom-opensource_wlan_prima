@@ -550,8 +550,8 @@ void csrSetGlobalCfgs( tpAniSirGlobal pMac )
                         ((pMac->roam.configParam.Is11hSupportEnabled) ? pMac->roam.configParam.Is11dSupportEnabled : pMac->roam.configParam.Is11dSupportEnabled), 
                         NULL, eANI_BOOLEAN_FALSE);
     ccmCfgSetInt(pMac, WNI_CFG_11H_ENABLED, pMac->roam.configParam.Is11hSupportEnabled, NULL, eANI_BOOLEAN_FALSE);
-    //No channel bonding for Libra
-    ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, WNI_CFG_CHANNEL_BONDING_MODE_DISABLE, NULL, eANI_BOOLEAN_FALSE);
+    //Enable channel bonding at init; for 2.4 Ghz we will update this CFG at start BSS or join 
+    ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, WNI_CFG_CHANNEL_BONDING_MODE_ENABLE, NULL, eANI_BOOLEAN_FALSE);
     ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->roam.configParam.HeartbeatThresh24, NULL, eANI_BOOLEAN_FALSE);
     
     //Update the operating mode to configured value during initialization,
@@ -895,7 +895,8 @@ static void initConfigParam(tpAniSirGlobal pMac)
     int i;
 
     pMac->roam.configParam.agingCount = CSR_AGING_COUNT;
-    pMac->roam.configParam.ChannelBondingMode = eANI_BOOLEAN_TRUE;
+    pMac->roam.configParam.channelBondingMode24GHz = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
+    pMac->roam.configParam.channelBondingMode5GHz = WNI_CFG_CHANNEL_BONDING_MODE_ENABLE;
     pMac->roam.configParam.phyMode = eCSR_DOT11_MODE_TAURUS;
     pMac->roam.configParam.eBand = eCSR_BAND_ALL;
     pMac->roam.configParam.uCfgDot11Mode = eCSR_CFG_DOT11_MODE_TAURUS;
@@ -972,7 +973,8 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
         {
             pMac->roam.configParam.Is11dSupportEnabled = eANI_BOOLEAN_TRUE;
         }
-        pMac->roam.configParam.ChannelBondingMode = pParam->ChannelBondingMode;
+        pMac->roam.configParam.channelBondingMode24GHz = pParam->channelBondingMode24GHz;
+        pMac->roam.configParam.channelBondingMode5GHz = pParam->channelBondingMode5GHz;
         pMac->roam.configParam.RTSThreshold = pParam->RTSThreshold;
         pMac->roam.configParam.phyMode = pParam->phyMode;
         pMac->roam.configParam.shortSlotTime = pParam->shortSlotTime;
@@ -1129,7 +1131,8 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
         pParam->FragmentationThreshold = pMac->roam.configParam.FragmentationThreshold;
         pParam->Is11dSupportEnabled = pMac->roam.configParam.Is11dSupportEnabled;
         pParam->Is11hSupportEnabled = pMac->roam.configParam.Is11hSupportEnabled;
-        pParam->ChannelBondingMode = pMac->roam.configParam.ChannelBondingMode;
+        pParam->channelBondingMode24GHz = pMac->roam.configParam.channelBondingMode24GHz;
+        pParam->channelBondingMode5GHz = pMac->roam.configParam.channelBondingMode5GHz;
         pParam->RTSThreshold = pMac->roam.configParam.RTSThreshold;
         pParam->phyMode = pMac->roam.configParam.phyMode;
         pParam->shortSlotTime = pMac->roam.configParam.shortSlotTime;
@@ -2857,7 +2860,8 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
                           tDot11fBeaconIEs *pIes)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-    
+    tANI_U32   cfgCb = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
+    tANI_U8    channel = 0;
     //Make sure we have the domain info for the BSS we try to connect to.
     //Do we need to worry about sequence for OSs that are not Windows??
     if(pBssDesc)
@@ -2937,6 +2941,29 @@ eHalStatus csrRoamSetBssConfigCfg(tpAniSirGlobal pMac, tANI_U32 sessionId, tCsrR
     //Heartbeat
     ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pBssConfig->uHeartBeatThresh, NULL, eANI_BOOLEAN_FALSE);
     */
+    if(CSR_IS_INFRA_AP(pProfile) || CSR_IS_WDS_AP(pProfile))
+    {
+        channel = pProfile->operationChannel;
+    }
+    else
+    {
+        if(pBssDesc)
+        {
+            channel = pBssDesc->channelId;
+        }
+    }
+    if(0 != channel)
+    {
+        if(CSR_IS_CHANNEL_24GHZ(channel))
+        {//for now if we are on 2.4 Ghz, CB will be always disabled
+            cfgCb = WNI_CFG_CHANNEL_BONDING_MODE_DISABLE;
+        }
+        else
+        {
+            cfgCb = pMac->roam.configParam.channelBondingMode5GHz;
+        }
+    }
+    ccmCfgSetInt(pMac, WNI_CFG_CHANNEL_BONDING_MODE, cfgCb, NULL, eANI_BOOLEAN_FALSE);
     //Rate
     //Fixed Rate
     if(pBssDesc)
@@ -5852,7 +5879,7 @@ static eHalStatus csrRoamIssueReassociate( tpAniSirGlobal pMac, tANI_U32 session
     // Set the roaming substate to 'join attempt'...
     csrRoamSubstateChange( pMac, eCSR_ROAM_SUBSTATE_REASSOC_REQ );
 
-    smsLog(pMac, LOGE, FL("  calling csrRoamIssueReassociate\n"));
+    smsLog(pMac, LOGE, FL("  calling csrSendSmeReassocReqMsg\n"));
     
     // attempt to Join this BSS...
     return csrSendSmeReassocReqMsg( pMac, sessionId, pSirBssDesc, pIes, pProfile );
@@ -6688,6 +6715,12 @@ void csrRoamJoinedStateMsgProcessor( tpAniSirGlobal pMac, void *pMsgBuf )
                 pRoamInfo->fReassocReq = pUpperLayerAssocCnf->reassocReq;
                 status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_INFRA_IND, eCSR_ROAM_RESULT_INFRA_ASSOCIATION_CNF);
             }
+            if(CSR_IS_WDS_AP( pRoamInfo->u.pConnectedProfile))
+            {
+                pMac->roam.roamSession[sessionId].connectState = eCSR_ASSOC_STATE_TYPE_WDS_CONNECTED;//Sta
+                status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_WDS_IND, eCSR_ROAM_RESULT_WDS_ASSOCIATION_IND);//Sta
+            }
+
 
         }
         break;
@@ -7389,9 +7422,7 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 palCopyMemory(pMac->hHdd, &pRoamInfo->bssid, pAssocInd->bssId, sizeof(tCsrBssid));
 #ifdef WLAN_SOFTAP_FEATURE
                 pRoamInfo->wmmEnabledSta = pAssocInd->wmmEnabledSta;
-                if(CSR_IS_WDS_AP( pRoamInfo->u.pConnectedProfile))
 #endif 
-                    status = csrRoamCallCallback(pMac, sessionId, pRoamInfo, 0, eCSR_ROAM_WDS_IND, eCSR_ROAM_RESULT_WDS_ASSOCIATION_IND);//Sta
 #ifdef WLAN_SOFTAP_FEATURE
                 if(CSR_IS_INFRA_AP(pRoamInfo->u.pConnectedProfile))
                 {
@@ -7413,10 +7444,10 @@ void csrRoamCheckForLinkStatusChange( tpAniSirGlobal pMac, tSirSmeRsp *pSirMsg )
                 /* send a message to CSR itself just to avoid the EAPOL frames going
                  * OTA before association response */
 
-#ifdef WLAN_SOFTAP_FEATURE
                 if(CSR_IS_WDS_AP( pRoamInfo->u.pConnectedProfile))
-#endif
-                    pMac->roam.roamSession[sessionId].connectState = eCSR_ASSOC_STATE_TYPE_WDS_CONNECTED;//Sta
+                {
+                    status = csrSendAssocIndToUpperLayerCnfMsg(pMac, pAssocInd, status);
+                }
 #ifdef WLAN_SOFTAP_FEATURE
                 else if(CSR_IS_INFRA_AP(pRoamInfo->u.pConnectedProfile) && (pRoamInfo->statusCode != eSIR_SME_ASSOC_REFUSED))
                 {
@@ -8726,9 +8757,18 @@ static tAniCBSecondaryMode csrGetCBModeFromIes(tpAniSirGlobal pMac, tANI_U8 prim
 {
     tAniCBSecondaryMode eRet = eANI_CB_SECONDARY_NONE;
     tANI_U8 centerChn;
+    tANI_U32 ChannelBondingMode;
 
+    if(CSR_IS_CHANNEL_24GHZ(primaryChn))
+    {
+        ChannelBondingMode = pMac->roam.configParam.channelBondingMode24GHz;
+    }
+    else
+    {
+        ChannelBondingMode = pMac->roam.configParam.channelBondingMode5GHz;
+    }
     //Figure what the other side's CB mode
-    if(WNI_CFG_CHANNEL_BONDING_MODE_DISABLE != pMac->roam.configParam.ChannelBondingMode)
+    if(WNI_CFG_CHANNEL_BONDING_MODE_DISABLE != ChannelBondingMode)
     {
         if(pIes->HTCaps.present && (eHT_CHANNEL_WIDTH_40MHZ == pIes->HTCaps.supportedChannelWidthSet))
         {
@@ -9433,8 +9473,19 @@ static void csrRoamPrepareBssParams(tpAniSirGlobal pMac, tANI_U32 sessionId, tCs
                 pSession->bssParams.operationChn = 0;
             }
             else {
+                tANI_U32 ChannelBondingMode;
+
+                if(CSR_IS_CHANNEL_24GHZ(Channel))
+                {
+                    ChannelBondingMode = pMac->roam.configParam.channelBondingMode24GHz;
+                }
+                else
+                {
+                    ChannelBondingMode = pMac->roam.configParam.channelBondingMode5GHz;
+                }
+
                 //now we have a valid channel
-                if(WNI_CFG_CHANNEL_BONDING_MODE_DISABLE != pMac->roam.configParam.ChannelBondingMode)
+                if(WNI_CFG_CHANNEL_BONDING_MODE_DISABLE != ChannelBondingMode)
                 {
                     //let's pick a secondard channel
                     SecondChn = csrRoamGetSecondaryChannel(pMac, Channel, cbChoice);
@@ -10435,6 +10486,9 @@ eHalStatus csrSendSmeReassocReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, tSi
         pBuf += sizeof(tSirBssType);
         // dot11mode
         *pBuf = (tANI_U8)csrTranslateToWNICfgDot11Mode( pMac, pSession->bssParams.uCfgDot11Mode );
+        pBuf++;
+        //Persona
+        *pBuf = (tANI_U8)pProfile->csrPersona;
         pBuf++;
         // uapsdPerAcBitmask
         *pBuf = pProfile->uapsd_mask;

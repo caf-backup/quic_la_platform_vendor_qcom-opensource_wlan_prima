@@ -27,8 +27,7 @@
 
 ===========================================================================*/
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
-#include "halInternal.h"
-#include "halPhyApi.h"
+#include "wlan_qct_wda.h"
 #include "palApi.h"
 #include "csrInsideApi.h"
 #include "smsDebug.h"
@@ -1348,7 +1347,7 @@ void csrNeighborRoamResultsRefreshTimerCallback(void *context)
     /* Reset all the variables just as no scan had happened before */
     csrNeighborRoamResetConnectedStateControlInfo(pMac);
 
-#ifdef WLAN_FEATURE_VOWIFI_11R
+#if defined WLAN_FEATURE_VOWIFI_11R && defined WLAN_FEATURE_VOWIFI
     if ((pNeighborRoamInfo->is11rAssoc) && (pMac->rrm.rrmSmeContext.rrmConfig.rrmEnabled))
     {
         NEIGHBOR_ROAM_DEBUG(pMac, LOGE, FL("11R Association:Neighbor Lookup Down event received in CONNECTED state"));
@@ -1376,7 +1375,7 @@ void csrNeighborRoamResultsRefreshTimerCallback(void *context)
     return;
 }
 
-#ifdef WLAN_FEATURE_VOWIFI_11R
+#if defined WLAN_FEATURE_VOWIFI_11R && defined WLAN_FEATURE_VOWIFI
 /* ---------------------------------------------------------------------------
 
     \fn csrNeighborRoamIssueNeighborRptRequest
@@ -1794,7 +1793,7 @@ VOS_STATUS  csrNeighborRoamNeighborLookupDownEvent(tpAniSirGlobal pMac)
             }
             
            
-#ifdef WLAN_FEATURE_VOWIFI_11R
+#if defined WLAN_FEATURE_VOWIFI_11R && defined WLAN_FEATURE_VOWIFI
             if ((pNeighborRoamInfo->is11rAssoc) && (pMac->rrm.rrmSmeContext.rrmConfig.rrmEnabled))
             {
                

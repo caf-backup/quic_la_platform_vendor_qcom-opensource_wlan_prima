@@ -535,6 +535,12 @@ WDI_FillTxBd
          --------------------------------------------------------------------*/
          /* apply to both ucast/mcast mgmt frames */
          pBd->bdRate = WDI_BDRATE_BCMGMT_FRAME; 
+
+         if ( ucTxFlag & WDI_USE_BD_RATE2_FOR_MANAGEMENT_FRAME) 
+         {
+           pBd->bdRate = WDI_BDRATE_CTRL_FRAME;
+         }
+
          pBd->bd_ssn = WDI_TXBD_BD_SSN_FILL_DPU_NON_QOS;
          if((ucSubType == WDI_MAC_MGMT_ACTION) || (ucSubType == WDI_MAC_MGMT_DEAUTH) || 
             (ucSubType == WDI_MAC_MGMT_DISASSOC))
@@ -590,6 +596,7 @@ WDI_FillTxBd
                                               *(wpt_macAddr*)pAddr2, &ucStaId );
            if (WDI_STATUS_SUCCESS != wdiStatus) 
            {
+                WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR, "WDI_STATableFindStaidByAddr failed");
                 return WDI_STATUS_E_FAILURE;
            }
 #else

@@ -48,20 +48,24 @@ typedef enum
 
 /*----------------------------------------------------------------------------
   
-  \brief wpal_trace_setLevel() - Set the trace level for a particular module
+  \brief wpalTraceSetLevel() - Set the trace level for a particular module
   
   This is an external API that allows trace levels to be set for each module.
   
+  \param module - id of the module whos trace level is being modified
   \param level - trace level.   A member of the wpt_tracelevel 
          enumeration indicating the severity of the condition causing the
          trace message to be issued.   More severe conditions are more 
          likely to be logged.
+  \param on - boolean to indicate if tracing at the given level should be
+         enabled or disabled.
          
   \return  nothing
     
   \sa
   --------------------------------------------------------------------------*/
-void wpalTraceSetLevel( wpt_moduleid module, wpt_tracelevel level );
+void wpalTraceSetLevel( wpt_moduleid module, wpt_tracelevel level,
+                        wpt_boolean on );
 
 /**----------------------------------------------------------------------------
   
@@ -86,6 +90,22 @@ void wpalTraceSetLevel( wpt_moduleid module, wpt_tracelevel level );
   --------------------------------------------------------------------------*/
 wpt_boolean wpalTraceCheckLevel( wpt_moduleid module, wpt_tracelevel level );
 
+
+/*----------------------------------------------------------------------------
+  
+  \brief wpalTraceDisplay() - Display current state of trace level for
+                              all modules
+  
+  This is an external API that allows trace levels to be displayed to
+  an end user
+  
+  \param none
+
+  \return  nothing
+    
+  \sa
+  --------------------------------------------------------------------------*/
+void wpalTraceDisplay(void);
 
 
 #endif // __WLAN_QCT_PAL_TRACE_H

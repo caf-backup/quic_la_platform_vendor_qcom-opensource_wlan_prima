@@ -147,11 +147,12 @@ vos_sched_open
   init_completion(&pSchedContext->ResumeMcEvent);
   init_completion(&pSchedContext->ResumeTxEvent);
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
- //TO DO: init_completion(&pSchedContext->ResumeRxEvent);
+  init_completion(&pSchedContext->ResumeRxEvent);
 #endif
 
   spin_lock_init(&pSchedContext->McThreadLock);
   spin_lock_init(&pSchedContext->TxThreadLock);
+  spin_lock_init(&pSchedContext->RxThreadLock);
 
   init_waitqueue_head(&pSchedContext->mcWaitQueue);
   pSchedContext->mcEventFlag = 0;
@@ -989,6 +990,7 @@ static int VosRXThread ( void * Arg )
   v_BOOL_t shutdown = VOS_FALSE;
   hdd_context_t *pHddCtx         = NULL;
   v_CONTEXT_t pVosContext        = NULL;
+  VOS_STATUS       vStatus       = VOS_STATUS_SUCCESS;
 
   set_user_nice(current, -1);
 
@@ -1044,19 +1046,44 @@ static int VosRXThread ( void * Arg )
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
                  "%s: RX thread signaled for shutdown",__func__);
         shutdown = VOS_TRUE;
-        break;
-      }
-#if 0 
-//TO DO: Implement this
         /* Check for any Suspend Indication */
         if(test_bit(RX_SUSPEND_EVENT_MASK, &pSchedContext->rxEventFlag))
         {
            clear_bit(RX_SUSPEND_EVENT_MASK, &pSchedContext->rxEventFlag);
         
            /* Unblock anyone waiting on suspend */
-           complete(&pHddCtx->mc_sus_event_var);
+           complete(&pHddCtx->rx_sus_event_var);
         }
-#endif
+        break;
+      }
+
+
+      // Check the SYS queue first
+      if (!vos_is_mq_empty(&pSchedContext->sysRxMq))
+      {
+        // Service the SYS message queue
+        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
+                "%s: Servicing the VOS SYS RX Message queue",__func__);
+        pMsgWrapper = vos_mq_get(&pSchedContext->sysRxMq);
+        if (pMsgWrapper == NULL)
+        {
+           VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+               "%s: pMsgWrapper is NULL", __FUNCTION__);
+           VOS_ASSERT(0);
+           break;
+        }
+        vStatus = sysRxProcessMsg( pSchedContext->pVContext,
+                                   pMsgWrapper->pVosMsg);
+        if (!VOS_IS_STATUS_SUCCESS(vStatus))
+        {
+          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                     "%s: Issue Processing TX SYS message",__func__);
+        }
+        // return message to the Core
+        vos_core_return_msg(pSchedContext->pVContext, pMsgWrapper);
+        continue;
+      }
+
       // Check the WDI queue
       if (!vos_is_mq_empty(&pSchedContext->wdiRxMq))
       {
@@ -1082,11 +1109,13 @@ static int VosRXThread ( void * Arg )
       if(test_bit(RX_SUSPEND_EVENT_MASK, &pSchedContext->rxEventFlag))
       {
         clear_bit(RX_SUSPEND_EVENT_MASK, &pSchedContext->rxEventFlag);
+        spin_lock(&pSchedContext->RxThreadLock);
 
         /* Rx Thread Suspended */
         complete(&pHddCtx->rx_sus_event_var);
 
         init_completion(&pSchedContext->ResumeRxEvent);
+        spin_unlock(&pSchedContext->RxThreadLock);
 
         /* Wait for Resume Indication */
         wait_for_completion_interruptible(&pSchedContext->ResumeRxEvent);
@@ -1445,6 +1474,7 @@ VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
     VOS_ASSERT(0);
     return vStatus;
   }
+
 #endif
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: Initializing the SYS Tx Message queue",__func__);
@@ -1453,6 +1483,15 @@ VOS_STATUS vos_sched_init_mqs ( pVosSchedContext pSchedContext )
   {
     VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
             "%s: Failed to init SYS TX Message queue",__func__);
+    VOS_ASSERT(0);
+    return vStatus;
+  }
+
+  vStatus = vos_mq_init(&pSchedContext->sysRxMq);
+  if (! VOS_IS_STATUS_SUCCESS(vStatus))
+  {
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+            "%s: Failed to init SYS RX Message queue",__func__);
     VOS_ASSERT(0);
     return vStatus;
   }
@@ -1535,6 +1574,12 @@ void vos_sched_deinit_mqs ( pVosSchedContext pSchedContext )
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
             "%s: DeInitializing the SYS Tx Message queue",__func__);
   vos_mq_deinit(&pSchedContext->sysTxMq);
+
+  //Rx SYS
+  VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+            "%s: DeInitializing the SYS Rx Message queue",__func__);
+  vos_mq_deinit(&pSchedContext->sysRxMq);
+
 #endif
 } /* vos_sched_deinit_mqs() */
 
@@ -1746,6 +1791,16 @@ void vos_sched_flush_rx_mqs ( pVosSchedContext pSchedContext )
                pMsgWrapper->pVosMsg->type );
     sysTxFreeMsg(pSchedContext->pVContext, pMsgWrapper->pVosMsg);
   }
+
+  while( NULL != (pMsgWrapper = vos_mq_get(&pSchedContext->sysRxMq) ))
+  {
+    VOS_TRACE( VOS_MODULE_ID_VOSS,
+               VOS_TRACE_LEVEL_INFO,
+               "%s: Freeing RX SYS MSG message type %d",__func__,
+               pMsgWrapper->pVosMsg->type );
+    sysTxFreeMsg(pSchedContext->pVContext, pMsgWrapper->pVosMsg);
+  }
+
 }/* vos_sched_flush_rx_mqs() */
 #endif
 
@@ -1764,6 +1819,23 @@ int vos_sched_is_tx_thread(int threadID)
    }
    return ((gpVosSchedContext->TxThread) && (threadID == gpVosSchedContext->TxThread->pid));
 }
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+/*-------------------------------------------------------------------------
+ This helper function helps determine if thread id is of RX thread
+ ------------------------------------------------------------------------*/
+int vos_sched_is_rx_thread(int threadID)
+{
+   // Make sure that Vos Scheduler context has been initialized
+   VOS_ASSERT( NULL != gpVosSchedContext);
+   if (gpVosSchedContext == NULL)
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+          "%s: gpVosSchedContext == NULL",__FUNCTION__);
+      return 0;
+   }
+   return ((gpVosSchedContext->RxThread) && (threadID == gpVosSchedContext->RxThread->pid));
+}
+#endif
 /*-------------------------------------------------------------------------
  Helper function to get the scheduler context
  ------------------------------------------------------------------------*/

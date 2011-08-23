@@ -213,6 +213,11 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_REQ] =
   NULL,
 #endif /* ANI_MANF_DIAG */
   
+#ifdef FEATURE_INNAV_SUPPORT
+  WDI_ProcessStartInNavMeasReq,     /*WDI_START_INNAV_MEAS_REQ*/
+#else
+  NULL,
+#endif /*FEATURE_INNAV_SUPPORT*/
 };
 
 
@@ -311,6 +316,11 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 #endif /* WLAN_FEATURE_VOWIFI_11R */
   WDI_ProcessAddSTASelfRsp,          /* WDI_ADD_STA_SELF_RESP */
   WDI_ProcessDelSTASelfRsp,          /* WDI_DEL_SELF_STA_RESP */
+#ifdef FEATURE_INNAV_SUPPORT
+  WDI_ProcessStartInNavMeasRsp,     /*WDI_START_INNAV_MEAS_RSP*/
+#else
+  NULL,
+#endif /*FEATURE_INNAV_SUPPORT*/
   /*Indications*/
   WDI_ProcessLowRSSIInd,            /* WDI_HAL_RSSI_NOTIFICATION_IND  */
   WDI_ProcessMissedBeaconInd,       /* WDI_HAL_MISSED_BEACON_IND  */
@@ -3451,6 +3461,69 @@ WDI_BtAmpEventReq
 
 }/*WDI_BtAmpEventReq*/
 
+#ifdef FEATURE_INNAV_SUPPORT
+/**
+ @brief WDI_Start In Nav Meas Req will be called when the upper MAC 
+        wants to notify the lower mac on a In Nav Meas Req event.Upon
+        the call of this API the WLAN DAL will pack and send a
+        HAL In Nav Meas event request message to the lower RIVA
+        sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+  
+ @param pwdiInNavMeasReqParams: the IN NAV MEAS Req parameters as 
+                      specified by the Device Interface
+  
+        wdiStartInNavMeasRspCb: callback for passing back the
+        response of the In Nav Meas Req received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+ 
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_StartInNavMeasReq
+(
+  WDI_InNavMeasReqParamsType*       pwdiInNavMeasReqParams,
+  WDI_InNavMeasRspCb                wdiInNavMeasRspCb,
+  void*                             pUserData
+)
+{
+   WDI_EventInfoType      wdiEventData;
+   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+   /*------------------------------------------------------------------------
+     Sanity Check 
+   ------------------------------------------------------------------------*/
+   if ( eWLAN_PAL_FALSE == gWDIInitialized )
+   {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "WDI API call before module is initialized - Fail request");
+
+     return WDI_STATUS_E_NOT_ALLOWED; 
+   }
+
+   /*------------------------------------------------------------------------
+     Fill in Event data and post to the Main FSM
+   ------------------------------------------------------------------------*/
+   wdiEventData.wdiRequest      = WDI_START_INNAV_MEAS_REQ;
+   wdiEventData.pEventData      = pwdiInNavMeasReqParams; 
+   wdiEventData.uEventDataSize  = sizeof(*pwdiInNavMeasReqParams); 
+   wdiEventData.pCBfnc          = wdiInNavMeasRspCb; 
+   wdiEventData.pUserData       = pUserData;
+
+   return WDI_PostMainEvent(&gWDICb, WDI_REQUEST_EVENT, &wdiEventData);
+
+
+}
+
+#endif
+
+
 /*======================================================================== 
  
                              CONTROL APIs
@@ -4190,9 +4263,9 @@ WDI_SetP2PGONOAReq
 WDI_Status
 WDI_AddSTASelfReq
 (
-  WDI_AddSTASelfParamsType*    pwdiAddSTASelfReqParams,
+  WDI_AddSTASelfReqParamsType* pwdiAddSTASelfReqParams,
   WDI_AddSTASelfParamsRspCb    wdiAddSTASelfReqParamsRspCb,
-  void*                            pUserData
+  void*                        pUserData
 )
 {
   WDI_EventInfoType      wdiEventData;
@@ -5213,6 +5286,9 @@ WDI_ProcessCloseReq
    /*Clear control block */
    WDI_CleanCB(pWDICtx);
 
+   /*Make sure the expected state is properly defaulted to Init*/
+   pWDICtx->ucExpectedStateTransition = WDI_INIT_ST; 
+
    return WDI_STATUS_SUCCESS; 
 }/*WDI_ProcessCloseReq*/
 
@@ -5725,6 +5801,10 @@ WDI_ProcessBSSSessionJoinReq
   wpalMemoryCopy(halJoinReqMsg.joinReqParams.bssId,
                  pwdiJoinParams->wdiReqInfo.macBSSID, WDI_MAC_ADDR_LEN); 
 
+  wpalMemoryCopy(halJoinReqMsg.joinReqParams.selfStaMacAddr,
+                 pwdiJoinParams->wdiReqInfo.macSTASelf, 
+                 WDI_MAC_ADDR_LEN); 
+
   halJoinReqMsg.joinReqParams.ucChannel = 
     pwdiJoinParams->wdiReqInfo.wdiChannelInfo.ucChannel;
 
@@ -5880,6 +5960,30 @@ WDI_ProcessConfigBSSReq
 
   if ( NULL == pBSSSes ) 
   {
+#ifdef WLAN_FEATURE_VOWIFI_11R
+      /*------------------------------------------------------------------------
+        Fetch an empty session block 
+      ------------------------------------------------------------------------*/
+      ucCurrentBSSSesIdx = WDI_FindEmptySession( pWDICtx, &pBSSSes); 
+      if ( NULL == pBSSSes )
+      {
+    
+        WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "DAL has no free sessions - cannot run another join");
+    
+        wpalMutexRelease(&pWDICtx->wptMutex);
+        return WDI_STATUS_RES_FAILURE; 
+      }
+    
+      /*Save BSS Session Info*/
+      pBSSSes->bInUse = eWLAN_PAL_TRUE; 
+      wpalMemoryCopy( pBSSSes->macBSSID, pwdiConfigBSSParams->wdiReqInfo.macBSSID, 
+                      WDI_MAC_ADDR_LEN);
+    
+      /*Transition to state Joining*/
+      pBSSSes->wdiAssocState      = WDI_ASSOC_JOINING_ST; 
+      pWDICtx->ucCurrentBSSSesIdx = ucCurrentBSSSesIdx;
+#else
     /* If the BSS type is IBSS create the session here as there is no Join 
      * Request in case of IBSS*/
     if((pwdiConfigBSSParams->wdiReqInfo.wdiBSSType == WDI_IBSS_MODE) ||
@@ -5918,6 +6022,7 @@ WDI_ProcessConfigBSSReq
       wpalMutexRelease(&pWDICtx->wptMutex);
       return WDI_STATUS_E_NOT_ALLOWED; 
     }
+#endif
   }
 
   /*------------------------------------------------------------------------
@@ -5968,7 +6073,7 @@ WDI_ProcessConfigBSSReq
   halConfigBssReqMsg.configBssParams.staContext.staIdx = WDI_STA_INVALID_IDX;
 
   /* Need to fill in the BSS index */
-  halConfigBssReqMsg.configBssParams.staContext.bssIdx = pBSSSes->usBSSIdx;
+  halConfigBssReqMsg.configBssParams.staContext.bssIdx = pBSSSes->ucBSSIdx;
   
   wpalMemoryCopy( pSendBuffer+usDataOffset, 
                   &halConfigBssReqMsg.configBssParams, 
@@ -6106,7 +6211,7 @@ WDI_ProcessDelBSSReq
   /*Fill in the message request structure*/
 
   /*BSS Index is saved on config BSS response and Post Assoc Response */
-  halBssReqMsg.deleteBssParams.bssIdx = pBSSSes->usBSSIdx; 
+  halBssReqMsg.deleteBssParams.bssIdx = pBSSSes->ucBSSIdx; 
 
   wpalMemoryCopy( pSendBuffer+usDataOffset, 
                   &halBssReqMsg.deleteBssParams, 
@@ -6272,7 +6377,7 @@ WDI_ProcessPostAssocReq
 
   /* Need to fill in the BSS index */
   halPostAssocReqMsg.postAssocReqParams.configStaParams.bssIdx = 
-     pBSSSes->usBSSIdx;
+     pBSSSes->ucBSSIdx;
 
   /*Copy the BSS parameters */
   WDI_CopyWDIConfigBSSToHALConfigBSS( &halPostAssocReqMsg.postAssocReqParams.configBssParams,
@@ -6292,7 +6397,7 @@ WDI_ProcessPostAssocReq
 
   /* Need to fill in the BSS index */
   halPostAssocReqMsg.postAssocReqParams.configStaParams.bssIdx = 
-     pBSSSes->usBSSIdx;
+     pBSSSes->ucBSSIdx;
 
   
   wpalMemoryCopy( pSendBuffer+usDataOffset, 
@@ -6378,7 +6483,7 @@ WDI_ProcessDelSTAReq
     Find the BSS for which the request is made and identify WDI session
   ------------------------------------------------------------------------*/
   if ( WDI_STATUS_SUCCESS != WDI_STATableGetStaBSSIDAddr(pWDICtx, 
-                                                         pwdiDelSTAParams->usSTAIdx, 
+                                                         pwdiDelSTAParams->ucSTAIdx, 
                                                          &macBSSID))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
@@ -6427,7 +6532,7 @@ WDI_ProcessDelSTAReq
      return WDI_STATUS_E_FAILURE; 
   }
 
-  halDelStaReqMsg.delStaParams.staIdx = pwdiDelSTAParams->usSTAIdx; 
+  halDelStaReqMsg.delStaParams.staIdx = pwdiDelSTAParams->ucSTAIdx; 
   wpalMemoryCopy( pSendBuffer+usDataOffset, 
                   &halDelStaReqMsg.delStaParams, 
                   sizeof(halDelStaReqMsg.delStaParams)); 
@@ -6774,7 +6879,7 @@ WDI_ProcessSetStaKeyReq
     Find the BSS for which the request is made and identify WDI session
   ------------------------------------------------------------------------*/
   if ( WDI_STATUS_SUCCESS != WDI_STATableGetStaBSSIDAddr(pWDICtx, 
-                                  pwdiSetSTAKeyParams->wdiKeyInfo.usSTAIdx, 
+                                  pwdiSetSTAKeyParams->wdiKeyInfo.ucSTAIdx, 
                                   &macBSSID))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
@@ -6832,7 +6937,7 @@ WDI_ProcessSetStaKeyReq
   halSetStaKeyReqMsg.setStaKeyParams.wepType = 
       WDI_2_HAL_WEP_TYPE (pwdiSetSTAKeyParams->wdiKeyInfo.wdiWEPType );
 
-  halSetStaKeyReqMsg.setStaKeyParams.staIdx = pwdiSetSTAKeyParams->wdiKeyInfo.usSTAIdx;
+  halSetStaKeyReqMsg.setStaKeyParams.staIdx = pwdiSetSTAKeyParams->wdiKeyInfo.ucSTAIdx;
 
   halSetStaKeyReqMsg.setStaKeyParams.defWEPIdx = pwdiSetSTAKeyParams->wdiKeyInfo.ucDefWEPIdx;
 
@@ -6948,7 +7053,7 @@ WDI_ProcessRemoveStaKeyReq
     Find the BSS for which the request is made and identify WDI session
   ------------------------------------------------------------------------*/
   if ( WDI_STATUS_SUCCESS != WDI_STATableGetStaBSSIDAddr(pWDICtx, 
-                             pwdiRemoveSTAKeyParams->wdiKeyInfo.usSTAIdx, 
+                             pwdiRemoveSTAKeyParams->wdiKeyInfo.ucSTAIdx, 
                              &macBSSID))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
@@ -7004,7 +7109,7 @@ WDI_ProcessRemoveStaKeyReq
   -----------------------------------------------------------------------*/
 
   halRemoveStaKeyReqMsg.removeStaKeyParams.staIdx = 
-      pwdiRemoveSTAKeyParams->wdiKeyInfo.usSTAIdx;
+      pwdiRemoveSTAKeyParams->wdiKeyInfo.ucSTAIdx;
 
   halRemoveStaKeyReqMsg.removeStaKeyParams.encType = 
       WDI_2_HAL_ENC_TYPE (pwdiRemoveSTAKeyParams->wdiKeyInfo.wdiEncType);
@@ -7087,7 +7192,7 @@ WDI_ProcessSetStaBcastKeyReq
     Find the BSS for which the request is made and identify WDI session
   ------------------------------------------------------------------------*/
   if ( WDI_STATUS_SUCCESS != WDI_STATableGetStaBSSIDAddr(pWDICtx, 
-                                  pwdiSetSTAKeyParams->wdiKeyInfo.usSTAIdx, 
+                                  pwdiSetSTAKeyParams->wdiKeyInfo.ucSTAIdx, 
                                   &macBSSID))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
@@ -7145,7 +7250,7 @@ WDI_ProcessSetStaBcastKeyReq
   halSetStaKeyReqMsg.setStaKeyParams.wepType = 
       WDI_2_HAL_WEP_TYPE (pwdiSetSTAKeyParams->wdiKeyInfo.wdiWEPType );
 
-  halSetStaKeyReqMsg.setStaKeyParams.staIdx = pwdiSetSTAKeyParams->wdiKeyInfo.usSTAIdx;
+  halSetStaKeyReqMsg.setStaKeyParams.staIdx = pwdiSetSTAKeyParams->wdiKeyInfo.ucSTAIdx;
 
   halSetStaKeyReqMsg.setStaKeyParams.defWEPIdx = pwdiSetSTAKeyParams->wdiKeyInfo.ucDefWEPIdx;
 
@@ -7261,7 +7366,7 @@ WDI_ProcessRemoveStaBcastKeyReq
     Find the BSS for which the request is made and identify WDI session
   ------------------------------------------------------------------------*/
   if ( WDI_STATUS_SUCCESS != WDI_STATableGetStaBSSIDAddr(pWDICtx, 
-                             pwdiRemoveSTABcastKeyParams->wdiKeyInfo.usSTAIdx, 
+                             pwdiRemoveSTABcastKeyParams->wdiKeyInfo.ucSTAIdx, 
                              &macBSSID))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
@@ -7317,7 +7422,7 @@ WDI_ProcessRemoveStaBcastKeyReq
   -----------------------------------------------------------------------*/
 
   halRemoveStaBcastKeyReqMsg.removeStaKeyParams.staIdx = 
-      pwdiRemoveSTABcastKeyParams->wdiKeyInfo.usSTAIdx;
+      pwdiRemoveSTABcastKeyParams->wdiKeyInfo.ucSTAIdx;
 
   halRemoveStaBcastKeyReqMsg.removeStaKeyParams.encType = 
       WDI_2_HAL_ENC_TYPE (pwdiRemoveSTABcastKeyParams->wdiKeyInfo.wdiEncType);
@@ -7400,7 +7505,7 @@ WDI_ProcessAddTSpecReq
     Find the BSS for which the request is made and identify WDI session
   ------------------------------------------------------------------------*/
   if ( WDI_STATUS_SUCCESS != WDI_STATableGetStaBSSIDAddr(pWDICtx, 
-                                        pwdiAddTSParams->wdiTsInfo.usSTAIdx, 
+                                        pwdiAddTSParams->wdiTsInfo.ucSTAIdx, 
                                         &macBSSID))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
@@ -7745,7 +7850,7 @@ WDI_ProcessAddBASessionReq
     Find the BSS for which the request is made 
   ------------------------------------------------------------------------*/
   if ( WDI_STATUS_SUCCESS != WDI_STATableGetStaBSSIDAddr(pWDICtx, 
-                   pwdiAddBASessionParams->wdiBASessionInfoType.usSTAIdx, 
+                   pwdiAddBASessionParams->wdiBASessionInfoType.ucSTAIdx, 
                    &macBSSID))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
@@ -7800,7 +7905,7 @@ WDI_ProcessAddBASessionReq
   }
 
   halAddBASessionReq.addBASessionParams.staIdx =
-                  pwdiAddBASessionParams->wdiBASessionInfoType.usSTAIdx;
+                  pwdiAddBASessionParams->wdiBASessionInfoType.ucSTAIdx;
   wpalMemoryCopy(halAddBASessionReq.addBASessionParams.peerMacAddr,
                   pwdiAddBASessionParams->wdiBASessionInfoType.macPeerAddr,
                   WDI_MAC_ADDR_LEN);
@@ -7885,7 +7990,7 @@ WDI_ProcessDelBAReq
     Find the BSS for which the request is made 
   ------------------------------------------------------------------------*/
   if ( WDI_STATUS_SUCCESS != WDI_STATableGetStaBSSIDAddr(pWDICtx, 
-                                     pwdiDelBAParams->wdiBAInfo.usSTAIdx, 
+                                     pwdiDelBAParams->wdiBAInfo.ucSTAIdx, 
                                      &macBSSID))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
@@ -8041,6 +8146,8 @@ WDI_ProcessBtAmpEventReq
    wpt_uint8*                   pSendBuffer         = NULL; 
    wpt_uint16                   usDataOffset        = 0;
    wpt_uint16                   usSendSize          = 0;
+
+   tBtAmpEventMsg               haltBtAmpEventMsg;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*-------------------------------------------------------------------------
@@ -8063,9 +8170,9 @@ WDI_ProcessBtAmpEventReq
      ! TO DO : proper conversion into the HAL Message Request Format 
    -----------------------------------------------------------------------*/
    if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_BTAMP_EVENT_REQ, 
-                         sizeof(pwdiBtAmpEventParams->wdiBtAmpEventInfo),
+                         sizeof(haltBtAmpEventMsg.btAmpEventParams),
                          &pSendBuffer, &usDataOffset, &usSendSize))||
-       ( usSendSize < (usDataOffset + sizeof(pwdiBtAmpEventParams->wdiBtAmpEventInfo) )))
+       ( usSendSize < (usDataOffset + sizeof(haltBtAmpEventMsg.btAmpEventParams) )))
    {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
                "Unable to get send buffer in BT AMP event req %x %x %x",
@@ -8074,9 +8181,11 @@ WDI_ProcessBtAmpEventReq
       return WDI_STATUS_E_FAILURE; 
    }
 
+   haltBtAmpEventMsg.btAmpEventParams.btAmpEventType = 
+      pwdiBtAmpEventParams->wdiBtAmpEventInfo.ucBtAmpEventType;
    wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                   &pwdiBtAmpEventParams->wdiBtAmpEventInfo, 
-                   sizeof(pwdiBtAmpEventParams->wdiBtAmpEventInfo)); 
+                   &haltBtAmpEventMsg.btAmpEventParams, 
+                   sizeof(haltBtAmpEventMsg.btAmpEventParams)); 
 
    pWDICtx->wdiReqStatusCB     = pwdiBtAmpEventParams->wdiReqStatusCB;
    pWDICtx->pReqStatusUserData = pwdiBtAmpEventParams->pUserData; 
@@ -8105,8 +8214,8 @@ WDI_ProcessAddSTASelfReq
   WDI_EventInfoType*     pEventData
 )
 {
-  WDI_AddSTASelfParamsType*          pwdiAddSTASelfReqParams;
-  WDI_AddSTASelfParamsRspCb          wdiAddSTASelfReqRspCb;
+  WDI_AddSTASelfReqParamsType*          pwdiAddSTASelfReqParams;
+  WDI_AddSTASelfParamsRspCb             wdiAddSTASelfReqRspCb;
   wpt_uint8*                            pSendBuffer         = NULL; 
   wpt_uint16                            usDataOffset        = 0;
   wpt_uint16                            usSendSize          = 0;
@@ -8138,7 +8247,7 @@ WDI_ProcessAddSTASelfReq
   }
 
   pwdiAddSTASelfReqParams = 
-    (WDI_AddSTASelfParamsType*)pEventData->pEventData;
+    (WDI_AddSTASelfReqParamsType*)pEventData->pEventData;
   wdiAddSTASelfReqRspCb = 
     (WDI_AddSTASelfParamsRspCb)pEventData->pCBfnc;
   /*-----------------------------------------------------------------------
@@ -8156,6 +8265,10 @@ WDI_ProcessAddSTASelfReq
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  /* Cache the request for response processing */
+  wpalMemoryCopy(&pWDICtx->wdiCacheAddSTASelfReq, pwdiAddSTASelfReqParams, 
+                 sizeof(pWDICtx->wdiCacheAddSTASelfReq));
 
   wpalMemoryCopy(halAddSTASelfParams.selfMacAddr, 
                    pwdiAddSTASelfReqParams->wdiAddSTASelfInfo.selfMacAddr, 6) ;
@@ -8252,6 +8365,114 @@ WDI_ProcessDelSTASelfReq
                                                      WDI_DEL_STA_SELF_RESP);
 
 }
+
+#ifdef FEATURE_INNAV_SUPPORT
+/**
+ @brief Process Start In Nav Meas Request function (called when Main 
+        FSM allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessStartInNavMeasReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  WDI_InNavMeasReqParamsType*    pwdiInNavMeasParams = NULL;
+  WDI_InNavMeasRspCb             wdiInNavMeasRspCb;
+  wpt_uint8*                     pSendBuffer         = NULL; 
+  wpt_uint16                     usDataOffset        = 0;
+  wpt_uint16                     usSendSize          = 0;
+  wpt_uint16                     reqLen;
+  wpt_uint32                     i                   = 0;
+  tStartInNavMeasReqParams*      halStartInNavMeasParams;
+  tBSSIDChannelInfo*             halBssidChannelInfo;
+  WDI_BSSIDChannelInfo*          wdiBssidChannelInfo;
+
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  /*-------------------------------------------------------------------------
+  Sanity check 
+  -------------------------------------------------------------------------*/
+  if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
+      ( NULL == pEventData->pCBfnc ))
+  {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+               "Invalid parameters in Start In Nav Meas req %x %x %x",
+                 pEventData, pEventData->pEventData, pEventData->pCBfnc);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+  }
+
+   pwdiInNavMeasParams = (WDI_InNavMeasReqParamsType*)pEventData->pEventData;
+   wdiInNavMeasRspCb   = (WDI_InNavMeasRspCb)pEventData->pCBfnc;
+
+  /*----------------------------------------*/
+  reqLen = sizeof(pwdiInNavMeasParams->wdiInNavMeasInfo) + 
+                 sizeof(WDI_BSSIDChannelInfo) * 
+                      (pwdiInNavMeasParams->wdiInNavMeasInfo.ucNumBSSIDs - 1);
+  /*-----------------------------------------------------------------------
+     Get message buffer
+   -----------------------------------------------------------------------*/
+  if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, 
+                         WDI_START_INNAV_MEAS_REQ, reqLen,
+                              &pSendBuffer, &usDataOffset, &usSendSize))||
+        (usSendSize < (usDataOffset + reqLen)))
+  {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+               "Unable to get send buffer in Start In Nav Meas req %x %x %x",
+                 pEventData, pwdiInNavMeasParams, wdiInNavMeasRspCb);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+  }
+
+  //copying WDI INNAV REQ PARAMS to shared memory
+  halStartInNavMeasParams = 
+              (tStartInNavMeasReqParams *)(pSendBuffer + usDataOffset );
+  halStartInNavMeasParams->numBSSIDs = 
+                  pwdiInNavMeasParams->wdiInNavMeasInfo.ucNumBSSIDs;
+  halStartInNavMeasParams->numInNavMeasurements = 
+                  pwdiInNavMeasParams->wdiInNavMeasInfo.ucNumInNavMeasurements;
+  halStartInNavMeasParams->measurementMode = 
+                  pwdiInNavMeasParams->wdiInNavMeasInfo.measurementMode;
+  wpalMemoryCopy(&halStartInNavMeasParams->selfMacAddr,
+                  &pwdiInNavMeasParams->wdiInNavMeasInfo.selfMacAddr,
+                                 sizeof(wpt_macAddr));
+  wpalMemoryCopy(&halStartInNavMeasParams->bssidChannelInfo[0],
+                   &pwdiInNavMeasParams->wdiInNavMeasInfo.bssidChannelInfo[0],
+                      sizeof(WDI_BSSIDChannelInfo));
+
+  wdiBssidChannelInfo = (WDI_BSSIDChannelInfo*)(pwdiInNavMeasParams + 1);
+
+  halBssidChannelInfo = 
+                (tBSSIDChannelInfo *)(pSendBuffer + usDataOffset +
+                      sizeof(tStartInNavMeasReqParams));
+
+  //copy remaining BSSIDs' channel info to shared memory 
+  for(i = 0; i < halStartInNavMeasParams->numBSSIDs - 1 ; i++)
+  {
+     wpalMemoryCopy(halBssidChannelInfo + i , &wdiBssidChannelInfo[i],
+                                              sizeof(tBSSIDChannelInfo));
+  }
+
+  pWDICtx->wdiReqStatusCB     = pwdiInNavMeasParams->wdiReqStatusCB;
+  pWDICtx->pReqStatusUserData = pwdiInNavMeasParams->pUserData; 
+
+  /*-------------------------------------------------------------------------
+    Send Start Request to HAL 
+  -------------------------------------------------------------------------*/
+  return  WDI_SendMsg( pWDICtx, pSendBuffer, usSendSize, 
+                        wdiInNavMeasRspCb, pEventData->pUserData, 
+                                            WDI_START_INNAV_MEAS_RESP); 
+}/*WDI_ProcessStartInNavMeasReq*/
+#endif
+
 
 /*==========================================================================
                   MISC CONTROL PROCESSING REQUEST API 
@@ -8467,7 +8688,7 @@ WDI_ProcessConfigStaReq
   }
 
   /* Need to fill in the BSS index */
-  halConfigStaReqMsg.configStaParams.bssIdx = pBSSSes->usBSSIdx;
+  halConfigStaReqMsg.configStaParams.bssIdx = pBSSSes->ucBSSIdx;
 
   wpalMemoryCopy( pSendBuffer+usDataOffset, 
                   &halConfigStaReqMsg.configStaParams, 
@@ -8591,6 +8812,10 @@ WDI_ProcessSetLinkStateReq
 
   wpalMemoryCopy(halLinkStateReqMsg.bssid,
                  pwdiSetLinkParams->wdiLinkInfo.macBSSID, WDI_MAC_ADDR_LEN);
+
+  wpalMemoryCopy(halLinkStateReqMsg.selfMacAddr,
+                 pwdiSetLinkParams->wdiLinkInfo.macSelfStaMacAddr, WDI_MAC_ADDR_LEN);
+
   halLinkStateReqMsg.state = 
      WDI_2_HAL_LINK_STATE(pwdiSetLinkParams->wdiLinkInfo.wdiLinkState);
 
@@ -8664,7 +8889,7 @@ WDI_ProcessGetStatsReq
     Find the BSS for which the request is made 
   ------------------------------------------------------------------------*/
   if ( WDI_STATUS_SUCCESS != WDI_STATableGetStaBSSIDAddr(pWDICtx, 
-                        pwdiGetStatsParams->wdiGetStatsParamsInfo.usSTAIdx, 
+                        pwdiGetStatsParams->wdiGetStatsParamsInfo.ucSTAIdx, 
                         &macBSSID))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
@@ -8716,7 +8941,7 @@ WDI_ProcessGetStatsReq
   }
 
   halStatsReqMsg.statsReqParams.staId = 
-                  pwdiGetStatsParams->wdiGetStatsParamsInfo.usSTAIdx;
+                  pwdiGetStatsParams->wdiGetStatsParamsInfo.ucSTAIdx;
   halStatsReqMsg.statsReqParams.statsMask = 
                   pwdiGetStatsParams->wdiGetStatsParamsInfo.uStatsMask;
   wpalMemoryCopy( pSendBuffer+usDataOffset, 
@@ -8867,7 +9092,7 @@ WDI_ProcessAddBAReq
     Find the BSS for which the request is made 
   ------------------------------------------------------------------------*/
   if ( WDI_STATUS_SUCCESS != WDI_STATableGetStaBSSIDAddr(pWDICtx, 
-                                  pwdiAddBAParams->wdiBAInfoType.usSTAIdx, 
+                                  pwdiAddBAParams->wdiBAInfoType.ucSTAIdx, 
                                   &macBSSID))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
@@ -9002,7 +9227,7 @@ WDI_ProcessTriggerBAReq
     Find the BSS for which the request is made 
   ------------------------------------------------------------------------*/
   if ( WDI_STATUS_SUCCESS != WDI_STATableGetStaBSSIDAddr(pWDICtx, 
-                                  pwdiTriggerBAParams->wdiTriggerBAInfoType.usSTAIdx, 
+                                  pwdiTriggerBAParams->wdiTriggerBAInfoType.ucSTAIdx, 
                                   &macBSSID))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
@@ -9075,7 +9300,7 @@ WDI_ProcessTriggerBAReq
   for(index = 0 ; index < halTriggerBAReq.triggerBAParams.baCandidateCnt ; 
                                                                      index++)
   {
-    halTriggerBACandidate->staIdx = wdiTriggerBACandidate->usSTAIdx;
+    halTriggerBACandidate->staIdx = wdiTriggerBACandidate->ucSTAIdx;
     halTriggerBACandidate->tidBitmap = wdiTriggerBACandidate->ucTidBitmap;
     halTriggerBACandidate++;
     wdiTriggerBACandidate++;
@@ -10128,7 +10353,7 @@ WDI_ProcessSetUapsdAcParamsReq
   }
 
   uapsdAcParamsReq.ac = pwdiSetUapsdAcParams->wdiUapsdInfo.ucAc;
-  uapsdAcParamsReq.staidx = pwdiSetUapsdAcParams->wdiUapsdInfo.ucStaIdx;
+  uapsdAcParamsReq.staidx = pwdiSetUapsdAcParams->wdiUapsdInfo.ucSTAIdx;
   uapsdAcParamsReq.up = pwdiSetUapsdAcParams->wdiUapsdInfo.ucUp;
   uapsdAcParamsReq.delayInterval = pwdiSetUapsdAcParams->wdiUapsdInfo.uDelayInterval;
   uapsdAcParamsReq.srvInterval = pwdiSetUapsdAcParams->wdiUapsdInfo.uSrvInterval;
@@ -11013,7 +11238,7 @@ WDI_ProcessAggrAddTSpecReq
     Find the BSS for which the request is made and identify WDI session
   ------------------------------------------------------------------------*/
   if ( WDI_STATUS_SUCCESS != WDI_STATableGetStaBSSIDAddr(pWDICtx, 
-                                        pwdiAggrAddTSParams->wdiAggrTsInfo.usSTAIdx, 
+                                        pwdiAggrAddTSParams->wdiAggrTsInfo.ucSTAIdx, 
                                         &macBSSID))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
@@ -11064,7 +11289,7 @@ WDI_ProcessAggrAddTSpecReq
   }
 
   halAggrAddTsReq.aggrAddTsParam.staIdx = 
-     pwdiAggrAddTSParams->wdiAggrTsInfo.usSTAIdx;
+     pwdiAggrAddTSParams->wdiAggrTsInfo.ucSTAIdx;
   halAggrAddTsReq.aggrAddTsParam.tspecIdx = 
      pwdiAggrAddTSParams->wdiAggrTsInfo.ucTspecIdx;
 
@@ -11177,7 +11402,10 @@ WDI_ProcessStartRsp
   WDI_StartRspCb           wdiStartRspCb = NULL;
 
   tHalMacStartRspMsg       halStartRspMsg; 
+
+#ifndef HAL_SELF_STA_PER_BSS
   WDI_AddStaParams         wdiAddSTAParam = {0};
+#endif
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   wdiStartRspCb = (WDI_StartRspCb)pWDICtx->pfncRspCB; 
@@ -11200,9 +11428,9 @@ WDI_ProcessStartRsp
   -------------------------------------------------------------------------*/
   if ( sizeof(halStartRspMsg) < pEventData->uEventDataSize )
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid response length in Start Resp %x %x",
-                pEventData->uEventDataSize);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_FATAL,
+              "Invalid response length in Start Resp Expect %x Rcvd %x",
+                sizeof(halStartRspMsg), pEventData->uEventDataSize);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -11219,10 +11447,6 @@ WDI_ProcessStartRsp
   wdiRspParams.ucMaxBssids    = halStartRspMsg.startRspParams.ucMaxBssids; 
   wdiRspParams.ucMaxStations  = halStartRspMsg.startRspParams.ucMaxStations;
   wdiRspParams.wdiStatus      = WDI_HAL_2_WDI_STATUS(halStartRspMsg.startRspParams.status); 
-  wpalMemoryCopy(wdiRspParams.macSelfSta,
-                 halStartRspMsg.startRspParams.selfStaMac, WDI_MAC_ADDR_LEN);
-  wdiRspParams.usSelfStaDpuId  = halStartRspMsg.startRspParams.selfStaDpuId;
-  wdiRspParams.usSelfStaIdx  = halStartRspMsg.startRspParams.selfStaIdx;
 
   wpalMutexAcquire(&pWDICtx->wptMutex);
   if ( WDI_STATUS_SUCCESS == wdiRspParams.wdiStatus  )
@@ -11272,6 +11496,7 @@ WDI_ProcessStartRsp
   /*Start the STA Table !- check this logic again*/
   WDI_STATableStart(pWDICtx);
 
+#ifndef HAL_SELF_STA_PER_BSS
   /* Store the Self STA Index */
   pWDICtx->ucSelfStaId = halStartRspMsg.startRspParams.selfStaIdx;
 
@@ -11295,13 +11520,14 @@ WDI_ProcessStartRsp
   wpalMemoryCopy(wdiAddSTAParam.staMacAddr, wdiRspParams.macSelfSta,
                  WDI_MAC_ADDR_LEN);
   wdiAddSTAParam.ucStaType = WDI_STA_ENTRY_SELF; /* 0 - self */
-  wdiAddSTAParam.usStaIdx = halStartRspMsg.startRspParams.selfStaIdx;
+  wdiAddSTAParam.ucSTAIdx = halStartRspMsg.startRspParams.selfStaIdx;
 
   /* Note: Since we don't get an explicit config STA request for self STA, we
      add the self STA upon receiving the Start response message. But the
      self STA entry in the table is deleted when WDI gets an explicit delete STA
      request */
   (void)WDI_STATableAddSta(pWDICtx,&wdiAddSTAParam);
+#endif
 
   /*Notify UMAC*/
   wdiStartRspCb( &wdiRspParams, pWDICtx->pRspCBUserData);
@@ -11387,6 +11613,11 @@ WDI_ProcessStopRsp
   }
   
   pWDICtx->ucExpectedStateTransition = WDI_STOPPED_ST;
+
+  /*Transition now as WDI may get preempted imediately after it sends
+  up the Stop Response and it will not get to process the state transition
+  from Main Rsp function*/
+  WDI_STATE_TRANSITION( pWDICtx, pWDICtx->ucExpectedStateTransition);
   wpalMutexRelease(&pWDICtx->wptMutex);
 
   /*! TO DO: - STOP the Data transport */
@@ -11843,7 +12074,7 @@ WDI_ProcessConfigBSSRsp
                   pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.macBSSID,
                   WDI_MAC_ADDR_LEN);
 
-  wdiConfigBSSParams.usBSSIdx = halConfigBssRspMsg.configBssRspParams.bssIdx;
+  wdiConfigBSSParams.ucBSSIdx = halConfigBssRspMsg.configBssRspParams.bssIdx;
 
   wdiConfigBSSParams.ucBcastSig = 
      halConfigBssRspMsg.configBssRspParams.bcastDpuSignature;
@@ -11851,7 +12082,7 @@ WDI_ProcessConfigBSSRsp
   wdiConfigBSSParams.ucUcastSig = 
      halConfigBssRspMsg.configBssRspParams.bcastDpuSignature;
 
-  wdiConfigBSSParams.usSTAIdx = halConfigBssRspMsg.configBssRspParams.bssStaIdx;
+  wdiConfigBSSParams.ucSTAIdx = halConfigBssRspMsg.configBssRspParams.bssStaIdx;
 
 #ifdef WLAN_FEATURE_VOWIFI
   wdiConfigBSSParams.ucTxMgmtPower = 
@@ -11886,7 +12117,7 @@ WDI_ProcessConfigBSSRsp
   }
 
   /*Save data for this BSS*/
-  pBSSSes->usBSSIdx = halConfigBssRspMsg.configBssRspParams.bssIdx;
+  pBSSSes->ucBSSIdx = halConfigBssRspMsg.configBssRspParams.bssIdx;
   pBSSSes->bcastDpuIndex     = 
     halConfigBssRspMsg.configBssRspParams.bcastDpuDescIndx;
   pBSSSes->bcastDpuSignature = 
@@ -11904,7 +12135,7 @@ WDI_ProcessConfigBSSRsp
  * code */
 #if 0 
   /* Store index into the pBSSSes array, this is useful for look-up later
-     wdiAddSTAParam.ucbssIndex = ucCurrentBSSSesIdx */
+     wdiAddSTAParam.ucBSSIdx = ucCurrentBSSSesIdx */
 
   /* Update the BSSID of self STA */
   if(WDI_STATableSetBSSID( pWDICtx, 
@@ -11937,47 +12168,81 @@ WDI_ProcessConfigBSSRsp
   /* !TO DO: Shuould we be updating the RMF Capability of self STA here? */
 
   /* Add the Broadcast STA to the STA table */
-  /* !TO DO: Need Bcast STA params from HAL to populate wdiBcastAddSTAParam */
+  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+             "Add BCAST STA to table for index: %d",
+             halConfigBssRspMsg.configBssRspParams.bssBcastStaIdx );
+
+  wdiBcastAddSTAParam.bcastDpuIndex = 
+    halConfigBssRspMsg.configBssRspParams.bcastDpuDescIndx; 
+  wdiBcastAddSTAParam.bcastMgmtDpuIndex = 
+    halConfigBssRspMsg.configBssRspParams.mgmtDpuDescIndx;
+
+  wdiBcastAddSTAParam.bcastDpuSignature = 
+    halConfigBssRspMsg.configBssRspParams.bcastDpuSignature;
+
+  wdiBcastAddSTAParam.bcastMgmtDpuSignature = 
+    halConfigBssRspMsg.configBssRspParams.mgmtDpuSignature;
+
+  wdiBcastAddSTAParam.dpuIndex = 
+    halConfigBssRspMsg.configBssRspParams.dpuDescIndx;
+  wdiBcastAddSTAParam.dpuSig   = 
+    halConfigBssRspMsg.configBssRspParams.ucastDpuSignature;
+ 
+  wpalMemoryCopy(wdiBcastAddSTAParam.macBSSID, 
+                pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.macBSSID , 
+                WDI_MAC_ADDR_LEN); 
+
+  wdiBcastAddSTAParam.ucBSSIdx = halConfigBssRspMsg.configBssRspParams.bssIdx;
+
+  wdiBcastAddSTAParam.ucHTCapable = 
+      pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.ucHTCapable; 
+  wdiBcastAddSTAParam.ucRmfEnabled=  
+      pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.ucRMFEnabled;
+  wdiBcastAddSTAParam.ucWmmEnabled = 
+      pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.ucWMMEnabled;
+
   WDI_AddBcastSTAtoSTATable( pWDICtx, &wdiBcastAddSTAParam,
-                            halConfigBssRspMsg.configBssRspParams
-                            .bssBcastStaIdx );
+                            halConfigBssRspMsg.configBssRspParams.bssBcastStaIdx );
 
-  /* Add Peer STA */
-      
-  wdiAddSTAParam.usStaIdx     = halConfigBssRspMsg.configBssRspParams.bssStaIdx; 
-
+  /*-------------------------------------------------------------------------
+      Add Peer STA
+    -------------------------------------------------------------------------*/
+  wdiAddSTAParam.ucSTAIdx = halConfigBssRspMsg.configBssRspParams.bssStaIdx; 
   wdiAddSTAParam.dpuIndex = halConfigBssRspMsg.configBssRspParams.dpuDescIndx;
-  wdiAddSTAParam.dpuSig = halConfigBssRspMsg.configBssRspParams.ucastDpuSignature;
+  wdiAddSTAParam.dpuSig   = halConfigBssRspMsg.configBssRspParams.ucastDpuSignature;
    
    /*This info can be retrieved from the cached initial request*/
-   wdiAddSTAParam.ucWmmEnabled = 
+  wdiAddSTAParam.ucWmmEnabled = 
       pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.ucWMMEnabled;
-   wdiAddSTAParam.ucHTCapable  = 
+  wdiAddSTAParam.ucHTCapable  = 
       pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.ucHTCapable; 
-   wdiAddSTAParam.ucStaType    = 
+  wdiAddSTAParam.ucStaType    = 
       pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.wdiSTAType;  
 
    /* MAC Address of STA */
-   wpalMemoryCopy(wdiAddSTAParam.staMacAddr, 
-                halConfigBssRspMsg.configBssRspParams.staMac, 
-                WDI_MAC_ADDR_LEN);
+  wpalMemoryCopy(wdiAddSTAParam.staMacAddr, 
+                 halConfigBssRspMsg.configBssRspParams.staMac, 
+                 WDI_MAC_ADDR_LEN);
 
-   wpalMemoryCopy(wdiAddSTAParam.macBSSID, 
-                pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.macBSSID , 
-                WDI_MAC_ADDR_LEN); 
+  wpalMemoryCopy(wdiAddSTAParam.macBSSID, 
+                 pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.macBSSID , 
+                 WDI_MAC_ADDR_LEN); 
    
-   /*Add BSS specific parameters*/
-   wdiAddSTAParam.bcastMgmtDpuIndex     = 
+  /*Add BSS specific parameters*/
+  wdiAddSTAParam.bcastMgmtDpuIndex     = 
       halConfigBssRspMsg.configBssRspParams.mgmtDpuDescIndx;
-   wdiAddSTAParam.bcastMgmtDpuSignature = 
+  wdiAddSTAParam.bcastMgmtDpuSignature = 
       halConfigBssRspMsg.configBssRspParams.mgmtDpuSignature;
-   wdiAddSTAParam.bcastDpuIndex         = 
+  wdiAddSTAParam.bcastDpuIndex         = 
       halConfigBssRspMsg.configBssRspParams.bcastDpuDescIndx;
-   wdiAddSTAParam.bcastDpuSignature     = 
+  wdiAddSTAParam.bcastDpuSignature     = 
       halConfigBssRspMsg.configBssRspParams.bcastDpuSignature;
-   wdiAddSTAParam.ucRmfEnabled          =  
+  wdiAddSTAParam.ucRmfEnabled          =  
       pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.ucRMFEnabled;
-   wdiAddSTAParam.ucbssIndex = ucCurrentBSSSesIdx;
+  wdiAddSTAParam.ucBSSIdx = ucCurrentBSSSesIdx;
+
+  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+              "Add STA to the table index: %d", wdiAddSTAParam.ucSTAIdx );
 
   WDI_STATableAddSta(pWDICtx,&wdiAddSTAParam);
 
@@ -12136,7 +12401,7 @@ WDI_ProcessPostAssocRsp
 
   /*Extract the Post Assoc STA Params */
 
-  wdiPostAssocParams.staParams.usSTAId   = 
+  wdiPostAssocParams.staParams.ucSTAIdx   = 
     halPostAssocRspMsg.postAssocRspParams.configStaRspParams.staIdx;
   wdiPostAssocParams.staParams.ucUcastSig = 
     halPostAssocRspMsg.postAssocRspParams.configStaRspParams.ucUcastSig;
@@ -12170,10 +12435,10 @@ WDI_ProcessPostAssocRsp
   wdiPostAssocParams.bssParams.ucUcastSig = 
      halPostAssocRspMsg.postAssocRspParams.configStaRspParams.ucUcastSig;
 
-  wdiPostAssocParams.bssParams.usBSSIdx =
+  wdiPostAssocParams.bssParams.ucBSSIdx =
      halPostAssocRspMsg.postAssocRspParams.configBssRspParams.bssIdx;
 
-  wdiPostAssocParams.bssParams.usSTAIdx = 
+  wdiPostAssocParams.bssParams.ucSTAIdx = 
      halPostAssocRspMsg.postAssocRspParams.configBssRspParams.bssStaIdx;
 
   wpalMutexAcquire(&pWDICtx->wptMutex);
@@ -12241,7 +12506,7 @@ WDI_ProcessPostAssocRsp
     pBSSSes->bcastDpuSignature     = 
       halPostAssocRspMsg.postAssocRspParams.configBssRspParams.bcastDpuSignature;
 
-    pBSSSes->usBSSIdx              = 
+    pBSSSes->ucBSSIdx              = 
       halPostAssocRspMsg.postAssocRspParams.configBssRspParams.bssIdx;
   }
 
@@ -12278,7 +12543,7 @@ WDI_ProcessDelSTARsp
 {
   WDI_DelSTARspParamsType   wdiDelSTARsp;
   WDI_DelSTARspCb           wdiDelSTARspCb   = NULL;
-
+  wpt_uint8                 staType;
   tDeleteStaRspMsg          halDelStaRspMsg; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -12303,17 +12568,16 @@ WDI_ProcessDelSTARsp
                   pEventData->pEventData, 
                   sizeof(halDelStaRspMsg.delStaRspParams));
 
-  wdiDelSTARsp.usSTAIdx    = halDelStaRspMsg.delStaRspParams.staId;
+  wdiDelSTARsp.ucSTAIdx    = halDelStaRspMsg.delStaRspParams.staId;
   wdiDelSTARsp.wdiStatus   =   
     WDI_HAL_2_WDI_STATUS(halDelStaRspMsg.delStaRspParams.status); 
 
-  /*Delete the station in the table*/
-  WDI_STATableDelSta( pWDICtx, wdiDelSTARsp.usSTAIdx);
+  WDI_STATableGetStaType(pWDICtx, wdiDelSTARsp.ucSTAIdx, &staType);
 
-  /* If the DEL STA request is for self STA add the entry back */
-  if(pWDICtx->ucSelfStaId == wdiDelSTARsp.usSTAIdx)
+  /* If the DEL STA request is for self STA do not delete it - Really weird!!What happens in concurrency */
+  if(staType == WDI_STA_ENTRY_SELF)
   {
-    WDI_AddStaParams         wdiAddSTAParam = {0};
+    WDI_StaStruct* pSTATable = (WDI_StaStruct*) pWDICtx->staTable;
 
     /* At this point add the self-STA */
 
@@ -12323,18 +12587,19 @@ WDI_ProcessDelSTARsp
     /*! TO DO: wdiAddSTAParam.ucWmmEnabled */
     /*! TO DO: wdiAddSTAParam.ucHTCapable */
     /*! TO DO: wdiAddSTAParam.ucRmfEnabled */
-  
-    //all DPU indices are the same for self STA
-    wdiAddSTAParam.bcastDpuIndex = pWDICtx->usSelfStaDpuId;
-    wdiAddSTAParam.bcastMgmtDpuIndex = pWDICtx->usSelfStaDpuId;
-    wdiAddSTAParam.dpuIndex = pWDICtx->usSelfStaDpuId;;
-    wpalMemoryCopy(wdiAddSTAParam.staMacAddr, pWDICtx->macSelfSta,
-                   WDI_MAC_ADDR_LEN);
-    wdiAddSTAParam.ucStaType = WDI_STA_ENTRY_SELF; /* 0 - self */
-    wdiAddSTAParam.usStaIdx = pWDICtx->ucSelfStaId;
-  
-    WDI_STATableAddSta(pWDICtx,&wdiAddSTAParam);
 
+#define WDI_DPU_SELF_STA_DEFAULT_IDX 0
+
+    //all DPU indices are the same for self STA
+    pSTATable[wdiDelSTARsp.ucSTAIdx].dpuIndex = WDI_DPU_SELF_STA_DEFAULT_IDX;
+    pSTATable[wdiDelSTARsp.ucSTAIdx].bcastDpuIndex = WDI_DPU_SELF_STA_DEFAULT_IDX;
+    pSTATable[wdiDelSTARsp.ucSTAIdx].bcastMgmtDpuIndex = WDI_DPU_SELF_STA_DEFAULT_IDX;
+
+  }
+  else
+  {
+    //Delete the station in the table
+    WDI_STATableDelSta( pWDICtx, wdiDelSTARsp.ucSTAIdx);
   }
 
   /*Notify UMAC*/
@@ -12897,7 +13162,7 @@ WDI_ProcessAddBASessionRsp
     wdiBASessionRsp.ucBaBufferSize = halBASessionRsp.baBufferSize;
     wdiBASessionRsp.usBaSessionID = halBASessionRsp.baSessionID;
     wdiBASessionRsp.ucWinSize = halBASessionRsp.winSize;
-    wdiBASessionRsp.usSTAIdx = halBASessionRsp.STAID;
+    wdiBASessionRsp.ucSTAIdx = halBASessionRsp.STAID;
     wdiBASessionRsp.usBaSSN = halBASessionRsp.SSN;
   }
 
@@ -13084,9 +13349,10 @@ WDI_ProcessAddSTASelfRsp
   WDI_EventInfoType*     pEventData
 )
 {
-  WDI_Status       wdiStatus;
-  eHalStatus       halStatus;
-  WDI_AddSTASelfParamsRspCb  wdiAddSTASelfReqParamsRspCb   = NULL;
+  WDI_AddSTASelfRspParamsType  wdiAddSTASelfParams;
+  WDI_AddSTASelfParamsRspCb    wdiAddSTASelfReqParamsRspCb   = NULL;
+  tAddStaSelfRspMsg            halAddStaSelfRsp;
+  WDI_AddStaParams             wdiAddSTAParam = {0};
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   wdiAddSTASelfReqParamsRspCb = 
@@ -13117,14 +13383,51 @@ WDI_ProcessAddSTASelfRsp
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
   -------------------------------------------------------------------------*/
-  wpalMemoryCopy( &halStatus, 
+  wpalMemoryCopy( &halAddStaSelfRsp.addStaSelfRspParams, 
                   pEventData->pEventData, 
-                  sizeof(halStatus));
+                  sizeof(halAddStaSelfRsp.addStaSelfRspParams));
 
-  wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
+
+  wdiAddSTASelfParams.wdiStatus   =   
+    WDI_HAL_2_WDI_STATUS(halAddStaSelfRsp.addStaSelfRspParams.status); 
+
+  wdiAddSTASelfParams.ucSTASelfIdx   = 
+    halAddStaSelfRsp.addStaSelfRspParams.selfStaIdx;
+  wdiAddSTASelfParams.ucDpuSelfIndex = 
+    halAddStaSelfRsp.addStaSelfRspParams.selfStaDpuId;
+
+  wpalMemoryCopy(wdiAddSTASelfParams.macSelfSta,
+                 pWDICtx->wdiCacheAddSTASelfReq.wdiAddSTASelfInfo.selfMacAddr,
+                 WDI_MAC_ADDR_LEN);
+
+
+#ifdef HAL_SELF_STA_PER_BSS
+
+  /* At this point add the self-STA */
+
+  /*! TO DO: wdiAddSTAParam.bcastMgmtDpuSignature */
+  /* !TO DO: wdiAddSTAParam.bcastDpuSignature */
+  /*! TO DO: wdiAddSTAParam.dpuSig */
+  /*! TO DO: wdiAddSTAParam.ucWmmEnabled */
+  /*! TO DO: wdiAddSTAParam.ucHTCapable */
+  /*! TO DO: wdiAddSTAParam.ucRmfEnabled */
+
+  //all DPU indices are the same for self STA
+  wdiAddSTAParam.bcastDpuIndex     = wdiAddSTASelfParams.ucSTASelfIdx;
+  wdiAddSTAParam.bcastMgmtDpuIndex = wdiAddSTASelfParams.ucSTASelfIdx;
+  wdiAddSTAParam.dpuIndex          = wdiAddSTASelfParams.ucSTASelfIdx;
+
+  wpalMemoryCopy(wdiAddSTAParam.staMacAddr, wdiAddSTASelfParams.macSelfSta,
+                 WDI_MAC_ADDR_LEN);
+
+  wdiAddSTAParam.ucStaType = WDI_STA_ENTRY_SELF; /* 0 - self */
+  wdiAddSTAParam.ucSTAIdx = wdiAddSTASelfParams.ucSTASelfIdx;
+
+  (void)WDI_STATableAddSta(pWDICtx,&wdiAddSTAParam);
+#endif
 
   /*Notify UMAC*/
-  wdiAddSTASelfReqParamsRspCb( wdiStatus, pWDICtx->pRspCBUserData);
+  wdiAddSTASelfReqParamsRspCb( &wdiAddSTASelfParams, pWDICtx->pRspCBUserData);
 
   return WDI_STATUS_SUCCESS; 
 }/*WDI_ProcessAddSTASelfRsp*/
@@ -13184,6 +13487,144 @@ WDI_ProcessDelSTASelfRsp
 
   return WDI_STATUS_SUCCESS;
 }
+
+
+#ifdef FEATURE_INNAV_SUPPORT
+/**
+ @brief Start In Nav Meas Rsp function (called when a 
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+#define OFFSET_OF(structType,fldName)   (&((structType*)0)->fldName)
+
+WDI_Status
+WDI_ProcessStartInNavMeasRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  WDI_InNavMeasRspCb           wdiInNavMeasRspCb     = NULL;
+  WDI_InNavMeasRspParamsType*  wdiInNavMeasRspParams;
+  tStartInNavMeasRspParams*    halStartInNavMeasRspParams;
+  wpt_uint32 allocSize = 0;
+  wpt_uint8 i = 0;
+  wpt_uint8 j = 0;
+
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  wdiInNavMeasRspCb = (WDI_InNavMeasRspCb)pWDICtx->pfncRspCB; 
+
+  /*-------------------------------------------------------------------------
+    Sanity check 
+  -------------------------------------------------------------------------*/
+  if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+      ( NULL == pEventData->pEventData))
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+              "Invalid parameters in Start In Nav Meas Response %x %x %x ",
+               pWDICtx, pEventData, pEventData->pEventData);
+     WDI_ASSERT(0);
+     return WDI_STATUS_E_FAILURE; 
+  }
+
+   /*-------------------------------------------------------------------------
+     Extract response and send it to UMAC
+   -------------------------------------------------------------------------*/
+  halStartInNavMeasRspParams = 
+                     (tStartInNavMeasRspParams *)pEventData->pEventData;
+
+  /* calculate amount of memory required to populate WDI INNAV MEAS RSP structure
+   * Here, multiple RTT RSSI values need to be copied
+   */
+
+  allocSize = sizeof(WDI_InNavMeasRspParamsType) - sizeof(WDI_RttRssiResults) ;
+
+  for(i = 0; i < halStartInNavMeasRspParams->numBSSIDs ; i++)
+  {
+    tRttRssiResults  *rttRssiResults = 
+                 &halStartInNavMeasRspParams->rttRssiResults[i] ;
+    allocSize += (rttRssiResults->numSuccessfulMeasurements - 1) 
+                                           * sizeof(WDI_RttRssiTimeData) ;
+    allocSize += sizeof(WDI_RttRssiResults) ;
+  }
+
+  //Allocate memory for WDI INNAV MEAS RSP structure
+  wdiInNavMeasRspParams = wpalMemoryAllocate(allocSize) ;
+
+  if(NULL == wdiInNavMeasRspParams)
+  {
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+            "Failed to allocate memory in INNAV MEAS Response %x %x %x ",
+                pWDICtx, pEventData, pEventData->pEventData);
+    WDI_ASSERT(0);
+    return WDI_STATUS_E_FAILURE; 
+  }
+
+  /* Populate WDI structure members
+   * Copy status and rspLen at first which are needed by PE in any case.(success 
+   * or failure).
+   */
+  wdiInNavMeasRspParams->wdiStatus = 
+                     WDI_HAL_2_WDI_STATUS(halStartInNavMeasRspParams->status);
+  wdiInNavMeasRspParams->usRspLen  =   halStartInNavMeasRspParams->rspLen;
+
+  WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+            "WDI INNAV RSP STATUS %d RSPLEN %d \n ",
+               wdiInNavMeasRspParams->wdiStatus, wdiInNavMeasRspParams->usRspLen);
+  //Copy RTT RSSI values only if status is success
+  if ( WDI_STATUS_SUCCESS == wdiInNavMeasRspParams->wdiStatus)
+  {
+    wdiInNavMeasRspParams->ucNumBSSIDs =
+                               halStartInNavMeasRspParams->numBSSIDs;
+
+    /* copy RTT/RSSI results */
+    for(i = 0 ; i < wdiInNavMeasRspParams->ucNumBSSIDs ; i++)
+    {
+      tRttRssiResults* rttRssiResults = 
+                        &halStartInNavMeasRspParams->rttRssiResults[i] ;
+      WDI_RttRssiResults *wdiRttRssiResults = 
+                         &wdiInNavMeasRspParams->rttRssiResults[i] ;
+      wdiRttRssiResults->ucNumSuccessfulMeasurements = 
+                       rttRssiResults->numSuccessfulMeasurements;
+
+      wpalMemoryCopy(&wdiInNavMeasRspParams->rttRssiResults[i].ucBssid,
+		     &halStartInNavMeasRspParams->rttRssiResults[i].bssid,
+                                                          sizeof(wpt_macAddr));
+      for( j = 0; j < rttRssiResults->numSuccessfulMeasurements ; j++)
+      {
+        tRttRssiTimeData *rttRssiTimeData = 
+                              &rttRssiResults->rttRssiTimeData[j] ;
+        WDI_RttRssiTimeData *wdiRttRssiTimeData = 
+                              &wdiRttRssiResults->rttRssiTimeData[j] ;
+        wdiRttRssiTimeData->ucRssi = rttRssiTimeData->rssi ;
+        wdiRttRssiTimeData->usRtt = rttRssiTimeData->rtt ;
+        wdiRttRssiTimeData->usSnr = rttRssiTimeData->snr ;
+        wdiRttRssiTimeData->uslMeasurementTime = 
+                                rttRssiTimeData->measurementTime ;
+        wdiRttRssiTimeData->uslMeasurementTimeHi = 
+                                rttRssiTimeData->measurementTimeHi ;
+        WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+                   "bssid num %d Iteration %d RSSI = %d RTT = %d \n ",
+                         i, j, rttRssiTimeData->rssi, rttRssiTimeData->rtt);
+      } /* for j = 0... */
+    }  /* for i = 0 .. */
+  } /* if status .. */
+
+  /*Notify UMAC*/
+  wdiInNavMeasRspCb(wdiInNavMeasRspParams, pWDICtx->pRspCBUserData);
+
+  //Free memory allocated for WDI INNAV MEAS RSP structure
+  wpalMemoryFree(wdiInNavMeasRspParams);
+  
+  return WDI_STATUS_SUCCESS; 
+}/*WDI_PrcoessStartInNavMeasRsp*/
+#endif
 
 /*===========================================================================
            Miscellaneous Control Response Processing API 
@@ -13298,7 +13739,7 @@ WDI_ProcessConfigStaRsp
                   sizeof(halConfigStaRsp.configStaRspParams));
 
 
-  wdiCfgSTAParams.usSTAId     = halConfigStaRsp.configStaRspParams.staIdx;
+  wdiCfgSTAParams.ucSTAIdx     = halConfigStaRsp.configStaRspParams.staIdx;
   wdiCfgSTAParams.ucUcastSig  = halConfigStaRsp.configStaRspParams.ucUcastSig;
   wdiCfgSTAParams.ucBcastSig  = halConfigStaRsp.configStaRspParams.ucBcastSig;
 
@@ -13323,7 +13764,7 @@ WDI_ProcessConfigStaRsp
     if ( WDI_ADD_STA == pWDICtx->wdiCachedConfigStaReq.wdiReqInfo.wdiAction )
     {
       /* ADD STA to table */
-      wdiAddSTAParam.usStaIdx     = wdiCfgSTAParams.usSTAId; 
+      wdiAddSTAParam.ucSTAIdx     = wdiCfgSTAParams.ucSTAIdx; 
       wdiAddSTAParam.dpuSig       = wdiCfgSTAParams.ucUcastSig;
       wdiAddSTAParam.dpuIndex     = wdiCfgSTAParams.ucDpuIndex;
         
@@ -13362,7 +13803,7 @@ WDI_ProcessConfigStaRsp
       wdiAddSTAParam.bcastDpuIndex         = pBSSSes->bcastDpuIndex;
       wdiAddSTAParam.bcastDpuSignature     = pBSSSes->bcastDpuSignature;
       wdiAddSTAParam.ucRmfEnabled          = pBSSSes->ucRmfEnabled;
-      wdiAddSTAParam.ucbssIndex            = ucCurrentBSSSesIdx;
+      wdiAddSTAParam.ucBSSIdx              = ucCurrentBSSSesIdx;
       
       WDI_STATableAddSta(pWDICtx,&wdiAddSTAParam);
     }
@@ -13529,7 +13970,7 @@ WDI_ProcessGetStatsRsp
   wdiGetStatsRsp->usMsgType  = halStatsRspParams.msgType;
   wdiGetStatsRsp->usMsgLen   = halStatsRspParams.msgLen;
   wdiGetStatsRsp->wdiStatus  = WDI_HAL_2_WDI_STATUS(halStatsRspParams.status);
-  wdiGetStatsRsp->usSTAIdx   = halStatsRspParams.staId;
+  wdiGetStatsRsp->ucSTAIdx   = halStatsRspParams.staId;
   wdiGetStatsRsp->uStatsMask = halStatsRspParams.statsMask;
 
   /* copy the stats buffer at the end of the tHalStatsRspParams message */
@@ -14264,6 +14705,20 @@ WDI_ProcessEnterUapsdRsp
   halStatus = *((eHalStatus*)pEventData->pEventData);
   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
 
+  if(WDI_STATUS_SUCCESS == wdiStatus)
+  {
+   // Set the DPU routing flag to the FW WQ, all the TX frames would be now pushed
+   // from DPU to the FW-WQ (5) in UAPSD. FW would be in data path, monitoring
+   // the traffic to decide when to suspend the trigger frames when there is no traffic
+   // activity on the trigger enabled ACs
+   pWDICtx->ucDpuRF = BMUWQ_FW_DPU_TX;
+
+#ifdef WLAN_PERF
+   // Increment the BD signature to refresh the fast path BD utilization
+   pWDICtx->uBdSigSerialNum++;
+#endif
+  }
+
   /*Notify UMAC*/
   wdiEnterUapsdRspCb( wdiStatus, pWDICtx->pRspCBUserData);
 
@@ -14312,6 +14767,15 @@ WDI_ProcessExitUapsdRsp
   -------------------------------------------------------------------------*/
   halStatus = *((eHalStatus*)pEventData->pEventData);
   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
+
+   // Restore back the DPU routing flag in the TxBD, for DPU to push the TxBDs to BTQM
+   // directly instead of the FW WQ.
+   pWDICtx->ucDpuRF = BMUWQ_BTQM_TX_MGMT;
+
+#ifdef WLAN_PERF
+   // Increment the BD signature to refresh the fast path BD utilization
+   pWDICtx->uBdSigSerialNum++;
+#endif
 
   /*Notify UMAC*/
   wdiExitUapsdRspCb( wdiStatus, pWDICtx->pRspCBUserData);
@@ -15370,7 +15834,7 @@ WDI_ProcessDelSTAInd
 
   wdiInd.wdiIndicationData.wdiDeleteSTAIndType.usAssocId = 
     halDelSTACtx.assocId;
-  wdiInd.wdiIndicationData.wdiDeleteSTAIndType.usSTAIdx  = 
+  wdiInd.wdiIndicationData.wdiDeleteSTAIndType.ucSTAIdx  = 
     halDelSTACtx.staId;
   wdiInd.wdiIndicationData.wdiDeleteSTAIndType.wptReasonCode = 
     halDelSTACtx.reasonCode; 
@@ -16520,7 +16984,7 @@ WDI_ResetAssocSessions
     wpalMemoryZero( &pWDICtx->aBSSSessions[i], sizeof(WDI_BSSSessionType) ); 
     pWDICtx->aBSSSessions[i].wdiAssocState = WDI_ASSOC_INIT_ST;
     pWDICtx->aBSSSessions[i].bcastStaIdx = WDI_STA_INVALID_IDX;
-    pWDICtx->aBSSSessions[i].usBSSIdx = WDI_BSS_INVALID_IDX;
+    pWDICtx->aBSSSessions[i].ucBSSIdx = WDI_BSS_INVALID_IDX;
   }
 }/*WDI_ResetAssocSessions*/
 
@@ -16580,7 +17044,7 @@ WDI_FindAssocSession
   
  
  @param  pWDICtx:   pointer to the WLAN DAL context 
-         usBssIdx:  BSS Index of the session
+         ucBSSIdx:  BSS Index of the session
          ppSession: out pointer to the session (if found)
   
  @see
@@ -16590,7 +17054,7 @@ wpt_uint8
 WDI_FindAssocSessionByBSSIdx
 ( 
   WDI_ControlBlockType*   pWDICtx,
-  wpt_uint16              usBssIdx,
+  wpt_uint16              ucBSSIdx,
   WDI_BSSSessionType**    ppSession
 )
 {
@@ -16614,7 +17078,7 @@ WDI_FindAssocSessionByBSSIdx
     ------------------------------------------------------------------------*/
   for ( i = 0; i < WDI_MAX_BSS_SESSIONS; i++ )
   {
-     if ( usBssIdx == pWDICtx->aBSSSessions[i].usBSSIdx )
+     if ( ucBSSIdx == pWDICtx->aBSSSessions[i].ucBSSIdx )
      {
        /*Found the session*/
        *ppSession = &pWDICtx->aBSSSessions[i]; 
@@ -16630,7 +17094,7 @@ WDI_FindAssocSessionByBSSIdx
   
  
  @param  pWDICtx:   pointer to the WLAN DAL context 
-         usBssIdx:  BSS Index of the session
+         ucBSSIdx:  BSS Index of the session
          ppSession: out pointer to the session (if found)
   
  @see
@@ -16794,12 +17258,12 @@ WDI_AddBcastSTAtoSTATable
   wpalMemoryCopy( wdiAddSTAParam.macBSSID, staParams->macBSSID,
                   WDI_MAC_ADDR_LEN );
   wpalMemoryCopy( wdiAddSTAParam.staMacAddr, bcastMacAddr, WDI_MAC_ADDR_LEN );
-  wdiAddSTAParam.ucbssIndex = staParams->ucbssIndex;
+  wdiAddSTAParam.ucBSSIdx = staParams->ucBSSIdx;
   wdiAddSTAParam.ucHTCapable = staParams->ucHTCapable;
   wdiAddSTAParam.ucRmfEnabled = staParams->ucRmfEnabled;
   wdiAddSTAParam.ucStaType = WDI_STA_ENTRY_BCAST;
   wdiAddSTAParam.ucWmmEnabled = staParams->ucWmmEnabled;
-  wdiAddSTAParam.usStaIdx = usBcastStaIdx;
+  wdiAddSTAParam.ucSTAIdx = usBcastStaIdx;
     
   (void)WDI_STATableAddSta(pWDICtx,&wdiAddSTAParam);
 }
@@ -17142,6 +17606,10 @@ WDI_2_HAL_REQ_TYPE
     return WLAN_HAL_ADD_STA_SELF_REQ;
   case WDI_DEL_STA_SELF_REQ:
     return WLAN_HAL_DEL_STA_SELF_REQ;
+#ifdef FEATURE_INNAV_SUPPORT
+  case WDI_START_INNAV_MEAS_REQ:
+    return WLAN_HAL_START_INNAV_MEAS_REQ;
+#endif /* FEATURE_INNAV_SUPPORT */
   default:
     return WLAN_HAL_MSG_MAX; 
   }
@@ -17294,6 +17762,10 @@ HAL_2_WDI_RSP_TYPE
     return WDI_ADD_STA_SELF_RESP;
 case WLAN_HAL_DEL_STA_SELF_RSP:
     return WDI_DEL_STA_SELF_RESP;
+#ifdef FEATURE_INNAV_SUPPORT
+  case WLAN_HAL_START_INNAV_MEAS_RSP:
+    return WDI_START_INNAV_MEAS_RESP;
+#endif /* FEATURE_INNAV_SUPPORT */
   default:
     return eDRIVER_TYPE_MAX; 
   }
@@ -17876,6 +18348,7 @@ WDI_CopyWDIConfigBSSToHALConfigBSS
                                            &pwdiConfigBSS->wdiVOEDCAParams);
   }
 
+  phalConfigBSS->halPersona = pwdiConfigBSS->ucPersona; 
 }/*WDI_CopyWDIConfigBSSToHALConfigBSS*/
 
 

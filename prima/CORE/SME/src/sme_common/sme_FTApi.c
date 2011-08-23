@@ -186,7 +186,7 @@ void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *ft_ies,
             vos_mem_copy((tANI_U8 *)pMac->ft.ftSmeContext.reassoc_ft_ies, ft_ies,
                 ft_ies_length);
                 
-            pMac->ft.ftSmeContext.FTState = eFT_START_READY;
+            pMac->ft.ftSmeContext.FTState = eFT_SET_KEY_WAIT;
 #if defined WLAN_FEATURE_VOWIFI_11R_DEBUG
             smsLog( pMac, LOGE, "ft_ies_length=%d state=%d\n", ft_ies_length,
                 pMac->ft.ftSmeContext.FTState);
@@ -217,6 +217,12 @@ eHalStatus sme_FTSendUpdateKeyInd(tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo)
     tANI_U8 *p = NULL;
     tAniEdType edType;
     tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    int i = 0;
+
+    smsLog(pMac, LOGE, FL("keyLength %d\n"), pFTKeyInfo->keyLength);
+
+      for(i=0; i<pFTKeyInfo->keyLength; i++)
+          smsLog(pMac, LOGE, FL("%02x"), pFTKeyInfo->Key[i]); 
 
     msgLen  = sizeof( tANI_U16) + sizeof( tANI_U16 ) + 
        sizeof( pMsg->keyMaterial.length ) + sizeof( pMsg->keyMaterial.edType ) + 
@@ -231,6 +237,8 @@ eHalStatus sme_FTSendUpdateKeyInd(tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo)
     palZeroMemory(pMac->hHdd, pMsg, msgLen);
 		pMsg->messageType = pal_cpu_to_be16((tANI_U16)eWNI_SME_FT_UPDATE_KEY);
 		pMsg->length = pal_cpu_to_be16(msgLen);
+
+    p = (tANI_U8 *)&pMsg->keyMaterial;
 
 		// Set the pMsg->keyMaterial.length field (this length is defined as all data that follows the edType field
 		// in the tSirKeyMaterial keyMaterial; field).
@@ -316,13 +324,16 @@ eHalStatus sme_FTUpdateKey( tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo )
     // Global Station FT State
     switch(pMac->ft.ftSmeContext.FTState)
     {
-        case eFT_AUTH_COMPLETE:
-          status = sme_FTSendUpdateKeyInd( hHal, pFTKeyInfo );
-
-        default:
-            smsLog( pMac, LOGE, "%s: Unhandled state=%d\n", __func__,
-                pMac->ft.ftSmeContext.FTState);
-            break;
+    case eFT_SET_KEY_WAIT:
+       status = sme_FTSendUpdateKeyInd( hHal, pFTKeyInfo );
+       pMac->ft.ftSmeContext.FTState = eFT_START_READY;
+       break;
+          
+    default:
+       smsLog( pMac, LOGE, "%s: Unhandled state=%d\n", __func__,
+               pMac->ft.ftSmeContext.FTState);
+       status = eHAL_STATUS_FAILURE;
+       break;
     }
     sme_ReleaseGlobalLock( &pMac->sme );
 

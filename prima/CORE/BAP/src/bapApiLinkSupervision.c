@@ -439,9 +439,8 @@ static VOS_STATUS WLANBAP_TxLinkSupervisionCB
 )
 {
     VOS_STATUS     vosStatus;
-    v_U16_t        txPktln;
-    v_SIZE_t       trimSize = 0;
     ptBtampContext bapContext; /* Holds the btampContext value returned */ 
+    vos_pkt_t                *pLSReqPacket; 
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
              "TxCompCB reached for LS Pkt");
@@ -462,28 +461,24 @@ static VOS_STATUS WLANBAP_TxLinkSupervisionCB
         return VOS_STATUS_E_FAILURE;
     }
 
-    vosStatus = vos_pkt_get_packet_length (pPacket, &txPktln);
-    if ( VOS_STATUS_SUCCESS != vosStatus ) 
+    /* Return the packet & reallocate */
+    vos_pkt_return_packet( pPacket );
+    vosStatus = WLANBAP_AcquireLSPacket( bapContext, &pLSReqPacket,32, TRUE );
+    if( VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
-                   "%s:vos_pkt_get_length error", __FUNCTION__);
-        return VOS_STATUS_E_FAULT;
+        bapContext->lsReqPacket = pLSReqPacket;
     }
-
-    trimSize = ( v_SIZE_t)(txPktln - bapContext->lsPktln); 
-    
-    vosStatus = vos_pkt_trim_head (pPacket, trimSize);	
-    if ( VOS_STATUS_SUCCESS != vosStatus ) 
+    else
     {
-        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
-                 "%s:vos_pkt_trim_head error",__FUNCTION__);
-        return VOS_STATUS_E_FAULT;
-    }  
-    
+         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
+                       "%s:AcquireLSPacket failed\n",__FUNCTION__);
+         bapContext->lsReqPacket = NULL;
+         return vosStatus;   
+    } 	    
+
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                "%s:Returned Vos Packet:%x\n",__FUNCTION__, pPacket );
 
-    /* Do not return the packet used for Tx, It is being reused again */
     return (VOS_STATUS_SUCCESS );
 }
 

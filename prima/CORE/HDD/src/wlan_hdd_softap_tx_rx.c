@@ -325,6 +325,14 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
               "%s: enter\n", __FUNCTION__);
 
+   if (FALSE == pAdapter->aStaInfo[STAId].isUsed )
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+                 "%s: STA is unregistered", __FUNCTION__, STAId );
+      kfree_skb(skb);
+      return VOS_STATUS_E_FAILURE;
+   }
+
    /* If the QoS is not enabled on the receiving station, then send it with BE priority */
    if ( !pAdapter->aStaInfo[STAId].isQosEnabled )
        up = SME_QOS_WMM_UP_BE;
@@ -1179,20 +1187,25 @@ VOS_STATUS hdd_softap_DeregisterSTA( hdd_adapter_t *pAdapter, tANI_U8 staId )
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
     hdd_context_t *pHddCtx = pAdapter->pHddCtx;
 
-    vosStatus = hdd_softap_deinit_tx_rx_sta ( pAdapter, staId);
-    if( VOS_STATUS_E_FAILURE == vosStatus ){
-        VOS_TRACE ( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                    "hdd_softap_deinit_tx_rx_sta() failed for staID %d. Status = %d [0x%08lX]",
-                    staId, vosStatus, vosStatus );
-        return (vosStatus );
-    }
-
+    //Clear station in TL and then update HDD data structures. This helps 
+    //to block RX frames from other station to this station.
     vosStatus = WLANTL_ClearSTAClient( (WLAN_HDD_GET_CTX(pAdapter))->pvosContext, staId );
     if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
         VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, 
-                    "WLANTL_ClearSTAClient() failed to for staID %d.  Status= %d [0x%08lX]",
+                    "WLANTL_ClearSTAClient() failed to for staID %d.  \
+                    Status= %d [0x%08lX]",
                     staId, vosStatus, vosStatus );
+    }
+
+    vosStatus = hdd_softap_deinit_tx_rx_sta ( pAdapter, staId );
+    if( VOS_STATUS_E_FAILURE == vosStatus )
+    {
+        VOS_TRACE ( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+                    "hdd_softap_deinit_tx_rx_sta() failed for staID %d. \
+                    Status = %d [0x%08lX]",
+                    staId, vosStatus, vosStatus );
+        return( vosStatus );
     }
     
     pHddCtx->sta_to_adapter[staId] = NULL;

@@ -120,7 +120,7 @@ v_BOOL_t hdd_del_wowl_ptrn (const char * ptrn);
   @return           : FALSE if any errors encountered
                     : TRUE otherwise
   ===========================================================================*/
-v_BOOL_t hdd_enter_wowl (v_BOOL_t enable_mp, v_BOOL_t enable_pbm);
+v_BOOL_t hdd_enter_wowl (hdd_adapter_t *pAdapter, v_BOOL_t enable_mp, v_BOOL_t enable_pbm);
 
 /**============================================================================
   @brief hdd_exit_wowl() - Function which will disable WoWL

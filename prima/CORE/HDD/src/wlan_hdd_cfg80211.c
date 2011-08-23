@@ -245,7 +245,7 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
     wiphy->flags |= WIPHY_FLAG_SUPPORTS_SEPARATE_DEFAULT_KEYS;
 #ifdef WLAN_FEATURE_P2P
-    wiphy->max_remain_on_channel_duration = 300;
+    wiphy->max_remain_on_channel_duration = 1000;
 #endif
 #endif
 

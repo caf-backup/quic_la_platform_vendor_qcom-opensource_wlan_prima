@@ -1964,6 +1964,12 @@ VOS_STATUS vos_rx_mq_serialize( VOS_MQ_ID msgQueueId, vos_msg_t *pMsg )
   switch (msgQueueId)
   {
 
+    case VOS_MQ_ID_SYS:
+    {
+       pTargetMq = &(gpVosContext->vosSched.sysRxMq);
+       break;
+    }
+
     /// Message Queue ID for messages bound for WDI
     case VOS_MQ_ID_WDI:
     {

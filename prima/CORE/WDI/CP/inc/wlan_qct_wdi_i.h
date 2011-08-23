@@ -341,6 +341,8 @@ typedef enum
   /* WLAN FTM Command request */
   WDI_FTM_CMD_REQ       = 59,
 
+  /*WLAN START INNAV MEAS Request*/
+  WDI_START_INNAV_MEAS_REQ   = 60,
   WDI_MAX_REQ
 }WDI_RequestEnumType; 
 
@@ -523,11 +525,13 @@ typedef enum
   
   WDI_DEL_STA_SELF_RESP = 57,
 
+  /*WLAN START INNAV MEAS Response*/
+  WDI_START_INNAV_MEAS_RESP          = 58,
   /*-------------------------------------------------------------------------
     Indications
      !! Keep these last in the enum if possible
     -------------------------------------------------------------------------*/
-  WDI_HAL_IND_MIN                     = 58, 
+  WDI_HAL_IND_MIN                     = 59, 
   /*When RSSI monitoring is enabled of the Lower MAC and a threshold has been
     passed. */
   WDI_HAL_LOW_RSSI_IND                = WDI_HAL_IND_MIN, 
@@ -575,7 +579,7 @@ typedef struct
   wpt_macAddr     	  macBSSID; 
 
   /*BSS Index associated with this BSSID*/
-  wpt_uint16          usBSSIdx; 
+  wpt_uint8           ucBSSIdx; 
 
   /*Associated state of the current BSS*/
   WDI_AssocStateType  wdiAssocState;
@@ -602,7 +606,7 @@ typedef struct
 typedef WPT_PACK_PRE struct 
 {
   /*BSS index allocated by HAL*/
-  wpt_uint16   usBSSIdx;
+  wpt_uint8    ucBSSIdx;
 
   /*BSSID of the BSS*/
   wpt_macAddr  macBSSID; 
@@ -768,8 +772,12 @@ typedef struct
   /*Cached set link state request - there can only be one in the system as
     only one request goes down to hal up until a response is received
     The values cached are used on response to delete a BSS if needed */
-  WDI_SetLinkReqParamsType    wdiCacheSetLinkStReq; 
+  WDI_SetLinkReqParamsType     wdiCacheSetLinkStReq; 
 
+  /*Cached add STA self request - there can only be one in the system as
+    only one request goes down to hal up until a response is received
+    The values cached are used on response to save the self STA in the table */
+  WDI_AddSTASelfReqParamsType  wdiCacheAddSTASelfReq;
 
   /*Current session being handled*/
   wpt_uint8                   ucCurrentBSSSesIdx;
@@ -816,14 +824,16 @@ typedef struct
   /* Global BSS and STA table -  Memory is allocated when needed.*/
   void*                       staTable;
 
+#ifndef HAL_SELF_STA_PER_BSS
   /*Index of the Self STA */
   wpt_uint8                   ucSelfStaId;
 
   /* Self STA DPU Index */
-  wpt_uint16    usSelfStaDpuId;
+  wpt_uint16                  usSelfStaDpuId;
 
   /*Self STA Mac*/
-  wpt_macAddr   macSelfSta;
+  wpt_macAddr                 macSelfSta;
+#endif
 
   /*Is frame translation enabled */
   wpt_uint8                   bFrameTransEnabled;
@@ -2166,6 +2176,25 @@ WDI_ProcessFlushAcReq
   WDI_EventInfoType*     pEventData
 );
 
+#ifdef FEATURE_INNAV_SUPPORT
+/**
+ @brief Process Start In Nav Meas Request function (called when Main 
+        FSM allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessStartInNavMeasReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+#endif
+
 /**
  @brief Process BT AMP event Request function (called when Main 
         FSM allows it)
@@ -3228,6 +3257,26 @@ WDI_ProcessDelSTASelfRsp
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
 );
+
+#ifdef FEATURE_INNAV_SUPPORT
+/**
+ @brief Start In Nav Meas Rsp function (called when a 
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessStartInNavMeasRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+#endif
+
 
 
 /*==========================================================================

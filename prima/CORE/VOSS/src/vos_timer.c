@@ -174,6 +174,21 @@ static void vos_linux_timer_callback ( v_U32_t data )
       if(vos_tx_mq_serialize( VOS_MQ_ID_SYS, &msg ) == VOS_STATUS_SUCCESS)
          return;
    }
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+   else if ( vos_sched_is_rx_thread( threadId ) )
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO, 
+          "TIMER callback: running on RX thread");
+         
+      //Serialize to the Rx thread
+      sysBuildMessageHeader( SYS_MSG_ID_RX_TIMER, &msg );
+      msg.bodyptr  = callback;
+      msg.bodyval  = (v_U32_t)userData; 
+       
+      if(vos_rx_mq_serialize( VOS_MQ_ID_SYS, &msg ) == VOS_STATUS_SUCCESS)
+         return;
+   }
+#endif
    else 
    {
       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,

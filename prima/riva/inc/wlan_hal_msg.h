@@ -30,7 +30,7 @@
 #define STACFG_MAX_TC    8
 
 //The maximum value of access category
-#define WLAN_HAL_MAX_AC			  4
+#define WLAN_HAL_MAX_AC  4
 
 typedef tANI_U8 tSirMacAddr[6];
 
@@ -579,19 +579,10 @@ typedef PACKED_PRE struct PACKED_POST sHalMacStartRspParameters
    tANI_U16  status;
 
    /*Max number of STA supported by the device*/
-   tANI_U8     ucMaxStations;	
+   tANI_U8     ucMaxStations;
 
    /*Max number of BSS supported by the device*/
    tANI_U8     ucMaxBssids;
-
-   /*Self STA Index */
-   tANI_U16    selfStaIdx;
-
-   /*Self STA Mac*/
-   tSirMacAddr selfStaMac;
-
-   /* Self STA DPU Index */
-   tANI_U16 selfStaDpuId;
 
 } tHalMacStartRspParams, *tpHalMacStartRspParams;
 
@@ -939,8 +930,6 @@ typedef PACKED_PRE struct PACKED_POST
    tHalFinishScanRspParams finishScanRspParams;
 }  tHalFinishScanRspMsg, *tpHalFinishScanRspMsg;
 
-
-
 /*---------------------------------------------------------------------------
   WLAN_HAL_CONFIG_STA_REQ
 ---------------------------------------------------------------------------*/
@@ -1081,11 +1070,11 @@ typedef PACKED_PRE struct PACKED_POST
 
     /* Valid STA Idx when action=Update. Set to 0xFF when invalid!
        Retained for backward compalibity with existing HAL code*/
-    tANI_U16 staIdx;
+    tANI_U8 staIdx;
 
     /* BSSID of BSS to which station is associated. Set to 0xFF when invalid.
        Retained for backward compalibity with existing HAL code*/
-    tANI_U16 bssIdx;
+    tANI_U8 bssIdx;
 
     tANI_U8  p2pCapableSta;
 
@@ -1107,10 +1096,10 @@ typedef PACKED_PRE struct PACKED_POST
   tANI_U32   status;
 
   /* Station index; valid only when 'status' field value SUCCESS */
-  tANI_U16 staIdx;
+  tANI_U8 staIdx;
 
   /* BSSID Index of BSS to which the station is associated */
-  tANI_U16 bssIdx;
+  tANI_U8 bssIdx;
 
   /* DPU Index for PTK */
   tANI_U8 dpuIndex;
@@ -1148,7 +1137,7 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST 
 {
    /* Index of STA to delete */
-   tANI_U16    staIdx;
+   tANI_U8    staIdx;
 } tDeleteStaParams, *tpDeleteStaParams;
 
 /* Delete STA Request message*/
@@ -1169,7 +1158,7 @@ typedef PACKED_PRE struct PACKED_POST
    tANI_U32   status;
 
    /* Index of STA deleted */
-   tANI_U16    staId;
+   tANI_U8    staId;
 } tDeleteStaRspParams, *tpDeleteStaRspParams;
 
 /* Delete STA Response message*/
@@ -1231,6 +1220,31 @@ typedef __ani_attr_pre_packed struct sSirMacSSid
     tANI_U8        length;
     tANI_U8        ssId[32];
 } __ani_attr_packed tSirMacSSid;
+
+// Concurrency role.  These are generic IDs that identify the various roles
+// in the software system.
+typedef enum {
+    HAL_STA_MODE=0, 
+    HAL_STA_SAP_MODE=1, // to support softAp mode . This is misleading. It means AP MODE only. 
+    HAL_P2P_CLIENT_MODE,
+    HAL_P2P_GO_MODE,
+    HAL_MONITOR_MODE,
+} tHalConMode;
+
+//This is a bit pattern to be set for each mode
+//bit 0 - sta mode
+//bit 1 - ap mode
+//bit 2 - p2p client mode
+//bit 3 - p2p go mode
+typedef enum
+{
+    HAL_STA=1, 
+    HAL_SAP=2,
+    HAL_STA_SAP=3, //to support sta, softAp  mode . This means STA+AP mode
+    HAL_P2P_CLIENT=4,
+    HAL_P2P_GO=8,
+    HAL_MAX_CONCURRENCY_PERSONA=4
+} tHalConcurrencyMode;
 
 typedef PACKED_PRE struct PACKED_POST
 {
@@ -1313,6 +1327,9 @@ typedef PACKED_PRE struct PACKED_POST
     /*Enable/Disable HT capabilities of the BSS*/
     tANI_U8 htCapable;
 
+    // Enable/Disable OBSS protection
+    tANI_U8 obssProtEnabled;
+
     /*RMF enabled/disabled*/
     tANI_U8 rmfEnabled;
 
@@ -1360,7 +1377,8 @@ typedef PACKED_PRE struct PACKED_POST
     tSetStaKeyParams extSetStaKeyParam;  //SetStaKeyParams for ext bss msg
 #endif
 
-    
+    /* Persona for the BSS can be STA,AP,GO,CLIENT value same as tHalConMode */    
+    tANI_U8   halPersona;
    
 } tConfigBssParams, * tpConfigBssParams;
 
@@ -1380,7 +1398,7 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U32   status;
 
     /* BSS index allocated by HAL */
-    tANI_U16 bssIdx;
+    tANI_U8    bssIdx;
 
     /* DPU descriptor index for PTK */
     tANI_U8    dpuDescIndx;
@@ -1432,7 +1450,7 @@ typedef PACKED_PRE struct PACKED_POST
 typedef PACKED_PRE struct PACKED_POST
 {
     /* BSS index to be deleted */
-    tANI_U16 bssIdx;
+    tANI_U8 bssIdx;
 
 } tDeleteBssParams, *tpDeleteBssParams;
 
@@ -1452,7 +1470,7 @@ typedef PACKED_PRE struct PACKED_POST
     tANI_U32   status;
 
     /* BSS index that has been deleted */
-    tANI_U16 bssIdx;
+    tANI_U8 bssIdx;
 
 } tDeleteBssRspParams, *tpDeleteBssRspParams;
 
@@ -1473,6 +1491,10 @@ typedef PACKED_PRE struct PACKED_POST
 
   /*Indicates the channel to switch to.*/
   tANI_U8         ucChannel;
+
+  /* Self STA MAC */
+  tSirMacAddr selfStaMacAddr;
+     
 #ifndef WLAN_FEATURE_VOWIFI   
   /*Local power constraint*/
   tANI_U8         ucLocalPowerConstraint;
@@ -1484,9 +1506,6 @@ typedef PACKED_PRE struct PACKED_POST
 #ifdef WLAN_FEATURE_VOWIFI
     /* Max TX power */
     tANI_S8 maxTxPower;
-    
-    /* Self STA MAC */
-    tSirMacAddr selfStaMacAddr;
 #endif
 } tHalJoinReqParams, *tpHalJoinReqParams;
 
@@ -1742,16 +1761,17 @@ typedef PACKED_PRE struct PACKED_POST
     /* The return status of SIR_HAL_INIT_INNAV_MEAS_REQ is reported here */
     tANI_U32                 status;
 
+    tSirMacAddr              selfMacAddr;
     /* Request Parameters */
 
     /* Number of BSSIDs */
-    tANI_U8                  numBSSIDs;
+    tANI_U8                    numBSSIDs;
     /* Number of Measurements required */
-    tANI_U8                  numInNavMeasurements;
+    tANI_U8                    numInNavMeasurements;
     /*.Type of measurements (RTS-CTS or FRAME-BASED) */
     tANI_U16                 measurementMode;
     /* bssid channel info for doing the measurements */
-    tBSSIDChannelInfo        bssidChannelInfo[1];
+    tBSSIDChannelInfo       bssidChannelInfo[1];
 
 }tStartInNavMeasReqParams, *tpStartInNavMeasReqParams;
 
@@ -2090,6 +2110,7 @@ typedef PACKED_PRE struct PACKED_POST
 {
     tSirMacAddr bssid;
     tSirLinkState state;
+    tSirMacAddr selfMacAddr;
 } tLinkStateParams, *tpLinkStateParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -3684,7 +3705,7 @@ typedef PACKED_PRE struct PACKED_POST
 #endif
 
 /*---------------------------------------------------------------------------
- *WLAN_HAL_SET_SELF_STA_REQ
+ *WLAN_HAL_ADD_SELF_STA_REQ
  *--------------------------------------------------------------------------*/
 
 typedef PACKED_PRE struct PACKED_POST
@@ -3701,13 +3722,19 @@ typedef PACKED_PRE struct PACKED_POST
 }tAddStaSelfReq, *tpAddStaSelfReq;
 
 /*---------------------------------------------------------------------------
-*WLAN_HAL_SET_SELF_STA_RSP
+*WLAN_HAL_ADD_SELF_STA_RSP
 *--------------------------------------------------------------------------*/
 
 typedef PACKED_PRE struct PACKED_POST
 {
     /* success or failure */
     tANI_U32   status;
+
+   /*Self STA Index */
+   tANI_U8    selfStaIdx;
+
+   /* Self STA DPU Index */
+   tANI_U8 selfStaDpuId;
 }tAddStaSelfRspParams, *tpAddStaSelfRspParams;
 
 typedef PACKED_PRE struct PACKED_POST

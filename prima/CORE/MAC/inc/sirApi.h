@@ -1415,6 +1415,8 @@ typedef struct sSirSmeReassocReq
     tSirMacAddr         selfMacAddr;            // self Mac address
     tSirBssType         bsstype;                // add new type for BT -AMP STA and AP Modules
     tANI_U8             dot11mode;              // to support BT-AMP     
+    tVOS_CON_MODE       staPersona;        //Persona
+
     /*This contains the UAPSD Flag for all 4 AC
      * B0: AC_VO UAPSD FLAG
      * B1: AC_VI UAPSD FLAG

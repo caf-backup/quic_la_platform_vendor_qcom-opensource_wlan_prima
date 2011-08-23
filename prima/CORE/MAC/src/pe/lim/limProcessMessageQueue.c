@@ -619,7 +619,7 @@ limCheckMgmtRegisteredFrames(tpAniSirGlobal pMac, tANI_U8 *pBd,
 
         /* Indicate this to SME */	 
         limSendSmeMgmtFrameInd( pMac, eSIR_MGMT_FRM_ACTION, (tANI_U8*)pHdr, 
-                     WDA_GET_RX_MPDU_LEN(pBd) + sizeof(tSirMacMgmtHdr), 
+                     WDA_GET_RX_PAYLOAD_LEN(pBd) + sizeof(tSirMacMgmtHdr), 
                      pLimMgmtRegistration->sessionId );
     }
 
@@ -1066,6 +1066,10 @@ void
 limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
 {
     tANI_U8  deferMsg = false;
+#if defined WLAN_FEATURE_VOWIFI_11R
+    tLinkStateParams *linkStateParams;
+    tpPESession pSession;
+#endif
 #if defined(ANI_DVT_DEBUG)
     tSirMsgQ  msgQ;
 #endif
@@ -1808,6 +1812,20 @@ limProcessMessages(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
        limProcessFTAggrQoSRsp( pMac, limMsg );
        break;
 #endif
+    case WDA_SET_LINK_STATE_RSP:
+#if defined WLAN_FEATURE_VOWIFI_11R
+       linkStateParams = (tLinkStateParams *)limMsg->bodyptr;
+       pSession = linkStateParams->session;
+       if(linkStateParams->ft)
+       {
+          limSendReassocReqWithFTIEsMgmtFrame(pMac, 
+                                              pSession->pLimMlmReassocReq,
+                                              pSession); 
+       }
+#endif
+       vos_mem_free((v_VOID_t *)(limMsg->bodyptr));
+       break;
+
         default:
             vos_mem_free((v_VOID_t*)limMsg->bodyptr);
             limMsg->bodyptr = NULL;

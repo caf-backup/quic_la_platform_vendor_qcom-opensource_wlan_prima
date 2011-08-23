@@ -240,7 +240,12 @@ typedef enum
 #define CFG_DOT11_MODE_MAX                     eHDD_DOT11_MODE_11b_ONLY
 #define CFG_DOT11_MODE_DEFAULT                 eHDD_DOT11_MODE_11n
 
-#define CFG_CHANNEL_BONDING_MODE_NAME          "gChannelBondingMode"
+#define CFG_CHANNEL_BONDING_MODE_24GHZ_NAME    "gChannelBondingMode24GHz"
+#define CFG_CHANNEL_BONDING_MODE_MIN           WNI_CFG_CHANNEL_BONDING_MODE_STAMIN 
+#define CFG_CHANNEL_BONDING_MODE_MAX           WNI_CFG_CHANNEL_BONDING_MODE_STAMAX 
+#define CFG_CHANNEL_BONDING_MODE_DEFAULT       WNI_CFG_CHANNEL_BONDING_MODE_STADEF 
+
+#define CFG_CHANNEL_BONDING_MODE_5GHZ_NAME     "gChannelBondingMode5GHz"
 #define CFG_CHANNEL_BONDING_MODE_MIN           WNI_CFG_CHANNEL_BONDING_MODE_STAMIN 
 #define CFG_CHANNEL_BONDING_MODE_MAX           WNI_CFG_CHANNEL_BONDING_MODE_STAMAX 
 #define CFG_CHANNEL_BONDING_MODE_DEFAULT       WNI_CFG_CHANNEL_BONDING_MODE_STADEF 
@@ -755,6 +760,31 @@ typedef enum
 #define CFG_FT_RESOURCE_REQ_DEFAULT                     (0)
 #endif
 
+#define CFG_TELE_BCN_TRANS_LI_NAME                   "telescopicBeaconTransListenInterval"
+#define CFG_TELE_BCN_TRANS_LI_MIN                    ( 0 )
+#define CFG_TELE_BCN_TRANS_LI_MAX                    ( 7 )
+#define CFG_TELE_BCN_TRANS_LI_DEFAULT                ( 3 )
+
+#define CFG_TELE_BCN_TRANS_LI_NUM_IDLE_BCNS_NAME     "telescopicBeaconTransListenIntervalNumIdleBcns"
+#define CFG_TELE_BCN_TRANS_LI_NUM_IDLE_BCNS_MIN      ( 5 )
+#define CFG_TELE_BCN_TRANS_LI_NUM_IDLE_BCNS_MAX      ( 255 )
+#define CFG_TELE_BCN_TRANS_LI_NUM_IDLE_BCNS_DEFAULT  ( 10 )
+
+#define CFG_TELE_BCN_MAX_LI_NAME                     "telescopicBeaconMaxListenInterval"
+#define CFG_TELE_BCN_MAX_LI_MIN                      ( 0 )
+#define CFG_TELE_BCN_MAX_LI_MAX                      ( 7 )
+#define CFG_TELE_BCN_MAX_LI_DEFAULT                  ( 5 )
+
+#define CFG_TELE_BCN_MAX_LI_NUM_IDLE_BCNS_NAME       "telescopicBeaconMaxListenIntervalNumIdleBcns"
+#define CFG_TELE_BCN_MAX_LI_NUM_IDLE_BCNS_MIN        ( 5 )
+#define CFG_TELE_BCN_MAX_LI_NUM_IDLE_BCNS_MAX        ( 255 )
+#define CFG_TELE_BCN_MAX_LI_NUM_IDLE_BCNS_DEFAULT    ( 15 )
+
+#define CFG_BCN_EARLY_TERM_WAKE_NAME                 "beaconEarlyTerminationWakeInterval"
+#define CFG_BCN_EARLY_TERM_WAKE_MIN                  ( 1 )
+#define CFG_BCN_EARLY_TERM_WAKE_MAX                  ( 255 )
+#define CFG_BCN_EARLY_TERM_WAKE_DEFAULT              ( 5 )
+
 #ifdef WLAN_FEATURE_NEIGHBOR_ROAMING
 #define CFG_NEIGHBOR_SCAN_TIMER_PERIOD_NAME             "gNeighborScanTimerPeriod"
 #define CFG_NEIGHBOR_SCAN_TIMER_PERIOD_MIN              (0)
@@ -857,6 +887,33 @@ typedef enum
 #define CFG_ENABLE_BEACON_EARLY_TERMINATION_MAX           ( 1 )
 #define CFG_ENABLE_BEACON_EARLY_TERMINATION_DEFAULT       ( 0 )
 
+/*
+ * WDI Trace Enable Control
+ * Notes:
+ *  the MIN/MAX/DEFAULT values apply for all modules
+ *  the DEFAULT value is outside the valid range.  if the DEFAULT
+ *    value is not overridden, then no change will be made to the
+ *    "built in" default values compiled into the code
+ *  values are a bitmap indicating which log levels are to enabled
+ *    (must match order of wpt_tracelevel enumerations)
+ *    00000001  FATAL
+ *    00000010  ERROR
+ *    00000100  WARN
+ *    00001000  INFO
+ *    00010000  INFO HIGH
+ *    00100000  INFO MED
+ *    01000000  INFO LOW
+ *
+ *  hence a value of 0x7F would set all bits (enable all logs)
+ */
+#define CFG_WDI_TRACE_ENABLE_DAL_NAME     "wdiTraceEnableDAL"
+#define CFG_WDI_TRACE_ENABLE_CTL_NAME     "wdiTraceEnableCTL"
+#define CFG_WDI_TRACE_ENABLE_DAT_NAME     "wdiTraceEnableDAT"
+#define CFG_WDI_TRACE_ENABLE_PAL_NAME     "wdiTraceEnablePAL"
+#define CFG_WDI_TRACE_ENABLE_MIN          (0)
+#define CFG_WDI_TRACE_ENABLE_MAX          (0x7f)
+#define CFG_WDI_TRACE_ENABLE_DEFAULT      (0xffffffff)
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -907,7 +964,8 @@ typedef struct
    v_BOOL_t      fIsAutoBmpsTimerEnabled;
    v_U32_t       nAutoBmpsTimerValue;
    eHddDot11Mode dot11Mode;
-   v_U32_t       ChannelBondingMode;
+   v_U32_t       nChannelBondingMode24GHz;
+   v_U32_t       nChannelBondingMode5GHz;
    v_U32_t       MaxRxAmpduFactor;
    v_U32_t       nBAAgingTimerInterval;
    v_U16_t       TxRate;
@@ -1072,6 +1130,20 @@ typedef struct
 
    v_BOOL_t                    fEnableBeaconEarlyTermination;
    v_BOOL_t                    teleBcnWakeupEn;
+
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+   /* WDI Trace Control */
+   v_U32_t                     wdiTraceEnableDAL;
+   v_U32_t                     wdiTraceEnableCTL;
+   v_U32_t                     wdiTraceEnableDAT;
+   v_U32_t                     wdiTraceEnablePAL;
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+   v_U16_t                     nTeleBcnTransListenInterval;
+   v_U16_t                     nTeleBcnMaxListenInterval;
+   v_U16_t                     nTeleBcnTransLiNumIdleBeacons;
+   v_U16_t                     nTeleBcnMaxLiNumIdleBeacons;
+   v_U8_t                      bcnEarlyTermWake;
+
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

@@ -302,7 +302,7 @@ v_BOOL_t hdd_del_wowl_ptrn (const char * ptrn)
   @return           : FALSE if any errors encountered
                     : TRUE otherwise
   ===========================================================================*/
-v_BOOL_t hdd_enter_wowl (v_BOOL_t enable_mp, v_BOOL_t enable_pbm) 
+v_BOOL_t hdd_enter_wowl (hdd_adapter_t *pAdapter, v_BOOL_t enable_mp, v_BOOL_t enable_pbm) 
 {
   tSirSmeWowlEnterParams wowParams;
   eHalStatus halStatus;
@@ -313,7 +313,7 @@ v_BOOL_t hdd_enter_wowl (v_BOOL_t enable_mp, v_BOOL_t enable_pbm)
   {
 #ifdef HDD_SESSIONIZE
     vos_copy_macaddr( (v_MACADDR_t *)&(wowParams.magicPtrn),
-      &(pAdapterHandle->macAddressCurrent) );
+                    &(pAdapter->macAddressCurrent) );
 #endif
   }
 

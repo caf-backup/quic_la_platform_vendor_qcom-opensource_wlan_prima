@@ -314,7 +314,7 @@ when        who    what, where, why
 #define WDI_TXCOMP_REQUESTED_MASK           0x1  //bit 0 for TxComp intr requested. 
 #define WDI_USE_SELF_STA_REQUESTED_MASK     0x2  //bit 1 for STA overwrite with selfSta Requested.
 
-
+#define WDI_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40
 /*========================================================================= 
    API Definition  
 =========================================================================*/ 

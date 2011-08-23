@@ -965,7 +965,64 @@ VOS_STATUS sysTxProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
    return( vosStatus );
 }
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+VOS_STATUS sysRxProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
+{
+   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
 
+   VOS_ASSERT( pMsg );
+
+   // All 'new' SYS messages are identified by a cookie in the reserved
+   // field of the message as well as the message type.  This prevents
+   // the possibility of overlap in the message types defined for new
+   // SYS messages with the 'legacy' message types.  The legacy messages
+   // will not have this cookie in the reserved field
+   if ( SYS_MSG_COOKIE == pMsg->reserved )
+   {
+      // Process all the new SYS messages..
+      switch( pMsg->type )
+      {
+         case SYS_MSG_ID_RX_TIMER:
+         {
+            vos_timer_callback_t timerCB;
+
+            // hummmm... note says...
+            // invoke the timer callback and the user data stick
+            // into the bodyval; no body to free.    I think this is
+            // what that means.
+            timerCB = (vos_timer_callback_t)pMsg->bodyptr;
+
+            // make the callback to the timer routine...
+            timerCB( (v_VOID_t *)pMsg->bodyval );
+
+            break;
+         }
+
+         default:
+         {
+            VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+                       "Unknwon message type in sysRxProcessMsg() msgType= %d [0x%08lx]",
+                       pMsg->type, pMsg->type );
+            break;
+        }
+
+      }   // end switch on message type
+   }   // end if cookie set
+   else
+   {
+      VOS_ASSERT( 0 );
+
+      VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR,
+                 "Received SYS message cookie with unidentified RX message "
+                 " type= %d [0x%08lX]", pMsg->type, pMsg->type );
+
+      vosStatus = VOS_STATUS_E_BADMSG;
+   }   // end else
+
+   return( vosStatus );
+}
+
+#endif
 
 v_VOID_t sysMcFreeMsg( v_CONTEXT_t pVContext, vos_msg_t* pMsg )
 {

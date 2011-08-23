@@ -657,6 +657,10 @@ WCTS_OpenTransport
       goto fail;
    }
 
+   /* we initially don't want read interrupts
+      (we only want them if we get into deferred write mode) */
+   smd_disable_read_intr(pWCTSCb->wctsChannel);
+
    /* we have successfully opened the SMD channel */
    return (WCTS_HandleType)pWCTSCb;
 

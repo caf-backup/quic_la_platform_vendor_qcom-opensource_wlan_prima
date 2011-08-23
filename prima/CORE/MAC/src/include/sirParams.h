@@ -445,6 +445,8 @@ typedef struct sSirMbMsgP2p
 #define  SIR_HAL_DUMP_CMD_RSP               SIR_HAL_ITC_MSG_TYPES_BEGIN + 164
 #endif
 
+#define SIR_HAL_SET_LINK_STATE_RSP             SIR_HAL_ITC_MSG_TYPES_BEGIN + 165
+
 #define SIR_HAL_MSG_TYPES_END              SIR_HAL_ITC_MSG_TYPES_BEGIN + 0xFF
 
 

@@ -512,6 +512,7 @@ typedef PACKED_PRE struct PACKED_POST {
 
 typedef PACKED_PRE struct PACKED_POST {
    sTxChainsLoCorrections calValues;
+   tANI_U8 reserve[2];
    eGainSteps gain;
 } tMsgPttTxCarrierSuppressCal;
 
@@ -536,11 +537,13 @@ typedef PACKED_PRE struct PACKED_POST {
 //Phy Calibration Override Service
 typedef PACKED_PRE struct PACKED_POST {
    sTxChainsLoCorrections calValues;
+   tANI_U8 reserve[2];
    eGainSteps gain;
 } tMsgPttSetTxCarrierSuppressCorrect;
 
 typedef PACKED_PRE struct PACKED_POST {
    sTxChainsLoCorrections calValues;
+   tANI_U8 reserve[2];
    eGainSteps gain;
 } tMsgPttGetTxCarrierSuppressCorrect;
 
