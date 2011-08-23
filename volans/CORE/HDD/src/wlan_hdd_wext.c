@@ -671,7 +671,7 @@ static int iw_get_freq(struct net_device *dev, struct iw_request_info *info,
 
    if( pAdapter->conn_info.connState== eConnectionState_Associated )
    {
-       if (ccmCfgGetInt(hHal, WNI_CFG_CURRENT_CHANNEL, &channel) != eHAL_STATUS_SUCCESS)
+       if (sme_GetOperationChannel(hHal, &channel) != eHAL_STATUS_SUCCESS)
        {
            return -EIO;
        }
