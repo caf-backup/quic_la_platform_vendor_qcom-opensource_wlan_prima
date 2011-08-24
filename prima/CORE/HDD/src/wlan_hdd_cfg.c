@@ -2287,6 +2287,21 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
 	    hddLog(LOGE,"Failure: Could not pass on WNI_CFG_PS_NULLDATA_DELAY_TIMEOUT configuration info to CCM\n"  );
     } 
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+    if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_FRAGMENTATION_THRESHOLD, pConfig->FragmentationThreshold, 
+                   NULL, eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+    {
+        fStatus = FALSE;
+        hddLog(LOGE,"Failure: Could not pass on WNI_CFG_FRAGMENTATION_THRESHOLD configuration info to CCM\n"  );
+    }
+    if(ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_RTS_THRESHOLD, pConfig->RTSThreshold, 
+                        NULL, eANI_BOOLEAN_FALSE) == eHAL_STATUS_FAILURE)
+    {
+        fStatus = FALSE;
+        hddLog(LOGE,"Failure: Could not pass on WNI_CFG_RTS_THRESHOLD configuration info to CCM\n"  );
+    }
+#endif
+
    return fStatus;
 }
 
