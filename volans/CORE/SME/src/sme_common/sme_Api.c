@@ -4366,3 +4366,36 @@ eHalStatus sme_AbortMacScan(tHalHandle hHal)
     return ( status );
 }
 
+/* ----------------------------------------------------------------------------
+        \fn sme_GetOperationChannel
+        \brief API to get current channel on which STA is parked
+	this function gives channel information only of infra station or IBSS station
+        \param hHal and poiter to memory location
+        \returns eHAL_STATUS_SUCCESS
+                eHAL_STATUS_FAILURE
+-------------------------------------------------------------------------------*/
+eHalStatus sme_GetOperationChannel(tHalHandle hHal, tANI_U32 *pChannel)
+{
+    tANI_U32 sessionId;
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    tCsrRoamSession *pSession;
+
+    for(sessionId = 0; sessionId < CSR_ROAM_SESSION_MAX ; sessionId++)
+    {
+       if(CSR_IS_SESSION_VALID( pMac, sessionId ))
+       {
+          pSession = CSR_GET_SESSION( pMac, sessionId );
+
+			if(( pSession->connectedProfile.BSSType == eCSR_BSS_TYPE_INFRASTRUCTURE ) || 
+		         ( pSession->connectedProfile.BSSType == eCSR_BSS_TYPE_IBSS ) ||
+		         ( pSession->connectedProfile.BSSType == eCSR_BSS_TYPE_START_IBSS ))
+			{
+			   *pChannel =pSession->connectedProfile.operationChannel;
+               return eHAL_STATUS_SUCCESS;
+            }
+       }
+    }
+    return eHAL_STATUS_FAILURE;
+}// sme_GetOperationChannel ends here
+
+
