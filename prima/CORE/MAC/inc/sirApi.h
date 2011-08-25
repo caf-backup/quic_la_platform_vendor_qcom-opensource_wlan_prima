@@ -3637,6 +3637,23 @@ typedef struct sSirSmeDelStaSelfRsp
     tANI_U16        status;
     tSirMacAddr     selfMacAddr;
 }tSirSmeDelStaSelfRsp, *tpSirSmeDelStaSelfRsp;
+
+/* Coex Indication defines - 
+   should match WLAN_COEX_IND_DATA_SIZE 
+   should match WLAN_COEX_IND_TYPE_DISABLE_HB_MONITOR 
+   should match WLAN_COEX_IND_TYPE_ENABLE_HB_MONITOR */
+#define SIR_COEX_IND_DATA_SIZE (4)
+#define SIR_COEX_IND_TYPE_DISABLE_HB_MONITOR (0)
+#define SIR_COEX_IND_TYPE_ENABLE_HB_MONITOR (1)
+
+typedef struct sSirSmeCoexInd
+{
+    tANI_U16        mesgType;
+    tANI_U16        mesgLen;
+    tANI_U32        coexIndType;
+    tANI_U32        coexIndData[SIR_COEX_IND_DATA_SIZE];
+}tSirSmeCoexInd, *tpSirSmeCoexInd;
+
 #ifdef WLAN_FEATURE_P2P
 typedef struct sSirSmeMgmtFrameInd
 {

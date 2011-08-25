@@ -96,6 +96,9 @@ of NV fragment is nt possbile.The next multiple of 1Kb is 3K */
 /* Beacon Filter Length*/
 #define WDI_BEACON_FILTER_LEN 70
 
+/* Coex Indication data size - should match WLAN_COEX_IND_DATA_SIZE */
+#define WDI_COEX_IND_DATA_SIZE (4)
+
 /*============================================================================
  *     GENERIC STRUCTURES 
   
@@ -281,6 +284,9 @@ typedef enum
   /*Delete Station Ind*/
   WDI_DEL_STA_IND, 
 
+  /*Indication from Coex*/
+  WDI_COEX_IND,
+
   WDI_MAX_IND
 }WDI_LowLevelIndEnumType;
 
@@ -370,6 +376,15 @@ typedef struct
 }WDI_MicFailureIndType; 
 
 /*---------------------------------------------------------------------------
+  WDI_CoexIndType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  wpt_uint32  coexIndType;
+  wpt_uint32  coexIndData[WDI_COEX_IND_DATA_SIZE];
+} WDI_CoexIndType;
+
+/*---------------------------------------------------------------------------
   WDI_LowLevelIndType
     Inidcation type and information about the indication being carried
     over
@@ -396,6 +411,9 @@ typedef struct
 
     /*Delete STA Indication*/
     WDI_DeleteSTAIndType        wdiDeleteSTAIndType; 
+    
+    /*Coex Indication*/
+    WDI_CoexIndType             wdiCoexInfo;
   }  wdiIndicationData;
 }WDI_LowLevelIndType;
 

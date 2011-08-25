@@ -1813,6 +1813,58 @@ void btcUapsdCheck( tpAniSirGlobal pMac, tpSmeBtEvent pBtEvent )
    }
 }
 
+/* ---------------------------------------------------------------------------
+    \fn btcHandleCoexInd
+    \brief  API to handle Coex indication from WDI
+    \param  pMac - The handle returned by macOpen.
+    \return eHalStatus
+            eHAL_STATUS_FAILURE  success
+            eHAL_STATUS_SUCCESS  failure
+  ---------------------------------------------------------------------------*/
+eHalStatus btcHandleCoexInd(tHalHandle hHal, void* pMsg)
+{
+   tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+   eHalStatus status = eHAL_STATUS_SUCCESS;
+   tSirSmeCoexInd *pSmeCoexInd = (tSirSmeCoexInd *)pMsg;
+
+   if (NULL == pMsg)
+   {
+      smsLog(pMac, LOGE, "in %s msg ptr is NULL\n", __FUNCTION__);
+      status = eHAL_STATUS_FAILURE;
+   }
+   else
+   {
+     // suspend heartbeat monitoring
+     if (pSmeCoexInd->coexIndType == SIR_COEX_IND_TYPE_DISABLE_HB_MONITOR)
+     {
+        // set heartbeat threshold CFG to zero
+        ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, 0, NULL, eANI_BOOLEAN_FALSE);
+        pMac->btc.btcHBActive = VOS_FALSE;
+     }
+
+     // resume heartbeat monitoring
+     else if (pSmeCoexInd->coexIndType == SIR_COEX_IND_TYPE_ENABLE_HB_MONITOR)
+     {
+        if (!pMac->btc.btcHBActive) 
+        {
+           ccmCfgSetInt(pMac, WNI_CFG_HEART_BEAT_THRESHOLD, pMac->btc.btcHBCount, NULL, eANI_BOOLEAN_FALSE);
+           pMac->btc.btcHBActive = VOS_TRUE;
+        }
+     }
+
+     // unknown indication type
+     else
+     {
+        smsLog(pMac, LOGE, "unknown Coex indication type in %s()", __FUNCTION__);
+     }
+   }
+
+   // DEBUG
+   smsLog(pMac, LOG1, "Coex indication in %s(), type %d", __FUNCTION__, pSmeCoexInd->coexIndType);
+
+   return(status);
+}
+
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
 /* ---------------------------------------------------------------------------
     \fn btcDiagEventLog

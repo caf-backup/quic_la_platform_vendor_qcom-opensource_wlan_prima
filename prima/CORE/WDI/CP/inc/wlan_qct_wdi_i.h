@@ -561,6 +561,9 @@ typedef enum
   /* FTM Response from HAL */
   WDI_FTM_CMD_RESP                    = WDI_HAL_IND_MIN + 7,
 
+  /*Coex indication*/
+  WDI_HAL_COEX_IND                    = WDI_HAL_IND_MIN + 8,
+
   WDI_MAX_RESP
 }WDI_ResponseEnumType; 
 
@@ -3387,6 +3390,24 @@ WDI_ProcessFatalErrorInd
 */
 WDI_Status
 WDI_ProcessDelSTAInd
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+*@brief Process Coex Indication function (called when
+        an indication of this kind is being received over the
+        bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessCoexInd
 ( 
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData

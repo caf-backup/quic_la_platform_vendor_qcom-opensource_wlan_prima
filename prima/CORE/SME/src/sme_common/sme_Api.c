@@ -1352,7 +1352,17 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 }
                 break;
 #endif
-					 
+          case eWNI_SME_COEX_IND:
+                if(pMsg->bodyptr)
+                {
+                   status = btcHandleCoexInd((void *)pMac, pMsg->bodyptr);
+                   vos_mem_free(pMsg->bodyptr);
+                }
+                else
+                {
+                   smsLog(pMac, LOGE, "Empty rsp message for meas (eWNI_SME_COEX_IND), nothing to process\n");
+                }
+                break;					 
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )

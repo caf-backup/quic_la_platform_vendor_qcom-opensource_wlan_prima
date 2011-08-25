@@ -8385,6 +8385,45 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
 
          break ;
       }
+      case WDI_COEX_IND:
+      {
+         tANI_U32 index;
+         vos_msg_t vosMsg;
+         tSirSmeCoexInd *pSmeCoexInd = (tSirSmeCoexInd *)vos_mem_malloc(sizeof(tSirSmeCoexInd));
+
+         /* Message Header */
+         pSmeCoexInd->mesgType = eWNI_SME_COEX_IND;
+         pSmeCoexInd->mesgLen = sizeof(tSirSmeCoexInd);
+
+         /* Info from WDI Indication */
+         pSmeCoexInd->coexIndType = wdiLowLevelInd->wdiIndicationData.wdiCoexInfo.coexIndType; 
+         for (index = 0; index < SIR_COEX_IND_DATA_SIZE; index++)
+         {
+            pSmeCoexInd->coexIndData[index] = wdiLowLevelInd->wdiIndicationData.wdiCoexInfo.coexIndData[index]; 
+         }
+
+         /* VOS message wrapper */
+         vosMsg.type = eWNI_SME_COEX_IND;
+         vosMsg.bodyptr = (void *)pSmeCoexInd;
+         vosMsg.bodyval = 0;
+
+         /* Send message to SME */
+         if (VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MQ_ID_SME, (vos_msg_t*)&vosMsg))
+         {
+            /* free the mem and return */
+            vos_mem_free((v_VOID_t *)pSmeCoexInd);
+         }
+
+         /* DEBUG */
+         VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                   "[COEX WDA] Coex Ind Type (%x) data (%x %x %x %x)",
+                   pSmeCoexInd->coexIndType, 
+                   pSmeCoexInd->coexIndData[0], 
+                   pSmeCoexInd->coexIndData[1], 
+                   pSmeCoexInd->coexIndData[2], 
+                   pSmeCoexInd->coexIndData[3]); 
+         break;
+      }
       default:
       {
          /* TODO error */
