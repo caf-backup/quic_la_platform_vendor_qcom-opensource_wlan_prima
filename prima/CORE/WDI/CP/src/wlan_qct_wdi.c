@@ -341,6 +341,8 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
   NULL,
 #endif /* ANI_MANF_DIAG */
   
+  WDI_ProcessCoexInd,               /* WDI_HAL_COEX_IND  */
+
 };
 
 
@@ -15845,6 +15847,72 @@ WDI_ProcessDelSTAInd
   return WDI_STATUS_SUCCESS; 
 }/*WDI_ProcessDelSTAInd*/
 
+/**
+*@brief Process Coex Indication function (called when
+        an indication of this kind is being received over the
+        bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessCoexInd
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  WDI_LowLevelIndType  wdiInd;
+  tCoexIndMsg          halCoexIndMsg;
+  wpt_uint32           index;
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  /*-------------------------------------------------------------------------
+    Sanity check 
+  -------------------------------------------------------------------------*/
+  if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+      ( NULL == pEventData->pEventData ))
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "Invalid parameters in Coex Ind %x %x %x ",
+                 pWDICtx, pEventData, pEventData->pEventData );
+     WDI_ASSERT( 0 );
+     return WDI_STATUS_E_FAILURE; 
+  }
+
+  /*-------------------------------------------------------------------------
+    Extract indication and send it to UMAC
+  -------------------------------------------------------------------------*/
+  wpalMemoryCopy( &halCoexIndMsg.coexIndParams, 
+                  pEventData->pEventData, 
+                  sizeof(halCoexIndMsg.coexIndParams) );
+
+  /*Fill in the indication parameters*/
+  wdiInd.wdiIndicationType = WDI_COEX_IND; 
+  wdiInd.wdiIndicationData.wdiCoexInfo.coexIndType = halCoexIndMsg.coexIndParams.coexIndType; 
+  for (index = 0; index < WDI_COEX_IND_DATA_SIZE; index++)
+  {
+    wdiInd.wdiIndicationData.wdiCoexInfo.coexIndData[index] = halCoexIndMsg.coexIndParams.coexIndData[index]; 
+  }
+
+  // DEBUG
+  WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
+              "[COEX WDI] Coex Ind Type (%x) data (%x %x %x %x)",
+              wdiInd.wdiIndicationData.wdiCoexInfo.coexIndType, 
+              wdiInd.wdiIndicationData.wdiCoexInfo.coexIndData[0], 
+              wdiInd.wdiIndicationData.wdiCoexInfo.coexIndData[1], 
+              wdiInd.wdiIndicationData.wdiCoexInfo.coexIndData[2], 
+              wdiInd.wdiIndicationData.wdiCoexInfo.coexIndData[3] ); 
+
+  /*Notify UMAC*/
+  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  
+  return WDI_STATUS_SUCCESS; 
+}/*WDI_ProcessCoexInd*/
+
 #ifdef ANI_MANF_DIAG
 /**
  @brief WDI_ProcessFTMCommandReq
@@ -17704,6 +17772,8 @@ HAL_2_WDI_RSP_TYPE
     return WDI_HAL_FATAL_ERROR_IND;
   case WLAN_HAL_DELETE_STA_CONTEXT_IND:
     return WDI_HAL_DEL_STA_IND;
+  case WLAN_HAL_COEX_IND:
+    return WDI_HAL_COEX_IND;
 #ifdef WLAN_FEATURE_VOWIFI
   case WLAN_HAL_SET_MAX_TX_POWER_RSP:
     return WDI_SET_MAX_TX_POWER_RESP;

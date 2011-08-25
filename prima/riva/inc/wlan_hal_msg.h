@@ -236,6 +236,10 @@ typedef enum
    //DEL SELF STA SUPPORT
    WLAN_HAL_DEL_STA_SELF_REQ,
    WLAN_HAL_DEL_STA_SELF_RSP,
+
+   // Coex Indication
+   WLAN_HAL_COEX_IND,
+
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
@@ -3904,6 +3908,28 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader header;
    tHalDumpCmdRspParams dumpCmdRspParams;
 }  tHalDumpCmdRspMsg, *tpHalDumpCmdRspMsg;
+
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_COEX_IND
+ *-------------------------------------------------------------------------*/
+#define WLAN_COEX_IND_DATA_SIZE (4)
+#define WLAN_COEX_IND_TYPE_DISABLE_HB_MONITOR (0)
+#define WLAN_COEX_IND_TYPE_ENABLE_HB_MONITOR (1)
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /*Coex Indication Type*/
+    tANI_U32   coexIndType;
+
+    /*Coex Indication Data*/
+    tANI_U32   coexIndData[WLAN_COEX_IND_DATA_SIZE];
+}tCoexIndParams,*tpCoexIndParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader   header;
+   tCoexIndParams  coexIndParams; 
+}tCoexIndMsg, *tpCoexIndMsg;
 
 #if defined(__ANI_COMPILER_PRAGMA_PACK_STACK)
 #pragma pack(pop)

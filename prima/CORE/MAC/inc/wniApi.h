@@ -273,6 +273,8 @@ enum eWniMsgTypes
     eWNI_SME_REGISTER_MGMT_FRAME_REQ,
 #endif    
  
+    eWNI_SME_COEX_IND,
+
     eWNI_SME_MSG_TYPES_END 
 };
 
