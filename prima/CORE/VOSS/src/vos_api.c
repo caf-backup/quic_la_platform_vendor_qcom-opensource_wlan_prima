@@ -725,38 +725,15 @@ VOS_STATUS vos_start( v_CONTEXT_t vosContext )
             "%s: WDA_NVDownload_start correctly started",__func__);
 
   /* Start the WDA */
-
-  vos_event_reset( &(gpVosContext->wdaCompleteEvent) );
-
   vStatus = WDA_start(pVosContext);
-
   if ( vStatus != VOS_STATUS_SUCCESS )
   {
      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                 "%s: Failed to start WDA",__func__);
+                 "%s: Failed to start WDA", __func__);
      return VOS_STATUS_E_FAILURE;
   }
-
-  vStatus = vos_wait_single_event( &(gpVosContext->wdaCompleteEvent), 1000 );
-
-  if ( vStatus != VOS_STATUS_SUCCESS )
-  {
-     if ( vStatus == VOS_STATUS_E_TIMEOUT )
-     {
-        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Timeout occured before WDA_start complete\n",__func__);
-     }
-     else
-     {
-        VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: WDA_start reporting  other error \n",__func__);
-     }
-     VOS_ASSERT(0);
-     goto err_wda_stop;   
-  }
-
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-            "%s: WDA correctly started",__func__);
+            "%s: WDA correctly started", __func__);
 
 #endif
   /* Start the MAC */

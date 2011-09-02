@@ -421,11 +421,6 @@ eHalStatus limP2PActionCnf(tpAniSirGlobal pMac, tANI_U32 txCompleteSuccess)
             (txCompleteSuccess ? eSIR_SME_SUCCESS : eSIR_SME_SEND_ACTION_FAIL),
              pMac->lim.actionFrameSessionId, 0);
 
-   // FIXME PRIMA: We need to find better way to fix this 
-    palPktFree( pMac->hHdd,
-              HAL_TXRX_FRM_802_11_MGMT,
-              (void *) NULL,           // this is ignored and will likely be removed from this API
-              (void *) txCompleteSuccess );        // lim passed in pPacket in the pData pointer that is given in this completion routine
     return eHAL_STATUS_SUCCESS;
 }
 

@@ -117,6 +117,12 @@ typedef enum
    /* Scan failure codes */
    eHAL_STATUS_NOTIFY_BSS_FAIL,
 
+   /* Self STA not deleted as reference count is not zero */
+   eHAL_STATUS_DEL_STA_SELF_IGNORED_REF_COUNT_NOT_ZERO,
+
+   /* Self STA not added as entry already exists*/
+   eHAL_STATUS_ADD_STA_SELF_IGNORED_REF_COUNT_NOT_ZERO,
+   
    /* Max status value */
    eHAL_STATUS_MAX_VALUE = WLAN_STATUS_MAX_ENUM_SIZE
 

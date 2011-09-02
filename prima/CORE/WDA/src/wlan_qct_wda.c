@@ -110,6 +110,8 @@
 #define WDA_STOP_TIMER(a) tx_timer_deactivate(a)
 #define WDA_DESTROY_TIMER(a) tx_timer_delete(a)
 
+#define WDA_WDI_START_TIMEOUT 5000
+
 #define WDA_LAST_POLLED_THRESHOLD(a, tid) \
    ((a)->framesTxed[tid] + WDA_BA_TX_FRM_THRESHOLD)
 
@@ -118,6 +120,9 @@
 #define WDA_INVALID_KEY_INDEX  0xFF
 
 #define WDA_NUM_PWR_SAVE_CFG       10
+
+#define WDA_TX_COMPLETE_TIME_OUT_VALUE 200
+  
 /* extern declarations */
 extern void vos_WDAComplete_cback(v_PVOID_t pVosContext);
 
@@ -149,6 +154,7 @@ VOS_STATUS WDA_ProcessAggrAddTSReq(tWDA_CbContext *pWDA, tAggrAddTsParams *pAggr
 
 
 void WDA_TimerHandler(v_VOID_t *pWDA, tANI_U32 timerInfo) ;
+void WDA_ProcessTxCompleteTimeOutInd(tWDA_CbContext* pContext) ;
 VOS_STATUS WDA_ResumeDataTx(tWDA_CbContext *pWDA);
 
  
@@ -161,7 +167,7 @@ VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
                                                 tMacOpenParameters *pMacParams )
 {
    tWDA_CbContext *wdaContext;
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
+   VOS_STATUS status;
    WDI_DeviceCapabilityType wdiDevCapability = {0} ;
 
    /* Allocate WDA context */
@@ -180,6 +186,15 @@ VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
    wdaContext->wdaState = WDA_INIT_STATE;
    wdaContext->uTxFlowMask = WDA_TXFLOWMASK;
    
+   /* Initialize WDA-WDI synchronization event */
+   status = vos_event_init(&wdaContext->wdaWdiEvent);
+   if(!VOS_IS_STATUS_SUCCESS(status)) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                "WDI Sync Event init failed - status = %d\n", status);
+      status = VOS_STATUS_E_FAILURE;
+   }
+
    /* Init Frame transfer event */
    status = vos_event_init(&wdaContext->txFrameEvent);
    if(!VOS_IS_STATUS_SUCCESS(status)) 
@@ -253,113 +268,170 @@ VOS_STATUS WDA_preStart(v_PVOID_t pVosContext)
 }
 
 /*
- * FUNCTION: WDA_startCalback
- * Once WDI_start is finished, WDI start callback will be called by WDI
- * to indicate completion of WDI_Start. 
+ * FUNCTION: WDA_wdiStartCallback
+ * Once WDI_Start is finished, WDI start callback will be called by WDI
+ * to indicate completion of WDI_Start.
  */
-void WDA_wdiStartCallback(WDI_StartRspParamsType *wdiRspParams, 
+void WDA_wdiStartCallback(WDI_StartRspParamsType *wdiRspParams,
                                                             void *pVosContext)
 {
-   tWDA_CbContext *wdaContext= (tWDA_CbContext *)VOS_GET_WDA_CTXT(pVosContext);
+   tWDA_CbContext *wdaContext;
+   VOS_STATUS status;
 
-   /* Free'ing allocated memory for WDI msg params as well as config params */
-   if(NULL != wdaContext->wdaWdiApiMsgParam)
+   if (NULL == pVosContext)
    {
-      WDI_StartReqParamsType *wdiStartParam = (WDI_StartReqParamsType *)
-                                               wdaContext->wdaWdiApiMsgParam ;
-      if(NULL != wdiStartParam->pConfigBuffer)
-      {
-         vos_mem_free(wdiStartParam->pConfigBuffer);
-      }
-      else
-      {
-         WDA_VOS_ASSERT(0) ;
-      }
-      vos_mem_free(wdaContext->wdaWdiApiMsgParam) ;
-      wdaContext->wdaWdiApiMsgParam = NULL;
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_FATAL,
+                 "%s: Invoked with invalid pVosContext", __FUNCTION__ );
+      return;
    }
 
-   if(WDI_STATUS_SUCCESS != wdiRspParams->wdiStatus)
+   wdaContext = VOS_GET_WDA_CTXT(pVosContext);
+   if (NULL == wdaContext)
    {
-      WDA_VOS_ASSERT(0) ;
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_FATAL,
+                 "%s: Invoked with invalid wdaContext", __FUNCTION__ );
+      return;
+   }
+
+   if (WDI_STATUS_SUCCESS != wdiRspParams->wdiStatus)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_FATAL,
+                 "%s: WDI_Start() failure reported", __FUNCTION__ );
    }
    else
    {
       wdaContext->wdaState = WDA_START_STATE;
    }
 
-   /* Start BA activity timer. */
-   WDA_START_TIMER(&wdaContext->wdaTimers.baActivityChkTmr) ;
+   /* Notify WDA_start that WDI_Start has completed */
+   status = vos_event_set(&wdaContext->wdaWdiEvent);
+   if (WDI_STATUS_SUCCESS != status)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_FATAL,
+                 "%s: Unable to unblock WDA_start", __FUNCTION__ );
+   }
 
-   /* Indicate VOSS about the start complete */
-   vos_WDAComplete_cback(pVosContext);
-   return ;
+   return;
 }
+
 
 /*
  * FUNCTION: WDA_start
- * Prepare TLV configuration and call EDI_start. 
+ * Prepare TLV configuration and call WDI_Start.
  */
- 
+
 VOS_STATUS WDA_start(v_PVOID_t pVosContext)
 {
-   tWDA_CbContext *wdaContext= (tWDA_CbContext *)VOS_GET_WDA_CTXT(pVosContext);
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
+   tWDA_CbContext *wdaContext;
+   VOS_STATUS status;
    WDI_Status wdiStatus;
-   WDI_StartReqParamsType *wdiStartParam = 
-                    (WDI_StartReqParamsType *)vos_mem_malloc(
-                                             sizeof(WDI_StartReqParamsType)) ;
+   WDI_StartReqParamsType wdiStartParam;
 
-
-   WDA_VOS_ASSERT(WDA_INIT_STATE == wdaContext->wdaState);
-
-   if( NULL == wdiStartParam )
+   if (NULL == pVosContext)
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                               "%s fail to allocate memory", __FUNCTION__ );
-      return VOS_STATUS_E_NOMEM;
+                 "%s: Invoked with invalid pVosContext", __FUNCTION__ );
+      return VOS_STATUS_E_FAILURE;
    }
 
-   vos_mem_set(wdiStartParam, sizeof(*wdiStartParam), 0);
+   wdaContext = VOS_GET_WDA_CTXT(pVosContext);
+   if (NULL == wdaContext)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Invoked with invalid wdaContext", __FUNCTION__ );
+      return VOS_STATUS_E_FAILURE;
+   }
 
-      wdiStartParam->wdiDriverType = wdaContext->driverMode;
+   /* Non-FTM mode, WDA status for START must be INIT
+    * FTM mode, WDA Status for START can be INIT or STOP */
+   if ( (WDA_INIT_STATE != wdaContext->wdaState) &&
+        (WDA_STOP_STATE != wdaContext->wdaState) )
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: Invoked from wrong state %d",
+                 __FUNCTION__, wdaContext->wdaState );
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   /* initialize the wdiStartParam.  Note that we can create this on
+      the stack since we won't exit until WDI_Start() completes or
+      times out */
+   vos_mem_set(&wdiStartParam, sizeof(wdiStartParam), 0);
+
+   wdiStartParam.wdiDriverType = wdaContext->driverMode;
 
    /* prepare the config TLV for the WDI */
-   status = WDA_prepareConfigTLV(pVosContext, wdiStartParam) ;
-
+   status = WDA_prepareConfigTLV(pVosContext, &wdiStartParam);
    if ( !VOS_IS_STATUS_SUCCESS(status) )
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                                     "Error prepare TLV for WDA" );
-      status = VOS_STATUS_E_FAILURE;
+                 "%s: Unable to prepare Config TLV", __FUNCTION__ );
+      return VOS_STATUS_E_FAILURE;
    }
-   else
+
+   /* note from here onwards if an error occurs we must
+      reclaim the config TLV buffer */
+
+   wdiStartParam.wdiLowLevelIndCB = WDA_lowLevelIndCallback;
+   wdiStartParam.pIndUserData = (v_PVOID_t *)wdaContext;
+   wdiStartParam.wdiReqStatusCB = NULL;
+
+   /* initialize the WDA-WDI synchronization event */
+   vos_event_reset(&wdaContext->wdaWdiEvent);
+
+   /* call WDI start */
+   wdiStatus = WDI_Start(&wdiStartParam,
+                         (WDI_StartRspCb)WDA_wdiStartCallback,
+                         (v_VOID_t *)pVosContext);
+   if ( IS_WDI_STATUS_FAILURE(wdiStatus) )
    {
-      wdiStartParam->wdiLowLevelIndCB = WDA_lowLevelIndCallback ;
-      wdiStartParam->pIndUserData = (v_PVOID_t *)wdaContext ;
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_FATAL,
+                 "%s: WDI Start failed", __FUNCTION__ );
+      vos_mem_free(wdiStartParam.pConfigBuffer);
+      return VOS_STATUS_E_FAILURE;
+   }
 
-      wdiStartParam->wdiReqStatusCB = NULL;
-
-      /* check if already there is a WDI request */
-      WDA_VOS_ASSERT(NULL == wdaContext->wdaWdiApiMsgParam);
-
-      /* store Params pass it to WDI */
-      wdaContext->wdaWdiApiMsgParam = (v_PVOID_t *)wdiStartParam ;
-
-      /* call WDI start */
-      wdiStatus = WDI_Start(wdiStartParam, 
-                (WDI_StartRspCb)WDA_wdiStartCallback,(v_VOID_t *)pVosContext);
-      if ( IS_WDI_STATUS_FAILURE(wdiStatus) )
+   /* wait for WDI start to invoke our callback */
+   status = vos_wait_single_event( &wdaContext->wdaWdiEvent,
+                                   WDA_WDI_START_TIMEOUT );
+   if ( !VOS_IS_STATUS_SUCCESS(status) )
+   {
+      if ( VOS_STATUS_E_TIMEOUT == status )
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                                     "WDI Start failed" );
-         vos_mem_free(wdaContext->wdaWdiApiMsgParam);
-         wdaContext->wdaWdiApiMsgParam = NULL;
-         status = VOS_STATUS_E_FAILURE;
+                    "%s: Timeout occured during WDI_Start", __FUNCTION__ );
       }
+      else
+      {
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                    "%s: Error %d while waiting for WDI_Start",
+                    __FUNCTION__, status);
+      }
+      vos_mem_free(wdiStartParam.pConfigBuffer);
+      return VOS_STATUS_E_FAILURE;
    }
 
-   status = wdaCreateTimers(wdaContext) ;
+   /* WDI_Start() has completed so we can resume our work */
+
+   /* we no longer need the config TLV */
+   vos_mem_free(wdiStartParam.pConfigBuffer);
+
+   /* if we are not in the START state then WDI_Start() failed */
+   if (WDA_START_STATE != wdaContext->wdaState)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                 "%s: WDI_Start() failure detected", __FUNCTION__ );
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   /* FTM mode does not need to monitor BA activity */
+   if ( eDRIVER_TYPE_MFG != wdaContext->driverMode )
+   {
+      status = wdaCreateTimers(wdaContext) ;
+   }
+
+   /* Start BA activity timer. */
+   WDA_START_TIMER(&wdaContext->wdaTimers.baActivityChkTmr) ;
 
    return status;
 }
@@ -1229,8 +1301,10 @@ VOS_STATUS WDA_stop(v_PVOID_t pVosContext, tANI_U8 reason)
                             vos_mem_malloc(sizeof(WDI_StopReqParamsType)) ;
    tWDA_CbContext *pWDA = (tWDA_CbContext *)VOS_GET_WDA_CTXT(pVosContext);
 
-   if((WDA_READY_STATE != pWDA->wdaState) && 
-                                 (WDA_INIT_STATE != pWDA->wdaState))
+   /* FTM mode stay START_STATE */
+   if( (WDA_READY_STATE != pWDA->wdaState) && 
+       (WDA_INIT_STATE != pWDA->wdaState) &&
+       (WDA_START_STATE != pWDA->wdaState) )
    {
       WDA_VOS_ASSERT(0);
    }
@@ -1248,8 +1322,10 @@ VOS_STATUS WDA_stop(v_PVOID_t pVosContext, tANI_U8 reason)
 
    WDA_VOS_ASSERT(NULL == pWDA->wdaWdiApiMsgParam);
 
-   wdaDestroyTimers(pWDA);
-
+   if ( eDRIVER_TYPE_MFG != pWDA->driverMode )
+   {
+      wdaDestroyTimers(pWDA);
+   }
    pWDA->wdaWdiApiMsgParam = (v_PVOID_t *)wdiStopReq ;
 
    /* call WDI stop */
@@ -4243,6 +4319,15 @@ void WDA_GetStatsReqParamsCallback(
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
 
+   if(NULL == pGetPEStatsRspParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      return;
+   }
+
+   vos_mem_set(pGetPEStatsRspParams, wdiGetStatsRsp->usMsgLen, 0);
    pGetPEStatsRspParams->msgType = wdiGetStatsRsp->usMsgType;
    pGetPEStatsRspParams->msgLen  = wdiGetStatsRsp->usMsgLen;
    pGetPEStatsRspParams->rc      = 
@@ -4250,8 +4335,8 @@ void WDA_GetStatsReqParamsCallback(
    pGetPEStatsRspParams->staId   = wdiGetStatsRsp->ucSTAIdx;
    pGetPEStatsRspParams->statsMask = wdiGetStatsRsp->uStatsMask;
 
-   vos_mem_copy( pGetPEStatsRspParams + sizeof(tAniGetPEStatsRsp),
-                  wdiGetStatsRsp + sizeof(WDI_GetStatsRspParamsType),
+   vos_mem_copy( pGetPEStatsRspParams + 1,
+                  wdiGetStatsRsp + 1,
                   wdiGetStatsRsp->usMsgLen - sizeof(WDI_GetStatsRspParamsType));
 
   /* send response to UMAC*/
@@ -7758,6 +7843,7 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
                            tANI_U8 tid,
                            pWDATxRxCompFunc pCompFunc,
                            void *pData,
+                           pWDAAckFnTxComp pAckTxComp,
                            tANI_U8 txFlag)
 {
    tANI_U32 status = VOS_STATUS_SUCCESS ;
@@ -7775,6 +7861,31 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
 
    /* store the call back function in WDA context */
    pWDA->pTxCbFunc = pCompFunc;
+   /* store the call back for the function of ackTxComplete */
+   if( pAckTxComp )
+   {
+      if( NULL == pWDA->pAckTxCbFunc )
+      {
+         txFlag |= HAL_TXCOMP_REQUESTED_MASK;
+         pWDA->pAckTxCbFunc = pAckTxComp;
+         if( VOS_STATUS_SUCCESS !=
+                 WDA_START_TIMER(&pWDA->wdaTimers.TxCompleteTimer) ) 
+         {
+            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                "Tx Complete Timer Start Failed ");
+            pWDA->pAckTxCbFunc = NULL;
+            return eHAL_STATUS_FAILURE;
+         }
+      }
+      else
+      {
+         /* Already TxComp is active no need to active again */
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
+                       "There is already one request pending for tx complete\n");
+         pCompFunc(pWDA->pVosContext, (vos_pkt_t *)pFrmBuf);
+         return eHAL_STATUS_FAILURE;
+      }
+   } 
 
    /* Reset the event to be not signalled */
    status = vos_event_reset(&pWDA->txFrameEvent);
@@ -7783,6 +7894,16 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
                             "VOS Event reset failed - status = %d\n",status);
       pCompFunc(pWDA->pVosContext, (vos_pkt_t *)pFrmBuf);
+      if( pAckTxComp )
+      {
+         pWDA->pAckTxCbFunc = NULL;
+         if( VOS_STATUS_SUCCESS !=
+                           WDA_STOP_TIMER(&pWDA->wdaTimers.TxCompleteTimer))
+         {
+            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                "Tx Complete timeout Timer Stop Failed ");
+         }
+      }
       return VOS_STATUS_E_FAILURE;
    }
 
@@ -7815,10 +7936,20 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
                      frmLen, ucTypeSubType, tid, 
                      WDA_TxComplete, NULL, txFlag)) != VOS_STATUS_SUCCESS) 
    {
-       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
-                        "Sending Mgmt Frame failed - status = %d\n", status);
-       pCompFunc(pWDA->pVosContext, (vos_pkt_t *)pFrmBuf);
-       return VOS_STATUS_E_FAILURE;
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
+                       "Sending Mgmt Frame failed - status = %d\n", status);
+      pCompFunc(pWDA->pVosContext, (vos_pkt_t *)pFrmBuf);
+      if( pAckTxComp )
+      {
+         pWDA->pAckTxCbFunc = NULL;
+         if( VOS_STATUS_SUCCESS !=
+                           WDA_STOP_TIMER(&pWDA->wdaTimers.TxCompleteTimer))
+         {
+            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                "Tx Complete timeout Timer Stop Failed ");
+         }
+      } 
+      return VOS_STATUS_E_FAILURE;
    }
 
    /* 
@@ -7832,6 +7963,16 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
                             "VOS Event wait failed - status = %d\n",status);
       pCompFunc(pWDA->pVosContext, (vos_pkt_t *)pFrmBuf);
+      if( pAckTxComp )
+      {
+         pWDA->pAckTxCbFunc = NULL;
+         if( VOS_STATUS_SUCCESS !=
+                           WDA_STOP_TIMER(&pWDA->wdaTimers.TxCompleteTimer))
+         {
+            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                "Tx Complete timeout Timer Stop Failed ");
+         }
+      }
       status = VOS_STATUS_E_FAILURE;
    }
 
@@ -8267,6 +8408,13 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
       }
 #endif /* FEATURE_INNAV_SUPPORT */
 
+      /* Tx Complete Time out Indication */
+      case WDA_TX_COMPLETE_TIMEOUT_IND:
+      {
+         WDA_ProcessTxCompleteTimeOutInd(pWDA); 
+         break;
+      }         
+
       default:
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
@@ -8422,6 +8570,30 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
                    pSmeCoexInd->coexIndData[1], 
                    pSmeCoexInd->coexIndData[2], 
                    pSmeCoexInd->coexIndData[3]); 
+         break;
+      }
+      case WDI_TX_COMPLETE_IND:
+      {
+         tpAniSirGlobal pMac = (tpAniSirGlobal )VOS_GET_MAC_CTXT(pWDA->pVosContext) ;
+         /* Calling TxCompleteAck Indication from wda context*/
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                        "Complete Indication received from HAL");
+         if( pWDA->pAckTxCbFunc )
+         {
+            if( VOS_STATUS_SUCCESS !=
+                              WDA_STOP_TIMER(&pWDA->wdaTimers.TxCompleteTimer))
+            {  
+               VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                  "Tx Complete timeout Timer Stop Failed ");
+            }  
+            pWDA->pAckTxCbFunc( pMac, wdiLowLevelInd->wdiIndicationData.tx_complete_status);
+            pWDA->pAckTxCbFunc = NULL;
+         }
+         else
+         {
+             VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                          "Tx Complete Indication is received after timeout ");
+         }
          break;
       }
       default:
@@ -8669,7 +8841,29 @@ static VOS_STATUS wdaCreateTimers(tWDA_CbContext *pWDA)
                                "Unable to create BA activity timer");
       return eSIR_FAILURE ;
    }
-                           
+
+   val = SYS_MS_TO_TICKS( WDA_TX_COMPLETE_TIME_OUT_VALUE ) ; 
+
+   /* Tx Complete Timeout timer */
+   status = WDA_CREATE_TIMER(&pWDA->wdaTimers.TxCompleteTimer,
+                         "Tx Complete Check timer", WDA_TimerHandler,
+                         WDA_TX_COMPLETE_TIMEOUT_IND, val, val, TX_NO_ACTIVATE) ;
+
+   if(status != TX_SUCCESS)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                               "Unable to create Tx Complete Timeout timer");
+      /* Destroy timer of BA activity check timer */
+      status = WDA_DESTROY_TIMER(&pWDA->wdaTimers.baActivityChkTmr); 
+      if(status != TX_SUCCESS)
+      {
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                  "Unable to Destroy BA activity timer");
+         return eSIR_FAILURE ;
+      } 
+      return eSIR_FAILURE ;
+   }
+
    return eSIR_SUCCESS ;
 }
 
@@ -8679,6 +8873,14 @@ static VOS_STATUS wdaCreateTimers(tWDA_CbContext *pWDA)
 static VOS_STATUS wdaDestroyTimers(tWDA_CbContext *pWDA)
 {
    VOS_STATUS status = VOS_STATUS_SUCCESS ;
+
+   status = WDA_DESTROY_TIMER(&pWDA->wdaTimers.TxCompleteTimer);
+   if(status != TX_SUCCESS)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                               "Unable to Destroy Tx Complete Timeout timer");
+      return eSIR_FAILURE ;
+   }
 
    status = WDA_DESTROY_TIMER(&pWDA->wdaTimers.baActivityChkTmr);
    if(status != TX_SUCCESS)
@@ -8711,6 +8913,28 @@ void WDA_TimerHandler(v_VOID_t* pContext, tANI_U32 timerInfo)
    if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
    {
       vosStatus = VOS_STATUS_E_BADMSG;
+   }
+
+}
+
+/*
+ * WDA Tx Complete timeout Indication.
+ */
+void WDA_ProcessTxCompleteTimeOutInd(tWDA_CbContext* pWDA)
+{
+   tpAniSirGlobal pMac = (tpAniSirGlobal )VOS_GET_MAC_CTXT(pWDA->pVosContext) ;
+
+   if( pWDA->pAckTxCbFunc )
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                      "TxComplete timer expired\n");
+      pWDA->pAckTxCbFunc( pMac, 0);
+      pWDA->pAckTxCbFunc = NULL;
+   }
+   else
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+            "There is no request pending for TxComplete and wait timer expired\n");
    }
 
 }

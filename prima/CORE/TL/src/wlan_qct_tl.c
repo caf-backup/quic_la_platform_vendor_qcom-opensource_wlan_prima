@@ -5502,7 +5502,8 @@ WLANTL_STATxAuth
     Fetch packet from HDD
    ------------------------------------------------------------------------*/
 #ifdef WLAN_SOFTAP_FEATURE
-  if (WLAN_STA_SOFTAP != pStaClient->wSTADesc.wSTAType)
+  if ((WLAN_STA_SOFTAP != pStaClient->wSTADesc.wSTAType) &&
+          (!vos_concurrent_sessions_running()))
   {
 #endif
   ucAC = pStaClient->ucCurrentAC;

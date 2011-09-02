@@ -564,6 +564,9 @@ typedef enum
   /*Coex indication*/
   WDI_HAL_COEX_IND                    = WDI_HAL_IND_MIN + 8,
 
+  /* Tx Complete Indication */
+  WDI_HAL_TX_COMPLETE_IND             = WDI_HAL_IND_MIN + 9,
+
   WDI_MAX_RESP
 }WDI_ResponseEnumType; 
 
@@ -3413,6 +3416,24 @@ WDI_ProcessCoexInd
   WDI_EventInfoType*     pEventData
 );
 
+/**
+*@brief Process Tx Complete Indication function (called when
+        an indication of this kind is being received over the
+        bus from HAL)
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessTxCompleteInd
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
 #ifdef WLAN_FEATURE_VOWIFI_11R
 /**
  @brief Process Aggrgated Add TSpec Request function (called when Main FSM
@@ -3469,7 +3490,7 @@ WDI_ProcessFTMCommandReq
 );
 
 /**
- @brief WDI_ProcessFTMCommadRsp
+ @brief WDI_ProcessFTMCommandRsp
         Process FTM Command Response from HAL, simply route to HDD FTM
  
  @param  pWDICtx:         pointer to the WLAN DAL context 
@@ -3479,7 +3500,7 @@ WDI_ProcessFTMCommandReq
  @return Result of the function call
 */
 WDI_Status
-WDI_ProcessFTMCommadRsp
+WDI_ProcessFTMCommandRsp
 ( 
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData

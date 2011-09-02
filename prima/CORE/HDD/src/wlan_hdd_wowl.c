@@ -311,10 +311,8 @@ v_BOOL_t hdd_enter_wowl (hdd_adapter_t *pAdapter, v_BOOL_t enable_mp, v_BOOL_t e
   wowParams.ucMagicPktEnable = enable_mp;
   if(enable_mp)
   {
-#ifdef HDD_SESSIONIZE
     vos_copy_macaddr( (v_MACADDR_t *)&(wowParams.magicPtrn),
                     &(pAdapter->macAddressCurrent) );
-#endif
   }
 
   // Request to put Libra into WoWL

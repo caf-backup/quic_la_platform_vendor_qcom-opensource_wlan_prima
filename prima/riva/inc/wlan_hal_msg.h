@@ -240,6 +240,9 @@ typedef enum
    // Coex Indication
    WLAN_HAL_COEX_IND,
 
+   // Tx Complete Indication 
+   WLAN_HAL_OTA_TX_COMPL_IND,
+
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
@@ -365,10 +368,10 @@ typedef enum eAniEdType
     eSIR_ED_WEP104,
     eSIR_ED_TKIP,
     eSIR_ED_CCMP,
-    eSIR_ED_AES_128_CMAC,
 #if defined(FEATURE_WLAN_WAPI)
     eSIR_ED_WPI,
 #endif
+    eSIR_ED_AES_128_CMAC,
     eSIR_ED_NOT_IMPLEMENTED = WLAN_HAL_MAX_ENUM_SIZE
 } tAniEdType;
 
@@ -717,21 +720,9 @@ typedef  __ani_attr_pre_packed struct sSirMacFrameCtl
 /// Sequence control field
 typedef __ani_attr_pre_packed struct sSirMacSeqCtl
 {
-
-#ifndef ANI_LITTLE_BIT_ENDIAN
-
-    tANI_U8 seqNumLo : 4;
-    tANI_U8 fragNum : 4;
-
-    tANI_U8 seqNumHi : 8;
-
-#else
-
     tANI_U8 fragNum : 4;
     tANI_U8 seqNumLo : 4;
     tANI_U8 seqNumHi : 8;
-
-#endif
 } __ani_attr_packed tSirMacSeqCtl, *tpSirMacSeqCtl;
 
 /// Management header format
@@ -3737,8 +3728,12 @@ typedef PACKED_PRE struct PACKED_POST
    /*Self STA Index */
    tANI_U8    selfStaIdx;
 
-   /* Self STA DPU Index */
-   tANI_U8 selfStaDpuId;
+   /* DPU Index (IGTK, PTK, GTK all same) */
+   tANI_U8 dpuIdx;
+
+   /* DPU Signature */
+   tANI_U8 dpuSignature;
+   
 }tAddStaSelfRspParams, *tpAddStaSelfRspParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -3930,6 +3925,22 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader   header;
    tCoexIndParams  coexIndParams; 
 }tCoexIndMsg, *tpCoexIndMsg;
+
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_OTA_TX_COMPL_IND
+ *-------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   /*Tx Complete Indication Success or Failure*/
+   tANI_U32   status;
+}tTxComplParams,*tpTxComplParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader   header;
+   tTxComplParams  txComplParams; 
+}tTxComplIndMsg, *tpTxComplIndMsg;
 
 #if defined(__ANI_COMPILER_PRAGMA_PACK_STACK)
 #pragma pack(pop)

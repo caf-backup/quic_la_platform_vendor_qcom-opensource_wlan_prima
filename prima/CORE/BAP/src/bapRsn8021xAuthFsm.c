@@ -265,8 +265,8 @@ authRsnFsmFree(tBtampContext *ctx)
         fsm->staCtx->authRsnFsm = NULL;
     }
 
-    if ( 0 != fsm->msg2Timer.state ) vos_timer_destroy( &fsm->msg2Timer );
-    if ( 0 != fsm->msg4Timer.state ) vos_timer_destroy( &fsm->msg4Timer );
+    if ( VOS_TIMER_STATE_UNUSED != fsm->msg2Timer.state ) vos_timer_destroy( &fsm->msg2Timer );
+    if ( VOS_TIMER_STATE_UNUSED != fsm->msg4Timer.state ) vos_timer_destroy( &fsm->msg4Timer );
 
     if (fsm->lastEapol)
     {    

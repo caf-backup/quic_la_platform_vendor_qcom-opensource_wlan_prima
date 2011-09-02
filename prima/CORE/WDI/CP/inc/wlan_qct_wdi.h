@@ -287,6 +287,9 @@ typedef enum
   /*Indication from Coex*/
   WDI_COEX_IND,
 
+  /* Indication for Tx Complete */
+  WDI_TX_COMPLETE_IND,
+
   WDI_MAX_IND
 }WDI_LowLevelIndEnumType;
 
@@ -414,6 +417,9 @@ typedef struct
     
     /*Coex Indication*/
     WDI_CoexIndType             wdiCoexInfo;
+
+    /* Tx Complete Indication */
+    wpt_uint32                  tx_complete_status;
   }  wdiIndicationData;
 }WDI_LowLevelIndType;
 
@@ -1466,8 +1472,10 @@ typedef enum
     WDI_ENCR_WEP104,
     WDI_ENCR_TKIP,
     WDI_ENCR_CCMP,
-    WDI_ENCR_AES_128_CMAC,
-    WDI_ENCR_WPI
+#if defined(FEATURE_WLAN_WAPI)
+    WDI_ENCR_WPI,
+#endif
+    WDI_ENCR_AES_128_CMAC
 } WDI_EncryptType;
 
 /*---------------------------------------------------------------------------
@@ -2646,8 +2654,11 @@ typedef struct
   /*STA Idx allocated by HAL*/
   wpt_uint8    ucSTASelfIdx;
 
-  /* DPU Index*/
-  wpt_uint8    ucDpuSelfIndex;
+  /* DPU Index (IGTK, PTK, GTK all same) */
+  wpt_uint8    dpuIdx;
+
+  /* DPU Signature */
+  wpt_uint8    dpuSignature;
 
   /*Self STA Mac*/
   wpt_macAddr  macSelfSta;

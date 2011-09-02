@@ -518,6 +518,7 @@ typedef PACKED_PRE struct PACKED_POST {
 
 typedef PACKED_PRE struct PACKED_POST {
    sTxChainsIQCalValues calValues;
+   tANI_U8 reserve[2];
    eGainSteps gain;
 } tMsgPttTxIqCal;
 
@@ -549,11 +550,13 @@ typedef PACKED_PRE struct PACKED_POST {
 
 typedef PACKED_PRE struct PACKED_POST {
    sTxChainsIQCalValues calValues;
+   tANI_U8 reserve[2];
    eGainSteps gain;
 } tMsgPttSetTxIqCorrect;
 
 typedef PACKED_PRE struct PACKED_POST {
    sTxChainsIQCalValues calValues;
+   tANI_U8 reserve[2];
    eGainSteps gain;
 } tMsgPttGetTxIqCorrect;
 

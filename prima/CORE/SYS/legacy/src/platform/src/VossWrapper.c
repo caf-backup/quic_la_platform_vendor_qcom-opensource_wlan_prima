@@ -14,7 +14,7 @@
                        EDIT HISTORY FOR FILE 
    
    
-  This section contains comments describing changes made to the module. 
+  This section contains comments describing changes made to the module.    
   Notice that changes are listed in reverse chronological order. 
    
    

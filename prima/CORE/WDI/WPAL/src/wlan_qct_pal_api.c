@@ -178,7 +178,7 @@ void *wpalDmaMemoryAllocate(wpt_uint32 size, void **ppPhysicalAddr)
    pv = dma_alloc_coherent(NULL, uAllocLen, &PhyAddr, GFP_KERNEL);
    if ( NULL == pv ) 
    {
-     WPAL_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR, 
+     WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
                  "%s Unable to allocate DMA buffer\n", __FUNCTION__);
      return NULL;
    }

@@ -336,12 +336,14 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 #endif
 
 #ifdef ANI_MANF_DIAG
-  WDI_ProcessFTMCommadRsp,          /* WDI_FTM_CMD_RESP */
+  WDI_ProcessFTMCommandRsp,         /* WDI_FTM_CMD_RESP */
 #else
   NULL,
 #endif /* ANI_MANF_DIAG */
   
   WDI_ProcessCoexInd,               /* WDI_HAL_COEX_IND  */
+
+  WDI_ProcessTxCompleteInd,         /* WDI_HAL_TX_COMPLETE_IND  */
 
 };
 
@@ -4527,14 +4529,14 @@ WDI_PostMainEvent
   {
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
               "Posting event %d in state: %d to the Main FSM", 
-              wdiEV, pWDICtx->uGlobalState);
+              wdiEV, wdiOldState);
     wdiStatus = pfnWDIMainEvHdlr( pWDICtx, pEventData); 
   }
   else
   {
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
               "Unexpected event %d in state: %d", 
-              wdiEV, pWDICtx->uGlobalState, 0);
+              wdiEV, wdiOldState);
     wdiStatus = WDI_STATUS_E_NOT_ALLOWED; 
   }
 
@@ -5082,9 +5084,8 @@ WDI_ProcessStartReq
       ( NULL == (pwdiStartParams = (WDI_StartReqParamsType*)pEventData->pEventData)) ||
       ( NULL == (wdiStartRspCb   = (WDI_StartRspCb)pEventData->pCBfnc)))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_FATAL,
-              "Invalid parameters in start req %x %x %x",
-                pEventData, pwdiStartParams, wdiStartRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -5175,9 +5176,8 @@ WDI_ProcessStopReq
       ( NULL == (pwdiStopParams = (WDI_StopReqParamsType*)pEventData->pEventData)) ||
       ( NULL == (wdiStopRspCb   = (WDI_StopRspCb)pEventData->pCBfnc)))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in stop req %x %x %x",
-                pEventData, pwdiStopParams, wdiStopRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -5211,13 +5211,15 @@ WDI_ProcessStopReq
   pWDICtx->pReqStatusUserData = pwdiStopParams->pUserData; 
 
   /*! TO DO: stop the data services */
+  if ( eDRIVER_TYPE_MFG != pWDICtx->driverMode )
+  {
+     /*Stop the STA Table !UT- check this logic again
+      It is safer to do it here than on the response - because a stop is iminent*/
+     WDI_STATableStop(pWDICtx);
 
-  /*Stop the STA Table !UT- check this logic again
-   It is safer to do it here than on the response - because a stop is iminent*/
-  WDI_STATableStop(pWDICtx);
-
-  /* Stop Transport Driver, DXE */
-  WDTS_Stop(pWDICtx);
+     /* Stop Transport Driver, DXE */
+     WDTS_Stop(pWDICtx);
+  }
 
   /*-------------------------------------------------------------------------
     Send Stop Request to HAL 
@@ -5257,7 +5259,11 @@ WDI_ProcessCloseReq
    WCTS_CloseTransport(pWDICtx->wctsHandle); 
 
    /* Close Data transport*/
-   WDTS_Close(pWDICtx);
+   /* FTM mode does not open Data Path */
+   if ( eDRIVER_TYPE_MFG != pWDICtx->driverMode )
+   {
+      WDTS_Close(pWDICtx);
+   }
 
    /*Close the STA Table !UT- check this logic again*/
    WDI_STATableClose(pWDICtx);
@@ -5332,9 +5338,8 @@ WDI_ProcessInitScanReq
       ( NULL == (pwdiInitScanParams = (WDI_InitScanReqParamsType*)pEventData->pEventData)) ||
       ( NULL == (wdiInitScanRspCb   = (WDI_InitScanRspCb)pEventData->pCBfnc)))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in init scan req %x %x %x",
-                pEventData, pwdiInitScanParams, wdiInitScanRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -5441,9 +5446,8 @@ WDI_ProcessStartScanReq
       ( NULL == (pwdiStartScanParams = (WDI_StartScanReqParamsType*)pEventData->pEventData)) ||
       ( NULL == (wdiStartScanRspCb   = (WDI_StartScanRspCb)pEventData->pCBfnc)))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in start scan req %x %x %x",
-                pEventData, pwdiStartScanParams, wdiStartScanRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -5535,9 +5539,8 @@ WDI_ProcessEndScanReq
       ( NULL == (pwdiEndScanParams = (WDI_EndScanReqParamsType*)pEventData->pEventData)) ||
       ( NULL == (wdiEndScanRspCb   = (WDI_EndScanRspCb)pEventData->pCBfnc)))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in end scan req %x %x %x",
-                pEventData, pwdiEndScanParams, wdiEndScanRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -5628,9 +5631,8 @@ WDI_ProcessFinishScanReq
       ( NULL == pEventData->pEventData) ||
       ( NULL == pEventData->pCBfnc))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in finish scan req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -5863,9 +5865,8 @@ WDI_ProcessJoinReq
       ( NULL == (pwdiJoinParams = (WDI_JoinReqParamsType*)pEventData->pEventData)) ||
       ( NULL == (wdiJoinRspCb   = (WDI_JoinRspCb)pEventData->pCBfnc)))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in join req %x %x %x",
-                pEventData, pwdiJoinParams, wdiJoinRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -5938,9 +5939,8 @@ WDI_ProcessConfigBSSReq
       ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in config BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -6130,9 +6130,8 @@ WDI_ProcessDelBSSReq
       ( NULL == (pwdiDelBSSParams = (WDI_DelBSSReqParamsType*)pEventData->pEventData)) ||
       ( NULL == (wdiDelBSSRspCb   = (WDI_DelBSSRspCb)pEventData->pCBfnc)))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pwdiDelBSSParams, wdiDelBSSRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -6270,9 +6269,8 @@ WDI_ProcessPostAssocReq
       ( NULL == (pwdiPostAssocParams = (WDI_PostAssocReqParamsType*)pEventData->pEventData)) ||
       ( NULL == (wdiPostAssocRspCb   = (WDI_PostAssocRspCb)pEventData->pCBfnc)))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Post Assoc req %x %x %x",
-                pEventData, pwdiPostAssocParams, wdiPostAssocRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -6466,9 +6464,8 @@ WDI_ProcessDelSTAReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -6590,9 +6587,8 @@ WDI_ProcessSetBssKeyReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -6735,9 +6731,8 @@ WDI_ProcessRemoveBssKeyReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -6862,9 +6857,8 @@ WDI_ProcessSetStaKeyReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del STA req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -7036,9 +7030,8 @@ WDI_ProcessRemoveStaKeyReq
  if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del STA req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -7175,9 +7168,8 @@ WDI_ProcessSetStaBcastKeyReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del STA req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -7349,9 +7341,8 @@ WDI_ProcessRemoveStaBcastKeyReq
  if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del STA req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -7488,9 +7479,8 @@ WDI_ProcessAddTSpecReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -7606,9 +7596,8 @@ WDI_ProcessDelTSpecReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -7717,9 +7706,8 @@ WDI_ProcessUpdateEDCAParamsReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -7831,9 +7819,8 @@ WDI_ProcessAddBASessionReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -7965,6 +7952,7 @@ WDI_ProcessDelBAReq
   wpt_uint16                   usSendSize          = 0;
   WDI_Status                   wdiStatus           = WDI_STATUS_SUCCESS; 
   wpt_macAddr                  macBSSID;
+  tDelBAParams                 halDelBAparam;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -7973,9 +7961,8 @@ WDI_ProcessDelBAReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -8027,25 +8014,25 @@ WDI_ProcessDelBAReq
   }
 
   wpalMutexRelease(&pWDICtx->wptMutex);
-  /*-----------------------------------------------------------------------
-    Get message buffer
-    ! TO DO : proper conversion into the HAL Message Request Format 
-  -----------------------------------------------------------------------*/
   if (( WDI_STATUS_SUCCESS != WDI_GetMessageBuffer( pWDICtx, WDI_DEL_BA_REQ, 
-                        sizeof(pwdiDelBAParams->wdiBAInfo),
+                        sizeof(halDelBAparam),
                         &pSendBuffer, &usDataOffset, &usSendSize))||
-      ( usSendSize < (usDataOffset + sizeof(pwdiDelBAParams->wdiBAInfo) )))
+      ( usSendSize < (usDataOffset + sizeof(halDelBAparam) )))
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Unable to get send buffer in set bss key req %x %x %x",
+              "Unable to get send buffer for DEL BA req %x %x %x",
                 pEventData, pwdiDelBAParams, wdiDelBARspCb);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
 
+  halDelBAparam.staIdx = pwdiDelBAParams->wdiBAInfo.ucSTAIdx;
+  halDelBAparam.baTID = pwdiDelBAParams->wdiBAInfo.ucBaTID;
+  halDelBAparam.baDirection = pwdiDelBAParams->wdiBAInfo.ucBaDirection;
+
   wpalMemoryCopy( pSendBuffer+usDataOffset, 
-                  &pwdiDelBAParams->wdiBAInfo, 
-                  sizeof(pwdiDelBAParams->wdiBAInfo)); 
+                  &halDelBAparam, 
+                  sizeof(halDelBAparam)); 
 
   pWDICtx->wdiReqStatusCB     = pwdiDelBAParams->wdiReqStatusCB;
   pWDICtx->pReqStatusUserData = pwdiDelBAParams->pUserData; 
@@ -8087,9 +8074,8 @@ WDI_ProcessFlushAcReq
    if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
        ( NULL == pEventData->pCBfnc ))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Flush AC req %x %x %x",
-                 pEventData, pEventData->pEventData, pEventData->pCBfnc);
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -8158,9 +8144,8 @@ WDI_ProcessBtAmpEventReq
    if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
        ( NULL == pEventData->pCBfnc ))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in BT AMP event req %x %x %x",
-                 pEventData, pEventData->pEventData, pEventData->pCBfnc);
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -8231,19 +8216,8 @@ WDI_ProcessAddSTASelfReq
       ( NULL == pEventData->pEventData) ||
       ( NULL == pEventData->pCBfnc))
   {
-     if( pEventData )
-     {
-        WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-                 "Invalid parameters in ADD STA SELF REQ %x %x ",
-                   pEventData->pCBfnc, pEventData->pEventData );
-     }
-     else
-     {
-        WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-                 "Invalid parameter in ADD STA SELF REQ %x ",
-                   pEventData );
-     }
-  
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -8322,9 +8296,8 @@ WDI_ProcessDelSTASelfReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del Sta Self req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -8405,9 +8378,8 @@ WDI_ProcessStartInNavMeasReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Start In Nav Meas req %x %x %x",
-                 pEventData, pEventData->pEventData, pEventData->pCBfnc);
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
   }
@@ -8510,9 +8482,8 @@ WDI_ProcessChannelSwitchReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in switch req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -8603,9 +8574,8 @@ WDI_ProcessConfigStaReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -8745,9 +8715,8 @@ WDI_ProcessSetLinkStateReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -8871,9 +8840,8 @@ WDI_ProcessGetStatsReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData) ||
       ( NULL == pEventData->pCBfnc ) )
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Get Stats req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -8991,8 +8959,8 @@ WDI_ProcessUpdateCfgReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in switch req");
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -9074,9 +9042,8 @@ WDI_ProcessAddBAReq
       ( NULL == pEventData->pEventData) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-            "Invalid parameters in Add BA req %x %x %x",
-            pEventData, pEventData->pEventData, pEventData->pCBfnc );
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -9210,9 +9177,8 @@ WDI_ProcessTriggerBAReq
       ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-            "Invalid parameters in Trigger BA req %x %x %x",
-            pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -9353,9 +9319,8 @@ WDI_ProcessUpdateBeaconParamsReq
       ( NULL == pEventData->pEventData) ||
       ( NULL == pEventData->pCBfnc))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -9456,9 +9421,8 @@ WDI_ProcessSendBeaconParamsReq
       ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Send BEacon Params req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -9543,9 +9507,8 @@ WDI_ProcessUpdateProbeRspTemplateReq
       ( NULL == pEventData->pEventData) ||
       ( NULL == pEventData->pCBfnc))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -9630,9 +9593,8 @@ WDI_ProcessNvDownloadReq
       ( NULL == (wdiNvDownloadRspCb = 
                 (WDI_NvDownloadRspCb)pEventData->pCBfnc)))
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,	eWLAN_PAL_TRACE_LEVEL_WARN,
-            "Invalid parameters in NV Download req %x %x %x",
-            pEventData, pwdiNvDownloadReqParams, wdiNvDownloadRspCb);
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
     WDI_ASSERT(0);
     return WDI_STATUS_E_FAILURE; 
   }
@@ -9684,9 +9646,8 @@ WDI_Status WDI_ProcessSetMaxTxPowerReq
       ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Set Max Tx Power Params req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -9774,9 +9735,8 @@ WDI_ProcessP2PGONOAReq
       ( NULL == pEventData->pEventData) ||
       ( NULL == pEventData->pCBfnc))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in P2P GO NOA REQ %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -9862,8 +9822,8 @@ WDI_ProcessEnterImpsReq
    if (( NULL == pEventData ) ||
        ( NULL == (wdiEnterImpsRspCb   = (WDI_EnterImpsRspCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Enter IMPS req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -9920,8 +9880,8 @@ WDI_ProcessExitImpsReq
    if (( NULL == pEventData ) ||
        ( NULL == (wdiExitImpsRspCb   = (WDI_ExitImpsRspCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Exit IMPS req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -10029,8 +9989,8 @@ WDI_ProcessEnterBmpsReq
        ( NULL == (pwdiEnterBmpsReqParams = (WDI_EnterBmpsReqParamsType*)pEventData->pEventData)) ||
        ( NULL == (wdiEnterBmpsRspCb   = (WDI_EnterBmpsRspCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Enter BMPS req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -10128,8 +10088,8 @@ WDI_ProcessExitBmpsReq
        ( NULL == (pwdiExitBmpsReqParams = (WDI_ExitBmpsReqParamsType*)pEventData->pEventData)) ||
        ( NULL == (wdiExitBmpsRspCb   = (WDI_ExitBmpsRspCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Exit BMPS req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -10197,8 +10157,8 @@ WDI_ProcessEnterUapsdReq
        ( NULL == (pwdiEnterUapsdReqParams = (WDI_EnterUapsdReqParamsType*)pEventData->pEventData)) ||
        ( NULL == (wdiEnterUapsdRspCb   = (WDI_EnterUapsdRspCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Enter UAPSD req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -10271,8 +10231,8 @@ WDI_ProcessExitUapsdReq
    if (( NULL == pEventData ) ||
        ( NULL == (wdiExitUapsdRspCb   = (WDI_ExitUapsdRspCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Exit UAPSD req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -10332,8 +10292,8 @@ WDI_ProcessSetUapsdAcParamsReq
       ( NULL == (pwdiSetUapsdAcParams = (WDI_SetUapsdAcParamsReqParamsType*)pEventData->pEventData)) ||
       ( NULL == (wdiSetUapsdAcParamsCb   = (WDI_SetUapsdAcParamsCb)pEventData->pCBfnc)))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Set UAPSD params req");
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -10406,8 +10366,8 @@ WDI_ProcessUpdateUapsdParamsReq
        ( NULL == (pwdiUpdateUapsdReqParams = (WDI_UpdateUapsdReqParamsType*)pEventData->pEventData)) ||
        ( NULL == (wdiUpdateUapsdParamsCb   = (WDI_UpdateUapsdParamsCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Update UAPSD params req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -10473,8 +10433,8 @@ WDI_ProcessConfigureRxpFilterReq
       ( NULL == (pwdiRxpFilterParams = (WDI_ConfigureRxpFilterReqParamsType*)pEventData->pEventData)) ||
       ( NULL == (wdiConfigureRxpFilterCb   = (WDI_ConfigureRxpFilterCb)pEventData->pCBfnc)))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Configure RXP filter req");
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -10540,8 +10500,8 @@ WDI_ProcessSetBeaconFilterReq
        ( NULL == (pwdiBeaconFilterParams = (WDI_BeaconFilterReqParamsType*)pEventData->pEventData)) ||
        ( NULL == (wdiBeaconFilterCb   = (WDI_SetBeaconFilterCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Set beacon filter req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -10610,8 +10570,8 @@ WDI_ProcessRemBeaconFilterReq
        ( NULL == (pwdiBeaconFilterParams = (WDI_RemBeaconFilterReqParamsType*)pEventData->pEventData)) ||
        ( NULL == (wdiBeaconFilterCb   = (WDI_RemBeaconFilterCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in remove beacon filter req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -10678,8 +10638,8 @@ WDI_ProcessSetRSSIThresholdsReq
        ( NULL == (pwdiRSSIThresholdsParams = (WDI_SetRSSIThresholdsReqParamsType*)pEventData->pEventData)) ||
        ( NULL == (wdiRSSIThresholdsCb   = (WDI_SetRSSIThresholdsCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in set RSSI thresholds req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -10767,8 +10727,8 @@ WDI_ProcessHostOffloadReq
        ( NULL == (pwdiHostOffloadParams = (WDI_HostOffloadReqParamsType*)pEventData->pEventData)) ||
        ( NULL == (wdiHostOffloadCb   = (WDI_HostOffloadCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in host offload req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -10849,8 +10809,8 @@ WDI_ProcessWowlAddBcPtrnReq
        ( NULL == (pwdiWowlAddBcPtrnParams = (WDI_WowlAddBcPtrnReqParamsType*)pEventData->pEventData)) ||
        ( NULL == (wdiWowlAddBcPtrnCb   = (WDI_WowlAddBcPtrnCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Wowl add bc ptrn req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -10932,8 +10892,8 @@ WDI_ProcessWowlDelBcPtrnReq
        ( NULL == (pwdiWowlDelBcPtrnParams = (WDI_WowlDelBcPtrnReqParamsType*)pEventData->pEventData)) ||
        ( NULL == (wdiWowlDelBcPtrnCb   = (WDI_WowlDelBcPtrnCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Wowl del bc ptrn req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -11002,8 +10962,8 @@ WDI_ProcessWowlEnterReq
        ( NULL == (pwdiWowlEnterParams = (WDI_WowlEnterReqParamsType*)pEventData->pEventData)) ||
        ( NULL == (wdiWowlEnterCb   = (WDI_WowlEnterReqCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Wowl enter req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -11087,8 +11047,8 @@ WDI_ProcessWowlExitReq
    if (( NULL == pEventData ) ||
        ( NULL == (wdiWowlExitCb   = (WDI_WowlExitReqCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Wowl exit req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -11147,8 +11107,8 @@ WDI_ProcessConfigureAppsCpuWakeupStateReq
        ( NULL == (pwdiAppsCpuWakeupStateParams = (WDI_ConfigureAppsCpuWakeupStateReqParamsType*)pEventData->pEventData)) ||
        ( NULL == (wdiConfigureAppsCpuWakeupStateCb   = (WDI_ConfigureAppsCpuWakeupStateCb)pEventData->pCBfnc)))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in Apps Cpu Wakeup State req");
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -11221,9 +11181,8 @@ WDI_ProcessAggrAddTSpecReq
   if (( NULL == pEventData ) || ( NULL == pEventData->pEventData ) ||
       ( NULL == pEventData->pCBfnc ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in del BSS req %x %x %x",
-                pEventData, pEventData->pEventData, pEventData->pCBfnc);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -11418,9 +11377,8 @@ WDI_ProcessStartRsp
       ( NULL == pEventData->pEventData) ||
       ( NULL == wdiStartRspCb ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Start Resp %x %x",
-                pEventData,  wdiStartRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -11569,9 +11527,8 @@ WDI_ProcessStopRsp
       ( NULL == pEventData->pEventData) ||
       ( NULL == wdiStopRspCb ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Stop Resp %x %x",
-                pEventData,  wdiStopRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -11687,9 +11644,8 @@ WDI_ProcessInitScanRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Init Scan Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -11741,9 +11697,8 @@ WDI_ProcessStartScanRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Invalid parameters in Start Scan Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -11810,9 +11765,8 @@ WDI_ProcessEndScanRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in End Scan Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -11871,9 +11825,8 @@ WDI_ProcessFinishScanRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Finish Scan Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -11938,9 +11891,8 @@ WDI_ProcessJoinRsp
       ( NULL == pEventData->pEventData) ||
       ( NULL == wdiJoinRspCb ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Post Assoc req %x %x",
-                pEventData,  wdiJoinRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -12056,9 +12008,8 @@ WDI_ProcessConfigBSSRsp
   if (( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Post Assoc req %x %x ",
-                pEventData, wdiConfigBSSRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -12290,9 +12241,8 @@ WDI_ProcessDelBSSRsp
   if (( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Delete BSS response %x %x ",
-                pEventData, wdiDelBSSRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -12387,9 +12337,8 @@ WDI_ProcessPostAssocRsp
   if (( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Post Assoc req %x %x ",
-                pEventData, wdiPostAssocRspCb);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -12556,9 +12505,8 @@ WDI_ProcessDelSTARsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Del STA Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -12644,9 +12592,8 @@ WDI_ProcessSetBssKeyRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Set BSS Key Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -12700,9 +12647,8 @@ WDI_ProcessRemoveBssKeyRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Remove BSS Key Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -12757,9 +12703,8 @@ WDI_ProcessSetStaKeyRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Set STA Key Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -12813,9 +12758,8 @@ WDI_ProcessRemoveStaKeyRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Remove STA Key Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -12869,9 +12813,8 @@ WDI_ProcessSetStaBcastKeyRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Set STA Key Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -12928,9 +12871,8 @@ WDI_ProcessRemoveStaBcastKeyRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Remove STA Key Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -12992,9 +12934,8 @@ WDI_ProcessAddTSpecRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Add TS Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -13041,9 +12982,8 @@ WDI_ProcessDelTSpecRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Del TS Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -13089,9 +13029,8 @@ WDI_ProcessUpdateEDCAParamsRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Update EDCA Params Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -13141,9 +13080,8 @@ WDI_ProcessAddBASessionRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Add BA Session Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -13205,9 +13143,8 @@ WDI_ProcessDelBARsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Del BA Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -13259,9 +13196,8 @@ WDI_ProcessFlushAcRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Flush AC Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -13311,9 +13247,8 @@ WDI_ProcessBtAmpEventRsp
    if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
        ( NULL == pEventData->pEventData))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in BT AMP event Response %x %x %x ",
-                pWDICtx, pEventData, pEventData->pEventData);
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -13365,19 +13300,8 @@ WDI_ProcessAddSTASelfRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     if ( pEventData )
-     {
-        WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameter in WDI_ProcessAddSelfSTARsp Response %x",
-               pEventData->pEventData);
-     }
-     else
-     {
-        WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in WDI_ProcessAddSelfSTARsp Response %x %x",
-               pWDICtx, pEventData);
-     }
-
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -13395,8 +13319,10 @@ WDI_ProcessAddSTASelfRsp
 
   wdiAddSTASelfParams.ucSTASelfIdx   = 
     halAddStaSelfRsp.addStaSelfRspParams.selfStaIdx;
-  wdiAddSTASelfParams.ucDpuSelfIndex = 
-    halAddStaSelfRsp.addStaSelfRspParams.selfStaDpuId;
+  wdiAddSTASelfParams.dpuIdx = 
+    halAddStaSelfRsp.addStaSelfRspParams.dpuIdx;
+  wdiAddSTASelfParams.dpuSignature = 
+    halAddStaSelfRsp.addStaSelfRspParams.dpuSignature;
 
   wpalMemoryCopy(wdiAddSTASelfParams.macSelfSta,
                  pWDICtx->wdiCacheAddSTASelfReq.wdiAddSTASelfInfo.selfMacAddr,
@@ -13407,17 +13333,19 @@ WDI_ProcessAddSTASelfRsp
 
   /* At this point add the self-STA */
 
-  /*! TO DO: wdiAddSTAParam.bcastMgmtDpuSignature */
-  /* !TO DO: wdiAddSTAParam.bcastDpuSignature */
-  /*! TO DO: wdiAddSTAParam.dpuSig */
   /*! TO DO: wdiAddSTAParam.ucWmmEnabled */
   /*! TO DO: wdiAddSTAParam.ucHTCapable */
   /*! TO DO: wdiAddSTAParam.ucRmfEnabled */
 
   //all DPU indices are the same for self STA
-  wdiAddSTAParam.bcastDpuIndex     = wdiAddSTASelfParams.ucSTASelfIdx;
-  wdiAddSTAParam.bcastMgmtDpuIndex = wdiAddSTASelfParams.ucSTASelfIdx;
-  wdiAddSTAParam.dpuIndex          = wdiAddSTASelfParams.ucSTASelfIdx;
+
+  /*DPU Information*/
+  wdiAddSTAParam.dpuIndex              = wdiAddSTASelfParams.dpuIdx; 
+  wdiAddSTAParam.dpuSig                = wdiAddSTASelfParams.dpuSignature;
+  wdiAddSTAParam.bcastDpuSignature     = wdiAddSTASelfParams.dpuSignature;
+  wdiAddSTAParam.bcastMgmtDpuSignature = wdiAddSTASelfParams.dpuSignature;
+  wdiAddSTAParam.bcastDpuIndex         = wdiAddSTASelfParams.dpuIdx;
+  wdiAddSTAParam.bcastMgmtDpuIndex     = wdiAddSTASelfParams.dpuIdx;
 
   wpalMemoryCopy(wdiAddSTAParam.staMacAddr, wdiAddSTASelfParams.macSelfSta,
                  WDI_MAC_ADDR_LEN);
@@ -13425,7 +13353,11 @@ WDI_ProcessAddSTASelfRsp
   wdiAddSTAParam.ucStaType = WDI_STA_ENTRY_SELF; /* 0 - self */
   wdiAddSTAParam.ucSTAIdx = wdiAddSTASelfParams.ucSTASelfIdx;
 
-  (void)WDI_STATableAddSta(pWDICtx,&wdiAddSTAParam);
+  if(wdiAddSTASelfParams.wdiStatus 
+     != eHAL_STATUS_ADD_STA_SELF_IGNORED_REF_COUNT_NOT_ZERO)
+  {
+     (void)WDI_STATableAddSta(pWDICtx,&wdiAddSTAParam);
+  }
 #endif
 
   /*Notify UMAC*/
@@ -13466,9 +13398,8 @@ WDI_ProcessDelSTASelfRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-        "Invalid parameters in Del sta Self Response %x %x %x ",
-        pWDICtx, pEventData, pEventData->pEventData);
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
     WDI_ASSERT(0);
     return WDI_STATUS_E_FAILURE; 
   }
@@ -13528,9 +13459,8 @@ WDI_ProcessStartInNavMeasRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Start In Nav Meas Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -13662,9 +13592,8 @@ WDI_ProcessChannelSwitchRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Del BA Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -13726,9 +13655,8 @@ WDI_ProcessConfigStaRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Config STA Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -13851,9 +13779,8 @@ WDI_ProcessSetLinkStateRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Set Link State Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -13902,6 +13829,14 @@ WDI_ProcessSetLinkStateRsp
       }
     }
   }
+  /* If the link state has been set to POST ASSOC, reset the "association in
+     progress" flag */
+  if ( WDI_LINK_POSTASSOC_STATE == 
+       pWDICtx->wdiCacheSetLinkStReq.wdiLinkInfo.wdiLinkState )
+  {
+     pWDICtx->bAssociationInProgress = eWLAN_PAL_FALSE;
+     WDI_DequeueAssocRequest(pWDICtx);
+  }
 
   wpalMutexRelease(&pWDICtx->wptMutex);
 
@@ -13938,12 +13873,10 @@ WDI_ProcessGetStatsRsp
 )
 {
   WDI_GetStatsRspParamsType   *wdiGetStatsRsp;
-  WDI_GetStatsRspCb           wdiGetStatsRspCb   = NULL;
-  tHalStatsRspParams          halStatsRspParams;
+  WDI_GetStatsRspCb           wdiGetStatsRspCb;
+  tHalStatsRspParams*         pHalStatsRspParams;
   
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiGetStatsRspCb = (WDI_GetStatsRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -13951,35 +13884,44 @@ WDI_ProcessGetStatsRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Get Stats Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
 
+  wdiGetStatsRspCb = (WDI_GetStatsRspCb)pWDICtx->pfncRspCB; 
+
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
   -------------------------------------------------------------------------*/
-  wpalMemoryCopy( &halStatsRspParams, 
-                  (wpt_uint8*)pEventData->pEventData,
-                  sizeof(halStatsRspParams));
+  pHalStatsRspParams = (tHalStatsRspParams *)pEventData->pEventData;
 
   /*allocate the stats response buffer */
   wdiGetStatsRsp = (WDI_GetStatsRspParamsType *)wpalMemoryAllocate(
-                                                   halStatsRspParams.msgLen);
+              pHalStatsRspParams->msgLen - sizeof(tHalStatsRspParams)
+              + sizeof(WDI_GetStatsRspParamsType));
 
-  wdiGetStatsRsp->usMsgType  = halStatsRspParams.msgType;
-  wdiGetStatsRsp->usMsgLen   = halStatsRspParams.msgLen;
-  wdiGetStatsRsp->wdiStatus  = WDI_HAL_2_WDI_STATUS(halStatsRspParams.status);
-  wdiGetStatsRsp->ucSTAIdx   = halStatsRspParams.staId;
-  wdiGetStatsRsp->uStatsMask = halStatsRspParams.statsMask;
+  if(NULL == wdiGetStatsRsp)
+  {
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
+                "Failed to allocate memory in Get Stats Response %x %x %x ",
+                 pWDICtx, pEventData, pEventData->pEventData);
+    WDI_ASSERT(0);
+    return WDI_STATUS_E_FAILURE; 
+  }
 
-  /* copy the stats buffer at the end of the tHalStatsRspParams message */
-  wpalMemoryCopy(
-         ((wpt_uint8 *)wdiGetStatsRsp) + sizeof(WDI_GetStatsRspParamsType),
-         ((wpt_uint8 *)&halStatsRspParams) + sizeof(tHalStatsRspParams),
-         halStatsRspParams.msgLen - sizeof(tHalStatsRspParams));
+  wpalMemoryZero(wdiGetStatsRsp, pHalStatsRspParams->msgLen);
+  wdiGetStatsRsp->usMsgType  = pHalStatsRspParams->msgType;
+  wdiGetStatsRsp->usMsgLen   = pHalStatsRspParams->msgLen;
+  wdiGetStatsRsp->wdiStatus  = WDI_HAL_2_WDI_STATUS(pHalStatsRspParams->status);
+  wdiGetStatsRsp->ucSTAIdx   = pHalStatsRspParams->staId;
+  wdiGetStatsRsp->uStatsMask = pHalStatsRspParams->statsMask;
+
+  /* copy the stats from buffer at the end of the tHalStatsRspParams message */
+  wpalMemoryCopy(wdiGetStatsRsp + 1,
+   (wpt_uint8*)pEventData->pEventData + sizeof(tHalStatsRspParams),
+   pHalStatsRspParams->msgLen - sizeof(tHalStatsRspParams));
 
   /*Notify UMAC*/
   wdiGetStatsRspCb( wdiGetStatsRsp, pWDICtx->pRspCBUserData);
@@ -14020,9 +13962,8 @@ WDI_ProcessUpdateCfgRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Update Cfg Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14072,9 +14013,8 @@ WDI_ProcessAddBARsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Add BA Session Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14134,9 +14074,8 @@ WDI_ProcessTriggerBARsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Trigger BA  Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14222,9 +14161,8 @@ WDI_ProcessUpdateBeaconParamsRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Update Beacon Params Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14273,9 +14211,8 @@ WDI_ProcessSendBeaconParamsRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Send Beacon Params Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14325,9 +14262,8 @@ WDI_ProcessUpdateProbeRspTemplateRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Send Beacon Params Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14379,9 +14315,8 @@ WDI_ProcessSetMaxTxPowerRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Set Max Tx Power Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14442,9 +14377,8 @@ WDI_ProcessP2PGONOARsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in P2P GO NOA Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14494,9 +14428,8 @@ WDI_ProcessEnterImpsRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Enter IMPS Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14544,9 +14477,8 @@ WDI_ProcessExitImpsRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Exit IMPS Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14593,9 +14525,8 @@ WDI_ProcessEnterBmpsRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Enter BMPS Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14642,9 +14573,8 @@ WDI_ProcessExitBmpsRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Exit BMPS Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14694,9 +14624,8 @@ WDI_ProcessEnterUapsdRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Enter UAPSD Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14757,9 +14686,8 @@ WDI_ProcessExitUapsdRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Exit UAPSD Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14815,9 +14743,8 @@ WDI_ProcessSetUapsdAcParamsRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Set UAPSD params Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14864,9 +14791,8 @@ WDI_ProcessUpdateUapsdParamsRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Update UAPSD params Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14913,9 +14839,8 @@ WDI_ProcessConfigureRxpFilterRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in configure RXP filter Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -14962,9 +14887,8 @@ WDI_ProcessSetBeaconFilterRsp
    if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
        ( NULL == pEventData->pEventData))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in set beacon filter Response %x %x %x ",
-                pWDICtx, pEventData, pEventData->pEventData);
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -15011,9 +14935,8 @@ WDI_ProcessRemBeaconFilterRsp
    if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
        ( NULL == pEventData->pEventData))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in remove beacon filter Response %x %x %x ",
-                pWDICtx, pEventData, pEventData->pEventData);
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -15060,9 +14983,8 @@ WDI_ProcessSetRSSIThresoldsRsp
    if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
        ( NULL == pEventData->pEventData))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in set RSSI thresholds Response %x %x %x ",
-                pWDICtx, pEventData, pEventData->pEventData);
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -15109,9 +15031,8 @@ WDI_ProcessHostOffloadRsp
    if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
        ( NULL == pEventData->pEventData))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in host offload Response %x %x %x ",
-                pWDICtx, pEventData, pEventData->pEventData);
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -15159,9 +15080,8 @@ WDI_ProcessWowlAddBcPtrnRsp
    if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
        ( NULL == pEventData->pEventData))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in wowl add ptrn Response %x %x %x ",
-                pWDICtx, pEventData, pEventData->pEventData);
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -15208,9 +15128,8 @@ WDI_ProcessWowlDelBcPtrnRsp
    if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
        ( NULL == pEventData->pEventData))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in wowl delete ptrn Response %x %x %x ",
-                pWDICtx, pEventData, pEventData->pEventData);
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -15257,9 +15176,8 @@ WDI_ProcessWowlEnterRsp
    if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
        ( NULL == pEventData->pEventData))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in wowl enter Response %x %x %x ",
-                pWDICtx, pEventData, pEventData->pEventData);
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -15306,9 +15224,8 @@ WDI_ProcessWowlExitRsp
    if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
        ( NULL == pEventData->pEventData))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in wowl exit Response %x %x %x ",
-                pWDICtx, pEventData, pEventData->pEventData);
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -15356,9 +15273,8 @@ WDI_ProcessConfigureAppsCpuWakeupStateRsp
    if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
        ( NULL == pEventData->pEventData))
    {
-      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-               "Invalid parameters in configure Apps CPU wakeup state Response %x %x %x ",
-                pWDICtx, pEventData, pEventData->pEventData);
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                  "%s: Invalid parameters", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
@@ -15405,9 +15321,8 @@ WDI_ProcessNvDownloadRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
     ( NULL == pEventData->pEventData))
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,	eWLAN_PAL_TRACE_LEVEL_WARN,
-         "Invalid parameters in NV Download Response %x %x %x ",
-          pWDICtx, pEventData, pEventData->pEventData);
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
     WDI_ASSERT(0);
     return WDI_STATUS_E_FAILURE; 
   }
@@ -15471,9 +15386,8 @@ WDI_ProcessAggrAddTSpecRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Add TS Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -15526,9 +15440,8 @@ WDI_ProcessLowRSSIInd
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Low RSSI Ind %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -15591,9 +15504,8 @@ WDI_ProcessMissedBeaconInd
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Low RSSI Ind %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -15644,9 +15556,8 @@ WDI_ProcessUnkAddrFrameInd
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Low RSSI Ind %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -15699,9 +15610,8 @@ WDI_ProcessMicFailureInd
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Low RSSI Ind %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -15754,9 +15664,8 @@ WDI_ProcessFatalErrorInd
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Low RSSI Ind %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -15810,9 +15719,8 @@ WDI_ProcessDelSTAInd
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Low RSSI Ind %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -15876,9 +15784,8 @@ WDI_ProcessCoexInd
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData ))
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-                 "Invalid parameters in Coex Ind %x %x %x ",
-                 pWDICtx, pEventData, pEventData->pEventData );
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT( 0 );
      return WDI_STATUS_E_FAILURE; 
   }
@@ -15913,6 +15820,58 @@ WDI_ProcessCoexInd
   return WDI_STATUS_SUCCESS; 
 }/*WDI_ProcessCoexInd*/
 
+/**
+*@brief Process Tx Complete Indication function (called when
+        an indication of this kind is being received over the
+        bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessTxCompleteInd
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  WDI_LowLevelIndType  wdiInd;
+  tTxComplIndMsg       halTxComplIndMsg;
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  /*-------------------------------------------------------------------------
+    Sanity check
+  -------------------------------------------------------------------------*/
+  if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+      ( NULL == pEventData->pEventData ))
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
+     WDI_ASSERT( 0 );
+     return WDI_STATUS_E_FAILURE;
+  }
+
+  /*-------------------------------------------------------------------------
+    Extract indication and send it to UMAC
+  -------------------------------------------------------------------------*/
+  wpalMemoryCopy( &halTxComplIndMsg.txComplParams, 
+                  pEventData->pEventData, 
+                  sizeof(halTxComplIndMsg.txComplParams) );
+
+  /*Fill in the indication parameters*/
+  wdiInd.wdiIndicationType = WDI_TX_COMPLETE_IND; 
+  wdiInd.wdiIndicationData.tx_complete_status 
+                               = halTxComplIndMsg.txComplParams.status; 
+
+  /*Notify UMAC*/
+  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+  
+  return WDI_STATUS_SUCCESS; 
+}/*WDI_ProcessTxCompleteInd*/
+
 #ifdef ANI_MANF_DIAG
 /**
  @brief WDI_ProcessFTMCommandReq
@@ -15942,9 +15901,8 @@ WDI_ProcessFTMCommandReq
       ( NULL == pEventData->pEventData))
 
   {
-     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in FTM CMD Req %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -15973,7 +15931,7 @@ WDI_ProcessFTMCommandReq
 }
 
 /**
- @brief WDI_ProcessFTMCommadRsp
+ @brief WDI_ProcessFTMCommandRsp
         Process FTM Command Response from HAL, simply route to HDD FTM
  
  @param  pWDICtx:         pointer to the WLAN DAL context 
@@ -15983,14 +15941,12 @@ WDI_ProcessFTMCommandReq
  @return Result of the function call
 */
 WDI_Status
-WDI_ProcessFTMCommadRsp
+WDI_ProcessFTMCommandRsp
 ( 
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
 )
 {
-  WDI_Status            wdiStatus;
-  eHalStatus            halStatus;
   WDI_FTMCommandRspCb   ftmCMDRspCb = NULL;
   tProcessPttRspParams *ftmCMDRspData = NULL;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -16002,9 +15958,8 @@ WDI_ProcessFTMCommadRsp
   if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
       ( NULL == pEventData->pEventData))
   {
-     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Invalid parameters in Update Beacon Params Response %x %x %x ",
-               pWDICtx, pEventData, pEventData->pEventData);
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
@@ -16014,8 +15969,6 @@ WDI_ProcessFTMCommadRsp
   wpalMemoryCopy((void *)pWDICtx->ucFTMCommandRspBuffer, 
                  (void *)&ftmCMDRspData->pttMsgBuffer, 
                  ftmCMDRspData->pttMsgBuffer.msgBodyLength);
-
-  wdiStatus = WDI_HAL_2_WDI_STATUS(halStatus); 
 
   /*Notify UMAC*/
   ftmCMDRspCb((void *)pWDICtx->ucFTMCommandRspBuffer, pWDICtx->pRspCBUserData);
@@ -16058,15 +16011,15 @@ WDI_NotifyMsgCTSCB
 
   if (NULL == pWDICtx )
   {
-    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Inavlid parameters received from CTS on the Notify CB");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
     WDI_ASSERT(0);
     return; 
   }
 
   if ( WCTS_EVENT_OPEN == wctsEvent )
   {
-    /*Flag must be set attomically as it is checked from incoming request
+    /*Flag must be set atomically as it is checked from incoming request
       functions*/
     wpalMutexAcquire(&pWDICtx->wptMutex);
     pWDICtx->bCTOpened   = eWLAN_PAL_TRUE; 
@@ -16078,7 +16031,7 @@ WDI_NotifyMsgCTSCB
   }
   else if  ( WCTS_EVENT_CLOSE == wctsEvent ) 
   {
-    /*Flag must be set attomically as it is checked from incoming request
+    /*Flag must be set atomically as it is checked from incoming request
       functions*/
     wpalMutexAcquire(&pWDICtx->wptMutex);
     pWDICtx->bCTOpened   = eWLAN_PAL_FALSE; 
@@ -16127,9 +16080,8 @@ WDI_RXMsgCTSCB
   if ((NULL == pWDICtx ) || ( NULL == pMsg ) || 
       ( uLen < sizeof(halMsgHeader)))
   {
-    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Inavlid parameters received from CTS on the RX CB %x %x %d",
-              pWDICtx, pMsg, uLen);
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
     WDI_ASSERT(0);
     return; 
   }
@@ -16455,8 +16407,8 @@ WDI_ResponseTimerCB
 
   if (NULL == pWDICtx )
   {
-    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Invalid parameters received in the timer callback");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
     WDI_ASSERT(0);
     return; 
   }
@@ -16560,6 +16512,7 @@ WDI_QueuePendingReq
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
               "Cannot allocate memory for queueing event data info"); 
     WDI_ASSERT(0);
+    wpalMemoryFree(pEventDataQueue);
     return WDI_STATUS_MEM_FAILURE;
   }
 
@@ -16840,8 +16793,8 @@ WDI_QueueAssocRequest
     ------------------------------------------------------------------------*/
   if (( NULL == pSession ) || ( NULL == pWDICtx ))
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Invalid parameters on WDI_QueueAssocRequest");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
 
     return WDI_STATUS_E_FAILURE; 
   }
@@ -16919,8 +16872,8 @@ WDI_DequeueAssocRequest
     ------------------------------------------------------------------------*/
   if ( NULL == pWDICtx )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Invalid parameters on WDI_DequeueAssocRequest");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
 
     return WDI_STATUS_E_FAILURE; 
   }
@@ -17083,8 +17036,8 @@ WDI_FindAssocSession
   -------------------------------------------------------------------------*/
   if ( NULL == ppSession )
   {
-     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "Invalid parameters on WDI_FindAssocSession"); 
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
      return WDI_MAX_BSS_SESSIONS; 
   }
 
@@ -17134,8 +17087,8 @@ WDI_FindAssocSessionByBSSIdx
   -------------------------------------------------------------------------*/
   if ( NULL == ppSession )
   {
-     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "Invalid parameters on WDI_FindAssocSessionByBSSIdx"); 
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
      return WDI_MAX_BSS_SESSIONS; 
   }
 
@@ -17181,10 +17134,10 @@ WDI_FindAssocSessionByIdx
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
-  if ( NULL == ppSession && usIdx >= WDI_MAX_BSS_SESSIONS )
+  if ( NULL == ppSession || usIdx >= WDI_MAX_BSS_SESSIONS )
   {
-     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "Invalid parameters on WDI_FindAssocSessionByIdx"); 
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
      return WDI_MAX_BSS_SESSIONS; 
   }
 
@@ -17220,8 +17173,8 @@ WDI_FindEmptySession
   -------------------------------------------------------------------------*/
   if ( NULL == ppSession )
   {
-     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "Invalid parameters on WDI_FindAssocSession"); 
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
      return WDI_MAX_BSS_SESSIONS; 
   }
 
@@ -17267,8 +17220,8 @@ WDI_DeleteSession
   -------------------------------------------------------------------------*/
   if ( NULL == ppSession )
   {
-     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "Invalid parameters on WDI_FindAssocSession"); 
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
      return ; 
   }
 
@@ -17311,8 +17264,8 @@ WDI_AddBcastSTAtoSTATable
   ---------------------------------------------------------------------*/
   if ( NULL == staParams )
   {
-     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Invalid input parameters in WDI_AddBcastSTAtoSTATable");
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid parameters", __FUNCTION__);
 
     return; 
   }
@@ -17774,6 +17727,8 @@ HAL_2_WDI_RSP_TYPE
     return WDI_HAL_DEL_STA_IND;
   case WLAN_HAL_COEX_IND:
     return WDI_HAL_COEX_IND;
+  case WLAN_HAL_OTA_TX_COMPL_IND:
+    return WDI_HAL_TX_COMPLETE_IND;
 #ifdef WLAN_FEATURE_VOWIFI
   case WLAN_HAL_SET_MAX_TX_POWER_RSP:
     return WDI_SET_MAX_TX_POWER_RESP;

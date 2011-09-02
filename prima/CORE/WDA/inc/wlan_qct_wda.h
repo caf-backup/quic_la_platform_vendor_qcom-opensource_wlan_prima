@@ -283,6 +283,11 @@ typedef VOS_STATUS (*WDA_DS_RxCompleteCb)( v_PVOID_t pContext, wpt_packet *pFram
 typedef VOS_STATUS (*WDA_DS_TxFlowControlCb)( v_PVOID_t pContext, v_U8_t acMask );
 typedef void (*pWDATxRxCompFunc)( v_PVOID_t pContext, void *pData );
 
+//callback function for TX complete
+//parameter 1 - global pMac pointer
+//parameter 2 - txComplete status : 1- success, 0 - failure.
+typedef eHalStatus (*pWDAAckFnTxComp)(tpAniSirGlobal, tANI_U32);
+
 typedef struct
 {
    tANI_U16 ucValidStaIndex ;
@@ -298,6 +303,9 @@ typedef struct
 {
    /* BA activity check timer */
    TX_TIMER baActivityChkTmr ;
+
+   /* Tx Complete Timeout timer */
+   TX_TIMER TxCompleteTimer ;
 }tWdaTimers ;
 
 #define WDA_MAX_STA    (16)
@@ -310,12 +318,15 @@ typedef struct
    v_PVOID_t            wdaMsgParam ;            /* PE parameter tracking */
    v_PVOID_t            wdaWdiApiMsgParam ;      /* WDI API paramter tracking */
    v_PVOID_t            wdaWdiCfgApiMsgParam ;   /* WDI API paramter tracking */
+   vos_event_t          wdaWdiEvent;             /* WDI API sync event */
 
    /* Event to wait for tx completion */
    vos_event_t          txFrameEvent;
 
    /* call back function for tx complete*/
    pWDATxRxCompFunc     pTxCbFunc;
+   /* call back function for tx packet ack */
+   pWDAAckFnTxComp      pAckTxCbFunc;   
    tANI_U32             frameTransRequired;   
    tSirMacAddr          macBSSID;             /*BSSID of the network */
    tSirMacAddr          macSTASelf;     /*Self STA MAC*/
@@ -424,6 +435,7 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
                                     tANI_U8 tid,
                                     pWDATxRxCompFunc pCompFunc,
                                     void *pData,
+                                    pWDAAckFnTxComp pAckTxComp, 
                                     tANI_U8 txFlag);
 
 /*
@@ -1096,7 +1108,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_SET_P2P_GO_NOA_REQ         SIR_HAL_SET_P2P_GO_NOA_REQ
 #endif
 
-
+#define WDA_TX_COMPLETE_TIMEOUT_IND  WDA_MSG_TYPES_END - 1
 #define WDA_MSG_TYPES_END    SIR_HAL_MSG_TYPES_END
 
 #define WDA_SUSPEND_ACTIVITY_RSP SIR_HAL_SUSPEND_ACTIVITY_RSP
@@ -1146,6 +1158,7 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
          (tid),\
          (pCompFunc),\
          (pData),\
+         (NULL), \
          (txFlag)) )
 
 #define halTxFrameWithTxComplete(hHal, pFrmBuf, frmLen, frmType, txDir, tid, pCompFunc, pData, pCBackFnTxComp, txFlag) \
@@ -1156,8 +1169,9 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
          (frmType),\
          (txDir),\
          (tid),\
-         ((pWDATxRxCompFunc) (pCBackFnTxComp)),\
+         (pCompFunc),\
          (pData),\
+         (pCBackFnTxComp), \
          (txFlag)) )
 #endif
 

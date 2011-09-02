@@ -1064,7 +1064,7 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
      For Integrated SOC, only needed to start WDA, whihc happens in wlan_hdd_ftm_start()
     */
     /* Save the hal context in Adapter */
-    pHddCtx->hHal = (tHalHandle)vos_get_context(VOS_MODULE_ID_WDA, pVosContext );
+    pHddCtx->hHal = (tHalHandle)vos_get_context(VOS_MODULE_ID_SME, pVosContext );
 #endif
 
     if ( NULL == pHddCtx->hHal )
@@ -1353,33 +1353,12 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
        goto err_wda_stop;   
     }
 
-    vos_event_reset(&(pVosContext->wdaCompleteEvent));
-
     vStatus = WDA_start(pVosContext);
-
     if (vStatus != VOS_STATUS_SUCCESS)
     {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                  "%s: Failed to start WDA",__func__);
        goto err_status_failure;
-    }
-
-    vStatus = vos_wait_single_event(&(pVosContext->wdaCompleteEvent), 1000);
-
-    if(vStatus != VOS_STATUS_SUCCESS)
-    {
-       if(vStatus == VOS_STATUS_E_TIMEOUT)
-       {
-          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "%s: Timeout occured before WDA_start complete\n",__func__);
-       }
-       else
-       {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                   "%s: WDA_start reporting  other error \n",__func__);
-       }
-       VOS_ASSERT(0);
-       goto err_wda_stop;   
     }
 #endif
     
@@ -2398,7 +2377,6 @@ void wlan_hdd_process_ftm_cmd
     int startStatus;
     int hostState;
     struct device  *allocatedDevice;
-    static tVOS_CON_MODE restoreConnMode;
     tPttMsgbuffer *tempRspBuffer = NULL;
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */        
 
@@ -2498,30 +2476,7 @@ void wlan_hdd_process_ftm_cmd
             return;
         }
 
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-        wlan_hdd_ftm_close(pHddCtx);
-
-        /* FTM Stop finished
-         * Goes back to normal Driver Mode */
-        if(VOS_FTM_MODE != restoreConnMode)
-        {
-           hdd_set_conparam(restoreConnMode);
-        }
-        else
-        {
-           hdd_set_conparam(VOS_STA_MODE);
-        }
-        startStatus = hdd_wlan_startup(allocatedDevice);
-        if(!startStatus)
-        {
-           hddLog(VOS_TRACE_LEVEL_ERROR,
-                  "%s: : Failed to startup WLAN after FTM Stop\n",__func__);
-           pHddCtx->ftm.pResponseBuf->ftm_err_code = WLAN_FTM_FAILURE;
-           wlan_ftm_send_response(pHddCtx);
-           return;
-        }
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
-
+        pHddCtx->ftm.ftm_state = WLAN_FTM_STOPPED;
         /* This would send back the Command Success Status */
         pHddCtx->ftm.pResponseBuf->ftm_err_code = WLAN_FTM_SUCCESS;
 

@@ -319,8 +319,20 @@ int wlan_hdd_action( struct wiphy *wiphy, struct net_device *dev,
 
     vos_mem_copy( cfgState->buf, buf, len);
 
-    *cookie = (tANI_U32) cfgState->buf;
-    cfgState->action_cookie = *cookie;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+    if( cfgState->remain_on_chan_ctx )
+    {
+        cfgState->action_cookie = cfgState->remain_on_chan_ctx->cookie;
+        *cookie = cfgState->action_cookie;
+    }
+    else
+    {
+#endif
+        *cookie = (tANI_U32) cfgState->buf;
+        cfgState->action_cookie = *cookie;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+    }
+#endif
 
     if ( (WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
          (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode)
