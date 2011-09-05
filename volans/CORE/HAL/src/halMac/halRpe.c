@@ -28,7 +28,6 @@
 #include "halAdu.h"
 #include "limApi.h"
 
-
 eHalStatus rpe_init_error_interrupt(tpAniSirGlobal pMac);
 
 /**
@@ -220,10 +219,6 @@ eHalStatus halRpe_Start(tHalHandle hHal, void *arg)
     /** Zero out the RPE Partial Bit Map */
 	halZeroDeviceMemory(pMac, pMac->hal.memMap.rpePartialBitmap_offset,
         	pMac->hal.memMap.rpePartialBitmap_size) ;
-
-	pMac->hal.halMac.rpeErrIntrStatusVal = 0;
-	pMac->hal.halMac.rpeErrCntThreshold = 2;
-	pMac->hal.halMac.rpeErrCnt = 0;
 
 	return eHAL_STATUS_SUCCESS;
 }
@@ -583,11 +578,9 @@ eHalStatus halRpe_ErrIntHandler(tHalHandle hHalHandle, eHalIntSources intSource)
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tANI_U32 intRegStatus;
     tpAniSirGlobal pMac = PMAC_STRUCT(hHalHandle);
-#ifndef WLAN_HAL_VOLANS //FIXME_VOLANS    
 	tANI_U8 tID;
 	tANI_U8 staIdx;
 	tANI_U32 Reason_Code;
-#endif    
 	tANI_U32 rpeIntrStatus;
     tANI_U32 index, intHandled[]={
         QWLAN_RPE_ERR_INT_STATUS_2K_JUMP_SN_IN_BASESSION_INT_STATUS_MASK,
@@ -597,36 +590,27 @@ eHalStatus halRpe_ErrIntHandler(tHalHandle hHalHandle, eHalIntSources intSource)
     };        
 #define RPE_INT_MASK ((1<<QWLAN_RPE_ERR_INT_STATUS_2K_JUMP_SN_IN_BASESSION_INT_STATUS_OFFSET)-1)
 
+	HALLOG1( halLog( pMac, LOG1, FL("halRpe_ErrIntHandler entered\n")));
+
     /** Read Interrupt Status.*/
 	halRpe_interrupt_status(pMac, &rpeIntrStatus);
     intRegStatus = rpeIntrStatus;
 
+	HALLOGE( halLog( pMac, LOGE, FL("RPE Err Intr status %x\n"),intRegStatus));
     for (index=0; index < sizeof(intHandled)/sizeof(tANI_U32); index++){
         if(rpeIntrStatus & intHandled[index]){
-        	HALLOGE( halLog( pMac, LOGE,
-              	FL("halRpe_ErrIntHandler : \n")));
+			
+        	staIdx = (tANI_U8)((rpeIntrStatus & QWLAN_RPE_ERR_INT_STATUS_INT_STAID_MASK) 
+				>> QWLAN_RPE_ERR_INT_STATUS_INT_STAID_OFFSET) ;
+        	tID =  (tANI_U8)((rpeIntrStatus & QWLAN_RPE_ERR_INT_STATUS_INT_QID_MASK ) 
+				>> QWLAN_RPE_ERR_INT_STATUS_INT_QID_OFFSET);
+        	Reason_Code = (rpeIntrStatus & QWLAN_RPE_ERR_INT_STATUS_REASON_CODE_MASK) 
+				>> QWLAN_RPE_ERR_INT_STATUS_REASON_CODE_OFFSET;
 
-            if(pMac->hal.halMac.rpeErrIntrStatusVal != intHandled[index])
-            {
-                pMac->hal.halMac.rpeErrIntrStatusVal = intHandled[index];
-                pMac->hal.halMac.rpeErrCnt++;
-                continue;
-            }
-            else
-            {
-                pMac->hal.halMac.rpeErrCnt++;
-                if(pMac->hal.halMac.rpeErrCnt < pMac->hal.halMac.rpeErrCntThreshold)
-                   continue;
-            }            
-
-#ifndef WLAN_HAL_VOLANS //FIXME_VOLANS
-        	staIdx = (tANI_U8)(rpeIntrStatus & QWLAN_RPE_ERR_INT_STATUS_STATION_ID_MASK) >> QWLAN_RPE_ERR_INT_STATUS_STATION_ID_OFFSET ;
-        	tID =  (tANI_U8)(rpeIntrStatus & QWLAN_RPE_ERR_INT_STATUS_QUEUE_ID_MASK ) >> QWLAN_RPE_ERR_INT_STATUS_QUEUE_ID_OFFSET;
-        	Reason_Code = (rpeIntrStatus & QWLAN_RPE_ERR_INT_STATUS_REASON_CODE_MASK) >> QWLAN_RPE_ERR_INT_STATUS_REASON_CODE_OFFSET;
-
+			HALLOGW( halLog( pMac, LOGW, FL("staIdx %d tID %d RC %d\n"),
+				staIdx,tID,Reason_Code));
             // Post the message to indicate deletion of BA
             (void)halMsg_PostBADeleteInd( pMac, staIdx, tID, eBA_RECIPIENT, Reason_Code);
-#endif                        
         }
     }            
 

@@ -6255,9 +6255,9 @@ eHalStatus halMsg_PostBADeleteInd( tpAniSirGlobal  pMac,
                     status ));
         return status;
     } else {
-        sirCopyMacAddr(pBADeleteParams->bssId, pSta->bssId);
         palZeroMemory( pMac->hHdd, (void *) pBADeleteParams,
                 sizeof( tBADeleteParams ));
+		palCopyMemory(pMac->hHdd, (void *)pBADeleteParams->bssId, (void *)pSta->bssId, sizeof(tSirMacAddr));
         // Copy SIR_LIM_DEL_BA_IND parameters
         pBADeleteParams->staIdx = staIdx;
         palCopyMemory( pMac->hHdd,
