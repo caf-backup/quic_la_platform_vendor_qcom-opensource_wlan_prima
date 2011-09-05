@@ -1169,6 +1169,7 @@ err_vosstop:
 
 err_vosclose:	
    vos_close(pVosContext ); 
+   vos_sched_close(pVosContext);
 
 err_balstop:
    wlan_hdd_enable_deepsleep(pAdapter->pvosContext);
@@ -1348,9 +1349,8 @@ void unregister_wlan_suspend(void)
    hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unregister WLAN suspend/resume "
             "callbacks",__func__);
 
-   wake_lock_destroy(&wlan_wake_lock);
-
    unregister_early_suspend(&wlan_early_suspend);
+   wake_lock_destroy(&wlan_wake_lock);
 }
 
 #endif
