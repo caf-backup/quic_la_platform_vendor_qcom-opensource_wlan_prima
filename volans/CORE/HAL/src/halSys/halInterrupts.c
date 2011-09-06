@@ -272,7 +272,7 @@ tHalIntSourceInfo halIntInfo[eHAL_INT_MAX_SOURCE] = {
     {
         0, /* group interrupt for RPE */
         eHAL_INT_MCU_HOST_INT_REGISTER,
-        0,//QWLAN_MCU_MAC_HOST_INT_EN_RPE_INT_EN_MASK,
+        QWLAN_MCU_MAC_HOST_INT_EN_RPE_INT_EN_MASK,
         halIntRpeGroupHandler
     },
 

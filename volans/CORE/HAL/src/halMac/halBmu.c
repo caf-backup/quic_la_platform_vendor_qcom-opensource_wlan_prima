@@ -1501,15 +1501,8 @@ static void halBmu_btqm_init_control2_register(tpAniSirGlobal pMac, tANI_U32 txQ
 
     halReadRegister(pMac, QWLAN_BMU_BTQM_CONTROL2_REG, &value);
 
-//FIXME: WHy is this register missing in Volans???
-#ifndef WLAN_HAL_VOLANS
-	// LIBRA2.0 HW bug fix: CR-0000143098 & CR-0000142931
-	// BMU: Dropping of frames with seq. number lower then BA SSN
-	// BMU: misformed null Block-Ack handling
-    if (halGetChipRevNum(pMac) == LIBRA_CHIP_REV_ID_2_0) {
-		value |= QWLAN_BMU_BTQM_CONTROL2_CFG_BA_PARTIAL_BITMAP_UPDATE_MASK;
-	}
-#endif
+	value |= QWLAN_BMU_BTQM_CONTROL2_CFG_BA_PARTIAL_BITMAP_UPDATE_MASK;
+
     value |= (QWLAN_BMU_BTQM_CONTROL2_BTQM_QUEUEID_QUEUE_ENABLE_MASK & txQueueIdsMask);
 
     halWriteRegister(pMac, QWLAN_BMU_BTQM_CONTROL2_REG,

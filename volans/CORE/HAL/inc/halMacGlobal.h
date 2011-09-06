@@ -320,9 +320,6 @@ typedef struct sAniSirHalMac
 #ifdef WLAN_PERF
     tANI_U8     uBdSigSerialNum;
 #endif
-    tANI_U32    rpeErrIntrStatusVal;
-    tANI_U8     rpeErrCntThreshold;
-    tANI_U8     rpeErrCnt;
 
     /** Maintain a copy of ADU UMA STA Desc */
     tAduUmaStaDesc aduUmaDesc[HAL_NUM_UMA_DESC_ENTRIES];
