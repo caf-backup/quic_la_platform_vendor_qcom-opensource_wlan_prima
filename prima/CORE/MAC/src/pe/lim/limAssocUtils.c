@@ -2342,7 +2342,7 @@ limAddStaSelf(tpAniSirGlobal pMac,tANI_U16 staIdx, tANI_U8 updateSta, tpPESessio
     tSirMsgQ msgQ;
     tSirRetStatus     retCode = eSIR_SUCCESS;
     tSirMacAddr staMac;
-    tANI_U32 listenInterval;
+    tANI_U32 listenInterval = WNI_CFG_LISTEN_INTERVAL_STADEF;
 
     #if 0
     retCode =wlan_cfgGetStr(pMac, WNI_CFG_STA_ID, staMac, &cfg);

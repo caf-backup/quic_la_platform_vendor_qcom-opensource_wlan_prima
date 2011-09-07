@@ -531,12 +531,9 @@ limHandleCFGparamUpdate(tpAniSirGlobal pMac, tANI_U32 cfgId)
         limSetCfgProtection(pMac);
 #endif
         break;
-    case WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA:
     case WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG:
         //Update beacon.
-        if( (pMac->lim.gLimSmeState == eLIM_SME_NORMAL_STATE)  && 
-             (pMac->lim.gLimSystemRole != eLIM_STA_ROLE) )
-                limUpdateBeacon(pMac);
+        limUpdateBeacon(pMac);
         break;
     case WNI_CFG_GREENFIELD_CAPABILITY:
         if (wlan_cfgGetInt(pMac, WNI_CFG_HT_CAP_INFO, &val1) != eSIR_SUCCESS) 

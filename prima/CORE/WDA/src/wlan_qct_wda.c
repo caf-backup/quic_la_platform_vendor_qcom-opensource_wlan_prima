@@ -2303,6 +2303,11 @@ void WDA_ConfigBssReqCallback(WDI_ConfigBSSRspParamsType *wdiConfigBssRsp
    {
       vos_mem_copy(configBssReqParam->bssId, wdiConfigBssRsp->macBSSID, 
                                                     sizeof(tSirMacAddr));
+
+      configBssReqParam->bssIdx = wdiConfigBssRsp->ucBSSIdx;
+      configBssReqParam->bcastDpuSignature = wdiConfigBssRsp->ucBcastSig;
+      configBssReqParam->mgmtDpuSignature = wdiConfigBssRsp->ucUcastSig;
+      
       if (configBssReqParam->operMode == BSS_OPERATIONAL_MODE_STA) 
       {
          if(configBssReqParam->bssType == eSIR_IBSS_MODE) 
@@ -7621,7 +7626,10 @@ void WDA_StartInNavMeasReqCallback(
    tANI_U8 i = 0;
    tANI_U8 j = 0;
    tANI_U32 allocSize = 0 ;
-  
+ 
+   tSirRttRssiResults* rttRssiResults    = NULL;
+   WDI_RttRssiResults* wdiRttRssiResults = NULL;
+
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
    /* 
@@ -7630,15 +7638,17 @@ void WDA_StartInNavMeasReqCallback(
     */
    allocSize = sizeof(tStartInNavMeasRsp) - sizeof(tSirRttRssiResults) ;
 
+   wdiRttRssiResults = &wdiInNavMeasRspParams->rttRssiResults[0] ;
    for(i = 0; i < wdiInNavMeasRspParams->ucNumBSSIDs ; i++)
    {
-      WDI_RttRssiResults *rttRssiResults =
-                  &wdiInNavMeasRspParams->rttRssiResults[i] ;
+      allocSize += (wdiRttRssiResults->ucNumSuccessfulMeasurements - 1)
+                                           * sizeof(WDI_RttRssiTimeData) ;
 
-      allocSize += (rttRssiResults->ucNumSuccessfulMeasurements - 1)
-                                           * sizeof(tSirRttRssiTimeData) ;
-
-      allocSize += sizeof(tSirRttRssiResults) ;
+      allocSize += sizeof(WDI_RttRssiResults) ;
+      wdiRttRssiResults = (WDI_RttRssiResults *)((uint8 *)wdiRttRssiResults +
+                         sizeof(WDI_RttRssiResults) + 
+                           (wdiRttRssiResults->ucNumSuccessfulMeasurements -1) * 
+                                sizeof(WDI_RttRssiTimeData));
    }
 
    pInNavMeasRspParams = vos_mem_malloc(allocSize);
@@ -7677,21 +7687,18 @@ void WDA_StartInNavMeasReqCallback(
    {
       pInNavMeasRspParams->numBSSIDs = wdiInNavMeasRspParams->ucNumBSSIDs;
 
+      rttRssiResults    = &pInNavMeasRspParams->rttRssiResults[0] ;
+      wdiRttRssiResults = &wdiInNavMeasRspParams->rttRssiResults[0] ;
+
       /* copy RTT/RSSI results */
       for(i = 0 ; i < wdiInNavMeasRspParams->ucNumBSSIDs ; i++)
       {
          
-         tSirRttRssiResults* rttRssiResults =
-                            &pInNavMeasRspParams->rttRssiResults[i] ;
-         WDI_RttRssiResults *wdiRttRssiResults =
-                            &wdiInNavMeasRspParams->rttRssiResults[i] ;
-      
          rttRssiResults->numSuccessfulMeasurements = 
                          wdiRttRssiResults->ucNumSuccessfulMeasurements;
-         
-         vos_mem_copy(pInNavMeasRspParams->rttRssiResults[i].bssid,
-                         wdiInNavMeasRspParams->rttRssiResults[i].ucBssid,
-                                                         sizeof(tSirMacAddr));
+         vos_mem_copy(rttRssiResults->bssid,
+                         wdiRttRssiResults->ucBssid,
+                                     sizeof(tSirMacAddr));
          for( j = 0; j < rttRssiResults->numSuccessfulMeasurements ; j++)
          {
             tSirRttRssiTimeData *rttRssiTimeData =
@@ -7706,6 +7713,15 @@ void WDA_StartInNavMeasReqCallback(
             rttRssiTimeData->measurementTimeHi = 
                              wdiRttRssiTimeData->uslMeasurementTimeHi ;
          } /* for j = 0... */
+         rttRssiResults = (tSirRttRssiResults *)((uint8 *)rttRssiResults +
+                             sizeof(tSirRttRssiResults) + 
+                               (rttRssiResults->numSuccessfulMeasurements -1) * 
+                                    sizeof(tSirRttRssiTimeData));
+         
+         wdiRttRssiResults = (WDI_RttRssiResults *)((uint8 *)wdiRttRssiResults +
+                              sizeof(WDI_RttRssiResults) + 
+                               (wdiRttRssiResults->ucNumSuccessfulMeasurements - 1) * 
+                                    sizeof(WDI_RttRssiTimeData));
       }  /* for i = 0 .. */
       
    }
@@ -7752,7 +7768,7 @@ VOS_STATUS WDA_ProcessStartInNavMeasReq(tWDA_CbContext *pWDA,
       VOS_ASSERT(0);
       return VOS_STATUS_E_NOMEM;
    }
-
+   
     //copy INNAV parameters to WDI structure 
    wdiInNavMeasReqParams->wdiInNavMeasInfo.measurementMode= 
                                 pInNavMeasReqParams->measurementMode;

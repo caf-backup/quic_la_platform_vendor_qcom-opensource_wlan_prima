@@ -624,12 +624,26 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
       return;
    }
 
+   if (pHddCtx->isLogpInProgress) {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Ignore suspend wlan,\
+                                     LOGP in progress!", __func__);
+      return;
+   }
+
    sdio_func_dev = libra_getsdio_funcdev();
 
    if(sdio_func_dev == NULL)
    {
         /* Our card got removed */
         hddLog(VOS_TRACE_LEVEL_FATAL, "%s: sdio_func_dev is NULL!",__func__);
+        return;
+   }
+
+   if(!sd_is_drvdata_available(sdio_func_dev))
+   {
+        /* Our card got removed */
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: HDD context is not available\
+                                       in sdio_func_dev!",__func__);
         return;
    }
 
@@ -758,6 +772,12 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
       return;
    }
    
+   if (pHddCtx->isLogpInProgress) {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Ignore resume wlan,\
+                                     LOGP in progress!", __func__);
+      return;
+   }
+
    sdio_func_dev = libra_getsdio_funcdev();
 
    if(sdio_func_dev == NULL)
@@ -765,6 +785,14 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
       /* Our card got removed */
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: sdio_func_dev is NULL!",__func__);
       return;
+   }
+
+   if(!sd_is_drvdata_available(sdio_func_dev))
+   {
+        /* Our card got removed */
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: HDD context is not available\
+                                       in sdio_func_dev!",__func__);
+        return;
    }
 
    sd_claim_host(sdio_func_dev);

@@ -5546,6 +5546,10 @@ WDI_ProcessEndScanReq
   }
 
   wpalMutexAcquire(&pWDICtx->wptMutex);
+  /* commenting this check as UMAC is sending END_SCAN_REQ after FINISH_SCAN 
+  * sometimes  because of this check the scan request is not being 
+  * forwarded to HAL and result in hang*/
+#if 0
   /*-----------------------------------------------------------------------
     Check to see if SCAN is already in progress - end scan is only
     allowed when a scan is ongoing and the state of the scan procedure
@@ -5561,7 +5565,7 @@ WDI_ProcessEndScanReq
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
   }
-
+#endif
   pWDICtx->uScanState      = WDI_SCAN_ENDED_ST; 
 
   wpalMutexRelease(&pWDICtx->wptMutex);
@@ -5640,6 +5644,10 @@ WDI_ProcessFinishScanReq
   pwdiFinishScanParams = (WDI_FinishScanReqParamsType*)pEventData->pEventData;
   wdiFinishScanRspCb   = (WDI_FinishScanRspCb)pEventData->pCBfnc;
   wpalMutexAcquire(&pWDICtx->wptMutex);
+  /* commenting this check as UMAC is sending END_SCAN_REQ after FINISH_SCAN 
+  * sometimes  because of this check the scan request is not being 
+  * forwarded to HAL and result in hang*/
+#if 0
    /*-----------------------------------------------------------------------
     Check to see if SCAN is already in progress
     Finish scan gets invoked any scan states. ie. abort scan
@@ -5654,7 +5662,7 @@ WDI_ProcessFinishScanReq
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
   }
-
+#endif
   /*-----------------------------------------------------------------------
     It is safe to reset the scan flags here because until the response comes
     back all subsequent requests will be blocked at BUSY state 
@@ -8368,8 +8376,8 @@ WDI_ProcessStartInNavMeasReq
   wpt_uint32                     i                   = 0;
   tStartInNavMeasReqParams*      halStartInNavMeasParams;
   tBSSIDChannelInfo*             halBssidChannelInfo;
-  WDI_BSSIDChannelInfo*          wdiBssidChannelInfo;
 
+  WDI_BSSIDChannelInfo* chInfo = NULL;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -8388,8 +8396,8 @@ WDI_ProcessStartInNavMeasReq
    wdiInNavMeasRspCb   = (WDI_InNavMeasRspCb)pEventData->pCBfnc;
 
   /*----------------------------------------*/
-  reqLen = sizeof(pwdiInNavMeasParams->wdiInNavMeasInfo) + 
-                 sizeof(WDI_BSSIDChannelInfo) * 
+  reqLen = sizeof(tStartInNavMeasReqParams) + 
+                 sizeof(tBSSIDChannelInfo) * 
                       (pwdiInNavMeasParams->wdiInNavMeasInfo.ucNumBSSIDs - 1);
   /*-----------------------------------------------------------------------
      Get message buffer
@@ -8418,21 +8426,18 @@ WDI_ProcessStartInNavMeasReq
   wpalMemoryCopy(&halStartInNavMeasParams->selfMacAddr,
                   &pwdiInNavMeasParams->wdiInNavMeasInfo.selfMacAddr,
                                  sizeof(wpt_macAddr));
-  wpalMemoryCopy(&halStartInNavMeasParams->bssidChannelInfo[0],
-                   &pwdiInNavMeasParams->wdiInNavMeasInfo.bssidChannelInfo[0],
-                      sizeof(WDI_BSSIDChannelInfo));
 
-  wdiBssidChannelInfo = (WDI_BSSIDChannelInfo*)(pwdiInNavMeasParams + 1);
 
+  chInfo = &pwdiInNavMeasParams->wdiInNavMeasInfo.bssidChannelInfo[0] ;
   halBssidChannelInfo = 
                 (tBSSIDChannelInfo *)(pSendBuffer + usDataOffset +
                       sizeof(tStartInNavMeasReqParams));
 
-  //copy remaining BSSIDs' channel info to shared memory 
-  for(i = 0; i < halStartInNavMeasParams->numBSSIDs - 1 ; i++)
+  //copy BSSIDs' channel info to shared memory 
+  for(i = 0; i < halStartInNavMeasParams->numBSSIDs ; i++)
   {
-     wpalMemoryCopy(halBssidChannelInfo + i , &wdiBssidChannelInfo[i],
-                                              sizeof(tBSSIDChannelInfo));
+     wpalMemoryCopy(halBssidChannelInfo - 1 + i , &chInfo[i],
+                                              sizeof(WDI_BSSIDChannelInfo));
   }
 
   pWDICtx->wdiReqStatusCB     = pwdiInNavMeasParams->wdiReqStatusCB;
@@ -12033,7 +12038,7 @@ WDI_ProcessConfigBSSRsp
      halConfigBssRspMsg.configBssRspParams.bcastDpuSignature;
 
   wdiConfigBSSParams.ucUcastSig = 
-     halConfigBssRspMsg.configBssRspParams.bcastDpuSignature;
+     halConfigBssRspMsg.configBssRspParams.ucastDpuSignature;
 
   wdiConfigBSSParams.ucSTAIdx = halConfigBssRspMsg.configBssRspParams.bssStaIdx;
 
@@ -12084,78 +12089,7 @@ WDI_ProcessConfigBSSRsp
   pBSSSes->bcastStaIdx =
      halConfigBssRspMsg.configBssRspParams.bssBcastStaIdx;
 
-/* Commenting the following code as explicit ADD STA will come with convergence 
- * code */
-#if 0 
-  /* Store index into the pBSSSes array, this is useful for look-up later
-     wdiAddSTAParam.ucBSSIdx = ucCurrentBSSSesIdx */
-
-  /* Update the BSSID of self STA */
-  if(WDI_STATableSetBSSID( pWDICtx, 
-                           halConfigBssRspMsg.configBssRspParams.bssSelfStaIdx,
-                           wdiConfigBSSParams.macBSSID ) != WDI_STATUS_SUCCESS)
-  {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Could not update the Self STA BSSID!");
-
-    WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
-    
-    wpalMutexRelease(&pWDICtx->wptMutex);
-    return WDI_STATUS_E_NOT_ALLOWED; 
-  }
-
-  /* Update the BSS Index of self STA */
-  if(WDI_STATableSetBSSIdx( pWDICtx, 
-                            halConfigBssRspMsg.configBssRspParams.bssSelfStaIdx,
-                            ucCurrentBSSSesIdx ) != WDI_STATUS_SUCCESS)
-  {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Could not update the Self STA BSS Index!");
-
-    WDI_DetectedDeviceError( pWDICtx, WDI_ERR_BASIC_OP_FAILURE); 
-    
-    wpalMutexRelease(&pWDICtx->wptMutex);
-    return WDI_STATUS_E_NOT_ALLOWED; 
-  }
-#endif
   /* !TO DO: Shuould we be updating the RMF Capability of self STA here? */
-
-  /* Add the Broadcast STA to the STA table */
-  WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-             "Add BCAST STA to table for index: %d",
-             halConfigBssRspMsg.configBssRspParams.bssBcastStaIdx );
-
-  wdiBcastAddSTAParam.bcastDpuIndex = 
-    halConfigBssRspMsg.configBssRspParams.bcastDpuDescIndx; 
-  wdiBcastAddSTAParam.bcastMgmtDpuIndex = 
-    halConfigBssRspMsg.configBssRspParams.mgmtDpuDescIndx;
-
-  wdiBcastAddSTAParam.bcastDpuSignature = 
-    halConfigBssRspMsg.configBssRspParams.bcastDpuSignature;
-
-  wdiBcastAddSTAParam.bcastMgmtDpuSignature = 
-    halConfigBssRspMsg.configBssRspParams.mgmtDpuSignature;
-
-  wdiBcastAddSTAParam.dpuIndex = 
-    halConfigBssRspMsg.configBssRspParams.dpuDescIndx;
-  wdiBcastAddSTAParam.dpuSig   = 
-    halConfigBssRspMsg.configBssRspParams.ucastDpuSignature;
- 
-  wpalMemoryCopy(wdiBcastAddSTAParam.macBSSID, 
-                pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.macBSSID , 
-                WDI_MAC_ADDR_LEN); 
-
-  wdiBcastAddSTAParam.ucBSSIdx = halConfigBssRspMsg.configBssRspParams.bssIdx;
-
-  wdiBcastAddSTAParam.ucHTCapable = 
-      pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.ucHTCapable; 
-  wdiBcastAddSTAParam.ucRmfEnabled=  
-      pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.ucRMFEnabled;
-  wdiBcastAddSTAParam.ucWmmEnabled = 
-      pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.wdiSTAContext.ucWMMEnabled;
-
-  WDI_AddBcastSTAtoSTATable( pWDICtx, &wdiBcastAddSTAParam,
-                            halConfigBssRspMsg.configBssRspParams.bssBcastStaIdx );
 
   /*-------------------------------------------------------------------------
       Add Peer STA
@@ -12192,13 +12126,29 @@ WDI_ProcessConfigBSSRsp
       halConfigBssRspMsg.configBssRspParams.bcastDpuSignature;
   wdiAddSTAParam.ucRmfEnabled          =  
       pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.ucRMFEnabled;
-  wdiAddSTAParam.ucBSSIdx = ucCurrentBSSSesIdx;
+  wdiAddSTAParam.ucBSSIdx = 
+     halConfigBssRspMsg.configBssRspParams.bssIdx;
 
   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
               "Add STA to the table index: %d", wdiAddSTAParam.ucSTAIdx );
 
   WDI_STATableAddSta(pWDICtx,&wdiAddSTAParam);
+  /*-------------------------------------------------------------------------
+      Add Broadcast STA only in AP mode
+    -------------------------------------------------------------------------*/
+  if( pWDICtx->wdiCachedConfigBssReq.wdiReqInfo.ucOperMode == 
+      WDI_BSS_OPERATIONAL_MODE_AP )
+  {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                "Add BCAST STA to table for index: %d",
+                halConfigBssRspMsg.configBssRspParams.bssBcastStaIdx );
 
+     wpalMemoryCopy( &wdiBcastAddSTAParam, &wdiAddSTAParam, 
+                     sizeof(WDI_AddStaParams) );
+
+     WDI_AddBcastSTAtoSTATable( pWDICtx, &wdiBcastAddSTAParam,
+                                halConfigBssRspMsg.configBssRspParams.bssBcastStaIdx );
+  }
 
   wpalMutexRelease(&pWDICtx->wptMutex);
 
@@ -12531,20 +12481,20 @@ WDI_ProcessDelSTARsp
 
     /* At this point add the self-STA */
 
-    /*! TO DO: wdiAddSTAParam.bcastMgmtDpuSignature */
-    /* !TO DO: wdiAddSTAParam.bcastDpuSignature */
-    /*! TO DO: wdiAddSTAParam.dpuSig */
     /*! TO DO: wdiAddSTAParam.ucWmmEnabled */
     /*! TO DO: wdiAddSTAParam.ucHTCapable */
     /*! TO DO: wdiAddSTAParam.ucRmfEnabled */
 
 #define WDI_DPU_SELF_STA_DEFAULT_IDX 0
+#define WDI_DPU_SELF_STA_DEFAULT_SIG 0
 
     //all DPU indices are the same for self STA
     pSTATable[wdiDelSTARsp.ucSTAIdx].dpuIndex = WDI_DPU_SELF_STA_DEFAULT_IDX;
     pSTATable[wdiDelSTARsp.ucSTAIdx].bcastDpuIndex = WDI_DPU_SELF_STA_DEFAULT_IDX;
     pSTATable[wdiDelSTARsp.ucSTAIdx].bcastMgmtDpuIndex = WDI_DPU_SELF_STA_DEFAULT_IDX;
-
+    pSTATable[wdiDelSTARsp.ucSTAIdx].bcastDpuSignature = WDI_DPU_SELF_STA_DEFAULT_SIG;
+    pSTATable[wdiDelSTARsp.ucSTAIdx].bcastMgmtDpuSignature = WDI_DPU_SELF_STA_DEFAULT_SIG;
+    pSTATable[wdiDelSTARsp.ucSTAIdx].dpuSig = WDI_DPU_SELF_STA_DEFAULT_SIG;
   }
   else
   {
@@ -13388,6 +13338,8 @@ WDI_ProcessDelSTASelfRsp
   WDI_DelSTASelfRspParamsType     wdiDelStaSelfRspParams;
   WDI_DelSTASelfRspCb             wdiDelStaSelfRspCb   = NULL;
   tDelStaSelfRspParams            delStaSelfRspParams;
+  wpt_uint8                       ucStaIdx;
+
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   wdiDelStaSelfRspCb = (WDI_DelSTASelfRspCb)pWDICtx->pfncRspCB; 
@@ -13409,11 +13361,26 @@ WDI_ProcessDelSTASelfRsp
     -------------------------------------------------------------------------*/
 
   wpalMemoryCopy( &delStaSelfRspParams, 
-      (wpt_uint8*)pEventData->pEventData,
-      sizeof(tDelStaSelfRspParams));
+                        (wpt_uint8*)pEventData->pEventData,
+                              sizeof(tDelStaSelfRspParams));
 
   wdiDelStaSelfRspParams.wdiStatus   =   
     WDI_HAL_2_WDI_STATUS(delStaSelfRspParams.status); 
+
+  if( eHAL_STATUS_DEL_STA_SELF_IGNORED_REF_COUNT_NOT_ZERO
+                                   != delStaSelfRspParams.status)
+  {
+    WDI_STATableFindStaidByAddr(pWDICtx, delStaSelfRspParams.selfMacAddr,
+                                    &ucStaIdx);
+    if(WDI_STATUS_E_FAILURE == ucStaIdx)
+    {
+      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "%s: Invalid STA IDX is returned ", __FUNCTION__);
+      WDI_ASSERT(0);
+      return WDI_STATUS_E_FAILURE; 
+    }
+    WDI_STATableDelSta(pWDICtx, ucStaIdx);
+  }
 
   /*Notify UMAC*/
   wdiDelStaSelfRspCb(&wdiDelStaSelfRspParams, (void*) pWDICtx->pRspCBUserData);
@@ -13449,6 +13416,8 @@ WDI_ProcessStartInNavMeasRsp
   wpt_uint8 i = 0;
   wpt_uint8 j = 0;
 
+  tRttRssiResults* rttRssiResults       =        NULL;
+  WDI_RttRssiResults* wdiRttRssiResults =        NULL;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   wdiInNavMeasRspCb = (WDI_InNavMeasRspCb)pWDICtx->pfncRspCB; 
@@ -13477,13 +13446,16 @@ WDI_ProcessStartInNavMeasRsp
 
   allocSize = sizeof(WDI_InNavMeasRspParamsType) - sizeof(WDI_RttRssiResults) ;
 
+  rttRssiResults = &halStartInNavMeasRspParams->rttRssiResults[0] ;
   for(i = 0; i < halStartInNavMeasRspParams->numBSSIDs ; i++)
   {
-    tRttRssiResults  *rttRssiResults = 
-                 &halStartInNavMeasRspParams->rttRssiResults[i] ;
     allocSize += (rttRssiResults->numSuccessfulMeasurements - 1) 
                                            * sizeof(WDI_RttRssiTimeData) ;
     allocSize += sizeof(WDI_RttRssiResults) ;
+    rttRssiResults = (tRttRssiResults *)((uint8 *)rttRssiResults +
+                            sizeof(tRttRssiResults) +
+                             (rttRssiResults->numSuccessfulMeasurements -1) *
+                                sizeof(tRttRssiTimeData));
   }
 
   //Allocate memory for WDI INNAV MEAS RSP structure
@@ -13509,6 +13481,7 @@ WDI_ProcessStartInNavMeasRsp
   WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
             "WDI INNAV RSP STATUS %d RSPLEN %d \n ",
                wdiInNavMeasRspParams->wdiStatus, wdiInNavMeasRspParams->usRspLen);
+  
   //Copy RTT RSSI values only if status is success
   if ( WDI_STATUS_SUCCESS == wdiInNavMeasRspParams->wdiStatus)
   {
@@ -13516,18 +13489,18 @@ WDI_ProcessStartInNavMeasRsp
                                halStartInNavMeasRspParams->numBSSIDs;
 
     /* copy RTT/RSSI results */
+    
+    rttRssiResults    = &halStartInNavMeasRspParams->rttRssiResults[0] ;
+    wdiRttRssiResults = &wdiInNavMeasRspParams->rttRssiResults[0] ;
     for(i = 0 ; i < wdiInNavMeasRspParams->ucNumBSSIDs ; i++)
     {
-      tRttRssiResults* rttRssiResults = 
-                        &halStartInNavMeasRspParams->rttRssiResults[i] ;
-      WDI_RttRssiResults *wdiRttRssiResults = 
-                         &wdiInNavMeasRspParams->rttRssiResults[i] ;
       wdiRttRssiResults->ucNumSuccessfulMeasurements = 
                        rttRssiResults->numSuccessfulMeasurements;
 
-      wpalMemoryCopy(&wdiInNavMeasRspParams->rttRssiResults[i].ucBssid,
-		     &halStartInNavMeasRspParams->rttRssiResults[i].bssid,
-                                                          sizeof(wpt_macAddr));
+      wpalMemoryCopy(wdiRttRssiResults->ucBssid,
+           		     rttRssiResults->bssid,
+                                       sizeof(wpt_macAddr));
+
       for( j = 0; j < rttRssiResults->numSuccessfulMeasurements ; j++)
       {
         tRttRssiTimeData *rttRssiTimeData = 
@@ -13542,9 +13515,18 @@ WDI_ProcessStartInNavMeasRsp
         wdiRttRssiTimeData->uslMeasurementTimeHi = 
                                 rttRssiTimeData->measurementTimeHi ;
         WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_INFO,
-                   "bssid num %d Iteration %d RSSI = %d RTT = %d \n ",
+                   "bssid num %d Iteration %d RSSI = %lu RTT = %d \n ",
                          i, j, rttRssiTimeData->rssi, rttRssiTimeData->rtt);
+        
       } /* for j = 0... */
+      rttRssiResults = (tRttRssiResults *)((uint8 *)rttRssiResults + 
+                            sizeof(tRttRssiResults) + 
+                             (rttRssiResults->numSuccessfulMeasurements -1) *
+                                sizeof(tRttRssiTimeData));
+      wdiRttRssiResults = (WDI_RttRssiResults *)((uint8 *)wdiRttRssiResults + 
+                            sizeof(WDI_RttRssiResults) + 
+                             (wdiRttRssiResults->ucNumSuccessfulMeasurements - 1) *
+                                 sizeof(WDI_RttRssiTimeData));
     }  /* for i = 0 .. */
   } /* if status .. */
 
@@ -13669,9 +13651,11 @@ WDI_ProcessConfigStaRsp
                   sizeof(halConfigStaRsp.configStaRspParams));
 
 
-  wdiCfgSTAParams.ucSTAIdx     = halConfigStaRsp.configStaRspParams.staIdx;
+  wdiCfgSTAParams.ucSTAIdx    = halConfigStaRsp.configStaRspParams.staIdx;
+  wdiCfgSTAParams.ucBssIdx    = halConfigStaRsp.configStaRspParams.bssIdx;
   wdiCfgSTAParams.ucUcastSig  = halConfigStaRsp.configStaRspParams.ucUcastSig;
   wdiCfgSTAParams.ucBcastSig  = halConfigStaRsp.configStaRspParams.ucBcastSig;
+  wdiCfgSTAParams.ucMgmtSig   = halConfigStaRsp.configStaRspParams.ucMgmtSig;
 
    /* MAC Address of STA - take from cache as it does not come back in the
    response*/
@@ -13688,16 +13672,13 @@ WDI_ProcessConfigStaRsp
 
   if ( WDI_STATUS_SUCCESS == wdiCfgSTAParams.wdiStatus )
   {
-    /*Only add sta to the table if this was an add operation
-    ! - check this logic again - anything special that needs to be done for
-    update*/
     if ( WDI_ADD_STA == pWDICtx->wdiCachedConfigStaReq.wdiReqInfo.wdiAction )
     {
       /* ADD STA to table */
-      wdiAddSTAParam.ucSTAIdx     = wdiCfgSTAParams.ucSTAIdx; 
-      wdiAddSTAParam.dpuSig       = wdiCfgSTAParams.ucUcastSig;
-      wdiAddSTAParam.dpuIndex     = wdiCfgSTAParams.ucDpuIndex;
-        
+      wdiAddSTAParam.ucSTAIdx = halConfigStaRsp.configStaRspParams.staIdx; 
+      wdiAddSTAParam.dpuSig   = halConfigStaRsp.configStaRspParams.ucUcastSig;
+      wdiAddSTAParam.dpuIndex = halConfigStaRsp.configStaRspParams.dpuIndex;
+       
       /*This info can be retrieved from the cached initial request*/
       wdiAddSTAParam.ucWmmEnabled = 
         pWDICtx->wdiCachedConfigStaReq.wdiReqInfo.ucWMMEnabled;
@@ -13727,15 +13708,39 @@ WDI_ProcessConfigStaRsp
         WDI_ASSERT(0);
         return WDI_STATUS_E_NOT_ALLOWED; 
       }
+
       /*Add BSS specific parameters*/
-      wdiAddSTAParam.bcastMgmtDpuIndex     = pBSSSes->bcastMgmtDpuIndex;
-      wdiAddSTAParam.bcastMgmtDpuSignature = pBSSSes->bcastMgmtDpuSignature;
-      wdiAddSTAParam.bcastDpuIndex         = pBSSSes->bcastDpuIndex;
-      wdiAddSTAParam.bcastDpuSignature     = pBSSSes->bcastDpuSignature;
+      wdiAddSTAParam.bcastMgmtDpuIndex = 
+         halConfigStaRsp.configStaRspParams.bcastMgmtDpuIdx;
+      wdiAddSTAParam.bcastMgmtDpuSignature = 
+         halConfigStaRsp.configStaRspParams.ucMgmtSig;
+      wdiAddSTAParam.bcastDpuIndex  = 
+         halConfigStaRsp.configStaRspParams.bcastDpuIndex;
+      wdiAddSTAParam.bcastDpuSignature = 
+         halConfigStaRsp.configStaRspParams.ucBcastSig;
       wdiAddSTAParam.ucRmfEnabled          = pBSSSes->ucRmfEnabled;
       wdiAddSTAParam.ucBSSIdx              = ucCurrentBSSSesIdx;
       
       WDI_STATableAddSta(pWDICtx,&wdiAddSTAParam);
+    }
+    if( WDI_UPDATE_STA == pWDICtx->wdiCachedConfigStaReq.wdiReqInfo.wdiAction )
+    {
+       WDI_StaStruct* pSTATable = (WDI_StaStruct*) pWDICtx->staTable;
+
+       pSTATable[halConfigStaRsp.configStaRspParams.staIdx].bcastDpuIndex = 
+          halConfigStaRsp.configStaRspParams.bcastDpuIndex;
+       pSTATable[halConfigStaRsp.configStaRspParams.staIdx].bcastDpuSignature = 
+          halConfigStaRsp.configStaRspParams.ucBcastSig;
+       pSTATable[halConfigStaRsp.configStaRspParams.staIdx].bcastMgmtDpuIndex = 
+          halConfigStaRsp.configStaRspParams.bcastMgmtDpuIdx;
+       pSTATable[halConfigStaRsp.configStaRspParams.staIdx].bcastMgmtDpuSignature = 
+          halConfigStaRsp.configStaRspParams.ucMgmtSig;
+       pSTATable[halConfigStaRsp.configStaRspParams.staIdx].bssIdx = 
+          halConfigStaRsp.configStaRspParams.bssIdx;
+       pSTATable[halConfigStaRsp.configStaRspParams.staIdx].dpuIndex = 
+          halConfigStaRsp.configStaRspParams.dpuIndex;
+       pSTATable[halConfigStaRsp.configStaRspParams.staIdx].dpuSig = 
+          halConfigStaRsp.configStaRspParams.ucUcastSig;
     }
   }
 
@@ -16177,7 +16182,8 @@ WDI_ProcessRequest
   /*!! Skip sanity check as this is called from the FSM functionss which 
     already checked these pointers*/
 
-  if ( pEventData->wdiRequest < WDI_MAX_REQ )
+  if (( pEventData->wdiRequest < WDI_MAX_REQ ) &&
+      ( NULL != pfnReqProcTbl[pEventData->wdiRequest] ))
   {  
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
               "Calling request processing function for req %d %x", 
@@ -16446,7 +16452,8 @@ WDI_ProcessResponse
     already checked these pointers
     ! - revisit this assumption */
 
-  if ( pEventData->wdiResponse < WDI_MAX_RESP )
+  if (( pEventData->wdiResponse < WDI_MAX_RESP ) &&
+      ( NULL != pfnRspProcTbl[pEventData->wdiResponse] ))
   {  
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
               "Calling response processing function for resp %d %x", 
