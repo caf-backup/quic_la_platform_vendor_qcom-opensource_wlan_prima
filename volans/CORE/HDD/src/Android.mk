@@ -6,8 +6,30 @@ WLAN_BLD_DIR  := vendor/qcom/proprietary/wlan
 VOLANS_FW_DIR := vendor/qcom/proprietary/wlan/volans/firmware_bin
 DLKM_DIR      := build/dlkm
 
+# Default nv.bin to move to persist
+FW_NV_FILE := WCN1314_qcom_wlan_nv.bin
+
+#These checks are only for msm7x30 and msm8660 and msm7627a series
+#The files mentioned will present in vendor/qcom/proprietary/wlan/volans/firmware_bin/ directory
+
+ifeq "$(findstring msm7630,$(QCOM_TARGET_PRODUCT))" "msm7630"
+FW_NV_FILE := msm7630_qcom_wlan_nv.bin
+endif
+
+ifeq "$(findstring msm7627a,$(QCOM_TARGET_PRODUCT))" "msm7627a"
+FW_NV_FILE := msm7627a_qcom_wlan_nv.bin
+endif
+
+ifeq "$(findstring msm8660_csfb,$(QCOM_TARGET_PRODUCT))" "msm8660_csfb"
+FW_NV_FILE := msm8660_qcom_wlan_nv.bin
+endif
+
+ifeq "$(findstring msm8660_surf,$(QCOM_TARGET_PRODUCT))" "msm8660_surf"
+FW_NV_FILE := msm8660_qcom_wlan_nv.bin
+endif
+
 PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_qcom_fw.bin:system/etc/firmware/wlan/volans/WCN1314_qcom_fw.bin
-PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_qcom_wlan_nv.bin:persist/WCN1314_qcom_wlan_nv.bin
+PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/$(FW_NV_FILE):persist/WCN1314_qcom_wlan_nv.bin
 PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_cfg.dat:system/etc/firmware/wlan/volans/WCN1314_cfg.dat
 PRODUCT_COPY_FILES += $(VOLANS_FW_DIR)/WCN1314_qcom_cfg.ini:system/etc/firmware/wlan/volans/WCN1314_qcom_cfg.ini
 
