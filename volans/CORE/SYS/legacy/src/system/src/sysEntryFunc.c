@@ -137,6 +137,8 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
     tSirRetStatus ret;
     tpHalBufDesc pBd;
     tMgmtFrmDropReason dropReason;
+	tANI_U16 pkt_length = 0;
+
 
 #if defined(ANI_OS_TYPE_RTAI_LINUX)
 #ifndef GEN6_ONWARDS
@@ -145,8 +147,29 @@ sysBbtProcessMessageCore(tpAniSirGlobal pMac, tpSirMsgQ pMsg, tANI_U32 type,
 #elif defined(VOSS_ENABLED)
     vos_pkt_t  *pVosPkt = (vos_pkt_t *)pMsg->bodyptr;
     VOS_STATUS  vosStatus = vos_pkt_peek_data( pVosPkt, 0, (v_PVOID_t *)&pBd, WLANHAL_RX_BD_HEADER_SIZE );
+    
+	if( VOS_IS_STATUS_SUCCESS(vosStatus))
+	{
+    	vos_pkt_get_packet_length( pVosPkt,  &pkt_length);
 
-    if( !VOS_IS_STATUS_SUCCESS(vosStatus) )
+		/*The return value for the above API is not checked as
+		the API preceding this one i.e  vos_pkt_peek_data makes the same checks
+		*/
+		
+		if(pkt_length != (WLANHAL_RX_BD_HEADER_SIZE + \
+						 SIR_MAC_BD_TO_MPDUHEADER_LEN(pBd) + \
+						 SIR_MAC_BD_TO_PAYLOAD_LEN(pBd)) \
+					  || ((tANI_U16)(SIR_MAC_BD_TO_MPDUDATA(pBd) - \
+				 		 (tANI_U8 *)SIR_MAC_BD_TO_MPDUHEADER(pBd))) \
+					  != SIR_MAC_BD_TO_MPDUHEADER_LEN(pBd))
+			{
+				vos_pkt_return_packet(pVosPkt);
+				return eSIR_FAILURE;
+			}
+	
+	}
+
+    else
 	{
         vos_pkt_return_packet(pVosPkt);
         return eSIR_FAILURE;
