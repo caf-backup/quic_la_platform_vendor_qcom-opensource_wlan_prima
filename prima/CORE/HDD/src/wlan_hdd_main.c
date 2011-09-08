@@ -800,12 +800,6 @@ VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
       status = VOS_STATUS_E_FAILURE;
       goto error_register_wext;
    }
-
-   //Stop the Interface TX queue.
-   netif_tx_disable(pWlanDev);
-   //netif_tx_disable(pWlanDev);
-   netif_carrier_off(pWlanDev);
-
    //Safe to register the hard_start_xmit function again
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29))
    wlan_drv_ops.ndo_start_xmit = hdd_hard_start_xmit;
@@ -838,7 +832,6 @@ VOS_STATUS hdd_init_station_mode( hdd_adapter_t *pAdapter )
             "hdd_wmm_adapter_init() failed with status code %08d [x%08lx]",
                             status, status );
       goto error_wmm_init;
-
    }
 
    set_bit(WMM_INIT_DONE, &pAdapter->event_flags);
@@ -970,8 +963,6 @@ void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_
 {
    struct net_device *pWlanDev = pAdapter->dev;
 
-   hdd_deinit_adapter( pHddCtx, pAdapter );
-
    if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) {
       if( rtnl_held )
       {
@@ -983,6 +974,8 @@ void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_
       }
       clear_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
    }
+
+   hdd_deinit_adapter( pHddCtx, pAdapter );
 }
 
 hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
@@ -1006,41 +999,57 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
            if( NULL == pAdapter )
               return NULL;
-     
+
            pAdapter->device_mode = session_type;
-           status = hdd_register_interface( pAdapter, rtnl_held );
-           if( VOS_STATUS_SUCCESS != status )
-               goto err_free_netdev;
+
            status = hdd_init_station_mode( pAdapter );
            if( VOS_STATUS_SUCCESS != status )
-               goto err_netdev_unregister;
-           break;
-       }
+              goto err_free_netdev;
+
+           status = hdd_register_interface( pAdapter, rtnl_held );
+           if( VOS_STATUS_SUCCESS != status )
+           {
+              hdd_deinit_adapter(pHddCtx, pAdapter);
+              goto err_free_netdev;
+           }
+           //Stop the Interface TX queue.
+           netif_tx_disable(pAdapter->dev);
+           //netif_tx_disable(pWlanDev);
+           netif_carrier_off(pAdapter->dev);
+
+         break;
+      }
+
 #ifdef WLAN_FEATURE_P2P
        case WLAN_HDD_P2P_GO:
 #endif
-       case WLAN_HDD_SOFTAP:
-       {
-#ifdef WLAN_SOFTAP_FEATURE
-           pAdapter = hdd_wlan_create_ap_dev( pHddCtx, macAddr, (tANI_U8 *)iface_name );
-           if( NULL == pAdapter )
-               return NULL;
+      case WLAN_HDD_SOFTAP:
+      {
+          pAdapter = hdd_wlan_create_ap_dev( pHddCtx, macAddr, (tANI_U8 *)iface_name );
+          if( NULL == pAdapter )
+              return NULL;
 
-           pAdapter->device_mode = session_type;
-           
-           status = hdd_register_hostapd( pAdapter, rtnl_held );
-           if( VOS_STATUS_SUCCESS != status )
-               goto err_free_netdev;
-           status = hdd_init_ap_mode(pAdapter);
-           if( VOS_STATUS_SUCCESS != status )
-               goto err_netdev_unregister;
-           hdd_set_conparam( 1 );
-#endif
+          pAdapter->device_mode = session_type;
 
-           break;
-       }  
-       case WLAN_HDD_MONITOR:
-       {
+          status = hdd_init_ap_mode(pAdapter);
+          if( VOS_STATUS_SUCCESS != status )
+             goto err_free_netdev;
+
+          status = hdd_register_hostapd( pAdapter, rtnl_held );
+          if( VOS_STATUS_SUCCESS != status )
+          {
+             hdd_deinit_adapter(pHddCtx, pAdapter);
+             goto err_free_netdev;
+          }
+
+          netif_tx_disable(pAdapter->dev);
+          netif_carrier_off(pAdapter->dev);
+
+          hdd_set_conparam( 1 );
+          break;
+      }
+      case WLAN_HDD_MONITOR:
+      {
 #ifdef CONFIG_CFG80211   
          pAdapter = hdd_alloc_station_adapter( pHddCtx, macAddr, iface_name );
          if( NULL == pAdapter )
@@ -1146,12 +1155,6 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
    return pAdapter;
 
-err_netdev_unregister:
-   if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) 
-   {
-       unregister_netdev(pAdapter->dev);
-       clear_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
-   } 
 err_free_netdev:
    free_netdev(pAdapter->dev);
    return NULL;
@@ -2141,11 +2144,11 @@ int hdd_wlan_startup(struct device *dev )
       return -1;
    }
 
-   pHddCtx = wiphy_priv(wiphy) ;
- 
+   pHddCtx = wiphy_priv(wiphy);
+
 #else      
       
-   pHddCtx = vos_mem_malloc ( sizeof( hdd_context_t ) ); 
+   pHddCtx = vos_mem_malloc ( sizeof( hdd_context_t ) );
    if(pHddCtx == NULL)
    {
       hddLog(VOS_TRACE_LEVEL_ERROR,"%s: cfg80211 init failed", __func__);
@@ -2157,12 +2160,12 @@ int hdd_wlan_startup(struct device *dev )
    vos_mem_zero(pHddCtx, sizeof( hdd_context_t ));
 
 #ifdef CONFIG_CFG80211
-   pHddCtx->wiphy = wiphy ;
+   pHddCtx->wiphy = wiphy;
 #endif
    pHddCtx->isLoadUnloadInProgress = TRUE;
 
    vos_set_load_unload_in_progress(VOS_MODULE_ID_VOSS, TRUE);
-   
+
    /*Get vos context here bcoz vos_open requires it*/
    pVosContext = vos_get_global_context(VOS_MODULE_ID_SYS, NULL);
 
@@ -2287,7 +2290,6 @@ int hdd_wlan_startup(struct device *dev )
 #endif // ANI_BUS_TYPE_SDIO
 
 #ifdef MSM_PLATFORM_7x30
-
    /* FIXME: Volans 2.0 configuration. Reconfigure 1.3v SW supply to 1.3v. It will be configured to
     * 1.4v in vos_ChipPowerup() routine above
     */
@@ -2592,16 +2594,6 @@ err_config:
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
 
-#if 0
-err_netdev_unregister:
-   if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) {
-      unregister_netdev(pWlanDev);
-      clear_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
-   }
-
-err_free_netdev:
-   free_netdev(pWlanDev);
-#endif
 err_free_hdd_context:
 #ifdef CONFIG_CFG80211
    wiphy_unregister(wiphy) ; 

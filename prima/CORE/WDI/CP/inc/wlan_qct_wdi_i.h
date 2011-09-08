@@ -66,7 +66,7 @@ when        who    what, where, why
 /*WDI Response timeout - how long will WDI wait for a response from the device     
     - it should be large enough to allow any other failure mechanism to kick 
       in before we get to a timeout (ms units)*/
-#define WDI_RESPONSE_TIMEOUT   120000
+#define WDI_RESPONSE_TIMEOUT   10000
 
 /*! TO DO: check this against the HAL header and set the right values*/
 #define WDI_MAX_SUPPORTED_STAS    10 

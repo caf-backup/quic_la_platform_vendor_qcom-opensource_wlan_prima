@@ -7456,12 +7456,14 @@ void limUpdateBeacon(tpAniSirGlobal pMac)
     {
         if(pMac->lim.gpSession[i].valid == TRUE )
         {
-            if( (pMac->lim.gpSession[i].limSystemRole == eLIM_AP_ROLE) || 
+            if( ( (pMac->lim.gpSession[i].limSystemRole == eLIM_AP_ROLE) || 
                 (pMac->lim.gpSession[i].limSystemRole == eLIM_STA_IN_IBSS_ROLE) )
+                && (eLIM_SME_NORMAL_STATE == pMac->lim.gpSession[i].limSmeState)
+               )
             {
                 schSetFixedBeaconFields(pMac,&pMac->lim.gpSession[i]);
-
-             }
+                limSendBeaconInd(pMac, &pMac->lim.gpSession[i]);
+            }
             else
             {
                 if( (pMac->lim.gpSession[i].limSystemRole == eLIM_BT_AMP_AP_ROLE)||
@@ -7473,7 +7475,6 @@ void limUpdateBeacon(tpAniSirGlobal pMac)
                         schSetFixedBeaconFields(pMac,&pMac->lim.gpSession[i]);
                     }
                 }
-
             }
         }
     }   

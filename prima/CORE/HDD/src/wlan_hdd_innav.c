@@ -146,7 +146,18 @@ int iw_get_innav_measurements(
                     pRslts_out->bssid[4] = pRslts_in->bssid[4];
                     pRslts_out->bssid[5] = pRslts_in->bssid[5];
 
+                    hddLog(LOG4, "INNAV:HDD RSP BSSID[%02d]:%02X:%02X:%02X:%02X:%02X:%02X\n",
+                    bssidCnt,
+                    pRslts_out->bssid[0],
+                    pRslts_out->bssid[1],
+                    pRslts_out->bssid[2],
+                    pRslts_out->bssid[3],
+                    pRslts_out->bssid[4],
+                    pRslts_out->bssid[5]);
+
                     pRslts_out->numSuccessfulMeasurements = pRslts_in->numSuccessfulMeasurements;
+
+                    hddLog(LOG4, "numSuccesfulMeas = %d\n",pRslts_out->numSuccessfulMeasurements);
 
                     for(dataCnt=0;dataCnt<pRslts_out->numSuccessfulMeasurements;dataCnt++)
                     {
@@ -160,6 +171,10 @@ int iw_get_innav_measurements(
                                             pRslts_in->rttRssiTimeData[dataCnt].measurementTime;
                         pRslts_out->rttRssiSnrTimeData[dataCnt].measurementTimeHi = 
                                             pRslts_in->rttRssiTimeData[dataCnt].measurementTimeHi;
+                        hddLog(LOG4, "INNAV HDD bssid num %d Iteration %d RSSI = %d RTT = %d \n ",
+                                           bssidCnt,dataCnt, 
+                                                 pRslts_out->rttRssiSnrTimeData[dataCnt].rssi,
+                                                             pRslts_out->rttRssiSnrTimeData[dataCnt].rtt);
                     }
 
                     buf_out += sizeof(struct iw_innav_results)
@@ -229,10 +244,10 @@ int iw_set_innav_measurements(
             break;
         }
     
-        hddLog(LOG1, "INNAV:HDD: #bssids       %u\n", measurementReq->numBSSIDs);
-        hddLog(LOG1, "INNAV:HDD: #mesurements  %u\n", measurementReq->numInNavMeasurements);
-        hddLog(LOG1, "INNAV:HDD: #repetitions  %u\n", measurementReq->numSetRepetitions);
-        hddLog(LOG1, "INNAV:HDD: time-interval %u\n", measurementReq->measurementTimeInterval);
+        hddLog(LOG4, "INNAV:HDD: #bssids       %u\n", measurementReq->numBSSIDs);
+        hddLog(LOG4, "INNAV:HDD: #mesurements  %u\n", measurementReq->numInNavMeasurements);
+        hddLog(LOG4, "INNAV:HDD: #repetitions  %u\n", measurementReq->numSetRepetitions);
+        hddLog(LOG4, "INNAV:HDD: time-interval %u\n", measurementReq->measurementTimeInterval);
 
         /* Perform the basic checks for the incoming requests */
         if(measurementReq->numBSSIDs < 1)
@@ -274,7 +289,7 @@ int iw_set_innav_measurements(
 
         for(bssidCount=0;bssidCount<measurementReq->numBSSIDs;bssidCount++)
         {
-            hddLog(LOG1, "INNAV:HDD BSSID[%02d]:%02X:%02X:%02X:%02X:%02X:%02X\n", 
+            hddLog(LOG4, "INNAV:HDD BSSID[%02d]:%02X:%02X:%02X:%02X:%02X:%02X\n", 
                 bssidCount,
                 measurementReq->bssidChannelInfo[bssidCount].bssid[0],
                 measurementReq->bssidChannelInfo[bssidCount].bssid[1],

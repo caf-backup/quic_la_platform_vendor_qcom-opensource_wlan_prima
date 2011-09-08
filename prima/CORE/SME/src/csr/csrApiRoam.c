@@ -8396,21 +8396,21 @@ eHalStatus csrRoamLostLink( tpAniSirGlobal pMac, tANI_U32 sessionId, tANI_U32 ty
            roamInfo.staId = (tANI_U8)pDisassocIndMsg->staId;
        }else if( eWNI_SME_DEAUTH_IND == type ){
            //staMacAddr
-          palCopyMemory(pMac->hHdd, roamInfo.peerMac, pDeauthIndMsg->peerMacAddr, sizeof(tSirMacAddr));
-          roamInfo.staId = (tANI_U8)pDeauthIndMsg->staId;
+           palCopyMemory(pMac->hHdd, roamInfo.peerMac, pDeauthIndMsg->peerMacAddr, sizeof(tSirMacAddr));
+           roamInfo.staId = (tANI_U8)pDeauthIndMsg->staId;
        }
 #endif
 
-        csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_LOSTLINK, result);
+       csrRoamCallCallback(pMac, sessionId, &roamInfo, 0, eCSR_ROAM_LOSTLINK, result);
 
        /*No need to start idle scan in case of IBSS/SAP or in case concurrent 
          sessions are running */
        if(CSR_IS_INFRASTRUCTURE(&pSession->connectedProfile)
          && !vos_concurrent_sessions_running()){
-        csrScanStartIdleScan(pMac);
+           csrScanStartIdleScan(pMac);
        }
     }
-    
+
     return (status);
 }
 

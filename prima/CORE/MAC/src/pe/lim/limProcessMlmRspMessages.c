@@ -490,6 +490,7 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
     tLimMlmAssocReq    *pMlmAssocReq;
     tLimMlmAuthCnf     *pMlmAuthCnf;
     tpPESession     psessionEntry;
+    tANI_U32        teleBcnEn = 0;
 //    tANI_U8         sessionId;
 
     if(pMsgBuf == NULL)
@@ -691,15 +692,39 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                FL("Capabilities to be used in AssocReq=0x%X, privacy bit=%x\n"),
                caps,
                ((tpSirMacCapabilityInfo) &pMlmAssocReq->capabilityInfo)->privacy);)
+
+           /* If telescopic beaconing is enabled, set listen interval to
+              WNI_CFG_TELE_BCN_MAX_LI */
+            if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_WAKEUP_EN, &teleBcnEn) != 
+               eSIR_SUCCESS) 
+               limLog(pMac, LOGP, FL("Couldn't get WNI_CFG_TELE_BCN_WAKEUP_EN\n"));
+
+            val = WNI_CFG_LISTEN_INTERVAL_STADEF;
+
+            if(teleBcnEn)
+            {
+               if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_MAX_LI, &val) != 
+                  eSIR_SUCCESS)
+               {
+                   /**
+                  * Could not get ListenInterval value
+                  * from CFG. Log error.
+                  */
+                  limLog(pMac, LOGP, FL("could not retrieve ListenInterval\n"));
+               }
+            }
+            else
+            {
             if (wlan_cfgGetInt(pMac, WNI_CFG_LISTEN_INTERVAL, &val) != eSIR_SUCCESS)
             {
                 /**
                  * Could not get ListenInterval value
                  * from CFG. Log error.
                  */
-                limLog(pMac, LOGP,
-                       FL("could not retrieve ListenInterval\n"));
+                  limLog(pMac, LOGP, FL("could not retrieve ListenInterval\n"));
+               }
             }
+
             pMlmAssocReq->listenInterval = (tANI_U16)val;
             /* Update PE session ID*/
             pMlmAssocReq->sessionId = psessionEntry->peSessionId;
@@ -2858,7 +2883,7 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
     tpDphHashNode pStaDs    = NULL;
     tpAddBssParams pAddBssParams = (tpAddBssParams) limMsgQ->bodyptr;
     tpAddStaParams pAddStaParams = NULL;
-    tANI_U32 listenInterval;
+    tANI_U32 listenInterval = WNI_CFG_LISTEN_INTERVAL_STADEF;
 
     if ( eLIM_MLM_WT_ADD_BSS_RSP_FT_REASSOC_STATE != psessionEntry->limMlmState )
         return;

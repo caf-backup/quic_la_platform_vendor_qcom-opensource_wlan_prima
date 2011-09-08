@@ -1161,6 +1161,9 @@ typedef struct
   WDI_EdcaParamRecord acvo; // voice
 } WDI_EDCAParamsType;
 
+/* operMode in ADD BSS message */
+#define WDI_BSS_OPERATIONAL_MODE_AP     0
+#define WDI_BSS_OPERATIONAL_MODE_STA    1
 /*---------------------------------------------------------------------------
   WDI_ConfigBSSReqInfoType
 ---------------------------------------------------------------------------*/
@@ -1399,6 +1402,9 @@ typedef struct
   /*MAC Address of STA*/
   wpt_macAddr     macSTA;
 
+  /* BSSID Index of BSS to which the station is associated */
+  wpt_uint8       ucBssIdx;
+  
   /* DPU Index  - PTK */
   wpt_uint8       ucDpuIndex;
 
@@ -1413,6 +1419,9 @@ typedef struct
 
   /*Broadcast DPU Signature*/
   wpt_uint8       ucBcastSig;
+
+  /* IGTK DPU signature*/
+  wpt_uint8       ucMgmtSig;
 
 }WDI_ConfigSTARspParamsType;
 

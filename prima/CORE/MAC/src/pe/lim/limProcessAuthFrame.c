@@ -31,6 +31,7 @@
 #ifdef WLAN_FEATURE_VOWIFI_11R
 #include "limFT.h"
 #endif
+#include "vos_utils.h"
 
 
 /**
@@ -130,10 +131,10 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
     tCfgWepKeyEntry       	*pKeyMapEntry = NULL;
     struct tLimPreAuthNode  *pAuthNode;
     tLimMlmAuthInd        	mlmAuthInd;
-    tANI_U8                 decryptResult, i;
+    tANI_U8                 decryptResult;
     tANI_U8                 *pChallenge;
     tANI_U32                key_length=8;
-    tSirMacTimeStamp      	timeStamp = { 0, 0 };
+    tANI_U8                 challengeTextArray[SIR_MAC_AUTH_CHALLENGE_LENGTH];
 
     /* Added For BT -AMP support */
     // Get pointer to Authentication frame header and body
@@ -783,19 +784,19 @@ limProcessAuthFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession pse
 
                             pAuthNode->fTimerStarted = 1;
 
-                            // Use current TSF timestamp as
+                            // get random bytes and use as
                             // challenge text
-                            halGetTxTSFtimer(pMac, &timeStamp);
+                            if( !VOS_IS_STATUS_SUCCESS( vos_rand_get_bytes( 0, (tANI_U8 *)challengeTextArray, SIR_MAC_AUTH_CHALLENGE_LENGTH ) ) )
+                            {
+                               limLog(pMac, LOGE,FL("Challenge text preparation failed in limProcessAuthFrame"));
+                            }
+                            
                             pChallenge = pAuthNode->challengeText;
 
-                            for (i = 0; i < SIR_MAC_AUTH_CHALLENGE_LENGTH/sizeof(tSirMacTimeStamp); i ++)
-                            {
-                                palCopyMemory( pMac->hHdd,
-                                             pChallenge,
-                                             (tANI_U8 *) &timeStamp,
-                                             sizeof(tSirMacTimeStamp));
-                                pChallenge += sizeof(tSirMacTimeStamp);
-                            }
+                            palCopyMemory( pMac->hHdd,
+                                           pChallenge,
+                                          (tANI_U8 *) challengeTextArray,
+                                          sizeof(challengeTextArray));
 
                             /**
                              * Sending Authenticaton frame with challenge.

@@ -893,6 +893,7 @@ void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
     tANI_U32 val;
     tSirMsgQ msgQ;
     tSirRetStatus retCode;
+    tANI_U32 teleBcnEn = 0;
 
     chanNum = psessionEntry->currentOperChannel; 
     limGetSessionInfo(pMac,(tANI_U8*)pMsgBuf, &smeSessionId, &transactionId);
@@ -938,14 +939,32 @@ void limProcessMlmFTReassocReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf,
     /* Update PE sessionId*/
     pMlmReassocReq->sessionId = psessionEntry->peSessionId;
 
-    if (wlan_cfgGetInt(pMac, WNI_CFG_LISTEN_INTERVAL, &val) != eSIR_SUCCESS)
+    /* If telescopic beaconing is enabled, set listen interval to WNI_CFG_TELE_BCN_MAX_LI */
+    if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_WAKEUP_EN, &teleBcnEn) != 
+       eSIR_SUCCESS) 
+       limLog(pMac, LOGP, FL("Couldn't get WNI_CFG_TELE_BCN_WAKEUP_EN\n"));
+
+    if(teleBcnEn)
     {
-        /**
-         * Could not get ListenInterval value
-         * from CFG. Log error.
-         */
-        limLog(pMac, LOGE, FL("could not retrieve ListenInterval\n"));
-        return;
+       if(wlan_cfgGetInt(pMac, WNI_CFG_TELE_BCN_MAX_LI, &val) != eSIR_SUCCESS)
+          /**
+            * Could not get ListenInterval value
+            * from CFG. Log error.
+          */
+          limLog(pMac, LOGE, FL("could not retrieve ListenInterval\n"));
+          return;
+    }
+    else
+    {
+    if (wlan_cfgGetInt(pMac, WNI_CFG_LISTEN_INTERVAL, &val) != eSIR_SUCCESS)
+      {
+         /**
+            * Could not get ListenInterval value
+            * from CFG. Log error.
+            */
+         limLog(pMac, LOGE, FL("could not retrieve ListenInterval\n"));
+         return;
+      }
     }
 
     pMlmReassocReq->listenInterval = (tANI_U16) val;

@@ -1760,11 +1760,12 @@ typedef PACKED_PRE struct PACKED_POST
     /* Request Parameters */
 
     /* Number of BSSIDs */
-    tANI_U8                    numBSSIDs;
+    tANI_U8                  numBSSIDs;
     /* Number of Measurements required */
-    tANI_U8                    numInNavMeasurements;
+    tANI_U8                  numInNavMeasurements;
     /*.Type of measurements (RTS-CTS or FRAME-BASED) */
     tANI_U16                 measurementMode;
+    tANI_U16                 reserved;
     /* bssid channel info for doing the measurements */
     tBSSIDChannelInfo       bssidChannelInfo[1];
 
@@ -1781,7 +1782,7 @@ WLAN_HAL_START_INNAV_MEAS_RSP
 --------------------------------------------------------------------------*/
 typedef PACKED_PRE struct PACKED_POST
 {
-    tANI_U8      rssi;
+    tANI_U32     rssi;
     tANI_U16     rtt;
     tANI_U16     snr;
     tANI_U32     measurementTime;
@@ -1790,14 +1791,14 @@ typedef PACKED_PRE struct PACKED_POST
 
 typedef PACKED_PRE struct PACKED_POST
 {
-    tSirMacAddr             bssid;
-    tANI_U8             numSuccessfulMeasurements;
+    tSirMacAddr          bssid;
+    tANI_U16             numSuccessfulMeasurements;
     tRttRssiTimeData    rttRssiTimeData[1];
 }tRttRssiResults;
 
 typedef PACKED_PRE struct PACKED_POST
 {
-    tANI_U8             numBSSIDs;
+    tANI_U16            numBSSIDs;
     tANI_U16            rspLen;
     tANI_U32            status;
     tRttRssiResults  rttRssiResults[1];
@@ -3769,6 +3770,7 @@ typedef PACKED_PRE struct PACKED_POST
   /*success or failure */
   tANI_U32   status;
 
+  tSirMacAddr selfMacAddr;
 }tDelStaSelfRspParams, *tpDelStaSelfRspParams;
 
 typedef PACKED_PRE struct PACKED_POST

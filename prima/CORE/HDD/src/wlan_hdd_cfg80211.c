@@ -648,14 +648,17 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
                "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_DATA to CCM\n");
         return -EINVAL;
     }
+
     if (ccmCfgSetInt((WLAN_HDD_GET_CTX(pHostapdAdapter))->hHal, 
-        WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 1,NULL, eANI_BOOLEAN_FALSE) 
-                                                  ==eHAL_STATUS_FAILURE)
+          WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG, 1,NULL,
+          test_bit(SOFTAP_BSS_STARTED, &pHostapdAdapter->event_flags) ?
+                   eANI_BOOLEAN_TRUE : eANI_BOOLEAN_FALSE)
+          ==eHAL_STATUS_FAILURE)
     {
         hddLog(LOGE, 
-              "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM\n");
+            "Could not pass on WNI_CFG_PROBE_RSP_BCN_ADDNIE_FLAG to CCM\n");
         return -EINVAL;
-    } 
+    }
 
     vos_mem_free(genie);
     

@@ -1879,10 +1879,7 @@ VOS_STATUS hdd_init_ap_mode( hdd_adapter_t *pAdapter )
  
      // Register as a wireless device
     dev->wireless_handlers = (struct iw_handler_def *)& hostapd_handler_def;
-    
-    netif_tx_disable(dev);
-    netif_carrier_off(dev);
- 
+
     //Initialize the data path module
     status = hdd_softap_init_tx_rx(pAdapter);
     if ( !VOS_IS_STATUS_SUCCESS( status ))
