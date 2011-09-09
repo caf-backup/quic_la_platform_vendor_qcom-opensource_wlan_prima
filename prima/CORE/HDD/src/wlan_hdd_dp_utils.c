@@ -85,7 +85,8 @@ VOS_STATUS hdd_list_remove_back( hdd_list_t *pList, hdd_list_node_t **ppNode )
    return VOS_STATUS_SUCCESS;
 }
 
-VOS_STATUS hdd_list_remove_node( hdd_list_t *pList, hdd_list_node_t *pNodeToRemove )
+VOS_STATUS hdd_list_remove_node( hdd_list_t *pList,
+                                 hdd_list_node_t *pNodeToRemove )
 {
    hdd_list_node_t *tmp;
    int found = 0;
@@ -109,6 +110,63 @@ VOS_STATUS hdd_list_remove_node( hdd_list_t *pList, hdd_list_node_t *pNodeToRemo
 
    list_del(pNodeToRemove); 
    pList->count--;
+
+   return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS hdd_list_peek_front( hdd_list_t *pList,
+                                hdd_list_node_t **ppNode )
+{
+   struct list_head * listptr;
+   if ( list_empty( &pList->anchor ) )
+   {
+      return VOS_STATUS_E_EMPTY;
+   }
+
+   listptr = pList->anchor.next;
+   *ppNode = listptr;
+   return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS hdd_list_peek_next( hdd_list_t *pList, hdd_list_node_t *pNode,
+                               hdd_list_node_t **ppNode )
+{
+   struct list_head * listptr;
+   int found = 0;
+   hdd_list_node_t *tmp;
+      
+   if ( ( pList == NULL) || ( pNode == NULL) || (ppNode == NULL))
+   {
+      return VOS_STATUS_E_FAULT;
+   }
+
+   if ( list_empty(&pList->anchor) )
+   {
+       return VOS_STATUS_E_EMPTY;
+   }
+
+   // verify that pNode is indeed part of list pList
+   list_for_each(tmp, &pList->anchor) 
+   {
+     if (tmp == pNode)
+     {
+        found = 1;
+        break;
+     }
+   }
+
+   if (found == 0)
+   {
+      return VOS_STATUS_E_INVAL;
+   }
+
+   listptr = pNode->next;
+   if (listptr == &pList->anchor)
+   {
+       return VOS_STATUS_E_EMPTY;
+   }
+
+   *ppNode =  listptr;
 
    return VOS_STATUS_SUCCESS;
 }

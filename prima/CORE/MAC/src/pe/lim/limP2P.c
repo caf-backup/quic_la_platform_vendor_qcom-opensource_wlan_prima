@@ -497,7 +497,6 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
     tANI_U8             *pFrame;
     void                *pPacket;
     eHalStatus          halstatus;
-    tpSirMacMgmtHdr     pHdr;
     tANI_U8             txFlag = 0;
     tpSirMacFrameCtl    pFc = (tpSirMacFrameCtl ) pMbMsg->data;
     tANI_U8             noaLen = 0;
@@ -512,120 +511,115 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
     nBytes = pMbMsg->msgLen - sizeof(tSirMbMsg);
 
-    limLog( pMac, LOG1, FL("sending pFc->type=%d pFc->subType=%d"),pFc->type,
-        pFc->subType);
+    limLog( pMac, LOG1, FL("sending pFc->type=%d pFc->subType=%d"),
+                            pFc->type, pFc->subType);
     if ((SIR_MAC_MGMT_FRAME == pFc->type)&&
         ((SIR_MAC_MGMT_PROBE_RSP == pFc->subType)||
         (SIR_MAC_MGMT_ACTION == pFc->subType)))
-    {   //if this is a probe RSP being sent from wpa_supplicant
-    
+    {
+        //if this is a probe RSP being sent from wpa_supplicant
         if (SIR_MAC_MGMT_PROBE_RSP == pFc->subType)
-        {  //get proper offset for Probe RSP
-           pP2PIe = limGetP2pIEPtr(pMac,
-                         (tANI_U8*)pMbMsg->data+PROBE_RSP_IE_OFFSET,
-                         nBytes-PROBE_RSP_IE_OFFSET);
-           while ((NULL != pP2PIe) && (SIR_MAC_MAX_IE_LENGTH == pP2PIe[1]))
-           { 
-               remainLen = nBytes - (pP2PIe - (tANI_U8*)pMbMsg->data);
-               if (remainLen > 2)
-                    pNewP2PIe = limGetP2pIEPtr(pMac,
-                               pP2PIe+SIR_MAC_MAX_IE_LENGTH+2,remainLen);
-
-               if (pNewP2PIe)
-               {
-                  pP2PIe = pNewP2PIe;
-                  pNewP2PIe = NULL;
-               }
-               else
-               {
-                   break;
-               }
-           } //end of while
+        {
+            //get proper offset for Probe RSP
+            pP2PIe = limGetP2pIEPtr(pMac,
+                          (tANI_U8*)pMbMsg->data + PROBE_RSP_IE_OFFSET,
+                          nBytes - PROBE_RSP_IE_OFFSET);
+            while ((NULL != pP2PIe) && (SIR_MAC_MAX_IE_LENGTH == pP2PIe[1]))
+            {
+                remainLen = nBytes - (pP2PIe - (tANI_U8*)pMbMsg->data);
+                if (remainLen > 2)
+                {
+                     pNewP2PIe = limGetP2pIEPtr(pMac,
+                                pP2PIe+SIR_MAC_MAX_IE_LENGTH + 2, remainLen);
+                }
+                if (pNewP2PIe)
+                {
+                    pP2PIe = pNewP2PIe;
+                    pNewP2PIe = NULL;
+                }
+                else
+                {
+                    break;
+                }
+            } //end of while
         }
         else 
         {
             if (SIR_MAC_ACTION_VENDOR_SPECIFIC_CATEGORY == 
                 *((v_U8_t *)pMbMsg->data+ACTION_OFFSET))
             {
-                 tpSirMacP2PActionFrameHdr pActionHdr = 
-                    (tpSirMacP2PActionFrameHdr)((v_U8_t *)pMbMsg->data+ACTION_OFFSET);
-                
+                tpSirMacP2PActionFrameHdr pActionHdr = 
+                    (tpSirMacP2PActionFrameHdr)((v_U8_t *)pMbMsg->data +
+                                                        ACTION_OFFSET);
                 if ( palEqualMemory( pMac->hHdd, pActionHdr->Oui, 
                      SIR_MAC_P2P_OUI, SIR_MAC_P2P_OUI_SIZE ) && 
                     (SIR_MAC_ACTION_P2P_SUBTYPE_PRESENCE_RSP == 
                     pActionHdr->OuiSubType))
                 { //In case of Presence RSP response
-                     
-                     pP2PIe = limGetP2pIEPtr(pMac,
+                    pP2PIe = limGetP2pIEPtr(pMac,
                                  (v_U8_t *)pMbMsg->data + ACTION_OFFSET +
                                  sizeof(tSirMacP2PActionFrameHdr), 
                                  (nBytes - ACTION_OFFSET - 
                                  sizeof(tSirMacP2PActionFrameHdr)));
-
-                     if( NULL != pP2PIe ) 
-                     pPresenceRspNoaAttr = 
-                        limGetIEPtr(pMac,pP2PIe+SIR_P2P_IE_HEADER_LEN,pP2PIe[1],
-                        SIR_P2P_NOA_ATTR,TWO_BYTE); 
-                         //extract the presence of NoA attribute inside P2P IE
+                    if( NULL != pP2PIe )
+                    {
+                        //extract the presence of NoA attribute inside P2P IE
+                        pPresenceRspNoaAttr = 
+                        limGetIEPtr(pMac,pP2PIe + SIR_P2P_IE_HEADER_LEN, 
+                                    pP2PIe[1], SIR_P2P_NOA_ATTR,TWO_BYTE);
+                     }
                 }
-                    
             }
         }
 
-
         if (pP2PIe != NULL)
         {
-           
-           psessionEntry = peFindSessionByBssid(pMac,
-                  (tANI_U8*)pMbMsg->data+BSSID_OFFSET,&sessionId);
-
-           //get NoA attribute stream P2P IE
-           noaLen = limGetNoaAttrStream(pMac, noaStream,psessionEntry);
-           
-           if (noaLen > 0)
-           { //need to append NoA attribute in P2P IE                       
-
-             origLen = pP2PIe[1];
-
-             if (pPresenceRspNoaAttr)
-             { //if Presence Rsp has NoAttr
-                 v_U16_t noaAttrLen = pPresenceRspNoaAttr[1] | 
-                    (pPresenceRspNoaAttr[2]<<8);
-                 /*One byte for attribute, 2bytes for length*/
-                 origLen -= (noaAttrLen+1+2); 
-                 //remove those bytes to copy
-                 nBytes  -= (noaAttrLen+1+2); 
-                 //remove NoA from original Len
-                 pP2PIe[1] = origLen;              }
-             
-             if ((pP2PIe[1] + (tANI_U16)noaLen)> SIR_MAC_MAX_IE_LENGTH)            
-             {                
-                          
-               //Form the new NoA Byte array in multiple P2P IEs
-               noaLen = limGetNoaAttrStreamInMultP2pIes(pMac, noaStream,
-                              noaLen,((pP2PIe[1] + (tANI_U16)noaLen)- 
-                              SIR_MAC_MAX_IE_LENGTH));
-               pP2PIe[1] = SIR_MAC_MAX_IE_LENGTH;
-             }
-             else
-             {
-               pP2PIe[1] += noaLen; //increment the length of P2P IE              
-             }
-                                
-             nBytes += noaLen;                      
-                      
-             limLog( pMac, LOGE, FL("noaLen=%d origLen=%d pP2PIe=0x%x nBytes=%d nBytesToCopy=%d \n"),
-                noaLen,origLen,pP2PIe,nBytes,
-                ((pP2PIe + origLen + 2)  - (v_U8_t *)pMbMsg->data));
-           }
+            psessionEntry = peFindSessionByBssid(pMac,
+                   (tANI_U8*)pMbMsg->data + BSSID_OFFSET, &sessionId);
+            //get NoA attribute stream P2P IE
+            noaLen = limGetNoaAttrStream(pMac, noaStream, psessionEntry);
+            //need to append NoA attribute in P2P IE
+            if (noaLen > 0)
+            {
+                origLen = pP2PIe[1];
+               //if Presence Rsp has NoAttr
+                if (pPresenceRspNoaAttr)
+                {
+                    v_U16_t noaAttrLen = pPresenceRspNoaAttr[1] | 
+                                        (pPresenceRspNoaAttr[2]<<8);
+                    /*One byte for attribute, 2bytes for length*/
+                    origLen -= (noaAttrLen + 1 + 2); 
+                    //remove those bytes to copy
+                    nBytes  -= (noaAttrLen + 1 + 2); 
+                    //remove NoA from original Len
+                    pP2PIe[1] = origLen;
+                }
+                if ((pP2PIe[1] + (tANI_U16)noaLen)> SIR_MAC_MAX_IE_LENGTH)
+                {
+                    //Form the new NoA Byte array in multiple P2P IEs
+                    noaLen = limGetNoaAttrStreamInMultP2pIes(pMac, noaStream,
+                                 noaLen,((pP2PIe[1] + (tANI_U16)noaLen)- 
+                                 SIR_MAC_MAX_IE_LENGTH));
+                    pP2PIe[1] = SIR_MAC_MAX_IE_LENGTH;
+                }
+                else
+                {
+                    pP2PIe[1] += noaLen; //increment the length of P2P IE
+                }
+                nBytes += noaLen;
+                limLog( pMac, LOGE,
+                        FL("noaLen=%d origLen=%d pP2PIe=0x%x"
+                        " nBytes=%d nBytesToCopy=%d \n"),
+                                   noaLen,origLen,pP2PIe,nBytes,
+                   ((pP2PIe + origLen + 2) - (v_U8_t *)pMbMsg->data));
+            }
         }
-        
+
         if (SIR_MAC_MGMT_PROBE_RSP == pFc->subType)
         {
-               limSetHtCaps( pMac,(tANI_U8*)pMbMsg->data+PROBE_RSP_IE_OFFSET,
-               nBytes);
+            limSetHtCaps( pMac,(tANI_U8*)pMbMsg->data + PROBE_RSP_IE_OFFSET,
+                           nBytes);
         }
-        
     }
 
     // Ok-- try to allocate some memory:
@@ -643,13 +637,13 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
 
     if (noaLen > 0)
     {
-           // Add 2 bytes for length and Arribute field 
+        // Add 2 bytes for length and Arribute field 
         v_U32_t nBytesToCopy = ((pP2PIe + origLen + 2 ) - 
-            (v_U8_t *)pMbMsg->data) ; 
-        palCopyMemory( pMac->hHdd, pFrame, pMbMsg->data, nBytesToCopy); 
+                                (v_U8_t *)pMbMsg->data);
+        palCopyMemory( pMac->hHdd, pFrame, pMbMsg->data, nBytesToCopy);
         palCopyMemory( pMac->hHdd, (pFrame + nBytesToCopy), noaStream, noaLen);
         palCopyMemory( pMac->hHdd, (pFrame + nBytesToCopy + noaLen), 
-            pMbMsg->data+nBytesToCopy, nBytes-nBytesToCopy-noaLen); 
+            pMbMsg->data + nBytesToCopy, nBytes - nBytesToCopy - noaLen);
         
     }
     else
@@ -657,16 +651,12 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
          palCopyMemory(pMac->hHdd, pFrame, pMbMsg->data, nBytes);
     }
 
-
-    pHdr = (tpSirMacMgmtHdr)pFrame;
-
     /* Use BD rate 2 for all P2P related frames. As these frames need to go
          * at OFDM rates. And BD rate2 we configured at 6Mbps.
          */
     txFlag |= HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME;
-    
     pMac->lim.actionFrameSessionId = pMbMsg->sessionId;
-    
+
     halstatus = halTxFrameWithTxComplete( pMac, pPacket, ( tANI_U16 ) nBytes,
                    HAL_TXRX_FRM_802_11_MGMT, ANI_TXDIR_TODS,
                    7,/*SMAC_SWBD_TX_TID_MGMT_HIGH */ limTxComplete, pFrame, 
@@ -679,7 +669,6 @@ void limSendP2PActionFrame(tpAniSirGlobal pMac, tpSirMsgQ pMsg)
             pMbMsg->sessionId, 0);
     }
 
-    
     return ;
 }
 

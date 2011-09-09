@@ -72,10 +72,22 @@ extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
 #define MAX_INNAV_RESPONSE_LEN 1024
 #endif
 
-#define HDD_FINISH_ULA_TIME_OUT    1000
+#define HDD_FINISH_ULA_TIME_OUT    800
+
+/* To Validate Channel against the Frequency and Vice-Versa */
+static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2},
+        {2422, 3}, {2427, 4}, {2432, 5}, {2437, 6}, {2442, 7}, {2447, 8},
+        {2452, 9}, {2457, 10}, {2462, 11}, {2467 ,12}, {2472, 13},
+        {2484, 14}, {4920, 240}, {4940, 244}, {4960, 248}, {4980, 252},
+        {5040, 208}, {5060, 212}, {5080, 216}, {5180, 36}, {5200, 40}, {5220, 44},
+        {5240, 48}, {5260, 52}, {5280, 56}, {5300, 60}, {5320, 64}, {5500, 100},
+        {5520, 104}, {5540, 108}, {5560, 112}, {5580, 116}, {5600, 120},
+        {5620, 124}, {5640, 128}, {5660, 132}, {5680, 136}, {5700, 140},
+        {5745, 149}, {5765, 153}, {5785, 157}, {5805, 161}, {5825, 165} };
+
+#define FREQ_CHAN_MAP_TABLE_SIZE sizeof(freq_chan_map)/sizeof(freq_chan_map[0])
 
 extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
-
 
 /* Private ioctls and their sub-ioctls */
 #define WLAN_PRIV_SET_INT_GET_NONE    (SIOCIWFIRSTPRIV + 0)
@@ -195,18 +207,124 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
         return -1;\
 }while(0);
 
-/* To Validate Channel against the Frequency and Vice-Versa */
-static const hdd_freq_chan_map_t freq_chan_map[] = { {2412, 1}, {2417, 2}, 
-        {2422, 3}, {2427, 4}, {2432, 5}, {2437, 6}, {2442, 7}, {2447, 8}, 
-        {2452, 9}, {2457, 10}, {2462, 11}, {2467 ,12}, {2472, 13}, 
-        {2484, 14}, {4920, 240}, {4940, 244}, {4960, 248}, {4980, 252}, 
-        {5040, 208}, {5060, 212}, {5080, 216}, {5180, 36}, {5200, 40}, {5220, 44}, 
-        {5240, 48}, {5260, 52}, {5280, 56}, {5300, 60}, {5320, 64}, {5500, 100}, 
-        {5520, 104}, {5540, 108}, {5560, 112}, {5580, 116}, {5600, 120}, 
-        {5620, 124}, {5640, 128}, {5660, 132}, {5680, 136}, {5700, 140}, 
-        {5745, 149}, {5765, 153}, {5785, 157}, {5805, 161}, {5825, 165} };
+#define VERSION_VALUE_MAX_LEN 32
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
+/**---------------------------------------------------------------------------
 
-#define FREQ_CHAN_MAP_TABLE_SIZE sizeof(freq_chan_map)/sizeof(freq_chan_map[0])
+  \brief hdd_wlan_get_version() -
+
+   This function use to get Wlan Driver And Firmware Version.
+
+  \param  - pAdapter Pointer to the adapter.
+            wrqu - Pointer to IOCTL REQUEST Data.
+            extra - Pointer to char
+
+  \return - 0 for success, non zero for failure
+
+  --------------------------------------------------------------------------*/
+int hdd_wlan_get_version(hdd_adapter_t *pAdapter, union iwreq_data *wrqu,
+                         char *extra)
+{
+    VOS_STATUS status;
+    FwVersionInfo fwversion;
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    v_U32_t reg_val;
+    char *buf = extra;
+
+    buf += snprintf(buf, VERSION_VALUE_MAX_LEN, "%s_", WLAN_CHIP_VERSION);
+    /*Read the RevID*/
+    status = sme_DbgReadRegister(hHal, QWLAN_RFAPB_REV_ID_REG, &reg_val);
+
+    if ( !VOS_IS_STATUS_SUCCESS( status ) ) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed!!!\n", __func__);
+       return -EINVAL;
+    }
+
+    buf += snprintf(buf, VERSION_VALUE_MAX_LEN, "%x.%x-", (v_U8_t)(reg_val >> 8),
+                               (v_U8_t)(reg_val & 0x000000FF));
+
+    status = sme_GetFwVersion(hHal, &fwversion);
+
+    if ( !VOS_IS_STATUS_SUCCESS( status ) ) {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed!!!\n", __func__);
+        return -EINVAL;
+    }
+    buf += snprintf(buf, VERSION_VALUE_MAX_LEN, "%s-", QWLAN_VERSIONSTR);
+    buf += snprintf(buf, VERSION_VALUE_MAX_LEN, "%ld.%ld.%ld.%ld",
+                                    fwversion.uMj, fwversion.uMn,
+                                    fwversion.uPatch, fwversion.uBuild);
+    wrqu->data.length = strlen(extra);
+
+    return 0;
+}
+
+#endif
+int hdd_wlan_get_rts_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
+{
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    v_U32_t threshold = 0,status = 0;
+  
+    ENTER();
+    
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                                  "%s:LOGP in Progress. Ignore!!!",__func__);
+      return status;
+    }
+
+    if ( eHAL_STATUS_SUCCESS != 
+                     ccmCfgGetInt(hHal, WNI_CFG_RTS_THRESHOLD, &threshold) )
+    {
+       return -EIO;
+    }
+    wrqu->rts.value = threshold;
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+                                 ("Rts-Threshold=%ld!!\n"), wrqu->rts.value);
+
+    EXIT();
+
+    return 0;
+}
+
+int hdd_wlan_get_frag_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
+{
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
+    v_U32_t threshold = 0,status = 0;
+
+    ENTER();
+
+    if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                                  "%s:LOGP in Progress. Ignore!!!",__func__);
+      return status;
+    }
+
+    if ( ccmCfgGetInt(hHal, WNI_CFG_FRAGMENTATION_THRESHOLD, &threshold)
+                                                != eHAL_STATUS_SUCCESS )
+    {
+        return -EIO;
+    }
+    wrqu->frag.value = threshold;
+
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                               ("Frag-Threshold=%ld!!\n"), wrqu->frag.value);
+
+    EXIT();
+
+    return 0;
+}
+
+int hdd_wlan_get_freq(v_U32_t channel, v_U32_t *pfreq)
+{
+     if(channel <= (FREQ_CHAN_MAP_TABLE_SIZE - 1))
+     {
+       *pfreq = freq_chan_map[channel-1].freq * 100000;
+       return 0;
+     }
+     else
+       return -EINVAL;
+}
 
 static v_BOOL_t 
 hdd_IsAuthTypeRSN( tHalHandle halHandle, eCsrAuthType authType)
@@ -709,7 +827,7 @@ static int iw_set_freq(struct net_device *dev, struct iw_request_info *info,
 static int iw_get_freq(struct net_device *dev, struct iw_request_info *info,
              struct iw_freq *fwrq, char *extra)
 {    
-   v_U32_t status = 0,channel;
+   v_U32_t status = 0,channel,freq = 0;
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
    tHalHandle hHal;
    hdd_wext_state_t *pWextState; 
@@ -743,12 +861,10 @@ static int iw_get_freq(struct net_device *dev, struct iw_request_info *info,
     else
     {
        channel = pHddStaCtx->conn_info.operationChannel; 
-       if(channel <= (FREQ_CHAN_MAP_TABLE_SIZE - 1)) {
-           fwrq->m = freq_chan_map[channel-1].freq * 100000;
-           fwrq->e = 0;
-       }
+       status = hdd_wlan_get_freq(channel,&freq);
+       fwrq->m = freq;
+       fwrq->e = 0;
     }
-
    return status;
 }
 
@@ -794,7 +910,7 @@ static int iw_get_tx_power(struct net_device *dev,
   
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     
-    vos_status = vos_wait_single_event(&pWextState->vosevent, 1000);
+    vos_status = vos_wait_single_event(&pWextState->vosevent, WLAN_WAIT_TIME_STATS);
   
     if (!VOS_IS_STATUS_SUCCESS(vos_status))
     { 
@@ -889,7 +1005,7 @@ static int iw_get_bitrate(struct net_device *dev,
    
       pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter); 
       
-      vos_status = vos_wait_single_event(&pWextState->vosevent, 1000);
+      vos_status = vos_wait_single_event(&pWextState->vosevent, WLAN_WAIT_TIME_STATS);
    
       if (!VOS_IS_STATUS_SUCCESS(vos_status))
       {   
@@ -1216,6 +1332,7 @@ static int iw_get_encode(struct net_device *dev,
 #define PAE_ROLE_AUTHENTICATOR 1 // =1 for authenticator,
 #define PAE_ROLE_SUPPLICANT 0 // =0 for supplicant
 
+
 /*
  * This function sends a single 'key' to LIM at all time.
  */
@@ -1225,22 +1342,11 @@ static int iw_get_rts_threshold(struct net_device *dev,
             union iwreq_data *wrqu, char *extra)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-   tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
-   v_U32_t threshold = 0;
-   
-   ENTER();   
-   
-   if ( ccmCfgGetInt(hHal, WNI_CFG_RTS_THRESHOLD, &threshold) != eHAL_STATUS_SUCCESS ) 
-   {
-      return -EIO;
-   }
-   wrqu->rts.value = threshold;
+   v_U32_t status = 0;
 
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("Rts-Threshold=%ld!!\n"),wrqu->rts.value);
+   status = hdd_wlan_get_rts_threshold(pAdapter,wrqu);
 
-   EXIT();
-   
-   return 0;
+   return status;
 }
 
 static int iw_set_rts_threshold(struct net_device *dev,
@@ -1272,19 +1378,11 @@ static int iw_get_frag_threshold(struct net_device *dev,
                                  union iwreq_data *wrqu, char *extra)
 {
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
-    v_U32_t threshold = 0;
+    v_U32_t status = 0;
 
-    ENTER();
-
-    if ( ccmCfgGetInt(hHal, WNI_CFG_FRAGMENTATION_THRESHOLD, &threshold) != eHAL_STATUS_SUCCESS ) 
-    {
-        return -EIO;
-    }
-    wrqu->frag.value = threshold;
+    status = hdd_wlan_get_frag_threshold(pAdapter,wrqu);
    
-    EXIT();
-    return 0;
+    return status;
 }
 
 static int iw_set_frag_threshold(struct net_device *dev,
@@ -1629,7 +1727,7 @@ static int iw_set_priv(struct net_device *dev,
               return status;
            }
                    
-           status = vos_wait_single_event(&pWextState->vosevent, 1000);
+           status = vos_wait_single_event(&pWextState->vosevent, WLAN_WAIT_TIME_STATS);
         
            if (!VOS_IS_STATUS_SUCCESS(status))
            {   
@@ -1674,7 +1772,7 @@ static int iw_set_priv(struct net_device *dev,
                     return status;
                 }
 
-                vos_wait_single_event(&pWextState->vosevent, 1000);
+                vos_wait_single_event(&pWextState->vosevent, WLAN_WAIT_TIME_STATS);
                 if(!VOS_IS_STATUS_SUCCESS(status))
                 {
                     hddLog(VOS_TRACE_LEVEL_ERROR, "%s: HDD vos wait for single_event failed", __func__);
@@ -1714,7 +1812,10 @@ static int iw_set_priv(struct net_device *dev,
             sme_SetDHCPTillPowerActiveFlag(pHddCtx->hHal, TRUE);
        
             if(status == eHAL_STATUS_PMC_PENDING)
-                wait_for_completion_interruptible(&pWextState->completion_var);
+            {
+                wait_for_completion_interruptible_timeout(&pWextState->completion_var,
+                    msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+            }
         }
         else if (mode == DRIVER_POWER_MODE_AUTO)
         {
@@ -1729,7 +1830,10 @@ static int iw_set_priv(struct net_device *dev,
                 status = sme_RequestBmps(WLAN_HDD_GET_HAL_CTX(pAdapter), iw_priv_callback_fn, &pWextState->completion_var);
     
                 if (status == eHAL_STATUS_PMC_PENDING)
-                    wait_for_completion_interruptible(&pWextState->completion_var);
+                {
+                    wait_for_completion_interruptible_timeout(&pWextState->completion_var,
+                        msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+                }
             }
             else 
             {
@@ -2433,7 +2537,10 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                  if(sme_RequestFullPower(hHal, iw_priv_callback_fn,
                        &pWextState->completion_var, eSME_FULL_PWR_NEEDED_BY_HDD) ==
                        eHAL_STATUS_PMC_PENDING)
-                    wait_for_completion_interruptible(&pWextState->completion_var);
+                 {
+                    wait_for_completion_interruptible_timeout(&pWextState->completion_var,
+                        msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+                 }
                  hddLog(LOGE, "iwpriv Full Power completed\n");
                  break;
               case  1: //Enable BMPS
@@ -2445,7 +2552,10 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
               case  3: //Request Bmps
                  if(sme_RequestBmps(hHal, iw_priv_callback_fn, &pWextState->completion_var) == 
                     eHAL_STATUS_PMC_PENDING)
-                    wait_for_completion_interruptible(&pWextState->completion_var);
+                 {
+                    wait_for_completion_interruptible_timeout(&pWextState->completion_var,
+                        msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+                 }
                  hddLog(LOGE, "iwpriv Request BMPS completed\n");
                  break;
               case  4: //Enable IMPS
@@ -2730,59 +2840,38 @@ int iw_set_three_ints_getnone(struct net_device *dev, struct iw_request_info *in
     return 0;
 }
 
-#ifdef WLAN_SOFTAP_FEATURE
-int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *info,
-                       union iwreq_data *wrqu, char *extra)
-#else
 static int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra)
-#endif
 {    
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int sub_cmd = wrqu->data.flags;
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
     VOS_STATUS status;
-    FwVersionInfo fwversion;    
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
-    v_U32_t reg_val;
 #endif // FEATURE_WLAN_NON_INTEGRATED_SOC
-
     switch(sub_cmd)
     {
         case WE_WLAN_VERSION:
         {
-            char *buf = extra;
-               
-            buf += sprintf(buf,"%s_",WLAN_CHIP_VERSION);
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
-            /*Read the RevID*/
-            status = sme_DbgReadRegister(hHal,QWLAN_RFAPB_REV_ID_REG,&reg_val);
+            status = hdd_wlan_get_version(pAdapter, wrqu, extra);
 
             if ( !VOS_IS_STATUS_SUCCESS( status ) ) {
                 hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed!!!\n",__func__);
                 return -EINVAL;
             }
-
-            buf += sprintf(buf,"%x.%x-",(v_U8_t)(reg_val >> 8), (v_U8_t)(reg_val & 0x000000FF));
-            
-            status = sme_GetFwVersion( hHal,&fwversion); 
-
-            if ( !VOS_IS_STATUS_SUCCESS( status ) ) {
-                hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed!!!\n",__func__);
-                return -EINVAL;
-            }
-            buf += sprintf(buf,"%s-", QWLAN_VERSIONSTR);
-            buf += sprintf(buf,"%ld.%ld.%ld.%ld",fwversion.uMj,fwversion.uMn,fwversion.uPatch,fwversion.uBuild);            
-#endif // FEATURE_WLAN_NON_INTEGRATED_SOC
-
+#else // FEATURE_WLAN_NON_INTEGRATED_SOC
+            char *buf = extra;
+            buf += sprintf(buf,"%s_",WLAN_CHIP_VERSION);//TODO Need to get Populate proper revision
             wrqu->data.length = strlen(extra);
+#endif
             break;
         }
            
         case WE_GET_STATS:
         {
+            hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
             hdd_tx_rx_stats_t *pStats = &pAdapter->hdd_stats.hddTxRxStats;
-            hdd_chip_reset_stats_t *pResetStats = &pAdapter->hdd_stats.hddChipResetStats;
+            hdd_chip_reset_stats_t *pResetStats = &pHddCtx->hddChipResetStats;
 
             snprintf(extra, WE_MAX_STR_LEN,
                      "\nTransmit"
@@ -3588,7 +3677,7 @@ static int iw_get_statistics(struct net_device *dev,
 
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
 
-    vos_status = vos_wait_single_event(&pWextState->vosevent, 1000);
+    vos_status = vos_wait_single_event(&pWextState->vosevent, WLAN_WAIT_TIME_STATS);
     if (!VOS_IS_STATUS_SUCCESS(vos_status))
     {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("%s: ERROR: HDD vos wait for single_event failed!!\n"), __func__);

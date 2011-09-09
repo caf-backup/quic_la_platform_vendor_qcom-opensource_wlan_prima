@@ -1221,7 +1221,7 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
 {
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
     v_CONTEXT_t pVosContext = NULL;
-    hdd_adapter_t *pAdapter = NULL;
+    hdd_context_t *pHddCtx = NULL;
     hdd_chip_reset_stats_t *pResetStats;
     struct sdio_func *sdio_func_dev = NULL;
     
@@ -1235,11 +1235,9 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     }
 
     pVosContext = vos_get_global_context(VOS_MODULE_ID_HDD, NULL);
-    pAdapter = (hdd_adapter_t *)vos_get_context(VOS_MODULE_ID_HDD,pVosContext);
+    pHddCtx = (hdd_context_t *)vos_get_context(VOS_MODULE_ID_HDD, pVosContext );
 
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,"%s: Stop the interface TX Queue", __FUNCTION__);
-    netif_tx_stop_all_queues(pAdapter->dev);
-    netif_carrier_off(pAdapter->dev);
+    hdd_reset_all_adapters(pHddCtx);
 
     sdio_func_dev = libra_getsdio_funcdev();
 
@@ -1264,15 +1262,17 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
     if (gpVosWatchdogContext->resetInProgress)
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-            "%s: Reset already in Progress. Ignoring signaling Watchdog",__FUNCTION__);
+            "%s: Reset already in Progress. Ignoring signaling Watchdog",
+                                                           __FUNCTION__);
         /* Release the lock here */
         spin_unlock(&gpVosWatchdogContext->wdLock);
         return VOS_STATUS_E_FAILURE;
     } 
-    else if ((WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress)
+    else if (pHddCtx->isLogpInProgress)
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-            "%s: LOGP already in Progress. Ignoring signaling Watchdog",__FUNCTION__);
+            "%s: LOGP already in Progress. Ignoring signaling Watchdog",
+                                                           __FUNCTION__);
         /* Release the lock here */
         spin_unlock(&gpVosWatchdogContext->wdLock);
         return VOS_STATUS_E_FAILURE;
@@ -1285,15 +1285,16 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
 
     /* Set the flags so that all future CMD53 and Wext commands get blocked right away */
     vos_set_logp_in_progress(VOS_MODULE_ID_VOSS, TRUE);
-    (WLAN_HDD_GET_CTX(pAdapter))->isLogpInProgress = TRUE;
+    pHddCtx->isLogpInProgress = TRUE;
 
     /* Release the lock here */
     spin_unlock(&gpVosWatchdogContext->wdLock);
 
-    if ((WLAN_HDD_GET_CTX(pAdapter))->isLoadUnloadInProgress)
+    if (pHddCtx->isLoadUnloadInProgress)
     {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-            "%s: Load/unload in Progress. Ignoring signaling Watchdog",__FUNCTION__);
+            "%s: Load/unload in Progress. Ignoring signaling Watchdog",
+                                                          __FUNCTION__);
         return VOS_STATUS_E_FAILURE;    
     }
 
@@ -1306,26 +1307,26 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
 #endif
 
     /* Update Reset Statistics */
-    pResetStats = &pAdapter->hdd_stats.hddChipResetStats;
+    pResetStats = &pHddCtx->hddChipResetStats;
     pResetStats->totalLogpResets++;
-	
+
     switch (reason)
     {
      case VOS_CHIP_RESET_CMD53_FAILURE:
-	 	pResetStats->totalCMD53Failures++;
-		break;
+        pResetStats->totalCMD53Failures++;
+        break;
      case VOS_CHIP_RESET_FW_EXCEPTION:
-	 	pResetStats->totalFWHearbeatFailures++;
-		break;
+        pResetStats->totalFWHearbeatFailures++;
+        break;
      case VOS_CHIP_RESET_MUTEX_READ_FAILURE:
-	 	pResetStats->totalMutexReadFailures++;
-		break;
+        pResetStats->totalMutexReadFailures++;
+        break;
      case VOS_CHIP_RESET_MIF_EXCEPTION:
-	 	pResetStats->totalMIFErrorFailures++;
-		break;
+        pResetStats->totalMIFErrorFailures++;
+        break;
      default:
-	 	pResetStats->totalUnknownExceptions++;
-		break;		
+        pResetStats->totalUnknownExceptions++;
+        break;
     }
 
     set_bit(WD_CHIP_RESET_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
@@ -1334,6 +1335,7 @@ VOS_STATUS vos_watchdog_chip_reset ( vos_chip_reset_reason_type  reason )
 #endif
     return VOS_STATUS_SUCCESS;
 } /* vos_watchdog_chip_reset() */
+
 /*---------------------------------------------------------------------------
   \brief vos_sched_init_mqs: Initialize the vOSS Scheduler message queues
   The \a vos_sched_init_mqs() function initializes the vOSS Scheduler

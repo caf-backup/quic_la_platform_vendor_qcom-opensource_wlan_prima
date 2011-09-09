@@ -10,17 +10,17 @@ BRIEF DESCRIPTION:
    Build number automaticly updated by build scripts.
 
 
-                Copyright (c) 2008-2010 QUALCOMM Incorporated.
+                Copyright (c) 2008-2011 QUALCOMM Incorporated.
                 All Right Reserved.
                 Qualcomm Confidential and Proprietary
 ===========================================================================*/
 
-#define QWLAN_VERSION_MAJOR            0
-#define QWLAN_VERSION_MINOR            2
-#define QWLAN_VERSION_PATCH            1
+#define QWLAN_VERSION_MAJOR            3
+#define QWLAN_VERSION_MINOR            0
+#define QWLAN_VERSION_PATCH            4
 #define QWLAN_VERSION_EXTRA            ""
-#define QWLAN_VERSION_BUILD            212
+#define QWLAN_VERSION_BUILD            0
 
-#define QWLAN_VERSIONSTR               "0.2.1.212"
+#define QWLAN_VERSIONSTR               "3.0.4.0"
 
 #endif /* QWLAN_VERSION_H */

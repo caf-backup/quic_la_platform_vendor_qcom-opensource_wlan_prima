@@ -270,6 +270,15 @@ typedef struct ccp_freq_chan_map_s{
 
 extern int hdd_UnregisterWext(struct net_device *dev);
 extern int hdd_register_wext(struct net_device *dev);
+extern int hdd_wlan_get_freq(v_U32_t chan,v_U32_t *freq);
+extern int hdd_wlan_get_rts_threshold(hdd_adapter_t *pAdapter,
+                                      union iwreq_data *wrqu);
+extern int hdd_wlan_get_frag_threshold(hdd_adapter_t *pAdapter,
+                                      union iwreq_data *wrqu);
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
+extern int hdd_wlan_get_version(hdd_adapter_t *pAdapter,
+                                union iwreq_data *wrqu, char *extra);
+#endif
 
 extern int iw_get_scan(struct net_device *dev, 
 						 struct iw_request_info *info,

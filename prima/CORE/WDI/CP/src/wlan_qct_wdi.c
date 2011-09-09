@@ -68,6 +68,7 @@
    WLAN DAL Control Path Internal Data Definitions and Declarations 
  ===========================================================================*/
 #define WDI_SET_POWER_STATE_TIMEOUT  10000 /* in msec a very high upper limit */
+#define WDI_WCTS_ACTION_TIMEOUT       2000 /* in msec a very high upper limit */
 
 /*-------------------------------------------------------------------------- 
    WLAN DAL  State Machine
@@ -364,7 +365,7 @@ void* WDI_GET_PAL_CTX( void )
 }/*WDI_GET_PAL_CTX*/
 
 /*============================================================================ 
-  Helper inline convertors
+  Helper inline converters
  ============================================================================*/
 /*Convert WDI driver type into HAL driver type*/
 WPT_STATIC WPT_INLINE WDI_Status
@@ -602,10 +603,10 @@ WDI_Init
   /*Module is now initialized - this flag is to ensure the fact that multiple
    init will not happen on WDI
    !! - potential race does exist because read and set are not atomic,
-   however an atomic operation would be closely here - reanalize if necessary*/
+   however an atomic operation would be closely here - reanalyze if necessary*/
   gWDIInitialized = eWLAN_PAL_TRUE; 
 
-    /*Setup the control block */
+  /*Setup the control block */
   WDI_CleanCB(&gWDICb);
   gWDICb.pOSContext = pOSContext; 
 
@@ -648,11 +649,15 @@ WDI_Init
   /*Init WDI Pending Assoc Id Queue */
   wpal_list_init(&(gWDICb.wptPendingAssocSessionIdQueue));
 
-  /*Initialize the BSS seesions pending Queue */
+  /*Initialize the BSS sessions pending Queue */
   for ( i = 0; i < WDI_MAX_BSS_SESSIONS; i++ )
   {
     wpal_list_init(&(gWDICb.aBSSSessions[i].wptPendingQueue));
   }
+
+  /*Indicate the control block is sufficiently initialized for callbacks*/
+  gWDICb.magic = WDI_CONTROL_BLOCK_MAGIC;
+
   /*------------------------------------------------------------------------
     Initialize the Data Path Utility Module
    ------------------------------------------------------------------------*/
@@ -671,6 +676,17 @@ WDI_Init
   {
      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
                "WDI Init failed to initialize an event");
+
+     WDI_ASSERT(0); 
+     return WDI_STATUS_E_FAILURE; 
+  }
+
+  /* Init WCTS action event */
+  wptStatus = wpalEventInit(&gWDICb.wctsActionEvent);
+  if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus ) 
+  {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+               "WDI Init failed to initialize WCTS action event");
 
      WDI_ASSERT(0); 
      return WDI_STATUS_E_FAILURE; 
@@ -844,7 +860,7 @@ WDI_Stop
 
 /**
  @brief WDI_Close will be called when the upper MAC no longer 
-        needs to interract with DAL. DAL will free its control
+        needs to interact with DAL. DAL will free its control
         block.
   
         It is only accepted in state STOPPED.  
@@ -864,7 +880,8 @@ WDI_Close
 {
   wpt_uint8              i;
   WDI_EventInfoType      wdiEventData;
-  wpt_status              wptStatus; 
+  wpt_status             wptStatus;
+  wpt_status             eventStatus;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*------------------------------------------------------------------------
@@ -888,7 +905,7 @@ WDI_Close
   /* destroy the  WDI Pending Request Queue*/
   wpal_list_destroy(&(gWDICb.wptPendingQueue));
   
-  /*destroy the BSS seesions pending Queue */
+  /*destroy the BSS sessions pending Queue */
   for ( i = 0; i < WDI_MAX_BSS_SESSIONS; i++ )
   {
     wpal_list_destroy(&(gWDICb.aBSSSessions[i].wptPendingQueue));
@@ -914,6 +931,17 @@ WDI_Close
       WDI_ASSERT(0); 
    }
 
+  /*Reset WCTS action event prior to posting the WDI_CLOSE_REQ
+   (the control transport will be closed by the FSM and we'll want
+   to wait until that completes)*/
+  eventStatus = wpalEventReset(&gWDICb.wctsActionEvent);
+  if ( eWLAN_PAL_STATUS_SUCCESS != eventStatus ) 
+  {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Failed to reset WCTS action event", __FUNCTION__);
+     /* fall through and try to finish closing via the FSM */
+  }
+
   /*------------------------------------------------------------------------
     Fill in Event data and post to the Main FSM
   ------------------------------------------------------------------------*/
@@ -925,7 +953,44 @@ WDI_Close
 
   gWDIInitialized = eWLAN_PAL_FALSE;
 
-  return WDI_PostMainEvent(&gWDICb, WDI_CLOSE_EVENT, &wdiEventData);
+  wptStatus = WDI_PostMainEvent(&gWDICb, WDI_CLOSE_EVENT, &wdiEventData);
+
+  /*Wait for WCTS to close the control transport
+    (but only if we were able to reset the event flag*/
+  if ( eWLAN_PAL_STATUS_SUCCESS == eventStatus )
+  {
+     eventStatus = wpalEventWait(&gWDICb.wctsActionEvent, 
+                                 WDI_WCTS_ACTION_TIMEOUT);
+     if ( eWLAN_PAL_STATUS_SUCCESS != eventStatus )
+     {
+        WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                   "%s: Failed to wait on WCTS action event", __FUNCTION__);
+     }
+  }
+
+  /* Destroy the event */
+  wptStatus = wpalEventDelete(&gWDICb.wctsActionEvent);
+  if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
+  {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "WDI Close failed to destroy an event");
+     WDI_ASSERT(0); 
+  }
+
+  /*invalidate the main synchro mutex */
+  wptStatus = wpalMutexDelete(&gWDICb.wptMutex);
+  if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
+  {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                "Failed to delete mutex %d", wptStatus);
+     WDI_ASSERT(0);
+  }
+
+  /*Clear control block.  note that this will clear the "magic"
+    which will inhibit all asynchronous callbacks*/
+  WDI_CleanCB(&gWDICb);
+
+  return wptStatus;
 
 }/*WDI_Close*/
 
@@ -1304,7 +1369,7 @@ WDI_ConfigBSSReq
 
 /**
  @brief WDI_DelBSSReq will be called when the upper MAC is 
-        dissasociating from the BSS and wishes to notify HW.
+        disassociating from the BSS and wishes to notify HW.
         Upon the call of this API the WLAN DAL will pack and
         send a HAL Del BSS request message to the lower RIVA
         sub-system if DAL is in state STARTED.
@@ -1488,11 +1553,11 @@ WDI_DelSTAReq
 ==========================================================================*/
 
 /**
- @brief WDI_SetBSSKeyReq will be called when the upper MAC ito 
-        install a BSS encryption key on the HW. Upon the call of
-        this API the WLAN DAL will pack and send a HAL Start
-        request message to the lower RIVA sub-system if DAL is
-        in state STARTED.
+ @brief WDI_SetBSSKeyReq will be called when the upper MAC wants to
+        install a BSS encryption key on the HW. Upon the call of this
+        API the WLAN DAL will pack and send a Set BSS Key request
+        message to the lower RIVA sub-system if DAL is in state
+        STARTED.
 
         In state BUSY this request will be queued. Request won't
         be allowed in any other state. 
@@ -1548,11 +1613,11 @@ WDI_SetBSSKeyReq
 }/*WDI_SetBSSKeyReq*/
 
 /**
- @brief WDI_RemoveBSSKeyReq will be called when the upper MAC to
-        uninstall a BSS key from HW. Upon the call of this API
-        the WLAN DAL will pack and send a HAL Remove BSS Key
-        request message to the lower RIVA sub-system if DAL is
-        in state STARTED.
+ @brief WDI_RemoveBSSKeyReq will be called when the upper MAC wants to
+        uninstall a BSS key from HW. Upon the call of this API the
+        WLAN DAL will pack and send a HAL Remove BSS Key request
+        message to the lower RIVA sub-system if DAL is in state
+        STARTED.
 
         In state BUSY this request will be queued. Request won't
         be allowed in any other state. 
@@ -1671,7 +1736,7 @@ WDI_SetSTAKeyReq
 
 /**
  @brief WDI_RemoveSTAKeyReq will be called when the upper MAC 
-        wants to unistall a previously set STA key in HW. Upon
+        wants to uninstall a previously set STA key in HW. Upon
         the call of this API the WLAN DAL will pack and send a
         HAL Remove STA Key request message to the lower RIVA
         sub-system if DAL is in state STARTED.
@@ -2761,7 +2826,7 @@ WDI_SetUapsdAcParamsReq
 
 /**
  @brief WDI_ConfigureRxpFilterReq will be called when the upper 
-        MAC wants to set/reset the RXP filters for recieved pkts
+        MAC wants to set/reset the RXP filters for received pkts
         (MC, BC etc.). Upon the call of this API the WLAN DAL will pack
         and send a HAL configure RXP filter request message to
         the lower RIVA sub-system.
@@ -2877,7 +2942,7 @@ WDI_SetBeaconFilterReq
 
 /**
  @brief WDI_RemBeaconFilterReq will be called when the upper MAC
-        wants to remove the beacon filter for perticular IE
+        wants to remove the beacon filter for particular IE
         while in power save. Upon the call of this API the WLAN
         DAL will pack and send a remove Beacon filter request
         message to the lower RIVA sub-system.
@@ -3409,7 +3474,7 @@ WDI_FlushAcReq
 /**
  @brief WDI_BtAmpEventReq will be called when the upper MAC 
         wants to notify the lower mac on a BT AMP event. This is
-        to inform BTC-SLM that some BT AMP event occured. Upon
+        to inform BTC-SLM that some BT AMP event occurred. Upon
         the call of this API the WLAN DAL will pack and send a
         HAL BT AMP event request message to the lower RIVA
         sub-system if DAL is in state STARTED.
@@ -3959,7 +4024,7 @@ WDI_TriggerBAReq
 
 /**
  @brief WDI_UpdateBeaconParamsReq will be called when the upper MAC 
-        wishes to update any of the BEacon parameters used by HW.
+        wishes to update any of the Beacon parameters used by HW.
         Upon the call of this API the WLAN DAL will pack and send a HAL Update Beacon Params request
         message to the lower RIVA sub-system if DAL is in state
         STARTED.
@@ -4137,7 +4202,7 @@ WDI_UpdateProbeRspTemplateReq
 }/*WDI_UpdateProbeRspTemplateReq*/
 
 /**
- @brief WDI_NvDownloadReq will be called by the UMAC to dowload the NV blob
+ @brief WDI_NvDownloadReq will be called by the UMAC to download the NV blob
         to the NV memory.
 
 
@@ -4521,8 +4586,6 @@ WDI_PostMainEvent
    the request will manage its own state transition*/
   WDI_STATE_TRANSITION( pWDICtx, WDI_BUSY_ST);
 
-  wpalMutexRelease(&pWDICtx->wptMutex);
-
   /* If the state function associated with the EV is NULL it means that this
      event is not allowed in this state*/
   if ( NULL != pfnWDIMainEvHdlr ) 
@@ -4540,13 +4603,10 @@ WDI_PostMainEvent
     wdiStatus = WDI_STATUS_E_NOT_ALLOWED; 
   }
 
-  /* !UT TO DO L: possible race condition here in the gap between synchro -
-  reanalize this */
-
   /* If a request handles itself well it will end up in a success or in a
      pending
      Success - means that the request was processed and the proper state
-     transition already occured or will occur when the resp is received
+     transition already occurred or will occur when the resp is received
      - NO other state transition or dequeueing is required
  
      Pending - means the request could not be processed at this moment in time
@@ -4555,9 +4615,6 @@ WDI_PostMainEvent
   if (( WDI_STATUS_SUCCESS != wdiStatus )&&
       ( WDI_STATUS_PENDING != wdiStatus ))
   {
-    /*Access to the global state must be locked */
-    wpalMutexAcquire(&pWDICtx->wptMutex);
-    
     /*The request has failed or could not be processed - transition back to
       the old state - check to see if anything was queued and try to execute
       The dequeue logic should post a message to a thread and return - no
@@ -4565,8 +4622,11 @@ WDI_PostMainEvent
     WDI_STATE_TRANSITION( pWDICtx, wdiOldState);
     WDI_DequeuePendingReq(pWDICtx);
         
-    wpalMutexRelease(&pWDICtx->wptMutex);
   }
+
+  /* we have completed processing the event */
+  wpalMutexRelease(&pWDICtx->wptMutex);
+
   return wdiStatus; 
 
 }/*WDI_PostMainEvent*/
@@ -4864,7 +4924,7 @@ WDI_MainRsp
 
   /*Transition to the expected state after the response processing
   - this should always be started state with the following exceptions:
-  1. processing of a failed start respone
+  1. processing of a failed start response
   2. device failure detected while processing response
   3. stop response received*/
   WDI_STATE_TRANSITION( pWDICtx, pWDICtx->ucExpectedStateTransition);
@@ -5129,7 +5189,7 @@ WDI_ProcessStartReq
   pWDICtx->pReqStatusUserData = pwdiStartParams->pUserData; 
 
   /*Save Low Level Ind CB and associated user data - it will be used further
-    on when an indication is comming from the lower MAC*/
+    on when an indication is coming from the lower MAC*/
   pWDICtx->wdiLowLevelIndCB   = pwdiStartParams->wdiLowLevelIndCB;
   pWDICtx->pIndUserData       = pwdiStartParams->pIndUserData; 
 
@@ -5214,7 +5274,7 @@ WDI_ProcessStopReq
   if ( eDRIVER_TYPE_MFG != pWDICtx->driverMode )
   {
      /*Stop the STA Table !UT- check this logic again
-      It is safer to do it here than on the response - because a stop is iminent*/
+      It is safer to do it here than on the response - because a stop is imminent*/
      WDI_STATableStop(pWDICtx);
 
      /* Stop Transport Driver, DXE */
@@ -5281,18 +5341,6 @@ WDI_ProcessCloseReq
    WDI_STATE_TRANSITION( pWDICtx, WDI_INIT_ST);
 
    wpalMutexRelease(&pWDICtx->wptMutex);
-
-   /*invalidate the main synchro mutex */
-   wptStatus = wpalMutexDelete(&pWDICtx->wptMutex);
-   if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
-   {
-     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "Failed to delete mutex %d", wptStatus);
-     WDI_ASSERT(0);
-   }
-
-   /*Clear control block */
-   WDI_CleanCB(pWDICtx);
 
    /*Make sure the expected state is properly defaulted to Init*/
    pWDICtx->ucExpectedStateTransition = WDI_INIT_ST; 
@@ -8763,7 +8811,7 @@ WDI_ProcessSetLinkStateReq
     }
   }
   /* If the link is set to enter IDLE - the Session allocated for this BSS
-     will be deleted on the Set Link State response comming from HAL
+     will be deleted on the Set Link State response coming from HAL
    - cache the request for response processing */
   wpalMemoryCopy(&pWDICtx->wdiCacheSetLinkStReq, pwdiSetLinkParams, 
                  sizeof(pWDICtx->wdiCacheSetLinkStReq));
@@ -16022,6 +16070,14 @@ WDI_NotifyMsgCTSCB
     return; 
   }
 
+  if (WDI_CONTROL_BLOCK_MAGIC != pWDICtx->magic)
+  {
+    /* callback presumably occurred after close */
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid control block", __FUNCTION__);
+    return; 
+  }
+
   if ( WCTS_EVENT_OPEN == wctsEvent )
   {
     /*Flag must be set atomically as it is checked from incoming request
@@ -16030,7 +16086,7 @@ WDI_NotifyMsgCTSCB
     pWDICtx->bCTOpened   = eWLAN_PAL_TRUE; 
 
     /*Nothing to do - so try to dequeue any pending request that may have
-     occured while we were trying to establish this*/
+     occurred while we were trying to establish this*/
     WDI_DequeuePendingReq(pWDICtx);
     wpalMutexRelease(&pWDICtx->wptMutex);   
   }
@@ -16044,6 +16100,9 @@ WDI_NotifyMsgCTSCB
     /*No other request will be processed from now on - fail all*/
     WDI_ClearPendingRequests(pWDICtx); 
     wpalMutexRelease(&pWDICtx->wptMutex);
+
+    /*Notify that the Control Channel is closed */
+    wpalEventSet(&pWDICtx->wctsActionEvent);
   }
 
 }/*WDI_NotifyMsgCTSCB*/
@@ -16074,7 +16133,7 @@ WDI_RXMsgCTSCB
   void*                 wctsRxMsgCBData
 )
 {
-  tHalMsgHeader          halMsgHeader; 
+  tHalMsgHeader          *pHalMsgHeader; 
   WDI_EventInfoType      wdiEventData; 
   WDI_ControlBlockType*  pWDICtx = (WDI_ControlBlockType*)wctsRxMsgCBData;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
@@ -16083,7 +16142,7 @@ WDI_RXMsgCTSCB
     Sanity check 
   ------------------------------------------------------------------------*/
   if ((NULL == pWDICtx ) || ( NULL == pMsg ) || 
-      ( uLen < sizeof(halMsgHeader)))
+      ( uLen < sizeof(tHalMsgHeader)))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
                 "%s: Invalid parameters", __FUNCTION__);
@@ -16091,13 +16150,21 @@ WDI_RXMsgCTSCB
     return; 
   }
 
-  /*The RX CAllback is expected to be serialized in the proper control thread 
+  if (WDI_CONTROL_BLOCK_MAGIC != pWDICtx->magic)
+  {
+    /* callback presumably occurred after close */
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                "%s: Invalid control block", __FUNCTION__);
+    return; 
+  }
+
+  /*The RX Callback is expected to be serialized in the proper control thread 
     context - so no serialization is necessary here
     ! - revisit this assumption */
 
-  wpalMemoryCopy(&halMsgHeader, pMsg, sizeof(halMsgHeader)); 
+  pHalMsgHeader = (tHalMsgHeader *)pMsg;
 
-  if ( uLen != halMsgHeader.msgLen )
+  if ( uLen != pHalMsgHeader->msgLen )
   {
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
               "Invalid packet received from HAL - catastrophic failure");
@@ -16105,11 +16172,11 @@ WDI_RXMsgCTSCB
     return; 
   }
 
-  wdiEventData.wdiResponse = HAL_2_WDI_RSP_TYPE( halMsgHeader.msgType );
+  wdiEventData.wdiResponse = HAL_2_WDI_RSP_TYPE( pHalMsgHeader->msgType );
   
   /*The message itself starts after the header*/
-  wdiEventData.pEventData     = (wpt_uint8*)pMsg + sizeof(halMsgHeader);
-  wdiEventData.uEventDataSize = halMsgHeader.msgLen - sizeof(halMsgHeader);
+  wdiEventData.pEventData     = (wpt_uint8*)pMsg + sizeof(tHalMsgHeader);
+  wdiEventData.uEventDataSize = pHalMsgHeader->msgLen - sizeof(tHalMsgHeader);
   wdiEventData.pCBfnc         = gWDICb.pfncRspCB;
   wdiEventData.pUserData      = gWDICb.pRspCBUserData;
 
@@ -16421,7 +16488,7 @@ WDI_ResponseTimerCB
 
 
   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-            "Timeout occured while waiting for response from device "
+            "Timeout occurred while waiting for response from device "
             " - catastrophic failure");
   WDI_DetectedDeviceError( pWDICtx, WDI_ERR_RSP_TIMEOUT); 
   return; 
@@ -17468,7 +17535,7 @@ WDT_GetTransportDriverContext (void *pContext)
 }
 
 /*============================================================================ 
-  Helper inline convertors
+  Helper inline converters
  ============================================================================*/
 /*Convert WDI driver type into HAL driver type*/
 WPT_STATIC WPT_INLINE WDI_Status

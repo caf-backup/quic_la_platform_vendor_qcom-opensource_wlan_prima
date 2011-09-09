@@ -129,6 +129,10 @@ static v_U8_t WLANTL_LLC_HEADER[] =  {0xAA, 0xAA, 0x03, 0x00, 0x00, 0x00 };
 /*BT-AMP packet LLC OUI value*/
 const v_U8_t WLANTL_BT_AMP_OUI[] =  {0x00, 0x19, 0x58 };
 
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
+#define WLANTL_BD_PDU_RESERVE_THRESHOLD           80
+#endif
+
 #ifdef VOLANS_PERF
 #define WLANTL_BD_PDU_INTERRUPT_ENABLE_THRESHOLD  120
 #define WLANTL_BD_PDU_INTERRUPT_GET_THRESHOLD  120
@@ -7579,11 +7583,11 @@ WLANTL_Translate8023To80211Header
   if(pTLCb->atlSTAClients[ucStaId].wSTADesc.ucQosEnabled)
   {
       pw80211Header->wFrmCtrl.subType  = WLANTL_80211_DATA_QOS_SUBTYPE;
-  
+
 #ifdef WLAN_SOFTAP_FEATURE
       *((v_U16_t *)((v_U8_t *)ppvBDHeader + ucQoSOffset)) = ucUP;
 #else
-      pw80211Header->usQosCtrl         = ucUP; //? is this the right byte order
+      pw80211Header->usQosCtrl = ucUP;
 #endif
 
   }

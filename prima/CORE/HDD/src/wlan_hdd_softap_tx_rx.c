@@ -148,7 +148,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
-              "%s: enter\n", __FUNCTION__);
+              "%s: enter", __FUNCTION__);
 
    if (vos_is_macaddr_broadcast( pDestMacAddress ) || vos_is_macaddr_group(pDestMacAddress))
    {
@@ -323,7 +323,7 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-              "%s: enter\n", __FUNCTION__);
+              "%s: enter", __FUNCTION__);
 
    if (FALSE == pAdapter->aStaInfo[STAId].isUsed )
    {
@@ -356,8 +356,10 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
    INIT_LIST_HEAD(&pktNode->anchor);
 
    spin_lock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
-    if(pktListSize >= pAdapter->aTxQueueLimit[ac])
-    {
+   hdd_list_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktListSize);
+   if(pAdapter->aStaInfo[STAId].txSuspended[ac] ||
+       pktListSize >= pAdapter->aTxQueueLimit[ac])
+   {
        VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
             "%s: station %d ac %d queue over limit %d \n", __FUNCTION__, STAId, ac, pktListSize); 
        /* TODO:Rx Flowchart should be trigerred here to SUPEND SSC on RX side.
@@ -367,7 +369,7 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
        kfree_skb(skb);
        spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
        return VOS_STATUS_E_FAILURE;
-    }
+   }
    status = hdd_list_insert_back_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktNode->anchor, &pktListSize );
    spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
 
@@ -1447,7 +1449,8 @@ VOS_STATUS hdd_softap_change_STA_state( hdd_adapter_t *pAdapter, v_MACADDR_t *pD
     tHalHandle hHalHandle = (tHalHandle ) vos_get_context(VOS_MODULE_ID_HAL, pVosContext);
 #endif //FEATURE_WLAN_NON_INTEGRATED_SOC
 
-    hddLog(LOG1, FL("%s enter \n"));
+    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
+               "%s: enter", __FUNCTION__);
 
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
     if(!hHalHandle )

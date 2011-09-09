@@ -49,16 +49,17 @@ eHalStatus wlan_hdd_remain_on_channel_callback( tHalHandle hHal, void* pCtx,
 
     hddLog( LOGE, "Recieved remain on channel rsp");
 
+    cfgState->remain_on_chan_ctx = NULL;
+
     if( REMAIN_ON_CHANNEL_REQUEST == pRemainChanCtx->rem_on_chan_request )
     {
         cfg80211_remain_on_channel_expired( pRemainChanCtx->dev,
-                              cfgState->remain_on_chan_ctx->cookie,
+                              pRemainChanCtx->cookie,
                               &pRemainChanCtx->chan,
                               pRemainChanCtx->chan_type, GFP_KERNEL );
     }
 
     vos_mem_free( pRemainChanCtx );
-    cfgState->remain_on_chan_ctx = NULL;
 
     if ( ( WLAN_HDD_INFRA_STATION == pAdapter->device_mode ) ||
          ( WLAN_HDD_P2P_CLIENT == pAdapter->device_mode )

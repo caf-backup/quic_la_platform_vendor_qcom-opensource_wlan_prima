@@ -1304,27 +1304,30 @@ eHalStatus csrScanHandleSearchForSSIDFailure(tpAniSirGlobal pMac, tSmeCmd *pComm
     {
         eCsrRoamResult roamResult;
 
-        if(csrIsConnStateDisconnected(pMac, sessionId) && !csrIsRoamCommandWaitingForSession(pMac, sessionId))
+        if(csrIsConnStateDisconnected(pMac, sessionId) &&
+          !csrIsRoamCommandWaitingForSession(pMac, sessionId))
         {
             status = csrScanStartIdleScan(pMac);
         }
         if((NULL == pProfile) || !csrIsBssTypeIBSS(pProfile->BSSType))
         {
             tCsrRoamInfo *pRoamInfo = NULL, roamInfo;
-            tCsrScanResult *pScanResult;
-
+            palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
+            pRoamInfo = &roamInfo;
             roamResult = eCSR_ROAM_RESULT_FAILURE;
             if(pCommand->u.roamCmd.pRoamBssEntry)
             {
-                palZeroMemory(pMac->hHdd, &roamInfo, sizeof(tCsrRoamInfo));
-                pRoamInfo = &roamInfo;
-                pScanResult = GET_BASE_ADDR(pCommand->u.roamCmd.pRoamBssEntry, tCsrScanResult, Link);
+                tCsrScanResult *pScanResult = 
+                            GET_BASE_ADDR(pCommand->u.roamCmd.pRoamBssEntry,
+                            tCsrScanResult, Link);
                 roamInfo.pBssDesc = &pScanResult->Result.BssDescriptor;
-                roamInfo.statusCode = pSession->joinFailStatusCode.statusCode;
-                roamInfo.reasonCode = pSession->joinFailStatusCode.reasonCode;
-                csrRoamCallCallback(pMac, sessionId, pRoamInfo, pCommand->u.scanCmd.roamId, eCSR_ROAM_ASSOCIATION_COMPLETION, 
-                                            eCSR_ROAM_RESULT_FAILURE);
             }
+            roamInfo.statusCode = pSession->joinFailStatusCode.statusCode;
+            roamInfo.reasonCode = pSession->joinFailStatusCode.reasonCode;
+            csrRoamCallCallback(pMac, sessionId, pRoamInfo,
+                                pCommand->u.scanCmd.roamId,
+                                eCSR_ROAM_ASSOCIATION_COMPLETION,
+                                eCSR_ROAM_RESULT_FAILURE);
         }
         else
         {

@@ -658,7 +658,7 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
    }
 
    /*loop through all adapters. TBD fix for Concurrency */
-   status =  vos_list_peek_front ( &pHddCtx->hddAdapters, (vos_list_node_t**) &pAdapterNode );
+   status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
        pAdapter = pAdapterNode->pAdapter;
@@ -666,11 +666,10 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
          && (WLAN_HDD_P2P_CLIENT != pAdapter->device_mode) )
 
        {  //just do for station interface
-           status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
+           status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
            pAdapterNode = pNext;
            continue;
        }
-
 
 #ifdef SUPPORT_EARLY_SUSPEND_STANDBY_DEEPSLEEP
        if(pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_STANDBY) 
@@ -684,15 +683,17 @@ void hdd_suspend_wlan(struct early_suspend *wlan_suspend)
           hdd_enter_deep_sleep(pAdapter);
        }
 #endif
-  
+
    if(pHddCtx->cfg_ini->nEnableSuspend == WLAN_MAP_SUSPEND_TO_MCAST_BCAST_FILTER) {
-      if(eConnectionState_Associated == (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) {
+      if(eConnectionState_Associated == 
+            (WLAN_HDD_GET_STATION_CTX_PTR(pAdapter))->conn_info.connState) {
          hdd_conf_mcastbcast_filter(pHddCtx, TRUE);
-         halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME, pHddCtx->pvosContext), FALSE);
+         halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME,
+                                  pHddCtx->pvosContext), FALSE);
        }
    }
    pHddCtx->hdd_wlan_suspended = TRUE;
-   status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
+   status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
    pAdapterNode = pNext;
   }
 
@@ -805,7 +806,7 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
    }
 
    /*loop through all adapters. Concurrency */
-   status =  vos_list_peek_front ( &pHddCtx->hddAdapters, (vos_list_node_t**) &pAdapterNode );
+   status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
@@ -813,7 +814,7 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
        if ( (WLAN_HDD_INFRA_STATION != pAdapter->device_mode)
          && (WLAN_HDD_P2P_CLIENT != pAdapter->device_mode) )
        {  //just do for station interface
-            status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
+            status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
             pAdapterNode = pNext;
             continue;
        }
@@ -831,11 +832,12 @@ void hdd_resume_wlan(struct early_suspend *wlan_suspend)
          if(pHddCtx->hdd_mcastbcast_filter_set == TRUE) {
                   hdd_conf_mcastbcast_filter(pHddCtx, FALSE);
                               pHddCtx->hdd_mcastbcast_filter_set = FALSE;
-                  halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME, pHddCtx->pvosContext), TRUE);
+                  halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME,
+                                          pHddCtx->pvosContext), TRUE);
 
        }
        hdd_conf_apps_cpu_wakeup_state(pHddCtx, TRUE);
-       status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
+       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
        pAdapterNode = pNext;
    }
 
@@ -899,9 +901,7 @@ VOS_STATUS hdd_wlan_reset(void)
    if (vos_chipVoteFreqFor1p3VSupply(NULL, NULL, NULL, VOS_NV_FREQUENCY_FOR_1_3V_SUPPLY_1P6MH) != VOS_STATUS_SUCCESS)
         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
                "%s: Failed to set the freq to 1.6Mhz for 1.3V Supply",__func__ );
-   
-   //Stop the Interface TX queue
-   hdd_stop_all_adapters(pHddCtx);    
+
    //Disable IMPS/BMPS as we do not want the device to enter any power
    //save mode on its own during reset sequence
    sme_DisablePowerSave(pHddCtx->hHal, ePMC_IDLE_MODE_POWER_SAVE);
@@ -917,16 +917,14 @@ VOS_STATUS hdd_wlan_reset(void)
    if(TRUE == pHddCtx->isMcThreadSuspended){
       complete(&vosSchedContext->ResumeMcEvent);
       pHddCtx->isMcThreadSuspended= FALSE;
-
-
    }
-   	
+
    /* Wakeup Tx Thread if Suspended */
    if(TRUE == pHddCtx->isTxThreadSuspended){
       complete(&vosSchedContext->ResumeTxEvent);
       pHddCtx->isTxThreadSuspended= FALSE;
    }
-   	
+
    /* Reset the Suspend Variable */
    pHddCtx->isWlanSuspended = FALSE;
 
@@ -978,15 +976,12 @@ VOS_STATUS hdd_wlan_reset(void)
       VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
          "%s: Failed to stop BAL",__func__);
       VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
-   }  
+   }
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
    hdd_unregister_mcast_bcast_filter(pHddCtx);
 #endif
-   //clean up HDD Data Path
-   //hdd_deinit_tx_rx(pAdapter);
-   //hdd_wmm_close(pAdapter);
-  
+
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Flush Queues",__func__);
    //Clean up message queues of TX and MC thread
    vos_sched_flush_mc_mqs(vosSchedContext);
@@ -1060,11 +1055,9 @@ VOS_STATUS hdd_wlan_reset(void)
    //Reinitialize the variable
    attempts = 0;
 
-
-
    do {
       msleep(500);
-   
+
       //Get the SDIO func device
       sdio_func_dev_new = libra_getsdio_funcdev();
       if(sdio_func_dev_new != NULL)
@@ -1084,16 +1077,16 @@ VOS_STATUS hdd_wlan_reset(void)
          VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
           "%s: Failed to detect card change %p",__func__, 
           sdio_func_dev_new);     
-	  attempts++;
-      }	
+         attempts++;
+      }
    }while (attempts < LIBRA_CARD_INSERT_DETECT_MAX_COUNT);
-   
+
    if(LIBRA_CARD_INSERT_DETECT_MAX_COUNT == attempts){
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Libra WLAN fail to detect in reset"
              "exiting", __func__);
       goto err_fail;
    }
-   
+
    vosStatus = WLANBAL_Open(pVosContext);
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -1116,7 +1109,7 @@ VOS_STATUS hdd_wlan_reset(void)
 
    /* Start BAL */
    vosStatus = WLANBAL_Start(pVosContext);
-   
+
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
@@ -1126,51 +1119,29 @@ VOS_STATUS hdd_wlan_reset(void)
 
    // Open VOSS 
    vosStatus = vos_open( &pVosContext, 0);
-   
+
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ))
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_open failed",__func__);
       goto err_balstop;   
    }
 
-   // Set the SME configuration parameters...
-   vosStatus = hdd_set_sme_config(pHddCtx);
-   
-#if 0 /* fix the support concurrency */
    /* Save the hal context in Adapter */
-   //pAdapter->hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_HAL, pVosContext );
-      
-   if ( NULL == pAdapter->hHal )
+   pHddCtx->hHal = (tHalHandle)vos_get_context( VOS_MODULE_ID_HAL, pVosContext );
+
+   if ( NULL == pHddCtx->hHal )
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HAL context is null",__func__);   
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: HAL context is null",__func__);      
       goto err_vosclose;
    }
-   
-   //Set the Connection State to Not Connected
-   pAdapter->conn_info.connState = eConnectionState_NotConnected;
-
-   //Set the default operation channel
-   pAdapter->conn_info.operationChannel = pAdapter->cfg_ini->OperatingChannel;
-
-   /* Make the default Auth Type as OPEN*/
-   pAdapter->conn_info.authType = eCSR_AUTH_TYPE_OPEN_SYSTEM;
-  
    // Set the SME configuration parameters...
    vosStatus = hdd_set_sme_config(pHddCtx);
-   
+
    if ( VOS_STATUS_SUCCESS != vosStatus )
-   {  
+   {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Failed hdd_set_sme_config",__func__); 
       goto err_vosclose;
-   } 
-   
-   //Initialize the data path module
-   vosStatus = hdd_init_tx_rx(pAdapter);
-   if ( !VOS_IS_STATUS_SUCCESS( vosStatus ))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_init_tx_rx failed", __FUNCTION__);
-      goto err_vosclose;
-   }  
+   }
 
    //Initialize the WMM module
    vosStatus = hdd_wmm_init(pHddCtx);
@@ -1179,7 +1150,7 @@ VOS_STATUS hdd_wlan_reset(void)
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: hdd_wmm_init failed", __FUNCTION__);
       goto err_vosclose;
    }
-#endif
+
    /*Start VOSS which starts up the SME/MAC/HAL modules and everything else
      Note: Firmware image will be read and downloaded inside vos_start API */
    vosStatus = vos_start( pVosContext );
@@ -1196,35 +1167,17 @@ VOS_STATUS hdd_wlan_reset(void)
          __func__);
       goto err_vosstop;
    }
-#if 0 /* Fix concurrency */
-   //Open a SME session for future operation
-   vosStatus = sme_OpenSession( pAdapter->hHal, hdd_smeRoamCallback, pAdapter,
-                                       (tANI_U8 *)&pAdapter->macAddressCurrent, &pAdapter->sessionId );
-   if ( !HAL_STATUS_SUCCESS( vosStatus ) )
-   {
-       hddLog(VOS_TRACE_LEVEL_FATAL,"sme_OpenSession() failed with status code %08d [x%08lx]",
-                          vosStatus, vosStatus );
-       goto err_vosstop;
-              
-   }
 
-   /* Open the gates for HDD to receive Wext commands */
-   pAdapter->isLogpInProgress = FALSE;
-   pAdapter->isLinkUpSvcNeeded = FALSE; 
-   pAdapter->hdd_mcastbcast_filter_set = FALSE;
-   pAdapter->pWextState->mScanPending = FALSE;
-   
-   // Allow the phone to go to sleep
-   hdd_allow_suspend();
-
-#ifdef CONFIG_HAS_EARLYSUSPEND
-   hdd_register_mcast_bcast_filter(pAdapter);
-#endif
-   //Trigger the initial scan
-   hdd_wlan_initial_scan(pAdapter);
-#endif
    /* Restart all adapters */
    hdd_start_all_adapters(pHddCtx);
+   pHddCtx->isLogpInProgress = FALSE;
+   pHddCtx->hdd_mcastbcast_filter_set = FALSE;
+#ifdef CONFIG_HAS_EARLYSUSPEND
+   hdd_register_mcast_bcast_filter(pHddCtx);
+#endif
+
+   // Allow the phone to go to sleep
+   hdd_allow_suspend();
 
    goto success;
 
@@ -1232,7 +1185,7 @@ err_vosstop:
    vos_stop(pVosContext);
 
 err_vosclose:   
-   vos_close(pVosContext ); 
+   vos_close(pVosContext );
 
 err_balstop:
 #ifndef ANI_MANF_DIAG 
@@ -1273,68 +1226,32 @@ err_pwr_fail:
    send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0); 
    nl_srv_exit();
 
-#if 0
-#ifdef WLAN_SOFTAP_FEATURE
-   //Deregister the hostapd device with the kernel
-   if (VOS_STA_SAP_MODE == hdd_get_conparam())
-         hdd_unregister_hostapd(pAdapter->pHostapd_dev);
-#endif
-
-   //Deregister the device with the kernel
-   hdd_UnregisterWext(pAdapter->dev);
-
-   if(test_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags)) 
-   {
-#ifdef WLAN_SOFTAP_FEATURE
-      if (VOS_STA_SAP_MODE == hdd_get_conparam())
-      {
-           unregister_netdev(pAdapter->pHostapd_dev );
-           //Free the hostapd net device
-           free_netdev(pAdapter->pHostapd_dev);
-      }
-#endif
-      unregister_netdev(pAdapter->dev);
-      clear_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
-   }
-#endif
   hdd_close_all_adapters(pHddCtx);
   //Free up dynamically allocated members inside HDD Adapter
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
 
-   //Free the net device
-   //free_netdev(pAdapter->dev);
 #ifdef CONFIG_CFG80211
-      wiphy_unregister(pHddCtx->wiphy) ;
-         wiphy_free(pHddCtx->wiphy) ;
+   wiphy_unregister(pHddCtx->wiphy);
+   wiphy_free(pHddCtx->wiphy);
 #else
-      vos_mem_free( pHddCtx );
+   vos_mem_free(pHddCtx);
 #endif
 
-
    WLANSAL_Close(pVosContext);
-   vos_preClose( &pVosContext );
+   vos_preClose(&pVosContext);
 
 #ifdef MEMORY_DEBUG
-   vos_mem_exit(); 
+   vos_mem_exit();
 #endif
 
    return -1;
 
-success:    
-   //Indicate disconnect event to supplicant if associated previously
-#if 0
-   if(sendDisconnect) {
-      memset(&wrqu, '\0', sizeof(wrqu));
-      wrqu.ap_addr.sa_family = ARPHRD_ETHER;
-      memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
-      wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
-   }
-#endif
+success:
    //Trigger replay of BTC events
    send_btc_nlink_msg(WLAN_MODULE_DOWN_IND, 0);
    return VOS_STATUS_SUCCESS;
-   
+
 }
 
 
@@ -1345,7 +1262,7 @@ VOS_STATUS hdd_wlan_reset_initialization(void)
    v_U8_t  regValue = 0;
    int  err_ret = 0;
    v_CONTEXT_t pVosContext = NULL;
- 
+
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: WLAN being reset",__func__);  
 
    //Get the global VOSS context.
@@ -1355,14 +1272,13 @@ VOS_STATUS hdd_wlan_reset_initialization(void)
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: Global VOS context is Null", __func__);
       return VOS_STATUS_E_FAILURE;
    }
-  
+
    hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Preventing the phone from going to suspend",__func__);
 
    // Prevent the phone from going to sleep
    hdd_prevent_suspend();
 
    /* Clear pending interrupt and  disable Interrupts. Use only CMD52 */
-        
    VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
           "%s LOGP in progress. Disabling Interrupt", __func__);
 
@@ -1376,29 +1292,29 @@ VOS_STATUS hdd_wlan_reset_initialization(void)
    }
 
    sd_claim_host(sdio_func_dev);
-  
+
    regValue = 0;
    libra_sdiocmd52(sdio_func_dev, QWLAN_SIF_SIF_INT_EN_REG,  
                              &regValue, 1, &err_ret);
 
    VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
-  	   "%s LOGP Cleared SIF_SIF_INT_EN_REG status:%d", __func__,err_ret);
-  
+      "%s LOGP Cleared SIF_SIF_INT_EN_REG status:%d", __func__,err_ret);
+
    regValue = 0;
    libra_sdiocmd52(sdio_func_dev, QWLAN_SIF_BAR4_INT_PEND_REG,  
                              &regValue, 1, &err_ret);
-  
+
    VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
-  	   "%s LOGP Cleared SIF_BAR4_INT_PEND_REG status :%d", __func__,err_ret);	
+      "%s LOGP Cleared SIF_BAR4_INT_PEND_REG status :%d", __func__,err_ret);	
 
    regValue = 0;
    libra_sdiocmd52(sdio_func_dev, QWLAN_SIF_BAR4_INT_ENABLE_REG,  
                              &regValue, 1, &err_ret);
-  
-   VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
-  	   "%s LOGP Cleared SIF_BAR4_INT_ENABLE_REG: Status:%d", __func__,err_ret);
 
-      hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing Suspend Chip",__func__);
+   VOS_TRACE( VOS_MODULE_ID_SAL, VOS_TRACE_LEVEL_FATAL, 
+      "%s LOGP Cleared SIF_BAR4_INT_ENABLE_REG: Status:%d", __func__,err_ret);
+
+   hddLog(VOS_TRACE_LEVEL_FATAL, "%s: Doing Suspend Chip",__func__);
 
    //Put the chip is standby before asserting deep sleep
    WLANBAL_SuspendChip_NoLock( pVosContext );

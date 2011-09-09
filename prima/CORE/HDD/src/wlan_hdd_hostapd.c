@@ -53,15 +53,12 @@
 #include "wlan_hdd_p2p.h"
 #endif
 
-
-
 #define    IS_UP(_dev) \
     (((_dev)->flags & (IFF_RUNNING|IFF_UP)) == (IFF_RUNNING|IFF_UP))
 #define    IS_UP_AUTO(_ic) \
     (IS_UP((_ic)->ic_dev) && (_ic)->ic_roaming == IEEE80211_ROAMING_AUTO)
 #define WE_WLAN_VERSION     1
-extern int iw_get_char_setnone(struct net_device *dev, struct iw_request_info *info,
-                       union iwreq_data *wrqu, char *extra);
+
 /*--------------------------------------------------------------------------- 
  *   Function definitions
  *-------------------------------------------------------------------------*/
@@ -894,6 +891,35 @@ static iw_softap_commit(struct net_device *dev,
     
     pConfig->SapMacaddr_acl = pCommitConfig->qc_macaddr_acl;
     pConfig->ht_capab = pCommitConfig->ht_capab;
+
+    /* Bandcapability:
+       eCSR_BAND_ALL = 0 All mode
+       eCSR_BAND_24  = 1 2.4GHZ mode only
+       eCSR_BAND_5G  = 5 GHz mode only
+       HT40 is supported in 5GHz band only. if current operating band is not 5GHz clear all related HT40 settings */
+    if(eCSR_BAND_5G != (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->nBandCapability)
+    {
+       /*Band is not 5GHz clear all HT40 releted settings received from hostapd before passing it down to SME*/
+       /*
+	* HT capability is of 16 bits following is each field description:
+         1....... ........ : L-SIG TXOP protection support bit
+         .1...... ........ : AP allows use of 40MHz transmission in neighboring BSS
+         ..1..... ........ : BSS support use of PSPM
+         ...1.... ........ : BSS allows use of DSSS rate at 40MHz
+         ....1... ........ : Maximum Ampdu size : 7935 bytes
+         .....1.. ........ : HT delayed Block ACK support
+         ......11 ........ : RX STBC: RX support for 1, 2 and 3 spatial streams
+         ........ 1....... : Transmitter does support STBC
+         ........ .1...... : Short GI for 40MHz
+         ........ ..1..... : Short GI for 20MHz
+         ........ ...1.... : Device is capable to receive PDUs with GF capable
+         ........ ....11.. : Spatial multiplexing enabled
+         ........ ......1. : Both 20MHz and 40 MHz is supported
+         ........ .......1 : LPDC coding capability
+        */
+       pConfig->ht_capab &= 0xBFBD;
+    }
+    
     if (pCommitConfig->num_accept_mac > MAX_MAC_ADDRESS_ACCEPTED)
         num_mac = pConfig->num_accept_mac = MAX_MAC_ADDRESS_ACCEPTED;
     else
@@ -1044,7 +1070,7 @@ int iw_get_WPSPBCProbeReqIEs(struct net_device *dev,
     EXIT();
     return 0;
 }
-static int iw_set_encodeext(struct net_device *dev, 
+static int iw_set_ap_encodeext(struct net_device *dev, 
                         struct iw_request_info *info,
                         union iwreq_data *wrqu, char *extra)
 {
@@ -1219,7 +1245,7 @@ static int iw_set_encodeext(struct net_device *dev,
    
    return halStatus;
 }
-static int iw_set_mlme(struct net_device *dev,
+static int iw_set_ap_mlme(struct net_device *dev,
                        struct iw_request_info *info,
                        union iwreq_data *wrqu,
                        char *extra)
@@ -1265,6 +1291,74 @@ static int iw_set_mlme(struct net_device *dev,
 #endif    
     return 0;
 //    return status;
+}
+
+static int iw_get_ap_rts_threshold(struct net_device *dev,
+            struct iw_request_info *info,
+            union iwreq_data *wrqu, char *extra)
+{
+   hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+   v_U32_t status = 0;
+
+   status = hdd_wlan_get_rts_threshold(pHostapdAdapter, wrqu);
+
+   return status;
+}
+
+static int iw_get_ap_frag_threshold(struct net_device *dev,
+                                 struct iw_request_info *info,
+                                 union iwreq_data *wrqu, char *extra)
+{
+    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    v_U32_t status = 0;
+
+    status = hdd_wlan_get_frag_threshold(pHostapdAdapter, wrqu);
+
+    return status;
+}
+
+static int iw_get_ap_freq(struct net_device *dev, struct iw_request_info *info,
+             struct iw_freq *fwrq, char *extra)
+{
+   v_U32_t status = 0,channel,freq;
+   hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+   tHalHandle hHal;
+   hdd_hostapd_state_t *pHostapdState;
+   hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pHostapdAdapter);  
+
+   ENTER();
+
+   if ((WLAN_HDD_GET_CTX(pHostapdAdapter))->isLogpInProgress) {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
+                                  "%s:LOGP in Progress. Ignore!!!",__func__);
+      return status;
+   }
+
+   pHostapdState = WLAN_HDD_GET_HOSTAP_STATE_PTR(pHostapdAdapter);
+   hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
+
+   if(pHostapdState->bssState == BSS_STOP )
+   {
+       if (ccmCfgGetInt(hHal, WNI_CFG_CURRENT_CHANNEL, &channel)
+                                                  != eHAL_STATUS_SUCCESS)
+       {
+           return -EIO;
+       }
+       else
+       {
+          status = hdd_wlan_get_freq(channel, &freq);
+          fwrq->m = freq;
+          fwrq->e = 0;
+       }
+    }
+    else
+    {
+       channel = pHddApCtx->operatingChannel;
+       status = hdd_wlan_get_freq(channel, &freq);
+       fwrq->m = freq;
+       fwrq->e = 0;
+    }
+   return status;
 }
 
 static int iw_softap_setwpsie(struct net_device *dev,
@@ -1601,19 +1695,17 @@ static int iw_softap_version(struct net_device *dev,
         union iwreq_data *wrqu, 
         char *extra)
 {
-#ifdef HDD_SESSIONIZE
+#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
     hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
-    int ret;
-#endif
+    VOS_STATUS status;
     ENTER();
-    wrqu->data.flags = WE_WLAN_VERSION;
-#ifdef HDD_SESSIONIZE
-    //Why? Both the functions can call same internal API than doing this.
-    ret = iw_get_char_setnone(pHostapdAdapter->pWlanDev, info, wrqu, extra);
-    if (-EINVAL == ret)
-        return -EINVAL;
-#endif
+    status = hdd_wlan_get_version(pHostapdAdapter, wrqu, extra);
+    if ( !VOS_IS_STATUS_SUCCESS( status ) ) {
+       hddLog(VOS_TRACE_LEVEL_ERROR, "%s Failed!!!\n",__func__);
+       return -EINVAL;
+    }
     EXIT();
+#endif//TODO need to handle in prima
     return 0;
 }
 static int iw_set_ap_genie(struct net_device *dev,
@@ -1660,17 +1752,17 @@ static int iw_set_ap_genie(struct net_device *dev,
 static const iw_handler      hostapd_handler[] =
 {
    (iw_handler) NULL,           /* SIOCSIWCOMMIT */
-   (iw_handler) NULL,        /* SIOCGIWNAME */
+   (iw_handler) NULL,           /* SIOCGIWNAME */
    (iw_handler) NULL,           /* SIOCSIWNWID */
    (iw_handler) NULL,           /* SIOCGIWNWID */
    (iw_handler) NULL,           /* SIOCSIWFREQ */
-   (iw_handler) NULL,           /* SIOCGIWFREQ */
+   (iw_handler) iw_get_ap_freq,    /* SIOCGIWFREQ */
    (iw_handler) NULL,           /* SIOCSIWMODE */
    (iw_handler) NULL,           /* SIOCGIWMODE */
    (iw_handler) NULL,           /* SIOCSIWSENS */
    (iw_handler) NULL,           /* SIOCGIWSENS */
    (iw_handler) NULL,           /* SIOCSIWRANGE */
-   (iw_handler) NULL,       /* SIOCGIWRANGE */
+   (iw_handler) NULL,           /* SIOCGIWRANGE */
    (iw_handler) NULL,           /* SIOCSIWPRIV */
    (iw_handler) NULL,           /* SIOCGIWPRIV */
    (iw_handler) NULL,           /* SIOCSIWSTATS */
@@ -1680,13 +1772,13 @@ static const iw_handler      hostapd_handler[] =
    (iw_handler) NULL,           /* SIOCSIWTHRSPY */
    (iw_handler) NULL,           /* SIOCGIWTHRSPY */
    (iw_handler) NULL,           /* SIOCSIWAP */
-   (iw_handler) NULL,       /* SIOCGIWAP */
-   (iw_handler) iw_set_mlme,    /* SIOCSIWMLME */
+   (iw_handler) NULL,           /* SIOCGIWAP */
+   (iw_handler) iw_set_ap_mlme,    /* SIOCSIWMLME */
    (iw_handler) NULL,           /* SIOCGIWAPLIST */
    (iw_handler) NULL,           /* SIOCSIWSCAN */
    (iw_handler) NULL,           /* SIOCGIWSCAN */
-   (iw_handler) NULL,          /* SIOCSIWESSID */
-   (iw_handler) NULL,          /* SIOCGIWESSID */
+   (iw_handler) NULL,           /* SIOCSIWESSID */
+   (iw_handler) NULL,           /* SIOCGIWESSID */
    (iw_handler) NULL,           /* SIOCSIWNICKN */
    (iw_handler) NULL,           /* SIOCGIWNICKN */
    (iw_handler) NULL,           /* -- hole -- */
@@ -1694,9 +1786,9 @@ static const iw_handler      hostapd_handler[] =
    (iw_handler) NULL,           /* SIOCSIWRATE */
    (iw_handler) NULL,           /* SIOCGIWRATE */
    (iw_handler) NULL,           /* SIOCSIWRTS */
-   (iw_handler) NULL,           /* SIOCGIWRTS */
+   (iw_handler) iw_get_ap_rts_threshold,     /* SIOCGIWRTS */
    (iw_handler) NULL,           /* SIOCSIWFRAG */
-   (iw_handler) NULL,           /* SIOCGIWFRAG */
+   (iw_handler) iw_get_ap_frag_threshold,    /* SIOCGIWFRAG */
    (iw_handler) NULL,           /* SIOCSIWTXPOW */
    (iw_handler) NULL,           /* SIOCGIWTXPOW */
    (iw_handler) NULL,           /* SIOCSIWRETRY */
@@ -1707,11 +1799,11 @@ static const iw_handler      hostapd_handler[] =
    (iw_handler) NULL,           /* SIOCGIWPOWER */
    (iw_handler) NULL,           /* -- hole -- */
    (iw_handler) NULL,           /* -- hole -- */
-   (iw_handler) iw_set_ap_genie,   /* SIOCSIWGENIE */
+   (iw_handler) iw_set_ap_genie,     /* SIOCSIWGENIE */
    (iw_handler) NULL,           /* SIOCGIWGENIE */
    (iw_handler) NULL,           /* SIOCSIWAUTH */
    (iw_handler) NULL,           /* SIOCGIWAUTH */
-   (iw_handler) iw_set_encodeext,   /* SIOCSIWENCODEEXT */
+   (iw_handler) iw_set_ap_encodeext,     /* SIOCSIWENCODEEXT */
    (iw_handler) NULL,           /* SIOCGIWENCODEEXT */
    (iw_handler) NULL,           /* SIOCSIWPMKSA */
 };
@@ -1937,7 +2029,6 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
 
         pWlanHostapdDev->destructor = free_netdev;
 #ifdef CONFIG_CFG80211
-        pHostapdAdapter->wdev.iftype = NL80211_IFTYPE_AP; //TODO
         pWlanHostapdDev->ieee80211_ptr = &pHostapdAdapter->wdev ;
         pHostapdAdapter->wdev.wiphy = pHddCtx->wiphy;  
         pHostapdAdapter->wdev.netdev =  pWlanHostapdDev;

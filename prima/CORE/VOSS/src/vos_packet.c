@@ -1803,7 +1803,8 @@ VOS_STATUS vos_pkt_peek_data( vos_pkt_t *pPacket,
    if (unlikely((pktOffset + numBytes) > skb->len))
    {
       VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                "VPKT [%d]: Packet overflow", __LINE__);
+                "VPKT [%d]: Packet overflow, offset %d size %d len %d",
+                __LINE__, pktOffset, numBytes, skb->len);
       return VOS_STATUS_E_INVAL;
    }
 

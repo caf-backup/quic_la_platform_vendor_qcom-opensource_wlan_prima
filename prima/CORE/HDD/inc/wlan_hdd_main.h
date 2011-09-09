@@ -66,8 +66,13 @@
 #define SOFTAP_BSS_STARTED     1<<4
 
 /** Maximum time(ms)to wait for disconnect to complete **/
-#define WLAN_WAIT_TIME_DISCONNECT  1000
+#define WLAN_WAIT_TIME_DISCONNECT  500
+#define WLAN_WAIT_TIME_STATS       800
+#define WLAN_WAIT_TIME_POWER       800
 #define WLAN_WAIT_TIME_SESSIONOPENCLOSE  2000
+
+#define MAX_NUMBER_OF_ADAPTERS 4
+
 #define MAC_ADDR_ARRAY(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
 /** Mac Address string **/
 #define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
@@ -144,7 +149,6 @@ typedef struct hdd_stats_s
    tCsrGlobalClassDStatsInfo  ClassD_stat;
    tCsrPerStaStatsInfo        perStaStats;
    hdd_tx_rx_stats_t          hddTxRxStats;
-   hdd_chip_reset_stats_t     hddChipResetStats;
 } hdd_stats_t;
 
 typedef enum
@@ -349,6 +353,7 @@ struct hdd_station_ctx
 #ifdef CONFIG_CFG80211
    hdd_cfg80211_state_t cfg80211State;
 #endif
+   v_BOOL_t bSendDisconnect;
 };
 
 #define BSS_STOP    0 
@@ -555,7 +560,7 @@ struct hdd_adapter_s
 
 typedef struct hdd_adapter_list_node
 {
-   vos_list_node_t node;     // MUST be first element
+   hdd_list_node_t node;     // MUST be first element
    hdd_adapter_t *pAdapter;
 }hdd_adapter_list_node_t;
 
@@ -574,7 +579,7 @@ struct hdd_context_s
 #endif
    //TODO Remove this from here.
 
-   vos_list_t hddAdapters; //List of adapters
+   hdd_list_t hddAdapters; //List of adapters
    /* One per STA: 1 for RX_BCMC_STA_ID and 1 for SAP_SELF_STA_ID*/
    hdd_adapter_t *sta_to_adapter[WLAN_MAX_STA_COUNT + 3]; //One per sta. For quick reference.
 
@@ -639,14 +644,40 @@ struct hdd_context_s
    v_SINT_t ptt_pid;
 
    v_U8_t change_iface;
+
+   hdd_chip_reset_stats_t hddChipResetStats;
 };
+
+
+
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
   -------------------------------------------------------------------------*/ 
-hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type, char* name, tSirMacAddr macAddr, tANI_U8 rtnl_held );
+VOS_STATUS hdd_get_front_adapter( hdd_context_t *pHddCtx,
+                                  hdd_adapter_list_node_t** ppAdapterNode);
+
+VOS_STATUS hdd_get_next_adapter( hdd_context_t *pHddCtx,
+                                 hdd_adapter_list_node_t* pAdapterNode,
+                                 hdd_adapter_list_node_t** pNextAdapterNode);
+
+VOS_STATUS hdd_remove_adapter( hdd_context_t *pHddCtx,
+                               hdd_adapter_list_node_t* pAdapterNode);
+
+VOS_STATUS hdd_remove_front_adapter( hdd_context_t *pHddCtx,
+                                     hdd_adapter_list_node_t** ppAdapterNode);
+
+VOS_STATUS hdd_add_adapter_back( hdd_context_t *pHddCtx,
+                                 hdd_adapter_list_node_t* pAdapterNode);
+
+VOS_STATUS hdd_add_adapter_front( hdd_context_t *pHddCtx,
+                                  hdd_adapter_list_node_t* pAdapterNode);
+
+hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
+                                 char* name, tSirMacAddr macAddr, tANI_U8 rtnl_held );
 VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_U8 rtnl_held );
 VOS_STATUS hdd_close_all_adapters( hdd_context_t *pHddCtx );
 VOS_STATUS hdd_stop_all_adapters( hdd_context_t *pHddCtx );
+VOS_STATUS hdd_reset_all_adapters( hdd_context_t *pHddCtx );
 VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx );
 VOS_STATUS hdd_reconnect_all_adapters( hdd_context_t *pHddCtx );
 hdd_adapter_t * hdd_get_adapter_by_name( hdd_context_t *pHddCtx, tANI_U8 *name );

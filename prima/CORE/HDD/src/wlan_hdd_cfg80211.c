@@ -624,9 +624,7 @@ static int wlan_hdd_cfg80211_start_bss(hdd_adapter_t *pHostapdAdapter)
     pIe = wlan_hdd_get_p2p_ie_ptr(pBeacon->tail,pBeacon->tail_len);
 
     if(pIe) 
-    { 
-        /* Setting device mode as P2P GO */
-        pHostapdAdapter->device_mode = WLAN_HDD_P2P_GO;
+    {
         ielen = pIe[1] + 2;
         if(total_ielen + ielen <= MAX_GENIE_LEN) {
             vos_mem_copy(&genie[total_ielen],pIe,(pIe[1] + 2));
@@ -954,7 +952,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 pRoamProfile->BSSType = eCSR_BSS_TYPE_INFRASTRUCTURE;
                 pRoamProfile->phyMode = 
                 hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
-    
+                wdev->iftype = type;
                 break;
             case NL80211_IFTYPE_ADHOC:
                 hddLog(VOS_TRACE_LEVEL_INFO, 
@@ -969,7 +967,6 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
             case NL80211_IFTYPE_P2P_GO:
 #endif
             {
-
                 hddLog(VOS_TRACE_LEVEL_INFO_HIGH, 
                       "%s: setting interface Type to %s", __func__, 
                       (type == NL80211_IFTYPE_AP) ? "SoftAP" : "P2pGo");
@@ -2195,25 +2192,33 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
     {
         if (0 < request->n_ssids)
         {
-            /* TODO:
-             * Populate: SSID for all ssids
-             * Right now we are supporting only one SSID.
-             */            
-
+            tCsrSSIDInfo *SsidInfo;
+            int j;
             scanRequest.SSIDs.numOfSSIDs = request->n_ssids;
-            scanRequest.SSIDs.SSIDList =
-                        (tCsrSSIDInfo *)vos_mem_malloc(sizeof(tCsrSSIDInfo));
-            if (NULL == scanRequest.SSIDs.SSIDList)
+            /* Allocate num_ssid tCsrSSIDInfo structure */
+            SsidInfo = scanRequest.SSIDs.SSIDList =
+                      ( tCsrSSIDInfo *)vos_mem_malloc(
+                              request->n_ssids*sizeof(tCsrSSIDInfo));
+
+            if(NULL == scanRequest.SSIDs.SSIDList)
             {
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL,
-                 "%s: Not able to allocate memory for ssid list!!!",__func__);
+                hddLog(VOS_TRACE_LEVEL_ERROR,
+                               "memory alloc failed SSIDInfo buffer");
                 return -ENOMEM;
             }
-            scanRequest.SSIDs.SSIDList->SSID.length = request->ssids->ssid_len;
-            vos_mem_copy(scanRequest.SSIDs.SSIDList->SSID.ssId,
-                    request->ssids->ssid,request->ssids->ssid_len);
+
+            /* copy all the ssid's and their length */
+            for(j = 0; j < request->n_ssids; j++, SsidInfo++)
+            {
+                /* get the ssid length */
+                SsidInfo->SSID.length = request->ssids[j].ssid_len;
+                vos_mem_copy(SsidInfo->SSID.ssId, &request->ssids[j].ssid[0],
+                             SsidInfo->SSID.length);
+                hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "SSID number %d:  %s\n",
+                                                   j, SsidInfo->SSID.ssId);
+            }
         }
-        
+
         /*Set the scan type to default type, in this case it is ACTIVE*/
         scanRequest.scanType = 
                     (WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter))->scan_mode;
@@ -2288,6 +2293,8 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                        "%s: This is a P2P Search", __func__);
                 scanRequest.p2pSearch = 1;
                 pwextBuf->p2pSearch = 1;
+                sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                     pAdapter->sessionId );
             }
         }
 #endif
@@ -2827,84 +2834,6 @@ int wlan_hdd_cfg80211_set_privacy( hdd_adapter_t *pAdapter,
     return status;
 }
 
-#if 0
-#ifdef WLAN_FEATURE_P2P
-/* 
- * Look for BSS from SME with specified SSID and after that check if for 
- * that BSS we have P2P IE in beacon frame.
- */
-static int wlan_hdd_cfg80211_check_bss_for_p2pIe( 
-            hdd_adapter_t *pAdapter, u8* ssid, size_t ssid_len, u8* bssid )
-{
-    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pAdapter);
-    tCsrScanResultFilter scanResFilter = { {0} };
-    tCsrSSIDInfo* pssidInfo;
-    tScanResultHandle pResult;
-    eHalStatus status = 0;
-    int p2pIeFound = 0;
-    tCsrScanResultInfo *pScanResult;
-    tCsrBssid Scan_Bssid;
-    scanResFilter.BSSIDs.bssid = &Scan_Bssid;
-
-    if (NULL == ssid)
-    {
-        return p2pIeFound;
-    }
-
-    if( NULL == (pssidInfo = (tCsrSSIDInfo *)vos_mem_malloc(sizeof(tCsrSSIDInfo)) ) )
-    {
-        return p2pIeFound;
-    }
-
-    scanResFilter.SSIDs.numOfSSIDs = 1;    
-    scanResFilter.SSIDs.SSIDList = pssidInfo;
-    pssidInfo->SSID.length = ssid_len;
-    vos_mem_copy(&pssidInfo->SSID.ssId[0], ssid, ssid_len);
-
-    if (bssid)
-    {
-        scanResFilter.BSSIDs.numOfBSSIDs = 1;
-        vos_mem_copy((void *)(scanResFilter.BSSIDs.bssid), bssid,
-                     WNI_CFG_BSSID_LEN);
-    }
-    scanResFilter.bWPSAssociation = 1; 
-
-    /*
-     * Get scan result with specified SSID and after that look for 
-     */
-    status = sme_ScanGetResult(hHal, pAdapter->sessionId, &scanResFilter, &pResult);
-
-    /* no scan results */
-    if (NULL == pResult)
-    {
-        hddLog(VOS_TRACE_LEVEL_INFO,
-              "%s: No BSS found with given SSID\n", __func__);
-        goto done;
-    }
-
-    pScanResult = sme_ScanResultGetFirst(hHal, pResult);
-
-    while (pScanResult)
-    {
-        tSirBssDescription *bss_desc = &pScanResult->BssDescriptor;
-        int ie_length = GET_IE_LEN_IN_BSS_DESC( bss_desc->length );
-        u8 *ie = ((ie_length != 0) ? (u8 *)&bss_desc->ieFields: NULL);
-        if (NULL != wlan_hdd_get_p2p_ie_ptr(ie, ie_length) )
-        {
-            p2pIeFound = 1;
-            break;
-        }
-
-        pScanResult = sme_ScanResultGetNext(hHal, pResult);
-    }
-    sme_ScanResultPurge(hHal, pResult);
-done:
-    vos_mem_free(pssidInfo);
-    return p2pIeFound;
-}
-#endif
-#endif
-
 /*
  * FUNCTION: wlan_hdd_cfg80211_set_privacy
  * This function is used to initialize the security 
@@ -2922,34 +2851,6 @@ static int wlan_hdd_cfg80211_connect( struct wiphy *wiphy,
 
     hddLog(VOS_TRACE_LEVEL_INFO, 
              "%s: device_mode = %d\n",__func__,pAdapter->device_mode);
-
-#ifdef WLAN_FEATURE_P2P
-    /*
-     * Putting real dirty fix. For setting P2P Client device mode, as 
-     * supplicant doesn't change the interface type in case concurrency is
-     * disabled. At the same time it sends P2P IE in connect even on STA 
-     * interface. So in addition to checking P2P IE, we will check SSID, 
-     * if SSID length is 9 and first 7 bytes are DIRECT- then probably it is
-     * P2P Client interface. And after that we will check the BSS descriptor 
-     * and see if it have P2P IE or not.
-     */
-    if ( (NULL != wlan_hdd_get_p2p_ie_ptr(req->ie, req->ie_len) )
-        && ( !memcmp(req->ssid, HDD_P2P_WILDCARD_SSID, HDD_P2P_WILDCARD_SSID_LEN) )
-#if 0
-       /* In case normal BSS SSID is also DIRECT-xy, then check if there is 
-        * p2pIE present in BSS descriptor for given SSID */ 
-       && wlan_hdd_cfg80211_check_bss_for_p2pIe(pAdapter, req->ssid,
-                                                req->ssid_len, req->bssid)
-#endif
-       )
-    {
-        pAdapter->device_mode = WLAN_HDD_P2P_CLIENT;
-    }
-    else
-    {
-        pAdapter->device_mode = WLAN_HDD_INFRA_STATION;
-    }
-#endif    
 
     /*initialise security parameters*/
     status = wlan_hdd_cfg80211_set_privacy(pAdapter, req); 

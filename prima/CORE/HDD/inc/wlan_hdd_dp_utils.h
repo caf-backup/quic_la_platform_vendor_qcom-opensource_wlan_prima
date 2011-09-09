@@ -90,5 +90,7 @@ VOS_STATUS hdd_list_remove_front( hdd_list_t *pList, hdd_list_node_t **ppNode );
 VOS_STATUS hdd_list_remove_back( hdd_list_t *pList, hdd_list_node_t **ppNode );
 
 VOS_STATUS hdd_list_remove_node( hdd_list_t *pList, hdd_list_node_t *pNodeToRemove );
-
+VOS_STATUS hdd_list_peek_front( hdd_list_t *pList, hdd_list_node_t **ppNode );
+VOS_STATUS hdd_list_peek_next( hdd_list_t *pList, hdd_list_node_t *pNode,
+                               hdd_list_node_t **ppNode );
 #endif //__WLAN_HDD_DP_UTILS_H

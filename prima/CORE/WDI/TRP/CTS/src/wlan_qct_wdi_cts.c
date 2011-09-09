@@ -477,7 +477,7 @@ WCTS_NotifyCallback
      --------------------------------------------------------------------*/
    if (WCTS_CB_MAGIC != pWCTSCb->wctsMagic) {
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                 "WCTS_NotifyCallback: Invalid parameter received");
+                 "%s: Invalid parameter received", __FUNCTION__);
 
       /* TODO_PRIMA what error recovery options do we have? */
       return;
@@ -486,28 +486,46 @@ WCTS_NotifyCallback
    /* Serialize processing in the control thread */
    switch (event) {
    case SMD_EVENT_OPEN:
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                 "%s: received SMD_EVENT_OPEN from SMD", __FUNCTION__);
       palMsg = &pWCTSCb->wctsOpenMsg;
       break;
 
    case SMD_EVENT_DATA:
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                 "%s: received SMD_EVENT_DATA from SMD", __FUNCTION__);
       palMsg = &pWCTSCb->wctsDataMsg;
       break;
 
    case SMD_EVENT_CLOSE:
-      /* signal event for smd_close to proceed */
-      wpalEventSet(&pWCTSCb->wctsEvent);
-      palMsg = &pWCTSCb->wctsCloseMsg;
-      break;
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                 "%s: received SMD_EVENT_CLOSE from SMD", __FUNCTION__);
+      /* SMD channel was closed from the remote side
+         We currently have no way to handle this */
+      return;
 
    case SMD_EVENT_STATUS:
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
-                 "WCTS_NotifyCallback: received SMD_EVENT_STATUS from SMD");
+                 "%s: received SMD_EVENT_STATUS from SMD", __FUNCTION__);
       return;
+
+#if SMD_EVENT_STATUS != SMD_EVENT_REOPEN_READY
+      /* these were initially defined in error to have the same value
+         so we need conditional code to make sure 1) the same value
+         doesn't appear in two cases, and 2) to make sure we don't
+         process a STATUS event as a REOPEN READY event */
+
+   case SMD_EVENT_REOPEN_READY:
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_INFO,
+                 "%s: received SMD_EVENT_REOPEN_READY from SMD", __FUNCTION__);
+      palMsg = &pWCTSCb->wctsCloseMsg;
+      break;
+#endif
 
    default:
       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                 "WCTS_NotifyCallback: Unexpected event %u received from SMD",
-                 event);
+                 "%s: Unexpected event %u received from SMD",
+                 __FUNCTION__, event);
 
       return;
    }
@@ -732,8 +750,6 @@ WCTS_CloseTransport
    /* Reset the state */
    pWCTSCb->wctsState = WCTS_STATE_CLOSED;
 
-   wpalEventReset(&pWCTSCb->wctsEvent);
-
    smdstatus = smd_close(pWCTSCb->wctsChannel);
    if (0 != smdstatus) {
 
@@ -755,15 +771,6 @@ WCTS_CloseTransport
       return status;
    }
 
-   /* SMD is presumably in the process of closing the channel.  Wait
-      for the close event from SMD, otherwise by the time SMD responds
-      this module may be unloaded and may result in crash */
-   status = wpalEventWait(&pWCTSCb->wctsEvent, 1000);
-   if (eWLAN_PAL_STATUS_SUCCESS != status) {
-      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                 "%s: failed to receive SMD_EVENT_CLOSE",
-                 __FUNCTION__);
-   }
    return status;
 
 }/*WCTS_CloseTransport*/

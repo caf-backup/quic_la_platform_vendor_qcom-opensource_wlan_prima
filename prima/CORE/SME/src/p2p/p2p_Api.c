@@ -211,7 +211,7 @@ eHalStatus p2pRemainOnChannel(tHalHandle hHal, tANI_U8 sessionId,
         pRemainChlCmd->u.remainChlCmd.callback = callback;
         pRemainChlCmd->u.remainChlCmd.callbackCtx = pContext;
     
-        smePushCommand(pMac, pRemainChlCmd, eANI_BOOLEAN_FALSE);
+        csrQueueSmeCommand(pMac, pRemainChlCmd, eANI_BOOLEAN_FALSE);
     } while(0);
   
     smsLog(pMac, LOGW, "exiting function %s\n", __FUNCTION__);

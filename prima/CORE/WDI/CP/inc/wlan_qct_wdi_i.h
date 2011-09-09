@@ -702,11 +702,15 @@ typedef struct
 
 }WDI_NextSessionIdType; 
 
+#define WDI_CONTROL_BLOCK_MAGIC  0x67736887  /* WDIC in little endian */
 /*--------------------------------------------------------------------------- 
    WLAN DAL Control Block Type 
  ---------------------------------------------------------------------------*/
 typedef struct
 {
+  /*magic number so callbacks can validate their context pointers*/
+  wpt_uint32                  magic;
+
   /*Ptr to the OS Context received from the UMAC*/
   void*                       pOSContext;
 
@@ -856,6 +860,8 @@ typedef struct
   /* dpu routing flag
   ! TO DO: - must be set/reset when PS is enabled for UAPSD */  
   wpt_uint8                   ucDpuRF;    
+  /* Event to wait for when WCTS is told to perform an action */
+  wpt_event                   wctsActionEvent;
   /* Event to wait for ACK from DXE after the power state is set */
   wpt_event                   setPowerStateEvent;
   /* DXE physical addr to be passed down to RIVA. RIVA HAL will use it to program

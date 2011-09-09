@@ -509,7 +509,6 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     union iwreq_data wrqu;
     int we_event;
     char *msg;
-    VOS_STATUS vos_status;
     
     ENTER();
 
@@ -533,14 +532,6 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     we_event = SIOCGIWSCAN;
     msg = NULL;
     wireless_send_event(dev, we_event, &wrqu, msg);
-
-    vos_status = vos_event_set(&pwextBuf->scanevent);
-
-    if (!VOS_IS_STATUS_SUCCESS(vos_status))
-    {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!"));
-       return VOS_STATUS_E_FAILURE;
-    }
 
     EXIT();
 
@@ -727,7 +718,6 @@ int iw_get_scan(struct net_device *dev,
    eHalStatus status = eHAL_STATUS_SUCCESS;
    hdd_scan_info_t scanInfo;
    tScanResultHandle pResult;
-   VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
    int i = 0;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: enter buffer length %d!!!",
@@ -744,28 +734,6 @@ int iw_get_scan(struct net_device *dev,
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:LOGP in Progress. Ignore!!!",__func__);
       return -EAGAIN;
    }
-
-   // moved from set scan (iw_set_(c)scan) 
-   if (TRUE == pwextBuf->mScanPending)
-   {
-       hddLog(VOS_TRACE_LEVEL_WARN,"iw_get_scan: Scan Pending wait for 3 sec time out\n");
-       
-       vos_status = vos_event_reset(&pwextBuf->scanevent);
-       
-       if (!VOS_IS_STATUS_SUCCESS(vos_status))
-       {
-          hddLog(VOS_TRACE_LEVEL_FATAL, ("ERROR: HDD vos_event_reset failed!!\n"));
-          return -EAGAIN;
-       }
-       
-       vos_status = vos_wait_single_event(&pwextBuf->scanevent,3000);
-       
-       if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
-          hddLog(VOS_TRACE_LEVEL_FATAL,"Error : Scan Pending no scan response from SME\n");
-          return -EAGAIN;
-       }
-   }
-
 
    scanInfo.dev = dev;
    scanInfo.start = extra;

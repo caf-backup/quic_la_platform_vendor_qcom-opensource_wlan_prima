@@ -100,6 +100,8 @@ int wlan_hdd_ftm_start(hdd_context_t *pAdapter);
 v_U16_t hdd_select_queue(struct net_device *dev,
     struct sk_buff *skb);
 
+void hdd_wlan_initial_scan(hdd_adapter_t *pAdapter);
+
 static int hdd_netdev_notifier_call(struct notifier_block * nb,
                                          unsigned long state,
                                          void *ndev)
@@ -634,8 +636,6 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
    struct net_device *pWlanDev = NULL;
    hdd_adapter_t *pAdapter = NULL;
 #ifdef CONFIG_CFG80211
-   char mon_interface[] = "mon";
-
    /*
     * cfg80211 initialization and registration....
     */ 
@@ -687,14 +687,6 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
 
       pWlanDev->destructor = free_netdev;
 #ifdef CONFIG_CFG80211
-      if(strncmp(mon_interface,name,3)==0) 
-      {             
-          pAdapter->wdev.iftype = NL80211_IFTYPE_MONITOR; 
-      }
-      else
-      {          
-          pAdapter->wdev.iftype = NL80211_IFTYPE_STATION; 
-      }
       pWlanDev->ieee80211_ptr = &pAdapter->wdev ;
       pAdapter->wdev.wiphy = pHddCtx->wiphy;  
       pAdapter->wdev.netdev =  pWlanDev;
@@ -1000,6 +992,13 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
            if( NULL == pAdapter )
               return NULL;
 
+#ifdef CONFIG_CFG80211
+         pAdapter->wdev.iftype = (session_type == WLAN_HDD_INFRA_STATION) ?
+                                  NL80211_IFTYPE_STATION :
+                                  NL80211_IFTYPE_P2P_CLIENT;
+#endif
+
+
            pAdapter->device_mode = session_type;
 
            status = hdd_init_station_mode( pAdapter );
@@ -1029,6 +1028,11 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
           if( NULL == pAdapter )
               return NULL;
 
+#ifdef CONFIG_CFG80211
+         pAdapter->wdev.iftype = (session_type == WLAN_HDD_SOFTAP) ?
+                                  NL80211_IFTYPE_AP:
+                                  NL80211_IFTYPE_P2P_GO;
+#endif
           pAdapter->device_mode = session_type;
 
           status = hdd_init_ap_mode(pAdapter);
@@ -1136,7 +1140,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
       else
       {
          pHddAdapterNode->pAdapter = pAdapter;
-         status = vos_list_insert_back( &pHddCtx->hddAdapters, &pHddAdapterNode->node );
+         status = hdd_add_adapter_back ( pHddCtx, 
+                                         pHddAdapterNode );
       }
    }
 
@@ -1160,25 +1165,25 @@ err_free_netdev:
    return NULL;
 }
 
-VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_U8 rtnl_held )
+VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
+                              tANI_U8 rtnl_held )
 {
-   vos_list_node_t *pCurrent, *pNext;
-   hdd_adapter_list_node_t *pAdapterNode;
+   hdd_adapter_list_node_t *pAdapterNode, *pCurrent, *pNext;
    VOS_STATUS status;
 
-   status =  vos_list_peek_front ( &pHddCtx->hddAdapters, &pCurrent );
+   status = hdd_get_front_adapter ( pHddCtx, &pCurrent );
    if( VOS_STATUS_SUCCESS != status )
       return status;
 
-   while ( ((hdd_adapter_list_node_t*)pCurrent)->pAdapter != pAdapter )
+   while ( pCurrent->pAdapter != pAdapter )
    {
-      status = vos_list_peek_next ( &pHddCtx->hddAdapters, pCurrent, &pNext );
+      status = hdd_get_next_adapter ( pHddCtx, pCurrent, &pNext );
       if( VOS_STATUS_SUCCESS != status )
          break;
 
       pCurrent = pNext;
    }
-   pAdapterNode = (hdd_adapter_list_node_t*) pCurrent;
+   pAdapterNode = pCurrent;
    if( VOS_STATUS_SUCCESS == status )
    {
       switch ( pAdapter->device_mode )
@@ -1200,7 +1205,7 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, t
       }
                              
       hdd_cleanup_adapter( pHddCtx, pAdapterNode->pAdapter, rtnl_held );
-      vos_list_remove_node( &pHddCtx->hddAdapters, &pAdapterNode->node );
+      hdd_remove_adapter( pHddCtx, pAdapterNode );
       vos_mem_free( pAdapterNode );
 
       /* If there is no concurrent session disable SW frame translation 
@@ -1222,7 +1227,7 @@ VOS_STATUS hdd_close_all_adapters( hdd_context_t *pHddCtx )
 
    do
    {
-      status = vos_list_remove_front( &pHddCtx->hddAdapters, (vos_list_node_t**) &pHddAdapterNode );
+      status = hdd_remove_front_adapter( pHddCtx, &pHddAdapterNode );
       if( pHddAdapterNode && VOS_STATUS_SUCCESS == status )
       {
          hdd_cleanup_adapter( pHddCtx, pHddAdapterNode->pAdapter, FALSE );
@@ -1279,7 +1284,7 @@ VOS_STATUS hdd_stop_all_adapters( hdd_context_t *pHddCtx )
    VOS_STATUS status;
    hdd_adapter_t      *pAdapter;
 
-   status =  vos_list_peek_front ( &pHddCtx->hddAdapters, (vos_list_node_t**) &pAdapterNode );
+   status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
@@ -1289,10 +1294,39 @@ VOS_STATUS hdd_stop_all_adapters( hdd_context_t *pHddCtx )
 
       hdd_stop_adapter( pHddCtx, pAdapter );
 
-      status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
+      status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
-   
+
+   return VOS_STATUS_SUCCESS;
+}
+
+VOS_STATUS hdd_reset_all_adapters( hdd_context_t *pHddCtx )
+{
+   hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
+   VOS_STATUS status;
+   hdd_adapter_t *pAdapter;
+
+   status =  hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+
+   while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
+   {
+      pAdapter = pAdapterNode->pAdapter;
+      netif_tx_disable(pAdapter->dev);
+      netif_carrier_off(pAdapter->dev);
+
+      //Record whether STA is associated
+      pAdapter->sessionCtx.station.bSendDisconnect = 
+            hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR( pAdapter )) ?
+                                                       VOS_TRUE : VOS_FALSE;
+
+      hdd_deinit_tx_rx(pAdapter);
+      hdd_wmm_adapter_close(pAdapter);
+
+      status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
+      pAdapterNode = pNext;
+   }
+
    return VOS_STATUS_SUCCESS;
 }
 
@@ -1302,7 +1336,7 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
    VOS_STATUS status;
    hdd_adapter_t      *pAdapter;
 
-   status =  vos_list_peek_front ( &pHddCtx->hddAdapters, (vos_list_node_t**) &pAdapterNode );
+   status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
@@ -1310,22 +1344,46 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
 
       switch(pAdapter->device_mode)
       {
-        case WLAN_HDD_INFRA_STATION:
-        case WLAN_HDD_P2P_CLIENT: 
-          hdd_init_station_mode(pAdapter);
-          break;
-        case WLAN_HDD_SOFTAP:
-        case WLAN_HDD_P2P_GO:
-          /* add softap interface stop code here */
-          break;
-        case WLAN_HDD_MONITOR:
-          /* monitor interface stop */
-          break;
-        default:
-          break;
+         case WLAN_HDD_INFRA_STATION:
+         case WLAN_HDD_P2P_CLIENT:
+            hdd_init_station_mode(pAdapter);
+            /* Open the gates for HDD to receive Wext commands */
+            pAdapter->isLinkUpSvcNeeded = FALSE; 
+            pAdapter->sessionCtx.station.WextState.mScanPending = FALSE;
+
+            //Trigger the initial scan
+            hdd_wlan_initial_scan(pAdapter);
+
+            //Indicate disconnect event to supplicant if associated previously
+            if(pAdapter->sessionCtx.station.bSendDisconnect)
+            {
+               union iwreq_data wrqu;
+               memset(&wrqu, '\0', sizeof(wrqu));
+               wrqu.ap_addr.sa_family = ARPHRD_ETHER;
+               memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
+               wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
+               pAdapter->sessionCtx.station.bSendDisconnect = VOS_FALSE;
+
+#ifdef CONFIG_CFG80211
+               /* indicate disconnected event to nl80211 */
+               cfg80211_disconnected(pAdapter->dev, WLAN_REASON_UNSPECIFIED,
+                                     NULL, 0, GFP_KERNEL); 
+#endif
+            }
+            break;
+
+         case WLAN_HDD_SOFTAP:
+         case WLAN_HDD_P2P_GO:
+            /* add softap interface start code here */
+            break;
+         case WLAN_HDD_MONITOR:
+            /* monitor interface start */
+            break;
+         default:
+            break;
       }
 
-      status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
+      status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
    return VOS_STATUS_SUCCESS;
@@ -1338,7 +1396,7 @@ VOS_STATUS hdd_reconnect_all_adapters( hdd_context_t *pHddCtx )
    VOS_STATUS status;
    v_U32_t roamId;
 
-   status =  vos_list_peek_front ( &pHddCtx->hddAdapters, (vos_list_node_t**) &pAdapterNode );
+   status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
@@ -1352,45 +1410,118 @@ VOS_STATUS hdd_reconnect_all_adapters( hdd_context_t *pHddCtx )
 
          pHddStaCtx->conn_info.connState = eConnectionState_NotConnected;
          init_completion(&pAdapter->disconnect_comp_var);
-         sme_RoamDisconnect(pHddCtx->hHal, pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
+         sme_RoamDisconnect(pHddCtx->hHal, pAdapter->sessionId,
+                             eCSR_DISCONNECT_REASON_UNSPECIFIED);
 
-         wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
-         msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
+         wait_for_completion_interruptible_timeout(
+                                &pAdapter->disconnect_comp_var,
+                                msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
 
          pWextState->roamProfile.csrPersona = pAdapter->device_mode; 
 
          sme_RoamConnect(pHddCtx->hHal,
-               pAdapter->sessionId, &(pWextState->roamProfile), 
-               &roamId); 
+                         pAdapter->sessionId, &(pWextState->roamProfile),
+                         &roamId); 
       }
 
-      status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
+      status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
-   
+
    return VOS_STATUS_SUCCESS;
 }
 
-hdd_adapter_t * hdd_get_adapter_by_macaddr( hdd_context_t *pHddCtx, tSirMacAddr macAddr )
+VOS_STATUS hdd_get_front_adapter( hdd_context_t *pHddCtx,
+                                  hdd_adapter_list_node_t** ppAdapterNode)
+{
+    VOS_STATUS status;
+    spin_lock(&pHddCtx->hddAdapters.lock);
+    status =  hdd_list_peek_front ( &pHddCtx->hddAdapters,
+                   (hdd_list_node_t**) ppAdapterNode );
+    spin_unlock(&pHddCtx->hddAdapters.lock);
+    return status;
+}
+
+VOS_STATUS hdd_get_next_adapter( hdd_context_t *pHddCtx,
+                                 hdd_adapter_list_node_t* pAdapterNode,
+                                 hdd_adapter_list_node_t** pNextAdapterNode)
+{
+    VOS_STATUS status;
+    spin_lock(&pHddCtx->hddAdapters.lock);
+    status = hdd_list_peek_next ( &pHddCtx->hddAdapters,
+                                  (hdd_list_node_t*) pAdapterNode,
+                                  (hdd_list_node_t**)pNextAdapterNode );
+
+    spin_unlock(&pHddCtx->hddAdapters.lock);
+    return status;
+}
+
+VOS_STATUS hdd_remove_adapter( hdd_context_t *pHddCtx,
+                               hdd_adapter_list_node_t* pAdapterNode)
+{
+    VOS_STATUS status;
+    spin_lock(&pHddCtx->hddAdapters.lock);
+    status =  hdd_list_remove_node ( &pHddCtx->hddAdapters,
+                                     &pAdapterNode->node );
+    spin_unlock(&pHddCtx->hddAdapters.lock);
+    return status;
+}
+
+VOS_STATUS hdd_remove_front_adapter( hdd_context_t *pHddCtx,
+                                     hdd_adapter_list_node_t** ppAdapterNode)
+{
+    VOS_STATUS status;
+    spin_lock(&pHddCtx->hddAdapters.lock);
+    status =  hdd_list_remove_front( &pHddCtx->hddAdapters,
+                   (hdd_list_node_t**) ppAdapterNode );
+    spin_unlock(&pHddCtx->hddAdapters.lock);
+    return status;
+}
+
+VOS_STATUS hdd_add_adapter_back( hdd_context_t *pHddCtx,
+                                 hdd_adapter_list_node_t* pAdapterNode)
+{
+    VOS_STATUS status;
+    spin_lock(&pHddCtx->hddAdapters.lock);
+    status =  hdd_list_insert_back ( &pHddCtx->hddAdapters,
+                   (hdd_list_node_t*) pAdapterNode );
+    spin_unlock(&pHddCtx->hddAdapters.lock);
+    return status;
+}
+
+VOS_STATUS hdd_add_adapter_front( hdd_context_t *pHddCtx,
+                                  hdd_adapter_list_node_t* pAdapterNode)
+{
+    VOS_STATUS status;
+    spin_lock(&pHddCtx->hddAdapters.lock);
+    status =  hdd_list_insert_front ( &pHddCtx->hddAdapters,
+                   (hdd_list_node_t*) pAdapterNode );
+    spin_unlock(&pHddCtx->hddAdapters.lock);
+    return status;
+}
+
+hdd_adapter_t * hdd_get_adapter_by_macaddr( hdd_context_t *pHddCtx,
+                                            tSirMacAddr macAddr )
 {
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
    hdd_adapter_t *pAdapter;
    VOS_STATUS status;
 
-   status =  vos_list_peek_front ( &pHddCtx->hddAdapters, (vos_list_node_t**) &pAdapterNode );
+   status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
       pAdapter = pAdapterNode->pAdapter;
 
-      if( pAdapter && vos_mem_compare( pAdapter->macAddressCurrent.bytes, macAddr, sizeof(tSirMacAddr) ) )
+      if( pAdapter && vos_mem_compare( pAdapter->macAddressCurrent.bytes,
+                                       macAddr, sizeof(tSirMacAddr) ) )
       {
          return pAdapter;
       }
-      status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
+      status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
-   
+
    return NULL;
 
 } 
@@ -1401,20 +1532,21 @@ hdd_adapter_t * hdd_get_adapter_by_name( hdd_context_t *pHddCtx, tANI_U8 *name )
    hdd_adapter_t *pAdapter;
    VOS_STATUS status;
 
-   status =  vos_list_peek_front ( &pHddCtx->hddAdapters, (vos_list_node_t**) &pAdapterNode );
+   status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
       pAdapter = pAdapterNode->pAdapter;
 
-      if( pAdapter && !strncmp( pAdapter->dev->name, (const char *)name, IFNAMSIZ ) )
+      if( pAdapter && !strncmp( pAdapter->dev->name, (const char *)name,
+          IFNAMSIZ ) )
       {
          return pAdapter;
       }
-      status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
+      status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
-   
+
    return NULL;
 
 } 
@@ -1425,7 +1557,7 @@ hdd_adapter_t * hdd_get_adapter( hdd_context_t *pHddCtx, device_mode_t mode )
    hdd_adapter_t *pAdapter;
    VOS_STATUS status;
 
-   status =  vos_list_peek_front ( &pHddCtx->hddAdapters, (vos_list_node_t**) &pAdapterNode );
+   status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
@@ -1435,10 +1567,10 @@ hdd_adapter_t * hdd_get_adapter( hdd_context_t *pHddCtx, device_mode_t mode )
       {
          return pAdapter;
       }
-      status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
+      status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
-   
+
    return NULL;
 
 } 
@@ -1450,7 +1582,7 @@ hdd_adapter_t * hdd_get_mon_adapter( hdd_context_t *pHddCtx )
    hdd_adapter_t *pAdapter;
    VOS_STATUS status;
 
-   status =  vos_list_peek_front ( &pHddCtx->hddAdapters, (vos_list_node_t**) &pAdapterNode );
+   status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
@@ -1460,10 +1592,11 @@ hdd_adapter_t * hdd_get_mon_adapter( hdd_context_t *pHddCtx )
       {
          return pAdapter;
       }
-      status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
+
+      status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
-   
+
    return NULL;
 
 } 
@@ -1511,7 +1644,7 @@ v_U8_t hdd_get_operating_channel( hdd_context_t *pHddCtx, device_mode_t mode )
    hdd_adapter_t      *pAdapter;
    v_U8_t operatingChannel = 0;
 
-   status =  vos_list_peek_front ( &pHddCtx->hddAdapters, (vos_list_node_t**) &pAdapterNode );
+   status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
 
    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
    {
@@ -1539,7 +1672,7 @@ v_U8_t hdd_get_operating_channel( hdd_context_t *pHddCtx, device_mode_t mode )
         break; //Found the device of interest. break the loop
       }
 
-      status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
+      status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
    }
    return operatingChannel;
@@ -2186,7 +2319,7 @@ int hdd_wlan_startup(struct device *dev )
    init_completion(&pHddCtx->full_pwr_comp_var);
    init_completion(&pHddCtx->standby_comp_var);
 
-   vos_list_init( &pHddCtx->hddAdapters );
+   hdd_list_init( &pHddCtx->hddAdapters, MAX_NUMBER_OF_ADAPTERS );
 
    // Load all config first as TL config is needed during vos_open
    pHddCtx->cfg_ini = (hdd_config_t*) kmalloc(sizeof(hdd_config_t), GFP_KERNEL);
@@ -3036,36 +3169,36 @@ v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_context_t* pHddCtx)
 {
     tPmcState pmcState = pmcGetPmcState(pHddCtx->hHal);
     hdd_config_t *pConfig = pHddCtx->cfg_ini;
-	hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL; 
-	hdd_adapter_t *pAdapter = NULL; 
-	VOS_STATUS status;
+    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL; 
+    hdd_adapter_t *pAdapter = NULL; 
+    VOS_STATUS status;
 
 #ifdef WLAN_SOFTAP_FEATURE
     if (VOS_STA_SAP_MODE == hdd_get_conparam())
         return TRUE;
 #endif
-	
-	/*loop through all adapters. TBD fix for Concurrency */
-	status =  vos_list_peek_front ( &pHddCtx->hddAdapters, (vos_list_node_t**) &pAdapterNode );
-	while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
-	{
-		pAdapter = pAdapterNode->pAdapter;
-		if ( (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)
-		  || (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) )	
-		{  
-			if(!hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)) && 
-				(pConfig->fIsImpsEnabled) &&
-				((pmcState != IMPS) && 
-				  !(pmcState == STOPPED || pmcState == STANDBY))
-			   )
-			{
-				return FALSE;
-			}
-		}
-		status = vos_list_peek_next ( &pHddCtx->hddAdapters, (vos_list_node_t*) pAdapterNode, (vos_list_node_t**) &pNext );
-		pAdapterNode = pNext;
-	}
-	return TRUE;
+
+    /*loop through all adapters. TBD fix for Concurrency */
+    status = hdd_get_front_adapter ( pHddCtx, &pAdapterNode );
+    while ( NULL != pAdapterNode && VOS_STATUS_SUCCESS == status )
+    {
+        pAdapter = pAdapterNode->pAdapter;
+        if ( (WLAN_HDD_INFRA_STATION == pAdapter->device_mode)
+          || (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) )	
+        {
+            if(!hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR(pAdapter)) && 
+                (pConfig->fIsImpsEnabled) &&
+                ((pmcState != IMPS) && 
+                !(pmcState == STOPPED || pmcState == STANDBY))
+              )
+            {
+                return FALSE;
+            }
+        }
+        status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
+        pAdapterNode = pNext;
+    }
+    return TRUE;
 }
 
 //Register the module init/exit functions
