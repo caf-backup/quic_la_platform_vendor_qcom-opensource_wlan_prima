@@ -243,6 +243,16 @@ typedef enum
    // Tx Complete Indication 
    WLAN_HAL_OTA_TX_COMPL_IND,
 
+   //Host Suspend/resume messages
+   WLAN_HAL_HOST_SUSPEND_IND,
+   WLAN_HAL_HOST_RESUME_REQ,
+   WLAN_HAL_HOST_RESUME_RSP,
+
+   WLAN_HAL_SET_TX_POWER_REQ,
+   WLAN_HAL_SET_TX_POWER_RSP,
+   WLAN_HAL_GET_TX_POWER_REQ,
+   WLAN_HAL_GET_TX_POWER_RSP,
+
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
@@ -3334,7 +3344,8 @@ typedef PACKED_PRE struct PACKED_POST
  * WLAN_HAL_CONFIGURE_RXP_FILTER_REQ
  *--------------------------------------------------------------------------*/
 typedef PACKED_PRE struct PACKED_POST {
-    tANI_U32 filterMask;   // for now, this is not a mask but true/false
+    tANI_U8 setMcstBcstFilterSetting;
+    tANI_U8 setMcstBcstFilter;
 } tHalConfigureRxpFilterReqParams, tpHalConfigureRxpFilterReqParams;
 
 typedef PACKED_PRE struct PACKED_POST
@@ -3660,6 +3671,73 @@ typedef PACKED_PRE struct PACKED_POST
     tSetMaxTxPwrRspParams setMaxTxPwrRspParams;
 }tSetMaxTxPwrRspMsg, *tpSetMaxTxPwrRspMsg;
 
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_SET_TX_POWER_REQ
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* TX Power in milli watts */
+    tANI_U32  txPower;
+}tSetTxPwrReqParams, *tpSetTxPwrReqParams;
+
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tSetTxPwrReqParams setTxPwrReqParams;
+}tSetTxPwrReqMsg, *tpSetTxPwrReqMsg;
+
+/*---------------------------------------------------------------------------
+*WLAN_HAL_SET_TX_POWER_RSP
+*--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+}tSetTxPwrRspParams, *tpSetTxPwrRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tSetTxPwrRspParams setTxPwrRspParams;
+}tSetTxPwrRspMsg, *tpSetTxPwrRspMsg;
+
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_GET_TX_POWER_REQ
+ *--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8  staId;
+}tGetTxPwrReqParams, *tpGetTxPwrReqParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tGetTxPwrReqParams getTxPwrReqParams;
+}tGetTxPwrReqMsg, *tpGetTxPwrReqMsg;
+
+/*---------------------------------------------------------------------------
+*WLAN_HAL_GET_TX_POWER_RSP
+*--------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+
+    /* TX Power in milli watts */
+    tANI_U32   txPower;
+}tGetTxPwrRspParams, *tpGetTxPwrRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tHalMsgHeader header;
+    tGetTxPwrRspParams getTxPwrRspParams;
+}tGetTxPwrRspMsg, *tpGetTxPwrRspMsg;
+
 #ifdef WLAN_FEATURE_P2P
 /*---------------------------------------------------------------------------
  *WLAN_HAL_SET_P2P_GONOA_REQ
@@ -3943,6 +4021,51 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader   header;
    tTxComplParams  txComplParams; 
 }tTxComplIndMsg, *tpTxComplIndMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_HOST_SUSPEND_IND
+ *-------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8 configuredMcstBcstFilterSetting;
+}tHalWlanHostSuspendIndParam,*tpHalWlanHostSuspendIndParam;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalWlanHostSuspendIndParam suspendIndParams;
+}tHalWlanHostSuspendIndMsg, *tpHalWlanHostSuspendIndMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_HOST_RESUME_REQ
+ *-------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8 configuredMcstBcstFilterSetting;
+}tHalWlanHostResumeReqParam,*tpHalWlanHostResumeReqParam;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalWlanHostResumeReqParam resumeReqParams;
+}tHalWlanHostResumeReqMsg, *tpHalWlanHostResumeReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_HOST_RESUME_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalHostResumeRspParams, *tpHalHostResumeRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalHostResumeRspParams hostResumeRspParams;
+}  tHalHostResumeRspMsg, *tpHalHostResumeRspMsg;
 
 #if defined(__ANI_COMPILER_PRAGMA_PACK_STACK)
 #pragma pack(pop)

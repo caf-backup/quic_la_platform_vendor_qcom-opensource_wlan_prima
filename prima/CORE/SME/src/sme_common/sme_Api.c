@@ -4840,7 +4840,8 @@ eHalStatus sme_p2pSetPs(tHalHandle hHal, tP2pPsConfig * data)
   
   
 --------------------------------------------------------------------------- */
-eHalStatus sme_ConfigureRxpFilter( tHalHandle hHal, tANI_U32  filterMask)
+eHalStatus sme_ConfigureRxpFilter( tHalHandle hHal, 
+                            tpSirWlanSetRxpFilters  wlanRxpFilterParam)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
@@ -4850,8 +4851,51 @@ eHalStatus sme_ConfigureRxpFilter( tHalHandle hHal, tANI_U32  filterMask)
     if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme ) ) )
     {
         /* serialize the req through MC thread */
-        vosMessage.bodyval = filterMask;
+        vosMessage.bodyptr = wlanRxpFilterParam;
         vosMessage.type         = WDA_CFG_RXP_FILTER_REQ;
+        vosStatus = vos_mq_post_message( VOS_MQ_ID_WDA, &vosMessage );
+        if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
+        {
+           status = eHAL_STATUS_FAILURE;
+        }
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+    return(status);
+}
+
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+/* ---------------------------------------------------------------------------
+
+  \fn    sme_ConfigureSuspendInd
+
+  \brief 
+    SME will pass this request to lower mac to Indicate that the wlan needs to 
+    be suspended
+
+  \param 
+
+    hHal - The handle returned by macOpen. 
+ 
+    wlanSuspendParam- Depicts the wlan suspend params
+
+   
+  \return eHalStatus    
+  
+  
+--------------------------------------------------------------------------- */
+eHalStatus sme_ConfigureSuspendInd( tHalHandle hHal, 
+                          tpSirWlanSuspendParam  wlanSuspendParam)
+{
+    eHalStatus status = eHAL_STATUS_SUCCESS;
+    VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    vos_msg_t       vosMessage;
+
+    if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme ) ) )
+    {
+        /* serialize the req through MC thread */
+        vosMessage.bodyptr = wlanSuspendParam;
+        vosMessage.type    = WDA_WLAN_SUSPEND_IND;
         vosStatus = vos_mq_post_message( VOS_MQ_ID_WDA, &vosMessage );
         if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
         {
@@ -4864,25 +4908,25 @@ eHalStatus sme_ConfigureRxpFilter( tHalHandle hHal, tANI_U32  filterMask)
 
 /* ---------------------------------------------------------------------------
 
-  \fn    sme_ConfigureAppsCpuWakeupState
+  \fn    sme_ConfigureResumeReq
 
   \brief 
-    SME will pass this request to lower mac to dynamically adjusts the listen
-    interval based on the WLAN/MSM activity. This feature is named as
-    Telescopic Beacon wakeup feature.
+    SME will pass this request to lower mac to Indicate that the wlan needs to 
+    be Resumed
 
   \param 
 
     hHal - The handle returned by macOpen. 
  
-    isAppsAwake- Depicts the state of the Apps CPU
+    wlanResumeParam- Depicts the wlan resume params
 
    
   \return eHalStatus    
   
   
 --------------------------------------------------------------------------- */
-eHalStatus sme_ConfigureAppsCpuWakeupState( tHalHandle hHal, tANI_BOOLEAN  isAppsAwake)
+eHalStatus sme_ConfigureResumeReq( tHalHandle hHal, 
+                             tpSirWlanResumeParam  wlanResumeParam)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
@@ -4892,8 +4936,8 @@ eHalStatus sme_ConfigureAppsCpuWakeupState( tHalHandle hHal, tANI_BOOLEAN  isApp
     if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme ) ) )
     {
         /* serialize the req through MC thread */
-        vosMessage.bodyval = isAppsAwake;
-        vosMessage.type         = WDA_CFG_APPS_CPU_WAKEUP_STATE_REQ;
+        vosMessage.bodyptr = wlanResumeParam;
+        vosMessage.type    = WDA_WLAN_RESUME_REQ;
         vosStatus = vos_mq_post_message( VOS_MQ_ID_WDA, &vosMessage );
         if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
         {
@@ -4904,6 +4948,7 @@ eHalStatus sme_ConfigureAppsCpuWakeupState( tHalHandle hHal, tANI_BOOLEAN  isApp
     return(status);
 }
 
+#endif
 /* ---------------------------------------------------------------------------
 
     \fn sme_GetInfraSessionId

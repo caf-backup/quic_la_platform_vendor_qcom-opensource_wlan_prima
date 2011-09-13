@@ -3684,5 +3684,23 @@ typedef struct sSirNoAParam
 }tSirNoAParam, *tpSirNoAParam;
 #endif
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+typedef struct sSirWlanSuspendParam
+{
+    tANI_U8 configuredMcstBcstFilterSetting;
+}tSirWlanSuspendParam,*tpSirWlanSuspendParam;
+
+typedef struct sSirWlanResumeParam
+{
+    tANI_U8 configuredMcstBcstFilterSetting;
+}tSirWlanResumeParam,*tpSirWlanResumeParam;
+
+typedef struct sSirWlanSetRxpFilters
+{
+    tANI_U8 configuredMcstBcstFilterSetting;
+    tANI_U8 setMcstBcstFilter;
+}tSirWlanSetRxpFilters,*tpSirWlanSetRxpFilters;
+#endif
+
 #endif /* __SIR_API_H */
 

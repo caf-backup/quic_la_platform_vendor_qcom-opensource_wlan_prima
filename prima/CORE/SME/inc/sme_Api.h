@@ -1590,7 +1590,8 @@ eHalStatus sme_DeregisterMgmtFrame(tHalHandle hHal, tANI_U8 sessionId,
   
   
 --------------------------------------------------------------------------- */
-eHalStatus sme_ConfigureRxpFilter( tHalHandle hHal, tANI_U32  filterMask);
+eHalStatus sme_ConfigureRxpFilter( tHalHandle hHal, 
+                              tpSirWlanSetRxpFilters  wlanRxpFilterParam);
 
 /* ---------------------------------------------------------------------------
 
@@ -1613,6 +1614,53 @@ eHalStatus sme_ConfigureRxpFilter( tHalHandle hHal, tANI_U32  filterMask);
   
 --------------------------------------------------------------------------- */
 eHalStatus sme_ConfigureAppsCpuWakeupState( tHalHandle hHal, tANI_BOOLEAN  isAppsAwake);
+
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+/* ---------------------------------------------------------------------------
+
+  \fn    sme_ConfigureSuspendInd
+
+  \brief 
+    SME will pass this request to lower mac to Indicate that the wlan needs to 
+    be suspended
+
+  \param 
+
+    hHal - The handle returned by macOpen. 
+ 
+    wlanSuspendParam- Depicts the wlan suspend params
+
+   
+  \return eHalStatus    
+  
+  
+--------------------------------------------------------------------------- */
+eHalStatus sme_ConfigureSuspendInd( tHalHandle hHal, 
+                             tpSirWlanSuspendParam  wlanSuspendParam);
+
+/* ---------------------------------------------------------------------------
+
+  \fn    sme_ConfigureResumeReq
+
+  \brief 
+    SME will pass this request to lower mac to Indicate that the wlan needs to 
+    be Resumed
+
+  \param 
+
+    hHal - The handle returned by macOpen. 
+ 
+    wlanResumeParam- Depicts the wlan resume params
+
+   
+  \return eHalStatus    
+  
+  
+--------------------------------------------------------------------------- */
+eHalStatus sme_ConfigureResumeReq( tHalHandle hHal, 
+                             tpSirWlanResumeParam  wlanResumeParam);
+
+#endif
 
 /* ---------------------------------------------------------------------------
 

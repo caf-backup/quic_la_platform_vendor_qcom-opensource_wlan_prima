@@ -212,6 +212,13 @@ VOS_STATUS WDA_open(v_PVOID_t pVosContext, v_PVOID_t pOSContext,
       status = VOS_STATUS_E_FAILURE;
    }
 
+   status = vos_event_init(&wdaContext->waitOnWdiIndicationCallBack);
+   if(!VOS_IS_STATUS_SUCCESS(status)) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+            "VOS wait On Wdi Ind Event init failed - status = %d\n", status);
+      status = VOS_STATUS_E_FAILURE;
+   }
 
    vos_trace_setLevel(VOS_MODULE_ID_WDA,VOS_TRACE_LEVEL_ERROR);
 
@@ -1192,21 +1199,6 @@ VOS_STATUS WDA_prepareConfigTLV(v_PVOID_t pVosContext,
    tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length) ; 
 
-   /* QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING */
-   tlvStruct->type = QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING  ;
-   tlvStruct->length = sizeof(tANI_U32);
-   configDataValue = (tANI_U32 *)(tlvStruct + 1);
-   if(wlan_cfgGetInt(pMac, WNI_CFG_MCAST_BCAST_FILTER_SETTING, configDataValue) 
-                                                   != eSIR_SUCCESS)
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                    "Failed to get value for WNI_CFG_MCAST_BCAST_FILTER_SETTING");
-      goto handle_failure;
-   }
-
-   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
-                            + sizeof(tHalCfg) + tlvStruct->length) ; 
-
    /* QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL */
    tlvStruct->type = QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL  ;
    tlvStruct->length = sizeof(tANI_U32);
@@ -1377,6 +1369,13 @@ VOS_STATUS WDA_close(v_PVOID_t pVosContext)
       status = VOS_STATUS_E_FAILURE;
    }
    status = vos_event_destroy(&wdaContext->suspendDataTxEvent);
+   if(!VOS_IS_STATUS_SUCCESS(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                  "VOS Event destroy failed - status = %d\n", status);
+      status = VOS_STATUS_E_FAILURE;
+   }
+   status = vos_event_destroy(&wdaContext->waitOnWdiIndicationCallBack);
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
@@ -4917,10 +4916,13 @@ VOS_STATUS WDA_ProcessAddTSReq(tWDA_CbContext *pWDA,
 
    wdiAddTSReqParam->wdiTsInfo.ucSTAIdx = pAddTsReqParams->staIdx;
    wdiAddTSReqParam->wdiTsInfo.ucTspecIdx = pAddTsReqParams->tspecIdx;
+
+   //TS IE
    wdiAddTSReqParam->wdiTsInfo.wdiTspecIE.ucType = pAddTsReqParams->tspec.type;
    wdiAddTSReqParam->wdiTsInfo.wdiTspecIE.ucLength = 
                                                 pAddTsReqParams->tspec.length;
    
+   //TS IE : TS INFO : TRAFFIC
    wdiAddTSReqParam->wdiTsInfo.wdiTspecIE.wdiTSinfo.wdiTraffic.ackPolicy =
                            pAddTsReqParams->tspec.tsinfo.traffic.ackPolicy;
    wdiAddTSReqParam->wdiTsInfo.wdiTspecIE.wdiTSinfo.wdiTraffic.userPrio =
@@ -4938,9 +4940,13 @@ VOS_STATUS WDA_ProcessAddTSReq(tWDA_CbContext *pWDA,
    wdiAddTSReqParam->wdiTsInfo.wdiTspecIE.wdiTSinfo.wdiTraffic.trafficType =
                            pAddTsReqParams->tspec.tsinfo.traffic.trafficType;
    
+   //TS IE : TS INFO : SCHEDULE
    wdiAddTSReqParam->wdiTsInfo.wdiTspecIE.wdiTSinfo.wdiSchedule.schedule = 
                            pAddTsReqParams->tspec.tsinfo.schedule.schedule;
-   
+   wdiAddTSReqParam->wdiTsInfo.wdiTspecIE.wdiTSinfo.wdiSchedule.rsvd = 
+                           pAddTsReqParams->tspec.tsinfo.schedule.rsvd;
+
+   //TS IE
    wdiAddTSReqParam->wdiTsInfo.wdiTspecIE.usNomMsduSz = 
                            pAddTsReqParams->tspec.nomMsduSz;
    wdiAddTSReqParam->wdiTsInfo.wdiTspecIE.usMaxMsduSz = 
@@ -6422,9 +6428,7 @@ VOS_STATUS WDA_UpdateUapsdParamsReq(tWDA_CbContext *pWDA,
  */ 
 void WDA_ConfigureRxpFilterCallback(WDI_Status   wdiStatus, void* pUserData)
 {
-   vos_msg_t wdaMsg = {0} ;
-   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData ; 
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
@@ -6434,20 +6438,11 @@ void WDA_ConfigureRxpFilterCallback(WDI_Status   wdiStatus, void* pUserData)
       VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                   "%s: RXP config filter failure \n", __FUNCTION__ );
    }
-   
-   vos_mem_free(pWDA->wdaWdiCfgApiMsgParam) ;
-   pWDA->wdaWdiCfgApiMsgParam = NULL;
 
-   wdaMsg.type = WDA_CFG_RXP_FILTER_RSP ; 
-   wdaMsg.bodyptr = NULL;
-   wdaMsg.bodyval = CONVERT_WDI2SIR_STATUS(wdiStatus);
+   WDA_VOS_ASSERT(NULL != pWdaParams);
 
-   /* post the message to SME, need proper handling in SME: TODO */
-   vosStatus = vos_mq_post_message( VOS_MODULE_ID_SME, &wdaMsg );
-   if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
-   {
-      vosStatus = VOS_STATUS_E_BADMSG;
-   }
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+   vos_mem_free(pWdaParams);
    return ;
 }
 
@@ -6455,13 +6450,15 @@ void WDA_ConfigureRxpFilterCallback(WDI_Status   wdiStatus, void* pUserData)
  * FUNCTION: WDA_ProcessConfigureRxpFilterReq
  * 
  */ 
-VOS_STATUS WDA_ProcessConfigureRxpFilterReq(tWDA_CbContext *pWDA, tSirMsgQ *cfgParam)
+VOS_STATUS WDA_ProcessConfigureRxpFilterReq(tWDA_CbContext *pWDA, 
+                          tSirWlanSetRxpFilters *pWlanSuspendParam)
 {
    
    VOS_STATUS status = VOS_STATUS_SUCCESS;
    WDI_ConfigureRxpFilterReqParamsType *wdiRxpFilterParams = 
       (WDI_ConfigureRxpFilterReqParamsType *)vos_mem_malloc(
          sizeof(WDI_ConfigureRxpFilterReqParamsType)) ;
+   tWDA_ReqParams *pWdaParams ;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "------> %s " ,__FUNCTION__);
@@ -6473,32 +6470,206 @@ VOS_STATUS WDA_ProcessConfigureRxpFilterReq(tWDA_CbContext *pWDA, tSirMsgQ *cfgP
       VOS_ASSERT(0);
       return VOS_STATUS_E_NOMEM;
    }
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      vos_mem_free(wdiRxpFilterParams);
+      return VOS_STATUS_E_NOMEM;
+   }
 
-   wdiRxpFilterParams->uFiltermask = cfgParam->bodyval;
+   wdiRxpFilterParams->wdiRxpFilterParam.ucSetMcstBcstFilter = 
+             pWlanSuspendParam->setMcstBcstFilter;
+   wdiRxpFilterParams->wdiRxpFilterParam.ucSetMcstBcstFilterSetting = 
+             pWlanSuspendParam->configuredMcstBcstFilterSetting;
+   
    wdiRxpFilterParams->wdiReqStatusCB = NULL;
 
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                  (NULL == pWDA->wdaWdiApiMsgParam));
-
-   /* Store param pointer as passed in by caller */
-   pWDA->wdaMsgParam = NULL;
-   /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiRxpFilterParams;
+   pWdaParams->pWdaContext = pWDA;
+   pWdaParams->wdaMsgParam = NULL;
+   pWdaParams->wdaWdiApiMsgParam = (void *)wdiRxpFilterParams;
 
    status = WDI_ConfigureRxpFilterReq(wdiRxpFilterParams, 
-                                     (WDI_ConfigureRxpFilterCb)WDA_ConfigureRxpFilterCallback, pWDA);
+                      (WDI_ConfigureRxpFilterCb)WDA_ConfigureRxpFilterCallback,
+                      pWdaParams);
 
    if(IS_WDI_STATUS_FAILURE(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
               "Failure in configure RXP filter REQ WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+      vos_mem_free(pWdaParams);
    }
 
    return CONVERT_WDI2VOS_STATUS(status) ;
 }
+
+/*
+ * FUNCTION: WDA_WdiIndicationCallback
+ * 
+ */ 
+void WDA_WdiIndicationCallback( WDI_Status   wdiStatus,
+                                void*        pUserData)
+{
+   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
+   VOS_STATUS vosStatus;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "<------ %s " ,__FUNCTION__);
+
+   vosStatus = vos_event_set(&pWDA->waitOnWdiIndicationCallBack);
+   if(!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
+                      "NEW VOS Event Set failed - status = %d \n", vosStatus);
+   }
+}
+
+/*
+ * FUNCTION: WDA_ProcessWlanSuspendInd
+ * 
+ */ 
+VOS_STATUS WDA_ProcessWlanSuspendInd(tWDA_CbContext *pWDA,
+                              tSirWlanSuspendParam *pWlanSuspendParam)
+{
+   WDI_Status wdiStatus;
+   WDI_SuspendParamsType wdiSuspendParams;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "------> %s " ,__FUNCTION__);
+
+   wdiSuspendParams.wdiSuspendParams.ucConfiguredMcstBcstFilterSetting =
+                          pWlanSuspendParam->configuredMcstBcstFilterSetting;
+   wdiSuspendParams.wdiReqStatusCB = WDA_WdiIndicationCallback;
+   wdiSuspendParams.pUserData = pWDA;
+   printk(KERN_CRIT "###### %s: %d",__func__,pWlanSuspendParam->configuredMcstBcstFilterSetting);
+
+   wdiStatus = WDI_HostSuspendInd(&wdiSuspendParams);
+   if(WDI_STATUS_PENDING == wdiStatus)
+   {
+      VOS_STATUS status;
+      tANI_U8 eventIdx = 0;
+      /* wait for the call back gets called */
+      /* Reset the event to be not signalled */
+      status = vos_event_reset(&pWDA->waitOnWdiIndicationCallBack);
+      if(!VOS_IS_STATUS_SUCCESS(status))
+      {
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
+                               "VOS Event reset failed - status = %d\n",status);
+         vos_mem_free(pWlanSuspendParam);
+         return VOS_STATUS_E_FAILURE;
+      }
+      status = vos_wait_events(&pWDA->waitOnWdiIndicationCallBack, 1, 
+                                      1000, &eventIdx);
+      if(!VOS_IS_STATUS_SUCCESS(status))
+      {
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
+                               "VOS Event wait failed - status = %d\n",status);
+         vos_mem_free(pWlanSuspendParam);
+         return status;
+      }
+   }
+   else if( WDI_STATUS_SUCCESS_SYNC != wdiStatus )
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "Failure in %s:%d ",__FUNCTION__,__LINE__ );
+   }
+
+   vos_mem_free(pWlanSuspendParam);
+   return CONVERT_WDI2VOS_STATUS(wdiStatus) ;
+}
+
+
+
+/*
+ * FUNCTION: WDA_ProcessWlanResumeCallback
+ * 
+ */ 
+void WDA_ProcessWlanResumeCallback(
+                        WDI_SuspendResumeRspParamsType   *resumeRspParams,
+                        void*        pUserData)
+{
+   tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "<------ %s " ,__FUNCTION__);
+   WDA_VOS_ASSERT(NULL != pWdaParams);
+
+   if(WDI_STATUS_SUCCESS != resumeRspParams->wdiStatus)
+   {
+      VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                  "%s: Process Wlan Resume failure \n", __FUNCTION__ );
+   }
+
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+   vos_mem_free(pWdaParams->wdaMsgParam);
+   vos_mem_free(pWdaParams);
+
+   return ;
+}
+
+/*
+ * FUNCTION: WDA_ProcessWlanResumeReq
+ * 
+ */ 
+VOS_STATUS WDA_ProcessWlanResumeReq(tWDA_CbContext *pWDA,
+                              tSirWlanResumeParam *pWlanResumeParam)
+{
+   WDI_Status wdiStatus;
+   WDI_ResumeParamsType *wdiResumeParams = 
+            (WDI_ResumeParamsType *)vos_mem_malloc(
+                                 sizeof(WDI_ResumeParamsType) ) ;
+   tWDA_ReqParams *pWdaParams ;
+
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
+                                          "------> %s " ,__FUNCTION__);
+
+   if(NULL == wdiResumeParams) 
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      return VOS_STATUS_E_NOMEM;
+   }
+   pWdaParams = (tWDA_ReqParams *)vos_mem_malloc(sizeof(tWDA_ReqParams)) ;
+   if(NULL == pWdaParams)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
+      VOS_ASSERT(0);
+      vos_mem_free(wdiResumeParams);
+      return VOS_STATUS_E_NOMEM;
+   }
+
+   wdiResumeParams->wdiResumeParams.ucConfiguredMcstBcstFilterSetting =
+                          pWlanResumeParam->configuredMcstBcstFilterSetting;
+
+   printk(KERN_CRIT "#### %s: %d",__func__,pWlanResumeParam->configuredMcstBcstFilterSetting);
+   wdiResumeParams->wdiReqStatusCB = NULL;
+   pWdaParams->wdaMsgParam = pWlanResumeParam;
+   pWdaParams->wdaWdiApiMsgParam = wdiResumeParams;
+   pWdaParams->pWdaContext = pWDA;
+
+   wdiStatus = WDI_HostResumeReq(wdiResumeParams, 
+                      (WDI_HostResumeEventRspCb)WDA_ProcessWlanResumeCallback,
+                      pWdaParams);
+
+   if(IS_WDI_STATUS_FAILURE(wdiStatus))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+              "Failure in Host Resume REQ WDI API, free all the memory " );
+      VOS_ASSERT(0);
+      vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+      vos_mem_free(pWdaParams->wdaMsgParam);
+      vos_mem_free(pWdaParams);
+   }
+
+   return CONVERT_WDI2VOS_STATUS(wdiStatus) ;
+}
+
+
 
 /*
  * FUNCTION: WDA_SetBeaconFilterReqCallback
@@ -7191,91 +7362,6 @@ VOS_STATUS WDA_ProcessWowlExitReq(tWDA_CbContext *pWDA)
    return CONVERT_WDI2VOS_STATUS(status) ;
 
 }/*WDA_ProcessWowlExitReq*/
-
-/*
- * FUNCTION: WDA_ConfigureAppsCpuWakeupStateCallback
- * 
- */ 
-void WDA_ConfigureAppsCpuWakeupStateCallback(WDI_Status   wdiStatus, void* pUserData)
-{
-   vos_msg_t wdaMsg = {0} ;
-   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-   tWDA_CbContext *pWDA = (tWDA_CbContext *)pUserData ; 
-
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-                                          "<------ %s " ,__FUNCTION__);
-
-   if(WDI_STATUS_SUCCESS != wdiStatus)
-   {
-      VOS_TRACE(VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                  "%s: Config Apps Cpu Wakeup State failure \n", __FUNCTION__ );
-   }
-   
-   vos_mem_free(pWDA->wdaWdiCfgApiMsgParam) ;
-   pWDA->wdaWdiCfgApiMsgParam = NULL;
-
-   wdaMsg.type = WDA_CFG_APPS_CPU_WAKEUP_STATE_RSP ; 
-   wdaMsg.bodyptr = NULL;
-   wdaMsg.bodyval = CONVERT_WDI2SIR_STATUS(wdiStatus);
-
-   /* post the message to SME, need proper handling in SME: TODO */
-   vosStatus = vos_mq_post_message( VOS_MODULE_ID_SME, &wdaMsg );
-   if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
-   {
-      vosStatus = VOS_STATUS_E_BADMSG;
-   }
-   return ;
-}
-
-/*
- * FUNCTION: WDA_ProcessConfigureAppsCpuWakeupStateReq
- * 
- */ 
-VOS_STATUS WDA_ProcessConfigureAppsCpuWakeupStateReq(tWDA_CbContext *pWDA, tSirMsgQ *cfgParam)
-{
-   
-   VOS_STATUS status = VOS_STATUS_SUCCESS;
-   WDI_ConfigureAppsCpuWakeupStateReqParamsType *wdiAppsCpuWakeupStateParams = 
-      (WDI_ConfigureAppsCpuWakeupStateReqParamsType *)vos_mem_malloc(
-         sizeof(WDI_ConfigureAppsCpuWakeupStateReqParamsType)) ;
-
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
-                                          "------> %s " ,__FUNCTION__);
-
-   if(NULL == wdiAppsCpuWakeupStateParams) 
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                           "%s: VOS MEM Alloc Failure", __FUNCTION__); 
-      VOS_ASSERT(0);
-      return VOS_STATUS_E_NOMEM;
-   }
-
-   wdiAppsCpuWakeupStateParams->bIsAppsAwake = cfgParam->bodyval;
-   wdiAppsCpuWakeupStateParams->wdiReqStatusCB = NULL;
-
-   WDA_VOS_ASSERT((NULL == pWDA->wdaMsgParam) && 
-                  (NULL == pWDA->wdaWdiApiMsgParam));
-
-   /* Store param pointer as passed in by caller */
-   pWDA->wdaMsgParam = NULL;
-   /* store Params pass it to WDI */
-   pWDA->wdaWdiApiMsgParam = (void *)wdiAppsCpuWakeupStateParams;
-
-   status = WDI_ConfigureAppsCpuWakeupStateReq(wdiAppsCpuWakeupStateParams, 
-                                               (WDI_ConfigureAppsCpuWakeupStateCb)
-                                               WDA_ConfigureAppsCpuWakeupStateCallback, pWDA);
-
-   if(IS_WDI_STATUS_FAILURE(status))
-   {
-      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-              "Failure in configure Apps Cpu Wakeup State REQ WDI API, free all the memory " );
-      vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
-      pWDA->wdaWdiApiMsgParam = NULL;
-      pWDA->wdaMsgParam = NULL;
-   }
-
-   return CONVERT_WDI2VOS_STATUS(status) ;
-}
 
 /*
  * FUNCTION: WDA_IsHwFrameTxTranslationCapable
@@ -8300,7 +8386,8 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
       }
       case WDA_CFG_RXP_FILTER_REQ:
       {
-         WDA_ProcessConfigureRxpFilterReq(pWDA, (tSirMsgQ *)pMsg);
+         WDA_ProcessConfigureRxpFilterReq(pWDA, 
+                             (tSirWlanSetRxpFilters *)pMsg->bodyptr);
          break;
       }
       case WDA_SET_HOST_OFFLOAD:
@@ -8337,11 +8424,6 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
       case WDA_WOWL_EXIT_REQ:
       {
          WDA_ProcessWowlExitReq(pWDA);
-         break;
-      }
-      case WDA_CFG_APPS_CPU_WAKEUP_STATE_REQ:
-      {
-         WDA_ProcessConfigureAppsCpuWakeupStateReq(pWDA, (tSirMsgQ *)pMsg);
          break;
       }
       case WDA_TL_FLUSH_AC_REQ:
@@ -8430,6 +8512,19 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          WDA_ProcessTxCompleteTimeOutInd(pWDA); 
          break;
       }         
+      case WDA_WLAN_SUSPEND_IND:
+      {
+         WDA_ProcessWlanSuspendInd(pWDA, 
+                        (tSirWlanSuspendParam *)pMsg->bodyptr) ;
+         break;
+      }
+
+      case WDA_WLAN_RESUME_REQ:
+      {
+         WDA_ProcessWlanResumeReq(pWDA, 
+                        (tSirWlanResumeParam *)pMsg->bodyptr) ;
+         break;
+      }
 
       default:
       {

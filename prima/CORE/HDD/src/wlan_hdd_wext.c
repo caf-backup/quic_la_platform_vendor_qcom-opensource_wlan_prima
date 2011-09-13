@@ -1606,16 +1606,12 @@ static int iw_set_priv(struct net_device *dev,
         if(pHddCtx->cfg_ini->nEnableDriverStop == WLAN_MAP_DRIVER_STOP_TO_STANDBY) 
         {
            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: WLAN being exit from Stand by\n",__func__);
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
            status = hdd_exit_standby(pAdapter);
-#endif
         } 
         else if(pHddCtx->hdd_ps_state == eHDD_SUSPEND_DEEP_SLEEP) 
         {
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: WLAN being exit from deep sleep\n",__func__);
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
             status = hdd_exit_deep_sleep(pAdapter);
-#endif
         }
         else
 #endif
@@ -1649,17 +1645,13 @@ static int iw_set_priv(struct net_device *dev,
             //Execute standby procedure. Executing standby procedure will cause the STA to
             //disassociate first and then the chip will be put into standby.
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Wlan driver entering Stand by mode\n");
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
             status  = hdd_enter_standby(pAdapter);
-#endif
         }
         else if(pHddCtx->cfg_ini->nEnableDriverStop == WLAN_MAP_DRIVER_STOP_TO_DEEP_SLEEP) {
             //Execute deep sleep procedure
             hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "Wlan driver entering deep sleep mode\n");
             //status = hdd_enter_deep_sleep(pAdapter);  
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC    
             status  = hdd_enter_standby(pAdapter);
-#endif
         }
         else {
             hddLog(VOS_TRACE_LEVEL_INFO_LOW, "%s: Driver stop is not enabled %d",

@@ -218,6 +218,8 @@ typedef enum
 typedef enum
 {
    WDI_STATUS_SUCCESS,       /* Operation has completed successfully*/
+   WDI_STATUS_SUCCESS_SYNC,  /* Operation has completed successfully in a
+                                synchronous way - no rsp will be generated*/
    WDI_STATUS_PENDING,       /* Operation result is pending and will be
                                 provided asynchronously through the Req Status
                                 Callback */
@@ -2871,9 +2873,19 @@ typedef struct
   RXP filter parameters passed to WDI form WDA
 ---------------------------------------------------------------------------*/
 typedef struct 
-{ 
-   /*RXP filter mask */ 
-   wpt_uint32                uFiltermask;
+{
+  /* Mode of Mcast and Bcast filters configured */
+  wpt_uint8 ucSetMcstBcstFilterSetting;
+
+  /* Mcast Bcast Filters enable/disable*/
+  wpt_uint8 ucSetMcstBcstFilter;
+}WDI_RxpFilterReqParamsType;
+
+typedef struct 
+{
+  /* Rxp Filter */
+  WDI_RxpFilterReqParamsType wdiRxpFilterParam;
+  
    /*Request status callback offered by UMAC - it is called if the current req
    has returned PENDING as status; it delivers the status of sending the message
    over the BUS */ 
@@ -3372,6 +3384,68 @@ typedef struct
 }WDI_FTMCommandReqType;
 #endif /* ANI_MANF_DIAG */
 
+/*---------------------------------------------------------------------------
+  WDI_WlanSuspendInfoType
+---------------------------------------------------------------------------*/
+typedef struct 
+{
+  /* Mode of Mcast and Bcast filters configured */
+  wpt_uint8 ucConfiguredMcstBcstFilterSetting;
+}WDI_WlanSuspendInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_SuspendParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  WDI_WlanSuspendInfoType wdiSuspendParams;
+
+   /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+
+}WDI_SuspendParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_WlanResumeInfoType
+---------------------------------------------------------------------------*/
+typedef struct 
+{
+  /* Mode of Mcast and Bcast filters configured */
+  wpt_uint8 ucConfiguredMcstBcstFilterSetting;
+}WDI_WlanResumeInfoType;
+
+/*---------------------------------------------------------------------------
+  WDI_ResumeParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  WDI_WlanResumeInfoType wdiResumeParams;
+
+   /*Request status callback offered by UMAC - it is called if the current
+    req has returned PENDING as status; it delivers the status of sending
+    the message over the BUS */
+  WDI_ReqStatusCb   wdiReqStatusCB; 
+
+  /*The user data passed in by UMAC, it will be sent back when the above
+    function pointer will be called */
+  void*             pUserData;
+
+}WDI_ResumeParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_SuspendResumeRspParamsType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*Status of the response*/
+  WDI_Status   wdiStatus; 
+}WDI_SuspendResumeRspParamsType;
 /*----------------------------------------------------------------------------
  *   WDI callback types
  *--------------------------------------------------------------------------*/
@@ -4603,6 +4677,29 @@ void* pUserData
 );
 
 #endif
+
+/*---------------------------------------------------------------------------
+   WDI_HostResumeEventRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Bt AMP event response
+   from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_HostResumeEventRspCb)(
+                        WDI_SuspendResumeRspParamsType   *resumeRspParams,
+                        void*        pUserData);
 
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
@@ -6755,6 +6852,33 @@ WDI_Status WDI_FTMCommandReq
 #endif /* ANI_MANF_DIAG */
 
 /**
+ @brief WDI_HostResumeReq will be called 
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+
+ @param pwdiResumeReqParams:  as specified by
+                      the Device Interface
+  
+        wdiResumeReqRspCb: callback for passing back the response of
+        the Resume Req received from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_HostResumeReq
+(
+  WDI_ResumeParamsType*            pwdiResumeReqParams,
+  WDI_HostResumeEventRspCb         wdiResumeReqRspCb,
+  void*                            pUserData
+);
+
+/**
  @brief WDI_GetAvailableResCount - Function to get the available resource
         for data and managemnt frames. 
         
@@ -6816,6 +6940,24 @@ WDI_DelSTASelfReq
   WDI_DelSTASelfReqParamsType*    pwdiDelStaSelfParams,
   WDI_DelSTASelfRspCb             wdiDelStaSelfRspCb,
   void*                           pUserData
+);
+
+/**
+ @brief WDI_HostSuspendInd 
+  
+        Suspend Indication from the upper layer will be sent
+        down to HAL
+  
+ @param WDI_SuspendParamsType
+ 
+ @see 
+  
+ @return Status of the request
+*/
+WDI_Status 
+WDI_HostSuspendInd
+(
+  WDI_SuspendParamsType*    pwdiSuspendIndParams
 );
 
 #ifdef __cplusplus

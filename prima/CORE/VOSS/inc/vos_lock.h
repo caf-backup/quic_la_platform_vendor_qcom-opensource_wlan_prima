@@ -174,7 +174,7 @@ VOS_STATUS vos_lock_destroy( vos_lock_t *lock );
   \return VOS_STATUS_SUCCESS - spin lock was successfully initialized and 
           is ready to be used.
   --------------------------------------------------------------------------*/
-VOS_STATUS vos_spin_lock_init(spinlock_t *pLock);
+VOS_STATUS vos_spin_lock_init(vos_spin_lock_t *pLock);
 
 /*--------------------------------------------------------------------------
   
@@ -192,7 +192,7 @@ VOS_STATUS vos_spin_lock_init(spinlock_t *pLock);
       
   \sa
   ------------------------------------------------------------------------*/
-VOS_STATUS vos_spin_lock_acquire(spinlock_t *pLock);
+VOS_STATUS vos_spin_lock_acquire(vos_spin_lock_t *pLock);
 
 /*--------------------------------------------------------------------------
   
@@ -210,7 +210,19 @@ VOS_STATUS vos_spin_lock_acquire(spinlock_t *pLock);
   
   \sa
   ------------------------------------------------------------------------*/
-VOS_STATUS vos_spin_lock_release(spinlock_t *pLock);
+VOS_STATUS vos_spin_lock_release(vos_spin_lock_t *pLock);
+
+/*--------------------------------------------------------------------------
+  
+  \brief vos_spin_lock_destroy() - releases resource of a lock
+
+  \param pLock - pointer to a lock to release
+  
+  \return VOS_STATUS_SUCCESS - the lock was successfully released
+  
+  \sa
+  ------------------------------------------------------------------------*/
+VOS_STATUS vos_spin_lock_destroy(vos_spin_lock_t *pLock);
 
 
 #endif // __VOSS_LOCK_H

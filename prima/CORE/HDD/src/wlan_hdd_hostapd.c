@@ -59,6 +59,8 @@
     (IS_UP((_ic)->ic_dev) && (_ic)->ic_roaming == IEEE80211_ROAMING_AUTO)
 #define WE_WLAN_VERSION     1
 
+#define SAP_24GHZ_CH_COUNT (14) 
+
 /*--------------------------------------------------------------------------- 
  *   Function definitions
  *-------------------------------------------------------------------------*/
@@ -897,11 +899,13 @@ static iw_softap_commit(struct net_device *dev,
        eCSR_BAND_24  = 1 2.4GHZ mode only
        eCSR_BAND_5G  = 5 GHz mode only
        HT40 is supported in 5GHz band only. if current operating band is not 5GHz clear all related HT40 settings */
-    if(eCSR_BAND_5G != (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->nBandCapability)
+    if((eCSR_BAND_24 == (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->nBandCapability) || /*Band is 24GHZ */
+       ((eCSR_BAND_ALL == (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->nBandCapability) && /*Band is mixmode but channel is in 24GHz*/
+       (pConfig->channel <= SAP_24GHZ_CH_COUNT)))
     {
        /*Band is not 5GHz clear all HT40 releted settings received from hostapd before passing it down to SME*/
        /*
-	* HT capability is of 16 bits following is each field description:
+         * HT capability is of 16 bits following is each field description:
          1....... ........ : L-SIG TXOP protection support bit
          .1...... ........ : AP allows use of 40MHz transmission in neighboring BSS
          ..1..... ........ : BSS support use of PSPM

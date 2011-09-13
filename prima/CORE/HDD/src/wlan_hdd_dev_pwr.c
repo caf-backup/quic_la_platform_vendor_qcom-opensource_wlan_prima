@@ -90,6 +90,9 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
       return -1;
    }
 
+   /* Set the Tx Thread as Suspended */
+   pHddCtx->isTxThreadSuspended = TRUE;
+
    init_completion(&pHddCtx->rx_sus_event_var);
 
    /* Indicate Rx Thread to Suspend */
@@ -109,8 +112,14 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
        /* Indicate Tx Thread to Resume */
        complete(&vosSchedContext->ResumeTxEvent);
 
+       /* Set the Tx Thread as Resumed */
+       pHddCtx->isTxThreadSuspended = FALSE;
+
        return -1;
    }
+
+   /* Set the Rx Thread as Suspended */
+   pHddCtx->isRxThreadSuspended = TRUE;
 
    init_completion(&pHddCtx->mc_sus_event_var);
 
@@ -131,11 +140,21 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
        /* Indicate Rx Thread to Resume */
        complete(&vosSchedContext->ResumeRxEvent);
 
+       /* Set the Rx Thread as Resumed */
+       pHddCtx->isRxThreadSuspended = FALSE;
+
        /* Indicate Tx Thread to Resume */
        complete(&vosSchedContext->ResumeTxEvent);
 
+       /* Set the Tx Thread as Resumed */
+       pHddCtx->isTxThreadSuspended = FALSE;
+
        return -1;
    }
+
+   /* Set the Mc Thread as Suspended */
+   pHddCtx->isMcThreadSuspended = TRUE;
+   
    /* Set the Station state as Suspended */
    pHddCtx->isWlanSuspended = TRUE;
 
@@ -173,11 +192,20 @@ static void wlan_resume(hdd_adapter_t* pAdapter)
    /* Indicate MC Thread to Resume */
    complete(&vosSchedContext->ResumeMcEvent);
 
+   /* Set the Mc Thread as Resumed */
+   pHddCtx->isMcThreadSuspended = FALSE;
+
    /* Indicate Rx Thread to Resume */
    complete(&vosSchedContext->ResumeRxEvent);
 
+   /* Set the Rx Thread as Resumed */
+   pHddCtx->isRxThreadSuspended = FALSE;
+
    /* Indicate Tx Thread to Resume */
    complete(&vosSchedContext->ResumeTxEvent);
+
+   /* Set the Tx Thread as Resumed */
+   pHddCtx->isTxThreadSuspended = FALSE;
 
    /* Set the Station state as Suspended */
    pHddCtx->isWlanSuspended = FALSE;

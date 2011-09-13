@@ -673,9 +673,7 @@ VosWDThread
   pVosWatchdogContext pWdContext = (pVosWatchdogContext)Arg;
   int retWaitStatus              = 0;
   v_BOOL_t shutdown              = VOS_FALSE;
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
   VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
-#endif
   set_user_nice(current, -3);
 
   if (Arg == NULL)
@@ -729,7 +727,6 @@ VosWDThread
         {
           pWdContext->resetInProgress = true;
 #ifdef CONFIG_HAS_EARLYSUSPEND
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
           vosStatus = hdd_wlan_reset();
 
           if (! VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -739,7 +736,6 @@ VosWDThread
              shutdown = VOS_TRUE;
              break;
           }
-#endif
 #endif
              pWdContext->resetInProgress = false;
         }

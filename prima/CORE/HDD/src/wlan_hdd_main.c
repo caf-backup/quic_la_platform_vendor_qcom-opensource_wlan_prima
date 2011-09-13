@@ -169,12 +169,10 @@ struct notifier_block hdd_netdev_notifier = {
  *-------------------------------------------------------------------------*/
 extern int isWDresetInProgress(void);
 #ifdef CONFIG_HAS_EARLYSUSPEND
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
 extern void register_wlan_suspend(void);
 extern void unregister_wlan_suspend(void);
 void hdd_unregister_mcast_bcast_filter(hdd_context_t *pHddCtx);
 void hdd_register_mcast_bcast_filter(hdd_context_t *pHddCtx);
-#endif
 #endif
 #ifdef WLAN_SOFTAP_FEATURE
 //variable to hold the insmod parameters
@@ -1804,6 +1802,9 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 #ifdef CONFIG_CFG80211
    struct wiphy *wiphy = pHddCtx->wiphy;
 #endif 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+   hdd_adapter_t* pAdapter;
+#endif
 
    hddLog(VOS_TRACE_LEVEL_ERROR,"In WLAN EXIT");
 
@@ -1838,11 +1839,33 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    // unregister suspend/resume callbacks
    if(pHddCtx->cfg_ini->nEnableSuspend)
    {
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
       unregister_wlan_suspend();
-#endif
    }
 #endif
+
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+#ifdef WLAN_SOFTAP_FEATURE
+   if (VOS_STA_SAP_MODE == hdd_get_conparam())
+   {
+      pAdapter = hdd_get_adapter(pHddCtx,
+                                   WLAN_HDD_SOFTAP);
+   }
+   else
+   {
+#endif
+      pAdapter = hdd_get_adapter(pHddCtx,
+                                   WLAN_HDD_INFRA_STATION);
+#ifdef WLAN_SOFTAP_FEATURE
+   }
+#endif
+   /* DeRegister with platform driver as client for Suspend/Resume */
+   vosStatus = hddDeregisterPmOps(pAdapter);
+   if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDeregisterPmOps failed",__func__);
+      VOS_ASSERT(0);
+   }
+#endif //FEATURE_WLAN_INTEGRATED_SOC
 
    //Disable IMPS/BMPS as we do not want the device to enter any power
    //save mode during shutdown
@@ -1954,9 +1977,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 
    //This requires pMac access, Call this before vos_close().
 #ifdef CONFIG_HAS_EARLYSUSPEND
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
    hdd_unregister_mcast_bcast_filter(pHddCtx);
-#endif
 #endif
 
    //Close VOSS
@@ -2581,7 +2602,7 @@ int hdd_wlan_startup(struct device *dev )
 
 #endif //WLAN_BTAMP_FEATURE
  
-#ifndef FEATURE_WLAN_NON_INTEGRATED_SOC
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
    /* Register with platform driver as client for Suspend/Resume */
    status = hddRegisterPmOps(pAdapter);
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
@@ -2595,9 +2616,7 @@ int hdd_wlan_startup(struct device *dev )
    // Register suspend/resume callbacks
    if(pHddCtx->cfg_ini->nEnableSuspend)
    {
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
       register_wlan_suspend();
-#endif
    }
 #endif
 
@@ -2645,9 +2664,7 @@ int hdd_wlan_startup(struct device *dev )
    }
 
 #ifdef CONFIG_HAS_EARLYSUSPEND
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
    hdd_register_mcast_bcast_filter(pHddCtx);
-#endif
 #endif
 #ifdef CONFIG_CFG80211
 #ifdef WLAN_SOFTAP_FEATURE

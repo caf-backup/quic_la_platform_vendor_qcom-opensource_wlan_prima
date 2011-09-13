@@ -839,4 +839,17 @@ typedef enum
 #define CAL_WFM_RX_TONE_START_IDX           512
 #define CAL_WFM_RX_TONE_STOP_IDX            767
 
+//-0.25dBm adjustment to be made to compensate b rates, because we cal with OFDM rates
+#define B_RATE_CAL_ADJUSTMENT               -150
+#define GN_RATE_BANDEDGE_ADJUSTMENT         -100
+
+#define TPC_INDEX_WIFI_DIRECT   0
+#define TPC_INDEX_LOW_POWER     1
+#define MIN_TPC_GAIN_INDEX                      1   //Index 0 used for Wifi Direct
+#define TPC_GAIN_LUT_PWR_SLOPE                  2
+#define MAX_TPC_GAIN_LUT_DBM    (24)
+#define MIN_TPC_GAIN_LUT_DBM    (9)
+#define MAX_TPC_GAIN_LUT_DBM_2DEC_PLACES    (MAX_TPC_GAIN_LUT_DBM * 100)
+#define MIN_TPC_GAIN_LUT_DBM_2DEC_PLACES    (MIN_TPC_GAIN_LUT_DBM * 100)
+
 #endif /* WLAN_PHY_H */

@@ -343,7 +343,18 @@ typedef enum
 
   /*WLAN START INNAV MEAS Request*/
   WDI_START_INNAV_MEAS_REQ   = 60,
-  WDI_MAX_REQ
+  /* WLAN host resume request */
+  WDI_HOST_RESUME_REQ      = 61,
+
+  WDI_MAX_REQ,
+
+  /*Send a suspend Indication down to HAL*/
+  WDI_HOST_SUSPEND_IND          = WDI_MAX_REQ , 
+
+  /*Keep adding the indications to the max request
+    such that we keep them sepparate */
+
+  WDI_MAX_UMAC_IND
 }WDI_RequestEnumType; 
 
 /*--------------------------------------------------------------------------- 
@@ -527,11 +538,14 @@ typedef enum
 
   /*WLAN START INNAV MEAS Response*/
   WDI_START_INNAV_MEAS_RESP          = 58,
+  /* WLAN host resume request */
+  WDI_HOST_RESUME_RESP = 59,
+
   /*-------------------------------------------------------------------------
     Indications
      !! Keep these last in the enum if possible
     -------------------------------------------------------------------------*/
-  WDI_HAL_IND_MIN                     = 59, 
+  WDI_HAL_IND_MIN                     = 60, 
   /*When RSSI monitoring is enabled of the Lower MAC and a threshold has been
     passed. */
   WDI_HAL_LOW_RSSI_IND                = WDI_HAL_IND_MIN, 
@@ -2208,6 +2222,23 @@ WDI_ProcessStartInNavMeasReq
 #endif
 
 /**
+ @brief Process Host Resume Request function (called when Main 
+        FSM allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessHostResumeReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
  @brief Process BT AMP event Request function (called when Main 
         FSM allows it)
  
@@ -2257,6 +2288,28 @@ WDI_ProcessDelSTASelfReq
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
 );
+
+
+/*=========================================================================
+                             Indications
+=========================================================================*/
+
+/**
+ @brief Process Suspend Indications function (called when Main FSM allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessHostSuspendInd
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
 
 /*========================================================================
           Main DAL Control Path Response Processing API 
@@ -3289,6 +3342,22 @@ WDI_ProcessStartInNavMeasRsp
 );
 #endif
 
+ /**
+ @brief WDI_ProcessHostResumeRsp function (called when a 
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessHostResumeRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
 
 
 /*==========================================================================
@@ -3750,6 +3819,27 @@ WDI_SendMsg
   void*                  pRspCb, 
   void*                  pUserData,
   WDI_ResponseEnumType   wdiExpectedResponse
+);
+
+
+/**
+ @brief Send indication helper function - sends a message over 
+        the bus using the control transport and saves some info
+        in the CB
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pSendBuffer:     buffer to be sent
+         usSendSize: size of the buffer to be sent
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_SendIndication
+( 
+  WDI_ControlBlockType*  pWDICtx,  
+  wpt_uint8*             pSendBuffer, 
+  wpt_uint32             usSendSize
 );
 
 /**

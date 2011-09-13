@@ -626,6 +626,10 @@ struct hdd_context_s
 
    v_BOOL_t isMcThreadSuspended;
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+   v_BOOL_t isRxThreadSuspended;
+#endif
+
    volatile v_BOOL_t isLogpInProgress;
 
    v_BOOL_t isLoadUnloadInProgress;

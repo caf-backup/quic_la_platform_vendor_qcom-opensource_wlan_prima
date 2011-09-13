@@ -13,6 +13,8 @@
 #ifndef CSR_LINK_LIST_H__
 #define CSR_LINK_LIST_H__
 
+#include "vos_lock.h"
+
 
 #define LL_ACCESS_LOCK          eANI_BOOLEAN_TRUE
 #define LL_ACCESS_NOLOCK        eANI_BOOLEAN_FALSE
@@ -33,7 +35,7 @@ typedef enum
 typedef struct tagDblLinkList
 {
   tListElem ListHead;
-  tPalSpinLockHandle Lock;
+  vos_spin_lock_t Lock;
   tANI_U32  Count;
   tHddHandle hHdd;
   tListFlag Flag;

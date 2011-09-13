@@ -137,7 +137,7 @@ void csrLLLock( tDblLinkList *pList )
 
     if ( LIST_FLAG_OPEN == pList->Flag )
     {
-        vos_spin_lock_acquire(pList->Lock);
+        vos_spin_lock_acquire(&pList->Lock);
     }
 }
 
@@ -153,7 +153,7 @@ void csrLLUnlock( tDblLinkList *pList )
 
     if ( LIST_FLAG_OPEN == pList->Flag ) 
     {
-        vos_spin_lock_release(pList->Lock);
+        vos_spin_lock_release(&pList->Lock);
     }
 }
 
@@ -225,7 +225,7 @@ tANI_BOOLEAN csrLLFindEntry( tDblLinkList *pList, tListElem *pEntryToFind )
 eHalStatus csrLLOpen( tHddHandle hHdd, tDblLinkList *pList )
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
-
+    VOS_STATUS vosStatus;
     
     if( !pList) 
     {
@@ -236,20 +236,18 @@ eHalStatus csrLLOpen( tHddHandle hHdd, tDblLinkList *pList )
     if ( LIST_FLAG_OPEN != pList->Flag ) 
     {
         pList->Count = 0;
-        pList->Lock = vos_mem_malloc(sizeof(pList->Lock));
-        if (pList->Lock == NULL)
-        {
-            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_FATAL,"%s: Error!! Memory allocation for pList->Lock failed", __FUNCTION__);
-            return eHAL_STATUS_RESOURCES;
-        }
 
-        status = vos_spin_lock_init(pList->Lock);
+        vosStatus = vos_spin_lock_init(&pList->Lock);
 
-        if(HAL_STATUS_SUCCESS(status))
+        if(VOS_IS_STATUS_SUCCESS(vosStatus))
         {
             csrListInit( &pList->ListHead );
             pList->Flag = LIST_FLAG_OPEN;
             pList->hHdd = hHdd;
+        }
+        else
+        {
+           status = eHAL_STATUS_FAILURE;
         }
     }
     return (status);
@@ -267,7 +265,7 @@ void csrLLClose( tDblLinkList *pList )
     {
         // Make sure the list is empty...
         csrLLPurge( pList, LL_ACCESS_LOCK );
-        vos_mem_free( pList->Lock );
+        vos_spin_lock_destroy( &pList->Lock );
         pList->Flag = LIST_FLAG_CLOSE;
     }
 }

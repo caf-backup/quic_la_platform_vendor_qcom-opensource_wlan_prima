@@ -42,6 +42,8 @@ typedef struct vos_lock_s
    v_U8_t  refcount;
 } vos_lock_t;
 
+typedef spinlock_t vos_spin_lock_t;
+
 /*------------------------------------------------------------------------- 
   Function declarations and documenation
   ------------------------------------------------------------------------*/

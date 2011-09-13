@@ -91,24 +91,16 @@
 #define QWLAN_HAL_CFG_TELE_BCN_MAX_LI                    62
 #define QWLAN_HAL_CFG_TELE_BCN_MAX_LI_IDLE_BCNS          63
 #define QWLAN_HAL_CFG_TX_PWR_CTRL_ENABLE                 64
-
-#ifdef FEATURE_5GHZ_BAND
 #define QWLAN_HAL_CFG_VALID_RADAR_CHANNEL_LIST           65 
 #define QWLAN_HAL_CFG_TX_POWER_24_20                     66 
 #define QWLAN_HAL_CFG_TX_POWER_24_40                     67
 #define QWLAN_HAL_CFG_TX_POWER_50_20                     68
 #define QWLAN_HAL_CFG_TX_POWER_50_40                     69
-#endif
-
-#ifdef FEATURE_5GHZ_BAND
 #define QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING         70 
 #define QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL     71
 #define QWLAN_HAL_CFG_MAX_PARAMS                         72
-#else
-#define QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING         65
-#define QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL     66 
-#define QWLAN_HAL_CFG_MAX_PARAMS                         67
-#endif
+#define QCOM_WLAN_CFG_MAX_TX_POWER_2_4                   73
+#define QCOM_WLAN_CFG_MAX_TX_POWER_5                     74
 
 /* Total number of Integer CFGs. This is used while allocating the memory for TLV */
 #define QWLAN_HAL_CFG_INTEGER_PARAM                      70
@@ -117,12 +109,9 @@
   Configuration Parameter min, max, defaults
 -------------------------------------------------------------------------*/
 
-#ifdef FEATURE_5GHZ_BAND
-#define QWLAN_HAL_CFG_RADAR_CHANNEL_LIST_LEN    20
-#endif
-
 /* QWLAN_HAL_CFG_STA_ID*/
 #define QWLAN_HAL_CFG_STA_ID_STADEF                  "000AF5898989"
+#define QCOM_WLAN_CFG_STA_ID_LEN                     6
 
 /* QWLAN_HAL_CFG_CURRENT_TX_ANTENNA */
 #define QWLAN_HAL_CFG_CURRENT_TX_ANTENNA_STAMIN          1
@@ -507,11 +496,10 @@
 #define QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL_STAMAX    255
 #define QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL_STADEF    5
 
-#ifdef FEATURE_5GHZ_BAND
-
 /*Values to be added in hexadecimal*/
 /* QWLAN_HAL_CFG_VALID_RADAR_LIST */
 #define QWLAN_HAL_CFG_VALID_RADAR_CHANNEL_LIST_DEFAULT "36"
+#define QWLAN_HAL_CFG_RADAR_CHANNEL_LIST_LEN    20
 
 /* QWLAN_HAL_CFG_TX_POWER_24_20 */
 #define QWLAN_WLAN_TX_POWER_24_20_DEFAULT    299 
@@ -533,11 +521,20 @@
 #define QWLAN_WLAN_TX_POWER_50_40_MIN        299 
 #define QWLAN_WLAN_TX_POWER_50_40_MAX        299 
 
-#endif
+/* QCOM_WLAN_CFG_MAX_TX_POWER_2_4 */
+#define QCOM_WLAN_CFG_MAX_TX_POWER_2_4_LEN      128
+/* byte[0] = 0x01 = First Channel; byte[1] =  0x0E = 14 = MaxChannels; byte[2] = 0x14 = 20 = Tx Power (dBm) */
+#define QCOM_WLAN_CFG_MAX_TX_POWER_2_4_DEFAULT  "010E14"
+
+/* QCOM_WLAN_CFG_MAX_TX_POWER_5 */
+#define QCOM_WLAN_CFG_MAX_TX_POWER_5_LEN     128
+/* byte[0] = 0x24 = 36 = First Channel; byte[1] =  0x7E = 126 = MaxChannels; byte[2] = 0x0E = 14 = Tx Power (dBm) */
+#define QCOM_WLAN_CFG_MAX_TX_POWER_5_DEFAULT  "247E0E"
 
 typedef struct 
 {
-   uint8    cfgStaId[6];               //QWLAN_HAL_CFG_STA_ID
+   uint8    cfgStaId[QCOM_WLAN_CFG_STA_ID_LEN]; //QWLAN_HAL_CFG_STA_ID
+   uint8    reserved[2];               //Reserved field to align the next field on dword boundary
    uint32   cfgCurrentTxAntenna;       //QWLAN_HAL_CFG_CURRENT_TX_ANTENNA
    uint32   cfgCurrentRxAntenna;       //QWLAN_HAL_CFG_CURRENT_RX_ANTENNA
    uint32   cfgLowGainOverride;        //QWLAN_HAL_CFG_LOW_GAIN_OVERRIDE
@@ -577,8 +574,8 @@ typedef struct
    uint8    cfgEdcaWmmAcBe[QWLAN_HAL_CFG_EDCA_PARAM_MAX_LEN]; //QWLAN_HAL_CFG_EDCA_WMM_ACBE
    uint8    cfgEdcaWmmAcVo[QWLAN_HAL_CFG_EDCA_PARAM_MAX_LEN]; //QWLAN_HAL_CFG_EDCA_WMM_ACVO
    uint8    cfgEdcaWmmAcVi[QWLAN_HAL_CFG_EDCA_PARAM_MAX_LEN]; //QWLAN_HAL_CFG_EDCA_WMM_ACVI
-   uint32   cfgbaSetupThresholdHigh;//QWLAN_HAL_CFG_BA_THRESHOLD_HIGH
-   uint32   cfgbaRxMaxAvailBuffers;//QWLAN_HAL_CFG_MAX_BA_BUFFERS
+   uint32   cfgbaSetupThresholdHigh;          //QWLAN_HAL_CFG_BA_THRESHOLD_HIGH
+   uint32   cfgbaRxMaxAvailBuffers;           //QWLAN_HAL_CFG_MAX_BA_BUFFERS
    uint32   cfgRpePollingThreshold;           //QWLAN_HAL_CFG_RPE_POLLING_THRESHOLD
    uint32   cfgRpeAgingThresholdForAc0Reg;    //QWLAN_HAL_CFG_RPE_AGING_THRESHOLD_FOR_AC0_REG
    uint32   cfgRpeAgingThresholdForAc1Reg;    //QWLAN_HAL_CFG_RPE_AGING_THRESHOLD_FOR_AC1_REG
@@ -594,23 +591,23 @@ typedef struct
    uint32   cfgPsBroadcastFrameFilterEnable;  //QWLAN_HAL_CFG_PS_BROADCAST_FRAME_FILTER_ENABLE
    uint32   cfgPsIgnoreDtim;                  //QWLAN_HAL_CFG_PS_IGNORE_DTIM
    uint32   cfgPsEnableBcnEarlyTerm;          //QWLAN_HAL_CFG_PS_ENABLE_BCN_EARLY_TERM
-   uint32   cfgDynamicPsPollValue;           //QWLAN_HAL_CFG_DYNAMIC_PS_POLL_VALUE
-   uint32   cfgPsNullDataApRespTimeout;      //QWLAN_HAL_CFG_PS_NULLDATA_AP_RESP_TIMEOUT
+   uint32   cfgDynamicPsPollValue;            //QWLAN_HAL_CFG_DYNAMIC_PS_POLL_VALUE
+   uint32   cfgPsNullDataApRespTimeout;       //QWLAN_HAL_CFG_PS_NULLDATA_AP_RESP_TIMEOUT
    uint32   cfgTxPowerEnable;                 //QWLAN_HAL_CFG_TX_PWR_CTRL_ENABLE
-   uint32   cfgTeleBcnWakeupEn;            //QWLAN_HAL_CFG_TELE_BCN_WAKEUP_EN
-   uint32   cfgTeleBcnTransLi;             //QWLAN_HAL_CFG_TELE_BCN_TRANS_LI
-   uint32   cfgTeleBcnTransLiIdleBcns;     //QWLAN_HAL_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS
-   uint32   cfgTeleBcnMaxLi;               //QWLAN_HAL_CFG_TELE_BCN_MAX_LI
-   uint32   cfgTeleBcnMaxLiIdleBcns;       //QWLAN_HAL_CFG_TELE_BCN_MAX_LI_IDLE_BCNS
-   uint32   cfgMcastBcastFilterSetting;    //QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING
-   uint32   cfgBcnEarlyTermWakeupInterval; //QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL
-#ifdef FEATURE_5GHZ_BAND
+   uint32   cfgTeleBcnWakeupEn;               //QWLAN_HAL_CFG_TELE_BCN_WAKEUP_EN
+   uint32   cfgTeleBcnTransLi;                //QWLAN_HAL_CFG_TELE_BCN_TRANS_LI
+   uint32   cfgTeleBcnTransLiIdleBcns;        //QWLAN_HAL_CFG_TELE_BCN_TRANS_LI_IDLE_BCNS
+   uint32   cfgTeleBcnMaxLi;                  //QWLAN_HAL_CFG_TELE_BCN_MAX_LI
+   uint32   cfgTeleBcnMaxLiIdleBcns;          //QWLAN_HAL_CFG_TELE_BCN_MAX_LI_IDLE_BCNS
+   uint32   cfgMcastBcastFilterSetting;       //QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING
+   uint32   cfgBcnEarlyTermWakeupInterval;    //QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL
    uint8    cfgValidRadarChannelList[QWLAN_HAL_CFG_RADAR_CHANNEL_LIST_LEN]; //QWLAN_HAL_CFG_VALID_RADAR_LIST
-   uint32   cfgTxPower2420;//QWLAN_HAL_CFG_TX_POWER_24_20
-   uint32   cfgTxPower2440;//QWLAN_HAL_CFG_TX_POWER_24_40
-   uint32   cfgTxPower5020;//QWLAN_HAL_CFG_TX_POWER_50_20
-   uint32   cfgTxPower5040;//QWLAN_HAL_CFG_TX_POWER_50_40
-#endif 
+   uint32   cfgTxPower2420;                   //QWLAN_HAL_CFG_TX_POWER_24_20
+   uint32   cfgTxPower2440;                   //QWLAN_HAL_CFG_TX_POWER_24_40
+   uint32   cfgTxPower5020;                   //QWLAN_HAL_CFG_TX_POWER_50_20
+   uint32   cfgTxPower5040;                   //QWLAN_HAL_CFG_TX_POWER_50_40
+   uint8    cfgMaxTxPower24[QCOM_WLAN_CFG_MAX_TX_POWER_2_4_LEN]; //QCOM_WLAN_CFG_MAX_TX_POWER_2_4
+   uint8    cfgMaxTxPower5[QCOM_WLAN_CFG_MAX_TX_POWER_5_LEN];    //QCOM_WLAN_CFG_MAX_TX_POWER_5
 }tAniHalCfg, *tpAniHalCfg;
 
 #endif //__WLAN_HAL_CFG_H__

@@ -361,6 +361,8 @@ typedef struct
    tANI_U8    txStatus;
    /* Flag set to true when TL suspend timesout.*/
    tANI_U8    txSuspendTimedOut;   
+
+   vos_event_t          waitOnWdiIndicationCallBack;
 } tWDA_CbContext ; 
 
 typedef struct
@@ -978,9 +980,6 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_CFG_RXP_FILTER_REQ         SIR_HAL_CFG_RXP_FILTER_REQ
 #define WDA_CFG_RXP_FILTER_RSP         SIR_HAL_CFG_RXP_FILTER_RSP
 
-#define WDA_CFG_APPS_CPU_WAKEUP_STATE_REQ  SIR_HAL_CFG_APPS_CPU_WAKEUP_STATE_REQ
-#define WDA_CFG_APPS_CPU_WAKEUP_STATE_RSP  SIR_HAL_CFG_APPS_CPU_WAKEUP_STATE_RSP
-
 #define WDA_SWITCH_CHANNEL_RSP         SIR_HAL_SWITCH_CHANNEL_RSP
 #define WDA_PWR_SAVE_CFG               SIR_HAL_PWR_SAVE_CFG
 
@@ -1109,6 +1108,8 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #endif
 
 #define WDA_TX_COMPLETE_TIMEOUT_IND  WDA_MSG_TYPES_END - 1
+#define WDA_WLAN_SUSPEND_IND           SIR_HAL_WLAN_SUSPEND_IND
+#define WDA_WLAN_RESUME_REQ           SIR_HAL_WLAN_RESUME_REQ
 #define WDA_MSG_TYPES_END    SIR_HAL_MSG_TYPES_END
 
 #define WDA_SUSPEND_ACTIVITY_RSP SIR_HAL_SUSPEND_ACTIVITY_RSP
