@@ -2640,6 +2640,14 @@ void halMsg_AddBcastSta(tpAniSirGlobal pMac, tANI_U8 bssIdx, tpAddBssParams para
     // Set the station type
     (void) halTable_SetStaType(pMac, bcastStaIdx, STA_ENTRY_BCAST);
 
+#ifdef WLAN_SOFTAP_FEATURE
+#ifdef WLAN_FEATURE_P2P
+    halFW_AddStaReq(pMac, bcastStaIdx, 0, 1, 1);
+#else
+    halFW_AddStaReq(pMac, bcastStaIdx, 0, 1);
+#endif
+#endif
+	
     return;
 }
 
@@ -2662,7 +2670,11 @@ void halMsg_DelBcastSta(tpAniSirGlobal pMac, tANI_U8 bssIdx, tpDeleteBssParams p
         halTable_ClearSta(pMac, bcastStaIdx);
     }
 
-    return;
+#ifdef WLAN_SOFTAP_FEATURE
+    halFW_DelStaReq(pMac, bcastStaIdx);    
+#endif
+
+	return;
 }
 #endif //HAL_BCAST_STA_PER_BSS
 
