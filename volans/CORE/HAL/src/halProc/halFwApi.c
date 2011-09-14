@@ -319,6 +319,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
     pFwConfig->uBssTableOffset = pMac->hal.memMap.bssTable_offset;
     pFwConfig->uStaTableOffset = pMac->hal.memMap.staTable_offset;
     pFwConfig->bFwProcProbeReqDisabled = 1;
+	pFwConfig->beaconTemplate_offset   = pMac->hal.memMap.beaconTemplate_offset;
     halZeroDeviceMemory(pMac,pMac->hal.memMap.bssTable_offset, pMac->hal.memMap.bssTable_size);
     halZeroDeviceMemory(pMac,pMac->hal.memMap.staTable_offset, pMac->hal.memMap.staTable_size);
 #endif

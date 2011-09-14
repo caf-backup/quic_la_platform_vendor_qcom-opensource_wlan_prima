@@ -858,6 +858,7 @@ typedef  PACKED_PRE struct PACKED_POST _Qwlanfw_SysCfgStruct
     tANI_U32 ucapUapsdSendQoSNullDataMsec;
     tANI_U32 uBssTableOffset;
     tANI_U32 uStaTableOffset;
+	tANI_U32 beaconTemplate_offset;	
 #endif
 
 #ifdef ANI_BIG_BYTE_ENDIAN
