@@ -415,7 +415,7 @@ const tPhyDbgFrame defaultFrame =
 #endif
 
 #define RAMP_UP_11B_PACKETS     0x100
-#define RC_DELAY_11B_PACKETS    0x7ff
+#define RC_DELAY_11B_PACKETS    1416
 #define STOP_ITER_LIMIT         10000
 
 extern eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode pwrMode, tPowerdBm absPwrLimit, tPwrTemplateIndex *retTemplateIndex);

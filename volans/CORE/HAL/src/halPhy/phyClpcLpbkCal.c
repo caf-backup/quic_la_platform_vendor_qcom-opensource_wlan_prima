@@ -407,7 +407,7 @@ eHalStatus phyClpcLpbkCal(tpAniSirGlobal pMac)
     //printk("offset =%d\n", (int)offset);
 
     //if offset is greater than 0 then write it to Nv
-    if(offset > 0)
+    if(offset >= 0)
     {
         sOfdmCmdPwrOffset cmdoffset;
         cmdoffset.ofdmPwrOffset = (t2Decimal)offset;
