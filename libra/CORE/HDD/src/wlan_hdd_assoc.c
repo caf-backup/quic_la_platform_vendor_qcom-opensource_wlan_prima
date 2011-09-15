@@ -1452,6 +1452,16 @@ int iw_set_essid(struct net_device *dev,
                      msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
         }
     }
+#ifdef CONFIG_CFG80211
+    /** when cfg80211 defined, wpa_supplicant wext driver uses
+      zero-length, null-string ssid for force disconnection.
+      after disconnection (if previously connected) and cleaning ssid,
+      driver MUST return success */
+    if ( 0 == wrqu->essid.length ) {
+        return 0;
+    }
+#endif
+
     status = hdd_wmm_get_uapsd_mask(pAdapter,
                                     &pWextState->roamProfile.uapsd_mask);
     if (VOS_STATUS_SUCCESS != status)

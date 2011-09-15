@@ -529,7 +529,6 @@ VosMCThread
   \brief isWDresetInProgress - To send value of resetInProgress in WDcontext
   \return the value of pWdContext->resetInProgress
   -------------------------------------------------------------------------*/
-
 int isWDresetInProgress(void)
 {
    if(NULL == gpVosWatchdogContext)
@@ -1283,7 +1282,7 @@ int vos_sched_is_tx_thread(int threadID)
           "%s: gpVosSchedContext == NULL",__FUNCTION__);
       return 0;
    }
-   return (threadID == gpVosSchedContext->TxThread->pid);
+   return ((gpVosSchedContext->TxThread) && (threadID == gpVosSchedContext->TxThread->pid));
 }
 /*-------------------------------------------------------------------------
  Helper function to get the scheduler context
