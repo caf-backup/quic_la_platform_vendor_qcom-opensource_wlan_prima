@@ -1859,7 +1859,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    }
 #endif
    /* DeRegister with platform driver as client for Suspend/Resume */
-   vosStatus = hddDeregisterPmOps(pAdapter);
+   vosStatus = hddDeregisterPmOps(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDeregisterPmOps failed",__func__);
@@ -1918,6 +1918,15 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
 
    sd_release_host(sdio_func_dev);
 #endif // ANI_BUS_TYPE_SDIO
+
+#ifdef WLAN_BTAMP_FEATURE
+   vosStatus = WLANBAP_Stop(pVosContext);
+   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
+   {
+       VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+               "%s: Failed to stop BAP",__func__);
+   }
+#endif //WLAN_BTAMP_FEATURE
 
    //Stop all the modules
    vosStatus = vos_stop( pVosContext );
@@ -2604,7 +2613,7 @@ int hdd_wlan_startup(struct device *dev )
  
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    /* Register with platform driver as client for Suspend/Resume */
-   status = hddRegisterPmOps(pAdapter);
+   status = hddRegisterPmOps(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddRegisterPmOps failed",__func__);

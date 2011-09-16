@@ -472,13 +472,21 @@ wpt_status WDTS_SetPowerState(void *pContext, WDTS_PowerStateType  powerState,
    void *pDTDriverContext = WDT_GetTransportDriverContext(pContext);
    wpt_status status = eWLAN_PAL_STATUS_SUCCESS;
 
-   //save the cback & cookie
-   gSetPowerStateCbInfo.pUserData = pContext;
-   gSetPowerStateCbInfo.cback = cback;
-   status =  gTransportDriver.setPowerState(pDTDriverContext, powerState,
+   if( cback )
+   {
+      //save the cback & cookie
+      gSetPowerStateCbInfo.pUserData = pContext;
+      gSetPowerStateCbInfo.cback = cback;
+      status = gTransportDriver.setPowerState(pDTDriverContext, powerState,
                                             WDTS_SetPowerStateCb);
+   }
+   else
+   {
+      status = gTransportDriver.setPowerState(pDTDriverContext, powerState,
+                                               NULL);
+   }
 
-  return status;
+   return status;
 }
 
 /* DTS Stop function. 

@@ -437,9 +437,6 @@ VOS_STATUS WDA_start(v_PVOID_t pVosContext)
       status = wdaCreateTimers(wdaContext) ;
    }
 
-   /* Start BA activity timer. */
-   WDA_START_TIMER(&wdaContext->wdaTimers.baActivityChkTmr) ;
-
    return status;
 }
 
@@ -1515,7 +1512,7 @@ VOS_STATUS WDA_SuspendDataTxCallback( v_PVOID_t      pvosGCtx,
    if (pWDA->txSuspendTimedOut) 
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
-                  "Late TLSuspendCallback, resmuing TL back again\n");
+                  "Late TLSuspendCallback, resuming TL back again\n");
       WDA_ResumeDataTx(pWDA);
       pWDA->txSuspendTimedOut = FALSE;
    }
@@ -4221,6 +4218,12 @@ void WDA_SetLinkStateCallback(WDI_Status status, void* pUserData)
 
    linkStateParams = (tLinkStateParams *)pWdaParams->wdaMsgParam ;
 
+   if( linkStateParams->state == eSIR_LINK_POSTASSOC_STATE && 
+       status == WDI_STATUS_SUCCESS )
+   {
+      WDA_START_TIMER(&pWDA->wdaTimers.baActivityChkTmr);
+   }
+
    WDA_SendMsg(pWDA, WDA_SET_LINK_STATE_RSP, (void *)linkStateParams , 0) ;
 
    /* 
@@ -4287,6 +4290,11 @@ VOS_STATUS WDA_ProcessSetLinkState(tWDA_CbContext *pWDA,
 
       /* store Params pass it to WDI */
       pWdaParams->wdaWdiApiMsgParam = (void *)wdiSetLinkStateParam ;
+
+      if( linkStateParams->state == eSIR_LINK_IDLE_STATE )
+      {
+         WDA_STOP_TIMER(&pWDA->wdaTimers.baActivityChkTmr);
+      }
 
       status = WDI_SetLinkStateReq(wdiSetLinkStateParam, 
                         (WDI_SetLinkStateRspCb)WDA_SetLinkStateCallback, pWdaParams);
@@ -6544,7 +6552,9 @@ VOS_STATUS WDA_ProcessWlanSuspendInd(tWDA_CbContext *pWDA,
                           pWlanSuspendParam->configuredMcstBcstFilterSetting;
    wdiSuspendParams.wdiReqStatusCB = WDA_WdiIndicationCallback;
    wdiSuspendParams.pUserData = pWDA;
-   printk(KERN_CRIT "###### %s: %d",__func__,pWlanSuspendParam->configuredMcstBcstFilterSetting);
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, "%s: %d" ,__FUNCTION__, pWlanSuspendParam->configuredMcstBcstFilterSetting);
+
+   WDA_STOP_TIMER(&pWDA->wdaTimers.baActivityChkTmr);
 
    wdiStatus = WDI_HostSuspendInd(&wdiSuspendParams);
    if(WDI_STATUS_PENDING == wdiStatus)
@@ -6646,11 +6656,13 @@ VOS_STATUS WDA_ProcessWlanResumeReq(tWDA_CbContext *pWDA,
    wdiResumeParams->wdiResumeParams.ucConfiguredMcstBcstFilterSetting =
                           pWlanResumeParam->configuredMcstBcstFilterSetting;
 
-   printk(KERN_CRIT "#### %s: %d",__func__,pWlanResumeParam->configuredMcstBcstFilterSetting);
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO, "%s: %d" ,__FUNCTION__, pWlanResumeParam->configuredMcstBcstFilterSetting);
    wdiResumeParams->wdiReqStatusCB = NULL;
    pWdaParams->wdaMsgParam = pWlanResumeParam;
    pWdaParams->wdaWdiApiMsgParam = wdiResumeParams;
    pWdaParams->pWdaContext = pWDA;
+
+   WDA_START_TIMER(&pWDA->wdaTimers.baActivityChkTmr) ;
 
    wdiStatus = WDI_HostResumeReq(wdiResumeParams, 
                       (WDI_HostResumeEventRspCb)WDA_ProcessWlanResumeCallback,
@@ -7958,7 +7970,7 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
    WDA_VOS_ASSERT(pWDA) ;
    WDA_VOS_ASSERT(pFrmBuf) ;
 
-   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
+   VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH, 
                "Tx Mgmt Frame Subtype: %d alloc(%x)\n", pFc->subType, pFrmBuf);
 
    /* store the call back function in WDA context */
@@ -8360,14 +8372,14 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
 
       case WDA_REGISTER_PE_CALLBACK :
       {
-         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
                            "Handling msg type WDA_REGISTER_PE_CALLBACK " );
          /*TODO: store the PE callback */
          break;
       }
       case WDA_SYS_READY_IND :
       {
-         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
                                   "Handling msg type WDA_SYS_READY_IND " );
          pWDA->wdaState = WDA_READY_STATE;
          break;
@@ -8380,7 +8392,7 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
       case WDA_BTC_SET_CFG:
       {
          /*TODO: handle this while dealing with BTC */
-         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
                                   "Handling msg type WDA_BTC_SET_CFG  " );
          break;
       }
@@ -8525,7 +8537,14 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
                         (tSirWlanResumeParam *)pMsg->bodyptr) ;
          break;
       }
-
+      
+      case WDA_UPDATE_CF_IND:
+      {
+         vos_mem_free((v_VOID_t*)pMsg->bodyptr);
+         pMsg->bodyptr = NULL;
+         break;
+      }
+      
       default:
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,

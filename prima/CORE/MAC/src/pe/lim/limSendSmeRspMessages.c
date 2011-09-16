@@ -230,6 +230,8 @@ limSendSmeJoinReassocRsp(tpAniSirGlobal pMac, tANI_U16 msgType,
             return;
         }
 
+        palZeroMemory(pMac, (tANI_U8*)pSirSmeJoinRsp, rspLen);
+
 #if defined (ANI_PRODUCT_TYPE_AP) && defined (ANI_LITTLE_BYTE_ENDIAN)
         sirStoreU16N((tANI_U8*)&pSirSmeJoinRsp->messageType, msgType);
         sirStoreU16N((tANI_U8*)&pSirSmeJoinRsp->length, rspLen);

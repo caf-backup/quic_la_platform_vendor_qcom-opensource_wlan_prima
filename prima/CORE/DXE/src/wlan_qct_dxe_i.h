@@ -563,9 +563,9 @@ typedef struct
    wpt_uint32                      interruptPath;
    wpt_msg                        *rxIsrMsg;
    wpt_msg                        *txIsrMsg;
-   WLANDXE_PowerStateType          hostPowerState;
+   volatile WLANDXE_PowerStateType hostPowerState;
    WLANDXE_SetPowerStateCbType     setPowerStateCb;
-   WLANDXE_RivaPowerStateType      rivaPowerState;
+   volatile WLANDXE_RivaPowerStateType rivaPowerState;
    wpt_boolean                     ringNotEmpty; 
    wpt_boolean                     txIntEnable;
    wpt_uint32                      txCompletedFrames; 

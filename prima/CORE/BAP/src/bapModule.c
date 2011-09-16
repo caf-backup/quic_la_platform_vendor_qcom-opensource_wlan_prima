@@ -303,7 +303,7 @@ WLANBAP_Stop
 )
 {
   ptBtampContext  pBtampCtx = NULL; 
-  //v_U8_t      ucIndex;
+  VOS_STATUS  vosStatus = VOS_STATUS_SUCCESS;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
   /*------------------------------------------------------------------------
@@ -321,9 +321,27 @@ WLANBAP_Stop
   /*------------------------------------------------------------------------
     Stop BAP (de-register RSN handler!?)  
    ------------------------------------------------------------------------*/
-  WLANBAP_DeinitConnectionAcceptTimer(pBtampCtx);
-  WLANBAP_DeinitLinkSupervisionTimer(pBtampCtx);
+  vosStatus = WLANBAP_DeinitConnectionAcceptTimer(pBtampCtx);
+  if ( VOS_STATUS_SUCCESS != vosStatus)
+  {
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+               "Couldn't destroy  bapConnectionAcceptTimer");
+  }
 
+  vosStatus = WLANBAP_DeinitLinkSupervisionTimer(pBtampCtx);
+  if ( VOS_STATUS_SUCCESS != vosStatus)
+  {
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+               "Couldn't destroy  bapLinkSupervisionTimer");
+  }
+
+  vosStatus = vos_timer_destroy ( 
+    &pBtampCtx->bapTxPktMonitorTimer );
+  if ( VOS_STATUS_SUCCESS != vosStatus)
+  {
+    VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+               "Couldn't destroy  bapTxPktMonitorTimer");
+  }
   return VOS_STATUS_SUCCESS;
 }/* WLANBAP_Stop */
 

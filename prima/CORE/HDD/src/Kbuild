@@ -400,8 +400,8 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
         -DWLAN_FEATURE_NEIGHBOR_ROAMING_DEBUG \
         -DWLAN_FEATURE_VOWIFI_11R_DEBUG \
         -DFEATURE_INNAV_SUPPORT 
-        #-DFEATURE_WLAN_BTAMP_UT \
         #-DFEATURE_WLAN_WAPI \
+        #-DFEATURE_WLAN_BTAMP_UT \
         #-DVOLANS_PERF \
         #-DWLAN_FEATURE_VOWIFI \
         #-DRSSI_HACK \
@@ -414,8 +414,7 @@ CDEFINES  := -DANI_PRODUCT_TYPE_CLIENT=1 \
 # there are still pieces of code which are conditional upon these
 # need to investigate all of them to see which should also be
 # conditional upon QC_WLAN_CHIPSET_PRIMA
-CDEFINES += -DANI_CHIPSET_VOLANS \
-        -DWLAN_HAL_VOLANS
+CDEFINES += -DANI_CHIPSET_VOLANS 
 
 ifeq ($(BUILD_DEBUG_VERSION),1)
 CDEFINES += -DWLAN_DEBUG \

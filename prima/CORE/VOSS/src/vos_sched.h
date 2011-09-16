@@ -83,9 +83,6 @@
 */
 typedef struct _VosMqType
 {
-  /* Event use to block on this queue */
-  vos_event_t   MqEvent;
-
   /* Lock use to synchronize access to this message queue */
   spinlock_t       mqLock;
 

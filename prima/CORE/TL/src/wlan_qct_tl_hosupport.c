@@ -1700,9 +1700,13 @@ VOS_STATUS WLANTL_HSStop
    }
    if(VOS_STATUS_SUCCESS != status)
    {
-      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Timer Staop Fail Status %d", status));
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Timer Stop Failed, Status %d", status));
    }
-   
+   status = vos_timer_destroy(&tlCtxt->hoSupport.currentTraffic.trafficTimer);
+   if(VOS_STATUS_SUCCESS != status)
+   {
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Timer Destroy Failed, Status %d", status));
+   }
    return status;   
 }
 #endif //FEATURE_WLAN_GEN6_ROAMING

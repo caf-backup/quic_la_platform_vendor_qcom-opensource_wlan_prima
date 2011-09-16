@@ -758,13 +758,13 @@ typedef struct
 
   /*WDI Pending Request Queue*/
   wpt_list                    wptPendingQueue;
-
+#if 0
   /*The state of the DAL during a scanning procedure*/
   WDI_ScanStateType           uScanState;  
 
   /*Flag that keeps track if a Scan is currently in progress*/
   wpt_boolean                 bScanInProgress;
-
+#endif
   /*Flag that keeps track if an Association is currently in progress*/
   wpt_boolean                 bAssociationInProgress; 
 
@@ -892,6 +892,8 @@ typedef struct
   /* Statically allocated FTM Response Buffer */
   wpt_uint8                   ucFTMCommandRspBuffer[WDI_FTM_MAX_RECEIVE_BUFFER];
 #endif /* ANI_MANF_DIAG */
+
+  wpt_boolean                 bInBmps;
 }WDI_ControlBlockType; 
 
 
