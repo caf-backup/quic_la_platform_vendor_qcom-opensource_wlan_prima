@@ -399,7 +399,7 @@ VosMCThread
       if(test_bit(MC_SHUTDOWN_EVENT_MASK, &pSchedContext->mcEventFlag))
       {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                "%s: MC thread signaled to shutdown",__func__);
+                "%s: MC thread signaled to shutdown", __func__);
         shutdown = VOS_TRUE;
         /* Check for any Suspend Indication */
         if(test_bit(MC_SUSPEND_EVENT_MASK, &pSchedContext->mcEventFlag))
@@ -710,7 +710,7 @@ VosWDThread
       if(test_bit(WD_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag))
       {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                "%s: Watchdog thread signaled to shutdown",__func__);
+                "%s: Watchdog thread signaled to shutdown", __func__);
 		  
 		  clear_bit(WD_SHUTDOWN_EVENT_MASK, &pWdContext->wdEventFlag);
         shutdown = VOS_TRUE;
@@ -832,7 +832,7 @@ static int VosTXThread ( void * Arg )
       if(test_bit(TX_SHUTDOWN_EVENT_MASK, &pSchedContext->txEventFlag))
       {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                 "%s: TX thread signaled for shutdown",__func__);
+                 "%s: TX thread signaled to shutdown", __func__);
         shutdown = VOS_TRUE;
         /* Check for any Suspend Indication */
         if(test_bit(TX_SUSPEND_EVENT_MASK, &pSchedContext->txEventFlag))
@@ -1040,7 +1040,7 @@ static int VosRXThread ( void * Arg )
       if(test_bit(RX_SHUTDOWN_EVENT_MASK, &pSchedContext->rxEventFlag))
       {
         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
-                 "%s: RX thread signaled for shutdown",__func__);
+                 "%s: RX thread signaled to shutdown", __func__);
         shutdown = VOS_TRUE;
         /* Check for any Suspend Indication */
         if(test_bit(RX_SUSPEND_EVENT_MASK, &pSchedContext->rxEventFlag))
@@ -1146,48 +1146,51 @@ static int VosRXThread ( void * Arg )
 ---------------------------------------------------------------------------*/
 VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
 {
-    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-        "%s: vos_schdeuler closing now", __FUNCTION__);
+    VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
+        "%s: invoked", __FUNCTION__);
     if (gpVosSchedContext == NULL)
     {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
            "%s: gpVosSchedContext == NULL\n",__FUNCTION__);
        return VOS_STATUS_E_FAILURE;
     }
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
-    /* !!! FIX ME
-     * PRIMA this is not working, should be FIXED ASAP */
+
+    // shut down MC Thread
     set_bit(MC_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->mcEventFlag);
     set_bit(MC_POST_EVENT_MASK, &gpVosSchedContext->mcEventFlag);
     wake_up_interruptible(&gpVosSchedContext->mcWaitQueue);
     //Wait for MC to exit
     wait_for_completion_interruptible(&gpVosSchedContext->McShutdown);
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+    gpVosSchedContext->McThread = 0;
+
 #if !defined(ANI_MANF_DIAG) || defined(FEATURE_WLAN_INTEGRATED_SOC)
+    // shut down TX Thread
     set_bit(TX_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->txEventFlag);
     set_bit(TX_POST_EVENT_MASK, &gpVosSchedContext->txEventFlag);
     wake_up_interruptible(&gpVosSchedContext->txWaitQueue);
-#endif
     //Wait for TX to exit
     wait_for_completion_interruptible(&gpVosSchedContext->TxShutdown);
+    gpVosSchedContext->TxThread = 0;
+
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
+    // shut down RX Thread
     set_bit(RX_SHUTDOWN_EVENT_MASK, &gpVosSchedContext->rxEventFlag);
     set_bit(RX_POST_EVENT_MASK, &gpVosSchedContext->rxEventFlag);
     wake_up_interruptible(&gpVosSchedContext->rxWaitQueue);
     //Wait for RX to exit
     wait_for_completion_interruptible(&gpVosSchedContext->RxShutdown);
-   gpVosSchedContext->RxThread = 0;
-#endif
-    gpVosSchedContext->McThread = 0;
-    gpVosSchedContext->TxThread = 0;
+    gpVosSchedContext->RxThread = 0;
+#endif // FEATURE_WLAN_INTEGRATED_SOC
+#endif // !defined(ANI_MANF_DIAG) || defined(FEATURE_WLAN_INTEGRATED_SOC)
+
     //Clean up message queues of TX and MC thread
     vos_sched_flush_mc_mqs(gpVosSchedContext);
 #if !defined(ANI_MANF_DIAG) || defined(FEATURE_WLAN_INTEGRATED_SOC)
     vos_sched_flush_tx_mqs(gpVosSchedContext);
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
     vos_sched_flush_rx_mqs(gpVosSchedContext);
-#endif 
-#endif
+#endif // FEATURE_WLAN_INTEGRATED_SOC
+#endif // !defined(ANI_MANF_DIAG) || defined(FEATURE_WLAN_INTEGRATED_SOC)
 
     //Deinit all the queues
     vos_sched_deinit_mqs(gpVosSchedContext);
