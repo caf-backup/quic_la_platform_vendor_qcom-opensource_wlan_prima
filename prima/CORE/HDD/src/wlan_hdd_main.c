@@ -1859,7 +1859,7 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    }
 #endif
    /* DeRegister with platform driver as client for Suspend/Resume */
-   vosStatus = hddDeregisterPmOps(pAdapter);
+   vosStatus = hddDeregisterPmOps(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( vosStatus ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddDeregisterPmOps failed",__func__);
@@ -2613,7 +2613,7 @@ int hdd_wlan_startup(struct device *dev )
  
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    /* Register with platform driver as client for Suspend/Resume */
-   status = hddRegisterPmOps(pAdapter);
+   status = hddRegisterPmOps(pHddCtx);
    if ( !VOS_IS_STATUS_SUCCESS( status ) )
    {
       hddLog(VOS_TRACE_LEVEL_FATAL,"%s: hddRegisterPmOps failed",__func__);

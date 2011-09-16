@@ -43,18 +43,18 @@
 
    @brief Function to suspend the wlan driver.
 
-   @param HDD_ADAPTER_HANDLE
+   @param hdd_context_t pHddCtx
+        Global hdd context
 
 
    @return None
 
 ----------------------------------------------------------------------------*/
-static int wlan_suspend(hdd_adapter_t* pAdapter)
+static int wlan_suspend(hdd_context_t* pHddCtx)
 {
    int rc = 0;
 
    pVosSchedContext vosSchedContext = NULL;
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
    /* Get the global VOSS context */
    vosSchedContext = get_vos_sched_ctxt();
@@ -89,7 +89,6 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
 
       return -1;
    }
-
    /* Set the Tx Thread as Suspended */
    pHddCtx->isTxThreadSuspended = TRUE;
 
@@ -165,16 +164,16 @@ static int wlan_suspend(hdd_adapter_t* pAdapter)
 
    @brief Function to resume the wlan driver.
 
-   @param HDD_ADAPTER_HANDLE
+   @param hdd_context_t pHddCtx
+        Global hdd context
 
 
    @return None
 
 ----------------------------------------------------------------------------*/
-static void wlan_resume(hdd_adapter_t* pAdapter)
+static void wlan_resume(hdd_context_t* pHddCtx)
 {
    pVosSchedContext vosSchedContext = NULL;
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
    //Get the global VOSS context.
    vosSchedContext = get_vos_sched_ctxt();
@@ -225,16 +224,14 @@ static void wlan_resume(hdd_adapter_t* pAdapter)
 int hddDevSuspendHdlr(struct device *dev)
 {
    int ret = 0;
-   hdd_adapter_t* pAdapter = NULL;
    hdd_context_t* pHddCtx = NULL;
 
-   pAdapter =  (hdd_adapter_t*)wcnss_wlan_get_drvdata(dev);
-   pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+   pHddCtx =  (hdd_context_t*)wcnss_wlan_get_drvdata(dev);
 
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: WLAN suspended by platform driver",__func__);
 
    /* Get the HDD context */
-   if(!pAdapter) {
+   if(!pHddCtx) {
       VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_FATAL,"%s: HDD context is Null",__func__);
       return 0;
    }
@@ -246,7 +243,7 @@ int hddDevSuspendHdlr(struct device *dev)
    }
 
    /* Suspend the wlan driver */
-   ret = wlan_suspend(pAdapter);
+   ret = wlan_suspend(pHddCtx);
    if(ret != 0)
    {
       VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_FATAL,"%s: Not able to suspend wlan",__func__);
@@ -269,11 +266,9 @@ int hddDevSuspendHdlr(struct device *dev)
 ----------------------------------------------------------------------------*/
 int hddDevResumeHdlr(struct device *dev)
 {
-   hdd_adapter_t* pAdapter = NULL;
    hdd_context_t* pHddCtx = NULL;
 
-   pAdapter =  (hdd_adapter_t*)wcnss_wlan_get_drvdata(dev);
-   pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
+   pHddCtx =  (hdd_context_t*)wcnss_wlan_get_drvdata(dev);
 
    VOS_TRACE(VOS_MODULE_ID_HDD,VOS_TRACE_LEVEL_INFO, "%s: WLAN being resumed by Android OS",__func__);
 
@@ -284,66 +279,56 @@ int hddDevResumeHdlr(struct device *dev)
    }
 
    /* Resume the wlan driver */
-   wlan_resume(pAdapter);
+   wlan_resume(pHddCtx);
 
    return 0;
 }
 
-
+static const struct dev_pm_ops pm_ops = {
+	.suspend = hddDevSuspendHdlr,
+	.resume = hddDevResumeHdlr,
+};
 
 /*----------------------------------------------------------------------------
+ *
 
    @brief Registration function.
-        Register the suspend, resume callabcks with platform driver
+        Register suspend, resume callback functions with platform driver. 
 
-   @param v_PVOID_t pAdapter
-        Global adapter handle
+   @param hdd_context_t pHddCtx
+        Global hdd context
 
    @return General status code
         VOS_STATUS_SUCCESS       Registration Success
-        VOS_STATUS_E_FAILURE     Registration Failure
+        VOS_STATUS_E_FAILURE     Registration Fail
 
 ----------------------------------------------------------------------------*/
-VOS_STATUS hddRegisterPmOps(hdd_adapter_t *pAdapter)
+VOS_STATUS hddRegisterPmOps(hdd_context_t *pHddCtx)
 {
-   struct dev_pm_ops pm_ops;
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-   // Set the private data for the device to our adapter.
-   wcnss_wlan_set_drvdata(pHddCtx->parent_dev, pAdapter);
-
-   pm_ops.suspend = hddDevSuspendHdlr;
-   pm_ops.resume = hddDevResumeHdlr;
+    wcnss_wlan_set_drvdata(pHddCtx->parent_dev, pHddCtx);
 #ifndef FEATURE_R33D
-   wcnss_wlan_register_pm_ops(pHddCtx->parent_dev, &pm_ops);
+    wcnss_wlan_register_pm_ops(pHddCtx->parent_dev, &pm_ops);
 #endif /* FEATURE_R33D */
-   return VOS_STATUS_SUCCESS;
+    return VOS_STATUS_SUCCESS;
 }
 
 /*----------------------------------------------------------------------------
 
-   @brief Deregistration function.
-        Deregister the suspend, resume callabcks with platform driver
+   @brief De-registration function.
+        Deregister the suspend, resume callback functions with platform driver
 
-   @param v_PVOID_t pAdapter
-        Global adapter handle
+   @param hdd_context_t pHddCtx
+        Global hdd context
 
    @return General status code
-        VOS_STATUS_SUCCESS       Registration Success
-        VOS_STATUS_E_FAILURE     Registration Failure
+        VOS_STATUS_SUCCESS       De-Registration Success
+        VOS_STATUS_E_FAILURE     De-Registration Fail
 
 ----------------------------------------------------------------------------*/
-VOS_STATUS hddDeregisterPmOps(hdd_adapter_t *pAdapter)
+VOS_STATUS hddDeregisterPmOps(hdd_context_t *pHddCtx)
 {
-   struct dev_pm_ops pm_ops;
-   hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
-   // Set the private data for the device to our adapter.
-   wcnss_wlan_set_drvdata(pHddCtx->parent_dev, pAdapter);
-
-   pm_ops.suspend = NULL;
-   pm_ops.resume = NULL;
 #ifndef FEATURE_R33D
-   wcnss_wlan_register_pm_ops(pHddCtx->parent_dev, &pm_ops);
+    wcnss_wlan_unregister_pm_ops(pHddCtx->parent_dev, &pm_ops);
 #endif /* FEATURE_R33D */
-   return VOS_STATUS_SUCCESS;
+    return VOS_STATUS_SUCCESS;
 }
-

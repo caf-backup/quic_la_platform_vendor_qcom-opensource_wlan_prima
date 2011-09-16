@@ -5026,8 +5026,11 @@ WDI_MainRsp
      return WDI_STATUS_E_FAILURE;
   }
 
-  /*We expect that we will transition to started after this processing*/
-  pWDICtx->ucExpectedStateTransition = WDI_STARTED_ST; 
+  if ( pEventData->wdiResponse ==  pWDICtx->wdiExpectedResponse )
+  {
+    /*We expect that we will transition to started after this processing*/
+    pWDICtx->ucExpectedStateTransition = WDI_STARTED_ST; 
+  }
 
   /*Process the response */
   wdiStatus = WDI_ProcessResponse( pWDICtx, pEventData );
@@ -5044,7 +5047,10 @@ WDI_MainRsp
 
   /*Dequeue request that may have been queued while we were waiting for the
     response */
-  WDI_DequeuePendingReq(pWDICtx); 
+  if ( pEventData->wdiResponse ==  pWDICtx->wdiExpectedResponse )
+  {
+     WDI_DequeuePendingReq(pWDICtx); 
+  }
 
   wpalMutexRelease(&pWDICtx->wptMutex);
 
@@ -5505,6 +5511,7 @@ WDI_ProcessInitScanReq
      return WDI_STATUS_E_FAILURE; 
   }
 
+#if 0
   wpalMutexAcquire(&pWDICtx->wptMutex);
   /*-----------------------------------------------------------------------
     Check to see if SCAN is already in progress - if so reject the req
@@ -5513,7 +5520,7 @@ WDI_ProcessInitScanReq
   -----------------------------------------------------------------------*/
   if ( pWDICtx->bScanInProgress )
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
               "Scan is already in progress - subsequent scan is not allowed"
               " until the first scan completes");
 
@@ -5525,6 +5532,7 @@ WDI_ProcessInitScanReq
   pWDICtx->uScanState      = WDI_SCAN_INITIALIZED_ST; 
 
   wpalMutexRelease(&pWDICtx->wptMutex);
+#endif
   /*-----------------------------------------------------------------------
     Get message buffer
   -----------------------------------------------------------------------*/
@@ -5613,6 +5621,7 @@ WDI_ProcessStartScanReq
      return WDI_STATUS_E_FAILURE; 
   }
 
+#if 0
   wpalMutexAcquire(&pWDICtx->wptMutex);
   /*-----------------------------------------------------------------------
     Check to see if SCAN is already in progress - start scan is only
@@ -5623,7 +5632,7 @@ WDI_ProcessStartScanReq
       (( WDI_SCAN_INITIALIZED_ST != pWDICtx->uScanState ) &&
        ( WDI_SCAN_ENDED_ST != pWDICtx->uScanState )))
   {
-    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
+    WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_ERROR,
               "Scan start not allowed in this state %d %d",
                pWDICtx->bScanInProgress, pWDICtx->uScanState);
     
@@ -5634,6 +5643,7 @@ WDI_ProcessStartScanReq
   pWDICtx->uScanState      = WDI_SCAN_STARTED_ST; 
 
   wpalMutexRelease(&pWDICtx->wptMutex);
+#endif
 
   /*-----------------------------------------------------------------------
     Get message buffer
@@ -5706,11 +5716,11 @@ WDI_ProcessEndScanReq
      return WDI_STATUS_E_FAILURE; 
   }
 
-  wpalMutexAcquire(&pWDICtx->wptMutex);
   /* commenting this check as UMAC is sending END_SCAN_REQ after FINISH_SCAN 
   * sometimes  because of this check the scan request is not being 
   * forwarded to HAL and result in hang*/
 #if 0
+  wpalMutexAcquire(&pWDICtx->wptMutex);
   /*-----------------------------------------------------------------------
     Check to see if SCAN is already in progress - end scan is only
     allowed when a scan is ongoing and the state of the scan procedure
@@ -5726,10 +5736,11 @@ WDI_ProcessEndScanReq
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
   }
-#endif
+
   pWDICtx->uScanState      = WDI_SCAN_ENDED_ST; 
 
   wpalMutexRelease(&pWDICtx->wptMutex);
+#endif
 
   /*-----------------------------------------------------------------------
     Get message buffer
@@ -5804,11 +5815,11 @@ WDI_ProcessFinishScanReq
 
   pwdiFinishScanParams = (WDI_FinishScanReqParamsType*)pEventData->pEventData;
   wdiFinishScanRspCb   = (WDI_FinishScanRspCb)pEventData->pCBfnc;
-  wpalMutexAcquire(&pWDICtx->wptMutex);
   /* commenting this check as UMAC is sending END_SCAN_REQ after FINISH_SCAN 
   * sometimes  because of this check the scan request is not being 
   * forwarded to HAL and result in hang*/
 #if 0
+  wpalMutexAcquire(&pWDICtx->wptMutex);
    /*-----------------------------------------------------------------------
     Check to see if SCAN is already in progress
     Finish scan gets invoked any scan states. ie. abort scan
@@ -5823,7 +5834,7 @@ WDI_ProcessFinishScanReq
     wpalMutexRelease(&pWDICtx->wptMutex);
     return WDI_STATUS_E_NOT_ALLOWED; 
   }
-#endif
+
   /*-----------------------------------------------------------------------
     It is safe to reset the scan flags here because until the response comes
     back all subsequent requests will be blocked at BUSY state 
@@ -5831,6 +5842,13 @@ WDI_ProcessFinishScanReq
   pWDICtx->uScanState      = WDI_SCAN_FINISHED_ST; 
   pWDICtx->bScanInProgress = eWLAN_PAL_FALSE; 
   wpalMutexRelease(&pWDICtx->wptMutex);
+#endif
+
+  if ( pWDICtx->bInBmps )
+  {
+     // notify DTS that we are entering BMPS
+     WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_BMPS, NULL);
+  }
 
   /*-----------------------------------------------------------------------
     Get message buffer
@@ -10408,6 +10426,8 @@ WDI_ProcessEnterBmpsReq
       return VOS_STATUS_E_FAILURE;
    }
 
+   pWDICtx->bInBmps = eWLAN_PAL_TRUE;
+
    enterBmpsReq.bssIdx = pwdiEnterBmpsReqParams->wdiEnterBmpsInfo.ucBssIdx;
    enterBmpsReq.tbtt = pwdiEnterBmpsReqParams->wdiEnterBmpsInfo.uTbtt;
    enterBmpsReq.dtimCount = pwdiEnterBmpsReqParams->wdiEnterBmpsInfo.ucDtimCount;
@@ -12039,6 +12059,12 @@ WDI_ProcessInitScanRsp
                   sizeof(halInitScanRspMsg.initScanRspParams));
 
   wdiStatus   =   WDI_HAL_2_WDI_STATUS(halInitScanRspMsg.initScanRspParams.status); 
+
+  if ( pWDICtx->bInBmps )
+  {
+     // notify DTS that we are entering Full power
+     WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
+  }
 
   /*Notify UMAC*/
   wdiInitScanRspCb( wdiStatus, pWDICtx->pRspCBUserData);
@@ -14968,6 +14994,8 @@ WDI_ProcessExitBmpsRsp
   // notify DTS that we are entering Full power
   WDTS_SetPowerState(pWDICtx, WDTS_POWER_STATE_FULL, NULL);
 
+  pWDICtx->bInBmps = eWLAN_PAL_FALSE;
+
   /*Notify UMAC*/
   wdiExitBmpsRspCb( wdiStatus, pWDICtx->pRspCBUserData);
 
@@ -16926,8 +16954,8 @@ WDI_ResponseTimerCB
 
 
   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-            "Timeout occurred while waiting for response from device "
-            " - catastrophic failure");
+            "Timeout occurred while waiting for %d response from device "
+            " - catastrophic failure", pWDICtx->wdiExpectedResponse);
   WDI_DetectedDeviceError( pWDICtx, WDI_ERR_RSP_TIMEOUT); 
   return; 
 

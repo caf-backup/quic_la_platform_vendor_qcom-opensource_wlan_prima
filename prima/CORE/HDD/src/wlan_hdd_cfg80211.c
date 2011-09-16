@@ -56,6 +56,7 @@
 #include "wlan_hdd_softap_tx_rx.h"
 
 #define g_mode_rates_size (12)
+#define a_mode_rates_size (8)
 #define FREQ_BASE_80211G          (2407)
 #define FREQ_BAND_DIFF_80211G     (5)
 #define MAX_SCAN_SSID 2
@@ -64,6 +65,15 @@
 
 #define HDD2GHZCHAN(freq, chan, flag)   {     \
     .band =  IEEE80211_BAND_2GHZ, \
+    .center_freq = (freq), \
+    .hw_value = (chan),\
+    .flags = (flag), \
+    .max_antenna_gain = 0 ,\
+    .max_power = 30, \
+}
+
+#define HDD5GHZCHAN(freq, chan, flag)   {     \
+    .band =  IEEE80211_BAND_5GHZ, \
     .center_freq = (freq), \
     .hw_value = (chan),\
     .flags = (flag), \
@@ -99,7 +109,7 @@ static inline int is_broadcast_ether_addr(const u8 *addr)
 }
 
 static struct ieee80211_channel hdd_2GHZ_channels[] =
-{  
+{
     HDD2GHZCHAN(2412, 1, 0) ,
     HDD2GHZCHAN(2417, 2, 0) ,
     HDD2GHZCHAN(2422, 3, 0) ,
@@ -114,6 +124,18 @@ static struct ieee80211_channel hdd_2GHZ_channels[] =
     HDD2GHZCHAN(2467, 12, 0) ,
     HDD2GHZCHAN(2472, 13, 0) ,
     HDD2GHZCHAN(2484, 14, 0) ,
+};
+
+static struct ieee80211_channel hdd_5GHZ_channels[] =
+{
+    HDD5GHZCHAN(5180, 36, 0) ,
+    HDD5GHZCHAN(5200, 40, 0) ,
+    HDD5GHZCHAN(5220, 44, 0) ,
+    HDD5GHZCHAN(5240, 48, 0) ,
+    HDD5GHZCHAN(5260, 52, 0) ,
+    HDD5GHZCHAN(5280, 56, 0) ,
+    HDD5GHZCHAN(5300, 60, 0) ,
+    HDD5GHZCHAN(5320, 64, 0) ,
 };
 
 static struct ieee80211_rate g_mode_rates[] =
@@ -132,12 +154,41 @@ static struct ieee80211_rate g_mode_rates[] =
     HDD_G_MODE_RATETAB(540, 0x800, 0),
 };   
 
+static struct ieee80211_rate a_mode_rates[] =
+{
+    HDD_G_MODE_RATETAB(60, 0x10, 0),    
+    HDD_G_MODE_RATETAB(90, 0x20, 0),    
+    HDD_G_MODE_RATETAB(120, 0x40, 0),    
+    HDD_G_MODE_RATETAB(180, 0x80, 0),    
+    HDD_G_MODE_RATETAB(240, 0x100, 0),    
+    HDD_G_MODE_RATETAB(360, 0x200, 0),    
+    HDD_G_MODE_RATETAB(480, 0x400, 0),    
+    HDD_G_MODE_RATETAB(540, 0x800, 0),
+};
+
 static struct ieee80211_supported_band wlan_hdd_band_2GHZ = 
 {
     .channels = hdd_2GHZ_channels,
     .n_channels = ARRAY_SIZE(hdd_2GHZ_channels),
+    .band       = IEEE80211_BAND_2GHZ,
     .bitrates = g_mode_rates,
     .n_bitrates = g_mode_rates_size,
+    .ht_cap.ht_supported   = 1,
+    .ht_cap.cap            = g_ht_capability,
+    .ht_cap.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,
+    .ht_cap.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_16,
+    .ht_cap.mcs.rx_mask    = { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+    .ht_cap.mcs.rx_highest = cpu_to_le16( 72 ),
+    .ht_cap.mcs.tx_params  = IEEE80211_HT_MCS_TX_DEFINED,
+};
+
+static struct ieee80211_supported_band wlan_hdd_band_5GHZ =
+{
+    .channels = hdd_5GHZ_channels,
+    .band     = IEEE80211_BAND_5GHZ,
+    .n_channels = ARRAY_SIZE(hdd_5GHZ_channels),
+    .bitrates = a_mode_rates,
+    .n_bitrates = a_mode_rates_size,
     .ht_cap.ht_supported   = 1,
     .ht_cap.cap            = g_ht_capability,
     .ht_cap.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,
@@ -222,6 +273,8 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
 
     wiphy->mgmt_stypes = wlan_hdd_txrx_stypes;
 
+    wiphy->flags |= WIPHY_FLAG_CUSTOM_REGULATORY;
+
     wiphy->max_scan_ssids = MAX_SCAN_SSID; 
     
     wiphy->max_scan_ie_len = 200 ; //TODO: define a macro
@@ -238,6 +291,8 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
 
     /*Initialise the band details*/
     wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_2GHZ;
+    wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5GHZ;
+
     /*Initialise the supported cipher suite details*/
     wiphy->cipher_suites = hdd_cipher_suites;
     wiphy->n_cipher_suites = ARRAY_SIZE(hdd_cipher_suites);
@@ -1777,7 +1832,8 @@ int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, struct net_device *dev,
     ENTER();
     
     hddLog(VOS_TRACE_LEVEL_INFO, 
-                "%s: device_mode = %d\n",__func__,pAdapter->device_mode);
+                "%s: device_mode = %d  freq = %d \n",__func__, 
+                            pAdapter->device_mode, chan->center_freq);
 
     /* 
      * Do freq to chan conversion

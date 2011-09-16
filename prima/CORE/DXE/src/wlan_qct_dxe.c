@@ -1494,12 +1494,6 @@ static void dxePsComplete(WLANDXE_CtrlBlkType *dxeCtxt, wpt_boolean intr_based)
       (0 == dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_HIGH_PRI].numRsvdDesc))
    {
       tempDxeCtrlBlk->ringNotEmpty = eWLAN_PAL_FALSE;
-      if(WLANDXE_POWER_STATE_BMPS_PENDING == dxeCtxt->hostPowerState)
-      {
-         dxeCtxt->hostPowerState = WLANDXE_POWER_STATE_BMPS;
-         dxeCtxt->setPowerStateCb(eWLAN_PAL_STATUS_SUCCESS,
-                                  dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_LOW_PRI].descBottomLocPhyAddr);
-      }
       //if host is in BMPS & no pkt to Tx, RIVA can go to power save
       if(WLANDXE_POWER_STATE_BMPS == dxeCtxt->hostPowerState)
       {
@@ -3371,17 +3365,11 @@ void dxeSetPowerStateEventHandler
       case WLANDXE_POWER_STATE_BMPS:
          if(WLANDXE_RIVA_POWER_STATE_ACTIVE == dxeCtxt->rivaPowerState)
          {
-            //wait on the txcomplete to have the ring buffer to be empty
-            if((0 == dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_LOW_PRI].numRsvdDesc) &&
-               (0 == dxeCtxt->dxeChannel[WDTS_CHANNEL_TX_HIGH_PRI].numRsvdDesc))
-            {
-               dxeCtxt->rivaPowerState = WLANDXE_RIVA_POWER_STATE_BMPS_UNKNOWN;
-               dxeCtxt->hostPowerState = reqPowerState;
-            }
-            else
-            {
-               dxeCtxt->hostPowerState = WLANDXE_POWER_STATE_BMPS_PENDING;
-            }
+            //don't block MC waiting for num_rsvd to become 0 since it may take a while
+            //based on amount of TX and RX activity - during this time any received 
+            // management frames will remain un-processed consuming RX buffers
+            dxeCtxt->rivaPowerState = WLANDXE_RIVA_POWER_STATE_BMPS_UNKNOWN;
+            dxeCtxt->hostPowerState = reqPowerState;
          }
          else
          {
@@ -3433,7 +3421,7 @@ wpt_status WLANDXE_SetPowerState
    WDTS_SetPSCbType         cBack
 )
 {
-   wpt_status               status;
+   wpt_status               status = eWLAN_PAL_STATUS_SUCCESS;
    WLANDXE_CtrlBlkType     *pDxeCtrlBlk;
    WLANDXE_PowerStateType   hostPowerState;
    wpt_msg                  *txCompMsg;
@@ -3459,23 +3447,57 @@ wpt_status WLANDXE_SetPowerState
       default:
          hostPowerState = WLANDXE_POWER_STATE_MAX;
    }
-   //serialize through Tx thread
-   txCompMsg          = (wpt_msg *)wpalMemoryAllocate(sizeof(wpt_msg));
 
-   /* Event type, where it must be defined???? */
-   /* THIS MUST BE CLEARED ASAP
-   txCompMsg->type     = TX_COMPLETE; */
-   txCompMsg->callback = dxeSetPowerStateEventHandler;
-   txCompMsg->pContext = pDxeCtrlBlk;
-   txCompMsg->val      = hostPowerState;
-   txCompMsg->ptr      = cBack;
-   status = wpalPostTxMsg(WDI_GET_PAL_CTX(),
-                          txCompMsg);
-   if(eWLAN_PAL_STATUS_SUCCESS != status)
+   // A callback i.e. ACK back is needed only when we want to enable BMPS
+   // and the data/management path is active because we want to ensure
+   // DXE registers are not accessed when RIVA may be power-collapsed. So
+   // we need a callback in enter_bmps_req (the request to RIVA is sent
+   // only after ACK back from TX thread). A callback is not needed in
+   // finish_scan_req during BMPS since data-path is resumed only in 
+   // finish_scan_rsp and no management frames are sent in between. No 
+   // callback is needed when going from BMPS enabled to BMPS suspended/
+   // disabled when it is known that RIVA is awake and cannot enter power
+   // collapse autonomously so no callback is needed in exit_bmps_rsp or
+   // init_scan_rsp
+   if ( cBack )
    {
-      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
-               "Set power state req serialize fail status=%d",
-               status, 0, 0);
+      //serialize through Tx thread
+      txCompMsg          = (wpt_msg *)wpalMemoryAllocate(sizeof(wpt_msg));
+
+      /* Event type, where it must be defined???? */
+      /* THIS MUST BE CLEARED ASAP
+      txCompMsg->type     = TX_COMPLETE; */
+      txCompMsg->callback = dxeSetPowerStateEventHandler;
+      txCompMsg->pContext = pDxeCtrlBlk;
+      txCompMsg->val      = hostPowerState;
+      txCompMsg->ptr      = cBack;
+      status = wpalPostTxMsg(WDI_GET_PAL_CTX(),
+                          txCompMsg);
+      if ( eWLAN_PAL_STATUS_SUCCESS != status )
+      {
+         HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "Set power state req serialize fail status=%d",
+                  status, 0, 0);
+      }
+   }
+   else
+   {
+      if ( WLANDXE_POWER_STATE_FULL == hostPowerState )
+      {
+         pDxeCtrlBlk->hostPowerState = hostPowerState;
+         pDxeCtrlBlk->rivaPowerState = WLANDXE_RIVA_POWER_STATE_ACTIVE;
+         dxeNotifySmsm(eWLAN_PAL_FALSE, eWLAN_PAL_TRUE);
+
+      }
+      else if ( hostPowerState == WLANDXE_POWER_STATE_BMPS )
+      {
+         pDxeCtrlBlk->hostPowerState = hostPowerState;
+         pDxeCtrlBlk->rivaPowerState = WLANDXE_RIVA_POWER_STATE_BMPS_UNKNOWN;
+      }
+      else
+      {
+         HDXE_ASSERT(0);
+      }
    }
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_LOW,

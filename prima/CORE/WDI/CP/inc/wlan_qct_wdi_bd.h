@@ -307,28 +307,11 @@ typedef struct
         /** The bits from the PMI command as received from the PHY RX. */
         wpt_uint32 pmiCmd4to23[5];               /* PMI cmd rcvd from RxP */
     
-#ifdef WPT_BIG_BYTE_ENDIAN
-#ifdef WLAN_HAL_VOLANS
-       wpt_uint32 pmiCmd24to25;
-#else
-    
-        /** The bits from the PMI command as received from the PHY RX. */
-        wpt_uint32 pmiCmd24:8;    
-        wpt_uint32 pmiCmd25:8;
-    
-        wpt_uint32 reserved5:16;
-#endif /*End of #ifdef WLAN_HAL_VOLANS*/
-#else
-#ifdef WLAN_HAL_VOLANS
-       wpt_uint32 pmiCmd24to25;
-#else
-        wpt_uint32 reserved5:16;
-        wpt_uint32 pmiCmd25:8;
-        wpt_uint32 pmiCmd24:8;
-#endif /*End of #ifdef WLAN_HAL_VOLANS*/
-#endif
-    
         /* 0x3c */
+        /** The bits from the PMI command as received from the PHY RX. */
+        wpt_uint32 pmiCmd24to25;
+    
+        /* 0x40 */
 #ifdef WPT_BIG_BYTE_ENDIAN
     
         /** Gives commands to software upon which host will perform some commands.
@@ -357,7 +340,7 @@ typedef struct
         wpt_uint32 reorderOpcode:4;
 #endif
     
-        /* 0x40 */
+        /* 0x44 */
 #ifdef WPT_BIG_BYTE_ENDIAN
         /** reserved8 from a hardware perspective.
         Used by SW to propogate frame type/subtype information */

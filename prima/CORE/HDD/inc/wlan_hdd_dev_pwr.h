@@ -8,33 +8,32 @@
 
 /*----------------------------------------------------------------------------
 
-   @brief Start SAL module.
-        Probing SDIO interface, get and store card information
+   @brief Registration function.
+        Register suspend, resume callback functions with platform driver. 
 
-   @param v_PVOID_t pAdapter
-        Global adapter handle
-
-   @return General status code
-        VOS_STATUS_SUCCESS       Start Success
-        VOS_STATUS_E_FAILURE     Start Fail, BAL Not open yet
-        VOS_STATUS_E_INVAL       Invalid argument
-
-----------------------------------------------------------------------------*/
-VOS_STATUS hddRegisterPmOps(hdd_adapter_t *pAdapter);
-
-/*----------------------------------------------------------------------------
-
-   @brief Deregistration function.
-        Deregister the suspend, resume callabcks with platform driver
-
-   @param v_PVOID_t pAdapter
-        Global adapter handle
+   @param hdd_context_t pHddCtx
+        Global hdd context
 
    @return General status code
         VOS_STATUS_SUCCESS       Registration Success
-        VOS_STATUS_E_FAILURE     Registration Failure
+        VOS_STATUS_E_FAILURE     Registration Fail
 
 ----------------------------------------------------------------------------*/
-VOS_STATUS hddDeregisterPmOps(hdd_adapter_t *pAdapter);
+VOS_STATUS hddRegisterPmOps(hdd_context_t *pHddCtx);
+
+/*----------------------------------------------------------------------------
+
+   @brief De-registration function.
+        Deregister the suspend, resume callback functions with platform driver
+
+   @param hdd_context_t pHddCtx
+        Global hdd context
+
+   @return General status code
+        VOS_STATUS_SUCCESS       De-Registration Success
+        VOS_STATUS_E_FAILURE     De-Registration Fail
+
+----------------------------------------------------------------------------*/
+VOS_STATUS hddDeregisterPmOps(hdd_context_t *pHddCtx);
 
 #endif
