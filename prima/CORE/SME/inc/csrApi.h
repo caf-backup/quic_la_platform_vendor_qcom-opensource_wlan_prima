@@ -133,6 +133,7 @@ typedef enum {
     eCSR_SCAN_HO_BG_SCAN, // bg scan request in NRT & RT Handoff sub-states
     eCSR_SCAN_HO_PROBE_SCAN, // directed probe on an entry from the candidate list
     eCSR_SCAN_HO_NT_BG_SCAN, // bg scan request in NT  sub-state
+    eCSR_SCAN_P2P_DISCOVERY,
 
 }eCsrRequestType;
 

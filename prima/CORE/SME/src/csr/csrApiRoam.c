@@ -9446,6 +9446,12 @@ static void csrRoamPrepareBssParams(tpAniSirGlobal pMac, tANI_U32 sessionId, tCs
         }
     }
     Channel = pSession->bssParams.operationChn;
+
+    //Set operating channel in pProfile which will be used 
+    //in csrRoamSetBssConfigCfg() to determine channel bonding
+    //mode and will be configured in CFG later 
+    pProfile->operationChannel = Channel;
+    
     if(Channel == 0)
     {
         smsLog(pMac, LOGW, "   CSR cannot find a channel to start IBSS\n");

@@ -414,7 +414,7 @@ typedef PACKED_PRE struct PACKED_POST {
 typedef PACKED_PRE struct PACKED_POST {
     tANI_U8      gain;                  //8-bit coarse(bits 4-7) & fine(bits 0-3) gain commanded for the current index
     tPowerDetect adc;                   //8-bit power ADC sampled during the packet preamble
-    tANI_U8 reserved[2];
+    tANI_U16 rawAdc;                   //11-bit power raw ADC sampled
     
     tTxPowerLutOutput indexMinMatch;    //minimum LUT matching power that satisfies the power template index setting
     tTxPowerLutOutput indexMaxMatch;    //maximum LUT matching power that satisfies the power template index setting
@@ -642,9 +642,25 @@ typedef enum
     TPC_COARSE_TXPWR_13,
     TPC_COARSE_TXPWR_14,
     TPC_COARSE_TXPWR_15,
-    NUM_TPC_COARSE_STEPS = TPC_COARSE_TXPWR_15 - TPC_COARSE_TXPWR_0 + 1,
+    TPC_COARSE_TXPWR_16,
+    TPC_COARSE_TXPWR_17,
+    TPC_COARSE_TXPWR_18,
+    TPC_COARSE_TXPWR_19,
+    TPC_COARSE_TXPWR_20,
+    TPC_COARSE_TXPWR_21,
+    TPC_COARSE_TXPWR_22,
+    TPC_COARSE_TXPWR_23,
+    TPC_COARSE_TXPWR_24,
+    TPC_COARSE_TXPWR_25,
+    TPC_COARSE_TXPWR_26,
+    TPC_COARSE_TXPWR_27,
+    TPC_COARSE_TXPWR_28,
+    TPC_COARSE_TXPWR_29,
+    TPC_COARSE_TXPWR_30,
+    TPC_COARSE_TXPWR_31,
+    NUM_TPC_COARSE_STEPS = TPC_COARSE_TXPWR_31 - TPC_COARSE_TXPWR_0 + 1,
     MIN_TPC_COARSE_TXPWR = TPC_COARSE_TXPWR_0,
-    MAX_TPC_COARSE_TXPWR = TPC_COARSE_TXPWR_15
+    MAX_TPC_COARSE_TXPWR = TPC_COARSE_TXPWR_31
 }eTxCoarseGain;                                 //refers to the external RF power adjustment
 
 typedef enum
@@ -839,7 +855,6 @@ typedef enum
 #define CAL_WFM_RX_TONE_START_IDX           512
 #define CAL_WFM_RX_TONE_STOP_IDX            767
 
-//-0.25dBm adjustment to be made to compensate b rates, because we cal with OFDM rates
 #define B_RATE_CAL_ADJUSTMENT               -150
 #define GN_RATE_BANDEDGE_ADJUSTMENT         -100
 
@@ -849,6 +864,7 @@ typedef enum
 #define TPC_GAIN_LUT_PWR_SLOPE                  2
 #define MAX_TPC_GAIN_LUT_DBM    (24)
 #define MIN_TPC_GAIN_LUT_DBM    (9)
+
 #define MAX_TPC_GAIN_LUT_DBM_2DEC_PLACES    (MAX_TPC_GAIN_LUT_DBM * 100)
 #define MIN_TPC_GAIN_LUT_DBM_2DEC_PLACES    (MIN_TPC_GAIN_LUT_DBM * 100)
 

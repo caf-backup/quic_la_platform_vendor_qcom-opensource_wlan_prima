@@ -894,36 +894,6 @@ static iw_softap_commit(struct net_device *dev,
     pConfig->SapMacaddr_acl = pCommitConfig->qc_macaddr_acl;
     pConfig->ht_capab = pCommitConfig->ht_capab;
 
-    /* Bandcapability:
-       eCSR_BAND_ALL = 0 All mode
-       eCSR_BAND_24  = 1 2.4GHZ mode only
-       eCSR_BAND_5G  = 5 GHz mode only
-       HT40 is supported in 5GHz band only. if current operating band is not 5GHz clear all related HT40 settings */
-    if((eCSR_BAND_24 == (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->nBandCapability) || /*Band is 24GHZ */
-       ((eCSR_BAND_ALL == (WLAN_HDD_GET_CTX(pHostapdAdapter))->cfg_ini->nBandCapability) && /*Band is mixmode but channel is in 24GHz*/
-       (pConfig->channel <= SAP_24GHZ_CH_COUNT)))
-    {
-       /*Band is not 5GHz clear all HT40 releted settings received from hostapd before passing it down to SME*/
-       /*
-         * HT capability is of 16 bits following is each field description:
-         1....... ........ : L-SIG TXOP protection support bit
-         .1...... ........ : AP allows use of 40MHz transmission in neighboring BSS
-         ..1..... ........ : BSS support use of PSPM
-         ...1.... ........ : BSS allows use of DSSS rate at 40MHz
-         ....1... ........ : Maximum Ampdu size : 7935 bytes
-         .....1.. ........ : HT delayed Block ACK support
-         ......11 ........ : RX STBC: RX support for 1, 2 and 3 spatial streams
-         ........ 1....... : Transmitter does support STBC
-         ........ .1...... : Short GI for 40MHz
-         ........ ..1..... : Short GI for 20MHz
-         ........ ...1.... : Device is capable to receive PDUs with GF capable
-         ........ ....11.. : Spatial multiplexing enabled
-         ........ ......1. : Both 20MHz and 40 MHz is supported
-         ........ .......1 : LPDC coding capability
-        */
-       pConfig->ht_capab &= 0xBFBD;
-    }
-    
     if (pCommitConfig->num_accept_mac > MAX_MAC_ADDRESS_ACCEPTED)
         num_mac = pConfig->num_accept_mac = MAX_MAC_ADDRESS_ACCEPTED;
     else

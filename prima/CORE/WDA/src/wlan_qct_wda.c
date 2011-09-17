@@ -1566,7 +1566,8 @@ VOS_STATUS WDA_SuspendDataTx(tWDA_CbContext *pWDA)
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
-                            "VOS Event wait failed - status = %d\n",status);
+                 "%s: Status %d when waiting for Suspend Data TX Event",
+                 __FUNCTION__, status);
       /* Set this flag to true when TL suspend times out, so that when TL 
        * suspend eventually happens and calls the callback, TL can be resumed 
        * right away by looking at this flag when true.*/
@@ -6576,7 +6577,8 @@ VOS_STATUS WDA_ProcessWlanSuspendInd(tWDA_CbContext *pWDA,
       if(!VOS_IS_STATUS_SUCCESS(status))
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
-                               "VOS Event wait failed - status = %d\n",status);
+                    "%s: Status %d when waiting for WDI Indication Callback",
+                    __FUNCTION__, status);
          vos_mem_free(pWlanSuspendParam);
          return status;
       }
@@ -8075,7 +8077,8 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
    if(!VOS_IS_STATUS_SUCCESS(status))
    {
       VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR, 
-                            "VOS Event wait failed - status = %d\n",status);
+                 "%s: Status %d when waiting for TX Frame Event",
+                 __FUNCTION__, status);
       pCompFunc(pWDA->pVosContext, (vos_pkt_t *)pFrmBuf);
       if( pAckTxComp )
       {

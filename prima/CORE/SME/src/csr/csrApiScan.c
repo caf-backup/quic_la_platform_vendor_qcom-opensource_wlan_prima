@@ -492,7 +492,8 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tCsrScanRequest *pScanRequest, tA
                 {
                     pScanCmd->u.scanCmd.reason = eCsrScan11d1;
                 }
-                else if(eCSR_SCAN_REQUEST_FULL_SCAN == pScanRequest->requestType)
+                else if((eCSR_SCAN_REQUEST_FULL_SCAN == pScanRequest->requestType) ||
+                        (eCSR_SCAN_P2P_DISCOVERY == pScanRequest->requestType))
                 {
                     pScanCmd->u.scanCmd.reason = eCsrScanUserRequest;
                 }
@@ -4096,7 +4097,7 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tCsrScanRequest *pScanReq, tSc
 
             //Verify the scan type first, if the scan is active scan, we need to make sure we 
             //are allowed to do so.
-            if( eSIR_PASSIVE_SCAN != scanType )
+            if( (eSIR_PASSIVE_SCAN != scanType) && (eCSR_SCAN_P2P_DISCOVERY != pScanReq->requestType) )
             {
                 scanType = pMac->scan.curScanType;
                 if(eSIR_PASSIVE_SCAN == pMac->scan.curScanType)

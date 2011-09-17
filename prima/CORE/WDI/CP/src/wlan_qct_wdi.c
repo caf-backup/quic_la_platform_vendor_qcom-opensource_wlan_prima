@@ -17027,7 +17027,7 @@ WDI_QueuePendingReq
 {
   wpt_list_node*      pNode; 
   WDI_EventInfoType*  pEventDataQueue = wpalMemoryAllocate(sizeof(*pEventData));
-  void*               pEventInfo; 
+  void*               pEventInfo = NULL; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( NULL ==  pEventDataQueue )
@@ -17044,18 +17044,22 @@ WDI_QueuePendingReq
   pEventDataQueue->wdiRequest      = pEventData->wdiRequest;
   pEventDataQueue->wdiResponse     = pEventData->wdiResponse; 
 
-  pEventInfo = wpalMemoryAllocate(pEventData->uEventDataSize);
-
-  if ( NULL ==  pEventInfo )
+  if( pEventData->uEventDataSize != 0 && pEventData->pEventData != NULL )
   {
-    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Cannot allocate memory for queueing event data info"); 
-    WDI_ASSERT(0);
-    wpalMemoryFree(pEventDataQueue);
-    return WDI_STATUS_MEM_FAILURE;
-  }
+     pEventInfo = wpalMemoryAllocate(pEventData->uEventDataSize);
+   
+     if ( NULL ==  pEventInfo )
+     {
+       WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "Cannot allocate memory for queueing event data info"); 
+       WDI_ASSERT(0);
+       wpalMemoryFree(pEventDataQueue);
+       return WDI_STATUS_MEM_FAILURE;
+     }
+   
+     wpalMemoryCopy(pEventInfo, pEventData->pEventData, pEventData->uEventDataSize);
 
-  wpalMemoryCopy(pEventInfo, pEventData->pEventData, pEventData->uEventDataSize);
+  }
   pEventDataQueue->pEventData = pEventInfo;
 
   /*Send wpt a pointer to the node (this is the 1st element in the event data)*/
@@ -17120,9 +17124,20 @@ WDI_PALCtrlMsgCB
   }/*switch ( pEventData->wdiRequest )*/
 
   /* Free data - that was allocated when queueing*/
-  wpalMemoryFree(pEventData->pEventData);
-  wpalMemoryFree(pEventData);
-  wpalMemoryFree(pMsg);
+  if( pEventData != NULL )
+  {
+     if( pEventData->pEventData != NULL )
+     {
+        wpalMemoryFree(pEventData->pEventData);
+     }
+     wpalMemoryFree(pEventData);
+  }
+
+  if( pMsg != NULL )
+  {
+     wpalMemoryFree(pMsg);
+  }
+  
 }/*WDI_PALCtrlMsgCB*/
 
 /**

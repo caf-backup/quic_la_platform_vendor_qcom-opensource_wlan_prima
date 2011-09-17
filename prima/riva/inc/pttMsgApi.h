@@ -213,6 +213,8 @@ typedef enum {
     PTT_MSG_GET_RX_IQ_CORRECT_PRIMA_V1 = 0x32C4,
     PTT_MSG_START_WAVEFORM_PRIMA_V1 = 0x32C5,
     PTT_MSG_FORCE_PACKET_TX_GAIN_PRIMA_V1 = 0x32C6,
+    PTT_MSG_CLPC_CAL_SETUP_PRIMA_V1 = 0x32C7,
+    PTT_MSG_CLPC_CAL_RESTORE_PRIMA_V1 = 0x32C8,
 
    PTT_MSG_EXIT = 0x32ff,
    PTT_MAX_MSG_ID = PTT_MSG_EXIT
@@ -239,10 +241,14 @@ typedef PACKED_PRE struct PACKED_POST {
 } tMsgPttMsgInit;
 
 typedef PACKED_PRE struct PACKED_POST {
+   tANI_U32	tableSize;
+   tANI_U32	chunkSize;
    eNvTable nvTable;
 } tMsgPttGetNvTable;
 
 typedef PACKED_PRE struct PACKED_POST {
+   tANI_U32	tableSize;
+   tANI_U32	chunkSize;
    eNvTable nvTable;
 } tMsgPttSetNvTable;
 
@@ -338,6 +344,14 @@ typedef PACKED_PRE struct PACKED_POST {
 typedef PACKED_PRE struct PACKED_POST {
    tANI_U32 notUsed;
 } tMsgPttStopWaveform;
+
+typedef PACKED_PRE struct PACKED_POST {
+   tANI_U32 notUsed;
+} tMsgPttClpcCalSetup_PRIMA_V1;
+
+typedef PACKED_PRE struct PACKED_POST {
+   tANI_U32 notUsed;
+} tMsgPttClpcCalRestore_PRIMA_V1;
 
 typedef PACKED_PRE struct PACKED_POST {
    tANI_U32 startIndex;
@@ -774,7 +788,8 @@ typedef PACKED_PRE union PACKED_POST pttMsgUnion{
    tMsgPttTxCarrierSuppressCal TxCarrierSuppressCal;
    tMsgPttTxIqCal TxIqCal;
    tMsgPttHKdacTxIqCal HKdacTxIqCal;
-
+   tMsgPttClpcCalSetup_PRIMA_V1 ClpcCalSetup_PRIMA_V1;
+   tMsgPttClpcCalRestore_PRIMA_V1 ClpcCalRestore_PRIMA_V1;
    tMsgPttHdetCal HdetCal;
    tMsgPttSetTxCarrierSuppressCorrect SetTxCarrierSuppressCorrect;
    tMsgPttGetTxCarrierSuppressCorrect GetTxCarrierSuppressCorrect;

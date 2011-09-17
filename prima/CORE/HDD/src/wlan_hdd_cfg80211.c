@@ -2349,6 +2349,10 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
                        "%s: This is a P2P Search", __func__);
                 scanRequest.p2pSearch = 1;
                 pwextBuf->p2pSearch = 1;
+
+                /* set requestType to P2P Discovery */
+                scanRequest.requestType = eCSR_SCAN_P2P_DISCOVERY;
+
                 sme_ScanFlushResult( WLAN_HDD_GET_HAL_CTX(pAdapter),
                                      pAdapter->sessionId );
             }

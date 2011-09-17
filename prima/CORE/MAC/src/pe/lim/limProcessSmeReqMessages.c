@@ -540,12 +540,6 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         psessionEntry->dot11mode = pSmeStartBssReq->dot11mode;
         psessionEntry->htCapabality = IS_DOT11_MODE_HT(psessionEntry->dot11mode);
 
-        if(cfgSetInt(pMac, WNI_CFG_HT_CAP_INFO, pSmeStartBssReq->ht_capab) != eSIR_SUCCESS)
-        {
-           limLog(pMac, LOGE, FL("Failed to set HT CAPABALITY in CFG will use default\n"));
-        }
-	
-
         palCopyMemory(pMac->hHdd, (void*)&psessionEntry->rateSet, 
             (void*)&pSmeStartBssReq->operationalRateSet,
             sizeof(tSirMacRateSet));
@@ -620,6 +614,9 @@ __limHandleSmeStartBssRequest(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         if (pSmeStartBssReq->channelId)
         {
             channelNumber = pSmeStartBssReq->channelId;
+            /*Update cbMode received from sme with LIM's updated cbMode*/
+            pSmeStartBssReq->cbMode =  pMac->lim.gCbMode;
+	    
             setupCBState( pMac, pSmeStartBssReq->cbMode );
             pMac->lim.gHTSecondaryChannelOffset = limGetHTCBState(pSmeStartBssReq->cbMode);
 #ifdef WLAN_SOFTAP_FEATURE
