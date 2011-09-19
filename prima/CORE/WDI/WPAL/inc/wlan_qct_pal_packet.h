@@ -78,6 +78,9 @@ typedef struct swpt_iterator
 #define WPAL_PACKET_IS_FLAT_BUF(pktType) ( (eWLAN_PAL_PKT_TYPE_RX_RAW == (pktType)) || \
                                            (eWLAN_PAL_PKT_TYPE_TX_802_11_MGMT == (pktType)) )
 
+/* RX RAW packet alloc fail due to out of resource CB function type */
+typedef void ( *wpalPacketLowPacketCB )( wpt_packet *pPacket, void *usrData );
+
 
 /*---------------------------------------------------------------------------
     wpalPacketInit – Initialize all wpt_packet related objects. Allocate memory for wpt_packet. 
@@ -110,7 +113,8 @@ wpt_status wpalPacketClose(void *pPalContext);
     Return:
         A pointer to the wpt_packet. NULL means fail.
 ---------------------------------------------------------------------------*/
-wpt_packet * wpalPacketAlloc(wpt_packet_type pktType, wpt_uint32 nPktSize);
+wpt_packet * wpalPacketAlloc(wpt_packet_type pktType, wpt_uint32 nPktSize,
+                             wpalPacketLowPacketCB rxLowCB, void *usrdata);
 
 /*---------------------------------------------------------------------------
     wpalPacketFree – Free a wpt_packet chain for one particular type.

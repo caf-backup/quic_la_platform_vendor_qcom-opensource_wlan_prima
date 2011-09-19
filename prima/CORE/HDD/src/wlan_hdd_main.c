@@ -2134,45 +2134,49 @@ static VOS_STATUS hdd_update_config_from_nv(hdd_context_t* pHddCtx)
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
    eHalStatus halStatus;
 #endif
-#ifdef FIXME_PRIMA_NV
+
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
    v_BOOL_t itemIsValid = VOS_FALSE;
    VOS_STATUS status;
-#endif // FIXME_PRIMA_NV
+   v_MACADDR_t macFromNV;
 
-#ifdef FIXME_PRIMA_NV
-//**************************TODO**************************************
    /*If the NV is valid then get the macaddress from nv else get it from qcom_cfg.ini*/
    status = vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid);
-
    if(status != VOS_STATUS_SUCCESS)
    {
-       hddLog(VOS_TRACE_LEVEL_FATAL," vos_nv_getValidity() failed\n ");
-       return VOS_STATUS_E_FAILURE;
+      hddLog(VOS_TRACE_LEVEL_ERROR," vos_nv_getValidity() failed\n ");
+      return VOS_STATUS_E_FAILURE;
    }
 
    if (itemIsValid == VOS_TRUE) 
    {
-        hddLog(VOS_TRACE_LEVEL_INFO_HIGH," Reading the Macaddress from NV\n ");
-        status = vos_nv_readMacAddress(&pAdapter->macAddressCurrent.bytes[0]);
+      hddLog(VOS_TRACE_LEVEL_INFO_HIGH," Reading the Macaddress from NV\n ");
+      status = vos_nv_readMacAddress((v_U8_t *)&macFromNV.bytes[0]);
+      if(status != VOS_STATUS_SUCCESS)
+      {
+         /* Get MAC from NV fail, not update CFG info
+          * INI MAC value will be used for MAC setting */
+         hddLog(VOS_TRACE_LEVEL_ERROR," vos_nv_readMacAddress() failed\n ");
+         return VOS_STATUS_E_FAILURE;
+      }
+      if(vos_is_macaddr_zero(&macFromNV))
+      {
+         /* MAC address in NV file is not configured yet */
+         hddLog(VOS_TRACE_LEVEL_ERROR, " Not valid MAC in NV file ");
+         return VOS_STATUS_E_INVAL;
+      }
 
-        if(status != VOS_STATUS_SUCCESS)
-        {
-            hddLog(VOS_TRACE_LEVEL_FATAL," vos_nv_readMacAddress() failed\n ");
-            return VOS_STATUS_E_FAILURE;
-        }
+      /* Get MAC address from NV, update CFG info */
+      vos_mem_copy((v_U8_t *)&pHddCtx->cfg_ini->intfMacAddr[0].bytes[0],
+                   (v_U8_t *)&macFromNV.bytes[0],
+                   VOS_MAC_ADDR_SIZE);
    }
-//**************************TODO****************************************
-   else {
-   //Update the new mac address based on qcom_cfg.ini
-       vos_mem_copy(&pAdapter->macAddressCurrent, 
-                &pAdapter->cfg_ini->staMacAddr,
-                sizeof(v_MACADDR_t));
+   else
+   {
+      hddLog(VOS_TRACE_LEVEL_ERROR, "NV ITEM, MAC Not valid");
+      return VOS_STATUS_E_FAILURE;
    }
-
-   vos_mem_copy(pWlanDev->dev_addr, 
-                &pAdapter->macAddressCurrent, 
-                sizeof(v_MACADDR_t));
-#endif // FIXME_PRIMA_NV
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
 #if 1 /* need to fix for concurrency */
@@ -2514,11 +2518,11 @@ int hdd_wlan_startup(struct device *dev )
    }
 
    // Apply the NV to cfg.dat
+   /* Prima Update MAC address only at here */
    if (VOS_STATUS_SUCCESS != hdd_update_config_from_nv(pHddCtx))
    {
-      hddLog(VOS_TRACE_LEVEL_FATAL,
-             "%s: config update from NV failed", __func__ );
-      goto err_vosclose;
+      hddLog(VOS_TRACE_LEVEL_ERROR,
+             "%s: config update from NV failed, use MAC from ini file", __func__ );
    }
 
    {

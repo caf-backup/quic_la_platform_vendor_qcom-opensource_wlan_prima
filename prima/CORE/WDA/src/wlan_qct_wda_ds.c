@@ -1116,7 +1116,7 @@ WDA_DS_GetRssi
   VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
          "WDA:halPS_GetRssi no longer supported. Need replacement");
 
-  *puRssi = 30;
+  *puRssi = -30;
 
   return VOS_STATUS_SUCCESS;
 #else  /* FEATURE_WLAN_INTEGRATED_SOC */

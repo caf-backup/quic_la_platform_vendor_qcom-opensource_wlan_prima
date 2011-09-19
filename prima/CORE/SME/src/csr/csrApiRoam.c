@@ -342,10 +342,8 @@ eHalStatus csrOpen(tpAniSirGlobal pMac)
         smsLog( pMac, LOGE, FL(" country Code from nvRam %s\n"), pMac->scan.countryCodeDefault );
 
         csrGetRegulatoryDomainForCountry(pMac, pMac->scan.countryCodeDefault, &regId);
-        //TODO: Needs to be implemented on Prima. 
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
+
         WDA_SetRegDomain(pMac, regId);
-#endif        
         pMac->scan.domainIdDefault = regId;
         pMac->scan.domainIdCurrent = pMac->scan.domainIdDefault;
 
@@ -374,11 +372,7 @@ eHalStatus csrSetRegInfo(tHalHandle hHal,  tANI_U8 *apCntryCode)
         return status;
     }
 
-    //TODO: Needs to be implemented on Prima. 
-#ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
     status = WDA_SetRegDomain(hHal, regId);
-#endif
-
     if (status != eHAL_STATUS_SUCCESS)
     {
         smsLog( pMac, LOGE, FL("  fail to get regId for country Code %s\n"), apCntryCode );

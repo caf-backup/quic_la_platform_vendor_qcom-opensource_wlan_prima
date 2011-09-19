@@ -1303,6 +1303,15 @@ VOS_STATUS vos_pkt_return_packet( vos_pkt_t *pPacket )
                    __LINE__, pPacket, pPacket->packetType,
                    vos_pkti_packet_type_str(pPacket->packetType));
 
+         // clear out the User Data pointers in the voss packet..
+         memset(&pPacket->pvUserData, 0, sizeof(pPacket->pvUserData));
+
+         // initialize the 'chain' pointer to NULL.
+         pPacket->pNext = NULL;
+
+         // timestamp the vos packet.
+         pPacket->timestamp = vos_timer_get_system_ticks();
+
          callback = pLowResourceInfo->callback;
          pLowResourceInfo->callback = NULL;
          callback(pPacket, pLowResourceInfo->userData);

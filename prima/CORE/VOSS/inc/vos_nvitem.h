@@ -574,4 +574,15 @@ VOS_STATUS vos_nv_close(void);
   -------------------------------------------------------------------------*/
 VOS_STATUS vos_nv_getNVBuffer(v_VOID_t **pNvBuffer ,v_SIZE_t *pSize);
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+/**------------------------------------------------------------------------
+  \brief vos_nv_setRegDomain - 
+  \param clientCtxt  - Client Context, Not used for PRIMA
+              regId  - Regulatory Domain ID
+  \return status set REG domain operation
+  \sa
+  -------------------------------------------------------------------------*/
+VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+
 #endif // __VOS_NVITEM_H

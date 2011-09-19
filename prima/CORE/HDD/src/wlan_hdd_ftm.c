@@ -4453,7 +4453,8 @@ VOS_STATUS WLANFTM_McProcessMsg (v_VOID_t *message)
     pHddCtx->ftm.wnl->wmsg.length = FTM_SWAP16(pHddCtx->ftm.wnl->wmsg.length);
 
     /*Response expects the length to be in */
-    pHddCtx->ftm.pResponseBuf->ftm_hdr.data_len = pHddCtx->ftm.pRequestBuf->ftm_hdr.data_len - 1;
+    pHddCtx->ftm.pResponseBuf->ftm_hdr.data_len = pHddCtx->ftm.pRequestBuf->ftm_hdr.data_len - 
+                                           sizeof(pHddCtx->ftm.pRequestBuf->ftm_hdr.data_len);
 
     /*Copy the message*/
     memcpy((char*)&pHddCtx->ftm.pResponseBuf->ftmpkt,(char*)message,pFtmMsgRsp->msgBodyLength);

@@ -1492,3 +1492,27 @@ VOS_STATUS vos_nv_getNVBuffer(v_VOID_t **pNvBuffer,v_SIZE_t *pSize)
    return VOS_STATUS_SUCCESS;
 }
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+/**------------------------------------------------------------------------
+  \brief vos_nv_setRegDomain - 
+  \param clientCtxt  - Client Context, Not used for PRIMA
+              regId  - Regulatory Domain ID
+  \return status set REG domain operation
+  \sa
+  -------------------------------------------------------------------------*/
+VOS_STATUS vos_nv_setRegDomain(void * clientCtxt, v_REGDOMAIN_t regId)
+{
+   /* Client Context Argumant not used for PRIMA */
+   if(regId >= REGDOMAIN_COUNT)
+   {
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                "VOS set reg domain, invalid REG domain ID %d", regId);
+      return VOS_STATUS_E_INVAL;
+   }
+
+   /* Set correct channel information based on REG Domain */
+   regChannels = nvDefaults.tables.regDomains[regId].channels;
+
+   return VOS_STATUS_SUCCESS;
+}
+#endif /* FEATURE_WLAN_NON_INTEGRATED_SOC */

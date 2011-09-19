@@ -225,6 +225,7 @@ WDI_ReqProcFuncType  pfnReqProcTbl[WDI_MAX_UMAC_IND] =
     Indications
   -------------------------------------------------------------------------*/
   WDI_ProcessHostSuspendInd,            /* WDI_HOST_SUSPEND_IND*/
+
 };
 
 
@@ -354,6 +355,11 @@ WDI_RspProcFuncType  pfnRspProcTbl[WDI_MAX_RESP] =
 
   WDI_ProcessTxCompleteInd,         /* WDI_HAL_TX_COMPLETE_IND  */
 
+#ifdef WLAN_FEATURE_P2P
+  WDI_ProcessP2pNoaAttrInd,            /*WDI_HOST_NOA_ATTR_IND*/
+#else
+  NULL,
+#endif
 };
 
 
@@ -583,6 +589,7 @@ WDI_Init
 {
   wpt_uint8               i;
   wpt_status              wptStatus; 
+  WDI_Status              wdiStatus;
   WCTS_TransportCBsType   wctsCBs; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
@@ -619,19 +626,25 @@ WDI_Init
   gWDICb.pOSContext = pOSContext; 
 
   /*Setup the STA Table*/
-  WDI_STATableInit(&gWDICb);
+  wdiStatus = WDI_STATableInit(&gWDICb);
+  if ( WDI_STATUS_SUCCESS != wdiStatus )
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+               "%s: Failure while initializing STA Table, status %d",
+               __FUNCTION__, wdiStatus);
+    goto fail_STATableInit;
+  }
 
   /*------------------------------------------------------------------------
     Open the PAL
    ------------------------------------------------------------------------*/
   wptStatus =  wpalOpen(&gWDICb.pPALContext, pOSContext);
-  if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
+  if ( eWLAN_PAL_STATUS_SUCCESS != wptStatus )
   {
-    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
-              "WDI Init failed to open PAL");
-
-    WDI_ASSERT(0); 
-    return WDI_STATUS_E_FAILURE; 
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+               "%s: Failed to open PAL, status %d",
+               __FUNCTION__, wptStatus);
+    goto fail_wpalOpen;
   }
 
   /*Initialize main synchro mutex - it will be used to ensure integrity of
@@ -639,10 +652,10 @@ WDI_Init
   wptStatus =  wpalMutexInit(&gWDICb.wptMutex);
   if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
   {
-    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Failed to init mutext %d", wptStatus);
-    WDI_ASSERT(0);
-    return WDI_STATUS_E_FAILURE; 
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+               "%s: Failed to init mutext, status %d",
+               __FUNCTION__, wptStatus);
+    goto fail_mutex;
   }
 
   /*Initialize the response timer - it will be used to time all messages
@@ -650,17 +663,45 @@ WDI_Init
   wptStatus = wpalTimerInit( &gWDICb.wptResponseTimer, 
                              WDI_ResponseTimerCB, 
                              &gWDICb);
+  if ( eWLAN_PAL_STATUS_SUCCESS != wptStatus )
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+              "%s: Failed to init response timer, status %d",
+               __FUNCTION__, wptStatus);
+    goto fail_timer;
+  }
 
   /* Initialize the  WDI Pending Request Queue*/
-  wpal_list_init(&(gWDICb.wptPendingQueue));
+  wptStatus = wpal_list_init(&(gWDICb.wptPendingQueue));
+  if ( eWLAN_PAL_STATUS_SUCCESS != wptStatus )
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+              "%s: Failed to init pending request queue, status %d",
+               __FUNCTION__, wptStatus);
+    goto fail_pend_queue;
+  }
 
   /*Init WDI Pending Assoc Id Queue */
-  wpal_list_init(&(gWDICb.wptPendingAssocSessionIdQueue));
+  wptStatus = wpal_list_init(&(gWDICb.wptPendingAssocSessionIdQueue));
+  if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+              "%s: Failed to init assoc session queue, status %d",
+               __FUNCTION__, wptStatus);
+    goto fail_assoc_queue;
+  }
 
   /*Initialize the BSS sessions pending Queue */
   for ( i = 0; i < WDI_MAX_BSS_SESSIONS; i++ )
   {
-    wpal_list_init(&(gWDICb.aBSSSessions[i].wptPendingQueue));
+    wptStatus = wpal_list_init(&(gWDICb.aBSSSessions[i].wptPendingQueue));
+    if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
+    {
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                 "%s: Failed to init BSS %d pending queue, status %d",
+                 __FUNCTION__, i, wptStatus);
+      goto fail_bss_queue;
+    }
   }
 
   /*Indicate the control block is sufficiently initialized for callbacks*/
@@ -669,35 +710,33 @@ WDI_Init
   /*------------------------------------------------------------------------
     Initialize the Data Path Utility Module
    ------------------------------------------------------------------------*/
-  if ( WDI_STATUS_SUCCESS != WDI_DP_UtilsInit(&gWDICb))
+  wdiStatus = WDI_DP_UtilsInit(&gWDICb);
+  if ( WDI_STATUS_SUCCESS != wdiStatus )
   {
-    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
-              "WDI Init failed to initialize the DP Util Module");
-
-    WDI_ASSERT(0); 
-    return WDI_STATUS_E_FAILURE; 
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+               "%s: Failed to initialize the DP Util Module, status %d",
+               __FUNCTION__, wdiStatus);
+    goto fail_dp_util_init;
   }
 
   /* Init Set power state event */
   wptStatus = wpalEventInit(&gWDICb.setPowerStateEvent);
-  if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus ) 
+  if ( eWLAN_PAL_STATUS_SUCCESS != wptStatus ) 
   {
-     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
-               "WDI Init failed to initialize an event");
-
-     WDI_ASSERT(0); 
-     return WDI_STATUS_E_FAILURE; 
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "%s: Failed to initialize power state event, status %d",
+                __FUNCTION__, wptStatus);
+     goto fail_power_event;
   }
 
   /* Init WCTS action event */
   wptStatus = wpalEventInit(&gWDICb.wctsActionEvent);
   if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus ) 
   {
-     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
-               "WDI Init failed to initialize WCTS action event");
-
-     WDI_ASSERT(0); 
-     return WDI_STATUS_E_FAILURE; 
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "%s: Failed to initialize WCTS action event, status %d",
+                __FUNCTION__, wptStatus);
+     goto fail_wcts_event;
   }
 
   /*------------------------------------------------------------------------
@@ -713,6 +752,13 @@ WDI_Init
                                           WDI_CT_CHANNEL_SIZE, 
                                           &wctsCBs ); 
 
+  if ( NULL == gWDICb.wctsHandle )
+  {
+     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                "%s: Failed to open WCTS transport", __FUNCTION__);
+     goto fail_wcts_open;
+  }
+
   gWDICb.driverMode = (tDriverType)driverType;
   /* FTM mode not need to open Transport Driver */
   if(eDRIVER_TYPE_MFG != (tDriverType)driverType)
@@ -722,11 +768,9 @@ WDI_Init
      ------------------------------------------------------------------------*/
     if(eWLAN_PAL_STATUS_SUCCESS != WDTS_openTransport(&gWDICb))
     {
-      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
-                "WDI Init failed to initialize the DT Transport");
-
-      WDI_ASSERT(0); 
-      return WDI_STATUS_E_FAILURE; 
+      WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
+                 "%s: Failed to open the DT Transport", __FUNCTION__);
+      goto fail_wdts_open;
     }
   }
 
@@ -740,7 +784,78 @@ WDI_Init
   pWdiDevCapability->bFrameXtlSupported = eWLAN_PAL_FALSE; 
   pWdiDevCapability->ucMaxSTASupported  = gWDICb.ucMaxStations;
   pWdiDevCapability->ucMaxBSSSupported  = gWDICb.ucMaxBssids;
-  return WDI_STATUS_SUCCESS; 
+  return WDI_STATUS_SUCCESS;
+
+  /* ERROR handlers
+     Undo everything that completed successfully */
+
+ fail_wdts_open:
+  {
+     wpt_status             eventStatus;
+
+     /* Closing WCTS in this scenario is tricky since it has to close
+        the SMD channel and then we get notified asynchronously when
+        the channel has been closed. So we take some of the logic from
+        the "normal" close procedure in WDI_Close()
+     */
+
+     eventStatus = wpalEventReset(&gWDICb.wctsActionEvent);
+     if ( eWLAN_PAL_STATUS_SUCCESS != eventStatus ) 
+     {
+        WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                   "%s: Failed to reset WCTS action event", __FUNCTION__);
+     }
+
+     WCTS_CloseTransport(gWDICb.wctsHandle);
+
+     /* Wait for WCTS to close the control transport.  If we were able
+        to reset the event flag, then we'll wait for the event,
+        otherwise we'll wait for a maximum amount of time required for
+        the channel to be closed */
+     if ( eWLAN_PAL_STATUS_SUCCESS == eventStatus )
+     {
+        eventStatus = wpalEventWait(&gWDICb.wctsActionEvent, 
+                                    WDI_WCTS_ACTION_TIMEOUT);
+        if ( eWLAN_PAL_STATUS_SUCCESS != eventStatus )
+        {
+           WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                      "%s: Failed to wait on WCTS action event", __FUNCTION__);
+        }
+     }
+     else
+     {
+        wpalSleep(WDI_WCTS_ACTION_TIMEOUT);
+     }
+  }
+ fail_wcts_open:
+  wpalEventDelete(&gWDICb.wctsActionEvent);
+ fail_wcts_event:
+  wpalEventDelete(&gWDICb.setPowerStateEvent);
+ fail_power_event:
+  WDI_DP_UtilsExit(&gWDICb);
+ fail_dp_util_init:
+  gWDICb.magic = 0;
+ fail_bss_queue:
+  /* entries 0 thru i-1 were successfully initialized */
+  while (0 < i)
+  {
+     i--;
+     wpal_list_destroy(&(gWDICb.aBSSSessions[i].wptPendingQueue));
+  }
+  wpal_list_destroy(&(gWDICb.wptPendingAssocSessionIdQueue));
+ fail_assoc_queue:
+  wpal_list_destroy(&(gWDICb.wptPendingQueue));
+ fail_pend_queue:
+  wpalTimerDelete(&gWDICb.wptResponseTimer);
+ fail_timer:
+  wpalMutexDelete(&gWDICb.wptMutex);
+ fail_mutex:
+  wpalClose(gWDICb.pPALContext);
+ fail_wpalOpen:
+  WDI_STATableClose(&gWDICb);
+ fail_STATableInit:
+  return WDI_STATUS_E_FAILURE; 
+
 }/*WDI_Init*/;
 
 /**
@@ -16334,6 +16449,86 @@ WDI_ProcessTxCompleteInd
   return WDI_STATUS_SUCCESS; 
 }/*WDI_ProcessTxCompleteInd*/
 
+#ifdef WLAN_FEATURE_P2P
+/**
+*@brief Process Noa Attr Indication function (called when
+        an indication of this kind is being received over the
+        bus from HAL)
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessP2pNoaAttrInd
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+)
+{
+  WDI_LowLevelIndType  wdiInd;
+  tNoaAttrIndMsg       halNoaAttrIndMsg;
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  /*-------------------------------------------------------------------------
+    Sanity check
+  -------------------------------------------------------------------------*/
+  if (( NULL == pWDICtx ) || ( NULL == pEventData ) ||
+      ( NULL == pEventData->pEventData ))
+  {
+     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
+                 "%s: Invalid parameters", __FUNCTION__);
+     WDI_ASSERT( 0 );
+     return WDI_STATUS_E_FAILURE;
+  }
+
+  /*-------------------------------------------------------------------------
+    Extract indication and send it to UMAC
+  -------------------------------------------------------------------------*/
+  wpalMemoryCopy( &halNoaAttrIndMsg.noaAttrIndParams,
+                  pEventData->pEventData,
+                  sizeof(halNoaAttrIndMsg.noaAttrIndParams) );
+
+  /*Fill in the indication parameters*/
+  wdiInd.wdiIndicationType = WDI_P2P_NOA_ATTR_IND;
+  
+  wdiInd.wdiIndicationData.wdiP2pNoaAttrInfo.status
+                          = halNoaAttrIndMsg.noaAttrIndParams.status;
+  
+  wdiInd.wdiIndicationData.wdiP2pNoaAttrInfo.ucIndex
+                          = halNoaAttrIndMsg.noaAttrIndParams.index;
+  wdiInd.wdiIndicationData.wdiP2pNoaAttrInfo.ucOppPsFlag
+                          = halNoaAttrIndMsg.noaAttrIndParams.oppPsFlag;
+  wdiInd.wdiIndicationData.wdiP2pNoaAttrInfo.usCtWin
+                          = halNoaAttrIndMsg.noaAttrIndParams.ctWin;
+  
+  wdiInd.wdiIndicationData.wdiP2pNoaAttrInfo.usNoa1IntervalCnt
+                          = halNoaAttrIndMsg.noaAttrIndParams.uNoa1IntervalCnt;
+  wdiInd.wdiIndicationData.wdiP2pNoaAttrInfo.uslNoa1Duration
+                          = halNoaAttrIndMsg.noaAttrIndParams.uNoa1Duration;
+  wdiInd.wdiIndicationData.wdiP2pNoaAttrInfo.uslNoa1Interval
+                             = halNoaAttrIndMsg.noaAttrIndParams.uNoa1Interval;
+  wdiInd.wdiIndicationData.wdiP2pNoaAttrInfo.uslNoa1StartTime
+                          = halNoaAttrIndMsg.noaAttrIndParams.uNoa1StartTime;
+  
+  wdiInd.wdiIndicationData.wdiP2pNoaAttrInfo.usNoa2IntervalCnt
+                          = halNoaAttrIndMsg.noaAttrIndParams.uNoa2IntervalCnt;
+  wdiInd.wdiIndicationData.wdiP2pNoaAttrInfo.uslNoa2Duration
+                          = halNoaAttrIndMsg.noaAttrIndParams.uNoa2Duration;
+  wdiInd.wdiIndicationData.wdiP2pNoaAttrInfo.uslNoa2Interval
+                          = halNoaAttrIndMsg.noaAttrIndParams.uNoa2Interval;
+  wdiInd.wdiIndicationData.wdiP2pNoaAttrInfo.uslNoa2StartTime
+                          = halNoaAttrIndMsg.noaAttrIndParams.uNoa2StartTime;
+
+  /*Notify UMAC*/
+  pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
+
+  return WDI_STATUS_SUCCESS;
+}/*WDI_ProcessNoaAttrInd*/
+#endif
+
 #ifdef ANI_MANF_DIAG
 /**
  @brief WDI_ProcessFTMCommandReq
@@ -18287,6 +18482,10 @@ HAL_2_WDI_RSP_TYPE
     return WDI_HAL_COEX_IND;
   case WLAN_HAL_OTA_TX_COMPL_IND:
     return WDI_HAL_TX_COMPLETE_IND;
+#ifdef WLAN_FEATURE_P2P
+  case WLAN_HAL_P2P_NOA_ATTR_IND:
+    return WDI_HAL_P2P_NOA_ATTR_IND;
+#endif
 #ifdef WLAN_FEATURE_VOWIFI
   case WLAN_HAL_SET_MAX_TX_POWER_RSP:
     return WDI_SET_MAX_TX_POWER_RESP;

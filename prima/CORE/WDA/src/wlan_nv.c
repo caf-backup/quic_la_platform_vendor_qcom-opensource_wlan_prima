@@ -3789,7 +3789,7 @@ const sHalNv nvDefaults =
         2,                                                              // tANI_U8   wlanNvRevId; //0: WCN1312, 1: WCN1314, 2: WCN3660
         1,                                                              // tANI_U8   numOfTxChains;
         2,                                                              // tANI_U8   numOfRxChains;
-        { 0x00, 0xDE, 0xAD, 0xBE, 0xEF, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
+        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },                         // tANI_U8   macAddr[NV_FIELD_MAC_ADDR_SIZE];
         { "\0" }
     }, //fields
 
@@ -4132,79 +4132,79 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_216,
 
                     //5GHz Low & Mid U-NII Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_36,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_40,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_44,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_48,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_52,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_56,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_60,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_64,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_36,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_40,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_44,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_48,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_52,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_56,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_60,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_64,
 
                     //5GHz Mid Band - ETSI, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_100,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_104,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_108,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_112,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_116,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_120,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_124,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_128,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_132,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_136,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
+                    {eANI_BOOLEAN_FALSE, 22},            //RF_CHAN_100,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_104,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_108,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_112,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_116,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_120,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_124,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_128,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_132,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_136,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_4,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_5,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_6,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_7,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_8,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_9,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_10,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_11,
+                    {eANI_BOOLEAN_TRUE, 22},            //RF_CHAN_BOND_3,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_4,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_5,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_6,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_7,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_8,
+                    {eANI_BOOLEAN_TRUE, 22},            //RF_CHAN_BOND_9,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_BOND_10,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_BOND_11,
 
                     // 4.9GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_242,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_246,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_250,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_210,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_214,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_242,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_246,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_250,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_210,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_214,
 
                     //5GHz Low & Mid U-NII Band, channel bonded channels
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_38,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_42,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_46,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_50,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_54,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_58,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_62,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_38,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_42,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_46,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_50,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_54,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_58,
+                    {eANI_BOOLEAN_TRUE, 25},            //RF_CHAN_BOND_62,
 
                     //5GHz Mid Band - ETSI, channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_102
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_106
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_110
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_114
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_118
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_122
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_126
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_130
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_134
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_138
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_BOND_102
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_106
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_110
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_114
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_118
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_122
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_126
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_130
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_134
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_138
 
                     //5GHz High U-NII Band,  channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_151,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_155,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_159,
-                    {eANI_BOOLEAN_FALSE, 23},             //RF_CHAN_BOND_163
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_151,
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_155,
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_159,
+                    {eANI_BOOLEAN_FALSE, 0},             //RF_CHAN_BOND_163
                 }, //sRegulatoryChannel end
 
                 {
@@ -4256,29 +4256,29 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                     //2.4GHz Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 19},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 19},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                     //4.9GHz Band, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_240,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_244,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_248,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_252,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_208,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_212,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_216,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_240,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_244,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_248,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_252,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_208,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_212,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_216,
 
                     //5GHz Low & Mid U-NII Band, none CB
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_36,
@@ -4296,37 +4296,37 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_108,
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_112,
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_116,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_120,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_124,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_128,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_120,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_124,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_128,
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_132,
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_136,
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_4,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_5,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_6,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_7,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_8,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_9,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_10,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_11,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_3,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_4,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_5,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_6,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_7,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_8,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_9,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_10,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_11,
 
                     // 4.9GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_242,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_246,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_250,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_210,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_214,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_242,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_246,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_250,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_210,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_214,
 
                     //5GHz Low & Mid U-NII Band, channel bonded channels
                     {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_38,
@@ -4341,19 +4341,19 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_102
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_106
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_110
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_114
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_118
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_122
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_126
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_130
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_114
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_118
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_122
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_126
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_130
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_134
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_138
 
                     //5GHz High U-NII Band,  channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_151,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_155,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_159,
-                    {eANI_BOOLEAN_FALSE, 23},             //RF_CHAN_BOND_163
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_151,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_155,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_159,
+                    {eANI_BOOLEAN_FALSE, 0},             //RF_CHAN_BOND_163
                 }, //sRegulatoryChannel end
 
                 {
@@ -4405,20 +4405,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                     //2.4GHz Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 20},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_TRUE, 18},           //RF_CHAN_14,
 
                     //4.9GHz Band, none CB
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_240,
@@ -4430,79 +4430,79 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_216,
 
                     //5GHz Low & Mid U-NII Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_36,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_40,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_44,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_48,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_52,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_56,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_60,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_64,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_36,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_40,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_44,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_48,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_52,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_56,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_60,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_64,
 
                     //5GHz Mid Band - ETSI, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_100,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_104,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_108,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_112,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_116,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_120,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_124,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_128,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_132,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_136,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
+                    {eANI_BOOLEAN_FALSE, 22},            //RF_CHAN_100,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_104,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_108,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_112,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_116,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_120,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_124,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_128,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_132,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_136,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_4,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_5,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_6,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_7,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_8,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_9,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_10,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_11,
+                    {eANI_BOOLEAN_TRUE, 22},            //RF_CHAN_BOND_3,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_4,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_5,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_6,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_7,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_8,
+                    {eANI_BOOLEAN_TRUE, 22},            //RF_CHAN_BOND_9,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_BOND_10,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_BOND_11,
 
                     // 4.9GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_242,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_246,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_250,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_210,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_214,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_242,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_246,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_250,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_210,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_214,
 
                     //5GHz Low & Mid U-NII Band, channel bonded channels
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_38,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_42,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_46,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_50,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_54,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_58,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_62,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_38,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_42,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_46,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_50,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_54,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_58,
+                    {eANI_BOOLEAN_TRUE, 25},            //RF_CHAN_BOND_62,
 
                     //5GHz Mid Band - ETSI, channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_102
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_106
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_110
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_114
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_118
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_122
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_126
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_130
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_134
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_138
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_BOND_102
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_106
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_110
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_114
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_118
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_122
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_126
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_130
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_134
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_138
 
                     //5GHz High U-NII Band,  channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_151,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_155,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_159,
-                    {eANI_BOOLEAN_FALSE, 23},             //RF_CHAN_BOND_163
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_151,
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_155,
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_159,
+                    {eANI_BOOLEAN_FALSE, 0},             //RF_CHAN_BOND_163
                 }, //sRegulatoryChannel end
 
                 {
@@ -4619,17 +4619,17 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                     //2.4GHz Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_11,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_12,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_13,
                     {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
@@ -4644,79 +4644,79 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_216,
 
                     //5GHz Low & Mid U-NII Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_36,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_40,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_44,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_48,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_52,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_56,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_60,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_64,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_36,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_40,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_44,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_48,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_52,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_56,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_60,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_64,
 
                     //5GHz Mid Band - ETSI, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_100,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_104,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_108,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_112,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_116,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_120,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_124,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_128,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_132,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_136,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
+                    {eANI_BOOLEAN_FALSE, 22},            //RF_CHAN_100,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_104,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_108,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_112,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_116,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_120,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_124,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_128,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_132,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_136,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_4,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_5,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_6,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_7,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_8,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_9,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_10,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_11,
+                    {eANI_BOOLEAN_TRUE, 22},            //RF_CHAN_BOND_3,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_4,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_5,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_6,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_7,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_8,
+                    {eANI_BOOLEAN_TRUE, 22},            //RF_CHAN_BOND_9,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_BOND_10,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_BOND_11,
 
                     // 4.9GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_242,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_246,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_250,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_210,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_214,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_242,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_246,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_250,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_210,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_214,
 
                     //5GHz Low & Mid U-NII Band, channel bonded channels
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_38,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_42,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_46,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_50,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_54,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_58,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_62,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_38,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_42,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_46,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_50,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_54,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_58,
+                    {eANI_BOOLEAN_TRUE, 25},            //RF_CHAN_BOND_62,
 
                     //5GHz Mid Band - ETSI, channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_102
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_106
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_110
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_114
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_118
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_122
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_126
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_130
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_134
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_138
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_BOND_102
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_106
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_110
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_114
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_118
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_122
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_126
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_130
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_134
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_138
 
                     //5GHz High U-NII Band,  channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_151,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_155,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_159,
-                    {eANI_BOOLEAN_FALSE, 23},             //RF_CHAN_BOND_163
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_151,
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_155,
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_159,
+                    {eANI_BOOLEAN_FALSE, 0},             //RF_CHAN_BOND_163
                 }, //sRegulatoryChannel end
 
                 {
@@ -4768,20 +4768,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                     //2.4GHz Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 26},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 16},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                     //4.9GHz Band, none CB
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_240,
@@ -4793,79 +4793,79 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_216,
 
                     //5GHz Low & Mid U-NII Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_36,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_40,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_44,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_48,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_52,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_56,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_60,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_64,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_36,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_40,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_44,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_48,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_52,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_56,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_60,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_64,
 
                     //5GHz Mid Band - ETSI, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_100,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_104,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_108,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_112,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_116,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_120,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_124,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_128,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_132,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_136,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
+                    {eANI_BOOLEAN_FALSE, 22},            //RF_CHAN_100,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_104,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_108,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_112,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_116,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_120,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_124,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_128,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_132,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_136,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_4,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_5,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_6,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_7,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_8,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_9,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_10,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_11,
+                    {eANI_BOOLEAN_TRUE, 22},            //RF_CHAN_BOND_3,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_4,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_5,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_6,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_7,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_8,
+                    {eANI_BOOLEAN_TRUE, 22},            //RF_CHAN_BOND_9,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_BOND_10,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_BOND_11,
 
                     // 4.9GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_242,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_246,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_250,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_210,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_214,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_242,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_246,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_250,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_210,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_214,
 
                     //5GHz Low & Mid U-NII Band, channel bonded channels
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_38,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_42,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_46,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_50,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_54,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_58,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_62,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_38,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_42,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_46,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_50,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_54,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_58,
+                    {eANI_BOOLEAN_TRUE, 25},            //RF_CHAN_BOND_62,
 
                     //5GHz Mid Band - ETSI, channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_102
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_106
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_110
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_114
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_118
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_122
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_126
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_130
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_134
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_138
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_BOND_102
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_106
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_110
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_114
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_118
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_122
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_126
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_130
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_134
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_138
 
                     //5GHz High U-NII Band,  channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_151,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_155,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_159,
-                    {eANI_BOOLEAN_FALSE, 23},             //RF_CHAN_BOND_163
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_151,
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_155,
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_159,
+                    {eANI_BOOLEAN_FALSE, 0},             //RF_CHAN_BOND_163
                 }, //sRegulatoryChannel end
 
                 {
@@ -4917,20 +4917,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                     //2.4GHz Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 15},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                     //4.9GHz Band, none CB
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_240,
@@ -4942,79 +4942,79 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_216,
 
                     //5GHz Low & Mid U-NII Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_36,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_40,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_44,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_48,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_52,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_56,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_60,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_64,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_36,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_40,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_44,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_48,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_52,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_56,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_60,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_64,
 
                     //5GHz Mid Band - ETSI, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_100,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_104,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_108,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_112,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_116,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_120,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_124,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_128,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_132,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_136,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
+                    {eANI_BOOLEAN_FALSE, 22},            //RF_CHAN_100,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_104,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_108,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_112,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_116,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_120,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_124,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_128,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_132,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_136,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_4,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_5,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_6,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_7,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_8,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_9,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_10,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_11,
+                    {eANI_BOOLEAN_TRUE, 22},            //RF_CHAN_BOND_3,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_4,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_5,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_6,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_7,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_8,
+                    {eANI_BOOLEAN_TRUE, 22},            //RF_CHAN_BOND_9,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_BOND_10,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_BOND_11,
 
                     // 4.9GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_242,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_246,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_250,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_210,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_214,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_242,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_246,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_250,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_210,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_214,
 
                     //5GHz Low & Mid U-NII Band, channel bonded channels
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_38,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_42,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_46,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_50,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_54,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_58,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_62,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_38,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_42,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_46,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_50,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_54,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_58,
+                    {eANI_BOOLEAN_TRUE, 25},            //RF_CHAN_BOND_62,
 
                     //5GHz Mid Band - ETSI, channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_102
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_106
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_110
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_114
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_118
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_122
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_126
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_130
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_134
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_138
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_BOND_102
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_106
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_110
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_114
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_118
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_122
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_126
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_130
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_134
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_138
 
                     //5GHz High U-NII Band,  channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_151,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_155,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_159,
-                    {eANI_BOOLEAN_FALSE, 23},             //RF_CHAN_BOND_163
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_151,
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_155,
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_159,
+                    {eANI_BOOLEAN_FALSE, 0},             //RF_CHAN_BOND_163
                 }, //sRegulatoryChannel end
 
                 {
@@ -5066,20 +5066,20 @@ const sHalNv nvDefaults =
                 { //sRegulatoryChannel start
                     //enabled, pwrLimit
                     //2.4GHz Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_1,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_2,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_3,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_4,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_5,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_6,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_7,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_8,
-                    {eANI_BOOLEAN_TRUE, 23},           //RF_CHAN_9,
-                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_10,
-                    {eANI_BOOLEAN_TRUE, 22},           //RF_CHAN_11,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_12,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_13,
-                    {eANI_BOOLEAN_FALSE, 30},           //RF_CHAN_14,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_1,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_2,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_3,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_4,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_5,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_6,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_7,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_8,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_9,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_10,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_11,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_12,
+                    {eANI_BOOLEAN_TRUE, 14},           //RF_CHAN_13,
+                    {eANI_BOOLEAN_FALSE, 0},           //RF_CHAN_14,
 
                     //4.9GHz Band, none CB
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_240,
@@ -5091,79 +5091,79 @@ const sHalNv nvDefaults =
                     {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_216,
 
                     //5GHz Low & Mid U-NII Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_36,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_40,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_44,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_48,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_52,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_56,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_60,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_64,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_36,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_40,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_44,
+                    {eANI_BOOLEAN_TRUE, 17},            //RF_CHAN_48,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_52,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_56,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_60,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_64,
 
                     //5GHz Mid Band - ETSI, none CB
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_100,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_104,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_108,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_112,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_116,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_120,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_124,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_128,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_132,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_136,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_140,
+                    {eANI_BOOLEAN_FALSE, 22},            //RF_CHAN_100,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_104,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_108,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_112,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_116,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_120,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_124,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_128,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_132,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_136,
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_140,
 
                     //5GHz High U-NII Band, none CB
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_149,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_153,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_157,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_161,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_165,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_149,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_153,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_157,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_161,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_165,
 
                     //2.4GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_3,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_4,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_5,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_6,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_7,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_8,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_9,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_10,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_11,
+                    {eANI_BOOLEAN_TRUE, 22},            //RF_CHAN_BOND_3,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_4,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_5,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_6,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_7,
+                    {eANI_BOOLEAN_TRUE, 30},            //RF_CHAN_BOND_8,
+                    {eANI_BOOLEAN_TRUE, 22},            //RF_CHAN_BOND_9,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_BOND_10,
+                    {eANI_BOOLEAN_TRUE, 0},            //RF_CHAN_BOND_11,
 
                     // 4.9GHz Band, channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_242,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_246,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_250,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_210,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_214,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_242,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_246,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_250,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_210,
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_214,
 
                     //5GHz Low & Mid U-NII Band, channel bonded channels
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_38,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_42,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_46,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_50,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_54,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_58,
-                    {eANI_BOOLEAN_TRUE, 23},            //RF_CHAN_BOND_62,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_38,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_42,
+                    {eANI_BOOLEAN_TRUE, 20},            //RF_CHAN_BOND_46,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_50,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_54,
+                    {eANI_BOOLEAN_TRUE, 27},            //RF_CHAN_BOND_58,
+                    {eANI_BOOLEAN_TRUE, 25},            //RF_CHAN_BOND_62,
 
                     //5GHz Mid Band - ETSI, channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_102
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_106
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_110
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_114
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_118
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_122
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_126
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_130
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_134
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_138
+                    {eANI_BOOLEAN_FALSE, 24},            //RF_CHAN_BOND_102
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_106
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_110
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_114
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_118
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_122
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_126
+                    {eANI_BOOLEAN_FALSE, 0},            //RF_CHAN_BOND_130
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_134
+                    {eANI_BOOLEAN_FALSE, 27},            //RF_CHAN_BOND_138
 
                     //5GHz High U-NII Band,  channel bonded channels
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_151,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_155,
-                    {eANI_BOOLEAN_FALSE, 23},            //RF_CHAN_BOND_159,
-                    {eANI_BOOLEAN_FALSE, 23},             //RF_CHAN_BOND_163
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_151,
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_155,
+                    {eANI_BOOLEAN_FALSE, 30},            //RF_CHAN_BOND_159,
+                    {eANI_BOOLEAN_FALSE, 0},             //RF_CHAN_BOND_163
                 }, //sRegulatoryChannel end
 
                 {

@@ -253,6 +253,8 @@ typedef enum
    WLAN_HAL_GET_TX_POWER_REQ,
    WLAN_HAL_GET_TX_POWER_RSP,
 
+   WLAN_HAL_P2P_NOA_ATTR_IND,
+   
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
 
@@ -4036,6 +4038,39 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader header;
    tHalWlanHostSuspendIndParam suspendIndParams;
 }tHalWlanHostSuspendIndMsg, *tpHalWlanHostSuspendIndMsg;
+
+#ifdef WLAN_FEATURE_P2P
+/*---------------------------------------------------------------------------
+ *WLAN_HAL_NOA_ATTR_IND
+ *-------------------------------------------------------------------------*/
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tANI_U8      index ;
+   tANI_U8      oppPsFlag ;
+   tANI_U16     ctWin  ;
+
+   tANI_U16      uNoa1IntervalCnt;
+   tANI_U16      rsvd1 ;
+   tANI_U32      uNoa1Duration;
+   tANI_U32      uNoa1Interval;
+   tANI_U32      uNoa1StartTime;
+
+   tANI_U16      uNoa2IntervalCnt;
+   tANI_U16      rsvd2;
+   tANI_U32      uNoa2Duration;
+   tANI_U32      uNoa2Interval;
+   tANI_U32      uNoa2StartTime;
+
+   tANI_U32   status;
+}tNoaAttrIndParams, *tpNoaAttrIndParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader      header;
+   tNoaAttrIndParams  noaAttrIndParams; 
+}tNoaAttrIndMsg, *tpNoaAttrIndMsg;
+#endif
 
 /*---------------------------------------------------------------------------
  * WLAN_HAL_HOST_RESUME_REQ
