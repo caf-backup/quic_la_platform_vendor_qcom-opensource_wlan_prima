@@ -822,7 +822,8 @@ eHalStatus asicPhyDbgStartFrameGen(tpAniSirGlobal pMac,
                    (reg & QWLAN_PHYDBG_STATUS_TXSTATE_MASK) >> QWLAN_PHYDBG_STATUS_TXSTATE_OFFSET
                   );
         }
-        asicPhyDbgStopFrameGen(pMac);
+        //issuing a stop to pkt gen here does not guarantee that all the numTestPackets are transmitted
+        //asicPhyDbgStopFrameGen(pMac);
     }
 
     return(retVal);
