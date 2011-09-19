@@ -199,8 +199,6 @@ limCollectBssDescription(tpAniSirGlobal pMac,
 
     // Copy RSSI & SINR from BD
 
-
-
     PELOG4(limLog(pMac, LOG4, "***********BSS Description for BSSID:*********** ");
     sirDumpBuf(pMac, SIR_LIM_MODULE_ID, LOG4, pBssDescr->bssId, 6 );
     sirDumpBuf( pMac, SIR_LIM_MODULE_ID, LOG4, (tANI_U8*)pBd, 36 );)
@@ -323,7 +321,7 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
                              tANI_BOOLEAN fScanning)
 {
     tLimScanResultNode   *pBssDescr;
-    tANI_U32                  frameLen, ieLen = 0;
+    tANI_U32             frameLen, ieLen = 0;
 
     /**
      * Compare SSID with the one sent in
@@ -358,6 +356,18 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
     {
         return;
     }
+
+	/* If beacon/probe resp DS param channel does not match with 
+	 * RX BD channel then don't save the results. It might be a beacon 
+	 * from another channel heard as noise on the current scanning channel
+	 */
+	if (SIR_MAC_BD_TO_RX_CHANNEL(pBd) != limGetChannelFromBeacon(pMac, pBPR))
+	{
+        limLog(pMac, LOGW,
+           FL("Beacon/Probe Rsp dropped. Channel in BD %d. Channel in beacon %d\n"),
+           		SIR_MAC_BD_TO_RX_CHANNEL(pBd),limGetChannelFromBeacon(pMac, pBPR));
+		return;
+	}
 
     /**
      * Allocate buffer to hold BSS description from
