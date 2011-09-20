@@ -3133,8 +3133,8 @@ static int iw_qcom_get_wlan_stats(struct net_device *dev, struct iw_request_info
 
 static int iw_set_host_offload(struct net_device *dev, struct iw_request_info *info,
         union iwreq_data *wrqu, char *extra)
-{   
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+{
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     tpHostOffloadRequest pRequest = (tpHostOffloadRequest)wrqu->data.pointer;
     tSirHostOffloadReq offloadRequest;
 

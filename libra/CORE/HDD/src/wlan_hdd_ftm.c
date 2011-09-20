@@ -53,6 +53,7 @@
 #include "sys_api.h"
 #include "pttModuleApi.h"
 #include "qwlan_version.h"
+#include <wlan_sal_misc.h>
 
 #ifdef ANI_MANF_DIAG
 #define RXMODE_DISABLE_ALL 0
@@ -767,6 +768,7 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
     VOS_STATUS vStatus       = VOS_STATUS_SUCCESS;
 
     pVosContextType pVosContext= NULL;
+    struct sdio_func *sdio_func_dev = NULL;
 
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH,
                "%s: Opening VOSS", __func__);
@@ -781,14 +783,29 @@ int wlan_hdd_ftm_open(hdd_adapter_t *pAdapter)
         goto err_vos_status_failure;
     }
 
-   // Open VOSS
-   vStatus = wlan_ftm_vos_open( pVosContext, 0);
+    // Open VOSS
+    vStatus = wlan_ftm_vos_open( pVosContext, 0);
 
-   if ( !VOS_IS_STATUS_SUCCESS( vStatus ))
-   {
-      hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_open failed",__func__);
-      goto err_vos_status_failure;
-   }
+    if ( !VOS_IS_STATUS_SUCCESS( vStatus ))
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_open failed",__func__);
+        goto err_vos_status_failure;
+    }
+
+    sdio_func_dev = libra_getsdio_funcdev();
+
+    if(NULL != sdio_func_dev)
+    {
+        sd_claim_host(sdio_func_dev);
+        /* Disable SDIO IRQ capabilities */
+        libra_disable_sdio_irq_capability(sdio_func_dev, 1);
+        libra_enable_sdio_irq(sdio_func_dev, 0);
+        sd_release_host(sdio_func_dev);
+    }
+    else
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: sdio_func_dev is NULL!",__func__);
+    }
 
     /* Start SAL now */
     vStatus = WLANSAL_Start(pVosContext);
@@ -984,6 +1001,7 @@ static int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
     tSirRetStatus sirStatus      = eSIR_SUCCESS;
     pVosContextType pVosContext = (pVosContextType)pAdapter->pvosContext;
     tHalMacStartParameters halStartParams;
+    struct sdio_func *sdio_func_dev = NULL;
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO,
             "%s: Starting Libra SW", __func__);
@@ -1009,6 +1027,21 @@ static int wlan_hdd_ftm_start(hdd_adapter_t *pAdapter)
                "%s: TL NULL context",__FUNCTION__);
 
         goto err_status_failure;
+    }
+
+    sdio_func_dev = libra_getsdio_funcdev();
+
+    if(NULL != sdio_func_dev)
+    {
+        sd_claim_host(sdio_func_dev);
+        /* Enable SDIO IRQ capabilities */
+        libra_disable_sdio_irq_capability(sdio_func_dev, 0);
+        libra_enable_sdio_irq(sdio_func_dev, 1);
+        sd_release_host(sdio_func_dev);
+    }
+    else
+    {
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: sdio_func_dev is NULL!",__func__);
     }
 
     /* Start BAL */
@@ -2444,7 +2477,7 @@ static int iw_ftm_setchar_getnone(struct net_device *dev, struct iw_request_info
     int sub_cmd = wrqu->data.flags;
     int ret = 0; /* sucess */
     VOS_STATUS status;
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Received length %d", __FUNCTION__, wrqu->data.length);
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: Received data %s", __FUNCTION__, (char*)wrqu->data.pointer);
@@ -2491,7 +2524,7 @@ static int iw_ftm_setchar_getnone(struct net_device *dev, struct iw_request_info
 static int iw_ftm_setint_getnone(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra)
 {
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int *value = (int *)extra;
     int sub_cmd = value[0];
     int set_value = value[1];
@@ -2624,7 +2657,7 @@ static int iw_ftm_setint_getnone(struct net_device *dev, struct iw_request_info 
 static int iw_ftm_setnone_getint(struct net_device *dev, struct iw_request_info *info,
                        union iwreq_data *wrqu, char *extra)
 {
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int *value = (int *)extra;
     int ret = 0; /* sucess */
     VOS_STATUS status;
@@ -2679,7 +2712,7 @@ static int iw_ftm_get_char_setnone(struct net_device *dev, struct iw_request_inf
 {
     int sub_cmd = wrqu->data.flags;
     VOS_STATUS status;
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
 
     switch(sub_cmd)
     {
@@ -2847,8 +2880,7 @@ static int iw_ftm_setnone_getnone(struct net_device *dev, struct iw_request_info
 static int iw_ftm_set_var_ints_getnone(struct net_device *dev, struct iw_request_info *info,
         union iwreq_data *wrqu, char *extra)
 {
-
-    hdd_adapter_t *pAdapter = (netdev_priv(dev));
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
     int sub_cmd = wrqu->data.flags;
     int *value = (int*)wrqu->data.pointer;
     v_S15_t phyRxChains[MAX_FTM_VAR_ARGS] = {0};

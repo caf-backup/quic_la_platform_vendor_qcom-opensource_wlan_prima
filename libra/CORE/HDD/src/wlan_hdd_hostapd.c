@@ -211,7 +211,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
     dev = (struct net_device *)usrDataForCallback;
     pHostapdAdapter = (hdd_hostapd_adapter_t*)netdev_priv(dev);
     pHostapdState = pHostapdAdapter->pHostapdState; 
-    pAdapter = (hdd_adapter_t * )(netdev_priv(pHostapdAdapter->pWlanDev));
+    pAdapter = WLAN_HDD_GET_PRIV_PTR(pHostapdAdapter->pWlanDev);
 
     sapEvent = pSapEvent->sapHddEventCode;
     memset(&wrqu, '\0', sizeof(wrqu));
@@ -793,8 +793,8 @@ static iw_softap_commit(struct net_device *dev,
     eCsrEncryptionType mcRSNEncryptType;
 
     pHostapdState = pHostapdAdapter->pHostapdState;
+    pAdapter = WLAN_HDD_GET_PRIV_PTR(pHostapdAdapter->pWlanDev);
 
-    pAdapter = (hdd_adapter_t * )(netdev_priv(pHostapdAdapter->pWlanDev));
     pCommitConfig = (s_CommitConfig_t *)extra;
     
     pConfig = kmalloc(sizeof(tsap_Config_t), GFP_KERNEL);
@@ -1879,7 +1879,8 @@ int hdd_wlan_create_ap_dev(struct net_device * pWlanDev)
     ((VosContextType*)(pVosContext))->pHDDSoftAPContext = (v_VOID_t*)pHostapdAdapter;
 
     // Init main netdevice fields
-    pAdapter = netdev_priv(pWlanDev);
+    pAdapter = WLAN_HDD_GET_PRIV_PTR(pWlanDev);
+
     pAdapter->pHostapd_dev = pWlanHostapdDev;
 
     //Init the net_device structure

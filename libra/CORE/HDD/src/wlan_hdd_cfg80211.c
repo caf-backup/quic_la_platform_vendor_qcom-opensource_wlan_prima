@@ -52,6 +52,7 @@
 #define FREQ_BASE_80211G          (2407)
 #define FREQ_BAND_DIFF_80211G     (5)
 #define MAX_SCAN_SSID 2
+#define MAX_SCAN_IE_LEN 200
 #define GET_IE_LEN_IN_BSS_DESC(lenInBss) ( lenInBss + sizeof(lenInBss) - \
         ((int) OFFSET_OF( tSirBssDescription, ieFields)))
 
@@ -169,6 +170,8 @@ struct wireless_dev *wlan_hdd_cfg80211_init( struct device *dev,
     set_wiphy_dev(wdev->wiphy, dev);
 
     wdev->wiphy->max_scan_ssids = MAX_SCAN_SSID; 
+ 
+    wdev->wiphy->max_scan_ie_len = MAX_SCAN_IE_LEN;
 
     /* Supports STATION & AD-HOC modes right now */
     wdev->wiphy->interface_modes = BIT(NL80211_IFTYPE_STATION) |
@@ -298,12 +301,20 @@ static u8 wlan_hdd_cfg80211_get_ibss_peer_staidx(hdd_adapter_t* pAdapter)
  * FUNCTION: wlan_hdd_cfg80211_add_key
  * This function is used to initialize the key information
  */
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy, 
+                                      struct net_device *ndev,
+                                      u8 key_index, bool pairwise,
+                                      const u8 *mac_addr,
+                                      struct key_params *params
+                                      )
+#else
 static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy, 
                                       struct net_device *ndev,
                                       u8 key_index, const u8 *mac_addr,
                                       struct key_params *params
                                       )
+#endif
 {
     hdd_adapter_t *pAdapter = (hdd_adapter_t*) wiphy_priv(wiphy);
     hdd_wext_state_t *pWextState = pAdapter->pWextState; 
@@ -547,11 +558,18 @@ static int wlan_hdd_cfg80211_add_key( struct wiphy *wiphy,
  * FUNCTION: wlan_hdd_cfg80211_get_key
  * This function is used to get the key information
  */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
 static int wlan_hdd_cfg80211_get_key( struct wiphy *wiphy, 
-                                      struct net_device *ndev,
-                                      u8 key_index, const u8 *mac_addr, void *cookie,
-                                      void (*callback)(void *cookie, struct key_params*)
-                                      )
+               struct net_device *ndev,
+               u8 key_index, bool pairwise,
+               const u8 *mac_addr, void *cookie,
+               void (*callback)(void *cookie, struct key_params*))
+#else
+static int wlan_hdd_cfg80211_get_key( struct wiphy *wiphy, 
+               struct net_device *ndev,
+               u8 key_index, const u8 *mac_addr, void *cookie,
+               void (*callback)(void *cookie, struct key_params*))
+#endif
 {
     hdd_adapter_t *pAdapter = (hdd_adapter_t*) wiphy_priv(wiphy);
     hdd_wext_state_t *pWextState= pAdapter->pWextState;
@@ -608,11 +626,20 @@ static int wlan_hdd_cfg80211_get_key( struct wiphy *wiphy,
  * FUNCTION: wlan_hdd_cfg80211_del_key
  * This function is used to delete the key information
  */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
 static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy, 
                                       struct net_device *ndev,
                                       u8 key_index, 
+                                      bool pairwise, 
                                       const u8 *mac_addr
                                     )
+#else
+static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy, 
+                                      struct net_device *ndev,
+                                      u8 key_index,
+                                      const u8 *mac_addr
+                                    )
+#endif
 {
     hdd_adapter_t *pAdapter = (hdd_adapter_t*) wiphy_priv(wiphy);
     u8 groupmacaddr[WNI_CFG_BSSID_LEN] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
@@ -664,10 +691,18 @@ static int wlan_hdd_cfg80211_del_key( struct wiphy *wiphy,
  * FUNCTION: wlan_hdd_cfg80211_set_default_key
  * This function is used to set the default tx key index
  */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
+                                              struct net_device *ndev,
+                                              u8 key_index,
+                                              bool unicast, bool multicast
+                                              )
+#else
 static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
                                               struct net_device *ndev,
                                               u8 key_index
                                               )
+#endif
 {
     hdd_adapter_t *pAdapter = (hdd_adapter_t*) wiphy_priv(wiphy);
     hdd_wext_state_t *pWextState = pAdapter->pWextState;
@@ -734,10 +769,18 @@ static int wlan_hdd_cfg80211_set_default_key( struct wiphy *wiphy,
  * FUNCTION: wlan_hdd_cfg80211_set_channel
  * This function is used to set the channel number 
  */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
+static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy, 
+                                          struct net_device *dev,
+                                          struct ieee80211_channel *chan,
+                                          enum nl80211_channel_type channel_type
+                                          )
+#else
 static int wlan_hdd_cfg80211_set_channel( struct wiphy *wiphy,
                                           struct ieee80211_channel *chan,
                                           enum nl80211_channel_type channel_type
                                           )
+#endif
 {
     v_U32_t num_ch = 0;
     u8 valid_ch[WNI_CFG_VALID_CHANNEL_LIST_LEN];    
@@ -831,7 +874,11 @@ static struct cfg80211_bss* wlan_hdd_cfg80211_inform_bss( hdd_adapter_t *pAdapte
     int ie_length = GET_IE_LEN_IN_BSS_DESC( bss_desc->length );
     const char *ie = 
         ((ie_length != 0) ? (const char *)&bss_desc->ieFields: NULL);
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
+    unsigned int freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_2GHZ);
+#else
     unsigned int freq = ieee80211_channel_to_frequency(chan_no);
+#endif
     struct ieee80211_channel *chan = __ieee80211_get_channel(wiphy, freq);
 
     ENTER();
@@ -870,7 +917,11 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     int ie_length = GET_IE_LEN_IN_BSS_DESC( bss_desc->length );
     const char *ie =
         ((ie_length != 0) ? (const char *)&bss_desc->ieFields: NULL);
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
+    unsigned int freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_2GHZ);
+#else
     unsigned int freq = ieee80211_channel_to_frequency(chan_no);
+#endif
     struct ieee80211_channel *chan = __ieee80211_get_channel(wiphy, freq);
     struct ieee80211_mgmt *mgmt =
         kzalloc((sizeof (struct ieee80211_mgmt) + ie_length), GFP_KERNEL);
@@ -1013,7 +1064,6 @@ static eHalStatus hdd_cfg80211_scan_done_callback(tHalHandle halHandle,
     hdd_wext_state_t *pwextBuf = pAdapter->pWextState;
     struct cfg80211_scan_request *req = pAdapter->request;
     int ret = 0;
-    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
  
     ENTER();
 
@@ -1098,6 +1148,10 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
     if (request)
     {
+        if ('\0' == request->ssids->ssid[0])
+        {
+            request->n_ssids = 0;
+        }
         if (0 < request->n_ssids)
         {
             /* TODO:
@@ -2061,8 +2115,17 @@ static int wlan_hdd_cfg80211_set_wiphy_params(struct wiphy *wiphy,
  * FUNCTION: wlan_hdd_cfg80211_set_txpower
  * This function is used to set the txpower
  */
-static int wlan_hdd_cfg80211_set_txpower(struct wiphy *wiphy,
-        enum tx_power_setting type, int dbm)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38)
+static int wlan_hdd_cfg80211_set_txpower( struct wiphy *wiphy,
+                                          enum nl80211_tx_power_setting type, 
+                                          int dbm
+                                          )
+#else
+static int wlan_hdd_cfg80211_set_txpower( struct wiphy *wiphy,
+                                          enum tx_power_setting type, 
+                                          int dbm
+                                          )
+#endif
 {
     hdd_adapter_t *pAdapter = (hdd_adapter_t*) wiphy_priv(wiphy);
     tHalHandle hHal = pAdapter->hHal;

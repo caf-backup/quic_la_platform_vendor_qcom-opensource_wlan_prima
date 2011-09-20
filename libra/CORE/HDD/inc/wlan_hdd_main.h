@@ -17,6 +17,9 @@
   
 #include <linux/netdevice.h>
 #include <linux/skbuff.h>
+#ifdef CONFIG_CFG80211
+#include <net/cfg80211.h>
+#endif
 #include <vos_list.h>
 #include <vos_types.h>
 #include "sirMacProtDef.h"
@@ -58,7 +61,7 @@
 /**event flags registered net device*/
 #define NET_DEVICE_REGISTERED  1<<0
 /** Maximum time(ms)to wait for disconnect to complete **/
-#define WLAN_WAIT_TIME_DISCONNECT  100
+#define WLAN_WAIT_TIME_DISCONNECT  1000
 #define MAC_ADDR_ARRAY(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
 /** Mac Address string **/
 #define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
