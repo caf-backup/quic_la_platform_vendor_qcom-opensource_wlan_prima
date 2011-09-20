@@ -1703,7 +1703,7 @@ limIsNullSsid( tSirMacSSid *pSsid )
             break;
         }
 
-        if ( (1 == pSsid->length) && (0x20 == pSsid->ssId[0]) )
+        if ( 0 == pSsid->ssId[0] )
         {
             fNullSsid = true;
             break;

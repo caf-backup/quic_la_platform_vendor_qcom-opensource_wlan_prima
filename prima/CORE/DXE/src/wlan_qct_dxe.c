@@ -1026,7 +1026,11 @@ static wpt_status dxeChannelClose
       if((WDTS_CHANNEL_RX_LOW_PRI  == channelEntry->channelType) ||
          (WDTS_CHANNEL_RX_HIGH_PRI == channelEntry->channelType))
       {
-         wpalPacketFree(currentCtrlBlk->xfrFrame);
+         if (NULL != currentCtrlBlk->xfrFrame)
+         {
+            wpalUnlockPacket(currentCtrlBlk->xfrFrame);
+            wpalPacketFree(currentCtrlBlk->xfrFrame);
+         }
       }
 #if (defined(FEATURE_R33D) || defined(WLANDXE_TEST_CHANNEL_ENABLE))
       // descriptors allocated individually so free them individually
@@ -1534,7 +1538,7 @@ static wpt_status dxeNotifySmsm
      setSt |= SMSM_WLAN_TX_RINGS_EMPTY; 
    }
 
-   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR, "C%x S%x", clrSt, setSt);
+   HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_INFO_HIGH, "C%x S%x", clrSt, setSt);
 
    smsm_change_state(SMSM_APPS_STATE, clrSt, setSt);
 
@@ -3402,6 +3406,15 @@ wpt_status WLANDXE_Close
    }
 
    wpalEventDelete(&dxeCtxt->rxPalPacketAvailableEvent);
+
+   if(NULL != dxeCtxt->rxIsrMsg)
+   {
+      wpalMemoryFree(dxeCtxt->rxIsrMsg);
+   }
+   if(NULL != dxeCtxt->txIsrMsg)
+   {
+      wpalMemoryFree(dxeCtxt->txIsrMsg);
+   }
 
    wpalMemoryFree(pDXEContext);
 

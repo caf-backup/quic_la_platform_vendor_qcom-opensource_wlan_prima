@@ -380,20 +380,13 @@ typedef enum eAniEdType
     eSIR_ED_WEP104,
     eSIR_ED_TKIP,
     eSIR_ED_CCMP,
-#if defined(FEATURE_WLAN_WAPI)
     eSIR_ED_WPI,
-#endif
     eSIR_ED_AES_128_CMAC,
     eSIR_ED_NOT_IMPLEMENTED = WLAN_HAL_MAX_ENUM_SIZE
 } tAniEdType;
 
-#if defined(FEATURE_WLAN_WAPI)
 #define WLAN_MAX_KEY_RSC_LEN                16
 #define WLAN_WAPI_KEY_RSC_LEN               16
-#else
-#define WLAN_MAX_KEY_RSC_LEN                8
-#endif
-#define WLAN_WPA2_KEY_RSC_LEN               6
 
 /// MAX key length when ULA is used
 #define SIR_MAC_MAX_KEY_LENGTH              32

@@ -205,6 +205,13 @@ extern v_BOOL_t hdd_IsEAPOLPacket( vos_pkt_t *pVosPacket );
   @param pAdapter: [in] SAP/P2P GO adaptor. 
   ===========================================================================*/
 void hdd_mon_tx_mgmt_pkt(hdd_adapter_t* pAdapter);
+
+/**============================================================================
+  @brief hdd_mon_tx_work_queue() - workqueue handler for transmitting mgmt packets..
+
+  @param work: [in] workqueue structure.
+  ===========================================================================*/
+void hdd_mon_tx_work_queue(struct work_struct *work);
 #endif
 
 #endif    // end #if !defined( WLAN_HDD_TX_RX_H )

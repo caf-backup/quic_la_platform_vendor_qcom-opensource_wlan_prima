@@ -5146,6 +5146,11 @@ WDI_MainRsp
     /*We expect that we will transition to started after this processing*/
     pWDICtx->ucExpectedStateTransition = WDI_STARTED_ST; 
   }
+  else
+  {/*for indications no need to update state from what it is right now, unless
+    it explicitly does it in the indication handler (say for device failure ind) */
+    pWDICtx->ucExpectedStateTransition = pWDICtx->uGlobalState;
+  }
 
   /*Process the response */
   wdiStatus = WDI_ProcessResponse( pWDICtx, pEventData );
@@ -5159,7 +5164,7 @@ WDI_MainRsp
   2. device failure detected while processing response
   3. stop response received*/
   WDI_STATE_TRANSITION( pWDICtx, pWDICtx->ucExpectedStateTransition);
-
+ 
   /*Dequeue request that may have been queued while we were waiting for the
     response */
   if ( pEventData->wdiResponse ==  pWDICtx->wdiExpectedResponse )
@@ -8600,7 +8605,7 @@ WDI_ProcessAddSTASelfReq
       ( usSendSize < (usDataOffset + sizeof(tAddStaSelfParams) )))
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-              "Unable to get send buffer in set P2P GO NOA REQ %x %x %x",
+              "Unable to get send buffer in ADD STA SELF REQ %x %x %x",
      pEventData, pwdiAddSTASelfReqParams, wdiAddSTASelfReqRspCb);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
@@ -13819,7 +13824,7 @@ WDI_ProcessAddSTASelfRsp
   wdiAddSTAParam.ucStaType = WDI_STA_ENTRY_SELF; /* 0 - self */
   wdiAddSTAParam.ucSTAIdx = wdiAddSTASelfParams.ucSTASelfIdx;
 
-  if(wdiAddSTASelfParams.wdiStatus 
+  if(halAddStaSelfRsp.addStaSelfRspParams.status 
      != eHAL_STATUS_ADD_STA_SELF_IGNORED_REF_COUNT_NOT_ZERO)
   {
      (void)WDI_STATableAddSta(pWDICtx,&wdiAddSTAParam);
@@ -13883,15 +13888,18 @@ WDI_ProcessDelSTASelfRsp
   wdiDelStaSelfRspParams.wdiStatus   =   
     WDI_HAL_2_WDI_STATUS(delStaSelfRspParams.status); 
 
-  if( eHAL_STATUS_DEL_STA_SELF_IGNORED_REF_COUNT_NOT_ZERO
-                                   != delStaSelfRspParams.status)
+  /* delStaSelfRspParams.status is not 
+   eHAL_STATUS_DEL_STA_SELF_IGNORED_REF_COUNT_NOT_ZERO*/
+  if( eHAL_STATUS_SUCCESS == delStaSelfRspParams.status )
   {
-    WDI_STATableFindStaidByAddr(pWDICtx, delStaSelfRspParams.selfMacAddr,
-                                    &ucStaIdx);
-    if(WDI_STATUS_E_FAILURE == ucStaIdx)
+    WDI_Status wdiStatus;
+    wdiStatus = WDI_STATableFindStaidByAddr(pWDICtx, 
+                               delStaSelfRspParams.selfMacAddr,
+                               &ucStaIdx);
+    if(WDI_STATUS_E_FAILURE == wdiStatus)
     {
       WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                 "%s: Invalid STA IDX is returned ", __FUNCTION__);
+                 "%s: Unable to extract the STA Idx ", __FUNCTION__);
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
     }
@@ -18224,6 +18232,8 @@ WDI_HAL_2_WDI_STATUS
   switch(  halStatus )
   {
   case eHAL_STATUS_SUCCESS:
+  case eHAL_STATUS_ADD_STA_SELF_IGNORED_REF_COUNT_NOT_ZERO:
+  case eHAL_STATUS_DEL_STA_SELF_IGNORED_REF_COUNT_NOT_ZERO:
     return WDI_STATUS_SUCCESS;
   case eHAL_STATUS_FAILURE:
     return WDI_STATUS_E_FAILURE;

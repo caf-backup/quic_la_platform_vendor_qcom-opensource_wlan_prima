@@ -1464,6 +1464,10 @@ VOS_STATUS WDA_WniCfgDnld(tWDA_CbContext *pWDA)
     */
    processCfgDownloadReq(pMac,cbCfgBinarySize,pCfgBinary);
 
+   if( pFileImage != NULL )
+   {
+      vos_mem_free( pFileImage );
+   }
    return vosStatus;
    
 fail:
@@ -4236,7 +4240,14 @@ void WDA_SetLinkStateCallback(WDI_Status status, void* pUserData)
     * No respone required for WDA_SET_LINK_STATE so free the request 
     * param here
     */
-   vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+   if( pWdaParams != NULL )
+   {
+      if( pWdaParams->wdaWdiApiMsgParam != NULL )
+      {
+         vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+      }
+      vos_mem_free(pWdaParams);
+   }
    return ;
 }
 
@@ -5830,6 +5841,10 @@ VOS_STATUS WDA_ProcessEnterBmpsReq(tWDA_CbContext *pWDA,
       vos_mem_free(pWdaParams) ;
    }
 
+   if(NULL != pEnterBmpsReqParams)
+   {
+      vos_mem_free(pEnterBmpsReqParams);
+   }
    return CONVERT_WDI2VOS_STATUS(status) ;
 }
 
@@ -6078,9 +6093,18 @@ void WDA_SetPwrSaveCfgReqCallback(WDI_Status status, void* pUserData)
 
    WDA_VOS_ASSERT(NULL != pWdaParams);
 
-   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-   vos_mem_free(pWdaParams) ;
-
+   if( pWdaParams != NULL )
+   {
+      if( pWdaParams->wdaWdiApiMsgParam != NULL )
+      {
+         vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      }
+      if( pWdaParams->wdaMsgParam != NULL )
+      {
+         vos_mem_free(pWdaParams->wdaMsgParam) ;
+      }
+      vos_mem_free(pWdaParams) ;
+   }
 
    return ;
 }
@@ -6241,6 +6265,7 @@ VOS_STATUS WDA_ProcessSetPwrSaveCfgReq(tWDA_CbContext *pWDA,
 
       
    /* store Params pass it to WDI */
+   pWdaParams->wdaMsgParam = configParam;
    pWdaParams->wdaWdiApiMsgParam = wdiPowerSaveCfg;
    pWdaParams->pWdaContext = pWDA;
 
@@ -6255,6 +6280,10 @@ VOS_STATUS WDA_ProcessSetPwrSaveCfgReq(tWDA_CbContext *pWDA,
       vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
    }
 
+   if(NULL != pPowerSaveCfg)
+   {
+      vos_mem_free(pPowerSaveCfg);
+   }
    return CONVERT_WDI2VOS_STATUS(status) ;
 
 }
@@ -8281,6 +8310,10 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          }
          else
          {
+            if(NULL != pMsg->bodyptr)
+            {
+               vos_mem_free(pMsg->bodyptr);
+            }
             VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                        "WDA_PWR_SAVE_CFG req in wrong state %d", pWDA->wdaState );
          }
@@ -8383,6 +8416,11 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
                            "Handling msg type WDA_REGISTER_PE_CALLBACK " );
          /*TODO: store the PE callback */
+         /* Do Nothing? MSG Body should be freed at here */
+         if(NULL != pMsg->bodyptr)
+         {
+            vos_mem_free(pMsg->bodyptr);
+         }
          break;
       }
       case WDA_SYS_READY_IND :
@@ -8390,6 +8428,10 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
                                   "Handling msg type WDA_SYS_READY_IND " );
          pWDA->wdaState = WDA_READY_STATE;
+         if(NULL != pMsg->bodyptr)
+         {
+            vos_mem_free(pMsg->bodyptr);
+         }
          break;
       }
       case WDA_BEACON_FILTER_IND  :
@@ -8402,6 +8444,11 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          /*TODO: handle this while dealing with BTC */
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
                                   "Handling msg type WDA_BTC_SET_CFG  " );
+         /* Do Nothing? MSG Body should be freed at here */
+         if(NULL != pMsg->bodyptr)
+         {
+            vos_mem_free(pMsg->bodyptr);
+         }
          break;
       }
       case WDA_CFG_RXP_FILTER_REQ:

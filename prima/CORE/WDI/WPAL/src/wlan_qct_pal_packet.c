@@ -175,6 +175,10 @@ wpt_status wpalPacketFree(wpt_packet *pPkt)
 {
    VOS_STATUS vosStatus;
 
+   if(NULL != pPkt->pInternalData)
+   {
+      wpalMemoryFree(pPkt->pInternalData);
+   }
    vosStatus = vos_pkt_return_packet(WPAL_TO_VOS_PKT(pPkt));
 
    //With VOSS support, we can cast between wpt_status and VOS_STATUS
@@ -454,31 +458,29 @@ wpt_status wpalIteratorInit(wpt_iterator *pIter, wpt_packet *pPacket)
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
-   
-   /*Allocate memory for the current info*/
-   pCurInfo = wpalMemoryAllocate( sizeof(wpt_iterator_info) );
-
-   // Validate the memory allocation
-   if (unlikely(NULL == pCurInfo))
-   {
-      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                "%s : Failed to allocate memory ", __FUNCTION__);
-      return eWLAN_PAL_STATUS_E_INVAL;
-   }
-
-   pCurInfo->pPhyAddr = WPAL_PACKET_GET_BD_PHYS(pPacket);
-   pCurInfo->uLen     = WPAL_PACKET_GET_BD_LENGTH(pPacket);
-
    // if there is NO BD on this frame, then initialize the next pointer to
    // point the first fragment.
-   if ( NULL == pCurInfo->pPhyAddr )
+   if ( NULL == WPAL_PACKET_GET_BD_PHYS(pPacket) )
    {
-     pCurInfo->pPhyAddr  = pPktInfo->pPhyAddr;
-     pCurInfo->uLen      = pPktInfo->uLen; 
+     pCurInfo   = pPktInfo;
      pNextInfo           = NULL;
    }
    else
    {
+     /*Allocate memory for the current info*/
+     pCurInfo = wpalMemoryAllocate( sizeof(wpt_iterator_info) );
+
+     // Validate the memory allocation
+     if (unlikely(NULL == pCurInfo))
+     {
+        WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "%s : Failed to allocate memory ", __FUNCTION__);
+        return eWLAN_PAL_STATUS_E_INVAL;
+     }
+
+     pCurInfo->pPhyAddr = WPAL_PACKET_GET_BD_PHYS(pPacket);
+     pCurInfo->uLen     = WPAL_PACKET_GET_BD_LENGTH(pPacket);
+
      pNextInfo           = pPktInfo;
    }      
 
@@ -651,7 +653,7 @@ wpt_status wpalLockPacketForTransfer( wpt_packet *pPacket)
 wpt_status wpalUnlockPacket( wpt_packet *pPacket)
 {
 
-   wpt_iterator_info* pInfo  = (wpt_iterator_info*)pPacket->pInternalData;
+   wpt_iterator_info* pInfo;
 
    // Validate the parameter pointers
    if (unlikely(NULL == pPacket))
@@ -661,6 +663,7 @@ wpt_status wpalUnlockPacket( wpt_packet *pPacket)
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
+   pInfo  = (wpt_iterator_info*)pPacket->pInternalData;
    switch(WPAL_PACKET_GET_TYPE(pPacket))
    {
       /* For management frames, BD is allocated by WDI, header is in raw buffer,
@@ -703,7 +706,8 @@ wpt_status wpalUnlockPacket( wpt_packet *pPacket)
       }
    }
 
-  wpalMemoryFree(pInfo); 
+  wpalMemoryFree(pInfo);
+  pPacket->pInternalData = NULL;
   return eWLAN_PAL_STATUS_SUCCESS;
 }/*wpalUnlockPacket*/
 

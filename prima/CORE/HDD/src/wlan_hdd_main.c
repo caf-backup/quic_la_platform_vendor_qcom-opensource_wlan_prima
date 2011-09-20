@@ -1078,7 +1078,10 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
                            hdd_get_adapter(pAdapter->pHddCtx, WLAN_HDD_P2P_GO);
          }
 #endif
-         
+         /* This workqueue will be used to transmit management packet over
+          * monitor interface. */
+         INIT_WORK(&pAdapter->sessionCtx.monitor.pAdapterForTx->monTxWorkQueue,
+                   hdd_mon_tx_work_queue);
 #endif
        }
        break;
@@ -1160,6 +1163,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 
 err_free_netdev:
    free_netdev(pAdapter->dev);
+   wlan_hdd_release_intf_addr( pHddCtx,
+                               pAdapter->macAddressCurrent.bytes );
    return NULL;
 }
 
@@ -1239,6 +1244,7 @@ VOS_STATUS hdd_close_all_adapters( hdd_context_t *pHddCtx )
 VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
 {
   eHalStatus halStatus = eHAL_STATUS_SUCCESS;
+  hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
   union iwreq_data wrqu;
 
   if( (WLAN_HDD_INFRA_STATION == pAdapter->device_mode) ||
@@ -1250,7 +1256,14 @@ VOS_STATUS hdd_stop_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
       case WLAN_HDD_P2P_CLIENT:
          if( hdd_connIsConnected( WLAN_HDD_GET_STATION_CTX_PTR( pAdapter )) )
          {
-            halStatus = sme_RoamDisconnect(pHddCtx->hHal, pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED);
+            if (pWextState->roamProfile.BSSType == eCSR_BSS_TYPE_START_IBSS)
+                halStatus = sme_RoamDisconnect(pHddCtx->hHal,
+                                             pAdapter->sessionId,
+                                             eCSR_DISCONNECT_REASON_IBSS_LEAVE);
+            else
+                halStatus = sme_RoamDisconnect(pHddCtx->hHal,
+                                            pAdapter->sessionId, 
+                                            eCSR_DISCONNECT_REASON_UNSPECIFIED);
             //success implies disconnect command got queued up successfully
             if(halStatus == eHAL_STATUS_SUCCESS)
             {

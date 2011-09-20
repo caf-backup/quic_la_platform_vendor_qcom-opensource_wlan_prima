@@ -99,6 +99,8 @@ VOS_STATUS vos_get_binary_blob( VOS_BINARY_ID binaryId,
     
     return VosSts;                                  
 }
+
+#ifndef FEATURE_WLAN_INTEGRATED_SOC
 VOS_STATUS vos_get_fwbinary( v_VOID_t **ppBinary, v_SIZE_t *pNumBytes )
 {        
    v_CONTEXT_t pVosContext;
@@ -113,6 +115,7 @@ VOS_STATUS vos_get_fwbinary( v_VOID_t **ppBinary, v_SIZE_t *pNumBytes )
    } 
    return status;      
 }         
+#endif
 
 #ifdef WLAN_SOFTAP_FEATURE
 tVOS_CON_MODE vos_get_conparam( void )

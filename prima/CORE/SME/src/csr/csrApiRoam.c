@@ -4665,6 +4665,12 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
                     csrRoamLinkDown(pMac, sessionId);
                     csrScanStartIdleScan(pMac);
                     break;
+                case eCsrForcedIbssLeave:
+                     csrRoamCallCallback(pMac, sessionId, NULL, 
+                                        pCommand->u.roamCmd.roamId, 
+                                        eCSR_ROAM_IBSS_LEAVE,
+                                        eCSR_ROAM_RESULT_IBSS_STOP);
+                    break;
                 case eCsrForcedDisassocMICFailure:
                     csrRoamStateChange( pMac, eCSR_ROAMING_STATE_IDLE );
                     csrRoamCallCallback(pMac, sessionId, NULL, pCommand->u.roamCmd.roamId, eCSR_ROAM_DISASSOCIATED, eCSR_ROAM_RESULT_MIC_FAILURE);
@@ -5608,6 +5614,10 @@ eHalStatus csrRoamIssueDisassociateCmd( tpAniSirGlobal pMac, tANI_U32 sessionId,
 
         case eCSR_DISCONNECT_REASON_IBSS_JOIN_FAILURE:
             pCommand->u.roamCmd.roamReason = eCsrSmeIssuedIbssJoinFailure;
+            break;
+
+        case eCSR_DISCONNECT_REASON_IBSS_LEAVE:
+            pCommand->u.roamCmd.roamReason = eCsrForcedIbssLeave;
             break;
 
         default:

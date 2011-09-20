@@ -401,6 +401,7 @@ typedef enum
     //Callback pass a BSSID in peerMacOrBssid
     eCSR_ROAM_RESULT_IBSS_COALESCED,    
     //If roamStatus is eCSR_ROAM_ROAMING_START, callback may get a pointer to tCsrConnectedProfile used to connect.
+    eCSR_ROAM_RESULT_IBSS_STOP,  
     eCSR_ROAM_RESULT_LOSTLINK, 
     eCSR_ROAM_RESULT_MIC_ERROR_UNICAST,
     eCSR_ROAM_RESULT_MIC_ERROR_GROUP,

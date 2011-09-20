@@ -454,13 +454,22 @@ VOS_STATUS vos_nv_open(void)
     if ( (!VOS_IS_STATUS_SUCCESS( status )) || !gnvEFSTable)
     {
          VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
-         "%s : hdd_request_firmware failed to read the qct_wlan_nv.bin \n",__func__);
+                   "%s : unable to download NV file %s",
+                   __FUNCTION__, WLAN_NV_FILE);
+         return VOS_STATUS_E_RESOURCES;
     }
 
      /* Copying the read nv data to the globa NV EFS table */
     {
         /* Allocate memory to global NV table */
         pnvEFSTable = (nvEFSTable_t *)vos_mem_malloc(sizeof(nvEFSTable_t));
+        if (NULL == pnvEFSTable)
+        {
+            VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                      "%s : failed to allocate memory for NV", __FUNCTION__);
+            return VOS_STATUS_E_NOMEM;
+        }
+
         /*Copying the NV defaults */
         vos_mem_copy(&(pnvEFSTable->halnv),&nvDefaults,sizeof(sHalNv));
         pnvEFSTable->nvValidityBitmap = gnvEFSTable->nvValidityBitmap;
@@ -624,6 +633,7 @@ VOS_STATUS vos_nv_close(void)
                          "%s : vos_open failed\n",__func__);
         return VOS_STATUS_E_FAILURE;
     }
+    vos_mem_free(pnvEFSTable);
     gnvEFSTable=NULL;
     return VOS_STATUS_SUCCESS;
 }

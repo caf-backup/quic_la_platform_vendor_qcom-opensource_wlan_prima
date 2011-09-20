@@ -315,7 +315,7 @@ fail:
    return;
 }
 
-static void hdd_mon_tx_work_queue(struct work_struct *work)
+void hdd_mon_tx_work_queue(struct work_struct *work)
 {
    hdd_adapter_t* pAdapter = container_of(work, hdd_adapter_t, monTxWorkQueue);
    hdd_mon_tx_mgmt_pkt(pAdapter);
@@ -460,9 +460,6 @@ int hdd_mon_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
 
       if ( pktListSize == 1 )
       {
-         /* We received a management packet over monitor interface to transmit */
-         INIT_WORK(&pPgBkAdapter->monTxWorkQueue, hdd_mon_tx_work_queue);
-
          /* In this context we cannot acquire any mutex etc. And to transmit 
           * this packet we need to call SME API. So to take care of this we will
           * schedule a workqueue 

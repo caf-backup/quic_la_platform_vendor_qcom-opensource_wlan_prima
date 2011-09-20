@@ -1774,8 +1774,7 @@ tANI_BOOLEAN csrIsNULLSSID( tANI_U8 *pBssSsid, tANI_U8 len )
         }
 
         //Consider 0 or space for hidden SSID
-        if ( ( 0 == pBssSsid[0] ) ||
-             ( ( 1 == len ) && ( 0x20 == pBssSsid[0] ) ) )
+        if ( 0 == pBssSsid[0] )
         {
              fNullSsid = TRUE;
              break;
