@@ -78,6 +78,7 @@ static VOS_STATUS hdd_softap_flush_tx_queues( hdd_adapter_t *pAdapter )
    skb_list_node_t *pktNode = NULL;
    struct sk_buff *skb = NULL;
 
+   spin_lock_bh( &pAdapter->staInfo_lock );
    for (STAId = 0; STAId < WLAN_MAX_STA_COUNT; STAId++)
    {
       if (FALSE == pAdapter->aStaInfo[STAId].isUsed)
@@ -112,6 +113,7 @@ static VOS_STATUS hdd_softap_flush_tx_queues( hdd_adapter_t *pAdapter )
       }
    }
 
+   spin_unlock_bh( &pAdapter->staInfo_lock );
 
    return status;
 }
@@ -140,9 +142,10 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    hdd_ap_ctx_t *pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);   
    vos_list_node_t *anchor = NULL;
    v_U8_t STAId = WLAN_MAX_STA_COUNT;
-   v_MACADDR_t *pDestMacAddress;
-
    //Extract the destination address from ethernet frame
+   v_MACADDR_t *pDestMacAddress = (v_MACADDR_t*)skb->data;
+   int os_status = NETDEV_TX_OK; 
+
    pDestMacAddress = (v_MACADDR_t*)skb->data;
    
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitCalled;
@@ -150,6 +153,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO,
               "%s: enter", __FUNCTION__);
 
+   spin_lock_bh( &pAdapter->staInfo_lock );
    if (vos_is_macaddr_broadcast( pDestMacAddress ) || vos_is_macaddr_group(pDestMacAddress))
    {
       //The BC/MC station ID is assigned during BSS starting phase. SAP will return the station 
@@ -173,7 +177,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          ++pAdapter->stats.tx_dropped;
          ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
          kfree_skb(skb);
-         return NETDEV_TX_OK;
+         goto xmit_done;
       }
       else if (FALSE == pAdapter->aStaInfo[STAId].isUsed )
       {
@@ -181,7 +185,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          ++pAdapter->stats.tx_dropped;
          ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
          kfree_skb(skb);
-         return NETDEV_TX_OK;
+         goto xmit_done;
       }
 
       if ( (WLANTL_STA_CONNECTED != pAdapter->aStaInfo[STAId].tlSTAState) && 
@@ -192,7 +196,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          ++pAdapter->stats.tx_dropped;
          ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
          kfree_skb(skb);
-         return NETDEV_TX_OK;
+         goto xmit_done;
       }
       else if(WLANTL_STA_CONNECTED == pAdapter->aStaInfo[STAId].tlSTAState)
       {
@@ -203,7 +207,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
             ++pAdapter->stats.tx_dropped;
             ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
             kfree_skb(skb);
-            return NETDEV_TX_OK;
+            goto xmit_done;
         }
       }
    }
@@ -237,7 +241,8 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
        VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, 
                   "%s: TX queue full for AC=%d Disable OS TX queue", 
                   __FUNCTION__, ac );
-      return NETDEV_TX_BUSY;   
+      os_status = NETDEV_TX_BUSY;   
+      goto xmit_done;
    }
 
    //Use the skb->cb field to hold the list node information
@@ -262,7 +267,7 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
       ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
       ++pAdapter->stats.tx_dropped;
       kfree_skb(skb);
-      return NETDEV_TX_OK;
+      goto xmit_done;
    }
 
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueued;
@@ -287,14 +292,16 @@ int hdd_softap_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
          ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
          kfree_skb(skb);
-         return NETDEV_TX_OK;
+         goto xmit_done;
       }
    }
    dev->trans_start = jiffies;
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit \n", __FUNCTION__);
 
-   return NETDEV_TX_OK;
+xmit_done:
+   spin_unlock_bh( &pAdapter->staInfo_lock );
+   return os_status;
 }
 
 /**============================================================================
@@ -313,7 +320,7 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
                                       v_U8_t STAId, 
                                       v_U8_t up)
 {
-   VOS_STATUS status;
+   VOS_STATUS status = VOS_STATUS_SUCCESS; 
    skb_list_node_t *pktNode = NULL;
    v_SIZE_t pktListSize = 0;
    hdd_adapter_t *pAdapter = (hdd_adapter_t *)netdev_priv(dev);
@@ -325,12 +332,14 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
               "%s: enter", __FUNCTION__);
 
-   if (FALSE == pAdapter->aStaInfo[STAId].isUsed )
+   spin_lock_bh( &pAdapter->staInfo_lock );
+   if ( FALSE == pAdapter->aStaInfo[STAId].isUsed )
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
                  "%s: STA is unregistered", __FUNCTION__, STAId );
       kfree_skb(skb);
-      return VOS_STATUS_E_FAILURE;
+      status = VOS_STATUS_E_FAILURE;
+      goto xmit_end;
    }
 
    /* If the QoS is not enabled on the receiving station, then send it with BE priority */
@@ -368,7 +377,8 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
         */
        kfree_skb(skb);
        spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
-       return VOS_STATUS_E_FAILURE;
+       status = VOS_STATUS_E_FAILURE;
+       goto xmit_end;
    }
    status = hdd_list_insert_back_size(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac], &pktNode->anchor, &pktListSize );
    spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
@@ -380,7 +390,8 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
       ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
       ++pAdapter->stats.tx_dropped;
       kfree_skb(skb);
-      return VOS_STATUS_E_FAILURE;
+      status = VOS_STATUS_E_FAILURE;
+      goto xmit_end;
    }
 
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueued;
@@ -406,13 +417,16 @@ VOS_STATUS hdd_softap_sta_2_sta_xmit(struct sk_buff *skb,
          ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
          ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
          kfree_skb(skb);
-         return VOS_STATUS_E_FAILURE;
+         status = VOS_STATUS_E_FAILURE;
+         goto xmit_end;
       }
    }
 
    VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW, "%s: exit \n", __FUNCTION__);
 
-   return VOS_STATUS_SUCCESS;
+xmit_end:
+   spin_unlock_bh( &pAdapter->staInfo_lock );
+   return status;
 }
 
 /**============================================================================
@@ -485,6 +499,8 @@ VOS_STATUS hdd_softap_init_tx_rx( hdd_adapter_t *pAdapter )
    pAdapter->aTxQueueLimit[WLANTL_AC_BE] = HDD_SOFTAP_TX_BE_QUEUE_MAX_LEN;
    pAdapter->aTxQueueLimit[WLANTL_AC_VI] = HDD_SOFTAP_TX_VI_QUEUE_MAX_LEN;
    pAdapter->aTxQueueLimit[WLANTL_AC_VO] = HDD_SOFTAP_TX_VO_QUEUE_MAX_LEN;
+
+   spin_lock_init( &pAdapter->staInfo_lock );
 
    for (STAId = 0; STAId < WLAN_MAX_STA_COUNT; STAId++)
    {
@@ -581,9 +597,11 @@ static VOS_STATUS hdd_softap_flush_tx_queues_sta( hdd_adapter_t *pAdapter, v_U8_
 VOS_STATUS hdd_softap_init_tx_rx_sta( hdd_adapter_t *pAdapter, v_U8_t STAId, v_MACADDR_t *pmacAddrSTA)
 {
    v_U8_t i = 0;
+   spin_lock_bh( &pAdapter->staInfo_lock );
    if (pAdapter->aStaInfo[STAId].isUsed)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, "%s: Reinit station %d", __FUNCTION__, STAId );
+      spin_unlock_bh( &pAdapter->staInfo_lock );
       return VOS_STATUS_E_FAILURE;
    }
 
@@ -596,6 +614,7 @@ VOS_STATUS hdd_softap_init_tx_rx_sta( hdd_adapter_t *pAdapter, v_U8_t STAId, v_M
    pAdapter->aStaInfo[STAId].isUsed = TRUE;
    vos_copy_macaddr( &pAdapter->aStaInfo[STAId].macAddrSTA, pmacAddrSTA);
 
+   spin_unlock_bh( &pAdapter->staInfo_lock );
    return VOS_STATUS_SUCCESS;
 }
 
@@ -616,9 +635,11 @@ VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_adapter_t *pAdapter, v_U8_t STAId )
    v_BOOL_t txSuspended[NUM_TX_QUEUES];
    v_U8_t tlAC;
 
+   spin_lock_bh( &pAdapter->staInfo_lock );
    if (FALSE == pAdapter->aStaInfo[STAId].isUsed)
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR, "%s: Deinit station not inited %d", __FUNCTION__, STAId );
+      spin_unlock_bh( &pAdapter->staInfo_lock );
       return VOS_STATUS_E_FAILURE;
    }
 
@@ -643,6 +664,7 @@ VOS_STATUS hdd_softap_deinit_tx_rx_sta ( hdd_adapter_t *pAdapter, v_U8_t STAId )
        }
    }
 
+   spin_unlock_bh( &pAdapter->staInfo_lock );
    return status;
 }
 
@@ -1121,24 +1143,30 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
 
       if (WLAN_RX_BCMC_STA_ID == pRxMetaInfo->ucDesSTAId)
       {
-        //MC/BC packets. Duplicate a copy of packet
-        struct sk_buff *pSkbCopy;
-        pSkbCopy = skb_copy(skb, GFP_ATOMIC);
+         //MC/BC packets. Duplicate a copy of packet
+         struct sk_buff *pSkbCopy;
+         hdd_ap_ctx_t *pHddApCtx;
 
-        if (pSkbCopy)
-        {
-           hdd_hostapd_select_queue(skb->dev, skb);
-           hdd_softap_hard_start_xmit(pSkbCopy, skb->dev);
-        }
-        else
-        {
-            VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+         pHddApCtx = WLAN_HDD_GET_AP_CTX_PTR(pAdapter);
+         if (!(pHddApCtx->apDisableIntraBssFwd))
+         {
+             pSkbCopy = skb_copy(skb, GFP_ATOMIC);
+             if (pSkbCopy)
+             {
+               hdd_softap_sta_2_sta_xmit(pSkbCopy, pSkbCopy->dev,
+                          pHddApCtx->uBCStaId, (pRxMetaInfo->ucUP));
+             }
+         }
+         else
+         {
+             VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
                       "%s: skb allocation fails", __FUNCTION__);
-        }
+         }
+ 
 
       } //(WLAN_RX_BCMC_STA_ID == staId)
 
-      if ((WLAN_RX_BCMC_STA_ID == pRxMetaInfo->ucDesSTAId) ||
+      if ((WLAN_RX_BCMC_STA_ID == pRxMetaInfo->ucDesSTAId) || 
           (WLAN_RX_SAP_SELF_STA_ID == pRxMetaInfo->ucDesSTAId))
       {
          VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_INFO_LOW,
@@ -1156,7 +1184,7 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
             ++pAdapter->hdd_stats.hddTxRxStats.rxRefused;
          }
       }
-      else if((WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->apDisableIntraBssFwd)
+      else if ((WLAN_HDD_GET_AP_CTX_PTR(pAdapter))->apDisableIntraBssFwd)
       {
         kfree_skb(skb);   
       } 

@@ -816,7 +816,7 @@ static int wlan_hdd_cfg80211_add_beacon(struct wiphy *wiphy,
 
         pAdapter->sessionCtx.ap.beacon = new;
 
-        //status = wlan_hdd_cfg80211_start_bss(pAdapter);
+        status = wlan_hdd_cfg80211_start_bss(pAdapter);
     }
 
     EXIT();
@@ -1008,6 +1008,10 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 pRoamProfile->phyMode = 
                 hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
                 wdev->iftype = type;
+#ifdef WLAN_FEATURE_P2P
+                pAdapter->device_mode = (type == NL80211_IFTYPE_STATION) ?
+                                WLAN_HDD_INFRA_STATION: WLAN_HDD_P2P_CLIENT;
+#endif
                 break;
             case NL80211_IFTYPE_ADHOC:
                 hddLog(VOS_TRACE_LEVEL_INFO, 
@@ -1015,6 +1019,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
                 pRoamProfile->BSSType = eCSR_BSS_TYPE_START_IBSS;
                 pRoamProfile->phyMode = 
                     hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
+                wdev->iftype = type;
                 break;
 
             case NL80211_IFTYPE_AP:
@@ -1081,24 +1086,29 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
            case NL80211_IFTYPE_P2P_CLIENT:               
 #endif
            case NL80211_IFTYPE_ADHOC:
-               wdev->iftype = type;
-               pAdapter->device_mode = WLAN_HDD_INFRA_STATION;
+                wdev->iftype = type;
+#ifdef WLAN_FEATURE_P2P
+                pAdapter->device_mode = (type == NL80211_IFTYPE_STATION) ?
+                                  WLAN_HDD_INFRA_STATION: WLAN_HDD_P2P_CLIENT;
+#endif
+                hdd_set_conparam(0);
+               (WLAN_HDD_GET_CTX(pAdapter))->change_iface = type;
+                hdd_deinit_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
 
-               hdd_set_conparam(0);
-   
-              (WLAN_HDD_GET_CTX(pAdapter))->change_iface = type;
-               hdd_deinit_adapter( WLAN_HDD_GET_CTX(pAdapter), pAdapter );
-
-               hdd_set_station_ops( pAdapter->dev );
-               status = hdd_init_station_mode( pAdapter );
-               if( VOS_STATUS_SUCCESS != status )
-                   return -EOPNOTSUPP;
-               goto done;
+                hdd_set_station_ops( pAdapter->dev );
+                status = hdd_init_station_mode( pAdapter );
+                if( VOS_STATUS_SUCCESS != status )
+                    return -EOPNOTSUPP;
+                goto done;
             case NL80211_IFTYPE_AP:
 #ifdef WLAN_FEATURE_P2P
             case NL80211_IFTYPE_P2P_GO:
 #endif
-               wdev->iftype = type;
+                wdev->iftype = type;
+#ifdef WLAN_FEATURE_P2P
+                pAdapter->device_mode = (type == NL80211_IFTYPE_AP) ?
+                                        WLAN_HDD_SOFTAP : WLAN_HDD_P2P_GO;
+#endif
                goto done;
            default:
                 hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Unsupported interface Type",
@@ -3461,15 +3471,15 @@ int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
 
     /* TODO Fill following */
     //sinfo->rx_bytes
-	  //sininfo->tx_bytes;
-	  //sininfo->llid;
-	  //sininfo->plid;
-	  //sininfo->plink_state;
-	  //sinifo->signal;
-	  //sininfo->txrate.... ;
-	  //sininfo->rx_packets;
-	  //sininfo->tx_packets;
-	  //sininfo->generation;
+    //sininfo->tx_bytes;
+    //sininfo->llid;
+    //sininfo->plid;
+    //sininfo->plink_state;
+    //sinifo->signal;
+    //sininfo->txrate.... ;
+    //sininfo->rx_packets;
+    //sininfo->tx_packets;
+    //sininfo->generation;
 
     return 0;
 }

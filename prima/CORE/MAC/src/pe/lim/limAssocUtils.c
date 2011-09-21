@@ -2086,14 +2086,17 @@ limAddSta(
     /* Update PE session ID*/
     pAddStaParams->sessionId = psessionEntry->peSessionId;
 
+    if (psessionEntry->parsedAssocReq != NULL)
+    {	
 #ifdef WLAN_FEATURE_P2P
     // Get a copy of the already parsed Assoc Request
-    pAssocReq = (tpSirAssocReq) psessionEntry->parsedAssocReq[pStaDs->assocId];
-    if ( pAssocReq && pAssocReq->addIEPresent && pAssocReq->addIE.length ) {
-        p2pIe = limGetP2pIEPtr(pMac, pAssocReq->addIE.addIEdata, pAssocReq->addIE.length);
-    }
-    pAddStaParams->p2pCapableSta = (p2pIe != NULL);
+       pAssocReq = (tpSirAssocReq) psessionEntry->parsedAssocReq[pStaDs->assocId];
+       if ( pAssocReq && pAssocReq->addIEPresent && pAssocReq->addIE.length ) {
+           p2pIe = limGetP2pIEPtr(pMac, pAssocReq->addIE.addIEdata, pAssocReq->addIE.length);
+       }
+       pAddStaParams->p2pCapableSta = (p2pIe != NULL);
 #endif
+    }
 
     //Disable BA. It will be set as part of ADDBA negotiation.
     for( i = 0; i < STACFG_MAX_TC; i++ )

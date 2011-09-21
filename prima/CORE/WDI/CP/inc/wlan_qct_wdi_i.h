@@ -581,6 +581,8 @@ typedef enum
   /* Tx Complete Indication */
   WDI_HAL_TX_COMPLETE_IND             = WDI_HAL_IND_MIN + 9,
 
+  WDI_HAL_P2P_NOA_ATTR_IND            = WDI_HAL_IND_MIN + 10,
+
   WDI_MAX_RESP
 }WDI_ResponseEnumType; 
 
@@ -3510,6 +3512,26 @@ WDI_ProcessTxCompleteInd
   WDI_ControlBlockType*  pWDICtx,
   WDI_EventInfoType*     pEventData
 );
+
+#ifdef WLAN_FEATURE_P2P
+/**
+*@brief Process Noa Attr Indication function (called when
+        an indication of this kind is being received over the
+        bus from HAL)
+
+ @param  pWDICtx:         pointer to the WLAN DAL context
+         pEventData:      pointer to the event information structure
+
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessP2pNoaAttrInd
+(
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+#endif
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 /**

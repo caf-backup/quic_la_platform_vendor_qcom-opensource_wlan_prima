@@ -153,6 +153,7 @@ void WDI_DS_MemPoolDestroy(WDI_DS_BdMemPoolType *memPool)
 {
   //Allocate all the max size.
   wpalDmaMemoryFree(memPool->pVirtBaseAddress);
+  wpalMemoryFree(memPool->AllocationBitmap);
   wpalMemoryZero(memPool, sizeof(*memPool));
 }
 /*

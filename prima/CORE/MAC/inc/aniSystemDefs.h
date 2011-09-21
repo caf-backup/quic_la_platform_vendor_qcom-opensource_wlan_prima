@@ -27,13 +27,10 @@
 //This is to force compiler to use the maximum of an int for enum
 #define SIR_MAX_ENUM_SIZE    0x7FFFFFFF
 
-#if defined(FEATURE_WLAN_WAPI)
+/* Max key size  including the WAPI and TKIP */
 #define WLAN_MAX_KEY_RSC_LEN         16
 #define WLAN_WAPI_KEY_RSC_LEN        16
-#else
-#define WLAN_MAX_KEY_RSC_LEN         8
-#endif
-#define WLAN_WPA2_KEY_RSC_LEN        6
+
 
 
 #ifndef FALSE

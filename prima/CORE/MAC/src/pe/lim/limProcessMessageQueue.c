@@ -117,6 +117,9 @@ defMsgDecision(tpAniSirGlobal pMac, tpSirMsgQ  limMsg)
         (limMsg->type != WDA_WOWL_ENTER_RSP) &&
         (limMsg->type != WDA_WOWL_EXIT_RSP) &&
         (limMsg->type != WDA_SWITCH_CHANNEL_RSP) &&
+#ifdef WLAN_FEATURE_P2P 
+        (limMsg->type != WDA_P2P_NOA_ATTR_IND) &&
+#endif
 #ifdef FEATURE_INNAV_SUPPORT
         (limMsg->type != WDA_START_INNAV_MEAS_RSP) &&
 #endif

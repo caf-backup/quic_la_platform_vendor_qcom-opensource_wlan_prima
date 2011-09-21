@@ -116,6 +116,22 @@ wpt_status wpalRegisterInterrupt
 );
 
 /**
+  @brief wpalUnRegisterInterrupt provides a mechansim for client
+         to un-register for a given interrupt
+
+  When DXE stop, remove registered information from PAL
+  
+  @param  intType:          Enumeration of the interrupt type (TX or RX)
+
+  @return NONE
+*/
+
+void wpalUnRegisterInterrupt
+(
+   wpt_uint32      intType
+);
+
+/**
   @brief wpalEnableInterrupt provides a mechansim for a client
          to request that a given interrupt be enabled
 

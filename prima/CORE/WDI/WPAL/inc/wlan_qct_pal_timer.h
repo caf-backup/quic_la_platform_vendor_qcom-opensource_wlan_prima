@@ -9,7 +9,7 @@
                
    Definitions for platform independent.
   
-   Copyright 2010 (c) Qualcomm, Incorporated.  All Rights Reserved.
+   Copyright 2010-2011 (c) Qualcomm, Incorporated.  All Rights Reserved.
    
    Qualcomm Confidential and Proprietary.
   
@@ -31,43 +31,52 @@ typedef struct
 
 
 /*---------------------------------------------------------------------------
-    wpalTimerInit – initialize a wpt_timer object
+    wpalTimerInit - initialize a wpt_timer object
     Param:
-        pTimer – a pointer to caller allocated wpt_timer object
+        pTimer - a pointer to caller allocated wpt_timer object
         callback - A callback function
         pUserData - A pointer to data pass as parameter of the callback function.
     Return:
-        eWLAN_PAL_STATUS_SUCCESS – success. Fail otherwise.
+        eWLAN_PAL_STATUS_SUCCESS - success. Fail otherwise.
 ---------------------------------------------------------------------------*/
 wpt_status wpalTimerInit(wpt_timer * pTimer, wpal_timer_callback callback, void *pUserData);
 
 /*---------------------------------------------------------------------------
-    wpalTimerDelete – invalidate a wpt_timer object
+    wpalTimerDelete - invalidate a wpt_timer object
     Param:
-        pTimer – a pointer to caller allocated wpt_timer object
+        pTimer - a pointer to caller allocated wpt_timer object
     Return:
-        eWLAN_PAL_STATUS_SUCCESS – success. Fail otherwise.
+        eWLAN_PAL_STATUS_SUCCESS - success. Fail otherwise.
 ---------------------------------------------------------------------------*/
 wpt_status wpalTimerDelete(wpt_timer * pTimer);
 
 /*---------------------------------------------------------------------------
-    wpalTimerStart – start a wpt_timer object with a timeout value
+    wpalTimerStart - start a wpt_timer object with a timeout value
     Param:
-        pTimer – a pointer to caller allocated wpt_timer object
-        timeout – timeout value of the timer. In unit of milli-seconds.
+        pTimer - a pointer to caller allocated wpt_timer object
+        timeout - timeout value of the timer. In unit of milli-seconds.
     Return:
-        eWLAN_PAL_STATUS_SUCCESS – success. Fail otherwise.
+        eWLAN_PAL_STATUS_SUCCESS - success. Fail otherwise.
 ---------------------------------------------------------------------------*/
 wpt_status wpalTimerStart(wpt_timer * pTimer, wpt_uint32 timeout);
 
 /*---------------------------------------------------------------------------
-    wpalTimerStop – stop a wpt_timer object. Stop doesn’t guarantee the timer handler is not called if it is already timeout.
+    wpalTimerStop - stop a wpt_timer object. Stop doesn’t guarantee the timer handler is not called if it is already timeout.
     Param:
-        pTimer – a pointer to caller allocated wpt_timer object
+        pTimer - a pointer to caller allocated wpt_timer object
     Return:
-        eWLAN_PAL_STATUS_SUCCESS – success. Fail otherwise.
+        eWLAN_PAL_STATUS_SUCCESS - success. Fail otherwise.
 ---------------------------------------------------------------------------*/
 wpt_status wpalTimerStop(wpt_timer * pTimer);
+
+/*---------------------------------------------------------------------------
+    wpalSleep - sleep for a specified interval
+    Param:
+        timeout - amount of time to sleep. In unit of milli-seconds.
+    Return:
+        eWLAN_PAL_STATUS_SUCCESS - success. Fail otherwise.
+---------------------------------------------------------------------------*/
+wpt_status wpalSleep(wpt_uint32 timeout);
 
 
 

@@ -733,8 +733,7 @@ VosWDThread
           {
              VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL, "%s: Failed to reset WLAN",__func__);
              VOS_ASSERT(0);
-             shutdown = VOS_TRUE;
-             break;
+             goto err_reset;
           }
 #endif
              pWdContext->resetInProgress = false;
@@ -758,6 +757,12 @@ VosWDThread
   VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
       "%s: Watchdog Thread exiting!!!!", __FUNCTION__);
   complete_and_exit(&pWdContext->WdShutdown, 0);
+
+err_reset:
+    VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+      "%s: Watchdog Thread Failed to Reset, Exiting!!!!", __FUNCTION__);
+    return 0;
+
 } /* VosMCThread() */
 
 /*---------------------------------------------------------------------------

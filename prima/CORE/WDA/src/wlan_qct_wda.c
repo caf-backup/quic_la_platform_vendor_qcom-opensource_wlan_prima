@@ -43,6 +43,7 @@
 #include "vos_mq.h" 
 #include "vos_api.h" 
 #include "vos_packet.h" 
+#include "vos_nvitem.h"
 #include "sirApi.h"
 #include "wlan_qct_pal_packet.h"
 #include "wlan_qct_wda.h"
@@ -1463,6 +1464,10 @@ VOS_STATUS WDA_WniCfgDnld(tWDA_CbContext *pWDA)
     */
    processCfgDownloadReq(pMac,cbCfgBinarySize,pCfgBinary);
 
+   if( pFileImage != NULL )
+   {
+      vos_mem_free( pFileImage );
+   }
    return vosStatus;
    
 fail:
@@ -4219,8 +4224,12 @@ void WDA_SetLinkStateCallback(WDI_Status status, void* pUserData)
 
    linkStateParams = (tLinkStateParams *)pWdaParams->wdaMsgParam ;
 
-   if( linkStateParams->state == eSIR_LINK_POSTASSOC_STATE && 
-       status == WDI_STATUS_SUCCESS )
+   /*
+    * In STA mode start the BA activity check timer after association
+    * and in AP mode start BA activity check timer after BSS start */
+   if( ((linkStateParams->state == eSIR_LINK_POSTASSOC_STATE) &&
+         status == WDI_STATUS_SUCCESS) ||  ((status == WDI_STATUS_SUCCESS) &&
+       (linkStateParams->state == eSIR_LINK_AP_STATE)) )
    {
       WDA_START_TIMER(&pWDA->wdaTimers.baActivityChkTmr);
    }
@@ -4231,7 +4240,14 @@ void WDA_SetLinkStateCallback(WDI_Status status, void* pUserData)
     * No respone required for WDA_SET_LINK_STATE so free the request 
     * param here
     */
-   vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+   if( pWdaParams != NULL )
+   {
+      if( pWdaParams->wdaWdiApiMsgParam != NULL )
+      {
+         vos_mem_free(pWdaParams->wdaWdiApiMsgParam) ;
+      }
+      vos_mem_free(pWdaParams);
+   }
    return ;
 }
 
@@ -5825,6 +5841,10 @@ VOS_STATUS WDA_ProcessEnterBmpsReq(tWDA_CbContext *pWDA,
       vos_mem_free(pWdaParams) ;
    }
 
+   if(NULL != pEnterBmpsReqParams)
+   {
+      vos_mem_free(pEnterBmpsReqParams);
+   }
    return CONVERT_WDI2VOS_STATUS(status) ;
 }
 
@@ -6073,9 +6093,18 @@ void WDA_SetPwrSaveCfgReqCallback(WDI_Status status, void* pUserData)
 
    WDA_VOS_ASSERT(NULL != pWdaParams);
 
-   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
-   vos_mem_free(pWdaParams) ;
-
+   if( pWdaParams != NULL )
+   {
+      if( pWdaParams->wdaWdiApiMsgParam != NULL )
+      {
+         vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
+      }
+      if( pWdaParams->wdaMsgParam != NULL )
+      {
+         vos_mem_free(pWdaParams->wdaMsgParam) ;
+      }
+      vos_mem_free(pWdaParams) ;
+   }
 
    return ;
 }
@@ -6236,6 +6265,7 @@ VOS_STATUS WDA_ProcessSetPwrSaveCfgReq(tWDA_CbContext *pWDA,
 
       
    /* store Params pass it to WDI */
+   pWdaParams->wdaMsgParam = configParam;
    pWdaParams->wdaWdiApiMsgParam = wdiPowerSaveCfg;
    pWdaParams->pWdaContext = pWDA;
 
@@ -6250,6 +6280,10 @@ VOS_STATUS WDA_ProcessSetPwrSaveCfgReq(tWDA_CbContext *pWDA,
       vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
    }
 
+   if(NULL != pPowerSaveCfg)
+   {
+      vos_mem_free(pPowerSaveCfg);
+   }
    return CONVERT_WDI2VOS_STATUS(status) ;
 
 }
@@ -8276,6 +8310,10 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          }
          else
          {
+            if(NULL != pMsg->bodyptr)
+            {
+               vos_mem_free(pMsg->bodyptr);
+            }
             VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                        "WDA_PWR_SAVE_CFG req in wrong state %d", pWDA->wdaState );
          }
@@ -8378,6 +8416,11 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
                            "Handling msg type WDA_REGISTER_PE_CALLBACK " );
          /*TODO: store the PE callback */
+         /* Do Nothing? MSG Body should be freed at here */
+         if(NULL != pMsg->bodyptr)
+         {
+            vos_mem_free(pMsg->bodyptr);
+         }
          break;
       }
       case WDA_SYS_READY_IND :
@@ -8385,6 +8428,10 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
                                   "Handling msg type WDA_SYS_READY_IND " );
          pWDA->wdaState = WDA_READY_STATE;
+         if(NULL != pMsg->bodyptr)
+         {
+            vos_mem_free(pMsg->bodyptr);
+         }
          break;
       }
       case WDA_BEACON_FILTER_IND  :
@@ -8397,6 +8444,11 @@ VOS_STATUS WDA_McProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
          /*TODO: handle this while dealing with BTC */
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO_HIGH,
                                   "Handling msg type WDA_BTC_SET_CFG  " );
+         /* Do Nothing? MSG Body should be freed at here */
+         if(NULL != pMsg->bodyptr)
+         {
+            vos_mem_free(pMsg->bodyptr);
+         }
          break;
       }
       case WDA_CFG_RXP_FILTER_REQ:
@@ -8729,6 +8781,46 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
          }
          break;
       }
+#ifdef WLAN_FEATURE_P2P
+      case WDI_P2P_NOA_ATTR_IND :
+      {
+         tSirP2PNoaAttr   *pP2pNoaAttr = 
+            (tSirP2PNoaAttr *)vos_mem_malloc(sizeof(tSirP2PNoaAttr));
+
+         VOS_ASSERT(pP2pNoaAttr);
+         VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                              "Recieved WDI_P2P_NOA_ATTR_IND from WDI ");
+
+         pP2pNoaAttr->index            = 
+                    wdiLowLevelInd->wdiIndicationData.wdiP2pNoaAttrInfo.ucIndex;
+         pP2pNoaAttr->oppPsFlag        = 
+                    wdiLowLevelInd->wdiIndicationData.wdiP2pNoaAttrInfo.ucOppPsFlag;
+         pP2pNoaAttr->ctWin            = 
+                    wdiLowLevelInd->wdiIndicationData.wdiP2pNoaAttrInfo.usCtWin;
+         
+         pP2pNoaAttr->uNoa1IntervalCnt = 
+                    wdiLowLevelInd->wdiIndicationData.wdiP2pNoaAttrInfo.usNoa1IntervalCnt;
+         pP2pNoaAttr->uNoa1Duration    = 
+                    wdiLowLevelInd->wdiIndicationData.wdiP2pNoaAttrInfo.uslNoa1Duration;
+         pP2pNoaAttr->uNoa1Interval    = 
+                    wdiLowLevelInd->wdiIndicationData.wdiP2pNoaAttrInfo.uslNoa1Interval;
+         pP2pNoaAttr->uNoa1StartTime   = 
+                    wdiLowLevelInd->wdiIndicationData.wdiP2pNoaAttrInfo.uslNoa1StartTime;
+
+         pP2pNoaAttr->uNoa2IntervalCnt = 
+                    wdiLowLevelInd->wdiIndicationData.wdiP2pNoaAttrInfo.usNoa2IntervalCnt;
+         pP2pNoaAttr->uNoa2Duration    = 
+                    wdiLowLevelInd->wdiIndicationData.wdiP2pNoaAttrInfo.uslNoa2Duration;
+         pP2pNoaAttr->uNoa2Interval    = 
+                    wdiLowLevelInd->wdiIndicationData.wdiP2pNoaAttrInfo.uslNoa2Interval;
+         pP2pNoaAttr->uNoa2StartTime   = 
+                    wdiLowLevelInd->wdiIndicationData.wdiP2pNoaAttrInfo.uslNoa2StartTime;
+
+         WDA_SendMsg(pWDA, SIR_HAL_P2P_NOA_ATTR_IND, 
+                                       (void *)pP2pNoaAttr , 0) ;
+         break;
+      }
+#endif
       default:
       {
          /* TODO error */
@@ -9072,5 +9164,16 @@ void WDA_ProcessTxCompleteTimeOutInd(tWDA_CbContext* pWDA)
 
 }
 
+/*
+ * WDA Set REG Domain to VOS NV
+ */
+eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId)
+{
+   if(VOS_STATUS_SUCCESS != vos_nv_setRegDomain(clientCtxt, regId))
+   {
+      return eHAL_STATUS_INVALID_PARAMETER;
+   }
+   return eHAL_STATUS_SUCCESS;
+}
 #endif  /* FEATURE_WLAN_INTEGRATED_SOC */
 

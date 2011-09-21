@@ -46,7 +46,7 @@ void
 limInitAIDpool(tpAniSirGlobal pMac,tpPESession sessionEntry)
 {
     tANI_U8 i;
-    tANI_U8 maxAssocSta = WNI_CFG_ASSOC_STA_LIMIT_STAMAX;
+    tANI_U8 maxAssocSta = pMac->lim.gLimAssocStaLimit;
 
     pMac->lim.gpLimAIDpool[0]=0;
     pMac->lim.freeAidHead=LIM_START_AID;

@@ -1587,13 +1587,14 @@ v_U16_t hdd_hostapd_select_queue(struct net_device * dev, struct sk_buff *skb)
    }
 #endif //FEATURE_WLAN_NON_INTEGRATED_SOC
    
+   spin_lock_bh( &pAdapter->staInfo_lock );
    if (FALSE == vos_is_macaddr_equal(&pAdapter->aStaInfo[STAId].macAddrSTA, pDestMacAddress))
    {
       VOS_TRACE( VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
                    "%s: Station MAC address does not matching", __FUNCTION__);	  
       
       *pSTAId = HDD_WLAN_INVALID_STA_ID; 
-      goto done;
+      goto release_lock;
    }
    if (pAdapter->aStaInfo[STAId].isUsed && pAdapter->aStaInfo[STAId].isQosEnabled && (HDD_WMM_USER_MODE_NO_QOS != pHddCtx->cfg_ini->WmmMode))
    {
@@ -1602,6 +1603,8 @@ v_U16_t hdd_hostapd_select_queue(struct net_device * dev, struct sk_buff *skb)
    }
    *pSTAId = STAId;
 
+release_lock:   
+    spin_unlock_bh( &pAdapter->staInfo_lock );
 done:
    skb->priority = up;
    queueIndex = hddLinuxUpToAcMap[skb->priority];

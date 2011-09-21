@@ -981,6 +981,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_CFG_RXP_FILTER_RSP         SIR_HAL_CFG_RXP_FILTER_RSP
 
 #define WDA_SWITCH_CHANNEL_RSP         SIR_HAL_SWITCH_CHANNEL_RSP
+#define WDA_P2P_NOA_ATTR_IND           SIR_HAL_P2P_NOA_ATTR_IND
 #define WDA_PWR_SAVE_CFG               SIR_HAL_PWR_SAVE_CFG
 
 #define WDA_REGISTER_PE_CALLBACK       SIR_HAL_REGISTER_PE_CALLBACK
@@ -1144,6 +1145,8 @@ tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 //Required by SME and PE
 #define WDA_SetRegDomain halPhySetRegDomain 
 #define wdaPostCtrlMsg halPostMsgApi
+#else
+eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
 #endif //FEATURE_WLAN_NON_INTEGRATED_SOC
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames

@@ -523,6 +523,7 @@ struct hdd_adapter_s
  */
     /** Multiple station supports */
    /** Per-statioin structure */
+   spinlock_t staInfo_lock; //To protect access to station Info  
    hdd_station_info_t aStaInfo[WLAN_MAX_STA_COUNT];
    //v_U8_t uNumActiveStation;
 

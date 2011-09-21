@@ -292,6 +292,9 @@ typedef enum
   /* Indication for Tx Complete */
   WDI_TX_COMPLETE_IND,
 
+  /*.P2P_NOA_Attr_Indication */
+  WDI_P2P_NOA_ATTR_IND,
+
   WDI_MAX_IND
 }WDI_LowLevelIndEnumType;
 
@@ -389,6 +392,33 @@ typedef struct
   wpt_uint32  coexIndData[WDI_COEX_IND_DATA_SIZE];
 } WDI_CoexIndType;
 
+#ifdef WLAN_FEATURE_P2P
+/*---------------------------------------------------------------------------
+ *WDI_P2pNoaAttrIndType
+ *-------------------------------------------------------------------------*/
+
+typedef struct
+{
+  wpt_uint8       ucIndex ;
+  wpt_uint8       ucOppPsFlag ;
+  wpt_uint16      usCtWin  ;
+
+  wpt_uint16      usNoa1IntervalCnt;
+  wpt_uint16      usRsvd1 ;
+  wpt_uint32      uslNoa1Duration;
+  wpt_uint32      uslNoa1Interval;
+  wpt_uint32      uslNoa1StartTime;
+
+  wpt_uint16      usNoa2IntervalCnt;
+  wpt_uint16      usRsvd2;
+  wpt_uint32      uslNoa2Duration;
+  wpt_uint32      uslNoa2Interval;
+  wpt_uint32      uslNoa2StartTime;
+
+  wpt_uint32      status;
+}WDI_P2pNoaAttrIndType;
+#endif
+
 /*---------------------------------------------------------------------------
   WDI_LowLevelIndType
     Inidcation type and information about the indication being carried
@@ -422,6 +452,12 @@ typedef struct
 
     /* Tx Complete Indication */
     wpt_uint32                  tx_complete_status;
+
+#ifdef WLAN_FEATURE_P2P
+    /* P2P NOA ATTR Indication */
+    WDI_P2pNoaAttrIndType        wdiP2pNoaAttrInfo;
+#endif
+
   }  wdiIndicationData;
 }WDI_LowLevelIndType;
 

@@ -1202,6 +1202,22 @@ VOS_STATUS hdd_wlan_reset(void)
              "exiting", __func__);
       goto err_fail;
    }
+   //Get the SDIO func device
+   sdio_func_dev_new = libra_getsdio_funcdev();
+   if(sdio_func_dev_new != NULL)
+   {
+       sd_claim_host(sdio_func_dev_new);
+       /* Enable IRQ capabilities in host controller */
+       libra_disable_sdio_irq_capability(sdio_func_dev_new, 0);
+       libra_enable_sdio_irq(sdio_func_dev_new, 1);
+       sd_release_host(sdio_func_dev_new);
+   }
+   else
+   {
+        /* Our card got removed before LOGP. */
+        hddLog(VOS_TRACE_LEVEL_FATAL, "%s: sdio_func_dev is NULL!",__func__);
+        goto err_fail;
+   }
 
    vosStatus = WLANBAL_Open(pVosContext);
    VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
@@ -1304,8 +1320,9 @@ VOS_STATUS hdd_wlan_reset(void)
 err_vosstop:
    vos_stop(pVosContext);
 
-err_vosclose:   
-   vos_close(pVosContext );
+err_vosclose:	
+   vos_close(pVosContext ); 
+   vos_sched_close(pVosContext);
 
 #ifdef ANI_BUS_TYPE_SDIO
 err_balstop:

@@ -46,6 +46,9 @@ when           who        what, where, why
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
+#define WLANDXE_CTXT_COOKIE              0xC00CC111
+
+
 /* From here RIVA DXE register information
  * This is temporary definition location to make compile and unit test
  * If official msmreg.h integrated, this part will be eliminated */
@@ -571,6 +574,9 @@ typedef struct
    wpt_uint32                      txCompletedFrames; 
    wpt_uint8                       ucTxMsgCnt; 
    wpt_uint16                      lastKickOffDxe; 
+   wpt_uint32                      dxeCookie;
+   wpt_event                       rxPalPacketAvailableEvent;
+   wpt_packet                     *freeRXPacket;
 } WLANDXE_CtrlBlkType;
 
 /*==========================================================================

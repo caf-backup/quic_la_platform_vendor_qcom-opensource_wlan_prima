@@ -40,6 +40,9 @@ typedef struct
   wpt_uint32 uLen;
 }wpt_iterator_info;
 
+/* Storage for DXE CB function pointer */
+static wpalPacketLowPacketCB wpalPacketAvailableCB = NULL;
+
 /*
    wpalPacketInit is no-op for VOSS-support wpt_packet
 */
@@ -57,6 +60,44 @@ wpt_status wpalPacketClose(void *pPalContext)
    return eWLAN_PAL_STATUS_SUCCESS;
 }
 
+/*---------------------------------------------------------------------------
+    wpalPacketRXLowResourceCB – RX RAW packer CB function
+    Param: 
+        pPacket – Available RX packet
+        userData - PAL Client Context, DXE
+    Return:
+        Status
+---------------------------------------------------------------------------*/
+VOS_STATUS wpalPacketRXLowResourceCB(vos_pkt_t *pPacket, v_VOID_t *userData)
+{
+   VOS_STATUS   vosStatus = VOS_STATUS_E_FAILURE;
+   void*        pData     = NULL;
+
+   if (NULL == pPacket)
+   {
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+                  "Get new RX PAL packet fail");
+      return VOS_STATUS_E_FAILURE;
+   }
+   vosStatus = vos_pkt_reserve_head_fast( pPacket, &pData,
+                                          VPKT_SIZE_BUFFER );
+   if(VOS_STATUS_SUCCESS != vosStatus)
+   {
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+                  "Prepare RX packet for DXE fail");
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   if((NULL == wpalPacketAvailableCB) || (NULL == userData))
+   {
+      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR, 
+                  "Invalid ARG for new RX packet");
+      return VOS_STATUS_E_FAILURE;
+   }
+
+   wpalPacketAvailableCB( (wpt_packet *)pPacket, userData );
+   return VOS_STATUS_SUCCESS;
+}
 
 /*---------------------------------------------------------------------------
     wpalPacketAlloc – Allocate a wpt_packet from PAL.
@@ -66,7 +107,8 @@ wpt_status wpalPacketClose(void *pPalContext)
     Return:
         A pointer to the wpt_packet. NULL means fail.
 ---------------------------------------------------------------------------*/
-wpt_packet * wpalPacketAlloc(wpt_packet_type pktType, wpt_uint32 nPktSize)
+wpt_packet * wpalPacketAlloc(wpt_packet_type pktType, wpt_uint32 nPktSize,
+                             wpalPacketLowPacketCB rxLowCB, void *usrData)
 {
    VOS_STATUS   vosStatus = VOS_STATUS_E_FAILURE;
    wpt_packet*  pPkt      = NULL;
@@ -74,6 +116,8 @@ wpt_packet * wpalPacketAlloc(wpt_packet_type pktType, wpt_uint32 nPktSize)
    void*        pData     = NULL;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+   /* Initialize DXE CB function pointer storage */
+   wpalPacketAvailableCB = NULL;
    switch (pktType)
    {
    case eWLAN_PAL_PKT_TYPE_TX_802_11_MGMT:
@@ -85,7 +129,7 @@ wpt_packet * wpalPacketAlloc(wpt_packet_type pktType, wpt_uint32 nPktSize)
    case eWLAN_PAL_PKT_TYPE_RX_RAW:
       vosStatus = vos_pkt_get_packet(&pVosPkt, VOS_PKT_TYPE_RX_RAW,
                                        nPktSize, 1, VOS_FALSE, 
-                                       NULL, NULL /*no callback*/);
+                                       wpalPacketRXLowResourceCB, usrData);
 
 #ifndef FEATURE_R33D
       /* Reserve the entire raw rx buffer for DXE */
@@ -95,6 +139,7 @@ wpt_packet * wpalPacketAlloc(wpt_packet_type pktType, wpt_uint32 nPktSize)
       }
       else
       {
+        wpalPacketAvailableCB = rxLowCB;
         WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
                     "Failed to allocate packet : %d ", (int)vosStatus);
       }
@@ -130,6 +175,10 @@ wpt_status wpalPacketFree(wpt_packet *pPkt)
 {
    VOS_STATUS vosStatus;
 
+   if(NULL != pPkt->pInternalData)
+   {
+      wpalMemoryFree(pPkt->pInternalData);
+   }
    vosStatus = vos_pkt_return_packet(WPAL_TO_VOS_PKT(pPkt));
 
    //With VOSS support, we can cast between wpt_status and VOS_STATUS
@@ -409,31 +458,29 @@ wpt_status wpalIteratorInit(wpt_iterator *pIter, wpt_packet *pPacket)
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
-   
-   /*Allocate memory for the current info*/
-   pCurInfo = wpalMemoryAllocate( sizeof(wpt_iterator_info) );
-
-   // Validate the memory allocation
-   if (unlikely(NULL == pCurInfo))
-   {
-      WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-                "%s : Failed to allocate memory ", __FUNCTION__);
-      return eWLAN_PAL_STATUS_E_INVAL;
-   }
-
-   pCurInfo->pPhyAddr = WPAL_PACKET_GET_BD_PHYS(pPacket);
-   pCurInfo->uLen     = WPAL_PACKET_GET_BD_LENGTH(pPacket);
-
    // if there is NO BD on this frame, then initialize the next pointer to
    // point the first fragment.
-   if ( NULL == pCurInfo->pPhyAddr )
+   if ( NULL == WPAL_PACKET_GET_BD_PHYS(pPacket) )
    {
-     pCurInfo->pPhyAddr  = pPktInfo->pPhyAddr;
-     pCurInfo->uLen      = pPktInfo->uLen; 
+     pCurInfo   = pPktInfo;
      pNextInfo           = NULL;
    }
    else
    {
+     /*Allocate memory for the current info*/
+     pCurInfo = wpalMemoryAllocate( sizeof(wpt_iterator_info) );
+
+     // Validate the memory allocation
+     if (unlikely(NULL == pCurInfo))
+     {
+        WPAL_TRACE(eWLAN_MODULE_PAL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                  "%s : Failed to allocate memory ", __FUNCTION__);
+        return eWLAN_PAL_STATUS_E_INVAL;
+     }
+
+     pCurInfo->pPhyAddr = WPAL_PACKET_GET_BD_PHYS(pPacket);
+     pCurInfo->uLen     = WPAL_PACKET_GET_BD_LENGTH(pPacket);
+
      pNextInfo           = pPktInfo;
    }      
 
@@ -606,7 +653,7 @@ wpt_status wpalLockPacketForTransfer( wpt_packet *pPacket)
 wpt_status wpalUnlockPacket( wpt_packet *pPacket)
 {
 
-   wpt_iterator_info* pInfo  = (wpt_iterator_info*)pPacket->pInternalData;
+   wpt_iterator_info* pInfo;
 
    // Validate the parameter pointers
    if (unlikely(NULL == pPacket))
@@ -616,6 +663,7 @@ wpt_status wpalUnlockPacket( wpt_packet *pPacket)
       return eWLAN_PAL_STATUS_E_INVAL;
    }
 
+   pInfo  = (wpt_iterator_info*)pPacket->pInternalData;
    switch(WPAL_PACKET_GET_TYPE(pPacket))
    {
       /* For management frames, BD is allocated by WDI, header is in raw buffer,
@@ -658,7 +706,8 @@ wpt_status wpalUnlockPacket( wpt_packet *pPacket)
       }
    }
 
-  wpalMemoryFree(pInfo); 
+  wpalMemoryFree(pInfo);
+  pPacket->pInternalData = NULL;
   return eWLAN_PAL_STATUS_SUCCESS;
 }/*wpalUnlockPacket*/
 

@@ -214,6 +214,51 @@ wpt_status wpalRegisterInterrupt
 }
 
 /**
+  @brief wpalUnRegisterInterrupt provides a mechansim for client
+         to un-register for a given interrupt
+
+  When DXE stop, remove registered information from PAL
+  
+  @param  intType:          Enumeration of the interrupt type (TX or RX)
+
+  @return NONE
+*/
+
+void wpalUnRegisterInterrupt
+(
+   wpt_uint32      intType
+)
+{
+   if (NULL == gpEnv) {
+      WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "%s: invoked before subsystem initialized",
+                 __FUNCTION__);
+      return;
+   }
+
+   switch (intType) {
+
+   case DXE_INTERRUPT_TX_COMPLE:
+      gpEnv->tx_isr = NULL;
+      gpEnv->tx_context = NULL;
+      break;
+
+   case DXE_INTERRUPT_RX_READY:
+      gpEnv->rx_isr = NULL;
+      gpEnv->rx_context = NULL;
+      break;
+
+   default:
+      WPAL_TRACE(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+                 "%s: Unknown interrupt type [%u]",
+                 __FUNCTION__, intType);
+      return;
+   }
+
+   return;
+}
+
+/**
   @brief wpalEnableInterrupt provides a mechansim for a client
          to request that a given interrupt be enabled
 

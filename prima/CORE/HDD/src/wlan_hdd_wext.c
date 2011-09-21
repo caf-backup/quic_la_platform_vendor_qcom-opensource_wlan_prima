@@ -618,6 +618,9 @@ static int iw_set_mode(struct net_device *dev,
     eCsrRoamBssType          LastBSSType;
     eMib_dot11DesiredBssType connectedBssType;
     hdd_config_t *pConfig  = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
+#ifdef CONFIG_CFG80211
+    struct wireless_dev      *wdev;
+#endif
        
     ENTER();
 
@@ -632,7 +635,10 @@ static int iw_set_mode(struct net_device *dev,
         hddLog (LOGE, "%s ERROR: Data Storage Corruption\n", __FUNCTION__);
         return -EINVAL;
     }
-   
+
+#ifdef CONFIG_CFG80211
+    wdev = dev->ieee80211_ptr;
+#endif
     pRoamProfile = &pWextState->roamProfile;
     LastBSSType = pRoamProfile->BSSType;
 
@@ -645,10 +651,16 @@ static int iw_set_mode(struct net_device *dev,
         pRoamProfile->BSSType = eCSR_BSS_TYPE_START_IBSS;
         // Set the phymode correctly for IBSS.
         pWextState->roamProfile.phyMode = hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
+#ifdef CONFIG_CFG80211
+        wdev->iftype = NL80211_IFTYPE_ADHOC;
+#endif
         break;
     case IW_MODE_INFRA:
         hddLog( LOG1, "%s Setting AP Mode as IW_MODE_INFRA\n", __FUNCTION__);
         pRoamProfile->BSSType = eCSR_BSS_TYPE_INFRASTRUCTURE;
+#ifdef CONFIG_CFG80211
+        wdev->iftype = NL80211_IFTYPE_STATION; 
+#endif
         break;
     case IW_MODE_AUTO:
         hddLog(LOG1,"%s Setting AP Mode as IW_MODE_AUTO\n", __FUNCTION__); 
@@ -669,7 +681,9 @@ static int iw_set_mode(struct net_device *dev,
             VOS_STATUS vosStatus;
             // need to issue a disconnect to CSR.
             INIT_COMPLETION(pAdapter->disconnect_comp_var);
-            vosStatus = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter),pAdapter->sessionId, eCSR_DISCONNECT_REASON_UNSPECIFIED );
+            vosStatus = sme_RoamDisconnect( WLAN_HDD_GET_HAL_CTX(pAdapter),
+                                          pAdapter->sessionId, 
+                                          eCSR_DISCONNECT_REASON_IBSS_LEAVE );
             if(VOS_STATUS_SUCCESS == vosStatus)
                  wait_for_completion_interruptible_timeout(&pAdapter->disconnect_comp_var,
                      msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
@@ -848,7 +862,7 @@ static int iw_get_freq(struct net_device *dev, struct iw_request_info *info,
 
    if( pHddStaCtx->conn_info.connState== eConnectionState_Associated )
    {
-       if (ccmCfgGetInt(hHal, WNI_CFG_CURRENT_CHANNEL, &channel) != eHAL_STATUS_SUCCESS)
+       if (sme_GetOperationChannel(hHal, &channel) != eHAL_STATUS_SUCCESS)
        {
            return -EIO;
        }
