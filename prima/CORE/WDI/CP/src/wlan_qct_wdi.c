@@ -653,7 +653,7 @@ WDI_Init
   if ( eWLAN_PAL_STATUS_SUCCESS !=  wptStatus )
   {
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_FATAL,
-               "%s: Failed to init mutext, status %d",
+               "%s: Failed to init mutex, status %d",
                __FUNCTION__, wptStatus);
     goto fail_mutex;
   }
@@ -4805,11 +4805,22 @@ WDI_PostMainEvent
   pfnWDIMainEvHdlr = wdiMainFSM[pWDICtx->uGlobalState].pfnMainTbl[wdiEV]; 
 
   wdiOldState = pWDICtx->uGlobalState;
-  /*Transition to BUSY State - the request is now being processed by the FSM,
-   if the request fails we shall transition back to the old state, if not
-   the request will manage its own state transition*/
-  WDI_STATE_TRANSITION( pWDICtx, WDI_BUSY_ST);
 
+  /*
+  --Incase of WDI event is WDI_RESPONSE_EVENT and this is called when a 
+  response comes from CCPU for the request sent by host: 
+  the WDI global state will be in WDI_BUSY_ST already, so do not set it to BUSY again. 
+  This state will be set to WDI_STARTED_ST in WDI_MainRsp, if it is a expected response.
+  --Incase of WDI event is WDI_RESPONSE_EVENT and it is an indication from the 
+  CCPU:
+  don't change the state */
+  if ( WDI_RESPONSE_EVENT != wdiEV)
+  {
+    /*Transition to BUSY State - the request is now being processed by the FSM,
+     if the request fails we shall transition back to the old state, if not
+     the request will manage its own state transition*/
+    WDI_STATE_TRANSITION( pWDICtx, WDI_BUSY_ST);
+  }
   /* If the state function associated with the EV is NULL it means that this
      event is not allowed in this state*/
   if ( NULL != pfnWDIMainEvHdlr ) 
@@ -4843,11 +4854,14 @@ WDI_PostMainEvent
   if (( WDI_STATUS_SUCCESS != wdiStatus )&&
       ( WDI_STATUS_PENDING != wdiStatus ))
   {
-    /*The request has failed or could not be processed - transition back to
-      the old state - check to see if anything was queued and try to execute
-      The dequeue logic should post a message to a thread and return - no
-      actual processing can occur */
-    WDI_STATE_TRANSITION( pWDICtx, wdiOldState);
+    if ( WDI_RESPONSE_EVENT != wdiEV)
+    {
+      /*The request has failed or could not be processed - transition back to
+        the old state - check to see if anything was queued and try to execute
+        The dequeue logic should post a message to a thread and return - no
+        actual processing can occur */
+      WDI_STATE_TRANSITION( pWDICtx, wdiOldState);
+    }
     WDI_DequeuePendingReq(pWDICtx);
         
   }
@@ -15971,8 +15985,7 @@ WDI_ProcessHostResumeRsp
       ( NULL == pEventData->pEventData))
   {
     WPAL_TRACE( eWLAN_MODULE_DAL_CTRL,  eWLAN_PAL_TRACE_LEVEL_WARN,
-        "Invalid parameters in Host Resume Response %x %x %x ",
-        pWDICtx, pEventData, pEventData->pEventData);
+                "%s: Invalid parameters", __FUNCTION__);
     WDI_ASSERT(0);
     return WDI_STATUS_E_FAILURE; 
   }
@@ -17157,7 +17170,7 @@ WDI_ResponseTimerCB
 
 
   WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-            "Timeout occurred while waiting for %d response from device "
+            "Timeout occurred while waiting for response %d from device "
             " - catastrophic failure", pWDICtx->wdiExpectedResponse);
   WDI_DetectedDeviceError( pWDICtx, WDI_ERR_RSP_TIMEOUT); 
   return; 
@@ -17466,13 +17479,32 @@ WDI_QueueNewAssocRequest
     Allocate memory for this and place it in the queue 
   ------------------------------------------------------------------------*/
   pEventDataQueue = (WDI_EventInfoType*)wpalMemoryAllocate(sizeof(WDI_EventInfoType));
-  pSessionIdElement = (WDI_NextSessionIdType*)wpalMemoryAllocate(sizeof(WDI_NextSessionIdType));
-  if (( NULL ==  pEventDataQueue ) ||
-      ( NULL ==  pSessionIdElement ))
+  if ( NULL == pEventDataQueue )
   {
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Cannot allocate memory for queueing"); 
+               "%s: Cannot allocate memory for queue node", __FUNCTION__);
     WDI_ASSERT(0);
+    return WDI_STATUS_MEM_FAILURE;
+  }
+
+  pSessionIdElement = (WDI_NextSessionIdType*)wpalMemoryAllocate(sizeof(WDI_NextSessionIdType));
+  if ( NULL == pSessionIdElement )
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "%s: Cannot allocate memory for session ID", __FUNCTION__);
+    WDI_ASSERT(0);
+    wpalMemoryFree(pEventDataQueue);
+    return WDI_STATUS_MEM_FAILURE;
+  }
+
+  pEventInfo = wpalMemoryAllocate(pEventData->uEventDataSize);
+  if ( NULL == pEventInfo )
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "%s: Cannot allocate memory for event data info", __FUNCTION__);
+    WDI_ASSERT(0);
+    wpalMemoryFree(pSessionIdElement);
+    wpalMemoryFree(pEventDataQueue);
     return WDI_STATUS_MEM_FAILURE;
   }
 
@@ -17481,16 +17513,6 @@ WDI_QueueNewAssocRequest
   pEventDataQueue->uEventDataSize  = pEventData->uEventDataSize;
   pEventDataQueue->wdiRequest      = pEventData->wdiRequest;
   pEventDataQueue->wdiResponse     = pEventData->wdiResponse; 
-
-  pEventInfo = wpalMemoryAllocate(pEventData->uEventDataSize);
-
-  if ( NULL ==  pEventInfo )
-  {
-    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Cannot allocate memory for queueing event data info"); 
-    WDI_ASSERT(0);
-    return WDI_STATUS_MEM_FAILURE;
-  }
 
   wpalMemoryCopy(pEventInfo, pEventData->pEventData, pEventData->uEventDataSize);
   pEventDataQueue->pEventData = pEventInfo;
@@ -17563,8 +17585,19 @@ WDI_QueueAssocRequest
   if ( NULL ==  pEventDataQueue )
   {
     WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Cannot allocate memory for queueing"); 
+               "%s: Cannot allocate memory for queueing", __FUNCTION__); 
     WDI_ASSERT(0);
+    return WDI_STATUS_MEM_FAILURE;
+  }
+
+  pEventInfo = wpalMemoryAllocate(pEventData->uEventDataSize);
+  if ( NULL ==  pEventInfo )
+  {
+    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "%s: Cannot allocate memory for queueing event data info",
+               __FUNCTION__);
+    WDI_ASSERT(0);
+    wpalMemoryFree(pEventDataQueue);
     return WDI_STATUS_MEM_FAILURE;
   }
 
@@ -17573,19 +17606,9 @@ WDI_QueueAssocRequest
   pEventDataQueue->uEventDataSize  = pEventData->uEventDataSize;
   pEventDataQueue->wdiRequest      = pEventData->wdiRequest;
   pEventDataQueue->wdiResponse     = pEventData->wdiResponse; 
-
-  pEventInfo = wpalMemoryAllocate(pEventData->uEventDataSize);
-
-  if ( NULL ==  pEventInfo )
-  {
-    WPAL_TRACE(eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_ERROR,
-              "Cannot allocate memory for queueing event data info"); 
-    WDI_ASSERT(0);
-    return WDI_STATUS_MEM_FAILURE;
-  }
+  pEventDataQueue->pEventData      = pEventInfo;
 
   wpalMemoryCopy(pEventInfo, pEventData->pEventData, pEventData->uEventDataSize);
-  pEventDataQueue->pEventData = pEventInfo;
 
   /*Send wpt a pointer to the node (this is the 1st element in the event data)*/
   pNode = (wpt_list_node*)pEventDataQueue; 
@@ -18975,6 +18998,10 @@ WDI_CopyWDIStaCtxToHALStaCtx
   }
   phalConfigSta->supportedRates.rxHighestDataRate =
                           pwdiConfigSta->wdiSupportedRates.aRxHighestDataRate;
+
+#ifdef WLAN_FEATURE_P2P
+  phalConfigSta->p2pCapableSta = pwdiConfigSta->ucP2pCapableSta ;
+#endif
 
 }/*WDI_CopyWDIStaCtxToHALStaCtx*/;
  

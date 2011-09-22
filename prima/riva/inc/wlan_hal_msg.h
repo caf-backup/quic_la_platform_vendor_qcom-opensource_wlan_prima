@@ -3123,10 +3123,13 @@ typedef PACKED_PRE struct PACKED_POST
 /*---------------------------------------------------------------------------
  * WLAN_HAL_HOST_OFFLOAD_REQ
  *--------------------------------------------------------------------------*/
-#define HAL_IPV4_ARP_REPLY_OFFLOAD           0
-#define HAL_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD  1
-#define HAL_OFFLOAD_DISABLE                  0
-#define HAL_OFFLOAD_ENABLE                   1
+#define HAL_IPV4_ARP_REPLY_OFFLOAD                  0
+#define HAL_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD         1
+#define HAL_OFFLOAD_DISABLE                         0
+#define HAL_OFFLOAD_ENABLE                          1
+#define HAL_OFFLOAD_BCAST_FILTER_ENABLE             0x2
+#define HAL_OFFLOAD_ARP_AND_BCAST_FILTER_ENABLE     (HAL_OFFLOAD_ENABLE|HAL_OFFLOAD_BCAST_FILTER_ENABLE)
+
 typedef PACKED_PRE struct PACKED_POST
 {
     tANI_U8 offloadType;

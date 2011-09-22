@@ -1120,6 +1120,7 @@ typedef struct
   */
   wpt_uint8                 ucDsssCckMode40Mhz;
 
+  wpt_uint8                 ucP2pCapableSta;
 }WDI_ConfigStaReqInfoType;
 
 

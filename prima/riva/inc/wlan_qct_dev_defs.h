@@ -16,12 +16,13 @@
  * --------------------------------------------------------------------
  */
 
-/*
- * Prima suppports 16 stations - FIXME_PRIMA - Revisit
- */
-#define HAL_NUM_STA                 8
+/*In prima 12 HW stations are supported including BCAST STA(staId 0)
+ and SELF STA(staId 1) so total ASSOC stations which can connect to Prima
+ SoftAP = 12 - 1(Self STa) - 1(Bcast Sta) = 10 Stations. */
+
+#define HAL_NUM_STA                 12
 #define HAL_NUM_BSSID               2
-#define HAL_NUM_UMA_DESC_ENTRIES    8
+#define HAL_NUM_UMA_DESC_ENTRIES    12
 
 #define MAX_NUM_OF_BACKOFFS         8
 #define HAL_MAX_ASSOC_ID            HAL_NUM_STA

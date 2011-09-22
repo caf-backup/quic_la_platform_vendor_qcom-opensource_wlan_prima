@@ -17,7 +17,9 @@
 #include "wlan_qct_pal_trace.h"
 #include "wlan_qct_pal_device.h"
 #include "vos_trace.h"
+#ifndef MEMORY_DEBUG
 #include "vos_memory.h"
+#endif /* MEMORY_DEBUG */
 
 #include "dma-mapping.h"
 
@@ -82,6 +84,7 @@ wpt_status wpalClose(void *pPalContext)
    return eWLAN_PAL_STATUS_SUCCESS;
 }
 
+#ifndef MEMORY_DEBUG
 /**
  * @brief wpalMemoryAllocate -  Allocate memory
  * @param size number of bytes to allocate
@@ -102,7 +105,7 @@ void wpalMemoryFree(void *pv)
 {
    vos_mem_free( pv );
 }
-
+#endif /* MEMORY_DEBUG */
 /**
  * @brief wpalMemoryCopy -  copy memory
  * @param dest address which data is copied to

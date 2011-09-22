@@ -688,7 +688,7 @@ VOS_STATUS sysMcProcessMsg( v_CONTEXT_t pVosContext, vos_msg_t *pMsg )
             VOS_TRACE( VOS_MODULE_ID_SYS, VOS_TRACE_LEVEL_ERROR, "Processing SYS MC STOP\n" );
 
             // get the HAL context...
-            hHal = vos_get_context( VOS_MODULE_ID_WDA, pVosContext );
+            hHal = vos_get_context( VOS_MODULE_ID_SME, pVosContext );
             VOS_ASSERT ( NULL != hHal );
 
             vosStatus = sme_Stop( hHal, TRUE );

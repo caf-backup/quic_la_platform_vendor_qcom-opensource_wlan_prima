@@ -4097,7 +4097,11 @@ eHalStatus csrSendMBScanReq( tpAniSirGlobal pMac, tCsrScanRequest *pScanReq, tSc
 
             //Verify the scan type first, if the scan is active scan, we need to make sure we 
             //are allowed to do so.
-            if( (eSIR_PASSIVE_SCAN != scanType) && (eCSR_SCAN_P2P_DISCOVERY != pScanReq->requestType) )
+            /* if 11d is enabled & we don't see any beacon around, scan type falls
+               back to passive. But in BT AMP STA mode we need to send out a
+               directed probe*/
+            if( (eSIR_PASSIVE_SCAN != scanType) && (eCSR_SCAN_P2P_DISCOVERY != pScanReq->requestType)
+                && (eCSR_BSS_TYPE_WDS_STA != pScanReq->BSSType))  
             {
                 scanType = pMac->scan.curScanType;
                 if(eSIR_PASSIVE_SCAN == pMac->scan.curScanType)

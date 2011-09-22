@@ -279,7 +279,7 @@ int hdd_wlan_get_rts_threshold(hdd_adapter_t *pAdapter, union iwreq_data *wrqu)
     }
     wrqu->rts.value = threshold;
 
-    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, 
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, 
                                  ("Rts-Threshold=%ld!!\n"), wrqu->rts.value);
 
     EXIT();
@@ -386,7 +386,7 @@ hdd_IsAuthTypeRSN( tHalHandle halHandle, eCsrAuthType authType)
 
 void hdd_GetRssiCB( v_S7_t rssi, tANI_U32 staId, void *pContext )
 {
-   hdd_adapter_t             *pAdapter      = (hdd_adapter_t *)pContext;
+   hdd_adapter_t    *pAdapter = pContext;
    hdd_wext_state_t *pWextState;   
    VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
    
@@ -399,7 +399,8 @@ void hdd_GetRssiCB( v_S7_t rssi, tANI_U32 staId, void *pContext )
            vos_status = vos_event_set(&pWextState->vosevent);
            if (!VOS_IS_STATUS_SUCCESS(vos_status))
            {   
-              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!\n"));
+              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                        "%s: vos_event_set failed", __FUNCTION__);
               return;
            }
         }
@@ -450,7 +451,8 @@ void hdd_StatisticsCB( void *pStats, void *pContext )
            vos_status = vos_event_set(&pWextState->vosevent);
            if (!VOS_IS_STATUS_SUCCESS(vos_status))
            {   
-              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!\n"));
+              VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                        "%s: vos_event_set failed", __FUNCTION__);
               return;
            }
         }
@@ -632,7 +634,7 @@ static int iw_set_mode(struct net_device *dev,
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter); 
     if (pWextState == NULL)
     {
-        hddLog (LOGE, "%s ERROR: Data Storage Corruption\n", __FUNCTION__);
+        hddLog (LOGE, "%s ERROR: Data Storage Corruption", __FUNCTION__);
         return -EINVAL;
     }
 
@@ -642,12 +644,12 @@ static int iw_set_mode(struct net_device *dev,
     pRoamProfile = &pWextState->roamProfile;
     LastBSSType = pRoamProfile->BSSType;
 
-    hddLog( LOGE,"%s Old Bss type = %d\n", __FUNCTION__, LastBSSType); 
+    hddLog( LOG1,"%s Old Bss type = %d", __FUNCTION__, LastBSSType); 
 
     switch (wrqu->mode)
     {
     case IW_MODE_ADHOC:
-        hddLog( LOG1,"%s Setting AP Mode as IW_MODE_ADHOC\n", __FUNCTION__); 
+        hddLog( LOG1,"%s Setting AP Mode as IW_MODE_ADHOC", __FUNCTION__); 
         pRoamProfile->BSSType = eCSR_BSS_TYPE_START_IBSS;
         // Set the phymode correctly for IBSS.
         pWextState->roamProfile.phyMode = hdd_cfg_xlate_to_csr_phy_mode(pConfig->dot11Mode);
@@ -656,18 +658,18 @@ static int iw_set_mode(struct net_device *dev,
 #endif
         break;
     case IW_MODE_INFRA:
-        hddLog( LOG1, "%s Setting AP Mode as IW_MODE_INFRA\n", __FUNCTION__);
+        hddLog( LOG1, "%s Setting AP Mode as IW_MODE_INFRA", __FUNCTION__);
         pRoamProfile->BSSType = eCSR_BSS_TYPE_INFRASTRUCTURE;
 #ifdef CONFIG_CFG80211
         wdev->iftype = NL80211_IFTYPE_STATION; 
 #endif
         break;
     case IW_MODE_AUTO:
-        hddLog(LOG1,"%s Setting AP Mode as IW_MODE_AUTO\n", __FUNCTION__); 
+        hddLog(LOG1,"%s Setting AP Mode as IW_MODE_AUTO", __FUNCTION__); 
         pRoamProfile->BSSType = eCSR_BSS_TYPE_ANY;
         break;
     default:
-        hddLog(LOG1,"%s Unknown AP Mode value\n", __FUNCTION__); 
+        hddLog(LOG1,"%s Unknown AP Mode value", __FUNCTION__); 
         return -EOPNOTSUPP;
     }
 
@@ -715,7 +717,7 @@ static int iw_get_mode(struct net_device *dev,
     pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter); 
     if (pWextState == NULL)
     {
-        hddLog (LOGE, "%s ERROR: Data Storage Corruption\n", __FUNCTION__);
+        hddLog (LOGE, "%s ERROR: Data Storage Corruption", __FUNCTION__);
         return -EINVAL;
     }
  
@@ -918,7 +920,9 @@ static int iw_get_tx_power(struct net_device *dev,
     
     if(eHAL_STATUS_SUCCESS != status)
     {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD sme_GetStatistics failed!!\n"));
+        hddLog(VOS_TRACE_LEVEL_ERROR,
+               "%s: Unable to retrieve statistics",
+               __FUNCTION__);
         return status;
     }
   
@@ -928,7 +932,9 @@ static int iw_get_tx_power(struct net_device *dev,
   
     if (!VOS_IS_STATUS_SUCCESS(vos_status))
     { 
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("%s: ERROR: HDD vos wait for single_event failed!!\n"),__func__);
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+              "%s: SME timeout while retrieving statistics",
+              __FUNCTION__);
        /*Remove the SME statistics list by passing NULL in callback argument*/
        status = sme_GetStatistics( pHddCtx->hHal, eCSR_HDD, 
                        SME_SUMMARY_STATS      |
@@ -1013,7 +1019,9 @@ static int iw_get_bitrate(struct net_device *dev,
       
       if(eHAL_STATUS_SUCCESS != status)
       {
-         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD sme_GetStatistics failed!!\n"));
+         hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: Unable to retrieve statistics",
+                __FUNCTION__);
          return status;
       }
    
@@ -1023,7 +1031,9 @@ static int iw_get_bitrate(struct net_device *dev,
    
       if (!VOS_IS_STATUS_SUCCESS(vos_status))
       {   
-         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("%s: ERROR: HDD vos wait for single_event failed!!\n"), __func__);
+         hddLog(VOS_TRACE_LEVEL_ERROR,
+                "%s: SME timeout while retrieving statistics",
+                __FUNCTION__);
          return VOS_STATUS_E_FAILURE;
       }
    
@@ -1466,7 +1476,7 @@ static int iw_get_range(struct net_device *dev, struct iw_request_info *info,
    if (ccmCfgGetInt(hHal, 
                   WNI_CFG_DOT11_MODE, &active_phy_mode) == eHAL_STATUS_SUCCESS) 
    {  
-     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("active_phy_mode = %ld\n"),active_phy_mode);
+     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("active_phy_mode = %ld\n"),active_phy_mode);
      
       if (active_phy_mode == WNI_CFG_DOT11_MODE_11A || active_phy_mode == WNI_CFG_DOT11_MODE_11G)
       { 
@@ -1729,7 +1739,9 @@ static int iw_set_priv(struct net_device *dev,
            
            if(eHAL_STATUS_SUCCESS != status)
            {
-              hddLog( VOS_TRACE_LEVEL_ERROR, "HDD sme_GetStatistics failed");
+              hddLog(VOS_TRACE_LEVEL_ERROR,
+                     "%s: Unable to retrieve statistics for link speed",
+                     __FUNCTION__);
               return status;
            }
                    
@@ -1737,7 +1749,9 @@ static int iw_set_priv(struct net_device *dev,
         
            if (!VOS_IS_STATUS_SUCCESS(status))
            {   
-              hddLog( VOS_TRACE_LEVEL_ERROR, "%s: HDD vos wait for single_event failed", __func__);
+              hddLog(VOS_TRACE_LEVEL_ERROR,
+                     "%s: SME timeout while retrieving link speed",
+                     __FUNCTION__);
               return VOS_STATUS_E_FAILURE;
            }
         
@@ -1774,14 +1788,18 @@ static int iw_set_priv(struct net_device *dev,
                 status = sme_GetRssi(pHddCtx->hHal, hdd_GetRssiCB, pHddStaCtx->conn_info.staId[ 0 ], pAdapter, pHddCtx->pvosContext);
                 if(eHAL_STATUS_SUCCESS != status)
                 {
-                    hddLog(VOS_TRACE_LEVEL_ERROR, "HDD sme_GetRssi failed");
+                   hddLog(VOS_TRACE_LEVEL_ERROR,
+                          "%s: Unable to retrieve rssi",
+                          __FUNCTION__);
                     return status;
                 }
 
                 vos_wait_single_event(&pWextState->vosevent, WLAN_WAIT_TIME_STATS);
                 if(!VOS_IS_STATUS_SUCCESS(status))
                 {
-                    hddLog(VOS_TRACE_LEVEL_ERROR, "%s: HDD vos wait for single_event failed", __func__);
+                    hddLog(VOS_TRACE_LEVEL_ERROR,
+                           "%s: SME timeout while retrieving rssi",
+                           __FUNCTION__);
                     return VOS_STATUS_E_FAILURE;
                 }
                 s7Rssi = pAdapter->rssi;
@@ -1905,7 +1923,7 @@ static int iw_set_priv(struct net_device *dev,
         /*TODO: rxfilter-remove*/
     }
     else {
-        hddLog( VOS_TRACE_LEVEL_ERROR,"Unsupported GUI command %s", cmd);
+        hddLog( VOS_TRACE_LEVEL_WARN, "Unsupported GUI command %s", cmd);
     }
 done:
     return status;
@@ -2047,7 +2065,8 @@ static int iw_set_encode(struct net_device *dev,struct iw_request_info *info,
        }
        else 
        {
-           hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Invalid WEP key length :%d",__FUNCTION__,key_length);
+           hddLog(VOS_TRACE_LEVEL_WARN, "%s: Invalid WEP key length :%d",
+                  __FUNCTION__, key_length);
            return -EINVAL;
        }  
       
@@ -2367,7 +2386,7 @@ static int iw_set_retry(struct net_device *dev, struct iw_request_info *info,
        return -EOPNOTSUPP;
    }
       
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("Set Retry-Limit=%ld!!\n"),wrqu->retry.value);
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("Set Retry-Limit=%ld!!\n"),wrqu->retry.value);
    
    EXIT();
    
@@ -2410,7 +2429,7 @@ static int iw_get_retry(struct net_device *dev, struct iw_request_info *info,
       return -EOPNOTSUPP;
    }
       
-   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("Retry-Limit=%ld!!\n"),retry);
+   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("Retry-Limit=%ld!!\n"),retry);
    
    EXIT();
    
@@ -2501,7 +2520,7 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                 sme_GetConfigParam(hHal,&smeConfig.csrConfig);
                 smeConfig.csrConfig.Is11dSupportEnabled = (v_BOOL_t)set_value;
 
-                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("11D state=%ld!!\n"),smeConfig.csrConfig.Is11dSupportEnabled);
+                VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("11D state=%ld!!\n"),smeConfig.csrConfig.Is11dSupportEnabled);
                 
                 sme_UpdateConfig(hHal,&smeConfig);
             } 
@@ -2750,7 +2769,7 @@ static int iw_setnone_getint(struct net_device *dev, struct iw_request_info *inf
            
            *value = configInfo.Is11dSupportEnabled;
 
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("11D state=%ld!!\n"),*value);
+            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, ("11D state=%ld!!\n"),*value);
            
            break;
         }
@@ -3029,8 +3048,7 @@ static int iw_setnone_getnone(struct net_device *dev, struct iw_request_info *in
 #endif
         default:
         {
-            VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,"%s: unknown ioctl %d", __FUNCTION__, sub_cmd);
-            hddLog(LOGE, "Invalid IOCTL action command %d ", sub_cmd);
+            hddLog(LOGE, "%s: unknown ioctl %d", __FUNCTION__, sub_cmd);
             break;
         }
     }
@@ -3677,7 +3695,9 @@ static int iw_get_statistics(struct net_device *dev,
 
     if (eHAL_STATUS_SUCCESS != status)
     {
-        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD sme_GetStatistics failed!!\n"));
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+              "%s: Unable to retrieve SME statistics",
+              __FUNCTION__);
         return -EINVAL;
     }
 
@@ -3686,7 +3706,9 @@ static int iw_get_statistics(struct net_device *dev,
     vos_status = vos_wait_single_event(&pWextState->vosevent, WLAN_WAIT_TIME_STATS);
     if (!VOS_IS_STATUS_SUCCESS(vos_status))
     {
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("%s: ERROR: HDD vos wait for single_event failed!!\n"), __func__);
+       hddLog(VOS_TRACE_LEVEL_ERROR,
+              "%s: SME timeout while retrieving statistics",
+              __FUNCTION__);
        /*Remove the SME statistics list by passing NULL in callback argument*/
        status = sme_GetStatistics( pHddCtx->hHal, eCSR_HDD,
                        SME_SUMMARY_STATS,

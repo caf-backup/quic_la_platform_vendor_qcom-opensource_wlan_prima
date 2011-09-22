@@ -453,8 +453,8 @@ VOS_STATUS vos_nv_open(void)
 
     if ( (!VOS_IS_STATUS_SUCCESS( status )) || !gnvEFSTable)
     {
-         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_WARN,
-                   "%s : unable to download NV file %s",
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                   "%s: unable to download NV file %s",
                    __FUNCTION__, WLAN_NV_FILE);
          return VOS_STATUS_E_RESOURCES;
     }

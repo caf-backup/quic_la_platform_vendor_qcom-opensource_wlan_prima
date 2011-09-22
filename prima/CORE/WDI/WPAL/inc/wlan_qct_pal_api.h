@@ -18,6 +18,9 @@
 #include "wlan_qct_pal_type.h"
 #include "wlan_qct_pal_status.h"
 
+#ifdef MEMORY_DEBUG
+#include "vos_memory.h"
+#endif /* MEMORY_DEBUG */
 
 /*********************************MACRO**********************/
 
@@ -93,6 +96,11 @@ wpt_status wpalClose(void *pPalContext);
 
 
 /*********************************Memory API********************************/
+#ifdef MEMORY_DEBUG
+/* For Memory Debugging, Hook up PAL memory API to VOS memory API */
+#define wpalMemoryAllocate vos_mem_malloc
+#define wpalMemoryFree     vos_mem_free
+#else
 
 /*---------------------------------------------------------------------------
     wpalMemoryAllocate -  Allocate memory
@@ -112,7 +120,7 @@ void *wpalMemoryAllocate(wpt_uint32 size);
        None
 ---------------------------------------------------------------------------*/
 void wpalMemoryFree(void *pv);
-
+#endif /* MEMORY_DEBUG */
 
 /*---------------------------------------------------------------------------
     wpalMemoryCopy -  copy memory

@@ -122,7 +122,7 @@
 
 #define WDA_NUM_PWR_SAVE_CFG       10
 
-#define WDA_TX_COMPLETE_TIME_OUT_VALUE 200
+#define WDA_TX_COMPLETE_TIME_OUT_VALUE 1000
   
 /* extern declarations */
 extern void vos_WDAComplete_cback(v_PVOID_t pVosContext);
@@ -1610,11 +1610,12 @@ VOS_STATUS WDA_ResumeDataTx(tWDA_CbContext *pWDA)
  * FUNCTION: WDA_InitScanReqCallback
  * Trigger Init SCAN callback
  */ 
-void WDA_InitScanReqCallback(WDI_Status status, void* pUserData)
+void WDA_InitScanReqCallback(WDI_Status wdiStatus, void* pUserData)
 {
    tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
    tWDA_CbContext *pWDA; 
    tInitScanParams *pWDA_ScanParam ;
+   VOS_STATUS      status;      
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
@@ -1624,18 +1625,17 @@ void WDA_InitScanReqCallback(WDI_Status status, void* pUserData)
 
    WDA_VOS_ASSERT(NULL != pWDA_ScanParam);
 
-   if(WDI_STATUS_SUCCESS != status)
+   if(WDI_STATUS_SUCCESS != wdiStatus)
    {
       status = WDA_ResumeDataTx(pWDA) ;
 
-      if(WDI_STATUS_SUCCESS != status)
+      if(VOS_STATUS_SUCCESS != status)
       {
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                                   "%s error in Resume Tx ", __FUNCTION__ );
-         WDA_VOS_ASSERT(0) ;
       }
-
    }
+
    /* free WDI command buffer */
    vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
 
@@ -1643,7 +1643,7 @@ void WDA_InitScanReqCallback(WDI_Status status, void* pUserData)
 
    
    /* assign status to scan params */
-   pWDA_ScanParam->status = CONVERT_WDI2SIR_STATUS(status) ;
+   pWDA_ScanParam->status = CONVERT_WDI2SIR_STATUS(wdiStatus) ;
 
    /* send SCAN RSP message back to PE */
    WDA_SendMsg(pWDA, WDA_INIT_SCAN_RSP, (void *)pWDA_ScanParam, 0) ;
@@ -1942,12 +1942,13 @@ VOS_STATUS  WDA_ProcessEndScanReq(tWDA_CbContext *pWDA,
  * FUNCTION: WDA_FinishScanReqCallback
  * Trigger Finish SCAN callback
  */ 
-void WDA_FinishScanReqCallback(WDI_Status status, void* pUserData)
+void WDA_FinishScanReqCallback(WDI_Status wdiStatus, void* pUserData)
 {
    tWDA_ReqParams *pWdaParams = (tWDA_ReqParams *)pUserData; 
    tWDA_CbContext *pWDA; 
    tFinishScanParams *finishScanParam = 
                          (tFinishScanParams *)pWdaParams->wdaMsgParam ;
+   VOS_STATUS      status;
 
    VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_INFO,
                                           "<------ %s " ,__FUNCTION__);
@@ -1967,12 +1968,13 @@ void WDA_FinishScanReqCallback(WDI_Status status, void* pUserData)
     */
    status = WDA_ResumeDataTx(pWDA) ;
        
-   if(WDI_STATUS_SUCCESS != status)
+   if(VOS_STATUS_SUCCESS != status)
    {
-      WDA_VOS_ASSERT(0) ;
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                  "%s error in Resume Tx ", __FUNCTION__ );
    }
 
-   finishScanParam->status = CONVERT_WDI2SIR_STATUS(status) ;
+   finishScanParam->status = CONVERT_WDI2SIR_STATUS(wdiStatus) ;
 
    WDA_SendMsg(pWDA, WDA_FINISH_SCAN_RSP, (void *)finishScanParam, 0) ;
    return ;
@@ -3247,6 +3249,9 @@ void WDA_UpdateSTAParams(tWDA_CbContext *pWDA,
    wdiStaParams->us32MaxAmpduDuratio = wdaStaParams->us32MaxAmpduDuration;
    wdiStaParams->ucDsssCckMode40Mhz = wdaStaParams->fDsssCckMode40Mhz;
    wdiStaParams->ucEncryptType = wdaStaParams->encryptType;
+#ifdef WLAN_FEATURE_P2P
+   wdiStaParams->ucP2pCapableSta = wdaStaParams->p2pCapableSta;
+#endif
    return ;
 }
 
@@ -4647,7 +4652,8 @@ void WDA_AddBASessionReqCallback(
    }
    else
    {
-      pAddBAReqParams->status = CONVERT_WDI2SIR_STATUS(status) ;
+      pAddBAReqParams->status = 
+            CONVERT_WDI2SIR_STATUS(wdiAddBaSession->wdiStatus) ;
       pWDA->wdaMsgParam = NULL;
       WDA_SendMsg(pWDA, WDA_ADDBA_RSP, (void *)pAddBAReqParams , 0) ;
    }

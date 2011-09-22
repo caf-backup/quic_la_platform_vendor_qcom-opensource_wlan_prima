@@ -68,8 +68,10 @@ when        who    what, where, why
       in before we get to a timeout (ms units)*/
 #define WDI_RESPONSE_TIMEOUT   10000
 
-/*! TO DO: check this against the HAL header and set the right values*/
-#define WDI_MAX_SUPPORTED_STAS    10 
+/*In prima 12 HW stations are supported including BCAST STA(staId 0)
+ and SELF STA(staId 1) so total ASSOC stations which can connect to Prima
+ SoftAP = 12 - 1(Self STa) - 1(Bcast Sta) = 10 Stations. */
+#define WDI_MAX_SUPPORTED_STAS    12 
 #define WDI_MAX_SUPPORTED_BSS     5 
 
 /* Control transport channel size*/

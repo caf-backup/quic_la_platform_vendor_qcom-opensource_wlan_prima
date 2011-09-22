@@ -342,7 +342,7 @@ STATIC const WLANTL_STAFsmEntryType tlSTAFsm[WLANTL_STA_MAX_STATE] =
 ---------------------------------------------------------------------------*/
 
 #define WLANTL_MAX_WINSIZE      64
-#define WLANTL_MAX_BA_SESSION   8
+#define WLANTL_MAX_BA_SESSION   40
 
 typedef struct
 {

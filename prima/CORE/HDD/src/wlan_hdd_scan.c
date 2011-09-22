@@ -211,7 +211,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
    {
       /* no space to add event */
       /* Error code may be E2BIG */
-       hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWAP ");
+       hddLog( LOGW, "hdd_IndicateScanResult: no space for SIOCGIWAP ");
        return -E2BIG;
    }
 
@@ -236,7 +236,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
        modestr = "n";
        break;
    default:
-       hddLog( LOG1, "%s: Unknown network type [%d]",
+       hddLog( LOGW, "%s: Unknown network type [%d]",
               __FUNCTION__, descriptor->nwType);
        modestr = "?";
        break;
@@ -247,7 +247,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
 
    if (last_event == current_event)
    { /* no space to add event */
-       hddLog( LOG1, "hdd_IndicateScanResult: no space for SIOCGIWNAME");
+       hddLog( LOGW, "hdd_IndicateScanResult: no space for SIOCGIWNAME");
       /* Error code, may be E2BIG */
        return -E2BIG;
    }
@@ -296,7 +296,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
 
    if (last_event == current_event)
    { /* no space to add event */
-       hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWMODE");
+       hddLog( LOGW, "hdd_IndicateScanResult: no space for SIOCGIWMODE");
        return -E2BIG;
    }
    /* To extract SSID */
@@ -332,14 +332,14 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
 
           if(last_event == current_event)
           { /* no space to add event */
-             hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWESSID");
+             hddLog( LOGW, "hdd_IndicateScanResult: no space for SIOCGIWESSID");
              return -E2BIG;
           }
        }
 
       if( hdd_GetWPARSNIEs( ( tANI_U8 *) descriptor->ieFields, ie_length, &last_event, &current_event, scanInfo )  < 0    )
       {
-          hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWESSID");
+          hddLog( LOGW, "hdd_IndicateScanResult: no space for SIOCGIWESSID");
           return -E2BIG;
       }
 
@@ -387,7 +387,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
           if((maxNumRates - numBasicRates) > MAX_RATES)
           {
              no_of_rates = MAX_RATES;
-             hddLog( LOGE, "Accessing array out of bound that array is pDot11ExtSuppRates->rates ");
+             hddLog( LOGW, "Accessing array out of bound that array is pDot11ExtSuppRates->rates ");
           }
           else
           {
@@ -415,7 +415,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
       {
           if (last_event == current_event)
           { /* no space to add event */
-              hddLog( LOGE, "hdd_IndicateScanResult: no space for SIOCGIWRATE");
+              hddLog( LOGW, "hdd_IndicateScanResult: no space for SIOCGIWRATE");
               return -E2BIG;
           }
       }
@@ -461,7 +461,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
 
    if(last_event == current_event)
    { /* no space to add event */
-       hddLog( LOGE, "hdd_IndicateScanResult: no space for IWEVQUAL");
+       hddLog( LOGW, "hdd_IndicateScanResult: no space for IWEVQUAL");
        return -E2BIG;
    }
 
@@ -476,7 +476,7 @@ static eHalStatus hdd_IndicateScanResult(hdd_scan_info_t *scanInfo, tCsrScanResu
                                          &event, custom);
    if(last_event == current_event)
    { /* no space to add event */
-      hddLog( LOGE, "hdd_IndicateScanResult: no space for IWEVCUSTOM (age)");
+      hddLog( LOGW, "hdd_IndicateScanResult: no space for IWEVCUSTOM (age)");
       return -E2BIG;
    }
 
@@ -519,7 +519,7 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     /* Check the scanId */
     if (pwextBuf->scanId != scanId)
     {
-        hddLog(LOGE, "%s called with mismatched scanId pWextState->scanId = %d "
+        hddLog(LOGW, "%s called with mismatched scanId pWextState->scanId = %d "
                "scanId = %d ", __FUNCTION__, (int) pwextBuf->scanId,
                 (int) scanId);
     }
@@ -797,7 +797,7 @@ static eHalStatus hdd_CscanRequestCallback(tHalHandle halHandle, void *pContext,
     /* Check the scanId */
     if (pwextBuf->scanId != scanId)
     {
-        hddLog(LOGE, "%s called with mismatched scanId pWextState->scanId = %d "
+        hddLog(LOGW, "%s called with mismatched scanId pWextState->scanId = %d "
                "scanId = %d ", __FUNCTION__, (int) pwextBuf->scanId,
                 (int) scanId);
     }

@@ -901,11 +901,7 @@ err_wda_stop:
 VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
 {
   VOS_STATUS vosStatus;
-#ifdef FEATURE_WLAN_INTEGRATED_SOC
-  pVosContextType pVosContext = (pVosContextType)vosContext;
-#endif/* FEATURE_WLAN_INTEGRATED_SOC */
 
-#ifndef FEATURE_WLAN_INTEGRATED_SOC
   /* SYS STOP will stop SME and MAC */
   vosStatus = sysStop( vosContext);
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))
@@ -914,20 +910,6 @@ VOS_STATUS vos_stop( v_CONTEXT_t vosContext )
          "%s: Failed to stop SYS",__func__);
      VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
   }
-#else
-  if(sme_Stop(pVosContext->pMACContext, TRUE))
-  {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to stop SME",__func__);
-     VOS_ASSERT(0);
-  }
-  if(macStop(pVosContext->pMACContext, HAL_STOP_TYPE_SYS_RESET))
-  {
-     VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-         "%s: Failed to stop MAC",__func__);
-     VOS_ASSERT(0);
-  }
-#endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
   vosStatus = WLANTL_Stop( vosContext );
   if (!VOS_IS_STATUS_SUCCESS(vosStatus))

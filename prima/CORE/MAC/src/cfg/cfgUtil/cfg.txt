@@ -2956,10 +2956,10 @@ HAL
 WNI_CFG_MAX_BA_BUFFERS     I    4    7
 V    RW    NP   RESTART
 HAL
-0    512    512
+0    2560    2560
 V    RW    NP
 HAL
-0    512    512
+0    2560    2560
 
 
 *
@@ -2970,10 +2970,10 @@ HAL
 WNI_CFG_MAX_BA_SESSIONS     I    4    7
 V    RW    NP   RESTART
 HAL
-0    64    16
+0    64    40
 V    RW    NP
 HAL
-0    64    64
+0    64    40
 
 
 *
@@ -3787,8 +3787,8 @@ HAL
 WNI_CFG_ASSOC_STA_LIMIT    I   4   8
 V    RW    NP
 LIM
-1    10    5
+1    10    10
 V    RW    NP
 LIM
-1    10    5
+1    10    10
 

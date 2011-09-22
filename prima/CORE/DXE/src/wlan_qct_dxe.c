@@ -2767,6 +2767,7 @@ void *WLANDXE_Open
    wpt_status              status = eWLAN_PAL_STATUS_SUCCESS;
    unsigned int            idx;
    WLANDXE_ChannelCBType  *currentChannel = NULL;
+   int                     smsmInitState;
 #ifdef WLANDXE_TEST_CHANNEL_ENABLE
    wpt_uint32                 sIdx;
    WLANDXE_ChannelCBType     *channel = NULL;
@@ -2916,6 +2917,20 @@ void *WLANDXE_Open
    }
    tempDxeCtrlBlk->freeRXPacket = NULL;
    tempDxeCtrlBlk->dxeCookie    = WLANDXE_CTXT_COOKIE;
+
+   /* Initialize SMSM state
+    * Init State is
+    *    Clear TX Enable
+    *    RING EMPTY STATE */
+   smsmInitState = smsm_change_state(SMSM_APPS_STATE,
+                                     SMSM_WLAN_TX_ENABLE,
+                                     SMSM_WLAN_TX_RINGS_EMPTY);
+   if(0 != smsmInitState)
+   {
+      HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_ERROR,
+               "SMSM Channel init fail %d", smsmInitState);
+      return NULL;
+   }
 
    HDXE_MSG(eWLAN_MODULE_DAL_DATA, eWLAN_PAL_TRACE_LEVEL_WARN,
             "WLANDXE_Open Success");

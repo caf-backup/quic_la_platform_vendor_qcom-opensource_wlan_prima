@@ -108,7 +108,8 @@ tANI_BOOLEAN csrCheckPSReady(void *pv)
     tpAniSirGlobal pMac = PMAC_STRUCT( pv );
 
     VOS_ASSERT( pMac->roam.sPendingCommands >= 0 );
-    return (pMac->roam.sPendingCommands == 0);
+    return ((pMac->roam.sPendingCommands == 0) &&
+             !vos_concurrent_sessions_running());
 }
 
 
