@@ -870,6 +870,11 @@ typedef enum
 #define CFG_NULLDATA_AP_RESP_TIMEOUT_MAX        ( WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT_STAMAX )
 #define CFG_NULLDATA_AP_RESP_TIMEOUT_DEFAULT    ( WNI_CFG_PS_NULLDATA_AP_RESP_TIMEOUT_STADEF )
 
+#define CFG_ENABLE_BTAMP_NAME                   "gEnableBtAmp"
+#define CFG_ENABLE_BTAMP_MIN                    ( 0 )
+#define CFG_ENABLE_BTAMP_MAX                    ( 1 )
+#define CFG_ENABLE_BTAMP_DEFAULT                ( 0 )
+
 #ifdef WLAN_BTAMP_FEATURE
 #define CFG_BT_AMP_PREFERRED_CHANNEL_NAME          "BtAmpPreferredChannel"
 #define CFG_BT_AMP_PREFERRED_CHANNEL_MIN           (1)
@@ -1116,6 +1121,7 @@ typedef struct
    
    /* RF Settling Time Clock */
    v_U32_t                     rfSettlingTimeUs;
+   v_U8_t                      enableBtAmp;
 #ifdef WLAN_BTAMP_FEATURE
    v_U8_t                      preferredChannel;
 #endif //WLAN_BTAMP_FEATURE
