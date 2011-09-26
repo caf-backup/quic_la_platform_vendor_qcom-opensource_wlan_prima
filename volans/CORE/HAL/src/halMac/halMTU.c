@@ -641,8 +641,8 @@ void halMTU_update11gSlotTimingParams(tpAniSirGlobal pMac, tMtuMode mode)
     for (ac=0;  ac < MAX_NUM_AC; ac++)
     {
         tANI_U32 bkoffId = __halMTU_ac2BkoffIndex(pMac, ac);
-
-        /** Updating local host cwMin, cwMax.*/
+        VOS_ASSERT(bkoffId < 8); 
+         /** Updating local host cwMin, cwMax.*/
         modeParams->cwMin[bkoffId] = pMac->hal.edcaParam[ac].cw.min;
         modeParams->cwMax[bkoffId] = pMac->hal.edcaParam[ac].cw.max;
         modeParams->difs[bkoffId] = modeParams->sifs + (pMac->hal.edcaParam[ac].aci.aifsn * modeParams->slot);
@@ -713,6 +713,7 @@ void halMTU_updateCW(tpAniSirGlobal pMac, tANI_U8 ac, tANI_U16 ecwMin, tANI_U16 
 
     bkoffId = __halMTU_ac2BkoffIndex(pMac, ac);
 
+    VOS_ASSERT(bkoffId < 8); 
     /** Updating local host cwMin, cwMax.*/
     modeParams->cwMin[bkoffId] = ecwMin;
     modeParams->cwMax[bkoffId] = ecwMax;
@@ -774,6 +775,7 @@ void halMTU_updateAIFS(tpAniSirGlobal pMac, tSirMacEdcaParamRecord* pEdcaParam)
     {
         bkOffIdx = __halMTU_ac2BkoffIndex(pMac, ac);
 
+        VOS_ASSERT(bkOffIdx < 8); 
         HALLOGW( halLog(pMac, LOGW, FL("AIFS[%d] = %d , sifs = %d, slot = %d\n"), bkOffIdx, pEdcaParam[ac].aci.aifsn, modeParams->sifs, modeParams->slot));
         HALLOGW( halLog(pMac, LOGW, FL("difs = %d\n"), modeParams->difs[bkOffIdx]));
 

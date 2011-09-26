@@ -6418,6 +6418,7 @@ static void csrRoamingStateConfigCnfProcessor( tpAniSirGlobal pMac, tANI_U32 res
                     return;
                 } 
                 // If we are roaming TO an Infrastructure BSS...
+                VOS_ASSERT(pScanResult != NULL); 
                 if ( csrIsInfraBssDesc( pBssDesc ) )
                 {
                     tDot11fBeaconIEs *pIesLocal = (tDot11fBeaconIEs *)pScanResult->Result.pvIes;

@@ -2488,9 +2488,13 @@ VOS_STATUS WLANSSC_ResumeChip
            (WLANSSC_RESUMELOOPCOUNT < ++uResumeLoopCount));
 
    if ((WLANSSC_RESUMELOOPCOUNT == uResumeLoopCount) && (uRegValue & QWLAN_SIF_BAR4_WLAN_STATUS_REG_PMU_BLOCKED_BIT_MASK))
+   {
       SSCLOGP(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_FATAL, "Resume chip failed Status %x", uRegValue));
+   }
    else
-   SSCLOG2(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO_HIGH, "Resume chip Status %x", uRegValue));
+   {
+      SSCLOG2(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_INFO_HIGH, "Resume chip Status %x", uRegValue));
+   }
 
    pControlBlock->bChipSuspended = VOS_FALSE;
 

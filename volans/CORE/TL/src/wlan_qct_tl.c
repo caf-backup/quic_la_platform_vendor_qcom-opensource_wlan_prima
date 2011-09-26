@@ -5449,7 +5449,10 @@ WLANTL_STATxAuth
      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
             "WLAN TL:Invalid input params on WLANTL_STATxAuth TL %x DB %x",
              pTLCb, pvosDataBuff));
-    *pvosDataBuff = NULL;
+    if (NULL != pvosDataBuff)
+    {
+        *pvosDataBuff = NULL;
+    }
     if(NULL != pTLCb)
     {
         pTLCb->atlSTAClients[ucSTAId].ucNoMoreData = 1;

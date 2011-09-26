@@ -440,7 +440,8 @@ hdd_softap_unpackIE(
         // Skip past the EID byte and length byte  
         pRsnIe = gen_ie + 2; 
         RSNIeLen = gen_ie_len - 2; 
-        // Unpack the RSN IE 
+        // Unpack the RSN IE
+        dot11RSNIE.present = 0;  
         dot11fUnpackIeRSN((tpAniSirGlobal) halHandle, 
                             pRsnIe, 
                             RSNIeLen, 
@@ -474,7 +475,8 @@ hdd_softap_unpackIE(
         // Skip past the EID byte and length byte - and four byte WiFi OUI  
         pRsnIe = gen_ie + 2 + 4; 
         RSNIeLen = gen_ie_len - (2 + 4); 
-        // Unpack the WPA IE 
+        // Unpack the WPA IE
+        dot11WPAIE.present = 0; 
         dot11fUnpackIeWPA((tpAniSirGlobal) halHandle, 
                             pRsnIe, 
                             RSNIeLen, 
@@ -633,6 +635,10 @@ static iw_softap_commit(struct net_device *dev,
     pCommitConfig = (s_CommitConfig_t *)extra;
     
     pConfig = kmalloc(sizeof(tsap_Config_t), GFP_KERNEL);
+    if(NULL == pConfig) {
+        hddLog(LOG1, "VOS unable to allocate memory\n");
+        return VOS_STATUS_E_FAILURE;
+    }
     pConfig->beacon_int =  pCommitConfig->beacon_int;
     pConfig->channel = pCommitConfig->channel;
     /*Protection parameter to enable or disable*/
@@ -1095,6 +1101,11 @@ static int iw_softap_setwpsie(struct net_device *dev,
       return 0;
 
    pSap_WPSIe = vos_mem_malloc(sizeof(tSap_WPSIE));
+   if (NULL == pSap_WPSIe) 
+   {
+      hddLog(LOG1, "VOS unable to allocate memory\n");
+      return VOS_STATUS_E_FAILURE;
+   }
    vos_mem_zero(pSap_WPSIe, sizeof(tSap_WPSIE));
  
    hddLog(LOGE,"%s WPS IE type[0x%X] IE[0x%X], LEN[%d]\n", __FUNCTION__, wps_genie[0], wps_genie[1], wps_genie[2]);

@@ -437,6 +437,7 @@ eHalStatus halPhySetChannel(tHalHandle hHal, tANI_U8 channelNumber,
                                                 pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset)/100) - 17;
 
 		VOS_ASSERT(rfChannel != INVALID_RF_CHANNEL);
+		VOS_ASSERT(rfChannel < MAX_TPC_CHANNELS);
         /* Don't do copy in case of scanning, PLUTs are not used */
         if (calRequired)
         {

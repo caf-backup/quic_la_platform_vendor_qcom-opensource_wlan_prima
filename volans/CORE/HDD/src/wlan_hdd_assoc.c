@@ -1710,6 +1710,10 @@ int iw_set_essid(struct net_device *dev,
                      msecs_to_jiffies(WLAN_WAIT_TIME_DISCONNECT));
         }
     }
+    else 
+    {
+        return -EINVAL;
+    }
     /** wpa_supplicant 0.8.x, wext driver uses 
       zero-length, null-string ssid for force disconnection. 
       after disconnection (if previously connected) and cleaning ssid, 

@@ -2716,6 +2716,7 @@ tCsrScanResult *csrScanAppendBssDescription( tpAniSirGlobal pMac,
     v_TIME_t timer = 0;
     int result=csrRemoveDupBssDescription( pMac, pSirBssDescription, pIes, &tmpSsid, &timer );
     pCsrBssDescription = csrScanSaveBssDescription( pMac, pSirBssDescription, pIes );
+    VOS_ASSERT(pCsrBssDescription != NULL);
     if(result)
     {
         //Check if the new one has SSID it it, if not, use the older SSID if it exists.
@@ -3943,6 +3944,7 @@ tCsrScanResult *csrScanSaveBssDescriptionToInterimList( tpAniSirGlobal pMac,
             //SSID not hidden
             pCsrBssDescription->Result.ssId.length = pIes->SSID.num_ssid;
             pCsrBssDescription->Result.timer = vos_timer_get_system_time();
+	        VOS_ASSERT(pIes->SSID.num_ssid < 32);
             palCopyMemory(pMac->hHdd, pCsrBssDescription->Result.ssId.ssId, 
                 pIes->SSID.ssid, pIes->SSID.num_ssid );
         }

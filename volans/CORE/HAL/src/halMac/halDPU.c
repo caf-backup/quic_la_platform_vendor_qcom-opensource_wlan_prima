@@ -613,15 +613,16 @@ halDpu_Open(
 out:    
     HALLOGE( halLog(pMac, LOGE, FL("DPU open failed \n")));
     if(pMac->hal.halMac.dpuInfo){
-        if(pDpu->rcDescTable)
-            palFreeMemory(pMac->hHdd,pDpu->rcDescTable);
-        if(pDpu->micKeyTable)
-            palFreeMemory(pMac->hHdd,pDpu->micKeyTable);
-        if(pDpu->keyTable)
-            palFreeMemory(pMac->hHdd,pDpu->keyTable);
-        if(pDpu->descTable)
-            palFreeMemory(pMac->hHdd,pDpu->descTable);
-        palFreeMemory(pMac->hHdd,pMac->hal.halMac.dpuInfo);
+	    pDpu = (tpDpuInfo) pMac->hal.halMac.dpuInfo;
+	    if(pDpu->rcDescTable)
+		    palFreeMemory(pMac->hHdd,pDpu->rcDescTable);
+	    if(pDpu->micKeyTable)
+		    palFreeMemory(pMac->hHdd,pDpu->micKeyTable);
+	    if(pDpu->keyTable)
+		    palFreeMemory(pMac->hHdd,pDpu->keyTable);
+	    if(pDpu->descTable)
+		    palFreeMemory(pMac->hHdd,pDpu->descTable);
+	    palFreeMemory(pMac->hHdd,pMac->hal.halMac.dpuInfo);
 
     }    
     return status;    
@@ -1548,8 +1549,10 @@ halDpu_SetKeyDescriptor(
 
     for(i = 0; i < keyLen; i++)
     {
-      byteIndx = keyDescSize - keyLen + i;
-      pKeyDesc->halDpuKey.key128bit[byteIndx >> 2] |= *(pKey + i) << ((3 - (byteIndx%4))*8);
+	    byteIndx = keyDescSize - keyLen + i;
+	    if((byteIndx >> 2) >= 4)
+		    return eHAL_STATUS_INVALID_PARAMETER;
+	    pKeyDesc->halDpuKey.key128bit[byteIndx >> 2] |= *(pKey + i) << ((3 - (byteIndx%4))*8);
     }
 
     return (dpu_set_key_descriptor(pMac, pKeyDesc->hwIndex,

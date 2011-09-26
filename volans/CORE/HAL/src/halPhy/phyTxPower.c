@@ -740,7 +740,11 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
         //desired power for a single antenna
         {
             t2Decimal desiredPower;
-
+            if(rfSubband >= NUM_RF_SUBBANDS)
+            {
+                phyLog(pMac, LOGE, "ERROR: Invalid RF sub band");
+                return eHAL_STATUS_FAILURE;
+            }
             desiredPower = pMac->hphy.phy.pwrOptimal[rfSubband][rate].reported;
             absPwr = desiredPower;
         }
@@ -1261,6 +1265,7 @@ tPowerdBm halPhyGetRegDomainLimit(tHalHandle hHal, eHalPhyRates rate)
     tpAniSirGlobal pMac = (tpAniSirGlobal) hHal;
     eRfChannels chanIndex = rfGetCurChannel(pMac);
 
+    assert(chanIndex < NUM_RF_CHANNELS);
     if (pMac->hphy.phy.regDomainInfo != NULL)
     {
         return (tPowerdBm)(pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].channels[chanIndex].pwrLimit);
@@ -1277,7 +1282,6 @@ tPowerdBm halPhyGetRegDomainLimit(tHalHandle hHal, eHalPhyRates rate)
     eRfChannels chanIndex = rfGetCurChannel(pMac);
     ePhyChanBondState cbState = halPhyGetChannelBondState(pMac);
 
-    assert(chanIndex < NUM_RF_CHANNELS);
 
     if (pMac->hphy.phy.regDomainInfo == NULL)
     {
@@ -1482,6 +1486,11 @@ eHalStatus halPhyGetPwrFromRate2PwrTable(tHalHandle hHal, eHalPhyRates rate, t2D
             return(eHAL_STATUS_FAILURE);
     }
 
+    if(rfSubBand > NUM_RF_SUBBANDS)
+    {
+        phyLog(pMac, LOGE, "ERROR: Invalid RF sub band");
+        return eHAL_STATUS_FAILURE;
+    }
     *pwr2dec = pMac->hphy.phy.pwrOptimal[rfSubBand][rate].reported;
     phyLog(pMac, LOG1, FL("Power for rate %d is %d\n"), rate, *pwr2dec);
     return eHAL_STATUS_SUCCESS;

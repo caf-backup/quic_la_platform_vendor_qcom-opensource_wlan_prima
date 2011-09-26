@@ -3411,7 +3411,7 @@ const sHalNv nvDefaults =
                         {
                             { 0x00, 0x00 }, //CAL_POINT_0
                             { 0x00, 0x00 }, //CAL_POINT_1
-                            { 0x00, 0x00 }, //CAL_POINT_2
+                            { 0x00, 0x00 }, //CAL POINT_2
                             { 0x00, 0x00 }, //CAL_POINT_3
                             { 0x00, 0x00 }, //CAL_POINT_4
                             { 0x00, 0x00 }, //CAL_POINT_5
@@ -3775,7 +3775,9 @@ const sHalNv nvDefaults =
          //NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY
         {
             0  //3.2Mhz
-        }
+        },
+         //NV_TABLE_XO_WARMUP_US		
+        3000
 
 
 

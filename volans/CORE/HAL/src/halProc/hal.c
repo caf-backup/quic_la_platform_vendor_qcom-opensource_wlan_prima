@@ -1833,7 +1833,7 @@ eHalStatus hal_SendDummyFinishScan(tpAniSirGlobal pMac)
     // then will need fixes for multi-bss support
     assert (systemRole != eSYSTEM_MULTI_BSS_ROLE)
 
-    if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void*)pFinishScanParam, sizeof(tFinishScanParams))));
+    if (!HAL_STATUS_SUCCESS(palAllocateMemory(pMac->hHdd, (void*)pFinishScanParam, sizeof(tFinishScanParams))))
     {
 		HALLOGE(halLog(pMac, LOGE, FL("Allocating pFinishScanParam Failed\n")));
 		return eHAL_STATUS_FAILURE;

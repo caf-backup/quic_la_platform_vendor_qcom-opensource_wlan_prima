@@ -2490,14 +2490,30 @@ sme_QosStatusType sme_QosInternalReleaseReq(tpAniSirGlobal pMac,
          {
             break;
          }
-         if(pACInfo->num_flows[(SME_QOS_TSPEC_MASK_BIT_1_2_SET & ~flow_info->tspec_mask) - 1] > 0)
+
+         if(((SME_QOS_TSPEC_MASK_BIT_1_2_SET & ~flow_info->tspec_mask) > 0) &&
+            ((SME_QOS_TSPEC_MASK_BIT_1_2_SET & ~flow_info->tspec_mask) <= 
+                SME_QOS_TSPEC_INDEX_MAX))
          {
-            new_state = SME_QOS_QOS_ON;
+            if(pACInfo->num_flows[(SME_QOS_TSPEC_MASK_BIT_1_2_SET & 
+                                    ~flow_info->tspec_mask) - 1] > 0)
+            {
+                new_state = SME_QOS_QOS_ON;
+            }
+            else
+            {
+                new_state = SME_QOS_LINK_UP;
+            }         
          }
          else
          {
-            new_state = SME_QOS_LINK_UP;
-         }         
+            VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+                      "%s: %d: Exceeded the array bounds of pACInfo->num_flows",
+                      __FUNCTION__, __LINE__);
+            VOS_ASSERT (0);
+            return SME_QOS_STATUS_RELEASE_INVALID_PARAMS_RSP;
+         }
+
          if(VOS_FALSE == deltsIssued)
          {
             vos_mem_zero(&pACInfo->curr_QoSInfo[flow_info->tspec_mask - 1], 
@@ -4012,9 +4028,22 @@ static eHalStatus sme_QosUpdateTspecMask(v_U8_t sessionId,
              "%s: %d: invoked on session %d for AC %d TSPEC %d",
              __FUNCTION__, __LINE__,
              sessionId, search_key.key.ac_type, new_tspec_mask);
-   pSession = &sme_QosCb.sessionInfo[sessionId];
-   pACInfo = &pSession->ac_info[search_key.key.ac_type];
 
+   pSession = &sme_QosCb.sessionInfo[sessionId];
+   
+   if (search_key.key.ac_type < SME_QOS_EDCA_AC_MAX)
+   {
+       pACInfo = &pSession->ac_info[search_key.key.ac_type];
+   }
+   else
+   {
+      VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+                "%s: %d: Exceeded the array bounds of pSession->ac_info",
+                __FUNCTION__, __LINE__);
+      VOS_ASSERT (0);
+      return eHAL_STATUS_FAILURE;
+   }
+   
    pEntry = csrLLPeekHead( &sme_QosCb.flow_list, VOS_FALSE );
    if(!pEntry)
    {
@@ -4041,7 +4070,6 @@ static eHalStatus sme_QosUpdateTspecMask(v_U8_t sessionId,
                          "%s: %d: Flow %d matches",
                          __FUNCTION__, __LINE__,
                          flow_info->QosFlowID);
-
                pACInfo->num_flows[flow_info->tspec_mask - 1]--;
                pACInfo->num_flows[new_tspec_mask - 1]++;
                flow_info->tspec_mask = new_tspec_mask;
@@ -4057,7 +4085,6 @@ static eHalStatus sme_QosUpdateTspecMask(v_U8_t sessionId,
                          "%s: %d: Flow %d matches",
                          __FUNCTION__, __LINE__,
                          flow_info->QosFlowID);
-
                pACInfo->num_flows[flow_info->tspec_mask - 1]--;
                pACInfo->num_flows[new_tspec_mask - 1]++;
                flow_info->tspec_mask = new_tspec_mask;
@@ -4139,11 +4166,24 @@ eHalStatus sme_QosProcessAddTsSuccessRsp(tpAniSirGlobal pMac,
    }
    else
    {
-      if(!pACInfo->requested_QoSInfo
-         [(SME_QOS_TSPEC_MASK_BIT_1_2_SET & ~tspec_pending) - 1].ts_info.psb)
+      if(((SME_QOS_TSPEC_MASK_BIT_1_2_SET & ~tspec_pending) > 0) &&
+         ((SME_QOS_TSPEC_MASK_BIT_1_2_SET & ~tspec_pending) <= 
+            SME_QOS_TSPEC_INDEX_MAX))
       {
-         //update the session's apsd mask
-         pSession->apsdMask &= ~(1 << (SME_QOS_EDCA_AC_VO - ac));
+          if(!pACInfo->requested_QoSInfo
+              [(SME_QOS_TSPEC_MASK_BIT_1_2_SET & ~tspec_pending) - 1].ts_info.psb)
+          {
+              //update the session's apsd mask
+              pSession->apsdMask &= ~(1 << (SME_QOS_EDCA_AC_VO - ac));
+          }
+      }
+      else
+      {
+         VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_HIGH, 
+                   "%s: %d: Exceeded the array bounds of pACInfo->requested_QosInfo",
+                   __FUNCTION__, __LINE__);
+         VOS_ASSERT (0);
+         return eHAL_STATUS_FAILURE;
       }
    }
    pACInfo->curr_QoSInfo[tspec_pending - 1] = 

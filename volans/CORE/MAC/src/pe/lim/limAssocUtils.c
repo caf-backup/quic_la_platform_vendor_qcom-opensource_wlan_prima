@@ -1904,7 +1904,13 @@ limPopulateMatchingRateSet(tpAniSirGlobal pMac,
             {
                 if ((tempRateSet2.rate[i] & 0x7F) ==
                     (tempRateSet.rate[j] & 0x7F))
-                {
+                { 
+                    if ((bRateIndex > HAL_NUM_11B_RATES) || (aRateIndex > HAL_NUM_11A_RATES))
+                    {
+                        limLog(pMac, LOGE, FL("Invalid number of rates (11b->%d, 11a->%d)\n"),
+                                            bRateIndex, aRateIndex);
+                            return eSIR_FAILURE;
+                    }
                     if (sirIsArate(tempRateSet2.rate[i] & 0x7f))
                     {
                         isArate=1;
@@ -1912,12 +1918,7 @@ limPopulateMatchingRateSet(tpAniSirGlobal pMac,
                     }
                     else
                         rates->llbRates[bRateIndex++] = tempRateSet2.rate[i];
-                    if ((bRateIndex > HAL_NUM_11B_RATES) || (aRateIndex > HAL_NUM_11A_RATES))
-                    {
-                        limLog(pMac, LOGE, FL("Invalid number of rates (11b->%d, 11a->%d)\n"),
-                               bRateIndex, aRateIndex);
-                        return eSIR_FAILURE;
-                    }
+		            
                     break;
                 }
             }

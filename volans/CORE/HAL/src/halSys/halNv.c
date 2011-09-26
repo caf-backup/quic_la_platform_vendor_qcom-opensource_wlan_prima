@@ -174,6 +174,15 @@ eHalStatus halNvOpen(tHalHandle hMac)
         }
     }
 
+    if (vos_nv_getValidity(VNV_TABLE_XO_WARMUP_US, &itemIsValid) == VOS_STATUS_SUCCESS)
+    {
+        if (itemIsValid == VOS_TRUE)
+        {
+            if(vos_nv_read(VNV_TABLE_XO_WARMUP_US, (v_VOID_t *)&pMac->hphy.nvCache.tables.xoWarmupUs, NULL, sizeof(tANI_U32) ) != VOS_STATUS_SUCCESS)
+                 return (eHAL_STATUS_FAILURE);
+        }
+    }
+
 
 }
 #endif //(defined(ANI_OS_TYPE_ANDROID) || defined(ANI_OS_TYPE_AMSS))
@@ -192,6 +201,7 @@ eHalStatus halNvOpen(tHalHandle hMac)
     pMac->hphy.nvTables[NV_TABLE_OFDM_CMD_PWR_OFFSET  ] = &pMac->hphy.nvCache.tables.ofdmCmdPwrOffset;
     pMac->hphy.nvTables[NV_TABLE_TX_BB_FILTER_MODE  ] = &pMac->hphy.nvCache.tables.txbbFilterMode;
     pMac->hphy.nvTables[NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY  ] = &pMac->hphy.nvCache.tables.freqFor1p3VSupply;
+    pMac->hphy.nvTables[NV_TABLE_XO_WARMUP_US  ] = &pMac->hphy.nvCache.tables.xoWarmupUs;
 
 
     return status;
@@ -454,6 +464,13 @@ eHalStatus halStoreTableToNv(tHalHandle hMac, eNvTable tableID)
                 }
                 break;
 
+            case NV_TABLE_XO_WARMUP_US:
+                if ((vosStatus = vos_nv_write(VNV_TABLE_XO_WARMUP_US, (void *)&pMac->hphy.nvCache.tables.xoWarmupUs, sizeof(tANI_U32))) != VOS_STATUS_SUCCESS)
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
+                break;
+
 
 
             default:
@@ -623,6 +640,10 @@ eHalStatus halReadNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDat
             memcpy(tableData, &pMac->hphy.nvCache.tables.freqFor1p3VSupply, sizeof(sFreqFor1p3VSupply));
             break;
 
+	case NV_TABLE_XO_WARMUP_US:
+            memcpy(tableData, &pMac->hphy.nvCache.tables.xoWarmupUs, sizeof(tANI_U32));
+            break;
+
 
         default:
             return (eHAL_STATUS_FAILURE);
@@ -715,6 +736,11 @@ eHalStatus halWriteNvTable(tHalHandle hMac, eNvTable nvTable, uNvTables *tableDa
             case NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY:
                 numOfEntries = 1;
                 sizeOfEntry = sizeof(sFreqFor1p3VSupply);
+                break;
+
+            case NV_TABLE_XO_WARMUP_US:
+                numOfEntries = 1;
+                sizeOfEntry = sizeof(tANI_U32);
                 break;
 
 
@@ -918,6 +944,15 @@ eHalStatus halRemoveNvTable(tHalHandle hMac, eNvTable nvTable)
                 {
                     return (eHAL_STATUS_FAILURE);
                 }
+            case NV_TABLE_XO_WARMUP_US:
+                if ((vosStatus = vos_nv_setValidity(VNV_TABLE_XO_WARMUP_US, VOS_FALSE)) == VOS_STATUS_SUCCESS)
+                {
+                    memcpy(&pMac->hphy.nvCache.tables.xoWarmupUs, &nvDefaults.tables.xoWarmupUs, sizeof(tANI_U32));
+                }
+                else
+                {
+                    return (eHAL_STATUS_FAILURE);
+                }
 
                 break;
 
@@ -955,7 +990,7 @@ eHalStatus halBlankNv(tHalHandle hMac)
     halRemoveNvTable(hMac, NV_TABLE_OFDM_CMD_PWR_OFFSET   );
     halRemoveNvTable(hMac, NV_TABLE_TX_BB_FILTER_MODE     );
     halRemoveNvTable(hMac, NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY     );
-
+    halRemoveNvTable(hMac, NV_TABLE_XO_WARMUP_US     );
 
     return (retVal);
 }

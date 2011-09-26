@@ -842,6 +842,18 @@ VOS_STATUS vos_nv_read( VNV_TYPE type, v_VOID_t *outputVoidBuffer,
                memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.freqFor1p3VSupply,bufferSize);
            }
            break;
+      case VNV_TABLE_XO_WARMUP_US:
+           itemSize = sizeof(gnvEFSTable->halnv.tables.xoWarmupUs);
+           if(bufferSize != itemSize) {
+               VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                 itemSize);
+               status = VOS_STATUS_E_INVAL;
+           }
+           else {
+               memcpy(outputVoidBuffer,&gnvEFSTable->halnv.tables.xoWarmupUs,bufferSize);
+           }
+           break;
 
        default:
          break;
@@ -1055,6 +1067,19 @@ VOS_STATUS vos_nv_write( VNV_TYPE type, v_VOID_t *inputVoidBuffer,
             }
             else {
                 memcpy(&gnvEFSTable->halnv.tables.freqFor1p3VSupply,inputVoidBuffer,bufferSize);
+            }
+            break;
+
+       case VNV_TABLE_XO_WARMUP_US:
+            itemSize = sizeof(gnvEFSTable->halnv.tables.xoWarmupUs);
+            if(bufferSize != itemSize) {
+                VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 ("type = %d buffer size=%d is less than data size=%d\r\n"),type, bufferSize,
+                  itemSize);
+                status = VOS_STATUS_E_INVAL;
+            }
+            else {
+                memcpy(&gnvEFSTable->halnv.tables.xoWarmupUs,inputVoidBuffer,bufferSize);
             }
             break;
 

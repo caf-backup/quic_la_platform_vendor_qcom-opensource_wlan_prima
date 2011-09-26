@@ -1815,18 +1815,18 @@ void halRate_GetTxPwrForRate(tpAniSirGlobal pMac, tTpeRateIdx rateIdx,
 #ifdef FEATURE_TX_PWR_CONTROL
     if(gHalRateInfo[rateIdx].rateProperty & RA_VIRTUAL)
     {
-        phyRate = macPhyRateIndex[gHalRateInfo[rateIdx].tpeRateIdx];
-        pwrMode = POWER_MODE_LOW_POWER;
+	    phyRate = macPhyRateIndex[gHalRateInfo[rateIdx].tpeRateIdx];
+	    pwrMode = POWER_MODE_LOW_POWER;
     }
     else
     {
-        phyRate = macPhyRateIndex[rateIdx];
-        pwrMode = POWER_MODE_HIGH_POWER;
+	    phyRate = macPhyRateIndex[rateIdx];
+	    pwrMode = POWER_MODE_HIGH_POWER;
     }
 #else
     phyRate = macPhyRateIndex[rateIdx];
 #endif
-
+   
     if (phyRate != HAL_PHY_RATE_INVALID) {
         /* The CFGs WNI_CFG_MAX_TX_POWER_2_4 and WNI_CFG_MAX_TX_POWER_5 are always
          * updated by CSR on STA. If 11D is enabled, the CFG will be updated with
@@ -1985,7 +1985,9 @@ eHalStatus halRate_updateRespRateTable(tpAniSirGlobal pMac, tHalMacRate (*pRefRe
 //                    mode,codeRate,(*pRefResponseRateTable)[mode][codeRate],
 //                    HAL_RA_THRUPUT_GET((*pRefResponseRateTable)[mode][codeRate]),
 //                    pRate->thruputKbps));
-
+            if(codeRate >= RA_TOTAL_CODERATE){
+                continue; 
+            }
             if((*pRefResponseRateTable)[mode][codeRate] == HALRATE_INVALID){
                 continue;
             }

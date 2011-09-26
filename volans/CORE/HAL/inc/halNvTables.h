@@ -38,7 +38,7 @@ typedef enum
     NV_TABLE_OFDM_CMD_PWR_OFFSET        = 14,
     NV_TABLE_TX_BB_FILTER_MODE          = 15,
     NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY  = 16,
-
+    NV_TABLE_XO_WARMUP_US               = 17,
     NUM_NV_TABLE_IDS,
     NV_ALL_TABLES                   = 0xFFF,
     NV_BINARY_IMAGE                 = 0x1000,
@@ -75,6 +75,7 @@ typedef union
     sOfdmCmdPwrOffset    ofdmCmdPwrOffset;                                        // NV_TABLE_OFDM_CMD_PWR_OFFSET
     sTxBbFilterMode      txbbFilterMode;                                          // NV_TABLE_TX_BB_FILTER_MODE
     sFreqFor1p3VSupply   freqFor1p3VSupply;                                       // NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY
+    tANI_U32             xoWarmupUs;                                              //NV_TABLE_XO_WARMUP_US
 }uNvTables;
 
 typedef struct
@@ -93,7 +94,7 @@ typedef struct
     sOfdmCmdPwrOffset    ofdmCmdPwrOffset;                                        // NV_TABLE_OFDM_CMD_PWR_OFFSET
     sTxBbFilterMode      txbbFilterMode;                                          // NV_TABLE_TX_BB_FILTER_MODE
     sFreqFor1p3VSupply   freqFor1p3VSupply;                                       // NV_TABLE_FREQUENCY_FOR_1_3V_SUPPLY
-
+    tANI_U32             xoWarmupUs;                                              //NV_TABLE_XO_WARMUP_US
 }sNvTables;
 
 

@@ -551,6 +551,7 @@ limProcessMlmAuthCnf(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
                 // Log error
                 limLog(pMac, LOGP,
                    FL("call to palAllocateMemory failed for mlmAuthReq\n"));
+		        return;
             }
             palZeroMemory( pMac->hHdd, (tANI_U8 *) pMlmAuthReq, sizeof(tLimMlmAuthReq));
             val = sizeof(tSirMacAddr);
@@ -1116,6 +1117,7 @@ limProcessMlmAssocInd(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
         // Log error
         limLog(pMac, LOGP,
                FL("call to palAllocateMemory failed for eWNI_SME_ASSOC_IND\n"));
+	    return;
     }
 
 #if defined (ANI_PRODUCT_TYPE_AP)

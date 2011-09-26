@@ -1553,6 +1553,7 @@ VOS_STATUS hdd_parse_config_ini(hdd_adapter_t* pAdapter)
    
    if(!fw || !fw->data || !fw->size) {
       hddLog(VOS_TRACE_LEVEL_FATAL, "%s: %s download failed\n",__FUNCTION__, INI_FILE);
+      release_firmware(fw);
       return VOS_STATUS_E_FAILURE;
    }
 

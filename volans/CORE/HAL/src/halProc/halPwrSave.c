@@ -305,6 +305,14 @@ eHalStatus halPS_Config(tpAniSirGlobal pMac, tpSirPowerSaveCfg pPowerSaveConfig)
     eHalStatus status = eHAL_STATUS_FAILURE;
     tHalRegBckup *pRegBckup = &pMac->hal.RegBckupParam;
     tHalPwrSave *pHalPwrSave = &pMac->hal.PsParam;
+    uNvTables nvTables; 
+    
+    status = halReadNvTable( pMac, NV_TABLE_XO_WARMUP_US, &nvTables );
+    if (!HAL_STATUS_SUCCESS( status ))
+    {
+        VOS_TRACE(VOS_MODULE_ID_HAL, VOS_TRACE_LEVEL_ERROR, "fail to get NV_TABLE_XO_WARMUP_US\n");
+        return status;
+    }
 
     pFwConfig = (Qwlanfw_SysCfgType *)pFw->pFwConfig;
 
@@ -368,11 +376,15 @@ eHalStatus halPS_Config(tpAniSirGlobal pMac, tpSirPowerSaveCfg pPowerSaveConfig)
     pFwConfig->usBmpsMinSleepTimeUs = HAL_PWR_SAVE_FW_BMPS_MINIMUM_SLEEP_TIME_US;
     if(pFwConfig->bRfXoOn)
     {
-        pFwConfig->usBmpsSleepTimeOverheadsUs = HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US;
         pFwConfig->usBmpsSleepTimeOverheadsUs19_2 = HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US_19_2;
         pFwConfig->ucRfSupplySettlingTimeClk19_2 = HAL_PWR_SAVE_FW_BMPS_RF_SETTLING_TIME_CLKS_19_2;
+        /* RF Settling Time Clk value as read from CFG */
+        pFwConfig->ucRfSupplySettlingTimeClk = (tANI_U16)((nvTables.xoWarmupUs*1000)/QWLAN_PMIC_SLEEPCLK_PERIOD_NS);
+        pFwConfig->ucRfSupplySettlingTimeClk += ((nvTables.xoWarmupUs*1000)%QWLAN_PMIC_SLEEPCLK_PERIOD_NS)? 1 : 0;
+        pFwConfig->usBmpsSleepTimeOverheadsUs = HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_WITHOUT_RFXO_SETTLING_US + 
+					((pFwConfig->ucRfSupplySettlingTimeClk * QWLAN_PMIC_SLEEPCLK_PERIOD_NS)/1000);
+
         pFwConfig->usBmpsForcedSleepTimeOverheadsUs = HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US;
-        pFwConfig->ucRfSupplySettlingTimeClk = HAL_PWR_SAVE_FW_BMPS_RF_SETTLING_TIME_CLKS;
     }
     else
     {
@@ -570,6 +582,7 @@ eHalStatus halPS_GetRssi(tpAniSirGlobal pMac, tANI_S8 *pRssi)
         tANI_S16 skuOffset = 0;
 
 		VOS_ASSERT(curChan != INVALID_RF_CHANNEL);
+		VOS_ASSERT(curChan < NUM_2_4GHZ_CHANNELS);
         //apply the sku dependant offset on the base RSSI value.
         if(halGetNvTableLoc(pMac, NV_TABLE_RSSI_CHANNEL_OFFSETS, (uNvTables **)&pRssiOffset) == eHAL_STATUS_SUCCESS)
         {
@@ -1835,6 +1848,8 @@ respond:
 
     // Allocate the memory for the response message to be sent
     palAllocateMemory(pMac->hHdd, (void **)&pPeMsg, sizeof(tExitBmpsParams));
+    if(pPeMsg == NULL)
+	    return eHAL_STATUS_FAILURE;
 
     // Fill the status in the message
     pPeMsg->status = status;
@@ -2346,6 +2361,8 @@ respond:
 
     // Allocate the memory for the response message to be sent
     palAllocateMemory(pMac->hHdd, (void **)&pPeMsg, sizeof(tUapsdParams));
+    if(pPeMsg == NULL)
+	    return eHAL_STATUS_FAILURE;
 
     // Fill the status in the message
     pPeMsg->status = status;
@@ -2588,6 +2605,8 @@ eHalStatus halPS_HandleAddBeaconFilter(tpAniSirGlobal pMac,
             sizeof(beaconFilter) );
 
     pAddBcnFilterMsg = (Qwlanfw_AddBcnFilterMsgType *)pBuffer;
+    if(pAddBcnFilterMsg == NULL)
+	    return eHAL_STATUS_FAILURE;
 
     // Initialize the pointer to point to the start of IEs in th msg
     pFilterIe = (tpBeaconFilterIe)((tANI_U8*)pMsg +
@@ -4100,6 +4119,7 @@ eHalStatus halPS_SetHostOffloadInFw(tpAniSirGlobal pMac, tpSirHostOffloadReq pRe
    }
    
    return;
+   
 }
 
 #ifdef WLAN_FEATURE_PROTECT_TXRX_REG_ACCESS

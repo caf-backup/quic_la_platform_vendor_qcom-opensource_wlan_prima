@@ -96,15 +96,6 @@ eHalStatus halFW_Init(tHalHandle hHal, void *arg)
 
     pFwConfig->bRfXoOn = TRUE;
 
-    /* The change below of comparing STO macro to 1370 is required for all platforms
-     * where the Force XO CORE ON functionality is not present
-     */
-    if (HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US == 1370) {
-        pFwConfig->psXoCoreOn = 1;
-    } else {
-        pFwConfig->psXoCoreOn = 0;
-    }
-
     // Start the FW image download
     status = halFW_DownloadImage(pMac, arg);
 
@@ -319,7 +310,7 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
     pFwConfig->uBssTableOffset = pMac->hal.memMap.bssTable_offset;
     pFwConfig->uStaTableOffset = pMac->hal.memMap.staTable_offset;
     pFwConfig->bFwProcProbeReqDisabled = 1;
-	pFwConfig->beaconTemplate_offset   = pMac->hal.memMap.beaconTemplate_offset;
+    pFwConfig->beaconTemplate_offset   = pMac->hal.memMap.beaconTemplate_offset;
     halZeroDeviceMemory(pMac,pMac->hal.memMap.bssTable_offset, pMac->hal.memMap.bssTable_size);
     halZeroDeviceMemory(pMac,pMac->hal.memMap.staTable_offset, pMac->hal.memMap.staTable_size);
 #endif
@@ -1066,6 +1057,7 @@ eHalStatus halFW_HandleFwDelStaMsg(tpAniSirGlobal pMac, void* pFwMsg)
        if( eHAL_STATUS_SUCCESS != halTable_FindAddrByBssid(pMac, (tANI_U8)pFwDelStaMsg->bssIdx, pDeleteStaMsg->bssId))
        {
            HALLOGE(halLog(pMac, LOGE, FL(" Failed to Delete STA bssIdx[%d] \r\n"), pFwDelStaMsg->bssIdx));
+           palFreeMemory(pMac->hHdd, (void *)pDeleteStaMsg);
            status = eHAL_STATUS_FAILURE;
        }
        else

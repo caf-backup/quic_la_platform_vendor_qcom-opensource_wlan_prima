@@ -1758,7 +1758,7 @@ void getFrmTemplate(tpAniSirGlobal pMac, tANI_U32 templateType /*0 = templateLis
     int status, i = 0, j = 0;
 
    /** Pointer for firmware image data */
-   const struct firmware *fw;
+   const struct firmware *fw = NULL;
    hdd_adapter_t* pAdapter = (hdd_adapter_t*)pMac->pAdapter; 
    char *buffer;
    char buffer1[2048];
@@ -1783,6 +1783,7 @@ void getFrmTemplate(tpAniSirGlobal pMac, tANI_U32 templateType /*0 = templateLis
    if(!fw || !fw->data) 
    {
       halLog(pMac, LOGE, FL("%s: template download failed\n"));
+      release_firmware(fw);	
 	  return;
    } 
 
@@ -4054,6 +4055,7 @@ dump_hal_phy_update_rate2pwr_table( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32
     }
 
     phyRate = macPhyRateIndex[arg1];
+    VOS_ASSERT(phyRate < NUM_HAL_PHY_RATES);
     pMac->hphy.phy.pwrOptimal[RF_SUBBAND_2_4_GHZ][phyRate].reported = (t2Decimal)arg2;
 
     halRate_GetTxPwrForRate(pMac, (tTpeRateIdx)arg1, 30, &power);
@@ -4086,7 +4088,8 @@ dump_hal_phy_get_power_for_rate( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 ar
     }
 
     phyRate = macPhyRateIndex[arg1];
-
+    if(phyRate >= NUM_HAL_PHY_RATES)
+	    return p;
     //make sure to update the rate cmd table
     if (halPhyGetPowerForRate( pMac,
                                phyRate,

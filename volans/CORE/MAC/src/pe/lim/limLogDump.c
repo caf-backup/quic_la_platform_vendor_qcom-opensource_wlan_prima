@@ -536,6 +536,11 @@ static char *sendSmeStartBssReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1)
 
     p += log_sprintf( pMac,p, "sendSmeStartBssReq: Preparing eWNI_SME_START_BSS_REQ message\n");
     pStartBssReq = (tSirSmeStartBssReq *) &startBssReq;
+    if(arg1 < 0 || arg1 > 2)
+    {
+	    p += log_sprintf( pMac,p,"Invalid Argument1 \n");
+	    return p;
+    }
 
     if (palAllocateMemory(pMac->hHdd, (void **)&pStartBssReq, sizeof(tSirSmeStartBssReq)) != eHAL_STATUS_SUCCESS)
     {
@@ -546,11 +551,6 @@ static char *sendSmeStartBssReq(tpAniSirGlobal pMac, char *p,tANI_U32 arg1)
     pStartBssReq->messageType = eWNI_SME_START_BSS_REQ;
     pStartBssReq->length = 29;    // 0x1d
     
-    if(arg1 < 0 || arg1 > 2)
-    {
-    	p += log_sprintf( pMac,p,"Invalid Argument1 \n");
-		return p;
-    }
 	if(arg1 == 0) //BTAMP STATION 
 	{
     	pStartBssReq->bssType = eSIR_BTAMP_STA_MODE;
@@ -1272,6 +1272,11 @@ dump_lim_send_SM_Power_Mode( tpAniSirGlobal pMac, tANI_U32 arg1, tANI_U32 arg2, 
         state = (tSirMacHTMIMOPowerSaveState) arg1;
 
     palAllocateMemory(pMac->hHdd, (void **)&pMBMsg, WNI_CFG_MB_HDR_LEN + sizeof(tSirMacHTMIMOPowerSaveState));
+    if(NULL == pMBMsg)
+    {
+	    p += log_sprintf( pMac,p, "pMBMsg is NULL\n");
+        return p;
+    }
     pMBMsg->type = eWNI_PMC_SMPS_STATE_IND;
     pMBMsg->msgLen = (tANI_U16)(WNI_CFG_MB_HDR_LEN + sizeof(tSirMacHTMIMOPowerSaveState));
     palCopyMemory(pMac->hHdd, pMBMsg->data, &state, sizeof(tSirMacHTMIMOPowerSaveState));

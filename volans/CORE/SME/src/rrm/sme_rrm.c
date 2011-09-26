@@ -762,13 +762,13 @@ void rrmStoreNeighborRptByRoamScore(tpAniSirGlobal pMac, tpRrmNeighborReportDesc
        /* Should store the neighbor BSS description in the order sorted by roamScore in descending
               order. APs with highest roamScore should be the 1st entry in the list */
         pEntry = csrLLPeekHead(&pSmeRrmContext->neighborReportCache, LL_ACCESS_LOCK);
-        do
+        while (pEntry != NULL)
         {
             pTempNeighborReportDesc = GET_BASE_ADDR( pEntry, tRrmNeighborReportDesc, List );
             if (pTempNeighborReportDesc->roamScore < pNeighborReportDesc->roamScore)
                 break;
             pEntry = csrLLNext(&pSmeRrmContext->neighborReportCache, pEntry, LL_ACCESS_LOCK);
-        } while (pEntry != NULL);
+        } 
 
         if (pEntry)
             /* This BSS roamscore is better than something in the list. Insert this before that one */

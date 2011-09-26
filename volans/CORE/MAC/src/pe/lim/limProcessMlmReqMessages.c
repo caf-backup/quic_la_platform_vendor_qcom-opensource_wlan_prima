@@ -1318,6 +1318,7 @@ error:
     if(eHAL_STATUS_SUCCESS != palAllocateMemory(pMac->hHdd, (void**)(&pMlmInNavMeasRsp), sizeof(tLimMlmInNavMeasRsp)))
     {
         limLog(pMac->hHdd, LOGP, FL("INNAV: memory allocation for pMlmInNavMeasRsp failed under suspend link failure\n"));
+	    return;
     }
 
     if(NULL != pMac->lim.gpLimMlmInNavMeasReq)

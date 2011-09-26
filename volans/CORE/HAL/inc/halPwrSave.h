@@ -67,13 +67,10 @@
 #if !defined(VOLANS_FPGA)
 //RF and BB values
 
-/* The platform specific STO change is temporary and only there for a week
- * It will be removed as soon as the Force XO Core ON is implemented for 7x30 as well
- */
 #define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US                   1370
 #define HAL_PWR_SAVE_FW_FORCED_SLEEP_TIME_OVERHEADS_RFXO_US                 1370
 #define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US_19_2              7652 /* FIXME */  
-#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_WITHOUT_RFXO_SETTLING_US  1735 /* FIXME */  
+#define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_WITHOUT_RFXO_SETTLING_US  1248
 #else
 //FPGA values
 #define HAL_PWR_SAVE_FW_BMPS_SLEEP_TIME_OVERHEADS_RFXO_US                   8000 

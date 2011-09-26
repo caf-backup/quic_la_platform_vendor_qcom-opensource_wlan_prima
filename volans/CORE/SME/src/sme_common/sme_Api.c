@@ -4119,13 +4119,13 @@ eHalStatus sme_InNavMeasurementRequest(tHalHandle hHal,
         {
             tANI_U32 lMeasId = pMac->innavMeas.nextMeasurementId++; //let it wrap around
 
-            if(pMeasurementRequestID)
-            {
-                *pMeasurementRequestID = lMeasId;
-            }
-
+	    if(pMeasurementRequestID)
+	    {
+		    *pMeasurementRequestID = lMeasId;
+	    }
+	    else
+		    return eHAL_STATUS_FAILURE;
             status = measInNavMeasurementRequest(hHal, pInNavMeasConfig, pMeasurementRequestID, callback, pContext);
-
             //release the lock for the sme object
             sme_ReleaseGlobalLock( &pMac->sme );
         }

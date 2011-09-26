@@ -1239,6 +1239,12 @@ limIbssDelBssRsp(
 
 
     SET_LIM_PROCESS_DEFD_MESGS(pMac, true);
+    if (pDelBss == NULL)
+    {
+        PELOGE(limLog(pMac, LOGE, FL("IBSS: DEL_BSS_RSP with no body!\n"));)
+        rc = eSIR_SME_REFUSED;
+        goto end;
+    }
 
     if((psessionEntry = peFindSessionBySessionId(pMac,pDelBss->sessionId))==NULL)
     {
@@ -1261,12 +1267,6 @@ limIbssDelBssRsp(
     }
 
 
-    if (pDelBss == NULL)
-    {
-        PELOGE(limLog(pMac, LOGE, FL("IBSS: DEL_BSS_RSP with no body!\n"));)
-        rc = eSIR_SME_REFUSED;
-        goto end;
-    }
 
     if (pDelBss->status != eHAL_STATUS_SUCCESS)
     {
@@ -1305,11 +1305,11 @@ limIbssDelBssRsp(
     }
 
     end:
-    limSendSmeRsp(pMac, eWNI_SME_STOP_BSS_RSP, rc,psessionEntry->smeSessionId,psessionEntry->transactionId);
     if(pDelBss != NULL)
         palFreeMemory( pMac->hHdd, (void *) pDelBss );
     /* Delete PE session once BSS is deleted */
     if (NULL != psessionEntry) {
+    limSendSmeRsp(pMac, eWNI_SME_STOP_BSS_RSP, rc,psessionEntry->smeSessionId,psessionEntry->transactionId);
 	peDeleteSession(pMac, psessionEntry);
 	psessionEntry = NULL;
     }
@@ -1395,8 +1395,11 @@ limIbssCoalesce(
 
         if (eHAL_STATUS_SUCCESS !=
             palAllocateMemory(pMac->hHdd, (void **) &pPeerNode, (tANI_U16)frameLen))
+	    {
             limLog(pMac, LOGP, FL("alloc fail (%d bytes) storing IBSS peer info\n"),
                    frameLen);
+	        return eSIR_MEM_ALLOC_FAILED;
+	    }
 
         pPeerNode->beacon = NULL;
         pPeerNode->beaconLen = 0;

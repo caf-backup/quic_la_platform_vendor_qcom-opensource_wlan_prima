@@ -821,6 +821,8 @@ halIntDxeRawHandler(tHalHandle hHalHandle, eHalIntSources intSource)
 
     // is the ERR interrupt pending?
     intSource = (eHalIntSources) (eHAL_INT_DXE_ERR_CHANNEL_0 + channel);
+    if(intSource >= eHAL_INT_MAX_SOURCE)
+	    return eHAL_STATUS_FAILURE;
     halIntServiceInterrupt(hHalHandle, intSource);
 
     return (eHAL_STATUS_SUCCESS);
@@ -930,7 +932,7 @@ halIntDumpRegister(tpAniSirGlobal pMac, tANI_U32 hwRegister, char * buff)
 {
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tANI_U32 hwValue;
-
+    int len;
     if (HAL_INT_INVALID_HW_REGISTER == hwRegister)
     {
         // blank string
@@ -941,11 +943,13 @@ halIntDumpRegister(tpAniSirGlobal pMac, tANI_U32 hwRegister, char * buff)
         status = halIntReadRegister(pMac, hwRegister, &hwValue);
         if (eHAL_STATUS_SUCCESS != status)
         {
-            sprintf(buff, "%08x Read ERR", (int)hwRegister);
+            len = snprintf(NULL, 0, "%08x Read ERR", (int)hwRegister);
+            snprintf(buff, len+1, "%08x Read ERR", (int)hwRegister);
         }
         else
         {
-            sprintf(buff, "%08x=%08x", (int)hwRegister, (int)hwValue);
+            len = snprintf(NULL, 0,  "%08x=%08x", (int)hwRegister, (int)hwValue);
+            snprintf(buff, len+1, "%08x=%08x", (int)hwRegister, (int)hwValue);
         }
     }
     return (status);

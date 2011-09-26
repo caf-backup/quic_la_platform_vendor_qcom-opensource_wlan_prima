@@ -1672,7 +1672,7 @@ halMsg_DelSta(
 
     tANI_U8  dpuIdx;
     tANI_U8 staType, qId;
-    tANI_U8 bssDpuIdx, bssIdx;
+    tANI_U8 bssDpuIdx, bssIdx = 0;
     tANI_U8 umaIdx;
     tSirMacAddr staMac;
     tBssSystemRole systemRole = eSYSTEM_UNKNOWN_ROLE;
@@ -2640,14 +2640,6 @@ void halMsg_AddBcastSta(tpAniSirGlobal pMac, tANI_U8 bssIdx, tpAddBssParams para
     // Set the station type
     (void) halTable_SetStaType(pMac, bcastStaIdx, STA_ENTRY_BCAST);
 
-#ifdef WLAN_SOFTAP_FEATURE
-#ifdef WLAN_FEATURE_P2P
-    halFW_AddStaReq(pMac, bcastStaIdx, 0, 1, 1);
-#else
-    halFW_AddStaReq(pMac, bcastStaIdx, 0, 1);
-#endif
-#endif
-	
     return;
 }
 
@@ -2670,11 +2662,7 @@ void halMsg_DelBcastSta(tpAniSirGlobal pMac, tANI_U8 bssIdx, tpDeleteBssParams p
         halTable_ClearSta(pMac, bcastStaIdx);
     }
 
-#ifdef WLAN_SOFTAP_FEATURE
-    halFW_DelStaReq(pMac, bcastStaIdx);    
-#endif
-
-	return;
+    return;
 }
 #endif //HAL_BCAST_STA_PER_BSS
 
@@ -6267,9 +6255,9 @@ eHalStatus halMsg_PostBADeleteInd( tpAniSirGlobal  pMac,
                     status ));
         return status;
     } else {
+        sirCopyMacAddr(pBADeleteParams->bssId, pSta->bssId);
         palZeroMemory( pMac->hHdd, (void *) pBADeleteParams,
                 sizeof( tBADeleteParams ));
-		palCopyMemory(pMac->hHdd, (void *)pBADeleteParams->bssId, (void *)pSta->bssId, sizeof(tSirMacAddr));
         // Copy SIR_LIM_DEL_BA_IND parameters
         pBADeleteParams->staIdx = staIdx;
         palCopyMemory( pMac->hHdd,
