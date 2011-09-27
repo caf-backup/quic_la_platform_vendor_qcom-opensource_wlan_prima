@@ -2005,6 +2005,17 @@ void hdd_wlan_exit(hdd_context_t *pHddCtx)
    //Close VOSS
    //This frees pMac(HAL) context. There should not be any call that requires pMac access after this.
    vos_close(pVosContext);
+
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+   /* During the vos_close() sequence we deregister from SMD.  As part of
+      deregistration SMD will call back into our driver with an event to
+      let us know the channel is closed.  We need to insert a brief delay
+      to allow that thread of execution to exit our module.  Otherwise our
+      module may be unloaded while there is still code running within the
+      address space, and that code will crash when the memory is unmapped
+   */
+   msleep(50);
+#endif
    //Close the scheduler before closing other modules.
    vosStatus = vos_sched_close( pVosContext );
    if (!VOS_IS_STATUS_SUCCESS(vosStatus))    {
