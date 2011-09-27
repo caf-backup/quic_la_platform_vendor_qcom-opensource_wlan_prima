@@ -12,19 +12,15 @@ FW_NV_FILE := WCN1314_qcom_wlan_nv.bin
 #These checks are only for msm7x30 and msm8660 and msm7627a series
 #The files mentioned will present in vendor/qcom/proprietary/wlan/volans/firmware_bin/ directory
 
-ifeq "$(findstring msm7630,$(QCOM_TARGET_PRODUCT))" "msm7630"
+ifeq ($(call is-board-platform,msm7630_surf),true)
 FW_NV_FILE := msm7630_qcom_wlan_nv.bin
 endif
 
-ifeq "$(findstring msm7627a,$(QCOM_TARGET_PRODUCT))" "msm7627a"
+ifeq ($(call is-board-platform,msm7627a),true)
 FW_NV_FILE := msm7627a_qcom_wlan_nv.bin
 endif
 
-ifeq "$(findstring msm8660_csfb,$(QCOM_TARGET_PRODUCT))" "msm8660_csfb"
-FW_NV_FILE := msm8660_qcom_wlan_nv.bin
-endif
-
-ifeq "$(findstring msm8660_surf,$(QCOM_TARGET_PRODUCT))" "msm8660_surf"
+ifeq ($(call is-board-platform,msm8660),true)
 FW_NV_FILE := msm8660_qcom_wlan_nv.bin
 endif
 
