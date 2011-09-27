@@ -1101,6 +1101,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                 CFG_NULLDATA_AP_RESP_TIMEOUT_MIN, 
                 CFG_NULLDATA_AP_RESP_TIMEOUT_MAX ),
 
+   REG_VARIABLE( CFG_ENABLE_BTAMP_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, enableBtAmp, 
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                 CFG_ENABLE_BTAMP_DEFAULT, 
+                 CFG_ENABLE_BTAMP_MIN, 
+                 CFG_ENABLE_BTAMP_MAX ),
+
 #ifdef WLAN_BTAMP_FEATURE
    REG_VARIABLE( CFG_BT_AMP_PREFERRED_CHANNEL_NAME, WLAN_PARAM_Integer,
                  hdd_config_t, preferredChannel, 
@@ -1515,6 +1522,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gDynamicPSPollvalue] Value = [%u] ",pHddCtx->cfg_ini->dynamicPsPollValue);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAddTSWhenACMIsOff] Value = [%u] ",pHddCtx->cfg_ini->AddTSWhenACMIsOff);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gValidateScanList] Value = [%u] ",pHddCtx->cfg_ini->fValidateScanList);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gEnableBtAmp] Value = [%u] ",pHddCtx->cfg_ini->enableBtAmp);
 #ifdef WLAN_BTAMP_FEATURE
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [BtAmpPreferredChannel] Value = [%u] ",pHddCtx->cfg_ini->preferredChannel);
 #endif //WLAN_BTAMP_FEATURE

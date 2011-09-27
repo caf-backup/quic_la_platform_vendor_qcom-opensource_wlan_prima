@@ -5176,6 +5176,16 @@ tANI_BOOLEAN csrScanRemoveFreshScanCommand(tpAniSirGlobal pMac)
                 //The rest are fresh scan requests
                 if( csrLLRemoveEntry(&pMac->sme.smeCmdPendingList, pEntry, LL_ACCESS_NOLOCK) )
 				{
+                    if ((eCsrScanUserRequest == pCommand->u.scanCmd.reason) && 
+                            (pCommand->u.scanCmd.callback))
+                    {
+                        /* User scan request is pending, 
+                                            * send response with status eCSR_SCAN_ABORT*/
+                        pCommand->u.scanCmd.callback(pMac, 
+                                pCommand->u.scanCmd.pContext, 
+                                pCommand->u.scanCmd.scanID, 
+                                eCSR_SCAN_ABORT);
+                    }
 					csrReleaseCommandScan( pMac, pCommand );
 				}
                 fRet = eANI_BOOLEAN_TRUE;

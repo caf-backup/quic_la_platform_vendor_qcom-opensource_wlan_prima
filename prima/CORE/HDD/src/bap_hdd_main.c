@@ -3464,6 +3464,7 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
     //struct net_device *dev = NULL; // Our parent wlan network device
     hdd_adapter_t *pAdapter = NULL;  // Used to retrieve the parent WLAN device
     hdd_context_t *pHddCtx = NULL;
+    hdd_config_t *pConfig = NULL;
  
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "BSL_Init");
 
@@ -3480,6 +3481,8 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
                    "Invalid BAP pointer from pvosGCtx on BSL_Init");
         return VOS_STATUS_E_FAULT;
     }
+    // Save away the btamp (actually the vos) context
+    gpCtx = pvosGCtx;
 
     /* Save away the pointer to the BT-AMP PAL context in the BSL driver context */
     pctx->bapHdl = bapHdl;
@@ -3500,8 +3503,26 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
     //pctx->tx_skb = NULL;
     //pctx->tx_skb = alloc_skb(WLANBAP_MAX_80211_PAL_PDU_SIZE+12, GFP_ATOMIC);
 
+    pctx->hdev = NULL;
     //Get the HDD context.
     pHddCtx = (hdd_context_t *)vos_get_context( VOS_MODULE_ID_HDD, pvosGCtx );
+    if(NULL != pHddCtx)
+    {
+        pConfig = pHddCtx->cfg_ini;
+    }
+    if(NULL == pConfig)
+    {
+        VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
+                  "Didn't register as HCI device");
+        return 0;
+    }
+    else if(0 == pConfig->enableBtAmp)
+    {
+        VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
+                  "Didn't register as HCI device, user option(gEnableBtAmp) is set to 0");
+        return 0;
+    }
+
 #ifdef WLAN_SOFTAP_FEATURE
     if (VOS_STA_SAP_MODE == hdd_get_conparam())
         pAdapter = hdd_get_adapter(pHddCtx, WLAN_HDD_SOFTAP);
@@ -3527,8 +3548,6 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                    "Can't allocate HCI device in BSL_Init");
         return VOS_STATUS_E_FAULT;
-        //BT_ERR("Can't allocate HCI device");
-        //return -ENOMEM;
     }
 
     /* Save away the HCI device pointer in the BSL driver context */
@@ -3590,8 +3609,6 @@ int BSL_Init ( v_PVOID_t  pvosGCtx )
         return -ENODEV;
     }
 
-    // Save away the btamp (actually the vos) context
-    gpCtx = pvosGCtx;
 
     return 0;
 } // BSL_Init()
@@ -3634,7 +3651,6 @@ int BSL_Deinit( v_PVOID_t  pvosGCtx )
     /* Unregister device from BlueZ; fcn sends us HCI commands before it returns */
     /* And then the registered hdev->close fcn should be called by BlueZ (BSL_Close) */
     if (hci_unregister_dev(hdev) < 0)
-        //VOS_TRACE( VOS_MODULE_ID_BSL, VOS_TRACE_LEVEL_ERROR,
         VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                    "Can't unregister HCI device %s", hdev->name);
 
