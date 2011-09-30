@@ -582,8 +582,8 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry
         pMac->lim.gLimAddtsSent = false;
         return;   //Error handling. send the response with error status. need to send DelTS to tear down the TSPEC status.
     }
-    if((addts.tspec.tsinfo.traffic.accessPolicy != SIR_MAC_ACCESSPOLICY_EDCA) || ((upToAc(addts.tspec.tsinfo.traffic.userPrio) < MAX_NUM_AC) &&
-       (pMac->sch.schObject.gSchEdcaParams[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm)))
+    if((addts.tspec.tsinfo.traffic.accessPolicy != SIR_MAC_ACCESSPOLICY_EDCA) || 
+       (pMac->sch.schObject.gSchEdcaParams[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm))
     {
         retval = limSendHalMsgAddTs(pMac, pSta->staIndex, tspecInfo->idx, addts.tspec);
         if(eSIR_SUCCESS != retval)
@@ -689,7 +689,7 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pBd,tpPESession psessionEntry
         (pMac->lim.gLimSystemRole != eLIM_AP_ROLE &&
         (! pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)))
 #else
-        if ((upToAc(tsinfo->traffic.userPrio) >= MAX_NUM_AC) || (! pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm))
+        if (! pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
 #endif
         {
             limLog(pMac, LOGW, FL("DelTs with UP %d has no AC - ignoring request\n"),
