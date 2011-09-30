@@ -2417,7 +2417,9 @@ eHalStatus pmcEnterImpsCheck( tpAniSirGlobal pMac )
     return ( eHAL_STATUS_SUCCESS );
 }
 
-
+/* This API detrmines if it is ok to proceed with a Enter BMPS Request or not . Note when
+   device is in BMPS/UAPSD states, this API returns failure because it is not ok to issue
+   a BMPS request */
 eHalStatus pmcEnterBmpsCheck( tpAniSirGlobal pMac )
 {
 
@@ -2436,13 +2438,6 @@ eHalStatus pmcEnterBmpsCheck( tpAniSirGlobal pMac )
        return eHAL_STATUS_FAILURE;
    }
 
-   /* If already in BMPS, just return. */
-   if (pMac->pmc.pmcState == BMPS || REQUEST_START_UAPSD == pMac->pmc.pmcState || UAPSD == pMac->pmc.pmcState)
-   {
-      pMac->pmc.bmpsRequestedByHdd = TRUE;
-      return eHAL_STATUS_SUCCESS;
-   }
-
    /* Check that we are associated with a single active session. */
    if (!pmcValidateConnectState( pMac ))
    {
@@ -2450,11 +2445,16 @@ eHalStatus pmcEnterBmpsCheck( tpAniSirGlobal pMac )
       return eHAL_STATUS_FAILURE;
    }
 
+   /* BMPS can only be requested when device is in Full Power */
+   if (pMac->pmc.pmcState != FULL_POWER)
+   {
+      smsLog(pMac, LOGE, "PMC: Device not in full power. Cannot request BMPS. pmcState %d\n", pMac->pmc.pmcState);
+      return eHAL_STATUS_FAILURE;
+   }
    /* Check that entry into a power save mode is allowed at this time. */
-
    if (!pmcPowerSaveCheck(pMac))
    {
-      smsLog(pMac, LOGE, "PMC0: Power save check failed. BMPS cannot be entered now\n");
+      smsLog(pMac, LOGE, "PMC: Power save check failed. BMPS cannot be entered now\n");
       return eHAL_STATUS_PMC_NOT_NOW;
    }
    return ( eHAL_STATUS_SUCCESS );

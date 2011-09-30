@@ -12167,11 +12167,10 @@ WDI_ProcessInitScanRsp
 )
 {
   WDI_Status            wdiStatus;
-  WDI_InitScanRspCb     wdiInitScanRspCb    = NULL;
+  WDI_InitScanRspCb     wdiInitScanRspCb;
   tHalInitScanRspMsg    halInitScanRspMsg; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiInitScanRspCb = (WDI_InitScanRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -12183,6 +12182,8 @@ WDI_ProcessInitScanRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiInitScanRspCb = (WDI_InitScanRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Unpack HAL Response Message - the header was already extracted by the
@@ -12225,12 +12226,11 @@ WDI_ProcessStartScanRsp
 )
 {
   WDI_StartScanRspParamsType   wdiStartScanParams;
-  WDI_StartScanRspCb           wdiStartScanRspCb   = NULL;
+  WDI_StartScanRspCb           wdiStartScanRspCb;
   
   tHalStartScanRspMsg          halStartScanRspMsg; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiStartScanRspCb = (WDI_StartScanRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -12242,6 +12242,8 @@ WDI_ProcessStartScanRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiStartScanRspCb = (WDI_StartScanRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -12295,10 +12297,9 @@ WDI_ProcessEndScanRsp
 {
   WDI_Status            wdiStatus;
   tHalEndScanRspMsg     halEndScanRspMsg;
-  WDI_EndScanRspCb      wdiEndScanRspCb   = NULL;
+  WDI_EndScanRspCb      wdiEndScanRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiEndScanRspCb = (WDI_EndScanRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -12310,6 +12311,8 @@ WDI_ProcessEndScanRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiEndScanRspCb = (WDI_EndScanRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -12353,12 +12356,11 @@ WDI_ProcessFinishScanRsp
 )  
 {
   WDI_Status            wdiStatus;
-  WDI_FinishScanRspCb   wdiFinishScanRspCb   = NULL;
+  WDI_FinishScanRspCb   wdiFinishScanRspCb;
   
   tHalFinishScanRspMsg  halFinishScanRspMsg; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiFinishScanRspCb = (WDI_FinishScanRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -12370,6 +12372,8 @@ WDI_ProcessFinishScanRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiFinishScanRspCb = (WDI_FinishScanRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -12417,25 +12421,27 @@ WDI_ProcessJoinRsp
 )
 {
   WDI_Status                    wdiStatus;
-  WDI_JoinRspCb                 wdiJoinRspCb        = NULL;
+  WDI_JoinRspCb                 wdiJoinRspCb;
   WDI_BSSSessionType*           pBSSSes             = NULL;
   
   tHalJoinRspMsg                halJoinRspMsg; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiJoinRspCb = (WDI_JoinRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
-  if (( NULL == pEventData ) ||
-      ( NULL == pEventData->pEventData) ||
-      ( NULL == wdiJoinRspCb ))
+  if (( NULL == pWDICtx ) ||
+      ( NULL == pWDICtx->pfncRspCB ) ||
+      ( NULL == pEventData ) ||
+      ( NULL == pEventData->pEventData))
   {
      WPAL_TRACE( eWLAN_MODULE_DAL_CTRL, eWLAN_PAL_TRACE_LEVEL_WARN,
                  "%s: Invalid parameters", __FUNCTION__);
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiJoinRspCb = (WDI_JoinRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -12531,7 +12537,7 @@ WDI_ProcessConfigBSSRsp
 )
 {
   WDI_ConfigBSSRspParamsType    wdiConfigBSSParams;
-  WDI_ConfigBSSRspCb            wdiConfigBSSRspCb   = NULL;
+  WDI_ConfigBSSRspCb            wdiConfigBSSRspCb;
   wpt_uint8                     ucCurrentBSSSesIdx  = 0; 
   WDI_BSSSessionType*           pBSSSes             = NULL;
 
@@ -12541,7 +12547,6 @@ WDI_ProcessConfigBSSRsp
   
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiConfigBSSRspCb = (WDI_ConfigBSSRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -12553,6 +12558,8 @@ WDI_ProcessConfigBSSRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiConfigBSSRspCb = (WDI_ConfigBSSRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC 
@@ -12712,14 +12719,13 @@ WDI_ProcessDelBSSRsp
 )
 {
   WDI_DelBSSRspParamsType       wdiDelBSSParams;
-  WDI_DelBSSRspCb               wdiDelBSSRspCb      = NULL;
+  WDI_DelBSSRspCb               wdiDelBSSRspCb;
   wpt_uint8                     ucCurrentBSSSesIdx  = 0; 
   WDI_BSSSessionType*           pBSSSes             = NULL;
 
   tDeleteBssRspMsg              halDelBssRspMsg; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiDelBSSRspCb = (WDI_DelBSSRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -12731,6 +12737,8 @@ WDI_ProcessDelBSSRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiDelBSSRspCb = (WDI_DelBSSRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC 
@@ -12809,13 +12817,12 @@ WDI_ProcessPostAssocRsp
 )
 {
   WDI_PostAssocRspParamsType    wdiPostAssocParams;
-  WDI_PostAssocRspCb            wdiPostAssocRspCb      = NULL;
+  WDI_PostAssocRspCb            wdiPostAssocRspCb;
   wpt_uint8                     ucCurrentBSSSesIdx     = 0; 
   WDI_BSSSessionType*           pBSSSes                = NULL;
   tPostAssocRspMsg              halPostAssocRspMsg; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiPostAssocRspCb = (WDI_PostAssocRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -12827,6 +12834,8 @@ WDI_ProcessPostAssocRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiPostAssocRspCb = (WDI_PostAssocRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -12978,12 +12987,11 @@ WDI_ProcessDelSTARsp
 )
 {
   WDI_DelSTARspParamsType   wdiDelSTARsp;
-  WDI_DelSTARspCb           wdiDelSTARspCb   = NULL;
+  WDI_DelSTARspCb           wdiDelSTARspCb;
   wpt_uint8                 staType;
   tDeleteStaRspMsg          halDelStaRspMsg; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiDelSTARspCb = (WDI_DelSTARspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -12995,6 +13003,8 @@ WDI_ProcessDelSTARsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiDelSTARspCb = (WDI_DelSTARspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13067,10 +13077,9 @@ WDI_ProcessSetBssKeyRsp
 {
   WDI_Status            wdiStatus;
   eHalStatus            halStatus;
-  WDI_SetBSSKeyRspCb    wdiSetBSSKeyRspCb   = NULL;
+  WDI_SetBSSKeyRspCb    wdiSetBSSKeyRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiSetBSSKeyRspCb = (WDI_SetBSSKeyRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -13082,6 +13091,8 @@ WDI_ProcessSetBssKeyRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiSetBSSKeyRspCb = (WDI_SetBSSKeyRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13122,10 +13133,9 @@ WDI_ProcessRemoveBssKeyRsp
 {
   WDI_Status              wdiStatus;
   eHalStatus              halStatus;
-  WDI_RemoveBSSKeyRspCb   wdiRemoveBSSKeyRspCb   = NULL;
+  WDI_RemoveBSSKeyRspCb   wdiRemoveBSSKeyRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiRemoveBSSKeyRspCb = (WDI_RemoveBSSKeyRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -13137,6 +13147,8 @@ WDI_ProcessRemoveBssKeyRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiRemoveBSSKeyRspCb = (WDI_RemoveBSSKeyRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13178,10 +13190,9 @@ WDI_ProcessSetStaKeyRsp
 {
   WDI_Status            wdiStatus;
   eHalStatus            halStatus;
-  WDI_SetSTAKeyRspCb    wdiSetSTAKeyRspCb   = NULL;
+  WDI_SetSTAKeyRspCb    wdiSetSTAKeyRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiSetSTAKeyRspCb = (WDI_SetSTAKeyRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -13193,6 +13204,8 @@ WDI_ProcessSetStaKeyRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiSetSTAKeyRspCb = (WDI_SetSTAKeyRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13233,10 +13246,9 @@ WDI_ProcessRemoveStaKeyRsp
 {
   WDI_Status              wdiStatus;
   eHalStatus              halStatus;
-  WDI_RemoveSTAKeyRspCb   wdiRemoveSTAKeyRspCb   = NULL;
+  WDI_RemoveSTAKeyRspCb   wdiRemoveSTAKeyRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiRemoveSTAKeyRspCb = (WDI_RemoveSTAKeyRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -13248,6 +13260,8 @@ WDI_ProcessRemoveStaKeyRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiRemoveSTAKeyRspCb = (WDI_RemoveSTAKeyRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13288,10 +13302,9 @@ WDI_ProcessSetStaBcastKeyRsp
 {
   WDI_Status            wdiStatus;
   eHalStatus            halStatus;
-  WDI_SetSTAKeyRspCb    wdiSetSTABcastKeyRspCb   = NULL;
+  WDI_SetSTAKeyRspCb    wdiSetSTABcastKeyRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiSetSTABcastKeyRspCb = (WDI_SetSTAKeyRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -13303,6 +13316,8 @@ WDI_ProcessSetStaBcastKeyRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiSetSTABcastKeyRspCb = (WDI_SetSTAKeyRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13346,10 +13361,9 @@ WDI_ProcessRemoveStaBcastKeyRsp
 {
   WDI_Status              wdiStatus;
   eHalStatus              halStatus;
-  WDI_RemoveSTAKeyRspCb   wdiRemoveSTABcastKeyRspCb   = NULL;
+  WDI_RemoveSTAKeyRspCb   wdiRemoveSTABcastKeyRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiRemoveSTABcastKeyRspCb = (WDI_RemoveSTAKeyRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -13361,6 +13375,8 @@ WDI_ProcessRemoveStaBcastKeyRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiRemoveSTABcastKeyRspCb = (WDI_RemoveSTAKeyRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13409,10 +13425,9 @@ WDI_ProcessAddTSpecRsp
 {
   WDI_Status       wdiStatus;
   eHalStatus       halStatus;
-  WDI_AddTsRspCb   wdiAddTsRspCb   = NULL;
+  WDI_AddTsRspCb   wdiAddTsRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiAddTsRspCb = (WDI_AddTsRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -13424,6 +13439,8 @@ WDI_ProcessAddTSpecRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiAddTsRspCb = (WDI_AddTsRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13457,10 +13474,9 @@ WDI_ProcessDelTSpecRsp
 {
   WDI_Status       wdiStatus;
   eHalStatus       halStatus;
-  WDI_DelTsRspCb   wdiDelTsRspCb   = NULL;
+  WDI_DelTsRspCb   wdiDelTsRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiDelTsRspCb = (WDI_DelTsRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -13472,6 +13488,8 @@ WDI_ProcessDelTSpecRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiDelTsRspCb = (WDI_DelTsRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13504,10 +13522,9 @@ WDI_ProcessUpdateEDCAParamsRsp
 {
   WDI_Status       wdiStatus;
   eHalStatus       halStatus;
-  WDI_UpdateEDCAParamsRspCb   wdiUpdateEDCAParamsRspCb   = NULL;
+  WDI_UpdateEDCAParamsRspCb   wdiUpdateEDCAParamsRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiUpdateEDCAParamsRspCb = (WDI_UpdateEDCAParamsRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -13519,6 +13536,8 @@ WDI_ProcessUpdateEDCAParamsRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiUpdateEDCAParamsRspCb = (WDI_UpdateEDCAParamsRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13550,7 +13569,7 @@ WDI_ProcessAddBASessionRsp
   WDI_EventInfoType*     pEventData
 )
 {
-  WDI_AddBASessionRspCb   wdiAddBASessionRspCb   = NULL;
+  WDI_AddBASessionRspCb   wdiAddBASessionRspCb;
 
   tAddBASessionRspParams        halBASessionRsp;
   WDI_AddBASessionRspParamsType wdiBASessionRsp;
@@ -13558,7 +13577,6 @@ WDI_ProcessAddBASessionRsp
   
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiAddBASessionRspCb = (WDI_AddBASessionRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -13570,6 +13588,8 @@ WDI_ProcessAddBASessionRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiAddBASessionRspCb = (WDI_AddBASessionRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13617,10 +13637,8 @@ WDI_ProcessDelBARsp
 {
   WDI_Status       wdiStatus;
   eHalStatus       halStatus;
-  WDI_DelBARspCb   wdiDelBARspCb   = NULL;
+  WDI_DelBARspCb   wdiDelBARspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiDelBARspCb = (WDI_DelBARspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -13633,6 +13651,8 @@ WDI_ProcessDelBARsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiDelBARspCb = (WDI_DelBARspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13670,10 +13690,8 @@ WDI_ProcessFlushAcRsp
 {
   WDI_Status       wdiStatus;
   eHalStatus       halStatus;
-  WDI_FlushAcRspCb wdiFlushAcRspCb   = NULL;
+  WDI_FlushAcRspCb wdiFlushAcRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiFlushAcRspCb = (WDI_FlushAcRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -13686,6 +13704,8 @@ WDI_ProcessFlushAcRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiFlushAcRspCb = (WDI_FlushAcRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13721,10 +13741,8 @@ WDI_ProcessBtAmpEventRsp
 {
    WDI_Status       wdiStatus;
    eHalStatus       halStatus;
-   WDI_BtAmpEventRspCb wdiBtAmpEventRspCb   = NULL;
+   WDI_BtAmpEventRspCb wdiBtAmpEventRspCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-   wdiBtAmpEventRspCb = (WDI_BtAmpEventRspCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -13737,6 +13755,8 @@ WDI_ProcessBtAmpEventRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiBtAmpEventRspCb = (WDI_BtAmpEventRspCb)pWDICtx->pfncRspCB;
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -13772,13 +13792,11 @@ WDI_ProcessAddSTASelfRsp
 )
 {
   WDI_AddSTASelfRspParamsType  wdiAddSTASelfParams;
-  WDI_AddSTASelfParamsRspCb    wdiAddSTASelfReqParamsRspCb   = NULL;
+  WDI_AddSTASelfParamsRspCb    wdiAddSTASelfReqParamsRspCb;
   tAddStaSelfRspMsg            halAddStaSelfRsp;
   WDI_AddStaParams             wdiAddSTAParam = {0};
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiAddSTASelfReqParamsRspCb = 
-                         (WDI_AddSTASelfParamsRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -13790,6 +13808,9 @@ WDI_ProcessAddSTASelfRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiAddSTASelfReqParamsRspCb = 
+                         (WDI_AddSTASelfParamsRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13871,13 +13892,11 @@ WDI_ProcessDelSTASelfRsp
 )
 {
   WDI_DelSTASelfRspParamsType     wdiDelStaSelfRspParams;
-  WDI_DelSTASelfRspCb             wdiDelStaSelfRspCb   = NULL;
+  WDI_DelSTASelfRspCb             wdiDelStaSelfRspCb;
   tDelStaSelfRspParams            delStaSelfRspParams;
   wpt_uint8                       ucStaIdx;
 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiDelStaSelfRspCb = (WDI_DelSTASelfRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -13890,6 +13909,8 @@ WDI_ProcessDelSTASelfRsp
     WDI_ASSERT(0);
     return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiDelStaSelfRspCb = (WDI_DelSTASelfRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -13947,7 +13968,7 @@ WDI_ProcessStartInNavMeasRsp
   WDI_EventInfoType*     pEventData
 )
 {
-  WDI_InNavMeasRspCb           wdiInNavMeasRspCb     = NULL;
+  WDI_InNavMeasRspCb           wdiInNavMeasRspCb;
   WDI_InNavMeasRspParamsType*  wdiInNavMeasRspParams;
   tStartInNavMeasRspParams*    halStartInNavMeasRspParams;
   wpt_uint32 allocSize = 0;
@@ -13957,8 +13978,6 @@ WDI_ProcessStartInNavMeasRsp
   tRttRssiResults* rttRssiResults       =        NULL;
   WDI_RttRssiResults* wdiRttRssiResults =        NULL;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiInNavMeasRspCb = (WDI_InNavMeasRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -13971,6 +13990,8 @@ WDI_ProcessStartInNavMeasRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiInNavMeasRspCb = (WDI_InNavMeasRspCb)pWDICtx->pfncRspCB;
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -14100,11 +14121,9 @@ WDI_ProcessChannelSwitchRsp
 )
 {
   WDI_SwitchCHRspParamsType   wdiSwitchChRsp;
-  WDI_SwitchChRspCb           wdiChSwitchRspCb   = NULL;
+  WDI_SwitchChRspCb           wdiChSwitchRspCb;
   tSwitchChannelRspParams     halSwitchChannelRsp;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiChSwitchRspCb = (WDI_SwitchChRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -14117,6 +14136,8 @@ WDI_ProcessChannelSwitchRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiChSwitchRspCb = (WDI_SwitchChRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -14158,7 +14179,7 @@ WDI_ProcessConfigStaRsp
 )
 {
   WDI_ConfigSTARspParamsType    wdiCfgSTAParams;
-  WDI_ConfigSTARspCb            wdiConfigSTARspCb   = NULL;
+  WDI_ConfigSTARspCb            wdiConfigSTARspCb;
   WDI_AddStaParams              wdiAddSTAParam;
 
   WDI_BSSSessionType*           pBSSSes             = NULL;
@@ -14166,8 +14187,6 @@ WDI_ProcessConfigStaRsp
 
   tConfigStaRspMsg              halConfigStaRsp; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiConfigSTARspCb = (WDI_ConfigSTARspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -14180,6 +14199,8 @@ WDI_ProcessConfigStaRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiConfigSTARspCb = (WDI_ConfigSTARspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -14308,13 +14329,11 @@ WDI_ProcessSetLinkStateRsp
 {
   WDI_Status              wdiStatus;
   eHalStatus              halStatus;
-  WDI_SetLinkStateRspCb   wdiSetLinkStateRspCb = NULL;
+  WDI_SetLinkStateRspCb   wdiSetLinkStateRspCb;
 
   WDI_BSSSessionType*     pBSSSes              = NULL;
   wpt_uint8               ucCurrentBSSSesIdx   = 0; 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiSetLinkStateRspCb = (WDI_SetLinkStateRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -14327,6 +14346,8 @@ WDI_ProcessSetLinkStateRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiSetLinkStateRspCb = (WDI_SetLinkStateRspCb)pWDICtx->pfncRspCB;
 
   wpalMutexAcquire(&pWDICtx->wptMutex);
 
@@ -14433,8 +14454,6 @@ WDI_ProcessGetStatsRsp
      return WDI_STATUS_E_FAILURE; 
   }
 
-  wdiGetStatsRspCb = (WDI_GetStatsRspCb)pWDICtx->pfncRspCB; 
-
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
   -------------------------------------------------------------------------*/
@@ -14453,6 +14472,8 @@ WDI_ProcessGetStatsRsp
     WDI_ASSERT(0);
     return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiGetStatsRspCb = (WDI_GetStatsRspCb)pWDICtx->pfncRspCB;
 
   wpalMemoryZero(wdiGetStatsRsp, pHalStatsRspParams->msgLen);
   wdiGetStatsRsp->usMsgType  = pHalStatsRspParams->msgType;
@@ -14494,10 +14515,8 @@ WDI_ProcessUpdateCfgRsp
 {
   WDI_Status           wdiStatus;
   eHalStatus           halStatus;
-  WDI_UpdateCfgRspCb   wdiUpdateCfgRspCb   = NULL;
+  WDI_UpdateCfgRspCb   wdiUpdateCfgRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiUpdateCfgRspCb = (WDI_UpdateCfgRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -14510,6 +14529,8 @@ WDI_ProcessUpdateCfgRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiUpdateCfgRspCb = (WDI_UpdateCfgRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -14542,14 +14563,13 @@ WDI_ProcessAddBARsp
   WDI_EventInfoType*     pEventData
 )
 {
-  WDI_AddBARspCb          wdiAddBARspCb   = NULL;
+  WDI_AddBARspCb          wdiAddBARspCb;
 
   tAddBARspParams         halAddBARsp;
   WDI_AddBARspinfoType    wdiAddBARsp;
 
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiAddBARspCb = (WDI_AddBARspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -14561,6 +14581,8 @@ WDI_ProcessAddBARsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiAddBARspCb = (WDI_AddBARspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -14599,7 +14621,7 @@ WDI_ProcessTriggerBARsp
   WDI_EventInfoType*     pEventData
 )
 {
-  WDI_TriggerBARspCb      wdiTriggerBARspCb   = NULL;
+  WDI_TriggerBARspCb      wdiTriggerBARspCb;
 
   tTriggerBARspParams*           halTriggerBARsp;
   tTriggerBaRspCandidate*        halBaCandidate;
@@ -14610,7 +14632,6 @@ WDI_ProcessTriggerBARsp
   
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiTriggerBARspCb = (WDI_TriggerBARspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -14622,6 +14643,8 @@ WDI_ProcessTriggerBARsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiTriggerBARspCb = (WDI_TriggerBARspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -14694,10 +14717,9 @@ WDI_ProcessUpdateBeaconParamsRsp
 {
   WDI_Status       wdiStatus;
   eHalStatus       halStatus;
-  WDI_UpdateBeaconParamsRspCb   wdiUpdateBeaconParamsRspCb   = NULL;
+  WDI_UpdateBeaconParamsRspCb   wdiUpdateBeaconParamsRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiUpdateBeaconParamsRspCb = (WDI_UpdateBeaconParamsRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -14709,6 +14731,8 @@ WDI_ProcessUpdateBeaconParamsRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiUpdateBeaconParamsRspCb = (WDI_UpdateBeaconParamsRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -14744,10 +14768,9 @@ WDI_ProcessSendBeaconParamsRsp
 {
   WDI_Status       wdiStatus;
   eHalStatus       halStatus;
-  WDI_SendBeaconParamsRspCb   wdiSendBeaconParamsRspCb   = NULL;
+  WDI_SendBeaconParamsRspCb   wdiSendBeaconParamsRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiSendBeaconParamsRspCb = (WDI_SendBeaconParamsRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -14759,6 +14782,8 @@ WDI_ProcessSendBeaconParamsRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiSendBeaconParamsRspCb = (WDI_SendBeaconParamsRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -14795,10 +14820,9 @@ WDI_ProcessUpdateProbeRspTemplateRsp
 {
   WDI_Status       wdiStatus;
   eHalStatus       halStatus;
-  WDI_UpdateProbeRspTemplateRspCb   wdiUpdProbeRspTemplRspCb   = NULL;
+  WDI_UpdateProbeRspTemplateRspCb   wdiUpdProbeRspTemplRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiUpdProbeRspTemplRspCb = (WDI_UpdateProbeRspTemplateRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -14810,6 +14834,8 @@ WDI_ProcessUpdateProbeRspTemplateRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiUpdProbeRspTemplRspCb = (WDI_UpdateProbeRspTemplateRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -14848,10 +14874,9 @@ WDI_ProcessSetMaxTxPowerRsp
   
   WDI_SetMaxTxPowerRspMsg        wdiSetMaxTxPowerRspMsg;
   
-  WDA_SetMaxTxPowerRspCb         wdiReqStatusCb   = NULL;
+  WDA_SetMaxTxPowerRspCb         wdiReqStatusCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiReqStatusCb = (WDA_SetMaxTxPowerRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -14863,6 +14888,8 @@ WDI_ProcessSetMaxTxPowerRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiReqStatusCb = (WDA_SetMaxTxPowerRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -14910,10 +14937,9 @@ WDI_ProcessP2PGONOARsp
 {
   WDI_Status       wdiStatus;
   eHalStatus       halStatus;
-  WDI_SetP2PGONOAReqParamsRspCb   wdiP2PGONOAReqParamsRspCb   = NULL;
+  WDI_SetP2PGONOAReqParamsRspCb   wdiP2PGONOAReqParamsRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiP2PGONOAReqParamsRspCb = (WDI_SetP2PGONOAReqParamsRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -14925,6 +14951,8 @@ WDI_ProcessP2PGONOARsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiP2PGONOAReqParamsRspCb = (WDI_SetP2PGONOAReqParamsRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -14960,10 +14988,8 @@ WDI_ProcessEnterImpsRsp
 {
   WDI_Status           wdiStatus;
   eHalStatus           halStatus;
-  WDI_EnterImpsRspCb   wdiEnterImpsRspCb   = NULL;
+  WDI_EnterImpsRspCb   wdiEnterImpsRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiEnterImpsRspCb = (WDI_EnterImpsRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -14976,6 +15002,8 @@ WDI_ProcessEnterImpsRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiEnterImpsRspCb = (WDI_EnterImpsRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -15009,10 +15037,8 @@ WDI_ProcessExitImpsRsp
 {
   WDI_Status           wdiStatus;
   eHalStatus           halStatus;
-  WDI_ExitImpsRspCb    wdiExitImpsRspCb   = NULL;
+  WDI_ExitImpsRspCb    wdiExitImpsRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiExitImpsRspCb = (WDI_ExitImpsRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -15025,6 +15051,8 @@ WDI_ProcessExitImpsRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiExitImpsRspCb = (WDI_ExitImpsRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -15057,10 +15085,8 @@ WDI_ProcessEnterBmpsRsp
 {
   WDI_Status           wdiStatus;
   eHalStatus           halStatus;
-  WDI_EnterBmpsRspCb   wdiEnterBmpsRspCb   = NULL;
+  WDI_EnterBmpsRspCb   wdiEnterBmpsRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiEnterBmpsRspCb = (WDI_EnterBmpsRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -15073,6 +15099,8 @@ WDI_ProcessEnterBmpsRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiEnterBmpsRspCb = (WDI_EnterBmpsRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -15105,10 +15133,8 @@ WDI_ProcessExitBmpsRsp
 {
   WDI_Status           wdiStatus;
   eHalStatus           halStatus;
-  WDI_ExitBmpsRspCb   wdiExitBmpsRspCb   = NULL;
+  WDI_ExitBmpsRspCb   wdiExitBmpsRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiExitBmpsRspCb = (WDI_ExitBmpsRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -15121,6 +15147,8 @@ WDI_ProcessExitBmpsRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiExitBmpsRspCb = (WDI_ExitBmpsRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -15158,10 +15186,8 @@ WDI_ProcessEnterUapsdRsp
 {
   WDI_Status           wdiStatus;
   eHalStatus           halStatus;
-  WDI_EnterUapsdRspCb   wdiEnterUapsdRspCb   = NULL;
+  WDI_EnterUapsdRspCb   wdiEnterUapsdRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiEnterUapsdRspCb = (WDI_EnterUapsdRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -15174,6 +15200,8 @@ WDI_ProcessEnterUapsdRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiEnterUapsdRspCb = (WDI_EnterUapsdRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -15220,10 +15248,8 @@ WDI_ProcessExitUapsdRsp
 {
   WDI_Status           wdiStatus;
   eHalStatus           halStatus;
-  WDI_ExitUapsdRspCb   wdiExitUapsdRspCb   = NULL;
+  WDI_ExitUapsdRspCb   wdiExitUapsdRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiExitUapsdRspCb = (WDI_ExitUapsdRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -15236,6 +15262,8 @@ WDI_ProcessExitUapsdRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiExitUapsdRspCb = (WDI_ExitUapsdRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -15277,10 +15305,8 @@ WDI_ProcessSetUapsdAcParamsRsp
 {
   WDI_Status           wdiStatus;
   eHalStatus           halStatus;
-  WDI_SetUapsdAcParamsCb   wdiSetUapsdAcParamsCb   = NULL;
+  WDI_SetUapsdAcParamsCb   wdiSetUapsdAcParamsCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiSetUapsdAcParamsCb = (WDI_SetUapsdAcParamsCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -15293,6 +15319,8 @@ WDI_ProcessSetUapsdAcParamsRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiSetUapsdAcParamsCb = (WDI_SetUapsdAcParamsCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -15325,10 +15353,8 @@ WDI_ProcessUpdateUapsdParamsRsp
 {
   WDI_Status           wdiStatus;
   eHalStatus           halStatus;
-  WDI_UpdateUapsdParamsCb   wdiUpdateUapsdParamsCb   = NULL;
+  WDI_UpdateUapsdParamsCb   wdiUpdateUapsdParamsCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiUpdateUapsdParamsCb = (WDI_UpdateUapsdParamsCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -15341,6 +15367,8 @@ WDI_ProcessUpdateUapsdParamsRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiUpdateUapsdParamsCb = (WDI_UpdateUapsdParamsCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -15373,10 +15401,8 @@ WDI_ProcessConfigureRxpFilterRsp
 {
   WDI_Status           wdiStatus;
   eHalStatus           halStatus;
-  WDI_ConfigureRxpFilterCb   wdiConfigureRxpFilterCb   = NULL;
+  WDI_ConfigureRxpFilterCb   wdiConfigureRxpFilterCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiConfigureRxpFilterCb = (WDI_ConfigureRxpFilterCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -15389,6 +15415,8 @@ WDI_ProcessConfigureRxpFilterRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiConfigureRxpFilterCb = (WDI_ConfigureRxpFilterCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -15421,10 +15449,8 @@ WDI_ProcessSetBeaconFilterRsp
 {
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
-   WDI_SetBeaconFilterCb   wdiBeaconFilterCb   = NULL;
+   WDI_SetBeaconFilterCb   wdiBeaconFilterCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-   wdiBeaconFilterCb = (WDI_SetBeaconFilterCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -15437,6 +15463,8 @@ WDI_ProcessSetBeaconFilterRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiBeaconFilterCb = (WDI_SetBeaconFilterCb)pWDICtx->pfncRspCB;
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -15469,10 +15497,8 @@ WDI_ProcessRemBeaconFilterRsp
 {
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
-   WDI_RemBeaconFilterCb   wdiBeaconFilterCb   = NULL;
+   WDI_RemBeaconFilterCb   wdiBeaconFilterCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-   wdiBeaconFilterCb = (WDI_RemBeaconFilterCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -15485,6 +15511,8 @@ WDI_ProcessRemBeaconFilterRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiBeaconFilterCb = (WDI_RemBeaconFilterCb)pWDICtx->pfncRspCB;
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -15517,10 +15545,8 @@ WDI_ProcessSetRSSIThresoldsRsp
 {
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
-   WDI_SetRSSIThresholdsCb   wdiRSSIThresholdsCb   = NULL;
+   WDI_SetRSSIThresholdsCb   wdiRSSIThresholdsCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-   wdiRSSIThresholdsCb = (WDI_SetRSSIThresholdsCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -15533,6 +15559,8 @@ WDI_ProcessSetRSSIThresoldsRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiRSSIThresholdsCb = (WDI_SetRSSIThresholdsCb)pWDICtx->pfncRspCB;
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -15565,10 +15593,8 @@ WDI_ProcessHostOffloadRsp
 {
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
-   WDI_HostOffloadCb    wdiHostOffloadCb   = NULL;
+   WDI_HostOffloadCb    wdiHostOffloadCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-   wdiHostOffloadCb = (WDI_HostOffloadCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -15581,6 +15607,8 @@ WDI_ProcessHostOffloadRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiHostOffloadCb = (WDI_HostOffloadCb)pWDICtx->pfncRspCB;
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -15614,10 +15642,8 @@ WDI_ProcessWowlAddBcPtrnRsp
 {
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
-   WDI_WowlAddBcPtrnCb    wdiWowlAddBcPtrnCb   = NULL;
+   WDI_WowlAddBcPtrnCb    wdiWowlAddBcPtrnCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-   wdiWowlAddBcPtrnCb = (WDI_WowlAddBcPtrnCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -15630,6 +15656,8 @@ WDI_ProcessWowlAddBcPtrnRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiWowlAddBcPtrnCb = (WDI_WowlAddBcPtrnCb)pWDICtx->pfncRspCB;
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -15662,10 +15690,8 @@ WDI_ProcessWowlDelBcPtrnRsp
 {
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
-   WDI_WowlDelBcPtrnCb    wdiWowlDelBcPtrnCb   = NULL;
+   WDI_WowlDelBcPtrnCb    wdiWowlDelBcPtrnCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-   wdiWowlDelBcPtrnCb = (WDI_WowlDelBcPtrnCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -15678,6 +15704,8 @@ WDI_ProcessWowlDelBcPtrnRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiWowlDelBcPtrnCb = (WDI_WowlDelBcPtrnCb)pWDICtx->pfncRspCB;
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -15710,10 +15738,8 @@ WDI_ProcessWowlEnterRsp
 {
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
-   WDI_WowlEnterReqCb   wdiWowlEnterCb   = NULL;
+   WDI_WowlEnterReqCb   wdiWowlEnterCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-   wdiWowlEnterCb = (WDI_WowlEnterReqCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -15726,6 +15752,8 @@ WDI_ProcessWowlEnterRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiWowlEnterCb = (WDI_WowlEnterReqCb)pWDICtx->pfncRspCB;
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -15758,10 +15786,8 @@ WDI_ProcessWowlExitRsp
 {
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
-   WDI_WowlExitReqCb   wdiWowlExitCb   = NULL;
+   WDI_WowlExitReqCb   wdiWowlExitCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-   wdiWowlExitCb = (WDI_WowlExitReqCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -15774,6 +15800,8 @@ WDI_ProcessWowlExitRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiWowlExitCb = (WDI_WowlExitReqCb)pWDICtx->pfncRspCB;
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -15807,10 +15835,8 @@ WDI_ProcessConfigureAppsCpuWakeupStateRsp
 {
    WDI_Status           wdiStatus;
    eHalStatus           halStatus;
-   WDI_ConfigureAppsCpuWakeupStateCb   wdiConfigureAppsCpuWakeupStateCb   = NULL;
+   WDI_ConfigureAppsCpuWakeupStateCb   wdiConfigureAppsCpuWakeupStateCb;
    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-   wdiConfigureAppsCpuWakeupStateCb = (WDI_ConfigureAppsCpuWakeupStateCb)pWDICtx->pfncRspCB; 
 
    /*-------------------------------------------------------------------------
      Sanity check 
@@ -15823,6 +15849,8 @@ WDI_ProcessConfigureAppsCpuWakeupStateRsp
       WDI_ASSERT(0);
       return WDI_STATUS_E_FAILURE; 
    }
+
+   wdiConfigureAppsCpuWakeupStateCb = (WDI_ConfigureAppsCpuWakeupStateCb)pWDICtx->pfncRspCB;
 
    /*-------------------------------------------------------------------------
      Extract response and send it to UMAC
@@ -15855,7 +15883,7 @@ WDI_ProcessNvDownloadRsp
 )
 {
 
-  WDI_NvDownloadRspCb    wdiNvDownloadRspCb   = NULL;
+  WDI_NvDownloadRspCb    wdiNvDownloadRspCb;
   tHalNvImgDownloadRspParams halNvDownloadRsp;
   WDI_NvDownloadRspInfoType wdiNvDownloadRsp;
 
@@ -15921,10 +15949,9 @@ WDI_ProcessAggrAddTSpecRsp
 {
   WDI_Status            wdiStatus;
   tAggrAddTsRspParams   aggrAddTsRsp;
-  WDI_AggrAddTsRspCb    wdiAggrAddTsRspCb   = NULL;
+  WDI_AggrAddTsRspCb    wdiAggrAddTsRspCb;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  wdiAggrAddTsRspCb = (WDI_AddTsRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -15936,6 +15963,8 @@ WDI_ProcessAggrAddTSpecRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiAggrAddTsRspCb = (WDI_AddTsRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -15972,11 +16001,9 @@ WDI_ProcessHostResumeRsp
 )
 {
   WDI_SuspendResumeRspParamsType     wdiResumeRspParams;
-  WDI_HostResumeEventRspCb           wdiHostResumeRspCb   = NULL;
+  WDI_HostResumeEventRspCb           wdiHostResumeRspCb;
   tHalHostResumeRspParams            hostResumeRspMsg;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-
-  wdiHostResumeRspCb = (WDI_HostResumeEventRspCb)pWDICtx->pfncRspCB; 
 
   /*-------------------------------------------------------------------------
     Sanity check 
@@ -15989,6 +16016,8 @@ WDI_ProcessHostResumeRsp
     WDI_ASSERT(0);
     return WDI_STATUS_E_FAILURE; 
   }
+
+  wdiHostResumeRspCb = (WDI_HostResumeEventRspCb)pWDICtx->pfncRspCB;
 
   /*-------------------------------------------------------------------------
     Extract response and send it to UMAC
@@ -16625,11 +16654,10 @@ WDI_ProcessFTMCommandRsp
   WDI_EventInfoType*     pEventData
 )
 {
-  WDI_FTMCommandRspCb   ftmCMDRspCb = NULL;
+  WDI_FTMCommandRspCb   ftmCMDRspCb;
   tProcessPttRspParams *ftmCMDRspData = NULL;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  ftmCMDRspCb = (WDI_FTMCommandRspCb)pWDICtx->pfncRspCB; 
   /*-------------------------------------------------------------------------
     Sanity check 
   -------------------------------------------------------------------------*/
@@ -16641,6 +16669,8 @@ WDI_ProcessFTMCommandRsp
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
+
+  ftmCMDRspCb = (WDI_FTMCommandRspCb)pWDICtx->pfncRspCB;
 
   ftmCMDRspData = (tProcessPttRspParams *)pEventData->pEventData;
 

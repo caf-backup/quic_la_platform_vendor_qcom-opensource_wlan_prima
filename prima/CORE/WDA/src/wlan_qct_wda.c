@@ -4785,8 +4785,6 @@ void WDA_DelBANotifyTL(tWDA_CbContext *pWDA,
    {
       vosStatus = VOS_STATUS_E_BADMSG;
    }
-
-   vos_mem_free(pDelBAReqParams);
 }
 
 /*
@@ -4817,7 +4815,8 @@ void WDA_DelBAReqCallback(WDI_Status status, void* pUserData)
     * No respone required for WDA_DELBA_IND so just free the request 
     * param here
     */
-   vos_mem_free(pWDA->wdaWdiApiMsgParam) ;
+   vos_mem_free(pDelBAReqParams);
+   vos_mem_free(pWdaParams->wdaWdiApiMsgParam);
    vos_mem_free(pWdaParams);
    return ;
 }

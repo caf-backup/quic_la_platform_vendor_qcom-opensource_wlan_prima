@@ -239,11 +239,13 @@ void wpalUnRegisterInterrupt
    switch (intType) {
 
    case DXE_INTERRUPT_TX_COMPLE:
+      disable_irq_nosync(gpEnv->tx_irq);
       gpEnv->tx_isr = NULL;
       gpEnv->tx_context = NULL;
       break;
 
    case DXE_INTERRUPT_RX_READY:
+      disable_irq_nosync(gpEnv->rx_irq);
       gpEnv->rx_isr = NULL;
       gpEnv->rx_context = NULL;
       break;
