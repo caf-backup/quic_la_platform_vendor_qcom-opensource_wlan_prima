@@ -98,9 +98,9 @@
 #define QWLAN_HAL_CFG_TX_POWER_50_40                     69
 #define QWLAN_HAL_CFG_MCAST_BCAST_FILTER_SETTING         70 
 #define QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL     71
-#define QWLAN_HAL_CFG_MAX_PARAMS                         72
-#define QCOM_WLAN_CFG_MAX_TX_POWER_2_4                   73
-#define QCOM_WLAN_CFG_MAX_TX_POWER_5                     74
+#define QCOM_WLAN_CFG_MAX_TX_POWER_2_4                   72
+#define QCOM_WLAN_CFG_MAX_TX_POWER_5                     73
+#define QWLAN_HAL_CFG_MAX_PARAMS                         74
 
 /* Total number of Integer CFGs. This is used while allocating the memory for TLV */
 #define QWLAN_HAL_CFG_INTEGER_PARAM                      70

@@ -367,6 +367,18 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
         return;
     }
 
+    /* If beacon/probe resp DS param channel does not match with 
+     * RX BD channel then don't save the results. It might be a beacon
+     * from another channel heard as noise on the current scanning channel
+     */
+    if (WDA_GET_RX_CH(pRxPacketInfo) != limGetChannelFromBeacon(pMac, pBPR))
+    {
+        limLog(pMac, LOGW, FL("Beacon/Probe Rsp dropped. Channel in BD %d. "
+                              "Channel in beacon" " %d\n"), 
+               WDA_GET_RX_CH(pRxPacketInfo),limGetChannelFromBeacon(pMac, pBPR));
+        return;
+    }
+
     /**
      * Allocate buffer to hold BSS description from
      * received Beacon frame.
