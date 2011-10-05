@@ -3834,3 +3834,17 @@ V    RW    NP
 HAL
 0    65535    0
 
+* 
+* Softap data available poll period (in milliseconds) for 
+* queueing (Qos)Null frames to the station if there 
+* is no data available and PS-Poll/Trigger frame is pending.
+* 0 = disabled. Recommended values is 5ms
+*
+WNI_CFG_AP_DATA_AVAIL_POLL_PERIOD   I    4    8
+V    RW    NP
+NONE
+0    65535    5
+V    RW    NP
+NONE
+0    65535    5
+

@@ -1426,12 +1426,19 @@ This is a Verizon required feature.
                   CFG_VALIDATE_SCAN_LIST_MIN, 
                   CFG_VALIDATE_SCAN_LIST_MAX ),
    
-   REG_VARIABLE( CFG_NULLDATA_AP_RESP_TIMEOUT_NAME, WLAN_PARAM_Integer,
+    REG_VARIABLE( CFG_NULLDATA_AP_RESP_TIMEOUT_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, nNullDataApRespTimeout, 
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
                 CFG_NULLDATA_AP_RESP_TIMEOUT_DEFAULT, 
                 CFG_NULLDATA_AP_RESP_TIMEOUT_MIN, 
                 CFG_NULLDATA_AP_RESP_TIMEOUT_MAX ),
+
+    REG_VARIABLE( CFG_AP_DATA_AVAIL_POLL_PERIOD_NAME, WLAN_PARAM_Integer,
+                hdd_config_t, apDataAvailPollPeriodInMs, 
+                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
+                CFG_AP_DATA_AVAIL_POLL_PERIOD_DEFAULT, 
+                CFG_AP_DATA_AVAIL_POLL_PERIOD_MIN, 
+                CFG_AP_DATA_AVAIL_POLL_PERIOD_MAX ),
 };                                
 
 /*
@@ -1746,6 +1753,7 @@ static void print_hdd_cfg(hdd_adapter_t *pAdapter)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gAddTSWhenACMIsOff] Value = [%u] ",pAdapter->cfg_ini->AddTSWhenACMIsOff);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [gValidateScanList] Value = [%u] ",pAdapter->cfg_ini->fValidateScanList);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [gStaKeepAlivePeriod] Value = [%u] ",pAdapter->cfg_ini->infraStaKeepAlivePeriod);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "Name = [gApDataAvailPollInterVal] Value = [%u] ",pAdapter->cfg_ini->apDataAvailPollPeriodInMs);
 }
 
 
@@ -2613,6 +2621,13 @@ v_BOOL_t hdd_update_config_dat( hdd_adapter_t *pAdapter )
 	   fStatus = FALSE;
 	   hddLog(LOGE,"Could not pass on WNI_CFG_MANUFACTURER_PRODUCT_VERSION to CCM\n");
    }
+
+   if (ccmCfgSetInt(pAdapter->hHal, WNI_CFG_AP_DATA_AVAIL_POLL_PERIOD, pConfig->apDataAvailPollPeriodInMs,
+               NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
+   {
+	   fStatus = FALSE;
+	   hddLog(LOGE,"Failure: Could not pass on WNI_CFG_AP_DATA_AVAIL_POLL_PERIOD configuration info to CCM\n"  );
+   } 
 
    return fStatus;
 }

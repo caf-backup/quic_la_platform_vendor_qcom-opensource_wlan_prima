@@ -252,6 +252,7 @@ unsigned char *gCfgParamName[] = {
 	(unsigned char *)"TELE_BCN_MAX_LI_IDLE_BCNS",
 	(unsigned char *)"BTC_A2DP_DHCP_BT_SUB_INTERVALS",
 	(unsigned char *)"INFRA_STA_KEEP_ALIVE_PERIOD",
+	(unsigned char *)"AP_DATA_AVAIL_POLL_PERIOD",
 };
 
 

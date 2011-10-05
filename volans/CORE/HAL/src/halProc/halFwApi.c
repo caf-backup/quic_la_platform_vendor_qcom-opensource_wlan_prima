@@ -26,6 +26,7 @@
 #include "halFw.h"
 #include "halMailbox.h"
 #include "halPhyVos.h"
+#include "cfgApi.h"
 
 #ifdef FEATURE_INNAV_SUPPORT
 #include "halInNav.h"
@@ -299,7 +300,6 @@ static eHalStatus halFW_DownloadImage(tpAniSirGlobal pMac, void *arg)
 #ifdef WLAN_SOFTAP_FEATURE
     pFwConfig->ucApLinkMonitorMsec = QWLANFW_AP_LINK_MONITOR_TIMEOUT_MSEC;
     pFwConfig->ucUnknownAddr2CreditIntvMsec = QWLANFW_UNKNOWN_ADDR2_NOTIFCATION_INTERVAL_MS;
-    pFwConfig->ucapUapsdSendQoSNullDataMsec = QWLANFW_AP_SEND_QOS_NULLDATA_TIMEOUT_MSEC;
 #endif
     pFwConfig->usBdPduOffset = QWLANFW_NUM_BDPDU_THRESHOLD;
 
@@ -1252,8 +1252,19 @@ eHalStatus halFW_AddBssReq(tpAniSirGlobal pMac, tANI_U8 bssIdx)
             //in AP mode enable link monitoring and unknown addr2 handling.
             if(pBss->bssSystemRole == eSYSTEM_AP_ROLE)
             {
+                tANI_U32 cfgVal = 0;
+
                 pFwConfig->fDisLinkMonitor = 0;
                 pFwConfig->fEnableFwUnknownAddr2Handling = 1;
+                /* Time interval for firmware to check for data available signals for power 
+                 * save stations and enqueue a null frame/qos null frame if PS-Poll/Qos null frame 
+                 * is pending for that station. Refer to CR 304083/300709 for more details */
+                if (eSIR_SUCCESS != wlan_cfgGetInt(pMac, WNI_CFG_AP_DATA_AVAIL_POLL_PERIOD, &cfgVal))
+                {
+                    HALLOGP(halLog(pMac, LOGP, FL("cfg Get for AP_DATA_AVAIL_POLL_PERIOD failed\n"))); 
+                }
+                else
+                    pFwConfig->ucapUapsdSendQoSNullDataMsec = cfgVal;
             }
 
             msgBody.bssIdx = pBss->bssIdx;
