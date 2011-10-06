@@ -120,7 +120,7 @@ WLANBAP_AcquireLSPacket( ptBtampContext pBtampCtx, vos_pkt_t **ppPacket, v_U16_t
    {
        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                 "WLANBAP_LinkSupervisionTimerHandler failed to get vos_pkt\n" );
-            //return vosStatus;
+       return vosStatus;
    }
 
          // Form the 802.3 header
@@ -224,6 +224,7 @@ WLANBAP_InitLinkSupervision
     {
          VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                        "%s:AcquireLSPacket failed\n",__FUNCTION__);
+         pBtampCtx->lsReqPacket = NULL;
 	 return vosStatus;   
     } 	    
 
@@ -236,6 +237,7 @@ WLANBAP_InitLinkSupervision
     {
          VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
                        "%s:AcquireLSPacket failed\n",__FUNCTION__);
+         pBtampCtx->lsRepPacket = NULL;
 	 return vosStatus;   
     } 	         
 
@@ -440,7 +442,7 @@ static VOS_STATUS WLANBAP_TxLinkSupervisionCB
 {
     VOS_STATUS     vosStatus;
     ptBtampContext bapContext; /* Holds the btampContext value returned */ 
-    vos_pkt_t                *pLSReqPacket; 
+    vos_pkt_t                *pLSPacket; 
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
              "TxCompCB reached for LS Pkt");
@@ -461,12 +463,15 @@ static VOS_STATUS WLANBAP_TxLinkSupervisionCB
         return VOS_STATUS_E_FAILURE;
     }
 
+
     /* Return the packet & reallocate */
-    vos_pkt_return_packet( pPacket );
-    vosStatus = WLANBAP_AcquireLSPacket( bapContext, &pLSReqPacket,32, TRUE );
+    
+    if( pPacket == bapContext->lsReqPacket )
+    {
+        vosStatus = WLANBAP_AcquireLSPacket( bapContext, &pLSPacket,32, TRUE );
     if( VOS_IS_STATUS_SUCCESS( vosStatus ) )
     {
-        bapContext->lsReqPacket = pLSReqPacket;
+            bapContext->lsReqPacket = pLSPacket;
     }
     else
     {
@@ -475,6 +480,23 @@ static VOS_STATUS WLANBAP_TxLinkSupervisionCB
          bapContext->lsReqPacket = NULL;
          return vosStatus;   
     } 	    
+    }
+    else
+    {
+        vosStatus = WLANBAP_AcquireLSPacket( bapContext, &pLSPacket,32, FALSE );
+        if( VOS_IS_STATUS_SUCCESS( vosStatus ) )
+        {
+            bapContext->lsRepPacket = pLSPacket;
+        }
+        else
+        {
+             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO,
+                           "%s:AcquireLSPacket failed\n",__FUNCTION__);
+             bapContext->lsRepPacket = NULL;
+             return vosStatus;   
+        } 	    
+    }
+    vos_pkt_return_packet( pPacket );
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                "%s:Returned Vos Packet:%x\n",__FUNCTION__, pPacket );

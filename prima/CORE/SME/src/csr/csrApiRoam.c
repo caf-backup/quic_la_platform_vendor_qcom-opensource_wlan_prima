@@ -4595,9 +4595,13 @@ static tANI_BOOLEAN csrRoamProcessResults( tpAniSirGlobal pMac, tSmeCmd *pComman
         default:
         {
             smsLog(pMac, LOGW, FL("receives no association indication\n"));
-            csrFreeConnectBssDesc(pMac, sessionId);
-            csrRoamFreeConnectProfile(pMac, &pSession->connectedProfile);
-            csrRoamFreeConnectedInfo( pMac, &pSession->connectedInfo );
+            if( !CSR_IS_WDS_STA( &pSession->connectedProfile ) ||
+                CSR_IS_ROAM_SUBSTATE_STOP_BSS_REQ( pMac ) )
+            {//do not free the profile as we need to send down stop BSS as well
+                csrFreeConnectBssDesc(pMac, sessionId);
+                csrRoamFreeConnectProfile(pMac, &pSession->connectedProfile);
+                csrRoamFreeConnectedInfo( pMac, &pSession->connectedInfo );
+            }
             csrSetDefaultDot11Mode( pMac );
             switch( pCommand->u.roamCmd.roamReason )
             {

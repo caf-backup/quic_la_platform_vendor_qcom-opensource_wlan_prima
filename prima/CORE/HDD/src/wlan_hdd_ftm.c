@@ -121,13 +121,17 @@
 #endif /* QWLAN_TXCTL_FSHIFT_REG */
 
 typedef struct {
+   tANI_U32 tableSize;                      /* Whole NV Table Size */
+   tANI_U32 chunkSize;                      /* Current Chunk Size < 2K */
    eNvTable nvTable;
-   uNvTables tableData;
+   tANI_U8  tableData;                     /* Filled by host driver */
 } pttGetNvTable;
 
 typedef struct {
+   tANI_U32 tableSize;                      /* Whole NV Table Size */
+   tANI_U32 chunkSize;                      /* Current Chunk Size < 2K */
    eNvTable nvTable;
-   uNvTables tableData;
+   tANI_U8  tableData; 
 } pttSetNvTable;
 
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
@@ -1115,6 +1119,22 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
     netif_tx_disable(pAdapter->dev);
 #endif
 
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+   pHddCtx->ftm.processingNVTable    = NV_MAX_TABLE;
+   pHddCtx->ftm.targetNVTableSize    = 0;
+   pHddCtx->ftm.targetNVTablePointer = NULL;
+   pHddCtx->ftm.processedNVTableSize = 0;
+   pHddCtx->ftm.tempNVTableBuffer    = (v_U8_t *)vos_mem_malloc(MAX_NV_TABLE_SIZE);
+   if(NULL == pHddCtx->ftm.tempNVTableBuffer)
+   {
+      VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                 "%s: NV Table Buffer Alloc Fail",__func__);
+      VOS_ASSERT(0);
+      goto err_nl_srv_init; 
+   }
+   vos_mem_zero((v_VOID_t *)pHddCtx->ftm.tempNVTableBuffer, MAX_NV_TABLE_SIZE);
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+
     _ftm_status_init();
     /* Initialize the ftm vos event */
     if (vos_event_init(&pHddCtx->ftm.ftm_vos_event) != VOS_STATUS_SUCCESS)
@@ -1122,6 +1142,7 @@ int wlan_hdd_ftm_open(hdd_context_t *pHddCtx)
         VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                     "%s: Unable to init probeEvent",__func__);
         VOS_ASSERT(0);
+        vos_mem_free(pHddCtx->ftm.tempNVTableBuffer);
         goto err_nl_srv_init;
     }
 
@@ -1212,6 +1233,9 @@ int wlan_hdd_ftm_close(hdd_context_t *pHddCtx)
          "%s: Failed to destroy ftm_vos Event",__func__);
         VOS_ASSERT( VOS_IS_STATUS_SUCCESS( vosStatus ) );
     }
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+    vos_mem_free(pHddCtx->ftm.tempNVTableBuffer);
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
     //Free up dynamically allocated members inside HDD Adapter
     kfree(pHddCtx->cfg_ini);
@@ -1269,7 +1293,6 @@ static int wlan_hdd_ftm_start(hdd_context_t *pHddCtx)
 
     if (WLAN_FTM_STARTED == pHddCtx->ftm.ftm_state)
     {
-       printk(KERN_EMERG "*** FTM Driver Already Started ***\n");
        return VOS_STATUS_SUCCESS;
     }
 
@@ -1556,93 +1579,137 @@ static int wlan_ftm_stop(hdd_context_t *pHddCtx)
   --------------------------------------------------------------------------*/
 int wlan_hdd_ftm_get_nv_table
 (
+   hdd_context_t  *pHddCtx,
    tPttMsgbuffer  *ftmCmd
 )
 {
    VOS_STATUS          nvStatus = VOS_STATUS_SUCCESS;
    pttGetNvTable      *nvTable = (pttGetNvTable *)&ftmCmd->msgBody.GetNvTable;
    v_SIZE_t            nvSize;
-   v_SIZE_t            itemSize;
    sHalNv             *nvContents = NULL;
 
-   nvStatus = vos_nv_getNVBuffer((void **)&nvContents, &nvSize);
-   if ((VOS_STATUS_SUCCESS != nvStatus) || (NULL == nvContents))
+   if (NULL == pHddCtx)
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                 "Fail to get cached NV value Status %d", nvStatus);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "Not valid driver context");
       return -1;
    }
 
-   switch (nvTable->nvTable)
+   /* Test first chunk of NV table */
+   if ((NV_MAX_TABLE == pHddCtx->ftm.processingNVTable) ||
+      (0 == pHddCtx->ftm.processedNVTableSize))
    {
-      case NV_TABLE_RATE_POWER_SETTINGS:
-         itemSize = sizeof(nvContents->tables.pwrOptimum);
-         memcpy(&nvTable->tableData.pwrOptimum,
-                &nvContents->tables.pwrOptimum,
-                itemSize);
-         break;
-
-      case NV_TABLE_REGULATORY_DOMAINS:
-         itemSize = sizeof(nvContents->tables.regDomains);
-         memcpy(&nvTable->tableData.regDomains,
-                &nvContents->tables.regDomains,
-                itemSize);
-         break;
-
-      case NV_TABLE_DEFAULT_COUNTRY:
-         itemSize = sizeof(nvContents->tables.defaultCountryTable);
-         memcpy(&nvTable->tableData.defaultCountryTable,
-                &nvContents->tables.defaultCountryTable,
-                itemSize);
-         break;
-
-      case NV_TABLE_TPC_POWER_TABLE:
-         itemSize = sizeof(nvContents->tables.plutCharacterized);
-         memcpy(&nvTable->tableData.plutCharacterized[0],
-                &nvContents->tables.plutCharacterized[0],
-                itemSize);
-         break;
-
-      case NV_TABLE_TPC_PDADC_OFFSETS:
-         itemSize = sizeof(nvContents->tables.plutPdadcOffset);
-         memcpy(&nvTable->tableData.plutPdadcOffset[0],
-                &nvContents->tables.plutPdadcOffset[0],
-                itemSize);
-         break;
-
-      case NV_TABLE_RSSI_CHANNEL_OFFSETS:
-         itemSize = sizeof(nvContents->tables.rssiChanOffsets);
-         memcpy(&nvTable->tableData.rssiChanOffsets[0],
-                &nvContents->tables.rssiChanOffsets[0],
-                itemSize);
-         break;
-
-      case NV_TABLE_RF_CAL_VALUES:
-         itemSize = sizeof(nvContents->tables.rFCalValues);
-         memcpy(&nvTable->tableData.rFCalValues,
-                &nvContents->tables.rFCalValues,
-                itemSize);
-         break;
-
-      case NV_TABLE_ANTENNA_PATH_LOSS:
-         itemSize = sizeof(nvContents->tables.antennaPathLoss);
-         memcpy(&nvTable->tableData.antennaPathLoss[0],
-                &nvContents->tables.antennaPathLoss[0],
-                itemSize);
-         break;
-
-      case NV_TABLE_PACKET_TYPE_POWER_LIMITS:
-         itemSize = sizeof(nvContents->tables.pktTypePwrLimits);
-         memcpy(&nvTable->tableData.pktTypePwrLimits[0][0],
-                &nvContents->tables.pktTypePwrLimits[0][0],
-                itemSize);
-         break;
-
-      default:
-         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "Not Valid NV Table %d", nvTable->nvTable);
+      nvStatus = vos_nv_getNVBuffer((void **)&nvContents, &nvSize);
+      if ((VOS_STATUS_SUCCESS != nvStatus) || (NULL == nvContents))
+      {
+         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                    "Fail to get cached NV value Status %d", nvStatus);
          return -1;
-         break;
+      }
+
+      switch (nvTable->nvTable)
+      {
+         case NV_TABLE_RATE_POWER_SETTINGS:
+            pHddCtx->ftm.targetNVTableSize = sizeof(nvContents->tables.pwrOptimum);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.pwrOptimum;
+            break;
+
+         case NV_TABLE_REGULATORY_DOMAINS:
+            pHddCtx->ftm.targetNVTableSize = sizeof(nvContents->tables.regDomains);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.regDomains;
+            break;
+
+         case NV_TABLE_DEFAULT_COUNTRY:
+            pHddCtx->ftm.targetNVTableSize = sizeof(nvContents->tables.defaultCountryTable);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.defaultCountryTable;
+            break;
+
+         case NV_TABLE_TPC_POWER_TABLE:
+            pHddCtx->ftm.targetNVTableSize = sizeof(nvContents->tables.plutCharacterized);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.plutCharacterized[0];
+            break;
+
+         case NV_TABLE_TPC_PDADC_OFFSETS:
+            pHddCtx->ftm.targetNVTableSize = sizeof(nvContents->tables.plutPdadcOffset);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.plutPdadcOffset[0];
+            break;
+
+         case NV_TABLE_RSSI_CHANNEL_OFFSETS:
+            pHddCtx->ftm.targetNVTableSize = sizeof(nvContents->tables.rssiChanOffsets);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.rssiChanOffsets[0];
+            break;
+
+         case NV_TABLE_RF_CAL_VALUES:
+            pHddCtx->ftm.targetNVTableSize = sizeof(nvContents->tables.rFCalValues);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.rFCalValues;
+            break;
+
+         case NV_TABLE_ANTENNA_PATH_LOSS:
+            pHddCtx->ftm.targetNVTableSize = sizeof(nvContents->tables.antennaPathLoss);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.antennaPathLoss[0];
+            break;
+
+         case NV_TABLE_PACKET_TYPE_POWER_LIMITS:
+            pHddCtx->ftm.targetNVTableSize = sizeof(nvContents->tables.pktTypePwrLimits);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.pktTypePwrLimits[0][0];
+            break;
+
+         default:
+            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                       "Not Valid NV Table %d", nvTable->nvTable);
+            return -1;
+            break;
+      }
+
+      if (pHddCtx->ftm.targetNVTableSize != nvTable->tableSize)
+      {
+         /* Invlaid table size, discard and initilize data */
+         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                    "Invalid Table Size %d", nvTable->tableSize);
+         pHddCtx->ftm.processingNVTable    = NV_MAX_TABLE;
+         pHddCtx->ftm.targetNVTableSize    = 0;
+         pHddCtx->ftm.processedNVTableSize = 0;
+         vos_mem_zero(pHddCtx->ftm.tempNVTableBuffer, MAX_NV_TABLE_SIZE);
+         return -1;
+      }
+
+      /* Set Current Processing NV table type */
+      pHddCtx->ftm.processingNVTable = nvTable->nvTable;
+      /* Copy target NV table value into temp context buffer */
+      vos_mem_copy(pHddCtx->ftm.tempNVTableBuffer,
+                   pHddCtx->ftm.targetNVTablePointer,
+                   pHddCtx->ftm.targetNVTableSize);
+
+   }
+
+   if (pHddCtx->ftm.processingNVTable != nvTable->nvTable)
+   {
+      /* Invalid table type */
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                 "Invalid NV Table, now Processing %d, not %d",
+                  pHddCtx->ftm.processingNVTable, nvTable->nvTable);
+      pHddCtx->ftm.processingNVTable    = NV_MAX_TABLE;
+      pHddCtx->ftm.targetNVTableSize    = 0;
+      pHddCtx->ftm.processedNVTableSize = 0;
+      vos_mem_zero(pHddCtx->ftm.tempNVTableBuffer, MAX_NV_TABLE_SIZE);
+ 
+      return -1;
+   }
+
+   /* Copy next chunk of NV table value into response buffer */
+   vos_mem_copy(&nvTable->tableData, 
+                pHddCtx->ftm.tempNVTableBuffer + pHddCtx->ftm.processedNVTableSize,
+                nvTable->chunkSize);
+   /* Update processed pointer to prepare next chunk copy */
+   pHddCtx->ftm.processedNVTableSize += nvTable->chunkSize;
+
+   if (pHddCtx->ftm.targetNVTableSize == pHddCtx->ftm.processedNVTableSize)
+   {
+      /* Finished to process last chunk of data, initilize buffer */
+      pHddCtx->ftm.processingNVTable    = NV_MAX_TABLE;
+      pHddCtx->ftm.targetNVTableSize    = 0;
+      pHddCtx->ftm.processedNVTableSize = 0;
+      vos_mem_zero(pHddCtx->ftm.tempNVTableBuffer, MAX_NV_TABLE_SIZE);
    }
 
    return 1;
@@ -1662,93 +1729,127 @@ int wlan_hdd_ftm_get_nv_table
   --------------------------------------------------------------------------*/
 int wlan_hdd_ftm_set_nv_table
 (
+   hdd_context_t  *pHddCtx,
    tPttMsgbuffer  *ftmCmd
 )
 {
    VOS_STATUS          nvStatus = VOS_STATUS_SUCCESS;
    pttSetNvTable      *nvTable = (pttSetNvTable *)&ftmCmd->msgBody.SetNvTable;
    v_SIZE_t            nvSize;
-   v_SIZE_t            itemSize;
    sHalNv             *nvContents = NULL;
 
-   nvStatus = vos_nv_getNVBuffer((void **)&nvContents, &nvSize);
-   if((VOS_STATUS_SUCCESS != nvStatus) || (NULL == nvContents))
+   if (NULL == pHddCtx)
    {
-      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO,
-                 "Fail to get cached NV value Status %d", nvStatus);
+      VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                "Not valid driver context");
       return -1;
    }
 
-   switch(nvTable->nvTable)
+   /* Test first chunk of NV table */
+   if ((NV_MAX_TABLE == pHddCtx->ftm.processingNVTable) ||
+       (0 == pHddCtx->ftm.processedNVTableSize))
    {
-      case NV_TABLE_RATE_POWER_SETTINGS:
-         itemSize = sizeof(nvContents->tables.pwrOptimum);
-         memcpy(&nvContents->tables.pwrOptimum,
-                &nvTable->tableData.pwrOptimum,
-                itemSize);
-         break;
-
-      case NV_TABLE_REGULATORY_DOMAINS:
-         itemSize = sizeof(nvContents->tables.regDomains);
-         memcpy(&nvContents->tables.regDomains,
-                &nvTable->tableData.regDomains,
-                itemSize);
-         break;
-
-      case NV_TABLE_DEFAULT_COUNTRY:
-         itemSize = sizeof(nvContents->tables.defaultCountryTable);
-         memcpy(&nvContents->tables.defaultCountryTable,
-                &nvTable->tableData.defaultCountryTable,
-                itemSize);
-         break;
-
-      case NV_TABLE_TPC_POWER_TABLE:
-         itemSize = sizeof(nvContents->tables.plutCharacterized);
-         memcpy(&nvContents->tables.plutCharacterized[0],
-                &nvTable->tableData.plutCharacterized[0],
-                itemSize);
-         break;
-
-      case NV_TABLE_TPC_PDADC_OFFSETS:
-         itemSize = sizeof(nvContents->tables.plutPdadcOffset);
-         memcpy(&nvContents->tables.plutPdadcOffset[0],
-                &nvTable->tableData.plutPdadcOffset[0],
-                itemSize);
-         break;
-
-      case NV_TABLE_RSSI_CHANNEL_OFFSETS:
-         itemSize = sizeof(nvContents->tables.rssiChanOffsets);
-         memcpy(&nvContents->tables.rssiChanOffsets[0],
-                &nvTable->tableData.rssiChanOffsets[0],
-                itemSize);
-         break;
-
-      case NV_TABLE_RF_CAL_VALUES:
-         itemSize = sizeof(nvContents->tables.rFCalValues);
-         memcpy(&nvContents->tables.rFCalValues,
-                &nvTable->tableData.rFCalValues,
-                itemSize);
-         break;
-
-      case NV_TABLE_ANTENNA_PATH_LOSS:
-         itemSize = sizeof(nvContents->tables.antennaPathLoss);
-         memcpy(&nvContents->tables.antennaPathLoss[0],
-                &nvTable->tableData.antennaPathLoss[0],
-                itemSize);
-         break;
-
-      case NV_TABLE_PACKET_TYPE_POWER_LIMITS:
-         itemSize = sizeof(nvContents->tables.pktTypePwrLimits);
-         memcpy(&nvContents->tables.pktTypePwrLimits[0][0],
-                &nvTable->tableData.pktTypePwrLimits[0][0],
-                itemSize);
-         break;
-
-      default:
-         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-                    "Not Valid NV Table %d", nvTable->nvTable);
+      nvStatus = vos_nv_getNVBuffer((void **)&nvContents, &nvSize);
+      if ((VOS_STATUS_SUCCESS != nvStatus) || (NULL == nvContents))
+      {
+         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                    "Fail to get cached NV value Status %d", nvStatus);
          return -1;
-         break;
+      }
+
+      switch (nvTable->nvTable)
+      {
+         case NV_TABLE_RATE_POWER_SETTINGS:
+            pHddCtx->ftm.targetNVTableSize    = sizeof(nvContents->tables.pwrOptimum);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.pwrOptimum;
+            break;
+
+         case NV_TABLE_REGULATORY_DOMAINS:
+            pHddCtx->ftm.targetNVTableSize    = sizeof(nvContents->tables.regDomains);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.regDomains;
+            break;
+
+         case NV_TABLE_DEFAULT_COUNTRY:
+            pHddCtx->ftm.targetNVTableSize    = sizeof(nvContents->tables.defaultCountryTable);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.defaultCountryTable;
+            break;
+
+         case NV_TABLE_TPC_POWER_TABLE:
+            pHddCtx->ftm.targetNVTableSize    = sizeof(nvContents->tables.plutCharacterized);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.plutCharacterized[0];
+            break;
+
+         case NV_TABLE_TPC_PDADC_OFFSETS:
+            pHddCtx->ftm.targetNVTableSize    = sizeof(nvContents->tables.plutPdadcOffset);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.plutPdadcOffset[0];
+            break;
+
+         case NV_TABLE_RSSI_CHANNEL_OFFSETS:
+            pHddCtx->ftm.targetNVTableSize    = sizeof(nvContents->tables.rssiChanOffsets);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.rssiChanOffsets[0];
+            break;
+
+         case NV_TABLE_RF_CAL_VALUES:
+            pHddCtx->ftm.targetNVTableSize    = sizeof(nvContents->tables.rFCalValues);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.rFCalValues;
+            break;
+
+         case NV_TABLE_ANTENNA_PATH_LOSS:
+            pHddCtx->ftm.targetNVTableSize    = sizeof(nvContents->tables.antennaPathLoss);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.antennaPathLoss[0];
+            break;
+
+         case NV_TABLE_PACKET_TYPE_POWER_LIMITS:
+            pHddCtx->ftm.targetNVTableSize    = sizeof(nvContents->tables.pktTypePwrLimits);
+            pHddCtx->ftm.targetNVTablePointer = (v_U8_t *)&nvContents->tables.pktTypePwrLimits[0][0];
+            break;
+
+         default:
+            VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                       "Not Valid NV Table %d", nvTable->nvTable);
+            return -1;
+            break;
+      }
+
+      /* Set Current Processing NV table type */
+      pHddCtx->ftm.processingNVTable = nvTable->nvTable;
+      if (pHddCtx->ftm.targetNVTableSize != nvTable->tableSize)
+      {
+         VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_FATAL,
+                    "Invalid Table Size %d", nvTable->tableSize);
+         pHddCtx->ftm.processingNVTable    = NV_MAX_TABLE;
+         pHddCtx->ftm.targetNVTableSize    = 0;
+         pHddCtx->ftm.processedNVTableSize = 0;
+         vos_mem_zero(pHddCtx->ftm.tempNVTableBuffer, MAX_NV_TABLE_SIZE);
+         return -1;
+      }
+   }
+
+   if (pHddCtx->ftm.processingNVTable != nvTable->nvTable)
+   {
+      VOS_TRACE( VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                 "Invalid NV Table, now Processing %d, not %d",
+                  pHddCtx->ftm.processingNVTable, nvTable->nvTable);
+      pHddCtx->ftm.processingNVTable    = NV_MAX_TABLE;
+      pHddCtx->ftm.targetNVTableSize    = 0;
+      pHddCtx->ftm.processedNVTableSize = 0;
+      vos_mem_zero(pHddCtx->ftm.tempNVTableBuffer, MAX_NV_TABLE_SIZE);
+      return -1;
+   }
+   vos_mem_copy(pHddCtx->ftm.tempNVTableBuffer + pHddCtx->ftm.processedNVTableSize,
+                &nvTable->tableData, 
+                nvTable->chunkSize);
+
+   pHddCtx->ftm.processedNVTableSize += nvTable->chunkSize;
+   if (pHddCtx->ftm.targetNVTableSize == pHddCtx->ftm.processedNVTableSize)
+   {
+      vos_mem_copy(pHddCtx->ftm.targetNVTablePointer,
+                   pHddCtx->ftm.tempNVTableBuffer,
+                   pHddCtx->ftm.targetNVTableSize);
+      pHddCtx->ftm.processingNVTable    = NV_MAX_TABLE;
+      pHddCtx->ftm.targetNVTableSize    = 0;
+      pHddCtx->ftm.processedNVTableSize = 0;
+      vos_mem_zero(pHddCtx->ftm.tempNVTableBuffer, MAX_NV_TABLE_SIZE);
    }
 
    return 1;
@@ -2256,6 +2357,7 @@ int wlan_hdd_ftm_temp_get_rel_num
   --------------------------------------------------------------------------*/
 int wlan_hdd_process_ftm_host_cmd
 (
+   hdd_context_t *pHddCtx,
    void *ftmCmd
 )
 {
@@ -2266,12 +2368,12 @@ int wlan_hdd_process_ftm_host_cmd
    switch(pFTMCmd->msgId)
    {
       case PTT_MSG_GET_NV_TABLE:
-         hostState = wlan_hdd_ftm_get_nv_table(pFTMCmd);
+         hostState = wlan_hdd_ftm_get_nv_table(pHddCtx, pFTMCmd);
          needToRouteHal = 0;
          break;
 
       case PTT_MSG_SET_NV_TABLE:
-         hostState = wlan_hdd_ftm_set_nv_table(pFTMCmd);
+         hostState = wlan_hdd_ftm_set_nv_table(pHddCtx, pFTMCmd);
          /* Temp NV Operation will be isolated to host
          needToRouteHal = 1; */
          needToRouteHal = 0;
@@ -2505,7 +2607,7 @@ void wlan_hdd_process_ftm_cmd
         pftm_data = pRequestBuf->ftmpkt.pFtmCmd;
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
-        hostState = wlan_hdd_process_ftm_host_cmd(pftm_data);
+        hostState = wlan_hdd_process_ftm_host_cmd(pHddCtx, pftm_data);
         if (0 == hostState)
         {
            tempRspBuffer = (tPttMsgbuffer *)vos_mem_malloc(((tPttMsgbuffer *)pftm_data)->msgBodyLength);

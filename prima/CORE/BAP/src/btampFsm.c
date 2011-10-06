@@ -272,8 +272,7 @@ gotoS1
       return VOS_STATUS_E_RESOURCES;
   }
 
-  conAcceptTOInterval = (btampContext->bapConnectionAcceptTimerInterval *
-                         WLANBAP_BREDR_BASEBAND_SLOT_TIME);
+  conAcceptTOInterval = (btampContext->bapConnectionAcceptTimerInterval * 5)/ 8;
   /* Start the Connection Accept Timer */
   vosStatus = WLANBAP_StartConnectionAcceptTimer ( 
           btampContext, 
@@ -2139,7 +2138,15 @@ btampFsm
            
 	  if(btampContext->BAPDeviceRole == BT_INITIATOR) 
           {
+                if(!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&btampContext->bapLock)))
+                {
+                   VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,"btampFsm, Get LOCK Fail");
+                }
               authRsnFsmFree(btampContext);
+                if(!VOS_IS_STATUS_SUCCESS(vos_lock_release(&btampContext->bapLock)))
+                {
+                   VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,"btampFsm, Release LOCK Fail");
+                }
 	  }
 	  else if(btampContext->BAPDeviceRole == BT_RESPONDER)
 	  {
@@ -2186,7 +2193,16 @@ btampFsm
           VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s gNeedPhysLinkComp TRUE", __FUNCTION__, "DISCONNECTING", "DISCONNECTED");
 	  if(btampContext->BAPDeviceRole == BT_INITIATOR) 
           {
+              if(!VOS_IS_STATUS_SUCCESS(vos_lock_acquire(&btampContext->bapLock)))
+              {
+                  VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,"btampFsm, Get LOCK Fail");
+              }
               authRsnFsmFree(btampContext);
+              if(!VOS_IS_STATUS_SUCCESS(vos_lock_release(&btampContext->bapLock)))
+              {
+                  VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,"btampFsm, Release LOCK Fail");
+              }
+
 	  }
 	  else if(btampContext->BAPDeviceRole == BT_RESPONDER)
 	  {

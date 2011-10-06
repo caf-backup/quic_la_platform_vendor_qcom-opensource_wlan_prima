@@ -332,6 +332,7 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
 {
     tLimScanResultNode   *pBssDescr;
     tANI_U32                  frameLen, ieLen = 0;
+    tANI_U8               rxChannelInBeacon = 0;
 
     /**
      * Compare SSID with the one sent in
@@ -371,12 +372,22 @@ limCheckAndAddBssDescription(tpAniSirGlobal pMac,
      * RX BD channel then don't save the results. It might be a beacon
      * from another channel heard as noise on the current scanning channel
      */
-    if (WDA_GET_RX_CH(pRxPacketInfo) != limGetChannelFromBeacon(pMac, pBPR))
+
+    if (pBPR->dsParamsPresent)
     {
-        limLog(pMac, LOGW, FL("Beacon/Probe Rsp dropped. Channel in BD %d. "
-                              "Channel in beacon" " %d\n"), 
-               WDA_GET_RX_CH(pRxPacketInfo),limGetChannelFromBeacon(pMac, pBPR));
-        return;
+       /* This means that we are in 2.4GHz mode or 5GHz 11n mode */
+       rxChannelInBeacon = limGetChannelFromBeacon(pMac, pBPR);
+       if (rxChannelInBeacon < 15)
+       {
+          /* This means that we are in 2.4GHz mode */
+          if(WDA_GET_RX_CH(pRxPacketInfo) != rxChannelInBeacon)
+          {
+             limLog(pMac, LOGW, FL("Beacon/Probe Rsp dropped. Channel in BD %d. "
+                                   "Channel in beacon" " %d\n"), 
+                    WDA_GET_RX_CH(pRxPacketInfo),limGetChannelFromBeacon(pMac, pBPR));
+             return;
+          }
+       }
     }
 
     /**

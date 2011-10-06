@@ -198,6 +198,20 @@ wpt_status WDTS_RxPacket (void *pContext, wpt_packet *pFrame, WDTS_ChannelType c
     return eWLAN_PAL_STATUS_SUCCESS;
   }
 
+  /* AMSDU frame, but not first sub-frame
+   * No MPDU header, MPDU header offset is 0
+   * Total frame size is actual frame size + MPDU data offset */
+  if((ucMPDUHOffset < WDI_RX_BD_HEADER_SIZE) && (bASF && !bFSF)){
+    ucMPDUHOffset = usMPDUDOffset;
+  }
+
+  if(VPKT_SIZE_BUFFER < (usMPDULen+ucMPDUHOffset)){
+    DTI_TRACE( DTI_TRACE_LEVEL_FATAL,
+               "Invalid Frame size, might memory corrupted");
+    wpalPacketFree(pFrame);
+    return eWLAN_PAL_STATUS_SUCCESS;
+  }
+
   wpalPacketSetRxLength(pFrame, usMPDULen+ucMPDUHOffset);
   wpalPacketRawTrimHead(pFrame, ucMPDUHOffset);
 

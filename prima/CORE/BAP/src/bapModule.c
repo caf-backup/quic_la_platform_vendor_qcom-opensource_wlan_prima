@@ -266,6 +266,12 @@ WLANBAP_Start
           WLANBAP_TxPacketMonitorHandler,
           pBtampCtx);
 
+  vosStatus = vos_lock_init(&pBtampCtx->bapLock);
+  if(!VOS_IS_STATUS_SUCCESS(vosStatus))
+  {
+     VOS_TRACE(VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,"Lock Init Fail");
+  }
+
   return vosStatus;
 }/* WLANBAP_Start */
 
@@ -342,6 +348,7 @@ WLANBAP_Stop
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                "Couldn't destroy  bapTxPktMonitorTimer");
   }
+  vos_lock_destroy(&pBtampCtx->bapLock);
   return VOS_STATUS_SUCCESS;
 }/* WLANBAP_Stop */
 

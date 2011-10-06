@@ -71,6 +71,7 @@
 #define WE_FTM_MAX_STR_LEN 1024
 #define MAX_FTM_VAR_ARGS  7
 
+#define MAX_NV_TABLE_SIZE  30000
 
 typedef enum {
     WLAN_FTM_CMD_START = 1,
@@ -128,6 +129,16 @@ typedef struct wlan_hdd_ftm_status_s
     struct completion ftm_comp_var;
     v_BOOL_t  IsCmdPending;
     v_BOOL_t  cmd_iwpriv;
+
+#ifdef FEATURE_WLAN_INTEGRATED_SOC
+    /** Large size of NV Table Handle **/
+    eNvTable  processingNVTable;
+    v_U32_t   targetNVTableSize;
+    v_U8_t   *targetNVTablePointer;
+    v_U32_t   processedNVTableSize;
+    v_U8_t   *tempNVTableBuffer;
+#endif /* FEATURE_WLAN_INTEGRATED_SOC */
+
 } wlan_hdd_ftm_status_t;
 typedef struct ftm_msg_s
 {

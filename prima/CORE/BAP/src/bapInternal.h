@@ -477,6 +477,9 @@ typedef struct sBtampContext {
     //End of LinkSupervision packet
 #endif //BTAMP_MULTIPLE_PHY_LINKS
     WLANBAP_ConfigType   config;
+    /*multiple data structures getting accessed/written from both north & south
+    bound entities. To avoid multiple access, need a lock*/
+    vos_lock_t           bapLock;
 }*ptBtampContext; 
 //tBtampContext, *ptBtampContext;
 
