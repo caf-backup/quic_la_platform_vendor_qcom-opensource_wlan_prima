@@ -670,6 +670,7 @@ static void hdd_PowerStateChangedCB
           && (pAdapter->hdd_mcastbcast_filter_set != TRUE)) {
       spin_unlock(&pAdapter->filter_lock);
       hdd_conf_mcastbcast_filter(pAdapter, TRUE);
+      halPSAppsCpuWakeupState(vos_get_context(VOS_MODULE_ID_SME, pAdapter->pvosContext), FALSE);
       if(pAdapter->hdd_mcastbcast_filter_set != TRUE)
          hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Not able to set mcast/bcast filter ", __func__);
    }
