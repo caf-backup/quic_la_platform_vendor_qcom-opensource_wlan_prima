@@ -32,6 +32,7 @@ DESCRIPTION
 
 when        who    what, where, why
 --------    ---    ----------------------------------------------------------
+10/05/11    hap     Adding support for Keep Alive
 08/04/10    lti     Created module.
 
 ===========================================================================*/
@@ -83,6 +84,8 @@ when        who    what, where, why
 #define WDI_WOWL_BCAST_PATTERN_MAX_SIZE 128
 
 #define WDI_WOWL_BCAST_MAX_NUM_PATTERNS 8
+
+#define WDI_MAX_SSID_SIZE  32
 
 /* The shared memory between WDI and HAL is 4K so maximum data can be transferred
 from WDI to HAL is 4K.This 4K should also include the Message header so sending 4K
@@ -295,6 +298,14 @@ typedef enum
   /*.P2P_NOA_Attr_Indication */
   WDI_P2P_NOA_ATTR_IND,
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+  /* Preferred Network Found Indication */
+  WDI_PREF_NETWORK_FOUND_IND,
+#endif // FEATURE_WLAN_SCAN_PNO
+
+  /* Tx PER Tracking Indication */
+  WDI_TX_PER_HIT_IND,
+  
   WDI_MAX_IND
 }WDI_LowLevelIndEnumType;
 
@@ -392,6 +403,28 @@ typedef struct
   wpt_uint32  coexIndData[WDI_COEX_IND_DATA_SIZE];
 } WDI_CoexIndType;
 
+/*---------------------------------------------------------------------------
+  WDI_MacSSid
+---------------------------------------------------------------------------*/
+typedef struct 
+{
+    wpt_uint8        ucLength;
+    wpt_uint8        sSSID[WDI_MAX_SSID_SIZE];
+} WDI_MacSSid;
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+/*---------------------------------------------------------------------------
+  WDI_PrefNetworkFoundInd    
+---------------------------------------------------------------------------*/
+typedef struct
+{  
+  /* Network that was found with the highest RSSI*/
+  WDI_MacSSid ssId;
+  /* Indicates the RSSI */
+  wpt_uint8  rssi;
+} WDI_PrefNetworkFoundInd;
+#endif // FEATURE_WLAN_SCAN_PNO
+
 #ifdef WLAN_FEATURE_P2P
 /*---------------------------------------------------------------------------
  *WDI_P2pNoaAttrIndType
@@ -458,6 +491,10 @@ typedef struct
     WDI_P2pNoaAttrIndType        wdiP2pNoaAttrInfo;
 #endif
 
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+    WDI_PrefNetworkFoundInd     wdiPrefNetworkFoundInd;
+#endif // FEATURE_WLAN_SCAN_PNO
   }  wdiIndicationData;
 }WDI_LowLevelIndType;
 
@@ -900,15 +937,6 @@ typedef enum
   WDI_11G_NW_TYPE,
   WDI_11N_NW_TYPE,
 } WDI_NwType;	
-
-/*---------------------------------------------------------------------------
-  WDI_MacSSid
----------------------------------------------------------------------------*/
-typedef struct 
-{
-    wpt_uint8        ucLength;
-    wpt_uint8        sSSID[32];
-} WDI_MacSSid;
 
 /*---------------------------------------------------------------------------
   WDI_ConfigAction
@@ -3059,6 +3087,36 @@ typedef struct
 }WDI_HostOffloadReqParamsType;
 
 /*---------------------------------------------------------------------------
+  WDI_KeepAliveReqType
+  Keep Alive info passed to WDA form UMAC
+---------------------------------------------------------------------------*/
+typedef struct
+{
+    wpt_uint8  ucPacketType;	
+    wpt_uint32 ucTimePeriod;
+    wpt_uint8  aHostIpv4Addr[4]; 
+    wpt_uint8  aDestIpv4Addr[4]; 	
+    wpt_uint8  aDestMacAddr[6];	
+} WDI_KeepAliveReqType;
+
+/*---------------------------------------------------------------------------
+  WDI_KeepAliveReqParamsType
+  Keep Alive passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /* Keep Alive Info Type, same as tHalKeepAliveReq */ 
+   WDI_KeepAliveReqType     wdiKeepAliveInfo; 
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+}WDI_KeepAliveReqParamsType;
+
+/*---------------------------------------------------------------------------
   WDI_WowlAddBcPtrnInfoType
   Wowl add ptrn info passed to WDA form UMAC
 ---------------------------------------------------------------------------*/
@@ -3483,6 +3541,274 @@ typedef struct
   /*Status of the response*/
   WDI_Status   wdiStatus; 
 }WDI_SuspendResumeRspParamsType;
+
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+
+/*Max number of channels for a given network supported by PNO*/
+#define WDI_PNO_MAX_NETW_CHANNELS  26
+
+/*The max number of programable networks for PNO*/
+#define WDI_PNO_MAX_SUPP_NETWORKS  16
+
+/*The max number of scan timers programable in Riva*/
+#define WDI_PNO_MAX_SCAN_TIMERS    10
+
+#define WDI_PNO_MAX_PROBE_SIZE    450
+
+
+/*---------------------------------------------------------------------------
+  WDI_AuthType
+---------------------------------------------------------------------------*/
+typedef enum 
+{
+    WDI_AUTH_TYPE_ANY     = 0, 
+
+    WDI_AUTH_TYPE_NONE,   
+    WDI_AUTH_TYPE_OPEN_SYSTEM,
+    WDI_AUTH_TYPE_SHARED_KEY,
+
+    WDI_AUTH_TYPE_WPA,
+    WDI_AUTH_TYPE_WPA_PSK,
+    WDI_AUTH_TYPE_WPA_NONE,
+
+    WDI_AUTH_TYPE_RSN,
+    WDI_AUTH_TYPE_RSN_PSK,
+    WDI_AUTH_TYPE_FT_RSN,
+    WDI_AUTH_TYPE_FT_RSN_PSK,
+    WDI_AUTH_TYPE_WAPI_WAI_CERTIFICATE,
+    WDI_AUTH_TYPE_WAPI_WAI_PSK,
+    WDI_AUTH_TYPE_MAX = 0xFFFFFFFF /*expanding the type to UINT32*/
+
+}WDI_AuthType;
+
+/*---------------------------------------------------------------------------
+  WDI_EdType
+---------------------------------------------------------------------------*/
+typedef enum
+{
+    WDI_ED_ANY        = 0, 
+    WDI_ED_NONE, 
+    WDI_ED_WEP40,
+    WDI_ED_WEP104,
+    WDI_ED_TKIP,
+    WDI_ED_CCMP,
+    WDI_ED_WPI,
+    WDI_ED_AES_128_CMAC,
+    WDI_ED_MAX = 0xFFFFFFFF /*expanding the type to UINT32*/
+} WDI_EdType;
+
+
+/*---------------------------------------------------------------------------
+  WDI_PNOMode
+---------------------------------------------------------------------------*/
+typedef enum
+{
+  /*Network offload is to start immediately*/
+  WDI_PNO_MODE_IMMEDIATE,
+
+  /*Network offload is to start on host suspend*/
+  WDI_PNO_MODE_ON_SUSPEND,
+
+  /*Network offload is to start on host resume*/
+  WDI_PNO_MODE_ON_RESUME,
+  WDI_PNO_MODE_MAX = 0xFFFFFFFF
+} WDI_PNOMode;
+
+/*---------------------------------------------------------------------------
+  WDI_NetworkType
+---------------------------------------------------------------------------*/
+typedef struct 
+{
+  /*The SSID of the preferred network*/
+  WDI_MacSSid  ssId;
+
+  /*The authentication method of the preferred network*/
+  WDI_AuthType wdiAuth; 
+
+  /*The encryption method of the preferred network*/
+  WDI_EdType   wdiEncryption; 
+
+  /*channel count - 0 for all channels*/
+  wpt_uint8    ucChannelCount;
+
+  /*the actual channels*/
+  wpt_uint8    aChannels[WDI_PNO_MAX_NETW_CHANNELS];
+
+  /*rssi threshold that a network must meet to be considered, 0 - for any*/
+  wpt_uint8    rssiThreshold;
+} WDI_NetworkType; 
+
+
+/*---------------------------------------------------------------------------
+  WDI_ScanTimer
+---------------------------------------------------------------------------*/
+typedef struct 
+{
+  /*The timer value*/
+  wpt_uint32    uTimerValue; 
+
+  /*The amount of time we should be repeating the interval*/
+  wpt_uint32    uTimerRepeat; 
+} WDI_ScanTimer; 
+
+/*---------------------------------------------------------------------------
+  WDI_ScanTimersType
+---------------------------------------------------------------------------*/
+typedef struct
+{
+  /*The number of value pair intervals present in the array*/
+  wpt_uint8      ucScanTimersCount; 
+
+  /*The time-repeat value pairs*/
+  WDI_ScanTimer  aTimerValues[WDI_PNO_MAX_SCAN_TIMERS]; 
+} WDI_ScanTimersType;
+
+/*---------------------------------------------------------------------------
+  WDI_PNOScanReqType
+---------------------------------------------------------------------------*/
+typedef struct 
+{
+  /*Enable or disable PNO feature*/
+  wpt_uint8           bEnable;
+
+  /*PNO mode requested*/
+  WDI_PNOMode         wdiModePNO;
+
+  /*Network count*/
+  wpt_uint8           ucNetworksCount; 
+
+  /*The networks to look for*/
+  WDI_NetworkType     aNetworks[WDI_PNO_MAX_SUPP_NETWORKS];
+
+  /*Scan timer intervals*/
+  WDI_ScanTimersType  scanTimers; 
+
+  /*Probe template for 2.4GHz band*/
+  wpt_uint16          us24GProbeSize; 
+  wpt_uint8           a24GProbeTemplate[WDI_PNO_MAX_PROBE_SIZE];
+
+  /*Probe template for 5GHz band*/
+  wpt_uint16          us5GProbeSize; 
+  wpt_uint8           a5GProbeTemplate[WDI_PNO_MAX_PROBE_SIZE];
+} WDI_PNOScanReqType;
+
+/*---------------------------------------------------------------------------
+  WDI_PNOScanReqParamsType
+  PNO info passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /* PNO Info Type, same as tPrefNetwListParams */ 
+   WDI_PNOScanReqType        wdiPNOScanInfo; 
+   /* Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /* The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+} WDI_PNOScanReqParamsType;
+
+
+/*---------------------------------------------------------------------------
+  WDI_PNOScanReqParamsType
+  PNO info passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /* RSSI Threshold */ 
+   wpt_uint8                  rssiThreshold; 
+   /* Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /* The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+} WDI_SetRssiFilterReqParamsType;
+
+/*---------------------------------------------------------------------------
+  WDI_UpdateScanParamsInfo
+---------------------------------------------------------------------------*/
+typedef struct 
+{
+  /*Is 11d enabled*/
+  wpt_uint8    b11dEnabled; 
+
+  /*Was UMAc able to find the regulatory domain*/
+  wpt_uint8    b11dResolved;
+
+  /*Number of channel allowed in the regulatory domain*/
+  wpt_uint8    ucChannelCount; 
+
+  /*The actual channels allowed in the regulatory domain*/
+  wpt_uint8    aChannels[WDI_PNO_MAX_NETW_CHANNELS]; 
+
+  /*Passive min channel time*/
+  wpt_uint16   usPassiveMinChTime; 
+
+  /*Passive max channel time*/
+  wpt_uint16   usPassiveMaxChTime; 
+
+  /*Active min channel time*/
+  wpt_uint16   usActiveMinChTime; 
+
+  /*Active max channel time*/
+  wpt_uint16   usActiveMaxChTime; 
+
+  /*channel bonding info*/
+  wpt_uint8    cbState; 
+} WDI_UpdateScanParamsInfo;
+
+/*---------------------------------------------------------------------------
+  WDI_UpdateScanParamsInfoType
+  UpdateScanParams info passed to WDI form WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /* PNO Info Type, same as tUpdateScanParams */ 
+   WDI_UpdateScanParamsInfo   wdiUpdateScanParamsInfo; 
+   /* Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /* The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+} WDI_UpdateScanParamsInfoType;
+
+#endif // FEATURE_WLAN_SCAN_PNO
+
+/*---------------------------------------------------------------------------
+  WDI_SetTxPerTrackingConfType
+  Wowl add ptrn info passed to WDA form UMAC
+---------------------------------------------------------------------------*/
+typedef struct
+{
+   wpt_uint8  ucTxPerTrackingEnable;     /* 0: disable, 1:enable */
+   wpt_uint8  ucTxPerTrackingPeriod;        /* Check period, unit is sec. */
+   wpt_uint8  ucTxPerTrackingRatio;      /* (Fail TX packet)/(Total TX packet) ratio, the unit is 10%. */
+   wpt_uint32 uTxPerTrackingWatermark;         /* A watermark of check number, once the tx packet exceed this number, we do the check, default is 5 */
+} WDI_TxPerTrackingParamType;
+
+/*---------------------------------------------------------------------------
+  WDI_SetTxPerTrackingReqParamsType
+  Tx PER Tracking parameters passed to WDI from WDA
+---------------------------------------------------------------------------*/
+typedef struct 
+{ 
+   /* Configurations for Tx PER Tracking */ 
+   WDI_TxPerTrackingParamType     wdiTxPerTrackingParam;
+   /*Request status callback offered by UMAC - it is called if the current req
+   has returned PENDING as status; it delivers the status of sending the message
+   over the BUS */ 
+   WDI_ReqStatusCb            wdiReqStatusCB; 
+   /*The user data passed in by UMAC, it will be sent back when the above
+   function pointer will be called */ 
+   void*                      pUserData; 
+}WDI_SetTxPerTrackingReqParamsType;
+
 /*----------------------------------------------------------------------------
  *   WDI callback types
  *--------------------------------------------------------------------------*/
@@ -4516,6 +4842,28 @@ typedef void  (*WDI_HostOffloadCb)(WDI_Status   wdiStatus,
                                    void*        pUserData);
 
 /*---------------------------------------------------------------------------
+   WDI_KeepAliveCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Keep Alive
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_KeepAliveCb)(WDI_Status   wdiStatus,
+                                   void*        pUserData);
+
+/*---------------------------------------------------------------------------
    WDI_WowlAddBcPtrnCb
  
    DESCRIPTION   
@@ -4834,6 +5182,96 @@ WDI_DelSTASelfRspParamsType*     wdiDelStaSelfRspParams,
 void*        pUserData
 );
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+/*---------------------------------------------------------------------------
+   WDI_PNOScanCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Set PNO
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_PNOScanCb)(WDI_Status  wdiStatus,
+                                void*       pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_PNOScanCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Set PNO
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_RssiFilterCb)(WDI_Status  wdiStatus,
+                                void*       pUserData);
+
+/*---------------------------------------------------------------------------
+   WDI_UpdateScanParamsCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Update Scan Params
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_UpdateScanParamsCb)(WDI_Status  wdiStatus,
+                                        void*       pUserData);
+#endif // FEATURE_WLAN_SCAN_PNO
+
+/*---------------------------------------------------------------------------
+   WDI_SetTxPerTrackingRspCb
+ 
+   DESCRIPTION   
+ 
+   This callback is invoked by DAL when it has received a Tx PER Tracking
+   response from the underlying device.
+ 
+   PARAMETERS 
+
+    IN
+    wdiStatus:  response status received from HAL
+    pUserData:  user data  
+
+    
+  
+  RETURN VALUE 
+    The result code associated with performing the operation
+---------------------------------------------------------------------------*/
+typedef void  (*WDI_SetTxPerTrackingRspCb)(WDI_Status   wdiStatus,
+                                           void*        pUserData);
+									 
 /*========================================================================
  *     Function Declarations and Documentation
  ==========================================================================*/
@@ -6282,6 +6720,40 @@ WDI_HostOffloadReq
 );
 
 /**
+ @brief WDI_KeepAliveReq will be called when the upper MAC 
+        wants to set the filter to send NULL or unsolicited ARP responses 
+        and minimize unnecessary host wakeups due to while in power save.
+        Upon the call of this API the WLAN DAL will pack and
+        send a HAL Keep Alive request message to the
+        lower RIVA sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ WDI_PostAssocReq must have been called.
+
+ @param pwdiKeepAliveParams: the Keep Alive as specified 
+                      by the Device Interface
+  
+        wdiKeepAliveCb: callback for passing back the response
+        of the Keep Alive operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_KeepAliveReq
+(
+  WDI_KeepAliveReqParamsType*        pwdiKeepAliveParams,
+  WDI_KeepAliveCb                    wdiKeepAliveCb,
+  void*                              pUserData
+);
+
+/**
  @brief WDI_WowlAddBcPtrnReq will be called when the upper MAC 
         wants to set the Wowl Bcast ptrn to minimize unnecessary
         host wakeup due to broadcast traffic while in power
@@ -6995,6 +7467,110 @@ WDI_Status
 WDI_HostSuspendInd
 (
   WDI_SuspendParamsType*    pwdiSuspendIndParams
+);
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+/**
+ @brief WDI_SetPreferredNetworkList
+
+ @param pwdiPNOScanReqParams: the Set PNO as specified 
+                      by the Device Interface
+  
+        wdiPNOScanCb: callback for passing back the response
+        of the Set PNO operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_SetPreferredNetworkReq
+(
+  WDI_PNOScanReqParamsType* pwdiPNOScanReqParams,
+  WDI_PNOScanCb             wdiPNOScanCb,
+  void*                      pUserData
+);
+
+/**
+ @brief WDI_SetRssiFilterReq
+
+ @param pwdiRssiFilterReqParams: the Set RSSI Filter as 
+                      specified by the Device Interface
+  
+        wdiRssiFilterCb: callback for passing back the response
+        of the Set RSSI Filter operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_SetRssiFilterReq
+(
+  WDI_SetRssiFilterReqParamsType* pwdiRssiFilterReqParams,
+  WDI_RssiFilterCb                wdiRssiFilterCb,
+  void*                           pUserData
+);
+
+/**
+ @brief WDI_UpdateScanParams
+
+ @param pwdiUpdateScanParamsInfoType: the Update Scan Params as specified 
+                      by the Device Interface
+  
+        wdiUpdateScanParamsCb: callback for passing back the response
+        of the Set PNO operation received from the
+        device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @see WDI_PostAssocReq
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_UpdateScanParamsReq
+(
+  WDI_UpdateScanParamsInfoType* pwdiUpdateScanParamsInfoType,
+  WDI_UpdateScanParamsCb        wdiUpdateScanParamsCb,
+  void*                         pUserData
+);
+#endif // FEATURE_WLAN_SCAN_PNO
+
+/**
+ @brief WDI_SetTxPerTrackingReq will be called when the upper MAC 
+        wants to set the Tx Per Tracking configurations. 
+		Upon the call of this API the WLAN DAL will pack
+        and send a HAL Set Tx Per Tracking request message to the
+        lower RIVA sub-system if DAL is in state STARTED.
+
+        In state BUSY this request will be queued. Request won't
+        be allowed in any other state. 
+
+ @param wdiSetTxPerTrackingConf: the Set Tx PER Tracking configurations as 
+                      specified by the Device Interface
+  
+        wdiSetTxPerTrackingCb: callback for passing back the
+        response of the set Tx PER Tracking configurations operation received
+        from the device
+  
+        pUserData: user data will be passed back with the
+        callback 
+  
+ @return Result of the function call
+*/
+WDI_Status 
+WDI_SetTxPerTrackingReq
+(
+  WDI_SetTxPerTrackingReqParamsType*      pwdiSetTxPerTrackingReqParams,
+  WDI_SetTxPerTrackingRspCb               pwdiSetTxPerTrackingRspCb,
+  void*                                   pUserData
 );
 
 #ifdef __cplusplus

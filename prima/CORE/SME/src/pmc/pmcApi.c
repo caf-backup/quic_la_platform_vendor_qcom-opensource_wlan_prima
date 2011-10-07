@@ -2380,6 +2380,51 @@ eHalStatus pmcSetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest)
     return eHAL_STATUS_SUCCESS;
 }
 
+/* ---------------------------------------------------------------------------
+    \fn pmcSetKeepAlive
+    \brief  Set the Keep Alive feature.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRequest - Pointer to the Keep Alive.
+    \return eHalStatus
+            eHAL_STATUS_FAILURE  Cannot set the keepalive.
+            eHAL_STATUS_SUCCESS  Request accepted. 
+  ---------------------------------------------------------------------------*/
+eHalStatus pmcSetKeepAlive (tHalHandle hHal, tpSirKeepAliveReq pRequest)
+{
+    tpSirKeepAliveReq pRequestBuf;
+    vos_msg_t msg;
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_LOW, "%s: "
+                  "WDA_SET_KEEP_ALIVE message", __FUNCTION__);
+
+    pRequestBuf = vos_mem_malloc(sizeof(tSirKeepAliveReq));
+    if (NULL == pRequestBuf)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
+                  "Not able to allocate memory for keep alive request",
+                  __FUNCTION__);
+        return eHAL_STATUS_FAILED_ALLOC;
+    }
+    vos_mem_copy(pRequestBuf, pRequest, sizeof(tSirKeepAliveReq));
+    
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO_LOW, "buff TP %d"
+              "input TP %d ", pRequestBuf->timePeriod, pRequest->timePeriod);
+
+    msg.type = WDA_SET_KEEP_ALIVE;
+    msg.reserved = 0;
+    msg.bodyptr = pRequestBuf;
+    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
+                  "Not able to post WDA_SET_KEEP_ALIVE message to WDA",
+                  __FUNCTION__);
+        vos_mem_free(pRequestBuf);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
+}
+
 
 void pmcClosePowerSaveCheckList(tpAniSirGlobal pMac)
 {
@@ -2507,3 +2552,260 @@ void pmcCloseDeferredMsgList(tpAniSirGlobal pMac)
 }
 
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+
+static tSirRetStatus 
+pmcPopulateMacHeader( tpAniSirGlobal pMac,
+                      tANI_U8* pBD,
+                      tANI_U8 type,
+                      tANI_U8 subType,
+                      tSirMacAddr peerAddr ,
+                      tSirMacAddr selfMacAddr)
+{
+    tSirRetStatus   statusCode = eSIR_SUCCESS;
+    tpSirMacMgmtHdr pMacHdr;
+    
+    /// Prepare MAC management header
+    pMacHdr = (tpSirMacMgmtHdr) (pBD);
+
+    // Prepare FC
+    pMacHdr->fc.protVer = SIR_MAC_PROTOCOL_VERSION;
+    pMacHdr->fc.type    = type;
+    pMacHdr->fc.subType = subType;
+
+    // Prepare Address 1
+    palCopyMemory( pMac->hHdd,
+                   (tANI_U8 *) pMacHdr->da,
+                   (tANI_U8 *) peerAddr,
+                   sizeof( tSirMacAddr ));
+
+    sirCopyMacAddr(pMacHdr->sa,selfMacAddr);
+
+    // Prepare Address 3
+    palCopyMemory( pMac->hHdd,
+                   (tANI_U8 *) pMacHdr->bssId,
+                   (tANI_U8 *) peerAddr,
+                   sizeof( tSirMacAddr ));
+    return statusCode;
+} /*** pmcPopulateMacHeader() ***/
+
+
+static tSirRetStatus
+pmcPrepareProbeReqTemplate(tpAniSirGlobal pMac,
+                           tANI_U8        nChannelNum,
+                           tANI_U32       dot11mode,
+                           tSirMacAddr    selfMacAddr,
+                           tANI_U8        *pFrame,
+                           tANI_U16       *pusLen)
+{
+    tDot11fProbeRequest pr;
+    tANI_U32            nStatus, nBytes, nPayload;
+    tSirRetStatus       nSirStatus;
+    /*Bcast tx*/
+    tSirMacAddr         bssId = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+    /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+    // The scheme here is to fill out a 'tDot11fProbeRequest' structure
+    // and then hand it off to 'dot11fPackProbeRequest' (for
+    // serialization).  We start by zero-initializing the structure:
+    palZeroMemory( pMac->hHdd, ( tANI_U8* )&pr, sizeof( pr ) );
+
+    PopulateDot11fSuppRates( pMac, nChannelNum, &pr.SuppRates,NULL);
+
+    if ( WNI_CFG_DOT11_MODE_11B != dot11mode )
+    {
+        PopulateDot11fExtSuppRates1( pMac, nChannelNum, &pr.ExtSuppRates );
+    }
+
+    
+    if (IS_DOT11_MODE_HT(dot11mode))
+    {
+       PopulateDot11fHTCaps( pMac, &pr.HTCaps );
+    }
+    
+    // That's it-- now we pack it.  First, how much space are we going to
+    // need?
+    nStatus = dot11fGetPackedProbeRequestSize( pMac, &pr, &nPayload );
+    if ( DOT11F_FAILED( nStatus ) )
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "Failed to calculate the packed size f"
+                  "or a Probe Request (0x%08x).\n", nStatus );
+
+        // We'll fall back on the worst case scenario:
+        nPayload = sizeof( tDot11fProbeRequest );
+    }
+    else if ( DOT11F_WARNED( nStatus ) )
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "There were warnings while calculating"
+                  "the packed size for a Probe Request ("
+                  "0x%08x).\n", nStatus );
+    }
+
+    nBytes = nPayload + sizeof( tSirMacMgmtHdr );
+  
+    /* Prepare outgoing frame*/
+    palZeroMemory( pMac->hHdd, pFrame, nBytes );
+
+    // Next, we fill out the buffer descriptor:
+    nSirStatus = pmcPopulateMacHeader( pMac, pFrame, SIR_MAC_MGMT_FRAME,
+                                SIR_MAC_MGMT_PROBE_REQ, bssId ,selfMacAddr);
+
+    if ( eSIR_SUCCESS != nSirStatus )
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+        "Failed to populate the buffer descriptor for a Probe Request (%d).\n",
+                nSirStatus );
+        return nSirStatus;      // allocated!
+    }
+
+    // That done, pack the Probe Request:
+    nStatus = dot11fPackProbeRequest( pMac, &pr, pFrame +
+                                      sizeof( tSirMacMgmtHdr ),
+                                      nPayload, &nPayload );
+    if ( DOT11F_FAILED( nStatus ) )
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR,
+                  "Failed to pack a Probe Request (0x%08x).\n", nStatus );
+        return eSIR_FAILURE;    // allocated!
+    }
+    else if ( DOT11F_WARNED( nStatus ) )
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, 
+            "There were warnings while packing a Probe Request (0x%08x).\n" );
+    }
+
+    *pusLen = nPayload; 
+    return eSIR_SUCCESS;
+} // End pmcPrepareProbeReqTemplate.
+
+
+eHalStatus pmcSetPreferredNetworkList
+(
+    tHalHandle hHal, 
+    tpSirPNOScanReq pRequest, 
+    tANI_U8 sessionId, 
+    preferredNetworkFoundIndCallback callbackRoutine, 
+    void *callbackContext
+)
+{
+    tpSirPNOScanReq pRequestBuf;
+    vos_msg_t msg;
+    tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+    tCsrRoamSession *pSession = CSR_GET_SESSION( pMac, sessionId );
+
+
+    VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, "%s: SSID = %s, %s", __FUNCTION__,
+        pRequest->aNetworks[0].ssId.ssId, pRequest->aNetworks[1].ssId.ssId);
+
+    pRequestBuf = vos_mem_malloc(sizeof(tpSirPNOScanReq));
+    if (NULL == pRequestBuf)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to allocate memory for PNO request", __FUNCTION__);
+        return eHAL_STATUS_FAILED_ALLOC;
+    }
+
+    /*Prepare a probe request for 2.4GHz band and one for 5GHz band*/
+    pmcPrepareProbeReqTemplate(pMac,SIR_PNO_24G_DEFAULT_CH, pMac->roam.configParam.uCfgDot11Mode, pSession->selfMacAddr, 
+                               pRequestBuf->p24GProbeTemplate, &pRequestBuf->us24GProbeTemplateLen); 
+
+    pmcPrepareProbeReqTemplate(pMac,SIR_PNO_5G_DEFAULT_CH,pMac->roam.configParam.uCfgDot11Mode, pSession->selfMacAddr, 
+                               pRequestBuf->p5GProbeTemplate, &pRequestBuf->us5GProbeTemplateLen); 
+
+
+    vos_mem_copy(pRequestBuf, pRequest, sizeof(tpSirPNOScanReq));
+
+    msg.type = WDA_SET_PNO_REQ;
+    msg.reserved = 0;
+    msg.bodyptr = pRequestBuf;
+    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_SET_PNO_REQ message to WDA", __FUNCTION__);
+        vos_mem_free(pRequestBuf);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    /* Cache the Preferred Network Found Indication callback information */
+    pMac->pmc.prefNetwFoundCB = callbackRoutine;
+    pMac->pmc.preferredNetworkFoundIndCallbackContext = callbackContext;
+
+    return eHAL_STATUS_SUCCESS;
+}
+
+eHalStatus pmcSetRssiFilter(tHalHandle hHal,   v_U8_t        rssiThreshold)
+{
+    tpSirSetRSSIFilterReq pRequestBuf;
+    vos_msg_t msg;
+
+
+    pRequestBuf = vos_mem_malloc(sizeof(tpSirSetRSSIFilterReq));
+    if (NULL == pRequestBuf)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to allocate memory for PNO request", __FUNCTION__);
+        return eHAL_STATUS_FAILED_ALLOC;
+    }
+
+
+    pRequestBuf->rssiThreshold = rssiThreshold; 
+
+    msg.type = WDA_SET_RSSI_FILTER_REQ;
+    msg.reserved = 0;
+    msg.bodyptr = pRequestBuf;
+    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_SET_PNO_REQ message to WDA", __FUNCTION__);
+        vos_mem_free(pRequestBuf);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
+}
+
+
+eHalStatus pmcUpdateScanParams(tHalHandle hHal, tCsrConfig *pRequest, tCsrChannel *pChannelList, tANI_U8 b11dResolved)
+{
+    tpSirUpdateScanParams pRequestBuf;
+    vos_msg_t msg;
+    int i;
+
+    VOS_TRACE( VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_INFO, "%s started", __FUNCTION__);
+
+    pRequestBuf = vos_mem_malloc(sizeof(tSirUpdateScanParams));
+    if (NULL == pRequestBuf)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to allocate memory for UpdateScanParams request", __FUNCTION__);
+        return eHAL_STATUS_FAILED_ALLOC;
+    }
+
+    // 
+    // Fill pRequestBuf structure from pRequest
+    //
+    pRequestBuf->b11dEnabled    = pRequest->Is11eSupportEnabled;
+    pRequestBuf->b11dResolved   = b11dResolved;
+    pRequestBuf->ucChannelCount = 
+        ( pChannelList->numChannels < SIR_PNO_MAX_NETW_CHANNELS )?
+        pChannelList->numChannels:SIR_PNO_MAX_NETW_CHANNELS;
+
+    for (i=0; i < pChannelList->numChannels; i++)
+    {    
+        pRequestBuf->aChannels[i] = pChannelList->channelList[i];
+    }
+    pRequestBuf->usPassiveMinChTime = pRequest->nPassiveMinChnTime;
+    pRequestBuf->usPassiveMaxChTime = pRequest->nPassiveMaxChnTime;
+    pRequestBuf->usActiveMinChTime  = pRequest->nActiveMinChnTime;
+    pRequestBuf->usActiveMaxChTime  = pRequest->nActiveMaxChnTime; 
+
+    msg.type = WDA_UPDATE_SCAN_PARAMS_REQ;
+    msg.reserved = 0;
+    msg.bodyptr = pRequestBuf;
+    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_UPDATE_SCAN_PARAMS message to WDA", __FUNCTION__);
+        vos_mem_free(pRequestBuf);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
+}
+#endif // FEATURE_WLAN_SCAN_PNO

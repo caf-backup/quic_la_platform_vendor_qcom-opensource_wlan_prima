@@ -134,7 +134,7 @@ typedef enum {
     eCSR_SCAN_HO_PROBE_SCAN, // directed probe on an entry from the candidate list
     eCSR_SCAN_HO_NT_BG_SCAN, // bg scan request in NT  sub-state
     eCSR_SCAN_P2P_DISCOVERY,
-
+    eCSR_SCAN_SOFTAP_CHANNEL_RANGE,
 }eCsrRequestType;
 
 typedef enum {

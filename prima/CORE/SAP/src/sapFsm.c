@@ -42,7 +42,10 @@
 #include "sme_Api.h"
 // Pick up the PMC API definitions
 #include "pmcApi.h"
+#include "wlan_nv.h"
 
+extern sRegulatoryChannel *regChannels;
+extern const tRfChannelProps rfChannels[NUM_RF_CHANNELS];
 /*----------------------------------------------------------------------------
  * Preprocessor Definitions and Constants
  * -------------------------------------------------------------------------*/
@@ -66,7 +69,10 @@
 /*----------------------------------------------------------------------------
  * Static Function Declarations and Definitions
  * -------------------------------------------------------------------------*/
-
+ #ifdef SOFTAP_CHANNEL_RANGE
+static VOS_STATUS sapGetChannelList(ptSapContext sapContext,v_U8_t **channelList,v_U8_t 
+*numberOfChannels);
+ #endif
 /*----------------------------------------------------------------------------
  * Externalized Function Definitions
 * -------------------------------------------------------------------------*/
@@ -135,9 +141,13 @@ sapGotoChannelSel
     /* Initiate a SCAN request */
     eSapStatus sapStatus = eSAP_STATUS_SUCCESS;
     tCsrScanRequest scanRequest;/* To be initialised if scan is required */
-
-    v_U32_t scanRequestID = 0;
+    v_U32_t    scanRequestID = 0;
     VOS_STATUS vosStatus = VOS_STATUS_SUCCESS;
+
+#ifdef SOFTAP_CHANNEL_RANGE
+    v_U8_t     *channelList = NULL;
+    v_U8_t     numOfChannels = 0 ;
+#endif
 
     if (sapContext->channel == AUTO_CHANNEL_SELECT) 
     {
@@ -152,14 +162,29 @@ sapGotoChannelSel
 
         /* Set BSSType to default type */
         scanRequest.BSSType = eCSR_BSS_TYPE_ANY;
-
+        
+#ifndef SOFTAP_CHANNEL_RANGE        
         /*Scan all the channels */
         scanRequest.ChannelInfo.numOfChannels = 0;
 
         scanRequest.ChannelInfo.ChannelList = NULL;
 
-        /* Set requestType to Full scan */
         scanRequest.requestType = eCSR_SCAN_REQUEST_FULL_SCAN;//eCSR_SCAN_REQUEST_11D_SCAN;
+
+#else
+
+        sapGetChannelList(sapContext,&channelList,&numOfChannels);
+
+        /*Scan the channels in the list*/
+        scanRequest.ChannelInfo.numOfChannels = numOfChannels;
+        
+        scanRequest.ChannelInfo.ChannelList = channelList;
+
+        scanRequest.requestType = eCSR_SCAN_SOFTAP_CHANNEL_RANGE;
+
+        sapContext->channelList = channelList;
+#endif
+        /* Set requestType to Full scan */
 
         VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, calling sme_ScanRequest", __FUNCTION__);
 
@@ -660,7 +685,6 @@ sapFsm
                  sapContext->csrRoamProfile.ChannelInfo.numOfChannels = 1;
                  sapContext->csrRoamProfile.ChannelInfo.ChannelList = &sapContext->csrRoamProfile.operationChannel;
                  sapContext->csrRoamProfile.operationChannel = (tANI_U8)sapContext->channel;
-
                  vosStatus = sapGotoStarting( sapContext, sapEvent, eCSR_BSS_TYPE_INFRA_AP);
                  /* Transition from eSAP_CH_SELECT to eSAP_STARTING (both without substates) */
                  VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s",
@@ -961,3 +985,72 @@ sapIsPeerMacAllowed(ptSapContext sapContext, v_U8_t *peerMac)
 
     return VOS_STATUS_SUCCESS;
 }
+
+#ifdef SOFTAP_CHANNEL_RANGE
+static VOS_STATUS sapGetChannelList(ptSapContext sapContext,v_U8_t **channelList,v_U8_t *numberOfChannels)
+{
+    v_U32_t startChannelNum;
+    v_U32_t endChannelNum;
+    v_U32_t operatingBand;
+    v_U8_t i;
+    v_U8_t *list;
+    v_U8_t channelCount=0;
+    tHalHandle hHal = VOS_GET_HAL_CB(sapContext->pvosGCtx);
+
+    if (NULL == hHal)
+    {
+        VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_ERROR,
+             "Invalid HAL pointer from pvosGCtx on sapGetChannelList");
+        return VOS_STATUS_E_FAULT;
+    }
+    
+    ccmCfgGetInt(hHal,WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL,&startChannelNum);
+    ccmCfgGetInt(hHal,WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL,&endChannelNum);
+    ccmCfgGetInt(hHal,WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND,&operatingBand);
+    
+    if(operatingBand == RF_BAND_2_4_GHZ)
+    {
+        /*allocating the maximum channels in 2.4GHZ band*/
+        list = (v_U8_t *)vos_mem_malloc(NUM_2_4GHZ_CHANNELS);
+       
+        for( i = startChannelNum; i <= endChannelNum; i++ )
+        {
+            if( regChannels[i].enabled )
+            {
+               list[channelCount] = i;
+               channelCount++;
+            }
+        }
+    }
+    else
+    if(operatingBand == RF_BAND_5_GHZ)
+    {   
+        /*allocating the maximum channels in 5 GHZ band*/
+        list = (v_U8_t *)vos_mem_malloc(NUM_5GHZ_CHANNELS);
+ 
+        for( i = RF_CHAN_36; i <= RF_CHAN_165; i++ )
+        {
+            if((startChannelNum <= rfChannels[i].channelNum)&&( endChannelNum >= rfChannels[i].channelNum ))
+            {
+                if( regChannels[i].enabled )
+                {
+                    list[channelCount] = rfChannels[i].channelNum;
+                    channelCount++;
+                 }
+            }
+        }
+    }
+    /* return the channel numbers and number of channels to scan*/
+    *numberOfChannels = channelCount;
+    if(channelCount != 0)
+    {         
+       *channelList = list;
+    }
+    else
+    {
+       *channelList = NULL;
+        vos_mem_free(list);
+    }
+    return VOS_STATUS_SUCCESS;
+}
+#endif

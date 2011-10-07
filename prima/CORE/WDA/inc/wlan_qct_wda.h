@@ -35,6 +35,7 @@ DESCRIPTION
 
 when        who          what, where, why
 --------    ---         ----------------------------------------------
+10/05/2011  haparna     Adding support for Keep Alive Feature
 01/27/2011  rnair       Adding WDA support for Volans.
 12/08/2010  seokyoun    Move down HAL interfaces from TL to WDA
                         for UMAC convergence btween Volans/Libra and Prima
@@ -1047,6 +1048,7 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_GET_TX_POWER_RSP                    SIR_HAL_GET_TX_POWER_RSP
 #define WDA_GET_NOISE_REQ                       SIR_HAL_GET_NOISE_REQ 
 #define WDA_GET_NOISE_RSP                       SIR_HAL_GET_NOISE_RSP
+#define WDA_SET_TX_PER_TRACKING_REQ    SIR_HAL_SET_TX_PER_TRACKING_REQ
 
 /* Messages to support transmit_halt and transmit_resume */
 #define WDA_TRANSMISSION_CONTROL_IND            SIR_HAL_TRANSMISSION_CONTROL_IND
@@ -1101,6 +1103,10 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 /// PE <-> HAL Host Offload message
 #define WDA_SET_HOST_OFFLOAD           SIR_HAL_SET_HOST_OFFLOAD
+
+/// PE <-> HAL Keep Alive message
+#define WDA_SET_KEEP_ALIVE             SIR_HAL_SET_KEEP_ALIVE
+
 #define WDA_ADD_STA_SELF_REQ           SIR_HAL_ADD_STA_SELF_REQ
 #define WDA_DEL_STA_SELF_REQ           SIR_HAL_DEL_STA_SELF_REQ
 
@@ -1131,6 +1137,16 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 #define WDA_FTM_CMD_REQ        SIR_PTT_MSG_TYPES_BEGIN
 #define WDA_FTM_CMD_RSP        SIR_PTT_MSG_TYPES_END
 #endif /* ANI_MANF_DIAG */
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+/*Requests sent to lower driver*/
+#define WDA_SET_PNO_REQ             SIR_HAL_SET_PNO_REQ
+#define WDA_SET_RSSI_FILTER_REQ     SIR_HAL_SET_RSSI_FILTER_REQ
+#define WDA_UPDATE_SCAN_PARAMS_REQ  SIR_HAL_UPDATE_SCAN_PARAMS
+
+/*Indication comming from lower driver*/
+#define WDA_SET_PNO_CHANGED_IND     SIR_HAL_SET_PNO_CHANGED_IND
+#endif // FEATURE_WLAN_SCAN_PNO
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);

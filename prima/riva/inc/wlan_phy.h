@@ -862,8 +862,8 @@ typedef enum
 #define TPC_INDEX_LOW_POWER     1
 #define MIN_TPC_GAIN_INDEX                      1   //Index 0 used for Wifi Direct
 #define TPC_GAIN_LUT_PWR_SLOPE                  2
-#define MAX_TPC_GAIN_LUT_DBM    (24)
-#define MIN_TPC_GAIN_LUT_DBM    (9)
+#define MAX_TPC_GAIN_LUT_DBM    (22)
+#define MIN_TPC_GAIN_LUT_DBM    (6)
 
 #define MAX_TPC_GAIN_LUT_DBM_2DEC_PLACES    (MAX_TPC_GAIN_LUT_DBM * 100)
 #define MIN_TPC_GAIN_LUT_DBM_2DEC_PLACES    (MIN_TPC_GAIN_LUT_DBM * 100)

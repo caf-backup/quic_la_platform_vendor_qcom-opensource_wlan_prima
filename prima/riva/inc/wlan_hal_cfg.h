@@ -100,10 +100,11 @@
 #define QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL     71
 #define QCOM_WLAN_CFG_MAX_TX_POWER_2_4                   72
 #define QCOM_WLAN_CFG_MAX_TX_POWER_5                     73
-#define QWLAN_HAL_CFG_MAX_PARAMS                         74
+#define QWLAN_HAL_CFG_INFRA_STA_KEEP_ALIVE_PERIOD        74
+#define QWLAN_HAL_CFG_MAX_PARAMS                         75
 
 /* Total number of Integer CFGs. This is used while allocating the memory for TLV */
-#define QWLAN_HAL_CFG_INTEGER_PARAM                      70
+#define QWLAN_HAL_CFG_INTEGER_PARAM                      71
 
 /*-------------------------------------------------------------------------
   Configuration Parameter min, max, defaults
@@ -547,6 +548,11 @@
 /* byte[0] = 0x24 = 36 = First Channel; byte[1] =  0x7E = 126 = MaxChannels; byte[2] = 0x0E = 14 = Tx Power (dBm) */
 #define QCOM_WLAN_CFG_MAX_TX_POWER_5_DEFAULT  "247E0E"
 
+
+#define QWLAN_HAL_CFG_INFRA_STA_KEEP_ALIVE_PERIOD_STAMIN    0
+#define QWLAN_HAL_CFG_INFRA_STA_KEEP_ALIVE_PERIOD_STAMAX    65535
+#define QWLAN_HAL_CFG_INFRA_STA_KEEP_ALIVE_PERIOD_STADEF    0
+
 typedef struct 
 {
    uint8    cfgStaId[QCOM_WLAN_CFG_STA_ID_LEN]; //QWLAN_HAL_CFG_STA_ID
@@ -624,6 +630,7 @@ typedef struct
    uint32   cfgTxPower5040;                   //QWLAN_HAL_CFG_TX_POWER_50_40
    uint8    cfgMaxTxPower24[QCOM_WLAN_CFG_MAX_TX_POWER_2_4_LEN]; //QCOM_WLAN_CFG_MAX_TX_POWER_2_4
    uint8    cfgMaxTxPower5[QCOM_WLAN_CFG_MAX_TX_POWER_5_LEN];    //QCOM_WLAN_CFG_MAX_TX_POWER_5
+   uint32   cfgInfraStaKeepAlivePeriod;       //QWLAN_HAL_CFG_INFRA_STA_KEEP_ALIVE_PERIOD
 }tAniHalCfg, *tpAniHalCfg;
 
 #endif //__WLAN_HAL_CFG_H__

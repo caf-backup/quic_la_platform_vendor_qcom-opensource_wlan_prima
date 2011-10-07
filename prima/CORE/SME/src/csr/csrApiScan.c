@@ -493,7 +493,11 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tCsrScanRequest *pScanRequest, tA
                     pScanCmd->u.scanCmd.reason = eCsrScan11d1;
                 }
                 else if((eCSR_SCAN_REQUEST_FULL_SCAN == pScanRequest->requestType) ||
-                        (eCSR_SCAN_P2P_DISCOVERY == pScanRequest->requestType))
+                        (eCSR_SCAN_P2P_DISCOVERY == pScanRequest->requestType)
+#ifdef SOFTAP_CHANNEL_RANGE
+                        ||(eCSR_SCAN_SOFTAP_CHANNEL_RANGE == pScanRequest->requestType)
+#endif
+                 )
                 {
                     pScanCmd->u.scanCmd.reason = eCsrScanUserRequest;
                 }
@@ -535,7 +539,11 @@ eHalStatus csrScanRequest(tpAniSirGlobal pMac, tCsrScanRequest *pScanRequest, tA
                 // If it is not, CSR will save the scan request in the pending cmd queue 
                 // & issue an 11d scan request to PE.
                 if((0 == pScanCmd->u.scanCmd.scanID)
-                   && (eCSR_SCAN_REQUEST_11D_SCAN != pScanRequest->requestType))
+                   && (eCSR_SCAN_REQUEST_11D_SCAN != pScanRequest->requestType)
+#ifdef SOFTAP_CHANNEL_RANGE
+                   && (eCSR_SCAN_SOFTAP_CHANNEL_RANGE != pScanRequest->requestType)
+#endif                   
+                   )
                 {
                     tSmeCmd *p11dScanCmd;
                     tCsrScanRequest scanReq;
@@ -2384,6 +2392,10 @@ void csrApplyChannelPowerCountryInfo( tpAniSirGlobal pMac, tCsrChannel *pChannel
 		csrSetCfgValidChannelList(pMac, pChannelList->channelList, pChannelList->numChannels);
 		// extend scan capability
 		csrSetCfgScanControlList(pMac, countryCode, pChannelList);     //  build a scan list based on the channel list : channel# + active/passive scan
+#ifdef FEATURE_WLAN_SCAN_PNO
+        // Send HAL UpdateScanParams message
+        pmcUpdateScanParams(pMac, &(pMac->roam.configParam), pChannelList, TRUE);
+#endif // FEATURE_WLAN_SCAN_PNLO
 	}
 	else
 	{

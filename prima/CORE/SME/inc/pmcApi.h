@@ -398,6 +398,16 @@ extern eHalStatus pmcExitWowl (tHalHandle hHal);
 
 extern eHalStatus pmcSetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest);
 
+/* ---------------------------------------------------------------------------
+    \fn pmcSetKeepAlive
+    \brief  Set the Keep Alive feature.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRequest - Pointer to the Keep Alive.
+    \return eHalStatus
+            eHAL_STATUS_FAILURE  Cannot set the keepalive.
+            eHAL_STATUS_SUCCESS  Request accepted. 
+  ---------------------------------------------------------------------------*/
+extern eHalStatus pmcSetKeepAlive (tHalHandle hHal, tpSirKeepAliveReq pRequest);
 
 #endif
 

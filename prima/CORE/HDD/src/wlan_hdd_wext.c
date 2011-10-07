@@ -52,6 +52,7 @@
 #include "qwlan_version.h"
 #include <vos_power.h>
 #include "wlan_hdd_host_offload.h"
+#include "wlan_hdd_keep_alive.h"
 
 #ifdef CONFIG_CFG80211
 #include <linux/wireless.h>
@@ -179,6 +180,9 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 /* Private ioctl to get the statistics */
 #define WLAN_GET_WLAN_STATISTICS (SIOCIWFIRSTPRIV + 21)
 
+/* Private ioctl to set the Keep Alive Params */
+#define WLAN_SET_KEEPALIVE_PARAMS (SIOCIWFIRSTPRIV + 22)
+
 #define WLAN_STATS_INVALID            0
 #define WLAN_STATS_RETRY_CNT          1
 #define WLAN_STATS_MUL_RETRY_CNT      2
@@ -208,6 +212,12 @@ extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 }while(0);
 
 #define VERSION_VALUE_MAX_LEN 32
+
+#define TX_PER_TRACKING_DEFAULT_RATIO             5
+#define TX_PER_TRACKING_MAX_RATIO                10
+#define TX_PER_TRACKING_DEFAULT_WATERMARK         5
+
+
 #ifdef FEATURE_WLAN_NON_INTEGRATED_SOC
 /**---------------------------------------------------------------------------
 
@@ -1595,6 +1605,23 @@ void iw_priv_callback_fn (void *callbackContext, eHalStatus status)
     complete(completion_var);
 }
 
+/* Callback function for tx per hit */
+void hdd_tx_per_hit_cb (void *pCallbackContext)
+{
+    hdd_adapter_t *pAdapter = (hdd_adapter_t *)pCallbackContext;
+    unsigned char tx_fail[16];
+	union iwreq_data wrqu;
+    
+	if (NULL == pAdapter)
+	{
+	    hddLog(LOGE, "hdd_tx_per_hit_cb: pAdapter is NULL\n");
+	    return;
+    }
+	memset(&wrqu, 0, sizeof(wrqu));
+	wrqu.data.length = strlcpy(tx_fail, "TX_FAIL", sizeof(tx_fail));
+    wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, tx_fail);
+}
+
 static int iw_set_priv(struct net_device *dev,
                          struct iw_request_info *info,
                          union iwreq_data *wrqu, char *extra)
@@ -1922,6 +1949,53 @@ static int iw_set_priv(struct net_device *dev,
         hddLog( VOS_TRACE_LEVEL_INFO, "rxfilter-remove\n"); 
         /*TODO: rxfilter-remove*/
     }
+#ifdef FEATURE_WLAN_SCAN_PNO
+    else if( strncasecmp(cmd, "pno",3) == 0 ) {
+        
+        hddLog( VOS_TRACE_LEVEL_INFO, "pno\n"); 
+        status = iw_set_pno(dev, info, wrqu, extra, 3);
+		    return status;
+    }
+    else if( strncasecmp(cmd, "rssifilter",10) == 0 ) {
+        
+        hddLog( VOS_TRACE_LEVEL_INFO, "rssifilter\n"); 
+        status = iw_set_rssi_filter(dev, info, wrqu, extra, 10);
+		    return status;
+    }
+#endif /*FEATURE_WLAN_SCAN_PNO*/
+    else if( 0 == strncasecmp(cmd, "CONFIG-TX-TRACKING", 18) ) {
+		tSirTxPerTrackingParam tTxPerTrackingParam;
+	    char *ptr = (char*)(cmd + 18);
+        sscanf(ptr,"%hhu %hhu %hhu %lu",&(tTxPerTrackingParam.ucTxPerTrackingEnable), &(tTxPerTrackingParam.ucTxPerTrackingPeriod),
+		                         &(tTxPerTrackingParam.ucTxPerTrackingRatio), &(tTxPerTrackingParam.uTxPerTrackingWatermark));
+		
+		// parameters checking
+		// period has to be larger than 0
+		if (0 == tTxPerTrackingParam.ucTxPerTrackingPeriod)
+		{
+		    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Period input is not correct");
+		    return VOS_STATUS_E_FAILURE;
+		}
+		
+		// use default value 5 is the input is not reasonable. in unit of 10%
+		if ((tTxPerTrackingParam.ucTxPerTrackingRatio > TX_PER_TRACKING_MAX_RATIO) || (0 == tTxPerTrackingParam.ucTxPerTrackingRatio))
+		{
+		    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Ratio input is not good. use default 5");
+		    tTxPerTrackingParam.ucTxPerTrackingRatio = TX_PER_TRACKING_DEFAULT_RATIO;
+	    }
+		
+		// default is 5
+		if (0 == tTxPerTrackingParam.uTxPerTrackingWatermark)
+		{
+		    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Tx Packet number input is not good. use default 5");
+		    tTxPerTrackingParam.uTxPerTrackingWatermark = TX_PER_TRACKING_DEFAULT_WATERMARK;
+	    }
+		
+		status = sme_SetTxPerTracking(pHddCtx->hHal, hdd_tx_per_hit_cb, (void*)pAdapter, &tTxPerTrackingParam);
+        if(status != eHAL_STATUS_SUCCESS){
+		    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Set Tx PER Tracking Failed!");
+		}
+	}
     else {
         hddLog( VOS_TRACE_LEVEL_WARN, "Unsupported GUI command %s", cmd);
     }
@@ -3661,6 +3735,62 @@ static int iw_set_host_offload(struct net_device *dev, struct iw_request_info *i
     return 0;
 }
 
+static int iw_set_keepalive_params(struct net_device *dev, struct iw_request_info *info,
+        union iwreq_data *wrqu, char *extra)
+{   
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    tpKeepAliveRequest pRequest = (tpKeepAliveRequest)wrqu->data.pointer;
+    tSirKeepAliveReq keepaliveRequest;
+
+
+    /* Debug display of request components. */
+	hddLog(VOS_TRACE_LEVEL_WARN, "%s: Set Keep Alive Request : TimePeriod %d size %d", 
+	  	      __FUNCTION__,pRequest->timePeriod, sizeof(tKeepAliveRequest));    
+
+      switch (pRequest->packetType)
+      {
+        case WLAN_KEEP_ALIVE_NULL_PKT:
+            hddLog(VOS_TRACE_LEVEL_WARN, "%s: Keep Alive Request: Tx NULL", __FUNCTION__);
+            break;
+
+        case WLAN_KEEP_ALIVE_UNSOLICIT_ARP_RSP:
+
+            hddLog(VOS_TRACE_LEVEL_INFO_HIGH, "%s: Keep Alive Request: Tx UnSolicited ARP RSP\n",
+               __FUNCTION__);
+
+            hddLog(VOS_TRACE_LEVEL_WARN, "  Host IP address: %d.%d.%d.%d",
+            pRequest->hostIpv4Addr[0], pRequest->hostIpv4Addr[1],
+            pRequest->hostIpv4Addr[2], pRequest->hostIpv4Addr[3]);
+
+            hddLog(VOS_TRACE_LEVEL_WARN, "  Dest IP address: %d.%d.%d.%d",
+            pRequest->destIpv4Addr[0], pRequest->destIpv4Addr[1],
+            pRequest->destIpv4Addr[2], pRequest->destIpv4Addr[3]);
+
+            hddLog(VOS_TRACE_LEVEL_WARN, "  Dest MAC address: %d:%d:%d:%d:%d:%d",
+            pRequest->destMacAddr[0], pRequest->destMacAddr[1],
+            pRequest->destMacAddr[2], pRequest->destMacAddr[3], 
+            pRequest->destMacAddr[4], pRequest->destMacAddr[5]);			
+            break;
+
+      }
+
+    /* Execute keep alive request. The reason that we can copy the request information
+       from the ioctl structure to the SME structure is that they are laid out
+       exactly the same.  Otherwise, each piece of information would have to be
+       copied individually. */
+       memcpy(&keepaliveRequest, pRequest, wrqu->data.length);       
+
+       hddLog(VOS_TRACE_LEVEL_ERROR, "set Keep: TP before SME %d\n", keepaliveRequest.timePeriod);
+
+    if (eHAL_STATUS_SUCCESS != sme_SetKeepAlive(WLAN_HDD_GET_HAL_CTX(pAdapter), &keepaliveRequest))
+    {
+        hddLog(VOS_TRACE_LEVEL_ERROR, "%s: Failure to execute Keep Alive\n",
+               __func__);
+        return -EINVAL;
+    }
+
+    return 0;
+}
 
 static int iw_get_statistics(struct net_device *dev,
                            struct iw_request_info *info,
@@ -3787,6 +3917,202 @@ static int iw_get_statistics(struct net_device *dev,
 }
 
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+
+/*Max Len for PNO notification*/
+#define MAX_PNO_NOTIFY_LEN 100
+void found_pref_network_cb (void *callbackContext, 
+                              tSirPrefNetworkFoundInd *pPrefNetworkFoundInd)
+{
+  hdd_adapter_t* pAdapter = (hdd_adapter_t*)callbackContext;
+  union iwreq_data wrqu;
+  char buf[MAX_PNO_NOTIFY_LEN+1];
+
+  hddLog(VOS_TRACE_LEVEL_WARN, "A preferred network was found: %s with rssi: -%d", 
+         pPrefNetworkFoundInd->ssId, pPrefNetworkFoundInd->rssi);
+  
+  // create the event
+  memset(&wrqu, 0, sizeof(wrqu));
+  memset(buf, 0, sizeof(buf));
+  
+  snprintf(buf, MAX_PNO_NOTIFY_LEN, "QCOM: Found preferred network: %s with RSSI of -%u", 
+           pPrefNetworkFoundInd->ssId.ssId,
+          (unsigned int)pPrefNetworkFoundInd->rssi);
+  
+  wrqu.data.pointer = buf;
+  wrqu.data.length = strlen(buf);
+  
+  // send the event
+  
+  wireless_send_event(pAdapter->dev, IWEVCUSTOM, &wrqu, buf);
+   
+}
+
+
+/*string based input*/
+VOS_STATUS iw_set_pno(struct net_device *dev, struct iw_request_info *info,
+				 union iwreq_data *wrqu, char *extra, int nOffset)
+{
+  hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+  tSirPNOScanReq pnoRequest;
+  char *ptr;
+  v_U8_t i,j, ucParams; 
+  /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+  if (wrqu->data.length <= nOffset )
+  {
+    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "PNO input is not correct");
+    return VOS_STATUS_E_FAILURE;
+  }
+
+  pnoRequest.enable = 0; 
+  pnoRequest.ucNetworksCount = 0; 
+  /*-----------------------------------------------------------------------
+    Input is string based and expected to be like this:
+
+    <enabled> <netw_count>
+    for each network:
+    <ssid_len> <ssid> <authentication> <encryption>
+    <ch_num> <channel_list optional> <rssi_threshold>
+
+    e.g:
+    1 2 4 test 0 0 3 1 6 11 40 5 test2 4 4 6 1 2 3 4 5 6 0
+
+    this translates into:
+    -----------------------------
+    enable PNO
+    look for 2 networks:
+    test - with authentication type 0 and encryption type 0,
+    that can be found on 3 channels: 1 6 and 11 , and must meet -40dBm RSSI
+
+    test2 - with auth and enrytption type 4/4
+    that can be found on 6 channels 1, 2, 3, 4, 5 and 6
+    and must not meet any RSSI threshold 
+  -----------------------------------------------------------------------*/
+  ptr = (char*)(wrqu->data.pointer + nOffset);
+
+  sscanf(ptr,"%hhu%n", &(pnoRequest.enable), &nOffset);
+
+  if ( 0 == pnoRequest.enable )
+  {
+    /*Disable PNO*/
+    memset(&pnoRequest, 0, sizeof(pnoRequest));
+    sme_SetPreferredNetworkList(WLAN_HDD_GET_HAL_CTX(pAdapter), &pnoRequest, 
+                                pAdapter->sessionId, 
+                                found_pref_network_cb, pAdapter);    
+    return VOS_STATUS_SUCCESS; 
+  }
+
+  ptr += nOffset; 
+  sscanf(ptr,"%hhu %n", &(pnoRequest.ucNetworksCount), &nOffset);
+
+  /* Parameters checking:
+      ucNetworksCount has to be larger than 0*/
+  if (( 0 == pnoRequest.ucNetworksCount ) ||
+      ( pnoRequest.ucNetworksCount > SIR_PNO_MAX_SUPP_NETWORKS ))
+  {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, "Network input is not correct");
+      return VOS_STATUS_E_FAILURE;
+  }
+
+
+  for ( i = 0; i < pnoRequest.ucNetworksCount; i++ )
+  {
+    ptr += nOffset; 
+
+    pnoRequest.aNetworks[i].ssId.length = 0; 
+
+    sscanf(ptr,"%hhu %n",
+           &(pnoRequest.aNetworks[i].ssId.length), &nOffset);
+
+    if (( 0 == pnoRequest.aNetworks[i].ssId.length ) || 
+        ( pnoRequest.aNetworks[i].ssId.length > 32 ) )
+    {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, 
+                "SSID Len %d is not correct for network %d", 
+                pnoRequest.aNetworks[i].ssId.length, i);
+      return VOS_STATUS_E_FAILURE;
+    }
+         
+    /*Advance to SSID*/
+    ptr += nOffset; 
+
+    ucParams = sscanf(ptr,"%s %lu %lu %hhu %n",
+           pnoRequest.aNetworks[i].ssId.ssId,
+           &(pnoRequest.aNetworks[i].authentication),
+           &(pnoRequest.aNetworks[i].encryption),
+           &(pnoRequest.aNetworks[i].ucChannelCount),
+           &nOffset);
+
+    if ( 4 != ucParams )
+    {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, 
+                "Incorrect cmd");
+      return VOS_STATUS_E_FAILURE;
+    }
+
+    /*Advance to channel list*/
+    ptr += nOffset; 
+
+    if ( SIR_PNO_MAX_NETW_CHANNELS < pnoRequest.aNetworks[i].ucChannelCount )
+    {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, 
+                "Incorrect number of channels");
+      return VOS_STATUS_E_FAILURE;
+    }
+
+    if ( 0 !=  pnoRequest.aNetworks[i].ucChannelCount)
+    {
+      for ( j = 0; j < pnoRequest.aNetworks[i].ucChannelCount; j++)
+      {
+        sscanf(ptr,"%hhu %n",
+              &(pnoRequest.aNetworks[i].aChannels[j]), &nOffset);
+        /*Advance to next channel number*/
+        ptr += nOffset; 
+      }
+    }
+
+    sscanf(ptr,"%hhu %n",
+              &(pnoRequest.aNetworks[i].rssiThreshold), &nOffset);
+    /*Advance to next network*/
+    ptr += nOffset; 
+  }/*For ucNetworkCount*/
+  
+  /*for LA we just expose suspend option*/
+  pnoRequest.modePNO  = SIR_PNO_MODE_ON_SUSPEND; 
+
+  /*no scan timers provided on LA*/
+  pnoRequest.scanTimers.ucScanTimersCount = 0; 
+
+  sme_SetPreferredNetworkList(WLAN_HDD_GET_HAL_CTX(pAdapter), &pnoRequest, 
+                                pAdapter->sessionId, 
+                                found_pref_network_cb, pAdapter);    
+
+  return VOS_STATUS_SUCCESS; 
+}/*iw_set_pno*/
+
+VOS_STATUS iw_set_rssi_filter(struct net_device *dev, struct iw_request_info *info,
+        union iwreq_data *wrqu, char *extra, int nOffset)
+{   
+    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+    v_U8_t rssiThreshold = 0;
+    v_U8_t nRead; 
+    
+    nRead = sscanf(wrqu->data.pointer + nOffset,"%hhu", 
+           &rssiThreshold);
+
+    if ( 1 != nRead )
+    {
+      VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_WARN, 
+                "Incorrect format");
+      return VOS_STATUS_E_FAILURE;
+    }
+
+    sme_SetRSSIFilter(WLAN_HDD_GET_HAL_CTX(pAdapter), rssiThreshold);    
+    return VOS_STATUS_SUCCESS;
+}
+
+#endif /*FEATURE_WLAN_SCAN_PNO*/
 
 // Define the Wireless Extensions to the Linux Network Device structure
 // A number of these routines are NULL (meaning they are not implemented.) 
@@ -3879,7 +4205,8 @@ static const iw_handler we_private[] = {
    [WLAN_PRIV_SET_FTIES                 - SIOCIWFIRSTPRIV]   = iw_set_fties,
 #endif
    [WLAN_PRIV_SET_HOST_OFFLOAD          - SIOCIWFIRSTPRIV]   = iw_set_host_offload,
-   [WLAN_GET_WLAN_STATISTICS            - SIOCIWFIRSTPRIV]   = iw_get_statistics
+   [WLAN_GET_WLAN_STATISTICS            - SIOCIWFIRSTPRIV]   = iw_get_statistics,
+   [WLAN_SET_KEEPALIVE_PARAMS           - SIOCIWFIRSTPRIV]   = iw_set_keepalive_params
 };
 
 /*Maximum command length can be only 15 */
@@ -4141,6 +4468,12 @@ static const struct iw_priv_args we_private_args[] = {
         0,
         IW_PRIV_TYPE_BYTE | WE_MAX_STR_LEN,
         "getWlanStats" },
+	
+    {  
+	WLAN_SET_KEEPALIVE_PARAMS,
+       IW_PRIV_TYPE_BYTE  | sizeof(tKeepAliveRequest),
+       0,
+       "setKeepAlive" },		
 };
 
 

@@ -144,12 +144,16 @@ WLANSAP_ScanCallback
         default:
             VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, CSR scanStatus = %s (%d)", __FUNCTION__, "eCSR_SCAN_ABORT/FAILURE", scanStatus);
     }
-
+#ifdef SOFTAP_CHANNEL_RANGE
+    if (operChannel == SAP_CHANNEL_NOT_SELECTED)
+        psapContext->channel = psapContext->channelList[0];
+#else
     if (operChannel == SAP_CHANNEL_NOT_SELECTED)
         psapContext->channel = SAP_DEFAULT_CHANNEL;
+#endif
     else
-        psapContext->channel = operChannel;
-
+    {    psapContext->channel = operChannel;
+    } 
     VOS_TRACE( VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Channel selected = %d", __FUNCTION__, psapContext->channel);
 
     /* Fill in the event structure */

@@ -1362,7 +1362,29 @@ eHalStatus sme_ProcessMsg(tHalHandle hHal, vos_msg_t* pMsg)
                 {
                    smsLog(pMac, LOGE, "Empty rsp message for meas (eWNI_SME_COEX_IND), nothing to process\n");
                 }
-                break;					 
+                break;
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+          case eWNI_SME_PREF_NETWORK_FOUND_IND:
+                if(pMsg->bodyptr)
+                {
+                   status = sme_PreferredNetworkFoundInd((void *)pMac, pMsg->bodyptr);
+                   vos_mem_free(pMsg->bodyptr);
+                }
+                else
+                {
+                   smsLog(pMac, LOGE, "Empty rsp message for meas (eWNI_SME_PREF_NETWORK_FOUND_IND), nothing to process\n");
+                }
+                break;
+#endif // FEATURE_WLAN_SCAN_PNO
+          
+		  case eWNI_SME_TX_PER_HIT_IND:
+		        if (pMac->sme.pTxPerHitCallback)
+				{
+				    pMac->sme.pTxPerHitCallback(pMac->sme.pTxPerHitCbContext);
+				}
+                break;
+				
           default:
 
              if ( ( pMsg->type >= eWNI_SME_MSG_TYPES_BEGIN )
@@ -4545,6 +4567,70 @@ eHalStatus sme_SetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest)
     return (status);
 }
 
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetKeepAlive
+    \brief  API to set the Keep Alive feature.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRequest -  Pointer to the Keep Alive request.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetKeepAlive (tHalHandle hHal, tpSirKeepAliveReq pRequest)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus status;
+
+    VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: "
+           "setting Keep alive in SME TP %d", __FUNCTION__,pRequest->timePeriod);
+
+
+    if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme ) ) )
+    {
+        status = pmcSetKeepAlive (hHal, pRequest);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return (status);
+}
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+/* ---------------------------------------------------------------------------
+    \fn sme_SetPreferredNetworkList
+    \brief  API to set the Preferred Network List Offload feature.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRequest -  Pointer to the offload request.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetPreferredNetworkList (tHalHandle hHal, tpSirPNOScanReq pRequest, tANI_U8 sessionId, void (*callbackRoutine) (void *callbackContext, tSirPrefNetworkFoundInd *pPrefNetworkFoundInd), void *callbackContext )
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus status;
+
+    if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme ) ) )
+    {
+        pmcSetPreferredNetworkList(hHal, pRequest, sessionId, callbackRoutine, callbackContext);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return (status);
+}
+
+eHalStatus sme_SetRSSIFilter(tHalHandle hHal, v_U8_t rssiThreshold)
+{
+    tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+    eHalStatus status;
+
+    if ( eHAL_STATUS_SUCCESS == ( status = sme_AcquireGlobalLock( &pMac->sme ) ) )
+    {
+        pmcSetRssiFilter(hHal, rssiThreshold);
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+
+    return (status);
+}
+
+#endif // FEATURE_WLAN_SCAN_PNO
+
 /* ---------------------------------------------------------------------------
     \fn sme_AbortMacScan
     \brief  API to cancel MAC scan.
@@ -5039,4 +5125,108 @@ tANI_U8 sme_GetInfraOperationChannel( tHalHandle hHal, tANI_U8 sessionId)
    }
 
    return (channel);
+}
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+/******************************************************************************
+*
+* Name: sme_PreferredNetworkFoundInd
+*
+* Description:
+*    Invoke Preferred Network Found Indication 
+*
+* Parameters:
+*    hHal - HAL handle for device
+*    pMsg - found network description
+*
+* Returns: eHalStatus
+*
+******************************************************************************/
+eHalStatus sme_PreferredNetworkFoundInd (tHalHandle hHal, void* pMsg)
+{
+   tpAniSirGlobal pMac = PMAC_STRUCT(hHal);
+   eHalStatus status = eHAL_STATUS_SUCCESS;
+   tSirPrefNetworkFoundInd *pPrefNetworkFoundInd = (tSirPrefNetworkFoundInd *)pMsg;
+
+   if (NULL == pMsg)
+   {
+      smsLog(pMac, LOGE, "in %s msg ptr is NULL\n", __FUNCTION__);
+      status = eHAL_STATUS_FAILURE;
+   }
+   else
+   {
+      if (pPrefNetworkFoundInd->ssId.length > 0)
+      {
+          smsLog(pMac, LOG1, "Preferred Network Found Indication in %s(), SSID=%s", 
+                 __FUNCTION__, pPrefNetworkFoundInd->ssId.ssId);
+
+
+         /* Call Preferred Netowrk Found Indication callback routine. */
+         if (pMac->pmc.prefNetwFoundCB != NULL)
+         {    
+               pMac->pmc.prefNetwFoundCB(pMac->pmc.preferredNetworkFoundIndCallbackContext, pPrefNetworkFoundInd);
+         }
+
+      }
+      else
+      {
+         smsLog(pMac, LOGE, "%s: callback failed - SSID is NULL\n", __FUNCTION__);
+         status = eHAL_STATUS_FAILURE;
+      }
+   }
+
+
+   return(status);
+}
+#endif // FEATURE_WLAN_SCAN_PNO
+
+/* ---------------------------------------------------------------------------
+
+    \fn sme_SetTxPerTracking
+
+    \brief Set Tx PER tracking configuration parameters
+
+    \param hHal - The handle returned by macOpen.
+    \param pTxPerTrackingConf - Tx PER configuration parameters
+
+    \return eHalStatus
+
+  -------------------------------------------------------------------------------*/
+eHalStatus sme_SetTxPerTracking(tHalHandle hHal, 
+                                void (*pCallbackfn) (void *pCallbackContext), 
+								void *pCallbackContext,
+                                tpSirTxPerTrackingParam pTxPerTrackingParam)
+{
+	vos_msg_t msg;
+    tpSirTxPerTrackingParam pTxPerTrackingParamReq = NULL;
+	tpAniSirGlobal pMac = PMAC_STRUCT( hHal );
+	
+    if ( eHAL_STATUS_SUCCESS == sme_AcquireGlobalLock( &pMac->sme ) )
+    {
+        pMac->sme.pTxPerHitCallback = pCallbackfn;
+		pMac->sme.pTxPerHitCbContext = pCallbackContext;
+        sme_ReleaseGlobalLock( &pMac->sme );
+    }
+    
+	// free this memory in failure case or WDA request callback function
+    pTxPerTrackingParamReq = vos_mem_malloc(sizeof(tSirTxPerTrackingParam));
+    if (NULL == pTxPerTrackingParamReq)
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to allocate memory for tSirTxPerTrackingParam", __FUNCTION__);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    vos_mem_copy(pTxPerTrackingParamReq, (void*)pTxPerTrackingParam, sizeof(tSirTxPerTrackingParam));
+    msg.type = WDA_SET_TX_PER_TRACKING_REQ;
+    msg.reserved = 0;
+    msg.bodyptr = pTxPerTrackingParamReq;
+
+    if(VOS_STATUS_SUCCESS != vos_mq_post_message(VOS_MODULE_ID_WDA, &msg))
+    {
+        VOS_TRACE(VOS_MODULE_ID_SME, VOS_TRACE_LEVEL_ERROR, "%s: Not able to post WDA_SET_TX_PER_TRACKING_REQ message to WDA", __FUNCTION__);
+        vos_mem_free(pTxPerTrackingParamReq);
+        return eHAL_STATUS_FAILURE;
+    }
+
+    return eHAL_STATUS_SUCCESS;
 }

@@ -32,6 +32,7 @@ DESCRIPTION
 
 when        who    what, where, why
 --------    ---    ----------------------------------------------------------
+10/05/11    hap     Adding support for Keep Alive
 08/19/10    lti     Created module.
 
 ===========================================================================*/
@@ -341,13 +342,28 @@ typedef enum
   WDI_DEL_STA_SELF_REQ       = 58,
 
   /* WLAN FTM Command request */
-  WDI_FTM_CMD_REQ       = 59,
+  WDI_FTM_CMD_REQ            = 59,
 
   /*WLAN START INNAV MEAS Request*/
   WDI_START_INNAV_MEAS_REQ   = 60,
   /* WLAN host resume request */
   WDI_HOST_RESUME_REQ      = 61,
+  
+  WDI_KEEP_ALIVE_REQ       = 62,  
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+   /* Set PNO */
+   WDI_SET_PREF_NETWORK_REQ     = 63,
+
+   /*RSSI Filter Request*/
+   WDI_SET_RSSI_FILTER_REQ      = 64,
+
+   /* Update Scan Parameters*/
+   WDI_UPDATE_SCAN_PARAMS_REQ   = 65,
+#endif // FEATURE_WLAN_SCAN_PNO
+
+  WDI_SET_TX_PER_TRACKING_REQ = 66,
+  
   WDI_MAX_REQ,
 
   /*Send a suspend Indication down to HAL*/
@@ -531,23 +547,48 @@ typedef enum
 
   /*WLAN DAL Flush AC Response*/ 
   WDI_BTAMP_EVENT_RESP   = 54,
+
   /*WLAN DAL Add Aggregated TSpec Response*/
   WDI_AGGR_ADD_TS_RESP  = 55,
 
+  /*Add Self STA Response*/
   WDI_ADD_STA_SELF_RESP = 56,
   
-  WDI_DEL_STA_SELF_RESP = 57,
+  /*Delete Self STA Response*/
+  WDI_DEL_STA_SELF_RESP       = 57,
 
   /*WLAN START INNAV MEAS Response*/
-  WDI_START_INNAV_MEAS_RESP          = 58,
-  /* WLAN host resume request */
-  WDI_HOST_RESUME_RESP = 59,
+  WDI_START_INNAV_MEAS_RESP   = 58,
 
+  /* WLAN host resume request */
+  WDI_HOST_RESUME_RESP        = 59,
+
+  /* WLAN DAL P2P GO Notice Of Absence Response */
+  WDI_P2P_GO_NOTICE_OF_ABSENCE_RESP    = 60,
+
+  /* FTM Response from HAL */
+  WDI_FTM_CMD_RESP                     = 61,
+
+  /*Keep alive response */
+  WDI_KEEP_ALIVE_RESP                  = 62,
+
+  /* Set PNO Response */
+  WDI_SET_PREF_NETWORK_RESP            = 63,
+
+  /* Set RSSI Filter Response */
+  WDI_SET_RSSI_FILTER_RESP             = 64,
+
+  /* Update Scan Parameters Resp */
+  WDI_UPDATE_SCAN_PARAMS_RESP          = 65,
+
+  //Tx PER Tracking
+  WDI_SET_TX_PER_TRACKING_RESP       = 66,
+  
   /*-------------------------------------------------------------------------
     Indications
      !! Keep these last in the enum if possible
     -------------------------------------------------------------------------*/
-  WDI_HAL_IND_MIN                     = 60, 
+  WDI_HAL_IND_MIN                     , 
   /*When RSSI monitoring is enabled of the Lower MAC and a threshold has been
     passed. */
   WDI_HAL_LOW_RSSI_IND                = WDI_HAL_IND_MIN, 
@@ -570,21 +611,20 @@ typedef enum
     station (e.g. Soft AP TIM based dissassoc) */
   WDI_HAL_DEL_STA_IND                 = WDI_HAL_IND_MIN + 5,
 
-  
-  /* WLAN DAL P2P GO Notice Of Absence Response */
-  WDI_P2P_GO_NOTICE_OF_ABSENCE_RESP    = WDI_HAL_IND_MIN + 6,
-
-  /* FTM Response from HAL */
-  WDI_FTM_CMD_RESP                    = WDI_HAL_IND_MIN + 7,
-
   /*Coex indication*/
-  WDI_HAL_COEX_IND                    = WDI_HAL_IND_MIN + 8,
+  WDI_HAL_COEX_IND                    = WDI_HAL_IND_MIN + 6,
 
   /* Tx Complete Indication */
-  WDI_HAL_TX_COMPLETE_IND             = WDI_HAL_IND_MIN + 9,
+  WDI_HAL_TX_COMPLETE_IND             = WDI_HAL_IND_MIN + 7,
 
-  WDI_HAL_P2P_NOA_ATTR_IND            = WDI_HAL_IND_MIN + 10,
+  WDI_HAL_P2P_NOA_ATTR_IND            = WDI_HAL_IND_MIN + 8,
 
+  /* Preferred Network Found Indication */
+  WDI_HAL_PREF_NETWORK_FOUND_IND      = WDI_HAL_IND_MIN + 9,
+
+  /* Tx PER Hit Indication */
+  WDI_HAL_TX_PER_HIT_IND              = WDI_HAL_IND_MIN + 10,
+  
   WDI_MAX_RESP
 }WDI_ResponseEnumType; 
 
@@ -2107,6 +2147,24 @@ WDI_ProcessHostOffloadReq
 );
 
 /**
+ @brief Process Keep Alive Request function (called 
+        when Main FSM allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessKeepAliveReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+
+/**
  @brief Process Wowl add bc ptrn Request function (called 
         when Main FSM allows it)
  
@@ -2295,6 +2353,22 @@ WDI_ProcessDelSTASelfReq
   WDI_EventInfoType*     pEventData
 );
 
+/**
+ @brief Process set Tx Per Tracking configurations Request function (called 
+        when Main FSM allows it)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetTxPerTrackingReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
 
 /*=========================================================================
                              Indications
@@ -3177,6 +3251,24 @@ WDI_ProcessHostOffloadRsp
 );
 
 /**
+ @brief Process Keep Alive Rsp function (called when a
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessKeepAliveRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+
+/**
  @brief Process wowl add ptrn Rsp function (called when a
         response is being received over the bus from HAL)
  
@@ -3365,6 +3457,22 @@ WDI_ProcessHostResumeRsp
   WDI_EventInfoType*     pEventData
 );
 
+/**
+ @brief Process set tx per tracking Rsp function (called when a
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetTxPerTrackingRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
 
 /*==========================================================================
                         Indications from HAL
@@ -3534,6 +3642,24 @@ WDI_ProcessP2pNoaAttrInd
   WDI_EventInfoType*     pEventData
 );
 #endif
+
+/**
+*@brief Process Tx Per Hit Indication function (called when
+        an indication of this kind is being received over the
+        bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessTxPerHitInd
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
 
 #ifdef WLAN_FEATURE_VOWIFI_11R
 /**
@@ -4118,6 +4244,122 @@ WDT_GetTransportDriverContext
   void *pContext
 );
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+/**
+ @brief Process Set Preferred Network List Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetPreferredNetworkReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Set RSSI Filter Request function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetRssiFilterReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Update Scan Params function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessUpdateScanParamsReq
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Preferred Network Found Indication function
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessPrefNetworkFoundInd
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process PNO Rsp function (called when a
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetPreferredNetworkRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process RSSI Filter Rsp function (called when a
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessSetRssiFilterRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+
+/**
+ @brief Process Update Scan Params Rsp function (called when a
+        response is being received over the bus from HAL)
+ 
+ @param  pWDICtx:         pointer to the WLAN DAL context 
+         pEventData:      pointer to the event information structure 
+  
+ @see
+ @return Result of the function call
+*/
+WDI_Status
+WDI_ProcessUpdateScanParamsRsp
+( 
+  WDI_ControlBlockType*  pWDICtx,
+  WDI_EventInfoType*     pEventData
+);
+#endif // FEATURE_WLAN_SCAN_PNO
 
 #endif /*WLAN_QCT_WDI_I_H*/
 

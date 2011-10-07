@@ -84,7 +84,7 @@ v_BOOL_t sapChanSelInit(tHalHandle halHandle, tSapChSelSpectInfo *pSpectInfoPara
     // Channels for that 2.4GHz band
     //Considered only for 2.4GHz need to change in future to support 5GHz support
     pSpectInfoParams->numSpectChans = pMac->scan.base20MHzChannels.numChannels;
-
+       
     // Allocate memory for weight computation of 2.4GHz
     pSpectCh = (tSapSpectChInfo *)vos_mem_malloc((pSpectInfoParams->numSpectChans) * sizeof(*pSpectCh));
 
@@ -230,8 +230,7 @@ void sapComputeSpectWeight( tSapChSelSpectInfo* pSpectInfoParams,
 
                 VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH,
                    "In %s, bssdes.ch_self=%d, bssdes.ch_ID=%d, bssdes.rssi=%d, SpectCh.bssCount=%d, pScanReult=0x%x",
-                    __FUNCTION__, pScanResult->BssDescriptor.channelIdSelf, 
-					pScanResult->BssDescriptor.channelId, pScanResult->BssDescriptor.rssi, 
+                    __FUNCTION__, pScanResult->BssDescriptor.channelIdSelf, pScanResult->BssDescriptor.channelId, pScanResult->BssDescriptor.rssi, 
 					pSpectCh->bssCount, pScanResult);
                          
                  pSpectCh++;
@@ -321,22 +320,37 @@ void sapSortChlWeight(tSapChSelSpectInfo *pSpectInfoParams)
     v_U32_t i = 0, j = 0, minWeightIndex = 0;
 
     pSpectCh = pSpectInfoParams->pSpectCh;
-
+#ifdef SOFTAP_CHANNEL_RANGE
     // Sorting the channels as per weights
-	for (i = 0; i < SPECT_24GHZ_CH_COUNT; i++) {
+    for (i = 0; i < pSpectInfoParams->numSpectChans; i++) {
+        minWeightIndex = i;
+        for( j = i + 1; j < pSpectInfoParams->numSpectChans; j++) {
+            if(pSpectCh[j].weight < pSpectCh[minWeightIndex].weight) {
+                minWeightIndex = j; 
+            }
+        }
+        if(minWeightIndex != i) {
+            vos_mem_copy(&temp, &pSpectCh[minWeightIndex], sizeof(*pSpectCh));
+            vos_mem_copy(&pSpectCh[minWeightIndex], &pSpectCh[i], sizeof(*pSpectCh));
+            vos_mem_copy(&pSpectCh[i], &temp, sizeof(*pSpectCh));
+        }
+    }
+#else
+    // Sorting the channels as per weights
+    for (i = 0; i < SPECT_24GHZ_CH_COUNT; i++) {
         minWeightIndex = i;
         for( j = i + 1; j < SPECT_24GHZ_CH_COUNT; j++) {
             if(pSpectCh[j].weight < pSpectCh[minWeightIndex].weight) {
                 minWeightIndex = j; 
             }
         }
-
         if(minWeightIndex != i) {
             vos_mem_copy(&temp, &pSpectCh[minWeightIndex], sizeof(*pSpectCh));
             vos_mem_copy(&pSpectCh[minWeightIndex], &pSpectCh[i], sizeof(*pSpectCh));
             vos_mem_copy(&pSpectCh[i], &temp, sizeof(*pSpectCh));
-		}
-	}
+        }
+    }
+#endif
 
     /* For testing */
     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Sorted Spectrum Channels Weight", __FUNCTION__);
@@ -377,7 +391,12 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, tScanResultHandle pScanResult)
     tSapChSelSpectInfo *pSpectInfoParams = &oSpectInfoParams; // Memory? NB    
 
     v_U8_t bestChNum = 0;
-    
+#ifdef SOFTAP_CHANNEL_RANGE
+    v_U32_t startChannelNum;
+    v_U32_t endChannelNum;
+    v_U32_t operatingBand;
+    v_U8_t  count = 0;
+#endif    
     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Running SAP Ch Select", __FUNCTION__);
 
     // Set to zero tSapChSelParams
@@ -392,12 +411,30 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, tScanResultHandle pScanResult)
     // Compute the weight of the entire spectrum in the operating band
     sapComputeSpectWeight( pSpectInfoParams, halHandle, pScanResult);
 
-
     // Sort the 20M channel list as per the computed weights, lesser weight first.
     sapSortChlWeight(pSpectInfoParams);
+    
+#ifdef SOFTAP_CHANNEL_RANGE
+    ccmCfgGetInt(halHandle,WNI_CFG_SAP_CHANNEL_SELECT_START_CHANNEL,&startChannelNum);
+    ccmCfgGetInt(halHandle,WNI_CFG_SAP_CHANNEL_SELECT_END_CHANNEL,&endChannelNum);
+    ccmCfgGetInt(halHandle,WNI_CFG_SAP_CHANNEL_SELECT_OPERATING_BAND,&operatingBand);
 
+    /*Loop till get the best channel */
+    for(count=0;count < pSpectInfoParams->numSpectChans ;count++)
+    {
+        if((startChannelNum <= pSpectInfoParams->pSpectCh[count].chNum)&&
+          ( endChannelNum >= pSpectInfoParams->pSpectCh[count].chNum))
+        {
+            bestChNum = (v_U8_t)pSpectInfoParams->pSpectCh[count].chNum;
+            break;
+        }
+    }
+
+#else
     // Get the first channel in sorted array as best 20M Channel
     bestChNum = (v_U8_t)pSpectInfoParams->pSpectCh[0].chNum;
+
+#endif
 
     // Free all the allocated memory
     sapChanSelExit(pSpectInfoParams);
@@ -405,7 +442,7 @@ v_U8_t sapSelectChannel(tHalHandle halHandle, tScanResultHandle pScanResult)
     VOS_TRACE(VOS_MODULE_ID_SAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, Running SAP Ch select Completed, Ch=%d",
                 __FUNCTION__, bestChNum);
 
-    if (bestChNum > 0 && bestChNum <= SPECT_24GHZ_CH_COUNT)
+    if (bestChNum > 0 && bestChNum <= 252)
         return bestChNum;
     else
         return SAP_CHANNEL_NOT_SELECTED;

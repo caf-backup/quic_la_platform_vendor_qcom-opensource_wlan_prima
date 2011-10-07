@@ -1002,6 +1002,31 @@ int iw_softap_setmlme(struct net_device *dev,
     }
     return 0;
 }
+
+static int iw_softap_set_channel_range(struct net_device *dev, 
+                          struct iw_request_info *info,
+                          union iwreq_data *wrqu, char *extra)
+{
+    hdd_adapter_t *pHostapdAdapter = (netdev_priv(dev));
+    tHalHandle hHal = WLAN_HDD_GET_HAL_CTX(pHostapdAdapter);
+
+    int *value = (int *)extra;
+    int startChannel = value[0];
+    int endChannel = value[1];
+    int band = value[2];
+    eHalStatus status;
+    int ret = 0; /* success */
+
+    status = WLANSAP_SetChannelRange(hHal,startChannel,endChannel,band);
+    if(status != VOS_STATUS_SUCCESS)
+    {
+      hddLog( LOGE, FL("iw_softap_set_channel_range:  startChannel = %d, endChannel = %d band = %d\n"), 
+                                  startChannel,endChannel, band);
+      ret = -1;
+    }
+    return ret;
+}
+
 static 
 int iw_get_genie(struct net_device *dev,
                         struct iw_request_info *info,
@@ -1872,6 +1897,7 @@ static const iw_handler hostapd_private[] = {
    [QCSAP_IOCTL_AP_STATS - SIOCIWFIRSTPRIV] = iw_softap_ap_stats,
    [QCSAP_IOCTL_PRIV_SET_THREE_INT_GET_NONE - SIOCIWFIRSTPRIV]  = iw_set_three_ints_getnone,   
    [QCSAP_IOCTL_PRIV_SET_VAR_INT_GET_NONE - SIOCIWFIRSTPRIV]     = iw_set_var_ints_getnone,
+   [QCSAP_IOCTL_SET_CHANNEL_RANGE - SIOCIWFIRSTPRIV] = iw_softap_set_channel_range,
 };
 const struct iw_handler_def hostapd_handler_def = {
    .num_standard     = sizeof(hostapd_handler) / sizeof(hostapd_handler[0]),

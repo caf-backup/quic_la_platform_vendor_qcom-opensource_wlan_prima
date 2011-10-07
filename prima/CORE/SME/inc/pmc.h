@@ -101,6 +101,11 @@ typedef struct sPmcDeferredMsg
 } tPmcDeferredMsg;
 
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+/*Pref netw found Cb declaration*/
+typedef void(*preferredNetworkFoundIndCallback)(void *callbackContext, tSirPrefNetworkFoundInd *pPrefNetworkFoundInd);
+#endif
+
 /* Current PMC information for a particular device. */
 typedef struct sPmcInfo
 {
@@ -154,6 +159,10 @@ typedef struct sPmcInfo
     tSirSmeWowlEnterParams wowlEnterParams; /* WOWL mode configuration */
     tDblLinkList deferredMsgList;   //The message in here are deferred and DONOT expect response from PE
     tANI_BOOLEAN rfSuppliesVotedOff;  //Whether RF supplies are voted off or not.
+#ifdef FEATURE_WLAN_SCAN_PNO
+    preferredNetworkFoundIndCallback  prefNetwFoundCB; /* routine to call for Preferred Network Found Indication */ 
+    void *preferredNetworkFoundIndCallbackContext;/* value to be passed as parameter to routine specified above */
+#endif // FEATURE_WLAN_SCAN_PNLO
 } tPmcInfo, *tpPmcInfo;
 
 

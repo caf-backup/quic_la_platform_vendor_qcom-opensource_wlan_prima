@@ -450,12 +450,34 @@ REG_TABLE_ENTRY g_registry_table[] =
                         CFG_AP_STA_SECURITY_SEPERATION_MIN,
                         CFG_AP_STA_SECURITY_SEPERATION_MAX ),
 
- REG_VARIABLE( CFG_FRAMES_PROCESSING_TH_MODE_NAME, WLAN_PARAM_Integer,
+   REG_VARIABLE( CFG_FRAMES_PROCESSING_TH_MODE_NAME, WLAN_PARAM_Integer,
                         hdd_config_t, MinFramesProcThres, 
                         VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
                         CFG_FRAMES_PROCESSING_TH_DEFAULT,
                         CFG_FRAMES_PROCESSING_TH_MIN,
                         CFG_FRAMES_PROCESSING_TH_MAX ),
+
+   REG_VARIABLE(CFG_SAP_CHANNEL_SELECT_START_CHANNEL , WLAN_PARAM_Integer,
+                 hdd_config_t, apStartChannelNum,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_SAP_CHANNEL_SELECT_START_CHANNEL_DEFAULT,
+                 CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MIN,
+                 CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MAX ),
+
+   REG_VARIABLE(CFG_SAP_CHANNEL_SELECT_END_CHANNEL , WLAN_PARAM_Integer,
+                 hdd_config_t, apEndChannelNum,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_SAP_CHANNEL_SELECT_END_CHANNEL_DEFAULT,
+                 CFG_SAP_CHANNEL_SELECT_END_CHANNEL_MIN,
+                 CFG_SAP_CHANNEL_SELECT_END_CHANNEL_MAX ),
+
+   REG_VARIABLE(CFG_SAP_CHANNEL_SELECT_OPERATING_BAND , WLAN_PARAM_Integer,
+                 hdd_config_t, apOperatingBand,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_DEFAULT,
+                 CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MIN,
+                 CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MAX ),
+
 #endif
 
    REG_VARIABLE( CFG_BEACON_INTERVAL_NAME, WLAN_PARAM_Integer,
@@ -2200,6 +2222,8 @@ v_BOOL_t hdd_update_config_dat( hdd_context_t *pHddCtx )
         fStatus = FALSE;
         hddLog(LOGE, "Could not pass on WNI_CFG_ENABLE_PHY_AGC_LISTEN_MODE to CCM\n");
      }
+
+	 WLANSAP_SetChannelRange(pHddCtx->hHal,pConfig->apStartChannelNum,pConfig->apEndChannelNum,pConfig->apOperatingBand);
 #endif
    
 #if defined WLAN_FEATURE_VOWIFI

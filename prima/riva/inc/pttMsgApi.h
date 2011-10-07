@@ -215,6 +215,8 @@ typedef enum {
     PTT_MSG_FORCE_PACKET_TX_GAIN_PRIMA_V1 = 0x32C6,
     PTT_MSG_CLPC_CAL_SETUP_PRIMA_V1 = 0x32C7,
     PTT_MSG_CLPC_CAL_RESTORE_PRIMA_V1 = 0x32C8,
+    PTT_MSG_CLOSE_TPC_LOOP_PRIMA_V1 = 0x32C9,
+    PTT_MSG_SW_CLPC_CAL_PRIMA_V1 = 0x32CA,
 
    PTT_MSG_EXIT = 0x32ff,
    PTT_MAX_MSG_ID = PTT_MSG_EXIT
@@ -402,6 +404,10 @@ typedef PACKED_PRE struct PACKED_POST {
    tANI_U8 reserved[3];
 } tMsgPttCloseTpcLoop;
 
+typedef PACKED_PRE struct PACKED_POST {
+   tANI_U32 tpcClose;
+} tMsgPttCloseTpcLoop_PRIMA_V1;
+
 
     //open loop service
 typedef PACKED_PRE struct PACKED_POST {
@@ -548,6 +554,14 @@ typedef PACKED_PRE struct PACKED_POST {
 typedef PACKED_PRE struct PACKED_POST {
    sRfHdetCalValues hdetCalValues;
 } tMsgPttHdetCal;
+
+typedef PACKED_PRE struct PACKED_POST {
+   tANI_U16 clpcMode;
+   tANI_U16 txCmdPwr;
+   tANI_U16 pwrMax_pwrMin;
+   tANI_U16 step;
+   tANI_U8 plut[256];
+} tMsgPttClpcSwCal_PRIMA_V1;
 
 //Phy Calibration Override Service
 typedef PACKED_PRE struct PACKED_POST {
@@ -763,6 +777,7 @@ typedef PACKED_PRE union PACKED_POST pttMsgUnion{
    tMsgPttStartStopTxPacketGen StartStopTxPacketGen;
    tMsgPttQueryTxStatus QueryTxStatus;
    tMsgPttCloseTpcLoop CloseTpcLoop;
+   tMsgPttCloseTpcLoop_PRIMA_V1 CloseTpcLoop_PRIMA_V1;
    tMsgPttSetPacketTxGainTable SetPacketTxGainTable;
    tMsgPttGetPacketTxGainTable GetPacketTxGainTable;
    tMsgPttSetPacketTxGainIndex SetPacketTxGainIndex;
@@ -791,6 +806,7 @@ typedef PACKED_PRE union PACKED_POST pttMsgUnion{
    tMsgPttClpcCalSetup_PRIMA_V1 ClpcCalSetup_PRIMA_V1;
    tMsgPttClpcCalRestore_PRIMA_V1 ClpcCalRestore_PRIMA_V1;
    tMsgPttHdetCal HdetCal;
+   tMsgPttClpcSwCal_PRIMA_V1 ClpcSwCal_PRIMA_V1;
    tMsgPttSetTxCarrierSuppressCorrect SetTxCarrierSuppressCorrect;
    tMsgPttGetTxCarrierSuppressCorrect GetTxCarrierSuppressCorrect;
    tMsgPttSetTxIqCorrect SetTxIqCorrect;

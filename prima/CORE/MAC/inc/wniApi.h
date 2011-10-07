@@ -275,6 +275,12 @@ enum eWniMsgTypes
  
     eWNI_SME_COEX_IND,
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+    eWNI_SME_PREF_NETWORK_FOUND_IND,
+#endif // FEATURE_WLAN_SCAN_PNO
+    
+	eWNI_SME_TX_PER_HIT_IND,
+	
     eWNI_SME_MSG_TYPES_END 
 };
 

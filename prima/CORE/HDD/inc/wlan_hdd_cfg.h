@@ -378,6 +378,21 @@ typedef enum
 #define CFG_FRAMES_PROCESSING_TH_MAX           ( 39 )
 #define CFG_FRAMES_PROCESSING_TH_DEFAULT       ( 0 )
 
+#define CFG_SAP_CHANNEL_SELECT_START_CHANNEL    "gAPChannelSelectStartChannel"
+#define CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MIN                (0)
+#define CFG_SAP_CHANNEL_SELECT_START_CHANNEL_MAX                (0xFF)
+#define CFG_SAP_CHANNEL_SELECT_START_CHANNEL_DEFAULT            (0)
+
+#define CFG_SAP_CHANNEL_SELECT_END_CHANNEL "gAPChannelSelectEndChannel"
+#define CFG_SAP_CHANNEL_SELECT_END_CHANNEL_MIN                  (0)
+#define CFG_SAP_CHANNEL_SELECT_END_CHANNEL_MAX                  (0xFF)
+#define CFG_SAP_CHANNEL_SELECT_END_CHANNEL_DEFAULT              (11)
+
+#define CFG_SAP_CHANNEL_SELECT_OPERATING_BAND "gAPChannelSelectOperatingBand"
+#define CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MIN       (0)
+#define CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_MAX               (0x1)
+#define CFG_SAP_CHANNEL_SELECT_OPERATING_BAND_DEFAULT           (0)
+
 #endif
 
 #define CFG_BEACON_INTERVAL_NAME               "gBeaconInterval"
@@ -1000,6 +1015,9 @@ typedef struct
    v_BOOL_t      apDisableIntraBssFwd;
    v_U8_t        nEnableListenMode;    
    v_U32_t       nAPAutoShutOff;
+   v_U8_t        apStartChannelNum;
+   v_U8_t        apEndChannelNum;
+   v_U8_t        apOperatingBand;
 #endif
 
    v_U32_t       nBeaconInterval;

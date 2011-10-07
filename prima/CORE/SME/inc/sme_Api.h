@@ -1526,6 +1526,16 @@ eHalStatus sme_sendBTAmpEvent(tHalHandle hHal, tSmeBtAmpEvent btAmpEvent);
 eHalStatus sme_SetHostOffload (tHalHandle hHal, tpSirHostOffloadReq pRequest);
 
 /* ---------------------------------------------------------------------------
+    \fn sme_SetKeepAlive
+    \brief  API to set the Keep Alive feature.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRequest -  Pointer to the Keep Alive request.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetKeepAlive (tHalHandle hHal, tpSirKeepAliveReq pRequest);
+
+
+/* ---------------------------------------------------------------------------
     \fn sme_AbortMacScan
     \brief  API to cancel MAC scan.
     \param  hHal - The handle returned by macOpen.
@@ -1701,4 +1711,53 @@ tANI_S8 sme_GetInfraSessionId(tHalHandle hHal);
   -------------------------------------------------------------------------------*/
 tANI_U8 sme_GetInfraOperationChannel( tHalHandle hHal, tANI_U8 sessionId);
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+/* ---------------------------------------------------------------------------
+    \fn sme_SetPreferredNetworkList
+    \brief  API to set the Preferred Network List Offload feature.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRequest -  Pointer to the offload request.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetPreferredNetworkList (tHalHandle hHal, tpSirPNOScanReq pRequest, tANI_U8 sessionId, void (*callbackRoutine) (void *callbackContext, tSirPrefNetworkFoundInd *pPrefNetworkFoundInd), void *callbackContext );
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetRSSIFilter
+    \brief  API to set RSSI Filter feature.
+    \param  hHal - The handle returned by macOpen.
+    \param  pRequest -  Pointer to the offload request.
+    \return eHalStatus
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetRSSIFilter(tHalHandle hHal, v_U8_t rssiThreshold);
+
+/******************************************************************************
+*
+* Name: sme_PreferredNetworkFoundInd
+*
+* Description:
+*    Invoke Preferred Network Found Indication 
+*
+* Parameters:
+*    hHal - HAL handle for device
+*    pMsg - found network description
+* 
+* Returns: eHalStatus
+*
+******************************************************************************/
+eHalStatus sme_PreferredNetworkFoundInd (tHalHandle hHal, void* pMsg);
+#endif // FEATURE_WLAN_SCAN_PNO
+
+/* ---------------------------------------------------------------------------
+    \fn sme_SetTxPerTracking
+    \brief  Set Tx PER tracking configuration parameters
+    \param  hHal - The handle returned by macOpen.
+    \param  pTxPerTrackingParam - Tx PER configuration parameters
+    \return eHalStatus     
+  ---------------------------------------------------------------------------*/
+eHalStatus sme_SetTxPerTracking (
+   tHalHandle hHal,
+   void (*pCallbackfn) (void *pCallbackContext),
+   void *pCallbackContext,
+   tpSirTxPerTrackingParam pTxPerTrackingParam);
+   
 #endif //#if !defined( __SME_API_H )

@@ -33,6 +33,10 @@
 #define WLAN_HAL_MAX_AC  4
 
 typedef tANI_U8 tSirMacAddr[6];
+typedef tANI_U8 tHalIpv4Addr[4];
+
+#define HAL_MAC_ADDR_LEN        6
+#define HAL_IPV4_ADDR_LEN       4
 
 #define WALN_HAL_STA_INVALID_IDX 0xFF
 #define WLAN_HAL_BSS_INVALID_IDX 0xFF
@@ -255,6 +259,22 @@ typedef enum
    WLAN_HAL_GET_TPC_REPORT_RSP       = 142,
    WLAN_HAL_RADAR_DETECT_IND         = 143,
    WLAN_HAL_RADAR_DETECT_INTR_IND    = 144,
+   WLAN_HAL_KEEP_ALIVE_REQ           = 145,
+   WLAN_HAL_KEEP_ALIVE_RSP           = 146,      
+   
+
+   /*PNO messages*/
+   WLAN_HAL_SET_PREF_NETWORK_REQ     = 147,
+   WLAN_HAL_SET_PREF_NETWORK_RSP     = 148,
+   WLAN_HAL_SET_RSSI_FILTER_REQ      = 149,
+   WLAN_HAL_SET_RSSI_FILTER_RSP      = 150,
+   WLAN_HAL_UPDATE_SCAN_PARAM_REQ    = 151,
+   WLAN_HAL_UPDATE_SCAN_PARAM_RSP    = 152,
+   WLAN_HAL_PREF_NETW_FOUND_IND      = 153, 
+
+   WLAN_HAL_SET_TX_PER_TRACKING_REQ  = 154,
+   WLAN_HAL_SET_TX_PER_TRACKING_RSP  = 155,
+   WLAN_HAL_TX_PER_HIT_IND           = 156,
    
    WLAN_HAL_MSG_MAX = WLAN_HAL_MAX_ENUM_SIZE
 }tHalHostMsgType;
@@ -3149,6 +3169,33 @@ typedef PACKED_PRE struct PACKED_POST
 }  tHalHostOffloadReqMsg, *tpHalHostOffloadReqMsg;
 
 /*---------------------------------------------------------------------------
+ * WLAN_HAL_KEEP_ALIVE_REQ
+ *--------------------------------------------------------------------------*/
+/* Packet Types. */
+#define HAL_KEEP_ALIVE_NULL_PKT              1
+#define HAL_KEEP_ALIVE_UNSOLICIT_ARP_RSP     2
+
+/* Enable or disable keep alive */
+#define HAL_KEEP_ALIVE_DISABLE   0
+#define HAL_KEEP_ALIVE_ENABLE    1
+
+/* Keep Alive request. */
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8          packetType;	
+    tANI_U32         timePeriod;
+    tHalIpv4Addr     hostIpv4Addr; 
+    tHalIpv4Addr     destIpv4Addr; 	
+    tSirMacAddr      destMacAddr;	
+} tHalKeepAliveReq, *tpHalKeepAliveReq;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalKeepAliveReq KeepAliveParams;
+}  tHalKeepAliveReqMsg, *tpHalKeepAliveReqMsg;
+
+/*---------------------------------------------------------------------------
  * WLAN_HAL_SET_RSSI_THRESH_REQ
  *--------------------------------------------------------------------------*/
 typedef PACKED_PRE struct PACKED_POST
@@ -3583,6 +3630,21 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader header;
    tHalHostOffloadRspParams hostOffloadRspParams;
 }  tHalHostOffloadRspMsg, *tpHalHostOffloadRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_KEEP_ALIVE_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalKeepAliveRspParams, *tpHalKeepAliveRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalKeepAliveRspParams keepAliveRspParams;
+}  tHalKeepAliveRspMsg, *tpHalKeepAliveRspMsg;
 
 /*---------------------------------------------------------------------------
  * WLAN_HAL_SET_RSSI_THRESH_RSP
@@ -4098,6 +4160,311 @@ typedef PACKED_PRE struct PACKED_POST
    tHalMsgHeader header;
    tHalHostResumeRspParams hostResumeRspParams;
 }  tHalHostResumeRspMsg, *tpHalHostResumeRspMsg;
+
+/*---------------------------------------------------------------------------
+ *PNO Messages
+ *-------------------------------------------------------------------------*/
+/*Max number of channels that a network can be found on*/
+#define WLAN_HAL_PNO_MAX_NETW_CHANNELS  26
+
+/*Maximum numbers of networks supported by PNO*/
+#define WLAN_HAL_PNO_MAX_SUPP_NETWORKS  16
+
+/*The number of scan time intervals that can be programmed into PNO*/
+#define WLAN_HAL_PNO_MAX_SCAN_TIMERS    10
+
+/*Maximum size of the probe template*/
+#define WLAN_HAL_PNO_MAX_PROBE_SIZE     450
+
+/*Type of PNO enabling 
+  Immediate - scanning will start immediately and PNO procedure will
+  be repeated based on timer
+  Suspend - scanning will start at suspend
+  Resume - scanning will start on system resume*/
+typedef enum
+{
+   ePNO_MODE_IMMEDIATE,
+   ePNO_MODE_ON_SUSPEND,
+   ePNO_MODE_ON_RESUME,
+   ePNO_MODE_MAX = WLAN_HAL_MAX_ENUM_SIZE
+} ePNOMode;
+
+/*Authentication type*/
+typedef enum 
+{
+    eAUTH_TYPE_ANY                   = 0,    
+    eAUTH_TYPE_OPEN_SYSTEM           = 1,
+    eAUTH_TYPE_SHARED_KEY            = 2,
+
+    // Upper layer authentication types
+    eAUTH_TYPE_WPA                   = 3,
+    eAUTH_TYPE_WPA_PSK               = 4,
+    
+    eAUTH_TYPE_RSN                   = 5,
+    eAUTH_TYPE_RSN_PSK               = 6,
+    eAUTH_TYPE_FT_RSN                = 7,
+    eAUTH_TYPE_FT_RSN_PSK            = 8,
+    eAUTH_TYPE_WAPI_WAI_CERTIFICATE  = 9,
+    eAUTH_TYPE_WAPI_WAI_PSK          = 10,
+    
+    eAUTH_TYPE_MAX = WLAN_HAL_MAX_ENUM_SIZE
+
+}tAuthType;
+
+/* Encryption type */
+typedef enum eEdType
+{
+    eED_ANY           = 0,
+    eED_NONE          = 1,
+    eED_WEP40         = 2,
+    eED_WEP104        = 3,
+    eED_TKIP          = 4,
+    eED_CCMP          = 5,
+    eED_WPI           = 6,
+    eED_AES_128_CMAC  = 7,
+    
+    eED_TYPE_MAX = WLAN_HAL_MAX_ENUM_SIZE
+} tEdType;
+
+/* 
+  The network description for which PNO will have to look for
+*/
+typedef PACKED_PRE struct PACKED_POST
+{
+  /*SSID of the BSS*/
+  tSirMacSSid ssId;
+
+  /*Authentication type for the network*/
+  tAuthType   authentication; 
+
+  /*Encryption type for the network*/
+  tEdType     encryption; 
+
+  /*Indicate the channel on which the Network can be found 
+    0 - if all channels */
+  tANI_U8     ucChannelCount;
+  tANI_U8     aChannels[WLAN_HAL_PNO_MAX_NETW_CHANNELS];
+
+  /*Indicates the RSSI threshold for the network to be considered*/
+  tANI_U8     rssiThreshold;
+}tNetworkType; 
+
+typedef PACKED_PRE struct PACKED_POST
+{
+  /*How much it should wait */
+  tANI_U32    uTimerValue; 
+
+  /*How many times it should repeat that wait value 
+    0 - keep using this timer until PNO is disabled*/
+  tANI_U32    uTimerRepeat; 
+
+  /*e.g:   2 3 
+           4 0 
+    - it will wait 2s between consecutive scans for 3 times
+    - after that it will wait 4s between consecutive scans until disabled*/
+}tScanTimer; 
+
+/* 
+  The network parameters to be sent to the PNO algorithm
+*/
+typedef PACKED_PRE struct PACKED_POST
+{
+  /*set to 0 if you wish for PNO to use its default telescopic timer*/
+  tANI_U8     ucScanTimersCount; 
+
+  /*A set value represents the amount of time that PNO will wait between 
+    two consecutive scan procedures
+    If the desired is for a uniform timer that fires always at the exact same
+    interval - one single value is to be set
+    If there is a desire for a more complex - telescopic like timer multiple
+    values can be set - once PNO reaches the end of the array it will
+    continue scanning at intervals presented by the last value*/
+  tScanTimer  aTimerValues[WLAN_HAL_PNO_MAX_SCAN_TIMERS]; 
+
+}tScanTimersType;
+
+typedef PACKED_PRE struct PACKED_POST {
+
+    /*Enable PNO*/
+    tANI_U8          enable;
+
+    /*Immediate,  On Suspend,   On Resume*/
+    ePNOMode         modePNO;
+    
+    /*Number of networks sent for PNO*/
+    tANI_U8          ucNetworksCount; 
+
+    /*The networks that PNO needs to look for*/
+    tNetworkType     aNetworks[WLAN_HAL_PNO_MAX_SUPP_NETWORKS];
+
+    /*The scan timers required for PNO*/
+    tScanTimersType  scanTimers; 
+
+    /*Probe template for 2.4GHz band*/
+    tANI_U16         us24GProbeSize; 
+    tANI_U8          a24GProbeTemplate[WLAN_HAL_PNO_MAX_PROBE_SIZE];
+
+    /*Probe template for 5GHz band*/
+    tANI_U16         us5GProbeSize; 
+    tANI_U8          a5GProbeTemplate[WLAN_HAL_PNO_MAX_PROBE_SIZE];
+
+} tPrefNetwListParams, * tpPrefNetwListParams;
+
+/*
+  Preferred network list request 
+*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tPrefNetwListParams   prefNetwListParams;
+}  tSetPrefNetwListReq, *tpSetPrefNetwListReq;
+
+/*
+  Preferred network list response 
+*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+
+   /*status of the request - just to indicate that PNO has acknowledged 
+     the request and will start scanning*/
+   tANI_U32   status;
+}  tSetPrefNetwListResp, *tpSetPrefNetwListResp;
+
+/*
+  Preferred network indication parameters 
+*/
+typedef PACKED_PRE struct PACKED_POST {
+
+  /*Network that was found with the highest RSSI*/
+  tSirMacSSid ssId;
+  
+  /*Indicates the RSSI */
+  tANI_U8     rssi;
+
+} tPrefNetwFoundParams, * tpPrefNetwFoundParams;
+
+/*
+  Preferred network found indication
+*/
+typedef PACKED_PRE struct PACKED_POST {
+
+   tHalMsgHeader header;
+   tPrefNetwFoundParams   prefNetwFoundParams;
+}  tPrefNetwFoundInd, *tpPrefNetwFoundInd;
+
+
+typedef PACKED_PRE struct PACKED_POST {
+
+  /*RSSI Threshold*/
+  tANI_U8          ucRssiThreshold;
+
+} tRssiFilterParams, * tpRssiFilterParams;
+
+/*
+  RSSI Filter request 
+*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tRssiFilterParams   prefNetwListParams;
+}  tSetRssiFilterReq, *tpSetRssiFilterReq;
+
+/*
+  Update scan params 
+*/
+typedef PACKED_PRE struct PACKED_POST  
+{
+
+  /*Host setting for 11d*/
+  tANI_U8   b11dEnabled; 
+
+  /*Lets PNO know that host has determined the regulatory domain*/
+  tANI_U8   b11dResolved;
+
+  /*Channels on which PNO is allowed to scan*/
+  tANI_U8   ucChannelCount; 
+  tANI_U8   aChannels[WLAN_HAL_PNO_MAX_NETW_CHANNELS]; 
+
+  /*Minimum channel time*/
+  tANI_U16  usActiveMinChTime; 
+
+  /*Maximum channel time*/
+  tANI_U16  usActiveMaxChTime; 
+
+  /*Minimum channel time*/
+  tANI_U16  usPassiveMinChTime; 
+
+  /*Maximum channel time*/
+  tANI_U16  usPassiveMaxChTime; 
+
+  /*Cb State*/
+  ePhyChanBondState cbState;
+
+} tUpdateScanParams, * tpUpdateScanParams;
+
+/*
+  Update scan params - sent from host to PNO
+  to be used during PNO scanning 
+*/
+typedef PACKED_PRE struct PACKED_POST{
+
+   tHalMsgHeader header;
+   tUpdateScanParams   scanParams;
+}  tUpdateScanParamsReq, *tpUpdateScanParamsReq;
+
+/*
+  Update scan params - sent from host to PNO
+  to be used during PNO scanning 
+*/
+typedef PACKED_PRE struct PACKED_POST{
+
+   tHalMsgHeader header;
+
+   /*status of the request */
+   tANI_U32   status;
+
+}  tUpdateScanParamsResp, *tpUpdateScanParamsResp;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_SET_TX_PER_TRACKING_REQ
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    tANI_U8  ucTxPerTrackingEnable;           /* 0: disable, 1:enable */
+    tANI_U8  ucTxPerTrackingPeriod;           /* Check period, unit is sec. */
+    tANI_U8  ucTxPerTrackingRatio;            /* (Fail TX packet)/(Total TX packet) ratio, the unit is 10%. */
+    tANI_U32 uTxPerTrackingWatermark;         /* A watermark of check number, once the tx packet exceed this number, we do the check, default is 5 */
+} tHalTxPerTrackingReqParam, *tpHalTxPerTrackingReqParam;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalTxPerTrackingReqParam txPerTrackingParams;
+}  tHalSetTxPerTrackingReqMsg, *tpHalSetTxPerTrackingReqMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_SET_TX_PER_TRACKING_RSP
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+    /* success or failure */
+    tANI_U32   status;
+} tHalTxPerTrackingRspParams, *tpHalTxPerTrackingRspParams;
+
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader header;
+   tHalTxPerTrackingRspParams txPerTrackingRspParams;
+}  tHalSetTxPerTrackingRspMsg, *tpHalSetTxPerTrackingRspMsg;
+
+/*---------------------------------------------------------------------------
+ * WLAN_HAL_TX_PER_HIT_IND
+ *--------------------------------------------------------------------------*/
+typedef PACKED_PRE struct PACKED_POST
+{
+   tHalMsgHeader   header;
+}tTxPerHitIndMsg, *tpTxPerHitIndMsg;
 
 #if defined(__ANI_COMPILER_PRAGMA_PACK_STACK)
 #pragma pack(pop)

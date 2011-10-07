@@ -90,6 +90,8 @@ typedef struct tagSmeStruct
     tDblLinkList smeCmdActiveList;
     tDblLinkList smeCmdPendingList;
     tDblLinkList smeCmdFreeList;   //preallocated roam cmd list
+	void (*pTxPerHitCallback) (void *pCallbackContext); /* callback for Tx PER hit to HDD */ 
+	void *pTxPerHitCbContext;
 } tSmeStruct, *tpSmeStruct;
 
 

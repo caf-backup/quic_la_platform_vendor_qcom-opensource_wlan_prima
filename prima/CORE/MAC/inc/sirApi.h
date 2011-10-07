@@ -82,6 +82,10 @@
 #define SIR_SCAN_HIDDEN_SSID_PE_DECISION             1
 #define SIR_SCAN_HIDDEN_SSID                         2
 
+#define SIR_MAC_ADDR_LEN        6
+#define SIR_IPV4_ADDR_LEN       4
+
+typedef tANI_U8 tSirIpv4Addr[SIR_IPV4_ADDR_LEN];
 
 enum eSirHostMsgTypes
 {
@@ -3608,6 +3612,25 @@ typedef struct sSirHostOffloadReq
     } params;
 } tSirHostOffloadReq, *tpSirHostOffloadReq;
 
+/* Packet Types. */
+#define SIR_KEEP_ALIVE_NULL_PKT              1
+#define SIR_KEEP_ALIVE_UNSOLICIT_ARP_RSP     2
+
+/* Enable or disable offload. */
+#define SIR_KEEP_ALIVE_DISABLE   0
+#define SIR_KEEP_ALIVE_ENABLE    1
+
+/* Keep Alive request. */
+typedef struct sSirKeepAliveReq
+{
+    v_U8_t          packetType;	
+    v_U32_t         timePeriod;
+    tSirIpv4Addr    hostIpv4Addr; 
+    tSirIpv4Addr    destIpv4Addr; 	
+    tSirMacAddr     destMacAddr;	
+
+} tSirKeepAliveReq, *tpSirKeepAliveReq;
+
 typedef struct sSirSmeAddStaSelfReq
 {
     tANI_U16        mesgType;
@@ -3701,6 +3724,106 @@ typedef struct sSirWlanSetRxpFilters
     tANI_U8 setMcstBcstFilter;
 }tSirWlanSetRxpFilters,*tpSirWlanSetRxpFilters;
 #endif
+
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+//
+// PNO Messages
+//
+
+// Set PNO 
+#define SIR_PNO_MAX_NETW_CHANNELS  26
+#define SIR_PNO_MAX_SUPP_NETWORKS  16
+#define SIR_PNO_MAX_SCAN_TIMERS    10
+
+/*size based of dot11 declaration without extra IEs as we will not carry those for PNO*/
+#define SIR_PNO_MAX_PB_REQ_SIZE    450 
+
+#define SIR_PNO_24G_DEFAULT_CH     1
+#define SIR_PNO_5G_DEFAULT_CH      36
+
+typedef enum
+{
+   SIR_PNO_MODE_IMMEDIATE,
+   SIR_PNO_MODE_ON_SUSPEND,
+   SIR_PNO_MODE_ON_RESUME,
+   SIR_PNO_MODE_MAX 
+} eSirPNOMode;
+
+typedef struct 
+{
+  tSirMacSSid ssId;
+  tANI_U32    authentication; 
+  tANI_U32    encryption; 
+  tANI_U8     ucChannelCount;
+  tANI_U8     aChannels[SIR_PNO_MAX_NETW_CHANNELS]; 
+  tANI_U8     rssiThreshold;
+} tSirNetworkType; 
+
+typedef struct 
+{
+  tANI_U32    uTimerValue; 
+  tANI_U32    uTimerRepeat; 
+}tSirScanTimer; 
+
+typedef struct
+{
+  tANI_U8        ucScanTimersCount; 
+  tSirScanTimer  aTimerValues[SIR_PNO_MAX_SCAN_TIMERS]; 
+} tSirScanTimersType;
+
+typedef struct sSirPNOScanReq
+{
+  tANI_U8             enable;
+  eSirPNOMode         modePNO;
+  tANI_U8             ucNetworksCount; 
+  tSirNetworkType     aNetworks[SIR_PNO_MAX_SUPP_NETWORKS];
+  tSirScanTimersType  scanTimers;
+  
+  /*added by SME*/
+  tANI_U16  us24GProbeTemplateLen; 
+  tANI_U8   p24GProbeTemplate[SIR_PNO_MAX_PB_REQ_SIZE];
+  tANI_U16  us5GProbeTemplateLen; 
+  tANI_U8   p5GProbeTemplate[SIR_PNO_MAX_PB_REQ_SIZE]; 
+} tSirPNOScanReq, *tpSirPNOScanReq;
+
+typedef struct sSirSetRSSIFilterReq
+{
+  tANI_U8     rssiThreshold;
+} tSirSetRSSIFilterReq, *tpSirSetRSSIFilterReq;
+
+
+// Update Scan Params 
+typedef struct {
+  tANI_U8   b11dEnabled; 
+  tANI_U8   b11dResolved;
+  tANI_U8   ucChannelCount; 
+  tANI_U8   aChannels[SIR_PNO_MAX_NETW_CHANNELS]; 
+  tANI_U16  usPassiveMinChTime; 
+  tANI_U16  usPassiveMaxChTime; 
+  tANI_U16  usActiveMinChTime; 
+  tANI_U16  usActiveMaxChTime; 
+} tSirUpdateScanParams, * tpSirUpdateScanParams;
+
+// Preferred Network Found Indication
+typedef struct
+{  
+  tANI_U16        mesgType;
+  tANI_U16        mesgLen;
+  /* Network that was found with the highest RSSI*/
+  tSirMacSSid ssId;
+  /* Indicates the RSSI */
+  tANI_U8        rssi;
+} tSirPrefNetworkFoundInd;
+#endif // FEATURE_WLAN_SCAN_PNO
+
+typedef struct sSirTxPerTrackingParam
+{
+    tANI_U8  ucTxPerTrackingEnable;           /* 0: disable, 1:enable */
+	tANI_U8  ucTxPerTrackingPeriod;              /* Check period, unit is sec. Once tx_stat_chk enable, firmware will check PER in this period periodically */
+	tANI_U8  ucTxPerTrackingRatio;            /* (Fail TX packet)/(Total TX packet) ratio, the unit is 10%. for example, 5 means 50% TX failed rate, default is 5. If current TX packet failed rate bigger than this ratio then firmware send WLC_E_TX_STAT_ERROR event to driver */
+	tANI_U32 uTxPerTrackingWatermark;               /* A watermark of check number, once the tx packet exceed this number, we do the check, default is 5 */
+}tSirTxPerTrackingParam, *tpSirTxPerTrackingParam;
 
 #endif /* __SIR_API_H */
 

@@ -1,6 +1,17 @@
 #ifndef __WLAN_HDD_HOST_OFFLOAD_H__
 #define __WLAN_HDD_HOST_OFFLOAD_H__
 
+/**===========================================================================
+
+  \file  wlan_hdd_host_offload.h
+
+  \brief Android WLAN HDD Host Offload API
+
+  Copyright 2011 (c) QUALCOMM Incorporated. All Rights Reserved.
+  QUALCOMM Proprietary and Confidential.
+
+  ==========================================================================*/
+
 /* Offload types. */
 #define WLAN_IPV4_ARP_REPLY_OFFLOAD           0
 #define WLAN_IPV6_NEIGHBOR_DISCOVERY_OFFLOAD  1

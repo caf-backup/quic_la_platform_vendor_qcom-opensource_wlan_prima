@@ -890,6 +890,33 @@ WLANSAP_DeauthSta
 );
 
 /*==========================================================================
+  FUNCTION    WLANSAP_SetChannelRange
+
+  DESCRIPTION 
+      This api function sets the range of channels for SoftAP.
+
+  DEPENDENCIES 
+    NA. 
+
+  PARAMETERS
+
+    IN
+    startChannel         : start channel
+    endChannel           : End channel
+    operatingBand        : Operating band (2.4GHz/5GHz)
+   
+  RETURN VALUE
+    The VOS_STATUS code associated with performing the operation  
+
+    VOS_STATUS_SUCCESS:  Success
+  
+  SIDE EFFECTS   
+============================================================================*/
+VOS_STATUS
+WLANSAP_SetChannelRange(tHalHandle hHal,v_U8_t startChannel, v_U8_t endChannel, 
+                              v_U8_t operatingBand);
+
+/*==========================================================================
   FUNCTION    WLANSAP_SetKeySta
 
   DESCRIPTION 
