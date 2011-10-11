@@ -299,6 +299,28 @@ int hdd_stop (struct net_device *dev)
 
 /**---------------------------------------------------------------------------
 
+  \brief hdd_uninit() - HDD uninit function
+
+  This is called during the netdev unregister to uninitialize all data
+associated with the device
+
+  \param  - dev Pointer to net_device structure
+
+  \return - void
+
+  --------------------------------------------------------------------------*/
+static void hdd_uninit (struct net_device *dev)
+{
+   hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev);
+
+   if (pAdapter && pAdapter->pHddCtx)
+   {
+      hdd_deinit_adapter(pAdapter->pHddCtx, pAdapter);
+   }
+}
+
+/**---------------------------------------------------------------------------
+
   \brief hdd_release_firmware() -
 
    This function calls the release firmware API to free the firmware buffer.
@@ -590,6 +612,7 @@ void wlan_hdd_release_intf_addr(hdd_context_t* pHddCtx, tANI_U8* releaseAddr)
   static struct net_device_ops wlan_drv_ops = {
       .ndo_open = hdd_open,
       .ndo_stop = hdd_stop,
+      .ndo_uninit = hdd_uninit,
       .ndo_start_xmit = hdd_hard_start_xmit,
       .ndo_tx_timeout = hdd_tx_timeout,
       .ndo_get_stats = hdd_stats,
@@ -602,6 +625,7 @@ void wlan_hdd_release_intf_addr(hdd_context_t* pHddCtx, tANI_U8* releaseAddr)
  static struct net_device_ops wlan_mon_drv_ops = {
       .ndo_open = hdd_mon_open,
       .ndo_stop = hdd_stop,
+      .ndo_uninit = hdd_uninit,
       .ndo_start_xmit = hdd_mon_hard_start_xmit,  
       .ndo_tx_timeout = hdd_tx_timeout,
       .ndo_get_stats = hdd_stats,
@@ -620,6 +644,7 @@ void hdd_set_station_ops( struct net_device *pWlanDev )
 #else
       pWlanDev->open = hdd_open;
       pWlanDev->stop = hdd_stop;
+      pWlanDev->uninit = hdd_uninit;
       pWlanDev->hard_start_xmit = NULL;
       pWlanDev->tx_timeout = hdd_tx_timeout;
       pWlanDev->get_stats = hdd_stats;
@@ -962,10 +987,10 @@ void hdd_cleanup_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter, tANI_
       {
          unregister_netdev(pWlanDev);
       }
-      clear_bit(NET_DEVICE_REGISTERED, &pAdapter->event_flags);
+      // note that the pAdapter is no longer valid at this point
+      // since the memory has been reclaimed
    }
 
-   hdd_deinit_adapter( pHddCtx, pAdapter );
 }
 
 hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
@@ -1063,7 +1088,7 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
 #if LINUX_VERSION_CODE > KERNEL_VERSION(2,6,29)
          pAdapter->dev->netdev_ops = &wlan_mon_drv_ops;
 #else
-         pAdapter->dev->open = hdd_mon_open,
+         pAdapter->dev->open = hdd_mon_open;
          pAdapter->dev->hard_start_xmit = hdd_mon_hard_start_xmit;
 #endif
          hdd_init_tx_rx( pAdapter );

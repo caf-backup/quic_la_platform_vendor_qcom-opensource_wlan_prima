@@ -108,6 +108,29 @@ int hdd_hostapd_stop (struct net_device *dev)
    netif_carrier_off(dev);
    return 0;
 }
+/**---------------------------------------------------------------------------
+
+  \brief hdd_hostapd_uninit() - HDD uninit function
+
+  This is called during the netdev unregister to uninitialize all data
+associated with the device
+
+  \param  - dev Pointer to net_device structure
+
+  \return - void
+
+  --------------------------------------------------------------------------*/
+static void hdd_hostapd_uninit (struct net_device *dev)
+{
+   hdd_adapter_t *pHostapdAdapter = netdev_priv(dev);
+
+   if (pHostapdAdapter && pHostapdAdapter->pHddCtx)
+   {
+      hdd_deinit_adapter(pHostapdAdapter->pHddCtx, pHostapdAdapter);
+   }
+}
+
+
 /**============================================================================
   @brief hdd_hostapd_hard_start_xmit() - Function registered with the Linux OS for 
   transmitting packets. There are 2 versions of this function. One that uses
@@ -1912,6 +1935,7 @@ const struct iw_handler_def hostapd_handler_def = {
 struct net_device_ops net_ops_struct  = {
     .ndo_open = hdd_hostapd_open,
     .ndo_stop = hdd_hostapd_stop,
+    .ndo_uninit = hdd_hostapd_uninit,
     .ndo_start_xmit = hdd_softap_hard_start_xmit,
     .ndo_tx_timeout = hdd_softap_tx_timeout,
     .ndo_get_stats = hdd_softap_stats,
@@ -1934,6 +1958,7 @@ void hdd_set_ap_ops( struct net_device *pWlanHostapdDev )
 #else
   pWlanHostapdDev->open = hdd_hostapd_open;
   pWlanHostapdDev->stop = hdd_hostapd_stop;
+  pWlanHostapdDev->uninit = hdd_hostapd_uninit;
   pWlanHostapdDev->hard_start_xmit = hdd_softap_hard_start_xmit;
   pWlanHostapdDev->tx_timeout = hdd_softap_tx_timeout;
   pWlanHostapdDev->get_stats = hdd_softap_stats;
