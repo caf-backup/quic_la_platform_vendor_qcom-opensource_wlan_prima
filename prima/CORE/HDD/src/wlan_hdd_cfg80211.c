@@ -314,7 +314,6 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
     wiphy->n_cipher_suites = ARRAY_SIZE(hdd_cipher_suites);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
-    wiphy->flags |= WIPHY_FLAG_SUPPORTS_SEPARATE_DEFAULT_KEYS;
 #ifdef WLAN_FEATURE_P2P
     wiphy->max_remain_on_channel_duration = 1000;
 #endif
@@ -438,10 +437,12 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
 
     if (params->tail && !params->tail_len)
         return -EINVAL;
- 
-    
-    if(!params->dtim_period)
+
+#if (LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,38))
+    /* Kernel 3.0 is not updating dtim_period for set beacon */
+    if (!params->dtim_period)
         return -EINVAL;
+#endif
 
     if(params->head)
         head_len = params->head_len;
@@ -459,7 +460,6 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
 
     if( beacon == NULL )
         return -ENOMEM;
-
 
     if(params->dtim_period)
         beacon->dtim_period = params->dtim_period;
@@ -1965,10 +1965,25 @@ static struct cfg80211_bss* wlan_hdd_cfg80211_inform_bss(
     int ie_length = GET_IE_LEN_IN_BSS_DESC( bss_desc->length );
     const char *ie = 
         ((ie_length != 0) ? (const char *)&bss_desc->ieFields: NULL);
-    unsigned int freq = ieee80211_channel_to_frequency(chan_no);
-    struct ieee80211_channel *chan = __ieee80211_get_channel(wiphy, freq);
+    unsigned int freq;
+    struct ieee80211_channel *chan;
 
     ENTER();
+
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
+    if (chan_no <= ARRAY_SIZE(hdd_2GHZ_channels))
+    {
+        freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_2GHZ);
+    }
+    else
+    {
+        freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_5GHZ);
+    }
+#else
+    freq = ieee80211_channel_to_frequency(chan_no);
+#endif
+
+    chan = __ieee80211_get_channel(wiphy, freq);
 
     return (cfg80211_inform_bss(wiphy, chan, bss_desc->bssId, 
                 le64_to_cpu(*(__le64 *)bss_desc->timeStamp), 
@@ -2004,8 +2019,8 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
     int ie_length = GET_IE_LEN_IN_BSS_DESC( bss_desc->length );
     const char *ie =
         ((ie_length != 0) ? (const char *)&bss_desc->ieFields: NULL);
-    unsigned int freq = ieee80211_channel_to_frequency(chan_no);
-    struct ieee80211_channel *chan = __ieee80211_get_channel(wiphy, freq);
+    unsigned int freq;
+    struct ieee80211_channel *chan;
     struct ieee80211_mgmt *mgmt =
         kzalloc((sizeof (struct ieee80211_mgmt) + ie_length), GFP_KERNEL);
     struct cfg80211_bss *bss_status = NULL;
@@ -2022,6 +2037,21 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
 
     mgmt->frame_control |=
         (u16)(IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_PROBE_RESP);
+
+#if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
+    if (chan_no <= ARRAY_SIZE(hdd_2GHZ_channels))
+    {
+        freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_2GHZ);
+    }
+    else
+    {
+        freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_5GHZ);
+    }
+#else
+    freq = ieee80211_channel_to_frequency(chan_no);
+#endif
+
+    chan = __ieee80211_get_channel(wiphy, freq);
 
     bss_status = cfg80211_inform_bss_frame(wiphy, chan, mgmt,
             frame_len, 0, GFP_KERNEL);
@@ -2272,6 +2302,15 @@ int wlan_hdd_cfg80211_scan( struct wiphy *wiphy, struct net_device *dev,
 
     if (request)
     {
+        /* Even though supplicant doesn't provide any SSIDs, n_ssids is set to 1.
+         * Becasue of this, driver is assuming that this is not wildcard scan and so
+         * is not aging out the scan results.
+         */
+        if ('\0' == request->ssids->ssid[0])
+        {
+            request->n_ssids = 0;
+        }
+
         if (0 < request->n_ssids)
         {
             tCsrSSIDInfo *SsidInfo;
@@ -3500,14 +3539,14 @@ int wlan_hdd_cfg80211_get_station(struct wiphy *wiphy, struct net_device *dev,
     return 0;
 }
 
-int set_default_mgmt_key(struct wiphy *wiphy,
+static int wlan_hdd_set_default_mgmt_key(struct wiphy *wiphy,
                          struct net_device *netdev,
                          u8 key_index)
 {
     return 0;
 }
 
-int set_txq_params(struct wiphy *wiphy,
+static int wlan_hdd_set_txq_params(struct wiphy *wiphy,
                    struct ieee80211_txq_params *params)
 {
     return 0;
@@ -3543,10 +3582,10 @@ static struct cfg80211_ops wlan_hdd_cfg80211_ops =
     .mgmt_tx =  wlan_hdd_action,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,38))
      .mgmt_tx_cancel_wait = wlan_hdd_cfg80211_mgmt_tx_cancel_wait,
+     .set_default_mgmt_key = wlan_hdd_set_default_mgmt_key,
+     .set_txq_params = wlan_hdd_set_txq_params,
 #endif
      .get_station = wlan_hdd_cfg80211_get_station,
-     .set_default_mgmt_key = set_default_mgmt_key,
-     .set_txq_params = set_txq_params,
 #endif
 };
 

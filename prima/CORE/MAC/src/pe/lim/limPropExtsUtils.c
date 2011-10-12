@@ -1311,7 +1311,8 @@ tAniCBSecondaryMode     limGetAniCBState( tSirMacHTSecondaryChannelOffset htCBMo
  * @return tStaRateMode
  */
 tStaRateMode limGetStaPeerType( tpAniSirGlobal pMac,
-    tpDphHashNode pStaDs )
+    tpDphHashNode pStaDs,
+    tpPESession   psessionEntry)
 {
 tStaRateMode staPeerType = eSTA_11b;
 
@@ -1329,7 +1330,7 @@ tStaRateMode staPeerType = eSTA_11b;
         staPeerType = eSTA_11n;
   else if(pStaDs->erpEnabled)
         staPeerType = eSTA_11bg;
-  else if(pMac->lim.gLimRFBand == SIR_BAND_5_GHZ)
+  else if(psessionEntry->limRFBand == SIR_BAND_5_GHZ)
         staPeerType = eSTA_11a;
 
   return staPeerType;

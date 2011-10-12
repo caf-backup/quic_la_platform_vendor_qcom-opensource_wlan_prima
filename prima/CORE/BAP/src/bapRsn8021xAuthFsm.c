@@ -1310,7 +1310,7 @@ int checkTransition(tAuthRsnFsm *fsm, void *arg)
             // Copy whatever sequence number came in the EAPOL-key message
             vos_mem_copy(micFailureInfo->TSC, rxDesc->keyRecvSeqCounter, SIR_CIPHER_SEQ_CTR_SIZE);
             gotoStateIntegFailure(fsm, micFailureInfo);
-
+            vos_mem_free(micFailureInfo);
         } 
         else {
             // TBD: Untested. Why are local aNonce and local replyCtr not incremented in spec?
@@ -1339,6 +1339,13 @@ int checkTransition(tAuthRsnFsm *fsm, void *arg)
 static void msg2TimerCallback( void *pv )
 {
     tAuthRsnFsm *fsm = (tAuthRsnFsm *)pv;
+    if (NULL == fsm) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "fsm is NULL in %s", __FILE__);
+
+        return;
+    }
 
     //Only when waiting for msg2
     if( PTK_START == fsm->currentState )
@@ -1352,6 +1359,13 @@ static void msg2TimerCallback( void *pv )
 static void msg4TimerCallback( void *pv )
 {
     tAuthRsnFsm *fsm = (tAuthRsnFsm *)pv;
+    if (NULL == fsm) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "fsm is NULL in %s", __FILE__);
+
+        return;
+    }
 
     //Only when we are waiting for msg4
     if( PTK_INIT_NEGO_TX == fsm->currentState )
@@ -1369,8 +1383,35 @@ static int authRsnRxFrameHandler( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket )
 {
     int retVal = ANI_ERROR;
     tAniPacket *pAniPacket;
-    tBtampContext *ctx = (tBtampContext *)VOS_GET_BAP_CB( pvosGCtx );
-    tAuthRsnFsm *fsm = &ctx->uFsm.authFsm;
+    tBtampContext *ctx;
+    tAuthRsnFsm *fsm;
+
+    /* Validate params */ 
+    if ((pvosGCtx == NULL) || (NULL == pPacket))
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "param is NULL in %s", __FILE__);
+
+        return retVal;
+    }
+
+    ctx = (tBtampContext *)VOS_GET_BAP_CB( pvosGCtx );
+    if (NULL == ctx) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "ctx is NULL in %s", __FILE__);
+
+        return retVal;
+    }
+
+    fsm = &ctx->uFsm.authFsm;
+    if (NULL == fsm) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "fsm is NULL in %s", __FILE__);
+
+        return retVal;
+    }
 
     do
     {
@@ -1399,7 +1440,23 @@ static int authRsnRxFrameHandler( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket )
 static int authRsnTxCompleteHandler( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket, VOS_STATUS retStatus )
 {
     tBtampContext *ctx = (tBtampContext *)VOS_GET_BAP_CB( pvosGCtx );
-    tAuthRsnFsm *fsm = &ctx->uFsm.authFsm;
+    tAuthRsnFsm *fsm;
+    if (NULL == ctx) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "ctx is NULL in %s", __FILE__);
+
+        return ANI_ERROR;
+    }
+
+    fsm = &ctx->uFsm.authFsm;
+    if (NULL == fsm) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "fsm is NULL in %s", __FILE__);
+
+        return ANI_ERROR;
+    }
 
     vos_pkt_return_packet( pPacket );
     if(!VOS_IS_STATUS_SUCCESS( retStatus ) )

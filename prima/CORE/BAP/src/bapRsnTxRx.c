@@ -87,8 +87,31 @@ static VOS_STATUS bapRsnTxCompleteCallback( v_PVOID_t pvosGCtx, vos_pkt_t *pPack
     tCsrRoamSetKey setKeyInfo;
 	tSuppRsnFsm *fsm;
 	
+    if (NULL == pvosGCtx) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "pvosGCtx is NULL in %s", __FILE__);
+
+        return VOS_STATUS_E_FAULT;
+    }
+
 	btampContext = VOS_GET_BAP_CB(pvosGCtx); 
+    if (NULL == btampContext) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "btampContext is NULL in %s", __FILE__);
+
+        return VOS_STATUS_E_FAULT;
+    }
+
 	fsm = &btampContext->uFsm.suppFsm;
+    if (NULL == fsm) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "fsm is NULL in %s", __FILE__);
+
+        return VOS_STATUS_E_FAULT;
+    }
 
     //If we get a disconect from upper layer before getting the pkt from TL the
     //bapRsnFsmTxCmpHandler could be NULL 

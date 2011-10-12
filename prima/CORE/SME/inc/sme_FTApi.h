@@ -55,8 +55,8 @@ void sme_FTClose(tHalHandle hHal);
 void sme_SetFTIEs( tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *ft_ies, tANI_U16 ft_ies_length );
 eHalStatus sme_FTUpdateKey( tHalHandle hHal, tCsrRoamSetKey * pFTKeyInfo );
 void csrFTPreAuthRspProcessor( tHalHandle hHal, tpSirFTPreAuthRsp pFTPreAuthRsp );
-void sme_GetFTPreAuthResponse( tHalHandle hHal, tANI_U8 *ft_ies, tANI_U16 *ft_ies_length );
-void sme_GetRICIEs( tHalHandle hHal, tANI_U8 *ric_ies, tANI_U32 *ric_ies_length );
+void sme_GetFTPreAuthResponse( tHalHandle hHal, tANI_U8 *ft_ies, tANI_U32 ft_ies_ip_len, tANI_U16 *ft_ies_length );
+void sme_GetRICIEs( tHalHandle hHal, tANI_U8 *ric_ies, tANI_U32 ric_ies_ip_len, tANI_U32 *ric_ies_length );
 void sme_PreauthReassocIntvlTimerCallback(void *context);
 
 

@@ -156,11 +156,17 @@ wpt_status WDTS_RxPacket (void *pContext, wpt_packet *pFrame, WDTS_ChannelType c
     return eWLAN_PAL_STATUS_E_FAILURE;
   }
 
-
   /*------------------------------------------------------------------------
     Extract BD header and check if valid
     ------------------------------------------------------------------------*/
   pBDHeader = (wpt_uint8*)wpalPacketGetRawBuf(pFrame);
+  if(NULL == pBDHeader)
+  {
+    DTI_TRACE( DTI_TRACE_LEVEL_ERROR,
+       "WLAN TL:BD header recieved NULL - dropping packet");
+    wpalPacketFree(pFrame);
+    return eWLAN_PAL_STATUS_E_FAILURE;
+  }
   WDI_SwapRxBd(pBDHeader);
 
   ucMPDUHOffset = (wpt_uint8)WDI_RX_BD_GET_MPDU_H_OFFSET(pBDHeader);

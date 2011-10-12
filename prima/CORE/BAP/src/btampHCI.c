@@ -4650,11 +4650,20 @@ v_U32_t btampPackTlvAMP_Assoc_Connected_Channel(void * pCtx,
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampPackTlvAMP_Assoc_Connected_Channel\n"); 
 #endif    
+    // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
 
     status = btampGetPackedTlvAMP_Assoc_Connected_Channel(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3, 0);
@@ -4675,11 +4684,15 @@ v_U32_t btampPackTlvAMP_Assoc_Connected_Channel(void * pCtx,
         else break;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } 
+    else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvAMP_Assoc_Connected_Channel. */
 
@@ -4704,11 +4717,19 @@ v_U32_t btampPackTlvAMP_Assoc_MAC_Addr(void * pCtx,
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampPackTlvAMP_Assoc_MAC_Addr\n"); 
 #endif    
+    // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
 
     status = btampGetPackedTlvAMP_Assoc_MAC_Addr(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1, 0);
@@ -4722,11 +4743,14 @@ v_U32_t btampPackTlvAMP_Assoc_MAC_Addr(void * pCtx,
         nBuf -= 6;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvAMP_Assoc_MAC_Addr. */
 
@@ -4751,11 +4775,19 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Capabilities(void * pCtx,
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampPackTlvAMP_Assoc_PAL_Capabilities\n"); 
 #endif    
+    // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
 
     status = btampGetPackedTlvAMP_Assoc_PAL_Capabilities(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 4, 0);
@@ -4769,11 +4801,14 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Capabilities(void * pCtx,
         nBuf -= 4;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvAMP_Assoc_PAL_Capabilities. */
 
@@ -4798,11 +4833,19 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Version(void * pCtx,
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampPackTlvAMP_Assoc_PAL_Version\n"); 
 #endif    
+    // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
 
     status = btampGetPackedTlvAMP_Assoc_PAL_Version(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5, 0);
@@ -4824,11 +4867,14 @@ v_U32_t btampPackTlvAMP_Assoc_PAL_Version(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvAMP_Assoc_PAL_Version. */
 
@@ -4853,11 +4899,19 @@ v_U32_t btampPackTlvAMP_Assoc_Preferred_Channel_List(void * pCtx,
     VOS_TRACE(VOS_MODULE_ID_BAP,VOS_TRACE_LEVEL_ERROR,
       "In btampPackTlvAMP_Assoc_Preferred_Channel_List\n"); 
 #endif    
+    // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
 
     status = btampGetPackedTlvAMP_Assoc_Preferred_Channel_List(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 2, 0);
@@ -4878,11 +4932,14 @@ v_U32_t btampPackTlvAMP_Assoc_Preferred_Channel_List(void * pCtx,
         else break;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvAMP_Assoc_Preferred_Channel_List. */
 
@@ -4903,10 +4960,19 @@ v_U32_t btampPackTlvFlow_Spec(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvFlow_Spec(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 6, 0);
@@ -4940,11 +5006,14 @@ v_U32_t btampPackTlvFlow_Spec(void * pCtx,
         nBuf -= 4;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen) 
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvFlow_Spec. */
 
@@ -4965,10 +5034,19 @@ v_U32_t btampPackTlvHCI_Accept_Logical_Link_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Accept_Logical_Link_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1081, 0);
@@ -4990,11 +5068,14 @@ v_U32_t btampPackTlvHCI_Accept_Logical_Link_Cmd(void * pCtx,
         nBuf -= 18;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Accept_Logical_Link_Cmd. */
 
@@ -5015,10 +5096,19 @@ v_U32_t btampPackTlvHCI_Accept_Physical_Link_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Accept_Physical_Link_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1078, 0);
@@ -5044,11 +5134,14 @@ v_U32_t btampPackTlvHCI_Accept_Physical_Link_Cmd(void * pCtx,
         nBuf -= ( pSrc->key_length );
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Accept_Physical_Link_Cmd. */
 
@@ -5069,10 +5162,19 @@ v_U32_t btampPackTlvHCI_Channel_Selected_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Channel_Selected_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 65, 0);
@@ -5086,11 +5188,14 @@ v_U32_t btampPackTlvHCI_Channel_Selected_Event(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Channel_Selected_Event. */
 
@@ -5111,10 +5216,19 @@ v_U32_t btampPackTlvHCI_Command_Complete_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Command_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 14, 0);
@@ -5513,11 +5627,14 @@ v_U32_t btampPackTlvHCI_Command_Complete_Event(void * pCtx,
         }
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Command_Complete_Event. */
 
@@ -5538,10 +5655,19 @@ v_U32_t btampPackTlvHCI_Command_Status_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Command_Status_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 15, 0);
@@ -5563,11 +5689,14 @@ v_U32_t btampPackTlvHCI_Command_Status_Event(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Command_Status_Event. */
 
@@ -5588,10 +5717,19 @@ v_U32_t btampPackTlvHCI_Create_Logical_Link_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Create_Logical_Link_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1080, 0);
@@ -5613,11 +5751,14 @@ v_U32_t btampPackTlvHCI_Create_Logical_Link_Cmd(void * pCtx,
         nBuf -= 18;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Create_Logical_Link_Cmd. */
 
@@ -5638,10 +5779,19 @@ v_U32_t btampPackTlvHCI_Create_Physical_Link_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Create_Physical_Link_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1077, 0);
@@ -5667,11 +5817,14 @@ v_U32_t btampPackTlvHCI_Create_Physical_Link_Cmd(void * pCtx,
         nBuf -= ( pSrc->key_length );
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Create_Physical_Link_Cmd. */
 
@@ -5692,10 +5845,19 @@ v_U32_t btampPackTlvHCI_Data_Buffer_Overflow_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Data_Buffer_Overflow_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 26, 0);
@@ -5709,11 +5871,14 @@ v_U32_t btampPackTlvHCI_Data_Buffer_Overflow_Event(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Data_Buffer_Overflow_Event. */
 
@@ -5734,10 +5899,19 @@ v_U32_t btampPackTlvHCI_Disconnect_Logical_Link_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Disconnect_Logical_Link_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1082, 0);
@@ -5751,11 +5925,14 @@ v_U32_t btampPackTlvHCI_Disconnect_Logical_Link_Cmd(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Disconnect_Logical_Link_Cmd. */
 
@@ -5776,10 +5953,19 @@ v_U32_t btampPackTlvHCI_Disconnect_Logical_Link_Complete_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Disconnect_Logical_Link_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 70, 0);
@@ -5801,11 +5987,14 @@ v_U32_t btampPackTlvHCI_Disconnect_Logical_Link_Complete_Event(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Disconnect_Logical_Link_Complete_Event. */
 
@@ -5826,10 +6015,19 @@ v_U32_t btampPackTlvHCI_Disconnect_Physical_Link_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Disconnect_Physical_Link_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1079, 0);
@@ -5847,11 +6045,14 @@ v_U32_t btampPackTlvHCI_Disconnect_Physical_Link_Cmd(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Disconnect_Physical_Link_Cmd. */
 
@@ -5872,10 +6073,19 @@ v_U32_t btampPackTlvHCI_Disconnect_Physical_Link_Complete_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Disconnect_Physical_Link_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 66, 0);
@@ -5897,11 +6107,14 @@ v_U32_t btampPackTlvHCI_Disconnect_Physical_Link_Complete_Event(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Disconnect_Physical_Link_Complete_Event. */
 
@@ -5922,10 +6135,19 @@ v_U32_t btampPackTlvHCI_Flow_Spec_Modify_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Flow_Spec_Modify_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1084, 0);
@@ -5951,11 +6173,14 @@ v_U32_t btampPackTlvHCI_Flow_Spec_Modify_Cmd(void * pCtx,
         nBuf -= 18;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Flow_Spec_Modify_Cmd. */
 
@@ -5976,10 +6201,19 @@ v_U32_t btampPackTlvHCI_Flow_Spec_Modify_Complete_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Flow_Spec_Modify_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 71, 0);
@@ -5997,11 +6231,14 @@ v_U32_t btampPackTlvHCI_Flow_Spec_Modify_Complete_Event(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Flow_Spec_Modify_Complete_Event. */
 
@@ -6022,10 +6259,19 @@ v_U32_t btampPackTlvHCI_Flush_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Flush_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3080, 0);
@@ -6039,11 +6285,14 @@ v_U32_t btampPackTlvHCI_Flush_Cmd(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Flush_Cmd. */
 
@@ -6064,10 +6313,19 @@ v_U32_t btampPackTlvHCI_Flush_Occurred_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Flush_Occurred_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 17, 0);
@@ -6081,11 +6339,14 @@ v_U32_t btampPackTlvHCI_Flush_Occurred_Event(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Flush_Occurred_Event. */
 
@@ -6106,6 +6367,14 @@ v_U32_t btampPackTlvHCI_Num_Completed_Pkts_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Num_Completed_Pkts_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
@@ -6159,11 +6428,14 @@ v_U32_t btampPackTlvHCI_Num_Completed_Pkts_Event(void * pCtx,
 #endif
 //        break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Num_Completed_Pkts_Event. */
 
@@ -6184,10 +6456,19 @@ v_U32_t btampPackTlvHCI_Generic_AMP_Link_Key_Notification_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Generic_AMP_Link_Key_Notification_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 62, 0);
@@ -6209,11 +6490,14 @@ v_U32_t btampPackTlvHCI_Generic_AMP_Link_Key_Notification_Event(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Generic_AMP_Link_Key_Notification_Event. */
 
@@ -6234,10 +6518,19 @@ v_U32_t btampPackTlvHCI_Hardware_Error_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Hardware_Error_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 16, 0);
@@ -6251,11 +6544,14 @@ v_U32_t btampPackTlvHCI_Hardware_Error_Event(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Hardware_Error_Event. */
 
@@ -6276,10 +6572,19 @@ v_U32_t btampPackTlvHCI_Logical_Link_Cancel_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Logical_Link_Cancel_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 1083, 0);
@@ -6297,11 +6602,14 @@ v_U32_t btampPackTlvHCI_Logical_Link_Cancel_Cmd(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Logical_Link_Cancel_Cmd. */
 
@@ -6322,10 +6630,19 @@ v_U32_t btampPackTlvHCI_Logical_Link_Complete_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Logical_Link_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 69, 0);
@@ -6351,11 +6668,14 @@ v_U32_t btampPackTlvHCI_Logical_Link_Complete_Event(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Logical_Link_Complete_Event. */
 
@@ -6376,10 +6696,19 @@ v_U32_t btampPackTlvHCI_Loopback_Command_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Loopback_Command_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 25, 0);
@@ -6393,11 +6722,14 @@ v_U32_t btampPackTlvHCI_Loopback_Command_Event(void * pCtx,
         nBuf -= 64;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Loopback_Command_Event. */
 
@@ -6418,10 +6750,19 @@ v_U32_t btampPackTlvHCI_Physical_Link_Complete_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Physical_Link_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 64, 0);
@@ -6439,11 +6780,14 @@ v_U32_t btampPackTlvHCI_Physical_Link_Complete_Event(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Physical_Link_Complete_Event. */
 
@@ -6464,10 +6808,19 @@ v_U32_t btampPackTlvHCI_Physical_Link_Loss_Warning_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Physical_Link_Loss_Warning_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 67, 0);
@@ -6485,11 +6838,14 @@ v_U32_t btampPackTlvHCI_Physical_Link_Loss_Warning_Event(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Physical_Link_Loss_Warning_Event. */
 
@@ -6510,10 +6866,19 @@ v_U32_t btampPackTlvHCI_Physical_Link_Recovery_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Physical_Link_Recovery_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 68, 0);
@@ -6527,11 +6892,14 @@ v_U32_t btampPackTlvHCI_Physical_Link_Recovery_Event(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Physical_Link_Recovery_Event. */
 
@@ -6552,10 +6920,19 @@ v_U32_t btampPackTlvHCI_Qos_Violation_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Qos_Violation_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 30, 0);
@@ -6569,11 +6946,14 @@ v_U32_t btampPackTlvHCI_Qos_Violation_Event(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Qos_Violation_Event. */
 
@@ -6594,10 +6974,19 @@ v_U32_t btampPackTlvHCI_Read_Best_Effort_Flush_Timeout_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Best_Effort_Flush_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3177, 0);
@@ -6611,11 +7000,14 @@ v_U32_t btampPackTlvHCI_Read_Best_Effort_Flush_Timeout_Cmd(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Best_Effort_Flush_Timeout_Cmd. */
 
@@ -6636,10 +7028,19 @@ v_U32_t btampPackTlvHCI_Read_Buffer_Size_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Buffer_Size_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 4101, 0);
@@ -6649,11 +7050,14 @@ v_U32_t btampPackTlvHCI_Read_Buffer_Size_Cmd(void * pCtx,
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Buffer_Size_Cmd. */
 
@@ -6674,10 +7078,19 @@ v_U32_t btampPackTlvHCI_Read_Connection_Accept_Timeout_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Connection_Accept_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3093, 0);
@@ -6687,11 +7100,14 @@ v_U32_t btampPackTlvHCI_Read_Connection_Accept_Timeout_Cmd(void * pCtx,
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Connection_Accept_Timeout_Cmd. */
 
@@ -6712,10 +7128,19 @@ v_U32_t btampPackTlvHCI_Read_Data_Block_Size_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Data_Block_Size_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 4106, 0);
@@ -6725,11 +7150,14 @@ v_U32_t btampPackTlvHCI_Read_Data_Block_Size_Cmd(void * pCtx,
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Data_Block_Size_Cmd. */
 
@@ -6750,10 +7178,19 @@ v_U32_t btampPackTlvHCI_Read_Failed_Contact_Counter_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Failed_Contact_Counter_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5121, 0);
@@ -6767,11 +7204,14 @@ v_U32_t btampPackTlvHCI_Read_Failed_Contact_Counter_Cmd(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Failed_Contact_Counter_Cmd. */
 
@@ -6792,10 +7232,19 @@ v_U32_t btampPackTlvHCI_Read_Flow_Control_Mode_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Flow_Control_Mode_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3174, 0);
@@ -6805,11 +7254,14 @@ v_U32_t btampPackTlvHCI_Read_Flow_Control_Mode_Cmd(void * pCtx,
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
         break;
     }
-    (void)pCtx;
+    
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Flow_Control_Mode_Cmd. */
 
@@ -6830,10 +7282,19 @@ v_U32_t btampPackTlvHCI_Read_Link_Quality_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Link_Quality_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5123, 0);
@@ -6847,11 +7308,14 @@ v_U32_t btampPackTlvHCI_Read_Link_Quality_Cmd(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+    
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Link_Quality_Cmd. */
 
@@ -6872,10 +7336,19 @@ v_U32_t btampPackTlvHCI_Read_Link_Supervision_Timeout_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Link_Supervision_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3126, 0);
@@ -6889,11 +7362,14 @@ v_U32_t btampPackTlvHCI_Read_Link_Supervision_Timeout_Cmd(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Link_Supervision_Timeout_Cmd. */
 
@@ -6914,10 +7390,19 @@ v_U32_t btampPackTlvHCI_Read_Local_AMP_Assoc_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Local_AMP_Assoc_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5130, 0);
@@ -6939,11 +7424,14 @@ v_U32_t btampPackTlvHCI_Read_Local_AMP_Assoc_Cmd(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Local_AMP_Assoc_Cmd. */
 
@@ -6964,10 +7452,19 @@ v_U32_t btampPackTlvHCI_Read_Local_AMP_Information_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Local_AMP_Information_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5129, 0);
@@ -6977,11 +7474,14 @@ v_U32_t btampPackTlvHCI_Read_Local_AMP_Information_Cmd(void * pCtx,
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Local_AMP_Information_Cmd. */
 
@@ -7002,10 +7502,19 @@ v_U32_t btampPackTlvHCI_Read_Local_Supported_Cmds_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Local_Supported_Cmds_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 4098, 0);
@@ -7015,11 +7524,14 @@ v_U32_t btampPackTlvHCI_Read_Local_Supported_Cmds_Cmd(void * pCtx,
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Local_Supported_Cmds_Cmd. */
 
@@ -7040,10 +7552,19 @@ v_U32_t btampPackTlvHCI_Read_Local_Version_Info_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Local_Version_Info_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 4097, 0);
@@ -7053,11 +7574,14 @@ v_U32_t btampPackTlvHCI_Read_Local_Version_Info_Cmd(void * pCtx,
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen) 
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Local_Version_Info_Cmd. */
 
@@ -7078,10 +7602,19 @@ v_U32_t btampPackTlvHCI_Read_Location_Data_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Location_Data_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3172, 0);
@@ -7091,11 +7624,14 @@ v_U32_t btampPackTlvHCI_Read_Location_Data_Cmd(void * pCtx,
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Location_Data_Cmd. */
 
@@ -7116,10 +7652,19 @@ v_U32_t btampPackTlvHCI_Read_Logical_Link_Accept_Timeout_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Logical_Link_Accept_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3169, 0);
@@ -7129,11 +7674,14 @@ v_U32_t btampPackTlvHCI_Read_Logical_Link_Accept_Timeout_Cmd(void * pCtx,
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Logical_Link_Accept_Timeout_Cmd. */
 
@@ -7154,10 +7702,19 @@ v_U32_t btampPackTlvHCI_Read_Loopback_Mode_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_Loopback_Mode_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 6145, 0);
@@ -7167,11 +7724,14 @@ v_U32_t btampPackTlvHCI_Read_Loopback_Mode_Cmd(void * pCtx,
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_Loopback_Mode_Cmd. */
 
@@ -7192,10 +7752,19 @@ v_U32_t btampPackTlvHCI_Read_RSSI_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Read_RSSI_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5125, 0);
@@ -7209,11 +7778,14 @@ v_U32_t btampPackTlvHCI_Read_RSSI_Cmd(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Read_RSSI_Cmd. */
 
@@ -7234,10 +7806,19 @@ v_U32_t btampPackTlvHCI_Reset_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Reset_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3075, 0);
@@ -7247,11 +7828,14 @@ v_U32_t btampPackTlvHCI_Reset_Cmd(void * pCtx,
         pBuf += sLen; nBuf -= sLen; *pnConsumed += sLen;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Reset_Cmd. */
 
@@ -7272,10 +7856,19 @@ v_U32_t btampPackTlvHCI_Reset_Failed_Contact_Counter_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Reset_Failed_Contact_Counter_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5122, 0);
@@ -7289,11 +7882,14 @@ v_U32_t btampPackTlvHCI_Reset_Failed_Contact_Counter_Cmd(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Reset_Failed_Contact_Counter_Cmd. */
 
@@ -7314,10 +7910,19 @@ v_U32_t btampPackTlvHCI_Set_Event_Mask_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Set_Event_Mask_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3077, 0);
@@ -7331,11 +7936,14 @@ v_U32_t btampPackTlvHCI_Set_Event_Mask_Cmd(void * pCtx,
         nBuf -= 8;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Set_Event_Mask_Cmd. */
 
@@ -7356,10 +7964,19 @@ v_U32_t btampPackTlvHCI_Set_Event_Mask_Page_2_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Set_Event_Mask_Page_2_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3171, 0);
@@ -7373,11 +7990,14 @@ v_U32_t btampPackTlvHCI_Set_Event_Mask_Page_2_Cmd(void * pCtx,
         nBuf -= 8;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Set_Event_Mask_Page_2_Cmd. */
 
@@ -7398,10 +8018,19 @@ v_U32_t btampPackTlvHCI_Set_Short_Range_Mode_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Set_Short_Range_Mode_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3179, 0);
@@ -7419,11 +8048,14 @@ v_U32_t btampPackTlvHCI_Set_Short_Range_Mode_Cmd(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Set_Short_Range_Mode_Cmd. */
 
@@ -7444,10 +8076,19 @@ v_U32_t btampPackTlvHCI_Short_Range_Mode_Change_Complete_Event(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 1;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Short_Range_Mode_Change_Complete_Event(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 76, 0);
@@ -7469,11 +8110,14 @@ v_U32_t btampPackTlvHCI_Short_Range_Mode_Change_Complete_Event(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Short_Range_Mode_Change_Complete_Event. */
 
@@ -7494,10 +8138,19 @@ v_U32_t btampPackTlvHCI_Write_Best_Effort_Flush_Timeout_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Write_Best_Effort_Flush_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3178, 0);
@@ -7515,11 +8168,14 @@ v_U32_t btampPackTlvHCI_Write_Best_Effort_Flush_Timeout_Cmd(void * pCtx,
         nBuf -= 4;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Write_Best_Effort_Flush_Timeout_Cmd. */
 
@@ -7540,10 +8196,19 @@ v_U32_t btampPackTlvHCI_Write_Connection_Accept_Timeout_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Write_Connection_Accept_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3094, 0);
@@ -7557,11 +8222,14 @@ v_U32_t btampPackTlvHCI_Write_Connection_Accept_Timeout_Cmd(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Write_Connection_Accept_Timeout_Cmd. */
 
@@ -7582,10 +8250,19 @@ v_U32_t btampPackTlvHCI_Write_Flow_Control_Mode_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Write_Flow_Control_Mode_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3175, 0);
@@ -7599,11 +8276,14 @@ v_U32_t btampPackTlvHCI_Write_Flow_Control_Mode_Cmd(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Write_Flow_Control_Mode_Cmd. */
 
@@ -7624,10 +8304,19 @@ v_U32_t btampPackTlvHCI_Write_Link_Supervision_Timeout_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Write_Link_Supervision_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3127, 0);
@@ -7645,11 +8334,14 @@ v_U32_t btampPackTlvHCI_Write_Link_Supervision_Timeout_Cmd(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Write_Link_Supervision_Timeout_Cmd. */
 
@@ -7670,10 +8362,19 @@ v_U32_t btampPackTlvHCI_Write_Location_Data_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Write_Location_Data_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3173, 0);
@@ -7695,11 +8396,14 @@ v_U32_t btampPackTlvHCI_Write_Location_Data_Cmd(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Write_Location_Data_Cmd. */
 
@@ -7720,10 +8424,19 @@ v_U32_t btampPackTlvHCI_Write_Logical_Link_Accept_Timeout_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Write_Logical_Link_Accept_Timeout_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 3170, 0);
@@ -7737,11 +8450,14 @@ v_U32_t btampPackTlvHCI_Write_Logical_Link_Accept_Timeout_Cmd(void * pCtx,
         nBuf -= 2;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Write_Logical_Link_Accept_Timeout_Cmd. */
 
@@ -7762,10 +8478,19 @@ v_U32_t btampPackTlvHCI_Write_Loopback_Mode_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Write_Loopback_Mode_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 6146, 0);
@@ -7779,11 +8504,14 @@ v_U32_t btampPackTlvHCI_Write_Loopback_Mode_Cmd(void * pCtx,
         nBuf -= 1;
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Write_Loopback_Mode_Cmd. */
 
@@ -7804,10 +8532,19 @@ v_U32_t btampPackTlvHCI_Write_Remote_AMP_ASSOC_Cmd(void * pCtx,
     v_U32_t sLen = 0U;
     sType = 2;
     sLen = 1;
+        // sanity checking
+    if( pCtx == NULL || pSrc == NULL ||
+        pBuf == NULL || pnConsumed == NULL)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "bad input" );
+        return BTAMP_BAD_INPUT_BUFFER;
+    }
+
     status = btampGetPackedTlvHCI_Write_Remote_AMP_ASSOC_Cmd(pCtx, pSrc, &nNeeded);
     if ( ! BTAMP_SUCCEEDED( status ) ) return status;
     nNeeded += sType + sLen;
     if ( nNeeded > nBuf ) return BTAMP_BUFFER_OVERFLOW;
+    pTlvLen = pBuf;
     while ( pSrc->present )
     {
         if( sType == 2) frameshtons( pCtx, pBuf, 5131, 0);
@@ -7833,11 +8570,14 @@ v_U32_t btampPackTlvHCI_Write_Remote_AMP_ASSOC_Cmd(void * pCtx,
         nBuf -= ( pSrc->amp_assoc_remaining_length );
         break;
     }
-    (void)pCtx;
+
     if (pTlvLen && sLen == 2)
     {
         frameshtons( pCtx, pTlvLen, *pnConsumed - nConsumedOnEntry - sType - sLen, 0);
-    } else *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    } else if(NULL != pTlvLen)
+    {
+        *pTlvLen = (v_U8_t)(*pnConsumed - nConsumedOnEntry - sType - sLen);
+    }
     return status;
 } /* End btampPackTlvHCI_Write_Remote_AMP_ASSOC_Cmd. */
 

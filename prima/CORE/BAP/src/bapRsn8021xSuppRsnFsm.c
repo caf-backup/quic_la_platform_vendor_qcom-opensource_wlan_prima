@@ -537,8 +537,6 @@ gotoStateGroupKeySet(tSuppRsnFsm *fsm,
     tAniEapolRsnKeyDesc txDesc;
     tAniEapolRsnKeyDesc *rxDesc;
 
-    tAniPacket *groupKey;
-    v_U8_t *groupKeyBytes = NULL;
     int groupKeyLen;
     
     fsm->currentState = GROUP_KEY_SET;
@@ -618,20 +616,6 @@ gotoStateGroupKeySet(tSuppRsnFsm *fsm,
             retVal = ANI_ERROR;
             VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "Supp could not send eapol. Disconnect\n" );
             break;;    
-        }
-
-        retVal = aniAsfPacketAllocateExplicit(&groupKey, groupKeyLen, 0);
-        if (retVal != ANI_OK) 
-        {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "Supp could not allocate group key\n" );
-            break;
-        }
-
-        retVal = aniAsfPacketAppendBuffer(groupKey, groupKeyBytes, groupKeyLen);
-        if( !ANI_IS_STATUS_SUCCESS( retVal ) )
-        {
-            VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR, "Supp could not append group key len = %d\n", groupKeyLen );
-            break;    
         }
 
         //FIX_RSN there is no need to set GTK retVal = setGtk(fsm->suppCtx, rxDesc->keyRecvSeqCounter);
@@ -1014,8 +998,33 @@ static int suppRsnRxFrameHandler( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket )
 {
     int retVal = ANI_ERROR;
     tAniPacket *pAniPacket;
-    tBtampContext *ctx = (tBtampContext *)VOS_GET_BAP_CB( pvosGCtx );
-    tSuppRsnFsm *fsm = &ctx->uFsm.suppFsm;
+    tBtampContext *ctx;
+    tSuppRsnFsm *fsm;
+    /* Validate params */ 
+    if ((pvosGCtx == NULL) || (NULL == pPacket))
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "param is NULL in %s", __FILE__);
+
+        return retVal;
+    }
+    ctx = (tBtampContext *)VOS_GET_BAP_CB( pvosGCtx );
+    if (NULL == ctx) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "ctx is NULL in %s", __FILE__);
+
+        return retVal;
+    }
+
+    fsm = &ctx->uFsm.suppFsm;
+    if (NULL == fsm) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "fsm is NULL in %s", __FILE__);
+
+        return retVal;
+    }
 
     do
     {
@@ -1044,7 +1053,31 @@ static int suppRsnRxFrameHandler( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket )
 static int suppRsnTxCompleteHandler( v_PVOID_t pvosGCtx, vos_pkt_t *pPacket, VOS_STATUS retStatus )
 {
     tBtampContext *ctx = (tBtampContext *)VOS_GET_BAP_CB( pvosGCtx );
-    tAuthRsnFsm *fsm = &ctx->uFsm.authFsm;
+    tAuthRsnFsm *fsm;
+    if ((pvosGCtx == NULL) || (NULL == pPacket))
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "param is NULL in %s", __FILE__);
+
+        return ANI_ERROR;
+    }
+
+    if (NULL == ctx) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "ctx is NULL in %s", __FILE__);
+
+        return ANI_ERROR;
+    }
+
+    fsm = &ctx->uFsm.authFsm;
+    if (NULL == fsm) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "fsm is NULL in %s", __FILE__);
+
+        return ANI_ERROR;
+    }
 
     //Synchronization needed
     vos_pkt_return_packet( pPacket );

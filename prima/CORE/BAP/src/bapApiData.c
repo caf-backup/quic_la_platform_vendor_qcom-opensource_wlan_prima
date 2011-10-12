@@ -785,6 +785,13 @@ WLANBAP_STARxCB
                 vosDataBuff,
                 pRxMetaInfo);
         }
+        else
+        {
+            VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_FATAL,
+                     "WLANBAP_STARxCB:bapLinkSupervisionTimerInterval is 0");
+            /* Drop packet */
+            vos_pkt_return_packet(vosDataBuff);
+        }
     }	
     else
     {

@@ -102,6 +102,8 @@ of NV fragment is nt possbile.The next multiple of 1Kb is 3K */
 /* Coex Indication data size - should match WLAN_COEX_IND_DATA_SIZE */
 #define WDI_COEX_IND_DATA_SIZE (4)
 
+#define WDI_CIPHER_SEQ_CTR_SIZE 6
+
 /*============================================================================
  *     GENERIC STRUCTURES 
   
@@ -372,8 +374,11 @@ typedef struct
 ---------------------------------------------------------------------------*/
 typedef struct
 {
+ /*current BSSID*/
+ wpt_macAddr bssId;
+  
   /*Source mac address*/
-  wpt_macAddr macSrcAddr;	
+ wpt_macAddr macSrcAddr;
 
  /*Transmitter mac address*/
  wpt_macAddr macTaAddr;
@@ -388,11 +393,14 @@ typedef struct
  wpt_uint8   ucIV1;
 
  /*Key Id*/
- wpt_uint8   keyId;	
+ wpt_uint8   keyId;
 
- /*	Sequence Number*/
- wpt_uint8   TSC[6];
-}WDI_MicFailureIndType; 
+ /*Sequence Number*/
+ wpt_uint8   TSC[WDI_CIPHER_SEQ_CTR_SIZE];
+
+ /*recieve address */
+ wpt_macAddr   macRxAddr;
+}WDI_MicFailureIndType;
 
 /*---------------------------------------------------------------------------
   WDI_CoexIndType

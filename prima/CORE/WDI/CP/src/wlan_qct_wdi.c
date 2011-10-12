@@ -16654,9 +16654,9 @@ WDI_ProcessMicFailureInd
   WDI_EventInfoType*     pEventData
 )
 {
-  WDI_Status           wdiStatus;
-  eHalStatus           halStatus;
   WDI_LowLevelIndType  wdiInd;
+  tpSirMicFailureInd   pHalMicFailureInd;
+
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   /*-------------------------------------------------------------------------
@@ -16670,19 +16670,32 @@ WDI_ProcessMicFailureInd
      WDI_ASSERT(0);
      return WDI_STATUS_E_FAILURE; 
   }
-
+  
+  pHalMicFailureInd = (tpSirMicFailureInd)pEventData->pEventData;
   /*-------------------------------------------------------------------------
     Extract indication and send it to UMAC
   -------------------------------------------------------------------------*/
-  /*! TO DO: Parameters need to be unpacked according to HAL struct*/
-  halStatus = *((eHalStatus*)pEventData->pEventData);
-  wdiStatus   =   WDI_HAL_2_WDI_STATUS(halStatus); 
 
   /*Fill in the indication parameters*/
   wdiInd.wdiIndicationType = WDI_MIC_FAILURE_IND; 
-  /* ! TO DO - fill in from HAL struct:
-    wdiInd.wdiIndicationData.wdiMICFailureInfo*/
-
+  wpalMemoryCopy(wdiInd.wdiIndicationData.wdiMICFailureInfo.bssId,
+                 pHalMicFailureInd->bssId, WDI_MAC_ADDR_LEN);
+  wpalMemoryCopy(wdiInd.wdiIndicationData.wdiMICFailureInfo.macSrcAddr,
+                 pHalMicFailureInd->info.srcMacAddr, WDI_MAC_ADDR_LEN);
+  wpalMemoryCopy(wdiInd.wdiIndicationData.wdiMICFailureInfo.macTaAddr,
+                 pHalMicFailureInd->info.taMacAddr, WDI_MAC_ADDR_LEN);
+  wpalMemoryCopy(wdiInd.wdiIndicationData.wdiMICFailureInfo.macDstAddr,
+                 pHalMicFailureInd->info.dstMacAddr, WDI_MAC_ADDR_LEN);
+  wdiInd.wdiIndicationData.wdiMICFailureInfo.ucMulticast = 
+                 pHalMicFailureInd->info.multicast;
+  wdiInd.wdiIndicationData.wdiMICFailureInfo.ucIV1 = 
+                 pHalMicFailureInd->info.IV1;
+  wdiInd.wdiIndicationData.wdiMICFailureInfo.keyId= 
+                 pHalMicFailureInd->info.keyId;
+  wpalMemoryCopy(wdiInd.wdiIndicationData.wdiMICFailureInfo.TSC,
+                 pHalMicFailureInd->info.TSC,WDI_CIPHER_SEQ_CTR_SIZE);
+  wpalMemoryCopy(wdiInd.wdiIndicationData.wdiMICFailureInfo.macRxAddr,
+                 pHalMicFailureInd->info.rxMacAddr, WDI_MAC_ADDR_LEN);
   /*Notify UMAC*/
   pWDICtx->wdiLowLevelIndCB( &wdiInd, pWDICtx->pIndUserData );
   

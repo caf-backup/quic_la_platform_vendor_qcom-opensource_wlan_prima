@@ -457,7 +457,7 @@ WLANBAP_GetNewHndl
 {
   eHalStatus halStatus = eHAL_STATUS_SUCCESS;
   ptBtampContext  btampContext = NULL; 
-
+  tHalHandle hHal = NULL;
   /*------------------------------------------------------------------------
     Sanity check params
    ------------------------------------------------------------------------*/
@@ -494,8 +494,16 @@ WLANBAP_GetNewHndl
 
     // Let's open the SME session - we can use the global context. 
     // because we know we only have one. 
-    halStatus = sme_OpenSession(
-          VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+    hHal = VOS_GET_HAL_CB(btampContext->pvosGCtx);
+    if ( NULL == hHal ) 
+    {
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "hHal is NULL in %s", __FILE__);
+
+      return VOS_STATUS_E_FAULT;
+    }
+
+    halStatus = sme_OpenSession(hHal, 
           WLANBAP_RoamCallback, 
           btampContext,
           btampContext->self_mac_addr,  
@@ -546,7 +554,7 @@ WLANBAP_ReleaseHndl
 {
   /* obtain btamp Context  */ 
   ptBtampContext  btampContext = (ptBtampContext) btampHandle; 
-
+  tHalHandle halHandle;
   /*------------------------------------------------------------------------
     Sanity check params
    ------------------------------------------------------------------------*/
@@ -565,7 +573,15 @@ WLANBAP_ReleaseHndl
    *       eCSR_DISCONNECT_REASON_UNSPECIFIED); 
    * on all of them  */ 
 
-  sme_CloseSession(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+  halHandle = VOS_GET_HAL_CB(btampContext->pvosGCtx);
+  if(NULL == halHandle)
+  {
+     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                  "halHandle is NULL in %s", __FILE__);
+     return VOS_STATUS_E_FAULT;
+  }
+
+  sme_CloseSession(halHandle, 
           btampContext->sessionId, NULL, NULL);
 
   /* release the btampHandle  */ 
@@ -1175,7 +1191,23 @@ WLANBAP_ReadMacConfig
   /*------------------------------------------------------------------------
     Temporary method to get the self MAC address
   ------------------------------------------------------------------------*/
+  if (NULL == pBtampCtx) 
+  {
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "pBtampCtx is NULL in %s", __FILE__);
+
+      return;
+  }
+
   pMac = (tHalHandle)vos_get_context( VOS_MODULE_ID_SME, pBtampCtx->pvosGCtx);
+  if (NULL == pMac) 
+  {
+      VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                   "pMac is NULL in %s", __FILE__);
+
+      return;
+  }
+
   ccmCfgGetStr( pMac, WNI_CFG_STA_ID, pBtStaOwnMacAddr, &len );
 
   VOS_ASSERT( WNI_CFG_BSSID_LEN == len );

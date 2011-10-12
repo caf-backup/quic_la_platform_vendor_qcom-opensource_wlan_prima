@@ -42,7 +42,7 @@ tANI_U8 limGetCurrentLearnChannel(tpAniSirGlobal);
 void handleNonTitanBss( tpAniSirGlobal, tSirNeighborBssWdsInfo );
 #endif
 ePhyChanBondState limGetPhyCBState( tpAniSirGlobal );
-tStaRateMode limGetStaPeerType( tpAniSirGlobal, tpDphHashNode );
+tStaRateMode limGetStaPeerType( tpAniSirGlobal, tpDphHashNode ,tpPESession);
 void setupCBState( tpAniSirGlobal, tAniCBSecondaryMode );
 
 tANI_U8 limGetCurrentCBSecChannel( tpAniSirGlobal,tpPESession );

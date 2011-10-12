@@ -518,7 +518,7 @@ WLAN_BAPReadLocalAMPAssoc
 {
     VOS_STATUS  vosStatus;
     ptBtampContext btampContext = (ptBtampContext) btampHandle; /* btampContext value */ 
-    tHalHandle hHal = VOS_GET_HAL_CB(btampContext->pvosGCtx);
+    tHalHandle hHal;
     tBtampAMP_ASSOC btamp_ASSOC; 
     //v_U8_t phy_link_handle = pBapHCIReadLocalAMPAssoc->phy_link_handle;
     v_U32_t nConsumed = 0;
@@ -526,7 +526,18 @@ WLAN_BAPReadLocalAMPAssoc
 
 
     /* Validate params */ 
-    if (pBapHCIReadLocalAMPAssoc == NULL) {
+    if ((pBapHCIReadLocalAMPAssoc == NULL) || (NULL == btampHandle))
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "param is NULL in %s", __FILE__);
+
+        return VOS_STATUS_E_FAULT;
+    }
+    hHal = VOS_GET_HAL_CB(btampContext->pvosGCtx);
+    if (NULL == hHal) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "hHal is NULL in %s", __FILE__);
       return VOS_STATUS_E_FAULT;
     }
 
