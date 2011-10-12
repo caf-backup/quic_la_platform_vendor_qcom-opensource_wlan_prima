@@ -6,7 +6,6 @@
 #    An includable component of the makefile to build the AMSS software,
 #    this file lists the source files for the Libra HAL module.
 #
-# Copyright (c) 2001, 2002 by QUALCOMM, Incorporated.  All Rights Reserved.
 #============================================================================
 #
 #                        EDIT HISTORY FOR MODULE
