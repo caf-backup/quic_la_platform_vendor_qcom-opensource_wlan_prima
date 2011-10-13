@@ -55,7 +55,7 @@ limFillSupportedRatesInfo(
     if(pSta == NULL)
         pRates->opRateMode = limGetStaRateMode((tANI_U8)psessionEntry->dot11mode);
     else
-        pRates->opRateMode = limGetStaPeerType(pMac, pSta);
+        pRates->opRateMode = limGetStaPeerType(pMac, pSta, psessionEntry);
 
 }
 

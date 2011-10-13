@@ -9278,9 +9278,55 @@ void WDA_lowLevelIndCallback(WDI_LowLevelIndType *wdiLowLevelInd,
        
       case WDI_MIC_FAILURE_IND:
       {
-         /* TODO: Decode Ind and send Ind to PE */
+         vos_msg_t vosMsg;
+         VOS_STATUS vosStatus;
+         tpSirSmeMicFailureInd pMicInd =
+          (tpSirSmeMicFailureInd)vos_mem_malloc(sizeof(tSirSmeMicFailureInd));
+
+         if(pMicInd == NULL)
+         {
+            VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                                  "%s: VOS MEM Alloc Failure", __FUNCTION__);
+            break;
+         }
          VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
                                   "Recieved WDI_MIC_FAILURE_IND from WDI ");
+
+         pMicInd->messageType = eWNI_SME_MIC_FAILURE_IND;
+         pMicInd->length = sizeof(tSirSmeMicFailureInd);
+         vos_mem_copy(pMicInd->bssId,
+             wdiLowLevelInd->wdiIndicationData.wdiMICFailureInfo.bssId,
+             sizeof(tSirMacAddr));
+         vos_mem_copy(pMicInd->info.srcMacAddr,
+             wdiLowLevelInd->wdiIndicationData.wdiMICFailureInfo.macSrcAddr,
+             sizeof(tSirMacAddr));
+         vos_mem_copy(pMicInd->info.taMacAddr,
+             wdiLowLevelInd->wdiIndicationData.wdiMICFailureInfo.macTaAddr,
+             sizeof(tSirMacAddr));
+         vos_mem_copy(pMicInd->info.dstMacAddr,
+             wdiLowLevelInd->wdiIndicationData.wdiMICFailureInfo.macDstAddr,
+             sizeof(tSirMacAddr));
+         vos_mem_copy(pMicInd->info.rxMacAddr,
+             wdiLowLevelInd->wdiIndicationData.wdiMICFailureInfo.macRxAddr,
+             sizeof(tSirMacAddr));
+         pMicInd->info.multicast = 
+             wdiLowLevelInd->wdiIndicationData.wdiMICFailureInfo.ucMulticast;
+         pMicInd->info.keyId= 
+             wdiLowLevelInd->wdiIndicationData.wdiMICFailureInfo.keyId;
+         pMicInd->info.IV1= 
+             wdiLowLevelInd->wdiIndicationData.wdiMICFailureInfo.ucIV1;
+         vos_mem_copy(pMicInd->info.TSC,
+             wdiLowLevelInd->wdiIndicationData.wdiMICFailureInfo.TSC,SIR_CIPHER_SEQ_CTR_SIZE);
+
+         /* VOS message wrapper */
+         vosMsg.type = eWNI_SME_MIC_FAILURE_IND;
+         vosMsg.bodyptr = (void *)pMicInd;
+         vosMsg.bodyval = 0;
+         vosStatus = vos_mq_post_message(VOS_MQ_ID_SME, &vosMsg);
+         if ( !VOS_IS_STATUS_SUCCESS(vosStatus) )
+         {
+            vosStatus = VOS_STATUS_E_BADMSG;
+         }
          break ;
       }
       case WDI_FATAL_ERROR_IND:

@@ -117,19 +117,32 @@ WLAN_BAPReset
     VOS_STATUS  vosStatus;
     tBtampHCI_Event bapHCIEvent; /* This now encodes ALL event types */
     ptBtampContext btampContext = (ptBtampContext) btampHandle;
+    tHalHandle     hHal = NULL;
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampHandle value: %x", __FUNCTION__,  btampHandle); 
 
     /* Validate params */ 
-    if (btampHandle == NULL) {
+    if (btampHandle == NULL) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "btampHandle is NULL in %s", __FILE__);
+
       return VOS_STATUS_E_FAULT;
     }
 
     /* Perform a "reset" */ 
+    hHal = VOS_GET_HAL_CB(btampContext->pvosGCtx);
+    if (NULL == hHal) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "hHal is NULL in %s", __FILE__);
+
+        return VOS_STATUS_E_FAULT;
+    }
 
     //csrRoamDisconnect();
-    sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx),
+    sme_RoamDisconnect(hHal,
                        btampContext->sessionId,
                        // Danlin, where are the richer reason codes?
                        // I want to be able to convey everything 802.11 supports...

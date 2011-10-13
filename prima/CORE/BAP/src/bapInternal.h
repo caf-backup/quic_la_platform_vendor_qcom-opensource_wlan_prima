@@ -134,6 +134,9 @@ when        who    what, where, why
 /*Offset of the protocol type field inside the LLC/SNAP header*/
 #define WLANBAP_LLC_PROTO_TYPE_OFFSET  WLANBAP_LLC_OUI_OFFSET +  WLANBAP_LLC_OUI_SIZE
 
+#define WLANBAP_MAX_NUM_TRIPLETS               2
+
+#define WLANBAP_MAX_SIZE_TRIPLETS              3
 /*----------------------------------------------------------------------------
  *  Typedefs
  * -------------------------------------------------------------------------*/
@@ -191,12 +194,12 @@ typedef struct sBtampHCI_AMP_Assoc {
 //    v_U8_t       present;
     v_U8_t       HC_cnct_country[3];   /* Connected channel */
     v_U8_t       HC_cnct_num_triplets;
-    v_U8_t       HC_cnct_triplets[2][3];
+    v_U8_t       HC_cnct_triplets[WLANBAP_MAX_NUM_TRIPLETS][WLANBAP_MAX_SIZE_TRIPLETS];
     v_U8_t       HC_mac_addr[6];
     v_U32_t      HC_pal_capabilities;
     v_U8_t       HC_pref_country[3];   /* Preferred channels */
     v_U8_t       HC_pref_num_triplets;
-    v_U8_t       HC_pref_triplets[2][3];
+    v_U8_t       HC_pref_triplets[WLANBAP_MAX_NUM_TRIPLETS][WLANBAP_MAX_SIZE_TRIPLETS];
     v_U8_t       HC_pal_version;
     v_U16_t      HC_pal_CompanyID;
     v_U16_t      HC_pal_subversion;

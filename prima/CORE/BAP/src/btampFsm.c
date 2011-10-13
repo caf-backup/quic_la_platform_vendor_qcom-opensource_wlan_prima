@@ -143,6 +143,7 @@ bapSetKey( v_PVOID_t pvosGCtx, tCsrRoamSetKey *pSetKeyInfo )
     v_U8_t status;    /* return the BT-AMP status here */
     eHalStatus  halStatus;
     v_U32_t roamId = 0xFF;
+    tHalHandle     hHal = NULL;
     v_U8_t groupMac[ANI_MAC_ADDR_SIZE] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};  
  
     /* Validate params */ 
@@ -157,6 +158,14 @@ bapSetKey( v_PVOID_t pvosGCtx, tCsrRoamSetKey *pSetKeyInfo )
     {
       return VOS_STATUS_E_FAULT;
     }
+    hHal = VOS_GET_HAL_CB(btampContext->pvosGCtx);
+    if (NULL == hHal) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "hHal is NULL in %s", __FILE__);
+
+        return VOS_STATUS_E_FAULT;
+    }
 
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "%s: btampContext value: %x", __FUNCTION__,  btampContext); 
 
@@ -170,7 +179,7 @@ bapSetKey( v_PVOID_t pvosGCtx, tCsrRoamSetKey *pSetKeyInfo )
 
     /* Set the Pairwise Key */ 
     halStatus = sme_RoamSetKey( 
-            VOS_GET_HAL_CB(pvosGCtx), 
+            hHal, 
             btampContext->sessionId, 
             pSetKeyInfo, 
             &roamId );
@@ -184,7 +193,7 @@ bapSetKey( v_PVOID_t pvosGCtx, tCsrRoamSetKey *pSetKeyInfo )
     /* Set the Group Key */ 
     vos_mem_copy( pSetKeyInfo->peerMac, groupMac, sizeof( tAniMacAddr ) );;
     halStatus = sme_RoamSetKey( 
-            VOS_GET_HAL_CB(pvosGCtx), 
+            hHal, 
             btampContext->sessionId, 
             pSetKeyInfo, 
             &roamId );
@@ -407,7 +416,24 @@ convertToCsrProfile
                                  };
     VOS_STATUS  vosStatus = VOS_STATUS_SUCCESS;
     v_S7_t sessionid = -1;
+    tHalHandle     hHal = NULL;
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+    if (NULL == btampContext) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "btampContext is NULL in %s", __FILE__);
+
+        return VOS_STATUS_E_FAULT;
+    }
+
+    hHal = VOS_GET_HAL_CB(btampContext->pvosGCtx);
+    if (NULL == hHal) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "hHal is NULL in %s", __FILE__);
+
+        return VOS_STATUS_E_FAULT;
+    }
 
     //Zero out entire roamProfile structure to avoid problems in uninitialized pointers as the structure expands */
     //vos_mem_zero(pProfile,sizeof(tCsrRoamProfile));
@@ -557,13 +583,13 @@ convertToCsrProfile
     }
 
     /*Set the selected channel */
-    sessionid = sme_GetInfraSessionId(VOS_GET_HAL_CB(btampContext->pvosGCtx));
+    sessionid = sme_GetInfraSessionId(hHal);
     /*if there is infra session up already, use that channel only for BT AMP
     connection, else we can use the user preferred one*/
     if(-1 != sessionid)
     {
         pProfile->operationChannel = 
-            sme_GetInfraOperationChannel(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+            sme_GetInfraOperationChannel(hHal, 
                                          sessionid);
     }
     else
@@ -616,12 +642,28 @@ gotoStarting
     eHalStatus  halStatus;
     v_U32_t     parseStatus;
     /* tHalHandle */    
-    tHalHandle hHal = VOS_GET_HAL_CB(btampContext->pvosGCtx);
+    tHalHandle hHal;
     tBtampTLVHCI_Write_Remote_AMP_ASSOC_Cmd *pBapHCIWriteRemoteAMPAssoc 
         = (tBtampTLVHCI_Write_Remote_AMP_ASSOC_Cmd *) bapEvent->params;
     tBtampAMP_ASSOC btamp_ASSOC; 
 
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+    if (NULL == btampContext) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "btampContext is NULL in %s", __FILE__);
+
+        return VOS_STATUS_E_FAULT;
+    }
+
+    hHal = VOS_GET_HAL_CB(btampContext->pvosGCtx);
+    if (NULL == hHal) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "hHal is NULL in %s", __FILE__);
+
+        return VOS_STATUS_E_FAULT;
+    }
 
     //If we are a BT-Responder, we are assuming we are a BT "slave" and we HAVE
     //to "squelch" the slaves frequent (every 1.25ms) polls.
@@ -698,11 +740,17 @@ gotoStarting
         /* Save the peer Preferred Channel List */ 
         btampContext->btamp_Remote_AMP_Assoc.HC_pref_num_triplets = 
             btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.num_triplets;   
+        if(WLANBAP_MAX_NUM_TRIPLETS < 
+           btampContext->btamp_Remote_AMP_Assoc.HC_pref_num_triplets)
+        {
+            btampContext->btamp_Remote_AMP_Assoc.HC_pref_num_triplets = 
+                WLANBAP_MAX_NUM_TRIPLETS;
+        }
         vos_mem_copy( 
                 btampContext->btamp_Remote_AMP_Assoc.HC_pref_triplets, 
                 btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.triplets,   
                 sizeof(btampContext->btamp_Remote_AMP_Assoc.HC_pref_triplets[0]) *
-                btamp_ASSOC.AMP_Assoc_Preferred_Channel_List.num_triplets   
+                btampContext->btamp_Remote_AMP_Assoc.HC_pref_num_triplets   
                 ); 
     }
 
@@ -716,11 +764,17 @@ gotoStarting
         /* Save the peer Connected Channel */ 
         btampContext->btamp_Remote_AMP_Assoc.HC_cnct_num_triplets = 
             btamp_ASSOC.AMP_Assoc_Connected_Channel.num_triplets;
+        if(WLANBAP_MAX_NUM_TRIPLETS < 
+           btampContext->btamp_Remote_AMP_Assoc.HC_cnct_num_triplets)
+        {
+            btampContext->btamp_Remote_AMP_Assoc.HC_cnct_num_triplets = 
+                WLANBAP_MAX_NUM_TRIPLETS;
+        }
         vos_mem_copy( 
                 btampContext->btamp_Remote_AMP_Assoc.HC_cnct_triplets, 
                 btamp_ASSOC.AMP_Assoc_Connected_Channel.triplets,   
                 sizeof(btampContext->btamp_Remote_AMP_Assoc.HC_cnct_triplets[0]) *
-                btamp_ASSOC.AMP_Assoc_Connected_Channel.num_triplets
+                btampContext->btamp_Remote_AMP_Assoc.HC_cnct_num_triplets
                 ); 
     }
 
@@ -762,7 +816,7 @@ gotoStarting
     if (btampContext->isBapSessionOpen == FALSE)
     {
 
-    halStatus = sme_OpenSession(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+    halStatus = sme_OpenSession(hHal, 
             WLANBAP_RoamCallback, 
             btampContext,
             // <=== JEZ081210: FIXME
@@ -790,7 +844,7 @@ gotoStarting
             &btampContext->csrRoamId);
 #endif //0
 //#if 0
-    halStatus = sme_RoamConnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+    halStatus = sme_RoamConnect(hHal, 
             btampContext->sessionId, 
             &btampContext->csrRoamProfile, 
             &btampContext->csrRoamId);
@@ -1501,8 +1555,7 @@ btampFsm
     /* Retrieve the phy link state machine structure 
      * from the btampContext value 
      */    
-    BTAMPFSM_INSTANCEDATA_T *instanceVar = 
-        &(btampContext->bapPhysLinkMachine);
+    BTAMPFSM_INSTANCEDATA_T *instanceVar;
     v_U32_t msg = bapEvent->event;  /* State machine input event message */
     v_U32_t channel;  /* Current channel */
     v_U32_t activeFlag;  /* Channel active flag */
@@ -1510,8 +1563,24 @@ btampFsm
     ptBtampHandle btampHandle = ( ptBtampHandle)btampContext;
     v_U8_t                   ucSTAId;  /* The StaId (used by TL, PE, and HAL) */
     v_PVOID_t                pHddHdl; /* Handle to return BSL context in */
-
+    tHalHandle     hHal = NULL;
     /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -*/
+    /* Validate params */ 
+    if (btampHandle == NULL) 
+    {
+      return VOS_STATUS_E_FAULT;
+    }
+    instanceVar = &(btampContext->bapPhysLinkMachine);
+
+    hHal = VOS_GET_HAL_CB(btampContext->pvosGCtx);
+    if (NULL == hHal) 
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "hHal is NULL in %s", __FILE__);
+
+        return VOS_STATUS_E_FAULT;
+    }
+
 
  
 #define CHANNEL_NOT_SELECTED (WLANBAP_GetCurrentChannel (btampContext, &channel, &activeFlag) != VOS_STATUS_SUCCESS)
@@ -1683,7 +1752,7 @@ btampFsm
 
           /*Action code for transition */
           //csrRoamDisconnect();
-          sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          sme_RoamDisconnect(hHal, 
                   //JEZ081115: Fixme 
                   btampContext->sessionId, 
                   // Danlin, where are the richer reason codes?
@@ -1740,7 +1809,7 @@ btampFsm
 
           /*Action code for transition */
           //csrRoamDisconnect();
-          sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          sme_RoamDisconnect(hHal, 
                   //JEZ081115: Fixme 
                   btampContext->sessionId, 
                   eCSR_DISCONNECT_REASON_UNSPECIFIED);
@@ -1806,7 +1875,7 @@ btampFsm
 
           /*Action code for transition */
           //csrRoamDisconnect();
-          sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          sme_RoamDisconnect(hHal, 
                   //JEZ081115: Fixme 
                   btampContext->sessionId, 
                   eCSR_DISCONNECT_REASON_UNSPECIFIED);
@@ -1835,7 +1904,7 @@ btampFsm
           /*Action code for transition */
           //csrRoamDisconnect(DEAUTH);
           //JEZ081120: Danlin points out that I could just ignore this
-          sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          sme_RoamDisconnect(hHal, 
                   //JEZ081115: Fixme 
                   btampContext->sessionId, 
                   eCSR_DISCONNECT_REASON_DEAUTH);
@@ -1905,7 +1974,7 @@ btampFsm
           VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_INFO_HIGH, "In %s, from state %s => %s", __FUNCTION__, "CONNECTING", "DISCONNECTING");
 
           /*Action code for transition */
-            sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx),
+            sme_RoamDisconnect(hHal,
                                btampContext->sessionId,
                                eCSR_DISCONNECT_REASON_UNSPECIFIED);
           /* Section 3.1.8 and section 3.1.9 have contradictory semantics for 0x16. 
@@ -1928,7 +1997,7 @@ btampFsm
 
           /*Action code for transition */
           //csrRoamDisconnect();
-          sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          sme_RoamDisconnect(hHal, 
                   //JEZ081115: Fixme 
                   btampContext->sessionId, 
                   eCSR_DISCONNECT_REASON_UNSPECIFIED);
@@ -2007,7 +2076,7 @@ btampFsm
           /*Advance outer statevar */
           btampfsmChangeToState(instanceVar,DISCONNECTING);
           /*Action code for transition */
-         sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+         sme_RoamDisconnect(hHal, 
                   //JEZ081115: Fixme 
                   btampContext->sessionId, 
                   eCSR_DISCONNECT_REASON_UNSPECIFIED);
@@ -2020,7 +2089,7 @@ btampFsm
 
           /*Action code for transition */
           //csrRoamDisconnect();
-          sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          sme_RoamDisconnect(hHal, 
                   //JEZ081115: Fixme 
                   btampContext->sessionId, 
                   eCSR_DISCONNECT_REASON_UNSPECIFIED);
@@ -2047,7 +2116,7 @@ btampFsm
 
           /*Action code for transition */
           //csrRoamDisconnect(DEAUTH);
-          sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          sme_RoamDisconnect(hHal, 
                   //JEZ081115: Fixme 
                   btampContext->sessionId, 
                   eCSR_DISCONNECT_REASON_DEAUTH);
@@ -2086,7 +2155,7 @@ btampFsm
           WLANBAP_DeInitLinkSupervision(( ptBtampHandle)btampContext);
           /*Action code for transition */
           //csrRoamDisconnect();
-          sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          sme_RoamDisconnect(hHal, 
                   //JEZ081115: Fixme 
                   btampContext->sessionId, 
                   eCSR_DISCONNECT_REASON_UNSPECIFIED);
@@ -2105,7 +2174,7 @@ btampFsm
                   VOS_TRUE, 
                   WLANBAP_ERROR_TERM_BY_LOCAL_HOST);
             /*Action code for transition */
-            sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx),
+            sme_RoamDisconnect(hHal,
                                btampContext->sessionId,
                                eCSR_DISCONNECT_REASON_UNSPECIFIED);
           /*Advance outer statevar */
@@ -2248,7 +2317,7 @@ btampFsm
 
           /*Action code for transition */
           //csrRoamDisconnect();
-          sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          sme_RoamDisconnect(hHal, 
                   //JEZ081115: Fixme 
                   btampContext->sessionId, 
                   eCSR_DISCONNECT_REASON_UNSPECIFIED);
@@ -2268,7 +2337,7 @@ btampFsm
 
           /*Action code for transition */
           //csrRoamDisconnect();
-          sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          sme_RoamDisconnect(hHal, 
                   //JEZ081115: Fixme 
                   btampContext->sessionId, 
                   eCSR_DISCONNECT_REASON_UNSPECIFIED);
@@ -2379,7 +2448,7 @@ btampFsm
 
           /*Action code for transition */
           //csrRoamDisconnect();
-          sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          sme_RoamDisconnect(hHal, 
                   //JEZ081115: Fixme 
                   btampContext->sessionId, 
                   eCSR_DISCONNECT_REASON_UNSPECIFIED);
@@ -2399,7 +2468,7 @@ btampFsm
 
           /*Action code for transition */
           //csrRoamDisconnect();
-          sme_RoamDisconnect(VOS_GET_HAL_CB(btampContext->pvosGCtx), 
+          sme_RoamDisconnect(hHal, 
                   //JEZ081115: Fixme 
                   btampContext->sessionId, 
                   eCSR_DISCONNECT_REASON_UNSPECIFIED);

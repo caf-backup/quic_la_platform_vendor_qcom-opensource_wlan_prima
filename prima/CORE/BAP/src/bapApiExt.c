@@ -125,7 +125,7 @@ WLANBAP_GetCurrentChannel
     Sanity check BAP control block 
    ------------------------------------------------------------------------*/
 
-  if ( NULL == pBtampCtx ) 
+  if (( NULL == pBtampCtx ) || (NULL == channel) || (NULL == activeFlag))
   {
     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
                  "Invalid BAP pointer in %s", __FILE__);
@@ -133,6 +133,13 @@ WLANBAP_GetCurrentChannel
   }
 
   halHandle =  VOS_GET_HAL_CB(pBtampCtx->pvosGCtx);
+
+  if(NULL == halHandle)
+  {
+     VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                  "halHandle is NULL in %s", __FILE__);
+     return VOS_STATUS_E_FAULT;
+  }
 
   if (ccmCfgGetInt(halHandle, WNI_CFG_CURRENT_CHANNEL, channel) 
           != eHAL_STATUS_SUCCESS ) 

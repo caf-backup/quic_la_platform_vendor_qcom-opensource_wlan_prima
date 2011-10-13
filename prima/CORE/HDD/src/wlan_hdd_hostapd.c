@@ -2046,7 +2046,7 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
         ((VosContextType*)(pVosContext))->pHDDSoftAPContext = (v_VOID_t*)pHostapdAdapter;
     
         //Init the net_device structure
-        strcpy(pWlanHostapdDev->name, (const char *)iface_name);
+        strlcpy(pWlanHostapdDev->name, (const char *)iface_name, IFNAMSIZ);
 
         hdd_set_ap_ops( pHostapdAdapter->dev );
 

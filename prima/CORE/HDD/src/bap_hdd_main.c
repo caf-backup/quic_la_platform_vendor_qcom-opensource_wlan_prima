@@ -780,6 +780,15 @@ static VOS_STATUS WLANBAP_EventCB
         pctx = (BslClientCtxType *)pHddHdl;
     }
 
+    if(NULL == pctx)
+    {
+        VOS_TRACE( VOS_MODULE_ID_BAP, VOS_TRACE_LEVEL_ERROR,
+                     "pctx is NULL in %s", __FILE__);
+
+        return VOS_STATUS_E_FAULT;
+
+    }
+
     VosStatus = vos_pkt_get_packet( &pVosPkt, VOS_PKT_TYPE_RX_RAW,
                                     BSL_MAX_EVENT_SIZE, 1, 0, NULL, NULL);
 
@@ -832,7 +841,7 @@ static VOS_STATUS WLANBAP_EventCB
          */
 
         // pack
-        PackStatus = btampPackTlvHCI_Command_Complete_Event( NULL,
+        PackStatus = btampPackTlvHCI_Command_Complete_Event( pctx,
                      &pBapHCIEvent->u.btampCommandCompleteEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -851,7 +860,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_COMMAND_STATUS_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Command_Status_Event( NULL,
+        PackStatus = btampPackTlvHCI_Command_Status_Event( pctx,
                      &pBapHCIEvent->u.btampCommandStatusEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -870,7 +879,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_NUM_OF_COMPLETED_PKTS_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Num_Completed_Pkts_Event( NULL,
+        PackStatus = btampPackTlvHCI_Num_Completed_Pkts_Event( pctx,
                      &pBapHCIEvent->u.btampNumOfCompletedPktsEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -889,7 +898,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_HARDWARE_ERROR_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Hardware_Error_Event( NULL,
+        PackStatus = btampPackTlvHCI_Hardware_Error_Event( pctx,
                      &pBapHCIEvent->u.btampHardwareErrorEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -908,7 +917,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_FLUSH_OCCURRED_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Flush_Occurred_Event( NULL,
+        PackStatus = btampPackTlvHCI_Flush_Occurred_Event( pctx,
                      &pBapHCIEvent->u.btampFlushOccurredEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -927,7 +936,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_LOOPBACK_COMMAND_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Loopback_Command_Event( NULL,
+        PackStatus = btampPackTlvHCI_Loopback_Command_Event( pctx,
                      &pBapHCIEvent->u.btampLoopbackCommandEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -946,7 +955,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_DATA_BUFFER_OVERFLOW_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Data_Buffer_Overflow_Event( NULL,
+        PackStatus = btampPackTlvHCI_Data_Buffer_Overflow_Event( pctx,
                      &pBapHCIEvent->u.btampDataBufferOverflowEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -965,7 +974,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_QOS_VIOLATION_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Qos_Violation_Event( NULL,
+        PackStatus = btampPackTlvHCI_Qos_Violation_Event( pctx,
                      &pBapHCIEvent->u.btampQosViolationEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -985,7 +994,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_GENERIC_AMP_LINK_KEY_NOTIFICATION_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Generic_AMP_Link_Key_Notification_Event( NULL,
+        PackStatus = btampPackTlvHCI_Generic_AMP_Link_Key_Notification_Event( pctx,
                      &pBapHCIEvent->u.btampGenericAMPLinkKeyNotificationEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -1004,7 +1013,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_PHYSICAL_LINK_COMPLETE_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Physical_Link_Complete_Event( NULL,
+        PackStatus = btampPackTlvHCI_Physical_Link_Complete_Event( pctx,
                      &pBapHCIEvent->u.btampPhysicalLinkCompleteEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -1103,7 +1112,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_CHANNEL_SELECTED_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Channel_Selected_Event( NULL,
+        PackStatus = btampPackTlvHCI_Channel_Selected_Event( pctx,
                      &pBapHCIEvent->u.btampChannelSelectedEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -1122,7 +1131,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_DISCONNECT_PHYSICAL_LINK_COMPLETE_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Disconnect_Physical_Link_Complete_Event( NULL,
+        PackStatus = btampPackTlvHCI_Disconnect_Physical_Link_Complete_Event( pctx,
                      &pBapHCIEvent->u.btampDisconnectPhysicalLinkCompleteEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -1156,7 +1165,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_PHYSICAL_LINK_LOSS_WARNING_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Physical_Link_Loss_Warning_Event( NULL,
+        PackStatus = btampPackTlvHCI_Physical_Link_Loss_Warning_Event( pctx,
                      &pBapHCIEvent->u.btampPhysicalLinkLossWarningEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -1175,7 +1184,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_PHYSICAL_LINK_RECOVERY_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Physical_Link_Recovery_Event( NULL,
+        PackStatus = btampPackTlvHCI_Physical_Link_Recovery_Event( pctx,
                      &pBapHCIEvent->u.btampPhysicalLinkRecoveryEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -1194,7 +1203,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_LOGICAL_LINK_COMPLETE_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Logical_Link_Complete_Event( NULL,
+        PackStatus = btampPackTlvHCI_Logical_Link_Complete_Event( pctx,
                      &pBapHCIEvent->u.btampLogicalLinkCompleteEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -1213,7 +1222,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_DISCONNECT_LOGICAL_LINK_COMPLETE_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Disconnect_Logical_Link_Complete_Event( NULL,
+        PackStatus = btampPackTlvHCI_Disconnect_Logical_Link_Complete_Event( pctx,
                      &pBapHCIEvent->u.btampDisconnectLogicalLinkCompleteEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -1232,7 +1241,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_FLOW_SPEC_MODIFY_COMPLETE_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Flow_Spec_Modify_Complete_Event( NULL,
+        PackStatus = btampPackTlvHCI_Flow_Spec_Modify_Complete_Event( pctx,
                      &pBapHCIEvent->u.btampFlowSpecModifyCompleteEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )
@@ -1251,7 +1260,7 @@ static VOS_STATUS WLANBAP_EventCB
     case BTAMP_TLV_HCI_SHORT_RANGE_MODE_CHANGE_COMPLETE_EVENT:
     {
         // pack
-        PackStatus = btampPackTlvHCI_Short_Range_Mode_Change_Complete_Event( NULL,
+        PackStatus = btampPackTlvHCI_Short_Range_Mode_Change_Complete_Event( pctx,
                      &pBapHCIEvent->u.btampShortRangeModeChangeCompleteEvent, Buff, BSL_MAX_EVENT_SIZE, &Written );
 
         if ( !BTAMP_SUCCEEDED( PackStatus ) )

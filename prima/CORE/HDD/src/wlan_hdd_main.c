@@ -699,7 +699,7 @@ hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMacAddr ma
 
       pAdapter->isLinkUpSvcNeeded = FALSE; 
       //Init the net_device structure
-      strcpy(pWlanDev->name, name);
+      strlcpy(pWlanDev->name, name, IFNAMSIZ);
 
       vos_mem_copy(pWlanDev->dev_addr, (void *)macAddr, sizeof(tSirMacAddr));
       vos_mem_copy( pAdapter->macAddressCurrent.bytes, macAddr, sizeof(tSirMacAddr));

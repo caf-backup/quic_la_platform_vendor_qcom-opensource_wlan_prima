@@ -980,7 +980,7 @@ typedef enum eSirLinkTrafficCheck
 #define SIR_BG_SCAN_RETURN_CACHED_RESULTS              0x0
 #define SIR_BG_SCAN_PURGE_RESUTLS                      0x80
 #define SIR_BG_SCAN_RETURN_FRESH_RESULTS               0x01
-#define SIR_SCAN_MAX_NUM_SSID                          0x05 
+#define SIR_SCAN_MAX_NUM_SSID                          0x09 
 
 /// Definition for scan request
 typedef struct sSirSmeScanReq
