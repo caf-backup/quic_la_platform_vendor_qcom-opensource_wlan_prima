@@ -852,8 +852,8 @@ VOS_STATUS hdd_softap_tx_fetch_packet_cbk( v_VOID_t *vosContext,
 
    if (0 == size)
    {
-      vos_pkt_return_packet(pVosPacket);
       spin_unlock_bh(&pAdapter->aStaInfo[STAId].wmm_tx_queue[ac].lock);
+      vos_pkt_return_packet(pVosPacket);
       return VOS_STATUS_E_EMPTY;
    }
 
