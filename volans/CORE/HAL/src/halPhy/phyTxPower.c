@@ -630,6 +630,8 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
     eRfSubBand rfSubband;
     t2Decimal absPwrLimit_2dec;
     t2Decimal pktTypePwrLimit = 0;
+    t2Decimal bRateLimitAdjustment = 0;
+    t2Decimal gnRateLimitAdjustment = 0;
 
     ePhyChanBondState cbState;
 
@@ -720,6 +722,8 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
         case RF_CHAN_13:
         case RF_CHAN_14:
             assert(cbState == PHY_SINGLE_CHANNEL_CENTERED);
+            bRateLimitAdjustment = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].bRatePowerOffset[curChan].reported;
+            gnRateLimitAdjustment = pMac->hphy.phy.regDomainInfo[pMac->hphy.phy.curRegDomain].gnRatePowerOffset[curChan].reported;
             rfSubband = RF_SUBBAND_2_4_GHZ;
             break;
 
@@ -852,6 +856,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                     {
                         absPwr += B_RATE_CAL_ADJUSTMENT;
                     }
+                    absPwr += bRateLimitAdjustment;
                     break;
 
                 //Spica_Virgo 11A 20MHz Rates
@@ -940,6 +945,7 @@ eHalStatus halPhyGetPowerForRate(tHalHandle hHal, eHalPhyRates rate, ePowerMode 
                     {
                         absPwr -= pMac->hphy.nvCache.tables.ofdmCmdPwrOffset.ofdmPwrOffset;
                     }
+                    absPwr += gnRateLimitAdjustment;
                     break;
 
                 default:
