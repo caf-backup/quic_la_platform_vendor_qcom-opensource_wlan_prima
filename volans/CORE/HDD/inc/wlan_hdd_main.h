@@ -58,7 +58,10 @@
 /**event flags registered net device*/
 #define NET_DEVICE_REGISTERED  1<<0
 /** Maximum time(ms)to wait for disconnect to complete **/
-#define WLAN_WAIT_TIME_DISCONNECT  1000
+#define WLAN_WAIT_TIME_DISCONNECT  500
+#define WLAN_WAIT_TIME_STATS       800
+#define WLAN_WAIT_TIME_POWER       800
+#define WLAN_WAIT_TIME_SESSIONOPENCLOSE  2000
 #define MAC_ADDR_ARRAY(a) (a)[0], (a)[1], (a)[2], (a)[3], (a)[4], (a)[5]
 /** Mac Address string **/
 #define MAC_ADDRESS_STR "%02x:%02x:%02x:%02x:%02x:%02x"
