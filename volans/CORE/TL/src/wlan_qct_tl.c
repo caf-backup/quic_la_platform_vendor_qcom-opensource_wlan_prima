@@ -115,7 +115,6 @@
 /* This header is for ADD and remove BA session */
 #include "halCommonApi.h"
 
-
 /*Enables debugging behavior in TL*/
 #define TL_DEBUG
 //#define WLAN_SOFTAP_FLOWCTRL_EN
@@ -1052,6 +1051,17 @@ WLANTL_RegisterSTAClient
              pwSTADescType->ucQosEnabled,
              pwSTADescType->ucAddRmvLLC,
              pwSTADescType->ucProtectedFrame));
+
+#ifdef WLAN_SOFTAP_VSTA_FEATURE
+  // if this station was not allocated resources to perform HW-based
+  // TX frame translation then force SW-based TX frame translation
+  // otherwise use the frame translation supplied by the client
+
+  if (!WLANHAL_IsHwFrameTxTranslationCapable(pvosGCtx, pwSTADescType->ucSTAId))
+  {
+      pwSTADescType->ucSwFrameTXXlation = 1;
+  }
+#endif
 
   pTLCb->atlSTAClients[pwSTADescType->ucSTAId].wSTADesc.ucSwFrameTXXlation =
     pwSTADescType->ucSwFrameTXXlation;
@@ -4701,9 +4711,24 @@ WLANTL_RxFrames
 	     * So it will lead to low resource condition in Rx Data Path.*/
           ((WLANHAL_RX_BD_GET_UB(pvBDHeader) == 0)))
       {
-        uDPUSig = WLANHAL_RX_BD_GET_DPU_SIG( pvBDHeader );
-        //Station has not yet been registered with TL - cache the frame
-        WLANTL_CacheSTAFrame( pTLCb, ucSTAId, vosTempBuff, uDPUSig, broadcast, ucFrmType);
+        tANI_U8 addr1Idx = WLANHAL_RX_BD_GET_ADDR1_IDX(pvBDHeader);
+        tBssSystemRole systemRole = eSYSTEM_UNKNOWN_ROLE;
+        tpAniSirGlobal pMac;
+
+        pMac = vos_get_context(VOS_MODULE_ID_HAL, pvosGCtx);
+        systemRole = halGetBssSystemRoleFromStaIdx(pMac, addr1Idx);
+
+        if( eSYSTEM_AP_ROLE != systemRole )
+        {
+          uDPUSig = WLANHAL_RX_BD_GET_DPU_SIG( pvBDHeader );
+          //Station has not yet been registered with TL - cache the frame
+          WLANTL_CacheSTAFrame( pTLCb, ucSTAId, vosTempBuff, uDPUSig, broadcast, ucFrmType);
+        }
+        else
+        {
+          //Just Drop any packet recieved on AP interface
+          vos_pkt_return_packet(vosTempBuff);
+        }
 
         vosTempBuff = vosDataBuff;
         continue;
