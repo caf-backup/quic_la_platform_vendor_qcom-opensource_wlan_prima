@@ -2801,6 +2801,10 @@ VOS_STATUS WLANSSC_ProcessMsg
     }
 
     SSCLOGE(VOS_TRACE( VOS_MODULE_ID_SSC, VOS_TRACE_LEVEL_ERROR,"Cannot process tx msg while chip suspended"));
+    if( (WLANSSC_TXPENDING_MESSAGE == pMsg->type) && gWLANSSC_TxMsgCnt )
+    {
+      gWLANSSC_TxMsgCnt--;   
+    }
 
     WLANSSC_UNLOCKTX( pControlBlock );
     return VOS_STATUS_E_FAILURE;
