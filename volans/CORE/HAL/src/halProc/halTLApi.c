@@ -747,14 +747,14 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
                |    | Idle  |     N/A           |        N/A        ||         -         | Addr2->StaIdx     |
                |____|_______|___________________|___________________||___________________|___________________|
                |    |       |                   |                   ||                   |                   |
-               |    | STA   |     N/A           |        N/A        ||         -         | Addr2->staIdx->   |
-               |    |       |                   |                   ||                   | bssIdx->bcasStaIdx|
-               |B/C | IBSS  |     -             | Addr2->staIdx->   ||         -         | Addr2->staIdx->   |
-               |    |       |                   | bssIdx->bcasStaIdx||                   | bssIdx->bcasStaIdx|
-               |    | SoftAP|     -             | Addr2->staIdx->   ||         -         | Addr2->staIdx->   |
-               |    |       |                   | bssIdx->bcasStaIdx||                   | bssIdx->bcasStaIdx|
-               |    | Idle  |     N/A           |        N/A        ||         -         | Addr2->staIdx->   |
-               |    |       |                   |                   ||                   | bssIdx->bcasStaIdx|
+               |    | STA   |     N/A           |        N/A        ||         -         | Addr2->staIdx     |
+               |    |       |                   |                   ||                   |                   |
+               |B/C | IBSS  |     -             | Addr2->staIdx->   ||         -         | Addr2->staIdx     |
+               |    |       |                   | bssIdx->bcasStaIdx||                   |                   |
+               |    | SoftAP|     -             | Addr2->staIdx->   ||         -         | Addr2->staIdx     |
+               |    |       |                   | bssIdx->bcasStaIdx||                   |                   |
+               |    | Idle  |     N/A           |        N/A        ||         -         | Addr2->staIdx     |
+               |    |       |                   |                   ||                   |                   |
                |____|_______|___________________|___________________||___________________|___________________|*/
             // Get the station index based on the above table
             if (unicastDst) {
@@ -782,11 +782,13 @@ VOS_STATUS WLANHAL_FillTxBd(void *pVosGCtx, tANI_U8 typeSubtype, void *pDestMacA
                 if (eHAL_STATUS_SUCCESS != status) {
                     HALLOGE( halLog(pMac, LOGE, FL("BC: Could not find Addr2 entry %08x\n"), *((tANI_U32 *)pAddr2)));
                     return VOS_STATUS_E_FAILURE;
-            }
+                }
                 // Get the Bss Index related to the staId
                 bssIdx = pSta[staId].bssIdx;
-                // Get the broadcast station index for this bss
-                staId = pBss[bssIdx].bcastStaIdx;
+                if (type == SIR_MAC_DATA_FRAME) {
+                    // Get the broadcast station index for this bss only for data broadcast frames
+                    staId = pBss[bssIdx].bcastStaIdx;
+                }
             }
         }
 
