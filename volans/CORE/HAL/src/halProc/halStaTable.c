@@ -23,7 +23,7 @@
 eHalStatus halTable_Open(tHalHandle hHal, void *arg)
 {
     eHalStatus status;
-    tANI_U8 max_sta, max_bssid;
+    tANI_U8 max_sta, max_bssid, staIdx;
     tpAniSirGlobal pMac = (tpAniSirGlobal)hHal;
 
     (void) arg;
@@ -49,6 +49,14 @@ eHalStatus halTable_Open(tHalHandle hHal, void *arg)
         palZeroMemory( pMac->hHdd,
                 (void *) pMac->hal.halMac.staTable,
                 max_sta * sizeof( tStaStruct ));
+
+    //Set the BssIdx to Invalid one
+    for(staIdx = 0;staIdx < HAL_NUM_STA;staIdx++)
+    {
+        tpStaStruct pSta = &(((tpStaStruct)(pMac->hal.halMac.staTable))[staIdx]);
+        pSta->bssIdx = HAL_INVALID_BSSIDX;
+    }
+	
 
     // zero out the uma descriptor table
     palZeroMemory( pMac->hHdd,
@@ -389,6 +397,10 @@ eHalStatus halTable_ClearSta(tpAniSirGlobal pMac, tANI_U8 id)
         
         palZeroMemory(pMac->hHdd, (void *) &t[id], sizeof(tStaStruct));
         t[id].staSig = (tANI_U8)(staSig + 1) & (HAL_STA_SIG_AUTH_MASK-1);
+
+        //Invalidate the BSS Index
+        t[id].bssIdx = HAL_INVALID_BSSIDX;
+
         return eHAL_STATUS_SUCCESS;
     }
     else
