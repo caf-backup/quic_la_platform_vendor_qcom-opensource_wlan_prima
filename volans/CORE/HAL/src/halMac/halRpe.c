@@ -588,6 +588,8 @@ eHalStatus halRpe_ErrIntHandler(tHalHandle hHalHandle, eHalIntSources intSource)
     	QWLAN_RPE_ERR_INT_STATUS_BAR_IN_NON_BASESSION_INT_STATUS_MASK,
     	QWLAN_RPE_ERR_INT_STATUS_FRAGPKT_IN_BASESSION_INT_STATUS_MASK
     };        
+    tpStaStruct t = (tpStaStruct) pMac->hal.halMac.staTable;
+
 #define RPE_INT_MASK ((1<<QWLAN_RPE_ERR_INT_STATUS_2K_JUMP_SN_IN_BASESSION_INT_STATUS_OFFSET)-1)
 
 	HALLOG1( halLog( pMac, LOG1, FL("halRpe_ErrIntHandler entered\n")));
@@ -607,10 +609,15 @@ eHalStatus halRpe_ErrIntHandler(tHalHandle hHalHandle, eHalIntSources intSource)
         	Reason_Code = (rpeIntrStatus & QWLAN_RPE_ERR_INT_STATUS_REASON_CODE_MASK) 
 				>> QWLAN_RPE_ERR_INT_STATUS_REASON_CODE_OFFSET;
 
-			HALLOGW( halLog( pMac, LOGW, FL("staIdx %d tID %d RC %d\n"),
-				staIdx,tID,Reason_Code));
+        HALLOGW( halLog( pMac, LOGW, FL("staIdx %d tID %d RC %d\n"),
+                   staIdx,tID,Reason_Code));
+
+        if( !t[staIdx].baBlocked[tID] && (BA_SESSION_ID_INVALID != t[staIdx].baSessionID[tID]) )
+        {
+            t[staIdx].baBlocked[tID] = HAL_BA_BLOCK_TIMEOUT;
             // Post the message to indicate deletion of BA
             (void)halMsg_PostBADeleteInd( pMac, staIdx, tID, eBA_RECIPIENT, Reason_Code);
+        }
         }
     }            
 

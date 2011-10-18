@@ -5643,6 +5643,7 @@ void halMsg_AddBA( tpAniSirGlobal  pMac,
     eHalStatus status = eHAL_STATUS_SUCCESS;
     tSavedAddBAReqParamsStruct addBAReqParamsStruct;
     tHalCfgSta staEntry;
+    tpStaStruct pSta = (tpStaStruct) (pMac->hal.halMac.staTable);
     tCfgTrafficClass tcCfg;
 
     if( eHAL_STATUS_SUCCESS !=
@@ -5673,6 +5674,12 @@ void halMsg_AddBA( tpAniSirGlobal  pMac,
   {
     //Force baAllocateBuffer to use default window size
     baBufferSize = 0;
+
+    if( pSta[pAddBAParams->staIdx].baBlocked[pAddBAParams->baTID] )
+    {
+      status = eHAL_STATUS_FAILURE;
+      goto generate_response;
+    }
 
 #ifdef FEATURE_ON_CHIP_REORDERING
     if(pMac->hal.halMac.numOfOnChipReorderSessions < pMac->hal.halMac.maxNumOfOnChipReorderSessions)

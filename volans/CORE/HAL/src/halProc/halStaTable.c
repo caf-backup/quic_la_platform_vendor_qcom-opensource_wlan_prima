@@ -352,6 +352,10 @@ eHalStatus halTable_GetStaId(tpAniSirGlobal pMac, tANI_U8 type, tSirMacAddr bssI
             sizeof( *sta->baSessionID ) * STACFG_MAX_TC,
             (tANI_BYTE) BA_SESSION_ID_INVALID );
 
+    palZeroMemory( pMac->hHdd,
+        (void *) sta->baBlocked,
+        sizeof( *sta->baBlocked ) * STACFG_MAX_TC );
+
     return eHAL_STATUS_SUCCESS;
 }
 
