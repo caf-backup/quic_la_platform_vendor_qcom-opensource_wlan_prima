@@ -318,6 +318,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
 
             if (0 != pAdapter->cfg_ini->nAPAutoShutOff)
             {
+                spin_lock_bh( &pHostapdAdapter->staInfo_lock );
                 // Start AP inactivity timer if no stations associated with it
                 for (i = 0; i < WLAN_MAX_STA_COUNT; i++)
                 {
@@ -327,6 +328,7 @@ VOS_STATUS hdd_hostapd_SAPEventCB( tpSap_Event pSapEvent, v_PVOID_t usrDataForCa
                         break;
                     }
                 }
+                spin_unlock_bh( &pHostapdAdapter->staInfo_lock );
 
                 if (bApActive == FALSE)
                 {
@@ -549,7 +551,8 @@ static iw_softap_getassoc_stamacaddr(struct net_device *dev,
 	pmaclist = wrqu->data.pointer + sizeof(unsigned long int);
 	len = wrqu->data.length;
 
-	while((cnt < WLAN_MAX_STA_COUNT) && (len > (sizeof(v_MACADDR_t)+1))) {
+	spin_lock_bh( &pHostapdAdapter->staInfo_lock );
+    while((cnt < WLAN_MAX_STA_COUNT) && (len > (sizeof(v_MACADDR_t)+1))) {
 		if (TRUE == pHostapdAdapter->aStaInfo[cnt].isUsed) {
 			
 			if(!IS_BROADCAST_MAC(pHostapdAdapter->aStaInfo[cnt].macAddrSTA.bytes)) {
@@ -560,6 +563,7 @@ static iw_softap_getassoc_stamacaddr(struct net_device *dev,
 		}
 		cnt++;
 	}
+    spin_unlock_bh( &pHostapdAdapter->staInfo_lock );
 
 	*pmaclist = '\0';
 

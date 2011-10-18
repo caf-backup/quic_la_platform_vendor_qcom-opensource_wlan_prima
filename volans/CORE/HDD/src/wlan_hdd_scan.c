@@ -509,7 +509,6 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     union iwreq_data wrqu;
     int we_event;
     char *msg;
-    VOS_STATUS vos_status;
     ENTER();
 
    hddLog(LOGW,"%s called with halHandle = %p, pContext = %p, scanID = %d,"
@@ -533,13 +532,7 @@ static eHalStatus hdd_ScanRequestCallback(tHalHandle halHandle, void *pContext,
     msg = NULL;
     wireless_send_event(dev, we_event, &wrqu, msg);
 
-    vos_status = vos_event_set(&pwextBuf->scanevent);
-   
-    if (!VOS_IS_STATUS_SUCCESS(vos_status))
-    {    
-       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("ERROR: HDD vos_event_set failed!!\n"));
-       return VOS_STATUS_E_FAILURE;
-    }
+    EXIT();
 
     VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: exit !!!",__func__);
 
@@ -704,13 +697,11 @@ int iw_get_scan(struct net_device *dev,
                          union iwreq_data *wrqu, char *extra)
 {
    hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR(dev) ;
-   hdd_wext_state_t *pwextBuf = pAdapter->pWextState;
    tHalHandle hHal = pAdapter->hHal;
    tCsrScanResultInfo *pScanResult;
    eHalStatus status = eHAL_STATUS_SUCCESS;
    hdd_scan_info_t scanInfo;
    tScanResultHandle pResult;
-   VOS_STATUS vos_status = VOS_STATUS_SUCCESS;
    int i = 0;
 
    VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO, "%s: enter buffer length %d!!!",
@@ -722,26 +713,6 @@ int iw_get_scan(struct net_device *dev,
       return -EAGAIN;
    }
    // moved from all set scan (iw_set_(c)scan) 
-   if (TRUE == pwextBuf->mScanPending)
-   {
-       hddLog(VOS_TRACE_LEVEL_WARN,"iw_get_scan: Scan Pending wait for 3 sec time out\n");
-       
-       vos_status = vos_event_reset(&pwextBuf->scanevent);
-       
-       if (!VOS_IS_STATUS_SUCCESS(vos_status))
-       {
-          hddLog(VOS_TRACE_LEVEL_FATAL, ("ERROR: HDD vos_event_reset failed!!\n"));
-          return -EAGAIN;
-       }
-       
-       vos_status = vos_wait_single_event(&pwextBuf->scanevent,3000);
-       
-       if (!VOS_IS_STATUS_SUCCESS(vos_status)) {
-          hddLog(VOS_TRACE_LEVEL_FATAL,"Error : Scan Pending no scan response from SME\n");
-          return -EAGAIN;
-       }
-   }
-
    scanInfo.dev = dev;
    scanInfo.start = extra;
    scanInfo.info = info;

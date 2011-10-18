@@ -63,7 +63,7 @@ extern void hdd_resume_wlan(struct early_suspend *wlan_suspend);
 #define MAX_INNAV_RESPONSE_LEN 1024
 #endif
 
-#define HDD_FINISH_ULA_TIME_OUT    1000
+#define HDD_FINISH_ULA_TIME_OUT    800
 
 extern VOS_STATUS hdd_enter_standby(hdd_adapter_t* pAdapter) ;
 
@@ -738,7 +738,7 @@ static int iw_get_tx_power(struct net_device *dev,
   
     pWextState = pAdapter->pWextState;
     
-    vos_status = vos_wait_single_event(&pWextState->vosevent, 1000);
+    vos_status = vos_wait_single_event(&pWextState->vosevent, WLAN_WAIT_TIME_STATS);
   
     if (!VOS_IS_STATUS_SUCCESS(vos_status))
     { 
@@ -831,7 +831,7 @@ static int iw_get_bitrate(struct net_device *dev,
    
       pWextState = pAdapter->pWextState;
       
-      vos_status = vos_wait_single_event(&pWextState->vosevent, 1000);
+      vos_status = vos_wait_single_event(&pWextState->vosevent, WLAN_WAIT_TIME_STATS);
    
       if (!VOS_IS_STATUS_SUCCESS(vos_status))
       {   
@@ -1530,7 +1530,7 @@ static int iw_set_priv(struct net_device *dev,
               return status;
            }
                    
-           status = vos_wait_single_event(&pWextState->vosevent, 1000);
+           status = vos_wait_single_event(&pWextState->vosevent, WLAN_WAIT_TIME_STATS);
         
            if (!VOS_IS_STATUS_SUCCESS(status))
            {   
@@ -1573,7 +1573,7 @@ static int iw_set_priv(struct net_device *dev,
                     return status;
                 }
 
-                vos_wait_single_event(&pWextState->vosevent, 1000);
+                vos_wait_single_event(&pWextState->vosevent, WLAN_WAIT_TIME_STATS);
                 if(!VOS_IS_STATUS_SUCCESS(status))
                 {
                     hddLog(VOS_TRACE_LEVEL_ERROR, "%s: HDD vos wait for single_event failed", __func__);
@@ -1612,7 +1612,10 @@ static int iw_set_priv(struct net_device *dev,
             sme_SetDHCPTillPowerActiveFlag(pAdapter->hHal, TRUE);
        
             if(status == eHAL_STATUS_PMC_PENDING)
-                wait_for_completion_interruptible(&pWextState->completion_var);
+            {
+                wait_for_completion_interruptible_timeout(&pWextState->completion_var,
+                    msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+            }
         }
         else if (mode == DRIVER_POWER_MODE_AUTO)
         {
@@ -1630,7 +1633,10 @@ static int iw_set_priv(struct net_device *dev,
 		
     
                 if (status == eHAL_STATUS_PMC_PENDING)
-                    wait_for_completion_interruptible(&pWextState->completion_var);
+                {
+                    wait_for_completion_interruptible_timeout(&pWextState->completion_var,
+                        msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+                }
             }
             else 
             {
@@ -2322,7 +2328,10 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
                  if(sme_RequestFullPower(hHal, iw_priv_callback_fn,
                        &pAdapter->pWextState->completion_var, eSME_FULL_PWR_NEEDED_BY_HDD) ==
                        eHAL_STATUS_PMC_PENDING)
-                    wait_for_completion_interruptible(&pAdapter->pWextState->completion_var);
+                 {
+                    wait_for_completion_interruptible_timeout(&pAdapter->pWextState->completion_var,
+                        msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+                 }
                  hddLog(LOGE, "iwpriv Full Power completed\n");
                  break;
               case  1: //Enable BMPS
@@ -2334,7 +2343,10 @@ static int iw_setint_getnone(struct net_device *dev, struct iw_request_info *inf
               case  3: //Request Bmps
                  if(sme_RequestBmps(hHal, iw_priv_callback_fn, &pAdapter->pWextState->completion_var) == 
                     eHAL_STATUS_PMC_PENDING)
-                    wait_for_completion_interruptible(&pAdapter->pWextState->completion_var);
+                 {
+                    wait_for_completion_interruptible_timeout(&pAdapter->pWextState->completion_var,
+                        msecs_to_jiffies(WLAN_WAIT_TIME_POWER));
+                 }
                  hddLog(LOGE, "iwpriv Request BMPS completed\n");
                  break;
               case  4: //Enable IMPS
@@ -3359,7 +3371,7 @@ static int iw_get_statistics(struct net_device *dev,
 
     pWextState = pAdapter->pWextState;
 
-    vos_status = vos_wait_single_event(&pWextState->vosevent, 1000);
+    vos_status = vos_wait_single_event(&pWextState->vosevent, WLAN_WAIT_TIME_STATS);
     if (!VOS_IS_STATUS_SUCCESS(vos_status))
     {
        VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR, ("%s: ERROR: HDD vos wait for single_event failed!!\n"), __func__);

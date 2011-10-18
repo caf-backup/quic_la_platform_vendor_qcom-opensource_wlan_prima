@@ -177,6 +177,8 @@ typedef struct hdd_hostapd_adapter_s
    
    vos_timer_t hdd_ap_inactivity_timer;
 
+   spinlock_t staInfo_lock; //To protect access to station Info
+
 } hdd_hostapd_adapter_t;
 
 int hdd_wlan_create_ap_dev(struct net_device *pWlanDev);
