@@ -244,24 +244,24 @@ limProcessProbeRspFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession 
             limGetQosMode(psessionEntry, &qosEnabled);
             limGetWmeMode(psessionEntry, &wmeEnabled);
            PELOG2(limLog(pMac, LOG2,
-                    FL("wmeEdcaPresent: %d wmeEnabled: %d, edcaPresent: %d, qosEnabled: %d,  edcaParams.qosInfo.count: %d schObject.gSchEdcaParamSetCount: %d\n"),
+                    FL("wmeEdcaPresent: %d wmeEnabled: %d, edcaPresent: %d, qosEnabled: %d,  edcaParams.qosInfo.count: %d schObject.gLimEdcaParamSetCount: %d\n"),
                           probeRsp.wmeEdcaPresent, wmeEnabled, probeRsp.edcaPresent, qosEnabled,
-                          probeRsp.edcaParams.qosInfo.count, pMac->sch.schObject.gSchEdcaParamSetCount);)
+                          probeRsp.edcaParams.qosInfo.count, psessionEntry->gLimEdcaParamSetCount);)
             if (((probeRsp.wmeEdcaPresent && wmeEnabled) ||
                 (probeRsp.edcaPresent && qosEnabled)) &&
-                (probeRsp.edcaParams.qosInfo.count != pMac->sch.schObject.gSchEdcaParamSetCount))
+                (probeRsp.edcaParams.qosInfo.count != psessionEntry->gLimEdcaParamSetCount))
             {
-                if (schBeaconEdcaProcess(pMac, &probeRsp.edcaParams) != eSIR_SUCCESS)
+                if (schBeaconEdcaProcess(pMac, &probeRsp.edcaParams, psessionEntry) != eSIR_SUCCESS)
                     PELOGE(limLog(pMac, LOGE, FL("EDCA parameter processing error\n"));)
                 else if (pStaDs != NULL)
                 {
                     // If needed, downgrade the EDCA parameters
-                    limSetActiveEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParams); 
+                    limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry); 
 
                     if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE)
-                        limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
+                        limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
                     else
-                        limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
+                        limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
                 }
                 else
                     PELOGE(limLog(pMac, LOGE, FL("Self Entry missing in Hash Table\n"));)

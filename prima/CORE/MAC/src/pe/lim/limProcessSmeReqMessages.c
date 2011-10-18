@@ -4208,15 +4208,15 @@ __limProcessSmeDeltsReq(tpAniSirGlobal pMac, tANI_U32 *pMsgBuf)
       pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
     }
 
-    limSetActiveEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParams);
+    limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);
 
     pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
     if (pStaDs != NULL)
     {
         if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE) 
-            limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
+            limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
         else
-            limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
+            limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
         status = eSIR_SUCCESS;
     }
     else

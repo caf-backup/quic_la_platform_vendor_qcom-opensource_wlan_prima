@@ -719,6 +719,8 @@ eHalStatus pmcSendPowerSaveConfigMessage (tHalHandle hHal)
     powerSaveConfig.fPSPoll = pMac->pmc.bmpsConfig.usePsPoll;
     powerSaveConfig.fEnableBeaconEarlyTermination = 
         pMac->pmc.bmpsConfig.enableBeaconEarlyTermination;
+    powerSaveConfig.bcnEarlyTermWakeInterval = 
+        pMac->pmc.bmpsConfig.bcnEarlyTermWakeInterval;
 
     /* setcfg for listenInterval. Make sure CFG is updated because PE reads this 
        from CFG at the time of assoc or reassoc */

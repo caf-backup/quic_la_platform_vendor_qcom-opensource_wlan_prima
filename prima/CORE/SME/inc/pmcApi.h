@@ -250,6 +250,9 @@ typedef struct sPmcBmpsConfigParams
                                       RXP will read the beacon header for the 
                                       TIM bit & discard the rest if set to 0, 
                                       while in BMPS              */
+    tANI_U8      bcnEarlyTermWakeInterval; /* This specifies how often in terms 
+                                      of LI we will disable BET in order to sync 
+                                      up TSF*/
 
 } tPmcBmpsConfigParams, *tpPmcBmpsConfigParams;
 

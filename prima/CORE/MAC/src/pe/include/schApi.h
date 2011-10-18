@@ -29,7 +29,7 @@ extern void schUpdateQosInfo(tpAniSirGlobal pMac);
 // update only the broadcast qos params
 extern void schQosUpdateBroadcast(tpAniSirGlobal pMac, tpPESession psessionEntry);
 
-// fill in the default local edca parameter into gSchEdcaParams[]
+// fill in the default local edca parameter into gLimEdcaParams[]
 extern void schSetDefaultEdcaParams(tpAniSirGlobal pMac);
 
 // update only local qos params
@@ -96,7 +96,7 @@ extern tANI_U16 schGetCFPDurRemaining(tpAniSirGlobal pMac);
 #endif
 
 extern void schBeaconProcess(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo, tpPESession psessionEntry);
-extern tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *edca);
+extern tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *edca, tpPESession psessionEntry);
 
 
 #define SCH_RR_TIMEOUT                   (SCH_RR_TIMEOUT_MS / SYS_TICK_DUR_MS)

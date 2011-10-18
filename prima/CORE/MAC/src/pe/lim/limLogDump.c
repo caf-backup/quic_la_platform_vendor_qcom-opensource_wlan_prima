@@ -773,8 +773,8 @@ void
 limSetEdcaBcastACMFlag(tpAniSirGlobal pMac, tANI_U32 ac, tANI_U32 acmFlag)
 {
     tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????
-    pMac->sch.schObject.gSchEdcaParamsBC[ac].aci.acm = (tANI_U8)acmFlag;
-    pMac->sch.schObject.gSchEdcaParamSetCount++;
+    psessionEntry->gLimEdcaParamsBC[ac].aci.acm = (tANI_U8)acmFlag;
+    psessionEntry->gLimEdcaParamSetCount++;
     schSetFixedBeaconFields(pMac,psessionEntry);
 }
 
@@ -782,16 +782,17 @@ static char *
 limDumpEdcaParams(tpAniSirGlobal pMac, char *p)
 {
     tANI_U8 i = 0;
-    p += log_sprintf( pMac,p, "EDCA parameter set count = %d\n",  pMac->sch.schObject.gSchEdcaParamSetCount);
+    tpPESession psessionEntry = &pMac->lim.gpSession[0];  //TBD-RAJESH HOW TO GET sessionEntry?????    
+    p += log_sprintf( pMac,p, "EDCA parameter set count = %d\n",  psessionEntry->gLimEdcaParamSetCount);
     p += log_sprintf( pMac,p, "Broadcast parameters\n");
     p += log_sprintf( pMac,p, "AC\tACI\tACM\tAIFSN\tCWMax\tCWMin\tTxopLimit\t\n");
     for(i = 0; i < MAX_NUM_AC; i++)
     {
         //right now I am just interested in ACM bit. this can be extended for all other EDCA paramters.
         p += log_sprintf( pMac,p, "%d\t%d\t%d\t%d\t%d\t%d\t%d\n",  i,
-          pMac->sch.schObject.gSchEdcaParamsBC[i].aci.aci, pMac->sch.schObject.gSchEdcaParamsBC[i].aci.acm,
-          pMac->sch.schObject.gSchEdcaParamsBC[i].aci.aifsn, pMac->sch.schObject.gSchEdcaParamsBC[i].cw.max,
-          pMac->sch.schObject.gSchEdcaParamsBC[i].cw.min, pMac->sch.schObject.gSchEdcaParamsBC[i].txoplimit);
+          psessionEntry->gLimEdcaParamsBC[i].aci.aci, psessionEntry->gLimEdcaParamsBC[i].aci.acm,
+          psessionEntry->gLimEdcaParamsBC[i].aci.aifsn, psessionEntry->gLimEdcaParamsBC[i].cw.max,
+          psessionEntry->gLimEdcaParamsBC[i].cw.min, psessionEntry->gLimEdcaParamsBC[i].txoplimit);
     }
 
     p += log_sprintf( pMac,p, "\nLocal parameters\n");
@@ -800,9 +801,9 @@ limDumpEdcaParams(tpAniSirGlobal pMac, char *p)
     {
         //right now I am just interested in ACM bit. this can be extended for all other EDCA paramters.
         p += log_sprintf( pMac,p, "%d\t%d\t%d\t%d\t%d\t%d\t%d\n",  i,
-              pMac->sch.schObject.gSchEdcaParams[i].aci.aci, pMac->sch.schObject.gSchEdcaParams[i].aci.acm,
-              pMac->sch.schObject.gSchEdcaParams[i].aci.aifsn, pMac->sch.schObject.gSchEdcaParams[i].cw.max,
-              pMac->sch.schObject.gSchEdcaParams[i].cw.min, pMac->sch.schObject.gSchEdcaParams[i].txoplimit);
+              psessionEntry->gLimEdcaParams[i].aci.aci, psessionEntry->gLimEdcaParams[i].aci.acm,
+              psessionEntry->gLimEdcaParams[i].aci.aifsn, psessionEntry->gLimEdcaParams[i].cw.max,
+              psessionEntry->gLimEdcaParams[i].cw.min, psessionEntry->gLimEdcaParams[i].txoplimit);
     }
 
     return p;

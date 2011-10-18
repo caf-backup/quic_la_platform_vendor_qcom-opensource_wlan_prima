@@ -3031,6 +3031,7 @@ typedef struct sSirPowerSaveCfg
 
     // Enabling/disabling Beacon Early Termination feature
     tANI_U8     fEnableBeaconEarlyTermination;    
+    tANI_U8     bcnEarlyTermWakeInterval;    
 
 }tSirPowerSaveCfg, *tpSirPowerSaveCfg;
 

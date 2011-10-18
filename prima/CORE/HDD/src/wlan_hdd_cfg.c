@@ -1213,7 +1213,7 @@ REG_TABLE_ENTRY g_registry_table[] =
                CFG_TELE_BCN_MAX_LI_NUM_IDLE_BCNS_MAX ), 
 
   REG_VARIABLE( CFG_BCN_EARLY_TERM_WAKE_NAME, WLAN_PARAM_Integer,
-               hdd_config_t, bcnEarlyTermWake, 
+               hdd_config_t, bcnEarlyTermWakeInterval, 
                VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT, 
                CFG_BCN_EARLY_TERM_WAKE_DEFAULT, 
                CFG_BCN_EARLY_TERM_WAKE_MIN, 
@@ -1555,7 +1555,7 @@ static void print_hdd_cfg(hdd_context_t *pHddCtx)
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [transLiNumIdleBeacons] Value = [%u] ",pHddCtx->cfg_ini->nTeleBcnTransLiNumIdleBeacons);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [maxListenInterval] Value = [%u] ",pHddCtx->cfg_ini->nTeleBcnMaxListenInterval);
   VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [maxLiNumIdleBeacons] Value = [%u] ",pHddCtx->cfg_ini->nTeleBcnMaxLiNumIdleBeacons);
-  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [bcnEarlyTermWake] Value = [%u] ",pHddCtx->cfg_ini->bcnEarlyTermWake);
+  VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_INFO_HIGH, "Name = [bcnEarlyTermWakeInterval] Value = [%u] ",pHddCtx->cfg_ini->bcnEarlyTermWakeInterval);
 }
 
 
@@ -1908,18 +1908,21 @@ static void hdd_set_power_save_config(hdd_context_t *pHddCtx, tSmeConfigParams *
       smeConfig->csrConfig.impsSleepTime   = pConfig->nImpsMinSleepTime;
       bmpsParams.bmpsPeriod                = pConfig->nBmpsMinListenInterval;
       bmpsParams.enableBeaconEarlyTermination = pConfig->fEnableBeaconEarlyTermination;
+      bmpsParams.bcnEarlyTermWakeInterval  = pConfig->bcnEarlyTermWakeInterval;
    }
    if (strcmp(pConfig->PowerUsageControl, "Max") == 0)
    {
       smeConfig->csrConfig.impsSleepTime   = pConfig->nImpsMaxSleepTime;
       bmpsParams.bmpsPeriod                = pConfig->nBmpsMaxListenInterval;
       bmpsParams.enableBeaconEarlyTermination = pConfig->fEnableBeaconEarlyTermination;
+      bmpsParams.bcnEarlyTermWakeInterval  = pConfig->bcnEarlyTermWakeInterval;
    }
    if (strcmp(pConfig->PowerUsageControl, "Mod") == 0)
    {
       smeConfig->csrConfig.impsSleepTime   = pConfig->nImpsModSleepTime;
       bmpsParams.bmpsPeriod                = pConfig->nBmpsModListenInterval;
       bmpsParams.enableBeaconEarlyTermination = pConfig->fEnableBeaconEarlyTermination;
+      bmpsParams.bcnEarlyTermWakeInterval  = pConfig->bcnEarlyTermWakeInterval;
    }
 
    if (pConfig->fIsImpsEnabled)

@@ -161,9 +161,9 @@ tSirRetStatus limSendBeaconParams(tpAniSirGlobal pMac,
     msgQ.bodyptr = pBcnParams;
     msgQ.bodyval = 0;
 
-    limLog( pMac, LOG3,
+    PELOG3(limLog( pMac, LOG3,
                 FL( "Sending WDA_UPDATE_BEACON_IND, paramChangeBitmap in hex = %x" ),
-                    pUpdatedBcnParams->paramChangeBitmap);
+                    pUpdatedBcnParams->paramChangeBitmap);)
     MTRACE(macTraceMsgTx(pMac, 0, msgQ.type));
     if( eSIR_SUCCESS != (retCode = wdaPostCtrlMsg( pMac, &msgQ )))
     {
@@ -375,9 +375,10 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
  *
  * @param pMac  pointer to Global Mac structure.
  * @param plocalEdcaParams pointer to the local EDCA parameters
+ * @ param psessionEntry point to the session entry
  * @return none
  */
- void limSetActiveEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *plocalEdcaParams)
+ void limSetActiveEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *plocalEdcaParams, tpPESession psessionEntry)
 {
     tANI_U8   ac, newAc, i;
     tANI_U8   acAdmitted;
@@ -385,11 +386,11 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
     vos_log_qos_edca_pkt_type *log_ptr = NULL;
 #endif //FEATURE_WLAN_DIAG_SUPPORT 
 
-    // Initialize gSchEdcaParamsActive[] to be same as localEdcaParams
-    pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_BE] = plocalEdcaParams[EDCA_AC_BE];
-    pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_BK] = plocalEdcaParams[EDCA_AC_BK];
-    pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_VI] = plocalEdcaParams[EDCA_AC_VI];
-    pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_VO] = plocalEdcaParams[EDCA_AC_VO];
+    // Initialize gLimEdcaParamsActive[] to be same as localEdcaParams
+    psessionEntry->gLimEdcaParamsActive[EDCA_AC_BE] = plocalEdcaParams[EDCA_AC_BE];
+    psessionEntry->gLimEdcaParamsActive[EDCA_AC_BK] = plocalEdcaParams[EDCA_AC_BK];
+    psessionEntry->gLimEdcaParamsActive[EDCA_AC_VI] = plocalEdcaParams[EDCA_AC_VI];
+    psessionEntry->gLimEdcaParamsActive[EDCA_AC_VO] = plocalEdcaParams[EDCA_AC_VO];
 
     /* An AC requires downgrade if the ACM bit is set, and the AC has not
      * yet been admitted in uplink or bi-directions.
@@ -424,7 +425,7 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
                 }
             }
             limLog(pMac, LOGW, FL("Downgrading AC %d ---> AC %d "), ac, newAc);
-            pMac->sch.schObject.gSchEdcaParamsActive[ac] = plocalEdcaParams[newAc];
+            psessionEntry->gLimEdcaParamsActive[ac] = plocalEdcaParams[newAc];
         }
     }
 //log: LOG_WLAN_QOS_EDCA_C
@@ -432,22 +433,22 @@ tSirRetStatus limSendEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *pUp
     WLAN_VOS_DIAG_LOG_ALLOC(log_ptr, vos_log_qos_edca_pkt_type, LOG_WLAN_QOS_EDCA_C);
     if(log_ptr)
     {
-       log_ptr->aci_be = pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_BE].aci.aci;
-       log_ptr->cw_be  = pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_BE].cw.max << 4 |
-          pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_BE].cw.min;
-       log_ptr->txoplimit_be = pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_BE].txoplimit;
-       log_ptr->aci_bk = pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_BK].aci.aci;
-       log_ptr->cw_bk  = pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_BK].cw.max << 4 |
-          pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_BK].cw.min;
-       log_ptr->txoplimit_bk = pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_BK].txoplimit;
-       log_ptr->aci_vi = pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_VI].aci.aci;
-       log_ptr->cw_vi  = pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_VI].cw.max << 4 |
-          pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_VI].cw.min;
-       log_ptr->txoplimit_vi = pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_VI].txoplimit;
-       log_ptr->aci_vo = pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_VO].aci.aci;
-       log_ptr->cw_vo  = pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_VO].cw.max << 4 |
-          pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_VO].cw.min;
-       log_ptr->txoplimit_vo = pMac->sch.schObject.gSchEdcaParamsActive[EDCA_AC_VO].txoplimit;
+       log_ptr->aci_be = psessionEntry->gLimEdcaParamsActive[EDCA_AC_BE].aci.aci;
+       log_ptr->cw_be  = psessionEntry->gLimEdcaParamsActive[EDCA_AC_BE].cw.max << 4 |
+          psessionEntry->gLimEdcaParamsActive[EDCA_AC_BE].cw.min;
+       log_ptr->txoplimit_be = psessionEntry->gLimEdcaParamsActive[EDCA_AC_BE].txoplimit;
+       log_ptr->aci_bk = psessionEntry->gLimEdcaParamsActive[EDCA_AC_BK].aci.aci;
+       log_ptr->cw_bk  = psessionEntry->gLimEdcaParamsActive[EDCA_AC_BK].cw.max << 4 |
+          psessionEntry->gLimEdcaParamsActive[EDCA_AC_BK].cw.min;
+       log_ptr->txoplimit_bk = psessionEntry->gLimEdcaParamsActive[EDCA_AC_BK].txoplimit;
+       log_ptr->aci_vi = psessionEntry->gLimEdcaParamsActive[EDCA_AC_VI].aci.aci;
+       log_ptr->cw_vi  = psessionEntry->gLimEdcaParamsActive[EDCA_AC_VI].cw.max << 4 |
+          psessionEntry->gLimEdcaParamsActive[EDCA_AC_VI].cw.min;
+       log_ptr->txoplimit_vi = psessionEntry->gLimEdcaParamsActive[EDCA_AC_VI].txoplimit;
+       log_ptr->aci_vo = psessionEntry->gLimEdcaParamsActive[EDCA_AC_VO].aci.aci;
+       log_ptr->cw_vo  = psessionEntry->gLimEdcaParamsActive[EDCA_AC_VO].cw.max << 4 |
+          psessionEntry->gLimEdcaParamsActive[EDCA_AC_VO].cw.min;
+       log_ptr->txoplimit_vo = psessionEntry->gLimEdcaParamsActive[EDCA_AC_VO].txoplimit;
     }
     WLAN_VOS_DIAG_LOG_REPORT(log_ptr);
 #endif //FEATURE_WLAN_DIAG_SUPPORT

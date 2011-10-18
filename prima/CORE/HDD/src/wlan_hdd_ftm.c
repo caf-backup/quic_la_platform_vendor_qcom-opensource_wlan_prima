@@ -848,6 +848,8 @@ done:
 static VOS_STATUS wlan_ftm_priv_get_status(hdd_adapter_t *pAdapter,char *buf)
 {
     int ii;
+    int lenBuf = WE_FTM_MAX_STR_LEN;
+    int lenRes = 0;
     char *chain[] = {
         "None",
         "R0,R1",
@@ -874,24 +876,38 @@ static VOS_STATUS wlan_ftm_priv_get_status(hdd_adapter_t *pAdapter,char *buf)
         return VOS_STATUS_E_FAILURE;
     }
 
-    buf += sprintf(buf, "\n");
-    buf += sprintf(buf, " chainSelect: %s\n", chain[ftm_status.chainSelect]);
-    buf += sprintf(buf, " rxmode: %s\n", rx[ftm_status.rxmode]);
-    buf += sprintf(buf, " txpktgen: %s\n", tx[ftm_status.frameGenEnabled]);
-    buf += sprintf(buf, "  txifs: %ld\n", ftm_status.frameParams.interFrameSpace);
-    buf += sprintf(buf, "  txrate: ");
+    lenRes = snprintf(buf, lenBuf, "\n chainSelect: %s\n rxmode: %s\n "
+                                   "txpktgen: %s\n  txifs: %ld\n  txrate: ",
+                      chain[ftm_status.chainSelect], rx[ftm_status.rxmode], 
+                      tx[ftm_status.frameGenEnabled], 
+                      ftm_status.frameParams.interFrameSpace);
+    if(lenRes < 0 || lenRes > lenBuf)
+       return VOS_STATUS_E_FAILURE;
+
+    buf += lenRes;
+    lenBuf -= lenRes;
+
     for(ii = 0; ii < SIZE_OF_TABLE(rateName_rateIndex_tbl); ii++)
     {
         if (rateName_rateIndex_tbl[ii].rate_index == ftm_status.frameParams.rate)
           break;
     }
-    strcpy(buf, rateName_rateIndex_tbl[ii].rate_str);
-    buf += strlen(buf) ;
-    buf += sprintf(buf, "\n");
-    buf += sprintf(buf, "  txpower: %d\n", ftm_status.txpower);
-    buf += sprintf(buf, "  txpktcnt: %ld\n", ftm_status.frameParams.numTestPackets);
-    buf += sprintf(buf, "  txpktlen: %d\n", ftm_status.frameParams.payloadLength);
-    *buf = 0 ;
+
+    lenRes = strlcpy(buf, rateName_rateIndex_tbl[ii].rate_str, lenBuf);
+    if(lenRes < 0 || lenRes > lenBuf)
+       return VOS_STATUS_E_FAILURE;
+
+    buf += lenRes;
+    lenBuf -= lenRes;
+
+    lenRes = snprintf(buf, lenBuf, "\n  txpower: %d\n  txpktcnt: %ld\n  "
+                                   "txpktlen: %d\n", ftm_status.txpower, 
+                      ftm_status.frameParams.numTestPackets, 
+                      ftm_status.frameParams.payloadLength);
+
+    if(lenRes < 0 || lenRes > lenBuf)
+       return VOS_STATUS_E_FAILURE;
+
     return VOS_STATUS_SUCCESS;
 }
 
@@ -3484,6 +3500,8 @@ VOS_STATUS wlan_ftm_priv_get_ftm_version(hdd_adapter_t *pAdapter,char *pftmVer)
     FwVersionInfo *pFwVersion;
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
+    int lenRes = 0;
+    int lenBuf = WE_FTM_MAX_STR_LEN;
 
     if(pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
     {
@@ -3538,14 +3556,49 @@ VOS_STATUS wlan_ftm_priv_get_ftm_version(hdd_adapter_t *pAdapter,char *pftmVer)
     wait_for_completion_interruptible_timeout(&pHddCtx->ftm.ftm_comp_var, msecs_to_jiffies(WLAN_FTM_COMMAND_TIME_OUT));
 
 
-    buf += sprintf(buf,"%s_",WLAN_CHIP_VERSION);
-    /*Read the RevID*/
-    buf += sprintf(buf,"%x.%x-",(v_U8_t)(reg_val >> 8), (v_U8_t)(reg_val & 0x000000FF));
+    lenRes = snprintf(buf, lenBuf, "%s_",WLAN_CHIP_VERSION);
+    if(lenRes < 0 || lenRes > lenBuf)
+    {
+        status = VOS_STATUS_E_FAILURE;
+        goto done;
+    }
 
-    buf += sprintf(buf,"%s-", QWLAN_VERSIONSTR);
+    buf += lenRes;
+    lenBuf -= lenRes;
+
+    /*Read the RevID*/
+    lenRes = snprintf(buf, lenBuf, "%x.%x-",(v_U8_t)(reg_val >> 8), (v_U8_t)(reg_val &0x000000FF)); 
+    if(lenRes < 0 || lenRes > lenBuf)
+    {
+        status = VOS_STATUS_E_FAILURE;
+        goto done;
+    }
+
+    buf += lenRes;
+    lenBuf -= lenRes;
+
+    lenRes = snprintf(buf, lenBuf, "%s-", QWLAN_VERSIONSTR);
+    if(lenRes < 0 || lenRes > lenBuf)
+    {
+        status = VOS_STATUS_E_FAILURE;
+        goto done;
+    }
+
+    buf += lenRes;
+    lenBuf -= lenRes;
+
 #ifndef FEATURE_WLAN_INTEGRATED_SOC
     pFwVersion = &pMsgBody->GetBuildReleaseNumber.relParams.fwVer;
-    buf += sprintf(buf,"%ld.%ld.%ld.%ld",pFwVersion->uMj,pFwVersion->uMn,pFwVersion->uPatch,pFwVersion->uBuild);
+    lenRes = snprintf(buf, lenBuf, "%ld.%ld.%ld.%ld", pFwVersion->uMj,pFwVersion->uMn,pFwVersion->uPatch,pFwVersion->uBuild ) ;
+    if(lenRes < 0 || lenRes > lenBuf)
+    {
+        status = VOS_STATUS_E_FAILURE;
+        goto done;
+    }
+
+    buf += lenRes;
+    lenBuf -= lenRes;
+
 #endif /* FEATURE_WLAN_INTEGRATED_SOC */
 
 done:
@@ -3623,7 +3676,7 @@ static VOS_STATUS wlan_ftm_priv_get_txrate(hdd_adapter_t *pAdapter,char *pTxRate
         status = VOS_STATUS_E_FAILURE;
         goto done;
     }
-    strcpy(pTxRate,rateName_rateIndex_tbl[ii].rate_str);
+    strlcpy(pTxRate,rateName_rateIndex_tbl[ii].rate_str, WE_FTM_MAX_STR_LEN);
 done:
     vos_mem_free((v_VOID_t * )pMsgBuf);
 
@@ -3708,7 +3761,8 @@ static VOS_STATUS wlan_ftm_priv_get_rx_rssi(hdd_adapter_t *pAdapter,char *buf)
     uPttMsgs *pMsgBody;
     VOS_STATUS status;
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
-
+   int ret;
+   
     if(pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
     {
         VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_FATAL, "%s:Ftm has not started.Please start the ftm. ",__func__);
@@ -3739,8 +3793,15 @@ static VOS_STATUS wlan_ftm_priv_get_rx_rssi(hdd_adapter_t *pAdapter,char *buf)
         goto done;
     }
 
-    sprintf(buf, " R0:%d, R1:%d", pMsgBody->GetRxRssi.rssi.rx[0], pMsgBody->GetRxRssi.rssi.rx[1]);
+   ret = snprintf(buf, WE_FTM_MAX_STR_LEN, " R0:%d, R1:%d", 
+                      pMsgBody->GetRxRssi.rssi.rx[0], 
+                  pMsgBody->GetRxRssi.rssi.rx[1]);
 
+   if( ret < 0 || ret > WE_FTM_MAX_STR_LEN )
+   {
+      status = VOS_STATUS_E_FAILURE;
+   }
+   
 done:
     vos_mem_free((v_VOID_t * )pMsgBuf);
 
@@ -3766,6 +3827,7 @@ static VOS_STATUS wlan_ftm_priv_get_mac_address(hdd_adapter_t *pAdapter,char *bu
     v_BOOL_t itemIsValid = VOS_FALSE;
     v_U8_t macAddr[VOS_MAC_ADDRESS_LEN] = {0, 0x0a, 0xf5, 4,5, 6};
     int ret;
+   
     hdd_context_t *pHddCtx = (hdd_context_t *)pAdapter->pHddCtx;
 
     if(pHddCtx->ftm.ftm_state != WLAN_FTM_STARTED)
@@ -3776,16 +3838,27 @@ static VOS_STATUS wlan_ftm_priv_get_mac_address(hdd_adapter_t *pAdapter,char *bu
     /*Check the NV FIELD is valid or not*/
     if (vos_nv_getValidity(VNV_FIELD_IMAGE, &itemIsValid) == VOS_STATUS_SUCCESS)
     {
-        if (itemIsValid == VOS_TRUE) {
-
+       if (itemIsValid == VOS_TRUE) 
+       {
             vos_nv_readMacAddress(macAddr);
-            ret = sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x", MAC_ADDR_ARRAY(macAddr));
-        }
-    }
-    else {
+
+         ret = snprintf(buf, WE_FTM_MAX_STR_LEN, 
+                             "%02x:%02x:%02x:%02x:%02x:%02x", 
+                        MAC_ADDR_ARRAY(macAddr));
+         if( ret < 0 || ret > WE_FTM_MAX_STR_LEN )
+             return VOS_STATUS_E_FAILURE;
+       }
+   }
+   else 
+   {
          /*Return Hard coded mac address*/
-         ret = sprintf(buf, "%02x:%02x:%02x:%02x:%02x:%02x", MAC_ADDR_ARRAY(macAddr));
-    }
+      ret = snprintf(buf, WE_FTM_MAX_STR_LEN, 
+                            "%02x:%02x:%02x:%02x:%02x:%02x", 
+                     MAC_ADDR_ARRAY(macAddr));
+
+      if( ret < 0 || ret > WE_FTM_MAX_STR_LEN )
+            return VOS_STATUS_E_FAILURE;
+   }
     return VOS_STATUS_SUCCESS;
 }
 

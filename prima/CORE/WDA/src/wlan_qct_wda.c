@@ -112,7 +112,7 @@
 
 #define WDA_INVALID_KEY_INDEX  0xFF
 
-#define WDA_NUM_PWR_SAVE_CFG       10
+#define WDA_NUM_PWR_SAVE_CFG       11
 
 #define WDA_TX_COMPLETE_TIME_OUT_VALUE 1000
   
@@ -1127,6 +1127,21 @@ VOS_STATUS WDA_prepareConfigTLV(v_PVOID_t pVosContext,
    tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length) ; 
 
+   /* QWLAN_HAL_CFG_DYNAMIC_PS_POLL_VALUE */
+   tlvStruct->type = QWLAN_HAL_CFG_DYNAMIC_PS_POLL_VALUE  ;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   if(wlan_cfgGetInt(pMac, WNI_CFG_DYNAMIC_PS_POLL_VALUE, configDataValue) 
+                                                   != eSIR_SUCCESS)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                    "Failed to get value for WNI_CFG_DYNAMIC_PS_POLL_VALUE");
+      goto handle_failure;
+   }
+
+   tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length) ; 
+
    /* QWLAN_HAL_CFG_TELE_BCN_TRANS_LI */
    tlvStruct->type = QWLAN_HAL_CFG_TELE_BCN_TRANS_LI  ;
    tlvStruct->length = sizeof(tANI_U32);
@@ -1197,11 +1212,17 @@ VOS_STATUS WDA_prepareConfigTLV(v_PVOID_t pVosContext,
    tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length) ; 
 
-   /* QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL */
-   tlvStruct->type = QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL  ;
+   /* QWLAN_HAL_CFG_INFRA_STA_KEEP_ALIVE_PERIOD */
+   tlvStruct->type = QWLAN_HAL_CFG_INFRA_STA_KEEP_ALIVE_PERIOD  ;
    tlvStruct->length = sizeof(tANI_U32);
    configDataValue = (tANI_U32 *)(tlvStruct + 1);
-   *configDataValue = 1;
+   if(wlan_cfgGetInt(pMac, WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD, configDataValue) 
+                                                   != eSIR_SUCCESS)
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                    "Failed to get value for WNI_CFG_INFRA_STA_KEEP_ALIVE_PERIOD");
+      goto handle_failure;
+   }
 
    tlvStruct = (tHalCfg *)( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length) ; 
@@ -6469,6 +6490,14 @@ VOS_STATUS WDA_ProcessSetPwrSaveCfgReq(tWDA_CbContext *pWDA,
    tlvStruct->length = sizeof(tANI_U32);
    configDataValue = (tANI_U32 *)(tlvStruct + 1);
    *configDataValue = (tANI_U32)pPowerSaveCfg->fEnableBeaconEarlyTermination;
+   tlvStruct = (tHalCfg *)(( (tANI_U8 *) tlvStruct 
+                            + sizeof(tHalCfg) + tlvStruct->length)) ; 
+
+   /* QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL */
+   tlvStruct->type = QWLAN_HAL_CFG_BCN_EARLY_TERM_WAKEUP_INTERVAL;
+   tlvStruct->length = sizeof(tANI_U32);
+   configDataValue = (tANI_U32 *)(tlvStruct + 1);
+   *configDataValue = (tANI_U32)pPowerSaveCfg->bcnEarlyTermWakeInterval;
    tlvStruct = (tHalCfg *)(( (tANI_U8 *) tlvStruct 
                             + sizeof(tHalCfg) + tlvStruct->length)) ; 
 

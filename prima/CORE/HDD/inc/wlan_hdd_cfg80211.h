@@ -40,14 +40,17 @@
 #define HDD_P2P_WILDCARD_SSID "DIRECT-" //TODO Put it in proper place;
 #define HDD_P2P_WILDCARD_SSID_LEN 7
 
-void wlan_hdd_cfg80211_update_bss_db( hdd_adapter_t *pAdapter, 
-                                      tCsrRoamInfo *pRoamInfo
-                                      );
+void wlan_hdd_cfg80211_update_bss_db(hdd_adapter_t *pAdapter, 
+                                     tCsrRoamInfo *pRoamInfo
+                                     );
 
+struct wiphy *wlan_hdd_cfg80211_init(int priv_size);
 
-struct wiphy *wlan_hdd_cfg80211_init( struct device *dev, 
-                                         int priv_size
-                                         );
+int wlan_hdd_cfg80211_register(struct device *dev,
+                               struct wiphy *wiphy,
+                               hdd_config_t *pCfg
+                               );
+
 void wlan_hdd_cfg80211_post_voss_start(hdd_adapter_t* pAdapter);
 
 void wlan_hdd_cfg80211_pre_voss_stop(hdd_adapter_t* pAdapter);

@@ -518,7 +518,7 @@ PopulateDot11fPropSuppRates(tpAniSirGlobal          pMac,
 
 void
 PopulateDot11fQOSCapsAp(tpAniSirGlobal      pMac,
-                        tDot11fIEQOSCapsAp *pDot11f);
+                        tDot11fIEQOSCapsAp *pDot11f, tpPESession psessionEntry);
 
 void
 PopulateDot11fQOSCapsStation(tpAniSirGlobal           pMac,

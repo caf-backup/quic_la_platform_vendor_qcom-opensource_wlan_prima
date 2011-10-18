@@ -650,6 +650,11 @@ struct hdd_context_s
 
    v_U8_t change_iface;
 
+   /** Concurrency Parameters*/
+   tVOS_CONCURRENCY_MODE concurrency_mode;
+
+   v_U16_t no_of_sessions[VOS_MAX_CONCURRENCY_PERSONA];
+
    hdd_chip_reset_stats_t hddChipResetStats;
 };
 
@@ -709,4 +714,6 @@ void hdd_abort_mac_scan(hdd_context_t *pHddCtx);
 #ifdef CONFIG_CFG80211
 void wlan_hdd_set_monitor_tx_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter );
 #endif
+void wlan_hdd_set_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode);
+void wlan_hdd_clear_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

@@ -353,36 +353,36 @@ PopulateDot11fEDCAParamSet(tpAniSirGlobal         pMac,
     if (  psessionEntry->limQosEnabled )
     {
         //change to bitwise operation, after this is fixed in frames.
-        pDot11f->qos = (tANI_U8)(0xf0 & (pMac->sch.schObject.gSchEdcaParamSetCount << 4) );
+        pDot11f->qos = (tANI_U8)(0xf0 & (psessionEntry->gLimEdcaParamSetCount << 4) );
 
         // Fill each EDCA parameter set in order: be, bk, vi, vo
-        pDot11f->acbe_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[0].aci.aifsn) );
-        pDot11f->acbe_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[0].aci.acm );
+        pDot11f->acbe_aifsn     = ( 0xf & SET_AIFSN(psessionEntry->gLimEdcaParamsBC[0].aci.aifsn) );
+        pDot11f->acbe_acm       = ( 0x1 & psessionEntry->gLimEdcaParamsBC[0].aci.acm );
         pDot11f->acbe_aci       = ( 0x3 & SIR_MAC_EDCAACI_BESTEFFORT );
-        pDot11f->acbe_acwmin    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[0].cw.min );
-        pDot11f->acbe_acwmax    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[0].cw.max );
-        pDot11f->acbe_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[0].txoplimit;
+        pDot11f->acbe_acwmin    = ( 0xf & psessionEntry->gLimEdcaParamsBC[0].cw.min );
+        pDot11f->acbe_acwmax    = ( 0xf & psessionEntry->gLimEdcaParamsBC[0].cw.max );
+        pDot11f->acbe_txoplimit = psessionEntry->gLimEdcaParamsBC[0].txoplimit;
 
-        pDot11f->acbk_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[1].aci.aifsn) );
-        pDot11f->acbk_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[1].aci.acm );
+        pDot11f->acbk_aifsn     = ( 0xf & SET_AIFSN(psessionEntry->gLimEdcaParamsBC[1].aci.aifsn) );
+        pDot11f->acbk_acm       = ( 0x1 & psessionEntry->gLimEdcaParamsBC[1].aci.acm );
         pDot11f->acbk_aci       = ( 0x3 & SIR_MAC_EDCAACI_BACKGROUND );
-        pDot11f->acbk_acwmin    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[1].cw.min );
-        pDot11f->acbk_acwmax    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[1].cw.max );
-        pDot11f->acbk_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[1].txoplimit;
+        pDot11f->acbk_acwmin    = ( 0xf & psessionEntry->gLimEdcaParamsBC[1].cw.min );
+        pDot11f->acbk_acwmax    = ( 0xf & psessionEntry->gLimEdcaParamsBC[1].cw.max );
+        pDot11f->acbk_txoplimit = psessionEntry->gLimEdcaParamsBC[1].txoplimit;
 
-        pDot11f->acvi_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[2].aci.aifsn) );
-        pDot11f->acvi_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[2].aci.acm );
+        pDot11f->acvi_aifsn     = ( 0xf & SET_AIFSN(psessionEntry->gLimEdcaParamsBC[2].aci.aifsn) );
+        pDot11f->acvi_acm       = ( 0x1 & psessionEntry->gLimEdcaParamsBC[2].aci.acm );
         pDot11f->acvi_aci       = ( 0x3 & SIR_MAC_EDCAACI_VIDEO );
-        pDot11f->acvi_acwmin    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].cw.min );
-        pDot11f->acvi_acwmax    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].cw.max );
-        pDot11f->acvi_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[2].txoplimit;
+        pDot11f->acvi_acwmin    = ( 0xf & psessionEntry->gLimEdcaParamsBC[2].cw.min );
+        pDot11f->acvi_acwmax    = ( 0xf & psessionEntry->gLimEdcaParamsBC[2].cw.max );
+        pDot11f->acvi_txoplimit = psessionEntry->gLimEdcaParamsBC[2].txoplimit;
 
-        pDot11f->acvo_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[3].aci.aifsn) );
-        pDot11f->acvo_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[3].aci.acm );
+        pDot11f->acvo_aifsn     = ( 0xf & SET_AIFSN(psessionEntry->gLimEdcaParamsBC[3].aci.aifsn) );
+        pDot11f->acvo_acm       = ( 0x1 & psessionEntry->gLimEdcaParamsBC[3].aci.acm );
         pDot11f->acvo_aci       = ( 0x3 & SIR_MAC_EDCAACI_VOICE );
-        pDot11f->acvo_acwmin    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[3].cw.min );
-        pDot11f->acvo_acwmax    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[3].cw.max );
-        pDot11f->acvo_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[3].txoplimit;
+        pDot11f->acvo_acwmin    = ( 0xf & psessionEntry->gLimEdcaParamsBC[3].cw.min );
+        pDot11f->acvo_acwmax    = ( 0xf & psessionEntry->gLimEdcaParamsBC[3].cw.max );
+        pDot11f->acvo_txoplimit = psessionEntry->gLimEdcaParamsBC[3].txoplimit;
 
         pDot11f->present = 1;
     }
@@ -977,9 +977,9 @@ PopulateDot11fPowerConstraints(tpAniSirGlobal             pMac,
 
 void
 PopulateDot11fQOSCapsAp(tpAniSirGlobal      pMac,
-                        tDot11fIEQOSCapsAp *pDot11f)
+                        tDot11fIEQOSCapsAp *pDot11f, tpPESession psessionEntry)
 {
-    pDot11f->count    = pMac->sch.schObject.gSchEdcaParamSetCount;
+    pDot11f->count    = psessionEntry->gLimEdcaParamSetCount;
 	pDot11f->reserved = 0;
     pDot11f->txopreq  = 0;
     pDot11f->qreq     = 0;
@@ -1344,7 +1344,7 @@ void PopulateDot11fWMMInfoAp(tpAniSirGlobal pMac, tDot11fIEWMMInfoAp *pInfo,
     }
     else
     {
-        pInfo->param_set_count = ( 0xf & pMac->sch.schObject.gSchEdcaParamSetCount );
+        pInfo->param_set_count = ( 0xf & psessionEntry->gLimEdcaParamSetCount );
 #ifdef WLAN_SOFTAP_FEATURE
         if(psessionEntry->limSystemRole == eLIM_AP_ROLE ){
             pInfo->uapsd = ( 0x1 & psessionEntry->apUapsdEnable );
@@ -1387,54 +1387,54 @@ void PopulateDot11fWMMParams(tpAniSirGlobal      pMac,
 #ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE)
        pParams->qosInfo =
-           (psessionEntry->apUapsdEnable << 7) | ((tANI_U8)(0x0f & pMac->sch.schObject.gSchEdcaParamSetCount));
+           (psessionEntry->apUapsdEnable << 7) | ((tANI_U8)(0x0f & psessionEntry->gLimEdcaParamSetCount));
     else 
 #endif
        pParams->qosInfo =
-           (pMac->lim.gUapsdEnable << 7) | ((tANI_U8)(0x0f & pMac->sch.schObject.gSchEdcaParamSetCount));
+           (pMac->lim.gUapsdEnable << 7) | ((tANI_U8)(0x0f & psessionEntry->gLimEdcaParamSetCount));
 
     // Fill each EDCA parameter set in order: be, bk, vi, vo
-    pParams->acbe_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[0].aci.aifsn) );
-    pParams->acbe_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[0].aci.acm );
+    pParams->acbe_aifsn     = ( 0xf & SET_AIFSN(psessionEntry->gLimEdcaParamsBC[0].aci.aifsn) );
+    pParams->acbe_acm       = ( 0x1 & psessionEntry->gLimEdcaParamsBC[0].aci.acm );
     pParams->acbe_aci       = ( 0x3 & SIR_MAC_EDCAACI_BESTEFFORT );
-    pParams->acbe_acwmin    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[0].cw.min );
-    pParams->acbe_acwmax    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[0].cw.max );
-    pParams->acbe_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[0].txoplimit;
+    pParams->acbe_acwmin    = ( 0xf & psessionEntry->gLimEdcaParamsBC[0].cw.min );
+    pParams->acbe_acwmax    = ( 0xf & psessionEntry->gLimEdcaParamsBC[0].cw.max );
+    pParams->acbe_txoplimit = psessionEntry->gLimEdcaParamsBC[0].txoplimit;
 
-    pParams->acbk_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[1].aci.aifsn) );
-    pParams->acbk_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[1].aci.acm );
+    pParams->acbk_aifsn     = ( 0xf & SET_AIFSN(psessionEntry->gLimEdcaParamsBC[1].aci.aifsn) );
+    pParams->acbk_acm       = ( 0x1 & psessionEntry->gLimEdcaParamsBC[1].aci.acm );
     pParams->acbk_aci       = ( 0x3 & SIR_MAC_EDCAACI_BACKGROUND );
-    pParams->acbk_acwmin    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[1].cw.min );
-    pParams->acbk_acwmax    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[1].cw.max );
-    pParams->acbk_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[1].txoplimit;
+    pParams->acbk_acwmin    = ( 0xf & psessionEntry->gLimEdcaParamsBC[1].cw.min );
+    pParams->acbk_acwmax    = ( 0xf & psessionEntry->gLimEdcaParamsBC[1].cw.max );
+    pParams->acbk_txoplimit = psessionEntry->gLimEdcaParamsBC[1].txoplimit;
 
 #ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
-        pParams->acvi_aifsn     = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].aci.aifsn );
+        pParams->acvi_aifsn     = ( 0xf & psessionEntry->gLimEdcaParamsBC[2].aci.aifsn );
     else
 #endif 
-        pParams->acvi_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[2].aci.aifsn) );
+        pParams->acvi_aifsn     = ( 0xf & SET_AIFSN(psessionEntry->gLimEdcaParamsBC[2].aci.aifsn) );
 
 
 
-    pParams->acvi_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[2].aci.acm );
+    pParams->acvi_acm       = ( 0x1 & psessionEntry->gLimEdcaParamsBC[2].aci.acm );
     pParams->acvi_aci       = ( 0x3 & SIR_MAC_EDCAACI_VIDEO );
-    pParams->acvi_acwmin    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].cw.min );
-    pParams->acvi_acwmax    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[2].cw.max );
-    pParams->acvi_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[2].txoplimit;
+    pParams->acvi_acwmin    = ( 0xf & psessionEntry->gLimEdcaParamsBC[2].cw.min );
+    pParams->acvi_acwmax    = ( 0xf & psessionEntry->gLimEdcaParamsBC[2].cw.max );
+    pParams->acvi_txoplimit = psessionEntry->gLimEdcaParamsBC[2].txoplimit;
 
 #ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE )
-        pParams->acvo_aifsn     = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[3].aci.aifsn );
+        pParams->acvo_aifsn     = ( 0xf & psessionEntry->gLimEdcaParamsBC[3].aci.aifsn );
     else
 #endif
-        pParams->acvo_aifsn     = ( 0xf & SET_AIFSN(pMac->sch.schObject.gSchEdcaParamsBC[3].aci.aifsn) );
+        pParams->acvo_aifsn     = ( 0xf & SET_AIFSN(psessionEntry->gLimEdcaParamsBC[3].aci.aifsn) );
 
-    pParams->acvo_acm       = ( 0x1 & pMac->sch.schObject.gSchEdcaParamsBC[3].aci.acm );
+    pParams->acvo_acm       = ( 0x1 & psessionEntry->gLimEdcaParamsBC[3].aci.acm );
     pParams->acvo_aci       = ( 0x3 & SIR_MAC_EDCAACI_VOICE );
-    pParams->acvo_acwmin    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[3].cw.min );
-    pParams->acvo_acwmax    = ( 0xf & pMac->sch.schObject.gSchEdcaParamsBC[3].cw.max );
-    pParams->acvo_txoplimit = pMac->sch.schObject.gSchEdcaParamsBC[3].txoplimit;
+    pParams->acvo_acwmin    = ( 0xf & psessionEntry->gLimEdcaParamsBC[3].cw.min );
+    pParams->acvo_acwmax    = ( 0xf & psessionEntry->gLimEdcaParamsBC[3].cw.max );
+    pParams->acvo_txoplimit = psessionEntry->gLimEdcaParamsBC[3].txoplimit;
 
     pParams->present = 1;
 

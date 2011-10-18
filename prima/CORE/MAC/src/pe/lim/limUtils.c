@@ -2550,8 +2550,8 @@ limDecideStaProtection(tpAniSirGlobal pMac,
         if ( pMac->lim.gHTNonGFDevicesPresent != htInfo.nonGFDevicesPresent )
         {
             pBeaconParams->llnNonGFCoexist = pMac->lim.gHTNonGFDevicesPresent = ( tANI_U8 )htInfo.nonGFDevicesPresent;
-            pBeaconParams->paramChangeBitmap      |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
-        }
+                pBeaconParams->paramChangeBitmap      |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
+            }
 
         if ( pMac->lim.gHTLSigTXOPFullSupport != ( tANI_U8 )htInfo.lsigTXOPProtectionFullSupport )
         {
@@ -5192,12 +5192,12 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
         }
 #ifdef WLAN_SOFTAP_FEATURE
     if(psessionEntry->limSystemRole == eLIM_AP_ROLE){
-		if ((enable) && (false == psessionEntry->gHTNonGFDevicesPresent))
+        if ((enable) && (false == psessionEntry->gHTNonGFDevicesPresent))
         {
-            PELOG1(limLog(pMac, LOG1, FL(" => Prtection from non GF Enabled\n"));)
+                PELOG1(limLog(pMac, LOG1, FL(" => Prtection from non GF Enabled\n"));)
             pBeaconParams->llnNonGFCoexist = psessionEntry->gHTNonGFDevicesPresent = true;
-            pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
-        }
+                pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
+            }
         else if (!enable && (true == psessionEntry->gHTNonGFDevicesPresent))
         {
             PELOG1(limLog(pMac, LOG1, FL("===> Protection from Non GF Disabled\n"));)
@@ -5214,12 +5214,12 @@ limEnableHTNonGfProtection(tpAniSirGlobal pMac, tANI_U8 enable,
             pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
         }
         else if (!enable && (true == pMac->lim.gHTNonGFDevicesPresent))
-        {
-            PELOG1(limLog(pMac, LOG1, FL("===> Protection from Non GF Disabled\n"));)
+            {
+                PELOG1(limLog(pMac, LOG1, FL("===> Protection from Non GF Disabled\n"));)
             pBeaconParams->llnNonGFCoexist = pMac->lim.gHTNonGFDevicesPresent = false;
-            pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
+                pBeaconParams->paramChangeBitmap |= PARAM_NON_GF_DEVICES_PRESENT_CHANGED;
+            }
         }
-	}
 
     return eSIR_SUCCESS;
 }
@@ -5689,7 +5689,7 @@ void limUpdateStaRunTimeHTCapability( tpAniSirGlobal   pMac,
  */
 
 void limUpdateStaRunTimeHTInfo( tpAniSirGlobal  pMac,
-                                tDot11fIEHTInfo *pHTInfo )
+                                tDot11fIEHTInfo *pHTInfo , tpPESession psessionEntry)
 {
     if ( pMac->lim.gHTSecondaryChannelOffset != ( tANI_U8)pHTInfo->secondaryChannelOffset)
     {
@@ -5913,9 +5913,9 @@ limValidateDeltsReq(tpAniSirGlobal pMac, tpSirDeltsReq pDeltsReq, tSirMacAddr pe
 #if (defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))
        if ((tsinfo->traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA))
            if (((psessionEntry->limSystemRole == eLIM_AP_ROLE) || (psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE))&& 
-                       (! pMac->sch.schObject.gSchEdcaParamsBC[upToAc(tsinfo->traffic.userPrio)].aci.acm))
+                       (! psessionEntry->gLimEdcaParamsBC[upToAc(tsinfo->traffic.userPrio)].aci.acm))
                    || (((psessionEntry->limSystemRole != eLIM_AP_ROLE) ||(psessionEntry->limSystemRole == eLIM_BT_AMP_AP_ROLE)) && 
-                       (! pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)))
+                       (! psessionEntry->gLimEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)))
        {
            limLog(pMac, LOGW, FL("DelTs with acecssPolicy = %d and UP %d , AC = %d has no AC - ignoring request\n"),
                   tsinfo->traffic.accessPolicy, tsinfo->traffic.userPrio, upToAc(tsinfo->traffic.userPrio));
@@ -5938,7 +5938,7 @@ limValidateDeltsReq(tpAniSirGlobal pMac, tpSirDeltsReq pDeltsReq, tSirMacAddr pe
     else
     {
         if((tsinfo->traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA) && 
-           pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
+           psessionEntry->gLimEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
         {
             //send message to HAL to delete TS
             if(eSIR_SUCCESS != limSendHalMsgDelTs(pMac, pSta->staIndex, tspecIdx, pDeltsReq->req))

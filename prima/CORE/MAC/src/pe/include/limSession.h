@@ -224,6 +224,26 @@ typedef struct sPESession           // Added to Support BT-AMP
     tSirNoAParam p2pNoA;
     tSirP2PNoaAttr p2pGoPsUpdate;
 #endif
+
+    /* EDCA QoS parameters
+     * gLimEdcaParams - These EDCA parameters are used locally on AP or STA.
+     * If STA, then these are values taken from the Assoc Rsp when associating,
+     * or Beacons/Probe Response after association.  If AP, then these are 
+     * values originally set locally on AP. 
+     *
+     * gLimEdcaParamsBC - These EDCA parameters are use by AP to broadcast 
+     * to other STATIONs in the BSS. 
+     *
+     * gLimEdcaParamsActive: These EDCA parameters are what's actively being
+     * used on station. Specific AC values may be downgraded depending on 
+     * admission control for that particular AC. 
+     */	 
+    tSirMacEdcaParamRecord gLimEdcaParams[MAX_NUM_AC];   //used locally 
+    tSirMacEdcaParamRecord gLimEdcaParamsBC[MAX_NUM_AC]; //used for broadcast
+    tSirMacEdcaParamRecord gLimEdcaParamsActive[MAX_NUM_AC]; 
+
+    tANI_U8  gLimEdcaParamSetCount;
+
 }tPESession, *tpPESession;
 
 #define LIM_MAX_ACTIVE_SESSIONS 4

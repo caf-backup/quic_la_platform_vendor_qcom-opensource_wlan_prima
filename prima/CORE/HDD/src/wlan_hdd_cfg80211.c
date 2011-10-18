@@ -54,6 +54,7 @@
 #include "wlan_hdd_hostapd.h"
 #include "sapInternal.h"
 #include "wlan_hdd_softap_tx_rx.h"
+#include "wlan_hdd_main.h"
 
 #define g_mode_rates_size (12)
 #define a_mode_rates_size (8)
@@ -108,7 +109,7 @@ static inline int is_broadcast_ether_addr(const u8 *addr)
             (addr[3] == 0xff) && (addr[4] == 0xff) && (addr[5] == 0xff));
 }
 
-static struct ieee80211_channel hdd_2GHZ_channels[] =
+static struct ieee80211_channel hdd_channels_2_4_GHZ[] =
 {
     HDD2GHZCHAN(2412, 1, 0) ,
     HDD2GHZCHAN(2417, 2, 0) ,
@@ -126,7 +127,16 @@ static struct ieee80211_channel hdd_2GHZ_channels[] =
     HDD2GHZCHAN(2484, 14, 0) ,
 };
 
-static struct ieee80211_channel hdd_5GHZ_channels[] =
+#ifdef WLAN_FEATURE_P2P
+static struct ieee80211_channel hdd_social_channels_2_4_GHZ[] =
+{
+    HDD2GHZCHAN(2412, 1, 0) ,
+    HDD2GHZCHAN(2437, 6, 0) ,
+    HDD2GHZCHAN(2462, 11, 0) ,
+};
+#endif
+
+static struct ieee80211_channel hdd_channels_5_GHZ[] =
 {
     HDD5GHZCHAN(5180, 36, 0) ,
     HDD5GHZCHAN(5200, 40, 0) ,
@@ -182,10 +192,10 @@ static struct ieee80211_rate a_mode_rates[] =
     HDD_G_MODE_RATETAB(540, 0x800, 0),
 };
 
-static struct ieee80211_supported_band wlan_hdd_band_2GHZ = 
+static struct ieee80211_supported_band wlan_hdd_band_2_4_GHZ = 
 {
-    .channels = hdd_2GHZ_channels,
-    .n_channels = ARRAY_SIZE(hdd_2GHZ_channels),
+    .channels = hdd_channels_2_4_GHZ,
+    .n_channels = ARRAY_SIZE(hdd_channels_2_4_GHZ),
     .band       = IEEE80211_BAND_2GHZ,
     .bitrates = g_mode_rates,
     .n_bitrates = g_mode_rates_size,
@@ -198,11 +208,29 @@ static struct ieee80211_supported_band wlan_hdd_band_2GHZ =
     .ht_cap.mcs.tx_params  = IEEE80211_HT_MCS_TX_DEFINED,
 };
 
-static struct ieee80211_supported_band wlan_hdd_band_5GHZ =
+#ifdef WLAN_FEATURE_P2P
+static struct ieee80211_supported_band wlan_hdd_band_p2p_2_4_GHZ = 
 {
-    .channels = hdd_5GHZ_channels,
+    .channels = hdd_social_channels_2_4_GHZ,
+    .n_channels = ARRAY_SIZE(hdd_social_channels_2_4_GHZ),
+    .band       = IEEE80211_BAND_2GHZ,
+    .bitrates = g_mode_rates,
+    .n_bitrates = g_mode_rates_size,
+    .ht_cap.ht_supported   = 1,
+    .ht_cap.cap            = g_ht_capability,
+    .ht_cap.ampdu_factor   = IEEE80211_HT_MAX_AMPDU_64K,
+    .ht_cap.ampdu_density  = IEEE80211_HT_MPDU_DENSITY_16,
+    .ht_cap.mcs.rx_mask    = { 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, },
+    .ht_cap.mcs.rx_highest = cpu_to_le16( 72 ),
+    .ht_cap.mcs.tx_params  = IEEE80211_HT_MCS_TX_DEFINED,
+};
+#endif
+
+static struct ieee80211_supported_band wlan_hdd_band_5_GHZ =
+{
+    .channels = hdd_channels_5_GHZ,
+    .n_channels = ARRAY_SIZE(hdd_channels_5_GHZ),
     .band     = IEEE80211_BAND_5GHZ,
-    .n_channels = ARRAY_SIZE(hdd_5GHZ_channels),
     .bitrates = a_mode_rates,
     .n_bitrates = a_mode_rates_size,
     .ht_cap.ht_supported   = 1,
@@ -256,18 +284,14 @@ wlan_hdd_txrx_stypes[NUM_NL80211_IFTYPES] = {
 static struct cfg80211_ops wlan_hdd_cfg80211_ops;
 
 extern struct net_device_ops net_ops_struct;
+
 /*
  * FUNCTION: wlan_hdd_cfg80211_init
  * This function is called by hdd_wlan_startup() 
  * during initialization. 
  * This function is used to initialize and register wiphy structure.
  */
-//struct wireless_dev *wlan_hdd_cfg80211_init( struct device *dev, 
-//                                             int priv_size
-//                                             )
-struct wiphy *wlan_hdd_cfg80211_init( struct device *dev, 
-                                             int priv_size
-                                             )
+struct wiphy *wlan_hdd_cfg80211_init(int priv_size)
 {
     struct wiphy *wiphy;
     ENTER();
@@ -284,6 +308,20 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
         return NULL;
     }
 
+    return wiphy;
+}
+
+/*
+ * FUNCTION: wlan_hdd_cfg80211_init
+ * This function is called by hdd_wlan_startup() 
+ * during initialization. 
+ * This function is used to initialize and register wiphy structure.
+ */
+int wlan_hdd_cfg80211_register(struct device *dev, 
+                               struct wiphy *wiphy,
+                               hdd_config_t *pCfg
+                               )
+{
     /* Now bind the underlying wlan device with wiphy */
     set_wiphy_dev(wiphy, dev);
 
@@ -305,10 +343,24 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
                              | BIT(NL80211_IFTYPE_MONITOR)
                              | BIT(NL80211_IFTYPE_AP);
 
-    /*Initialise the band details*/
-    wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_2GHZ;
-    wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5GHZ;
 
+    /*Initialize band capability*/
+    switch(pCfg->nBandCapability)
+    {
+        case eCSR_BAND_24:
+            wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_2_4_GHZ;
+            break;
+        case eCSR_BAND_5G:
+#ifdef WLAN_FEATURE_P2P
+            wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_p2p_2_4_GHZ;
+#endif
+            wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
+            break;
+        case eCSR_BAND_ALL:
+        default:
+            wiphy->bands[IEEE80211_BAND_2GHZ] = &wlan_hdd_band_2_4_GHZ;
+            wiphy->bands[IEEE80211_BAND_5GHZ] = &wlan_hdd_band_5_GHZ;
+    }
     /*Initialise the supported cipher suite details*/
     wiphy->cipher_suites = hdd_cipher_suites;
     wiphy->n_cipher_suites = ARRAY_SIZE(hdd_cipher_suites);
@@ -324,17 +376,11 @@ struct wiphy *wlan_hdd_cfg80211_init( struct device *dev,
     {
         /* print eror */
         hddLog(VOS_TRACE_LEVEL_ERROR,"%s: wiphy register failed", __func__);
-        goto register_err;
+        return -EIO;
     }
 
     EXIT();
-    return wiphy;
-
-register_err:
-    wiphy_free(wiphy);
-
-    EXIT();
-    return NULL;
+    return 0;
 }     
 
 /* In this function we will do all post VOS start initialization.
@@ -989,6 +1035,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
 {
     struct wireless_dev *wdev;
     hdd_adapter_t *pAdapter = WLAN_HDD_GET_PRIV_PTR( ndev ); //(hdd_adapter_t*) wiphy_priv(wiphy);
+    hdd_context_t *pHddCtx = (hdd_context_t*)pAdapter->pHddCtx;
     tCsrRoamProfile *pRoamProfile = NULL;
     eCsrRoamBssType LastBSSType;
     hdd_config_t *pConfig = (WLAN_HDD_GET_CTX(pAdapter))->cfg_ini;
@@ -1002,6 +1049,9 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
  
     wdev = ndev->ieee80211_ptr;
 
+    /* Reset the current device mode bit mask*/
+    wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
+    
     if( (pAdapter->device_mode == WLAN_HDD_INFRA_STATION)
 #ifdef WLAN_FEATURE_P2P
       || (pAdapter->device_mode == WLAN_HDD_P2P_CLIENT)
@@ -1139,6 +1189,7 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
       return -EOPNOTSUPP;
     }
 
+
     if(pRoamProfile)
     {
         if ( LastBSSType != pRoamProfile->BSSType )
@@ -1168,6 +1219,8 @@ int wlan_hdd_cfg80211_change_iface( struct wiphy *wiphy,
     }
 
 done:
+    /*set bitmask based on updated value*/
+    wlan_hdd_set_concurrency_mode(pHddCtx, pAdapter->device_mode);
     EXIT();
     return 0;
 }
@@ -1971,7 +2024,7 @@ static struct cfg80211_bss* wlan_hdd_cfg80211_inform_bss(
     ENTER();
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
-    if (chan_no <= ARRAY_SIZE(hdd_2GHZ_channels))
+    if (chan_no <= ARRAY_SIZE(hdd_channels_2_4_GHZ))
     {
         freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_2GHZ);
     }
@@ -2039,7 +2092,7 @@ wlan_hdd_cfg80211_inform_bss_frame( hdd_adapter_t *pAdapter,
         (u16)(IEEE80211_FTYPE_MGMT | IEEE80211_STYPE_PROBE_RESP);
 
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,38))
-    if (chan_no <= ARRAY_SIZE(hdd_2GHZ_channels))
+    if (chan_no <= ARRAY_SIZE(hdd_channels_2_4_GHZ))
     {
         freq = ieee80211_channel_to_frequency(chan_no, IEEE80211_BAND_2GHZ);
     }

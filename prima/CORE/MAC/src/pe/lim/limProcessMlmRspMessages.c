@@ -2922,16 +2922,16 @@ limProcessStaMlmAddBssRspFT(tpAniSirGlobal pMac, tpSirMsgQ limMsgQ, tpPESession 
     pStaDs->ucBcastSig   = pAddBssParams->staContext.ucBcastSig;
 
     // Downgrade the EDCA parameters if needed
-    limSetActiveEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParams);
+    limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);
 
     // Send the active EDCA parameters to HAL
     if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE) 
     {
-        limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
+        limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
     } 
     else
     {
-        limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
+        limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
     }
 
 #if defined WLAN_FEATURE_VOWIFI
@@ -3123,12 +3123,12 @@ limProcessStaMlmAddBssRsp( tpAniSirGlobal pMac, tpSirMsgQ limMsgQ,tpPESession ps
             pStaDs->ucUcastSig   = pAddBssParams->staContext.ucUcastSig;
             pStaDs->ucBcastSig   = pAddBssParams->staContext.ucBcastSig;
             // Downgrade the EDCA parameters if needed
-            limSetActiveEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParams);
+            limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);
             // Send the active EDCA parameters to HAL
             if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE) {
-                limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
+                limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
             } else {
-                limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
+                limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
             }
 #if defined WLAN_FEATURE_VOWIFI
             rrmCacheMgmtTxPower( pMac, pAddBssParams->txMgmtPower, psessionEntry );

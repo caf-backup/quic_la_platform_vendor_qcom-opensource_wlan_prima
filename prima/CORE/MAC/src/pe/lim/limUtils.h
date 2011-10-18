@@ -173,7 +173,7 @@ void limSwitchPrimarySecondaryChannel(tpAniSirGlobal, tANI_U8, tAniCBSecondaryMo
 tAniBool limTriggerBackgroundScanDuringQuietBss(tpAniSirGlobal);
 void limUpdateStaRunTimeHTSwtichChnlParams(tpAniSirGlobal pMac, tDot11fIEHTInfo *pRcvdHTInfo, tANI_U8 bssIdx);
 void limUpdateStaRunTimeHTCapability(tpAniSirGlobal pMac, tDot11fIEHTCaps *pHTCaps);
-void limUpdateStaRunTimeHTInfo(struct sAniSirGlobal *pMac, tDot11fIEHTInfo *pRcvdHTInfo);
+void limUpdateStaRunTimeHTInfo(struct sAniSirGlobal *pMac, tDot11fIEHTInfo *pRcvdHTInfo, tpPESession psessionEntry);
 void limCancelDot11hChannelSwitch(tpAniSirGlobal pMac, tpPESession psessionEntry);
 void limCancelDot11hQuiet(tpAniSirGlobal pMac, tpPESession psessionEntry);
 tAniBool limIsChannelValidForChannelSwitch(tpAniSirGlobal pMac, tANI_U8 channel);

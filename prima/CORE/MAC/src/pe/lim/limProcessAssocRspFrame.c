@@ -29,7 +29,7 @@
 #include "limStaHashApi.h"
 #include "limSendMessages.h"
 
-extern tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *edca);
+extern tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *edca, tpPESession psessionEntry);
 
 
 /**
@@ -137,7 +137,7 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
        if (qosMode) {
            if (pAssocRsp->edcaPresent) {
                tSirRetStatus status;
-               status = schBeaconEdcaProcess(pMac,&pAssocRsp->edca);
+               status = schBeaconEdcaProcess(pMac,&pAssocRsp->edca, psessionEntry);
               PELOG2(limLog(pMac, LOG2, "Edca set update based on AssocRsp: status %d\n",
                       status);)
                if (status != eSIR_SUCCESS) {
@@ -154,7 +154,7 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
        if (psessionEntry->limWmeEnabled && pAssocRsp->wmeEdcaPresent)
        {
            tSirRetStatus status;
-           status = schBeaconEdcaProcess(pMac,&pAssocRsp->edca);
+           status = schBeaconEdcaProcess(pMac,&pAssocRsp->edca, psessionEntry);
            PELOGW(limLog(pMac, LOGW, "WME Edca set update based on AssocRsp: status %d\n", status);)
 
            if (status != eSIR_SUCCESS)
@@ -167,7 +167,7 @@ void limUpdateAssocStaDatas(tpAniSirGlobal pMac, tpDphHashNode pStaDs, tpSirAsso
        else {
            /* We received assoc rsp from a legacy AP. So fill in the default 
             * local EDCA params. This is needed (refer to bug #14989) as we'll 
-            * be passing the gSchEdcaParams to HAL in limProcessStaMlmAddBssRsp().
+            * be passing the gLimEdcaParams to HAL in limProcessStaMlmAddBssRsp().
             */ 
            schSetDefaultEdcaParams(pMac);
        }

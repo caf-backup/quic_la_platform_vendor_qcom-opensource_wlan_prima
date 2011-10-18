@@ -43,7 +43,7 @@ state,tSirMacAddr bssId, tSirMacAddr selfMacAddr, int ft, tpPESession psessionEn
 tSirRetStatus limSendSetTxPowerReq(tpAniSirGlobal pMac, tpSirSetTxPowerReq pTxPowerReq);
 tSirRetStatus limSendGetTxPowerReq(tpAniSirGlobal pMac, tpSirGetTxPowerReq pTxPowerReq);
 
-void limSetActiveEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *plocalEdcaParams);
+void limSetActiveEdcaParams(tpAniSirGlobal pMac, tSirMacEdcaParamRecord *plocalEdcaParams, tpPESession psessionEntry);
 
 #define CAPABILITY_FILTER_MASK  0x73CF
 #define ERP_FILTER_MASK         0xF8

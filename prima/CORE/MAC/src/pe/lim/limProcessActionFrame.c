@@ -355,7 +355,7 @@ __limProcessAddTsReq(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
     // for edca, if no Admit Control, ignore the request
     if ((status == eSIR_MAC_SUCCESS_STATUS) &&
         (addts.tspec.tsinfo.traffic.accessPolicy == SIR_MAC_ACCESSPOLICY_EDCA) &&
-        (! pMac->sch.schObject.gSchEdcaParamsBC[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm))
+        (! psessionEntry->gLimEdcaParamsBC[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm))
     {
         limLog(pMac, LOGW, FL("AddTs with UP %d has no ACM - ignoring request\n"),
                addts.tspec.tsinfo.traffic.userPrio);
@@ -558,15 +558,15 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
       pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] |= (1 << ac);
     }
 
-    limSetActiveEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParams);
+    limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);
 
     pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
     if (pStaDs != NULL)
     {
         if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE) 
-            limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
+            limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
         else
-            limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
+            limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
     }
     else
         limLog(pMac, LOGE, FL("Self entry missing in Hash Table \n"));
@@ -587,7 +587,7 @@ __limProcessAddTsRsp(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
     }
 
     if((addts.tspec.tsinfo.traffic.accessPolicy != SIR_MAC_ACCESSPOLICY_EDCA) ||
-       (pMac->sch.schObject.gSchEdcaParams[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm))
+       (psessionEntry->gLimEdcaParams[upToAc(addts.tspec.tsinfo.traffic.userPrio)].aci.acm))
     {
         retval = limSendHalMsgAddTs(pMac, pSta->staIndex, tspecInfo->idx, addts.tspec);
         if(eSIR_SUCCESS != retval)
@@ -688,11 +688,11 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
     {
 #if(defined(ANI_PRODUCT_TYPE_AP) || defined(ANI_PRODUCT_TYPE_AP_SDK))
         if ((psessionEntry->limSystemRole == eLIM_AP_ROLE &&
-        (! pMac->sch.schObject.gSchEdcaParamsBC[upToAc(tsinfo->traffic.userPrio)].aci.acm)) ||
+        (! psessionEntry->gLimEdcaParamsBC[upToAc(tsinfo->traffic.userPrio)].aci.acm)) ||
         (psessionEntry->limSystemRole != eLIM_AP_ROLE &&
-        (! pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)))
+        (! psessionEntry->gLimEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)))
 #else
-        if (! pMac->sch.schObject.gSchEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
+        if (! psessionEntry->gLimEdcaParams[upToAc(tsinfo->traffic.userPrio)].aci.acm)
 #endif
         {
             limLog(pMac, LOGW, FL("DelTs with UP %d has no AC - ignoring request\n"),
@@ -762,15 +762,15 @@ __limProcessDelTsReq(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,tpPESession pse
       pMac->lim.gAcAdmitMask[SIR_MAC_DIRECTION_DNLINK] &= ~(1 << ac);
     }
 
-    limSetActiveEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParams);
+    limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry);
 
     pStaDs = dphGetHashEntry(pMac, DPH_STA_HASH_INDEX_PEER, &psessionEntry->dph.dphHashTable);
     if (pStaDs != NULL)
     {
         if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE) 
-            limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
+            limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
         else
-            limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
+            limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
     }
     else
         limLog(pMac, LOGE, FL("Self entry missing in Hash Table \n"));

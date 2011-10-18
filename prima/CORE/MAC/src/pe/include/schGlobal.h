@@ -72,26 +72,6 @@ struct schMisc {
 
     tANI_U16 gSchBeaconInterval;
 
-    /* EDCA QoS parameters
-     * gSchEdcaParams - These EDCA parameters are used locally on AP or STA.
-     * If STA, then these are values taken from the Assoc Rsp when associating,
-     * or Beacons/Probe Response after association.  If AP, then these are 
-     * values originally set locally on AP. 
-     *
-     * gSchEdcaParamsBC - These EDCA parameters are use by AP to broadcast 
-     * to other STATIONs in the BSS. 
-     *
-     * gSchEdcaParamsActive: These EDCA parameters are what's actively being
-     * used on station. Specific AC values may be downgraded depending on 
-     * admission control for that particular AC. 
-     */	 
-    tSirMacEdcaParamRecord gSchEdcaParams[MAX_NUM_AC];   //used locally 
-    tSirMacEdcaParamRecord gSchEdcaParamsBC[MAX_NUM_AC]; //used for broadcast
-    tSirMacEdcaParamRecord gSchEdcaParamsActive[MAX_NUM_AC]; 
-
-
-    tANI_U8  gSchEdcaParamSetCount;
-
     /// Current CFP count
     tANI_U8 gSchCFPCount;
 

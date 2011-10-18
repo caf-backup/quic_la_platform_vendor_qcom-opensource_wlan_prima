@@ -505,6 +505,8 @@ eHalStatus pmcSetConfigPowerSave (tHalHandle hHal, tPmcPowerSavingMode psMode, v
                pMac->pmc.bmpsConfig.setPmOnLastFrame);
         smsLog(pMac, LOG3, "          value of enableBeaconEarlyTermination: %d\n",
                pMac->pmc.bmpsConfig.enableBeaconEarlyTermination);
+        smsLog(pMac, LOG3, "          value of bcnEarlyTermWakeInterval: %d\n",
+               pMac->pmc.bmpsConfig.bcnEarlyTermWakeInterval);
 
 #ifdef FEATURE_WLAN_DIAG_SUPPORT    
         vos_mem_zero(&psRequest, sizeof(vos_event_wlan_powersave_payload_type));

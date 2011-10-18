@@ -254,7 +254,7 @@ void schProcessMessage(tpAniSirGlobal pMac,tpSirMsgQ pSchMsg)
                 case WNI_CFG_EDCA_WME_ACVO:
                     if (psessionEntry->limSystemRole == eLIM_AP_ROLE)
                     {
-                        pMac->sch.schObject.gSchEdcaParamSetCount++;
+                        psessionEntry->gLimEdcaParamSetCount++;
                         schQosUpdateBroadcast(pMac, psessionEntry);
                     }
                     break;
@@ -320,7 +320,7 @@ schUpdateQosInfo( tpAniSirGlobal pMac)
 {
     // need to populate local info only on AP or IBSS, beacon processing
     // takes care of others
-    pMac->sch.schObject.gSchEdcaParamSetCount = 0xFF;
+    psessionEntry->gLimEdcaParamSetCount = 0xFF;
 
     if (pMac->lim.gLimSystemRole == eLIM_STA_IN_IBSS_ROLE)
     {
@@ -483,18 +483,18 @@ schQosUpdateBroadcast(tpAniSirGlobal pMac, tpPESession psessionEntry)
 
     for(i=0; i<MAX_NUM_AC; i++)
     {
-        pMac->sch.schObject.gSchEdcaParamsBC[i].aci.acm = (tANI_U8) params[i][WNI_CFG_EDCA_PROFILE_ACM_IDX];
-        pMac->sch.schObject.gSchEdcaParamsBC[i].aci.aifsn = (tANI_U8) params[i][WNI_CFG_EDCA_PROFILE_AIFSN_IDX];
-        pMac->sch.schObject.gSchEdcaParamsBC[i].cw.min =  convertCW(GET_CW(&params[i][cwminidx]));
-        pMac->sch.schObject.gSchEdcaParamsBC[i].cw.max =  convertCW(GET_CW(&params[i][cwmaxidx]));
-        pMac->sch.schObject.gSchEdcaParamsBC[i].txoplimit=  (tANI_U16) params[i][txopidx];
+        psessionEntry->gLimEdcaParamsBC[i].aci.acm = (tANI_U8) params[i][WNI_CFG_EDCA_PROFILE_ACM_IDX];
+        psessionEntry->gLimEdcaParamsBC[i].aci.aifsn = (tANI_U8) params[i][WNI_CFG_EDCA_PROFILE_AIFSN_IDX];
+        psessionEntry->gLimEdcaParamsBC[i].cw.min =  convertCW(GET_CW(&params[i][cwminidx]));
+        psessionEntry->gLimEdcaParamsBC[i].cw.max =  convertCW(GET_CW(&params[i][cwmaxidx]));
+        psessionEntry->gLimEdcaParamsBC[i].txoplimit=  (tANI_U16) params[i][txopidx];
 
        PELOG1(schLog(pMac, LOG1, "QoSUpdateBCast: AC :%d: AIFSN: %d, ACM %d, CWmin %d, CWmax %d, TxOp %d\n", i,
-                pMac->sch.schObject.gSchEdcaParamsBC[i].aci.aifsn,
-                pMac->sch.schObject.gSchEdcaParamsBC[i].aci.acm,
-                pMac->sch.schObject.gSchEdcaParamsBC[i].cw.min,
-                pMac->sch.schObject.gSchEdcaParamsBC[i].cw.max,
-                pMac->sch.schObject.gSchEdcaParamsBC[i].txoplimit);)
+                psessionEntry->gLimEdcaParamsBC[i].aci.aifsn,
+                psessionEntry->gLimEdcaParamsBC[i].aci.acm,
+                psessionEntry->gLimEdcaParamsBC[i].cw.min,
+                psessionEntry->gLimEdcaParamsBC[i].cw.max,
+                psessionEntry->gLimEdcaParamsBC[i].txoplimit);)
 
     }
 
@@ -530,12 +530,12 @@ schQosUpdateLocal(tpAniSirGlobal pMac, tpPESession psessionEntry)
     }
 
     //For AP, the bssID is stored in LIM Global context.
-    limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParams, psessionEntry->bssIdx, highPerformance);
+    limSendEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry->bssIdx, highPerformance);
 }
 
 /** ----------------------------------------------------------
 \fn      schSetDefaultEdcaParams
-\brief   This function sets the gSchEdcaParams to the default
+\brief   This function sets the gLimEdcaParams to the default
 \        local wmm profile.
 \param   tpAniSirGlobal  pMac
 \return  none
@@ -558,7 +558,7 @@ schSetDefaultEdcaParams(tpAniSirGlobal pMac)
 
 /** ----------------------------------------------------------
 \fn      setSchEdcaParams
-\brief   This function fills in the gSchEdcaParams structure
+\brief   This function fills in the gLimEdcaParams structure
 \        with the given edca params.
 \param   tpAniSirGlobal  pMac
 \return  none
@@ -605,18 +605,18 @@ setSchEdcaParams(tpAniSirGlobal pMac, tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK_LO
 
     for(i=0; i<MAX_NUM_AC; i++)
     {
-        pMac->sch.schObject.gSchEdcaParams[i].aci.acm = (tANI_U8) params[i][WNI_CFG_EDCA_PROFILE_ACM_IDX];
-        pMac->sch.schObject.gSchEdcaParams[i].aci.aifsn = (tANI_U8) params[i][WNI_CFG_EDCA_PROFILE_AIFSN_IDX];
-        pMac->sch.schObject.gSchEdcaParams[i].cw.min =  convertCW(GET_CW(&params[i][cwminidx]));
-        pMac->sch.schObject.gSchEdcaParams[i].cw.max =  convertCW(GET_CW(&params[i][cwmaxidx]));
-        pMac->sch.schObject.gSchEdcaParams[i].txoplimit=  (tANI_U16) params[i][txopidx];
+        psessionEntry->gLimEdcaParams[i].aci.acm = (tANI_U8) params[i][WNI_CFG_EDCA_PROFILE_ACM_IDX];
+        psessionEntry->gLimEdcaParams[i].aci.aifsn = (tANI_U8) params[i][WNI_CFG_EDCA_PROFILE_AIFSN_IDX];
+        psessionEntry->gLimEdcaParams[i].cw.min =  convertCW(GET_CW(&params[i][cwminidx]));
+        psessionEntry->gLimEdcaParams[i].cw.max =  convertCW(GET_CW(&params[i][cwmaxidx]));
+        psessionEntry->gLimEdcaParams[i].txoplimit=  (tANI_U16) params[i][txopidx];
 
        PELOG1(schLog(pMac, LOG1, FL("AC :%d: AIFSN: %d, ACM %d, CWmin %d, CWmax %d, TxOp %d\n"), i,
-                pMac->sch.schObject.gSchEdcaParams[i].aci.aifsn,
-                pMac->sch.schObject.gSchEdcaParams[i].aci.acm,
-                pMac->sch.schObject.gSchEdcaParams[i].cw.min,
-                pMac->sch.schObject.gSchEdcaParams[i].cw.max,
-                pMac->sch.schObject.gSchEdcaParams[i].txoplimit);)
+                psessionEntry->gLimEdcaParams[i].aci.aifsn,
+                psessionEntry->gLimEdcaParams[i].aci.acm,
+                psessionEntry->gLimEdcaParams[i].cw.min,
+                psessionEntry->gLimEdcaParams[i].cw.max,
+                psessionEntry->gLimEdcaParams[i].txoplimit);)
 
     }
     return;
@@ -663,7 +663,7 @@ getWmmLocalParams(tpAniSirGlobal  pMac,  tANI_U32 params[][WNI_CFG_EDCA_ANI_ACBK
 /** ----------------------------------------------------------
 \fn      schEdcaProfileUpdate
 \brief   This function updates the local and broadcast
-\        EDCA params in the gSchEdcaParams structure. It also
+\        EDCA params in the gLimEdcaParams structure. It also
 \        updates the edcaParamSetCount.
 \param   tpAniSirGlobal  pMac
 \return  none
@@ -674,7 +674,7 @@ schEdcaProfileUpdate(tpAniSirGlobal pMac, tpPESession psessionEntry)
     if (psessionEntry->limSystemRole == eLIM_AP_ROLE || psessionEntry->limSystemRole == eLIM_STA_IN_IBSS_ROLE)
     {
         schQosUpdateLocal(pMac, psessionEntry);
-        pMac->sch.schObject.gSchEdcaParamSetCount++;
+        psessionEntry->gLimEdcaParamSetCount++;
         schQosUpdateBroadcast(pMac, psessionEntry);
     }
 }

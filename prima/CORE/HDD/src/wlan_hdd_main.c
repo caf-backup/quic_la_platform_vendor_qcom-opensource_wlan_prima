@@ -178,8 +178,6 @@ void hdd_register_mcast_bcast_filter(hdd_context_t *pHddCtx);
 //variable to hold the insmod parameters
 static int con_mode = 0;
 #endif
-static tVOS_CONCURRENCY_MODE concurrency_mode = 0;
-
 
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
 /**---------------------------------------------------------------------------
@@ -1130,24 +1128,8 @@ hdd_adapter_t* hdd_open_adapter( hdd_context_t *pHddCtx, tANI_U8 session_type,
        }
    }
 
-   switch(session_type)
-   {
-       case WLAN_HDD_INFRA_STATION:
-              concurrency_mode |= VOS_STA;
-              break;
-#ifdef WLAN_FEATURE_P2P
-       case WLAN_HDD_P2P_CLIENT:       
-              concurrency_mode |= VOS_P2P_CLIENT;
-              break;
-       case WLAN_HDD_P2P_GO:
-              concurrency_mode |= VOS_P2P_GO;
-              break;
-#endif
-       case WLAN_HDD_SOFTAP:
-              concurrency_mode |= VOS_SAP;
-              break;
-   }
-
+   wlan_hdd_set_concurrency_mode(pHddCtx, session_type);
+   
    /* If there are concurrent session enable SW frame translation 
     * for all registered STA */ 
    if (vos_concurrent_sessions_running())
@@ -1214,24 +1196,7 @@ VOS_STATUS hdd_close_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter,
    pAdapterNode = pCurrent;
    if( VOS_STATUS_SUCCESS == status )
    {
-      switch ( pAdapter->device_mode )
-      {
-            case WLAN_HDD_INFRA_STATION:
-                   concurrency_mode &= ~VOS_STA;
-                   break;
-            case WLAN_HDD_P2P_CLIENT:
-                   concurrency_mode &= ~VOS_P2P_CLIENT;
-                   break;
-            case WLAN_HDD_P2P_GO:
-                   concurrency_mode &= ~VOS_P2P_GO;
-                   break;
-            case WLAN_HDD_SOFTAP:
-                   concurrency_mode &= ~VOS_SAP;
-                   break;
-            default:
-                   break;
-      }
-                             
+      wlan_hdd_clear_concurrency_mode(pHddCtx, pAdapter->device_mode);
       hdd_cleanup_adapter( pHddCtx, pAdapterNode->pAdapter, rtnl_held );
       hdd_remove_adapter( pHddCtx, pAdapterNode );
       vos_mem_free( pAdapterNode );
@@ -2350,9 +2315,9 @@ int hdd_wlan_startup(struct device *dev )
    ENTER();
 #ifdef CONFIG_CFG80211
    /*
-    * cfg80211 initialization and registration....
+    * cfg80211: wiphy allocation
     */
-   wiphy = wlan_hdd_cfg80211_init(dev, sizeof(hdd_context_t)) ;
+   wiphy = wlan_hdd_cfg80211_init(sizeof(hdd_context_t)) ;
 
    if(wiphy == NULL)
    {
@@ -2423,6 +2388,18 @@ int hdd_wlan_startup(struct device *dev )
       goto err_config;
    }
 
+#ifdef CONFIG_CFG80211
+   /*
+    * cfg80211: Initialization and registration ...
+    */
+   if (0 < wlan_hdd_cfg80211_register(dev, wiphy, pHddCtx->cfg_ini))
+   {
+      hddLog(VOS_TRACE_LEVEL_FATAL, 
+              "%s: wlan_hdd_cfg80211_register return failure", __func__);
+      goto err_wiphy_reg;
+   }
+#endif
+
 #ifdef FEATURE_WLAN_INTEGRATED_SOC
    // Update WDI trace levels based upon the cfg.ini
    hdd_wdi_trace_enable(eWLAN_MODULE_DAL,
@@ -2457,7 +2434,11 @@ int hdd_wlan_startup(struct device *dev )
       if(!VOS_IS_STATUS_SUCCESS( status ))
       {
          hddLog(VOS_TRACE_LEVEL_FATAL,"%s: vos_watchdog_open failed",__func__);
+#ifdef CONFIG_CFG80211
+         goto err_wiphy_reg;
+#else
          goto err_config;
+#endif
       }
    }
 
@@ -2802,13 +2783,17 @@ err_wdclose:
    if(pHddCtx->cfg_ini->fIsLogpEnabled)
       vos_watchdog_close(pVosContext);
 
+#ifdef CONFIG_CFG80211
+err_wiphy_reg:
+   wiphy_unregister(wiphy) ; 
+#endif
+
 err_config:
    kfree(pHddCtx->cfg_ini);
    pHddCtx->cfg_ini= NULL;
 
 err_free_hdd_context:
 #ifdef CONFIG_CFG80211
-   wiphy_unregister(wiphy) ; 
    wiphy_free(wiphy) ;
    //kfree(wdev) ;
 #else
@@ -3237,8 +3222,9 @@ void hdd_softap_tkip_mic_fail_counter_measure(hdd_adapter_t *pAdapter,v_BOOL_t e
  *           --------------------------------------------------------------------------*/
 tVOS_CONCURRENCY_MODE hdd_get_concurrency_mode ( void )
 {
-      return (tVOS_CONCURRENCY_MODE)concurrency_mode;
-
+    v_CONTEXT_t pVosContext = vos_get_global_context( VOS_MODULE_ID_HDD, NULL );
+    hdd_context_t *pHddCtx = vos_get_context( VOS_MODULE_ID_HDD, pVosContext);
+    return (tVOS_CONCURRENCY_MODE)pHddCtx->concurrency_mode;
 }
 
 /* Decide whether to allow/not the apps power collapse. 
@@ -3280,6 +3266,18 @@ v_BOOL_t hdd_is_apps_power_collapse_allowed(hdd_context_t* pHddCtx)
     return TRUE;
 }
 
+void wlan_hdd_set_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
+{
+    pHddCtx->concurrency_mode |= (1 << mode);
+    pHddCtx->no_of_sessions[mode]++;
+}
+
+void wlan_hdd_clear_concurrency_mode(hdd_context_t *pHddCtx, tVOS_CON_MODE mode)
+{
+    pHddCtx->no_of_sessions[mode]--;
+    if (!(pHddCtx->no_of_sessions[mode]))
+        pHddCtx->concurrency_mode &= ~(1 << mode);
+}
 //Register the module init/exit functions
 module_init(hdd_module_init);
 module_exit(hdd_module_exit);

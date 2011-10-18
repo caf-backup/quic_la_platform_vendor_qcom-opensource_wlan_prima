@@ -2728,7 +2728,7 @@ limCheckAndAnnounceJoinSuccess(tpAniSirGlobal pMac,
         if ( pBPR->HTCaps.present )
             limUpdateStaRunTimeHTCapability( pMac, &pBPR->HTCaps );
         if ( pBPR->HTInfo.present )
-            limUpdateStaRunTimeHTInfo( pMac, &pBPR->HTInfo );
+            limUpdateStaRunTimeHTInfo( pMac, &pBPR->HTInfo, psessionEntry);
         psessionEntry->limMlmState = eLIM_MLM_JOINED_STATE;
         MTRACE(macTrace(pMac, TRACE_CODE_MLM_STATE, 0, eLIM_MLM_JOINED_STATE));
 

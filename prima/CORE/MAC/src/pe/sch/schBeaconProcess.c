@@ -391,26 +391,26 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
         if ((pBeacon->wmeEdcaPresent && (psessionEntry->limWmeEnabled)) ||
              (pBeacon->edcaPresent    && (psessionEntry->limQosEnabled)))
         {
-            if(pBeacon->edcaParams.qosInfo.count != pMac->sch.schObject.gSchEdcaParamSetCount)
+            if(pBeacon->edcaParams.qosInfo.count != psessionEntry->gLimEdcaParamSetCount)
             {
-                if (schBeaconEdcaProcess(pMac, &pBeacon->edcaParams) != eSIR_SUCCESS)
+                if (schBeaconEdcaProcess(pMac, &pBeacon->edcaParams, psessionEntry) != eSIR_SUCCESS)
                     PELOGE(schLog(pMac, LOGE, FL("EDCA parameter processing error\n"));)
                 else if(pStaDs != NULL)
                 {
                     // If needed, downgrade the EDCA parameters
-                    limSetActiveEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParams); 
+                    limSetActiveEdcaParams(pMac, psessionEntry->gLimEdcaParams, psessionEntry); 
 
                     if (pStaDs->aniPeer == eANI_BOOLEAN_TRUE)
-                        limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
+                        limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_TRUE);
                     else
-                        limSendEdcaParams(pMac, pMac->sch.schObject.gSchEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
+                        limSendEdcaParams(pMac, psessionEntry->gLimEdcaParamsActive, pStaDs->bssId, eANI_BOOLEAN_FALSE);
                 }
                 else
                     PELOGE(limLog(pMac, LOGE, FL("Self Entry missing in Hash Table\n"));)
             }
         }
         else if( (pBeacon->qosCapabilityPresent && psessionEntry->limQosEnabled) &&
-            (pBeacon->qosCapability.qosInfo.count != pMac->sch.schObject.gSchEdcaParamSetCount))
+            (pBeacon->qosCapability.qosInfo.count != psessionEntry->gLimEdcaParamSetCount))
             sendProbeReq = TRUE;
     }
 
@@ -493,8 +493,8 @@ static void __schBeaconProcessForSession( tpAniSirGlobal      pMac,
 
     if(beaconParams.paramChangeBitmap)
     {
-        PELOGW(schLog(pMac, LOG1, FL("Beacon for session[%d] got changed. \n"), psessionEntry->peSessionId);)
-        PELOGW(schLog(pMac, LOG1, FL("sending beacon param change bitmap: 0x%x \n"), beaconParams.paramChangeBitmap);)		
+        PELOGW(schLog(pMac, LOGW, FL("Beacon for session[%d] got changed. \n"), psessionEntry->peSessionId);)
+        PELOGW(schLog(pMac, LOGW, FL("sending beacon param change bitmap: 0x%x \n"), beaconParams.paramChangeBitmap);)		
         limSendBeaconParams(pMac, &beaconParams, psessionEntry);
     }
 
@@ -610,7 +610,7 @@ void schBeaconProcess(tpAniSirGlobal pMac, tANI_U8* pRxPacketInfo, tpPESession p
  * @return success
  */
 
-tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *edca)
+tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *edca, tpPESession psessionEntry)
 {
     tANI_U8 i;
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
@@ -618,47 +618,47 @@ tSirRetStatus schBeaconEdcaProcess(tpAniSirGlobal pMac, tSirMacEdcaParamSetIE *e
 #endif //FEATURE_WLAN_DIAG_SUPPORT 
 
     PELOG1(schLog(pMac, LOG1, FL("Updating parameter set count: Old %d ---> new %d\n"),
-           pMac->sch.schObject.gSchEdcaParamSetCount, edca->qosInfo.count);)
+           psessionEntry->gLimEdcaParamSetCount, edca->qosInfo.count);)
 
-    pMac->sch.schObject.gSchEdcaParamSetCount = edca->qosInfo.count;
-    pMac->sch.schObject.gSchEdcaParams[EDCA_AC_BE] = edca->acbe;
-    pMac->sch.schObject.gSchEdcaParams[EDCA_AC_BK] = edca->acbk;
-    pMac->sch.schObject.gSchEdcaParams[EDCA_AC_VI] = edca->acvi;
-    pMac->sch.schObject.gSchEdcaParams[EDCA_AC_VO] = edca->acvo;
+    psessionEntry->gLimEdcaParamSetCount = edca->qosInfo.count;
+    psessionEntry->gLimEdcaParams[EDCA_AC_BE] = edca->acbe;
+    psessionEntry->gLimEdcaParams[EDCA_AC_BK] = edca->acbk;
+    psessionEntry->gLimEdcaParams[EDCA_AC_VI] = edca->acvi;
+    psessionEntry->gLimEdcaParams[EDCA_AC_VO] = edca->acvo;
 //log: LOG_WLAN_QOS_EDCA_C
 #ifdef FEATURE_WLAN_DIAG_SUPPORT
     WLAN_VOS_DIAG_LOG_ALLOC(log_ptr, vos_log_qos_edca_pkt_type, LOG_WLAN_QOS_EDCA_C);
     if(log_ptr)
     {
-       log_ptr->aci_be = pMac->sch.schObject.gSchEdcaParams[EDCA_AC_BE].aci.aci;
-       log_ptr->cw_be  = pMac->sch.schObject.gSchEdcaParams[EDCA_AC_BE].cw.max << 4 |
-          pMac->sch.schObject.gSchEdcaParams[EDCA_AC_BE].cw.min;
-       log_ptr->txoplimit_be = pMac->sch.schObject.gSchEdcaParams[EDCA_AC_BE].txoplimit;
-       log_ptr->aci_bk = pMac->sch.schObject.gSchEdcaParams[EDCA_AC_BK].aci.aci;
-       log_ptr->cw_bk  = pMac->sch.schObject.gSchEdcaParams[EDCA_AC_BK].cw.max << 4 |
-          pMac->sch.schObject.gSchEdcaParams[EDCA_AC_BK].cw.min;
-       log_ptr->txoplimit_bk = pMac->sch.schObject.gSchEdcaParams[EDCA_AC_BK].txoplimit;
-       log_ptr->aci_vi = pMac->sch.schObject.gSchEdcaParams[EDCA_AC_VI].aci.aci;
-       log_ptr->cw_vi  = pMac->sch.schObject.gSchEdcaParams[EDCA_AC_VI].cw.max << 4 |
-          pMac->sch.schObject.gSchEdcaParams[EDCA_AC_VI].cw.min;
-       log_ptr->txoplimit_vi = pMac->sch.schObject.gSchEdcaParams[EDCA_AC_VI].txoplimit;
-       log_ptr->aci_vo = pMac->sch.schObject.gSchEdcaParams[EDCA_AC_VO].aci.aci;
-       log_ptr->cw_vo  = pMac->sch.schObject.gSchEdcaParams[EDCA_AC_VO].cw.max << 4 |
-          pMac->sch.schObject.gSchEdcaParams[EDCA_AC_VO].cw.min;
-       log_ptr->txoplimit_vo = pMac->sch.schObject.gSchEdcaParams[EDCA_AC_VO].txoplimit;
+       log_ptr->aci_be = psessionEntry->gLimEdcaParams[EDCA_AC_BE].aci.aci;
+       log_ptr->cw_be  = psessionEntry->gLimEdcaParams[EDCA_AC_BE].cw.max << 4 |
+          psessionEntry->gLimEdcaParams[EDCA_AC_BE].cw.min;
+       log_ptr->txoplimit_be = psessionEntry->gLimEdcaParams[EDCA_AC_BE].txoplimit;
+       log_ptr->aci_bk = psessionEntry->gLimEdcaParams[EDCA_AC_BK].aci.aci;
+       log_ptr->cw_bk  = psessionEntry->gLimEdcaParams[EDCA_AC_BK].cw.max << 4 |
+          psessionEntry->gLimEdcaParams[EDCA_AC_BK].cw.min;
+       log_ptr->txoplimit_bk = psessionEntry->gLimEdcaParams[EDCA_AC_BK].txoplimit;
+       log_ptr->aci_vi = psessionEntry->gLimEdcaParams[EDCA_AC_VI].aci.aci;
+       log_ptr->cw_vi  = psessionEntry->gLimEdcaParams[EDCA_AC_VI].cw.max << 4 |
+          psessionEntry->gLimEdcaParams[EDCA_AC_VI].cw.min;
+       log_ptr->txoplimit_vi = psessionEntry->gLimEdcaParams[EDCA_AC_VI].txoplimit;
+       log_ptr->aci_vo = psessionEntry->gLimEdcaParams[EDCA_AC_VO].aci.aci;
+       log_ptr->cw_vo  = psessionEntry->gLimEdcaParams[EDCA_AC_VO].cw.max << 4 |
+          psessionEntry->gLimEdcaParams[EDCA_AC_VO].cw.min;
+       log_ptr->txoplimit_vo = psessionEntry->gLimEdcaParams[EDCA_AC_VO].txoplimit;
     }
     WLAN_VOS_DIAG_LOG_REPORT(log_ptr);
 #endif //FEATURE_WLAN_DIAG_SUPPORT
-	PELOG1(schLog(pMac, LOGE, FL("Updating Local EDCA Params(gSchEdcaParams) to: "));)
+	PELOG1(schLog(pMac, LOGE, FL("Updating Local EDCA Params(gLimEdcaParams) to: "));)
 	for(i=0; i<MAX_NUM_AC; i++)
 	{
         PELOG1(schLog(pMac, LOG1, FL("AC[%d]:  AIFSN: %d, ACM %d, CWmin %d, CWmax %d, TxOp %d\n"),
             i,
-            pMac->sch.schObject.gSchEdcaParams[i].aci.aifsn, 
-            pMac->sch.schObject.gSchEdcaParams[i].aci.acm,
-            pMac->sch.schObject.gSchEdcaParams[i].cw.min,
-            pMac->sch.schObject.gSchEdcaParams[i].cw.max,
-            pMac->sch.schObject.gSchEdcaParams[i].txoplimit);)		
+            psessionEntry->gLimEdcaParams[i].aci.aifsn, 
+            psessionEntry->gLimEdcaParams[i].aci.acm,
+            psessionEntry->gLimEdcaParams[i].cw.min,
+            psessionEntry->gLimEdcaParams[i].cw.max,
+            psessionEntry->gLimEdcaParams[i].txoplimit);)		
 	}
 	
     return eSIR_SUCCESS;
