@@ -131,6 +131,12 @@ v_VOID_t WLANTL_ReorderingAgingTimerExpierCB
       return;
    }
 
+   if( pTLHandle->atlSTAClients[ucSTAID].atlBAReorderInfo[ucTID].ucExists == 0 )
+   {
+      vos_lock_release(&ReorderInfo->reorderLock);
+      return;
+   }
+
    opCode      = WLANTL_OPCODE_FWDALL_DROPCUR;
    vosDataBuff = NULL;
 
@@ -534,9 +540,11 @@ WLANTL_BaSessionDel
   WLANTL_CbType*          pTLCb       = NULL; 
   vos_pkt_t*              vosDataBuff = NULL;
   VOS_STATUS              vosStatus   = VOS_STATUS_E_FAILURE;
+  VOS_STATUS              lockStatus = VOS_STATUS_E_FAILURE;  
   WLANTL_BAReorderType*   reOrderInfo = NULL;
   WLANTL_RxMetaInfoType   wRxMetaInfo;
   v_U32_t                 fwIdx = 0;
+  tANI_U8                 lockRetryCnt = 0;
   /*- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
    /*------------------------------------------------------------------------
@@ -607,6 +615,19 @@ WLANTL_BaSessionDel
    ------------------------------------------------------------------------*/
   reOrderInfo = &pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid];
 
+  /*------------------------------------------------------------------------
+     Invalidate reorder info here. This ensures that no packets are 
+     bufferd after  reorder buffer is cleaned.
+   */
+  lockStatus = vos_lock_acquire(&reOrderInfo->reorderLock);
+  if(!VOS_IS_STATUS_SUCCESS(lockStatus))
+  {
+    TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+          "Unable to acquire reorder vos lock in %s\n", __func__));
+    return lockStatus;
+  }
+  pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].ucExists = 0;
+
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
                "WLAN TL: Fwd all packets to HDD on WLANTL_BaSessionDel"));
 
@@ -632,10 +653,21 @@ WLANTL_BaSessionDel
              "WLAN TL: Chaining was successful sending all pkts to HDD : %x",
               vosDataBuff ));
 
-    wRxMetaInfo.ucUP = ucTid;
-    pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, 
-                                           (v_U8_t)ucSTAId, &wRxMetaInfo);
+#ifdef WLAN_SOFTAP_FEATURE
+    if ( WLAN_STA_SOFTAP == pTLCb->atlSTAClients[ucSTAId].wSTADesc.wSTAType )
+    {
+      WLANTL_FwdPktToHDD( pvosGCtx, vosDataBuff, ucSTAId);
+    }
+    else
+#endif
+    {
+      wRxMetaInfo.ucUP = ucTid;
+      pTLCb->atlSTAClients[ucSTAId].pfnSTARx( pvosGCtx, vosDataBuff, ucSTAId,
+                                            &wRxMetaInfo );
+    }
   }
+
+  vos_lock_release(&reOrderInfo->reorderLock);
 
   /*------------------------------------------------------------------------
      Delete reordering timer
@@ -668,14 +700,24 @@ WLANTL_BaSessionDel
   /*------------------------------------------------------------------------
     Delete session 
    ------------------------------------------------------------------------*/
-  pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].ucExists = 0;
   pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].usCount  = 0;
   pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].ucCIndex = 0;
   reOrderInfo->winSize   = 0;
   reOrderInfo->SSN       = 0;
   reOrderInfo->sessionID = 0;
 
-  vos_lock_destroy(&reOrderInfo->reorderLock);
+  while (vos_lock_destroy(&reOrderInfo->reorderLock) == VOS_STATUS_E_BUSY)
+  {
+    if( lockRetryCnt > 2)
+    {
+      TLLOGE(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+            "Unable to destroy reoderLock\n"));
+      break;
+    }
+    vos_sleep(1);
+    lockRetryCnt++;
+  }
+
   TLLOG2(VOS_TRACE( VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_HIGH,
              "WLAN TL: BA session deleted for STA: %d TID: %d",
              ucSTAId, ucTid));
@@ -953,6 +995,12 @@ VOS_STATUS WLANTL_MSDUReorder
       return lockStatus;
    }
 
+   if( pTLCb->atlSTAClients[ucSTAId].atlBAReorderInfo[ucTid].ucExists == 0 )
+   {
+     vos_lock_release(&currentReorderInfo->reorderLock);
+     return VOS_STATUS_E_INVAL;
+   }
+
    ucOpCode  = (v_U8_t)WLANHAL_RX_BD_GET_BA_OPCODE(pvBDHeader);
    ucSlotIdx = (v_U8_t)WLANHAL_RX_BD_GET_BA_SI(pvBDHeader);
    ucFwdIdx  = (v_U8_t)WLANHAL_RX_BD_GET_BA_FI(pvBDHeader);
@@ -1026,6 +1074,20 @@ VOS_STATUS WLANTL_MSDUReorder
                return status;
             }
             status = vos_pkt_chain_packet(vosPktIdx, *vosDataBuff, 1);
+            if(!VOS_IS_STATUS_SUCCESS(status))
+            {
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                  "Make frame chain with CUR frame fail %d, opcode %d",
+                               status, ucOpCode));
+               lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
+               if(!VOS_IS_STATUS_SUCCESS(lockStatus))
+               {
+                  TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                          "WLANTL_MSDUReorder, Release LOCK Fail"));
+                  return lockStatus;
+               }
+               return status;
+            }
             *vosDataBuff = vosPktIdx;
             currentReorderInfo->pendingFramesCount = 0;
          }
@@ -1129,6 +1191,20 @@ VOS_STATUS WLANTL_MSDUReorder
                return status;
             }
             status = vos_pkt_chain_packet(vosPktIdx, *vosDataBuff, 1);
+            if(!VOS_IS_STATUS_SUCCESS(status))
+            {
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                      "Make frame chain with CUR frame fail %d, opcode %d",
+                       status, ucOpCode));
+               lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
+               if(!VOS_IS_STATUS_SUCCESS(lockStatus))
+               {
+                  TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                          "WLANTL_MSDUReorder, Release LOCK Fail"));
+                  return lockStatus;
+               }
+               return status;
+            }
             *vosDataBuff = vosPktIdx;
             currentReorderInfo->pendingFramesCount = 0;
          }
@@ -1192,6 +1268,20 @@ VOS_STATUS WLANTL_MSDUReorder
                return status;
             }
             status = vos_pkt_chain_packet(vosPktIdx, *vosDataBuff, 1);
+            if(!VOS_IS_STATUS_SUCCESS(status))
+            {
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                      "Make frame chain with CUR frame fail %d, opcode %d",
+                       status, ucOpCode));
+               lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
+               if(!VOS_IS_STATUS_SUCCESS(lockStatus))
+               {
+                  TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                          "WLANTL_MSDUReorder, Release LOCK Fail"));
+                  return lockStatus;
+               }
+               return status;
+            }
             *vosDataBuff = vosPktIdx;
             currentReorderInfo->pendingFramesCount = 0;
          }
@@ -1341,10 +1431,13 @@ VOS_STATUS WLANTL_MSDUReorder
     * Route all the Qed frames upper layer
     * Otherwise, RX thread could be stall */
    vos_pkt_get_available_buffer_pool(VOS_PKT_TYPE_RX_RAW, &rxFree);
-   if(WLANTL_BA_MIN_FREE_RX_VOS_BUFFER > rxFree)
+   if( (WLANTL_BA_MIN_FREE_RX_VOS_BUFFER > rxFree) &&
+       (currentReorderInfo->pendingFramesCount != 0) )
    {
-      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"RX Free", rxFree));
-      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"RX free buffer count is too low, Pending frame count is %d",
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+             "RX Free %d", rxFree));
+      TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+             "RX free buffer count is too low, Pending frame count is %d",
                   currentReorderInfo->pendingFramesCount));
       vosPktIdx = NULL;
       status = WLANTL_ChainFrontPkts(ucFwdIdx,
@@ -1354,19 +1447,36 @@ VOS_STATUS WLANTL_MSDUReorder
                                      pTLCb);
       if(!VOS_IS_STATUS_SUCCESS(status))
       {
-         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"Make frame chain fail %d", status));
+         TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "Make frame chain fail %d", status));
          lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
          if(!VOS_IS_STATUS_SUCCESS(lockStatus))
          {
-            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,"WLANTL_MSDUReorder, Release LOCK Fail"));
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                    "WLANTL_MSDUReorder, Release LOCK Fail"));
             return lockStatus;
          }
          return status;
       }
       if(NULL != *vosDataBuff)
       {
-         TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,"Already something, Chain it"));
-         vos_pkt_chain_packet(*vosDataBuff, vosPktIdx, 1);
+         TLLOG4(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_INFO_LOW,
+                "Already something, Chain it"));
+         status = vos_pkt_chain_packet(*vosDataBuff, vosPktIdx, 1);
+         if(!VOS_IS_STATUS_SUCCESS(status))
+         {
+            TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                 "Make frame chain with CUR frame fail %d, opcode %d",
+                 status, ucOpCode));
+            lockStatus = vos_lock_release(&currentReorderInfo->reorderLock);
+            if(!VOS_IS_STATUS_SUCCESS(lockStatus))
+            {
+               TLLOGE(VOS_TRACE(VOS_MODULE_ID_TL, VOS_TRACE_LEVEL_ERROR,
+                   "WLANTL_MSDUReorder, Release LOCK Fail"));
+               return lockStatus;
+            }
+            return status;
+          }
       }
       else
       {

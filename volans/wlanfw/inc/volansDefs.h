@@ -39,6 +39,9 @@
 
 #define MAX_NUM_OF_BACKOFFS         8
 #define HAL_MAX_ASSOC_ID HAL_NUM_STA //currently max assoc id is same as max num sta.
+#define IS_VALID_BSSIDX(__x) \
+                        ((__x) < HAL_NUM_BSSID)
+#define HAL_INVALID_BSSIDX          HAL_NUM_BSSID
 
 /*
  * From NOVA Mac Arch document

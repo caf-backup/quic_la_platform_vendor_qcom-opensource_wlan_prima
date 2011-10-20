@@ -43,6 +43,8 @@
 
 #define	HAL_BAR_FRM_CNT								2
 
+#define HAL_BA_BLOCK_TIMEOUT          2
+
 typedef struct sAddBaInfo
 {
     tANI_U16 fBaEnable : 1;

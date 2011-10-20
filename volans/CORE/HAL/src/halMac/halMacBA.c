@@ -1752,6 +1752,10 @@ void halBaCheckActivity(tpAniSirGlobal pMac)
 
                 pSta->framesTxedLastPoll[tid] = pSta->framesTxed[tid];
 
+                if( pSta->baBlocked[tid] )
+                {
+                  pSta->baBlocked[tid]--;
+                }
             }
 
             baCandidateCnt += newBaCandidate; //This is the no. if stations for BA candidate.

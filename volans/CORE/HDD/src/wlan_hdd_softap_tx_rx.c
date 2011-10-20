@@ -1109,19 +1109,23 @@ VOS_STATUS hdd_softap_rx_packet_cbk( v_VOID_t *vosContext,
 
       if (WLAN_RX_BCMC_STA_ID == staId)
       {
-        //MC/BC packets. Duplicate a copy of packet
-        struct sk_buff *pSkbCopy;
-        pSkbCopy = skb_copy(skb, GFP_ATOMIC);
-
-        if (pSkbCopy)
-        {
-           hdd_softap_hard_start_xmit(pSkbCopy, skb->dev);
-        }
-        else
-        {
-            VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
-                      "%s: skb allocation fails", __FUNCTION__);
-        }
+         //MC/BC packets. Duplicate a copy of packet
+         struct sk_buff *pSkbCopy;
+  
+         if (!(pAdapter->apDisableIntraBssFwd))
+         {
+             pSkbCopy = skb_copy(skb, GFP_ATOMIC);
+             if (pSkbCopy)
+             {
+               hdd_softap_sta_2_sta_xmit(pSkbCopy, pSkbCopy->dev,
+                          pAdapter->uBCStaId, (pRxMetaInfo->ucUP));
+             }
+         }
+         else
+         {
+             VOS_TRACE(VOS_MODULE_ID_HDD_SOFTAP, VOS_TRACE_LEVEL_ERROR,
+                    "%s: skb allocation fails", __FUNCTION__);
+         }
 
       } //(WLAN_RX_BCMC_STA_ID == staId)
 

@@ -243,6 +243,9 @@ typedef struct
     // BA Session ID maintained on a per-TID basis
     // initialized to BA_SESSION_ID_INVALID when we add a new station in the table.
     tANI_U16 baSessionID[STACFG_MAX_TC];
+    //baBlocked id used to keep a counter interms of seconds. This will ensure that
+    //BA is blocked for around 2 seconds on recieving RPE error interrupt.
+    tANI_U8  baBlocked[STACFG_MAX_TC]; 
 
     //to store addBAReq message per tid to be used in processing response back
     tSavedAddBAReqParamsStruct addBAReqParams[STACFG_MAX_TC];
