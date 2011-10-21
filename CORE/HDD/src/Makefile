@@ -396,7 +396,7 @@ CDEFINES += -DMSM_PLATFORM_7x30
 endif
 
 
-ifeq ($(call is-board-platform-in-list,msm7627_surf msm7627_ffa),true)
+ifeq ($(call is-board-platform-in-list,msm7627_surf msm7627_ffa msm7627_6x),true)
 EXTRA_CFLAGS += -march=armv6
 CDEFINES += -DMSM_PLATFORM_7x27_FFA
 endif
